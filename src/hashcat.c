@@ -52,81 +52,6 @@
 #include "weak_hash.h"
 #include "wordlist.h"
 
-extern const u32 DEFAULT_BENCHMARK_ALGORITHMS_CNT;
-extern const u32 DEFAULT_BENCHMARK_ALGORITHMS_BUF[];
-
-int hashcat_ctx_init (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct hashcat_ctx *, const void *, const size_t))
-{
-  if (event == NULL)
-  {
-    fprintf (stderr, "Event callback function is mandatory\n");
-
-    return -1;
-  }
-
-  hashcat_ctx->event = event;
-
-  hashcat_ctx->bitmap_ctx         = (bitmap_ctx_t *)          hcmalloc (hashcat_ctx, sizeof (bitmap_ctx_t));            VERIFY_PTR (hashcat_ctx->bitmap_ctx);
-  hashcat_ctx->combinator_ctx     = (combinator_ctx_t *)      hcmalloc (hashcat_ctx, sizeof (combinator_ctx_t));        VERIFY_PTR (hashcat_ctx->combinator_ctx);
-  hashcat_ctx->cpt_ctx            = (cpt_ctx_t *)             hcmalloc (hashcat_ctx, sizeof (cpt_ctx_t));               VERIFY_PTR (hashcat_ctx->cpt_ctx);
-  hashcat_ctx->debugfile_ctx      = (debugfile_ctx_t *)       hcmalloc (hashcat_ctx, sizeof (debugfile_ctx_t));         VERIFY_PTR (hashcat_ctx->debugfile_ctx);
-  hashcat_ctx->dictstat_ctx       = (dictstat_ctx_t *)        hcmalloc (hashcat_ctx, sizeof (dictstat_ctx_t));          VERIFY_PTR (hashcat_ctx->dictstat_ctx);
-  hashcat_ctx->event_ctx          = (event_ctx_t *)           hcmalloc (hashcat_ctx, sizeof (event_ctx_t));             VERIFY_PTR (hashcat_ctx->event_ctx);
-  hashcat_ctx->folder_config      = (folder_config_t *)       hcmalloc (hashcat_ctx, sizeof (folder_config_t));         VERIFY_PTR (hashcat_ctx->folder_config);
-  hashcat_ctx->hashcat_user       = (hashcat_user_t *)        hcmalloc (hashcat_ctx, sizeof (hashcat_user_t));          VERIFY_PTR (hashcat_ctx->hashcat_user);
-  hashcat_ctx->hashconfig         = (hashconfig_t *)          hcmalloc (hashcat_ctx, sizeof (hashconfig_t));            VERIFY_PTR (hashcat_ctx->hashconfig);
-  hashcat_ctx->hashes             = (hashes_t *)              hcmalloc (hashcat_ctx, sizeof (hashes_t));                VERIFY_PTR (hashcat_ctx->hashes);
-  hashcat_ctx->hwmon_ctx          = (hwmon_ctx_t *)           hcmalloc (hashcat_ctx, sizeof (hwmon_ctx_t));             VERIFY_PTR (hashcat_ctx->hwmon_ctx);
-  hashcat_ctx->induct_ctx         = (induct_ctx_t *)          hcmalloc (hashcat_ctx, sizeof (induct_ctx_t));            VERIFY_PTR (hashcat_ctx->induct_ctx);
-  hashcat_ctx->logfile_ctx        = (logfile_ctx_t *)         hcmalloc (hashcat_ctx, sizeof (logfile_ctx_t));           VERIFY_PTR (hashcat_ctx->logfile_ctx);
-  hashcat_ctx->loopback_ctx       = (loopback_ctx_t *)        hcmalloc (hashcat_ctx, sizeof (loopback_ctx_t));          VERIFY_PTR (hashcat_ctx->loopback_ctx);
-  hashcat_ctx->mask_ctx           = (mask_ctx_t *)            hcmalloc (hashcat_ctx, sizeof (mask_ctx_t));              VERIFY_PTR (hashcat_ctx->mask_ctx);
-  hashcat_ctx->opencl_ctx         = (opencl_ctx_t *)          hcmalloc (hashcat_ctx, sizeof (opencl_ctx_t));            VERIFY_PTR (hashcat_ctx->opencl_ctx);
-  hashcat_ctx->outcheck_ctx       = (outcheck_ctx_t *)        hcmalloc (hashcat_ctx, sizeof (outcheck_ctx_t));          VERIFY_PTR (hashcat_ctx->outcheck_ctx);
-  hashcat_ctx->outfile_ctx        = (outfile_ctx_t *)         hcmalloc (hashcat_ctx, sizeof (outfile_ctx_t));           VERIFY_PTR (hashcat_ctx->outfile_ctx);
-  hashcat_ctx->potfile_ctx        = (potfile_ctx_t *)         hcmalloc (hashcat_ctx, sizeof (potfile_ctx_t));           VERIFY_PTR (hashcat_ctx->potfile_ctx);
-  hashcat_ctx->restore_ctx        = (restore_ctx_t *)         hcmalloc (hashcat_ctx, sizeof (restore_ctx_t));           VERIFY_PTR (hashcat_ctx->restore_ctx);
-  hashcat_ctx->status_ctx         = (status_ctx_t *)          hcmalloc (hashcat_ctx, sizeof (status_ctx_t));            VERIFY_PTR (hashcat_ctx->status_ctx);
-  hashcat_ctx->straight_ctx       = (straight_ctx_t *)        hcmalloc (hashcat_ctx, sizeof (straight_ctx_t));          VERIFY_PTR (hashcat_ctx->straight_ctx);
-  hashcat_ctx->tuning_db          = (tuning_db_t *)           hcmalloc (hashcat_ctx, sizeof (tuning_db_t));             VERIFY_PTR (hashcat_ctx->tuning_db);
-  hashcat_ctx->user_options_extra = (user_options_extra_t *)  hcmalloc (hashcat_ctx, sizeof (user_options_extra_t));    VERIFY_PTR (hashcat_ctx->user_options_extra);
-  hashcat_ctx->user_options       = (user_options_t *)        hcmalloc (hashcat_ctx, sizeof (user_options_t));          VERIFY_PTR (hashcat_ctx->user_options);
-  hashcat_ctx->wl_data            = (wl_data_t *)             hcmalloc (hashcat_ctx, sizeof (wl_data_t));               VERIFY_PTR (hashcat_ctx->wl_data);
-
-  return 0;
-}
-
-void hashcat_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
-{
-  hcfree (hashcat_ctx->bitmap_ctx);
-  hcfree (hashcat_ctx->combinator_ctx);
-  hcfree (hashcat_ctx->cpt_ctx);
-  hcfree (hashcat_ctx->debugfile_ctx);
-  hcfree (hashcat_ctx->dictstat_ctx);
-  hcfree (hashcat_ctx->event_ctx);
-  hcfree (hashcat_ctx->folder_config);
-  hcfree (hashcat_ctx->hashconfig);
-  hcfree (hashcat_ctx->hashes);
-  hcfree (hashcat_ctx->hwmon_ctx);
-  hcfree (hashcat_ctx->induct_ctx);
-  hcfree (hashcat_ctx->logfile_ctx);
-  hcfree (hashcat_ctx->loopback_ctx);
-  hcfree (hashcat_ctx->mask_ctx);
-  hcfree (hashcat_ctx->opencl_ctx);
-  hcfree (hashcat_ctx->outcheck_ctx);
-  hcfree (hashcat_ctx->outfile_ctx);
-  hcfree (hashcat_ctx->potfile_ctx);
-  hcfree (hashcat_ctx->restore_ctx);
-  hcfree (hashcat_ctx->status_ctx);
-  hcfree (hashcat_ctx->straight_ctx);
-  hcfree (hashcat_ctx->tuning_db);
-  hcfree (hashcat_ctx->user_options_extra);
-  hcfree (hashcat_ctx->user_options);
-  hcfree (hashcat_ctx->wl_data);
-
-  memset (hashcat_ctx, 0, sizeof (hashcat_ctx_t));
-}
-
 // inner2_loop iterates through wordlists, then calls kernel execution
 
 static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
@@ -140,7 +65,6 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
   user_options_t       *user_options        = hashcat_ctx->user_options;
 
-  //status_ctx->run_main_level1   = true;
   //status_ctx->run_main_level2   = true;
   //status_ctx->run_main_level3   = true;
   status_ctx->run_thread_level1 = true;
@@ -390,7 +314,6 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
   status_ctx_t   *status_ctx    = hashcat_ctx->status_ctx;
   straight_ctx_t *straight_ctx  = hashcat_ctx->straight_ctx;
 
-  //status_ctx->run_main_level1   = true;
   //status_ctx->run_main_level2   = true;
   status_ctx->run_main_level3   = true;
   status_ctx->run_thread_level1 = true;
@@ -431,10 +354,16 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-// outer_loop iterates through hash_modes (in benchmark mode)
-// also initializes stuff that depend on hash mode
+char *hashcat_ctx_last_error (hashcat_ctx_t *hashcat_ctx)
+{
+  event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
 
-static int outer_loop (hashcat_ctx_t *hashcat_ctx)
+  return event_ctx->msg_buf;
+}
+
+// hashcat_ctx_run_session also initializes stuff that depend on hash mode
+
+int hashcat_ctx_run_session (hashcat_ctx_t *hashcat_ctx)
 {
   hashes_t             *hashes              = hashcat_ctx->hashes;
   mask_ctx_t           *mask_ctx            = hashcat_ctx->mask_ctx;
@@ -447,7 +376,6 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->devices_status = STATUS_INIT;
 
-  //status_ctx->run_main_level1   = true;
   status_ctx->run_main_level2   = true;
   status_ctx->run_main_level3   = true;
   status_ctx->run_thread_level1 = true;
@@ -655,7 +583,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * main screen
    */
 
-  EVENT (EVENT_OUTERLOOP_MAINSCREEN);
+  EVENT (EVENT_SESSION_MAINSCREEN);
 
   /**
    * inform the user
@@ -740,6 +668,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   EVENT (EVENT_INNERLOOP1_STARTING);
 
+  int rc_inner1_loop = -1;
+
   if (mask_ctx->masks_cnt)
   {
     restore_data_t *rd = restore_ctx->rd;
@@ -755,19 +685,19 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
       mask_ctx->masks_pos = masks_pos;
 
-      const int rc_inner1_loop = inner1_loop (hashcat_ctx);
+      rc_inner1_loop = inner1_loop (hashcat_ctx);
 
-      if (rc_inner1_loop == -1) return -1;
+      if (rc_inner1_loop == -1) break;
 
       if (status_ctx->run_main_level2 == false) break;
     }
   }
   else
   {
-    const int rc_inner1_loop = inner1_loop (hashcat_ctx);
-
-    if (rc_inner1_loop == -1) return -1;
+    rc_inner1_loop = inner1_loop (hashcat_ctx);
   }
+
+  EVENT (EVENT_INNERLOOP1_FINISHED);
 
   // wait for inner threads
 
@@ -779,8 +709,6 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   }
 
   hcfree (inner_threads);
-
-  EVENT (EVENT_INNERLOOP1_FINISHED);
 
   // finalize potfile
 
@@ -810,14 +738,37 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   cpt_ctx_destroy (hashcat_ctx);
 
-  return 0;
+  // something for the user
+
+  if (rc_inner1_loop == 0)
+  {
+    if (status_ctx->devices_status == STATUS_ABORTED)   rc_inner1_loop = 2;
+    if (status_ctx->devices_status == STATUS_QUIT)      rc_inner1_loop = 2;
+    if (status_ctx->devices_status == STATUS_EXHAUSTED) rc_inner1_loop = 1;
+    if (status_ctx->devices_status == STATUS_CRACKED)   rc_inner1_loop = 0;
+  }
+
+  return rc_inner1_loop;
 }
 
-int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_folder, int argc, char **argv, const int comptime)
+// hashcat_ctx_init initializes opencl, sensors, everything that can be reused if we want to run hashcat multiple times
+
+int hashcat_ctx_init (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct hashcat_ctx *, const void *, const size_t), char *install_folder, char *shared_folder, int argc, char **argv, const int comptime)
 {
+  if (event == NULL)
+  {
+    fprintf (stderr, "Event callback function is mandatory\n");
+
+    return -1;
+  }
+
+  hashcat_ctx->event = event;
+
   logfile_ctx_t  *logfile_ctx  = hashcat_ctx->logfile_ctx;
   status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
+
+  time (&status_ctx->proc_start);
 
   /**
    * event init (needed for logging so should be first)
@@ -827,6 +778,10 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   if (rc_event_init == -1) return -1;
 
+  // say hello to user
+
+  EVENT (EVENT_WELCOME_SCREEN);
+
   /**
    * status init
    */
@@ -834,8 +789,6 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
   const int rc_status_init = status_ctx_init (hashcat_ctx);
 
   if (rc_status_init == -1) return -1;
-
-  EVENT (EVENT_WELCOME_SCREEN);
 
   /**
    * folder
@@ -854,14 +807,6 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
   if (rc_restore_init == -1) return -1;
 
   /**
-   * process user input
-   */
-
-  user_options_preprocess (hashcat_ctx);
-
-  user_options_extra_init (hashcat_ctx);
-
-  /**
    * logfile
    */
 
@@ -872,6 +817,14 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
   logfile_generate_topid (hashcat_ctx);
 
   logfile_top_msg ("START");
+
+  /**
+   * final process user input (argc/argv related)
+   */
+
+  user_options_preprocess (hashcat_ctx);
+
+  user_options_extra_init (hashcat_ctx);
 
   // add all user options to logfile in case we want to debug some user session
 
@@ -942,7 +895,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
   /**
    * potfile init
    * this is only setting path because potfile can be used in read and write mode depending on user options
-   * plus it depends on hash_mode, so we continue using it in outer_loop
+   * plus it depends on hash_mode, so we continue using it in hashcat_ctx_run_session
    */
 
   const int rc_potfile_init = potfile_init (hashcat_ctx);
@@ -999,51 +952,62 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   if (rc_hwmon_init == -1) return -1;
 
+  return 0;
+}
+
+int hashcat_ctx_alloc (hashcat_ctx_t *hashcat_ctx)
+{
   /**
-   * outer loop
+   * allocate main work objects
    */
 
-  EVENT (EVENT_OUTERLOOP_STARTING);
+  hashcat_ctx->bitmap_ctx         = (bitmap_ctx_t *)          hcmalloc (hashcat_ctx, sizeof (bitmap_ctx_t));            VERIFY_PTR (hashcat_ctx->bitmap_ctx);
+  hashcat_ctx->combinator_ctx     = (combinator_ctx_t *)      hcmalloc (hashcat_ctx, sizeof (combinator_ctx_t));        VERIFY_PTR (hashcat_ctx->combinator_ctx);
+  hashcat_ctx->cpt_ctx            = (cpt_ctx_t *)             hcmalloc (hashcat_ctx, sizeof (cpt_ctx_t));               VERIFY_PTR (hashcat_ctx->cpt_ctx);
+  hashcat_ctx->debugfile_ctx      = (debugfile_ctx_t *)       hcmalloc (hashcat_ctx, sizeof (debugfile_ctx_t));         VERIFY_PTR (hashcat_ctx->debugfile_ctx);
+  hashcat_ctx->dictstat_ctx       = (dictstat_ctx_t *)        hcmalloc (hashcat_ctx, sizeof (dictstat_ctx_t));          VERIFY_PTR (hashcat_ctx->dictstat_ctx);
+  hashcat_ctx->event_ctx          = (event_ctx_t *)           hcmalloc (hashcat_ctx, sizeof (event_ctx_t));             VERIFY_PTR (hashcat_ctx->event_ctx);
+  hashcat_ctx->folder_config      = (folder_config_t *)       hcmalloc (hashcat_ctx, sizeof (folder_config_t));         VERIFY_PTR (hashcat_ctx->folder_config);
+  hashcat_ctx->hashcat_user       = (hashcat_user_t *)        hcmalloc (hashcat_ctx, sizeof (hashcat_user_t));          VERIFY_PTR (hashcat_ctx->hashcat_user);
+  hashcat_ctx->hashconfig         = (hashconfig_t *)          hcmalloc (hashcat_ctx, sizeof (hashconfig_t));            VERIFY_PTR (hashcat_ctx->hashconfig);
+  hashcat_ctx->hashes             = (hashes_t *)              hcmalloc (hashcat_ctx, sizeof (hashes_t));                VERIFY_PTR (hashcat_ctx->hashes);
+  hashcat_ctx->hwmon_ctx          = (hwmon_ctx_t *)           hcmalloc (hashcat_ctx, sizeof (hwmon_ctx_t));             VERIFY_PTR (hashcat_ctx->hwmon_ctx);
+  hashcat_ctx->induct_ctx         = (induct_ctx_t *)          hcmalloc (hashcat_ctx, sizeof (induct_ctx_t));            VERIFY_PTR (hashcat_ctx->induct_ctx);
+  hashcat_ctx->logfile_ctx        = (logfile_ctx_t *)         hcmalloc (hashcat_ctx, sizeof (logfile_ctx_t));           VERIFY_PTR (hashcat_ctx->logfile_ctx);
+  hashcat_ctx->loopback_ctx       = (loopback_ctx_t *)        hcmalloc (hashcat_ctx, sizeof (loopback_ctx_t));          VERIFY_PTR (hashcat_ctx->loopback_ctx);
+  hashcat_ctx->mask_ctx           = (mask_ctx_t *)            hcmalloc (hashcat_ctx, sizeof (mask_ctx_t));              VERIFY_PTR (hashcat_ctx->mask_ctx);
+  hashcat_ctx->opencl_ctx         = (opencl_ctx_t *)          hcmalloc (hashcat_ctx, sizeof (opencl_ctx_t));            VERIFY_PTR (hashcat_ctx->opencl_ctx);
+  hashcat_ctx->outcheck_ctx       = (outcheck_ctx_t *)        hcmalloc (hashcat_ctx, sizeof (outcheck_ctx_t));          VERIFY_PTR (hashcat_ctx->outcheck_ctx);
+  hashcat_ctx->outfile_ctx        = (outfile_ctx_t *)         hcmalloc (hashcat_ctx, sizeof (outfile_ctx_t));           VERIFY_PTR (hashcat_ctx->outfile_ctx);
+  hashcat_ctx->potfile_ctx        = (potfile_ctx_t *)         hcmalloc (hashcat_ctx, sizeof (potfile_ctx_t));           VERIFY_PTR (hashcat_ctx->potfile_ctx);
+  hashcat_ctx->restore_ctx        = (restore_ctx_t *)         hcmalloc (hashcat_ctx, sizeof (restore_ctx_t));           VERIFY_PTR (hashcat_ctx->restore_ctx);
+  hashcat_ctx->status_ctx         = (status_ctx_t *)          hcmalloc (hashcat_ctx, sizeof (status_ctx_t));            VERIFY_PTR (hashcat_ctx->status_ctx);
+  hashcat_ctx->straight_ctx       = (straight_ctx_t *)        hcmalloc (hashcat_ctx, sizeof (straight_ctx_t));          VERIFY_PTR (hashcat_ctx->straight_ctx);
+  hashcat_ctx->tuning_db          = (tuning_db_t *)           hcmalloc (hashcat_ctx, sizeof (tuning_db_t));             VERIFY_PTR (hashcat_ctx->tuning_db);
+  hashcat_ctx->user_options_extra = (user_options_extra_t *)  hcmalloc (hashcat_ctx, sizeof (user_options_extra_t));    VERIFY_PTR (hashcat_ctx->user_options_extra);
+  hashcat_ctx->user_options       = (user_options_t *)        hcmalloc (hashcat_ctx, sizeof (user_options_t));          VERIFY_PTR (hashcat_ctx->user_options);
+  hashcat_ctx->wl_data            = (wl_data_t *)             hcmalloc (hashcat_ctx, sizeof (wl_data_t));               VERIFY_PTR (hashcat_ctx->wl_data);
 
-  int rc_final = -1;
+  return 0;
+}
 
-  if (user_options->benchmark == true)
-  {
-    user_options->quiet = true;
+void hashcat_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
+{
+  // final logfile entry
 
-    if (user_options->hash_mode_chgd == true)
-    {
-      rc_final = outer_loop (hashcat_ctx);
+  logfile_ctx_t *logfile_ctx = hashcat_ctx->logfile_ctx;
+  status_ctx_t  *status_ctx  = hashcat_ctx->status_ctx;
 
-      if (rc_final == -1) myabort (hashcat_ctx);
-    }
-    else
-    {
-      for (u32 algorithm_pos = 0; algorithm_pos < DEFAULT_BENCHMARK_ALGORITHMS_CNT; algorithm_pos++)
-      {
-        user_options->hash_mode = DEFAULT_BENCHMARK_ALGORITHMS_BUF[algorithm_pos];
+  time (&status_ctx->proc_stop);
 
-        rc_final = outer_loop (hashcat_ctx);
+  logfile_top_uint (status_ctx->proc_start);
+  logfile_top_uint (status_ctx->proc_stop);
 
-        if (rc_final == -1) myabort (hashcat_ctx);
+  logfile_top_msg ("STOP");
 
-        if (status_ctx->run_main_level1 == false) break;
-      }
-    }
-  }
-  else
-  {
-    rc_final = outer_loop (hashcat_ctx);
+  // say goodbye to user
 
-    if (rc_final == -1) myabort (hashcat_ctx);
-  }
-
-  EVENT (EVENT_OUTERLOOP_FINISHED);
-
-  if (user_options->benchmark == true)
-  {
-    user_options->quiet = false;
-  }
+  EVENT (EVENT_GOODBYE_SCREEN);
 
   // if exhausted or cracked, unlink the restore file
 
@@ -1053,18 +1017,7 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   dictstat_write (hashcat_ctx);
 
-  // final logfile entry
-
-  time (&status_ctx->proc_stop);
-
-  logfile_top_uint (status_ctx->proc_start);
-  logfile_top_uint (status_ctx->proc_stop);
-
-  logfile_top_msg ("STOP");
-
   // free memory
-
-  EVENT (EVENT_GOODBYE_SCREEN);
 
   logfile_destroy (hashcat_ctx);
 
@@ -1098,19 +1051,35 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   user_options_destroy (hashcat_ctx);
 
-  if (rc_final == 0)
-  {
-    if (status_ctx->devices_status == STATUS_ABORTED)   rc_final = 2;
-    if (status_ctx->devices_status == STATUS_QUIT)      rc_final = 2;
-    if (status_ctx->devices_status == STATUS_EXHAUSTED) rc_final = 1;
-    if (status_ctx->devices_status == STATUS_CRACKED)   rc_final = 0;
-  }
-
   event_ctx_destroy (hashcat_ctx);
 
   status_ctx_destroy (hashcat_ctx);
 
-  // done
+  hcfree (hashcat_ctx->bitmap_ctx);
+  hcfree (hashcat_ctx->combinator_ctx);
+  hcfree (hashcat_ctx->cpt_ctx);
+  hcfree (hashcat_ctx->debugfile_ctx);
+  hcfree (hashcat_ctx->dictstat_ctx);
+  hcfree (hashcat_ctx->event_ctx);
+  hcfree (hashcat_ctx->folder_config);
+  hcfree (hashcat_ctx->hashconfig);
+  hcfree (hashcat_ctx->hashes);
+  hcfree (hashcat_ctx->hwmon_ctx);
+  hcfree (hashcat_ctx->induct_ctx);
+  hcfree (hashcat_ctx->logfile_ctx);
+  hcfree (hashcat_ctx->loopback_ctx);
+  hcfree (hashcat_ctx->mask_ctx);
+  hcfree (hashcat_ctx->opencl_ctx);
+  hcfree (hashcat_ctx->outcheck_ctx);
+  hcfree (hashcat_ctx->outfile_ctx);
+  hcfree (hashcat_ctx->potfile_ctx);
+  hcfree (hashcat_ctx->restore_ctx);
+  hcfree (hashcat_ctx->status_ctx);
+  hcfree (hashcat_ctx->straight_ctx);
+  hcfree (hashcat_ctx->tuning_db);
+  hcfree (hashcat_ctx->user_options_extra);
+  hcfree (hashcat_ctx->user_options);
+  hcfree (hashcat_ctx->wl_data);
 
-  return rc_final;
+  memset (hashcat_ctx, 0, sizeof (hashcat_ctx_t));
 }

@@ -82,9 +82,9 @@ typedef enum event_identifier
   EVENT_LOG_ERROR                 = 0x00000003,
   EVENT_WELCOME_SCREEN            = 0x00000011,
   EVENT_GOODBYE_SCREEN            = 0x00000012,
-  EVENT_OUTERLOOP_STARTING        = 0x00000031,
-  EVENT_OUTERLOOP_MAINSCREEN      = 0x00000032,
-  EVENT_OUTERLOOP_FINISHED        = 0x00000033,
+  EVENT_SESSION_STARTING          = 0x00000031,
+  EVENT_SESSION_MAINSCREEN        = 0x00000032,
+  EVENT_SESSION_FINISHED          = 0x00000033,
   EVENT_INNERLOOP1_STARTING       = 0x00000041,
   EVENT_INNERLOOP1_FINISHED       = 0x00000042,
   EVENT_INNERLOOP2_STARTING       = 0x00000051,
@@ -1339,7 +1339,6 @@ typedef struct status_ctx
    * thread control
    */
 
-  bool run_main_level1;
   bool run_main_level2;
   bool run_main_level3;
   bool run_thread_level1;

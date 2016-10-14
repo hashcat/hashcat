@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
+#include <assert.h>
 
 #include "common.h"
 #include "types.h"
@@ -17,7 +18,11 @@
 #include "thread.h"
 #include "status.h"
 #include "interface.h"
+#include "benchmark.h"
 #include "event.h"
+
+extern const u32 DEFAULT_BENCHMARK_ALGORITHMS_CNT;
+extern const u32 DEFAULT_BENCHMARK_ALGORITHMS_BUF[];
 
 static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp)
 {
@@ -117,7 +122,7 @@ static void main_goodbye_screen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_
   goodbye_screen (hashcat_ctx, status_ctx->proc_start, status_ctx->proc_stop);
 }
 
-static void main_outerloop_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+static void main_session_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
@@ -148,7 +153,7 @@ static void main_outerloop_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
   }
 }
 
-static void main_outerloop_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+static void main_session_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   hashcat_user_t *hashcat_user = hashcat_ctx->hashcat_user;
   status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
@@ -165,6 +170,90 @@ static void main_outerloop_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
   hcfree (hashcat_user->outer_threads);
 
   hashcat_user->outer_threads_cnt = 0;
+}
+
+static void main_session_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const bitmap_ctx_t   *bitmap_ctx   = hashcat_ctx->bitmap_ctx;
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  const hashes_t       *hashes       = hashcat_ctx->hashes;
+  const hwmon_ctx_t    *hwmon_ctx    = hashcat_ctx->hwmon_ctx;
+  const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  /**
+   * In benchmark-mode, inform user which algorithm is checked
+   */
+
+  if (user_options->benchmark == true)
+  {
+    if (user_options->machine_readable == false)
+    {
+      char *hash_type = strhashtype (hashconfig->hash_mode); // not a bug
+
+      event_log_info (hashcat_ctx, "Hashtype: %s", hash_type);
+      event_log_info (hashcat_ctx, "");
+    }
+  }
+
+  if (user_options->quiet == true) return;
+
+  event_log_info (hashcat_ctx, "Hashes: %u digests; %u unique digests, %u unique salts", hashes->hashes_cnt_orig, hashes->digests_cnt, hashes->salts_cnt);
+  event_log_info (hashcat_ctx, "Bitmaps: %u bits, %u entries, 0x%08x mask, %u bytes, %u/%u rotates", bitmap_ctx->bitmap_bits, bitmap_ctx->bitmap_nums, bitmap_ctx->bitmap_mask, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_shift1, bitmap_ctx->bitmap_shift2);
+
+  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  {
+    event_log_info (hashcat_ctx, "Rules: %u", straight_ctx->kernel_rules_cnt);
+  }
+
+  if (user_options->quiet == false) event_log_info (hashcat_ctx, "");
+
+  if (hashconfig->opti_type)
+  {
+    event_log_info (hashcat_ctx, "Applicable Optimizers:");
+
+    for (u32 i = 0; i < 32; i++)
+    {
+      const u32 opti_bit = 1u << i;
+
+      if (hashconfig->opti_type & opti_bit) event_log_info (hashcat_ctx, "* %s", stroptitype (opti_bit));
+    }
+  }
+
+  event_log_info (hashcat_ctx, "");
+
+  /**
+   * Watchdog and Temperature balance
+   */
+
+  if (hwmon_ctx->enabled == false && user_options->gpu_temp_disable == false)
+  {
+    event_log_info (hashcat_ctx, "Watchdog: Hardware Monitoring Interface not found on your system");
+  }
+
+  if (hwmon_ctx->enabled == true && user_options->gpu_temp_abort > 0)
+  {
+    event_log_info (hashcat_ctx, "Watchdog: Temperature abort trigger set to %uc", user_options->gpu_temp_abort);
+  }
+  else
+  {
+    event_log_info (hashcat_ctx, "Watchdog: Temperature abort trigger disabled");
+  }
+
+  if (hwmon_ctx->enabled == true && user_options->gpu_temp_retain > 0)
+  {
+    event_log_info (hashcat_ctx, "Watchdog: Temperature retain trigger set to %uc", user_options->gpu_temp_retain);
+  }
+  else
+  {
+    event_log_info (hashcat_ctx, "Watchdog: Temperature retain trigger disabled");
+  }
+
+  event_log_info (hashcat_ctx, "");
+
+  #if defined (DEBUG)
+  if (user_options->benchmark == true) event_log_info (hashcat_ctx, "Hashmode: %d", hashconfig->hash_mode);
+  #endif
 }
 
 static void main_cracker_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -302,90 +391,6 @@ static void main_potfile_all_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, M
   event_log_info (hashcat_ctx, "");
 }
 
-static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
-{
-  const bitmap_ctx_t   *bitmap_ctx   = hashcat_ctx->bitmap_ctx;
-  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
-  const hashes_t       *hashes       = hashcat_ctx->hashes;
-  const hwmon_ctx_t    *hwmon_ctx    = hashcat_ctx->hwmon_ctx;
-  const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
-  const user_options_t *user_options = hashcat_ctx->user_options;
-
-  /**
-   * In benchmark-mode, inform user which algorithm is checked
-   */
-
-  if (user_options->benchmark == true)
-  {
-    if (user_options->machine_readable == false)
-    {
-      char *hash_type = strhashtype (hashconfig->hash_mode); // not a bug
-
-      event_log_info (hashcat_ctx, "Hashtype: %s", hash_type);
-      event_log_info (hashcat_ctx, "");
-    }
-  }
-
-  if (user_options->quiet == true) return;
-
-  event_log_info (hashcat_ctx, "Hashes: %u digests; %u unique digests, %u unique salts", hashes->hashes_cnt_orig, hashes->digests_cnt, hashes->salts_cnt);
-  event_log_info (hashcat_ctx, "Bitmaps: %u bits, %u entries, 0x%08x mask, %u bytes, %u/%u rotates", bitmap_ctx->bitmap_bits, bitmap_ctx->bitmap_nums, bitmap_ctx->bitmap_mask, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_shift1, bitmap_ctx->bitmap_shift2);
-
-  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
-  {
-    event_log_info (hashcat_ctx, "Rules: %u", straight_ctx->kernel_rules_cnt);
-  }
-
-  if (user_options->quiet == false) event_log_info (hashcat_ctx, "");
-
-  if (hashconfig->opti_type)
-  {
-    event_log_info (hashcat_ctx, "Applicable Optimizers:");
-
-    for (u32 i = 0; i < 32; i++)
-    {
-      const u32 opti_bit = 1u << i;
-
-      if (hashconfig->opti_type & opti_bit) event_log_info (hashcat_ctx, "* %s", stroptitype (opti_bit));
-    }
-  }
-
-  event_log_info (hashcat_ctx, "");
-
-  /**
-   * Watchdog and Temperature balance
-   */
-
-  if (hwmon_ctx->enabled == false && user_options->gpu_temp_disable == false)
-  {
-    event_log_info (hashcat_ctx, "Watchdog: Hardware Monitoring Interface not found on your system");
-  }
-
-  if (hwmon_ctx->enabled == true && user_options->gpu_temp_abort > 0)
-  {
-    event_log_info (hashcat_ctx, "Watchdog: Temperature abort trigger set to %uc", user_options->gpu_temp_abort);
-  }
-  else
-  {
-    event_log_info (hashcat_ctx, "Watchdog: Temperature abort trigger disabled");
-  }
-
-  if (hwmon_ctx->enabled == true && user_options->gpu_temp_retain > 0)
-  {
-    event_log_info (hashcat_ctx, "Watchdog: Temperature retain trigger set to %uc", user_options->gpu_temp_retain);
-  }
-  else
-  {
-    event_log_info (hashcat_ctx, "Watchdog: Temperature retain trigger disabled");
-  }
-
-  event_log_info (hashcat_ctx, "");
-
-  #if defined (DEBUG)
-  if (user_options->benchmark == true) event_log_info (hashcat_ctx, "Hashmode: %d", hashconfig->hash_mode);
-  #endif
-}
-
 static void main_opencl_session_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -463,9 +468,9 @@ void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const siz
     case EVENT_LOG_ERROR:                 main_log_error                 (hashcat_ctx, buf, len); break;
     case EVENT_WELCOME_SCREEN:            main_welcome_screen            (hashcat_ctx, buf, len); break;
     case EVENT_GOODBYE_SCREEN:            main_goodbye_screen            (hashcat_ctx, buf, len); break;
-    case EVENT_OUTERLOOP_STARTING:        main_outerloop_starting        (hashcat_ctx, buf, len); break;
-    case EVENT_OUTERLOOP_FINISHED:        main_outerloop_finished        (hashcat_ctx, buf, len); break;
-    case EVENT_OUTERLOOP_MAINSCREEN:      main_outerloop_mainscreen      (hashcat_ctx, buf, len); break;
+    case EVENT_SESSION_STARTING:          main_session_starting          (hashcat_ctx, buf, len); break;
+    case EVENT_SESSION_FINISHED:          main_session_finished          (hashcat_ctx, buf, len); break;
+    case EVENT_SESSION_MAINSCREEN:        main_session_mainscreen        (hashcat_ctx, buf, len); break;
     case EVENT_CRACKER_STARTING:          main_cracker_starting          (hashcat_ctx, buf, len); break;
     case EVENT_CRACKER_FINISHED:          main_cracker_finished          (hashcat_ctx, buf, len); break;
     case EVENT_CRACKER_HASH_CRACKED:      main_cracker_hash_cracked      (hashcat_ctx, buf, len); break;
@@ -486,14 +491,6 @@ void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const siz
 
 int main (int argc, char **argv)
 {
-  // hashcat main context
-
-  hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) malloc (sizeof (hashcat_ctx_t)); VERIFY_PTR (hashcat_ctx);
-
-  const int rc_hashcat_init = hashcat_ctx_init (hashcat_ctx, event);
-
-  if (rc_hashcat_init == -1) return -1;
-
   // install and shared folder need to be set to recognize "make install" use
 
   char *install_folder = NULL;
@@ -507,7 +504,17 @@ int main (int argc, char **argv)
   shared_folder = SHARED_FOLDER;
   #endif
 
-  // initialize the user options with some defaults (you can override them later)
+  // hashcat main context
+
+  hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) malloc (sizeof (hashcat_ctx_t));
+
+  assert (hashcat_ctx);
+
+  const int rc_hashcat_alloc = hashcat_ctx_alloc (hashcat_ctx);
+
+  if (rc_hashcat_alloc == -1) return -1;
+
+  // initialize the user options with some defaults
 
   const int rc_options_init = user_options_init (hashcat_ctx);
 
@@ -541,11 +548,55 @@ int main (int argc, char **argv)
     return 0;
   }
 
+  // initialize hashcat and check for errors
+
+  const int rc_hashcat_init = hashcat_ctx_init (hashcat_ctx, event, install_folder, shared_folder, argc, argv, COMPTIME);
+
+  if (rc_hashcat_init == -1)
+  {
+    hashcat_ctx_destroy (hashcat_ctx);
+
+    free (hashcat_ctx);
+
+    return -1;
+  }
+
   // now run hashcat
 
-  const int rc_hashcat = hashcat (hashcat_ctx, install_folder, shared_folder, argc, argv, COMPTIME);
+  EVENT (EVENT_SESSION_STARTING);
 
-  // finished with hashcat, clean up
+  int rc_hashcat = -1;
+
+  if (user_options->benchmark == true)
+  {
+    user_options->quiet = true;
+
+    if (user_options->hash_mode_chgd == true)
+    {
+      rc_hashcat = hashcat_ctx_run_session (hashcat_ctx);
+    }
+    else
+    {
+      for (u32 algorithm_pos = 0; algorithm_pos < DEFAULT_BENCHMARK_ALGORITHMS_CNT; algorithm_pos++)
+      {
+        user_options->hash_mode = DEFAULT_BENCHMARK_ALGORITHMS_BUF[algorithm_pos];
+
+        rc_hashcat = hashcat_ctx_run_session (hashcat_ctx);
+
+        if (rc_hashcat == -1) break;
+      }
+    }
+
+    user_options->quiet = false;
+  }
+  else
+  {
+    rc_hashcat = hashcat_ctx_run_session (hashcat_ctx);
+  }
+
+  EVENT (EVENT_SESSION_FINISHED);
+
+  // clean up
 
   hashcat_ctx_destroy (hashcat_ctx);
 

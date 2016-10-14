@@ -124,7 +124,6 @@ void mycracked (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->devices_status = STATUS_CRACKED;
 
-  status_ctx->run_main_level1   = false;
   status_ctx->run_main_level2   = false;
   status_ctx->run_main_level3   = false;
   status_ctx->run_thread_level1 = false;
@@ -140,7 +139,6 @@ void myabort (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->devices_status = STATUS_ABORTED;
 
-  status_ctx->run_main_level1   = false;
   status_ctx->run_main_level2   = false;
   status_ctx->run_main_level3   = false;
   status_ctx->run_thread_level1 = false;
@@ -155,7 +153,6 @@ void myquit (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->devices_status = STATUS_QUIT;
 
-  status_ctx->run_main_level1   = false;
   status_ctx->run_main_level2   = false;
   status_ctx->run_main_level3   = false;
   status_ctx->run_thread_level1 = false;
@@ -170,7 +167,6 @@ void bypass (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->devices_status = STATUS_BYPASS;
 
-  status_ctx->run_main_level1   = true;
   status_ctx->run_main_level2   = true;
   status_ctx->run_main_level3   = true;
   status_ctx->run_thread_level1 = false;
