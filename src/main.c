@@ -103,7 +103,10 @@ static void main_welcome_screen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_
 
   // Inform user things getting started
 
-  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+  const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  //const user_options_t *user_options = hashcat_ctx->user_options;
+
+  //if (user_options->machine_readable == true) return;
 
   welcome_screen (hashcat_ctx, status_ctx->proc_start, VERSION_TAG);
 }
@@ -112,7 +115,10 @@ static void main_goodbye_screen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_
 {
   // Inform user we're done
 
-  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+  const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->machine_readable == true) return;
 
   goodbye_screen (hashcat_ctx, status_ctx->proc_start, status_ctx->proc_stop);
 }
