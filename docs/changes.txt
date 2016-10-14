@@ -4,6 +4,7 @@
 ## Improvements
 ##
 
+- Added support for --speed-only: quickly shows expected speed per device based on the users hash(es) and option selected
 - Added the current first and last password candidate test queued for execution per device on status view
 - Use .gitmodules to handle OpenCL headers depency
 - Allow loading of bcrypt hashes with signature $2b$ (February 2014)
