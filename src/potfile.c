@@ -156,6 +156,7 @@ int potfile_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->keyspace        == true) return 0;
   if (user_options->opencl_info     == true) return 0;
   if (user_options->stdout_flag     == true) return 0;
+  if (user_options->speed_only      == true) return 0;
   if (user_options->usage           == true) return 0;
   if (user_options->version         == true) return 0;
   if (user_options->potfile_disable == true) return 0;

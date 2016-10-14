@@ -1071,7 +1071,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
       device_param->speed_ms[speed_pos] = speed_ms;
 
-      if (user_options->benchmark == true)
+      if (user_options->speed_only == true)
       {
         if (speed_ms > 4096) return -1;
       }
@@ -1798,7 +1798,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
         if (CL_err == -1) return -1;
       }
 
-      if (user_options->benchmark == true)
+      if (user_options->speed_only == true)
       {
         hc_timer_set (&device_param->timer_speed);
       }
@@ -1811,7 +1811,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
        * result
        */
 
-      if (user_options->benchmark == false)
+      if (user_options->speed_only == false)
       {
         check_cracked (hashcat_ctx, device_param, salt_pos);
       }
@@ -1857,7 +1857,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
        * benchmark
        */
 
-      if (user_options->benchmark == true) break;
+      if (user_options->speed_only == true) break;
 
       if (status_ctx->run_thread_level2 == false) break;
     }
@@ -2177,7 +2177,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       fprintf (stdout, "\nPlatform ID #%u\n  Vendor   : %s\n  Name     : %s\n  Version  : %s\n\n", platform_id + 1, platform_vendor, platform_name, platform_version);
     }
 
-    if ((user_options->benchmark == true || user_options->quiet == false))
+    if ((user_options->benchmark == true || user_options->speed_only == true || user_options->quiet == false))
     {
       if (user_options->machine_readable == false)
       {
@@ -2648,7 +2648,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       hcfree (device_opencl_version);
 
-      if ((user_options->benchmark == true || user_options->quiet == false))
+      if ((user_options->benchmark == true || user_options->speed_only == true || user_options->quiet == false))
       {
         if (user_options->machine_readable == false)
         {
@@ -2763,7 +2763,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       devices_cnt++;
     }
 
-    if ((user_options->benchmark == true || user_options->quiet == false))
+    if ((user_options->benchmark == true || user_options->speed_only == true || user_options->quiet == false))
     {
       if (user_options->machine_readable == false)
       {

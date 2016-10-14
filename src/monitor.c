@@ -307,11 +307,13 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
         if (user_options->quiet == false) clear_prompt ();
 
-        if (user_options->quiet == false) event_log_info (hashcat_ctx, "");
+        //if (user_options->quiet == false) event_log_info (hashcat_ctx, "");
 
         status_display (hashcat_ctx);
 
         if (user_options->quiet == false) event_log_info (hashcat_ctx, "");
+
+        if (user_options->quiet == false) send_prompt ();
 
         hc_thread_mutex_unlock (status_ctx->mux_display);
 

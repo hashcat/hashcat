@@ -68,6 +68,7 @@ static const char *USAGE_BIG[] =
   "     --veracrypt-keyfiles      | File | Keyfiles used, separate with comma                   | --veracrypt-key=x.txt",
   "     --veracrypt-pim           | Num  | VeraCrypt personal iterations multiplier             | --veracrypt-pim=1000",
   " -b, --benchmark               |      | Run benchmark                                        |",
+  "     --speed-only              |      | Just return expected speed of the attack and quit    |",
   " -c, --segment-size            | Num  | Sets size in MB to cache from the wordfile to X      | -c 32",
   "     --bitmap-min              | Num  | Sets minimum bits allowed for bitmaps to X           | --bitmap-min=24",
   "     --bitmap-max              | Num  | Sets maximum bits allowed for bitmaps to X           | --bitmap-max=24",

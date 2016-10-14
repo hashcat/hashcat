@@ -18,86 +18,87 @@ static const char short_options[] = "hVvm:a:r:j:k:g:o:t:d:D:n:u:c:p:s:l:1:2:3:4:
 
 static const struct option long_options[] =
 {
-  {"help",                      no_argument,       0, IDX_HELP},
-  {"version",                   no_argument,       0, IDX_VERSION},
-  {"quiet",                     no_argument,       0, IDX_QUIET},
-  {"show",                      no_argument,       0, IDX_SHOW},
-  {"left",                      no_argument,       0, IDX_LEFT},
-  {"username",                  no_argument,       0, IDX_USERNAME},
-  {"remove",                    no_argument,       0, IDX_REMOVE},
-  {"remove-timer",              required_argument, 0, IDX_REMOVE_TIMER},
-  {"skip",                      required_argument, 0, IDX_SKIP},
-  {"limit",                     required_argument, 0, IDX_LIMIT},
-  {"keyspace",                  no_argument,       0, IDX_KEYSPACE},
-  {"potfile-disable",           no_argument,       0, IDX_POTFILE_DISABLE},
-  {"potfile-path",              required_argument, 0, IDX_POTFILE_PATH},
-  {"debug-mode",                required_argument, 0, IDX_DEBUG_MODE},
-  {"debug-file",                required_argument, 0, IDX_DEBUG_FILE},
-  {"induction-dir",             required_argument, 0, IDX_INDUCTION_DIR},
-  {"outfile-check-dir",         required_argument, 0, IDX_OUTFILE_CHECK_DIR},
-  {"force",                     no_argument,       0, IDX_FORCE},
-  {"benchmark",                 no_argument,       0, IDX_BENCHMARK},
-  {"stdout",                    no_argument,       0, IDX_STDOUT_FLAG},
-  {"restore",                   no_argument,       0, IDX_RESTORE},
-  {"restore-disable",           no_argument,       0, IDX_RESTORE_DISABLE},
-  {"status",                    no_argument,       0, IDX_STATUS},
-  {"status-timer",              required_argument, 0, IDX_STATUS_TIMER},
-  {"machine-readable",          no_argument,       0, IDX_MACHINE_READABLE},
-  {"loopback",                  no_argument,       0, IDX_LOOPBACK},
-  {"weak-hash-threshold",       required_argument, 0, IDX_WEAK_HASH_THRESHOLD},
-  {"session",                   required_argument, 0, IDX_SESSION},
-  {"runtime",                   required_argument, 0, IDX_RUNTIME},
-  {"generate-rules",            required_argument, 0, IDX_RP_GEN},
-  {"generate-rules-func-min",   required_argument, 0, IDX_RP_GEN_FUNC_MIN},
-  {"generate-rules-func-max",   required_argument, 0, IDX_RP_GEN_FUNC_MAX},
-  {"generate-rules-seed",       required_argument, 0, IDX_RP_GEN_SEED},
-  {"rule-left",                 required_argument, 0, IDX_RULE_BUF_L},
-  {"rule-right",                required_argument, 0, IDX_RULE_BUF_R},
-  {"hash-type",                 required_argument, 0, IDX_HASH_MODE},
   {"attack-mode",               required_argument, 0, IDX_ATTACK_MODE},
-  {"rules-file",                required_argument, 0, IDX_RP_FILE},
-  {"outfile",                   required_argument, 0, IDX_OUTFILE},
-  {"outfile-format",            required_argument, 0, IDX_OUTFILE_FORMAT},
-  {"outfile-autohex-disable",   no_argument,       0, IDX_OUTFILE_AUTOHEX_DISABLE},
-  {"outfile-check-timer",       required_argument, 0, IDX_OUTFILE_CHECK_TIMER},
-  {"hex-charset",               no_argument,       0, IDX_HEX_CHARSET},
-  {"hex-salt",                  no_argument,       0, IDX_HEX_SALT},
-  {"hex-wordlist",              no_argument,       0, IDX_HEX_WORDLIST},
-  {"markov-disable",            no_argument,       0, IDX_MARKOV_DISABLE},
-  {"markov-classic",            no_argument,       0, IDX_MARKOV_CLASSIC},
-  {"markov-threshold",          required_argument, 0, IDX_MARKOV_THRESHOLD},
-  {"markov-hcstat",             required_argument, 0, IDX_MARKOV_HCSTAT},
-  {"cpu-affinity",              required_argument, 0, IDX_CPU_AFFINITY},
-  {"opencl-info",               no_argument,       0, IDX_OPENCL_INFO},
-  {"opencl-devices",            required_argument, 0, IDX_OPENCL_DEVICES},
-  {"opencl-platforms",          required_argument, 0, IDX_OPENCL_PLATFORMS},
-  {"opencl-device-types",       required_argument, 0, IDX_OPENCL_DEVICE_TYPES},
-  {"opencl-vector-width",       required_argument, 0, IDX_OPENCL_VECTOR_WIDTH},
-  {"workload-profile",          required_argument, 0, IDX_WORKLOAD_PROFILE},
-  {"kernel-accel",              required_argument, 0, IDX_KERNEL_ACCEL},
-  {"kernel-loops",              required_argument, 0, IDX_KERNEL_LOOPS},
-  {"nvidia-spin-damp",          required_argument, 0, IDX_NVIDIA_SPIN_DAMP},
-  {"gpu-temp-disable",          no_argument,       0, IDX_GPU_TEMP_DISABLE},
-  {"gpu-temp-abort",            required_argument, 0, IDX_GPU_TEMP_ABORT},
-  {"gpu-temp-retain",           required_argument, 0, IDX_GPU_TEMP_RETAIN},
-  {"powertune-enable",          no_argument,       0, IDX_POWERTUNE_ENABLE},
-  {"logfile-disable",           no_argument,       0, IDX_LOGFILE_DISABLE},
-  {"truecrypt-keyfiles",        required_argument, 0, IDX_TRUECRYPT_KEYFILES},
-  {"veracrypt-keyfiles",        required_argument, 0, IDX_VERACRYPT_KEYFILES},
-  {"veracrypt-pim",             required_argument, 0, IDX_VERACRYPT_PIM},
-  {"segment-size",              required_argument, 0, IDX_SEGMENT_SIZE},
-  {"scrypt-tmto",               required_argument, 0, IDX_SCRYPT_TMTO},
-  {"seperator",                 required_argument, 0, IDX_SEPARATOR},
-  {"separator",                 required_argument, 0, IDX_SEPARATOR},
-  {"bitmap-min",                required_argument, 0, IDX_BITMAP_MIN},
+  {"benchmark",                 no_argument,       0, IDX_BENCHMARK},
   {"bitmap-max",                required_argument, 0, IDX_BITMAP_MAX},
-  {"increment",                 no_argument,       0, IDX_INCREMENT},
-  {"increment-min",             required_argument, 0, IDX_INCREMENT_MIN},
-  {"increment-max",             required_argument, 0, IDX_INCREMENT_MAX},
+  {"bitmap-min",                required_argument, 0, IDX_BITMAP_MIN},
+  {"cpu-affinity",              required_argument, 0, IDX_CPU_AFFINITY},
   {"custom-charset1",           required_argument, 0, IDX_CUSTOM_CHARSET_1},
   {"custom-charset2",           required_argument, 0, IDX_CUSTOM_CHARSET_2},
   {"custom-charset3",           required_argument, 0, IDX_CUSTOM_CHARSET_3},
   {"custom-charset4",           required_argument, 0, IDX_CUSTOM_CHARSET_4},
+  {"debug-file",                required_argument, 0, IDX_DEBUG_FILE},
+  {"debug-mode",                required_argument, 0, IDX_DEBUG_MODE},
+  {"force",                     no_argument,       0, IDX_FORCE},
+  {"generate-rules-func-max",   required_argument, 0, IDX_RP_GEN_FUNC_MAX},
+  {"generate-rules-func-min",   required_argument, 0, IDX_RP_GEN_FUNC_MIN},
+  {"generate-rules",            required_argument, 0, IDX_RP_GEN},
+  {"generate-rules-seed",       required_argument, 0, IDX_RP_GEN_SEED},
+  {"gpu-temp-abort",            required_argument, 0, IDX_GPU_TEMP_ABORT},
+  {"gpu-temp-disable",          no_argument,       0, IDX_GPU_TEMP_DISABLE},
+  {"gpu-temp-retain",           required_argument, 0, IDX_GPU_TEMP_RETAIN},
+  {"hash-type",                 required_argument, 0, IDX_HASH_MODE},
+  {"help",                      no_argument,       0, IDX_HELP},
+  {"hex-charset",               no_argument,       0, IDX_HEX_CHARSET},
+  {"hex-salt",                  no_argument,       0, IDX_HEX_SALT},
+  {"hex-wordlist",              no_argument,       0, IDX_HEX_WORDLIST},
+  {"increment-max",             required_argument, 0, IDX_INCREMENT_MAX},
+  {"increment-min",             required_argument, 0, IDX_INCREMENT_MIN},
+  {"increment",                 no_argument,       0, IDX_INCREMENT},
+  {"induction-dir",             required_argument, 0, IDX_INDUCTION_DIR},
+  {"kernel-accel",              required_argument, 0, IDX_KERNEL_ACCEL},
+  {"kernel-loops",              required_argument, 0, IDX_KERNEL_LOOPS},
+  {"keyspace",                  no_argument,       0, IDX_KEYSPACE},
+  {"left",                      no_argument,       0, IDX_LEFT},
+  {"limit",                     required_argument, 0, IDX_LIMIT},
+  {"logfile-disable",           no_argument,       0, IDX_LOGFILE_DISABLE},
+  {"loopback",                  no_argument,       0, IDX_LOOPBACK},
+  {"machine-readable",          no_argument,       0, IDX_MACHINE_READABLE},
+  {"markov-classic",            no_argument,       0, IDX_MARKOV_CLASSIC},
+  {"markov-disable",            no_argument,       0, IDX_MARKOV_DISABLE},
+  {"markov-hcstat",             required_argument, 0, IDX_MARKOV_HCSTAT},
+  {"markov-threshold",          required_argument, 0, IDX_MARKOV_THRESHOLD},
+  {"nvidia-spin-damp",          required_argument, 0, IDX_NVIDIA_SPIN_DAMP},
+  {"opencl-devices",            required_argument, 0, IDX_OPENCL_DEVICES},
+  {"opencl-device-types",       required_argument, 0, IDX_OPENCL_DEVICE_TYPES},
+  {"opencl-info",               no_argument,       0, IDX_OPENCL_INFO},
+  {"opencl-platforms",          required_argument, 0, IDX_OPENCL_PLATFORMS},
+  {"opencl-vector-width",       required_argument, 0, IDX_OPENCL_VECTOR_WIDTH},
+  {"outfile-autohex-disable",   no_argument,       0, IDX_OUTFILE_AUTOHEX_DISABLE},
+  {"outfile-check-dir",         required_argument, 0, IDX_OUTFILE_CHECK_DIR},
+  {"outfile-check-timer",       required_argument, 0, IDX_OUTFILE_CHECK_TIMER},
+  {"outfile-format",            required_argument, 0, IDX_OUTFILE_FORMAT},
+  {"outfile",                   required_argument, 0, IDX_OUTFILE},
+  {"potfile-disable",           no_argument,       0, IDX_POTFILE_DISABLE},
+  {"potfile-path",              required_argument, 0, IDX_POTFILE_PATH},
+  {"powertune-enable",          no_argument,       0, IDX_POWERTUNE_ENABLE},
+  {"quiet",                     no_argument,       0, IDX_QUIET},
+  {"remove",                    no_argument,       0, IDX_REMOVE},
+  {"remove-timer",              required_argument, 0, IDX_REMOVE_TIMER},
+  {"restore-disable",           no_argument,       0, IDX_RESTORE_DISABLE},
+  {"restore",                   no_argument,       0, IDX_RESTORE},
+  {"rule-left",                 required_argument, 0, IDX_RULE_BUF_L},
+  {"rule-right",                required_argument, 0, IDX_RULE_BUF_R},
+  {"rules-file",                required_argument, 0, IDX_RP_FILE},
+  {"runtime",                   required_argument, 0, IDX_RUNTIME},
+  {"scrypt-tmto",               required_argument, 0, IDX_SCRYPT_TMTO},
+  {"segment-size",              required_argument, 0, IDX_SEGMENT_SIZE},
+  {"separator",                 required_argument, 0, IDX_SEPARATOR},
+  {"seperator",                 required_argument, 0, IDX_SEPARATOR},
+  {"session",                   required_argument, 0, IDX_SESSION},
+  {"show",                      no_argument,       0, IDX_SHOW},
+  {"skip",                      required_argument, 0, IDX_SKIP},
+  {"status",                    no_argument,       0, IDX_STATUS},
+  {"status-timer",              required_argument, 0, IDX_STATUS_TIMER},
+  {"stdout",                    no_argument,       0, IDX_STDOUT_FLAG},
+  {"speed-only",                no_argument,       0, IDX_SPEED_ONLY},
+  {"truecrypt-keyfiles",        required_argument, 0, IDX_TRUECRYPT_KEYFILES},
+  {"username",                  no_argument,       0, IDX_USERNAME},
+  {"veracrypt-keyfiles",        required_argument, 0, IDX_VERACRYPT_KEYFILES},
+  {"veracrypt-pim",             required_argument, 0, IDX_VERACRYPT_PIM},
+  {"version",                   no_argument,       0, IDX_VERSION},
+  {"weak-hash-threshold",       required_argument, 0, IDX_WEAK_HASH_THRESHOLD},
+  {"workload-profile",          required_argument, 0, IDX_WORKLOAD_PROFILE},
   {0, 0, 0, 0}
 };
 
@@ -183,6 +184,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->status                    = STATUS;
   user_options->status_timer              = STATUS_TIMER;
   user_options->stdout_flag               = STDOUT_FLAG;
+  user_options->speed_only                = SPEED_ONLY;
   user_options->truecrypt_keyfiles        = NULL;
   user_options->usage                     = USAGE;
   user_options->username                  = USERNAME;
@@ -247,6 +249,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_KEYSPACE:                  user_options->keyspace                  = true;           break;
       case IDX_BENCHMARK:                 user_options->benchmark                 = true;           break;
       case IDX_STDOUT_FLAG:               user_options->stdout_flag               = true;           break;
+      case IDX_SPEED_ONLY:                user_options->speed_only                = true;           break;
       case IDX_RESTORE_DISABLE:           user_options->restore_disable           = true;           break;
       case IDX_STATUS:                    user_options->status                    = true;           break;
       case IDX_STATUS_TIMER:              user_options->status_timer              = atoi (optarg);  break;
@@ -909,7 +912,8 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   if (user_options->opencl_info == true
    || user_options->keyspace    == true
    || user_options->benchmark   == true
-   || user_options->stdout_flag == true)
+   || user_options->stdout_flag == true
+   || user_options->speed_only  == true)
   {
     user_options->show                = false;
     user_options->left                = false;
@@ -932,6 +936,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->session             = "benchmark";
     user_options->attack_mode         = ATTACK_MODE_BF;
     user_options->increment           = false;
+    user_options->speed_only          = true;
 
     if (user_options->workload_profile_chgd == false)
     {
@@ -1198,66 +1203,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   user_options_t *user_options = hashcat_ctx->user_options;
   logfile_ctx_t  *logfile_ctx  = hashcat_ctx->logfile_ctx;
 
-  logfile_top_uint   (user_options->benchmark);
-  logfile_top_uint   (user_options->force);
-  logfile_top_uint   (user_options->gpu_temp_disable);
-  logfile_top_uint   (user_options->hex_charset);
-  logfile_top_uint   (user_options->hex_salt);
-  logfile_top_uint   (user_options->hex_wordlist);
-  logfile_top_uint   (user_options->increment);
-  logfile_top_uint   (user_options->keyspace);
-  logfile_top_uint   (user_options->left);
-  logfile_top_uint   (user_options->logfile_disable);
-  logfile_top_uint   (user_options->loopback);
-  logfile_top_uint   (user_options->machine_readable);
-  logfile_top_uint   (user_options->markov_classic);
-  logfile_top_uint   (user_options->markov_disable);
-  logfile_top_uint   (user_options->opencl_info);
-  logfile_top_uint   (user_options->outfile_autohex);
-  logfile_top_uint   (user_options->potfile_disable);
-  logfile_top_uint   (user_options->powertune_enable);
-  logfile_top_uint   (user_options->quiet);
-  logfile_top_uint   (user_options->remove);
-  logfile_top_uint   (user_options->restore);
-  logfile_top_uint   (user_options->restore_disable);
-  logfile_top_uint   (user_options->show);
-  logfile_top_uint   (user_options->status);
-  logfile_top_uint   (user_options->stdout_flag);
-  logfile_top_uint   (user_options->usage);
-  logfile_top_uint   (user_options->username);
-  logfile_top_uint   (user_options->version);
-  logfile_top_uint   (user_options->attack_mode);
-  logfile_top_uint   (user_options->bitmap_max);
-  logfile_top_uint   (user_options->bitmap_min);
-  logfile_top_uint   (user_options->debug_mode);
-  logfile_top_uint   (user_options->gpu_temp_abort);
-  logfile_top_uint   (user_options->gpu_temp_retain);
-  logfile_top_uint   (user_options->hash_mode);
-  logfile_top_uint   (user_options->increment_max);
-  logfile_top_uint   (user_options->increment_min);
-  logfile_top_uint   (user_options->kernel_accel);
-  logfile_top_uint   (user_options->kernel_loops);
-  logfile_top_uint   (user_options->markov_threshold);
-  logfile_top_uint   (user_options->nvidia_spin_damp);
-  logfile_top_uint   (user_options->opencl_vector_width);
-  logfile_top_uint   (user_options->outfile_check_timer);
-  logfile_top_uint   (user_options->outfile_format);
-  logfile_top_uint   (user_options->remove_timer);
-  logfile_top_uint   (user_options->restore_timer);
-  logfile_top_uint   (user_options->rp_files_cnt);
-  logfile_top_uint   (user_options->rp_gen);
-  logfile_top_uint   (user_options->rp_gen_func_max);
-  logfile_top_uint   (user_options->rp_gen_func_min);
-  logfile_top_uint   (user_options->rp_gen_seed);
-  logfile_top_uint   (user_options->runtime);
-  logfile_top_uint   (user_options->scrypt_tmto);
-  logfile_top_uint   (user_options->segment_size);
-  logfile_top_uint   (user_options->status_timer);
-  logfile_top_uint   (user_options->veracrypt_pim);
-  logfile_top_uint   (user_options->weak_hash_threshold);
-  logfile_top_uint   (user_options->workload_profile);
-  logfile_top_uint64 (user_options->limit);
-  logfile_top_uint64 (user_options->skip);
+  logfile_top_char   (user_options->separator);
   logfile_top_string (user_options->cpu_affinity);
   logfile_top_string (user_options->custom_charset_1);
   logfile_top_string (user_options->custom_charset_2);
@@ -1275,8 +1221,68 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_string (user_options->rp_files[0]);
   logfile_top_string (user_options->rule_buf_l);
   logfile_top_string (user_options->rule_buf_r);
-  logfile_top_char   (user_options->separator);
   logfile_top_string (user_options->session);
   logfile_top_string (user_options->truecrypt_keyfiles);
   logfile_top_string (user_options->veracrypt_keyfiles);
+  logfile_top_uint64 (user_options->limit);
+  logfile_top_uint64 (user_options->skip);
+  logfile_top_uint   (user_options->attack_mode);
+  logfile_top_uint   (user_options->benchmark);
+  logfile_top_uint   (user_options->bitmap_max);
+  logfile_top_uint   (user_options->bitmap_min);
+  logfile_top_uint   (user_options->debug_mode);
+  logfile_top_uint   (user_options->force);
+  logfile_top_uint   (user_options->gpu_temp_abort);
+  logfile_top_uint   (user_options->gpu_temp_disable);
+  logfile_top_uint   (user_options->gpu_temp_retain);
+  logfile_top_uint   (user_options->hash_mode);
+  logfile_top_uint   (user_options->hex_charset);
+  logfile_top_uint   (user_options->hex_salt);
+  logfile_top_uint   (user_options->hex_wordlist);
+  logfile_top_uint   (user_options->increment);
+  logfile_top_uint   (user_options->increment_max);
+  logfile_top_uint   (user_options->increment_min);
+  logfile_top_uint   (user_options->kernel_accel);
+  logfile_top_uint   (user_options->kernel_loops);
+  logfile_top_uint   (user_options->keyspace);
+  logfile_top_uint   (user_options->left);
+  logfile_top_uint   (user_options->logfile_disable);
+  logfile_top_uint   (user_options->loopback);
+  logfile_top_uint   (user_options->machine_readable);
+  logfile_top_uint   (user_options->markov_classic);
+  logfile_top_uint   (user_options->markov_disable);
+  logfile_top_uint   (user_options->markov_threshold);
+  logfile_top_uint   (user_options->nvidia_spin_damp);
+  logfile_top_uint   (user_options->opencl_info);
+  logfile_top_uint   (user_options->opencl_vector_width);
+  logfile_top_uint   (user_options->outfile_autohex);
+  logfile_top_uint   (user_options->outfile_check_timer);
+  logfile_top_uint   (user_options->outfile_format);
+  logfile_top_uint   (user_options->potfile_disable);
+  logfile_top_uint   (user_options->powertune_enable);
+  logfile_top_uint   (user_options->quiet);
+  logfile_top_uint   (user_options->remove);
+  logfile_top_uint   (user_options->remove_timer);
+  logfile_top_uint   (user_options->restore);
+  logfile_top_uint   (user_options->restore_disable);
+  logfile_top_uint   (user_options->restore_timer);
+  logfile_top_uint   (user_options->rp_files_cnt);
+  logfile_top_uint   (user_options->rp_gen);
+  logfile_top_uint   (user_options->rp_gen_func_max);
+  logfile_top_uint   (user_options->rp_gen_func_min);
+  logfile_top_uint   (user_options->rp_gen_seed);
+  logfile_top_uint   (user_options->runtime);
+  logfile_top_uint   (user_options->scrypt_tmto);
+  logfile_top_uint   (user_options->segment_size);
+  logfile_top_uint   (user_options->show);
+  logfile_top_uint   (user_options->status);
+  logfile_top_uint   (user_options->status_timer);
+  logfile_top_uint   (user_options->stdout_flag);
+  logfile_top_uint   (user_options->speed_only);
+  logfile_top_uint   (user_options->usage);
+  logfile_top_uint   (user_options->username);
+  logfile_top_uint   (user_options->veracrypt_pim);
+  logfile_top_uint   (user_options->version);
+  logfile_top_uint   (user_options->weak_hash_threshold);
+  logfile_top_uint   (user_options->workload_profile);
 }

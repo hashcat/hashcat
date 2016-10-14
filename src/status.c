@@ -1175,9 +1175,9 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
 void status_benchmark_automate (hashcat_ctx_t *hashcat_ctx)
 {
-  hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
-  opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
-  status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
+  hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
   if (status_ctx->devices_status == STATUS_INIT)
   {
@@ -1234,9 +1234,9 @@ void status_benchmark_automate (hashcat_ctx_t *hashcat_ctx)
 
 void status_benchmark (hashcat_ctx_t *hashcat_ctx)
 {
-  opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
-  status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
-  user_options_t       *user_options       = hashcat_ctx->user_options;
+  opencl_ctx_t   *opencl_ctx   = hashcat_ctx->opencl_ctx;
+  status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  user_options_t *user_options = hashcat_ctx->user_options;
 
   if (status_ctx->devices_status == STATUS_INIT)
   {

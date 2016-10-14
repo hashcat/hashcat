@@ -716,7 +716,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
     * Outfile remove
     */
 
-  if (user_options->keyspace == false && user_options->benchmark == false && user_options->stdout_flag == false)
+  if (user_options->keyspace == false && user_options->benchmark == false && user_options->stdout_flag == false && user_options->speed_only == false)
   {
     hc_thread_create (inner_threads[inner_threads_cnt], thread_monitor, hashcat_ctx);
 
@@ -1030,20 +1030,21 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
         if (status_ctx->run_main_level1 == false) break;
       }
     }
+
+    user_options->quiet = false;
   }
   else
   {
+    if (user_options->speed_only == true) user_options->quiet = true;
+
     rc_final = outer_loop (hashcat_ctx);
 
     if (rc_final == -1) myabort (hashcat_ctx);
+
+    if (user_options->speed_only == true) user_options->quiet = false;
   }
 
   EVENT (EVENT_OUTERLOOP_FINISHED);
-
-  if (user_options->benchmark == true)
-  {
-    user_options->quiet = false;
-  }
 
   // if exhausted or cracked, unlink the restore file
 

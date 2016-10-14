@@ -29,7 +29,7 @@ void welcome_screen (hashcat_ctx_t *hashcat_ctx, const time_t proc_start, const 
   {
     if (user_options->machine_readable == false)
     {
-      event_log_info (hashcat_ctx, "%s (%s) starting in benchmark-mode...", PROGNAME, version_tag);
+      event_log_info (hashcat_ctx, "%s (%s) starting in benchmark mode...", PROGNAME, version_tag);
       event_log_info (hashcat_ctx, "");
     }
     else
@@ -39,7 +39,12 @@ void welcome_screen (hashcat_ctx_t *hashcat_ctx, const time_t proc_start, const 
   }
   else if (user_options->restore == true)
   {
-    event_log_info (hashcat_ctx, "%s (%s) starting in restore-mode...", PROGNAME, version_tag);
+    event_log_info (hashcat_ctx, "%s (%s) starting in restore mode...", PROGNAME, version_tag);
+    event_log_info (hashcat_ctx, "");
+  }
+  else if (user_options->speed_only == true)
+  {
+    event_log_info (hashcat_ctx, "%s (%s) starting in speed-only mode...", PROGNAME, version_tag);
     event_log_info (hashcat_ctx, "");
   }
   else

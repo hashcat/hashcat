@@ -218,6 +218,10 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
       }
       */
     }
+
+    if (status_ctx->run_thread_level1 == false) break;
+
+    if (user_options->speed_only == true) break;
   }
 
   device_param->kernel_accel = 0;
@@ -282,16 +286,11 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         run_cracker (hashcat_ctx, device_param, pws_cnt);
 
         device_param->pws_cnt = 0;
-
-        /*
-        still required?
-        run_kernel_bzero (device_param, device_param->d_bfs_c, device_param->size_bfs);
-        */
       }
 
       if (status_ctx->run_thread_level1 == false) break;
 
-      if (user_options->benchmark == true) break;
+      if (user_options->speed_only == true) break;
 
       device_param->words_done = words_fin;
     }
@@ -523,6 +522,8 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         }
         */
       }
+
+      if (user_options->speed_only == true) break;
 
       if (status_ctx->run_thread_level1 == false) break;
 
