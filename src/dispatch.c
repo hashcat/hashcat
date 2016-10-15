@@ -200,9 +200,15 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
     if (pws_cnt)
     {
-      run_copy (hashcat_ctx, device_param, pws_cnt);
+      int CL_rc;
 
-      run_cracker (hashcat_ctx, device_param, pws_cnt);
+      CL_rc = run_copy (hashcat_ctx, device_param, pws_cnt);
+
+      if (CL_rc == -1) return -1;
+
+      CL_rc = run_cracker (hashcat_ctx, device_param, pws_cnt);
+
+      if (CL_rc == -1) return -1;
 
       device_param->pws_cnt = 0;
 
@@ -210,11 +216,15 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
       still required?
       if (attack_kern == ATTACK_KERN_STRAIGHT)
       {
-        run_kernel_bzero (opencl_ctx, device_param, device_param->d_rules_c, device_param->size_rules_c);
+        CL_rc = run_kernel_bzero (opencl_ctx, device_param, device_param->d_rules_c, device_param->size_rules_c);
+
+        if (CL_rc == -1) return -1;
       }
       else if (attack_kern == ATTACK_KERN_COMBI)
       {
-        run_kernel_bzero (opencl_ctx, device_param, device_param->d_combs_c, device_param->size_combs);
+        rCL_rc = un_kernel_bzero (opencl_ctx, device_param, device_param->d_combs_c, device_param->size_combs);
+
+        if (CL_rc == -1) return -1;
       }
       */
     }
@@ -281,9 +291,15 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       if (pws_cnt)
       {
-        run_copy (hashcat_ctx, device_param, pws_cnt);
+        int CL_rc;
 
-        run_cracker (hashcat_ctx, device_param, pws_cnt);
+        CL_rc = run_copy (hashcat_ctx, device_param, pws_cnt);
+
+        if (CL_rc == -1) return -1;
+
+        CL_rc = run_cracker (hashcat_ctx, device_param, pws_cnt);
+
+        if (CL_rc == -1) return -1;
 
         device_param->pws_cnt = 0;
       }
@@ -504,9 +520,15 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       if (pws_cnt)
       {
-        run_copy (hashcat_ctx, device_param, pws_cnt);
+        int CL_rc;
 
-        run_cracker (hashcat_ctx, device_param, pws_cnt);
+        CL_rc = run_copy (hashcat_ctx, device_param, pws_cnt);
+
+        if (CL_rc == -1) return -1;
+
+        CL_rc = run_cracker (hashcat_ctx, device_param, pws_cnt);
+
+        if (CL_rc == -1) return -1;
 
         device_param->pws_cnt = 0;
 
@@ -514,11 +536,15 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         still required?
         if (attack_kern == ATTACK_KERN_STRAIGHT)
         {
-          run_kernel_bzero (device_param, device_param->d_rules_c, device_param->size_rules_c);
+          CL_rc = run_kernel_bzero (device_param, device_param->d_rules_c, device_param->size_rules_c);
+
+          if (CL_rc == -1) return -1;
         }
         else if (attack_kern == ATTACK_KERN_COMBI)
         {
-          run_kernel_bzero (device_param, device_param->d_combs_c, device_param->size_combs);
+          CL_rc = run_kernel_bzero (device_param, device_param->d_combs_c, device_param->size_combs);
+
+          if (CL_rc == -1) return -1;
         }
         */
       }
