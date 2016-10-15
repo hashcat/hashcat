@@ -10,7 +10,7 @@
 #include "hashes.h"
 #include "weak_hash.h"
 
-void weak_hash_check (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 salt_pos)
+int weak_hash_check (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 salt_pos)
 {
   hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   hashes_t       *hashes       = hashcat_ctx->hashes;
@@ -33,13 +33,19 @@ void weak_hash_check (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
    * run the kernel
    */
 
+  int CL_rc;
+
   if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
-    run_kernel (hashcat_ctx, device_param, KERN_RUN_1, 1, false, 0);
+    CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_1, 1, false, 0);
+
+    if (CL_rc == -1) return -1;
   }
   else
   {
-    run_kernel (hashcat_ctx, device_param, KERN_RUN_1, 1, false, 0);
+    CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_1, 1, false, 0);
+
+    if (CL_rc == -1) return -1;
 
     u32 loop_step = 16;
 
@@ -54,10 +60,14 @@ void weak_hash_check (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
       device_param->kernel_params_buf32[28] = loop_pos;
       device_param->kernel_params_buf32[29] = loop_left;
 
-      run_kernel (hashcat_ctx, device_param, KERN_RUN_2, 1, false, 0);
+      CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_2, 1, false, 0);
+
+      if (CL_rc == -1) return -1;
     }
 
-    run_kernel (hashcat_ctx, device_param, KERN_RUN_3, 1, false, 0);
+    CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_3, 1, false, 0);
+
+    if (CL_rc == -1) return -1;
   }
 
   /**
@@ -80,4 +90,6 @@ void weak_hash_check (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
   device_param->kernel_params_buf32[34] = 0;
 
   straight_ctx->kernel_rules_buf[0].cmds[0] = cmd0_rule_old;
+
+  return 0;
 }

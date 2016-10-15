@@ -696,7 +696,9 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
     for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
     {
-      weak_hash_check (hashcat_ctx, device_param, salt_pos);
+      const int CL_rc = weak_hash_check (hashcat_ctx, device_param, salt_pos);
+
+      if (CL_rc == -1) return -1;
     }
 
     EVENT (EVENT_WEAK_HASH_POST);
