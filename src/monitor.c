@@ -157,7 +157,9 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
         if (temperature > (int) user_options->gpu_temp_abort)
         {
-          event_log_error (hashcat_ctx, "Temperature limit on GPU %d reached, aborting...", device_id + 1);
+          if (user_options->quiet == false) clear_prompt ();
+
+          event_log_error (hashcat_ctx, "Temperature limit on GPU #%u reached, aborting...", device_id + 1);
 
           myabort (hashcat_ctx);
 
@@ -271,6 +273,8 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
       {
         if (user_options->benchmark == false)
         {
+          if (user_options->quiet == false) clear_prompt ();
+
           if (user_options->quiet == false) event_log_info (hashcat_ctx, "NOTE: Runtime limit reached, aborting...");
         }
 
@@ -306,8 +310,6 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
         hc_thread_mutex_lock (status_ctx->mux_display);
 
         if (user_options->quiet == false) clear_prompt ();
-
-        //if (user_options->quiet == false) event_log_info (hashcat_ctx, "");
 
         status_display (hashcat_ctx);
 

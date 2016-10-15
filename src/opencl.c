@@ -304,17 +304,17 @@ int ocl_init (hashcat_ctx_t *hashcat_ctx)
   if (ocl->lib == NULL)
   {
     event_log_error (hashcat_ctx,
-      "Can't find OpenCL ICD loader library" EOL
-      ""                                     EOL
+      "Can't find an OpenCL ICD loader library" EOL
+      ""                                        EOL
       #if defined (__linux__)
       "You're probably missing the \"ocl-icd-libopencl1\" package (Debian/Ubuntu)" EOL
       "Run: sudo apt-get install ocl-icd-libopencl1"                               EOL
       ""                                                                           EOL
       #elif defined (_WIN)
       "You're probably missing the OpenCL runtime installation"                              EOL
-      "* AMD users require AMD drivers 14.9 or later (recommended 15.12 or later)"           EOL
-      "* Intel users require Intel OpenCL Runtime 14.2 or later (recommended 15.1 or later)" EOL
-      "* NVidia users require NVidia drivers 346.59 or later (recommended 361.x or later)"   EOL
+      "* AMD users require AMD drivers 14.9 or later (recommended 15.12 exact)"              EOL
+      "* Intel users require Intel OpenCL Runtime 14.2 or later (recommended 16.1 or later)" EOL
+      "* NVidia users require NVidia drivers 346.59 or later (recommended 367.27 or later)"  EOL
       ""                                                                                     EOL
       #endif
     );
@@ -1958,15 +1958,13 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (platforms_cnt == 0)
   {
-    event_log_error (hashcat_ctx,
-      "No OpenCL compatible platform found"                                                   EOL
-      ""                                                                                      EOL
-      "You're probably missing the OpenCL runtime installation"                               EOL
-      "* AMD users require AMD drivers 14.9 or later (recommended 15.12 or later)"            EOL
-      "* Intel users require Intel OpenCL Runtime 14.2 or later (recommended 15.1 or later)"  EOL
-      "* NVidia users require NVidia drivers 346.59 or later (recommended 361.x or later)"    EOL
-      ""                                                                                      EOL
-    );
+    event_log_error (hashcat_ctx, "ATTENTION! No OpenCL compatible platform found");
+    event_log_error (hashcat_ctx, "");
+    event_log_error (hashcat_ctx, "You're probably missing the OpenCL runtime installation");
+    event_log_error (hashcat_ctx, "* AMD users require AMD drivers 14.9 or later (recommended 15.12 or later)");
+    event_log_error (hashcat_ctx, "* Intel users require Intel OpenCL Runtime 14.2 or later (recommended 15.1 or later)");
+    event_log_error (hashcat_ctx, "* NVidia users require NVidia drivers 346.59 or later (recommended 361.x or later)");
+    event_log_error (hashcat_ctx, "");
 
     return -1;
   }
@@ -2506,9 +2504,8 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         {
           if (user_options->force == 0)
           {
-            event_log_warning (hashcat_ctx,
-              "Device #%u: Not a native Intel OpenCL runtime, expect massive speed loss" EOL
-              "           You can use --force to override this but do not post error reports if you do so", device_id + 1);
+            event_log_warning (hashcat_ctx, "Device #%u: Not a native Intel OpenCL runtime, expect massive speed loss", device_id + 1);
+            event_log_warning (hashcat_ctx, "           You can use --force to override this but do not post error reports if you do so");
 
             device_param->skipped = 1;
           }
@@ -2702,29 +2699,27 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
             if (catalyst_broken == 1)
             {
-              event_log_error (hashcat_ctx,
-                "The AMD driver installed on your system is known to be broken!"                  EOL
-                "It passes over cracked hashes and will not report them as cracked"               EOL
-                "You are STRONGLY encouraged not to use it"                                       EOL
-                "You can use --force to override this but do not post error reports if you do so" EOL
-                ""                                                                                EOL
-              );
+              event_log_error (hashcat_ctx, "The Catalyst driver installed on your system is known to be broken!");
+              event_log_error (hashcat_ctx, "");
+              event_log_error (hashcat_ctx, "It passes over cracked hashes and will not report them as cracked");
+              event_log_error (hashcat_ctx, "You are STRONGLY encouraged not to use it");
+              event_log_error (hashcat_ctx, "You can use --force to override this but do not post error reports if you do so");
+              event_log_error (hashcat_ctx, "");
 
               return -1;
             }
 
             if (catalyst_warn == 1)
             {
-              event_log_error (hashcat_ctx,
-                "Unsupported or incorrectly installed Catalyst driver detected!"                  EOL
-                "You are STRONGLY encouraged to use the official supported catalyst driver"       EOL
-                "See hashcat's homepage for official supported catalyst drivers"                  EOL
-                #if defined (_WIN)
-                "Also see: http://hashcat.net/wiki/doku.php?id=upgrading_amd_drivers_how_to"      EOL
-                #endif
-                "You can use --force to override this but do not post error reports if you do so" EOL
-                ""
-              );
+              event_log_error (hashcat_ctx, "Unsupported or incorrectly installed Catalyst driver detected!");
+              event_log_error (hashcat_ctx, "");
+              event_log_error (hashcat_ctx, "You are STRONGLY encouraged to use the official supported catalyst driver");
+              event_log_error (hashcat_ctx, "See hashcat's homepage for official supported catalyst drivers");
+              #if defined (_WIN)
+              event_log_error (hashcat_ctx, "Also see: http://hashcat.net/wiki/doku.php?id=upgrading_amd_drivers_how_to");
+              #endif
+              event_log_error (hashcat_ctx, "You can use --force to override this but do not post error reports if you do so");
+              event_log_error (hashcat_ctx, "");
 
               return -1;
             }
@@ -2733,33 +2728,11 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           {
             if (device_param->kernel_exec_timeout != 0)
             {
-              event_log_warning (hashcat_ctx,
-                "Device #%u: Kernel exec timeout is not disabled, it might cause you errors of code 702" EOL
-                "           See the wiki on how to disable it: https://hashcat.net/wiki/doku.php?id=timeout_patch", device_id + 1);
+              event_log_warning (hashcat_ctx, "Device #%u: Kernel exec timeout is not disabled, it might cause you errors of code 702", device_id + 1);
+              event_log_warning (hashcat_ctx, "           See the wiki on how to disable it: https://hashcat.net/wiki/doku.php?id=timeout_patch");
             }
           }
         }
-
-        /* turns out pocl still creates segfaults (because of llvm)
-        if (device_type & CL_DEVICE_TYPE_CPU)
-        {
-          if (platform_vendor_id == VENDOR_ID_AMD)
-          {
-            if (user_options->force == 0)
-            {
-              event_log_error (hashcat_ctx,
-                "OpenCL support for CPU of catalyst driver is not reliable."                        EOL
-                "You are STRONGLY encouraged not to use it"                                         EOL
-                "You can use --force to override this but do not post error reports if you do so"   EOL
-                "A good alternative is the free pocl >= v0.13, but make sure to use a LLVM >= v3.8" EOL
-                ""                                                                                  EOL
-              );
-
-              return -1;
-            }
-          }
-        }
-        */
 
         /**
          * activate device
@@ -2878,17 +2851,11 @@ void opencl_ctx_devices_update_power (hashcat_ctx_t *hashcat_ctx)
     {
       if (user_options->quiet == false)
       {
-        clear_prompt ();
-
-        event_log_warning (hashcat_ctx,
-          "  The wordlist or mask you are using is too small."                                                                    EOL
-          "  Therefore, hashcat is unable to utilize the full parallelization power of your device(s)."                           EOL
-          "  The cracking speed will drop."                                                                                       EOL
-          "  Workaround: https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#how_to_create_more_work_for_full_speed"  EOL
-          ""
-        );
-
-        send_prompt ();
+        event_log_warning (hashcat_ctx, "The wordlist or mask you are using is too small.");
+        event_log_warning (hashcat_ctx, "Therefore, hashcat is unable to utilize the full parallelization power of your device(s).");
+        event_log_warning (hashcat_ctx, "The cracking speed will drop.");
+        event_log_warning (hashcat_ctx, "Workaround: https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#how_to_create_more_work_for_full_speed");
+        event_log_warning (hashcat_ctx, "");
       }
     }
   }
@@ -3434,7 +3401,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (fd == NULL)
       {
-        event_log_error (hashcat_ctx, "%s: fopen(): %s", files_names[i], strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %s", files_names[i], strerror (errno));
 
         return -1;
       }
@@ -3445,7 +3412,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (n != 1)
       {
-        event_log_error (hashcat_ctx, "%s: fread(): %s", files_names[i], strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %s", files_names[i], strerror (errno));
 
         return -1;
       }

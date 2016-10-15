@@ -19,7 +19,27 @@
 #include "interface.h"
 #include "event.h"
 
-static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp)
+static void main_log_clear_line (MAYBE_UNUSED const int prev_len, MAYBE_UNUSED FILE *fp)
+{
+  #if defined (_WIN)
+
+  fputc ('\r', fp);
+
+  for (int i = 0; i < prev_len; i++)
+  {
+    fputc (' ', fp);
+  }
+
+  fputc ('\r', fp);
+
+  #else
+
+  printf ("\033[2K\r");
+
+  #endif
+}
+
+static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
 {
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
 
@@ -33,22 +53,7 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp)
 
   if (prev_len)
   {
-    #if defined (_WIN)
-
-    fputc ('\r', fp);
-
-    for (int i = 0; i < prev_len; i++)
-    {
-      fputc (' ', fp);
-    }
-
-    fputc ('\r', fp);
-
-    #else
-
-    printf ("\033[2K\r");
-
-    #endif
+    main_log_clear_line (prev_len, fp);
   }
 
   if (msg_newline == true)
@@ -60,13 +65,67 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp)
     event_ctx->prev_len = msg_len;
   }
 
+  // color stuff pre
+
+  #if defined (_WIN)
+  HANDLE hConsole = GetStdHandle (STD_OUTPUT_HANDLE);
+
+  CONSOLE_SCREEN_BUFFER_INFO con_info;
+
+  GetConsoleScreenBufferInfo (hConsole, &con_info);
+
+  const int orig = con_info.wAttributes;
+
+  switch (loglevel)
+  {
+    case LOGLEVEL_INFO:                                                        break;
+    case LOGLEVEL_WARNING: SetConsoleTextAttribute (hConsole, 6);              break;
+    case LOGLEVEL_ERROR:   SetConsoleTextAttribute (hConsole, FOREGROUND_RED); break;
+  }
+
+  #else
+  switch (loglevel)
+  {
+    case LOGLEVEL_INFO:                                   break;
+    case LOGLEVEL_WARNING: fwrite ("\033[33m", 5, 1, fp); break;
+    case LOGLEVEL_ERROR:   fwrite ("\033[31m", 5, 1, fp); break;
+  }
+  #endif
+
   // finally, print
 
   fwrite (msg_buf, msg_len, 1, fp);
 
+  // color stuff post
+
+  #if defined (_WIN)
+  switch (loglevel)
+  {
+    case LOGLEVEL_INFO:                                              break;
+    case LOGLEVEL_WARNING: SetConsoleTextAttribute (hConsole, orig); break;
+    case LOGLEVEL_ERROR:   SetConsoleTextAttribute (hConsole, orig); break;
+  }
+  #else
+  switch (loglevel)
+  {
+    case LOGLEVEL_INFO:                                  break;
+    case LOGLEVEL_WARNING: fwrite ("\033[0m", 4, 1, fp); break;
+    case LOGLEVEL_ERROR:   fwrite ("\033[0m", 4, 1, fp); break;
+  }
+  #endif
+
+  // eventual newline
+
   if (msg_newline == true)
   {
     fwrite (EOL, strlen (EOL), 1, fp);
+
+    // on error, add another newline
+
+    if (loglevel == LOGLEVEL_ERROR)
+    {
+      fwrite (EOL, strlen (EOL), 1, fp);
+    }
   }
 
   fflush (fp);
@@ -74,28 +133,17 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp)
 
 static void main_log_info (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
-  main_log (hashcat_ctx, stdout);
+  main_log (hashcat_ctx, stdout, LOGLEVEL_INFO);
 }
 
 static void main_log_warning (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
-  static const char PREFIX_WARNING[] = "WARNING: ";
-
-  fwrite (PREFIX_WARNING, strlen (PREFIX_WARNING), 1, stdout);
-
-  main_log (hashcat_ctx, stdout);
+  main_log (hashcat_ctx, stdout, LOGLEVEL_WARNING);
 }
 
 static void main_log_error (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
-  static const char PREFIX_ERROR[] = "ERROR: ";
-
-  fwrite (EOL,          strlen (EOL),          1, stderr);
-  fwrite (PREFIX_ERROR, strlen (PREFIX_ERROR), 1, stderr);
-
-  main_log (hashcat_ctx, stderr);
-
-  fwrite (EOL,          strlen (EOL),          1, stderr);
+  main_log (hashcat_ctx, stderr, LOGLEVEL_ERROR);
 }
 
 static void main_welcome_screen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -203,8 +251,19 @@ static void main_cracker_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
 
 static void main_cracker_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
-  const hashes_t       *hashes       = hashcat_ctx->hashes;
-  const user_options_t *user_options = hashcat_ctx->user_options;
+  const hashes_t             *hashes             = hashcat_ctx->hashes;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  // if we had a prompt, clear it
+
+  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
+  {
+    if ((user_options->quiet == false) && (user_options->benchmark == false) && (user_options->speed_only == false))
+    {
+      clear_prompt ();
+    }
+  }
 
   // print final status
 
@@ -219,25 +278,11 @@ static void main_cracker_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
   }
   else
   {
-    if (user_options->quiet == false)
-    {
-      clear_prompt ();
+    if (hashes->digests_saved != hashes->digests_done) event_log_info (hashcat_ctx, "");
 
-      if (hashes->digests_saved != hashes->digests_done) event_log_info (hashcat_ctx, "");
+    status_display (hashcat_ctx);
 
-      status_display (hashcat_ctx);
-
-      event_log_info (hashcat_ctx, "");
-    }
-    else
-    {
-      if (user_options->status == true)
-      {
-        status_display (hashcat_ctx);
-
-        event_log_info (hashcat_ctx, "");
-      }
-    }
+    event_log_info (hashcat_ctx, "");
   }
 }
 

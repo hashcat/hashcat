@@ -75,6 +75,14 @@ typedef struct stat64 hc_stat;
 
 // enums
 
+typedef enum loglevel
+{
+  LOGLEVEL_INFO    = 0,
+  LOGLEVEL_WARNING = 1,
+  LOGLEVEL_ERROR   = 2,
+
+} loglevel_t;
+
 typedef enum event_identifier
 {
   EVENT_LOG_INFO                  = 0x00000001,
