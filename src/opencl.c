@@ -2657,7 +2657,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         {
           if (device_param->skipped == 0)
           {
-            event_log_info (hashcat_ctx, "Device #%u: %s, %lu/%lu MB allocatable, %uMCU",
+            event_log_info (hashcat_ctx, "* Device #%u: %s, %lu/%lu MB allocatable, %uMCU",
                       device_id + 1,
                       device_name,
                       (unsigned int) (device_maxmem_alloc / 1024 / 1024),
@@ -2666,7 +2666,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           }
           else
           {
-            event_log_info (hashcat_ctx, "Device #%u: %s, skipped",
+            event_log_info (hashcat_ctx, "* Device #%u: %s, skipped",
                       device_id + 1,
                       device_name);
           }
