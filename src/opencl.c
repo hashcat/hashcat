@@ -1147,17 +1147,17 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
   int CL_rc;
 
-  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 24, sizeof (cl_uint), device_param->kernel_params[24]); if (CL_rc != -1) return -1;
-  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 25, sizeof (cl_uint), device_param->kernel_params[25]); if (CL_rc != -1) return -1;
-  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 26, sizeof (cl_uint), device_param->kernel_params[26]); if (CL_rc != -1) return -1;
-  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 27, sizeof (cl_uint), device_param->kernel_params[27]); if (CL_rc != -1) return -1;
-  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 28, sizeof (cl_uint), device_param->kernel_params[28]); if (CL_rc != -1) return -1;
-  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 29, sizeof (cl_uint), device_param->kernel_params[29]); if (CL_rc != -1) return -1;
-  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 30, sizeof (cl_uint), device_param->kernel_params[30]); if (CL_rc != -1) return -1;
-  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 31, sizeof (cl_uint), device_param->kernel_params[31]); if (CL_rc != -1) return -1;
-  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 32, sizeof (cl_uint), device_param->kernel_params[32]); if (CL_rc != -1) return -1;
-  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 33, sizeof (cl_uint), device_param->kernel_params[33]); if (CL_rc != -1) return -1;
-  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 34, sizeof (cl_uint), device_param->kernel_params[34]); if (CL_rc != -1) return -1;
+  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 24, sizeof (cl_uint), device_param->kernel_params[24]); if (CL_rc == -1) return -1;
+  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 25, sizeof (cl_uint), device_param->kernel_params[25]); if (CL_rc == -1) return -1;
+  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 26, sizeof (cl_uint), device_param->kernel_params[26]); if (CL_rc == -1) return -1;
+  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 27, sizeof (cl_uint), device_param->kernel_params[27]); if (CL_rc == -1) return -1;
+  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 28, sizeof (cl_uint), device_param->kernel_params[28]); if (CL_rc == -1) return -1;
+  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 29, sizeof (cl_uint), device_param->kernel_params[29]); if (CL_rc == -1) return -1;
+  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 30, sizeof (cl_uint), device_param->kernel_params[30]); if (CL_rc == -1) return -1;
+  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 31, sizeof (cl_uint), device_param->kernel_params[31]); if (CL_rc == -1) return -1;
+  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 32, sizeof (cl_uint), device_param->kernel_params[32]); if (CL_rc == -1) return -1;
+  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 33, sizeof (cl_uint), device_param->kernel_params[33]); if (CL_rc == -1) return -1;
+  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 34, sizeof (cl_uint), device_param->kernel_params[34]); if (CL_rc == -1) return -1;
 
   cl_event event;
 
