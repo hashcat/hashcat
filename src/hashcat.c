@@ -354,7 +354,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     loopback_write_close (hashcat_ctx);
   }
 
-  // New induction folder check
+  // New induction folder check, which is a controlled recursion
 
   if (induct_ctx->induction_dictionaries_cnt == 0)
   {
@@ -366,7 +366,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
       {
         const int rc_inner2_loop = inner2_loop (hashcat_ctx);
 
-        if (rc_inner2_loop == -1) return -1;
+        if (rc_inner2_loop == -1) myabort (hashcat_ctx);
 
         if (status_ctx->run_main_level3 == false) break;
 
@@ -414,7 +414,7 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 
       const int rc_inner2_loop = inner2_loop (hashcat_ctx);
 
-      if (rc_inner2_loop == -1) return -1;
+      if (rc_inner2_loop == -1) myabort (hashcat_ctx);
 
       if (status_ctx->run_main_level3 == false) break;
     }
@@ -423,7 +423,7 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
   {
     const int rc_inner2_loop = inner2_loop (hashcat_ctx);
 
-    if (rc_inner2_loop == -1) return -1;
+    if (rc_inner2_loop == -1) myabort (hashcat_ctx);
   }
 
   EVENT (EVENT_INNERLOOP2_FINISHED);
@@ -436,14 +436,14 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 
 static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 {
-  hashes_t             *hashes              = hashcat_ctx->hashes;
-  mask_ctx_t           *mask_ctx            = hashcat_ctx->mask_ctx;
-  opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
-  outcheck_ctx_t       *outcheck_ctx        = hashcat_ctx->outcheck_ctx;
-  restore_ctx_t        *restore_ctx         = hashcat_ctx->restore_ctx;
-  status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
-  straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
-  user_options_t       *user_options        = hashcat_ctx->user_options;
+  hashes_t       *hashes        = hashcat_ctx->hashes;
+  mask_ctx_t     *mask_ctx      = hashcat_ctx->mask_ctx;
+  opencl_ctx_t   *opencl_ctx    = hashcat_ctx->opencl_ctx;
+  outcheck_ctx_t *outcheck_ctx  = hashcat_ctx->outcheck_ctx;
+  restore_ctx_t  *restore_ctx   = hashcat_ctx->restore_ctx;
+  status_ctx_t   *status_ctx    = hashcat_ctx->status_ctx;
+  straight_ctx_t *straight_ctx  = hashcat_ctx->straight_ctx;
+  user_options_t *user_options  = hashcat_ctx->user_options;
 
   status_ctx->devices_status = STATUS_INIT;
 
@@ -757,7 +757,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
       const int rc_inner1_loop = inner1_loop (hashcat_ctx);
 
-      if (rc_inner1_loop == -1) return -1;
+      if (rc_inner1_loop == -1) myabort (hashcat_ctx);
 
       if (status_ctx->run_main_level2 == false) break;
     }
@@ -766,7 +766,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   {
     const int rc_inner1_loop = inner1_loop (hashcat_ctx);
 
-    if (rc_inner1_loop == -1) return -1;
+    if (rc_inner1_loop == -1) myabort (hashcat_ctx);
   }
 
   // wait for inner threads
@@ -792,23 +792,15 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   // clean up
 
+  bitmap_ctx_destroy      (hashcat_ctx);
+  combinator_ctx_destroy  (hashcat_ctx);
+  cpt_ctx_destroy         (hashcat_ctx);
+  hashconfig_destroy      (hashcat_ctx);
+  hashes_destroy          (hashcat_ctx);
+  mask_ctx_destroy        (hashcat_ctx);
   status_progress_destroy (hashcat_ctx);
-
-  bitmap_ctx_destroy (hashcat_ctx);
-
-  mask_ctx_destroy (hashcat_ctx);
-
-  combinator_ctx_destroy (hashcat_ctx);
-
-  straight_ctx_destroy (hashcat_ctx);
-
-  hashes_destroy (hashcat_ctx);
-
-  hashconfig_destroy (hashcat_ctx);
-
-  wl_data_destroy (hashcat_ctx);
-
-  cpt_ctx_destroy (hashcat_ctx);
+  straight_ctx_destroy    (hashcat_ctx);
+  wl_data_destroy         (hashcat_ctx);
 
   return 0;
 }
@@ -1067,37 +1059,22 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
 
   EVENT (EVENT_GOODBYE_SCREEN);
 
-  logfile_destroy (hashcat_ctx);
-
-  debugfile_destroy (hashcat_ctx);
-
-  tuning_db_destroy (hashcat_ctx);
-
-  loopback_destroy (hashcat_ctx);
-
-  dictstat_destroy (hashcat_ctx);
-
-  potfile_destroy (hashcat_ctx);
-
-  induct_ctx_destroy (hashcat_ctx);
-
-  outfile_destroy (hashcat_ctx);
-
-  outcheck_ctx_destroy (hashcat_ctx);
-
-  folder_config_destroy (hashcat_ctx);
-
-  hwmon_ctx_destroy (hashcat_ctx);
-
+  debugfile_destroy          (hashcat_ctx);
+  dictstat_destroy           (hashcat_ctx);
+  folder_config_destroy      (hashcat_ctx);
+  hwmon_ctx_destroy          (hashcat_ctx);
+  induct_ctx_destroy         (hashcat_ctx);
+  logfile_destroy            (hashcat_ctx);
+  loopback_destroy           (hashcat_ctx);
+  opencl_ctx_destroy         (hashcat_ctx);
   opencl_ctx_devices_destroy (hashcat_ctx);
-
-  opencl_ctx_destroy (hashcat_ctx);
-
-  restore_ctx_destroy (hashcat_ctx);
-
+  outcheck_ctx_destroy       (hashcat_ctx);
+  outfile_destroy            (hashcat_ctx);
+  potfile_destroy            (hashcat_ctx);
+  restore_ctx_destroy        (hashcat_ctx);
+  tuning_db_destroy          (hashcat_ctx);
+  user_options_destroy       (hashcat_ctx);
   user_options_extra_destroy (hashcat_ctx);
-
-  user_options_destroy (hashcat_ctx);
 
   if (rc_final == 0)
   {
@@ -1107,9 +1084,8 @@ int hashcat (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_fold
     if (status_ctx->devices_status == STATUS_CRACKED)   rc_final = 0;
   }
 
-  event_ctx_destroy (hashcat_ctx);
-
   status_ctx_destroy (hashcat_ctx);
+  event_ctx_destroy  (hashcat_ctx);
 
   // done
 

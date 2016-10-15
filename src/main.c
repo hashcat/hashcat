@@ -81,7 +81,7 @@ static void main_log_warning (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNU
 {
   static const char PREFIX_WARNING[] = "WARNING: ";
 
-  fwrite (PREFIX_WARNING, sizeof (PREFIX_WARNING), 1, stdout);
+  fwrite (PREFIX_WARNING, strlen (PREFIX_WARNING), 1, stdout);
 
   main_log (hashcat_ctx, stdout);
 }
@@ -90,9 +90,12 @@ static void main_log_error (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSE
 {
   static const char PREFIX_ERROR[] = "ERROR: ";
 
-  fwrite (PREFIX_ERROR, sizeof (PREFIX_ERROR), 1, stderr);
+  fwrite (EOL,          strlen (EOL),          1, stderr);
+  fwrite (PREFIX_ERROR, strlen (PREFIX_ERROR), 1, stderr);
 
   main_log (hashcat_ctx, stderr);
+
+  fwrite (EOL,          strlen (EOL),          1, stderr);
 }
 
 static void main_welcome_screen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)

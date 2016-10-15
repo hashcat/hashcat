@@ -303,7 +303,7 @@ int ocl_init (hashcat_ctx_t *hashcat_ctx)
 
   if (ocl->lib == NULL)
   {
-    event_log_warning (hashcat_ctx,
+    event_log_error (hashcat_ctx,
       "Can't find OpenCL ICD loader library" EOL
       ""                                     EOL
       #if defined (__linux__)
@@ -1073,7 +1073,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
       if (user_options->speed_only == true)
       {
-        if (speed_ms > 4096) return -1;
+        if (speed_ms > 4096) return 0;
       }
     }
 
@@ -1958,13 +1958,15 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (platforms_cnt == 0)
   {
-    event_log_info (hashcat_ctx, "ATTENTION! No OpenCL compatible platform found");
-    event_log_info (hashcat_ctx, "");
-    event_log_info (hashcat_ctx, "You're probably missing the OpenCL runtime installation");
-    event_log_info (hashcat_ctx, "  AMD users require AMD drivers 14.9 or later (recommended 15.12 or later)");
-    event_log_info (hashcat_ctx, "  Intel users require Intel OpenCL Runtime 14.2 or later (recommended 15.1 or later)");
-    event_log_info (hashcat_ctx, "  NVidia users require NVidia drivers 346.59 or later (recommended 361.x or later)");
-    event_log_info (hashcat_ctx, "");
+    event_log_error (hashcat_ctx,
+      "No OpenCL compatible platform found"                                                   EOL
+      ""                                                                                      EOL
+      "You're probably missing the OpenCL runtime installation"                               EOL
+      "* AMD users require AMD drivers 14.9 or later (recommended 15.12 or later)"            EOL
+      "* Intel users require Intel OpenCL Runtime 14.2 or later (recommended 15.1 or later)"  EOL
+      "* NVidia users require NVidia drivers 346.59 or later (recommended 361.x or later)"    EOL
+      ""                                                                                      EOL
+    );
 
     return -1;
   }
@@ -2397,7 +2399,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (device_endian_little == CL_FALSE)
       {
-        event_log_info (hashcat_ctx, "- Device #%u: WARNING: Not a little endian device", device_id + 1);
+        event_log_warning (hashcat_ctx, "Device #%u: Not a little endian device", device_id + 1);
 
         device_param->skipped = 1;
       }
@@ -2412,7 +2414,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (device_available == CL_FALSE)
       {
-        event_log_info (hashcat_ctx, "- Device #%u: WARNING: Device not available", device_id + 1);
+        event_log_warning (hashcat_ctx, "Device #%u: Device not available", device_id + 1);
 
         device_param->skipped = 1;
       }
@@ -2427,7 +2429,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (device_compiler_available == CL_FALSE)
       {
-        event_log_info (hashcat_ctx, "- Device #%u: WARNING: No compiler available for device", device_id + 1);
+        event_log_warning (hashcat_ctx, "Device #%u: No compiler available for device", device_id + 1);
 
         device_param->skipped = 1;
       }
@@ -2442,7 +2444,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if ((device_execution_capabilities & CL_EXEC_KERNEL) == 0)
       {
-        event_log_info (hashcat_ctx, "- Device #%u: WARNING: Device does not support executing kernels", device_id + 1);
+        event_log_warning (hashcat_ctx, "Device #%u: Device does not support executing kernels", device_id + 1);
 
         device_param->skipped = 1;
       }
@@ -2463,14 +2465,14 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (strstr (device_extensions, "base_atomics") == 0)
       {
-        event_log_info (hashcat_ctx, "- Device #%u: WARNING: Device does not support base atomics", device_id + 1);
+        event_log_warning (hashcat_ctx, "Device #%u: Device does not support base atomics", device_id + 1);
 
         device_param->skipped = 1;
       }
 
       if (strstr (device_extensions, "byte_addressable_store") == 0)
       {
-        event_log_info (hashcat_ctx, "- Device #%u: WARNING: Device does not support byte addressable store", device_id + 1);
+        event_log_warning (hashcat_ctx, "Device #%u: Device does not support byte addressable store", device_id + 1);
 
         device_param->skipped = 1;
       }
@@ -2487,7 +2489,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (device_local_mem_size < 32768)
       {
-        event_log_info (hashcat_ctx, "- Device #%u: WARNING: Device local mem size is too small", device_id + 1);
+        event_log_warning (hashcat_ctx, "Device #%u: Device local mem size is too small", device_id + 1);
 
         device_param->skipped = 1;
       }
@@ -2504,8 +2506,9 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         {
           if (user_options->force == 0)
           {
-            event_log_info (hashcat_ctx, "- Device #%u: WARNING: Not a native Intel OpenCL runtime, expect massive speed loss", device_id + 1);
-            event_log_info (hashcat_ctx, "             You can use --force to override this but do not post error reports if you do so");
+            event_log_warning (hashcat_ctx,
+              "Device #%u: Not a native Intel OpenCL runtime, expect massive speed loss" EOL
+              "           You can use --force to override this but do not post error reports if you do so", device_id + 1);
 
             device_param->skipped = 1;
           }
@@ -2654,7 +2657,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         {
           if (device_param->skipped == 0)
           {
-            event_log_info (hashcat_ctx, "- Device #%u: %s, %lu/%lu MB allocatable, %uMCU",
+            event_log_info (hashcat_ctx, "Device #%u: %s, %lu/%lu MB allocatable, %uMCU",
                       device_id + 1,
                       device_name,
                       (unsigned int) (device_maxmem_alloc / 1024 / 1024),
@@ -2663,7 +2666,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           }
           else
           {
-            event_log_info (hashcat_ctx, "- Device #%u: %s, skipped",
+            event_log_info (hashcat_ctx, "Device #%u: %s, skipped",
                       device_id + 1,
                       device_name);
           }
@@ -2699,25 +2702,29 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
             if (catalyst_broken == 1)
             {
-              event_log_info (hashcat_ctx, "ATTENTION! The Catalyst driver installed on your system is known to be broken!");
-              event_log_info (hashcat_ctx, "It passes over cracked hashes and will not report them as cracked");
-              event_log_info (hashcat_ctx, "You are STRONGLY encouraged not to use it");
-              event_log_info (hashcat_ctx, "You can use --force to override this but do not post error reports if you do so");
-              event_log_info (hashcat_ctx, "");
+              event_log_error (hashcat_ctx,
+                "The AMD driver installed on your system is known to be broken!"                  EOL
+                "It passes over cracked hashes and will not report them as cracked"               EOL
+                "You are STRONGLY encouraged not to use it"                                       EOL
+                "You can use --force to override this but do not post error reports if you do so" EOL
+                ""                                                                                EOL
+              );
 
               return -1;
             }
 
             if (catalyst_warn == 1)
             {
-              event_log_info (hashcat_ctx, "ATTENTION! Unsupported or incorrectly installed Catalyst driver detected!");
-              event_log_info (hashcat_ctx, "You are STRONGLY encouraged to use the official supported catalyst driver");
-              event_log_info (hashcat_ctx, "See hashcat's homepage for official supported catalyst drivers");
-              #if defined (_WIN)
-              event_log_info (hashcat_ctx, "Also see: http://hashcat.net/wiki/doku.php?id=upgrading_amd_drivers_how_to");
-              #endif
-              event_log_info (hashcat_ctx, "You can use --force to override this but do not post error reports if you do so");
-              event_log_info (hashcat_ctx, "");
+              event_log_error (hashcat_ctx,
+                "Unsupported or incorrectly installed Catalyst driver detected!"                  EOL
+                "You are STRONGLY encouraged to use the official supported catalyst driver"       EOL
+                "See hashcat's homepage for official supported catalyst drivers"                  EOL
+                #if defined (_WIN)
+                "Also see: http://hashcat.net/wiki/doku.php?id=upgrading_amd_drivers_how_to"      EOL
+                #endif
+                "You can use --force to override this but do not post error reports if you do so" EOL
+                ""
+              );
 
               return -1;
             }
@@ -2726,8 +2733,9 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           {
             if (device_param->kernel_exec_timeout != 0)
             {
-              event_log_info (hashcat_ctx, "- Device #%u: WARNING! Kernel exec timeout is not disabled, it might cause you errors of code 702", device_id + 1);
-              event_log_info (hashcat_ctx, "             See the wiki on how to disable it: https://hashcat.net/wiki/doku.php?id=timeout_patch");
+              event_log_warning (hashcat_ctx,
+                "Device #%u: Kernel exec timeout is not disabled, it might cause you errors of code 702" EOL
+                "           See the wiki on how to disable it: https://hashcat.net/wiki/doku.php?id=timeout_patch", device_id + 1);
             }
           }
         }
@@ -2739,11 +2747,13 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           {
             if (user_options->force == 0)
             {
-              event_log_info (hashcat_ctx, "ATTENTION! OpenCL support for CPU of catalyst driver is not reliable.");
-              event_log_info (hashcat_ctx, "You are STRONGLY encouraged not to use it");
-              event_log_info (hashcat_ctx, "You can use --force to override this but do not post error reports if you do so");
-              event_log_info (hashcat_ctx, "A good alternative is the free pocl >= v0.13, but make sure to use a LLVM >= v3.8");
-              event_log_info (hashcat_ctx, "");
+              event_log_error (hashcat_ctx,
+                "OpenCL support for CPU of catalyst driver is not reliable."                        EOL
+                "You are STRONGLY encouraged not to use it"                                         EOL
+                "You can use --force to override this but do not post error reports if you do so"   EOL
+                "A good alternative is the free pocl >= v0.13, but make sure to use a LLVM >= v3.8" EOL
+                ""                                                                                  EOL
+              );
 
               return -1;
             }
@@ -2870,12 +2880,15 @@ void opencl_ctx_devices_update_power (hashcat_ctx_t *hashcat_ctx)
       {
         clear_prompt ();
 
-        event_log_info (hashcat_ctx, "ATTENTION!");
-        event_log_info (hashcat_ctx, "  The wordlist or mask you are using is too small.");
-        event_log_info (hashcat_ctx, "  Therefore, hashcat is unable to utilize the full parallelization power of your device(s).");
-        event_log_info (hashcat_ctx, "  The cracking speed will drop.");
-        event_log_info (hashcat_ctx, "  Workaround: https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#how_to_create_more_work_for_full_speed");
-        event_log_info (hashcat_ctx, "");
+        event_log_warning (hashcat_ctx,
+          "  The wordlist or mask you are using is too small."                                                                    EOL
+          "  Therefore, hashcat is unable to utilize the full parallelization power of your device(s)."                           EOL
+          "  The cracking speed will drop."                                                                                       EOL
+          "  Workaround: https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#how_to_create_more_work_for_full_speed"  EOL
+          ""
+        );
+
+        send_prompt ();
       }
     }
   }
@@ -3222,14 +3235,14 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if ((size_scrypt / 4) > device_param->device_maxmem_alloc)
         {
-          event_log_info (hashcat_ctx, "Not enough single-block device memory allocatable to use --scrypt-tmto %d, increasing...", tmto);
+          event_log_warning (hashcat_ctx, "Not enough single-block device memory allocatable to use --scrypt-tmto %d, increasing...", tmto);
 
           continue;
         }
 
         if (size_scrypt > device_param->device_global_mem)
         {
-          event_log_info (hashcat_ctx, "Not enough total device memory allocatable to use --scrypt-tmto %d, increasing...", tmto);
+          event_log_warning (hashcat_ctx, "Not enough total device memory allocatable to use --scrypt-tmto %d, increasing...", tmto);
 
           continue;
         }
@@ -3346,7 +3359,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (kernel_accel_max < kernel_accel_min)
     {
-      event_log_error (hashcat_ctx, "- Device #%u: Device does not provide enough allocatable device-memory to handle this attack", device_id + 1);
+      event_log_error (hashcat_ctx, "Device #%u: Device does not provide enough allocatable device-memory to handle this attack", device_id + 1);
 
       return -1;
     }
@@ -3357,7 +3370,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     /*
     if (kernel_accel_max < kernel_accel)
     {
-      if (user_options->quiet == false) event_log_info (hashcat_ctx, "- Device #%u: Reduced maximum kernel-accel to %u", device_id + 1, kernel_accel_max);
+      if (user_options->quiet == false) event_log_info (hashcat_ctx, "Device #%u: Reduced maximum kernel-accel to %u", device_id + 1, kernel_accel_max);
 
       device_param->kernel_accel = kernel_accel_max;
     }
@@ -3453,7 +3466,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     strncpy (build_opts, build_opts_new, sizeof (build_opts));
 
     #if defined (DEBUG)
-    event_log_info (hashcat_ctx, "- Device #%u: build_opts '%s'", device_id + 1, build_opts);
+    event_log_info (hashcat_ctx, "Device #%u: build_opts '%s'", device_id + 1, build_opts);
     #endif
 
     /**
@@ -3507,7 +3520,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       {
         if (cached == 0)
         {
-          if (user_options->quiet == false) event_log_info_nn (hashcat_ctx, "- Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
+          if (user_options->quiet == false) event_log_info_nn (hashcat_ctx, "Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
 
           const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, 1, kernel_lengths, kernel_sources);
 
@@ -3548,7 +3561,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
           {
             device_param->skipped = true;
 
-            event_log_info (hashcat_ctx, "- Device #%u: Kernel %s build failure. Proceeding without this device.", device_id + 1, source_file);
+            event_log_warning (hashcat_ctx, "Device #%u: Kernel %s build failure. Proceeding without this device.", device_id + 1, source_file);
 
             continue;
           }
@@ -3574,7 +3587,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         else
         {
           #if defined (DEBUG)
-          event_log_info (hashcat_ctx, "- Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
+          event_log_info (hashcat_ctx, "Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
           #endif
 
           const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, 1, kernel_lengths, kernel_sources);
@@ -3593,7 +3606,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       else
       {
         #if defined (DEBUG)
-        event_log_info (hashcat_ctx, "- Device #%u: Kernel %s (%ld bytes)", device_id + 1, source_file, sst.st_size);
+        event_log_info (hashcat_ctx, "Device #%u: Kernel %s (%ld bytes)", device_id + 1, source_file, sst.st_size);
         #endif
 
         const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, 1, kernel_lengths, kernel_sources);
@@ -3650,7 +3663,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         {
           device_param->skipped = true;
 
-          event_log_info (hashcat_ctx, "- Device #%u: Kernel %s build failure. Proceeding without this device.", device_id + 1, source_file);
+          event_log_warning (hashcat_ctx, "Device #%u: Kernel %s build failure. Proceeding without this device.", device_id + 1, source_file);
         }
       }
 
@@ -3709,7 +3722,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (cached == 0)
       {
-        if (user_options->quiet == false) event_log_info_nn (hashcat_ctx, "- Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
+        if (user_options->quiet == false) event_log_info_nn (hashcat_ctx, "Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
 
         const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, 1, kernel_lengths, kernel_sources);
 
@@ -3750,7 +3763,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         {
           device_param->skipped = true;
 
-          event_log_info (hashcat_ctx, "- Device #%u: Kernel %s build failure. Proceeding without this device.", device_id + 1, source_file);
+          event_log_warning (hashcat_ctx, "Device #%u: Kernel %s build failure. Proceeding without this device.", device_id + 1, source_file);
 
           continue;
         }
@@ -3774,7 +3787,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       else
       {
         #if defined (DEBUG)
-        event_log_info (hashcat_ctx, "- Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
+        event_log_info (hashcat_ctx, "Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
         #endif
 
         const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, 1, kernel_lengths, kernel_sources);
@@ -3849,7 +3862,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (cached == 0)
       {
-        if (user_options->quiet == false) event_log_info_nn (hashcat_ctx, "- Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
+        if (user_options->quiet == false) event_log_info_nn (hashcat_ctx, "Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
 
         const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, 1, kernel_lengths, kernel_sources);
 
@@ -3890,7 +3903,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         {
           device_param->skipped = true;
 
-          event_log_info (hashcat_ctx, "- Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
+          event_log_warning (hashcat_ctx, "Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
 
           continue;
         }
@@ -3914,7 +3927,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       else
       {
         #if defined (DEBUG)
-        if (user_options->quiet == false) event_log_info (hashcat_ctx, "- Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
+        if (user_options->quiet == false) event_log_info (hashcat_ctx, "Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
         #endif
 
         const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, 1, kernel_lengths, kernel_sources);
