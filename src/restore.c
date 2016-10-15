@@ -28,7 +28,7 @@ u64 get_lowest_words_done (hashcat_ctx_t *hashcat_ctx)
 
   restore_data_t *rd = restore_ctx->rd;
 
-  u64 words_cur = -1llu;
+  u64 words_cur = 0xffffffffffffffff;
 
   for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {

@@ -663,7 +663,9 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   EVENT (EVENT_OPENCL_SESSION_PRE);
 
-  opencl_session_begin (hashcat_ctx);
+  const int rc_session_begin = opencl_session_begin (hashcat_ctx);
+
+  if (rc_session_begin == -1) return -1;
 
   EVENT (EVENT_OPENCL_SESSION_POST);
 

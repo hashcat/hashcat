@@ -314,7 +314,7 @@ void *thread_autotune (void *p)
 
   hc_device_param_t *device_param = opencl_ctx->devices_param + thread_param->tid;
 
-  if (device_param->skipped) return NULL;
+  if (device_param->skipped == true) return NULL;
 
   const int rc_autotune = autotune (hashcat_ctx, device_param);
 

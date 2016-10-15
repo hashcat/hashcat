@@ -3108,8 +3108,6 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     device_param->hardware_power = device_processors * kernel_threads;
 
-    hardware_power_all += device_param->hardware_power;
-
     /**
      * create input buffers on device : calculate size of fixed memory buffers
      */
@@ -3537,9 +3535,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
           {
             char *build_log = (char *) hcmalloc (hashcat_ctx, build_log_size + 1); VERIFY_PTR (build_log);
 
-            CL_rc = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
+            int CL_rc_build = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
 
-            if (CL_rc == -1) return -1;
+            if (CL_rc_build == -1) return -1;
 
             puts (build_log);
 
@@ -3550,7 +3548,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
           {
             device_param->skipped = true;
 
-            event_log_warning (hashcat_ctx, "Device #%u: Kernel %s build failure. Proceeding without this device.", device_id + 1, source_file);
+            event_log_error (hashcat_ctx, "Device #%u: Kernel %s build failure. Proceeding without this device.", device_id + 1, source_file);
 
             continue;
           }
@@ -3639,9 +3637,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         {
           char *build_log = (char *) hcmalloc (hashcat_ctx, build_log_size + 1); VERIFY_PTR (build_log);
 
-          CL_rc = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
+          int CL_rc_build = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->program, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
 
-          if (CL_rc == -1) return -1;
+          if (CL_rc_build == -1) return -1;
 
           puts (build_log);
 
@@ -3652,7 +3650,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         {
           device_param->skipped = true;
 
-          event_log_warning (hashcat_ctx, "Device #%u: Kernel %s build failure. Proceeding without this device.", device_id + 1, source_file);
+          event_log_error (hashcat_ctx, "Device #%u: Kernel %s build failure. Proceeding without this device.", device_id + 1, source_file);
+
+          continue;
         }
       }
 
@@ -3739,9 +3739,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         {
           char *build_log = (char *) hcmalloc (hashcat_ctx, build_log_size + 1); VERIFY_PTR (build_log);
 
-          CL_rc = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
+          int CL_rc_build = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->program_mp, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
 
-          if (CL_rc == -1) return -1;
+          if (CL_rc_build == -1) return -1;
 
           puts (build_log);
 
@@ -3752,7 +3752,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         {
           device_param->skipped = true;
 
-          event_log_warning (hashcat_ctx, "Device #%u: Kernel %s build failure. Proceeding without this device.", device_id + 1, source_file);
+          event_log_error (hashcat_ctx, "Device #%u: Kernel %s build failure. Proceeding without this device.", device_id + 1, source_file);
 
           continue;
         }
@@ -3892,7 +3892,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         {
           device_param->skipped = true;
 
-          event_log_warning (hashcat_ctx, "Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
+          event_log_error (hashcat_ctx, "Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
 
           continue;
         }
@@ -4408,12 +4408,12 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     // zero some data buffers
 
-    CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_pws_buf,        size_pws);           if (CL_rc == -1) return -1;
-    CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_pws_amp_buf,    size_pws);           if (CL_rc == -1) return -1;
-    CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_tmps,           size_tmps);          if (CL_rc == -1) return -1;
-    CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_hooks,          size_hooks);         if (CL_rc == -1) return -1;
-    CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_plain_bufs,     size_plains);        if (CL_rc == -1) return -1;
-    CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_result,         size_results);       if (CL_rc == -1) return -1;
+    CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_pws_buf,     size_pws);      if (CL_rc == -1) return -1;
+    CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_pws_amp_buf, size_pws);      if (CL_rc == -1) return -1;
+    CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_tmps,        size_tmps);     if (CL_rc == -1) return -1;
+    CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_hooks,       size_hooks);    if (CL_rc == -1) return -1;
+    CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_plain_bufs,  size_plains);   if (CL_rc == -1) return -1;
+    CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_result,      size_results);  if (CL_rc == -1) return -1;
 
     /**
      * special buffers
@@ -4483,7 +4483,11 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       for (u32 i = 0; i < 3; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp_l, i, sizeof (cl_mem), (void *) device_param->kernel_params_mp_l[i]); if (CL_rc == -1) return -1; }
       for (u32 i = 0; i < 3; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp_r, i, sizeof (cl_mem), (void *) device_param->kernel_params_mp_r[i]); if (CL_rc == -1) return -1; }
     }
+
+    hardware_power_all += device_param->hardware_power;
   }
+
+  if (hardware_power_all == 0) return -1;
 
   opencl_ctx->hardware_power_all = hardware_power_all;
 
