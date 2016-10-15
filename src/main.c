@@ -255,6 +255,10 @@ static void main_cracker_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
+  if (user_options->keyspace    == true) return;
+  if (user_options->opencl_info == true) return;
+  if (user_options->stdout_flag == true) return;
+
   // if we had a prompt, clear it
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
