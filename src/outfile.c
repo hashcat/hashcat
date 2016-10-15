@@ -16,7 +16,7 @@
 #include "opencl.h"
 #include "outfile.h"
 
-void build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u32 *plain_buf, int *out_len)
+int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u32 *plain_buf, int *out_len)
 {
   combinator_ctx_t      *combinator_ctx     = hashcat_ctx->combinator_ctx;
   hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
@@ -36,7 +36,9 @@ void build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, p
   {
     pw_t pw;
 
-    gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
+    const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
+
+    if (rc == -1) return -1;
 
     for (int i = 0; i < 16; i++)
     {
@@ -55,7 +57,9 @@ void build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, p
   {
     pw_t pw;
 
-    gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
+    const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
+
+    if (rc == -1) return -1;
 
     for (int i = 0; i < 16; i++)
     {
@@ -105,7 +109,9 @@ void build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, p
   {
     pw_t pw;
 
-    gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
+    const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
+
+    if (rc == -1) return -1;
 
     for (int i = 0; i < 16; i++)
     {
@@ -132,7 +138,9 @@ void build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, p
   {
     pw_t pw;
 
-    gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
+    const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
+
+    if (rc == -1) return -1;
 
     for (int i = 0; i < 16; i++)
     {
@@ -183,9 +191,11 @@ void build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, p
   }
 
   *out_len = plain_len;
+
+  return 0;
 }
 
-void build_crackpos (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u64 *out_pos)
+int build_crackpos (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u64 *out_pos)
 {
   combinator_ctx_t      *combinator_ctx     = hashcat_ctx->combinator_ctx;
   mask_ctx_t            *mask_ctx           = hashcat_ctx->mask_ctx;
@@ -217,9 +227,11 @@ void build_crackpos (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   }
 
   *out_pos = crackpos;
+
+  return 0;
 }
 
-void build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u8 *debug_rule_buf, int *debug_rule_len, u8 *debug_plain_ptr, int *debug_plain_len)
+int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u8 *debug_rule_buf, int *debug_rule_len, u8 *debug_plain_ptr, int *debug_plain_len)
 {
   debugfile_ctx_t       *debugfile_ctx      = hashcat_ctx->debugfile_ctx;
   straight_ctx_t        *straight_ctx       = hashcat_ctx->straight_ctx;
@@ -228,15 +240,17 @@ void build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
   const u32 gidvid      = plain->gidvid;
   const u32 il_pos      = plain->il_pos;
 
-  if (user_options->attack_mode != ATTACK_MODE_STRAIGHT) return;
+  if (user_options->attack_mode != ATTACK_MODE_STRAIGHT) return 0;
 
   const u32 debug_mode = debugfile_ctx->mode;
 
-  if (debug_mode == 0) return;
+  if (debug_mode == 0) return 0;
 
   pw_t pw;
 
-  gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
+  const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
+
+  if (rc == -1) return -1;
 
   int plain_len = (int) pw.pw_len;
 
@@ -255,6 +269,8 @@ void build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
 
     *debug_plain_len = plain_len;
   }
+
+  return 0;
 }
 
 int outfile_init (hashcat_ctx_t *hashcat_ctx)

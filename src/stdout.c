@@ -84,7 +84,9 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
     for (u32 gidvid = 0; gidvid < pws_cnt; gidvid++)
     {
-      gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
+      const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
+
+      if (rc == -1) return -1;
 
       const u32 pos = device_param->innerloop_pos;
 
@@ -111,7 +113,9 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
     for (u32 gidvid = 0; gidvid < pws_cnt; gidvid++)
     {
-      gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
+      const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
+
+      if (rc == -1) return -1;
 
       for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
       {
@@ -177,7 +181,9 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
     for (u32 gidvid = 0; gidvid < pws_cnt; gidvid++)
     {
-      gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
+      const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
+
+      if (rc == -1) return -1;
 
       for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
       {
@@ -207,7 +213,9 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
     for (u32 gidvid = 0; gidvid < pws_cnt; gidvid++)
     {
-      gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
+      const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
+
+      if (rc == -1) return -1;
 
       for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
       {
