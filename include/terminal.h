@@ -42,3 +42,8 @@ int tty_getchar();
 int tty_fix();
 
 #endif // _TERMINAL_H
+
+void status_display_machine_readable  (hashcat_ctx_t *hashcat_ctx);
+void status_display                   (hashcat_ctx_t *hashcat_ctx);
+void status_benchmark_automate        (hashcat_ctx_t *hashcat_ctx);
+void status_benchmark                 (hashcat_ctx_t *hashcat_ctx);

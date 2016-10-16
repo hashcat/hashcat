@@ -349,44 +349,6 @@ void unlink_restore (hashcat_ctx_t *hashcat_ctx)
   }
 }
 
-void stop_at_checkpoint (hashcat_ctx_t *hashcat_ctx)
-{
-  restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
-  status_ctx_t  *status_ctx  = hashcat_ctx->status_ctx;
-
-  // this feature only makes sense if --restore-disable was not specified
-
-  if (restore_ctx->enabled == false)
-  {
-    event_log_warning (hashcat_ctx, "This feature is disabled when --restore-disable is specified");
-
-    return;
-  }
-
-  if (status_ctx->devices_status != STATUS_RUNNING) return;
-
-  if ((status_ctx->run_thread_level1 == true) && (status_ctx->run_thread_level2 == true))
-  {
-    status_ctx->run_main_level1   = false;
-    status_ctx->run_main_level2   = false;
-    status_ctx->run_main_level3   = false;
-    status_ctx->run_thread_level1 = false;
-    status_ctx->run_thread_level2 = true;
-
-    event_log_info (hashcat_ctx, "Checkpoint enabled: Will quit at next Restore Point update");
-  }
-  else
-  {
-    status_ctx->run_main_level1   = true;
-    status_ctx->run_main_level2   = true;
-    status_ctx->run_main_level3   = true;
-    status_ctx->run_thread_level1 = true;
-    status_ctx->run_thread_level2 = true;
-
-    event_log_info (hashcat_ctx, "Checkpoint disabled: Restore Point updates will no longer be monitored");
-  }
-}
-
 int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 {
   folder_config_t *folder_config = hashcat_ctx->folder_config;

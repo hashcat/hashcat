@@ -116,7 +116,7 @@ void hc_signal (void (callback) (int))
 #endif
 */
 
-void mycracked (hashcat_ctx_t *hashcat_ctx)
+int mycracked (hashcat_ctx_t *hashcat_ctx)
 {
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
@@ -129,13 +129,16 @@ void mycracked (hashcat_ctx_t *hashcat_ctx)
   status_ctx->run_main_level3   = false;
   status_ctx->run_thread_level1 = false;
   status_ctx->run_thread_level2 = false;
+
+  return 0;
 }
 
-void myabort (hashcat_ctx_t *hashcat_ctx)
+int myabort (hashcat_ctx_t *hashcat_ctx)
 {
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
   //those checks create problems in benchmark mode, it's simply too short of a timeframe where it's running as STATUS_RUNNING
+  // not sure if this is still valid, but abort is also called by gpu temp monitor
   //if (status_ctx->devices_status != STATUS_RUNNING) return;
 
   status_ctx->devices_status = STATUS_ABORTED;
@@ -145,13 +148,15 @@ void myabort (hashcat_ctx_t *hashcat_ctx)
   status_ctx->run_main_level3   = false;
   status_ctx->run_thread_level1 = false;
   status_ctx->run_thread_level2 = false;
+
+  return 0;
 }
 
-void myquit (hashcat_ctx_t *hashcat_ctx)
+int myquit (hashcat_ctx_t *hashcat_ctx)
 {
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
-  //if (status_ctx->devices_status != STATUS_RUNNING) return;
+  if (status_ctx->devices_status != STATUS_RUNNING) return -1;
 
   status_ctx->devices_status = STATUS_QUIT;
 
@@ -160,13 +165,15 @@ void myquit (hashcat_ctx_t *hashcat_ctx)
   status_ctx->run_main_level3   = false;
   status_ctx->run_thread_level1 = false;
   status_ctx->run_thread_level2 = false;
+
+  return 0;
 }
 
-void bypass (hashcat_ctx_t *hashcat_ctx)
+int bypass (hashcat_ctx_t *hashcat_ctx)
 {
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
-  //if (status_ctx->devices_status != STATUS_RUNNING) return;
+  if (status_ctx->devices_status != STATUS_RUNNING) return -1;
 
   status_ctx->devices_status = STATUS_BYPASS;
 
@@ -175,28 +182,77 @@ void bypass (hashcat_ctx_t *hashcat_ctx)
   status_ctx->run_main_level3   = true;
   status_ctx->run_thread_level1 = false;
   status_ctx->run_thread_level2 = false;
+
+  return 0;
 }
 
-void SuspendThreads (hashcat_ctx_t *hashcat_ctx)
+int SuspendThreads (hashcat_ctx_t *hashcat_ctx)
 {
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
-  if (status_ctx->devices_status != STATUS_RUNNING) return;
+  if (status_ctx->devices_status != STATUS_RUNNING) return -1;
 
   hc_timer_set (&status_ctx->timer_paused);
 
   status_ctx->devices_status = STATUS_PAUSED;
+
+  return 0;
 }
 
-void ResumeThreads (hashcat_ctx_t *hashcat_ctx)
+int ResumeThreads (hashcat_ctx_t *hashcat_ctx)
 {
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
-  if (status_ctx->devices_status != STATUS_PAUSED) return;
+  if (status_ctx->devices_status != STATUS_PAUSED) return -1;
 
   double ms_paused = hc_timer_get (status_ctx->timer_paused);
 
   status_ctx->ms_paused += ms_paused;
 
   status_ctx->devices_status = STATUS_RUNNING;
+
+  return 0;
+}
+
+int stop_at_checkpoint (hashcat_ctx_t *hashcat_ctx)
+{
+  status_ctx_t  *status_ctx  = hashcat_ctx->status_ctx;
+
+  if (status_ctx->devices_status != STATUS_RUNNING) return -1;
+
+  // this feature only makes sense if --restore-disable was not specified
+
+  restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
+
+  if (restore_ctx->enabled == false)
+  {
+    event_log_warning (hashcat_ctx, "This feature is disabled when --restore-disable is specified");
+
+    return -1;
+  }
+
+  // Enable or Disable
+
+  if ((status_ctx->run_thread_level1 == true) && (status_ctx->run_thread_level2 == true))
+  {
+    status_ctx->run_main_level1   = false;
+    status_ctx->run_main_level2   = false;
+    status_ctx->run_main_level3   = false;
+    status_ctx->run_thread_level1 = false;
+    status_ctx->run_thread_level2 = true;
+
+    event_log_info (hashcat_ctx, "Checkpoint enabled: Will quit at next Restore Point update");
+  }
+  else
+  {
+    status_ctx->run_main_level1   = true;
+    status_ctx->run_main_level2   = true;
+    status_ctx->run_main_level3   = true;
+    status_ctx->run_thread_level1 = true;
+    status_ctx->run_thread_level2 = true;
+
+    event_log_info (hashcat_ctx, "Checkpoint disabled: Restore Point updates will no longer be monitored");
+  }
+
+  return 0;
 }

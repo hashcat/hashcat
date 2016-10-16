@@ -38,7 +38,7 @@ int main ()
 
   assert (hashcat_ctx);
 
-  const int rc_hashcat_init = hashcat_ctx_init (hashcat_ctx, event);
+  const int rc_hashcat_init = hashcat_init (hashcat_ctx, event);
 
   if (rc_hashcat_init == -1) return -1;
 
@@ -69,20 +69,32 @@ int main ()
 
   // now run hashcat
 
-  const int rc_hashcat = hashcat (hashcat_ctx, NULL, NULL, 0, NULL, 0);
+  const int rc_hashcat = hashcat_session_run (hashcat_ctx, NULL, NULL, 0, NULL, 0);
 
   if (rc_hashcat == 0)
   {
-    puts ("YAY, all hashes cracked!!");
+    hashcat_status_t hashcat_status;
+
+    const int rc = hashcat_get_status (hashcat_ctx, &hashcat_status);
+
+    printf ("Session: %s\n", hashcat_status.session);
+    printf ("Status: %s\n",  hashcat_status.status);
+
+    if (rc == 0)
+    {
+      printf ("%d\n", hashcat_status.device_info_cnt);
+
+    }
+
   }
   else if (rc_hashcat == -1)
   {
-    event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
+    char *msg = hashcat_get_log (hashcat_ctx);
 
-    fprintf (stderr, "%s\n", event_ctx->msg_buf);
+    fprintf (stderr, "%s\n", msg);
   }
 
-  hashcat_ctx_destroy (hashcat_ctx);
+  hashcat_destroy (hashcat_ctx);
 
   free (hashcat_ctx);
 

@@ -550,7 +550,7 @@ int main (int argc, char **argv)
 
   hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) malloc (sizeof (hashcat_ctx_t)); VERIFY_PTR (hashcat_ctx);
 
-  const int rc_hashcat_init = hashcat_ctx_init (hashcat_ctx, event);
+  const int rc_hashcat_init = hashcat_init (hashcat_ctx, event);
 
   if (rc_hashcat_init == -1) return -1;
 
@@ -603,11 +603,11 @@ int main (int argc, char **argv)
 
   // now run hashcat
 
-  const int rc_hashcat = hashcat (hashcat_ctx, install_folder, shared_folder, argc, argv, COMPTIME);
+  const int rc_hashcat = hashcat_session_run (hashcat_ctx, install_folder, shared_folder, argc, argv, COMPTIME);
 
   // finished with hashcat, clean up
 
-  hashcat_ctx_destroy (hashcat_ctx);
+  hashcat_destroy (hashcat_ctx);
 
   free (hashcat_ctx);
 

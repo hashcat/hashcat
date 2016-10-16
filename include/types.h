@@ -1452,6 +1452,49 @@ typedef struct hashcat_ctx
 
 } hashcat_ctx_t;
 
+typedef struct
+{
+  bool skipped;
+
+
+} device_info_t;
+
+typedef enum input_mode
+{
+  INPUT_MODE_NONE                       = 0,
+  INPUT_MODE_STRAIGHT_FILE              = 1,
+  INPUT_MODE_STRAIGHT_FILE_RULES_FILE   = 2,
+  INPUT_MODE_STRAIGHT_FILE_RULES_GEN    = 3,
+  INPUT_MODE_STRAIGHT_STDIN             = 4,
+  INPUT_MODE_STRAIGHT_STDIN_RULES_FILE  = 5,
+  INPUT_MODE_STRAIGHT_STDIN_RULES_GEN   = 6,
+  INPUT_MODE_COMBINATOR_BASE_LEFT       = 7,
+  INPUT_MODE_COMBINATOR_BASE_RIGHT      = 8,
+  INPUT_MODE_MASK                       = 9,
+  INPUT_MODE_MASK_CS                    = 10,
+  INPUT_MODE_HYBRID1                    = 11,
+  INPUT_MODE_HYBRID1_CS                 = 12,
+  INPUT_MODE_HYBRID2                    = 13,
+  INPUT_MODE_HYBRID2_CS                 = 14,
+
+} input_mode_t;
+
+typedef struct
+{
+  char *status;
+  char *session;
+  int   input_mode;
+  char *input_base;
+  char *input_mod;
+  char *input_charset;
+  char *hash_type;
+  char *hash_target;
+
+  device_info_t device_info_buf[DEVICES_MAX];
+  int           device_info_cnt;
+
+} hashcat_status_t;
+
 typedef struct thread_param
 {
   u32 tid;
