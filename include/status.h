@@ -69,6 +69,7 @@ double  status_get_cpt_avg_min                (const hashcat_ctx_t *hashcat_ctx)
 double  status_get_cpt_avg_hour               (const hashcat_ctx_t *hashcat_ctx);
 double  status_get_cpt_avg_day                (const hashcat_ctx_t *hashcat_ctx);
 char   *status_get_cpt                        (const hashcat_ctx_t *hashcat_ctx);
+char   *status_get_hwmon_dev                  (const hashcat_ctx_t *hashcat_ctx, const int device_id);
 
 int     status_progress_init                  (hashcat_ctx_t *hashcat_ctx);
 void    status_progress_destroy               (hashcat_ctx_t *hashcat_ctx);

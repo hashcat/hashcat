@@ -611,7 +611,6 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 
 void status_display (hashcat_ctx_t *hashcat_ctx)
 {
-  opencl_ctx_t   *opencl_ctx   = hashcat_ctx->opencl_ctx;
   status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -767,90 +766,19 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       status_get_exec_msec_dev (hashcat_ctx, device_id));
   }
 
-  if (status_get_device_info_active (hashcat_ctx) > 1) event_log_info (hashcat_ctx, "Speed.Dev.#*...: %9sH/s", status_get_speed_sec_all (hashcat_ctx));
+  if (status_get_device_info_active (hashcat_ctx) > 1)
+  {
+    event_log_info (hashcat_ctx, "Speed.Dev.#*...: %9sH/s", status_get_speed_sec_all (hashcat_ctx));
+  }
 
   if (user_options->gpu_temp_disable == false)
   {
-    hc_thread_mutex_lock (status_ctx->mux_hwmon);
-
-    for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+    for (int device_id = 0; device_id < status_get_device_info_cnt (hashcat_ctx); device_id++)
     {
-      hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+      if (status_get_skipped_dev (hashcat_ctx, device_id) == true) continue;
 
-      if (device_param->skipped) continue;
-
-      const int num_temperature = hm_get_temperature_with_device_id (hashcat_ctx, device_id);
-      const int num_fanspeed    = hm_get_fanspeed_with_device_id    (hashcat_ctx, device_id);
-      const int num_utilization = hm_get_utilization_with_device_id (hashcat_ctx, device_id);
-      const int num_corespeed   = hm_get_corespeed_with_device_id   (hashcat_ctx, device_id);
-      const int num_memoryspeed = hm_get_memoryspeed_with_device_id (hashcat_ctx, device_id);
-      const int num_buslanes    = hm_get_buslanes_with_device_id    (hashcat_ctx, device_id);
-      const int num_throttle    = hm_get_throttle_with_device_id    (hashcat_ctx, device_id);
-
-      char output_buf[256] = { 0 };
-
-      int output_len = 0;
-
-      if (num_temperature >= 0)
-      {
-        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Temp:%3uc", num_temperature);
-
-        output_len = strlen (output_buf);
-      }
-
-      if (num_fanspeed >= 0)
-      {
-        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Fan:%3u%%", num_fanspeed);
-
-        output_len = strlen (output_buf);
-      }
-
-      if (num_utilization >= 0)
-      {
-        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Util:%3u%%", num_utilization);
-
-        output_len = strlen (output_buf);
-      }
-
-      if (num_corespeed >= 0)
-      {
-        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Core:%4uMhz", num_corespeed);
-
-        output_len = strlen (output_buf);
-      }
-
-      if (num_memoryspeed >= 0)
-      {
-        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Mem:%4uMhz", num_memoryspeed);
-
-        output_len = strlen (output_buf);
-      }
-
-      if (num_buslanes >= 0)
-      {
-        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " Lanes:%u", num_buslanes);
-
-        output_len = strlen (output_buf);
-      }
-
-      if (num_throttle >= 0)
-      {
-        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " *Throttled*");
-
-        output_len = strlen (output_buf);
-      }
-
-      if (output_len == 0)
-      {
-        snprintf (output_buf + output_len, sizeof (output_buf) - output_len, " N/A");
-
-        output_len = strlen (output_buf);
-      }
-
-      event_log_info (hashcat_ctx, "HWMon.Dev.#%d...:%s", device_id + 1, output_buf);
+      event_log_info (hashcat_ctx, "HWMon.Dev.#%d...: %s", device_id + 1, status_get_hwmon_dev (hashcat_ctx, device_id));
     }
-
-    hc_thread_mutex_unlock (status_ctx->mux_hwmon);
   }
 }
 

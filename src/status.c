@@ -1332,6 +1332,91 @@ char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
   return cpt;
 }
 
+char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
+{
+  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+  char *output_buf = (char *) malloc (HCBUFSIZ_TINY);
+
+  snprintf (output_buf, HCBUFSIZ_TINY - 1, "N/A");
+
+  if (device_param->skipped == true) return output_buf;
+
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  hc_thread_mutex_lock (status_ctx->mux_hwmon);
+
+  const int num_temperature = hm_get_temperature_with_device_id ((hashcat_ctx_t *) hashcat_ctx, device_id);
+  const int num_fanspeed    = hm_get_fanspeed_with_device_id    ((hashcat_ctx_t *) hashcat_ctx, device_id);
+  const int num_utilization = hm_get_utilization_with_device_id ((hashcat_ctx_t *) hashcat_ctx, device_id);
+  const int num_corespeed   = hm_get_corespeed_with_device_id   ((hashcat_ctx_t *) hashcat_ctx, device_id);
+  const int num_memoryspeed = hm_get_memoryspeed_with_device_id ((hashcat_ctx_t *) hashcat_ctx, device_id);
+  const int num_buslanes    = hm_get_buslanes_with_device_id    ((hashcat_ctx_t *) hashcat_ctx, device_id);
+  const int num_throttle    = hm_get_throttle_with_device_id    ((hashcat_ctx_t *) hashcat_ctx, device_id);
+
+  int output_len = 0;
+
+  if (num_temperature >= 0)
+  {
+    snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Temp:%3uc ", num_temperature);
+
+    output_len = strlen (output_buf);
+  }
+
+  if (num_fanspeed >= 0)
+  {
+    snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Fan:%3u%% ", num_fanspeed);
+
+    output_len = strlen (output_buf);
+  }
+
+  if (num_utilization >= 0)
+  {
+    snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Util:%3u%% ", num_utilization);
+
+    output_len = strlen (output_buf);
+  }
+
+  if (num_corespeed >= 0)
+  {
+    snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Core:%4uMhz ", num_corespeed);
+
+    output_len = strlen (output_buf);
+  }
+
+  if (num_memoryspeed >= 0)
+  {
+    snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Mem:%4uMhz ", num_memoryspeed);
+
+    output_len = strlen (output_buf);
+  }
+
+  if (num_buslanes >= 0)
+  {
+    snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Lanes:%u ", num_buslanes);
+
+    output_len = strlen (output_buf);
+  }
+
+  if (num_throttle >= 0)
+  {
+    snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "*Throttled* ");
+
+    output_len = strlen (output_buf);
+  }
+
+  if (output_len > 0)
+  {
+    output_buf[output_len - 1] = 0;
+  }
+
+  hc_thread_mutex_unlock (status_ctx->mux_hwmon);
+
+  return output_buf;
+}
+
 int status_progress_init (hashcat_ctx_t *hashcat_ctx)
 {
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;

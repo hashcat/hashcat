@@ -1487,6 +1487,7 @@ typedef struct
   double  exec_msec_dev;
   char   *speed_sec_dev;
   char   *input_candidates_dev;
+  char   *hwmon_dev;
 
 } device_info_t;
 
