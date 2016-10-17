@@ -471,8 +471,10 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 
     if (device_info->skipped_dev == true) continue;
 
-    // the 1\t is for backward compatibility
-    printf ("%" PRIu64 "\t1\t", (u64) device_info->hashes_msec_dev);
+    printf ("%" PRIu64 "\t", (u64) device_info->hashes_msec_dev);
+
+    // that 1\t is for backward compatibility
+    printf ("1\t");
   }
 
   printf ("EXEC_RUNTIME\t");
