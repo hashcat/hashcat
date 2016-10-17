@@ -11,7 +11,6 @@
 #include "timer.h"
 #include "tuningdb.h"
 #include "rp_cpu.h"
-#include "terminal.h"
 #include "mpsp.h"
 #include "straight.h"
 #include "combinator.h"

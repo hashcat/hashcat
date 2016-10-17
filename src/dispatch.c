@@ -21,7 +21,6 @@
 #include "restore.h"
 #include "hashes.h"
 #include "rp_cpu.h"
-#include "terminal.h"
 #include "mpsp.h"
 #include "outfile.h"
 #include "potfile.h"

@@ -8,7 +8,6 @@
 #include "event.h"
 #include "opencl.h"
 #include "status.h"
-#include "terminal.h"
 #include "autotune.h"
 
 static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kernel_accel, const u32 kernel_loops)
