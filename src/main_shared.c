@@ -78,7 +78,7 @@ int main ()
     const int rc = hashcat_get_status (hashcat_ctx, &hashcat_status);
 
     printf ("Session: %s\n", hashcat_status.session);
-    printf ("Status: %s\n",  hashcat_status.status);
+    printf ("Status: %s\n",  hashcat_status.status_string);
 
     if (rc == 0)
     {

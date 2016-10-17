@@ -552,9 +552,16 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     hashcat_status->session);
 
   event_log_info (hashcat_ctx,
-    "Status.........: %s (%u)",
-    hashcat_status->status_string,
-    hashcat_status->status_number);
+    "Status.........: %s",
+    hashcat_status->status_string);
+
+  event_log_info (hashcat_ctx,
+    "Hash.Type......: %s",
+    hashcat_status->hash_type);
+
+  event_log_info (hashcat_ctx,
+    "Hash.Target....: %s",
+    hashcat_status->hash_target);
 
   event_log_info (hashcat_ctx,
     "Time.Started...: %s (%s)",
@@ -565,14 +572,6 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     "Time.Estimated.: %s (%s)",
     hashcat_status->time_estimated_absolute,
     hashcat_status->time_estimated_relative);
-
-  event_log_info (hashcat_ctx,
-    "Hash.Type......: %s",
-    hashcat_status->hash_type);
-
-  event_log_info (hashcat_ctx,
-    "Hash.Target....: %s",
-    hashcat_status->hash_target);
 
   switch (hashcat_status->input_mode)
   {
@@ -743,9 +742,30 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     if (device_info->skipped_dev == true) continue;
 
     event_log_info (hashcat_ctx,
-      "Candidates.#%d..: %s", device_id + 1,
-      device_info->input_candidates_dev);
+      "Speed.Dev.#%d...: %9sH/s (%0.2fms)", device_id + 1,
+      device_info->speed_sec_dev,
+      device_info->exec_msec_dev);
   }
+
+  if (hashcat_status->device_info_active > 1)
+  {
+    event_log_info (hashcat_ctx,
+      "Speed.Dev.#*...: %9sH/s",
+      hashcat_status->speed_sec_all);
+  }
+
+  event_log_info (hashcat_ctx,
+    "Recovered......: %u/%u (%.2f%%) Digests, %u/%u (%.2f%%) Salts",
+    hashcat_status->digests_done,
+    hashcat_status->digests_cnt,
+    hashcat_status->digests_percent,
+    hashcat_status->salts_done,
+    hashcat_status->salts_cnt,
+    hashcat_status->salts_percent);
+
+  event_log_info (hashcat_ctx,
+    "Recovered/Time.: %s",
+    hashcat_status->cpt);
 
   switch (hashcat_status->progress_mode)
   {
@@ -788,19 +808,6 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       break;
   }
 
-  event_log_info (hashcat_ctx,
-    "Recovered......: %u/%u (%.2f%%) Digests, %u/%u (%.2f%%) Salts",
-    hashcat_status->digests_done,
-    hashcat_status->digests_cnt,
-    hashcat_status->digests_percent,
-    hashcat_status->salts_done,
-    hashcat_status->salts_cnt,
-    hashcat_status->salts_percent);
-
-  event_log_info (hashcat_ctx,
-    "Recovered/Time.: %s",
-    hashcat_status->cpt);
-
   for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
   {
     const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
@@ -808,16 +815,8 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     if (device_info->skipped_dev == true) continue;
 
     event_log_info (hashcat_ctx,
-      "Speed.Dev.#%d...: %9sH/s (%0.2fms)", device_id + 1,
-      device_info->speed_sec_dev,
-      device_info->exec_msec_dev);
-  }
-
-  if (hashcat_status->device_info_active > 1)
-  {
-    event_log_info (hashcat_ctx,
-      "Speed.Dev.#*...: %9sH/s",
-      hashcat_status->speed_sec_all);
+      "Candidates.#%d..: %s", device_id + 1,
+      device_info->input_candidates_dev);
   }
 
   if (user_options->gpu_temp_disable == false)
