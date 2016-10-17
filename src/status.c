@@ -155,6 +155,29 @@ double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_en
   return exec_msec_sum / exec_msec_cnt;
 }
 
+int status_get_device_info_cnt (const hashcat_ctx_t *hashcat_ctx)
+{
+  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  return opencl_ctx->devices_cnt;
+}
+
+int status_get_device_info_active (const hashcat_ctx_t *hashcat_ctx)
+{
+  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  return opencl_ctx->devices_active;
+}
+
+bool status_get_skipped_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
+{
+  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+  return device_param->skipped;
+}
+
 char *status_get_session (const hashcat_ctx_t *hashcat_ctx)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -555,6 +578,16 @@ double status_get_msec_paused (const hashcat_ctx_t *hashcat_ctx)
   return msec_paused;
 }
 
+double status_get_msec_real (const hashcat_ctx_t *hashcat_ctx)
+{
+  const double msec_running = status_get_msec_running (hashcat_ctx);
+  const double msec_paused  = status_get_msec_paused  (hashcat_ctx);
+
+  const double msec_real = msec_running - msec_paused;
+
+  return msec_real;
+}
+
 char *status_get_time_started_absolute (const hashcat_ctx_t *hashcat_ctx)
 {
   const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
@@ -943,7 +976,7 @@ double status_get_hashes_msec_all (const hashcat_ctx_t *hashcat_ctx)
   return hashes_all_msec;
 }
 
-double status_get_hashes_msec_dev (const hashcat_ctx_t *hashcat_ctx, const u32 device_id)
+double status_get_hashes_msec_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
   const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
 
@@ -988,7 +1021,7 @@ double status_get_exec_msec_all (const hashcat_ctx_t *hashcat_ctx)
   return exec_all_msec;
 }
 
-double status_get_exec_msec_dev (const hashcat_ctx_t *hashcat_ctx, const u32 device_id)
+double status_get_exec_msec_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
   const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
 
@@ -1015,7 +1048,7 @@ char *status_get_speed_sec_all (const hashcat_ctx_t *hashcat_ctx)
   return display;
 }
 
-char *status_get_speed_sec_dev (const hashcat_ctx_t *hashcat_ctx, const u32 device_id)
+char *status_get_speed_sec_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
   const double hashes_msec_dev = status_get_hashes_msec_dev (hashcat_ctx, device_id);
 
@@ -1024,6 +1057,159 @@ char *status_get_speed_sec_dev (const hashcat_ctx_t *hashcat_ctx, const u32 devi
   format_speed_display (hashes_msec_dev * 1000, display, HCBUFSIZ_TINY);
 
   return display;
+}
+
+int status_get_cpt_cur_min (const hashcat_ctx_t *hashcat_ctx)
+{
+  const cpt_ctx_t *cpt_ctx = hashcat_ctx->cpt_ctx;
+
+  const time_t now = time (NULL);
+
+  int cpt_cur_min = 0;
+
+  for (int i = 0; i < CPT_BUF; i++)
+  {
+    const u32    cracked   = cpt_ctx->cpt_buf[i].cracked;
+    const time_t timestamp = cpt_ctx->cpt_buf[i].timestamp;
+
+    if ((timestamp + 60) > now)
+    {
+      cpt_cur_min += cracked;
+    }
+  }
+
+  return cpt_cur_min;
+}
+
+int status_get_cpt_cur_hour (const hashcat_ctx_t *hashcat_ctx)
+{
+  const cpt_ctx_t *cpt_ctx = hashcat_ctx->cpt_ctx;
+
+  const time_t now = time (NULL);
+
+  int cpt_cur_hour = 0;
+
+  for (int i = 0; i < CPT_BUF; i++)
+  {
+    const u32    cracked   = cpt_ctx->cpt_buf[i].cracked;
+    const time_t timestamp = cpt_ctx->cpt_buf[i].timestamp;
+
+    if ((timestamp + 3600) > now)
+    {
+      cpt_cur_hour += cracked;
+    }
+  }
+
+  return cpt_cur_hour;
+}
+
+int status_get_cpt_cur_day (const hashcat_ctx_t *hashcat_ctx)
+{
+  const cpt_ctx_t *cpt_ctx = hashcat_ctx->cpt_ctx;
+
+  const time_t now = time (NULL);
+
+  int cpt_cur_day = 0;
+
+  for (int i = 0; i < CPT_BUF; i++)
+  {
+    const u32    cracked   = cpt_ctx->cpt_buf[i].cracked;
+    const time_t timestamp = cpt_ctx->cpt_buf[i].timestamp;
+
+    if ((timestamp + 86400) > now)
+    {
+      cpt_cur_day += cracked;
+    }
+  }
+
+  return cpt_cur_day;
+}
+
+double status_get_cpt_avg_min (const hashcat_ctx_t *hashcat_ctx)
+{
+  const cpt_ctx_t *cpt_ctx = hashcat_ctx->cpt_ctx;
+
+  const double msec_real = status_get_msec_real (hashcat_ctx);
+
+  const double cpt_avg_min = (double) cpt_ctx->cpt_total / ((msec_real / 1000) / 60);
+
+  return cpt_avg_min;
+}
+
+double status_get_cpt_avg_hour (const hashcat_ctx_t *hashcat_ctx)
+{
+  const cpt_ctx_t *cpt_ctx = hashcat_ctx->cpt_ctx;
+
+  const double msec_real = status_get_msec_real (hashcat_ctx);
+
+  const double cpt_avg_hour = (double) cpt_ctx->cpt_total / ((msec_real / 1000) / 3600);
+
+  return cpt_avg_hour;
+}
+
+double status_get_cpt_avg_day (const hashcat_ctx_t *hashcat_ctx)
+{
+  const cpt_ctx_t *cpt_ctx = hashcat_ctx->cpt_ctx;
+
+  const double msec_real = status_get_msec_real (hashcat_ctx);
+
+  const double cpt_avg_day = (double) cpt_ctx->cpt_total / ((msec_real / 1000) / 86400);
+
+  return cpt_avg_day;
+}
+
+char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
+{
+  const cpt_ctx_t *cpt_ctx = hashcat_ctx->cpt_ctx;
+
+  const time_t now = time (NULL);
+
+  char *cpt = (char *) malloc (HCBUFSIZ_TINY);
+
+  const int cpt_cur_min  = status_get_cpt_cur_min  (hashcat_ctx);
+  const int cpt_cur_hour = status_get_cpt_cur_hour (hashcat_ctx);
+  const int cpt_cur_day  = status_get_cpt_cur_day  (hashcat_ctx);
+
+  const double cpt_avg_min  = status_get_cpt_avg_min  (hashcat_ctx);
+  const double cpt_avg_hour = status_get_cpt_avg_hour (hashcat_ctx);
+  const double cpt_avg_day  = status_get_cpt_avg_day  (hashcat_ctx);
+
+  if ((cpt_ctx->cpt_start + 86400) < now)
+  {
+    snprintf (cpt, HCBUFSIZ_TINY - 1, "CUR:%u,%u,%u AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
+      cpt_cur_min,
+      cpt_cur_hour,
+      cpt_cur_day,
+      cpt_avg_min,
+      cpt_avg_hour,
+      cpt_avg_day);
+  }
+  else if ((cpt_ctx->cpt_start + 3600) < now)
+  {
+    snprintf (cpt, HCBUFSIZ_TINY - 1, "CUR:%u,%u,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
+      cpt_cur_min,
+      cpt_cur_hour,
+      cpt_avg_min,
+      cpt_avg_hour,
+      cpt_avg_day);
+  }
+  else if ((cpt_ctx->cpt_start + 60) < now)
+  {
+    snprintf (cpt, HCBUFSIZ_TINY - 1, "CUR:%u,N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
+      cpt_cur_min,
+      cpt_avg_min,
+      cpt_avg_hour,
+      cpt_avg_day);
+  }
+  else
+  {
+    snprintf (cpt, HCBUFSIZ_TINY - 1, "CUR:N/A,N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
+      cpt_avg_min,
+      cpt_avg_hour,
+      cpt_avg_day);
+  }
+
+  return cpt;
 }
 
 int status_progress_init (hashcat_ctx_t *hashcat_ctx)

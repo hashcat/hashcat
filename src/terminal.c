@@ -611,8 +611,6 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 
 void status_display (hashcat_ctx_t *hashcat_ctx)
 {
-  cpt_ctx_t            *cpt_ctx            = hashcat_ctx->cpt_ctx;
-  hashes_t             *hashes             = hashcat_ctx->hashes;
   opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
   status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
@@ -669,6 +667,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     status_get_salts_done      (hashcat_ctx),
     status_get_salts_cnt       (hashcat_ctx),
     status_get_salts_percent   (hashcat_ctx));
+  event_log_info (hashcat_ctx, "Recovered/Time.: %s", status_get_cpt           (hashcat_ctx));
 
   const int input_mode = status_get_input_mode (hashcat_ctx);
 
@@ -731,27 +730,19 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       break;
   }
 
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-  {
-    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+  const int device_info_cnt    = status_get_device_info_cnt    (hashcat_ctx);
+  const int device_info_active = status_get_device_info_active (hashcat_ctx);
 
-    if (device_param->skipped) continue;
+  for (int device_id = 0; device_id < device_info_cnt; device_id++)
+  {
+    if (status_get_skipped_dev (hashcat_ctx, device_id) == true) continue;
 
     event_log_info (hashcat_ctx, "Speed.Dev.#%d...: %9sH/s (%0.2fms)", device_id + 1,
       status_get_speed_sec_dev (hashcat_ctx, device_id),
       status_get_exec_msec_dev (hashcat_ctx, device_id));
   }
 
-  if (opencl_ctx->devices_active > 1) event_log_info (hashcat_ctx, "Speed.Dev.#*...: %9sH/s", status_get_speed_sec_all (hashcat_ctx));
-
-
-
-  /**
-   * timers
-   */
-
-  const double msec_running = status_get_msec_running (hashcat_ctx);
-  const double msec_paused  = status_get_msec_paused  (hashcat_ctx);
+  if (device_info_active > 1) event_log_info (hashcat_ctx, "Speed.Dev.#*...: %9sH/s", status_get_speed_sec_all (hashcat_ctx));
 
 
   /**
@@ -762,80 +753,6 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   const u64 progress_rejected           = status_get_progress_rejected          (hashcat_ctx);
   const u64 progress_cur_relative_skip  = status_get_progress_cur_relative_skip (hashcat_ctx);
   const u64 progress_end_relative_skip  = status_get_progress_end_relative_skip (hashcat_ctx);
-
-
-  // crack-per-time
-
-  if (hashes->digests_cnt > 100)
-  {
-    time_t now = time (NULL);
-
-    int cpt_cur_min  = 0;
-    int cpt_cur_hour = 0;
-    int cpt_cur_day  = 0;
-
-    for (int i = 0; i < CPT_BUF; i++)
-    {
-      const u32    cracked   = cpt_ctx->cpt_buf[i].cracked;
-      const time_t timestamp = cpt_ctx->cpt_buf[i].timestamp;
-
-      if ((timestamp + 60) > now)
-      {
-        cpt_cur_min  += cracked;
-      }
-
-      if ((timestamp + 3600) > now)
-      {
-        cpt_cur_hour += cracked;
-      }
-
-      if ((timestamp + 86400) > now)
-      {
-        cpt_cur_day  += cracked;
-      }
-    }
-
-    const double msec_real = msec_running - msec_paused;
-
-    double cpt_avg_min  = (double) cpt_ctx->cpt_total / ((msec_real / 1000) / 60);
-    double cpt_avg_hour = (double) cpt_ctx->cpt_total / ((msec_real / 1000) / 3600);
-    double cpt_avg_day  = (double) cpt_ctx->cpt_total / ((msec_real / 1000) / 86400);
-
-    if ((cpt_ctx->cpt_start + 86400) < now)
-    {
-      event_log_info (hashcat_ctx, "Recovered/Time.: CUR:%u,%u,%u AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
-        cpt_cur_min,
-        cpt_cur_hour,
-        cpt_cur_day,
-        cpt_avg_min,
-        cpt_avg_hour,
-        cpt_avg_day);
-    }
-    else if ((cpt_ctx->cpt_start + 3600) < now)
-    {
-      event_log_info (hashcat_ctx, "Recovered/Time.: CUR:%u,%u,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
-        cpt_cur_min,
-        cpt_cur_hour,
-        cpt_avg_min,
-        cpt_avg_hour,
-        cpt_avg_day);
-    }
-    else if ((cpt_ctx->cpt_start + 60) < now)
-    {
-      event_log_info (hashcat_ctx, "Recovered/Time.: CUR:%u,N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
-        cpt_cur_min,
-        cpt_avg_min,
-        cpt_avg_hour,
-        cpt_avg_day);
-    }
-    else
-    {
-      event_log_info (hashcat_ctx, "Recovered/Time.: CUR:N/A,N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
-        cpt_avg_min,
-        cpt_avg_hour,
-        cpt_avg_day);
-    }
-  }
 
   // Restore point
 

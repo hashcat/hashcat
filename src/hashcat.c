@@ -1144,6 +1144,7 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
   hashcat_status->input_mod                   = status_get_input_mod                  (hashcat_ctx);
   hashcat_status->msec_paused                 = status_get_msec_paused                (hashcat_ctx);
   hashcat_status->msec_running                = status_get_msec_running               (hashcat_ctx);
+  hashcat_status->msec_real                   = status_get_msec_real                  (hashcat_ctx);
   hashcat_status->progress_cur_relative_skip  = status_get_progress_cur_relative_skip (hashcat_ctx);
   hashcat_status->progress_cur                = status_get_progress_cur               (hashcat_ctx);
   hashcat_status->progress_done               = status_get_progress_done              (hashcat_ctx);
@@ -1165,6 +1166,32 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
   hashcat_status->time_estimated_relative     = status_get_time_estimated_relative    (hashcat_ctx);
   hashcat_status->time_started_absolute       = status_get_time_started_absolute      (hashcat_ctx);
   hashcat_status->time_started_relative       = status_get_time_started_relative      (hashcat_ctx);
+  hashcat_status->cpt_cur_min                 = status_get_cpt_cur_min                (hashcat_ctx);
+  hashcat_status->cpt_cur_hour                = status_get_cpt_cur_hour               (hashcat_ctx);
+  hashcat_status->cpt_cur_day                 = status_get_cpt_cur_day                (hashcat_ctx);
+  hashcat_status->cpt_avg_min                 = status_get_cpt_avg_min                (hashcat_ctx);
+  hashcat_status->cpt_avg_hour                = status_get_cpt_avg_hour               (hashcat_ctx);
+  hashcat_status->cpt_avg_day                 = status_get_cpt_avg_day                (hashcat_ctx);
+  hashcat_status->cpt                         = status_get_cpt                        (hashcat_ctx);
+
+  // multiple devices
+
+  hashcat_status->device_info_cnt    = status_get_device_info_cnt    (hashcat_ctx);
+  hashcat_status->device_info_active = status_get_device_info_active (hashcat_ctx);
+
+  for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+  {
+    device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+
+    device_info->skipped_dev     = status_get_skipped_dev     (hashcat_ctx, device_id);
+    device_info->hashes_msec_dev = status_get_hashes_msec_dev (hashcat_ctx, device_id);
+    device_info->exec_msec_dev   = status_get_exec_msec_dev   (hashcat_ctx, device_id);
+    device_info->speed_sec_dev   = status_get_speed_sec_dev   (hashcat_ctx, device_id);
+  }
+
+  hashcat_status->hashes_msec_all = status_get_hashes_msec_all (hashcat_ctx);
+  hashcat_status->exec_msec_all   = status_get_exec_msec_all   (hashcat_ctx);
+  hashcat_status->speed_sec_all   = status_get_speed_sec_all   (hashcat_ctx);
 
   return 0;
 }

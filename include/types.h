@@ -1452,13 +1452,6 @@ typedef struct hashcat_ctx
 
 } hashcat_ctx_t;
 
-typedef struct
-{
-  bool skipped;
-
-
-} device_info_t;
-
 typedef enum input_mode
 {
   INPUT_MODE_NONE                       = 0,
@@ -1481,6 +1474,15 @@ typedef enum input_mode
 
 typedef struct
 {
+  bool    skipped_dev;
+  double  hashes_msec_dev;
+  double  exec_msec_dev;
+  char   *speed_sec_dev;
+
+} device_info_t;
+
+typedef struct
+{
   char   *hash_target;
   char   *hash_type;
   char   *input_base;
@@ -1494,6 +1496,7 @@ typedef struct
   char   *time_started_relative;
   double  msec_paused;
   double  msec_running;
+  double  msec_real;
   int     digests_cnt;
   int     digests_done;
   double  digests_percent;
@@ -1513,9 +1516,21 @@ typedef struct
   u64     restore_point;
   u64     restore_total;
   double  restore_percent;
+  int     cpt_cur_min;
+  int     cpt_cur_hour;
+  int     cpt_cur_day;
+  double  cpt_avg_min;
+  double  cpt_avg_hour;
+  double  cpt_avg_day;
+  char   *cpt;
 
   device_info_t device_info_buf[DEVICES_MAX];
   int           device_info_cnt;
+  int           device_info_active;
+
+  double  hashes_msec_all;
+  double  exec_msec_all;
+  char   *speed_sec_all;
 
 } hashcat_status_t;
 
