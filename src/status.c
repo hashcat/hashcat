@@ -746,6 +746,37 @@ char *status_get_time_estimated_relative (const hashcat_ctx_t *hashcat_ctx)
   return display;
 }
 
+u64 status_get_restore_point (const hashcat_ctx_t *hashcat_ctx)
+{
+  const u64 restore_point = get_lowest_words_done (hashcat_ctx);
+
+  return restore_point;
+}
+
+u64 status_get_restore_total (const hashcat_ctx_t *hashcat_ctx)
+{
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  const u64 restore_total = status_ctx->words_base;
+
+  return restore_total;
+}
+
+double status_get_restore_percent (const hashcat_ctx_t *hashcat_ctx)
+{
+  double restore_percent = 0;
+
+  const u64 restore_point = status_get_restore_point (hashcat_ctx);
+  const u64 restore_total = status_get_restore_total (hashcat_ctx);
+
+  if (restore_total > 0)
+  {
+    restore_percent = (double) restore_point / (double) restore_total;
+  }
+
+  return restore_percent;
+}
+
 u64 status_get_progress_done (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t     *hashes     = hashcat_ctx->hashes;

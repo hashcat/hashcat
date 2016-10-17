@@ -839,13 +839,10 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
   // Restore point
 
-  u64 restore_point = get_lowest_words_done (hashcat_ctx);
+  const u64    restore_point   = status_get_restore_point   (hashcat_ctx);
+  const u64    restore_total   = status_get_restore_total   (hashcat_ctx);
+  const double restore_percent = status_get_restore_percent (hashcat_ctx);
 
-  u64 restore_total = status_ctx->words_base;
-
-  double percent_restore = 0;
-
-  if (restore_total != 0) percent_restore = (double) restore_point / (double) restore_total;
 
   if (progress_end_relative_skip)
   {
@@ -866,7 +863,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       {
         if (percent_finished != 1)
         {
-          event_log_info (hashcat_ctx, "Restore.Point..: %" PRIu64 "/%" PRIu64 " (%.02f%%)", restore_point, restore_total, percent_restore * 100);
+          event_log_info (hashcat_ctx, "Restore.Point..: %" PRIu64 "/%" PRIu64 " (%.02f%%)", restore_point, restore_total, restore_percent * 100);
         }
       }
     }

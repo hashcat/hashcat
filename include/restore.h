@@ -23,7 +23,7 @@
 #define RESTORE_VERSION_MIN 320
 #define RESTORE_VERSION_CUR 320
 
-u64 get_lowest_words_done (hashcat_ctx_t *hashcat_ctx);
+u64 get_lowest_words_done (const hashcat_ctx_t *hashcat_ctx);
 
 int cycle_restore (hashcat_ctx_t *hashcat_ctx);
 

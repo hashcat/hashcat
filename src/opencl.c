@@ -2419,7 +2419,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (device_endian_little == CL_FALSE)
       {
-        event_log_warning (hashcat_ctx, "Device #%u: Not a little endian device", device_id + 1);
+        event_log_warning (hashcat_ctx, "* Device #%u: Not a little endian device", device_id + 1);
 
         device_param->skipped = 1;
       }
@@ -2434,7 +2434,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (device_available == CL_FALSE)
       {
-        event_log_warning (hashcat_ctx, "Device #%u: Device not available", device_id + 1);
+        event_log_warning (hashcat_ctx, "* Device #%u: Device not available", device_id + 1);
 
         device_param->skipped = 1;
       }
@@ -2449,7 +2449,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (device_compiler_available == CL_FALSE)
       {
-        event_log_warning (hashcat_ctx, "Device #%u: No compiler available for device", device_id + 1);
+        event_log_warning (hashcat_ctx, "* Device #%u: No compiler available for device", device_id + 1);
 
         device_param->skipped = 1;
       }
@@ -2464,7 +2464,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if ((device_execution_capabilities & CL_EXEC_KERNEL) == 0)
       {
-        event_log_warning (hashcat_ctx, "Device #%u: Device does not support executing kernels", device_id + 1);
+        event_log_warning (hashcat_ctx, "* Device #%u: Device does not support executing kernels", device_id + 1);
 
         device_param->skipped = 1;
       }
@@ -2485,14 +2485,14 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (strstr (device_extensions, "base_atomics") == 0)
       {
-        event_log_warning (hashcat_ctx, "Device #%u: Device does not support base atomics", device_id + 1);
+        event_log_warning (hashcat_ctx, "* Device #%u: Device does not support base atomics", device_id + 1);
 
         device_param->skipped = 1;
       }
 
       if (strstr (device_extensions, "byte_addressable_store") == 0)
       {
-        event_log_warning (hashcat_ctx, "Device #%u: Device does not support byte addressable store", device_id + 1);
+        event_log_warning (hashcat_ctx, "* Device #%u: Device does not support byte addressable store", device_id + 1);
 
         device_param->skipped = 1;
       }
@@ -2509,7 +2509,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (device_local_mem_size < 32768)
       {
-        event_log_warning (hashcat_ctx, "Device #%u: Device local mem size is too small", device_id + 1);
+        event_log_warning (hashcat_ctx, "* Device #%u: Device local mem size is too small", device_id + 1);
 
         device_param->skipped = 1;
       }
@@ -2526,8 +2526,8 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         {
           if (user_options->force == 0)
           {
-            event_log_warning (hashcat_ctx, "Device #%u: Not a native Intel OpenCL runtime, expect massive speed loss", device_id + 1);
-            event_log_warning (hashcat_ctx, "           You can use --force to override this but do not post error reports if you do so");
+            event_log_warning (hashcat_ctx, "* Device #%u: Not a native Intel OpenCL runtime, expect massive speed loss", device_id + 1);
+            event_log_warning (hashcat_ctx, "             You can use --force to override this but do not post error reports if you do so");
 
             device_param->skipped = 1;
           }
@@ -2721,7 +2721,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
             if (catalyst_broken == 1)
             {
-              event_log_error (hashcat_ctx, "The Catalyst driver installed on your system is known to be broken!");
+              event_log_error (hashcat_ctx, "* Device #%u: The Catalyst driver installed on your system is known to be broken!", device_id + 1);
               event_log_error (hashcat_ctx, "");
               event_log_error (hashcat_ctx, "It passes over cracked hashes and will not report them as cracked");
               event_log_error (hashcat_ctx, "You are STRONGLY encouraged not to use it");
@@ -2733,7 +2733,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
             if (catalyst_warn == 1)
             {
-              event_log_error (hashcat_ctx, "Unsupported or incorrectly installed Catalyst driver detected!");
+              event_log_error (hashcat_ctx, "* Device #%u: Unsupported or incorrectly installed Catalyst driver detected!", device_id + 1);
               event_log_error (hashcat_ctx, "");
               event_log_error (hashcat_ctx, "You are STRONGLY encouraged to use the official supported catalyst driver");
               event_log_error (hashcat_ctx, "See hashcat's homepage for official supported catalyst drivers");
@@ -2750,8 +2750,8 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           {
             if (device_param->kernel_exec_timeout != 0)
             {
-              event_log_warning (hashcat_ctx, "Device #%u: Kernel exec timeout is not disabled, it might cause you errors of code 702", device_id + 1);
-              event_log_warning (hashcat_ctx, "           See the wiki on how to disable it: https://hashcat.net/wiki/doku.php?id=timeout_patch");
+              event_log_warning (hashcat_ctx, "* Device #%u: Kernel exec timeout is not disabled, it might cause you errors of code 702", device_id + 1);
+              event_log_warning (hashcat_ctx, "             See the wiki on how to disable it: https://hashcat.net/wiki/doku.php?id=timeout_patch");
             }
           }
         }
@@ -3346,7 +3346,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (kernel_accel_max < kernel_accel_min)
     {
-      event_log_error (hashcat_ctx, "Device #%u: Device does not provide enough allocatable device-memory to handle this attack", device_id + 1);
+      event_log_error (hashcat_ctx, "* Device #%u: Device does not provide enough allocatable device-memory to handle this attack", device_id + 1);
 
       return -1;
     }
@@ -3357,7 +3357,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     /*
     if (kernel_accel_max < kernel_accel)
     {
-      if (user_options->quiet == false) event_log_info (hashcat_ctx, "Device #%u: Reduced maximum kernel-accel to %u", device_id + 1, kernel_accel_max);
+      if (user_options->quiet == false) event_log_info (hashcat_ctx, "* Device #%u: Reduced maximum kernel-accel to %u", device_id + 1, kernel_accel_max);
 
       device_param->kernel_accel = kernel_accel_max;
     }
@@ -3453,7 +3453,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     strncpy (build_opts, build_opts_new, sizeof (build_opts));
 
     #if defined (DEBUG)
-    event_log_info (hashcat_ctx, "Device #%u: build_opts '%s'", device_id + 1, build_opts);
+    event_log_info (hashcat_ctx, "* Device #%u: build_opts '%s'", device_id + 1, build_opts);
     #endif
 
     /**

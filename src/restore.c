@@ -19,7 +19,7 @@ static void fsync (int fd)
 }
 #endif
 
-u64 get_lowest_words_done (hashcat_ctx_t *hashcat_ctx)
+u64 get_lowest_words_done (const hashcat_ctx_t *hashcat_ctx)
 {
   restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
   opencl_ctx_t  *opencl_ctx  = hashcat_ctx->opencl_ctx;

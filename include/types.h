@@ -1496,11 +1496,11 @@ typedef struct
   double  msec_running;
   int     digests_cnt;
   int     digests_done;
-  int     digests_percent;
+  double  digests_percent;
   int     input_mode;
   int     salts_cnt;
   int     salts_done;
-  int     salts_percent;
+  double  salts_percent;
   u64     progress_cur;
   u64     progress_cur_relative_skip;
   u64     progress_done;
@@ -1510,7 +1510,9 @@ typedef struct
   u64     progress_rejected;
   u64     progress_restored;
   u64     progress_skip;
-
+  u64     restore_point;
+  u64     restore_total;
+  double  restore_percent;
 
   device_info_t device_info_buf[DEVICES_MAX];
   int           device_info_cnt;
