@@ -292,12 +292,28 @@ static void main_cracker_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
 
 static void main_cracker_hash_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
-  outfile_ctx_t *outfile_ctx = hashcat_ctx->outfile_ctx;
+  outfile_ctx_t         *outfile_ctx        = hashcat_ctx->outfile_ctx;
+  status_ctx_t          *status_ctx         = hashcat_ctx->status_ctx;
+  user_options_t        *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
 
   if (outfile_ctx->fp != NULL) return; // cracked hash was not written to an outfile
 
+  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
+  {
+    if (outfile_ctx->filename == NULL) if (user_options->quiet == false) clear_prompt ();
+  }
+
   fwrite (buf, len,          1, stdout);
   fwrite (EOL, strlen (EOL), 1, stdout);
+
+  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
+  {
+    if (status_ctx->devices_status != STATUS_CRACKED)
+    {
+      if (outfile_ctx->filename == NULL) if (user_options->quiet == false) send_prompt ();
+    }
+  }
 }
 
 static void main_calculated_words_base (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -326,6 +342,16 @@ static void main_potfile_remove_parse_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_
   if (user_options->quiet == true) return;
 
   event_log_info_nn (hashcat_ctx, "Compared hashes with potfile entries...");
+}
+
+static void main_potfile_hash_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  outfile_ctx_t *outfile_ctx = hashcat_ctx->outfile_ctx;
+
+  if (outfile_ctx->fp != NULL) return; // cracked hash was not written to an outfile
+
+  fwrite (buf, len,          1, stdout);
+  fwrite (EOL, strlen (EOL), 1, stdout);
 }
 
 static void main_potfile_num_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -532,6 +558,7 @@ void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const siz
     case EVENT_CALCULATED_WORDS_BASE:     main_calculated_words_base     (hashcat_ctx, buf, len); break;
     case EVENT_POTFILE_REMOVE_PARSE_PRE:  main_potfile_remove_parse_pre  (hashcat_ctx, buf, len); break;
     case EVENT_POTFILE_REMOVE_PARSE_POST: main_potfile_remove_parse_post (hashcat_ctx, buf, len); break;
+    case EVENT_POTFILE_HASH_CRACKED:      main_potfile_hash_cracked      (hashcat_ctx, buf, len); break;
     case EVENT_POTFILE_NUM_CRACKED:       main_potfile_num_cracked       (hashcat_ctx, buf, len); break;
     case EVENT_POTFILE_ALL_CRACKED:       main_potfile_all_cracked       (hashcat_ctx, buf, len); break;
     case EVENT_OPENCL_SESSION_PRE:        main_opencl_session_pre        (hashcat_ctx, buf, len); break;

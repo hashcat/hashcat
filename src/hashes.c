@@ -21,7 +21,6 @@
 #include "potfile.h"
 #include "rp.h"
 #include "rp_kernel_on_cpu.h"
-#include "terminal.h"
 #include "thread.h"
 #include "timer.h"
 
@@ -219,12 +218,8 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 
 void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain)
 {
-  debugfile_ctx_t       *debugfile_ctx      = hashcat_ctx->debugfile_ctx;
-  loopback_ctx_t        *loopback_ctx       = hashcat_ctx->loopback_ctx;
-  outfile_ctx_t         *outfile_ctx        = hashcat_ctx->outfile_ctx;
-  status_ctx_t          *status_ctx         = hashcat_ctx->status_ctx;
-  user_options_t        *user_options       = hashcat_ctx->user_options;
-  user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
+  debugfile_ctx_t *debugfile_ctx = hashcat_ctx->debugfile_ctx;
+  loopback_ctx_t  *loopback_ctx  = hashcat_ctx->loopback_ctx;
 
   const u32 salt_pos    = plain->salt_pos;
   const u32 digest_pos  = plain->digest_pos;  // relative
@@ -270,8 +265,6 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   outfile_write_open (hashcat_ctx);
 
-  if (outfile_ctx->filename == NULL) if (user_options->quiet == false) clear_prompt ();
-
   char tmp_buf[HCBUFSIZ_LARGE];
 
   const int tmp_len = outfile_write (hashcat_ctx, out_buf, plain_ptr, plain_len, crackpos, NULL, 0, tmp_buf);
@@ -280,16 +273,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   EVENT_DATA (EVENT_CRACKER_HASH_CRACKED, tmp_buf, tmp_len);
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
-  {
-    if ((status_ctx->devices_status != STATUS_CRACKED) && (user_options->status != true))
-    {
-      if (outfile_ctx->filename == NULL) if (user_options->quiet == false) send_prompt ();
-    }
-  }
-
   // if enabled, update also the loopback file
-
 
   if (loopback_ctx->fp != NULL)
   {

@@ -529,7 +529,7 @@ void potfile_show_request (hashcat_ctx_t *hashcat_ctx, char *input_buf, int inpu
 
     const int tmp_len = outfile_write (hashcat_ctx, input_buf, (const unsigned char *) pot_ptr->plain_buf, pot_ptr->plain_len, 0, username, user_len, tmp_buf);
 
-    EVENT_DATA (EVENT_CRACKER_HASH_CRACKED, tmp_buf, tmp_len);
+    EVENT_DATA (EVENT_POTFILE_HASH_CRACKED, tmp_buf, tmp_len);
   }
 }
 
@@ -556,7 +556,7 @@ void potfile_left_request (hashcat_ctx_t *hashcat_ctx, char *input_buf, int inpu
 
     const int tmp_len = outfile_write (hashcat_ctx, input_buf, NULL, 0, 0, NULL, 0, tmp_buf);
 
-    EVENT_DATA (EVENT_CRACKER_HASH_CRACKED, tmp_buf, tmp_len);
+    EVENT_DATA (EVENT_POTFILE_HASH_CRACKED, tmp_buf, tmp_len);
   }
 }
 
@@ -685,7 +685,7 @@ int potfile_show_request_lm (hashcat_ctx_t *hashcat_ctx, char *input_buf, int in
 
   const int tmp_len = outfile_write (hashcat_ctx, input_buf, (unsigned char *) pot_ptr.plain_buf, pot_ptr.plain_len, 0, username, user_len, tmp_buf);
 
-  EVENT_DATA (EVENT_CRACKER_HASH_CRACKED, tmp_buf, tmp_len);
+  EVENT_DATA (EVENT_POTFILE_HASH_CRACKED, tmp_buf, tmp_len);
 
   if (weak_hash_found == 1) hcfree (pot_right_ptr);
 
@@ -777,7 +777,7 @@ int potfile_left_request_lm (hashcat_ctx_t *hashcat_ctx, char *input_buf, int in
 
   const int tmp_len = outfile_write (hashcat_ctx, hash_output, NULL, 0, 0, NULL, 0, tmp_buf);
 
-  EVENT_DATA (EVENT_CRACKER_HASH_CRACKED, tmp_buf, tmp_len);
+  EVENT_DATA (EVENT_POTFILE_HASH_CRACKED, tmp_buf, tmp_len);
 
   hcfree (hash_output);
 
