@@ -669,9 +669,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     status_get_salts_percent   (hashcat_ctx));
   event_log_info (hashcat_ctx, "Recovered/Time.: %s", status_get_cpt           (hashcat_ctx));
 
-  const int input_mode = status_get_input_mode (hashcat_ctx);
-
-  switch (input_mode)
+  switch (status_get_input_mode (hashcat_ctx))
   {
     case INPUT_MODE_STRAIGHT_FILE:
       event_log_info (hashcat_ctx, "Input.Base.....: File (%s)",             status_get_input_base (hashcat_ctx));
@@ -730,6 +728,29 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       break;
   }
 
+  switch (status_get_progress_mode (hashcat_ctx))
+  {
+    case PROGRESS_MODE_KEYSPACE_KNOWN:
+      event_log_info (hashcat_ctx, "Progress.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
+        status_get_progress_cur_relative_skip (hashcat_ctx),
+        status_get_progress_end_relative_skip (hashcat_ctx),
+        status_get_progress_finished_percent  (hashcat_ctx));
+      event_log_info (hashcat_ctx, "Rejected.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
+        status_get_progress_rejected          (hashcat_ctx),
+        status_get_progress_cur_relative_skip (hashcat_ctx),
+        status_get_progress_rejected_percent  (hashcat_ctx));
+      event_log_info (hashcat_ctx, "Restore.Point..: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
+        status_get_restore_point              (hashcat_ctx),
+        status_get_restore_total              (hashcat_ctx),
+        status_get_restore_percent            (hashcat_ctx));
+      break;
+    case PROGRESS_MODE_KEYSPACE_UNKNOWN:
+      event_log_info (hashcat_ctx, "Progress.......: %" PRIu64, status_get_progress_cur_relative_skip (hashcat_ctx));
+      event_log_info (hashcat_ctx, "Rejected.......: %" PRIu64, status_get_progress_rejected          (hashcat_ctx));
+      event_log_info (hashcat_ctx, "Restore.Point..: %" PRIu64, status_get_restore_point              (hashcat_ctx));
+      break;
+  }
+
   const int device_info_cnt    = status_get_device_info_cnt    (hashcat_ctx);
   const int device_info_active = status_get_device_info_active (hashcat_ctx);
 
@@ -743,73 +764,6 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   }
 
   if (device_info_active > 1) event_log_info (hashcat_ctx, "Speed.Dev.#*...: %9sH/s", status_get_speed_sec_all (hashcat_ctx));
-
-
-  /**
-   * counters
-   */
-
-  const u64 progress_cur                = status_get_progress_cur               (hashcat_ctx);
-  const u64 progress_rejected           = status_get_progress_rejected          (hashcat_ctx);
-  const u64 progress_cur_relative_skip  = status_get_progress_cur_relative_skip (hashcat_ctx);
-  const u64 progress_end_relative_skip  = status_get_progress_end_relative_skip (hashcat_ctx);
-
-  // Restore point
-
-  const u64    restore_point   = status_get_restore_point   (hashcat_ctx);
-  const u64    restore_total   = status_get_restore_total   (hashcat_ctx);
-  const double restore_percent = status_get_restore_percent (hashcat_ctx);
-
-
-  if (progress_end_relative_skip)
-  {
-    if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
-    {
-      double percent_finished = (double) progress_cur_relative_skip / (double) progress_end_relative_skip;
-      double percent_rejected = 0.0;
-
-      if (progress_cur)
-      {
-        percent_rejected = (double) (progress_rejected) / (double) progress_cur;
-      }
-
-      event_log_info (hashcat_ctx, "Progress.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", progress_cur_relative_skip, progress_end_relative_skip, percent_finished * 100);
-      event_log_info (hashcat_ctx, "Rejected.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", progress_rejected,          progress_cur_relative_skip, percent_rejected * 100);
-
-      if (user_options->restore_disable == false)
-      {
-        if (percent_finished != 1)
-        {
-          event_log_info (hashcat_ctx, "Restore.Point..: %" PRIu64 "/%" PRIu64 " (%.02f%%)", restore_point, restore_total, restore_percent * 100);
-        }
-      }
-    }
-  }
-  else
-  {
-    if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
-    {
-      event_log_info (hashcat_ctx, "Progress.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", 0ull, 0ull, 100);
-      event_log_info (hashcat_ctx, "Rejected.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", 0ull, 0ull, 100);
-
-      if (user_options->restore_disable == false)
-      {
-        event_log_info (hashcat_ctx, "Restore.Point..: %" PRIu64 "/%" PRIu64 " (%.02f%%)", 0ull, 0ull, 100);
-      }
-    }
-    else
-    {
-      event_log_info (hashcat_ctx, "Progress.......: %" PRIu64 "", progress_cur_relative_skip);
-      event_log_info (hashcat_ctx, "Rejected.......: %" PRIu64 "", progress_rejected);
-
-      // --restore not allowed if stdin is used -- really? why?
-
-      //if (user_options->restore_disable == false)
-      //{
-      //  event_log_info (hashcat_ctx, "Restore.Point..: %" PRIu64 "", restore_point);
-      //}
-    }
-  }
 
   if (status_ctx->run_main_level1 == false) return;
 

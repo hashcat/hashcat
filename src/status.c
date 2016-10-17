@@ -804,10 +804,41 @@ double status_get_restore_percent (const hashcat_ctx_t *hashcat_ctx)
 
   if (restore_total > 0)
   {
-    restore_percent = (double) restore_point / (double) restore_total;
+    restore_percent = ((double) restore_point / (double) restore_total) * 100;
   }
 
   return restore_percent;
+}
+
+int status_get_progress_mode (const hashcat_ctx_t *hashcat_ctx)
+{
+  const u64 progress_end_relative_skip = status_get_progress_end_relative_skip (hashcat_ctx);
+
+  if (progress_end_relative_skip > 0)
+  {
+    return PROGRESS_MODE_KEYSPACE_KNOWN;
+  }
+  else
+  {
+    return PROGRESS_MODE_KEYSPACE_UNKNOWN;
+  }
+
+  return PROGRESS_MODE_NONE;
+}
+
+double status_get_progress_finished_percent (const hashcat_ctx_t *hashcat_ctx)
+{
+  const u64 progress_cur_relative_skip = status_get_progress_cur_relative_skip (hashcat_ctx);
+  const u64 progress_end_relative_skip = status_get_progress_end_relative_skip (hashcat_ctx);
+
+  double progress_finished_percent = 0;
+
+  if (progress_end_relative_skip > 0)
+  {
+    progress_finished_percent = ((double) progress_cur_relative_skip / (double) progress_end_relative_skip) * 100;
+  }
+
+  return progress_finished_percent;
 }
 
 u64 status_get_progress_done (const hashcat_ctx_t *hashcat_ctx)
@@ -838,6 +869,21 @@ u64 status_get_progress_rejected (const hashcat_ctx_t *hashcat_ctx)
   }
 
   return progress_rejected;
+}
+
+double status_get_progress_rejected_percent (const hashcat_ctx_t *hashcat_ctx)
+{
+  const u64 progress_cur      = status_get_progress_cur      (hashcat_ctx);
+  const u64 progress_rejected = status_get_progress_rejected (hashcat_ctx);
+
+  double percent_rejected = 0;
+
+  if (progress_cur)
+  {
+    percent_rejected = ((double) (progress_rejected) / (double) progress_cur) * 100;
+  }
+
+  return percent_rejected;
 }
 
 u64 status_get_progress_restored (const hashcat_ctx_t *hashcat_ctx)
@@ -944,10 +990,15 @@ u64 status_get_progress_skip (const hashcat_ctx_t *hashcat_ctx)
 
 u64 status_get_progress_cur_relative_skip (const hashcat_ctx_t *hashcat_ctx)
 {
-  const u64 progress_cur  = status_get_progress_cur  (hashcat_ctx);
   const u64 progress_skip = status_get_progress_skip (hashcat_ctx);
+  const u64 progress_cur  = status_get_progress_cur  (hashcat_ctx);
 
-  const u64 progress_cur_relative_skip = progress_cur - progress_skip;
+  u64 progress_cur_relative_skip = 0;
+
+  if (progress_cur > 0)
+  {
+    progress_cur_relative_skip = progress_cur - progress_skip;
+  }
 
   return progress_cur_relative_skip;
 }
@@ -957,7 +1008,12 @@ u64 status_get_progress_end_relative_skip (const hashcat_ctx_t *hashcat_ctx)
   const u64 progress_skip = status_get_progress_skip (hashcat_ctx);
   const u64 progress_end  = status_get_progress_end  (hashcat_ctx);
 
-  const u64 progress_end_relative_skip = progress_end - progress_skip;
+  u64 progress_end_relative_skip = 0;
+
+  if (progress_end > 0)
+  {
+    progress_end_relative_skip = progress_end - progress_skip;
+  }
 
   return progress_end_relative_skip;
 }

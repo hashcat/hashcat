@@ -1472,6 +1472,14 @@ typedef enum input_mode
 
 } input_mode_t;
 
+typedef enum progress_mode
+{
+  PROGRESS_MODE_NONE              = 0,
+  PROGRESS_MODE_KEYSPACE_KNOWN    = 1,
+  PROGRESS_MODE_KEYSPACE_UNKNOWN  = 2,
+
+} progress_mode_t;
+
 typedef struct
 {
   bool    skipped_dev;
@@ -1504,6 +1512,8 @@ typedef struct
   int     salts_cnt;
   int     salts_done;
   double  salts_percent;
+  int     progress_mode;
+  double  progress_finished_percent;
   u64     progress_cur;
   u64     progress_cur_relative_skip;
   u64     progress_done;
@@ -1511,6 +1521,7 @@ typedef struct
   u64     progress_end_relative_skip;
   u64     progress_ignore;
   u64     progress_rejected;
+  double  progress_rejected_percent;
   u64     progress_restored;
   u64     progress_skip;
   u64     restore_point;

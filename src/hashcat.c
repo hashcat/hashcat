@@ -1145,6 +1145,8 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
   hashcat_status->msec_paused                 = status_get_msec_paused                (hashcat_ctx);
   hashcat_status->msec_running                = status_get_msec_running               (hashcat_ctx);
   hashcat_status->msec_real                   = status_get_msec_real                  (hashcat_ctx);
+  hashcat_status->progress_mode               = status_get_progress_mode              (hashcat_ctx);
+  hashcat_status->progress_finished_percent   = status_get_progress_finished_percent  (hashcat_ctx);
   hashcat_status->progress_cur_relative_skip  = status_get_progress_cur_relative_skip (hashcat_ctx);
   hashcat_status->progress_cur                = status_get_progress_cur               (hashcat_ctx);
   hashcat_status->progress_done               = status_get_progress_done              (hashcat_ctx);
@@ -1152,6 +1154,7 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
   hashcat_status->progress_end                = status_get_progress_end               (hashcat_ctx);
   hashcat_status->progress_ignore             = status_get_progress_ignore            (hashcat_ctx);
   hashcat_status->progress_rejected           = status_get_progress_rejected          (hashcat_ctx);
+  hashcat_status->progress_rejected_percent   = status_get_progress_rejected_percent  (hashcat_ctx);
   hashcat_status->progress_restored           = status_get_progress_restored          (hashcat_ctx);
   hashcat_status->progress_skip               = status_get_progress_skip              (hashcat_ctx);
   hashcat_status->restore_point               = status_get_restore_point              (hashcat_ctx);

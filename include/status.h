@@ -43,8 +43,11 @@ char   *status_get_time_estimated_relative    (const hashcat_ctx_t *hashcat_ctx)
 u64     status_get_restore_point              (const hashcat_ctx_t *hashcat_ctx);
 u64     status_get_restore_total              (const hashcat_ctx_t *hashcat_ctx);
 double  status_get_restore_percent            (const hashcat_ctx_t *hashcat_ctx);
+int     status_get_progress_mode              (const hashcat_ctx_t *hashcat_ctx);
+double  status_get_progress_finished_percent  (const hashcat_ctx_t *hashcat_ctx);
 u64     status_get_progress_done              (const hashcat_ctx_t *hashcat_ctx);
 u64     status_get_progress_rejected          (const hashcat_ctx_t *hashcat_ctx);
+double  status_get_progress_rejected_percent  (const hashcat_ctx_t *hashcat_ctx);
 u64     status_get_progress_restored          (const hashcat_ctx_t *hashcat_ctx);
 u64     status_get_progress_cur               (const hashcat_ctx_t *hashcat_ctx);
 u64     status_get_progress_end               (const hashcat_ctx_t *hashcat_ctx);
