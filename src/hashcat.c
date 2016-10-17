@@ -1189,7 +1189,8 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
   hashcat_status->salts_done                  = status_get_salts_done                 (hashcat_ctx);
   hashcat_status->salts_percent               = status_get_salts_percent              (hashcat_ctx);
   hashcat_status->session                     = status_get_session                    (hashcat_ctx);
-  hashcat_status->status                      = status_get_status_string              (hashcat_ctx);
+  hashcat_status->status_string               = status_get_status_string              (hashcat_ctx);
+  hashcat_status->status_number               = status_get_status_number              (hashcat_ctx);
   hashcat_status->time_estimated_absolute     = status_get_time_estimated_absolute    (hashcat_ctx);
   hashcat_status->time_estimated_relative     = status_get_time_estimated_relative    (hashcat_ctx);
   hashcat_status->time_started_absolute       = status_get_time_started_absolute      (hashcat_ctx);

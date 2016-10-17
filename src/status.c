@@ -207,6 +207,13 @@ char *status_get_status_string (const hashcat_ctx_t *hashcat_ctx)
   return ((char *) ST_9999);
 }
 
+int status_get_status_number (const hashcat_ctx_t *hashcat_ctx)
+{
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  return status_ctx->devices_status;
+}
+
 char *status_get_hash_type (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;

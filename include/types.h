@@ -1500,7 +1500,8 @@ typedef struct
   char   *input_charset;
   char   *input_mod;
   char   *session;
-  char   *status;
+  char   *status_string;
+  int     status_number;
   char   *time_estimated_absolute;
   char   *time_estimated_relative;
   char   *time_started_absolute;

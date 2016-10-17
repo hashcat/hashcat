@@ -448,167 +448,75 @@ int tty_fix()
 
 void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 {
-  combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
-  hashes_t             *hashes             = hashcat_ctx->hashes;
-  mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
-  opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
-  status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
-  straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
-  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
-  user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (status_ctx->devices_status == STATUS_INIT)
+  hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (hashcat_ctx, sizeof (hashcat_status_t));
+
+  const int rc_status = hashcat_get_status (hashcat_ctx, hashcat_status);
+
+  if (rc_status == -1)
   {
-    event_log_error (hashcat_ctx, "status view is not available during initialization phase");
+    hcfree (hashcat_status);
 
     return;
   }
 
-  if (status_ctx->devices_status == STATUS_AUTOTUNE)
-  {
-    event_log_error (hashcat_ctx, "status view is not available during autotune phase");
+  printf ("STATUS\t%u\t", hashcat_status->status_number);
 
-    return;
+  printf ("SPEED\t");
+
+  for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+  {
+    const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+
+    if (device_info->skipped_dev == true) continue;
+
+    // the 1\t is for backward compatibility
+    printf ("%" PRIu64 "\t1\t", (u64) device_info->hashes_msec_dev);
   }
 
-  FILE *out = stdout;
+  printf ("EXEC_RUNTIME\t");
 
-  fprintf (out, "STATUS\t%u\t", status_ctx->devices_status);
-
-  /**
-   * speed new
-   */
-
-  fprintf (out, "SPEED\t");
-
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
   {
-    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+    const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
-    if (device_param->skipped) continue;
+    if (device_info->skipped_dev == true) continue;
 
-    u64    speed_cnt  = 0;
-    double speed_msec = 0;
-
-    for (int i = 0; i < SPEED_CACHE; i++)
-    {
-      speed_cnt  += device_param->speed_cnt[i];
-      speed_msec += device_param->speed_msec[i];
-    }
-
-    speed_cnt  /= SPEED_CACHE;
-    speed_msec /= SPEED_CACHE;
-
-    fprintf (out, "%" PRIu64 "\t%f\t", speed_cnt, speed_msec);
+    printf ("%f\t", device_info->exec_msec_dev);
   }
 
-  /**
-   * exec time
-   */
+  printf ("CURKU\t%" PRIu64 "\t", hashcat_status->restore_point);
 
-  fprintf (out, "EXEC_RUNTIME\t");
+  printf ("PROGRESS\t%" PRIu64 "\t%" PRIu64 "\t", hashcat_status->progress_cur_relative_skip, hashcat_status->progress_end_relative_skip);
 
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-  {
-    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+  printf ("RECHASH\t%u\t%u\t", hashcat_status->digests_done, hashcat_status->digests_cnt);
 
-    if (device_param->skipped) continue;
-
-    const double exec_msec_avg = get_avg_exec_time (device_param, EXEC_CACHE);
-
-    fprintf (out, "%f\t", exec_msec_avg);
-  }
-
-  /**
-   * words_cur
-   */
-
-  u64 words_cur = get_lowest_words_done (hashcat_ctx);
-
-  fprintf (out, "CURKU\t%" PRIu64 "\t", words_cur);
-
-  /**
-   * counter
-   */
-
-  u64 progress_total = status_ctx->words_cnt * hashes->salts_cnt;
-
-  u64 all_done     = 0;
-  u64 all_rejected = 0;
-  u64 all_restored = 0;
-
-  for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
-  {
-    all_done     += status_ctx->words_progress_done[salt_pos];
-    all_rejected += status_ctx->words_progress_rejected[salt_pos];
-    all_restored += status_ctx->words_progress_restored[salt_pos];
-  }
-
-  u64 progress_cur = all_restored + all_done + all_rejected;
-  u64 progress_end = progress_total;
-
-  u64 progress_skip = 0;
-
-  if (user_options->skip)
-  {
-    progress_skip = MIN (user_options->skip, status_ctx->words_base) * hashes->salts_cnt;
-
-    if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) progress_skip *= straight_ctx->kernel_rules_cnt;
-    else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    progress_skip *= combinator_ctx->combs_cnt;
-    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       progress_skip *= mask_ctx->bfs_cnt;
-  }
-
-  if (user_options->limit)
-  {
-    progress_end = MIN (user_options->limit, status_ctx->words_base) * hashes->salts_cnt;
-
-    if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) progress_end  *= straight_ctx->kernel_rules_cnt;
-    else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    progress_end  *= combinator_ctx->combs_cnt;
-    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       progress_end  *= mask_ctx->bfs_cnt;
-  }
-
-  u64 progress_cur_relative_skip = progress_cur - progress_skip;
-  u64 progress_end_relative_skip = progress_end - progress_skip;
-
-  fprintf (out, "PROGRESS\t%" PRIu64 "\t%" PRIu64 "\t", progress_cur_relative_skip, progress_end_relative_skip);
-
-  /**
-   * cracks
-   */
-
-  fprintf (out, "RECHASH\t%u\t%u\t", hashes->digests_done, hashes->digests_cnt);
-  fprintf (out, "RECSALT\t%u\t%u\t", hashes->salts_done,   hashes->salts_cnt);
-
-  /**
-   * temperature
-   */
+  printf ("RECSALT\t%u\t%u\t", hashcat_status->salts_done, hashcat_status->salts_cnt);
 
   if (user_options->gpu_temp_disable == false)
   {
-    fprintf (out, "TEMP\t");
+    printf ("TEMP\t");
 
-    hc_thread_mutex_lock (status_ctx->mux_hwmon);
-
-    for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+    for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
     {
-      hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+      const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
-      if (device_param->skipped) continue;
+      if (device_info->skipped_dev == true) continue;
 
-      int temp = hm_get_temperature_with_device_id (hashcat_ctx, device_id);
+      // ok, little cheat here...
 
-      fprintf (out, "%d\t", temp);
+      const int temp = hm_get_temperature_with_device_id (hashcat_ctx, device_id);
+
+      printf ("%d\t", temp);
     }
-
-    hc_thread_mutex_unlock (status_ctx->mux_hwmon);
   }
 
-  /**
-   * flush
-   */
+  printf (EOL);
 
-  fputs (EOL, out);
-  fflush (out);
+  fflush (stdout);
+
+  hcfree (hashcat_status);
 }
 
 void status_display (hashcat_ctx_t *hashcat_ctx)
@@ -642,8 +550,9 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     hashcat_status->session);
 
   event_log_info (hashcat_ctx,
-    "Status.........: %s",
-    hashcat_status->status);
+    "Status.........: %s (%u)",
+    hashcat_status->status_string,
+    hashcat_status->status_number);
 
   event_log_info (hashcat_ctx,
     "Time.Started...: %s (%s)",
