@@ -1127,6 +1127,33 @@ double status_get_hashes_msec_dev (const hashcat_ctx_t *hashcat_ctx, const int d
   return hashes_dev_msec;
 }
 
+double status_get_hashes_msec_dev_benchmark (const hashcat_ctx_t *hashcat_ctx, const int device_id)
+{
+  // this function increases accuracy for benchmark modes
+
+  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  u64    speed_cnt  = 0;
+  double speed_msec = 0;
+
+  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+  if (device_param->skipped == false)
+  {
+    speed_cnt  += device_param->speed_cnt[0];
+    speed_msec += device_param->speed_msec[0];
+  }
+
+  double hashes_dev_msec = 0;
+
+  if (speed_msec > 0)
+  {
+    hashes_dev_msec = (double) speed_cnt / speed_msec;
+  }
+
+  return hashes_dev_msec;
+}
+
 double status_get_exec_msec_all (const hashcat_ctx_t *hashcat_ctx)
 {
   const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;

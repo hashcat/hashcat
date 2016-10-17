@@ -785,59 +785,14 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 void status_benchmark_automate (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
-  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
-  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
-  if (status_ctx->devices_status == STATUS_INIT)
+  const u32 hash_mode = hashconfig->hash_mode;
+
+  for (int device_id = 0; device_id < status_get_device_info_cnt (hashcat_ctx); device_id++)
   {
-    event_log_error (hashcat_ctx, "status view is not available during initialization phase");
+    if (status_get_skipped_dev (hashcat_ctx, device_id) == true) continue;
 
-    return;
-  }
-
-  if (status_ctx->devices_status == STATUS_AUTOTUNE)
-  {
-    event_log_error (hashcat_ctx, "status view is not available during autotune phase");
-
-    return;
-  }
-
-  u64    speed_cnt[DEVICES_MAX]  = { 0 };
-  double speed_msec[DEVICES_MAX] = { 0 };
-
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-  {
-    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-    if (device_param->skipped) continue;
-
-    speed_cnt[device_id]  = device_param->speed_cnt[0];
-    speed_msec[device_id] = device_param->speed_msec[0];
-  }
-
-  u64 hashes_dev_msec[DEVICES_MAX] = { 0 };
-
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-  {
-    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-    if (device_param->skipped) continue;
-
-    hashes_dev_msec[device_id] = 0;
-
-    if (speed_msec[device_id] > 0)
-    {
-      hashes_dev_msec[device_id] = (double) speed_cnt[device_id] / speed_msec[device_id];
-    }
-  }
-
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-  {
-    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-    if (device_param->skipped) continue;
-
-    event_log_info (hashcat_ctx, "%u:%u:%" PRIu64 "", device_id + 1, hashconfig->hash_mode, (hashes_dev_msec[device_id] * 1000));
+    event_log_info (hashcat_ctx, "%u:%u:%" PRIu64, device_id + 1, hash_mode, (u64) (status_get_hashes_msec_dev_benchmark (hashcat_ctx, device_id) * 1000));
   }
 }
 

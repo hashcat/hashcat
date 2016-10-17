@@ -58,6 +58,7 @@ u64     status_get_progress_cur_relative_skip (const hashcat_ctx_t *hashcat_ctx)
 u64     status_get_progress_end_relative_skip (const hashcat_ctx_t *hashcat_ctx);
 double  status_get_hashes_msec_all            (const hashcat_ctx_t *hashcat_ctx);
 double  status_get_hashes_msec_dev            (const hashcat_ctx_t *hashcat_ctx, const int device_id);
+double  status_get_hashes_msec_dev_benchmark  (const hashcat_ctx_t *hashcat_ctx, const int device_id);
 double  status_get_exec_msec_all              (const hashcat_ctx_t *hashcat_ctx);
 double  status_get_exec_msec_dev              (const hashcat_ctx_t *hashcat_ctx, const int device_id);
 char   *status_get_speed_sec_all              (const hashcat_ctx_t *hashcat_ctx);
