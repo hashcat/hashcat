@@ -1131,6 +1131,31 @@ char *hashcat_get_log (hashcat_ctx_t *hashcat_ctx)
 
 int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_status)
 {
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  if (status_ctx->devices_status == STATUS_INIT)
+  {
+    event_log_error (hashcat_ctx, "Status view is not available during initialization phase");
+
+    return -1;
+  }
+
+  if (status_ctx->devices_status == STATUS_AUTOTUNE)
+  {
+    event_log_error (hashcat_ctx, "Status view is not available during autotune phase");
+
+    return -1;
+  }
+
+  if (status_ctx->shutdown_inner == true)
+  {
+    // in this case some required buffers are free'd, ascii_digest() would run into segfault
+
+    event_log_error (hashcat_ctx, "Status view is not available during shutdown phase");
+
+    return -1;
+  }
+
   memset (hashcat_status, 0, sizeof (hashcat_status_t));
 
   hashcat_status->digests_cnt                 = status_get_digests_cnt                (hashcat_ctx);
@@ -1186,12 +1211,13 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
   {
     device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
-    device_info->skipped_dev          = status_get_skipped_dev          (hashcat_ctx, device_id);
-    device_info->hashes_msec_dev      = status_get_hashes_msec_dev      (hashcat_ctx, device_id);
-    device_info->exec_msec_dev        = status_get_exec_msec_dev        (hashcat_ctx, device_id);
-    device_info->speed_sec_dev        = status_get_speed_sec_dev        (hashcat_ctx, device_id);
-    device_info->input_candidates_dev = status_get_input_candidates_dev (hashcat_ctx, device_id);
-    device_info->hwmon_dev            = status_get_hwmon_dev            (hashcat_ctx, device_id);
+    device_info->skipped_dev                = status_get_skipped_dev                (hashcat_ctx, device_id);
+    device_info->hashes_msec_dev            = status_get_hashes_msec_dev            (hashcat_ctx, device_id);
+    device_info->hashes_msec_dev_benchmark  = status_get_hashes_msec_dev_benchmark  (hashcat_ctx, device_id);
+    device_info->exec_msec_dev              = status_get_exec_msec_dev              (hashcat_ctx, device_id);
+    device_info->speed_sec_dev              = status_get_speed_sec_dev              (hashcat_ctx, device_id);
+    device_info->input_candidates_dev       = status_get_input_candidates_dev       (hashcat_ctx, device_id);
+    device_info->hwmon_dev                  = status_get_hwmon_dev                  (hashcat_ctx, device_id);
   }
 
   hashcat_status->hashes_msec_all = status_get_hashes_msec_all (hashcat_ctx);

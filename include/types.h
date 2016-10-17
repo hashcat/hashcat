@@ -1484,6 +1484,7 @@ typedef struct
 {
   bool    skipped_dev;
   double  hashes_msec_dev;
+  double  hashes_msec_dev_benchmark;
   double  exec_msec_dev;
   char   *speed_sec_dev;
   char   *input_candidates_dev;
