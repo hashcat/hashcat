@@ -12,8 +12,6 @@
 #include "hashes.h"
 #include "thread.h"
 #include "restore.h"
-#include "terminal.h"
-#include "status.h"
 #include "shared.h"
 #include "monitor.h"
 
@@ -131,21 +129,11 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
         if (rc_throttle > 0)
         {
-          if (slowdown_warnings < 3)
-          {
-            if (user_options->quiet == false) clear_prompt ();
+          slowdown_warnings++;
 
-            event_log_warning (hashcat_ctx, "Drivers temperature threshold hit on GPU #%d, expect performance to drop...", device_id + 1);
-
-            if (slowdown_warnings == 2)
-            {
-              event_log_info (hashcat_ctx, "");
-            }
-
-            if (user_options->quiet == false) send_prompt ();
-
-            slowdown_warnings++;
-          }
+          if (slowdown_warnings == 1) EVENT_DATA (EVENT_MONITOR_THROTTLE1, &device_id, sizeof (u32));
+          if (slowdown_warnings == 2) EVENT_DATA (EVENT_MONITOR_THROTTLE2, &device_id, sizeof (u32));
+          if (slowdown_warnings == 3) EVENT_DATA (EVENT_MONITOR_THROTTLE3, &device_id, sizeof (u32));
         }
         else
         {
@@ -180,13 +168,9 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
         if (temperature > (int) user_options->gpu_temp_abort)
         {
-          if (user_options->quiet == false) clear_prompt ();
-
-          event_log_error (hashcat_ctx, "Temperature limit on GPU #%u reached, aborting...", device_id + 1);
+          EVENT_DATA (EVENT_MONITOR_TEMP_ABORT, &device_id, sizeof (u32));
 
           myabort (hashcat_ctx);
-
-          break;
         }
 
         const u32 gpu_temp_retain = user_options->gpu_temp_retain;
@@ -281,12 +265,7 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
       if (runtime_left <= 0)
       {
-        if (user_options->benchmark == false)
-        {
-          if (user_options->quiet == false) clear_prompt ();
-
-          if (user_options->quiet == false) event_log_info (hashcat_ctx, "NOTE: Runtime limit reached, aborting...");
-        }
+        EVENT_DATA (EVENT_MONITOR_RUNTIME_LIMIT, NULL, 0);
 
         myabort (hashcat_ctx);
       }
@@ -319,13 +298,7 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
       {
         hc_thread_mutex_lock (status_ctx->mux_display);
 
-        if (user_options->quiet == false) clear_prompt ();
-
-        status_display (hashcat_ctx);
-
-        if (user_options->quiet == false) event_log_info (hashcat_ctx, "");
-
-        if (user_options->quiet == false) send_prompt ();
+        EVENT_DATA (EVENT_MONITOR_STATUS_REFRESH, NULL, 0);
 
         hc_thread_mutex_unlock (status_ctx->mux_display);
 
