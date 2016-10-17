@@ -1486,6 +1486,7 @@ typedef struct
   double  hashes_msec_dev;
   double  exec_msec_dev;
   char   *speed_sec_dev;
+  char   *input_candidates_dev;
 
 } device_info_t;
 

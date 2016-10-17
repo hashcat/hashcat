@@ -611,10 +611,9 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 
 void status_display (hashcat_ctx_t *hashcat_ctx)
 {
-  opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
-  status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
-  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
-  user_options_t       *user_options       = hashcat_ctx->user_options;
+  opencl_ctx_t   *opencl_ctx   = hashcat_ctx->opencl_ctx;
+  status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  user_options_t *user_options = hashcat_ctx->user_options;
 
   if (status_ctx->devices_status == STATUS_INIT)
   {
@@ -660,14 +659,6 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     status_get_time_estimated_relative (hashcat_ctx));
   event_log_info (hashcat_ctx, "Hash.Type......: %s", status_get_hash_type     (hashcat_ctx));
   event_log_info (hashcat_ctx, "Hash.Target....: %s", status_get_hash_target   (hashcat_ctx));
-  event_log_info (hashcat_ctx, "Recovered......: %u/%u (%.2f%%) Digests, %u/%u (%.2f%%) Salts",
-    status_get_digests_done    (hashcat_ctx),
-    status_get_digests_cnt     (hashcat_ctx),
-    status_get_digests_percent (hashcat_ctx),
-    status_get_salts_done      (hashcat_ctx),
-    status_get_salts_cnt       (hashcat_ctx),
-    status_get_salts_percent   (hashcat_ctx));
-  event_log_info (hashcat_ctx, "Recovered/Time.: %s", status_get_cpt           (hashcat_ctx));
 
   switch (status_get_input_mode (hashcat_ctx))
   {
@@ -728,6 +719,13 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       break;
   }
 
+  for (int device_id = 0; device_id < status_get_device_info_cnt (hashcat_ctx); device_id++)
+  {
+    if (status_get_skipped_dev (hashcat_ctx, device_id) == true) continue;
+
+    event_log_info (hashcat_ctx, "Candidates.#%d..: %s", device_id + 1, status_get_input_candidates_dev (hashcat_ctx, device_id));
+  }
+
   switch (status_get_progress_mode (hashcat_ctx))
   {
     case PROGRESS_MODE_KEYSPACE_KNOWN:
@@ -751,10 +749,16 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       break;
   }
 
-  const int device_info_cnt    = status_get_device_info_cnt    (hashcat_ctx);
-  const int device_info_active = status_get_device_info_active (hashcat_ctx);
+  event_log_info (hashcat_ctx, "Recovered......: %u/%u (%.2f%%) Digests, %u/%u (%.2f%%) Salts",
+    status_get_digests_done    (hashcat_ctx),
+    status_get_digests_cnt     (hashcat_ctx),
+    status_get_digests_percent (hashcat_ctx),
+    status_get_salts_done      (hashcat_ctx),
+    status_get_salts_cnt       (hashcat_ctx),
+    status_get_salts_percent   (hashcat_ctx));
+  event_log_info (hashcat_ctx, "Recovered/Time.: %s", status_get_cpt (hashcat_ctx));
 
-  for (int device_id = 0; device_id < device_info_cnt; device_id++)
+  for (int device_id = 0; device_id < status_get_device_info_cnt (hashcat_ctx); device_id++)
   {
     if (status_get_skipped_dev (hashcat_ctx, device_id) == true) continue;
 
@@ -763,69 +767,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       status_get_exec_msec_dev (hashcat_ctx, device_id));
   }
 
-  if (device_info_active > 1) event_log_info (hashcat_ctx, "Speed.Dev.#*...: %9sH/s", status_get_speed_sec_all (hashcat_ctx));
-
-  if (status_ctx->run_main_level1 == false) return;
-
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-  {
-    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-    if (device_param->skipped) continue;
-
-    if ((device_param->outerloop_left == 0) || (device_param->innerloop_left == 0))
-    {
-      if (user_options_extra->attack_kern == ATTACK_KERN_BF)
-      {
-        event_log_info (hashcat_ctx, "Candidates.#%d..: [Generating]", device_id + 1);
-      }
-      else
-      {
-        event_log_info (hashcat_ctx, "Candidates.#%d..: [Copying]", device_id + 1);
-      }
-
-      continue;
-    }
-
-    const u32 outerloop_first = 0;
-    const u32 outerloop_last  = device_param->outerloop_left - 1;
-
-    const u32 innerloop_first = 0;
-    const u32 innerloop_last  = device_param->innerloop_left - 1;
-
-    plain_t plain1 = { 0, 0, 0, outerloop_first, innerloop_first };
-    plain_t plain2 = { 0, 0, 0, outerloop_last,  innerloop_last  };
-
-    u32 plain_buf1[16] = { 0 };
-    u32 plain_buf2[16] = { 0 };
-
-    u8 *plain_ptr1 = (u8 *) plain_buf1;
-    u8 *plain_ptr2 = (u8 *) plain_buf2;
-
-    int plain_len1 = 0;
-    int plain_len2 = 0;
-
-    build_plain (hashcat_ctx, device_param, &plain1, plain_buf1, &plain_len1);
-    build_plain (hashcat_ctx, device_param, &plain2, plain_buf2, &plain_len2);
-
-    bool need_hex1 = need_hexify (plain_ptr1, plain_len1);
-    bool need_hex2 = need_hexify (plain_ptr2, plain_len2);
-
-    if ((need_hex1 == true) || (need_hex2 == true))
-    {
-      exec_hexify (plain_ptr1, plain_len1, plain_ptr1);
-      exec_hexify (plain_ptr2, plain_len2, plain_ptr2);
-
-      plain_ptr1[plain_len1 * 2] = 0;
-      plain_ptr2[plain_len2 * 2] = 0;
-
-      event_log_info (hashcat_ctx, "Candidates.#%d..: $HEX[%s] -> $HEX[%s]", device_id + 1, plain_ptr1, plain_ptr2);
-    }
-    else
-    {
-      event_log_info (hashcat_ctx, "Candidates.#%d..: %s -> %s", device_id + 1, plain_ptr1, plain_ptr2);
-    }
-  }
+  if (status_get_device_info_active (hashcat_ctx) > 1) event_log_info (hashcat_ctx, "Speed.Dev.#*...: %9sH/s", status_get_speed_sec_all (hashcat_ctx));
 
   if (user_options->gpu_temp_disable == false)
   {

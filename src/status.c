@@ -511,6 +511,70 @@ char *status_get_input_charset (const hashcat_ctx_t *hashcat_ctx)
   return NULL;
 }
 
+char *status_get_input_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
+{
+  const opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+  char *display = (char *) malloc (HCBUFSIZ_TINY);
+
+  if (user_options_extra->attack_kern == ATTACK_KERN_BF)
+  {
+    snprintf (display, HCBUFSIZ_TINY - 1, "[Generating]");
+  }
+  else
+  {
+    snprintf (display, HCBUFSIZ_TINY - 1, "[Copying]");
+  }
+
+  if (device_param->skipped == true) return display;
+
+  if ((device_param->outerloop_left == 0) || (device_param->innerloop_left == 0)) return display;
+
+  const u32 outerloop_first = 0;
+  const u32 outerloop_last  = device_param->outerloop_left - 1;
+
+  const u32 innerloop_first = 0;
+  const u32 innerloop_last  = device_param->innerloop_left - 1;
+
+  plain_t plain1 = { 0, 0, 0, outerloop_first, innerloop_first };
+  plain_t plain2 = { 0, 0, 0, outerloop_last,  innerloop_last  };
+
+  u32 plain_buf1[16] = { 0 };
+  u32 plain_buf2[16] = { 0 };
+
+  u8 *plain_ptr1 = (u8 *) plain_buf1;
+  u8 *plain_ptr2 = (u8 *) plain_buf2;
+
+  int plain_len1 = 0;
+  int plain_len2 = 0;
+
+  build_plain ((hashcat_ctx_t *) hashcat_ctx, device_param, &plain1, plain_buf1, &plain_len1);
+  build_plain ((hashcat_ctx_t *) hashcat_ctx, device_param, &plain2, plain_buf2, &plain_len2);
+
+  const bool need_hex1 = need_hexify (plain_ptr1, plain_len1);
+  const bool need_hex2 = need_hexify (plain_ptr2, plain_len2);
+
+  if ((need_hex1 == true) || (need_hex2 == true))
+  {
+    exec_hexify (plain_ptr1, plain_len1, plain_ptr1);
+    exec_hexify (plain_ptr2, plain_len2, plain_ptr2);
+
+    plain_ptr1[plain_len1 * 2] = 0;
+    plain_ptr2[plain_len2 * 2] = 0;
+
+    snprintf (display, HCBUFSIZ_TINY - 1, "$HEX[%s] -> $HEX[%s]", plain_ptr1, plain_ptr2);
+  }
+  else
+  {
+    snprintf (display, HCBUFSIZ_TINY - 1, "%s -> %s", plain_ptr1, plain_ptr2);
+  }
+
+  return display;
+}
+
 int status_get_digests_done (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;

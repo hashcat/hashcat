@@ -1186,10 +1186,11 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
   {
     device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
-    device_info->skipped_dev     = status_get_skipped_dev     (hashcat_ctx, device_id);
-    device_info->hashes_msec_dev = status_get_hashes_msec_dev (hashcat_ctx, device_id);
-    device_info->exec_msec_dev   = status_get_exec_msec_dev   (hashcat_ctx, device_id);
-    device_info->speed_sec_dev   = status_get_speed_sec_dev   (hashcat_ctx, device_id);
+    device_info->skipped_dev          = status_get_skipped_dev          (hashcat_ctx, device_id);
+    device_info->hashes_msec_dev      = status_get_hashes_msec_dev      (hashcat_ctx, device_id);
+    device_info->exec_msec_dev        = status_get_exec_msec_dev        (hashcat_ctx, device_id);
+    device_info->speed_sec_dev        = status_get_speed_sec_dev        (hashcat_ctx, device_id);
+    device_info->input_candidates_dev = status_get_input_candidates_dev (hashcat_ctx, device_id);
   }
 
   hashcat_status->hashes_msec_all = status_get_hashes_msec_all (hashcat_ctx);
