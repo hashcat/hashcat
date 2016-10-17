@@ -898,41 +898,6 @@ u64 status_get_progress_end_relative_skip (const hashcat_ctx_t *hashcat_ctx)
   return progress_end_relative_skip;
 }
 
-int status_progress_init (hashcat_ctx_t *hashcat_ctx)
-{
-  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
-  hashes_t     *hashes     = hashcat_ctx->hashes;
-
-  status_ctx->words_progress_done     = (u64 *) hccalloc (hashcat_ctx, hashes->salts_cnt, sizeof (u64)); VERIFY_PTR (status_ctx->words_progress_done);
-  status_ctx->words_progress_rejected = (u64 *) hccalloc (hashcat_ctx, hashes->salts_cnt, sizeof (u64)); VERIFY_PTR (status_ctx->words_progress_rejected);
-  status_ctx->words_progress_restored = (u64 *) hccalloc (hashcat_ctx, hashes->salts_cnt, sizeof (u64)); VERIFY_PTR (status_ctx->words_progress_restored);
-
-  return 0;
-}
-
-void status_progress_destroy (hashcat_ctx_t *hashcat_ctx)
-{
-  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
-
-  hcfree (status_ctx->words_progress_done);
-  hcfree (status_ctx->words_progress_rejected);
-  hcfree (status_ctx->words_progress_restored);
-
-  status_ctx->words_progress_done     = NULL;
-  status_ctx->words_progress_rejected = NULL;
-  status_ctx->words_progress_restored = NULL;
-}
-
-void status_progress_reset (hashcat_ctx_t *hashcat_ctx)
-{
-  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
-  hashes_t     *hashes     = hashcat_ctx->hashes;
-
-  memset (status_ctx->words_progress_done,     0, hashes->salts_cnt * sizeof (u64));
-  memset (status_ctx->words_progress_rejected, 0, hashes->salts_cnt * sizeof (u64));
-  memset (status_ctx->words_progress_restored, 0, hashes->salts_cnt * sizeof (u64));
-}
-
 double status_get_hashes_msec_all (const hashcat_ctx_t *hashcat_ctx)
 {
   const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
@@ -1028,6 +993,41 @@ char *status_get_speed_sec_dev (const hashcat_ctx_t *hashcat_ctx, const u32 devi
   format_speed_display (hashes_msec_dev * 1000, display, HCBUFSIZ_TINY);
 
   return display;
+}
+
+int status_progress_init (hashcat_ctx_t *hashcat_ctx)
+{
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+  hashes_t     *hashes     = hashcat_ctx->hashes;
+
+  status_ctx->words_progress_done     = (u64 *) hccalloc (hashcat_ctx, hashes->salts_cnt, sizeof (u64)); VERIFY_PTR (status_ctx->words_progress_done);
+  status_ctx->words_progress_rejected = (u64 *) hccalloc (hashcat_ctx, hashes->salts_cnt, sizeof (u64)); VERIFY_PTR (status_ctx->words_progress_rejected);
+  status_ctx->words_progress_restored = (u64 *) hccalloc (hashcat_ctx, hashes->salts_cnt, sizeof (u64)); VERIFY_PTR (status_ctx->words_progress_restored);
+
+  return 0;
+}
+
+void status_progress_destroy (hashcat_ctx_t *hashcat_ctx)
+{
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  hcfree (status_ctx->words_progress_done);
+  hcfree (status_ctx->words_progress_rejected);
+  hcfree (status_ctx->words_progress_restored);
+
+  status_ctx->words_progress_done     = NULL;
+  status_ctx->words_progress_rejected = NULL;
+  status_ctx->words_progress_restored = NULL;
+}
+
+void status_progress_reset (hashcat_ctx_t *hashcat_ctx)
+{
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+  hashes_t     *hashes     = hashcat_ctx->hashes;
+
+  memset (status_ctx->words_progress_done,     0, hashes->salts_cnt * sizeof (u64));
+  memset (status_ctx->words_progress_rejected, 0, hashes->salts_cnt * sizeof (u64));
+  memset (status_ctx->words_progress_restored, 0, hashes->salts_cnt * sizeof (u64));
 }
 
 int status_ctx_init (hashcat_ctx_t *hashcat_ctx)

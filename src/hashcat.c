@@ -1133,26 +1133,35 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
 {
   memset (hashcat_status, 0, sizeof (hashcat_status_t));
 
-  hashcat_status->session                 = status_get_session                  (hashcat_ctx);
-  hashcat_status->status                  = status_get_status_string            (hashcat_ctx);
-  hashcat_status->time_started_absolute   = status_get_time_started_absolute    (hashcat_ctx);
-  hashcat_status->time_started_relative   = status_get_time_started_relative    (hashcat_ctx);
-  hashcat_status->time_estimated_absolute = status_get_time_estimated_absolute  (hashcat_ctx);
-  hashcat_status->time_estimated_relative = status_get_time_estimated_relative  (hashcat_ctx);
-  hashcat_status->hash_type               = status_get_hash_type                (hashcat_ctx);
-  hashcat_status->hash_target             = status_get_hash_target              (hashcat_ctx);
-  hashcat_status->input_mode              = status_get_input_mode               (hashcat_ctx);
-  hashcat_status->input_base              = status_get_input_base               (hashcat_ctx);
-  hashcat_status->input_mod               = status_get_input_mod                (hashcat_ctx);
-  hashcat_status->input_charset           = status_get_input_charset            (hashcat_ctx);
-
-  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
-
-  if (status_ctx->devices_status == STATUS_INIT)     return -1;
-  if (status_ctx->devices_status == STATUS_AUTOTUNE) return -1;
-
-  if (status_ctx->shutdown_inner == true) return -1;
-
+  hashcat_status->digests_cnt                 = status_get_digests_cnt                (hashcat_ctx);
+  hashcat_status->digests_done                = status_get_digests_done               (hashcat_ctx);
+  hashcat_status->digests_percent             = status_get_digests_percent            (hashcat_ctx);
+  hashcat_status->hash_target                 = status_get_hash_target                (hashcat_ctx);
+  hashcat_status->hash_type                   = status_get_hash_type                  (hashcat_ctx);
+  hashcat_status->input_base                  = status_get_input_base                 (hashcat_ctx);
+  hashcat_status->input_charset               = status_get_input_charset              (hashcat_ctx);
+  hashcat_status->input_mode                  = status_get_input_mode                 (hashcat_ctx);
+  hashcat_status->input_mod                   = status_get_input_mod                  (hashcat_ctx);
+  hashcat_status->msec_paused                 = status_get_msec_paused                (hashcat_ctx);
+  hashcat_status->msec_running                = status_get_msec_running               (hashcat_ctx);
+  hashcat_status->progress_cur_relative_skip  = status_get_progress_cur_relative_skip (hashcat_ctx);
+  hashcat_status->progress_cur                = status_get_progress_cur               (hashcat_ctx);
+  hashcat_status->progress_done               = status_get_progress_done              (hashcat_ctx);
+  hashcat_status->progress_end_relative_skip  = status_get_progress_end_relative_skip (hashcat_ctx);
+  hashcat_status->progress_end                = status_get_progress_end               (hashcat_ctx);
+  hashcat_status->progress_ignore             = status_get_progress_ignore            (hashcat_ctx);
+  hashcat_status->progress_rejected           = status_get_progress_rejected          (hashcat_ctx);
+  hashcat_status->progress_restored           = status_get_progress_restored          (hashcat_ctx);
+  hashcat_status->progress_skip               = status_get_progress_skip              (hashcat_ctx);
+  hashcat_status->salts_cnt                   = status_get_salts_cnt                  (hashcat_ctx);
+  hashcat_status->salts_done                  = status_get_salts_done                 (hashcat_ctx);
+  hashcat_status->salts_percent               = status_get_salts_percent              (hashcat_ctx);
+  hashcat_status->session                     = status_get_session                    (hashcat_ctx);
+  hashcat_status->status                      = status_get_status_string              (hashcat_ctx);
+  hashcat_status->time_estimated_absolute     = status_get_time_estimated_absolute    (hashcat_ctx);
+  hashcat_status->time_estimated_relative     = status_get_time_estimated_relative    (hashcat_ctx);
+  hashcat_status->time_started_absolute       = status_get_time_started_absolute      (hashcat_ctx);
+  hashcat_status->time_started_relative       = status_get_time_started_relative      (hashcat_ctx);
 
   return 0;
 }

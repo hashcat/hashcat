@@ -1481,19 +1481,35 @@ typedef enum input_mode
 
 typedef struct
 {
-  char *status;
-  char *session;
-  char *time_started_absolute;
-  char *time_started_relative;
-  char *time_estimated_absolute;
-  char *time_estimated_relative;
-  char *hash_type;
-  char *hash_target;
-  int   input_mode;
-  char *input_base;
-  char *input_mod;
-  char *input_charset;
-
+  char   *hash_target;
+  char   *hash_type;
+  char   *input_base;
+  char   *input_charset;
+  char   *input_mod;
+  char   *session;
+  char   *status;
+  char   *time_estimated_absolute;
+  char   *time_estimated_relative;
+  char   *time_started_absolute;
+  char   *time_started_relative;
+  double  msec_paused;
+  double  msec_running;
+  int     digests_cnt;
+  int     digests_done;
+  int     digests_percent;
+  int     input_mode;
+  int     salts_cnt;
+  int     salts_done;
+  int     salts_percent;
+  u64     progress_cur;
+  u64     progress_cur_relative_skip;
+  u64     progress_done;
+  u64     progress_end;
+  u64     progress_end_relative_skip;
+  u64     progress_ignore;
+  u64     progress_rejected;
+  u64     progress_restored;
+  u64     progress_skip;
 
 
   device_info_t device_info_buf[DEVICES_MAX];
