@@ -205,9 +205,9 @@ int ResumeThreads (hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->devices_status != STATUS_PAUSED) return -1;
 
-  double ms_paused = hc_timer_get (status_ctx->timer_paused);
+  const double msec_paused = hc_timer_get (status_ctx->timer_paused);
 
-  status_ctx->ms_paused += ms_paused;
+  status_ctx->msec_paused += msec_paused;
 
   status_ctx->devices_status = STATUS_RUNNING;
 

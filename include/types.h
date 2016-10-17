@@ -679,7 +679,7 @@ typedef struct hc_device_param
   u32     innerloop_left;
 
   u32     exec_pos;
-  double  exec_ms[EXEC_CACHE];
+  double  exec_msec[EXEC_CACHE];
 
   // workaround cpu spinning
 
@@ -691,7 +691,7 @@ typedef struct hc_device_param
 
   u32     speed_pos;
   u64     speed_cnt[SPEED_CACHE];
-  double  speed_ms[SPEED_CACHE];
+  double  speed_msec[SPEED_CACHE];
 
   hc_timer_t timer_speed;
 
@@ -818,7 +818,7 @@ typedef struct opencl_ctx
   u32                 devices_filter;
   cl_device_type      device_types_filter;
 
-  double              target_ms;
+  double              target_msec;
 
   bool                need_adl;
   bool                need_nvml;
@@ -1394,7 +1394,7 @@ typedef struct status_ctx
   hc_timer_t timer_running;         // timer on current dict
   hc_timer_t timer_paused;          // timer on current dict
 
-  double  ms_paused;                // timer on current dict
+  double  msec_paused;                // timer on current dict
 
 } status_ctx_t;
 
@@ -1483,12 +1483,18 @@ typedef struct
 {
   char *status;
   char *session;
+  char *time_started_absolute;
+  char *time_started_relative;
+  char *time_estimated_absolute;
+  char *time_estimated_relative;
+  char *hash_type;
+  char *hash_target;
   int   input_mode;
   char *input_base;
   char *input_mod;
   char *input_charset;
-  char *hash_type;
-  char *hash_target;
+
+
 
   device_info_t device_info_buf[DEVICES_MAX];
   int           device_info_cnt;

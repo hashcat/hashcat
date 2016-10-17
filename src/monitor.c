@@ -17,14 +17,37 @@
 #include "shared.h"
 #include "monitor.h"
 
+int get_runtime_left (const hashcat_ctx_t *hashcat_ctx)
+{
+  const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  double msec_paused = status_ctx->msec_paused;
+
+  if (status_ctx->devices_status == STATUS_PAUSED)
+  {
+    double msec_paused_tmp = hc_timer_get (status_ctx->timer_paused);
+
+    msec_paused += msec_paused_tmp;
+  }
+
+  time_t runtime_cur;
+
+  time (&runtime_cur);
+
+  const int runtime_left = status_ctx->proc_start + user_options->runtime + status_ctx->prepare_time + (msec_paused / 1000) - runtime_cur;
+
+  return runtime_left;
+}
+
 static int monitor (hashcat_ctx_t *hashcat_ctx)
 {
-  hashes_t             *hashes             = hashcat_ctx->hashes;
-  hwmon_ctx_t          *hwmon_ctx          = hashcat_ctx->hwmon_ctx;
-  opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
-  restore_ctx_t        *restore_ctx        = hashcat_ctx->restore_ctx;
-  status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
-  user_options_t       *user_options       = hashcat_ctx->user_options;
+  hashes_t       *hashes        = hashcat_ctx->hashes;
+  hwmon_ctx_t    *hwmon_ctx     = hashcat_ctx->hwmon_ctx;
+  opencl_ctx_t   *opencl_ctx    = hashcat_ctx->opencl_ctx;
+  restore_ctx_t  *restore_ctx   = hashcat_ctx->restore_ctx;
+  status_ctx_t   *status_ctx    = hashcat_ctx->status_ctx;
+  user_options_t *user_options  = hashcat_ctx->user_options;
 
   bool runtime_check = false;
   bool remove_check  = false;
@@ -254,20 +277,7 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
     if ((runtime_check == true) && (status_ctx->runtime_start > 0))
     {
-      double ms_paused = status_ctx->ms_paused;
-
-      if (status_ctx->devices_status == STATUS_PAUSED)
-      {
-        double ms_paused_tmp = hc_timer_get (status_ctx->timer_paused);
-
-        ms_paused += ms_paused_tmp;
-      }
-
-      time_t runtime_cur;
-
-      time (&runtime_cur);
-
-      int runtime_left = status_ctx->proc_start + user_options->runtime + status_ctx->prepare_time + (ms_paused / 1000) - runtime_cur;
+      const int runtime_left = get_runtime_left (hashcat_ctx);
 
       if (runtime_left <= 0)
       {

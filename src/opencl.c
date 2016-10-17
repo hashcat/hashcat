@@ -30,7 +30,7 @@
 static const u32 full01 = 0x01010101;
 static const u32 full80 = 0x80808080;
 
-static double TARGET_MS_PROFILE[4] = { 2, 12, 96, 480 };
+static double TARGET_MSEC_PROFILE[4] = { 2, 12, 96, 480 };
 
 static void generate_source_kernel_filename (const u32 attack_exec, const u32 attack_kern, const u32 kern_type, char *shared_dir, char *source_file)
 {
@@ -1081,17 +1081,17 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
       const u64 perf_sum_all = (u64) (pws_cnt * iter_part);
 
-      double speed_ms = hc_timer_get (device_param->timer_speed);
+      double speed_msec = hc_timer_get (device_param->timer_speed);
 
       const u32 speed_pos = device_param->speed_pos;
 
       device_param->speed_cnt[speed_pos] = perf_sum_all;
 
-      device_param->speed_ms[speed_pos] = speed_ms;
+      device_param->speed_msec[speed_pos] = speed_msec;
 
       if (user_options->speed_only == true)
       {
-        if (speed_ms > 4096) return 0;
+        if (speed_msec > 4096) return 0;
       }
     }
 
@@ -1239,7 +1239,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
   {
     u32 exec_pos = device_param->exec_pos;
 
-    device_param->exec_ms[exec_pos] = exec_us / 1000;
+    device_param->exec_msec[exec_pos] = exec_us / 1000;
 
     exec_pos++;
 
@@ -1854,7 +1854,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
        * speed
        */
 
-      double speed_ms = hc_timer_get (device_param->timer_speed);
+      double speed_msec = hc_timer_get (device_param->timer_speed);
 
       hc_timer_set (&device_param->timer_speed);
 
@@ -1864,7 +1864,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
       device_param->speed_cnt[speed_pos] = perf_sum_all;
 
-      device_param->speed_ms[speed_pos] = speed_ms;
+      device_param->speed_msec[speed_pos] = speed_msec;
 
       //hc_thread_mutex_unlock (status_ctx->mux_display);
 
@@ -2803,7 +2803,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
     }
   }
 
-  opencl_ctx->target_ms           = TARGET_MS_PROFILE[user_options->workload_profile - 1];
+  opencl_ctx->target_msec         = TARGET_MSEC_PROFILE[user_options->workload_profile - 1];
 
   opencl_ctx->devices_cnt         = devices_cnt;
   opencl_ctx->devices_active      = devices_active;
@@ -4630,12 +4630,12 @@ void opencl_session_reset (hashcat_ctx_t *hashcat_ctx)
 
     device_param->speed_pos = 0;
 
-    memset (device_param->speed_cnt, 0, SPEED_CACHE * sizeof (u64));
-    memset (device_param->speed_ms,  0, SPEED_CACHE * sizeof (double));
+    memset (device_param->speed_cnt,  0, SPEED_CACHE * sizeof (u64));
+    memset (device_param->speed_msec, 0, SPEED_CACHE * sizeof (double));
 
     device_param->exec_pos = 0;
 
-    memset (device_param->exec_ms, 0, EXEC_CACHE * sizeof (double));
+    memset (device_param->exec_msec, 0, EXEC_CACHE * sizeof (double));
 
     device_param->outerloop_pos  = 0;
     device_param->outerloop_left = 0;

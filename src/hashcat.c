@@ -100,7 +100,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     user_options->skip = 0;
   }
 
-  status_ctx->ms_paused = 0;
+  status_ctx->msec_paused = 0;
 
   opencl_session_reset (hashcat_ctx);
 
@@ -1133,14 +1133,18 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
 {
   memset (hashcat_status, 0, sizeof (hashcat_status_t));
 
-  hashcat_status->session       = status_get_session        (hashcat_ctx);
-  hashcat_status->status        = status_get_status_string  (hashcat_ctx);
-  hashcat_status->input_mode    = status_get_input_mode     (hashcat_ctx);
-  hashcat_status->input_base    = status_get_input_base     (hashcat_ctx);
-  hashcat_status->input_mod     = status_get_input_mod      (hashcat_ctx);
-  hashcat_status->input_charset = status_get_input_charset  (hashcat_ctx);
-  hashcat_status->hash_type     = status_get_hash_type      (hashcat_ctx);
-  hashcat_status->hash_target   = status_get_hash_target    (hashcat_ctx);
+  hashcat_status->session                 = status_get_session                  (hashcat_ctx);
+  hashcat_status->status                  = status_get_status_string            (hashcat_ctx);
+  hashcat_status->time_started_absolute   = status_get_time_started_absolute    (hashcat_ctx);
+  hashcat_status->time_started_relative   = status_get_time_started_relative    (hashcat_ctx);
+  hashcat_status->time_estimated_absolute = status_get_time_estimated_absolute  (hashcat_ctx);
+  hashcat_status->time_estimated_relative = status_get_time_estimated_relative  (hashcat_ctx);
+  hashcat_status->hash_type               = status_get_hash_type                (hashcat_ctx);
+  hashcat_status->hash_target             = status_get_hash_target              (hashcat_ctx);
+  hashcat_status->input_mode              = status_get_input_mode               (hashcat_ctx);
+  hashcat_status->input_base              = status_get_input_base               (hashcat_ctx);
+  hashcat_status->input_mod               = status_get_input_mod                (hashcat_ctx);
+  hashcat_status->input_charset           = status_get_input_charset            (hashcat_ctx);
 
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 

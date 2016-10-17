@@ -129,7 +129,7 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
   user_options_t *user_options = hashcat_ctx->user_options;
 
   // this is required, because some of the variables down there are not initialized at that point
-  while (status_ctx->devices_status == STATUS_INIT) hc_sleep_ms (100);
+  while (status_ctx->devices_status == STATUS_INIT) hc_sleep_msec (100);
 
   const bool quiet = user_options->quiet;
 
@@ -444,81 +444,6 @@ int tty_fix()
 }
 #endif
 
-static void format_timer_display (struct tm *tm, char *buf, size_t len)
-{
-  const char *time_entities_s[] = { "year",  "day",  "hour",  "min",  "sec"  };
-  const char *time_entities_m[] = { "years", "days", "hours", "mins", "secs" };
-
-  if (tm->tm_year - 70)
-  {
-    char *time_entity1 = ((tm->tm_year - 70) == 1) ? (char *) time_entities_s[0] : (char *) time_entities_m[0];
-    char *time_entity2 = ( tm->tm_yday       == 1) ? (char *) time_entities_s[1] : (char *) time_entities_m[1];
-
-    snprintf (buf, len - 1, "%d %s, %d %s", tm->tm_year - 70, time_entity1, tm->tm_yday, time_entity2);
-  }
-  else if (tm->tm_yday)
-  {
-    char *time_entity1 = (tm->tm_yday == 1) ? (char *) time_entities_s[1] : (char *) time_entities_m[1];
-    char *time_entity2 = (tm->tm_hour == 1) ? (char *) time_entities_s[2] : (char *) time_entities_m[2];
-
-    snprintf (buf, len - 1, "%d %s, %d %s", tm->tm_yday, time_entity1, tm->tm_hour, time_entity2);
-  }
-  else if (tm->tm_hour)
-  {
-    char *time_entity1 = (tm->tm_hour == 1) ? (char *) time_entities_s[2] : (char *) time_entities_m[2];
-    char *time_entity2 = (tm->tm_min  == 1) ? (char *) time_entities_s[3] : (char *) time_entities_m[3];
-
-    snprintf (buf, len - 1, "%d %s, %d %s", tm->tm_hour, time_entity1, tm->tm_min, time_entity2);
-  }
-  else if (tm->tm_min)
-  {
-    char *time_entity1 = (tm->tm_min == 1) ? (char *) time_entities_s[3] : (char *) time_entities_m[3];
-    char *time_entity2 = (tm->tm_sec == 1) ? (char *) time_entities_s[4] : (char *) time_entities_m[4];
-
-    snprintf (buf, len - 1, "%d %s, %d %s", tm->tm_min, time_entity1, tm->tm_sec, time_entity2);
-  }
-  else
-  {
-    char *time_entity1 = (tm->tm_sec == 1) ? (char *) time_entities_s[4] : (char *) time_entities_m[4];
-
-    snprintf (buf, len - 1, "%d %s", tm->tm_sec, time_entity1);
-  }
-}
-
-static void format_speed_display (double val, char *buf, size_t len)
-{
-  if (val <= 0)
-  {
-    buf[0] = '0';
-    buf[1] = ' ';
-    buf[2] = 0;
-
-    return;
-  }
-
-  char units[7] = { ' ', 'k', 'M', 'G', 'T', 'P', 'E' };
-
-  u32 level = 0;
-
-  while (val > 99999)
-  {
-    val /= 1000;
-
-    level++;
-  }
-
-  /* generate output */
-
-  if (level == 0)
-  {
-    snprintf (buf, len - 1, "%.0f ", val);
-  }
-  else
-  {
-    snprintf (buf, len - 1, "%.1f %c", val, units[level]);
-  }
-}
-
 void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 {
   combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
@@ -561,18 +486,18 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
     if (device_param->skipped) continue;
 
     u64    speed_cnt  = 0;
-    double speed_ms   = 0;
+    double speed_msec = 0;
 
     for (int i = 0; i < SPEED_CACHE; i++)
     {
       speed_cnt  += device_param->speed_cnt[i];
-      speed_ms   += device_param->speed_ms[i];
+      speed_msec += device_param->speed_msec[i];
     }
 
     speed_cnt  /= SPEED_CACHE;
-    speed_ms   /= SPEED_CACHE;
+    speed_msec /= SPEED_CACHE;
 
-    fprintf (out, "%" PRIu64 "\t%f\t", speed_cnt, speed_ms);
+    fprintf (out, "%" PRIu64 "\t%f\t", speed_cnt, speed_msec);
   }
 
   /**
@@ -587,9 +512,9 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->skipped) continue;
 
-    double exec_ms_avg = get_avg_exec_time (device_param, EXEC_CACHE);
+    const double exec_msec_avg = get_avg_exec_time (device_param, EXEC_CACHE);
 
-    fprintf (out, "%f\t", exec_ms_avg);
+    fprintf (out, "%f\t", exec_msec_avg);
   }
 
   /**
@@ -686,13 +611,10 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 
 void status_display (hashcat_ctx_t *hashcat_ctx)
 {
-  combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
   cpt_ctx_t            *cpt_ctx            = hashcat_ctx->cpt_ctx;
   hashes_t             *hashes             = hashcat_ctx->hashes;
-  mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
   opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
   status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
-  straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
   user_options_t       *user_options       = hashcat_ctx->user_options;
 
@@ -732,8 +654,21 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
   event_log_info (hashcat_ctx, "Session........: %s", status_get_session       (hashcat_ctx));
   event_log_info (hashcat_ctx, "Status.........: %s", status_get_status_string (hashcat_ctx));
+  event_log_info (hashcat_ctx, "Time.Started...: %s (%s)",
+    status_get_time_started_absolute   (hashcat_ctx),
+    status_get_time_started_relative   (hashcat_ctx));
+  event_log_info (hashcat_ctx, "Time.Estimated.: %s (%s)",
+    status_get_time_estimated_absolute (hashcat_ctx),
+    status_get_time_estimated_relative (hashcat_ctx));
   event_log_info (hashcat_ctx, "Hash.Type......: %s", status_get_hash_type     (hashcat_ctx));
   event_log_info (hashcat_ctx, "Hash.Target....: %s", status_get_hash_target   (hashcat_ctx));
+  event_log_info (hashcat_ctx, "Recovered......: %u/%u (%.2f%%) Digests, %u/%u (%.2f%%) Salts",
+    status_get_digests_done    (hashcat_ctx),
+    status_get_digests_cnt     (hashcat_ctx),
+    status_get_digests_percent (hashcat_ctx),
+    status_get_salts_done      (hashcat_ctx),
+    status_get_salts_cnt       (hashcat_ctx),
+    status_get_salts_percent   (hashcat_ctx));
 
   const int input_mode = status_get_input_mode (hashcat_ctx);
 
@@ -796,326 +731,38 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       break;
   }
 
-  /**
-   * speed new
-   */
-
-  u64    speed_cnt[DEVICES_MAX] = { 0 };
-  double speed_ms[DEVICES_MAX]  = { 0 };
-
   for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
     if (device_param->skipped) continue;
 
-    speed_cnt[device_id] = 0;
-    speed_ms[device_id]  = 0;
-
-    for (int i = 0; i < SPEED_CACHE; i++)
-    {
-      speed_cnt[device_id] += device_param->speed_cnt[i];
-      speed_ms[device_id]  += device_param->speed_ms[i];
-    }
-
-    speed_cnt[device_id] /= SPEED_CACHE;
-    speed_ms[device_id]  /= SPEED_CACHE;
+    event_log_info (hashcat_ctx, "Speed.Dev.#%d...: %9sH/s (%0.2fms)", device_id + 1,
+      status_get_speed_sec_dev (hashcat_ctx, device_id),
+      status_get_exec_msec_dev (hashcat_ctx, device_id));
   }
 
-  double hashes_all_ms = 0;
+  if (opencl_ctx->devices_active > 1) event_log_info (hashcat_ctx, "Speed.Dev.#*...: %9sH/s", status_get_speed_sec_all (hashcat_ctx));
 
-  double hashes_dev_ms[DEVICES_MAX] = { 0 };
 
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-  {
-    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-    if (device_param->skipped) continue;
-
-    hashes_dev_ms[device_id] = 0;
-
-    if (speed_ms[device_id] > 0)
-    {
-      hashes_dev_ms[device_id] = (double) speed_cnt[device_id] / speed_ms[device_id];
-
-      hashes_all_ms += hashes_dev_ms[device_id];
-    }
-  }
-
-  /**
-   * exec time
-   */
-
-  double exec_all_ms[DEVICES_MAX] = { 0 };
-
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-  {
-    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-    if (device_param->skipped) continue;
-
-    double exec_ms_avg = get_avg_exec_time (device_param, EXEC_CACHE);
-
-    exec_all_ms[device_id] = exec_ms_avg;
-  }
 
   /**
    * timers
    */
 
-  double ms_running = hc_timer_get (status_ctx->timer_running);
+  const double msec_running = status_get_msec_running (hashcat_ctx);
+  const double msec_paused  = status_get_msec_paused  (hashcat_ctx);
 
-  double ms_paused = status_ctx->ms_paused;
-
-  if (status_ctx->devices_status == STATUS_PAUSED)
-  {
-    double ms_paused_tmp = hc_timer_get (status_ctx->timer_paused);
-
-    ms_paused += ms_paused_tmp;
-  }
-
-  #if defined (_WIN)
-
-  __time64_t sec_run = (__time64_t) ms_running / 1000;
-
-  #else
-
-  time_t sec_run = (time_t) ms_running / 1000;
-
-  #endif
-
-  if (sec_run)
-  {
-    char display_run[32] = { 0 };
-
-    struct tm tm_run;
-
-    struct tm *tmp = NULL;
-
-    #if defined (_WIN)
-
-    tmp = _gmtime64 (&sec_run);
-
-    #else
-
-    tmp = gmtime (&sec_run);
-
-    #endif
-
-    if (tmp != NULL)
-    {
-      memset (&tm_run, 0, sizeof (tm_run));
-
-      memcpy (&tm_run, tmp, sizeof (tm_run));
-
-      format_timer_display (&tm_run, display_run, sizeof (tm_run));
-
-      char *start = ctime (&status_ctx->proc_start);
-
-      size_t start_len = strlen (start);
-
-      if (start[start_len - 1] == '\n') start[start_len - 1] = 0;
-      if (start[start_len - 2] == '\r') start[start_len - 2] = 0;
-
-      event_log_info (hashcat_ctx, "Time.Started...: %s (%s)", start, display_run);
-    }
-  }
-  else
-  {
-    event_log_info (hashcat_ctx, "Time.Started...: 0 secs");
-  }
 
   /**
    * counters
    */
 
-  u64 progress_total = status_ctx->words_cnt * hashes->salts_cnt;
+  const u64 progress_cur                = status_get_progress_cur               (hashcat_ctx);
+  const u64 progress_rejected           = status_get_progress_rejected          (hashcat_ctx);
+  const u64 progress_cur_relative_skip  = status_get_progress_cur_relative_skip (hashcat_ctx);
+  const u64 progress_end_relative_skip  = status_get_progress_end_relative_skip (hashcat_ctx);
 
-  u64 all_done     = 0;
-  u64 all_rejected = 0;
-  u64 all_restored = 0;
-
-  u64 progress_noneed = 0;
-
-  for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
-  {
-    all_done     += status_ctx->words_progress_done[salt_pos];
-    all_rejected += status_ctx->words_progress_rejected[salt_pos];
-    all_restored += status_ctx->words_progress_restored[salt_pos];
-
-    // Important for ETA only
-
-    if (hashes->salts_shown[salt_pos] == 1)
-    {
-      const u64 all = status_ctx->words_progress_done[salt_pos]
-                    + status_ctx->words_progress_rejected[salt_pos]
-                    + status_ctx->words_progress_restored[salt_pos];
-
-      const u64 left = status_ctx->words_cnt - all;
-
-      progress_noneed += left;
-    }
-  }
-
-  u64 progress_cur = all_restored + all_done + all_rejected;
-  u64 progress_end = progress_total;
-
-  u64 progress_skip = 0;
-
-  if (user_options->skip)
-  {
-    progress_skip = MIN (user_options->skip, status_ctx->words_base) * hashes->salts_cnt;
-
-    if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) progress_skip *= straight_ctx->kernel_rules_cnt;
-    else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    progress_skip *= combinator_ctx->combs_cnt;
-    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       progress_skip *= mask_ctx->bfs_cnt;
-  }
-
-  if (user_options->limit)
-  {
-    progress_end = MIN (user_options->limit, status_ctx->words_base) * hashes->salts_cnt;
-
-    if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) progress_end  *= straight_ctx->kernel_rules_cnt;
-    else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    progress_end  *= combinator_ctx->combs_cnt;
-    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       progress_end  *= mask_ctx->bfs_cnt;
-  }
-
-  u64 progress_cur_relative_skip = progress_cur - progress_skip;
-  u64 progress_end_relative_skip = progress_end - progress_skip;
-
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
-  {
-    if (status_ctx->devices_status != STATUS_CRACKED)
-    {
-      #if defined (_WIN)
-      __time64_t sec_etc = 0;
-      #else
-      time_t sec_etc = 0;
-      #endif
-
-      if (hashes_all_ms > 0)
-      {
-        u64 progress_left_relative_skip = progress_end_relative_skip - progress_cur_relative_skip;
-
-        u64 ms_left = (u64) ((progress_left_relative_skip - progress_noneed) / hashes_all_ms);
-
-        sec_etc = ms_left / 1000;
-      }
-
-      #define SEC10YEARS (60 * 60 * 24 * 365 * 10)
-
-      if (sec_etc == 0)
-      {
-        //log_info ("Time.Estimated.: 0 secs");
-      }
-      else if ((u64) sec_etc > SEC10YEARS)
-      {
-        event_log_info (hashcat_ctx, "Time.Estimated.: > 10 Years");
-      }
-      else
-      {
-        char display_etc[32]     = { 0 };
-        char display_runtime[32] = { 0 };
-
-        struct tm tm_etc;
-        struct tm tm_runtime;
-
-        struct tm *tmp = NULL;
-
-        #if defined (_WIN)
-        tmp = _gmtime64 (&sec_etc);
-        #else
-        tmp = gmtime (&sec_etc);
-        #endif
-
-        if (tmp != NULL)
-        {
-          memcpy (&tm_etc, tmp, sizeof (tm_etc));
-
-          format_timer_display (&tm_etc, display_etc, sizeof (display_etc));
-
-          time_t now;
-
-          time (&now);
-
-          now += sec_etc;
-
-          char *etc = ctime (&now);
-
-          size_t etc_len = strlen (etc);
-
-          if (etc[etc_len - 1] == '\n') etc[etc_len - 1] = 0;
-          if (etc[etc_len - 2] == '\r') etc[etc_len - 2] = 0;
-
-          if (user_options->runtime)
-          {
-            time_t runtime_cur;
-
-            time (&runtime_cur);
-
-            #if defined (_WIN)
-
-            __time64_t runtime_left = status_ctx->proc_start + user_options->runtime + status_ctx->prepare_time + (ms_paused / 1000) - runtime_cur;
-
-            tmp = _gmtime64 (&runtime_left);
-
-            #else
-
-            time_t runtime_left = status_ctx->proc_start + user_options->runtime + status_ctx->prepare_time  + (ms_paused / 1000) - runtime_cur;
-
-            tmp = gmtime (&runtime_left);
-
-            #endif
-
-            if ((tmp != NULL) && (runtime_left > 0) && (runtime_left < sec_etc))
-            {
-              memcpy (&tm_runtime, tmp, sizeof (tm_runtime));
-
-              format_timer_display (&tm_runtime, display_runtime, sizeof (display_runtime));
-
-              event_log_info (hashcat_ctx, "Time.Estimated.: %s (%s), but limited (%s)", etc, display_etc, display_runtime);
-            }
-            else
-            {
-              event_log_info (hashcat_ctx, "Time.Estimated.: %s (%s), but limit exceeded", etc, display_etc);
-            }
-          }
-          else
-          {
-            event_log_info (hashcat_ctx, "Time.Estimated.: %s (%s)", etc, display_etc);
-          }
-        }
-      }
-    }
-  }
-
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-  {
-    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-    if (device_param->skipped) continue;
-
-    char display_dev_cur[16] = { 0 };
-
-    strncpy (display_dev_cur, "0.00", 4);
-
-    format_speed_display ((double) hashes_dev_ms[device_id] * 1000, display_dev_cur, sizeof (display_dev_cur));
-
-    event_log_info (hashcat_ctx, "Speed.Dev.#%d...: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
-  }
-
-  char display_all_cur[16] = { 0 };
-
-  strncpy (display_all_cur, "0.00", 4);
-
-  format_speed_display ((double) hashes_all_ms * 1000, display_all_cur, sizeof (display_all_cur));
-
-  if (opencl_ctx->devices_active > 1) event_log_info (hashcat_ctx, "Speed.Dev.#*...: %9sH/s", display_all_cur);
-
-  const double digests_percent = (double) hashes->digests_done / hashes->digests_cnt;
-  const double salts_percent   = (double) hashes->salts_done   / hashes->salts_cnt;
-
-  event_log_info (hashcat_ctx, "Recovered......: %u/%u (%.2f%%) Digests, %u/%u (%.2f%%) Salts", hashes->digests_done, hashes->digests_cnt, digests_percent * 100, hashes->salts_done, hashes->salts_cnt, salts_percent * 100);
 
   // crack-per-time
 
@@ -1148,11 +795,11 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
-    double ms_real = ms_running - ms_paused;
+    const double msec_real = msec_running - msec_paused;
 
-    double cpt_avg_min  = (double) cpt_ctx->cpt_total / ((ms_real / 1000) / 60);
-    double cpt_avg_hour = (double) cpt_ctx->cpt_total / ((ms_real / 1000) / 3600);
-    double cpt_avg_day  = (double) cpt_ctx->cpt_total / ((ms_real / 1000) / 86400);
+    double cpt_avg_min  = (double) cpt_ctx->cpt_total / ((msec_real / 1000) / 60);
+    double cpt_avg_hour = (double) cpt_ctx->cpt_total / ((msec_real / 1000) / 3600);
+    double cpt_avg_day  = (double) cpt_ctx->cpt_total / ((msec_real / 1000) / 86400);
 
     if ((cpt_ctx->cpt_start + 86400) < now)
     {
@@ -1209,11 +856,11 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
       if (progress_cur)
       {
-        percent_rejected = (double) (all_rejected) / (double) progress_cur;
+        percent_rejected = (double) (progress_rejected) / (double) progress_cur;
       }
 
       event_log_info (hashcat_ctx, "Progress.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", progress_cur_relative_skip, progress_end_relative_skip, percent_finished * 100);
-      event_log_info (hashcat_ctx, "Rejected.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", all_rejected,               progress_cur_relative_skip, percent_rejected * 100);
+      event_log_info (hashcat_ctx, "Rejected.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)", progress_rejected,          progress_cur_relative_skip, percent_rejected * 100);
 
       if (user_options->restore_disable == false)
       {
@@ -1239,7 +886,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     else
     {
       event_log_info (hashcat_ctx, "Progress.......: %" PRIu64 "", progress_cur_relative_skip);
-      event_log_info (hashcat_ctx, "Rejected.......: %" PRIu64 "", all_rejected);
+      event_log_info (hashcat_ctx, "Rejected.......: %" PRIu64 "", progress_rejected);
 
       // --restore not allowed if stdin is used -- really? why?
 
@@ -1417,8 +1064,8 @@ void status_benchmark_automate (hashcat_ctx_t *hashcat_ctx)
     return;
   }
 
-  u64    speed_cnt[DEVICES_MAX] = { 0 };
-  double speed_ms[DEVICES_MAX]  = { 0 };
+  u64    speed_cnt[DEVICES_MAX]  = { 0 };
+  double speed_msec[DEVICES_MAX] = { 0 };
 
   for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
@@ -1426,11 +1073,11 @@ void status_benchmark_automate (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->skipped) continue;
 
-    speed_cnt[device_id] = device_param->speed_cnt[0];
-    speed_ms[device_id]  = device_param->speed_ms[0];
+    speed_cnt[device_id]  = device_param->speed_cnt[0];
+    speed_msec[device_id] = device_param->speed_msec[0];
   }
 
-  u64 hashes_dev_ms[DEVICES_MAX] = { 0 };
+  u64 hashes_dev_msec[DEVICES_MAX] = { 0 };
 
   for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
@@ -1438,11 +1085,11 @@ void status_benchmark_automate (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->skipped) continue;
 
-    hashes_dev_ms[device_id] = 0;
+    hashes_dev_msec[device_id] = 0;
 
-    if (speed_ms[device_id] > 0)
+    if (speed_msec[device_id] > 0)
     {
-      hashes_dev_ms[device_id] = (double) speed_cnt[device_id] / speed_ms[device_id];
+      hashes_dev_msec[device_id] = (double) speed_cnt[device_id] / speed_msec[device_id];
     }
   }
 
@@ -1452,7 +1099,7 @@ void status_benchmark_automate (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->skipped) continue;
 
-    event_log_info (hashcat_ctx, "%u:%u:%" PRIu64 "", device_id + 1, hashconfig->hash_mode, (hashes_dev_ms[device_id] * 1000));
+    event_log_info (hashcat_ctx, "%u:%u:%" PRIu64 "", device_id + 1, hashconfig->hash_mode, (hashes_dev_msec[device_id] * 1000));
   }
 }
 
@@ -1485,8 +1132,8 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
     return;
   }
 
-  u64    speed_cnt[DEVICES_MAX] = { 0 };
-  double speed_ms[DEVICES_MAX]  = { 0 };
+  u64    speed_cnt[DEVICES_MAX]  = { 0 };
+  double speed_msec[DEVICES_MAX] = { 0 };
 
   for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
@@ -1494,13 +1141,13 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->skipped) continue;
 
-    speed_cnt[device_id] = device_param->speed_cnt[0];
-    speed_ms[device_id]  = device_param->speed_ms[0];
+    speed_cnt[device_id]  = device_param->speed_cnt[0];
+    speed_msec[device_id] = device_param->speed_msec[0];
   }
 
-  double hashes_all_ms = 0;
+  double hashes_all_msec = 0;
 
-  double hashes_dev_ms[DEVICES_MAX] = { 0 };
+  double hashes_dev_msec[DEVICES_MAX] = { 0 };
 
   for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
@@ -1508,13 +1155,13 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->skipped) continue;
 
-    hashes_dev_ms[device_id] = 0;
+    hashes_dev_msec[device_id] = 0;
 
-    if (speed_ms[device_id] > 0)
+    if (speed_msec[device_id] > 0)
     {
-      hashes_dev_ms[device_id] = (double) speed_cnt[device_id] / speed_ms[device_id];
+      hashes_dev_msec[device_id] = (double) speed_cnt[device_id] / speed_msec[device_id];
 
-      hashes_all_ms += hashes_dev_ms[device_id];
+      hashes_all_msec += hashes_dev_msec[device_id];
     }
   }
 
@@ -1522,7 +1169,7 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
    * exec time
    */
 
-  double exec_all_ms[DEVICES_MAX] = { 0 };
+  double exec_all_msec[DEVICES_MAX] = { 0 };
 
   for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
@@ -1530,9 +1177,9 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->skipped) continue;
 
-    double exec_ms_avg = get_avg_exec_time (device_param, EXEC_CACHE);
+    double exec_msec_avg = get_avg_exec_time (device_param, EXEC_CACHE);
 
-    exec_all_ms[device_id] = exec_ms_avg;
+    exec_all_msec[device_id] = exec_msec_avg;
   }
 
   for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
@@ -1545,15 +1192,15 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
 
     strncpy (display_dev_cur, "0.00", 4);
 
-    format_speed_display ((double) hashes_dev_ms[device_id] * 1000, display_dev_cur, sizeof (display_dev_cur));
+    format_speed_display ((double) hashes_dev_msec[device_id] * 1000, display_dev_cur, sizeof (display_dev_cur));
 
     if (opencl_ctx->devices_active >= 10)
     {
-      event_log_info (hashcat_ctx, "Speed.Dev.#%d: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
+      event_log_info (hashcat_ctx, "Speed.Dev.#%d: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_msec[device_id]);
     }
     else
     {
-      event_log_info (hashcat_ctx, "Speed.Dev.#%d.: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_ms[device_id]);
+      event_log_info (hashcat_ctx, "Speed.Dev.#%d.: %9sH/s (%0.2fms)", device_id + 1, display_dev_cur, exec_all_msec[device_id]);
     }
   }
 
@@ -1561,7 +1208,7 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
 
   strncpy (display_all_cur, "0.00", 4);
 
-  format_speed_display ((double) hashes_all_ms * 1000, display_all_cur, sizeof (display_all_cur));
+  format_speed_display ((double) hashes_all_msec * 1000, display_all_cur, sizeof (display_all_cur));
 
   if (opencl_ctx->devices_active > 1) event_log_info (hashcat_ctx, "Speed.Dev.#*.: %9sH/s", display_all_cur);
 }
