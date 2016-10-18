@@ -942,6 +942,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
 int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
 {
+  event_log_error (hashcat_ctx, "The --show feature is currently not available");
 
   return 0;
 }
