@@ -20,6 +20,7 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx);
 int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx);
 int hashes_init_stage3 (hashcat_ctx_t *hashcat_ctx);
+int hashes_init_stage4 (hashcat_ctx_t *hashcat_ctx);
 
 void hashes_destroy (hashcat_ctx_t *hashcat_ctx);
 

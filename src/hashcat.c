@@ -396,23 +396,6 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   if (rc_hashconfig == -1) return -1;
 
   /**
-   * potfile show/left depends on hash_mode, so it's called here first time
-   */
-
-  if (user_options->show == true || user_options->left == true)
-  {
-    outfile_write_open (hashcat_ctx);
-
-    potfile_read_open (hashcat_ctx);
-
-    const int rc = potfile_read_parse (hashcat_ctx);
-
-    if (rc == -1) return -1;
-
-    potfile_read_close (hashcat_ctx);
-  }
-
-  /**
    * load hashes, stage 1
    */
 
@@ -431,32 +414,6 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   }
 
   /**
-   * potfile show/left final
-   */
-
-  if (user_options->show == true || user_options->left == true)
-  {
-    outfile_write_close (hashcat_ctx);
-
-    potfile_hash_free (hashcat_ctx);
-
-    return 0;
-  }
-
-  /**
-   * potfile removes
-   */
-
-  if (user_options->potfile_disable == 0)
-  {
-    EVENT (EVENT_POTFILE_REMOVE_PARSE_PRE);
-
-    potfile_remove_parse (hashcat_ctx);
-
-    EVENT (EVENT_POTFILE_REMOVE_PARSE_POST);
-  }
-
-  /**
    * load hashes, stage 2, remove duplicates, build base structure
    */
 
@@ -467,29 +424,77 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   if (rc_hashes_init_stage2 == -1) return -1;
 
   /**
-   * load hashes, stage 2: at this point we can check for all hashes cracked (by potfile)
+   * potfile removes
+   */
+
+  if (user_options->potfile_disable == false)
+  {
+    EVENT (EVENT_POTFILE_REMOVE_PARSE_PRE);
+
+    potfile_remove_parse (hashcat_ctx);
+
+    EVENT (EVENT_POTFILE_REMOVE_PARSE_POST);
+  }
+
+  /**
+   * load hashes, stage 3, update cracked results from potfile
+   */
+
+  const int rc_hashes_init_stage3 = hashes_init_stage3 (hashcat_ctx);
+
+  if (rc_hashes_init_stage3 == -1) return -1;
+
+  /**
+   * potfile show/left handling
+   */
+
+  if (user_options->show == true)
+  {
+    outfile_write_open (hashcat_ctx);
+
+    const int rc = potfile_handle_show (hashcat_ctx);
+
+    if (rc == -1) return -1;
+
+    outfile_write_close (hashcat_ctx);
+
+    return 0;
+  }
+  else if (user_options->left == true)
+  {
+    outfile_write_open (hashcat_ctx);
+
+    const int rc = potfile_handle_left (hashcat_ctx);
+
+    if (rc == -1) return -1;
+
+    outfile_write_close (hashcat_ctx);
+
+    return 0;
+  }
+
+  /**
+   * maybe all hashes were cracked, we can exit here
    */
 
   if (status_ctx->devices_status == STATUS_CRACKED)
   {
     EVENT (EVENT_POTFILE_ALL_CRACKED);
 
-    hashes_destroy (hashcat_ctx);
-
-    hashconfig_destroy (hashcat_ctx);
-
-    potfile_destroy (hashcat_ctx);
-
     return 0;
   }
 
   /**
-   * load hashes, stage 3, automatic Optimizers
+   * load hashes, stage 4, automatic Optimizers
    */
 
-  const int rc_hashes_init_stage3 = hashes_init_stage3 (hashcat_ctx);
+  const int rc_hashes_init_stage4 = hashes_init_stage4 (hashcat_ctx);
 
-  if (rc_hashes_init_stage3 == -1) return -1;
+  if (rc_hashes_init_stage4 == -1) return -1;
+
+  /**
+   * Done loading hashes, log results
+   */
 
   hashes_logger (hashcat_ctx);
 

@@ -182,11 +182,6 @@ int potfile_init (hashcat_ctx_t *hashcat_ctx)
 
   potfile_write_close (hashcat_ctx);
 
-  potfile_ctx->pot              = NULL;
-  potfile_ctx->pot_cnt          = 0;
-  potfile_ctx->pot_avail        = 0;
-  potfile_ctx->pot_hashes_avail = 0;
-
   return 0;
 }
 
@@ -209,7 +204,7 @@ int potfile_read_open (hashcat_ctx_t *hashcat_ctx)
 
   if (potfile_ctx->fp == NULL)
   {
-    //log_error ("%s: %s", potfile_ctx->filename, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", potfile_ctx->filename, strerror (errno));
 
     return -1;
   }
@@ -217,6 +212,18 @@ int potfile_read_open (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
+void potfile_read_close (hashcat_ctx_t *hashcat_ctx)
+{
+  potfile_ctx_t *potfile_ctx = hashcat_ctx->potfile_ctx;
+
+  if (potfile_ctx->enabled == false) return;
+
+  if (potfile_ctx->fp == NULL) return;
+
+  fclose (potfile_ctx->fp);
+}
+
+/*
 int potfile_read_parse (hashcat_ctx_t *hashcat_ctx)
 {
   potfile_ctx_t *potfile_ctx = hashcat_ctx->potfile_ctx;
@@ -330,17 +337,7 @@ int potfile_read_parse (hashcat_ctx_t *hashcat_ctx)
 
   return 0;
 }
-
-void potfile_read_close (hashcat_ctx_t *hashcat_ctx)
-{
-  potfile_ctx_t *potfile_ctx = hashcat_ctx->potfile_ctx;
-
-  if (potfile_ctx->enabled == false) return;
-
-  if (potfile_ctx->fp == NULL) return;
-
-  fclose (potfile_ctx->fp);
-}
+*/
 
 int potfile_write_open (hashcat_ctx_t *hashcat_ctx)
 {
@@ -423,70 +420,7 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, u8 *
   fflush (potfile_ctx->fp);
 }
 
-int potfile_hash_alloc (hashcat_ctx_t *hashcat_ctx, const u32 num)
-{
-  potfile_ctx_t *potfile_ctx = hashcat_ctx->potfile_ctx;
-  hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
-
-  if (potfile_ctx->enabled == false) return 0;
-
-  u32 pos = 0;
-
-  for (pos = 0; pos < num; pos++)
-  {
-    if ((potfile_ctx->pot_cnt + pos) >= potfile_ctx->pot_avail) break;
-
-    pot_t *tmp_pot = &potfile_ctx->pot[potfile_ctx->pot_cnt + pos];
-
-    hash_t *tmp_hash = &tmp_pot->hash;
-
-    tmp_hash->digest = hcmalloc (hashcat_ctx, hashconfig->dgst_size); VERIFY_PTR (tmp_hash->digest);
-
-    if (hashconfig->is_salted)
-    {
-      tmp_hash->salt = (salt_t *) hcmalloc (hashcat_ctx, sizeof (salt_t)); VERIFY_PTR (tmp_hash->salt);
-    }
-
-    if (hashconfig->esalt_size)
-    {
-      tmp_hash->esalt = hcmalloc (hashcat_ctx, hashconfig->esalt_size); VERIFY_PTR (tmp_hash->esalt);
-    }
-
-    potfile_ctx->pot_hashes_avail++;
-  }
-
-  return 0;
-}
-
-void potfile_hash_free (hashcat_ctx_t *hashcat_ctx)
-{
-  potfile_ctx_t *potfile_ctx = hashcat_ctx->potfile_ctx;
-  hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
-
-  if (potfile_ctx->enabled == false) return;
-
-  for (u32 i = 0; i < potfile_ctx->pot_cnt; i++)
-  {
-    pot_t *pot_ptr = &potfile_ctx->pot[i];
-
-    hash_t *hashes_buf = &pot_ptr->hash;
-
-    hcfree (hashes_buf->digest);
-
-    if (hashconfig->is_salted)
-    {
-      hcfree (hashes_buf->salt);
-    }
-
-    if (hashconfig->esalt_size)
-    {
-      hcfree (hashes_buf->esalt);
-    }
-  }
-
-  hcfree (potfile_ctx->pot);
-}
-
+/*
 void potfile_show_request (hashcat_ctx_t *hashcat_ctx, char *input_buf, int input_len, hash_t *hashes_buf, int (*sort_by_pot) (const void *, const void *, void *))
 {
   hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
@@ -499,7 +433,9 @@ void potfile_show_request (hashcat_ctx_t *hashcat_ctx, char *input_buf, int inpu
   pot_key.hash.salt   = hashes_buf->salt;
   pot_key.hash.digest = hashes_buf->digest;
 
-  pot_t *pot_ptr = (pot_t *) hc_bsearch_r (&pot_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot, (void *) hashconfig);
+  //pot_t *pot_ptr = (pot_t *) hc_bsearch_r (&pot_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot, (void *) hashconfig);
+
+  pot_t *pot_ptr = NULL;
 
   if (pot_ptr)
   {
@@ -544,7 +480,9 @@ void potfile_left_request (hashcat_ctx_t *hashcat_ctx, char *input_buf, int inpu
 
   memcpy (&pot_key.hash, hashes_buf, sizeof (hash_t));
 
-  pot_t *pot_ptr = (pot_t *) hc_bsearch_r (&pot_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot, (void *) hashconfig);
+  //pot_t *pot_ptr = (pot_t *) hc_bsearch_r (&pot_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot, (void *) hashconfig);
+
+  pot_t *pot_ptr = NULL;
 
   if (pot_ptr == NULL)
   {
@@ -574,7 +512,9 @@ int potfile_show_request_lm (hashcat_ctx_t *hashcat_ctx, char *input_buf, int in
   pot_left_key.hash.salt   = hash_left->salt;
   pot_left_key.hash.digest = hash_left->digest;
 
-  pot_t *pot_left_ptr = (pot_t *) hc_bsearch_r (&pot_left_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot, (void *) hashconfig);
+  //pot_t *pot_left_ptr = (pot_t *) hc_bsearch_r (&pot_left_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot, (void *) hashconfig);
+
+  pot_t *pot_left_ptr = NULL;
 
   // right
 
@@ -585,7 +525,9 @@ int potfile_show_request_lm (hashcat_ctx_t *hashcat_ctx, char *input_buf, int in
   pot_right_key.hash.salt   = hash_right->salt;
   pot_right_key.hash.digest = hash_right->digest;
 
-  pot_t *pot_right_ptr = (pot_t *) hc_bsearch_r (&pot_right_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot, (void *) hashconfig);
+  //pot_t *pot_right_ptr = (pot_t *) hc_bsearch_r (&pot_right_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot, (void *) hashconfig);
+
+  pot_t *pot_right_ptr = NULL;
 
   if (pot_right_ptr == NULL)
   {
@@ -708,7 +650,9 @@ int potfile_left_request_lm (hashcat_ctx_t *hashcat_ctx, char *input_buf, int in
 
   memcpy (&pot_left_key.hash, hash_left, sizeof (hash_t));
 
-  pot_t *pot_left_ptr = (pot_t *) hc_bsearch_r (&pot_left_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot, (void *) hashconfig);
+  //pot_t *pot_left_ptr = (pot_t *) hc_bsearch_r (&pot_left_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot, (void *) hashconfig);
+
+  pot_t *pot_left_ptr = NULL;
 
   // right
 
@@ -716,7 +660,9 @@ int potfile_left_request_lm (hashcat_ctx_t *hashcat_ctx, char *input_buf, int in
 
   memcpy (&pot_right_key.hash, hash_right, sizeof (hash_t));
 
-  pot_t *pot_right_ptr = (pot_t *) hc_bsearch_r (&pot_right_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot, (void *) hashconfig);
+  //pot_t *pot_right_ptr = (pot_t *) hc_bsearch_r (&pot_right_key, potfile_ctx->pot, potfile_ctx->pot_cnt, sizeof (pot_t), sort_by_pot, (void *) hashconfig);
+
+  pot_t *pot_right_ptr = NULL;
 
   u32 weak_hash_found = 0;
 
@@ -785,6 +731,7 @@ int potfile_left_request_lm (hashcat_ctx_t *hashcat_ctx, char *input_buf, int in
 
   return 0;
 }
+*/
 
 int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 {
@@ -988,6 +935,20 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
   }
 
   hcfree (hash_buf.digest);
+
+  return 0;
+}
+
+
+int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
+{
+
+  return 0;
+}
+
+int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
+{
+
 
   return 0;
 }

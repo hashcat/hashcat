@@ -726,50 +726,6 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
               continue;
             }
 
-            // hack: append MAC1 and MAC2 s.t. in --show and --left the line matches with the .pot file format (i.e. ESSID:MAC1:MAC2)
-
-            if ((user_options->show == true) || (user_options->left == true))
-            {
-              salt_t *tmp_salt = hashes_buf[hashes_cnt].salt;
-
-              char *salt_ptr = (char *) tmp_salt->salt_buf;
-
-              int cur_pos = tmp_salt->salt_len;
-              int rem_len = sizeof (hashes_buf[hashes_cnt].salt->salt_buf) - cur_pos;
-
-              wpa_t *wpa = (wpa_t *) hashes_buf[hashes_cnt].esalt;
-
-              // do the appending task
-
-              snprintf (salt_ptr + cur_pos,
-                        rem_len,
-                        ":%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x",
-                        wpa->orig_mac1[0],
-                        wpa->orig_mac1[1],
-                        wpa->orig_mac1[2],
-                        wpa->orig_mac1[3],
-                        wpa->orig_mac1[4],
-                        wpa->orig_mac1[5],
-                        wpa->orig_mac2[0],
-                        wpa->orig_mac2[1],
-                        wpa->orig_mac2[2],
-                        wpa->orig_mac2[3],
-                        wpa->orig_mac2[4],
-                        wpa->orig_mac2[5]);
-
-              // memset () the remaining part of the salt
-
-              cur_pos = tmp_salt->salt_len + 1 + 12 + 1 + 12;
-              rem_len = sizeof (hashes_buf[hashes_cnt].salt->salt_buf) - cur_pos;
-
-              if (rem_len > 0) memset (salt_ptr + cur_pos, 0, rem_len);
-
-              tmp_salt->salt_len += 1 + 12 + 1 + 12;
-            }
-
-            if (user_options->show == true) potfile_show_request (hashcat_ctx, (char *) hashes_buf[hashes_cnt].salt->salt_buf, hashes_buf[hashes_cnt].salt->salt_len, &hashes_buf[hashes_cnt], sort_by_salt_buf);
-            if (user_options->left == true) potfile_left_request (hashcat_ctx, (char *) hashes_buf[hashes_cnt].salt->salt_buf, hashes_buf[hashes_cnt].salt->salt_len, &hashes_buf[hashes_cnt], sort_by_salt_buf);
-
             hashes_cnt++;
           }
 
@@ -783,12 +739,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           {
             parser_status = hashconfig->parse_func (hash_buf, 16, &hashes_buf[hashes_cnt], hashconfig);
 
-            hash_t *lm_hash_left = NULL;
-
             if (parser_status == PARSER_OK)
             {
-              lm_hash_left = &hashes_buf[hashes_cnt];
-
               hashes_cnt++;
             }
             else
@@ -798,36 +750,18 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             parser_status = hashconfig->parse_func (hash_buf + 16, 16, &hashes_buf[hashes_cnt], hashconfig);
 
-            hash_t *lm_hash_right = NULL;
-
             if (parser_status == PARSER_OK)
             {
-              lm_hash_right = &hashes_buf[hashes_cnt];
-
               hashes_cnt++;
             }
             else
             {
               event_log_warning (hashcat_ctx, "Hash '%s': %s", input_buf, strparser (parser_status));
             }
-
-            // show / left
-
-            if ((lm_hash_left != NULL) && (lm_hash_right != NULL))
-            {
-              if (user_options->show == true) potfile_show_request_lm (hashcat_ctx, input_buf, input_len, lm_hash_left, lm_hash_right, sort_by_pot);
-              if (user_options->left == true) potfile_left_request_lm (hashcat_ctx, input_buf, input_len, lm_hash_left, lm_hash_right, sort_by_pot);
-            }
           }
           else
           {
             parser_status = hashconfig->parse_func (hash_buf, hash_len, &hashes_buf[hashes_cnt], hashconfig);
-
-            if (parser_status == PARSER_OK)
-            {
-              if (user_options->show == true) potfile_show_request (hashcat_ctx, input_buf, input_len, &hashes_buf[hashes_cnt], sort_by_pot);
-              if (user_options->left == true) potfile_left_request (hashcat_ctx, input_buf, input_len, &hashes_buf[hashes_cnt], sort_by_pot);
-            }
 
             if (parser_status == PARSER_OK)
             {
@@ -842,12 +776,6 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         else
         {
           parser_status = hashconfig->parse_func (hash_buf, hash_len, &hashes_buf[hashes_cnt], hashconfig);
-
-          if (parser_status == PARSER_OK)
-          {
-            if (user_options->show == true) potfile_show_request (hashcat_ctx, input_buf, input_len, &hashes_buf[hashes_cnt], sort_by_pot);
-            if (user_options->left == true) potfile_left_request (hashcat_ctx, input_buf, input_len, &hashes_buf[hashes_cnt], sort_by_pot);
-          }
 
           if (parser_status == PARSER_OK)
           {
@@ -955,8 +883,6 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
               continue;
             }
 
-            hash_t *lm_hash_left = &hashes_buf[hashes_cnt];
-
             hashes_cnt++;
 
             parser_status = hashconfig->parse_func (hash_buf + 16, 16, &hashes_buf[hashes_cnt], hashconfig);
@@ -968,16 +894,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
               continue;
             }
 
-            hash_t *lm_hash_right = &hashes_buf[hashes_cnt];
-
             if (user_options->quiet == false) if ((hashes_cnt % 0x20000) == 0) event_log_info_nn (hashcat_ctx, "Parsed Hashes: %u/%u (%0.2f%%)", hashes_cnt, hashes_avail, ((double) hashes_cnt / hashes_avail) * 100);
 
             hashes_cnt++;
-
-            // show / left
-
-            if (user_options->show == true) potfile_show_request_lm (hashcat_ctx, line_buf, line_len, lm_hash_left, lm_hash_right, sort_by_pot);
-            if (user_options->left == true) potfile_left_request_lm (hashcat_ctx, line_buf, line_len, lm_hash_left, lm_hash_right, sort_by_pot);
           }
           else
           {
@@ -991,9 +910,6 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
             }
 
             if (user_options->quiet == false) if ((hashes_cnt % 0x20000) == 0) event_log_info_nn (hashcat_ctx, "Parsed Hashes: %u/%u (%0.2f%%)", hashes_cnt, hashes_avail, ((double) hashes_cnt / hashes_avail) * 100);
-
-            if (user_options->show == true) potfile_show_request (hashcat_ctx, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot);
-            if (user_options->left == true) potfile_left_request (hashcat_ctx, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot);
 
             hashes_cnt++;
           }
@@ -1010,9 +926,6 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           }
 
           if (user_options->quiet == false) if ((hashes_cnt % 0x20000) == 0) event_log_info_nn (hashcat_ctx, "Parsed Hashes: %u/%u (%0.2f%%)", hashes_cnt, hashes_avail, ((double) hashes_cnt / hashes_avail) * 100);
-
-          if (user_options->show == true) potfile_show_request (hashcat_ctx, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot);
-          if (user_options->left == true) potfile_left_request (hashcat_ctx, line_buf, line_len, &hashes_buf[hashes_cnt], sort_by_pot);
 
           hashes_cnt++;
         }
@@ -1062,9 +975,9 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->quiet == false) event_log_info_nn (hashcat_ctx, "Removing duplicate hashes...");
 
-  hashes_cnt = 1;
+  u32 hashes_cnt_new = 1;
 
-  for (u32 hashes_pos = 1; hashes_pos < hashes->hashes_cnt; hashes_pos++)
+  for (u32 hashes_pos = 1; hashes_pos < hashes_cnt; hashes_pos++)
   {
     if (hashconfig->is_salted)
     {
@@ -1078,13 +991,21 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
       if (sort_by_digest_p0p1 (hashes_buf[hashes_pos].digest, hashes_buf[hashes_pos - 1].digest, (void *) hashconfig) == 0) continue;
     }
 
-    if (hashes_pos > hashes_cnt)
-    {
-      memcpy (&hashes_buf[hashes_cnt], &hashes_buf[hashes_pos], sizeof (hash_t));
-    }
+    hash_t tmp;
 
-    hashes_cnt++;
+    memcpy (&tmp, &hashes_buf[hashes_pos], sizeof (hash_t));
+
+    memcpy (&hashes_buf[hashes_cnt_new], &tmp, sizeof (hash_t));
+
+    hashes_cnt_new++;
   }
+
+  for (u32 i = hashes_cnt_new; i < hashes->hashes_cnt; i++)
+  {
+    memset (&hashes_buf[i], 0, sizeof (hash_t));
+  }
+
+  hashes_cnt = hashes_cnt_new;
 
   hashes->hashes_cnt = hashes_cnt;
 
@@ -1133,7 +1054,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
       for (user_pos = 0; user_pos < hashes_cnt; user_pos++)
       {
-        hash_info[user_pos] = (hashinfo_t *) hccalloc (hashcat_ctx, hashes_cnt, sizeof (hashinfo_t)); VERIFY_PTR (hash_info[user_pos]);
+        hash_info[user_pos] = (hashinfo_t *) hcmalloc (hashcat_ctx, sizeof (hashinfo_t)); VERIFY_PTR (hash_info[user_pos]);
 
         hash_info[user_pos]->user = (user_t *) hcmalloc (hashcat_ctx, sizeof (user_t)); VERIFY_PTR (hash_info[user_pos]->user);
       }
@@ -1151,9 +1072,15 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
     memcpy (salt_buf, hashes_buf[0].salt, sizeof (salt_t));
 
+    hashes_buf[0].salt = salt_buf;
+
     if (hashconfig->esalt_size)
     {
-      memcpy (((char *) esalts_buf_new) + (salts_cnt * hashconfig->esalt_size), hashes_buf[0].esalt, hashconfig->esalt_size);
+      char *esalts_buf_new_ptr = ((char *) esalts_buf_new) + (salts_cnt * hashconfig->esalt_size);
+
+      memcpy (esalts_buf_new_ptr, hashes_buf[0].esalt, hashconfig->esalt_size);
+
+      hashes_buf[0].esalt = esalts_buf_new_ptr;
     }
 
     salt_buf->digests_cnt    = 0;
@@ -1163,18 +1090,13 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
     salts_cnt++;
   }
 
-  if (hashes_buf[0].cracked == 1)
-  {
-    digests_shown[0] = 1;
-
-    digests_done++;
-
-    salt_buf->digests_done++;
-  }
-
   salt_buf->digests_cnt++;
 
-  memcpy (((char *) digests_buf_new) + (0 * hashconfig->dgst_size), hashes_buf[0].digest, hashconfig->dgst_size);
+  char *digests_buf_new_ptr = ((char *) digests_buf_new) + (0 * hashconfig->dgst_size);
+
+  memcpy (digests_buf_new_ptr, hashes_buf[0].digest, hashconfig->dgst_size);
+
+  hashes_buf[0].digest = digests_buf_new_ptr;
 
   if ((user_options->username && (user_options->remove || user_options->show)) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY))
   {
@@ -1193,9 +1115,15 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
         memcpy (salt_buf, hashes_buf[hashes_pos].salt, sizeof (salt_t));
 
+        hashes_buf[hashes_pos].salt = salt_buf;
+
         if (hashconfig->esalt_size)
         {
-          memcpy (((char *) esalts_buf_new) + (salts_cnt * hashconfig->esalt_size), hashes_buf[hashes_pos].esalt, hashconfig->esalt_size);
+          char *esalts_buf_new_ptr = ((char *) esalts_buf_new) + (salts_cnt * hashconfig->esalt_size);
+
+          memcpy (esalts_buf_new_ptr, hashes_buf[hashes_pos].esalt, hashconfig->esalt_size);
+
+          hashes_buf[hashes_pos].esalt = esalts_buf_new_ptr;
         }
 
         salt_buf->digests_cnt    = 0;
@@ -1206,18 +1134,13 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
-    if (hashes_buf[hashes_pos].cracked == 1)
-    {
-      digests_shown[hashes_pos] = 1;
-
-      digests_done++;
-
-      salt_buf->digests_done++;
-    }
-
     salt_buf->digests_cnt++;
 
-    memcpy (((char *) digests_buf_new) + (hashes_pos * hashconfig->dgst_size), hashes_buf[hashes_pos].digest, hashconfig->dgst_size);
+    digests_buf_new_ptr = ((char *) digests_buf_new) + (hashes_pos * hashconfig->dgst_size);
+
+    memcpy (digests_buf_new_ptr, hashes_buf[hashes_pos].digest, hashconfig->dgst_size);
+
+    hashes_buf[hashes_pos].digest = digests_buf_new_ptr;
 
     if ((user_options->username && (user_options->remove || user_options->show)) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY))
     {
@@ -1225,24 +1148,9 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  for (u32 salt_pos = 0; salt_pos < salts_cnt; salt_pos++)
-  {
-    salt_t *salt_buf = &salts_buf_new[salt_pos];
-
-    if (salt_buf->digests_done == salt_buf->digests_cnt)
-    {
-      salts_shown[salt_pos] = 1;
-
-      salts_done++;
-    }
-
-    if (salts_done == salts_cnt) mycracked (hashcat_ctx);
-  }
-
   hcfree (hashes->digests_buf);
   hcfree (hashes->salts_buf);
   hcfree (hashes->esalts_buf);
-  hcfree (hashes->hashes_buf);
 
   hashes->digests_cnt        = digests_cnt;
   hashes->digests_done       = digests_done;
@@ -1257,15 +1165,72 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
   hashes->esalts_buf         = esalts_buf_new;
 
-  hashes->hashes_cnt         = 0;
-  hashes->hashes_buf         = NULL;
-
   hashes->hash_info          = hash_info;
 
   return 0;
 }
 
 int hashes_init_stage3 (hashcat_ctx_t *hashcat_ctx)
+{
+  hashes_t *hashes = hashcat_ctx->hashes;
+
+  u32  digests_done  = hashes->digests_done;
+  u32 *digests_shown = hashes->digests_shown;
+
+  u32  salts_cnt     = hashes->salts_cnt;
+  u32  salts_done    = hashes->salts_done;
+  u32 *salts_shown   = hashes->salts_shown;
+
+  hash_t *hashes_buf = hashes->hashes_buf;
+
+  salt_t *salts_buf  = hashes->salts_buf;
+
+  for (u32 salt_idx = 0; salt_idx < salts_cnt; salt_idx++)
+  {
+    salt_t *salt_buf = salts_buf + salt_idx;
+
+    u32 digests_cnt = salt_buf->digests_cnt;
+
+    for (u32 digest_idx = 0; digest_idx < digests_cnt; digest_idx++)
+    {
+      const u32 hashes_idx = salt_buf->digests_offset + digest_idx;
+
+      if (hashes_buf[hashes_idx].cracked == 1)
+      {
+        digests_shown[hashes_idx] = 1;
+
+        digests_done++;
+
+        salt_buf->digests_done++;
+      }
+    }
+
+    if (salt_buf->digests_done == salt_buf->digests_cnt)
+    {
+      salts_shown[salt_idx] = 1;
+
+      salts_done++;
+    }
+
+    if (salts_done == salts_cnt) mycracked (hashcat_ctx);
+  }
+
+  hashes->digests_done = digests_done;
+
+  hashes->salts_cnt   = salts_cnt;
+  hashes->salts_done  = salts_done;
+
+  // at this point we no longer need hash_t* structure
+
+  hcfree (hashes_buf);
+
+  hashes->hashes_cnt = 0;
+  hashes->hashes_buf = NULL;
+
+  return 0;
+}
+
+int hashes_init_stage4 (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   hashes_t       *hashes       = hashcat_ctx->hashes;

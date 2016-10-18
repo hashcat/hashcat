@@ -989,12 +989,6 @@ typedef struct potfile_ctx
   FILE    *fp;
   char    *filename;
 
-  pot_t   *pot;
-
-  u32      pot_cnt;
-  u32      pot_avail;
-  u32      pot_hashes_avail;
-
 } potfile_ctx_t;
 
 typedef struct restore_data
