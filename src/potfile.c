@@ -948,7 +948,38 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
 
 int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
 {
+  hashes_t *hashes = hashcat_ctx->hashes;
 
+  u32     salts_cnt = hashes->salts_cnt;
+  salt_t *salts_buf = hashes->salts_buf;
+
+  for (u32 salt_idx = 0; salt_idx < salts_cnt; salt_idx++)
+  {
+    salt_t *salt_buf = salts_buf + salt_idx;
+
+    u32 digests_cnt = salt_buf->digests_cnt;
+
+    for (u32 digest_idx = 0; digest_idx < digests_cnt; digest_idx++)
+    {
+      const u32 hashes_idx = salt_buf->digests_offset + digest_idx;
+
+      u32 *digests_shown = hashes->digests_shown;
+
+      if (digests_shown[hashes_idx] == 1) continue;
+
+      char out_buf[HCBUFSIZ_LARGE]; // scratch buffer
+
+      out_buf[0] = 0;
+
+      ascii_digest (hashcat_ctx, out_buf, salt_idx, digest_idx);
+
+      char tmp_buf[HCBUFSIZ_LARGE]; // scratch buffer
+
+      const int tmp_len = outfile_write (hashcat_ctx, out_buf, NULL, 0, 0, NULL, 0, tmp_buf);
+
+      EVENT_DATA (EVENT_POTFILE_HASH_CRACKED, tmp_buf, tmp_len);
+    }
+  }
 
   return 0;
 }
