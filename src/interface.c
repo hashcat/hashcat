@@ -20046,6 +20046,8 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
 
     switch (hashconfig->hash_mode)
     {
+      case    22: salt->salt_len    = 30;
+                  break;
       case  1500: salt->salt_len    = 2;
                   salt->salt_buf[0] = 388; // pure magic
                   break;
