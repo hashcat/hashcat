@@ -1220,13 +1220,6 @@ int hashes_init_stage3 (hashcat_ctx_t *hashcat_ctx)
   hashes->salts_cnt   = salts_cnt;
   hashes->salts_done  = salts_done;
 
-  // at this point we no longer need hash_t* structure
-
-  hcfree (hashes_buf);
-
-  hashes->hashes_cnt = 0;
-  hashes->hashes_buf = NULL;
-
   return 0;
 }
 
@@ -1278,6 +1271,15 @@ int hashes_init_stage4 (hashcat_ctx_t *hashcat_ctx)
       }
     }
   }
+
+  // at this point we no longer need hash_t* structure
+
+  hash_t *hashes_buf = hashes->hashes_buf;
+
+  hcfree (hashes_buf);
+
+  hashes->hashes_cnt = 0;
+  hashes->hashes_buf = NULL;
 
   return 0;
 }

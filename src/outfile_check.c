@@ -36,7 +36,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
   u32   outfile_check_timer = user_options->outfile_check_timer;
 
   // buffers
-  hash_t hash_buf = { 0, 0, 0, 0, 0 };
+  hash_t hash_buf = { 0, 0, 0, 0, 0, NULL, 0 };
 
   hash_buf.digest = hcmalloc (hashcat_ctx, dgst_size); VERIFY_PTR (hash_buf.digest);
 

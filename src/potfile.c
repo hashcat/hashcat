@@ -785,13 +785,11 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
   while (!feof (potfile_ctx->fp))
   {
-    char *ptr = fgets (line_buf, HCBUFSIZ_LARGE - 1, potfile_ctx->fp);
-
-    if (ptr == NULL) break;
-
-    int line_len = strlen (line_buf);
+    int line_len = fgetl (potfile_ctx->fp, line_buf);
 
     if (line_len == 0) continue;
+
+    const int line_len_orig = line_len;
 
     int iter = MAX_CUT_TRIES;
 
@@ -910,6 +908,16 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
       if (found == NULL) continue;
 
+      char *pw_buf = line_buf + line_len;
+      int   pw_len = line_len_orig - line_len;
+
+      found->pw_buf = (char *) hcmalloc (hashcat_ctx, pw_len + 1); VERIFY_PTR (found->pw_buf);
+      found->pw_len = pw_len;
+
+      memcpy (found->pw_buf, pw_buf, pw_len);
+
+      found->pw_buf[found->pw_len] = 0;
+
       found->cracked = 1;
 
       if (found) break;
@@ -939,10 +947,42 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-
 int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
 {
-  event_log_error (hashcat_ctx, "The --show feature is currently not available");
+  hashes_t *hashes = hashcat_ctx->hashes;
+
+  hash_t *hashes_buf = hashes->hashes_buf;
+
+  u32     salts_cnt = hashes->salts_cnt;
+  salt_t *salts_buf = hashes->salts_buf;
+
+  for (u32 salt_idx = 0; salt_idx < salts_cnt; salt_idx++)
+  {
+    salt_t *salt_buf = salts_buf + salt_idx;
+
+    u32 digests_cnt = salt_buf->digests_cnt;
+
+    for (u32 digest_idx = 0; digest_idx < digests_cnt; digest_idx++)
+    {
+      const u32 hashes_idx = salt_buf->digests_offset + digest_idx;
+
+      u32 *digests_shown = hashes->digests_shown;
+
+      if (digests_shown[hashes_idx] == 0) continue;
+
+      char out_buf[HCBUFSIZ_LARGE]; // scratch buffer
+
+      out_buf[0] = 0;
+
+      ascii_digest (hashcat_ctx, out_buf, salt_idx, digest_idx);
+
+      char tmp_buf[HCBUFSIZ_LARGE]; // scratch buffer
+
+      const int tmp_len = outfile_write (hashcat_ctx, out_buf, (unsigned char *) hashes_buf[hashes_idx].pw_buf, hashes->hashes_buf[hashes_idx].pw_len, 0, NULL, 0, tmp_buf);
+
+      EVENT_DATA (EVENT_POTFILE_HASH_CRACKED, tmp_buf, tmp_len);
+    }
+  }
 
   return 0;
 }

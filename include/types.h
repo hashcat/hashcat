@@ -476,6 +476,8 @@ typedef struct hash
   void       *esalt;
   int         cracked;
   hashinfo_t *hash_info;
+  char       *pw_buf;
+  int         pw_len;
 
 } hash_t;
 
