@@ -331,6 +331,23 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsign
 
   int tmp_len = 0;
 
+  if (user_len > 0)
+  {
+    if (username != NULL)
+    {
+      memcpy (tmp_buf + tmp_len, username, user_len);
+
+      tmp_len += user_len;
+
+      if (outfile_ctx->outfile_format & (OUTFILE_FMT_HASH | OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
+      {
+        tmp_buf[tmp_len] = hashconfig->separator;
+
+        tmp_len += 1;
+      }
+    }
+  }
+
   if (outfile_ctx->outfile_format & OUTFILE_FMT_HASH)
   {
     const size_t out_len = strlen (out_buf);
@@ -344,22 +361,6 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsign
       tmp_buf[tmp_len] = hashconfig->separator;
 
       tmp_len += 1;
-    }
-  }
-  else if (user_len)
-  {
-    if (username != NULL)
-    {
-      memcpy (tmp_buf + tmp_len, username, user_len);
-
-      tmp_len += user_len;
-
-      if (outfile_ctx->outfile_format & (OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
-      {
-        tmp_buf[tmp_len] = hashconfig->separator;
-
-        tmp_len += 1;
-      }
     }
   }
 

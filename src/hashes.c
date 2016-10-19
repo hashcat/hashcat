@@ -157,7 +157,7 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 
       if (hashconfig->hash_mode != 2500)
       {
-        if (user_options->username == 1)
+        if (user_options->username == true)
         {
           user_t *user = hashes->hash_info[idx]->user;
 
@@ -546,7 +546,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
   digests_buf = (void *) hccalloc (hashcat_ctx, hashes_avail, hashconfig->dgst_size); VERIFY_PTR (digests_buf);
 
-  if ((user_options->username && (user_options->remove || user_options->show)) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY))
+  if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY))
   {
     u32 hash_pos;
 
@@ -556,12 +556,12 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       hashes_buf[hash_pos].hash_info = hash_info;
 
-      if (user_options->username && (user_options->remove || user_options->show || user_options->left))
+      if (user_options->username == true)
       {
         hash_info->user = (user_t*) hcmalloc (hashcat_ctx, sizeof (user_t)); VERIFY_PTR (hash_info->user);
       }
 
-      if (user_options->benchmark)
+      if (user_options->benchmark == true)
       {
         hash_info->orighash = (char *) hcmalloc (hashcat_ctx, 256); VERIFY_PTR (hash_info->orighash);
       }
@@ -830,32 +830,29 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           continue;
         }
 
-        if (user_options->username)
+        if (user_options->username == true)
         {
           char *user_buf = NULL;
           int   user_len = 0;
 
           hlfmt_user (hashcat_ctx, hashlist_format, line_buf, line_len, &user_buf, &user_len);
 
-          if (user_options->remove || user_options->show)
+          user_t **user = &hashes_buf[hashes_cnt].hash_info->user;
+
+          *user = (user_t *) hcmalloc (hashcat_ctx, sizeof (user_t)); VERIFY_PTR (*user);
+
+          user_t *user_ptr = *user;
+
+          if (user_buf != NULL)
           {
-            user_t **user = &hashes_buf[hashes_cnt].hash_info->user;
-
-            *user = (user_t *) hcmalloc (hashcat_ctx, sizeof (user_t)); VERIFY_PTR (*user);
-
-            user_t *user_ptr = *user;
-
-            if (user_buf != NULL)
-            {
-              user_ptr->user_name = hcstrdup (hashcat_ctx, user_buf);
-            }
-            else
-            {
-              user_ptr->user_name = hcstrdup (hashcat_ctx, "");
-            }
-
-            user_ptr->user_len = user_len;
+            user_ptr->user_name = hcstrdup (hashcat_ctx, user_buf);
           }
+          else
+          {
+            user_ptr->user_name = hcstrdup (hashcat_ctx, "");
+          }
+
+          user_ptr->user_len = user_len;
         }
 
         if (hashconfig->opts_type & OPTS_TYPE_HASH_COPY)
@@ -1044,11 +1041,11 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
   hashinfo_t **hash_info = NULL;
 
-  if ((user_options->username && (user_options->remove || user_options->show)) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY))
+  if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY))
   {
     hash_info = (hashinfo_t **) hccalloc (hashcat_ctx, hashes_cnt, sizeof (hashinfo_t *)); VERIFY_PTR (hash_info);
 
-    if (user_options->username && (user_options->remove || user_options->show))
+    if (user_options->username == true)
     {
       u32 user_pos;
 
@@ -1098,7 +1095,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
   hashes_buf[0].digest = digests_buf_new_ptr;
 
-  if ((user_options->username && (user_options->remove || user_options->show)) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY))
+  if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY))
   {
     hash_info[0] = hashes_buf[0].hash_info;
   }
@@ -1142,7 +1139,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
     hashes_buf[hashes_pos].digest = digests_buf_new_ptr;
 
-    if ((user_options->username && (user_options->remove || user_options->show)) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY))
+    if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY))
     {
       hash_info[hashes_pos] = hashes_buf[hashes_pos].hash_info;
     }
