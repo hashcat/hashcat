@@ -170,7 +170,7 @@ LFLAGS_CROSS_LINUX       += -lpthread -ldl
 
 LFLAGS_CROSS_WIN         :=
 LFLAGS_CROSS_WIN         += $(LDFLAGS)
-LFLAGS_CROSS_WIN         += -lpsapi
+LFLAGS_CROSS_WIN         += -lpsapi -Wl,--dynamicbase -Wl,--nxcompat
 
 ##
 ## Objects
