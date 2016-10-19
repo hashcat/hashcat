@@ -226,7 +226,9 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   // hash
 
-  char out_buf[HCBUFSIZ_LARGE] = { 0 };
+  char out_buf[HCBUFSIZ_LARGE];
+
+  out_buf[0] = 0;
 
   ascii_digest (hashcat_ctx, out_buf, salt_pos, digest_pos);
 

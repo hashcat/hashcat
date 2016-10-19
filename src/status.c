@@ -269,11 +269,17 @@ char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      char *tmp_buf = (char *) malloc (HCBUFSIZ_TINY);
+      char *tmp_buf = (char *) malloc (HCBUFSIZ_LARGE);
+
+      tmp_buf[0] = 0;
 
       ascii_digest ((hashcat_ctx_t *) hashcat_ctx, tmp_buf, 0, 0);
 
-      return tmp_buf;
+      char *tmp_buf2 = strdup (tmp_buf);
+
+      free (tmp_buf);
+
+      return tmp_buf2;
     }
   }
   else
