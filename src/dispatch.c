@@ -332,9 +332,12 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       if (user_options->speed_only == true) break;
 
-      device_param->words_done = words_fin;
+      if (status_ctx->run_thread_level2 == true)
+      {
+        device_param->words_done = words_fin;
 
-      status_ctx->words_cur = get_lowest_words_done (hashcat_ctx);
+        status_ctx->words_cur = get_lowest_words_done (hashcat_ctx);
+      }
 
       if (status_ctx->run_thread_level1 == false) break;
     }
@@ -579,9 +582,12 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       if (user_options->speed_only == true) break;
 
-      device_param->words_done = words_fin;
+      if (status_ctx->run_thread_level2 == true)
+      {
+        device_param->words_done = words_fin;
 
-      status_ctx->words_cur = get_lowest_words_done (hashcat_ctx);
+        status_ctx->words_cur = get_lowest_words_done (hashcat_ctx);
+      }
 
       if (status_ctx->run_thread_level1 == false) break;
 

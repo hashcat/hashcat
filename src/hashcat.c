@@ -85,19 +85,22 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   status_ctx->words_off = 0;
   status_ctx->words_cur = 0;
 
-  restore_data_t *rd = restore_ctx->rd;
-
-  if (rd->words_cur)
+  if (restore_ctx->rd)
   {
-    status_ctx->words_off = rd->words_cur;
-    status_ctx->words_cur = status_ctx->words_off;
+    restore_data_t *rd = restore_ctx->rd;
 
-    rd->words_cur = 0;
+    if (rd->words_cur > 0)
+    {
+      status_ctx->words_off = rd->words_cur;
+      status_ctx->words_cur = status_ctx->words_off;
 
-    user_options->skip = 0;
+      rd->words_cur = 0;
+
+      user_options->skip = 0;
+    }
   }
 
-  if (user_options->skip)
+  if (user_options->skip > 0)
   {
     status_ctx->words_off = user_options->skip;
     status_ctx->words_cur = status_ctx->words_off;
@@ -325,14 +328,22 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 
   EVENT (EVENT_INNERLOOP2_STARTING);
 
-  restore_data_t *rd = restore_ctx->rd;
+  if (restore_ctx->rd)
+  {
+    restore_data_t *rd = restore_ctx->rd;
+
+    if (rd->dicts_pos > 0)
+    {
+      straight_ctx->dicts_pos = rd->dicts_pos;
+
+      rd->dicts_pos = 0;
+    }
+  }
 
   if (straight_ctx->dicts_cnt)
   {
-    for (u32 dicts_pos = rd->dicts_pos; dicts_pos < straight_ctx->dicts_cnt; dicts_pos++)
+    for (u32 dicts_pos = straight_ctx->dicts_pos; dicts_pos < straight_ctx->dicts_cnt; dicts_pos++)
     {
-      rd->dicts_pos = dicts_pos;
-
       straight_ctx->dicts_pos = dicts_pos;
 
       const int rc_inner2_loop = inner2_loop (hashcat_ctx);
@@ -341,6 +352,8 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 
       if (status_ctx->run_main_level3 == false) break;
     }
+
+    if (straight_ctx->dicts_pos == straight_ctx->dicts_cnt) straight_ctx->dicts_pos = 0;
   }
   else
   {
@@ -670,21 +683,24 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   // main call
 
+  if (restore_ctx->rd)
+  {
+    restore_data_t *rd = restore_ctx->rd;
+
+    if (rd->masks_pos > 0)
+    {
+      mask_ctx->masks_pos = rd->masks_pos;
+
+      rd->masks_pos = 0;
+    }
+  }
+
   EVENT (EVENT_INNERLOOP1_STARTING);
 
   if (mask_ctx->masks_cnt)
   {
-    restore_data_t *rd = restore_ctx->rd;
-
-    for (u32 masks_pos = rd->masks_pos; masks_pos < mask_ctx->masks_cnt; masks_pos++)
+    for (u32 masks_pos = mask_ctx->masks_pos; masks_pos < mask_ctx->masks_cnt; masks_pos++)
     {
-      if (masks_pos > rd->masks_pos)
-      {
-        rd->dicts_pos = 0;
-      }
-
-      rd->masks_pos = masks_pos;
-
       mask_ctx->masks_pos = masks_pos;
 
       const int rc_inner1_loop = inner1_loop (hashcat_ctx);
@@ -693,6 +709,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
       if (status_ctx->run_main_level2 == false) break;
     }
+
+    if (mask_ctx->masks_pos == mask_ctx->masks_cnt) mask_ctx->masks_pos = 0;
   }
   else
   {

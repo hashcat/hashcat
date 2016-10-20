@@ -221,13 +221,17 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
 
 static int write_restore (hashcat_ctx_t *hashcat_ctx)
 {
-  restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
-  status_ctx_t  *status_ctx  = hashcat_ctx->status_ctx;
+  const mask_ctx_t     *mask_ctx     = hashcat_ctx->mask_ctx;
+  const restore_ctx_t  *restore_ctx  = hashcat_ctx->restore_ctx;
+  const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
   if (restore_ctx->enabled == false) return 0;
 
   restore_data_t *rd = restore_ctx->rd;
 
+  rd->masks_pos = mask_ctx->masks_pos;
+  rd->dicts_pos = straight_ctx->dicts_pos;
   rd->words_cur = status_ctx->words_cur;
 
   char *new_restore_file = restore_ctx->new_restore_file;
