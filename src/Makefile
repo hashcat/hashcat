@@ -13,8 +13,9 @@ UNAME                    := $(shell uname -s)
 
 # we need to strip the windows version number to be able to build hashcat on cygwin hosts
 UNAME                    := $(patsubst CYGWIN_NT-%,CYGWIN_NT-,$(UNAME))
+UNAME                    := $(patsubst MINGW64_NT-%,MINGW64_NT-,$(UNAME))
 
-ifeq (,$(filter $(UNAME),Linux Darwin CYGWIN_NT- FreeBSD))
+ifeq (,$(filter $(UNAME),Linux Darwin CYGWIN_NT- MINGW64_NT- FreeBSD))
 $(error "! Your Operating System ($(UNAME)) is not supported by $(PROG_NAME) Makefile")
 endif
 
