@@ -1110,23 +1110,6 @@ void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
   user_options_extra->rule_len_l = (int) strlen (user_options->rule_buf_l);
   user_options_extra->rule_len_r = (int) strlen (user_options->rule_buf_r);
 
-  // wordlist_mode
-
-  user_options_extra->wordlist_mode = WL_MODE_NONE;
-
-  if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
-  {
-    user_options_extra->wordlist_mode = (user_options->hc_argc >= 2) ? WL_MODE_FILE : WL_MODE_STDIN;
-  }
-  else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
-  {
-    user_options_extra->wordlist_mode = WL_MODE_FILE;
-  }
-  else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
-  {
-    user_options_extra->wordlist_mode = WL_MODE_MASK;
-  }
-
   // hc_hash and hc_work*
 
   user_options_extra->hc_hash  = NULL;
@@ -1156,6 +1139,23 @@ void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
     user_options_extra->hc_hash  = user_options->hc_argv[0];
     user_options_extra->hc_workc = user_options->hc_argc - 1;
     user_options_extra->hc_workv = user_options->hc_argv + 1;
+  }
+
+  // wordlist_mode
+
+  user_options_extra->wordlist_mode = WL_MODE_NONE;
+
+  if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+  {
+    user_options_extra->wordlist_mode = (user_options_extra->hc_workc >= 1) ? WL_MODE_FILE : WL_MODE_STDIN;
+  }
+  else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+  {
+    user_options_extra->wordlist_mode = WL_MODE_FILE;
+  }
+  else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
+  {
+    user_options_extra->wordlist_mode = WL_MODE_MASK;
   }
 }
 

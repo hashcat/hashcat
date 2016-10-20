@@ -128,7 +128,9 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   // words base
 
-  status_ctx->words_base = status_ctx->words_cnt / user_options_extra_amplifier (hashcat_ctx);
+  const u64 amplifier_cnt = user_options_extra_amplifier (hashcat_ctx);
+
+  status_ctx->words_base = status_ctx->words_cnt / amplifier_cnt;
 
   EVENT (EVENT_CALCULATED_WORDS_BASE);
 
@@ -143,7 +145,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  const u64 progress_restored = status_ctx->words_off * user_options_extra_amplifier (hashcat_ctx);
+  const u64 progress_restored = status_ctx->words_off * amplifier_cnt;
 
   for (u32 i = 0; i < hashes->salts_cnt; i++)
   {
