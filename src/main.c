@@ -258,7 +258,6 @@ static void main_cracker_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
   if (user_options->keyspace    == true) return;
   if (user_options->opencl_info == true) return;
   if (user_options->stdout_flag == true) return;
-  if (user_options->quiet       == true) return;
 
   // if we had a prompt, clear it
 
@@ -283,11 +282,14 @@ static void main_cracker_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
   }
   else
   {
-    if (hashes->digests_saved != hashes->digests_done) event_log_info (hashcat_ctx, "");
+    if (user_options->quiet == false)
+    {
+      if (hashes->digests_saved != hashes->digests_done) event_log_info (hashcat_ctx, "");
 
-    status_display (hashcat_ctx);
+      status_display (hashcat_ctx);
 
-    event_log_info (hashcat_ctx, "");
+      event_log_info (hashcat_ctx, "");
+    }
   }
 }
 
