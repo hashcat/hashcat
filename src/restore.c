@@ -306,6 +306,8 @@ void unlink_restore (hashcat_ctx_t *hashcat_ctx)
   restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
   status_ctx_t  *status_ctx  = hashcat_ctx->status_ctx;
 
+  if (restore_ctx->enabled == false) return;
+
   if ((status_ctx->devices_status == STATUS_EXHAUSTED) && (status_ctx->run_thread_level1 == true)) // this is to check for [c]heckpoint
   {
     unlink (restore_ctx->eff_restore_file);
