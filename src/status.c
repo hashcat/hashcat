@@ -753,6 +753,14 @@ char *status_get_time_estimated_absolute (const hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  // we need this check to avoid integer overflow
+  #if defined (_WIN)
+  if (sec_etc > 100000000)
+  {
+    sec_etc = 100000000;
+  }
+  #endif
+
   time_t now;
 
   time (&now);
@@ -802,6 +810,14 @@ char *status_get_time_estimated_relative (const hashcat_ctx_t *hashcat_ctx)
       }
     }
   }
+
+  // we need this check to avoid integer overflow
+  #if defined (_WIN)
+  if (sec_etc > 100000000)
+  {
+    sec_etc = 100000000;
+  }
+  #endif
 
   struct tm *tmp;
 
