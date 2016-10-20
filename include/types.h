@@ -1370,9 +1370,11 @@ typedef struct status_ctx
    * workload
    */
 
-  u64  words_cnt;
-  u64  words_cur;
-  u64  words_base;
+  u64  words_off;               // used by dispatcher; get_work () as offset; attention: needs to be redone on in restore case!
+  u64  words_cur;               // used by dispatcher; the different to words_cur_next is that this counter guarantees that the work from zero to this counter has been actually computed
+                                // has been finished actually, can be used for restore point therefore
+  u64  words_base;              // the unamplified max keyspace
+  u64  words_cnt;               // the amplified max keyspace
 
   /**
    * progress

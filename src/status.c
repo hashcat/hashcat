@@ -858,7 +858,9 @@ char *status_get_time_estimated_relative (const hashcat_ctx_t *hashcat_ctx)
 
 u64 status_get_restore_point (const hashcat_ctx_t *hashcat_ctx)
 {
-  const u64 restore_point = get_lowest_words_done (hashcat_ctx);
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  const u64 restore_point = status_ctx->words_cur;
 
   return restore_point;
 }

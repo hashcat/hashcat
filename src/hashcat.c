@@ -82,20 +82,25 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   status_progress_reset (hashcat_ctx);
 
+  status_ctx->words_off = 0;
   status_ctx->words_cur = 0;
 
   restore_data_t *rd = restore_ctx->rd;
 
   if (rd->words_cur)
   {
-    status_ctx->words_cur = rd->words_cur;
+    status_ctx->words_off = rd->words_cur;
+    status_ctx->words_cur = status_ctx->words_off;
+
+    rd->words_cur = 0;
 
     user_options->skip = 0;
   }
 
   if (user_options->skip)
   {
-    status_ctx->words_cur = user_options->skip;
+    status_ctx->words_off = user_options->skip;
+    status_ctx->words_cur = status_ctx->words_off;
 
     user_options->skip = 0;
   }
@@ -128,21 +133,18 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   // restore stuff
 
-  if (status_ctx->words_cur > status_ctx->words_base)
+  if (status_ctx->words_off > status_ctx->words_base)
   {
     event_log_error (hashcat_ctx, "Restore value greater keyspace");
 
     return -1;
   }
 
-  if (status_ctx->words_cur)
-  {
-    const u64 progress_restored = status_ctx->words_cur * user_options_extra_amplifier (hashcat_ctx);
+  const u64 progress_restored = status_ctx->words_off * user_options_extra_amplifier (hashcat_ctx);
 
-    for (u32 i = 0; i < hashes->salts_cnt; i++)
-    {
-      status_ctx->words_progress_restored[i] = progress_restored;
-    }
+  for (u32 i = 0; i < hashes->salts_cnt; i++)
+  {
+    status_ctx->words_progress_restored[i] = progress_restored;
   }
 
   /**
@@ -261,13 +263,6 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   time (&status_ctx->prepare_start);
 
   EVENT (EVENT_CRACKER_FINISHED);
-
-  // no more skip and restore from here
-
-  if (status_ctx->devices_status == STATUS_EXHAUSTED)
-  {
-    rd->words_cur = 0;
-  }
 
   // mark sub logfile
 

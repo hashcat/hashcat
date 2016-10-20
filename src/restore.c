@@ -19,39 +19,6 @@ static void fsync (int fd)
 }
 #endif
 
-u64 get_lowest_words_done (const hashcat_ctx_t *hashcat_ctx)
-{
-  restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
-  opencl_ctx_t  *opencl_ctx  = hashcat_ctx->opencl_ctx;
-
-  if (restore_ctx->enabled == false) return 0;
-
-  restore_data_t *rd = restore_ctx->rd;
-
-  u64 words_cur = 0xffffffffffffffff;
-
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-  {
-    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-    if (device_param->skipped) continue;
-
-    const u64 words_done = device_param->words_done;
-
-    if (words_done < words_cur) words_cur = words_done;
-  }
-
-  // It's possible that a device's workload isn't finished right after a restore-case.
-  // In that case, this function would return 0 and overwrite the real restore point
-  // There's also status_ctx->words_cur which is set to rd->words_cur but it changes while
-  // the attack is running therefore we should stick to rd->words_cur.
-  // Note that -s influences rd->words_cur we should keep a close look on that.
-
-  if (words_cur < rd->words_cur) words_cur = rd->words_cur;
-
-  return words_cur;
-}
-
 static int check_running_process (hashcat_ctx_t *hashcat_ctx)
 {
   restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
@@ -255,14 +222,13 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
 static int write_restore (hashcat_ctx_t *hashcat_ctx)
 {
   restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
+  status_ctx_t  *status_ctx  = hashcat_ctx->status_ctx;
 
   if (restore_ctx->enabled == false) return 0;
 
-  const u64 words_cur = get_lowest_words_done (hashcat_ctx);
-
   restore_data_t *rd = restore_ctx->rd;
 
-  rd->words_cur = words_cur;
+  rd->words_cur = status_ctx->words_cur;
 
   char *new_restore_file = restore_ctx->new_restore_file;
 
@@ -357,6 +323,20 @@ int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
   restore_ctx->enabled = false;
 
+  if (user_options->benchmark       == true) return 0;
+  if (user_options->keyspace        == true) return 0;
+  if (user_options->left            == true) return 0;
+  if (user_options->opencl_info     == true) return 0;
+  if (user_options->show            == true) return 0;
+  if (user_options->stdout_flag     == true) return 0;
+  if (user_options->speed_only      == true) return 0;
+  if (user_options->usage           == true) return 0;
+  if (user_options->version         == true) return 0;
+  if (user_options->restore_disable == true) return 0;
+
+  if (argc ==    0) return 0;
+  if (argv == NULL) return 0;
+
   char *eff_restore_file = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (eff_restore_file);
   char *new_restore_file = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (new_restore_file);
 
@@ -372,20 +352,6 @@ int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
   const int rc_init_restore = init_restore (hashcat_ctx);
 
   if (rc_init_restore == -1) return -1;
-
-  if (argc ==    0) return 0;
-  if (argv == NULL) return 0;
-
-  if (user_options->benchmark       == true) return 0;
-  if (user_options->keyspace        == true) return 0;
-  if (user_options->left            == true) return 0;
-  if (user_options->opencl_info     == true) return 0;
-  if (user_options->show            == true) return 0;
-  if (user_options->stdout_flag     == true) return 0;
-  if (user_options->speed_only      == true) return 0;
-  if (user_options->usage           == true) return 0;
-  if (user_options->version         == true) return 0;
-  if (user_options->restore_disable == true) return 0;
 
   restore_ctx->enabled = true;
 
@@ -424,12 +390,12 @@ void restore_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 {
   restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
 
+  if (restore_ctx->enabled == false) return;
+
   hcfree (restore_ctx->eff_restore_file);
   hcfree (restore_ctx->new_restore_file);
 
   hcfree (restore_ctx->rd);
-
-  if (restore_ctx->enabled == false) return;
 
   memset (restore_ctx, 0, sizeof (restore_ctx_t));
 }

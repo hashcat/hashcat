@@ -34,6 +34,33 @@
 #include "event.h"
 #include "dispatch.h"
 
+static u64 get_lowest_words_done (const hashcat_ctx_t *hashcat_ctx)
+{
+  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  u64 words_cur = 0xffffffffffffffff;
+
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  {
+    hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+    if (device_param->skipped) continue;
+
+    const u64 words_done = device_param->words_done;
+
+    if (words_done < words_cur) words_cur = words_done;
+  }
+
+  // It's possible that a device's workload isn't finished right after a restore-case.
+  // In that case, this function would return 0 and overwrite the real restore point
+
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  if (words_cur < status_ctx->words_cur) words_cur = status_ctx->words_cur;
+
+  return words_cur;
+}
+
 static int set_kernel_power_final (hashcat_ctx_t *hashcat_ctx, const u32 kernel_power_final)
 {
   EVENT (EVENT_SET_KERNEL_POWER_FINAL);
@@ -65,7 +92,7 @@ static u32 get_power (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param)
   return device_param->kernel_power;
 }
 
-static u32 get_work (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 max)
+static u32 get_work (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 max)
 {
   opencl_ctx_t   *opencl_ctx   = hashcat_ctx->opencl_ctx;
   status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
@@ -73,14 +100,14 @@ static u32 get_work (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   hc_thread_mutex_lock (status_ctx->mux_dispatcher);
 
-  const u64 words_cur  = status_ctx->words_cur;
+  const u64 words_off  = status_ctx->words_off;
   const u64 words_base = (user_options->limit == 0) ? status_ctx->words_base : MIN (user_options->limit, status_ctx->words_base);
 
-  device_param->words_off = words_cur;
+  device_param->words_off = words_off;
 
   const u64 kernel_power_all = opencl_ctx->kernel_power_all;
 
-  const u64 words_left = words_base - words_cur;
+  const u64 words_left = words_base - words_off;
 
   if (words_left < kernel_power_all)
   {
@@ -96,7 +123,7 @@ static u32 get_work (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   work = MIN (work, max);
 
-  status_ctx->words_cur += work;
+  status_ctx->words_off += work;
 
   hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
 
@@ -127,9 +154,9 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
       break;
     }
 
-    u32 words_cur = 0;
+    u32 words_buffered = 0;
 
-    while (words_cur < device_param->kernel_power)
+    while (words_buffered < device_param->kernel_power)
     {
       char *line_buf = fgets (buf, HCBUFSIZ_LARGE - 1, stdin);
 
@@ -184,7 +211,7 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
       pw_add (device_param, (u8 *) line_buf, (int) line_len);
 
-      words_cur++;
+      words_buffered++;
 
       while (status_ctx->run_thread_level1 == false) break;
     }
@@ -303,11 +330,13 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         device_param->pws_cnt = 0;
       }
 
-      if (status_ctx->run_thread_level1 == false) break;
-
       if (user_options->speed_only == true) break;
 
       device_param->words_done = words_fin;
+
+      status_ctx->words_cur = get_lowest_words_done (hashcat_ctx);
+
+      if (status_ctx->run_thread_level1 == false) break;
     }
   }
   else
@@ -418,15 +447,15 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       u64 words_off = 0;
       u64 words_fin = 0;
 
-      u64 max = -1llu;
+      u32 words_extra = -1u;
 
-      while (max)
+      while (words_extra)
       {
-        const u32 work = get_work (hashcat_ctx, device_param, max);
+        const u32 work = get_work (hashcat_ctx, device_param, words_extra);
 
         if (work == 0) break;
 
-        max = 0;
+        words_extra = 0;
 
         words_off = device_param->words_off;
         words_fin = words_off + work;
@@ -465,7 +494,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
           {
             if ((line_len < hashconfig->pw_min) || (line_len > hashconfig->pw_max))
             {
-              max++;
+              words_extra++;
 
               hc_thread_mutex_lock (status_ctx->mux_counter);
 
@@ -486,7 +515,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
             if (line_len > hashconfig->pw_max)
             {
-              max++;
+              words_extra++;
 
               hc_thread_mutex_lock (status_ctx->mux_counter);
 
@@ -550,11 +579,13 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       if (user_options->speed_only == true) break;
 
+      device_param->words_done = words_fin;
+
+      status_ctx->words_cur = get_lowest_words_done (hashcat_ctx);
+
       if (status_ctx->run_thread_level1 == false) break;
 
       if (words_fin == 0) break;
-
-      device_param->words_done = words_fin;
     }
 
     if (attack_mode == ATTACK_MODE_COMBI)
