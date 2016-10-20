@@ -258,12 +258,13 @@ static void main_cracker_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
   if (user_options->keyspace    == true) return;
   if (user_options->opencl_info == true) return;
   if (user_options->stdout_flag == true) return;
+  if (user_options->quiet       == true) return;
 
   // if we had a prompt, clear it
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    if ((user_options->quiet == false) && (user_options->benchmark == false) && (user_options->speed_only == false))
+    if ((user_options->benchmark == false) && (user_options->speed_only == false))
     {
       clear_prompt ();
     }
