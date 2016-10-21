@@ -6,7 +6,7 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "logging.h"
+#include "event.h"
 #include "folder.h"
 #include "induct.h"
 
@@ -36,6 +36,7 @@ int induct_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->opencl_info == true) return 0;
   if (user_options->show        == true) return 0;
   if (user_options->stdout_flag == true) return 0;
+  if (user_options->speed_only  == true) return 0;
   if (user_options->usage       == true) return 0;
   if (user_options->version     == true) return 0;
 
@@ -46,7 +47,7 @@ int induct_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->induction_dir == NULL)
   {
-    char *root_directory = (char *) mymalloc (HCBUFSIZ_TINY);
+    char *root_directory = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (root_directory);
 
     snprintf (root_directory, HCBUFSIZ_TINY - 1, "%s/%s.%s", folder_config->session_dir, user_options->session, INDUCT_DIR);
 
@@ -58,20 +59,20 @@ int induct_ctx_init (hashcat_ctx_t *hashcat_ctx)
       }
       else if (errno == ENOTEMPTY)
       {
-        char *root_directory_mv = (char *) mymalloc (HCBUFSIZ_TINY);
+        char *root_directory_mv = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (root_directory_mv);
 
         snprintf (root_directory_mv, HCBUFSIZ_TINY - 1, "%s/%s.induct.%d", folder_config->session_dir, user_options->session, (int) status_ctx->proc_start);
 
         if (rename (root_directory, root_directory_mv) != 0)
         {
-          log_error ("ERROR: Rename directory %s to %s: %s", root_directory, root_directory_mv, strerror (errno));
+          event_log_error (hashcat_ctx, "Rename directory %s to %s: %s", root_directory, root_directory_mv, strerror (errno));
 
           return -1;
         }
       }
       else
       {
-        log_error ("ERROR: %s: %s", root_directory, strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %s", root_directory, strerror (errno));
 
         return -1;
       }
@@ -79,7 +80,7 @@ int induct_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (hc_mkdir (root_directory, 0700) == -1)
     {
-      log_error ("ERROR: %s: %s", root_directory, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %s", root_directory, strerror (errno));
 
       return -1;
     }
@@ -88,7 +89,7 @@ int induct_ctx_init (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    induct_ctx->root_directory = mystrdup (user_options->induction_dir);
+    induct_ctx->root_directory = hcstrdup (hashcat_ctx, user_options->induction_dir);
   }
 
   return 0;
@@ -100,7 +101,7 @@ void induct_ctx_scan (hashcat_ctx_t *hashcat_ctx)
 
   if (induct_ctx->enabled == false) return;
 
-  induct_ctx->induction_dictionaries = scan_directory (induct_ctx->root_directory);
+  induct_ctx->induction_dictionaries = scan_directory (hashcat_ctx, induct_ctx->root_directory);
 
   induct_ctx->induction_dictionaries_cnt = count_dictionaries (induct_ctx->induction_dictionaries);
 
@@ -142,13 +143,13 @@ void induct_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      log_error ("ERROR: %s: %s", induct_ctx->root_directory, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %s", induct_ctx->root_directory, strerror (errno));
 
       //return -1;
     }
   }
 
-  myfree (induct_ctx->root_directory);
+  hcfree (induct_ctx->root_directory);
 
   memset (induct_ctx, 0, sizeof (induct_ctx_t));
 }

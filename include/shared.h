@@ -24,8 +24,8 @@ char *filename_from_filepath (char *filepath);
 void naive_replace (char *s, const char key_char, const char replace_char);
 void naive_escape (char *s, size_t s_max, const char key_char, const char escape_char);
 
-void hc_sleep_ms (const u32 msec);
-void hc_sleep    (const u32 sec);
+void hc_sleep_msec (const u32 msec);
+void hc_sleep      (const u32 sec);
 
 void setup_environment_variables ();
 void setup_umask ();

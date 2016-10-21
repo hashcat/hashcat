@@ -6,7 +6,7 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "logging.h"
+#include "event.h"
 #include "cpu_crc32.h"
 
 static const u32 crc32tab[256] =
@@ -77,7 +77,7 @@ static const u32 crc32tab[256] =
   0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
 };
 
-void cpu_crc32 (const char *filename, u8 keytab[64])
+int cpu_crc32 (hashcat_ctx_t *hashcat_ctx, const char *filename, u8 keytab[64])
 {
   u32 crc = ~0u;
 
@@ -85,14 +85,14 @@ void cpu_crc32 (const char *filename, u8 keytab[64])
 
   if (fd == NULL)
   {
-    log_error ("%s: %s", filename, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", filename, strerror (errno));
 
-    exit (-1);
+    return (-1);
   }
 
   #define MAX_KEY_SIZE (1024 * 1024)
 
-  u8 *buf = (u8 *) mymalloc (MAX_KEY_SIZE + 1);
+  u8 *buf = (u8 *) hcmalloc (hashcat_ctx, MAX_KEY_SIZE + 1); VERIFY_PTR (buf);
 
   int nread = fread (buf, sizeof (u8), MAX_KEY_SIZE, fd);
 
@@ -112,5 +112,7 @@ void cpu_crc32 (const char *filename, u8 keytab[64])
     if (kpos >= 64) kpos = 0;
   }
 
-  myfree (buf);
+  hcfree (buf);
+
+  return 0;
 }

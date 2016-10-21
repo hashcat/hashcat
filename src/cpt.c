@@ -6,7 +6,6 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "logging.h"
 #include "cpt.h"
 
 int cpt_ctx_init (hashcat_ctx_t *hashcat_ctx)
@@ -26,7 +25,7 @@ int cpt_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   cpt_ctx->enabled = true;
 
-  cpt_ctx->cpt_buf = (cpt_t *) mycalloc (CPT_BUF, sizeof (cpt_t));
+  cpt_ctx->cpt_buf = (cpt_t *) hccalloc (hashcat_ctx, CPT_BUF, sizeof (cpt_t)); VERIFY_PTR (cpt_ctx->cpt_buf);
 
   cpt_ctx->cpt_total = 0;
   cpt_ctx->cpt_pos   = 0;
@@ -41,7 +40,7 @@ void cpt_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
   if (cpt_ctx->enabled == false) return;
 
-  myfree (cpt_ctx->cpt_buf);
+  hcfree (cpt_ctx->cpt_buf);
 
   memset (cpt_ctx, 0, sizeof (cpt_ctx_t));
 }

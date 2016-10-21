@@ -7,7 +7,7 @@
 #include "types.h"
 #include "interface.h"
 #include "timer.h"
-#include "logging.h"
+#include "event.h"
 #include "memory.h"
 #include "filehandling.h"
 #include "ext_OpenCL.h"
@@ -67,7 +67,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
   tuning_db->enabled = true;
 
-  char *tuning_db_file = (char *) mymalloc (HCBUFSIZ_TINY);
+  char *tuning_db_file = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (tuning_db_file);
 
   snprintf (tuning_db_file, HCBUFSIZ_TINY - 1, "%s/%s", folder_config->shared_dir, TUNING_DB_FILE);
 
@@ -75,28 +75,28 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
   if (fp == NULL)
   {
-    log_error ("%s: %s", tuning_db_file, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", tuning_db_file, strerror (errno));
 
     return -1;
   }
 
-  myfree (tuning_db_file);
+  hcfree (tuning_db_file);
 
-  int num_lines = count_lines (fp);
+  int num_lines = count_lines (hashcat_ctx, fp);
 
   // a bit over-allocated
 
-  tuning_db->alias_buf = (tuning_db_alias_t *) mycalloc (num_lines + 1, sizeof (tuning_db_alias_t));
+  tuning_db->alias_buf = (tuning_db_alias_t *) hccalloc (hashcat_ctx, num_lines + 1, sizeof (tuning_db_alias_t)); VERIFY_PTR (tuning_db->alias_buf);
   tuning_db->alias_cnt = 0;
 
-  tuning_db->entry_buf = (tuning_db_entry_t *) mycalloc (num_lines + 1, sizeof (tuning_db_entry_t));
+  tuning_db->entry_buf = (tuning_db_entry_t *) hccalloc (hashcat_ctx, num_lines + 1, sizeof (tuning_db_entry_t)); VERIFY_PTR (tuning_db->entry_buf);
   tuning_db->entry_cnt = 0;
 
   rewind (fp);
 
   int line_num = 0;
 
-  char *buf = (char *) mymalloc (HCBUFSIZ_LARGE);
+  char *buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE); VERIFY_PTR (buf);
 
   while (!feof (fp))
   {
@@ -138,8 +138,8 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
       tuning_db_alias_t *alias = &tuning_db->alias_buf[tuning_db->alias_cnt];
 
-      alias->device_name = mystrdup (device_name);
-      alias->alias_name  = mystrdup (alias_name);
+      alias->device_name = hcstrdup (hashcat_ctx, device_name);
+      alias->alias_name  = hcstrdup (hashcat_ctx, alias_name);
 
       tuning_db->alias_cnt++;
     }
@@ -150,7 +150,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
           (token_ptr[1][0] != '3') &&
           (token_ptr[1][0] != '*'))
       {
-        log_info ("WARNING: Tuning-db: Invalid attack_mode '%c' in Line '%u'", token_ptr[1][0], line_num);
+        event_log_warning (hashcat_ctx, "Tuning-db: Invalid attack_mode '%c' in Line '%u'", token_ptr[1][0], line_num);
 
         continue;
       }
@@ -161,7 +161,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
           (token_ptr[3][0] != '8') &&
           (token_ptr[3][0] != 'N'))
       {
-        log_info ("WARNING: Tuning-db: Invalid vector_width '%c' in Line '%u'", token_ptr[3][0], line_num);
+        event_log_warning (hashcat_ctx, "Tuning-db: Invalid vector_width '%c' in Line '%u'", token_ptr[3][0], line_num);
 
         continue;
       }
@@ -184,7 +184,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
         if ((kernel_accel < 1) || (kernel_accel > 1024))
         {
-          log_info ("WARNING: Tuning-db: Invalid kernel_accel '%d' in Line '%u'", kernel_accel, line_num);
+          event_log_warning (hashcat_ctx, "Tuning-db: Invalid kernel_accel '%d' in Line '%u'", kernel_accel, line_num);
 
           continue;
         }
@@ -200,7 +200,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
         if ((kernel_loops < 1) || (kernel_loops > 1024))
         {
-          log_info ("WARNING: Tuning-db: Invalid kernel_loops '%d' in Line '%u'", kernel_loops, line_num);
+          event_log_warning (hashcat_ctx, "Tuning-db: Invalid kernel_loops '%d' in Line '%u'", kernel_loops, line_num);
 
           continue;
         }
@@ -212,7 +212,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
       tuning_db_entry_t *entry = &tuning_db->entry_buf[tuning_db->entry_cnt];
 
-      entry->device_name  = mystrdup (device_name);
+      entry->device_name  = hcstrdup (hashcat_ctx, device_name);
       entry->attack_mode  = attack_mode;
       entry->hash_type    = hash_type;
       entry->vector_width = vector_width;
@@ -223,13 +223,13 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      log_info ("WARNING: Tuning-db: Invalid number of token in Line '%u'", line_num);
+      event_log_warning (hashcat_ctx, "Tuning-db: Invalid number of token in Line '%u'", line_num);
 
       continue;
     }
   }
 
-  myfree (buf);
+  hcfree (buf);
 
   fclose (fp);
 
@@ -255,19 +255,19 @@ void tuning_db_destroy (hashcat_ctx_t *hashcat_ctx)
   {
     tuning_db_alias_t *alias = &tuning_db->alias_buf[i];
 
-    myfree (alias->device_name);
-    myfree (alias->alias_name);
+    hcfree (alias->device_name);
+    hcfree (alias->alias_name);
   }
 
   for (i = 0; i < tuning_db->entry_cnt; i++)
   {
     tuning_db_entry_t *entry = &tuning_db->entry_buf[i];
 
-    myfree (entry->device_name);
+    hcfree (entry->device_name);
   }
 
-  myfree (tuning_db->alias_buf);
-  myfree (tuning_db->entry_buf);
+  hcfree (tuning_db->alias_buf);
+  hcfree (tuning_db->entry_buf);
 
   memset (tuning_db, 0, sizeof (tuning_db_t));
 }
@@ -280,7 +280,7 @@ tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *dev
 
   // first we need to convert all spaces in the device_name to underscore
 
-  char *device_name_nospace = mystrdup (device_name);
+  char *device_name_nospace = hcstrdup (hashcat_ctx, device_name);
 
   int device_name_length = strlen (device_name_nospace);
 
@@ -364,7 +364,7 @@ tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *dev
 
   // free converted device_name
 
-  myfree (device_name_nospace);
+  hcfree (device_name_nospace);
 
   return entry;
 }

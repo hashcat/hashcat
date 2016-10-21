@@ -109,40 +109,4 @@ typedef hc_opencl_lib_t OCL_PTR;
 
 const char *val2cstr_cl (cl_int CL_err);
 
-int  ocl_init  (OCL_PTR *ocl);
-void ocl_close (OCL_PTR *ocl);
-
-cl_int hc_clBuildProgram            (OCL_PTR *ocl, cl_program program, cl_uint num_devices, const cl_device_id *device_list, const char *options, void (CL_CALLBACK *pfn_notify) (cl_program program, void *user_data), void *user_data);
-cl_int hc_clCreateBuffer            (OCL_PTR *ocl, cl_context context, cl_mem_flags flags, size_t size, void *host_ptr, cl_mem *mem);
-cl_int hc_clCreateCommandQueue      (OCL_PTR *ocl, cl_context context, cl_device_id device, cl_command_queue_properties properties, cl_command_queue *command_queue);
-cl_int hc_clCreateContext           (OCL_PTR *ocl, cl_context_properties *properties, cl_uint num_devices, const cl_device_id *devices, void (CL_CALLBACK *pfn_notify) (const char *, const void *, size_t, void *), void *user_data, cl_context *context);
-cl_int hc_clCreateKernel            (OCL_PTR *ocl, cl_program program, const char *kernel_name, cl_kernel *kernel);
-cl_int hc_clCreateProgramWithBinary (OCL_PTR *ocl, cl_context context, cl_uint num_devices, const cl_device_id *device_list, const size_t *lengths, const unsigned char **binaries, cl_int *binary_status, cl_program *program);
-cl_int hc_clCreateProgramWithSource (OCL_PTR *ocl, cl_context context, cl_uint count, const char **strings, const size_t *lengths, cl_program *program);
-cl_int hc_clEnqueueCopyBuffer       (OCL_PTR *ocl, cl_command_queue command_queue, cl_mem src_buffer, cl_mem dst_buffer, size_t src_offset, size_t dst_offset, size_t cb, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event);
-cl_int hc_clEnqueueMapBuffer        (OCL_PTR *ocl, cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_map, cl_map_flags map_flags, size_t offset, size_t cb, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event, void **buf);
-cl_int hc_clEnqueueNDRangeKernel    (OCL_PTR *ocl, cl_command_queue command_queue, cl_kernel kernel, cl_uint work_dim, const size_t *global_work_offset, const size_t *global_work_size, const size_t *local_work_size, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event);
-cl_int hc_clEnqueueReadBuffer       (OCL_PTR *ocl, cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_read, size_t offset, size_t cb, void *ptr, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event);
-cl_int hc_clEnqueueUnmapMemObject   (OCL_PTR *ocl, cl_command_queue command_queue, cl_mem memobj, void *mapped_ptr, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event);
-cl_int hc_clEnqueueWriteBuffer      (OCL_PTR *ocl, cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_write, size_t offset, size_t cb, const void *ptr, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event);
-cl_int hc_clFinish                  (OCL_PTR *ocl, cl_command_queue command_queue);
-cl_int hc_clFlush                   (OCL_PTR *ocl, cl_command_queue command_queue);
-cl_int hc_clGetDeviceIDs            (OCL_PTR *ocl, cl_platform_id platform, cl_device_type device_type, cl_uint num_entries, cl_device_id *devices, cl_uint *num_devices);
-cl_int hc_clGetDeviceInfo           (OCL_PTR *ocl, cl_device_id device, cl_device_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret);
-cl_int hc_clGetEventInfo            (OCL_PTR *ocl, cl_event event, cl_event_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret);
-cl_int hc_clGetEventProfilingInfo   (OCL_PTR *ocl, cl_event event, cl_profiling_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret);
-cl_int hc_clGetKernelWorkGroupInfo  (OCL_PTR *ocl, cl_kernel kernel, cl_device_id device, cl_kernel_work_group_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret);
-cl_int hc_clGetPlatformIDs          (OCL_PTR *ocl, cl_uint num_entries, cl_platform_id *platforms, cl_uint *num_platforms);
-cl_int hc_clGetPlatformInfo         (OCL_PTR *ocl, cl_platform_id platform, cl_platform_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret);
-cl_int hc_clGetProgramBuildInfo     (OCL_PTR *ocl, cl_program program, cl_device_id device, cl_program_build_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret);
-cl_int hc_clGetProgramInfo          (OCL_PTR *ocl, cl_program program, cl_program_info param_name, size_t param_value_size, void *param_value, size_t * param_value_size_ret);
-cl_int hc_clReleaseCommandQueue     (OCL_PTR *ocl, cl_command_queue command_queue);
-cl_int hc_clReleaseContext          (OCL_PTR *ocl, cl_context context);
-cl_int hc_clReleaseEvent            (OCL_PTR *ocl, cl_event event);
-cl_int hc_clReleaseKernel           (OCL_PTR *ocl, cl_kernel kernel);
-cl_int hc_clReleaseMemObject        (OCL_PTR *ocl, cl_mem mem);
-cl_int hc_clReleaseProgram          (OCL_PTR *ocl, cl_program program);
-cl_int hc_clSetKernelArg            (OCL_PTR *ocl, cl_kernel kernel, cl_uint arg_index, size_t arg_size, const void *arg_value);
-cl_int hc_clWaitForEvents           (OCL_PTR *ocl, cl_uint num_events, const cl_event *event_list);
-
 #endif // _EXT_OPENCL_H

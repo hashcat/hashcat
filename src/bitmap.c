@@ -6,7 +6,6 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "logging.h"
 #include "bitmap.h"
 
 static u32 generate_bitmaps (const u32 digests_cnt, const u32 dgst_size, const u32 dgst_shifts, char *digests_buf_ptr, const u32 dgst_pos0, const u32 dgst_pos1, const u32 dgst_pos2, const u32 dgst_pos3, const u32 bitmap_mask, const u32 bitmap_size, u32 *bitmap_a, u32 *bitmap_b, u32 *bitmap_c, u32 *bitmap_d, const u64 collisions_max)
@@ -50,7 +49,7 @@ static u32 generate_bitmaps (const u32 digests_cnt, const u32 dgst_size, const u
   return collisions;
 }
 
-void bitmap_ctx_init (hashcat_ctx_t *hashcat_ctx)
+int bitmap_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
   bitmap_ctx_t   *bitmap_ctx   = hashcat_ctx->bitmap_ctx;
   hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
@@ -59,12 +58,12 @@ void bitmap_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   bitmap_ctx->enabled = false;
 
-  if (user_options->keyspace    == true) return;
-  if (user_options->left        == true) return;
-  if (user_options->opencl_info == true) return;
-  if (user_options->show        == true) return;
-  if (user_options->usage       == true) return;
-  if (user_options->version     == true) return;
+  if (user_options->keyspace    == true) return 0;
+  if (user_options->left        == true) return 0;
+  if (user_options->opencl_info == true) return 0;
+  if (user_options->show        == true) return 0;
+  if (user_options->usage       == true) return 0;
+  if (user_options->version     == true) return 0;
 
   bitmap_ctx->enabled = true;
 
@@ -78,14 +77,14 @@ void bitmap_ctx_init (hashcat_ctx_t *hashcat_ctx)
   const u32 bitmap_min = user_options->bitmap_min;
   const u32 bitmap_max = user_options->bitmap_max;
 
-  u32 *bitmap_s1_a = (u32 *) mymalloc ((1u << bitmap_max) * sizeof (u32));
-  u32 *bitmap_s1_b = (u32 *) mymalloc ((1u << bitmap_max) * sizeof (u32));
-  u32 *bitmap_s1_c = (u32 *) mymalloc ((1u << bitmap_max) * sizeof (u32));
-  u32 *bitmap_s1_d = (u32 *) mymalloc ((1u << bitmap_max) * sizeof (u32));
-  u32 *bitmap_s2_a = (u32 *) mymalloc ((1u << bitmap_max) * sizeof (u32));
-  u32 *bitmap_s2_b = (u32 *) mymalloc ((1u << bitmap_max) * sizeof (u32));
-  u32 *bitmap_s2_c = (u32 *) mymalloc ((1u << bitmap_max) * sizeof (u32));
-  u32 *bitmap_s2_d = (u32 *) mymalloc ((1u << bitmap_max) * sizeof (u32));
+  u32 *bitmap_s1_a = (u32 *) hcmalloc (hashcat_ctx, (1u << bitmap_max) * sizeof (u32)); VERIFY_PTR (bitmap_s1_a);
+  u32 *bitmap_s1_b = (u32 *) hcmalloc (hashcat_ctx, (1u << bitmap_max) * sizeof (u32)); VERIFY_PTR (bitmap_s1_b);
+  u32 *bitmap_s1_c = (u32 *) hcmalloc (hashcat_ctx, (1u << bitmap_max) * sizeof (u32)); VERIFY_PTR (bitmap_s1_c);
+  u32 *bitmap_s1_d = (u32 *) hcmalloc (hashcat_ctx, (1u << bitmap_max) * sizeof (u32)); VERIFY_PTR (bitmap_s1_d);
+  u32 *bitmap_s2_a = (u32 *) hcmalloc (hashcat_ctx, (1u << bitmap_max) * sizeof (u32)); VERIFY_PTR (bitmap_s2_a);
+  u32 *bitmap_s2_b = (u32 *) hcmalloc (hashcat_ctx, (1u << bitmap_max) * sizeof (u32)); VERIFY_PTR (bitmap_s2_b);
+  u32 *bitmap_s2_c = (u32 *) hcmalloc (hashcat_ctx, (1u << bitmap_max) * sizeof (u32)); VERIFY_PTR (bitmap_s2_c);
+  u32 *bitmap_s2_d = (u32 *) hcmalloc (hashcat_ctx, (1u << bitmap_max) * sizeof (u32)); VERIFY_PTR (bitmap_s2_d);
 
   u32 bitmap_bits;
   u32 bitmap_nums;
@@ -94,8 +93,6 @@ void bitmap_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   for (bitmap_bits = bitmap_min; bitmap_bits < bitmap_max; bitmap_bits++)
   {
-    if (user_options->quiet == false) log_info_nn ("Generating bitmap tables with %u bits...", bitmap_bits);
-
     bitmap_nums = 1u << bitmap_bits;
 
     bitmap_mask = bitmap_nums - 1;
@@ -134,6 +131,8 @@ void bitmap_ctx_init (hashcat_ctx_t *hashcat_ctx)
   bitmap_ctx->bitmap_s2_b   = bitmap_s2_b;
   bitmap_ctx->bitmap_s2_c   = bitmap_s2_c;
   bitmap_ctx->bitmap_s2_d   = bitmap_s2_d;
+
+  return 0;
 }
 
 void bitmap_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
@@ -142,14 +141,14 @@ void bitmap_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
   if (bitmap_ctx->enabled == false) return;
 
-  myfree (bitmap_ctx->bitmap_s1_a);
-  myfree (bitmap_ctx->bitmap_s1_b);
-  myfree (bitmap_ctx->bitmap_s1_c);
-  myfree (bitmap_ctx->bitmap_s1_d);
-  myfree (bitmap_ctx->bitmap_s2_a);
-  myfree (bitmap_ctx->bitmap_s2_b);
-  myfree (bitmap_ctx->bitmap_s2_c);
-  myfree (bitmap_ctx->bitmap_s2_d);
+  hcfree (bitmap_ctx->bitmap_s1_a);
+  hcfree (bitmap_ctx->bitmap_s1_b);
+  hcfree (bitmap_ctx->bitmap_s1_c);
+  hcfree (bitmap_ctx->bitmap_s1_d);
+  hcfree (bitmap_ctx->bitmap_s2_a);
+  hcfree (bitmap_ctx->bitmap_s2_b);
+  hcfree (bitmap_ctx->bitmap_s2_c);
+  hcfree (bitmap_ctx->bitmap_s2_d);
 
   memset (bitmap_ctx, 0, sizeof (bitmap_ctx_t));
 }

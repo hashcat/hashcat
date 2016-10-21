@@ -6,7 +6,7 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "logging.h"
+#include "event.h"
 #include "convert.h"
 #include "dictstat.h"
 #include "thread.h"
@@ -58,7 +58,7 @@ u32 convert_from_hex (hashcat_ctx_t *hashcat_ctx, char *line_buf, const u32 line
   return (line_len);
 }
 
-void load_segment (hashcat_ctx_t *hashcat_ctx, FILE *fd)
+int load_segment (hashcat_ctx_t *hashcat_ctx, FILE *fd)
 {
   wl_data_t *wl_data = hashcat_ctx->wl_data;
 
@@ -70,15 +70,15 @@ void load_segment (hashcat_ctx_t *hashcat_ctx, FILE *fd)
 
   wl_data->buf[wl_data->cnt] = 0;
 
-  if (wl_data->cnt == 0) return;
+  if (wl_data->cnt == 0) return 0;
 
-  if (wl_data->buf[wl_data->cnt - 1] == '\n') return;
+  if (wl_data->buf[wl_data->cnt - 1] == '\n') return 0;
 
   while (!feof (fd))
   {
     if (wl_data->cnt == wl_data->avail)
     {
-      wl_data->buf = (char *) myrealloc (wl_data->buf, wl_data->avail, wl_data->incr);
+      wl_data->buf = (char *) hcrealloc (hashcat_ctx, wl_data->buf, wl_data->avail, wl_data->incr); VERIFY_PTR (wl_data->buf);
 
       wl_data->avail += wl_data->incr;
     }
@@ -103,7 +103,7 @@ void load_segment (hashcat_ctx_t *hashcat_ctx, FILE *fd)
     wl_data->buf[wl_data->cnt - 1] = '\n';
   }
 
-  return;
+  return 0;
 }
 
 void get_next_word_lm (char *buf, u64 sz, u64 *len, u64 *off)
@@ -322,8 +322,8 @@ u64 count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile)
         keyspace *= combinator_ctx->combs_cnt;
       }
 
-      if (user_options->quiet == false) log_info ("Cache-hit dictionary stats %s: %" PRIu64 " bytes, %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, d.stat.st_size, cached_cnt, keyspace);
-      if (user_options->quiet == false) log_info ("");
+      if (user_options->quiet == false) event_log_info (hashcat_ctx, "Cache-hit dictionary stats %s: %" PRIu64 " bytes, %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, d.stat.st_size, cached_cnt, keyspace);
+      if (user_options->quiet == false) event_log_info (hashcat_ctx, "");
 
       //hc_signal (sigHandler_default);
 
@@ -399,13 +399,13 @@ u64 count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile)
 
     double percent = (double) comp / (double) d.stat.st_size;
 
-    if (user_options->quiet == false) log_info_nn ("Generating dictionary stats for %s: %" PRIu64 " bytes (%.2f%%), %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, comp, percent * 100, cnt2, cnt);
+    if (user_options->quiet == false) event_log_info_nn (hashcat_ctx, "Generating dictionary stats for %s: %" PRIu64 " bytes (%.2f%%), %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, comp, percent * 100, cnt2, cnt);
 
     time (&prev);
   }
 
-  if (user_options->quiet == false) log_info ("Generated dictionary stats for %s: %" PRIu64 " bytes, %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, comp, cnt2, cnt);
-  if (user_options->quiet == false) log_info ("");
+  if (user_options->quiet == false) event_log_info (hashcat_ctx, "Generated dictionary stats for %s: %" PRIu64 " bytes, %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, comp, cnt2, cnt);
+  if (user_options->quiet == false) event_log_info (hashcat_ctx, "");
 
   dictstat_append (hashcat_ctx, &d);
 
@@ -414,7 +414,7 @@ u64 count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile)
   return (cnt);
 }
 
-void wl_data_init (hashcat_ctx_t *hashcat_ctx)
+int wl_data_init (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   user_options_t *user_options = hashcat_ctx->user_options;
@@ -422,16 +422,15 @@ void wl_data_init (hashcat_ctx_t *hashcat_ctx)
 
   wl_data->enabled = false;
 
-  if (user_options->benchmark   == true) return;
-  if (user_options->keyspace    == true) return;
-  if (user_options->left        == true) return;
-  if (user_options->opencl_info == true) return;
-  if (user_options->usage       == true) return;
-  if (user_options->version     == true) return;
+  if (user_options->benchmark   == true) return 0;
+  if (user_options->left        == true) return 0;
+  if (user_options->opencl_info == true) return 0;
+  if (user_options->usage       == true) return 0;
+  if (user_options->version     == true) return 0;
 
   wl_data->enabled = true;
 
-  wl_data->buf   = (char *) mymalloc (user_options->segment_size);
+  wl_data->buf   = (char *) hcmalloc (hashcat_ctx, user_options->segment_size); VERIFY_PTR (wl_data->buf);
   wl_data->avail = user_options->segment_size;
   wl_data->incr  = user_options->segment_size;
   wl_data->cnt   = 0;
@@ -452,6 +451,8 @@ void wl_data_init (hashcat_ctx_t *hashcat_ctx)
   {
     wl_data->func = get_next_word_lm;
   }
+
+  return 0;
 }
 
 void wl_data_destroy (hashcat_ctx_t *hashcat_ctx)
@@ -460,7 +461,7 @@ void wl_data_destroy (hashcat_ctx_t *hashcat_ctx)
 
   if (wl_data->enabled == false) return;
 
-  myfree (wl_data->buf);
+  hcfree (wl_data->buf);
 
   memset (wl_data, 0, sizeof (wl_data_t));
 }

@@ -6,7 +6,7 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "logging.h"
+#include "event.h"
 #include "outfile_check.h"
 
 #include "convert.h"
@@ -16,7 +16,7 @@
 #include "shared.h"
 #include "thread.h"
 
-static void outfile_remove (hashcat_ctx_t *hashcat_ctx)
+static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 {
   // some hash-dependent constants
 
@@ -36,12 +36,12 @@ static void outfile_remove (hashcat_ctx_t *hashcat_ctx)
   u32   outfile_check_timer = user_options->outfile_check_timer;
 
   // buffers
-  hash_t hash_buf = { 0, 0, 0, 0, 0 };
+  hash_t hash_buf = { 0, 0, 0, 0, 0, NULL, 0 };
 
-  hash_buf.digest = mymalloc (dgst_size);
+  hash_buf.digest = hcmalloc (hashcat_ctx, dgst_size); VERIFY_PTR (hash_buf.digest);
 
-  if (is_salted)  hash_buf.salt =  (salt_t *) mymalloc (sizeof (salt_t));
-  if (esalt_size) hash_buf.esalt = (void   *) mymalloc (esalt_size);
+  if (is_salted)  hash_buf.salt =  (salt_t *) hcmalloc (hashcat_ctx, sizeof (salt_t));  VERIFY_PTR (hash_buf.salt);
+  if (esalt_size) hash_buf.esalt = (void   *) hcmalloc (hashcat_ctx, esalt_size);       VERIFY_PTR (hash_buf.esalt);
 
   u32 digest_buf[64] = { 0 };
 
@@ -75,7 +75,7 @@ static void outfile_remove (hashcat_ctx_t *hashcat_ctx)
         {
           if (outfile_check_stat.st_mtime > folder_mtime)
           {
-            char **out_files_new = scan_directory (root_directory);
+            char **out_files_new = scan_directory (hashcat_ctx, root_directory);
 
             int out_cnt_new = count_dictionaries (out_files_new);
 
@@ -83,7 +83,7 @@ static void outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
             if (out_cnt_new > 0)
             {
-              out_info_new = (outfile_data_t *) mycalloc (out_cnt_new, sizeof (outfile_data_t));
+              out_info_new = (outfile_data_t *) hccalloc (hashcat_ctx, out_cnt_new, sizeof (outfile_data_t)); VERIFY_PTR (out_info_new);
 
               for (int i = 0; i < out_cnt_new; i++)
               {
@@ -110,8 +110,8 @@ static void outfile_remove (hashcat_ctx_t *hashcat_ctx)
               }
             }
 
-            myfree (out_info);
-            myfree (out_files);
+            hcfree (out_info);
+            hcfree (out_files);
 
             out_files = out_files_new;
             out_cnt   = out_cnt_new;
@@ -146,7 +146,7 @@ static void outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
               fseek (fp, out_info[j].seek, SEEK_SET);
 
-              char *line_buf = (char *) mymalloc (HCBUFSIZ_LARGE);
+              char *line_buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE); VERIFY_PTR (line_buf);
 
               while (!feof (fp))
               {
@@ -263,7 +263,7 @@ static void outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
                             hashes->salts_done++;
 
-                            if (hashes->salts_done == hashes->salts_cnt) mycracked (status_ctx);
+                            if (hashes->salts_done == hashes->salts_cnt) mycracked (hashcat_ctx);
                           }
                         }
                       }
@@ -282,7 +282,7 @@ static void outfile_remove (hashcat_ctx_t *hashcat_ctx)
                 if (status_ctx->devices_status == STATUS_CRACKED) break;
               }
 
-              myfree (line_buf);
+              hcfree (line_buf);
 
               out_info[j].seek = ftell (fp);
 
@@ -298,22 +298,26 @@ static void outfile_remove (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  myfree (hash_buf.esalt);
+  hcfree (hash_buf.esalt);
 
-  myfree (hash_buf.salt);
+  hcfree (hash_buf.salt);
 
-  myfree (hash_buf.digest);
+  hcfree (hash_buf.digest);
 
-  myfree (out_info);
+  hcfree (out_info);
 
-  myfree (out_files);
+  hcfree (out_files);
+
+  return 0;
 }
 
 void *thread_outfile_remove (void *p)
 {
   hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) p;
 
-  outfile_remove (hashcat_ctx);
+  const int rc = outfile_remove (hashcat_ctx);
+
+  if (rc == -1) return NULL;
 
   return NULL;
 }
@@ -328,6 +332,7 @@ int outcheck_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->keyspace    == true) return 0;
   if (user_options->benchmark   == true) return 0;
+  if (user_options->speed_only  == true) return 0;
   if (user_options->opencl_info == true) return 0;
 
   if (user_options->outfile_check_timer == 0) return 0;
@@ -339,7 +344,7 @@ int outcheck_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->outfile_check_dir == NULL)
   {
-    outcheck_ctx->root_directory = (char *) mymalloc (HCBUFSIZ_TINY);
+    outcheck_ctx->root_directory = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (outcheck_ctx->root_directory);
 
     snprintf (outcheck_ctx->root_directory, HCBUFSIZ_TINY - 1, "%s/%s.%s", folder_config->session_dir, user_options->session, OUTFILES_DIR);
   }
@@ -356,7 +361,7 @@ int outcheck_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (is_dir == 0)
     {
-      log_error ("ERROR: Directory specified in outfile-check '%s' is not a valid directory", outcheck_ctx->root_directory);
+      event_log_error (hashcat_ctx, "Directory specified in outfile-check '%s' is not a valid directory", outcheck_ctx->root_directory);
 
       return -1;
     }
@@ -365,7 +370,7 @@ int outcheck_ctx_init (hashcat_ctx_t *hashcat_ctx)
   {
     if (hc_mkdir (outcheck_ctx->root_directory, 0700) == -1)
     {
-      log_error ("ERROR: %s: %s", outcheck_ctx->root_directory, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %s", outcheck_ctx->root_directory, strerror (errno));
 
       return -1;
     }
@@ -394,13 +399,13 @@ void outcheck_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      log_error ("ERROR: %s: %s", outcheck_ctx->root_directory, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %s", outcheck_ctx->root_directory, strerror (errno));
 
       //return -1;
     }
   }
 
-  myfree (outcheck_ctx->root_directory);
+  hcfree (outcheck_ctx->root_directory);
 
   memset (outcheck_ctx, 0, sizeof (outcheck_ctx_t));
 }

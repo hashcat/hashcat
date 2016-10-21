@@ -6,6 +6,8 @@
 #ifndef _USAGE_H
 #define _USAGE_H
 
+#include <stdio.h>
+
 void usage_mini_print (const char *progname);
 void usage_big_print  (const char *progname);
 

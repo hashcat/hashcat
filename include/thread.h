@@ -56,12 +56,12 @@ void hc_signal (void (callback) (int));
 #endif
 */
 
-void mycracked (status_ctx_t *status_ctx);
-void myabort (status_ctx_t *status_ctx);
-void myquit (status_ctx_t *status_ctx);
-void bypass (status_ctx_t *status_ctx);
-
-void SuspendThreads (status_ctx_t *status_ctx);
-void ResumeThreads (status_ctx_t *status_ctx);
+int mycracked (hashcat_ctx_t *hashcat_ctx);
+int myabort (hashcat_ctx_t *hashcat_ctx);
+int myquit (hashcat_ctx_t *hashcat_ctx);
+int bypass (hashcat_ctx_t *hashcat_ctx);
+int SuspendThreads (hashcat_ctx_t *hashcat_ctx);
+int ResumeThreads (hashcat_ctx_t *hashcat_ctx);
+int stop_at_checkpoint (hashcat_ctx_t *hashcat_ctx);
 
 #endif // _THREAD_H

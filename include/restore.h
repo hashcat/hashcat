@@ -23,19 +23,9 @@
 #define RESTORE_VERSION_MIN 320
 #define RESTORE_VERSION_CUR 320
 
-u64 get_lowest_words_done (hashcat_ctx_t *hashcat_ctx);
-
-void init_restore (hashcat_ctx_t *hashcat_ctx);
-
-void read_restore (hashcat_ctx_t *hashcat_ctx);
-
-void write_restore (hashcat_ctx_t *hashcat_ctx);
-
-void cycle_restore (hashcat_ctx_t *hashcat_ctx);
+int cycle_restore (hashcat_ctx_t *hashcat_ctx);
 
 void unlink_restore (hashcat_ctx_t *hashcat_ctx);
-
-void stop_at_checkpoint (hashcat_ctx_t *hashcat_ctx);
 
 int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv);
 

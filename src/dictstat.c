@@ -6,7 +6,7 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "logging.h"
+#include "event.h"
 #include "dictstat.h"
 
 int sort_by_dictstat (const void *s1, const void *s2)
@@ -42,17 +42,17 @@ int dictstat_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->attack_mode == ATTACK_MODE_BF) return 0;
 
   dictstat_ctx->enabled  = true;
-  dictstat_ctx->filename = (char *)       mymalloc (HCBUFSIZ_TINY);
-  dictstat_ctx->base     = (dictstat_t *) mycalloc (MAX_DICTSTAT, sizeof (dictstat_t));
+  dictstat_ctx->filename = (char *)       hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);                      VERIFY_PTR (dictstat_ctx->filename);
+  dictstat_ctx->base     = (dictstat_t *) hccalloc (hashcat_ctx, MAX_DICTSTAT, sizeof (dictstat_t));  VERIFY_PTR (dictstat_ctx->base);
   dictstat_ctx->cnt      = 0;
 
   snprintf (dictstat_ctx->filename, HCBUFSIZ_TINY - 1, "%s/hashcat.dictstat", folder_config->profile_dir);
 
-  FILE *fp = fopen (dictstat_ctx->filename, "wb");
+  FILE *fp = fopen (dictstat_ctx->filename, "ab");
 
   if (fp == NULL)
   {
-    log_error ("ERROR: %s: %s", dictstat_ctx->filename, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", dictstat_ctx->filename, strerror (errno));
 
     return -1;
   }
@@ -68,8 +68,8 @@ void dictstat_destroy (hashcat_ctx_t *hashcat_ctx)
 
   if (dictstat_ctx->enabled == false) return;
 
-  myfree (dictstat_ctx->filename);
-  myfree (dictstat_ctx->base);
+  hcfree (dictstat_ctx->filename);
+  hcfree (dictstat_ctx->base);
 
   memset (dictstat_ctx, 0, sizeof (dictstat_ctx_t));
 }
@@ -101,7 +101,7 @@ void dictstat_read (hashcat_ctx_t *hashcat_ctx)
 
     if (dictstat_ctx->cnt == MAX_DICTSTAT)
     {
-      log_error ("ERROR: There are too many entries in the %s database. You have to remove/rename it.", dictstat_ctx->filename);
+      event_log_error (hashcat_ctx, "There are too many entries in the %s database. You have to remove/rename it.", dictstat_ctx->filename);
 
       break;
     }
@@ -120,7 +120,7 @@ int dictstat_write (hashcat_ctx_t *hashcat_ctx)
 
   if (fp == NULL)
   {
-    log_error ("ERROR: %s: %s", dictstat_ctx->filename, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", dictstat_ctx->filename, strerror (errno));
 
     return -1;
   }
@@ -153,7 +153,7 @@ void dictstat_append (hashcat_ctx_t *hashcat_ctx, dictstat_t *d)
 
   if (dictstat_ctx->cnt == MAX_DICTSTAT)
   {
-    log_error ("ERROR: There are too many entries in the %s database. You have to remove/rename it.", dictstat_ctx->filename);
+    event_log_error (hashcat_ctx, "There are too many entries in the %s database. You have to remove/rename it.", dictstat_ctx->filename);
 
     return;
   }

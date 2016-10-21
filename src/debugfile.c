@@ -6,7 +6,7 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "logging.h"
+#include "event.h"
 #include "debugfile.h"
 
 static void debugfile_format_plain (hashcat_ctx_t *hashcat_ctx, const u8 *plain_ptr, const u32 plain_len)
@@ -91,6 +91,7 @@ int debugfile_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->opencl_info == true) return 0;
   if (user_options->show        == true) return 0;
   if (user_options->stdout_flag == true) return 0;
+  if (user_options->speed_only  == true) return 0;
   if (user_options->usage       == true) return 0;
   if (user_options->version     == true) return 0;
   if (user_options->debug_mode  == 0)    return 0;
@@ -107,7 +108,7 @@ int debugfile_init (hashcat_ctx_t *hashcat_ctx)
 
     if (debugfile_ctx->fp == NULL)
     {
-      log_error ("ERROR: Could not open debug-file for writing");
+      event_log_error (hashcat_ctx, "Could not open debug-file for writing");
 
       return -1;
     }

@@ -4,7 +4,6 @@
  */
 
 #include "common.h"
-#include "logging.h"
 #include "usage.h"
 
 static const char *USAGE_MINI[] =
@@ -69,6 +68,7 @@ static const char *USAGE_BIG[] =
   "     --veracrypt-keyfiles      | File | Keyfiles used, separate with comma                   | --veracrypt-key=x.txt",
   "     --veracrypt-pim           | Num  | VeraCrypt personal iterations multiplier             | --veracrypt-pim=1000",
   " -b, --benchmark               |      | Run benchmark                                        |",
+  "     --speed-only              |      | Just return expected speed of the attack and quit    |",
   " -c, --segment-size            | Num  | Sets size in MB to cache from the wordfile to X      | -c 32",
   "     --bitmap-min              | Num  | Sets minimum bits allowed for bitmaps to X           | --bitmap-min=24",
   "     --bitmap-max              | Num  | Sets maximum bits allowed for bitmaps to X           | --bitmap-max=24",
@@ -411,10 +411,18 @@ static const char *USAGE_BIG[] =
 
 void usage_mini_print (const char *progname)
 {
-  for (int i = 0; USAGE_MINI[i] != NULL; i++) log_info (USAGE_MINI[i], progname);
+  for (int i = 0; USAGE_MINI[i] != NULL; i++)
+  {
+    printf (USAGE_MINI[i], progname);
+    printf (EOL);
+  }
 }
 
 void usage_big_print (const char *progname)
 {
-  for (int i = 0; USAGE_BIG[i] != NULL; i++) log_info (USAGE_BIG[i], progname);
+  for (int i = 0; USAGE_BIG[i] != NULL; i++)
+  {
+    printf (USAGE_BIG[i], progname);
+    printf (EOL);
+  }
 }

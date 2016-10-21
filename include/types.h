@@ -37,12 +37,6 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
 
-#include "ext_OpenCL.h"
-#include "ext_ADL.h"
-#include "ext_nvapi.h"
-#include "ext_nvml.h"
-#include "ext_xnvctrl.h"
-
 // timer
 
 #if defined (_WIN)
@@ -80,6 +74,58 @@ typedef struct stat64 hc_stat;
 #endif
 
 // enums
+
+typedef enum loglevel
+{
+  LOGLEVEL_INFO    = 0,
+  LOGLEVEL_WARNING = 1,
+  LOGLEVEL_ERROR   = 2,
+
+} loglevel_t;
+
+typedef enum event_identifier
+{
+  EVENT_LOG_INFO                  = 0x00000001,
+  EVENT_LOG_WARNING               = 0x00000002,
+  EVENT_LOG_ERROR                 = 0x00000003,
+  EVENT_WELCOME_SCREEN            = 0x00000011,
+  EVENT_GOODBYE_SCREEN            = 0x00000012,
+  EVENT_OUTERLOOP_STARTING        = 0x00000031,
+  EVENT_OUTERLOOP_MAINSCREEN      = 0x00000032,
+  EVENT_OUTERLOOP_FINISHED        = 0x00000033,
+  EVENT_INNERLOOP1_STARTING       = 0x00000041,
+  EVENT_INNERLOOP1_FINISHED       = 0x00000042,
+  EVENT_INNERLOOP2_STARTING       = 0x00000051,
+  EVENT_INNERLOOP2_FINISHED       = 0x00000052,
+  EVENT_CALCULATED_WORDS_BASE     = 0x00000059,
+  EVENT_AUTOTUNE_STARTING         = 0x00000053,
+  EVENT_AUTOTUNE_FINISHED         = 0x00000054,
+  EVENT_CRACKER_STARTING          = 0x00000055,
+  EVENT_CRACKER_FINISHED          = 0x00000056,
+  EVENT_CRACKER_HASH_CRACKED      = 0x00000058,
+  EVENT_POTFILE_REMOVE_PARSE_PRE  = 0x00000061,
+  EVENT_POTFILE_REMOVE_PARSE_POST = 0x00000062,
+  EVENT_POTFILE_NUM_CRACKED       = 0x00000063,
+  EVENT_POTFILE_ALL_CRACKED       = 0x00000064,
+  EVENT_POTFILE_HASH_SHOW         = 0x00000065,
+  EVENT_POTFILE_HASH_LEFT         = 0x00000066,
+  EVENT_OPENCL_SESSION_PRE        = 0x00000071,
+  EVENT_OPENCL_SESSION_POST       = 0x00000072,
+  EVENT_BITMAP_INIT_PRE           = 0x00000081,
+  EVENT_BITMAP_INIT_POST          = 0x00000082,
+  EVENT_WEAK_HASH_PRE             = 0x00000091,
+  EVENT_WEAK_HASH_POST            = 0x00000092,
+  EVENT_SET_KERNEL_POWER_FINAL    = 0x000000a1,
+  EVENT_MONITOR_THROTTLE1         = 0x000000b1,
+  EVENT_MONITOR_THROTTLE2         = 0x000000b2,
+  EVENT_MONITOR_THROTTLE3         = 0x000000b3,
+  EVENT_MONITOR_TEMP_ABORT        = 0x000000c1,
+  EVENT_MONITOR_RUNTIME_LIMIT     = 0x000000d1,
+  EVENT_MONITOR_STATUS_REFRESH    = 0x000000e1,
+
+  // there will be much more event types soon
+
+} event_identifier_t;
 
 typedef enum amplifier_count
 {
@@ -378,6 +424,7 @@ typedef enum parser_rc
   PARSER_TC_FILE_SIZE        = -15,
   PARSER_VC_FILE_SIZE        = -16,
   PARSER_SIP_AUTH_DIRECTIVE  = -17,
+  PARSER_HASH_FILE           = -18,
   PARSER_UNKNOWN_ERROR       = -255
 
 } parser_rc_t;
@@ -430,6 +477,8 @@ typedef struct hash
   void       *esalt;
   int         cracked;
   hashinfo_t *hash_info;
+  char       *pw_buf;
+  int         pw_len;
 
 } hash_t;
 
@@ -474,6 +523,7 @@ typedef struct hashes
 
   void   *esalts_buf;
 
+  u32     hashes_cnt_orig;
   u32     hashes_cnt;
   hash_t *hashes_buf;
 
@@ -572,6 +622,8 @@ typedef struct wordr
 
 } wordr_t;
 
+#include "ext_OpenCL.h"
+
 typedef struct hc_device_param
 {
   cl_device_id      device;
@@ -637,7 +689,7 @@ typedef struct hc_device_param
   u32     innerloop_left;
 
   u32     exec_pos;
-  double  exec_ms[EXEC_CACHE];
+  double  exec_msec[EXEC_CACHE];
 
   // workaround cpu spinning
 
@@ -649,7 +701,7 @@ typedef struct hc_device_param
 
   u32     speed_pos;
   u64     speed_cnt[SPEED_CACHE];
-  double  speed_ms[SPEED_CACHE];
+  double  speed_msec[SPEED_CACHE];
 
   hc_timer_t timer_speed;
 
@@ -776,16 +828,52 @@ typedef struct opencl_ctx
   u32                 devices_filter;
   cl_device_type      device_types_filter;
 
-  double              target_ms;
+  double              target_msec;
 
-  int                 need_adl;
-  int                 need_nvml;
-  int                 need_nvapi;
-  int                 need_xnvctrl;
+  bool                need_adl;
+  bool                need_nvml;
+  bool                need_nvapi;
+  bool                need_xnvctrl;
 
   int                 force_jit_compilation;
 
 } opencl_ctx_t;
+
+#include "ext_ADL.h"
+#include "ext_nvapi.h"
+#include "ext_nvml.h"
+#include "ext_xnvctrl.h"
+
+typedef struct hm_attrs
+{
+  HM_ADAPTER_ADL     adl;
+  HM_ADAPTER_NVML    nvml;
+  HM_ADAPTER_NVAPI   nvapi;
+  HM_ADAPTER_XNVCTRL xnvctrl;
+
+  int od_version;
+
+  bool fan_get_supported;
+  bool fan_set_supported;
+
+} hm_attrs_t;
+
+typedef struct hwmon_ctx
+{
+  bool  enabled;
+
+  void *hm_adl;
+  void *hm_nvml;
+  void *hm_nvapi;
+  void *hm_xnvctrl;
+
+  hm_attrs_t *hm_device;
+
+  ADLOD6MemClockState *od_clock_mem_status;
+  int                 *od_power_control_status;
+  unsigned int        *nvml_power_limit;
+
+} hwmon_ctx_t;
 
 #if defined (__APPLE__)
 typedef struct cpu_set
@@ -847,20 +935,6 @@ typedef struct dictstat_ctx
 
 } dictstat_ctx_t;
 
-typedef struct hm_attrs
-{
-  HM_ADAPTER_ADL     adl;
-  HM_ADAPTER_NVML    nvml;
-  HM_ADAPTER_NVAPI   nvapi;
-  HM_ADAPTER_XNVCTRL xnvctrl;
-
-  int od_version;
-
-  bool fan_get_supported;
-  bool fan_set_supported;
-
-} hm_attrs_t;
-
 typedef struct loopback_ctx
 {
   bool enabled;
@@ -917,12 +991,6 @@ typedef struct potfile_ctx
 
   FILE    *fp;
   char    *filename;
-
-  pot_t   *pot;
-
-  u32      pot_cnt;
-  u32      pot_avail;
-  u32      pot_hashes_avail;
 
 } potfile_ctx_t;
 
@@ -1026,87 +1094,10 @@ typedef struct wl_data
 
 typedef struct user_options
 {
-  bool   usage;
-  bool   version;
-  bool   quiet;
-  bool   benchmark;
-  bool   stdout_flag;
-  bool   show;
-  bool   left;
-  bool   username;
-  bool   remove;
-  u32    remove_timer;
-  u64    skip;
-  u64    limit;
-  bool   force;
-  bool   keyspace;
-  bool   potfile_disable;
-  char  *potfile_path;
-  u32    debug_mode;
-  char  *debug_file;
-  char  *induction_dir;
-  char  *outfile_check_dir;
-  u32    runtime;
-  u32    hash_mode;
-  u32    attack_mode;
-  char  *outfile;
-  u32    outfile_format;
-  bool   outfile_autohex;
-  u32    outfile_check_timer;
-  bool   restore;
-  u32    restore_timer;
-  bool   restore_disable;
-  bool   status;
-  u32    status_timer;
-  bool   machine_readable;
-  bool   loopback;
-  u32    weak_hash_threshold;
-  char  *session;
-  bool   hex_charset;
-  bool   hex_salt;
-  bool   hex_wordlist;
-  u32    rp_gen;
-  u32    rp_gen_func_min;
-  u32    rp_gen_func_max;
-  u32    rp_gen_seed;
-  char  *rule_buf_l;
-  char  *rule_buf_r;
-  bool   increment;
-  u32    increment_min;
-  u32    increment_max;
-  char  *cpu_affinity;
-  bool   opencl_info;
-  char  *opencl_devices;
-  char  *opencl_platforms;
-  char  *opencl_device_types;
-  u32    opencl_vector_width;
-  char  *truecrypt_keyfiles;
-  char  *veracrypt_keyfiles;
-  u32    veracrypt_pim;
-  u32    workload_profile;
-  u32    kernel_accel;
-  u32    kernel_loops;
-  u32    nvidia_spin_damp;
-  bool   gpu_temp_disable;
-  u32    gpu_temp_abort;
-  u32    gpu_temp_retain;
-  bool   powertune_enable;
-  bool   logfile_disable;
-  u32    segment_size;
-  u32    scrypt_tmto;
-  char   separator;
-  u32    bitmap_min;
-  u32    bitmap_max;
-  bool   markov_disable;
-  bool   markov_classic;
-  u32    markov_threshold;
-  char  *markov_hcstat;
-  char  *custom_charset_1;
-  char  *custom_charset_2;
-  char  *custom_charset_3;
-  char  *custom_charset_4;
-  u32    rp_files_cnt;
-  char **rp_files;
+  char  *hc_bin;
+
+  int    hc_argc;
+  char **hc_argv;
 
   bool   attack_mode_chgd;
   bool   hash_mode_chgd;
@@ -1123,10 +1114,88 @@ typedef struct user_options
   bool   workload_profile_chgd;
   bool   segment_size_chgd;
 
-  char  *hc_bin;
-
-  int    hc_argc;
-  char **hc_argv;
+  bool   benchmark;
+  bool   force;
+  bool   gpu_temp_disable;
+  bool   hex_charset;
+  bool   hex_salt;
+  bool   hex_wordlist;
+  bool   increment;
+  bool   keyspace;
+  bool   left;
+  bool   logfile_disable;
+  bool   loopback;
+  bool   machine_readable;
+  bool   markov_classic;
+  bool   markov_disable;
+  bool   opencl_info;
+  bool   outfile_autohex;
+  bool   potfile_disable;
+  bool   powertune_enable;
+  bool   quiet;
+  bool   remove;
+  bool   restore;
+  bool   restore_disable;
+  bool   show;
+  bool   status;
+  bool   stdout_flag;
+  bool   speed_only;
+  bool   usage;
+  bool   username;
+  bool   version;
+  char  *cpu_affinity;
+  char  *custom_charset_1;
+  char  *custom_charset_2;
+  char  *custom_charset_3;
+  char  *custom_charset_4;
+  char  *debug_file;
+  char  *induction_dir;
+  char  *markov_hcstat;
+  char  *opencl_devices;
+  char  *opencl_device_types;
+  char  *opencl_platforms;
+  char  *outfile;
+  char  *outfile_check_dir;
+  char  *potfile_path;
+  char **rp_files;
+  char  *rule_buf_l;
+  char  *rule_buf_r;
+  char   separator;
+  char  *session;
+  char  *truecrypt_keyfiles;
+  char  *veracrypt_keyfiles;
+  u32    attack_mode;
+  u32    bitmap_max;
+  u32    bitmap_min;
+  u32    debug_mode;
+  u32    gpu_temp_abort;
+  u32    gpu_temp_retain;
+  u32    hash_mode;
+  u32    increment_max;
+  u32    increment_min;
+  u32    kernel_accel;
+  u32    kernel_loops;
+  u32    markov_threshold;
+  u32    nvidia_spin_damp;
+  u32    opencl_vector_width;
+  u32    outfile_check_timer;
+  u32    outfile_format;
+  u32    remove_timer;
+  u32    restore_timer;
+  u32    rp_files_cnt;
+  u32    rp_gen;
+  u32    rp_gen_func_max;
+  u32    rp_gen_func_min;
+  u32    rp_gen_seed;
+  u32    runtime;
+  u32    scrypt_tmto;
+  u32    segment_size;
+  u32    status_timer;
+  u32    veracrypt_pim;
+  u32    weak_hash_threshold;
+  u32    workload_profile;
+  u64    limit;
+  u64    skip;
 
 } user_options_t;
 
@@ -1260,23 +1329,6 @@ typedef struct mask_ctx
 
 } mask_ctx_t;
 
-typedef struct hwmon_ctx
-{
-  bool  enabled;
-
-  void *hm_adl;
-  void *hm_nvml;
-  void *hm_nvapi;
-  void *hm_xnvctrl;
-
-  hm_attrs_t *hm_device;
-
-  ADLOD6MemClockState *od_clock_mem_status;
-  int                 *od_power_control_status;
-  unsigned int        *nvml_power_limit;
-
-} hwmon_ctx_t;
-
 typedef struct cpt_ctx
 {
   bool enabled;
@@ -1318,9 +1370,11 @@ typedef struct status_ctx
    * workload
    */
 
-  u64  words_cnt;
-  u64  words_cur;
-  u64  words_base;
+  u64  words_off;               // used by dispatcher; get_work () as offset; attention: needs to be redone on in restore case!
+  u64  words_cur;               // used by dispatcher; the different to words_cur_next is that this counter guarantees that the work from zero to this counter has been actually computed
+                                // has been finished actually, can be used for restore point therefore
+  u64  words_base;              // the unamplified max keyspace
+  u64  words_cnt;               // the amplified max keyspace
 
   /**
    * progress
@@ -1346,9 +1400,30 @@ typedef struct status_ctx
   hc_timer_t timer_running;         // timer on current dict
   hc_timer_t timer_paused;          // timer on current dict
 
-  double  ms_paused;                // timer on current dict
+  double  msec_paused;                // timer on current dict
 
 } status_ctx_t;
+
+typedef struct hashcat_user
+{
+  // use this for context specific data
+
+  int          outer_threads_cnt;
+  hc_thread_t *outer_threads;
+
+} hashcat_user_t;
+
+typedef struct event_ctx
+{
+  char msg_buf[HCBUFSIZ_TINY];
+  int  msg_len;
+  bool msg_newline;
+
+  int  prev_len;
+
+  hc_thread_mutex_t mux_event;
+
+} event_ctx_t;
 
 typedef struct hashcat_ctx
 {
@@ -1357,7 +1432,9 @@ typedef struct hashcat_ctx
   cpt_ctx_t             *cpt_ctx;
   debugfile_ctx_t       *debugfile_ctx;
   dictstat_ctx_t        *dictstat_ctx;
+  event_ctx_t           *event_ctx;
   folder_config_t       *folder_config;
+  hashcat_user_t        *hashcat_user;
   hashconfig_t          *hashconfig;
   hashes_t              *hashes;
   hwmon_ctx_t           *hwmon_ctx;
@@ -1377,7 +1454,106 @@ typedef struct hashcat_ctx
   user_options_t        *user_options;
   wl_data_t             *wl_data;
 
+  void (*event) (const u32, struct hashcat_ctx *, const void *, const size_t);
+
 } hashcat_ctx_t;
+
+typedef enum input_mode
+{
+  INPUT_MODE_NONE                       = 0,
+  INPUT_MODE_STRAIGHT_FILE              = 1,
+  INPUT_MODE_STRAIGHT_FILE_RULES_FILE   = 2,
+  INPUT_MODE_STRAIGHT_FILE_RULES_GEN    = 3,
+  INPUT_MODE_STRAIGHT_STDIN             = 4,
+  INPUT_MODE_STRAIGHT_STDIN_RULES_FILE  = 5,
+  INPUT_MODE_STRAIGHT_STDIN_RULES_GEN   = 6,
+  INPUT_MODE_COMBINATOR_BASE_LEFT       = 7,
+  INPUT_MODE_COMBINATOR_BASE_RIGHT      = 8,
+  INPUT_MODE_MASK                       = 9,
+  INPUT_MODE_MASK_CS                    = 10,
+  INPUT_MODE_HYBRID1                    = 11,
+  INPUT_MODE_HYBRID1_CS                 = 12,
+  INPUT_MODE_HYBRID2                    = 13,
+  INPUT_MODE_HYBRID2_CS                 = 14,
+
+} input_mode_t;
+
+typedef enum progress_mode
+{
+  PROGRESS_MODE_NONE              = 0,
+  PROGRESS_MODE_KEYSPACE_KNOWN    = 1,
+  PROGRESS_MODE_KEYSPACE_UNKNOWN  = 2,
+
+} progress_mode_t;
+
+typedef struct
+{
+  bool    skipped_dev;
+  double  hashes_msec_dev;
+  double  hashes_msec_dev_benchmark;
+  double  exec_msec_dev;
+  char   *speed_sec_dev;
+  char   *input_candidates_dev;
+  char   *hwmon_dev;
+
+} device_info_t;
+
+typedef struct
+{
+  char   *hash_target;
+  char   *hash_type;
+  char   *input_base;
+  char   *input_charset;
+  char   *input_mod;
+  char   *session;
+  char   *status_string;
+  int     status_number;
+  char   *time_estimated_absolute;
+  char   *time_estimated_relative;
+  char   *time_started_absolute;
+  char   *time_started_relative;
+  double  msec_paused;
+  double  msec_running;
+  double  msec_real;
+  int     digests_cnt;
+  int     digests_done;
+  double  digests_percent;
+  int     input_mode;
+  int     salts_cnt;
+  int     salts_done;
+  double  salts_percent;
+  int     progress_mode;
+  double  progress_finished_percent;
+  u64     progress_cur;
+  u64     progress_cur_relative_skip;
+  u64     progress_done;
+  u64     progress_end;
+  u64     progress_end_relative_skip;
+  u64     progress_ignore;
+  u64     progress_rejected;
+  double  progress_rejected_percent;
+  u64     progress_restored;
+  u64     progress_skip;
+  u64     restore_point;
+  u64     restore_total;
+  double  restore_percent;
+  int     cpt_cur_min;
+  int     cpt_cur_hour;
+  int     cpt_cur_day;
+  double  cpt_avg_min;
+  double  cpt_avg_hour;
+  double  cpt_avg_day;
+  char   *cpt;
+
+  device_info_t device_info_buf[DEVICES_MAX];
+  int           device_info_cnt;
+  int           device_info_active;
+
+  double  hashes_msec_all;
+  double  exec_msec_all;
+  char   *speed_sec_all;
+
+} hashcat_status_t;
 
 typedef struct thread_param
 {

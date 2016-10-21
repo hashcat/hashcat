@@ -6,7 +6,7 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "logging.h"
+#include "event.h"
 #include "shared.h"
 #include "loopback.h"
 
@@ -65,12 +65,13 @@ int loopback_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->opencl_info == true) return 0;
   if (user_options->show        == true) return 0;
   if (user_options->stdout_flag == true) return 0;
+  if (user_options->speed_only  == true) return 0;
   if (user_options->usage       == true) return 0;
   if (user_options->version     == true) return 0;
 
   loopback_ctx->enabled  = true;
   loopback_ctx->fp       = NULL;
-  loopback_ctx->filename = (char *) mymalloc (HCBUFSIZ_TINY);
+  loopback_ctx->filename = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (loopback_ctx->filename);
 
   return 0;
 }
@@ -105,7 +106,7 @@ int loopback_write_open (hashcat_ctx_t *hashcat_ctx)
 
   if (loopback_ctx->fp == NULL)
   {
-    log_error ("ERROR: %s: %s", loopback_ctx->filename, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", loopback_ctx->filename, strerror (errno));
 
     return -1;
   }

@@ -58,7 +58,7 @@ __constant u64 k_sha512[80] =
   SHA512C4c, SHA512C4d, SHA512C4e, SHA512C4f,
 };
 
-void sha512_transform (const u64 w[16], u64 digest[8])
+void sha512_transform (const u64 *w, u64 *digest)
 {
   u64 w0_t = w[ 0];
   u64 w1_t = w[ 1];

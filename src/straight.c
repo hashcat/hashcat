@@ -10,7 +10,7 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "logging.h"
+#include "event.h"
 #include "logfile.h"
 #include "shared.h"
 #include "filehandling.h"
@@ -20,18 +20,22 @@
 #include "straight.h"
 #include "wordlist.h"
 
-static void straight_ctx_add_wl (straight_ctx_t *straight_ctx, const char *dict)
+static int straight_ctx_add_wl (hashcat_ctx_t *hashcat_ctx, const char *dict)
 {
+  straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+
   if (straight_ctx->dicts_avail == straight_ctx->dicts_cnt)
   {
-    straight_ctx->dicts = (char **) myrealloc (straight_ctx->dicts, straight_ctx->dicts_avail * sizeof (char *), INCR_DICTS * sizeof (char *));
+    straight_ctx->dicts = (char **) hcrealloc (hashcat_ctx, straight_ctx->dicts, straight_ctx->dicts_avail * sizeof (char *), INCR_DICTS * sizeof (char *)); VERIFY_PTR (straight_ctx->dicts);
 
     straight_ctx->dicts_avail += INCR_DICTS;
   }
 
-  straight_ctx->dicts[straight_ctx->dicts_cnt] = mystrdup (dict);
+  straight_ctx->dicts[straight_ctx->dicts_cnt] = hcstrdup (hashcat_ctx, dict); VERIFY_PTR (straight_ctx->dicts[straight_ctx->dicts_cnt]);
 
   straight_ctx->dicts_cnt++;
+
+  return 0;
 }
 
 int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
@@ -69,7 +73,7 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       if (fd2 == NULL)
       {
-        log_error ("ERROR: %s: %s", straight_ctx->dict, strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %s", straight_ctx->dict, strerror (errno));
 
         return -1;
       }
@@ -97,7 +101,7 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       if (fd2 == NULL)
       {
-        log_error ("ERROR: %s: %s", combinator_ctx->dict1, strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %s", combinator_ctx->dict1, strerror (errno));
 
         return -1;
       }
@@ -112,7 +116,7 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       if (fd2 == NULL)
       {
-        log_error ("ERROR: %s: %s", combinator_ctx->dict2, strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %s", combinator_ctx->dict2, strerror (errno));
 
         return -1;
       }
@@ -151,7 +155,7 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
     if (fd2 == NULL)
     {
-      log_error ("ERROR: %s: %s", straight_ctx->dict, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %s", straight_ctx->dict, strerror (errno));
 
       return -1;
     }
@@ -196,7 +200,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0))
   {
-    straight_ctx->kernel_rules_buf = (kernel_rule_t *) mymalloc (sizeof (kernel_rule_t));
+    straight_ctx->kernel_rules_buf = (kernel_rule_t *) hcmalloc (hashcat_ctx, sizeof (kernel_rule_t)); VERIFY_PTR (straight_ctx->kernel_rules_buf);
 
     straight_ctx->kernel_rules_buf[0].cmds[0] = RULE_OP_MANGLE_NOOP;
 
@@ -272,7 +276,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         if (stat (l0_filename, &l0_stat) == -1)
         {
-          log_error ("ERROR: %s: %s", l0_filename, strerror (errno));
+          event_log_error (hashcat_ctx, "%s: %s", l0_filename, strerror (errno));
 
           return -1;
         }
@@ -281,7 +285,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
         {
           char **dictionary_files = NULL;
 
-          dictionary_files = scan_directory (l0_filename);
+          dictionary_files = scan_directory (hashcat_ctx, l0_filename);
 
           if (dictionary_files != NULL)
           {
@@ -295,29 +299,33 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
               if (stat (l1_filename, &l1_stat) == -1)
               {
-                log_error ("ERROR: %s: %s", l1_filename, strerror (errno));
+                event_log_error (hashcat_ctx, "%s: %s", l1_filename, strerror (errno));
 
                 return -1;
               }
 
               if (S_ISREG (l1_stat.st_mode))
               {
-                straight_ctx_add_wl (straight_ctx, l1_filename);
+                const int rc = straight_ctx_add_wl (hashcat_ctx, l1_filename);
+
+                if (rc == -1) return -1;
               }
             }
           }
 
-          myfree (dictionary_files);
+          hcfree (dictionary_files);
         }
         else
         {
-          straight_ctx_add_wl (straight_ctx, l0_filename);
+          const int rc = straight_ctx_add_wl (hashcat_ctx, l0_filename);
+
+          if (rc == -1) return -1;
         }
       }
 
       if (straight_ctx->dicts_cnt == 0)
       {
-        log_error ("ERROR: No usable dictionary file found.");
+        event_log_error (hashcat_ctx, "No usable dictionary file found.");
 
         return -1;
       }
@@ -341,7 +349,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       if (stat (l0_filename, &l0_stat) == -1)
       {
-        log_error ("ERROR: %s: %s", l0_filename, strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %s", l0_filename, strerror (errno));
 
         return -1;
       }
@@ -350,7 +358,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
       {
         char **dictionary_files = NULL;
 
-        dictionary_files = scan_directory (l0_filename);
+        dictionary_files = scan_directory (hashcat_ctx, l0_filename);
 
         if (dictionary_files != NULL)
         {
@@ -364,29 +372,33 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
             if (stat (l1_filename, &l1_stat) == -1)
             {
-              log_error ("ERROR: %s: %s", l1_filename, strerror (errno));
+              event_log_error (hashcat_ctx, "%s: %s", l1_filename, strerror (errno));
 
               return -1;
             }
 
             if (S_ISREG (l1_stat.st_mode))
             {
-              straight_ctx_add_wl (straight_ctx, l1_filename);
+              const int rc = straight_ctx_add_wl (hashcat_ctx, l1_filename);
+
+              if (rc == -1) return -1;
             }
           }
         }
 
-        myfree (dictionary_files);
+        hcfree (dictionary_files);
       }
       else
       {
-        straight_ctx_add_wl (straight_ctx, l0_filename);
+        const int rc = straight_ctx_add_wl (hashcat_ctx, l0_filename);
+
+        if (rc == -1) return -1;
       }
     }
 
     if (straight_ctx->dicts_cnt == 0)
     {
-      log_error ("ERROR: No usable dictionary file found.");
+      event_log_error (hashcat_ctx, "No usable dictionary file found.");
 
       return -1;
     }
@@ -401,7 +413,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       if (stat (l0_filename, &l0_stat) == -1)
       {
-        log_error ("ERROR: %s: %s", l0_filename, strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %s", l0_filename, strerror (errno));
 
         return -1;
       }
@@ -410,7 +422,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
       {
         char **dictionary_files = NULL;
 
-        dictionary_files = scan_directory (l0_filename);
+        dictionary_files = scan_directory (hashcat_ctx, l0_filename);
 
         if (dictionary_files != NULL)
         {
@@ -424,29 +436,33 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
             if (stat (l1_filename, &l1_stat) == -1)
             {
-              log_error ("ERROR: %s: %s", l1_filename, strerror (errno));
+              event_log_error (hashcat_ctx, "%s: %s", l1_filename, strerror (errno));
 
               return -1;
             }
 
             if (S_ISREG (l1_stat.st_mode))
             {
-              straight_ctx_add_wl (straight_ctx, l1_filename);
+              const int rc = straight_ctx_add_wl (hashcat_ctx, l1_filename);
+
+              if (rc == -1) return -1;
             }
           }
         }
 
-        myfree (dictionary_files);
+        hcfree (dictionary_files);
       }
       else
       {
-        straight_ctx_add_wl (straight_ctx, l0_filename);
+        const int rc = straight_ctx_add_wl (hashcat_ctx, l0_filename);
+
+        if (rc == -1) return -1;
       }
     }
 
     if (straight_ctx->dicts_cnt == 0)
     {
-      log_error ("ERROR: No usable dictionary file found.");
+      event_log_error (hashcat_ctx, "No usable dictionary file found.");
 
       return -1;
     }
@@ -463,12 +479,12 @@ void straight_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
   for (u32 dict_pos = 0; dict_pos < straight_ctx->dicts_cnt; dict_pos++)
   {
-    myfree (straight_ctx->dicts[dict_pos]);
+    hcfree (straight_ctx->dicts[dict_pos]);
   }
 
-  myfree (straight_ctx->dicts);
+  hcfree (straight_ctx->dicts);
 
-  myfree (straight_ctx->kernel_rules_buf);
+  hcfree (straight_ctx->kernel_rules_buf);
 
   memset (straight_ctx, 0, sizeof (straight_ctx_t));
 }

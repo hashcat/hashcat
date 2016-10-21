@@ -15,13 +15,13 @@
 
 #if defined (F_SETLKW)
 
-void lock_file   (FILE *fp);
+int  lock_file   (FILE *fp);
 void unlock_file (FILE *fp);
 
 #else
 
-#define lock_file(dummy) {}
-#define unlock_file(dummy) {}
+#define lock_file(dummy)   0
+#define unlock_file(dummy)
 
 #endif
 

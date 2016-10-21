@@ -99,7 +99,7 @@ void naive_escape (char *s, size_t s_max, const char key_char, const char escape
   strncpy (s, s_escaped, s_max - 1);
 }
 
-void hc_sleep_ms (const u32 msec)
+void hc_sleep_msec (const u32 msec)
 {
   #if defined (_WIN)
   Sleep (msec);

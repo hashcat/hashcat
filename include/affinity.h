@@ -17,12 +17,13 @@
 #if defined (__APPLE__)
 #include <mach-o/dyld.h>
 #include <mach/mach.h>
+#include <mach/thread_policy.h>
 #endif // __APPLE__
 
 #if defined (_WIN)
 #include <windows.h>
 #endif // _WIN
 
-void set_cpu_affinity (char *cpu_affinity);
+int set_cpu_affinity (hashcat_ctx_t *hashcat_ctx);
 
 #endif // _AFFINITY_H
