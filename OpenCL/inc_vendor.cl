@@ -95,6 +95,9 @@
 #if KERN_TYPE == 6500
 #undef _unroll
 #endif
+#if KERN_TYPE == 6800
+#undef _unroll
+#endif
 #if KERN_TYPE == 7100
 #undef _unroll
 #endif
@@ -128,6 +131,9 @@
 #if KERN_TYPE == 12400
 #undef _unroll
 #endif
+#if KERN_TYPE == 12900
+#undef _unroll
+#endif
 #if KERN_TYPE == 13721
 #undef _unroll
 #endif
@@ -135,6 +141,15 @@
 #undef _unroll
 #endif
 #if KERN_TYPE == 13723
+#undef _unroll
+#endif
+#if KERN_TYPE == 13751
+#undef _unroll
+#endif
+#if KERN_TYPE == 13752
+#undef _unroll
+#endif
+#if KERN_TYPE == 13753
 #undef _unroll
 #endif
 #if KERN_TYPE == 14000
