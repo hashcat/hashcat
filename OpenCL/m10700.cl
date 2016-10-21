@@ -54,7 +54,7 @@ __constant u32 k_sha256[64] =
   SHA256C3c, SHA256C3d, SHA256C3e, SHA256C3f,
 };
 
-void sha256_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[8])
+void sha256_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest)
 {
   u32 a = digest[0];
   u32 b = digest[1];
@@ -166,7 +166,7 @@ __constant u64 k_sha384[80] =
   SHA384C4c, SHA384C4d, SHA384C4e, SHA384C4f,
 };
 
-void sha384_transform (const u64 w0[4], const u64 w1[4], const u64 w2[4], const u64 w3[4], u64 digest[8])
+void sha384_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest)
 {
   u64 a = digest[0];
   u64 b = digest[1];
@@ -278,7 +278,7 @@ __constant u64 k_sha512[80] =
   SHA384C4c, SHA384C4d, SHA384C4e, SHA384C4f,
 };
 
-void sha512_transform (const u64 w0[4], const u64 w1[4], const u64 w2[4], const u64 w3[4], u64 digest[8])
+void sha512_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest)
 {
   u64 a = digest[0];
   u64 b = digest[1];
