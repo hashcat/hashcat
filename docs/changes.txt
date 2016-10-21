@@ -15,6 +15,7 @@
 - Allow words of length > 32 in wordlists for -a 0 for slow hashes if no rules are in use or a : rule is in the rulefile
 - Reduce max. number of allowed function calls per rule from 256 to 32 to save GPU memory
 - Status display shows what's the base and modifier keyspace currently in use
+- Added a workaround for some OpenCL kernel to compile with amd-gpu-pro
 
 ##
 ## Algorithms
