@@ -18,8 +18,13 @@ ifneq (,$(IS_WIN_BUILD))
 
 # entering this code path means: we need to check for CRT_glob.o since we try to build binaries for windows operating systems
 
+ifeq ($(UNAME),MSYS2)
+CRT_GLOB_LIB_PATH_32    ?= /mingw32/i686-w64-mingw32/lib/
+CRT_GLOB_LIB_PATH_64    ?= /mingw64/x86_64-w64-mingw32/lib/
+else
 CRT_GLOB_LIB_PATH_32    ?= /usr/i686-w64-mingw32/lib/
 CRT_GLOB_LIB_PATH_64    ?= /usr/x86_64-w64-mingw32/lib/
+endif
 
 CRT_GLOB_LIB_SYSROOT_32 := $(shell $(CC_WIN_32) --verbose 2>&1 | $(EGREP) -m 1 -o '(with-sysroot="[^"]"|with-sysroot=[^ ]*)' | $(SED) 's/^with-sysroot="\?\([^"]*\)"\?$$/\1/')
 CRT_GLOB_LIB_SYSROOT_64 := $(shell $(CC_WIN_64) --verbose 2>&1 | $(EGREP) -m 1 -o '(with-sysroot="[^"]"|with-sysroot=[^ ]*)' | $(SED) 's/^with-sysroot="\?\([^"]*\)"\?$$/\1/')

@@ -74,7 +74,7 @@ static int get_exec_path (char *exec_path, const size_t exec_path_sz)
   return 0;
 }
 
-static void get_install_dir (char *install_dir, const char *exec_path)
+void get_install_dir (char *install_dir, const char *exec_path)
 {
   strncpy (install_dir, exec_path, HCBUFSIZ_TINY - 1);
 
@@ -95,12 +95,12 @@ static void get_install_dir (char *install_dir, const char *exec_path)
   }
 }
 
-static void get_profile_dir (char *profile_dir, const char *home_dir)
+void get_profile_dir (char *profile_dir, const char *home_dir)
 {
   snprintf (profile_dir, HCBUFSIZ_TINY - 1, "%s/%s", home_dir, DOT_HASHCAT);
 }
 
-static void get_session_dir (char *session_dir, const char *profile_dir)
+void get_session_dir (char *session_dir, const char *profile_dir)
 {
   snprintf (session_dir, HCBUFSIZ_TINY - 1, "%s/%s", profile_dir, SESSIONS_FOLDER);
 }
