@@ -89,6 +89,9 @@
 #if KERN_TYPE == 6223
 #undef _unroll
 #endif
+#if KERN_TYPE == 6400
+#undef _unroll
+#endif
 #if KERN_TYPE == 6500
 #undef _unroll
 #endif
