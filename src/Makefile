@@ -103,15 +103,6 @@ endif
 endif
 
 ##
-## Linker flags
-##
-ifndef DEBUG
-LDFLAGS += -s
-endif
-
-
-
-##
 ## Native compilation target
 ##
 
@@ -127,6 +118,9 @@ endif # darwin
 
 ifeq ($(UNAME),Linux)
 CFLAGS_NATIVE            :=
+ifndef DEBUG
+CFLAGS_NATIVE            += -s
+endif
 CFLAGS_NATIVE            += $(CFLAGS)
 LFLAGS_NATIVE            := -lpthread -ldl
 CFLAGS_NATIVE            += -DWITH_HWMON
@@ -145,11 +139,17 @@ endif # freebsd
 ##
 
 CFLAGS_CROSS_LINUX       :=
+ifndef DEBUG
+CFLAGS_CROSS_LINUX       += -s
+endif
 CFLAGS_CROSS_LINUX       += $(CFLAGS)
 CFLAGS_CROSS_LINUX       += -DWITH_HWMON
 
 #CFLAGS_CROSS_WIN         := -D_WIN -DWIN -D__MSVCRT__ -D__USE_MINGW_ANSI_STDIO=1
 CFLAGS_CROSS_WIN         :=
+ifndef DEBUG
+CFLAGS_CROSS_WIN         += -s
+endif
 CFLAGS_CROSS_WIN         += $(filter-out -fsanitize=address,$(CFLAGS))
 CFLAGS_CROSS_WIN         += -DWITH_HWMON
 
