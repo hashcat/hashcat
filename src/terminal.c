@@ -224,6 +224,15 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
 
         stop_at_checkpoint (hashcat_ctx);
 
+        if (status_ctx->checkpoint_shutdown == true)
+        {
+          event_log_info (hashcat_ctx, "Checkpoint enabled: Will quit at next Restore Point update");
+        }
+        else
+        {
+          event_log_info (hashcat_ctx, "Checkpoint disabled: Restore Point updates will no longer be monitored");
+        }
+
         event_log_info (hashcat_ctx, "");
 
         if (quiet == false) send_prompt ();

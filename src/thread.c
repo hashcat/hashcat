@@ -233,25 +233,25 @@ int stop_at_checkpoint (hashcat_ctx_t *hashcat_ctx)
 
   // Enable or Disable
 
-  if ((status_ctx->run_thread_level1 == true) && (status_ctx->run_thread_level2 == true))
+  if (status_ctx->checkpoint_shutdown == false)
   {
+    status_ctx->checkpoint_shutdown = true;
+
     status_ctx->run_main_level1   = false;
     status_ctx->run_main_level2   = false;
     status_ctx->run_main_level3   = false;
     status_ctx->run_thread_level1 = false;
     status_ctx->run_thread_level2 = true;
-
-    event_log_info (hashcat_ctx, "Checkpoint enabled: Will quit at next Restore Point update");
   }
   else
   {
+    status_ctx->checkpoint_shutdown = false;
+
     status_ctx->run_main_level1   = true;
     status_ctx->run_main_level2   = true;
     status_ctx->run_main_level3   = true;
     status_ctx->run_thread_level1 = true;
     status_ctx->run_thread_level2 = true;
-
-    event_log_info (hashcat_ctx, "Checkpoint disabled: Restore Point updates will no longer be monitored");
   }
 
   return 0;

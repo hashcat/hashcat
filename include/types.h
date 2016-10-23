@@ -429,6 +429,34 @@ typedef enum parser_rc
 
 } parser_rc_t;
 
+typedef enum input_mode
+{
+  INPUT_MODE_NONE                       = 0,
+  INPUT_MODE_STRAIGHT_FILE              = 1,
+  INPUT_MODE_STRAIGHT_FILE_RULES_FILE   = 2,
+  INPUT_MODE_STRAIGHT_FILE_RULES_GEN    = 3,
+  INPUT_MODE_STRAIGHT_STDIN             = 4,
+  INPUT_MODE_STRAIGHT_STDIN_RULES_FILE  = 5,
+  INPUT_MODE_STRAIGHT_STDIN_RULES_GEN   = 6,
+  INPUT_MODE_COMBINATOR_BASE_LEFT       = 7,
+  INPUT_MODE_COMBINATOR_BASE_RIGHT      = 8,
+  INPUT_MODE_MASK                       = 9,
+  INPUT_MODE_MASK_CS                    = 10,
+  INPUT_MODE_HYBRID1                    = 11,
+  INPUT_MODE_HYBRID1_CS                 = 12,
+  INPUT_MODE_HYBRID2                    = 13,
+  INPUT_MODE_HYBRID2_CS                 = 14,
+
+} input_mode_t;
+
+typedef enum progress_mode
+{
+  PROGRESS_MODE_NONE              = 0,
+  PROGRESS_MODE_KEYSPACE_KNOWN    = 1,
+  PROGRESS_MODE_KEYSPACE_UNKNOWN  = 2,
+
+} progress_mode_t;
+
 /**
  * structs
  */
@@ -1361,6 +1389,8 @@ typedef struct status_ctx
   bool shutdown_inner;
   bool shutdown_outer;
 
+  bool checkpoint_shutdown;
+
   hc_thread_mutex_t mux_dispatcher;
   hc_thread_mutex_t mux_counter;
   hc_thread_mutex_t mux_hwmon;
@@ -1380,9 +1410,9 @@ typedef struct status_ctx
    * progress
    */
 
-  u64 *words_progress_done;      // progress number of words done     per salt
-  u64 *words_progress_rejected;  // progress number of words rejected per salt
-  u64 *words_progress_restored;  // progress number of words restored per salt
+  u64 *words_progress_done;     // progress number of words done     per salt
+  u64 *words_progress_rejected; // progress number of words rejected per salt
+  u64 *words_progress_restored; // progress number of words restored per salt
 
   /**
    * timer
@@ -1397,16 +1427,17 @@ typedef struct status_ctx
   time_t  proc_start;
   time_t  proc_stop;
 
-  hc_timer_t timer_running;         // timer on current dict
-  hc_timer_t timer_paused;          // timer on current dict
+  hc_timer_t timer_running;     // timer on current dict
+  hc_timer_t timer_paused;      // timer on current dict
 
-  double  msec_paused;                // timer on current dict
+  double  msec_paused;          // timer on current dict
 
 } status_ctx_t;
 
 typedef struct hashcat_user
 {
   // use this for context specific data
+  // see main.c as how this example is used
 
   int          outer_threads_cnt;
   hc_thread_t *outer_threads;
@@ -1457,34 +1488,6 @@ typedef struct hashcat_ctx
   void (*event) (const u32, struct hashcat_ctx *, const void *, const size_t);
 
 } hashcat_ctx_t;
-
-typedef enum input_mode
-{
-  INPUT_MODE_NONE                       = 0,
-  INPUT_MODE_STRAIGHT_FILE              = 1,
-  INPUT_MODE_STRAIGHT_FILE_RULES_FILE   = 2,
-  INPUT_MODE_STRAIGHT_FILE_RULES_GEN    = 3,
-  INPUT_MODE_STRAIGHT_STDIN             = 4,
-  INPUT_MODE_STRAIGHT_STDIN_RULES_FILE  = 5,
-  INPUT_MODE_STRAIGHT_STDIN_RULES_GEN   = 6,
-  INPUT_MODE_COMBINATOR_BASE_LEFT       = 7,
-  INPUT_MODE_COMBINATOR_BASE_RIGHT      = 8,
-  INPUT_MODE_MASK                       = 9,
-  INPUT_MODE_MASK_CS                    = 10,
-  INPUT_MODE_HYBRID1                    = 11,
-  INPUT_MODE_HYBRID1_CS                 = 12,
-  INPUT_MODE_HYBRID2                    = 13,
-  INPUT_MODE_HYBRID2_CS                 = 14,
-
-} input_mode_t;
-
-typedef enum progress_mode
-{
-  PROGRESS_MODE_NONE              = 0,
-  PROGRESS_MODE_KEYSPACE_KNOWN    = 1,
-  PROGRESS_MODE_KEYSPACE_UNKNOWN  = 2,
-
-} progress_mode_t;
 
 typedef struct
 {

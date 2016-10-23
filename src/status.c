@@ -1522,6 +1522,8 @@ int status_ctx_init (hashcat_ctx_t *hashcat_ctx)
   status_ctx->run_thread_level1 = true;
   status_ctx->run_thread_level2 = true;
 
+  status_ctx->checkpoint_shutdown = false;
+
   hc_thread_mutex_init (status_ctx->mux_dispatcher);
   hc_thread_mutex_init (status_ctx->mux_counter);
   hc_thread_mutex_init (status_ctx->mux_display);
