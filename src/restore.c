@@ -202,8 +202,7 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
 
   fclose (fp);
 
-  event_log_info (hashcat_ctx, "INFO: Changing current working directory to '%s'", rd->cwd);
-  event_log_info (hashcat_ctx, "");
+  event_log_warning (hashcat_ctx, "Changing current working directory to '%s'" EOL, rd->cwd);
 
   if (chdir (rd->cwd))
   {
