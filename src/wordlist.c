@@ -322,10 +322,14 @@ u64 count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile)
         keyspace *= combinator_ctx->combs_cnt;
       }
 
-      if (user_options->quiet == false) event_log_info (hashcat_ctx, "Cache-hit dictionary stats %s: %" PRIu64 " bytes, %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, d.stat.st_size, cached_cnt, keyspace);
-      if (user_options->quiet == false) event_log_info (hashcat_ctx, "");
+      cache_hit_t cache_hit;
 
-      //hc_signal (sigHandler_default);
+      cache_hit.dictfile    = (char *) dictfile;
+      cache_hit.st_size     = d.stat.st_size;
+      cache_hit.cached_cnt  = cached_cnt;
+      cache_hit.keyspace    = keyspace;
+
+      EVENT_DATA (EVENT_WORDLIST_CACHE_HIT, &cache_hit, sizeof (cache_hit));
 
       return (keyspace);
     }
@@ -397,15 +401,30 @@ u64 count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile)
 
     if ((now - prev) == 0) continue;
 
-    double percent = (double) comp / (double) d.stat.st_size;
+    double percent = ((double) comp / (double) d.stat.st_size) * 100;
 
-    if (user_options->quiet == false) event_log_info_nn (hashcat_ctx, "Generating dictionary stats for %s: %" PRIu64 " bytes (%.2f%%), %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, comp, percent * 100, cnt2, cnt);
+    cache_generate_t cache_generate;
+
+    cache_generate.dictfile    = (char *) dictfile;
+    cache_generate.comp        = comp;
+    cache_generate.percent     = percent;
+    cache_generate.cnt         = cnt;
+    cache_generate.cnt2        = cnt2;
+
+    EVENT_DATA (EVENT_WORDLIST_CACHE_GENERATE, &cache_generate, sizeof (cache_generate));
 
     time (&prev);
   }
 
-  if (user_options->quiet == false) event_log_info (hashcat_ctx, "Generated dictionary stats for %s: %" PRIu64 " bytes, %" PRIu64 " words, %" PRIu64 " keyspace", dictfile, comp, cnt2, cnt);
-  if (user_options->quiet == false) event_log_info (hashcat_ctx, "");
+  cache_generate_t cache_generate;
+
+  cache_generate.dictfile    = (char *) dictfile;
+  cache_generate.comp        = comp;
+  cache_generate.percent     = 100;
+  cache_generate.cnt         = cnt;
+  cache_generate.cnt2        = cnt2;
+
+  EVENT_DATA (EVENT_WORDLIST_CACHE_GENERATE, &cache_generate, sizeof (cache_generate));
 
   dictstat_append (hashcat_ctx, &d);
 

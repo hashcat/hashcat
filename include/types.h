@@ -122,6 +122,8 @@ typedef enum event_identifier
   EVENT_MONITOR_TEMP_ABORT        = 0x000000c1,
   EVENT_MONITOR_RUNTIME_LIMIT     = 0x000000d1,
   EVENT_MONITOR_STATUS_REFRESH    = 0x000000e1,
+  EVENT_WORDLIST_CACHE_HIT        = 0x000000f1,
+  EVENT_WORDLIST_CACHE_GENERATE   = 0x000000f2,
 
   // there will be much more event types soon
 
@@ -1443,6 +1445,29 @@ typedef struct hashcat_user
   hc_thread_t *outer_threads;
 
 } hashcat_user_t;
+
+typedef struct cache_hit
+{
+  char *dictfile;
+
+  off_t st_size;
+
+  u64 cached_cnt;
+  u64 keyspace;
+
+} cache_hit_t;
+
+typedef struct cache_generate
+{
+  char *dictfile;
+
+  double percent;
+
+  u64 comp;
+  u64 cnt;
+  u64 cnt2;
+
+} cache_generate_t;
 
 typedef struct event_ctx
 {
