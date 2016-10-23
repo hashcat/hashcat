@@ -10,29 +10,43 @@
 
 void event_call (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
-  bool need_mux = true;
+  event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
+
+  bool is_log = false;
 
   switch (id)
   {
-    case EVENT_LOG_INFO:    need_mux = false;
-    case EVENT_LOG_WARNING: need_mux = false;
-    case EVENT_LOG_ERROR:   need_mux = false;
+    case EVENT_LOG_INFO:    is_log = true;
+    case EVENT_LOG_WARNING: is_log = true;
+    case EVENT_LOG_ERROR:   is_log = true;
   }
 
-  if (need_mux == true)
+  if (is_log == false)
   {
-    event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
-
     hc_thread_mutex_lock (event_ctx->mux_event);
   }
 
   hashcat_ctx->event (id, hashcat_ctx, buf, len);
 
-  if (need_mux == true)
+  if (is_log == false)
   {
-    event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
-
     hc_thread_mutex_unlock (event_ctx->mux_event);
+  }
+
+  // add more back logs in case user wants to access them
+
+  if (is_log == false)
+  {
+    for (int i = MAX_OLD_EVENTS - 1; i >= 1; i--)
+    {
+      memcpy (event_ctx->old_buf[i], event_ctx->old_buf[i - 1], event_ctx->old_len[i - 1]);
+
+      event_ctx->old_len[i] = event_ctx->old_len[i - 1];
+    }
+
+    memcpy (event_ctx->old_buf[0], buf, len);
+
+    event_ctx->old_len[0] = len;
   }
 }
 
@@ -171,9 +185,9 @@ int event_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
 
-  hc_thread_mutex_init (event_ctx->mux_event);
+  memset (event_ctx, 0, sizeof (event_ctx_t));
 
-  event_ctx->msg_len = 0;
+  hc_thread_mutex_init (event_ctx->mux_event);
 
   return 0;
 }
@@ -183,6 +197,4 @@ void event_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
 
   hc_thread_mutex_delete (event_ctx->mux_event);
-
-  event_ctx->msg_len = 0;
 }

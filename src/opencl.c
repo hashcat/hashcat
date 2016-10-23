@@ -302,21 +302,19 @@ int ocl_init (hashcat_ctx_t *hashcat_ctx)
 
   if (ocl->lib == NULL)
   {
-    event_log_error (hashcat_ctx,
-      "Can't find an OpenCL ICD loader library" EOL
-      ""                                        EOL
-      #if defined (__linux__)
-      "You're probably missing the \"ocl-icd-libopencl1\" package (Debian/Ubuntu)" EOL
-      "Run: sudo apt-get install ocl-icd-libopencl1"                               EOL
-      ""                                                                           EOL
-      #elif defined (_WIN)
-      "You're probably missing the OpenCL runtime installation"                              EOL
-      "* AMD users require AMD drivers 14.9 or later (recommended 15.12 exact)"              EOL
-      "* Intel users require Intel OpenCL Runtime 14.2 or later (recommended 16.1 or later)" EOL
-      "* NVidia users require NVidia drivers 346.59 or later (recommended 367.27 or later)"  EOL
-      ""                                                                                     EOL
-      #endif
-    );
+    event_log_error (hashcat_ctx, "Can't find an OpenCL ICD loader library");
+    event_log_error (hashcat_ctx, "");
+    #if defined (__linux__)
+    event_log_error (hashcat_ctx, "You're probably missing the \"ocl-icd-libopencl1\" package (Debian/Ubuntu)");
+    event_log_error (hashcat_ctx, "Run: sudo apt-get install ocl-icd-libopencl1");
+    event_log_error (hashcat_ctx, "");
+    #elif defined (_WIN)
+    event_log_error (hashcat_ctx, "You're probably missing the OpenCL runtime installation");
+    event_log_error (hashcat_ctx, "* AMD users require AMD drivers 14.9 or later (recommended 15.12 exact)");
+    event_log_error (hashcat_ctx, "* Intel users require Intel OpenCL Runtime 14.2 or later (recommended 16.1 or later)");
+    event_log_error (hashcat_ctx, "* NVidia users require NVidia drivers 346.59 or later (recommended 367.27 or later)");
+    event_log_error (hashcat_ctx, "");
+    #endif
 
     return -1;
   }
@@ -3248,8 +3246,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         return -1;
       }
 
-      if (user_options->quiet == false) event_log_info (hashcat_ctx, "SCRYPT tmto optimizer value set to: %u, mem: %" PRIu64, scrypt_tmto_final, size_scrypt);
-      if (user_options->quiet == false) event_log_info (hashcat_ctx, "");
+      #if defined (DEBUG)
+      if (user_options->quiet == false) event_log_warning (hashcat_ctx, "SCRYPT tmto optimizer value set to: %u, mem: %" PRIu64, scrypt_tmto_final, size_scrypt);
+      if (user_options->quiet == false) event_log_warning (hashcat_ctx, "");
+      #endif
     }
 
     size_t size_scrypt4 = size_scrypt / 4;
@@ -3356,7 +3356,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     /*
     if (kernel_accel_max < kernel_accel)
     {
-      if (user_options->quiet == false) event_log_info (hashcat_ctx, "* Device #%u: Reduced maximum kernel-accel to %u", device_id + 1, kernel_accel_max);
+      if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Reduced maximum kernel-accel to %u", device_id + 1, kernel_accel_max);
 
       device_param->kernel_accel = kernel_accel_max;
     }
@@ -3452,7 +3452,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     strncpy (build_opts, build_opts_new, sizeof (build_opts));
 
     #if defined (DEBUG)
-    event_log_info (hashcat_ctx, "* Device #%u: build_opts '%s'", device_id + 1, build_opts);
+    event_log_warning (hashcat_ctx, "* Device #%u: build_opts '%s'", device_id + 1, build_opts);
     #endif
 
     /**
@@ -3506,7 +3506,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       {
         if (cached == 0)
         {
-          if (user_options->quiet == false) event_log_info_nn (hashcat_ctx, "Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
+          #if defined (DEBUG)
+          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
+          #endif
 
           const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, 1, kernel_lengths, kernel_sources);
 
@@ -3573,7 +3575,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         else
         {
           #if defined (DEBUG)
-          event_log_info (hashcat_ctx, "Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
+          event_log_warning (hashcat_ctx, "Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
           #endif
 
           const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, 1, kernel_lengths, kernel_sources);
@@ -3592,7 +3594,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       else
       {
         #if defined (DEBUG)
-        event_log_info (hashcat_ctx, "Device #%u: Kernel %s (%ld bytes)", device_id + 1, source_file, sst.st_size);
+        event_log_warning (hashcat_ctx, "Device #%u: Kernel %s (%ld bytes)", device_id + 1, source_file, sst.st_size);
         #endif
 
         const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, 1, kernel_lengths, kernel_sources);
@@ -3710,7 +3712,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (cached == 0)
       {
-        if (user_options->quiet == false) event_log_info_nn (hashcat_ctx, "Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
+        #if defined (DEBUG)
+        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
+        #endif
 
         const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, 1, kernel_lengths, kernel_sources);
 
@@ -3775,7 +3779,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       else
       {
         #if defined (DEBUG)
-        event_log_info (hashcat_ctx, "Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
+        event_log_warning (hashcat_ctx, "Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
         #endif
 
         const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, 1, kernel_lengths, kernel_sources);
@@ -3850,7 +3854,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (cached == 0)
       {
-        if (user_options->quiet == false) event_log_info_nn (hashcat_ctx, "Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
+        #if defined (DEBUG)
+        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
+        #endif
 
         const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, 1, kernel_lengths, kernel_sources);
 
@@ -3915,7 +3921,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       else
       {
         #if defined (DEBUG)
-        if (user_options->quiet == false) event_log_info (hashcat_ctx, "Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
+        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
         #endif
 
         const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, 1, kernel_lengths, kernel_sources);

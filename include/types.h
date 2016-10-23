@@ -88,8 +88,6 @@ typedef enum event_identifier
   EVENT_LOG_INFO                  = 0x00000001,
   EVENT_LOG_WARNING               = 0x00000002,
   EVENT_LOG_ERROR                 = 0x00000003,
-  EVENT_WELCOME_SCREEN            = 0x00000011,
-  EVENT_GOODBYE_SCREEN            = 0x00000012,
   EVENT_OUTERLOOP_STARTING        = 0x00000031,
   EVENT_OUTERLOOP_MAINSCREEN      = 0x00000032,
   EVENT_OUTERLOOP_FINISHED        = 0x00000033,
@@ -1435,9 +1433,6 @@ typedef struct status_ctx
   time_t  prepare_start;
   time_t  prepare_time;
 
-  time_t  proc_start;
-  time_t  proc_stop;
-
   hc_timer_t timer_running;     // timer on current dict
   hc_timer_t timer_paused;      // timer on current dict
 
@@ -1485,8 +1480,14 @@ typedef struct hashlist_parse
 
 } hashlist_parse_t;
 
+#define MAX_OLD_EVENTS 10
+
 typedef struct event_ctx
 {
+  char old_buf[MAX_OLD_EVENTS][HCBUFSIZ_TINY];
+  int  old_len[MAX_OLD_EVENTS];
+  int  old_cnt;
+
   char msg_buf[HCBUFSIZ_TINY];
   int  msg_len;
   bool msg_newline;

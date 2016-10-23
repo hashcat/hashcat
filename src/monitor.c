@@ -33,7 +33,11 @@ int get_runtime_left (const hashcat_ctx_t *hashcat_ctx)
 
   time (&runtime_cur);
 
-  const int runtime_left = status_ctx->proc_start + user_options->runtime + status_ctx->prepare_time + (msec_paused / 1000) - runtime_cur;
+  const int runtime_left = status_ctx->runtime_start
+                         + status_ctx->prepare_time
+                         + user_options->runtime
+                         + (msec_paused / 1000)
+                         - runtime_cur;
 
   return runtime_left;
 }

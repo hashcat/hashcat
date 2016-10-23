@@ -829,10 +829,8 @@ void hashcat_destroy (hashcat_ctx_t *hashcat_ctx)
   memset (hashcat_ctx, 0, sizeof (hashcat_ctx_t));
 }
 
-int hashcat_session_run (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_folder, int argc, char **argv, const int comptime)
+int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_folder, int argc, char **argv, const int comptime)
 {
-  logfile_ctx_t  *logfile_ctx  = hashcat_ctx->logfile_ctx;
-  status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
   /**
@@ -850,8 +848,6 @@ int hashcat_session_run (hashcat_ctx_t *hashcat_ctx, char *install_folder, char 
   const int rc_status_init = status_ctx_init (hashcat_ctx);
 
   if (rc_status_init == -1) return -1;
-
-  EVENT (EVENT_WELCOME_SCREEN);
 
   /**
    * folder
@@ -884,14 +880,6 @@ int hashcat_session_run (hashcat_ctx_t *hashcat_ctx, char *install_folder, char 
   const int rc_logfile_init = logfile_init (hashcat_ctx);
 
   if (rc_logfile_init == -1) return -1;
-
-  logfile_generate_topid (hashcat_ctx);
-
-  logfile_top_msg ("START");
-
-  // add all user options to logfile in case we want to debug some user session
-
-  user_options_logger (hashcat_ctx);
 
   /**
    * cpu affinity
@@ -973,8 +961,6 @@ int hashcat_session_run (hashcat_ctx_t *hashcat_ctx, char *install_folder, char 
 
   if (rc_dictstat_init == -1) return -1;
 
-  dictstat_read (hashcat_ctx);
-
   /**
    * loopback init
    */
@@ -1014,6 +1000,31 @@ int hashcat_session_run (hashcat_ctx_t *hashcat_ctx, char *install_folder, char 
   const int rc_hwmon_init = hwmon_ctx_init (hashcat_ctx);
 
   if (rc_hwmon_init == -1) return -1;
+
+  return 0;
+}
+
+int hashcat_session_run (hashcat_ctx_t *hashcat_ctx)
+{
+  logfile_ctx_t  *logfile_ctx  = hashcat_ctx->logfile_ctx;
+  status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  user_options_t *user_options = hashcat_ctx->user_options;
+
+  // add all user options to logfile in case we want to debug some user session
+
+  user_options_logger (hashcat_ctx);
+
+  // start logfile entry
+
+  const time_t proc_start = time (NULL);
+
+  logfile_generate_topid (hashcat_ctx);
+
+  logfile_top_msg ("START");
+
+  // read dictionary cache
+
+  dictstat_read (hashcat_ctx);
 
   /**
    * outer loop
@@ -1072,33 +1083,14 @@ int hashcat_session_run (hashcat_ctx_t *hashcat_ctx, char *install_folder, char 
 
   // final logfile entry
 
-  time (&status_ctx->proc_stop);
+  const time_t proc_stop = time (NULL);
 
-  logfile_top_uint (status_ctx->proc_start);
-  logfile_top_uint (status_ctx->proc_stop);
+  logfile_top_uint (proc_start);
+  logfile_top_uint (proc_stop);
 
   logfile_top_msg ("STOP");
 
   // free memory
-
-  EVENT (EVENT_GOODBYE_SCREEN);
-
-  debugfile_destroy          (hashcat_ctx);
-  dictstat_destroy           (hashcat_ctx);
-  folder_config_destroy      (hashcat_ctx);
-  hwmon_ctx_destroy          (hashcat_ctx);
-  induct_ctx_destroy         (hashcat_ctx);
-  logfile_destroy            (hashcat_ctx);
-  loopback_destroy           (hashcat_ctx);
-  opencl_ctx_destroy         (hashcat_ctx);
-  opencl_ctx_devices_destroy (hashcat_ctx);
-  outcheck_ctx_destroy       (hashcat_ctx);
-  outfile_destroy            (hashcat_ctx);
-  potfile_destroy            (hashcat_ctx);
-  restore_ctx_destroy        (hashcat_ctx);
-  tuning_db_destroy          (hashcat_ctx);
-  user_options_destroy       (hashcat_ctx);
-  user_options_extra_destroy (hashcat_ctx);
 
   if (rc_final == 0)
   {
@@ -1107,10 +1099,6 @@ int hashcat_session_run (hashcat_ctx_t *hashcat_ctx, char *install_folder, char 
     if (status_ctx->devices_status == STATUS_EXHAUSTED) rc_final = 1;
     if (status_ctx->devices_status == STATUS_CRACKED)   rc_final = 0;
   }
-
-  // do not clear status and event so we can access them from main.c after hashcat_session_run() finishes
-  //status_ctx_destroy (hashcat_ctx);
-  //event_ctx_destroy  (hashcat_ctx);
 
   // done
 
@@ -1142,6 +1130,30 @@ int hashcat_session_quit (hashcat_ctx_t *hashcat_ctx)
   return myabort (hashcat_ctx);
 }
 
+int hashcat_session_destroy (hashcat_ctx_t *hashcat_ctx)
+{
+  debugfile_destroy          (hashcat_ctx);
+  dictstat_destroy           (hashcat_ctx);
+  folder_config_destroy      (hashcat_ctx);
+  hwmon_ctx_destroy          (hashcat_ctx);
+  induct_ctx_destroy         (hashcat_ctx);
+  logfile_destroy            (hashcat_ctx);
+  loopback_destroy           (hashcat_ctx);
+  opencl_ctx_destroy         (hashcat_ctx);
+  opencl_ctx_devices_destroy (hashcat_ctx);
+  outcheck_ctx_destroy       (hashcat_ctx);
+  outfile_destroy            (hashcat_ctx);
+  potfile_destroy            (hashcat_ctx);
+  restore_ctx_destroy        (hashcat_ctx);
+  tuning_db_destroy          (hashcat_ctx);
+  user_options_destroy       (hashcat_ctx);
+  user_options_extra_destroy (hashcat_ctx);
+  status_ctx_destroy         (hashcat_ctx);
+  event_ctx_destroy          (hashcat_ctx);
+
+  return 0;
+}
+
 char *hashcat_get_log (hashcat_ctx_t *hashcat_ctx)
 {
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
@@ -1153,6 +1165,11 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
 {
   const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
+  memset (hashcat_status, 0, sizeof (hashcat_status_t));
+
+  if (status_ctx == NULL) return -1; // ways too early
+
+  /*
   if (status_ctx->devices_status == STATUS_INIT)
   {
     event_log_error (hashcat_ctx, "Status view is not available during initialization phase");
@@ -1167,16 +1184,13 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
     return -1;
   }
 
-  if (status_ctx->shutdown_inner == true)
+  if (status_ctx->devices_status == STATUS_RUNNING)
   {
-    // in this case some required buffers are free'd, ascii_digest() would run into segfault
-
-    event_log_error (hashcat_ctx, "Status view is not available during shutdown phase");
+    event_log_error (hashcat_ctx, "Status view is not available during autotune phase");
 
     return -1;
   }
-
-  memset (hashcat_status, 0, sizeof (hashcat_status_t));
+  */
 
   hashcat_status->digests_cnt                 = status_get_digests_cnt                (hashcat_ctx);
   hashcat_status->digests_done                = status_get_digests_done               (hashcat_ctx);

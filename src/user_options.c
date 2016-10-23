@@ -508,11 +508,9 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->force == false)
     {
-      event_log_error (hashcat_ctx,
-        "The manual use of the -n option (or --kernel-accel) is outdated."                 EOL
-        "Please consider using the -w option instead."                                     EOL
-        "You can use --force to override this but do not post error reports if you do so."
-      );
+      event_log_error (hashcat_ctx, "The manual use of the -n option (or --kernel-accel) is outdated.");
+      event_log_error (hashcat_ctx, "Please consider using the -w option instead.");
+      event_log_error (hashcat_ctx, "You can use --force to override this but do not post error reports if you do so.");
 
       return -1;
     }
@@ -536,11 +534,9 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->force == false)
     {
-      event_log_error (hashcat_ctx,
-        "The manual use of the -u option (or --kernel-loops) is outdated."                 EOL
-        "Please consider using the -w option instead."                                     EOL
-        "You can use --force to override this but do not post error reports if you do so."
-      );
+      event_log_error (hashcat_ctx, "The manual use of the -u option (or --kernel-loops) is outdated.");
+      event_log_error (hashcat_ctx, "Please consider using the -w option instead.");
+      event_log_error (hashcat_ctx, "You can use --force to override this but do not post error reports if you do so.");
 
       return -1;
     }

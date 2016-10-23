@@ -21,9 +21,9 @@
 
 const char *PROMPT = "[s]tatus [p]ause [r]esume [b]ypass [c]heckpoint [q]uit => ";
 
-void welcome_screen (hashcat_ctx_t *hashcat_ctx, const time_t proc_start, const char *version_tag)
+void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
 {
-  user_options_t *user_options = hashcat_ctx->user_options;
+  const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->quiet       == true) return;
   if (user_options->keyspace    == true) return;
@@ -40,7 +40,7 @@ void welcome_screen (hashcat_ctx_t *hashcat_ctx, const time_t proc_start, const 
     }
     else
     {
-      event_log_info (hashcat_ctx, "# %s (%s) %s", PROGNAME, version_tag, ctime (&proc_start));
+      event_log_info (hashcat_ctx, "# %s (%s)", PROGNAME, version_tag);
     }
   }
   else if (user_options->restore == true)
@@ -74,28 +74,28 @@ void goodbye_screen (hashcat_ctx_t *hashcat_ctx, const time_t proc_start, const 
   event_log_info_nn (hashcat_ctx, "Stopped: %s", ctime (&proc_stop));
 }
 
-int setup_console (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
+int setup_console ()
 {
   #if defined (_WIN)
   SetConsoleWindowSize (132);
 
   if (_setmode (_fileno (stdin), _O_BINARY) == -1)
   {
-    event_log_error (hashcat_ctx, "%s: %s", "stdin", strerror (errno));
+    fprintf (stderr, "%s: %s", "stdin", strerror (errno));
 
     return -1;
   }
 
   if (_setmode (_fileno (stdout), _O_BINARY) == -1)
   {
-    event_log_error (hashcat_ctx, "%s: %s", "stdout", strerror (errno));
+    fprintf (stderr, "%s: %s", "stdin", strerror (errno));
 
     return -1;
   }
 
   if (_setmode (_fileno (stderr), _O_BINARY) == -1)
   {
-    event_log_error (hashcat_ctx, "%s: %s", "stderr", strerror (errno));
+    fprintf (stderr, "%s: %s", "stdin", strerror (errno));
 
     return -1;
   }
@@ -823,6 +823,8 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
     if (device_info->skipped_dev == true) continue;
 
+    if (device_info->input_candidates_dev == NULL) continue;
+
     event_log_info (hashcat_ctx,
       "Candidates.#%d..: %s", device_id + 1,
       device_info->input_candidates_dev);
@@ -835,6 +837,8 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
       if (device_info->skipped_dev == true) continue;
+
+      if (device_info->hwmon_dev == NULL) continue;
 
       event_log_info (hashcat_ctx,
         "HWMon.Dev.#%d...: %s", device_id + 1,

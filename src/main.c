@@ -146,34 +146,6 @@ static void main_log_error (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSE
   main_log (hashcat_ctx, stderr, LOGLEVEL_ERROR);
 }
 
-static void main_welcome_screen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
-{
-  // sets dos window size (windows only)
-
-  setup_console (hashcat_ctx);
-
-  // Inform user things getting started
-
-  const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
-  //const user_options_t *user_options = hashcat_ctx->user_options;
-
-  //if (user_options->machine_readable == true) return;
-
-  welcome_screen (hashcat_ctx, status_ctx->proc_start, VERSION_TAG);
-}
-
-static void main_goodbye_screen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
-{
-  // Inform user we're done
-
-  const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
-  const user_options_t *user_options = hashcat_ctx->user_options;
-
-  if (user_options->machine_readable == true) return;
-
-  goodbye_screen (hashcat_ctx, status_ctx->proc_start, status_ctx->proc_stop);
-}
-
 static void main_outerloop_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t       *user_options       = hashcat_ctx->user_options;
@@ -816,8 +788,6 @@ void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const siz
     case EVENT_LOG_INFO:                  main_log_info                  (hashcat_ctx, buf, len); break;
     case EVENT_LOG_WARNING:               main_log_warning               (hashcat_ctx, buf, len); break;
     case EVENT_LOG_ERROR:                 main_log_error                 (hashcat_ctx, buf, len); break;
-    case EVENT_WELCOME_SCREEN:            main_welcome_screen            (hashcat_ctx, buf, len); break;
-    case EVENT_GOODBYE_SCREEN:            main_goodbye_screen            (hashcat_ctx, buf, len); break;
     case EVENT_OUTERLOOP_STARTING:        main_outerloop_starting        (hashcat_ctx, buf, len); break;
     case EVENT_OUTERLOOP_FINISHED:        main_outerloop_finished        (hashcat_ctx, buf, len); break;
     case EVENT_OUTERLOOP_MAINSCREEN:      main_outerloop_mainscreen      (hashcat_ctx, buf, len); break;
@@ -860,6 +830,12 @@ void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const siz
 
 int main (int argc, char **argv)
 {
+  // this increases the size on windows dox boxes
+
+  setup_console ();
+
+  const time_t proc_start = time (NULL);
+
   // hashcat main context
 
   hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) malloc (sizeof (hashcat_ctx_t)); VERIFY_PTR (hashcat_ctx);
@@ -915,15 +891,34 @@ int main (int argc, char **argv)
     return 0;
   }
 
-  // now run hashcat
+  // init a hashcat session; this initializes opencl devices, hwmon, etc
 
-  const int rc_hashcat = hashcat_session_run (hashcat_ctx, install_folder, shared_folder, argc, argv, COMPTIME);
+  welcome_screen (hashcat_ctx, VERSION_TAG);
+
+  const int rc_session_init = hashcat_session_init (hashcat_ctx, install_folder, shared_folder, argc, argv, COMPTIME);
+
+  int rc_final = -1;
+
+  if (rc_session_init == 0)
+  {
+    // now run hashcat
+
+    rc_final = hashcat_session_run (hashcat_ctx);
+  }
+
+  // finish the hashcat session, this shuts down opencl devices, hwmon, etc
+
+  hashcat_session_destroy (hashcat_ctx);
 
   // finished with hashcat, clean up
+
+  const time_t proc_stop = time (NULL);
+
+  goodbye_screen (hashcat_ctx, proc_start, proc_stop);
 
   hashcat_destroy (hashcat_ctx);
 
   free (hashcat_ctx);
 
-  return rc_hashcat;
+  return rc_final;
 }

@@ -25,7 +25,6 @@ int induct_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
   folder_config_t *folder_config = hashcat_ctx->folder_config;
   induct_ctx_t    *induct_ctx    = hashcat_ctx->induct_ctx;
-  status_ctx_t    *status_ctx    = hashcat_ctx->status_ctx;
   user_options_t  *user_options  = hashcat_ctx->user_options;
 
   induct_ctx->enabled = false;
@@ -61,7 +60,7 @@ int induct_ctx_init (hashcat_ctx_t *hashcat_ctx)
       {
         char *root_directory_mv = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (root_directory_mv);
 
-        snprintf (root_directory_mv, HCBUFSIZ_TINY - 1, "%s/%s.induct.%d", folder_config->session_dir, user_options->session, (int) status_ctx->proc_start);
+        snprintf (root_directory_mv, HCBUFSIZ_TINY - 1, "%s/%s.induct.%d", folder_config->session_dir, user_options->session, (int) time (NULL));
 
         if (rename (root_directory, root_directory_mv) != 0)
         {

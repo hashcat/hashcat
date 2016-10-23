@@ -23,10 +23,10 @@
 #include <windows.h>
 #endif // _WIN
 
-void welcome_screen (hashcat_ctx_t *hashcat_ctx, const time_t proc_start, const char *version_tag);
+void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag);
 void goodbye_screen (hashcat_ctx_t *hashcat_ctx, const time_t proc_start, const time_t proc_stop);
 
-int setup_console (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx);
+int setup_console ();
 
 void send_prompt ();
 void clear_prompt ();

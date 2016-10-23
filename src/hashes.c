@@ -321,10 +321,6 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
   if (num_cracked)
   {
-    // display hack (for weak hashes etc, it could be that there is still something to clear on the current line)
-    // still needed?
-    //event_log_info_nn (hashcat_ctx, "");
-
     plain_t *cracked = (plain_t *) hccalloc (hashcat_ctx, num_cracked, sizeof (plain_t)); VERIFY_PTR (cracked);
 
     CL_err = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->command_queue, device_param->d_plain_bufs, CL_TRUE, 0, num_cracked * sizeof (plain_t), cracked, 0, NULL, NULL);

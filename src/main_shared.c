@@ -67,32 +67,43 @@ int main ()
   user_options->hash_mode         = 0;              // MD5
   user_options->workload_profile  = 3;
 
-  // now run hashcat
+  // init a hashcat session; this initializes opencl devices, hwmon, etc
+  // it does not actually run the attack but from here you can access opencl devices and hwmon information
 
-  const int rc_hashcat = hashcat_session_run (hashcat_ctx, NULL, NULL, 0, NULL, 0);
+  const int rc_init = hashcat_session_init (hashcat_ctx, NULL, NULL, 0, NULL, 0);
 
-  if (rc_hashcat == 0)
+  if (rc_init == 0)
   {
-    hashcat_status_t hashcat_status;
+    // this one actually starts the cracking
 
-    const int rc = hashcat_get_status (hashcat_ctx, &hashcat_status);
+    const int rc_run = hashcat_session_run (hashcat_ctx);
 
-    printf ("Session: %s\n", hashcat_status.session);
-    printf ("Status: %s\n",  hashcat_status.status_string);
-
-    if (rc == 0)
+    if (rc_run == 0)
     {
-      printf ("%d\n", hashcat_status.device_info_cnt);
+      hashcat_status_t hashcat_status;
 
+      hashcat_get_status (hashcat_ctx, &hashcat_status);
+
+      printf ("Session: %s\n", hashcat_status.session);
+      printf ("Status: %s\n",  hashcat_status.status_string);
     }
+    else if (rc_run == -1)
+    {
+      char *msg = hashcat_get_log (hashcat_ctx);
 
+      fprintf (stderr, "%s\n", msg);
+    }
   }
-  else if (rc_hashcat == -1)
+  else
   {
     char *msg = hashcat_get_log (hashcat_ctx);
 
     fprintf (stderr, "%s\n", msg);
   }
+
+  // always destroy those regardless of what the returncodes from the init functions are
+
+  hashcat_session_destroy (hashcat_ctx);
 
   hashcat_destroy (hashcat_ctx);
 

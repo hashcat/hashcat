@@ -527,7 +527,12 @@ char *status_get_input_charset (const hashcat_ctx_t *hashcat_ctx)
 char *status_get_input_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
   const opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
+  const status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (status_ctx->devices_status == STATUS_INIT)     return NULL;
+  if (status_ctx->devices_status == STATUS_AUTOTUNE) return NULL;
+  if (status_ctx->devices_status == STATUS_AUTOTUNE) return NULL;
 
   hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -1239,7 +1244,10 @@ char *status_get_speed_sec_dev (const hashcat_ctx_t *hashcat_ctx, const int devi
 
 int status_get_cpt_cur_min (const hashcat_ctx_t *hashcat_ctx)
 {
-  const cpt_ctx_t *cpt_ctx = hashcat_ctx->cpt_ctx;
+  const cpt_ctx_t    *cpt_ctx    = hashcat_ctx->cpt_ctx;
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  if (status_ctx->devices_status != STATUS_RUNNING) return 0;
 
   const time_t now = time (NULL);
 
@@ -1261,7 +1269,10 @@ int status_get_cpt_cur_min (const hashcat_ctx_t *hashcat_ctx)
 
 int status_get_cpt_cur_hour (const hashcat_ctx_t *hashcat_ctx)
 {
-  const cpt_ctx_t *cpt_ctx = hashcat_ctx->cpt_ctx;
+  const cpt_ctx_t    *cpt_ctx    = hashcat_ctx->cpt_ctx;
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  if (status_ctx->devices_status != STATUS_RUNNING) return 0;
 
   const time_t now = time (NULL);
 
@@ -1283,7 +1294,10 @@ int status_get_cpt_cur_hour (const hashcat_ctx_t *hashcat_ctx)
 
 int status_get_cpt_cur_day (const hashcat_ctx_t *hashcat_ctx)
 {
-  const cpt_ctx_t *cpt_ctx = hashcat_ctx->cpt_ctx;
+  const cpt_ctx_t    *cpt_ctx    = hashcat_ctx->cpt_ctx;
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  if (status_ctx->devices_status != STATUS_RUNNING) return 0;
 
   const time_t now = time (NULL);
 
@@ -1528,8 +1542,6 @@ int status_ctx_init (hashcat_ctx_t *hashcat_ctx)
   hc_thread_mutex_init (status_ctx->mux_counter);
   hc_thread_mutex_init (status_ctx->mux_display);
   hc_thread_mutex_init (status_ctx->mux_hwmon);
-
-  time (&status_ctx->proc_start);
 
   return 0;
 }
