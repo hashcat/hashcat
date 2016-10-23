@@ -401,6 +401,8 @@ u64 count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile)
 
     if ((now - prev) == 0) continue;
 
+    time (&prev);
+
     double percent = ((double) comp / (double) d.stat.st_size) * 100;
 
     cache_generate_t cache_generate;
@@ -412,8 +414,6 @@ u64 count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile)
     cache_generate.cnt2        = cnt2;
 
     EVENT_DATA (EVENT_WORDLIST_CACHE_GENERATE, &cache_generate, sizeof (cache_generate));
-
-    time (&prev);
   }
 
   cache_generate_t cache_generate;

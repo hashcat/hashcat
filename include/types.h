@@ -124,6 +124,15 @@ typedef enum event_identifier
   EVENT_MONITOR_STATUS_REFRESH    = 0x000000e1,
   EVENT_WORDLIST_CACHE_HIT        = 0x000000f1,
   EVENT_WORDLIST_CACHE_GENERATE   = 0x000000f2,
+  EVENT_HASHLIST_COUNT_LINES_PRE  = 0x00000101,
+  EVENT_HASHLIST_COUNT_LINES_POST = 0x00000102,
+  EVENT_HASHLIST_PARSE_HASH       = 0x00000103,
+  EVENT_HASHLIST_SORT_HASH_PRE    = 0x00000104,
+  EVENT_HASHLIST_SORT_HASH_POST   = 0x00000105,
+  EVENT_HASHLIST_UNIQUE_HASH_PRE  = 0x00000106,
+  EVENT_HASHLIST_UNIQUE_HASH_POST = 0x00000107,
+  EVENT_HASHLIST_SORT_SALT_PRE    = 0x00000108,
+  EVENT_HASHLIST_SORT_SALT_POST   = 0x00000109,
 
   // there will be much more event types soon
 
@@ -1468,6 +1477,13 @@ typedef struct cache_generate
   u64 cnt2;
 
 } cache_generate_t;
+
+typedef struct hashlist_parse
+{
+  u32 hashes_cnt;
+  u32 hashes_avail;
+
+} hashlist_parse_t;
 
 typedef struct event_ctx
 {

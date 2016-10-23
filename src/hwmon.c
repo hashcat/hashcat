@@ -3302,7 +3302,7 @@ void hwmon_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
           if ((hm_ADL_Overdrive_State_Set (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) == -1)
           {
-            //event_log_info (hashcat_ctx, "Failed to restore ADL performance state");
+            //event_log_error (hashcat_ctx, "Failed to restore ADL performance state");
 
             continue;
           }

@@ -322,8 +322,8 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
   if (num_cracked)
   {
     // display hack (for weak hashes etc, it could be that there is still something to clear on the current line)
-
-    event_log_info_nn (hashcat_ctx, "");
+    // still needed?
+    //event_log_info_nn (hashcat_ctx, "");
 
     plain_t *cracked = (plain_t *) hccalloc (hashcat_ctx, num_cracked, sizeof (plain_t)); VERIFY_PTR (cracked);
 
@@ -494,9 +494,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         return -1;
       }
 
-      if (user_options->quiet == false) event_log_info_nn (hashcat_ctx, "Counting lines in %s", hashfile);
+      EVENT_DATA (EVENT_HASHLIST_COUNT_LINES_PRE, hashfile, sizeof (hashfile));
 
       hashes_avail = count_lines (hashcat_ctx, fp);
+
+      EVENT_DATA (EVENT_HASHLIST_COUNT_LINES_POST, hashfile, sizeof (hashfile));
 
       rewind (fp);
 
@@ -807,6 +809,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       char *line_buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE); VERIFY_PTR (line_buf);
 
+      time_t prev = 0;
+      time_t now  = 0;
+
       while (!feof (fp))
       {
         line_num++;
@@ -893,8 +898,6 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
               continue;
             }
 
-            if (user_options->quiet == false) if ((hashes_cnt % 0x20000) == 0) event_log_info_nn (hashcat_ctx, "Parsed Hashes: %u/%u (%0.2f%%)", hashes_cnt, hashes_avail, ((double) hashes_cnt / hashes_avail) * 100);
-
             hashes_cnt++;
           }
           else
@@ -907,8 +910,6 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
               continue;
             }
-
-            if (user_options->quiet == false) if ((hashes_cnt % 0x20000) == 0) event_log_info_nn (hashcat_ctx, "Parsed Hashes: %u/%u (%0.2f%%)", hashes_cnt, hashes_avail, ((double) hashes_cnt / hashes_avail) * 100);
 
             hashes_cnt++;
           }
@@ -924,17 +925,33 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
             continue;
           }
 
-          if (user_options->quiet == false) if ((hashes_cnt % 0x20000) == 0) event_log_info_nn (hashcat_ctx, "Parsed Hashes: %u/%u (%0.2f%%)", hashes_cnt, hashes_avail, ((double) hashes_cnt / hashes_avail) * 100);
-
           hashes_cnt++;
         }
+
+        time (&now);
+
+        if ((now - prev) == 0) continue;
+
+        time (&prev);
+
+        hashlist_parse_t hashlist_parse;
+
+        hashlist_parse.hashes_cnt   = hashes_cnt;
+        hashlist_parse.hashes_avail = hashes_avail;
+
+        EVENT_DATA (EVENT_HASHLIST_PARSE_HASH, &hashlist_parse, sizeof (hashlist_parse));
       }
+
+      hashlist_parse_t hashlist_parse;
+
+      hashlist_parse.hashes_cnt   = hashes_cnt;
+      hashlist_parse.hashes_avail = hashes_avail;
+
+      EVENT_DATA (EVENT_HASHLIST_PARSE_HASH, &hashlist_parse, sizeof (hashlist_parse));
 
       hcfree (line_buf);
 
       fclose (fp);
-
-      if (user_options->quiet == false) event_log_info_nn (hashcat_ctx, "Parsed Hashes: %u/%u (%0.2f%%)", hashes_avail, hashes_avail, 100.00);
     }
   }
 
@@ -942,7 +959,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
   if (hashes_cnt)
   {
-    if (user_options->quiet == false) event_log_info_nn (hashcat_ctx, "Sorting Hashes...");
+    EVENT (EVENT_HASHLIST_SORT_HASH_PRE);
 
     if (hashconfig->is_salted)
     {
@@ -953,7 +970,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       hc_qsort_r (hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_no_salt, (void *) hashconfig);
     }
 
-    if (user_options->quiet == false) event_log_info_nn (hashcat_ctx, "Sorted Hashes...");
+    EVENT (EVENT_HASHLIST_SORT_HASH_POST);
   }
 
   return 0;
@@ -972,7 +989,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
    * Remove duplicates
    */
 
-  if (user_options->quiet == false) event_log_info_nn (hashcat_ctx, "Removing duplicate hashes...");
+  EVENT (EVENT_HASHLIST_UNIQUE_HASH_PRE);
 
   u32 hashes_cnt_new = 1;
 
@@ -1008,6 +1025,8 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
   hashes->hashes_cnt = hashes_cnt;
 
+  EVENT (EVENT_HASHLIST_UNIQUE_HASH_POST);
+
   /**
    * Now generate all the buffers required for later
    */
@@ -1030,7 +1049,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
     salts_buf_new = (salt_t *) hccalloc (hashcat_ctx, 1, sizeof (salt_t)); VERIFY_PTR (salts_buf_new);
   }
 
-  if (user_options->quiet == false) event_log_info_nn (hashcat_ctx, "Structuring salts for cracking task...");
+  EVENT (EVENT_HASHLIST_SORT_SALT_PRE);
 
   u32 digests_cnt  = hashes_cnt;
   u32 digests_done = 0;
@@ -1146,6 +1165,8 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
       hash_info[hashes_pos] = hashes_buf[hashes_pos].hash_info;
     }
   }
+
+  EVENT (EVENT_HASHLIST_SORT_SALT_POST);
 
   hcfree (hashes->digests_buf);
   hcfree (hashes->salts_buf);
