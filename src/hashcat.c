@@ -1004,7 +1004,7 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, char *install_folder, char
   return 0;
 }
 
-int hashcat_session_run (hashcat_ctx_t *hashcat_ctx)
+int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 {
   logfile_ctx_t  *logfile_ctx  = hashcat_ctx->logfile_ctx;
   status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
@@ -1021,15 +1021,6 @@ int hashcat_session_run (hashcat_ctx_t *hashcat_ctx)
   logfile_generate_topid (hashcat_ctx);
 
   logfile_top_msg ("START");
-
-  // if this is just opencl_info, no need to go deeper from here
-
-  if (user_options->opencl_info == true)
-  {
-    opencl_ctx_devices_show (hashcat_ctx);
-
-    return 0;
-  }
 
   // read dictionary cache
 

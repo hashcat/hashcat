@@ -901,9 +901,20 @@ int main (int argc, char **argv)
 
   if (rc_session_init == 0)
   {
-    // now run hashcat
+    if (user_options->opencl_info == true)
+    {
+      // if this is just opencl_info, no need to execute some real cracking session
 
-    rc_final = hashcat_session_run (hashcat_ctx);
+      opencl_info (hashcat_ctx);
+
+      rc_final = 0;
+    }
+    else
+    {
+      // now execute hashcat
+
+      rc_final = hashcat_session_execute (hashcat_ctx);
+    }
   }
 
   // finish the hashcat session, this shuts down opencl devices, hwmon, etc
