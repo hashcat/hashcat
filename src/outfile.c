@@ -421,7 +421,7 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsign
 
   if (outfile_ctx->fp)
   {
-    fprintf (outfile_ctx->fp, "%s" EOL, tmp_buf);
+    fwrite (EOL, strlen (EOL), 1, outfile_ctx->fp);
   }
 
   return tmp_len;

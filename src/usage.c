@@ -414,7 +414,8 @@ void usage_mini_print (const char *progname)
   for (int i = 0; USAGE_MINI[i] != NULL; i++)
   {
     printf (USAGE_MINI[i], progname);
-    printf (EOL);
+
+    fwrite (EOL, strlen (EOL), 1, stdout);
   }
 }
 
@@ -423,6 +424,7 @@ void usage_big_print (const char *progname)
   for (int i = 0; USAGE_BIG[i] != NULL; i++)
   {
     printf (USAGE_BIG[i], progname);
-    printf (EOL);
+
+    fwrite (EOL, strlen (EOL), 1, stdout);
   }
 }

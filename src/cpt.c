@@ -25,7 +25,7 @@ int cpt_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   cpt_ctx->enabled = true;
 
-  cpt_ctx->cpt_buf = (cpt_t *) hccalloc (hashcat_ctx, CPT_BUF, sizeof (cpt_t)); VERIFY_PTR (cpt_ctx->cpt_buf);
+  cpt_ctx->cpt_buf = (cpt_t *) hccalloc (hashcat_ctx, CPT_CACHE, sizeof (cpt_t)); VERIFY_PTR (cpt_ctx->cpt_buf);
 
   cpt_ctx->cpt_total = 0;
   cpt_ctx->cpt_pos   = 0;
@@ -51,7 +51,7 @@ void cpt_ctx_reset (hashcat_ctx_t *hashcat_ctx)
 
   if (cpt_ctx->enabled == false) return;
 
-  memset (cpt_ctx->cpt_buf, 0, CPT_BUF * sizeof (cpt_t));
+  memset (cpt_ctx->cpt_buf, 0, CPT_CACHE * sizeof (cpt_t));
 
   cpt_ctx->cpt_total = 0;
   cpt_ctx->cpt_pos   = 0;

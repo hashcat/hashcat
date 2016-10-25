@@ -1253,7 +1253,7 @@ int status_get_cpt_cur_min (const hashcat_ctx_t *hashcat_ctx)
 
   int cpt_cur_min = 0;
 
-  for (int i = 0; i < CPT_BUF; i++)
+  for (int i = 0; i < CPT_CACHE; i++)
   {
     const u32    cracked   = cpt_ctx->cpt_buf[i].cracked;
     const time_t timestamp = cpt_ctx->cpt_buf[i].timestamp;
@@ -1278,7 +1278,7 @@ int status_get_cpt_cur_hour (const hashcat_ctx_t *hashcat_ctx)
 
   int cpt_cur_hour = 0;
 
-  for (int i = 0; i < CPT_BUF; i++)
+  for (int i = 0; i < CPT_CACHE; i++)
   {
     const u32    cracked   = cpt_ctx->cpt_buf[i].cracked;
     const time_t timestamp = cpt_ctx->cpt_buf[i].timestamp;
@@ -1303,7 +1303,7 @@ int status_get_cpt_cur_day (const hashcat_ctx_t *hashcat_ctx)
 
   int cpt_cur_day = 0;
 
-  for (int i = 0; i < CPT_BUF; i++)
+  for (int i = 0; i < CPT_CACHE; i++)
   {
     const u32    cracked   = cpt_ctx->cpt_buf[i].cracked;
     const time_t timestamp = cpt_ctx->cpt_buf[i].timestamp;

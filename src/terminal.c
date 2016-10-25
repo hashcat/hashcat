@@ -523,7 +523,7 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  printf (EOL);
+  fwrite (EOL, strlen (EOL), 1, stdout);
 
   fflush (stdout);
 

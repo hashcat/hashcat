@@ -6,6 +6,8 @@
 #ifndef _TYPES_H
 #define _TYPES_H
 
+#include "common.h"
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -13,9 +15,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-
-#define CPT_BUF 0x20000
-#define PARAMCNT 64
 
 #if defined (_WIN)
 #include <windows.h>
