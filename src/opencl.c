@@ -2865,18 +2865,18 @@ void opencl_ctx_devices_show (hashcat_ctx_t *hashcat_ctx)
 
       printf
       (
-        "  Device ID #%u"                             EOL
-        "    Type           : %s"                     EOL
-        "    Vendor ID      : %u"                     EOL
-        "    Vendor         : %s"                     EOL
-        "    Name           : %s"                     EOL
-        "    Version        : %s"                     EOL
-        "    Processor(s)   : %u"                     EOL
-        "    Clock          : %u"                     EOL
-        "    Memory         : %lu/%lu MB allocatable" EOL
-        "    OpenCL Version : %s"                     EOL
-        "    Driver Version : %s"                     EOL
-        ""                                            EOL,
+        "  Device ID #%u"         EOL
+        "    Type           : %s" EOL
+        "    Vendor ID      : %u" EOL
+        "    Vendor         : %s" EOL
+        "    Name           : %s" EOL
+        "    Version        : %s" EOL
+        "    Processor(s)   : %u" EOL
+        "    Clock          : %u" EOL
+        "    Memory         : %" PRIu64 "/%" PRIu64 " MB allocatable" EOL
+        "    OpenCL Version : %s" EOL
+        "    Driver Version : %s" EOL
+        ""                        EOL,
         devices_idx + 1,
         ((device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")),
         device_vendor_id,
