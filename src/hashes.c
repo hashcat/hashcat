@@ -174,9 +174,7 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 
         ascii_digest (hashcat_ctx, out_buf, salt_pos, digest_pos);
 
-        fputs (out_buf, fp);
-
-        fputc ('\n', fp);
+        fprintf (fp, "%s" EOL, out_buf);
       }
       else
       {

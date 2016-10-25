@@ -299,9 +299,7 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, u8 *
 
   tmp_buf[tmp_len] = 0;
 
-  fprintf (potfile_ctx->fp, "%s\n", tmp_buf);
-
-  fflush (potfile_ctx->fp);
+  fprintf (potfile_ctx->fp, "%s" EOL, tmp_buf);
 }
 
 int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)

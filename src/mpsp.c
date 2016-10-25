@@ -866,11 +866,11 @@ static void sp_tbl_to_css (hcstat_table_t *root_table_buf, hcstat_table_t *marko
     {
       cs_t *ptr = &markov_css_buf[(i * CHARSIZ) + j];
 
-      printf ("pos:%u key:%u len:%u\n", i, j, ptr->cs_len);
+      printf ("pos:%u key:%u len:%u" EOL, i, j, ptr->cs_len);
 
       for (u32 k = 0; k < 10; k++)
       {
-        printf ("  %u\n",  ptr->cs_buf[k]);
+        printf ("  %u" EOL,  ptr->cs_buf[k]);
       }
     }
   }

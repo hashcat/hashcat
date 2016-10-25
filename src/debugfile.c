@@ -75,7 +75,7 @@ void debugfile_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *rule_buf, con
     debugfile_format_plain (hashcat_ctx, mod_plain_ptr, mod_plain_len);
   }
 
-  fputc ('\n', debugfile_ctx->fp);
+  fwrite (EOL, strlen (EOL), 1, debugfile_ctx->fp);
 }
 
 int debugfile_init (hashcat_ctx_t *hashcat_ctx)

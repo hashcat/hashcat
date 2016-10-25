@@ -25,9 +25,20 @@ static void out_push (out_t *out, const u8 *pw_buf, const int pw_len)
 
   memcpy (ptr, pw_buf, pw_len);
 
+  #if defined (_POSIX)
+
   ptr[pw_len] = '\n';
 
   out->len += pw_len + 1;
+
+  #else
+
+  ptr[pw_len + 0] = '\r';
+  ptr[pw_len + 1] = '\n';
+
+  out->len += pw_len + 2;
+
+  #endif
 
   if (out->len >= BUFSIZ - 100)
   {

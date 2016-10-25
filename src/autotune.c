@@ -287,8 +287,8 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     printf
     (
-      "- Device #%u: autotuned kernel-accel to %u\n"
-      "- Device #%u: autotuned kernel-loops to %u\n",
+      "- Device #%u: autotuned kernel-accel to %u" EOL
+      "- Device #%u: autotuned kernel-loops to %u" EOL,
       device_param->device_id + 1, kernel_accel,
       device_param->device_id + 1, kernel_loops
     );
