@@ -18,6 +18,8 @@
 #include "event.h"
 #endif
 
+static const char SLASH[] = "/";
+
 int sort_by_stringptr (const void *p1, const void *p2)
 {
   const char **s1 = (const char **) p1;
@@ -248,17 +250,22 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   #if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
 
-  if (install_folder == NULL) install_folder = "/"; // makes library use easier
+  if (install_folder == NULL) install_folder = SLASH; // makes library use easier
 
   char *resolved_install_folder = realpath (install_folder, NULL);
   char *resolved_exec_path      = realpath (exec_path, NULL);
 
+  if (resolved_install_folder == NULL) resolved_install_folder = hcstrdup (hashcat_ctx, SLASH);
+
+  /*
+  This causes invalid error out if install_folder (/usr/local/bin) does not exist
   if (resolved_install_folder == NULL)
   {
     event_log_error (hashcat_ctx, "%s: %s", resolved_install_folder, strerror (errno));
 
     return -1;
   }
+  */
 
   if (resolved_exec_path == NULL)
   {
