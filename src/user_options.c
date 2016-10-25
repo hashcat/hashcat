@@ -415,9 +415,12 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->outfile_format_chgd == true)
     {
-      event_log_error (hashcat_ctx, "Mixing outfile-format > 1 with left parameter is not allowed");
+      if (user_options->outfile_format > 1)
+      {
+        event_log_error (hashcat_ctx, "Mixing outfile-format > 1 with left parameter is not allowed");
 
-      return -1;
+        return -1;
+      }
     }
   }
 
@@ -425,9 +428,12 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->outfile_format_chgd == true)
     {
-      event_log_error (hashcat_ctx, "Mixing outfile-format > 7 with show parameter is not allowed");
+      if (user_options->outfile_format > 7)
+      {
+        event_log_error (hashcat_ctx, "Mixing outfile-format > 7 with show parameter is not allowed");
 
-      return -1;
+        return -1;
+      }
     }
   }
 
