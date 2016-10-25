@@ -2816,7 +2816,8 @@ void opencl_ctx_devices_show (hashcat_ctx_t *hashcat_ctx)
 {
   const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
 
-  printf ("OpenCL Info:" EOL EOL);
+  event_log_info (hashcat_ctx, "OpenCL Info:");
+  event_log_info (hashcat_ctx, "");
 
   cl_uint         platforms_cnt         = opencl_ctx->platforms_cnt;
   cl_platform_id *platforms             = opencl_ctx->platforms;
@@ -2832,18 +2833,11 @@ void opencl_ctx_devices_show (hashcat_ctx_t *hashcat_ctx)
     char          *platform_name     = platforms_name[platforms_idx];
     char          *platform_version  = platforms_version[platforms_idx];
 
-    printf
-    (
-      "Platform ID #%u" EOL
-      "  Vendor  : %s"  EOL
-      "  Name    : %s"  EOL
-      "  Version : %s"  EOL
-      ""                EOL,
-      platforms_idx + 1,
-      platform_vendor,
-      platform_name,
-      platform_version
-    );
+    event_log_info (hashcat_ctx, "Platform ID #%u", platforms_idx + 1);
+    event_log_info (hashcat_ctx, "  Vendor  : %s",  platform_vendor);
+    event_log_info (hashcat_ctx, "  Name    : %s",  platform_name);
+    event_log_info (hashcat_ctx, "  Version : %s",  platform_version);
+    event_log_info (hashcat_ctx, "");
 
     for (cl_uint devices_idx = 0; devices_idx < devices_cnt; devices_idx++)
     {
@@ -2863,32 +2857,18 @@ void opencl_ctx_devices_show (hashcat_ctx_t *hashcat_ctx)
       char          *device_version             = hc_device_param->device_version;
       char          *driver_version             = hc_device_param->driver_version;
 
-      printf
-      (
-        "  Device ID #%u"         EOL
-        "    Type           : %s" EOL
-        "    Vendor ID      : %u" EOL
-        "    Vendor         : %s" EOL
-        "    Name           : %s" EOL
-        "    Version        : %s" EOL
-        "    Processor(s)   : %u" EOL
-        "    Clock          : %u" EOL
-        "    Memory         : %" PRIu64 "/%" PRIu64 " MB allocatable" EOL
-        "    OpenCL Version : %s" EOL
-        "    Driver Version : %s" EOL
-        ""                        EOL,
-        devices_idx + 1,
-        ((device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")),
-        device_vendor_id,
-        device_vendor,
-        device_name,
-        device_version,
-        device_processors,
-        device_maxclock_frequency,
-        device_maxmem_alloc / 1024 / 1024, device_global_mem / 1024 / 1024,
-        device_opencl_version,
-        driver_version
-      );
+      event_log_info (hashcat_ctx, "  Device ID #%u",         devices_idx + 1);
+      event_log_info (hashcat_ctx, "    Type           : %s", ((device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")));
+      event_log_info (hashcat_ctx, "    Vendor ID      : %u", device_vendor_id);
+      event_log_info (hashcat_ctx, "    Vendor         : %s", device_vendor);
+      event_log_info (hashcat_ctx, "    Name           : %s", device_name);
+      event_log_info (hashcat_ctx, "    Version        : %s", device_version);
+      event_log_info (hashcat_ctx, "    Processor(s)   : %u", device_processors);
+      event_log_info (hashcat_ctx, "    Clock          : %u", device_maxclock_frequency);
+      event_log_info (hashcat_ctx, "    Memory         : %" PRIu64 "/%" PRIu64 " MB allocatable", device_maxmem_alloc / 1024 / 1024, device_global_mem / 1024 / 1024);
+      event_log_info (hashcat_ctx, "    OpenCL Version : %u", device_opencl_version);
+      event_log_info (hashcat_ctx, "    Driver Version : %u", driver_version);
+      event_log_info (hashcat_ctx, "");
     }
   }
 }
