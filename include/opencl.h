@@ -69,6 +69,7 @@ int  opencl_ctx_init                  (hashcat_ctx_t *hashcat_ctx);
 void opencl_ctx_destroy               (hashcat_ctx_t *hashcat_ctx);
 
 int  opencl_ctx_devices_init          (hashcat_ctx_t *hashcat_ctx, const int comptime);
+void opencl_ctx_devices_show          (hashcat_ctx_t *hashcat_ctx);
 void opencl_ctx_devices_destroy       (hashcat_ctx_t *hashcat_ctx);
 void opencl_ctx_devices_update_power  (hashcat_ctx_t *hashcat_ctx);
 void opencl_ctx_devices_kernel_loops  (hashcat_ctx_t *hashcat_ctx);

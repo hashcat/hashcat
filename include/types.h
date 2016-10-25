@@ -748,6 +748,7 @@ typedef struct hc_device_param
   char   *device_name_chksum;
   char   *device_version;
   char   *driver_version;
+  char   *device_opencl_version;
 
   bool    opencl_v12;
 
@@ -846,6 +847,9 @@ typedef struct opencl_ctx
 
   cl_uint             platforms_cnt;
   cl_platform_id     *platforms;
+  char              **platforms_vendor;
+  char              **platforms_name;
+  char              **platforms_version;
 
   cl_uint             platform_devices_cnt;
   cl_device_id       *platform_devices;

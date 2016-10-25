@@ -1966,6 +1966,9 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
    * OpenCL platforms: detect
    */
 
+  char          **platforms_vendor      = (char **) hccalloc (hashcat_ctx, CL_PLATFORMS_MAX, sizeof (char *)); VERIFY_PTR (platforms_vendor);
+  char          **platforms_name        = (char **) hccalloc (hashcat_ctx, CL_PLATFORMS_MAX, sizeof (char *)); VERIFY_PTR (platforms_name);
+  char          **platforms_version     = (char **) hccalloc (hashcat_ctx, CL_PLATFORMS_MAX, sizeof (char *)); VERIFY_PTR (platforms_version);
   cl_uint         platforms_cnt         = 0;
   cl_platform_id *platforms             = (cl_platform_id *) hccalloc (hashcat_ctx, CL_PLATFORMS_MAX, sizeof (cl_platform_id)); VERIFY_PTR (platforms);
   cl_uint         platform_devices_cnt  = 0;
@@ -2056,6 +2059,9 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   opencl_ctx->enabled = true;
 
+  opencl_ctx->platforms_vendor      = platforms_vendor;
+  opencl_ctx->platforms_name        = platforms_name;
+  opencl_ctx->platforms_version     = platforms_version;
   opencl_ctx->platforms_cnt         = platforms_cnt;
   opencl_ctx->platforms             = platforms;
   opencl_ctx->platform_devices_cnt  = platform_devices_cnt;
@@ -2106,22 +2112,55 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
   u32 devices_active = 0;
 
-  if (user_options->opencl_info == true)
-  {
-    fprintf (stdout, "OpenCL Info:\n");
-  }
-
   for (u32 platform_id = 0; platform_id < platforms_cnt; platform_id++)
   {
+    size_t param_value_size = 0;
+
     int CL_rc = CL_SUCCESS;
 
     cl_platform_id platform = platforms[platform_id];
 
-    char platform_vendor[HCBUFSIZ_TINY] = { 0 };
+    // platform vendor
 
-    CL_rc = hc_clGetPlatformInfo (hashcat_ctx, platform, CL_PLATFORM_VENDOR, sizeof (platform_vendor), platform_vendor, NULL);
+    CL_rc = hc_clGetPlatformInfo (hashcat_ctx, platform, CL_PLATFORM_VENDOR, 0, NULL, &param_value_size);
 
     if (CL_rc == -1) return -1;
+
+    char *platform_vendor = (char *) hcmalloc (hashcat_ctx, param_value_size); VERIFY_PTR (platform_vendor);
+
+    CL_rc = hc_clGetPlatformInfo (hashcat_ctx, platform, CL_PLATFORM_VENDOR, param_value_size, platform_vendor, NULL);
+
+    if (CL_rc == -1) return -1;
+
+    opencl_ctx->platforms_vendor[platform_id] = platform_vendor;
+
+    // platform name
+
+    CL_rc = hc_clGetPlatformInfo (hashcat_ctx, platform, CL_PLATFORM_NAME, 0, NULL, &param_value_size);
+
+    if (CL_rc == -1) return -1;
+
+    char *platform_name = (char *) hcmalloc (hashcat_ctx, param_value_size); VERIFY_PTR (platform_name);
+
+    CL_rc = hc_clGetPlatformInfo (hashcat_ctx, platform, CL_PLATFORM_NAME, param_value_size, platform_name, NULL);
+
+    if (CL_rc == -1) return -1;
+
+    opencl_ctx->platforms_name[platform_id] = platform_name;
+
+    // platform version
+
+    CL_rc = hc_clGetPlatformInfo (hashcat_ctx, platform, CL_PLATFORM_VERSION, 0, NULL, &param_value_size);
+
+    if (CL_rc == -1) return -1;
+
+    char *platform_version = (char *) hcmalloc (hashcat_ctx, param_value_size); VERIFY_PTR (platform_version);
+
+    CL_rc = hc_clGetPlatformInfo (hashcat_ctx, platform, CL_PLATFORM_VERSION, param_value_size, platform_version, NULL);
+
+    if (CL_rc == -1) return -1;
+
+    opencl_ctx->platforms_version[platform_id] = platform_version;
 
     // find our own platform vendor because pocl and mesa are pushing original vendor_id through opencl
     // this causes trouble with vendor id based macros
@@ -2179,23 +2218,6 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       platform_skipped = 2;
     }
 
-    if (user_options->opencl_info == true)
-    {
-      char platform_name[HCBUFSIZ_TINY] = { 0 };
-
-      CL_rc = hc_clGetPlatformInfo (hashcat_ctx, platform, CL_PLATFORM_NAME, HCBUFSIZ_TINY, platform_name, NULL);
-
-      if (CL_rc == -1) return -1;
-
-      char platform_version[HCBUFSIZ_TINY] = { 0 };
-
-      CL_rc = hc_clGetPlatformInfo (hashcat_ctx, platform, CL_PLATFORM_VERSION, sizeof (platform_version), platform_version, NULL);
-
-      if (CL_rc == -1) return -1;
-
-      fprintf (stdout, "\nPlatform ID #%u\n  Vendor   : %s\n  Name     : %s\n  Version  : %s\n\n", platform_id + 1, platform_vendor, platform_name, platform_version);
-    }
-
     if ((user_options->benchmark == true || user_options->speed_only == true || user_options->quiet == false))
     {
       if (user_options->machine_readable == false)
@@ -2230,8 +2252,6 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
     for (u32 platform_devices_id = 0; platform_devices_id < platform_devices_cnt; platform_devices_id++)
     {
-      size_t param_value_size = 0;
-
       const u32 device_id = devices_cnt;
 
       hc_device_param_t *device_param = &devices_param[device_id];
@@ -2352,6 +2372,8 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_OPENCL_C_VERSION, param_value_size, device_opencl_version, NULL);
 
       if (CL_rc == -1) return -1;
+
+      device_param->device_opencl_version = device_opencl_version;
 
       device_param->opencl_v12 = device_opencl_version[9] > '1' || device_opencl_version[11] >= '2';
 
@@ -2649,24 +2671,6 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       // display results
 
-      if (user_options->opencl_info == true)
-      {
-        char *format = "  Device ID #%u\n    Type           : %s\n    Vendor ID      : %u\n    Vendor         : %s\n    Name           : %s\n    Processor(s)   : %u\n    Clock          : %u\n    Memory         : %lu/%lu MB allocatable\n    OpenCL Version : %s\n\n";
-
-        fprintf (stdout, format, device_id + 1,
-          ((device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")),
-          device_vendor_id,
-          device_vendor,
-          device_name,
-          device_processors,
-          device_maxclock_frequency,
-          device_maxmem_alloc / 1024 / 1024,
-          device_global_mem / 1024 / 1024,
-          device_opencl_version);
-      }
-
-      hcfree (device_opencl_version);
-
       if ((user_options->benchmark == true || user_options->speed_only == true || user_options->quiet == false))
       {
         if (user_options->machine_readable == false)
@@ -2774,11 +2778,6 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
     }
   }
 
-  if (user_options->opencl_info == true)
-  {
-    return 0;
-  }
-
   if (devices_active == 0)
   {
     event_log_error (hashcat_ctx, "No devices found/left");
@@ -2813,11 +2812,99 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
   return 0;
 }
 
+void opencl_ctx_devices_show (hashcat_ctx_t *hashcat_ctx)
+{
+  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  printf ("OpenCL Info:" EOL EOL);
+
+  cl_uint         platforms_cnt         = opencl_ctx->platforms_cnt;
+  cl_platform_id *platforms             = opencl_ctx->platforms;
+  char          **platforms_vendor      = opencl_ctx->platforms_vendor;
+  char          **platforms_name        = opencl_ctx->platforms_name;
+  char          **platforms_version     = opencl_ctx->platforms_version;
+  cl_uint         devices_cnt           = opencl_ctx->devices_cnt;
+
+  for (cl_uint platforms_idx = 0; platforms_idx < platforms_cnt; platforms_idx++)
+  {
+    cl_platform_id platform_id       = platforms[platforms_idx];
+    char          *platform_vendor   = platforms_vendor[platforms_idx];
+    char          *platform_name     = platforms_name[platforms_idx];
+    char          *platform_version  = platforms_version[platforms_idx];
+
+    printf
+    (
+      "Platform ID #%u" EOL
+      "  Vendor  : %s"  EOL
+      "  Name    : %s"  EOL
+      "  Version : %s"  EOL
+      ""                EOL,
+      platforms_idx + 1,
+      platform_vendor,
+      platform_name,
+      platform_version
+    );
+
+    for (cl_uint devices_idx = 0; devices_idx < devices_cnt; devices_idx++)
+    {
+      const hc_device_param_t *hc_device_param = opencl_ctx->devices_param + devices_idx;
+
+      if (hc_device_param->platform != platform_id) continue;
+
+      cl_device_type device_type                = hc_device_param->device_type;
+      cl_uint        device_vendor_id           = hc_device_param->device_vendor_id;
+      char          *device_vendor              = hc_device_param->device_vendor;
+      char          *device_name                = hc_device_param->device_name;
+      u32            device_processors          = hc_device_param->device_processors;
+      u32            device_maxclock_frequency  = hc_device_param->device_maxclock_frequency;
+      u64            device_maxmem_alloc        = hc_device_param->device_maxmem_alloc;
+      u64            device_global_mem          = hc_device_param->device_global_mem;
+      char          *device_opencl_version      = hc_device_param->device_opencl_version;
+      char          *device_version             = hc_device_param->device_version;
+      char          *driver_version             = hc_device_param->driver_version;
+
+      printf
+      (
+        "  Device ID #%u"                             EOL
+        "    Type           : %s"                     EOL
+        "    Vendor ID      : %u"                     EOL
+        "    Vendor         : %s"                     EOL
+        "    Name           : %s"                     EOL
+        "    Version        : %s"                     EOL
+        "    Processor(s)   : %u"                     EOL
+        "    Clock          : %u"                     EOL
+        "    Memory         : %lu/%lu MB allocatable" EOL
+        "    OpenCL Version : %s"                     EOL
+        "    Driver Version : %s"                     EOL
+        ""                                            EOL,
+        devices_idx + 1,
+        ((device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")),
+        device_vendor_id,
+        device_vendor,
+        device_name,
+        device_version,
+        device_processors,
+        device_maxclock_frequency,
+        device_maxmem_alloc / 1024 / 1024, device_global_mem / 1024 / 1024,
+        device_opencl_version,
+        driver_version
+      );
+    }
+  }
+}
+
 void opencl_ctx_devices_destroy (hashcat_ctx_t *hashcat_ctx)
 {
   opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
 
   if (opencl_ctx->enabled == false) return;
+
+  for (u32 platform_id = 0; platform_id < opencl_ctx->platforms_cnt; platform_id++)
+  {
+    hcfree (opencl_ctx->platforms_vendor[platform_id]);
+    hcfree (opencl_ctx->platforms_name[platform_id]);
+    hcfree (opencl_ctx->platforms_version[platform_id]);
+  }
 
   for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
@@ -2829,6 +2916,7 @@ void opencl_ctx_devices_destroy (hashcat_ctx_t *hashcat_ctx)
     hcfree (device_param->device_name_chksum);
     hcfree (device_param->device_version);
     hcfree (device_param->driver_version);
+    hcfree (device_param->device_opencl_version);
   }
 
   opencl_ctx->devices_cnt    = 0;

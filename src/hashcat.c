@@ -413,7 +413,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (rc_hashes_init_stage1 == -1) return -1;
 
-  if ((user_options->keyspace == false) && (user_options->stdout_flag == false) && (user_options->opencl_info == false))
+  if ((user_options->keyspace == false) && (user_options->stdout_flag == false))
   {
     if (hashes->hashes_cnt == 0)
     {
@@ -1021,6 +1021,15 @@ int hashcat_session_run (hashcat_ctx_t *hashcat_ctx)
   logfile_generate_topid (hashcat_ctx);
 
   logfile_top_msg ("START");
+
+  // if this is just opencl_info, no need to go deeper from here
+
+  if (user_options->opencl_info == true)
+  {
+    opencl_ctx_devices_show (hashcat_ctx);
+
+    return 0;
+  }
 
   // read dictionary cache
 
