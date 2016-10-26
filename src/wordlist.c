@@ -405,15 +405,18 @@ u64 count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile)
 
     double percent = ((double) comp / (double) d.stat.st_size) * 100;
 
-    cache_generate_t cache_generate;
+    if (percent < 100)
+    {
+      cache_generate_t cache_generate;
 
-    cache_generate.dictfile    = (char *) dictfile;
-    cache_generate.comp        = comp;
-    cache_generate.percent     = percent;
-    cache_generate.cnt         = cnt;
-    cache_generate.cnt2        = cnt2;
+      cache_generate.dictfile    = (char *) dictfile;
+      cache_generate.comp        = comp;
+      cache_generate.percent     = percent;
+      cache_generate.cnt         = cnt;
+      cache_generate.cnt2        = cnt2;
 
-    EVENT_DATA (EVENT_WORDLIST_CACHE_GENERATE, &cache_generate, sizeof (cache_generate));
+      EVENT_DATA (EVENT_WORDLIST_CACHE_GENERATE, &cache_generate, sizeof (cache_generate));
+    }
   }
 
   cache_generate_t cache_generate;
