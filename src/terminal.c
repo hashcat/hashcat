@@ -484,21 +484,21 @@ void opencl_info (hashcat_ctx_t *hashcat_ctx)
 
     for (cl_uint devices_idx = 0; devices_idx < devices_cnt; devices_idx++)
     {
-      const hc_device_param_t *hc_device_param = opencl_ctx->devices_param + devices_idx;
+      const hc_device_param_t *device_param = opencl_ctx->devices_param + devices_idx;
 
-      if (hc_device_param->platform != platform_id) continue;
+      if (device_param->platform != platform_id) continue;
 
-      cl_device_type device_type                = hc_device_param->device_type;
-      cl_uint        device_vendor_id           = hc_device_param->device_vendor_id;
-      char          *device_vendor              = hc_device_param->device_vendor;
-      char          *device_name                = hc_device_param->device_name;
-      u32            device_processors          = hc_device_param->device_processors;
-      u32            device_maxclock_frequency  = hc_device_param->device_maxclock_frequency;
-      u64            device_maxmem_alloc        = hc_device_param->device_maxmem_alloc;
-      u64            device_global_mem          = hc_device_param->device_global_mem;
-      char          *device_opencl_version      = hc_device_param->device_opencl_version;
-      char          *device_version             = hc_device_param->device_version;
-      char          *driver_version             = hc_device_param->driver_version;
+      cl_device_type device_type                = device_param->device_type;
+      cl_uint        device_vendor_id           = device_param->device_vendor_id;
+      char          *device_vendor              = device_param->device_vendor;
+      char          *device_name                = device_param->device_name;
+      u32            device_processors          = device_param->device_processors;
+      u32            device_maxclock_frequency  = device_param->device_maxclock_frequency;
+      u64            device_maxmem_alloc        = device_param->device_maxmem_alloc;
+      u64            device_global_mem          = device_param->device_global_mem;
+      char          *device_opencl_version      = device_param->device_opencl_version;
+      char          *device_version             = device_param->device_version;
+      char          *driver_version             = device_param->driver_version;
 
       event_log_info (hashcat_ctx, "  Device ID #%u",         devices_idx + 1);
       event_log_info (hashcat_ctx, "    Type           : %s", ((device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")));
@@ -513,6 +513,75 @@ void opencl_info (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "    Driver Version : %u", driver_version);
       event_log_info (hashcat_ctx, "");
     }
+  }
+}
+
+void opencl_info_compact (hashcat_ctx_t *hashcat_ctx)
+{
+  const opencl_ctx_t   *opencl_ctx   = hashcat_ctx->opencl_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet            == true) return;
+  if (user_options->machine_readable == true) return;
+
+  cl_uint         platforms_cnt         = opencl_ctx->platforms_cnt;
+  cl_platform_id *platforms             = opencl_ctx->platforms;
+  char          **platforms_vendor      = opencl_ctx->platforms_vendor;
+  bool           *platforms_skipped     = opencl_ctx->platforms_skipped;
+  cl_uint         devices_cnt           = opencl_ctx->devices_cnt;
+
+  for (cl_uint platforms_idx = 0; platforms_idx < platforms_cnt; platforms_idx++)
+  {
+    cl_platform_id platform_id       = platforms[platforms_idx];
+    char          *platform_vendor   = platforms_vendor[platforms_idx];
+    bool           platform_skipped  = platforms_skipped[platforms_idx];
+
+    if (platform_skipped == false)
+    {
+      const int len = event_log_info (hashcat_ctx, "OpenCL Platform #%u: %s", platforms_idx + 1, platform_vendor);
+
+      char line[HCBUFSIZ_TINY];
+
+      memset (line, '=', len);
+
+      line[len] = 0;
+
+      event_log_info (hashcat_ctx, line);
+    }
+    else
+    {
+      event_log_info (hashcat_ctx, "OpenCL Platform #%u: %s, skipped or no OpenCL compatible devices found", platforms_idx + 1, platform_vendor);
+    }
+
+    for (cl_uint devices_idx = 0; devices_idx < devices_cnt; devices_idx++)
+    {
+      const hc_device_param_t *device_param = opencl_ctx->devices_param + devices_idx;
+
+      if (device_param->platform != platform_id) continue;
+
+      char *device_name         = device_param->device_name;
+      u32   device_processors   = device_param->device_processors;
+      u64   device_maxmem_alloc = device_param->device_maxmem_alloc;
+      u64   device_global_mem   = device_param->device_global_mem;
+
+      if (device_param->skipped == false)
+      {
+        event_log_info (hashcat_ctx, "* Device #%u: %s, %lu/%lu MB allocatable, %uMCU",
+                  devices_idx + 1,
+                  device_name,
+                  (unsigned int) (device_maxmem_alloc / 1024 / 1024),
+                  (unsigned int) (device_global_mem   / 1024 / 1024),
+                  (unsigned int)  device_processors);
+      }
+      else
+      {
+        event_log_info (hashcat_ctx, "* Device #%u: %s, skipped",
+                  devices_idx + 1,
+                  device_name);
+      }
+    }
+
+    event_log_info (hashcat_ctx, "");
   }
 }
 

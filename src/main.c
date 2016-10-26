@@ -913,6 +913,8 @@ int main (int argc, char **argv)
     {
       // now execute hashcat
 
+      opencl_info_compact (hashcat_ctx);
+
       rc_final = hashcat_session_execute (hashcat_ctx);
     }
   }

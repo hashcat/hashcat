@@ -42,6 +42,8 @@ int tty_getchar();
 int tty_fix();
 
 void opencl_info                      (hashcat_ctx_t *hashcat_ctx);
+void opencl_info_compact              (hashcat_ctx_t *hashcat_ctx);
+
 void status_display_machine_readable  (hashcat_ctx_t *hashcat_ctx);
 void status_display                   (hashcat_ctx_t *hashcat_ctx);
 void status_benchmark_automate        (hashcat_ctx_t *hashcat_ctx);

@@ -850,6 +850,7 @@ typedef struct opencl_ctx
   char              **platforms_vendor;
   char              **platforms_name;
   char              **platforms_version;
+  bool               *platforms_skipped;
 
   cl_uint             platform_devices_cnt;
   cl_device_id       *platform_devices;

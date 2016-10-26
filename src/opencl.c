@@ -1969,6 +1969,7 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
   char          **platforms_vendor      = (char **) hccalloc (hashcat_ctx, CL_PLATFORMS_MAX, sizeof (char *)); VERIFY_PTR (platforms_vendor);
   char          **platforms_name        = (char **) hccalloc (hashcat_ctx, CL_PLATFORMS_MAX, sizeof (char *)); VERIFY_PTR (platforms_name);
   char          **platforms_version     = (char **) hccalloc (hashcat_ctx, CL_PLATFORMS_MAX, sizeof (char *)); VERIFY_PTR (platforms_version);
+  bool           *platforms_skipped     = (bool *)  hccalloc (hashcat_ctx, CL_PLATFORMS_MAX, sizeof (bool));   VERIFY_PTR (platforms_skipped);
   cl_uint         platforms_cnt         = 0;
   cl_platform_id *platforms             = (cl_platform_id *) hccalloc (hashcat_ctx, CL_PLATFORMS_MAX, sizeof (cl_platform_id)); VERIFY_PTR (platforms);
   cl_uint         platform_devices_cnt  = 0;
@@ -2062,6 +2063,7 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
   opencl_ctx->platforms_vendor      = platforms_vendor;
   opencl_ctx->platforms_name        = platforms_name;
   opencl_ctx->platforms_version     = platforms_version;
+  opencl_ctx->platforms_skipped     = platforms_skipped;
   opencl_ctx->platforms_cnt         = platforms_cnt;
   opencl_ctx->platforms             = platforms;
   opencl_ctx->platform_devices_cnt  = platform_devices_cnt;
@@ -2205,7 +2207,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       platform_vendor_id = VENDOR_ID_GENERIC;
     }
 
-    u32 platform_skipped = ((opencl_ctx->opencl_platforms_filter & (1u << platform_id)) == 0);
+    bool platform_skipped = ((opencl_ctx->opencl_platforms_filter & (1u << platform_id)) == 0);
 
     CL_rc = hc_clGetDeviceIDs (hashcat_ctx, platform, CL_DEVICE_TYPE_ALL, DEVICES_MAX, platform_devices, &platform_devices_cnt);
 
@@ -2215,38 +2217,12 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       //return -1;
 
-      platform_skipped = 2;
+      platform_skipped = true;
     }
 
-    if ((user_options->benchmark == true || user_options->speed_only == true || user_options->quiet == false))
-    {
-      if (user_options->machine_readable == false)
-      {
-        if (platform_skipped == 0)
-        {
-          const int len = event_log_info (hashcat_ctx, "OpenCL Platform #%u: %s", platform_id + 1, platform_vendor);
+    opencl_ctx->platforms_skipped[platform_id] = platform_skipped;
 
-          char line[256] = { 0 };
-
-          for (int i = 0; i < len; i++) line[i] = '=';
-
-          event_log_info (hashcat_ctx, line);
-        }
-        else if (platform_skipped == 1)
-        {
-          event_log_info (hashcat_ctx, "OpenCL Platform #%u: %s, skipped", platform_id + 1, platform_vendor);
-          event_log_info (hashcat_ctx, "");
-        }
-        else if (platform_skipped == 2)
-        {
-          event_log_info (hashcat_ctx, "OpenCL Platform #%u: %s, skipped! No OpenCL compatible devices found", platform_id + 1, platform_vendor);
-          event_log_info (hashcat_ctx, "");
-        }
-      }
-    }
-
-    if (platform_skipped == 1) continue;
-    if (platform_skipped == 2) continue;
+    if (platform_skipped == true) continue;
 
     hc_device_param_t *devices_param = opencl_ctx->devices_param;
 
@@ -2669,30 +2645,6 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         }
       }
 
-      // display results
-
-      if ((user_options->benchmark == true || user_options->speed_only == true || user_options->quiet == false))
-      {
-        if (user_options->machine_readable == false)
-        {
-          if (device_param->skipped == 0)
-          {
-            event_log_info (hashcat_ctx, "* Device #%u: %s, %lu/%lu MB allocatable, %uMCU",
-                      device_id + 1,
-                      device_name,
-                      (unsigned int) (device_maxmem_alloc / 1024 / 1024),
-                      (unsigned int) (device_global_mem   / 1024 / 1024),
-                      (unsigned int)  device_processors);
-          }
-          else
-          {
-            event_log_info (hashcat_ctx, "* Device #%u: %s, skipped",
-                      device_id + 1,
-                      device_name);
-          }
-        }
-      }
-
       // common driver check
 
       if (device_param->skipped == 0)
@@ -2767,14 +2719,6 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       // next please
 
       devices_cnt++;
-    }
-
-    if ((user_options->benchmark == true || user_options->speed_only == true || user_options->quiet == false))
-    {
-      if (user_options->machine_readable == false)
-      {
-        event_log_info (hashcat_ctx, "");
-      }
     }
   }
 
