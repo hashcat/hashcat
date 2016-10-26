@@ -683,7 +683,7 @@ char *status_get_time_started_absolute (const hashcat_ctx_t *hashcat_ctx)
   if (start[start_len - 1] == '\n') start[start_len - 1] = 0;
   if (start[start_len - 2] == '\r') start[start_len - 2] = 0;
 
-  return start;
+  return strdup (start);
 }
 
 char *status_get_time_started_relative (const hashcat_ctx_t *hashcat_ctx)
@@ -779,7 +779,7 @@ char *status_get_time_estimated_absolute (const hashcat_ctx_t *hashcat_ctx)
   if (etc[etc_len - 1] == '\n') etc[etc_len - 1] = 0;
   if (etc[etc_len - 2] == '\r') etc[etc_len - 2] = 0;
 
-  return etc;
+  return strdup (etc);
 }
 
 char *status_get_time_estimated_relative (const hashcat_ctx_t *hashcat_ctx)
