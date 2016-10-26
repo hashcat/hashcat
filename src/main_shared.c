@@ -76,7 +76,7 @@ int main ()
   {
     // this one actually starts the cracking
 
-    const int rc_run = hashcat_session_run (hashcat_ctx);
+    const int rc_run = hashcat_session_execute (hashcat_ctx);
 
     if (rc_run == 0)
     {
