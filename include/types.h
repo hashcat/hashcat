@@ -979,6 +979,7 @@ typedef struct dictstat_ctx
 typedef struct loopback_ctx
 {
   bool enabled;
+  bool unused;
 
   FILE *fp;
   char *filename;

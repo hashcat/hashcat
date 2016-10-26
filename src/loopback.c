@@ -111,6 +111,8 @@ int loopback_write_open (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
+  loopback_ctx->unused = true;
+
   return 0;
 }
 
@@ -134,6 +136,11 @@ void loopback_write_close (hashcat_ctx_t *hashcat_ctx)
   if (loopback_ctx->fp == NULL) return;
 
   fclose (loopback_ctx->fp);
+
+  if (loopback_ctx->unused == true)
+  {
+    loopback_write_unlink (hashcat_ctx);
+  }
 }
 
 void loopback_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *plain_ptr, const unsigned int plain_len)
@@ -149,4 +156,6 @@ void loopback_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *plain_ptr, con
   fwrite (EOL, strlen (EOL), 1, fp);
 
   fflush (fp);
+
+  loopback_ctx->unused = false;
 }
