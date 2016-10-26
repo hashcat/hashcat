@@ -155,7 +155,22 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 
       if (hashes->digests_shown[idx] == 1) continue;
 
-      if (hashconfig->hash_mode != 2500)
+      if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
+      {
+        if (hashconfig->hash_mode == 2500)
+        {
+          hccap_t hccap;
+
+          to_hccap_t (hashcat_ctx, &hccap, salt_pos, digest_pos);
+
+          fwrite (&hccap, sizeof (hccap_t), 1, fp);
+        }
+        else
+        {
+          // TODO
+        }
+      }
+      else
       {
         if (user_options->username == true)
         {
@@ -175,14 +190,6 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
         ascii_digest (hashcat_ctx, out_buf, salt_pos, digest_pos);
 
         fprintf (fp, "%s" EOL, out_buf);
-      }
-      else
-      {
-        hccap_t hccap;
-
-        to_hccap_t (hashcat_ctx, &hccap, salt_pos, digest_pos);
-
-        fwrite (&hccap, sizeof (hccap_t), 1, fp);
       }
     }
   }
@@ -440,11 +447,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
     hashlist_mode = (stat (hash_or_file, &f) == 0) ? HL_MODE_FILE : HL_MODE_ARG;
 
-    if ((hashconfig->hash_mode == 2500) ||
-        (hashconfig->hash_mode == 5200) ||
-        ((hashconfig->hash_mode >=  6200) && (hashconfig->hash_mode <=  6299)) ||
-        ((hashconfig->hash_mode >= 13700) && (hashconfig->hash_mode <= 13799)) ||
-        (hashconfig->hash_mode == 9000))
+    if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
     {
       hashlist_mode = HL_MODE_ARG;
 

@@ -393,10 +393,11 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->username == true)
   {
-    if  ((user_options->hash_mode == 2500)
-     ||  (user_options->hash_mode == 5200)
-     || ((user_options->hash_mode >= 6200)  && (user_options->hash_mode <= 6299))
-     || ((user_options->hash_mode >= 13700) && (user_options->hash_mode <= 13799)))
+    if  ((user_options->hash_mode ==  2500)
+     ||  (user_options->hash_mode ==  5200)
+     || ((user_options->hash_mode >=  6200) && (user_options->hash_mode <=  6299))
+     || ((user_options->hash_mode >= 13700) && (user_options->hash_mode <= 13799))
+     ||  (user_options->hash_mode ==  9000))
     {
       event_log_error (hashcat_ctx, "Mixing support for user names and hashes of type %s is not supported", strhashtype (user_options->hash_mode));
 
