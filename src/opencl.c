@@ -3458,7 +3458,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (cached == 0)
         {
           #if defined (DEBUG)
-          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
+          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
           #endif
 
           const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, 1, kernel_lengths, kernel_sources);
@@ -3500,7 +3500,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
           {
             device_param->skipped = true;
 
-            event_log_error (hashcat_ctx, "Device #%u: Kernel %s build failure. Proceeding without this device.", device_id + 1, source_file);
+            event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failure. Proceeding without this device.", device_id + 1, source_file);
 
             continue;
           }
@@ -3526,7 +3526,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         else
         {
           #if defined (DEBUG)
-          event_log_warning (hashcat_ctx, "Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
+          event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
           #endif
 
           const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, 1, kernel_lengths, kernel_sources);
@@ -3545,7 +3545,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       else
       {
         #if defined (DEBUG)
-        event_log_warning (hashcat_ctx, "Device #%u: Kernel %s (%ld bytes)", device_id + 1, source_file, sst.st_size);
+        event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s (%ld bytes)", device_id + 1, source_file, sst.st_size);
         #endif
 
         const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, 1, kernel_lengths, kernel_sources);
@@ -3602,7 +3602,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         {
           device_param->skipped = true;
 
-          event_log_error (hashcat_ctx, "Device #%u: Kernel %s build failure. Proceeding without this device.", device_id + 1, source_file);
+          event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failure. Proceeding without this device.", device_id + 1, source_file);
 
           continue;
         }
@@ -3664,7 +3664,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (cached == 0)
       {
         #if defined (DEBUG)
-        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
+        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
         #endif
 
         const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, 1, kernel_lengths, kernel_sources);
@@ -3706,7 +3706,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         {
           device_param->skipped = true;
 
-          event_log_error (hashcat_ctx, "Device #%u: Kernel %s build failure. Proceeding without this device.", device_id + 1, source_file);
+          event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failure. Proceeding without this device.", device_id + 1, source_file);
 
           continue;
         }
@@ -3730,7 +3730,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       else
       {
         #if defined (DEBUG)
-        event_log_warning (hashcat_ctx, "Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
+        event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
         #endif
 
         const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, 1, kernel_lengths, kernel_sources);
@@ -3806,7 +3806,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (cached == 0)
       {
         #if defined (DEBUG)
-        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
+        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
         #endif
 
         const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, 1, kernel_lengths, kernel_sources);
@@ -3848,7 +3848,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         {
           device_param->skipped = true;
 
-          event_log_error (hashcat_ctx, "Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
+          event_log_error (hashcat_ctx, "* Device #%u: Kernel %s build failure. Proceed without this device.", device_id + 1, source_file);
 
           continue;
         }
@@ -3872,7 +3872,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       else
       {
         #if defined (DEBUG)
-        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
+        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
         #endif
 
         const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, 1, kernel_lengths, kernel_sources);

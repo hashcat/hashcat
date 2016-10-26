@@ -8,6 +8,7 @@
 #include "event.h"
 #include "opencl.h"
 #include "status.h"
+#include "terminal.h"
 #include "autotune.h"
 
 static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kernel_accel, const u32 kernel_loops)
@@ -52,12 +53,19 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   u32 kernel_accel = kernel_accel_min;
   u32 kernel_loops = kernel_loops_min;
 
-  // in this case the user specified a fixed -u and -n on the commandline
+  // in this case the user specified a fixed -n and -u on the commandline
   // no way to tune anything
   // but we need to run a few caching rounds
 
-  if ((kernel_loops_min == kernel_loops_max) && (kernel_accel_min == kernel_accel_max))
+  if ((kernel_accel_min == kernel_accel_max) && (kernel_loops_min == kernel_loops_max))
   {
+    #if defined (DEBUG)
+
+    // don't do any autotune in debug mode in this case
+    // we're propably during kernel development
+
+    #else
+
     if (hashconfig->hash_mode != 2000)
     {
       try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
@@ -65,6 +73,8 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
       try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
     }
+
+    #endif
 
     device_param->kernel_accel = kernel_accel;
     device_param->kernel_loops = kernel_loops;
