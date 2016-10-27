@@ -342,17 +342,24 @@ int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
   if (argc ==    0) return 0;
   if (argv == NULL) return 0;
 
-  char *eff_restore_file = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (eff_restore_file);
-  char *new_restore_file = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (new_restore_file);
+  if (user_options->restore_file_path == NULL)
+  {
+    restore_ctx->eff_restore_file = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (restore_ctx->eff_restore_file);
+    restore_ctx->new_restore_file = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (restore_ctx->new_restore_file);
 
-  snprintf (eff_restore_file, HCBUFSIZ_TINY - 1, "%s/%s.restore",     folder_config->session_dir, user_options->session);
-  snprintf (new_restore_file, HCBUFSIZ_TINY - 1, "%s/%s.restore.new", folder_config->session_dir, user_options->session);
+    snprintf (restore_ctx->eff_restore_file, HCBUFSIZ_TINY - 1, "%s/%s.restore",     folder_config->session_dir, user_options->session);
+    snprintf (restore_ctx->new_restore_file, HCBUFSIZ_TINY - 1, "%s/%s.restore.new", folder_config->session_dir, user_options->session);
+  }
+  else
+  {
+    restore_ctx->eff_restore_file = hcstrdup(hashcat_ctx, user_options->restore_file_path); VERIFY_PTR(restore_ctx->eff_restore_file);
+    restore_ctx->new_restore_file = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (restore_ctx->new_restore_file);
+
+    snprintf (restore_ctx->new_restore_file, HCBUFSIZ_TINY - 1, "%s.new", user_options->restore_file_path);
+  }
 
   restore_ctx->argc = argc;
   restore_ctx->argv = argv;
-
-  restore_ctx->eff_restore_file = eff_restore_file;
-  restore_ctx->new_restore_file = new_restore_file;
 
   const int rc_init_restore = init_restore (hashcat_ctx);
 

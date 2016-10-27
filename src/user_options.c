@@ -76,6 +76,7 @@ static const struct option long_options[] =
   {"remove",                    no_argument,       0, IDX_REMOVE},
   {"remove-timer",              required_argument, 0, IDX_REMOVE_TIMER},
   {"restore-disable",           no_argument,       0, IDX_RESTORE_DISABLE},
+  {"restore-file-path",         required_argument, 0, IDX_RESTORE_FILE_PATH},
   {"restore",                   no_argument,       0, IDX_RESTORE},
   {"rule-left",                 required_argument, 0, IDX_RULE_BUF_L},
   {"rule-right",                required_argument, 0, IDX_RULE_BUF_R},
@@ -166,6 +167,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->remove                    = REMOVE;
   user_options->remove_timer              = REMOVE_TIMER;
   user_options->restore_disable           = RESTORE_DISABLE;
+  user_options->restore_file_path         = NULL;
   user_options->restore                   = RESTORE;
   user_options->restore_timer             = RESTORE_TIMER;
   user_options->rp_gen_func_max           = RP_GEN_FUNC_MAX;
@@ -251,6 +253,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_STDOUT_FLAG:               user_options->stdout_flag               = true;           break;
       case IDX_SPEED_ONLY:                user_options->speed_only                = true;           break;
       case IDX_RESTORE_DISABLE:           user_options->restore_disable           = true;           break;
+      case IDX_RESTORE_FILE_PATH:         user_options->restore_file_path         = optarg;         break;
       case IDX_STATUS:                    user_options->status                    = true;           break;
       case IDX_STATUS_TIMER:              user_options->status_timer              = atoi (optarg);  break;
       case IDX_MACHINE_READABLE:          user_options->machine_readable          = true;           break;
@@ -1223,6 +1226,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_string (user_options->outfile);
   logfile_top_string (user_options->outfile_check_dir);
   logfile_top_string (user_options->potfile_path);
+  logfile_top_string (user_options->restore_file_path);
   logfile_top_string (user_options->rp_files[0]);
   logfile_top_string (user_options->rule_buf_l);
   logfile_top_string (user_options->rule_buf_r);

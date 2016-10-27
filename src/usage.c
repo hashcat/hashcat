@@ -46,6 +46,7 @@ static const char *USAGE_BIG[] =
   "     --session                 | Str  | Define specific session name                         | --session=mysession",
   "     --restore                 |      | Restore session from --session                       |",
   "     --restore-disable         |      | Do not write restore file                            |",
+  "     --restore-file-path       | Dir  | Specific path to restore file                        | --restore-file-path=my.restore",
   " -o, --outfile                 | File | Define outfile for recovered hash                    | -o outfile.txt",
   "     --outfile-format          | Num  | Define outfile-format X for recovered hash           | --outfile-format=7",
   "     --outfile-autohex-disable |      | Disable the use of $HEX[] in output plains           |",

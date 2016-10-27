@@ -1200,6 +1200,7 @@ typedef struct user_options
   char  *outfile;
   char  *outfile_check_dir;
   char  *potfile_path;
+  char  *restore_file_path;
   char **rp_files;
   char  *rule_buf_l;
   char  *rule_buf_r;
