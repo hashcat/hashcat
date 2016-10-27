@@ -256,7 +256,9 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, u8 *
 
   if (potfile_ctx->enabled == false) return;
 
-  char tmp_buf[HCBUFSIZ_LARGE];
+  char *tmp_buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE);
+
+  if (!tmp_buf) return;
 
   int tmp_len = 0;
 
@@ -300,6 +302,8 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, u8 *
   tmp_buf[tmp_len] = 0;
 
   fprintf (potfile_ctx->fp, "%s" EOL, tmp_buf);
+
+  free (tmp_buf);
 }
 
 int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
