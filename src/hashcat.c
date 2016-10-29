@@ -179,7 +179,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     thread_param->hashcat_ctx = hashcat_ctx;
     thread_param->tid         = device_id;
 
-    hc_thread_create (c_threads[device_id], thread_autotune, thread_param);
+    hc_thread_create (c_threads[device_id], NULL, thread_autotune, thread_param);
   }
 
   hc_thread_wait (opencl_ctx->devices_cnt, c_threads);
@@ -230,14 +230,55 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     thread_param->hashcat_ctx = hashcat_ctx;
     thread_param->tid         = device_id;
 
+    #if defined (__APPLE__)
+    size_t stackSize;
+    pthread_attr_t tattr;
+    pthread_attr_t *attrp = NULL;
+
+    if (pthread_attr_init (&tattr) != 0)
+    {
+      event_log_error (hashcat_ctx, "Failed to initialize thread attributes");
+      return -1;
+    }
+
+    if (pthread_attr_getstacksize (&tattr, &stackSize) != 0)
+    {
+      event_log_error (hashcat_ctx, "Failed to get thread stack size");
+      return -1;
+    }
+
+    if (stackSize == 0) stackSize = PTHREAD_STACK_MIN;
+    stackSize *= 2; // mitigate OSX stack overflow
+
+    if (pthread_attr_setstacksize (&tattr, stackSize) != 0)
+    {
+      event_log_error (hashcat_ctx, "Failed to set thread stack size");
+      return -1;
+    }
+
+    attrp = &tattr;
+    #endif
+
     if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
     {
-      hc_thread_create (c_threads[device_id], thread_calc_stdin, thread_param);
+      #if defined (__APPLE__)
+      hc_thread_create (c_threads[device_id], attrp, thread_calc_stdin, thread_param);
+      #else
+      hc_thread_create (c_threads[device_id], NULL, thread_calc_stdin, thread_param);
+      #endif
     }
     else
     {
-      hc_thread_create (c_threads[device_id], thread_calc, thread_param);
+      #if defined (__APPLE__)
+      hc_thread_create (c_threads[device_id], attrp, thread_calc, thread_param);
+      #else
+      hc_thread_create (c_threads[device_id], NULL, thread_calc, thread_param);
+      #endif
     }
+
+    #if defined (__APPLE__)
+    if (attrp) pthread_attr_destroy (attrp);
+    #endif
   }
 
   hc_thread_wait (opencl_ctx->devices_cnt, c_threads);
@@ -665,13 +706,13 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->keyspace == false && user_options->benchmark == false && user_options->stdout_flag == false && user_options->speed_only == false)
   {
-    hc_thread_create (inner_threads[inner_threads_cnt], thread_monitor, hashcat_ctx);
+    hc_thread_create (inner_threads[inner_threads_cnt], NULL, thread_monitor, hashcat_ctx);
 
     inner_threads_cnt++;
 
     if (outcheck_ctx->enabled == true)
     {
-      hc_thread_create (inner_threads[inner_threads_cnt], thread_outfile_remove, hashcat_ctx);
+      hc_thread_create (inner_threads[inner_threads_cnt], NULL, thread_outfile_remove, hashcat_ctx);
 
       inner_threads_cnt++;
     }

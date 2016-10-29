@@ -170,7 +170,7 @@ static void main_outerloop_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
     {
       // see thread_keypress() how to access status information
 
-      hc_thread_create (hashcat_user->outer_threads[hashcat_user->outer_threads_cnt], thread_keypress, hashcat_ctx);
+      hc_thread_create (hashcat_user->outer_threads[hashcat_user->outer_threads_cnt], NULL, thread_keypress, hashcat_ctx);
 
       hashcat_user->outer_threads_cnt++;
     }

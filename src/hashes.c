@@ -231,9 +231,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   // hash
 
-  char *out_buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE);
-
-  if (!out_buf) return;
+  char out_buf[HCBUFSIZ_LARGE];
 
   out_buf[0] = 0;
 
@@ -277,8 +275,6 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
   char tmp_buf[HCBUFSIZ_LARGE];
 
   const int tmp_len = outfile_write (hashcat_ctx, out_buf, plain_ptr, plain_len, crackpos, NULL, 0, tmp_buf);
-
-  free (out_buf);
 
   outfile_write_close (hashcat_ctx);
 
