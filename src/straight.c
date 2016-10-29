@@ -69,18 +69,18 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
         logfile_sub_var_string ("rulefile", user_options->rp_files[i]);
       }
 
-      FILE *fd2 = fopen (straight_ctx->dict, "rb");
+      FILE *fd = fopen (straight_ctx->dict, "rb");
 
-      if (fd2 == NULL)
+      if (fd == NULL)
       {
         event_log_error (hashcat_ctx, "%s: %s", straight_ctx->dict, strerror (errno));
 
         return -1;
       }
 
-      status_ctx->words_cnt = count_words (hashcat_ctx, fd2, straight_ctx->dict);
+      status_ctx->words_cnt = count_words (hashcat_ctx, fd, straight_ctx->dict);
 
-      fclose (fd2);
+      fclose (fd);
 
       if (status_ctx->words_cnt == 0)
       {
@@ -97,33 +97,33 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
     if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      FILE *fd2 = fopen (combinator_ctx->dict1, "rb");
+      FILE *fd = fopen (combinator_ctx->dict1, "rb");
 
-      if (fd2 == NULL)
+      if (fd == NULL)
       {
         event_log_error (hashcat_ctx, "%s: %s", combinator_ctx->dict1, strerror (errno));
 
         return -1;
       }
 
-      status_ctx->words_cnt = count_words (hashcat_ctx, fd2, combinator_ctx->dict1);
+      status_ctx->words_cnt = count_words (hashcat_ctx, fd, combinator_ctx->dict1);
 
-      fclose (fd2);
+      fclose (fd);
     }
     else if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_RIGHT)
     {
-      FILE *fd2 = fopen (combinator_ctx->dict2, "rb");
+      FILE *fd = fopen (combinator_ctx->dict2, "rb");
 
-      if (fd2 == NULL)
+      if (fd == NULL)
       {
         event_log_error (hashcat_ctx, "%s: %s", combinator_ctx->dict2, strerror (errno));
 
         return -1;
       }
 
-      status_ctx->words_cnt = count_words (hashcat_ctx, fd2, combinator_ctx->dict2);
+      status_ctx->words_cnt = count_words (hashcat_ctx, fd, combinator_ctx->dict2);
 
-      fclose (fd2);
+      fclose (fd);
     }
 
     if (status_ctx->words_cnt == 0)
@@ -151,18 +151,18 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     logfile_sub_string (straight_ctx->dict);
     logfile_sub_string (mask_ctx->mask);
 
-    FILE *fd2 = fopen (straight_ctx->dict, "rb");
+    FILE *fd = fopen (straight_ctx->dict, "rb");
 
-    if (fd2 == NULL)
+    if (fd == NULL)
     {
       event_log_error (hashcat_ctx, "%s: %s", straight_ctx->dict, strerror (errno));
 
       return -1;
     }
 
-    status_ctx->words_cnt = count_words (hashcat_ctx, fd2, straight_ctx->dict);
+    status_ctx->words_cnt = count_words (hashcat_ctx, fd, straight_ctx->dict);
 
-    fclose (fd2);
+    fclose (fd);
 
     if (status_ctx->words_cnt == 0)
     {
