@@ -611,7 +611,7 @@ __kernel void m07100_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
 {
   const u32 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if ((gid * VECT_SIZE) >= gid_max) return;
 
   u64x ipad[8];
   u64x opad[8];

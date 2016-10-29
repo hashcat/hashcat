@@ -534,7 +534,7 @@ __kernel void m10900_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
 {
   const u32 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if ((gid * VECT_SIZE) >= gid_max) return;
 
   u32x ipad[8];
   u32x opad[8];

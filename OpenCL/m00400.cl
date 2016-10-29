@@ -318,7 +318,7 @@ __kernel void m00400_loop (__global pw_t *pws, __global kernel_rule_t *rules_buf
 
   const u32 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if ((gid * VECT_SIZE) >= gid_max) return;
 
   u32x w0[4];
   u32x w1[4];
