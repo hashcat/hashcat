@@ -427,7 +427,7 @@ char *status_get_input_base (const hashcat_ctx_t *hashcat_ctx)
   {
     const combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
 
-    if (combinator_ctx->combs_mode == INPUT_MODE_COMBINATOR_BASE_LEFT)
+    if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
       return combinator_ctx->dict1;
     }
@@ -470,7 +470,7 @@ char *status_get_input_mod (const hashcat_ctx_t *hashcat_ctx)
   {
     const combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
 
-    if (combinator_ctx->combs_mode == INPUT_MODE_COMBINATOR_BASE_LEFT)
+    if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
       return combinator_ctx->dict2;
     }
