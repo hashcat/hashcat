@@ -530,9 +530,7 @@ char *status_get_input_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
   const status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
-  if (status_ctx->devices_status == STATUS_INIT)     return NULL;
-  if (status_ctx->devices_status == STATUS_AUTOTUNE) return NULL;
-  if (status_ctx->devices_status == STATUS_AUTOTUNE) return NULL;
+  if (status_ctx->accessible == false) return NULL;
 
   hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
@@ -1247,7 +1245,7 @@ int status_get_cpt_cur_min (const hashcat_ctx_t *hashcat_ctx)
   const cpt_ctx_t    *cpt_ctx    = hashcat_ctx->cpt_ctx;
   const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
-  if (status_ctx->devices_status != STATUS_RUNNING) return 0;
+  if (status_ctx->accessible == false) return 0;
 
   const time_t now = time (NULL);
 
@@ -1272,7 +1270,7 @@ int status_get_cpt_cur_hour (const hashcat_ctx_t *hashcat_ctx)
   const cpt_ctx_t    *cpt_ctx    = hashcat_ctx->cpt_ctx;
   const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
-  if (status_ctx->devices_status != STATUS_RUNNING) return 0;
+  if (status_ctx->accessible == false) return 0;
 
   const time_t now = time (NULL);
 
@@ -1297,7 +1295,7 @@ int status_get_cpt_cur_day (const hashcat_ctx_t *hashcat_ctx)
   const cpt_ctx_t    *cpt_ctx    = hashcat_ctx->cpt_ctx;
   const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
-  if (status_ctx->devices_status != STATUS_RUNNING) return 0;
+  if (status_ctx->accessible == false) return 0;
 
   const time_t now = time (NULL);
 

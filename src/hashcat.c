@@ -223,6 +223,8 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->devices_status = STATUS_RUNNING;
 
+  status_ctx->accessible = true;
+
   for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     thread_param_t *thread_param = threads_param + device_id;
@@ -268,6 +270,8 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   time (&status_ctx->prepare_start);
 
   EVENT (EVENT_CRACKER_FINISHED);
+
+  status_ctx->accessible = false;
 
   // mark sub logfile
 
@@ -1169,28 +1173,7 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
 
   if (status_ctx == NULL) return -1; // ways too early
 
-  /*
-  if (status_ctx->devices_status == STATUS_INIT)
-  {
-    event_log_error (hashcat_ctx, "Status view is not available during initialization phase");
-
-    return -1;
-  }
-
-  if (status_ctx->devices_status == STATUS_AUTOTUNE)
-  {
-    event_log_error (hashcat_ctx, "Status view is not available during autotune phase");
-
-    return -1;
-  }
-
-  if (status_ctx->devices_status == STATUS_RUNNING)
-  {
-    event_log_error (hashcat_ctx, "Status view is not available during autotune phase");
-
-    return -1;
-  }
-  */
+  if (status_ctx->accessible == false) return -1; // either too early or too late
 
   hashcat_status->digests_cnt                 = status_get_digests_cnt                (hashcat_ctx);
   hashcat_status->digests_done                = status_get_digests_done               (hashcat_ctx);

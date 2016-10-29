@@ -1402,6 +1402,8 @@ typedef struct status_ctx
    * main status
    */
 
+  bool accessible;
+
   u32  devices_status;
 
   /**
