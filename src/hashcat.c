@@ -1014,10 +1014,6 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
   status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  // add all user options to logfile in case we want to debug some user session
-
-  user_options_logger (hashcat_ctx);
-
   // start logfile entry
 
   const time_t proc_start = time (NULL);
@@ -1025,6 +1021,10 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
   logfile_generate_topid (hashcat_ctx);
 
   logfile_top_msg ("START");
+
+  // add all user options to logfile in case we want to debug some user session
+
+  user_options_logger (hashcat_ctx);
 
   // read dictionary cache
 
