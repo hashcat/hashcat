@@ -37,23 +37,23 @@ typedef struct pdf
 
   int  enc_md;
 
-  u32 id_buf[8];
-  u32 u_buf[32];
-  u32 o_buf[32];
+  u32  id_buf[8];
+  u32  u_buf[32];
+  u32  o_buf[32];
 
   int  id_len;
   int  o_len;
   int  u_len;
 
-  u32 rc4key[2];
-  u32 rc4data[2];
+  u32  rc4key[2];
+  u32  rc4data[2];
 
 } pdf_t;
 
 typedef struct wpa
 {
-  u32 pke[25];
-  u32 eapol[64];
+  u32  pke[25];
+  u32  eapol[64];
   int  eapol_size;
   int  keyver;
   u8   orig_mac1[6];
@@ -1509,12 +1509,12 @@ void to_hccap_t (hashcat_ctx_t *hashcat_ctx, hccap_t *hccap, const u32 salt_pos,
 
 int  ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos, const u32 digest_pos);
 
-int     hashconfig_init                   (hashcat_ctx_t *hashcat_ctx);
-void    hashconfig_destroy                (hashcat_ctx_t *hashcat_ctx);
-u32     hashconfig_enforce_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param);
-u32     hashconfig_enforce_kernel_loops   (hashcat_ctx_t *hashcat_ctx);
-int     hashconfig_general_defaults       (hashcat_ctx_t *hashcat_ctx);
-void    hashconfig_benchmark_defaults     (hashcat_ctx_t *hashcat_ctx, salt_t *salt, void *esalt);
-char   *hashconfig_benchmark_mask         (hashcat_ctx_t *hashcat_ctx);
+int     hashconfig_init               (hashcat_ctx_t *hashcat_ctx);
+void    hashconfig_destroy            (hashcat_ctx_t *hashcat_ctx);
+u32     hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param);
+u32     hashconfig_get_kernel_loops   (hashcat_ctx_t *hashcat_ctx);
+int     hashconfig_general_defaults   (hashcat_ctx_t *hashcat_ctx);
+void    hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, void *esalt);
+char   *hashconfig_benchmark_mask     (hashcat_ctx_t *hashcat_ctx);
 
 #endif // _INTERFACE_H

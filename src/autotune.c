@@ -15,18 +15,20 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 {
   hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
-  const u32 kernel_power_try = device_param->device_processors * device_param->kernel_threads * kernel_accel;
-
   device_param->kernel_params_buf32[28] = 0;
   device_param->kernel_params_buf32[29] = kernel_loops; // not a bug, both need to be set
   device_param->kernel_params_buf32[30] = kernel_loops; // because there's two variables for inner iters for slow and fast hashes
 
   if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
+    const u32 kernel_power_try = device_param->device_processors * device_param->kernel_threads_by_wgs_kernel1 * kernel_accel;
+
     run_kernel (hashcat_ctx, device_param, KERN_RUN_1, kernel_power_try, true, 0);
   }
   else
   {
+    const u32 kernel_power_try = device_param->device_processors * device_param->kernel_threads_by_wgs_kernel2 * kernel_accel;
+
     run_kernel (hashcat_ctx, device_param, KERN_RUN_2, kernel_power_try, true, 0);
   }
 
@@ -79,7 +81,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     device_param->kernel_accel = kernel_accel;
     device_param->kernel_loops = kernel_loops;
 
-    const u32 kernel_power = device_param->device_processors * device_param->kernel_threads * device_param->kernel_accel;
+    const u32 kernel_power = device_param->device_processors * device_param->kernel_threads_by_user * device_param->kernel_accel;
 
     device_param->kernel_power = kernel_power;
 
@@ -89,7 +91,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   // from here it's clear we are allowed to autotune
   // so let's init some fake words
 
-  const u32 kernel_power_max = device_param->device_processors * device_param->kernel_threads * kernel_accel_max;
+  const u32 kernel_power_max = device_param->device_processors * device_param->kernel_threads_by_user * kernel_accel_max;
 
   int CL_rc;
 
@@ -283,7 +285,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   device_param->kernel_accel = kernel_accel;
   device_param->kernel_loops = kernel_loops;
 
-  const u32 kernel_power = device_param->device_processors * device_param->kernel_threads * device_param->kernel_accel;
+  const u32 kernel_power = device_param->device_processors * device_param->kernel_threads_by_user * device_param->kernel_accel;
 
   device_param->kernel_power = kernel_power;
 

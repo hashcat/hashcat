@@ -13120,8 +13120,8 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
   }
 
   u32 isSalted = ((hashconfig->salt_type == SALT_TYPE_INTERN)
-                |  (hashconfig->salt_type == SALT_TYPE_EXTERN)
-                |  (hashconfig->salt_type == SALT_TYPE_EMBEDDED));
+               |  (hashconfig->salt_type == SALT_TYPE_EXTERN)
+               |  (hashconfig->salt_type == SALT_TYPE_EMBEDDED));
 
   salt_t salt;
 
@@ -13200,7 +13200,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
   //
 
   u32 out_buf_plain[256] = { 0 };
-  u32 out_buf_salt[256] = { 0 };
+  u32 out_buf_salt[256]  = { 0 };
 
   char tmp_buf[1024] = { 0 };
 
@@ -19908,9 +19908,9 @@ void hashconfig_destroy (hashcat_ctx_t *hashcat_ctx)
   memset (hashconfig, 0, sizeof (hashconfig_t));
 }
 
-u32 hashconfig_enforce_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param)
+u32 hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param)
 {
-  hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
   u32 kernel_threads = MIN (KERNEL_THREADS_MAX, device_param->device_maxworkgroup_size);
 
@@ -19943,10 +19943,10 @@ u32 hashconfig_enforce_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_devi
   return kernel_threads;
 }
 
-u32 hashconfig_enforce_kernel_loops (hashcat_ctx_t *hashcat_ctx)
+u32 hashconfig_get_kernel_loops (hashcat_ctx_t *hashcat_ctx)
 {
-  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
-  user_options_t *user_options = hashcat_ctx->user_options;
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  const user_options_t *user_options = hashcat_ctx->user_options;
 
   u32 kernel_loops_fixed = 0;
 
@@ -19990,9 +19990,9 @@ u32 hashconfig_enforce_kernel_loops (hashcat_ctx_t *hashcat_ctx)
 
 int hashconfig_general_defaults (hashcat_ctx_t *hashcat_ctx)
 {
-  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
-  hashes_t       *hashes       = hashcat_ctx->hashes;
-  user_options_t *user_options = hashcat_ctx->user_options;
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  const hashes_t       *hashes       = hashcat_ctx->hashes;
+  const user_options_t *user_options = hashcat_ctx->user_options;
 
   salt_t *salts_buf  = hashes->salts_buf;
   void   *esalts_buf = hashes->esalts_buf;
@@ -20154,61 +20154,61 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
 
     switch (hashconfig->hash_mode)
     {
-      case  2500: ((wpa_t *)     esalt)->eapol_size   = 128;
+      case  2500: ((wpa_t *)        esalt)->eapol_size    = 128;
                   break;
-      case  5300: ((ikepsk_t *)  esalt)->nr_len       = 1;
-                  ((ikepsk_t *)  esalt)->msg_len      = 1;
+      case  5300: ((ikepsk_t *)     esalt)->nr_len        = 1;
+                  ((ikepsk_t *)     esalt)->msg_len       = 1;
                   break;
-      case  5400: ((ikepsk_t *)  esalt)->nr_len       = 1;
-                  ((ikepsk_t *)  esalt)->msg_len      = 1;
+      case  5400: ((ikepsk_t *)     esalt)->nr_len        = 1;
+                  ((ikepsk_t *)     esalt)->msg_len       = 1;
                   break;
-      case  5500: ((netntlm_t *) esalt)->user_len     = 1;
-                  ((netntlm_t *) esalt)->domain_len   = 1;
-                  ((netntlm_t *) esalt)->srvchall_len = 1;
-                  ((netntlm_t *) esalt)->clichall_len = 1;
+      case  5500: ((netntlm_t *)    esalt)->user_len      = 1;
+                  ((netntlm_t *)    esalt)->domain_len    = 1;
+                  ((netntlm_t *)    esalt)->srvchall_len  = 1;
+                  ((netntlm_t *)    esalt)->clichall_len  = 1;
                   break;
-      case  5600: ((netntlm_t *) esalt)->user_len     = 1;
-                  ((netntlm_t *) esalt)->domain_len   = 1;
-                  ((netntlm_t *) esalt)->srvchall_len = 1;
-                  ((netntlm_t *) esalt)->clichall_len = 1;
+      case  5600: ((netntlm_t *)    esalt)->user_len      = 1;
+                  ((netntlm_t *)    esalt)->domain_len    = 1;
+                  ((netntlm_t *)    esalt)->srvchall_len  = 1;
+                  ((netntlm_t *)    esalt)->clichall_len  = 1;
                   break;
-      case  7300: ((rakp_t *)    esalt)->salt_len     = 32;
+      case  7300: ((rakp_t *)       esalt)->salt_len      = 32;
                   break;
-      case 10400: ((pdf_t *)     esalt)->id_len       = 16;
-                  ((pdf_t *)     esalt)->o_len        = 32;
-                  ((pdf_t *)     esalt)->u_len        = 32;
+      case 10400: ((pdf_t *)        esalt)->id_len        = 16;
+                  ((pdf_t *)        esalt)->o_len         = 32;
+                  ((pdf_t *)        esalt)->u_len         = 32;
                   break;
-      case 10410: ((pdf_t *)     esalt)->id_len       = 16;
-                  ((pdf_t *)     esalt)->o_len        = 32;
-                  ((pdf_t *)     esalt)->u_len        = 32;
+      case 10410: ((pdf_t *)        esalt)->id_len        = 16;
+                  ((pdf_t *)        esalt)->o_len         = 32;
+                  ((pdf_t *)        esalt)->u_len         = 32;
                   break;
-      case 10420: ((pdf_t *)     esalt)->id_len       = 16;
-                  ((pdf_t *)     esalt)->o_len        = 32;
-                  ((pdf_t *)     esalt)->u_len        = 32;
+      case 10420: ((pdf_t *)        esalt)->id_len        = 16;
+                  ((pdf_t *)        esalt)->o_len         = 32;
+                  ((pdf_t *)        esalt)->u_len         = 32;
                   break;
-      case 10500: ((pdf_t *)     esalt)->id_len       = 16;
-                  ((pdf_t *)     esalt)->o_len        = 32;
-                  ((pdf_t *)     esalt)->u_len        = 32;
+      case 10500: ((pdf_t *)        esalt)->id_len        = 16;
+                  ((pdf_t *)        esalt)->o_len         = 32;
+                  ((pdf_t *)        esalt)->u_len         = 32;
                   break;
-      case 10600: ((pdf_t *)     esalt)->id_len       = 16;
-                  ((pdf_t *)     esalt)->o_len        = 127;
-                  ((pdf_t *)     esalt)->u_len        = 127;
+      case 10600: ((pdf_t *)        esalt)->id_len        = 16;
+                  ((pdf_t *)        esalt)->o_len         = 127;
+                  ((pdf_t *)        esalt)->u_len         = 127;
                   break;
-      case 10700: ((pdf_t *)     esalt)->id_len       = 16;
-                  ((pdf_t *)     esalt)->o_len        = 127;
-                  ((pdf_t *)     esalt)->u_len        = 127;
+      case 10700: ((pdf_t *)        esalt)->id_len        = 16;
+                  ((pdf_t *)        esalt)->o_len         = 127;
+                  ((pdf_t *)        esalt)->u_len         = 127;
                   break;
-      case 11600: ((seven_zip_t *) esalt)->iv_len      = 16;
-                  ((seven_zip_t *) esalt)->data_len    = 112;
-                  ((seven_zip_t *) esalt)->unpack_size = 112;
+      case 11600: ((seven_zip_t *)  esalt)->iv_len        = 16;
+                  ((seven_zip_t *)  esalt)->data_len      = 112;
+                  ((seven_zip_t *)  esalt)->unpack_size   = 112;
                   break;
-      case 13400: ((keepass_t *) esalt)->version      = 2;
+      case 13400: ((keepass_t *)    esalt)->version       = 2;
                   break;
-      case 13500: ((pstoken_t *) esalt)->salt_len     = 113;
+      case 13500: ((pstoken_t *)    esalt)->salt_len      = 113;
                   break;
-      case 13600: ((zip2_t *)    esalt)->salt_len     = 16;
-                  ((zip2_t *)    esalt)->data_len     = 32;
-                  ((zip2_t *)    esalt)->mode         = 3;
+      case 13600: ((zip2_t *)       esalt)->salt_len      = 16;
+                  ((zip2_t *)       esalt)->data_len      = 32;
+                  ((zip2_t *)       esalt)->mode          = 3;
                   break;
     }
   }

@@ -663,8 +663,8 @@ typedef struct wordr
 
 typedef struct hc_device_param
 {
-  cl_device_id      device;
-  cl_device_type    device_type;
+  cl_device_id    device;
+  cl_device_type  device_type;
 
   u32     device_id;
   u32     platform_devices_id;   // for mapping with hms devices
@@ -683,7 +683,20 @@ typedef struct hc_device_param
 
   u32     vector_width;
 
-  u32     kernel_threads;
+  u32     kernel_threads_by_user;
+
+  u32     kernel_threads_by_wgs_kernel1;
+  u32     kernel_threads_by_wgs_kernel12;
+  u32     kernel_threads_by_wgs_kernel2;
+  u32     kernel_threads_by_wgs_kernel23;
+  u32     kernel_threads_by_wgs_kernel3;
+  u32     kernel_threads_by_wgs_kernel_mp;
+  u32     kernel_threads_by_wgs_kernel_mp_l;
+  u32     kernel_threads_by_wgs_kernel_mp_r;
+  u32     kernel_threads_by_wgs_kernel_amp;
+  u32     kernel_threads_by_wgs_kernel_tm;
+  u32     kernel_threads_by_wgs_kernel_memset;
+
   u32     kernel_loops;
   u32     kernel_accel;
   u32     kernel_loops_min;
@@ -770,7 +783,6 @@ typedef struct hc_device_param
   cl_kernel  kernel_mp_r;
   cl_kernel  kernel_amp;
   cl_kernel  kernel_tm;
-  cl_kernel  kernel_weak;
   cl_kernel  kernel_memset;
 
   cl_context context;
