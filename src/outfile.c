@@ -190,6 +190,8 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
     }
   }
 
+  plain_ptr[plain_len] = 0;
+
   *out_len = plain_len;
 
   return 0;
@@ -197,13 +199,13 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
 int build_crackpos (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u64 *out_pos)
 {
-  combinator_ctx_t      *combinator_ctx     = hashcat_ctx->combinator_ctx;
-  mask_ctx_t            *mask_ctx           = hashcat_ctx->mask_ctx;
-  straight_ctx_t        *straight_ctx       = hashcat_ctx->straight_ctx;
-  user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
+  const combinator_ctx_t      *combinator_ctx     = hashcat_ctx->combinator_ctx;
+  const mask_ctx_t            *mask_ctx           = hashcat_ctx->mask_ctx;
+  const straight_ctx_t        *straight_ctx       = hashcat_ctx->straight_ctx;
+  const user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
 
-  const u32 gidvid      = plain->gidvid;
-  const u32 il_pos      = plain->il_pos;
+  const u32 gidvid = plain->gidvid;
+  const u32 il_pos = plain->il_pos;
 
   u64 crackpos = device_param->words_off;
 
@@ -233,12 +235,12 @@ int build_crackpos (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
 int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u8 *debug_rule_buf, int *debug_rule_len, u8 *debug_plain_ptr, int *debug_plain_len)
 {
-  debugfile_ctx_t       *debugfile_ctx      = hashcat_ctx->debugfile_ctx;
-  straight_ctx_t        *straight_ctx       = hashcat_ctx->straight_ctx;
-  user_options_t        *user_options       = hashcat_ctx->user_options;
+  const debugfile_ctx_t *debugfile_ctx = hashcat_ctx->debugfile_ctx;
+  const straight_ctx_t  *straight_ctx  = hashcat_ctx->straight_ctx;
+  const user_options_t  *user_options  = hashcat_ctx->user_options;
 
-  const u32 gidvid      = plain->gidvid;
-  const u32 il_pos      = plain->il_pos;
+  const u32 gidvid = plain->gidvid;
+  const u32 il_pos = plain->il_pos;
 
   if (user_options->attack_mode != ATTACK_MODE_STRAIGHT) return 0;
 
@@ -259,13 +261,19 @@ int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   // save rule
   if ((debug_mode == 1) || (debug_mode == 3) || (debug_mode == 4))
   {
-    *debug_rule_len = kernel_rule_to_cpu_rule ((char *) debug_rule_buf, &straight_ctx->kernel_rules_buf[off]);
+    const int len = kernel_rule_to_cpu_rule ((char *) debug_rule_buf, &straight_ctx->kernel_rules_buf[off]);
+
+    debug_rule_buf[len] = 0;
+
+    *debug_rule_len = len;
   }
 
   // save plain
   if ((debug_mode == 2) || (debug_mode == 3) || (debug_mode == 4))
   {
     memcpy (debug_plain_ptr, (char *) pw.i, (size_t) plain_len);
+
+    debug_plain_ptr[plain_len] = 0;
 
     *debug_plain_len = plain_len;
   }
