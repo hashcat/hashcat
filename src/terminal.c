@@ -826,8 +826,9 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         hashcat_status->input_base);
 
       event_log_info (hashcat_ctx,
-        "Input.Mod......: Mask (%s), Right Side",
-        hashcat_status->input_mod);
+        "Input.Mod......: Mask (%s) [%d], Right Side",
+        hashcat_status->input_mod,
+        hashcat_status->input_mask_length);
 
       break;
 
@@ -838,8 +839,9 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         hashcat_status->input_base);
 
       event_log_info (hashcat_ctx,
-        "Input.Mod......: Mask (%s), Right Side",
-        hashcat_status->input_mod);
+        "Input.Mod......: Mask (%s) [%d], Right Side",
+        hashcat_status->input_mod,
+        hashcat_status->input_mask_length);
 
       event_log_info (hashcat_ctx,
         "Input.Charset..: %s",
@@ -854,8 +856,9 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         hashcat_status->input_base);
 
       event_log_info (hashcat_ctx,
-        "Input.Mod......: Mask (%s), Left Side",
-        hashcat_status->input_mod);
+        "Input.Mod......: Mask (%s) [%d], Left Side",
+        hashcat_status->input_mod,
+        hashcat_status->input_mask_length);
 
       break;
 
@@ -866,8 +869,9 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         hashcat_status->input_base);
 
       event_log_info (hashcat_ctx,
-        "Input.Mod......: Mask (%s), Left Side",
-        hashcat_status->input_mod);
+        "Input.Mod......: Mask (%s) [%d], Left Side",
+        hashcat_status->input_mod,
+        hashcat_status->input_mask_length);
 
       event_log_info (hashcat_ctx,
         "Input.Charset..: %s",
