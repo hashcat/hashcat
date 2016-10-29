@@ -234,7 +234,7 @@ NVidia users require NVidia drivers 346.59 or later (recommended 367.27 or later
 ##
 
 - GPU
-- CPU 
+- CPU
 - APU
 - DSP
 - FPGA
