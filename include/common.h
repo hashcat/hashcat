@@ -67,7 +67,7 @@ but this is nededed for VS compiler which doesn't have inline keyword but has __
 #define PW_DICTMAX          31
 #define PW_DICTMAX1         (PW_DICTMAX + 1)
 
-#define HCBUFSIZ_TINY       0x100
+#define HCBUFSIZ_TINY       0x1000
 #define HCBUFSIZ_LARGE      0x50000
 
 #define CPT_CACHE           0x20000
