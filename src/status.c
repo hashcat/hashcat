@@ -585,6 +585,9 @@ char *status_get_input_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
   }
   else
   {
+    plain_ptr1[plain_len1] = 0;
+    plain_ptr2[plain_len2] = 0;
+
     snprintf (display, HCBUFSIZ_TINY - 1, "%s -> %s", plain_ptr1, plain_ptr2);
   }
 
