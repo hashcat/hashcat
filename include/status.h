@@ -26,6 +26,7 @@ int     status_get_input_mode                 (const hashcat_ctx_t *hashcat_ctx)
 char   *status_get_input_base                 (const hashcat_ctx_t *hashcat_ctx);
 char   *status_get_input_mod                  (const hashcat_ctx_t *hashcat_ctx);
 char   *status_get_input_charset              (const hashcat_ctx_t *hashcat_ctx);
+int     status_get_input_mask_length          (const hashcat_ctx_t *hashcat_ctx);
 char   *status_get_input_candidates_dev       (const hashcat_ctx_t *hashcat_ctx, const int device_id);
 char   *status_get_hash_type                  (const hashcat_ctx_t *hashcat_ctx);
 char   *status_get_hash_target                (const hashcat_ctx_t *hashcat_ctx);

@@ -1568,9 +1568,11 @@ typedef struct
 {
   char   *hash_target;
   char   *hash_type;
+  int     input_mode;
   char   *input_base;
   char   *input_charset;
   char   *input_mod;
+  int     input_mask_length;
   char   *session;
   char   *status_string;
   int     status_number;
@@ -1584,7 +1586,6 @@ typedef struct
   int     digests_cnt;
   int     digests_done;
   double  digests_percent;
-  int     input_mode;
   int     salts_cnt;
   int     salts_done;
   double  salts_percent;

@@ -800,19 +800,21 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     case INPUT_MODE_MASK:
 
       event_log_info (hashcat_ctx,
-        "Input.Mask.....: %s",
-        hashcat_status->input_base);
+        "Input.Mask.....: %s [%d]",
+        hashcat_status->input_base,
+        hashcat_status->input_mask_length);
 
       break;
 
     case INPUT_MODE_MASK_CS:
 
       event_log_info (hashcat_ctx,
-        "Input.Mask.....: %s",
-        hashcat_status->input_base);
+        "Input.Mask.....: %s [%d]",
+        hashcat_status->input_base,
+        hashcat_status->input_mask_length);
 
       event_log_info (hashcat_ctx,
-        "Input.Charset..: %s",
+        "Input.Charset..: %s ",
         hashcat_status->input_charset);
 
       break;

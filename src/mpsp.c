@@ -30,22 +30,6 @@ static int sp_comp_val (const void *p1, const void *p2)
   return b2->val - b1->val;
 }
 
-static u32 mp_get_length (char *mask)
-{
-  u32 len = 0;
-
-  u32 mask_len = strlen (mask);
-
-  for (u32 i = 0; i < mask_len; i++)
-  {
-    if (mask[i] == '?') i++;
-
-    len++;
-  }
-
-  return len;
-}
-
 static void mp_css_split_cnt (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_orig, u32 css_cnt_lr[2])
 {
   const mask_ctx_t   *mask_ctx   = hashcat_ctx->mask_ctx;
@@ -945,6 +929,22 @@ static int mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask)
   }
 
   return 0;
+}
+
+u32 mp_get_length (char *mask)
+{
+  u32 len = 0;
+
+  u32 mask_len = strlen (mask);
+
+  for (u32 i = 0; i < mask_len; i++)
+  {
+    if (mask[i] == '?') i++;
+
+    len++;
+  }
+
+  return len;
 }
 
 int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)

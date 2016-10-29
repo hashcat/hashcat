@@ -1182,6 +1182,7 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
   hashcat_status->hash_type                   = status_get_hash_type                  (hashcat_ctx);
   hashcat_status->input_base                  = status_get_input_base                 (hashcat_ctx);
   hashcat_status->input_charset               = status_get_input_charset              (hashcat_ctx);
+  hashcat_status->input_mask_length           = status_get_input_mask_length          (hashcat_ctx);
   hashcat_status->input_mode                  = status_get_input_mode                 (hashcat_ctx);
   hashcat_status->input_mod                   = status_get_input_mod                  (hashcat_ctx);
   hashcat_status->msec_paused                 = status_get_msec_paused                (hashcat_ctx);
