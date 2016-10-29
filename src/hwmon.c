@@ -546,9 +546,9 @@ static int nvapi_init (hashcat_ctx_t *hashcat_ctx)
   memset (nvapi, 0, sizeof (NVAPI_PTR));
 
   #if defined (_WIN)
-  #if   defined (WIN64)
+  #if defined (_WIN64)
   nvapi->lib = hc_dlopen ("nvapi64.dll");
-  #elif defined (WIN32)
+  #else
   nvapi->lib = hc_dlopen ("nvapi.dll");
   #endif
   #else
@@ -571,7 +571,6 @@ static int nvapi_init (hashcat_ctx_t *hashcat_ctx)
   HC_LOAD_ADDR(nvapi, NvAPI_GPU_GetPerfPoliciesInfo,    NVAPI_GPU_GETPERFPOLICIESINFO,    nvapi_QueryInterface, 0x409D9841, NVAPI, 0)
   HC_LOAD_ADDR(nvapi, NvAPI_GPU_GetPerfPoliciesStatus,  NVAPI_GPU_GETPERFPOLICIESSTATUS,  nvapi_QueryInterface, 0x3D358A0C, NVAPI, 0)
   HC_LOAD_ADDR(nvapi, NvAPI_GPU_SetCoolerLevels,        NVAPI_GPU_SETCOOLERLEVELS,        nvapi_QueryInterface, 0x891FA0AE, NVAPI, 0)
-  HC_LOAD_ADDR(nvapi, NvAPI_GPU_RestoreCoolerSettings,  NVAPI_GPU_RESTORECOOLERSETTINGS,  nvapi_QueryInterface, 0x8F6ED0FB, NVAPI, 0)
 
   return 0;
 }
@@ -723,28 +722,6 @@ static int hm_NvAPI_GPU_SetCoolerLevels (hashcat_ctx_t *hashcat_ctx, NvPhysicalG
     hm_NvAPI_GetErrorMessage (nvapi, NvAPI_rc, string);
 
     event_log_error (hashcat_ctx, "NvAPI_GPU_SetCoolerLevels(): %s", string);
-
-    return -1;
-  }
-
-  return 0;
-}
-
-static int hm_NvAPI_GPU_RestoreCoolerSettings (hashcat_ctx_t *hashcat_ctx, NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex)
-{
-  hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
-
-  NVAPI_PTR *nvapi = hwmon_ctx->hm_nvapi;
-
-  const NvAPI_Status NvAPI_rc = nvapi->NvAPI_GPU_RestoreCoolerSettings (hPhysicalGpu, coolerIndex);
-
-  if (NvAPI_rc != NVAPI_OK)
-  {
-    NvAPI_ShortString string = { 0 };
-
-    hm_NvAPI_GetErrorMessage (nvapi, NvAPI_rc, string);
-
-    event_log_error (hashcat_ctx, "NvAPI_GPU_RestoreCoolerSettings(): %s", string);
 
     return -1;
   }
@@ -1870,7 +1847,7 @@ static int hm_get_adapter_index_nvapi (hashcat_ctx_t *hashcat_ctx, HM_ADAPTER_NV
 {
   NvU32 pGpuCount;
 
-  if (hm_NvAPI_EnumPhysicalGPUs (hashcat_ctx, nvapiGPUHandle, &pGpuCount) != NVAPI_OK) return 0;
+  if (hm_NvAPI_EnumPhysicalGPUs (hashcat_ctx, nvapiGPUHandle, &pGpuCount) == -1) return 0;
 
   if (pGpuCount == 0)
   {
@@ -2655,13 +2632,22 @@ int hm_set_fanspeed_with_device_id_nvapi (hashcat_ctx_t *hashcat_ctx, const u32 
         CoolerLevels.Levels[0].Level  = fanspeed;
         CoolerLevels.Levels[0].Policy = 1;
 
-        if (hm_NvAPI_GPU_SetCoolerLevels (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvapi, 0, &CoolerLevels) != NVAPI_OK) return -1;
+        if (hm_NvAPI_GPU_SetCoolerLevels (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvapi, 0, &CoolerLevels) == -1) return -1;
 
         return 0;
       }
       else
       {
-        if (hm_NvAPI_GPU_RestoreCoolerSettings (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvapi, 0) != NVAPI_OK) return -1;
+        NV_GPU_COOLER_LEVELS CoolerLevels;
+
+        memset (&CoolerLevels, 0, sizeof (NV_GPU_COOLER_LEVELS));
+
+        CoolerLevels.Version = GPU_COOLER_LEVELS_VER | sizeof (NV_GPU_COOLER_LEVELS);
+
+        CoolerLevels.Levels[0].Level  = 100;
+        CoolerLevels.Levels[0].Policy = 0x20;
+
+        if (hm_NvAPI_GPU_SetCoolerLevels (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvapi, 0, &CoolerLevels) == -1) return -1;
 
         return 0;
       }
@@ -3250,7 +3236,7 @@ void hwmon_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
           }
         }
 
-        if (rc == -1) event_log_error (hashcat_ctx, "Failed to restore default fan speed and policy for device #%", device_id + 1);
+        if (rc == -1) event_log_error (hashcat_ctx, "Failed to restore default fan speed and policy for device #%u", device_id + 1);
       }
     }
   }
