@@ -18,8 +18,6 @@
 #include "event.h"
 #endif
 
-static const char SLASH[] = "/";
-
 int sort_by_stringptr (const void *p1, const void *p2)
 {
   const char **s1 = (const char **) p1;
@@ -76,7 +74,7 @@ static int get_exec_path (char *exec_path, const size_t exec_path_sz)
   return 0;
 }
 
-void get_install_dir (char *install_dir, const char *exec_path)
+static void get_install_dir (char *install_dir, const char *exec_path)
 {
   strncpy (install_dir, exec_path, HCBUFSIZ_TINY - 1);
 
@@ -97,12 +95,12 @@ void get_install_dir (char *install_dir, const char *exec_path)
   }
 }
 
-void get_profile_dir (char *profile_dir, const char *home_dir)
+static void get_profile_dir (char *profile_dir, const char *home_dir)
 {
   snprintf (profile_dir, HCBUFSIZ_TINY - 1, "%s/%s", home_dir, DOT_HASHCAT);
 }
 
-void get_session_dir (char *session_dir, const char *profile_dir)
+static void get_session_dir (char *session_dir, const char *profile_dir)
 {
   snprintf (session_dir, HCBUFSIZ_TINY - 1, "%s/%s", profile_dir, SESSIONS_FOLDER);
 }
@@ -249,6 +247,8 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   }
 
   #if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
+
+  static const char SLASH[] = "/";
 
   if (install_folder == NULL) install_folder = SLASH; // makes library use easier
 

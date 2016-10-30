@@ -781,7 +781,7 @@ static void main_hashlist_sort_salt_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ct
   event_log_info_nn (hashcat_ctx, "Sorted salts...");
 }
 
-void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   switch (id)
   {

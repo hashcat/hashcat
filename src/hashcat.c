@@ -23,6 +23,7 @@
 
 #include "affinity.h"
 #include "autotune.h"
+#include "benchmark.h"
 #include "bitmap.h"
 #include "combinator.h"
 #include "cpt.h"
@@ -30,6 +31,7 @@
 #include "dictstat.h"
 #include "dispatch.h"
 #include "event.h"
+#include "hashcat.h"
 #include "hashes.h"
 #include "hwmon.h"
 #include "induct.h"
@@ -51,9 +53,6 @@
 #include "user_options.h"
 #include "weak_hash.h"
 #include "wordlist.h"
-
-extern const u32 DEFAULT_BENCHMARK_ALGORITHMS_CNT;
-extern const u32 DEFAULT_BENCHMARK_ALGORITHMS_BUF[];
 
 // inner2_loop iterates through wordlists, then calls kernel execution
 

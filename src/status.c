@@ -935,8 +935,6 @@ int status_get_progress_mode (const hashcat_ctx_t *hashcat_ctx)
   {
     return PROGRESS_MODE_KEYSPACE_UNKNOWN;
   }
-
-  return PROGRESS_MODE_NONE;
 }
 
 double status_get_progress_finished_percent (const hashcat_ctx_t *hashcat_ctx)
