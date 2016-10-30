@@ -441,7 +441,12 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
     const int rc_wl_data_init = wl_data_init (hashcat_ctx_tmp);
 
-    if (rc_wl_data_init == -1) return -1;
+    if (rc_wl_data_init == -1)
+    {
+      fclose (fd);
+
+      return -1;
+    }
 
     u64 words_cur = 0;
 

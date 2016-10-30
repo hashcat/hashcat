@@ -33,14 +33,14 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
 
   const size_t nread = fread (rd, sizeof (restore_data_t), 1, fp);
 
+  fclose (fp);
+
   if (nread != 1)
   {
     event_log_error (hashcat_ctx, "Cannot read %s", eff_restore_file);
 
     return -1;
   }
-
-  fclose (fp);
 
   if (rd->pid)
   {
@@ -175,6 +175,8 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
   {
     event_log_error (hashcat_ctx, "Can't read %s", eff_restore_file);
 
+    fclose (fp);
+
     return -1;
   }
 
@@ -187,6 +189,8 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
     if (fgets (buf, HCBUFSIZ_LARGE - 1, fp) == NULL)
     {
       event_log_error (hashcat_ctx, "Can't read %s", eff_restore_file);
+
+      fclose (fp);
 
       return -1;
     }
@@ -247,6 +251,8 @@ static int write_restore (hashcat_ctx_t *hashcat_ctx)
   if (setvbuf (fp, NULL, _IONBF, 0))
   {
     event_log_error (hashcat_ctx, "setvbuf file '%s': %s", new_restore_file, strerror (errno));
+
+    fclose (fp);
 
     return -1;
   }
