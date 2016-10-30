@@ -135,9 +135,9 @@ endif # FreeBSD
 ifeq ($(UNAME),Darwin)
 export MACOSX_DEPLOYMENT_TARGET=10.9
 CFLAGS_NATIVE           := $(CFLAGS)
-CFLAGS_NATIVE           += -framework OpenCL
 CFLAGS_NATIVE           += -march=native
 LFLAGS_NATIVE           := $(LFLAGS)
+LFLAGS_NATIVE           += -framework OpenCL
 LFLAGS_NATIVE           += -lpthread
 endif # Darwin
 
