@@ -273,7 +273,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   outfile_write_open (hashcat_ctx);
 
-  u8 *tmp_buf = hashes->out_buf;
+  u8 *tmp_buf = hashes->tmp_buf;
 
   tmp_buf[0] = 0;
 
