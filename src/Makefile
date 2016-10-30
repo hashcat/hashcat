@@ -98,7 +98,17 @@ BINARY_NATIVE           := $(PROG_NAME)
 ## General compiler and linker flags
 ##
 
-CFLAGS                  := -pipe -W -Wall -std=c99 -Iinclude/ -IOpenCL/ -Wundef -Wmissing-declarations -Wmissing-prototypes -Wdouble-promotion
+CFLAGS                  := -pipe -std=c99 -Iinclude/ -IOpenCL/
+CFLAGS                  += -W
+CFLAGS                  += -Wall
+CFLAGS                  += -Wextra
+CFLAGS                  += -Wfloat-equal
+CFLAGS                  += -Wundef
+CFLAGS                  += -Wshadow
+CFLAGS                  += -Wmissing-declarations
+CFLAGS                  += -Wmissing-prototypes
+CFLAGS                  += -ftrapv
+
 LFLAGS                  :=
 
 ifndef DEBUG

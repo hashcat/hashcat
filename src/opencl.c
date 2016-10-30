@@ -2038,7 +2038,7 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       cl_platform_id platform = platforms[platform_id];
 
-      int CL_rc = hc_clGetDeviceIDs (hashcat_ctx, platform, CL_DEVICE_TYPE_ALL, DEVICES_MAX, platform_devices, &platform_devices_cnt);
+      CL_rc = hc_clGetDeviceIDs (hashcat_ctx, platform, CL_DEVICE_TYPE_ALL, DEVICES_MAX, platform_devices, &platform_devices_cnt);
 
       if (CL_rc == -1) continue;
 
@@ -2048,7 +2048,7 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         cl_device_type device_type;
 
-        int CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device, CL_DEVICE_TYPE, sizeof (device_type), &device_type, NULL);
+        CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device, CL_DEVICE_TYPE, sizeof (device_type), &device_type, NULL);
 
         if (CL_rc == -1) return -1;
 

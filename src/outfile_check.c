@@ -214,9 +214,9 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
                             // compare hex string(s) vs binary MAC address(es)
 
-                            for (u32 i = 0, j = 0; i < 6; i++, j += 2)
+                            for (u32 mac_idx = 0, orig_mac_idx = 0; mac_idx < 6; mac_idx++, orig_mac_idx += 2)
                             {
-                              if (wpa->orig_mac1[i] != hex_to_u8 ((const u8 *) &mac1_pos[j]))
+                              if (wpa->orig_mac1[mac_idx] != hex_to_u8 ((const u8 *) &mac1_pos[orig_mac_idx]))
                               {
                                 cracked = 0;
 
@@ -227,9 +227,9 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
                             // early skip ;)
                             if (!cracked) continue;
 
-                            for (u32 i = 0, j = 0; i < 6; i++, j += 2)
+                            for (u32 mac_idx = 0, orig_mac_idx = 0; mac_idx < 6; mac_idx++, orig_mac_idx += 2)
                             {
-                              if (wpa->orig_mac2[i] != hex_to_u8 ((const u8 *) &mac2_pos[j]))
+                              if (wpa->orig_mac2[mac_idx] != hex_to_u8 ((const u8 *) &mac2_pos[orig_mac_idx]))
                               {
                                 cracked = 0;
 

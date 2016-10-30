@@ -13129,8 +13129,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
 
     char *ptr = (char *) salt.salt_buf;
 
-    u32 len = salt.salt_len;
-
     if (opti_type & OPTI_TYPE_PRECOMPUTE_PERMUT)
     {
       u32 tt;
@@ -13148,21 +13146,23 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
       }
     }
 
+    u32 salt_len = salt.salt_len;
+
     if (opts_type & OPTS_TYPE_ST_UNICODE)
     {
-      for (u32 i = 0, j = 0; i < len; i += 1, j += 2)
+      for (u32 i = 0, j = 0; i < salt_len; i += 1, j += 2)
       {
         ptr[i] = ptr[j];
       }
 
-      len = len / 2;
+      salt_len = salt_len / 2;
     }
 
     if (opts_type & OPTS_TYPE_ST_GENERATE_LE)
     {
       u32 max = salt.salt_len / 4;
 
-      if (len % 4) max++;
+      if (salt_len % 4) max++;
 
       for (u32 i = 0; i < max; i++)
       {
@@ -13174,21 +13174,21 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
     {
       char tmp[64] = { 0 };
 
-      for (u32 i = 0, j = 0; i < len; i += 1, j += 2)
+      for (u32 i = 0, j = 0; i < salt_len; i += 1, j += 2)
       {
         sprintf (tmp + j, "%02x", (unsigned char) ptr[i]);
       }
 
-      len = len * 2;
+      salt_len = salt_len * 2;
 
-      memcpy (ptr, tmp, len);
+      memcpy (ptr, tmp, salt_len);
     }
 
-    u32 memset_size = ((48 - (int) len) > 0) ? (48 - len) : 0;
+    u32 memset_size = ((48 - (int) salt_len) > 0) ? (48 - salt_len) : 0;
 
-    memset (ptr + len, 0, memset_size);
+    memset (ptr + salt_len, 0, memset_size);
 
-    salt.salt_len = len;
+    salt.salt_len = salt_len;
   }
 
   //
@@ -14433,9 +14433,8 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
     digest_buf[7] = byte_swap_32 (digest_buf[7]);
     digest_buf[8] = 0; // needed for base64_encode ()
 
-    char tmp_buf[64] = { 0 };
-
     base64_encode (int_to_itoa64, (const u8 *) digest_buf, 32, (u8 *) tmp_buf);
+
     tmp_buf[43] = 0; // cut it here
 
     // output
@@ -14454,9 +14453,8 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
     digest_buf[7] = byte_swap_32 (digest_buf[7]);
     digest_buf[8] = 0; // needed for base64_encode ()
 
-    char tmp_buf[64] = { 0 };
-
     base64_encode (int_to_itoa64, (const u8 *) digest_buf, 32, (u8 *) tmp_buf);
+
     tmp_buf[43] = 0; // cut it here
 
     unsigned char *salt_buf_ptr = (unsigned char *) salt.salt_buf;
@@ -14712,8 +14710,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
     digest_buf[7] = byte_swap_32 (digest_buf[7]);
     digest_buf[8] = 0; // needed for base64_encode ()
 
-    char tmp_buf[64] = { 0 };
-
     base64_encode (int_to_base64, (const u8 *) digest_buf, 32, (u8 *) tmp_buf);
 
     // output
@@ -14746,9 +14742,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
 
     // response
 
-    char tmp_buf[100] = { 0 };
-
-    u32 tmp_len = snprintf (tmp_buf, 100, "%s %08x%08x%08x%08x",
+    u32 tmp_len = snprintf (tmp_buf, sizeof (tmp_buf) - 1, "%s %08x%08x%08x%08x",
       (char *) cram_md5->user,
       digest_buf[0],
       digest_buf[1],
@@ -14763,8 +14757,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
   }
   else if (hash_mode == 10300)
   {
-    char tmp_buf[100] = { 0 };
-
     memcpy (tmp_buf +  0, digest_buf, 20);
     memcpy (tmp_buf + 20, salt.salt_buf, salt.salt_len);
 
@@ -15191,19 +15183,17 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
   else if (hash_mode == 12200)
   {
     u32 *ptr_digest = digest_buf;
-    u32 *ptr_salt   = salt.salt_buf;
 
     snprintf (out_buf, len-1, "%s0$1$%08x%08x$%08x%08x",
       SIGNATURE_ECRYPTFS,
-      ptr_salt[0],
-      ptr_salt[1],
+      salt.salt_buf[0],
+      salt.salt_buf[1],
       ptr_digest[0],
       ptr_digest[1]);
   }
   else if (hash_mode == 12300)
   {
     u32 *ptr_digest = digest_buf;
-    u32 *ptr_salt   = salt.salt_buf;
 
     snprintf (out_buf, len-1, "%08X%08X%08X%08X%08X%08X%08X%08X%08X%08X%08X%08X%08X%08X%08X%08X%08X%08X%08X%08X",
       ptr_digest[ 0], ptr_digest[ 1],
@@ -15214,10 +15204,10 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
       ptr_digest[10], ptr_digest[11],
       ptr_digest[12], ptr_digest[13],
       ptr_digest[14], ptr_digest[15],
-      ptr_salt[0],
-      ptr_salt[1],
-      ptr_salt[2],
-      ptr_salt[3]);
+      salt.salt_buf[0],
+      salt.salt_buf[1],
+      salt.salt_buf[2],
+      salt.salt_buf[3]);
   }
   else if (hash_mode == 12400)
   {

@@ -853,7 +853,7 @@ char *status_get_time_estimated_relative (const hashcat_ctx_t *hashcat_ctx)
   {
     const int runtime_left = get_runtime_left (hashcat_ctx);
 
-    char *tmp = strdup (display);
+    char *tmp_display = strdup (display);
 
     if (runtime_left > 0)
     {
@@ -875,16 +875,16 @@ char *status_get_time_estimated_relative (const hashcat_ctx_t *hashcat_ctx)
 
       format_timer_display (tmp_left, display_left, HCBUFSIZ_TINY);
 
-      snprintf (display, HCBUFSIZ_TINY - 1, "%s; Runtime limited: %s", tmp, display_left);
+      snprintf (display, HCBUFSIZ_TINY - 1, "%s; Runtime limited: %s", tmp_display, display_left);
 
       free (display_left);
     }
     else
     {
-      snprintf (display, HCBUFSIZ_TINY - 1, "%s; Runtime limit exceeded", tmp);
+      snprintf (display, HCBUFSIZ_TINY - 1, "%s; Runtime limit exceeded", tmp_display);
     }
 
-    free (tmp);
+    free (tmp_display);
   }
 
   return display;

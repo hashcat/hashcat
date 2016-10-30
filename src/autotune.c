@@ -167,7 +167,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       double exec_msec = try_run (hashcat_ctx, device_param, kernel_accel_try, kernel_loops);
 
-      for (int i = 0; i < VERIFIER_CNT; i++)
+      for (int verifier_idx = 0; verifier_idx < VERIFIER_CNT; verifier_idx++)
       {
         double exec_msec_v = try_run (hashcat_ctx, device_param, kernel_accel_try, kernel_loops);
 
@@ -190,7 +190,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   double exec_msec_pre_final = try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
 
-  for (int i = 0; i < VERIFIER_CNT; i++)
+  for (int verifier_idx = 0; verifier_idx < VERIFIER_CNT; verifier_idx++)
   {
     double exec_msec_pre_final_v = try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
 
@@ -220,14 +220,14 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       double exec_msec = try_run (hashcat_ctx, device_param, kernel_accel_try, kernel_loops_try);
 
-      for (int i = 0; i < VERIFIER_CNT; i++)
+      for (int verifier_idx = 0; verifier_idx < VERIFIER_CNT; verifier_idx++)
       {
         double exec_msec_v = try_run (hashcat_ctx, device_param, kernel_accel_try, kernel_loops_try);
 
         exec_msec = MIN (exec_msec, exec_msec_v);
       }
 
-      if (exec_msec < exec_msec_pre_final)
+      for (int verifier_idx = 0; verifier_idx < VERIFIER_CNT; verifier_idx++)
       {
         exec_msec_pre_final = exec_msec;
 
