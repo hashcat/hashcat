@@ -100,10 +100,10 @@ int debugfile_init (hashcat_ctx_t *hashcat_ctx)
 
   debugfile_ctx->mode = user_options->debug_mode;
 
+  debugfile_ctx->filename = user_options->debug_file;
+
   if (debugfile_ctx->filename)
   {
-    debugfile_ctx->filename = user_options->debug_file;
-
     debugfile_ctx->fp = fopen (debugfile_ctx->filename, "ab");
 
     if (debugfile_ctx->fp == NULL)
