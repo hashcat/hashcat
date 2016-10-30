@@ -107,6 +107,7 @@ CFLAGS                  += -Wundef
 CFLAGS                  += -Wshadow
 CFLAGS                  += -Wmissing-declarations
 CFLAGS                  += -Wmissing-prototypes
+CFLAGS                  += -Wpointer-arith
 CFLAGS                  += -ftrapv
 
 LFLAGS                  :=

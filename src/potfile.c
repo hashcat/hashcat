@@ -127,7 +127,7 @@ void *hc_bsearch_r (const void *key, const void *base, size_t nmemb, size_t size
 
     const size_t c = l + m;
 
-    const void *next = base + (c * size);
+    const char *next = (char *) base + (c * size);
 
     const int cmp = (*compar) (key, next, arg);
 
