@@ -13,7 +13,7 @@
 #include "event.h"
 #include "logfile.h"
 
-static int logfile_generate_id ()
+static int logfile_generate_id (void)
 {
   const int n = rand ();
 

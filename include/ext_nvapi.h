@@ -200,8 +200,8 @@ typedef struct struct_NV_GPU_COOLER_LEVELS
 } NV_GPU_COOLER_LEVELS;
 
 NVAPI_INTERFACE NvAPI_QueryInterface (unsigned int offset);
-NVAPI_INTERFACE NvAPI_Initialize ();
-NVAPI_INTERFACE NvAPI_Unload ();
+NVAPI_INTERFACE NvAPI_Initialize (void);
+NVAPI_INTERFACE NvAPI_Unload (void);
 NVAPI_INTERFACE NvAPI_GetErrorMessage (NvAPI_Status nr,NvAPI_ShortString szDesc);
 NVAPI_INTERFACE NvAPI_EnumPhysicalGPUs (NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount);
 NVAPI_INTERFACE NvAPI_GPU_GetPerfPoliciesInfo (NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_INFO_PARAMS_V1 *perfPolicies_info);

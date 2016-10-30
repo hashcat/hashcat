@@ -108,6 +108,8 @@ CFLAGS                  += -Wshadow
 CFLAGS                  += -Wmissing-declarations
 CFLAGS                  += -Wmissing-prototypes
 CFLAGS                  += -Wpointer-arith
+CFLAGS                  += -Wcast-align
+CFLAGS                  += -Wstrict-prototypes
 CFLAGS                  += -ftrapv
 
 LFLAGS                  :=
