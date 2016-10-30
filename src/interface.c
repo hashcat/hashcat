@@ -2223,8 +2223,6 @@ int lm_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   IP (digest[0], digest[1], tt);
 
-  digest[0] = digest[0];
-  digest[1] = digest[1];
   digest[2] = 0;
   digest[3] = 0;
 
@@ -7086,8 +7084,6 @@ int des_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUS
 
   IP (digest[0], digest[1], tt);
 
-  digest[0] = digest[0];
-  digest[1] = digest[1];
   digest[2] = 0;
   digest[3] = 0;
 
@@ -8753,7 +8749,7 @@ int djangosha1_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAY
 {
   if ((input_len < DISPLAY_LEN_MIN_124) || (input_len > DISPLAY_LEN_MAX_124)) return (PARSER_GLOBAL_LENGTH);
 
-  if ((memcmp (SIGNATURE_DJANGOSHA1, input_buf, 5)) && (memcmp (SIGNATURE_DJANGOSHA1, input_buf, 5))) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_DJANGOSHA1, input_buf, 5)) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -9107,7 +9103,7 @@ int pdf11_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 {
   if ((input_len < DISPLAY_LEN_MIN_10400) || (input_len > DISPLAY_LEN_MAX_10400)) return (PARSER_GLOBAL_LENGTH);
 
-  if ((memcmp (SIGNATURE_PDF, input_buf, 5)) && (memcmp (SIGNATURE_PDF, input_buf, 5))) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_PDF, input_buf, 5)) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -9316,7 +9312,7 @@ int pdf11cm2_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 {
   if ((input_len < DISPLAY_LEN_MIN_10420) || (input_len > DISPLAY_LEN_MAX_10420)) return (PARSER_GLOBAL_LENGTH);
 
-  if ((memcmp (SIGNATURE_PDF, input_buf, 5)) && (memcmp (SIGNATURE_PDF, input_buf, 5))) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_PDF, input_buf, 5)) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -9551,7 +9547,7 @@ int pdf14_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 {
   if ((input_len < DISPLAY_LEN_MIN_10500) || (input_len > DISPLAY_LEN_MAX_10500)) return (PARSER_GLOBAL_LENGTH);
 
-  if ((memcmp (SIGNATURE_PDF, input_buf, 5)) && (memcmp (SIGNATURE_PDF, input_buf, 5))) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_PDF, input_buf, 5)) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -9843,7 +9839,7 @@ int pdf17l8_parse_hash (char *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 {
   if ((input_len < DISPLAY_LEN_MIN_10600) || (input_len > DISPLAY_LEN_MAX_10600)) return (PARSER_GLOBAL_LENGTH);
 
-  if ((memcmp (SIGNATURE_PDF, input_buf, 5)) && (memcmp (SIGNATURE_PDF, input_buf, 5))) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_PDF, input_buf, 5)) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -13363,8 +13359,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
 
     base64_encode (int_to_base64, (const u8 *) tmp_buf, salt.salt_len, (u8 *) ptr_salt);
 
-    memset (tmp_buf, 0, sizeof (tmp_buf));
-
     // the encoder is a bit too intelligent, it expects the input data in the wrong BOM
 
     digest_buf[0] = byte_swap_32 (digest_buf[0]);
@@ -13372,6 +13366,8 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
     digest_buf[2] = byte_swap_32 (digest_buf[2]);
     digest_buf[3] = byte_swap_32 (digest_buf[3]);
     digest_buf[4] = byte_swap_32 (digest_buf[4]);
+
+    memset (tmp_buf, 0, sizeof (tmp_buf));
 
     memcpy (tmp_buf, digest_buf, 20);
 
@@ -13449,8 +13445,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
 
     base64_encode (int_to_base64, (const u8 *) tmp_buf, salt.salt_len, (u8 *) ptr_salt);
 
-    memset (tmp_buf, 0, sizeof (tmp_buf));
-
     // the encoder is a bit too intelligent, it expects the input data in the wrong BOM
 
     digest_buf[0] = byte_swap_32 (digest_buf[0]);
@@ -13461,6 +13455,8 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
     digest_buf[5] = byte_swap_32 (digest_buf[5]);
     digest_buf[6] = byte_swap_32 (digest_buf[6]);
     digest_buf[7] = byte_swap_32 (digest_buf[7]);
+
+    memset (tmp_buf, 0, sizeof (tmp_buf));
 
     memcpy (tmp_buf, digest_buf, 32);
 
@@ -14473,7 +14469,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
 
     office2007_t *office2007 = &office2007s[salt_pos];
 
-    snprintf (out_buf, len-1, "%s*%u*%u*%u*%u*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x%08x",
+    snprintf (out_buf, len-1, "%s*%d*%d*%u*%d*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x%08x",
       SIGNATURE_OFFICE2007,
       2007,
       20,
@@ -14499,8 +14495,12 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
 
     office2010_t *office2010 = &office2010s[salt_pos];
 
-    snprintf (out_buf, len-1, "%s*%u*%u*%u*%u*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x%08x%08x%08x%08x", SIGNATURE_OFFICE2010, 2010, 100000, 128, 16,
-
+    snprintf (out_buf, len-1, "%s*%d*%d*%d*%d*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x%08x%08x%08x%08x",
+      SIGNATURE_OFFICE2010,
+      2010,
+      100000,
+      128,
+      16,
       salt.salt_buf[0],
       salt.salt_buf[1],
       salt.salt_buf[2],
@@ -14524,8 +14524,12 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
 
     office2013_t *office2013 = &office2013s[salt_pos];
 
-    snprintf (out_buf, len-1, "%s*%u*%u*%u*%u*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x%08x%08x%08x%08x", SIGNATURE_OFFICE2013, 2013, 100000, 256, 16,
-
+    snprintf (out_buf, len-1, "%s*%d*%d*%d*%d*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x%08x%08x%08x%08x",
+      SIGNATURE_OFFICE2013,
+      2013,
+      100000,
+      256,
+      16,
       salt.salt_buf[0],
       salt.salt_buf[1],
       salt.salt_buf[2],
@@ -14718,7 +14722,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
   }
   else if (hash_mode == 10100)
   {
-    snprintf (out_buf, len-1, "%08x%08x:%u:%u:%08x%08x%08x%08x",
+    snprintf (out_buf, len-1, "%08x%08x:%d:%d:%08x%08x%08x%08x",
       digest_buf[0],
       digest_buf[1],
       2,
@@ -15107,7 +15111,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
       sprintf (data_buf + j, "%02x", ptr[i]);
     }
 
-    snprintf (out_buf, len-1, "%s%u$%u$%u$%s$%u$%08x%08x%08x%08x$%u$%u$%u$%s",
+    snprintf (out_buf, len-1, "%s%d$%u$%d$%s$%u$%08x%08x%08x%08x$%u$%u$%u$%s",
       SIGNATURE_SEVEN_ZIP,
       0,
       salt.salt_sign[0],
@@ -15790,23 +15794,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
     }
     else if (hash_type == HASH_TYPE_WHIRLPOOL)
     {
-      digest_buf[ 0] = digest_buf[ 0];
-      digest_buf[ 1] = digest_buf[ 1];
-      digest_buf[ 2] = digest_buf[ 2];
-      digest_buf[ 3] = digest_buf[ 3];
-      digest_buf[ 4] = digest_buf[ 4];
-      digest_buf[ 5] = digest_buf[ 5];
-      digest_buf[ 6] = digest_buf[ 6];
-      digest_buf[ 7] = digest_buf[ 7];
-      digest_buf[ 8] = digest_buf[ 8];
-      digest_buf[ 9] = digest_buf[ 9];
-      digest_buf[10] = digest_buf[10];
-      digest_buf[11] = digest_buf[11];
-      digest_buf[12] = digest_buf[12];
-      digest_buf[13] = digest_buf[13];
-      digest_buf[14] = digest_buf[14];
-      digest_buf[15] = digest_buf[15];
-
       snprintf (out_buf, len-1, "%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
         digest_buf[ 0],
         digest_buf[ 1],
