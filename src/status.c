@@ -1381,7 +1381,7 @@ char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
 
   if ((cpt_ctx->cpt_start + 86400) < now)
   {
-    snprintf (cpt, HCBUFSIZ_TINY - 1, "CUR:%u,%u,%u AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
+    snprintf (cpt, HCBUFSIZ_TINY - 1, "CUR:%d,%d,%d AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
       cpt_cur_min,
       cpt_cur_hour,
       cpt_cur_day,
@@ -1391,7 +1391,7 @@ char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
   }
   else if ((cpt_ctx->cpt_start + 3600) < now)
   {
-    snprintf (cpt, HCBUFSIZ_TINY - 1, "CUR:%u,%u,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
+    snprintf (cpt, HCBUFSIZ_TINY - 1, "CUR:%d,%d,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
       cpt_cur_min,
       cpt_cur_hour,
       cpt_avg_min,
@@ -1400,7 +1400,7 @@ char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
   }
   else if ((cpt_ctx->cpt_start + 60) < now)
   {
-    snprintf (cpt, HCBUFSIZ_TINY - 1, "CUR:%u,N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
+    snprintf (cpt, HCBUFSIZ_TINY - 1, "CUR:%d,N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
       cpt_cur_min,
       cpt_avg_min,
       cpt_avg_hour,
@@ -1445,42 +1445,42 @@ char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int device_i
 
   if (num_temperature >= 0)
   {
-    snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Temp:%3uc ", num_temperature);
+    snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Temp:%3dc ", num_temperature);
 
     output_len = strlen (output_buf);
   }
 
   if (num_fanspeed >= 0)
   {
-    snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Fan:%3u%% ", num_fanspeed);
+    snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Fan:%3d%% ", num_fanspeed);
 
     output_len = strlen (output_buf);
   }
 
   if (num_utilization >= 0)
   {
-    snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Util:%3u%% ", num_utilization);
+    snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Util:%3d%% ", num_utilization);
 
     output_len = strlen (output_buf);
   }
 
   if (num_corespeed >= 0)
   {
-    snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Core:%4uMhz ", num_corespeed);
+    snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Core:%4dMhz ", num_corespeed);
 
     output_len = strlen (output_buf);
   }
 
   if (num_memoryspeed >= 0)
   {
-    snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Mem:%4uMhz ", num_memoryspeed);
+    snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Mem:%4dMhz ", num_memoryspeed);
 
     output_len = strlen (output_buf);
   }
 
   if (num_buslanes >= 0)
   {
-    snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Lanes:%u ", num_buslanes);
+    snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Lanes:%d ", num_buslanes);
 
     output_len = strlen (output_buf);
   }
