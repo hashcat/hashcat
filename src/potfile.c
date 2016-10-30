@@ -460,7 +460,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        int parser_status = hashconfig->parse_func (line_buf, line_len - 1, &hash_buf, hashconfig);
+        int parser_status = hashconfig->parse_func ((u8 *) line_buf, line_len - 1, &hash_buf, hashconfig);
 
         if (parser_status == PARSER_OK)
         {

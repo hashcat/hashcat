@@ -718,7 +718,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
               break;
             }
 
-            parser_status = hashconfig->parse_func (in, hccap_size, &hashes_buf[hashes_cnt], hashconfig);
+            parser_status = hashconfig->parse_func ((u8 *) in, hccap_size, &hashes_buf[hashes_cnt], hashconfig);
 
             if (parser_status != PARSER_OK)
             {
@@ -738,7 +738,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         {
           if (hash_len == 32)
           {
-            parser_status = hashconfig->parse_func (hash_buf, 16, &hashes_buf[hashes_cnt], hashconfig);
+            parser_status = hashconfig->parse_func ((u8 *) hash_buf, 16, &hashes_buf[hashes_cnt], hashconfig);
 
             if (parser_status == PARSER_OK)
             {
@@ -749,7 +749,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
               event_log_warning (hashcat_ctx, "Hash '%s': %s", input_buf, strparser (parser_status));
             }
 
-            parser_status = hashconfig->parse_func (hash_buf + 16, 16, &hashes_buf[hashes_cnt], hashconfig);
+            parser_status = hashconfig->parse_func ((u8 *) hash_buf + 16, 16, &hashes_buf[hashes_cnt], hashconfig);
 
             if (parser_status == PARSER_OK)
             {
@@ -762,7 +762,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           }
           else
           {
-            parser_status = hashconfig->parse_func (hash_buf, hash_len, &hashes_buf[hashes_cnt], hashconfig);
+            parser_status = hashconfig->parse_func ((u8 *) hash_buf, hash_len, &hashes_buf[hashes_cnt], hashconfig);
 
             if (parser_status == PARSER_OK)
             {
@@ -776,7 +776,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
-          parser_status = hashconfig->parse_func (hash_buf, hash_len, &hashes_buf[hashes_cnt], hashconfig);
+          parser_status = hashconfig->parse_func ((u8 *) hash_buf, hash_len, &hashes_buf[hashes_cnt], hashconfig);
 
           if (parser_status == PARSER_OK)
           {
@@ -875,7 +875,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         {
           if (hash_len == 32)
           {
-            int parser_status = hashconfig->parse_func (hash_buf, 16, &hashes_buf[hashes_cnt], hashconfig);
+            int parser_status = hashconfig->parse_func ((u8 *) hash_buf, 16, &hashes_buf[hashes_cnt], hashconfig);
 
             if (parser_status < PARSER_GLOBAL_ZERO)
             {
@@ -886,7 +886,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             hashes_cnt++;
 
-            parser_status = hashconfig->parse_func (hash_buf + 16, 16, &hashes_buf[hashes_cnt], hashconfig);
+            parser_status = hashconfig->parse_func ((u8 *) hash_buf + 16, 16, &hashes_buf[hashes_cnt], hashconfig);
 
             if (parser_status < PARSER_GLOBAL_ZERO)
             {
@@ -899,7 +899,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           }
           else
           {
-            int parser_status = hashconfig->parse_func (hash_buf, hash_len, &hashes_buf[hashes_cnt], hashconfig);
+            int parser_status = hashconfig->parse_func ((u8 *) hash_buf, hash_len, &hashes_buf[hashes_cnt], hashconfig);
 
             if (parser_status < PARSER_GLOBAL_ZERO)
             {
@@ -913,7 +913,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
-          int parser_status = hashconfig->parse_func (hash_buf, hash_len, &hashes_buf[hashes_cnt], hashconfig);
+          int parser_status = hashconfig->parse_func ((u8 *) hash_buf, hash_len, &hashes_buf[hashes_cnt], hashconfig);
 
           if (parser_status < PARSER_GLOBAL_ZERO)
           {

@@ -593,7 +593,7 @@ struct hashconfig
   u32   pw_min;
   u32   pw_max;
 
-  int (*parse_func) (char *, u32, hash_t *, const struct hashconfig *);
+  int (*parse_func) (u8 *, u32, hash_t *, const struct hashconfig *);
 };
 
 typedef struct hashconfig hashconfig_t;

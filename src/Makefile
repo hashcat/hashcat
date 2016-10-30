@@ -110,7 +110,18 @@ CFLAGS                  += -Wmissing-prototypes
 CFLAGS                  += -Wpointer-arith
 CFLAGS                  += -Wcast-align
 CFLAGS                  += -Wstrict-prototypes
+CFLAGS                  += -Waggregate-return
+CFLAGS                  += -Wwrite-strings -Wno-discarded-qualifiers
+CFLAGS                  += -Wcast-qual -Wno-cast-qual
+CFLAGS                  += -Wswitch-enum
+CFLAGS                  += -Wunreachable-code
+CFLAGS                  += -Winit-self
+CFLAGS                  += -Werror-implicit-function-declaration
+CFLAGS                  += -Wformat
 CFLAGS                  += -ftrapv
+#CFLAGS                  += -Werror
+#CFLAGS                  += -Wsign-conversion
+#CFLAGS                  += -pedantic
 
 LFLAGS                  :=
 

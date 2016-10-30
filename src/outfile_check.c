@@ -168,7 +168,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
                   if ((hash_mode != 2500) && (hash_mode != 6800))
                   {
-                    parser_status = hashconfig->parse_func (line_buf, line_len - 1, &hash_buf, hashconfig);
+                    parser_status = hashconfig->parse_func ((u8 *) line_buf, line_len - 1, &hash_buf, hashconfig);
                   }
 
                   u32 found = 0;
