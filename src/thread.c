@@ -156,7 +156,7 @@ int myquit (hashcat_ctx_t *hashcat_ctx)
 {
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
-  if (status_ctx->devices_status != STATUS_RUNNING) return -1;
+  if (status_ctx->devices_status != STATUS_RUNNING && status_ctx->devices_status != STATUS_PAUSED) return -1;
 
   status_ctx->devices_status = STATUS_QUIT;
 
