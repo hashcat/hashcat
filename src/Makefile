@@ -123,6 +123,12 @@ CFLAGS                  += -ftrapv
 #CFLAGS                  += -Wsign-conversion
 #CFLAGS                  += -pedantic
 
+# default linux and freebsd thread stack size is 2MB
+# default windows thread stack size is 1MB
+# default OSX thread stack size is 512kB
+
+CFLAGS                  += -Wstack-usage=524288
+
 LFLAGS                  :=
 
 ifndef DEBUG
