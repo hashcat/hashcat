@@ -227,14 +227,14 @@ static int read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_fi
 
     size_t num_read = fread (buf, sizeof (char), st.st_size, fp);
 
+    fclose (fp);
+
     if (num_read != (size_t) st.st_size)
     {
       event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
 
       return -1;
     }
-
-    fclose (fp);
 
     buf[st.st_size] = 0;
 
@@ -3428,9 +3428,11 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         return -1;
       }
 
-      char buf[1];
+      char buf[1] = { 0 };
 
       size_t n = fread (buf, 1, 1, fd);
+
+      fclose (fd);
 
       if (n != 1)
       {
@@ -3438,8 +3440,6 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         return -1;
       }
-
-      fclose (fd);
     }
 
     // we don't have sm_* on vendors not NV but it doesn't matter

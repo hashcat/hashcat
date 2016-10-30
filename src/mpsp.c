@@ -524,7 +524,12 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
   {
     const int rc = mp_expand (hashcat_ctx, buf, strlen (buf), mp_sys, mp_usr, index, 1);
 
-    if (rc == -1) return -1;
+    if (rc == -1)
+    {
+      if (fp) fclose (fp);
+
+      return -1;
+    }
   }
   else
   {
@@ -533,6 +538,8 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
     int len = (int) fread (mp_file, 1, sizeof (mp_file) - 1, fp);
 
     fclose (fp);
+
+    fp = NULL;
 
     len = in_superchop (mp_file);
 
@@ -551,6 +558,8 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
       if (rc == -1) return -1;
     }
   }
+
+  if (fp) fclose (fp);
 
   return 0;
 }
