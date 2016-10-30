@@ -273,9 +273,11 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   outfile_write_open (hashcat_ctx);
 
-  char tmp_buf[HCBUFSIZ_LARGE];
+  u8 *tmp_buf = hashes->out_buf;
 
-  const int tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, plain_ptr, plain_len, crackpos, NULL, 0, tmp_buf);
+  tmp_buf[0] = 0;
+
+  const int tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, plain_ptr, plain_len, crackpos, NULL, 0, (char *) tmp_buf);
 
   outfile_write_close (hashcat_ctx);
 

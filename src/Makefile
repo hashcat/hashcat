@@ -95,7 +95,7 @@ VERSION_TAG             := $(shell test -d .git && git describe --tags --dirty=+
 BINARY_NATIVE           := $(PROG_NAME)
 
 ##
-## General compiler and linker flags
+## General compiler and linker options
 ##
 
 CFLAGS                  := -pipe -std=c99 -Iinclude/ -IOpenCL/
@@ -108,19 +108,21 @@ CFLAGS                  += -Wshadow
 CFLAGS                  += -Wmissing-declarations
 CFLAGS                  += -Wmissing-prototypes
 CFLAGS                  += -Wpointer-arith
-CFLAGS                  += -Wcast-align
 CFLAGS                  += -Wstrict-prototypes
 CFLAGS                  += -Waggregate-return
-CFLAGS                  += -Wwrite-strings -Wno-discarded-qualifiers
-CFLAGS                  += -Wcast-qual -Wno-cast-qual
 CFLAGS                  += -Wswitch-enum
 CFLAGS                  += -Wunreachable-code
 CFLAGS                  += -Winit-self
 CFLAGS                  += -Werror-implicit-function-declaration
 CFLAGS                  += -Wformat
 CFLAGS                  += -ftrapv
-#CFLAGS                  += -Werror
+
+# the following compiler options produce warnings that should be fixed at some time
+
+#CFLAGS                  += -Wcast-align
+#CFLAGS                  += -Wcast-qual
 #CFLAGS                  += -Wsign-conversion
+#CFLAGS                  += -Wwrite-strings
 #CFLAGS                  += -pedantic
 
 # default linux and freebsd thread stack size is 2MB
@@ -128,7 +130,7 @@ CFLAGS                  += -ftrapv
 # default OSX thread stack size is 512kB
 # unfortionally, this option isn't supported by older GCC and clang versions
 
-CFLAGS                  += -Wstack-usage=524288
+#CFLAGS                  += -Wstack-usage=524288
 
 LFLAGS                  :=
 

@@ -182,6 +182,18 @@ int potfile_init (hashcat_ctx_t *hashcat_ctx)
 
   potfile_write_close (hashcat_ctx);
 
+  // starting from here, we should allocate some scratch buffer for later use
+
+  u8 *out_buf = (u8 *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE); VERIFY_PTR (out_buf);
+
+  potfile_ctx->out_buf = out_buf;
+
+  // we need two buffers in parallel
+
+  u8 *tmp_buf = (u8 *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE); VERIFY_PTR (tmp_buf);
+
+  potfile_ctx->tmp_buf = tmp_buf;
+
   return 0;
 }
 
@@ -190,6 +202,9 @@ void potfile_destroy (hashcat_ctx_t *hashcat_ctx)
   potfile_ctx_t *potfile_ctx = hashcat_ctx->potfile_ctx;
 
   if (potfile_ctx->enabled == false) return;
+
+  hcfree (potfile_ctx->out_buf);
+  hcfree (potfile_ctx->tmp_buf);
 
   memset (potfile_ctx, 0, sizeof (potfile_ctx_t));
 }
@@ -256,7 +271,7 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, u8 *
 
   if (potfile_ctx->enabled == false) return;
 
-  char tmp_buf[HCBUFSIZ_LARGE];
+  u8 *tmp_buf = potfile_ctx->tmp_buf;
 
   int tmp_len = 0;
 
@@ -518,9 +533,10 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
 int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
 {
-  hashes_t *hashes = hashcat_ctx->hashes;
+  hashes_t      *hashes      = hashcat_ctx->hashes;
+  potfile_ctx_t *potfile_ctx = hashcat_ctx->potfile_ctx;
 
-  hash_t *hashes_buf = hashes->hashes_buf;
+  hash_t *hashes_buf  = hashes->hashes_buf;
 
   u32     salts_cnt = hashes->salts_cnt;
   salt_t *salts_buf = hashes->salts_buf;
@@ -539,15 +555,11 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
 
       if (digests_shown[hashes_idx] == 0) continue;
 
-      u8 *out_buf = hashes->out_buf;
+      u8 *out_buf = potfile_ctx->out_buf;
 
       out_buf[0] = 0;
 
       ascii_digest (hashcat_ctx, (char *) out_buf, salt_idx, digest_idx);
-
-      u8 *tmp_buf = hashes->tmp_buf;
-
-      tmp_buf[0] = 0;
 
       hash_t *hash = &hashes_buf[hashes_idx];
 
@@ -570,6 +582,10 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
         }
       }
 
+      u8 *tmp_buf = potfile_ctx->tmp_buf;
+
+      tmp_buf[0] = 0;
+
       const int tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, (u8 *) hash->pw_buf, hash->pw_len, 0, username, user_len, (char *) tmp_buf);
 
       EVENT_DATA (EVENT_POTFILE_HASH_SHOW, tmp_buf, tmp_len);
@@ -581,7 +597,8 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
 
 int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
 {
-  hashes_t *hashes = hashcat_ctx->hashes;
+  hashes_t      *hashes      = hashcat_ctx->hashes;
+  potfile_ctx_t *potfile_ctx = hashcat_ctx->potfile_ctx;
 
   hash_t *hashes_buf = hashes->hashes_buf;
 
@@ -602,7 +619,7 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
 
       if (digests_shown[hashes_idx] == 1) continue;
 
-      u8 *out_buf = hashes->out_buf;
+      u8 *out_buf = potfile_ctx->out_buf;
 
       out_buf[0] = 0;
 
@@ -629,7 +646,9 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
         }
       }
 
-      u8 *tmp_buf = hashes->tmp_buf;
+      u8 *tmp_buf = potfile_ctx->tmp_buf;
+
+      tmp_buf[0] = 0;
 
       const int tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, NULL, 0, 0, username, user_len, (char *) tmp_buf);
 

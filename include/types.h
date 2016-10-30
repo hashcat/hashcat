@@ -566,8 +566,8 @@ typedef struct hashes
 
   hashinfo_t  **hash_info;
 
-  u8     *out_buf; // allocates [HCBUFSIZ_LARGE];
-  u8     *tmp_buf; // allocates [HCBUFSIZ_LARGE];
+  u8      *out_buf; // allocates [HCBUFSIZ_LARGE];
+  u8      *tmp_buf; // allocates [HCBUFSIZ_LARGE];
 
 } hashes_t;
 
@@ -1049,6 +1049,9 @@ typedef struct potfile_ctx
 
   FILE    *fp;
   char    *filename;
+
+  u8      *out_buf; // allocates [HCBUFSIZ_LARGE];
+  u8      *tmp_buf; // allocates [HCBUFSIZ_LARGE];
 
 } potfile_ctx_t;
 
