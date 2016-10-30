@@ -126,6 +126,7 @@ CFLAGS                  += -ftrapv
 # default linux and freebsd thread stack size is 2MB
 # default windows thread stack size is 1MB
 # default OSX thread stack size is 512kB
+# unfortionally, this option isn't supported by older GCC and clang versions
 
 CFLAGS                  += -Wstack-usage=524288
 

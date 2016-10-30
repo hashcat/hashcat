@@ -183,11 +183,11 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
           fputc (separator, fp);
         }
 
-        char out_buf[HCBUFSIZ_LARGE]; // scratch buffer
+        u8 *out_buf = hashes->out_buf;
 
         out_buf[0] = 0;
 
-        ascii_digest (hashcat_ctx, out_buf, salt_pos, digest_pos);
+        ascii_digest (hashcat_ctx, (char *) out_buf, salt_pos, digest_pos);
 
         fprintf (fp, "%s" EOL, out_buf);
       }
@@ -225,17 +225,18 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 {
   debugfile_ctx_t *debugfile_ctx = hashcat_ctx->debugfile_ctx;
   loopback_ctx_t  *loopback_ctx  = hashcat_ctx->loopback_ctx;
+  hashes_t        *hashes        = hashcat_ctx->hashes;
 
   const u32 salt_pos    = plain->salt_pos;
   const u32 digest_pos  = plain->digest_pos;  // relative
 
   // hash
 
-  char out_buf[HCBUFSIZ_LARGE];
+  u8 *out_buf = hashes->out_buf;
 
   out_buf[0] = 0;
 
-  ascii_digest (hashcat_ctx, out_buf, salt_pos, digest_pos);
+  ascii_digest (hashcat_ctx, (char *) out_buf, salt_pos, digest_pos);
 
   // plain
 
@@ -264,7 +265,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   // no need for locking, we're in a mutex protected function
 
-  potfile_write_append (hashcat_ctx, out_buf, plain_ptr, plain_len);
+  potfile_write_append (hashcat_ctx, (char *) out_buf, plain_ptr, plain_len);
 
   // outfile, can be either to file or stdout
   // if an error occurs opening the file, send to stdout as fallback
@@ -274,7 +275,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   char tmp_buf[HCBUFSIZ_LARGE];
 
-  const int tmp_len = outfile_write (hashcat_ctx, out_buf, plain_ptr, plain_len, crackpos, NULL, 0, tmp_buf);
+  const int tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, plain_ptr, plain_len, crackpos, NULL, 0, tmp_buf);
 
   outfile_write_close (hashcat_ctx);
 
@@ -1298,6 +1299,18 @@ int hashes_init_stage4 (hashcat_ctx_t *hashcat_ctx)
   hashes->hashes_cnt = 0;
   hashes->hashes_buf = NULL;
 
+  // starting from here, we should allocate some scratch buffer for later use
+
+  u8 *out_buf = (u8 *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE); VERIFY_PTR (out_buf);
+
+  hashes->out_buf = out_buf;
+
+  // we need two buffers in parallel
+
+  u8 *tmp_buf = (u8 *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE); VERIFY_PTR (tmp_buf);
+
+  hashes->tmp_buf = tmp_buf;
+
   return 0;
 }
 
@@ -1315,6 +1328,9 @@ void hashes_destroy (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashes->esalts_buf);
 
   hcfree (hashes->hash_info);
+
+  hcfree (hashes->out_buf);
+  hcfree (hashes->tmp_buf);
 
   memset (hashes, 0, sizeof (hashes_t));
 }

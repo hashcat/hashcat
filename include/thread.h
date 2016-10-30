@@ -18,7 +18,7 @@
 
 #if defined (_WIN)
 
-#define hc_thread_create(t,T,f,a)   t = CreateThread (T, 0, (LPTHREAD_START_ROUTINE) &f, a, 0, NULL)
+#define hc_thread_create(t,f,a)     t = CreateThread (NULL, 0, (LPTHREAD_START_ROUTINE) &f, a, 0, NULL)
 #define hc_thread_wait(n,a)         for (u32 i = 0; i < n; i++) WaitForSingleObject ((a)[i], INFINITE)
 #define hc_thread_exit(t)           ExitThread (t)
 
@@ -29,7 +29,7 @@
 
 #elif defined (_POSIX)
 
-#define hc_thread_create(t,T,f,a)   pthread_create (&t, T, f, a)
+#define hc_thread_create(t,f,a)     pthread_create (&t, NULL, f, a)
 #define hc_thread_wait(n,a)         for (u32 i = 0; i < n; i++) pthread_join ((a)[i], NULL)
 #define hc_thread_exit(t)           pthread_exit (&t)
 

@@ -566,6 +566,9 @@ typedef struct hashes
 
   hashinfo_t  **hash_info;
 
+  u8     *out_buf; // allocates [HCBUFSIZ_LARGE];
+  u8     *tmp_buf; // allocates [HCBUFSIZ_LARGE];
+
 } hashes_t;
 
 struct hashconfig
