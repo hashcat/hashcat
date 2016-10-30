@@ -482,7 +482,7 @@ int outfile_and_hashfile (hashcat_ctx_t *hashcat_ctx)
     fclose (tmp_hashfile_fp);
   }
 
-  if (tmp_outfile_fp && tmp_outfile_fp)
+  if (tmp_outfile_fp)
   {
     tmpstat_outfile.st_mode     = 0;
     tmpstat_outfile.st_nlink    = 0;

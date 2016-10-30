@@ -2572,9 +2572,9 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       char *device_name_chksum = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (device_name_chksum);
 
       #if defined (__x86_64__)
-      snprintf (device_name_chksum, HCBUFSIZ_TINY - 1, "%u-%u-%u-%s-%s-%s-%u", 64, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, comptime);
+      snprintf (device_name_chksum, HCBUFSIZ_TINY - 1, "%d-%u-%u-%s-%s-%s-%d", 64, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, comptime);
       #else
-      snprintf (device_name_chksum, HCBUFSIZ_TINY - 1, "%u-%u-%u-%s-%s-%s-%u", 32, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, comptime);
+      snprintf (device_name_chksum, HCBUFSIZ_TINY - 1, "%d-%u-%u-%s-%s-%s-%d", 32, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, comptime);
       #endif
 
       u32 device_name_digest[4] = { 0 };
@@ -3452,7 +3452,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     snprintf (build_opts_new, sizeof (build_opts_new) - 1, "%s -D VENDOR_ID=%u -D CUDA_ARCH=%d -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -cl-std=CL1.1 -w", build_opts, device_param->device_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, hashconfig->kern_type);
     #endif
 
-    strncpy (build_opts, build_opts_new, sizeof (build_opts));
+    strncpy (build_opts, build_opts_new, sizeof (build_opts) - 1);
 
     #if defined (DEBUG)
     if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: build_opts '%s'", device_id + 1, build_opts);
