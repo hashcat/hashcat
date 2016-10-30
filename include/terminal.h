@@ -26,10 +26,10 @@
 void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag);
 void goodbye_screen (hashcat_ctx_t *hashcat_ctx, const time_t proc_start, const time_t proc_stop);
 
-int setup_console ();
+int setup_console (void);
 
-void send_prompt ();
-void clear_prompt ();
+void send_prompt (void);
+void clear_prompt (void);
 
 void *thread_keypress (void *p);
 
@@ -37,9 +37,9 @@ void *thread_keypress (void *p);
 void SetConsoleWindowSize (const int x);
 #endif
 
-int tty_break();
-int tty_getchar();
-int tty_fix();
+int tty_break(void);
+int tty_getchar(void);
+int tty_fix(void);
 
 void opencl_info                      (hashcat_ctx_t *hashcat_ctx);
 void opencl_info_compact              (hashcat_ctx_t *hashcat_ctx);

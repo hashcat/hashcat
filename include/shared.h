@@ -27,8 +27,8 @@ void naive_escape (char *s, size_t s_max, const char key_char, const char escape
 void hc_sleep_msec (const u32 msec);
 void hc_sleep      (const u32 sec);
 
-void setup_environment_variables ();
-void setup_umask ();
+void setup_environment_variables (void);
+void setup_umask (void);
 void setup_seeding (const bool rp_gen_seed_chgd, const u32 rp_gen_seed);
 
 #endif // _SHARED_H
