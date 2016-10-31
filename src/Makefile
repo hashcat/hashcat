@@ -116,6 +116,7 @@ CFLAGS                  += -Winit-self
 CFLAGS                  += -Werror-implicit-function-declaration
 CFLAGS                  += -Wformat
 CFLAGS                  += -ftrapv
+CFLAGS                  += -Wno-format-zero-length
 
 # the following compiler options produce warnings that should be fixed at some time
 

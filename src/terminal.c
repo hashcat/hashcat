@@ -509,8 +509,8 @@ void opencl_info (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "    Processor(s)   : %u", device_processors);
       event_log_info (hashcat_ctx, "    Clock          : %u", device_maxclock_frequency);
       event_log_info (hashcat_ctx, "    Memory         : %" PRIu64 "/%" PRIu64 " MB allocatable", device_maxmem_alloc / 1024 / 1024, device_global_mem / 1024 / 1024);
-      event_log_info (hashcat_ctx, "    OpenCL Version : %u", device_opencl_version);
-      event_log_info (hashcat_ctx, "    Driver Version : %u", driver_version);
+      event_log_info (hashcat_ctx, "    OpenCL Version : %s", device_opencl_version);
+      event_log_info (hashcat_ctx, "    Driver Version : %s", driver_version);
       event_log_info (hashcat_ctx, "");
     }
   }
@@ -546,7 +546,7 @@ void opencl_info_compact (hashcat_ctx_t *hashcat_ctx)
 
       line[len] = 0;
 
-      event_log_info (hashcat_ctx, line);
+      event_log_info (hashcat_ctx, "%s", line);
     }
     else
     {
@@ -566,12 +566,12 @@ void opencl_info_compact (hashcat_ctx_t *hashcat_ctx)
 
       if (device_param->skipped == false)
       {
-        event_log_info (hashcat_ctx, "* Device #%u: %s, %lu/%lu MB allocatable, %uMCU",
+        event_log_info (hashcat_ctx, "* Device #%u: %s, %" PRIu64 "/%" PRIu64 " MB allocatable, %uMCU",
                   devices_idx + 1,
                   device_name,
-                  (unsigned int) (device_maxmem_alloc / 1024 / 1024),
-                  (unsigned int) (device_global_mem   / 1024 / 1024),
-                  (unsigned int)  device_processors);
+                  device_maxmem_alloc / 1024 / 1024,
+                  device_global_mem   / 1024 / 1024,
+                  device_processors);
       }
       else
       {

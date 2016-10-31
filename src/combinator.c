@@ -68,7 +68,7 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (S_ISDIR (tmp_stat.st_mode))
     {
-      event_log_error (hashcat_ctx, "%s must be a regular file", dictfile1, strerror (errno));
+      event_log_error (hashcat_ctx, "%s must be a regular file", dictfile1);
 
       fclose (fp1);
 
@@ -96,7 +96,7 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (S_ISDIR (tmp_stat.st_mode))
     {
-      event_log_error (hashcat_ctx, "%s must be a regular file", dictfile2, strerror (errno));
+      event_log_error (hashcat_ctx, "%s must be a regular file", dictfile2);
 
       fclose (fp1);
       fclose (fp2);
