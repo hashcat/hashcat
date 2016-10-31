@@ -65,9 +65,12 @@ FIND                    := find
 INSTALL                 := install
 RM                      := rm
 SED                     := sed
+
 ifeq ($(UNAME),Darwin)
+CC                      := clang
 SED                     := gsed
 endif
+
 ifeq ($(UNAME),FreeBSD)
 CC                      := cc
 SED                     := gsed
