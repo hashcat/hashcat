@@ -46,6 +46,7 @@ static const struct option long_options[] =
   {"increment-min",             required_argument, 0, IDX_INCREMENT_MIN},
   {"increment",                 no_argument,       0, IDX_INCREMENT},
   {"induction-dir",             required_argument, 0, IDX_INDUCTION_DIR},
+  {"keep-guessing",             no_argument,       0, IDX_KEEP_GUESSING},
   {"kernel-accel",              required_argument, 0, IDX_KERNEL_ACCEL},
   {"kernel-loops",              required_argument, 0, IDX_KERNEL_LOOPS},
   {"keyspace",                  no_argument,       0, IDX_KEYSPACE},
@@ -139,6 +140,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->induction_dir             = NULL;
   user_options->kernel_accel              = KERNEL_ACCEL;
   user_options->kernel_loops              = KERNEL_LOOPS;
+  user_options->keep_guessing             = KEEP_GUESSING;
   user_options->keyspace                  = KEYSPACE;
   user_options->left                      = LEFT;
   user_options->limit                     = LIMIT;
@@ -248,6 +250,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_FORCE:                     user_options->force                     = true;           break;
       case IDX_SKIP:                      user_options->skip                      = atoll (optarg); break;
       case IDX_LIMIT:                     user_options->limit                     = atoll (optarg); break;
+      case IDX_KEEP_GUESSING:             user_options->keep_guessing             = true;           break;
       case IDX_KEYSPACE:                  user_options->keyspace                  = true;           break;
       case IDX_BENCHMARK:                 user_options->benchmark                 = true;           break;
       case IDX_STDOUT_FLAG:               user_options->stdout_flag               = true;           break;
@@ -1251,6 +1254,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->increment);
   logfile_top_uint   (user_options->increment_max);
   logfile_top_uint   (user_options->increment_min);
+  logfile_top_uint   (user_options->keep_guessing);
   logfile_top_uint   (user_options->kernel_accel);
   logfile_top_uint   (user_options->kernel_loops);
   logfile_top_uint   (user_options->keyspace);

@@ -16,6 +16,7 @@
 - Reduce max. number of allowed function calls per rule from 256 to 32 to save GPU memory
 - Status display shows what's the base and modifier keyspace currently in use
 - Added a workaround for some OpenCL kernel to compile with amd-gpu-pro
+- Added option --keep-guessing to continue cracking hashes even after they have been cracked (to find collisions)
 
 ##
 ## Algorithms

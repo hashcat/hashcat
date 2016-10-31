@@ -19605,6 +19605,11 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  if (user_options->keep_guessing)
+  {
+    hashconfig->opts_type |= OPTS_TYPE_PT_NEVERCRACK;
+  }
+
   const u32 is_salted = ((hashconfig->salt_type == SALT_TYPE_INTERN)
                        |  (hashconfig->salt_type == SALT_TYPE_EXTERN)
                        |  (hashconfig->salt_type == SALT_TYPE_EMBEDDED)
