@@ -85,10 +85,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
     plain_len += comb_len;
 
-    if (hashconfig->pw_max != PW_DICTMAX1)
-    {
-      if (plain_len > (int) hashconfig->pw_max) plain_len = (int) hashconfig->pw_max;
-    }
+    if (plain_len > (int) hashconfig->pw_max) plain_len = (int) hashconfig->pw_max;
   }
   else if (user_options->attack_mode == ATTACK_MODE_BF)
   {
@@ -130,10 +127,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
     plain_len += start + stop;
 
-    if (hashconfig->pw_max != PW_DICTMAX1)
-    {
-      if (plain_len > (int) hashconfig->pw_max) plain_len = (int) hashconfig->pw_max;
-    }
+    if (plain_len > (int) hashconfig->pw_max) plain_len = (int) hashconfig->pw_max;
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
@@ -161,10 +155,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
     plain_len += start + stop;
 
-    if (hashconfig->pw_max != PW_DICTMAX1)
-    {
-      if (plain_len > (int) hashconfig->pw_max) plain_len = (int) hashconfig->pw_max;
-    }
+    if (plain_len > (int) hashconfig->pw_max) plain_len = (int) hashconfig->pw_max;
   }
 
   if (user_options->attack_mode == ATTACK_MODE_BF)

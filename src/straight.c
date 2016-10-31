@@ -229,9 +229,9 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
   {
     switch (user_options_extra->attack_kern)
     {
-      case ATTACK_KERN_STRAIGHT:  if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX1;
+      case ATTACK_KERN_STRAIGHT:  if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX;
                                   break;
-      case ATTACK_KERN_COMBI:     if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX1;
+      case ATTACK_KERN_COMBI:     if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX;
                                   break;
     }
   }
@@ -241,9 +241,9 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
     {
       switch (user_options_extra->attack_kern)
       {
-        case ATTACK_KERN_STRAIGHT:  if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX1;
+        case ATTACK_KERN_STRAIGHT:  if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX;
                                     break;
-        case ATTACK_KERN_COMBI:     if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX1;
+        case ATTACK_KERN_COMBI:     if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX;
                                     break;
       }
     }

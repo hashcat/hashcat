@@ -138,7 +138,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
         plain_len = pw.pw_len;
 
         char *comb_buf = (char *) device_param->combs_buf[il_pos].i;
-        u32  comb_len =          device_param->combs_buf[il_pos].pw_len;
+        u32   comb_len =          device_param->combs_buf[il_pos].pw_len;
 
         if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
         {
@@ -153,10 +153,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
         plain_len += comb_len;
 
-        if (hashconfig->pw_max != PW_DICTMAX1)
-        {
-          if (plain_len > hashconfig->pw_max) plain_len = hashconfig->pw_max;
-        }
+        if (plain_len > hashconfig->pw_max) plain_len = hashconfig->pw_max;
 
         out_push (&out, plain_ptr, plain_len);
       }
