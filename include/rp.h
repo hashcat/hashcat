@@ -15,13 +15,13 @@
 #define RULES_MAX 32
 #define MAX_KERNEL_RULES (RULES_MAX - 1)
 
-bool class_num   (const u8 c);
-bool class_lower (const u8 c);
-bool class_upper (const u8 c);
-bool class_alpha (const u8 c);
+bool class_num   (const u8 c) __attribute__ ((const));
+bool class_lower (const u8 c) __attribute__ ((const));
+bool class_upper (const u8 c) __attribute__ ((const));
+bool class_alpha (const u8 c) __attribute__ ((const));
 
-int conv_ctoi (const u8 c);
-int conv_itoc (const u8 c);
+int conv_ctoi (const u8 c) __attribute__ ((const));
+int conv_itoc (const u8 c) __attribute__ ((const));
 
 int generate_random_rule (char rule_buf[RP_RULE_BUFSIZ], const u32 rp_gen_func_min, const u32 rp_gen_func_max);
 

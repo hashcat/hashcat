@@ -1501,9 +1501,9 @@ int opencart_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_bu
  * output functions
  */
 
-char *stroptitype (const u32 opti_type);
-char *strhashtype (const u32 hash_mode);
-char *strparser   (const u32 parser_status);
+char *stroptitype (const u32 opti_type)     __attribute__ ((const));
+char *strhashtype (const u32 hash_mode)     __attribute__ ((const));
+char *strparser   (const u32 parser_status) __attribute__ ((const));
 
 void to_hccap_t (hashcat_ctx_t *hashcat_ctx, hccap_t *hccap, const u32 salt_pos, const u32 digest_pos);
 

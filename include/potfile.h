@@ -14,8 +14,8 @@
 
 int sort_by_pot               (const void *v1, const void *v2, MAYBE_UNUSED void *v3);
 int sort_by_salt_buf          (const void *v1, const void *v2, MAYBE_UNUSED void *v3);
-int sort_by_hash_t_salt       (const void *v1, const void *v2);
-int sort_by_hash_t_salt_hccap (const void *v1, const void *v2);
+int sort_by_hash_t_salt       (const void *v1, const void *v2) __attribute__ ((pure));
+int sort_by_hash_t_salt_hccap (const void *v1, const void *v2) __attribute__ ((pure));
 
 void  hc_qsort_r (void *base, size_t nmemb, size_t size, int (*compar) (const void *, const void *, void *), void *arg);
 void *hc_bsearch_r (const void *key, const void *base, size_t nmemb, size_t size, int (*compar) (const void *, const void *, void *), void *arg);
