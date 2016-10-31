@@ -661,7 +661,7 @@ static void main_wordlist_cache_hit (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
 
   cache_hit_t *cache_hit = (cache_hit_t *) buf;
 
-  event_log_info (hashcat_ctx, "Cache-hit dictionary stats %s: %" PRIu64 " bytes, %" PRIu64 " words, %" PRIu64 " keyspace", cache_hit->dictfile, cache_hit->st_size, cache_hit->cached_cnt, cache_hit->keyspace);
+  event_log_info (hashcat_ctx, "Cache-hit dictionary stats %s: %" PRIu64 " bytes, %" PRIu64 " words, %" PRIu64 " keyspace", cache_hit->dictfile, cache_hit->stat.st_size, cache_hit->cached_cnt, cache_hit->keyspace);
   event_log_info (hashcat_ctx, "");
 }
 

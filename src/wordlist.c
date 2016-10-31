@@ -324,10 +324,10 @@ u64 count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile)
 
       cache_hit_t cache_hit;
 
-      cache_hit.dictfile    = (char *) dictfile;
-      cache_hit.st_size     = d.stat.st_size;
-      cache_hit.cached_cnt  = cached_cnt;
-      cache_hit.keyspace    = keyspace;
+      cache_hit.dictfile      = (char *) dictfile;
+      cache_hit.stat.st_size  = d.stat.st_size;
+      cache_hit.cached_cnt    = cached_cnt;
+      cache_hit.keyspace      = keyspace;
 
       EVENT_DATA (EVENT_WORDLIST_CACHE_HIT, &cache_hit, sizeof (cache_hit));
 

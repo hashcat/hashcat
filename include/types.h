@@ -1635,7 +1635,13 @@ typedef struct cache_hit
 {
   char *dictfile;
 
-  off_t st_size;
+  #if defined (_POSIX)
+  struct stat stat;
+  #endif
+
+  #if defined (_WIN)
+  struct __stat64 stat;
+  #endif
 
   u64 cached_cnt;
   u64 keyspace;
