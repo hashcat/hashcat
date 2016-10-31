@@ -8,6 +8,7 @@
 #include "event.h"
 #include "memory.h"
 #include "combinator.h"
+#include "shared.h"
 #include "wordlist.h"
 
 int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
@@ -48,7 +49,7 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
     FILE *fp1 = NULL;
     FILE *fp2 = NULL;
 
-    struct stat tmp_stat;
+    hc_stat_t tmp_stat;
 
     if ((fp1 = fopen (dictfile1, "rb")) == NULL)
     {
@@ -57,7 +58,7 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
-    if (stat (dictfile1, &tmp_stat) == -1)
+    if (hc_stat (dictfile1, &tmp_stat) == -1)
     {
       event_log_error (hashcat_ctx, "%s: %s", dictfile1, strerror (errno));
 
@@ -84,7 +85,7 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
-    if (stat (dictfile2, &tmp_stat) == -1)
+    if (hc_stat (dictfile2, &tmp_stat) == -1)
     {
       event_log_error (hashcat_ctx, "%s: %s", dictfile2, strerror (errno));
 

@@ -3,10 +3,6 @@
  * License.....: MIT
  */
 
-#if defined (__APPLE__)
-#include <stdio.h>
-#endif
-
 #include "common.h"
 #include "types.h"
 #include "bitops.h"

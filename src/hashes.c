@@ -21,6 +21,7 @@
 #include "potfile.h"
 #include "rp.h"
 #include "rp_kernel_on_cpu.h"
+#include "shared.h"
 #include "thread.h"
 #include "timer.h"
 
@@ -446,9 +447,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
   if ((user_options->benchmark == false) && (user_options->stdout_flag == false))
   {
-    struct stat f;
+    hc_stat_t f;
 
-    hashlist_mode = (stat (hash_or_file, &f) == 0) ? HL_MODE_FILE : HL_MODE_ARG;
+    hashlist_mode = (hc_stat (hash_or_file, &f) == 0) ? HL_MODE_FILE : HL_MODE_ARG;
 
     if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
     {
@@ -463,9 +464,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     {
       if (hashconfig->hash_mode == 2500)
       {
-        struct stat st;
+        hc_stat_t st;
 
-        if (stat (hashes->hashfile, &st) == -1)
+        if (hc_stat (hashes->hashfile, &st) == -1)
         {
           event_log_error (hashcat_ctx, "%s: %s", hashes->hashfile, strerror (errno));
 

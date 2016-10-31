@@ -8,6 +8,7 @@
 #include "memory.h"
 #include "event.h"
 #include "folder.h"
+#include "shared.h"
 #include "induct.h"
 
 static int sort_by_mtime (const void *p1, const void *p2)
@@ -15,8 +16,8 @@ static int sort_by_mtime (const void *p1, const void *p2)
   const char **f1 = (const char **) p1;
   const char **f2 = (const char **) p2;
 
-  struct stat s1; stat (*f1, &s1);
-  struct stat s2; stat (*f2, &s2);
+  hc_stat_t s1; hc_stat (*f1, &s1);
+  hc_stat_t s2; hc_stat (*f2, &s2);
 
   return s2.st_mtime - s1.st_mtime;
 }
@@ -115,9 +116,9 @@ void induct_ctx_cleanup (hashcat_ctx_t *hashcat_ctx)
 
   for (int file_pos = 0; file_pos < induct_ctx->induction_dictionaries_cnt; file_pos++)
   {
-    struct stat induct_stat;
+    hc_stat_t induct_stat;
 
-    if (stat (induct_ctx->induction_dictionaries[file_pos], &induct_stat) == 0)
+    if (hc_stat (induct_ctx->induction_dictionaries[file_pos], &induct_stat) == 0)
     {
       unlink (induct_ctx->induction_dictionaries[file_pos]);
     }

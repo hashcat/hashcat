@@ -3,10 +3,6 @@
  * License.....: MIT
  */
 
-#if defined (__APPLE__)
-#include <stdio.h>
-#endif // __APPLE__
-
 #include "common.h"
 
 // basic tools

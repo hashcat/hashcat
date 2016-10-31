@@ -3,10 +3,6 @@
  * License.....: MIT
  */
 
-#if defined (__APPLE__)
-#include <stdio.h>
-#endif
-
 #include "common.h"
 #include "types.h"
 #include "memory.h"
@@ -272,9 +268,9 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
       {
         char *l0_filename = user_options_extra->hc_workv[i];
 
-        struct stat l0_stat;
+        hc_stat_t l0_stat;
 
-        if (stat (l0_filename, &l0_stat) == -1)
+        if (hc_stat (l0_filename, &l0_stat) == -1)
         {
           event_log_error (hashcat_ctx, "%s: %s", l0_filename, strerror (errno));
 
@@ -295,9 +291,9 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
             {
               char *l1_filename = dictionary_files[d];
 
-              struct stat l1_stat;
+              hc_stat_t l1_stat;
 
-              if (stat (l1_filename, &l1_stat) == -1)
+              if (hc_stat (l1_filename, &l1_stat) == -1)
               {
                 event_log_error (hashcat_ctx, "%s: %s", l1_filename, strerror (errno));
 
@@ -345,9 +341,9 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
     {
       char *l0_filename = user_options_extra->hc_workv[i];
 
-      struct stat l0_stat;
+      hc_stat_t l0_stat;
 
-      if (stat (l0_filename, &l0_stat) == -1)
+      if (hc_stat (l0_filename, &l0_stat) == -1)
       {
         event_log_error (hashcat_ctx, "%s: %s", l0_filename, strerror (errno));
 
@@ -368,9 +364,9 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
           {
             char *l1_filename = dictionary_files[d];
 
-            struct stat l1_stat;
+            hc_stat_t l1_stat;
 
-            if (stat (l1_filename, &l1_stat) == -1)
+            if (hc_stat (l1_filename, &l1_stat) == -1)
             {
               event_log_error (hashcat_ctx, "%s: %s", l1_filename, strerror (errno));
 
@@ -409,9 +405,9 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
     {
       char *l0_filename = user_options_extra->hc_workv[i];
 
-      struct stat l0_stat;
+      hc_stat_t l0_stat;
 
-      if (stat (l0_filename, &l0_stat) == -1)
+      if (hc_stat (l0_filename, &l0_stat) == -1)
       {
         event_log_error (hashcat_ctx, "%s: %s", l0_filename, strerror (errno));
 
@@ -432,9 +428,9 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
           {
             char *l1_filename = dictionary_files[d];
 
-            struct stat l1_stat;
+            hc_stat_t l1_stat;
 
-            if (stat (l1_filename, &l1_stat) == -1)
+            if (hc_stat (l1_filename, &l1_stat) == -1)
             {
               event_log_error (hashcat_ctx, "%s: %s", l1_filename, strerror (errno));
 

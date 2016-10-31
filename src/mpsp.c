@@ -3,10 +3,6 @@
  * License.....: MIT
  */
 
-#if defined (__APPLE__)
-#include <stdio.h>
-#endif
-
 #include "common.h"
 #include "types.h"
 #include "memory.h"
@@ -16,6 +12,7 @@
 #include "filehandling.h"
 #include "interface.h"
 #include "opencl.h"
+#include "shared.h"
 #include "mpsp.h"
 
 static const char DEF_MASK[] = "?1?2?2?2?2?2?2?3?3?3?3?d?d?d?d";
@@ -579,9 +576,9 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
 
   char *shared_dir = folder_config->shared_dir;
 
-  char *hcstat     = user_options->markov_hcstat;
-  u32 disable      = user_options->markov_disable;
-  u32 classic      = user_options->markov_classic;
+  char *hcstat  = user_options->markov_hcstat;
+  u32   disable = user_options->markov_disable;
+  u32   classic = user_options->markov_classic;
 
   hcstat_table_t *root_table_buf   = mask_ctx->root_table_buf;
   hcstat_table_t *markov_table_buf = mask_ctx->markov_table_buf;
@@ -1161,9 +1158,9 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
       {
         char *arg = user_options_extra->hc_workv[0];
 
-        struct stat file_stat;
+        hc_stat_t file_stat;
 
-        if (stat (arg, &file_stat) == -1)
+        if (hc_stat (arg, &file_stat) == -1)
         {
           const int rc = mask_append (hashcat_ctx, arg);
 
@@ -1177,7 +1174,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
           {
             arg = user_options_extra->hc_workv[i];
 
-            if (stat (arg, &file_stat) == -1)
+            if (hc_stat (arg, &file_stat) == -1)
             {
               event_log_error (hashcat_ctx, "%s: %s", arg, strerror (errno));
 
@@ -1249,9 +1246,9 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     // mod
 
-    struct stat file_stat;
+    hc_stat_t file_stat;
 
-    if (stat (arg, &file_stat) == -1)
+    if (hc_stat (arg, &file_stat) == -1)
     {
       const int rc = mask_append (hashcat_ctx, arg);
 
@@ -1307,9 +1304,9 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     // mod
 
-    struct stat file_stat;
+    hc_stat_t file_stat;
 
-    if (stat (arg, &file_stat) == -1)
+    if (hc_stat (arg, &file_stat) == -1)
     {
       const int rc = mask_append (hashcat_ctx, arg);
 

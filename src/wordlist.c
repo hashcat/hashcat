@@ -11,6 +11,7 @@
 #include "dictstat.h"
 #include "thread.h"
 #include "rp_cpu.h"
+#include "shared.h"
 #include "wordlist.h"
 
 u32 convert_from_hex (hashcat_ctx_t *hashcat_ctx, char *line_buf, const u32 line_len)
@@ -283,13 +284,7 @@ u64 count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile)
 
   d.cnt = 0;
 
-  #if defined (_POSIX)
-  fstat (fileno (fd), &d.stat);
-  #endif
-
-  #if defined (_WIN)
-  _fstat64 (fileno (fd), &d.stat);
-  #endif
+  hc_fstat (fileno (fd), &d.stat);
 
   d.stat.st_mode    = 0;
   d.stat.st_nlink   = 0;

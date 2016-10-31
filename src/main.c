@@ -3,11 +3,12 @@
  * License.....: MIT
  */
 
+#include "common.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
 
-#include "common.h"
 #include "types.h"
 #include "user_options.h"
 #include "usage.h"

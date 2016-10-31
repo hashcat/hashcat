@@ -31,4 +31,7 @@ void setup_environment_variables (void);
 void setup_umask (void);
 void setup_seeding (const bool rp_gen_seed_chgd, const u32 rp_gen_seed);
 
+int hc_stat (const char *pathname, hc_stat_t *buf);
+int hc_fstat (int fd, hc_stat_t *buf);
+
 #endif // _SHARED_H

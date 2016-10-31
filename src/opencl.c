@@ -217,11 +217,9 @@ static int read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_fi
 
   if (fp != NULL)
   {
-    struct stat st;
+    hc_stat_t st;
 
-    memset (&st, 0, sizeof (st));
-
-    stat (kernel_file, &st);
+    hc_stat (kernel_file, &st);
 
     char *buf = (char *) hcmalloc (hashcat_ctx, st.st_size + 1); VERIFY_PTR (buf);
 
@@ -3471,9 +3469,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       generate_source_kernel_filename (hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, folder_config->shared_dir, source_file);
 
-      struct stat sst;
+      hc_stat_t sst;
 
-      if (stat (source_file, &sst) == -1)
+      if (hc_stat (source_file, &sst) == -1)
       {
         event_log_error (hashcat_ctx, "%s: %s", source_file, strerror (errno));
 
@@ -3490,9 +3488,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       int cached = 1;
 
-      struct stat cst;
+      hc_stat_t cst;
 
-      if ((stat (cached_file, &cst) == -1) || cst.st_size == 0)
+      if ((hc_stat (cached_file, &cst) == -1) || cst.st_size == 0)
       {
         cached = 0;
       }
@@ -3679,9 +3677,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       generate_source_kernel_mp_filename (hashconfig->opti_type, hashconfig->opts_type, folder_config->shared_dir, source_file);
 
-      struct stat sst;
+      hc_stat_t sst;
 
-      if (stat (source_file, &sst) == -1)
+      if (hc_stat (source_file, &sst) == -1)
       {
         event_log_error (hashcat_ctx, "%s: %s", source_file, strerror (errno));
 
@@ -3698,9 +3696,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       int cached = 1;
 
-      struct stat cst;
+      hc_stat_t cst;
 
-      if (stat (cached_file, &cst) == -1)
+      if (hc_stat (cached_file, &cst) == -1)
       {
         cached = 0;
       }
@@ -3821,9 +3819,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       generate_source_kernel_amp_filename (user_options_extra->attack_kern, folder_config->shared_dir, source_file);
 
-      struct stat sst;
+      hc_stat_t sst;
 
-      if (stat (source_file, &sst) == -1)
+      if (hc_stat (source_file, &sst) == -1)
       {
         event_log_error (hashcat_ctx, "%s: %s", source_file, strerror (errno));
 
@@ -3840,9 +3838,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       int cached = 1;
 
-      struct stat cst;
+      hc_stat_t cst;
 
-      if (stat (cached_file, &cst) == -1)
+      if (hc_stat (cached_file, &cst) == -1)
       {
         cached = 0;
       }

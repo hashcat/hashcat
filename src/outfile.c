@@ -14,6 +14,7 @@
 #include "rp.h"
 #include "rp_kernel_on_cpu.h"
 #include "opencl.h"
+#include "shared.h"
 #include "outfile.h"
 
 int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u32 *plain_buf, int *out_len)
@@ -449,20 +450,14 @@ int outfile_and_hashfile (hashcat_ctx_t *hashcat_ctx)
 
   if (outfile == NULL) return 0;
 
-  hc_stat tmpstat_outfile;
-  hc_stat tmpstat_hashfile;
+  hc_stat_t tmpstat_outfile;
+  hc_stat_t tmpstat_hashfile;
 
   FILE *tmp_outfile_fp = fopen (outfile, "r");
 
   if (tmp_outfile_fp)
   {
-    #if defined (_POSIX)
-    fstat (fileno (tmp_outfile_fp), &tmpstat_outfile);
-    #endif
-
-    #if defined (_WIN)
-    _fstat64 (fileno (tmp_outfile_fp), &tmpstat_outfile);
-    #endif
+    hc_fstat (fileno (tmp_outfile_fp), &tmpstat_outfile);
 
     fclose (tmp_outfile_fp);
   }
@@ -471,13 +466,7 @@ int outfile_and_hashfile (hashcat_ctx_t *hashcat_ctx)
 
   if (tmp_hashfile_fp)
   {
-    #if defined (_POSIX)
-    fstat (fileno (tmp_hashfile_fp), &tmpstat_hashfile);
-    #endif
-
-    #if defined (_WIN)
-    _fstat64 (fileno (tmp_hashfile_fp), &tmpstat_hashfile);
-    #endif
+    hc_fstat (fileno (tmp_hashfile_fp), &tmpstat_hashfile);
 
     fclose (tmp_hashfile_fp);
   }
@@ -506,7 +495,7 @@ int outfile_and_hashfile (hashcat_ctx_t *hashcat_ctx)
     tmpstat_hashfile.st_blocks  = 0;
     #endif
 
-    if (memcmp (&tmpstat_outfile, &tmpstat_hashfile, sizeof (hc_stat)) == 0)
+    if (memcmp (&tmpstat_outfile, &tmpstat_hashfile, sizeof (hc_stat_t)) == 0)
     {
       event_log_error (hashcat_ctx, "Hashfile and Outfile are not allowed to point to the same file");
 

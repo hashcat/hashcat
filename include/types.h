@@ -15,6 +15,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <unistd.h>
 
 #if defined (_WIN)
 #include <windows.h>
@@ -61,15 +62,11 @@ typedef pthread_mutex_t   hc_thread_mutex_t;
 // stat
 
 #if defined (_POSIX)
-typedef struct stat hc_stat;
+typedef struct stat hc_stat_t;
 #endif
 
 #if defined (_WIN)
-#if defined (_MSC_VER)
-typedef struct _stat64 hc_stat;
-#else
-typedef struct stat64 hc_stat;
-#endif
+typedef struct _stat64 hc_stat_t;
 #endif
 
 // enums
@@ -1119,13 +1116,7 @@ typedef struct dictstat
 {
   u64 cnt;
 
-  #if defined (_POSIX)
-  struct stat stat;
-  #endif
-
-  #if defined (_WIN)
-  struct __stat64 stat;
-  #endif
+  hc_stat_t stat;
 
 } dictstat_t;
 
@@ -1635,13 +1626,7 @@ typedef struct cache_hit
 {
   char *dictfile;
 
-  #if defined (_POSIX)
-  struct stat stat;
-  #endif
-
-  #if defined (_WIN)
-  struct __stat64 stat;
-  #endif
+  hc_stat_t stat;
 
   u64 cached_cnt;
   u64 keyspace;

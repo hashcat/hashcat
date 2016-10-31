@@ -3,10 +3,11 @@
  * License.....: MIT
  */
 
+#include "common.h"
+
 #include <stdio.h>
 #include <assert.h>
 
-#include "common.h"
 #include "types.h"
 #include "memory.h"
 #include "user_options.h"

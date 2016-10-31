@@ -8,6 +8,7 @@
 #include "memory.h"
 #include "event.h"
 #include "user_options.h"
+#include "shared.h"
 #include "restore.h"
 
 #if defined (_WIN)
@@ -288,9 +289,9 @@ int cycle_restore (hashcat_ctx_t *hashcat_ctx)
 
   if (rc_write_restore == -1) return -1;
 
-  struct stat st;
+  hc_stat_t st;
 
-  if (stat (eff_restore_file, &st) == 0)
+  if (hc_stat (eff_restore_file, &st) == 0)
   {
     if (unlink (eff_restore_file))
     {
