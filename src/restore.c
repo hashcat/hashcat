@@ -273,6 +273,10 @@ static int write_restore (hashcat_ctx_t *hashcat_ctx)
 
   fclose (fp);
 
+  rd->masks_pos = 0;
+  rd->dicts_pos = 0;
+  rd->words_cur = 0;
+
   return 0;
 }
 
