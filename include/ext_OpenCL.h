@@ -107,6 +107,6 @@ typedef struct hc_opencl_lib
 
 typedef hc_opencl_lib_t OCL_PTR;
 
-const char *val2cstr_cl (cl_int CL_err);
+const char *val2cstr_cl (cl_int CL_err) __attribute__ ((const));
 
 #endif // _EXT_OPENCL_H

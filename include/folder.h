@@ -27,9 +27,9 @@
 #define DOT_HASHCAT     ".hashcat"
 #define SESSIONS_FOLDER "sessions"
 
-int sort_by_stringptr (const void *p1, const void *p2);
+int sort_by_stringptr (const void *p1, const void *p2) __attribute__ ((pure));
 
-int count_dictionaries (char **dictionary_files);
+int count_dictionaries (char **dictionary_files) __attribute__ ((pure));
 
 char **scan_directory (hashcat_ctx_t *hashcat_ctx, const char *path);
 

@@ -3032,11 +3032,11 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
             return -1;
           }
 
-          int engine_clock_max =       (int) (0.6666 * caps.sEngineClockRange.iMax);
-          int memory_clock_max =       (int) (0.6250 * caps.sMemoryClockRange.iMax);
+          int engine_clock_max =       (int) (0.6666f * caps.sEngineClockRange.iMax);
+          int memory_clock_max =       (int) (0.6250f * caps.sMemoryClockRange.iMax);
 
-          int warning_trigger_engine = (int) (0.25   * engine_clock_max);
-          int warning_trigger_memory = (int) (0.25   * memory_clock_max);
+          int warning_trigger_engine = (int) (0.25f   * engine_clock_max);
+          int warning_trigger_memory = (int) (0.25f   * memory_clock_max);
 
           int engine_clock_profile_max = hwmon_ctx->od_clock_mem_status[device_id].state.aLevels[1].iEngineClock;
           int memory_clock_profile_max = hwmon_ctx->od_clock_mem_status[device_id].state.aLevels[1].iMemoryClock;

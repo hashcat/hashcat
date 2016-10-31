@@ -12,12 +12,12 @@
 #include <time.h>
 #include <fcntl.h>
 
-bool is_power_of_2 (const u32 v);
+bool is_power_of_2 (const u32 v) __attribute__ ((const));
 
 u32 get_random_num (const u32 min, const u32 max);
 
-u32 mydivc32 (const u32 dividend, const u32 divisor);
-u64 mydivc64 (const u64 dividend, const u64 divisor);
+u32 mydivc32 (const u32 dividend, const u32 divisor) __attribute__ ((const));
+u64 mydivc64 (const u64 dividend, const u64 divisor) __attribute__ ((const));
 
 char *filename_from_filepath (char *filepath);
 

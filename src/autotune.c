@@ -243,7 +243,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   const double exec_accel_min = MIN (exec_left, accel_left); // we want that to be int
 
-  if (exec_accel_min >= 1.0)
+  if (exec_accel_min >= 1.0f)
   {
     // this is safe to not overflow kernel_accel_max because of accel_left
 
