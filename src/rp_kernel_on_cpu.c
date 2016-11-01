@@ -1249,7 +1249,7 @@ static u32 rule_op_mangle_rotate_left (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED c
   return in_len;
 }
 
-static u32 rule_op_mangle_rotate_right (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_rotate_right (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if (in_len == 0) return (in_len);
 
@@ -1259,17 +1259,16 @@ static u32 rule_op_mangle_rotate_right (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED 
 
   u32 tmp = 0;
 
-  switch (in_len1 / 4)
-  {
-    case  0:  tmp = (buf0[0] >> sh) & 0xff; break;
-    case  1:  tmp = (buf0[1] >> sh) & 0xff; break;
-    case  2:  tmp = (buf0[2] >> sh) & 0xff; break;
-    case  3:  tmp = (buf0[3] >> sh) & 0xff; break;
-    case  4:  tmp = (buf1[0] >> sh) & 0xff; break;
-    case  5:  tmp = (buf1[1] >> sh) & 0xff; break;
-    case  6:  tmp = (buf1[2] >> sh) & 0xff; break;
-    case  7:  tmp = (buf1[3] >> sh) & 0xff; break;
-  }
+  tmp |=                     (in_len1 <  4)  ? buf0[0] : 0;
+  tmp |= ((in_len1 >=  4) && (in_len1 <  8)) ? buf0[1] : 0;
+  tmp |= ((in_len1 >=  8) && (in_len1 < 12)) ? buf0[2] : 0;
+  tmp |= ((in_len1 >= 12) && (in_len1 < 16)) ? buf0[3] : 0;
+  tmp |= ((in_len1 >= 16) && (in_len1 < 20)) ? buf1[0] : 0;
+  tmp |= ((in_len1 >= 20) && (in_len1 < 24)) ? buf1[1] : 0;
+  tmp |= ((in_len1 >= 24) && (in_len1 < 28)) ? buf1[2] : 0;
+  tmp |=  (in_len1 >= 28)                    ? buf1[3] : 0;
+
+  tmp = (tmp >> sh) & 0xff;
 
   rshift_block (buf0, buf1, buf0, buf1);
 
