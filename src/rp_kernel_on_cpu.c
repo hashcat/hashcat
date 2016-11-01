@@ -1296,19 +1296,16 @@ static u32 rule_op_mangle_delete_last (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED c
 
   const u32 in_len1 = in_len - 1;
 
-  const u32 tmp = (1u << ((in_len1 & 3) * 8)) - 1;
+  const u32 mask = (1 << ((in_len1 & 3) * 8)) - 1;
 
-  switch (in_len1 / 4)
-  {
-    case  0:  buf0[0] &= tmp; break;
-    case  1:  buf0[1] &= tmp; break;
-    case  2:  buf0[2] &= tmp; break;
-    case  3:  buf0[3] &= tmp; break;
-    case  4:  buf1[0] &= tmp; break;
-    case  5:  buf1[1] &= tmp; break;
-    case  6:  buf1[2] &= tmp; break;
-    case  7:  buf1[3] &= tmp; break;
-  }
+  buf0[0] &=                     (in_len1 <  4)  ? mask : 0xffffffff;
+  buf0[1] &= ((in_len1 >=  4) && (in_len1 <  8)) ? mask : 0xffffffff;
+  buf0[2] &= ((in_len1 >=  8) && (in_len1 < 12)) ? mask : 0xffffffff;
+  buf0[3] &= ((in_len1 >= 12) && (in_len1 < 16)) ? mask : 0xffffffff;
+  buf1[0] &= ((in_len1 >= 16) && (in_len1 < 20)) ? mask : 0xffffffff;
+  buf1[1] &= ((in_len1 >= 20) && (in_len1 < 24)) ? mask : 0xffffffff;
+  buf1[2] &= ((in_len1 >= 24) && (in_len1 < 28)) ? mask : 0xffffffff;
+  buf1[3] &=  (in_len1 >= 28)                    ? mask : 0xffffffff;
 
   return in_len1;
 }
