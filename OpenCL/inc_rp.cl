@@ -740,50 +740,18 @@ inline void rshift_block_N (const u32 in0[4], const u32 in1[4], u32 out0[4], u32
 
 inline void append_block1 (const u32 offset, u32 dst0[4], u32 dst1[4], const u32 src_r0)
 {
-  u32 tmp[2];
+  // this version works with 1 byte append only
 
-  switch (offset & 3)
-  {
-    case  0:  tmp[0] = src_r0;
-              tmp[1] = 0;
-              break;
-    case  1:  tmp[0] = src_r0 <<  8;
-              tmp[1] = src_r0 >> 24;
-              break;
-    case  2:  tmp[0] = src_r0 << 16;
-              tmp[1] = src_r0 >> 16;
-              break;
-    case  3:  tmp[0] = src_r0 << 24;
-              tmp[1] = src_r0 >>  8;
-              break;
-  }
+  const u32 tmp = (src_r0 & 0xff) << ((offset & 3) * 8);
 
-  switch (offset / 4)
-  {
-    case  0:  dst0[0] |= tmp[0];
-              dst0[1]  = tmp[1];
-              break;
-    case  1:  dst0[1] |= tmp[0];
-              dst0[2]  = tmp[1];
-              break;
-    case  2:  dst0[2] |= tmp[0];
-              dst0[3]  = tmp[1];
-              break;
-    case  3:  dst0[3] |= tmp[0];
-              dst1[0]  = tmp[1];
-              break;
-    case  4:  dst1[0] |= tmp[0];
-              dst1[1]  = tmp[1];
-              break;
-    case  5:  dst1[1] |= tmp[0];
-              dst1[2]  = tmp[1];
-              break;
-    case  6:  dst1[2] |= tmp[0];
-              dst1[3]  = tmp[1];
-              break;
-    case  7:  dst1[3] |= tmp[0];
-              break;
-  }
+  dst0[0] |=                    (offset <  4)  ? tmp : 0;
+  dst0[1] |= ((offset >=  4) && (offset <  8)) ? tmp : 0;
+  dst0[2] |= ((offset >=  8) && (offset < 12)) ? tmp : 0;
+  dst0[3] |= ((offset >= 12) && (offset < 16)) ? tmp : 0;
+  dst1[0] |= ((offset >= 16) && (offset < 20)) ? tmp : 0;
+  dst1[1] |= ((offset >= 20) && (offset < 24)) ? tmp : 0;
+  dst1[2] |= ((offset >= 24) && (offset < 28)) ? tmp : 0;
+  dst1[3] |=  (offset >= 28)                   ? tmp : 0;
 }
 
 inline void append_block8 (const u32 offset, u32 dst0[4], u32 dst1[4], const u32 src_l0[4], const u32 src_l1[4], const u32 src_r0[4], const u32 src_r1[4])
