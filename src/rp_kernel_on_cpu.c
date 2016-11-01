@@ -9,124 +9,124 @@
 #include "rp.h"
 #include "rp_kernel_on_cpu.h"
 
-u32 swap_workaround (const u32 n)
+static u32 swap32_S (const u32 value)
 {
-  return byte_swap_32 (n);
+  return byte_swap_32 (value);
 }
 
-static u32 generate_cmask (u32 buf)
+static u32 generate_cmask (const u32 value)
 {
-  const u32 rmask =  ((buf & 0x40404040) >> 1)
-                  & ~((buf & 0x80808080) >> 2);
+  const u32 rmask =  ((value & 0x40404040u) >> 1u)
+                  & ~((value & 0x80808080u) >> 2u);
 
-  const u32 hmask = (buf & 0x1f1f1f1f) + 0x05050505;
-  const u32 lmask = (buf & 0x1f1f1f1f) + 0x1f1f1f1f;
+  const u32 hmask = (value & 0x1f1f1f1fu) + 0x05050505u;
+  const u32 lmask = (value & 0x1f1f1f1fu) + 0x1f1f1f1fu;
 
   return rmask & ~hmask & lmask;
 }
 
-static void truncate_right (u32 w0[4], u32 w1[4], const u32 len)
+static void truncate_right (u32 buf0[4], u32 buf1[4], const u32 offset)
 {
-  const u32 tmp = (1u << ((len % 4) * 8)) - 1;
+  const u32 tmp = (1u << ((offset & 3u) * 8u)) - 1u;
 
-  switch (len / 4)
+  switch (offset / 4)
   {
-    case  0:  w0[0] &= tmp;
-              w0[1]  = 0;
-              w0[2]  = 0;
-              w0[3]  = 0;
-              w1[0]  = 0;
-              w1[1]  = 0;
-              w1[2]  = 0;
-              w1[3]  = 0;
+    case  0:  buf0[0] &= tmp;
+              buf0[1]  = 0;
+              buf0[2]  = 0;
+              buf0[3]  = 0;
+              buf1[0]  = 0;
+              buf1[1]  = 0;
+              buf1[2]  = 0;
+              buf1[3]  = 0;
               break;
-    case  1:  w0[1] &= tmp;
-              w0[2]  = 0;
-              w0[3]  = 0;
-              w1[0]  = 0;
-              w1[1]  = 0;
-              w1[2]  = 0;
-              w1[3]  = 0;
+    case  1:  buf0[1] &= tmp;
+              buf0[2]  = 0;
+              buf0[3]  = 0;
+              buf1[0]  = 0;
+              buf1[1]  = 0;
+              buf1[2]  = 0;
+              buf1[3]  = 0;
               break;
-    case  2:  w0[2] &= tmp;
-              w0[3]  = 0;
-              w1[0]  = 0;
-              w1[1]  = 0;
-              w1[2]  = 0;
-              w1[3]  = 0;
+    case  2:  buf0[2] &= tmp;
+              buf0[3]  = 0;
+              buf1[0]  = 0;
+              buf1[1]  = 0;
+              buf1[2]  = 0;
+              buf1[3]  = 0;
               break;
-    case  3:  w0[3] &= tmp;
-              w1[0]  = 0;
-              w1[1]  = 0;
-              w1[2]  = 0;
-              w1[3]  = 0;
+    case  3:  buf0[3] &= tmp;
+              buf1[0]  = 0;
+              buf1[1]  = 0;
+              buf1[2]  = 0;
+              buf1[3]  = 0;
               break;
-    case  4:  w1[0] &= tmp;
-              w1[1]  = 0;
-              w1[2]  = 0;
-              w1[3]  = 0;
+    case  4:  buf1[0] &= tmp;
+              buf1[1]  = 0;
+              buf1[2]  = 0;
+              buf1[3]  = 0;
               break;
-    case  5:  w1[1] &= tmp;
-              w1[2]  = 0;
-              w1[3]  = 0;
+    case  5:  buf1[1] &= tmp;
+              buf1[2]  = 0;
+              buf1[3]  = 0;
               break;
-    case  6:  w1[2] &= tmp;
-              w1[3]  = 0;
+    case  6:  buf1[2] &= tmp;
+              buf1[3]  = 0;
               break;
-    case  7:  w1[3] &= tmp;
+    case  7:  buf1[3] &= tmp;
               break;
   }
 }
 
-static void truncate_left (u32 w0[4], u32 w1[4], const u32 len)
+static void truncate_left (u32 buf0[4], u32 buf1[4], const u32 offset)
 {
-  const u32 tmp = ~((1u << ((len % 4) * 8)) - 1);
+  const u32 tmp = ~((1u << ((offset & 3u) * 8u)) - 1u);
 
-  switch (len / 4)
+  switch (offset / 4)
   {
-    case  0:  w0[0] &= tmp;
+    case  0:  buf0[0] &= tmp;
               break;
-    case  1:  w0[0]  = 0;
-              w0[1] &= tmp;
+    case  1:  buf0[0]  = 0;
+              buf0[1] &= tmp;
               break;
-    case  2:  w0[0]  = 0;
-              w0[1]  = 0;
-              w0[2] &= tmp;
+    case  2:  buf0[0]  = 0;
+              buf0[1]  = 0;
+              buf0[2] &= tmp;
               break;
-    case  3:  w0[0]  = 0;
-              w0[1]  = 0;
-              w0[2]  = 0;
-              w0[3] &= tmp;
+    case  3:  buf0[0]  = 0;
+              buf0[1]  = 0;
+              buf0[2]  = 0;
+              buf0[3] &= tmp;
               break;
-    case  4:  w0[0]  = 0;
-              w0[1]  = 0;
-              w0[2]  = 0;
-              w0[3]  = 0;
-              w1[0] &= tmp;
+    case  4:  buf0[0]  = 0;
+              buf0[1]  = 0;
+              buf0[2]  = 0;
+              buf0[3]  = 0;
+              buf1[0] &= tmp;
               break;
-    case  5:  w0[0]  = 0;
-              w0[1]  = 0;
-              w0[2]  = 0;
-              w0[3]  = 0;
-              w1[0]  = 0;
-              w1[1] &= tmp;
+    case  5:  buf0[0]  = 0;
+              buf0[1]  = 0;
+              buf0[2]  = 0;
+              buf0[3]  = 0;
+              buf1[0]  = 0;
+              buf1[1] &= tmp;
               break;
-    case  6:  w0[0]  = 0;
-              w0[1]  = 0;
-              w0[2]  = 0;
-              w0[3]  = 0;
-              w1[0]  = 0;
-              w1[1]  = 0;
-              w1[2] &= tmp;
+    case  6:  buf0[0]  = 0;
+              buf0[1]  = 0;
+              buf0[2]  = 0;
+              buf0[3]  = 0;
+              buf1[0]  = 0;
+              buf1[1]  = 0;
+              buf1[2] &= tmp;
               break;
-    case  7:  w0[0]  = 0;
-              w0[1]  = 0;
-              w0[2]  = 0;
-              w0[3]  = 0;
-              w1[0]  = 0;
-              w1[1]  = 0;
-              w1[2]  = 0;
-              w1[3] &= tmp;
+    case  7:  buf0[0]  = 0;
+              buf0[1]  = 0;
+              buf0[2]  = 0;
+              buf0[3]  = 0;
+              buf1[0]  = 0;
+              buf1[1]  = 0;
+              buf1[2]  = 0;
+              buf1[3] &= tmp;
               break;
   }
 }
@@ -746,31 +746,35 @@ static void lshift_block_N (const u32 in0[4], const u32 in1[4], u32 out0[4], u32
   }
 }
 
-static void append_block1 (const u32 offset, u32 dst0[4], u32 dst1[4], const u32 src_r0)
+static void append_block1 (const u32 offset, u32 buf0[4], u32 dst1[4], const u32 src_r0)
 {
   // this version works with 1 byte append only
 
-  const u32 tmp = (src_r0 & 0xff) << ((offset & 3) * 8);
+  const u32 value = src_r0 & 0xff;
 
-  dst0[0] |=                    (offset <  4)  ? tmp : 0;
-  dst0[1] |= ((offset >=  4) && (offset <  8)) ? tmp : 0;
-  dst0[2] |= ((offset >=  8) && (offset < 12)) ? tmp : 0;
-  dst0[3] |= ((offset >= 12) && (offset < 16)) ? tmp : 0;
+  const u32 shift = (offset & 3) * 8;
+
+  const u32 tmp = value << shift;
+
+  buf0[0] |=                    (offset <  4)  ? tmp : 0;
+  buf0[1] |= ((offset >=  4) && (offset <  8)) ? tmp : 0;
+  buf0[2] |= ((offset >=  8) && (offset < 12)) ? tmp : 0;
+  buf0[3] |= ((offset >= 12) && (offset < 16)) ? tmp : 0;
   dst1[0] |= ((offset >= 16) && (offset < 20)) ? tmp : 0;
   dst1[1] |= ((offset >= 20) && (offset < 24)) ? tmp : 0;
   dst1[2] |= ((offset >= 24) && (offset < 28)) ? tmp : 0;
   dst1[3] |=  (offset >= 28)                   ? tmp : 0;
 }
 
-static void append_block8 (const u32 offset, u32 dst0[4], u32 dst1[4], const u32 src_l0[4], const u32 src_l1[4], const u32 src_r0[4], const u32 src_r1[4])
+static void append_block8 (const u32 offset, u32 buf0[4], u32 dst1[4], const u32 src_l0[4], const u32 src_l1[4], const u32 src_r0[4], const u32 src_r1[4])
 {
   switch (offset)
   {
     case 0:
-      dst0[0] = src_r0[0];
-      dst0[1] = src_r0[1];
-      dst0[2] = src_r0[2];
-      dst0[3] = src_r0[3];
+      buf0[0] = src_r0[0];
+      buf0[1] = src_r0[1];
+      buf0[2] = src_r0[2];
+      buf0[3] = src_r0[3];
       dst1[0] = src_r1[0];
       dst1[1] = src_r1[1];
       dst1[2] = src_r1[2];
@@ -778,10 +782,10 @@ static void append_block8 (const u32 offset, u32 dst0[4], u32 dst1[4], const u32
       break;
 
     case 1:
-      dst0[0] = src_l0[0]       | src_r0[0] <<  8;
-      dst0[1] = src_r0[0] >> 24 | src_r0[1] <<  8;
-      dst0[2] = src_r0[1] >> 24 | src_r0[2] <<  8;
-      dst0[3] = src_r0[2] >> 24 | src_r0[3] <<  8;
+      buf0[0] = src_l0[0]       | src_r0[0] <<  8;
+      buf0[1] = src_r0[0] >> 24 | src_r0[1] <<  8;
+      buf0[2] = src_r0[1] >> 24 | src_r0[2] <<  8;
+      buf0[3] = src_r0[2] >> 24 | src_r0[3] <<  8;
       dst1[0] = src_r0[3] >> 24 | src_r1[0] <<  8;
       dst1[1] = src_r1[0] >> 24 | src_r1[1] <<  8;
       dst1[2] = src_r1[1] >> 24 | src_r1[2] <<  8;
@@ -789,10 +793,10 @@ static void append_block8 (const u32 offset, u32 dst0[4], u32 dst1[4], const u32
       break;
 
     case 2:
-      dst0[0] = src_l0[0]       | src_r0[0] << 16;
-      dst0[1] = src_r0[0] >> 16 | src_r0[1] << 16;
-      dst0[2] = src_r0[1] >> 16 | src_r0[2] << 16;
-      dst0[3] = src_r0[2] >> 16 | src_r0[3] << 16;
+      buf0[0] = src_l0[0]       | src_r0[0] << 16;
+      buf0[1] = src_r0[0] >> 16 | src_r0[1] << 16;
+      buf0[2] = src_r0[1] >> 16 | src_r0[2] << 16;
+      buf0[3] = src_r0[2] >> 16 | src_r0[3] << 16;
       dst1[0] = src_r0[3] >> 16 | src_r1[0] << 16;
       dst1[1] = src_r1[0] >> 16 | src_r1[1] << 16;
       dst1[2] = src_r1[1] >> 16 | src_r1[2] << 16;
@@ -800,10 +804,10 @@ static void append_block8 (const u32 offset, u32 dst0[4], u32 dst1[4], const u32
       break;
 
     case 3:
-      dst0[0] = src_l0[0]       | src_r0[0] << 24;
-      dst0[1] = src_r0[0] >>  8 | src_r0[1] << 24;
-      dst0[2] = src_r0[1] >>  8 | src_r0[2] << 24;
-      dst0[3] = src_r0[2] >>  8 | src_r0[3] << 24;
+      buf0[0] = src_l0[0]       | src_r0[0] << 24;
+      buf0[1] = src_r0[0] >>  8 | src_r0[1] << 24;
+      buf0[2] = src_r0[1] >>  8 | src_r0[2] << 24;
+      buf0[3] = src_r0[2] >>  8 | src_r0[3] << 24;
       dst1[0] = src_r0[3] >>  8 | src_r1[0] << 24;
       dst1[1] = src_r1[0] >>  8 | src_r1[1] << 24;
       dst1[2] = src_r1[1] >>  8 | src_r1[2] << 24;
@@ -811,9 +815,9 @@ static void append_block8 (const u32 offset, u32 dst0[4], u32 dst1[4], const u32
       break;
 
     case 4:
-      dst0[1] = src_r0[0];
-      dst0[2] = src_r0[1];
-      dst0[3] = src_r0[2];
+      buf0[1] = src_r0[0];
+      buf0[2] = src_r0[1];
+      buf0[3] = src_r0[2];
       dst1[0] = src_r0[3];
       dst1[1] = src_r1[0];
       dst1[2] = src_r1[1];
@@ -821,9 +825,9 @@ static void append_block8 (const u32 offset, u32 dst0[4], u32 dst1[4], const u32
       break;
 
     case 5:
-      dst0[1] = src_l0[1]       | src_r0[0] <<  8;
-      dst0[2] = src_r0[0] >> 24 | src_r0[1] <<  8;
-      dst0[3] = src_r0[1] >> 24 | src_r0[2] <<  8;
+      buf0[1] = src_l0[1]       | src_r0[0] <<  8;
+      buf0[2] = src_r0[0] >> 24 | src_r0[1] <<  8;
+      buf0[3] = src_r0[1] >> 24 | src_r0[2] <<  8;
       dst1[0] = src_r0[2] >> 24 | src_r0[3] <<  8;
       dst1[1] = src_r0[3] >> 24 | src_r1[0] <<  8;
       dst1[2] = src_r1[0] >> 24 | src_r1[1] <<  8;
@@ -831,9 +835,9 @@ static void append_block8 (const u32 offset, u32 dst0[4], u32 dst1[4], const u32
       break;
 
     case 6:
-      dst0[1] = src_l0[1]       | src_r0[0] << 16;
-      dst0[2] = src_r0[0] >> 16 | src_r0[1] << 16;
-      dst0[3] = src_r0[1] >> 16 | src_r0[2] << 16;
+      buf0[1] = src_l0[1]       | src_r0[0] << 16;
+      buf0[2] = src_r0[0] >> 16 | src_r0[1] << 16;
+      buf0[3] = src_r0[1] >> 16 | src_r0[2] << 16;
       dst1[0] = src_r0[2] >> 16 | src_r0[3] << 16;
       dst1[1] = src_r0[3] >> 16 | src_r1[0] << 16;
       dst1[2] = src_r1[0] >> 16 | src_r1[1] << 16;
@@ -841,9 +845,9 @@ static void append_block8 (const u32 offset, u32 dst0[4], u32 dst1[4], const u32
       break;
 
     case 7:
-      dst0[1] = src_l0[1]       | src_r0[0] << 24;
-      dst0[2] = src_r0[0] >>  8 | src_r0[1] << 24;
-      dst0[3] = src_r0[1] >>  8 | src_r0[2] << 24;
+      buf0[1] = src_l0[1]       | src_r0[0] << 24;
+      buf0[2] = src_r0[0] >>  8 | src_r0[1] << 24;
+      buf0[3] = src_r0[1] >>  8 | src_r0[2] << 24;
       dst1[0] = src_r0[2] >>  8 | src_r0[3] << 24;
       dst1[1] = src_r0[3] >>  8 | src_r1[0] << 24;
       dst1[2] = src_r1[0] >>  8 | src_r1[1] << 24;
@@ -851,8 +855,8 @@ static void append_block8 (const u32 offset, u32 dst0[4], u32 dst1[4], const u32
       break;
 
     case 8:
-      dst0[2] = src_r0[0];
-      dst0[3] = src_r0[1];
+      buf0[2] = src_r0[0];
+      buf0[3] = src_r0[1];
       dst1[0] = src_r0[2];
       dst1[1] = src_r0[3];
       dst1[2] = src_r1[0];
@@ -860,8 +864,8 @@ static void append_block8 (const u32 offset, u32 dst0[4], u32 dst1[4], const u32
       break;
 
     case 9:
-      dst0[2] = src_l0[2]       | src_r0[0] <<  8;
-      dst0[3] = src_r0[0] >> 24 | src_r0[1] <<  8;
+      buf0[2] = src_l0[2]       | src_r0[0] <<  8;
+      buf0[3] = src_r0[0] >> 24 | src_r0[1] <<  8;
       dst1[0] = src_r0[1] >> 24 | src_r0[2] <<  8;
       dst1[1] = src_r0[2] >> 24 | src_r0[3] <<  8;
       dst1[2] = src_r0[3] >> 24 | src_r1[0] <<  8;
@@ -869,8 +873,8 @@ static void append_block8 (const u32 offset, u32 dst0[4], u32 dst1[4], const u32
       break;
 
     case 10:
-      dst0[2] = src_l0[2]       | src_r0[0] << 16;
-      dst0[3] = src_r0[0] >> 16 | src_r0[1] << 16;
+      buf0[2] = src_l0[2]       | src_r0[0] << 16;
+      buf0[3] = src_r0[0] >> 16 | src_r0[1] << 16;
       dst1[0] = src_r0[1] >> 16 | src_r0[2] << 16;
       dst1[1] = src_r0[2] >> 16 | src_r0[3] << 16;
       dst1[2] = src_r0[3] >> 16 | src_r1[0] << 16;
@@ -878,8 +882,8 @@ static void append_block8 (const u32 offset, u32 dst0[4], u32 dst1[4], const u32
       break;
 
     case 11:
-      dst0[2] = src_l0[2]       | src_r0[0] << 24;
-      dst0[3] = src_r0[0] >>  8 | src_r0[1] << 24;
+      buf0[2] = src_l0[2]       | src_r0[0] << 24;
+      buf0[3] = src_r0[0] >>  8 | src_r0[1] << 24;
       dst1[0] = src_r0[1] >>  8 | src_r0[2] << 24;
       dst1[1] = src_r0[2] >>  8 | src_r0[3] << 24;
       dst1[2] = src_r0[3] >>  8 | src_r1[0] << 24;
@@ -887,7 +891,7 @@ static void append_block8 (const u32 offset, u32 dst0[4], u32 dst1[4], const u32
       break;
 
     case 12:
-      dst0[3] = src_r0[0];
+      buf0[3] = src_r0[0];
       dst1[0] = src_r0[1];
       dst1[1] = src_r0[2];
       dst1[2] = src_r0[3];
@@ -895,7 +899,7 @@ static void append_block8 (const u32 offset, u32 dst0[4], u32 dst1[4], const u32
       break;
 
     case 13:
-      dst0[3] = src_l0[3]       | src_r0[0] <<  8;
+      buf0[3] = src_l0[3]       | src_r0[0] <<  8;
       dst1[0] = src_r0[0] >> 24 | src_r0[1] <<  8;
       dst1[1] = src_r0[1] >> 24 | src_r0[2] <<  8;
       dst1[2] = src_r0[2] >> 24 | src_r0[3] <<  8;
@@ -903,7 +907,7 @@ static void append_block8 (const u32 offset, u32 dst0[4], u32 dst1[4], const u32
       break;
 
     case 14:
-      dst0[3] = src_l0[3]       | src_r0[0] << 16;
+      buf0[3] = src_l0[3]       | src_r0[0] << 16;
       dst1[0] = src_r0[0] >> 16 | src_r0[1] << 16;
       dst1[1] = src_r0[1] >> 16 | src_r0[2] << 16;
       dst1[2] = src_r0[2] >> 16 | src_r0[3] << 16;
@@ -911,7 +915,7 @@ static void append_block8 (const u32 offset, u32 dst0[4], u32 dst1[4], const u32
       break;
 
     case 15:
-      dst0[3] = src_l0[3]       | src_r0[0] << 24;
+      buf0[3] = src_l0[3]       | src_r0[0] << 24;
       dst1[0] = src_r0[0] >>  8 | src_r0[1] << 24;
       dst1[1] = src_r0[1] >>  8 | src_r0[2] << 24;
       dst1[2] = src_r0[2] >>  8 | src_r0[3] << 24;
@@ -1024,14 +1028,14 @@ static void reverse_block (u32 in0[4], u32 in1[4], u32 out0[4], u32 out1[4], con
   tib41[2] = out0[1];
   tib41[3] = out0[0];
 
-  out0[0] = swap_workaround (tib40[0]);
-  out0[1] = swap_workaround (tib40[1]);
-  out0[2] = swap_workaround (tib40[2]);
-  out0[3] = swap_workaround (tib40[3]);
-  out1[0] = swap_workaround (tib41[0]);
-  out1[1] = swap_workaround (tib41[1]);
-  out1[2] = swap_workaround (tib41[2]);
-  out1[3] = swap_workaround (tib41[3]);
+  out0[0] = swap32_S (tib40[0]);
+  out0[1] = swap32_S (tib40[1]);
+  out0[2] = swap32_S (tib40[2]);
+  out0[3] = swap32_S (tib40[3]);
+  out1[0] = swap32_S (tib41[0]);
+  out1[1] = swap32_S (tib41[1]);
+  out1[2] = swap32_S (tib41[2]);
+  out1[3] = swap32_S (tib41[3]);
 }
 
 static u32 rule_op_mangle_lrest (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)

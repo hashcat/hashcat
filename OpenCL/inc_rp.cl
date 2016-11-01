@@ -3,123 +3,119 @@
  * License.....: MIT
  */
 
-inline u32  apply_rule (const u32 name, const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len);
-inline u32  apply_rules (const __global u32 *cmds, u32 buf0[4], u32 buf1[4], const u32 len);
-inline u32x apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_len, const __global kernel_rule_t *rules_buf, const u32 il_pos, u32x w0[4], u32x w1[4]);
-
-inline u32 generate_cmask (u32 buf)
+inline u32 generate_cmask (const u32 value)
 {
-  const u32 rmask = ((buf & 0x40404040) >> 1)
-                 & ~((buf & 0x80808080) >> 2);
+  const u32 rmask =  ((value & 0x40404040u) >> 1u)
+                  & ~((value & 0x80808080u) >> 2u);
 
-  const u32 hmask = (buf & 0x1f1f1f1f) + 0x05050505;
-  const u32 lmask = (buf & 0x1f1f1f1f) + 0x1f1f1f1f;
+  const u32 hmask = (value & 0x1f1f1f1fu) + 0x05050505u;
+  const u32 lmask = (value & 0x1f1f1f1fu) + 0x1f1f1f1fu;
 
   return rmask & ~hmask & lmask;
 }
 
-inline void truncate_right (u32 w0[4], u32 w1[4], const u32 len)
+inline void truncate_right (u32 buf0[4], u32 buf1[4], const u32 offset)
 {
-  const u32 tmp = (1 << ((len % 4) * 8)) - 1;
+  const u32 tmp = (1u << ((offset & 3u) * 8u)) - 1u;
 
-  switch (len / 4)
+  switch (offset / 4)
   {
-    case  0:  w0[0] &= tmp;
-              w0[1]  = 0;
-              w0[2]  = 0;
-              w0[3]  = 0;
-              w1[0]  = 0;
-              w1[1]  = 0;
-              w1[2]  = 0;
-              w1[3]  = 0;
+    case  0:  buf0[0] &= tmp;
+              buf0[1]  = 0;
+              buf0[2]  = 0;
+              buf0[3]  = 0;
+              buf1[0]  = 0;
+              buf1[1]  = 0;
+              buf1[2]  = 0;
+              buf1[3]  = 0;
               break;
-    case  1:  w0[1] &= tmp;
-              w0[2]  = 0;
-              w0[3]  = 0;
-              w1[0]  = 0;
-              w1[1]  = 0;
-              w1[2]  = 0;
-              w1[3]  = 0;
+    case  1:  buf0[1] &= tmp;
+              buf0[2]  = 0;
+              buf0[3]  = 0;
+              buf1[0]  = 0;
+              buf1[1]  = 0;
+              buf1[2]  = 0;
+              buf1[3]  = 0;
               break;
-    case  2:  w0[2] &= tmp;
-              w0[3]  = 0;
-              w1[0]  = 0;
-              w1[1]  = 0;
-              w1[2]  = 0;
-              w1[3]  = 0;
+    case  2:  buf0[2] &= tmp;
+              buf0[3]  = 0;
+              buf1[0]  = 0;
+              buf1[1]  = 0;
+              buf1[2]  = 0;
+              buf1[3]  = 0;
               break;
-    case  3:  w0[3] &= tmp;
-              w1[0]  = 0;
-              w1[1]  = 0;
-              w1[2]  = 0;
-              w1[3]  = 0;
+    case  3:  buf0[3] &= tmp;
+              buf1[0]  = 0;
+              buf1[1]  = 0;
+              buf1[2]  = 0;
+              buf1[3]  = 0;
               break;
-    case  4:  w1[0] &= tmp;
-              w1[1]  = 0;
-              w1[2]  = 0;
-              w1[3]  = 0;
+    case  4:  buf1[0] &= tmp;
+              buf1[1]  = 0;
+              buf1[2]  = 0;
+              buf1[3]  = 0;
               break;
-    case  5:  w1[1] &= tmp;
-              w1[2]  = 0;
-              w1[3]  = 0;
+    case  5:  buf1[1] &= tmp;
+              buf1[2]  = 0;
+              buf1[3]  = 0;
               break;
-    case  6:  w1[2] &= tmp;
-              w1[3]  = 0;
+    case  6:  buf1[2] &= tmp;
+              buf1[3]  = 0;
               break;
-    case  7:  w1[3] &= tmp;
+    case  7:  buf1[3] &= tmp;
               break;
   }
 }
 
-inline void truncate_left (u32 w0[4], u32 w1[4], const u32 len)
+inline void truncate_left (u32 buf0[4], u32 buf1[4], const u32 offset)
 {
-  const u32 tmp = ~((1 << ((len % 4) * 8)) - 1);
+  const u32 tmp = ~((1u << ((offset & 3u) * 8u)) - 1u);
 
-  switch (len / 4)
+  switch (offset / 4)
   {
-    case  0:  w0[0] &= tmp;
+    case  0:  buf0[0] &= tmp;
               break;
-    case  1:  w0[0]  = 0;
-              w0[1] &= tmp;
+    case  1:  buf0[0]  = 0;
+              buf0[1] &= tmp;
               break;
-    case  2:  w0[0]  = 0;
-              w0[1]  = 0;
-              w0[2] &= tmp;
+    case  2:  buf0[0]  = 0;
+              buf0[1]  = 0;
+              buf0[2] &= tmp;
               break;
-    case  3:  w0[0]  = 0;
-              w0[1]  = 0;
-              w0[2]  = 0;
-              w0[3] &= tmp;
+    case  3:  buf0[0]  = 0;
+              buf0[1]  = 0;
+              buf0[2]  = 0;
+              buf0[3] &= tmp;
               break;
-    case  4:  w0[0]  = 0;
-              w0[1]  = 0;
-              w0[2]  = 0;
-              w0[3]  = 0;
-              w1[0] &= tmp;
+    case  4:  buf0[0]  = 0;
+              buf0[1]  = 0;
+              buf0[2]  = 0;
+              buf0[3]  = 0;
+              buf1[0] &= tmp;
               break;
-    case  5:  w0[0]  = 0;
-              w0[1]  = 0;
-              w0[2]  = 0;
-              w0[3]  = 0;
-              w1[0]  = 0;
-              w1[1] &= tmp;
+    case  5:  buf0[0]  = 0;
+              buf0[1]  = 0;
+              buf0[2]  = 0;
+              buf0[3]  = 0;
+              buf1[0]  = 0;
+              buf1[1] &= tmp;
               break;
-    case  6:  w0[0]  = 0;
-              w0[1]  = 0;
-              w0[2]  = 0;
-              w0[3]  = 0;
-              w1[0]  = 0;
-              w1[1]  = 0;
-              w1[2] &= tmp;
+    case  6:  buf0[0]  = 0;
+              buf0[1]  = 0;
+              buf0[2]  = 0;
+              buf0[3]  = 0;
+              buf1[0]  = 0;
+              buf1[1]  = 0;
+              buf1[2] &= tmp;
               break;
-    case  7:  w0[0]  = 0;
-              w0[1]  = 0;
-              w0[2]  = 0;
-              w0[3]  = 0;
-              w1[0]  = 0;
-              w1[1]  = 0;
-              w1[2]  = 0;
-              w1[3] &= tmp;
+    case  7:  buf0[0]  = 0;
+              buf0[1]  = 0;
+              buf0[2]  = 0;
+              buf0[3]  = 0;
+              buf1[0]  = 0;
+              buf1[1]  = 0;
+              buf1[2]  = 0;
+              buf1[3] &= tmp;
               break;
   }
 }
@@ -738,23 +734,27 @@ inline void rshift_block_N (const u32 in0[4], const u32 in1[4], u32 out0[4], u32
   }
 }
 
-inline void append_block1 (const u32 offset, u32 dst0[4], u32 dst1[4], const u32 src_r0)
+inline void append_block1 (const u32 offset, u32 buf0[4], u32 dst1[4], const u32 src_r0)
 {
   // this version works with 1 byte append only
 
-  const u32 tmp = (src_r0 & 0xff) << ((offset & 3) * 8);
+  const u32 value = src_r0 & 0xff;
 
-  dst0[0] |=                    (offset <  4)  ? tmp : 0;
-  dst0[1] |= ((offset >=  4) && (offset <  8)) ? tmp : 0;
-  dst0[2] |= ((offset >=  8) && (offset < 12)) ? tmp : 0;
-  dst0[3] |= ((offset >= 12) && (offset < 16)) ? tmp : 0;
+  const u32 shift = (offset & 3) * 8;
+
+  const u32 tmp = value << shift;
+
+  buf0[0] |=                    (offset <  4)  ? tmp : 0;
+  buf0[1] |= ((offset >=  4) && (offset <  8)) ? tmp : 0;
+  buf0[2] |= ((offset >=  8) && (offset < 12)) ? tmp : 0;
+  buf0[3] |= ((offset >= 12) && (offset < 16)) ? tmp : 0;
   dst1[0] |= ((offset >= 16) && (offset < 20)) ? tmp : 0;
   dst1[1] |= ((offset >= 20) && (offset < 24)) ? tmp : 0;
   dst1[2] |= ((offset >= 24) && (offset < 28)) ? tmp : 0;
   dst1[3] |=  (offset >= 28)                   ? tmp : 0;
 }
 
-inline void append_block8 (const u32 offset, u32 dst0[4], u32 dst1[4], const u32 src_l0[4], const u32 src_l1[4], const u32 src_r0[4], const u32 src_r1[4])
+inline void append_block8 (const u32 offset, u32 buf0[4], u32 dst1[4], const u32 src_l0[4], const u32 src_l1[4], const u32 src_r0[4], const u32 src_r1[4])
 {
   switch (offset)
   {
@@ -835,136 +835,136 @@ inline void append_block8 (const u32 offset, u32 dst0[4], u32 dst1[4], const u32
       dst1[2] = amd_bytealign_S (src_r0[3], src_r0[2], 1);
       dst1[1] = amd_bytealign_S (src_r0[2], src_r0[1], 1);
       dst1[0] = amd_bytealign_S (src_r0[1], src_r0[0], 1);
-      dst0[3] = src_l0[3] | src_r0[0] << 24;
+      buf0[3] = src_l0[3] | src_r0[0] << 24;
       break;
     case 14:
       dst1[3] = amd_bytealign_S (src_r1[0], src_r0[3], 2);
       dst1[2] = amd_bytealign_S (src_r0[3], src_r0[2], 2);
       dst1[1] = amd_bytealign_S (src_r0[2], src_r0[1], 2);
       dst1[0] = amd_bytealign_S (src_r0[1], src_r0[0], 2);
-      dst0[3] = src_l0[3] | src_r0[0] << 16;
+      buf0[3] = src_l0[3] | src_r0[0] << 16;
       break;
     case 13:
       dst1[3] = amd_bytealign_S (src_r1[0], src_r0[3], 3);
       dst1[2] = amd_bytealign_S (src_r0[3], src_r0[2], 3);
       dst1[1] = amd_bytealign_S (src_r0[2], src_r0[1], 3);
       dst1[0] = amd_bytealign_S (src_r0[1], src_r0[0], 3);
-      dst0[3] = src_l0[3] | src_r0[0] <<  8;
+      buf0[3] = src_l0[3] | src_r0[0] <<  8;
       break;
     case 12:
       dst1[3] = src_r1[0];
       dst1[2] = src_r0[3];
       dst1[1] = src_r0[2];
       dst1[0] = src_r0[1];
-      dst0[3] = src_r0[0];
+      buf0[3] = src_r0[0];
       break;
     case 11:
       dst1[3] = amd_bytealign_S (src_r1[1], src_r1[0], 1);
       dst1[2] = amd_bytealign_S (src_r1[0], src_r0[3], 1);
       dst1[1] = amd_bytealign_S (src_r0[3], src_r0[2], 1);
       dst1[0] = amd_bytealign_S (src_r0[2], src_r0[1], 1);
-      dst0[3] = amd_bytealign_S (src_r0[1], src_r0[0], 1);
-      dst0[2] = src_l0[2] | src_r0[0] << 24;
+      buf0[3] = amd_bytealign_S (src_r0[1], src_r0[0], 1);
+      buf0[2] = src_l0[2] | src_r0[0] << 24;
       break;
     case 10:
       dst1[3] = amd_bytealign_S (src_r1[1], src_r1[0], 2);
       dst1[2] = amd_bytealign_S (src_r1[0], src_r0[3], 2);
       dst1[1] = amd_bytealign_S (src_r0[3], src_r0[2], 2);
       dst1[0] = amd_bytealign_S (src_r0[2], src_r0[1], 2);
-      dst0[3] = amd_bytealign_S (src_r0[1], src_r0[0], 2);
-      dst0[2] = src_l0[2] | src_r0[0] << 16;
+      buf0[3] = amd_bytealign_S (src_r0[1], src_r0[0], 2);
+      buf0[2] = src_l0[2] | src_r0[0] << 16;
       break;
     case 9:
       dst1[3] = amd_bytealign_S (src_r1[1], src_r1[0], 3);
       dst1[2] = amd_bytealign_S (src_r1[0], src_r0[3], 3);
       dst1[1] = amd_bytealign_S (src_r0[3], src_r0[2], 3);
       dst1[0] = amd_bytealign_S (src_r0[2], src_r0[1], 3);
-      dst0[3] = amd_bytealign_S (src_r0[1], src_r0[0], 3);
-      dst0[2] = src_l0[2] | src_r0[0] <<  8;
+      buf0[3] = amd_bytealign_S (src_r0[1], src_r0[0], 3);
+      buf0[2] = src_l0[2] | src_r0[0] <<  8;
       break;
     case 8:
       dst1[3] = src_r1[1];
       dst1[2] = src_r1[0];
       dst1[1] = src_r0[3];
       dst1[0] = src_r0[2];
-      dst0[3] = src_r0[1];
-      dst0[2] = src_r0[0];
+      buf0[3] = src_r0[1];
+      buf0[2] = src_r0[0];
       break;
     case 7:
       dst1[3] = amd_bytealign_S (src_r1[2], src_r1[1], 1);
       dst1[2] = amd_bytealign_S (src_r1[1], src_r1[0], 1);
       dst1[1] = amd_bytealign_S (src_r1[0], src_r0[3], 1);
       dst1[0] = amd_bytealign_S (src_r0[3], src_r0[2], 1);
-      dst0[3] = amd_bytealign_S (src_r0[2], src_r0[1], 1);
-      dst0[2] = amd_bytealign_S (src_r0[1], src_r0[0], 1);
-      dst0[1] = src_l0[1] | src_r0[0] << 24;
+      buf0[3] = amd_bytealign_S (src_r0[2], src_r0[1], 1);
+      buf0[2] = amd_bytealign_S (src_r0[1], src_r0[0], 1);
+      buf0[1] = src_l0[1] | src_r0[0] << 24;
       break;
     case 6:
       dst1[3] = amd_bytealign_S (src_r1[2], src_r1[1], 2);
       dst1[2] = amd_bytealign_S (src_r1[1], src_r1[0], 2);
       dst1[1] = amd_bytealign_S (src_r1[0], src_r0[3], 2);
       dst1[0] = amd_bytealign_S (src_r0[3], src_r0[2], 2);
-      dst0[3] = amd_bytealign_S (src_r0[2], src_r0[1], 2);
-      dst0[2] = amd_bytealign_S (src_r0[1], src_r0[0], 2);
-      dst0[1] = src_l0[1] | src_r0[0] << 16;
+      buf0[3] = amd_bytealign_S (src_r0[2], src_r0[1], 2);
+      buf0[2] = amd_bytealign_S (src_r0[1], src_r0[0], 2);
+      buf0[1] = src_l0[1] | src_r0[0] << 16;
       break;
     case 5:
       dst1[3] = amd_bytealign_S (src_r1[2], src_r1[1], 3);
       dst1[2] = amd_bytealign_S (src_r1[1], src_r1[0], 3);
       dst1[1] = amd_bytealign_S (src_r1[0], src_r0[3], 3);
       dst1[0] = amd_bytealign_S (src_r0[3], src_r0[2], 3);
-      dst0[3] = amd_bytealign_S (src_r0[2], src_r0[1], 3);
-      dst0[2] = amd_bytealign_S (src_r0[1], src_r0[0], 3);
-      dst0[1] = src_l0[1] | src_r0[0] <<  8;
+      buf0[3] = amd_bytealign_S (src_r0[2], src_r0[1], 3);
+      buf0[2] = amd_bytealign_S (src_r0[1], src_r0[0], 3);
+      buf0[1] = src_l0[1] | src_r0[0] <<  8;
       break;
     case 4:
       dst1[3] = src_r1[2];
       dst1[2] = src_r1[1];
       dst1[1] = src_r1[0];
       dst1[0] = src_r0[3];
-      dst0[3] = src_r0[2];
-      dst0[2] = src_r0[1];
-      dst0[1] = src_r0[0];
+      buf0[3] = src_r0[2];
+      buf0[2] = src_r0[1];
+      buf0[1] = src_r0[0];
       break;
     case 3:
       dst1[3] = amd_bytealign_S (src_r1[3], src_r1[2], 1);
       dst1[2] = amd_bytealign_S (src_r1[2], src_r1[1], 1);
       dst1[1] = amd_bytealign_S (src_r1[1], src_r1[0], 1);
       dst1[0] = amd_bytealign_S (src_r1[0], src_r0[3], 1);
-      dst0[3] = amd_bytealign_S (src_r0[3], src_r0[2], 1);
-      dst0[2] = amd_bytealign_S (src_r0[2], src_r0[1], 1);
-      dst0[1] = amd_bytealign_S (src_r0[1], src_r0[0], 1);
-      dst0[0] = src_l0[0] | src_r0[0] << 24;
+      buf0[3] = amd_bytealign_S (src_r0[3], src_r0[2], 1);
+      buf0[2] = amd_bytealign_S (src_r0[2], src_r0[1], 1);
+      buf0[1] = amd_bytealign_S (src_r0[1], src_r0[0], 1);
+      buf0[0] = src_l0[0] | src_r0[0] << 24;
       break;
     case 2:
       dst1[3] = amd_bytealign_S (src_r1[3], src_r1[2], 2);
       dst1[2] = amd_bytealign_S (src_r1[2], src_r1[1], 2);
       dst1[1] = amd_bytealign_S (src_r1[1], src_r1[0], 2);
       dst1[0] = amd_bytealign_S (src_r1[0], src_r0[3], 2);
-      dst0[3] = amd_bytealign_S (src_r0[3], src_r0[2], 2);
-      dst0[2] = amd_bytealign_S (src_r0[2], src_r0[1], 2);
-      dst0[1] = amd_bytealign_S (src_r0[1], src_r0[0], 2);
-      dst0[0] = src_l0[0] | src_r0[0] << 16;
+      buf0[3] = amd_bytealign_S (src_r0[3], src_r0[2], 2);
+      buf0[2] = amd_bytealign_S (src_r0[2], src_r0[1], 2);
+      buf0[1] = amd_bytealign_S (src_r0[1], src_r0[0], 2);
+      buf0[0] = src_l0[0] | src_r0[0] << 16;
       break;
     case 1:
       dst1[3] = amd_bytealign_S (src_r1[3], src_r1[2], 3);
       dst1[2] = amd_bytealign_S (src_r1[2], src_r1[1], 3);
       dst1[1] = amd_bytealign_S (src_r1[1], src_r1[0], 3);
       dst1[0] = amd_bytealign_S (src_r1[0], src_r0[3], 3);
-      dst0[3] = amd_bytealign_S (src_r0[3], src_r0[2], 3);
-      dst0[2] = amd_bytealign_S (src_r0[2], src_r0[1], 3);
-      dst0[1] = amd_bytealign_S (src_r0[1], src_r0[0], 3);
-      dst0[0] = src_l0[0] | src_r0[0] <<  8;
+      buf0[3] = amd_bytealign_S (src_r0[3], src_r0[2], 3);
+      buf0[2] = amd_bytealign_S (src_r0[2], src_r0[1], 3);
+      buf0[1] = amd_bytealign_S (src_r0[1], src_r0[0], 3);
+      buf0[0] = src_l0[0] | src_r0[0] <<  8;
       break;
     case 0:
       dst1[3] = src_r1[3];
       dst1[2] = src_r1[2];
       dst1[1] = src_r1[1];
       dst1[0] = src_r1[0];
-      dst0[3] = src_r0[3];
-      dst0[2] = src_r0[2];
-      dst0[1] = src_r0[1];
-      dst0[0] = src_r0[0];
+      buf0[3] = src_r0[3];
+      buf0[2] = src_r0[2];
+      buf0[1] = src_r0[1];
+      buf0[0] = src_r0[0];
       break;
   }
 }
@@ -2531,20 +2531,20 @@ inline u32 apply_rules (const __global u32 *cmds, u32 buf0[4], u32 buf1[4], cons
   return out_len;
 }
 
-inline u32x apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_len, const __global kernel_rule_t *rules_buf, const u32 il_pos, u32x w0[4], u32x w1[4])
+inline u32x apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_len, const __global kernel_rule_t *rules_buf, const u32 il_pos, u32x buf0[4], u32x buf1[4])
 {
   #if VECT_SIZE == 1
 
-  w0[0] = pw_buf0[0];
-  w0[1] = pw_buf0[1];
-  w0[2] = pw_buf0[2];
-  w0[3] = pw_buf0[3];
-  w1[0] = pw_buf1[0];
-  w1[1] = pw_buf1[1];
-  w1[2] = pw_buf1[2];
-  w1[3] = pw_buf1[3];
+  buf0[0] = pw_buf0[0];
+  buf0[1] = pw_buf0[1];
+  buf0[2] = pw_buf0[2];
+  buf0[3] = pw_buf0[3];
+  buf1[0] = pw_buf1[0];
+  buf1[1] = pw_buf1[1];
+  buf1[2] = pw_buf1[2];
+  buf1[3] = pw_buf1[3];
 
-  return apply_rules (rules_buf[il_pos].cmds, w0, w1, pw_len);
+  return apply_rules (rules_buf[il_pos].cmds, buf0, buf1, pw_len);
 
   #else
 
@@ -2573,200 +2573,200 @@ inline u32x apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const 
     {
       #if VECT_SIZE >= 2
       case 0:
-        w0[0].s0 = tmp0[0];
-        w0[1].s0 = tmp0[1];
-        w0[2].s0 = tmp0[2];
-        w0[3].s0 = tmp0[3];
-        w1[0].s0 = tmp1[0];
-        w1[1].s0 = tmp1[1];
-        w1[2].s0 = tmp1[2];
-        w1[3].s0 = tmp1[3];
+        buf0[0].s0 = tmp0[0];
+        buf0[1].s0 = tmp0[1];
+        buf0[2].s0 = tmp0[2];
+        buf0[3].s0 = tmp0[3];
+        buf1[0].s0 = tmp1[0];
+        buf1[1].s0 = tmp1[1];
+        buf1[2].s0 = tmp1[2];
+        buf1[3].s0 = tmp1[3];
         out_len.s0 = tmp_len;
         break;
 
       case 1:
-        w0[0].s1 = tmp0[0];
-        w0[1].s1 = tmp0[1];
-        w0[2].s1 = tmp0[2];
-        w0[3].s1 = tmp0[3];
-        w1[0].s1 = tmp1[0];
-        w1[1].s1 = tmp1[1];
-        w1[2].s1 = tmp1[2];
-        w1[3].s1 = tmp1[3];
+        buf0[0].s1 = tmp0[0];
+        buf0[1].s1 = tmp0[1];
+        buf0[2].s1 = tmp0[2];
+        buf0[3].s1 = tmp0[3];
+        buf1[0].s1 = tmp1[0];
+        buf1[1].s1 = tmp1[1];
+        buf1[2].s1 = tmp1[2];
+        buf1[3].s1 = tmp1[3];
         out_len.s1 = tmp_len;
         break;
       #endif
 
       #if VECT_SIZE >= 4
       case 2:
-        w0[0].s2 = tmp0[0];
-        w0[1].s2 = tmp0[1];
-        w0[2].s2 = tmp0[2];
-        w0[3].s2 = tmp0[3];
-        w1[0].s2 = tmp1[0];
-        w1[1].s2 = tmp1[1];
-        w1[2].s2 = tmp1[2];
-        w1[3].s2 = tmp1[3];
+        buf0[0].s2 = tmp0[0];
+        buf0[1].s2 = tmp0[1];
+        buf0[2].s2 = tmp0[2];
+        buf0[3].s2 = tmp0[3];
+        buf1[0].s2 = tmp1[0];
+        buf1[1].s2 = tmp1[1];
+        buf1[2].s2 = tmp1[2];
+        buf1[3].s2 = tmp1[3];
         out_len.s2 = tmp_len;
         break;
 
       case 3:
-        w0[0].s3 = tmp0[0];
-        w0[1].s3 = tmp0[1];
-        w0[2].s3 = tmp0[2];
-        w0[3].s3 = tmp0[3];
-        w1[0].s3 = tmp1[0];
-        w1[1].s3 = tmp1[1];
-        w1[2].s3 = tmp1[2];
-        w1[3].s3 = tmp1[3];
+        buf0[0].s3 = tmp0[0];
+        buf0[1].s3 = tmp0[1];
+        buf0[2].s3 = tmp0[2];
+        buf0[3].s3 = tmp0[3];
+        buf1[0].s3 = tmp1[0];
+        buf1[1].s3 = tmp1[1];
+        buf1[2].s3 = tmp1[2];
+        buf1[3].s3 = tmp1[3];
         out_len.s3 = tmp_len;
         break;
       #endif
 
       #if VECT_SIZE >= 8
       case 4:
-        w0[0].s4 = tmp0[0];
-        w0[1].s4 = tmp0[1];
-        w0[2].s4 = tmp0[2];
-        w0[3].s4 = tmp0[3];
-        w1[0].s4 = tmp1[0];
-        w1[1].s4 = tmp1[1];
-        w1[2].s4 = tmp1[2];
-        w1[3].s4 = tmp1[3];
+        buf0[0].s4 = tmp0[0];
+        buf0[1].s4 = tmp0[1];
+        buf0[2].s4 = tmp0[2];
+        buf0[3].s4 = tmp0[3];
+        buf1[0].s4 = tmp1[0];
+        buf1[1].s4 = tmp1[1];
+        buf1[2].s4 = tmp1[2];
+        buf1[3].s4 = tmp1[3];
         out_len.s4 = tmp_len;
         break;
 
       case 5:
-        w0[0].s5 = tmp0[0];
-        w0[1].s5 = tmp0[1];
-        w0[2].s5 = tmp0[2];
-        w0[3].s5 = tmp0[3];
-        w1[0].s5 = tmp1[0];
-        w1[1].s5 = tmp1[1];
-        w1[2].s5 = tmp1[2];
-        w1[3].s5 = tmp1[3];
+        buf0[0].s5 = tmp0[0];
+        buf0[1].s5 = tmp0[1];
+        buf0[2].s5 = tmp0[2];
+        buf0[3].s5 = tmp0[3];
+        buf1[0].s5 = tmp1[0];
+        buf1[1].s5 = tmp1[1];
+        buf1[2].s5 = tmp1[2];
+        buf1[3].s5 = tmp1[3];
         out_len.s5 = tmp_len;
         break;
 
       case 6:
-        w0[0].s6 = tmp0[0];
-        w0[1].s6 = tmp0[1];
-        w0[2].s6 = tmp0[2];
-        w0[3].s6 = tmp0[3];
-        w1[0].s6 = tmp1[0];
-        w1[1].s6 = tmp1[1];
-        w1[2].s6 = tmp1[2];
-        w1[3].s6 = tmp1[3];
+        buf0[0].s6 = tmp0[0];
+        buf0[1].s6 = tmp0[1];
+        buf0[2].s6 = tmp0[2];
+        buf0[3].s6 = tmp0[3];
+        buf1[0].s6 = tmp1[0];
+        buf1[1].s6 = tmp1[1];
+        buf1[2].s6 = tmp1[2];
+        buf1[3].s6 = tmp1[3];
         out_len.s6 = tmp_len;
         break;
 
       case 7:
-        w0[0].s7 = tmp0[0];
-        w0[1].s7 = tmp0[1];
-        w0[2].s7 = tmp0[2];
-        w0[3].s7 = tmp0[3];
-        w1[0].s7 = tmp1[0];
-        w1[1].s7 = tmp1[1];
-        w1[2].s7 = tmp1[2];
-        w1[3].s7 = tmp1[3];
+        buf0[0].s7 = tmp0[0];
+        buf0[1].s7 = tmp0[1];
+        buf0[2].s7 = tmp0[2];
+        buf0[3].s7 = tmp0[3];
+        buf1[0].s7 = tmp1[0];
+        buf1[1].s7 = tmp1[1];
+        buf1[2].s7 = tmp1[2];
+        buf1[3].s7 = tmp1[3];
         out_len.s7 = tmp_len;
         break;
       #endif
 
       #if VECT_SIZE >= 16
       case 8:
-        w0[0].s8 = tmp0[0];
-        w0[1].s8 = tmp0[1];
-        w0[2].s8 = tmp0[2];
-        w0[3].s8 = tmp0[3];
-        w1[0].s8 = tmp1[0];
-        w1[1].s8 = tmp1[1];
-        w1[2].s8 = tmp1[2];
-        w1[3].s8 = tmp1[3];
+        buf0[0].s8 = tmp0[0];
+        buf0[1].s8 = tmp0[1];
+        buf0[2].s8 = tmp0[2];
+        buf0[3].s8 = tmp0[3];
+        buf1[0].s8 = tmp1[0];
+        buf1[1].s8 = tmp1[1];
+        buf1[2].s8 = tmp1[2];
+        buf1[3].s8 = tmp1[3];
         out_len.s8 = tmp_len;
         break;
 
       case 9:
-        w0[0].s9 = tmp0[0];
-        w0[1].s9 = tmp0[1];
-        w0[2].s9 = tmp0[2];
-        w0[3].s9 = tmp0[3];
-        w1[0].s9 = tmp1[0];
-        w1[1].s9 = tmp1[1];
-        w1[2].s9 = tmp1[2];
-        w1[3].s9 = tmp1[3];
+        buf0[0].s9 = tmp0[0];
+        buf0[1].s9 = tmp0[1];
+        buf0[2].s9 = tmp0[2];
+        buf0[3].s9 = tmp0[3];
+        buf1[0].s9 = tmp1[0];
+        buf1[1].s9 = tmp1[1];
+        buf1[2].s9 = tmp1[2];
+        buf1[3].s9 = tmp1[3];
         out_len.s9 = tmp_len;
         break;
 
       case 10:
-        w0[0].sa = tmp0[0];
-        w0[1].sa = tmp0[1];
-        w0[2].sa = tmp0[2];
-        w0[3].sa = tmp0[3];
-        w1[0].sa = tmp1[0];
-        w1[1].sa = tmp1[1];
-        w1[2].sa = tmp1[2];
-        w1[3].sa = tmp1[3];
+        buf0[0].sa = tmp0[0];
+        buf0[1].sa = tmp0[1];
+        buf0[2].sa = tmp0[2];
+        buf0[3].sa = tmp0[3];
+        buf1[0].sa = tmp1[0];
+        buf1[1].sa = tmp1[1];
+        buf1[2].sa = tmp1[2];
+        buf1[3].sa = tmp1[3];
         out_len.sa = tmp_len;
         break;
 
       case 11:
-        w0[0].sb = tmp0[0];
-        w0[1].sb = tmp0[1];
-        w0[2].sb = tmp0[2];
-        w0[3].sb = tmp0[3];
-        w1[0].sb = tmp1[0];
-        w1[1].sb = tmp1[1];
-        w1[2].sb = tmp1[2];
-        w1[3].sb = tmp1[3];
+        buf0[0].sb = tmp0[0];
+        buf0[1].sb = tmp0[1];
+        buf0[2].sb = tmp0[2];
+        buf0[3].sb = tmp0[3];
+        buf1[0].sb = tmp1[0];
+        buf1[1].sb = tmp1[1];
+        buf1[2].sb = tmp1[2];
+        buf1[3].sb = tmp1[3];
         out_len.sb = tmp_len;
         break;
 
       case 12:
-        w0[0].sc = tmp0[0];
-        w0[1].sc = tmp0[1];
-        w0[2].sc = tmp0[2];
-        w0[3].sc = tmp0[3];
-        w1[0].sc = tmp1[0];
-        w1[1].sc = tmp1[1];
-        w1[2].sc = tmp1[2];
-        w1[3].sc = tmp1[3];
+        buf0[0].sc = tmp0[0];
+        buf0[1].sc = tmp0[1];
+        buf0[2].sc = tmp0[2];
+        buf0[3].sc = tmp0[3];
+        buf1[0].sc = tmp1[0];
+        buf1[1].sc = tmp1[1];
+        buf1[2].sc = tmp1[2];
+        buf1[3].sc = tmp1[3];
         out_len.sc = tmp_len;
         break;
 
       case 13:
-        w0[0].sd = tmp0[0];
-        w0[1].sd = tmp0[1];
-        w0[2].sd = tmp0[2];
-        w0[3].sd = tmp0[3];
-        w1[0].sd = tmp1[0];
-        w1[1].sd = tmp1[1];
-        w1[2].sd = tmp1[2];
-        w1[3].sd = tmp1[3];
+        buf0[0].sd = tmp0[0];
+        buf0[1].sd = tmp0[1];
+        buf0[2].sd = tmp0[2];
+        buf0[3].sd = tmp0[3];
+        buf1[0].sd = tmp1[0];
+        buf1[1].sd = tmp1[1];
+        buf1[2].sd = tmp1[2];
+        buf1[3].sd = tmp1[3];
         out_len.sd = tmp_len;
         break;
 
       case 14:
-        w0[0].se = tmp0[0];
-        w0[1].se = tmp0[1];
-        w0[2].se = tmp0[2];
-        w0[3].se = tmp0[3];
-        w1[0].se = tmp1[0];
-        w1[1].se = tmp1[1];
-        w1[2].se = tmp1[2];
-        w1[3].se = tmp1[3];
+        buf0[0].se = tmp0[0];
+        buf0[1].se = tmp0[1];
+        buf0[2].se = tmp0[2];
+        buf0[3].se = tmp0[3];
+        buf1[0].se = tmp1[0];
+        buf1[1].se = tmp1[1];
+        buf1[2].se = tmp1[2];
+        buf1[3].se = tmp1[3];
         out_len.se = tmp_len;
         break;
 
       case 15:
-        w0[0].sf = tmp0[0];
-        w0[1].sf = tmp0[1];
-        w0[2].sf = tmp0[2];
-        w0[3].sf = tmp0[3];
-        w1[0].sf = tmp1[0];
-        w1[1].sf = tmp1[1];
-        w1[2].sf = tmp1[2];
-        w1[3].sf = tmp1[3];
+        buf0[0].sf = tmp0[0];
+        buf0[1].sf = tmp0[1];
+        buf0[2].sf = tmp0[2];
+        buf0[3].sf = tmp0[3];
+        buf1[0].sf = tmp1[0];
+        buf1[1].sf = tmp1[1];
+        buf1[2].sf = tmp1[2];
+        buf1[3].sf = tmp1[3];
         out_len.sf = tmp_len;
         break;
       #endif
