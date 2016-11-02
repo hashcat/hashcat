@@ -2002,7 +2002,7 @@ static u32 parse_and_store_salt (u8 *out, u8 *in, u32 salt_len, MAYBE_UNUSED con
 
   u8 *tmp = (u8 *) tmp_u32;
 
-  if (salt_len > sizeof (tmp))
+  if (salt_len > sizeof (tmp_u32))
   {
     return UINT_MAX;
   }
@@ -2036,7 +2036,7 @@ static u32 parse_and_store_salt (u8 *out, u8 *in, u32 salt_len, MAYBE_UNUSED con
     salt_len = base64_decode (base64_to_int, (const u8 *) in, salt_len, (u8 *) tmp);
   }
 
-  memset (tmp + salt_len, 0, sizeof (tmp) - salt_len);
+  memset (tmp + salt_len, 0, sizeof (tmp_u32) - salt_len);
 
   if (hashconfig->opts_type & OPTS_TYPE_ST_UNICODE)
   {
@@ -2714,11 +2714,12 @@ int wpa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
   }
 
   u32 *p0 = (u32 *) in.essid;
+
   u32 c0 = 0;
   u32 c1 = 0;
 
-  for (u32 i = 0; i < sizeof (in.essid) / sizeof (u32);         i++) c0 ^= *p0++;
-  for (u32 i = 0; i < sizeof (wpa->pke) / sizeof (wpa->pke[0]); i++) c1 ^= wpa->pke[i];
+  for (int i = 0; i <  8; i++) c0 ^= *p0++;
+  for (int i = 0; i < 25; i++) c1 ^= wpa->pke[i];
 
   salt->salt_buf[10] = c0;
   salt->salt_buf[11] = c1;
