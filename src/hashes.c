@@ -495,11 +495,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         return -1;
       }
 
-      EVENT_DATA (EVENT_HASHLIST_COUNT_LINES_PRE, hashfile, sizeof (hashfile));
+      EVENT_DATA (EVENT_HASHLIST_COUNT_LINES_PRE, hashfile, strlen (hashfile));
 
       hashes_avail = count_lines (hashcat_ctx, fp);
 
-      EVENT_DATA (EVENT_HASHLIST_COUNT_LINES_POST, hashfile, sizeof (hashfile));
+      EVENT_DATA (EVENT_HASHLIST_COUNT_LINES_POST, hashfile, strlen (hashfile));
 
       rewind (fp);
 
@@ -940,7 +940,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         hashlist_parse.hashes_cnt   = hashes_cnt;
         hashlist_parse.hashes_avail = hashes_avail;
 
-        EVENT_DATA (EVENT_HASHLIST_PARSE_HASH, &hashlist_parse, sizeof (hashlist_parse));
+        EVENT_DATA (EVENT_HASHLIST_PARSE_HASH, &hashlist_parse, sizeof (hashlist_parse_t));
       }
 
       hashlist_parse_t hashlist_parse;
@@ -948,7 +948,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       hashlist_parse.hashes_cnt   = hashes_cnt;
       hashlist_parse.hashes_avail = hashes_avail;
 
-      EVENT_DATA (EVENT_HASHLIST_PARSE_HASH, &hashlist_parse, sizeof (hashlist_parse));
+      EVENT_DATA (EVENT_HASHLIST_PARSE_HASH, &hashlist_parse, sizeof (hashlist_parse_t));
 
       hcfree (line_buf);
 
