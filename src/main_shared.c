@@ -23,7 +23,7 @@ static void main_cracker_hash_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   fwrite (EOL, strlen (EOL), 1, stdout);
 }
 
-void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   switch (id)
   {
@@ -31,7 +31,7 @@ void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const siz
   }
 }
 
-int main ()
+int main (MAYBE_UNUSED int argc, MAYBE_UNUSED char **argv)
 {
   // hashcat main context
 
