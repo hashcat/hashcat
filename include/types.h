@@ -1547,6 +1547,76 @@ typedef struct cpt_ctx
 
 } cpt_ctx_t;
 
+typedef struct
+{
+  bool    skipped_dev;
+  double  hashes_msec_dev;
+  double  hashes_msec_dev_benchmark;
+  double  exec_msec_dev;
+  char   *speed_sec_dev;
+  char   *input_candidates_dev;
+  char   *hwmon_dev;
+
+} device_info_t;
+
+typedef struct
+{
+  char   *hash_target;
+  char   *hash_type;
+  int     input_mode;
+  char   *input_base;
+  char   *input_charset;
+  char   *input_mod;
+  int     input_mask_length;
+  char   *session;
+  char   *status_string;
+  int     status_number;
+  char   *time_estimated_absolute;
+  char   *time_estimated_relative;
+  char   *time_started_absolute;
+  char   *time_started_relative;
+  double  msec_paused;
+  double  msec_running;
+  double  msec_real;
+  int     digests_cnt;
+  int     digests_done;
+  double  digests_percent;
+  int     salts_cnt;
+  int     salts_done;
+  double  salts_percent;
+  int     progress_mode;
+  double  progress_finished_percent;
+  u64     progress_cur;
+  u64     progress_cur_relative_skip;
+  u64     progress_done;
+  u64     progress_end;
+  u64     progress_end_relative_skip;
+  u64     progress_ignore;
+  u64     progress_rejected;
+  double  progress_rejected_percent;
+  u64     progress_restored;
+  u64     progress_skip;
+  u64     restore_point;
+  u64     restore_total;
+  double  restore_percent;
+  int     cpt_cur_min;
+  int     cpt_cur_hour;
+  int     cpt_cur_day;
+  double  cpt_avg_min;
+  double  cpt_avg_hour;
+  double  cpt_avg_day;
+  char   *cpt;
+
+  device_info_t device_info_buf[DEVICES_MAX];
+  int           device_info_cnt;
+  int           device_info_active;
+
+  double  hashes_msec_all;
+  double  exec_msec_all;
+  char   *speed_sec_all;
+
+} hashcat_status_t;
+
 typedef struct status_ctx
 {
   /**
@@ -1556,6 +1626,12 @@ typedef struct status_ctx
   bool accessible;
 
   u32  devices_status;
+
+  /**
+   * full (final) status snapshot
+   */
+
+  hashcat_status_t *hashcat_status_final;
 
   /**
    * thread control
@@ -1702,76 +1778,6 @@ typedef struct hashcat_ctx
   void (*event) (const u32, struct hashcat_ctx *, const void *, const size_t);
 
 } hashcat_ctx_t;
-
-typedef struct
-{
-  bool    skipped_dev;
-  double  hashes_msec_dev;
-  double  hashes_msec_dev_benchmark;
-  double  exec_msec_dev;
-  char   *speed_sec_dev;
-  char   *input_candidates_dev;
-  char   *hwmon_dev;
-
-} device_info_t;
-
-typedef struct
-{
-  char   *hash_target;
-  char   *hash_type;
-  int     input_mode;
-  char   *input_base;
-  char   *input_charset;
-  char   *input_mod;
-  int     input_mask_length;
-  char   *session;
-  char   *status_string;
-  int     status_number;
-  char   *time_estimated_absolute;
-  char   *time_estimated_relative;
-  char   *time_started_absolute;
-  char   *time_started_relative;
-  double  msec_paused;
-  double  msec_running;
-  double  msec_real;
-  int     digests_cnt;
-  int     digests_done;
-  double  digests_percent;
-  int     salts_cnt;
-  int     salts_done;
-  double  salts_percent;
-  int     progress_mode;
-  double  progress_finished_percent;
-  u64     progress_cur;
-  u64     progress_cur_relative_skip;
-  u64     progress_done;
-  u64     progress_end;
-  u64     progress_end_relative_skip;
-  u64     progress_ignore;
-  u64     progress_rejected;
-  double  progress_rejected_percent;
-  u64     progress_restored;
-  u64     progress_skip;
-  u64     restore_point;
-  u64     restore_total;
-  double  restore_percent;
-  int     cpt_cur_min;
-  int     cpt_cur_hour;
-  int     cpt_cur_day;
-  double  cpt_avg_min;
-  double  cpt_avg_hour;
-  double  cpt_avg_day;
-  char   *cpt;
-
-  device_info_t device_info_buf[DEVICES_MAX];
-  int           device_info_cnt;
-  int           device_info_active;
-
-  double  hashes_msec_all;
-  double  exec_msec_all;
-  char   *speed_sec_all;
-
-} hashcat_status_t;
 
 typedef struct thread_param
 {

@@ -264,9 +264,11 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   time (&status_ctx->prepare_start);
 
-  EVENT (EVENT_CRACKER_FINISHED);
+  hashcat_get_status (hashcat_ctx, status_ctx->hashcat_status_final);
 
   status_ctx->accessible = false;
+
+  EVENT (EVENT_CRACKER_FINISHED);
 
   // mark sub logfile
 
@@ -1168,7 +1170,17 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
 
   if (status_ctx == NULL) return -1; // ways too early
 
-  if (status_ctx->accessible == false) return -1; // either too early or too late
+  if (status_ctx->accessible == false)
+  {
+    if (status_ctx->hashcat_status_final->msec_running > 0)
+    {
+      memcpy (hashcat_status, status_ctx->hashcat_status_final, sizeof (hashcat_status_t));
+
+      return 0;
+    }
+
+    return -1; // still too early
+  }
 
   hashcat_status->digests_cnt                 = status_get_digests_cnt                (hashcat_ctx);
   hashcat_status->digests_done                = status_get_digests_done               (hashcat_ctx);

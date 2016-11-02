@@ -1541,16 +1541,18 @@ int status_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->devices_status = STATUS_INIT;
 
-  status_ctx->run_main_level1   = true;
-  status_ctx->run_main_level2   = true;
-  status_ctx->run_main_level3   = true;
-  status_ctx->run_thread_level1 = true;
-  status_ctx->run_thread_level2 = true;
+  status_ctx->run_main_level1     = true;
+  status_ctx->run_main_level2     = true;
+  status_ctx->run_main_level3     = true;
+  status_ctx->run_thread_level1   = true;
+  status_ctx->run_thread_level2   = true;
 
-  status_ctx->shutdown_inner = false;
-  status_ctx->shutdown_outer = false;
+  status_ctx->shutdown_inner      = false;
+  status_ctx->shutdown_outer      = false;
 
   status_ctx->checkpoint_shutdown = false;
+
+  status_ctx->hashcat_status_final = (hashcat_status_t *) hcmalloc (hashcat_ctx, sizeof (hashcat_status_t));
 
   hc_thread_mutex_init (status_ctx->mux_dispatcher);
   hc_thread_mutex_init (status_ctx->mux_counter);
@@ -1568,6 +1570,8 @@ void status_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
   hc_thread_mutex_delete (status_ctx->mux_counter);
   hc_thread_mutex_delete (status_ctx->mux_display);
   hc_thread_mutex_delete (status_ctx->mux_hwmon);
+
+  hcfree (status_ctx->hashcat_status_final);
 
   memset (status_ctx, 0, sizeof (status_ctx_t));
 }
