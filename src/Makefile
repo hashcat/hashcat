@@ -119,11 +119,11 @@ CFLAGS                  += -Winit-self
 CFLAGS                  += -Werror-implicit-function-declaration
 CFLAGS                  += -Wformat
 CFLAGS                  += -Wno-format-zero-length
-CFLAGS                  += -Wsizeof-pointer-memaccess
 CFLAGS                  += -ftrapv
 
 # the following compiler options produce warnings that should be fixed at some time
 
+#CFLAGS                  += -Wsizeof-pointer-memaccess
 #CFLAGS                  += -Wcast-align
 #CFLAGS                  += -Wcast-qual
 #CFLAGS                  += -Wsign-conversion
