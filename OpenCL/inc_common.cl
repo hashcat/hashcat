@@ -61,7 +61,7 @@ inline u32 check_bitmap (__global u32 *bitmap, const u32 bitmap_mask, const u32 
   return (bitmap[(digest >> bitmap_shift) & bitmap_mask] & (1 << (digest & 0x1f)));
 }
 
-inline u32 check (const u32 digest[2], __global u32 *bitmap_s1_a, __global u32 *bitmap_s1_b, __global u32 *bitmap_s1_c, __global u32 *bitmap_s1_d, __global u32 *bitmap_s2_a, __global u32 *bitmap_s2_b, __global u32 *bitmap_s2_c, __global u32 *bitmap_s2_d, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2)
+inline u32 check (const u32 digest[4], __global u32 *bitmap_s1_a, __global u32 *bitmap_s1_b, __global u32 *bitmap_s1_c, __global u32 *bitmap_s1_d, __global u32 *bitmap_s2_a, __global u32 *bitmap_s2_b, __global u32 *bitmap_s2_c, __global u32 *bitmap_s2_d, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2)
 {
   if (check_bitmap (bitmap_s1_a, bitmap_mask, bitmap_shift1, digest[0]) == 0) return (0);
   if (check_bitmap (bitmap_s1_b, bitmap_mask, bitmap_shift1, digest[1]) == 0) return (0);
