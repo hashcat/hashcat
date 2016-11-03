@@ -13,6 +13,7 @@
 #include "cpu_aes.h"
 #include "cpu_crc32.h"
 #include "cpu_des.h"
+#include "cpu_md4.h"
 #include "cpu_md5.h"
 #include "cpu_sha1.h"
 #include "cpu_sha256.h"
@@ -210,6 +211,7 @@ static const char HT_13800[] = "Windows 8+ phone PIN/Password";
 static const char HT_13900[] = "OpenCart";
 static const char HT_14000[] = "DES (PT = $salt, key = $pass)";
 static const char HT_14100[] = "3DES (PT = $salt, key = $pass)";
+static const char HT_99999[] = "Plaintext";
 
 static const char HT_00011[] = "Joomla < 2.5.18";
 static const char HT_00012[] = "PostgreSQL";
@@ -12584,6 +12586,48 @@ int win8phone_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   return (PARSER_OK);
 }
 
+int plaintext_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
+{
+  if ((input_len < DISPLAY_LEN_MIN_99999) || (input_len > DISPLAY_LEN_MAX_99999)) return (PARSER_GLOBAL_LENGTH);
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  memset (digest, 0, hashconfig->dgst_size);
+
+  strncpy ((char *) digest + 64, (char *) input_buf, 64);
+
+  u32 w[16] = { 0 };
+
+  strncpy ((char *) w, (char *) input_buf, 64);
+
+  u8 *w_ptr = (u8 *) w;
+
+  w_ptr[input_len] = 0x80;
+
+  w[14] = input_len * 8;
+
+  u32 dgst[4];
+
+  dgst[0] = MD4M_A;
+  dgst[1] = MD4M_B;
+  dgst[2] = MD4M_C;
+  dgst[3] = MD4M_D;
+
+  md4_64 (w, dgst);
+
+  dgst[0] -= MD4M_A;
+  dgst[1] -= MD4M_B;
+  dgst[2] -= MD4M_C;
+  dgst[3] -= MD4M_D;
+
+  digest[0] = dgst[0];
+  digest[1] = dgst[1];
+  digest[2] = dgst[2];
+  digest[3] = dgst[3];
+
+  return (PARSER_OK);
+}
+
 /**
  * output
  */
@@ -12826,6 +12870,7 @@ char *strhashtype (const u32 hash_mode)
     case 13900: return ((char *) HT_13900);
     case 14000: return ((char *) HT_14000);
     case 14100: return ((char *) HT_14100);
+    case 99999: return ((char *) HT_99999);
   }
 
   return ((char *) "Unknown");
@@ -15647,6 +15692,12 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
   else if (hash_mode == 14100)
   {
     snprintf (out_buf, len - 1, "%08x%08x:%s", digest_buf[0], digest_buf[1], (char *) salt.salt_buf);
+  }
+  else if (hash_mode == 99999)
+  {
+    char *ptr = (char *) digest_buf;
+
+    snprintf (out_buf, len - 1, "%s", ptr + 64);
   }
   else
   {
@@ -19582,6 +19633,29 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 3;
+                 break;
+
+    case 99999:  hashconfig->hash_type      = HASH_TYPE_PLAINTEXT;
+                 hashconfig->salt_type      = SALT_TYPE_NONE;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_PT_ADD80
+                                            | OPTS_TYPE_PT_ADDBITS14;
+                 hashconfig->kern_type      = KERN_TYPE_MD4;
+                 hashconfig->dgst_size      = DGST_SIZE_4_32; // originally DGST_SIZE_4_2
+                 hashconfig->parse_func     = plaintext_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_PRECOMPUTE_INIT
+                                            | OPTI_TYPE_PRECOMPUTE_MERKLE
+                                            | OPTI_TYPE_MEET_IN_MIDDLE
+                                            | OPTI_TYPE_EARLY_SKIP
+                                            | OPTI_TYPE_NOT_ITERATED
+                                            | OPTI_TYPE_NOT_SALTED
+                                            | OPTI_TYPE_RAW_HASH;
+                 hashconfig->dgst_pos0      = 0;
+                 hashconfig->dgst_pos1      = 3;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 1;
                  break;
 
     default:     event_log_error (hashcat_ctx, "Unknown hash-type '%u' selected", hashconfig->hash_mode);

@@ -326,6 +326,7 @@ static const char *USAGE_BIG[] =
   "  11300 | Bitcoin/Litecoin wallet.dat                      | Password Managers",
   "  12700 | Blockchain, My Wallet                            | Password Managers",
   "  13400 | Keepass 1 (AES/Twofish) and Keepass 2 (AES)      | Password Managers",
+  "  99999 | Plaintext                                        | Plaintext",
   "",
   "- [ Outfile Formats ] -",
   "",

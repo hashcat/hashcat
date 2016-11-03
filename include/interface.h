@@ -986,6 +986,8 @@ typedef enum display_len
   DISPLAY_LEN_MAX_14000 = 16 + 1 + 16,
   DISPLAY_LEN_MIN_14100 = 16 + 1 + 16,
   DISPLAY_LEN_MAX_14100 = 16 + 1 + 16,
+  DISPLAY_LEN_MIN_99999 = 1,
+  DISPLAY_LEN_MAX_99999 = 55,
 
   DISPLAY_LEN_MIN_11    = 32 + 1 + 16,
   DISPLAY_LEN_MAX_11    = 32 + 1 + 32,
@@ -1107,7 +1109,8 @@ typedef enum hash_type
   HASH_TYPE_RAR3HP              = 49,
   HASH_TYPE_KRB5TGS             = 50,
   HASH_TYPE_STDOUT              = 51,
-  HASH_TYPE_DES                 = 52
+  HASH_TYPE_DES                 = 52,
+  HASH_TYPE_PLAINTEXT           = 53,
 
 } hash_type_t;
 
@@ -1269,7 +1272,8 @@ typedef enum kern_type
   KERN_TYPE_WIN8PHONE           = 13800,
   KERN_TYPE_OPENCART            = 13900,
   KERN_TYPE_DES                 = 14000,
-  KERN_TYPE_3DES                = 14100
+  KERN_TYPE_3DES                = 14100,
+  KERN_TYPE_PLAINTEXT           = 99999,
 
 } kern_type_t;
 
@@ -1496,6 +1500,7 @@ int veracrypt_parse_hash_327661   (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int veracrypt_parse_hash_655331   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int win8phone_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int opencart_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
+int plaintext_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 
 /**
  * output functions

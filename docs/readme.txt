@@ -200,6 +200,7 @@ NVidia users require NVidia drivers 346.59 or later (recommended 367.27 or later
 - Password Safe v2
 - Password Safe v3
 - Keepass 1 (AES/Twofish) and Keepass 2 (AES)
+- Plaintext
 - eCryptfs
 - Android FDE <= 4.3
 - Android FDE (Samsung DEK)
