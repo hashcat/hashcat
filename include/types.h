@@ -1174,7 +1174,7 @@ typedef struct outfile_ctx
   FILE *fp;
 
   u32   outfile_format;
-  u32   outfile_autohex;
+  bool  outfile_autohex;
 
 } outfile_ctx_t;
 
