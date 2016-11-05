@@ -326,8 +326,9 @@ void outfile_write_close (hashcat_ctx_t *hashcat_ctx)
 
 int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsigned char *plain_ptr, const u32 plain_len, const u64 crackpos, const unsigned char *username, const u32 user_len, char tmp_buf[HCBUFSIZ_LARGE])
 {
-  const hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
-  const outfile_ctx_t *outfile_ctx = hashcat_ctx->outfile_ctx;
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  const outfile_ctx_t  *outfile_ctx  = hashcat_ctx->outfile_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
 
   int tmp_len = 0;
 
@@ -366,7 +367,9 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsign
 
   if (outfile_ctx->outfile_format & OUTFILE_FMT_PLAIN)
   {
-    if (need_hexify (plain_ptr, plain_len) == true)
+    const bool always_ascii = (hashconfig->hash_type & OPTS_TYPE_PT_ALWAYS_ASCII);
+
+    if ((user_options->outfile_autohex == true) && (need_hexify (plain_ptr, plain_len, always_ascii) == true))
     {
       tmp_buf[tmp_len++] = '$';
       tmp_buf[tmp_len++] = 'H';

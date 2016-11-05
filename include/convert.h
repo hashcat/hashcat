@@ -8,7 +8,7 @@
 
 #include <ctype.h>
 
-bool need_hexify (const u8 *buf, const int len);
+bool need_hexify (const u8 *buf, const int len, bool always_ascii);
 void exec_hexify (const u8 *buf, const int len, u8 *out);
 
 bool is_valid_hex_char (const u8 c);

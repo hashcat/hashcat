@@ -538,6 +538,7 @@ int status_get_input_mask_length (const hashcat_ctx_t *hashcat_ctx)
 
 char *status_get_input_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
+  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
   const opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
   const status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
@@ -582,8 +583,10 @@ char *status_get_input_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
   build_plain ((hashcat_ctx_t *) hashcat_ctx, device_param, &plain1, plain_buf1, &plain_len1);
   build_plain ((hashcat_ctx_t *) hashcat_ctx, device_param, &plain2, plain_buf2, &plain_len2);
 
-  const bool need_hex1 = need_hexify (plain_ptr1, plain_len1);
-  const bool need_hex2 = need_hexify (plain_ptr2, plain_len2);
+  const bool always_ascii = (hashconfig->hash_type & OPTS_TYPE_PT_ALWAYS_ASCII);
+
+  const bool need_hex1 = need_hexify (plain_ptr1, plain_len1, always_ascii);
+  const bool need_hex2 = need_hexify (plain_ptr2, plain_len2, always_ascii);
 
   if ((need_hex1 == true) || (need_hex2 == true))
   {

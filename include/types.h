@@ -344,22 +344,23 @@ typedef enum opts_type
   OPTS_TYPE_PT_GENERATE_BE    = (1 <<  9),
   OPTS_TYPE_PT_NEVERCRACK     = (1 << 10), // if we want all possible results
   OPTS_TYPE_PT_BITSLICE       = (1 << 11),
-  OPTS_TYPE_ST_UNICODE        = (1 << 12),
-  OPTS_TYPE_ST_UPPER          = (1 << 13),
-  OPTS_TYPE_ST_LOWER          = (1 << 14),
-  OPTS_TYPE_ST_ADD01          = (1 << 15),
-  OPTS_TYPE_ST_ADD02          = (1 << 16),
-  OPTS_TYPE_ST_ADD80          = (1 << 17),
-  OPTS_TYPE_ST_ADDBITS14      = (1 << 18),
-  OPTS_TYPE_ST_ADDBITS15      = (1 << 19),
-  OPTS_TYPE_ST_GENERATE_LE    = (1 << 20),
-  OPTS_TYPE_ST_GENERATE_BE    = (1 << 21),
-  OPTS_TYPE_ST_HEX            = (1 << 22),
-  OPTS_TYPE_ST_BASE64         = (1 << 23),
-  OPTS_TYPE_HASH_COPY         = (1 << 24),
-  OPTS_TYPE_HOOK12            = (1 << 25),
-  OPTS_TYPE_HOOK23            = (1 << 26),
-  OPTS_TYPE_BINARY_HASHFILE   = (1 << 27),
+  OPTS_TYPE_PT_ALWAYS_ASCII   = (1 << 12),
+  OPTS_TYPE_ST_UNICODE        = (1 << 13),
+  OPTS_TYPE_ST_UPPER          = (1 << 14),
+  OPTS_TYPE_ST_LOWER          = (1 << 15),
+  OPTS_TYPE_ST_ADD01          = (1 << 16),
+  OPTS_TYPE_ST_ADD02          = (1 << 17),
+  OPTS_TYPE_ST_ADD80          = (1 << 18),
+  OPTS_TYPE_ST_ADDBITS14      = (1 << 19),
+  OPTS_TYPE_ST_ADDBITS15      = (1 << 20),
+  OPTS_TYPE_ST_GENERATE_LE    = (1 << 21),
+  OPTS_TYPE_ST_GENERATE_BE    = (1 << 22),
+  OPTS_TYPE_ST_HEX            = (1 << 23),
+  OPTS_TYPE_ST_BASE64         = (1 << 24),
+  OPTS_TYPE_HASH_COPY         = (1 << 25),
+  OPTS_TYPE_HOOK12            = (1 << 26),
+  OPTS_TYPE_HOOK23            = (1 << 27),
+  OPTS_TYPE_BINARY_HASHFILE   = (1 << 28),
 
 } opts_type_t;
 
@@ -1178,7 +1179,7 @@ typedef struct outfile_ctx
   FILE *fp;
 
   u32   outfile_format;
-  u32   outfile_autohex;
+  bool  outfile_autohex;
 
 } outfile_ctx_t;
 
