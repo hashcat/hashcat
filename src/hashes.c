@@ -24,6 +24,7 @@
 #include "shared.h"
 #include "thread.h"
 #include "timer.h"
+#include "locking.h"
 
 int sort_by_digest_p0p1 (const void *v1, const void *v2, void *v3)
 {
@@ -138,6 +139,13 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
   FILE *fp = fopen (new_hashfile, "wb");
 
   if (fp == NULL)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", new_hashfile, strerror (errno));
+
+    return -1;
+  }
+
+  if (lock_file (fp) == -1)
   {
     event_log_error (hashcat_ctx, "%s: %s", new_hashfile, strerror (errno));
 

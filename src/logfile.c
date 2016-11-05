@@ -8,6 +8,7 @@
 #include "memory.h"
 #include "event.h"
 #include "logfile.h"
+#include "locking.h"
 
 static int logfile_generate_id (void)
 {
@@ -49,6 +50,8 @@ void logfile_append (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
   if (logfile_ctx->enabled == false) return;
 
   FILE *fp = fopen (logfile_ctx->logfile, "ab");
+
+  lock_file (fp);
 
   va_list ap;
 
