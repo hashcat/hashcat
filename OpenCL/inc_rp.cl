@@ -756,217 +756,260 @@ inline void append_block1 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
 
 inline void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32 src_l0[4], const u32 src_l1[4], const u32 src_r0[4], const u32 src_r1[4])
 {
-  switch (offset)
+  #if defined IS_AMD || defined IS_GENERIC
+  const int offset_mod_4 = offset & 3;
+
+  const int offset_minus_4 = 4 - offset;
+
+  u32 s0 = 0;
+  u32 s1 = 0;
+  u32 s2 = 0;
+  u32 s3 = 0;
+  u32 s4 = 0;
+  u32 s5 = 0;
+  u32 s6 = 0;
+  u32 s7 = 0;
+  u32 s8 = 0;
+
+  switch (offset / 4)
   {
-    case 31:
-      buf1[3] = src_l1[3] | src_r0[0] << 24;
-      break;
-    case 30:
-      buf1[3] = src_l1[3] | src_r0[0] << 16;
-      break;
-    case 29:
-      buf1[3] = src_l1[3] | src_r0[0] <<  8;
-      break;
-    case 28:
-      buf1[3] = src_r0[0];
-      break;
-    case 27:
-      buf1[3] = amd_bytealign_S (src_r0[1], src_r0[0], 1);
-      buf1[2] = src_l1[2] | src_r0[0] << 24;
-      break;
-    case 26:
-      buf1[3] = amd_bytealign_S (src_r0[1], src_r0[0], 2);
-      buf1[2] = src_l1[2] | src_r0[0] << 16;
-      break;
-    case 25:
-      buf1[3] = amd_bytealign_S (src_r0[1], src_r0[0], 3);
-      buf1[2] = src_l1[2] | src_r0[0] <<  8;
-      break;
-    case 24:
-      buf1[3] = src_r0[1];
-      buf1[2] = src_r0[0];
-      break;
-    case 23:
-      buf1[3] = amd_bytealign_S (src_r0[2], src_r0[1], 1);
-      buf1[2] = amd_bytealign_S (src_r0[1], src_r0[0], 1);
-      buf1[1] = src_l1[1] | src_r0[0] << 24;
-      break;
-    case 22:
-      buf1[3] = amd_bytealign_S (src_r0[2], src_r0[1], 2);
-      buf1[2] = amd_bytealign_S (src_r0[1], src_r0[0], 2);
-      buf1[1] = src_l1[1] | src_r0[0] << 16;
-      break;
-    case 21:
-      buf1[3] = amd_bytealign_S (src_r0[2], src_r0[1], 3);
-      buf1[2] = amd_bytealign_S (src_r0[1], src_r0[0], 3);
-      buf1[1] = src_l1[1] | src_r0[0] <<  8;
-      break;
-    case 20:
-      buf1[3] = src_r0[2];
-      buf1[2] = src_r0[1];
-      buf1[1] = src_r0[0];
-      break;
-    case 19:
-      buf1[3] = amd_bytealign_S (src_r0[3], src_r0[2], 1);
-      buf1[2] = amd_bytealign_S (src_r0[2], src_r0[1], 1);
-      buf1[1] = amd_bytealign_S (src_r0[1], src_r0[0], 1);
-      buf1[0] = src_l1[0] | src_r0[0] << 24;
-      break;
-    case 18:
-      buf1[3] = amd_bytealign_S (src_r0[3], src_r0[2], 2);
-      buf1[2] = amd_bytealign_S (src_r0[2], src_r0[1], 2);
-      buf1[1] = amd_bytealign_S (src_r0[1], src_r0[0], 2);
-      buf1[0] = src_l1[0] | src_r0[0] << 16;
-      break;
-    case 17:
-      buf1[3] = amd_bytealign_S (src_r0[3], src_r0[2], 3);
-      buf1[2] = amd_bytealign_S (src_r0[2], src_r0[1], 3);
-      buf1[1] = amd_bytealign_S (src_r0[1], src_r0[0], 3);
-      buf1[0] = src_l1[0] | src_r0[0] <<  8;
-      break;
-    case 16:
-      buf1[3] = src_r0[3];
-      buf1[2] = src_r0[2];
-      buf1[1] = src_r0[1];
-      buf1[0] = src_r0[0];
-      break;
-    case 15:
-      buf1[3] = amd_bytealign_S (src_r1[0], src_r0[3], 1);
-      buf1[2] = amd_bytealign_S (src_r0[3], src_r0[2], 1);
-      buf1[1] = amd_bytealign_S (src_r0[2], src_r0[1], 1);
-      buf1[0] = amd_bytealign_S (src_r0[1], src_r0[0], 1);
-      buf0[3] = src_l0[3] | src_r0[0] << 24;
-      break;
-    case 14:
-      buf1[3] = amd_bytealign_S (src_r1[0], src_r0[3], 2);
-      buf1[2] = amd_bytealign_S (src_r0[3], src_r0[2], 2);
-      buf1[1] = amd_bytealign_S (src_r0[2], src_r0[1], 2);
-      buf1[0] = amd_bytealign_S (src_r0[1], src_r0[0], 2);
-      buf0[3] = src_l0[3] | src_r0[0] << 16;
-      break;
-    case 13:
-      buf1[3] = amd_bytealign_S (src_r1[0], src_r0[3], 3);
-      buf1[2] = amd_bytealign_S (src_r0[3], src_r0[2], 3);
-      buf1[1] = amd_bytealign_S (src_r0[2], src_r0[1], 3);
-      buf1[0] = amd_bytealign_S (src_r0[1], src_r0[0], 3);
-      buf0[3] = src_l0[3] | src_r0[0] <<  8;
-      break;
-    case 12:
-      buf1[3] = src_r1[0];
-      buf1[2] = src_r0[3];
-      buf1[1] = src_r0[2];
-      buf1[0] = src_r0[1];
-      buf0[3] = src_r0[0];
-      break;
-    case 11:
-      buf1[3] = amd_bytealign_S (src_r1[1], src_r1[0], 1);
-      buf1[2] = amd_bytealign_S (src_r1[0], src_r0[3], 1);
-      buf1[1] = amd_bytealign_S (src_r0[3], src_r0[2], 1);
-      buf1[0] = amd_bytealign_S (src_r0[2], src_r0[1], 1);
-      buf0[3] = amd_bytealign_S (src_r0[1], src_r0[0], 1);
-      buf0[2] = src_l0[2] | src_r0[0] << 24;
-      break;
-    case 10:
-      buf1[3] = amd_bytealign_S (src_r1[1], src_r1[0], 2);
-      buf1[2] = amd_bytealign_S (src_r1[0], src_r0[3], 2);
-      buf1[1] = amd_bytealign_S (src_r0[3], src_r0[2], 2);
-      buf1[0] = amd_bytealign_S (src_r0[2], src_r0[1], 2);
-      buf0[3] = amd_bytealign_S (src_r0[1], src_r0[0], 2);
-      buf0[2] = src_l0[2] | src_r0[0] << 16;
-      break;
-    case 9:
-      buf1[3] = amd_bytealign_S (src_r1[1], src_r1[0], 3);
-      buf1[2] = amd_bytealign_S (src_r1[0], src_r0[3], 3);
-      buf1[1] = amd_bytealign_S (src_r0[3], src_r0[2], 3);
-      buf1[0] = amd_bytealign_S (src_r0[2], src_r0[1], 3);
-      buf0[3] = amd_bytealign_S (src_r0[1], src_r0[0], 3);
-      buf0[2] = src_l0[2] | src_r0[0] <<  8;
-      break;
-    case 8:
-      buf1[3] = src_r1[1];
-      buf1[2] = src_r1[0];
-      buf1[1] = src_r0[3];
-      buf1[0] = src_r0[2];
-      buf0[3] = src_r0[1];
-      buf0[2] = src_r0[0];
-      break;
-    case 7:
-      buf1[3] = amd_bytealign_S (src_r1[2], src_r1[1], 1);
-      buf1[2] = amd_bytealign_S (src_r1[1], src_r1[0], 1);
-      buf1[1] = amd_bytealign_S (src_r1[0], src_r0[3], 1);
-      buf1[0] = amd_bytealign_S (src_r0[3], src_r0[2], 1);
-      buf0[3] = amd_bytealign_S (src_r0[2], src_r0[1], 1);
-      buf0[2] = amd_bytealign_S (src_r0[1], src_r0[0], 1);
-      buf0[1] = src_l0[1] | src_r0[0] << 24;
-      break;
-    case 6:
-      buf1[3] = amd_bytealign_S (src_r1[2], src_r1[1], 2);
-      buf1[2] = amd_bytealign_S (src_r1[1], src_r1[0], 2);
-      buf1[1] = amd_bytealign_S (src_r1[0], src_r0[3], 2);
-      buf1[0] = amd_bytealign_S (src_r0[3], src_r0[2], 2);
-      buf0[3] = amd_bytealign_S (src_r0[2], src_r0[1], 2);
-      buf0[2] = amd_bytealign_S (src_r0[1], src_r0[0], 2);
-      buf0[1] = src_l0[1] | src_r0[0] << 16;
-      break;
-    case 5:
-      buf1[3] = amd_bytealign_S (src_r1[2], src_r1[1], 3);
-      buf1[2] = amd_bytealign_S (src_r1[1], src_r1[0], 3);
-      buf1[1] = amd_bytealign_S (src_r1[0], src_r0[3], 3);
-      buf1[0] = amd_bytealign_S (src_r0[3], src_r0[2], 3);
-      buf0[3] = amd_bytealign_S (src_r0[2], src_r0[1], 3);
-      buf0[2] = amd_bytealign_S (src_r0[1], src_r0[0], 3);
-      buf0[1] = src_l0[1] | src_r0[0] <<  8;
-      break;
-    case 4:
-      buf1[3] = src_r1[2];
-      buf1[2] = src_r1[1];
-      buf1[1] = src_r1[0];
-      buf1[0] = src_r0[3];
-      buf0[3] = src_r0[2];
-      buf0[2] = src_r0[1];
-      buf0[1] = src_r0[0];
-      break;
-    case 3:
-      buf1[3] = amd_bytealign_S (src_r1[3], src_r1[2], 1);
-      buf1[2] = amd_bytealign_S (src_r1[2], src_r1[1], 1);
-      buf1[1] = amd_bytealign_S (src_r1[1], src_r1[0], 1);
-      buf1[0] = amd_bytealign_S (src_r1[0], src_r0[3], 1);
-      buf0[3] = amd_bytealign_S (src_r0[3], src_r0[2], 1);
-      buf0[2] = amd_bytealign_S (src_r0[2], src_r0[1], 1);
-      buf0[1] = amd_bytealign_S (src_r0[1], src_r0[0], 1);
-      buf0[0] = src_l0[0] | src_r0[0] << 24;
-      break;
-    case 2:
-      buf1[3] = amd_bytealign_S (src_r1[3], src_r1[2], 2);
-      buf1[2] = amd_bytealign_S (src_r1[2], src_r1[1], 2);
-      buf1[1] = amd_bytealign_S (src_r1[1], src_r1[0], 2);
-      buf1[0] = amd_bytealign_S (src_r1[0], src_r0[3], 2);
-      buf0[3] = amd_bytealign_S (src_r0[3], src_r0[2], 2);
-      buf0[2] = amd_bytealign_S (src_r0[2], src_r0[1], 2);
-      buf0[1] = amd_bytealign_S (src_r0[1], src_r0[0], 2);
-      buf0[0] = src_l0[0] | src_r0[0] << 16;
-      break;
-    case 1:
-      buf1[3] = amd_bytealign_S (src_r1[3], src_r1[2], 3);
-      buf1[2] = amd_bytealign_S (src_r1[2], src_r1[1], 3);
-      buf1[1] = amd_bytealign_S (src_r1[1], src_r1[0], 3);
-      buf1[0] = amd_bytealign_S (src_r1[0], src_r0[3], 3);
-      buf0[3] = amd_bytealign_S (src_r0[3], src_r0[2], 3);
-      buf0[2] = amd_bytealign_S (src_r0[2], src_r0[1], 3);
-      buf0[1] = amd_bytealign_S (src_r0[1], src_r0[0], 3);
-      buf0[0] = src_l0[0] | src_r0[0] <<  8;
-      break;
     case 0:
-      buf1[3] = src_r1[3];
-      buf1[2] = src_r1[2];
-      buf1[1] = src_r1[1];
-      buf1[0] = src_r1[0];
-      buf0[3] = src_r0[3];
-      buf0[2] = src_r0[2];
-      buf0[1] = src_r0[1];
-      buf0[0] = src_r0[0];
+      s8 = amd_bytealign (        0, src_r1[3], offset_minus_4);
+      s7 = amd_bytealign (src_r1[3], src_r1[2], offset_minus_4);
+      s6 = amd_bytealign (src_r1[2], src_r1[1], offset_minus_4);
+      s5 = amd_bytealign (src_r1[1], src_r1[0], offset_minus_4);
+      s4 = amd_bytealign (src_r1[0], src_r0[3], offset_minus_4);
+      s3 = amd_bytealign (src_r0[3], src_r0[2], offset_minus_4);
+      s2 = amd_bytealign (src_r0[2], src_r0[1], offset_minus_4);
+      s1 = amd_bytealign (src_r0[1], src_r0[0], offset_minus_4);
+      s0 = amd_bytealign (src_r0[0],         0, offset_minus_4);
+      break;
+
+    case 1:
+      s8 = amd_bytealign (        0, src_r1[2], offset_minus_4);
+      s7 = amd_bytealign (src_r1[2], src_r1[1], offset_minus_4);
+      s6 = amd_bytealign (src_r1[1], src_r1[0], offset_minus_4);
+      s5 = amd_bytealign (src_r1[0], src_r0[3], offset_minus_4);
+      s4 = amd_bytealign (src_r0[3], src_r0[2], offset_minus_4);
+      s3 = amd_bytealign (src_r0[2], src_r0[1], offset_minus_4);
+      s2 = amd_bytealign (src_r0[1], src_r0[0], offset_minus_4);
+      s1 = amd_bytealign (src_r0[0],         0, offset_minus_4);
+      s0 = 0;
+      break;
+
+    case 2:
+      s8 = amd_bytealign (        0, src_r1[1], offset_minus_4);
+      s7 = amd_bytealign (src_r1[1], src_r1[0], offset_minus_4);
+      s6 = amd_bytealign (src_r1[0], src_r0[3], offset_minus_4);
+      s5 = amd_bytealign (src_r0[3], src_r0[2], offset_minus_4);
+      s4 = amd_bytealign (src_r0[2], src_r0[1], offset_minus_4);
+      s3 = amd_bytealign (src_r0[1], src_r0[0], offset_minus_4);
+      s2 = amd_bytealign (src_r0[0],         0, offset_minus_4);
+      s1 = 0;
+      s0 = 0;
+      break;
+
+    case 3:
+      s8 = amd_bytealign (        0, src_r1[0], offset_minus_4);
+      s7 = amd_bytealign (src_r1[0], src_r0[3], offset_minus_4);
+      s6 = amd_bytealign (src_r0[3], src_r0[2], offset_minus_4);
+      s5 = amd_bytealign (src_r0[2], src_r0[1], offset_minus_4);
+      s4 = amd_bytealign (src_r0[1], src_r0[0], offset_minus_4);
+      s3 = amd_bytealign (src_r0[0],         0, offset_minus_4);
+      s2 = 0;
+      s1 = 0;
+      s0 = 0;
+      break;
+
+    case 4:
+      s8 = amd_bytealign (        0, src_r0[3], offset_minus_4);
+      s7 = amd_bytealign (src_r0[3], src_r0[2], offset_minus_4);
+      s6 = amd_bytealign (src_r0[2], src_r0[1], offset_minus_4);
+      s5 = amd_bytealign (src_r0[1], src_r0[0], offset_minus_4);
+      s4 = amd_bytealign (src_r0[0],         0, offset_minus_4);
+      s3 = 0;
+      s2 = 0;
+      s1 = 0;
+      s0 = 0;
+      break;
+
+    case 5:
+      s8 = amd_bytealign (        0, src_r0[2], offset_minus_4);
+      s7 = amd_bytealign (src_r0[2], src_r0[1], offset_minus_4);
+      s6 = amd_bytealign (src_r0[1], src_r0[0], offset_minus_4);
+      s5 = amd_bytealign (src_r0[0],         0, offset_minus_4);
+      s4 = 0;
+      s3 = 0;
+      s2 = 0;
+      s1 = 0;
+      s0 = 0;
+      break;
+
+    case 6:
+      s8 = amd_bytealign (        0, src_r0[1], offset_minus_4);
+      s7 = amd_bytealign (src_r0[1], src_r0[0], offset_minus_4);
+      s6 = amd_bytealign (src_r0[0],         0, offset_minus_4);
+      s5 = 0;
+      s4 = 0;
+      s3 = 0;
+      s2 = 0;
+      s1 = 0;
+      s0 = 0;
+      break;
+
+    case 7:
+      s8 = amd_bytealign (        0, src_r0[0], offset_minus_4);
+      s7 = amd_bytealign (src_r0[0],         0, offset_minus_4);
+      s6 = 0;
+      s5 = 0;
+      s4 = 0;
+      s3 = 0;
+      s2 = 0;
+      s1 = 0;
+      s0 = 0;
       break;
   }
+
+  if (offset_mod_4 == 0)
+  {
+    buf0[0] = src_l0[0] | s1;
+    buf0[1] = src_l0[1] | s2;
+    buf0[2] = src_l0[2] | s3;
+    buf0[3] = src_l0[3] | s4;
+    buf1[0] = src_l1[0] | s5;
+    buf1[1] = src_l1[1] | s6;
+    buf1[2] = src_l1[2] | s7;
+    buf1[3] = src_l1[3] | s8;
+  }
+  else
+  {
+    buf0[0] = src_l0[0] | s0;
+    buf0[1] = src_l0[1] | s1;
+    buf0[2] = src_l0[2] | s2;
+    buf0[3] = src_l0[3] | s3;
+    buf1[0] = src_l1[0] | s4;
+    buf1[1] = src_l1[1] | s5;
+    buf1[2] = src_l1[2] | s6;
+    buf1[3] = src_l1[3] | s7;
+  }
+  #endif
+
+  #ifdef IS_NV
+  const int offset_minus_4 = 4 - (offset % 4);
+
+  const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
+
+  u32 s0 = 0;
+  u32 s1 = 0;
+  u32 s2 = 0;
+  u32 s3 = 0;
+  u32 s4 = 0;
+  u32 s5 = 0;
+  u32 s6 = 0;
+  u32 s7 = 0;
+
+  switch (offset / 4)
+  {
+    case 0:
+      s7 = __byte_perm (src_r1[2], src_r1[3], selector);
+      s6 = __byte_perm (src_r1[1], src_r1[2], selector);
+      s5 = __byte_perm (src_r1[0], src_r1[1], selector);
+      s4 = __byte_perm (src_r0[3], src_r1[0], selector);
+      s3 = __byte_perm (src_r0[2], src_r0[3], selector);
+      s2 = __byte_perm (src_r0[1], src_r0[2], selector);
+      s1 = __byte_perm (src_r0[0], src_r0[1], selector);
+      s0 = __byte_perm (        0, src_r0[0], selector);
+      break;
+
+    case 1:
+      s7 = __byte_perm (src_r1[1], src_r1[2], selector);
+      s6 = __byte_perm (src_r1[0], src_r1[1], selector);
+      s5 = __byte_perm (src_r0[3], src_r1[0], selector);
+      s4 = __byte_perm (src_r0[2], src_r0[3], selector);
+      s3 = __byte_perm (src_r0[1], src_r0[2], selector);
+      s2 = __byte_perm (src_r0[0], src_r0[1], selector);
+      s1 = __byte_perm (        0, src_r0[0], selector);
+      s0 = 0;
+      break;
+
+    case 2:
+      s7 = __byte_perm (src_r1[0], src_r1[1], selector);
+      s6 = __byte_perm (src_r0[3], src_r1[0], selector);
+      s5 = __byte_perm (src_r0[2], src_r0[3], selector);
+      s4 = __byte_perm (src_r0[1], src_r0[2], selector);
+      s3 = __byte_perm (src_r0[0], src_r0[1], selector);
+      s2 = __byte_perm (        0, src_r0[0], selector);
+      s1 = 0;
+      s0 = 0;
+      break;
+
+    case 3:
+      s7 = __byte_perm (src_r0[3], src_r1[0], selector);
+      s6 = __byte_perm (src_r0[2], src_r0[3], selector);
+      s5 = __byte_perm (src_r0[1], src_r0[2], selector);
+      s4 = __byte_perm (src_r0[0], src_r0[1], selector);
+      s3 = __byte_perm (        0, src_r0[0], selector);
+      s2 = 0;
+      s1 = 0;
+      s0 = 0;
+
+      break;
+
+    case 4:
+      s7 = __byte_perm (src_r0[2], src_r0[3], selector);
+      s6 = __byte_perm (src_r0[1], src_r0[2], selector);
+      s5 = __byte_perm (src_r0[0], src_r0[1], selector);
+      s4 = __byte_perm (        0, src_r0[0], selector);
+      s3 = 0;
+      s2 = 0;
+      s1 = 0;
+      s0 = 0;
+      break;
+
+    case 5:
+      s7 = __byte_perm (src_r0[1], src_r0[2], selector);
+      s6 = __byte_perm (src_r0[0], src_r0[1], selector);
+      s5 = __byte_perm (        0, src_r0[0], selector);
+      s4 = 0;
+      s3 = 0;
+      s2 = 0;
+      s1 = 0;
+      s0 = 0;
+      break;
+
+    case 6:
+      s7 = __byte_perm (src_r0[0], src_r0[1], selector);
+      s6 = __byte_perm (        0, src_r0[0], selector);
+      s5 = 0;
+      s4 = 0;
+      s3 = 0;
+      s2 = 0;
+      s1 = 0;
+      s0 = 0;
+      break;
+
+    case 7:
+      s7 = __byte_perm (        0, src_r0[0], selector);
+      s6 = 0;
+      s5 = 0;
+      s4 = 0;
+      s3 = 0;
+      s2 = 0;
+      s1 = 0;
+      s0 = 0;
+      break;
+  }
+
+  buf0[0] = src_l0[0] | s0;
+  buf0[1] = src_l0[1] | s1;
+  buf0[2] = src_l0[2] | s2;
+  buf0[3] = src_l0[3] | s3;
+  buf1[0] = src_l1[0] | s4;
+  buf1[1] = src_l1[1] | s5;
+  buf1[2] = src_l1[2] | s6;
+  buf1[3] = src_l1[3] | s7;
+
+  #endif
 }
 
 inline void reverse_block (u32 in0[4], u32 in1[4], u32 out0[4], u32 out1[4], const u32 len)
