@@ -16,6 +16,7 @@
 #include "opencl.h"
 #include "shared.h"
 #include "outfile.h"
+#include "locking.h"
 
 int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u32 *plain_buf, int *out_len)
 {
@@ -306,6 +307,13 @@ int outfile_write_open (hashcat_ctx_t *hashcat_ctx)
   outfile_ctx->fp = fopen (outfile_ctx->filename, "ab");
 
   if (outfile_ctx->fp == NULL)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", outfile_ctx->filename, strerror (errno));
+
+    return -1;
+  }
+
+  if (lock_file (outfile_ctx->fp) == -1)
   {
     event_log_error (hashcat_ctx, "%s: %s", outfile_ctx->filename, strerror (errno));
 

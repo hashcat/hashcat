@@ -8,6 +8,7 @@
 #include "memory.h"
 #include "event.h"
 #include "dictstat.h"
+#include "locking.h"
 
 int sort_by_dictstat (const void *s1, const void *s2)
 {
@@ -119,6 +120,13 @@ int dictstat_write (hashcat_ctx_t *hashcat_ctx)
   FILE *fp = fopen (dictstat_ctx->filename, "wb");
 
   if (fp == NULL)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", dictstat_ctx->filename, strerror (errno));
+
+    return -1;
+  }
+
+  if (lock_file (fp) == -1)
   {
     event_log_error (hashcat_ctx, "%s: %s", dictstat_ctx->filename, strerror (errno));
 

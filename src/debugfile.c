@@ -8,6 +8,7 @@
 #include "memory.h"
 #include "event.h"
 #include "debugfile.h"
+#include "locking.h"
 
 static void debugfile_format_plain (hashcat_ctx_t *hashcat_ctx, const u8 *plain_ptr, const u32 plain_len)
 {
@@ -109,6 +110,13 @@ int debugfile_init (hashcat_ctx_t *hashcat_ctx)
     if (debugfile_ctx->fp == NULL)
     {
       event_log_error (hashcat_ctx, "Could not open debug-file for writing");
+
+      return -1;
+    }
+
+    if (lock_file (debugfile_ctx->fp) == -1)
+    {
+      event_log_error (hashcat_ctx, "%s: %s", debugfile_ctx->filename, strerror (errno));
 
       return -1;
     }
