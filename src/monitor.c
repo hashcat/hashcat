@@ -193,9 +193,9 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
             last_temp_check_time = temp_check_time;
 
-            float Kp = 2.0f;
-            float Ki = 0.005f;
-            float Kd = 10.0f;
+            float Kp = 1.8;
+            float Ki = 0.005;
+            float Kd = 6;
 
             // PID controller (3-term controller: proportional - Kp, integral - Ki, derivative - Kd)
 
