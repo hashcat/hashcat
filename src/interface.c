@@ -17430,7 +17430,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_PT_UPPER
-                                            | OPTS_TYPE_PT_BITSLICE;
+                                            | OPTS_TYPE_PT_BITSLICE
+                                            | OPTS_TYPE_PT_ALWAYS_ASCII;
                  hashconfig->kern_type      = KERN_TYPE_LM;
                  hashconfig->dgst_size      = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
                  hashconfig->parse_func     = lm_parse_hash;

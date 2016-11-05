@@ -367,9 +367,9 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsign
 
   if (outfile_ctx->outfile_format & OUTFILE_FMT_PLAIN)
   {
-    bool accept_utf8 = hashcat_ctx->hashconfig->hash_type != HASH_TYPE_LM;
+    const bool always_ascii = (hashconfig->hash_type & OPTS_TYPE_PT_ALWAYS_ASCII);
 
-    if ((user_options->outfile_autohex == true) && (need_hexify (plain_ptr, plain_len, accept_utf8) == true))
+    if ((user_options->outfile_autohex == true) && (need_hexify (plain_ptr, plain_len, always_ascii) == true))
     {
       tmp_buf[tmp_len++] = '$';
       tmp_buf[tmp_len++] = 'H';

@@ -75,16 +75,32 @@ static bool printable_ascii (const u8 *buf, const int len)
   return true;
 }
 
-bool need_hexify (const u8 *buf, const int len, bool accept_utf8)
+bool need_hexify (const u8 *buf, const int len, bool always_ascii)
 {
-  if (accept_utf8)
+  if (always_ascii == true)
   {
-    return !printable_utf8 (buf, len);
+    if (printable_ascii (buf, len) == true)
+    {
+      return false;
+    }
+    else
+    {
+      return true;
+    }
   }
   else
   {
-    return !printable_ascii (buf, len);
+    if (printable_utf8 (buf, len) == true)
+    {
+      return false;
+    }
+    else
+    {
+      return true;
+    }
   }
+
+  return false;
 }
 
 void exec_hexify (const u8 *buf, const int len, u8 *out)

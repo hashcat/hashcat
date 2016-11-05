@@ -267,6 +267,7 @@ void potfile_write_close (hashcat_ctx_t *hashcat_ctx)
 
 void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, u8 *plain_ptr, unsigned int plain_len)
 {
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const potfile_ctx_t  *potfile_ctx  = hashcat_ctx->potfile_ctx;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -291,9 +292,9 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, u8 *
 
   if (1)
   {
-    bool accept_utf8 = hashcat_ctx->hashconfig->hash_type != HASH_TYPE_LM;
+    const bool always_ascii = (hashconfig->hash_type & OPTS_TYPE_PT_ALWAYS_ASCII);
 
-    if ((user_options->outfile_autohex == true) && (need_hexify (plain_ptr, plain_len, accept_utf8) == true))
+    if ((user_options->outfile_autohex == true) && (need_hexify (plain_ptr, plain_len, always_ascii) == true))
     {
       tmp_buf[tmp_len++] = '$';
       tmp_buf[tmp_len++] = 'H';
