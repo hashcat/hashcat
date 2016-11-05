@@ -9,6 +9,7 @@
 #include "event.h"
 #include "shared.h"
 #include "loopback.h"
+#include "locking.h"
 
 static void loopback_format_plain (hashcat_ctx_t *hashcat_ctx, const u8 *plain_ptr, const unsigned int plain_len)
 {
@@ -105,6 +106,13 @@ int loopback_write_open (hashcat_ctx_t *hashcat_ctx)
   loopback_ctx->fp = fopen (loopback_ctx->filename, "ab");
 
   if (loopback_ctx->fp == NULL)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", loopback_ctx->filename, strerror (errno));
+
+    return -1;
+  }
+
+  if (lock_file (loopback_ctx->fp) == -1)
   {
     event_log_error (hashcat_ctx, "%s: %s", loopback_ctx->filename, strerror (errno));
 

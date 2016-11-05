@@ -18,7 +18,11 @@ int lock_file (FILE *fp)
 
   lock.l_type = F_WRLCK;
 
-  if (fcntl (fileno (fp), F_SETLKW, &lock)) return -1;
+  /* Needs this loop because a signal may interrupt a wait for lock */
+  while (fcntl (fileno (fp), F_SETLKW, &lock))
+  {
+    if (errno != EINTR) return -1;
+  }
 
   return 0;
 }
