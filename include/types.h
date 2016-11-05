@@ -828,6 +828,10 @@ typedef struct hc_device_param
   u32     sm_minor;
   u32     kernel_exec_timeout;
 
+  u8      pcie_bus;
+  u8      pcie_device;
+  u8      pcie_function;
+
   u32     device_processors;
   u64     device_maxmem_alloc;
   u64     device_global_mem;

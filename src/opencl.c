@@ -2608,11 +2608,37 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (device_type & CL_DEVICE_TYPE_GPU)
       {
+        if (device_vendor_id == VENDOR_ID_AMD)
+        {
+          cl_device_topology_amd amdtopo;
+
+          CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_TOPOLOGY_AMD, sizeof (amdtopo), &amdtopo, NULL);
+
+          if (CL_rc == -1) return -1;
+
+          device_param->pcie_bus      = amdtopo.pcie.bus;
+          device_param->pcie_device   = amdtopo.pcie.device;
+          device_param->pcie_function = amdtopo.pcie.function;
+        }
+
         if (device_vendor_id == VENDOR_ID_NV)
         {
-          cl_uint kernel_exec_timeout = 0;
+          cl_uint pci_bus_id_nv;  // is cl_uint the right type for them??
+          cl_uint pci_slot_id_nv;
 
-          #define CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV            0x4005
+          CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_PCI_BUS_ID_NV, sizeof (pci_bus_id_nv), &pci_bus_id_nv, NULL);
+
+          if (CL_rc == -1) return -1;
+
+          CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_PCI_SLOT_ID_NV, sizeof (pci_slot_id_nv), &pci_slot_id_nv, NULL);
+
+          if (CL_rc == -1) return -1;
+
+          device_param->pcie_bus      = (u8) (pci_bus_id_nv);
+          device_param->pcie_device   = (u8) (pci_slot_id_nv >> 3);
+          device_param->pcie_function = (u8) (pci_slot_id_nv & 7);
+
+          cl_uint kernel_exec_timeout = 0;
 
           CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV, sizeof (kernel_exec_timeout), &kernel_exec_timeout, NULL);
 
@@ -2622,9 +2648,6 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
           cl_uint sm_minor = 0;
           cl_uint sm_major = 0;
-
-          #define CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV       0x4000
-          #define CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV       0x4001
 
           CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV, sizeof (sm_minor), &sm_minor, NULL);
 

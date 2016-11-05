@@ -25,6 +25,24 @@
 #include <CL/cl.h>
 #endif
 
+// NVIDIA extras
+
+#define CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV       0x4000
+#define CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV       0x4001
+#define CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV            0x4005
+#define CL_DEVICE_PCI_BUS_ID_NV                     0x4008
+#define CL_DEVICE_PCI_SLOT_ID_NV                    0x4009
+
+// AMD extras
+
+#define CL_DEVICE_TOPOLOGY_AMD                      0x4037
+
+typedef union
+{
+    struct { cl_uint type; cl_uint data[5]; } raw;
+    struct { cl_uint type; cl_char unused[17]; cl_char bus; cl_char device; cl_char function; } pcie;
+} cl_device_topology_amd;
+
 #define CL_PLATFORMS_MAX 16
 
 typedef cl_int           (CL_API_CALL *OCL_CLBUILDPROGRAM)            (cl_program, cl_uint, const cl_device_id *, const char *, void (CL_CALLBACK *)(cl_program, void *), void *);
