@@ -31,6 +31,8 @@ int sort_by_stringptr (const void *p1, const void *p2);
 
 int count_dictionaries (char **dictionary_files);
 
+char *first_file_in_directory (const char *path);
+
 char **scan_directory (hashcat_ctx_t *hashcat_ctx, const char *path);
 
 int  folder_config_init    (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *install_folder, MAYBE_UNUSED const char *shared_folder);

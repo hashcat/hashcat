@@ -8,7 +8,240 @@
 #include "memory.h"
 #include "event.h"
 #include "dynloader.h"
+#include "shared.h"
+#include "folder.h"
 #include "hwmon.h"
+
+// sysfs functions
+
+static int sysfs_init (hashcat_ctx_t *hashcat_ctx)
+{
+  hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
+
+  SYSFS_PTR *sysfs = hwmon_ctx->hm_sysfs;
+
+  memset (sysfs, 0, sizeof (SYSFS_PTR));
+
+  char *path = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+
+  snprintf (path, HCBUFSIZ_TINY - 1, "%s", SYS_BUS_PCI_DEVICES);
+
+  hc_stat_t s;
+
+  int rc = hc_stat (path, &s);
+
+  hcfree (path);
+
+  return rc;
+}
+
+static void sysfs_close (hashcat_ctx_t *hashcat_ctx)
+{
+  hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
+
+  SYSFS_PTR *sysfs = hwmon_ctx->hm_sysfs;
+
+  if (sysfs)
+  {
+    hcfree (sysfs);
+  }
+
+  return;
+}
+
+static char *hm_SYSFS_get_syspath (hashcat_ctx_t *hashcat_ctx, const int device_id)
+{
+  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+  char *syspath = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+
+  snprintf (syspath, HCBUFSIZ_TINY - 1, "%s/0000:%02x:%02x.%01x/hwmon", SYS_BUS_PCI_DEVICES, device_param->pcie_bus, device_param->pcie_device, device_param->pcie_function);
+
+  char *hwmonN = first_file_in_directory (syspath);
+
+  if (hwmonN == NULL)
+  {
+    event_log_error (hashcat_ctx, "first_file_in_directory (%s) failed", syspath);
+
+    return NULL;
+  }
+
+  snprintf (syspath, HCBUFSIZ_TINY - 1, "%s/0000:%02x:%02x.%01x/hwmon/%s", SYS_BUS_PCI_DEVICES, device_param->pcie_bus, device_param->pcie_device, device_param->pcie_function, hwmonN);
+
+  hcfree (hwmonN);
+
+  return syspath;
+}
+
+static int hm_SYSFS_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int device_id, int *val)
+{
+  char *syspath = hm_SYSFS_get_syspath (hashcat_ctx, device_id);
+
+  if (syspath == NULL) return -1;
+
+  char *path_cur = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+  char *path_max = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+
+  snprintf (path_cur, HCBUFSIZ_TINY - 1, "%s/pwm1",     syspath);
+  snprintf (path_max, HCBUFSIZ_TINY - 1, "%s/pwm1_max", syspath);
+
+  FILE *fd_cur = fopen (path_cur, "r");
+
+  if (fd_cur == NULL)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", path_cur, strerror (errno));
+
+    return -1;
+  }
+
+  int pwm1_cur = 0;
+
+  if (fscanf (fd_cur, "%d", &pwm1_cur) != 1)
+  {
+    event_log_error (hashcat_ctx, "%s: unexpected data", path_cur);
+
+    return -1;
+  }
+
+  fclose (fd_cur);
+
+  FILE *fd_max = fopen (path_max, "r");
+
+  if (fd_max == NULL)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", path_max, strerror (errno));
+
+    return -1;
+  }
+
+  int pwm1_max = 0;
+
+  if (fscanf (fd_max, "%d", &pwm1_max) != 1)
+  {
+    event_log_error (hashcat_ctx, "%s: unexpected data", path_max);
+
+    return -1;
+  }
+
+  fclose (fd_max);
+
+  float pwm1_percent = ((float) pwm1_cur / (float) pwm1_max) * 100.0f;
+
+  *val = (int) pwm1_percent;
+
+  hcfree (syspath);
+
+  hcfree (path_cur);
+  hcfree (path_max);
+
+  return 0;
+}
+
+static int hm_SYSFS_set_fan_control (hashcat_ctx_t *hashcat_ctx, const int device_id, int val)
+{
+  char *syspath = hm_SYSFS_get_syspath (hashcat_ctx, device_id);
+
+  if (syspath == NULL) return -1;
+
+  char *path = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+
+  snprintf (path, HCBUFSIZ_TINY - 1, "%s/pwm1_enable", syspath);
+
+  FILE *fd = fopen (path, "w");
+
+  if (fd == NULL)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
+
+    return -1;
+  }
+
+  fprintf (fd, "%d", val);
+
+  fclose (fd);
+
+  hcfree (syspath);
+
+  hcfree (path);
+
+  return 0;
+}
+
+static int hm_SYSFS_set_fan_speed_target (hashcat_ctx_t *hashcat_ctx, const int device_id, int val)
+{
+  char *syspath = hm_SYSFS_get_syspath (hashcat_ctx, device_id);
+
+  if (syspath == NULL) return -1;
+
+  char *path = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+
+  snprintf (path, HCBUFSIZ_TINY - 1, "%s/pwm1", syspath);
+
+  FILE *fd = fopen (path, "w");
+
+  if (fd == NULL)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
+
+    return -1;
+  }
+
+  val = (float) val * 2.55f; // should be pwm1_max
+
+  fprintf (fd, "%d", val);
+
+  fclose (fd);
+
+  hcfree (syspath);
+
+  hcfree (path);
+
+  return 0;
+}
+
+static int hm_SYSFS_get_temperature_current (hashcat_ctx_t *hashcat_ctx, const int device_id, int *val)
+{
+  char *syspath = hm_SYSFS_get_syspath (hashcat_ctx, device_id);
+
+  if (syspath == NULL) return -1;
+
+  char *path = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+
+  snprintf (path, HCBUFSIZ_TINY - 1, "%s/temp1_input", syspath);
+
+  FILE *fd = fopen (path, "r");
+
+  if (fd == NULL)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
+
+    return -1;
+  }
+
+  int temperature = 0;
+
+  if (fscanf (fd, "%d", &temperature) != 1)
+  {
+    event_log_error (hashcat_ctx, "%s: unexpected data", path);
+
+    return -1;
+  }
+
+  fclose (fd);
+
+  *val = temperature / 1000;
+
+  hcfree (syspath);
+
+  hcfree (path);
+
+  return 0;
+}
+
+
+
 
 // nvml functions
 
@@ -2236,6 +2469,15 @@ int hm_get_temperature_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 dev
         return Temperature / 1000;
       }
     }
+
+    if (hwmon_ctx->hm_sysfs)
+    {
+      int temperature = 0;
+
+      if (hm_SYSFS_get_temperature_current (hashcat_ctx, hwmon_ctx->hm_device[device_id].sysfs, &temperature) == -1) return -1;
+
+      return temperature;
+    }
   }
 
   if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
@@ -2282,6 +2524,11 @@ int hm_get_fanpolicy_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 devic
         {
           return 1;
         }
+      }
+
+      if (hwmon_ctx->hm_sysfs)
+      {
+        return 1;
       }
     }
 
@@ -2333,6 +2580,15 @@ int hm_get_fanspeed_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device
 
           return faninfo.iFanSpeedPercent;
         }
+      }
+
+      if (hwmon_ctx->hm_sysfs)
+      {
+        int speed = 0;
+
+        if (hm_SYSFS_get_fan_speed_current (hashcat_ctx, hwmon_ctx->hm_device[device_id].sysfs, &speed) == -1) return -1;
+
+        return speed;
       }
     }
 
@@ -2676,6 +2932,25 @@ int hm_set_fanspeed_with_device_id_xnvctrl (hashcat_ctx_t *hashcat_ctx, const u3
   return -1;
 }
 
+int hm_set_fanspeed_with_device_id_sysfs (hashcat_ctx_t *hashcat_ctx, const u32 device_id, const int fanspeed)
+{
+  hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
+
+  if (hwmon_ctx->enabled == false) return -1;
+
+  if (hwmon_ctx->hm_device[device_id].fan_set_supported == true)
+  {
+    if (hwmon_ctx->hm_sysfs)
+    {
+      if (hm_SYSFS_set_fan_speed_target (hashcat_ctx, hwmon_ctx->hm_device[device_id].sysfs, fanspeed) == -1) return -1;
+
+      return 0;
+    }
+  }
+
+  return -1;
+}
+
 static int hm_set_fanctrl_with_device_id_xnvctrl (hashcat_ctx_t *hashcat_ctx, const u32 device_id, const int val)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
@@ -2687,6 +2962,25 @@ static int hm_set_fanctrl_with_device_id_xnvctrl (hashcat_ctx_t *hashcat_ctx, co
     if (hwmon_ctx->hm_xnvctrl)
     {
       if (hm_XNVCTRL_set_fan_control (hashcat_ctx, hwmon_ctx->hm_device[device_id].xnvctrl, val) == -1) return -1;
+
+      return 0;
+    }
+  }
+
+  return -1;
+}
+
+static int hm_set_fanctrl_with_device_id_sysfs (hashcat_ctx_t *hashcat_ctx, const u32 device_id, const int val)
+{
+  hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
+
+  if (hwmon_ctx->enabled == false) return -1;
+
+  if (hwmon_ctx->hm_device[device_id].fan_set_supported == true)
+  {
+    if (hwmon_ctx->hm_sysfs)
+    {
+      if (hm_SYSFS_set_fan_control (hashcat_ctx, hwmon_ctx->hm_device[device_id].sysfs, val) == -1) return -1;
 
       return 0;
     }
@@ -2722,11 +3016,13 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
   NVAPI_PTR   *nvapi   = (NVAPI_PTR *)   hcmalloc (hashcat_ctx, sizeof (NVAPI_PTR));
   NVML_PTR    *nvml    = (NVML_PTR *)    hcmalloc (hashcat_ctx, sizeof (NVML_PTR));
   XNVCTRL_PTR *xnvctrl = (XNVCTRL_PTR *) hcmalloc (hashcat_ctx, sizeof (XNVCTRL_PTR));
+  SYSFS_PTR   *sysfs   = (SYSFS_PTR *)   hcmalloc (hashcat_ctx, sizeof (SYSFS_PTR));
 
   hm_attrs_t *hm_adapters_adl      = (hm_attrs_t *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (hm_attrs_t)); VERIFY_PTR (hm_adapters_adl);
   hm_attrs_t *hm_adapters_nvapi    = (hm_attrs_t *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (hm_attrs_t)); VERIFY_PTR (hm_adapters_nvapi);
   hm_attrs_t *hm_adapters_nvml     = (hm_attrs_t *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (hm_attrs_t)); VERIFY_PTR (hm_adapters_nvml);
   hm_attrs_t *hm_adapters_xnvctrl  = (hm_attrs_t *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (hm_attrs_t)); VERIFY_PTR (hm_adapters_xnvctrl);
+  hm_attrs_t *hm_adapters_sysfs    = (hm_attrs_t *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (hm_attrs_t)); VERIFY_PTR (hm_adapters_sysfs);
 
   if (opencl_ctx->need_nvml == true)
   {
@@ -2773,6 +3069,27 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
       hcfree (hwmon_ctx->hm_adl);
 
       hwmon_ctx->hm_adl = NULL;
+    }
+  }
+
+  if (opencl_ctx->need_sysfs == true)
+  {
+    hwmon_ctx->hm_sysfs = sysfs;
+
+    if (sysfs_init (hashcat_ctx) == -1)
+    {
+      hcfree (hwmon_ctx->hm_sysfs);
+
+      hwmon_ctx->hm_sysfs = NULL;
+    }
+
+    // also if there's ADL, we don't need sysfs
+
+    if (hwmon_ctx->hm_adl)
+    {
+      hcfree (hwmon_ctx->hm_sysfs);
+
+      hwmon_ctx->hm_sysfs = NULL;
     }
   }
 
@@ -2883,7 +3200,26 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if (hwmon_ctx->hm_adl == NULL && hwmon_ctx->hm_nvml == NULL && hwmon_ctx->hm_xnvctrl == NULL)
+  if (hwmon_ctx->hm_sysfs)
+  {
+    if (1)
+    {
+      for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+      {
+        hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+        if ((device_param->device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
+
+        hm_adapters_sysfs[device_id].sysfs = device_id;
+
+        int speed = 0;
+
+        if (hm_SYSFS_get_fan_speed_current (hashcat_ctx, device_id, &speed) == 0) hm_adapters_sysfs[device_id].fan_get_supported = true;
+      }
+    }
+  }
+
+  if (hwmon_ctx->hm_adl == NULL && hwmon_ctx->hm_nvml == NULL && hwmon_ctx->hm_xnvctrl == NULL && hwmon_ctx->hm_sysfs == NULL)
   {
     return 0;
   }
@@ -2921,17 +3257,20 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
     if (device_param->device_vendor_id == VENDOR_ID_AMD)
     {
       hwmon_ctx->hm_device[device_id].adl               = hm_adapters_adl[platform_devices_id].adl;
+      hwmon_ctx->hm_device[device_id].sysfs             = hm_adapters_sysfs[platform_devices_id].sysfs;
       hwmon_ctx->hm_device[device_id].nvapi             = 0;
       hwmon_ctx->hm_device[device_id].nvml              = 0;
       hwmon_ctx->hm_device[device_id].xnvctrl           = 0;
       hwmon_ctx->hm_device[device_id].od_version        = hm_adapters_adl[platform_devices_id].od_version;
-      hwmon_ctx->hm_device[device_id].fan_get_supported = hm_adapters_adl[platform_devices_id].fan_get_supported;
+      hwmon_ctx->hm_device[device_id].fan_get_supported = hm_adapters_adl[platform_devices_id].fan_get_supported
+                                                        | hm_adapters_sysfs[platform_devices_id].fan_get_supported;
       hwmon_ctx->hm_device[device_id].fan_set_supported = false;
     }
 
     if (device_param->device_vendor_id == VENDOR_ID_NV)
     {
       hwmon_ctx->hm_device[device_id].adl               = 0;
+      hwmon_ctx->hm_device[device_id].sysfs             = 0;
       hwmon_ctx->hm_device[device_id].nvapi             = hm_adapters_nvapi[platform_devices_id].nvapi;
       hwmon_ctx->hm_device[device_id].nvml              = hm_adapters_nvml[platform_devices_id].nvml;
       hwmon_ctx->hm_device[device_id].xnvctrl           = hm_adapters_xnvctrl[platform_devices_id].xnvctrl;
@@ -2945,6 +3284,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
   hcfree (hm_adapters_nvapi);
   hcfree (hm_adapters_nvml);
   hcfree (hm_adapters_xnvctrl);
+  hcfree (hm_adapters_sysfs);
 
   /**
    * powertune on user request
@@ -3160,7 +3500,15 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
           if (device_param->device_vendor_id == VENDOR_ID_AMD)
           {
-            rc = hm_set_fanspeed_with_device_id_adl (hashcat_ctx, device_id, fanspeed, 1);
+            if (hwmon_ctx->hm_adl)
+            {
+              rc = hm_set_fanspeed_with_device_id_adl (hashcat_ctx, device_id, fanspeed, 1);
+            }
+
+            if (hwmon_ctx->hm_sysfs)
+            {
+              rc = hm_set_fanctrl_with_device_id_sysfs (hashcat_ctx, device_id, 1);
+            }
           }
           else if (device_param->device_vendor_id == VENDOR_ID_NV)
           {
@@ -3221,7 +3569,15 @@ void hwmon_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
         if (device_param->device_vendor_id == VENDOR_ID_AMD)
         {
-          rc = hm_set_fanspeed_with_device_id_adl (hashcat_ctx, device_id, 100, 0);
+          if (hwmon_ctx->hm_adl)
+          {
+            rc = hm_set_fanspeed_with_device_id_adl (hashcat_ctx, device_id, 100, 0);
+          }
+
+          if (hwmon_ctx->hm_sysfs)
+          {
+            rc = hm_set_fanctrl_with_device_id_sysfs (hashcat_ctx, device_id, 2);
+          }
         }
         else if (device_param->device_vendor_id == VENDOR_ID_NV)
         {
@@ -3337,6 +3693,12 @@ void hwmon_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
     hm_ADL_Main_Control_Destroy (hashcat_ctx);
 
     adl_close (hashcat_ctx);
+  }
+
+  if (hwmon_ctx->hm_sysfs)
+  {
+
+    sysfs_close (hashcat_ctx);
   }
 
   // free memory

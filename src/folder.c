@@ -115,6 +115,56 @@ int count_dictionaries (char **dictionary_files)
   return (cnt);
 }
 
+char *first_file_in_directory (const char *path)
+{
+  DIR *d = NULL;
+
+  if ((d = opendir (path)) != NULL)
+  {
+    char *first_file = NULL;
+
+    #if defined (__APPLE__)
+
+    struct dirent e;
+
+    for (;;)
+    {
+      memset (&e, 0, sizeof (e));
+
+      struct dirent *de = NULL;
+
+      if (readdir_r (d, &e, &de) != 0) break;
+
+      if (de == NULL) break;
+
+    #else
+
+    struct dirent *de;
+
+    while ((de = readdir (d)) != NULL)
+    {
+
+    #endif
+
+      if ((strcmp (de->d_name, ".") == 0) || (strcmp (de->d_name, "..") == 0)) continue;
+
+      first_file = strdup (de->d_name);
+
+      break;
+    }
+
+    closedir (d);
+
+    return first_file;
+  }
+  else if (errno == ENOTDIR)
+  {
+    return NULL;
+  }
+
+  return NULL;
+}
+
 char **scan_directory (hashcat_ctx_t *hashcat_ctx, const char *path)
 {
   char *tmp_path = hcstrdup (hashcat_ctx, path);

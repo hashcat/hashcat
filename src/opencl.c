@@ -2126,6 +2126,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
   bool need_nvml    = false;
   bool need_nvapi   = false;
   bool need_xnvctrl = false;
+  bool need_sysfs   = false;
 
   u32 devices_cnt = 0;
 
@@ -2590,6 +2591,10 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         if ((device_param->platform_vendor_id == VENDOR_ID_AMD) && (device_param->device_vendor_id == VENDOR_ID_AMD))
         {
           need_adl = true;
+
+          #if defined (__linux__)
+          need_sysfs = true;
+          #endif
         }
 
         if ((device_param->platform_vendor_id == VENDOR_ID_NV) && (device_param->device_vendor_id == VENDOR_ID_NV))
@@ -2792,6 +2797,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
   opencl_ctx->need_nvml           = need_nvml;
   opencl_ctx->need_nvapi          = need_nvapi;
   opencl_ctx->need_xnvctrl        = need_xnvctrl;
+  opencl_ctx->need_sysfs          = need_sysfs;
 
   return 0;
 }
@@ -2829,6 +2835,7 @@ void opencl_ctx_devices_destroy (hashcat_ctx_t *hashcat_ctx)
   opencl_ctx->need_nvml      = false;
   opencl_ctx->need_nvapi     = false;
   opencl_ctx->need_xnvctrl   = false;
+  opencl_ctx->need_sysfs     = false;
 }
 
 void opencl_ctx_devices_update_power (hashcat_ctx_t *hashcat_ctx)

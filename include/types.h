@@ -1046,6 +1046,7 @@ typedef struct opencl_ctx
   bool                need_nvml;
   bool                need_nvapi;
   bool                need_xnvctrl;
+  bool                need_sysfs;
 
   int                 force_jit_compilation;
 
@@ -1055,6 +1056,7 @@ typedef struct opencl_ctx
 #include "ext_nvapi.h"
 #include "ext_nvml.h"
 #include "ext_xnvctrl.h"
+#include "ext_sysfs.h"
 
 typedef struct hm_attrs
 {
@@ -1062,6 +1064,7 @@ typedef struct hm_attrs
   HM_ADAPTER_NVML    nvml;
   HM_ADAPTER_NVAPI   nvapi;
   HM_ADAPTER_XNVCTRL xnvctrl;
+  HM_ADAPTER_SYSFS   sysfs;
 
   int od_version;
 
@@ -1078,6 +1081,7 @@ typedef struct hwmon_ctx
   void *hm_nvml;
   void *hm_nvapi;
   void *hm_xnvctrl;
+  void *hm_sysfs;
 
   hm_attrs_t *hm_device;
 

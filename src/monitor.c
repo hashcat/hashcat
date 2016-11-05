@@ -223,7 +223,8 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
                 {
                   if (device_param->device_vendor_id == VENDOR_ID_AMD)
                   {
-                    hm_set_fanspeed_with_device_id_adl (hashcat_ctx, device_id, fan_speed_new, 1);
+                    hm_set_fanspeed_with_device_id_adl   (hashcat_ctx, device_id, fan_speed_new, 1);
+                    hm_set_fanspeed_with_device_id_sysfs (hashcat_ctx, device_id, fan_speed_new);
                   }
                   else if (device_param->device_vendor_id == VENDOR_ID_NV)
                   {
