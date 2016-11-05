@@ -291,7 +291,9 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, u8 *
 
   if (1)
   {
-    if ((user_options->outfile_autohex == true) && (need_hexify (plain_ptr, plain_len) == true))
+    bool accept_utf8 = hashcat_ctx->hashconfig->hash_type != HASH_TYPE_LM;
+
+    if ((user_options->outfile_autohex == true) && (need_hexify (plain_ptr, plain_len, accept_utf8) == true))
     {
       tmp_buf[tmp_len++] = '$';
       tmp_buf[tmp_len++] = 'H';
