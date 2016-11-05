@@ -582,8 +582,10 @@ char *status_get_input_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
   build_plain ((hashcat_ctx_t *) hashcat_ctx, device_param, &plain1, plain_buf1, &plain_len1);
   build_plain ((hashcat_ctx_t *) hashcat_ctx, device_param, &plain2, plain_buf2, &plain_len2);
 
-  const bool need_hex1 = need_hexify (plain_ptr1, plain_len1);
-  const bool need_hex2 = need_hexify (plain_ptr2, plain_len2);
+  bool accept_utf8 = hashcat_ctx->hashconfig->hash_type != HASH_TYPE_LM;
+
+  const bool need_hex1 = need_hexify (plain_ptr1, plain_len1, accept_utf8);
+  const bool need_hex2 = need_hexify (plain_ptr2, plain_len2, accept_utf8);
 
   if ((need_hex1 == true) || (need_hex2 == true))
   {

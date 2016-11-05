@@ -7,17 +7,84 @@
 #include "types.h"
 #include "convert.h"
 
-bool need_hexify (const u8 *buf, const int len)
+static bool printable_utf8 (const u8 *buf, const int len)
+{
+  u8 a;
+  int length;
+  const u8 *buf_end = buf + len;
+  const u8 *srcptr;
+  const char trailingBytesUTF8[64] = {
+    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+    2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2, 3,3,3,3,3,3,3,3,4,4,4,4,5,5,5,5
+  };
+
+  while (buf < buf_end) {
+
+    // This line rejects unprintables. The rest of the function
+    // reliably rejects invalid UTF-8 sequences.
+    if (*buf < 0x20 || *buf == 0x7f) return false;
+
+    if (*buf < 0x80) {
+      buf++;
+      continue;
+    }
+
+    length = trailingBytesUTF8[*buf & 0x3f] + 1;
+    srcptr = buf + length;
+
+    if (srcptr > buf_end) return false;
+
+    switch (length) {
+    default:
+      return false;
+    case 4:
+      if ((a = (*--srcptr)) < 0x80 || a > 0xbf) return false;
+    case 3:
+      if ((a = (*--srcptr)) < 0x80 || a > 0xbf) return false;
+    case 2:
+      if ((a = (*--srcptr)) < 0x80 || a > 0xbf) return false;
+
+      switch (*buf) {
+      case 0xE0: if (a < 0xa0) return false; break;
+      case 0xED: if (a > 0x9f) return false; break;
+      case 0xF0: if (a < 0x90) return false; break;
+      case 0xF4: if (a > 0x8f) return false;
+      }
+
+    case 1:
+      if (*buf >= 0x80 && *buf < 0xc2) return false;
+    }
+    if (*buf > 0xf4)
+      return false;
+
+    buf += length;
+  }
+  return true;
+}
+
+static bool printable_ascii (const u8 *buf, const int len)
 {
   for (int i = 0; i < len; i++)
   {
     const u8 c = buf[i];
 
-    if (c < 0x20) return true;
-    if (c > 0x7f) return true;
+    if (c < 0x20) return false;
+    if (c > 0x7e) return false;
   }
 
-  return false;
+  return true;
+}
+
+bool need_hexify (const u8 *buf, const int len, bool accept_utf8)
+{
+  if (accept_utf8)
+  {
+    return !printable_utf8 (buf, len);
+  }
+  else
+  {
+    return !printable_ascii (buf, len);
+  }
 }
 
 void exec_hexify (const u8 *buf, const int len, u8 *out)
