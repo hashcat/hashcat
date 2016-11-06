@@ -159,11 +159,29 @@ void setup_environment_variables ()
       putenv ((char *) "DISPLAY=:0");
   }
 
+  if (getenv ("GPU_FORCE_64BIT_PTR") == NULL)
+    putenv ((char *) "GPU_FORCE_64BIT_PTR=1");
+
   if (getenv ("GPU_MAX_ALLOC_PERCENT") == NULL)
     putenv ((char *) "GPU_MAX_ALLOC_PERCENT=100");
 
+  if (getenv ("GPU_SINGLE_ALLOC_PERCENT") == NULL)
+    putenv ((char *) "GPU_SINGLE_ALLOC_PERCENT=100");
+
+  if (getenv ("GPU_MAX_HEAP_SIZE") == NULL)
+    putenv ((char *) "GPU_MAX_HEAP_SIZE=100");
+
+  if (getenv ("CPU_FORCE_64BIT_PTR") == NULL)
+    putenv ((char *) "CPU_FORCE_64BIT_PTR=1");
+
   if (getenv ("CPU_MAX_ALLOC_PERCENT") == NULL)
     putenv ((char *) "CPU_MAX_ALLOC_PERCENT=100");
+
+  if (getenv ("CPU_SINGLE_ALLOC_PERCENT") == NULL)
+    putenv ((char *) "CPU_SINGLE_ALLOC_PERCENT=100");
+
+  if (getenv ("CPU_MAX_HEAP_SIZE") == NULL)
+    putenv ((char *) "CPU_MAX_HEAP_SIZE=100");
 
   if (getenv ("GPU_USE_SYNC_OBJECTS") == NULL)
     putenv ((char *) "GPU_USE_SYNC_OBJECTS=1");
