@@ -49,7 +49,7 @@ static void sysfs_close (hashcat_ctx_t *hashcat_ctx)
   return;
 }
 
-static char *hm_SYSFS_get_syspath (hashcat_ctx_t *hashcat_ctx, const int device_id)
+static char *hm_SYSFS_get_syspath_device (hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
   opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
 
@@ -57,27 +57,47 @@ static char *hm_SYSFS_get_syspath (hashcat_ctx_t *hashcat_ctx, const int device_
 
   char *syspath = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
 
-  snprintf (syspath, HCBUFSIZ_TINY - 1, "%s/0000:%02x:%02x.%01x/hwmon", SYS_BUS_PCI_DEVICES, device_param->pcie_bus, device_param->pcie_device, device_param->pcie_function);
-
-  char *hwmonN = first_file_in_directory (syspath);
-
-  if (hwmonN == NULL)
-  {
-    event_log_error (hashcat_ctx, "first_file_in_directory (%s) failed", syspath);
-
-    return NULL;
-  }
-
-  snprintf (syspath, HCBUFSIZ_TINY - 1, "%s/0000:%02x:%02x.%01x/hwmon/%s", SYS_BUS_PCI_DEVICES, device_param->pcie_bus, device_param->pcie_device, device_param->pcie_function, hwmonN);
-
-  hcfree (hwmonN);
+  snprintf (syspath, HCBUFSIZ_TINY - 1, "%s/0000:%02x:%02x.%01x", SYS_BUS_PCI_DEVICES, device_param->pcie_bus, device_param->pcie_device, device_param->pcie_function);
 
   return syspath;
 }
 
+static char *hm_SYSFS_get_syspath_hwmon (hashcat_ctx_t *hashcat_ctx, const int device_id)
+{
+  char *syspath = hm_SYSFS_get_syspath_device (hashcat_ctx, device_id);
+
+  if (syspath == NULL)
+  {
+    event_log_error (hashcat_ctx, "hm_SYSFS_get_syspath_device() failed");
+
+    return NULL;
+  }
+
+  char *hwmon = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+
+  snprintf (hwmon, HCBUFSIZ_TINY - 1, "%s/hwmon", syspath);
+
+  char *hwmonN = first_file_in_directory (hwmon);
+
+  if (hwmonN == NULL)
+  {
+    event_log_error (hashcat_ctx, "first_file_in_directory() failed");
+
+    return NULL;
+  }
+
+  snprintf (hwmon, HCBUFSIZ_TINY - 1, "%s/hwmon/%s", syspath, hwmonN);
+
+  hcfree (hwmonN);
+
+  hcfree (syspath);
+
+  return hwmon;
+}
+
 static int hm_SYSFS_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int device_id, int *val)
 {
-  char *syspath = hm_SYSFS_get_syspath (hashcat_ctx, device_id);
+  char *syspath = hm_SYSFS_get_syspath_hwmon (hashcat_ctx, device_id);
 
   if (syspath == NULL) return -1;
 
@@ -141,7 +161,7 @@ static int hm_SYSFS_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int
 
 static int hm_SYSFS_set_fan_control (hashcat_ctx_t *hashcat_ctx, const int device_id, int val)
 {
-  char *syspath = hm_SYSFS_get_syspath (hashcat_ctx, device_id);
+  char *syspath = hm_SYSFS_get_syspath_hwmon (hashcat_ctx, device_id);
 
   if (syspath == NULL) return -1;
 
@@ -171,7 +191,7 @@ static int hm_SYSFS_set_fan_control (hashcat_ctx_t *hashcat_ctx, const int devic
 
 static int hm_SYSFS_set_fan_speed_target (hashcat_ctx_t *hashcat_ctx, const int device_id, int val)
 {
-  char *syspath = hm_SYSFS_get_syspath (hashcat_ctx, device_id);
+  char *syspath = hm_SYSFS_get_syspath_hwmon (hashcat_ctx, device_id);
 
   if (syspath == NULL) return -1;
 
@@ -203,7 +223,7 @@ static int hm_SYSFS_set_fan_speed_target (hashcat_ctx_t *hashcat_ctx, const int 
 
 static int hm_SYSFS_get_temperature_current (hashcat_ctx_t *hashcat_ctx, const int device_id, int *val)
 {
-  char *syspath = hm_SYSFS_get_syspath (hashcat_ctx, device_id);
+  char *syspath = hm_SYSFS_get_syspath_hwmon (hashcat_ctx, device_id);
 
   if (syspath == NULL) return -1;
 
@@ -240,8 +260,165 @@ static int hm_SYSFS_get_temperature_current (hashcat_ctx_t *hashcat_ctx, const i
   return 0;
 }
 
+static int hm_SYSFS_get_pp_dpm_sclk (hashcat_ctx_t *hashcat_ctx, const int device_id, int *val)
+{
+  char *syspath = hm_SYSFS_get_syspath_device (hashcat_ctx, device_id);
 
+  if (syspath == NULL) return -1;
 
+  char *path = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+
+  snprintf (path, HCBUFSIZ_TINY - 1, "%s/pp_dpm_sclk", syspath);
+
+  FILE *fd = fopen (path, "r");
+
+  if (fd == NULL)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
+
+    return -1;
+  }
+
+  int clock = 0;
+
+  while (!feof (fd))
+  {
+    char buf[HCBUFSIZ_TINY];
+
+    char *ptr = fgets (buf, sizeof (buf), fd);
+
+    if (ptr == NULL) continue;
+
+    size_t len = strlen (ptr);
+
+    if (len < 2) continue;
+
+    if (ptr[len - 2] != '*') continue;
+
+    int profile = 0;
+
+    int rc = sscanf (ptr, "%d: %dMhz", &profile, &clock);
+
+    if (rc == 2) break;
+  }
+
+  fclose (fd);
+
+  *val = clock;
+
+  hcfree (syspath);
+
+  hcfree (path);
+
+  return 0;
+}
+
+static int hm_SYSFS_get_pp_dpm_mclk (hashcat_ctx_t *hashcat_ctx, const int device_id, int *val)
+{
+  char *syspath = hm_SYSFS_get_syspath_device (hashcat_ctx, device_id);
+
+  if (syspath == NULL) return -1;
+
+  char *path = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+
+  snprintf (path, HCBUFSIZ_TINY - 1, "%s/pp_dpm_mclk", syspath);
+
+  FILE *fd = fopen (path, "r");
+
+  if (fd == NULL)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
+
+    return -1;
+  }
+
+  int clock = 0;
+
+  while (!feof (fd))
+  {
+    char buf[HCBUFSIZ_TINY];
+
+    char *ptr = fgets (buf, sizeof (buf), fd);
+
+    if (ptr == NULL) continue;
+
+    size_t len = strlen (ptr);
+
+    if (len < 2) continue;
+
+    if (ptr[len - 2] != '*') continue;
+
+    int profile = 0;
+
+    int rc = sscanf (ptr, "%d: %dMhz", &profile, &clock);
+
+    if (rc == 2) break;
+  }
+
+  fclose (fd);
+
+  *val = clock;
+
+  hcfree (syspath);
+
+  hcfree (path);
+
+  return 0;
+}
+
+static int hm_SYSFS_get_pp_dpm_pcie (hashcat_ctx_t *hashcat_ctx, const int device_id, int *val)
+{
+  char *syspath = hm_SYSFS_get_syspath_device (hashcat_ctx, device_id);
+
+  if (syspath == NULL) return -1;
+
+  char *path = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+
+  snprintf (path, HCBUFSIZ_TINY - 1, "%s/pp_dpm_pcie", syspath);
+
+  FILE *fd = fopen (path, "r");
+
+  if (fd == NULL)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
+
+    return -1;
+  }
+
+  int lanes = 0;
+
+  while (!feof (fd))
+  {
+    char buf[HCBUFSIZ_TINY];
+
+    char *ptr = fgets (buf, sizeof (buf), fd);
+
+    if (ptr == NULL) continue;
+
+    size_t len = strlen (ptr);
+
+    if (len < 2) continue;
+
+    if (ptr[len - 2] != '*') continue;
+
+    int   profile = 0;
+    float speed = 0;
+
+    int rc = sscanf (ptr, "%d: %fGB, x%d *", &profile, &speed, &lanes);
+
+    if (rc == 3) break;
+  }
+
+  fclose (fd);
+
+  *val = lanes;
+
+  hcfree (syspath);
+
+  hcfree (path);
+
+  return 0;
+}
 
 // nvml functions
 
@@ -2626,6 +2803,15 @@ int hm_get_buslanes_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device
 
       return PMActivity.iCurrentBusLanes;
     }
+
+    if (hwmon_ctx->hm_sysfs)
+    {
+      int lanes;
+
+      if (hm_SYSFS_get_pp_dpm_pcie (hashcat_ctx, hwmon_ctx->hm_device[device_id].sysfs, &lanes) == -1) return -1;
+
+      return lanes;
+    }
   }
 
   if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
@@ -2696,6 +2882,15 @@ int hm_get_memoryspeed_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 dev
 
       return PMActivity.iMemoryClock / 100;
     }
+
+    if (hwmon_ctx->hm_sysfs)
+    {
+      int clock;
+
+      if (hm_SYSFS_get_pp_dpm_mclk (hashcat_ctx, hwmon_ctx->hm_device[device_id].sysfs, &clock) == -1) return -1;
+
+      return clock;
+    }
   }
 
   if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
@@ -2730,6 +2925,15 @@ int hm_get_corespeed_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 devic
       if (hm_ADL_Overdrive_CurrentActivity_Get (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, &PMActivity) == -1) return -1;
 
       return PMActivity.iEngineClock / 100;
+    }
+
+    if (hwmon_ctx->hm_sysfs)
+    {
+      int clock;
+
+      if (hm_SYSFS_get_pp_dpm_sclk (hashcat_ctx, hwmon_ctx->hm_device[device_id].sysfs, &clock) == -1) return -1;
+
+      return clock;
     }
   }
 
