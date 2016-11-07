@@ -1159,6 +1159,15 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
         salts_cnt++;
       }
+
+      hashes_buf[hashes_pos].salt = salt_buf;
+
+      if (hashconfig->esalt_size)
+      {
+        char *esalts_buf_new_ptr = ((char *) esalts_buf_new) + (salts_cnt * hashconfig->esalt_size);
+
+        hashes_buf[hashes_pos].esalt = esalts_buf_new_ptr;
+      }
     }
 
     salt_buf->digests_cnt++;
