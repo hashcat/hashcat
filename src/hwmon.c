@@ -1139,18 +1139,24 @@ static int hm_NvAPI_GPU_SetCoolerLevels (hashcat_ctx_t *hashcat_ctx, NvPhysicalG
   return 0;
 }
 
+/*
 #if defined (__MINGW64__)
+
+void __security_check_cookie (uintptr_t _StackCookie);
 
 void __security_check_cookie (uintptr_t _StackCookie)
 {
   (void) _StackCookie;
 }
 
+void __GSHandlerCheck ();
+
 void __GSHandlerCheck ()
 {
 }
 
 #endif
+*/
 
 // xnvctrl functions
 
