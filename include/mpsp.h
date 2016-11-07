@@ -20,7 +20,7 @@
 
 #define INCR_MASKS    1000
 
-u32   mp_get_length (char *mask);
+u32   mp_get_length (const char *mask);
 
 void  sp_exec (u64 ctx, char *pw_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 start, u32 stop);
 

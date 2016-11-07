@@ -910,11 +910,24 @@ static int mask_append_final (hashcat_ctx_t *hashcat_ctx, const char *mask)
 
 static int mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask)
 {
+  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->increment == true)
   {
-    for (u32 increment_len = user_options->increment_min; increment_len <= user_options->increment_max; increment_len++)
+    const u32 mask_length = mp_get_length (mask);
+
+    const u32 pw_min = hashconfig->pw_min;
+    const u32 pw_max = hashconfig->pw_max;
+
+    u32 increment_min = user_options->increment_min;
+    u32 increment_max = user_options->increment_max;
+
+    increment_min = MAX (increment_min, pw_min);
+    increment_max = MIN (increment_max, pw_max);
+    increment_max = MIN (increment_max, mask_length);
+
+    for (u32 increment_len = increment_min; increment_len <= increment_max; increment_len++)
     {
       char *mask_truncated = (char *) hcmalloc (hashcat_ctx, 256); VERIFY_PTR (mask_truncated);
 
@@ -937,7 +950,7 @@ static int mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask)
   return 0;
 }
 
-u32 mp_get_length (char *mask)
+u32 mp_get_length (const char *mask)
 {
   u32 len = 0;
 

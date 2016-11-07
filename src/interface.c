@@ -19890,6 +19890,11 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   hashconfig->pw_max = PW_MAX;
 
+  if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
+  {
+    hashconfig->pw_max = PW_MAX / 2;
+  }
+
   switch (hashconfig->hash_mode)
   {
     case   125: hashconfig->pw_max = 32;
