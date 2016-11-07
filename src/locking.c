@@ -38,4 +38,18 @@ void unlock_file (FILE *fp)
   fcntl (fileno (fp), F_SETLK, &lock);
 }
 
+#else
+
+int lock_file (MAYBE_UNUSED FILE *fp)
+{
+  // we should put windows specific code here
+
+  return 0;
+}
+
+void unlock_file (MAYBE_UNUSED FILE *fp)
+{
+  // we should put windows specific code here
+}
+
 #endif // F_SETLKW

@@ -13,16 +13,7 @@
 #include <errno.h>
 #include <fcntl.h>
 
-#if defined (F_SETLKW)
-
 int  lock_file   (FILE *fp);
 void unlock_file (FILE *fp);
-
-#else
-
-#define lock_file(dummy)   0
-#define unlock_file(dummy)
-
-#endif
 
 #endif // _LOCKING_H
