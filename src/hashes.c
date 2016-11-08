@@ -730,11 +730,18 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
               break;
             }
 
+            if (hashes_avail == hashes_cnt)
+            {
+              event_log_warning (hashcat_ctx, "Hashfile '%s': File changed during runtime, skipping new data", hash_buf);
+
+              break;
+            }
+
             parser_status = hashconfig->parse_func ((u8 *) in, hccap_size, &hashes_buf[hashes_cnt], hashconfig);
 
             if (parser_status != PARSER_OK)
             {
-              event_log_warning (hashcat_ctx, "Hash '%s': %s", hash_buf, strparser (parser_status));
+              event_log_warning (hashcat_ctx, "Hashfile '%s': %s", hash_buf, strparser (parser_status));
 
               continue;
             }
@@ -828,6 +835,13 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         int line_len = fgetl (fp, line_buf);
 
         if (line_len == 0) continue;
+
+        if (hashes_avail == hashes_cnt)
+        {
+          event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u: File changed during runtime, skipping new data", hashes->hashfile, line_num);
+
+          break;
+        }
 
         char *hash_buf = NULL;
         int   hash_len = 0;
