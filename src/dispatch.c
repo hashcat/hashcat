@@ -154,6 +154,8 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
       break;
     }
 
+    u32 words_extra = 0;
+
     u32 words_buffered = 0;
 
     while (words_buffered < device_param->kernel_power)
@@ -196,14 +198,7 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
       {
         if ((line_len < hashconfig->pw_min) || (line_len > hashconfig->pw_max))
         {
-          hc_thread_mutex_lock (status_ctx->mux_counter);
-
-          for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
-          {
-            status_ctx->words_progress_rejected[salt_pos] += straight_ctx->kernel_rules_cnt;
-          }
-
-          hc_thread_mutex_unlock (status_ctx->mux_counter);
+          words_extra++;
 
           continue;
         }
@@ -219,6 +214,18 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
     hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
 
     while (status_ctx->run_thread_level1 == false) break;
+
+    if (words_extra > 0)
+    {
+      hc_thread_mutex_lock (status_ctx->mux_counter);
+
+      for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+      {
+        status_ctx->words_progress_rejected[salt_pos] += straight_ctx->kernel_rules_cnt;
+      }
+
+      hc_thread_mutex_unlock (status_ctx->mux_counter);
+    }
 
     // flush
 
@@ -457,6 +464,8 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       u32 words_extra = -1u;
 
+      u32 words_extra_total = 0;
+
       while (words_extra)
       {
         const u32 work = get_work (hashcat_ctx, device_param, words_extra);
@@ -504,15 +513,6 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
             {
               words_extra++;
 
-              hc_thread_mutex_lock (status_ctx->mux_counter);
-
-              for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
-              {
-                status_ctx->words_progress_rejected[salt_pos] += straight_ctx->kernel_rules_cnt;
-              }
-
-              hc_thread_mutex_unlock (status_ctx->mux_counter);
-
               continue;
             }
           }
@@ -525,15 +525,6 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
             {
               words_extra++;
 
-              hc_thread_mutex_lock (status_ctx->mux_counter);
-
-              for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
-              {
-                status_ctx->words_progress_rejected[salt_pos] += combinator_ctx->combs_cnt;
-              }
-
-              hc_thread_mutex_unlock (status_ctx->mux_counter);
-
               continue;
             }
           }
@@ -543,10 +534,24 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
           if (status_ctx->run_thread_level1 == false) break;
         }
 
+        words_extra_total += words_extra;
+
         if (status_ctx->run_thread_level1 == false) break;
       }
 
       if (status_ctx->run_thread_level1 == false) break;
+
+      if (words_extra_total > 0)
+      {
+        hc_thread_mutex_lock (status_ctx->mux_counter);
+
+        for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+        {
+          status_ctx->words_progress_rejected[salt_pos] += words_extra_total * straight_ctx->kernel_rules_cnt;
+        }
+
+        hc_thread_mutex_unlock (status_ctx->mux_counter);
+      }
 
       //
       // flush
