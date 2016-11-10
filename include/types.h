@@ -1565,6 +1565,8 @@ typedef struct
   char   *speed_sec_dev;
   char   *input_candidates_dev;
   char   *hwmon_dev;
+  int     corespeed_dev;
+  int     memoryspeed_dev;
 
 } device_info_t;
 

@@ -1008,7 +1008,7 @@ void status_benchmark_automate (hashcat_ctx_t *hashcat_ctx)
 
     if (device_info->skipped_dev == true) continue;
 
-    event_log_info (hashcat_ctx, "%u:%u:%" PRIu64, device_id + 1, hash_mode, (u64) (device_info->hashes_msec_dev_benchmark * 1000));
+    event_log_info (hashcat_ctx, "%u:%u:%d:%d:%" PRIu64, device_id + 1, hash_mode, device_info->corespeed_dev, device_info->memoryspeed_dev, (u64) (device_info->hashes_msec_dev_benchmark * 1000));
   }
 
   hcfree (hashcat_status);

@@ -1244,6 +1244,8 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
     device_info->speed_sec_dev              = status_get_speed_sec_dev              (hashcat_ctx, device_id);
     device_info->input_candidates_dev       = status_get_input_candidates_dev       (hashcat_ctx, device_id);
     device_info->hwmon_dev                  = status_get_hwmon_dev                  (hashcat_ctx, device_id);
+    device_info->corespeed_dev              = status_get_corespeed_dev              (hashcat_ctx, device_id);
+    device_info->memoryspeed_dev            = status_get_memoryspeed_dev            (hashcat_ctx, device_id);
   }
 
   hashcat_status->hashes_msec_all = status_get_hashes_msec_all (hashcat_ctx);
