@@ -1518,7 +1518,7 @@ typedef struct mask_ctx
 {
   bool   enabled;
 
-  cs_t   mp_sys[6];
+  cs_t   mp_sys[8];
   cs_t   mp_usr[4];
 
   u64    bfs_cnt;
