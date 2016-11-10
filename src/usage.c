@@ -374,6 +374,7 @@ static const char *USAGE_BIG[] =
   "  l | abcdefghijklmnopqrstuvwxyz",
   "  u | ABCDEFGHIJKLMNOPQRSTUVWXYZ",
   "  d | 0123456789",
+  "  h | 0123456789abcdef",
   "  s |  !\"#$%%&'()*+,-./:;<=>?@[\\]^_`{|}~",
   "  a | ?l?u?d?s",
   "  b | 0x00 - 0xff",
