@@ -248,6 +248,10 @@ static int mp_expand (hashcat_ctx_t *hashcat_ctx, char *in_buf, size_t in_len, c
                   break;
         case 'b': rc = mp_add_cs_buf (hashcat_ctx, mp_sys[5].cs_buf, mp_sys[5].cs_len, mp_usr, mp_usr_offset);
                   break;
+        case 'h': rc = mp_add_cs_buf (hashcat_ctx, mp_sys[6].cs_buf, mp_sys[6].cs_len, mp_usr, mp_usr_offset);
+                  break;
+        case 'H': rc = mp_add_cs_buf (hashcat_ctx, mp_sys[7].cs_buf, mp_sys[7].cs_len, mp_usr, mp_usr_offset);
+                  break;
         case '1': if (mp_usr[0].cs_len == 0) { event_log_error (hashcat_ctx, "Custom-charset 1 is undefined"); return -1; }
                   rc = mp_add_cs_buf (hashcat_ctx, mp_usr[0].cs_buf, mp_usr[0].cs_len, mp_usr, mp_usr_offset);
                   break;
@@ -349,6 +353,10 @@ static int mp_gen_css (hashcat_ctx_t *hashcat_ctx, char *mask_buf, size_t mask_l
         case 'a': rc = mp_add_cs_buf (hashcat_ctx, mp_sys[4].cs_buf, mp_sys[4].cs_len, css_buf, css_pos);
                   break;
         case 'b': rc = mp_add_cs_buf (hashcat_ctx, mp_sys[5].cs_buf, mp_sys[5].cs_len, css_buf, css_pos);
+                  break;
+        case 'h': rc = mp_add_cs_buf (hashcat_ctx, mp_sys[6].cs_buf, mp_sys[6].cs_len, css_buf, css_pos);
+                  break;
+        case 'H': rc = mp_add_cs_buf (hashcat_ctx, mp_sys[7].cs_buf, mp_sys[7].cs_len, css_buf, css_pos);
                   break;
         case '1': if (mp_usr[0].cs_len == 0) { event_log_error (hashcat_ctx, "Custom-charset 1 is undefined"); return -1; }
                   rc = mp_add_cs_buf (hashcat_ctx, mp_usr[0].cs_buf, mp_usr[0].cs_len, css_buf, css_pos);
@@ -511,6 +519,20 @@ static void mp_setup_sys (cs_t *mp_sys)
 
   for (pos = 0, chr = 0x00; chr <= 0xff; chr++) { mp_sys[5].cs_buf[pos++] = chr;
                                                   mp_sys[5].cs_len = pos; }
+
+  for (pos = 0, chr =  '0'; chr <=  '9'; chr++) { donec[chr] = 1;
+                                                  mp_sys[6].cs_buf[pos++] = chr;
+                                                  mp_sys[6].cs_len = pos; }
+  for (chr =  'a'; chr <=  'f'; chr++) { donec[chr] = 1;
+                                                  mp_sys[6].cs_buf[pos++] = chr;
+                                                  mp_sys[6].cs_len = pos; }
+
+  for (pos = 0, chr =  '0'; chr <=  '9'; chr++) { donec[chr] = 1;
+                                                  mp_sys[7].cs_buf[pos++] = chr;
+                                                  mp_sys[7].cs_len = pos; }
+  for (chr =  'A'; chr <=  'F'; chr++) { donec[chr] = 1;
+                                                  mp_sys[7].cs_buf[pos++] = chr;
+                                                  mp_sys[7].cs_len = pos; }
 }
 
 static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr, char *buf, u32 index)
