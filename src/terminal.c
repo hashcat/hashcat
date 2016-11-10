@@ -687,28 +687,28 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
    */
 
   event_log_info (hashcat_ctx,
-    "Session........: %s",
+    "Session..........: %s",
     hashcat_status->session);
 
   event_log_info (hashcat_ctx,
-    "Status.........: %s",
+    "Status...........: %s",
     hashcat_status->status_string);
 
   event_log_info (hashcat_ctx,
-    "Hash.Type......: %s",
+    "Hash.Type........: %s",
     hashcat_status->hash_type);
 
   event_log_info (hashcat_ctx,
-    "Hash.Target....: %s",
+    "Hash.Target......: %s",
     hashcat_status->hash_target);
 
   event_log_info (hashcat_ctx,
-    "Time.Started...: %s (%s)",
+    "Time.Started.....: %s (%s)",
     hashcat_status->time_started_absolute,
     hashcat_status->time_started_relative);
 
   event_log_info (hashcat_ctx,
-    "Time.Estimated.: %s (%s)",
+    "Time.Estimated...: %s (%s)",
     hashcat_status->time_estimated_absolute,
     hashcat_status->time_estimated_relative);
 
@@ -717,7 +717,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     case INPUT_MODE_STRAIGHT_FILE:
 
       event_log_info (hashcat_ctx,
-        "Input.Base.....: File (%s)",
+        "Input.Base.......: File (%s)",
         hashcat_status->input_base);
 
       break;
@@ -725,11 +725,11 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     case INPUT_MODE_STRAIGHT_FILE_RULES_FILE:
 
       event_log_info (hashcat_ctx,
-        "Input.Base.....: File (%s)",
+        "Input.Base.......: File (%s)",
         hashcat_status->input_base);
 
       event_log_info (hashcat_ctx,
-        "Input.Mod......: Rules (%s)",
+        "Input.Mod........: Rules (%s)",
         hashcat_status->input_mod);
 
       break;
@@ -737,28 +737,28 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     case INPUT_MODE_STRAIGHT_FILE_RULES_GEN:
 
       event_log_info (hashcat_ctx,
-        "Input.Base.....: File (%s)",
+        "Input.Base.......: File (%s)",
         hashcat_status->input_base);
 
       event_log_info (hashcat_ctx,
-        "Input.Mod......: Rules (Generated)");
+        "Input.Mod........: Rules (Generated)");
 
       break;
 
     case INPUT_MODE_STRAIGHT_STDIN:
 
       event_log_info (hashcat_ctx,
-        "Input.Base.....: Pipe");
+        "Input.Base.......: Pipe");
 
       break;
 
     case INPUT_MODE_STRAIGHT_STDIN_RULES_FILE:
 
       event_log_info (hashcat_ctx,
-        "Input.Base.....: Pipe");
+        "Input.Base.......: Pipe");
 
       event_log_info (hashcat_ctx,
-        "Input.Mod......: Rules (%s)",
+        "Input.Mod........: Rules (%s)",
         hashcat_status->input_mod);
 
       break;
@@ -766,21 +766,21 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     case INPUT_MODE_STRAIGHT_STDIN_RULES_GEN:
 
       event_log_info (hashcat_ctx,
-        "Input.Base.....: Pipe");
+        "Input.Base.......: Pipe");
 
       event_log_info (hashcat_ctx,
-        "Input.Mod......: Rules (Generated)");
+        "Input.Mod........: Rules (Generated)");
 
       break;
 
     case INPUT_MODE_COMBINATOR_BASE_LEFT:
 
       event_log_info (hashcat_ctx,
-        "Input.Base.....: File (%s), Left Side",
+        "Input.Base.......: File (%s), Left Side",
         hashcat_status->input_base);
 
       event_log_info (hashcat_ctx,
-        "Input.Mod......: File (%s), Right Side",
+        "Input.Mod........: File (%s), Right Side",
         hashcat_status->input_mod);
 
       break;
@@ -788,11 +788,11 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     case INPUT_MODE_COMBINATOR_BASE_RIGHT:
 
       event_log_info (hashcat_ctx,
-        "Input.Base.....: File (%s), Right Side",
+        "Input.Base.......: File (%s), Right Side",
         hashcat_status->input_base);
 
       event_log_info (hashcat_ctx,
-        "Input.Mod......: File (%s), Left Side",
+        "Input.Mod........: File (%s), Left Side",
         hashcat_status->input_mod);
 
       break;
@@ -800,7 +800,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     case INPUT_MODE_MASK:
 
       event_log_info (hashcat_ctx,
-        "Input.Mask.....: %s [%d]",
+        "Input.Mask.......: %s [%d]",
         hashcat_status->input_base,
         hashcat_status->input_mask_length);
 
@@ -809,12 +809,12 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     case INPUT_MODE_MASK_CS:
 
       event_log_info (hashcat_ctx,
-        "Input.Mask.....: %s [%d]",
+        "Input.Mask.......: %s [%d]",
         hashcat_status->input_base,
         hashcat_status->input_mask_length);
 
       event_log_info (hashcat_ctx,
-        "Input.Charset..: %s ",
+        "Input.Charset....: %s ",
         hashcat_status->input_charset);
 
       break;
@@ -822,11 +822,11 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     case INPUT_MODE_HYBRID1:
 
       event_log_info (hashcat_ctx,
-        "Input.Base.....: File (%s), Left Side",
+        "Input.Base.......: File (%s), Left Side",
         hashcat_status->input_base);
 
       event_log_info (hashcat_ctx,
-        "Input.Mod......: Mask (%s) [%d], Right Side",
+        "Input.Mod........: Mask (%s) [%d], Right Side",
         hashcat_status->input_mod,
         hashcat_status->input_mask_length);
 
@@ -835,16 +835,16 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     case INPUT_MODE_HYBRID1_CS:
 
       event_log_info (hashcat_ctx,
-        "Input.Base.....: File (%s), Left Side",
+        "Input.Base.......: File (%s), Left Side",
         hashcat_status->input_base);
 
       event_log_info (hashcat_ctx,
-        "Input.Mod......: Mask (%s) [%d], Right Side",
+        "Input.Mod........: Mask (%s) [%d], Right Side",
         hashcat_status->input_mod,
         hashcat_status->input_mask_length);
 
       event_log_info (hashcat_ctx,
-        "Input.Charset..: %s",
+        "Input.Charset....: %s",
         hashcat_status->input_charset);
 
       break;
@@ -852,11 +852,11 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     case INPUT_MODE_HYBRID2:
 
       event_log_info (hashcat_ctx,
-        "Input.Base.....: File (%s), Right Side",
+        "Input.Base.......: File (%s), Right Side",
         hashcat_status->input_base);
 
       event_log_info (hashcat_ctx,
-        "Input.Mod......: Mask (%s) [%d], Left Side",
+        "Input.Mod........: Mask (%s) [%d], Left Side",
         hashcat_status->input_mod,
         hashcat_status->input_mask_length);
 
@@ -865,17 +865,82 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     case INPUT_MODE_HYBRID2_CS:
 
       event_log_info (hashcat_ctx,
-        "Input.Base.....: File (%s), Right Side",
+        "Input.Base.......: File (%s), Right Side",
         hashcat_status->input_base);
 
       event_log_info (hashcat_ctx,
-        "Input.Mod......: Mask (%s) [%d], Left Side",
+        "Input.Mod........: Mask (%s) [%d], Left Side",
         hashcat_status->input_mod,
         hashcat_status->input_mask_length);
 
       event_log_info (hashcat_ctx,
-        "Input.Charset..: %s",
+        "Input.Charset....: %s",
         hashcat_status->input_charset);
+
+      break;
+  }
+
+  switch (hashcat_status->input_mode)
+  {
+    case INPUT_MODE_STRAIGHT_FILE:
+
+      event_log_info (hashcat_ctx,
+        "Input.Queue......: %d/%d (%.02f%%)",
+        hashcat_status->input_base_offset,
+        hashcat_status->input_base_count,
+        hashcat_status->input_base_percent);
+
+      break;
+
+    case INPUT_MODE_STRAIGHT_STDIN:
+
+      event_log_info (hashcat_ctx,
+        "Input.Queue......: %d/%d (%.02f%%)",
+        hashcat_status->input_base_offset,
+        hashcat_status->input_base_count,
+        hashcat_status->input_base_percent);
+
+      break;
+
+    case INPUT_MODE_MASK:
+
+      event_log_info (hashcat_ctx,
+        "Input.Queue......: %d/%d (%.02f%%)",
+        hashcat_status->input_base_offset,
+        hashcat_status->input_base_count,
+        hashcat_status->input_base_percent);
+
+      break;
+
+    case INPUT_MODE_HYBRID1:
+
+      event_log_info (hashcat_ctx,
+        "Input.Queue.Base.: %d/%d (%.02f%%)",
+        hashcat_status->input_base_offset,
+        hashcat_status->input_base_count,
+        hashcat_status->input_base_percent);
+
+      event_log_info (hashcat_ctx,
+        "Input.Queue.Mod..: %d/%d (%.02f%%)",
+        hashcat_status->input_mod_offset,
+        hashcat_status->input_mod_count,
+        hashcat_status->input_mod_percent);
+
+      break;
+
+    case INPUT_MODE_HYBRID2:
+
+      event_log_info (hashcat_ctx,
+        "Input.Queue.Base.: %d/%d (%.02f%%)",
+        hashcat_status->input_base_offset,
+        hashcat_status->input_base_count,
+        hashcat_status->input_base_percent);
+
+      event_log_info (hashcat_ctx,
+        "Input.Queue.Mod..: %d/%d (%.02f%%)",
+        hashcat_status->input_mod_offset,
+        hashcat_status->input_mod_count,
+        hashcat_status->input_mod_percent);
 
       break;
   }
@@ -887,7 +952,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     if (device_info->skipped_dev == true) continue;
 
     event_log_info (hashcat_ctx,
-      "Speed.Dev.#%d...: %9sH/s (%0.2fms)", device_id + 1,
+      "Speed.Dev.#%d.....: %9sH/s (%0.2fms)", device_id + 1,
       device_info->speed_sec_dev,
       device_info->exec_msec_dev);
   }
@@ -895,12 +960,12 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   if (hashcat_status->device_info_active > 1)
   {
     event_log_info (hashcat_ctx,
-      "Speed.Dev.#*...: %9sH/s",
+      "Speed.Dev.#*.....: %9sH/s",
       hashcat_status->speed_sec_all);
   }
 
   event_log_info (hashcat_ctx,
-    "Recovered......: %u/%u (%.2f%%) Digests, %u/%u (%.2f%%) Salts",
+    "Recovered........: %u/%u (%.2f%%) Digests, %u/%u (%.2f%%) Salts",
     hashcat_status->digests_done,
     hashcat_status->digests_cnt,
     hashcat_status->digests_percent,
@@ -909,7 +974,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     hashcat_status->salts_percent);
 
   event_log_info (hashcat_ctx,
-    "Recovered/Time.: %s",
+    "Recovered/Time...: %s",
     hashcat_status->cpt);
 
   switch (hashcat_status->progress_mode)
@@ -917,19 +982,19 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     case PROGRESS_MODE_KEYSPACE_KNOWN:
 
       event_log_info (hashcat_ctx,
-        "Progress.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
+        "Progress.........: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
         hashcat_status->progress_cur_relative_skip,
         hashcat_status->progress_end_relative_skip,
         hashcat_status->progress_finished_percent);
 
       event_log_info (hashcat_ctx,
-        "Rejected.......: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
+        "Rejected.........: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
         hashcat_status->progress_rejected,
         hashcat_status->progress_cur_relative_skip,
         hashcat_status->progress_rejected_percent);
 
       event_log_info (hashcat_ctx,
-        "Restore.Point..: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
+        "Restore.Point....: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
         hashcat_status->restore_point,
         hashcat_status->restore_total,
         hashcat_status->restore_percent);
@@ -939,15 +1004,15 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     case PROGRESS_MODE_KEYSPACE_UNKNOWN:
 
       event_log_info (hashcat_ctx,
-        "Progress.......: %" PRIu64,
+        "Progress.........: %" PRIu64,
         hashcat_status->progress_cur_relative_skip);
 
       event_log_info (hashcat_ctx,
-        "Rejected.......: %" PRIu64,
+        "Rejected.........: %" PRIu64,
         hashcat_status->progress_rejected);
 
       event_log_info (hashcat_ctx,
-        "Restore.Point..: %" PRIu64,
+        "Restore.Point....: %" PRIu64,
         hashcat_status->restore_point);
 
       break;
@@ -962,7 +1027,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     if (device_info->input_candidates_dev == NULL) continue;
 
     event_log_info (hashcat_ctx,
-      "Candidates.#%d..: %s", device_id + 1,
+      "Candidates.#%d....: %s", device_id + 1,
       device_info->input_candidates_dev);
   }
 
@@ -977,7 +1042,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       if (device_info->hwmon_dev == NULL) continue;
 
       event_log_info (hashcat_ctx,
-        "HWMon.Dev.#%d...: %s", device_id + 1,
+        "HWMon.Dev.#%d.....: %s", device_id + 1,
         device_info->hwmon_dev);
     }
   }
@@ -1043,7 +1108,7 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
     if (device_info->skipped_dev == true) continue;
 
     event_log_info (hashcat_ctx,
-      "Speed.Dev.#%d...: %9sH/s (%0.2fms)", device_id + 1,
+      "Speed.Dev.#%d.....: %9sH/s (%0.2fms)", device_id + 1,
       device_info->speed_sec_dev,
       device_info->exec_msec_dev);
   }
@@ -1051,7 +1116,7 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
   if (hashcat_status->device_info_active > 1)
   {
     event_log_info (hashcat_ctx,
-      "Speed.Dev.#*...: %9sH/s",
+      "Speed.Dev.#*.....: %9sH/s",
       hashcat_status->speed_sec_all);
   }
 

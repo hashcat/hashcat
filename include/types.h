@@ -1576,8 +1576,14 @@ typedef struct
   char   *hash_type;
   int     input_mode;
   char   *input_base;
-  char   *input_charset;
+  int     input_base_offset;
+  int     input_base_count;
+  double  input_base_percent;
   char   *input_mod;
+  int     input_mod_offset;
+  int     input_mod_count;
+  double  input_mod_percent;
+  char   *input_charset;
   int     input_mask_length;
   char   *session;
   char   *status_string;

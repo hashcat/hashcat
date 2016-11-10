@@ -458,6 +458,86 @@ char *status_get_input_base (const hashcat_ctx_t *hashcat_ctx)
   return NULL;
 }
 
+int status_get_input_base_offset (const hashcat_ctx_t *hashcat_ctx)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  {
+    const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+
+    return straight_ctx->dicts_pos + 1;
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_COMBI)
+  {
+    return 1;
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_BF)
+  {
+    const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+    return mask_ctx->masks_pos + 1;
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+  {
+    const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+
+    return straight_ctx->dicts_pos + 1;
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+  {
+    const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+
+    return straight_ctx->dicts_pos + 1;
+  }
+
+  return 0;
+}
+
+int status_get_input_base_count (const hashcat_ctx_t *hashcat_ctx)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  {
+    const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+
+    return straight_ctx->dicts_cnt;
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_COMBI)
+  {
+    return 1;
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_BF)
+  {
+    const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+    return mask_ctx->masks_cnt;
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+  {
+    const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+
+    return straight_ctx->dicts_cnt;
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+  {
+    const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+
+    return straight_ctx->dicts_cnt;
+  }
+
+  return 0;
+}
+
+double status_get_input_base_percent (const hashcat_ctx_t *hashcat_ctx)
+{
+  const int input_base_offset = status_get_input_base_offset (hashcat_ctx);
+  const int input_base_count  = status_get_input_base_count (hashcat_ctx);
+
+  return ((double) input_base_offset / (double) input_base_count) * 100;
+}
+
 char *status_get_input_mod (const hashcat_ctx_t *hashcat_ctx)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -497,6 +577,78 @@ char *status_get_input_mod (const hashcat_ctx_t *hashcat_ctx)
   }
 
   return NULL;
+}
+
+int status_get_input_mod_offset (const hashcat_ctx_t *hashcat_ctx)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  {
+    return 1;
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_COMBI)
+  {
+    return 1;
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_BF)
+  {
+    return 1;
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+  {
+    const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+    return mask_ctx->masks_pos + 1;
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+  {
+    const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+    return mask_ctx->masks_pos + 1;
+  }
+
+  return 0;
+}
+
+int status_get_input_mod_count (const hashcat_ctx_t *hashcat_ctx)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  {
+    return 1;
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_COMBI)
+  {
+    return 1;
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_BF)
+  {
+    return 1;
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+  {
+    const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+    return mask_ctx->masks_cnt + 1;
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+  {
+    const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+    return mask_ctx->masks_cnt + 1;
+  }
+
+  return 0;
+}
+
+double status_get_input_mod_percent (const hashcat_ctx_t *hashcat_ctx)
+{
+  const int input_mod_offset = status_get_input_mod_offset (hashcat_ctx);
+  const int input_mod_count  = status_get_input_mod_count  (hashcat_ctx);
+
+  return ((double) input_mod_offset / (double) input_mod_count) * 100;
 }
 
 char *status_get_input_charset (const hashcat_ctx_t *hashcat_ctx)

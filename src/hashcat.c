@@ -1188,10 +1188,16 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
   hashcat_status->hash_target                 = status_get_hash_target                (hashcat_ctx);
   hashcat_status->hash_type                   = status_get_hash_type                  (hashcat_ctx);
   hashcat_status->input_base                  = status_get_input_base                 (hashcat_ctx);
+  hashcat_status->input_base_offset           = status_get_input_base_offset          (hashcat_ctx);
+  hashcat_status->input_base_count            = status_get_input_base_count           (hashcat_ctx);
+  hashcat_status->input_base_percent          = status_get_input_base_percent         (hashcat_ctx);
+  hashcat_status->input_mod                   = status_get_input_mod                  (hashcat_ctx);
+  hashcat_status->input_mod_offset            = status_get_input_mod_offset           (hashcat_ctx);
+  hashcat_status->input_mod_count             = status_get_input_mod_count            (hashcat_ctx);
+  hashcat_status->input_mod_percent           = status_get_input_mod_percent          (hashcat_ctx);
   hashcat_status->input_charset               = status_get_input_charset              (hashcat_ctx);
   hashcat_status->input_mask_length           = status_get_input_mask_length          (hashcat_ctx);
   hashcat_status->input_mode                  = status_get_input_mode                 (hashcat_ctx);
-  hashcat_status->input_mod                   = status_get_input_mod                  (hashcat_ctx);
   hashcat_status->msec_paused                 = status_get_msec_paused                (hashcat_ctx);
   hashcat_status->msec_running                = status_get_msec_running               (hashcat_ctx);
   hashcat_status->msec_real                   = status_get_msec_real                  (hashcat_ctx);
