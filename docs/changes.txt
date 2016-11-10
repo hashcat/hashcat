@@ -16,6 +16,8 @@
 - Reduce max. number of allowed function calls per rule from 256 to 32 to save GPU memory
 - Status display shows what's the base and modifier keyspace currently in use
 - Added a workaround for some OpenCL kernel to compile with amd-gpu-pro
+- Added hardware management support (temperature, clocks, fans) for AMD-GPU-PRO driver
+- Added support for --powertune-enable for AMD-GPU-PRO driver
 - Added option --keep-guessing to continue cracking hashes even after they have been cracked (to find collisions)
 - Fixed a bug when cracking a large salted hashlist: If a word is rejected this produces so high CPU load that cracking process doesn't start
 
