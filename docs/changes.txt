@@ -41,6 +41,7 @@
 - Added docs/credits.txt
 - Added docs/team.txt
 - Replaced some uint macros with enums types
+- Improved default hashcat.hcstat
 
 * changes v3.00 -> v3.10:
 
