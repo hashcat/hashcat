@@ -181,7 +181,7 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
         if (gpu_temp_retain)
         {
-          if (hwmon_ctx->hm_device[device_id].fan_set_supported == 1)
+          if (hwmon_ctx->hm_device[device_id].fan_set_supported == true)
           {
             int temp_cur = temperature;
 
@@ -223,8 +223,15 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
                 {
                   if (device_param->device_vendor_id == VENDOR_ID_AMD)
                   {
-                    hm_set_fanspeed_with_device_id_adl   (hashcat_ctx, device_id, fan_speed_new, 1);
-                    hm_set_fanspeed_with_device_id_sysfs (hashcat_ctx, device_id, fan_speed_new);
+                    if (hwmon_ctx->hm_adl)
+                    {
+                      hm_set_fanspeed_with_device_id_adl (hashcat_ctx, device_id, fan_speed_new, 1);
+                    }
+
+                    if (hwmon_ctx->hm_sysfs)
+                    {
+                      hm_set_fanspeed_with_device_id_sysfs (hashcat_ctx, device_id, fan_speed_new);
+                    }
                   }
                   else if (device_param->device_vendor_id == VENDOR_ID_NV)
                   {
