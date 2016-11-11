@@ -26,10 +26,79 @@
 #include "dynloader.h"
 #include "opencl.h"
 
+static const char dri_card0_path[] = "/dev/dri/card0";
+
+static const char drm_card0_vendor_path[] = "/sys/class/drm/card0/device/vendor";
+static const char drm_card0_driver_path[] = "/sys/class/drm/card0/device/driver";
+
 static const u32 full01 = 0x01010101;
 static const u32 full80 = 0x80808080;
 
 static double TARGET_MSEC_PROFILE[4] = { 2, 12, 96, 480 };
+
+static int ocl_check_dri (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
+{
+  #if defined (__linux__)
+
+  // This check makes sense only if we're not root
+
+  const uid_t uid = getuid ();
+
+  if (uid == 0) return 0;
+
+  // No GPU available! That's fine, so we don't need to check if we have access to it.
+
+  hc_stat_t stat;
+
+  if (hc_stat (dri_card0_path, &stat) == -1) return 0;
+
+  // Now we need to check if this an AMD vendor, because this is when the problems start
+
+  FILE *fd_drm = fopen (drm_card0_vendor_path, "rb");
+
+  if (fd_drm == NULL) return 0;
+
+  int vendor = 0;
+
+  if (fscanf (fd_drm, "0x%x", &vendor) != 1) return 0;
+
+  if (vendor != 4098) return 0;
+
+  fclose (fd_drm);
+
+  // Now the problem is only with AMDGPU-Pro, not with oldschool AMD driver
+
+  char buf[HCBUFSIZ_TINY];
+
+  if (readlink (drm_card0_driver_path, buf, HCBUFSIZ_TINY) == -1) return 0;
+
+  if (strstr (buf, "amdgpu") == NULL) return 0;
+
+  // Now do the real check
+
+  FILE *fd_dri = fopen (dri_card0_path, "rb");
+
+  if (fd_dri == NULL)
+  {
+    event_log_error_nn (hashcat_ctx, "Can not access %s: %s", dri_card0_path, strerror (errno));
+    event_log_error_nn (hashcat_ctx, "%s", EOL);
+    event_log_error_nn (hashcat_ctx, "This causes some drivers to crash when OpenCL is used!");
+    event_log_error_nn (hashcat_ctx, "%s", EOL);
+    event_log_error_nn (hashcat_ctx, "Usually it's enough to add your user account to the \"video\" group to fix this problem:");
+    event_log_error_nn (hashcat_ctx, "%s", EOL);
+    event_log_error_nn (hashcat_ctx, "$ sudo usermod -a -G video $LOGNAME");
+    event_log_error_nn (hashcat_ctx, "%s", EOL);
+    event_log_error_nn (hashcat_ctx, "%s", EOL);
+
+    return -1;
+  }
+
+  fclose (fd_dri);
+
+  #endif
+
+  return 0;
+}
 
 static void generate_source_kernel_filename (const u32 attack_exec, const u32 attack_kern, const u32 kern_type, char *shared_dir, char *source_file)
 {
@@ -1928,11 +1997,11 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   opencl_ctx->enabled = false;
 
-  if (user_options->keyspace    == true) return 0;
-  if (user_options->left        == true) return 0;
-  if (user_options->show        == true) return 0;
-  if (user_options->usage       == true) return 0;
-  if (user_options->version     == true) return 0;
+  if (user_options->keyspace  == true) return 0;
+  if (user_options->left      == true) return 0;
+  if (user_options->show      == true) return 0;
+  if (user_options->usage     == true) return 0;
+  if (user_options->version   == true) return 0;
 
   hc_device_param_t *devices_param = (hc_device_param_t *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (hc_device_param_t)); VERIFY_PTR (devices_param);
 
@@ -1949,6 +2018,14 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
   const int rc_ocl_init = ocl_init (hashcat_ctx);
 
   if (rc_ocl_init == -1) return -1;
+
+  /**
+   * Some permission pre-check, because AMDGPU-Pro Driver crashes if the user has no permission to do this
+   */
+
+  const int rc_ocl_check = ocl_check_dri (hashcat_ctx);
+
+  if (rc_ocl_check == -1) return -1;
 
   /**
    * OpenCL platform selection
