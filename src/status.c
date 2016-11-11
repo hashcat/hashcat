@@ -631,13 +631,13 @@ int status_get_input_mod_count (const hashcat_ctx_t *hashcat_ctx)
   {
     const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
-    return mask_ctx->masks_cnt + 1;
+    return mask_ctx->masks_cnt;
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
     const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
-    return mask_ctx->masks_cnt + 1;
+    return mask_ctx->masks_cnt;
   }
 
   return 0;
