@@ -44,7 +44,10 @@ void event_call (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, cons
       event_ctx->old_len[i] = event_ctx->old_len[i - 1];
     }
 
-    memcpy (event_ctx->old_buf[0], buf, len);
+    if (buf)
+    {
+      memcpy (event_ctx->old_buf[0], buf, len);
+    }
 
     event_ctx->old_len[0] = len;
   }
