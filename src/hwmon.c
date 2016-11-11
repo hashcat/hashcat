@@ -2687,7 +2687,7 @@ int hm_get_temperature_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 dev
     {
       int temperature = 0;
 
-      if (hm_SYSFS_get_temperature_current (hashcat_ctx, hwmon_ctx->hm_device[device_id].sysfs, &temperature) == -1) return -1;
+      if (hm_SYSFS_get_temperature_current (hashcat_ctx, device_id, &temperature) == -1) return -1;
 
       return temperature;
     }
@@ -2799,7 +2799,7 @@ int hm_get_fanspeed_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device
       {
         int speed = 0;
 
-        if (hm_SYSFS_get_fan_speed_current (hashcat_ctx, hwmon_ctx->hm_device[device_id].sysfs, &speed) == -1) return -1;
+        if (hm_SYSFS_get_fan_speed_current (hashcat_ctx, device_id, &speed) == -1) return -1;
 
         return speed;
       }
@@ -2844,7 +2844,7 @@ int hm_get_buslanes_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device
     {
       int lanes;
 
-      if (hm_SYSFS_get_pp_dpm_pcie (hashcat_ctx, hwmon_ctx->hm_device[device_id].sysfs, &lanes) == -1) return -1;
+      if (hm_SYSFS_get_pp_dpm_pcie (hashcat_ctx, device_id, &lanes) == -1) return -1;
 
       return lanes;
     }
@@ -2923,7 +2923,7 @@ int hm_get_memoryspeed_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 dev
     {
       int clock;
 
-      if (hm_SYSFS_get_pp_dpm_mclk (hashcat_ctx, hwmon_ctx->hm_device[device_id].sysfs, &clock) == -1) return -1;
+      if (hm_SYSFS_get_pp_dpm_mclk (hashcat_ctx, device_id, &clock) == -1) return -1;
 
       return clock;
     }
@@ -2967,7 +2967,7 @@ int hm_get_corespeed_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 devic
     {
       int clock;
 
-      if (hm_SYSFS_get_pp_dpm_sclk (hashcat_ctx, hwmon_ctx->hm_device[device_id].sysfs, &clock) == -1) return -1;
+      if (hm_SYSFS_get_pp_dpm_sclk (hashcat_ctx, device_id, &clock) == -1) return -1;
 
       return clock;
     }
@@ -3182,7 +3182,7 @@ int hm_set_fanspeed_with_device_id_sysfs (hashcat_ctx_t *hashcat_ctx, const u32 
   {
     if (hwmon_ctx->hm_sysfs)
     {
-      if (hm_SYSFS_set_fan_speed_target (hashcat_ctx, hwmon_ctx->hm_device[device_id].sysfs, fanspeed) == -1) return -1;
+      if (hm_SYSFS_set_fan_speed_target (hashcat_ctx, device_id, fanspeed) == -1) return -1;
 
       return 0;
     }
@@ -3220,7 +3220,7 @@ static int hm_set_fanctrl_with_device_id_sysfs (hashcat_ctx_t *hashcat_ctx, cons
   {
     if (hwmon_ctx->hm_sysfs)
     {
-      if (hm_SYSFS_set_fan_control (hashcat_ctx, hwmon_ctx->hm_device[device_id].sysfs, val) == -1) return -1;
+      if (hm_SYSFS_set_fan_control (hashcat_ctx, device_id, val) == -1) return -1;
 
       return 0;
     }
@@ -3341,15 +3341,10 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       int tmp_in = hm_get_adapter_index_nvml (hashcat_ctx, nvmlGPUHandle);
 
-      int tmp_out = 0;
-
       for (int i = 0; i < tmp_in; i++)
       {
-        hm_adapters_nvml[tmp_out++].nvml = nvmlGPUHandle[i];
-      }
+        hm_adapters_nvml[i].nvml = nvmlGPUHandle[i];
 
-      for (int i = 0; i < tmp_out; i++)
-      {
         unsigned int speed;
 
         if (hm_NVML_nvmlDeviceGetFanSpeed (hashcat_ctx, hm_adapters_nvml[i].nvml, &speed) == 0) hm_adapters_nvml[i].fan_get_supported = true;
@@ -3371,11 +3366,9 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       int tmp_in = hm_get_adapter_index_nvapi (hashcat_ctx, nvGPUHandle);
 
-      int tmp_out = 0;
-
       for (int i = 0; i < tmp_in; i++)
       {
-        hm_adapters_nvapi[tmp_out++].nvapi = nvGPUHandle[i];
+        hm_adapters_nvapi[i].nvapi = nvGPUHandle[i];
       }
 
       hcfree (nvGPUHandle);
@@ -3386,17 +3379,21 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
   {
     if (hm_XNVCTRL_XOpenDisplay (hashcat_ctx) == 0)
     {
+      int hm_adapters_id = 0;
+
       for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
       {
         hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
         if ((device_param->device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
 
-        hm_adapters_xnvctrl[device_id].xnvctrl = device_id;
+        hm_adapters_xnvctrl[hm_adapters_id].xnvctrl = device_id;
 
         int speed = 0;
 
-        if (hm_XNVCTRL_get_fan_speed_current (hashcat_ctx, device_id, &speed) == 0) hm_adapters_xnvctrl[device_id].fan_get_supported = true;
+        if (hm_XNVCTRL_get_fan_speed_current (hashcat_ctx, device_id, &speed) == 0) hm_adapters_xnvctrl[hm_adapters_id].fan_get_supported = true;
+
+        hm_adapters_id++;
       }
     }
   }
@@ -3444,17 +3441,21 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
   {
     if (1)
     {
+      int hm_adapters_id = 0;
+
       for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
       {
         hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
         if ((device_param->device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
 
-        hm_adapters_sysfs[device_id].sysfs = device_id;
+        hm_adapters_sysfs[hm_adapters_id].sysfs = device_id;
 
         int speed = 0;
 
-        if (hm_SYSFS_get_fan_speed_current (hashcat_ctx, device_id, &speed) == 0) hm_adapters_sysfs[device_id].fan_get_supported = true;
+        if (hm_SYSFS_get_fan_speed_current (hashcat_ctx, device_id, &speed) == 0) hm_adapters_sysfs[hm_adapters_id].fan_get_supported = true;
+
+        hm_adapters_id++;
       }
     }
   }
@@ -3502,8 +3503,10 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
       hwmon_ctx->hm_device[device_id].nvml              = 0;
       hwmon_ctx->hm_device[device_id].xnvctrl           = 0;
       hwmon_ctx->hm_device[device_id].od_version        = hm_adapters_adl[platform_devices_id].od_version;
-      hwmon_ctx->hm_device[device_id].fan_get_supported = hm_adapters_adl[platform_devices_id].fan_get_supported
-                                                        | hm_adapters_sysfs[platform_devices_id].fan_get_supported;
+      if (hwmon_ctx->hm_adl)
+      hwmon_ctx->hm_device[device_id].fan_get_supported = hm_adapters_adl[platform_devices_id].fan_get_supported;
+      if (hwmon_ctx->hm_sysfs)
+      hwmon_ctx->hm_device[device_id].fan_get_supported = hm_adapters_sysfs[platform_devices_id].fan_get_supported;
       hwmon_ctx->hm_device[device_id].fan_set_supported = false;
     }
 
