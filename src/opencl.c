@@ -300,19 +300,26 @@ int ocl_init (hashcat_ctx_t *hashcat_ctx)
 
   if (ocl->lib == NULL)
   {
-    event_log_error (hashcat_ctx, "Can't find an OpenCL ICD loader library");
+    event_log_error (hashcat_ctx, "Can not find an OpenCL ICD loader library");
     event_log_error (hashcat_ctx, "");
+    event_log_error (hashcat_ctx, "You're probably missing the OpenCL runtime and driver installation");
+
     #if defined (__linux__)
-    event_log_error (hashcat_ctx, "You're probably missing the \"ocl-icd-libopencl1\" package (Debian/Ubuntu)");
-    event_log_error (hashcat_ctx, "Run: sudo apt-get install ocl-icd-libopencl1");
-    event_log_error (hashcat_ctx, "");
+    event_log_error (hashcat_ctx, "* AMD users on Linux require \"AMDGPU-Pro Driver\" (16.40 or later)");
     #elif defined (_WIN)
-    event_log_error (hashcat_ctx, "You're probably missing the OpenCL runtime installation");
-    event_log_error (hashcat_ctx, "* AMD users require AMD drivers 14.9 or later (recommended 15.12 exact)");
-    event_log_error (hashcat_ctx, "* Intel users require Intel OpenCL Runtime 14.2 or later (recommended 16.1 or later)");
-    event_log_error (hashcat_ctx, "* NVidia users require NVidia drivers 346.59 or later (recommended 367.27 or later)");
-    event_log_error (hashcat_ctx, "");
+    event_log_error (hashcat_ctx, "* AMD users on Windows require \"AMD Radeon Software Crimson Edition\" (15.12 or later)");
     #endif
+
+    event_log_error (hashcat_ctx, "* Intel CPU users require \"OpenCL Runtime for Intel Core and Intel Xeon Processors\" (16.1.1 or later)");
+
+    #if defined (__linux__)
+    event_log_error (hashcat_ctx, "* Intel GPU on Linux users require \"OpenCL 2.0 GPU Driver Package for Linux\" (2.0 or later)");
+    #elif defined (_WIN)
+    event_log_error (hashcat_ctx, "* Intel GPU on Windows users require \"OpenCL Driver for Intel Iris and Intel HD Graphics\"");
+    #endif
+
+    event_log_error (hashcat_ctx, "* NVidia users require \"NVIDIA Driver\" (367.x or later)");
+    event_log_error (hashcat_ctx, "");
 
     return -1;
   }
@@ -2434,7 +2441,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       {
         event_log_error (hashcat_ctx, "* Device #%u: Not a little endian device", device_id + 1);
 
-        device_param->skipped = 1;
+        device_param->skipped = true;
       }
 
       // device_available
@@ -2449,7 +2456,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       {
         event_log_error (hashcat_ctx, "* Device #%u: Device not available", device_id + 1);
 
-        device_param->skipped = 1;
+        device_param->skipped = true;
       }
 
       // device_compiler_available
@@ -2464,7 +2471,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       {
         event_log_error (hashcat_ctx, "* Device #%u: No compiler available for device", device_id + 1);
 
-        device_param->skipped = 1;
+        device_param->skipped = true;
       }
 
       // device_execution_capabilities
@@ -2479,7 +2486,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       {
         event_log_error (hashcat_ctx, "* Device #%u: Device does not support executing kernels", device_id + 1);
 
-        device_param->skipped = 1;
+        device_param->skipped = true;
       }
 
       // device_extensions
@@ -2500,14 +2507,14 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       {
         event_log_error (hashcat_ctx, "* Device #%u: Device does not support base atomics", device_id + 1);
 
-        device_param->skipped = 1;
+        device_param->skipped = true;
       }
 
       if (strstr (device_extensions, "byte_addressable_store") == 0)
       {
         event_log_error (hashcat_ctx, "* Device #%u: Device does not support byte addressable store", device_id + 1);
 
-        device_param->skipped = 1;
+        device_param->skipped = true;
       }
 
       hcfree (device_extensions);
@@ -2524,7 +2531,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       {
         event_log_error (hashcat_ctx, "* Device #%u: Device local mem size is too small", device_id + 1);
 
-        device_param->skipped = 1;
+        device_param->skipped = true;
       }
 
       // If there's both an Intel CPU and an AMD OpenCL runtime it's a tricky situation
@@ -2542,7 +2549,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
             if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Not a native Intel OpenCL runtime, expect massive speed loss", device_id + 1);
             if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             You can use --force to override this but do not post error reports if you do so");
 
-            device_param->skipped = 1;
+            device_param->skipped = true;
           }
         }
       }
@@ -2550,7 +2557,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       // skipped
 
       device_param->skipped |= ((opencl_ctx->devices_filter      & (1u << device_id)) == 0);
-      device_param->skipped |= ((opencl_ctx->device_types_filter & (device_type))    == 0);
+      device_param->skipped |= ((opencl_ctx->device_types_filter & (device_type))     == 0);
 
       // driver_version
 
@@ -2692,64 +2699,118 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       // common driver check
 
-      if (device_param->skipped == 0)
+      if (device_param->skipped == false)
       {
-        if (device_type & CL_DEVICE_TYPE_GPU)
+        if ((user_options->force == false) && (user_options->opencl_info == false))
         {
-          if (platform_vendor_id == VENDOR_ID_AMD)
+          if (device_type & CL_DEVICE_TYPE_CPU)
           {
-            int catalyst_check = (user_options->force == 1) ? 0 : 1;
-
-            int catalyst_warn = 0;
-
-            int catalyst_broken = 0;
-
-            if (catalyst_check == 1)
+            if (device_vendor_id == VENDOR_ID_INTEL_SDK)
             {
-              catalyst_warn = 1;
+              bool intel_warn = false;
 
-              // v14.9 and higher
-              if (atoi (device_param->driver_version) >= 1573)
+              int v0 = 0;
+              int v1 = 0;
+              int v2 = 0;
+              int v3 = 0;
+
+              int res = sscanf (device_param->driver_version, "%d.%d.%d.%d", &v0, &v1, &v2, &v3);
+
+              if (res == 4)
               {
-                catalyst_warn = 0;
+                int version = 0;
+
+                version += v0 * 1000 * 1000 * 1000;
+                version += v1 * 1000 * 1000;
+                version += v2 * 1000;
+                version += v3;
+
+                // Intel OpenCL runtime 16.1.1
+                if (version < 1002000025) intel_warn = true;
               }
 
-              catalyst_check = 0;
-            }
+              if (intel_warn == true)
+              {
+                event_log_error_nn (hashcat_ctx, "* Device #%u: Outdated or incorrectly installed NVIDIA driver detected!", device_id + 1);
+                event_log_error_nn (hashcat_ctx, "%s", EOL);
+                event_log_error_nn (hashcat_ctx, "%s", EOL);
+                event_log_error_nn (hashcat_ctx, "You are STRONGLY encouraged to use the official supported NVIDIA driver");
+                event_log_error_nn (hashcat_ctx, "%s", EOL);
+                event_log_error_nn (hashcat_ctx, "See hashcat's homepage for official supported NVIDIA drivers");
+                event_log_error_nn (hashcat_ctx, "%s", EOL);
+                event_log_error_nn (hashcat_ctx, "You can use --force to override this but do not post error reports if you do so");
+                event_log_error_nn (hashcat_ctx, "%s", EOL);
+                event_log_error_nn (hashcat_ctx, "%s", EOL);
 
-            if (catalyst_broken == 1)
-            {
-              event_log_error (hashcat_ctx, "* Device #%u: The Catalyst driver installed on your system is known to be broken!", device_id + 1);
-              event_log_error (hashcat_ctx, "");
-              event_log_error (hashcat_ctx, "It passes over cracked hashes and will not report them as cracked");
-              event_log_error (hashcat_ctx, "You are STRONGLY encouraged not to use it");
-              event_log_error (hashcat_ctx, "You can use --force to override this but do not post error reports if you do so");
-              event_log_error (hashcat_ctx, "");
-
-              return -1;
-            }
-
-            if (catalyst_warn == 1)
-            {
-              event_log_error (hashcat_ctx, "* Device #%u: Unsupported or incorrectly installed Catalyst driver detected!", device_id + 1);
-              event_log_error (hashcat_ctx, "");
-              event_log_error (hashcat_ctx, "You are STRONGLY encouraged to use the official supported catalyst driver");
-              event_log_error (hashcat_ctx, "See hashcat's homepage for official supported catalyst drivers");
-              #if defined (_WIN)
-              event_log_error (hashcat_ctx, "Also see: http://hashcat.net/wiki/doku.php?id=upgrading_amd_drivers_how_to");
-              #endif
-              event_log_error (hashcat_ctx, "You can use --force to override this but do not post error reports if you do so");
-              event_log_error (hashcat_ctx, "");
-
-              return -1;
+                return -1;
+              }
             }
           }
-          else if (platform_vendor_id == VENDOR_ID_NV)
+          else if (device_type & CL_DEVICE_TYPE_GPU)
           {
-            if (device_param->kernel_exec_timeout != 0)
+            if (device_vendor_id == VENDOR_ID_AMD)
             {
-              if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel exec timeout is not disabled, it might cause you errors of code 702", device_id + 1);
-              if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             See the wiki on how to disable it: https://hashcat.net/wiki/doku.php?id=timeout_patch");
+              bool amd_warn = true;
+
+              #if defined (__linux__)
+              // AMDGPU-Pro Driver 16.40 and higher
+              if (atoi (device_param->driver_version) >= 2117) amd_warn = false;
+              #elif defined (_WIN)
+              // AMD Radeon Software 14.9 and higher, should be updated to 15.12
+              if (atoi (device_param->driver_version) >= 1573) amd_warn = false;
+              #else
+              // we have no information about other os
+              amd_warn = false;
+              #endif
+
+              if (amd_warn == true)
+              {
+                event_log_error_nn (hashcat_ctx, "* Device #%u: Outdated or incorrectly installed AMD driver detected!", device_id + 1);
+                event_log_error_nn (hashcat_ctx, "%s", EOL);
+                event_log_error_nn (hashcat_ctx, "%s", EOL);
+                event_log_error_nn (hashcat_ctx, "You are STRONGLY encouraged to use the official supported AMD driver");
+                event_log_error_nn (hashcat_ctx, "%s", EOL);
+                event_log_error_nn (hashcat_ctx, "See hashcat's homepage for official supported AMD drivers");
+                event_log_error_nn (hashcat_ctx, "%s", EOL);
+                #if defined (_WIN)
+                event_log_error_nn (hashcat_ctx, "Also see: http://hashcat.net/wiki/doku.php?id=upgrading_amd_drivers_how_to");
+                event_log_error_nn (hashcat_ctx, "%s", EOL);
+                #endif
+                event_log_error_nn (hashcat_ctx, "You can use --force to override this but do not post error reports if you do so");
+                event_log_error_nn (hashcat_ctx, "%s", EOL);
+                event_log_error_nn (hashcat_ctx, "%s", EOL);
+
+                return -1;
+              }
+            }
+            else if (device_vendor_id == VENDOR_ID_NV)
+            {
+              int nv_warn = true;
+
+              // nvidia driver 367.x and higher
+              if (atoi (device_param->driver_version) >= 367) nv_warn = false;
+
+              if (nv_warn == true)
+              {
+                event_log_error_nn (hashcat_ctx, "* Device #%u: Outdated or incorrectly installed NVIDIA driver detected!", device_id + 1);
+                event_log_error_nn (hashcat_ctx, "%s", EOL);
+                event_log_error_nn (hashcat_ctx, "%s", EOL);
+                event_log_error_nn (hashcat_ctx, "You are STRONGLY encouraged to use the official supported NVIDIA driver");
+                event_log_error_nn (hashcat_ctx, "%s", EOL);
+                event_log_error_nn (hashcat_ctx, "See hashcat's homepage for official supported NVIDIA drivers");
+                event_log_error_nn (hashcat_ctx, "%s", EOL);
+                event_log_error_nn (hashcat_ctx, "You can use --force to override this but do not post error reports if you do so");
+                event_log_error_nn (hashcat_ctx, "%s", EOL);
+                event_log_error_nn (hashcat_ctx, "%s", EOL);
+
+                return -1;
+              }
+
+              if (device_param->kernel_exec_timeout != 0)
+              {
+                if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel exec timeout is not disabled, it might cause you errors of code 702", device_id + 1);
+                if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             See the wiki on how to disable it: https://hashcat.net/wiki/doku.php?id=timeout_patch");
+              }
             }
           }
         }

@@ -1,34 +1,46 @@
-* changes v3.00 -> v3.xx:
+* changes v3.10 -> v3.xx:
 
 ##
-## Improvements
+## Features
 ##
 
-- Added support for --speed-only: quickly shows expected speed per device based on the users hash(es) and option selected
-- Added the current first and last password candidate test queued for execution per device on status view
-- Use .gitmodules to handle OpenCL headers depency
-- Allow loading of bcrypt hashes with signature $2b$ (February 2014)
-- Replaced some uint macros with enums types
-- Abort session after NUM seconds of --runtime but do not count time in pause mode
-- Added docs/credits.txt
-- Added docs/team.txt
-- Allow words of length > 32 in wordlists for -a 0 for slow hashes if no rules are in use or a : rule is in the rulefile
-- Reduce max. number of allowed function calls per rule from 256 to 32 to save GPU memory
-- Status display shows what's the base and modifier keyspace currently in use
-- Added a workaround for some OpenCL kernel to compile with amd-gpu-pro
-- Added hardware management support (temperature, clocks, fans) for AMD-GPU-PRO driver
-- Added support for --powertune-enable for AMD-GPU-PRO driver
-- Added option --keep-guessing to continue cracking hashes even after they have been cracked (to find collisions)
-- Fixed a bug when cracking a large salted hashlist: If a word is rejected this produces so high CPU load that cracking process doesn't start
-- Added core-clock and memory-clock to output in benchmark mode with --machine-readable enabled
+- New option --speed-only: quickly shows expected speed per device based on the users hash(es) and option selected
+- New option --keep-guessing to continue cracking hashes even after they have been cracked (to find collisions)
+- Status view: Show the current first and last password candidate test queued for execution per device
+- Status view: Show the current position of the queue in use
+- Status view: Show the base and modifier keyspace currently in use
+- Status view: Show core-clock and memory-clock in benchmark-mode in case --machine-readable is set
+- Hardware management: Support temperature, clock and fanspeed readings for AMDGPU-Pro Driver
+- Hardware management: Support --gpu-temp-retain for AMDGPU-Pro Driver
+- Hardware management: Support --powertune-enable for AMDGPU-Pro Driver
+
+##
+## Bugs
+##
+
+- Fixed a bug when cracking a large salted hashlist status view showed 0H/s but progress counter increased
 
 ##
 ## Algorithms
 ##
 
+- Reduce maximum number of allowed function calls per rule from 256 to 32 to save device memory
+- Workaround for some OpenCL kernels to compile with AMDGPU-Pro Driver
+- Allow words of length > 32 in wordlists for -a 0 for some slow hashes if no rules are in use
+- Allow loading of bcrypt hashes with signature $2b$ (February 2014)
 - Added new hash-mode 14000 = DES (PT = $salt, key = $pass)
 - Added new hash-mode 14100 = 3DES (PT = $salt, key = $pass)
 - Added new hash-mode 99999 = Plaintext
+
+##
+## Technical
+##
+
+- Use .gitmodules to handle OpenCL headers depency
+- Abort session after NUM seconds of --runtime but do not count time in pause mode
+- Added docs/credits.txt
+- Added docs/team.txt
+- Replaced some uint macros with enums types
 
 * changes v3.00 -> v3.10:
 
