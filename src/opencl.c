@@ -2709,24 +2709,15 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
             {
               bool intel_warn = false;
 
-              int v0 = 0;
-              int v1 = 0;
-              int v2 = 0;
-              int v3 = 0;
+              float opencl_version = 0;
+              int   opencl_build   = 0;
 
-              int res = sscanf (device_param->driver_version, "%d.%d.%d.%d", &v0, &v1, &v2, &v3);
+              int res = sscanf (device_param->device_version, "OpenCL %f (Build %d)", &opencl_version, &opencl_build);
 
-              if (res == 4)
+              if (res == 2)
               {
-                int version = 0;
-
-                version += v0 * 1000 * 1000 * 1000;
-                version += v1 * 1000 * 1000;
-                version += v2 * 1000;
-                version += v3;
-
                 // Intel OpenCL runtime 16.1.1
-                if (version < 1002000025) intel_warn = true;
+                if (opencl_build < 25) intel_warn = true;
               }
 
               if (intel_warn == true)
