@@ -36,7 +36,7 @@
 ## Technical
 ##
 
-- Use .gitmodules to handle OpenCL headers depency
+- Use .gitmodules to handle OpenCL headers dependency
 - Abort session after NUM seconds of --runtime but do not count time in pause mode
 - Added docs/credits.txt
 - Added docs/team.txt
@@ -156,7 +156,7 @@ It combines all features of all hashcat projects in one project.
 
 - Reordering of files to help integration into linux distributions ~/.hashcat etc
 - Use a profile directory to write temporary files (session, potfile etc.)
-- Workaround depencies on AMD APP-SDK AMD ADL, NV CUDA-SDK, NV ForceWare, NVML and NVAPI; they are no longer required
+- Workaround dependencies on AMD APP-SDK AMD ADL, NV CUDA-SDK, NV ForceWare, NVML and NVAPI; they are no longer required
 - Load external libraries dynamic at runtime instead of link them static at compile-time
 - Benchmark accuracy improved; Is now on par to: singlehash -a 3 -w 3 ?b?b?b?b?b?b?b
 - Benchmark no longer depends on a fixed time
