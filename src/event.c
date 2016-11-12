@@ -16,9 +16,9 @@ void event_call (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, cons
 
   switch (id)
   {
-    case EVENT_LOG_INFO:    is_log = true;
-    case EVENT_LOG_WARNING: is_log = true;
-    case EVENT_LOG_ERROR:   is_log = true;
+    case EVENT_LOG_INFO:    is_log = true; break;
+    case EVENT_LOG_WARNING: is_log = true; break;
+    case EVENT_LOG_ERROR:   is_log = true; break;
   }
 
   if (is_log == false)
