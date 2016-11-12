@@ -1926,43 +1926,18 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
       if (rc == -1) return -1;
 
       /**
-       * result
-       */
-
-      if (user_options->speed_only == false)
-      {
-        check_cracked (hashcat_ctx, device_param, salt_pos);
-      }
-
-      /**
-       * progress
-       */
-
-      u64 perf_sum_all = (u64) pws_cnt * (u64) innerloop_left;
-
-      hc_thread_mutex_lock (status_ctx->mux_counter);
-
-      status_ctx->words_progress_done[salt_pos] += perf_sum_all;
-
-      hc_thread_mutex_unlock (status_ctx->mux_counter);
-
-      /**
        * speed
        */
 
-      double speed_msec = hc_timer_get (device_param->timer_speed);
+      const u64 perf_sum_all = (u64) pws_cnt * (u64) innerloop_left;
+
+      const double speed_msec = hc_timer_get (device_param->timer_speed);
 
       hc_timer_set (&device_param->timer_speed);
-
-      // current speed
-
-      //hc_thread_mutex_lock (status_ctx->mux_display);
 
       device_param->speed_cnt[speed_pos] = perf_sum_all;
 
       device_param->speed_msec[speed_pos] = speed_msec;
-
-      //hc_thread_mutex_unlock (status_ctx->mux_display);
 
       speed_pos++;
 
@@ -1972,10 +1947,29 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
       }
 
       /**
+       * progress
+       */
+
+      hc_thread_mutex_lock (status_ctx->mux_counter);
+
+      status_ctx->words_progress_done[salt_pos] += perf_sum_all;
+
+      hc_thread_mutex_unlock (status_ctx->mux_counter);
+
+      /**
        * benchmark
        */
 
       if (user_options->speed_only == true) break;
+
+      /**
+       * result
+       */
+
+      if (user_options->speed_only == false)
+      {
+        check_cracked (hashcat_ctx, device_param, salt_pos);
+      }
 
       if (status_ctx->run_thread_level2 == false) break;
     }
