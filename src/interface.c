@@ -13192,7 +13192,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
     }
   }
 
-  salt_t salt = { 0 };
+  salt_t salt;
 
   const bool isSalted = ((hashconfig->salt_type == SALT_TYPE_INTERN)
                       |  (hashconfig->salt_type == SALT_TYPE_EXTERN)
@@ -13200,8 +13200,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
 
   if (isSalted == true)
   {
-    memset (&salt, 0, sizeof (salt_t));
-
     memcpy (&salt, &salts_buf[salt_pos], sizeof (salt_t));
 
     char *ptr = (char *) salt.salt_buf;
@@ -13266,6 +13264,10 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
     memset (ptr + salt_len, 0, memset_size);
 
     salt.salt_len = salt_len;
+  }
+  else
+  {
+    memset (&salt, 0, sizeof (salt_t));
   }
 
   //
