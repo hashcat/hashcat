@@ -715,20 +715,13 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
             return -1;
           }
 
-          u32 hccap_size = sizeof (hccap_t);
-
-          char *in = (char *) hcmalloc (hashcat_ctx, hccap_size); VERIFY_PTR (in);
+          char *in = (char *) hcmalloc (hashcat_ctx, sizeof (hccap_t)); VERIFY_PTR (in);
 
           while (!feof (fp))
           {
-            int n = fread (in, hccap_size, 1, fp);
+            const int nread = fread (in, sizeof (hccap_t), 1, fp);
 
-            if (n != 1)
-            {
-              if (hashes_cnt < 1) parser_status = PARSER_HCCAP_FILE_SIZE;
-
-              break;
-            }
+            if (nread == 0) break;
 
             if (hashes_avail == hashes_cnt)
             {
@@ -737,7 +730,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
               break;
             }
 
-            parser_status = hashconfig->parse_func ((u8 *) in, hccap_size, &hashes_buf[hashes_cnt], hashconfig);
+            parser_status = hashconfig->parse_func ((u8 *) in, sizeof (hccap_t), &hashes_buf[hashes_cnt], hashconfig);
 
             if (parser_status != PARSER_OK)
             {
@@ -749,9 +742,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
             hashes_cnt++;
           }
 
-          fclose (fp);
-
           hcfree (in);
+
+          fclose (fp);
         }
         else if (hashconfig->hash_mode == 3000)
         {
@@ -1061,15 +1054,15 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
   if (hashconfig->is_salted)
   {
     salts_buf_new = (salt_t *) hccalloc (hashcat_ctx, hashes_cnt, sizeof (salt_t)); VERIFY_PTR (salts_buf_new);
-
-    if (hashconfig->esalt_size)
-    {
-      esalts_buf_new = (void *) hccalloc (hashcat_ctx, hashes_cnt, hashconfig->esalt_size); VERIFY_PTR (esalts_buf_new);
-    }
   }
   else
   {
     salts_buf_new = (salt_t *) hccalloc (hashcat_ctx, 1, sizeof (salt_t)); VERIFY_PTR (salts_buf_new);
+  }
+
+  if (hashconfig->esalt_size)
+  {
+    esalts_buf_new = (void *) hccalloc (hashcat_ctx, hashes_cnt, hashconfig->esalt_size); VERIFY_PTR (esalts_buf_new);
   }
 
   EVENT (EVENT_HASHLIST_SORT_SALT_PRE);
