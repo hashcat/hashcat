@@ -216,8 +216,6 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       if (diff_new > diff) break;
 
-      diff_new = diff;
-
       double exec_msec = try_run (hashcat_ctx, device_param, kernel_accel_try, kernel_loops_try);
 
       for (int verifier_idx = 0; verifier_idx < VERIFIER_CNT; verifier_idx++)
