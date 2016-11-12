@@ -165,6 +165,27 @@
 #ifdef IS_AMD
 #ifdef IS_GPU
 
+#if KERN_TYPE == 1450
+#undef _unroll
+#endif
+#if KERN_TYPE == 1460
+#undef _unroll
+#endif
+#if KERN_TYPE == 1700
+#undef _unroll
+#endif
+#if KERN_TYPE == 1710
+#undef _unroll
+#endif
+#if KERN_TYPE == 1720
+#undef _unroll
+#endif
+#if KERN_TYPE == 1800
+#undef _unroll
+#endif
+#if KERN_TYPE == 3000
+#undef _unroll
+#endif
 #if KERN_TYPE == 5200
 #undef _unroll
 #endif
@@ -192,6 +213,21 @@
 #if KERN_TYPE == 8200
 #undef _unroll
 #endif
+#if KERN_TYPE == 8900
+#undef _unroll
+#endif
+#if KERN_TYPE == 10400
+#undef _unroll
+#endif
+#if KERN_TYPE == 10410
+#undef _unroll
+#endif
+#if KERN_TYPE == 10700
+#undef _unroll
+#endif
+#if KERN_TYPE == 10800
+#undef _unroll
+#endif
 #if KERN_TYPE == 10900
 #undef _unroll
 #endif
@@ -208,6 +244,15 @@
 #undef _unroll
 #endif
 #if KERN_TYPE == 13723
+#undef _unroll
+#endif
+#if KERN_TYPE == 13800
+#undef _unroll
+#endif
+#if KERN_TYPE == 14000
+#undef _unroll
+#endif
+#if KERN_TYPE == 14100
 #undef _unroll
 #endif
 
