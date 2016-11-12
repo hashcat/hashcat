@@ -1173,8 +1173,8 @@ inline u32 rule_op_mangle_reflect (const u32 p0, const u32 p1, u32 buf0[4], u32 
 
   u32 out_len = in_len;
 
-  u32 tib40[4];
-  u32 tib41[4];
+  u32 tib40[4] = { 0 };
+  u32 tib41[4] = { 0 };
 
   reverse_block (buf0, buf1, tib40, tib41, out_len);
 
@@ -2433,8 +2433,8 @@ inline u32 rule_op_mangle_dupeblock_last (const u32 p0, const u32 p1, u32 buf0[4
 
   u32 out_len = in_len;
 
-  u32 tib40[4];
-  u32 tib41[4];
+  u32 tib40[4] = { 0 };
+  u32 tib41[4] = { 0 };
 
   rshift_block_N (buf0, buf1, tib40, tib41, p0);
 

@@ -910,7 +910,6 @@ static void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
     buf1[2] = src_l1[2] | s6;
     buf1[3] = src_l1[3] | s7;
   }
-
 }
 
 static void reverse_block (u32 in0[4], u32 in1[4], u32 out0[4], u32 out1[4], const u32 len)
@@ -1086,8 +1085,8 @@ static u32 rule_op_mangle_reflect (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const
 
   u32 out_len = in_len;
 
-  u32 tib40[4];
-  u32 tib41[4];
+  u32 tib40[4] = { 0 };
+  u32 tib41[4] = { 0 };
 
   reverse_block (buf0, buf1, tib40, tib41, out_len);
 
@@ -1539,7 +1538,7 @@ static u32 rule_op_mangle_purgechar (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED con
 {
   u32 out_len = 0;
 
-  u32 buf_in[8];
+  u32 buf_in[8] = { 0 };
 
   buf_in[0] = buf0[0];
   buf_in[1] = buf0[1];
@@ -2373,8 +2372,8 @@ static u32 rule_op_mangle_dupeblock_last (MAYBE_UNUSED const u32 p0, MAYBE_UNUSE
 
   u32 out_len = in_len;
 
-  u32 tib40[4];
-  u32 tib41[4];
+  u32 tib40[4] = { 0 };
+  u32 tib41[4] = { 0 };
 
   rshift_block_N (buf0, buf1, tib40, tib41, p0);
 
@@ -2515,7 +2514,7 @@ static u32 rule_op_mangle_title (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u
   return in_len;
 }
 
-u32 apply_rule (const u32 name, MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
+u32 apply_rule (const u32 name, const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   u32 out_len = in_len;
 
@@ -2566,7 +2565,7 @@ u32 apply_rule (const u32 name, MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u3
   return out_len;
 }
 
-u32 apply_rules (u32 *cmds, u32 buf0[4] MAYBE_UNUSED, u32 buf1[4] MAYBE_UNUSED, const u32 len)
+u32 apply_rules (u32 *cmds, u32 buf0[4], u32 buf1[4], const u32 len)
 {
   u32 out_len = len;
 
