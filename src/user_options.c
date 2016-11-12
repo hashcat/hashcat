@@ -945,6 +945,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   {
     user_options->attack_mode         = ATTACK_MODE_BF;
     user_options->gpu_temp_disable    = false;
+    user_options->gpu_temp_retain     = 0;
     user_options->increment           = false;
     user_options->left                = false;
     user_options->logfile_disable     = true;
