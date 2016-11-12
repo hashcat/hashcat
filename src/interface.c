@@ -13192,13 +13192,13 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
     }
   }
 
-  u32 isSalted = ((hashconfig->salt_type == SALT_TYPE_INTERN)
-               |  (hashconfig->salt_type == SALT_TYPE_EXTERN)
-               |  (hashconfig->salt_type == SALT_TYPE_EMBEDDED));
+  salt_t salt = { 0 };
 
-  salt_t salt;
+  const bool isSalted = ((hashconfig->salt_type == SALT_TYPE_INTERN)
+                      |  (hashconfig->salt_type == SALT_TYPE_EXTERN)
+                      |  (hashconfig->salt_type == SALT_TYPE_EMBEDDED));
 
-  if (isSalted)
+  if (isSalted == true)
   {
     memset (&salt, 0, sizeof (salt_t));
 
