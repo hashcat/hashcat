@@ -1966,10 +1966,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
        * result
        */
 
-      if (user_options->speed_only == false)
-      {
-        check_cracked (hashcat_ctx, device_param, salt_pos);
-      }
+      check_cracked (hashcat_ctx, device_param, salt_pos);
 
       if (status_ctx->run_thread_level2 == false) break;
     }
