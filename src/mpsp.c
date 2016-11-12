@@ -573,7 +573,7 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
     {
       event_log_error (hashcat_ctx, "%s: Custom charset file is corrupted", buf);
 
-      if (rc == -1) return -1;
+      return -1;
     }
 
     const int rc = mp_expand (hashcat_ctx, mp_file, len, mp_sys, mp_usr, index, 0);
