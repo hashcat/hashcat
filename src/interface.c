@@ -6851,13 +6851,17 @@ int nsec3_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUS
 
   memcpy (salt_buf_pc_ptr, domainbuf_pos, domainbuf_len);
 
-  u8 *len_ptr = NULL;
+  if (salt_buf_pc_ptr[0] != '.') return (PARSER_SALT_VALUE);
 
-  for (u32 i = 0; i < domainbuf_len; i++)
+  u8 *len_ptr = salt_buf_pc_ptr;
+
+  *len_ptr = 0;
+
+  for (u32 i = 1; i < domainbuf_len; i++)
   {
     if (salt_buf_pc_ptr[i] == '.')
     {
-      len_ptr = &salt_buf_pc_ptr[i];
+      len_ptr = salt_buf_pc_ptr + i;
 
       *len_ptr = 0;
     }
