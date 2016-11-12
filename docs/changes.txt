@@ -18,8 +18,9 @@
 ## Bugs
 ##
 
-- Fixed a bug when cracking a large salted hashlist status view showed 0H/s but progress counter increased
-- Fixed a bug when loading custom charset from file
+- Fixed a bug in wordlist reject code when cracking a large salted hashlist
+- Fixed a bug in custom charset from file parsing code
+- Fixed a bug in rule generator code when using the memory copy function
 
 ##
 ## Algorithms
