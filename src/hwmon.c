@@ -208,7 +208,7 @@ static int hm_SYSFS_set_fan_speed_target (hashcat_ctx_t *hashcat_ctx, const int 
     return -1;
   }
 
-  val = (float) val * 2.55f; // should be pwm1_max
+  val = (int) (val * 2.55f); // should be pwm1_max
 
   fprintf (fd, "%d", val);
 
