@@ -448,10 +448,14 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
           u32 essid_length = mac1_pos - line_buf_cpy - 1;
 
-          // here we need the ESSID
-          memcpy (hash_buf.salt->salt_buf, line_buf_cpy, essid_length);
+          if (hashconfig->is_salted)
+          {
+            // this should be always true, but we need it to make scan-build happy
 
-          hash_buf.salt->salt_len = essid_length;
+            memcpy (hash_buf.salt->salt_buf, line_buf_cpy, essid_length);
+
+            hash_buf.salt->salt_len = essid_length;
+          }
 
           found = (hash_t *) bsearch (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_t_salt_hccap);
 
