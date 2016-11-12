@@ -553,7 +553,7 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
 
     if (!feof (fp))
     {
-      event_log_error (hashcat_ctx, "%s: File is too large", buf);
+      event_log_error (hashcat_ctx, "%s: Custom charset file is too large", buf);
 
       return -1;
     }
@@ -562,27 +562,23 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
 
     if (nread == 0)
     {
-      event_log_error (hashcat_ctx, "%s: File is empty", buf);
+      event_log_error (hashcat_ctx, "%s: Custom charset file is empty", buf);
 
       return -1;
     }
 
-    const int len = in_superchop (mp_file);
+    const size_t len = in_superchop (mp_file);
 
     if (len == 0)
     {
-      event_log_warning (hashcat_ctx, "Charset file corrupted");
-
-      const int rc = mp_expand (hashcat_ctx, buf, strlen (buf), mp_sys, mp_usr, index, 1);
+      event_log_error (hashcat_ctx, "%s: Custom charset file is corrupted", buf);
 
       if (rc == -1) return -1;
     }
-    else
-    {
-      const int rc = mp_expand (hashcat_ctx, mp_file, (size_t) len, mp_sys, mp_usr, index, 0);
 
-      if (rc == -1) return -1;
-    }
+    const int rc = mp_expand (hashcat_ctx, mp_file, len, mp_sys, mp_usr, index, 0);
+
+    if (rc == -1) return -1;
   }
 
   return 0;
