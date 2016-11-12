@@ -892,16 +892,6 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
       break;
 
-    case INPUT_MODE_STRAIGHT_STDIN:
-
-      event_log_info (hashcat_ctx,
-        "Input.Queue......: %d/%d (%.02f%%)",
-        hashcat_status->input_base_offset,
-        hashcat_status->input_base_count,
-        hashcat_status->input_base_percent);
-
-      break;
-
     case INPUT_MODE_MASK:
 
       event_log_info (hashcat_ctx,
