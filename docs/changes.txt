@@ -19,6 +19,7 @@
 ##
 
 - Fixed a bug when cracking a large salted hashlist status view showed 0H/s but progress counter increased
+- Fixed a bug when loading custom charset from file
 
 ##
 ## Algorithms

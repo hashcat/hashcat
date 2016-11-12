@@ -539,28 +539,35 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
 {
   FILE *fp = fopen (buf, "rb");
 
-  if (fp == NULL || feof (fp)) // feof() in case if file is empty
+  if (fp == NULL) // feof() in case if file is empty
   {
     const int rc = mp_expand (hashcat_ctx, buf, strlen (buf), mp_sys, mp_usr, index, 1);
 
-    if (rc == -1)
-    {
-      if (fp) fclose (fp);
-
-      return -1;
-    }
+    if (rc == -1) return -1;
   }
   else
   {
     char mp_file[1024] = { 0 };
 
-    int len = (int) fread (mp_file, 1, sizeof (mp_file) - 1, fp);
+    const size_t nread = fread (mp_file, 1, sizeof (mp_file) - 1, fp);
+
+    if (!feof (fp))
+    {
+      event_log_error (hashcat_ctx, "%s: File is too large", buf);
+
+      return -1;
+    }
 
     fclose (fp);
 
-    fp = NULL;
+    if (nread == 0)
+    {
+      event_log_error (hashcat_ctx, "%s: File is empty", buf);
 
-    len = in_superchop (mp_file);
+      return -1;
+    }
+
+    const int len = in_superchop (mp_file);
 
     if (len == 0)
     {
@@ -577,8 +584,6 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
       if (rc == -1) return -1;
     }
   }
-
-  if (fp) fclose (fp);
 
   return 0;
 }
@@ -1180,10 +1185,10 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   mp_setup_sys (mask_ctx->mp_sys);
 
-  if (user_options->custom_charset_1) mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_1, 0);
-  if (user_options->custom_charset_2) mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_2, 1);
-  if (user_options->custom_charset_3) mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_3, 2);
-  if (user_options->custom_charset_4) mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_4, 3);
+  if (user_options->custom_charset_1) { const int rc = mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_1, 0); if (rc == -1) return -1; }
+  if (user_options->custom_charset_2) { const int rc = mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_2, 1); if (rc == -1) return -1; }
+  if (user_options->custom_charset_3) { const int rc = mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_3, 2); if (rc == -1) return -1; }
+  if (user_options->custom_charset_4) { const int rc = mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_4, 3); if (rc == -1) return -1; }
 
   if (user_options->attack_mode == ATTACK_MODE_BF)
   {
