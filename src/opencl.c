@@ -1226,6 +1226,9 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
       kernel          = device_param->kernel3;
       kernel_threads  = device_param->kernel_threads_by_wgs_kernel3;
       break;
+    default:
+      event_log_error (hashcat_ctx, "Invalid kernel specified");
+      return -1;
   }
 
   while (num_elements % kernel_threads) num_elements++;
@@ -1377,6 +1380,9 @@ int run_kernel_mp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
       kernel          = device_param->kernel_mp_l;
       kernel_threads  = device_param->kernel_threads_by_wgs_kernel_mp_l;
       break;
+    default:
+      event_log_error (hashcat_ctx, "Invalid kernel specified");
+      return -1;
   }
 
   while (num_elements % kernel_threads) num_elements++;
@@ -4617,7 +4623,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
     {
-      CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_rules_c, size_rules_c);
+      CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_rules_c, size_rules_c); if (CL_rc == -1) return -1;
     }
     else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
     {
