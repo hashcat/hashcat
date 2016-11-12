@@ -8,6 +8,8 @@
 #include "thread.h"
 #include "event.h"
 
+static int event_log (const char *fmt, va_list ap, char *s, const size_t sz) __attribute__ ((format (printf, 1, 0)));
+
 void event_call (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
