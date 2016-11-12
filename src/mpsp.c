@@ -1067,7 +1067,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
       hashconfig->pw_min = pw_min;
       hashconfig->pw_max = pw_max;
 
-      // check if mask is not too large or too small for pw_min/pw_max  (*2 if unicode)
+      // check if mask is not too large or too small for pw_min/pw_max
 
       u32 mask_min = hashconfig->pw_min;
       u32 mask_max = hashconfig->pw_max;
@@ -1089,12 +1089,6 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
         logfile_sub_msg ("STOP");
 
         return 0;
-      }
-
-      if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
-      {
-        mask_min *= 2;
-        mask_max *= 2;
       }
 
       if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)

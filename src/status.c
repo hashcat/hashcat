@@ -48,6 +48,8 @@ static char *status_get_rules_file (const hashcat_ctx_t *hashcat_ctx)
 
     tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_TINY - tmp_len - 1, "%s", user_options->rp_files[i]);
 
+    tmp_buf[tmp_len] = 0;
+
     return tmp_buf; // yes, user need to free()
   }
 
