@@ -1541,6 +1541,60 @@ void DES (const u32 K00, const u32 K01, const u32 K02, const u32 K03, const u32 
   KXX_DECL u32 k36, k37, k38, k39, k40, k41;
   KXX_DECL u32 k42, k43, k44, k45, k46, k47;
 
+  #if defined IS_AMD || defined IS_GENERIC
+
+  #ifdef _unroll
+  #pragma unroll
+  #endif
+  for (u32 i = 0; i < 8; i++)
+  {
+    switch (i)
+    {
+      case 0: KEYSET00; break;
+      case 1: KEYSET02; break;
+      case 2: KEYSET04; break;
+      case 3: KEYSET06; break;
+      case 4: KEYSET10; break;
+      case 5: KEYSET12; break;
+      case 6: KEYSET14; break;
+      case 7: KEYSET16; break;
+    }
+
+    s1(*D63 ^ k00, *D32 ^ k01, *D33 ^ k02, *D34 ^ k03, *D35 ^ k04, *D36 ^ k05, D08, D16, D22, D30);
+    s2(*D35 ^ k06, *D36 ^ k07, *D37 ^ k08, *D38 ^ k09, *D39 ^ k10, *D40 ^ k11, D12, D27, D01, D17);
+    s3(*D39 ^ k12, *D40 ^ k13, *D41 ^ k14, *D42 ^ k15, *D43 ^ k16, *D44 ^ k17, D23, D15, D29, D05);
+    s4(*D43 ^ k18, *D44 ^ k19, *D45 ^ k20, *D46 ^ k21, *D47 ^ k22, *D48 ^ k23, D25, D19, D09, D00);
+    s5(*D47 ^ k24, *D48 ^ k25, *D49 ^ k26, *D50 ^ k27, *D51 ^ k28, *D52 ^ k29, D07, D13, D24, D02);
+    s6(*D51 ^ k30, *D52 ^ k31, *D53 ^ k32, *D54 ^ k33, *D55 ^ k34, *D56 ^ k35, D03, D28, D10, D18);
+    s7(*D55 ^ k36, *D56 ^ k37, *D57 ^ k38, *D58 ^ k39, *D59 ^ k40, *D60 ^ k41, D31, D11, D21, D06);
+    s8(*D59 ^ k42, *D60 ^ k43, *D61 ^ k44, *D62 ^ k45, *D63 ^ k46, *D32 ^ k47, D04, D26, D14, D20);
+
+    switch (i)
+    {
+      case 0: KEYSET01; break;
+      case 1: KEYSET03; break;
+      case 2: KEYSET05; break;
+      case 3: KEYSET07; break;
+      case 4: KEYSET11; break;
+      case 5: KEYSET13; break;
+      case 6: KEYSET15; break;
+      case 7: KEYSET17; break;
+    }
+
+    s1(*D31 ^ k00, *D00 ^ k01, *D01 ^ k02, *D02 ^ k03, *D03 ^ k04, *D04 ^ k05, D40, D48, D54, D62);
+    s2(*D03 ^ k06, *D04 ^ k07, *D05 ^ k08, *D06 ^ k09, *D07 ^ k10, *D08 ^ k11, D44, D59, D33, D49);
+    s3(*D07 ^ k12, *D08 ^ k13, *D09 ^ k14, *D10 ^ k15, *D11 ^ k16, *D12 ^ k17, D55, D47, D61, D37);
+    s4(*D11 ^ k18, *D12 ^ k19, *D13 ^ k20, *D14 ^ k21, *D15 ^ k22, *D16 ^ k23, D57, D51, D41, D32);
+    s5(*D15 ^ k24, *D16 ^ k25, *D17 ^ k26, *D18 ^ k27, *D19 ^ k28, *D20 ^ k29, D39, D45, D56, D34);
+    s6(*D19 ^ k30, *D20 ^ k31, *D21 ^ k32, *D22 ^ k33, *D23 ^ k34, *D24 ^ k35, D35, D60, D42, D50);
+    s7(*D23 ^ k36, *D24 ^ k37, *D25 ^ k38, *D26 ^ k39, *D27 ^ k40, *D28 ^ k41, D63, D43, D53, D38);
+    s8(*D27 ^ k42, *D28 ^ k43, *D29 ^ k44, *D30 ^ k45, *D31 ^ k46, *D00 ^ k47, D36, D58, D46, D52);
+  }
+
+  #endif
+
+  #if defined IS_NV
+
   #ifdef _unroll
   #pragma unroll
   #endif
@@ -1634,6 +1688,8 @@ void DES (const u32 K00, const u32 K01, const u32 K02, const u32 K03, const u32 
     s7(*D23 ^ k36, *D24 ^ k37, *D25 ^ k38, *D26 ^ k39, *D27 ^ k40, *D28 ^ k41, D63, D43, D53, D38);
     s8(*D27 ^ k42, *D28 ^ k43, *D29 ^ k44, *D30 ^ k45, *D31 ^ k46, *D00 ^ k47, D36, D58, D46, D52);
   }
+
+  #endif
 }
 
 void transpose32c (u32 data[32])
