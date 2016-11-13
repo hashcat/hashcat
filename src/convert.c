@@ -457,7 +457,7 @@ int base32_encode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf
     out_ptr += 8;
   }
 
-  int out_len = (int) (((0.5f + (double) in_len) * 8) / 5); // ceil (in_len * 8 / 5)
+  int out_len = (int) (((0.5 + in_len) * 8) / 5); // ceil (in_len * 8 / 5)
 
   while (out_len % 8)
   {
@@ -524,7 +524,7 @@ int base64_encode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf
     out_ptr += 4;
   }
 
-  int out_len = (int) (((0.5f + (double) in_len) * 8) / 6); // ceil (in_len * 8 / 6)
+  int out_len = (int) (((0.5 + in_len) * 8) / 6); // ceil (in_len * 8 / 6)
 
   while (out_len % 4)
   {
