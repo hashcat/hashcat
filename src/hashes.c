@@ -309,7 +309,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
     if ((debug_plain_len > 0) || (debug_rule_len > 0))
     {
-      debugfile_write_append (hashcat_ctx, debug_rule_buf, debug_rule_len, debug_plain_ptr, debug_plain_len, plain_ptr, plain_len);
+      debugfile_write_append (hashcat_ctx, debug_rule_buf, debug_rule_len, plain_ptr, plain_len, debug_plain_ptr, debug_plain_len);
     }
   }
 }
