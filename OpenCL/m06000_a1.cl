@@ -333,7 +333,7 @@ __kernel void m06000_m04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w[10] = w2[2];
     w[11] = w2[3];
     w[12] = w3[0];
-    w[14] = w3[1];
+    w[13] = w3[1];
     w[14] = pw_len * 8;
     w[15] = 0;
 
@@ -493,7 +493,7 @@ __kernel void m06000_s04 (__global pw_t *pws, __global kernel_rule_t *rules_buf,
     w[10] = w2[2];
     w[11] = w2[3];
     w[12] = w3[0];
-    w[14] = w3[1];
+    w[13] = w3[1];
     w[14] = pw_len * 8;
     w[15] = 0;
 
