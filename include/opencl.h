@@ -9,7 +9,8 @@
 #include <stdio.h>
 #include <errno.h>
 
-static const char CL_VENDOR_AMD[]           = "Advanced Micro Devices, Inc.";
+static const char CL_VENDOR_AMD1[]          = "Advanced Micro Devices, Inc.";
+static const char CL_VENDOR_AMD2[]          = "AuthenticAMD";
 static const char CL_VENDOR_AMD_USE_INTEL[] = "GenuineIntel";
 static const char CL_VENDOR_APPLE[]         = "Apple";
 static const char CL_VENDOR_INTEL_BEIGNET[] = "Intel";

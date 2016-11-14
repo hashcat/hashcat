@@ -2271,7 +2271,11 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
     cl_uint platform_vendor_id = 0;
 
-    if (strcmp (platform_vendor, CL_VENDOR_AMD) == 0)
+    if (strcmp (platform_vendor, CL_VENDOR_AMD1) == 0)
+    {
+      platform_vendor_id = VENDOR_ID_AMD;
+    }
+    else if (strcmp (platform_vendor, CL_VENDOR_AMD2) == 0)
     {
       platform_vendor_id = VENDOR_ID_AMD;
     }
@@ -2385,7 +2389,11 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       cl_uint device_vendor_id = 0;
 
-      if (strcmp (device_vendor, CL_VENDOR_AMD) == 0)
+      if (strcmp (device_vendor, CL_VENDOR_AMD1) == 0)
+      {
+        device_vendor_id = VENDOR_ID_AMD;
+      }
+      else if (strcmp (device_vendor, CL_VENDOR_AMD2) == 0)
       {
         device_vendor_id = VENDOR_ID_AMD;
       }
@@ -2451,8 +2459,6 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       if (CL_rc == -1) return -1;
 
       device_param->device_opencl_version = device_opencl_version;
-
-      device_param->opencl_v12 = device_opencl_version[9] > '1' || device_opencl_version[11] >= '2';
 
       // max_compute_units
 

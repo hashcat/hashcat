@@ -3541,6 +3541,8 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       if (device_param->skipped) continue;
 
+      if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
+
       if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
       {
         if (hwmon_ctx->hm_adl)
@@ -3738,6 +3740,8 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       if (device_param->skipped) continue;
 
+      if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
+
       if (hwmon_ctx->hm_device[device_id].fan_get_supported == true)
       {
         const int fanspeed  = hm_get_fanspeed_with_device_id  (hashcat_ctx, device_id);
@@ -3817,6 +3821,8 @@ void hwmon_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
       if (device_param->skipped) continue;
 
+      if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
+
       if (hwmon_ctx->hm_device[device_id].fan_set_supported == true)
       {
         int rc = -1;
@@ -3860,6 +3866,8 @@ void hwmon_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
       hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
       if (device_param->skipped) continue;
+
+      if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
 
       if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
       {
