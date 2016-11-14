@@ -21,6 +21,7 @@
 - Fixed a bug in wordlist reject code when cracking a large salted hashlist
 - Fixed a bug in custom charset from file parsing code
 - Fixed a bug in rule generator code when using the memory copy function
+- Fixed a bug in outfile-check shutdown code when manually overriding --outfile-check-dir
 
 ##
 ## Algorithms
