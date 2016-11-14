@@ -600,7 +600,7 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
     return;
   }
 
-  printf ("STATUS\t%u\t", hashcat_status->status_number);
+  printf ("STATUS\t%d\t", hashcat_status->status_number);
 
   printf ("SPEED\t");
 
@@ -631,9 +631,9 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 
   printf ("PROGRESS\t%" PRIu64 "\t%" PRIu64 "\t", hashcat_status->progress_cur_relative_skip, hashcat_status->progress_end_relative_skip);
 
-  printf ("RECHASH\t%u\t%u\t", hashcat_status->digests_done, hashcat_status->digests_cnt);
+  printf ("RECHASH\t%d\t%d\t", hashcat_status->digests_done, hashcat_status->digests_cnt);
 
-  printf ("RECSALT\t%u\t%u\t", hashcat_status->salts_done, hashcat_status->salts_cnt);
+  printf ("RECSALT\t%d\t%d\t", hashcat_status->salts_done, hashcat_status->salts_cnt);
 
   if (user_options->gpu_temp_disable == false)
   {

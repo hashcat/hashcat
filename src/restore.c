@@ -50,7 +50,7 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
     int pidbin_len = -1;
 
     #if defined (_POSIX)
-    snprintf (pidbin, HCBUFSIZ_LARGE - 1, "/proc/%d/cmdline", rd->pid);
+    snprintf (pidbin, HCBUFSIZ_LARGE - 1, "/proc/%u/cmdline", rd->pid);
 
     FILE *fd = fopen (pidbin, "rb");
 

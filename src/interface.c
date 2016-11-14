@@ -13486,7 +13486,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
     }
     else
     {
-      snprintf (out_buf, len-1, "$1$rounds=%i$%s$%s", salt.salt_iter, (char *) salt.salt_buf, (char *) ptr_plain);
+      snprintf (out_buf, len-1, "$1$rounds=%u$%s$%s", salt.salt_iter, (char *) salt.salt_buf, (char *) ptr_plain);
     }
   }
   else if (hash_mode == 501)
@@ -13585,7 +13585,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
     }
     else
     {
-      snprintf (out_buf, len-1, "$apr1$rounds=%i$%s$%s", salt.salt_iter, (char *) salt.salt_buf, (char *) ptr_plain);
+      snprintf (out_buf, len-1, "$apr1$rounds=%u$%s$%s", salt.salt_iter, (char *) salt.salt_buf, (char *) ptr_plain);
     }
   }
   else if (hash_mode == 1711)
@@ -13659,14 +13659,14 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
     }
     else
     {
-      snprintf (out_buf, len-1, "$6$rounds=%i$%s$%s", salt.salt_iter, (char *) salt.salt_buf, (char *) ptr_plain);
+      snprintf (out_buf, len-1, "$6$rounds=%u$%s$%s", salt.salt_iter, (char *) salt.salt_buf, (char *) ptr_plain);
     }
   }
   else if (hash_mode == 2100)
   {
     u32 pos = 0;
 
-    snprintf (out_buf + pos, len-1, "%s%i#",
+    snprintf (out_buf + pos, len-1, "%s%u#",
       SIGNATURE_DCC2,
       salt.salt_iter + 1);
 
@@ -14079,13 +14079,13 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
   {
     sha256aix_encode ((unsigned char *) digest_buf, (unsigned char *) ptr_plain);
 
-    snprintf (out_buf, len-1, "{ssha256}%02d$%s$%s", salt.salt_sign[0], (char *) salt.salt_buf, (char *) ptr_plain);
+    snprintf (out_buf, len-1, "{ssha256}%02u$%s$%s", salt.salt_sign[0], (char *) salt.salt_buf, (char *) ptr_plain);
   }
   else if (hash_mode == 6500)
   {
     sha512aix_encode ((unsigned char *) digest_buf64, (unsigned char *) ptr_plain);
 
-    snprintf (out_buf, len-1, "{ssha512}%02d$%s$%s", salt.salt_sign[0], (char *) salt.salt_buf, (char *) ptr_plain);
+    snprintf (out_buf, len-1, "{ssha512}%02u$%s$%s", salt.salt_sign[0], (char *) salt.salt_buf, (char *) ptr_plain);
   }
   else if (hash_mode == 6600)
   {
@@ -14098,7 +14098,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
 
     u32 buf_len = len - 1;
 
-    u32 off = snprintf (out_buf, buf_len, "%d:%08x%08x:", salt.salt_iter + 1, salt.salt_buf[0], salt.salt_buf[1]);
+    u32 off = snprintf (out_buf, buf_len, "%u:%08x%08x:", salt.salt_iter + 1, salt.salt_buf[0], salt.salt_buf[1]);
     buf_len -= 22;
 
     for (u32 i = 0, j = off; i < 1040; i++, j += 2)
@@ -14112,7 +14112,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
   {
     sha1aix_encode ((unsigned char *) digest_buf, (unsigned char *) ptr_plain);
 
-    snprintf (out_buf, len-1, "{ssha1}%02d$%s$%s", salt.salt_sign[0], (char *) salt.salt_buf, (char *) ptr_plain);
+    snprintf (out_buf, len-1, "{ssha1}%02u$%s$%s", salt.salt_sign[0], (char *) salt.salt_buf, (char *) ptr_plain);
   }
   else if (hash_mode == 6800)
   {
@@ -14137,7 +14137,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
     esalt[6] = byte_swap_32 (pbkdf2_sha512->salt_buf[6]);
     esalt[7] = byte_swap_32 (pbkdf2_sha512->salt_buf[7]);
 
-    snprintf (out_buf, len-1, "%s%i$%08x%08x%08x%08x%08x%08x%08x%08x$%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
+    snprintf (out_buf, len-1, "%s%u$%08x%08x%08x%08x%08x%08x%08x%08x$%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
       SIGNATURE_SHA512OSX,
       salt.salt_iter + 1,
       esalt[ 0], esalt[ 1],
@@ -14163,7 +14163,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
 
     u32 len_used = 0;
 
-    snprintf (out_buf + len_used, len - len_used - 1, "%s%i.", SIGNATURE_SHA512GRUB, salt.salt_iter + 1);
+    snprintf (out_buf + len_used, len - len_used - 1, "%s%u.", SIGNATURE_SHA512GRUB, salt.salt_iter + 1);
 
     len_used = strlen (out_buf);
 
@@ -14223,7 +14223,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
     }
     else
     {
-      snprintf (out_buf, len-1, "$5$rounds=%i$%s$%s", salt.salt_iter, (char *) salt.salt_buf, (char *) ptr_plain);
+      snprintf (out_buf, len-1, "$5$rounds=%u$%s$%s", salt.salt_iter, (char *) salt.salt_buf, (char *) ptr_plain);
     }
   }
   else if (hash_mode == 7500)
@@ -14793,7 +14793,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
 
     // output
 
-    snprintf (out_buf, len-1, "%s%i$%s$%s", SIGNATURE_DJANGOPBKDF2, salt.salt_iter + 1, salt_buf_ptr, tmp_buf);
+    snprintf (out_buf, len-1, "%s%u$%s$%s", SIGNATURE_DJANGOPBKDF2, salt.salt_iter + 1, salt_buf_ptr, tmp_buf);
   }
   else if (hash_mode == 10100)
   {
@@ -14847,7 +14847,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
 
     base64_encode (int_to_base64, (const u8 *) tmp_buf, tmp_len, (u8 *) base64_encoded);
 
-    snprintf (out_buf, len-1, "%s%i}%s", SIGNATURE_SAPH_SHA1, salt.salt_iter + 1, base64_encoded);
+    snprintf (out_buf, len-1, "%s%u}%s", SIGNATURE_SAPH_SHA1, salt.salt_iter + 1, base64_encoded);
   }
   else if (hash_mode == 10400)
   {
@@ -15139,7 +15139,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
       sprintf (public_key_buf + j, "%02x", ptr[i]);
     }
 
-    snprintf (out_buf, len-1, "%s%d$%s$%d$%s$%d$%d$%s$%d$%s",
+    snprintf (out_buf, len-1, "%s%u$%s$%u$%s$%u$%u$%s$%u$%s",
       SIGNATURE_BITCOIN_WALLET,
       cry_master_len * 2,
       cry_master_buf,
@@ -15361,7 +15361,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
   {
     const u8 *ptr = (const u8 *) salt.salt_buf;
 
-    snprintf (out_buf, len-1, "%s,%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x,%d,%08x%08x%08x%08x%08x%08x%08x%08x",
+    snprintf (out_buf, len-1, "%s,%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x,%u,%08x%08x%08x%08x%08x%08x%08x%08x",
       SIGNATURE_MS_DRSR,
       ptr[0],
       ptr[1],
@@ -15459,7 +15459,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
   }
   else if (hash_mode == 13200)
   {
-    snprintf (out_buf, len-1, "%s*%d*%08x%08x%08x%08x*%08x%08x%08x%08x%08x%08x",
+    snprintf (out_buf, len-1, "%s*%u*%08x%08x%08x%08x*%08x%08x%08x%08x%08x%08x",
       SIGNATURE_AXCRYPT,
       salt.salt_iter,
       salt.salt_buf[0],
@@ -15955,7 +15955,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
 
       // iteration
 
-      snprintf (buf + 16, 11, "%010i", salt.salt_iter + 1);
+      snprintf (buf + 16, 11, "%010u", salt.salt_iter + 1);
 
       // chars
 
