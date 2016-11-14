@@ -191,38 +191,27 @@ void m05000m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
 
       t = st[1];
 
-      Rho_Pi (0);
-      Rho_Pi (1);
-      Rho_Pi (2);
-      Rho_Pi (3);
-      Rho_Pi (4);
-      Rho_Pi (5);
-      Rho_Pi (6);
-      Rho_Pi (7);
-      Rho_Pi (8);
-      Rho_Pi (9);
-      Rho_Pi (10);
-      Rho_Pi (11);
-      Rho_Pi (12);
-      Rho_Pi (13);
-      Rho_Pi (14);
-      Rho_Pi (15);
-      Rho_Pi (16);
-      Rho_Pi (17);
-      Rho_Pi (18);
-      Rho_Pi (19);
-      Rho_Pi (20);
-      Rho_Pi (21);
-      Rho_Pi (22);
-      Rho_Pi (23);
+      #ifdef _unroll
+      #pragma unroll
+      #else
+      #pragma unroll 1
+      #endif
+      for (int i = 0; i < 24; i++)
+      {
+        Rho_Pi (i);
+      }
 
       //  Chi
 
-      Chi (0);
-      Chi (5);
-      Chi (10);
-      Chi (15);
-      Chi (20);
+      #ifdef _unroll
+      #pragma unroll
+      #else
+      #pragma unroll 1
+      #endif
+      for (int i = 0; i < 25; i += 5)
+      {
+        Chi (i);
+      }
 
       //  Iota
 
@@ -377,38 +366,27 @@ void m05000s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
 
       t = st[1];
 
-      Rho_Pi (0);
-      Rho_Pi (1);
-      Rho_Pi (2);
-      Rho_Pi (3);
-      Rho_Pi (4);
-      Rho_Pi (5);
-      Rho_Pi (6);
-      Rho_Pi (7);
-      Rho_Pi (8);
-      Rho_Pi (9);
-      Rho_Pi (10);
-      Rho_Pi (11);
-      Rho_Pi (12);
-      Rho_Pi (13);
-      Rho_Pi (14);
-      Rho_Pi (15);
-      Rho_Pi (16);
-      Rho_Pi (17);
-      Rho_Pi (18);
-      Rho_Pi (19);
-      Rho_Pi (20);
-      Rho_Pi (21);
-      Rho_Pi (22);
-      Rho_Pi (23);
+      #ifdef _unroll
+      #pragma unroll
+      #else
+      #pragma unroll 1
+      #endif
+      for (int i = 0; i < 24; i++)
+      {
+        Rho_Pi (i);
+      }
 
       //  Chi
 
-      Chi (0);
-      Chi (5);
-      Chi (10);
-      Chi (15);
-      Chi (20);
+      #ifdef _unroll
+      #pragma unroll
+      #else
+      #pragma unroll 1
+      #endif
+      for (int i = 0; i < 25; i += 5)
+      {
+        Chi (i);
+      }
 
       //  Iota
 

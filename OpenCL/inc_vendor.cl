@@ -207,3 +207,13 @@
 
 #endif
 #endif
+
+// apple specific
+
+#ifdef IS_APPLE
+
+#if KERN_TYPE == 5000
+#undef _unroll
+#endif
+
+#endif
