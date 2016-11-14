@@ -378,6 +378,7 @@ int outcheck_ctx_init (hashcat_ctx_t *hashcat_ctx)
 void outcheck_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 {
   outcheck_ctx_t *outcheck_ctx = hashcat_ctx->outcheck_ctx;
+  user_options_t *user_options = hashcat_ctx->user_options;
 
   if (outcheck_ctx->enabled == false) return;
 
@@ -399,7 +400,10 @@ void outcheck_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  hcfree (outcheck_ctx->root_directory);
+  if (user_options->outfile_check_dir == NULL)
+  {
+    hcfree (outcheck_ctx->root_directory);
+  }
 
   memset (outcheck_ctx, 0, sizeof (outcheck_ctx_t));
 }
