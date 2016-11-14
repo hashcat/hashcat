@@ -1563,6 +1563,60 @@ void DESCrypt (const u32 SALT, const u32 K00, const u32 K01, const u32 K02, cons
 
   for (u32 ii = 0; ii < 25; ii++)
   {
+    #if defined IS_AMD || defined IS_GENERIC
+
+    #ifdef _unroll
+    #pragma unroll
+    #endif
+    for (u32 i = 0; i < 8; i++)
+    {
+      switch (i)
+      {
+        case 0: KEYSET00; break;
+        case 1: KEYSET02; break;
+        case 2: KEYSET04; break;
+        case 3: KEYSET06; break;
+        case 4: KEYSET10; break;
+        case 5: KEYSET12; break;
+        case 6: KEYSET14; break;
+        case 7: KEYSET16; break;
+      }
+
+      s1(myselx (*D63, *D47, s001) ^ k00, myselx (*D32, *D48, s002) ^ k01, myselx (*D33, *D49, s004) ^ k02, myselx (*D34, *D50, s008) ^ k03, myselx (*D35, *D51, s010) ^ k04, myselx (*D36, *D52, s020) ^ k05, D08, D16, D22, D30);
+      s2(myselx (*D35, *D51, s040) ^ k06, myselx (*D36, *D52, s080) ^ k07, myselx (*D37, *D53, s100) ^ k08, myselx (*D38, *D54, s200) ^ k09, myselx (*D39, *D55, s400) ^ k10, myselx (*D40, *D56, s800) ^ k11, D12, D27, D01, D17);
+      s3(              *D39        ^ k12,               *D40        ^ k13,               *D41        ^ k14,               *D42        ^ k15,               *D43        ^ k16,               *D44        ^ k17, D23, D15, D29, D05);
+      s4(              *D43        ^ k18,               *D44        ^ k19,               *D45        ^ k20,               *D46        ^ k21,               *D47        ^ k22,               *D48        ^ k23, D25, D19, D09, D00);
+      s5(myselx (*D47, *D63, s001) ^ k24, myselx (*D48, *D32, s002) ^ k25, myselx (*D49, *D33, s004) ^ k26, myselx (*D50, *D34, s008) ^ k27, myselx (*D51, *D35, s010) ^ k28, myselx (*D52, *D36, s020) ^ k29, D07, D13, D24, D02);
+      s6(myselx (*D51, *D35, s040) ^ k30, myselx (*D52, *D36, s080) ^ k31, myselx (*D53, *D37, s100) ^ k32, myselx (*D54, *D38, s200) ^ k33, myselx (*D55, *D39, s400) ^ k34, myselx (*D56, *D40, s800) ^ k35, D03, D28, D10, D18);
+      s7(              *D55        ^ k36,               *D56        ^ k37,               *D57        ^ k38,               *D58        ^ k39,               *D59        ^ k40,               *D60        ^ k41, D31, D11, D21, D06);
+      s8(              *D59        ^ k42,               *D60        ^ k43,               *D61        ^ k44,               *D62        ^ k45,               *D63        ^ k46,               *D32        ^ k47, D04, D26, D14, D20);
+
+      switch (i)
+      {
+        case 0: KEYSET01; break;
+        case 1: KEYSET03; break;
+        case 2: KEYSET05; break;
+        case 3: KEYSET07; break;
+        case 4: KEYSET11; break;
+        case 5: KEYSET13; break;
+        case 6: KEYSET15; break;
+        case 7: KEYSET17; break;
+      }
+
+      s1(myselx (*D31, *D15, s001) ^ k00, myselx (*D00, *D16, s002) ^ k01, myselx (*D01, *D17, s004) ^ k02, myselx (*D02, *D18, s008) ^ k03, myselx (*D03, *D19, s010) ^ k04, myselx (*D04, *D20, s020) ^ k05, D40, D48, D54, D62);
+      s2(myselx (*D03, *D19, s040) ^ k06, myselx (*D04, *D20, s080) ^ k07, myselx (*D05, *D21, s100) ^ k08, myselx (*D06, *D22, s200) ^ k09, myselx (*D07, *D23, s400) ^ k10, myselx (*D08, *D24, s800) ^ k11, D44, D59, D33, D49);
+      s3(              *D07        ^ k12,               *D08        ^ k13,               *D09        ^ k14,               *D10        ^ k15,               *D11        ^ k16,               *D12        ^ k17, D55, D47, D61, D37);
+      s4(              *D11        ^ k18,               *D12        ^ k19,               *D13        ^ k20,               *D14        ^ k21,               *D15        ^ k22,               *D16        ^ k23, D57, D51, D41, D32);
+      s5(myselx (*D15, *D31, s001) ^ k24, myselx (*D16, *D00, s002) ^ k25, myselx (*D17, *D01, s004) ^ k26, myselx (*D18, *D02, s008) ^ k27, myselx (*D19, *D03, s010) ^ k28, myselx (*D20, *D04, s020) ^ k29, D39, D45, D56, D34);
+      s6(myselx (*D19, *D03, s040) ^ k30, myselx (*D20, *D04, s080) ^ k31, myselx (*D21, *D05, s100) ^ k32, myselx (*D22, *D06, s200) ^ k33, myselx (*D23, *D07, s400) ^ k34, myselx (*D24, *D08, s800) ^ k35, D35, D60, D42, D50);
+      s7(              *D23        ^ k36,               *D24        ^ k37,               *D25        ^ k38,               *D26        ^ k39,               *D27        ^ k40,               *D28        ^ k41, D63, D43, D53, D38);
+      s8(              *D27        ^ k42,               *D28        ^ k43,               *D29        ^ k44,               *D30        ^ k45,               *D31        ^ k46,               *D00        ^ k47, D36, D58, D46, D52);
+    }
+
+    #endif
+
+    #if defined IS_NV
+
     #ifdef _unroll
     #pragma unroll
     #endif
@@ -1656,6 +1710,8 @@ void DESCrypt (const u32 SALT, const u32 K00, const u32 K01, const u32 K02, cons
       s7(              *D23        ^ k36,               *D24        ^ k37,               *D25        ^ k38,               *D26        ^ k39,               *D27        ^ k40,               *D28        ^ k41, D63, D43, D53, D38);
       s8(              *D27        ^ k42,               *D28        ^ k43,               *D29        ^ k44,               *D30        ^ k45,               *D31        ^ k46,               *D00        ^ k47, D36, D58, D46, D52);
     }
+
+    #endif
 
     DATASWAP;
   }
