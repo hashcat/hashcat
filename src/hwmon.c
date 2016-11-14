@@ -2274,7 +2274,7 @@ static int get_adapters_num_adl (hashcat_ctx_t *hashcat_ctx, int *iNumberAdapter
 
   if (hm_rc == -1) return -1;
 
-  if (iNumberAdapters == 0)
+  if (iNumberAdapters == NULL)
   {
     event_log_error (hashcat_ctx, "No ADL adapters found");
 
