@@ -1,18 +1,21 @@
-* changes v3.10 -> v3.xx:
+* changes v3.10 -> v3.20:
+
+The hashcat core was completely refactored into a library (libhashcat).
+This should help developers to include hashcat into distributed clients or GUI frontends (see main_shared.c for a quick start).
+The CLI (hashcat.bin or hashcat.exe) works as before but from a technically perspective it's a library frontend.
 
 ##
 ## Features
 ##
 
-- New option --speed-only: quickly shows expected speed per device based on the users hash(es) and option selected
-- New option --keep-guessing to continue cracking hashes even after they have been cracked (to find collisions)
-- Status view: Show the current first and last password candidate test queued for execution per device
-- Status view: Show the current position of the queue in use
-- Status view: Show the base and modifier keyspace currently in use
-- Status view: Show core-clock and memory-clock in benchmark-mode in case --machine-readable is set
-- Hardware management: Support temperature, clock and fanspeed readings for AMDGPU-Pro Driver
+- New option --speed-only: Quickly provides cracking speed per device based on the user hashes and selected options, then quit
+- New option --keep-guessing: Continue cracking hashes even after they have been cracked (to find collisions)
 - Hardware management: Support --gpu-temp-retain for AMDGPU-Pro Driver
 - Hardware management: Support --powertune-enable for AMDGPU-Pro Driver
+- Status view: Show the current first and last password candidate test queued for execution per device
+- Status view: Show the current position in the queue for both base and modifier (Ex: Wordlist 2/5)
+- Status view: Show temperature, coreclock, memoryclock, fanspeed and pci-lanes for devices using AMDGPU-Pro Driver
+- Status view: Show core-clock and memory-clock in benchmark-mode in case --machine-readable is set
 
 ##
 ## Bugs
