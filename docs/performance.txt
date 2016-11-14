@@ -3,3 +3,8 @@ Performance Notes:
 
 - Always Use the latest display driver
 - To significantly improve performance use -w 3
+
+Also read this:
+
+https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#how_to_create_more_work_for_full_speed
+
