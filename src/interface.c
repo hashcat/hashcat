@@ -11711,39 +11711,30 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
    * parse line
    */
 
-  u8 *version_pos;
+  u8  *version_pos;
+  u8  *rounds_pos;
+  u8  *algorithm_pos;
+  u8  *final_random_seed_pos;
+  u32  final_random_seed_len;
+  u8  *transf_random_seed_pos;
+  u32  transf_random_seed_len;
+  u8  *enc_iv_pos;
+  u32  enc_iv_len;
 
-  u8 *rounds_pos;
-
-  u8 *algorithm_pos;
-
-  u8 *final_random_seed_pos;
-  u32   final_random_seed_len;
-
-  u8 *transf_random_seed_pos;
-  u32   transf_random_seed_len;
-
-  u8 *enc_iv_pos;
-  u32   enc_iv_len;
-
-   /* default is no keyfile provided */
-   u8 *keyfile_len_pos;
-   u32   keyfile_len = 0;
-   u32   is_keyfile_present = 0;
-   u8 *keyfile_inline_pos;
-   u8 *keyfile_pos;
+  /* default is no keyfile provided */
+  bool is_keyfile_present = false;
+  u8  *keyfile_inline_pos;
+  u8  *keyfile_pos;
 
   /* specific to version 1 */
-  u8 *contents_len_pos;
-  u32   contents_len;
-  u8 *contents_pos;
+  u8  *contents_pos;
 
   /* specific to version 2 */
-  u8 *expected_bytes_pos;
-  u32   expected_bytes_len;
+  u8  *expected_bytes_pos;
+  u32  expected_bytes_len;
 
-  u8 *contents_hash_pos;
-  u32   contents_hash_len;
+  u8  *contents_hash_pos;
+  u32  contents_hash_len;
 
   version_pos = input_buf + 8 + 1 + 1;
 
@@ -11855,13 +11846,13 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
     if (inline_flag != 1) return (PARSER_SALT_LENGTH);
 
-    contents_len_pos = (u8 *) strchr ((const char *) inline_flag_pos, '*');
+    u8 *contents_len_pos = (u8 *) strchr ((const char *) inline_flag_pos, '*');
 
     if (contents_len_pos == NULL) return (PARSER_SALT_LENGTH);
 
     contents_len_pos++;
 
-    contents_len = atoi ((const char *) contents_len_pos);
+    int contents_len = atoi ((const char *) contents_len_pos);
 
     if (contents_len > 50000) return (PARSER_SALT_LENGTH);
 
@@ -11870,8 +11861,6 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
     if (contents_pos == NULL) return (PARSER_SALT_LENGTH);
 
     contents_pos++;
-
-    u32 i;
 
     keepass->contents_len = contents_len;
 
@@ -11882,18 +11871,24 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
     u32 real_contents_len;
 
     if (keyfile_inline_pos == NULL)
+    {
       real_contents_len = input_len - (contents_pos - input_buf);
+    }
     else
     {
       real_contents_len = keyfile_inline_pos - contents_pos;
+
       keyfile_inline_pos++;
-      is_keyfile_present = 1;
+
+      is_keyfile_present = true;
     }
 
     if (real_contents_len != keepass->contents_len * 2) return (PARSER_SALT_LENGTH);
 
-    for (i = 0; i < contents_len; i++)
+    for (int i = 0; i < contents_len; i++)
+    {
       keepass->contents[i] = hex_to_u32 ((const u8 *) &contents_pos[i * 8]);
+    }
   }
   else if (keepass->version == 2)
   {
@@ -11938,23 +11933,28 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
     keyfile_inline_pos = (u8 *) strchr ((const char *) contents_hash_pos, '*');
 
     if (keyfile_inline_pos == NULL)
+    {
       contents_hash_len = input_len - (int) (contents_hash_pos - input_buf);
+    }
     else
     {
       contents_hash_len = keyfile_inline_pos - contents_hash_pos;
+
       keyfile_inline_pos++;
-      is_keyfile_present = 1;
+
+      is_keyfile_present = true;
     }
+
     if (contents_hash_len != 64) return (PARSER_SALT_LENGTH);
   }
 
-  if (is_keyfile_present != 0)
+  if (is_keyfile_present == true)
   {
-    keyfile_len_pos = (u8 *) strchr ((const char *) keyfile_inline_pos, '*');
+    u8 *keyfile_len_pos = (u8 *) strchr ((const char *) keyfile_inline_pos, '*');
 
     keyfile_len_pos++;
 
-    keyfile_len = atoi ((const char *) keyfile_len_pos);
+    int keyfile_len = atoi ((const char *) keyfile_len_pos);
 
     keepass->keyfile_len = keyfile_len;
 
@@ -12556,11 +12556,15 @@ int plaintext_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   memset (digest, 0, hashconfig->dgst_size);
 
-  strncpy ((char *) digest + 64, (char *) input_buf, 64);
+  memcpy (digest + 64, input_buf, input_len);
+
+  //strncpy ((char *) digest + 64, (char *) input_buf, 64);
 
   u32 w[16] = { 0 };
 
-  strncpy ((char *) w, (char *) input_buf, 64);
+  //strncpy ((char *) w, (char *) input_buf, 64);
+
+  memcpy (w, input_buf, input_len);
 
   u8 *w_ptr = (u8 *) w;
 
@@ -13163,14 +13167,14 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
 
     if (opti_type & OPTI_TYPE_PRECOMPUTE_PERMUT)
     {
-      u32 tt;
-
       switch (hash_type)
       {
         case HASH_TYPE_NETNTLM:
 
           salt.salt_buf[0] = rotr32 (salt.salt_buf[0], 3);
           salt.salt_buf[1] = rotr32 (salt.salt_buf[1], 3);
+
+          u32 tt;
 
           FP (salt.salt_buf[1], salt.salt_buf[0], tt);
 
@@ -13403,9 +13407,9 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
     digest_buf[3] = byte_swap_32 (digest_buf[3]);
     digest_buf[4] = byte_swap_32 (digest_buf[4]);
 
-    memset (tmp_buf, 0, sizeof (tmp_buf));
-
     memcpy (tmp_buf, digest_buf, 20);
+
+    memset (tmp_buf + 20, 0, sizeof (tmp_buf) - 20);
 
     base64_encode (int_to_base64, (const u8 *) tmp_buf, 20, (u8 *) ptr_plain);
 
@@ -13492,9 +13496,9 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
     digest_buf[6] = byte_swap_32 (digest_buf[6]);
     digest_buf[7] = byte_swap_32 (digest_buf[7]);
 
-    memset (tmp_buf, 0, sizeof (tmp_buf));
-
     memcpy (tmp_buf, digest_buf, 32);
+
+    memset (tmp_buf + 32, 0, sizeof (tmp_buf) - 32);
 
     base64_encode (int_to_base64, (const u8 *) tmp_buf, 32, (u8 *) ptr_plain);
 
@@ -15456,10 +15460,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
     u32 *ptr_contents_hash      = (u32 *) keepass->contents_hash ;
     u32 *ptr_keyfile            = (u32 *) keepass->keyfile ;
 
-    /* specific to version 1 */
-    u32 contents_len;
-    u32 *ptr_contents;
-
     /* specific to version 2 */
     u32 expected_bytes_len;
     u32 *ptr_expected_bytes;
@@ -15510,8 +15510,8 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
 
     if (version == 1)
     {
-      contents_len = (u32)   keepass->contents_len;
-      ptr_contents = (u32 *) keepass->contents;
+      u32  contents_len = (u32)   keepass->contents_len;
+      u32 *ptr_contents = (u32 *) keepass->contents;
 
       for (u32 i = 0; i < contents_hash_len; i++, ptr_data += 8)
         sprintf (ptr_data, "%08x", ptr_contents_hash[i]);
