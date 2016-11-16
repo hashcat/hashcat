@@ -29,6 +29,8 @@ static const char ST_0007[] = "Quit";
 static const char ST_0008[] = "Bypass";
 static const char ST_9999[] = "Unknown! Bug!";
 
+static const char UNITS[7] = { ' ', 'k', 'M', 'G', 'T', 'P', 'E' };
+
 static char *status_get_rules_file (const hashcat_ctx_t *hashcat_ctx)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -108,8 +110,6 @@ void format_speed_display (double val, char *buf, size_t len)
     return;
   }
 
-  char units[7] = { ' ', 'k', 'M', 'G', 'T', 'P', 'E' };
-
   u32 level = 0;
 
   while (val > 99999)
@@ -127,7 +127,7 @@ void format_speed_display (double val, char *buf, size_t len)
   }
   else
   {
-    snprintf (buf, len - 1, "%.1f %c", val, units[level]);
+    snprintf (buf, len - 1, "%.1f %c", val, UNITS[level]);
   }
 }
 
@@ -867,25 +867,19 @@ char *status_get_time_started_relative (const hashcat_ctx_t *hashcat_ctx)
   const time_t time_start = status_ctx->runtime_start;
 
   #if defined (_WIN)
-
   __time64_t sec_run = time_now - time_start;
-
   #else
-
   time_t sec_run = time_now - time_start;
-
   #endif
 
   struct tm *tmp;
 
   #if defined (_WIN)
-
   tmp = _gmtime64 (&sec_run);
-
   #else
+  struct tm tm;
 
-  tmp = gmtime (&sec_run);
-
+  tmp = gmtime_r (&sec_run, &tm);
   #endif
 
   char *display_run = (char *) malloc (HCBUFSIZ_TINY);
@@ -999,7 +993,9 @@ char *status_get_time_estimated_relative (const hashcat_ctx_t *hashcat_ctx)
   #if defined (_WIN)
   tmp = _gmtime64 (&sec_etc);
   #else
-  tmp = gmtime (&sec_etc);
+  struct tm tm;
+
+  tmp = gmtime_r (&sec_etc, &tm);
   #endif
 
   char *display = (char *) malloc (HCBUFSIZ_TINY);
@@ -1025,7 +1021,9 @@ char *status_get_time_estimated_relative (const hashcat_ctx_t *hashcat_ctx)
       #if defined (_WIN)
       tmp_left = _gmtime64 (&sec_left);
       #else
-      tmp_left = gmtime (&sec_left);
+      struct tm tm_left;
+
+      tmp_left = gmtime_r (&sec_left, &tm_left);
       #endif
 
       char *display_left = (char *) malloc (HCBUFSIZ_TINY);
