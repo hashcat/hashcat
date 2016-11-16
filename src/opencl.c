@@ -176,7 +176,9 @@ static int setup_opencl_platforms_filter (hashcat_ctx_t *hashcat_ctx, const char
   {
     char *platforms = hcstrdup (hashcat_ctx, opencl_platforms);
 
-    char *next = strtok (platforms, ",");
+    char *saveptr = NULL;
+
+    char *next = strtok_r (platforms, ",", &saveptr);
 
     do
     {
@@ -191,7 +193,7 @@ static int setup_opencl_platforms_filter (hashcat_ctx_t *hashcat_ctx, const char
 
       opencl_platforms_filter |= 1u << (platform - 1);
 
-    } while ((next = strtok (NULL, ",")) != NULL);
+    } while ((next = strtok_r (NULL, ",", &saveptr)) != NULL);
 
     hcfree (platforms);
   }
@@ -213,7 +215,9 @@ static int setup_devices_filter (hashcat_ctx_t *hashcat_ctx, const char *opencl_
   {
     char *devices = hcstrdup (hashcat_ctx, opencl_devices);
 
-    char *next = strtok (devices, ",");
+    char *saveptr = NULL;
+
+    char *next = strtok_r (devices, ",", &saveptr);
 
     do
     {
@@ -228,7 +232,7 @@ static int setup_devices_filter (hashcat_ctx_t *hashcat_ctx, const char *opencl_
 
       devices_filter |= 1u << (device_id - 1);
 
-    } while ((next = strtok (NULL, ",")) != NULL);
+    } while ((next = strtok_r (NULL, ",", &saveptr)) != NULL);
 
     hcfree (devices);
   }
@@ -250,7 +254,9 @@ static int setup_device_types_filter (hashcat_ctx_t *hashcat_ctx, const char *op
   {
     char *device_types = hcstrdup (hashcat_ctx, opencl_device_types);
 
-    char *next = strtok (device_types, ",");
+    char *saveptr = NULL;
+
+    char *next = strtok_r (device_types, ",", &saveptr);
 
     do
     {
@@ -265,7 +271,7 @@ static int setup_device_types_filter (hashcat_ctx_t *hashcat_ctx, const char *op
 
       device_types_filter |= 1u << device_type;
 
-    } while ((next = strtok (NULL, ",")) != NULL);
+    } while ((next = strtok_r (NULL, ",", &saveptr)) != NULL);
 
     hcfree (device_types);
   }

@@ -59,7 +59,9 @@ int set_cpu_affinity (hashcat_ctx_t *hashcat_ctx)
 
   char *devices = hcstrdup (hashcat_ctx, user_options->cpu_affinity);
 
-  char *next = strtok (devices, ",");
+  char *saveptr = NULL;
+
+  char *next = strtok_r (devices, ",", &saveptr);
 
   do
   {
@@ -89,7 +91,7 @@ int set_cpu_affinity (hashcat_ctx_t *hashcat_ctx)
     CPU_SET ((cpu_id - 1), &cpuset);
     #endif
 
-  } while ((next = strtok (NULL, ",")) != NULL);
+  } while ((next = strtok_r (NULL, ",", &saveptr)) != NULL);
 
   hcfree (devices);
 

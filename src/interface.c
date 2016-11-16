@@ -4805,7 +4805,9 @@ int ikepsk_md5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   size_t in_len[9] = { 0 };
 
-  in_off[0] = (u8 *) strtok ((char *) input_buf, ":");
+  char *saveptr = NULL;
+
+  in_off[0] = (u8 *) strtok_r ((char *) input_buf, ":", &saveptr);
 
   if (in_off[0] == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -4815,7 +4817,7 @@ int ikepsk_md5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   for (i = 1; i < 9; i++)
   {
-    in_off[i] = (u8 *) strtok ((char *) NULL, ":");
+    in_off[i] = (u8 *) strtok_r ((char *) NULL, ":", &saveptr);
 
     if (in_off[i] == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -4892,7 +4894,9 @@ int ikepsk_sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
 
   size_t in_len[9] = { 0 };
 
-  in_off[0] = (u8 *) strtok ((char *) input_buf, ":");
+  char *saveptr = NULL;
+
+  in_off[0] = (u8 *) strtok_r ((char *) input_buf, ":", &saveptr);
 
   if (in_off[0] == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -4902,7 +4906,7 @@ int ikepsk_sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
 
   for (i = 1; i < 9; i++)
   {
-    in_off[i] = (u8 *) strtok ((char *) NULL, ":");
+    in_off[i] = (u8 *) strtok_r ((char *) NULL, ":", &saveptr);
 
     if (in_off[i] == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -20127,7 +20131,9 @@ int hashconfig_general_defaults (hashcat_ctx_t *hashcat_ctx)
 
     char *keyfiles = hcstrdup (hashcat_ctx, tcvc_keyfiles);
 
-    char *keyfile = strtok (keyfiles, ",");
+    char *saveptr = NULL;
+
+    char *keyfile = strtok_r (keyfiles, ",", &saveptr);
 
     do
     {
@@ -20135,7 +20141,7 @@ int hashconfig_general_defaults (hashcat_ctx_t *hashcat_ctx)
 
       if (rc_crc32 == -1) return -1;
 
-    } while ((keyfile = strtok (NULL, ",")) != NULL);
+    } while ((keyfile = strtok_r (NULL, ",", &saveptr)) != NULL);
 
     free (keyfiles);
   }
