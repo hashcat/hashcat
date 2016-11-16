@@ -332,9 +332,14 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   if (strcmp (install_dir, resolved_install_folder) == 0)
   {
-    struct passwd *pw = getpwuid (getuid ());
+    struct passwd pw;
+    struct passwd *pwp;
 
-    const char *home_dir = pw->pw_dir;
+    char buf[HCBUFSIZ_TINY];
+
+    getpwuid_r (getuid (), &pw, buf, HCBUFSIZ_TINY, &pwp);
+
+    const char *home_dir = pwp->pw_dir;
 
     profile_dir = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (profile_dir);
     session_dir = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (session_dir);
