@@ -204,13 +204,13 @@ void get_next_word (hashcat_ctx_t *hashcat_ctx, FILE *fd, char **out_buf, u32 *o
 
     if (run_rule_engine (user_options_extra->rule_len_l, user_options->rule_buf_l))
     {
-      char rule_buf_out[BLOCK_SIZE] = { 0 };
-
       int rule_len_out = -1;
 
       if (len < BLOCK_SIZE)
       {
-        rule_len_out = _old_apply_rule (user_options->rule_buf_l, user_options_extra->rule_len_l, ptr, len, rule_buf_out);
+        char unused[BLOCK_SIZE] = { 0 };
+
+        rule_len_out = _old_apply_rule (user_options->rule_buf_l, user_options_extra->rule_len_l, ptr, len, unused);
       }
 
       if (rule_len_out < 0)
@@ -357,13 +357,13 @@ u64 count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile)
 
       if (run_rule_engine (user_options_extra->rule_len_l, user_options->rule_buf_l))
       {
-        char rule_buf_out[BLOCK_SIZE] = { 0 };
-
         int rule_len_out = -1;
 
         if (len < BLOCK_SIZE)
         {
-          rule_len_out = _old_apply_rule (user_options->rule_buf_l, user_options_extra->rule_len_l, wl_data->buf + i, len, rule_buf_out);
+          char unused[BLOCK_SIZE] = { 0 };
+
+          rule_len_out = _old_apply_rule (user_options->rule_buf_l, user_options_extra->rule_len_l, wl_data->buf + i, len, unused);
         }
 
         if (rule_len_out < 0)
