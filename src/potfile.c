@@ -320,7 +320,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
     int iter = MAX_CUT_TRIES;
 
-    for (int i = line_len - 1; i && iter; i--, line_len--)
+    for (int i = line_len - 1; i && iter; i--, iter--, line_len--)
     {
       if (line_buf[i] != ':') continue;
 
@@ -355,8 +355,9 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
           // here we have in line_buf: ESSID:MAC1:MAC2   (without the plain)
           // manipulate salt_buf
 
-          memset (line_buf_cpy, 0, HCBUFSIZ_LARGE);
           memcpy (line_buf_cpy, line_buf, i);
+
+          line_buf_cpy[i] = 0;
 
           char *mac2_pos = strrchr (line_buf_cpy, ':');
 
@@ -451,9 +452,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
       found->cracked = 1;
 
-      if (found) break;
-
-      iter--;
+      break;
     }
   }
 
