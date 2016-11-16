@@ -3084,53 +3084,6 @@ int md4_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
   return (PARSER_OK);
 }
 
-int md4s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
-{
-  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
-  {
-    if ((input_len < DISPLAY_LEN_MIN_910H) || (input_len > DISPLAY_LEN_MAX_910H)) return (PARSER_GLOBAL_LENGTH);
-  }
-  else
-  {
-    if ((input_len < DISPLAY_LEN_MIN_910) || (input_len > DISPLAY_LEN_MAX_910)) return (PARSER_GLOBAL_LENGTH);
-  }
-
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  digest[0] = hex_to_u32 ((const u8 *) &input_buf[ 0]);
-  digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
-  digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
-  digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-
-  digest[0] -= MD4M_A;
-  digest[1] -= MD4M_B;
-  digest[2] -= MD4M_C;
-  digest[3] -= MD4M_D;
-
-  if (input_buf[32] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
-
-  u32 salt_len = input_len - 32 - 1;
-
-  u8 *salt_buf = input_buf + 32 + 1;
-
-  u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
-
-  salt_len = parse_and_store_salt (salt_buf_ptr, salt_buf, salt_len, hashconfig);
-
-  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
-
-  salt->salt_len = salt_len;
-
-  return (PARSER_OK);
-}
-
 int md5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_0) || (input_len > DISPLAY_LEN_MAX_0)) return (PARSER_GLOBAL_LENGTH);
