@@ -498,41 +498,37 @@ static void mp_setup_sys (cs_t *mp_sys)
   u32 chr;
   u32 donec[CHARSIZ] = { 0 };
 
-  for (pos = 0, chr =  'a'; chr <=  'z'; chr++) { donec[chr] = 1;
-                                                  mp_sys[0].cs_buf[pos++] = chr;
-                                                  mp_sys[0].cs_len = pos; }
+  for (pos =  0, chr =  'a'; chr <=  'z'; chr++) { donec[chr] = 1;
+                                                   mp_sys[0].cs_buf[pos++] = chr;
+                                                   mp_sys[0].cs_len = pos; }
 
-  for (pos = 0, chr =  'A'; chr <=  'Z'; chr++) { donec[chr] = 1;
-                                                  mp_sys[1].cs_buf[pos++] = chr;
-                                                  mp_sys[1].cs_len = pos; }
+  for (pos =  0, chr =  'A'; chr <=  'Z'; chr++) { donec[chr] = 1;
+                                                   mp_sys[1].cs_buf[pos++] = chr;
+                                                   mp_sys[1].cs_len = pos; }
 
-  for (pos = 0, chr =  '0'; chr <=  '9'; chr++) { donec[chr] = 1;
-                                                  mp_sys[2].cs_buf[pos++] = chr;
-                                                  mp_sys[2].cs_len = pos; }
+  for (pos =  0, chr =  '0'; chr <=  '9'; chr++) { donec[chr] = 1;
+                                                   mp_sys[2].cs_buf[pos++] = chr;
+                                                   mp_sys[2].cs_len = pos; }
 
-  for (pos = 0, chr = 0x20; chr <= 0x7e; chr++) { if (donec[chr]) continue;
-                                                  mp_sys[3].cs_buf[pos++] = chr;
-                                                  mp_sys[3].cs_len = pos; }
+  for (pos =  0, chr = 0x20; chr <= 0x7e; chr++) { if (donec[chr]) continue;
+                                                   mp_sys[3].cs_buf[pos++] = chr;
+                                                   mp_sys[3].cs_len = pos; }
 
-  for (pos = 0, chr = 0x20; chr <= 0x7e; chr++) { mp_sys[4].cs_buf[pos++] = chr;
-                                                  mp_sys[4].cs_len = pos; }
+  for (pos =  0, chr = 0x20; chr <= 0x7e; chr++) { mp_sys[4].cs_buf[pos++] = chr;
+                                                   mp_sys[4].cs_len = pos; }
 
-  for (pos = 0, chr = 0x00; chr <= 0xff; chr++) { mp_sys[5].cs_buf[pos++] = chr;
-                                                  mp_sys[5].cs_len = pos; }
+  for (pos =  0, chr = 0x00; chr <= 0xff; chr++) { mp_sys[5].cs_buf[pos++] = chr;
+                                                   mp_sys[5].cs_len = pos; }
 
-  for (pos = 0, chr =  '0'; chr <=  '9'; chr++) { donec[chr] = 1;
-                                                  mp_sys[6].cs_buf[pos++] = chr;
-                                                  mp_sys[6].cs_len = pos; }
-  for (chr =  'a'; chr <=  'f'; chr++) { donec[chr] = 1;
-                                                  mp_sys[6].cs_buf[pos++] = chr;
-                                                  mp_sys[6].cs_len = pos; }
+  for (pos =  0, chr = 0x30; chr <= 0x39; chr++) { mp_sys[6].cs_buf[pos++] = chr;
+                                                   mp_sys[6].cs_len = pos; }
+  for (pos = 10, chr = 0x61; chr <= 0x66; chr++) { mp_sys[6].cs_buf[pos++] = chr;
+                                                   mp_sys[6].cs_len = pos; }
 
-  for (pos = 0, chr =  '0'; chr <=  '9'; chr++) { donec[chr] = 1;
-                                                  mp_sys[7].cs_buf[pos++] = chr;
-                                                  mp_sys[7].cs_len = pos; }
-  for (chr =  'A'; chr <=  'F'; chr++) { donec[chr] = 1;
-                                                  mp_sys[7].cs_buf[pos++] = chr;
-                                                  mp_sys[7].cs_len = pos; }
+  for (pos =  0, chr = 0x30; chr <= 0x39; chr++) { mp_sys[7].cs_buf[pos++] = chr;
+                                                   mp_sys[7].cs_len = pos; }
+  for (pos = 10, chr = 0x41; chr <= 0x46; chr++) { mp_sys[7].cs_buf[pos++] = chr;
+                                                   mp_sys[7].cs_len = pos; }
 }
 
 static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr, char *buf, u32 index)
@@ -606,10 +602,6 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
   hcstat_table_t *root_table_buf   = mask_ctx->root_table_buf;
   hcstat_table_t *markov_table_buf = mask_ctx->markov_table_buf;
 
-  u32 i;
-  u32 j;
-  u32 k;
-
   /**
    * Initialize hcstats
    */
@@ -620,7 +612,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
 
   u64 *root_stats_buf_by_pos[SP_PW_MAX];
 
-  for (i = 0; i < SP_PW_MAX; i++)
+  for (int i = 0; i < SP_PW_MAX; i++)
   {
     root_stats_buf_by_pos[i] = root_stats_ptr;
 
@@ -633,9 +625,9 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
 
   u64 *markov_stats_buf_by_key[SP_PW_MAX][CHARSIZ];
 
-  for (i = 0; i < SP_PW_MAX; i++)
+  for (int i = 0; i < SP_PW_MAX; i++)
   {
-    for (j = 0; j < CHARSIZ; j++)
+    for (int j = 0; j < CHARSIZ; j++)
     {
       markov_stats_buf_by_key[i][j] = markov_stats_ptr;
 
@@ -699,25 +691,25 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
   {
     /* Add all stats to first position */
 
-    for (i = 1; i < SP_PW_MAX; i++)
+    for (int i = 1; i < SP_PW_MAX; i++)
     {
       u64 *out = root_stats_buf_by_pos[0];
       u64 *in  = root_stats_buf_by_pos[i];
 
-      for (j = 0; j < CHARSIZ; j++)
+      for (int j = 0; j < CHARSIZ; j++)
       {
         *out++ += *in++;
       }
     }
 
-    for (i = 1; i < SP_PW_MAX; i++)
+    for (int i = 1; i < SP_PW_MAX; i++)
     {
       u64 *out = markov_stats_buf_by_key[0][0];
       u64 *in  = markov_stats_buf_by_key[i][0];
 
-      for (j = 0; j < CHARSIZ; j++)
+      for (int j = 0; j < CHARSIZ; j++)
       {
-        for (k = 0; k < CHARSIZ; k++)
+        for (int k = 0; k < CHARSIZ; k++)
         {
           *out++ += *in++;
         }
@@ -726,12 +718,12 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
 
     /* copy them to all pw_positions */
 
-    for (i = 1; i < SP_PW_MAX; i++)
+    for (int i = 1; i < SP_PW_MAX; i++)
     {
       memcpy (root_stats_buf_by_pos[i], root_stats_buf_by_pos[0], CHARSIZ * sizeof (u64));
     }
 
-    for (i = 1; i < SP_PW_MAX; i++)
+    for (int i = 1; i < SP_PW_MAX; i++)
     {
       memcpy (markov_stats_buf_by_key[i][0], markov_stats_buf_by_key[0][0], CHARSIZ * CHARSIZ * sizeof (u64));
     }
@@ -745,7 +737,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
 
   hcstat_table_t *root_table_buf_by_pos[SP_PW_MAX];
 
-  for (i = 0; i < SP_PW_MAX; i++)
+  for (int i = 0; i < SP_PW_MAX; i++)
   {
     root_table_buf_by_pos[i] = root_table_ptr;
 
@@ -756,9 +748,9 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
 
   hcstat_table_t *markov_table_buf_by_key[SP_PW_MAX][CHARSIZ];
 
-  for (i = 0; i < SP_PW_MAX; i++)
+  for (int i = 0; i < SP_PW_MAX; i++)
   {
-    for (j = 0; j < CHARSIZ; j++)
+    for (int j = 0; j < CHARSIZ; j++)
     {
       markov_table_buf_by_key[i][j] = markov_table_ptr;
 
@@ -770,7 +762,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
    * Convert hcstat to tables
    */
 
-  for (i = 0; i < SP_ROOT_CNT; i++)
+  for (int i = 0; i < SP_ROOT_CNT; i++)
   {
     u32 key = i % CHARSIZ;
 
@@ -778,7 +770,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
     root_table_buf[i].val = root_stats_buf[i];
   }
 
-  for (i = 0; i < SP_MARKOV_CNT; i++)
+  for (int i = 0; i < SP_MARKOV_CNT; i++)
   {
     u32 key = i % CHARSIZ;
 
@@ -793,14 +785,14 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
    * Finally sort them
    */
 
-  for (i = 0; i < SP_PW_MAX; i++)
+  for (int i = 0; i < SP_PW_MAX; i++)
   {
     qsort (root_table_buf_by_pos[i], CHARSIZ, sizeof (hcstat_table_t), sp_comp_val);
   }
 
-  for (i = 0; i < SP_PW_MAX; i++)
+  for (int i = 0; i < SP_PW_MAX; i++)
   {
-    for (j = 0; j < CHARSIZ; j++)
+    for (int j = 0; j < CHARSIZ; j++)
     {
       qsort (markov_table_buf_by_key[i][j], CHARSIZ, sizeof (hcstat_table_t), sp_comp_val);
     }
