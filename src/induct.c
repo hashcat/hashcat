@@ -108,23 +108,6 @@ void induct_ctx_scan (hashcat_ctx_t *hashcat_ctx)
   qsort (induct_ctx->induction_dictionaries, (size_t) induct_ctx->induction_dictionaries_cnt, sizeof (char *), sort_by_mtime);
 }
 
-void induct_ctx_cleanup (hashcat_ctx_t *hashcat_ctx)
-{
-  induct_ctx_t *induct_ctx = hashcat_ctx->induct_ctx;
-
-  if (induct_ctx->enabled == false) return;
-
-  for (int file_pos = 0; file_pos < induct_ctx->induction_dictionaries_cnt; file_pos++)
-  {
-    hc_stat_t induct_stat;
-
-    if (hc_stat (induct_ctx->induction_dictionaries[file_pos], &induct_stat) == 0)
-    {
-      unlink (induct_ctx->induction_dictionaries[file_pos]);
-    }
-  }
-}
-
 void induct_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 {
   induct_ctx_t *induct_ctx = hashcat_ctx->induct_ctx;
