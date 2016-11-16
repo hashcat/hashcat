@@ -63,11 +63,10 @@ static int mangle_trest (char arr[BLOCK_SIZE], int arr_len)
 static int mangle_reverse (char arr[BLOCK_SIZE], int arr_len)
 {
   int l;
-  int r;
 
   for (l = 0; l < arr_len; l++)
   {
-    r = arr_len - 1 - l;
+    int r = arr_len - 1 - l;
 
     if (l >= r) break;
 
