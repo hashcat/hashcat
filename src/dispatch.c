@@ -154,11 +154,9 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
       break;
     }
 
-    u32 words_extra = 0;
+    u32 words_extra_total = 0;
 
-    u32 words_buffered = 0;
-
-    while (words_buffered < device_param->kernel_power)
+    while (device_param->pws_cnt < device_param->kernel_power)
     {
       char *line_buf = fgets (buf, HCBUFSIZ_LARGE - 1, stdin);
 
@@ -198,7 +196,7 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
       {
         if ((line_len < hashconfig->pw_min) || (line_len > hashconfig->pw_max))
         {
-          words_extra++;
+          words_extra_total++;
 
           continue;
         }
@@ -206,61 +204,40 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
       pw_add (device_param, (u8 *) line_buf, (int) line_len);
 
-      words_buffered++;
-
       while (status_ctx->run_thread_level1 == false) break;
     }
 
     hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
 
-    while (status_ctx->run_thread_level1 == false) break;
-
-    if (words_extra > 0)
+    if (words_extra_total > 0)
     {
       hc_thread_mutex_lock (status_ctx->mux_counter);
 
       for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
       {
-        status_ctx->words_progress_rejected[salt_pos] += straight_ctx->kernel_rules_cnt;
+        status_ctx->words_progress_rejected[salt_pos] += words_extra_total * straight_ctx->kernel_rules_cnt;
       }
 
       hc_thread_mutex_unlock (status_ctx->mux_counter);
     }
 
+    if (status_ctx->run_thread_level1 == false) break;
+
+    if (device_param->pws_cnt == 0) break;
+
     // flush
 
-    const u32 pws_cnt = device_param->pws_cnt;
+    int CL_rc;
 
-    if (pws_cnt)
-    {
-      int CL_rc;
+    CL_rc = run_copy (hashcat_ctx, device_param, device_param->pws_cnt);
 
-      CL_rc = run_copy (hashcat_ctx, device_param, pws_cnt);
+    if (CL_rc == -1) return -1;
 
-      if (CL_rc == -1) return -1;
+    CL_rc = run_cracker (hashcat_ctx, device_param, device_param->pws_cnt);
 
-      CL_rc = run_cracker (hashcat_ctx, device_param, pws_cnt);
+    if (CL_rc == -1) return -1;
 
-      if (CL_rc == -1) return -1;
-
-      device_param->pws_cnt = 0;
-
-      /*
-      still required?
-      if (attack_kern == ATTACK_KERN_STRAIGHT)
-      {
-        CL_rc = run_kernel_bzero (opencl_ctx, device_param, device_param->d_rules_c, device_param->size_rules_c);
-
-        if (CL_rc == -1) return -1;
-      }
-      else if (attack_kern == ATTACK_KERN_COMBI)
-      {
-        rCL_rc = un_kernel_bzero (opencl_ctx, device_param, device_param->d_combs_c, device_param->size_combs);
-
-        if (CL_rc == -1) return -1;
-      }
-      */
-    }
+    device_param->pws_cnt = 0;
 
     if (status_ctx->run_thread_level1 == false) break;
 
@@ -318,24 +295,19 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       const u64 words_off = device_param->words_off;
       const u64 words_fin = words_off + work;
 
-      const u32 pws_cnt = work;
+      device_param->pws_cnt = work;
 
-      device_param->pws_cnt = pws_cnt;
+      int CL_rc;
 
-      if (pws_cnt)
-      {
-        int CL_rc;
+      CL_rc = run_copy (hashcat_ctx, device_param, device_param->pws_cnt);
 
-        CL_rc = run_copy (hashcat_ctx, device_param, pws_cnt);
+      if (CL_rc == -1) return -1;
 
-        if (CL_rc == -1) return -1;
+      CL_rc = run_cracker (hashcat_ctx, device_param, device_param->pws_cnt);
 
-        CL_rc = run_cracker (hashcat_ctx, device_param, pws_cnt);
+      if (CL_rc == -1) return -1;
 
-        if (CL_rc == -1) return -1;
-
-        device_param->pws_cnt = 0;
-      }
+      device_param->pws_cnt = 0;
 
       if (user_options->speed_only == true) break;
 

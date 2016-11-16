@@ -34,7 +34,8 @@ u32 convert_from_hex (hashcat_ctx_t *hashcat_ctx, char *line_buf, const u32 line
 
     return (i);
   }
-  else if (line_len >= 6) // $HEX[] = 6
+
+  if (line_len >= 6) // $HEX[] = 6
   {
     if (line_buf[0]            != '$') return (line_len);
     if (line_buf[1]            != 'H') return (line_len);
@@ -48,7 +49,9 @@ u32 convert_from_hex (hashcat_ctx_t *hashcat_ctx, char *line_buf, const u32 line
 
     for (i = 0, j = 5; j < line_len - 1; i += 1, j += 2)
     {
-      line_buf[i] = hex_to_u8 ((const u8 *) &line_buf[j]);
+      const u8 c = hex_to_u8 ((const u8 *) &line_buf[j]);
+
+      line_buf[i] = c;
     }
 
     memset (line_buf + i, 0, line_len - i);
