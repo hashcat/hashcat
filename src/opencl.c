@@ -1360,8 +1360,6 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
 int run_kernel_mp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u32 num)
 {
-  int CL_rc = CL_SUCCESS;
-
   u32 num_elements = num;
 
   switch (kern_run)
@@ -1394,6 +1392,8 @@ int run_kernel_mp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
   }
 
   while (num_elements % kernel_threads) num_elements++;
+
+  int CL_rc;
 
   switch (kern_run)
   {
@@ -1441,8 +1441,6 @@ int run_kernel_mp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
 int run_kernel_tm (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
-  int CL_rc = CL_SUCCESS;
-
   const u32 num_elements = 1024; // fixed
 
   u32 kernel_threads = device_param->kernel_threads_by_wgs_kernel_tm;
@@ -1451,6 +1449,8 @@ int run_kernel_tm (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
   const size_t global_work_size[3] = { num_elements,    1, 1 };
   const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
+
+  int CL_rc;
 
   CL_rc = hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
 
@@ -1469,8 +1469,6 @@ int run_kernel_tm (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
 int run_kernel_amp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 num)
 {
-  int CL_rc = CL_SUCCESS;
-
   u32 num_elements = num;
 
   device_param->kernel_params_amp_buf32[6] = num_elements;
@@ -1483,6 +1481,8 @@ int run_kernel_amp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
   while (num_elements % kernel_threads) num_elements++;
 
   cl_kernel kernel = device_param->kernel_amp;
+
+  int CL_rc;
 
   CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 6, sizeof (cl_uint), device_param->kernel_params_amp[6]);
 
@@ -1508,8 +1508,6 @@ int run_kernel_amp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
 int run_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u32 value, const u32 num)
 {
-  int CL_rc = CL_SUCCESS;
-
   const u32 num16d = num / 16;
   const u32 num16m = num % 16;
 
@@ -1525,6 +1523,8 @@ int run_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
     while (num_elements % kernel_threads) num_elements++;
 
     cl_kernel kernel = device_param->kernel_memset;
+
+    int CL_rc;
 
     CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 0, sizeof (cl_mem),  (void *) &buf);                         if (CL_rc == -1) return -1;
     CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 1, sizeof (cl_uint), device_param->kernel_params_memset[1]); if (CL_rc == -1) return -1;
@@ -1555,6 +1555,8 @@ int run_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
     tmp[2] = value;
     tmp[3] = value;
 
+    int CL_rc;
+
     CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, buf, CL_TRUE, num16d * 16, num16m, tmp, 0, NULL, NULL);
 
     if (CL_rc == -1) return -1;
@@ -1575,10 +1577,10 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
   user_options_t       *user_options        = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
 
-  int CL_rc = CL_SUCCESS;
-
   if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
   {
+    int CL_rc;
+
     CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, pws_cnt * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
 
     if (CL_rc == -1) return -1;
@@ -1639,6 +1641,8 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
       }
     }
 
+    int CL_rc;
+
     CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, pws_cnt * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
 
     if (CL_rc == -1) return -1;
@@ -1648,6 +1652,8 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
     const u64 off = device_param->words_off;
 
     device_param->kernel_params_mp_l_buf64[3] = off;
+
+    int CL_rc;
 
     CL_rc = run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP_L, pws_cnt);
 
@@ -2225,11 +2231,11 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
   {
     size_t param_value_size = 0;
 
-    int CL_rc = CL_SUCCESS;
-
     cl_platform_id platform = platforms[platform_id];
 
     // platform vendor
+
+    int CL_rc;
 
     CL_rc = hc_clGetPlatformInfo (hashcat_ctx, platform, CL_PLATFORM_VENDOR, 0, NULL, &param_value_size);
 
@@ -2644,8 +2650,15 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       // skipped
 
-      device_param->skipped |= ((opencl_ctx->devices_filter      & (1u << device_id)) == 0);
-      device_param->skipped |= ((opencl_ctx->device_types_filter & (device_type))     == 0);
+      if ((opencl_ctx->devices_filter & (1u << device_id)) == 0)
+      {
+        device_param->skipped = true;
+      }
+
+      if ((opencl_ctx->device_types_filter & (device_type)) == 0)
+      {
+        device_param->skipped = true;
+      }
 
       // driver_version
 
@@ -2839,7 +2852,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
               if (atoi (device_param->driver_version) >= 1573) amd_warn = false;
               #else
               // we have no information about other os
-              amd_warn = false;
+              if (amd_warn == true) amd_warn = false;
               #endif
 
               if (amd_warn == true)
