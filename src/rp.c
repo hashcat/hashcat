@@ -479,10 +479,10 @@ int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)
   u32 rule_pos;
   u32 rule_len = HCBUFSIZ_LARGE - 1; // maximum possible len
 
-  char rule_cmd;
-
   for (rule_cnt = 0, rule_pos = 0; rule_pos < rule_len && rule_cnt < MAX_KERNEL_RULES; rule_pos++, rule_cnt++)
   {
+    char rule_cmd;
+
     GET_NAME (rule);
 
     if (rule_cnt > 0) rule_buf[rule_pos++] = ' ';
