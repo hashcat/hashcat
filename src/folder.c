@@ -125,7 +125,7 @@ char *first_file_in_directory (const char *path)
   {
     char *first_file = NULL;
 
-    #if defined (__APPLE__)
+    #if defined (_POSIX)
 
     struct dirent e;
 
@@ -188,7 +188,7 @@ char **scan_directory (hashcat_ctx_t *hashcat_ctx, const char *path)
 
   if ((d = opendir (tmp_path)) != NULL)
   {
-    #if defined (__APPLE__)
+    #if defined (_POSIX)
 
     struct dirent e;
 
