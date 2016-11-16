@@ -34,4 +34,7 @@ void setup_seeding (const bool rp_gen_seed_chgd, const u32 rp_gen_seed);
 int hc_stat (const char *pathname, hc_stat_t *buf);
 int hc_fstat (int fd, hc_stat_t *buf);
 
+void  hc_qsort_r (void *base, size_t nmemb, size_t size, int (*compar) (const void *, const void *, void *), void *arg);
+void *hc_bsearch_r (const void *key, const void *base, size_t nmemb, size_t size, int (*compar) (const void *, const void *, void *), void *arg);
+
 #endif // _SHARED_H

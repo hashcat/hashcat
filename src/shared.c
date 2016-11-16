@@ -141,6 +141,44 @@ void hc_sleep (const u32 sec)
   #endif
 }
 
+#if defined (_WIN)
+#define __WINDOWS__
+#endif
+#include "sort_r.h"
+#if defined (_WIN)
+#undef __WINDOWS__
+#endif
+
+void hc_qsort_r (void *base, size_t nmemb, size_t size, int (*compar) (const void *, const void *, void *), void *arg)
+{
+  sort_r (base, nmemb, size, compar, arg);
+}
+
+void *hc_bsearch_r (const void *key, const void *base, size_t nmemb, size_t size, int (*compar) (const void *, const void *, void *), void *arg)
+{
+  for (size_t l = 0, r = nmemb; r; r >>= 1)
+  {
+    const size_t m = r >> 1;
+
+    const size_t c = l + m;
+
+    const char *next = (char *) base + (c * size);
+
+    const int cmp = (*compar) (key, next, arg);
+
+    if (cmp > 0)
+    {
+      l += m + 1;
+
+      r--;
+    }
+
+    if (cmp == 0) return ((void *) next);
+  }
+
+  return (NULL);
+}
+
 void setup_environment_variables ()
 {
   char *compute = getenv ("COMPUTE");

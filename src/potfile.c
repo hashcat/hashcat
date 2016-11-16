@@ -13,14 +13,7 @@
 #include "outfile.h"
 #include "potfile.h"
 #include "locking.h"
-
-#if defined (_WIN)
-#define __WINDOWS__
-#endif
-#include "sort_r.h"
-#if defined (_WIN)
-#undef __WINDOWS__
-#endif
+#include "shared.h"
 
 // get rid of this later
 int sort_by_hash         (const void *v1, const void *v2, void *v3);
@@ -80,36 +73,6 @@ int sort_by_hash_t_salt_hccap (const void *v1, const void *v2)
   }
 
   return 0;
-}
-
-void hc_qsort_r (void *base, size_t nmemb, size_t size, int (*compar) (const void *, const void *, void *), void *arg)
-{
-  sort_r (base, nmemb, size, compar, arg);
-}
-
-void *hc_bsearch_r (const void *key, const void *base, size_t nmemb, size_t size, int (*compar) (const void *, const void *, void *), void *arg)
-{
-  for (size_t l = 0, r = nmemb; r; r >>= 1)
-  {
-    const size_t m = r >> 1;
-
-    const size_t c = l + m;
-
-    const char *next = (char *) base + (c * size);
-
-    const int cmp = (*compar) (key, next, arg);
-
-    if (cmp > 0)
-    {
-      l += m + 1;
-
-      r--;
-    }
-
-    if (cmp == 0) return ((void *) next);
-  }
-
-  return (NULL);
 }
 
 int potfile_init (hashcat_ctx_t *hashcat_ctx)
