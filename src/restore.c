@@ -45,18 +45,17 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
 
   if (rd->pid)
   {
+    #if defined (_POSIX)
+
     char *pidbin = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE); VERIFY_PTR (pidbin);
 
-    int pidbin_len = -1;
-
-    #if defined (_POSIX)
     snprintf (pidbin, HCBUFSIZ_LARGE - 1, "/proc/%u/cmdline", rd->pid);
 
     FILE *fd = fopen (pidbin, "rb");
 
     if (fd)
     {
-      pidbin_len = fread (pidbin, 1, HCBUFSIZ_LARGE, fd);
+      size_t pidbin_len = fread (pidbin, 1, HCBUFSIZ_LARGE, fd);
 
       pidbin[pidbin_len] = 0;
 
@@ -78,17 +77,19 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
+    hcfree (pidbin);
+
     #elif defined (_WIN)
+
     HANDLE hProcess = OpenProcess (PROCESS_ALL_ACCESS, FALSE, rd->pid);
 
+    char *pidbin  = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE); VERIFY_PTR (pidbin);
     char *pidbin2 = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE); VERIFY_PTR (pidbin2);
 
-    int pidbin2_len = -1;
+    int pidbin_len  = GetModuleFileName (NULL, pidbin, HCBUFSIZ_LARGE);
+    int pidbin2_len = GetModuleFileNameEx (hProcess, NULL, pidbin2, HCBUFSIZ_LARGE);
 
-    pidbin_len = GetModuleFileName (NULL, pidbin, HCBUFSIZ_LARGE);
-    pidbin2_len = GetModuleFileNameEx (hProcess, NULL, pidbin2, HCBUFSIZ_LARGE);
-
-    pidbin[pidbin_len] = 0;
+    pidbin[pidbin_len]   = 0;
     pidbin2[pidbin2_len] = 0;
 
     if (pidbin2_len)
@@ -102,10 +103,9 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
     }
 
     hcfree (pidbin2);
+    hcfree (pidbin);
 
     #endif
-
-    hcfree (pidbin);
   }
 
   if (rd->version < RESTORE_VERSION_MIN)
