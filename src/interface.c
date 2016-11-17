@@ -2126,7 +2126,7 @@ int bcrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
   u8 *iter_pos = input_buf + 4;
 
-  salt->salt_iter = 1u << atoi ((const char *) iter_pos);
+  salt->salt_iter = 1u << atoll ((const char *) iter_pos);
 
   u8 *salt_pos = (u8 *) strchr ((const char *) iter_pos, '$');
 
@@ -2563,7 +2563,7 @@ int dcc2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   salt_t *salt = hash_buf->salt;
 
-  u32 iter = atoi ((const char *) iter_pos);
+  u32 iter = atoll ((const char *) iter_pos);
 
   if (iter < 1)
   {
@@ -2883,7 +2883,7 @@ int md5crypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
     salt_pos[0] = 0x0;
 
-    salt->salt_iter = atoi ((const char *) (salt_pos - iterations_len));
+    salt->salt_iter = atoll ((const char *) (salt_pos - iterations_len));
 
     salt_pos += 1;
 
@@ -2942,7 +2942,7 @@ int md5apr1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
     salt_pos[0] = 0x0;
 
-    salt->salt_iter = atoi ((const char *) (salt_pos - iterations_len));
+    salt->salt_iter = atoll ((const char *) (salt_pos - iterations_len));
 
     salt_pos += 1;
 
@@ -4731,7 +4731,7 @@ int sha512crypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
 
     salt_pos[0] = 0x0;
 
-    salt->salt_iter = atoi ((const char *) (salt_pos - iterations_len));
+    salt->salt_iter = atoll ((const char *) (salt_pos - iterations_len));
 
     salt_pos += 1;
 
@@ -5340,9 +5340,9 @@ int sha1aix_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   char salt_iter[3] = { iter_pos[0], iter_pos[1], 0 };
 
-  salt->salt_sign[0] = atoi ((const char *) salt_iter);
+  salt->salt_sign[0] = atoll ((const char *) salt_iter);
 
-  salt->salt_iter = (1u << atoi ((const char *) salt_iter)) - 1;
+  salt->salt_iter = (1u << atoll ((const char *) salt_iter)) - 1;
 
   hash_pos++;
 
@@ -5389,9 +5389,9 @@ int sha256aix_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   char salt_iter[3] = { iter_pos[0], iter_pos[1], 0 };
 
-  salt->salt_sign[0] = atoi ((const char *) salt_iter);
+  salt->salt_sign[0] = atoll ((const char *) salt_iter);
 
-  salt->salt_iter = (1u << atoi ((const char *) salt_iter)) - 1;
+  salt->salt_iter = (1u << atoll ((const char *) salt_iter)) - 1;
 
   hash_pos++;
 
@@ -5441,9 +5441,9 @@ int sha512aix_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   char salt_iter[3] = { iter_pos[0], iter_pos[1], 0 };
 
-  salt->salt_sign[0] = atoi ((const char *) salt_iter);
+  salt->salt_sign[0] = atoll ((const char *) salt_iter);
 
-  salt->salt_iter = (1u << atoi ((const char *) salt_iter)) - 1;
+  salt->salt_iter = (1u << atoll ((const char *) salt_iter)) - 1;
 
   hash_pos++;
 
@@ -5505,7 +5505,7 @@ int agilekey_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
    * pbkdf2 iterations
    */
 
-  salt->salt_iter = atoi ((const char *) iterations_pos) - 1;
+  salt->salt_iter = atoll ((const char *) iterations_pos) - 1;
 
   /**
    * handle salt encoding
@@ -5615,7 +5615,7 @@ int lastpass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   salt->salt_len = salt_len;
 
-  salt->salt_iter = atoi ((const char *) iterations_pos) - 1;
+  salt->salt_iter = atoll ((const char *) iterations_pos) - 1;
 
   digest[0] = hex_to_u32 ((const u8 *) &hashbuf_pos[ 0]);
   digest[1] = hex_to_u32 ((const u8 *) &hashbuf_pos[ 8]);
@@ -5675,7 +5675,7 @@ int sha256crypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
 
     salt_pos[0] = 0x0;
 
-    salt->salt_iter = atoi ((const char *) (salt_pos - iterations_len));
+    salt->salt_iter = atoll ((const char *) (salt_pos - iterations_len));
 
     salt_pos += 1;
 
@@ -5774,7 +5774,7 @@ int sha512osx_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   salt->salt_buf[0] = pbkdf2_sha512->salt_buf[0];
 
-  salt->salt_iter = atoi ((const char *) iter_pos) - 1;
+  salt->salt_iter = atoll ((const char *) iter_pos) - 1;
 
   return (PARSER_OK);
 }
@@ -5893,7 +5893,7 @@ int sha512grub_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   salt->salt_len = salt_len;
 
-  salt->salt_iter = atoi ((const char *) iter_pos) - 1;
+  salt->salt_iter = atoll ((const char *) iter_pos) - 1;
 
   return (PARSER_OK);
 }
@@ -6702,7 +6702,7 @@ int cloudkey_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   // iteration
 
-  salt->salt_iter = atoi ((const char *) iteration_pos) - 1;
+  salt->salt_iter = atoll ((const char *) iteration_pos) - 1;
 
   // data
 
@@ -6842,7 +6842,7 @@ int nsec3_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUS
 
   // iteration
 
-  salt->salt_iter = atoi ((const char *) iteration_pos);
+  salt->salt_iter = atoll ((const char *) iteration_pos);
 
   return (PARSER_OK);
 }
@@ -7127,7 +7127,7 @@ int lotus8_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
   tmp_iter_buf[10] = 0;
 
-  salt->salt_iter = atoi ((const char *) tmp_iter_buf);
+  salt->salt_iter = atoll ((const char *) tmp_iter_buf);
 
   if (salt->salt_iter < 1) // well, the limit hopefully is much higher
   {
@@ -7483,7 +7483,7 @@ int scrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
   N_pos++;
 
-  salt->scrypt_N = atoi ((const char *) N_pos);
+  salt->scrypt_N = atoll ((const char *) N_pos);
 
   // r
 
@@ -7493,7 +7493,7 @@ int scrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
   r_pos++;
 
-  salt->scrypt_r = atoi ((const char *) r_pos);
+  salt->scrypt_r = atoll ((const char *) r_pos);
 
   // p
 
@@ -7503,7 +7503,7 @@ int scrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
   p_pos++;
 
-  salt->scrypt_p = atoi ((const char *) p_pos);
+  salt->scrypt_p = atoll ((const char *) p_pos);
 
   // salt
 
@@ -7796,21 +7796,21 @@ int office2007_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   if (encryptedVerifierHash_len != 40) return (PARSER_SALT_LENGTH);
 
-  const u32 version = atoi ((const char *) version_pos);
+  const u32 version = atoll ((const char *) version_pos);
 
   if (version != 2007) return (PARSER_SALT_VALUE);
 
-  const u32 verifierHashSize = atoi ((const char *) verifierHashSize_pos);
+  const u32 verifierHashSize = atoll ((const char *) verifierHashSize_pos);
 
   if (verifierHashSize != 20) return (PARSER_SALT_VALUE);
 
-  const u32 keySize = atoi ((const char *) keySize_pos);
+  const u32 keySize = atoll ((const char *) keySize_pos);
 
   if ((keySize != 128) && (keySize != 256)) return (PARSER_SALT_VALUE);
 
   office2007->keySize = keySize;
 
-  const u32 saltSize = atoi ((const char *) saltSize_pos);
+  const u32 saltSize = atoll ((const char *) saltSize_pos);
 
   if (saltSize != 16) return (PARSER_SALT_VALUE);
 
@@ -7935,19 +7935,19 @@ int office2010_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   if (encryptedVerifierHash_len != 64) return (PARSER_SALT_LENGTH);
 
-  const u32 version = atoi ((const char *) version_pos);
+  const u32 version = atoll ((const char *) version_pos);
 
   if (version != 2010) return (PARSER_SALT_VALUE);
 
-  const u32 spinCount = atoi ((const char *) spinCount_pos);
+  const u32 spinCount = atoll ((const char *) spinCount_pos);
 
   if (spinCount != 100000) return (PARSER_SALT_VALUE);
 
-  const u32 keySize = atoi ((const char *) keySize_pos);
+  const u32 keySize = atoll ((const char *) keySize_pos);
 
   if (keySize != 128) return (PARSER_SALT_VALUE);
 
-  const u32 saltSize = atoi ((const char *) saltSize_pos);
+  const u32 saltSize = atoll ((const char *) saltSize_pos);
 
   if (saltSize != 16) return (PARSER_SALT_VALUE);
 
@@ -8075,19 +8075,19 @@ int office2013_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   if (encryptedVerifierHash_len != 64) return (PARSER_SALT_LENGTH);
 
-  const u32 version = atoi ((const char *) version_pos);
+  const u32 version = atoll ((const char *) version_pos);
 
   if (version != 2013) return (PARSER_SALT_VALUE);
 
-  const u32 spinCount = atoi ((const char *) spinCount_pos);
+  const u32 spinCount = atoll ((const char *) spinCount_pos);
 
   if (spinCount != 100000) return (PARSER_SALT_VALUE);
 
-  const u32 keySize = atoi ((const char *) keySize_pos);
+  const u32 keySize = atoll ((const char *) keySize_pos);
 
   if (keySize != 256) return (PARSER_SALT_VALUE);
 
-  const u32 saltSize = atoi ((const char *) saltSize_pos);
+  const u32 saltSize = atoll ((const char *) saltSize_pos);
 
   if (saltSize != 16) return (PARSER_SALT_VALUE);
 
@@ -8970,7 +8970,7 @@ int saph_sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   u8 *iter_pos = input_buf + 10;
 
-  u32 iter = atoi ((const char *) iter_pos);
+  u32 iter = atoll ((const char *) iter_pos);
 
   if (iter < 1)
   {
@@ -9918,9 +9918,9 @@ int pdf17l8_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   if ((enc_md != 0) && (enc_md != 1)) return (PARSER_SALT_VALUE);
 
-  const u32 id_len = atoi ((const char *) id_len_pos);
-  const u32 u_len  = atoi ((const char *) u_len_pos);
-  const u32 o_len  = atoi ((const char *) o_len_pos);
+  const u32 id_len = atoll ((const char *) id_len_pos);
+  const u32 u_len  = atoll ((const char *) u_len_pos);
+  const u32 o_len  = atoll ((const char *) o_len_pos);
 
   if (V_len      > 6) return (PARSER_SALT_LENGTH);
   if (R_len      > 6) return (PARSER_SALT_LENGTH);
@@ -9985,7 +9985,7 @@ int pbkdf2_sha256_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MA
 
   u8 *iter_pos = input_buf + 7;
 
-  u32 iter = atoi ((const char *) iter_pos);
+  u32 iter = atoll ((const char *) iter_pos);
 
   if (iter <      1) return (PARSER_SALT_ITERATION);
   if (iter > 999999) return (PARSER_SALT_ITERATION);
@@ -10293,10 +10293,10 @@ int bitcoin_wallet_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
 
   u32 public_key_buf_len = input_len - 1 - 7 - 1 - cry_master_len_len - 1 - cry_master_buf_len - 1 - cry_salt_len_len - 1 - cry_salt_buf_len - 1 - cry_rounds_len - 1 - ckey_len_len - 1 - ckey_buf_len - 1 - public_key_len_len - 1;
 
-  const u32 cry_master_len = atoi ((const char *) cry_master_len_pos);
-  const u32 cry_salt_len   = atoi ((const char *) cry_salt_len_pos);
-  const u32 ckey_len       = atoi ((const char *) ckey_len_pos);
-  const u32 public_key_len = atoi ((const char *) public_key_len_pos);
+  const u32 cry_master_len = atoll ((const char *) cry_master_len_pos);
+  const u32 cry_salt_len   = atoll ((const char *) cry_salt_len_pos);
+  const u32 ckey_len       = atoll ((const char *) ckey_len_pos);
+  const u32 public_key_len = atoll ((const char *) public_key_len_pos);
 
   if (cry_master_buf_len != cry_master_len) return (PARSER_SALT_VALUE);
   if (cry_salt_buf_len   != cry_salt_len)   return (PARSER_SALT_VALUE);
@@ -10343,7 +10343,7 @@ int bitcoin_wallet_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
 
   if (cry_rounds_len >= 7) return (PARSER_SALT_VALUE);
 
-  const u32 cry_rounds = atoi ((const char *) cry_rounds_pos);
+  const u32 cry_rounds = atoll ((const char *) cry_rounds_pos);
 
   salt->salt_iter = cry_rounds - 1;
 
@@ -10828,13 +10828,13 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   u32 data_buf_len = input_len - 1 - 2 - 1 - p_buf_len - 1 - NumCyclesPower_len - 1 - salt_len_len - 1 - salt_buf_len - 1 - iv_len_len - 1 - iv_buf_len - 1 - crc_buf_len - 1 - data_len_len - 1 - unpack_size_len - 1;
 
-  const u32 iter         = atoi ((const char *) NumCyclesPower_pos);
-  const u32 crc          = atoi ((const char *) crc_buf_pos);
-  const u32 p_buf        = atoi ((const char *) p_buf_pos);
-  const u32 salt_len     = atoi ((const char *) salt_len_pos);
-  const u32 iv_len       = atoi ((const char *) iv_len_pos);
-  const u32 unpack_size  = atoi ((const char *) unpack_size_pos);
-  const u32 data_len     = atoi ((const char *) data_len_pos);
+  const u32 iter         = atoll ((const char *) NumCyclesPower_pos);
+  const u32 crc          = atoll ((const char *) crc_buf_pos);
+  const u32 p_buf        = atoll ((const char *) p_buf_pos);
+  const u32 salt_len     = atoll ((const char *) salt_len_pos);
+  const u32 iv_len       = atoll ((const char *) iv_len_pos);
+  const u32 unpack_size  = atoll ((const char *) unpack_size_pos);
+  const u32 data_len     = atoll ((const char *) data_len_pos);
 
   /**
    * verify some data
@@ -10992,7 +10992,7 @@ int pbkdf2_md5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   u8 *iter_pos = input_buf + 4;
 
-  u32 iter = atoi ((const char *) iter_pos);
+  u32 iter = atoll ((const char *) iter_pos);
 
   if (iter <      1) return (PARSER_SALT_ITERATION);
   if (iter > 999999) return (PARSER_SALT_ITERATION);
@@ -11074,7 +11074,7 @@ int pbkdf2_sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
 
   u8 *iter_pos = input_buf + 5;
 
-  u32 iter = atoi ((const char *) iter_pos);
+  u32 iter = atoll ((const char *) iter_pos);
 
   if (iter <      1) return (PARSER_SALT_ITERATION);
   if (iter > 999999) return (PARSER_SALT_ITERATION);
@@ -11161,7 +11161,7 @@ int pbkdf2_sha512_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MA
 
   u8 *iter_pos = input_buf + 7;
 
-  u32 iter = atoi ((const char *) iter_pos);
+  u32 iter = atoll ((const char *) iter_pos);
 
   if (iter <      1) return (PARSER_SALT_ITERATION);
   if (iter > 999999) return (PARSER_SALT_ITERATION);
@@ -11473,9 +11473,9 @@ int rar5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   u8 *iv       = param3_pos;
   u8 *pswcheck = param5_pos;
 
-  const u32 salt_len     = atoi ((const char *) param0_pos);
-  const u32 iterations   = atoi ((const char *) param2_pos);
-  const u32 pswcheck_len = atoi ((const char *) param4_pos);
+  const u32 salt_len     = atoll ((const char *) param0_pos);
+  const u32 iterations   = atoll ((const char *) param2_pos);
+  const u32 pswcheck_len = atoll ((const char *) param4_pos);
 
   /**
    * verify some data
@@ -11643,7 +11643,7 @@ int axcrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   u8 *data_pos;
 
-  salt->salt_iter = atoi ((const char *) wrapping_rounds_pos);
+  salt->salt_iter = atoll ((const char *) wrapping_rounds_pos);
 
   salt_pos = (u8 *) strchr ((const char *) wrapping_rounds_pos, '*');
 
@@ -11738,7 +11738,7 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   version_pos = input_buf + 8 + 1 + 1;
 
-  keepass->version = atoi ((const char *) version_pos);
+  keepass->version = atoll ((const char *) version_pos);
 
   rounds_pos = (u8 *) strchr ((const char *) version_pos, '*');
 
@@ -11746,7 +11746,7 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   rounds_pos++;
 
-  salt->salt_iter = (atoi ((const char *) rounds_pos));
+  salt->salt_iter = (atoll ((const char *) rounds_pos));
 
   algorithm_pos = (u8 *) strchr ((const char *) rounds_pos, '*');
 
@@ -11754,7 +11754,7 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   algorithm_pos++;
 
-  keepass->algorithm = atoi ((const char *) algorithm_pos);
+  keepass->algorithm = atoll ((const char *) algorithm_pos);
 
   final_random_seed_pos = (u8 *) strchr ((const char *) algorithm_pos, '*');
 
@@ -11842,7 +11842,7 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
     inline_flag_pos++;
 
-    u32 inline_flag = atoi ((const char *) inline_flag_pos);
+    u32 inline_flag = atoll ((const char *) inline_flag_pos);
 
     if (inline_flag != 1) return (PARSER_SALT_LENGTH);
 
@@ -12109,7 +12109,7 @@ int mywallet_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   if (data_buf_len % 16) return (PARSER_HASH_LENGTH);
 
-  u32 data_len = atoi ((const char *) data_len_pos);
+  u32 data_len = atoll ((const char *) data_len_pos);
 
   if ((data_len * 2) != data_buf_len) return (PARSER_HASH_LENGTH);
 
@@ -12203,7 +12203,7 @@ int ms_drsr_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   salt->salt_len = salt_len / 2;
 
-  salt->salt_iter = atoi ((const char *) iter_pos) - 1u;
+  salt->salt_iter = atoll ((const char *) iter_pos) - 1u;
 
   /**
    * digest buf
@@ -12359,15 +12359,15 @@ int zip2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   param8_pos++;
 
-  const u32 type  = atoi ((const char *) param0_pos);
-  const u32 mode  = atoi ((const char *) param1_pos);
-  const u32 magic = atoi ((const char *) param2_pos);
+  const u32 type  = atoll ((const char *) param0_pos);
+  const u32 mode  = atoll ((const char *) param1_pos);
+  const u32 magic = atoll ((const char *) param2_pos);
 
   u8 *salt_buf = param3_pos;
 
   u32 verify_bytes; sscanf ((const char *) param4_pos, "%4x*", &verify_bytes);
 
-  const u32 compress_length = atoi ((const char *) param5_pos);
+  const u32 compress_length = atoll ((const char *) param5_pos);
 
   u8 *data_buf = param6_pos;
   u8 *auth     = param7_pos;
