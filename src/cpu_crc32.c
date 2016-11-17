@@ -94,13 +94,13 @@ int cpu_crc32 (hashcat_ctx_t *hashcat_ctx, const char *filename, u8 keytab[64])
 
   u8 *buf = (u8 *) hcmalloc (hashcat_ctx, MAX_KEY_SIZE + 1); VERIFY_PTR (buf);
 
-  int nread = fread (buf, sizeof (u8), MAX_KEY_SIZE, fd);
+  size_t nread = fread (buf, sizeof (u8), MAX_KEY_SIZE, fd);
 
   fclose (fd);
 
-  int kpos = 0;
+  size_t kpos = 0;
 
-  for (int fpos = 0; fpos < nread; fpos++)
+  for (size_t fpos = 0; fpos < nread; fpos++)
   {
     crc = crc32tab[(crc ^ buf[fpos]) & 0xff] ^ (crc >> 8);
 

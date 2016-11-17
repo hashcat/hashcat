@@ -2399,7 +2399,7 @@ int netscreen_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   // unscramble
 
-  char clean_input_buf[32] = { 0 };
+  u8 clean_input_buf[32] = { 0 };
 
   char sig[6] = { 'n', 'r', 'c', 's', 't', 'n' };
   int  pos[6] = {   0,   6,  12,  17,  23,  29 };
@@ -2746,7 +2746,7 @@ int psafe2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
   memset (&buf, 0, sizeof (psafe2_hdr));
 
-  int n = fread (&buf, sizeof (psafe2_hdr), 1, fp);
+  size_t n = fread (&buf, sizeof (psafe2_hdr), 1, fp);
 
   fclose (fp);
 
@@ -2781,7 +2781,7 @@ int psafe3_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
   psafe3_t in;
 
-  int n = fread (&in, sizeof (psafe3_t), 1, fp);
+  size_t n = fread (&in, sizeof (psafe3_t), 1, fp);
 
   fclose (fp);
 
@@ -3219,7 +3219,7 @@ int md5asa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
     if ((input_len < DISPLAY_LEN_MIN_2410) || (input_len > DISPLAY_LEN_MAX_2410)) return (PARSER_GLOBAL_LENGTH);
   }
 
-  u32 *digest = (u32 *) hash_buf->digest;
+  int *digest = (int *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
@@ -3392,8 +3392,8 @@ int netntlmv1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   for (u32 i = 0; i < srvchall_len; i += 2)
   {
-    const char p0 = srvchall_pos[i + 0];
-    const char p1 = srvchall_pos[i + 1];
+    const u8 p0 = srvchall_pos[i + 0];
+    const u8 p1 = srvchall_pos[i + 1];
 
     *chall_ptr++ = hex_convert (p1) << 0
                  | hex_convert (p0) << 4;
@@ -3405,8 +3405,8 @@ int netntlmv1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   for (u32 i = 0; i < clichall_len; i += 2)
   {
-    const char p0 = clichall_pos[i + 0];
-    const char p1 = clichall_pos[i + 1];
+    const u8 p0 = clichall_pos[i + 0];
+    const u8 p1 = clichall_pos[i + 1];
 
     *chall_ptr++ = hex_convert (p1) << 0
                  | hex_convert (p0) << 4;
@@ -3632,8 +3632,8 @@ int netntlmv2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   for (u32 i = 0; i < srvchall_len; i += 2)
   {
-    const char p0 = srvchall_pos[i + 0];
-    const char p1 = srvchall_pos[i + 1];
+    const u8 p0 = srvchall_pos[i + 0];
+    const u8 p1 = srvchall_pos[i + 1];
 
     *chall_ptr++ = hex_convert (p1) << 0
                  | hex_convert (p0) << 4;
@@ -3645,8 +3645,8 @@ int netntlmv2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   for (u32 i = 0; i < clichall_len; i += 2)
   {
-    const char p0 = clichall_pos[i + 0];
-    const char p1 = clichall_pos[i + 1];
+    const u8 p0 = clichall_pos[i + 0];
+    const u8 p1 = clichall_pos[i + 1];
 
     *chall_ptr++ = hex_convert (p1) << 0
                  | hex_convert (p0) << 4;
@@ -5057,7 +5057,7 @@ int truecrypt_parse_hash_1k (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAY
 
   char buf[512] = { 0 };
 
-  int n = fread (buf, 1, sizeof (buf), fp);
+  size_t n = fread (buf, 1, sizeof (buf), fp);
 
   fclose (fp);
 
@@ -5096,7 +5096,7 @@ int truecrypt_parse_hash_2k (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAY
 
   char buf[512] = { 0 };
 
-  int n = fread (buf, 1, sizeof (buf), fp);
+  size_t n = fread (buf, 1, sizeof (buf), fp);
 
   fclose (fp);
 
@@ -5135,7 +5135,7 @@ int veracrypt_parse_hash_200000 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   char buf[512] = { 0 };
 
-  int n = fread (buf, 1, sizeof (buf), fp);
+  size_t n = fread (buf, 1, sizeof (buf), fp);
 
   fclose (fp);
 
@@ -5174,7 +5174,7 @@ int veracrypt_parse_hash_500000 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   char buf[512] = { 0 };
 
-  int n = fread (buf, 1, sizeof (buf), fp);
+  size_t n = fread (buf, 1, sizeof (buf), fp);
 
   fclose (fp);
 
@@ -5213,7 +5213,7 @@ int veracrypt_parse_hash_327661 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   char buf[512] = { 0 };
 
-  int n = fread (buf, 1, sizeof (buf), fp);
+  size_t n = fread (buf, 1, sizeof (buf), fp);
 
   fclose (fp);
 
@@ -5252,7 +5252,7 @@ int veracrypt_parse_hash_655331 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   char buf[512] = { 0 };
 
-  int n = fread (buf, 1, sizeof (buf), fp);
+  size_t n = fread (buf, 1, sizeof (buf), fp);
 
   fclose (fp);
 
@@ -5338,7 +5338,7 @@ int sha1aix_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   salt->salt_len = salt_len;
 
-  char salt_iter[3] = { iter_pos[0], iter_pos[1], 0 };
+  u8 salt_iter[3] = { iter_pos[0], iter_pos[1], 0 };
 
   salt->salt_sign[0] = atoll ((const char *) salt_iter);
 
@@ -5515,8 +5515,8 @@ int agilekey_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   for (u32 i = 0; i < saltbuf_len; i += 2)
   {
-    const char p0 = saltbuf_pos[i + 0];
-    const char p1 = saltbuf_pos[i + 1];
+    const u8 p0 = saltbuf_pos[i + 0];
+    const u8 p1 = saltbuf_pos[i + 1];
 
     *saltbuf_ptr++ = hex_convert (p1) << 0
                    | hex_convert (p0) << 4;
@@ -5534,8 +5534,8 @@ int agilekey_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   for (u32 i = 2016; i < cipherbuf_len; i += 2)
   {
-    const char p0 = cipherbuf_pos[i + 0];
-    const char p1 = cipherbuf_pos[i + 1];
+    const u8 p0 = cipherbuf_pos[i + 0];
+    const u8 p1 = cipherbuf_pos[i + 1];
 
     *cipherbuf_ptr++ = hex_convert (p1) << 0
                      | hex_convert (p0) << 4;
@@ -5556,8 +5556,8 @@ int agilekey_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   for (u32 i = 0, j = 0; i < 1040; i += 1, j += 2)
   {
-    const char p0 = cipherbuf_pos[j + 0];
-    const char p1 = cipherbuf_pos[j + 1];
+    const u8 p0 = cipherbuf_pos[j + 0];
+    const u8 p1 = cipherbuf_pos[j + 1];
 
     agilekey->cipher[i] = hex_convert (p1) << 0
                         | hex_convert (p0) << 4;
@@ -6178,8 +6178,8 @@ int krb5pa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
   for (u32 i = 0; i < (36 * 2); i += 2)
   {
-    const char p0 = data_pos[i + 0];
-    const char p1 = data_pos[i + 1];
+    const u8 p0 = data_pos[i + 0];
+    const u8 p1 = data_pos[i + 1];
 
     *timestamp_ptr++ = hex_convert (p1) << 0
                      | hex_convert (p0) << 4;
@@ -6189,8 +6189,8 @@ int krb5pa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
   for (u32 i = (36 * 2); i < ((36 + 16) * 2); i += 2)
   {
-    const char p0 = data_pos[i + 0];
-    const char p1 = data_pos[i + 1];
+    const u8 p0 = data_pos[i + 0];
+    const u8 p1 = data_pos[i + 1];
 
     *checksum_ptr++ = hex_convert (p1) << 0
                     | hex_convert (p0) << 4;
@@ -6688,8 +6688,8 @@ int cloudkey_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   for (u32 i = 0; i < saltbuf_len; i += 2)
   {
-    const char p0 = saltbuf_pos[i + 0];
-    const char p1 = saltbuf_pos[i + 1];
+    const u8 p0 = saltbuf_pos[i + 0];
+    const u8 p1 = saltbuf_pos[i + 1];
 
     *saltbuf_ptr++ = hex_convert (p1) << 0
                    | hex_convert (p0) << 4;
@@ -6710,8 +6710,8 @@ int cloudkey_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   for (u32 i = 0; i < databuf_len; i += 2)
   {
-    const char p0 = databuf_pos[i + 0];
-    const char p1 = databuf_pos[i + 1];
+    const u8 p0 = databuf_pos[i + 0];
+    const u8 p1 = databuf_pos[i + 1];
 
     *databuf_ptr++ = hex_convert (p1) << 0
                    | hex_convert (p0) << 4;
@@ -11582,8 +11582,8 @@ int krb5tgs_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   for (u32 i = 0; i < 16 * 2; i += 2)
   {
-    const char p0 = data_pos[i + 0];
-    const char p1 = data_pos[i + 1];
+    const u8 p0 = data_pos[i + 0];
+    const u8 p1 = data_pos[i + 1];
 
     *checksum_ptr++ = hex_convert (p1) << 0
                      | hex_convert (p0) << 4;
@@ -11596,8 +11596,8 @@ int krb5tgs_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   /* skip '$' */
   for (u32 i = 16 * 2 + 1; i < (krb5tgs->edata2_len * 2) + (16 * 2 + 1); i += 2)
   {
-    const char p0 = data_pos[i + 0];
-    const char p1 = data_pos[i + 1];
+    const u8 p0 = data_pos[i + 0];
+    const u8 p1 = data_pos[i + 1];
     *edata_ptr++ = hex_convert (p1) << 0
                     | hex_convert (p0) << 4;
   }
@@ -12451,8 +12451,8 @@ int zip2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   for (u32 i = 0; i < param6_len; i += 2)
   {
-    const char p0 = data_buf[i + 0];
-    const char p1 = data_buf[i + 1];
+    const u8 p0 = data_buf[i + 0];
+    const u8 p1 = data_buf[i + 1];
 
     *data_buf_ptr++ = hex_convert (p1) << 0
                     | hex_convert (p0) << 4;
@@ -12466,8 +12466,8 @@ int zip2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   for (u32 i = 0; i < param7_len; i += 2)
   {
-    const char p0 = auth[i + 0];
-    const char p1 = auth[i + 1];
+    const u8 p0 = auth[i + 0];
+    const u8 p1 = auth[i + 1];
 
     *auth_ptr++ = hex_convert (p1) << 0
                 | hex_convert (p0) << 4;
@@ -13241,7 +13241,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
   char tmp_buf[1024] = { 0 };
 
   char *ptr_plain = (char *) out_buf_plain;
-  char *ptr_salt  = (char *) out_buf_salt;
+  u8 *ptr_salt  = (u8 *) out_buf_salt;
 
   if (hash_mode == 22)
   {
@@ -13757,7 +13757,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
 
     ikepsk_t *ikepsk  = &ikepsks[salt_pos];
 
-    int buf_len = len - 1;
+    size_t buf_len = len - 1;
 
     // msg_buf
 
@@ -13823,7 +13823,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
 
     ikepsk_t *ikepsk  = &ikepsks[salt_pos];
 
-    int buf_len = len - 1;
+    size_t buf_len = len - 1;
 
     // msg_buf
 
@@ -14782,7 +14782,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
 
     // response
 
-    u32 tmp_len = snprintf (tmp_buf, sizeof (tmp_buf) - 1, "%s %08x%08x%08x%08x",
+    int tmp_len = snprintf (tmp_buf, sizeof (tmp_buf) - 1, "%s %08x%08x%08x%08x",
       (char *) cram_md5->user,
       digest_buf[0],
       digest_buf[1],
@@ -15253,7 +15253,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
   {
     // encode iteration count
 
-    char salt_iter[5] = { 0 };
+    u8 salt_iter[5] = { 0 };
 
     salt_iter[0] = int_to_itoa64 ((salt.salt_iter      ) & 0x3f);
     salt_iter[1] = int_to_itoa64 ((salt.salt_iter >>  6) & 0x3f);

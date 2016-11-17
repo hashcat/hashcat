@@ -203,14 +203,14 @@ void bin_to_hex_lower (const u32 v, u8 hex[8])
 
   u32 add;
 
-  hex[0] += 6; add = ((hex[0] & 0x10) >> 4) * 39; hex[0] += 42 + add;
-  hex[1] += 6; add = ((hex[1] & 0x10) >> 4) * 39; hex[1] += 42 + add;
-  hex[2] += 6; add = ((hex[2] & 0x10) >> 4) * 39; hex[2] += 42 + add;
-  hex[3] += 6; add = ((hex[3] & 0x10) >> 4) * 39; hex[3] += 42 + add;
-  hex[4] += 6; add = ((hex[4] & 0x10) >> 4) * 39; hex[4] += 42 + add;
-  hex[5] += 6; add = ((hex[5] & 0x10) >> 4) * 39; hex[5] += 42 + add;
-  hex[6] += 6; add = ((hex[6] & 0x10) >> 4) * 39; hex[6] += 42 + add;
-  hex[7] += 6; add = ((hex[7] & 0x10) >> 4) * 39; hex[7] += 42 + add;
+  hex[0] += 6; add = ((hex[0] & 0x10u) >> 4) * 39; hex[0] += 42 + add;
+  hex[1] += 6; add = ((hex[1] & 0x10u) >> 4) * 39; hex[1] += 42 + add;
+  hex[2] += 6; add = ((hex[2] & 0x10u) >> 4) * 39; hex[2] += 42 + add;
+  hex[3] += 6; add = ((hex[3] & 0x10u) >> 4) * 39; hex[3] += 42 + add;
+  hex[4] += 6; add = ((hex[4] & 0x10u) >> 4) * 39; hex[4] += 42 + add;
+  hex[5] += 6; add = ((hex[5] & 0x10u) >> 4) * 39; hex[5] += 42 + add;
+  hex[6] += 6; add = ((hex[6] & 0x10u) >> 4) * 39; hex[6] += 42 + add;
+  hex[7] += 6; add = ((hex[7] & 0x10u) >> 4) * 39; hex[7] += 42 + add;
 }
 
 u8 int_to_base32 (const u8 c)

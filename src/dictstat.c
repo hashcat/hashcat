@@ -94,7 +94,7 @@ void dictstat_read (hashcat_ctx_t *hashcat_ctx)
   {
     dictstat_t d;
 
-    const int nread = fread (&d, sizeof (dictstat_t), 1, fp);
+    const size_t nread = fread (&d, sizeof (dictstat_t), 1, fp);
 
     if (nread == 0) continue;
 
