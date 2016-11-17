@@ -14439,7 +14439,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
 
     base64_encode (int_to_base64, (const u8 *) digest_buf, 32, (u8 *) tmp_buf);
 
-    snprintf (out_buf, len-1, "%s:%i:%i:%i:%s:%s",
+    snprintf (out_buf, len-1, "%s:%u:%u:%u:%s:%s",
       SIGNATURE_SCRYPT,
       N,
       r,
@@ -15477,7 +15477,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
     if (version == 1)
       final_random_seed_len = 4;
 
-    snprintf (out_buf, len-1, "%s*%d*%d*%d",
+    snprintf (out_buf, len-1, "%s*%u*%u*%u",
       SIGNATURE_KEEPASS,
       version,
       rounds,
@@ -15528,9 +15528,9 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
 
       char ptr_contents_len[10] = { 0 };
 
-      sprintf ((char*) ptr_contents_len, "%d", contents_len);
+      sprintf ((char*) ptr_contents_len, "%u", contents_len);
 
-      sprintf (ptr_data, "%d", contents_len);
+      sprintf (ptr_data, "%u", contents_len);
 
       ptr_data += strlen(ptr_contents_len);
 
@@ -15566,7 +15566,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos,
       *ptr_data = '*';
       ptr_data++;
 
-      sprintf (ptr_data, "%d", keyfile_len);
+      sprintf (ptr_data, "%u", keyfile_len);
 
       ptr_data += 2;
 
