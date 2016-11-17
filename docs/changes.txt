@@ -30,6 +30,7 @@ The CLI (hashcat.bin or hashcat.exe) works as before but from a technical perspe
 ## Algorithms
 ##
 
+- Improved NVIDIA cracking performance when doing rule-based attacks for very fast hashes like NTLM by 35% or more
 - Reduce maximum number of allowed function calls per rule from 255 to 31 to save device memory
 - Workaround for some OpenCL kernels to compile with AMDGPU-Pro Driver
 - Allow words of length > 31 in wordlists for -a 0 for some slow hashes if no rules are in use
