@@ -2725,9 +2725,9 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         }
       }
 
-      if (device_type & CL_DEVICE_TYPE_GPU)
+      if (device_param->device_type & CL_DEVICE_TYPE_GPU)
       {
-        if (device_vendor_id == VENDOR_ID_AMD)
+        if ((device_param->platform_vendor_id == VENDOR_ID_AMD) && (device_param->device_vendor_id == VENDOR_ID_AMD))
         {
           cl_device_topology_amd amdtopo;
 
@@ -2740,7 +2740,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           device_param->pcie_function = amdtopo.pcie.function;
         }
 
-        if (device_vendor_id == VENDOR_ID_NV)
+        if ((device_param->platform_vendor_id == VENDOR_ID_NV) && (device_param->device_vendor_id == VENDOR_ID_NV))
         {
           cl_uint pci_bus_id_nv;  // is cl_uint the right type for them??
           cl_uint pci_slot_id_nv;
@@ -2812,7 +2812,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         {
           if (device_type & CL_DEVICE_TYPE_CPU)
           {
-            if (device_vendor_id == VENDOR_ID_INTEL_SDK)
+            if (device_param->platform_vendor_id == VENDOR_ID_INTEL_SDK)
             {
               bool intel_warn = false;
 
@@ -2841,7 +2841,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           }
           else if (device_type & CL_DEVICE_TYPE_GPU)
           {
-            if (device_vendor_id == VENDOR_ID_AMD)
+            if (device_param->platform_vendor_id == VENDOR_ID_AMD)
             {
               bool amd_warn = true;
 
@@ -2868,7 +2868,8 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
                 return -1;
               }
             }
-            else if (device_vendor_id == VENDOR_ID_NV)
+
+            if (device_param->platform_vendor_id == VENDOR_ID_NV)
             {
               int nv_warn = true;
 
@@ -3623,9 +3624,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     char build_opts_new[1024] = { 0 };
 
     #if defined (DEBUG)
-    snprintf (build_opts_new, sizeof (build_opts_new) - 1, "%s -D VENDOR_ID=%u -D CUDA_ARCH=%d -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -cl-std=CL1.2", build_opts, device_param->device_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, hashconfig->kern_type);
+    snprintf (build_opts_new, sizeof (build_opts_new) - 1, "%s -D VENDOR_ID=%u -D CUDA_ARCH=%d -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -cl-std=CL1.2", build_opts, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, hashconfig->kern_type);
     #else
-    snprintf (build_opts_new, sizeof (build_opts_new) - 1, "%s -D VENDOR_ID=%u -D CUDA_ARCH=%d -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -cl-std=CL1.2 -w", build_opts, device_param->device_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, hashconfig->kern_type);
+    snprintf (build_opts_new, sizeof (build_opts_new) - 1, "%s -D VENDOR_ID=%u -D CUDA_ARCH=%d -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -cl-std=CL1.2 -w", build_opts, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, hashconfig->kern_type);
     #endif
 
     strncpy (build_opts, build_opts_new, sizeof (build_opts) - 1);
