@@ -82,15 +82,10 @@ static int ocl_check_dri (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
   if (fd_dri == NULL)
   {
-    event_log_error_nn (hashcat_ctx, "Can not access %s: %s", dri_card0_path, strerror (errno));
-    event_log_error_nn (hashcat_ctx, "%s", EOL);
-    event_log_error_nn (hashcat_ctx, "This causes some drivers to crash when OpenCL is used!");
-    event_log_error_nn (hashcat_ctx, "%s", EOL);
-    event_log_error_nn (hashcat_ctx, "Usually it's enough to add your user account to the \"video\" group to fix this problem:");
-    event_log_error_nn (hashcat_ctx, "%s", EOL);
-    event_log_error_nn (hashcat_ctx, "$ sudo usermod -a -G video $LOGNAME");
-    event_log_error_nn (hashcat_ctx, "%s", EOL);
-    event_log_error_nn (hashcat_ctx, "%s", EOL);
+    event_log_error (hashcat_ctx, "Can not access %s: %s", dri_card0_path, strerror (errno));
+    event_log_error (hashcat_ctx, "This causes some drivers to crash when OpenCL is used!");
+    event_log_error (hashcat_ctx, "Usually it's enough to add your user account to the \"video\" group to fix this problem:");
+    event_log_error (hashcat_ctx, "$ sudo usermod -a -G video $LOGNAME");
 
     return -1;
   }
@@ -396,7 +391,6 @@ int ocl_init (hashcat_ctx_t *hashcat_ctx)
     #endif
 
     event_log_error (hashcat_ctx, "* NVidia users require \"NVIDIA Driver\" (367.x or later)");
-    event_log_error (hashcat_ctx, "");
 
     return -1;
   }
@@ -2096,10 +2090,22 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
     event_log_error (hashcat_ctx, "ATTENTION! No OpenCL compatible platform found");
     event_log_error (hashcat_ctx, "");
     event_log_error (hashcat_ctx, "You're probably missing the OpenCL runtime installation");
-    event_log_error (hashcat_ctx, "* AMD users require AMD drivers 14.9 or later (recommended 15.12 or later)");
-    event_log_error (hashcat_ctx, "* Intel users require Intel OpenCL Runtime 14.2 or later (recommended 15.1 or later)");
-    event_log_error (hashcat_ctx, "* NVidia users require NVidia drivers 346.59 or later (recommended 361.x or later)");
-    event_log_error (hashcat_ctx, "");
+
+    #if defined (__linux__)
+    event_log_error (hashcat_ctx, "* AMD users on Linux require \"AMDGPU-Pro Driver\" (16.40 or later)");
+    #elif defined (_WIN)
+    event_log_error (hashcat_ctx, "* AMD users on Windows require \"AMD Radeon Software Crimson Edition\" (15.12 or later)");
+    #endif
+
+    event_log_error (hashcat_ctx, "* Intel CPU users require \"OpenCL Runtime for Intel Core and Intel Xeon Processors\" (16.1.1 or later)");
+
+    #if defined (__linux__)
+    event_log_error (hashcat_ctx, "* Intel GPU on Linux users require \"OpenCL 2.0 GPU Driver Package for Linux\" (2.0 or later)");
+    #elif defined (_WIN)
+    event_log_error (hashcat_ctx, "* Intel GPU on Windows users require \"OpenCL Driver for Intel Iris and Intel HD Graphics\"");
+    #endif
+
+    event_log_error (hashcat_ctx, "* NVidia users require \"NVIDIA Driver\" (367.x or later)");
 
     return -1;
   }
@@ -2823,16 +2829,11 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
               if (intel_warn == true)
               {
-                event_log_error_nn (hashcat_ctx, "* Device #%u: Outdated or incorrectly installed NVIDIA driver detected!", device_id + 1);
-                event_log_error_nn (hashcat_ctx, "%s", EOL);
-                event_log_error_nn (hashcat_ctx, "%s", EOL);
-                event_log_error_nn (hashcat_ctx, "You are STRONGLY encouraged to use the official supported NVIDIA driver");
-                event_log_error_nn (hashcat_ctx, "%s", EOL);
-                event_log_error_nn (hashcat_ctx, "See hashcat's homepage for official supported NVIDIA drivers");
-                event_log_error_nn (hashcat_ctx, "%s", EOL);
-                event_log_error_nn (hashcat_ctx, "You can use --force to override this but do not post error reports if you do so");
-                event_log_error_nn (hashcat_ctx, "%s", EOL);
-                event_log_error_nn (hashcat_ctx, "%s", EOL);
+                event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken Intel OpenCL runtime detected!", device_id + 1);
+                event_log_error (hashcat_ctx, "");
+                event_log_error (hashcat_ctx, "You are STRONGLY encouraged to use the official supported NVIDIA driver");
+                event_log_error (hashcat_ctx, "See hashcat's homepage for official supported NVIDIA drivers");
+                event_log_error (hashcat_ctx, "You can use --force to override this but do not post error reports if you do so");
 
                 return -1;
               }
@@ -2857,20 +2858,12 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
               if (amd_warn == true)
               {
-                event_log_error_nn (hashcat_ctx, "* Device #%u: Outdated or incorrectly installed AMD driver detected!", device_id + 1);
-                event_log_error_nn (hashcat_ctx, "%s", EOL);
-                event_log_error_nn (hashcat_ctx, "%s", EOL);
-                event_log_error_nn (hashcat_ctx, "You are STRONGLY encouraged to use the official supported AMD driver");
-                event_log_error_nn (hashcat_ctx, "%s", EOL);
-                event_log_error_nn (hashcat_ctx, "See hashcat's homepage for official supported AMD drivers");
-                event_log_error_nn (hashcat_ctx, "%s", EOL);
-                #if defined (_WIN)
-                event_log_error_nn (hashcat_ctx, "Also see: http://hashcat.net/wiki/doku.php?id=upgrading_amd_drivers_how_to");
-                event_log_error_nn (hashcat_ctx, "%s", EOL);
-                #endif
-                event_log_error_nn (hashcat_ctx, "You can use --force to override this but do not post error reports if you do so");
-                event_log_error_nn (hashcat_ctx, "%s", EOL);
-                event_log_error_nn (hashcat_ctx, "%s", EOL);
+                event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken AMD driver detected!", device_id + 1);
+                event_log_error (hashcat_ctx, "");
+                event_log_error (hashcat_ctx, "You are STRONGLY encouraged to use the official supported AMD driver");
+                event_log_error (hashcat_ctx, "See hashcat's homepage for official supported AMD drivers");
+                event_log_error (hashcat_ctx, "Also see: https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#i_may_have_the_wrong_driver_installed_what_should_i_do");
+                event_log_error (hashcat_ctx, "You can use --force to override this but do not post error reports if you do so");
 
                 return -1;
               }
@@ -2884,18 +2877,20 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
               if (nv_warn == true)
               {
-                event_log_error_nn (hashcat_ctx, "* Device #%u: Outdated or incorrectly installed NVIDIA driver detected!", device_id + 1);
-                event_log_error_nn (hashcat_ctx, "%s", EOL);
-                event_log_error_nn (hashcat_ctx, "%s", EOL);
-                event_log_error_nn (hashcat_ctx, "You are STRONGLY encouraged to use the official supported NVIDIA driver");
-                event_log_error_nn (hashcat_ctx, "%s", EOL);
-                event_log_error_nn (hashcat_ctx, "See hashcat's homepage for official supported NVIDIA drivers");
-                event_log_error_nn (hashcat_ctx, "%s", EOL);
-                event_log_error_nn (hashcat_ctx, "You can use --force to override this but do not post error reports if you do so");
-                event_log_error_nn (hashcat_ctx, "%s", EOL);
-                event_log_error_nn (hashcat_ctx, "%s", EOL);
+                event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken NVIDIA driver detected!", device_id + 1);
+                event_log_error (hashcat_ctx, "");
+                event_log_error (hashcat_ctx, "You are STRONGLY encouraged to use the official supported NVIDIA driver");
+                event_log_error (hashcat_ctx, "See hashcat's homepage for official supported NVIDIA drivers");
+                event_log_error (hashcat_ctx, "Also see: https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#i_may_have_the_wrong_driver_installed_what_should_i_do");
+                event_log_error (hashcat_ctx, "You can use --force to override this but do not post error reports if you do so");
 
                 return -1;
+              }
+
+              if (device_param->sm_major < 5)
+              {
+                if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Old CUDA chipset %u.%u detected, OpenCL performance is reduced.", device_id + 1, device_param->sm_major, device_param->sm_minor);
+                if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             For ideal hashcat performance on NVIDIA GPU you need Shader Model 5.0 or higher");
               }
 
               if (device_param->kernel_exec_timeout != 0)
