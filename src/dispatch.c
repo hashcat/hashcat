@@ -44,7 +44,7 @@ static u64 get_lowest_words_done (const hashcat_ctx_t *hashcat_ctx)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
-    if (device_param->skipped) continue;
+    if (device_param->skipped == true) continue;
 
     const u64 words_done = device_param->words_done;
 

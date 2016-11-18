@@ -633,7 +633,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
     {
       device_param = &opencl_ctx->devices_param[device_id];
 
-      if (device_param->skipped) continue;
+      if (device_param->skipped == true) continue;
 
       break;
     }

@@ -125,7 +125,7 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
       {
         hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
-        if (device_param->skipped) continue;
+        if (device_param->skipped == true) continue;
 
         const int rc_throttle = hm_get_throttle_with_device_id (hashcat_ctx, device_id);
 
@@ -164,7 +164,7 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
       {
         hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
-        if (device_param->skipped) continue;
+        if (device_param->skipped == true) continue;
 
         if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
 

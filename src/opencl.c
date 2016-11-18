@@ -2968,7 +2968,7 @@ void opencl_ctx_devices_destroy (hashcat_ctx_t *hashcat_ctx)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
-    if (device_param->skipped) continue;
+    if (device_param->skipped == true) continue;
 
     hcfree (device_param->device_name);
     hcfree (device_param->device_name_chksum);
@@ -3043,7 +3043,7 @@ void opencl_ctx_devices_kernel_loops (hashcat_ctx_t *hashcat_ctx)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
-    if (device_param->skipped) continue;
+    if (device_param->skipped == true) continue;
 
     if (device_param->kernel_loops_min < device_param->kernel_loops_max)
     {
@@ -3146,7 +3146,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
-    if (device_param->skipped) continue;
+    if (device_param->skipped == true) continue;
 
     #if defined(__APPLE__)
     /**
@@ -4746,7 +4746,7 @@ void opencl_session_destroy (hashcat_ctx_t *hashcat_ctx)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
-    if (device_param->skipped) continue;
+    if (device_param->skipped == true) continue;
 
     hcfree (device_param->pws_buf);
     hcfree (device_param->combs_buf);
@@ -4868,7 +4868,7 @@ void opencl_session_reset (hashcat_ctx_t *hashcat_ctx)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
-    if (device_param->skipped) continue;
+    if (device_param->skipped == true) continue;
 
     device_param->speed_pos = 0;
 
@@ -4910,7 +4910,7 @@ int opencl_session_update_combinator (hashcat_ctx_t *hashcat_ctx)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
-    if (device_param->skipped) continue;
+    if (device_param->skipped == true) continue;
 
     // kernel_params
 
@@ -4951,7 +4951,7 @@ int opencl_session_update_mp (hashcat_ctx_t *hashcat_ctx)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
-    if (device_param->skipped) continue;
+    if (device_param->skipped == true) continue;
 
     device_param->kernel_params_mp_buf64[3] = 0;
     device_param->kernel_params_mp_buf32[4] = mask_ctx->css_cnt;
@@ -4979,7 +4979,7 @@ int opencl_session_update_mp_rl (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_l
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
-    if (device_param->skipped) continue;
+    if (device_param->skipped == true) continue;
 
     device_param->kernel_params_mp_l_buf64[3] = 0;
     device_param->kernel_params_mp_l_buf32[4] = css_cnt_l;
