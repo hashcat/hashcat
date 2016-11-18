@@ -3135,6 +3135,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
   }
 
   u32 hardware_power_all = 0;
+  u32 skipped = 0;
 
   for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
@@ -3189,6 +3190,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       event_log_warning (hashcat_ctx, "* Device #%u: skipping unstable hash-mode %u for this specific device, use --force to override", device_id + 1, user_options->hash_mode);
 
       device_param->skipped_temp = true;
+      skipped++;
 
       device_param->skipped = true;
 
@@ -4752,7 +4754,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     hardware_power_all += device_param->hardware_power;
   }
 
-  if (hardware_power_all == 0) return -1;
+  if (hardware_power_all == 0) return ((opencl_ctx->devices_cnt - skipped) == 0) ? 1 : -1;
 
   opencl_ctx->hardware_power_all = hardware_power_all;
 
