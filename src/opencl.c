@@ -155,12 +155,12 @@ static void generate_cached_kernel_mp_filename (const u32 opti_type, const u32 o
 
 static void generate_source_kernel_amp_filename (const u32 attack_kern, char *shared_dir, char *source_file)
 {
-  snprintf (source_file, 255, "%s/OpenCL/amp_a%d.cl", shared_dir, attack_kern);
+  snprintf (source_file, 255, "%s/OpenCL/amp_a%u.cl", shared_dir, attack_kern);
 }
 
 static void generate_cached_kernel_amp_filename (const u32 attack_kern, char *profile_dir, const char *device_name_chksum, char *cached_file)
 {
-  snprintf (cached_file, 255, "%s/kernels/amp_a%d.%s.kernel", profile_dir, attack_kern, device_name_chksum);
+  snprintf (cached_file, 255, "%s/kernels/amp_a%u.%s.kernel", profile_dir, attack_kern, device_name_chksum);
 }
 
 static int setup_opencl_platforms_filter (hashcat_ctx_t *hashcat_ctx, const char *opencl_platforms, u32 *out)

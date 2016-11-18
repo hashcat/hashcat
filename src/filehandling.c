@@ -79,7 +79,7 @@ int fgetl (FILE *fp, char *line_buf)
 
 int in_superchop (char *buf)
 {
-  int len = strlen (buf);
+  size_t len = strlen (buf);
 
   while (len)
   {
