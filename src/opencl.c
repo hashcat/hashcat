@@ -3148,30 +3148,53 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->skipped == true) continue;
 
-    #if defined(__APPLE__)
+    #if defined (__APPLE__)
+
     /**
-     * If '--force' is not set, we proceed to excluding unstable hash modes,
+     * If '--force' is not set, we proceed to excluding unstable hash-modes,
      * because some of them cause segfault or inconclusive attack.
-     *
-     * common: 1500, 3000, 14000
-     * gpu-only: 14100
-     * cpu-only: 3200, 9000
      */
-    bool checks = false;
 
-    checks |= (user_options->hash_mode == 1500 || user_options->hash_mode == 3000 || user_options->hash_mode == 14000);
-    checks |= ((device_param->device_type & CL_DEVICE_TYPE_GPU) == CL_DEVICE_TYPE_GPU && user_options->hash_mode == 14100);
-    checks |= ((device_param->device_type & CL_DEVICE_TYPE_CPU) == CL_DEVICE_TYPE_CPU && (user_options->hash_mode == 3200 || user_options->hash_mode == 9000));
+    bool skipped_temp = false;
 
-    if (!user_options->force && checks)
+    if (hashconfig->opts_type & OPTS_TYPE_PT_BITSLICE)
     {
-      event_log_warning (hashcat_ctx, "* Device #%u: hashmode %u is unstable for this Apple %s Device, skipping (use --force to override)\n",
-                         device_id+1, user_options->hash_mode, (device_param->device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "CPU");
+      // bitsliced des, uses 2 dimensional work items
+
+      skipped_temp = true;
+    }
+
+    if (device_param->device_type & CL_DEVICE_TYPE_GPU)
+    {
+      if (user_options->hash_mode == 14100)
+      {
+        // 3des not bitsliced, largely depend on local memory, maybe to large code size?
+
+        skipped_temp = true;
+      }
+    }
+
+    if (device_param->device_type & CL_DEVICE_TYPE_CPU)
+    {
+      if ((user_options->hash_mode == 3200) || (user_options->hash_mode == 9000))
+      {
+        // both blowfish, largely depend on local memory, kernel threads to fixed 8
+
+        skipped_temp = true;
+      }
+    }
+
+    if ((skipped_temp == true) && (user_options->force == false))
+    {
+      event_log_warning (hashcat_ctx, "* Device #%u: skipping unstable hash-mode %u for this specific device, use --force to override", device_id + 1, user_options->hash_mode);
+
+      device_param->skipped_temp = true;
 
       device_param->skipped = true;
 
       continue;
     }
+
     #endif // __APPLE__
 
     // vector_width
@@ -4745,6 +4768,15 @@ void opencl_session_destroy (hashcat_ctx_t *hashcat_ctx)
   for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+    if (device_param->skipped_temp == true)
+    {
+      device_param->skipped_temp = false;
+
+      device_param->skipped = false;
+
+      continue;
+    }
 
     if (device_param->skipped == true) continue;
 

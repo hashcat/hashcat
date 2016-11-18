@@ -824,6 +824,7 @@ typedef struct hc_device_param
   u32     platform_devices_id;   // for mapping with hms devices
 
   bool    skipped;
+  bool    skipped_temp;
 
   u32     sm_major;
   u32     sm_minor;
