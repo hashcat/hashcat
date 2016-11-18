@@ -92,7 +92,7 @@ static int ocl_check_dri (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
   fclose (fd_dri);
 
-  #endif
+  #endif // __linux__
 
   return 0;
 }
@@ -3147,6 +3147,32 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
     if (device_param->skipped) continue;
+
+    #if defined(__APPLE__)
+    /**
+     * If '--force' is not set, we proceed to excluding unstable hash modes,
+     * because some of them cause segfault or inconclusive attack.
+     *
+     * common: 1500, 3000, 14000
+     * gpu-only: 14100
+     * cpu-only: 3200, 9000
+     */
+    bool checks = false;
+
+    checks |= (user_options->hash_mode == 1500 || user_options->hash_mode == 3000 || user_options->hash_mode == 14000);
+    checks |= ((device_param->device_type & CL_DEVICE_TYPE_GPU) == CL_DEVICE_TYPE_GPU && user_options->hash_mode == 14100);
+    checks |= ((device_param->device_type & CL_DEVICE_TYPE_CPU) == CL_DEVICE_TYPE_CPU && (user_options->hash_mode == 3200 || user_options->hash_mode == 9000));
+
+    if (!user_options->force && checks)
+    {
+      event_log_warning (hashcat_ctx, "* Device #%u: hashmode %u is unstable for this Apple %s Device, skipping (use --force to override)\n",
+                         device_id+1, user_options->hash_mode, (device_param->device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "CPU");
+
+      device_param->skipped = true;
+
+      continue;
+    }
+    #endif // __APPLE__
 
     // vector_width
 
