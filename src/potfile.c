@@ -508,7 +508,7 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
 
       out_buf[0] = 0;
 
-      ascii_digest (hashcat_ctx, (char *) out_buf, salt_idx, digest_idx);
+      ascii_digest (hashcat_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_idx, digest_idx);
 
       hash_t *hash = &hashes_buf[hashes_idx];
 
@@ -572,7 +572,7 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
 
       out_buf[0] = 0;
 
-      ascii_digest (hashcat_ctx, (char *) out_buf, salt_idx, digest_idx);
+      ascii_digest (hashcat_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_idx, digest_idx);
 
       hash_t *hash = &hashes_buf[hashes_idx];
 

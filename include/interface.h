@@ -1515,7 +1515,7 @@ char *strparser   (const u32 parser_status);
 
 void to_hccap_t (hashcat_ctx_t *hashcat_ctx, hccap_t *hccap, const u32 salt_pos, const u32 digest_pos);
 
-int  ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const u32 salt_pos, const u32 digest_pos);
+int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_len, const u32 salt_pos, const u32 digest_pos);
 
 int     hashconfig_init               (hashcat_ctx_t *hashcat_ctx);
 void    hashconfig_destroy            (hashcat_ctx_t *hashcat_ctx);
