@@ -158,6 +158,8 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
                 {
                   if (line_buf[i] != separator) continue;
 
+                  iter--;
+
                   int parser_status = PARSER_OK;
 
                   if ((hash_mode != 2500) && (hash_mode != 6800))
@@ -269,8 +271,6 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
                   if (found) break;
 
                   if (status_ctx->devices_status == STATUS_CRACKED) break;
-
-                  iter--;
                 }
 
                 if (status_ctx->devices_status == STATUS_CRACKED) break;

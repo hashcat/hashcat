@@ -321,9 +321,11 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
     int iter = MAX_CUT_TRIES;
 
-    for (int i = line_len - 1; i && iter; i--, iter--, line_len--)
+    for (int i = line_len - 1; i && iter; i--, line_len--)
     {
       if (line_buf[i] != ':') continue;
+
+      iter--;
 
       if (hashconfig->is_salted)
       {
