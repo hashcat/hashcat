@@ -288,6 +288,8 @@ int outfile_init (hashcat_ctx_t *hashcat_ctx)
 
   if (rc == -1) return -1;
 
+  outfile_write_close (hashcat_ctx);
+
   return 0;
 }
 
