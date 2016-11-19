@@ -162,6 +162,9 @@
 #if KERN_TYPE == 3000
 #undef _unroll
 #endif
+#if KERN_TYPE == 3200
+#undef _unroll
+#endif
 #if KERN_TYPE == 10500
 #undef _unroll
 #endif
