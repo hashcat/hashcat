@@ -2757,14 +2757,6 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           device_param->pcie_device   = (u8) (pci_slot_id_nv >> 3);
           device_param->pcie_function = (u8) (pci_slot_id_nv & 7);
 
-          cl_uint kernel_exec_timeout = 0;
-
-          CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV, sizeof (kernel_exec_timeout), &kernel_exec_timeout, NULL);
-
-          if (CL_rc == -1) return -1;
-
-          device_param->kernel_exec_timeout = kernel_exec_timeout;
-
           cl_uint sm_minor = 0;
           cl_uint sm_major = 0;
 
@@ -2892,12 +2884,6 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
               {
                 if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Old CUDA chipset %u.%u detected, OpenCL performance is reduced.", device_id + 1, device_param->sm_major, device_param->sm_minor);
                 if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             For ideal hashcat performance on NVIDIA GPU you need Shader Model 5.0 or higher");
-              }
-
-              if (device_param->kernel_exec_timeout != 0)
-              {
-                if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel exec timeout is not disabled, it might cause you errors of code 702", device_id + 1);
-                if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             See the wiki on how to disable it: https://hashcat.net/wiki/doku.php?id=timeout_patch");
               }
             }
           }
