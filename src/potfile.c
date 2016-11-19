@@ -223,7 +223,7 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, u8 *
 
   if (1)
   {
-    const bool always_ascii = (hashconfig->hash_type & OPTS_TYPE_PT_ALWAYS_ASCII);
+    const bool always_ascii = (hashconfig->hash_type & OPTS_TYPE_PT_ALWAYS_ASCII) ? true : false;
 
     if ((user_options->outfile_autohex == true) && (need_hexify (plain_ptr, plain_len, always_ascii) == true))
     {
