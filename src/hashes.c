@@ -152,6 +152,9 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
+
+  u8 *out_buf = (u8 *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE); VERIFY_PTR (out_buf);
+
   for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
   {
     if (hashes->salts_shown[salt_pos] == 1) continue;
@@ -192,8 +195,6 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
           fputc (separator, fp);
         }
 
-        u8 *out_buf = hashes->out_buf;
-
         out_buf[0] = 0;
 
         ascii_digest (hashcat_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_pos, digest_pos);
@@ -202,6 +203,8 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
       }
     }
   }
+
+  hcfree (out_buf);
 
   fflush (fp);
 
