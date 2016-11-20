@@ -177,78 +177,80 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
           myabort (hashcat_ctx);
         }
 
+        if (hwmon_ctx->hm_device[device_id].fan_get_supported == false) continue;
+        if (hwmon_ctx->hm_device[device_id].fan_set_supported == false) continue;
+
         const u32 gpu_temp_retain = user_options->gpu_temp_retain;
 
-        if (gpu_temp_retain)
+        if (gpu_temp_retain > 0)
         {
-          if (hwmon_ctx->hm_device[device_id].fan_set_supported == true)
+          int temp_cur = temperature;
+
+          int temp_diff_new = (int) gpu_temp_retain - temp_cur;
+
+          temp_diff_sum[device_id] = temp_diff_sum[device_id] + temp_diff_new;
+
+          // calculate Ta value (time difference in seconds between the last check and this check)
+
+          last_temp_check_time = temp_check_time;
+
+          float Kp = 1.8f;
+          float Ki = 0.005f;
+          float Kd = 6.0f;
+
+          // PID controller (3-term controller: proportional - Kp, integral - Ki, derivative - Kd)
+
+          int fan_diff_required = (int) (Kp * (float)temp_diff_new + Ki * Ta * (float)temp_diff_sum[device_id] + Kd * ((float)(temp_diff_new - temp_diff_old[device_id])) / Ta);
+
+          if (abs (fan_diff_required) >= temp_threshold)
           {
-            int temp_cur = temperature;
+            const int fan_speed_cur = hm_get_fanspeed_with_device_id (hashcat_ctx, device_id);
 
-            int temp_diff_new = (int) gpu_temp_retain - temp_cur;
+            int fan_speed_level = fan_speed_cur;
 
-            temp_diff_sum[device_id] = temp_diff_sum[device_id] + temp_diff_new;
+            if (fan_speed_chgd[device_id] == 0) fan_speed_level = temp_cur;
 
-            // calculate Ta value (time difference in seconds between the last check and this check)
+            int fan_speed_new = fan_speed_level - fan_diff_required;
 
-            last_temp_check_time = temp_check_time;
+            if (fan_speed_new > fan_speed_max) fan_speed_new = fan_speed_max;
+            if (fan_speed_new < fan_speed_min) fan_speed_new = fan_speed_min;
 
-            float Kp = 1.8f;
-            float Ki = 0.005f;
-            float Kd = 6.0f;
-
-            // PID controller (3-term controller: proportional - Kp, integral - Ki, derivative - Kd)
-
-            int fan_diff_required = (int) (Kp * (float)temp_diff_new + Ki * Ta * (float)temp_diff_sum[device_id] + Kd * ((float)(temp_diff_new - temp_diff_old[device_id])) / Ta);
-
-            if (abs (fan_diff_required) >= temp_threshold)
+            if (fan_speed_new != fan_speed_cur)
             {
-              const int fan_speed_cur = hm_get_fanspeed_with_device_id (hashcat_ctx, device_id);
+              int freely_change_fan_speed = (fan_speed_chgd[device_id] == 1);
+              int fan_speed_must_change = (fan_speed_new > fan_speed_cur);
 
-              int fan_speed_level = fan_speed_cur;
-
-              if (fan_speed_chgd[device_id] == 0) fan_speed_level = temp_cur;
-
-              int fan_speed_new = fan_speed_level - fan_diff_required;
-
-              if (fan_speed_new > fan_speed_max) fan_speed_new = fan_speed_max;
-              if (fan_speed_new < fan_speed_min) fan_speed_new = fan_speed_min;
-
-              if (fan_speed_new != fan_speed_cur)
+              if ((freely_change_fan_speed == 1) || (fan_speed_must_change == 1))
               {
-                int freely_change_fan_speed = (fan_speed_chgd[device_id] == 1);
-                int fan_speed_must_change = (fan_speed_new > fan_speed_cur);
-
-                if ((freely_change_fan_speed == 1) || (fan_speed_must_change == 1))
+                if (device_param->device_vendor_id == VENDOR_ID_AMD)
                 {
-                  if (device_param->device_vendor_id == VENDOR_ID_AMD)
+                  if (hwmon_ctx->hm_adl)
                   {
-                    if (hwmon_ctx->hm_adl)
-                    {
-                      hm_set_fanspeed_with_device_id_adl (hashcat_ctx, device_id, fan_speed_new, 1);
-                    }
-
-                    if (hwmon_ctx->hm_sysfs)
-                    {
-                      hm_set_fanspeed_with_device_id_sysfs (hashcat_ctx, device_id, fan_speed_new);
-                    }
+                    hm_set_fanspeed_with_device_id_adl (hashcat_ctx, device_id, fan_speed_new, 1);
                   }
-                  else if (device_param->device_vendor_id == VENDOR_ID_NV)
+
+                  if (hwmon_ctx->hm_sysfs)
                   {
-                    #if defined (_WIN)
+                    hm_set_fanspeed_with_device_id_sysfs (hashcat_ctx, device_id, fan_speed_new);
+                  }
+                }
+                else if (device_param->device_vendor_id == VENDOR_ID_NV)
+                {
+                  if (hwmon_ctx->hm_nvapi)
+                  {
                     hm_set_fanspeed_with_device_id_nvapi (hashcat_ctx, device_id, fan_speed_new, 1);
-                    #endif
-
-                    #if defined (__linux__)
-                    hm_set_fanspeed_with_device_id_xnvctrl (hashcat_ctx, device_id, fan_speed_new);
-                    #endif
                   }
 
-                  fan_speed_chgd[device_id] = 1;
+                  if (hwmon_ctx->hm_xnvctrl)
+                  {
+                    hm_set_fanspeed_with_device_id_xnvctrl (hashcat_ctx, device_id, fan_speed_new);
+                  }
                 }
 
-                temp_diff_old[device_id] = temp_diff_new;
+                fan_speed_chgd[device_id] = 1;
               }
+
+              temp_diff_old[device_id] = temp_diff_new;
             }
           }
         }
