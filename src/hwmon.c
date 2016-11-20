@@ -154,7 +154,9 @@ static int hm_SYSFS_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int
     return -1;
   }
 
-  float pwm1_percent = ((float) pwm1_cur / (float) pwm1_max) * 100.0f;
+  const float p1 = (float) pwm1_max / 100.0f;
+
+  const float pwm1_percent = (float) pwm1_cur / p1;
 
   *val = (int) pwm1_percent;
 
@@ -202,9 +204,40 @@ static int hm_SYSFS_set_fan_speed_target (hashcat_ctx_t *hashcat_ctx, const int 
 
   if (syspath == NULL) return -1;
 
-  char *path = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+  char *path     = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+  char *path_max = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
 
-  snprintf (path, HCBUFSIZ_TINY - 1, "%s/pwm1", syspath);
+  snprintf (path,     HCBUFSIZ_TINY - 1, "%s/pwm1",     syspath);
+  snprintf (path_max, HCBUFSIZ_TINY - 1, "%s/pwm1_max", syspath);
+
+  FILE *fd_max = fopen (path_max, "r");
+
+  if (fd_max == NULL)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", path_max, strerror (errno));
+
+    return -1;
+  }
+
+  int pwm1_max = 0;
+
+  if (fscanf (fd_max, "%d", &pwm1_max) != 1)
+  {
+    event_log_error (hashcat_ctx, "%s: unexpected data", path_max);
+
+    return -1;
+  }
+
+  fclose (fd_max);
+
+  if (pwm1_max == 0)
+  {
+    event_log_error (hashcat_ctx, "%s: pwm1_max can not be 0", path_max);
+
+    return -1;
+  }
+
+  const float p1 = (float) pwm1_max / 100.0f;
 
   FILE *fd = fopen (path, "w");
 
@@ -215,14 +248,13 @@ static int hm_SYSFS_set_fan_speed_target (hashcat_ctx_t *hashcat_ctx, const int 
     return -1;
   }
 
-  val = (int) (val * 2.55f); // should be pwm1_max
-
-  fprintf (fd, "%d", val);
+  fprintf (fd, "%d", (int) ((float) val * p1));
 
   fclose (fd);
 
   hcfree (syspath);
 
+  hcfree (path_max);
   hcfree (path);
 
   return 0;
