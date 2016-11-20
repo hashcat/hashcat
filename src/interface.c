@@ -2781,6 +2781,8 @@ int psafe3_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
   psafe3_t in;
 
+  memset (&in, 0, sizeof (psafe3_t));
+
   const size_t n = fread (&in, sizeof (psafe3_t), 1, fp);
 
   fclose (fp);
