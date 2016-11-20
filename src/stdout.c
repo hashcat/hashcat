@@ -14,6 +14,8 @@
 
 static void out_flush (out_t *out)
 {
+  if (out->len == 0) return;
+
   fwrite (out->buf, 1, out->len, out->fp);
 
   out->len = 0;
