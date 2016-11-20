@@ -929,7 +929,7 @@ static void sha512crypt_encode (u8 digest[64], u8 buf[86])
   buf[82] = int_to_itoa64 (l & 0x3f); l >>= 6;
   buf[83] = int_to_itoa64 (l & 0x3f); //l >>= 6;
 
-  l =                  0 |                 0 | (digest[63] << 0);
+  l =                                          (digest[63] << 0);
 
   buf[84] = int_to_itoa64 (l & 0x3f); l >>= 6;
   buf[85] = int_to_itoa64 (l & 0x3f); //l >>= 6;
@@ -1588,7 +1588,7 @@ static void sha512aix_encode (u8 digest[64], u8 buf[86])
   buf[82] = int_to_itoa64 (l & 0x3f); l >>= 6;
   buf[83] = int_to_itoa64 (l & 0x3f);
 
-  l =                 0 |                 0 | (digest[63] << 16);
+  l =                                         (digest[63] << 16);
 
   buf[84] = int_to_itoa64 (l & 0x3f); l >>= 6;
   buf[85] = int_to_itoa64 (l & 0x3f); //l >>= 6;
