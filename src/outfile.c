@@ -306,21 +306,25 @@ int outfile_write_open (hashcat_ctx_t *hashcat_ctx)
 
   if (outfile_ctx->filename == NULL) return 0;
 
-  outfile_ctx->fp = fopen (outfile_ctx->filename, "ab");
+  FILE *fp = fopen (outfile_ctx->filename, "ab");
 
-  if (outfile_ctx->fp == NULL)
+  if (fp == NULL)
   {
     event_log_error (hashcat_ctx, "%s: %s", outfile_ctx->filename, strerror (errno));
 
     return -1;
   }
 
-  if (lock_file (outfile_ctx->fp) == -1)
+  if (lock_file (fp) == -1)
   {
+    fclose (fp);
+
     event_log_error (hashcat_ctx, "%s: %s", outfile_ctx->filename, strerror (errno));
 
     return -1;
   }
+
+  outfile_ctx->fp = fp;
 
   return 0;
 }

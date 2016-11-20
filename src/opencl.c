@@ -338,15 +338,20 @@ static int write_kernel_binary (hashcat_ctx_t *hashcat_ctx, char *kernel_file, c
       return -1;
     }
 
-    const int rc = lock_file (fp);
+    if (lock_file (fp) == -1)
+    {
+      fclose (fp);
 
-    if (rc == -1) return -1;
+      event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
+
+      return -1;
+    }
 
     fwrite (binary, sizeof (char), binary_size, fp);
-    fflush (fp);
-    fclose (fp);
 
-    unlock_file (fp);
+    fflush (fp);
+
+    fclose (fp);
   }
 
   return 0;

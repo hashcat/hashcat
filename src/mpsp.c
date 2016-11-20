@@ -1226,7 +1226,12 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
                 const int rc = mask_append (hashcat_ctx, line_buf);
 
-                if (rc == -1) return -1;
+                if (rc == -1)
+                {
+                  fclose (mask_fp);
+
+                  return -1;
+                }
               }
 
               hcfree (line_buf);
@@ -1303,7 +1308,12 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
           const int rc = mask_append (hashcat_ctx, line_buf);
 
-          if (rc == -1) return -1;
+          if (rc == -1)
+          {
+            fclose (mask_fp);
+
+            return -1;
+          }
         }
 
         hcfree (line_buf);
@@ -1361,7 +1371,12 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
           const int rc = mask_append (hashcat_ctx, line_buf);
 
-          if (rc == -1) return -1;
+          if (rc == -1)
+          {
+            fclose (mask_fp);
+
+            return -1;
+          }
         }
 
         hcfree (line_buf);

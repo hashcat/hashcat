@@ -61,24 +61,29 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
   out.fp = stdout;
 
-  // i think this section can be optimized now that we have outfile_ctx
-
   char *filename = outfile_ctx->filename;
 
-  if (filename != NULL)
+  if (filename)
   {
-    if ((out.fp = fopen (filename, "ab")) != NULL)
-    {
-      const int rc = lock_file (out.fp);
+    FILE *fp = fopen (filename, "ab");
 
-      if (rc == -1) return -1;
-    }
-    else
+    if (fp == NULL)
     {
       event_log_error (hashcat_ctx, "%s: %s", filename, strerror (errno));
 
-      out.fp = stdout;
+      return -1;
     }
+
+    if (lock_file (fp) == -1)
+    {
+      fclose (fp);
+
+      event_log_error (hashcat_ctx, "%s: %s", filename, strerror (errno));
+
+      return -1;
+    }
+
+    out.fp = fp;
   }
 
   out.len = 0;
@@ -99,7 +104,12 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
     {
       const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
 
-      if (rc == -1) return -1;
+      if (rc == -1)
+      {
+        if (filename) fclose (out.fp);
+
+        return -1;
+      }
 
       const u32 pos = device_param->innerloop_pos;
 
@@ -128,7 +138,12 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
     {
       const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
 
-      if (rc == -1) return -1;
+      if (rc == -1)
+      {
+        if (filename) fclose (out.fp);
+
+        return -1;
+      }
 
       for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
       {
@@ -193,7 +208,12 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
     {
       const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
 
-      if (rc == -1) return -1;
+      if (rc == -1)
+      {
+        if (filename) fclose (out.fp);
+
+        return -1;
+      }
 
       for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
       {
@@ -225,7 +245,12 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
     {
       const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
 
-      if (rc == -1) return -1;
+      if (rc == -1)
+      {
+        if (filename) fclose (out.fp);
+
+        return -1;
+      }
 
       for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
       {
@@ -254,12 +279,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
   out_flush (&out);
 
-  if (out.fp != stdout)
-  {
-    unlock_file (out.fp);
-
-    fclose (out.fp);
-  }
+  if (filename) fclose (out.fp);
 
   return 0;
 }

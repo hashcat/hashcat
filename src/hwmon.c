@@ -120,6 +120,8 @@ static int hm_SYSFS_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int
 
   if (fscanf (fd_cur, "%d", &pwm1_cur) != 1)
   {
+    fclose (fd_cur);
+
     event_log_error (hashcat_ctx, "%s: unexpected data", path_cur);
 
     return -1;
@@ -140,6 +142,8 @@ static int hm_SYSFS_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int
 
   if (fscanf (fd_max, "%d", &pwm1_max) != 1)
   {
+    fclose (fd_max);
+
     event_log_error (hashcat_ctx, "%s: unexpected data", path_max);
 
     return -1;
@@ -223,6 +227,8 @@ static int hm_SYSFS_set_fan_speed_target (hashcat_ctx_t *hashcat_ctx, const int 
 
   if (fscanf (fd_max, "%d", &pwm1_max) != 1)
   {
+    fclose (fd_max);
+
     event_log_error (hashcat_ctx, "%s: unexpected data", path_max);
 
     return -1;
@@ -283,6 +289,8 @@ static int hm_SYSFS_get_temperature_current (hashcat_ctx_t *hashcat_ctx, const i
 
   if (fscanf (fd, "%d", &temperature) != 1)
   {
+    fclose (fd);
+
     event_log_error (hashcat_ctx, "%s: unexpected data", path);
 
     return -1;

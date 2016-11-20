@@ -103,21 +103,25 @@ int loopback_write_open (hashcat_ctx_t *hashcat_ctx)
 
   snprintf (loopback_ctx->filename, HCBUFSIZ_TINY - 1, "%s/%s.%d_%u", induct_ctx->root_directory, LOOPBACK_FILE, (int) now, random_num);
 
-  loopback_ctx->fp = fopen (loopback_ctx->filename, "ab");
+  FILE *fp = fopen (loopback_ctx->filename, "ab");
 
-  if (loopback_ctx->fp == NULL)
+  if (fp == NULL)
   {
     event_log_error (hashcat_ctx, "%s: %s", loopback_ctx->filename, strerror (errno));
 
     return -1;
   }
 
-  if (lock_file (loopback_ctx->fp) == -1)
+  if (lock_file (fp) == -1)
   {
+    fclose (fp);
+
     event_log_error (hashcat_ctx, "%s: %s", loopback_ctx->filename, strerror (errno));
 
     return -1;
   }
+
+  loopback_ctx->fp = fp;
 
   loopback_ctx->unused = true;
 

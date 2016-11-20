@@ -105,21 +105,25 @@ int debugfile_init (hashcat_ctx_t *hashcat_ctx)
 
   if (debugfile_ctx->filename)
   {
-    debugfile_ctx->fp = fopen (debugfile_ctx->filename, "ab");
+    FILE *fp = fopen (debugfile_ctx->filename, "ab");
 
-    if (debugfile_ctx->fp == NULL)
+    if (fp == NULL)
     {
       event_log_error (hashcat_ctx, "Could not open debug-file for writing");
 
       return -1;
     }
 
-    if (lock_file (debugfile_ctx->fp) == -1)
+    if (lock_file (fp) == -1)
     {
+      fclose (fp);
+
       event_log_error (hashcat_ctx, "%s: %s", debugfile_ctx->filename, strerror (errno));
 
       return -1;
     }
+
+    debugfile_ctx->fp = fp;
   }
   else
   {

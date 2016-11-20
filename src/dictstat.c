@@ -128,6 +128,8 @@ int dictstat_write (hashcat_ctx_t *hashcat_ctx)
 
   if (lock_file (fp) == -1)
   {
+    fclose (fp);
+
     event_log_error (hashcat_ctx, "%s: %s", dictstat_ctx->filename, strerror (errno));
 
     return -1;

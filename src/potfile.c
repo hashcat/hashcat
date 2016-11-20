@@ -175,21 +175,25 @@ int potfile_write_open (hashcat_ctx_t *hashcat_ctx)
 
   if (potfile_ctx->enabled == false) return 0;
 
-  potfile_ctx->fp = fopen (potfile_ctx->filename, "ab");
+  FILE *fp = fopen (potfile_ctx->filename, "ab");
 
-  if (potfile_ctx->fp == NULL)
+  if (fp == NULL)
   {
     event_log_error (hashcat_ctx, "%s: %s", potfile_ctx->filename, strerror (errno));
 
     return -1;
   }
 
-  if (lock_file (potfile_ctx->fp) == -1)
+  if (lock_file (fp) == -1)
   {
+    fclose (fp);
+
     event_log_error (hashcat_ctx, "%s: %s", potfile_ctx->filename, strerror (errno));
 
     return -1;
   }
+
+  potfile_ctx->fp = fp;
 
   return 0;
 }
