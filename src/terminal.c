@@ -589,7 +589,7 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (hashcat_ctx, sizeof (hashcat_status_t));
+  hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
 
   const int rc_status = hashcat_get_status (hashcat_ctx, hashcat_status);
 
@@ -671,7 +671,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     return;
   }
 
-  hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (hashcat_ctx, sizeof (hashcat_status_t));
+  hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
 
   const int rc_status = hashcat_get_status (hashcat_ctx, hashcat_status);
 
@@ -1046,7 +1046,7 @@ void status_benchmark_automate (hashcat_ctx_t *hashcat_ctx)
 
   const u32 hash_mode = hashconfig->hash_mode;
 
-  hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (hashcat_ctx, sizeof (hashcat_status_t));
+  hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
 
   const int rc_status = hashcat_get_status (hashcat_ctx, hashcat_status);
 
@@ -1080,7 +1080,7 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
     return;
   }
 
-  hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (hashcat_ctx, sizeof (hashcat_status_t));
+  hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
 
   const int rc_status = hashcat_get_status (hashcat_ctx, hashcat_status);
 

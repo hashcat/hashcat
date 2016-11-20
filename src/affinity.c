@@ -57,7 +57,7 @@ int set_cpu_affinity (hashcat_ctx_t *hashcat_ctx)
   CPU_ZERO (&cpuset);
   #endif
 
-  char *devices = hcstrdup (hashcat_ctx, user_options->cpu_affinity);
+  char *devices = hcstrdup (user_options->cpu_affinity);
 
   char *saveptr = NULL;
 

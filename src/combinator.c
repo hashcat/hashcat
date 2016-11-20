@@ -31,7 +31,7 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   combinator_ctx->enabled = true;
 
-  combinator_ctx->scratch_buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE); VERIFY_PTR (combinator_ctx->scratch_buf);
+  combinator_ctx->scratch_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
   if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
   {

@@ -22,12 +22,12 @@ static int straight_ctx_add_wl (hashcat_ctx_t *hashcat_ctx, const char *dict)
 
   if (straight_ctx->dicts_avail == straight_ctx->dicts_cnt)
   {
-    straight_ctx->dicts = (char **) hcrealloc (hashcat_ctx, straight_ctx->dicts, straight_ctx->dicts_avail * sizeof (char *), INCR_DICTS * sizeof (char *)); VERIFY_PTR (straight_ctx->dicts);
+    straight_ctx->dicts = (char **) hcrealloc (straight_ctx->dicts, straight_ctx->dicts_avail * sizeof (char *), INCR_DICTS * sizeof (char *));
 
     straight_ctx->dicts_avail += INCR_DICTS;
   }
 
-  straight_ctx->dicts[straight_ctx->dicts_cnt] = hcstrdup (hashcat_ctx, dict); VERIFY_PTR (straight_ctx->dicts[straight_ctx->dicts_cnt]);
+  straight_ctx->dicts[straight_ctx->dicts_cnt] = hcstrdup (dict);
 
   straight_ctx->dicts_cnt++;
 
@@ -196,7 +196,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0))
   {
-    straight_ctx->kernel_rules_buf = (kernel_rule_t *) hcmalloc (hashcat_ctx, sizeof (kernel_rule_t)); VERIFY_PTR (straight_ctx->kernel_rules_buf);
+    straight_ctx->kernel_rules_buf = (kernel_rule_t *) hcmalloc (sizeof (kernel_rule_t));
 
     straight_ctx->kernel_rules_buf[0].cmds[0] = RULE_OP_MANGLE_NOOP;
 
@@ -281,7 +281,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
         {
           char **dictionary_files = NULL;
 
-          dictionary_files = scan_directory (hashcat_ctx, l0_filename);
+          dictionary_files = scan_directory (l0_filename);
 
           if (dictionary_files != NULL)
           {
@@ -354,7 +354,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
       {
         char **dictionary_files = NULL;
 
-        dictionary_files = scan_directory (hashcat_ctx, l0_filename);
+        dictionary_files = scan_directory (l0_filename);
 
         if (dictionary_files != NULL)
         {
@@ -418,7 +418,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
       {
         char **dictionary_files = NULL;
 
-        dictionary_files = scan_directory (hashcat_ctx, l0_filename);
+        dictionary_files = scan_directory (l0_filename);
 
         if (dictionary_files != NULL)
         {

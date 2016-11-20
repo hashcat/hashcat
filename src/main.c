@@ -161,7 +161,7 @@ static void main_outerloop_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
 
   hashcat_user->outer_threads_cnt = 0;
 
-  hashcat_user->outer_threads = (hc_thread_t *) hccalloc (hashcat_ctx, 2, sizeof (hc_thread_t)); if (hashcat_user->outer_threads == NULL) return;
+  hashcat_user->outer_threads = (hc_thread_t *) hccalloc (2, sizeof (hc_thread_t)); if (hashcat_user->outer_threads == NULL) return;
 
   status_ctx->shutdown_outer = false;
 
@@ -839,7 +839,7 @@ int main (int argc, char **argv)
 
   // hashcat main context
 
-  hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) malloc (sizeof (hashcat_ctx_t)); VERIFY_PTR (hashcat_ctx);
+  hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) malloc (sizeof (hashcat_ctx_t));
 
   const int rc_hashcat_init = hashcat_init (hashcat_ctx, event);
 

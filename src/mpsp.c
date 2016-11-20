@@ -104,7 +104,7 @@ static int mp_css_append_salt (hashcat_ctx_t *hashcat_ctx, salt_t *salt_buf)
 
   u32 css_cnt_salt = mask_ctx->css_cnt + salt_len;
 
-  cs_t *css_buf_salt = (cs_t *) hccalloc (hashcat_ctx, css_cnt_salt, sizeof (cs_t)); VERIFY_PTR (css_buf_salt);
+  cs_t *css_buf_salt = (cs_t *) hccalloc (css_cnt_salt, sizeof (cs_t));
 
   memcpy (css_buf_salt, mask_ctx->css_buf, mask_ctx->css_cnt * sizeof (cs_t));
 
@@ -128,7 +128,7 @@ static int mp_css_unicode_expand (hashcat_ctx_t *hashcat_ctx)
 
   u32 css_cnt_unicode = mask_ctx->css_cnt * 2;
 
-  cs_t *css_buf_unicode = (cs_t *) hccalloc (hashcat_ctx, css_cnt_unicode, sizeof (cs_t)); VERIFY_PTR (css_buf_unicode);
+  cs_t *css_buf_unicode = (cs_t *) hccalloc (css_cnt_unicode, sizeof (cs_t));
 
   for (u32 i = 0, j = 0; i < mask_ctx->css_cnt; i += 1, j += 2)
   {
@@ -183,7 +183,7 @@ static int mp_add_cs_buf (hashcat_ctx_t *hashcat_ctx, u32 *in_buf, size_t in_len
 
   size_t css_uniq_sz = CHARSIZ * sizeof (u32);
 
-  u32 *css_uniq = (u32 *) hcmalloc (hashcat_ctx, css_uniq_sz); VERIFY_PTR (css_uniq);
+  u32 *css_uniq = (u32 *) hcmalloc (css_uniq_sz);
 
   size_t i;
 
@@ -606,7 +606,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
    * Initialize hcstats
    */
 
-  u64 *root_stats_buf = (u64 *) hccalloc (hashcat_ctx, SP_ROOT_CNT, sizeof (u64)); VERIFY_PTR (root_stats_buf);
+  u64 *root_stats_buf = (u64 *) hccalloc (SP_ROOT_CNT, sizeof (u64));
 
   u64 *root_stats_ptr = root_stats_buf;
 
@@ -619,7 +619,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
     root_stats_ptr += CHARSIZ;
   }
 
-  u64 *markov_stats_buf = (u64 *) hccalloc (hashcat_ctx, SP_MARKOV_CNT, sizeof (u64)); VERIFY_PTR (markov_stats_buf);
+  u64 *markov_stats_buf = (u64 *) hccalloc (SP_MARKOV_CNT, sizeof (u64));
 
   u64 *markov_stats_ptr = markov_stats_buf;
 
@@ -911,12 +911,12 @@ static int mask_append_final (hashcat_ctx_t *hashcat_ctx, const char *mask)
 
   if (mask_ctx->masks_avail == mask_ctx->masks_cnt)
   {
-    mask_ctx->masks = (char **) hcrealloc (hashcat_ctx, mask_ctx->masks, mask_ctx->masks_avail * sizeof (char *), INCR_MASKS * sizeof (char *)); VERIFY_PTR (mask_ctx->masks);
+    mask_ctx->masks = (char **) hcrealloc (mask_ctx->masks, mask_ctx->masks_avail * sizeof (char *), INCR_MASKS * sizeof (char *));
 
     mask_ctx->masks_avail += INCR_MASKS;
   }
 
-  mask_ctx->masks[mask_ctx->masks_cnt] = hcstrdup (hashcat_ctx, mask);
+  mask_ctx->masks[mask_ctx->masks_cnt] = hcstrdup (mask);
 
   mask_ctx->masks_cnt++;
 
@@ -944,7 +944,7 @@ static int mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask)
 
     for (u32 increment_len = increment_min; increment_len <= increment_max; increment_len++)
     {
-      char *mask_truncated = (char *) hcmalloc (hashcat_ctx, 256); VERIFY_PTR (mask_truncated);
+      char *mask_truncated = (char *) hcmalloc (256);
 
       const int rc_truncated_mask = mp_get_truncated_mask (hashcat_ctx, mask, strlen (mask), increment_len, mask_truncated);
 
@@ -1006,7 +1006,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       if (rc_mask_file == -1) return -1;
 
-      mask_ctx->css_buf = (cs_t *) hccalloc (hashcat_ctx, 256, sizeof (cs_t)); VERIFY_PTR (mask_ctx->css_buf);
+      mask_ctx->css_buf = (cs_t *) hccalloc (256, sizeof (cs_t));
 
       const int rc_gen_css = mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt);
 
@@ -1039,7 +1039,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
     if (user_options->attack_mode == ATTACK_MODE_BF) // always true
     {
-      mask_ctx->css_buf = (cs_t *) hccalloc (hashcat_ctx, 256, sizeof (cs_t)); VERIFY_PTR (mask_ctx->css_buf);
+      mask_ctx->css_buf = (cs_t *) hccalloc (256, sizeof (cs_t));
 
       const int rc_gen_css = mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt);
 
@@ -1146,13 +1146,13 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   mask_ctx->enabled = true;
 
-  mask_ctx->root_table_buf   = (hcstat_table_t *) hccalloc (hashcat_ctx, SP_ROOT_CNT,   sizeof (hcstat_table_t)); VERIFY_PTR (mask_ctx->root_table_buf);
-  mask_ctx->markov_table_buf = (hcstat_table_t *) hccalloc (hashcat_ctx, SP_MARKOV_CNT, sizeof (hcstat_table_t)); VERIFY_PTR (mask_ctx->markov_table_buf);
+  mask_ctx->root_table_buf   = (hcstat_table_t *) hccalloc (SP_ROOT_CNT,   sizeof (hcstat_table_t));
+  mask_ctx->markov_table_buf = (hcstat_table_t *) hccalloc (SP_MARKOV_CNT, sizeof (hcstat_table_t));
 
   sp_setup_tbl (hashcat_ctx);
 
-  mask_ctx->root_css_buf   = (cs_t *) hccalloc (hashcat_ctx, SP_PW_MAX,           sizeof (cs_t)); VERIFY_PTR (mask_ctx->root_css_buf);
-  mask_ctx->markov_css_buf = (cs_t *) hccalloc (hashcat_ctx, SP_PW_MAX * CHARSIZ, sizeof (cs_t)); VERIFY_PTR (mask_ctx->markov_css_buf);
+  mask_ctx->root_css_buf   = (cs_t *) hccalloc (SP_PW_MAX,           sizeof (cs_t));
+  mask_ctx->markov_css_buf = (cs_t *) hccalloc (SP_PW_MAX * CHARSIZ, sizeof (cs_t));
 
   mask_ctx->css_cnt = 0;
   mask_ctx->css_buf = NULL;
@@ -1163,7 +1163,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
   mask_ctx->masks_pos = 0;
   mask_ctx->masks_cnt = 0;
 
-  mask_ctx->mfs = (mf_t *) hccalloc (hashcat_ctx, MAX_MFS, sizeof (mf_t)); VERIFY_PTR (mask_ctx->mfs);
+  mask_ctx->mfs = (mf_t *) hccalloc (MAX_MFS, sizeof (mf_t));
 
   mp_setup_sys (mask_ctx->mp_sys);
 
@@ -1214,7 +1214,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
                 return -1;
               }
 
-              char *line_buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE); VERIFY_PTR (line_buf);
+              char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
               while (!feof (mask_fp))
               {
@@ -1291,7 +1291,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
           return -1;
         }
 
-        char *line_buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE); VERIFY_PTR (line_buf);
+        char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
         while (!feof (mask_fp))
         {
@@ -1349,7 +1349,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
           return -1;
         }
 
-        char *line_buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE); VERIFY_PTR (line_buf);
+        char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
         while (!feof (mask_fp))
         {

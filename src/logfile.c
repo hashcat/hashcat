@@ -83,12 +83,12 @@ int logfile_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->logfile_disable == true) return 0;
 
-  logfile_ctx->logfile = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (logfile_ctx->logfile);
+  logfile_ctx->logfile = (char *) hcmalloc (HCBUFSIZ_TINY);
 
   snprintf (logfile_ctx->logfile, HCBUFSIZ_TINY - 1, "%s/%s.log", folder_config->session_dir, user_options->session);
 
-  logfile_ctx->subid = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (logfile_ctx->subid);
-  logfile_ctx->topid = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (logfile_ctx->topid);
+  logfile_ctx->subid = (char *) hcmalloc (HCBUFSIZ_TINY);
+  logfile_ctx->topid = (char *) hcmalloc (HCBUFSIZ_TINY);
 
   logfile_ctx->enabled = true;
 

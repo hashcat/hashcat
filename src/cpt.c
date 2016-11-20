@@ -24,7 +24,7 @@ int cpt_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   cpt_ctx->enabled = true;
 
-  cpt_ctx->cpt_buf = (cpt_t *) hccalloc (hashcat_ctx, CPT_CACHE, sizeof (cpt_t)); VERIFY_PTR (cpt_ctx->cpt_buf);
+  cpt_ctx->cpt_buf = (cpt_t *) hccalloc (CPT_CACHE, sizeof (cpt_t));
 
   cpt_ctx->cpt_total = 0;
   cpt_ctx->cpt_pos   = 0;

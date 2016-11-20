@@ -22,7 +22,7 @@ static int sysfs_init (hashcat_ctx_t *hashcat_ctx)
 
   memset (sysfs, 0, sizeof (SYSFS_PTR));
 
-  char *path = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+  char *path = hcmalloc (HCBUFSIZ_TINY);
 
   snprintf (path, HCBUFSIZ_TINY - 1, "%s", SYS_BUS_PCI_DEVICES);
 
@@ -55,7 +55,7 @@ static char *hm_SYSFS_get_syspath_device (hashcat_ctx_t *hashcat_ctx, const int 
 
   hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
-  char *syspath = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+  char *syspath = hcmalloc (HCBUFSIZ_TINY);
 
   snprintf (syspath, HCBUFSIZ_TINY - 1, "%s/0000:%02x:%02x.%01x", SYS_BUS_PCI_DEVICES, device_param->pcie_bus, device_param->pcie_device, device_param->pcie_function);
 
@@ -73,7 +73,7 @@ static char *hm_SYSFS_get_syspath_hwmon (hashcat_ctx_t *hashcat_ctx, const int d
     return NULL;
   }
 
-  char *hwmon = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+  char *hwmon = hcmalloc (HCBUFSIZ_TINY);
 
   snprintf (hwmon, HCBUFSIZ_TINY - 1, "%s/hwmon", syspath);
 
@@ -101,8 +101,8 @@ static int hm_SYSFS_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int
 
   if (syspath == NULL) return -1;
 
-  char *path_cur = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
-  char *path_max = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+  char *path_cur = hcmalloc (HCBUFSIZ_TINY);
+  char *path_max = hcmalloc (HCBUFSIZ_TINY);
 
   snprintf (path_cur, HCBUFSIZ_TINY - 1, "%s/pwm1",     syspath);
   snprintf (path_max, HCBUFSIZ_TINY - 1, "%s/pwm1_max", syspath);
@@ -174,7 +174,7 @@ static int hm_SYSFS_set_fan_control (hashcat_ctx_t *hashcat_ctx, const int devic
 
   if (syspath == NULL) return -1;
 
-  char *path = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+  char *path = hcmalloc (HCBUFSIZ_TINY);
 
   snprintf (path, HCBUFSIZ_TINY - 1, "%s/pwm1_enable", syspath);
 
@@ -204,8 +204,8 @@ static int hm_SYSFS_set_fan_speed_target (hashcat_ctx_t *hashcat_ctx, const int 
 
   if (syspath == NULL) return -1;
 
-  char *path     = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
-  char *path_max = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+  char *path     = hcmalloc (HCBUFSIZ_TINY);
+  char *path_max = hcmalloc (HCBUFSIZ_TINY);
 
   snprintf (path,     HCBUFSIZ_TINY - 1, "%s/pwm1",     syspath);
   snprintf (path_max, HCBUFSIZ_TINY - 1, "%s/pwm1_max", syspath);
@@ -266,7 +266,7 @@ static int hm_SYSFS_get_temperature_current (hashcat_ctx_t *hashcat_ctx, const i
 
   if (syspath == NULL) return -1;
 
-  char *path = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+  char *path = hcmalloc (HCBUFSIZ_TINY);
 
   snprintf (path, HCBUFSIZ_TINY - 1, "%s/temp1_input", syspath);
 
@@ -305,7 +305,7 @@ static int hm_SYSFS_get_pp_dpm_sclk (hashcat_ctx_t *hashcat_ctx, const int devic
 
   if (syspath == NULL) return -1;
 
-  char *path = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+  char *path = hcmalloc (HCBUFSIZ_TINY);
 
   snprintf (path, HCBUFSIZ_TINY - 1, "%s/pp_dpm_sclk", syspath);
 
@@ -358,7 +358,7 @@ static int hm_SYSFS_get_pp_dpm_mclk (hashcat_ctx_t *hashcat_ctx, const int devic
 
   if (syspath == NULL) return -1;
 
-  char *path = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+  char *path = hcmalloc (HCBUFSIZ_TINY);
 
   snprintf (path, HCBUFSIZ_TINY - 1, "%s/pp_dpm_mclk", syspath);
 
@@ -411,7 +411,7 @@ static int hm_SYSFS_get_pp_dpm_pcie (hashcat_ctx_t *hashcat_ctx, const int devic
 
   if (syspath == NULL) return -1;
 
-  char *path = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+  char *path = hcmalloc (HCBUFSIZ_TINY);
 
   snprintf (path, HCBUFSIZ_TINY - 1, "%s/pp_dpm_pcie", syspath);
 
@@ -465,7 +465,7 @@ static int hm_SYSFS_set_power_dpm_force_performance_level (hashcat_ctx_t *hashca
 
   if (syspath == NULL) return -1;
 
-  char *path = hcmalloc (hashcat_ctx, HCBUFSIZ_TINY);
+  char *path = hcmalloc (HCBUFSIZ_TINY);
 
   snprintf (path, HCBUFSIZ_TINY - 1, "%s/power_dpm_force_performance_level", syspath);
 
@@ -508,7 +508,7 @@ static int nvml_init (hashcat_ctx_t *hashcat_ctx)
 
     DWORD Type = REG_SZ;
 
-    char *Buffer = (char *) hcmalloc (hashcat_ctx, BufferSize + 1); VERIFY_PTR (Buffer);
+    char *Buffer = (char *) hcmalloc (BufferSize + 1);
 
     HKEY hKey = 0;
 
@@ -2418,7 +2418,7 @@ static void hm_sort_adl_adapters_by_busid_devid (u32 *valid_adl_device_list, int
   }
 }
 
-static u32 *hm_get_list_valid_adl_adapters (hashcat_ctx_t *hashcat_ctx, int iNumberAdapters, int *num_adl_adapters, LPAdapterInfo lpAdapterInfo)
+static u32 *hm_get_list_valid_adl_adapters (int iNumberAdapters, int *num_adl_adapters, LPAdapterInfo lpAdapterInfo)
 {
   *num_adl_adapters = 0;
 
@@ -2457,14 +2457,14 @@ static u32 *hm_get_list_valid_adl_adapters (hashcat_ctx_t *hashcat_ctx, int iNum
 
     // add it to the list
 
-    adl_adapters = (u32 *) hcrealloc (hashcat_ctx, adl_adapters, (*num_adl_adapters) * sizeof (int), sizeof (int)); // need check
+    adl_adapters = (u32 *) hcrealloc (adl_adapters, (*num_adl_adapters) * sizeof (int), sizeof (int)); // need check
 
     adl_adapters[*num_adl_adapters] = i;
 
     // rest is just bookkeeping
 
-    bus_numbers    = (int*) hcrealloc (hashcat_ctx, bus_numbers,    (*num_adl_adapters) * sizeof (int), sizeof (int)); // need check
-    device_numbers = (int*) hcrealloc (hashcat_ctx, device_numbers, (*num_adl_adapters) * sizeof (int), sizeof (int)); // need check
+    bus_numbers    = (int*) hcrealloc (bus_numbers,    (*num_adl_adapters) * sizeof (int), sizeof (int)); // need check
+    device_numbers = (int*) hcrealloc (device_numbers, (*num_adl_adapters) * sizeof (int), sizeof (int)); // need check
 
     bus_numbers[*num_adl_adapters]    = info.iBusNumber;
     device_numbers[*num_adl_adapters] = info.iDeviceNumber;
@@ -3303,23 +3303,23 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->version           == true) return 0;
   if (user_options->gpu_temp_disable  == true) return 0;
 
-  hwmon_ctx->hm_device = (hm_attrs_t *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (hm_attrs_t)); VERIFY_PTR (hwmon_ctx->hm_device);
+  hwmon_ctx->hm_device = (hm_attrs_t *) hccalloc (DEVICES_MAX, sizeof (hm_attrs_t));
 
   /**
    * Initialize shared libraries
    */
 
-  ADL_PTR     *adl     = (ADL_PTR *)     hcmalloc (hashcat_ctx, sizeof (ADL_PTR));
-  NVAPI_PTR   *nvapi   = (NVAPI_PTR *)   hcmalloc (hashcat_ctx, sizeof (NVAPI_PTR));
-  NVML_PTR    *nvml    = (NVML_PTR *)    hcmalloc (hashcat_ctx, sizeof (NVML_PTR));
-  XNVCTRL_PTR *xnvctrl = (XNVCTRL_PTR *) hcmalloc (hashcat_ctx, sizeof (XNVCTRL_PTR));
-  SYSFS_PTR   *sysfs   = (SYSFS_PTR *)   hcmalloc (hashcat_ctx, sizeof (SYSFS_PTR));
+  ADL_PTR     *adl     = (ADL_PTR *)     hcmalloc (sizeof (ADL_PTR));
+  NVAPI_PTR   *nvapi   = (NVAPI_PTR *)   hcmalloc (sizeof (NVAPI_PTR));
+  NVML_PTR    *nvml    = (NVML_PTR *)    hcmalloc (sizeof (NVML_PTR));
+  XNVCTRL_PTR *xnvctrl = (XNVCTRL_PTR *) hcmalloc (sizeof (XNVCTRL_PTR));
+  SYSFS_PTR   *sysfs   = (SYSFS_PTR *)   hcmalloc (sizeof (SYSFS_PTR));
 
-  hm_attrs_t *hm_adapters_adl      = (hm_attrs_t *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (hm_attrs_t)); VERIFY_PTR (hm_adapters_adl);
-  hm_attrs_t *hm_adapters_nvapi    = (hm_attrs_t *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (hm_attrs_t)); VERIFY_PTR (hm_adapters_nvapi);
-  hm_attrs_t *hm_adapters_nvml     = (hm_attrs_t *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (hm_attrs_t)); VERIFY_PTR (hm_adapters_nvml);
-  hm_attrs_t *hm_adapters_xnvctrl  = (hm_attrs_t *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (hm_attrs_t)); VERIFY_PTR (hm_adapters_xnvctrl);
-  hm_attrs_t *hm_adapters_sysfs    = (hm_attrs_t *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (hm_attrs_t)); VERIFY_PTR (hm_adapters_sysfs);
+  hm_attrs_t *hm_adapters_adl      = (hm_attrs_t *) hccalloc (DEVICES_MAX, sizeof (hm_attrs_t));
+  hm_attrs_t *hm_adapters_nvapi    = (hm_attrs_t *) hccalloc (DEVICES_MAX, sizeof (hm_attrs_t));
+  hm_attrs_t *hm_adapters_nvml     = (hm_attrs_t *) hccalloc (DEVICES_MAX, sizeof (hm_attrs_t));
+  hm_attrs_t *hm_adapters_xnvctrl  = (hm_attrs_t *) hccalloc (DEVICES_MAX, sizeof (hm_attrs_t));
+  hm_attrs_t *hm_adapters_sysfs    = (hm_attrs_t *) hccalloc (DEVICES_MAX, sizeof (hm_attrs_t));
 
   if (opencl_ctx->need_nvml == true)
   {
@@ -3394,7 +3394,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
   {
     if (hm_NVML_nvmlInit (hashcat_ctx) == 0)
     {
-      HM_ADAPTER_NVML *nvmlGPUHandle = (HM_ADAPTER_NVML *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (HM_ADAPTER_NVML)); VERIFY_PTR (nvmlGPUHandle);
+      HM_ADAPTER_NVML *nvmlGPUHandle = (HM_ADAPTER_NVML *) hccalloc (DEVICES_MAX, sizeof (HM_ADAPTER_NVML));
 
       int tmp_in = hm_get_adapter_index_nvml (hashcat_ctx, nvmlGPUHandle);
 
@@ -3419,7 +3419,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
   {
     if (hm_NvAPI_Initialize (hashcat_ctx) == 0)
     {
-      HM_ADAPTER_NVAPI *nvGPUHandle = (HM_ADAPTER_NVAPI *) hccalloc (hashcat_ctx, DEVICES_MAX, sizeof (HM_ADAPTER_NVAPI)); VERIFY_PTR (nvGPUHandle);
+      HM_ADAPTER_NVAPI *nvGPUHandle = (HM_ADAPTER_NVAPI *) hccalloc (DEVICES_MAX, sizeof (HM_ADAPTER_NVAPI));
 
       int tmp_in = hm_get_adapter_index_nvapi (hashcat_ctx, nvGPUHandle);
 
@@ -3467,7 +3467,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       // adapter info
 
-      LPAdapterInfo lpAdapterInfo = (LPAdapterInfo) hccalloc (hashcat_ctx, hm_adapters_num, sizeof (AdapterInfo)); VERIFY_PTR (lpAdapterInfo);
+      LPAdapterInfo lpAdapterInfo = (LPAdapterInfo) hccalloc (hm_adapters_num, sizeof (AdapterInfo));
 
       const int rc_adapter_info_adl = hm_get_adapter_info_adl (hashcat_ctx, lpAdapterInfo, hm_adapters_num * sizeof (AdapterInfo));
 
@@ -3477,7 +3477,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       int num_adl_adapters = 0;
 
-      u32 *valid_adl_device_list = hm_get_list_valid_adl_adapters (hashcat_ctx, hm_adapters_num, &num_adl_adapters, lpAdapterInfo);
+      u32 *valid_adl_device_list = hm_get_list_valid_adl_adapters (hm_adapters_num, &num_adl_adapters, lpAdapterInfo);
 
       if (num_adl_adapters > 0)
       {
@@ -3532,11 +3532,11 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
    * save buffer required for later restores
    */
 
-  hwmon_ctx->od_clock_mem_status = (ADLOD6MemClockState *) hccalloc (hashcat_ctx, opencl_ctx->devices_cnt, sizeof (ADLOD6MemClockState)); VERIFY_PTR (hwmon_ctx->od_clock_mem_status);
+  hwmon_ctx->od_clock_mem_status = (ADLOD6MemClockState *) hccalloc (opencl_ctx->devices_cnt, sizeof (ADLOD6MemClockState));
 
-  hwmon_ctx->od_power_control_status = (int *) hccalloc (hashcat_ctx, opencl_ctx->devices_cnt, sizeof (int)); VERIFY_PTR (hwmon_ctx->od_power_control_status);
+  hwmon_ctx->od_power_control_status = (int *) hccalloc (opencl_ctx->devices_cnt, sizeof (int));
 
-  hwmon_ctx->nvml_power_limit = (unsigned int *) hccalloc (hashcat_ctx, opencl_ctx->devices_cnt, sizeof (unsigned int)); VERIFY_PTR (hwmon_ctx->nvml_power_limit);
+  hwmon_ctx->nvml_power_limit = (unsigned int *) hccalloc (opencl_ctx->devices_cnt, sizeof (unsigned int));
 
   /**
    * HM devices: copy
@@ -3713,7 +3713,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
                 event_log_error (hashcat_ctx, "The custom profile seems to have too low maximum memory clock values. You therefore may not reach full performance");
               }
 
-              ADLOD6StateInfo *performance_state = (ADLOD6StateInfo*) hccalloc (hashcat_ctx, 1, sizeof (ADLOD6StateInfo) + sizeof (ADLOD6PerformanceLevel)); VERIFY_PTR (performance_state);
+              ADLOD6StateInfo *performance_state = (ADLOD6StateInfo*) hccalloc (1, sizeof (ADLOD6StateInfo) + sizeof (ADLOD6PerformanceLevel));
 
               performance_state->iNumberOfPerformanceLevels = 2;
 
@@ -3976,7 +3976,7 @@ void hwmon_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
               // clocks
 
-              ADLOD6StateInfo *performance_state = (ADLOD6StateInfo*) hccalloc (hashcat_ctx, 1, sizeof (ADLOD6StateInfo) + sizeof (ADLOD6PerformanceLevel));
+              ADLOD6StateInfo *performance_state = (ADLOD6StateInfo*) hccalloc (1, sizeof (ADLOD6StateInfo) + sizeof (ADLOD6PerformanceLevel));
 
               performance_state->iNumberOfPerformanceLevels = 2;
 

@@ -96,14 +96,14 @@ int potfile_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->potfile_path == NULL)
   {
-    potfile_ctx->filename = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (potfile_ctx->filename);
+    potfile_ctx->filename = (char *) hcmalloc (HCBUFSIZ_TINY);
     potfile_ctx->fp       = NULL;
 
     snprintf (potfile_ctx->filename, HCBUFSIZ_TINY - 1, "%s/hashcat.potfile", folder_config->profile_dir);
   }
   else
   {
-    potfile_ctx->filename = hcstrdup (hashcat_ctx, user_options->potfile_path); VERIFY_PTR (potfile_ctx->filename);
+    potfile_ctx->filename = hcstrdup (user_options->potfile_path);
     potfile_ctx->fp       = NULL;
   }
 
@@ -115,13 +115,13 @@ int potfile_init (hashcat_ctx_t *hashcat_ctx)
 
   // starting from here, we should allocate some scratch buffer for later use
 
-  u8 *out_buf = (u8 *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE); VERIFY_PTR (out_buf);
+  u8 *out_buf = (u8 *) hcmalloc (HCBUFSIZ_LARGE);
 
   potfile_ctx->out_buf = out_buf;
 
   // we need two buffers in parallel
 
-  u8 *tmp_buf = (u8 *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE); VERIFY_PTR (tmp_buf);
+  u8 *tmp_buf = (u8 *) hcmalloc (HCBUFSIZ_LARGE);
 
   potfile_ctx->tmp_buf = tmp_buf;
 
@@ -283,7 +283,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
   hash_t hash_buf;
 
-  hash_buf.digest    = hcmalloc (hashcat_ctx, hashconfig->dgst_size); VERIFY_PTR (hash_buf.digest);
+  hash_buf.digest    = hcmalloc (hashconfig->dgst_size);
   hash_buf.salt      = NULL;
   hash_buf.esalt     = NULL;
   hash_buf.hash_info = NULL;
@@ -291,25 +291,25 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
   if (hashconfig->is_salted)
   {
-    hash_buf.salt = (salt_t *) hcmalloc (hashcat_ctx, sizeof (salt_t)); VERIFY_PTR (hash_buf.salt);
+    hash_buf.salt = (salt_t *) hcmalloc (sizeof (salt_t));
   }
 
   if (hashconfig->esalt_size)
   {
-    hash_buf.esalt = hcmalloc (hashcat_ctx, hashconfig->esalt_size); VERIFY_PTR (hash_buf.esalt);
+    hash_buf.esalt = hcmalloc (hashconfig->esalt_size);
   }
 
   const int rc = potfile_read_open (hashcat_ctx);
 
   if (rc == -1) return -1;
 
-  char *line_buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE); VERIFY_PTR (line_buf);
+  char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
   // to be safe work with a copy (because of line_len loop, i etc)
   // moved up here because it's easier to handle continue case
   // it's just 64kb
 
-  char *line_buf_cpy = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE); VERIFY_PTR (line_buf_cpy);
+  char *line_buf_cpy = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
   while (!feof (potfile_ctx->fp))
   {
@@ -446,7 +446,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
       char *pw_buf = line_buf + line_len;
       int   pw_len = line_len_orig - line_len;
 
-      found->pw_buf = (char *) hcmalloc (hashcat_ctx, pw_len + 1); VERIFY_PTR (found->pw_buf);
+      found->pw_buf = (char *) hcmalloc (pw_len + 1);
       found->pw_len = pw_len;
 
       memcpy (found->pw_buf, pw_buf, pw_len);

@@ -82,7 +82,7 @@ int load_segment (hashcat_ctx_t *hashcat_ctx, FILE *fd)
   {
     if (wl_data->cnt == wl_data->avail)
     {
-      wl_data->buf = (char *) hcrealloc (hashcat_ctx, wl_data->buf, wl_data->avail, wl_data->incr); VERIFY_PTR (wl_data->buf);
+      wl_data->buf = (char *) hcrealloc (wl_data->buf, wl_data->avail, wl_data->incr);
 
       wl_data->avail += wl_data->incr;
     }
@@ -450,7 +450,7 @@ int wl_data_init (hashcat_ctx_t *hashcat_ctx)
 
   wl_data->enabled = true;
 
-  wl_data->buf   = (char *) hcmalloc (hashcat_ctx, user_options->segment_size); VERIFY_PTR (wl_data->buf);
+  wl_data->buf   = (char *) hcmalloc (user_options->segment_size);
   wl_data->avail = user_options->segment_size;
   wl_data->incr  = user_options->segment_size;
   wl_data->cnt   = 0;

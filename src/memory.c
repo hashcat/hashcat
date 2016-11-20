@@ -5,16 +5,15 @@
 
 #include "common.h"
 #include "types.h"
-#include "event.h"
 #include "memory.h"
 
-void *hccalloc (hashcat_ctx_t *hashcat_ctx, const size_t nmemb, const size_t sz)
+void *hccalloc (const size_t nmemb, const size_t sz)
 {
   void *p = calloc (nmemb, sz);
 
   if (p == NULL)
   {
-    event_log_error (hashcat_ctx, "%s", MSG_ENOMEM);
+    fprintf (stderr, "%s\n", MSG_ENOMEM);
 
     return (NULL);
   }
@@ -22,13 +21,13 @@ void *hccalloc (hashcat_ctx_t *hashcat_ctx, const size_t nmemb, const size_t sz)
   return (p);
 }
 
-void *hcmalloc (hashcat_ctx_t *hashcat_ctx, const size_t sz)
+void *hcmalloc (const size_t sz)
 {
   void *p = malloc (sz);
 
   if (p == NULL)
   {
-    event_log_error (hashcat_ctx, "%s", MSG_ENOMEM);
+    fprintf (stderr, "%s\n", MSG_ENOMEM);
 
     return (NULL);
   }
@@ -38,13 +37,13 @@ void *hcmalloc (hashcat_ctx_t *hashcat_ctx, const size_t sz)
   return (p);
 }
 
-void *hcrealloc (hashcat_ctx_t *hashcat_ctx, void *ptr, const size_t oldsz, const size_t addsz)
+void *hcrealloc (void *ptr, const size_t oldsz, const size_t addsz)
 {
   void *p = realloc (ptr, oldsz + addsz);
 
   if (p == NULL)
   {
-    event_log_error (hashcat_ctx, "%s", MSG_ENOMEM);
+    fprintf (stderr, "%s\n", MSG_ENOMEM);
 
     return (NULL);
   }
@@ -54,11 +53,11 @@ void *hcrealloc (hashcat_ctx_t *hashcat_ctx, void *ptr, const size_t oldsz, cons
   return (p);
 }
 
-char *hcstrdup (hashcat_ctx_t *hashcat_ctx, const char *s)
+char *hcstrdup (const char *s)
 {
   const size_t len = strlen (s);
 
-  char *b = (char *) hcmalloc (hashcat_ctx, len + 1);
+  char *b = (char *) hcmalloc (len + 1);
 
   if (b == NULL) return (NULL);
 

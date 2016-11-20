@@ -92,7 +92,7 @@ int cpu_crc32 (hashcat_ctx_t *hashcat_ctx, const char *filename, u8 keytab[64])
 
   #define MAX_KEY_SIZE (1024 * 1024)
 
-  u8 *buf = (u8 *) hcmalloc (hashcat_ctx, MAX_KEY_SIZE + 1); VERIFY_PTR (buf);
+  u8 *buf = (u8 *) hcmalloc (MAX_KEY_SIZE + 1);
 
   size_t nread = fread (buf, sizeof (u8), MAX_KEY_SIZE, fd);
 

@@ -77,14 +77,14 @@ int bitmap_ctx_init (hashcat_ctx_t *hashcat_ctx)
   const u32 bitmap_min = user_options->bitmap_min;
   const u32 bitmap_max = user_options->bitmap_max;
 
-  u32 *bitmap_s1_a = (u32 *) hcmalloc (hashcat_ctx, (1u << bitmap_max) * sizeof (u32)); VERIFY_PTR (bitmap_s1_a);
-  u32 *bitmap_s1_b = (u32 *) hcmalloc (hashcat_ctx, (1u << bitmap_max) * sizeof (u32)); VERIFY_PTR (bitmap_s1_b);
-  u32 *bitmap_s1_c = (u32 *) hcmalloc (hashcat_ctx, (1u << bitmap_max) * sizeof (u32)); VERIFY_PTR (bitmap_s1_c);
-  u32 *bitmap_s1_d = (u32 *) hcmalloc (hashcat_ctx, (1u << bitmap_max) * sizeof (u32)); VERIFY_PTR (bitmap_s1_d);
-  u32 *bitmap_s2_a = (u32 *) hcmalloc (hashcat_ctx, (1u << bitmap_max) * sizeof (u32)); VERIFY_PTR (bitmap_s2_a);
-  u32 *bitmap_s2_b = (u32 *) hcmalloc (hashcat_ctx, (1u << bitmap_max) * sizeof (u32)); VERIFY_PTR (bitmap_s2_b);
-  u32 *bitmap_s2_c = (u32 *) hcmalloc (hashcat_ctx, (1u << bitmap_max) * sizeof (u32)); VERIFY_PTR (bitmap_s2_c);
-  u32 *bitmap_s2_d = (u32 *) hcmalloc (hashcat_ctx, (1u << bitmap_max) * sizeof (u32)); VERIFY_PTR (bitmap_s2_d);
+  u32 *bitmap_s1_a = (u32 *) hcmalloc ((1u << bitmap_max) * sizeof (u32));
+  u32 *bitmap_s1_b = (u32 *) hcmalloc ((1u << bitmap_max) * sizeof (u32));
+  u32 *bitmap_s1_c = (u32 *) hcmalloc ((1u << bitmap_max) * sizeof (u32));
+  u32 *bitmap_s1_d = (u32 *) hcmalloc ((1u << bitmap_max) * sizeof (u32));
+  u32 *bitmap_s2_a = (u32 *) hcmalloc ((1u << bitmap_max) * sizeof (u32));
+  u32 *bitmap_s2_b = (u32 *) hcmalloc ((1u << bitmap_max) * sizeof (u32));
+  u32 *bitmap_s2_c = (u32 *) hcmalloc ((1u << bitmap_max) * sizeof (u32));
+  u32 *bitmap_s2_d = (u32 *) hcmalloc ((1u << bitmap_max) * sizeof (u32));
 
   u32 bitmap_bits;
   u32 bitmap_nums;

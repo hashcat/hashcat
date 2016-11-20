@@ -121,7 +121,7 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
   straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
   status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
 
-  char *buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE); VERIFY_PTR (buf);
+  char *buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
   const u32 attack_kern = user_options_extra->attack_kern;
 
@@ -368,7 +368,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       }
     }
 
-    hashcat_ctx_t *hashcat_ctx_tmp = (hashcat_ctx_t *) hcmalloc (hashcat_ctx, sizeof (hashcat_ctx_t)); VERIFY_PTR (hashcat_ctx_tmp);
+    hashcat_ctx_t *hashcat_ctx_tmp = (hashcat_ctx_t *) hcmalloc (sizeof (hashcat_ctx_t));
 
     /*
     hashcat_ctx_tmp->bitmap_ctx         = hashcat_ctx->bitmap_ctx;
@@ -398,7 +398,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
     memcpy (hashcat_ctx_tmp, hashcat_ctx, sizeof (hashcat_ctx_t)); // yes we actually want to copy these pointers
 
-    hashcat_ctx_tmp->wl_data = (wl_data_t *) hcmalloc (hashcat_ctx, sizeof (wl_data_t)); VERIFY_PTR (hashcat_ctx_tmp->wl_data);
+    hashcat_ctx_tmp->wl_data = (wl_data_t *) hcmalloc (sizeof (wl_data_t));
 
     const int rc_wl_data_init = wl_data_init (hashcat_ctx_tmp);
 

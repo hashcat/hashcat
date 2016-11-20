@@ -10326,7 +10326,7 @@ int sip_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   // work with a temporary copy of input_buf (s.t. we can manipulate it directly)
   // why? should be fine to use original buffer
-  //u8 *temp_input_buf = (u8 *) hcmalloc (hashcat_ctx, input_len + 1);
+  //u8 *temp_input_buf = (u8 *) hcmalloc (input_len + 1);
   //memcpy (temp_input_buf, input_buf, input_len);
 
   // URI_server:
@@ -15023,9 +15023,9 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     const u32 ckey_len       = bitcoin_wallet->ckey_len;
     const u32 public_key_len = bitcoin_wallet->public_key_len;
 
-    char *cry_master_buf = (char *) hcmalloc (hashcat_ctx, (cry_master_len * 2) + 1); VERIFY_PTR (cry_master_buf);
-    char *ckey_buf       = (char *) hcmalloc (hashcat_ctx, (ckey_len * 2)       + 1); VERIFY_PTR (ckey_buf);
-    char *public_key_buf = (char *) hcmalloc (hashcat_ctx, (public_key_len * 2) + 1); VERIFY_PTR (public_key_buf);
+    char *cry_master_buf = (char *) hcmalloc ((cry_master_len * 2) + 1);
+    char *ckey_buf       = (char *) hcmalloc ((ckey_len * 2)       + 1);
+    char *public_key_buf = (char *) hcmalloc ((public_key_len * 2) + 1);
 
     for (u32 i = 0, j = 0; i < cry_master_len; i += 1, j += 2)
     {
@@ -15082,7 +15082,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     const u32 data_len = seven_zip->data_len;
 
-    char *data_buf = (char *) hcmalloc (hashcat_ctx, (data_len * 2) + 1); VERIFY_PTR (data_buf);
+    char *data_buf = (char *) hcmalloc ((data_len * 2) + 1);
 
     for (u32 i = 0, j = 0; i < data_len; i += 1, j += 2)
     {
@@ -20077,7 +20077,7 @@ int hashconfig_general_defaults (hashcat_ctx_t *hashcat_ctx)
 
     u32 *keyfile_buf = ((tc_t *) esalts_buf)->keyfile_buf;
 
-    char *keyfiles = hcstrdup (hashcat_ctx, tcvc_keyfiles);
+    char *keyfiles = hcstrdup (tcvc_keyfiles);
 
     char *saveptr = NULL;
 

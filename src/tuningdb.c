@@ -67,7 +67,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
   tuning_db->enabled = true;
 
-  char *tuning_db_file = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_TINY); VERIFY_PTR (tuning_db_file);
+  char *tuning_db_file = (char *) hcmalloc (HCBUFSIZ_TINY);
 
   snprintf (tuning_db_file, HCBUFSIZ_TINY - 1, "%s/%s", folder_config->shared_dir, TUNING_DB_FILE);
 
@@ -82,21 +82,21 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
   hcfree (tuning_db_file);
 
-  int num_lines = count_lines (hashcat_ctx, fp);
+  int num_lines = count_lines (fp);
 
   // a bit over-allocated
 
-  tuning_db->alias_buf = (tuning_db_alias_t *) hccalloc (hashcat_ctx, num_lines + 1, sizeof (tuning_db_alias_t)); VERIFY_PTR (tuning_db->alias_buf);
+  tuning_db->alias_buf = (tuning_db_alias_t *) hccalloc (num_lines + 1, sizeof (tuning_db_alias_t));
   tuning_db->alias_cnt = 0;
 
-  tuning_db->entry_buf = (tuning_db_entry_t *) hccalloc (hashcat_ctx, num_lines + 1, sizeof (tuning_db_entry_t)); VERIFY_PTR (tuning_db->entry_buf);
+  tuning_db->entry_buf = (tuning_db_entry_t *) hccalloc (num_lines + 1, sizeof (tuning_db_entry_t));
   tuning_db->entry_cnt = 0;
 
   rewind (fp);
 
   int line_num = 0;
 
-  char *buf = (char *) hcmalloc (hashcat_ctx, HCBUFSIZ_LARGE); VERIFY_PTR (buf);
+  char *buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
   while (!feof (fp))
   {
@@ -140,8 +140,8 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
       tuning_db_alias_t *alias = &tuning_db->alias_buf[tuning_db->alias_cnt];
 
-      alias->device_name = hcstrdup (hashcat_ctx, device_name);
-      alias->alias_name  = hcstrdup (hashcat_ctx, alias_name);
+      alias->device_name = hcstrdup (device_name);
+      alias->alias_name  = hcstrdup (alias_name);
 
       tuning_db->alias_cnt++;
     }
@@ -214,7 +214,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
       tuning_db_entry_t *entry = &tuning_db->entry_buf[tuning_db->entry_cnt];
 
-      entry->device_name  = hcstrdup (hashcat_ctx, device_name);
+      entry->device_name  = hcstrdup (device_name);
       entry->attack_mode  = attack_mode;
       entry->hash_type    = hash_type;
       entry->vector_width = vector_width;
@@ -282,7 +282,7 @@ tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *dev
 
   // first we need to convert all spaces in the device_name to underscore
 
-  char *device_name_nospace = hcstrdup (hashcat_ctx, device_name);
+  char *device_name_nospace = hcstrdup (device_name);
 
   int device_name_length = strlen (device_name_nospace);
 
