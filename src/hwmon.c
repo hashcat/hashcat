@@ -147,6 +147,13 @@ static int hm_SYSFS_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int
 
   fclose (fd_max);
 
+  if (pwm1_max == 0)
+  {
+    event_log_error (hashcat_ctx, "%s: pwm1_max can not be 0", path_max);
+
+    return -1;
+  }
+
   float pwm1_percent = ((float) pwm1_cur / (float) pwm1_max) * 100.0f;
 
   *val = (int) pwm1_percent;
