@@ -2611,11 +2611,14 @@ int hm_get_threshold_slowdown_with_device_id (hashcat_ctx_t *hashcat_ctx, const 
 
   if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
-    int target = 0;
+    if (hwmon_ctx->hm_nvml)
+    {
+      int target = 0;
 
-    if (hm_NVML_nvmlDeviceGetTemperatureThreshold (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvml, NVML_TEMPERATURE_THRESHOLD_SLOWDOWN, (unsigned int *) &target) == -1) return -1;
+      if (hm_NVML_nvmlDeviceGetTemperatureThreshold (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvml, NVML_TEMPERATURE_THRESHOLD_SLOWDOWN, (unsigned int *) &target) == -1) return -1;
 
-    return target;
+      return target;
+    }
   }
 
   return -1;
@@ -2647,11 +2650,14 @@ int hm_get_threshold_shutdown_with_device_id (hashcat_ctx_t *hashcat_ctx, const 
 
   if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
-    int target = 0;
+    if (hwmon_ctx->hm_nvml)
+    {
+      int target = 0;
 
-    if (hm_NVML_nvmlDeviceGetTemperatureThreshold (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvml, NVML_TEMPERATURE_THRESHOLD_SHUTDOWN, (unsigned int *) &target) == -1) return -1;
+      if (hm_NVML_nvmlDeviceGetTemperatureThreshold (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvml, NVML_TEMPERATURE_THRESHOLD_SHUTDOWN, (unsigned int *) &target) == -1) return -1;
 
-    return target;
+      return target;
+    }
   }
 
   return -1;
@@ -2702,11 +2708,14 @@ int hm_get_temperature_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 dev
 
   if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
-    int temperature = 0;
+    if (hwmon_ctx->hm_nvml)
+    {
+      int temperature = 0;
 
-    if (hm_NVML_nvmlDeviceGetTemperature (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvml, NVML_TEMPERATURE_GPU, (u32 *) &temperature) == -1) return -1;
+      if (hm_NVML_nvmlDeviceGetTemperature (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvml, NVML_TEMPERATURE_GPU, (u32 *) &temperature) == -1) return -1;
 
-    return temperature;
+      return temperature;
+    }
   }
 
   return -1;
@@ -2721,41 +2730,40 @@ int hm_get_fanpolicy_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 devic
 
   if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  if (hwmon_ctx->hm_device[device_id].fan_get_supported == true)
+  if (hwmon_ctx->hm_device[device_id].fan_get_supported == false) return -1;
+
+  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
-    if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+    if (hwmon_ctx->hm_adl)
     {
-      if (hwmon_ctx->hm_adl)
+      if (hwmon_ctx->hm_device[device_id].od_version == 5)
       {
-        if (hwmon_ctx->hm_device[device_id].od_version == 5)
-        {
-          ADLFanSpeedValue lpFanSpeedValue;
+        ADLFanSpeedValue lpFanSpeedValue;
 
-          memset (&lpFanSpeedValue, 0, sizeof (lpFanSpeedValue));
+        memset (&lpFanSpeedValue, 0, sizeof (lpFanSpeedValue));
 
-          lpFanSpeedValue.iSize      = sizeof (lpFanSpeedValue);
-          lpFanSpeedValue.iSpeedType = ADL_DL_FANCTRL_SPEED_TYPE_PERCENT;
+        lpFanSpeedValue.iSize      = sizeof (lpFanSpeedValue);
+        lpFanSpeedValue.iSpeedType = ADL_DL_FANCTRL_SPEED_TYPE_PERCENT;
 
-          if (hm_ADL_Overdrive5_FanSpeed_Get (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, 0, &lpFanSpeedValue) == -1) return -1;
+        if (hm_ADL_Overdrive5_FanSpeed_Get (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, 0, &lpFanSpeedValue) == -1) return -1;
 
-          return (lpFanSpeedValue.iFanSpeed & ADL_DL_FANCTRL_FLAG_USER_DEFINED_SPEED) ? 0 : 1;
-        }
-        else // od_version == 6
-        {
-          return 1;
-        }
+        return (lpFanSpeedValue.iFanSpeed & ADL_DL_FANCTRL_FLAG_USER_DEFINED_SPEED) ? 0 : 1;
       }
-
-      if (hwmon_ctx->hm_sysfs)
+      else // od_version == 6
       {
         return 1;
       }
     }
 
-    if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+    if (hwmon_ctx->hm_sysfs)
     {
       return 1;
     }
+  }
+
+  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+  {
+    return 1;
   }
 
   return -1;
@@ -2770,49 +2778,51 @@ int hm_get_fanspeed_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device
 
   if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) return -1;
 
-  if (hwmon_ctx->hm_device[device_id].fan_get_supported == true)
+  if (hwmon_ctx->hm_device[device_id].fan_get_supported == false) return -1;
+
+  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
-    if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
+    if (hwmon_ctx->hm_adl)
     {
-      if (hwmon_ctx->hm_adl)
+      if (hwmon_ctx->hm_device[device_id].od_version == 5)
       {
-        if (hwmon_ctx->hm_device[device_id].od_version == 5)
-        {
-          ADLFanSpeedValue lpFanSpeedValue;
+        ADLFanSpeedValue lpFanSpeedValue;
 
-          memset (&lpFanSpeedValue, 0, sizeof (lpFanSpeedValue));
+        memset (&lpFanSpeedValue, 0, sizeof (lpFanSpeedValue));
 
-          lpFanSpeedValue.iSize      = sizeof (lpFanSpeedValue);
-          lpFanSpeedValue.iSpeedType = ADL_DL_FANCTRL_SPEED_TYPE_PERCENT;
-          lpFanSpeedValue.iFlags     = ADL_DL_FANCTRL_FLAG_USER_DEFINED_SPEED;
+        lpFanSpeedValue.iSize      = sizeof (lpFanSpeedValue);
+        lpFanSpeedValue.iSpeedType = ADL_DL_FANCTRL_SPEED_TYPE_PERCENT;
+        lpFanSpeedValue.iFlags     = ADL_DL_FANCTRL_FLAG_USER_DEFINED_SPEED;
 
-          if (hm_ADL_Overdrive5_FanSpeed_Get (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, 0, &lpFanSpeedValue) == -1) return -1;
+        if (hm_ADL_Overdrive5_FanSpeed_Get (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, 0, &lpFanSpeedValue) == -1) return -1;
 
-          return lpFanSpeedValue.iFanSpeed;
-        }
-        else // od_version == 6
-        {
-          ADLOD6FanSpeedInfo faninfo;
-
-          memset (&faninfo, 0, sizeof (faninfo));
-
-          if (hm_ADL_Overdrive6_FanSpeed_Get (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, &faninfo) == -1) return -1;
-
-          return faninfo.iFanSpeedPercent;
-        }
+        return lpFanSpeedValue.iFanSpeed;
       }
-
-      if (hwmon_ctx->hm_sysfs)
+      else // od_version == 6
       {
-        int speed = 0;
+        ADLOD6FanSpeedInfo faninfo;
 
-        if (hm_SYSFS_get_fan_speed_current (hashcat_ctx, device_id, &speed) == -1) return -1;
+        memset (&faninfo, 0, sizeof (faninfo));
 
-        return speed;
+        if (hm_ADL_Overdrive6_FanSpeed_Get (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, &faninfo) == -1) return -1;
+
+        return faninfo.iFanSpeedPercent;
       }
     }
 
-    if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+    if (hwmon_ctx->hm_sysfs)
+    {
+      int speed = 0;
+
+      if (hm_SYSFS_get_fan_speed_current (hashcat_ctx, device_id, &speed) == -1) return -1;
+
+      return speed;
+    }
+  }
+
+  if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
+  {
+    if (hwmon_ctx->hm_nvml)
     {
       int speed = 0;
 
@@ -2859,11 +2869,14 @@ int hm_get_buslanes_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device
 
   if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
-    unsigned int currLinkWidth;
+    if (hwmon_ctx->hm_nvml)
+    {
+      unsigned int currLinkWidth;
 
-    if (hm_NVML_nvmlDeviceGetCurrPcieLinkWidth (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvml, &currLinkWidth) == -1) return -1;
+      if (hm_NVML_nvmlDeviceGetCurrPcieLinkWidth (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvml, &currLinkWidth) == -1) return -1;
 
-    return currLinkWidth;
+      return currLinkWidth;
+    }
   }
 
   return -1;
@@ -2894,11 +2907,14 @@ int hm_get_utilization_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 dev
 
   if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
-    nvmlUtilization_t utilization;
+    if (hwmon_ctx->hm_nvml)
+    {
+      nvmlUtilization_t utilization;
 
-    if (hm_NVML_nvmlDeviceGetUtilizationRates (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvml, &utilization) == -1) return -1;
+      if (hm_NVML_nvmlDeviceGetUtilizationRates (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvml, &utilization) == -1) return -1;
 
-    return utilization.gpu;
+      return utilization.gpu;
+    }
   }
 
   return -1;
@@ -2938,11 +2954,14 @@ int hm_get_memoryspeed_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 dev
 
   if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
-    unsigned int clock;
+    if (hwmon_ctx->hm_nvml)
+    {
+      unsigned int clock;
 
-    if (hm_NVML_nvmlDeviceGetClockInfo (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvml, NVML_CLOCK_MEM, &clock) == -1) return -1;
+      if (hm_NVML_nvmlDeviceGetClockInfo (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvml, NVML_CLOCK_MEM, &clock) == -1) return -1;
 
-    return clock;
+      return clock;
+    }
   }
 
   return -1;
@@ -2982,11 +3001,14 @@ int hm_get_corespeed_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 devic
 
   if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
-    unsigned int clock;
+    if (hwmon_ctx->hm_nvml)
+    {
+      unsigned int clock;
 
-    if (hm_NVML_nvmlDeviceGetClockInfo (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvml, NVML_CLOCK_SM, &clock) == -1) return -1;
+      if (hm_NVML_nvmlDeviceGetClockInfo (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvml, NVML_CLOCK_SM, &clock) == -1) return -1;
 
-    return clock;
+      return clock;
+    }
   }
 
   return -1;
@@ -3003,30 +3025,32 @@ int hm_get_throttle_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device
 
   if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_AMD)
   {
-
   }
 
   if (opencl_ctx->devices_param[device_id].device_vendor_id == VENDOR_ID_NV)
   {
-    /* this is triggered by mask generator, too. therefore useless
-    unsigned long long clocksThrottleReasons = 0;
-    unsigned long long supportedThrottleReasons = 0;
-
-    if (hm_NVML_nvmlDeviceGetCurrentClocksThrottleReasons   (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvml, &clocksThrottleReasons)    == -1) return -1;
-    if (hm_NVML_nvmlDeviceGetSupportedClocksThrottleReasons (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvml, &supportedThrottleReasons) == -1) return -1;
-
-    clocksThrottleReasons &=  supportedThrottleReasons;
-    clocksThrottleReasons &= ~nvmlClocksThrottleReasonGpuIdle;
-    clocksThrottleReasons &= ~nvmlClocksThrottleReasonApplicationsClocksSetting;
-    clocksThrottleReasons &= ~nvmlClocksThrottleReasonUnknown;
-
-    if (opencl_ctx->kernel_power_final)
+    if (hwmon_ctx->hm_nvml)
     {
-      clocksThrottleReasons &= ~nvmlClocksThrottleReasonHwSlowdown;
-    }
+      /* this is triggered by mask generator, too. therefore useless
+      unsigned long long clocksThrottleReasons = 0;
+      unsigned long long supportedThrottleReasons = 0;
 
-    return (clocksThrottleReasons != nvmlClocksThrottleReasonNone);
-    */
+      if (hm_NVML_nvmlDeviceGetCurrentClocksThrottleReasons   (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvml, &clocksThrottleReasons)    == -1) return -1;
+      if (hm_NVML_nvmlDeviceGetSupportedClocksThrottleReasons (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvml, &supportedThrottleReasons) == -1) return -1;
+
+      clocksThrottleReasons &=  supportedThrottleReasons;
+      clocksThrottleReasons &= ~nvmlClocksThrottleReasonGpuIdle;
+      clocksThrottleReasons &= ~nvmlClocksThrottleReasonApplicationsClocksSetting;
+      clocksThrottleReasons &= ~nvmlClocksThrottleReasonUnknown;
+
+      if (opencl_ctx->kernel_power_final)
+      {
+        clocksThrottleReasons &= ~nvmlClocksThrottleReasonHwSlowdown;
+      }
+
+      return (clocksThrottleReasons != nvmlClocksThrottleReasonNone);
+      */
+    }
 
     if (hwmon_ctx->hm_nvapi)
     {
@@ -3058,55 +3082,54 @@ int hm_set_fanspeed_with_device_id_adl (hashcat_ctx_t *hashcat_ctx, const u32 de
 
   if (hwmon_ctx->enabled == false) return -1;
 
-  if (hwmon_ctx->hm_device[device_id].fan_set_supported == true)
+  if (hwmon_ctx->hm_device[device_id].fan_set_supported == false) return -1;
+
+  if (hwmon_ctx->hm_adl)
   {
-    if (hwmon_ctx->hm_adl)
+    if (fanpolicy == 1)
     {
-      if (fanpolicy == 1)
+      if (hwmon_ctx->hm_device[device_id].od_version == 5)
       {
-        if (hwmon_ctx->hm_device[device_id].od_version == 5)
-        {
-          ADLFanSpeedValue lpFanSpeedValue;
+        ADLFanSpeedValue lpFanSpeedValue;
 
-          memset (&lpFanSpeedValue, 0, sizeof (lpFanSpeedValue));
+        memset (&lpFanSpeedValue, 0, sizeof (lpFanSpeedValue));
 
-          lpFanSpeedValue.iSize      = sizeof (lpFanSpeedValue);
-          lpFanSpeedValue.iSpeedType = ADL_DL_FANCTRL_SPEED_TYPE_PERCENT;
-          lpFanSpeedValue.iFlags     = ADL_DL_FANCTRL_FLAG_USER_DEFINED_SPEED;
-          lpFanSpeedValue.iFanSpeed  = fanspeed;
+        lpFanSpeedValue.iSize      = sizeof (lpFanSpeedValue);
+        lpFanSpeedValue.iSpeedType = ADL_DL_FANCTRL_SPEED_TYPE_PERCENT;
+        lpFanSpeedValue.iFlags     = ADL_DL_FANCTRL_FLAG_USER_DEFINED_SPEED;
+        lpFanSpeedValue.iFanSpeed  = fanspeed;
 
-          if (hm_ADL_Overdrive5_FanSpeed_Set (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, 0, &lpFanSpeedValue) == -1) return -1;
+        if (hm_ADL_Overdrive5_FanSpeed_Set (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, 0, &lpFanSpeedValue) == -1) return -1;
 
-          return 0;
-        }
-        else // od_version == 6
-        {
-          ADLOD6FanSpeedValue fan_speed_value;
-
-          memset (&fan_speed_value, 0, sizeof (fan_speed_value));
-
-          fan_speed_value.iSpeedType = ADL_OD6_FANSPEED_TYPE_PERCENT;
-          fan_speed_value.iFanSpeed  = fanspeed;
-
-          if (hm_ADL_Overdrive6_FanSpeed_Set (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, &fan_speed_value) == -1) return -1;
-
-          return 0;
-        }
+        return 0;
       }
-      else
+      else // od_version == 6
       {
-        if (hwmon_ctx->hm_device[device_id].od_version == 5)
-        {
-          if (hm_ADL_Overdrive5_FanSpeedToDefault_Set (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, 0) == -1) return -1;
+        ADLOD6FanSpeedValue fan_speed_value;
 
-          return 0;
-        }
-        else // od_version == 6
-        {
-          if (hm_ADL_Overdrive6_FanSpeed_Reset (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl) == -1) return -1;
+        memset (&fan_speed_value, 0, sizeof (fan_speed_value));
 
-          return 0;
-        }
+        fan_speed_value.iSpeedType = ADL_OD6_FANSPEED_TYPE_PERCENT;
+        fan_speed_value.iFanSpeed  = fanspeed;
+
+        if (hm_ADL_Overdrive6_FanSpeed_Set (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, &fan_speed_value) == -1) return -1;
+
+        return 0;
+      }
+    }
+    else
+    {
+      if (hwmon_ctx->hm_device[device_id].od_version == 5)
+      {
+        if (hm_ADL_Overdrive5_FanSpeedToDefault_Set (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, 0) == -1) return -1;
+
+        return 0;
+      }
+      else // od_version == 6
+      {
+        if (hm_ADL_Overdrive6_FanSpeed_Reset (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl) == -1) return -1;
+
+        return 0;
       }
     }
   }
@@ -3120,40 +3143,39 @@ int hm_set_fanspeed_with_device_id_nvapi (hashcat_ctx_t *hashcat_ctx, const u32 
 
   if (hwmon_ctx->enabled == false) return -1;
 
-  if (hwmon_ctx->hm_device[device_id].fan_set_supported == true)
+  if (hwmon_ctx->hm_device[device_id].fan_set_supported == false) return -1;
+
+  if (hwmon_ctx->hm_nvapi)
   {
-    if (hwmon_ctx->hm_nvapi)
+    if (fanpolicy == 1)
     {
-      if (fanpolicy == 1)
-      {
-        NV_GPU_COOLER_LEVELS CoolerLevels;
+      NV_GPU_COOLER_LEVELS CoolerLevels;
 
-        memset (&CoolerLevels, 0, sizeof (NV_GPU_COOLER_LEVELS));
+      memset (&CoolerLevels, 0, sizeof (NV_GPU_COOLER_LEVELS));
 
-        CoolerLevels.Version = GPU_COOLER_LEVELS_VER | sizeof (NV_GPU_COOLER_LEVELS);
+      CoolerLevels.Version = GPU_COOLER_LEVELS_VER | sizeof (NV_GPU_COOLER_LEVELS);
 
-        CoolerLevels.Levels[0].Level  = fanspeed;
-        CoolerLevels.Levels[0].Policy = 1;
+      CoolerLevels.Levels[0].Level  = fanspeed;
+      CoolerLevels.Levels[0].Policy = 1;
 
-        if (hm_NvAPI_GPU_SetCoolerLevels (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvapi, 0, &CoolerLevels) == -1) return -1;
+      if (hm_NvAPI_GPU_SetCoolerLevels (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvapi, 0, &CoolerLevels) == -1) return -1;
 
-        return 0;
-      }
-      else
-      {
-        NV_GPU_COOLER_LEVELS CoolerLevels;
+      return 0;
+    }
+    else
+    {
+      NV_GPU_COOLER_LEVELS CoolerLevels;
 
-        memset (&CoolerLevels, 0, sizeof (NV_GPU_COOLER_LEVELS));
+      memset (&CoolerLevels, 0, sizeof (NV_GPU_COOLER_LEVELS));
 
-        CoolerLevels.Version = GPU_COOLER_LEVELS_VER | sizeof (NV_GPU_COOLER_LEVELS);
+      CoolerLevels.Version = GPU_COOLER_LEVELS_VER | sizeof (NV_GPU_COOLER_LEVELS);
 
-        CoolerLevels.Levels[0].Level  = 100;
-        CoolerLevels.Levels[0].Policy = 0x20;
+      CoolerLevels.Levels[0].Level  = 100;
+      CoolerLevels.Levels[0].Policy = 0x20;
 
-        if (hm_NvAPI_GPU_SetCoolerLevels (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvapi, 0, &CoolerLevels) == -1) return -1;
+      if (hm_NvAPI_GPU_SetCoolerLevels (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvapi, 0, &CoolerLevels) == -1) return -1;
 
-        return 0;
-      }
+      return 0;
     }
   }
 
@@ -3166,14 +3188,13 @@ int hm_set_fanspeed_with_device_id_xnvctrl (hashcat_ctx_t *hashcat_ctx, const u3
 
   if (hwmon_ctx->enabled == false) return -1;
 
-  if (hwmon_ctx->hm_device[device_id].fan_set_supported == true)
-  {
-    if (hwmon_ctx->hm_xnvctrl)
-    {
-      if (hm_XNVCTRL_set_fan_speed_target (hashcat_ctx, hwmon_ctx->hm_device[device_id].xnvctrl, fanspeed) == -1) return -1;
+  if (hwmon_ctx->hm_device[device_id].fan_set_supported == false) return -1;
 
-      return 0;
-    }
+  if (hwmon_ctx->hm_xnvctrl)
+  {
+    if (hm_XNVCTRL_set_fan_speed_target (hashcat_ctx, hwmon_ctx->hm_device[device_id].xnvctrl, fanspeed) == -1) return -1;
+
+    return 0;
   }
 
   return -1;
@@ -3185,14 +3206,13 @@ int hm_set_fanspeed_with_device_id_sysfs (hashcat_ctx_t *hashcat_ctx, const u32 
 
   if (hwmon_ctx->enabled == false) return -1;
 
-  if (hwmon_ctx->hm_device[device_id].fan_set_supported == true)
-  {
-    if (hwmon_ctx->hm_sysfs)
-    {
-      if (hm_SYSFS_set_fan_speed_target (hashcat_ctx, device_id, fanspeed) == -1) return -1;
+  if (hwmon_ctx->hm_device[device_id].fan_set_supported == false) return -1;
 
-      return 0;
-    }
+  if (hwmon_ctx->hm_sysfs)
+  {
+    if (hm_SYSFS_set_fan_speed_target (hashcat_ctx, device_id, fanspeed) == -1) return -1;
+
+    return 0;
   }
 
   return -1;
@@ -3204,14 +3224,13 @@ static int hm_set_fanctrl_with_device_id_xnvctrl (hashcat_ctx_t *hashcat_ctx, co
 
   if (hwmon_ctx->enabled == false) return -1;
 
-  if (hwmon_ctx->hm_device[device_id].fan_set_supported == true)
-  {
-    if (hwmon_ctx->hm_xnvctrl)
-    {
-      if (hm_XNVCTRL_set_fan_control (hashcat_ctx, hwmon_ctx->hm_device[device_id].xnvctrl, val) == -1) return -1;
+  if (hwmon_ctx->hm_device[device_id].fan_set_supported == false) return -1;
 
-      return 0;
-    }
+  if (hwmon_ctx->hm_xnvctrl)
+  {
+    if (hm_XNVCTRL_set_fan_control (hashcat_ctx, hwmon_ctx->hm_device[device_id].xnvctrl, val) == -1) return -1;
+
+    return 0;
   }
 
   return -1;
@@ -3223,14 +3242,13 @@ static int hm_set_fanctrl_with_device_id_sysfs (hashcat_ctx_t *hashcat_ctx, cons
 
   if (hwmon_ctx->enabled == false) return -1;
 
-  if (hwmon_ctx->hm_device[device_id].fan_set_supported == true)
-  {
-    if (hwmon_ctx->hm_sysfs)
-    {
-      if (hm_SYSFS_set_fan_control (hashcat_ctx, device_id, val) == -1) return -1;
+  if (hwmon_ctx->hm_device[device_id].fan_set_supported == false) return -1;
 
-      return 0;
-    }
+  if (hwmon_ctx->hm_sysfs)
+  {
+    if (hm_SYSFS_set_fan_control (hashcat_ctx, device_id, val) == -1) return -1;
+
+    return 0;
   }
 
   return -1;
