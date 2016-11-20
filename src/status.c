@@ -306,8 +306,6 @@ char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
       return hashes->hashfile;
     }
   }
-
-  return NULL;
 }
 
 int status_get_input_mode (const hashcat_ctx_t *hashcat_ctx)

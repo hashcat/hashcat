@@ -4253,15 +4253,13 @@ int sha1b64s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   u8 tmp_buf[100] = { 0 };
 
-  int tmp_len = base64_decode (base64_to_int, (const u8 *) input_buf + 6, input_len - 6, tmp_buf);
+  const int tmp_len = base64_decode (base64_to_int, (const u8 *) input_buf + 6, input_len - 6, tmp_buf);
 
   if (tmp_len < 20) return (PARSER_HASH_LENGTH);
 
   memcpy (digest, tmp_buf, 20);
 
-  int salt_len = tmp_len - 20;
-
-  if (salt_len < 0) return (PARSER_SALT_LENGTH);
+  const int salt_len = tmp_len - 20;
 
   salt->salt_len = salt_len;
 
@@ -5912,7 +5910,7 @@ int sha512b64s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   u8 tmp_buf[120] = { 0 };
 
-  int tmp_len = base64_decode (base64_to_int, (const u8 *) input_buf + 9, input_len - 9, tmp_buf);
+  const int tmp_len = base64_decode (base64_to_int, (const u8 *) input_buf + 9, input_len - 9, tmp_buf);
 
   if (tmp_len < 64) return (PARSER_HASH_LENGTH);
 
@@ -5936,9 +5934,7 @@ int sha512b64s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   digest[6] -= SHA512M_G;
   digest[7] -= SHA512M_H;
 
-  int salt_len = tmp_len - 64;
-
-  if (salt_len < 0) return (PARSER_SALT_LENGTH);
+  const int salt_len = tmp_len - 64;
 
   salt->salt_len = salt_len;
 
@@ -7014,11 +7010,10 @@ int des_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
 
   u32 salt_len = salt_pos - digest_pos;
 
-  if (salt_len != 16) return (PARSER_SALT_LENGTH);
-
   u32 hash_len = input_len - 1 - salt_len;
 
   if (hash_len != 16) return (PARSER_HASH_LENGTH);
+  if (salt_len != 16) return (PARSER_SALT_LENGTH);
 
   salt_pos++;
 
@@ -7740,8 +7735,6 @@ int office2007_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   u32 version_len = verifierHashSize_pos - version_pos;
 
-  if (version_len != 4) return (PARSER_SALT_LENGTH);
-
   verifierHashSize_pos++;
 
   u8 *keySize_pos = (u8 *) strchr ((const char *) verifierHashSize_pos, '*');
@@ -7749,8 +7742,6 @@ int office2007_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   if (keySize_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   u32 verifierHashSize_len = keySize_pos - verifierHashSize_pos;
-
-  if (verifierHashSize_len != 2) return (PARSER_SALT_LENGTH);
 
   keySize_pos++;
 
@@ -7760,8 +7751,6 @@ int office2007_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   u32 keySize_len = saltSize_pos - keySize_pos;
 
-  if (keySize_len != 3) return (PARSER_SALT_LENGTH);
-
   saltSize_pos++;
 
   u8 *osalt_pos = (u8 *) strchr ((const char *) saltSize_pos, '*');
@@ -7769,8 +7758,6 @@ int office2007_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   if (osalt_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   u32 saltSize_len = osalt_pos - saltSize_pos;
-
-  if (saltSize_len != 2) return (PARSER_SALT_LENGTH);
 
   osalt_pos++;
 
@@ -7780,8 +7767,6 @@ int office2007_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   u32 osalt_len = encryptedVerifier_pos - osalt_pos;
 
-  if (osalt_len != 32) return (PARSER_SALT_LENGTH);
-
   encryptedVerifier_pos++;
 
   u8 *encryptedVerifierHash_pos = (u8 *) strchr ((const char *) encryptedVerifier_pos, '*');
@@ -7790,31 +7775,30 @@ int office2007_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   u32 encryptedVerifier_len = encryptedVerifierHash_pos - encryptedVerifier_pos;
 
-  if (encryptedVerifier_len != 32) return (PARSER_SALT_LENGTH);
-
   encryptedVerifierHash_pos++;
 
   u32 encryptedVerifierHash_len = input_len - 8 - 1 - version_len - 1 - verifierHashSize_len - 1 - keySize_len - 1 - saltSize_len - 1 - osalt_len - 1 - encryptedVerifier_len - 1;
 
   if (encryptedVerifierHash_len != 40) return (PARSER_SALT_LENGTH);
 
-  const u32 version = atoll ((const char *) version_pos);
+  if (version_len           !=  4) return (PARSER_SALT_LENGTH);
+  if (verifierHashSize_len  !=  2) return (PARSER_SALT_LENGTH);
+  if (keySize_len           !=  3) return (PARSER_SALT_LENGTH);
+  if (saltSize_len          !=  2) return (PARSER_SALT_LENGTH);
+  if (osalt_len             != 32) return (PARSER_SALT_LENGTH);
+  if (encryptedVerifier_len != 32) return (PARSER_SALT_LENGTH);
 
-  if (version != 2007) return (PARSER_SALT_VALUE);
+  const u32 version           = atoll ((const char *) version_pos);
+  const u32 verifierHashSize  = atoll ((const char *) verifierHashSize_pos);
+  const u32 keySize           = atoll ((const char *) keySize_pos);
+  const u32 saltSize          = atoll ((const char *) saltSize_pos);
 
-  const u32 verifierHashSize = atoll ((const char *) verifierHashSize_pos);
-
-  if (verifierHashSize != 20) return (PARSER_SALT_VALUE);
-
-  const u32 keySize = atoll ((const char *) keySize_pos);
-
+  if (version           != 2007)            return (PARSER_SALT_VALUE);
+  if (verifierHashSize  != 20)              return (PARSER_SALT_VALUE);
+  if (saltSize          != 16)              return (PARSER_SALT_VALUE);
   if ((keySize != 128) && (keySize != 256)) return (PARSER_SALT_VALUE);
 
   office2007->keySize = keySize;
-
-  const u32 saltSize = atoll ((const char *) saltSize_pos);
-
-  if (saltSize != 16) return (PARSER_SALT_VALUE);
 
   /**
    * salt
@@ -7879,8 +7863,6 @@ int office2010_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   u32 version_len = spinCount_pos - version_pos;
 
-  if (version_len != 4) return (PARSER_SALT_LENGTH);
-
   spinCount_pos++;
 
   u8 *keySize_pos = (u8 *) strchr ((const char *) spinCount_pos, '*');
@@ -7888,8 +7870,6 @@ int office2010_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   if (keySize_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   u32 spinCount_len = keySize_pos - spinCount_pos;
-
-  if (spinCount_len != 6) return (PARSER_SALT_LENGTH);
 
   keySize_pos++;
 
@@ -7899,8 +7879,6 @@ int office2010_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   u32 keySize_len = saltSize_pos - keySize_pos;
 
-  if (keySize_len != 3) return (PARSER_SALT_LENGTH);
-
   saltSize_pos++;
 
   u8 *osalt_pos = (u8 *) strchr ((const char *) saltSize_pos, '*');
@@ -7908,8 +7886,6 @@ int office2010_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   if (osalt_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   u32 saltSize_len = osalt_pos - saltSize_pos;
-
-  if (saltSize_len != 2) return (PARSER_SALT_LENGTH);
 
   osalt_pos++;
 
@@ -7919,8 +7895,6 @@ int office2010_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   u32 osalt_len = encryptedVerifier_pos - osalt_pos;
 
-  if (osalt_len != 32) return (PARSER_SALT_LENGTH);
-
   encryptedVerifier_pos++;
 
   u8 *encryptedVerifierHash_pos = (u8 *) strchr ((const char *) encryptedVerifier_pos, '*');
@@ -7929,29 +7903,28 @@ int office2010_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   u32 encryptedVerifier_len = encryptedVerifierHash_pos - encryptedVerifier_pos;
 
-  if (encryptedVerifier_len != 32) return (PARSER_SALT_LENGTH);
-
   encryptedVerifierHash_pos++;
 
   u32 encryptedVerifierHash_len = input_len - 8 - 1 - version_len - 1 - spinCount_len - 1 - keySize_len - 1 - saltSize_len - 1 - osalt_len - 1 - encryptedVerifier_len - 1;
 
   if (encryptedVerifierHash_len != 64) return (PARSER_SALT_LENGTH);
 
-  const u32 version = atoll ((const char *) version_pos);
+  if (version_len           !=  4) return (PARSER_SALT_LENGTH);
+  if (spinCount_len         !=  6) return (PARSER_SALT_LENGTH);
+  if (keySize_len           !=  3) return (PARSER_SALT_LENGTH);
+  if (saltSize_len          !=  2) return (PARSER_SALT_LENGTH);
+  if (osalt_len             != 32) return (PARSER_SALT_LENGTH);
+  if (encryptedVerifier_len != 32) return (PARSER_SALT_LENGTH);
 
-  if (version != 2010) return (PARSER_SALT_VALUE);
-
+  const u32 version   = atoll ((const char *) version_pos);
   const u32 spinCount = atoll ((const char *) spinCount_pos);
+  const u32 keySize   = atoll ((const char *) keySize_pos);
+  const u32 saltSize  = atoll ((const char *) saltSize_pos);
 
-  if (spinCount != 100000) return (PARSER_SALT_VALUE);
-
-  const u32 keySize = atoll ((const char *) keySize_pos);
-
-  if (keySize != 128) return (PARSER_SALT_VALUE);
-
-  const u32 saltSize = atoll ((const char *) saltSize_pos);
-
-  if (saltSize != 16) return (PARSER_SALT_VALUE);
+  if (version   != 2010)    return (PARSER_SALT_VALUE);
+  if (spinCount != 100000)  return (PARSER_SALT_VALUE);
+  if (keySize   != 128)     return (PARSER_SALT_VALUE);
+  if (saltSize  != 16)      return (PARSER_SALT_VALUE);
 
   /**
    * salt
@@ -8019,8 +7992,6 @@ int office2013_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   u32 version_len = spinCount_pos - version_pos;
 
-  if (version_len != 4) return (PARSER_SALT_LENGTH);
-
   spinCount_pos++;
 
   u8 *keySize_pos = (u8 *) strchr ((const char *) spinCount_pos, '*');
@@ -8028,8 +7999,6 @@ int office2013_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   if (keySize_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   u32 spinCount_len = keySize_pos - spinCount_pos;
-
-  if (spinCount_len != 6) return (PARSER_SALT_LENGTH);
 
   keySize_pos++;
 
@@ -8039,8 +8008,6 @@ int office2013_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   u32 keySize_len = saltSize_pos - keySize_pos;
 
-  if (keySize_len != 3) return (PARSER_SALT_LENGTH);
-
   saltSize_pos++;
 
   u8 *osalt_pos = (u8 *) strchr ((const char *) saltSize_pos, '*');
@@ -8048,8 +8015,6 @@ int office2013_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   if (osalt_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   u32 saltSize_len = osalt_pos - saltSize_pos;
-
-  if (saltSize_len != 2) return (PARSER_SALT_LENGTH);
 
   osalt_pos++;
 
@@ -8059,8 +8024,6 @@ int office2013_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   u32 osalt_len = encryptedVerifier_pos - osalt_pos;
 
-  if (osalt_len != 32) return (PARSER_SALT_LENGTH);
-
   encryptedVerifier_pos++;
 
   u8 *encryptedVerifierHash_pos = (u8 *) strchr ((const char *) encryptedVerifier_pos, '*');
@@ -8069,29 +8032,28 @@ int office2013_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   u32 encryptedVerifier_len = encryptedVerifierHash_pos - encryptedVerifier_pos;
 
-  if (encryptedVerifier_len != 32) return (PARSER_SALT_LENGTH);
-
   encryptedVerifierHash_pos++;
 
   u32 encryptedVerifierHash_len = input_len - 8 - 1 - version_len - 1 - spinCount_len - 1 - keySize_len - 1 - saltSize_len - 1 - osalt_len - 1 - encryptedVerifier_len - 1;
 
   if (encryptedVerifierHash_len != 64) return (PARSER_SALT_LENGTH);
 
-  const u32 version = atoll ((const char *) version_pos);
+  if (version_len           !=  4) return (PARSER_SALT_LENGTH);
+  if (spinCount_len         !=  6) return (PARSER_SALT_LENGTH);
+  if (keySize_len           !=  3) return (PARSER_SALT_LENGTH);
+  if (saltSize_len          !=  2) return (PARSER_SALT_LENGTH);
+  if (osalt_len             != 32) return (PARSER_SALT_LENGTH);
+  if (encryptedVerifier_len != 32) return (PARSER_SALT_LENGTH);
 
-  if (version != 2013) return (PARSER_SALT_VALUE);
-
+  const u32 version   = atoll ((const char *) version_pos);
   const u32 spinCount = atoll ((const char *) spinCount_pos);
+  const u32 keySize   = atoll ((const char *) keySize_pos);
+  const u32 saltSize  = atoll ((const char *) saltSize_pos);
 
-  if (spinCount != 100000) return (PARSER_SALT_VALUE);
-
-  const u32 keySize = atoll ((const char *) keySize_pos);
-
-  if (keySize != 256) return (PARSER_SALT_VALUE);
-
-  const u32 saltSize = atoll ((const char *) saltSize_pos);
-
-  if (saltSize != 16) return (PARSER_SALT_VALUE);
+  if (version   != 2013)    return (PARSER_SALT_VALUE);
+  if (spinCount != 100000)  return (PARSER_SALT_VALUE);
+  if (keySize   != 256)     return (PARSER_SALT_VALUE);
+  if (saltSize  != 16)      return (PARSER_SALT_VALUE);
 
   /**
    * salt
@@ -8287,8 +8249,6 @@ int oldoffice01cm2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
 
   u32 version_len = osalt_pos - version_pos;
 
-  if (version_len != 1) return (PARSER_SALT_LENGTH);
-
   osalt_pos++;
 
   u8 *encryptedVerifier_pos = (u8 *) strchr ((const char *) osalt_pos, '*');
@@ -8296,8 +8256,6 @@ int oldoffice01cm2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
   if (encryptedVerifier_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   u32 osalt_len = encryptedVerifier_pos - osalt_pos;
-
-  if (osalt_len != 32) return (PARSER_SALT_LENGTH);
 
   encryptedVerifier_pos++;
 
@@ -8307,8 +8265,6 @@ int oldoffice01cm2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
 
   u32 encryptedVerifier_len = encryptedVerifierHash_pos - encryptedVerifier_pos;
 
-  if (encryptedVerifier_len != 32) return (PARSER_SALT_LENGTH);
-
   encryptedVerifierHash_pos++;
 
   u8 *rc4key_pos = (u8 *) strchr ((const char *) encryptedVerifierHash_pos, ':');
@@ -8317,13 +8273,16 @@ int oldoffice01cm2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
 
   u32 encryptedVerifierHash_len = rc4key_pos - encryptedVerifierHash_pos;
 
-  if (encryptedVerifierHash_len != 32) return (PARSER_SALT_LENGTH);
-
   rc4key_pos++;
 
   u32 rc4key_len = input_len - 11 - version_len - 1 - osalt_len - 1 - encryptedVerifier_len - 1 - encryptedVerifierHash_len - 1;
 
   if (rc4key_len != 10) return (PARSER_SALT_LENGTH);
+
+  if (version_len               !=  1) return (PARSER_SALT_LENGTH);
+  if (osalt_len                 != 32) return (PARSER_SALT_LENGTH);
+  if (encryptedVerifier_len     != 32) return (PARSER_SALT_LENGTH);
+  if (encryptedVerifierHash_len != 32) return (PARSER_SALT_LENGTH);
 
   const u32 version = *version_pos - 0x30;
 
@@ -8564,8 +8523,6 @@ int oldoffice34cm2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
 
   u32 version_len = osalt_pos - version_pos;
 
-  if (version_len != 1) return (PARSER_SALT_LENGTH);
-
   osalt_pos++;
 
   u8 *encryptedVerifier_pos = (u8 *) strchr ((const char *) osalt_pos, '*');
@@ -8573,8 +8530,6 @@ int oldoffice34cm2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
   if (encryptedVerifier_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   u32 osalt_len = encryptedVerifier_pos - osalt_pos;
-
-  if (osalt_len != 32) return (PARSER_SALT_LENGTH);
 
   encryptedVerifier_pos++;
 
@@ -8584,8 +8539,6 @@ int oldoffice34cm2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
 
   u32 encryptedVerifier_len = encryptedVerifierHash_pos - encryptedVerifier_pos;
 
-  if (encryptedVerifier_len != 32) return (PARSER_SALT_LENGTH);
-
   encryptedVerifierHash_pos++;
 
   u8 *rc4key_pos = (u8 *) strchr ((const char *) encryptedVerifierHash_pos, ':');
@@ -8594,13 +8547,15 @@ int oldoffice34cm2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
 
   u32 encryptedVerifierHash_len = rc4key_pos - encryptedVerifierHash_pos;
 
-  if (encryptedVerifierHash_len != 40) return (PARSER_SALT_LENGTH);
-
   rc4key_pos++;
 
   u32 rc4key_len = input_len - 11 - version_len - 1 - osalt_len - 1 - encryptedVerifier_len - 1 - encryptedVerifierHash_len - 1;
 
-  if (rc4key_len != 10) return (PARSER_SALT_LENGTH);
+  if (version_len               !=  1) return (PARSER_SALT_LENGTH);
+  if (osalt_len                 != 32) return (PARSER_SALT_LENGTH);
+  if (encryptedVerifier_len     != 32) return (PARSER_SALT_LENGTH);
+  if (encryptedVerifierHash_len != 40) return (PARSER_SALT_LENGTH);
+  if (rc4key_len                != 10) return (PARSER_SALT_LENGTH);
 
   const u32 version = *version_pos - 0x30;
 
@@ -8994,11 +8949,11 @@ int saph_sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   // base64 decode salt
 
-  u32 base64_len = input_len - (base64_pos - input_buf);
+  const u32 base64_len = input_len - (base64_pos - input_buf);
 
   u8 tmp_buf[100] = { 0 };
 
-  u32 decoded_len = base64_decode (base64_to_int, (const u8 *) base64_pos, base64_len, tmp_buf);
+  const u32 decoded_len = base64_decode (base64_to_int, (const u8 *) base64_pos, base64_len, tmp_buf);
 
   if (decoded_len < 24)
   {
@@ -9007,9 +8962,8 @@ int saph_sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   // copy the salt
 
-  u32 salt_len = decoded_len - 20;
+  const u32 salt_len = decoded_len - 20;
 
-  if (salt_len <  4) return (PARSER_SALT_LENGTH);
   if (salt_len > 16) return (PARSER_SALT_LENGTH);
 
   memcpy (&salt->salt_buf, tmp_buf + 20, salt_len);
@@ -10634,7 +10588,7 @@ int sip_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   {
     esalt_len = 1 + nonce_len + 1 + 32;
 
-    if (esalt_len > max_esalt_len) return (PARSER_SALT_LENGTH);
+    //if (esalt_len > max_esalt_len) return (PARSER_SALT_LENGTH);
 
     snprintf ((char *) esalt_buf_ptr, max_esalt_len, ":%s:%08x%08x%08x%08x",
       nonce_pos,
@@ -11256,13 +11210,12 @@ int ecryptfs_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   u32 salt_len = hash_pos - salt_pos;
 
-  if (salt_len != 16) return (PARSER_SALT_LENGTH);
-
   hash_pos++;
 
   u32 hash_len = input_len - 10 - 2 - 2 - salt_len - 1;
 
   if (hash_len != 16) return (PARSER_HASH_LENGTH);
+  if (salt_len != 16) return (PARSER_SALT_LENGTH);
 
   // decode hash
 
@@ -11364,8 +11317,6 @@ int rar3hp_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
   u32 type_len = salt_pos - type_pos;
 
-  if (type_len != 1) return (PARSER_SALT_LENGTH);
-
   salt_pos++;
 
   u8 *crypted_pos = (u8 *) strchr ((const char *) salt_pos, '*');
@@ -11374,13 +11325,13 @@ int rar3hp_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
   u32 salt_len = crypted_pos - salt_pos;
 
-  if (salt_len != 16) return (PARSER_SALT_LENGTH);
-
   crypted_pos++;
 
   u32 crypted_len = input_len - 6 - 1 - type_len - 1 - salt_len - 1;
 
   if (crypted_len != 32) return (PARSER_SALT_LENGTH);
+  if (type_len    !=  1) return (PARSER_SALT_LENGTH);
+  if (salt_len    != 16) return (PARSER_SALT_LENGTH);
 
   /**
    * copy data
