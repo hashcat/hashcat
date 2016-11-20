@@ -2746,7 +2746,7 @@ int psafe2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
   memset (&buf, 0, sizeof (psafe2_hdr));
 
-  size_t n = fread (&buf, sizeof (psafe2_hdr), 1, fp);
+  const size_t n = fread (&buf, sizeof (psafe2_hdr), 1, fp);
 
   fclose (fp);
 
@@ -2781,13 +2781,13 @@ int psafe3_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
   psafe3_t in;
 
-  size_t n = fread (&in, sizeof (psafe3_t), 1, fp);
+  const size_t n = fread (&in, sizeof (psafe3_t), 1, fp);
 
   fclose (fp);
 
-  if (memcmp (SIGNATURE_PSAFE3, in.signature, 4)) return (PARSER_SIGNATURE_UNMATCHED);
-
   if (n != 1) return (PARSER_PSAFE3_FILE_SIZE);
+
+  if (memcmp (SIGNATURE_PSAFE3, in.signature, 4)) return (PARSER_SIGNATURE_UNMATCHED);
 
   salt->salt_iter = in.iterations + 1;
 
@@ -5057,11 +5057,11 @@ int truecrypt_parse_hash_1k (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAY
 
   char buf[512] = { 0 };
 
-  size_t n = fread (buf, 1, sizeof (buf), fp);
+  const size_t n = fread (buf, 1, sizeof (buf), fp);
 
   fclose (fp);
 
-  if (n != 512) return (PARSER_TC_FILE_SIZE);
+  if (n != sizeof (buf)) return (PARSER_TC_FILE_SIZE);
 
   memcpy (tc->salt_buf, buf, 64);
 
@@ -5096,11 +5096,11 @@ int truecrypt_parse_hash_2k (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAY
 
   char buf[512] = { 0 };
 
-  size_t n = fread (buf, 1, sizeof (buf), fp);
+  const size_t n = fread (buf, 1, sizeof (buf), fp);
 
   fclose (fp);
 
-  if (n != 512) return (PARSER_TC_FILE_SIZE);
+  if (n != sizeof (buf)) return (PARSER_TC_FILE_SIZE);
 
   memcpy (tc->salt_buf, buf, 64);
 
@@ -5135,11 +5135,11 @@ int veracrypt_parse_hash_200000 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   char buf[512] = { 0 };
 
-  size_t n = fread (buf, 1, sizeof (buf), fp);
+  const size_t n = fread (buf, 1, sizeof (buf), fp);
 
   fclose (fp);
 
-  if (n != 512) return (PARSER_VC_FILE_SIZE);
+  if (n != sizeof (buf)) return (PARSER_VC_FILE_SIZE);
 
   memcpy (tc->salt_buf, buf, 64);
 
@@ -5174,11 +5174,11 @@ int veracrypt_parse_hash_500000 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   char buf[512] = { 0 };
 
-  size_t n = fread (buf, 1, sizeof (buf), fp);
+  const size_t n = fread (buf, 1, sizeof (buf), fp);
 
   fclose (fp);
 
-  if (n != 512) return (PARSER_VC_FILE_SIZE);
+  if (n != sizeof (buf)) return (PARSER_VC_FILE_SIZE);
 
   memcpy (tc->salt_buf, buf, 64);
 
@@ -5213,11 +5213,11 @@ int veracrypt_parse_hash_327661 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   char buf[512] = { 0 };
 
-  size_t n = fread (buf, 1, sizeof (buf), fp);
+  const size_t n = fread (buf, 1, sizeof (buf), fp);
 
   fclose (fp);
 
-  if (n != 512) return (PARSER_VC_FILE_SIZE);
+  if (n != sizeof (buf)) return (PARSER_VC_FILE_SIZE);
 
   memcpy (tc->salt_buf, buf, 64);
 
@@ -5252,11 +5252,11 @@ int veracrypt_parse_hash_655331 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   char buf[512] = { 0 };
 
-  size_t n = fread (buf, 1, sizeof (buf), fp);
+  const size_t n = fread (buf, 1, sizeof (buf), fp);
 
   fclose (fp);
 
-  if (n != 512) return (PARSER_VC_FILE_SIZE);
+  if (n != sizeof (buf)) return (PARSER_VC_FILE_SIZE);
 
   memcpy (tc->salt_buf, buf, 64);
 
