@@ -51,6 +51,13 @@ void logfile_append (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 
   FILE *fp = fopen (logfile_ctx->logfile, "ab");
 
+  if (fp == NULL)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", logfile_ctx->logfile, strerror (errno));
+
+    return;
+  }
+
   lock_file (fp);
 
   va_list ap;
