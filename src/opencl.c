@@ -3777,7 +3777,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           char *binary = (char *) hcmalloc (hashcat_ctx, binary_size); VERIFY_PTR (binary);
 
-          CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
+          CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program, CL_PROGRAM_BINARIES, sizeof (*binary), &binary, NULL);
 
           if (CL_rc == -1) return -1;
 
@@ -3983,7 +3983,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         char *binary = (char *) hcmalloc (hashcat_ctx, binary_size); VERIFY_PTR (binary);
 
-        CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program_mp, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
+        CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program_mp, CL_PROGRAM_BINARIES, sizeof (*binary), &binary, NULL);
 
         if (CL_rc == -1) return -1;
 
@@ -4125,7 +4125,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         char *binary = (char *) hcmalloc (hashcat_ctx, binary_size); VERIFY_PTR (binary);
 
-        CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program_amp, CL_PROGRAM_BINARIES, sizeof (binary), &binary, NULL);
+        CL_rc = hc_clGetProgramInfo (hashcat_ctx, device_param->program_amp, CL_PROGRAM_BINARIES, sizeof (*binary), &binary, NULL);
 
         if (CL_rc == -1) return -1;
 
