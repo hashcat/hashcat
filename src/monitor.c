@@ -177,8 +177,8 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
           myabort (hashcat_ctx);
         }
 
-        if (hwmon_ctx->hm_device[device_id].fan_get_supported == false) continue;
-        if (hwmon_ctx->hm_device[device_id].fan_set_supported == false) continue;
+        if (hwmon_ctx->hm_device[device_id].fanspeed_get_supported == false) continue;
+        if (hwmon_ctx->hm_device[device_id].fanspeed_set_supported == false) continue;
 
         const u32 gpu_temp_retain = user_options->gpu_temp_retain;
 

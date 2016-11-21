@@ -1633,10 +1633,12 @@ char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int device_i
   {
     // trims the trailing space
 
-    output_len--;
+    output_buf[output_len - 1] = 0;
   }
-
-  output_buf[output_len] = 0;
+  else
+  {
+    output_len = snprintf (output_buf, HCBUFSIZ_TINY - 1, "*ERROR*");
+  }
 
   hc_thread_mutex_unlock (status_ctx->mux_hwmon);
 

@@ -1066,8 +1066,18 @@ typedef struct hm_attrs
 
   int od_version;
 
-  bool fan_get_supported;
-  bool fan_set_supported;
+  bool buslanes_get_supported;
+  bool corespeed_get_supported;
+  bool fanspeed_get_supported;
+  bool fanspeed_set_supported;
+  bool fanpolicy_get_supported;
+  bool fanpolicy_set_supported;
+  bool memoryspeed_get_supported;
+  bool temperature_get_supported;
+  bool threshold_shutdown_get_supported;
+  bool threshold_slowdown_get_supported;
+  bool throttle_get_supported;
+  bool utilization_get_supported;
 
 } hm_attrs_t;
 
