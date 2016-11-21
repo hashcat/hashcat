@@ -3988,6 +3988,8 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->gpu_temp_retain > 0)
   {
+    bool one_success = false;
+
     for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
     {
       hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
@@ -4027,7 +4029,11 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
           hm_set_fanspeed_with_device_id_nvapi (hashcat_ctx, device_id, fanspeed, 1);
         }
       }
+
+      if (hwmon_ctx->hm_device[device_id].fanspeed_set_supported == true) one_success = true;
     }
+
+    if (one_success == false) user_options->gpu_temp_retain = 0;
   }
 
   return 0;
