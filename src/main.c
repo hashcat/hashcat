@@ -593,6 +593,41 @@ static void main_monitor_throttle3 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
   }
 }
 
+static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (user_options->quiet == true) return;
+
+  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
+  {
+    clear_prompt ();
+  }
+
+  if (user_options->workload_profile < 3)
+  {
+    event_log_warning (hashcat_ctx, "Cracking performance lower than expected? Append -w 3 to the commandline!");
+    event_log_warning (hashcat_ctx, "");
+  }
+  else
+  {
+    event_log_warning (hashcat_ctx, "Cracking performance lower than expected?");
+    event_log_warning (hashcat_ctx, "");
+    event_log_warning (hashcat_ctx, "* Update your OpenCL runtime / Driver but the right way:");
+    event_log_warning (hashcat_ctx, "  https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#i_may_have_the_wrong_driver_installed_what_should_i_do");
+    event_log_warning (hashcat_ctx, "");
+    event_log_warning (hashcat_ctx, "* Create more work items to make use of your parallelization power:");
+    event_log_warning (hashcat_ctx, "  https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#how_to_create_more_work_for_full_speed");
+    event_log_warning (hashcat_ctx, "");
+  }
+
+  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
+  {
+    send_prompt ();
+  }
+}
+
 static void main_monitor_temp_abort (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t       *user_options       = hashcat_ctx->user_options;
@@ -810,6 +845,7 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
     case EVENT_MONITOR_THROTTLE1:         main_monitor_throttle1         (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_THROTTLE2:         main_monitor_throttle2         (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_THROTTLE3:         main_monitor_throttle3         (hashcat_ctx, buf, len); break;
+    case EVENT_MONITOR_PERFORMANCE_HINT:  main_monitor_performance_hint  (hashcat_ctx, buf, len); break;
     case EVENT_OPENCL_SESSION_POST:       main_opencl_session_post       (hashcat_ctx, buf, len); break;
     case EVENT_OPENCL_SESSION_PRE:        main_opencl_session_pre        (hashcat_ctx, buf, len); break;
     case EVENT_OUTERLOOP_FINISHED:        main_outerloop_finished        (hashcat_ctx, buf, len); break;

@@ -13,6 +13,7 @@
 #include "thread.h"
 #include "restore.h"
 #include "shared.h"
+#include "status.h"
 #include "monitor.h"
 
 int get_runtime_left (const hashcat_ctx_t *hashcat_ctx)
@@ -51,16 +52,19 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
   status_ctx_t   *status_ctx    = hashcat_ctx->status_ctx;
   user_options_t *user_options  = hashcat_ctx->user_options;
 
-  bool runtime_check = false;
-  bool remove_check  = false;
-  bool status_check  = false;
-  bool restore_check = false;
-  bool hwmon_check   = false;
+  bool runtime_check      = false;
+  bool remove_check       = false;
+  bool status_check       = false;
+  bool restore_check      = false;
+  bool hwmon_check        = false;
+  bool performance_check  = false;
 
-  const int sleep_time        = 1;
-  const int temp_threshold    = 1;  // degrees celcius
-  const int fan_speed_min     = 15; // in percentage
-  const int fan_speed_max     = 100;
+  const int   sleep_time      = 1;
+  const int   temp_threshold  = 1;      // degrees celcius
+  const int   fan_speed_min   = 20;     // in percentage
+  const int   fan_speed_max   = 100;
+  const float exec_low        = 50.0f;  // in ms
+  const float util_low        = 90.0f;  // in percent
 
   if (user_options->runtime)
   {
@@ -87,7 +91,12 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
     hwmon_check = true;
   }
 
-  if ((runtime_check == false) && (remove_check == false) && (status_check == false) && (restore_check == false) && (hwmon_check == false))
+  if (hwmon_ctx->enabled == true)
+  {
+    performance_check = true; // this check simply requires hwmon to work
+  }
+
+  if ((runtime_check == false) && (remove_check == false) && (status_check == false) && (restore_check == false) && (hwmon_check == false) && (performance_check == false))
   {
     return 0;
   }
@@ -105,11 +114,12 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
   time (&last_temp_check_time);
 
-  u32 slowdown_warnings = 0;
+  u32 slowdown_warnings    = 0;
+  u32 performance_warnings = 0;
 
-  u32 restore_left = user_options->restore_timer;
-  u32 remove_left  = user_options->remove_timer;
-  u32 status_left  = user_options->status_timer;
+  u32 restore_left  = user_options->restore_timer;
+  u32 remove_left   = user_options->remove_timer;
+  u32 status_left   = user_options->status_timer;
 
   while (status_ctx->shutdown_inner == false)
   {
@@ -317,6 +327,60 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
         hc_thread_mutex_unlock (status_ctx->mux_display);
 
         status_left = user_options->status_timer;
+      }
+    }
+
+    if (performance_check == true)
+    {
+      int exec_cnt = 0;
+      int util_cnt = 0;
+
+      double exec_total = 0;
+      double util_total = 0;
+
+      hc_thread_mutex_lock (status_ctx->mux_hwmon);
+
+      for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+      {
+        hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+        if (device_param->skipped == true) continue;
+
+        exec_cnt++;
+
+        const double exec = status_get_exec_msec_dev (hashcat_ctx, device_id);
+
+        exec_total += exec;
+
+        const int util = hm_get_utilization_with_device_id (hashcat_ctx, device_id);
+
+        if (util == -1) continue;
+
+        util_total += (double) util;
+
+        util_cnt++;
+      }
+
+      hc_thread_mutex_unlock (status_ctx->mux_hwmon);
+
+      double exec_avg = 0;
+      double util_avg = 0;
+
+      if (exec_cnt > 0) exec_avg = exec_total / exec_cnt;
+      if (util_cnt > 0) util_avg = util_total / util_cnt;
+
+      if ((exec_avg > 0) && (exec_avg < exec_low))
+      {
+        performance_warnings++;
+
+        if (performance_warnings == 10) EVENT_DATA (EVENT_MONITOR_PERFORMANCE_HINT, NULL, 0);
+      }
+
+      if ((util_avg > 0) && (util_avg < util_low))
+      {
+        performance_warnings++;
+
+        if (performance_warnings == 10) EVENT_DATA (EVENT_MONITOR_PERFORMANCE_HINT, NULL, 0);
       }
     }
   }
