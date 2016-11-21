@@ -131,7 +131,7 @@ char *first_file_in_directory (const char *path)
   {
     char *first_file = NULL;
 
-    #if defined (_POSIX)
+    #if 0
 
     struct dirent e;
 
@@ -194,7 +194,7 @@ char **scan_directory (const char *path)
 
   if ((d = opendir (tmp_path)) != NULL)
   {
-    #if defined (_POSIX)
+    #if 0
 
     struct dirent e;
 
