@@ -10568,7 +10568,7 @@ int sip_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   // there are 2 possibilities for the esalt:
 
-  if ((strcmp ((const char *) qop_pos, "auth") == 0) || (strcmp ((const char *) qop_pos, "auth-int") == 0))
+  if ((strncmp ((const char *) qop_pos, "auth", strlen ((const char *) qop_pos)) == 0) || (strncmp ((const char *) qop_pos, "auth-int", strlen ((const char *) qop_pos)) == 0))
   {
     esalt_len = 1 + nonce_len + 1 + nonce_count_len + 1 + nonce_client_len + 1 + qop_len + 1 + 32;
 
