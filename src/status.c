@@ -1596,57 +1596,47 @@ char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int device_i
 
   if (num_temperature >= 0)
   {
-    snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Temp:%3dc ", num_temperature);
-
-    output_len = strlen (output_buf);
+    output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Temp:%3dc ", num_temperature);
   }
 
   if (num_fanspeed >= 0)
   {
-    snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Fan:%3d%% ", num_fanspeed);
-
-    output_len = strlen (output_buf);
+    output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Fan:%3d%% ", num_fanspeed);
   }
 
   if (num_utilization >= 0)
   {
-    snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Util:%3d%% ", num_utilization);
-
-    output_len = strlen (output_buf);
+    output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Util:%3d%% ", num_utilization);
   }
 
   if (num_corespeed >= 0)
   {
-    snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Core:%4dMhz ", num_corespeed);
-
-    output_len = strlen (output_buf);
+    output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Core:%4dMhz ", num_corespeed);
   }
 
   if (num_memoryspeed >= 0)
   {
-    snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Mem:%4dMhz ", num_memoryspeed);
-
-    output_len = strlen (output_buf);
+    output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Mem:%4dMhz ", num_memoryspeed);
   }
 
   if (num_buslanes >= 0)
   {
-    snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Lanes:%d ", num_buslanes);
-
-    output_len = strlen (output_buf);
+    output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Lanes:%d ", num_buslanes);
   }
 
   if (num_throttle >= 0)
   {
-    snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "*Throttled* ");
-
-    output_len = strlen (output_buf);
+    output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "*Throttled* ");
   }
 
   if (output_len > 0)
   {
-    output_buf[output_len - 1] = 0;
+    // trims the trailing space
+
+    output_len--;
   }
+
+  output_buf[output_len] = 0;
 
   hc_thread_mutex_unlock (status_ctx->mux_hwmon);
 
