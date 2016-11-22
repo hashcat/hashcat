@@ -1358,7 +1358,10 @@ static int hm_XNVCTRL_get_fan_control (hashcat_ctx_t *hashcat_ctx, const int gpu
 
   if (rc == false)
   {
-    event_log_error (hashcat_ctx, "XNVCTRLQueryTargetAttribute(NV_CTRL_GPU_COOLER_MANUAL_CONTROL) failed");
+    event_log_error (hashcat_ctx, "XNVCTRLQueryTargetAttribute() failed");
+    event_log_error (hashcat_ctx, "This error typically occurs when you did not setup NVidia Coolbits.");
+    event_log_error (hashcat_ctx, "Run the following command to fix: sudo nvidia-xconfig --cool-bits=12");
+    event_log_error (hashcat_ctx, "Do not forget to restart X afterwards.");
 
     return -1;
   }
@@ -2837,6 +2840,7 @@ int hm_get_fanpolicy_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 devic
         if (hm_ADL_Overdrive5_FanSpeed_Get (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, 0, &lpFanSpeedValue) == -1)
         {
           hwmon_ctx->hm_device[device_id].fanpolicy_get_supported = false;
+          hwmon_ctx->hm_device[device_id].fanspeed_get_supported  = false;
 
           return -1;
         }
@@ -2861,6 +2865,7 @@ int hm_get_fanpolicy_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 devic
   }
 
   hwmon_ctx->hm_device[device_id].fanpolicy_get_supported = false;
+  hwmon_ctx->hm_device[device_id].fanspeed_get_supported  = false;
 
   return -1;
 }
@@ -3415,7 +3420,7 @@ int hm_set_fanspeed_with_device_id_xnvctrl (hashcat_ctx_t *hashcat_ctx, const u3
 
   if (hwmon_ctx->enabled == false) return -1;
 
-  if (hwmon_ctx->hm_device[device_id].fanspeed_set_supported == false) return -1;
+  if (hwmon_ctx->hm_device[device_id].fanspeed_set_supported  == false) return -1;
 
   if (hwmon_ctx->hm_xnvctrl)
   {
@@ -3472,6 +3477,7 @@ static int hm_set_fanctrl_with_device_id_xnvctrl (hashcat_ctx_t *hashcat_ctx, co
     if (hm_XNVCTRL_set_fan_control (hashcat_ctx, hwmon_ctx->hm_device[device_id].xnvctrl, val) == -1)
     {
       hwmon_ctx->hm_device[device_id].fanpolicy_set_supported = false;
+      hwmon_ctx->hm_device[device_id].fanspeed_set_supported  = false;
 
       return -1;
     }
@@ -3480,6 +3486,7 @@ static int hm_set_fanctrl_with_device_id_xnvctrl (hashcat_ctx_t *hashcat_ctx, co
   }
 
   hwmon_ctx->hm_device[device_id].fanpolicy_set_supported = false;
+  hwmon_ctx->hm_device[device_id].fanspeed_set_supported  = false;
 
   return -1;
 }
@@ -3497,6 +3504,7 @@ static int hm_set_fanctrl_with_device_id_sysfs (hashcat_ctx_t *hashcat_ctx, cons
     if (hm_SYSFS_set_fan_control (hashcat_ctx, device_id, val) == -1)
     {
       hwmon_ctx->hm_device[device_id].fanpolicy_set_supported = false;
+      hwmon_ctx->hm_device[device_id].fanspeed_set_supported  = false;
 
       return -1;
     }
@@ -3505,6 +3513,7 @@ static int hm_set_fanctrl_with_device_id_sysfs (hashcat_ctx_t *hashcat_ctx, cons
   }
 
   hwmon_ctx->hm_device[device_id].fanpolicy_set_supported = false;
+  hwmon_ctx->hm_device[device_id].fanspeed_set_supported  = false;
 
   return -1;
 }
