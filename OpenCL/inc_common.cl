@@ -19,7 +19,7 @@ inline int ffz (const u32 v)
   return -1;
 }
 
-inline int hash_comp (const u32 d1[4], __global u32 *d2)
+inline int hash_comp (const u32 d1[4], __global const u32 *d2)
 {
   if (d1[3] > d2[DGST_R3]) return ( 1);
   if (d1[3] < d2[DGST_R3]) return (-1);
@@ -33,7 +33,7 @@ inline int hash_comp (const u32 d1[4], __global u32 *d2)
   return (0);
 }
 
-inline int find_hash (const u32 digest[4], const u32 digests_cnt, __global digest_t *digests_buf)
+inline int find_hash (const u32 digest[4], const u32 digests_cnt, __global const digest_t *digests_buf)
 {
   for (u32 l = 0, r = digests_cnt; r; r >>= 1)
   {
@@ -56,12 +56,12 @@ inline int find_hash (const u32 digest[4], const u32 digests_cnt, __global diges
   return (-1);
 }
 
-inline u32 check_bitmap (__global u32 *bitmap, const u32 bitmap_mask, const u32 bitmap_shift, const u32 digest)
+inline u32 check_bitmap (__global const u32 *bitmap, const u32 bitmap_mask, const u32 bitmap_shift, const u32 digest)
 {
   return (bitmap[(digest >> bitmap_shift) & bitmap_mask] & (1 << (digest & 0x1f)));
 }
 
-inline u32 check (const u32 digest[4], __global u32 *bitmap_s1_a, __global u32 *bitmap_s1_b, __global u32 *bitmap_s1_c, __global u32 *bitmap_s1_d, __global u32 *bitmap_s2_a, __global u32 *bitmap_s2_b, __global u32 *bitmap_s2_c, __global u32 *bitmap_s2_d, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2)
+inline u32 check (const u32 digest[4], __global const u32 *bitmap_s1_a, __global const u32 *bitmap_s1_b, __global const u32 *bitmap_s1_c, __global const u32 *bitmap_s1_d, __global const u32 *bitmap_s2_a, __global const u32 *bitmap_s2_b, __global const u32 *bitmap_s2_c, __global const u32 *bitmap_s2_d, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2)
 {
   if (check_bitmap (bitmap_s1_a, bitmap_mask, bitmap_shift1, digest[0]) == 0) return (0);
   if (check_bitmap (bitmap_s1_b, bitmap_mask, bitmap_shift1, digest[1]) == 0) return (0);

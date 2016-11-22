@@ -9,7 +9,7 @@
 
 #include "inc_types.cl"
 
-inline void generate_pw (u32 pw_buf[16], __global cs_t *root_css_buf, __global cs_t *markov_css_buf, const u32 pw_l_len, const u32 pw_r_len, const u32 mask80, const u32 bits14, const u32 bits15, u64 val)
+inline void generate_pw (u32 pw_buf[16], __global const cs_t *root_css_buf, __global const cs_t *markov_css_buf, const u32 pw_l_len, const u32 pw_r_len, const u32 mask80, const u32 bits14, const u32 bits15, u64 val)
 {
   pw_buf[ 0] = 0;
   pw_buf[ 1] = 0;
@@ -28,7 +28,7 @@ inline void generate_pw (u32 pw_buf[16], __global cs_t *root_css_buf, __global c
   pw_buf[14] = 0;
   pw_buf[15] = 0;
 
-  __global cs_t *cs = &root_css_buf[pw_r_len];
+  __global const cs_t *cs = &root_css_buf[pw_r_len];
 
   u32 i;
   u32 j;
@@ -61,7 +61,7 @@ inline void generate_pw (u32 pw_buf[16], __global cs_t *root_css_buf, __global c
   if (bits15) pw_buf[15] = (pw_l_len + pw_r_len) * 8;
 }
 
-__kernel void l_markov (__global pw_t *pws_buf_l, __global cs_t *root_css_buf, __global cs_t *markov_css_buf, const u64 off, const u32 pw_l_len, const u32 pw_r_len, const u32 mask80, const u32 bits14, const u32 bits15, const u32 gid_max)
+__kernel void l_markov (__global pw_t *pws_buf_l, __global const cs_t *root_css_buf, __global const cs_t *markov_css_buf, const u64 off, const u32 pw_l_len, const u32 pw_r_len, const u32 mask80, const u32 bits14, const u32 bits15, const u32 gid_max)
 {
   const u32 gid = get_global_id (0);
 
@@ -91,7 +91,7 @@ __kernel void l_markov (__global pw_t *pws_buf_l, __global cs_t *root_css_buf, _
   pws_buf_l[gid].pw_len = pw_l_len + pw_r_len;
 }
 
-__kernel void r_markov (__global bf_t *pws_buf_r, __global cs_t *root_css_buf, __global cs_t *markov_css_buf, const u64 off, const u32 pw_r_len, const u32 mask80, const u32 bits14, const u32 bits15, const u32 gid_max)
+__kernel void r_markov (__global bf_t *pws_buf_r, __global const cs_t *root_css_buf, __global const cs_t *markov_css_buf, const u64 off, const u32 pw_r_len, const u32 mask80, const u32 bits14, const u32 bits15, const u32 gid_max)
 {
   const u32 gid = get_global_id (0);
 
@@ -104,7 +104,7 @@ __kernel void r_markov (__global bf_t *pws_buf_r, __global cs_t *root_css_buf, _
   pws_buf_r[gid].i = pw_buf[0];
 }
 
-__kernel void C_markov (__global comb_t *pws_buf, __global cs_t *root_css_buf, __global cs_t *markov_css_buf, const u64 off, const u32 pw_len, const u32 mask80, const u32 bits14, const u32 bits15, const u32 gid_max)
+__kernel void C_markov (__global comb_t *pws_buf, __global const cs_t *root_css_buf, __global const cs_t *markov_css_buf, const u64 off, const u32 pw_len, const u32 mask80, const u32 bits14, const u32 bits15, const u32 gid_max)
 {
   const u32 gid = get_global_id (0);
 

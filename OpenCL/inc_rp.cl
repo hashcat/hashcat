@@ -2548,7 +2548,7 @@ inline u32 apply_rule (const u32 name, const u32 p0, const u32 p1, u32 buf0[4], 
   return out_len;
 }
 
-inline u32 apply_rules (const __global u32 *cmds, u32 buf0[4], u32 buf1[4], const u32 len)
+inline u32 apply_rules (__global const u32 *cmds, u32 buf0[4], u32 buf1[4], const u32 len)
 {
   u32 out_len = len;
 
@@ -2566,7 +2566,7 @@ inline u32 apply_rules (const __global u32 *cmds, u32 buf0[4], u32 buf1[4], cons
   return out_len;
 }
 
-inline u32x apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_len, const __global kernel_rule_t *rules_buf, const u32 il_pos, u32x buf0[4], u32x buf1[4])
+inline u32x apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_len, __global const kernel_rule_t *rules_buf, const u32 il_pos, u32x buf0[4], u32x buf1[4])
 {
   #if VECT_SIZE == 1
 
