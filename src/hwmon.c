@@ -4180,6 +4180,8 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
         if (hwmon_ctx->hm_sysfs)
         {
           hm_set_fanctrl_with_device_id_sysfs (hashcat_ctx, device_id, 1);
+
+          hm_set_fanspeed_with_device_id_sysfs (hashcat_ctx, device_id, fanspeed);
         }
       }
       else if (device_param->device_vendor_id == VENDOR_ID_NV)
@@ -4187,6 +4189,8 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
         if (hwmon_ctx->hm_xnvctrl)
         {
           hm_set_fanctrl_with_device_id_xnvctrl (hashcat_ctx, device_id, NV_CTRL_GPU_COOLER_MANUAL_CONTROL_TRUE);
+
+          hm_set_fanspeed_with_device_id_xnvctrl (hashcat_ctx, device_id, fanspeed);
         }
 
         if (hwmon_ctx->hm_nvapi)
@@ -4195,7 +4199,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
         }
       }
 
-      if (hwmon_ctx->hm_device[device_id].fanspeed_set_supported == true) one_success = true;
+      if ((hwmon_ctx->hm_device[device_id].fanpolicy_set_supported == true) && (hwmon_ctx->hm_device[device_id].fanspeed_set_supported == true)) one_success = true;
     }
 
     if (one_success == false) user_options->gpu_temp_retain = 0;
