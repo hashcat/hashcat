@@ -259,8 +259,8 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->runtime_stop = runtime_stop;
 
-  logfile_sub_uint ((u32) runtime_start);
-  logfile_sub_uint ((u32) runtime_stop);
+  logfile_sub_uint (runtime_start);
+  logfile_sub_uint (runtime_stop);
 
   time (&status_ctx->prepare_start);
 
@@ -1086,8 +1086,8 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
   const time_t proc_stop = time (NULL);
 
-  logfile_top_uint ((u32) proc_start);
-  logfile_top_uint ((u32) proc_stop);
+  logfile_top_uint (proc_start);
+  logfile_top_uint (proc_stop);
 
   logfile_top_msg ("STOP");
 
