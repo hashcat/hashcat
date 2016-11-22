@@ -50,6 +50,8 @@ static int get_exec_path (char *exec_path, const size_t exec_path_sz)
 
   #elif defined (__FreeBSD__)
 
+  #include <sys/sysctl.h>
+
   int mib[4];
 
   mib[0] = CTL_KERN;
