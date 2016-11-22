@@ -61,7 +61,7 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
   const int   sleep_time      = 1;
   const int   temp_threshold  = 1;      // degrees celcius
-  const int   fan_speed_min   = 20;     // in percentage
+  const int   fan_speed_min   = 33;     // in percentage
   const int   fan_speed_max   = 100;
   const float exec_low        = 50.0f;  // in ms
   const float util_low        = 90.0f;  // in percent

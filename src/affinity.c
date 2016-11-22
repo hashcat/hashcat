@@ -41,6 +41,7 @@ static int pthread_setaffinity_np (pthread_t thread, size_t cpu_size, cpu_set_t 
 #endif
 
 #if defined (__FreeBSD__)
+#include <pthread_np.h>
 typedef cpuset_t cpu_set_t;
 #endif
 
