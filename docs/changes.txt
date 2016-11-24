@@ -16,6 +16,7 @@ The CLI (hashcat.bin or hashcat.exe) works as before but from a technical perspe
 - Status view: Show the current position in the queue for both base and modifier (Ex: Wordlist 2/5)
 - Status view: Show temperature, coreclock, memoryclock, fanspeed and pci-lanes for devices using AMDGPU-Pro Driver
 - Status view: Show core-clock and memory-clock in benchmark-mode in case --machine-readable is set
+- Password candidate: Do not use $HEX[] if the password candidate is a valid UTF-8 string and print out as-is
 
 ##
 ## Bugs
