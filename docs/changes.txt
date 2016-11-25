@@ -1,7 +1,7 @@
 * changes v3.10 -> v3.20:
 
-The hashcat core was completely refactored into a MT-safe library (libhashcat).
-The goal was to help developers to include hashcat into distributed clients or GUI frontends.
+The hashcat core was completely refactored to be a MT-safe library (libhashcat).
+The goal was to help developers include hashcat into distributed clients or GUI frontends.
 The CLI (hashcat.bin or hashcat.exe) works as before but from a technical perspective it's a library frontend.
 
 ##
@@ -10,17 +10,17 @@ The CLI (hashcat.bin or hashcat.exe) works as before but from a technical perspe
 
 - New option --speed-only: Quickly provides cracking speed per device based on the user hashes and selected options, then quit
 - New option --keep-guessing: Continue cracking hashes even after they have been cracked (to find collisions)
-- New option --restore-file-path: Manually override the path to restore file (useful if we want all session files in the same folder)
+- New option --restore-file-path: Manually override the path to the restore file (useful if we want all session files in the same folder)
 - New option --opencl-info: Show details about OpenCL compatible devices like an embedded clinfo tool (useful for bug reports)
 - Documents: Added colors for warnings (yellow) and errors (red) instead of WARNING: and ERROR: prefix
-- Documents: Added tips shown to the user about performance while hashcat is running
+- Documents: Added hints presented to the user about optimizing performance while hashcat is running
 - Hardware management: Support --gpu-temp-retain for AMDGPU-Pro driver
 - Hardware management: Support --powertune-enable for AMDGPU-Pro driver
 - Password candidates: Allow words of length > 31 in wordlists for -a 0 for some slow hashes if no rules are in use
 - Password candidates: Do not use $HEX[] if the password candidate is a valid UTF-8 string and print out as-is
 - Pause mode: Allow quit program also if in pause mode
 - Pause mode: Ignore runtime limit in pause mode
-- Status view: Show core-clock and memory-clock in benchmark-mode in case --machine-readable is set
+- Status view: Show core-clock and memory-clock while in benchmark-mode in case --machine-readable is set
 - Status view: Show temperature, coreclock, memoryclock, fanspeed and pci-lanes for devices using AMDGPU-Pro driver
 - Status view: Show the current first and last password candidate test queued for execution per device (as in JtR)
 - Status view: Show the current position in the queue for both base and modifier (Example: Wordlist 2/5)
@@ -48,12 +48,12 @@ The CLI (hashcat.bin or hashcat.exe) works as before but from a technical perspe
 - Hash-mode 22 = Juniper Netscreen/SSG (ScreenOS): Fix salt length for -m 22 in benchmark mode
 - Hash-Mode 5500 = NetNTLMv1 + ESS: Fix loading of NetNTLMv1 + SSP hash
 - Hash-mode 6000 = RipeMD160: Fix typo in array index number
-- If cracking a hash-mode using unicode passwords, length check of a mask was not taking that into account
+- If cracking a hash-mode using unicode passwords, length check of a mask was not taking into account
 - If cracking a large salted hashlist the wordlist reject code was too slow to handle it, leading to 0H/s
 - Null-pointer dereference in outfile-check shutdown code when using --outfile-check-dir, leading to segfault
 - On startup hashcat tried to access the folder defined in INSTALL_FOLDER, leading to segfault if that folder was not existing
 - Random rules generator code used invalid parameter for memory copy function (M), leading to use of invalid rule
-- Sanity check for --outfile-format was broken in case if used in combination with --show or --left
+- Sanity check for --outfile-format was broken if used in combination with --show or --left
 
 ##
 ## Workarounds
@@ -86,15 +86,15 @@ The CLI (hashcat.bin or hashcat.exe) works as before but from a technical perspe
 ##
 
 - Autotune: Do not run any caching rounds in autotune in DEBUG mode if -n and -u are specified
-- Bash completion: Remove some v2.01 leftovers in the bash completion configuration
+- Bash completion: Removed some v2.01 leftovers in the bash completion configuration
 - Benchmark: Do not control fan speed in benchmark mode
 - Benchmark: On OSX, some hash-modes can't compile because of OSX OpenCL runtime. Skip them and move on to the next
 - Building: Added Makefile target "main_shared", a small how-to-use libhashcat example
 - Building: Added many additional compiler warning flags in Makefile to improve static code error detection
 - Building: Added missing includes for FreeBSD
 - Building: Added some types for windows only in case _BASETSD_H was not set
-- Building: Change Makefile to strip symbols in the linker instead of the compiler
-- Building: Define NOMINMAX macro to prevent definition min and max macros in stdlib header files
+- Building: Changed Makefile to strip symbols in the linker instead of the compiler
+- Building: Defined NOMINMAX macro to prevent definition min and max macros in stdlib header files
 - Building: Enabled ASLR and DEP for Windows builds
 - Building: Fixed almost all errors reported by cppcheck and scan-build
 - Building: On OSX, move '-framework OpenCL' from CFLAGS to LDFLAGS
@@ -109,38 +109,38 @@ The CLI (hashcat.bin or hashcat.exe) works as before but from a technical perspe
 - Data Types: Replaced atoi() with atoll(). Eliminates sign conversion warnings
 - Documents: Added docs/credits.txt
 - Documents: Added docs/team.txt
-- Documents: Change rules.txt to match v3.20 limitations
-- Error handling (file handling): Fix a couple of filepointer leaks
-- Error handling (format strings): Fix a few printf() formats, ex: use %u instead of %d for uint32_t
-- Error handling (memory allocation): Remove memory allocation checks, just print to stderr instead
-- Error handling (startup): Add some missing returncode checks to get_exec_path()
-- Fanspeed: Check both fanpolicy and fanspeed returncode and disable retain support if any of them failed
+- Documents: Changed rules.txt to match v3.20 limitations
+- Error handling (file handling): Fixed a couple of filepointer leaks
+- Error handling (format strings): Fixed a few printf() formats, ex: use %u instead of %d for uint32_t
+- Error handling (memory allocation): Removed memory allocation checks, just print to stderr instead
+- Error handling (startup): Added some missing returncode checks to get_exec_path()
+- Fanspeed: Check both fanpolicy and fanspeed returncode and disable retain support if any of them fail
 - Fanspeed: Minimum fanspeed for retain support increased to 33%, same as NV uses as default on windows
-- Fanspeed: Reset PID controler settings to what they were from start
+- Fanspeed: Reset PID controler settings to what they were initially
 - Fanspeed: Set fan speed to default on quit
 - File handling: Do a single write test (for files to be written later) directly on startup
 - File locking: Use same locking mechanism in potfile as in outfile
 - Hardware management: Fixed calling conventions for ADL, NvAPI and NVML on windows
-- Hardware management: Improve checking for successfully load of the NVML API
+- Hardware management: Improved checking for successfull load of the NVML API
 - Hardware management: In case fanspeed can not be set, disable --gpu-temp-retain automatically
 - Hardware management: In case of initialization error show it only once to the user on startup
-- Hardware management: Refactor all code to return returncode (0 or -1) instead of data for more easy error handling
+- Hardware management: Refactored all code to return returncode (0 or -1) instead of data for more easy error handling
 - Hardware management: Refactored macros to real functions
 - Hardware management: Removed kernel exec timeout detection on NVIDIA, should no longer occur due to autotune
 - Hardware management: Replaced NVML registry functions macros with their ascii versions (Adds NVML support for XP)
 - Hashlist loading: Do not load data from hashfile if hashfile changed during runtime
-- Kernel cache: Fix checksum building on oversized device version or driver version strings
-- Logging: Improve variable names in hashcat.log
+- Kernel cache: Fixed checksum building on oversized device version or driver version strings
+- Logging: Improved variable names in hashcat.log
 - Loopback: Refactored --loopback support completely, no longer a recursive function
 - Memory management: Fixed some memory leaks on shutdown
-- Memory management: Get rid of all global variables
-- Memory management: Get rid of local_free() and global_free(), no longer required
-- Memory management: Refactor all variables with HCBUFSIZ_LARGE size from stack to heap, OSX doesn't like that
+- Memory management: Got rid of all global variables
+- Memory management: Got rid of local_free() and global_free(), no longer required
+- Memory management: Refactored all variables with HCBUFSIZ_LARGE size from stack to heap, OSX doesn't like that
 - OpenCL Headers: Select OpenCL headers tagged for OpenCL 1.2, since we use -cl-std=CL1.2
 - OpenCL Kernels: Added const qualifier to variable declaration of matching global memory objects
-- OpenCL Kernels: Get rid of one global kernel_threads variable
+- OpenCL Kernels: Got rid of one global kernel_threads variable
 - OpenCL Kernels: Moved OpenCL requirement from v1.1 to v1.2
-- OpenCL Kernels: Recognize reqd_work_group_size() values from OpenCL kernels and use them in host if possible
+- OpenCL Kernels: Recognize reqd_work_group_size() values from OpenCL kernels and use them in the host if possible
 - OpenCL Kernels: Refactored common function append_0x01()
 - OpenCL Kernels: Refactored common function append_0x02()
 - OpenCL Kernels: Refactored common function append_0x80()
@@ -152,16 +152,16 @@ The CLI (hashcat.bin or hashcat.exe) works as before but from a technical perspe
 - OpenCL Kernels: Support mixed kernel thread count for mixed kernels in the same source file
 - OpenCL Kernels: Switch from clz() to ffz() for bitsliced algorithms
 - OpenCL Kernels: Using platform vendor name is better than using device vendor name for function detection
-- OpenCL Runtime: Update AMDGPU-Pro and AMD Radeon driver version check
-- OpenCL Runtime: Update Intel OpenCL runtime version check
-- OpenCL Runtime: Update NVIDIA driver version check
-- Password candidates: The maximum word length in a wordlist is 31 not 32, because of eventual append of 0x80
+- OpenCL Runtime: Updated AMDGPU-Pro and AMD Radeon driver version check
+- OpenCL Runtime: Updated Intel OpenCL runtime version check
+- OpenCL Runtime: Updated NVIDIA driver version check
+- Password candidates: The maximum word length in a wordlist is 31 not 32, because 0x80 will eventually be appended
 - Potfile: Base logic switched; Assuming the potfile is larger than the hashlist it's better to load hashlist instead of potfile entries
 - Potfile: In case all hashes were cracking using potfile abort and inform user
 - Restore: Automatically unlink restore file if all hashes have been cracked
-- Restore: Do not unlink restore file of restore is disabled
+- Restore: Do not unlink restore file if restore is disabled
 - Rules: Refactored macros to real functions
-- Status: Added Input.Queue.Base and Input.Queue.Mod to help the user to better understand this concept
+- Status: Added Input.Queue.Base and Input.Queue.Mod to help the user better understand this concept
 - Status: Do not wait for the progress mutex to read and store speed timer
 - Tests: Removed rules_test/ subproject: Would require total rewrite but not used in a long time
 - Threads: Replaced all calls to getpwuid() with getpwuid_r() to ensure thread safety
