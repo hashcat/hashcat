@@ -120,9 +120,6 @@
 #if KERN_TYPE == 10700
 #undef _unroll
 #endif
-#if KERN_TYPE == 10900
-#undef _unroll
-#endif
 #if KERN_TYPE == 12300
 #undef _unroll
 #endif
@@ -202,6 +199,9 @@
 #undef _unroll
 #endif
 #if KERN_TYPE == 10800
+#undef _unroll
+#endif
+#if KERN_TYPE == 10900
 #undef _unroll
 #endif
 #if KERN_TYPE == 12800
