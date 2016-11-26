@@ -615,7 +615,11 @@ __kernel void m06223_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   ukey3[6] = swap32 (h32_from_64 (tmps[gid].out[11]));
   ukey3[7] = swap32 (l32_from_64 (tmps[gid].out[11]));
 
+  #if defined (IS_APPLE) && defined (IS_GPU)
+  volatile u32 ukey4[8];
+  #else
   u32 ukey4[8];
+  #endif
 
   ukey4[0] = swap32 (h32_from_64 (tmps[gid].out[12]));
   ukey4[1] = swap32 (l32_from_64 (tmps[gid].out[12]));

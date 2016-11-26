@@ -707,7 +707,11 @@ __kernel void m06213_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   ukey3[6] = tmps[gid].out[22];
   ukey3[7] = tmps[gid].out[23];
 
+  #if defined (IS_APPLE) && defined (IS_GPU)
+  volatile u32 ukey4[8];
+  #else
   u32 ukey4[8];
+  #endif
 
   ukey4[0] = tmps[gid].out[24];
   ukey4[1] = tmps[gid].out[25];
@@ -763,7 +767,11 @@ __kernel void m06213_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     }
   }
 
+  #if defined (IS_APPLE) && defined (IS_GPU)
+  volatile u32 ukey5[8];
+  #else
   u32 ukey5[8];
+  #endif
 
   ukey5[0] = tmps[gid].out[32];
   ukey5[1] = tmps[gid].out[33];
@@ -774,7 +782,11 @@ __kernel void m06213_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   ukey5[6] = tmps[gid].out[38];
   ukey5[7] = tmps[gid].out[39];
 
+  #if defined (IS_APPLE) && defined (IS_GPU)
+  volatile u32 ukey6[8];
+  #else
   u32 ukey6[8];
+  #endif
 
   ukey6[0] = tmps[gid].out[40];
   ukey6[1] = tmps[gid].out[41];
