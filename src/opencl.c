@@ -1169,7 +1169,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
       if (user_options->speed_only == true)
       {
-        if (speed_msec > 4096) break;
+        if (speed_msec > 4096) return -2; // special RC
       }
     }
 
@@ -1939,10 +1939,13 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
       if (rc == -1) return -1;
 
       /**
-       * benchmark
+       * benchmark, part1
        */
 
-      if (user_options->speed_only == true) break;
+      if (user_options->speed_only == true)
+      {
+        if (rc == -2) break;
+      }
 
       /**
        * speed
@@ -1974,6 +1977,12 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
       status_ctx->words_progress_done[salt_pos] += perf_sum_all;
 
       hc_thread_mutex_unlock (status_ctx->mux_counter);
+
+      /**
+       * benchmark, part2
+       */
+
+      if (user_options->speed_only == true) break;
 
       /**
        * result
