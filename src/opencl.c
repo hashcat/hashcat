@@ -1939,31 +1939,30 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
       if (rc == -1) return -1;
 
       /**
+       * benchmark
+       */
+
+      if (user_options->speed_only == true) break;
+
+      /**
        * speed
        */
 
       const u64 perf_sum_all = (u64) pws_cnt * (u64) innerloop_left;
 
-      if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+      const double speed_msec = hc_timer_get (device_param->timer_speed);
+
+      hc_timer_set (&device_param->timer_speed);
+
+      device_param->speed_cnt[speed_pos] = perf_sum_all;
+
+      device_param->speed_msec[speed_pos] = speed_msec;
+
+      speed_pos++;
+
+      if (speed_pos == SPEED_CACHE)
       {
-        const double speed_msec = hc_timer_get (device_param->timer_speed);
-
-        hc_timer_set (&device_param->timer_speed);
-
-        device_param->speed_cnt[speed_pos] = perf_sum_all;
-
-        device_param->speed_msec[speed_pos] = speed_msec;
-
-        speed_pos++;
-
-        if (speed_pos == SPEED_CACHE)
-        {
-          speed_pos = 0;
-        }
-      }
-      else
-      {
-        // speed for slow hashes is set inside choose_kernel()
+        speed_pos = 0;
       }
 
       /**
@@ -1975,12 +1974,6 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
       status_ctx->words_progress_done[salt_pos] += perf_sum_all;
 
       hc_thread_mutex_unlock (status_ctx->mux_counter);
-
-      /**
-       * benchmark
-       */
-
-      if (user_options->speed_only == true) break;
 
       /**
        * result
