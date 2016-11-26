@@ -17,46 +17,42 @@
 #include "inc_rp.cl"
 #include "inc_simd.cl"
 
-#define GETSHIFTEDINT(a,n) amd_bytealign ((a)[((n)/4)+1], (a)[((n)/4)+0], (n))
-
-#define SETSHIFTEDINT(a,n,v)        \
-{                                   \
-  const u32 s = ((n) & 3) * 8;     \
-  const u64 x = (u64) (v) << s; \
-  (a)[((n)/4)+0] |= x;              \
-  (a)[((n)/4)+1]  = x >> 32;        \
-}
-
 __constant u32 theMagicArray[64] =
 {
-  0x1451ac91,0x4354679f,0xe03be724,0xc27b7428,0xeb133386,0x5ccb4f5a,0x37730a08,0x2f1c5d0e,
-  0xe5e68f33,0xddae9bf8,0x8d4bf216,0xdcd4e12c,0x9ddfcbb0,0x176d70d4,0x3f424df9,0x94111b9b,
-  0x9bc15b9f,0x039d0506,0x8a135e9d,0xe86a9a1e,0x17147cd9,0xf62ac758,0x0a6399a1,0xc370fdd7,
-  0x13745ef6,0x040bc903,0x26f79826,0x2593928a,0x230da2b0,0x6d7963ed,0x3cfa3213,0xa39a0235,
-  0x0a8eddb3,0xc351bf24,0x9f55cd7c,0x4c94af37,0x82520829,0x374e3bb2,0x9107179f,0xcdfd3b11,
-  0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0
+  0x91ac5114, 0x9f675443, 0x24e73be0, 0x28747bc2, 0x863313eb, 0x5a4fcb5c, 0x080a7337, 0x0e5d1c2f,
+  0x338fe6e5, 0xf89baedd, 0x16f24b8d, 0x2ce1d4dc, 0xb0cbdf9d, 0xd4706d17, 0xf94d423f, 0x9b1b1194,
+  0x9f5bc19b, 0x06059d03, 0x9d5e138a, 0x1e9a6ae8, 0xd97c1417, 0x58c72af6, 0xa199630a, 0xd7fd70c3,
+  0xf65e7413, 0x03c90b04, 0x2698f726, 0x8a929325, 0xb0a20d23, 0xed63796d, 0x1332fa3c, 0x35029aa3,
+  0xb3dd8e0a, 0x24bf51c3, 0x7ccd559f, 0x37af944c, 0x29085282, 0xb23b4e37, 0x9f170791, 0x113bfdcd,
+  0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+  0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+  0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
 };
 
-void swap_buffer (u32 final[16])
+static u32 GETSHIFTEDINT_CONST (__constant u32 *a, const int n)
 {
-  final[ 0] = swap32 (final[ 0]);
-  final[ 1] = swap32 (final[ 1]);
-  final[ 2] = swap32 (final[ 2]);
-  final[ 3] = swap32 (final[ 3]);
-  final[ 4] = swap32 (final[ 4]);
-  final[ 5] = swap32 (final[ 5]);
-  final[ 6] = swap32 (final[ 6]);
-  final[ 7] = swap32 (final[ 7]);
-  final[ 8] = swap32 (final[ 8]);
-  final[ 9] = swap32 (final[ 9]);
-  final[10] = swap32 (final[10]);
-  final[11] = swap32 (final[11]);
-  final[12] = swap32 (final[12]);
-  final[13] = swap32 (final[13]);
-  final[14] = swap32 (final[14]);
-  final[15] = swap32 (final[15]);
+  const int d = n / 4;
+  const int m = n & 3;
+
+  u64 tmp = hl32_to_64_S (a[d + 0], a[d + 1]);
+
+  tmp <<= m * 8;
+
+  return h32_from_64_S (tmp);
+}
+
+
+static void SETSHIFTEDINT (u32 *a, const int n, const u32 v)
+{
+  const int d = n / 4;
+  const int m = n & 3;
+
+  u64 tmp = hl32_to_64_S (v, 0);
+
+  tmp >>= m * 8;
+
+  a[d + 0] |= h32_from_64_S (tmp);
+  a[d + 1]  = l32_from_64_S (tmp);
 }
 
 void sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
@@ -299,6 +295,22 @@ __kernel void m07800_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
     final[13] = swap32 (w3[1] | s3[1]);
     final[14] = 0;
     final[15] = pw_salt_len * 8;
+    final[16] = 0;
+    final[17] = 0;
+    final[18] = 0;
+    final[19] = 0;
+    final[20] = 0;
+    final[21] = 0;
+    final[22] = 0;
+    final[23] = 0;
+    final[24] = 0;
+    final[25] = 0;
+    final[26] = 0;
+    final[27] = 0;
+    final[28] = 0;
+    final[29] = 0;
+    final[30] = 0;
+    final[31] = 0;
 
     u32 digest[5];
 
@@ -344,21 +356,24 @@ __kernel void m07800_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
     digest[3] = SHA1M_D;
     digest[4] = SHA1M_E;
 
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int i = 0; i < 32; i++) final[i] = 0;
+    final[ 0] = swap32_S (w0[0]);
+    final[ 1] = swap32_S (w0[1]);
+    final[ 2] = swap32_S (w0[2]);
+    final[ 3] = swap32_S (w0[3]);
+    final[ 4] = swap32_S (w1[0]);
+    final[ 5] = swap32_S (w1[1]);
+    final[ 6] = swap32_S (w1[2]);
+    final[ 7] = swap32_S (w1[3]);
+    final[ 8] = 0;
+    final[ 9] = 0;
+    final[10] = 0;
+    final[11] = 0;
+    final[12] = 0;
+    final[13] = 0;
+    final[14] = 0;
+    final[15] = 0;
 
-    final[0] = w0[0];
-    final[1] = w0[1];
-    final[2] = w0[2];
-    final[3] = w0[3];
-    final[4] = w1[0];
-    final[5] = w1[1];
-    final[6] = w1[2];
-    final[7] = w1[3];
-
-    u32 final_len = out_len;
+    u32 final_len = pw_len;
 
     int i;
 
@@ -366,14 +381,14 @@ __kernel void m07800_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     for (i = 0; i < lengthMagicArray - 4; i += 4)
     {
-      const u32 tmp = GETSHIFTEDINT (theMagicArray, offsetMagicArray + i);
+      const u32 tmp = GETSHIFTEDINT_CONST (theMagicArray, offsetMagicArray + i);
 
       SETSHIFTEDINT (final, final_len + i, tmp);
     }
 
-    const u32 mask = 0xffffffff >> (((i - lengthMagicArray) & 3) * 8);
+    const u32 mask = 0xffffffff << (((4 - (lengthMagicArray - i)) & 3) * 8);
 
-    const u32 tmp = GETSHIFTEDINT (theMagicArray, offsetMagicArray + i) & mask;
+    const u32 tmp = GETSHIFTEDINT_CONST (theMagicArray, offsetMagicArray + i) & mask;
 
     SETSHIFTEDINT (final, final_len + i, tmp);
 
@@ -383,7 +398,7 @@ __kernel void m07800_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     for (i = 0; i < salt_len + 1; i += 4) // +1 for the 0x80
     {
-      const u32 tmp = salt_buf[i / 4]; // attention, int[] not char[]
+      const u32 tmp = swap32_S (salt_buf[i / 4]); // attention, int[] not char[]
 
       SETSHIFTEDINT (final, final_len + i, tmp);
     }
@@ -397,14 +412,9 @@ __kernel void m07800_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     for (left = final_len, off = 0; left >= 56; left -= 64, off += 16)
     {
-      swap_buffer (&final[off]);
-
       sha1_transform (&final[off + 0], &final[off + 4], &final[off + 8], &final[off + 12], digest);
     }
 
-    swap_buffer (&final[off]);
-
-    final[off + 14] = 0;
     final[off + 15] = final_len * 8;
 
     sha1_transform (&final[off + 0], &final[off + 4], &final[off + 8], &final[off + 12], digest);
@@ -545,6 +555,22 @@ __kernel void m07800_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
     final[13] = swap32 (w3[1] | s3[1]);
     final[14] = 0;
     final[15] = pw_salt_len * 8;
+    final[16] = 0;
+    final[17] = 0;
+    final[18] = 0;
+    final[19] = 0;
+    final[20] = 0;
+    final[21] = 0;
+    final[22] = 0;
+    final[23] = 0;
+    final[24] = 0;
+    final[25] = 0;
+    final[26] = 0;
+    final[27] = 0;
+    final[28] = 0;
+    final[29] = 0;
+    final[30] = 0;
+    final[31] = 0;
 
     u32 digest[5];
 
@@ -590,21 +616,24 @@ __kernel void m07800_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
     digest[3] = SHA1M_D;
     digest[4] = SHA1M_E;
 
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int i = 0; i < 32; i++) final[i] = 0;
+    final[ 0] = swap32_S (w0[0]);
+    final[ 1] = swap32_S (w0[1]);
+    final[ 2] = swap32_S (w0[2]);
+    final[ 3] = swap32_S (w0[3]);
+    final[ 4] = swap32_S (w1[0]);
+    final[ 5] = swap32_S (w1[1]);
+    final[ 6] = swap32_S (w1[2]);
+    final[ 7] = swap32_S (w1[3]);
+    final[ 8] = 0;
+    final[ 9] = 0;
+    final[10] = 0;
+    final[11] = 0;
+    final[12] = 0;
+    final[13] = 0;
+    final[14] = 0;
+    final[15] = 0;
 
-    final[0] = w0[0];
-    final[1] = w0[1];
-    final[2] = w0[2];
-    final[3] = w0[3];
-    final[4] = w1[0];
-    final[5] = w1[1];
-    final[6] = w1[2];
-    final[7] = w1[3];
-
-    u32 final_len = out_len;
+    u32 final_len = pw_len;
 
     int i;
 
@@ -612,14 +641,14 @@ __kernel void m07800_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     for (i = 0; i < lengthMagicArray - 4; i += 4)
     {
-      const u32 tmp = GETSHIFTEDINT (theMagicArray, offsetMagicArray + i);
+      const u32 tmp = GETSHIFTEDINT_CONST (theMagicArray, offsetMagicArray + i);
 
       SETSHIFTEDINT (final, final_len + i, tmp);
     }
 
-    const u32 mask = 0xffffffff >> (((i - lengthMagicArray) & 3) * 8);
+    const u32 mask = 0xffffffff << (((4 - (lengthMagicArray - i)) & 3) * 8);
 
-    const u32 tmp = GETSHIFTEDINT (theMagicArray, offsetMagicArray + i) & mask;
+    const u32 tmp = GETSHIFTEDINT_CONST (theMagicArray, offsetMagicArray + i) & mask;
 
     SETSHIFTEDINT (final, final_len + i, tmp);
 
@@ -629,7 +658,7 @@ __kernel void m07800_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     for (i = 0; i < salt_len + 1; i += 4) // +1 for the 0x80
     {
-      const u32 tmp = salt_buf[i / 4]; // attention, int[] not char[]
+      const u32 tmp = swap32_S (salt_buf[i / 4]); // attention, int[] not char[]
 
       SETSHIFTEDINT (final, final_len + i, tmp);
     }
@@ -643,14 +672,9 @@ __kernel void m07800_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     for (left = final_len, off = 0; left >= 56; left -= 64, off += 16)
     {
-      swap_buffer (&final[off]);
-
       sha1_transform (&final[off + 0], &final[off + 4], &final[off + 8], &final[off + 12], digest);
     }
 
-    swap_buffer (&final[off]);
-
-    final[off + 14] = 0;
     final[off + 15] = final_len * 8;
 
     sha1_transform (&final[off + 0], &final[off + 4], &final[off + 8], &final[off + 12], digest);
