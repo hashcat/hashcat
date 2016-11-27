@@ -27,7 +27,7 @@
 #define uint_to_hex_lower8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7], l_bin2asc[(i).s8], l_bin2asc[(i).s9], l_bin2asc[(i).sa], l_bin2asc[(i).sb], l_bin2asc[(i).sc], l_bin2asc[(i).sd], l_bin2asc[(i).se], l_bin2asc[(i).sf])
 #endif
 
-u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x append0[4], const u32x append1[4], const u32x append2[4], const u32x append3[4], const u32 append_len)
+static u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x append0[4], const u32x append1[4], const u32x append2[4], const u32x append3[4], const u32 append_len)
 {
   const u32 mod = block_len & 3;
   const u32 div = block_len / 4;
