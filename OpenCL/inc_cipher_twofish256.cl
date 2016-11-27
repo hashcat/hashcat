@@ -256,7 +256,7 @@ __constant u32  m_tab[4][256] =
 
 #define mds(n,x) m_tab[n][x]
 
-u32 h_fun (u32 *sk, u32 *lk, const u32 x, const u32 *key)
+static u32 h_fun (u32 *sk, u32 *lk, const u32 x, const u32 *key)
 {
   u32  b0, b1, b2, b3;
 
@@ -300,7 +300,7 @@ u32 h_fun (u32 *sk, u32 *lk, const u32 x, const u32 *key)
    mds (2, q42 (extract_byte (x, 2), sk)) ^ \
    mds (3, q43 (extract_byte (x, 3), sk)))
 
-u32 mds_rem (u32 p0, u32 p1)
+static u32 mds_rem (u32 p0, u32 p1)
 {
   #define G_MOD 0x14d
 
@@ -328,7 +328,7 @@ u32 mds_rem (u32 p0, u32 p1)
   return p1;
 }
 
-void twofish256_set_key (u32 *sk, u32 *lk, const u32 *ukey)
+static void twofish256_set_key (u32 *sk, u32 *lk, const u32 *ukey)
 {
   u32 me_key[4];
 
@@ -376,7 +376,7 @@ void twofish256_set_key (u32 *sk, u32 *lk, const u32 *ukey)
   data[1] = rotl32 (data[1], 1) ^ (t2 + 2 * t3 + lk[4 * (i) + 11]); \
 }
 
-void twofish256_encrypt (const u32 *sk, const u32 *lk, const u32 *in, u32 *out)
+static void twofish256_encrypt (const u32 *sk, const u32 *lk, const u32 *in, u32 *out)
 {
   u32 data[4];
 
@@ -412,7 +412,7 @@ void twofish256_encrypt (const u32 *sk, const u32 *lk, const u32 *in, u32 *out)
   data[1] = rotr32 (data[1] ^ (t2 + 2 * t3 + lk[4 * (i) +  9]), 1); \
 }
 
-void twofish256_decrypt (const u32 *sk, const u32 *lk, const u32 *in, u32 *out)
+static void twofish256_decrypt (const u32 *sk, const u32 *lk, const u32 *in, u32 *out)
 {
   u32 data[4];
 
@@ -436,7 +436,7 @@ void twofish256_decrypt (const u32 *sk, const u32 *lk, const u32 *in, u32 *out)
   out[3] = data[1] ^ lk[3];
 }
 
-void twofish256_decrypt_xts (const u32 *ukey1, const u32 *ukey2, const u32 *in, u32 *out)
+static void twofish256_decrypt_xts (const u32 *ukey1, const u32 *ukey2, const u32 *in, u32 *out)
 {
   u32 T[4] = { 0 };
   u32 Z[4] = { 0 };
