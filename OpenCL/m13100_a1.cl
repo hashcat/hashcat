@@ -23,7 +23,7 @@ typedef struct
 
 } RC4_KEY;
 
-void swap (__local RC4_KEY *rc4_key, const u8 i, const u8 j)
+static void swap (__local RC4_KEY *rc4_key, const u8 i, const u8 j)
 {
   u8 tmp;
 
@@ -32,7 +32,7 @@ void swap (__local RC4_KEY *rc4_key, const u8 i, const u8 j)
   rc4_key->S[j] = tmp;
 }
 
-void rc4_init_16 (__local RC4_KEY *rc4_key, const u32 data[4])
+static void rc4_init_16 (__local RC4_KEY *rc4_key, const u32 data[4])
 {
   u32 v = 0x03020100;
   u32 a = 0x04040404;
@@ -85,7 +85,7 @@ void rc4_init_16 (__local RC4_KEY *rc4_key, const u32 data[4])
   }
 }
 
-u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, __global u32 *in, u32 out[4])
+static u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, __global u32 *in, u32 out[4])
 {
   #ifdef _unroll
   #pragma unroll
@@ -138,7 +138,7 @@ u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, __global u32 *in, u32 out[
   return j;
 }
 
-void md4_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[4])
+static void md4_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[4])
 {
   u32 a = digest[0];
   u32 b = digest[1];
@@ -202,7 +202,7 @@ void md4_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32
   digest[3] += d;
 }
 
-void md5_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[4])
+static void md5_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[4])
 {
   u32 a = digest[0];
   u32 b = digest[1];
@@ -300,7 +300,7 @@ void md5_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32
   digest[3] += d;
 }
 
-void hmac_md5_pad (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[4], u32 opad[4])
+static void hmac_md5_pad (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[4], u32 opad[4])
 {
   w0[0] = w0[0] ^ 0x36363636;
   w0[1] = w0[1] ^ 0x36363636;
@@ -351,7 +351,7 @@ void hmac_md5_pad (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[4], u32 
   md5_transform (w0, w1, w2, w3, opad);
 }
 
-void hmac_md5_run (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[4], u32 opad[4], u32 digest[4])
+static void hmac_md5_run (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[4], u32 opad[4], u32 digest[4])
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];
@@ -385,7 +385,7 @@ void hmac_md5_run (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[4], u32 
   md5_transform (w0, w1, w2, w3, digest);
 }
 
-int decrypt_and_check (__local RC4_KEY *rc4_key, u32 data[4], __global u32 *edata2, const u32 edata2_len, const u32 K2[4], const u32 checksum[4])
+static int decrypt_and_check (__local RC4_KEY *rc4_key, u32 data[4], __global u32 *edata2, const u32 edata2_len, const u32 K2[4], const u32 checksum[4])
 {
   rc4_init_16 (rc4_key, data);
 
@@ -585,7 +585,7 @@ int decrypt_and_check (__local RC4_KEY *rc4_key, u32 data[4], __global u32 *edat
   return 1;
 }
 
-void kerb_prepare (const u32 w0[4], const u32 w1[4], const u32 pw_len, const u32 checksum[4], u32 digest[4], u32 K2[4])
+static void kerb_prepare (const u32 w0[4], const u32 w1[4], const u32 pw_len, const u32 checksum[4], u32 digest[4], u32 K2[4])
 {
   /**
    * pads
