@@ -17,7 +17,7 @@
 #include "inc_rp.cl"
 #include "inc_simd.cl"
 
-void memcat64c_be (u32x block[16], const u32 offset, u32x carry[16])
+static void memcat64c_be (u32x block[16], const u32 offset, u32x carry[16])
 {
   const u32 mod = offset & 3;
   const u32 div = offset / 4;
