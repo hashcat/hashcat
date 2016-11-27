@@ -3479,7 +3479,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
 
       #if defined (DEBUG)
-      if (user_options->quiet == false) event_log_warning (hashcat_ctx, "SCRYPT tmto optimizer value set to: %u, mem: %" PRIu64, scrypt_tmto_final, size_scrypt);
+      if (user_options->quiet == false) event_log_warning (hashcat_ctx, "SCRYPT tmto optimizer value set to: %u, mem: %ld", scrypt_tmto_final, size_scrypt);
       if (user_options->quiet == false) event_log_warning (hashcat_ctx, "");
       #endif
     }
@@ -3807,7 +3807,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         else
         {
           #if defined (DEBUG)
-          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
+          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s (%lld bytes)", device_id + 1, cached_file, cst.st_size);
           #endif
 
           const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, 1, kernel_lengths, kernel_sources);
@@ -3826,7 +3826,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       else
       {
         #if defined (DEBUG)
-        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s (%ld bytes)", device_id + 1, source_file, sst.st_size);
+        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s (%lld bytes)", device_id + 1, source_file, sst.st_size);
         #endif
 
         const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, 1, kernel_lengths, kernel_sources);
@@ -4011,7 +4011,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       else
       {
         #if defined (DEBUG)
-        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
+        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s (%lld bytes)", device_id + 1, cached_file, cst.st_size);
         #endif
 
         const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, 1, kernel_lengths, kernel_sources);
@@ -4153,7 +4153,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       else
       {
         #if defined (DEBUG)
-        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s (%ld bytes)", device_id + 1, cached_file, cst.st_size);
+        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s (%lld bytes)", device_id + 1, cached_file, cst.st_size);
         #endif
 
         const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, 1, kernel_lengths, kernel_sources);
