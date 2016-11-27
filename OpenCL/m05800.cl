@@ -2070,7 +2070,7 @@ __constant u32 c_pc_len[1024] =
   4
 };
 
-void append_word (u32 w0[4], u32 w1[4], const u32 append[4], const u32 offset)
+static void append_word (u32 w0[4], u32 w1[4], const u32 append[4], const u32 offset)
 {
   switch (offset)
   {
@@ -2104,7 +2104,7 @@ void append_word (u32 w0[4], u32 w1[4], const u32 append[4], const u32 offset)
   }
 }
 
-void append_salt (u32 w0[4], u32 w1[4], u32 w2[4], const u32 append[5], const u32 offset)
+static void append_salt (u32 w0[4], u32 w1[4], u32 w2[4], const u32 append[5], const u32 offset)
 {
   u32 tmp0;
   u32 tmp1;
@@ -2195,7 +2195,7 @@ void append_salt (u32 w0[4], u32 w1[4], u32 w2[4], const u32 append[5], const u3
   }
 }
 
-void sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
+static void sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
 {
   u32 A = digest[0];
   u32 B = digest[1];
