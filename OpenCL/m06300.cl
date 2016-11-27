@@ -14,7 +14,7 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
-void md5_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[4])
+static void md5_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[4])
 {
   u32 a = digest[0];
   u32 b = digest[1];
@@ -112,7 +112,7 @@ void md5_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32
   digest[3] += d;
 }
 
-void memcat16 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append[4])
+static void memcat16 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append[4])
 {
   u32 tmp0;
   u32 tmp1;
@@ -224,7 +224,7 @@ void memcat16 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const
   }
 }
 
-void memcat16_x80 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append[4])
+static void memcat16_x80 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append[4])
 {
   u32 tmp0;
   u32 tmp1;
@@ -336,7 +336,7 @@ void memcat16_x80 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], c
   }
 }
 
-void memcat8 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append[2])
+static void memcat8 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append[2])
 {
   u32 tmp0;
   u32 tmp1;
@@ -428,7 +428,7 @@ void memcat8 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const 
   }
 }
 
-void append_1st (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append)
+static void append_1st (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append)
 {
   switch (block_len)
   {
