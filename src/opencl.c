@@ -3760,11 +3760,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           //if (CL_rc == -1) return -1;
 
-          #if defined (DEBUG)
-          if ((build_log_size != 0) || (CL_rc == -1))
-          #else
-          if (CL_rc == -1)
-          #endif
+          if (CL_rc == -1 && build_log_size > 1)
           {
             char *build_log = (char *) hcmalloc (build_log_size + 1);
 
@@ -3862,11 +3858,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         //if (CL_rc == -1) return -1;
 
-        #if defined (DEBUG)
-        if ((build_log_size != 0) || (CL_rc == -1))
-        #else
-        if (CL_rc == -1)
-        #endif
+        if (CL_rc == -1 && build_log_size > 1)
         {
           char *build_log = (char *) hcmalloc (build_log_size + 1);
 
@@ -3966,11 +3958,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         //if (CL_rc == -1) return -1;
 
-        #if defined (DEBUG)
-        if ((build_log_size != 0) || (CL_rc == -1))
-        #else
-        if (CL_rc == -1)
-        #endif
+        if (CL_rc == -1 && build_log_size > 1)
         {
           char *build_log = (char *) hcmalloc (build_log_size + 1);
 
@@ -4108,17 +4096,13 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         //if (CL_rc == -1) return -1;
 
-        #if defined (DEBUG)
-        if ((build_log_size != 0) || (CL_rc == -1))
-        #else
-        if (CL_rc == -1)
-        #endif
+        if (CL_rc == -1 && build_log_size > 1)
         {
           char *build_log = (char *) hcmalloc (build_log_size + 1);
 
-          CL_rc = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
+          int CL_rc_build = hc_clGetProgramBuildInfo (hashcat_ctx, device_param->program_amp, device_param->device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
 
-          if (CL_rc == -1) return -1;
+          if (CL_rc_build == -1) return -1;
 
           puts (build_log);
 
