@@ -3761,7 +3761,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
           //if (CL_rc == -1) return -1;
 
           #if defined (DEBUG)
-          if ((build_log_size != 0) || (CL_rc == -1))
+          if ((build_log_size > 1) || (CL_rc == -1))
           #else
           if (CL_rc == -1)
           #endif
@@ -3863,7 +3863,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         //if (CL_rc == -1) return -1;
 
         #if defined (DEBUG)
-        if ((build_log_size != 0) || (CL_rc == -1))
+        if ((build_log_size > 1) || (CL_rc == -1))
         #else
         if (CL_rc == -1)
         #endif
@@ -3967,7 +3967,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         //if (CL_rc == -1) return -1;
 
         #if defined (DEBUG)
-        if ((build_log_size != 0) || (CL_rc == -1))
+        if ((build_log_size > 1) || (CL_rc == -1))
         #else
         if (CL_rc == -1)
         #endif
@@ -4109,7 +4109,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         //if (CL_rc == -1) return -1;
 
         #if defined (DEBUG)
-        if ((build_log_size != 0) || (CL_rc == -1))
+        if ((build_log_size > 1) || (CL_rc == -1))
         #else
         if (CL_rc == -1)
         #endif
