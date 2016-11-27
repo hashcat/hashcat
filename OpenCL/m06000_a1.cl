@@ -14,7 +14,7 @@
 #include "inc_common.cl"
 #include "inc_simd.cl"
 
-void ripemd160_transform (const u32x w[16], u32x dgst[5])
+static void ripemd160_transform (const u32x w[16], u32x dgst[5])
 {
   u32x a1 = dgst[0];
   u32x b1 = dgst[1];
