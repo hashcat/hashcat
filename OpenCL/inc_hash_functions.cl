@@ -11,8 +11,8 @@
 #define MD4_F(x,y,z)    (((x) & (y)) | ((~(x)) & (z)))
 #define MD4_G(x,y,z)    (((x) & (y)) | ((x) & (z)) | ((y) & (z)))
 #define MD4_H(x,y,z)    ((x) ^ (y) ^ (z))
-#define MD4_Fo(x,y,z)   (MD4_F((x), (y), (z)))
-#define MD4_Go(x,y,z)   (MD4_G((x), (y), (z)))
+#define MD4_Fo(x,y,z)   (bitselect ((z), (y), (x)))
+#define MD4_Go(x,y,z)   (bitselect ((x), (y), ((x) ^ (z))))
 #endif
 
 #ifdef IS_AMD
@@ -116,8 +116,8 @@
 #define SHA1_F0(x,y,z)  ((z) ^ ((x) & ((y) ^ (z))))
 #define SHA1_F1(x,y,z)  ((x) ^ (y) ^ (z))
 #define SHA1_F2(x,y,z)  (((x) & (y)) | ((z) & ((x) ^ (y))))
-#define SHA1_F0o(x,y,z) (SHA1_F0 ((x), (y), (z)))
-#define SHA1_F2o(x,y,z) (SHA1_F2 ((x), (y), (z)))
+#define SHA1_F0o(x,y,z) (bitselect ((z), (y), (x)))
+#define SHA1_F2o(x,y,z) (bitselect ((x), (y), ((x) ^ (z))))
 #endif
 
 #ifdef IS_AMD
@@ -198,8 +198,8 @@
 #ifdef IS_NV
 #define SHA256_F0(x,y,z)  (((x) & (y)) | ((z) & ((x) ^ (y))))
 #define SHA256_F1(x,y,z)  ((z) ^ ((x) & ((y) ^ (z))))
-#define SHA256_F0o(x,y,z) (SHA256_F0 ((x), (y), (z)))
-#define SHA256_F1o(x,y,z) (SHA256_F1 ((x), (y), (z)))
+#define SHA256_F0o(x,y,z) (bitselect ((x), (y), ((x) ^ (z))))
+#define SHA256_F1o(x,y,z) (bitselect ((z), (y), (x)))
 #endif
 
 #ifdef IS_AMD
@@ -253,8 +253,8 @@
 #define SHA384_F1(x,y,z) (((x) & (y)) | ((z) & ((x) ^ (y))))
 
 #ifdef IS_NV
-#define SHA384_F0o(x,y,z) (SHA384_F0 ((x), (y), (z)))
-#define SHA384_F1o(x,y,z) (SHA384_F1 ((x), (y), (z)))
+#define SHA384_F0o(x,y,z) (bitselect ((z), (y), (x)))
+#define SHA384_F1o(x,y,z) (bitselect ((x), (y), ((x) ^ (z))))
 #endif
 
 #ifdef IS_AMD
@@ -296,8 +296,8 @@
 #define SHA512_F1(x,y,z) (((x) & (y)) | ((z) & ((x) ^ (y))))
 
 #ifdef IS_NV
-#define SHA512_F0o(x,y,z) (SHA512_F0 ((x), (y), (z)))
-#define SHA512_F1o(x,y,z) (SHA512_F1 ((x), (y), (z)))
+#define SHA512_F0o(x,y,z) (bitselect ((z), (y), (x)))
+#define SHA512_F1o(x,y,z) (bitselect ((x), (y), ((x) ^ (z))))
 #endif
 
 #ifdef IS_AMD
@@ -342,8 +342,8 @@
 #define RIPEMD160_H(x,y,z)    (((x) | ~(y)) ^ (z))
 #define RIPEMD160_I(x,y,z)    ((y) ^ ((z) & ((x) ^ (y)))) /* z ? x : y */
 #define RIPEMD160_J(x,y,z)    ((x) ^ ((y) | ~(z)))
-#define RIPEMD160_Go(x,y,z)   (RIPEMD160_G ((x), (y), (z)))
-#define RIPEMD160_Io(x,y,z)   (RIPEMD160_I ((x), (y), (z)))
+#define RIPEMD160_Go(x,y,z)   (bitselect ((z), (y), (x)))
+#define RIPEMD160_Io(x,y,z)   (bitselect ((y), (x), (z)))
 #endif
 
 #ifdef IS_AMD
