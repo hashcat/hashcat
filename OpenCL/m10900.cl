@@ -37,7 +37,7 @@ __constant u32 k_sha256[64] =
   SHA256C3c, SHA256C3d, SHA256C3e, SHA256C3f,
 };
 
-void sha256_transform_S (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[8])
+static void sha256_transform_S (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[8])
 {
   u32 a = digest[0];
   u32 b = digest[1];
@@ -125,7 +125,7 @@ void sha256_transform_S (const u32 w0[4], const u32 w1[4], const u32 w2[4], cons
   digest[7] += h;
 }
 
-void hmac_sha256_pad_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[8], u32 opad[8])
+static void hmac_sha256_pad_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[8], u32 opad[8])
 {
   w0[0] = w0[0] ^ 0x36363636;
   w0[1] = w0[1] ^ 0x36363636;
@@ -184,7 +184,7 @@ void hmac_sha256_pad_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[8],
   sha256_transform_S (w0, w1, w2, w3, opad);
 }
 
-void hmac_sha256_run_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[8], u32 opad[8], u32 digest[8])
+static void hmac_sha256_run_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[8], u32 opad[8], u32 digest[8])
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];
@@ -226,7 +226,7 @@ void hmac_sha256_run_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[8],
   sha256_transform_S (w0, w1, w2, w3, digest);
 }
 
-void sha256_transform_V (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[8])
+static void sha256_transform_V (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[8])
 {
   u32x a = digest[0];
   u32x b = digest[1];
@@ -314,7 +314,7 @@ void sha256_transform_V (const u32x w0[4], const u32x w1[4], const u32x w2[4], c
   digest[7] += h;
 }
 
-void hmac_sha256_pad_V (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[8], u32x opad[8])
+static void hmac_sha256_pad_V (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[8], u32x opad[8])
 {
   w0[0] = w0[0] ^ 0x36363636;
   w0[1] = w0[1] ^ 0x36363636;
@@ -373,7 +373,7 @@ void hmac_sha256_pad_V (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipa
   sha256_transform_V (w0, w1, w2, w3, opad);
 }
 
-void hmac_sha256_run_V (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[8], u32x opad[8], u32x digest[8])
+static void hmac_sha256_run_V (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[8], u32x opad[8], u32x digest[8])
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];
