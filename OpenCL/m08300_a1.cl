@@ -14,7 +14,7 @@
 #include "inc_common.cl"
 #include "inc_simd.cl"
 
-void sha1_transform (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[5])
+static void sha1_transform (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[5])
 {
   u32x A = digest[0];
   u32x B = digest[1];

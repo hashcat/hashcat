@@ -40,7 +40,7 @@ __constant u64 k_sha512[80] =
   SHA512C4c, SHA512C4d, SHA512C4e, SHA512C4f,
 };
 
-void sha512_transform (const u64x w0[4], const u64x w1[4], const u64x w2[4], const u64x w3[4], u64x digest[8])
+static void sha512_transform (const u64x w0[4], const u64x w1[4], const u64x w2[4], const u64x w3[4], u64x digest[8])
 {
   u64x w0_t = w0[0];
   u64x w1_t = w0[1];
@@ -128,7 +128,7 @@ void sha512_transform (const u64x w0[4], const u64x w1[4], const u64x w2[4], con
   digest[7] += h;
 }
 
-void hmac_sha512_pad (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u64x ipad[8], u64x opad[8])
+static void hmac_sha512_pad (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u64x ipad[8], u64x opad[8])
 {
   u64x w0_t[4];
   u64x w1_t[4];
@@ -192,7 +192,7 @@ void hmac_sha512_pad (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u64x ipad[
   sha512_transform (w0_t, w1_t, w2_t, w3_t, opad);
 }
 
-void hmac_sha512_run (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u64x ipad[8], u64x opad[8], u64x digest[8])
+static void hmac_sha512_run (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u64x ipad[8], u64x opad[8], u64x digest[8])
 {
   u64x w0_t[4];
   u64x w1_t[4];

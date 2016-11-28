@@ -55,7 +55,7 @@ __constant u32 bcodeArray[48] =
   0xe2, 0xb7, 0x33, 0x71, 0x8b, 0x9f, 0x5d, 0x01, 0x44, 0x70, 0xae, 0x11, 0xef, 0x28, 0xf0, 0x0d
 };
 
-u32 sapb_trans (const u32 in)
+static u32 sapb_trans (const u32 in)
 {
   u32 out = 0;
 
@@ -67,7 +67,7 @@ u32 sapb_trans (const u32 in)
   return out;
 }
 
-u32 walld0rf_magic (const u32 w0[4], const u32 pw_len, const u32 salt_buf0[4], const u32 salt_len, const u32 a, const u32 b, const u32 c, const u32 d, u32 t[16])
+static u32 walld0rf_magic (const u32 w0[4], const u32 pw_len, const u32 salt_buf0[4], const u32 salt_len, const u32 a, const u32 b, const u32 c, const u32 d, u32 t[16])
 {
   t[ 0] = 0;
   t[ 1] = 0;

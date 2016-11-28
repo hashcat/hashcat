@@ -58,7 +58,7 @@ __constant u64 k_sha512[80] =
   SHA512C4c, SHA512C4d, SHA512C4e, SHA512C4f,
 };
 
-void sha512_transform (const u64 *w, u64 *digest)
+static void sha512_transform (const u64 *w, u64 *digest)
 {
   u64 w0_t = w[ 0];
   u64 w1_t = w[ 1];
@@ -146,7 +146,7 @@ void sha512_transform (const u64 *w, u64 *digest)
   digest[7] += h;
 }
 
-void sha512_init (sha512_ctx_t *sha512_ctx)
+static void sha512_init (sha512_ctx_t *sha512_ctx)
 {
   sha512_ctx->state[0] = SHA512M_A;
   sha512_ctx->state[1] = SHA512M_B;
@@ -160,7 +160,7 @@ void sha512_init (sha512_ctx_t *sha512_ctx)
   sha512_ctx->len = 0;
 }
 
-void sha512_update (sha512_ctx_t *sha512_ctx, const u64 *buf, int len)
+static void sha512_update (sha512_ctx_t *sha512_ctx, const u64 *buf, int len)
 {
   int pos = sha512_ctx->len & 0x7f;
 
@@ -193,7 +193,7 @@ void sha512_update (sha512_ctx_t *sha512_ctx, const u64 *buf, int len)
   }
 }
 
-void sha512_final (sha512_ctx_t *sha512_ctx)
+static void sha512_final (sha512_ctx_t *sha512_ctx)
 {
   int pos = sha512_ctx->len & 0x7f;
 

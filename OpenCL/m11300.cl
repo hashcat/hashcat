@@ -698,7 +698,7 @@ __constant u32 rcon[] =
   0x1b000000, 0x36000000,
 };
 
-void AES256_ExpandKey (u32 *userkey, u32 *rek, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
+static void AES256_ExpandKey (u32 *userkey, u32 *rek, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
 {
   rek[0] = userkey[0];
   rek[1] = userkey[1];
@@ -754,7 +754,7 @@ void AES256_ExpandKey (u32 *userkey, u32 *rek, __local u32 *s_te0, __local u32 *
   }
 }
 
-void AES256_InvertKey (u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, __local u32 *s_td2, __local u32 *s_td3, __local u32 *s_td4, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
+static void AES256_InvertKey (u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, __local u32 *s_td2, __local u32 *s_td3, __local u32 *s_td4, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
 {
   for (u32 i = 0, j = 56; i < j; i += 4, j -= 4)
   {
@@ -794,7 +794,7 @@ void AES256_InvertKey (u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, __local
   }
 }
 
-void AES256_decrypt (const u32 *in, u32 *out, const u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, __local u32 *s_td2, __local u32 *s_td3, __local u32 *s_td4)
+static void AES256_decrypt (const u32 *in, u32 *out, const u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, __local u32 *s_td2, __local u32 *s_td3, __local u32 *s_td4)
 {
   u32 s0 = in[0] ^ rdk[0];
   u32 s1 = in[1] ^ rdk[1];
@@ -908,7 +908,7 @@ __constant u64 k_sha512[80] =
   SHA512C4c, SHA512C4d, SHA512C4e, SHA512C4f,
 };
 
-void sha512_transform (const u64 w[16], u64 dgst[8])
+static void sha512_transform (const u64 w[16], u64 dgst[8])
 {
   u64 a = dgst[0];
   u64 b = dgst[1];
