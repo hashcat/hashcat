@@ -41,7 +41,7 @@ __constant u32 k_sha256[64] =
 
 #define SHA256_EXPAND_S(x,y,z,w) (SHA256_S1_S (x) + y + SHA256_S0_S (z) + w)
 
-void sha256_transform (u32x digest[8], const u32x w[16])
+static void sha256_transform (u32x digest[8], const u32x w[16])
 {
   u32x a = digest[0];
   u32x b = digest[1];
@@ -129,7 +129,7 @@ void sha256_transform (u32x digest[8], const u32x w[16])
   digest[7] += h;
 }
 
-void sha256_transform_z (u32x digest[8])
+static void sha256_transform_z (u32x digest[8])
 {
   u32x a = digest[0];
   u32x b = digest[1];
@@ -180,7 +180,7 @@ void sha256_transform_z (u32x digest[8])
   digest[7] += h;
 }
 
-void sha256_transform_s (u32x digest[8], __local u32 *w)
+static void sha256_transform_s (u32x digest[8], __local u32 *w)
 {
   u32x a = digest[0];
   u32x b = digest[1];
