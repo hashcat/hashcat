@@ -791,34 +791,25 @@ static void AES256_InvertKey (u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, 
 
 static void AES256_decrypt (const u32 *in, u32 *out, const u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, __local u32 *s_td2, __local u32 *s_td3, __local u32 *s_td4)
 {
-  u32 s0 = in[0] ^ rdk[0];
-  u32 s1 = in[1] ^ rdk[1];
-  u32 s2 = in[2] ^ rdk[2];
-  u32 s3 = in[3] ^ rdk[3];
-
-  u32 t0;
-  u32 t1;
-  u32 t2;
-  u32 t3;
-
-  t0 = s_td0[s0 >> 24] ^ s_td1[(s3 >> 16) & 0xff] ^ s_td2[(s2 >>  8) & 0xff] ^ s_td3[s1 & 0xff] ^ rdk[ 4];
-  t1 = s_td0[s1 >> 24] ^ s_td1[(s0 >> 16) & 0xff] ^ s_td2[(s3 >>  8) & 0xff] ^ s_td3[s2 & 0xff] ^ rdk[ 5];
-  t2 = s_td0[s2 >> 24] ^ s_td1[(s1 >> 16) & 0xff] ^ s_td2[(s0 >>  8) & 0xff] ^ s_td3[s3 & 0xff] ^ rdk[ 6];
-  t3 = s_td0[s3 >> 24] ^ s_td1[(s2 >> 16) & 0xff] ^ s_td2[(s1 >>  8) & 0xff] ^ s_td3[s0 & 0xff] ^ rdk[ 7];
+  u32 t0 = in[0] ^ rdk[0];
+  u32 t1 = in[1] ^ rdk[1];
+  u32 t2 = in[2] ^ rdk[2];
+  u32 t3 = in[3] ^ rdk[3];
 
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (int i = 8; i < 56; i += 8)
+  for (int i = 4; i < 56; i += 4)
   {
-    s0 = s_td0[t0 >> 24] ^ s_td1[(t3 >> 16) & 0xff] ^ s_td2[(t2 >>  8) & 0xff] ^ s_td3[t1 & 0xff] ^ rdk[i + 0];
-    s1 = s_td0[t1 >> 24] ^ s_td1[(t0 >> 16) & 0xff] ^ s_td2[(t3 >>  8) & 0xff] ^ s_td3[t2 & 0xff] ^ rdk[i + 1];
-    s2 = s_td0[t2 >> 24] ^ s_td1[(t1 >> 16) & 0xff] ^ s_td2[(t0 >>  8) & 0xff] ^ s_td3[t3 & 0xff] ^ rdk[i + 2];
-    s3 = s_td0[t3 >> 24] ^ s_td1[(t2 >> 16) & 0xff] ^ s_td2[(t1 >>  8) & 0xff] ^ s_td3[t0 & 0xff] ^ rdk[i + 3];
-    t0 = s_td0[s0 >> 24] ^ s_td1[(s3 >> 16) & 0xff] ^ s_td2[(s2 >>  8) & 0xff] ^ s_td3[s1 & 0xff] ^ rdk[i + 4];
-    t1 = s_td0[s1 >> 24] ^ s_td1[(s0 >> 16) & 0xff] ^ s_td2[(s3 >>  8) & 0xff] ^ s_td3[s2 & 0xff] ^ rdk[i + 5];
-    t2 = s_td0[s2 >> 24] ^ s_td1[(s1 >> 16) & 0xff] ^ s_td2[(s0 >>  8) & 0xff] ^ s_td3[s3 & 0xff] ^ rdk[i + 6];
-    t3 = s_td0[s3 >> 24] ^ s_td1[(s2 >> 16) & 0xff] ^ s_td2[(s1 >>  8) & 0xff] ^ s_td3[s0 & 0xff] ^ rdk[i + 7];
+    const uchar4 x0 = as_uchar4 (t0);
+    const uchar4 x1 = as_uchar4 (t1);
+    const uchar4 x2 = as_uchar4 (t2);
+    const uchar4 x3 = as_uchar4 (t3);
+
+    t0 = s_td0[x0.s3] ^ s_td1[x3.s2] ^ s_td2[x2.s1] ^ s_td3[x1.s0] ^ rdk[i + 0];
+    t1 = s_td0[x1.s3] ^ s_td1[x0.s2] ^ s_td2[x3.s1] ^ s_td3[x2.s0] ^ rdk[i + 1];
+    t2 = s_td0[x2.s3] ^ s_td1[x1.s2] ^ s_td2[x0.s1] ^ s_td3[x3.s0] ^ rdk[i + 2];
+    t3 = s_td0[x3.s3] ^ s_td1[x2.s2] ^ s_td2[x1.s1] ^ s_td3[x0.s0] ^ rdk[i + 3];
   }
 
   out[0] = (s_td4[(t0 >> 24) & 0xff] & 0xff000000)
@@ -848,34 +839,25 @@ static void AES256_decrypt (const u32 *in, u32 *out, const u32 *rdk, __local u32
 
 static void AES256_encrypt (const u32 *in, u32 *out, const u32 *rek, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
 {
-  u32 s0 = in[0] ^ rek[0];
-  u32 s1 = in[1] ^ rek[1];
-  u32 s2 = in[2] ^ rek[2];
-  u32 s3 = in[3] ^ rek[3];
-
-  u32 t0;
-  u32 t1;
-  u32 t2;
-  u32 t3;
-
-  t0 = s_te0[s0 >> 24] ^ s_te1[(s1 >> 16) & 0xff] ^ s_te2[(s2 >>  8) & 0xff] ^ s_te3[s3 & 0xff] ^ rek[ 4];
-  t1 = s_te0[s1 >> 24] ^ s_te1[(s2 >> 16) & 0xff] ^ s_te2[(s3 >>  8) & 0xff] ^ s_te3[s0 & 0xff] ^ rek[ 5];
-  t2 = s_te0[s2 >> 24] ^ s_te1[(s3 >> 16) & 0xff] ^ s_te2[(s0 >>  8) & 0xff] ^ s_te3[s1 & 0xff] ^ rek[ 6];
-  t3 = s_te0[s3 >> 24] ^ s_te1[(s0 >> 16) & 0xff] ^ s_te2[(s1 >>  8) & 0xff] ^ s_te3[s2 & 0xff] ^ rek[ 7];
+  u32 t0 = in[0] ^ rek[0];
+  u32 t1 = in[1] ^ rek[1];
+  u32 t2 = in[2] ^ rek[2];
+  u32 t3 = in[3] ^ rek[3];
 
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (int i = 8; i < 56; i += 8)
+  for (int i = 4; i < 56; i += 4)
   {
-    s0 = s_te0[t0 >> 24] ^ s_te1[(t1 >> 16) & 0xff] ^ s_te2[(t2 >>  8) & 0xff] ^ s_te3[t3 & 0xff] ^ rek[i + 0];
-    s1 = s_te0[t1 >> 24] ^ s_te1[(t2 >> 16) & 0xff] ^ s_te2[(t3 >>  8) & 0xff] ^ s_te3[t0 & 0xff] ^ rek[i + 1];
-    s2 = s_te0[t2 >> 24] ^ s_te1[(t3 >> 16) & 0xff] ^ s_te2[(t0 >>  8) & 0xff] ^ s_te3[t1 & 0xff] ^ rek[i + 2];
-    s3 = s_te0[t3 >> 24] ^ s_te1[(t0 >> 16) & 0xff] ^ s_te2[(t1 >>  8) & 0xff] ^ s_te3[t2 & 0xff] ^ rek[i + 3];
-    t0 = s_te0[s0 >> 24] ^ s_te1[(s1 >> 16) & 0xff] ^ s_te2[(s2 >>  8) & 0xff] ^ s_te3[s3 & 0xff] ^ rek[i + 4];
-    t1 = s_te0[s1 >> 24] ^ s_te1[(s2 >> 16) & 0xff] ^ s_te2[(s3 >>  8) & 0xff] ^ s_te3[s0 & 0xff] ^ rek[i + 5];
-    t2 = s_te0[s2 >> 24] ^ s_te1[(s3 >> 16) & 0xff] ^ s_te2[(s0 >>  8) & 0xff] ^ s_te3[s1 & 0xff] ^ rek[i + 6];
-    t3 = s_te0[s3 >> 24] ^ s_te1[(s0 >> 16) & 0xff] ^ s_te2[(s1 >>  8) & 0xff] ^ s_te3[s2 & 0xff] ^ rek[i + 7];
+    const uchar4 x0 = as_uchar4 (t0);
+    const uchar4 x1 = as_uchar4 (t1);
+    const uchar4 x2 = as_uchar4 (t2);
+    const uchar4 x3 = as_uchar4 (t3);
+
+    t0 = s_te0[x0.s3] ^ s_te1[x1.s2] ^ s_te2[x2.s1] ^ s_te3[x3.s0] ^ rek[i + 0];
+    t1 = s_te0[x1.s3] ^ s_te1[x2.s2] ^ s_te2[x3.s1] ^ s_te3[x0.s0] ^ rek[i + 1];
+    t2 = s_te0[x2.s3] ^ s_te1[x3.s2] ^ s_te2[x0.s1] ^ s_te3[x1.s0] ^ rek[i + 2];
+    t3 = s_te0[x3.s3] ^ s_te1[x0.s2] ^ s_te2[x1.s1] ^ s_te3[x2.s0] ^ rek[i + 3];
   }
 
   out[0] = (s_te4[(t0 >> 24) & 0xff] & 0xff000000)
