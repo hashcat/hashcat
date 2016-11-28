@@ -704,10 +704,7 @@ static void aes256_ExpandKey (u32 *ks, const u32 *ukey)
   int i;
   int j;
 
-  i = 0;
-  j = 0;
-
-  while (1)
+  for (i = 0, j = 0; i < 8; j += 8)
   {
     u32 temp = ks[j +  7];
 
@@ -735,8 +732,6 @@ static void aes256_ExpandKey (u32 *ks, const u32 *ukey)
     ks[j + 13] = ks[j +  5] ^ ks[j + 12];
     ks[j + 14] = ks[j +  6] ^ ks[j + 13];
     ks[j + 15] = ks[j +  7] ^ ks[j + 14];
-
-    j += 8;
   }
 }
 
@@ -816,17 +811,15 @@ static void aes256_set_decrypt_key (u32 *ks, const u32 *ukey)
 
 static void aes256_decrypt (const u32 *ks, const u32 *in, u32 *out)
 {
-  u32 in_s[4];
+  u32 s0 = swap32 (in[0]);
+  u32 s1 = swap32 (in[1]);
+  u32 s2 = swap32 (in[2]);
+  u32 s3 = swap32 (in[3]);
 
-  in_s[0] = swap32 (in[0]);
-  in_s[1] = swap32 (in[1]);
-  in_s[2] = swap32 (in[2]);
-  in_s[3] = swap32 (in[3]);
-
-  u32 s0 = in_s[0] ^ ks[0];
-  u32 s1 = in_s[1] ^ ks[1];
-  u32 s2 = in_s[2] ^ ks[2];
-  u32 s3 = in_s[3] ^ ks[3];
+  s0 ^= ks[0];
+  s1 ^= ks[1];
+  s2 ^= ks[2];
+  s3 ^= ks[3];
 
   u32 t0;
   u32 t1;
@@ -918,17 +911,15 @@ static void aes256_decrypt (const u32 *ks, const u32 *in, u32 *out)
 
 static void aes256_encrypt (const u32 *ks, const u32 *in, u32 *out)
 {
-  u32 in_s[4];
+  u32 s0 = swap32 (in[0]);
+  u32 s1 = swap32 (in[1]);
+  u32 s2 = swap32 (in[2]);
+  u32 s3 = swap32 (in[3]);
 
-  in_s[0] = swap32 (in[0]);
-  in_s[1] = swap32 (in[1]);
-  in_s[2] = swap32 (in[2]);
-  in_s[3] = swap32 (in[3]);
-
-  u32 s0 = in_s[0] ^ ks[0];
-  u32 s1 = in_s[1] ^ ks[1];
-  u32 s2 = in_s[2] ^ ks[2];
-  u32 s3 = in_s[3] ^ ks[3];
+  s0 ^= ks[0];
+  s1 ^= ks[1];
+  s2 ^= ks[2];
+  s3 ^= ks[3];
 
   u32 t0;
   u32 t1;
