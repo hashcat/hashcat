@@ -16,15 +16,18 @@ IS_WIN_BUILD       := $(filter binaries,$(MG))$(filter win32,$(MG))$(filter win6
 
 ifneq (,$(IS_WIN_BUILD))
 
-# entering this code path means: we need to check for CRT_glob.o since we try to build binaries for windows operating systems
+ifeq ($(UNAME),CYGWIN)
+$(error Cross-compiling on $(UNAME) is not supported, please use the native target)
+endif
 
 ifeq ($(UNAME),MSYS2)
-CRT_GLOB_LIB_PATH_32    ?= /mingw32/i686-w64-mingw32/lib/
-CRT_GLOB_LIB_PATH_64    ?= /mingw64/x86_64-w64-mingw32/lib/
-else
+$(error Cross-compiling on $(UNAME) is not supported, please use the native target)
+endif
+
+# entering this code path means: we need to check for CRT_glob.o since we try to build binaries for windows operating systems
+
 CRT_GLOB_LIB_PATH_32    ?= /usr/i686-w64-mingw32/lib/
 CRT_GLOB_LIB_PATH_64    ?= /usr/x86_64-w64-mingw32/lib/
-endif
 
 CRT_GLOB_LIB_SYSROOT_32 := $(shell $(CC_WIN_32) --verbose 2>&1 | $(EGREP) -m 1 -o '(with-sysroot="[^"]"|with-sysroot=[^ ]*)' | $(SED) 's/^with-sysroot="\?\([^"]*\)"\?$$/\1/')
 CRT_GLOB_LIB_SYSROOT_64 := $(shell $(CC_WIN_64) --verbose 2>&1 | $(EGREP) -m 1 -o '(with-sysroot="[^"]"|with-sysroot=[^ ]*)' | $(SED) 's/^with-sysroot="\?\([^"]*\)"\?$$/\1/')
@@ -57,6 +60,27 @@ define WARNING_MESSAGE=
 
 
 ! The MinGW CRT GLOB library for 64-bit compilation was not found on your system. Please make sure that $(CRT_GLOB_FILE_NAME) exists
+! ATTENTION: File globbing will be disabled
+
+endef
+$(warning $(WARNING_MESSAGE))
+endif
+
+endif
+
+IS_WIN_BUILD_NATIVE := $(filter CYGWIN,$(UNAME))$(filter MSYS2,$(UNAME))
+
+ifneq (,$(IS_WIN_BUILD_NATIVE))
+
+# entering this code path means: we need to check for CRT_glob.o since we try to build binaries for windows operating systems
+
+CRT_GLOB := $(shell $(FIND) / -name $(CRT_GLOB_FILE_NAME) -print -quit)
+
+ifeq (,$(CRT_GLOB))
+define WARNING_MESSAGE=
+
+
+! The MinGW CRT GLOB library was not found on your system. Please make sure that $(CRT_GLOB_FILE_NAME) exists
 ! ATTENTION: File globbing will be disabled
 
 endef
