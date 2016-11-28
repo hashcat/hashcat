@@ -258,6 +258,14 @@ OBJS_ALL                := affinity autotune benchmark bitmap bitops combinator 
 NATIVE_OBJS             := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).NATIVE.o)
 NATIVE_SHARED_OBJS      := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).NATIVE.SHARED.o)
 
+ifeq ($(UNAME),CYGWIN)
+NATIVE_OBJS		+= $(CRT_GLOB)
+endif # CYGWIN
+
+ifeq ($(UNAME),MSYS2)
+NATIVE_OBJS		+= $(CRT_GLOB)
+endif # MSYS2
+
 LINUX_32_OBJS           := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).LINUX.32.o)
 LINUX_64_OBJS           := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).LINUX.64.o)
 
