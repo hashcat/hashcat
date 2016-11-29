@@ -138,7 +138,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
                 out_info[j].seek  = 0;
               }
 
-              fseek (fp, out_info[j].seek, SEEK_SET);
+              fseeko (fp, out_info[j].seek, SEEK_SET);
 
               char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
@@ -278,7 +278,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
               hcfree (line_buf);
 
-              out_info[j].seek = ftell (fp);
+              out_info[j].seek = ftello (fp);
 
               //hc_thread_mutex_unlock (status_ctx->mux_display);
 
