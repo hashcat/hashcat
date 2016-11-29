@@ -2903,6 +2903,16 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
                 if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             For ideal hashcat performance on NVIDIA GPU you need Shader Model 5.0 or higher");
               }
             }
+
+            if ((strstr (device_param->device_opencl_version, "beignet")) || (strstr (device_param->device_version, "beignet")))
+            {
+              event_log_error (hashcat_ctx, "* Device #%u: Intel beignet driver detected!", device_id + 1);
+              event_log_error (hashcat_ctx, "");
+              event_log_error (hashcat_ctx, "The beignet driver has been marked as half-baked and likely to fail kernel compilation");
+              event_log_error (hashcat_ctx, "You can use --force to override this but do not post error reports if you do so");
+
+              return -1;
+            }
           }
         }
 
