@@ -303,6 +303,27 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
     hash_buf.esalt = hcmalloc (hashconfig->esalt_size);
   }
 
+  // this is usually detected by weak-hash-check
+  // but not if bitslice
+
+  if (hashconfig->hash_mode == 3000)
+  {
+    int parser_status = hashconfig->parse_func ((u8 *) LM_WEAK_HASH, 16, &hash_buf, hashconfig);
+
+    if (parser_status == PARSER_OK)
+    {
+      hash_t *found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_no_salt, (void *) hashconfig);
+
+      if (found)
+      {
+        found->pw_buf = "";
+        found->pw_len = 0;
+
+        found->cracked = 1;
+      }
+    }
+  }
+
   const int rc = potfile_read_open (hashcat_ctx);
 
   if (rc == -1) return -1;

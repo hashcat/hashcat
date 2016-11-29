@@ -16,8 +16,8 @@
  * weak hashes shutcut
  */
 
-#define LM_WEAK_HASH    "\x4e\xcf\x0d\x0c\x0a\xe2\xfb\xc1"
-#define LM_MASKED_PLAIN "[notfound]"
+static const char LM_WEAK_HASH[]    = "aad3b435b51404ee";
+static const char LM_MASKED_PLAIN[] = "[notfound]";
 
 /**
  * algo specific
