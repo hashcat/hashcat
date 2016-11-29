@@ -215,7 +215,7 @@ NVAPI_INTERFACE NvAPI_GPU_RestoreCoolerSettings (NvPhysicalGpuHandle hPhysicalGp
 
 typedef NvPhysicalGpuHandle HM_ADAPTER_NVAPI;
 
-#if defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
+#if defined(_WIN32) || defined(__WIN32__)
 #define NVAPI_API_CALL __stdcall
 #else
 #define NVAPI_API_CALL

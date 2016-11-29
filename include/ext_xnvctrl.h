@@ -40,7 +40,7 @@ typedef int   (*XCLOSEDISPLAY) (void *);
 
 typedef int HM_ADAPTER_XNVCTRL;
 
-#if defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
+#if defined(_WIN32) || defined(__WIN32__)
 #define XNVCTRL_API_CALL __stdcall
 #else
 #define XNVCTRL_API_CALL

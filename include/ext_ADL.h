@@ -252,7 +252,7 @@ typedef struct ADLOD6PowerControlInfo
 
 #if defined (__MSC_VER)
 #define ADL_API_CALL __cdecl
-#elif defined (_WIN32) || defined (__WIN32__) || defined (__CYGWIN__)
+#elif defined (_WIN32) || defined (__WIN32__)
 #define ADL_API_CALL __stdcall
 #else
 #define ADL_API_CALL
