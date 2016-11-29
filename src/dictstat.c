@@ -15,7 +15,7 @@ int sort_by_dictstat (const void *s1, const void *s2)
   dictstat_t *d1 = (dictstat_t *) s1;
   dictstat_t *d2 = (dictstat_t *) s2;
 
-  #if defined (__linux__)
+  #if defined (__linux__) || defined (__CYGWIN__)
   d2->stat.st_atim = d1->stat.st_atim;
   #else
   d2->stat.st_atime = d1->stat.st_atime;

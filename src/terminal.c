@@ -294,7 +294,7 @@ void SetConsoleWindowSize (const int x)
 }
 #endif
 
-#if defined (__linux__)
+#if defined (__linux__) || defined (__CYGWIN__)
 static struct termios savemodes;
 static int havemodes = 0;
 

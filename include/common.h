@@ -8,7 +8,7 @@
 
 #define PROGNAME "hashcat"
 
-#if   defined (__linux__)
+#if   defined (__linux__) || defined (__CYGWIN__)
 #define _POSIX
 #elif defined (__APPLE__)
 #define _POSIX
@@ -38,7 +38,7 @@
 
 #if defined (__MSC_VER)
 #define HC_API_CALL __cdecl
-#elif defined (_WIN32) || defined (__WIN32__) || defined (__CYGWIN__)
+#elif defined (_WIN32) || defined (__WIN32__)
 #define HC_API_CALL __stdcall
 #else
 #define HC_API_CALL

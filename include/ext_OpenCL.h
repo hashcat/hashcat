@@ -25,6 +25,10 @@
 #include <CL/cl.h>
 #endif
 
+#if defined (__CYGWIN__)
+#include <CL/cl.h>
+#endif
+
 // NVIDIA extras
 
 #define CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV       0x4000

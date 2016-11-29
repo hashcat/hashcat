@@ -159,7 +159,7 @@ typedef enum nvmlGom_enum
 
 typedef nvmlDevice_t HM_ADAPTER_NVML;
 
-#if defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
+#if defined(_WIN32) || defined(__WIN32__)
 #define NVML_API_CALL __stdcall
 #else
 #define NVML_API_CALL

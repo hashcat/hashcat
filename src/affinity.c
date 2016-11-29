@@ -45,8 +45,11 @@ static int pthread_setaffinity_np (pthread_t thread, size_t cpu_size, cpu_set_t 
 typedef cpuset_t cpu_set_t;
 #endif
 
-int set_cpu_affinity (hashcat_ctx_t *hashcat_ctx)
+int set_cpu_affinity (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 {
+#if defined (__CYGWIN__)
+  return 0;
+#else
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->cpu_affinity == NULL) return 0;
@@ -121,4 +124,5 @@ int set_cpu_affinity (hashcat_ctx_t *hashcat_ctx)
   #endif
 
   return 0;
+#endif
 }

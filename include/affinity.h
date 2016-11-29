@@ -11,7 +11,9 @@
 
 #if defined (_POSIX)
 #include <pthread.h>
+#if defined (__linux__)
 #include <sys/sysctl.h>
+#endif // __linux__
 #endif // _POSIX
 
 #if defined (__APPLE__)

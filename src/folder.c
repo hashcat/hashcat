@@ -24,7 +24,7 @@ int sort_by_stringptr (const void *p1, const void *p2)
 
 static int get_exec_path (char *exec_path, const size_t exec_path_sz)
 {
-  #if defined (__linux__)
+  #if defined (__linux__) || defined (__CYGWIN__)
 
   char tmp[32] = { 0 };
 
@@ -302,7 +302,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
     return -1;
   }
 
-  #if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
+  #if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined (__CYGWIN__)
 
   static const char SLASH[] = "/";
 
