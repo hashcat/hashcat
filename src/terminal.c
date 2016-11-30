@@ -963,9 +963,12 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     hashcat_status->salts_cnt,
     hashcat_status->salts_percent);
 
-  event_log_info (hashcat_ctx,
-    "Recovered/Time...: %s",
-    hashcat_status->cpt);
+  if (hashcat_status->digests_cnt > 1000)
+  {
+    event_log_info (hashcat_ctx,
+      "Recovered/Time...: %s",
+      hashcat_status->cpt);
+  }
 
   switch (hashcat_status->progress_mode)
   {
