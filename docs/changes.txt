@@ -20,7 +20,7 @@ The CLI (hashcat.bin or hashcat.exe) works as before but from a technical perspe
 - Password candidates: Do not use $HEX[] if the password candidate is a valid UTF-8 string and print out as-is
 - Pause mode: Allow quit program also if in pause mode
 - Pause mode: Ignore runtime limit in pause mode
-- Status view: Show core-clock and memory-clock while in benchmark-mode in case --machine-readable is set
+- Status view: Show core-clock, memory-clock and execution time in benchmark-mode in case --machine-readable is activated
 - Status view: Show temperature, coreclock, memoryclock, fanspeed and pci-lanes for devices using AMDGPU-Pro driver
 - Status view: Show the current first and last password candidate test queued for execution per device (as in JtR)
 - Status view: Show the current position in the queue for both base and modifier (Example: Wordlist 2/5)
