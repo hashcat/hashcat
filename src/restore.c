@@ -71,7 +71,7 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
 
       if (strcmp (argv0_r, pidbin_r) == 0)
       {
-        event_log_error (hashcat_ctx, "Already an instance %s running on pid %d", pidbin, rd->pid);
+        event_log_error (hashcat_ctx, "Already an instance %s running on pid %u", pidbin, rd->pid);
 
         return -1;
       }

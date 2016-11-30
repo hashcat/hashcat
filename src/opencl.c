@@ -190,7 +190,7 @@ static int setup_opencl_platforms_filter (hashcat_ctx_t *hashcat_ctx, const char
 
       if (platform < 1 || platform > 32)
       {
-        event_log_error (hashcat_ctx, "Invalid OpenCL platform %u specified", platform);
+        event_log_error (hashcat_ctx, "Invalid OpenCL platform %d specified", platform);
 
         return -1;
       }
@@ -229,7 +229,7 @@ static int setup_devices_filter (hashcat_ctx_t *hashcat_ctx, const char *opencl_
 
       if (device_id < 1 || device_id > 32)
       {
-        event_log_error (hashcat_ctx, "Invalid device_id %u specified", device_id);
+        event_log_error (hashcat_ctx, "Invalid device_id %d specified", device_id);
 
         return -1;
       }
@@ -268,7 +268,7 @@ static int setup_device_types_filter (hashcat_ctx_t *hashcat_ctx, const char *op
 
       if (device_type < 1 || device_type > 3)
       {
-        event_log_error (hashcat_ctx, "Invalid device_type %u specified", device_type);
+        event_log_error (hashcat_ctx, "Invalid device_type %d specified", device_type);
 
         return -1;
       }
@@ -2141,7 +2141,7 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (opencl_platforms_filter > platform_cnt_mask)
     {
-      event_log_error (hashcat_ctx, "The platform selected by the --opencl-platforms parameter is larger than the number of available platforms (%d)", platforms_cnt);
+      event_log_error (hashcat_ctx, "The platform selected by the --opencl-platforms parameter is larger than the number of available platforms (%u)", platforms_cnt);
 
       return -1;
     }
@@ -2955,7 +2955,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
     if (opencl_ctx->devices_filter > devices_cnt_mask)
     {
-      event_log_error (hashcat_ctx, "The device specified by the --opencl-devices parameter is larger than the number of available devices (%d)", devices_cnt);
+      event_log_error (hashcat_ctx, "The device specified by the --opencl-devices parameter is larger than the number of available devices (%u)", devices_cnt);
 
       return -1;
     }
@@ -3472,14 +3472,14 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if ((size_scrypt / 4) > device_param->device_maxmem_alloc)
         {
-          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "Not enough single-block device memory allocatable to use --scrypt-tmto %d, increasing...", tmto);
+          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "Not enough single-block device memory allocatable to use --scrypt-tmto %u, increasing...", tmto);
 
           continue;
         }
 
         if (size_scrypt > device_param->device_global_mem)
         {
-          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "Not enough total device memory allocatable to use --scrypt-tmto %d, increasing...", tmto);
+          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "Not enough total device memory allocatable to use --scrypt-tmto %u, increasing...", tmto);
 
           continue;
         }
@@ -3697,9 +3697,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     char build_opts_new[1024] = { 0 };
 
     #if defined (DEBUG)
-    snprintf (build_opts_new, sizeof (build_opts_new) - 1, "%s -D VENDOR_ID=%u -D CUDA_ARCH=%d -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -cl-std=CL1.2", build_opts, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, hashconfig->kern_type);
+    snprintf (build_opts_new, sizeof (build_opts_new) - 1, "%s -D VENDOR_ID=%u -D CUDA_ARCH=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -cl-std=CL1.2", build_opts, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, hashconfig->kern_type);
     #else
-    snprintf (build_opts_new, sizeof (build_opts_new) - 1, "%s -D VENDOR_ID=%u -D CUDA_ARCH=%d -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -cl-std=CL1.2 -w", build_opts, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, hashconfig->kern_type);
+    snprintf (build_opts_new, sizeof (build_opts_new) - 1, "%s -D VENDOR_ID=%u -D CUDA_ARCH=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -cl-std=CL1.2 -w", build_opts, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, hashconfig->kern_type);
     #endif
 
     strncpy (build_opts, build_opts_new, sizeof (build_opts) - 1);

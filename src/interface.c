@@ -13311,7 +13311,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     snprintf (out_buf, out_len - 1, "0x0100%s%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
       (char *) salt.salt_buf,
-      0, 0, 0, 0, 0,
+      0u, 0u, 0u, 0u, 0u,
       digest_buf[0],
       digest_buf[1],
       digest_buf[2],

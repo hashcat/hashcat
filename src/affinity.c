@@ -84,7 +84,7 @@ int set_cpu_affinity (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
     if (cpu_id > 32)
     {
-      event_log_error (hashcat_ctx, "Invalid cpu_id %u specified", cpu_id);
+      event_log_error (hashcat_ctx, "Invalid cpu_id %d specified", cpu_id);
 
       return (-1);
     }

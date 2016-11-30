@@ -571,7 +571,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   if ((user_options->workload_profile < 1) || (user_options->workload_profile > 4))
   {
-    event_log_error (hashcat_ctx, "workload-profile %i not available", user_options->workload_profile);
+    event_log_error (hashcat_ctx, "workload-profile %u not available", user_options->workload_profile);
 
     return -1;
   }
@@ -580,7 +580,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (is_power_of_2 (user_options->opencl_vector_width) == false || user_options->opencl_vector_width > 16)
     {
-      event_log_error (hashcat_ctx, "opencl-vector-width %i not allowed", user_options->opencl_vector_width);
+      event_log_error (hashcat_ctx, "opencl-vector-width %u not allowed", user_options->opencl_vector_width);
 
       return -1;
     }

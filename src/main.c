@@ -543,7 +543,7 @@ static void main_monitor_throttle1 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
   u32 *device_id = (u32 *) buf;
 
-  event_log_warning (hashcat_ctx, "Drivers temperature threshold hit on GPU #%d, expect performance to drop...", *device_id + 1);
+  event_log_warning (hashcat_ctx, "Drivers temperature threshold hit on GPU #%u, expect performance to drop...", *device_id + 1);
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
@@ -565,7 +565,7 @@ static void main_monitor_throttle2 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
   u32 *device_id = (u32 *) buf;
 
-  event_log_warning (hashcat_ctx, "Drivers temperature threshold hit on GPU #%d, expect performance to drop...", *device_id + 1);
+  event_log_warning (hashcat_ctx, "Drivers temperature threshold hit on GPU #%u, expect performance to drop...", *device_id + 1);
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
@@ -587,7 +587,7 @@ static void main_monitor_throttle3 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
   u32 *device_id = (u32 *) buf;
 
-  event_log_warning (hashcat_ctx, "Drivers temperature threshold hit on GPU #%d, expect performance to drop...", *device_id + 1);
+  event_log_warning (hashcat_ctx, "Drivers temperature threshold hit on GPU #%u, expect performance to drop...", *device_id + 1);
   event_log_warning (hashcat_ctx, "");
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
@@ -700,7 +700,7 @@ static void main_wordlist_cache_hit (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
 
   cache_hit_t *cache_hit = (cache_hit_t *) buf;
 
-  event_log_info (hashcat_ctx, "Cache-hit dictionary stats %s: %" PRIu64 " bytes, %" PRIu64 " words, %" PRIu64 " keyspace", cache_hit->dictfile, cache_hit->stat.st_size, cache_hit->cached_cnt, cache_hit->keyspace);
+  event_log_info (hashcat_ctx, "Cache-hit dictionary stats %s: %" PRId64 " bytes, %" PRIu64 " words, %" PRIu64 " keyspace", cache_hit->dictfile, cache_hit->stat.st_size, cache_hit->cached_cnt, cache_hit->keyspace);
   event_log_info (hashcat_ctx, "");
 }
 

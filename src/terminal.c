@@ -955,7 +955,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   }
 
   event_log_info (hashcat_ctx,
-    "Recovered........: %u/%u (%.2f%%) Digests, %u/%u (%.2f%%) Salts",
+    "Recovered........: %d/%d (%.2f%%) Digests, %d/%d (%.2f%%) Salts",
     hashcat_status->digests_done,
     hashcat_status->digests_cnt,
     hashcat_status->digests_percent,
@@ -1066,7 +1066,7 @@ void status_benchmark_automate (hashcat_ctx_t *hashcat_ctx)
 
     if (device_info->skipped_dev == true) continue;
 
-    event_log_info (hashcat_ctx, "%u:%u:%d:%d:%.2f:%" PRIu64, device_id + 1, hash_mode, device_info->corespeed_dev, device_info->memoryspeed_dev, device_info->exec_msec_dev, (u64) (device_info->hashes_msec_dev_benchmark * 1000));
+    event_log_info (hashcat_ctx, "%d:%u:%d:%d:%.2f:%" PRIu64, device_id + 1, hash_mode, device_info->corespeed_dev, device_info->memoryspeed_dev, device_info->exec_msec_dev, (u64) (device_info->hashes_msec_dev_benchmark * 1000));
   }
 
   hcfree (hashcat_status);
