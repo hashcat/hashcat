@@ -79,9 +79,12 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
 
   switch (loglevel)
   {
-    case LOGLEVEL_INFO:                                                        break;
-    case LOGLEVEL_WARNING: SetConsoleTextAttribute (hConsole, 6);              break;
-    case LOGLEVEL_ERROR:   SetConsoleTextAttribute (hConsole, FOREGROUND_RED); break;
+    case LOGLEVEL_INFO:
+      break;
+    case LOGLEVEL_WARNING: SetConsoleTextAttribute (hConsole, 6);
+      break;
+    case LOGLEVEL_ERROR:   SetConsoleTextAttribute (hConsole, FOREGROUND_RED | FOREGROUND_INTENSITY);
+      break;
   }
 
   #else
