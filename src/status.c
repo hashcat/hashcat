@@ -1637,7 +1637,7 @@ char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int device_i
   }
   else
   {
-    output_len = snprintf (output_buf, HCBUFSIZ_TINY - 1, "N/A");
+    snprintf (output_buf, HCBUFSIZ_TINY - 1, "N/A");
   }
 
   hc_thread_mutex_unlock (status_ctx->mux_hwmon);

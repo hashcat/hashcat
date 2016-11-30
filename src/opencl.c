@@ -62,7 +62,16 @@ static int ocl_check_dri (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
   u32 vendor = 0;
 
-  if (fscanf (fd_drm, "0x%x", &vendor) != 1) return 0;
+  if (fscanf (fd_drm, "0x%x", &vendor) != 1)
+  {
+    fclose (fd_drm);
+
+    return 0;
+  }
+  else
+  {
+    fclose (fd_drm);
+  }
 
   if (vendor != 4098) return 0;
 
