@@ -466,8 +466,6 @@ __kernel void m06211_init (__global pw_t *pws, __global const kernel_rule_t *rul
   salt_buf2[14] = (64 + 64 + 4) * 8;
   salt_buf2[15] = 0;
 
-  const u32 truecrypt_mdlen = salt_bufs[0].truecrypt_mdlen;
-
   u32 w[16];
 
   w[ 0] = w0[0];
@@ -504,7 +502,7 @@ __kernel void m06211_init (__global pw_t *pws, __global const kernel_rule_t *rul
   tmps[gid].opad[3] = opad[3];
   tmps[gid].opad[4] = opad[4];
 
-  for (u32 i = 0, j = 1; i < (truecrypt_mdlen / 8 / 4); i += 5, j += 1)
+  for (u32 i = 0, j = 1; i < 16; i += 5, j += 1)
   {
     salt_buf2[0] = swap32 (j);
 
@@ -528,8 +526,6 @@ __kernel void m06211_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
 __kernel void m06211_loop (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const comb_t *combs_buf, __global const bf_t *bfs_buf, __global tc_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global tc_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
-  const u32 truecrypt_mdlen = salt_bufs[0].truecrypt_mdlen;
-
   const u32 gid = get_global_id (0);
 
   if (gid >= gid_max) return;
@@ -549,7 +545,7 @@ __kernel void m06211_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   opad[3] = tmps[gid].opad[3];
   opad[4] = tmps[gid].opad[4];
 
-  for (u32 i = 0; i < (truecrypt_mdlen / 8 / 4); i += 5)
+  for (u32 i = 0; i < 16; i += 5)
   {
     u32 dgst[5];
     u32 out[5];

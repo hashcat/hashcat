@@ -1850,8 +1850,6 @@ __kernel void m06231_init (__global pw_t *pws, __global const kernel_rule_t *rul
   salt_buf2[14] = 0;
   salt_buf2[15] = (64 + 64 + 4) * 8;
 
-  const u32 truecrypt_mdlen = salt_bufs[0].truecrypt_mdlen;
-
   u32 w[16];
 
   w[ 0] = swap32 (w0[0]);
@@ -1910,7 +1908,7 @@ __kernel void m06231_init (__global pw_t *pws, __global const kernel_rule_t *rul
   tmps[gid].opad[14] = opad[14];
   tmps[gid].opad[15] = opad[15];
 
-  for (u32 i = 0, j = 1; i < (truecrypt_mdlen / 8 / 4); i += 16, j += 1)
+  for (u32 i = 0, j = 1; i < 16; i += 16, j += 1)
   {
     salt_buf2[0] = j;
 
@@ -1996,8 +1994,6 @@ __kernel void m06231_loop (__global pw_t *pws, __global const kernel_rule_t *rul
 
   if (gid >= gid_max) return;
 
-  const u32 truecrypt_mdlen = salt_bufs[0].truecrypt_mdlen;
-
   u32 ipad[16];
 
   ipad[ 0] = tmps[gid].ipad[ 0];
@@ -2036,7 +2032,7 @@ __kernel void m06231_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   opad[14] = tmps[gid].opad[14];
   opad[15] = tmps[gid].opad[15];
 
-  for (u32 i = 0; i < (truecrypt_mdlen / 8 / 4); i += 16)
+  for (u32 i = 0; i < 16; i += 16)
   {
     u32 dgst[16];
 
