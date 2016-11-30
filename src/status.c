@@ -1481,7 +1481,7 @@ int status_get_cpt_cur_day (const hashcat_ctx_t *hashcat_ctx)
   return cpt_cur_day;
 }
 
-double status_get_cpt_avg_min (const hashcat_ctx_t *hashcat_ctx)
+int status_get_cpt_avg_min (const hashcat_ctx_t *hashcat_ctx)
 {
   const cpt_ctx_t *cpt_ctx = hashcat_ctx->cpt_ctx;
 
@@ -1489,10 +1489,10 @@ double status_get_cpt_avg_min (const hashcat_ctx_t *hashcat_ctx)
 
   const double cpt_avg_min = (double) cpt_ctx->cpt_total / ((msec_real / 1000) / 60);
 
-  return cpt_avg_min;
+  return (int) cpt_avg_min;
 }
 
-double status_get_cpt_avg_hour (const hashcat_ctx_t *hashcat_ctx)
+int status_get_cpt_avg_hour (const hashcat_ctx_t *hashcat_ctx)
 {
   const cpt_ctx_t *cpt_ctx = hashcat_ctx->cpt_ctx;
 
@@ -1500,10 +1500,10 @@ double status_get_cpt_avg_hour (const hashcat_ctx_t *hashcat_ctx)
 
   const double cpt_avg_hour = (double) cpt_ctx->cpt_total / ((msec_real / 1000) / 3600);
 
-  return cpt_avg_hour;
+  return (int) cpt_avg_hour;
 }
 
-double status_get_cpt_avg_day (const hashcat_ctx_t *hashcat_ctx)
+int status_get_cpt_avg_day (const hashcat_ctx_t *hashcat_ctx)
 {
   const cpt_ctx_t *cpt_ctx = hashcat_ctx->cpt_ctx;
 
@@ -1511,7 +1511,7 @@ double status_get_cpt_avg_day (const hashcat_ctx_t *hashcat_ctx)
 
   const double cpt_avg_day = (double) cpt_ctx->cpt_total / ((msec_real / 1000) / 86400);
 
-  return cpt_avg_day;
+  return (int) cpt_avg_day;
 }
 
 char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
@@ -1526,13 +1526,13 @@ char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
   const int cpt_cur_hour = status_get_cpt_cur_hour (hashcat_ctx);
   const int cpt_cur_day  = status_get_cpt_cur_day  (hashcat_ctx);
 
-  const double cpt_avg_min  = status_get_cpt_avg_min  (hashcat_ctx);
-  const double cpt_avg_hour = status_get_cpt_avg_hour (hashcat_ctx);
-  const double cpt_avg_day  = status_get_cpt_avg_day  (hashcat_ctx);
+  const int cpt_avg_min  = status_get_cpt_avg_min  (hashcat_ctx);
+  const int cpt_avg_hour = status_get_cpt_avg_hour (hashcat_ctx);
+  const int cpt_avg_day  = status_get_cpt_avg_day  (hashcat_ctx);
 
   if ((cpt_ctx->cpt_start + 86400) < now)
   {
-    snprintf (cpt, HCBUFSIZ_TINY - 1, "CUR:%d,%d,%d AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
+    snprintf (cpt, HCBUFSIZ_TINY - 1, "CUR:%d,%d,%d AVG:%d,%d,%d (Min,Hour,Day)",
       cpt_cur_min,
       cpt_cur_hour,
       cpt_cur_day,
@@ -1542,7 +1542,7 @@ char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
   }
   else if ((cpt_ctx->cpt_start + 3600) < now)
   {
-    snprintf (cpt, HCBUFSIZ_TINY - 1, "CUR:%d,%d,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
+    snprintf (cpt, HCBUFSIZ_TINY - 1, "CUR:%d,%d,N/A AVG:%d,%d,%d (Min,Hour,Day)",
       cpt_cur_min,
       cpt_cur_hour,
       cpt_avg_min,
@@ -1551,7 +1551,7 @@ char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
   }
   else if ((cpt_ctx->cpt_start + 60) < now)
   {
-    snprintf (cpt, HCBUFSIZ_TINY - 1, "CUR:%d,N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
+    snprintf (cpt, HCBUFSIZ_TINY - 1, "CUR:%d,N/A,N/A AVG:%d,%d,%d (Min,Hour,Day)",
       cpt_cur_min,
       cpt_avg_min,
       cpt_avg_hour,
@@ -1559,7 +1559,7 @@ char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    snprintf (cpt, HCBUFSIZ_TINY - 1, "CUR:N/A,N/A,N/A AVG:%0.2f,%0.2f,%0.2f (Min,Hour,Day)",
+    snprintf (cpt, HCBUFSIZ_TINY - 1, "CUR:N/A,N/A,N/A AVG:%d,%d,%d (Min,Hour,Day)",
       cpt_avg_min,
       cpt_avg_hour,
       cpt_avg_day);

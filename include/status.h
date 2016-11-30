@@ -74,9 +74,9 @@ char   *status_get_speed_sec_dev              (const hashcat_ctx_t *hashcat_ctx,
 int     status_get_cpt_cur_min                (const hashcat_ctx_t *hashcat_ctx);
 int     status_get_cpt_cur_hour               (const hashcat_ctx_t *hashcat_ctx);
 int     status_get_cpt_cur_day                (const hashcat_ctx_t *hashcat_ctx);
-double  status_get_cpt_avg_min                (const hashcat_ctx_t *hashcat_ctx);
-double  status_get_cpt_avg_hour               (const hashcat_ctx_t *hashcat_ctx);
-double  status_get_cpt_avg_day                (const hashcat_ctx_t *hashcat_ctx);
+int     status_get_cpt_avg_min                (const hashcat_ctx_t *hashcat_ctx);
+int     status_get_cpt_avg_hour               (const hashcat_ctx_t *hashcat_ctx);
+int     status_get_cpt_avg_day                (const hashcat_ctx_t *hashcat_ctx);
 char   *status_get_cpt                        (const hashcat_ctx_t *hashcat_ctx);
 char   *status_get_hwmon_dev                  (const hashcat_ctx_t *hashcat_ctx, const int device_id);
 int     status_get_corespeed_dev              (const hashcat_ctx_t *hashcat_ctx, const int device_id);

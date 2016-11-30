@@ -164,6 +164,7 @@ The CLI (hashcat.bin or hashcat.exe) works as before but from a technical perspe
 - Status: Added Input.Queue.Base and Input.Queue.Mod to help the user better understand this concept
 - Status: Do not wait for the progress mutex to read and store speed timer
 - Status: Do not show Recovered/Time when cracking < 1000 hashes
+- Status: Do not show Recovered/Time as floats but as integers to reduce over-information
 - Tests: Removed rules_test/ subproject: Would require total rewrite but not used in a long time
 - Threads: Replaced all calls to getpwuid() with getpwuid_r() to ensure thread safety
 - Threads: Replaced all calls to gmtime() with gmtime_r() to ensure thread safety
