@@ -257,16 +257,30 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_amp_buf, CL_TRUE, 0, kernel_power_max * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
   */
 
-  CL_rc = run_kernel_memset (hashcat_ctx, device_param, device_param->d_pws_buf, 0, kernel_power_max * sizeof (pw_t));
+  CL_rc = run_kernel_memset (hashcat_ctx, device_param, device_param->d_pws_buf, 0, device_param->size_pws);
 
   if (CL_rc == -1) return -1;
 
   if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
   {
-    CL_rc = run_kernel_memset (hashcat_ctx, device_param, device_param->d_pws_amp_buf, 0, kernel_power_max * sizeof (pw_t));
+    CL_rc = run_kernel_memset (hashcat_ctx, device_param, device_param->d_pws_amp_buf, 0, device_param->size_pws);
 
     if (CL_rc == -1) return -1;
   }
+
+  // reset other buffers in case autotune cracked something
+
+  CL_rc = run_kernel_memset (hashcat_ctx, device_param, device_param->d_plain_bufs, 0, device_param->size_plains);
+
+  if (CL_rc == -1) return -1;
+
+  CL_rc = run_kernel_memset (hashcat_ctx, device_param, device_param->d_digests_shown, 0, device_param->size_shown);
+
+  if (CL_rc == -1) return -1;
+
+  CL_rc = run_kernel_memset (hashcat_ctx, device_param, device_param->d_result, 0, device_param->size_results);
+
+  if (CL_rc == -1) return -1;
 
   // reset timer
 
