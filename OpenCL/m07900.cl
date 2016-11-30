@@ -240,28 +240,22 @@ __kernel void m07900_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   if (gid >= gid_max) return;
 
   u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
 
   w0[0] = pws[gid].i[ 0];
   w0[1] = pws[gid].i[ 1];
   w0[2] = pws[gid].i[ 2];
   w0[3] = pws[gid].i[ 3];
-
-  u32 w1[4];
-
   w1[0] = pws[gid].i[ 4];
   w1[1] = pws[gid].i[ 5];
   w1[2] = pws[gid].i[ 6];
   w1[3] = pws[gid].i[ 7];
-
-  u32 w2[4];
-
   w2[0] = pws[gid].i[ 8];
   w2[1] = pws[gid].i[ 9];
   w2[2] = pws[gid].i[10];
   w2[3] = pws[gid].i[11];
-
-  u32 w3[4];
-
   w3[0] = 0;
   w3[1] = 0;
   w3[2] = 0;
@@ -292,24 +286,14 @@ __kernel void m07900_loop (__global pw_t *pws, __global const kernel_rule_t *rul
 
   u32 block_len = (64 + pw_len);
 
-  u64 w[16];
+  u64 w_t[6];
 
-  w[ 0] = 0;
-  w[ 1] = 0;
-  w[ 2] = 0;
-  w[ 3] = 0;
-  w[ 4] = 0;
-  w[ 5] = 0;
-  w[ 6] = 0;
-  w[ 7] = 0;
-  w[ 8] = ((u64) swap32 (w0[0])) << 32 | (u64) swap32 (w0[1]);
-  w[ 9] = ((u64) swap32 (w0[2])) << 32 | (u64) swap32 (w0[3]);
-  w[10] = ((u64) swap32 (w1[0])) << 32 | (u64) swap32 (w1[1]);
-  w[11] = ((u64) swap32 (w1[2])) << 32 | (u64) swap32 (w1[3]);
-  w[12] = ((u64) swap32 (w2[0])) << 32 | (u64) swap32 (w2[1]);
-  w[13] = ((u64) swap32 (w2[2])) << 32 | (u64) swap32 (w2[3]);
-  w[14] = 0;
-  w[15] = block_len * 8;
+  w_t[0] = ((u64) swap32 (w0[0])) << 32 | (u64) swap32 (w0[1]);
+  w_t[1] = ((u64) swap32 (w0[2])) << 32 | (u64) swap32 (w0[3]);
+  w_t[2] = ((u64) swap32 (w1[0])) << 32 | (u64) swap32 (w1[1]);
+  w_t[3] = ((u64) swap32 (w1[2])) << 32 | (u64) swap32 (w1[3]);
+  w_t[4] = ((u64) swap32 (w2[0])) << 32 | (u64) swap32 (w2[1]);
+  w_t[5] = ((u64) swap32 (w2[2])) << 32 | (u64) swap32 (w2[3]);
 
   /**
    * init
@@ -317,6 +301,8 @@ __kernel void m07900_loop (__global pw_t *pws, __global const kernel_rule_t *rul
 
   for (u32 i = 0; i < loop_cnt; i++)
   {
+    u64 w[16];
+
     w[ 0] = digest[0];
     w[ 1] = digest[1];
     w[ 2] = digest[2];
@@ -325,6 +311,14 @@ __kernel void m07900_loop (__global pw_t *pws, __global const kernel_rule_t *rul
     w[ 5] = digest[5];
     w[ 6] = digest[6];
     w[ 7] = digest[7];
+    w[ 8] = w_t[0];
+    w[ 9] = w_t[1];
+    w[10] = w_t[2];
+    w[11] = w_t[3];
+    w[12] = w_t[4];
+    w[13] = w_t[5];
+    w[14] = 0;
+    w[15] = block_len * 8;
 
     digest[0] = SHA512M_A;
     digest[1] = SHA512M_B;
