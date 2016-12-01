@@ -73,9 +73,10 @@ The CLI (hashcat.bin or hashcat.exe) works as before but from a technical perspe
 ##
 
 - Improved performance for rule-based attacks for _very_ fast hashes like MD5 and NTLM by 30% or higher
-- Improved performance for cracking DEScrypt on AMD, from 373MH/s to 525MH/s
-- Improved performance for cracking raw DES-based algorithms (like LM) on AMD, from 1.6GH/s to 12.5GH/s
-- Improved performance for cracking raw SHA256-based algorithms using meet-in-the-middle optimization, reduces 7/64 steps
+- Improved performance for DEScrypt on AMD, from 373MH/s to 525MH/s
+- Improved performance for raw DES-based algorithms (like LM) on AMD, from 1.6GH/s to 12.5GH/s
+- Improved performance for raw SHA256-based algorithms using meet-in-the-middle optimization, reduces 7/64 steps
+- Improved performance for SAP CODVN B (BCODE) and SAP CODVN F/G (PASSCODE) due to register handling optimization, gives 3% and 25%
 - Improved performance by reducing maximum number of allowed function calls per rule from 255 to 31
 - Improved performance by update the selection when to use #pragma unroll depending on OpenCL runtime vendor
 
