@@ -1246,14 +1246,6 @@ typedef struct restore_ctx
 
 } restore_ctx_t;
 
-typedef struct cpu_rule
-{
-  u32  len;
-
-  char buf[32];
-
-} cpu_rule_t;
-
 typedef struct kernel_rule
 {
   u32  cmds[32];
