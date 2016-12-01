@@ -14099,9 +14099,11 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     u32 i;
     u32 j;
 
-    for (i = 0, j = 0; (i * 4) < rakp->salt_len; i += 1, j += 8)
+    u8 *ptr = (u8 *) rakp->salt_buf;
+
+    for (i = 0, j = 0; i < rakp->salt_len; i += 1, j += 2)
     {
-      snprintf (out_buf + j, out_len - 1 - j, "%08x", rakp->salt_buf[i]);
+      snprintf (out_buf + j, out_len - 1 - j, "%02x", ptr[i ^ 3]); // the ^ 3 index converts LE -> BE
     }
 
     snprintf (out_buf + j, out_len - 1 - j, ":%08x%08x%08x%08x%08x",
