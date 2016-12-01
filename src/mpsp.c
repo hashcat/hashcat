@@ -551,10 +551,14 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
     {
       event_log_error (hashcat_ctx, "%s: Custom charset file is too large", buf);
 
+      fclose (fp);
+
       return -1;
     }
-
-    fclose (fp);
+    else
+    {
+      fclose (fp);
+    }
 
     if (nread == 0)
     {

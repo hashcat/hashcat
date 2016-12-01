@@ -152,7 +152,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
           (token_ptr[1][0] != '3') &&
           (token_ptr[1][0] != '*'))
       {
-        event_log_warning (hashcat_ctx, "Tuning-db: Invalid attack_mode '%c' in Line '%u'", token_ptr[1][0], line_num);
+        event_log_warning (hashcat_ctx, "Tuning-db: Invalid attack_mode '%c' in Line '%d'", token_ptr[1][0], line_num);
 
         continue;
       }
@@ -163,7 +163,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
           (token_ptr[3][0] != '8') &&
           (token_ptr[3][0] != 'N'))
       {
-        event_log_warning (hashcat_ctx, "Tuning-db: Invalid vector_width '%c' in Line '%u'", token_ptr[3][0], line_num);
+        event_log_warning (hashcat_ctx, "Tuning-db: Invalid vector_width '%c' in Line '%d'", token_ptr[3][0], line_num);
 
         continue;
       }
@@ -186,7 +186,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
         if ((kernel_accel < 1) || (kernel_accel > 1024))
         {
-          event_log_warning (hashcat_ctx, "Tuning-db: Invalid kernel_accel '%d' in Line '%u'", kernel_accel, line_num);
+          event_log_warning (hashcat_ctx, "Tuning-db: Invalid kernel_accel '%d' in Line '%d'", kernel_accel, line_num);
 
           continue;
         }
@@ -202,7 +202,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
         if ((kernel_loops < 1) || (kernel_loops > 1024))
         {
-          event_log_warning (hashcat_ctx, "Tuning-db: Invalid kernel_loops '%d' in Line '%u'", kernel_loops, line_num);
+          event_log_warning (hashcat_ctx, "Tuning-db: Invalid kernel_loops '%d' in Line '%d'", kernel_loops, line_num);
 
           continue;
         }
@@ -225,7 +225,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      event_log_warning (hashcat_ctx, "Tuning-db: Invalid number of token in Line '%u'", line_num);
+      event_log_warning (hashcat_ctx, "Tuning-db: Invalid number of token in Line '%d'", line_num);
 
       continue;
     }

@@ -29,7 +29,7 @@ void logfile_generate_topid (hashcat_ctx_t *hashcat_ctx)
 
   const int id = logfile_generate_id ();
 
-  snprintf (logfile_ctx->topid, 1 + 16, "TOP%08x", id);
+  snprintf (logfile_ctx->topid, 1 + 16, "TOP%08x", (u32) id);
 }
 
 void logfile_generate_subid (hashcat_ctx_t *hashcat_ctx)
@@ -40,7 +40,7 @@ void logfile_generate_subid (hashcat_ctx_t *hashcat_ctx)
 
   const int id = logfile_generate_id ();
 
-  snprintf (logfile_ctx->subid, 1 + 16, "SUB%08x", id);
+  snprintf (logfile_ctx->subid, 1 + 16, "SUB%08x", (u32) id);
 }
 
 void logfile_append (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)

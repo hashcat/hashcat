@@ -673,7 +673,7 @@ typedef struct hash
 typedef struct outfile_data
 {
   char   *file_name;
-  long   seek;
+  off_t   seek;
   time_t ctime;
 
 } outfile_data_t;

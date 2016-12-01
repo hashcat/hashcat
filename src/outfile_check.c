@@ -148,13 +148,13 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
                 if (ptr == NULL) break;
 
-                int line_len = strlen (line_buf);
+                size_t line_len = strlen (line_buf);
 
-                if (line_len <= 0) continue;
+                if (line_len == 0) continue;
 
-                int iter = MAX_CUT_TRIES;
+                size_t iter = MAX_CUT_TRIES;
 
-                for (u32 i = line_len - 1; i && iter; i--, line_len--)
+                for (size_t i = line_len - 1; i && iter; i--, line_len--)
                 {
                   if (line_buf[i] != separator) continue;
 
