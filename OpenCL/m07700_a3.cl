@@ -384,7 +384,7 @@ static void m07700m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     const u32 sum20 = walld0rf_magic (w0, pw_len, salt_buf0, salt_len, a, b, c, d, t);
 
-    SETSHIFTEDINT (t, sum20, 0x80);
+    PUTCHAR (t, sum20, 0x80);
 
     t[14] = sum20 * 8;
 
@@ -660,7 +660,7 @@ static void m07700s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_le
 
     const u32 sum20 = walld0rf_magic (w0, pw_len, salt_buf0, salt_len, a, b, c, d, t);
 
-    SETSHIFTEDINT (t, sum20, 0x80);
+    PUTCHAR (t, sum20, 0x80);
 
     t[14] = sum20 * 8;
 

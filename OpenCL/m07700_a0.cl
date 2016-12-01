@@ -417,7 +417,7 @@ __kernel void m07700_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     const u32 sum20 = walld0rf_magic (w0, out_len, salt_buf0, salt_len, a, b, c, d, t);
 
-    SETSHIFTEDINT (t, sum20, 0x80);
+    PUTCHAR (t, sum20, 0x80);
 
     t[14] = sum20 * 8;
 
@@ -732,7 +732,7 @@ __kernel void m07700_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     const u32 sum20 = walld0rf_magic (w0, out_len, salt_buf0, salt_len, a, b, c, d, t);
 
-    SETSHIFTEDINT (t, sum20, 0x80);
+    PUTCHAR (t, sum20, 0x80);
 
     t[14] = sum20 * 8;
 
