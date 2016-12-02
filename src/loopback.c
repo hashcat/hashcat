@@ -112,15 +112,6 @@ int loopback_write_open (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if (lock_file (fp) == -1)
-  {
-    fclose (fp);
-
-    event_log_error (hashcat_ctx, "%s: %s", loopback_ctx->filename, strerror (errno));
-
-    return -1;
-  }
-
   loopback_ctx->fp = fp;
 
   loopback_ctx->unused = true;
@@ -165,9 +156,13 @@ void loopback_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *plain_ptr, con
 
   loopback_format_plain (hashcat_ctx, plain_ptr, plain_len);
 
+  lock_file (fp);
+
   fwrite (EOL, strlen (EOL), 1, fp);
 
   fflush (fp);
+
+  unlock_file (fp);
 
   loopback_ctx->unused = false;
 }

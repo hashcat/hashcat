@@ -184,15 +184,6 @@ int potfile_write_open (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if (lock_file (fp) == -1)
-  {
-    fclose (fp);
-
-    event_log_error (hashcat_ctx, "%s: %s", potfile_ctx->filename, strerror (errno));
-
-    return -1;
-  }
-
   potfile_ctx->fp = fp;
 
   return 0;
@@ -260,9 +251,13 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, u8 *
 
   tmp_buf[tmp_len] = 0;
 
+  lock_file (potfile_ctx->fp);
+
   fprintf (potfile_ctx->fp, "%s" EOL, tmp_buf);
 
   fflush (potfile_ctx->fp);
+
+  unlock_file (potfile_ctx->fp);
 }
 
 int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
