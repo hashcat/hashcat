@@ -1,3 +1,11 @@
+* changes v3.20 -> ???:
+
+##
+## Bugs
+##
+
+- Fixed double free (actually, double fclose()) in opencl.c
+
 * changes v3.10 -> v3.20:
 
 The hashcat core was completely refactored to be a MT-safe library (libhashcat).

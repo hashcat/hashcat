@@ -75,8 +75,6 @@ static int ocl_check_dri (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
   if (vendor != 4098) return 0;
 
-  fclose (fd_drm);
-
   // Now the problem is only with AMDGPU-Pro, not with oldschool AMD driver
 
   char buf[HCBUFSIZ_TINY];
