@@ -5,9 +5,11 @@
 ## License.....: MIT
 ##
 
-# missing hash types: 5200,6211,6221,6231,6241,6251,6261,6271,6281
+TDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-HASH_TYPES="0 10 11 12 20 21 22 23 30 40 50 60 100 101 110 111 112 120 121 122 125 130 131 132 133 140 141 150 160 200 300 400 500 900 1000 1100 1400 1410 1420 1430 1440 1441 1450 1460 1500 1600 1700 1710 1711 1720 1722 1730 1731 1740 1750 1760 1800 2100 2400 2410 2500 2600 2611 2612 2711 2811 3000 3100 3200 3710 3711 3800 4300 4400 4500 4700 4800 4900 5000 5100 5300 5400 5500 5600 5700 5800 6000 6100 6300 6400 6500 6600 6700 6800 6900 7100 7200 7300 7400 7500 7600 7700 7800 7900 8000 8100 8200 8300 8400 8500 8600 8700 8900 9100 9200 9300 9400 9500 9600 9700 9800 9900 10000 10100 10200 10300 10400 10500 10600 10700 10800 10900 11000 11100 11200 11300 11400 11500 11600 11900 12000 12100 12200 12300 12400 12600 12800 12900 13000 13100 13200 13300 13400 13500 13600 13800 14000 14100 14400 99999"
+# missing hash types: 5200,6251,6261,6271,6281
+
+HASH_TYPES="0 10 11 12 20 21 22 23 30 40 50 60 100 101 110 111 112 120 121 122 125 130 131 132 133 140 141 150 160 200 300 400 500 900 1000 1100 1400 1410 1420 1430 1440 1441 1450 1460 1500 1600 1700 1710 1711 1720 1722 1730 1731 1740 1750 1760 1800 2100 2400 2410 2500 2600 2611 2612 2711 2811 3000 3100 3200 3710 3711 3800 4300 4400 4500 4700 4800 4900 5000 5100 5300 5400 5500 5600 5700 5800 6000 6100 6211 6212 6213 6221 6222 6223 6231 6232 6233 6241 6242 6243 6300 6400 6500 6600 6700 6800 6900 7100 7200 7300 7400 7500 7600 7700 7800 7900 8000 8100 8200 8300 8400 8500 8600 8700 8900 9100 9200 9300 9400 9500 9600 9700 9800 9900 10000 10100 10200 10300 10400 10500 10600 10700 10800 10900 11000 11100 11200 11300 11400 11500 11600 11900 12000 12100 12200 12300 12400 12600 12800 12900 13000 13100 13200 13300 13400 13500 13600 13800 14000 14100 14400 99999"
 
 #ATTACK_MODES="0 1 3 6 7"
 ATTACK_MODES="0 1 3 7"
@@ -20,7 +22,7 @@ HASHFILE_ONLY="2500"
 
 NEVER_CRACK="11600"
 
-SLOW_ALGOS="400 500 501 1600 1800 2100 2500 3200 5200 5800 6211 6221 6231 6241 6251 6261 6271 6281 6300 6400 6500 6600 6700 6800 7100 7200 7400 7900 8200 8800 8900 9000 9100 9200 9300 9400 9500 9600 10000 10300 10500 10700 10900 11300 11600 11900 12000 12100 12200 12300 12400 12500 12800 12900 13000 13200 13400 13600"
+SLOW_ALGOS="400 500 501 1600 1800 2100 2500 3200 5200 5800 6211 6212 6213 6221 6222 6223 6231 6232 6233 6241 6242 6243 6251 6261 6271 6281 6300 6400 6500 6600 6700 6800 7100 7200 7400 7900 8200 8800 8900 9000 9100 9200 9300 9400 9500 9600 10000 10300 10500 10700 10900 11300 11600 11900 12000 12100 12200 12300 12400 12500 12800 12900 13000 13200 13400 13600"
 
 OPTS="--quiet --force --potfile-disable --runtime 200 --gpu-temp-disable --weak-hash-threshold=0"
 
@@ -156,7 +158,7 @@ function init()
   rm -rf ${OUTD}/${hash_type}.sh ${OUTD}/${hash_type}_passwords.txt ${OUTD}/${hash_type}_hashes.txt
 
   # create list of password and hashes of same type
-  grep " ${hash_type} '" ${OUTD}/all.sh > ${OUTD}/${hash_type}.sh
+  grep " ${hash_type} '" ${OUTD}/all.sh > ${OUTD}/${hash_type}.sh 2>/dev/null
 
   # create separate list of password and hashes
   cat ${OUTD}/${hash_type}.sh | awk '{print $3}' > ${OUTD}/${hash_type}_passwords.txt
@@ -1608,6 +1610,189 @@ function attack_7()
   fi
 }
 
+function truecrypt_test()
+{
+  hashType=$1
+  tcMode=$2
+  CMD="unset"
+
+  case $hashType in
+
+    6211)
+      case $tcMode in
+        0)
+          CMD="./${BIN} ${OPTS} -a 3 -m 6211 ${TDIR}/tc_tests/hashcat_ripemd160_aes.tc hashca?l"
+          ;;
+        1)
+          CMD="./${BIN} ${OPTS} -a 3 -m 6211 ${TDIR}/tc_tests/hashcat_ripemd160_serpent.tc hashca?l"
+          ;;
+        2)
+          CMD="./${BIN} ${OPTS} -a 3 -m 6211 ${TDIR}/tc_tests/hashcat_ripemd160_twofish.tc hashca?l"
+          ;;
+      esac
+      ;;
+
+    6212)
+      case $tcMode in
+        0)
+          CMD="./${BIN} ${OPTS} -a 3 -m 6212 ${TDIR}/tc_tests/hashcat_ripemd160_aes-twofish.tc hashca?l"
+          ;;
+        1)
+          CMD="./${BIN} ${OPTS} -a 3 -m 6212 ${TDIR}/tc_tests/hashcat_ripemd160_serpent-aes.tc hashca?l"
+          ;;
+        2)
+          CMD="./${BIN} ${OPTS} -a 3 -m 6212 ${TDIR}/tc_tests/hashcat_ripemd160_twofish-serpent.tc hashca?l"
+          ;;
+      esac
+      ;;
+
+    6213)
+      case $tcMode in
+        0)
+          CMD="./${BIN} ${OPTS} -a 3 -m 6213 ${TDIR}/tc_tests/hashcat_ripemd160_aes-twofish-serpent.tc hashca?l"
+          ;;
+        1)
+          CMD="./${BIN} ${OPTS} -a 3 -m 6213 ${TDIR}/tc_tests/hashcat_ripemd160_serpent-twofish-aes.tc hashca?l"
+          ;;
+      esac
+      ;;
+
+    6221)
+      case $tcMode in
+        0)
+          CMD="./${BIN} ${OPTS} -a 3 -m 6221 ${TDIR}/tc_tests/hashcat_sha512_aes.tc hashca?l"
+          ;;
+        1)
+          CMD="./${BIN} ${OPTS} -a 3 -m 6221 ${TDIR}/tc_tests/hashcat_sha512_serpent.tc hashca?l"
+          ;;
+        2)
+          CMD="./${BIN} ${OPTS} -a 3 -m 6221 ${TDIR}/tc_tests/hashcat_sha512_twofish.tc hashca?l"
+          ;;
+      esac
+      ;;
+
+    6222)
+      case $tcMode in
+        0)
+          CMD="./${BIN} ${OPTS} -a 3 -m 6222 ${TDIR}/tc_tests/hashcat_sha512_aes-twofish.tc hashca?l"
+          ;;
+        1)
+          CMD="./${BIN} ${OPTS} -a 3 -m 6222 ${TDIR}/tc_tests/hashcat_sha512_serpent-aes.tc hashca?l"
+          ;;
+        2)
+          CMD="./${BIN} ${OPTS} -a 3 -m 6222 ${TDIR}/tc_tests/hashcat_sha512_twofish-serpent.tc hashca?l"
+          ;;
+      esac
+      ;;
+
+    6223)
+      case $tcMode in
+        0)
+          CMD="./${BIN} ${OPTS} -a 3 -m 6223 ${TDIR}/tc_tests/hashcat_sha512_aes-twofish-serpent.tc hashca?l"
+          ;;
+        1)
+          CMD="./${BIN} ${OPTS} -a 3 -m 6223 ${TDIR}/tc_tests/hashcat_sha512_serpent-twofish-aes.tc hashca?l"
+          ;;
+      esac
+      ;;
+
+    6231)
+      case $tcMode in
+        0)
+          CMD="./${BIN} ${OPTS} -a 3 -m 6231 ${TDIR}/tc_tests/hashcat_whirlpool_aes.tc hashca?l"
+          ;;
+        1)
+          CMD="./${BIN} ${OPTS} -a 3 -m 6231 ${TDIR}/tc_tests/hashcat_whirlpool_serpent.tc hashca?l"
+          ;;
+        2)
+          CMD="./${BIN} ${OPTS} -a 3 -m 6231 ${TDIR}/tc_tests/hashcat_whirlpool_twofish.tc hashca?l"
+          ;;
+      esac
+      ;;
+
+    6232)
+      case $tcMode in
+        0)
+          CMD="./${BIN} ${OPTS} -a 3 -m 6232 ${TDIR}/tc_tests/hashcat_whirlpool_aes-twofish.tc hashca?l"
+          ;;
+        1)
+          CMD="./${BIN} ${OPTS} -a 3 -m 6232 ${TDIR}/tc_tests/hashcat_whirlpool_serpent-aes.tc hashca?l"
+          ;;
+        2)
+          CMD="./${BIN} ${OPTS} -a 3 -m 6232 ${TDIR}/tc_tests/hashcat_whirlpool_twofish-serpent.tc hashca?l"
+          ;;
+      esac
+      ;;
+
+    6233)
+      case $tcMode in
+        0)
+          CMD="./${BIN} ${OPTS} -a 3 -m 6233 ${TDIR}/tc_tests/hashcat_whirlpool_aes-twofish-serpent.tc hashca?l"
+          ;;
+        1)
+          CMD="./${BIN} ${OPTS} -a 3 -m 6233 ${TDIR}/tc_tests/hashcat_whirlpool_serpent-twofish-aes.tc hashca?l"
+          ;;
+      esac
+      ;;
+
+    6241)
+      case $tcMode in
+        0)
+          CMD="./${BIN} ${OPTS} -a 3 -m 6241 ${TDIR}/tc_tests/hashcat_ripemd160_aes_boot.tc hashca?l"
+          ;;
+        1)
+          CMD="./${BIN} ${OPTS} -a 3 -m 6241 ${TDIR}/tc_tests/hashcat_ripemd160_serpent_boot.tc hashca?l"
+          ;;
+        2)
+          CMD="./${BIN} ${OPTS} -a 3 -m 6241 ${TDIR}/tc_tests/hashcat_ripemd160_twofish_boot.tc hashca?l"
+          ;;
+      esac
+      ;;
+
+    6242)
+      case $tcMode in
+        0)
+          CMD="./${BIN} ${OPTS} -a 3 -m 6242 ${TDIR}/tc_tests/hashcat_ripemd160_aes-twofish_boot.tc hashca?l"
+          ;;
+        1)
+          CMD="./${BIN} ${OPTS} -a 3 -m 6242 ${TDIR}/tc_tests/hashcat_ripemd160_serpent-aes_boot.tc hashca?l"
+          ;;
+      esac
+      ;;
+
+    6243)
+      case $tcMode in
+        0)
+          CMD="./${BIN} ${OPTS} -a 3 -m 6243 ${TDIR}/tc_tests/hashcat_ripemd160_aes-twofish-serpent_boot.tc hashca?l"
+          ;;
+      esac
+      ;;
+  esac
+
+  if [ ${#CMD} -gt 5 ]; then
+    echo "> Testing hash type $hashType with attack mode 3, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}, tcMode ${tcMode}" &>> ${OUTD}/logfull.txt
+
+    output=$(${CMD} 2>&1)
+
+    ret=${?}
+
+    echo "${output}" >> ${OUTD}/logfull.txt
+
+    cnt=1
+    e_nf=0
+    msg="OK"
+
+    if [ ${ret} -ne 0 ]; then
+      e_nf=1
+      msg="Error"
+    fi
+
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 3, Mode single, Device-Type ${TYPE}, Vector-Width ${VECTOR}, tcMode ${tcMode} ] > $msg : ${e_nf}/${cnt} not found"
+
+    status ${ret}
+  fi
+}
+
 function usage()
 {
 cat << EOF
@@ -1856,7 +2041,7 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
     # generate random test entry
     if [ ${HT} -eq 65535 ]; then
       perl tools/test.pl single > ${OUTD}/all.sh
-    else
+    elif [[ ${HT} -lt 6211 ]] || [[ ${HT} -gt 6243 ]]; then
       perl tools/test.pl single ${HT} > ${OUTD}/all.sh
     fi
 
@@ -1924,8 +2109,15 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
 
           if [[ ${IS_SLOW} -eq 1 ]]; then
 
-            # run attack mode 0 (stdin)
-            if [[ ${ATTACK} -eq 65535 ]] || [[ ${ATTACK} -eq 0 ]]; then attack_0; fi
+            if [[ ${HT} -ge 6211 ]] && [[ ${HT} -le 6243 ]]; then
+              # run truecrypt tests
+              truecrypt_test ${HT} 0
+              truecrypt_test ${HT} 1
+              truecrypt_test ${HT} 2
+            else
+              # run attack mode 0 (stdin)
+              if [[ ${ATTACK} -eq 65535 ]] || [[ ${ATTACK} -eq 0 ]]; then attack_0; fi
+            fi
 
           else
 
