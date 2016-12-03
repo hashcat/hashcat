@@ -1,10 +1,18 @@
-* changes v3.20 -> ???:
+* changes v3.20 -> v3.21:
 
 ##
 ## Bugs
 ##
 
-- Fixed double free (actually, double fclose()) in opencl.c
+- Fixed double fclose() using AMDGPU-Pro on sysfs compatible platform: Leading to segfault
+- Removed access to readlink() on FreeBSD: Causes problem building hashcat
+
+##
+## Technical
+##
+
+- Threads: Replaced all calls to strerror() with %m printf() GNU extension to ensure thread safety
+- Threads: Replaced all calls to ctime() with ctime_r() to ensure thread safety
 
 * changes v3.10 -> v3.20:
 
