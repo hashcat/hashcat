@@ -65,9 +65,7 @@ static int get_exec_path (char *exec_path, const size_t exec_path_sz)
 
   sysctl (mib, 4, exec_path, &size, NULL, 0);
 
-  const ssize_t len = readlink (tmp, exec_path, exec_path_sz - 1);
-
-  if (len == -1) return -1;
+  const size_t len = strlen (exec_path);
 
   #else
   #error Your Operating System is not supported or detected
