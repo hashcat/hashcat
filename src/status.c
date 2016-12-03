@@ -844,9 +844,9 @@ char *status_get_time_started_absolute (const hashcat_ctx_t *hashcat_ctx)
 
   const time_t time_start = status_ctx->runtime_start;
 
-  char buf;
+  char buf[32] = { 0 };
 
-  char *start = ctime_r (&time_start, &buf);
+  char *start = ctime_r (&time_start, buf);
 
   const size_t start_len = strlen (start);
 
@@ -936,9 +936,9 @@ char *status_get_time_estimated_absolute (const hashcat_ctx_t *hashcat_ctx)
 
   now += sec_etc;
 
-  char buf;
+  char buf[32] = { 0 };
 
-  char *etc = ctime_r (&now, &buf);
+  char *etc = ctime_r (&now, buf);
 
   const size_t etc_len = strlen (etc);
 
