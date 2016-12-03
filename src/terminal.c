@@ -70,8 +70,10 @@ void goodbye_screen (hashcat_ctx_t *hashcat_ctx, const time_t proc_start, const 
   if (user_options->show        == true) return;
   if (user_options->left        == true) return;
 
-  event_log_info_nn (hashcat_ctx, "Started: %s", ctime (&proc_start));
-  event_log_info_nn (hashcat_ctx, "Stopped: %s", ctime (&proc_stop));
+  char start_buf, stop_buf;
+
+  event_log_info_nn (hashcat_ctx, "Started: %s", ctime_r (&proc_start, &start_buf));
+  event_log_info_nn (hashcat_ctx, "Stopped: %s", ctime_r (&proc_stop, &stop_buf));
 }
 
 int setup_console ()
