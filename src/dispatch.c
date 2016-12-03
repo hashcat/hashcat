@@ -323,7 +323,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
     if (fd == NULL)
     {
-      event_log_error (hashcat_ctx, "%s: %s", dictfile, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %m", dictfile);
 
       return -1;
     }
@@ -340,7 +340,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
         if (combs_fp == NULL)
         {
-          event_log_error (hashcat_ctx, "%s: %s", combinator_ctx->dict2, strerror (errno));
+          event_log_error (hashcat_ctx, "%s: %m", combinator_ctx->dict2);
 
           fclose (fd);
 
@@ -357,7 +357,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
         if (combs_fp == NULL)
         {
-          event_log_error (hashcat_ctx, "%s: %s", dictfilec, strerror (errno));
+          event_log_error (hashcat_ctx, "%s: %m", dictfilec);
 
           fclose (fd);
 

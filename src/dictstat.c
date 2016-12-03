@@ -53,7 +53,7 @@ int dictstat_init (hashcat_ctx_t *hashcat_ctx)
 
   if (fp == NULL)
   {
-    event_log_error (hashcat_ctx, "%s: %s", dictstat_ctx->filename, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %m", dictstat_ctx->filename);
 
     return -1;
   }
@@ -121,7 +121,7 @@ int dictstat_write (hashcat_ctx_t *hashcat_ctx)
 
   if (fp == NULL)
   {
-    event_log_error (hashcat_ctx, "%s: %s", dictstat_ctx->filename, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %m", dictstat_ctx->filename);
 
     return -1;
   }
@@ -130,7 +130,7 @@ int dictstat_write (hashcat_ctx_t *hashcat_ctx)
   {
     fclose (fp);
 
-    event_log_error (hashcat_ctx, "%s: %s", dictstat_ctx->filename, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %m", dictstat_ctx->filename);
 
     return -1;
   }

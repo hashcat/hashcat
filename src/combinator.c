@@ -53,14 +53,14 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if ((fp1 = fopen (dictfile1, "rb")) == NULL)
     {
-      event_log_error (hashcat_ctx, "%s: %s", dictfile1, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %m", dictfile1);
 
       return -1;
     }
 
     if (hc_stat (dictfile1, &tmp_stat) == -1)
     {
-      event_log_error (hashcat_ctx, "%s: %s", dictfile1, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %m", dictfile1);
 
       fclose (fp1);
 
@@ -78,7 +78,7 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if ((fp2 = fopen (dictfile2, "rb")) == NULL)
     {
-      event_log_error (hashcat_ctx, "%s: %s", dictfile2, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %m", dictfile2);
 
       fclose (fp1);
 
@@ -87,7 +87,7 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (hc_stat (dictfile2, &tmp_stat) == -1)
     {
-      event_log_error (hashcat_ctx, "%s: %s", dictfile2, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %m", dictfile2);
 
       fclose (fp1);
       fclose (fp2);

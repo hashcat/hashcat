@@ -17,6 +17,7 @@
 #elif defined (_WIN32) || defined (_WIN64)
 #define _WIN 1
 #define WIN 1
+#define _POSIX_THREAD_SAFE_FUNCTIONS 200112L //for *time_r functions
 #else
 #error Your Operating System is not supported or detected
 #endif

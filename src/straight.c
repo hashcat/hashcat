@@ -69,7 +69,7 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       if (fd == NULL)
       {
-        event_log_error (hashcat_ctx, "%s: %s", straight_ctx->dict, strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %m", straight_ctx->dict);
 
         return -1;
       }
@@ -97,7 +97,7 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       if (fd == NULL)
       {
-        event_log_error (hashcat_ctx, "%s: %s", combinator_ctx->dict1, strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %m", combinator_ctx->dict1);
 
         return -1;
       }
@@ -112,7 +112,7 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       if (fd == NULL)
       {
-        event_log_error (hashcat_ctx, "%s: %s", combinator_ctx->dict2, strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %m", combinator_ctx->dict2);
 
         return -1;
       }
@@ -151,7 +151,7 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
     if (fd == NULL)
     {
-      event_log_error (hashcat_ctx, "%s: %s", straight_ctx->dict, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %m", straight_ctx->dict);
 
       return -1;
     }
@@ -272,7 +272,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         if (hc_stat (l0_filename, &l0_stat) == -1)
         {
-          event_log_error (hashcat_ctx, "%s: %s", l0_filename, strerror (errno));
+          event_log_error (hashcat_ctx, "%s: %m", l0_filename);
 
           return -1;
         }
@@ -295,7 +295,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
               if (hc_stat (l1_filename, &l1_stat) == -1)
               {
-                event_log_error (hashcat_ctx, "%s: %s", l1_filename, strerror (errno));
+                event_log_error (hashcat_ctx, "%s: %m", l1_filename);
 
                 return -1;
               }
@@ -345,7 +345,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_stat (l0_filename, &l0_stat) == -1)
       {
-        event_log_error (hashcat_ctx, "%s: %s", l0_filename, strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %m", l0_filename);
 
         return -1;
       }
@@ -368,7 +368,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
             if (hc_stat (l1_filename, &l1_stat) == -1)
             {
-              event_log_error (hashcat_ctx, "%s: %s", l1_filename, strerror (errno));
+              event_log_error (hashcat_ctx, "%s: %m", l1_filename);
 
               return -1;
             }
@@ -409,7 +409,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_stat (l0_filename, &l0_stat) == -1)
       {
-        event_log_error (hashcat_ctx, "%s: %s", l0_filename, strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %m", l0_filename);
 
         return -1;
       }
@@ -432,7 +432,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
             if (hc_stat (l1_filename, &l1_stat) == -1)
             {
-              event_log_error (hashcat_ctx, "%s: %s", l1_filename, strerror (errno));
+              event_log_error (hashcat_ctx, "%s: %m", l1_filename);
 
               return -1;
             }
