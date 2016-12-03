@@ -278,7 +278,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   if (getcwd (cwd, HCBUFSIZ_TINY - 1) == NULL)
   {
-    event_log_error (hashcat_ctx, "getcwd(): %s", strerror (errno));
+    event_log_error (hashcat_ctx, "getcwd(): %m");
 
     return -1;
   }
@@ -315,7 +315,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   This causes invalid error out if install_folder (/usr/local/bin) does not exist
   if (resolved_install_folder == NULL)
   {
-    event_log_error (hashcat_ctx, "%s: %s", resolved_install_folder, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %m", resolved_install_folder);
 
     return -1;
   }
@@ -323,7 +323,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   if (resolved_exec_path == NULL)
   {
-    event_log_error (hashcat_ctx, "%s: %s", resolved_exec_path, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %m", resolved_exec_path);
 
     return -1;
   }
@@ -412,7 +412,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   if (realpath (cpath, cpath_real) == NULL)
   {
-    event_log_error (hashcat_ctx, "%s: %s", cpath, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %m", cpath);
 
     return -1;
   }

@@ -89,7 +89,7 @@ static int ocl_check_dri (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
   if (fd_dri == NULL)
   {
-    event_log_error (hashcat_ctx, "Can not access %s: %s", dri_card0_path, strerror (errno));
+    event_log_error (hashcat_ctx, "Can not access %s: %m", dri_card0_path);
     event_log_error (hashcat_ctx, "This causes some drivers to crash when OpenCL is used!");
     event_log_error (hashcat_ctx, "Usually it's enough to add your user account to the \"video\" group to fix this problem:");
     event_log_error (hashcat_ctx, "$ sudo usermod -a -G video $LOGNAME");
@@ -308,7 +308,7 @@ static int read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_fi
 
     if (num_read != (size_t) st.st_size)
     {
-      event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %m", kernel_file);
 
       return -1;
     }
@@ -324,7 +324,7 @@ static int read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_fi
   }
   else
   {
-    event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %m", kernel_file);
 
     return -1;
   }
@@ -340,7 +340,7 @@ static int write_kernel_binary (hashcat_ctx_t *hashcat_ctx, char *kernel_file, c
 
     if (fp == NULL)
     {
-      event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %m", kernel_file);
 
       return -1;
     }
@@ -349,7 +349,7 @@ static int write_kernel_binary (hashcat_ctx_t *hashcat_ctx, char *kernel_file, c
     {
       fclose (fp);
 
-      event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %m", kernel_file);
 
       return -1;
     }
@@ -3627,7 +3627,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (chdir (folder_config->cpath_real) == -1)
     {
-      event_log_error (hashcat_ctx, "%s: %s", folder_config->cpath_real, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %m", folder_config->cpath_real);
 
       return -1;
     }
@@ -3671,7 +3671,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (fd == NULL)
       {
-        event_log_error (hashcat_ctx, "%s: %s", files_names[i], strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %m", files_names[i]);
 
         return -1;
       }
@@ -3684,7 +3684,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (n != 1)
       {
-        event_log_error (hashcat_ctx, "%s: %s", files_names[i], strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %m", files_names[i]);
 
         return -1;
       }
@@ -3723,7 +3723,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_stat (source_file, &sst) == -1)
       {
-        event_log_error (hashcat_ctx, "%s: %s", source_file, strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %m", source_file);
 
         return -1;
       }
@@ -3931,7 +3931,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_stat (source_file, &sst) == -1)
       {
-        event_log_error (hashcat_ctx, "%s: %s", source_file, strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %m", source_file);
 
         return -1;
       }
@@ -4073,7 +4073,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_stat (source_file, &sst) == -1)
       {
-        event_log_error (hashcat_ctx, "%s: %s", source_file, strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %m", source_file);
 
         return -1;
       }
@@ -4197,7 +4197,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (chdir (folder_config->cwd) == -1)
     {
-      event_log_error (hashcat_ctx, "%s: %s", folder_config->cwd, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %m", folder_config->cwd);
 
       return -1;
     }

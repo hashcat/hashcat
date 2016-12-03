@@ -53,7 +53,7 @@ void logfile_append (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 
   if (fp == NULL)
   {
-    event_log_error (hashcat_ctx, "%s: %s", logfile_ctx->logfile, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %m", logfile_ctx->logfile);
 
     return;
   }
@@ -96,7 +96,7 @@ int logfile_init (hashcat_ctx_t *hashcat_ctx)
 
   if (fp == NULL)
   {
-    event_log_error (hashcat_ctx, "%s: %s", logfile_ctx->logfile, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %m", logfile_ctx->logfile);
 
     return -1;
   }

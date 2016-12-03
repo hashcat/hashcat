@@ -118,7 +118,7 @@ int debugfile_init (hashcat_ctx_t *hashcat_ctx)
     {
       fclose (fp);
 
-      event_log_error (hashcat_ctx, "%s: %s", debugfile_ctx->filename, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %m", debugfile_ctx->filename);
 
       return -1;
     }
