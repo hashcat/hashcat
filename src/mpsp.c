@@ -656,7 +656,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
 
   if (fd == NULL)
   {
-    event_log_error (hashcat_ctx, "%s: %s", hcstat, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %m", hcstat);
 
     return -1;
   }
@@ -1202,7 +1202,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
             if (hc_stat (arg, &file_stat) == -1)
             {
-              event_log_error (hashcat_ctx, "%s: %s", arg, strerror (errno));
+              event_log_error (hashcat_ctx, "%s: %m", arg);
 
               return -1;
             }
@@ -1213,7 +1213,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
               if (mask_fp == NULL)
               {
-                event_log_error (hashcat_ctx, "%s: %s", arg, strerror (errno));
+                event_log_error (hashcat_ctx, "%s: %m", arg);
 
                 return -1;
               }
@@ -1295,7 +1295,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         if (mask_fp == NULL)
         {
-          event_log_error (hashcat_ctx, "%s: %s", arg, strerror (errno));
+          event_log_error (hashcat_ctx, "%s: %m", arg);
 
           return -1;
         }
@@ -1358,7 +1358,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         if (mask_fp == NULL)
         {
-          event_log_error (hashcat_ctx, "%s: %s", arg, strerror (errno));
+          event_log_error (hashcat_ctx, "%s: %m", arg);
 
           return -1;
         }

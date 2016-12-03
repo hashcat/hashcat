@@ -752,7 +752,7 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
 
     if ((fp = fopen (rp_file, "rb")) == NULL)
     {
-      event_log_error (hashcat_ctx, "%s: %s", rp_file, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %m", rp_file);
 
       return -1;
     }
