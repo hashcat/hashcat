@@ -53,7 +53,7 @@ void event_call (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, cons
   }
 }
 
-__attribute__ ((format (gnu_printf, 1, 0)))
+__attribute__ ((format (printf, 1, 0)))
 static int event_log (const char *fmt, va_list ap, char *s, const size_t sz)
 {
   return vsnprintf (s, sz, fmt, ap);
