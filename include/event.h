@@ -16,16 +16,16 @@ void event_call (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, cons
 
 __attribute__ ((format (printf, 2, 3)))
 size_t event_log_info_nn    (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...);
-__attribute__ ((format (gnu_printf, 2, 3)))
+__attribute__ ((format (printf, 2, 3)))
 size_t event_log_warning_nn (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...);
-__attribute__ ((format (gnu_printf, 2, 3)))
+__attribute__ ((format (printf, 2, 3)))
 size_t event_log_error_nn   (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...);
 
 __attribute__ ((format (printf, 2, 3)))
 size_t event_log_info       (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...);
-__attribute__ ((format (gnu_printf, 2, 3)))
+__attribute__ ((format (printf, 2, 3)))
 size_t event_log_warning    (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...);
-__attribute__ ((format (gnu_printf, 2, 3)))
+__attribute__ ((format (printf, 2, 3)))
 size_t event_log_error      (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...);
 
 int  event_ctx_init         (hashcat_ctx_t *hashcat_ctx);
