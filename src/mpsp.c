@@ -1438,7 +1438,8 @@ int mask_ctx_parse_maskfile (hashcat_ctx_t *hashcat_ctx)
 {
   mask_ctx_t     *mask_ctx     = hashcat_ctx->mask_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
-
+  status_ctx_t  *status_ctx=hashcat_ctx->status_ctx;
+  
   if (mask_ctx->enabled == false) return 0;
 
   if (mask_ctx->mask_from_file == false) return 0;
@@ -1451,6 +1452,11 @@ int mask_ctx_parse_maskfile (hashcat_ctx_t *hashcat_ctx)
   mfs[3].mf_len = 0;
   mfs[4].mf_len = 0;
 
+  char *mask_skip;
+	char *mask_limit;
+  u64 mask_skip_i;
+  u64 mask_limit_i;
+  
   char *mask_buf = mask_ctx->mask;
 
   const int mask_len = strlen (mask_buf);
@@ -1458,7 +1464,55 @@ int mask_ctx_parse_maskfile (hashcat_ctx_t *hashcat_ctx)
   bool escaped = false;
 
   int mf_cnt = 0;
+  char *seg;
+  char *mask_buf_c=strdup(mask_buf);
+  char *mask_buf_original=strdup(mask_buf);
+  int seg_cnt=0;
+  
+  while( (seg = strsep(&mask_buf_c,"|")) != NULL ){
+         switch (seg_cnt){
+          case 0:
+          mask_buf=seg;
+          break;
 
+          case 1:
+          if(strlen(seg)>20){
+            event_log_error (hashcat_ctx, "Invalid line '%s' in maskfile. Skip value is too large: %s", mask_buf_original,seg);
+            return -1;
+          }
+          mask_skip=seg;
+          break;
+
+          case 2:
+          if(strlen(seg)>20){
+            event_log_error (hashcat_ctx, "Invalid line '%s' in maskfile. Limit value is too large: %s", mask_buf_original,seg);
+            return -1;
+          }
+          mask_limit=seg;
+          break;
+
+          default:
+          event_log_error (hashcat_ctx, "Invalid line '%s' in maskfile. Maximum two | chars in a mask.", mask_buf_original);
+          return -1;
+          break;
+         }
+         seg_cnt++;
+
+       }
+
+
+  mask_skip_i=atoll(mask_skip);
+  mask_limit_i=atoll(mask_limit);
+  status_ctx->words_off=mask_skip_i;
+  status_ctx->words_cur=status_ctx->words_off;
+  
+  if(mask_limit_i!=0){
+  user_options->limit=status_ctx->words_cur + mask_limit_i;
+  }
+  
+  free(mask_buf_c);
+  free(mask_buf_original);
+  
   for (int i = 0; i < mask_len; i++)
   {
     mf_t *mf = mfs + mf_cnt;
