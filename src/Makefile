@@ -101,7 +101,7 @@ BINARY_NATIVE           := $(PROG_NAME)
 ## General compiler and linker options
 ##
 
-CFLAGS                  := -pipe -std=c99 -Iinclude/ -IOpenCL/
+CFLAGS                  += -pipe -std=c99 -Iinclude/ -IOpenCL/
 CFLAGS                  += -W
 CFLAGS                  += -Wall
 CFLAGS                  += -Wextra
@@ -137,7 +137,7 @@ CFLAGS                  += -ftrapv
 
 #CFLAGS                  += -Wstack-usage=524288
 
-LFLAGS                  :=
+LFLAGS                  := $(LDFLAGS)
 
 ifndef DEBUG
 CFLAGS                  += -O2
