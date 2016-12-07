@@ -53,10 +53,14 @@ void event_call (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, cons
   }
 }
 
-__attribute__ ((format (gnu_printf, 1, 0)))
+__attribute__ ((format (printf, 1, 0)))
 static int event_log (const char *fmt, va_list ap, char *s, const size_t sz)
 {
+#if defined (__MINGW32__)
+  return __mingw_vsnprintf (s, sz, fmt, ap);
+#else
   return vsnprintf (s, sz, fmt, ap);
+#endif
 }
 
 size_t event_log_info_nn (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
