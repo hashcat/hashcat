@@ -152,7 +152,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
                 if (line_len == 0) continue;
 
-                size_t iter = MAX_CUT_TRIES;
+                size_t iter = 1;
 
                 for (size_t i = line_len - 1; i && iter; i--, line_len--)
                 {

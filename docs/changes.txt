@@ -1,6 +1,12 @@
 * changes v3.20 -> v3.21:
 
 ##
+## Features
+##
+
+- Use $HEX[...] in case the password includes the separater character. This makes the MAX_CUT_TRIES logic no longer required which then increase potfile reading
+
+##
 ## Bugs
 ##
 

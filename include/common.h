@@ -79,7 +79,6 @@ but this is nededed for VS compiler which doesn't have inline keyword but has __
 #define SPEED_MAXAGE        4096
 #define BLOCK_SIZE          64
 #define EXPECTED_ITERATIONS 10000
-#define MAX_CUT_TRIES       4
 
 #if defined (_WIN)
 #define EOL "\r\n"

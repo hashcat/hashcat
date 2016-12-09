@@ -737,8 +737,8 @@ char *status_get_input_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
 
   const bool always_ascii = (hashconfig->hash_type & OPTS_TYPE_PT_ALWAYS_ASCII) ? true : false;
 
-  const bool need_hex1 = need_hexify (plain_ptr1, plain_len1, always_ascii);
-  const bool need_hex2 = need_hexify (plain_ptr2, plain_len2, always_ascii);
+  const bool need_hex1 = need_hexify (plain_ptr1, plain_len1, 0, always_ascii);
+  const bool need_hex2 = need_hexify (plain_ptr2, plain_len2, 0, always_ascii);
 
   if ((need_hex1 == true) || (need_hex2 == true))
   {

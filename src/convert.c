@@ -75,32 +75,46 @@ static bool printable_ascii (const u8 *buf, const int len)
   return true;
 }
 
-bool need_hexify (const u8 *buf, const int len, bool always_ascii)
+static bool matches_separator (const u8 *buf, const int len, const char separator)
 {
+  for (int i = 0; i < len; i++)
+  {
+    const char c = (char) buf[i];
+
+    if (c == separator) return true;
+  }
+
+  return false;
+}
+
+bool need_hexify (const u8 *buf, const int len, const char separator, bool always_ascii)
+{
+  bool rc = false;
+
   if (always_ascii == true)
   {
-    if (printable_ascii (buf, len) == true)
+    if (printable_ascii (buf, len) == false)
     {
-      return false;
-    }
-    else
-    {
-      return true;
+      rc = true;
     }
   }
   else
   {
-    if (printable_utf8 (buf, len) == true)
+    if (printable_utf8 (buf, len) == false)
     {
-      return false;
-    }
-    else
-    {
-      return true;
+      rc = true;
     }
   }
 
-  return false;
+  if (rc == false)
+  {
+    if (matches_separator (buf, len, separator) == true)
+    {
+      rc = true;
+    }
+  }
+
+  return rc;
 }
 
 void exec_hexify (const u8 *buf, const int len, u8 *out)

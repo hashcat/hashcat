@@ -218,7 +218,7 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, u8 *
 
     tmp_len += out_len;
 
-    tmp_buf[tmp_len] = ':';
+    tmp_buf[tmp_len] = hashconfig->separator;
 
     tmp_len += 1;
   }
@@ -227,7 +227,7 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, u8 *
   {
     const bool always_ascii = (hashconfig->hash_type & OPTS_TYPE_PT_ALWAYS_ASCII) ? true : false;
 
-    if ((user_options->outfile_autohex == true) && (need_hexify (plain_ptr, plain_len, always_ascii) == true))
+    if ((user_options->outfile_autohex == true) && (need_hexify (plain_ptr, plain_len, hashconfig->separator, always_ascii) == true))
     {
       tmp_buf[tmp_len++] = '$';
       tmp_buf[tmp_len++] = 'H';
@@ -262,9 +262,9 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, u8 *
 
 int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 {
-  hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
-  hashes_t      *hashes      = hashcat_ctx->hashes;
-  potfile_ctx_t *potfile_ctx = hashcat_ctx->potfile_ctx;
+  const hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
+  const hashes_t      *hashes      = hashcat_ctx->hashes;
+  const potfile_ctx_t *potfile_ctx = hashcat_ctx->potfile_ctx;
 
   if (potfile_ctx->enabled == false) return 0;
 
@@ -325,161 +325,147 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
   char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-  // to be safe work with a copy (because of line_len loop, i etc)
-  // moved up here because it's easier to handle continue case
-  // it's just 64kb
-
-  char *line_buf_cpy = (char *) hcmalloc (HCBUFSIZ_LARGE);
-
   while (!feof (potfile_ctx->fp))
   {
     int line_len = fgetl (potfile_ctx->fp, line_buf);
 
     if (line_len == 0) continue;
 
-    const int line_len_orig = line_len;
+    char *last_separator = strrchr (line_buf, hashconfig->separator);
 
-    int iter = MAX_CUT_TRIES;
+    if (last_separator == NULL) continue; // ??
 
-    for (int i = line_len - 1; i && iter; i--, line_len--)
+    char *line_pw_buf = last_separator + 1;
+
+    int line_pw_len = line_buf + line_len - line_pw_buf;
+
+    char *line_hash_buf = line_buf;
+
+    int line_hash_len = last_separator - line_buf;
+
+    line_hash_buf[line_hash_len] = 0;
+
+    if (line_hash_len == 0) continue;
+
+    if (line_pw_len == 0) continue;
+
+    if (hashconfig->is_salted)
     {
-      if (line_buf[i] != ':') continue;
-
-      iter--;
-
-      if (hashconfig->is_salted)
-      {
-        memset (hash_buf.salt, 0, sizeof (salt_t));
-      }
-
-      if (hashconfig->esalt_size)
-      {
-        memset (hash_buf.esalt, 0, hashconfig->esalt_size);
-      }
-
-      hash_t *found = NULL;
-
-      if (hashconfig->hash_mode == 6800)
-      {
-        if (i < 64) // 64 = 16 * u32 in salt_buf[]
-        {
-          // manipulate salt_buf
-          memcpy (hash_buf.salt->salt_buf, line_buf, i);
-
-          hash_buf.salt->salt_len = i;
-
-          found = (hash_t *) bsearch (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_t_salt);
-        }
-      }
-      else if (hashconfig->hash_mode == 2500)
-      {
-        if (i < 64) // 64 = 16 * u32 in salt_buf[]
-        {
-          // here we have in line_buf: ESSID:MAC1:MAC2   (without the plain)
-          // manipulate salt_buf
-
-          memcpy (line_buf_cpy, line_buf, i);
-
-          line_buf_cpy[i] = 0;
-
-          char *mac2_pos = strrchr (line_buf_cpy, ':');
-
-          if (mac2_pos == NULL) continue;
-
-          mac2_pos[0] = 0;
-          mac2_pos++;
-
-          if (strlen (mac2_pos) != 12) continue;
-
-          char *mac1_pos = strrchr (line_buf_cpy, ':');
-
-          if (mac1_pos == NULL) continue;
-
-          mac1_pos[0] = 0;
-          mac1_pos++;
-
-          if (strlen (mac1_pos) != 12) continue;
-
-          u32 essid_length = mac1_pos - line_buf_cpy - 1;
-
-          if (hashconfig->is_salted)
-          {
-            // this should be always true, but we need it to make scan-build happy
-
-            memcpy (hash_buf.salt->salt_buf, line_buf_cpy, essid_length);
-
-            hash_buf.salt->salt_len = essid_length;
-          }
-
-          found = (hash_t *) bsearch (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_t_salt_hccap);
-
-          if (found)
-          {
-            wpa_t *wpa = (wpa_t *) found->esalt;
-
-            // compare hex string(s) vs binary MAC address(es)
-
-            for (u32 mac_idx = 0, orig_mac_idx = 0; mac_idx < 6; mac_idx += 1, orig_mac_idx += 2)
-            {
-              if (wpa->orig_mac1[mac_idx] != hex_to_u8 ((const u8 *) &mac1_pos[orig_mac_idx]))
-              {
-                found = NULL;
-
-                break;
-              }
-            }
-
-            // early skip ;)
-            if (!found) continue;
-
-            for (u32 mac_idx = 0, orig_mac_idx = 0; mac_idx < 6; mac_idx += 1, orig_mac_idx += 2)
-            {
-              if (wpa->orig_mac2[mac_idx] != hex_to_u8 ((const u8 *) &mac2_pos[orig_mac_idx]))
-              {
-                found = NULL;
-
-                break;
-              }
-            }
-          }
-        }
-      }
-      else
-      {
-        int parser_status = hashconfig->parse_func ((u8 *) line_buf, line_len - 1, &hash_buf, hashconfig);
-
-        if (parser_status == PARSER_OK)
-        {
-          if (hashconfig->is_salted)
-          {
-            found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash, (void *) hashconfig);
-          }
-          else
-          {
-            found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_no_salt, (void *) hashconfig);
-          }
-        }
-      }
-
-      if (found == NULL) continue;
-
-      char *pw_buf = line_buf + line_len;
-      int   pw_len = line_len_orig - line_len;
-
-      found->pw_buf = (char *) hcmalloc (pw_len + 1);
-      found->pw_len = pw_len;
-
-      memcpy (found->pw_buf, pw_buf, pw_len);
-
-      found->pw_buf[found->pw_len] = 0;
-
-      found->cracked = 1;
-
-      break;
+      memset (hash_buf.salt, 0, sizeof (salt_t));
     }
-  }
 
-  hcfree (line_buf_cpy);
+    if (hashconfig->esalt_size)
+    {
+      memset (hash_buf.esalt, 0, hashconfig->esalt_size);
+    }
+
+    hash_t *found = NULL;
+
+    if (hashconfig->hash_mode == 6800)
+    {
+      if (line_hash_len < 64) // 64 = 16 * u32 in salt_buf[]
+      {
+        // manipulate salt_buf
+        memcpy (hash_buf.salt->salt_buf, line_hash_buf, line_hash_len);
+
+        hash_buf.salt->salt_len = line_hash_len;
+
+        found = (hash_t *) bsearch (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_t_salt);
+      }
+    }
+    else if (hashconfig->hash_mode == 2500)
+    {
+      if (line_hash_len < 64) // 64 = 16 * u32 in salt_buf[]
+      {
+        // here we have in line_hash_buf: ESSID:MAC1:MAC2   (without the plain)
+
+        char *mac2_pos = strrchr (line_hash_buf, ':');
+
+        if (mac2_pos == NULL) continue;
+
+        mac2_pos[0] = 0;
+        mac2_pos++;
+
+        if (strlen (mac2_pos) != 12) continue;
+
+        char *mac1_pos = strrchr (line_hash_buf, ':');
+
+        if (mac1_pos == NULL) continue;
+
+        mac1_pos[0] = 0;
+        mac1_pos++;
+
+        if (strlen (mac1_pos) != 12) continue;
+
+        u32 essid_length = mac1_pos - line_hash_buf - 1;
+
+        if (hashconfig->is_salted)
+        {
+          // this should be always true, but we need it to make scan-build happy
+
+          memcpy (hash_buf.salt->salt_buf, line_hash_buf, essid_length);
+
+          hash_buf.salt->salt_len = essid_length;
+        }
+
+        found = (hash_t *) bsearch (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_t_salt_hccap);
+
+        if (found)
+        {
+          wpa_t *wpa = (wpa_t *) found->esalt;
+
+          // compare hex string(s) vs binary MAC address(es)
+
+          for (u32 mac_idx = 0, orig_mac_idx = 0; mac_idx < 6; mac_idx += 1, orig_mac_idx += 2)
+          {
+            if (wpa->orig_mac1[mac_idx] != hex_to_u8 ((const u8 *) &mac1_pos[orig_mac_idx]))
+            {
+              found = NULL;
+
+              break;
+            }
+
+            if (wpa->orig_mac2[mac_idx] != hex_to_u8 ((const u8 *) &mac2_pos[orig_mac_idx]))
+            {
+              found = NULL;
+
+              break;
+            }
+          }
+        }
+      }
+    }
+    else
+    {
+      int parser_status = hashconfig->parse_func ((u8 *) line_hash_buf, line_hash_len, &hash_buf, hashconfig);
+
+      if (parser_status == PARSER_OK)
+      {
+        if (hashconfig->is_salted)
+        {
+          found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash, (void *) hashconfig);
+        }
+        else
+        {
+          found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_no_salt, (void *) hashconfig);
+        }
+      }
+    }
+
+    if (found == NULL) continue;
+
+    char *pw_buf = line_pw_buf;
+    int   pw_len = line_pw_len;
+
+    found->pw_buf = (char *) hcmalloc (pw_len + 1);
+    found->pw_len = pw_len;
+
+    memcpy (found->pw_buf, pw_buf, pw_len);
+
+    found->pw_buf[found->pw_len] = 0;
+
+    found->cracked = 1;
+  }
 
   hcfree (line_buf);
 
