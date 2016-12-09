@@ -4,7 +4,8 @@
 ## Features
 ##
 
-- Use $HEX[...] in case the password includes the separater character, increases potfile reading performance
+- New option --progress-only: Quickly provides ideal progress step size and time to process it per device based on the user hashes and selected options, then quit
+- Files: Use $HEX[...] in case the password includes the separater character, increases potfile reading performance
 
 ##
 ## Bugs

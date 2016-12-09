@@ -2002,6 +2002,15 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
       if (status_ctx->run_thread_level2 == false) break;
     }
 
+    if (user_options->progress_only == true)
+    {
+      const double m = (double) innerloop_cnt / innerloop_step;
+
+      device_param->outerloop_msec = device_param->speed_msec[0] * m;
+    }
+
+    if (user_options->speed_only == true) break;
+
     //status screen makes use of this, can't reset here
     //device_param->innerloop_pos  = 0;
     //device_param->innerloop_left = 0;

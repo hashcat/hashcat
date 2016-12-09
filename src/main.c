@@ -168,7 +168,7 @@ static void main_outerloop_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
 
   status_ctx->shutdown_outer = false;
 
-  if (user_options->keyspace == false && user_options->benchmark == false && user_options->stdout_flag == false && user_options->opencl_info == false && user_options->speed_only == false)
+  if ((user_options->keyspace == false) && (user_options->stdout_flag == false) && (user_options->opencl_info == false) && (user_options->speed_only == false))
   {
     if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
     {
@@ -211,7 +211,7 @@ static void main_cracker_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    if ((user_options->quiet == false) && (user_options->benchmark == false) && (user_options->speed_only == false))
+    if ((user_options->quiet == false) && (user_options->speed_only == false))
     {
       event_log_info_nn (hashcat_ctx, "");
 
@@ -239,7 +239,7 @@ static void main_cracker_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    if ((user_options->benchmark == false) && (user_options->speed_only == false))
+    if (user_options->speed_only == false)
     {
       clear_prompt ();
     }
@@ -247,9 +247,27 @@ static void main_cracker_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
 
   // print final status
 
-  if ((user_options->benchmark == true) || (user_options->speed_only == true))
+  if (user_options->benchmark == true)
   {
     status_benchmark (hashcat_ctx);
+
+    if (user_options->machine_readable == false)
+    {
+      event_log_info (hashcat_ctx, "");
+    }
+  }
+  else if (user_options->progress_only == true)
+  {
+    status_progress (hashcat_ctx);
+
+    if (user_options->machine_readable == false)
+    {
+      event_log_info (hashcat_ctx, "");
+    }
+  }
+  else if (user_options->speed_only == true)
+  {
+    status_speed (hashcat_ctx);
 
     if (user_options->machine_readable == false)
     {

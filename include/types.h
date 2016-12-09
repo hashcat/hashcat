@@ -522,6 +522,7 @@ typedef enum user_options_defaults
   STATUS_TIMER            = 10,
   STDOUT_FLAG             = false,
   SPEED_ONLY              = false,
+  PROGRESS_ONLY           = false,
   USAGE                   = false,
   USERNAME                = false,
   VERSION                 = false,
@@ -607,13 +608,14 @@ typedef enum user_options_map
   IDX_STATUS_TIMER             = 0xff30,
   IDX_STDOUT_FLAG              = 0xff31,
   IDX_SPEED_ONLY               = 0xff32,
-  IDX_TRUECRYPT_KEYFILES       = 0xff33,
-  IDX_USERNAME                 = 0xff34,
-  IDX_VERACRYPT_KEYFILES       = 0xff35,
-  IDX_VERACRYPT_PIM            = 0xff36,
+  IDX_PROGRESS_ONLY            = 0xff33,
+  IDX_TRUECRYPT_KEYFILES       = 0xff34,
+  IDX_USERNAME                 = 0xff35,
+  IDX_VERACRYPT_KEYFILES       = 0xff36,
+  IDX_VERACRYPT_PIM            = 0xff37,
   IDX_VERSION_LOWER            = 'v',
   IDX_VERSION                  = 'V',
-  IDX_WEAK_HASH_THRESHOLD      = 0xff37,
+  IDX_WEAK_HASH_THRESHOLD      = 0xff38,
   IDX_WORKLOAD_PROFILE         = 'w'
 
 } user_options_map_t;
@@ -892,6 +894,7 @@ typedef struct hc_device_param
 
   u32     outerloop_pos;
   u32     outerloop_left;
+  double  outerloop_msec;
 
   u32     innerloop_pos;
   u32     innerloop_left;
@@ -1355,6 +1358,7 @@ typedef struct user_options
   bool   status;
   bool   stdout_flag;
   bool   speed_only;
+  bool   progress_only;
   bool   usage;
   bool   username;
   bool   version;
@@ -1567,6 +1571,8 @@ typedef struct
   char   *hwmon_dev;
   int     corespeed_dev;
   int     memoryspeed_dev;
+  double  runtime_msec_dev;
+  int     progress_dev;
 
 } device_info_t;
 

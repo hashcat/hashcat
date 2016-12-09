@@ -664,7 +664,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
     * Outfile remove
     */
 
-  if (user_options->keyspace == false && user_options->benchmark == false && user_options->stdout_flag == false && user_options->speed_only == false)
+  if (user_options->keyspace == false && user_options->stdout_flag == false && user_options->speed_only == false)
   {
     hc_thread_create (inner_threads[inner_threads_cnt], thread_monitor, hashcat_ctx);
 
@@ -1252,6 +1252,8 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
     device_info->hwmon_dev                  = status_get_hwmon_dev                  (hashcat_ctx, device_id);
     device_info->corespeed_dev              = status_get_corespeed_dev              (hashcat_ctx, device_id);
     device_info->memoryspeed_dev            = status_get_memoryspeed_dev            (hashcat_ctx, device_id);
+    device_info->progress_dev               = status_get_progress_dev               (hashcat_ctx, device_id);
+    device_info->runtime_msec_dev           = status_get_runtime_msec_dev           (hashcat_ctx, device_id);
   }
 
   hashcat_status->hashes_msec_all = status_get_hashes_msec_all (hashcat_ctx);

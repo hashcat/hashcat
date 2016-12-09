@@ -81,6 +81,8 @@ char   *status_get_cpt                        (const hashcat_ctx_t *hashcat_ctx)
 char   *status_get_hwmon_dev                  (const hashcat_ctx_t *hashcat_ctx, const int device_id);
 int     status_get_corespeed_dev              (const hashcat_ctx_t *hashcat_ctx, const int device_id);
 int     status_get_memoryspeed_dev            (const hashcat_ctx_t *hashcat_ctx, const int device_id);
+int     status_get_progress_dev               (const hashcat_ctx_t *hashcat_ctx, const int device_id);
+double  status_get_runtime_msec_dev           (const hashcat_ctx_t *hashcat_ctx, const int device_id);
 
 int     status_progress_init                  (hashcat_ctx_t *hashcat_ctx);
 void    status_progress_destroy               (hashcat_ctx_t *hashcat_ctx);
