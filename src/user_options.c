@@ -465,6 +465,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
+  if ((user_options->increment == true) && (user_options->speed_only == true))
+  {
+    event_log_error (hashcat_ctx, "Increment is not allowed in combination with --speed-only");
+
+    return -1;
+  }
+
   if ((user_options->increment == true) && (user_options->attack_mode == ATTACK_MODE_STRAIGHT))
   {
     event_log_error (hashcat_ctx, "Increment is not allowed in attack-mode 0");
@@ -1067,6 +1074,10 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
 
     }
     else if (user_options->opencl_info == true)
+    {
+
+    }
+    else if (user_options->speed_only == true)
     {
 
     }
