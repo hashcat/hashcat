@@ -4,7 +4,7 @@
 ## Features
 ##
 
-- Use $HEX[...] in case the password includes the separater character. This makes the MAX_CUT_TRIES logic no longer required which then increase potfile reading
+- Use $HEX[...] in case the password includes the separater character, increases potfile reading performance
 
 ##
 ## Bugs
