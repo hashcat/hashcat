@@ -4,13 +4,14 @@
 ## Features
 ##
 
-- New option --progress-only: Quickly provides ideal progress step size and time to process it per device based on the user hashes and selected options, then quit
+- New option --progress-only: Quickly provides ideal progress step size and time to process on the user hashes and selected options, then quit
 - Files: Use $HEX[...] in case the password includes the separater character, increases potfile reading performance
 
 ##
 ## Bugs
 ##
 
+- Fixed infinite loop when using --loopback in case all hashes have been cracked
 - Fixed double fclose() using AMDGPU-Pro on sysfs compatible platform: Leading to segfault
 - Removed access to readlink() on FreeBSD: Causes problem building hashcat
 

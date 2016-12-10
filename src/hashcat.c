@@ -293,11 +293,14 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     {
       for (induct_ctx->induction_dictionaries_pos = 0; induct_ctx->induction_dictionaries_pos < induct_ctx->induction_dictionaries_cnt; induct_ctx->induction_dictionaries_pos++)
       {
-        const int rc_inner2_loop = inner2_loop (hashcat_ctx);
+        if (status_ctx->devices_status != STATUS_CRACKED)
+        {
+          const int rc_inner2_loop = inner2_loop (hashcat_ctx);
 
-        if (rc_inner2_loop == -1) myabort (hashcat_ctx);
+          if (rc_inner2_loop == -1) myabort (hashcat_ctx);
 
-        if (status_ctx->run_main_level3 == false) break;
+          if (status_ctx->run_main_level3 == false) break;
+        }
 
         unlink (induct_ctx->induction_dictionaries[induct_ctx->induction_dictionaries_pos]);
       }
