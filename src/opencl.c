@@ -2006,10 +2006,16 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
     {
       const double m = (double) innerloop_cnt / innerloop_step;
 
-      device_param->outerloop_msec = device_param->speed_msec[0] * m;
+      device_param->outerloop_msec += device_param->speed_msec[0] * m;
     }
+    else
+    {
+      // if this is a --progress-only run, we do not want to break
+      // because we need to sum up all salts
+      // but for a --speed-only or benchmark run this isn't wanted
 
-    if (user_options->speed_only == true) break;
+      if (user_options->speed_only == true) break;
+    }
 
     //status screen makes use of this, can't reset here
     //device_param->innerloop_pos  = 0;
