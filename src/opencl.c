@@ -3076,6 +3076,9 @@ void opencl_ctx_devices_kernel_loops (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->skipped == true) continue;
 
+    device_param->kernel_loops_min = device_param->kernel_loops_min_sav;
+    device_param->kernel_loops_max = device_param->kernel_loops_max_sav;
+
     if (device_param->kernel_loops_min < device_param->kernel_loops_max)
     {
       u32 innerloop_cnt = 0;
@@ -3320,7 +3323,6 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->kernel_loops_max = user_options->kernel_loops;
     }
 
-
     /**
      * device properties
      */
@@ -3525,6 +3527,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->kernel_loops_min = kernel_loops_fixed;
       device_param->kernel_loops_max = kernel_loops_fixed;
     }
+
+    device_param->kernel_loops_min_sav = device_param->kernel_loops_min;
+    device_param->kernel_loops_max_sav = device_param->kernel_loops_max;
 
     u32 kernel_accel_min = device_param->kernel_accel_min;
     u32 kernel_accel_max = device_param->kernel_accel_max;

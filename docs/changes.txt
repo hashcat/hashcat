@@ -13,6 +13,7 @@
 
 - Fixed infinite loop when using --loopback in case all hashes have been cracked
 - Fixed double fclose() using AMDGPU-Pro on sysfs compatible platform: Leading to segfault
+- Fixed kernel loops in leading to slower performance in --increment mode 
 - Removed access to readlink() on FreeBSD: Causes problem building hashcat
 
 ##
