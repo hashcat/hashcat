@@ -14,6 +14,7 @@
 #define RULE_OP_MANGLE_DUPEWORD         'd'
 #define RULE_OP_MANGLE_DUPEWORD_TIMES   'p'
 #define RULE_OP_MANGLE_REFLECT          'f'
+#define RULE_OP_MANGLE_FIXPAD           'P'
 #define RULE_OP_MANGLE_ROTATE_LEFT      '{'
 #define RULE_OP_MANGLE_ROTATE_RIGHT     '}'
 #define RULE_OP_MANGLE_APPEND           '$'

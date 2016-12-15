@@ -8,6 +8,7 @@
 #define RULE_OP_MANGLE_REVERSE          'r' // reverse word
 #define RULE_OP_MANGLE_DUPEWORD         'd' // append word to itself
 #define RULE_OP_MANGLE_DUPEWORD_TIMES   'p' // append word to itself N times
+#define RULE_OP_MANGLE_FIXPAD           'P' // pad with zero to fixed length
 #define RULE_OP_MANGLE_REFLECT          'f' // reflect word (append reversed word)
 #define RULE_OP_MANGLE_ROTATE_LEFT      '{' // rotate the word left.  ex: hello -> elloh
 #define RULE_OP_MANGLE_ROTATE_RIGHT     '}' // rotate the word right. ex: hello -> ohell
