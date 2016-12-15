@@ -103,6 +103,20 @@ static int mangle_double_times (char arr[BLOCK_SIZE], int arr_len, int times)
   return (arr_len);
 }
 
+static int mangle_fixpad (char arr[BLOCK_SIZE], int arr_len, int padlen)
+{
+  if (arr_len  >= padlen) return (padlen);
+
+  int arr_pos;
+
+  for (arr_pos = arr_len; arr_pos < padlen; arr_pos++)
+  {
+    arr[arr_pos] = 0;
+  }
+
+  return padlen;
+}
+
 static int mangle_reflect (char arr[BLOCK_SIZE], int arr_len)
 {
   if ((arr_len * 2) >= BLOCK_SIZE) return (arr_len);
@@ -164,21 +178,6 @@ static int mangle_prepend (char arr[BLOCK_SIZE], int arr_len, char c)
 
   return (arr_len + 1);
 }
-
-static int mangle_pad (char arr[BLOCK_SIZE], int arr_len, int padlen)
-{
-  if (arr_len  >= padlen) return (padlen);
-
-  int arr_pos;
-
-  for (arr_pos = arr_len; arr_pos < padlen; arr_pos++)
-  {
-    arr[arr_pos] = 0;
-  }
-
-  return padlen;
-}
-
 
 static int mangle_delete_at (char arr[BLOCK_SIZE], int arr_len, int upos)
 {
@@ -550,6 +549,12 @@ int _old_apply_rule (char *rule, int rule_len, char in[BLOCK_SIZE], int in_len, 
         out_len = mangle_double_times (out, out_len, ulen);
         break;
 
+      case RULE_OP_MANGLE_FIXPAD:
+        NEXT_RULEPOS (rule_pos);
+        NEXT_RPTOI (rule, rule_pos, upos);
+        out_len = mangle_fixpad (out, out_len, upos);
+        break;
+
       case RULE_OP_MANGLE_REFLECT:
         out_len = mangle_reflect (out, out_len);
         break;
@@ -566,11 +571,7 @@ int _old_apply_rule (char *rule, int rule_len, char in[BLOCK_SIZE], int in_len, 
         NEXT_RULEPOS (rule_pos);
         out_len = mangle_append (out, out_len, rule[rule_pos]);
         break;
-      case RULE_OP_MANGLE_FIXPAD:
-        NEXT_RULEPOS (rule_pos);
-        NEXT_RPTOI (rule, rule_pos, upos);
-        out_len = mangle_pad (out, out_len, upos);
-        break;
+
       case RULE_OP_MANGLE_PREPEND:
         NEXT_RULEPOS (rule_pos);
         out_len = mangle_prepend (out, out_len, rule[rule_pos]);
