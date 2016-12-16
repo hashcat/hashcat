@@ -155,8 +155,19 @@ typedef enum sha1_constants
 
 } sha1_constants_t;
 
-typedef enum sha256_constants
+typedef enum sha2_constants
 {
+  // SHA-224 Initial Hash Values
+  SHA224M_A=0xc1059ed8,
+  SHA224M_B=0x367cd507,
+  SHA224M_C=0x3070dd17,
+  SHA224M_D=0xf70e5939,
+  SHA224M_E=0xffc00b31,
+  SHA224M_F=0x68581511,
+  SHA224M_G=0x64f98fa7,
+  SHA224M_H=0xbefa4fa4,
+
+  // SHA-256 Initial Hash Values
   SHA256M_A=0x6a09e667,
   SHA256M_B=0xbb67ae85,
   SHA256M_C=0x3c6ef372,
@@ -166,6 +177,7 @@ typedef enum sha256_constants
   SHA256M_G=0x1f83d9ab,
   SHA256M_H=0x5be0cd19,
 
+  // Common Constants
   SHA256C00=0x428a2f98,
   SHA256C01=0x71374491,
   SHA256C02=0xb5c0fbcf,
@@ -231,7 +243,7 @@ typedef enum sha256_constants
   SHA256C3e=0xbef9a3f7,
   SHA256C3f=0xc67178f2u
 
-} sha256_constants_t;
+} sha2_constants_t;
 
 typedef enum sha384_constants
 {

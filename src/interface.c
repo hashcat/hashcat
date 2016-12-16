@@ -83,6 +83,7 @@ static const char HT_00900[] = "MD4";
 static const char HT_00910[] = "md4($pass.$salt)";
 static const char HT_01000[] = "NTLM";
 static const char HT_01100[] = "Domain Cached Credentials (DCC), MS Cache";
+static const char HT_01300[] = "SHA224";
 static const char HT_01400[] = "SHA256";
 static const char HT_01410[] = "sha256($pass.$salt)";
 static const char HT_01420[] = "sha256($salt.$pass)";
@@ -4523,6 +4524,31 @@ int oraclet_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   salt->salt_iter = ROUNDS_ORACLET - 1;
   salt->salt_len  = 16;
+
+  return (PARSER_OK);
+}
+
+int sha224_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
+{
+  if ((input_len < DISPLAY_LEN_MIN_1300) || (input_len > DISPLAY_LEN_MAX_1300)) return (PARSER_GLOBAL_LENGTH);
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  digest[0] = hex_to_u32 ((const u8 *) &input_buf[ 0]);
+  digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
+  digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
+  digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
+  digest[4] = hex_to_u32 ((const u8 *) &input_buf[32]);
+  digest[5] = hex_to_u32 ((const u8 *) &input_buf[40]);
+  digest[6] = hex_to_u32 ((const u8 *) &input_buf[48]);
+
+  digest[0] -= SHA224M_A;
+  digest[1] -= SHA224M_B;
+  digest[2] -= SHA224M_C;
+  digest[3] -= SHA224M_D;
+  digest[4] -= SHA224M_E;
+  digest[5] -= SHA224M_F;
+  digest[6] -= SHA224M_G;
 
   return (PARSER_OK);
 }
@@ -12653,6 +12679,7 @@ char *strhashtype (const u32 hash_mode)
     case   910: return ((char *) HT_00910);
     case  1000: return ((char *) HT_01000);
     case  1100: return ((char *) HT_01100);
+    case  1300: return ((char *) HT_01300);
     case  1400: return ((char *) HT_01400);
     case  1410: return ((char *) HT_01410);
     case  1420: return ((char *) HT_01420);
@@ -13018,6 +13045,16 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
         digest_buf[4] += SHA1M_E;
         break;
 
+      case HASH_TYPE_SHA224:
+        digest_buf[0] += SHA224M_A;
+        digest_buf[1] += SHA224M_B;
+        digest_buf[2] += SHA224M_C;
+        digest_buf[3] += SHA224M_D;
+        digest_buf[4] += SHA224M_E;
+        digest_buf[5] += SHA224M_F;
+        digest_buf[6] += SHA224M_G;
+        break;
+
       case HASH_TYPE_SHA256:
         digest_buf[0] += SHA256M_A;
         digest_buf[1] += SHA256M_B;
@@ -13070,6 +13107,10 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     else if (dgst_size == DGST_SIZE_4_6)
     {
       for (int i = 0; i < 6; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
+    }
+    else if (dgst_size == DGST_SIZE_4_7)
+    {
+      for (int i = 0; i < 7; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
     }
     else if (dgst_size == DGST_SIZE_4_8)
     {
@@ -15681,6 +15722,17 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
         digest_buf[3],
         digest_buf[4]);
     }
+    else if (hash_type == HASH_TYPE_SHA224)
+    {
+      snprintf (out_buf, out_len - 1, "%08x%08x%08x%08x%08x%08x%08x",
+        digest_buf[0],
+        digest_buf[1],
+        digest_buf[2],
+        digest_buf[3],
+        digest_buf[4],
+        digest_buf[5],
+        digest_buf[6]);
+    }
     else if (hash_type == HASH_TYPE_SHA256)
     {
       snprintf (out_buf, out_len - 1, "%08x%08x%08x%08x%08x%08x%08x%08x",
@@ -16736,6 +16788,28 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos1      = 3;
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 1;
+                 break;
+
+    case  1300:  hashconfig->hash_type      = HASH_TYPE_SHA224;
+                 hashconfig->salt_type      = SALT_TYPE_NONE;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
+                                            | OPTS_TYPE_PT_ADD80
+                                            | OPTS_TYPE_PT_ADDBITS15;
+                 hashconfig->kern_type      = KERN_TYPE_SHA224;
+                 hashconfig->dgst_size      = DGST_SIZE_4_7;
+                 hashconfig->parse_func     = sha224_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_PRECOMPUTE_INIT
+                                            | OPTI_TYPE_PRECOMPUTE_MERKLE
+                                            | OPTI_TYPE_EARLY_SKIP
+                                            | OPTI_TYPE_NOT_ITERATED
+                                            | OPTI_TYPE_NOT_SALTED
+                                            | OPTI_TYPE_RAW_HASH;
+                 hashconfig->dgst_pos0      = 3;
+                 hashconfig->dgst_pos1      = 5;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 6;
                  break;
 
     case  1400:  hashconfig->hash_type      = HASH_TYPE_SHA256;
