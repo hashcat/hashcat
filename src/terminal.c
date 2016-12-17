@@ -88,21 +88,21 @@ int setup_console ()
 
   if (_setmode (_fileno (stdin), _O_BINARY) == -1)
   {
-    fprintf (stderr, "%s: %s", "stdin", strerror (errno));
+    __mingw_fprintf (stderr, "%s: %m", "stdin");
 
     return -1;
   }
 
   if (_setmode (_fileno (stdout), _O_BINARY) == -1)
   {
-    fprintf (stderr, "%s: %s", "stdin", strerror (errno));
+    __mingw_fprintf (stderr, "%s: %m", "stdin");
 
     return -1;
   }
 
   if (_setmode (_fileno (stderr), _O_BINARY) == -1)
   {
-    fprintf (stderr, "%s: %s", "stdin", strerror (errno));
+    __mingw_fprintf (stderr, "%s: %m", "stdin");
 
     return -1;
   }
