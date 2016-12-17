@@ -182,7 +182,6 @@ static void m01300s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global c
   SHA224_STEP_REV (a_rev, b_rev, c_rev, d_rev, e_rev, f_rev, g_rev);
   SHA224_STEP_REV (a_rev, b_rev, c_rev, d_rev, e_rev, f_rev, g_rev);
   SHA224_STEP_REV (a_rev, b_rev, c_rev, d_rev, e_rev, f_rev, g_rev);
-  //SHA224_STEP_REV (a_rev, b_rev, c_rev, d_rev, e_rev, f_rev, g_rev);
 
   /**
    * loop

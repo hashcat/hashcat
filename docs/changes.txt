@@ -8,6 +8,12 @@
 - Files: Use $HEX[...] in case the password includes the separater character, increases potfile reading performance
 
 ##
+## Algorithms
+##
+
+- Added hash-mode 1300 = SHA-224
+
+##
 ## Bugs
 ##
 
