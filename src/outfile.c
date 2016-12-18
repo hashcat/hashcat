@@ -414,12 +414,9 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsign
 
   if (outfile_ctx->outfile_format & OUTFILE_FMT_HEXPLAIN)
   {
-    for (u32 i = 0; i < plain_len; i++)
-    {
-      exec_hexify ((const u8 *) plain_ptr, plain_len, (u8 *) tmp_buf + tmp_len);
+    exec_hexify ((const u8 *) plain_ptr, plain_len, (u8 *) tmp_buf + tmp_len);
 
-      tmp_len += 2;
-    }
+    tmp_len += plain_len * 2;
 
     if (outfile_ctx->outfile_format & (OUTFILE_FMT_CRACKPOS))
     {
