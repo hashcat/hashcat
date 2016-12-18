@@ -2875,6 +2875,8 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
               #if defined (__linux__)
               // AMDGPU-Pro Driver 16.40 and higher
               if (atoi (device_param->driver_version) >= 2117) amd_warn = false;
+              // AMDGPU-Pro Driver 16.50 is known to be broken
+              if (atoi (device_param->driver_version) == 2236) amd_warn = true;
               #elif defined (_WIN)
               // AMD Radeon Software 14.9 and higher, should be updated to 15.12
               if (atoi (device_param->driver_version) >= 1573) amd_warn = false;
