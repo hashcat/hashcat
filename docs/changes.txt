@@ -22,6 +22,7 @@
 - Fixed kernel loops in --increment mode leading to slower performance
 - Fixed custom char parsing code in maskfiles in --increment mode: Custom charset wasn't used
 - Fixed hex output of plaintext in case --outfile-format 4, 5, 6 or 7 was used
+- Fixed mask length check in hybrid attack-modes: Do not include hash-mode dependant mask length checks
 - Removed access to readlink() on FreeBSD: Causes problem building hashcat
 
 ##
