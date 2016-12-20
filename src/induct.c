@@ -47,9 +47,9 @@ int induct_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->induction_dir == NULL)
   {
-    char *root_directory = (char *) hcmalloc (HCBUFSIZ_TINY);
+    char *root_directory;
 
-    snprintf (root_directory, HCBUFSIZ_TINY - 1, "%s/%s.%s", folder_config->session_dir, user_options->session, INDUCT_DIR);
+    asprintf (&root_directory, "%s/%s.%s", folder_config->session_dir, user_options->session, INDUCT_DIR);
 
     if (rmdir (root_directory) == -1)
     {
@@ -59,9 +59,9 @@ int induct_ctx_init (hashcat_ctx_t *hashcat_ctx)
       }
       else if (errno == ENOTEMPTY)
       {
-        char *root_directory_mv = (char *) hcmalloc (HCBUFSIZ_TINY);
+        char *root_directory_mv;
 
-        snprintf (root_directory_mv, HCBUFSIZ_TINY - 1, "%s/%s.induct.%d", folder_config->session_dir, user_options->session, (int) time (NULL));
+        asprintf (&root_directory_mv, "%s/%s.induct.%d", folder_config->session_dir, user_options->session, (int) time (NULL));
 
         if (rename (root_directory, root_directory_mv) != 0)
         {
@@ -69,6 +69,8 @@ int induct_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
           return -1;
         }
+
+        hcfree (root_directory_mv);
       }
       else
       {

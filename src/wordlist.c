@@ -22,8 +22,7 @@ u32 convert_from_hex (hashcat_ctx_t *hashcat_ctx, char *line_buf, const u32 line
 
   if (user_options->hex_wordlist == true)
   {
-    u32 i;
-    u32 j;
+    size_t i, j;
 
     for (i = 0, j = 0; j < line_len; i += 1, j += 2)
     {
@@ -44,8 +43,7 @@ u32 convert_from_hex (hashcat_ctx_t *hashcat_ctx, char *line_buf, const u32 line
     if (line_buf[4]            != '[') return (line_len);
     if (line_buf[line_len - 1] != ']') return (line_len);
 
-    u32 i;
-    u32 j;
+    size_t i, j;
 
     for (i = 0, j = 5; j < line_len - 1; i += 1, j += 2)
     {

@@ -67,9 +67,9 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
   tuning_db->enabled = true;
 
-  char *tuning_db_file = (char *) hcmalloc (HCBUFSIZ_TINY);
+  char *tuning_db_file;
 
-  snprintf (tuning_db_file, HCBUFSIZ_TINY - 1, "%s/%s", folder_config->shared_dir, TUNING_DB_FILE);
+  asprintf (&tuning_db_file, "%s/%s", folder_config->shared_dir, TUNING_DB_FILE);
 
   FILE *fp = fopen (tuning_db_file, "rb");
 

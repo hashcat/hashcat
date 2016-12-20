@@ -55,9 +55,9 @@ static char *hm_SYSFS_get_syspath_device (hashcat_ctx_t *hashcat_ctx, const int 
 
   hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
-  char *syspath = hcmalloc (HCBUFSIZ_TINY);
+  char *syspath;
 
-  snprintf (syspath, HCBUFSIZ_TINY - 1, "%s/0000:%02x:%02x.%01x", SYS_BUS_PCI_DEVICES, device_param->pcie_bus, device_param->pcie_device, device_param->pcie_function);
+  asprintf (&syspath, "%s/0000:%02x:%02x.%01x", SYS_BUS_PCI_DEVICES, device_param->pcie_bus, device_param->pcie_device, device_param->pcie_function);
 
   return syspath;
 }

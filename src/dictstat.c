@@ -43,11 +43,10 @@ int dictstat_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->attack_mode == ATTACK_MODE_BF) return 0;
 
   dictstat_ctx->enabled  = true;
-  dictstat_ctx->filename = (char *)       hcmalloc (HCBUFSIZ_TINY);
   dictstat_ctx->base     = (dictstat_t *) hccalloc (MAX_DICTSTAT, sizeof (dictstat_t));
   dictstat_ctx->cnt      = 0;
 
-  snprintf (dictstat_ctx->filename, HCBUFSIZ_TINY - 1, "%s/hashcat.dictstat", folder_config->profile_dir);
+  asprintf (&dictstat_ctx->filename, "%s/hashcat.dictstat", folder_config->profile_dir);
 
   FILE *fp = fopen (dictstat_ctx->filename, "ab");
 
