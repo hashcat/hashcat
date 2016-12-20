@@ -102,7 +102,7 @@ int loopback_write_open (hashcat_ctx_t *hashcat_ctx)
 
   const u32 random_num = get_random_num (0, 9999);
 
-  snprintf (loopback_ctx->filename, HCBUFSIZ_TINY - 1, "%s/%s.%d_%u", induct_ctx->root_directory, LOOPBACK_FILE, (int) now, random_num);
+  asprintf (&loopback_ctx->filename, "%s/%s.%d_%u", induct_ctx->root_directory, LOOPBACK_FILE, (int) now, random_num);
 
   FILE *fp = fopen (loopback_ctx->filename, "ab");
 

@@ -339,9 +339,7 @@ int outcheck_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->outfile_check_dir == NULL)
   {
-    outcheck_ctx->root_directory = (char *) hcmalloc (HCBUFSIZ_TINY);
-
-    snprintf (outcheck_ctx->root_directory, HCBUFSIZ_TINY - 1, "%s/%s.%s", folder_config->session_dir, user_options->session, OUTFILES_DIR);
+    asprintf (&outcheck_ctx->root_directory, "%s/%s.%s", folder_config->session_dir, user_options->session, OUTFILES_DIR);
   }
   else
   {
