@@ -1342,6 +1342,13 @@ int hashes_init_stage4 (hashcat_ctx_t *hashcat_ctx)
 
   hashes->tmp_buf = tmp_buf;
 
+  // special wpa booster case
+
+  if (hashconfig->hash_mode == 2500)
+  {
+    wpa_essid_reuse (hashcat_ctx);
+  }
+
   return 0;
 }
 

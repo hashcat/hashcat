@@ -12948,6 +12948,27 @@ void to_hccap_t (hashcat_ctx_t *hashcat_ctx, hccap_t *hccap, const u32 salt_pos,
   }
 }
 
+void wpa_essid_reuse (hashcat_ctx_t *hashcat_ctx)
+{
+  // find duplicate essid to speed up cracking
+
+  hashes_t *hashes = hashcat_ctx->hashes;
+
+  u32 salts_cnt = hashes->salts_cnt;
+
+  salt_t *salts_buf = hashes->salts_buf;
+
+  wpa_t *esalts_buf = hashes->esalts_buf;
+
+  for (u32 salt_idx = 1; salt_idx < salts_cnt; salt_idx++)
+  {
+    if (memcmp ((char *) salts_buf[salt_idx].salt_buf, (char *) salts_buf[salt_idx - 1].salt_buf, salts_buf[salt_idx].salt_len) == 0)
+    {
+      esalts_buf[salt_idx].essid_reuse = 1;
+    }
+  }
+}
+
 int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_len, const u32 salt_pos, const u32 digest_pos)
 {
   const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;

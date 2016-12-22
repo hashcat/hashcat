@@ -6,6 +6,7 @@
 
 - New option --progress-only: Quickly provides ideal progress step size and time to process on the user hashes and selected options, then quit
 - Files: Use $HEX[...] in case the password includes the separater character, increases potfile reading performance
+- WPA cracking: Reuse PBKDF2 intermediate keys if duplicate essid is detected
 
 ##
 ## Algorithms

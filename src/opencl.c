@@ -1116,92 +1116,116 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
   }
   else
   {
-    CL_rc = run_kernel_amp (hashcat_ctx, device_param, pws_cnt);
+    bool run_init = true;
+    bool run_loop = true;
+    bool run_comp = true;
 
-    if (CL_rc == -1) return -1;
-
-    CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_1, pws_cnt, false, 0);
-
-    if (CL_rc == -1) return -1;
-
-    if (hashconfig->opts_type & OPTS_TYPE_HOOK12)
+    if (hashconfig->hash_mode == 2500)
     {
-      CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_12, pws_cnt, false, 0);
+      wpa_t *esalts_buf = hashes->esalts_buf;
 
-      if (CL_rc == -1) return -1;
-
-      CL_rc = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
-
-      if (CL_rc == -1) return -1;
-
-      // do something with data
-
-      CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
-
-      if (CL_rc == -1) return -1;
-    }
-
-    u32 iter = hashes->salts_buf[salt_pos].salt_iter;
-
-    u32 loop_step = device_param->kernel_loops;
-
-    for (u32 loop_pos = 0, slow_iteration = 0; loop_pos < iter; loop_pos += loop_step, slow_iteration++)
-    {
-      u32 loop_left = iter - loop_pos;
-
-      loop_left = MIN (loop_left, loop_step);
-
-      device_param->kernel_params_buf32[28] = loop_pos;
-      device_param->kernel_params_buf32[29] = loop_left;
-
-      CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_2, pws_cnt, true, slow_iteration);
-
-      if (CL_rc == -1) return -1;
-
-      while (status_ctx->run_thread_level2 == false) break;
-
-      /**
-       * speed
-       */
-
-      const float iter_part = (float) (loop_pos + loop_left) / iter;
-
-      const u64 perf_sum_all = (u64) (pws_cnt * iter_part);
-
-      double speed_msec = hc_timer_get (device_param->timer_speed);
-
-      const u32 speed_pos = device_param->speed_pos;
-
-      device_param->speed_cnt[speed_pos] = perf_sum_all;
-
-      device_param->speed_msec[speed_pos] = speed_msec;
-
-      if (user_options->speed_only == true)
+      if (esalts_buf[salt_pos].essid_reuse == 1)
       {
-        if (speed_msec > 4096) return -2; // special RC
+        run_init = false;
+        run_loop = false;
       }
     }
 
-    if (hashconfig->opts_type & OPTS_TYPE_HOOK23)
+    if (run_init == true)
     {
-      CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_23, pws_cnt, false, 0);
+      CL_rc = run_kernel_amp (hashcat_ctx, device_param, pws_cnt);
 
       if (CL_rc == -1) return -1;
 
-      CL_rc = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
+      CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_1, pws_cnt, false, 0);
 
       if (CL_rc == -1) return -1;
 
-      // do something with data
+      if (hashconfig->opts_type & OPTS_TYPE_HOOK12)
+      {
+        CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_12, pws_cnt, false, 0);
 
-      CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
+        if (CL_rc == -1) return -1;
+
+        CL_rc = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
+
+        if (CL_rc == -1) return -1;
+
+        // do something with data
+
+        CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
+
+        if (CL_rc == -1) return -1;
+      }
+    }
+
+    if (run_loop == true)
+    {
+      u32 iter = hashes->salts_buf[salt_pos].salt_iter;
+
+      u32 loop_step = device_param->kernel_loops;
+
+      for (u32 loop_pos = 0, slow_iteration = 0; loop_pos < iter; loop_pos += loop_step, slow_iteration++)
+      {
+        u32 loop_left = iter - loop_pos;
+
+        loop_left = MIN (loop_left, loop_step);
+
+        device_param->kernel_params_buf32[28] = loop_pos;
+        device_param->kernel_params_buf32[29] = loop_left;
+
+        CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_2, pws_cnt, true, slow_iteration);
+
+        if (CL_rc == -1) return -1;
+
+        while (status_ctx->run_thread_level2 == false) break;
+
+        /**
+         * speed
+         */
+
+        const float iter_part = (float) (loop_pos + loop_left) / iter;
+
+        const u64 perf_sum_all = (u64) (pws_cnt * iter_part);
+
+        double speed_msec = hc_timer_get (device_param->timer_speed);
+
+        const u32 speed_pos = device_param->speed_pos;
+
+        device_param->speed_cnt[speed_pos] = perf_sum_all;
+
+        device_param->speed_msec[speed_pos] = speed_msec;
+
+        if (user_options->speed_only == true)
+        {
+          if (speed_msec > 4096) return -2; // special RC
+        }
+      }
+
+      if (hashconfig->opts_type & OPTS_TYPE_HOOK23)
+      {
+        CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_23, pws_cnt, false, 0);
+
+        if (CL_rc == -1) return -1;
+
+        CL_rc = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
+
+        if (CL_rc == -1) return -1;
+
+        // do something with data
+
+        CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
+
+        if (CL_rc == -1) return -1;
+      }
+    }
+
+    if (run_comp == true)
+    {
+      CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_3, pws_cnt, false, 0);
 
       if (CL_rc == -1) return -1;
     }
-
-    CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_3, pws_cnt, false, 0);
-
-    if (CL_rc == -1) return -1;
   }
 
   return 0;

@@ -720,6 +720,7 @@ typedef struct
   u8  orig_mac2[6];
   u8  orig_nonce1[32];
   u8  orig_nonce2[32];
+  int essid_reuse;
 
 } wpa_t;
 

@@ -60,6 +60,7 @@ typedef struct wpa
   u8   orig_mac2[6];
   u8   orig_nonce1[32];
   u8   orig_nonce2[32];
+  int  essid_reuse;
 
 } wpa_t;
 
@@ -1519,6 +1520,8 @@ char *strhashtype (const u32 hash_mode);
 char *strparser   (const u32 parser_status);
 
 void to_hccap_t (hashcat_ctx_t *hashcat_ctx, hccap_t *hccap, const u32 salt_pos, const u32 digest_pos);
+
+void wpa_essid_reuse (hashcat_ctx_t *hashcat_ctx);
 
 int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_len, const u32 salt_pos, const u32 digest_pos);
 
