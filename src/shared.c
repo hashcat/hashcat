@@ -104,7 +104,7 @@ void hc_asprintf (char **strp, const char *fmt, ...)
   va_list args;
   va_start (args, fmt);
   int rc __attribute__((unused));
-  rc = asprintf (strp, fmt, args);
+  rc = vasprintf (strp, fmt, args);
   va_end (args);
 }
 
