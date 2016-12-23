@@ -99,6 +99,15 @@ void naive_escape (char *s, size_t s_max, const char key_char, const char escape
   strncpy (s, s_escaped, s_max - 1);
 }
 
+void hc_asprintf (char **strp, const char *fmt, ...)
+{
+  va_list args;
+  va_start (args, fmt);
+  int rc __attribute__((unused));
+  rc = asprintf (strp, fmt, args);
+  va_end (args);
+}
+
 #if defined (_POSIX)
 int hc_stat (const char *pathname, hc_stat_t *buf)
 {

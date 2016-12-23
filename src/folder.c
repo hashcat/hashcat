@@ -28,7 +28,7 @@ static int get_exec_path (char *exec_path, const size_t exec_path_sz)
 
   char *tmp;
 
-  asprintf (&tmp, "/proc/%d/exe", getpid ());
+  hc_asprintf (&tmp, "/proc/%d/exe", getpid ());
 
   const ssize_t len = readlink (tmp, exec_path, exec_path_sz - 1);
 
@@ -221,7 +221,7 @@ char **scan_directory (const char *path)
 
       char *path_file;
 
-      asprintf (&path_file, "%s/%s", tmp_path, de->d_name);
+      hc_asprintf (&path_file, "%s/%s", tmp_path, de->d_name);
 
       DIR *d_test;
 
@@ -393,7 +393,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   #if defined (_WIN)
 
-  asprintf (&cpath, "%s\\OpenCL\\", shared_dir);
+  hc_asprintf (&cpath, "%s\\OpenCL\\", shared_dir);
 
   char *cpath_real = (char *) hcmalloc (HCBUFSIZ_TINY);
 
@@ -406,7 +406,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   #else
 
-  asprintf (&cpath, "%s/OpenCL/", shared_dir);
+  hc_asprintf (&cpath, "%s/OpenCL/", shared_dir);
 
   char *cpath_real = (char *) hcmalloc (PATH_MAX);
 
@@ -426,7 +426,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   {
     char *tmp;
 
-    asprintf (&tmp, "TMP=%s", cpath_real);
+    hc_asprintf (&tmp, "TMP=%s", cpath_real);
 
     putenv (tmp);
   }
@@ -450,7 +450,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   char *kernels_folder;
 
-  asprintf (&kernels_folder, "%s/kernels", profile_dir);
+  hc_asprintf (&kernels_folder, "%s/kernels", profile_dir);
 
   hc_mkdir (kernels_folder, 0700);
 

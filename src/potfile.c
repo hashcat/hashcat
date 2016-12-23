@@ -99,7 +99,7 @@ int potfile_init (hashcat_ctx_t *hashcat_ctx)
   {
     potfile_ctx->fp       = NULL;
 
-    asprintf (&potfile_ctx->filename, "%s/hashcat.potfile", folder_config->profile_dir);
+    hc_asprintf (&potfile_ctx->filename, "%s/hashcat.potfile", folder_config->profile_dir);
   }
   else
   {

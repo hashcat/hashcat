@@ -6,6 +6,7 @@
 #ifndef _SHARED_H
 #define _SHARED_H
 
+#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -23,6 +24,8 @@ char *filename_from_filepath (char *filepath);
 
 void naive_replace (char *s, const char key_char, const char replace_char);
 void naive_escape (char *s, size_t s_max, const char key_char, const char escape_char);
+
+void hc_asprintf (char **strp, const char *fmt, ...);
 
 void hc_sleep_msec (const u32 msec);
 void hc_sleep      (const u32 sec);

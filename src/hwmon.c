@@ -57,7 +57,7 @@ static char *hm_SYSFS_get_syspath_device (hashcat_ctx_t *hashcat_ctx, const int 
 
   char *syspath;
 
-  asprintf (&syspath, "%s/0000:%02x:%02x.%01x", SYS_BUS_PCI_DEVICES, device_param->pcie_bus, device_param->pcie_device, device_param->pcie_function);
+  hc_asprintf (&syspath, "%s/0000:%02x:%02x.%01x", SYS_BUS_PCI_DEVICES, device_param->pcie_bus, device_param->pcie_device, device_param->pcie_function);
 
   return syspath;
 }

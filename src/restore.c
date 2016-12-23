@@ -49,7 +49,7 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
 
     char *pidbin;
 
-    asprintf (&pidbin, "/proc/%u/cmdline", rd->pid);
+    hc_asprintf (&pidbin, "/proc/%u/cmdline", rd->pid);
 
     FILE *fd = fopen (pidbin, "rb");
 
@@ -356,13 +356,13 @@ int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
   if (user_options->restore_file_path == NULL)
   {
-    asprintf (&restore_ctx->eff_restore_file, "%s/%s.restore",     folder_config->session_dir, user_options->session);
-    asprintf (&restore_ctx->new_restore_file, "%s/%s.restore.new", folder_config->session_dir, user_options->session);
+    hc_asprintf (&restore_ctx->eff_restore_file, "%s/%s.restore",     folder_config->session_dir, user_options->session);
+    hc_asprintf (&restore_ctx->new_restore_file, "%s/%s.restore.new", folder_config->session_dir, user_options->session);
   }
   else
   {
     restore_ctx->eff_restore_file = hcstrdup (user_options->restore_file_path);
-    asprintf (&restore_ctx->new_restore_file, "%s.new", user_options->restore_file_path);
+    hc_asprintf (&restore_ctx->new_restore_file, "%s.new", user_options->restore_file_path);
   }
 
   restore_ctx->argc = argc;

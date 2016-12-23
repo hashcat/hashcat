@@ -9,6 +9,7 @@
 #include "event.h"
 #include "logfile.h"
 #include "locking.h"
+#include "shared.h"
 
 static int logfile_generate_id (void)
 {
@@ -83,7 +84,7 @@ int logfile_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->logfile_disable == true) return 0;
 
-  asprintf (&logfile_ctx->logfile, "%s/%s.log", folder_config->session_dir, user_options->session);
+  hc_asprintf (&logfile_ctx->logfile, "%s/%s.log", folder_config->session_dir, user_options->session);
 
   logfile_ctx->subid = (char *) hcmalloc (HCBUFSIZ_TINY);
   logfile_ctx->topid = (char *) hcmalloc (HCBUFSIZ_TINY);

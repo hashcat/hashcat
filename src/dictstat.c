@@ -9,6 +9,7 @@
 #include "event.h"
 #include "dictstat.h"
 #include "locking.h"
+#include "shared.h"
 
 int sort_by_dictstat (const void *s1, const void *s2)
 {
@@ -46,7 +47,7 @@ int dictstat_init (hashcat_ctx_t *hashcat_ctx)
   dictstat_ctx->base     = (dictstat_t *) hccalloc (MAX_DICTSTAT, sizeof (dictstat_t));
   dictstat_ctx->cnt      = 0;
 
-  asprintf (&dictstat_ctx->filename, "%s/hashcat.dictstat", folder_config->profile_dir);
+  hc_asprintf (&dictstat_ctx->filename, "%s/hashcat.dictstat", folder_config->profile_dir);
 
   FILE *fp = fopen (dictstat_ctx->filename, "ab");
 

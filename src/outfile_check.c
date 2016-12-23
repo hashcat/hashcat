@@ -339,7 +339,7 @@ int outcheck_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->outfile_check_dir == NULL)
   {
-    asprintf (&outcheck_ctx->root_directory, "%s/%s.%s", folder_config->session_dir, user_options->session, OUTFILES_DIR);
+    hc_asprintf (&outcheck_ctx->root_directory, "%s/%s.%s", folder_config->session_dir, user_options->session, OUTFILES_DIR);
   }
   else
   {
