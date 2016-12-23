@@ -11,7 +11,8 @@
 bool need_hexify (const u8 *buf, const int len, const char separator, bool always_ascii);
 void exec_hexify (const u8 *buf, const int len, u8 *out);
 
-bool is_valid_hex_char (const u8 c);
+bool is_valid_hex_string (const u8 *s, const int len);
+bool is_valid_hex_char   (const u8 c);
 
 u8 hex_convert (const u8 c);
 

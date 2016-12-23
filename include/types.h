@@ -434,6 +434,8 @@ typedef enum parser_rc
   PARSER_VC_FILE_SIZE        = -16,
   PARSER_SIP_AUTH_DIRECTIVE  = -17,
   PARSER_HASH_FILE           = -18,
+  PARSER_HASH_ENCODING       = -19,
+  PARSER_SALT_ENCODING       = -20,
   PARSER_UNKNOWN_ERROR       = -255
 
 } parser_rc_t;
