@@ -35,6 +35,7 @@
 - Threads: Replaced all calls to strerror() with %m printf() GNU extension to ensure thread safety
 - Threads: Replaced all calls to ctime() with ctime_r() to ensure thread safety
 - OpenCL Runtime: Updated AMDGPU-Pro driver version check, do warn if version 16.50 is detected which is known to be broken
+- Hash Parser: Improved error detection of invalid hex characters where hex character are expected
 
 * changes v3.10 -> v3.20:
 

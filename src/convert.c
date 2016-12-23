@@ -140,6 +140,18 @@ void exec_hexify (const u8 *buf, const int len, u8 *out)
   out[max_len * 2] = 0;
 }
 
+bool is_valid_hex_string (const u8 *s, const int len)
+{
+  for (int i = 0; i < len; i++)
+  {
+    const u8 c = s[i];
+
+    if (is_valid_hex_char (c) == false) return false;
+  }
+
+  return true;
+}
+
 bool is_valid_hex_char (const u8 c)
 {
   if ((c >= '0') && (c <= '9')) return true;
