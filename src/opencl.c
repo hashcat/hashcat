@@ -2943,8 +2943,8 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
               if (device_param->sm_major < 5)
               {
-                if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Old CUDA chipset %u.%u detected, OpenCL performance is reduced.", device_id + 1, device_param->sm_major, device_param->sm_minor);
-                if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             For ideal hashcat performance on NVIDIA GPU you need CUDA 5.0 or higher");
+                if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Old CUDA compute capability %u.%u detected, OpenCL performance is reduced.", device_id + 1, device_param->sm_major, device_param->sm_minor);
+                if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             For ideal hashcat performance on NVIDIA GPU you need CUDA compute capability 5.0 or higher (Maxwell)");
               }
             }
 
