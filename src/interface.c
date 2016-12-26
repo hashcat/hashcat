@@ -4046,15 +4046,23 @@ int ipb2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   u32 salt_len = input_len - 32 - 1;
 
-  u8 *salt_buf = (u8 *) input_buf + 32 + 1;
+  u8 *salt_buf = input_buf + 32 + 1;
+
+  u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
+
+  salt_len = parse_and_store_salt (salt_buf_ptr, salt_buf, salt_len, hashconfig);
+
+  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
+
+  salt->salt_len = salt_len;
+
+  // precomput first md5
 
   u32 salt_pc_block[16] = { 0 };
 
   u8 *salt_pc_block_ptr = (u8 *) salt_pc_block;
 
-  salt_len = parse_and_store_salt (salt_pc_block_ptr, salt_buf, salt_len, hashconfig);
-
-  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
+  memcpy (salt_pc_block_ptr, salt_buf_ptr, salt_len);
 
   salt_pc_block_ptr[salt_len] = 0x80;
 
@@ -4064,23 +4072,12 @@ int ipb2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   md5_64 (salt_pc_block, salt_pc_digest);
 
-  salt_pc_digest[0] = byte_swap_32 (salt_pc_digest[0]);
-  salt_pc_digest[1] = byte_swap_32 (salt_pc_digest[1]);
-  salt_pc_digest[2] = byte_swap_32 (salt_pc_digest[2]);
-  salt_pc_digest[3] = byte_swap_32 (salt_pc_digest[3]);
-
-  u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
-
-  memcpy (salt_buf_ptr, salt_buf, salt_len);
-
   u8 *salt_buf_pc_ptr = (u8 *) salt->salt_buf_pc;
 
-  bin_to_hex_lower (salt_pc_digest[0], salt_buf_pc_ptr +  0);
-  bin_to_hex_lower (salt_pc_digest[1], salt_buf_pc_ptr +  8);
-  bin_to_hex_lower (salt_pc_digest[2], salt_buf_pc_ptr + 16);
-  bin_to_hex_lower (salt_pc_digest[3], salt_buf_pc_ptr + 24);
-
-  salt->salt_len = 32; // changed, was salt_len before -- was a bug? 32 should be correct
+  u32_to_hex_lower (salt_pc_digest[0], salt_buf_pc_ptr +  0);
+  u32_to_hex_lower (salt_pc_digest[1], salt_buf_pc_ptr +  8);
+  u32_to_hex_lower (salt_pc_digest[2], salt_buf_pc_ptr + 16);
+  u32_to_hex_lower (salt_pc_digest[3], salt_buf_pc_ptr + 24);
 
   return (PARSER_OK);
 }

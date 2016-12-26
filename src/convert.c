@@ -216,27 +216,60 @@ u64 hex_to_u64 (const u8 hex[16])
   return (v);
 }
 
-void bin_to_hex_lower (const u32 v, u8 hex[8])
+void u8_to_hex_lower (const u8 v, u8 hex[2])
 {
-  hex[0] = v >> 28 & 15;
-  hex[1] = v >> 24 & 15;
-  hex[2] = v >> 20 & 15;
-  hex[3] = v >> 16 & 15;
-  hex[4] = v >> 12 & 15;
-  hex[5] = v >>  8 & 15;
-  hex[6] = v >>  4 & 15;
-  hex[7] = v >>  0 & 15;
+  const u8 tbl[0x10] =
+  {
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+    'a', 'b', 'c', 'd', 'e', 'f',
+  };
 
-  u32 add;
+  hex[1] = tbl[v >>  0 & 15];
+  hex[0] = tbl[v >>  4 & 15];
+}
 
-  hex[0] += 6; add = ((hex[0] & 0x10u) >> 4) * 39; hex[0] += 42 + add;
-  hex[1] += 6; add = ((hex[1] & 0x10u) >> 4) * 39; hex[1] += 42 + add;
-  hex[2] += 6; add = ((hex[2] & 0x10u) >> 4) * 39; hex[2] += 42 + add;
-  hex[3] += 6; add = ((hex[3] & 0x10u) >> 4) * 39; hex[3] += 42 + add;
-  hex[4] += 6; add = ((hex[4] & 0x10u) >> 4) * 39; hex[4] += 42 + add;
-  hex[5] += 6; add = ((hex[5] & 0x10u) >> 4) * 39; hex[5] += 42 + add;
-  hex[6] += 6; add = ((hex[6] & 0x10u) >> 4) * 39; hex[6] += 42 + add;
-  hex[7] += 6; add = ((hex[7] & 0x10u) >> 4) * 39; hex[7] += 42 + add;
+void u32_to_hex_lower (const u32 v, u8 hex[8])
+{
+  const u8 tbl[0x10] =
+  {
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+    'a', 'b', 'c', 'd', 'e', 'f',
+  };
+
+  hex[1] = tbl[v >>  0 & 15];
+  hex[0] = tbl[v >>  4 & 15];
+  hex[3] = tbl[v >>  8 & 15];
+  hex[2] = tbl[v >> 12 & 15];
+  hex[5] = tbl[v >> 16 & 15];
+  hex[4] = tbl[v >> 20 & 15];
+  hex[7] = tbl[v >> 24 & 15];
+  hex[6] = tbl[v >> 28 & 15];
+}
+
+void u64_to_hex_lower (const u64 v, u8 hex[16])
+{
+  const u8 tbl[0x10] =
+  {
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+    'a', 'b', 'c', 'd', 'e', 'f',
+  };
+
+  hex[ 1] = tbl[v >>  0 & 15];
+  hex[ 0] = tbl[v >>  4 & 15];
+  hex[ 3] = tbl[v >>  8 & 15];
+  hex[ 2] = tbl[v >> 12 & 15];
+  hex[ 5] = tbl[v >> 16 & 15];
+  hex[ 4] = tbl[v >> 20 & 15];
+  hex[ 7] = tbl[v >> 24 & 15];
+  hex[ 6] = tbl[v >> 28 & 15];
+  hex[ 9] = tbl[v >> 32 & 15];
+  hex[ 8] = tbl[v >> 36 & 15];
+  hex[11] = tbl[v >> 40 & 15];
+  hex[10] = tbl[v >> 44 & 15];
+  hex[13] = tbl[v >> 48 & 15];
+  hex[12] = tbl[v >> 52 & 15];
+  hex[15] = tbl[v >> 56 & 15];
+  hex[14] = tbl[v >> 60 & 15];
 }
 
 u8 int_to_base32 (const u8 c)
