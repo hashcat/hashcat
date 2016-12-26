@@ -10231,8 +10231,6 @@ int pdf17l8_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   for (int i = 0, j = 0; i < 8 + 2; i += 1, j += 8)
   {
     pdf->u_buf[i] = hex_to_u32 ((const u8 *) &u_buf_pos[j]);
-
-    pdf->u_buf[i] = byte_swap_32 (pdf->u_buf[i]);
   }
 
   salt->salt_buf[0] = pdf->u_buf[8];
@@ -10241,14 +10239,14 @@ int pdf17l8_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   salt->salt_len  = 8;
   salt->salt_iter = ROUNDS_PDF17L8;
 
-  digest[0] = pdf->u_buf[0];
-  digest[1] = pdf->u_buf[1];
-  digest[2] = pdf->u_buf[2];
-  digest[3] = pdf->u_buf[3];
-  digest[4] = pdf->u_buf[4];
-  digest[5] = pdf->u_buf[5];
-  digest[6] = pdf->u_buf[6];
-  digest[7] = pdf->u_buf[7];
+  digest[0] = byte_swap_32 (pdf->u_buf[0]);
+  digest[1] = byte_swap_32 (pdf->u_buf[1]);
+  digest[2] = byte_swap_32 (pdf->u_buf[2]);
+  digest[3] = byte_swap_32 (pdf->u_buf[3]);
+  digest[4] = byte_swap_32 (pdf->u_buf[4]);
+  digest[5] = byte_swap_32 (pdf->u_buf[5]);
+  digest[6] = byte_swap_32 (pdf->u_buf[6]);
+  digest[7] = byte_swap_32 (pdf->u_buf[7]);
 
   return (PARSER_OK);
 }
