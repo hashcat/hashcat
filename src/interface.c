@@ -2328,6 +2328,15 @@ int osx512_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   digest[6] = hex_to_u64 ((const u8 *) &hash_pos[ 96]);
   digest[7] = hex_to_u64 ((const u8 *) &hash_pos[112]);
 
+  digest[0] = byte_swap_64 (digest[0]);
+  digest[1] = byte_swap_64 (digest[1]);
+  digest[2] = byte_swap_64 (digest[2]);
+  digest[3] = byte_swap_64 (digest[3]);
+  digest[4] = byte_swap_64 (digest[4]);
+  digest[5] = byte_swap_64 (digest[5]);
+  digest[6] = byte_swap_64 (digest[6]);
+  digest[7] = byte_swap_64 (digest[7]);
+
   digest[0] -= SHA512M_A;
   digest[1] -= SHA512M_B;
   digest[2] -= SHA512M_C;
@@ -4454,6 +4463,15 @@ int mssql2012_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   digest[6] = hex_to_u64 ((const u8 *) &hash_pos[ 96]);
   digest[7] = hex_to_u64 ((const u8 *) &hash_pos[112]);
 
+  digest[0] = byte_swap_64 (digest[0]);
+  digest[1] = byte_swap_64 (digest[1]);
+  digest[2] = byte_swap_64 (digest[2]);
+  digest[3] = byte_swap_64 (digest[3]);
+  digest[4] = byte_swap_64 (digest[4]);
+  digest[5] = byte_swap_64 (digest[5]);
+  digest[6] = byte_swap_64 (digest[6]);
+  digest[7] = byte_swap_64 (digest[7]);
+
   digest[0] -= SHA512M_A;
   digest[1] -= SHA512M_B;
   digest[2] -= SHA512M_C;
@@ -4716,6 +4734,15 @@ int sha384_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   digest[6] = 0;
   digest[7] = 0;
 
+  digest[0] = byte_swap_64 (digest[0]);
+  digest[1] = byte_swap_64 (digest[1]);
+  digest[2] = byte_swap_64 (digest[2]);
+  digest[3] = byte_swap_64 (digest[3]);
+  digest[4] = byte_swap_64 (digest[4]);
+  digest[5] = byte_swap_64 (digest[5]);
+  digest[6] = 0;
+  digest[7] = 0;
+
   digest[0] -= SHA384M_A;
   digest[1] -= SHA384M_B;
   digest[2] -= SHA384M_C;
@@ -4744,6 +4771,15 @@ int sha512_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   digest[5] = hex_to_u64 ((const u8 *) &input_buf[ 80]);
   digest[6] = hex_to_u64 ((const u8 *) &input_buf[ 96]);
   digest[7] = hex_to_u64 ((const u8 *) &input_buf[112]);
+
+  digest[0] = byte_swap_64 (digest[0]);
+  digest[1] = byte_swap_64 (digest[1]);
+  digest[2] = byte_swap_64 (digest[2]);
+  digest[3] = byte_swap_64 (digest[3]);
+  digest[4] = byte_swap_64 (digest[4]);
+  digest[5] = byte_swap_64 (digest[5]);
+  digest[6] = byte_swap_64 (digest[6]);
+  digest[7] = byte_swap_64 (digest[7]);
 
   digest[0] -= SHA512M_A;
   digest[1] -= SHA512M_B;
@@ -4782,6 +4818,15 @@ int sha512s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   digest[5] = hex_to_u64 ((const u8 *) &input_buf[ 80]);
   digest[6] = hex_to_u64 ((const u8 *) &input_buf[ 96]);
   digest[7] = hex_to_u64 ((const u8 *) &input_buf[112]);
+
+  digest[0] = byte_swap_64 (digest[0]);
+  digest[1] = byte_swap_64 (digest[1]);
+  digest[2] = byte_swap_64 (digest[2]);
+  digest[3] = byte_swap_64 (digest[3]);
+  digest[4] = byte_swap_64 (digest[4]);
+  digest[5] = byte_swap_64 (digest[5]);
+  digest[6] = byte_swap_64 (digest[6]);
+  digest[7] = byte_swap_64 (digest[7]);
 
   digest[0] -= SHA512M_A;
   digest[1] -= SHA512M_B;
@@ -4881,8 +4926,6 @@ int keccak_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   for (u32 i = 0; i < keccak_mdlen / 8; i++)
   {
     digest[i] = hex_to_u64 ((const u8 *) &input_buf[i * 16]);
-
-    digest[i] = byte_swap_64 (digest[i]);
   }
 
   salt->keccak_mdlen = keccak_mdlen;
@@ -5865,6 +5908,15 @@ int sha512osx_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   digest[6] = hex_to_u64 ((const u8 *) &hash_pos[ 96]);
   digest[7] = hex_to_u64 ((const u8 *) &hash_pos[112]);
 
+  digest[0] = byte_swap_64 (digest[0]);
+  digest[1] = byte_swap_64 (digest[1]);
+  digest[2] = byte_swap_64 (digest[2]);
+  digest[3] = byte_swap_64 (digest[3]);
+  digest[4] = byte_swap_64 (digest[4]);
+  digest[5] = byte_swap_64 (digest[5]);
+  digest[6] = byte_swap_64 (digest[6]);
+  digest[7] = byte_swap_64 (digest[7]);
+
   u32 salt_len = hash_pos - salt_pos - 1;
 
   if ((salt_len % 2) != 0) return (PARSER_SALT_LENGTH);
@@ -5995,6 +6047,15 @@ int sha512grub_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   digest[5] = hex_to_u64 ((const u8 *) &hash_pos[ 80]);
   digest[6] = hex_to_u64 ((const u8 *) &hash_pos[ 96]);
   digest[7] = hex_to_u64 ((const u8 *) &hash_pos[112]);
+
+  digest[0] = byte_swap_64 (digest[0]);
+  digest[1] = byte_swap_64 (digest[1]);
+  digest[2] = byte_swap_64 (digest[2]);
+  digest[3] = byte_swap_64 (digest[3]);
+  digest[4] = byte_swap_64 (digest[4]);
+  digest[5] = byte_swap_64 (digest[5]);
+  digest[6] = byte_swap_64 (digest[6]);
+  digest[7] = byte_swap_64 (digest[7]);
 
   u32 salt_len = hash_pos - salt_pos - 1;
 
@@ -6227,6 +6288,15 @@ int hmacsha512_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   digest[5] = hex_to_u64 ((const u8 *) &input_buf[ 80]);
   digest[6] = hex_to_u64 ((const u8 *) &input_buf[ 96]);
   digest[7] = hex_to_u64 ((const u8 *) &input_buf[112]);
+
+  digest[0] = byte_swap_64 (digest[0]);
+  digest[1] = byte_swap_64 (digest[1]);
+  digest[2] = byte_swap_64 (digest[2]);
+  digest[3] = byte_swap_64 (digest[3]);
+  digest[4] = byte_swap_64 (digest[4]);
+  digest[5] = byte_swap_64 (digest[5]);
+  digest[6] = byte_swap_64 (digest[6]);
+  digest[7] = byte_swap_64 (digest[7]);
 
   if (input_buf[128] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
 
