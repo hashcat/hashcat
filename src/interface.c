@@ -2218,9 +2218,6 @@ int lm_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED 
   digest[0] = hex_to_u32 ((const u8 *) &input_buf[ 0]);
   digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
 
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-
   u32 tt;
 
   IP (digest[0], digest[1], tt);
@@ -2250,6 +2247,12 @@ int arubaos_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   digest[2] = hex_to_u32 ((const u8 *) &hash_pos[16]);
   digest[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
   digest[4] = hex_to_u32 ((const u8 *) &hash_pos[32]);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
 
   digest[0] -= SHA1M_A;
   digest[1] -= SHA1M_B;
@@ -2287,6 +2290,12 @@ int osx1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   digest[2] = hex_to_u32 ((const u8 *) &hash_pos[16]);
   digest[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
   digest[4] = hex_to_u32 ((const u8 *) &hash_pos[32]);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
 
   digest[0] -= SHA1M_A;
   digest[1] -= SHA1M_B;
@@ -2380,11 +2389,6 @@ int osc_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
   digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
 
   digest[0] -= MD5M_A;
   digest[1] -= MD5M_B;
@@ -2547,6 +2551,12 @@ int smf_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
   digest[4] = hex_to_u32 ((const u8 *) &input_buf[32]);
 
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
+
   digest[0] -= SHA1M_A;
   digest[1] -= SHA1M_B;
   digest[2] -= SHA1M_C;
@@ -2618,6 +2628,11 @@ int dcc2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   digest[1] = hex_to_u32 ((const u8 *) &digest_pos[ 8]);
   digest[2] = hex_to_u32 ((const u8 *) &digest_pos[16]);
   digest[3] = hex_to_u32 ((const u8 *) &digest_pos[24]);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
 
   u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
 
@@ -3101,11 +3116,6 @@ int md4_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
 
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-
   digest[0] -= MD4M_A;
   digest[1] -= MD4M_B;
   digest[2] -= MD4M_C;
@@ -3127,11 +3137,6 @@ int md5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
 
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-
   digest[0] -= MD5M_A;
   digest[1] -= MD5M_B;
   digest[2] -= MD5M_C;
@@ -3152,9 +3157,6 @@ int md5half_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   digest[1] = hex_to_u32 ((const u8 *) &input_buf[8]);
   digest[2] = 0;
   digest[3] = 0;
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
 
   return (PARSER_OK);
 }
@@ -3180,11 +3182,6 @@ int md5s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
 
   digest[0] -= MD5M_A;
   digest[1] -= MD5M_B;
@@ -3467,20 +3464,12 @@ int netntlmv1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   digest[2] = hex_to_u32 ((const u8 *) &hash_pos[16]);
   digest[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
 
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-
   /* special case, last 8 byte do not need to be checked since they are brute-forced next */
 
   u32 digest_tmp[2] = { 0 };
 
   digest_tmp[0] = hex_to_u32 ((const u8 *) &hash_pos[32]);
   digest_tmp[1] = hex_to_u32 ((const u8 *) &hash_pos[40]);
-
-  digest_tmp[0] = byte_swap_32 (digest_tmp[0]);
-  digest_tmp[1] = byte_swap_32 (digest_tmp[1]);
 
   /* special case 2: ESS */
 
@@ -3703,11 +3692,6 @@ int netntlmv2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   digest[2] = hex_to_u32 ((const u8 *) &hash_pos[16]);
   digest[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
 
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-
   /**
    * reuse challange data as salt_buf, its the buffer that is most likely unique
    */
@@ -3764,11 +3748,6 @@ int joomla_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
 
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-
   digest[0] -= MD5M_A;
   digest[1] -= MD5M_B;
   digest[2] -= MD5M_C;
@@ -3813,11 +3792,6 @@ int postgresql_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
 
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-
   digest[0] -= MD5M_A;
   digest[1] -= MD5M_B;
   digest[2] -= MD5M_C;
@@ -3854,11 +3828,6 @@ int md5md5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
 
   digest[0] -= MD5M_A;
   digest[1] -= MD5M_B;
@@ -3904,11 +3873,6 @@ int vb3_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
 
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-
   digest[0] -= MD5M_A;
   digest[1] -= MD5M_B;
   digest[2] -= MD5M_C;
@@ -3953,11 +3917,6 @@ int vb30_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
 
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-
   if (input_buf[32] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
 
   u32 salt_len = input_len - 32 - 1;
@@ -3996,11 +3955,6 @@ int dcc_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
   digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
 
   digest[0] -= MD4M_A;
   digest[1] -= MD4M_B;
@@ -4045,11 +3999,6 @@ int ipb2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
 
   if (input_buf[32] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -4105,6 +4054,12 @@ int sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
   digest[4] = hex_to_u32 ((const u8 *) &input_buf[32]);
 
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
+
   digest[0] -= SHA1M_A;
   digest[1] -= SHA1M_B;
   digest[2] -= SHA1M_C;
@@ -4132,6 +4087,12 @@ int sha1axcrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
   digest[4] = 0;
 
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = 0;
+
   return (PARSER_OK);
 }
 
@@ -4157,6 +4118,12 @@ int sha1s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUS
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
   digest[4] = hex_to_u32 ((const u8 *) &input_buf[32]);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
 
   digest[0] -= SHA1M_A;
   digest[1] -= SHA1M_B;
@@ -4198,6 +4165,12 @@ int pstoken_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
   digest[4] = hex_to_u32 ((const u8 *) &input_buf[32]);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
 
   if (input_buf[40] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -4378,6 +4351,12 @@ int mssql2000_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   digest[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
   digest[4] = hex_to_u32 ((const u8 *) &hash_pos[32]);
 
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
+
   digest[0] -= SHA1M_A;
   digest[1] -= SHA1M_B;
   digest[2] -= SHA1M_C;
@@ -4418,6 +4397,12 @@ int mssql2005_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   digest[2] = hex_to_u32 ((const u8 *) &hash_pos[16]);
   digest[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
   digest[4] = hex_to_u32 ((const u8 *) &hash_pos[32]);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
 
   digest[0] -= SHA1M_A;
   digest[1] -= SHA1M_B;
@@ -4506,9 +4491,6 @@ int oracleh_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   digest[2] = 0;
   digest[3] = 0;
 
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-
   if (input_buf[16] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
 
   u32 salt_len = input_len - 16 - 1;
@@ -4541,6 +4523,12 @@ int oracles_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
   digest[4] = hex_to_u32 ((const u8 *) &input_buf[32]);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
 
   digest[0] -= SHA1M_A;
   digest[1] -= SHA1M_B;
@@ -4594,6 +4582,23 @@ int oraclet_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   digest[14] = hex_to_u32 ((const u8 *) &hash_pos[112]);
   digest[15] = hex_to_u32 ((const u8 *) &hash_pos[120]);
 
+  digest[ 0] = byte_swap_32 (digest[ 0]);
+  digest[ 1] = byte_swap_32 (digest[ 1]);
+  digest[ 2] = byte_swap_32 (digest[ 2]);
+  digest[ 3] = byte_swap_32 (digest[ 3]);
+  digest[ 4] = byte_swap_32 (digest[ 4]);
+  digest[ 5] = byte_swap_32 (digest[ 5]);
+  digest[ 6] = byte_swap_32 (digest[ 6]);
+  digest[ 7] = byte_swap_32 (digest[ 7]);
+  digest[ 8] = byte_swap_32 (digest[ 8]);
+  digest[ 9] = byte_swap_32 (digest[ 9]);
+  digest[10] = byte_swap_32 (digest[10]);
+  digest[11] = byte_swap_32 (digest[11]);
+  digest[12] = byte_swap_32 (digest[12]);
+  digest[13] = byte_swap_32 (digest[13]);
+  digest[14] = byte_swap_32 (digest[14]);
+  digest[15] = byte_swap_32 (digest[15]);
+
   u8 *salt_pos = input_buf + 128;
 
   if (is_valid_hex_string (salt_pos, 32) == false) return (PARSER_SALT_ENCODING);
@@ -4602,6 +4607,11 @@ int oraclet_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   salt->salt_buf[1] = hex_to_u32 ((const u8 *) &salt_pos[ 8]);
   salt->salt_buf[2] = hex_to_u32 ((const u8 *) &salt_pos[16]);
   salt->salt_buf[3] = hex_to_u32 ((const u8 *) &salt_pos[24]);
+
+  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
+  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
+  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
+  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
 
   salt->salt_iter = ROUNDS_ORACLET - 1;
   salt->salt_len  = 16;
@@ -4624,6 +4634,14 @@ int sha224_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   digest[4] = hex_to_u32 ((const u8 *) &input_buf[32]);
   digest[5] = hex_to_u32 ((const u8 *) &input_buf[40]);
   digest[6] = hex_to_u32 ((const u8 *) &input_buf[48]);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
+  digest[5] = byte_swap_32 (digest[5]);
+  digest[6] = byte_swap_32 (digest[6]);
 
   digest[0] -= SHA224M_A;
   digest[1] -= SHA224M_B;
@@ -4652,6 +4670,15 @@ int sha256_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   digest[5] = hex_to_u32 ((const u8 *) &input_buf[40]);
   digest[6] = hex_to_u32 ((const u8 *) &input_buf[48]);
   digest[7] = hex_to_u32 ((const u8 *) &input_buf[56]);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
+  digest[5] = byte_swap_32 (digest[5]);
+  digest[6] = byte_swap_32 (digest[6]);
+  digest[7] = byte_swap_32 (digest[7]);
 
   digest[0] -= SHA256M_A;
   digest[1] -= SHA256M_B;
@@ -4690,6 +4717,15 @@ int sha256s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   digest[5] = hex_to_u32 ((const u8 *) &input_buf[40]);
   digest[6] = hex_to_u32 ((const u8 *) &input_buf[48]);
   digest[7] = hex_to_u32 ((const u8 *) &input_buf[56]);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
+  digest[5] = byte_swap_32 (digest[5]);
+  digest[6] = byte_swap_32 (digest[6]);
+  digest[7] = byte_swap_32 (digest[7]);
 
   digest[0] -= SHA256M_A;
   digest[1] -= SHA256M_B;
@@ -5005,11 +5041,6 @@ int ikepsk_md5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   digest[2] = hex_to_u32 ((const u8 *) &ptr[16]);
   digest[3] = hex_to_u32 ((const u8 *) &ptr[24]);
 
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-
   salt->salt_len = 32;
 
   salt->salt_buf[0] = ikepsk->nr_buf[0];
@@ -5097,6 +5128,12 @@ int ikepsk_sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
   digest[3] = hex_to_u32 ((const u8 *) &ptr[24]);
   digest[4] = hex_to_u32 ((const u8 *) &ptr[32]);
 
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
+
   salt->salt_len = 32;
 
   salt->salt_buf[0] = ikepsk->nr_buf[0];
@@ -5124,12 +5161,6 @@ int ripemd160_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
   digest[4] = hex_to_u32 ((const u8 *) &input_buf[32]);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-  digest[4] = byte_swap_32 (digest[4]);
 
   return (PARSER_OK);
 }
@@ -5159,6 +5190,23 @@ int whirlpool_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   digest[14] = hex_to_u32 ((const u8 *) &input_buf[112]);
   digest[15] = hex_to_u32 ((const u8 *) &input_buf[120]);
 
+  digest[ 0] = byte_swap_32 (digest[ 0]);
+  digest[ 1] = byte_swap_32 (digest[ 1]);
+  digest[ 2] = byte_swap_32 (digest[ 2]);
+  digest[ 3] = byte_swap_32 (digest[ 3]);
+  digest[ 4] = byte_swap_32 (digest[ 4]);
+  digest[ 5] = byte_swap_32 (digest[ 5]);
+  digest[ 6] = byte_swap_32 (digest[ 6]);
+  digest[ 7] = byte_swap_32 (digest[ 7]);
+  digest[ 8] = byte_swap_32 (digest[ 8]);
+  digest[ 9] = byte_swap_32 (digest[ 9]);
+  digest[10] = byte_swap_32 (digest[10]);
+  digest[11] = byte_swap_32 (digest[11]);
+  digest[12] = byte_swap_32 (digest[12]);
+  digest[13] = byte_swap_32 (digest[13]);
+  digest[14] = byte_swap_32 (digest[14]);
+  digest[15] = byte_swap_32 (digest[15]);
+
   return (PARSER_OK);
 }
 
@@ -5177,6 +5225,12 @@ int androidpin_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
   digest[4] = hex_to_u32 ((const u8 *) &input_buf[32]);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
 
   if (input_buf[40] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -5780,6 +5834,11 @@ int lastpass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   digest[2] = hex_to_u32 ((const u8 *) &hashbuf_pos[16]);
   digest[3] = hex_to_u32 ((const u8 *) &hashbuf_pos[24]);
 
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+
   return (PARSER_OK);
 }
 
@@ -5799,15 +5858,6 @@ int gost_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   digest[5] = hex_to_u32 ((const u8 *) &input_buf[40]);
   digest[6] = hex_to_u32 ((const u8 *) &input_buf[48]);
   digest[7] = hex_to_u32 ((const u8 *) &input_buf[56]);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-  digest[4] = byte_swap_32 (digest[4]);
-  digest[5] = byte_swap_32 (digest[5]);
-  digest[6] = byte_swap_32 (digest[6]);
-  digest[7] = byte_swap_32 (digest[7]);
 
   return (PARSER_OK);
 }
@@ -5933,15 +5983,6 @@ int sha512osx_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   pbkdf2_sha512->salt_buf[5] = hex_to_u32 ((const u8 *) &salt_pos[40]);
   pbkdf2_sha512->salt_buf[6] = hex_to_u32 ((const u8 *) &salt_pos[48]);
   pbkdf2_sha512->salt_buf[7] = hex_to_u32 ((const u8 *) &salt_pos[56]);
-
-  pbkdf2_sha512->salt_buf[0] = byte_swap_32 (pbkdf2_sha512->salt_buf[0]);
-  pbkdf2_sha512->salt_buf[1] = byte_swap_32 (pbkdf2_sha512->salt_buf[1]);
-  pbkdf2_sha512->salt_buf[2] = byte_swap_32 (pbkdf2_sha512->salt_buf[2]);
-  pbkdf2_sha512->salt_buf[3] = byte_swap_32 (pbkdf2_sha512->salt_buf[3]);
-  pbkdf2_sha512->salt_buf[4] = byte_swap_32 (pbkdf2_sha512->salt_buf[4]);
-  pbkdf2_sha512->salt_buf[5] = byte_swap_32 (pbkdf2_sha512->salt_buf[5]);
-  pbkdf2_sha512->salt_buf[6] = byte_swap_32 (pbkdf2_sha512->salt_buf[6]);
-  pbkdf2_sha512->salt_buf[7] = byte_swap_32 (pbkdf2_sha512->salt_buf[7]);
   pbkdf2_sha512->salt_buf[8] = 0x01000000;
   pbkdf2_sha512->salt_buf[9] = 0x80;
 
@@ -6158,11 +6199,6 @@ int hmacmd5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
 
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-
   if (input_buf[32] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
 
   u32 salt_len = input_len - 32 - 1;
@@ -6202,6 +6238,12 @@ int hmacsha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
   digest[4] = hex_to_u32 ((const u8 *) &input_buf[32]);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
 
   if (input_buf[40] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -6245,6 +6287,15 @@ int hmacsha256_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   digest[5] = hex_to_u32 ((const u8 *) &input_buf[40]);
   digest[6] = hex_to_u32 ((const u8 *) &input_buf[48]);
   digest[7] = hex_to_u32 ((const u8 *) &input_buf[56]);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
+  digest[5] = byte_swap_32 (digest[5]);
+  digest[6] = byte_swap_32 (digest[6]);
+  digest[7] = byte_swap_32 (digest[7]);
 
   if (input_buf[64] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -6487,9 +6538,6 @@ int sapb_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   digest[2] = 0;
   digest[3] = 0;
 
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-
   return (PARSER_OK);
 }
 
@@ -6563,6 +6611,12 @@ int sapg_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   digest[2] = hex_to_u32 ((const u8 *) &hash_pos[16]);
   digest[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
   digest[4] = hex_to_u32 ((const u8 *) &hash_pos[32]);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
 
   return (PARSER_OK);
 }
@@ -6654,6 +6708,15 @@ int sybasease_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   digest[6] = hex_to_u32 ((const u8 *) &hash_pos[48]);
   digest[7] = hex_to_u32 ((const u8 *) &hash_pos[56]);
 
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
+  digest[5] = byte_swap_32 (digest[5]);
+  digest[6] = byte_swap_32 (digest[6]);
+  digest[7] = byte_swap_32 (digest[7]);
+
   return (PARSER_OK);
 }
 
@@ -6667,6 +6730,11 @@ int mysql323_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   digest[0] = hex_to_u32 ((const u8 *) &input_buf[ 0]);
   digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
+  digest[2] = 0;
+  digest[3] = 0;
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
   digest[2] = 0;
   digest[3] = 0;
 
@@ -6743,6 +6811,12 @@ int rakp_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   digest[3] = hex_to_u32 ((const u8 *) &hashbuf_pos[24]);
   digest[4] = hex_to_u32 ((const u8 *) &hashbuf_pos[32]);
 
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
+
   return (PARSER_OK);
 }
 
@@ -6775,6 +6849,12 @@ int netscaler_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   digest[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
   digest[4] = hex_to_u32 ((const u8 *) &hash_pos[32]);
 
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
+
   digest[0] -= SHA1M_A;
   digest[1] -= SHA1M_B;
   digest[2] -= SHA1M_C;
@@ -6799,11 +6879,6 @@ int chap_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
 
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-
   digest[0] -= MD5M_A;
   digest[1] -= MD5M_B;
   digest[2] -= MD5M_C;
@@ -6821,11 +6896,6 @@ int chap_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   salt_buf[1] = hex_to_u32 ((const u8 *) &salt_buf_ptr[ 8]);
   salt_buf[2] = hex_to_u32 ((const u8 *) &salt_buf_ptr[16]);
   salt_buf[3] = hex_to_u32 ((const u8 *) &salt_buf_ptr[24]);
-
-  salt_buf[0] = byte_swap_32 (salt_buf[0]);
-  salt_buf[1] = byte_swap_32 (salt_buf[1]);
-  salt_buf[2] = byte_swap_32 (salt_buf[2]);
-  salt_buf[3] = byte_swap_32 (salt_buf[3]);
 
   salt->salt_len = 16 + 1;
 
@@ -6902,6 +6972,15 @@ int cloudkey_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   digest[5] = hex_to_u32 ((const u8 *) &hashbuf_pos[40]);
   digest[6] = hex_to_u32 ((const u8 *) &hashbuf_pos[48]);
   digest[7] = hex_to_u32 ((const u8 *) &hashbuf_pos[56]);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
+  digest[5] = byte_swap_32 (digest[5]);
+  digest[6] = byte_swap_32 (digest[6]);
+  digest[7] = byte_swap_32 (digest[7]);
 
   // salt
 
@@ -7084,6 +7163,12 @@ int wbb3_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
   digest[4] = hex_to_u32 ((const u8 *) &input_buf[32]);
 
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
+
   if (input_buf[40] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
 
   u32 salt_len = input_len - 40 - 1;
@@ -7116,6 +7201,12 @@ int opencart_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
   digest[4] = hex_to_u32 ((const u8 *) &input_buf[32]);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
 
   if (input_buf[40] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -7210,9 +7301,6 @@ int racf_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   digest[0] = hex_to_u32 ((const u8 *) &digest_pos[ 0]);
   digest[1] = hex_to_u32 ((const u8 *) &digest_pos[ 8]);
 
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-
   IP (digest[0], digest[1], tt);
 
   digest[0] = rotr32 (digest[0], 29);
@@ -7266,9 +7354,6 @@ int des_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
   digest[0] = hex_to_u32 ((const u8 *) &digest_pos[ 0]);
   digest[1] = hex_to_u32 ((const u8 *) &digest_pos[ 8]);
 
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-
   IP (digest[0], digest[1], tt);
 
   digest[2] = 0;
@@ -7289,11 +7374,6 @@ int lotus5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
 
   return (PARSER_OK);
 }
@@ -7406,6 +7486,15 @@ int hmailserver_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
   digest[6] = hex_to_u32 ((const u8 *) &hash_buf_pos[48]);
   digest[7] = hex_to_u32 ((const u8 *) &hash_buf_pos[56]);
 
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
+  digest[5] = byte_swap_32 (digest[5]);
+  digest[6] = byte_swap_32 (digest[6]);
+  digest[7] = byte_swap_32 (digest[7]);
+
   digest[0] -= SHA256M_A;
   digest[1] -= SHA256M_B;
   digest[2] -= SHA256M_C;
@@ -7461,11 +7550,6 @@ int phps_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   digest[2] = hex_to_u32 ((const u8 *) &digest_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &digest_buf[24]);
 
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-
   digest[0] -= MD5M_A;
   digest[1] -= MD5M_B;
   digest[2] -= MD5M_C;
@@ -7510,11 +7594,6 @@ int mediawiki_b_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
   digest[1] = hex_to_u32 ((const u8 *) &digest_buf[ 8]);
   digest[2] = hex_to_u32 ((const u8 *) &digest_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &digest_buf[24]);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
 
   digest[0] -= MD5M_A;
   digest[1] -= MD5M_B;
@@ -7571,11 +7650,6 @@ int skype_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUS
   digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
 
   digest[0] -= MD5M_A;
   digest[1] -= MD5M_B;
@@ -7680,17 +7754,17 @@ int androidfde_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   digest[2] = hex_to_u32 ((const u8 *) &keybuf_pos[16]);
   digest[3] = hex_to_u32 ((const u8 *) &keybuf_pos[24]);
 
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+
   if (is_valid_hex_string (saltbuf_pos, 64) == false) return (PARSER_HASH_ENCODING);
 
   salt->salt_buf[0] = hex_to_u32 ((const u8 *) &saltbuf_pos[ 0]);
   salt->salt_buf[1] = hex_to_u32 ((const u8 *) &saltbuf_pos[ 8]);
   salt->salt_buf[2] = hex_to_u32 ((const u8 *) &saltbuf_pos[16]);
   salt->salt_buf[3] = hex_to_u32 ((const u8 *) &saltbuf_pos[24]);
-
-  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
-  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
-  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
-  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
 
   salt->salt_len  = 16;
   salt->salt_iter = ROUNDS_ANDROIDFDE - 1;
@@ -7700,6 +7774,8 @@ int androidfde_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   for (u32 i = 0, j = 0; i < 3072; i += 8, j += 1)
   {
     androidfde->data[j] = hex_to_u32 ((const u8 *) &databuf_pos[i]);
+
+    androidfde->data[j] = byte_swap_32 (androidfde->data[j]);
   }
 
   return (PARSER_OK);
@@ -8061,6 +8137,11 @@ int office2007_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   salt->salt_buf[2] = hex_to_u32 ((const u8 *) &osalt_pos[16]);
   salt->salt_buf[3] = hex_to_u32 ((const u8 *) &osalt_pos[24]);
 
+  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
+  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
+  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
+  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
+
   /**
    * esalt
    */
@@ -8072,6 +8153,11 @@ int office2007_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   office2007->encryptedVerifier[2] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[16]);
   office2007->encryptedVerifier[3] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[24]);
 
+  office2007->encryptedVerifier[0] = byte_swap_32 (office2007->encryptedVerifier[0]);
+  office2007->encryptedVerifier[1] = byte_swap_32 (office2007->encryptedVerifier[1]);
+  office2007->encryptedVerifier[2] = byte_swap_32 (office2007->encryptedVerifier[2]);
+  office2007->encryptedVerifier[3] = byte_swap_32 (office2007->encryptedVerifier[3]);
+
   if (is_valid_hex_string (encryptedVerifierHash_pos, 40) == false) return (PARSER_HASH_ENCODING);
 
   office2007->encryptedVerifierHash[0] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[ 0]);
@@ -8079,6 +8165,12 @@ int office2007_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   office2007->encryptedVerifierHash[2] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[16]);
   office2007->encryptedVerifierHash[3] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[24]);
   office2007->encryptedVerifierHash[4] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[32]);
+
+  office2007->encryptedVerifierHash[0] = byte_swap_32 (office2007->encryptedVerifierHash[0]);
+  office2007->encryptedVerifierHash[1] = byte_swap_32 (office2007->encryptedVerifierHash[1]);
+  office2007->encryptedVerifierHash[2] = byte_swap_32 (office2007->encryptedVerifierHash[2]);
+  office2007->encryptedVerifierHash[3] = byte_swap_32 (office2007->encryptedVerifierHash[3]);
+  office2007->encryptedVerifierHash[4] = byte_swap_32 (office2007->encryptedVerifierHash[4]);
 
   /**
    * digest
@@ -8193,6 +8285,11 @@ int office2010_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   salt->salt_buf[2] = hex_to_u32 ((const u8 *) &osalt_pos[16]);
   salt->salt_buf[3] = hex_to_u32 ((const u8 *) &osalt_pos[24]);
 
+  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
+  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
+  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
+  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
+
   /**
    * esalt
    */
@@ -8204,6 +8301,11 @@ int office2010_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   office2010->encryptedVerifier[2] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[16]);
   office2010->encryptedVerifier[3] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[24]);
 
+  office2010->encryptedVerifier[0] = byte_swap_32 (office2010->encryptedVerifier[0]);
+  office2010->encryptedVerifier[1] = byte_swap_32 (office2010->encryptedVerifier[1]);
+  office2010->encryptedVerifier[2] = byte_swap_32 (office2010->encryptedVerifier[2]);
+  office2010->encryptedVerifier[3] = byte_swap_32 (office2010->encryptedVerifier[3]);
+
   if (is_valid_hex_string (encryptedVerifierHash_pos, 64) == false) return (PARSER_HASH_ENCODING);
 
   office2010->encryptedVerifierHash[0] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[ 0]);
@@ -8214,6 +8316,15 @@ int office2010_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   office2010->encryptedVerifierHash[5] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[40]);
   office2010->encryptedVerifierHash[6] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[48]);
   office2010->encryptedVerifierHash[7] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[56]);
+
+  office2010->encryptedVerifierHash[0] = byte_swap_32 (office2010->encryptedVerifierHash[0]);
+  office2010->encryptedVerifierHash[1] = byte_swap_32 (office2010->encryptedVerifierHash[1]);
+  office2010->encryptedVerifierHash[2] = byte_swap_32 (office2010->encryptedVerifierHash[2]);
+  office2010->encryptedVerifierHash[3] = byte_swap_32 (office2010->encryptedVerifierHash[3]);
+  office2010->encryptedVerifierHash[4] = byte_swap_32 (office2010->encryptedVerifierHash[4]);
+  office2010->encryptedVerifierHash[5] = byte_swap_32 (office2010->encryptedVerifierHash[5]);
+  office2010->encryptedVerifierHash[6] = byte_swap_32 (office2010->encryptedVerifierHash[6]);
+  office2010->encryptedVerifierHash[7] = byte_swap_32 (office2010->encryptedVerifierHash[7]);
 
   /**
    * digest
@@ -8328,6 +8439,11 @@ int office2013_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   salt->salt_buf[2] = hex_to_u32 ((const u8 *) &osalt_pos[16]);
   salt->salt_buf[3] = hex_to_u32 ((const u8 *) &osalt_pos[24]);
 
+  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
+  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
+  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
+  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
+
   /**
    * esalt
    */
@@ -8339,6 +8455,11 @@ int office2013_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   office2013->encryptedVerifier[2] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[16]);
   office2013->encryptedVerifier[3] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[24]);
 
+  office2013->encryptedVerifier[0] = byte_swap_32 (office2013->encryptedVerifier[0]);
+  office2013->encryptedVerifier[1] = byte_swap_32 (office2013->encryptedVerifier[1]);
+  office2013->encryptedVerifier[2] = byte_swap_32 (office2013->encryptedVerifier[2]);
+  office2013->encryptedVerifier[3] = byte_swap_32 (office2013->encryptedVerifier[3]);
+
   if (is_valid_hex_string (encryptedVerifierHash_pos, 64) == false) return (PARSER_HASH_ENCODING);
 
   office2013->encryptedVerifierHash[0] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[ 0]);
@@ -8349,6 +8470,15 @@ int office2013_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   office2013->encryptedVerifierHash[5] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[40]);
   office2013->encryptedVerifierHash[6] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[48]);
   office2013->encryptedVerifierHash[7] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[56]);
+
+  office2013->encryptedVerifierHash[0] = byte_swap_32 (office2013->encryptedVerifierHash[0]);
+  office2013->encryptedVerifierHash[1] = byte_swap_32 (office2013->encryptedVerifierHash[1]);
+  office2013->encryptedVerifierHash[2] = byte_swap_32 (office2013->encryptedVerifierHash[2]);
+  office2013->encryptedVerifierHash[3] = byte_swap_32 (office2013->encryptedVerifierHash[3]);
+  office2013->encryptedVerifierHash[4] = byte_swap_32 (office2013->encryptedVerifierHash[4]);
+  office2013->encryptedVerifierHash[5] = byte_swap_32 (office2013->encryptedVerifierHash[5]);
+  office2013->encryptedVerifierHash[6] = byte_swap_32 (office2013->encryptedVerifierHash[6]);
+  office2013->encryptedVerifierHash[7] = byte_swap_32 (office2013->encryptedVerifierHash[7]);
 
   /**
    * digest
@@ -8431,22 +8561,12 @@ int oldoffice01_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
   oldoffice01->encryptedVerifier[2] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[16]);
   oldoffice01->encryptedVerifier[3] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[24]);
 
-  oldoffice01->encryptedVerifier[0] = byte_swap_32 (oldoffice01->encryptedVerifier[0]);
-  oldoffice01->encryptedVerifier[1] = byte_swap_32 (oldoffice01->encryptedVerifier[1]);
-  oldoffice01->encryptedVerifier[2] = byte_swap_32 (oldoffice01->encryptedVerifier[2]);
-  oldoffice01->encryptedVerifier[3] = byte_swap_32 (oldoffice01->encryptedVerifier[3]);
-
   if (is_valid_hex_string (encryptedVerifierHash_pos, 32) == false) return (PARSER_HASH_ENCODING);
 
   oldoffice01->encryptedVerifierHash[0] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[ 0]);
   oldoffice01->encryptedVerifierHash[1] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[ 8]);
   oldoffice01->encryptedVerifierHash[2] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[16]);
   oldoffice01->encryptedVerifierHash[3] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[24]);
-
-  oldoffice01->encryptedVerifierHash[0] = byte_swap_32 (oldoffice01->encryptedVerifierHash[0]);
-  oldoffice01->encryptedVerifierHash[1] = byte_swap_32 (oldoffice01->encryptedVerifierHash[1]);
-  oldoffice01->encryptedVerifierHash[2] = byte_swap_32 (oldoffice01->encryptedVerifierHash[2]);
-  oldoffice01->encryptedVerifierHash[3] = byte_swap_32 (oldoffice01->encryptedVerifierHash[3]);
 
   /**
    * salt
@@ -8460,11 +8580,6 @@ int oldoffice01_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
   salt->salt_buf[1] = hex_to_u32 ((const u8 *) &osalt_pos[ 8]);
   salt->salt_buf[2] = hex_to_u32 ((const u8 *) &osalt_pos[16]);
   salt->salt_buf[3] = hex_to_u32 ((const u8 *) &osalt_pos[24]);
-
-  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
-  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
-  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
-  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
 
   // this is a workaround as office produces multiple documents with the same salt
 
@@ -8572,22 +8687,12 @@ int oldoffice01cm2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
   oldoffice01->encryptedVerifier[2] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[16]);
   oldoffice01->encryptedVerifier[3] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[24]);
 
-  oldoffice01->encryptedVerifier[0] = byte_swap_32 (oldoffice01->encryptedVerifier[0]);
-  oldoffice01->encryptedVerifier[1] = byte_swap_32 (oldoffice01->encryptedVerifier[1]);
-  oldoffice01->encryptedVerifier[2] = byte_swap_32 (oldoffice01->encryptedVerifier[2]);
-  oldoffice01->encryptedVerifier[3] = byte_swap_32 (oldoffice01->encryptedVerifier[3]);
-
   if (is_valid_hex_string (encryptedVerifierHash_pos, 32) == false) return (PARSER_HASH_ENCODING);
 
   oldoffice01->encryptedVerifierHash[0] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[ 0]);
   oldoffice01->encryptedVerifierHash[1] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[ 8]);
   oldoffice01->encryptedVerifierHash[2] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[16]);
   oldoffice01->encryptedVerifierHash[3] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[24]);
-
-  oldoffice01->encryptedVerifierHash[0] = byte_swap_32 (oldoffice01->encryptedVerifierHash[0]);
-  oldoffice01->encryptedVerifierHash[1] = byte_swap_32 (oldoffice01->encryptedVerifierHash[1]);
-  oldoffice01->encryptedVerifierHash[2] = byte_swap_32 (oldoffice01->encryptedVerifierHash[2]);
-  oldoffice01->encryptedVerifierHash[3] = byte_swap_32 (oldoffice01->encryptedVerifierHash[3]);
 
   oldoffice01->rc4key[1] = 0;
   oldoffice01->rc4key[0] = 0;
@@ -8718,11 +8823,6 @@ int oldoffice34_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
   oldoffice34->encryptedVerifier[2] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[16]);
   oldoffice34->encryptedVerifier[3] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[24]);
 
-  oldoffice34->encryptedVerifier[0] = byte_swap_32 (oldoffice34->encryptedVerifier[0]);
-  oldoffice34->encryptedVerifier[1] = byte_swap_32 (oldoffice34->encryptedVerifier[1]);
-  oldoffice34->encryptedVerifier[2] = byte_swap_32 (oldoffice34->encryptedVerifier[2]);
-  oldoffice34->encryptedVerifier[3] = byte_swap_32 (oldoffice34->encryptedVerifier[3]);
-
   if (is_valid_hex_string (encryptedVerifierHash_pos, 40) == false) return (PARSER_HASH_ENCODING);
 
   oldoffice34->encryptedVerifierHash[0] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[ 0]);
@@ -8730,12 +8830,6 @@ int oldoffice34_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
   oldoffice34->encryptedVerifierHash[2] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[16]);
   oldoffice34->encryptedVerifierHash[3] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[24]);
   oldoffice34->encryptedVerifierHash[4] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[32]);
-
-  oldoffice34->encryptedVerifierHash[0] = byte_swap_32 (oldoffice34->encryptedVerifierHash[0]);
-  oldoffice34->encryptedVerifierHash[1] = byte_swap_32 (oldoffice34->encryptedVerifierHash[1]);
-  oldoffice34->encryptedVerifierHash[2] = byte_swap_32 (oldoffice34->encryptedVerifierHash[2]);
-  oldoffice34->encryptedVerifierHash[3] = byte_swap_32 (oldoffice34->encryptedVerifierHash[3]);
-  oldoffice34->encryptedVerifierHash[4] = byte_swap_32 (oldoffice34->encryptedVerifierHash[4]);
 
   /**
    * salt
@@ -8749,6 +8843,11 @@ int oldoffice34_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
   salt->salt_buf[1] = hex_to_u32 ((const u8 *) &osalt_pos[ 8]);
   salt->salt_buf[2] = hex_to_u32 ((const u8 *) &osalt_pos[16]);
   salt->salt_buf[3] = hex_to_u32 ((const u8 *) &osalt_pos[24]);
+
+  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
+  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
+  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
+  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
 
   // this is a workaround as office produces multiple documents with the same salt
 
@@ -8857,11 +8956,6 @@ int oldoffice34cm2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
   oldoffice34->encryptedVerifier[2] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[16]);
   oldoffice34->encryptedVerifier[3] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[24]);
 
-  oldoffice34->encryptedVerifier[0] = byte_swap_32 (oldoffice34->encryptedVerifier[0]);
-  oldoffice34->encryptedVerifier[1] = byte_swap_32 (oldoffice34->encryptedVerifier[1]);
-  oldoffice34->encryptedVerifier[2] = byte_swap_32 (oldoffice34->encryptedVerifier[2]);
-  oldoffice34->encryptedVerifier[3] = byte_swap_32 (oldoffice34->encryptedVerifier[3]);
-
   if (is_valid_hex_string (encryptedVerifierHash_pos, 40) == false) return (PARSER_HASH_ENCODING);
 
   oldoffice34->encryptedVerifierHash[0] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[ 0]);
@@ -8869,12 +8963,6 @@ int oldoffice34cm2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
   oldoffice34->encryptedVerifierHash[2] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[16]);
   oldoffice34->encryptedVerifierHash[3] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[24]);
   oldoffice34->encryptedVerifierHash[4] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[32]);
-
-  oldoffice34->encryptedVerifierHash[0] = byte_swap_32 (oldoffice34->encryptedVerifierHash[0]);
-  oldoffice34->encryptedVerifierHash[1] = byte_swap_32 (oldoffice34->encryptedVerifierHash[1]);
-  oldoffice34->encryptedVerifierHash[2] = byte_swap_32 (oldoffice34->encryptedVerifierHash[2]);
-  oldoffice34->encryptedVerifierHash[3] = byte_swap_32 (oldoffice34->encryptedVerifierHash[3]);
-  oldoffice34->encryptedVerifierHash[4] = byte_swap_32 (oldoffice34->encryptedVerifierHash[4]);
 
   oldoffice34->rc4key[1] = 0;
   oldoffice34->rc4key[0] = 0;
@@ -8905,6 +8993,11 @@ int oldoffice34cm2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
   salt->salt_buf[1] = hex_to_u32 ((const u8 *) &osalt_pos[ 8]);
   salt->salt_buf[2] = hex_to_u32 ((const u8 *) &osalt_pos[16]);
   salt->salt_buf[3] = hex_to_u32 ((const u8 *) &osalt_pos[24]);
+
+  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
+  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
+  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
+  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
 
   // this is a workaround as office produces multiple documents with the same salt
 
@@ -8943,11 +9036,6 @@ int radmin2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
 
   return (PARSER_OK);
 }
@@ -8995,6 +9083,12 @@ int djangosha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   digest[2] = hex_to_u32 ((const u8 *) &hash_pos[16]);
   digest[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
   digest[4] = hex_to_u32 ((const u8 *) &hash_pos[32]);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
 
   digest[0] -= SHA1M_A;
   digest[1] -= SHA1M_B;
@@ -9105,9 +9199,6 @@ int siphash_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   digest[2] = 0;
   digest[3] = 0;
 
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-
   if (input_buf[16] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
   if (input_buf[18] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
   if (input_buf[20] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
@@ -9127,11 +9218,6 @@ int siphash_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   salt->salt_buf[1] = hex_to_u32 ((const u8 *) &salt_buf[ 8]);
   salt->salt_buf[2] = hex_to_u32 ((const u8 *) &salt_buf[16]);
   salt->salt_buf[3] = hex_to_u32 ((const u8 *) &salt_buf[24]);
-
-  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
-  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
-  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
-  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
 
   salt->salt_len = 16;
 
@@ -9200,11 +9286,6 @@ int crammd5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   digest[1] = hex_to_u32 (&tmp_hash[ 8]);
   digest[2] = hex_to_u32 (&tmp_hash[16]);
   digest[3] = hex_to_u32 (&tmp_hash[24]);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
 
   // store username for host only (output hash if cracked)
 
@@ -9297,6 +9378,12 @@ int redmine_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
   digest[4] = hex_to_u32 ((const u8 *) &input_buf[32]);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
 
   if (input_buf[40] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -9485,29 +9572,6 @@ int pdf11_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUS
   pdf->o_buf[6]  = hex_to_u32 ((const u8 *) &o_buf_pos[48]);
   pdf->o_buf[7]  = hex_to_u32 ((const u8 *) &o_buf_pos[56]);
   pdf->o_len     = o_len;
-
-  pdf->id_buf[0] = byte_swap_32 (pdf->id_buf[0]);
-  pdf->id_buf[1] = byte_swap_32 (pdf->id_buf[1]);
-  pdf->id_buf[2] = byte_swap_32 (pdf->id_buf[2]);
-  pdf->id_buf[3] = byte_swap_32 (pdf->id_buf[3]);
-
-  pdf->u_buf[0]  = byte_swap_32 (pdf->u_buf[0]);
-  pdf->u_buf[1]  = byte_swap_32 (pdf->u_buf[1]);
-  pdf->u_buf[2]  = byte_swap_32 (pdf->u_buf[2]);
-  pdf->u_buf[3]  = byte_swap_32 (pdf->u_buf[3]);
-  pdf->u_buf[4]  = byte_swap_32 (pdf->u_buf[4]);
-  pdf->u_buf[5]  = byte_swap_32 (pdf->u_buf[5]);
-  pdf->u_buf[6]  = byte_swap_32 (pdf->u_buf[6]);
-  pdf->u_buf[7]  = byte_swap_32 (pdf->u_buf[7]);
-
-  pdf->o_buf[0]  = byte_swap_32 (pdf->o_buf[0]);
-  pdf->o_buf[1]  = byte_swap_32 (pdf->o_buf[1]);
-  pdf->o_buf[2]  = byte_swap_32 (pdf->o_buf[2]);
-  pdf->o_buf[3]  = byte_swap_32 (pdf->o_buf[3]);
-  pdf->o_buf[4]  = byte_swap_32 (pdf->o_buf[4]);
-  pdf->o_buf[5]  = byte_swap_32 (pdf->o_buf[5]);
-  pdf->o_buf[6]  = byte_swap_32 (pdf->o_buf[6]);
-  pdf->o_buf[7]  = byte_swap_32 (pdf->o_buf[7]);
 
   // we use ID for salt, maybe needs to change, we will see...
 
@@ -9710,29 +9774,6 @@ int pdf11cm2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   pdf->o_buf[6]  = hex_to_u32 ((const u8 *) &o_buf_pos[48]);
   pdf->o_buf[7]  = hex_to_u32 ((const u8 *) &o_buf_pos[56]);
   pdf->o_len     = o_len;
-
-  pdf->id_buf[0] = byte_swap_32 (pdf->id_buf[0]);
-  pdf->id_buf[1] = byte_swap_32 (pdf->id_buf[1]);
-  pdf->id_buf[2] = byte_swap_32 (pdf->id_buf[2]);
-  pdf->id_buf[3] = byte_swap_32 (pdf->id_buf[3]);
-
-  pdf->u_buf[0]  = byte_swap_32 (pdf->u_buf[0]);
-  pdf->u_buf[1]  = byte_swap_32 (pdf->u_buf[1]);
-  pdf->u_buf[2]  = byte_swap_32 (pdf->u_buf[2]);
-  pdf->u_buf[3]  = byte_swap_32 (pdf->u_buf[3]);
-  pdf->u_buf[4]  = byte_swap_32 (pdf->u_buf[4]);
-  pdf->u_buf[5]  = byte_swap_32 (pdf->u_buf[5]);
-  pdf->u_buf[6]  = byte_swap_32 (pdf->u_buf[6]);
-  pdf->u_buf[7]  = byte_swap_32 (pdf->u_buf[7]);
-
-  pdf->o_buf[0]  = byte_swap_32 (pdf->o_buf[0]);
-  pdf->o_buf[1]  = byte_swap_32 (pdf->o_buf[1]);
-  pdf->o_buf[2]  = byte_swap_32 (pdf->o_buf[2]);
-  pdf->o_buf[3]  = byte_swap_32 (pdf->o_buf[3]);
-  pdf->o_buf[4]  = byte_swap_32 (pdf->o_buf[4]);
-  pdf->o_buf[5]  = byte_swap_32 (pdf->o_buf[5]);
-  pdf->o_buf[6]  = byte_swap_32 (pdf->o_buf[6]);
-  pdf->o_buf[7]  = byte_swap_32 (pdf->o_buf[7]);
 
   pdf->rc4key[1] = 0;
   pdf->rc4key[0] = 0;
@@ -9960,37 +10001,6 @@ int pdf14_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUS
   pdf->o_buf[6]  = hex_to_u32 ((const u8 *) &o_buf_pos[48]);
   pdf->o_buf[7]  = hex_to_u32 ((const u8 *) &o_buf_pos[56]);
   pdf->o_len     = o_len;
-
-  pdf->id_buf[0] = byte_swap_32 (pdf->id_buf[0]);
-  pdf->id_buf[1] = byte_swap_32 (pdf->id_buf[1]);
-  pdf->id_buf[2] = byte_swap_32 (pdf->id_buf[2]);
-  pdf->id_buf[3] = byte_swap_32 (pdf->id_buf[3]);
-
-  if (id_len == 32)
-  {
-    pdf->id_buf[4] = byte_swap_32 (pdf->id_buf[4]);
-    pdf->id_buf[5] = byte_swap_32 (pdf->id_buf[5]);
-    pdf->id_buf[6] = byte_swap_32 (pdf->id_buf[6]);
-    pdf->id_buf[7] = byte_swap_32 (pdf->id_buf[7]);
-  }
-
-  pdf->u_buf[0]  = byte_swap_32 (pdf->u_buf[0]);
-  pdf->u_buf[1]  = byte_swap_32 (pdf->u_buf[1]);
-  pdf->u_buf[2]  = byte_swap_32 (pdf->u_buf[2]);
-  pdf->u_buf[3]  = byte_swap_32 (pdf->u_buf[3]);
-  pdf->u_buf[4]  = byte_swap_32 (pdf->u_buf[4]);
-  pdf->u_buf[5]  = byte_swap_32 (pdf->u_buf[5]);
-  pdf->u_buf[6]  = byte_swap_32 (pdf->u_buf[6]);
-  pdf->u_buf[7]  = byte_swap_32 (pdf->u_buf[7]);
-
-  pdf->o_buf[0]  = byte_swap_32 (pdf->o_buf[0]);
-  pdf->o_buf[1]  = byte_swap_32 (pdf->o_buf[1]);
-  pdf->o_buf[2]  = byte_swap_32 (pdf->o_buf[2]);
-  pdf->o_buf[3]  = byte_swap_32 (pdf->o_buf[3]);
-  pdf->o_buf[4]  = byte_swap_32 (pdf->o_buf[4]);
-  pdf->o_buf[5]  = byte_swap_32 (pdf->o_buf[5]);
-  pdf->o_buf[6]  = byte_swap_32 (pdf->o_buf[6]);
-  pdf->o_buf[7]  = byte_swap_32 (pdf->o_buf[7]);
 
   // precompute rc4 data for later use
 
@@ -10221,13 +10231,12 @@ int pdf17l8_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   for (int i = 0, j = 0; i < 8 + 2; i += 1, j += 8)
   {
     pdf->u_buf[i] = hex_to_u32 ((const u8 *) &u_buf_pos[j]);
+
+    pdf->u_buf[i] = byte_swap_32 (pdf->u_buf[i]);
   }
 
   salt->salt_buf[0] = pdf->u_buf[8];
   salt->salt_buf[1] = pdf->u_buf[9];
-
-  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
-  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
 
   salt->salt_len  = 8;
   salt->salt_iter = ROUNDS_PDF17L8;
@@ -10346,11 +10355,6 @@ int prestashop_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
 
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-
   if (input_buf[32] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
 
   u32 salt_len = input_len - 32 - 1;
@@ -10411,11 +10415,6 @@ int postgresql_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, 
   digest[2] = hex_to_u32 ((const u8 *) &hash_pos[16]);
   digest[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
 
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-
   digest[0] -= MD5M_A;
   digest[1] -= MD5M_B;
   digest[2] -= MD5M_C;
@@ -10429,7 +10428,7 @@ int postgresql_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, 
 
   // first 4 bytes are the "challenge"
 
-  if (is_valid_hex_string (salt_pos, 32) == false) return (PARSER_SALT_ENCODING);
+  if (is_valid_hex_string (salt_pos, 8) == false) return (PARSER_SALT_ENCODING);
 
   salt_buf_ptr[0] = hex_to_u8 ((const u8 *) &salt_pos[0]);
   salt_buf_ptr[1] = hex_to_u8 ((const u8 *) &salt_pos[2]);
@@ -10482,6 +10481,12 @@ int mysql_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   digest[2] = hex_to_u32 ((const u8 *) &hash_pos[16]);
   digest[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
   digest[4] = hex_to_u32 ((const u8 *) &hash_pos[32]);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
 
   /*
    * store salt
@@ -10595,8 +10600,6 @@ int bitcoin_wallet_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
   for (u32 i = 0, j = 0; j < cry_master_len; i += 1, j += 8)
   {
     bitcoin_wallet->cry_master_buf[i] = hex_to_u32 ((const u8 *) &cry_master_buf_pos[j]);
-
-    bitcoin_wallet->cry_master_buf[i] = byte_swap_32 (bitcoin_wallet->cry_master_buf[i]);
   }
 
   if (is_valid_hex_string (ckey_buf_pos, ckey_len) == false) return (PARSER_SALT_ENCODING);
@@ -10604,8 +10607,6 @@ int bitcoin_wallet_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
   for (u32 i = 0, j = 0; j < ckey_len; i += 1, j += 8)
   {
     bitcoin_wallet->ckey_buf[i] = hex_to_u32 ((const u8 *) &ckey_buf_pos[j]);
-
-    bitcoin_wallet->ckey_buf[i] = byte_swap_32 (bitcoin_wallet->ckey_buf[i]);
   }
 
   if (is_valid_hex_string (public_key_buf_pos, public_key_len) == false) return (PARSER_SALT_ENCODING);
@@ -10613,8 +10614,6 @@ int bitcoin_wallet_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
   for (u32 i = 0, j = 0; j < public_key_len; i += 1, j += 8)
   {
     bitcoin_wallet->public_key_buf[i] = hex_to_u32 ((const u8 *) &public_key_buf_pos[j]);
-
-    bitcoin_wallet->public_key_buf[i] = byte_swap_32 (bitcoin_wallet->public_key_buf[i]);
   }
 
   bitcoin_wallet->cry_master_len = cry_master_len / 2;
@@ -10987,11 +10986,6 @@ int sip_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   digest[2] = hex_to_u32 ((const u8 *) &digest_pos[16]);
   digest[3] = hex_to_u32 ((const u8 *) &digest_pos[24]);
 
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-
   return (PARSER_OK);
 }
 
@@ -11012,6 +11006,11 @@ int crc32_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUS
   if (is_valid_hex_string (digest_pos, 8) == false) return (PARSER_HASH_ENCODING);
 
   digest[0] = hex_to_u32 ((const u8 *) &digest_pos[0]);
+  digest[1] = 0;
+  digest[2] = 0;
+  digest[3] = 0;
+
+  digest[0] = byte_swap_32 (digest[0]);
   digest[1] = 0;
   digest[2] = 0;
   digest[3] = 0;
@@ -11157,6 +11156,11 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   seven_zip->iv_buf[2] = hex_to_u32 ((const u8 *) &iv_buf_pos[16]);
   seven_zip->iv_buf[3] = hex_to_u32 ((const u8 *) &iv_buf_pos[24]);
 
+  seven_zip->iv_buf[0] = byte_swap_32 (seven_zip->iv_buf[0]);
+  seven_zip->iv_buf[1] = byte_swap_32 (seven_zip->iv_buf[1]);
+  seven_zip->iv_buf[2] = byte_swap_32 (seven_zip->iv_buf[2]);
+  seven_zip->iv_buf[3] = byte_swap_32 (seven_zip->iv_buf[3]);
+
   seven_zip->iv_len = iv_len;
 
   memcpy (seven_zip->salt_buf, salt_buf_pos, salt_buf_len); // we just need that for later ascii_digest()
@@ -11170,8 +11174,6 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   for (u32 i = 0, j = 0; j < data_buf_len; i += 1, j += 8)
   {
     seven_zip->data_buf[i] = hex_to_u32 ((const u8 *) &data_buf_pos[j]);
-
-    seven_zip->data_buf[i] = byte_swap_32 (seven_zip->data_buf[i]);
   }
 
   seven_zip->data_len = data_len;
@@ -11220,15 +11222,6 @@ int gost2012sbog_256_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf,
   digest[6] = hex_to_u32 ((const u8 *) &input_buf[48]);
   digest[7] = hex_to_u32 ((const u8 *) &input_buf[56]);
 
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-  digest[4] = byte_swap_32 (digest[4]);
-  digest[5] = byte_swap_32 (digest[5]);
-  digest[6] = byte_swap_32 (digest[6]);
-  digest[7] = byte_swap_32 (digest[7]);
-
   return (PARSER_OK);
 }
 
@@ -11256,23 +11249,6 @@ int gost2012sbog_512_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf,
   digest[13] = hex_to_u32 ((const u8 *) &input_buf[104]);
   digest[14] = hex_to_u32 ((const u8 *) &input_buf[112]);
   digest[15] = hex_to_u32 ((const u8 *) &input_buf[120]);
-
-  digest[ 0] = byte_swap_32 (digest[ 0]);
-  digest[ 1] = byte_swap_32 (digest[ 1]);
-  digest[ 2] = byte_swap_32 (digest[ 2]);
-  digest[ 3] = byte_swap_32 (digest[ 3]);
-  digest[ 4] = byte_swap_32 (digest[ 4]);
-  digest[ 5] = byte_swap_32 (digest[ 5]);
-  digest[ 6] = byte_swap_32 (digest[ 6]);
-  digest[ 7] = byte_swap_32 (digest[ 7]);
-  digest[ 8] = byte_swap_32 (digest[ 8]);
-  digest[ 9] = byte_swap_32 (digest[ 9]);
-  digest[10] = byte_swap_32 (digest[10]);
-  digest[11] = byte_swap_32 (digest[11]);
-  digest[12] = byte_swap_32 (digest[12]);
-  digest[13] = byte_swap_32 (digest[13]);
-  digest[14] = byte_swap_32 (digest[14]);
-  digest[15] = byte_swap_32 (digest[15]);
 
   return (PARSER_OK);
 }
@@ -11587,12 +11563,18 @@ int ecryptfs_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   digest[14] = 0;
   digest[15] = 0;
 
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+
   // decode salt
 
   if (is_valid_hex_string (salt_pos, 16) == false) return (PARSER_SALT_ENCODING);
 
   salt->salt_buf[0] = hex_to_u32 ((const u8 *) &salt_pos[0]);
   salt->salt_buf[1] = hex_to_u32 ((const u8 *) &salt_pos[8]);
+
+  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
+  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
 
   salt->salt_iter = ROUNDS_ECRYPTFS;
   salt->salt_len  = 8;
@@ -11695,15 +11677,17 @@ int rar3hp_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   salt->salt_buf[0] = hex_to_u32 ((const u8 *) &salt_pos[0]);
   salt->salt_buf[1] = hex_to_u32 ((const u8 *) &salt_pos[8]);
 
-  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
-  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
-
   if (is_valid_hex_string (crypted_pos, 32) == false) return (PARSER_SALT_ENCODING);
 
   salt->salt_buf[2] = hex_to_u32 ((const u8 *) &crypted_pos[ 0]);
   salt->salt_buf[3] = hex_to_u32 ((const u8 *) &crypted_pos[ 8]);
   salt->salt_buf[4] = hex_to_u32 ((const u8 *) &crypted_pos[16]);
   salt->salt_buf[5] = hex_to_u32 ((const u8 *) &crypted_pos[24]);
+
+  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
+  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
+  salt->salt_buf[4] = byte_swap_32 (salt->salt_buf[4]);
+  salt->salt_buf[5] = byte_swap_32 (salt->salt_buf[5]);
 
   salt->salt_len  = 24;
   salt->salt_iter = ROUNDS_RAR3;
@@ -11810,12 +11794,22 @@ int rar5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   salt->salt_buf[2] = hex_to_u32 ((const u8 *) &salt_buf[16]);
   salt->salt_buf[3] = hex_to_u32 ((const u8 *) &salt_buf[24]);
 
+  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
+  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
+  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
+  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
+
   if (is_valid_hex_string (iv, 32) == false) return (PARSER_SALT_ENCODING);
 
   rar5->iv[0] = hex_to_u32 ((const u8 *) &iv[ 0]);
   rar5->iv[1] = hex_to_u32 ((const u8 *) &iv[ 8]);
   rar5->iv[2] = hex_to_u32 ((const u8 *) &iv[16]);
   rar5->iv[3] = hex_to_u32 ((const u8 *) &iv[24]);
+
+  rar5->iv[0] = byte_swap_32 (rar5->iv[0]);
+  rar5->iv[1] = byte_swap_32 (rar5->iv[1]);
+  rar5->iv[2] = byte_swap_32 (rar5->iv[2]);
+  rar5->iv[3] = byte_swap_32 (rar5->iv[3]);
 
   salt->salt_len = 16;
 
@@ -11831,6 +11825,11 @@ int rar5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   digest[0] = hex_to_u32 ((const u8 *) &pswcheck[ 0]);
   digest[1] = hex_to_u32 ((const u8 *) &pswcheck[ 8]);
+  digest[2] = 0;
+  digest[3] = 0;
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
   digest[2] = 0;
   digest[3] = 0;
 
@@ -11994,6 +11993,11 @@ int axcrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   salt->salt_buf[2] = hex_to_u32 ((const u8 *) &data_pos[16]);
   salt->salt_buf[3] = hex_to_u32 ((const u8 *) &data_pos[24]);
 
+  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
+  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
+  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
+  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
+
   data_pos += 33;
 
   if (is_valid_hex_string (data_pos, 48) == false) return (PARSER_SALT_ENCODING);
@@ -12004,6 +12008,13 @@ int axcrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   salt->salt_buf[7] = hex_to_u32 ((const u8 *) &data_pos[24]);
   salt->salt_buf[8] = hex_to_u32 ((const u8 *) &data_pos[32]);
   salt->salt_buf[9] = hex_to_u32 ((const u8 *) &data_pos[40]);
+
+  salt->salt_buf[4] = byte_swap_32 (salt->salt_buf[4]);
+  salt->salt_buf[5] = byte_swap_32 (salt->salt_buf[5]);
+  salt->salt_buf[6] = byte_swap_32 (salt->salt_buf[6]);
+  salt->salt_buf[7] = byte_swap_32 (salt->salt_buf[7]);
+  salt->salt_buf[8] = byte_swap_32 (salt->salt_buf[8]);
+  salt->salt_buf[9] = byte_swap_32 (salt->salt_buf[9]);
 
   salt->salt_len = 40;
 
@@ -12089,6 +12100,11 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   keepass->final_random_seed[2] = hex_to_u32 ((const u8 *) &final_random_seed_pos[16]);
   keepass->final_random_seed[3] = hex_to_u32 ((const u8 *) &final_random_seed_pos[24]);
 
+  keepass->final_random_seed[0] = byte_swap_32 (keepass->final_random_seed[0]);
+  keepass->final_random_seed[1] = byte_swap_32 (keepass->final_random_seed[1]);
+  keepass->final_random_seed[2] = byte_swap_32 (keepass->final_random_seed[2]);
+  keepass->final_random_seed[3] = byte_swap_32 (keepass->final_random_seed[3]);
+
   if (keepass->version == 2)
   {
     if (is_valid_hex_string (final_random_seed_pos + 32, 32) == false) return (PARSER_SALT_ENCODING);
@@ -12097,6 +12113,11 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
     keepass->final_random_seed[5] = hex_to_u32 ((const u8 *) &final_random_seed_pos[40]);
     keepass->final_random_seed[6] = hex_to_u32 ((const u8 *) &final_random_seed_pos[48]);
     keepass->final_random_seed[7] = hex_to_u32 ((const u8 *) &final_random_seed_pos[56]);
+
+    keepass->final_random_seed[4] = byte_swap_32 (keepass->final_random_seed[4]);
+    keepass->final_random_seed[5] = byte_swap_32 (keepass->final_random_seed[5]);
+    keepass->final_random_seed[6] = byte_swap_32 (keepass->final_random_seed[6]);
+    keepass->final_random_seed[7] = byte_swap_32 (keepass->final_random_seed[7]);
   }
 
   transf_random_seed_pos = (u8 *) strchr ((const char *) final_random_seed_pos, '*');
@@ -12121,6 +12142,15 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   keepass->transf_random_seed[6] = hex_to_u32 ((const u8 *) &transf_random_seed_pos[48]);
   keepass->transf_random_seed[7] = hex_to_u32 ((const u8 *) &transf_random_seed_pos[56]);
 
+  keepass->transf_random_seed[0] = byte_swap_32 (keepass->transf_random_seed[0]);
+  keepass->transf_random_seed[1] = byte_swap_32 (keepass->transf_random_seed[1]);
+  keepass->transf_random_seed[2] = byte_swap_32 (keepass->transf_random_seed[2]);
+  keepass->transf_random_seed[3] = byte_swap_32 (keepass->transf_random_seed[3]);
+  keepass->transf_random_seed[4] = byte_swap_32 (keepass->transf_random_seed[4]);
+  keepass->transf_random_seed[5] = byte_swap_32 (keepass->transf_random_seed[5]);
+  keepass->transf_random_seed[6] = byte_swap_32 (keepass->transf_random_seed[6]);
+  keepass->transf_random_seed[7] = byte_swap_32 (keepass->transf_random_seed[7]);
+
   enc_iv_pos = (u8 *) strchr ((const char *) transf_random_seed_pos, '*');
 
   if (enc_iv_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
@@ -12137,6 +12167,11 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   keepass->enc_iv[1] = hex_to_u32 ((const u8 *) &enc_iv_pos[ 8]);
   keepass->enc_iv[2] = hex_to_u32 ((const u8 *) &enc_iv_pos[16]);
   keepass->enc_iv[3] = hex_to_u32 ((const u8 *) &enc_iv_pos[24]);
+
+  keepass->enc_iv[0] = byte_swap_32 (keepass->enc_iv[0]);
+  keepass->enc_iv[1] = byte_swap_32 (keepass->enc_iv[1]);
+  keepass->enc_iv[2] = byte_swap_32 (keepass->enc_iv[2]);
+  keepass->enc_iv[3] = byte_swap_32 (keepass->enc_iv[3]);
 
   if (keepass->version == 1)
   {
@@ -12160,6 +12195,15 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
     keepass->contents_hash[5] = hex_to_u32 ((const u8 *) &contents_hash_pos[40]);
     keepass->contents_hash[6] = hex_to_u32 ((const u8 *) &contents_hash_pos[48]);
     keepass->contents_hash[7] = hex_to_u32 ((const u8 *) &contents_hash_pos[56]);
+
+    keepass->contents_hash[0] = byte_swap_32 (keepass->contents_hash[0]);
+    keepass->contents_hash[1] = byte_swap_32 (keepass->contents_hash[1]);
+    keepass->contents_hash[2] = byte_swap_32 (keepass->contents_hash[2]);
+    keepass->contents_hash[3] = byte_swap_32 (keepass->contents_hash[3]);
+    keepass->contents_hash[4] = byte_swap_32 (keepass->contents_hash[4]);
+    keepass->contents_hash[5] = byte_swap_32 (keepass->contents_hash[5]);
+    keepass->contents_hash[6] = byte_swap_32 (keepass->contents_hash[6]);
+    keepass->contents_hash[7] = byte_swap_32 (keepass->contents_hash[7]);
 
     /* get length of contents following */
     u8 *inline_flag_pos = (u8 *) strchr ((const char *) contents_hash_pos, '*');
@@ -12220,6 +12264,8 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
     for (int i = 0; i < contents_len; i++)
     {
       keepass->contents[i] = hex_to_u32 ((const u8 *) &contents_pos[i * 8]);
+
+      keepass->contents[i] = byte_swap_32 (keepass->contents[i]);
     }
   }
   else if (keepass->version == 2)
@@ -12245,6 +12291,15 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
     keepass->expected_bytes[6] = hex_to_u32 ((const u8 *) &expected_bytes_pos[48]);
     keepass->expected_bytes[7] = hex_to_u32 ((const u8 *) &expected_bytes_pos[56]);
 
+    keepass->expected_bytes[0] = byte_swap_32 (keepass->expected_bytes[0]);
+    keepass->expected_bytes[1] = byte_swap_32 (keepass->expected_bytes[1]);
+    keepass->expected_bytes[2] = byte_swap_32 (keepass->expected_bytes[2]);
+    keepass->expected_bytes[3] = byte_swap_32 (keepass->expected_bytes[3]);
+    keepass->expected_bytes[4] = byte_swap_32 (keepass->expected_bytes[4]);
+    keepass->expected_bytes[5] = byte_swap_32 (keepass->expected_bytes[5]);
+    keepass->expected_bytes[6] = byte_swap_32 (keepass->expected_bytes[6]);
+    keepass->expected_bytes[7] = byte_swap_32 (keepass->expected_bytes[7]);
+
     contents_hash_pos = (u8 *) strchr ((const char *) expected_bytes_pos, '*');
 
     if (contents_hash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
@@ -12265,6 +12320,15 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
     keepass->contents_hash[5] = hex_to_u32 ((const u8 *) &contents_hash_pos[40]);
     keepass->contents_hash[6] = hex_to_u32 ((const u8 *) &contents_hash_pos[48]);
     keepass->contents_hash[7] = hex_to_u32 ((const u8 *) &contents_hash_pos[56]);
+
+    keepass->contents_hash[0] = byte_swap_32 (keepass->contents_hash[0]);
+    keepass->contents_hash[1] = byte_swap_32 (keepass->contents_hash[1]);
+    keepass->contents_hash[2] = byte_swap_32 (keepass->contents_hash[2]);
+    keepass->contents_hash[3] = byte_swap_32 (keepass->contents_hash[3]);
+    keepass->contents_hash[4] = byte_swap_32 (keepass->contents_hash[4]);
+    keepass->contents_hash[5] = byte_swap_32 (keepass->contents_hash[5]);
+    keepass->contents_hash[6] = byte_swap_32 (keepass->contents_hash[6]);
+    keepass->contents_hash[7] = byte_swap_32 (keepass->contents_hash[7]);
 
     keyfile_inline_pos = (u8 *) strchr ((const char *) contents_hash_pos, '*');
 
@@ -12316,6 +12380,15 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
     keepass->keyfile[5] = hex_to_u32 ((const u8 *) &keyfile_pos[40]);
     keepass->keyfile[6] = hex_to_u32 ((const u8 *) &keyfile_pos[48]);
     keepass->keyfile[7] = hex_to_u32 ((const u8 *) &keyfile_pos[56]);
+
+    keepass->keyfile[0] = byte_swap_32 (keepass->keyfile[0]);
+    keepass->keyfile[1] = byte_swap_32 (keepass->keyfile[1]);
+    keepass->keyfile[2] = byte_swap_32 (keepass->keyfile[2]);
+    keepass->keyfile[3] = byte_swap_32 (keepass->keyfile[3]);
+    keepass->keyfile[4] = byte_swap_32 (keepass->keyfile[4]);
+    keepass->keyfile[5] = byte_swap_32 (keepass->keyfile[5]);
+    keepass->keyfile[6] = byte_swap_32 (keepass->keyfile[6]);
+    keepass->keyfile[7] = byte_swap_32 (keepass->keyfile[7]);
   }
 
   digest[0] = keepass->enc_iv[0];
@@ -12353,6 +12426,15 @@ int cf10_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   digest[5] = hex_to_u32 ((const u8 *) &input_buf[40]);
   digest[6] = hex_to_u32 ((const u8 *) &input_buf[48]);
   digest[7] = hex_to_u32 ((const u8 *) &input_buf[56]);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
+  digest[5] = byte_swap_32 (digest[5]);
+  digest[6] = byte_swap_32 (digest[6]);
+  digest[7] = byte_swap_32 (digest[7]);
 
   if (input_buf[64] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -12466,12 +12548,22 @@ int mywallet_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   salt->salt_buf[2] = hex_to_u32 ((const u8 *) &salt_pos[16]);
   salt->salt_buf[3] = hex_to_u32 ((const u8 *) &salt_pos[24]);
 
+  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
+  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
+  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
+  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
+
   // this is actually the CT, which is also the hash later (if matched)
 
   salt->salt_buf[4] = hex_to_u32 ((const u8 *) &salt_pos[32]);
   salt->salt_buf[5] = hex_to_u32 ((const u8 *) &salt_pos[40]);
   salt->salt_buf[6] = hex_to_u32 ((const u8 *) &salt_pos[48]);
   salt->salt_buf[7] = hex_to_u32 ((const u8 *) &salt_pos[56]);
+
+  salt->salt_buf[4] = byte_swap_32 (salt->salt_buf[4]);
+  salt->salt_buf[5] = byte_swap_32 (salt->salt_buf[5]);
+  salt->salt_buf[6] = byte_swap_32 (salt->salt_buf[6]);
+  salt->salt_buf[7] = byte_swap_32 (salt->salt_buf[7]);
 
   salt->salt_len = 32; // note we need to fix this to 16 in kernel
 
@@ -12537,13 +12629,8 @@ int ms_drsr_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   salt->salt_buf[0] = hex_to_u32 ((const u8 *) &salt_pos[ 0]);
   salt->salt_buf[1] = hex_to_u32 ((const u8 *) &salt_pos[ 8]);
-  salt->salt_buf[2] = hex_to_u32 ((const u8 *) &salt_pos[16]) & 0xffff0000;
-  salt->salt_buf[3] = 0x00018000;
-
-  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
-  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
-  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
-  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
+  salt->salt_buf[2] = hex_to_u32 ((const u8 *) &salt_pos[16]) & 0x0000ffff;
+  salt->salt_buf[3] = 0x00800100;
 
   salt->salt_len = salt_len / 2;
 
@@ -12563,6 +12650,15 @@ int ms_drsr_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   digest[5] = hex_to_u32 ((const u8 *) &hash_pos[40]);
   digest[6] = hex_to_u32 ((const u8 *) &hash_pos[48]);
   digest[7] = hex_to_u32 ((const u8 *) &hash_pos[56]);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
+  digest[5] = byte_swap_32 (digest[5]);
+  digest[6] = byte_swap_32 (digest[6]);
+  digest[7] = byte_swap_32 (digest[7]);
 
   return (PARSER_OK);
 }
@@ -12594,16 +12690,27 @@ int androidfde_samsung_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_bu
   salt->salt_buf[ 1] = hex_to_u32 ((const u8 *) &salt1_pos[ 8]);
   salt->salt_buf[ 2] = hex_to_u32 ((const u8 *) &salt1_pos[16]);
   salt->salt_buf[ 3] = hex_to_u32 ((const u8 *) &salt1_pos[24]);
-
   salt->salt_buf[ 4] = hex_to_u32 ((const u8 *) &salt2_pos[ 0]);
   salt->salt_buf[ 5] = hex_to_u32 ((const u8 *) &salt2_pos[ 8]);
   salt->salt_buf[ 6] = hex_to_u32 ((const u8 *) &salt2_pos[16]);
   salt->salt_buf[ 7] = hex_to_u32 ((const u8 *) &salt2_pos[24]);
-
   salt->salt_buf[ 8] = hex_to_u32 ((const u8 *) &salt2_pos[32]);
   salt->salt_buf[ 9] = hex_to_u32 ((const u8 *) &salt2_pos[40]);
   salt->salt_buf[10] = hex_to_u32 ((const u8 *) &salt2_pos[48]);
   salt->salt_buf[11] = hex_to_u32 ((const u8 *) &salt2_pos[56]);
+
+  salt->salt_buf[ 0] = byte_swap_32 (salt->salt_buf[ 0]);
+  salt->salt_buf[ 1] = byte_swap_32 (salt->salt_buf[ 1]);
+  salt->salt_buf[ 2] = byte_swap_32 (salt->salt_buf[ 2]);
+  salt->salt_buf[ 3] = byte_swap_32 (salt->salt_buf[ 3]);
+  salt->salt_buf[ 4] = byte_swap_32 (salt->salt_buf[ 4]);
+  salt->salt_buf[ 5] = byte_swap_32 (salt->salt_buf[ 5]);
+  salt->salt_buf[ 6] = byte_swap_32 (salt->salt_buf[ 6]);
+  salt->salt_buf[ 7] = byte_swap_32 (salt->salt_buf[ 7]);
+  salt->salt_buf[ 8] = byte_swap_32 (salt->salt_buf[ 8]);
+  salt->salt_buf[ 9] = byte_swap_32 (salt->salt_buf[ 9]);
+  salt->salt_buf[10] = byte_swap_32 (salt->salt_buf[10]);
+  salt->salt_buf[11] = byte_swap_32 (salt->salt_buf[11]);
 
   salt->salt_len = 48;
 
@@ -12623,6 +12730,15 @@ int androidfde_samsung_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_bu
   digest[5] = hex_to_u32 ((const u8 *) &hash_pos[40]);
   digest[6] = hex_to_u32 ((const u8 *) &hash_pos[48]);
   digest[7] = hex_to_u32 ((const u8 *) &hash_pos[56]);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
+  digest[5] = byte_swap_32 (digest[5]);
+  digest[6] = byte_swap_32 (digest[6]);
+  digest[7] = byte_swap_32 (digest[7]);
 
   return (PARSER_OK);
 }
@@ -12795,11 +12911,6 @@ int zip2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
     zip2->salt_len = 16;
   }
 
-  zip2->salt_buf[0] = byte_swap_32 (zip2->salt_buf[0]);
-  zip2->salt_buf[1] = byte_swap_32 (zip2->salt_buf[1]);
-  zip2->salt_buf[2] = byte_swap_32 (zip2->salt_buf[2]);
-  zip2->salt_buf[3] = byte_swap_32 (zip2->salt_buf[3]);
-
   zip2->verify_bytes = verify_bytes;
 
   zip2->compress_length = compress_length;
@@ -12882,6 +12993,15 @@ int win8phone_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   digest[6] = hex_to_u32 ((const u8 *) &input_buf[48]);
   digest[7] = hex_to_u32 ((const u8 *) &input_buf[56]);
 
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
+  digest[5] = byte_swap_32 (digest[5]);
+  digest[6] = byte_swap_32 (digest[6]);
+  digest[7] = byte_swap_32 (digest[7]);
+
   if (input_buf[64] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
 
   u8 *salt_buf_ptr = input_buf + 64 + 1;
@@ -12893,6 +13013,8 @@ int win8phone_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   for (int i = 0, j = 0; i < 32; i += 1, j += 8)
   {
     salt_buf[i] = hex_to_u32 ((const u8 *) &salt_buf_ptr[j]);
+
+    salt_buf[i] = byte_swap_32 (salt_buf[i]);
   }
 
   salt->salt_buf[0] = salt_buf[0];
@@ -12970,6 +13092,12 @@ int sha1cx_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
   digest[4] = hex_to_u32 ((const u8 *) &input_buf[32]);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
 
   if (input_buf[40] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
 
