@@ -28,6 +28,27 @@ typedef int   (*XCLOSEDISPLAY) (void *);
 #define NV_CTRL_THERMAL_COOLER_LEVEL                            320 /* RW-C */
 
 /*
+ * NV_CTRL_PCI_BUS - Returns the PCI bus number the specified device is using.
+ */
+
+#define NV_CTRL_PCI_BUS                                          239 /* R--GI */
+
+/*
+ * NV_CTRL_PCI_DEVICE - Returns the PCI device number the specified device is
+ * using.
+ */
+
+#define NV_CTRL_PCI_DEVICE                                       240 /* R--GI */
+
+
+/*
+ * NV_CTRL_PCI_FUNCTION - Returns the PCI function number the specified device
+ * is using.
+ */
+
+#define NV_CTRL_PCI_FUNCTION                                     241 /* R--GI */
+
+/*
  * NV_CTRL_GPU_CORE_THRESHOLD reflects the temperature at which the
  * GPU is throttled to prevent overheating.
  */
@@ -46,6 +67,7 @@ typedef int HM_ADAPTER_XNVCTRL;
 #define XNVCTRL_API_CALL
 #endif
 
+typedef int  (*XNVCTRL_API_CALL XNVCTRLQUERYTARGETCOUNT)     (void *, int, int *);
 typedef int  (*XNVCTRL_API_CALL XNVCTRLQUERYTARGETATTRIBUTE) (void *, int, int, unsigned int, unsigned int, int *);
 typedef void (*XNVCTRL_API_CALL XNVCTRLSETTARGETATTRIBUTE)   (void *, int, int, unsigned int, unsigned int, int);
 
@@ -65,6 +87,7 @@ typedef struct hm_xnvctrl_lib
   XOPENDISPLAY  XOpenDisplay;
   XCLOSEDISPLAY XCloseDisplay;
 
+  XNVCTRLQUERYTARGETCOUNT     XNVCTRLQueryTargetCount;
   XNVCTRLQUERYTARGETATTRIBUTE XNVCTRLQueryTargetAttribute;
   XNVCTRLSETTARGETATTRIBUTE   XNVCTRLSetTargetAttribute;
 

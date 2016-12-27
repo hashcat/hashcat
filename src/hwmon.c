@@ -1342,6 +1342,7 @@ static int xnvctrl_init (hashcat_ctx_t *hashcat_ctx)
   HC_LOAD_FUNC2 (xnvctrl, XOpenDisplay,  XOPENDISPLAY,  lib_x11, X11, 0);
   HC_LOAD_FUNC2 (xnvctrl, XCloseDisplay, XCLOSEDISPLAY, lib_x11, X11, 0);
 
+  HC_LOAD_FUNC2 (xnvctrl, XNVCTRLQueryTargetCount,     XNVCTRLQUERYTARGETCOUNT,     lib_xnvctrl, XNVCTRL, 0);
   HC_LOAD_FUNC2 (xnvctrl, XNVCTRLQueryTargetAttribute, XNVCTRLQUERYTARGETATTRIBUTE, lib_xnvctrl, XNVCTRL, 0);
   HC_LOAD_FUNC2 (xnvctrl, XNVCTRLSetTargetAttribute,   XNVCTRLSETTARGETATTRIBUTE,   lib_xnvctrl, XNVCTRL, 0);
 
@@ -1409,6 +1410,28 @@ static void hm_XNVCTRL_XCloseDisplay (hashcat_ctx_t *hashcat_ctx)
   if (xnvctrl->dpy == NULL) return;
 
   xnvctrl->XCloseDisplay (xnvctrl->dpy);
+}
+
+static int hm_XNVCTRL_query_target_count (hashcat_ctx_t *hashcat_ctx, int *val)
+{
+  hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
+
+  XNVCTRL_PTR *xnvctrl = hwmon_ctx->hm_xnvctrl;
+
+  if (xnvctrl->XNVCTRLQueryTargetCount == NULL) return -1;
+
+  if (xnvctrl->dpy == NULL) return -1;
+
+  const int rc = xnvctrl->XNVCTRLQueryTargetCount (xnvctrl->dpy, NV_CTRL_TARGET_TYPE_GPU, val);
+
+  if (rc == false)
+  {
+    event_log_error (hashcat_ctx, "%s", "XNVCTRLQueryTargetCount() failed");
+
+    return -1;
+  }
+
+  return 0;
 }
 
 static int hm_XNVCTRL_get_fan_control (hashcat_ctx_t *hashcat_ctx, const int gpu, int *val)
@@ -1560,6 +1583,72 @@ static int hm_XNVCTRL_set_fan_speed_target (hashcat_ctx_t *hashcat_ctx, const in
   if (rc == -1) return -1;
 
   if (cur != val) return -1;
+
+  return 0;
+}
+
+static int hm_XNVCTRL_get_pci_bus (hashcat_ctx_t *hashcat_ctx, const int gpu, int *val)
+{
+  hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
+
+  XNVCTRL_PTR *xnvctrl = hwmon_ctx->hm_xnvctrl;
+
+  if (xnvctrl->XNVCTRLQueryTargetAttribute == NULL) return -1;
+
+  if (xnvctrl->dpy == NULL) return -1;
+
+  const int rc = xnvctrl->XNVCTRLQueryTargetAttribute (xnvctrl->dpy, NV_CTRL_TARGET_TYPE_GPU, gpu, 0, NV_CTRL_PCI_BUS, val);
+
+  if (rc == false)
+  {
+    event_log_error (hashcat_ctx, "%s", "XNVCTRLQueryTargetAttribute(NV_CTRL_PCI_BUS) failed");
+
+    return -1;
+  }
+
+  return 0;
+}
+
+static int hm_XNVCTRL_get_pci_device (hashcat_ctx_t *hashcat_ctx, const int gpu, int *val)
+{
+  hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
+
+  XNVCTRL_PTR *xnvctrl = hwmon_ctx->hm_xnvctrl;
+
+  if (xnvctrl->XNVCTRLQueryTargetAttribute == NULL) return -1;
+
+  if (xnvctrl->dpy == NULL) return -1;
+
+  const int rc = xnvctrl->XNVCTRLQueryTargetAttribute (xnvctrl->dpy, NV_CTRL_TARGET_TYPE_GPU, gpu, 0, NV_CTRL_PCI_DEVICE, val);
+
+  if (rc == false)
+  {
+    event_log_error (hashcat_ctx, "%s", "XNVCTRLQueryTargetAttribute(NV_CTRL_PCI_DEVICE) failed");
+
+    return -1;
+  }
+
+  return 0;
+}
+
+static int hm_XNVCTRL_get_pci_function (hashcat_ctx_t *hashcat_ctx, const int gpu, int *val)
+{
+  hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
+
+  XNVCTRL_PTR *xnvctrl = hwmon_ctx->hm_xnvctrl;
+
+  if (xnvctrl->XNVCTRLQueryTargetAttribute == NULL) return -1;
+
+  if (xnvctrl->dpy == NULL) return -1;
+
+  const int rc = xnvctrl->XNVCTRLQueryTargetAttribute (xnvctrl->dpy, NV_CTRL_TARGET_TYPE_GPU, gpu, 0, NV_CTRL_PCI_FUNCTION, val);
+
+  if (rc == false)
+  {
+    event_log_error (hashcat_ctx, "%s", "XNVCTRLQueryTargetAttribute(NV_CTRL_PCI_FUNCTION) failed");
+
+    return -1;
+  }
 
   return 0;
 }
@@ -3798,7 +3887,9 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
   {
     if (hm_XNVCTRL_XOpenDisplay (hashcat_ctx) == 0)
     {
-      int hm_adapters_id = 0;
+      int tmp_in = 0;
+
+      hm_XNVCTRL_query_target_count (hashcat_ctx, &tmp_in);
 
       for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
       {
@@ -3806,14 +3897,40 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         if ((device_param->device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
 
-        hm_adapters_xnvctrl[hm_adapters_id].xnvctrl = device_id;
+        if (device_param->device_vendor_id != VENDOR_ID_NV) continue;
 
-        hm_adapters_xnvctrl[hm_adapters_id].fanspeed_get_supported  = true;
-        hm_adapters_xnvctrl[hm_adapters_id].fanspeed_set_supported  = true;
-        hm_adapters_xnvctrl[hm_adapters_id].fanpolicy_get_supported = true;
-        hm_adapters_xnvctrl[hm_adapters_id].fanpolicy_set_supported = true;
+        for (int i = 0; i < tmp_in; i++)
+        {
+          int pci_bus = 0;
+          int pci_device = 0;
+          int pci_function = 0;
 
-        hm_adapters_id++;
+          const int rc1 = hm_XNVCTRL_get_pci_bus (hashcat_ctx, i, &pci_bus);
+
+          if (rc1 == -1) continue;
+
+          const int rc2 = hm_XNVCTRL_get_pci_device (hashcat_ctx, i, &pci_device);
+
+          if (rc2 == -1) continue;
+
+          const int rc3 = hm_XNVCTRL_get_pci_function (hashcat_ctx, i, &pci_function);
+
+          if (rc3 == -1) continue;
+
+          if ((device_param->pcie_bus      == pci_bus)
+           && (device_param->pcie_device   == pci_device)
+           && (device_param->pcie_function == pci_function))
+          {
+            const u32 platform_devices_id = device_param->platform_devices_id;
+
+            hm_adapters_xnvctrl[platform_devices_id].xnvctrl = i;
+
+            hm_adapters_xnvctrl[platform_devices_id].fanspeed_get_supported  = true;
+            hm_adapters_xnvctrl[platform_devices_id].fanspeed_set_supported  = true;
+            hm_adapters_xnvctrl[platform_devices_id].fanpolicy_get_supported = true;
+            hm_adapters_xnvctrl[platform_devices_id].fanpolicy_set_supported = true;
+          }
+        }
       }
     }
   }

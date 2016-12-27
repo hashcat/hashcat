@@ -32,6 +32,7 @@
 
 - Hardware management: Switched matching NVML device with OpenCL device by using PCI bus, device and function
 - Hardware management: Switched matching NvAPI device with OpenCL device by using PCI bus, device and function
+- Hardware management: Switched matching xnvctrl device with OpenCL device by using PCI bus, device and function
 - Sanity: Added sanity check to disallow --speed-only in combination with -i
 - Potfile: In v3.10 already, the default potfile suffix changed but the note about was missing. The "hashcat.pot" became "hashcat.potfile"
 - Threads: Replaced all calls to strerror() with %m printf() GNU extension to ensure thread safety
