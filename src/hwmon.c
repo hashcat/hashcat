@@ -1079,6 +1079,8 @@ static int nvapi_init (hashcat_ctx_t *hashcat_ctx)
   HC_LOAD_ADDR(nvapi, NvAPI_GPU_GetPerfPoliciesInfo,    NVAPI_GPU_GETPERFPOLICIESINFO,    nvapi_QueryInterface, 0x409D9841u, NVAPI, 0)
   HC_LOAD_ADDR(nvapi, NvAPI_GPU_GetPerfPoliciesStatus,  NVAPI_GPU_GETPERFPOLICIESSTATUS,  nvapi_QueryInterface, 0x3D358A0Cu, NVAPI, 0)
   HC_LOAD_ADDR(nvapi, NvAPI_GPU_SetCoolerLevels,        NVAPI_GPU_SETCOOLERLEVELS,        nvapi_QueryInterface, 0x891FA0AEu, NVAPI, 0)
+  HC_LOAD_ADDR(nvapi, NvAPI_GPU_GetBusId,               NVAPI_GPU_GETBUSID,               nvapi_QueryInterface, 0x1BE0B8E5u, NVAPI, 0)
+  HC_LOAD_ADDR(nvapi, NvAPI_GPU_GetBusSlotId,           NVAPI_GPU_GETBUSSLOTID,           nvapi_QueryInterface, 0x2A0A350Fu, NVAPI, 0)
 
   return 0;
 }
@@ -1230,6 +1232,50 @@ static int hm_NvAPI_GPU_SetCoolerLevels (hashcat_ctx_t *hashcat_ctx, NvPhysicalG
     hm_NvAPI_GetErrorMessage (nvapi, NvAPI_rc, string);
 
     event_log_error (hashcat_ctx, "NvAPI_GPU_SetCoolerLevels(): %s", string);
+
+    return -1;
+  }
+
+  return 0;
+}
+
+static int hm_NvAPI_GPU_GetBusId (hashcat_ctx_t *hashcat_ctx, NvPhysicalGpuHandle hPhysicalGpu, NvU32 *pBusId)
+{
+  hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
+
+  NVAPI_PTR *nvapi = hwmon_ctx->hm_nvapi;
+
+  const NvAPI_Status NvAPI_rc = nvapi->NvAPI_GPU_GetBusId (hPhysicalGpu, pBusId);
+
+  if (NvAPI_rc != NVAPI_OK)
+  {
+    NvAPI_ShortString string = { 0 };
+
+    hm_NvAPI_GetErrorMessage (nvapi, NvAPI_rc, string);
+
+    event_log_error (hashcat_ctx, "NvAPI_GPU_GetBusId(): %s", string);
+
+    return -1;
+  }
+
+  return 0;
+}
+
+static int hm_NvAPI_GPU_GetBusSlotId (hashcat_ctx_t *hashcat_ctx, NvPhysicalGpuHandle hPhysicalGpu, NvU32 *pBusSlotId)
+{
+  hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
+
+  NVAPI_PTR *nvapi = hwmon_ctx->hm_nvapi;
+
+  const NvAPI_Status NvAPI_rc = nvapi->NvAPI_GPU_GetBusSlotId (hPhysicalGpu, pBusSlotId);
+
+  if (NvAPI_rc != NVAPI_OK)
+  {
+    NvAPI_ShortString string = { 0 };
+
+    hm_NvAPI_GetErrorMessage (nvapi, NvAPI_rc, string);
+
+    event_log_error (hashcat_ctx, "NvAPI_GPU_GetBusSlotId(): %s", string);
 
     return -1;
   }
@@ -3667,8 +3713,6 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         for (int i = 0; i < tmp_in; i++)
         {
-          const u32 platform_devices_id = device_param->platform_devices_id;
-
           nvmlPciInfo_t pci;
 
           int rc = hm_NVML_nvmlDeviceGetPciInfo (hashcat_ctx, nvmlGPUHandle[i], &pci);
@@ -3679,6 +3723,8 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
            && (device_param->pcie_device   == (pci.device >> 3))
            && (device_param->pcie_function == (pci.device & 7)))
           {
+            const u32 platform_devices_id = device_param->platform_devices_id;
+
             hm_adapters_nvml[platform_devices_id].nvml = nvmlGPUHandle[i];
 
             hm_adapters_nvml[platform_devices_id].buslanes_get_supported            = true;
@@ -3701,18 +3747,47 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
   {
     if (hm_NvAPI_Initialize (hashcat_ctx) == 0)
     {
-      HM_ADAPTER_NVAPI *nvGPUHandle = (HM_ADAPTER_NVAPI *) hccalloc (DEVICES_MAX, sizeof (HM_ADAPTER_NVAPI));
+      HM_ADAPTER_NVAPI *nvGPUHandle = (HM_ADAPTER_NVAPI *) hccalloc (NVAPI_MAX_PHYSICAL_GPUS, sizeof (HM_ADAPTER_NVAPI));
 
       int tmp_in = hm_get_adapter_index_nvapi (hashcat_ctx, nvGPUHandle);
 
-      for (int i = 0; i < tmp_in; i++)
+      for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
       {
-        hm_adapters_nvapi[i].nvapi = nvGPUHandle[i];
+        hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
-        hm_adapters_nvapi[i].fanspeed_set_supported   = true;
-        hm_adapters_nvapi[i].fanpolicy_get_supported  = true;
-        hm_adapters_nvapi[i].fanpolicy_set_supported  = true;
-        hm_adapters_nvapi[i].throttle_get_supported   = true;
+        if (device_param->skipped == true) continue;
+
+        if ((device_param->device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
+
+        if (device_param->device_vendor_id != VENDOR_ID_NV) continue;
+
+        for (int i = 0; i < tmp_in; i++)
+        {
+          NvU32 BusId     = 0;
+          NvU32 BusSlotId = 0;
+
+          int rc1 = hm_NvAPI_GPU_GetBusId (hashcat_ctx, nvGPUHandle[i], &BusId);
+
+          if (rc1 == -1) continue;
+
+          int rc2 = hm_NvAPI_GPU_GetBusSlotId (hashcat_ctx, nvGPUHandle[i], &BusSlotId);
+
+          if (rc2 == -1) continue;
+
+          if ((device_param->pcie_bus      == BusId)
+           && (device_param->pcie_device   == (BusSlotId >> 3))
+           && (device_param->pcie_function == (BusSlotId & 7)))
+          {
+            const u32 platform_devices_id = device_param->platform_devices_id;
+
+            hm_adapters_nvapi[platform_devices_id].nvapi = nvGPUHandle[i];
+
+            hm_adapters_nvapi[platform_devices_id].fanspeed_set_supported   = true;
+            hm_adapters_nvapi[platform_devices_id].fanpolicy_get_supported  = true;
+            hm_adapters_nvapi[platform_devices_id].fanpolicy_set_supported  = true;
+            hm_adapters_nvapi[platform_devices_id].throttle_get_supported   = true;
+          }
+        }
       }
 
       hcfree (nvGPUHandle);

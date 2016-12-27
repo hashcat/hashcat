@@ -208,6 +208,8 @@ NVAPI_INTERFACE NvAPI_GPU_GetPerfPoliciesInfo (NvPhysicalGpuHandle hPhysicalGpu,
 NVAPI_INTERFACE NvAPI_GPU_GetPerfPoliciesStatus (NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 *perfPolicies_status);
 NVAPI_INTERFACE NvAPI_GPU_SetCoolerLevels (NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex, NV_GPU_COOLER_LEVELS *pCoolerLevels);
 NVAPI_INTERFACE NvAPI_GPU_RestoreCoolerSettings (NvPhysicalGpuHandle hPhysicalGpu, NvU32 coolerIndex);
+NVAPI_INTERFACE NvAPI_GPU_GetBusId (NvPhysicalGpuHandle hPhysicalGpu, NvU32 *pBusId);
+NVAPI_INTERFACE NvAPI_GPU_GetBusSlotId (NvPhysicalGpuHandle hPhysicalGpu, NvU32 *pBusSlotId);
 
 /*
  * End of declarations from nvapi.h and subheaders
@@ -230,6 +232,8 @@ typedef int (*NVAPI_API_CALL NVAPI_GPU_GETPERFPOLICIESINFO) (NvPhysicalGpuHandle
 typedef int (*NVAPI_API_CALL NVAPI_GPU_GETPERFPOLICIESSTATUS) (NvPhysicalGpuHandle, NV_GPU_PERF_POLICIES_STATUS_PARAMS_V1 *);
 typedef int (*NVAPI_API_CALL NVAPI_GPU_SETCOOLERLEVELS) (NvPhysicalGpuHandle, NvU32, NV_GPU_COOLER_LEVELS *);
 typedef int (*NVAPI_API_CALL NVAPI_GPU_RESTORECOOLERSETTINGS) (NvPhysicalGpuHandle, NvU32);
+typedef int (*NVAPI_API_CALL NVAPI_GPU_GETBUSID) (NvPhysicalGpuHandle, NvU32 *);
+typedef int (*NVAPI_API_CALL NVAPI_GPU_GETBUSSLOTID) (NvPhysicalGpuHandle, NvU32 *);
 
 #if defined (_POSIX)
 typedef void *NVAPI_LIB;
@@ -250,6 +254,8 @@ typedef struct hm_nvapi_lib
   NVAPI_GPU_GETPERFPOLICIESSTATUS NvAPI_GPU_GetPerfPoliciesStatus;
   NVAPI_GPU_SETCOOLERLEVELS NvAPI_GPU_SetCoolerLevels;
   NVAPI_GPU_RESTORECOOLERSETTINGS NvAPI_GPU_RestoreCoolerSettings;
+  NVAPI_GPU_GETBUSID NvAPI_GPU_GetBusId;
+  NVAPI_GPU_GETBUSSLOTID NvAPI_GPU_GetBusSlotId;
 
 } hm_nvapi_lib_t;
 
