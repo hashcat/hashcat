@@ -584,6 +584,7 @@ static int nvml_init (hashcat_ctx_t *hashcat_ctx)
   HC_LOAD_FUNC(nvml, nvmlDeviceGetPowerManagementLimitConstraints, NVML_DEVICE_GET_POWERMANAGEMENTLIMITCONSTRAINTS, NVML, 0)
   HC_LOAD_FUNC(nvml, nvmlDeviceSetPowerManagementLimit, NVML_DEVICE_SET_POWERMANAGEMENTLIMIT, NVML, 0)
   HC_LOAD_FUNC(nvml, nvmlDeviceGetPowerManagementLimit, NVML_DEVICE_GET_POWERMANAGEMENTLIMIT, NVML, 0)
+  HC_LOAD_FUNC(nvml, nvmlDeviceGetPciInfo, NVML_DEVICE_GET_PCIINFO, NVML, 0)
 
   return 0;
 }
@@ -1015,6 +1016,26 @@ static int hm_NVML_nvmlDeviceGetPowerManagementLimit (hashcat_ctx_t *hashcat_ctx
     const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
     event_log_error (hashcat_ctx, "nvmlDeviceGetPowerManagementLimit(): %s", string);
+
+    return -1;
+  }
+
+  return 0;
+}
+
+static int hm_NVML_nvmlDeviceGetPciInfo (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, nvmlPciInfo_t *pci)
+{
+  hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
+
+  NVML_PTR *nvml = hwmon_ctx->hm_nvml;
+
+  const nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetPciInfo (device, pci);
+
+  if (nvml_rc != NVML_SUCCESS)
+  {
+    const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
+
+    event_log_error (hashcat_ctx, "nvmlDeviceGetPciInfo(): %s", string);
 
     return -1;
   }

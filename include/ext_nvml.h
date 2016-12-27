@@ -12,13 +12,22 @@
 
 typedef struct nvmlDevice_st* nvmlDevice_t;
 
-typedef struct nvmlPciInfo_st {
-  char busId[16];
-  unsigned int domain;
-  unsigned int bus;
-  unsigned int device;
-  unsigned int pciDeviceId;
-  unsigned int pciSubSystemId;
+typedef struct nvmlPciInfo_st
+{
+    char busId[16];                  //!< The tuple domain:bus:device.function PCI identifier (&amp; NULL terminator)
+    unsigned int domain;             //!< The PCI domain on which the device's bus resides, 0 to 0xffff
+    unsigned int bus;                //!< The bus on which the device resides, 0 to 0xff
+    unsigned int device;             //!< The device's id on the bus, 0 to 31
+    unsigned int pciDeviceId;        //!< The combined 16-bit device id and 16-bit vendor id
+
+    // Added in NVML 2.285 API
+    unsigned int pciSubSystemId;     //!< The 32-bit Sub System Device ID
+
+    // NVIDIA reserved for internal use only
+    unsigned int reserved0;
+    unsigned int reserved1;
+    unsigned int reserved2;
+    unsigned int reserved3;
 } nvmlPciInfo_t;
 
 typedef struct nvmlUtilization_st {
@@ -186,6 +195,7 @@ typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_SET_OPERATIONMODE) (nvmlDevice_
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_POWERMANAGEMENTLIMITCONSTRAINTS) (nvmlDevice_t, unsigned int *, unsigned int *);
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_SET_POWERMANAGEMENTLIMIT) (nvmlDevice_t, unsigned int);
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_POWERMANAGEMENTLIMIT) (nvmlDevice_t, unsigned int *);
+typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_PCIINFO) (nvmlDevice_t, nvmlPciInfo_t *);
 
 #if defined (_POSIX)
 typedef void *NVML_LIB;
@@ -218,6 +228,7 @@ typedef struct hm_nvml_lib
   NVML_DEVICE_GET_POWERMANAGEMENTLIMITCONSTRAINTS nvmlDeviceGetPowerManagementLimitConstraints;
   NVML_DEVICE_SET_POWERMANAGEMENTLIMIT nvmlDeviceSetPowerManagementLimit;
   NVML_DEVICE_GET_POWERMANAGEMENTLIMIT nvmlDeviceGetPowerManagementLimit;
+  NVML_DEVICE_GET_PCIINFO nvmlDeviceGetPciInfo;
 
 } hm_nvml_lib_t;
 
