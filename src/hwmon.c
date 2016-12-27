@@ -3655,22 +3655,42 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       int tmp_in = hm_get_adapter_index_nvml (hashcat_ctx, nvmlGPUHandle);
 
-      for (int i = 0; i < tmp_in; i++)
+      for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
       {
-        hm_adapters_nvml[i].nvml = nvmlGPUHandle[i];
+        hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
-        hm_adapters_nvml[i].buslanes_get_supported            = true;
-        hm_adapters_nvml[i].corespeed_get_supported           = true;
-        hm_adapters_nvml[i].fanspeed_get_supported            = true;
-        hm_adapters_nvml[i].memoryspeed_get_supported         = true;
-        hm_adapters_nvml[i].temperature_get_supported         = true;
-        hm_adapters_nvml[i].threshold_shutdown_get_supported  = true;
-        hm_adapters_nvml[i].threshold_slowdown_get_supported  = true;
-        hm_adapters_nvml[i].utilization_get_supported         = true;
+        if (device_param->skipped == true) continue;
 
-        // doesn't seem to create any advantages
-        //hm_NVML_nvmlDeviceSetComputeMode (hashcat_ctx, hm_adapters_nvml[i].nvml, NVML_COMPUTEMODE_EXCLUSIVE_PROCESS);
-        //hm_NVML_nvmlDeviceSetGpuOperationMode (hashcat_ctx, hm_adapters_nvml[i].nvml, NVML_GOM_ALL_ON);
+        if ((device_param->device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
+
+        if (device_param->device_vendor_id != VENDOR_ID_NV) continue;
+
+        for (int i = 0; i < tmp_in; i++)
+        {
+          const u32 platform_devices_id = device_param->platform_devices_id;
+
+          nvmlPciInfo_t pci;
+
+          int rc = hm_NVML_nvmlDeviceGetPciInfo (hashcat_ctx, nvmlGPUHandle[i], &pci);
+
+          if (rc == -1) continue;
+
+          if ((device_param->pcie_bus      == pci.bus)
+           && (device_param->pcie_device   == (pci.device >> 3))
+           && (device_param->pcie_function == (pci.device & 7)))
+          {
+            hm_adapters_nvml[platform_devices_id].nvml = nvmlGPUHandle[i];
+
+            hm_adapters_nvml[platform_devices_id].buslanes_get_supported            = true;
+            hm_adapters_nvml[platform_devices_id].corespeed_get_supported           = true;
+            hm_adapters_nvml[platform_devices_id].fanspeed_get_supported            = true;
+            hm_adapters_nvml[platform_devices_id].memoryspeed_get_supported         = true;
+            hm_adapters_nvml[platform_devices_id].temperature_get_supported         = true;
+            hm_adapters_nvml[platform_devices_id].threshold_shutdown_get_supported  = true;
+            hm_adapters_nvml[platform_devices_id].threshold_slowdown_get_supported  = true;
+            hm_adapters_nvml[platform_devices_id].utilization_get_supported         = true;
+          }
+        }
       }
 
       hcfree (nvmlGPUHandle);
