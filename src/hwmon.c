@@ -1807,86 +1807,6 @@ static int hm_ADL_Adapter_AdapterInfo_Get (hashcat_ctx_t *hashcat_ctx, LPAdapter
   return 0;
 }
 
-/*
-static int hm_ADL_Display_DisplayInfo_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int *iNumDisplays, ADLDisplayInfo **lppInfo, int iForceDetect)
-{
-  hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
-
-  ADL_PTR *adl = hwmon_ctx->hm_adl;
-
-  const int ADL_rc = adl->ADL_Display_DisplayInfo_Get (iAdapterIndex, iNumDisplays, lppInfo, iForceDetect);
-
-  if (ADL_rc != ADL_OK)
-  {
-    event_log_error (hashcat_ctx, "ADL_Display_DisplayInfo_Get(): %d", ADL_rc);
-
-    return -1;
-  }
-
-  return 0;
-}
-*/
-
-/*
-static int hm_ADL_Adapter_ID_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int *lpAdapterID)
-{
-  hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
-
-  ADL_PTR *adl = hwmon_ctx->hm_adl;
-
-  const int ADL_rc = adl->ADL_Adapter_ID_Get (iAdapterIndex, lpAdapterID);
-
-  if (ADL_rc != ADL_OK)
-  {
-    event_log_error (hashcat_ctx, "ADL_Adapter_ID_Get(): %d", ADL_rc);
-
-    return -1;
-  }
-
-  return ADL_rc;
-}
-*/
-
-/*
-static int hm_ADL_Adapter_VideoBiosInfo_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, ADLBiosInfo *lpBiosInfo)
-{
-  hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
-
-  ADL_PTR *adl = hwmon_ctx->hm_adl;
-
-  const int ADL_rc = adl->ADL_Adapter_VideoBiosInfo_Get (iAdapterIndex, lpBiosInfo);
-
-  if (ADL_rc != ADL_OK)
-  {
-    event_log_error (hashcat_ctx, "ADL_Adapter_VideoBiosInfo_Get(): %d", ADL_rc);
-
-    return -1;
-  }
-
-  return ADL_rc;
-}
-*/
-
-/*
-static int hm_ADL_Overdrive_ThermalDevices_Enum (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int iThermalControllerIndex, ADLThermalControllerInfo *lpThermalControllerInfo)
-{
-  hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
-
-  ADL_PTR *adl = hwmon_ctx->hm_adl;
-
-  const int ADL_rc = adl->ADL_Overdrive5_ThermalDevices_Enum (iAdapterIndex, iThermalControllerIndex, lpThermalControllerInfo);
-
-  if (ADL_rc != ADL_OK)
-  {
-    event_log_error (hashcat_ctx, "ADL_Overdrive5_ThermalDevices_Enum(): %d", ADL_rc);
-
-    return -1;
-  }
-
-  return 0;
-}
-*/
-
 static int hm_ADL_Overdrive5_Temperature_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int iThermalControllerIndex, ADLTemperature *lpTemperature)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
@@ -1939,24 +1859,6 @@ static int hm_ADL_Overdrive_CurrentActivity_Get (hashcat_ctx_t *hashcat_ctx, int
   }
 
   return 0;
-}
-
-static int hm_ADL_Overdrive5_FanSpeedInfo_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int iThermalControllerIndex, ADLFanSpeedInfo *lpFanSpeedInfo)
-{
-  hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
-
-  ADL_PTR *adl = hwmon_ctx->hm_adl;
-
-  const int ADL_rc = adl->ADL_Overdrive5_FanSpeedInfo_Get (iAdapterIndex, iThermalControllerIndex, lpFanSpeedInfo);
-
-  if (ADL_rc != ADL_OK)
-  {
-    event_log_error (hashcat_ctx, "ADL_Overdrive5_FanSpeedInfo_Get(): %d", ADL_rc);
-
-    return -1;
-  }
-
-  return ADL_rc;
 }
 
 static int hm_ADL_Overdrive5_FanSpeed_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int iThermalControllerIndex, ADLFanSpeedValue *lpFanSpeedValue)
@@ -2049,66 +1951,6 @@ static int hm_ADL_Overdrive5_FanSpeedToDefault_Set (hashcat_ctx_t *hashcat_ctx, 
   return 0;
 }
 
-/*
-static int hm_ADL_Overdrive_ODParameters_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, ADLODParameters *lpOdParameters)
-{
-  hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
-
-  ADL_PTR *adl = hwmon_ctx->hm_adl;
-
-  const int ADL_rc = adl->ADL_Overdrive5_ODParameters_Get (iAdapterIndex, lpOdParameters);
-
-  if (ADL_rc != ADL_OK)
-  {
-    event_log_error (hashcat_ctx, "ADL_Overdrive5_ODParameters_Get(): %d", ADL_rc);
-
-    return -1;
-  }
-
-  return 0;
-}
-*/
-
-/*
-static int hm_ADL_Overdrive_ODPerformanceLevels_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int iDefault, ADLODPerformanceLevels *lpOdPerformanceLevels)
-{
-  hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
-
-  ADL_PTR *adl = hwmon_ctx->hm_adl;
-
-  const int ADL_rc = adl->ADL_Overdrive5_ODPerformanceLevels_Get (iAdapterIndex, iDefault, lpOdPerformanceLevels);
-
-  if (ADL_rc != ADL_OK)
-  {
-    event_log_error (hashcat_ctx, "ADL_Overdrive5_ODPerformanceLevels_Get(): %d", ADL_rc);
-
-    return -1;
-  }
-
-  return 0;
-}
-*/
-
-/*
-static int hm_ADL_Overdrive_ODPerformanceLevels_Set (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, ADLODPerformanceLevels *lpOdPerformanceLevels)
-{
-  hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
-
-  ADL_PTR *adl = hwmon_ctx->hm_adl;
-
-  const int ADL_rc = adl->ADL_Overdrive5_ODPerformanceLevels_Set (iAdapterIndex, lpOdPerformanceLevels);
-
-  if (ADL_rc != ADL_OK)
-  {
-    event_log_error (hashcat_ctx, "ADL_Overdrive5_ODPerformanceLevels_Set(): %d", ADL_rc);
-
-    return -1;
-  }
-
-  return 0;
-}
-*/
-
 static int hm_ADL_Overdrive_PowerControlInfo_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, ADLOD6PowerControlInfo *powertune)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
@@ -2188,46 +2030,6 @@ static int hm_ADL_Overdrive_PowerControl_Set (hashcat_ctx_t *hashcat_ctx, int iA
 
   return 0;
 }
-
-/*
-static int hm_ADL_Adapter_Active_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int *lpStatus)
-{
-  hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
-
-  ADL_PTR *adl = hwmon_ctx->hm_adl;
-
-  const int ADL_rc = adl->ADL_Adapter_Active_Get (iAdapterIndex, lpStatus);
-
-  if (ADL_rc != ADL_OK)
-  {
-    event_log_error (hashcat_ctx, "ADL_Adapter_Active_Get(): %d", ADL_rc);
-
-    return -1;
-  }
-
-  return 0;
-}
-*/
-
-/*
-static int hm_ADL_DisplayEnable_Set (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int *lpDisplayIndexList, int iDisplayListSize, int bPersistOnly)
-{
-  hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
-
-  ADL_PTR *adl = hwmon_ctx->hm_adl;
-
-  const int ADL_rc = adl->ADL_DisplayEnable_Set (iAdapterIndex, lpDisplayIndexList, iDisplayListSize, bPersistOnly);
-
-  if (ADL_rc != ADL_OK)
-  {
-    event_log_error (hashcat_ctx, "ADL_DisplayEnable_Set(): %d", ADL_rc);
-
-    return -1;
-  }
-
-  return 0;
-}
-*/
 
 static int hm_ADL_Overdrive_Caps (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int *od_supported, int *od_enabled, int *od_version)
 {
@@ -2348,26 +2150,6 @@ static int hm_ADL_Overdrive_StateInfo_Get (hashcat_ctx_t *hashcat_ctx, int iAdap
   return 0;
 }
 
-/*
-static int hm_ADL_Overdrive_CurrentStatus_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, ADLOD6CurrentStatus *status)
-{
-  hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
-
-  ADL_PTR *adl = hwmon_ctx->hm_adl;
-
-  const int ADL_rc = adl->ADL_Overdrive6_CurrentStatus_Get (iAdapterIndex, status);
-
-  if (ADL_rc != ADL_OK)
-  {
-    event_log_error (hashcat_ctx, "ADL_Overdrive6_CurrentStatus_Get(): %d", ADL_rc);
-
-    return -1;
-  }
-
-  return 0;
-}
-*/
-
 static int hm_ADL_Overdrive_State_Set (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, int type, ADLOD6StateInfo *state)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
@@ -2440,26 +2222,6 @@ static int hm_ADL_Overdrive6_TargetTemperatureData_Get (hashcat_ctx_t *hashcat_c
   return 0;
 }
 
-/*
-static int hm_ADL_Overdrive6_TargetTemperatureRangeInfo_Get (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex, ADLOD6ParameterRange *lpTargetTemperatureInfo)
-{
-  hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
-
-  ADL_PTR *adl = hwmon_ctx->hm_adl;
-
-  const int ADL_rc = adl->ADL_Overdrive6_TargetTemperatureRangeInfo_Get (iAdapterIndex, lpTargetTemperatureInfo);
-
-  if (ADL_rc != ADL_OK)
-  {
-    event_log_error (hashcat_ctx, "ADL_Overdrive6_TargetTemperatureRangeInfo_Get(): %d", ADL_rc);
-
-    return -1;
-  }
-
-  return 0;
-}
-*/
-
 static int hm_ADL_Overdrive6_FanSpeed_Reset (hashcat_ctx_t *hashcat_ctx, int iAdapterIndex)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
@@ -2494,11 +2256,6 @@ static int get_adapters_num_adl (hashcat_ctx_t *hashcat_ctx, int *iNumberAdapter
   }
 
   return 0;
-}
-
-static int hm_get_adapter_info_adl (hashcat_ctx_t *hashcat_ctx, LPAdapterInfo lpAdapterInfo, const size_t AdapterInfoSize)
-{
-  return hm_ADL_Adapter_AdapterInfo_Get (hashcat_ctx, lpAdapterInfo, AdapterInfoSize);
 }
 
 static int hm_get_adapter_index_nvapi (hashcat_ctx_t *hashcat_ctx, HM_ADAPTER_NVAPI *nvapiGPUHandle)
@@ -2540,247 +2297,6 @@ static int hm_get_adapter_index_nvml (hashcat_ctx_t *hashcat_ctx, HM_ADAPTER_NVM
   }
 
   return (deviceCount);
-}
-
-static void hm_sort_adl_adapters_by_busid_devid (u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo)
-{
-  // basically bubble sort
-
-  for (int i = 0; i < num_adl_adapters; i++)
-  {
-    for (int j = 0; j < num_adl_adapters - 1; j++)
-    {
-      // get info of adapter [x]
-
-      u32 adapter_index_x = valid_adl_device_list[j];
-      AdapterInfo info_x = lpAdapterInfo[adapter_index_x];
-
-      u32 bus_num_x = info_x.iBusNumber;
-      u32 dev_num_x = info_x.iDeviceNumber;
-
-      // get info of adapter [y]
-
-      u32 adapter_index_y = valid_adl_device_list[j + 1];
-      AdapterInfo info_y = lpAdapterInfo[adapter_index_y];
-
-      u32 bus_num_y = info_y.iBusNumber;
-      u32 dev_num_y = info_y.iDeviceNumber;
-
-      u32 need_swap = 0;
-
-      if (bus_num_y < bus_num_x)
-      {
-        need_swap = 1;
-      }
-      else if (bus_num_y == bus_num_x)
-      {
-        if (dev_num_y < dev_num_x)
-        {
-          need_swap = 1;
-        }
-      }
-
-      if (need_swap == 1)
-      {
-        u32 temp = valid_adl_device_list[j + 1];
-
-        valid_adl_device_list[j + 1] = valid_adl_device_list[j];
-        valid_adl_device_list[j + 0] = temp;
-      }
-    }
-  }
-}
-
-static u32 *hm_get_list_valid_adl_adapters (int iNumberAdapters, int *num_adl_adapters, LPAdapterInfo lpAdapterInfo)
-{
-  *num_adl_adapters = 0;
-
-  u32 *adl_adapters = NULL;
-
-  int *bus_numbers    = NULL;
-  int *device_numbers = NULL;
-
-  for (int i = 0; i < iNumberAdapters; i++)
-  {
-    AdapterInfo info = lpAdapterInfo[i];
-
-    if (strlen (info.strUDID) < 1) continue;
-
-    #if defined (_WIN)
-    if (info.iVendorID !=   1002) continue;
-    #else
-    if (info.iVendorID != 0x1002) continue;
-    #endif
-
-    if (info.iBusNumber    < 0) continue;
-    if (info.iDeviceNumber < 0) continue;
-
-    int found = 0;
-
-    for (int pos = 0; pos < *num_adl_adapters; pos++)
-    {
-      if ((bus_numbers[pos] == info.iBusNumber) && (device_numbers[pos] == info.iDeviceNumber))
-      {
-        found = 1;
-        break;
-      }
-    }
-
-    if (found) continue;
-
-    // add it to the list
-
-    adl_adapters = (u32 *) hcrealloc (adl_adapters, (*num_adl_adapters) * sizeof (int), sizeof (int)); // need check
-
-    adl_adapters[*num_adl_adapters] = i;
-
-    // rest is just bookkeeping
-
-    bus_numbers    = (int*) hcrealloc (bus_numbers,    (*num_adl_adapters) * sizeof (int), sizeof (int)); // need check
-    device_numbers = (int*) hcrealloc (device_numbers, (*num_adl_adapters) * sizeof (int), sizeof (int)); // need check
-
-    bus_numbers[*num_adl_adapters]    = info.iBusNumber;
-    device_numbers[*num_adl_adapters] = info.iDeviceNumber;
-
-    (*num_adl_adapters)++;
-  }
-
-  hcfree (bus_numbers);
-  hcfree (device_numbers);
-
-  // sort the list by increasing bus id, device id number
-
-  hm_sort_adl_adapters_by_busid_devid (adl_adapters, *num_adl_adapters, lpAdapterInfo);
-
-  return adl_adapters;
-}
-
-static int hm_check_fanspeed_control (hashcat_ctx_t *hashcat_ctx, hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo)
-{
-  // loop through all valid devices
-
-  for (int i = 0; i < num_adl_adapters; i++)
-  {
-    u32 adapter_index = valid_adl_device_list[i];
-
-    // get AdapterInfo
-
-    AdapterInfo info = lpAdapterInfo[adapter_index];
-
-    // unfortunately this doesn't work since bus id and dev id are not unique
-    // int opencl_device_index = hm_get_opencl_device_index (hm_device, num_adl_adapters, info.iBusNumber, info.iDeviceNumber);
-    // if (opencl_device_index == -1) continue;
-
-    int opencl_device_index = i;
-
-    // if (hm_show_performance_level (adl, info.iAdapterIndex) != 0) return -1;
-
-    // get fanspeed info
-
-    if (hm_device[opencl_device_index].od_version == 5)
-    {
-      ADLFanSpeedInfo FanSpeedInfo;
-
-      memset (&FanSpeedInfo, 0, sizeof (ADLFanSpeedInfo));
-
-      FanSpeedInfo.iSize = sizeof (ADLFanSpeedInfo);
-
-      if (hm_ADL_Overdrive5_FanSpeedInfo_Get (hashcat_ctx, info.iAdapterIndex, 0, &FanSpeedInfo) == -1) return -1;
-
-      // check read and write capability in fanspeedinfo
-
-      if ((FanSpeedInfo.iFlags & ADL_DL_FANCTRL_SUPPORTS_PERCENT_READ) &&
-          (FanSpeedInfo.iFlags & ADL_DL_FANCTRL_SUPPORTS_PERCENT_WRITE))
-      {
-        hm_device[opencl_device_index].fanspeed_get_supported = true;
-      }
-      else
-      {
-        hm_device[opencl_device_index].fanspeed_get_supported = false;
-      }
-    }
-    else // od_version == 6
-    {
-      ADLOD6FanSpeedInfo faninfo;
-
-      memset (&faninfo, 0, sizeof (faninfo));
-
-      if (hm_ADL_Overdrive6_FanSpeed_Get (hashcat_ctx, info.iAdapterIndex, &faninfo) == -1) return -1;
-
-      // check read capability in fanspeedinfo
-
-      if (faninfo.iSpeedType & ADL_OD6_FANSPEED_TYPE_PERCENT)
-      {
-        hm_device[opencl_device_index].fanspeed_get_supported = true;
-      }
-      else
-      {
-        hm_device[opencl_device_index].fanspeed_get_supported = false;
-      }
-    }
-  }
-
-  return 0;
-}
-
-static int hm_get_overdrive_version (hashcat_ctx_t *hashcat_ctx, hm_attrs_t *hm_device, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo)
-{
-  for (int i = 0; i < num_adl_adapters; i++)
-  {
-    u32 adapter_index = valid_adl_device_list[i];
-
-    // get AdapterInfo
-
-    AdapterInfo info = lpAdapterInfo[adapter_index];
-
-    // get overdrive version
-
-    int od_supported = 0;
-    int od_enabled   = 0;
-    int od_version   = 0;
-
-    if (hm_ADL_Overdrive_Caps (hashcat_ctx, info.iAdapterIndex, &od_supported, &od_enabled, &od_version) == -1) return -1;
-
-    // store the overdrive version in hm_device
-
-    // unfortunately this doesn't work since bus id and dev id are not unique
-    // int opencl_device_index = hm_get_opencl_device_index (hm_device, num_adl_adapters, info.iBusNumber, info.iDeviceNumber);
-    // if (opencl_device_index == -1) continue;
-
-    int opencl_device_index = i;
-
-    hm_device[opencl_device_index].od_version = od_version;
-  }
-
-  return 0;
-}
-
-static int hm_get_adapter_index_adl (hashcat_ctx_t *hashcat_ctx, u32 *valid_adl_device_list, int num_adl_adapters, LPAdapterInfo lpAdapterInfo)
-{
-  hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
-
-  hm_attrs_t *hm_device = hwmon_ctx->hm_device;
-
-  for (int i = 0; i < num_adl_adapters; i++)
-  {
-    const u32 adapter_index = valid_adl_device_list[i];
-
-    // get AdapterInfo
-
-    AdapterInfo info = lpAdapterInfo[adapter_index];
-
-    // store the iAdapterIndex in hm_device
-
-    // unfortunately this doesn't work since bus id and dev id are not unique
-    // int opencl_device_index = hm_get_opencl_device_index (hm_device, num_adl_adapters, info.iBusNumber, info.iDeviceNumber);
-    // if (opencl_device_index == -1) continue;
-
-    int opencl_device_index = i;
-
-    hm_device[opencl_device_index].adl = info.iAdapterIndex;
-  }
-
-  return num_adl_adapters;
 }
 
 int hm_get_threshold_slowdown_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device_id)
@@ -3941,48 +3457,59 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
     {
       // total number of adapters
 
-      int hm_adapters_num;
+      int tmp_in;
 
-      if (get_adapters_num_adl (hashcat_ctx, &hm_adapters_num) == -1) return -1;
+      if (get_adapters_num_adl (hashcat_ctx, &tmp_in) == -1) return -1;
 
       // adapter info
 
-      LPAdapterInfo lpAdapterInfo = (LPAdapterInfo) hccalloc (hm_adapters_num, sizeof (AdapterInfo));
+      LPAdapterInfo lpAdapterInfo = (LPAdapterInfo) hccalloc (tmp_in, sizeof (AdapterInfo));
 
-      const int rc_adapter_info_adl = hm_get_adapter_info_adl (hashcat_ctx, lpAdapterInfo, hm_adapters_num * sizeof (AdapterInfo));
+      const int rc_adapter_info_adl = hm_ADL_Adapter_AdapterInfo_Get (hashcat_ctx, lpAdapterInfo, tmp_in * sizeof (AdapterInfo));
 
       if (rc_adapter_info_adl == -1) return -1;
 
-      // get a list (of ids of) valid/usable adapters
-
-      int num_adl_adapters = 0;
-
-      u32 *valid_adl_device_list = hm_get_list_valid_adl_adapters (hm_adapters_num, &num_adl_adapters, lpAdapterInfo);
-
-      for (int i = 0; i < num_adl_adapters; i++)
+      for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
       {
-        hm_adapters_adl[i].buslanes_get_supported            = true;
-        hm_adapters_adl[i].corespeed_get_supported           = true;
-        hm_adapters_adl[i].fanspeed_get_supported            = true;
-        hm_adapters_adl[i].fanspeed_set_supported            = true;
-        hm_adapters_adl[i].fanpolicy_get_supported           = true;
-        hm_adapters_adl[i].fanpolicy_set_supported           = true;
-        hm_adapters_adl[i].memoryspeed_get_supported         = true;
-        hm_adapters_adl[i].temperature_get_supported         = true;
-        hm_adapters_adl[i].threshold_slowdown_get_supported  = true;
-        hm_adapters_adl[i].utilization_get_supported         = true;
+        hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+        if (device_param->skipped == true) continue;
+
+        if ((device_param->device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
+
+        if (device_param->device_vendor_id != VENDOR_ID_AMD) continue;
+
+        for (int i = 0; i < tmp_in; i++)
+        {
+          if ((device_param->pcie_bus      == lpAdapterInfo[i].iBusNumber)
+           && (device_param->pcie_device   == (lpAdapterInfo[i].iDeviceNumber >> 3))
+           && (device_param->pcie_function == (lpAdapterInfo[i].iDeviceNumber & 7)))
+          {
+            const u32 platform_devices_id = device_param->platform_devices_id;
+
+            int od_supported = 0;
+            int od_enabled   = 0;
+            int od_version   = 0;
+
+            hm_ADL_Overdrive_Caps (hashcat_ctx, lpAdapterInfo[i].iAdapterIndex, &od_supported, &od_enabled, &od_version);
+
+            hm_adapters_adl[platform_devices_id].od_version = od_version;
+
+            hm_adapters_adl[platform_devices_id].adl = lpAdapterInfo[i].iAdapterIndex;
+
+            hm_adapters_adl[platform_devices_id].buslanes_get_supported            = true;
+            hm_adapters_adl[platform_devices_id].corespeed_get_supported           = true;
+            hm_adapters_adl[platform_devices_id].fanspeed_get_supported            = true;
+            hm_adapters_adl[platform_devices_id].fanspeed_set_supported            = true;
+            hm_adapters_adl[platform_devices_id].fanpolicy_get_supported           = true;
+            hm_adapters_adl[platform_devices_id].fanpolicy_set_supported           = true;
+            hm_adapters_adl[platform_devices_id].memoryspeed_get_supported         = true;
+            hm_adapters_adl[platform_devices_id].temperature_get_supported         = true;
+            hm_adapters_adl[platform_devices_id].threshold_slowdown_get_supported  = true;
+            hm_adapters_adl[platform_devices_id].utilization_get_supported         = true;
+          }
+        }
       }
-
-      if (num_adl_adapters > 0)
-      {
-        hm_get_adapter_index_adl (hashcat_ctx, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
-
-        hm_get_overdrive_version (hashcat_ctx, hm_adapters_adl, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
-
-        hm_check_fanspeed_control (hashcat_ctx, hm_adapters_adl, valid_adl_device_list, num_adl_adapters, lpAdapterInfo);
-      }
-
-      hcfree (valid_adl_device_list);
 
       hcfree (lpAdapterInfo);
     }
