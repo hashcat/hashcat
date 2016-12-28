@@ -30,6 +30,7 @@
 ## Technical
 ##
 
+- Building: Added hashcat32.dll and hashcat64.dll makefile targets for building hashcat windows libraries
 - Hardware management: Switched matching ADL device with OpenCL device by using PCI bus, device and function
 - Hardware management: Switched matching NVML device with OpenCL device by using PCI bus, device and function
 - Hardware management: Switched matching NvAPI device with OpenCL device by using PCI bus, device and function

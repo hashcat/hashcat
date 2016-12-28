@@ -281,7 +281,7 @@ native: hashcat
 binaries: linux32 linux64 win32 win64
 
 clean:
-	$(RM) -f obj/*.o *.bin *.exe *.restore *.out *.pot *.log hashcat hashcat_shared libhashcat.so core
+	$(RM) -f obj/*.o *.bin *.exe *.so *.dll *.restore *.out *.pot *.log hashcat hashcat_shared core
 	$(RM) -rf *.induct
 	$(RM) -rf *.outfiles
 	$(RM) -rf *.dSYM
@@ -391,3 +391,9 @@ hashcat32.exe: src/main.c $(WIN_32_OBJS)
 
 hashcat64.exe: src/main.c $(WIN_64_OBJS)
 	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)      -o $@ $^ $(LFLAGS_CROSS_WIN64)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\"
+
+hashcat32.dll: src/main.c $(WIN_32_OBJS)
+	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN32)      -o $@ $^ $(LFLAGS_CROSS_WIN32)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -shared
+
+hashcat64.dll: src/main.c $(WIN_64_OBJS)
+	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)      -o $@ $^ $(LFLAGS_CROSS_WIN64)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -shared
