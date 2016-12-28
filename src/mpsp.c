@@ -974,9 +974,26 @@ static int mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask, const char
   }
   else
   {
-    const int rc = mask_append_final (hashcat_ctx, mask);
+    if (prepend)
+    {
+      // this happens with maskfiles only
 
-    if (rc == -1) return -1;
+      char *prepend_mask;
+
+      hc_asprintf (&prepend_mask, "%s,%s", prepend, mask);
+
+      const int rc = mask_append_final (hashcat_ctx, prepend_mask);
+
+      if (rc == -1) return -1;
+
+      hcfree (prepend_mask);
+    }
+    else
+    {
+      const int rc = mask_append_final (hashcat_ctx, mask);
+
+      if (rc == -1) return -1;
+    }
   }
 
   return 0;
@@ -1583,31 +1600,37 @@ int mask_ctx_parse_maskfile (hashcat_ctx_t *hashcat_ctx)
 
   mf->mf_buf[mf->mf_len] = 0;
 
+  user_options->custom_charset_1 = NULL;
+  user_options->custom_charset_2 = NULL;
+  user_options->custom_charset_3 = NULL;
+  user_options->custom_charset_4 = NULL;
+
+  mp_reset_usr (mask_ctx->mp_usr, 0);
+  mp_reset_usr (mask_ctx->mp_usr, 1);
+  mp_reset_usr (mask_ctx->mp_usr, 2);
+  mp_reset_usr (mask_ctx->mp_usr, 3);
+
   for (int i = 0; i < mfs_cnt; i++)
   {
     switch (i)
     {
       case 0:
         user_options->custom_charset_1 = mfs_buf[0].mf_buf;
-        mp_reset_usr (mask_ctx->mp_usr, 0);
         mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_1, 0);
         break;
 
       case 1:
         user_options->custom_charset_2 = mfs_buf[1].mf_buf;
-        mp_reset_usr (mask_ctx->mp_usr, 1);
         mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_2, 1);
         break;
 
       case 2:
         user_options->custom_charset_3 = mfs_buf[2].mf_buf;
-        mp_reset_usr (mask_ctx->mp_usr, 2);
         mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_3, 2);
         break;
 
       case 3:
         user_options->custom_charset_4 = mfs_buf[3].mf_buf;
-        mp_reset_usr (mask_ctx->mp_usr, 3);
         mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_4, 3);
         break;
     }
