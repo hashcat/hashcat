@@ -3,8 +3,6 @@
 ## License.....: MIT
 ##
 
-PROG_NAME               := hashcat
-
 ##
 ## Detect Operating System
 ##
@@ -20,7 +18,7 @@ UNAME                   := $(patsubst MINGW32_NT-%,MSYS2,$(UNAME))
 UNAME                   := $(patsubst MINGW64_NT-%,MSYS2,$(UNAME))
 
 ifeq (,$(filter $(UNAME),Linux FreeBSD Darwin CYGWIN MSYS2))
-$(error "! Your Operating System ($(UNAME)) is not supported by $(PROG_NAME) Makefile")
+$(error "! Your Operating System ($(UNAME)) is not supported by this Makefile")
 endif
 
 ifeq ($(DEBUG),1)
@@ -45,8 +43,26 @@ DESTDIR                 ?=
 PREFIX                  ?= /usr/local
 
 INSTALL_FOLDER          ?= $(PREFIX)/bin
-SHARED_FOLDER           ?= $(PREFIX)/share/$(PROG_NAME)
-DOCUMENT_FOLDER         ?= $(PREFIX)/share/doc/$(PROG_NAME)
+LIBRARY_FOLDER          ?= $(PREFIX)/lib
+SHARED_FOLDER           ?= $(PREFIX)/share/hashcat
+DOCUMENT_FOLDER         ?= $(PREFIX)/share/doc/hashcat
+
+##
+## Filenames for library and frontend
+##
+
+HASHCAT_FRONTEND        := hashcat
+HASHCAT_LIBRARY         := libhashcat.so
+
+ifeq ($(UNAME),CYGWIN)
+HASHCAT_FRONTEND        := hashcat.exe
+HASHCAT_LIBRARY         := hashcat.dll
+endif # CYGWIN
+
+ifeq ($(UNAME),MSYS2)
+HASHCAT_FRONTEND        := hashcat.exe
+HASHCAT_LIBRARY         := hashcat.dll
+endif # MSYS2
 
 ##
 ## Dependencies
@@ -94,8 +110,6 @@ COMPTIME                := $(shell date +%s)
 
 VERSION_EXPORT          := $Format:%D$
 VERSION_TAG             := $(shell test -d .git && git describe --tags --dirty=+ || echo "$(VERSION_EXPORT)"|cut -d, -f2|$(SED) -r 's|.* (\w+/)?([^ ]+)|\2|')
-
-BINARY_NATIVE           := $(PROG_NAME)
 
 ##
 ## General compiler and linker options
@@ -255,15 +269,15 @@ include $(CRT_GLOB_INCLUDE_FOLDER)/win_file_globbing.mk
 
 OBJS_ALL                := affinity autotune benchmark bitmap bitops combinator common convert cpt cpu_aes cpu_crc32 cpu_des cpu_md4 cpu_md5 cpu_sha1 cpu_sha256 debugfile dictstat dispatch dynloader event ext_ADL ext_nvapi ext_nvml ext_OpenCL ext_sysfs ext_xnvctrl filehandling folder hashcat hashes hlfmt hwmon induct interface locking logfile loopback memory monitor mpsp opencl outfile_check outfile potfile restore rp rp_cpu rp_kernel_on_cpu shared status stdout straight terminal thread timer tuningdb usage user_options weak_hash wordlist
 
-NATIVE_OBJS             := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).NATIVE.o)
+NATIVE_OBJS             :=
 NATIVE_SHARED_OBJS      := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).NATIVE.SHARED.o)
 
 ifeq ($(UNAME),CYGWIN)
-NATIVE_OBJS		+= $(CRT_GLOB)
+NATIVE_OBJS             += $(CRT_GLOB)
 endif # CYGWIN
 
 ifeq ($(UNAME),MSYS2)
-NATIVE_OBJS		+= $(CRT_GLOB)
+NATIVE_OBJS             += $(CRT_GLOB)
 endif # MSYS2
 
 LINUX_32_OBJS           := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).LINUX.32.o)
@@ -273,12 +287,10 @@ WIN_32_OBJS             := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.32.o) $(CRT_
 WIN_64_OBJS             := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.64.o) $(CRT_GLOB_64)
 
 ##
-## Targets
+## Targets: Native Compilation
 ##
 
-native: hashcat
-
-binaries: linux32 linux64 win32 win64
+default: $(HASHCAT_FRONTEND)
 
 clean:
 	$(RM) -f obj/*.o *.bin *.exe *.so *.dll *.restore *.out *.pot *.log hashcat hashcat_shared core
@@ -286,6 +298,12 @@ clean:
 	$(RM) -rf *.outfiles
 	$(RM) -rf *.dSYM
 	$(RM) -rf kernels
+
+##
+## Targets: Cross Compilation (for binary release version)
+##
+
+binaries: linux32 linux64 win32 win64
 
 linux32: hashcat32.bin
 linux64: hashcat64.bin
@@ -298,17 +316,16 @@ win64: hashcat64.exe
 ## How to make /usr/bin/install doing recursive??
 ##
 
-install: native
+install: install_library install_hashcat install_docs install_shared
+
+install_docs:
 	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(DOCUMENT_FOLDER)
-	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(SHARED_FOLDER)
-	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(INSTALL_FOLDER)
 	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(DOCUMENT_FOLDER)/docs
+	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(DOCUMENT_FOLDER)/charsets
+	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(DOCUMENT_FOLDER)/masks
+	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(DOCUMENT_FOLDER)/rules
 	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(DOCUMENT_FOLDER)/extra
 	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(DOCUMENT_FOLDER)/extra/tab_completion
-	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(SHARED_FOLDER)/charsets
-	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(SHARED_FOLDER)/masks
-	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(SHARED_FOLDER)/OpenCL
-	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(SHARED_FOLDER)/rules
 	$(INSTALL) -m 644 example.dict                          $(DESTDIR)$(DOCUMENT_FOLDER)/
 	$(INSTALL) -m 644 example0.hash                         $(DESTDIR)$(DOCUMENT_FOLDER)/
 	$(INSTALL) -m 644 example400.hash                       $(DESTDIR)$(DOCUMENT_FOLDER)/
@@ -319,53 +336,55 @@ install: native
 	$(INSTALL) -m 644 extra/tab_completion/hashcat.sh       $(DESTDIR)$(DOCUMENT_FOLDER)/extra/tab_completion/
 	$(INSTALL) -m 644 extra/tab_completion/howto.txt        $(DESTDIR)$(DOCUMENT_FOLDER)/extra/tab_completion/
 	$(INSTALL) -m 755 extra/tab_completion/install          $(DESTDIR)$(DOCUMENT_FOLDER)/extra/tab_completion/
-	$(INSTALL) -m 644 hashcat.hcstat                        $(DESTDIR)$(SHARED_FOLDER)/
-	$(INSTALL) -m 644 hashcat.hctune                        $(DESTDIR)$(SHARED_FOLDER)/
-	$(INSTALL) -m 755 $(BINARY_NATIVE)                      $(DESTDIR)$(INSTALL_FOLDER)/
 	$(FIND) docs/     -type d -exec $(INSTALL) -m 755 -d    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
-	$(FIND) charsets/ -type d -exec $(INSTALL) -m 755 -d    $(DESTDIR)$(SHARED_FOLDER)/{}   \;
-	$(FIND) masks/    -type d -exec $(INSTALL) -m 755 -d    $(DESTDIR)$(SHARED_FOLDER)/{}   \;
-	$(FIND) OpenCL/   -type d -exec $(INSTALL) -m 755 -d    $(DESTDIR)$(SHARED_FOLDER)/{}   \;
-	$(FIND) rules/    -type d -exec $(INSTALL) -m 755 -d    $(DESTDIR)$(SHARED_FOLDER)/{}   \;
 	$(FIND) docs/     -type f -exec $(INSTALL) -m 644 {}    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
-	$(FIND) charsets/ -type f -exec $(INSTALL) -m 644 {}    $(DESTDIR)$(SHARED_FOLDER)/{}   \;
-	$(FIND) masks/    -type f -exec $(INSTALL) -m 644 {}    $(DESTDIR)$(SHARED_FOLDER)/{}   \;
-	$(FIND) OpenCL/   -type f -exec $(INSTALL) -m 644 {}    $(DESTDIR)$(SHARED_FOLDER)/{}   \;
-	$(FIND) rules/    -type f -exec $(INSTALL) -m 644 {}    $(DESTDIR)$(SHARED_FOLDER)/{}   \;
+	$(FIND) charsets/ -type d -exec $(INSTALL) -m 755 -d    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
+	$(FIND) charsets/ -type f -exec $(INSTALL) -m 644 {}    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
+	$(FIND) masks/    -type d -exec $(INSTALL) -m 755 -d    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
+	$(FIND) masks/    -type f -exec $(INSTALL) -m 644 {}    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
+	$(FIND) rules/    -type d -exec $(INSTALL) -m 755 -d    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
+	$(FIND) rules/    -type f -exec $(INSTALL) -m 644 {}    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
 	$(SED) -i 's/\.\/hashcat/hashcat/'                      $(DESTDIR)$(DOCUMENT_FOLDER)/example0.sh
 	$(SED) -i 's/\.\/hashcat/hashcat/'                      $(DESTDIR)$(DOCUMENT_FOLDER)/example400.sh
 	$(SED) -i 's/\.\/hashcat/hashcat/'                      $(DESTDIR)$(DOCUMENT_FOLDER)/example500.sh
 
+install_shared:
+	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(SHARED_FOLDER)
+	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(SHARED_FOLDER)/OpenCL
+	$(INSTALL) -m 644 hashcat.hcstat                        $(DESTDIR)$(SHARED_FOLDER)/
+	$(INSTALL) -m 644 hashcat.hctune                        $(DESTDIR)$(SHARED_FOLDER)/
+	$(FIND) OpenCL/   -type d -exec $(INSTALL) -m 755 -d    $(DESTDIR)$(SHARED_FOLDER)/{}   \;
+	$(FIND) OpenCL/   -type f -exec $(INSTALL) -m 644 {}    $(DESTDIR)$(SHARED_FOLDER)/{}   \;
+
+install_library: $(HASHCAT_LIBRARY)
+	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(LIBRARY_FOLDER)
+	$(INSTALL) -m 755 $(HASHCAT_LIBRARY)                    $(DESTDIR)$(LIBRARY_FOLDER)/
+
+install_hashcat: $(HASHCAT_FRONTEND)
+	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(INSTALL_FOLDER)
+	$(INSTALL) -m 755 $(HASHCAT_FRONTEND)                   $(DESTDIR)$(INSTALL_FOLDER)/
+
 uninstall:
-	$(RM) -f  $(DESTDIR)$(INSTALL_FOLDER)/$(BINARY_NATIVE)
+	$(RM) -f  $(DESTDIR)$(INSTALL_FOLDER)/$(HASHCAT_FRONTEND)
+	$(RM) -f  $(DESTDIR)$(LIBRARY_FOLDER)/$(HASHCAT_LIBRARY)
 	$(RM) -rf $(DESTDIR)$(SHARED_FOLDER)
 	$(RM) -rf $(DESTDIR)$(DOCUMENT_FOLDER)
 
 ##
-## native compiled hashcat
-##
-
-obj/%.NATIVE.o: src/%.c
-	$(CC) -c $(CFLAGS_NATIVE) -o $@ $^
-
-$(BINARY_NATIVE): $(NATIVE_OBJS) src/main.c
-	$(CC)    $(CFLAGS_NATIVE) -o $@ $^ $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
-
-##
-## native compiled hashcat (shared)
+## native compiled hashcat library and frontend
 ##
 
 obj/%.NATIVE.SHARED.o: src/%.c
 	$(CC) -c $(CFLAGS_NATIVE_SHARED) -o $@ $^
 
-lib$(BINARY_NATIVE).so: $(NATIVE_SHARED_OBJS)
+$(HASHCAT_LIBRARY): $(NATIVE_SHARED_OBJS)
 	$(CC) -o $@ $^ $(LFLAGS_NATIVE_SHARED) -shared
 
-$(BINARY_NATIVE)_shared: lib$(BINARY_NATIVE).so src/main_shared.c
-	$(CC)    $(CFLAGS_NATIVE_SHARED) -o $@ $^ $(LFLAGS_NATIVE_SHARED) -L. -lhashcat -Wl,-rpath=. -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+$(HASHCAT_FRONTEND): $(NATIVE_OBJS) $(HASHCAT_LIBRARY) src/main.c
+	$(CC)    $(CFLAGS_NATIVE) -o $@ $^ $(LFLAGS_NATIVE) -L. -lhashcat -Wl,-rpath=. -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
 ##
-## cross compiled hashcat for binary release version
+## cross compiled hashcat
 ##
 
 obj/%.LINUX.32.o: src/%.c
