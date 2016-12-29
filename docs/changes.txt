@@ -36,6 +36,7 @@
 - Hardware management: Switched matching NvAPI device with OpenCL device by using PCI bus, device and function
 - Hardware management: Switched matching NVML device with OpenCL device by using PCI bus, device and function
 - Hardware management: Switched matching xnvctrl device with OpenCL device by using PCI bus, device and function
+- Hardware management: Removed *throttled* message from NVML as this created more confusion than it helped
 - Hash Parser: Improved error detection of invalid hex characters where hex character are expected
 - OpenCL Runtime: Updated AMDGPU-Pro driver version check, do warn if version 16.50 is detected which is known to be broken
 - Potfile: In v3.10 already, the default potfile suffix changed but the note about was missing. The "hashcat.pot" became "hashcat.potfile"
