@@ -22,7 +22,10 @@
 #error Your Operating System is not supported or detected
 #endif
 
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
+
 #define _FILE_OFFSET_BITS 64
 
 #define NOMINMAX 1
