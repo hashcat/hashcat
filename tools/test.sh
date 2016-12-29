@@ -157,6 +157,10 @@ function init()
 
   rm -rf ${OUTD}/${hash_type}.sh ${OUTD}/${hash_type}_passwords.txt ${OUTD}/${hash_type}_hashes.txt
 
+  if [[ ${hash_type} -ge 6211 ]] && [[ ${hash_type} -le 6243 ]]; then
+    return 0
+  fi
+
   # create list of password and hashes of same type
   grep " ${hash_type} '" ${OUTD}/all.sh > ${OUTD}/${hash_type}.sh 2>/dev/null
 
@@ -2109,11 +2113,11 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
 
           if [[ ${IS_SLOW} -eq 1 ]]; then
 
-            if [[ ${HT} -ge 6211 ]] && [[ ${HT} -le 6243 ]]; then
+            if [[ ${hash_type} -ge 6211 ]] && [[ ${hash_type} -le 6243 ]]; then
               # run truecrypt tests
-              truecrypt_test ${HT} 0
-              truecrypt_test ${HT} 1
-              truecrypt_test ${HT} 2
+              truecrypt_test ${hash_type} 0
+              truecrypt_test ${hash_type} 1
+              truecrypt_test ${hash_type} 2
             else
               # run attack mode 0 (stdin)
               if [[ ${ATTACK} -eq 65535 ]] || [[ ${ATTACK} -eq 0 ]]; then attack_0; fi
