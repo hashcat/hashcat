@@ -10,7 +10,7 @@ hashcat build documentation
 Get a copy of the **hashcat** repository
 
 ```sh
-$ git clone https://github.com/hashcat/hashcat.git
+$ git clone --depth 1 -b master https://github.com/hashcat/hashcat.git
 ```
 
 Get a copy of the **OpenCL Headers** repository
