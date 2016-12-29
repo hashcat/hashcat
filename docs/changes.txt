@@ -4,8 +4,9 @@
 ## Features
 ##
 
-- New option --progress-only: Quickly provides ideal progress step size and time to process on the user hashes and selected options, then quit
 - Files: Use $HEX[...] in case the password includes the separater character, increases potfile reading performance
+- New option --progress-only: Quickly provides ideal progress step size and time to process on the user hashes and selected options, then quit
+- Status screen: Reenabled automatic status screen display in case of stdin used
 - WPA cracking: Reuse PBKDF2 intermediate keys if duplicate essid is detected
 
 ##
@@ -18,29 +19,29 @@
 ## Bugs
 ##
 
-- Fixed infinite loop when using --loopback in case all hashes have been cracked
-- Fixed double fclose() using AMDGPU-Pro on sysfs compatible platform: Leading to segfault
-- Fixed kernel loops in --increment mode leading to slower performance
 - Fixed custom char parsing code in maskfiles in --increment mode: Custom charset wasn't used
+- Fixed double fclose() using AMDGPU-Pro on sysfs compatible platform: Leading to segfault
 - Fixed hex output of plaintext in case --outfile-format 4, 5, 6 or 7 was used
+- Fixed infinite loop when using --loopback in case all hashes have been cracked
+- Fixed kernel loops in --increment mode leading to slower performance
 - Fixed mask length check in hybrid attack-modes: Do not include hash-mode dependant mask length checks
-- Removed access to readlink() on FreeBSD: Causes problem building hashcat
 
 ##
 ## Technical
 ##
 
 - Building: Added hashcat32.dll and hashcat64.dll makefile targets for building hashcat windows libraries
+- Building: Removed access to readlink() on FreeBSD
 - Hardware management: Switched matching ADL device with OpenCL device by using PCI bus, device and function
-- Hardware management: Switched matching NVML device with OpenCL device by using PCI bus, device and function
 - Hardware management: Switched matching NvAPI device with OpenCL device by using PCI bus, device and function
+- Hardware management: Switched matching NVML device with OpenCL device by using PCI bus, device and function
 - Hardware management: Switched matching xnvctrl device with OpenCL device by using PCI bus, device and function
-- Sanity: Added sanity check to disallow --speed-only in combination with -i
-- Potfile: In v3.10 already, the default potfile suffix changed but the note about was missing. The "hashcat.pot" became "hashcat.potfile"
-- Threads: Replaced all calls to strerror() with %m printf() GNU extension to ensure thread safety
-- Threads: Replaced all calls to ctime() with ctime_r() to ensure thread safety
-- OpenCL Runtime: Updated AMDGPU-Pro driver version check, do warn if version 16.50 is detected which is known to be broken
 - Hash Parser: Improved error detection of invalid hex characters where hex character are expected
+- OpenCL Runtime: Updated AMDGPU-Pro driver version check, do warn if version 16.50 is detected which is known to be broken
+- Potfile: In v3.10 already, the default potfile suffix changed but the note about was missing. The "hashcat.pot" became "hashcat.potfile"
+- Sanity: Added sanity check to disallow --speed-only in combination with -i
+- Threads: Replaced all calls to ctime() with ctime_r() to ensure thread safety
+- Threads: Replaced all calls to strerror() with %m printf() GNU extension to ensure thread safety
 
 * changes v3.10 -> v3.20:
 

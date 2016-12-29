@@ -708,6 +708,14 @@ static void main_monitor_status_refresh (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx
       send_prompt ();
     }
   }
+
+  if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
+  {
+    if (user_options->quiet == false)
+    {
+      event_log_info (hashcat_ctx, "");
+    }
+  }
 }
 
 static void main_wordlist_cache_hit (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)

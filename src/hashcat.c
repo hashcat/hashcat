@@ -877,6 +877,8 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, char *install_folder, char
 
   user_options_extra_init (hashcat_ctx);
 
+  user_options_postprocess (hashcat_ctx);
+
   /**
    * logfile
    */

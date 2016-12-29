@@ -18,6 +18,8 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx);
 
 void user_options_preprocess (hashcat_ctx_t *hashcat_ctx);
 
+void user_options_postprocess (hashcat_ctx_t *hashcat_ctx);
+
 void user_options_extra_init (hashcat_ctx_t *hashcat_ctx);
 
 void user_options_extra_destroy (hashcat_ctx_t *hashcat_ctx);

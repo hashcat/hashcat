@@ -1130,6 +1130,19 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   }
 }
 
+void user_options_postprocess (hashcat_ctx_t *hashcat_ctx)
+{
+  user_options_t       *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  // automatic status
+
+  if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
+  {
+    user_options->status = true;
+  }
+}
+
 void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
 {
   user_options_t       *user_options       = hashcat_ctx->user_options;
