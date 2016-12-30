@@ -179,11 +179,11 @@ endif # Linux
 ifeq ($(UNAME),FreeBSD)
 ifndef PORTNAME
 CFLAGS_NATIVE           := $(CFLAGS)
-LFLAGS_NATIVE           := $(LFLAGS)
-CFLAGS_NATIVE           += -march=native
-endif
 CFLAGS_NATIVE           += -I$(OPENCL_HEADERS_KHRONOS)/
+CFLAGS_NATIVE           += -march=native
+LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -lpthread
+endif
 endif # FreeBSD
 
 ifeq ($(UNAME),Darwin)
