@@ -8724,11 +8724,6 @@ int oldoffice01cm2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
   salt->salt_buf[2] = hex_to_u32 ((const u8 *) &osalt_pos[16]);
   salt->salt_buf[3] = hex_to_u32 ((const u8 *) &osalt_pos[24]);
 
-  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
-  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
-  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
-  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
-
   // this is a workaround as office produces multiple documents with the same salt
 
   salt->salt_len += 32;
@@ -8993,11 +8988,6 @@ int oldoffice34cm2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
   salt->salt_buf[1] = hex_to_u32 ((const u8 *) &osalt_pos[ 8]);
   salt->salt_buf[2] = hex_to_u32 ((const u8 *) &osalt_pos[16]);
   salt->salt_buf[3] = hex_to_u32 ((const u8 *) &osalt_pos[24]);
-
-  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
-  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
-  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
-  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
 
   // this is a workaround as office produces multiple documents with the same salt
 
