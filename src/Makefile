@@ -177,10 +177,12 @@ LFLAGS_NATIVE           += -lpthread -ldl
 endif # Linux
 
 ifeq ($(UNAME),FreeBSD)
+ifndef PORTNAME
 CFLAGS_NATIVE           := $(CFLAGS)
-CFLAGS_NATIVE           += -I$(OPENCL_HEADERS_KHRONOS)/
-CFLAGS_NATIVE           += -march=native
 LFLAGS_NATIVE           := $(LFLAGS)
+CFLAGS_NATIVE           += -march=native
+endif
+CFLAGS_NATIVE           += -I$(OPENCL_HEADERS_KHRONOS)/
 LFLAGS_NATIVE           += -lpthread
 endif # FreeBSD
 
