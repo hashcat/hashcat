@@ -125,6 +125,26 @@ int potfile_init (hashcat_ctx_t *hashcat_ctx)
 
   potfile_ctx->tmp_buf = tmp_buf;
 
+  // old potfile detection
+
+  if (user_options->potfile_path == NULL)
+  {
+    char *potfile_old;
+
+    hc_asprintf (&potfile_old, "%s/hashcat.pot", folder_config->profile_dir);
+
+    hc_stat_t st;
+
+    if (hc_stat (potfile_old, &st) == 0)
+    {
+      event_log_warning (hashcat_ctx, "Old potfile detected: %s", potfile_old);
+      event_log_warning (hashcat_ctx, "New potfile is: %s ", potfile_ctx->filename);
+      event_log_warning (hashcat_ctx, "");
+    }
+
+    hcfree (potfile_old);
+  }
+
   return 0;
 }
 
