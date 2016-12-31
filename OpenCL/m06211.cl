@@ -15,6 +15,9 @@
 #include "inc_cipher_twofish256.cl"
 #include "inc_cipher_serpent256.cl"
 
+#include "inc_truecrypt_crc32.cl"
+#include "inc_truecrypt_xts.cl"
+
 static void ripemd160_transform (const u32 w[16], u32 dgst[5])
 {
   u32 a1 = dgst[0];
@@ -639,56 +642,18 @@ __kernel void m06211_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   ukey2[6] = tmps[gid].out[14];
   ukey2[7] = tmps[gid].out[15];
 
-  u32 data[4];
-
-  data[0] = esalt_bufs[0].data_buf[0];
-  data[1] = esalt_bufs[0].data_buf[1];
-  data[2] = esalt_bufs[0].data_buf[2];
-  data[3] = esalt_bufs[0].data_buf[3];
-
-  const u32 signature = esalt_bufs[0].signature;
-
-  u32 tmp[4];
-
+  if (verify_header_aes (esalt_bufs, ukey1, ukey2) == 1)
   {
-    tmp[0] = data[0];
-    tmp[1] = data[1];
-    tmp[2] = data[2];
-    tmp[3] = data[3];
-
-    aes256_decrypt_xts (ukey1, ukey2, tmp, tmp);
-
-    if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
-    {
-      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
-    }
+    mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
   }
 
+  if (verify_header_serpent (esalt_bufs, ukey1, ukey2) == 1)
   {
-    tmp[0] = data[0];
-    tmp[1] = data[1];
-    tmp[2] = data[2];
-    tmp[3] = data[3];
-
-    serpent256_decrypt_xts (ukey1, ukey2, tmp, tmp);
-
-    if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
-    {
-      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
-    }
+    mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
   }
 
+  if (verify_header_twofish (esalt_bufs, ukey1, ukey2) == 1)
   {
-    tmp[0] = data[0];
-    tmp[1] = data[1];
-    tmp[2] = data[2];
-    tmp[3] = data[3];
-
-    twofish256_decrypt_xts (ukey1, ukey2, tmp, tmp);
-
-    if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
-    {
-      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
-    }
+    mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
   }
 }

@@ -1008,32 +1008,3 @@ static void aes256_encrypt (const u32 *ks, const u32 *in, u32 *out)
   out[2] = swap32 (out[2]);
   out[3] = swap32 (out[3]);
 }
-
-static void aes256_decrypt_xts (const u32 *ukey1, const u32 *ukey2, const u32 *in, u32 *out)
-{
-  u32 T[4] = { 0 };
-  u32 Z[4] = { 0 };
-
-  out[0] = in[0];
-  out[1] = in[1];
-  out[2] = in[2];
-  out[3] = in[3];
-
-  u32 ks[60];
-
-  aes256_set_encrypt_key (ks, ukey2);
-  aes256_encrypt (ks, Z, T);
-
-  out[0] ^= T[0];
-  out[1] ^= T[1];
-  out[2] ^= T[2];
-  out[3] ^= T[3];
-
-  aes256_set_decrypt_key (ks, ukey1);
-  aes256_decrypt (ks, out, out);
-
-  out[0] ^= T[0];
-  out[1] ^= T[1];
-  out[2] ^= T[2];
-  out[3] ^= T[3];
-}

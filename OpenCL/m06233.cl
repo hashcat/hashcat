@@ -15,6 +15,9 @@
 #include "inc_cipher_twofish256.cl"
 #include "inc_cipher_serpent256.cl"
 
+#include "inc_truecrypt_crc32.cl"
+#include "inc_truecrypt_xts.cl"
+
 #define R 10
 
 __constant u32 Ch[8][256] =
@@ -1951,57 +1954,19 @@ __kernel void m06233_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   ukey2[6] = swap32 (tmps[gid].out[14]);
   ukey2[7] = swap32 (tmps[gid].out[15]);
 
-  u32 data[4];
-
-  data[0] = esalt_bufs[0].data_buf[0];
-  data[1] = esalt_bufs[0].data_buf[1];
-  data[2] = esalt_bufs[0].data_buf[2];
-  data[3] = esalt_bufs[0].data_buf[3];
-
-  const u32 signature = esalt_bufs[0].signature;
-
-  u32 tmp[4];
-
+  if (verify_header_aes (esalt_bufs, ukey1, ukey2) == 1)
   {
-    tmp[0] = data[0];
-    tmp[1] = data[1];
-    tmp[2] = data[2];
-    tmp[3] = data[3];
-
-    aes256_decrypt_xts (ukey1, ukey2, tmp, tmp);
-
-    if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
-    {
-      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
-    }
+    mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
   }
 
+  if (verify_header_serpent (esalt_bufs, ukey1, ukey2) == 1)
   {
-    tmp[0] = data[0];
-    tmp[1] = data[1];
-    tmp[2] = data[2];
-    tmp[3] = data[3];
-
-    serpent256_decrypt_xts (ukey1, ukey2, tmp, tmp);
-
-    if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
-    {
-      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
-    }
+    mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
   }
 
+  if (verify_header_twofish (esalt_bufs, ukey1, ukey2) == 1)
   {
-    tmp[0] = data[0];
-    tmp[1] = data[1];
-    tmp[2] = data[2];
-    tmp[3] = data[3];
-
-    twofish256_decrypt_xts (ukey1, ukey2, tmp, tmp);
-
-    if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
-    {
-      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
-    }
+    mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
   }
 
   u32 ukey3[8];
@@ -2030,49 +1995,19 @@ __kernel void m06233_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   ukey4[6] = swap32 (tmps[gid].out[30]);
   ukey4[7] = swap32 (tmps[gid].out[31]);
 
+  if (verify_header_aes_twofish (esalt_bufs, ukey1, ukey2, ukey3, ukey4) == 1)
   {
-    tmp[0] = data[0];
-    tmp[1] = data[1];
-    tmp[2] = data[2];
-    tmp[3] = data[3];
-
-    aes256_decrypt_xts     (ukey2, ukey4, tmp, tmp);
-    twofish256_decrypt_xts (ukey1, ukey3, tmp, tmp);
-
-    if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
-    {
-      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
-    }
+    mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
   }
 
+  if (verify_header_serpent_aes (esalt_bufs, ukey1, ukey2, ukey3, ukey4) == 1)
   {
-    tmp[0] = data[0];
-    tmp[1] = data[1];
-    tmp[2] = data[2];
-    tmp[3] = data[3];
-
-    serpent256_decrypt_xts (ukey2, ukey4, tmp, tmp);
-    aes256_decrypt_xts     (ukey1, ukey3, tmp, tmp);
-
-    if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
-    {
-      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
-    }
+    mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
   }
 
+  if (verify_header_twofish_serpent (esalt_bufs, ukey1, ukey2, ukey3, ukey4) == 1)
   {
-    tmp[0] = data[0];
-    tmp[1] = data[1];
-    tmp[2] = data[2];
-    tmp[3] = data[3];
-
-    twofish256_decrypt_xts (ukey2, ukey4, tmp, tmp);
-    serpent256_decrypt_xts (ukey1, ukey3, tmp, tmp);
-
-    if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
-    {
-      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
-    }
+    mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
   }
 
   #if defined (IS_APPLE) && defined (IS_GPU)
@@ -2105,35 +2040,13 @@ __kernel void m06233_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   ukey6[6] = swap32 (tmps[gid].out[46]);
   ukey6[7] = swap32 (tmps[gid].out[47]);
 
+  if (verify_header_aes_twofish_serpent (esalt_bufs, ukey1, ukey2, ukey3, ukey4, ukey5, ukey6) == 1)
   {
-    tmp[0] = data[0];
-    tmp[1] = data[1];
-    tmp[2] = data[2];
-    tmp[3] = data[3];
-
-    aes256_decrypt_xts     (ukey3, ukey6, tmp, tmp);
-    twofish256_decrypt_xts (ukey2, ukey5, tmp, tmp);
-    serpent256_decrypt_xts (ukey1, ukey4, tmp, tmp);
-
-    if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
-    {
-      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
-    }
+    mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
   }
 
+  if (verify_header_serpent_twofish_aes (esalt_bufs, ukey1, ukey2, ukey3, ukey4, ukey5, ukey6) == 1)
   {
-    tmp[0] = data[0];
-    tmp[1] = data[1];
-    tmp[2] = data[2];
-    tmp[3] = data[3];
-
-    serpent256_decrypt_xts (ukey3, ukey6, tmp, tmp);
-    twofish256_decrypt_xts (ukey2, ukey5, tmp, tmp);
-    aes256_decrypt_xts     (ukey1, ukey4, tmp, tmp);
-
-    if (((tmp[0] == signature) && (tmp[3] == 0)) || ((tmp[0] == signature) && ((tmp[1] >> 16) <= 5)))
-    {
-      mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
-    }
+    mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
   }
 }
