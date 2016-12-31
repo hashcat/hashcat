@@ -42,6 +42,7 @@
 - Hardware management: Removed *throttled* message from NVML as this created more confusion than it helped
 - Hash Parser: Improved error detection of invalid hex characters where hex character are expected
 - OpenCL Runtime: Updated AMDGPU-Pro driver version check, do warn if version 16.50 is detected which is known to be broken
+- OpenCL Runtime: Updated hashcat.hctune for Iris Pro GPU on OSX
 - Potfile: In v3.10 already, the default potfile suffix changed but the note about was missing. The "hashcat.pot" became "hashcat.potfile"
 - Potfile: Added old potfile detection, show warning message
 - Sanity: Added sanity check to disallow --speed-only in combination with -i
