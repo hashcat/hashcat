@@ -367,7 +367,8 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
     if (line_hash_len == 0) continue;
 
-    if (line_pw_len == 0) continue;
+    // we should allow length 0 passwords (detected by weak hash check)
+    //if (line_pw_len == 0) continue;
 
     if (hashconfig->is_salted)
     {
