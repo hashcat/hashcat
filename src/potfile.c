@@ -10,6 +10,7 @@
 #include "event.h"
 #include "interface.h"
 #include "filehandling.h"
+#include "loopback.h"
 #include "outfile.h"
 #include "potfile.h"
 #include "locking.h"
@@ -282,9 +283,10 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, u8 *
 
 int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 {
-  const hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
-  const hashes_t      *hashes      = hashcat_ctx->hashes;
-  const potfile_ctx_t *potfile_ctx = hashcat_ctx->potfile_ctx;
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  const hashes_t       *hashes       = hashcat_ctx->hashes;
+  const loopback_ctx_t *loopback_ctx = hashcat_ctx->loopback_ctx;
+  const potfile_ctx_t  *potfile_ctx  = hashcat_ctx->potfile_ctx;
 
   if (potfile_ctx->enabled == false) return 0;
 
@@ -486,6 +488,13 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
     found->pw_buf[found->pw_len] = 0;
 
     found->cracked = 1;
+
+    // if enabled, update also the loopback file
+
+    if (loopback_ctx->fp != NULL)
+    {
+      loopback_write_append (hashcat_ctx, (u8 *) pw_buf, (unsigned int) pw_len);
+    }
   }
 
   hcfree (line_buf);

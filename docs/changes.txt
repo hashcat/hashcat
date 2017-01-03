@@ -5,6 +5,7 @@
 ##
 
 - Files: Use $HEX[...] in case the password includes the separater character, increases potfile reading performance
+- Loopback: Include passwords for removed hashes present in the potfile to next loopback iteration
 - New option --progress-only: Quickly provides ideal progress step size and time to process on the user hashes and selected options, then quit
 - Status screen: Reenabled automatic status screen display in case of stdin used
 - Truecrypt/Veracrypt: Use CRC32 to verify headers instead of fuzzy logic, greatly reduces false positives from 18:2^48 to 3:2^64

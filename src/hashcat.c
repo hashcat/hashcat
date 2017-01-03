@@ -445,7 +445,17 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   {
     EVENT (EVENT_POTFILE_REMOVE_PARSE_PRE);
 
+    if (user_options->loopback == true)
+    {
+      loopback_write_open (hashcat_ctx);
+    }
+
     potfile_remove_parse (hashcat_ctx);
+
+    if (user_options->loopback == true)
+    {
+      loopback_write_close (hashcat_ctx);
+    }
 
     EVENT (EVENT_POTFILE_REMOVE_PARSE_POST);
   }
