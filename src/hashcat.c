@@ -604,6 +604,13 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   EVENT (EVENT_OUTERLOOP_MAINSCREEN);
 
+
+  /**
+   * Tell user about cracked hashes by potfile
+   */
+
+  EVENT (EVENT_POTFILE_NUM_CRACKED);
+
   /**
    * inform the user
    */
@@ -654,6 +661,17 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   }
 
   /**
+   * maybe all hashes were cracked now (as after potfile checks), we can exit here
+   */
+
+  if (status_ctx->devices_status == STATUS_CRACKED)
+  {
+    EVENT (EVENT_WEAK_HASH_ALL_CRACKED);
+
+    return 0;
+  }
+
+  /**
    * status and monitor threads
    */
 
@@ -680,12 +698,6 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
       inner_threads_cnt++;
     }
   }
-
-  /**
-   * Tell user about cracked hashes by potfile
-   */
-
-  EVENT (EVENT_POTFILE_NUM_CRACKED);
 
   // main call
 
