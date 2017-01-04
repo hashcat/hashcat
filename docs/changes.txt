@@ -38,6 +38,7 @@
 - Building: Added hashcat32.dll and hashcat64.dll makefile targets for building hashcat windows libraries
 - Building: Added production flag in Makefile to disable all the GCC compiler options needed only for development
 - Building: Removed access to readlink() on FreeBSD
+- Building: For CYGWIN prefer to use "opencl.dll" (installed by drivers) instead of optional "cygOpenCL-1.dll"
 - Events: Added new event EVENT_WEAK_HASH_ALL_CRACKED if all hashes have been cracked during weak hash check
 - Hardware management: Switched matching ADL device with OpenCL device by using PCI bus, device and function
 - Hardware management: Switched matching NvAPI device with OpenCL device by using PCI bus, device and function
