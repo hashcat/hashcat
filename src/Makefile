@@ -111,11 +111,16 @@ COMPTIME                := $(shell date +%s)
 VERSION_EXPORT          := $Format:%D$
 VERSION_TAG             := $(shell test -d .git && git describe --tags --dirty=+ || echo "$(VERSION_EXPORT)"|cut -d, -f2|$(SED) -r 's|.* (\w+/)?([^ ]+)|\2|')
 
+PRODUCTION              := 1
+
 ##
 ## General compiler and linker options
 ##
 
 CFLAGS                  += -pipe -std=c99 -Iinclude/ -IOpenCL/
+CFLAGS                  += -Wno-format-zero-length
+
+ifeq ($(PRODUCTION),0)
 CFLAGS                  += -W
 CFLAGS                  += -Wall
 CFLAGS                  += -Wextra
@@ -132,7 +137,6 @@ CFLAGS                  += -Wunreachable-code
 CFLAGS                  += -Winit-self
 CFLAGS                  += -Werror-implicit-function-declaration
 CFLAGS                  += -Wformat
-CFLAGS                  += -Wno-format-zero-length
 CFLAGS                  += -ftrapv
 
 # the following compiler options produce warnings that should be fixed at some time
@@ -143,6 +147,7 @@ CFLAGS                  += -ftrapv
 #CFLAGS                  += -Wsign-conversion
 #CFLAGS                  += -Wwrite-strings
 #CFLAGS                  += -pedantic
+endif
 
 # default linux and freebsd thread stack size is 2MB
 # default windows thread stack size is 1MB
