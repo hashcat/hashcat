@@ -2712,6 +2712,26 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         }
       }
 
+      // Since some times we get reports from users about not working hashcat, dropping error messages like:
+      // CL_INVALID_COMMAND_QUEUE and CL_OUT_OF_RESOURCES
+      // Turns out that this is caused by Intel OpenCL runtime handling their GPU devices
+      // Disable such devices unless the user forces to use it
+
+      if (device_type & CL_DEVICE_TYPE_GPU)
+      {
+        if ((device_param->device_vendor_id == VENDOR_ID_INTEL_SDK) || (device_param->device_vendor_id == VENDOR_ID_INTEL_BEIGNET))
+        {
+          if (user_options->force == false)
+          {
+            if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Intel's OpenCL runtime (GPU only) is currently broken", device_id + 1);
+            if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             We need to wait for an update of their OpenCL drivers");
+            if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             You can use --force to override this but do not post error reports if you do so");
+
+            device_param->skipped = true;
+          }
+        }
+      }
+
       // skipped
 
       if ((opencl_ctx->devices_filter & (1u << device_id)) == 0)

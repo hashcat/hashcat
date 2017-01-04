@@ -32,6 +32,12 @@
 - Fixed potfile loading to accept blank passwords
 
 ##
+## Workarounds
+##
+
+- Workaround added for Intel OpenCL runtime: GPU support is broken, skip the device unless user forces to enable it
+
+##
 ## Technical
 ##
 
