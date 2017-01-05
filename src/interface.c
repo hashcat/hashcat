@@ -13045,7 +13045,7 @@ int plaintext_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   memset (digest, 0, hashconfig->dgst_size);
 
-  memcpy (digest + 64, input_buf, input_len);
+  memcpy (digest + 16, input_buf, input_len);
 
   //strncpy ((char *) digest + 64, (char *) input_buf, 64);
 

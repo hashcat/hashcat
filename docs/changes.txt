@@ -23,6 +23,7 @@
 ##
 
 - Fixed buffer overflow in status screen display in case of long non-utf8 string
+- Fixed buffer overflow in plaintext parsing code: Leading to segfault
 - Fixed custom char parsing code in maskfiles in --increment mode: Custom charset wasn't used
 - Fixed display screen to show input queue when using custom charset or rules
 - Fixed double fclose() using AMDGPU-Pro on sysfs compatible platform: Leading to segfault
