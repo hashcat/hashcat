@@ -154,7 +154,7 @@ char *first_file_in_directory (const char *path)
 
     #endif
 
-      if ((strncmp (de->d_name, ".", strlen (de->d_name)) == 0) || (strncmp (de->d_name, "..", strlen (de->d_name)) == 0)) continue;
+      if (de->d_name[0] == '.') continue;
 
       first_file = strdup (de->d_name);
 
