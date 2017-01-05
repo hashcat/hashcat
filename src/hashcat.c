@@ -208,8 +208,6 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->runtime_start = runtime_start;
 
-  status_ctx->prepare_time = runtime_start - status_ctx->prepare_start;
-
   /**
    * create cracker threads
    */
@@ -261,8 +259,6 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   logfile_sub_uint (runtime_start);
   logfile_sub_uint (runtime_stop);
-
-  time (&status_ctx->prepare_start);
 
   hashcat_get_status (hashcat_ctx, status_ctx->hashcat_status_final);
 
@@ -394,12 +390,6 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   status_ctx->run_main_level3   = true;
   status_ctx->run_thread_level1 = true;
   status_ctx->run_thread_level2 = true;
-
-  /**
-   * setup prepare timer
-   */
-
-  time (&status_ctx->prepare_start);
 
   /**
    * setup variables and buffers depending on hash_mode

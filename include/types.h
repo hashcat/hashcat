@@ -1707,9 +1707,6 @@ typedef struct status_ctx
   time_t  runtime_start;
   time_t  runtime_stop;
 
-  time_t  prepare_start;
-  time_t  prepare_time;
-
   hc_timer_t timer_running;     // timer on current dict
   hc_timer_t timer_paused;      // timer on current dict
 

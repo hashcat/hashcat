@@ -34,6 +34,7 @@
 - Fixed mask length check in hybrid attack-modes: Do not include hash-mode dependant mask length checks
 - Fixed parsing of hashes in case the last line did not include a linefeed character
 - Fixed potfile loading to accept blank passwords
+- Fixed runtime limit: No longer required so sample startup time after refactorization
 
 ##
 ## Workarounds
