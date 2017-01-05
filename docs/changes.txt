@@ -62,6 +62,7 @@
 - Potfile: In v3.10 already, the default potfile suffix changed but the note about was missing. The "hashcat.pot" became "hashcat.potfile"
 - Potfile: Added old potfile detection, show warning message
 - Sanity: Added sanity check to disallow --speed-only in combination with -i
+- Sanity: Added sanity check to disallow --loopback in combination with --runtime
 - Threads: Replaced all calls to ctime() with ctime_r() to ensure thread safety
 - Threads: Replaced all calls to strerror() with %m printf() GNU extension to ensure thread safety
 

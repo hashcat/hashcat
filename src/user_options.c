@@ -393,6 +393,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
+  if (user_options->runtime_chgd == true && user_options->loopback == true)
+  {
+    event_log_error (hashcat_ctx, "Runtime-Limit is not allowed in combination with --loopback");
+
+    return -1;
+  }
+
   if (user_options->hash_mode > 99999)
   {
     event_log_error (hashcat_ctx, "Invalid hash-type specified");
