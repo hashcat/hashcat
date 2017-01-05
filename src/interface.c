@@ -10892,7 +10892,25 @@ int sip_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   // there are 2 possibilities for the esalt:
 
-  if ((strncmp ((const char *) qop_pos, "auth", strlen ((const char *) qop_pos)) == 0) || (strncmp ((const char *) qop_pos, "auth-int", strlen ((const char *) qop_pos)) == 0))
+  bool with_auth = false;
+
+  if (strlen ((const char *) qop_pos) == 4)
+  {
+    if (strncmp ((const char *) qop_pos, "auth", 4) == 0)
+    {
+      with_auth = true;
+    }
+  }
+
+  if (strlen ((const char *) qop_pos) == 8)
+  {
+    if (strncmp ((const char *) qop_pos, "auth-int", 8) == 0)
+    {
+      with_auth = true;
+    }
+  }
+
+  if (with_auth == true)
   {
     esalt_len = 1 + nonce_len + 1 + nonce_count_len + 1 + nonce_client_len + 1 + qop_len + 1 + 32;
 

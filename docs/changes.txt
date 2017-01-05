@@ -25,6 +25,7 @@
 - Fixed custom char parsing code in maskfiles in --increment mode: Custom charset wasn't used
 - Fixed display screen to show input queue when using custom charset or rules
 - Fixed double fclose() using AMDGPU-Pro on sysfs compatible platform: Leading to segfault
+- Fixed hash-mode 11400 = SIP digest authentication (MD5): Cracking of hashes which did not include *auth* or *auth-int* was broken
 - Fixed hex output of plaintext in case --outfile-format 4, 5, 6 or 7 was used
 - Fixed infinite loop when using --loopback in case all hashes have been cracked
 - Fixed kernel loops in --increment mode leading to slower performance
