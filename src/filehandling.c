@@ -58,21 +58,26 @@ int fgetl (FILE *fp, char *line_buf)
 
   if (line_len == 0) return 0;
 
-  if (line_buf[line_len - 1] == '\n')
+  while (line_len)
   {
-    line_len--;
+    if (line_buf[line_len - 1] == '\n')
+    {
+      line_len--;
 
-    line_buf[line_len] = 0;
+      continue;
+    }
+
+    if (line_buf[line_len - 1] == '\r')
+    {
+      line_len--;
+
+      continue;
+    }
+
+    break;
   }
 
-  if (line_len == 0) return 0;
-
-  if (line_buf[line_len - 1] == '\r')
-  {
-    line_len--;
-
-    line_buf[line_len] = 0;
-  }
+  line_buf[line_len] = 0;
 
   return (line_len);
 }

@@ -32,6 +32,7 @@
 - Fixed infinite loop when using --loopback in case all hashes have been cracked
 - Fixed kernel loops in --increment mode leading to slower performance
 - Fixed mask length check in hybrid attack-modes: Do not include hash-mode dependant mask length checks
+- Fixed parsing of hashes in case the last line did not include a linefeed character
 - Fixed potfile loading to accept blank passwords
 
 ##
