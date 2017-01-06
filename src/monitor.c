@@ -290,7 +290,7 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
       {
         EVENT_DATA (EVENT_MONITOR_RUNTIME_LIMIT, NULL, 0);
 
-        myabort (hashcat_ctx);
+        myabort_runtime (hashcat_ctx);
       }
     }
 

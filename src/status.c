@@ -27,6 +27,8 @@ static const char ST_0005[] = "Cracked";
 static const char ST_0006[] = "Aborted";
 static const char ST_0007[] = "Quit";
 static const char ST_0008[] = "Bypass";
+static const char ST_0009[] = "Aborted (Checkpoint)";
+static const char ST_0010[] = "Aborted (Runtime)";
 static const char ST_9999[] = "Unknown! Bug!";
 
 static const char UNITS[7] = { ' ', 'k', 'M', 'G', 'T', 'P', 'E' };
@@ -196,15 +198,17 @@ char *status_get_status_string (const hashcat_ctx_t *hashcat_ctx)
 
   switch (devices_status)
   {
-    case STATUS_INIT:      return ((char *) ST_0000);
-    case STATUS_AUTOTUNE:  return ((char *) ST_0001);
-    case STATUS_RUNNING:   return ((char *) ST_0002);
-    case STATUS_PAUSED:    return ((char *) ST_0003);
-    case STATUS_EXHAUSTED: return ((char *) ST_0004);
-    case STATUS_CRACKED:   return ((char *) ST_0005);
-    case STATUS_ABORTED:   return ((char *) ST_0006);
-    case STATUS_QUIT:      return ((char *) ST_0007);
-    case STATUS_BYPASS:    return ((char *) ST_0008);
+    case STATUS_INIT:               return ((char *) ST_0000);
+    case STATUS_AUTOTUNE:           return ((char *) ST_0001);
+    case STATUS_RUNNING:            return ((char *) ST_0002);
+    case STATUS_PAUSED:             return ((char *) ST_0003);
+    case STATUS_EXHAUSTED:          return ((char *) ST_0004);
+    case STATUS_CRACKED:            return ((char *) ST_0005);
+    case STATUS_ABORTED:            return ((char *) ST_0006);
+    case STATUS_QUIT:               return ((char *) ST_0007);
+    case STATUS_BYPASS:             return ((char *) ST_0008);
+    case STATUS_ABORTED_CHECKPOINT: return ((char *) ST_0009);
+    case STATUS_ABORTED_RUNTIME:    return ((char *) ST_0010);
   }
 
   return ((char *) ST_9999);

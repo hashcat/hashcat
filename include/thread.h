@@ -57,6 +57,8 @@ void hc_signal (void (callback) (int));
 */
 
 int mycracked (hashcat_ctx_t *hashcat_ctx);
+int myabort_runtime (hashcat_ctx_t *hashcat_ctx);
+int myabort_checkpoint (hashcat_ctx_t *hashcat_ctx);
 int myabort (hashcat_ctx_t *hashcat_ctx);
 int myquit (hashcat_ctx_t *hashcat_ctx);
 int bypass (hashcat_ctx_t *hashcat_ctx);

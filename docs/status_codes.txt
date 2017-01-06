@@ -6,3 +6,5 @@ status codes on exit:
  0 = OK/cracked
  1 = exhausted
  2 = aborted
+ 3 = aborted by checkpoint
+ 4 = aborted by runtime

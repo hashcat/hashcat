@@ -160,15 +160,17 @@ typedef enum vendor_id
 
 typedef enum status_rc
 {
-  STATUS_INIT            = 0,
-  STATUS_AUTOTUNE        = 1,
-  STATUS_RUNNING         = 2,
-  STATUS_PAUSED          = 3,
-  STATUS_EXHAUSTED       = 4,
-  STATUS_CRACKED         = 5,
-  STATUS_ABORTED         = 6,
-  STATUS_QUIT            = 7,
-  STATUS_BYPASS          = 8,
+  STATUS_INIT               = 0,
+  STATUS_AUTOTUNE           = 1,
+  STATUS_RUNNING            = 2,
+  STATUS_PAUSED             = 3,
+  STATUS_EXHAUSTED          = 4,
+  STATUS_CRACKED            = 5,
+  STATUS_ABORTED            = 6,
+  STATUS_QUIT               = 7,
+  STATUS_BYPASS             = 8,
+  STATUS_ABORTED_CHECKPOINT = 9,
+  STATUS_ABORTED_RUNTIME    = 10,
 
 } status_rc_t;
 

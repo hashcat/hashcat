@@ -241,8 +241,15 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   hcfree (threads_param);
 
+  if ((status_ctx->devices_status == STATUS_RUNNING) && (status_ctx->checkpoint_shutdown == true))
+  {
+    myabort_checkpoint (hashcat_ctx);
+  }
+
   if ((status_ctx->devices_status != STATUS_CRACKED)
    && (status_ctx->devices_status != STATUS_ABORTED)
+   && (status_ctx->devices_status != STATUS_ABORTED_CHECKPOINT)
+   && (status_ctx->devices_status != STATUS_ABORTED_RUNTIME)
    && (status_ctx->devices_status != STATUS_QUIT)
    && (status_ctx->devices_status != STATUS_BYPASS))
   {
@@ -1112,10 +1119,12 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
   if (rc_final == 0)
   {
-    if (status_ctx->devices_status == STATUS_ABORTED)   rc_final = 2;
-    if (status_ctx->devices_status == STATUS_QUIT)      rc_final = 2;
-    if (status_ctx->devices_status == STATUS_EXHAUSTED) rc_final = 1;
-    if (status_ctx->devices_status == STATUS_CRACKED)   rc_final = 0;
+    if (status_ctx->devices_status == STATUS_ABORTED_RUNTIME)     rc_final = 4;
+    if (status_ctx->devices_status == STATUS_ABORTED_CHECKPOINT)  rc_final = 3;
+    if (status_ctx->devices_status == STATUS_ABORTED)             rc_final = 2;
+    if (status_ctx->devices_status == STATUS_QUIT)                rc_final = 2;
+    if (status_ctx->devices_status == STATUS_EXHAUSTED)           rc_final = 1;
+    if (status_ctx->devices_status == STATUS_CRACKED)             rc_final = 0;
   }
 
   // done

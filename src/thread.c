@@ -120,9 +120,37 @@ int mycracked (hashcat_ctx_t *hashcat_ctx)
 {
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
-  //if (status_ctx->devices_status != STATUS_RUNNING) return;
-
   status_ctx->devices_status = STATUS_CRACKED;
+
+  status_ctx->run_main_level1   = false;
+  status_ctx->run_main_level2   = false;
+  status_ctx->run_main_level3   = false;
+  status_ctx->run_thread_level1 = false;
+  status_ctx->run_thread_level2 = false;
+
+  return 0;
+}
+
+int myabort_checkpoint (hashcat_ctx_t *hashcat_ctx)
+{
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  status_ctx->devices_status = STATUS_ABORTED_CHECKPOINT;
+
+  status_ctx->run_main_level1   = false;
+  status_ctx->run_main_level2   = false;
+  status_ctx->run_main_level3   = false;
+  status_ctx->run_thread_level1 = false;
+  status_ctx->run_thread_level2 = false;
+
+  return 0;
+}
+
+int myabort_runtime (hashcat_ctx_t *hashcat_ctx)
+{
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  status_ctx->devices_status = STATUS_ABORTED_RUNTIME;
 
   status_ctx->run_main_level1   = false;
   status_ctx->run_main_level2   = false;
