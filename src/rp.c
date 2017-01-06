@@ -149,7 +149,6 @@ int generate_random_rule (char rule_buf[RP_RULE_BUFSIZ], const u32 rp_gen_func_m
     u32 r  = 0;
     u32 p1 = 0;
     u32 p2 = 0;
-    u32 p3 = 0;
 
     switch ((char) get_random_num (0, 9))
     {
