@@ -748,7 +748,7 @@ static void AES256_InvertKey (u32 *rdk, __local u32 *s_td0, __local u32 *s_td1, 
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (u32 i = 0, j = 56; i < j; i += 4, j -= 4)
+  for (u32 i = 0, j = 56; i < 28; i += 4, j -= 4)
   {
     u32 temp;
 
