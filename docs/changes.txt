@@ -1,4 +1,9 @@
 * changes v3.30 -> v3.xx:
+##
+## Features
+##
+
+- Added support for parsing 7-Zip hashes with LZMA/LZMA2 compression indicator set to a non-zero value
 
 ##
 ## Workarounds

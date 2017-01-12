@@ -11054,13 +11054,13 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
    * parse line
    */
 
-  u8 *p_buf_pos = input_buf + 4;
+  u8 *lzma_buf_pos = input_buf + 4;
 
-  u8 *NumCyclesPower_pos = (u8 *) strchr ((const char *) p_buf_pos, '$');
+  u8 *NumCyclesPower_pos = (u8 *) strchr ((const char *) lzma_buf_pos, '$');
 
   if (NumCyclesPower_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
-  u32 p_buf_len = NumCyclesPower_pos - p_buf_pos;
+  u32 lzma_buf_len = NumCyclesPower_pos - lzma_buf_pos;
 
   NumCyclesPower_pos++;
 
@@ -11128,11 +11128,11 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   data_buf_pos++;
 
-  u32 data_buf_len = input_len - 1 - 2 - 1 - p_buf_len - 1 - NumCyclesPower_len - 1 - salt_len_len - 1 - salt_buf_len - 1 - iv_len_len - 1 - iv_buf_len - 1 - crc_buf_len - 1 - data_len_len - 1 - unpack_size_len - 1;
+  u32 data_buf_len = input_len - 1 - 2 - 1 - lzma_buf_len - 1 - NumCyclesPower_len - 1 - salt_len_len - 1 - salt_buf_len - 1 - iv_len_len - 1 - iv_buf_len - 1 - crc_buf_len - 1 - data_len_len - 1 - unpack_size_len - 1;
 
   const u32 iter         = atoll ((const char *) NumCyclesPower_pos);
   const u32 crc          = atoll ((const char *) crc_buf_pos);
-  const u32 p_buf        = atoll ((const char *) p_buf_pos);
+  const u32 lzma_buf     = atoll ((const char *) lzma_buf_pos);
   const u32 salt_len     = atoll ((const char *) salt_len_pos);
   const u32 iv_len       = atoll ((const char *) iv_len_pos);
   const u32 unpack_size  = atoll ((const char *) unpack_size_pos);
@@ -11142,8 +11142,8 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
    * verify some data
    */
 
-  if (p_buf     != 0) return (PARSER_SALT_VALUE);
-  if (salt_len  != 0) return (PARSER_SALT_VALUE);
+  if (lzma_buf  > 2) return (PARSER_SALT_VALUE);
+  if (salt_len != 0) return (PARSER_SALT_VALUE);
 
   if ((data_len * 2) != data_buf_len) return (PARSER_SALT_VALUE);
 
@@ -11195,7 +11195,7 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   salt->salt_len = 16;
 
-  salt->salt_sign[0] = iter;
+  salt->salt_sign[0] = lzma_buf;
 
   salt->salt_iter = 1u << iter;
 
@@ -15675,11 +15675,20 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
       sprintf (data_buf + j, "%02x", ptr[i]);
     }
 
+    u32 salt_iter = salt.salt_iter;
+
+    u32 cost = 0; // the log2 () of salt_iter
+
+    while (salt_iter >>= 1)
+    {
+      cost++;
+    }
+
     snprintf (out_buf, out_len - 1, "%s%d$%u$%d$%s$%u$%08x%08x%08x%08x$%u$%u$%u$%s",
       SIGNATURE_SEVEN_ZIP,
-      0,
       salt.salt_sign[0],
-      0,
+      cost,
+      seven_zip->salt_len,
       (char *) seven_zip->salt_buf,
       seven_zip->iv_len,
       seven_zip->iv_buf[0],
