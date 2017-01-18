@@ -274,6 +274,10 @@ static void main_cracker_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
       event_log_info (hashcat_ctx, "");
     }
   }
+  else if (user_options->machine_readable == true)
+  {
+    status_display (hashcat_ctx);
+  }
   else
   {
     if (user_options->quiet == false)
