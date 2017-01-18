@@ -2717,6 +2717,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       // Turns out that this is caused by Intel OpenCL runtime handling their GPU devices
       // Disable such devices unless the user forces to use it
 
+      #if !defined (__APPLE__)
       if (device_type & CL_DEVICE_TYPE_GPU)
       {
         if ((device_param->device_vendor_id == VENDOR_ID_INTEL_SDK) || (device_param->device_vendor_id == VENDOR_ID_INTEL_BEIGNET))
@@ -2731,6 +2732,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           }
         }
       }
+      #endif // __APPLE__
 
       // skipped
 
