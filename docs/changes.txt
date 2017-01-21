@@ -18,6 +18,12 @@
 
 - Workaround added for AMDGPU-Pro OpenCL runtime: AES encrypt and decrypt Invertkey function was calculated wrong in certain cases
 
+##
+## Bugs
+##
+
+- Fixed a problem with maximal password length with the combinator attack
+
 * changes v3.20 -> v3.30:
 
 ##
