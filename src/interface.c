@@ -13168,14 +13168,11 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   // verify the content
 
-  #define ntohs byte_swap_16
-  #define ntohl byte_swap_32
-
   char luks_magic[6] = LUKS_MAGIC;
 
   if (memcmp (hdr.magic, luks_magic, LUKS_MAGIC_L)) return (PARSER_LUKS_MAGIC);
 
-  if (ntohs (hdr.version) != 1) return (PARSER_LUKS_VERSION);
+  if (byte_swap_16 (hdr.version) != 1) return (PARSER_LUKS_VERSION);
 
   if (strcmp (hdr.cipherName, "aes") == 0)
   {
@@ -13244,7 +13241,7 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
     return (PARSER_LUKS_HASH_TYPE);
   }
 
-  const u32 keyBytes = ntohl (hdr.keyBytes);
+  const u32 keyBytes = byte_swap_32 (hdr.keyBytes);
 
   if (keyBytes == 16)
   {
@@ -13332,8 +13329,8 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   // verify the selected keyslot informations
 
-  const u32 active  = ntohl (hdr.keyblock[keyslot_idx].active);
-  const u32 stripes = ntohl (hdr.keyblock[keyslot_idx].stripes);
+  const u32 active  = byte_swap_32 (hdr.keyblock[keyslot_idx].active);
+  const u32 stripes = byte_swap_32 (hdr.keyblock[keyslot_idx].stripes);
 
   if (active  != LUKS_KEY_ENABLED) return (PARSER_LUKS_KEY_DISABLED);
   if (stripes != LUKS_STRIPES)     return (PARSER_LUKS_KEY_STRIPES);
@@ -13353,13 +13350,13 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   salt->salt_len = LUKS_SALTSIZE;
 
-  const u32 passwordIterations = ntohl (hdr.keyblock[keyslot_idx].passwordIterations);
+  const u32 passwordIterations = byte_swap_32 (hdr.keyblock[keyslot_idx].passwordIterations);
 
   salt->salt_iter = passwordIterations - 1;
 
   // Load AF data for this keyslot into esalt
 
-  const u32 keyMaterialOffset = ntohl (hdr.keyblock[keyslot_idx].keyMaterialOffset);
+  const u32 keyMaterialOffset = byte_swap_32 (hdr.keyblock[keyslot_idx].keyMaterialOffset);
 
   const int rc_seek1 = fseek (fp, keyMaterialOffset * 512, SEEK_SET);
 
@@ -13371,7 +13368,7 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   // finally, copy some encrypted payload data for entropy check
 
-  const u32 payloadOffset = ntohl (hdr.payloadOffset);
+  const u32 payloadOffset = byte_swap_32 (hdr.payloadOffset);
 
   const int rc_seek2 = fseek (fp, payloadOffset * 512, SEEK_SET);
 
