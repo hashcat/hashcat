@@ -306,6 +306,7 @@ static const char *USAGE_BIG[] =
   "      Y | 2 = XTS 1024 bit cascaded Serpent-AES            | Full-Disk encryptions (FDE)",
   "      Y | 2 = XTS 1024 bit cascaded Twofish-Serpent        | Full-Disk encryptions (FDE)",
   "      Y | 3 = XTS 1536 bit all                             | Full-Disk encryptions (FDE)",
+  "  14600 | LUKS                                             | Full-Disk encryptions (FDE)",
   "   9700 | MS Office <= 2003 $0|$1, MD5 + RC4               | Documents",
   "   9710 | MS Office <= 2003 $0|$1, MD5 + RC4, collider #1  | Documents",
   "   9720 | MS Office <= 2003 $0|$1, MD5 + RC4, collider #2  | Documents",

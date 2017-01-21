@@ -19,6 +19,12 @@
 #define IS_ACCEL
 #endif
 
+#if   DEVICE_TYPE == DEVICE_TYPE_CPU
+#elif DEVICE_TYPE == DEVICE_TYPE_GPU
+#define REAL_SHM
+#elif DEVICE_TYPE == DEVICE_TYPE_ACCEL
+#endif
+
 /**
  * vendor specific
  */

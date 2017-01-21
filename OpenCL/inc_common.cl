@@ -87,6 +87,43 @@ inline void mark_hash (__global plain_t *plains_buf, __global u32 *d_result, con
   plains_buf[idx].il_pos      = il_pos;
 }
 
+inline int count_char (const u32 *buf, const int elems, const u32 c)
+{
+  int r = 0;
+
+  for (int i = 0; i < elems; i++)
+  {
+    const u32 v = buf[i];
+
+    if (((v >>  0) & 0xff) == c) r++;
+    if (((v >>  8) & 0xff) == c) r++;
+    if (((v >> 16) & 0xff) == c) r++;
+    if (((v >> 24) & 0xff) == c) r++;
+  }
+
+  return r;
+}
+
+inline float get_entropy (const u32 *buf, const int elems)
+{
+  const int length = elems * 4;
+
+  float entropy = 0.0;
+
+  for (u32 c = 0; c < 256; c++)
+  {
+    const int r = count_char (buf, elems, c);
+
+    if (r == 0) continue;
+
+    float w = (float) r / length;
+
+    entropy += -w * log2 (w);
+  }
+
+  return entropy;
+}
+
 /**
  * vector functions
  */

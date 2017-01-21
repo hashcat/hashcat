@@ -301,6 +301,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
   if  (hashconfig->hash_mode ==  9000)  return 0;
   if ((hashconfig->hash_mode >= 13700)
    && (hashconfig->hash_mode <= 13799)) return 0;
+  if  (hashconfig->hash_mode == 14600)  return 0;
 
   hash_t hash_buf;
 

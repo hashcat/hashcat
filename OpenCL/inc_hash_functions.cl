@@ -366,6 +366,16 @@
 #define RIPEMD160_Io(x,y,z)   (RIPEMD160_I ((x), (y), (z)))
 #endif
 
+#define RIPEMD160_STEP_S(f,a,b,c,d,e,x,K,s) \
+{                                           \
+  a += K;                                   \
+  a += x;                                   \
+  a += f (b, c, d);                         \
+  a  = rotl32_S (a, s);                     \
+  a += e;                                   \
+  c  = rotl32_S (c, 10u);                   \
+}
+
 #define RIPEMD160_STEP(f,a,b,c,d,e,x,K,s) \
 {                                         \
   a += K;                                 \
@@ -377,6 +387,16 @@
 }
 
 #define ROTATE_LEFT_WORKAROUND_BUG(a,n) ((a << n) | (a >> (32 - n)))
+
+#define RIPEMD160_STEP_S_WORKAROUND_BUG(f,a,b,c,d,e,x,K,s)  \
+{                                           \
+  a += K;                                   \
+  a += x;                                   \
+  a += f (b, c, d);                         \
+  a  = ROTATE_LEFT_WORKAROUND_BUG (a, s);   \
+  a += e;                                   \
+  c  = rotl32_S (c, 10u);                   \
+}
 
 #define RIPEMD160_STEP_WORKAROUND_BUG(f,a,b,c,d,e,x,K,s)  \
 {                                         \

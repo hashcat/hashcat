@@ -23,6 +23,133 @@ static const char LM_MASKED_PLAIN[] = "[notfound]";
  * algo specific
  */
 
+// original headers from luks.h
+
+#define LUKS_CIPHERNAME_L 32
+#define LUKS_CIPHERMODE_L 32
+#define LUKS_HASHSPEC_L 32
+#define LUKS_DIGESTSIZE 20 // since SHA1
+#define LUKS_HMACSIZE 32
+#define LUKS_SALTSIZE 32
+#define LUKS_NUMKEYS 8
+// Minimal number of iterations
+#define LUKS_MKD_ITERATIONS_MIN  1000
+#define LUKS_SLOT_ITERATIONS_MIN 1000
+#define LUKS_KEY_DISABLED_OLD 0
+#define LUKS_KEY_ENABLED_OLD 0xCAFE
+#define LUKS_KEY_DISABLED 0x0000DEAD
+#define LUKS_KEY_ENABLED  0x00AC71F3
+#define LUKS_STRIPES 4000
+// partition header starts with magic
+#define LUKS_MAGIC {'L','U','K','S', 0xba, 0xbe};
+#define LUKS_MAGIC_L 6
+/* Actually we need only 37, but we don't want struct autoaligning to kick in */
+#define UUID_STRING_L 40
+/* Offset to keyslot area [in bytes] */
+#define LUKS_ALIGN_KEYSLOTS 4096
+
+struct luks_phdr {
+	char		magic[LUKS_MAGIC_L];
+	uint16_t	version;
+	char		cipherName[LUKS_CIPHERNAME_L];
+	char		cipherMode[LUKS_CIPHERMODE_L];
+	char            hashSpec[LUKS_HASHSPEC_L];
+	uint32_t	payloadOffset;
+	uint32_t	keyBytes;
+	char		mkDigest[LUKS_DIGESTSIZE];
+	char		mkDigestSalt[LUKS_SALTSIZE];
+	uint32_t	mkDigestIterations;
+	char            uuid[UUID_STRING_L];
+	struct {
+		uint32_t active;
+		/* parameters used for password processing */
+		uint32_t passwordIterations;
+		char     passwordSalt[LUKS_SALTSIZE];
+		/* parameters used for AF store/load */
+		uint32_t keyMaterialOffset;
+		uint32_t stripes;
+	} keyblock[LUKS_NUMKEYS];
+	/* Align it to 512 sector size */
+	char		_padding[432];
+};
+
+// not from original headers start with hc_
+
+typedef enum hc_luks_hash_type
+{
+  HC_LUKS_HASH_TYPE_SHA1      = 1,
+  HC_LUKS_HASH_TYPE_SHA256    = 2,
+  HC_LUKS_HASH_TYPE_SHA512    = 3,
+  HC_LUKS_HASH_TYPE_RIPEMD160 = 4,
+  HC_LUKS_HASH_TYPE_WHIRLPOOL = 5,
+
+} hc_luks_hash_type_t;
+
+typedef enum hc_luks_key_size
+{
+  HC_LUKS_KEY_SIZE_128 = 128,
+  HC_LUKS_KEY_SIZE_256 = 256,
+  HC_LUKS_KEY_SIZE_512 = 512,
+
+} hc_luks_key_size_t;
+
+typedef enum hc_luks_cipher_type
+{
+  HC_LUKS_CIPHER_TYPE_AES     = 1,
+  HC_LUKS_CIPHER_TYPE_SERPENT = 2,
+  HC_LUKS_CIPHER_TYPE_TWOFISH = 3,
+
+} hc_luks_cipher_type_t;
+
+typedef enum hc_luks_cipher_mode
+{
+  HC_LUKS_CIPHER_MODE_CBC_ESSIV = 1,
+  HC_LUKS_CIPHER_MODE_CBC_PLAIN = 2,
+  HC_LUKS_CIPHER_MODE_XTS_PLAIN = 3,
+
+} hc_luks_cipher_mode_t;
+
+typedef struct luks
+{
+  int hash_type;    // hc_luks_hash_type_t
+  int key_size;     // hc_luks_key_size_t
+  int cipher_type;  // hc_luks_cipher_type_t
+  int cipher_mode;  // hc_luks_cipher_mode_t
+
+  u32 ct_buf[128];
+
+  u32 af_src_buf[((HC_LUKS_KEY_SIZE_512 / 8) * LUKS_STRIPES) / 4];
+
+} luks_t;
+
+typedef struct luks_tmp
+{
+  union
+  {
+    u32 ipad32[32];
+    u64 ipad64[16];
+  };
+
+  union
+  {
+    u32 opad32[32];
+    u64 opad64[16];
+  };
+
+  union
+  {
+    u32 dgst32[32];
+    u64 dgst64[16];
+  };
+
+  union
+  {
+    u32 out32[32];
+    u64 out64[16];
+  };
+
+} luks_tmp_t;
+
 typedef struct rar5
 {
   u32 iv[4];
@@ -1117,171 +1244,187 @@ typedef enum hash_type
   HASH_TYPE_STDOUT              = 52,
   HASH_TYPE_DES                 = 53,
   HASH_TYPE_PLAINTEXT           = 54,
+  HASH_TYPE_LUKS                = 55,
 
 } hash_type_t;
 
 typedef enum kern_type
 {
-  KERN_TYPE_MD5                 = 0,
-  KERN_TYPE_MD5_PWSLT           = 10,
-  KERN_TYPE_MD5_SLTPW           = 20,
-  KERN_TYPE_MD5_PWUSLT          = 30,
-  KERN_TYPE_MD5_SLTPWU          = 40,
-  KERN_TYPE_HMACMD5_PW          = 50,
-  KERN_TYPE_HMACMD5_SLT         = 60,
-  KERN_TYPE_SHA1                = 100,
-  KERN_TYPE_SHA1_PWSLT          = 110,
-  KERN_TYPE_SHA1_SLTPW          = 120,
-  KERN_TYPE_SHA1_PWUSLT         = 130,
-  KERN_TYPE_SHA1_SLTPWU         = 140,
-  KERN_TYPE_HMACSHA1_PW         = 150,
-  KERN_TYPE_HMACSHA1_SLT        = 160,
-  KERN_TYPE_MYSQL               = 200,
-  KERN_TYPE_MYSQL41             = 300,
-  KERN_TYPE_PHPASS              = 400,
-  KERN_TYPE_MD5CRYPT            = 500,
-  KERN_TYPE_MD4                 = 900,
-  KERN_TYPE_MD4_PWU             = 1000,
-  KERN_TYPE_MD44_PWUSLT         = 1100,
-  KERN_TYPE_SHA224              = 1300,
-  KERN_TYPE_SHA256              = 1400,
-  KERN_TYPE_SHA256_PWSLT        = 1410,
-  KERN_TYPE_SHA256_SLTPW        = 1420,
-  KERN_TYPE_SHA256_PWUSLT       = 1430,
-  KERN_TYPE_SHA256_SLTPWU       = 1440,
-  KERN_TYPE_HMACSHA256_PW       = 1450,
-  KERN_TYPE_HMACSHA256_SLT      = 1460,
-  KERN_TYPE_DESCRYPT            = 1500,
-  KERN_TYPE_APR1CRYPT           = 1600,
-  KERN_TYPE_SHA512              = 1700,
-  KERN_TYPE_SHA512_PWSLT        = 1710,
-  KERN_TYPE_SHA512_SLTPW        = 1720,
-  KERN_TYPE_SHA512_PWSLTU       = 1730,
-  KERN_TYPE_SHA512_SLTPWU       = 1740,
-  KERN_TYPE_HMACSHA512_PW       = 1750,
-  KERN_TYPE_HMACSHA512_SLT      = 1760,
-  KERN_TYPE_SHA512CRYPT         = 1800,
-  KERN_TYPE_STDOUT              = 2000,
-  KERN_TYPE_DCC2                = 2100,
-  KERN_TYPE_MD5PIX              = 2400,
-  KERN_TYPE_MD5ASA              = 2410,
-  KERN_TYPE_WPA                 = 2500,
-  KERN_TYPE_MD55                = 2600,
-  KERN_TYPE_MD55_PWSLT1         = 2610,
-  KERN_TYPE_MD55_PWSLT2         = 2710,
-  KERN_TYPE_MD55_SLTPW          = 2810,
-  KERN_TYPE_LM                  = 3000,
-  KERN_TYPE_ORACLEH             = 3100,
-  KERN_TYPE_BCRYPT              = 3200,
-  KERN_TYPE_MD5_SLT_MD5_PW      = 3710,
-  KERN_TYPE_MD5_SLT_PW_SLT      = 3800,
-  KERN_TYPE_MD5U5               = 4300,
-  KERN_TYPE_MD5U5_PWSLT1        = 4310,
-  KERN_TYPE_MD5_SHA1            = 4400,
-  KERN_TYPE_SHA11               = 4500,
-  KERN_TYPE_SHA1_MD5            = 4700,
-  KERN_TYPE_MD5_CHAP            = 4800,
-  KERN_TYPE_SHA1_SLT_PW_SLT     = 4900,
-  KERN_TYPE_KECCAK              = 5000,
-  KERN_TYPE_MD5H                = 5100,
-  KERN_TYPE_PSAFE3              = 5200,
-  KERN_TYPE_IKEPSK_MD5          = 5300,
-  KERN_TYPE_IKEPSK_SHA1         = 5400,
-  KERN_TYPE_NETNTLMv1           = 5500,
-  KERN_TYPE_NETNTLMv2           = 5600,
-  KERN_TYPE_ANDROIDPIN          = 5800,
-  KERN_TYPE_RIPEMD160           = 6000,
-  KERN_TYPE_WHIRLPOOL           = 6100,
-  KERN_TYPE_TCRIPEMD160_XTS512  = 6211,
-  KERN_TYPE_TCRIPEMD160_XTS1024 = 6212,
-  KERN_TYPE_TCRIPEMD160_XTS1536 = 6213,
-  KERN_TYPE_TCSHA512_XTS512     = 6221,
-  KERN_TYPE_TCSHA512_XTS1024    = 6222,
-  KERN_TYPE_TCSHA512_XTS1536    = 6223,
-  KERN_TYPE_TCWHIRLPOOL_XTS512  = 6231,
-  KERN_TYPE_TCWHIRLPOOL_XTS1024 = 6232,
-  KERN_TYPE_TCWHIRLPOOL_XTS1536 = 6233,
-  KERN_TYPE_VCSHA256_XTS512     = 13751,
-  KERN_TYPE_VCSHA256_XTS1024    = 13752,
-  KERN_TYPE_VCSHA256_XTS1536    = 13753,
-  KERN_TYPE_MD5AIX              = 6300,
-  KERN_TYPE_SHA256AIX           = 6400,
-  KERN_TYPE_SHA512AIX           = 6500,
-  KERN_TYPE_AGILEKEY            = 6600,
-  KERN_TYPE_SHA1AIX             = 6700,
-  KERN_TYPE_LASTPASS            = 6800,
-  KERN_TYPE_GOST                = 6900,
-  KERN_TYPE_PBKDF2_SHA512       = 7100,
-  KERN_TYPE_RAKP                = 7300,
-  KERN_TYPE_SHA256CRYPT         = 7400,
-  KERN_TYPE_KRB5PA              = 7500,
-  KERN_TYPE_SHA1_SLT_SHA1_PW    = 7600,
-  KERN_TYPE_SAPB                = 7700,
-  KERN_TYPE_SAPG                = 7800,
-  KERN_TYPE_DRUPAL7             = 7900,
-  KERN_TYPE_SYBASEASE           = 8000,
-  KERN_TYPE_NETSCALER           = 8100,
-  KERN_TYPE_CLOUDKEY            = 8200,
-  KERN_TYPE_NSEC3               = 8300,
-  KERN_TYPE_WBB3                = 8400,
-  KERN_TYPE_RACF                = 8500,
-  KERN_TYPE_LOTUS5              = 8600,
-  KERN_TYPE_LOTUS6              = 8700,
-  KERN_TYPE_ANDROIDFDE          = 8800,
-  KERN_TYPE_SCRYPT              = 8900,
-  KERN_TYPE_PSAFE2              = 9000,
-  KERN_TYPE_LOTUS8              = 9100,
-  KERN_TYPE_OFFICE2007          = 9400,
-  KERN_TYPE_OFFICE2010          = 9500,
-  KERN_TYPE_OFFICE2013          = 9600,
-  KERN_TYPE_OLDOFFICE01         = 9700,
-  KERN_TYPE_OLDOFFICE01CM1      = 9710,
-  KERN_TYPE_OLDOFFICE01CM2      = 9720,
-  KERN_TYPE_OLDOFFICE34         = 9800,
-  KERN_TYPE_OLDOFFICE34CM1      = 9810,
-  KERN_TYPE_OLDOFFICE34CM2      = 9820,
-  KERN_TYPE_RADMIN2             = 9900,
-  KERN_TYPE_SIPHASH             = 10100,
-  KERN_TYPE_SAPH_SHA1           = 10300,
-  KERN_TYPE_PDF11               = 10400,
-  KERN_TYPE_PDF11CM1            = 10410,
-  KERN_TYPE_PDF11CM2            = 10420,
-  KERN_TYPE_PDF14               = 10500,
-  KERN_TYPE_PDF17L8             = 10700,
-  KERN_TYPE_SHA384              = 10800,
-  KERN_TYPE_PBKDF2_SHA256       = 10900,
-  KERN_TYPE_PRESTASHOP          = 11000,
-  KERN_TYPE_POSTGRESQL_AUTH     = 11100,
-  KERN_TYPE_MYSQL_AUTH          = 11200,
-  KERN_TYPE_BITCOIN_WALLET      = 11300,
-  KERN_TYPE_SIP_AUTH            = 11400,
-  KERN_TYPE_CRC32               = 11500,
-  KERN_TYPE_SEVEN_ZIP           = 11600,
-  KERN_TYPE_GOST_2012SBOG_256   = 11700,
-  KERN_TYPE_GOST_2012SBOG_512   = 11800,
-  KERN_TYPE_PBKDF2_MD5          = 11900,
-  KERN_TYPE_PBKDF2_SHA1         = 12000,
-  KERN_TYPE_ECRYPTFS            = 12200,
-  KERN_TYPE_ORACLET             = 12300,
-  KERN_TYPE_BSDICRYPT           = 12400,
-  KERN_TYPE_RAR3                = 12500,
-  KERN_TYPE_CF10                = 12600,
-  KERN_TYPE_MYWALLET            = 12700,
-  KERN_TYPE_MS_DRSR             = 12800,
-  KERN_TYPE_ANDROIDFDE_SAMSUNG  = 12900,
-  KERN_TYPE_RAR5                = 13000,
-  KERN_TYPE_KRB5TGS             = 13100,
-  KERN_TYPE_AXCRYPT             = 13200,
-  KERN_TYPE_SHA1_AXCRYPT        = 13300,
-  KERN_TYPE_KEEPASS             = 13400,
-  KERN_TYPE_PSTOKEN             = 13500,
-  KERN_TYPE_ZIP2                = 13600,
-  KERN_TYPE_WIN8PHONE           = 13800,
-  KERN_TYPE_OPENCART            = 13900,
-  KERN_TYPE_DES                 = 14000,
-  KERN_TYPE_3DES                = 14100,
-  KERN_TYPE_SHA1CX              = 14400,
-  KERN_TYPE_PLAINTEXT           = 99999,
+  KERN_TYPE_MD5                     = 0,
+  KERN_TYPE_MD5_PWSLT               = 10,
+  KERN_TYPE_MD5_SLTPW               = 20,
+  KERN_TYPE_MD5_PWUSLT              = 30,
+  KERN_TYPE_MD5_SLTPWU              = 40,
+  KERN_TYPE_HMACMD5_PW              = 50,
+  KERN_TYPE_HMACMD5_SLT             = 60,
+  KERN_TYPE_SHA1                    = 100,
+  KERN_TYPE_SHA1_PWSLT              = 110,
+  KERN_TYPE_SHA1_SLTPW              = 120,
+  KERN_TYPE_SHA1_PWUSLT             = 130,
+  KERN_TYPE_SHA1_SLTPWU             = 140,
+  KERN_TYPE_HMACSHA1_PW             = 150,
+  KERN_TYPE_HMACSHA1_SLT            = 160,
+  KERN_TYPE_MYSQL                   = 200,
+  KERN_TYPE_MYSQL41                 = 300,
+  KERN_TYPE_PHPASS                  = 400,
+  KERN_TYPE_MD5CRYPT                = 500,
+  KERN_TYPE_MD4                     = 900,
+  KERN_TYPE_MD4_PWU                 = 1000,
+  KERN_TYPE_MD44_PWUSLT             = 1100,
+  KERN_TYPE_SHA224                  = 1300,
+  KERN_TYPE_SHA256                  = 1400,
+  KERN_TYPE_SHA256_PWSLT            = 1410,
+  KERN_TYPE_SHA256_SLTPW            = 1420,
+  KERN_TYPE_SHA256_PWUSLT           = 1430,
+  KERN_TYPE_SHA256_SLTPWU           = 1440,
+  KERN_TYPE_HMACSHA256_PW           = 1450,
+  KERN_TYPE_HMACSHA256_SLT          = 1460,
+  KERN_TYPE_DESCRYPT                = 1500,
+  KERN_TYPE_APR1CRYPT               = 1600,
+  KERN_TYPE_SHA512                  = 1700,
+  KERN_TYPE_SHA512_PWSLT            = 1710,
+  KERN_TYPE_SHA512_SLTPW            = 1720,
+  KERN_TYPE_SHA512_PWSLTU           = 1730,
+  KERN_TYPE_SHA512_SLTPWU           = 1740,
+  KERN_TYPE_HMACSHA512_PW           = 1750,
+  KERN_TYPE_HMACSHA512_SLT          = 1760,
+  KERN_TYPE_SHA512CRYPT             = 1800,
+  KERN_TYPE_STDOUT                  = 2000,
+  KERN_TYPE_DCC2                    = 2100,
+  KERN_TYPE_MD5PIX                  = 2400,
+  KERN_TYPE_MD5ASA                  = 2410,
+  KERN_TYPE_WPA                     = 2500,
+  KERN_TYPE_MD55                    = 2600,
+  KERN_TYPE_MD55_PWSLT1             = 2610,
+  KERN_TYPE_MD55_PWSLT2             = 2710,
+  KERN_TYPE_MD55_SLTPW              = 2810,
+  KERN_TYPE_LM                      = 3000,
+  KERN_TYPE_ORACLEH                 = 3100,
+  KERN_TYPE_BCRYPT                  = 3200,
+  KERN_TYPE_MD5_SLT_MD5_PW          = 3710,
+  KERN_TYPE_MD5_SLT_PW_SLT          = 3800,
+  KERN_TYPE_MD5U5                   = 4300,
+  KERN_TYPE_MD5U5_PWSLT1            = 4310,
+  KERN_TYPE_MD5_SHA1                = 4400,
+  KERN_TYPE_SHA11                   = 4500,
+  KERN_TYPE_SHA1_MD5                = 4700,
+  KERN_TYPE_MD5_CHAP                = 4800,
+  KERN_TYPE_SHA1_SLT_PW_SLT         = 4900,
+  KERN_TYPE_KECCAK                  = 5000,
+  KERN_TYPE_MD5H                    = 5100,
+  KERN_TYPE_PSAFE3                  = 5200,
+  KERN_TYPE_IKEPSK_MD5              = 5300,
+  KERN_TYPE_IKEPSK_SHA1             = 5400,
+  KERN_TYPE_NETNTLMv1               = 5500,
+  KERN_TYPE_NETNTLMv2               = 5600,
+  KERN_TYPE_ANDROIDPIN              = 5800,
+  KERN_TYPE_RIPEMD160               = 6000,
+  KERN_TYPE_WHIRLPOOL               = 6100,
+  KERN_TYPE_TCRIPEMD160_XTS512      = 6211,
+  KERN_TYPE_TCRIPEMD160_XTS1024     = 6212,
+  KERN_TYPE_TCRIPEMD160_XTS1536     = 6213,
+  KERN_TYPE_TCSHA512_XTS512         = 6221,
+  KERN_TYPE_TCSHA512_XTS1024        = 6222,
+  KERN_TYPE_TCSHA512_XTS1536        = 6223,
+  KERN_TYPE_TCWHIRLPOOL_XTS512      = 6231,
+  KERN_TYPE_TCWHIRLPOOL_XTS1024     = 6232,
+  KERN_TYPE_TCWHIRLPOOL_XTS1536     = 6233,
+  KERN_TYPE_VCSHA256_XTS512         = 13751,
+  KERN_TYPE_VCSHA256_XTS1024        = 13752,
+  KERN_TYPE_VCSHA256_XTS1536        = 13753,
+  KERN_TYPE_MD5AIX                  = 6300,
+  KERN_TYPE_SHA256AIX               = 6400,
+  KERN_TYPE_SHA512AIX               = 6500,
+  KERN_TYPE_AGILEKEY                = 6600,
+  KERN_TYPE_SHA1AIX                 = 6700,
+  KERN_TYPE_LASTPASS                = 6800,
+  KERN_TYPE_GOST                    = 6900,
+  KERN_TYPE_PBKDF2_SHA512           = 7100,
+  KERN_TYPE_RAKP                    = 7300,
+  KERN_TYPE_SHA256CRYPT             = 7400,
+  KERN_TYPE_KRB5PA                  = 7500,
+  KERN_TYPE_SHA1_SLT_SHA1_PW        = 7600,
+  KERN_TYPE_SAPB                    = 7700,
+  KERN_TYPE_SAPG                    = 7800,
+  KERN_TYPE_DRUPAL7                 = 7900,
+  KERN_TYPE_SYBASEASE               = 8000,
+  KERN_TYPE_NETSCALER               = 8100,
+  KERN_TYPE_CLOUDKEY                = 8200,
+  KERN_TYPE_NSEC3                   = 8300,
+  KERN_TYPE_WBB3                    = 8400,
+  KERN_TYPE_RACF                    = 8500,
+  KERN_TYPE_LOTUS5                  = 8600,
+  KERN_TYPE_LOTUS6                  = 8700,
+  KERN_TYPE_ANDROIDFDE              = 8800,
+  KERN_TYPE_SCRYPT                  = 8900,
+  KERN_TYPE_PSAFE2                  = 9000,
+  KERN_TYPE_LOTUS8                  = 9100,
+  KERN_TYPE_OFFICE2007              = 9400,
+  KERN_TYPE_OFFICE2010              = 9500,
+  KERN_TYPE_OFFICE2013              = 9600,
+  KERN_TYPE_OLDOFFICE01             = 9700,
+  KERN_TYPE_OLDOFFICE01CM1          = 9710,
+  KERN_TYPE_OLDOFFICE01CM2          = 9720,
+  KERN_TYPE_OLDOFFICE34             = 9800,
+  KERN_TYPE_OLDOFFICE34CM1          = 9810,
+  KERN_TYPE_OLDOFFICE34CM2          = 9820,
+  KERN_TYPE_RADMIN2                 = 9900,
+  KERN_TYPE_SIPHASH                 = 10100,
+  KERN_TYPE_SAPH_SHA1               = 10300,
+  KERN_TYPE_PDF11                   = 10400,
+  KERN_TYPE_PDF11CM1                = 10410,
+  KERN_TYPE_PDF11CM2                = 10420,
+  KERN_TYPE_PDF14                   = 10500,
+  KERN_TYPE_PDF17L8                 = 10700,
+  KERN_TYPE_SHA384                  = 10800,
+  KERN_TYPE_PBKDF2_SHA256           = 10900,
+  KERN_TYPE_PRESTASHOP              = 11000,
+  KERN_TYPE_POSTGRESQL_AUTH         = 11100,
+  KERN_TYPE_MYSQL_AUTH              = 11200,
+  KERN_TYPE_BITCOIN_WALLET          = 11300,
+  KERN_TYPE_SIP_AUTH                = 11400,
+  KERN_TYPE_CRC32                   = 11500,
+  KERN_TYPE_SEVEN_ZIP               = 11600,
+  KERN_TYPE_GOST_2012SBOG_256       = 11700,
+  KERN_TYPE_GOST_2012SBOG_512       = 11800,
+  KERN_TYPE_PBKDF2_MD5              = 11900,
+  KERN_TYPE_PBKDF2_SHA1             = 12000,
+  KERN_TYPE_ECRYPTFS                = 12200,
+  KERN_TYPE_ORACLET                 = 12300,
+  KERN_TYPE_BSDICRYPT               = 12400,
+  KERN_TYPE_RAR3                    = 12500,
+  KERN_TYPE_CF10                    = 12600,
+  KERN_TYPE_MYWALLET                = 12700,
+  KERN_TYPE_MS_DRSR                 = 12800,
+  KERN_TYPE_ANDROIDFDE_SAMSUNG      = 12900,
+  KERN_TYPE_RAR5                    = 13000,
+  KERN_TYPE_KRB5TGS                 = 13100,
+  KERN_TYPE_AXCRYPT                 = 13200,
+  KERN_TYPE_SHA1_AXCRYPT            = 13300,
+  KERN_TYPE_KEEPASS                 = 13400,
+  KERN_TYPE_PSTOKEN                 = 13500,
+  KERN_TYPE_ZIP2                    = 13600,
+  KERN_TYPE_WIN8PHONE               = 13800,
+  KERN_TYPE_OPENCART                = 13900,
+  KERN_TYPE_DES                     = 14000,
+  KERN_TYPE_3DES                    = 14100,
+  KERN_TYPE_SHA1CX                  = 14400,
+  KERN_TYPE_LUKS_SHA1_AES           = 14611,
+  KERN_TYPE_LUKS_SHA1_SERPENT       = 14612,
+  KERN_TYPE_LUKS_SHA1_TWOFISH       = 14613,
+  KERN_TYPE_LUKS_SHA256_AES         = 14621,
+  KERN_TYPE_LUKS_SHA256_SERPENT     = 14622,
+  KERN_TYPE_LUKS_SHA256_TWOFISH     = 14623,
+  KERN_TYPE_LUKS_SHA512_AES         = 14631,
+  KERN_TYPE_LUKS_SHA512_SERPENT     = 14632,
+  KERN_TYPE_LUKS_SHA512_TWOFISH     = 14633,
+  KERN_TYPE_LUKS_RIPEMD160_AES      = 14641,
+  KERN_TYPE_LUKS_RIPEMD160_SERPENT  = 14642,
+  KERN_TYPE_LUKS_RIPEMD160_TWOFISH  = 14643,
+  KERN_TYPE_LUKS_WHIRLPOOL_AES      = 14651,
+  KERN_TYPE_LUKS_WHIRLPOOL_SERPENT  = 14652,
+  KERN_TYPE_LUKS_WHIRLPOOL_TWOFISH  = 14653,
+  KERN_TYPE_PLAINTEXT               = 99999,
 
 } kern_type_t;
 
@@ -1344,6 +1487,7 @@ typedef enum rounds_count
    ROUNDS_AXCRYPT            = 10000,
    ROUNDS_KEEPASS            = 6000,
    ROUNDS_ZIP2               = 1000,
+   ROUNDS_LUKS               = 163044, // this equal to jtr -test
    ROUNDS_STDOUT             = 0
 
 } rounds_count_t;
@@ -1510,6 +1654,7 @@ int win8phone_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int opencart_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int plaintext_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int sha1cx_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
+int luks_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED       hashconfig_t *hashconfig, const int keyslot_idx);
 
 /**
  * output functions

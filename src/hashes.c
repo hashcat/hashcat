@@ -487,6 +487,19 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
         hashes_avail = st.st_size / sizeof (hccap_t);
       }
+      else if (hashconfig->hash_mode == 14600)
+      {
+        hc_stat_t st;
+
+        if (hc_stat (hashes->hashfile, &st) == -1)
+        {
+          event_log_error (hashcat_ctx, "%s: %m", hashes->hashfile);
+
+          return -1;
+        }
+
+        hashes_avail = LUKS_NUMKEYS;
+      }
       else
       {
         hashes_avail = 1;
@@ -788,6 +801,36 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
             {
               event_log_warning (hashcat_ctx, "Hash '%s': %s", input_buf, strparser (parser_status));
             }
+          }
+        }
+        else if (hashconfig->hash_mode == 14600)
+        {
+          if (hash_len == 0)
+          {
+            event_log_error (hashcat_ctx, "LUKS container not specified");
+
+            return -1;
+          }
+
+          hashlist_mode = HL_MODE_FILE;
+
+          hashes->hashlist_mode = hashlist_mode;
+
+          for (int keyslot_idx = 0; keyslot_idx < LUKS_NUMKEYS; keyslot_idx++)
+          {
+            parser_status = luks_parse_hash ((u8 *) hash_buf, hash_len, &hashes_buf[hashes_cnt], hashconfig, keyslot_idx);
+
+            if (parser_status != PARSER_OK)
+            {
+              if (parser_status != PARSER_LUKS_KEY_DISABLED)
+              {
+                event_log_warning (hashcat_ctx, "Hashfile '%s': %s", hash_buf, strparser (parser_status));
+              }
+
+              continue;
+            }
+
+            hashes_cnt++;
           }
         }
         else

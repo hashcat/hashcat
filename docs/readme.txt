@@ -1,4 +1,4 @@
-hashcat v3.30
+hashcat v3.40
 =============
 
 AMD users on Windows require "AMD Radeon Software Crimson Edition" (15.12 or later)
@@ -211,6 +211,7 @@ NVidia users require "NVIDIA Driver" (367.x or later)
 - Android FDE (Samsung DEK)
 - TrueCrypt
 - VeraCrypt
+- LUKS
 
 ##
 ## Attack-Modes

@@ -11,9 +11,9 @@
 #include "inc_types.cl"
 #include "inc_common.cl"
 
-#include "inc_cipher_aes256.cl"
-#include "inc_cipher_twofish256.cl"
-#include "inc_cipher_serpent256.cl"
+#include "inc_cipher_aes.cl"
+#include "inc_cipher_twofish.cl"
+#include "inc_cipher_serpent.cl"
 
 #include "inc_truecrypt_crc32.cl"
 #include "inc_truecrypt_xts.cl"
@@ -1923,12 +1923,60 @@ __kernel void m06233_loop (__global pw_t *pws, __global const kernel_rule_t *rul
 
 __kernel void m06233_comp (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const comb_t *combs_buf, __global const bf_t *bfs_buf, __global tc_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global tc_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
-  /**
-   * base
-   */
-
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
+  const u32 lsz = get_local_size (0);
+
+  /**
+   * aes shared
+   */
+
+  #ifdef REAL_SHM
+
+  __local u32 s_td0[256];
+  __local u32 s_td1[256];
+  __local u32 s_td2[256];
+  __local u32 s_td3[256];
+  __local u32 s_td4[256];
+
+  __local u32 s_te0[256];
+  __local u32 s_te1[256];
+  __local u32 s_te2[256];
+  __local u32 s_te3[256];
+  __local u32 s_te4[256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    s_td0[i] = td0[i];
+    s_td1[i] = td1[i];
+    s_td2[i] = td2[i];
+    s_td3[i] = td3[i];
+    s_td4[i] = td4[i];
+
+    s_te0[i] = te0[i];
+    s_te1[i] = te1[i];
+    s_te2[i] = te2[i];
+    s_te3[i] = te3[i];
+    s_te4[i] = te4[i];
+  }
+
+  barrier (CLK_LOCAL_MEM_FENCE);
+
+  #else
+
+  __constant u32 *s_td0 = td0;
+  __constant u32 *s_td1 = td1;
+  __constant u32 *s_td2 = td2;
+  __constant u32 *s_td3 = td3;
+  __constant u32 *s_td4 = td4;
+
+  __constant u32 *s_te0 = te0;
+  __constant u32 *s_te1 = te1;
+  __constant u32 *s_te2 = te2;
+  __constant u32 *s_te3 = te3;
+  __constant u32 *s_te4 = te4;
+
+  #endif
 
   if (gid >= gid_max) return;
 
@@ -1954,7 +2002,7 @@ __kernel void m06233_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   ukey2[6] = swap32 (tmps[gid].out[14]);
   ukey2[7] = swap32 (tmps[gid].out[15]);
 
-  if (verify_header_aes (esalt_bufs, ukey1, ukey2) == 1)
+  if (verify_header_aes (esalt_bufs, ukey1, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {
     mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
   }
@@ -1995,12 +2043,12 @@ __kernel void m06233_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   ukey4[6] = swap32 (tmps[gid].out[30]);
   ukey4[7] = swap32 (tmps[gid].out[31]);
 
-  if (verify_header_aes_twofish (esalt_bufs, ukey1, ukey2, ukey3, ukey4) == 1)
+  if (verify_header_aes_twofish (esalt_bufs, ukey1, ukey2, ukey3, ukey4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {
     mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
   }
 
-  if (verify_header_serpent_aes (esalt_bufs, ukey1, ukey2, ukey3, ukey4) == 1)
+  if (verify_header_serpent_aes (esalt_bufs, ukey1, ukey2, ukey3, ukey4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {
     mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
   }
@@ -2040,12 +2088,12 @@ __kernel void m06233_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   ukey6[6] = swap32 (tmps[gid].out[46]);
   ukey6[7] = swap32 (tmps[gid].out[47]);
 
-  if (verify_header_aes_twofish_serpent (esalt_bufs, ukey1, ukey2, ukey3, ukey4, ukey5, ukey6) == 1)
+  if (verify_header_aes_twofish_serpent (esalt_bufs, ukey1, ukey2, ukey3, ukey4, ukey5, ukey6, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {
     mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
   }
 
-  if (verify_header_serpent_twofish_aes (esalt_bufs, ukey1, ukey2, ukey3, ukey4, ukey5, ukey6) == 1)
+  if (verify_header_serpent_twofish_aes (esalt_bufs, ukey1, ukey2, ukey3, ukey4, ukey5, ukey6, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {
     mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
   }

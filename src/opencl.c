@@ -3712,9 +3712,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     const char *files_names[files_cnt] =
     {
-      "inc_cipher_aes256.cl",
-      "inc_cipher_serpent256.cl",
-      "inc_cipher_twofish256.cl",
+      "inc_cipher_aes.cl",
+      "inc_cipher_serpent.cl",
+      "inc_cipher_twofish.cl",
       "inc_common.cl",
       "inc_comp_multi_bs.cl",
       "inc_comp_multi.cl",

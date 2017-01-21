@@ -452,3 +452,9 @@ ALIAS_Apple_Iris_Pro                            *       8700    1       1       
 ALIAS_Apple_Iris_Pro                            *       13731   1       1       64
 ALIAS_Apple_Iris_Pro                            *       13732   1       1       32
 ALIAS_Apple_Iris_Pro                            *       13733   1       1       16
+
+##########
+## LUKS ##
+##########
+
+DEVICE_TYPE_GPU                                 *       14600   1       2       1024
