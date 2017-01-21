@@ -43,6 +43,18 @@ u64 rotr64 (const u64 a, const u64 n)
   #endif
 }
 
+u16 byte_swap_16 (const u16 n)
+{
+  #if defined (_MSC_VER)
+  return _byteswap_ushort (n);
+  #elif defined (__clang__) || defined (__GNUC__)
+  return __builtin_bswap16 (n);
+  #else
+  return (n & 0xff00) >> 8
+       | (n & 0x00ff) << 8;
+  #endif
+}
+
 u32 byte_swap_32 (const u32 n)
 {
   #if defined (_MSC_VER)

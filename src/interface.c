@@ -13168,8 +13168,8 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   // verify the content
 
-  #define ntohs __builtin_bswap16
-  #define ntohl __builtin_bswap32
+  #define ntohs byte_swap_16
+  #define ntohl byte_swap_32
 
   char luks_magic[6] = LUKS_MAGIC;
 
