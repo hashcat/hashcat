@@ -199,7 +199,7 @@ static int mangle_omit (char arr[BLOCK_SIZE], int arr_len, int upos, int ulen)
 {
   if (upos >= arr_len) return (arr_len);
 
-  if ((upos + ulen) >= arr_len) return (arr_len);
+  if ((upos + ulen) > arr_len) return (arr_len);
 
   int arr_pos;
 
