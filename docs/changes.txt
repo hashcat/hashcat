@@ -22,7 +22,8 @@
 ## Bugs
 ##
 
-- Fixed a problem with maximal password length with the combinator attack
+- Fixed truncation of password after position 32 with the combinator attack
+- Fixed DEScrypt cracking in BF mode in case the hashlist contains more than 16 times the same salt
 
 * changes v3.20 -> v3.30:
 
