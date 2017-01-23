@@ -457,7 +457,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
   u32 hashes_avail = 0;
 
-  if ((user_options->benchmark == false) && (user_options->stdout_flag == false))
+  if ((user_options->benchmark == false) && (user_options->stdout_flag == false) && (user_options->keyspace == false))
   {
     hc_stat_t f;
 

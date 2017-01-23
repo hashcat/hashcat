@@ -24,6 +24,7 @@
 
 - Fixed truncation of password after position 32 with the combinator attack
 - Fixed DEScrypt cracking in BF mode in case the hashlist contains more than 16 times the same salt
+- Fixed use of option --keyspace in combination with -m 2500 (WPA)
 
 * changes v3.20 -> v3.30:
 
