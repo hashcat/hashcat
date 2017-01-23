@@ -26,6 +26,7 @@
 - Fixed DEScrypt cracking in BF mode in case the hashlist contains more than 16 times the same salt
 - Fixed use of option --keyspace in combination with -m 2500 (WPA)
 - Fixed rule 'O' (RULE_OP_MANGLE_OMIT) in host mode in case the offset + length parameter equals the length of the input word
+- Fixed duplicate detection for WPA handshakes with the same ESSID
 
 * changes v3.20 -> v3.30:
 

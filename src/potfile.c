@@ -29,28 +29,11 @@ int sort_by_hash_t_salt (const void *v1, const void *v2)
   const salt_t *s1 = h1->salt;
   const salt_t *s2 = h2->salt;
 
-  // testphase: this should work
-  u32 n = 16;
-
-  while (n--)
+  for (int n = 0; n < 16; n++)
   {
-    if (s1->salt_buf[n] > s2->salt_buf[n]) return ( 1);
+    if (s1->salt_buf[n] > s2->salt_buf[n]) return  1;
     if (s1->salt_buf[n] < s2->salt_buf[n]) return -1;
   }
-
-  /* original code, seems buggy since salt_len can be very big (had a case with 131 len)
-     also it thinks salt_buf[x] is a char but its a u32 so salt_len should be / 4
-  if (s1->salt_len > s2->salt_len) return ( 1);
-  if (s1->salt_len < s2->salt_len) return -1;
-
-  u32 n = s1->salt_len;
-
-  while (n--)
-  {
-    if (s1->salt_buf[n] > s2->salt_buf[n]) return ( 1);
-    if (s1->salt_buf[n] < s2->salt_buf[n]) return -1;
-  }
-  */
 
   return 0;
 }
@@ -64,12 +47,11 @@ int sort_by_hash_t_salt_hccap (const void *v1, const void *v2)
   const salt_t *s2 = h2->salt;
 
   // last 2: salt_buf[10] and salt_buf[11] contain the digest (skip them)
+  // 9 * 4 = 36 bytes (max length of ESSID)
 
-  u32 n = 9; // 9 * 4 = 36 bytes (max length of ESSID)
-
-  while (n--)
+  for (int n = 0; n < 9; n++)
   {
-    if (s1->salt_buf[n] > s2->salt_buf[n]) return ( 1);
+    if (s1->salt_buf[n] > s2->salt_buf[n]) return  1;
     if (s1->salt_buf[n] < s2->salt_buf[n]) return -1;
   }
 
