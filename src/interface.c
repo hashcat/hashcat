@@ -11198,13 +11198,9 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
    * verify some data
    */
 
-  if (data_type > 2)
+  if (data_type == 0x80) // 0x80 is a special case and means "truncated"
   {
-    // 0x80 is special case and means "truncated"
-
-    if (data_type != 0x80) return (PARSER_SALT_VALUE);
-
-    // if 0x80 (truncated), we always should have a data_len of exactly 16
+    // we always should have a data_len of exactly 16 if the data was truncated
 
     if (data_len != 16) return (PARSER_SALT_VALUE);
   }
@@ -13779,8 +13775,12 @@ void seven_zip_hook_func (hc_device_param_t *device_param, hashes_t *hashes, con
       }
     }
 
-    if (data_type == 0x80) // truncated
+    if (data_type > 2)
     {
+      // This decompression is currently not supported
+
+      // this check implies also this case:
+      // if (data_type == 0x80) // truncated
       // we can't do a full CRC check since data in this case is truncated
       // could lead to a higher number of false positives in very rare cases
 
