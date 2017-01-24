@@ -11331,6 +11331,14 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
     seven_zip->padding_check_full = false;
   }
 
+  if (data_type > 2)
+  {
+    if (margin < 4) // we can't be sure about too many false positives
+    {
+      return (PARSER_SALT_VALUE);
+    }
+  }
+
   // real salt
 
   salt->salt_buf[0] = seven_zip->data_buf[0];
