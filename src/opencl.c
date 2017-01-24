@@ -1111,7 +1111,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
     }
     else
     {
-      CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_3,pws_cnt, true, fast_iteration);
+      CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_3, pws_cnt, true, fast_iteration);
 
       if (CL_rc == -1) return -1;
     }
@@ -1214,7 +1214,19 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
         if (CL_rc == -1) return -1;
 
-        // do something with data
+        /*
+         * The following section depends on the hash mode
+         */
+
+        switch (hashconfig->hash_mode)
+        {
+          // for 7z we only need device_param->hooks_buf, but other hooks could use any info from device_param. All of them should/must update hooks_buf
+          case 11600: seven_zip_hook_func (device_param, hashes, salt_pos, pws_cnt); break;
+        }
+
+        /*
+         * END of hash mode specific hook operations
+         */
 
         CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
 

@@ -1359,26 +1359,17 @@ typedef struct
 
 typedef struct
 {
-  u32 user[16];
+  u32 ukey[8];
 
-} cram_md5_t;
+  u32 hook_success;
+
+} seven_zip_hook_t;
 
 typedef struct
 {
-  u32 iv_buf[4];
-  u32 iv_len;
+  u32 user[16];
 
-  u32 salt_buf[4];
-  u32 salt_len;
-
-  u32 crc;
-
-  u32 data_buf[96];
-  u32 data_len;
-
-  u32 unpack_size;
-
-} seven_zip_t;
+} cram_md5_t;
 
 typedef struct
 {
