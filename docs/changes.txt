@@ -35,6 +35,7 @@
 
 - Building: Split native compilation into two dedicated targets: "hashcat_static" and "hashcat_shared", default is "hashcat_static"
 - Building: Removed the use of RPATH on linker level
+- Events: Improved the maximum event message handling. event_log () will now also internally make sure that the message is properly terminated
 
 * changes v3.20 -> v3.30:
 
