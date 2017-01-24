@@ -561,16 +561,17 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
    * load hashes, part II: allocate required memory, set pointers
    */
 
-  hash_t *hashes_buf  = NULL;
-  void   *digests_buf = NULL;
-  salt_t *salts_buf   = NULL;
-  void   *esalts_buf  = NULL;
+  hash_t *hashes_buf     = NULL;
+  void   *digests_buf    = NULL;
+  salt_t *salts_buf      = NULL;
+  void   *esalts_buf     = NULL;
+  void   *hook_salts_buf = NULL;
 
   hashes_buf = (hash_t *) hccalloc (hashes_avail, sizeof (hash_t));
 
   digests_buf = (void *) hccalloc (hashes_avail, hashconfig->dgst_size);
 
-  if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY) || (hashconfig->opts_type & OPTS_TYPE_HOOK_SALT))
+  if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY))
   {
     u32 hash_pos;
 
@@ -593,13 +594,6 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         }
       }
 
-      if (hashconfig->opts_type & OPTS_TYPE_HOOK_SALT)
-      {
-        if (hashconfig->hash_mode == 11600)
-        {
-          hash_info->hook_salt = (seven_zip_hook_salt_t *) hcmalloc (sizeof (seven_zip_hook_salt_t));
-        }
-      }
     }
   }
 
@@ -610,6 +604,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     if (hashconfig->esalt_size)
     {
       esalts_buf = (void *) hccalloc (hashes_avail, hashconfig->esalt_size);
+    }
+
+    if (hashconfig->hook_salt_size)
+    {
+      hook_salts_buf = (seven_zip_hook_salt_t *) hccalloc (hashes_avail, hashconfig->hook_salt_size);
     }
   }
   else
@@ -629,6 +628,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       {
         hashes_buf[hash_pos].esalt = ((char *) esalts_buf) + (hash_pos * hashconfig->esalt_size);
       }
+
+      if (hashconfig->hook_salt_size)
+      {
+        hashes_buf[hash_pos].hook_salt = ((char *) hook_salts_buf) + (hash_pos * hashconfig->hook_salt_size);
+      }
     }
     else
     {
@@ -636,10 +640,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  hashes->hashes_buf  = hashes_buf;
-  hashes->digests_buf = digests_buf;
-  hashes->salts_buf   = salts_buf;
-  hashes->esalts_buf  = esalts_buf;
+  hashes->hashes_buf     = hashes_buf;
+  hashes->digests_buf    = digests_buf;
+  hashes->salts_buf      = salts_buf;
+  hashes->esalts_buf     = esalts_buf;
+  hashes->hook_salts_buf = hook_salts_buf;
 
   /**
    * load hashes, part III: parse hashes or generate them if benchmark
@@ -649,7 +654,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->benchmark == true)
   {
-    hashconfig_benchmark_defaults (hashcat_ctx, hashes_buf[0].salt, hashes_buf[0].esalt, hashes_buf[0].hash_info->hook_salt);
+    hashconfig_benchmark_defaults (hashcat_ctx, hashes_buf[0].salt, hashes_buf[0].esalt, hashes_buf[0].hook_salt);
 
     hashes->hashfile = "-";
 
@@ -697,16 +702,6 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           hashinfo_t *hash_info_tmp = hashes_buf[hashes_cnt].hash_info;
 
           hash_info_tmp->orighash = hcstrdup (hash_buf);
-        }
-
-        if (hashconfig->opts_type & OPTS_TYPE_HOOK_SALT)
-        {
-          hashinfo_t *hash_info_tmp = hashes_buf[hashes_cnt].hash_info;
-
-          if (hashconfig->hash_mode == 11600)
-          {
-            hash_info_tmp->hook_salt = hash_info_tmp->hook_salt;
-          }
         }
 
         if (hashconfig->is_salted)
@@ -947,16 +942,6 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           hash_info_tmp->orighash = hcstrdup (hash_buf);
         }
 
-        if (hashconfig->opts_type & OPTS_TYPE_HOOK_SALT)
-        {
-          hashinfo_t *hash_info_tmp = hashes_buf[hashes_cnt].hash_info;
-
-          if (hashconfig->hash_mode == 11600)
-          {
-            hash_info_tmp->hook_salt = hash_info_tmp->hook_salt;
-          }
-        }
-
         if (hashconfig->is_salted)
         {
           memset (hashes_buf[hashes_cnt].salt, 0, sizeof (salt_t));
@@ -1119,9 +1104,10 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
    * Now generate all the buffers required for later
    */
 
-  void   *digests_buf_new = (void *) hccalloc (hashes_cnt, hashconfig->dgst_size);
-  salt_t *salts_buf_new   = NULL;
-  void   *esalts_buf_new  = NULL;
+  void   *digests_buf_new    = (void *) hccalloc (hashes_cnt, hashconfig->dgst_size);
+  salt_t *salts_buf_new      = NULL;
+  void   *esalts_buf_new     = NULL;
+  void   *hook_salts_buf_new = NULL;
 
   if (hashconfig->is_salted)
   {
@@ -1137,6 +1123,11 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
     esalts_buf_new = (void *) hccalloc (hashes_cnt, hashconfig->esalt_size);
   }
 
+  if (hashconfig->hook_salt_size)
+  {
+    hook_salts_buf_new = (void *) hccalloc (hashes_cnt, hashconfig->hook_salt_size);
+  }
+
   EVENT (EVENT_HASHLIST_SORT_SALT_PRE);
 
   u32 digests_cnt  = hashes_cnt;
@@ -1150,7 +1141,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
   hashinfo_t **hash_info = NULL;
 
-  if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY) || (hashconfig->opts_type & OPTS_TYPE_HOOK_SALT))
+  if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY))
   {
     hash_info = (hashinfo_t **) hccalloc (hashes_cnt, sizeof (hashinfo_t *));
   }
@@ -1177,6 +1168,15 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
       hashes_buf[0].esalt = esalts_buf_new_ptr;
     }
 
+    if (hashconfig->hook_salt_size)
+    {
+      char *hook_salts_buf_new_ptr = ((char *) hook_salts_buf_new) + (salts_cnt * hashconfig->hook_salt_size);
+
+      memcpy (hook_salts_buf_new_ptr, hashes_buf[0].hook_salt, hashconfig->hook_salt_size);
+
+      hashes_buf[0].hook_salt = hook_salts_buf_new_ptr;
+    }
+
     salt_buf->digests_cnt    = 0;
     salt_buf->digests_done   = 0;
     salt_buf->digests_offset = 0;
@@ -1192,7 +1192,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
   hashes_buf[0].digest = digests_buf_new_ptr;
 
-  if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY) || (hashconfig->opts_type & OPTS_TYPE_HOOK_SALT))
+  if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY))
   {
     hash_info[0] = hashes_buf[0].hash_info;
   }
@@ -1220,6 +1220,15 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
           hashes_buf[hashes_pos].esalt = esalts_buf_new_ptr;
         }
 
+        if (hashconfig->hook_salt_size)
+        {
+          char *hook_salts_buf_new_ptr = ((char *) hook_salts_buf_new) + (salts_cnt * hashconfig->hook_salt_size);
+
+          memcpy (hook_salts_buf_new_ptr, hashes_buf[hashes_pos].hook_salt, hashconfig->hook_salt_size);
+
+          hashes_buf[hashes_pos].hook_salt = hook_salts_buf_new_ptr;
+        }
+
         salt_buf->digests_cnt    = 0;
         salt_buf->digests_done   = 0;
         salt_buf->digests_offset = hashes_pos;
@@ -1235,6 +1244,13 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
         hashes_buf[hashes_pos].esalt = esalts_buf_new_ptr;
       }
+
+      if (hashconfig->hook_salt_size)
+      {
+        char *hook_salts_buf_new_ptr = ((char *) hook_salts_buf_new) + (salts_cnt * hashconfig->hook_salt_size);
+
+        hashes_buf[hashes_pos].hook_salt = hook_salts_buf_new_ptr;
+      }
     }
 
     salt_buf->digests_cnt++;
@@ -1245,7 +1261,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
     hashes_buf[hashes_pos].digest = digests_buf_new_ptr;
 
-    if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY) || (hashconfig->opts_type & OPTS_TYPE_HOOK_SALT))
+    if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY))
     {
       hash_info[hashes_pos] = hashes_buf[hashes_pos].hash_info;
     }
@@ -1256,21 +1272,23 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashes->digests_buf);
   hcfree (hashes->salts_buf);
   hcfree (hashes->esalts_buf);
+  hcfree (hashes->hook_salts_buf);
 
-  hashes->digests_cnt        = digests_cnt;
-  hashes->digests_done       = digests_done;
-  hashes->digests_buf        = digests_buf_new;
-  hashes->digests_shown      = digests_shown;
-  hashes->digests_shown_tmp  = digests_shown_tmp;
+  hashes->digests_cnt       = digests_cnt;
+  hashes->digests_done      = digests_done;
+  hashes->digests_buf       = digests_buf_new;
+  hashes->digests_shown     = digests_shown;
+  hashes->digests_shown_tmp = digests_shown_tmp;
 
-  hashes->salts_cnt          = salts_cnt;
-  hashes->salts_done         = salts_done;
-  hashes->salts_buf          = salts_buf_new;
-  hashes->salts_shown        = salts_shown;
+  hashes->salts_cnt         = salts_cnt;
+  hashes->salts_done        = salts_done;
+  hashes->salts_buf         = salts_buf_new;
+  hashes->salts_shown       = salts_shown;
 
-  hashes->esalts_buf         = esalts_buf_new;
+  hashes->esalts_buf        = esalts_buf_new;
+  hashes->hook_salts_buf    = hook_salts_buf_new;
 
-  hashes->hash_info          = hash_info;
+  hashes->hash_info         = hash_info;
 
   return 0;
 }
@@ -1421,9 +1439,7 @@ void hashes_destroy (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashes->salts_buf);
   hcfree (hashes->salts_shown);
 
-  hcfree (hashes->esalts_buf);
-
-  if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY) || (hashconfig->opts_type & OPTS_TYPE_HOOK_SALT))
+  if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY))
   {
     for (u32 hash_pos = 0; hash_pos < hashes->hashes_cnt; hash_pos++)
     {
@@ -1436,15 +1452,13 @@ void hashes_destroy (hashcat_ctx_t *hashcat_ctx)
       {
         hcfree (hashes->hash_info[hash_pos]->orighash);
       }
-
-      if (hashconfig->opts_type & OPTS_TYPE_HOOK_SALT)
-      {
-        hcfree (hashes->hash_info[hash_pos]->hook_salt);
-      }
     }
   }
 
   hcfree (hashes->hash_info);
+
+  hcfree (hashes->esalts_buf);
+  hcfree (hashes->hook_salts_buf);
 
   hcfree (hashes->out_buf);
   hcfree (hashes->tmp_buf);

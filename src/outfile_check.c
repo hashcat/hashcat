@@ -26,22 +26,24 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
   status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  u32  dgst_size  = hashconfig->dgst_size;
-  u32  is_salted  = hashconfig->is_salted;
-  u32  esalt_size = hashconfig->esalt_size;
-  u32  hash_mode  = hashconfig->hash_mode;
-  char separator  = hashconfig->separator;
+  u32  dgst_size      = hashconfig->dgst_size;
+  u32  is_salted      = hashconfig->is_salted;
+  u32  esalt_size     = hashconfig->esalt_size;
+  u32  hook_salt_size = hashconfig->hook_salt_size;
+  u32  hash_mode      = hashconfig->hash_mode;
+  char separator      = hashconfig->separator;
 
   char *root_directory      = outcheck_ctx->root_directory;
   u32   outfile_check_timer = user_options->outfile_check_timer;
 
   // buffers
-  hash_t hash_buf = { 0, 0, 0, 0, 0, NULL, 0 };
+  hash_t hash_buf = { 0, 0, 0, 0, 0, 0, NULL, 0 };
 
   hash_buf.digest = hcmalloc (dgst_size);
 
-  if (is_salted)  hash_buf.salt =  (salt_t *) hcmalloc (sizeof (salt_t));
-  if (esalt_size) hash_buf.esalt = (void   *) hcmalloc (esalt_size);
+  if (is_salted)      hash_buf.salt      = (salt_t *) hcmalloc (sizeof (salt_t));
+  if (esalt_size)     hash_buf.esalt     = (void   *) hcmalloc (esalt_size);
+  if (hook_salt_size) hash_buf.hook_salt = (void   *) hcmalloc (hook_salt_size);
 
   u32 digest_buf[64] = { 0 };
 
@@ -293,6 +295,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
   }
 
   hcfree (hash_buf.esalt);
+  hcfree (hash_buf.hook_salt);
 
   hcfree (hash_buf.salt);
 

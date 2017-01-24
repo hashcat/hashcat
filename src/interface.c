@@ -11060,7 +11060,7 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   salt_t *salt = hash_buf->salt;
 
-  seven_zip_hook_salt_t *seven_zip = (seven_zip_hook_salt_t *) hash_buf->hash_info->hook_salt;
+  seven_zip_hook_salt_t *seven_zip = (seven_zip_hook_salt_t *) hash_buf->hook_salt;
 
   /**
    * parse line
@@ -13531,12 +13531,8 @@ void seven_zip_hook_func (hc_device_param_t *device_param, hashes_t *hashes, con
 {
   seven_zip_hook_t *hook_items = (seven_zip_hook_t *) device_param->hooks_buf;
 
-  salt_t *salts_buf = hashes->salts_buf;
-  salt_t salt       = salts_buf[salt_pos];
-
-  hashinfo_t *hash_info = hashes->hash_info[salt.digests_offset];
-
-  seven_zip_hook_salt_t *seven_zip = (seven_zip_hook_salt_t *) hash_info->hook_salt;
+  seven_zip_hook_salt_t *seven_zips = (seven_zip_hook_salt_t *) hashes->hook_salts_buf;
+  seven_zip_hook_salt_t *seven_zip  = &seven_zips[salt_pos];
 
   u8   data_type   = seven_zip->data_type;
   u32 *data_buf    = seven_zip->data_buf;
@@ -16410,11 +16406,9 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   }
   else if (hash_mode == 11600)
   {
-    u32 digest_idx = salt.digests_offset + digest_pos;
+    seven_zip_hook_salt_t *seven_zips = (seven_zip_hook_salt_t *) hashes->hook_salts_buf;
 
-    hashinfo_t **hashinfo_ptr = hash_info;
-
-    seven_zip_hook_salt_t *seven_zip = (seven_zip_hook_salt_t *) hashinfo_ptr[digest_idx]->hook_salt;
+    seven_zip_hook_salt_t *seven_zip  = &seven_zips[salt_pos];
 
     const u32 data_len = seven_zip->data_len;
 
@@ -17302,6 +17296,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   hashconfig->kern_type       = 0;
   hashconfig->dgst_size       = 0;
   hashconfig->esalt_size      = 0;
+  hashconfig->hook_salt_size  = 0;
   hashconfig->tmp_size        = 0;
   hashconfig->hook_size       = 0;
   hashconfig->opti_type       = 0;
@@ -20331,8 +20326,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_HOOK23
-                                            | OPTS_TYPE_HOOK_SALT;
+                                            | OPTS_TYPE_HOOK23;
                  hashconfig->kern_type      = KERN_TYPE_SEVEN_ZIP;
                  hashconfig->dgst_size      = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
                  hashconfig->parse_func     = seven_zip_parse_hash;
@@ -21165,6 +21159,15 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 13763: hashconfig->esalt_size = sizeof (tc_t);             break;
     case 13800: hashconfig->esalt_size = sizeof (win8phone_t);      break;
     case 14600: hashconfig->esalt_size = sizeof (luks_t);           break;
+  }
+
+  // hook_salt_size
+
+  hashconfig->hook_salt_size = 0;
+
+  switch (hashconfig->hash_mode)
+  {
+    case 11600: hashconfig->hook_salt_size = sizeof (seven_zip_hook_salt_t); break;
   }
 
   // tmp_size
