@@ -29,6 +29,13 @@
 - Fixed rule 'O' (RULE_OP_MANGLE_OMIT) in host mode in case the offset + length parameter equals the length of the input word
 - Fixed duplicate detection for WPA handshakes with the same ESSID
 
+##
+## Technical
+##
+
+- Building: Split native compilation into two dedicated targets: "hashcat_static" and "hashcat_shared", default is "hashcat_static"
+- Building: Removed the use of RPATH on linker level
+
 * changes v3.20 -> v3.30:
 
 ##

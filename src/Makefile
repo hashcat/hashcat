@@ -221,14 +221,6 @@ LFLAGS_NATIVE           += -lpsapi
 endif # MSYS2
 
 ##
-## Native compilation target (shared)
-##
-
-CFLAGS_NATIVE_SHARED    := $(CFLAGS_NATIVE)
-CFLAGS_NATIVE_SHARED    += -fpic
-LFLAGS_NATIVE_SHARED    := $(LFLAGS_NATIVE)
-
-##
 ## Cross compilation targets
 ##
 
@@ -276,15 +268,15 @@ include $(CRT_GLOB_INCLUDE_FOLDER)/win_file_globbing.mk
 
 OBJS_ALL                := affinity autotune benchmark bitmap bitops combinator common convert cpt cpu_aes cpu_crc32 cpu_des cpu_md4 cpu_md5 cpu_sha1 cpu_sha256 debugfile dictstat dispatch dynloader event ext_ADL ext_nvapi ext_nvml ext_OpenCL ext_sysfs ext_xnvctrl ext_lzma lzma_sdk/Alloc lzma_sdk/Lzma2Dec lzma_sdk/LzmaDec filehandling folder hashcat hashes hlfmt hwmon induct interface locking logfile loopback memory monitor mpsp opencl outfile_check outfile potfile restore rp rp_cpu rp_kernel_on_cpu shared status stdout straight terminal thread timer tuningdb usage user_options weak_hash wordlist
 
-NATIVE_OBJS             :=
+NATIVE_STATIC_OBJS      := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).NATIVE.STATIC.o)
 NATIVE_SHARED_OBJS      := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).NATIVE.SHARED.o)
 
 ifeq ($(UNAME),CYGWIN)
-NATIVE_OBJS             += $(CRT_GLOB)
+NATIVE_STATIC_OBJS      += $(CRT_GLOB)
 endif # CYGWIN
 
 ifeq ($(UNAME),MSYS2)
-NATIVE_OBJS             += $(CRT_GLOB)
+NATIVE_STATIC_OBJS      += $(CRT_GLOB)
 endif # MSYS2
 
 LINUX_32_OBJS           := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).LINUX.32.o)
@@ -297,10 +289,10 @@ WIN_64_OBJS             := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.64.o) $(CRT_
 ## Targets: Native Compilation
 ##
 
-default: $(HASHCAT_FRONTEND)
+default: hashcat_static
 
 clean:
-	$(RM) -f obj/*.o obj/lzma_sdk/*.o *.bin *.exe *.so *.dll *.restore *.out *.pot *.log hashcat hashcat_shared core
+	$(RM) -f obj/*.o obj/lzma_sdk/*.o *.bin *.exe *.so *.dll *.restore *.out *.pot *.log hashcat core
 	$(RM) -rf *.induct
 	$(RM) -rf *.outfiles
 	$(RM) -rf *.dSYM
@@ -323,7 +315,7 @@ win64: hashcat64.exe
 ## How to make /usr/bin/install doing recursive??
 ##
 
-install: install_library install_hashcat install_docs install_shared
+install: hashcat_shared install_docs install_shared install_library install_hashcat
 
 install_docs:
 	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(DOCUMENT_FOLDER)
@@ -381,14 +373,20 @@ uninstall:
 ## native compiled hashcat library and frontend
 ##
 
+obj/%.NATIVE.STATIC.o: src/%.c
+	$(CC) -c $(CFLAGS_NATIVE) $< -o $@
+
 obj/%.NATIVE.SHARED.o: src/%.c
-	$(CC) -c $(CFLAGS_NATIVE_SHARED) -o $@ $^
+	$(CC) -c $(CFLAGS_NATIVE) $< -o $@ -fpic
 
 $(HASHCAT_LIBRARY): $(NATIVE_SHARED_OBJS)
-	$(CC) -o $@ $^ $(LFLAGS_NATIVE_SHARED) -shared
+	$(CC)                                $^            $(LFLAGS_NATIVE) -o $@ -shared
 
-$(HASHCAT_FRONTEND): $(NATIVE_OBJS) $(HASHCAT_LIBRARY) src/main.c
-	$(CC)    $(CFLAGS_NATIVE) -o $@ $^ $(LFLAGS_NATIVE) -L. -lhashcat -Wl,-rpath . -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
+hashcat_shared: $(HASHCAT_LIBRARY)
+	$(CC)    $(CFLAGS_NATIVE) src/main.c -L. -lhashcat $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\" -o $(HASHCAT_FRONTEND)
+
+hashcat_static: $(NATIVE_STATIC_OBJS)
+	$(CC)    $(CFLAGS_NATIVE) src/main.c $^            $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\" -o $(HASHCAT_FRONTEND)
 
 ##
 ## cross compiled hashcat
