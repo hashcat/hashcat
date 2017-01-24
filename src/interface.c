@@ -18,6 +18,7 @@
 #include "cpu_sha1.h"
 #include "cpu_sha256.h"
 #include "interface.h"
+#include "ext_lzma.h"
 
 static const char OPTI_STR_ZERO_BYTE[]         = "Zero-Byte";
 static const char OPTI_STR_PRECOMPUTE_INIT[]   = "Precompute-Init";
@@ -11059,19 +11060,19 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   salt_t *salt = hash_buf->salt;
 
-  seven_zip_t *seven_zip = (seven_zip_t *) hash_buf->esalt;
+  seven_zip_hook_salt_t *seven_zip = (seven_zip_hook_salt_t *) hash_buf->hash_info->hook_salt;
 
   /**
    * parse line
    */
 
-  u8 *lzma_buf_pos = input_buf + 4;
+  u8 *data_type_pos = input_buf + 4;
 
-  u8 *NumCyclesPower_pos = (u8 *) strchr ((const char *) lzma_buf_pos, '$');
+  u8 *NumCyclesPower_pos = (u8 *) strchr ((const char *) data_type_pos, '$');
 
   if (NumCyclesPower_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
-  u32 lzma_buf_len = NumCyclesPower_pos - lzma_buf_pos;
+  u32 data_type_len = NumCyclesPower_pos - data_type_pos;
 
   NumCyclesPower_pos++;
 
@@ -11139,32 +11140,108 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   data_buf_pos++;
 
-  u32 data_buf_len = input_len - 1 - 2 - 1 - lzma_buf_len - 1 - NumCyclesPower_len - 1 - salt_len_len - 1 - salt_buf_len - 1 - iv_len_len - 1 - iv_buf_len - 1 - crc_buf_len - 1 - data_len_len - 1 - unpack_size_len - 1;
+  // fields only used when data was compressed:
+
+  u8 *crc_len_pos = (u8 *) strchr ((const char *) data_buf_pos, '$');
+
+  u32 crc_len_len          = 0;
+  u8 *coder_attributes_pos = 0;
+  u32 coder_attributes_len = 0;
+
+  u32 data_buf_len = 0;
+
+  if (crc_len_pos != NULL)
+  {
+    data_buf_len = crc_len_pos - data_buf_pos;
+
+    crc_len_pos++;
+
+    coder_attributes_pos = (u8 *) strchr ((const char *) crc_len_pos, '$');
+
+    if (coder_attributes_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+    crc_len_len = coder_attributes_pos - crc_len_pos;
+
+    coder_attributes_pos++;
+  }
+  else
+  {
+    data_buf_len = input_len - 1 - 2 - 1 - data_type_len - 1 - NumCyclesPower_len - 1 - salt_len_len - 1 - salt_buf_len - 1 - iv_len_len - 1 - iv_buf_len - 1 - crc_buf_len - 1 - data_len_len - 1 - unpack_size_len - 1;
+  }
+
 
   const u32 iter         = atoll ((const char *) NumCyclesPower_pos);
   const u32 crc          = atoll ((const char *) crc_buf_pos);
-  const u32 lzma_buf     = atoll ((const char *) lzma_buf_pos);
+  const u32 data_type    = atoll ((const char *) data_type_pos);
   const u32 salt_len     = atoll ((const char *) salt_len_pos);
   const u32 iv_len       = atoll ((const char *) iv_len_pos);
   const u32 unpack_size  = atoll ((const char *) unpack_size_pos);
   const u32 data_len     = atoll ((const char *) data_len_pos);
 
+  // if neither uncompressed nor truncated, then we need the length for crc and coder attributes
+
+  u32 crc_len = 0;
+
+  bool is_compressed = ((data_type != 0) && (data_type != 0x80));
+
+  if (is_compressed == true)
+  {
+    if (crc_len_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+    coder_attributes_len = input_len - 1 - 2 - 1 - data_type_len - 1 - NumCyclesPower_len - 1 - salt_len_len - 1 - salt_buf_len - 1 - iv_len_len - 1 - iv_buf_len - 1 - crc_buf_len - 1 - data_len_len - 1 - unpack_size_len - 1 - data_buf_len - 1 - crc_len_len - 1;
+
+    crc_len = atoll ((const char *) crc_len_pos);
+  }
+
+
   /**
    * verify some data
    */
 
-  if (lzma_buf  > 2) return (PARSER_SALT_VALUE);
+  if (data_type > 2)
+  {
+    // 0x80 is special case and means "truncated"
+
+    if (data_type != 0x80) return (PARSER_SALT_VALUE);
+
+    // if 0x80 (truncated), we always should have a data_len of exactly 16
+
+    if (data_len != 16) return (PARSER_SALT_VALUE);
+  }
+
   if (salt_len != 0) return (PARSER_SALT_VALUE);
 
   if ((data_len * 2) != data_buf_len) return (PARSER_SALT_VALUE);
 
-  if (data_len > 384) return (PARSER_SALT_VALUE);
+  if (data_len > 8192) return (PARSER_SALT_VALUE);
 
   if (unpack_size > data_len) return (PARSER_SALT_VALUE);
+
+  if (is_compressed == true)
+  {
+    if (crc_len_len > 5) return (PARSER_SALT_VALUE);
+
+    if (coder_attributes_len > 10) return (PARSER_SALT_VALUE);
+
+    if ((coder_attributes_len % 2) != 0) return (PARSER_SALT_VALUE);
+
+    // we should be more strict about the needed attribute_len:
+
+    if (data_type == 1) // LZMA1
+    {
+      if ((coder_attributes_len / 2) != 5) return (PARSER_SALT_VALUE);
+    }
+    else if (data_type == 2) // LZMA2
+    {
+      if ((coder_attributes_len / 2) != 1) return (PARSER_SALT_VALUE);
+    }
+  }
 
   /**
    * store data
    */
+
+  seven_zip->data_type = data_type;
 
   if (is_valid_hex_string (iv_buf_pos, 32) == false) return (PARSER_SALT_ENCODING);
 
@@ -11173,10 +11250,10 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   seven_zip->iv_buf[2] = hex_to_u32 ((const u8 *) &iv_buf_pos[16]);
   seven_zip->iv_buf[3] = hex_to_u32 ((const u8 *) &iv_buf_pos[24]);
 
-  seven_zip->iv_buf[0] = byte_swap_32 (seven_zip->iv_buf[0]);
-  seven_zip->iv_buf[1] = byte_swap_32 (seven_zip->iv_buf[1]);
-  seven_zip->iv_buf[2] = byte_swap_32 (seven_zip->iv_buf[2]);
-  seven_zip->iv_buf[3] = byte_swap_32 (seven_zip->iv_buf[3]);
+  seven_zip->iv_buf[0] = seven_zip->iv_buf[0];
+  seven_zip->iv_buf[1] = seven_zip->iv_buf[1];
+  seven_zip->iv_buf[2] = seven_zip->iv_buf[2];
+  seven_zip->iv_buf[3] = seven_zip->iv_buf[3];
 
   seven_zip->iv_len = iv_len;
 
@@ -11197,6 +11274,67 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   seven_zip->unpack_size = unpack_size;
 
+  seven_zip->crc_len = crc_len;
+
+  memset (seven_zip->coder_attributes, 0, sizeof (seven_zip->coder_attributes));
+
+  seven_zip->coder_attributes_len = 0;
+
+  if (is_compressed == 1)
+  {
+    if (is_valid_hex_string (coder_attributes_pos, coder_attributes_len) == false) return (PARSER_SALT_ENCODING);
+
+    for (u32 i = 0, j = 0; j < coder_attributes_len; i += 1, j += 2)
+    {
+      seven_zip->coder_attributes[i] = hex_to_u8 ((const u8 *) &coder_attributes_pos[j]);
+
+      seven_zip->coder_attributes_len++;
+    }
+  }
+
+  // normally: crc_len <= unpacksize <= packsize (== data_len)
+
+  u32 aes_len = data_len;
+
+  if (crc_len != 0) // it is 0 only in case of uncompressed data or truncated data
+  {
+    // in theory we could just use crc_len, but sometimes (very rare) the compressed data
+    // is larger than the original data! (because of some additional bytes from lzma/headers)
+    // the +0.5 is used to round up (just to be sure we don't truncate)
+
+    if (data_type == 1) // LZMA1 uses more bytes
+    {
+      aes_len = 32.5f + (float) crc_len * 1.05f; // +5% max (only for small random inputs)
+    }
+    else if (data_type == 2) // LZMA2 is more clever (e.g. uncompressed chunks)
+    {
+      aes_len =  4.5f + (float) crc_len * 1.01f; // +1% max (only for small random inputs)
+    }
+
+    // just make sure we never go beyond the data_len limit itself
+
+    aes_len = MIN (aes_len, data_len);
+  }
+
+  seven_zip->aes_len = aes_len;
+
+  const u32  margin = data_len - unpack_size;
+  seven_zip->margin = margin;
+
+  seven_zip->padding_check_fast = (margin > 0) && (data_len >= 32);
+
+  if ((margin > 0) && (data_len < 32))
+  {
+    if ((data_len - aes_len) <= 16)         // we need the same amount of AES BLOCKS (should always be true)!
+    {
+      seven_zip->padding_check_full = true; // determine if AES-CBC padding attack is possible
+    }
+  }
+  else
+  {
+    seven_zip->padding_check_full = false;
+  }
+
   // real salt
 
   salt->salt_buf[0] = seven_zip->data_buf[0];
@@ -11206,7 +11344,7 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   salt->salt_len = 16;
 
-  salt->salt_sign[0] = lzma_buf;
+  salt->salt_sign[0] = data_type;
 
   salt->salt_iter = 1u << iter;
 
@@ -13383,6 +13521,344 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   fclose (fp);
 
   return (PARSER_OK);
+}
+
+/**
+ * hook functions
+ */
+
+void seven_zip_hook_func (hc_device_param_t *device_param, hashes_t *hashes, const u32 salt_pos, const u32 pws_cnt)
+{
+  seven_zip_hook_t *hook_items = (seven_zip_hook_t *) device_param->hooks_buf;
+
+  salt_t *salts_buf = hashes->salts_buf;
+  salt_t salt       = salts_buf[salt_pos];
+
+  hashinfo_t *hash_info = hashes->hash_info[salt.digests_offset];
+
+  seven_zip_hook_salt_t *seven_zip = (seven_zip_hook_salt_t *) hash_info->hook_salt;
+
+  u8   data_type   = seven_zip->data_type;
+  u32 *data_buf    = seven_zip->data_buf;
+  u32  data_len    = seven_zip->data_len;
+  u32  unpack_size = seven_zip->unpack_size;
+  u32  margin      = seven_zip->margin;
+
+  // can we use the padding attack:
+
+  u32  padding_check_fast = seven_zip->padding_check_fast;
+  u32  padding_check_full = seven_zip->padding_check_full;
+
+  for (u32 pw_pos = 0; pw_pos < pws_cnt; pw_pos++)
+  {
+    // this hook data needs to be updated (the "hook_success" variable):
+
+    seven_zip_hook_t *hook_item = &hook_items[pw_pos];
+
+    const u8 *ukey = (const u8 *) hook_item->ukey;
+
+    // init AES
+
+    AES_KEY aes_key;
+    AES_set_decrypt_key (ukey, 256, &aes_key);
+
+    AES_KEY aes_key_copied;
+    memcpy (&aes_key_copied, &aes_key, sizeof (AES_KEY));
+
+    if (padding_check_fast == true) // use part of the data as initialization vector
+    {
+      u8  *data_buf_ptr = (u8 *) data_buf;
+
+      u32 data_tmp_buf[8];
+
+      memcpy (&data_tmp_buf, data_buf_ptr + data_len - 32, 32);
+
+      u32 data[4];
+
+      data[0] = data_tmp_buf[4];
+      data[1] = data_tmp_buf[5];
+      data[2] = data_tmp_buf[6];
+      data[3] = data_tmp_buf[7];
+
+      u32 out[4];
+
+      AES_decrypt (&aes_key, (u8*) data, (u8*) out);
+
+      out[0] ^= data_tmp_buf[0];
+      out[1] ^= data_tmp_buf[1];
+      out[2] ^= data_tmp_buf[2];
+      out[3] ^= data_tmp_buf[3];
+
+      switch (margin)
+      {
+        case 15:  out[0] &= 0xffffff00;
+                  break;
+        case 14:  out[0] &= 0xffff0000;
+                  break;
+        case 13:  out[0] &= 0xff000000;
+                  break;
+        case 12:  out[0]  = 0;
+                  break;
+        case 11:  out[0]  = 0;
+                  out[1] &= 0xffffff00;
+                  break;
+        case 10:  out[0]  = 0;
+                  out[1] &= 0xffff0000;
+                  break;
+        case  9:  out[0]  = 0;
+                  out[1] &= 0xff000000;
+                  break;
+        case  8:  out[0]  = 0;
+                  out[1]  = 0;
+                  break;
+        case  7:  out[0]  = 0;
+                  out[1]  = 0;
+                  out[2] &= 0xffffff00;
+                  break;
+        case  6:  out[0]  = 0;
+                  out[1]  = 0;
+                  out[2] &= 0xffff0000;
+                  break;
+        case  5:  out[0]  = 0;
+                  out[1]  = 0;
+                  out[2] &= 0xff000000;
+                  break;
+        case  4:  out[0]  = 0;
+                  out[1]  = 0;
+                  out[2]  = 0;
+                  break;
+        case  3:  out[0]  = 0;
+                  out[1]  = 0;
+                  out[2]  = 0;
+                  out[3] &= 0xffffff00;
+                  break;
+        case  2:  out[0]  = 0;
+                  out[1]  = 0;
+                  out[2]  = 0;
+                  out[3] &= 0xffff0000;
+                  break;
+        case  1:  out[0]  = 0;
+                  out[1]  = 0;
+                  out[2]  = 0;
+                  out[3] &= 0xff000000;
+                  break;
+      }
+
+      if ((out[0] != 0) || (out[1] != 0) || (out[2] != 0) || (out[3] != 0))
+      {
+         hook_item->hook_success = 0;
+
+         continue;
+      }
+    }
+
+    // if the previous check was okay, we need to do some more staff to eliminate some possible false positives
+
+    int aes_len = seven_zip->aes_len;
+
+    u32 data[4];
+    u32 out [4];
+    u32 iv  [4];
+
+    iv[0] = seven_zip->iv_buf[0];
+    iv[1] = seven_zip->iv_buf[1];
+    iv[2] = seven_zip->iv_buf[2];
+    iv[3] = seven_zip->iv_buf[3];
+
+    u32 out_full[2048];
+
+    // if aes_len > 16 we need to loop
+
+    int i = 0;
+    int j = 0;
+
+    for (i = 0, j = 0; i < aes_len - 16; i += 16, j += 4)
+    {
+      data[0] = data_buf[j + 0];
+      data[1] = data_buf[j + 1];
+      data[2] = data_buf[j + 2];
+      data[3] = data_buf[j + 3];
+
+      AES_decrypt (&aes_key_copied, (u8*) data, (u8*) out);
+
+      out[0] ^= iv[0];
+      out[1] ^= iv[1];
+      out[2] ^= iv[2];
+      out[3] ^= iv[3];
+
+      iv[0] = data[0];
+      iv[1] = data[1];
+      iv[2] = data[2];
+      iv[3] = data[3];
+
+      out_full[j + 0] = out[0];
+      out_full[j + 1] = out[1];
+      out_full[j + 2] = out[2];
+      out_full[j + 3] = out[3];
+    }
+
+    // we need to run it at least once:
+
+    data[0] = data_buf[j + 0];
+    data[1] = data_buf[j + 1];
+    data[2] = data_buf[j + 2];
+    data[3] = data_buf[j + 3];
+
+    AES_decrypt (&aes_key_copied, (u8*) data, (u8*) out);
+
+    out[0] ^= iv[0];
+    out[1] ^= iv[1];
+    out[2] ^= iv[2];
+    out[3] ^= iv[3];
+
+    out_full[j + 0] = out[0];
+    out_full[j + 1] = out[1];
+    out_full[j + 2] = out[2];
+    out_full[j + 3] = out[3];
+
+    if (padding_check_full == true)
+    {
+      // do the check if margin > 0 but data_len < 32
+
+      switch (margin)
+      {
+        case 15:  out[0] &= 0xffffff00;
+                  break;
+        case 14:  out[0] &= 0xffff0000;
+                  break;
+        case 13:  out[0] &= 0xff000000;
+                  break;
+        case 12:  out[0]  = 0;
+                  break;
+        case 11:  out[0]  = 0;
+                  out[1] &= 0xffffff00;
+                  break;
+        case 10:  out[0]  = 0;
+                  out[1] &= 0xffff0000;
+                  break;
+        case  9:  out[0]  = 0;
+                  out[1] &= 0xff000000;
+                  break;
+        case  8:  out[0]  = 0;
+                  out[1]  = 0;
+                  break;
+        case  7:  out[0]  = 0;
+                  out[1]  = 0;
+                  out[2] &= 0xffffff00;
+                  break;
+        case  6:  out[0]  = 0;
+                  out[1]  = 0;
+                  out[2] &= 0xffff0000;
+                  break;
+        case  5:  out[0]  = 0;
+                  out[1]  = 0;
+                  out[2] &= 0xff000000;
+                  break;
+        case  4:  out[0]  = 0;
+                  out[1]  = 0;
+                  out[2]  = 0;
+                  break;
+        case  3:  out[0]  = 0;
+                  out[1]  = 0;
+                  out[2]  = 0;
+                  out[3] &= 0xffffff00;
+                  break;
+        case  2:  out[0]  = 0;
+                  out[1]  = 0;
+                  out[2]  = 0;
+                  out[3] &= 0xffff0000;
+                  break;
+        case  1:  out[0]  = 0;
+                  out[1]  = 0;
+                  out[2]  = 0;
+                  out[3] &= 0xff000000;
+                  break;
+      }
+
+      if ((out[0] != 0) || (out[1] != 0) || (out[2] != 0) || (out[3] != 0))
+      {
+         hook_item->hook_success = 0;
+
+         continue;
+      }
+    }
+
+    if (data_type == 0x80) // truncated
+    {
+      // we can't do a full CRC check since data in this case is truncated
+      // could lead to a higher number of false positives in very rare cases
+
+      hook_item->hook_success = 1;
+
+      continue;
+    }
+
+    /*
+     * check the CRC32 "hash"
+     */
+
+    u32 seven_zip_crc = seven_zip->crc;
+
+    u32 crc;
+
+    if (data_type == 0) // uncompressed
+    {
+      crc = cpu_crc32_buffer ((u8 *) out_full, unpack_size);
+    }
+    else
+    {
+      u32 crc_len = seven_zip->crc_len;
+
+      char *coder_attributes = seven_zip->coder_attributes;
+
+      // input buffers and length
+
+      u8 *compressed_data = (u8 *) out_full;
+
+      SizeT compressed_data_len = aes_len;
+
+      // output buffers and length
+
+      unsigned char *decompressed_data;
+
+      decompressed_data = (unsigned char *) hcmalloc (crc_len);
+
+      SizeT decompressed_data_len = crc_len;
+
+      int ret;
+
+      if (data_type == 1) // LZMA1
+      {
+        ret = hc_lzma1_decompress (compressed_data, &compressed_data_len, decompressed_data, &decompressed_data_len, coder_attributes);
+      }
+      else // we only support LZMA2 in addition to LZMA1
+      {
+        ret = hc_lzma2_decompress (compressed_data, &compressed_data_len, decompressed_data, &decompressed_data_len, coder_attributes);
+      }
+
+      if (ret != SZ_OK)
+      {
+        hook_item->hook_success = 0;
+
+        hcfree (decompressed_data);
+
+        continue;
+      }
+
+      crc = cpu_crc32_buffer (decompressed_data, crc_len);
+
+      hcfree (decompressed_data);
+    }
+
+    if (crc == seven_zip_crc)
+    {
+      hook_item->hook_success = 1;
+    }
+    else
+    {
+      hook_item->hook_success = 0;
+    }
+  }
 }
 
 /**
@@ -15934,9 +16410,11 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   }
   else if (hash_mode == 11600)
   {
-    seven_zip_t *seven_zips = (seven_zip_t *) esalts_buf;
+    u32 digest_idx = salt.digests_offset + digest_pos;
 
-    seven_zip_t *seven_zip = &seven_zips[salt_pos];
+    hashinfo_t **hashinfo_ptr = hash_info;
+
+    seven_zip_hook_salt_t *seven_zip = (seven_zip_hook_salt_t *) hashinfo_ptr[digest_idx]->hook_salt;
 
     const u32 data_len = seven_zip->data_len;
 
@@ -15946,10 +16424,19 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     {
       const u8 *ptr = (const u8 *) seven_zip->data_buf;
 
-      sprintf (data_buf + j, "%02x", ptr[i]);
+      snprintf (data_buf + j, (data_len * 2) + 1 - j, "%02x", ptr[i]);
     }
 
     u32 salt_iter = salt.salt_iter;
+
+    u32 iv[4];
+
+    iv[0] = byte_swap_32 (seven_zip->iv_buf[0]);
+    iv[1] = byte_swap_32 (seven_zip->iv_buf[1]);
+    iv[2] = byte_swap_32 (seven_zip->iv_buf[2]);
+    iv[3] = byte_swap_32 (seven_zip->iv_buf[3]);
+
+    u32 iv_len = seven_zip->iv_len;
 
     u32 cost = 0; // the log2 () of salt_iter
 
@@ -15964,15 +16451,36 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
       cost,
       seven_zip->salt_len,
       (char *) seven_zip->salt_buf,
-      seven_zip->iv_len,
-      seven_zip->iv_buf[0],
-      seven_zip->iv_buf[1],
-      seven_zip->iv_buf[2],
-      seven_zip->iv_buf[3],
+      iv_len,
+      iv[0],
+      iv[1],
+      iv[2],
+      iv[3],
       seven_zip->crc,
       seven_zip->data_len,
       seven_zip->unpack_size,
       data_buf);
+
+    if (seven_zip->data_type > 0)
+    {
+      if (seven_zip->data_type != 0x80)  // 0x80 would be a special case: means truncated
+      {
+        u32 bytes_written = strlen (out_buf);
+
+        snprintf (out_buf + bytes_written, out_len - bytes_written - 1, "$%i$", seven_zip->crc_len);
+
+        bytes_written = strlen (out_buf);
+
+        const u8 *ptr = (const u8 *) seven_zip->coder_attributes;
+
+        for (u32 i = 0, j = 0; i < seven_zip->coder_attributes_len; i += 1, j += 2)
+        {
+          snprintf (out_buf + bytes_written, out_len - bytes_written - 1, "%02x", ptr[i]);
+
+          bytes_written += 2;
+        }
+      }
+    }
 
     hcfree (data_buf);
   }
@@ -19823,7 +20331,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PT_NEVERCRACK;
+                                            | OPTS_TYPE_HOOK23
+                                            | OPTS_TYPE_HOOK_SALT;
                  hashconfig->kern_type      = KERN_TYPE_SEVEN_ZIP;
                  hashconfig->dgst_size      = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
                  hashconfig->parse_func     = seven_zip_parse_hash;
@@ -20628,7 +21137,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 10900: hashconfig->esalt_size = sizeof (pbkdf2_sha256_t);  break;
     case 11300: hashconfig->esalt_size = sizeof (bitcoin_wallet_t); break;
     case 11400: hashconfig->esalt_size = sizeof (sip_t);            break;
-    case 11600: hashconfig->esalt_size = sizeof (seven_zip_t);      break;
     case 11900: hashconfig->esalt_size = sizeof (pbkdf2_md5_t);     break;
     case 12000: hashconfig->esalt_size = sizeof (pbkdf2_sha1_t);    break;
     case 12100: hashconfig->esalt_size = sizeof (pbkdf2_sha512_t);  break;
@@ -20754,6 +21262,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   switch (hashconfig->hash_mode)
   {
+    case 11600: hashconfig->hook_size = sizeof (seven_zip_hook_t);     break;
   };
 
   // pw_min
@@ -20976,7 +21485,7 @@ int hashconfig_general_defaults (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, void *esalt)
+void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, void *esalt, void *hook_salt)
 {
   hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
@@ -21109,10 +21618,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                   ((pdf_t *)        esalt)->o_len         = 127;
                   ((pdf_t *)        esalt)->u_len         = 127;
                   break;
-      case 11600: ((seven_zip_t *)  esalt)->iv_len        = 16;
-                  ((seven_zip_t *)  esalt)->data_len      = 112;
-                  ((seven_zip_t *)  esalt)->unpack_size   = 112;
-                  break;
       case 13400: ((keepass_t *)    esalt)->version       = 2;
                   break;
       case 13500: ((pstoken_t *)    esalt)->salt_len      = 113;
@@ -21126,7 +21631,18 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                   ((luks_t *)       esalt)->cipher_mode   = HC_LUKS_CIPHER_MODE_XTS_PLAIN;
                   break;
     }
+
+    // special hook salt handling
+
+    switch (hashconfig->hash_mode)
+    {
+      case 11600: ((seven_zip_hook_salt_t *) hook_salt)->iv_len      = 16;
+                  ((seven_zip_hook_salt_t *) hook_salt)->data_len    = 112;
+                  ((seven_zip_hook_salt_t *) hook_salt)->unpack_size = 112;
+                  break;
+    }
   }
+
 
   // set default iterations
 

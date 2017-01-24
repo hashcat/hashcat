@@ -77,6 +77,18 @@ static const u32 crc32tab[256] =
   0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
 };
 
+u32 cpu_crc32_buffer (const u8 *buf, const size_t length)
+{
+  u32 crc = ~0u;
+
+  for (size_t pos = 0; pos < length; pos++)
+  {
+    crc = crc32tab[(crc ^ buf[pos]) & 0xff] ^ (crc >> 8);
+  }
+
+  return crc ^ 0xffffffff;;
+}
+
 int cpu_crc32 (hashcat_ctx_t *hashcat_ctx, const char *filename, u8 keytab[64])
 {
   u32 crc = ~0u;

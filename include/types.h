@@ -365,6 +365,7 @@ typedef enum opts_type
   OPTS_TYPE_HOOK12            = (1 << 26),
   OPTS_TYPE_HOOK23            = (1 << 27),
   OPTS_TYPE_BINARY_HASHFILE   = (1 << 28),
+  OPTS_TYPE_HOOK_SALT         = (1 << 29),
 
 } opts_type_t;
 
@@ -673,6 +674,8 @@ typedef struct hashinfo
 {
   user_t *user;
   char   *orighash;
+
+  void   *hook_salt; // additional salt info only used by the hook (host)
 
 } hashinfo_t;
 

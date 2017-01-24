@@ -753,7 +753,7 @@ typedef struct cram_md5
 
 } cram_md5_t;
 
-typedef struct seven_zip
+typedef struct seven_zip_hook_salt
 {
   u32 iv_buf[4];
   u32 iv_len;
@@ -762,13 +762,26 @@ typedef struct seven_zip
   u32 salt_len;
 
   u32 crc;
+  u32 crc_len;
 
-  u32 data_buf[96];
+  u8  data_type;
+
+  u32 data_buf[2048];
   u32 data_len;
 
   u32 unpack_size;
 
-} seven_zip_t;
+  char coder_attributes[5 + 1];
+  u8   coder_attributes_len;
+
+  u32 margin;
+
+  bool padding_check_full;
+  bool padding_check_fast;
+
+  int aes_len; // pre-computed length of the maximal (subset of) data we need for AES-CBC
+
+} seven_zip_hook_salt_t;
 
 typedef struct axcrypt_tmp
 {
@@ -783,6 +796,14 @@ typedef struct keepass_tmp
   u32 tmp_digest[8];
 
 } keepass_tmp_t;
+
+typedef struct seven_zip_hook
+{
+  u32 ukey[8];
+
+  u32 hook_success;
+
+} seven_zip_hook_t;
 
 typedef struct struct_psafe2_hdr
 {
@@ -1066,8 +1087,8 @@ typedef enum display_len
   DISPLAY_LEN_MAX_11400 = 6 + 512 + 1 + 512 + 1 + 116 + 1 + 116 + 1 + 246 + 1 + 245 + 1 + 246 + 1 + 245 + 1 + 50 + 1 + 50 + 1 + 50 + 1 + 50 + 1 + 3 + 1 + 32,
   DISPLAY_LEN_MIN_11500 = 8 + 1 + 8,
   DISPLAY_LEN_MAX_11500 = 8 + 1 + 8,
-  DISPLAY_LEN_MIN_11600 = 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 +  0 + 1 + 1 + 1 + 32 + 1 +  1 + 1 + 1 + 1 + 1 + 1 +   2,
-  DISPLAY_LEN_MAX_11600 = 1 + 2 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 64 + 1 + 1 + 1 + 32 + 1 + 10 + 1 + 3 + 1 + 3 + 1 + 768,
+  DISPLAY_LEN_MIN_11600 = 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 +  0 + 1 + 1 + 1 + 32 + 1 +  1 + 1 + 1 + 1 + 1 + 1 +     2,
+  DISPLAY_LEN_MAX_11600 = 1 + 2 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 64 + 1 + 1 + 1 + 32 + 1 + 10 + 1 + 4 + 1 + 4 + 1 + 16384+ /* only for compression: */ + 1 + 4 + 1 + 10,
   DISPLAY_LEN_MIN_11700 = 64,
   DISPLAY_LEN_MAX_11700 = 64,
   DISPLAY_LEN_MIN_11800 = 128,
@@ -1657,6 +1678,12 @@ int sha1cx_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int luks_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED       hashconfig_t *hashconfig, const int keyslot_idx);
 
 /**
+ * hook functions
+ */
+
+void seven_zip_hook_func (hc_device_param_t *device_param, hashes_t *hashes, const u32 salt_pos, const u32 pws_cnt);
+
+/**
  * output functions
  */
 
@@ -1675,7 +1702,7 @@ void    hashconfig_destroy            (hashcat_ctx_t *hashcat_ctx);
 u32     hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param);
 u32     hashconfig_get_kernel_loops   (hashcat_ctx_t *hashcat_ctx);
 int     hashconfig_general_defaults   (hashcat_ctx_t *hashcat_ctx);
-void    hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, void *esalt);
+void    hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, void *esalt, void *hook_salt);
 char   *hashconfig_benchmark_mask     (hashcat_ctx_t *hashcat_ctx);
 
 #endif // _INTERFACE_H
