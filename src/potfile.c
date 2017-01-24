@@ -290,6 +290,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
   hash_buf.digest    = hcmalloc (hashconfig->dgst_size);
   hash_buf.salt      = NULL;
   hash_buf.esalt     = NULL;
+  hash_buf.hook_salt = NULL;
   hash_buf.hash_info = NULL;
   hash_buf.cracked   = 0;
 
@@ -301,6 +302,11 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
   if (hashconfig->esalt_size)
   {
     hash_buf.esalt = hcmalloc (hashconfig->esalt_size);
+  }
+
+  if (hashconfig->hook_salt_size)
+  {
+    hash_buf.hook_salt = hcmalloc (hashconfig->hook_salt_size);
   }
 
   // this is usually detected by weak-hash-check
@@ -363,6 +369,11 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
     if (hashconfig->esalt_size)
     {
       memset (hash_buf.esalt, 0, hashconfig->esalt_size);
+    }
+
+    if (hashconfig->hook_salt_size)
+    {
+      memset (hash_buf.hook_salt, 0, hashconfig->hook_salt_size);
     }
 
     hash_t *found = NULL;
@@ -487,6 +498,11 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
   if (hashconfig->esalt_size)
   {
     hcfree (hash_buf.esalt);
+  }
+
+  if (hashconfig->hook_salt_size)
+  {
+    hcfree (hash_buf.hook_salt);
   }
 
   if (hashconfig->is_salted)

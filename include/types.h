@@ -365,7 +365,6 @@ typedef enum opts_type
   OPTS_TYPE_HOOK12            = (1 << 26),
   OPTS_TYPE_HOOK23            = (1 << 27),
   OPTS_TYPE_BINARY_HASHFILE   = (1 << 28),
-  OPTS_TYPE_HOOK_SALT         = (1 << 29),
 
 } opts_type_t;
 
@@ -675,8 +674,6 @@ typedef struct hashinfo
   user_t *user;
   char   *orighash;
 
-  void   *hook_salt; // additional salt info only used by the hook (host)
-
 } hashinfo_t;
 
 typedef struct hash
@@ -684,6 +681,7 @@ typedef struct hash
   void       *digest;
   salt_t     *salt;
   void       *esalt;
+  void       *hook_salt; // additional salt info only used by the hook (host)
   int         cracked;
   hashinfo_t *hash_info;
   char       *pw_buf;
@@ -732,6 +730,8 @@ typedef struct hashes
 
   void   *esalts_buf;
 
+  void   *hook_salts_buf;
+
   u32     hashes_cnt_orig;
   u32     hashes_cnt;
   hash_t *hashes_buf;
@@ -762,6 +762,7 @@ struct hashconfig
 
   u32   is_salted;
   u32   esalt_size;
+  u32   hook_salt_size;
   u32   tmp_size;
   u32   hook_size;
 
