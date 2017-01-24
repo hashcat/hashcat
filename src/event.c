@@ -56,11 +56,18 @@ void event_call (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, cons
 __attribute__ ((format (printf, 1, 0)))
 static int event_log (const char *fmt, va_list ap, char *s, const size_t sz)
 {
+  size_t length;
+
 #if defined (__MINGW32__)
-  return __mingw_vsnprintf (s, sz, fmt, ap);
+  length = __mingw_vsnprintf (s, sz, fmt, ap);
 #else
-  return vsnprintf (s, sz, fmt, ap);
+  length = vsnprintf (s, sz, fmt, ap);
 #endif
+  length = MIN (length, sz);
+
+  s[length] = 0;
+
+  return (int) length;
 }
 
 size_t event_log_info_nn (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
@@ -72,8 +79,6 @@ size_t event_log_info_nn (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
 
   event_ctx->msg_len = event_log (fmt, ap, event_ctx->msg_buf, HCBUFSIZ_TINY - 1);
-
-  event_ctx->msg_buf[event_ctx->msg_len] = 0;
 
   va_end (ap);
 
@@ -94,8 +99,6 @@ size_t event_log_warning_nn (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 
   event_ctx->msg_len = event_log (fmt, ap, event_ctx->msg_buf, HCBUFSIZ_TINY - 1);
 
-  event_ctx->msg_buf[event_ctx->msg_len] = 0;
-
   va_end (ap);
 
   event_ctx->msg_newline = false;
@@ -114,8 +117,6 @@ size_t event_log_error_nn (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
 
   event_ctx->msg_len = event_log (fmt, ap, event_ctx->msg_buf, HCBUFSIZ_TINY - 1);
-
-  event_ctx->msg_buf[event_ctx->msg_len] = 0;
 
   va_end (ap);
 
@@ -136,8 +137,6 @@ size_t event_log_info (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 
   event_ctx->msg_len = event_log (fmt, ap, event_ctx->msg_buf, HCBUFSIZ_TINY - 1);
 
-  event_ctx->msg_buf[event_ctx->msg_len] = 0;
-
   va_end (ap);
 
   event_ctx->msg_newline = true;
@@ -157,8 +156,6 @@ size_t event_log_warning (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 
   event_ctx->msg_len = event_log (fmt, ap, event_ctx->msg_buf, HCBUFSIZ_TINY - 1);
 
-  event_ctx->msg_buf[event_ctx->msg_len] = 0;
-
   va_end (ap);
 
   event_ctx->msg_newline = true;
@@ -177,8 +174,6 @@ size_t event_log_error (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
 
   event_ctx->msg_len = event_log (fmt, ap, event_ctx->msg_buf, HCBUFSIZ_TINY - 1);
-
-  event_ctx->msg_buf[event_ctx->msg_len] = 0;
 
   va_end (ap);
 
