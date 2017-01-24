@@ -14,5 +14,5 @@ hashcat.dll
 kernels/**
 lib/*.a
 obj/*.o
-obj/lzma_sdk/.o
+obj/lzma_sdk/*.o
 include/CL
