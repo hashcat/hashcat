@@ -227,6 +227,7 @@ static const char HT_14000[] = "DES (PT = $salt, key = $pass)";
 static const char HT_14100[] = "3DES (PT = $salt, key = $pass)";
 static const char HT_14400[] = "sha1(CX)";
 static const char HT_14600[] = "LUKS";
+static const char HT_14700[] = "iTunes Backup < 10.0";
 static const char HT_99999[] = "Plaintext";
 
 static const char HT_00011[] = "Joomla < 2.5.18";
@@ -356,6 +357,7 @@ static const char SIGNATURE_SYBASEASE[]       = "0xc007";
 //static const char SIGNATURE_TRUECRYPT[]       = "TRUE";
 static const char SIGNATURE_ZIP2_START[]      = "$zip2$";
 static const char SIGNATURE_ZIP2_STOP[]       = "$/zip2$";
+static const char SIGNATURE_ITUNES_BACKUP[]   = "$itunes_backup$";
 
 /**
  * decoder / encoder
@@ -13530,6 +13532,207 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   return (PARSER_OK);
 }
 
+int itunes_backup_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
+{
+  if ((input_len < DISPLAY_LEN_MIN_14700) || (input_len > DISPLAY_LEN_MAX_14700)) return (PARSER_GLOBAL_LENGTH);
+
+  if (memcmp (SIGNATURE_ITUNES_BACKUP, input_buf, 15)) return (PARSER_SIGNATURE_UNMATCHED);
+
+  u32 hash_mode = hashconfig->hash_mode;
+
+  salt_t *salt = hash_buf->salt;
+
+  itunes_backup_t *itunes_backup = (itunes_backup_t *) hash_buf->esalt;
+
+  /**
+   * parse line
+   */
+
+  if (input_buf[15] != '*') return (PARSER_SEPARATOR_UNMATCHED);
+
+  // version (9 or 10)
+
+  u8 *version_pos = input_buf + 15 + 1;
+
+  // WPKY
+
+  u8 *wpky_pos = (u8 *) strchr ((const char *) version_pos, '*');
+
+  if (wpky_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 version_len = wpky_pos - version_pos;
+
+  wpky_pos++;
+
+  // iterations
+
+  u8 *iter_pos = (u8 *) strchr ((const char *) wpky_pos, '*');
+
+  if (iter_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 wpky_len = iter_pos - wpky_pos;
+
+  iter_pos++;
+
+  // salt
+
+  u8 *salt_pos = (u8 *) strchr ((const char *) iter_pos, '*');
+
+  if (salt_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 iter_len = salt_pos - iter_pos;
+
+  salt_pos++;
+
+  // DPIC
+
+  u8 *dpic_pos = (u8 *) strchr ((const char *) salt_pos, '*');
+
+  if (dpic_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 salt_len = dpic_pos - salt_pos;
+
+  dpic_pos++;
+
+  // DPSL
+
+  u8 *dpsl_pos = (u8 *) strchr ((const char *) dpic_pos, '*');
+
+  if (dpsl_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 dpic_len = dpsl_pos - dpic_pos;
+
+  dpsl_pos++;
+
+  u32 dpsl_len = input_len - 15 - 1 - version_len - 1 - wpky_len - 1 - iter_len - 1 - salt_len - 1 - dpic_len - 1;
+
+  /**
+   * verify some data
+   */
+
+  if ((version_len != 1) && (version_len != 2)) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 version = atoi ((const char *) version_pos);
+
+  if (hash_mode == 14700)
+  {
+    if (version !=  9) return (PARSER_SEPARATOR_UNMATCHED);
+  }
+  else if (hash_mode == 14800)
+  {
+    if (version != 10) return (PARSER_SEPARATOR_UNMATCHED);
+  }
+
+  if (wpky_len != 80) return (PARSER_HASH_LENGTH);
+
+  if (iter_len < 1) return (PARSER_SALT_ITERATION);
+  if (iter_len > 6) return (PARSER_SALT_ITERATION);
+
+  u32 iter = atoi ((const char *) iter_pos);
+
+  if (iter < 1) return (PARSER_SALT_ITERATION);
+
+  if (salt_len != 40) return (PARSER_SALT_LENGTH);
+
+  if (is_valid_hex_string (salt_pos, 20) == false) return (PARSER_SALT_ENCODING);
+  if (is_valid_hex_string (wpky_pos, 40) == false) return (PARSER_HASH_ENCODING);
+
+  u32 dpic = 0;
+
+  if (hash_mode == 14700)
+  {
+    if (dpic_len > 0) return (PARSER_SEPARATOR_UNMATCHED);
+    if (dpsl_len > 0) return (PARSER_SEPARATOR_UNMATCHED);
+  }
+  else if (hash_mode == 14800)
+  {
+    if (dpic_len < 1) return (PARSER_SALT_ITERATION);
+    if (dpic_len > 9) return (PARSER_SALT_ITERATION);
+
+    dpic = atoi ((const char *) dpic_pos);
+
+    if (dpic < 1) return (PARSER_SALT_ITERATION);
+
+    if (dpsl_len != 40) return (PARSER_SEPARATOR_UNMATCHED);
+
+    if (is_valid_hex_string (dpsl_pos, 40) == false) return (PARSER_SALT_ENCODING);
+  }
+
+  /**
+   * store data
+   */
+
+  // version
+
+  salt->salt_sign[0] = (char) version;
+
+  // wpky
+
+  u32 *wpky_buf_ptr = (u32 *) itunes_backup->wpky;
+
+  wpky_buf_ptr[0] = hex_to_u32 ((const u8 *) &wpky_pos[ 0]);
+  wpky_buf_ptr[1] = hex_to_u32 ((const u8 *) &wpky_pos[ 8]);
+  wpky_buf_ptr[2] = hex_to_u32 ((const u8 *) &wpky_pos[16]);
+  wpky_buf_ptr[3] = hex_to_u32 ((const u8 *) &wpky_pos[24]);
+  wpky_buf_ptr[4] = hex_to_u32 ((const u8 *) &wpky_pos[32]);
+  wpky_buf_ptr[5] = hex_to_u32 ((const u8 *) &wpky_pos[40]);
+  wpky_buf_ptr[6] = hex_to_u32 ((const u8 *) &wpky_pos[48]);
+  wpky_buf_ptr[7] = hex_to_u32 ((const u8 *) &wpky_pos[56]);
+  wpky_buf_ptr[8] = hex_to_u32 ((const u8 *) &wpky_pos[64]);
+  wpky_buf_ptr[9] = hex_to_u32 ((const u8 *) &wpky_pos[72]);
+
+  wpky_buf_ptr[0] = byte_swap_32 (wpky_buf_ptr[0]);
+  wpky_buf_ptr[1] = byte_swap_32 (wpky_buf_ptr[1]);
+  wpky_buf_ptr[2] = byte_swap_32 (wpky_buf_ptr[2]);
+  wpky_buf_ptr[3] = byte_swap_32 (wpky_buf_ptr[3]);
+  wpky_buf_ptr[4] = byte_swap_32 (wpky_buf_ptr[4]);
+  wpky_buf_ptr[5] = byte_swap_32 (wpky_buf_ptr[5]);
+  wpky_buf_ptr[6] = byte_swap_32 (wpky_buf_ptr[6]);
+  wpky_buf_ptr[7] = byte_swap_32 (wpky_buf_ptr[7]);
+  wpky_buf_ptr[8] = byte_swap_32 (wpky_buf_ptr[8]);
+  wpky_buf_ptr[9] = byte_swap_32 (wpky_buf_ptr[9]);
+
+  // iter
+
+  salt->salt_iter = iter - 1;
+
+  // salt
+
+  u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
+
+  salt_len = parse_and_store_salt (salt_buf_ptr, salt_pos, salt_len, hashconfig);
+
+  salt->salt_len = salt_len;
+
+  // dpic
+
+  if (hash_mode == 14800)
+  {
+    itunes_backup->dpic = dpic;
+  }
+
+  // dpsl
+
+  if (hash_mode == 14800)
+  {
+    u32 *dpsl_buf_ptr = (u32 *) itunes_backup->dpsl;
+
+    dpsl_buf_ptr[0] = hex_to_u32 ((const u8 *) &dpsl_pos[ 0]);
+    dpsl_buf_ptr[1] = hex_to_u32 ((const u8 *) &dpsl_pos[ 8]);
+    dpsl_buf_ptr[2] = hex_to_u32 ((const u8 *) &dpsl_pos[16]);
+    dpsl_buf_ptr[3] = hex_to_u32 ((const u8 *) &dpsl_pos[24]);
+    dpsl_buf_ptr[4] = hex_to_u32 ((const u8 *) &dpsl_pos[32]);
+
+    dpsl_buf_ptr[0] = byte_swap_32 (dpsl_buf_ptr[ 0]);
+    dpsl_buf_ptr[1] = byte_swap_32 (dpsl_buf_ptr[ 1]);
+    dpsl_buf_ptr[2] = byte_swap_32 (dpsl_buf_ptr[ 2]);
+    dpsl_buf_ptr[3] = byte_swap_32 (dpsl_buf_ptr[ 3]);
+    dpsl_buf_ptr[4] = byte_swap_32 (dpsl_buf_ptr[ 4]);
+  }
+
+  return (PARSER_OK);
+}
+
 /**
  * hook functions
  */
@@ -14113,6 +14316,7 @@ char *strhashtype (const u32 hash_mode)
     case 14100: return ((char *) HT_14100);
     case 14400: return ((char *) HT_14400);
     case 14600: return ((char *) HT_14600);
+    case 14700: return ((char *) HT_14700);
     case 99999: return ((char *) HT_99999);
   }
 
@@ -17029,6 +17233,46 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   else if (hash_mode == 14600)
   {
     snprintf (out_buf, out_len - 1, "%s", hashfile);
+  }
+  else if (hash_mode == 14700)
+  {
+    // WPKY
+
+    itunes_backup_t *itunes_backups = (itunes_backup_t *) esalts_buf;
+    itunes_backup_t *itunes_backup  = &itunes_backups[salt_pos];
+
+    u8 wpky[80 + 1];
+
+    itunes_backup->wpky[0] = byte_swap_32 (itunes_backup->wpky[0]);
+    itunes_backup->wpky[1] = byte_swap_32 (itunes_backup->wpky[1]);
+    itunes_backup->wpky[2] = byte_swap_32 (itunes_backup->wpky[2]);
+    itunes_backup->wpky[3] = byte_swap_32 (itunes_backup->wpky[3]);
+    itunes_backup->wpky[4] = byte_swap_32 (itunes_backup->wpky[4]);
+    itunes_backup->wpky[5] = byte_swap_32 (itunes_backup->wpky[5]);
+    itunes_backup->wpky[6] = byte_swap_32 (itunes_backup->wpky[6]);
+    itunes_backup->wpky[7] = byte_swap_32 (itunes_backup->wpky[7]);
+    itunes_backup->wpky[8] = byte_swap_32 (itunes_backup->wpky[8]);
+    itunes_backup->wpky[9] = byte_swap_32 (itunes_backup->wpky[9]);
+
+    u32_to_hex_lower (itunes_backup->wpky[0], wpky +  0);
+    u32_to_hex_lower (itunes_backup->wpky[1], wpky +  8);
+    u32_to_hex_lower (itunes_backup->wpky[2], wpky + 16);
+    u32_to_hex_lower (itunes_backup->wpky[3], wpky + 24);
+    u32_to_hex_lower (itunes_backup->wpky[4], wpky + 32);
+    u32_to_hex_lower (itunes_backup->wpky[5], wpky + 40);
+    u32_to_hex_lower (itunes_backup->wpky[6], wpky + 48);
+    u32_to_hex_lower (itunes_backup->wpky[7], wpky + 56);
+    u32_to_hex_lower (itunes_backup->wpky[8], wpky + 64);
+    u32_to_hex_lower (itunes_backup->wpky[9], wpky + 72);
+
+    wpky[80] = 0;
+
+    snprintf (out_buf, out_len - 1, "%s*%i*%s*%i*%s**",
+      SIGNATURE_ITUNES_BACKUP,
+      salt.salt_sign[0],
+      wpky,
+      salt.salt_iter + 1,
+      (char *) salt.salt_buf);
   }
   else if (hash_mode == 99999)
   {
@@ -21038,6 +21282,23 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos3      = 3;
                  break;
 
+    case 14700:  hashconfig->hash_type      = HASH_TYPE_ITUNES_BACKUP_9;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_ST_GENERATE_LE
+                                            | OPTS_TYPE_ST_HEX;
+                 hashconfig->kern_type      = KERN_TYPE_ITUNES_BACKUP_9;
+                 hashconfig->dgst_size      = DGST_SIZE_4_4; // we actually do not have a digest
+                 hashconfig->parse_func     = itunes_backup_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_SLOW_HASH_SIMD;
+                 hashconfig->dgst_pos0      = 0;
+                 hashconfig->dgst_pos1      = 1;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 3;
+                 break;
+
     case 99999:  hashconfig->hash_type      = HASH_TYPE_PLAINTEXT;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -21170,6 +21431,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 13763: hashconfig->esalt_size = sizeof (tc_t);             break;
     case 13800: hashconfig->esalt_size = sizeof (win8phone_t);      break;
     case 14600: hashconfig->esalt_size = sizeof (luks_t);           break;
+    case 14700: hashconfig->esalt_size = sizeof (itunes_backup_t);  break;
   }
 
   // hook_salt_size
@@ -21268,6 +21530,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 13762: hashconfig->tmp_size = sizeof (tc_tmp_t);              break;
     case 13763: hashconfig->tmp_size = sizeof (tc_tmp_t);              break;
     case 14600: hashconfig->tmp_size = sizeof (luks_tmp_t);            break;
+    case 14700: hashconfig->tmp_size = sizeof (pbkdf2_sha1_tmp_t);     break;
   };
 
   // hook_size
@@ -21582,67 +21845,71 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                   break;
       case 14600: salt->salt_len = LUKS_SALTSIZE;
                   break;
+      case 14700: salt->salt_len = 20;
+                  break;
     }
 
     // special esalt handling
 
     switch (hashconfig->hash_mode)
     {
-      case  2500: ((wpa_t *)        esalt)->eapol_size    = 128;
+      case  2500: ((wpa_t *)           esalt)->eapol_size    = 128;
                   break;
-      case  5300: ((ikepsk_t *)     esalt)->nr_len        = 1;
-                  ((ikepsk_t *)     esalt)->msg_len       = 1;
+      case  5300: ((ikepsk_t *)        esalt)->nr_len        = 1;
+                  ((ikepsk_t *)        esalt)->msg_len       = 1;
                   break;
-      case  5400: ((ikepsk_t *)     esalt)->nr_len        = 1;
-                  ((ikepsk_t *)     esalt)->msg_len       = 1;
+      case  5400: ((ikepsk_t *)        esalt)->nr_len        = 1;
+                  ((ikepsk_t *)        esalt)->msg_len       = 1;
                   break;
-      case  5500: ((netntlm_t *)    esalt)->user_len      = 1;
-                  ((netntlm_t *)    esalt)->domain_len    = 1;
-                  ((netntlm_t *)    esalt)->srvchall_len  = 1;
-                  ((netntlm_t *)    esalt)->clichall_len  = 1;
+      case  5500: ((netntlm_t *)       esalt)->user_len      = 1;
+                  ((netntlm_t *)       esalt)->domain_len    = 1;
+                  ((netntlm_t *)       esalt)->srvchall_len  = 1;
+                  ((netntlm_t *)       esalt)->clichall_len  = 1;
                   break;
-      case  5600: ((netntlm_t *)    esalt)->user_len      = 1;
-                  ((netntlm_t *)    esalt)->domain_len    = 1;
-                  ((netntlm_t *)    esalt)->srvchall_len  = 1;
-                  ((netntlm_t *)    esalt)->clichall_len  = 1;
+      case  5600: ((netntlm_t *)       esalt)->user_len      = 1;
+                  ((netntlm_t *)       esalt)->domain_len    = 1;
+                  ((netntlm_t *)       esalt)->srvchall_len  = 1;
+                  ((netntlm_t *)       esalt)->clichall_len  = 1;
                   break;
-      case  7300: ((rakp_t *)       esalt)->salt_len      = 32;
+      case  7300: ((rakp_t *)          esalt)->salt_len      = 32;
                   break;
-      case 10400: ((pdf_t *)        esalt)->id_len        = 16;
-                  ((pdf_t *)        esalt)->o_len         = 32;
-                  ((pdf_t *)        esalt)->u_len         = 32;
+      case 10400: ((pdf_t *)           esalt)->id_len        = 16;
+                  ((pdf_t *)           esalt)->o_len         = 32;
+                  ((pdf_t *)           esalt)->u_len         = 32;
                   break;
-      case 10410: ((pdf_t *)        esalt)->id_len        = 16;
-                  ((pdf_t *)        esalt)->o_len         = 32;
-                  ((pdf_t *)        esalt)->u_len         = 32;
+      case 10410: ((pdf_t *)           esalt)->id_len        = 16;
+                  ((pdf_t *)           esalt)->o_len         = 32;
+                  ((pdf_t *)           esalt)->u_len         = 32;
                   break;
-      case 10420: ((pdf_t *)        esalt)->id_len        = 16;
-                  ((pdf_t *)        esalt)->o_len         = 32;
-                  ((pdf_t *)        esalt)->u_len         = 32;
+      case 10420: ((pdf_t *)           esalt)->id_len        = 16;
+                  ((pdf_t *)           esalt)->o_len         = 32;
+                  ((pdf_t *)           esalt)->u_len         = 32;
                   break;
-      case 10500: ((pdf_t *)        esalt)->id_len        = 16;
-                  ((pdf_t *)        esalt)->o_len         = 32;
-                  ((pdf_t *)        esalt)->u_len         = 32;
+      case 10500: ((pdf_t *)           esalt)->id_len        = 16;
+                  ((pdf_t *)           esalt)->o_len         = 32;
+                  ((pdf_t *)           esalt)->u_len         = 32;
                   break;
-      case 10600: ((pdf_t *)        esalt)->id_len        = 16;
-                  ((pdf_t *)        esalt)->o_len         = 127;
-                  ((pdf_t *)        esalt)->u_len         = 127;
+      case 10600: ((pdf_t *)           esalt)->id_len        = 16;
+                  ((pdf_t *)           esalt)->o_len         = 127;
+                  ((pdf_t *)           esalt)->u_len         = 127;
                   break;
-      case 10700: ((pdf_t *)        esalt)->id_len        = 16;
-                  ((pdf_t *)        esalt)->o_len         = 127;
-                  ((pdf_t *)        esalt)->u_len         = 127;
+      case 10700: ((pdf_t *)           esalt)->id_len        = 16;
+                  ((pdf_t *)           esalt)->o_len         = 127;
+                  ((pdf_t *)           esalt)->u_len         = 127;
                   break;
-      case 13400: ((keepass_t *)    esalt)->version       = 2;
+      case 13400: ((keepass_t *)       esalt)->version       = 2;
                   break;
-      case 13500: ((pstoken_t *)    esalt)->salt_len      = 113;
+      case 13500: ((pstoken_t *)       esalt)->salt_len      = 113;
                   break;
-      case 13600: ((zip2_t *)       esalt)->salt_len      = 16;
-                  ((zip2_t *)       esalt)->data_len      = 32;
-                  ((zip2_t *)       esalt)->mode          = 3;
+      case 13600: ((zip2_t *)          esalt)->salt_len      = 16;
+                  ((zip2_t *)          esalt)->data_len      = 32;
+                  ((zip2_t *)          esalt)->mode          = 3;
                   break;
-      case 14600: ((luks_t *)       esalt)->key_size      = HC_LUKS_KEY_SIZE_256;
-                  ((luks_t *)       esalt)->cipher_type   = HC_LUKS_CIPHER_TYPE_AES;
-                  ((luks_t *)       esalt)->cipher_mode   = HC_LUKS_CIPHER_MODE_XTS_PLAIN;
+      case 14600: ((luks_t *)          esalt)->key_size      = HC_LUKS_KEY_SIZE_256;
+                  ((luks_t *)          esalt)->cipher_type   = HC_LUKS_CIPHER_TYPE_AES;
+                  ((luks_t *)          esalt)->cipher_mode   = HC_LUKS_CIPHER_MODE_XTS_PLAIN;
+                  break;
+      case 14700: ((itunes_backup_t *) esalt)->dpic          = 10000000;
                   break;
     }
 
@@ -21827,6 +22094,8 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
     case 13763:  salt->salt_iter = ROUNDS_VERACRYPT_200000;
                  break;
     case 14600:  salt->salt_iter = ROUNDS_LUKS;
+                 break;
+    case 14700:  salt->salt_iter = ROUNDS_ITUNES_BACKUP - 1;
                  break;
   }
 }

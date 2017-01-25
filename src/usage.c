@@ -271,6 +271,7 @@ static const char *USAGE_BIG[] =
   "  13200 | AxCrypt                                          | Archives",
   "  13300 | AxCrypt in memory SHA1                           | Archives",
   "  13600 | WinZip                                           | Archives",
+  "  14700 | iTunes Backup < 10.0                             | Backup",
   "   62XY | TrueCrypt                                        | Full-Disk encryptions (FDE)",
   "     X  | 1 = PBKDF2-HMAC-RipeMD160                        | Full-Disk encryptions (FDE)",
   "     X  | 2 = PBKDF2-HMAC-SHA512                           | Full-Disk encryptions (FDE)",
