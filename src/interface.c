@@ -17241,31 +17241,29 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     itunes_backup_t *itunes_backups = (itunes_backup_t *) esalts_buf;
     itunes_backup_t *itunes_backup  = &itunes_backups[salt_pos];
 
-    u32 *wpky_buf_ptr = (u32 *) itunes_backup->wpky;
-
     u8 wpky[80 + 1];
 
-    wpky_buf_ptr[0] = byte_swap_32 (wpky_buf_ptr[0]);
-    wpky_buf_ptr[1] = byte_swap_32 (wpky_buf_ptr[1]);
-    wpky_buf_ptr[2] = byte_swap_32 (wpky_buf_ptr[2]);
-    wpky_buf_ptr[3] = byte_swap_32 (wpky_buf_ptr[3]);
-    wpky_buf_ptr[4] = byte_swap_32 (wpky_buf_ptr[4]);
-    wpky_buf_ptr[5] = byte_swap_32 (wpky_buf_ptr[5]);
-    wpky_buf_ptr[6] = byte_swap_32 (wpky_buf_ptr[6]);
-    wpky_buf_ptr[7] = byte_swap_32 (wpky_buf_ptr[7]);
-    wpky_buf_ptr[8] = byte_swap_32 (wpky_buf_ptr[8]);
-    wpky_buf_ptr[9] = byte_swap_32 (wpky_buf_ptr[9]);
+    itunes_backup->wpky[0] = byte_swap_32 (itunes_backup->wpky[0]);
+    itunes_backup->wpky[1] = byte_swap_32 (itunes_backup->wpky[1]);
+    itunes_backup->wpky[2] = byte_swap_32 (itunes_backup->wpky[2]);
+    itunes_backup->wpky[3] = byte_swap_32 (itunes_backup->wpky[3]);
+    itunes_backup->wpky[4] = byte_swap_32 (itunes_backup->wpky[4]);
+    itunes_backup->wpky[5] = byte_swap_32 (itunes_backup->wpky[5]);
+    itunes_backup->wpky[6] = byte_swap_32 (itunes_backup->wpky[6]);
+    itunes_backup->wpky[7] = byte_swap_32 (itunes_backup->wpky[7]);
+    itunes_backup->wpky[8] = byte_swap_32 (itunes_backup->wpky[8]);
+    itunes_backup->wpky[9] = byte_swap_32 (itunes_backup->wpky[9]);
 
-    u32_to_hex_lower (wpky_buf_ptr[0], wpky +  0);
-    u32_to_hex_lower (wpky_buf_ptr[1], wpky +  8);
-    u32_to_hex_lower (wpky_buf_ptr[2], wpky + 16);
-    u32_to_hex_lower (wpky_buf_ptr[3], wpky + 24);
-    u32_to_hex_lower (wpky_buf_ptr[4], wpky + 32);
-    u32_to_hex_lower (wpky_buf_ptr[5], wpky + 40);
-    u32_to_hex_lower (wpky_buf_ptr[6], wpky + 48);
-    u32_to_hex_lower (wpky_buf_ptr[7], wpky + 56);
-    u32_to_hex_lower (wpky_buf_ptr[8], wpky + 64);
-    u32_to_hex_lower (wpky_buf_ptr[9], wpky + 72);
+    u32_to_hex_lower (itunes_backup->wpky[0], wpky +  0);
+    u32_to_hex_lower (itunes_backup->wpky[1], wpky +  8);
+    u32_to_hex_lower (itunes_backup->wpky[2], wpky + 16);
+    u32_to_hex_lower (itunes_backup->wpky[3], wpky + 24);
+    u32_to_hex_lower (itunes_backup->wpky[4], wpky + 32);
+    u32_to_hex_lower (itunes_backup->wpky[5], wpky + 40);
+    u32_to_hex_lower (itunes_backup->wpky[6], wpky + 48);
+    u32_to_hex_lower (itunes_backup->wpky[7], wpky + 56);
+    u32_to_hex_lower (itunes_backup->wpky[8], wpky + 64);
+    u32_to_hex_lower (itunes_backup->wpky[9], wpky + 72);
 
     wpky[80] = 0;
 
