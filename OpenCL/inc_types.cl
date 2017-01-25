@@ -739,6 +739,15 @@ typedef struct luks
 
 } luks_t;
 
+typedef struct itunes_backup
+{
+  u32 wpky[10];
+
+  u32 dpic;
+  u32 dpsl[5];
+
+} itunes_backup_t;
+
 typedef struct luks_tmp
 {
   union

@@ -122,6 +122,15 @@ typedef struct luks
 
 } luks_t;
 
+typedef struct itunes_backup
+{
+  u32 wpky[10];
+
+  u32 dpic;
+  u32 dpsl[5];
+
+} itunes_backup_t;
+
 typedef struct luks_tmp
 {
   union
@@ -1139,6 +1148,8 @@ typedef enum display_len
   DISPLAY_LEN_MAX_14100 = 16 + 1 + 16,
   DISPLAY_LEN_MIN_14400 = 40 + 1 + 20,
   DISPLAY_LEN_MAX_14400 = 40 + 1 + 20,
+  DISPLAY_LEN_MIN_14700 = 8 + 1 + 1 + 1 + 80 + 1 + 1 + 1 + 40 + 1,
+  DISPLAY_LEN_MAX_14700 = 8 + 1 + 2 + 1 + 80 + 1 + 6 + 1 + 40 + 1 + 9 + 1 + 40,
   DISPLAY_LEN_MIN_99999 = 1,
   DISPLAY_LEN_MAX_99999 = 55,
 
@@ -1266,6 +1277,7 @@ typedef enum hash_type
   HASH_TYPE_DES                 = 53,
   HASH_TYPE_PLAINTEXT           = 54,
   HASH_TYPE_LUKS                = 55,
+  HASH_TYPE_ITUNES_BACKUP_9     = 56,
 
 } hash_type_t;
 
@@ -1445,6 +1457,7 @@ typedef enum kern_type
   KERN_TYPE_LUKS_WHIRLPOOL_AES      = 14651,
   KERN_TYPE_LUKS_WHIRLPOOL_SERPENT  = 14652,
   KERN_TYPE_LUKS_WHIRLPOOL_TWOFISH  = 14653,
+  KERN_TYPE_ITUNES_BACKUP_9         = 14700,
   KERN_TYPE_PLAINTEXT               = 99999,
 
 } kern_type_t;
@@ -1509,6 +1522,7 @@ typedef enum rounds_count
    ROUNDS_KEEPASS            = 6000,
    ROUNDS_ZIP2               = 1000,
    ROUNDS_LUKS               = 163044, // this equal to jtr -test
+   ROUNDS_ITUNES_BACKUP      = 10000,
    ROUNDS_STDOUT             = 0
 
 } rounds_count_t;
@@ -1676,6 +1690,7 @@ int opencart_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int plaintext_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int sha1cx_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int luks_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED       hashconfig_t *hashconfig, const int keyslot_idx);
+int itunes_backup_parse_hash      (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 
 /**
  * hook functions
