@@ -13719,17 +13719,17 @@ int itunes_backup_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MA
   {
     u32 *dpsl_buf_ptr = (u32 *) itunes_backup->dpsl;
 
-    dpsl_buf_ptr[ 5] = hex_to_u32 ((const u8 *) &dpsl_pos[ 0]);
-    dpsl_buf_ptr[ 6] = hex_to_u32 ((const u8 *) &dpsl_pos[ 8]);
-    dpsl_buf_ptr[ 7] = hex_to_u32 ((const u8 *) &dpsl_pos[16]);
-    dpsl_buf_ptr[ 8] = hex_to_u32 ((const u8 *) &dpsl_pos[24]);
-    dpsl_buf_ptr[ 9] = hex_to_u32 ((const u8 *) &dpsl_pos[32]);
+    dpsl_buf_ptr[0] = hex_to_u32 ((const u8 *) &dpsl_pos[ 0]);
+    dpsl_buf_ptr[1] = hex_to_u32 ((const u8 *) &dpsl_pos[ 8]);
+    dpsl_buf_ptr[2] = hex_to_u32 ((const u8 *) &dpsl_pos[16]);
+    dpsl_buf_ptr[3] = hex_to_u32 ((const u8 *) &dpsl_pos[24]);
+    dpsl_buf_ptr[4] = hex_to_u32 ((const u8 *) &dpsl_pos[32]);
 
-    dpsl_buf_ptr[ 5] = byte_swap_32 (dpsl_buf_ptr[ 5]);
-    dpsl_buf_ptr[ 6] = byte_swap_32 (dpsl_buf_ptr[ 6]);
-    dpsl_buf_ptr[ 7] = byte_swap_32 (dpsl_buf_ptr[ 7]);
-    dpsl_buf_ptr[ 8] = byte_swap_32 (dpsl_buf_ptr[ 8]);
-    dpsl_buf_ptr[ 9] = byte_swap_32 (dpsl_buf_ptr[ 9]);
+    dpsl_buf_ptr[0] = byte_swap_32 (dpsl_buf_ptr[ 0]);
+    dpsl_buf_ptr[1] = byte_swap_32 (dpsl_buf_ptr[ 1]);
+    dpsl_buf_ptr[2] = byte_swap_32 (dpsl_buf_ptr[ 2]);
+    dpsl_buf_ptr[3] = byte_swap_32 (dpsl_buf_ptr[ 3]);
+    dpsl_buf_ptr[4] = byte_swap_32 (dpsl_buf_ptr[ 4]);
   }
 
   return (PARSER_OK);
