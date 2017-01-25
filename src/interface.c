@@ -13675,19 +13675,17 @@ int itunes_backup_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MA
   wpky_buf_ptr[2] = hex_to_u32 ((const u8 *) &wpky_pos[16]);
   wpky_buf_ptr[3] = hex_to_u32 ((const u8 *) &wpky_pos[24]);
   wpky_buf_ptr[4] = hex_to_u32 ((const u8 *) &wpky_pos[32]);
-
-  wpky_buf_ptr[0] = byte_swap_32 (wpky_buf_ptr[0]);
-  wpky_buf_ptr[1] = byte_swap_32 (wpky_buf_ptr[1]);
-  wpky_buf_ptr[2] = byte_swap_32 (wpky_buf_ptr[2]);
-  wpky_buf_ptr[3] = byte_swap_32 (wpky_buf_ptr[3]);
-  wpky_buf_ptr[4] = byte_swap_32 (wpky_buf_ptr[4]);
-
   wpky_buf_ptr[5] = hex_to_u32 ((const u8 *) &wpky_pos[40]);
   wpky_buf_ptr[6] = hex_to_u32 ((const u8 *) &wpky_pos[48]);
   wpky_buf_ptr[7] = hex_to_u32 ((const u8 *) &wpky_pos[56]);
   wpky_buf_ptr[8] = hex_to_u32 ((const u8 *) &wpky_pos[64]);
   wpky_buf_ptr[9] = hex_to_u32 ((const u8 *) &wpky_pos[72]);
 
+  wpky_buf_ptr[0] = byte_swap_32 (wpky_buf_ptr[0]);
+  wpky_buf_ptr[1] = byte_swap_32 (wpky_buf_ptr[1]);
+  wpky_buf_ptr[2] = byte_swap_32 (wpky_buf_ptr[2]);
+  wpky_buf_ptr[3] = byte_swap_32 (wpky_buf_ptr[3]);
+  wpky_buf_ptr[4] = byte_swap_32 (wpky_buf_ptr[4]);
   wpky_buf_ptr[5] = byte_swap_32 (wpky_buf_ptr[5]);
   wpky_buf_ptr[6] = byte_swap_32 (wpky_buf_ptr[6]);
   wpky_buf_ptr[7] = byte_swap_32 (wpky_buf_ptr[7]);
@@ -17252,19 +17250,17 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     wpky_buf_ptr[2] = byte_swap_32 (wpky_buf_ptr[2]);
     wpky_buf_ptr[3] = byte_swap_32 (wpky_buf_ptr[3]);
     wpky_buf_ptr[4] = byte_swap_32 (wpky_buf_ptr[4]);
-
-    u32_to_hex_lower (wpky_buf_ptr[0], wpky +  0);
-    u32_to_hex_lower (wpky_buf_ptr[1], wpky +  8);
-    u32_to_hex_lower (wpky_buf_ptr[2], wpky + 16);
-    u32_to_hex_lower (wpky_buf_ptr[3], wpky + 24);
-    u32_to_hex_lower (wpky_buf_ptr[4], wpky + 32);
-
     wpky_buf_ptr[5] = byte_swap_32 (wpky_buf_ptr[5]);
     wpky_buf_ptr[6] = byte_swap_32 (wpky_buf_ptr[6]);
     wpky_buf_ptr[7] = byte_swap_32 (wpky_buf_ptr[7]);
     wpky_buf_ptr[8] = byte_swap_32 (wpky_buf_ptr[8]);
     wpky_buf_ptr[9] = byte_swap_32 (wpky_buf_ptr[9]);
 
+    u32_to_hex_lower (wpky_buf_ptr[0], wpky +  0);
+    u32_to_hex_lower (wpky_buf_ptr[1], wpky +  8);
+    u32_to_hex_lower (wpky_buf_ptr[2], wpky + 16);
+    u32_to_hex_lower (wpky_buf_ptr[3], wpky + 24);
+    u32_to_hex_lower (wpky_buf_ptr[4], wpky + 32);
     u32_to_hex_lower (wpky_buf_ptr[5], wpky + 40);
     u32_to_hex_lower (wpky_buf_ptr[6], wpky + 48);
     u32_to_hex_lower (wpky_buf_ptr[7], wpky + 56);
