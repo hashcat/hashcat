@@ -674,6 +674,7 @@ typedef struct
 
   u32 salt_len;
   u32 salt_iter;
+  u32 salt_iter2;
   u32 salt_sign[2];
 
   u32 keccak_mdlen;
@@ -742,8 +743,6 @@ typedef struct luks
 typedef struct itunes_backup
 {
   u32 wpky[10];
-
-  u32 dpic;
   u32 dpsl[5];
 
 } itunes_backup_t;

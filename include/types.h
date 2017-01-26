@@ -222,11 +222,13 @@ typedef enum combinator_mode
 
 typedef enum kern_run
 {
-  KERN_RUN_1    = 1000,
-  KERN_RUN_12   = 1500,
-  KERN_RUN_2    = 2000,
-  KERN_RUN_23   = 2500,
-  KERN_RUN_3    = 3000
+  KERN_RUN_1     = 1000,
+  KERN_RUN_12    = 1500,
+  KERN_RUN_2     = 2000,
+  KERN_RUN_23    = 2500,
+  KERN_RUN_3     = 3000,
+  KERN_RUN_INIT2 = 4000,
+  KERN_RUN_LOOP2 = 5000
 
 } kern_run_t;
 
@@ -364,7 +366,9 @@ typedef enum opts_type
   OPTS_TYPE_HASH_COPY         = (1 << 25),
   OPTS_TYPE_HOOK12            = (1 << 26),
   OPTS_TYPE_HOOK23            = (1 << 27),
-  OPTS_TYPE_BINARY_HASHFILE   = (1 << 28),
+  OPTS_TYPE_INIT2             = (1 << 28),
+  OPTS_TYPE_LOOP2             = (1 << 29),
+  OPTS_TYPE_BINARY_HASHFILE   = (1 << 30),
 
 } opts_type_t;
 
@@ -647,6 +651,7 @@ typedef struct salt
 
   u32  salt_len;
   u32  salt_iter;
+  u32  salt_iter2;
   u32  salt_sign[2];
 
   u32  keccak_mdlen;
@@ -870,6 +875,8 @@ typedef struct hc_device_param
   u32     kernel_threads_by_wgs_kernel2;
   u32     kernel_threads_by_wgs_kernel23;
   u32     kernel_threads_by_wgs_kernel3;
+  u32     kernel_threads_by_wgs_kernel_init2;
+  u32     kernel_threads_by_wgs_kernel_loop2;
   u32     kernel_threads_by_wgs_kernel_mp;
   u32     kernel_threads_by_wgs_kernel_mp_l;
   u32     kernel_threads_by_wgs_kernel_mp_r;
@@ -929,6 +936,8 @@ typedef struct hc_device_param
   double  exec_us_prev1[EXPECTED_ITERATIONS];
   double  exec_us_prev2[EXPECTED_ITERATIONS];
   double  exec_us_prev3[EXPECTED_ITERATIONS];
+  double  exec_us_prev_init2[EXPECTED_ITERATIONS];
+  double  exec_us_prev_loop2[EXPECTED_ITERATIONS];
 
   // this is "current" speed
 
@@ -959,6 +968,8 @@ typedef struct hc_device_param
   cl_kernel  kernel2;
   cl_kernel  kernel23;
   cl_kernel  kernel3;
+  cl_kernel  kernel_init2;
+  cl_kernel  kernel_loop2;
   cl_kernel  kernel_mp;
   cl_kernel  kernel_mp_l;
   cl_kernel  kernel_mp_r;

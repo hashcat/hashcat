@@ -153,7 +153,8 @@ NVidia users require "NVIDIA Driver" (367.x or later)
 - OSX v10.8
 - OSX v10.9
 - OSX v10.10
-- iTunes Backup < 10
+- iTunes Backup < 10.0
+- iTunes Backup >= 10.0
 - AIX {smd5}
 - AIX {ssha1}
 - AIX {ssha256}

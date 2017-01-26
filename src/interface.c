@@ -228,6 +228,7 @@ static const char HT_14100[] = "3DES (PT = $salt, key = $pass)";
 static const char HT_14400[] = "sha1(CX)";
 static const char HT_14600[] = "LUKS";
 static const char HT_14700[] = "iTunes Backup < 10.0";
+static const char HT_14800[] = "iTunes Backup >= 10.0";
 static const char HT_99999[] = "Plaintext";
 
 static const char HT_00011[] = "Joomla < 2.5.18";
@@ -13694,7 +13695,15 @@ int itunes_backup_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MA
 
   // iter
 
-  salt->salt_iter = iter - 1;
+  if (hash_mode == 14700)
+  {
+    salt->salt_iter  = iter - 1;
+  }
+  else if (hash_mode == 14800)
+  {
+    salt->salt_iter  = dpic - 1;
+    salt->salt_iter2 = iter - 1;
+  }
 
   // salt
 
@@ -13703,13 +13712,6 @@ int itunes_backup_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MA
   salt_len = parse_and_store_salt (salt_buf_ptr, salt_pos, salt_len, hashconfig);
 
   salt->salt_len = salt_len;
-
-  // dpic
-
-  if (hash_mode == 14800)
-  {
-    itunes_backup->dpic = dpic;
-  }
 
   // dpsl
 
@@ -14317,6 +14319,7 @@ char *strhashtype (const u32 hash_mode)
     case 14400: return ((char *) HT_14400);
     case 14600: return ((char *) HT_14600);
     case 14700: return ((char *) HT_14700);
+    case 14800: return ((char *) HT_14800);
     case 99999: return ((char *) HT_99999);
   }
 
@@ -17241,29 +17244,31 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     itunes_backup_t *itunes_backups = (itunes_backup_t *) esalts_buf;
     itunes_backup_t *itunes_backup  = &itunes_backups[salt_pos];
 
+    u32 wkpy_u32[10];
+
+    wkpy_u32[0] = byte_swap_32 (itunes_backup->wpky[0]);
+    wkpy_u32[1] = byte_swap_32 (itunes_backup->wpky[1]);
+    wkpy_u32[2] = byte_swap_32 (itunes_backup->wpky[2]);
+    wkpy_u32[3] = byte_swap_32 (itunes_backup->wpky[3]);
+    wkpy_u32[4] = byte_swap_32 (itunes_backup->wpky[4]);
+    wkpy_u32[5] = byte_swap_32 (itunes_backup->wpky[5]);
+    wkpy_u32[6] = byte_swap_32 (itunes_backup->wpky[6]);
+    wkpy_u32[7] = byte_swap_32 (itunes_backup->wpky[7]);
+    wkpy_u32[8] = byte_swap_32 (itunes_backup->wpky[8]);
+    wkpy_u32[9] = byte_swap_32 (itunes_backup->wpky[9]);
+
     u8 wpky[80 + 1];
 
-    itunes_backup->wpky[0] = byte_swap_32 (itunes_backup->wpky[0]);
-    itunes_backup->wpky[1] = byte_swap_32 (itunes_backup->wpky[1]);
-    itunes_backup->wpky[2] = byte_swap_32 (itunes_backup->wpky[2]);
-    itunes_backup->wpky[3] = byte_swap_32 (itunes_backup->wpky[3]);
-    itunes_backup->wpky[4] = byte_swap_32 (itunes_backup->wpky[4]);
-    itunes_backup->wpky[5] = byte_swap_32 (itunes_backup->wpky[5]);
-    itunes_backup->wpky[6] = byte_swap_32 (itunes_backup->wpky[6]);
-    itunes_backup->wpky[7] = byte_swap_32 (itunes_backup->wpky[7]);
-    itunes_backup->wpky[8] = byte_swap_32 (itunes_backup->wpky[8]);
-    itunes_backup->wpky[9] = byte_swap_32 (itunes_backup->wpky[9]);
-
-    u32_to_hex_lower (itunes_backup->wpky[0], wpky +  0);
-    u32_to_hex_lower (itunes_backup->wpky[1], wpky +  8);
-    u32_to_hex_lower (itunes_backup->wpky[2], wpky + 16);
-    u32_to_hex_lower (itunes_backup->wpky[3], wpky + 24);
-    u32_to_hex_lower (itunes_backup->wpky[4], wpky + 32);
-    u32_to_hex_lower (itunes_backup->wpky[5], wpky + 40);
-    u32_to_hex_lower (itunes_backup->wpky[6], wpky + 48);
-    u32_to_hex_lower (itunes_backup->wpky[7], wpky + 56);
-    u32_to_hex_lower (itunes_backup->wpky[8], wpky + 64);
-    u32_to_hex_lower (itunes_backup->wpky[9], wpky + 72);
+    u32_to_hex_lower (wkpy_u32[0], wpky +  0);
+    u32_to_hex_lower (wkpy_u32[1], wpky +  8);
+    u32_to_hex_lower (wkpy_u32[2], wpky + 16);
+    u32_to_hex_lower (wkpy_u32[3], wpky + 24);
+    u32_to_hex_lower (wkpy_u32[4], wpky + 32);
+    u32_to_hex_lower (wkpy_u32[5], wpky + 40);
+    u32_to_hex_lower (wkpy_u32[6], wpky + 48);
+    u32_to_hex_lower (wkpy_u32[7], wpky + 56);
+    u32_to_hex_lower (wkpy_u32[8], wpky + 64);
+    u32_to_hex_lower (wkpy_u32[9], wpky + 72);
 
     wpky[80] = 0;
 
@@ -17273,6 +17278,70 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
       wpky,
       salt.salt_iter + 1,
       (char *) salt.salt_buf);
+  }
+  else if (hash_mode == 14800)
+  {
+    // WPKY
+
+    itunes_backup_t *itunes_backups = (itunes_backup_t *) esalts_buf;
+    itunes_backup_t *itunes_backup  = &itunes_backups[salt_pos];
+
+    u32 wkpy_u32[10];
+
+    wkpy_u32[0] = byte_swap_32 (itunes_backup->wpky[0]);
+    wkpy_u32[1] = byte_swap_32 (itunes_backup->wpky[1]);
+    wkpy_u32[2] = byte_swap_32 (itunes_backup->wpky[2]);
+    wkpy_u32[3] = byte_swap_32 (itunes_backup->wpky[3]);
+    wkpy_u32[4] = byte_swap_32 (itunes_backup->wpky[4]);
+    wkpy_u32[5] = byte_swap_32 (itunes_backup->wpky[5]);
+    wkpy_u32[6] = byte_swap_32 (itunes_backup->wpky[6]);
+    wkpy_u32[7] = byte_swap_32 (itunes_backup->wpky[7]);
+    wkpy_u32[8] = byte_swap_32 (itunes_backup->wpky[8]);
+    wkpy_u32[9] = byte_swap_32 (itunes_backup->wpky[9]);
+
+    u8 wpky[80 + 1];
+
+    u32_to_hex_lower (wkpy_u32[0], wpky +  0);
+    u32_to_hex_lower (wkpy_u32[1], wpky +  8);
+    u32_to_hex_lower (wkpy_u32[2], wpky + 16);
+    u32_to_hex_lower (wkpy_u32[3], wpky + 24);
+    u32_to_hex_lower (wkpy_u32[4], wpky + 32);
+    u32_to_hex_lower (wkpy_u32[5], wpky + 40);
+    u32_to_hex_lower (wkpy_u32[6], wpky + 48);
+    u32_to_hex_lower (wkpy_u32[7], wpky + 56);
+    u32_to_hex_lower (wkpy_u32[8], wpky + 64);
+    u32_to_hex_lower (wkpy_u32[9], wpky + 72);
+
+    wpky[80] = 0;
+
+    // DPSL
+
+    u32 dpsl_u32[5];
+
+    dpsl_u32[0] = byte_swap_32 (itunes_backup->dpsl[0]);
+    dpsl_u32[1] = byte_swap_32 (itunes_backup->dpsl[1]);
+    dpsl_u32[2] = byte_swap_32 (itunes_backup->dpsl[2]);
+    dpsl_u32[3] = byte_swap_32 (itunes_backup->dpsl[3]);
+    dpsl_u32[4] = byte_swap_32 (itunes_backup->dpsl[4]);
+
+    u8 dpsl[80 + 1];
+
+    u32_to_hex_lower (dpsl_u32[0], dpsl +  0);
+    u32_to_hex_lower (dpsl_u32[1], dpsl +  8);
+    u32_to_hex_lower (dpsl_u32[2], dpsl + 16);
+    u32_to_hex_lower (dpsl_u32[3], dpsl + 24);
+    u32_to_hex_lower (dpsl_u32[4], dpsl + 32);
+
+    dpsl[40] = 0;
+
+    snprintf (out_buf, out_len - 1, "%s*%i*%s*%i*%s*%i*%s",
+      SIGNATURE_ITUNES_BACKUP,
+      salt.salt_sign[0],
+      wpky,
+      salt.salt_iter2 + 1,
+      (char *) salt.salt_buf,
+      salt.salt_iter + 1,
+      dpsl);
   }
   else if (hash_mode == 99999)
   {
@@ -21299,6 +21368,25 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos3      = 3;
                  break;
 
+    case 14800:  hashconfig->hash_type      = HASH_TYPE_ITUNES_BACKUP_10;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_ST_GENERATE_LE
+                                            | OPTS_TYPE_ST_HEX
+                                            | OPTS_TYPE_INIT2
+                                            | OPTS_TYPE_LOOP2;
+                 hashconfig->kern_type      = KERN_TYPE_ITUNES_BACKUP_10;
+                 hashconfig->dgst_size      = DGST_SIZE_4_4; // we actually do not have a digest
+                 hashconfig->parse_func     = itunes_backup_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_SLOW_HASH_SIMD;
+                 hashconfig->dgst_pos0      = 0;
+                 hashconfig->dgst_pos1      = 1;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 3;
+                 break;
+
     case 99999:  hashconfig->hash_type      = HASH_TYPE_PLAINTEXT;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -21432,6 +21520,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 13800: hashconfig->esalt_size = sizeof (win8phone_t);      break;
     case 14600: hashconfig->esalt_size = sizeof (luks_t);           break;
     case 14700: hashconfig->esalt_size = sizeof (itunes_backup_t);  break;
+    case 14800: hashconfig->esalt_size = sizeof (itunes_backup_t);  break;
   }
 
   // hook_salt_size
@@ -21531,6 +21620,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 13763: hashconfig->tmp_size = sizeof (tc_tmp_t);              break;
     case 14600: hashconfig->tmp_size = sizeof (luks_tmp_t);            break;
     case 14700: hashconfig->tmp_size = sizeof (pbkdf2_sha1_tmp_t);     break;
+    case 14800: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);   break;
   };
 
   // hook_size
@@ -21847,6 +21937,8 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                   break;
       case 14700: salt->salt_len = 20;
                   break;
+      case 14800: salt->salt_len = 20;
+                  break;
     }
 
     // special esalt handling
@@ -21909,8 +22001,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                   ((luks_t *)          esalt)->cipher_type   = HC_LUKS_CIPHER_TYPE_AES;
                   ((luks_t *)          esalt)->cipher_mode   = HC_LUKS_CIPHER_MODE_XTS_PLAIN;
                   break;
-      case 14700: ((itunes_backup_t *) esalt)->dpic          = 10000000;
-                  break;
     }
 
     // special hook salt handling
@@ -21929,173 +22019,176 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
 
   switch (hashconfig->hash_mode)
   {
-    case   400:  salt->salt_iter = ROUNDS_PHPASS;
+    case   400:  salt->salt_iter  = ROUNDS_PHPASS;
                  break;
-    case   500:  salt->salt_iter = ROUNDS_MD5CRYPT;
+    case   500:  salt->salt_iter  = ROUNDS_MD5CRYPT;
                  break;
-    case   501:  salt->salt_iter = ROUNDS_MD5CRYPT;
+    case   501:  salt->salt_iter  = ROUNDS_MD5CRYPT;
                  break;
-    case  1600:  salt->salt_iter = ROUNDS_MD5CRYPT;
+    case  1600:  salt->salt_iter  = ROUNDS_MD5CRYPT;
                  break;
-    case  1800:  salt->salt_iter = ROUNDS_SHA512CRYPT;
+    case  1800:  salt->salt_iter  = ROUNDS_SHA512CRYPT;
                  break;
-    case  2100:  salt->salt_iter = ROUNDS_DCC2;
+    case  2100:  salt->salt_iter  = ROUNDS_DCC2;
                  break;
-    case  2500:  salt->salt_iter = ROUNDS_WPA2;
+    case  2500:  salt->salt_iter  = ROUNDS_WPA2;
                  break;
-    case  3200:  salt->salt_iter = ROUNDS_BCRYPT;
+    case  3200:  salt->salt_iter  = ROUNDS_BCRYPT;
                  break;
-    case  5200:  salt->salt_iter = ROUNDS_PSAFE3;
+    case  5200:  salt->salt_iter  = ROUNDS_PSAFE3;
                  break;
-    case  5800:  salt->salt_iter = ROUNDS_ANDROIDPIN - 1;
+    case  5800:  salt->salt_iter  = ROUNDS_ANDROIDPIN - 1;
                  break;
-    case  6211:  salt->salt_iter = ROUNDS_TRUECRYPT_2K;
+    case  6211:  salt->salt_iter  = ROUNDS_TRUECRYPT_2K;
                  break;
-    case  6212:  salt->salt_iter = ROUNDS_TRUECRYPT_2K;
+    case  6212:  salt->salt_iter  = ROUNDS_TRUECRYPT_2K;
                  break;
-    case  6213:  salt->salt_iter = ROUNDS_TRUECRYPT_2K;
+    case  6213:  salt->salt_iter  = ROUNDS_TRUECRYPT_2K;
                  break;
-    case  6221:  salt->salt_iter = ROUNDS_TRUECRYPT_1K;
+    case  6221:  salt->salt_iter  = ROUNDS_TRUECRYPT_1K;
                  break;
-    case  6222:  salt->salt_iter = ROUNDS_TRUECRYPT_1K;
+    case  6222:  salt->salt_iter  = ROUNDS_TRUECRYPT_1K;
                  break;
-    case  6223:  salt->salt_iter = ROUNDS_TRUECRYPT_1K;
+    case  6223:  salt->salt_iter  = ROUNDS_TRUECRYPT_1K;
                  break;
-    case  6231:  salt->salt_iter = ROUNDS_TRUECRYPT_1K;
+    case  6231:  salt->salt_iter  = ROUNDS_TRUECRYPT_1K;
                  break;
-    case  6232:  salt->salt_iter = ROUNDS_TRUECRYPT_1K;
+    case  6232:  salt->salt_iter  = ROUNDS_TRUECRYPT_1K;
                  break;
-    case  6233:  salt->salt_iter = ROUNDS_TRUECRYPT_1K;
+    case  6233:  salt->salt_iter  = ROUNDS_TRUECRYPT_1K;
                  break;
-    case  6241:  salt->salt_iter = ROUNDS_TRUECRYPT_1K;
+    case  6241:  salt->salt_iter  = ROUNDS_TRUECRYPT_1K;
                  break;
-    case  6242:  salt->salt_iter = ROUNDS_TRUECRYPT_1K;
+    case  6242:  salt->salt_iter  = ROUNDS_TRUECRYPT_1K;
                  break;
-    case  6243:  salt->salt_iter = ROUNDS_TRUECRYPT_1K;
+    case  6243:  salt->salt_iter  = ROUNDS_TRUECRYPT_1K;
                  break;
-    case  6300:  salt->salt_iter = ROUNDS_MD5CRYPT;
+    case  6300:  salt->salt_iter  = ROUNDS_MD5CRYPT;
                  break;
-    case  6400:  salt->salt_iter = ROUNDS_SHA256AIX;
+    case  6400:  salt->salt_iter  = ROUNDS_SHA256AIX;
                  break;
-    case  6500:  salt->salt_iter = ROUNDS_SHA512AIX;
+    case  6500:  salt->salt_iter  = ROUNDS_SHA512AIX;
                  break;
-    case  6700:  salt->salt_iter = ROUNDS_SHA1AIX;
+    case  6700:  salt->salt_iter  = ROUNDS_SHA1AIX;
                  break;
-    case  6600:  salt->salt_iter = ROUNDS_AGILEKEY;
+    case  6600:  salt->salt_iter  = ROUNDS_AGILEKEY;
                  break;
-    case  6800:  salt->salt_iter = ROUNDS_LASTPASS;
+    case  6800:  salt->salt_iter  = ROUNDS_LASTPASS;
                  break;
-    case  7100:  salt->salt_iter = ROUNDS_SHA512OSX;
+    case  7100:  salt->salt_iter  = ROUNDS_SHA512OSX;
                  break;
-    case  7200:  salt->salt_iter = ROUNDS_GRUB;
+    case  7200:  salt->salt_iter  = ROUNDS_GRUB;
                  break;
-    case  7400:  salt->salt_iter = ROUNDS_SHA256CRYPT;
+    case  7400:  salt->salt_iter  = ROUNDS_SHA256CRYPT;
                  break;
-    case  7900:  salt->salt_iter = ROUNDS_DRUPAL7;
+    case  7900:  salt->salt_iter  = ROUNDS_DRUPAL7;
                  break;
-    case  8200:  salt->salt_iter = ROUNDS_CLOUDKEY;
+    case  8200:  salt->salt_iter  = ROUNDS_CLOUDKEY;
                  break;
-    case  8300:  salt->salt_iter = ROUNDS_NSEC3;
+    case  8300:  salt->salt_iter  = ROUNDS_NSEC3;
                  break;
-    case  8800:  salt->salt_iter = ROUNDS_ANDROIDFDE;
+    case  8800:  salt->salt_iter  = ROUNDS_ANDROIDFDE;
                  break;
-    case  8900:  salt->salt_iter = 1;
+    case  8900:  salt->salt_iter  = 1;
                  break;
-    case  9000:  salt->salt_iter = ROUNDS_PSAFE2;
+    case  9000:  salt->salt_iter  = ROUNDS_PSAFE2;
                  break;
-    case  9100:  salt->salt_iter = ROUNDS_LOTUS8;
+    case  9100:  salt->salt_iter  = ROUNDS_LOTUS8;
                  break;
-    case  9200:  salt->salt_iter = ROUNDS_CISCO8;
+    case  9200:  salt->salt_iter  = ROUNDS_CISCO8;
                  break;
-    case  9300:  salt->salt_iter = 1;
+    case  9300:  salt->salt_iter  = 1;
                  break;
-    case  9400:  salt->salt_iter = ROUNDS_OFFICE2007;
+    case  9400:  salt->salt_iter  = ROUNDS_OFFICE2007;
                  break;
-    case  9500:  salt->salt_iter = ROUNDS_OFFICE2010;
+    case  9500:  salt->salt_iter  = ROUNDS_OFFICE2010;
                  break;
-    case  9600:  salt->salt_iter = ROUNDS_OFFICE2013;
+    case  9600:  salt->salt_iter  = ROUNDS_OFFICE2013;
                  break;
-    case 10000:  salt->salt_iter = ROUNDS_DJANGOPBKDF2;
+    case 10000:  salt->salt_iter  = ROUNDS_DJANGOPBKDF2;
                  break;
-    case 10300:  salt->salt_iter = ROUNDS_SAPH_SHA1 - 1;
+    case 10300:  salt->salt_iter  = ROUNDS_SAPH_SHA1 - 1;
                  break;
-    case 10500:  salt->salt_iter = ROUNDS_PDF14;
+    case 10500:  salt->salt_iter  = ROUNDS_PDF14;
                  break;
-    case 10700:  salt->salt_iter = ROUNDS_PDF17L8;
+    case 10700:  salt->salt_iter  = ROUNDS_PDF17L8;
                  break;
-    case 10900:  salt->salt_iter = ROUNDS_PBKDF2_SHA256 - 1;
+    case 10900:  salt->salt_iter  = ROUNDS_PBKDF2_SHA256 - 1;
                  break;
-    case 11300:  salt->salt_iter = ROUNDS_BITCOIN_WALLET - 1;
+    case 11300:  salt->salt_iter  = ROUNDS_BITCOIN_WALLET - 1;
                  break;
-    case 11600:  salt->salt_iter = ROUNDS_SEVEN_ZIP;
+    case 11600:  salt->salt_iter  = ROUNDS_SEVEN_ZIP;
                  break;
-    case 11900:  salt->salt_iter = ROUNDS_PBKDF2_MD5 - 1;
+    case 11900:  salt->salt_iter  = ROUNDS_PBKDF2_MD5 - 1;
                  break;
-    case 12000:  salt->salt_iter = ROUNDS_PBKDF2_SHA1 - 1;
+    case 12000:  salt->salt_iter  = ROUNDS_PBKDF2_SHA1 - 1;
                  break;
-    case 12100:  salt->salt_iter = ROUNDS_PBKDF2_SHA512 - 1;
+    case 12100:  salt->salt_iter  = ROUNDS_PBKDF2_SHA512 - 1;
                  break;
-    case 12200:  salt->salt_iter = ROUNDS_ECRYPTFS - 1;
+    case 12200:  salt->salt_iter  = ROUNDS_ECRYPTFS - 1;
                  break;
-    case 12300:  salt->salt_iter = ROUNDS_ORACLET - 1;
+    case 12300:  salt->salt_iter  = ROUNDS_ORACLET - 1;
                  break;
-    case 12400:  salt->salt_iter = ROUNDS_BSDICRYPT - 1;
+    case 12400:  salt->salt_iter  = ROUNDS_BSDICRYPT - 1;
                  break;
-    case 12500:  salt->salt_iter = ROUNDS_RAR3;
+    case 12500:  salt->salt_iter  = ROUNDS_RAR3;
                  break;
-    case 12700:  salt->salt_iter = ROUNDS_MYWALLET;
+    case 12700:  salt->salt_iter  = ROUNDS_MYWALLET;
                  break;
-    case 12800:  salt->salt_iter = ROUNDS_MS_DRSR - 1;
+    case 12800:  salt->salt_iter  = ROUNDS_MS_DRSR - 1;
                  break;
-    case 12900:  salt->salt_iter = ROUNDS_ANDROIDFDE_SAMSUNG - 1;
+    case 12900:  salt->salt_iter  = ROUNDS_ANDROIDFDE_SAMSUNG - 1;
                  break;
-    case 13000:  salt->salt_iter = ROUNDS_RAR5 - 1;
+    case 13000:  salt->salt_iter  = ROUNDS_RAR5 - 1;
                  break;
-    case 13200:  salt->salt_iter = ROUNDS_AXCRYPT;
+    case 13200:  salt->salt_iter  = ROUNDS_AXCRYPT;
                  break;
-    case 13400:  salt->salt_iter = ROUNDS_KEEPASS;
+    case 13400:  salt->salt_iter  = ROUNDS_KEEPASS;
                  break;
-    case 13600:  salt->salt_iter = ROUNDS_ZIP2;
+    case 13600:  salt->salt_iter  = ROUNDS_ZIP2;
                  break;
-    case 13711:  salt->salt_iter = ROUNDS_VERACRYPT_655331;
+    case 13711:  salt->salt_iter  = ROUNDS_VERACRYPT_655331;
                  break;
-    case 13712:  salt->salt_iter = ROUNDS_VERACRYPT_655331;
+    case 13712:  salt->salt_iter  = ROUNDS_VERACRYPT_655331;
                  break;
-    case 13713:  salt->salt_iter = ROUNDS_VERACRYPT_655331;
+    case 13713:  salt->salt_iter  = ROUNDS_VERACRYPT_655331;
                  break;
-    case 13721:  salt->salt_iter = ROUNDS_VERACRYPT_500000;
+    case 13721:  salt->salt_iter  = ROUNDS_VERACRYPT_500000;
                  break;
-    case 13722:  salt->salt_iter = ROUNDS_VERACRYPT_500000;
+    case 13722:  salt->salt_iter  = ROUNDS_VERACRYPT_500000;
                  break;
-    case 13723:  salt->salt_iter = ROUNDS_VERACRYPT_500000;
+    case 13723:  salt->salt_iter  = ROUNDS_VERACRYPT_500000;
                  break;
-    case 13731:  salt->salt_iter = ROUNDS_VERACRYPT_500000;
+    case 13731:  salt->salt_iter  = ROUNDS_VERACRYPT_500000;
                  break;
-    case 13732:  salt->salt_iter = ROUNDS_VERACRYPT_500000;
+    case 13732:  salt->salt_iter  = ROUNDS_VERACRYPT_500000;
                  break;
-    case 13733:  salt->salt_iter = ROUNDS_VERACRYPT_500000;
+    case 13733:  salt->salt_iter  = ROUNDS_VERACRYPT_500000;
                  break;
-    case 13741:  salt->salt_iter = ROUNDS_VERACRYPT_327661;
+    case 13741:  salt->salt_iter  = ROUNDS_VERACRYPT_327661;
                  break;
-    case 13742:  salt->salt_iter = ROUNDS_VERACRYPT_327661;
+    case 13742:  salt->salt_iter  = ROUNDS_VERACRYPT_327661;
                  break;
-    case 13743:  salt->salt_iter = ROUNDS_VERACRYPT_327661;
+    case 13743:  salt->salt_iter  = ROUNDS_VERACRYPT_327661;
                  break;
-    case 13751:  salt->salt_iter = ROUNDS_VERACRYPT_500000;
+    case 13751:  salt->salt_iter  = ROUNDS_VERACRYPT_500000;
                  break;
-    case 13752:  salt->salt_iter = ROUNDS_VERACRYPT_500000;
+    case 13752:  salt->salt_iter  = ROUNDS_VERACRYPT_500000;
                  break;
-    case 13753:  salt->salt_iter = ROUNDS_VERACRYPT_500000;
+    case 13753:  salt->salt_iter  = ROUNDS_VERACRYPT_500000;
                  break;
-    case 13761:  salt->salt_iter = ROUNDS_VERACRYPT_200000;
+    case 13761:  salt->salt_iter  = ROUNDS_VERACRYPT_200000;
                  break;
-    case 13762:  salt->salt_iter = ROUNDS_VERACRYPT_200000;
+    case 13762:  salt->salt_iter  = ROUNDS_VERACRYPT_200000;
                  break;
-    case 13763:  salt->salt_iter = ROUNDS_VERACRYPT_200000;
+    case 13763:  salt->salt_iter  = ROUNDS_VERACRYPT_200000;
                  break;
-    case 14600:  salt->salt_iter = ROUNDS_LUKS;
+    case 14600:  salt->salt_iter  = ROUNDS_LUKS;
                  break;
-    case 14700:  salt->salt_iter = ROUNDS_ITUNES_BACKUP - 1;
+    case 14700:  salt->salt_iter  = ROUNDS_ITUNES9_BACKUP - 1;
+                 break;
+    case 14800:  salt->salt_iter  = ROUNDS_ITUNES101_BACKUP - 1;
+                 salt->salt_iter2 = ROUNDS_ITUNES102_BACKUP - 1;
                  break;
   }
 }
