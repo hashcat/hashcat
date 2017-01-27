@@ -9,6 +9,7 @@ hashcat.dll
 *.restore
 *.dictstat
 *.pot
+*.pid
 *.log
 *.dSYM
 kernels/**
