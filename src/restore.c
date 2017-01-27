@@ -20,106 +20,6 @@ static void fsync (int fd)
 }
 #endif
 
-static int check_running_process (hashcat_ctx_t *hashcat_ctx)
-{
-  restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
-
-  char *eff_restore_file = restore_ctx->eff_restore_file;
-
-  FILE *fp = fopen (eff_restore_file, "rb");
-
-  if (fp == NULL) return 0;
-
-  restore_data_t *rd = (restore_data_t *) hcmalloc (sizeof (restore_data_t));
-
-  const size_t nread = fread (rd, sizeof (restore_data_t), 1, fp);
-
-  fclose (fp);
-
-  if (nread != 1)
-  {
-    event_log_error (hashcat_ctx, "Cannot read %s", eff_restore_file);
-
-    return -1;
-  }
-
-  if (rd->pid)
-  {
-    #if defined (_POSIX)
-
-    char *pidbin;
-
-    hc_asprintf (&pidbin, "/proc/%u/cmdline", rd->pid);
-
-    FILE *fd = fopen (pidbin, "rb");
-
-    if (fd)
-    {
-      size_t pidbin_len = fread (pidbin, 1, HCBUFSIZ_LARGE, fd);
-
-      pidbin[pidbin_len] = 0;
-
-      fclose (fd);
-
-      char *argv0_r = strrchr (restore_ctx->argv[0], '/');
-
-      char *pidbin_r = strrchr (pidbin, '/');
-
-      if (argv0_r == NULL) argv0_r = restore_ctx->argv[0];
-
-      if (pidbin_r == NULL) pidbin_r = pidbin;
-
-      if (strcmp (argv0_r, pidbin_r) == 0)
-      {
-        event_log_error (hashcat_ctx, "Already an instance %s running on pid %u", pidbin, rd->pid);
-
-        return -1;
-      }
-    }
-
-    hcfree (pidbin);
-
-    #elif defined (_WIN)
-
-    HANDLE hProcess = OpenProcess (PROCESS_ALL_ACCESS, FALSE, rd->pid);
-
-    char *pidbin  = (char *) hcmalloc (HCBUFSIZ_LARGE);
-    char *pidbin2 = (char *) hcmalloc (HCBUFSIZ_LARGE);
-
-    int pidbin_len  = GetModuleFileName (NULL, pidbin, HCBUFSIZ_LARGE);
-    int pidbin2_len = GetModuleFileNameEx (hProcess, NULL, pidbin2, HCBUFSIZ_LARGE);
-
-    pidbin[pidbin_len]   = 0;
-    pidbin2[pidbin2_len] = 0;
-
-    if (pidbin2_len)
-    {
-      if (strcmp (pidbin, pidbin2) == 0)
-      {
-        event_log_error (hashcat_ctx, "Already an instance %s running on pid %d", pidbin2, rd->pid);
-
-        return -1;
-      }
-    }
-
-    hcfree (pidbin2);
-    hcfree (pidbin);
-
-    #endif
-  }
-
-  if (rd->version < RESTORE_VERSION_MIN)
-  {
-    event_log_error (hashcat_ctx, "Cannot use outdated %s. Please remove it.", eff_restore_file);
-
-    return -1;
-  }
-
-  hcfree (rd);
-
-  return 0;
-}
-
 static int init_restore (hashcat_ctx_t *hashcat_ctx)
 {
   restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
@@ -128,20 +28,10 @@ static int init_restore (hashcat_ctx_t *hashcat_ctx)
 
   restore_ctx->rd = rd;
 
-  const int rc = check_running_process (hashcat_ctx);
-
-  if (rc == -1) return -1;
-
   rd->version = RESTORE_VERSION_CUR;
 
   rd->argc = restore_ctx->argc;
   rd->argv = restore_ctx->argv;
-
-  #if defined (_POSIX)
-  rd->pid = getpid ();
-  #elif defined (_WIN)
-  rd->pid = GetCurrentProcessId ();
-  #endif
 
   if (getcwd (rd->cwd, 255) == NULL)
   {
@@ -386,12 +276,6 @@ int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
       return -1;
     }
-
-    #if defined (_POSIX)
-    rd->pid = getpid ();
-    #elif defined (_WIN)
-    rd->pid = GetCurrentProcessId ();
-    #endif
 
     user_options_init (hashcat_ctx);
 

@@ -1256,7 +1256,6 @@ typedef struct restore_data
 {
   int  version;
   char cwd[256];
-  u32  pid;
 
   u32  dicts_pos;
   u32  masks_pos;
@@ -1267,6 +1266,12 @@ typedef struct restore_data
   char **argv;
 
 } restore_data_t;
+
+typedef struct pidfile_data
+{
+  u32 pid;
+
+} pidfile_data_t;
 
 typedef struct restore_ctx
 {
@@ -1281,6 +1286,15 @@ typedef struct restore_ctx
   restore_data_t *rd;
 
 } restore_ctx_t;
+
+typedef struct pidfile_ctx
+{
+  u32   pid;
+  char *filename;
+
+  pidfile_data_t *pd;
+
+} pidfile_ctx_t;
 
 typedef struct kernel_rule
 {
@@ -1819,6 +1833,7 @@ typedef struct hashcat_ctx
   opencl_ctx_t          *opencl_ctx;
   outcheck_ctx_t        *outcheck_ctx;
   outfile_ctx_t         *outfile_ctx;
+  pidfile_ctx_t         *pidfile_ctx;
   potfile_ctx_t         *potfile_ctx;
   restore_ctx_t         *restore_ctx;
   status_ctx_t          *status_ctx;

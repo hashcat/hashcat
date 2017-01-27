@@ -39,6 +39,7 @@
 #include "opencl.h"
 #include "outfile_check.h"
 #include "outfile.h"
+#include "pidfile.h"
 #include "potfile.h"
 #include "restore.h"
 #include "rp.h"
@@ -809,6 +810,7 @@ int hashcat_init (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct h
   hashcat_ctx->opencl_ctx         = (opencl_ctx_t *)          hcmalloc (sizeof (opencl_ctx_t));
   hashcat_ctx->outcheck_ctx       = (outcheck_ctx_t *)        hcmalloc (sizeof (outcheck_ctx_t));
   hashcat_ctx->outfile_ctx        = (outfile_ctx_t *)         hcmalloc (sizeof (outfile_ctx_t));
+  hashcat_ctx->pidfile_ctx        = (pidfile_ctx_t *)         hcmalloc (sizeof (pidfile_ctx_t));
   hashcat_ctx->potfile_ctx        = (potfile_ctx_t *)         hcmalloc (sizeof (potfile_ctx_t));
   hashcat_ctx->restore_ctx        = (restore_ctx_t *)         hcmalloc (sizeof (restore_ctx_t));
   hashcat_ctx->status_ctx         = (status_ctx_t *)          hcmalloc (sizeof (status_ctx_t));
@@ -840,6 +842,7 @@ void hashcat_destroy (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashcat_ctx->opencl_ctx);
   hcfree (hashcat_ctx->outcheck_ctx);
   hcfree (hashcat_ctx->outfile_ctx);
+  hcfree (hashcat_ctx->pidfile_ctx);
   hcfree (hashcat_ctx->potfile_ctx);
   hcfree (hashcat_ctx->restore_ctx);
   hcfree (hashcat_ctx->status_ctx);
@@ -879,6 +882,14 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, char *install_folder, char
   const int rc_folder_config_init = folder_config_init (hashcat_ctx, install_folder, shared_folder);
 
   if (rc_folder_config_init == -1) return -1;
+
+  /**
+   * pidfile
+   */
+
+  const int rc_pidfile_init = pidfile_ctx_init (hashcat_ctx);
+
+  if (rc_pidfile_init == -1) return -1;
 
   /**
    * restore
@@ -1104,6 +1115,10 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
   unlink_restore (hashcat_ctx);
 
+  // unlink the pidfile
+
+  unlink_pidfile (hashcat_ctx);
+
   // final update dictionary cache
 
   dictstat_write (hashcat_ctx);
@@ -1172,6 +1187,7 @@ int hashcat_session_destroy (hashcat_ctx_t *hashcat_ctx)
   opencl_ctx_devices_destroy (hashcat_ctx);
   outcheck_ctx_destroy       (hashcat_ctx);
   outfile_destroy            (hashcat_ctx);
+  pidfile_ctx_destroy        (hashcat_ctx);
   potfile_destroy            (hashcat_ctx);
   restore_ctx_destroy        (hashcat_ctx);
   tuning_db_destroy          (hashcat_ctx);
