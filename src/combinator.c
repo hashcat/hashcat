@@ -44,12 +44,25 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
     char *dictfile1 = user_options_extra->hc_workv[0];
     char *dictfile2 = user_options_extra->hc_workv[1];
 
+    // at this point we know the file actually exist
     // find the bigger dictionary and use as base
+
+    if (hc_path_is_file (dictfile1) == false)
+    {
+      event_log_error (hashcat_ctx, "%s: Not a regular file", dictfile1);
+
+      return -1;
+    }
+
+    if (hc_path_is_file (dictfile2) == false)
+    {
+      event_log_error (hashcat_ctx, "%s: Not a regular file", dictfile2);
+
+      return -1;
+    }
 
     FILE *fp1 = NULL;
     FILE *fp2 = NULL;
-
-    hc_stat_t tmp_stat;
 
     if ((fp1 = fopen (dictfile1, "rb")) == NULL)
     {
@@ -58,49 +71,9 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
-    if (hc_stat (dictfile1, &tmp_stat) == -1)
-    {
-      event_log_error (hashcat_ctx, "%s: %m", dictfile1);
-
-      fclose (fp1);
-
-      return -1;
-    }
-
-    if (S_ISDIR (tmp_stat.st_mode))
-    {
-      event_log_error (hashcat_ctx, "%s must be a regular file", dictfile1);
-
-      fclose (fp1);
-
-      return -1;
-    }
-
     if ((fp2 = fopen (dictfile2, "rb")) == NULL)
     {
       event_log_error (hashcat_ctx, "%s: %m", dictfile2);
-
-      fclose (fp1);
-
-      return -1;
-    }
-
-    if (hc_stat (dictfile2, &tmp_stat) == -1)
-    {
-      event_log_error (hashcat_ctx, "%s: %m", dictfile2);
-
-      fclose (fp1);
-      fclose (fp2);
-
-      return -1;
-    }
-
-    if (S_ISDIR (tmp_stat.st_mode))
-    {
-      event_log_error (hashcat_ctx, "%s must be a regular file", dictfile2);
-
-      fclose (fp1);
-      fclose (fp2);
 
       return -1;
     }

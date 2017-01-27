@@ -67,14 +67,21 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
     if (check_left == 0)
     {
-      hc_stat_t outfile_check_stat;
-
-      if (hc_stat (root_directory, &outfile_check_stat) == 0)
+      if (hc_path_exist (root_directory) == true)
       {
-        u32 is_dir = S_ISDIR (outfile_check_stat.st_mode);
+        const bool is_dir = hc_path_is_directory (root_directory);
 
-        if (is_dir == 1)
+        if (is_dir == true)
         {
+          hc_stat_t outfile_check_stat;
+
+          if (hc_stat (root_directory, &outfile_check_stat) == -1)
+          {
+            event_log_error (hashcat_ctx, "%s: %m", root_directory);
+
+            return -1;
+          }
+
           if (outfile_check_stat.st_mtime > folder_mtime)
           {
             char **out_files_new = scan_directory (root_directory);
@@ -349,15 +356,13 @@ int outcheck_ctx_init (hashcat_ctx_t *hashcat_ctx)
     outcheck_ctx->root_directory = user_options->outfile_check_dir;
   }
 
-  hc_stat_t outfile_check_stat;
-
-  if (hc_stat (outcheck_ctx->root_directory, &outfile_check_stat) == 0)
+  if (hc_path_exist (outcheck_ctx->root_directory) == true)
   {
-    const u32 is_dir = S_ISDIR (outfile_check_stat.st_mode);
+    const bool is_dir = hc_path_is_directory (outcheck_ctx->root_directory);
 
-    if (is_dir == 0)
+    if (is_dir == false)
     {
-      event_log_error (hashcat_ctx, "Directory specified in outfile-check '%s' is not a valid directory", outcheck_ctx->root_directory);
+      event_log_error (hashcat_ctx, "Directory specified in outfile-check '%s' is not a directory", outcheck_ctx->root_directory);
 
       return -1;
     }

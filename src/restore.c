@@ -293,17 +293,15 @@ int cycle_restore (hashcat_ctx_t *hashcat_ctx)
 
   if (rc_write_restore == -1) return -1;
 
-  hc_stat_t st;
-
-  if (hc_stat (eff_restore_file, &st) == 0)
+  if (hc_path_exist (eff_restore_file) == true)
   {
-    if (unlink (eff_restore_file))
+    if (unlink (eff_restore_file) == -1)
     {
       event_log_warning (hashcat_ctx, "Unlink file '%s': %m", eff_restore_file);
     }
   }
 
-  if (rename (new_restore_file, eff_restore_file))
+  if (rename (new_restore_file, eff_restore_file) == -1)
   {
     event_log_warning (hashcat_ctx, "Rename file '%s' to '%s': %m", new_restore_file, eff_restore_file);
   }

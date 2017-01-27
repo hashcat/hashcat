@@ -268,16 +268,9 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
       {
         char *l0_filename = user_options_extra->hc_workv[i];
 
-        hc_stat_t l0_stat;
+        // at this point we already verified the path actually exist and is readable
 
-        if (hc_stat (l0_filename, &l0_stat) == -1)
-        {
-          event_log_error (hashcat_ctx, "%s: %m", l0_filename);
-
-          return -1;
-        }
-
-        if (S_ISDIR (l0_stat.st_mode))
+        if (hc_path_is_directory (l0_filename) == true)
         {
           char **dictionary_files = NULL;
 
@@ -291,16 +284,14 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
             {
               char *l1_filename = dictionary_files[d];
 
-              hc_stat_t l1_stat;
-
-              if (hc_stat (l1_filename, &l1_stat) == -1)
+              if (hc_path_read (l1_filename) == false)
               {
                 event_log_error (hashcat_ctx, "%s: %m", l1_filename);
 
                 return -1;
               }
 
-              if (S_ISREG (l1_stat.st_mode))
+              if (hc_path_is_file (l1_filename) == true)
               {
                 const int rc = straight_ctx_add_wl (hashcat_ctx, l1_filename);
 
@@ -341,16 +332,9 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
     {
       char *l0_filename = user_options_extra->hc_workv[i];
 
-      hc_stat_t l0_stat;
+      // at this point we already verified the path actually exist and is readable
 
-      if (hc_stat (l0_filename, &l0_stat) == -1)
-      {
-        event_log_error (hashcat_ctx, "%s: %m", l0_filename);
-
-        return -1;
-      }
-
-      if (S_ISDIR (l0_stat.st_mode))
+      if (hc_path_is_directory (l0_filename) == true)
       {
         char **dictionary_files = NULL;
 
@@ -364,16 +348,14 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
           {
             char *l1_filename = dictionary_files[d];
 
-            hc_stat_t l1_stat;
-
-            if (hc_stat (l1_filename, &l1_stat) == -1)
+            if (hc_path_read (l1_filename) == false)
             {
               event_log_error (hashcat_ctx, "%s: %m", l1_filename);
 
               return -1;
             }
 
-            if (S_ISREG (l1_stat.st_mode))
+            if (hc_path_is_file (l1_filename) == true)
             {
               const int rc = straight_ctx_add_wl (hashcat_ctx, l1_filename);
 
@@ -405,16 +387,9 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
     {
       char *l0_filename = user_options_extra->hc_workv[i];
 
-      hc_stat_t l0_stat;
+      // at this point we already verified the path actually exist and is readable
 
-      if (hc_stat (l0_filename, &l0_stat) == -1)
-      {
-        event_log_error (hashcat_ctx, "%s: %m", l0_filename);
-
-        return -1;
-      }
-
-      if (S_ISDIR (l0_stat.st_mode))
+      if (hc_path_is_directory (l0_filename) == true)
       {
         char **dictionary_files = NULL;
 
@@ -428,16 +403,14 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
           {
             char *l1_filename = dictionary_files[d];
 
-            hc_stat_t l1_stat;
-
-            if (hc_stat (l1_filename, &l1_stat) == -1)
+            if (hc_path_read (l1_filename) == false)
             {
               event_log_error (hashcat_ctx, "%s: %m", l1_filename);
 
               return -1;
             }
 
-            if (S_ISREG (l1_stat.st_mode))
+            if (hc_path_is_file (l1_filename) == true)
             {
               const int rc = straight_ctx_add_wl (hashcat_ctx, l1_filename);
 

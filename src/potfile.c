@@ -116,9 +116,7 @@ int potfile_init (hashcat_ctx_t *hashcat_ctx)
 
     hc_asprintf (&potfile_old, "%s/hashcat.pot", folder_config->profile_dir);
 
-    hc_stat_t st;
-
-    if (hc_stat (potfile_old, &st) == 0)
+    if (hc_path_exist (potfile_old) == true)
     {
       event_log_warning (hashcat_ctx, "Old potfile detected: %s", potfile_old);
       event_log_warning (hashcat_ctx, "New potfile is: %s ", potfile_ctx->filename);

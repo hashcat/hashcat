@@ -453,9 +453,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
   if ((user_options->benchmark == false) && (user_options->stdout_flag == false) && (user_options->keyspace == false))
   {
-    hc_stat_t f;
-
-    hashlist_mode = (hc_stat (hash_or_file, &f) == 0) ? HL_MODE_FILE : HL_MODE_ARG;
+    hashlist_mode = (hc_path_exist (hash_or_file) == true) ? HL_MODE_FILE : HL_MODE_ARG;
 
     if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
     {

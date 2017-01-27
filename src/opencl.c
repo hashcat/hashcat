@@ -50,9 +50,7 @@ static int ocl_check_dri (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
   // No GPU available! That's fine, so we don't need to check if we have access to it.
 
-  hc_stat_t stat;
-
-  if (hc_stat (dri_card0_path, &stat) == -1) return 0;
+  if (hc_path_exist (dri_card0_path) == false) return 0;
 
   // Now we need to check if this an AMD vendor, because this is when the problems start
 
@@ -3797,22 +3795,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     for (int i = 0; i < files_cnt; i++)
     {
-      FILE *fd = fopen (files_names[i], "r");
-
-      if (fd == NULL)
-      {
-        event_log_error (hashcat_ctx, "%s: %m", files_names[i]);
-
-        return -1;
-      }
-
-      char buf[1] = { 0 };
-
-      size_t n = fread (buf, 1, 1, fd);
-
-      fclose (fd);
-
-      if (n != 1)
+      if (hc_path_read (files_names[i]) == false)
       {
         event_log_error (hashcat_ctx, "%s: %m", files_names[i]);
 
@@ -3849,9 +3832,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       generate_source_kernel_filename (hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, folder_config->shared_dir, source_file);
 
-      hc_stat_t sst;
-
-      if (hc_stat (source_file, &sst) == -1)
+      if (hc_path_read (source_file) == false)
       {
         event_log_error (hashcat_ctx, "%s: %m", source_file);
 
@@ -3866,13 +3847,16 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       generate_cached_kernel_filename (hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, folder_config->profile_dir, device_name_chksum, cached_file);
 
-      int cached = 1;
+      bool cached = true;
 
-      hc_stat_t cst;
-
-      if ((hc_stat (cached_file, &cst) == -1) || cst.st_size == 0)
+      if (hc_path_read (cached_file) == false)
       {
-        cached = 0;
+        cached = false;
+      }
+
+      if (hc_path_is_empty (cached_file) == true)
+      {
+        cached = false;
       }
 
       /**
@@ -3885,7 +3869,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (opencl_ctx->force_jit_compilation == -1)
       {
-        if (cached == 0)
+        if (cached == false)
         {
           #if defined (DEBUG)
           if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
@@ -4057,9 +4041,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       generate_source_kernel_mp_filename (hashconfig->opti_type, hashconfig->opts_type, folder_config->shared_dir, source_file);
 
-      hc_stat_t sst;
-
-      if (hc_stat (source_file, &sst) == -1)
+      if (hc_path_read (source_file) == false)
       {
         event_log_error (hashcat_ctx, "%s: %m", source_file);
 
@@ -4074,13 +4056,16 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       generate_cached_kernel_mp_filename (hashconfig->opti_type, hashconfig->opts_type, folder_config->profile_dir, device_name_chksum, cached_file);
 
-      int cached = 1;
+      bool cached = true;
 
-      hc_stat_t cst;
-
-      if (hc_stat (cached_file, &cst) == -1)
+      if (hc_path_read (cached_file) == false)
       {
-        cached = 0;
+        cached = false;
+      }
+
+      if (hc_path_is_empty (cached_file) == true)
+      {
+        cached = false;
       }
 
       /**
@@ -4091,7 +4076,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       char **kernel_sources = (char **) hcmalloc (sizeof (char *));
 
-      if (cached == 0)
+      if (cached == false)
       {
         #if defined (DEBUG)
         if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
@@ -4199,9 +4184,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       generate_source_kernel_amp_filename (user_options_extra->attack_kern, folder_config->shared_dir, source_file);
 
-      hc_stat_t sst;
-
-      if (hc_stat (source_file, &sst) == -1)
+      if (hc_path_read (source_file) == false)
       {
         event_log_error (hashcat_ctx, "%s: %m", source_file);
 
@@ -4216,13 +4199,16 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       generate_cached_kernel_amp_filename (user_options_extra->attack_kern, folder_config->profile_dir, device_name_chksum, cached_file);
 
-      int cached = 1;
+      bool cached = true;
 
-      hc_stat_t cst;
-
-      if (hc_stat (cached_file, &cst) == -1)
+      if (hc_path_read (cached_file) == false)
       {
-        cached = 0;
+        cached = false;
+      }
+
+      if (hc_path_is_empty (cached_file) == true)
+      {
+        cached = false;
       }
 
       /**
@@ -4233,7 +4219,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       char **kernel_sources = (char **) hcmalloc (sizeof (char *));
 
-      if (cached == 0)
+      if (cached == false)
       {
         #if defined (DEBUG)
         if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));

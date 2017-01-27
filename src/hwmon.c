@@ -14,7 +14,7 @@
 
 // sysfs functions
 
-static int sysfs_init (hashcat_ctx_t *hashcat_ctx)
+static bool sysfs_init (hashcat_ctx_t *hashcat_ctx)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
@@ -26,13 +26,11 @@ static int sysfs_init (hashcat_ctx_t *hashcat_ctx)
 
   snprintf (path, HCBUFSIZ_TINY - 1, "%s", SYS_BUS_PCI_DEVICES);
 
-  hc_stat_t s;
-
-  int rc = hc_stat (path, &s);
+  const bool r = hc_path_read (path);
 
   hcfree (path);
 
-  return rc;
+  return r;
 }
 
 static void sysfs_close (hashcat_ctx_t *hashcat_ctx)
@@ -3281,7 +3279,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
   {
     hwmon_ctx->hm_sysfs = sysfs;
 
-    if (sysfs_init (hashcat_ctx) == -1)
+    if (sysfs_init (hashcat_ctx) == false)
     {
       hcfree (hwmon_ctx->hm_sysfs);
 

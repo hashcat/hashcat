@@ -40,4 +40,11 @@ int hc_fstat (int fd, hc_stat_t *buf);
 void  hc_qsort_r (void *base, size_t nmemb, size_t size, int (*compar) (const void *, const void *, void *), void *arg);
 void *hc_bsearch_r (const void *key, const void *base, size_t nmemb, size_t size, int (*compar) (const void *, const void *, void *), void *arg);
 
+bool hc_path_is_file (const char *path);
+bool hc_path_is_directory (const char *path);
+bool hc_path_is_empty (const char *path);
+bool hc_path_exist (const char *path);
+bool hc_path_read (const char *path);
+bool hc_path_write (const char *path);
+
 #endif // _SHARED_H

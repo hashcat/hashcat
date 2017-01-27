@@ -188,6 +188,60 @@ void *hc_bsearch_r (const void *key, const void *base, size_t nmemb, size_t size
   return (NULL);
 }
 
+bool hc_path_is_file (const char *path)
+{
+  hc_stat_t s;
+
+  if (hc_stat (path, &s) == -1) return false;
+
+  if (S_ISREG (s.st_mode)) return true;
+
+  return false;
+}
+
+bool hc_path_is_directory (const char *path)
+{
+  hc_stat_t s;
+
+  if (hc_stat (path, &s) == -1) return false;
+
+  if (S_ISDIR (s.st_mode)) return true;
+
+  return false;
+}
+
+bool hc_path_is_empty (const char *path)
+{
+  hc_stat_t s;
+
+  if (hc_stat (path, &s) == -1) return false;
+
+  if (s.st_size == 0) return true;
+
+  return false;
+}
+
+bool hc_path_exist (const char *path)
+{
+  if (access (path, F_OK) == -1) return false;
+
+  return true;
+}
+
+bool hc_path_read (const char *path)
+{
+  if (access (path, R_OK) == -1) return false;
+
+  return true;
+}
+
+bool hc_path_write (const char *path)
+{
+  if (access (path, W_OK) == -1) return false;
+
+  return true;
+}
+
 void setup_environment_variables ()
 {
   char *compute = getenv ("COMPUTE");

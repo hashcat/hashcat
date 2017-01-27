@@ -1242,9 +1242,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
       {
         char *arg = user_options_extra->hc_workv[0];
 
-        hc_stat_t file_stat;
-
-        if (hc_stat (arg, &file_stat) == -1)
+        if (hc_path_exist (arg) == false)
         {
           const int rc = mask_append (hashcat_ctx, arg, NULL);
 
@@ -1258,14 +1256,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
           {
             arg = user_options_extra->hc_workv[i];
 
-            if (hc_stat (arg, &file_stat) == -1)
-            {
-              event_log_error (hashcat_ctx, "%s: %m", arg);
-
-              return -1;
-            }
-
-            if (S_ISREG (file_stat.st_mode))
+            if (hc_path_is_file (arg) == true)
             {
               FILE *mask_fp = fopen (arg, "r");
 
@@ -1348,9 +1339,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     // mod
 
-    hc_stat_t file_stat;
-
-    if (hc_stat (arg, &file_stat) == -1)
+    if (hc_path_exist (arg) == false)
     {
       const int rc = mask_append (hashcat_ctx, arg, NULL);
 
@@ -1358,7 +1347,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      if (S_ISREG (file_stat.st_mode))
+      if (hc_path_is_file (arg) == true)
       {
         mask_ctx->mask_from_file = true;
 
@@ -1424,9 +1413,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     // mod
 
-    hc_stat_t file_stat;
-
-    if (hc_stat (arg, &file_stat) == -1)
+    if (hc_path_exist (arg) == false)
     {
       const int rc = mask_append (hashcat_ctx, arg, NULL);
 
@@ -1434,7 +1421,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      if (S_ISREG (file_stat.st_mode))
+      if (hc_path_is_file (arg) == true)
       {
         mask_ctx->mask_from_file = true;
 
