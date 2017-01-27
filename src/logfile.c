@@ -91,17 +91,6 @@ int logfile_init (hashcat_ctx_t *hashcat_ctx)
 
   logfile_ctx->enabled = true;
 
-  FILE *fp = fopen (logfile_ctx->logfile, "ab");
-
-  if (fp == NULL)
-  {
-    event_log_error (hashcat_ctx, "%s: %m", logfile_ctx->logfile);
-
-    return -1;
-  }
-
-  fclose (fp);
-
   return 0;
 }
 

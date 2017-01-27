@@ -49,17 +49,6 @@ int dictstat_init (hashcat_ctx_t *hashcat_ctx)
 
   hc_asprintf (&dictstat_ctx->filename, "%s/hashcat.dictstat", folder_config->profile_dir);
 
-  FILE *fp = fopen (dictstat_ctx->filename, "ab");
-
-  if (fp == NULL)
-  {
-    event_log_error (hashcat_ctx, "%s: %m", dictstat_ctx->filename);
-
-    return -1;
-  }
-
-  fclose (fp);
-
   return 0;
 }
 

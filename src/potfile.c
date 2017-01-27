@@ -90,12 +90,6 @@ int potfile_init (hashcat_ctx_t *hashcat_ctx)
     potfile_ctx->fp       = NULL;
   }
 
-  const int rc = potfile_write_open (hashcat_ctx);
-
-  if (rc == -1) return -1;
-
-  potfile_write_close (hashcat_ctx);
-
   // starting from here, we should allocate some scratch buffer for later use
 
   u8 *out_buf = (u8 *) hcmalloc (HCBUFSIZ_LARGE);
@@ -269,6 +263,10 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
   const potfile_ctx_t  *potfile_ctx  = hashcat_ctx->potfile_ctx;
 
   if (potfile_ctx->enabled == false) return 0;
+
+  // if no potfile exists yet we don't need to do anything here
+
+  if (hc_path_exist (potfile_ctx->filename) == false) return 0;
 
   hash_t *hashes_buf = hashes->hashes_buf;
   u32     hashes_cnt = hashes->hashes_cnt;

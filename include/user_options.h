@@ -28,4 +28,6 @@ u64 user_options_extra_amplifier (hashcat_ctx_t *hashcat_ctx);
 
 void user_options_logger (hashcat_ctx_t *hashcat_ctx);
 
+int user_options_check_files (hashcat_ctx_t *hashcat_ctx);
+
 #endif // _USER_OPTIONS_H

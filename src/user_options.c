@@ -1261,6 +1261,320 @@ u64 user_options_extra_amplifier (hashcat_ctx_t *hashcat_ctx)
   return 1;
 }
 
+int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
+{
+  dictstat_ctx_t       *dictstat_ctx       = hashcat_ctx->dictstat_ctx;
+  folder_config_t      *folder_config      = hashcat_ctx->folder_config;
+  logfile_ctx_t        *logfile_ctx        = hashcat_ctx->logfile_ctx;
+  outcheck_ctx_t       *outcheck_ctx       = hashcat_ctx->outcheck_ctx;
+  outfile_ctx_t        *outfile_ctx        = hashcat_ctx->outfile_ctx;
+  potfile_ctx_t        *potfile_ctx        = hashcat_ctx->potfile_ctx;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+  user_options_t       *user_options       = hashcat_ctx->user_options;
+
+  // common folders
+
+  if (hc_path_read (folder_config->cwd) == false)
+  {
+    event_log_error (hashcat_ctx, "%s: %m", folder_config->cwd);
+
+    return -1;
+  }
+
+  if (hc_path_read (folder_config->install_dir) == false)
+  {
+    event_log_error (hashcat_ctx, "%s: %m", folder_config->install_dir);
+
+    return -1;
+  }
+
+  if (hc_path_read (folder_config->profile_dir) == false)
+  {
+    event_log_error (hashcat_ctx, "%s: %m", folder_config->profile_dir);
+
+    return -1;
+  }
+
+  if (hc_path_write (folder_config->session_dir) == false)
+  {
+    event_log_error (hashcat_ctx, "%s: %m", folder_config->session_dir);
+
+    return -1;
+  }
+
+  if (hc_path_read (folder_config->shared_dir) == false)
+  {
+    event_log_error (hashcat_ctx, "%s: %m", folder_config->shared_dir);
+
+    return -1;
+  }
+
+  if (hc_path_read (folder_config->cpath_real) == false)
+  {
+    event_log_error (hashcat_ctx, "%s: %m", folder_config->cpath_real);
+
+    return -1;
+  }
+
+  // hashfile - can be NULL
+
+  if (user_options_extra->hc_hash != NULL)
+  {
+    if (hc_path_read (user_options_extra->hc_hash) == false)
+    {
+      event_log_error (hashcat_ctx, "%s: %m", user_options_extra->hc_hash);
+
+      return -1;
+    }
+  }
+
+  // arguments - checks must depend on attack_mode
+
+  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  {
+    for (int i = 0; i < user_options_extra->hc_workc; i++)
+    {
+      char *wlfile = user_options_extra->hc_workv[i];
+
+      if (hc_path_exist (wlfile) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: %m", wlfile);
+
+        return -1;
+      }
+    }
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_COMBI)
+  {
+    // mode easy mode here because both files must exist and readable
+
+    char *dictfile1 = user_options_extra->hc_workv[0];
+    char *dictfile2 = user_options_extra->hc_workv[1];
+
+    if (hc_path_read (dictfile1) == false)
+    {
+      event_log_error (hashcat_ctx, "%s: %m", dictfile1);
+
+      return -1;
+    }
+
+    if (hc_path_read (dictfile2) == false)
+    {
+      event_log_error (hashcat_ctx, "%s: %m", dictfile2);
+
+      return -1;
+    }
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_BF)
+  {
+    // if the file exist it's a maskfile and then it must be readable
+
+    char *maskfile = user_options_extra->hc_workv[0];
+
+    if (hc_path_exist (maskfile) == true)
+    {
+      if (hc_path_read (maskfile) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: %m", maskfile);
+
+        return -1;
+      }
+    }
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+  {
+    char *wlfile = user_options_extra->hc_workv[0];
+
+    char *maskfile = user_options_extra->hc_workv[1];
+
+    // for wordlist: can be folder
+
+    if (hc_path_exist (wlfile) == false)
+    {
+      event_log_error (hashcat_ctx, "%s: %m", wlfile);
+
+      return -1;
+    }
+
+    // for mask: if the file exist it's a maskfile and then it must be readable
+
+    if (hc_path_exist (maskfile) == true)
+    {
+      if (hc_path_read (maskfile) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: %m", maskfile);
+
+        return -1;
+      }
+    }
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+  {
+    char *wlfile = user_options_extra->hc_workv[1];
+
+    char *maskfile = user_options_extra->hc_workv[0];
+
+    // for wordlist: can be folder
+
+    if (hc_path_exist (wlfile) == false)
+    {
+      event_log_error (hashcat_ctx, "%s: %m", wlfile);
+
+      return -1;
+    }
+
+    // for mask: if the file exist it's a maskfile and then it must be readable
+
+    if (hc_path_exist (maskfile) == true)
+    {
+      if (hc_path_read (maskfile) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: %m", maskfile);
+
+        return -1;
+      }
+    }
+  }
+
+  // logfile
+
+  if (logfile_ctx->enabled == true)
+  {
+    if (hc_path_exist (logfile_ctx->logfile) == true)
+    {
+      if (hc_path_write (logfile_ctx->logfile) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: %m", logfile_ctx->logfile);
+
+        return -1;
+      }
+    }
+  }
+
+  // outfile_check
+
+  if (outcheck_ctx->enabled == true)
+  {
+    if (hc_path_exist (outcheck_ctx->root_directory) == true)
+    {
+      const bool is_dir = hc_path_is_directory (outcheck_ctx->root_directory);
+
+      if (is_dir == false)
+      {
+        event_log_error (hashcat_ctx, "Directory specified in outfile-check '%s' is not a directory", outcheck_ctx->root_directory);
+
+        return -1;
+      }
+    }
+  }
+
+  // outfile - can be NULL
+
+  if (outfile_ctx->filename != NULL)
+  {
+    if (hc_path_write (outfile_ctx->filename) == false)
+    {
+      event_log_error (hashcat_ctx, "%s: %m", outfile_ctx->filename);
+
+      return -1;
+    }
+
+    // check for hashfile vs outfile (should not point to the same physical file)
+
+    char *hashfile = user_options_extra->hc_hash;
+
+    char *outfile = outfile_ctx->filename;
+
+    hc_stat_t tmpstat_outfile;
+    hc_stat_t tmpstat_hashfile;
+
+    FILE *tmp_outfile_fp = fopen (outfile, "r");
+
+    if (tmp_outfile_fp)
+    {
+      hc_fstat (fileno (tmp_outfile_fp), &tmpstat_outfile);
+
+      fclose (tmp_outfile_fp);
+    }
+
+    FILE *tmp_hashfile_fp = fopen (hashfile, "r");
+
+    if (tmp_hashfile_fp)
+    {
+      hc_fstat (fileno (tmp_hashfile_fp), &tmpstat_hashfile);
+
+      fclose (tmp_hashfile_fp);
+    }
+
+    if (tmp_outfile_fp)
+    {
+      tmpstat_outfile.st_mode     = 0;
+      tmpstat_outfile.st_nlink    = 0;
+      tmpstat_outfile.st_uid      = 0;
+      tmpstat_outfile.st_gid      = 0;
+      tmpstat_outfile.st_rdev     = 0;
+      tmpstat_outfile.st_atime    = 0;
+
+      tmpstat_hashfile.st_mode    = 0;
+      tmpstat_hashfile.st_nlink   = 0;
+      tmpstat_hashfile.st_uid     = 0;
+      tmpstat_hashfile.st_gid     = 0;
+      tmpstat_hashfile.st_rdev    = 0;
+      tmpstat_hashfile.st_atime   = 0;
+
+      #if defined (_POSIX)
+      tmpstat_outfile.st_blksize  = 0;
+      tmpstat_outfile.st_blocks   = 0;
+
+      tmpstat_hashfile.st_blksize = 0;
+      tmpstat_hashfile.st_blocks  = 0;
+      #endif
+
+      if (memcmp (&tmpstat_outfile, &tmpstat_hashfile, sizeof (hc_stat_t)) == 0)
+      {
+        event_log_error (hashcat_ctx, "Hashfile and Outfile are not allowed to point to the same file");
+
+        return -1;
+      }
+    }
+  }
+
+  // potfile
+
+  if (potfile_ctx->enabled == true)
+  {
+    if (hc_path_exist (potfile_ctx->filename) == true)
+    {
+      if (hc_path_write (potfile_ctx->filename) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: %m", potfile_ctx->filename);
+
+        return -1;
+      }
+    }
+  }
+
+  // dictstat
+
+  if (dictstat_ctx->enabled == true)
+  {
+    if (hc_path_write (dictstat_ctx->filename) == false)
+    {
+      event_log_error (hashcat_ctx, "%s: %m", dictstat_ctx->filename);
+
+      return -1;
+    }
+  }
+
+  // loopback - can't check at this point
+
+  // tuning file check already done
+
+  // debugfile check already done
+
+  return 0;
+}
+
 void user_options_logger (hashcat_ctx_t *hashcat_ctx)
 {
   user_options_t *user_options = hashcat_ctx->user_options;

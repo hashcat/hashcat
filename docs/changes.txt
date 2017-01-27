@@ -38,6 +38,7 @@
 - Building: Add SHARED variable to Makefile to choose if hashcat is build as static or shared binary (using libhashcat.so/hashcat.dll)
 - Building: Removed the use of RPATH on linker level
 - Events: Improved the maximum event message handling. event_log () will now also internally make sure that the message is properly terminated
+- Files: Do several file and folder checks on startup rather than when they are actually used to avoid related error after eventual intense operations
 - Helper: Added functions to check existence, type, read- and write-permissions and rewrite sources to use them instead of stat()
 
 * changes v3.20 -> v3.30:

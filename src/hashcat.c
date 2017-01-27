@@ -961,14 +961,6 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, char *install_folder, char
   if (rc_outfile_init == -1) return -1;
 
   /**
-   * Sanity check for hashfile vs outfile (should not point to the same physical file)
-   */
-
-  const int rc_outfile_and_hashfile = outfile_and_hashfile (hashcat_ctx);
-
-  if (rc_outfile_and_hashfile == -1) return -1;
-
-  /**
    * potfile init
    * this is only setting path because potfile can be used in read and write mode depending on user options
    * plus it depends on hash_mode, so we continue using it in outer_loop
@@ -1003,6 +995,14 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, char *install_folder, char
   if (rc_debugfile_init == -1) return -1;
 
   /**
+   * Try to detect if all the files we're going to use are accessible in the mode we want them
+   */
+
+  const int rc_user_options_check_files = user_options_check_files (hashcat_ctx);
+
+  if (rc_user_options_check_files == -1) return -1;
+
+  /**
    * Init OpenCL library loader
    */
 
@@ -1025,6 +1025,8 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, char *install_folder, char
   const int rc_hwmon_init = hwmon_ctx_init (hashcat_ctx);
 
   if (rc_hwmon_init == -1) return -1;
+
+  // done
 
   return 0;
 }

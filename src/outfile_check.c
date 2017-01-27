@@ -356,18 +356,9 @@ int outcheck_ctx_init (hashcat_ctx_t *hashcat_ctx)
     outcheck_ctx->root_directory = user_options->outfile_check_dir;
   }
 
-  if (hc_path_exist (outcheck_ctx->root_directory) == true)
-  {
-    const bool is_dir = hc_path_is_directory (outcheck_ctx->root_directory);
+  outcheck_ctx->enabled = true;
 
-    if (is_dir == false)
-    {
-      event_log_error (hashcat_ctx, "Directory specified in outfile-check '%s' is not a directory", outcheck_ctx->root_directory);
-
-      return -1;
-    }
-  }
-  else
+  if (hc_path_exist (outcheck_ctx->root_directory) == false)
   {
     if (hc_mkdir (outcheck_ctx->root_directory, 0700) == -1)
     {
@@ -376,8 +367,6 @@ int outcheck_ctx_init (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
   }
-
-  outcheck_ctx->enabled = true;
 
   return 0;
 }
