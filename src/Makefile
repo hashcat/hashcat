@@ -111,6 +111,7 @@ COMPTIME                := $(shell date +%s)
 VERSION_EXPORT          := $Format:%D$
 VERSION_TAG             := $(shell test -d .git && git describe --tags --dirty=+ || echo "$(VERSION_EXPORT)"|cut -d, -f2|$(SED) -r 's|.* (\w+/)?([^ ]+)|\2|')
 
+SHARED                  := 0
 PRODUCTION              := 0
 
 ##
@@ -289,7 +290,7 @@ WIN_64_OBJS             := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.64.o) $(CRT_
 ## Targets: Native Compilation
 ##
 
-default: hashcat_static
+default: hashcat
 
 clean:
 	$(RM) -f obj/*.o obj/lzma_sdk/*.o *.bin *.exe *.so *.dll *.restore *.out *.pot *.log hashcat core
@@ -382,11 +383,13 @@ obj/%.NATIVE.SHARED.o: src/%.c
 $(HASHCAT_LIBRARY): $(NATIVE_SHARED_OBJS)
 	$(CC)                                $^            $(LFLAGS_NATIVE) -o $@ -shared
 
-hashcat_shared: $(HASHCAT_LIBRARY)
-	$(CC)    $(CFLAGS_NATIVE) src/main.c -L. -lhashcat $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\" -o $(HASHCAT_FRONTEND)
-
-hashcat_static: $(NATIVE_STATIC_OBJS)
-	$(CC)    $(CFLAGS_NATIVE) src/main.c $^            $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\" -o $(HASHCAT_FRONTEND)
+ifeq ($(SHARED),1)
+$(HASHCAT_FRONTEND): src/main.c $(HASHCAT_LIBRARY)
+	$(CC)    $(CFLAGS_NATIVE) $^ -L. -lhashcat $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\" -o $@
+else
+$(HASHCAT_FRONTEND): src/main.c $(NATIVE_STATIC_OBJS)
+	$(CC)    $(CFLAGS_NATIVE) $^               $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\" -o $@
+endif
 
 ##
 ## cross compiled hashcat

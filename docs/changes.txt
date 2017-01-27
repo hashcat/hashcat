@@ -35,7 +35,7 @@
 ## Technical
 ##
 
-- Building: Split native compilation into two dedicated targets: "hashcat_static" and "hashcat_shared", default is "hashcat_static"
+- Building: Add SHARED variable to Makefile to choose if hashcat is build as static or shared binary (using libhashcat.so/hashcat.dll)
 - Building: Removed the use of RPATH on linker level
 - Events: Improved the maximum event message handling. event_log () will now also internally make sure that the message is properly terminated
 
