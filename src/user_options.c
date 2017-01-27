@@ -1500,15 +1500,21 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
   if (outfile_ctx->filename != NULL)
   {
-    if (hc_path_write (outfile_ctx->filename) == false)
+    if (hc_path_exist (outfile_ctx->filename) == true)
     {
-      event_log_error (hashcat_ctx, "%s: %m", outfile_ctx->filename);
+      if (hc_path_write (outfile_ctx->filename) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: %m", outfile_ctx->filename);
 
-      return -1;
+        return -1;
+      }
     }
+  }
 
-    // check for hashfile vs outfile (should not point to the same physical file)
+  // check for hashfile vs outfile (should not point to the same physical file)
 
+  if ((user_options_extra->hc_hash != NULL) && (outfile_ctx->filename != NULL))
+  {
     char *hashfile = user_options_extra->hc_hash;
 
     char *outfile = outfile_ctx->filename;
