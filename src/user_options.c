@@ -1321,11 +1321,14 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options_extra->hc_hash != NULL)
   {
-    if (hc_path_read (user_options_extra->hc_hash) == false)
+    if (hc_path_exist (user_options_extra->hc_hash) == true)
     {
-      event_log_error (hashcat_ctx, "%s: %m", user_options_extra->hc_hash);
+      if (hc_path_read (user_options_extra->hc_hash) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: %m", user_options_extra->hc_hash);
 
-      return -1;
+        return -1;
+      }
     }
   }
 
