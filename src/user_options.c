@@ -1348,90 +1348,102 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   {
     // mode easy mode here because both files must exist and readable
 
-    char *dictfile1 = user_options_extra->hc_workv[0];
-    char *dictfile2 = user_options_extra->hc_workv[1];
-
-    if (hc_path_read (dictfile1) == false)
+    if (user_options_extra->hc_workc == 2)
     {
-      event_log_error (hashcat_ctx, "%s: %m", dictfile1);
+      char *dictfile1 = user_options_extra->hc_workv[0];
+      char *dictfile2 = user_options_extra->hc_workv[1];
 
-      return -1;
-    }
+      if (hc_path_read (dictfile1) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: %m", dictfile1);
 
-    if (hc_path_read (dictfile2) == false)
-    {
-      event_log_error (hashcat_ctx, "%s: %m", dictfile2);
+        return -1;
+      }
 
-      return -1;
+      if (hc_path_read (dictfile2) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: %m", dictfile2);
+
+        return -1;
+      }
     }
   }
   else if (user_options->attack_mode == ATTACK_MODE_BF)
   {
     // if the file exist it's a maskfile and then it must be readable
 
-    char *maskfile = user_options_extra->hc_workv[0];
-
-    if (hc_path_exist (maskfile) == true)
+    if (user_options_extra->hc_workc == 1)
     {
-      if (hc_path_read (maskfile) == false)
-      {
-        event_log_error (hashcat_ctx, "%s: %m", maskfile);
+      char *maskfile = user_options_extra->hc_workv[0];
 
-        return -1;
+      if (hc_path_exist (maskfile) == true)
+      {
+        if (hc_path_read (maskfile) == false)
+        {
+          event_log_error (hashcat_ctx, "%s: %m", maskfile);
+
+          return -1;
+        }
       }
     }
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
   {
-    char *wlfile = user_options_extra->hc_workv[0];
-
-    char *maskfile = user_options_extra->hc_workv[1];
-
-    // for wordlist: can be folder
-
-    if (hc_path_exist (wlfile) == false)
+    if (user_options_extra->hc_workc == 2)
     {
-      event_log_error (hashcat_ctx, "%s: %m", wlfile);
+      char *wlfile = user_options_extra->hc_workv[0];
 
-      return -1;
-    }
+      char *maskfile = user_options_extra->hc_workv[1];
 
-    // for mask: if the file exist it's a maskfile and then it must be readable
+      // for wordlist: can be folder
 
-    if (hc_path_exist (maskfile) == true)
-    {
-      if (hc_path_read (maskfile) == false)
+      if (hc_path_exist (wlfile) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %m", maskfile);
+        event_log_error (hashcat_ctx, "%s: %m", wlfile);
 
         return -1;
+      }
+
+      // for mask: if the file exist it's a maskfile and then it must be readable
+
+      if (hc_path_exist (maskfile) == true)
+      {
+        if (hc_path_read (maskfile) == false)
+        {
+          event_log_error (hashcat_ctx, "%s: %m", maskfile);
+
+          return -1;
+        }
       }
     }
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    char *wlfile = user_options_extra->hc_workv[1];
-
-    char *maskfile = user_options_extra->hc_workv[0];
-
-    // for wordlist: can be folder
-
-    if (hc_path_exist (wlfile) == false)
+    if (user_options_extra->hc_workc == 2)
     {
-      event_log_error (hashcat_ctx, "%s: %m", wlfile);
+      char *wlfile = user_options_extra->hc_workv[1];
 
-      return -1;
-    }
+      char *maskfile = user_options_extra->hc_workv[0];
 
-    // for mask: if the file exist it's a maskfile and then it must be readable
+      // for wordlist: can be folder
 
-    if (hc_path_exist (maskfile) == true)
-    {
-      if (hc_path_read (maskfile) == false)
+      if (hc_path_exist (wlfile) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %m", maskfile);
+        event_log_error (hashcat_ctx, "%s: %m", wlfile);
 
         return -1;
+      }
+
+      // for mask: if the file exist it's a maskfile and then it must be readable
+
+      if (hc_path_exist (maskfile) == true)
+      {
+        if (hc_path_read (maskfile) == false)
+        {
+          event_log_error (hashcat_ctx, "%s: %m", maskfile);
+
+          return -1;
+        }
       }
     }
   }
@@ -1558,11 +1570,14 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
   if (dictstat_ctx->enabled == true)
   {
-    if (hc_path_write (dictstat_ctx->filename) == false)
+    if (hc_path_exist (dictstat_ctx->filename) == true)
     {
-      event_log_error (hashcat_ctx, "%s: %m", dictstat_ctx->filename);
+      if (hc_path_write (dictstat_ctx->filename) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: %m", dictstat_ctx->filename);
 
-      return -1;
+        return -1;
+      }
     }
   }
 
