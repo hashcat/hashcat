@@ -11,7 +11,7 @@
 #include "inc_types.cl"
 #include "inc_common.cl"
 
-#include "inc_cipher_twofish256.cl"
+#include "inc_cipher_twofish.cl"
 
 __constant u32 te0[256] =
 {
