@@ -316,7 +316,11 @@ win64: hashcat64.exe
 ## How to make /usr/bin/install doing recursive??
 ##
 
-install: hashcat_shared install_docs install_shared install_library install_hashcat
+ifeq ($(SHARED),1)
+install: install_docs install_shared install_library install_hashcat
+else
+install: install_docs install_shared                 install_hashcat
+endif
 
 install_docs:
 	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(DOCUMENT_FOLDER)
