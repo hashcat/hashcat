@@ -242,6 +242,17 @@ bool hc_path_write (const char *path)
   return true;
 }
 
+bool hc_path_create (const char *path)
+{
+  if (hc_path_exist (path) == true) return false;
+
+  if (creat (path, O_CREAT) == -1) return false;
+
+  unlink (path);
+
+  return true;
+}
+
 void setup_environment_variables ()
 {
   char *compute = getenv ("COMPUTE");

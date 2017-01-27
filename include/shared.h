@@ -46,5 +46,6 @@ bool hc_path_is_empty (const char *path);
 bool hc_path_exist (const char *path);
 bool hc_path_read (const char *path);
 bool hc_path_write (const char *path);
+bool hc_path_create (const char *path);
 
 #endif // _SHARED_H

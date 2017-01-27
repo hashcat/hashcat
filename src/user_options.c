@@ -1477,6 +1477,15 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
         return -1;
       }
     }
+    else
+    {
+      if (hc_path_create (logfile_ctx->logfile) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: %m", logfile_ctx->logfile);
+
+        return -1;
+      }
+    }
   }
 
   // outfile_check
@@ -1503,6 +1512,15 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     if (hc_path_exist (outfile_ctx->filename) == true)
     {
       if (hc_path_write (outfile_ctx->filename) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: %m", outfile_ctx->filename);
+
+        return -1;
+      }
+    }
+    else
+    {
+      if (hc_path_create (outfile_ctx->filename) == false)
       {
         event_log_error (hashcat_ctx, "%s: %m", outfile_ctx->filename);
 
@@ -1584,6 +1602,15 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
   }
+  else
+  {
+    if (hc_path_create (pidfile_ctx->filename) == false)
+    {
+      event_log_error (hashcat_ctx, "%s: %m", pidfile_ctx->filename);
+
+      return -1;
+    }
+  }
 
   // potfile
 
@@ -1592,6 +1619,15 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     if (hc_path_exist (potfile_ctx->filename) == true)
     {
       if (hc_path_write (potfile_ctx->filename) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: %m", potfile_ctx->filename);
+
+        return -1;
+      }
+    }
+    else
+    {
+      if (hc_path_create (potfile_ctx->filename) == false)
       {
         event_log_error (hashcat_ctx, "%s: %m", potfile_ctx->filename);
 
@@ -1607,6 +1643,15 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     if (hc_path_exist (dictstat_ctx->filename) == true)
     {
       if (hc_path_write (dictstat_ctx->filename) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: %m", dictstat_ctx->filename);
+
+        return -1;
+      }
+    }
+    else
+    {
+      if (hc_path_create (dictstat_ctx->filename) == false)
       {
         event_log_error (hashcat_ctx, "%s: %m", dictstat_ctx->filename);
 
