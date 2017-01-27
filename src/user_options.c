@@ -1344,6 +1344,18 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
         return -1;
       }
     }
+
+    for (int i = 0; i < (int) user_options->rp_files_cnt; i++)
+    {
+      char *rp_file = user_options->rp_files[i];
+
+      if (hc_path_exist (rp_file) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: %m", rp_file);
+
+        return -1;
+      }
+    }
   }
   else if (user_options->attack_mode == ATTACK_MODE_COMBI)
   {
