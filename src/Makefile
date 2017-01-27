@@ -290,7 +290,7 @@ WIN_64_OBJS             := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.64.o) $(CRT_
 ## Targets: Native Compilation
 ##
 
-default: hashcat
+default: $(HASHCAT_FRONTEND)
 
 clean:
 	$(RM) -f obj/*.o obj/lzma_sdk/*.o *.bin *.exe *.so *.dll *.restore *.out *.pid *.log hashcat core
