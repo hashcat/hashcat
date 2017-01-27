@@ -3939,10 +3939,6 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
-          #if defined (DEBUG)
-          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s (%" PRIu64 " bytes)", device_id + 1, cached_file, (u64) cst.st_size);
-          #endif
-
           const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, 1, kernel_lengths, kernel_sources);
 
           if (rc_read_kernel == -1) return -1;
@@ -3958,10 +3954,6 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        #if defined (DEBUG)
-        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s (%" PRIu64 " bytes)", device_id + 1, source_file, (u64) sst.st_size);
-        #endif
-
         const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, 1, kernel_lengths, kernel_sources);
 
         if (rc_read_kernel == -1) return -1;
@@ -4144,10 +4136,6 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        #if defined (DEBUG)
-        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s (%" PRIu64 " bytes)", device_id + 1, cached_file, (u64) cst.st_size);
-        #endif
-
         const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, 1, kernel_lengths, kernel_sources);
 
         if (rc_read_kernel == -1) return -1;
@@ -4287,10 +4275,6 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        #if defined (DEBUG)
-        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s (%" PRIu64 " bytes)", device_id + 1, cached_file, (u64) cst.st_size);
-        #endif
-
         const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, 1, kernel_lengths, kernel_sources);
 
         if (rc_read_kernel == -1) return -1;
