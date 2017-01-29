@@ -2741,6 +2741,21 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       hcfree (device_extensions);
 
+      // device_max_constant_buffer_size
+
+      cl_ulong device_max_constant_buffer_size;
+
+      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof (device_max_constant_buffer_size), &device_max_constant_buffer_size, NULL);
+
+      if (CL_rc == -1) return -1;
+
+      if (device_max_constant_buffer_size < 65536)
+      {
+        event_log_error (hashcat_ctx, "* Device #%u: Device constant buffer size is too small", device_id + 1);
+
+        device_param->skipped = true;
+      }
+
       // device_local_mem_size
 
       cl_ulong device_local_mem_size;
