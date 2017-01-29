@@ -47,6 +47,7 @@ NVidia users require "NVIDIA Driver" (367.x or later)
 - SHA-512
 - SHA-3 (Keccak)
 - SipHash
+- Skip32
 - RipeMD160
 - Whirlpool
 - DES (PT = $salt, key = $pass)

@@ -1136,6 +1136,8 @@ typedef enum display_len
   DISPLAY_LEN_MAX_14400 = 40 + 1 + 20,
   DISPLAY_LEN_MIN_14700 = 15 + 1 + 1 + 1 + 80 + 1 + 1 + 1 + 40 + 1,
   DISPLAY_LEN_MAX_14700 = 15 + 1 + 2 + 1 + 80 + 1 + 6 + 1 + 40 + 1 + 9 + 1 + 40,
+  DISPLAY_LEN_MIN_14900 = 8 + 1 + 8,
+  DISPLAY_LEN_MAX_14900 = 8 + 1 + 8,
   DISPLAY_LEN_MIN_99999 = 1,
   DISPLAY_LEN_MAX_99999 = 55,
 
@@ -1265,6 +1267,7 @@ typedef enum hash_type
   HASH_TYPE_LUKS                = 55,
   HASH_TYPE_ITUNES_BACKUP_9     = 56,
   HASH_TYPE_ITUNES_BACKUP_10    = 57,
+  HASH_TYPE_SKIP32              = 58,
 
 } hash_type_t;
 
@@ -1446,6 +1449,7 @@ typedef enum kern_type
   KERN_TYPE_LUKS_WHIRLPOOL_TWOFISH  = 14653,
   KERN_TYPE_ITUNES_BACKUP_9         = 14700,
   KERN_TYPE_ITUNES_BACKUP_10        = 14800,
+  KERN_TYPE_SKIP32                  = 14900,
   KERN_TYPE_PLAINTEXT               = 99999,
 
 } kern_type_t;
@@ -1681,6 +1685,7 @@ int plaintext_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int sha1cx_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int luks_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED       hashconfig_t *hashconfig, const int keyslot_idx);
 int itunes_backup_parse_hash      (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
+int skip32_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 
 /**
  * hook functions

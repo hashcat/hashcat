@@ -229,6 +229,7 @@ static const char HT_14400[] = "sha1(CX)";
 static const char HT_14600[] = "LUKS";
 static const char HT_14700[] = "iTunes Backup < 10.0";
 static const char HT_14800[] = "iTunes Backup >= 10.0";
+static const char HT_14900[] = "Skip32";
 static const char HT_99999[] = "Plaintext";
 
 static const char HT_00011[] = "Joomla < 2.5.18";
@@ -13735,6 +13736,55 @@ int itunes_backup_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MA
   return (PARSER_OK);
 }
 
+int skip32_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
+{
+  if (input_len != DISPLAY_LEN_MIN_14900) return (PARSER_GLOBAL_LENGTH);
+
+  u32    *digest = (u32 *) hash_buf->digest;
+  salt_t *salt   = hash_buf->salt;
+
+  /**
+   * parse line
+   */
+
+  u8 *hash_pos = input_buf;
+
+  u8 *salt_pos = (u8 *) strchr ((const char *) hash_pos, ':');
+
+  if (salt_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 salt_len = salt_pos - hash_pos;
+
+  salt_pos++;
+
+  /**
+   * verify data
+   */
+
+  if (is_valid_hex_string (hash_pos, 8) == false) return (PARSER_HASH_ENCODING);
+
+  if (is_valid_hex_string (salt_pos, 8) == false) return (PARSER_SALT_ENCODING);
+
+  /**
+   * store data
+   */
+
+  // digest
+
+  digest[0] = hex_to_u32 ((const u8 *) &hash_pos[0]);
+  digest[1] = 0;
+  digest[2] = 0;
+  digest[3] = 0;
+
+  // salt
+
+  salt->salt_buf[0] = hex_to_u32 ((const u8 *) &salt_pos[0]);
+
+  salt->salt_len = salt_len / 2; // 4
+
+  return (PARSER_OK);
+}
+
 /**
  * hook functions
  */
@@ -14320,6 +14370,7 @@ char *strhashtype (const u32 hash_mode)
     case 14600: return ((char *) HT_14600);
     case 14700: return ((char *) HT_14700);
     case 14800: return ((char *) HT_14800);
+    case 14900: return ((char *) HT_14900);
     case 99999: return ((char *) HT_99999);
   }
 
@@ -17342,6 +17393,10 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
       (char *) salt.salt_buf,
       salt.salt_iter + 1,
       dpsl);
+  }
+  else if (hash_mode == 14900)
+  {
+    snprintf (out_buf, out_len - 1, "%08x:%08x", digest_buf[0], salt.salt_buf[0]);
   }
   else if (hash_mode == 99999)
   {
@@ -21387,6 +21442,22 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos3      = 3;
                  break;
 
+    case 14900:  hashconfig->hash_type      = HASH_TYPE_SKIP32;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_ST_GENERATE_LE
+                                            | OPTS_TYPE_PT_NEVERCRACK;
+                 hashconfig->kern_type      = KERN_TYPE_SKIP32;
+                 hashconfig->dgst_size      = DGST_SIZE_4_4;
+                 hashconfig->parse_func     = skip32_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
+                 hashconfig->dgst_pos0      = 0;
+                 hashconfig->dgst_pos1      = 1;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 3;
+                 break;
+
     case 99999:  hashconfig->hash_type      = HASH_TYPE_PLAINTEXT;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -21650,6 +21721,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                 break;
     case 14100: hashconfig->pw_min = 24;
                 break;
+    case 14900: hashconfig->pw_min = 10;
+                break;
   }
 
   // pw_max
@@ -21720,6 +21793,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 14100: hashconfig->pw_max = 24;
                 break;
     case 14400: hashconfig->pw_max = 24;
+                break;
+    case 14900: hashconfig->pw_max = 10;
                 break;
   }
 
@@ -21938,6 +22013,8 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
       case 14700: salt->salt_len = 20;
                   break;
       case 14800: salt->salt_len = 20;
+                  break;
+      case 14900: salt->salt_len = 4;
                   break;
     }
 
@@ -22214,6 +22291,8 @@ char *hashconfig_benchmark_mask (hashcat_ctx_t *hashcat_ctx)
     case 14000: mask = "?b?b?b?b?b?b?bx";
                 break;
     case 14100: mask = "?b?b?b?b?b?b?bxxxxxxxxxxxxxxxxx";
+                break;
+    case 14900: mask = "?b?b?b?b?bxxxxx";
                 break;
     default:    mask = "?b?b?b?b?b?b?b";
                 break;
