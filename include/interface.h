@@ -131,33 +131,17 @@ typedef struct itunes_backup
 
 typedef struct luks_tmp
 {
-  union
-  {
-    u32 ipad32[32];
-    u64 ipad64[16];
+  u32 ipad32[8];
+  u64 ipad64[8];
 
-  } ipad;
+  u32 opad32[8];
+  u64 opad64[8];
 
-  union
-  {
-    u32 opad32[32];
-    u64 opad64[16];
+  u32 dgst32[32];
+  u64 dgst64[16];
 
-  } opad;
-
-  union
-  {
-    u32 dgst32[32];
-    u64 dgst64[16];
-
-  } dgst;
-
-  union
-  {
-    u32 out32[32];
-    u64 out64[16];
-
-  } out;
+  u32 out32[32];
+  u64 out64[16];
 
 } luks_tmp_t;
 
