@@ -753,25 +753,29 @@ typedef struct luks_tmp
   {
     u32 ipad32[32];
     u64 ipad64[16];
-  };
+
+  } ipad;
 
   union
   {
     u32 opad32[32];
     u64 opad64[16];
-  };
+
+  } opad;
 
   union
   {
     u32 dgst32[32];
     u64 dgst64[16];
-  };
+
+  } dgst;
 
   union
   {
     u32 out32[32];
     u64 out64[16];
-  };
+
+  } out;
 
 } luks_tmp_t;
 
