@@ -44,6 +44,7 @@
 - OpenCL Runtime: Updated AMDGPU-Pro driver version check, do warn if version 16.60 is detected which is known to be broken
 - OpenCL Device: Do a check on available constant memory size and abort if it's less than 64kB
 - Sessions: Move out handling of multiple instance from restore file into separate pidfile
+- Wordlists: Disable dictstat handling for hash-mode 3000 as it virtually creates words in the wordlist which is not the case for other modes
 
 * changes v3.20 -> v3.30:
 
