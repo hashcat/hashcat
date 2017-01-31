@@ -55,20 +55,21 @@ NVidia users require "NVIDIA Driver" (367.x or later)
 - GOST R 34.11-94
 - GOST R 34.11-2012 (Streebog) 256-bit
 - GOST R 34.11-2012 (Streebog) 512-bit
-- Double MD5
-- Double SHA1
 - md5($pass.$salt)
 - md5($salt.$pass)
 - md5(unicode($pass).$salt)
 - md5($salt.unicode($pass))
-- md5(sha1($pass))
-- md5($salt.md5($pass))
 - md5($salt.$pass.$salt)
+- md5($salt.md5($pass))
+- md5(md5($pass))
 - md5(strtoupper(md5($pass)))
+- md5(sha1($pass))
 - sha1($pass.$salt)
 - sha1($salt.$pass)
 - sha1(unicode($pass).$salt)
 - sha1($salt.unicode($pass))
+- sha1(sha1($pass))
+- sha1($salt.sha1($pass))
 - sha1(md5($pass))
 - sha1($salt.$pass.$salt)
 - sha1(CX)
@@ -175,6 +176,7 @@ NVidia users require "NVIDIA Driver" (367.x or later)
 - RACF
 - Radmin2
 - Redmine
+- PunBB
 - OpenCart
 - Citrix Netscaler
 - SAP CODVN B (BCODE)

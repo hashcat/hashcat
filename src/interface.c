@@ -118,7 +118,7 @@ static const char HT_02100[] = "Domain Cached Credentials 2 (DCC2), MS Cache 2";
 static const char HT_02400[] = "Cisco-PIX MD5";
 static const char HT_02410[] = "Cisco-ASA MD5";
 static const char HT_02500[] = "WPA/WPA2";
-static const char HT_02600[] = "Double MD5";
+static const char HT_02600[] = "md5(md5($pass))";
 static const char HT_03000[] = "LM";
 static const char HT_03100[] = "Oracle H: Type (Oracle 7+)";
 static const char HT_03200[] = "bcrypt, Blowfish(OpenBSD)";
@@ -127,7 +127,8 @@ static const char HT_03711[] = "Mediawiki B type";
 static const char HT_03800[] = "md5($salt.$pass.$salt)";
 static const char HT_04300[] = "md5(strtoupper(md5($pass)))";
 static const char HT_04400[] = "md5(sha1($pass))";
-static const char HT_04500[] = "Double SHA1";
+static const char HT_04500[] = "sha1(sha1($pass))";
+static const char HT_04520[] = "sha1($salt.sha1($pass))";
 static const char HT_04700[] = "sha1(md5($pass))";
 static const char HT_04800[] = "MD5(Chap), iSCSI CHAP authentication";
 static const char HT_04900[] = "sha1($salt.$pass.$salt)";
@@ -155,7 +156,6 @@ static const char HT_07200[] = "GRUB 2";
 static const char HT_07300[] = "IPMI2 RAKP HMAC-SHA1";
 static const char HT_07400[] = "sha256crypt, SHA256(Unix)";
 static const char HT_07500[] = "Kerberos 5 AS-REQ Pre-Auth etype 23";
-static const char HT_07600[] = "Redmine Project Management Web App";
 static const char HT_07700[] = "SAP CODVN B (BCODE)";
 static const char HT_07800[] = "SAP CODVN F/G (PASSCODE)";
 static const char HT_07900[] = "Drupal7";
@@ -258,6 +258,8 @@ static const char HT_02611[] = "vBulletin < v3.8.5";
 static const char HT_02612[] = "PHPS";
 static const char HT_02711[] = "vBulletin > v3.8.5";
 static const char HT_02811[] = "IPB2+, MyBB1.2+";
+static const char HT_04521[] = "Redmine Project Management Web App";
+static const char HT_04522[] = "PunBB";
 static const char HT_06211[] = "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 512 bit";
 static const char HT_06212[] = "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 1024 bit";
 static const char HT_06213[] = "TrueCrypt PBKDF2-HMAC-RipeMD160 + XTS 1536 bit";
@@ -4160,6 +4162,43 @@ int sha1s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUS
   salt_len = parse_and_store_salt (salt_buf_ptr, salt_buf, salt_len, hashconfig);
 
   if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
+
+  salt->salt_len = salt_len;
+
+  return (PARSER_OK);
+}
+
+int sha1sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
+{
+  if ((input_len < DISPLAY_LEN_MIN_4520) || (input_len > DISPLAY_LEN_MAX_4520)) return (PARSER_GLOBAL_LENGTH);
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  if (is_valid_hex_string (input_buf, 40) == false) return (PARSER_HASH_ENCODING);
+
+  digest[0] = hex_to_u32 ((const u8 *) &input_buf[ 0]);
+  digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
+  digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
+  digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
+  digest[4] = hex_to_u32 ((const u8 *) &input_buf[32]);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
+
+  if (input_buf[40] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 salt_len = input_len - 40 - 1;
+
+  u8 *salt_buf = input_buf + 40 + 1;
+
+  u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
+
+  salt_len = parse_and_store_salt (salt_buf_ptr, salt_buf, salt_len, hashconfig);
 
   salt->salt_len = salt_len;
 
@@ -9373,7 +9412,7 @@ int saph_sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
 int redmine_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_7600) || (input_len > DISPLAY_LEN_MAX_7600)) return (PARSER_GLOBAL_LENGTH);
+  if ((input_len < DISPLAY_LEN_MIN_4521) || (input_len > DISPLAY_LEN_MAX_4521)) return (PARSER_GLOBAL_LENGTH);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -9404,6 +9443,45 @@ int redmine_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   salt_len = parse_and_store_salt (salt_buf_ptr, salt_buf, salt_len, hashconfig);
 
   if (salt_len != 32) return (PARSER_SALT_LENGTH);
+
+  salt->salt_len = salt_len;
+
+  return (PARSER_OK);
+}
+
+int punbb_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
+{
+  if ((input_len < DISPLAY_LEN_MIN_4522) || (input_len > DISPLAY_LEN_MAX_4522)) return (PARSER_GLOBAL_LENGTH);
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  if (is_valid_hex_string (input_buf, 40) == false) return (PARSER_HASH_ENCODING);
+
+  digest[0] = hex_to_u32 ((const u8 *) &input_buf[ 0]);
+  digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
+  digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
+  digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
+  digest[4] = hex_to_u32 ((const u8 *) &input_buf[32]);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
+
+  if (input_buf[40] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 salt_len = input_len - 40 - 1;
+
+  u8 *salt_buf = input_buf + 40 + 1;
+
+  u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
+
+  salt_len = parse_and_store_salt (salt_buf_ptr, salt_buf, salt_len, hashconfig);
+
+  if (salt_len != 12) return (PARSER_SALT_LENGTH);
 
   salt->salt_len = salt_len;
 
@@ -14299,6 +14377,9 @@ char *strhashtype (const u32 hash_mode)
     case  4300: return ((char *) HT_04300);
     case  4400: return ((char *) HT_04400);
     case  4500: return ((char *) HT_04500);
+    case  4520: return ((char *) HT_04520);
+    case  4521: return ((char *) HT_04521);
+    case  4522: return ((char *) HT_04522);
     case  4700: return ((char *) HT_04700);
     case  4800: return ((char *) HT_04800);
     case  4900: return ((char *) HT_04900);
@@ -14338,7 +14419,6 @@ char *strhashtype (const u32 hash_mode)
     case  7300: return ((char *) HT_07300);
     case  7400: return ((char *) HT_07400);
     case  7500: return ((char *) HT_07500);
-    case  7600: return ((char *) HT_07600);
     case  7700: return ((char *) HT_07700);
     case  7800: return ((char *) HT_07800);
     case  7900: return ((char *) HT_07900);
@@ -19415,6 +19495,63 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos3      = 1;
                  break;
 
+    case  4520:  hashconfig->hash_type      = HASH_TYPE_SHA1;
+                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
+                                            | OPTS_TYPE_PT_ADD80
+                                            | OPTS_TYPE_PT_ADDBITS15;
+                 hashconfig->kern_type      = KERN_TYPE_SHA1_SLT_SHA1_PW;
+                 hashconfig->dgst_size      = DGST_SIZE_4_5;
+                 hashconfig->parse_func     = sha1sha1_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_EARLY_SKIP
+                                            | OPTI_TYPE_NOT_ITERATED
+                                            | OPTI_TYPE_PREPENDED_SALT;
+                 hashconfig->dgst_pos0      = 3;
+                 hashconfig->dgst_pos1      = 4;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 1;
+                 break;
+
+    case  4521:  hashconfig->hash_type      = HASH_TYPE_SHA1;
+                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
+                                            | OPTS_TYPE_PT_ADD80
+                                            | OPTS_TYPE_PT_ADDBITS15;
+                 hashconfig->kern_type      = KERN_TYPE_SHA1_SLT_SHA1_PW;
+                 hashconfig->dgst_size      = DGST_SIZE_4_5;
+                 hashconfig->parse_func     = redmine_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_EARLY_SKIP
+                                            | OPTI_TYPE_NOT_ITERATED
+                                            | OPTI_TYPE_PREPENDED_SALT;
+                 hashconfig->dgst_pos0      = 3;
+                 hashconfig->dgst_pos1      = 4;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 1;
+                 break;
+
+    case  4522:  hashconfig->hash_type      = HASH_TYPE_SHA1;
+                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
+                                            | OPTS_TYPE_PT_ADD80
+                                            | OPTS_TYPE_PT_ADDBITS15;
+                 hashconfig->kern_type      = KERN_TYPE_SHA1_SLT_SHA1_PW;
+                 hashconfig->dgst_size      = DGST_SIZE_4_5;
+                 hashconfig->parse_func     = punbb_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_EARLY_SKIP
+                                            | OPTI_TYPE_NOT_ITERATED
+                                            | OPTI_TYPE_PREPENDED_SALT;
+                 hashconfig->dgst_pos0      = 3;
+                 hashconfig->dgst_pos1      = 4;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 1;
+                 break;
+
     case  4700:  hashconfig->hash_type      = HASH_TYPE_SHA1;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -20032,26 +20169,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 3;
-                 break;
-
-    case  7600:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
-                                            | OPTS_TYPE_PT_ADD80
-                                            | OPTS_TYPE_PT_ADDBITS15;
-                 hashconfig->kern_type      = KERN_TYPE_SHA1_SLT_SHA1_PW;
-                 hashconfig->dgst_size      = DGST_SIZE_4_5;
-                 hashconfig->parse_func     = redmine_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_EARLY_SKIP
-                                            | OPTI_TYPE_NOT_ITERATED
-                                            | OPTI_TYPE_PREPENDED_SALT;
-                 hashconfig->dgst_pos0      = 3;
-                 hashconfig->dgst_pos1      = 4;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 1;
                  break;
 
     case  7700:  hashconfig->hash_type      = HASH_TYPE_SAPB;

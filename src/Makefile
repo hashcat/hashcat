@@ -3,6 +3,10 @@
 ## License.....: MIT
 ##
 
+SHARED                  := 0
+DEBUG                   := 0
+PRODUCTION              := 0
+
 ##
 ## Detect Operating System
 ##
@@ -111,9 +115,6 @@ COMPTIME                := $(shell date +%s)
 VERSION_EXPORT          := $Format:%D$
 VERSION_TAG             := $(shell test -d .git && git describe --tags --dirty=+ || echo "$(VERSION_EXPORT)"|cut -d, -f2|$(SED) -r 's|.* (\w+/)?([^ ]+)|\2|')
 
-SHARED                  := 0
-PRODUCTION              := 0
-
 ##
 ## General compiler and linker options
 ##
@@ -159,13 +160,17 @@ endif
 
 LFLAGS                  := $(LDFLAGS)
 
-ifndef DEBUG
+ifeq ($(DEBUG),0)
 CFLAGS                  += -O2
 LFLAGS                  += -s
-else
+else 
+ifeq ($(DEBUG),1)
 CFLAGS                  += -DDEBUG -g -ggdb
+else 
 ifeq ($(DEBUG),2)
+CFLAGS                  += -DDEBUG -g -ggdb
 CFLAGS                  += -fsanitize=address -fno-omit-frame-pointer
+endif
 endif
 endif
 

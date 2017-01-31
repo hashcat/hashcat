@@ -11,6 +11,8 @@
 ## Algorithms
 ##
 
+- Added hash-mode  4520 = sha1($salt.sha1($pass))
+- Added hash-mode  4522 = PunBB
 - Added hash-mode  7000 = Fortigate (FortiOS)
 - Added hash-mode 14600 = LUKS
 - Added hash-mode 14700 = iTunes Backup < 10.0
@@ -43,6 +45,7 @@
 - Files: Do several file and folder checks on startup rather than when they are actually used to avoid related error after eventual intense operations
 - Helper: Added functions to check existence, type, read- and write-permissions and rewrite sources to use them instead of stat()
 - OpenCL Runtime: Updated AMDGPU-Pro driver version check, do warn if version 16.60 is detected which is known to be broken
+- OpenCL Kernel: Renumbered hash-mode 7600 to 4521
 - OpenCL Device: Do a check on available constant memory size and abort if it's less than 64kB
 - Sessions: Move out handling of multiple instance from restore file into separate pidfile
 - Wordlists: Disable dictstat handling for hash-mode 3000 as it virtually creates words in the wordlist which is not the case for other modes

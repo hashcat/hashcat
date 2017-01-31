@@ -948,10 +948,12 @@ typedef enum display_len
   DISPLAY_LEN_MAX_3100H = 16 + 1 + 60,
   DISPLAY_LEN_MIN_3200  = 60,
   DISPLAY_LEN_MAX_3200  = 60,
-  DISPLAY_LEN_MIN_3711  = 3 +  0 + 1 + 32,
-  DISPLAY_LEN_MAX_3711  = 3 + 31 + 1 + 32,
   DISPLAY_LEN_MIN_4300  = 32,
   DISPLAY_LEN_MAX_4300  = 32,
+  DISPLAY_LEN_MIN_4500  = 40,
+  DISPLAY_LEN_MAX_4500  = 40,
+  DISPLAY_LEN_MIN_4520  = 40 + 1 + 1,
+  DISPLAY_LEN_MAX_4520  = 40 + 1 + 64,
   DISPLAY_LEN_MIN_4800  = 32 + 1 + 32 + 1 + 2,
   DISPLAY_LEN_MAX_4800  = 32 + 1 + 32 + 1 + 2,
   DISPLAY_LEN_MIN_5000  = 16,
@@ -1205,8 +1207,12 @@ typedef enum display_len
   DISPLAY_LEN_MAX_2811  = 32 + 1 + 31,
   DISPLAY_LEN_MIN_2811H = 32 + 1 + 0,
   DISPLAY_LEN_MAX_2811H = 32 + 1 + 62,
-  DISPLAY_LEN_MIN_7600  = 40 + 1 + 32,
-  DISPLAY_LEN_MAX_7600  = 40 + 1 + 32,
+  DISPLAY_LEN_MIN_3711  = 3 +  0 + 1 + 32,
+  DISPLAY_LEN_MAX_3711  = 3 + 31 + 1 + 32,
+  DISPLAY_LEN_MIN_4521  = 40 + 1 + 32,
+  DISPLAY_LEN_MAX_4521  = 40 + 1 + 32,
+  DISPLAY_LEN_MIN_4522  = 40 + 1 + 12,
+  DISPLAY_LEN_MAX_4522  = 40 + 1 + 12,
 
 } display_len_t;
 
@@ -1332,6 +1338,7 @@ typedef enum kern_type
   KERN_TYPE_MD5U5_PWSLT1            = 4310,
   KERN_TYPE_MD5_SHA1                = 4400,
   KERN_TYPE_SHA11                   = 4500,
+  KERN_TYPE_SHA1_SLT_SHA1_PW        = 4520,
   KERN_TYPE_SHA1_MD5                = 4700,
   KERN_TYPE_MD5_CHAP                = 4800,
   KERN_TYPE_SHA1_SLT_PW_SLT         = 4900,
@@ -1369,7 +1376,6 @@ typedef enum kern_type
   KERN_TYPE_RAKP                    = 7300,
   KERN_TYPE_SHA256CRYPT             = 7400,
   KERN_TYPE_KRB5PA                  = 7500,
-  KERN_TYPE_SHA1_SLT_SHA1_PW        = 7600,
   KERN_TYPE_SAPB                    = 7700,
   KERN_TYPE_SAPG                    = 7800,
   KERN_TYPE_DRUPAL7                 = 7900,
@@ -1566,6 +1572,7 @@ int sha1_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int sha1b64_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int sha1b64s_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int sha1s_parse_hash              (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
+int sha1sha1_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int sha224_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int sha256_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int sha256s_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
@@ -1646,6 +1653,7 @@ int siphash_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int crammd5_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int saph_sha1_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int redmine_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
+int punbb_parse_hash              (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int pdf11_parse_hash              (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int pdf11cm1_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int pdf11cm2_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
