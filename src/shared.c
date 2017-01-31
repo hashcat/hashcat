@@ -246,7 +246,7 @@ bool hc_path_create (const char *path)
 {
   if (hc_path_exist (path) == true) return false;
 
-  if (creat (path, O_CREAT) == -1) return false;
+  if (creat (path, S_IRUSR | S_IWUSR) == -1) return false;
 
   unlink (path);
 
