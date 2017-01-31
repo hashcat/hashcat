@@ -249,6 +249,7 @@ static const char HT_00131[] = "MSSQL(2000)";
 static const char HT_00132[] = "MSSQL(2005)";
 static const char HT_00133[] = "PeopleSoft";
 static const char HT_00141[] = "EPiServer 6.x < v4";
+static const char HT_01411[] = "SSHA-256(Base64), LDAP {SSHA256}";
 static const char HT_01421[] = "hMailServer";
 static const char HT_01441[] = "EPiServer 6.x > v4";
 static const char HT_01711[] = "SSHA-512(Base64), LDAP {SSHA512}";
@@ -349,6 +350,7 @@ static const char SIGNATURE_SEVEN_ZIP[]       = "$7z$";
 static const char SIGNATURE_SHA1AIX[]         = "{ssha1}";
 static const char SIGNATURE_SHA1B64[]         = "{SHA}";
 static const char SIGNATURE_SHA256AIX[]       = "{ssha256}";
+static const char SIGNATURE_SHA256B64S[]      = "{SSHA256}";
 static const char SIGNATURE_SHA256CRYPT[]     = "$5$";
 static const char SIGNATURE_SHA512AIX[]       = "{ssha512}";
 static const char SIGNATURE_SHA512B64S[]      = "{SSHA512}";
@@ -13923,6 +13925,58 @@ int fortigate_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   return (PARSER_OK);
 }
 
+int sha256b64s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
+{
+  if ((input_len < DISPLAY_LEN_MIN_1411) || (input_len > DISPLAY_LEN_MAX_1411)) return (PARSER_GLOBAL_LENGTH);
+
+  if (memcmp (SIGNATURE_SHA256B64S, input_buf, 9)) return (PARSER_SIGNATURE_UNMATCHED);
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  u8 tmp_buf[120] = { 0 };
+
+  const int tmp_len = base64_decode (base64_to_int, (const u8 *) input_buf + 9, input_len - 9, tmp_buf);
+
+  if (tmp_len < 32) return (PARSER_HASH_LENGTH);
+
+  memcpy (digest, tmp_buf, 32);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
+  digest[5] = byte_swap_32 (digest[5]);
+  digest[6] = byte_swap_32 (digest[6]);
+  digest[7] = byte_swap_32 (digest[7]);
+
+  digest[0] -= SHA256M_A;
+  digest[1] -= SHA256M_B;
+  digest[2] -= SHA256M_C;
+  digest[3] -= SHA256M_D;
+  digest[4] -= SHA256M_E;
+  digest[5] -= SHA256M_F;
+  digest[6] -= SHA256M_G;
+  digest[7] -= SHA256M_H;
+
+  const int salt_len = tmp_len - 32;
+
+  salt->salt_len = salt_len;
+
+  memcpy (salt->salt_buf, tmp_buf + 32, salt->salt_len);
+
+  if (hashconfig->opts_type & OPTS_TYPE_ST_ADD80)
+  {
+    u8 *ptr = (u8 *) salt->salt_buf;
+
+    ptr[salt->salt_len] = 0x80;
+  }
+
+  return (PARSER_OK);
+}
+
 /**
  * hook functions
  */
@@ -14339,6 +14393,7 @@ char *strhashtype (const u32 hash_mode)
     case  1300: return ((char *) HT_01300);
     case  1400: return ((char *) HT_01400);
     case  1410: return ((char *) HT_01410);
+    case  1411: return ((char *) HT_01411);
     case  1420: return ((char *) HT_01420);
     case  1421: return ((char *) HT_01421);
     case  1430: return ((char *) HT_01430);
@@ -15147,6 +15202,26 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     char        *hash_buf     = hashinfo_ptr[digest_idx]->orighash;
 
     snprintf (out_buf, out_len - 1, "%s", hash_buf);
+  }
+  else if (hash_mode == 1411)
+  {
+    // the encoder is a bit too intelligent, it expects the input data in the wrong BOM
+
+    digest_buf[0] = byte_swap_32 (digest_buf[0]);
+    digest_buf[1] = byte_swap_32 (digest_buf[1]);
+    digest_buf[2] = byte_swap_32 (digest_buf[2]);
+    digest_buf[3] = byte_swap_32 (digest_buf[3]);
+    digest_buf[4] = byte_swap_32 (digest_buf[4]);
+    digest_buf[5] = byte_swap_32 (digest_buf[5]);
+    digest_buf[6] = byte_swap_32 (digest_buf[6]);
+    digest_buf[7] = byte_swap_32 (digest_buf[7]);
+
+    memcpy (tmp_buf, digest_buf, 32);
+    memcpy (tmp_buf + 32, salt.salt_buf, salt.salt_len);
+
+    base64_encode (int_to_base64, (const u8 *) tmp_buf, 32 + salt.salt_len, (u8 *) ptr_plain);
+
+    snprintf (out_buf, out_len - 1, "%s%s", SIGNATURE_SHA256B64S, ptr_plain);
   }
   else if (hash_mode == 1421)
   {
@@ -18714,6 +18789,28 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->kern_type      = KERN_TYPE_SHA256_PWSLT;
                  hashconfig->dgst_size      = DGST_SIZE_4_8;
                  hashconfig->parse_func     = sha256s_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_PRECOMPUTE_INIT
+                                            | OPTI_TYPE_PRECOMPUTE_MERKLE
+                                            | OPTI_TYPE_EARLY_SKIP
+                                            | OPTI_TYPE_NOT_ITERATED
+                                            | OPTI_TYPE_APPENDED_SALT
+                                            | OPTI_TYPE_RAW_HASH;
+                 hashconfig->dgst_pos0      = 3;
+                 hashconfig->dgst_pos1      = 7;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 6;
+                 break;
+
+    case  1411:  hashconfig->hash_type      = HASH_TYPE_SHA256;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
+                                            | OPTS_TYPE_ST_ADD80
+                                            | OPTS_TYPE_ST_ADDBITS15;
+                 hashconfig->kern_type      = KERN_TYPE_SHA256_PWSLT;
+                 hashconfig->dgst_size      = DGST_SIZE_4_8;
+                 hashconfig->parse_func     = sha256b64s_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
                                             | OPTI_TYPE_PRECOMPUTE_INIT
                                             | OPTI_TYPE_PRECOMPUTE_MERKLE
