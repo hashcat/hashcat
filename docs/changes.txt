@@ -11,6 +11,7 @@
 ## Algorithms
 ##
 
+- Added hash-mode  1411 = SSHA-256(Base64), LDAP {SSHA256}
 - Added hash-mode  4520 = sha1($salt.sha1($pass))
 - Added hash-mode  4522 = PunBB
 - Added hash-mode  7000 = Fortigate (FortiOS)

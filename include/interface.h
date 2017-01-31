@@ -1187,6 +1187,8 @@ typedef enum display_len
   DISPLAY_LEN_MAX_133   = 28,
   DISPLAY_LEN_MIN_141   = 14 +  0 +  1 + 28,
   DISPLAY_LEN_MAX_141   = 14 + 44 +  1 + 28,
+  DISPLAY_LEN_MIN_1411  =  9 + 44 +  0,
+  DISPLAY_LEN_MAX_1411  =  9 + 44 + 68,
   DISPLAY_LEN_MIN_1441  = 14 +  0 +  1 + 43,
   DISPLAY_LEN_MAX_1441  = 14 + 24 +  1 + 43,
   DISPLAY_LEN_MIN_1711  =  9 + 86 +  0,
@@ -1698,6 +1700,7 @@ int luks_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int itunes_backup_parse_hash      (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int skip32_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int fortigate_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
+int sha256b64s_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 
 /**
  * hook functions
