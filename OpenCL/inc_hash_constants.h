@@ -627,3 +627,14 @@ typedef enum mysql323_constants
   MYSQL323_B=0x12345671u
 
 } mysql323_constants_t;
+
+typedef enum fortigate_constants
+{
+  FORTIGATE_A=0x2eba88a3,
+  FORTIGATE_B=0x4ab04c42,
+  FORTIGATE_C=0xc1307953,
+  FORTIGATE_D=0x3fcc0731,
+  FORTIGATE_E=0x299032a1,
+  FORTIGATE_F=0x705b81a9
+
+} fortigate_constants_t;

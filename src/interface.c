@@ -149,6 +149,7 @@ static const char HT_06600[] = "1Password, agilekeychain";
 static const char HT_06700[] = "AIX {ssha1}";
 static const char HT_06800[] = "Lastpass";
 static const char HT_06900[] = "GOST R 34.11-94";
+static const char HT_07000[] = "Fortigate (FortiOS)";
 static const char HT_07100[] = "OSX v10.8+";
 static const char HT_07200[] = "GRUB 2";
 static const char HT_07300[] = "IPMI2 RAKP HMAC-SHA1";
@@ -360,6 +361,7 @@ static const char SIGNATURE_SYBASEASE[]       = "0xc007";
 static const char SIGNATURE_ZIP2_START[]      = "$zip2$";
 static const char SIGNATURE_ZIP2_STOP[]       = "$/zip2$";
 static const char SIGNATURE_ITUNES_BACKUP[]   = "$itunes_backup$";
+static const char SIGNATURE_FORTIGATE[]       = "AK1";
 
 /**
  * decoder / encoder
@@ -13785,6 +13787,64 @@ int skip32_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   return (PARSER_OK);
 }
 
+int fortigate_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
+{
+  if (input_len != DISPLAY_LEN_MIN_7000) return (PARSER_GLOBAL_LENGTH);
+
+  if (memcmp (SIGNATURE_FORTIGATE, input_buf, 3)) return (PARSER_SIGNATURE_UNMATCHED);
+
+  u32    *digest = (u32 *) hash_buf->digest;
+  salt_t *salt   = hash_buf->salt;
+
+  /**
+   * parse line
+   */
+
+  u8 *hash_pos = input_buf + 3;
+
+  /**
+   * verify data
+   */
+
+  // decode salt + SHA1 hash (12 + 20 = 32)
+
+  u8 tmp_buf[100] = { 0 };
+
+  int decoded_len = base64_decode (base64_to_int, (const u8 *) hash_pos, DISPLAY_LEN_MAX_7000 - 3, tmp_buf);
+
+  if (decoded_len != 32 + 1) return (PARSER_HASH_LENGTH);
+
+  /**
+   * store data
+   */
+
+  // salt
+
+  u32 salt_len = 12;
+
+  memcpy (salt->salt_buf, tmp_buf, salt_len);
+
+  salt->salt_len = salt_len;
+
+  // digest
+
+  memcpy (digest, tmp_buf + salt_len, 20);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
+
+  digest[0] -= SHA1M_A;
+  digest[1] -= SHA1M_B;
+  digest[2] -= SHA1M_C;
+  digest[3] -= SHA1M_D;
+  digest[4] -= SHA1M_E;
+
+  return (PARSER_OK);
+}
+
 /**
  * hook functions
  */
@@ -14272,6 +14332,7 @@ char *strhashtype (const u32 hash_mode)
     case  6700: return ((char *) HT_06700);
     case  6800: return ((char *) HT_06800);
     case  6900: return ((char *) HT_06900);
+    case  7000: return ((char *) HT_07000);
     case  7100: return ((char *) HT_07100);
     case  7200: return ((char *) HT_07200);
     case  7300: return ((char *) HT_07300);
@@ -15620,6 +15681,26 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   else if (hash_mode == 6800)
   {
     snprintf (out_buf, out_len - 1, "%s", (char *) salt.salt_buf);
+  }
+  else if (hash_mode == 7000)
+  {
+    // salt
+
+    memcpy (tmp_buf, salt.salt_buf, 12);
+
+    // digest
+
+    memcpy (tmp_buf + 12, digest_buf, 20);
+
+    // base64 encode (salt + SHA1)
+
+    base64_encode (int_to_base64, (const u8 *) tmp_buf, 12 + 20 + 1, (u8 *) ptr_plain);
+
+    ptr_plain[44] = 0;
+
+    snprintf (out_buf, out_len - 1, "%s%s",
+      SIGNATURE_FORTIGATE,
+      ptr_plain);
   }
   else if (hash_mode == 7100)
   {
@@ -19858,6 +19939,23 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos3      = 3;
                  break;
 
+    case  7000:  hashconfig->hash_type      = HASH_TYPE_SHA1;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
+                 hashconfig->kern_type      = KERN_TYPE_FORTIGATE;
+                 hashconfig->dgst_size      = DGST_SIZE_4_5;
+                 hashconfig->parse_func     = fortigate_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_PRECOMPUTE_INIT
+                                            | OPTI_TYPE_PRECOMPUTE_MERKLE
+                                            | OPTI_TYPE_EARLY_SKIP
+                                            | OPTI_TYPE_NOT_ITERATED;
+                 hashconfig->dgst_pos0      = 3;
+                 hashconfig->dgst_pos1      = 4;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 1;
+                 break;
+
     case  7100:  hashconfig->hash_type      = HASH_TYPE_SHA512;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -21757,6 +21855,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case  5800: hashconfig->pw_max = 16;
                 break;
     case  6300: hashconfig->pw_max = 16;
+                break;
+    case  7000: hashconfig->pw_max = 19;
                 break;
     case  7400: hashconfig->pw_max = 16;
                 break;

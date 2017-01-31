@@ -988,6 +988,8 @@ typedef enum display_len
   DISPLAY_LEN_MAX_6800  = 32 + 1 + 5 + 1 + 32,
   DISPLAY_LEN_MIN_6900  = 64,
   DISPLAY_LEN_MAX_6900  = 64,
+  DISPLAY_LEN_MIN_7000  = 3 + 44,
+  DISPLAY_LEN_MAX_7000  = 3 + 44,
   DISPLAY_LEN_MIN_7100  =  4 + 2 + 1 + 64 + 1 + 128,
   DISPLAY_LEN_MAX_7100  =  4 + 5 + 1 + 64 + 1 + 128,
   DISPLAY_LEN_MIN_7200  = 19 + 1 + 1 +   1 + 128,
@@ -1362,6 +1364,7 @@ typedef enum kern_type
   KERN_TYPE_SHA1AIX                 = 6700,
   KERN_TYPE_LASTPASS                = 6800,
   KERN_TYPE_GOST                    = 6900,
+  KERN_TYPE_FORTIGATE               = 7000,
   KERN_TYPE_PBKDF2_SHA512           = 7100,
   KERN_TYPE_RAKP                    = 7300,
   KERN_TYPE_SHA256CRYPT             = 7400,
@@ -1686,6 +1689,7 @@ int sha1cx_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int luks_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED       hashconfig_t *hashconfig, const int keyslot_idx);
 int itunes_backup_parse_hash      (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int skip32_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
+int fortigate_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 
 /**
  * hook functions

@@ -11,6 +11,7 @@
 ## Algorithms
 ##
 
+- Added hash-mode  7000 = Fortigate (FortiOS)
 - Added hash-mode 14600 = LUKS
 - Added hash-mode 14700 = iTunes Backup < 10.0
 - Added hash-mode 14800 = iTunes Backup >= 10.0
