@@ -6,6 +6,7 @@
 
 - Added support for parsing 7-Zip hashes with LZMA/LZMA2 compression indicator set to a non-zero value
 - Added support for decompressing LZMA1/LZMA2 data for -m 11600 = 7-Zip to validate the CRC
+- Added support for showing all user names with --show and --left if --username was specified
 
 ##
 ## Algorithms

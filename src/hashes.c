@@ -1068,6 +1068,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
   hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   hashes_t       *hashes       = hashcat_ctx->hashes;
   user_options_t *user_options = hashcat_ctx->user_options;
+  potfile_ctx_t  *potfile_ctx  = hashcat_ctx->potfile_ctx;
 
   hash_t *hashes_buf = hashes->hashes_buf;
   u32     hashes_cnt = hashes->hashes_cnt;
@@ -1082,7 +1083,11 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
   for (u32 hashes_pos = 1; hashes_pos < hashes_cnt; hashes_pos++)
   {
-    if (hashconfig->is_salted)
+    if (potfile_ctx->keep_all_usernames == true)
+    {
+      // do not sort, because we need to keep all hashes in this particular case
+    }
+    else if (hashconfig->is_salted)
     {
       if (sort_by_salt (hashes_buf[hashes_pos].salt, hashes_buf[hashes_pos - 1].salt) == 0)
       {

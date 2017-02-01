@@ -1244,6 +1244,8 @@ typedef struct potfile_ctx
 {
   bool     enabled;
 
+  bool     keep_all_usernames;
+
   FILE    *fp;
   char    *filename;
 

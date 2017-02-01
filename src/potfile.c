@@ -90,6 +90,18 @@ int potfile_init (hashcat_ctx_t *hashcat_ctx)
     potfile_ctx->fp       = NULL;
   }
 
+  // keep all usernames and hashes if --username was combined with --left or --show
+
+  potfile_ctx->keep_all_usernames = false;
+
+  if (user_options->username == true)
+  {
+    if ((user_options->show == true) || (user_options->left == true))
+    {
+      potfile_ctx->keep_all_usernames = true;
+    }
+  }
+
   // starting from here, we should allocate some scratch buffer for later use
 
   u8 *out_buf = (u8 *) hcmalloc (HCBUFSIZ_LARGE);
@@ -255,11 +267,52 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, u8 *
   unlock_file (potfile_ctx->fp);
 }
 
+void potfile_update_hash (hashcat_ctx_t *hashcat_ctx, hash_t *found, char *line_pw_buf, int line_pw_len)
+{
+  const loopback_ctx_t *loopback_ctx = hashcat_ctx->loopback_ctx;
+
+  if (found == NULL) return;
+
+  char *pw_buf = line_pw_buf;
+  int   pw_len = line_pw_len;
+
+  found->pw_buf = (char *) hcmalloc (pw_len + 1);
+  found->pw_len = pw_len;
+
+  memcpy (found->pw_buf, pw_buf, pw_len);
+
+  found->pw_buf[found->pw_len] = 0;
+
+  found->cracked = 1;
+
+  // if enabled, update also the loopback file
+
+  if (loopback_ctx->fp != NULL)
+  {
+    loopback_write_append (hashcat_ctx, (u8 *) pw_buf, (unsigned int) pw_len);
+  }
+}
+
+void potfile_update_hashes (hashcat_ctx_t *hashcat_ctx, hash_t *hash_buf, hash_t *hashes_buf, u32 hashes_cnt, int (*compar) (const void *, const void *, void *), char *line_pw_buf, int line_pw_len)
+{
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
+  // linear search
+
+  for (u32 hash_pos = 0; hash_pos < hashes_cnt; hash_pos++)
+  {
+    if (compar ((void *) &hashes_buf[hash_pos], (void *) hash_buf, (void *) hashconfig) == 0)
+    {
+      potfile_update_hash (hashcat_ctx, &hashes_buf[hash_pos], line_pw_buf, line_pw_len);
+    }
+  }
+}
+
 int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const hashes_t       *hashes       = hashcat_ctx->hashes;
-  const loopback_ctx_t *loopback_ctx = hashcat_ctx->loopback_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
   const potfile_ctx_t  *potfile_ctx  = hashcat_ctx->potfile_ctx;
 
   if (potfile_ctx->enabled == false) return 0;
@@ -314,14 +367,15 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
     if (parser_status == PARSER_OK)
     {
-      hash_t *found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_no_salt, (void *) hashconfig);
-
-      if (found)
+      if (potfile_ctx->keep_all_usernames == true)
       {
-        found->pw_buf = "";
-        found->pw_len = 0;
+        potfile_update_hashes (hashcat_ctx, &hash_buf, hashes_buf, hashes_cnt, sort_by_hash_no_salt, "", 0);
+      }
+      else
+      {
+        hash_t *found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_no_salt, (void *) hashconfig);
 
-        found->cracked = 1;
+        potfile_update_hash (hashcat_ctx, found, "", 0);
       }
     }
   }
@@ -456,35 +510,30 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
       {
         if (hashconfig->is_salted)
         {
+          if (potfile_ctx->keep_all_usernames == true)
+          {
+            potfile_update_hashes (hashcat_ctx, &hash_buf, hashes_buf, hashes_cnt, sort_by_hash, line_pw_buf, line_pw_len);
+
+            continue;
+          }
+
           found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash, (void *) hashconfig);
         }
         else
         {
+          if (potfile_ctx->keep_all_usernames == true)
+          {
+            potfile_update_hashes (hashcat_ctx, &hash_buf, hashes_buf, hashes_cnt, sort_by_hash_no_salt, line_pw_buf, line_pw_len);
+
+            continue;
+          }
+
           found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_no_salt, (void *) hashconfig);
         }
       }
     }
 
-    if (found == NULL) continue;
-
-    char *pw_buf = line_pw_buf;
-    int   pw_len = line_pw_len;
-
-    found->pw_buf = (char *) hcmalloc (pw_len + 1);
-    found->pw_len = pw_len;
-
-    memcpy (found->pw_buf, pw_buf, pw_len);
-
-    found->pw_buf[found->pw_len] = 0;
-
-    found->cracked = 1;
-
-    // if enabled, update also the loopback file
-
-    if (loopback_ctx->fp != NULL)
-    {
-      loopback_write_append (hashcat_ctx, (u8 *) pw_buf, (unsigned int) pw_len);
-    }
+    potfile_update_hash (hashcat_ctx, found, line_pw_buf, line_pw_len);
   }
 
   hcfree (line_buf);
