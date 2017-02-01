@@ -2779,16 +2779,63 @@ int wpa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
     }
   }
 
-  u32 *p0 = (u32 *) in.essid;
+  // Create a hash of the nonce as ESSID is not unique enough
+  // Not a regular MD5 but good enough
+  // We can also ignore cases where we should bzero the work buffer
 
-  u32 c0 = 0;
-  u32 c1 = 0;
+  u32 hash[4];
 
-  for (int i = 0; i <  8; i++) c0 ^= *p0++;
-  for (int i = 0; i < 25; i++) c1 ^= wpa->pke[i];
+  hash[0] = 0;
+  hash[1] = 1;
+  hash[2] = 2;
+  hash[3] = 3;
 
-  salt->salt_buf[10] = c0;
-  salt->salt_buf[11] = c1;
+  u32 block[16];
+
+  u8 *block_ptr = (u8 *) block;
+
+  for (int i = 0; i < 16; i++) block[i] = salt->salt_buf[i];
+
+  md5_64 (block, hash);
+
+  for (int i = 0; i < 16; i++) block[i] = wpa->pke[i +  0];
+
+  md5_64 (block, hash);
+
+  for (int i = 0; i <  9; i++) block[i] = wpa->pke[i + 16];
+
+  md5_64 (block, hash);
+
+  for (int i = 0; i < 16; i++) block[i] = wpa->eapol[i +  0];
+
+  md5_64 (block, hash);
+
+  for (int i = 0; i < 16; i++) block[i] = wpa->eapol[i + 16];
+
+  md5_64 (block, hash);
+
+  for (int i = 0; i < 16; i++) block[i] = wpa->eapol[i + 32];
+
+  md5_64 (block, hash);
+
+  for (int i = 0; i < 16; i++) block[i] = wpa->eapol[i + 48];
+
+  md5_64 (block, hash);
+
+  for (int i = 0; i <  6; i++) block_ptr[i + 0] = wpa->orig_mac1[i];
+  for (int i = 0; i <  6; i++) block_ptr[i + 6] = wpa->orig_mac2[i];
+
+  md5_64 (block, hash);
+
+  for (int i = 0; i < 32; i++) block_ptr[i +  0] = wpa->orig_nonce1[i];
+  for (int i = 0; i < 32; i++) block_ptr[i + 32] = wpa->orig_nonce2[i];
+
+  md5_64 (block, hash);
+
+  salt->salt_buf[12] = hash[0];
+  salt->salt_buf[13] = hash[1];
+  salt->salt_buf[14] = hash[2];
+  salt->salt_buf[15] = hash[3];
 
   return (PARSER_OK);
 }
@@ -15444,24 +15491,12 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   }
   else if (hash_mode == 2500)
   {
-    wpa_t *wpas = (wpa_t *) esalts_buf;
-
-    wpa_t *wpa = &wpas[salt_pos];
-
-    snprintf (out_buf, out_len - 1, "%s:%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x",
-      (char *) salt.salt_buf,
-      wpa->orig_mac1[0],
-      wpa->orig_mac1[1],
-      wpa->orig_mac1[2],
-      wpa->orig_mac1[3],
-      wpa->orig_mac1[4],
-      wpa->orig_mac1[5],
-      wpa->orig_mac2[0],
-      wpa->orig_mac2[1],
-      wpa->orig_mac2[2],
-      wpa->orig_mac2[3],
-      wpa->orig_mac2[4],
-      wpa->orig_mac2[5]);
+    snprintf (out_buf, out_len - 1, "%08x%08x%08x%08x:%s",
+      salt.salt_buf[12],
+      salt.salt_buf[13],
+      salt.salt_buf[14],
+      salt.salt_buf[15],
+      (char *) salt.salt_buf);
   }
   else if (hash_mode == 4400)
   {

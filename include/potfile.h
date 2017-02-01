@@ -12,9 +12,6 @@
 
 #define INCR_POT 1000
 
-int sort_by_hash_t_salt       (const void *v1, const void *v2);
-int sort_by_hash_t_salt_hccap (const void *v1, const void *v2);
-
 int  potfile_init             (hashcat_ctx_t *hashcat_ctx);
 int  potfile_read_open        (hashcat_ctx_t *hashcat_ctx);
 void potfile_read_close       (hashcat_ctx_t *hashcat_ctx);

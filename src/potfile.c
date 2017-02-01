@@ -5,6 +5,7 @@
 
 #include "common.h"
 #include "types.h"
+#include "bitops.h"
 #include "convert.h"
 #include "memory.h"
 #include "event.h"
@@ -21,13 +22,23 @@ int sort_by_hash         (const void *v1, const void *v2, void *v3);
 int sort_by_hash_no_salt (const void *v1, const void *v2, void *v3);
 // get rid of this later
 
-int sort_by_hash_t_salt (const void *v1, const void *v2)
+// this function is for potfile comparison where the potfile does not contain all the
+// information requires to do a true sort_by_hash() bsearch
+static int sort_by_hash_t_salt (const void *v1, const void *v2)
 {
   const hash_t *h1 = (const hash_t *) v1;
   const hash_t *h2 = (const hash_t *) v2;
 
   const salt_t *s1 = h1->salt;
   const salt_t *s2 = h2->salt;
+
+  const int res1 = (int) s1->salt_len - (int) s2->salt_len;
+
+  if (res1 != 0) return (res1);
+
+  //const int res2 = (int) s1->salt_iter - (int) s2->salt_iter;
+  //
+  //if (res2 != 0) return (res2);
 
   for (int n = 0; n < 16; n++)
   {
@@ -35,24 +46,10 @@ int sort_by_hash_t_salt (const void *v1, const void *v2)
     if (s1->salt_buf[n] < s2->salt_buf[n]) return -1;
   }
 
-  return 0;
-}
-
-int sort_by_hash_t_salt_hccap (const void *v1, const void *v2)
-{
-  const hash_t *h1 = (const hash_t *) v1;
-  const hash_t *h2 = (const hash_t *) v2;
-
-  const salt_t *s1 = h1->salt;
-  const salt_t *s2 = h2->salt;
-
-  // last 2: salt_buf[10] and salt_buf[11] contain the digest (skip them)
-  // 9 * 4 = 36 bytes (max length of ESSID)
-
-  for (int n = 0; n < 9; n++)
+  for (int n = 0; n < 8; n++)
   {
-    if (s1->salt_buf[n] > s2->salt_buf[n]) return  1;
-    if (s1->salt_buf[n] < s2->salt_buf[n]) return -1;
+    if (s1->salt_buf_pc[n] > s2->salt_buf_pc[n]) return  1;
+    if (s1->salt_buf_pc[n] < s2->salt_buf_pc[n]) return -1;
   }
 
   return 0;
@@ -441,65 +438,48 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
     }
     else if (hashconfig->hash_mode == 2500)
     {
-      if (line_hash_len < 64) // 64 = 16 * u32 in salt_buf[]
+      // here we have in line_hash_buf: hash:essid (without the plain)
+
+      char *sep_pos = strrchr (line_hash_buf, ':');
+
+      if (sep_pos == NULL) continue;
+
+      sep_pos[0] = 0;
+
+      char *hash_pos = line_hash_buf;
+
+      const size_t hash_len = strlen (hash_pos);
+
+      if (hash_len != 32) continue;
+
+      char *essid_pos = sep_pos + 1;
+
+      const size_t essid_len = strlen (essid_pos);
+
+      if (essid_len > 36) continue;
+
+      if (hashconfig->is_salted)
       {
-        // here we have in line_hash_buf: ESSID:MAC1:MAC2   (without the plain)
+        // this should be always true, but we need it to make scan-build happy
 
-        char *mac2_pos = strrchr (line_hash_buf, ':');
+        memcpy (hash_buf.salt->salt_buf, essid_pos, essid_len);
 
-        if (mac2_pos == NULL) continue;
+        hash_buf.salt->salt_len = essid_len;
 
-        mac2_pos[0] = 0;
-        mac2_pos++;
+        u32 hash[4];
 
-        if (strlen (mac2_pos) != 12) continue;
+        hash[0] = hex_to_u32 ((const u8 *) &hash_pos[ 0]);
+        hash[1] = hex_to_u32 ((const u8 *) &hash_pos[ 8]);
+        hash[2] = hex_to_u32 ((const u8 *) &hash_pos[16]);
+        hash[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
 
-        char *mac1_pos = strrchr (line_hash_buf, ':');
-
-        if (mac1_pos == NULL) continue;
-
-        mac1_pos[0] = 0;
-        mac1_pos++;
-
-        if (strlen (mac1_pos) != 12) continue;
-
-        u32 essid_length = mac1_pos - line_hash_buf - 1;
-
-        if (hashconfig->is_salted)
-        {
-          // this should be always true, but we need it to make scan-build happy
-
-          memcpy (hash_buf.salt->salt_buf, line_hash_buf, essid_length);
-
-          hash_buf.salt->salt_len = essid_length;
-        }
-
-        found = (hash_t *) bsearch (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_t_salt_hccap);
-
-        if (found)
-        {
-          wpa_t *wpa = (wpa_t *) found->esalt;
-
-          // compare hex string(s) vs binary MAC address(es)
-
-          for (u32 mac_idx = 0, orig_mac_idx = 0; mac_idx < 6; mac_idx += 1, orig_mac_idx += 2)
-          {
-            if (wpa->orig_mac1[mac_idx] != hex_to_u8 ((const u8 *) &mac1_pos[orig_mac_idx]))
-            {
-              found = NULL;
-
-              break;
-            }
-
-            if (wpa->orig_mac2[mac_idx] != hex_to_u8 ((const u8 *) &mac2_pos[orig_mac_idx]))
-            {
-              found = NULL;
-
-              break;
-            }
-          }
-        }
+        hash_buf.salt->salt_buf[12] = byte_swap_32 (hash[0]);
+        hash_buf.salt->salt_buf[13] = byte_swap_32 (hash[1]);
+        hash_buf.salt->salt_buf[14] = byte_swap_32 (hash[2]);
+        hash_buf.salt->salt_buf[15] = byte_swap_32 (hash[3]);
       }
+
+      found = (hash_t *) bsearch (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_t_salt);
     }
     else
     {

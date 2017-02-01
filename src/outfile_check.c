@@ -203,44 +203,13 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
                         }
                         else if (hash_mode == 2500)
                         {
-                          // BSSID : MAC1 : MAC2 (:plain)
-                          if (i == (salt_buf->salt_len + 1 + 12 + 1 + 12))
+                          // this comparison is a bit inaccurate as we compare only ESSID
+                          // call it a bug, but it's good enough for a special case used in a special case
+                          // in this case all essid will be marked as cracked that match the essid
+
+                          if (i == salt_buf->salt_len)
                           {
                             cracked = (memcmp (line_buf, salt_buf->salt_buf, salt_buf->salt_len) == 0);
-
-                            if (!cracked) continue;
-
-                            // now compare MAC1 and MAC2 too, since we have this additional info
-                            char *mac1_pos = line_buf + salt_buf->salt_len + 1;
-                            char *mac2_pos = mac1_pos + 12 + 1;
-
-                            wpa_t *wpas = (wpa_t *) hashes->esalts_buf;
-                            wpa_t *wpa  = &wpas[salt_pos];
-
-                            // compare hex string(s) vs binary MAC address(es)
-
-                            for (u32 mac_idx = 0, orig_mac_idx = 0; mac_idx < 6; mac_idx++, orig_mac_idx += 2)
-                            {
-                              if (wpa->orig_mac1[mac_idx] != hex_to_u8 ((const u8 *) &mac1_pos[orig_mac_idx]))
-                              {
-                                cracked = 0;
-
-                                break;
-                              }
-                            }
-
-                            // early skip ;)
-                            if (!cracked) continue;
-
-                            for (u32 mac_idx = 0, orig_mac_idx = 0; mac_idx < 6; mac_idx++, orig_mac_idx += 2)
-                            {
-                              if (wpa->orig_mac2[mac_idx] != hex_to_u8 ((const u8 *) &mac2_pos[orig_mac_idx]))
-                              {
-                                cracked = 0;
-
-                                break;
-                              }
-                            }
                           }
                         }
                         else
