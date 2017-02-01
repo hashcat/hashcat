@@ -133,6 +133,7 @@ static const char *USAGE_BIG[] =
   "     40 | md5($salt.unicode($pass))                        | Raw Hash, Salted and / or Iterated",
   "   3800 | md5($salt.$pass.$salt)                           | Raw Hash, Salted and / or Iterated",
   "   3710 | md5($salt.md5($pass))                            | Raw Hash, Salted and / or Iterated",
+  "   4010 | md5($salt.md5($salt.$pass))                      | Raw Hash, Salted and / or Iterated",
   "   2600 | md5(md5($pass))                                  | Raw Hash, Salted and / or Iterated",
   "   4300 | md5(strtoupper(md5($pass)))                      | Raw Hash, Salted and / or Iterated",
   "   4400 | md5(sha1($pass))                                 | Raw Hash, Salted and / or Iterated",
