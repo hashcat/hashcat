@@ -126,6 +126,7 @@ static const char HT_03710[] = "md5($salt.md5($pass))";
 static const char HT_03711[] = "Mediawiki B type";
 static const char HT_03800[] = "md5($salt.$pass.$salt)";
 static const char HT_04010[] = "md5($salt.md5($salt.$pass))";
+static const char HT_04110[] = "md5($salt.md5($pass.$salt))";
 static const char HT_04300[] = "md5(strtoupper(md5($pass)))";
 static const char HT_04400[] = "md5(sha1($pass))";
 static const char HT_04500[] = "sha1(sha1($pass))";
@@ -14478,6 +14479,7 @@ char *strhashtype (const u32 hash_mode)
     case  3711: return ((char *) HT_03711);
     case  3800: return ((char *) HT_03800);
     case  4010: return ((char *) HT_04010);
+    case  4110: return ((char *) HT_04110);
     case  4300: return ((char *) HT_04300);
     case  4400: return ((char *) HT_04400);
     case  4500: return ((char *) HT_04500);
@@ -19585,6 +19587,23 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos3      = 1;
                  break;
 
+    case  4110:  hashconfig->hash_type      = HASH_TYPE_MD5;
+                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
+                 hashconfig->kern_type      = KERN_TYPE_MD5_SLT_MD5_PW_SLT;
+                 hashconfig->dgst_size      = DGST_SIZE_4_4;
+                 hashconfig->parse_func     = md5s_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_PRECOMPUTE_INIT
+                                            | OPTI_TYPE_PRECOMPUTE_MERKLE
+                                            | OPTI_TYPE_EARLY_SKIP;
+                 hashconfig->dgst_pos0      = 0;
+                 hashconfig->dgst_pos1      = 3;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 1;
+                 break;
+
     case  4300:  hashconfig->hash_type      = HASH_TYPE_MD5;
                  hashconfig->salt_type      = SALT_TYPE_VIRTUAL;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -19604,7 +19623,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 1;
                  break;
-
 
     case  4400:  hashconfig->hash_type      = HASH_TYPE_MD5;
                  hashconfig->salt_type      = SALT_TYPE_NONE;

@@ -1337,6 +1337,7 @@ typedef enum kern_type
   KERN_TYPE_MD5_SLT_MD5_PW          = 3710,
   KERN_TYPE_MD5_SLT_PW_SLT          = 3800,
   KERN_TYPE_MD5_SLT_MD5_SLT_PW      = 4010,
+  KERN_TYPE_MD5_SLT_MD5_PW_SLT      = 4110,
   KERN_TYPE_MD5U5                   = 4300,
   KERN_TYPE_MD5U5_PWSLT1            = 4310,
   KERN_TYPE_MD5_SHA1                = 4400,
