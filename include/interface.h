@@ -1142,6 +1142,8 @@ typedef enum display_len
   DISPLAY_LEN_MAX_14700 = 15 + 1 + 2 + 1 + 80 + 1 + 6 + 1 + 40 + 1 + 9 + 1 + 40,
   DISPLAY_LEN_MIN_14900 = 8 + 1 + 8,
   DISPLAY_LEN_MAX_14900 = 8 + 1 + 8,
+  DISPLAY_LEN_MIN_15000 = 128 + 1 + 64,
+  DISPLAY_LEN_MAX_15000 = 128 + 1 + 64,
   DISPLAY_LEN_MIN_99999 = 1,
   DISPLAY_LEN_MAX_99999 = 55,
 
@@ -1463,6 +1465,7 @@ typedef enum kern_type
   KERN_TYPE_ITUNES_BACKUP_9         = 14700,
   KERN_TYPE_ITUNES_BACKUP_10        = 14800,
   KERN_TYPE_SKIP32                  = 14900,
+  KERN_TYPE_FILEZILLA_SERVER        = 15000,
   KERN_TYPE_PLAINTEXT               = 99999,
 
 } kern_type_t;
@@ -1703,6 +1706,7 @@ int itunes_backup_parse_hash      (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int skip32_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int fortigate_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int sha256b64s_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
+int filezilla_server_parse_hash   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 
 /**
  * hook functions

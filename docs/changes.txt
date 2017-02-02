@@ -22,6 +22,7 @@
 - Added hash-mode 14700 = iTunes Backup < 10.0
 - Added hash-mode 14800 = iTunes Backup >= 10.0
 - Added hash-mode 14900 = Skip32
+- Added hash-mode 15000 = FileZilla Server >= 0.9.55
 
 ##
 ## Workarounds
