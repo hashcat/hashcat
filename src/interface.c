@@ -233,6 +233,7 @@ static const char HT_14600[] = "LUKS";
 static const char HT_14700[] = "iTunes Backup < 10.0";
 static const char HT_14800[] = "iTunes Backup >= 10.0";
 static const char HT_14900[] = "Skip32";
+static const char HT_15000[] = "FileZilla Server >= 0.9.55";
 static const char HT_99999[] = "Plaintext";
 
 static const char HT_00011[] = "Joomla < 2.5.18";
@@ -14026,6 +14027,60 @@ int sha256b64s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   return (PARSER_OK);
 }
 
+int filezilla_server_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
+{
+  if ((input_len < DISPLAY_LEN_MIN_15000) || (input_len > DISPLAY_LEN_MAX_15000)) return (PARSER_GLOBAL_LENGTH);
+
+  u64 *digest = (u64 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  if (is_valid_hex_string (input_buf, 128) == false) return (PARSER_HASH_ENCODING);
+
+  digest[0] = hex_to_u64 ((const u8 *) &input_buf[  0]);
+  digest[1] = hex_to_u64 ((const u8 *) &input_buf[ 16]);
+  digest[2] = hex_to_u64 ((const u8 *) &input_buf[ 32]);
+  digest[3] = hex_to_u64 ((const u8 *) &input_buf[ 48]);
+  digest[4] = hex_to_u64 ((const u8 *) &input_buf[ 64]);
+  digest[5] = hex_to_u64 ((const u8 *) &input_buf[ 80]);
+  digest[6] = hex_to_u64 ((const u8 *) &input_buf[ 96]);
+  digest[7] = hex_to_u64 ((const u8 *) &input_buf[112]);
+
+  digest[0] = byte_swap_64 (digest[0]);
+  digest[1] = byte_swap_64 (digest[1]);
+  digest[2] = byte_swap_64 (digest[2]);
+  digest[3] = byte_swap_64 (digest[3]);
+  digest[4] = byte_swap_64 (digest[4]);
+  digest[5] = byte_swap_64 (digest[5]);
+  digest[6] = byte_swap_64 (digest[6]);
+  digest[7] = byte_swap_64 (digest[7]);
+
+  digest[0] -= SHA512M_A;
+  digest[1] -= SHA512M_B;
+  digest[2] -= SHA512M_C;
+  digest[3] -= SHA512M_D;
+  digest[4] -= SHA512M_E;
+  digest[5] -= SHA512M_F;
+  digest[6] -= SHA512M_G;
+  digest[7] -= SHA512M_H;
+
+  if (input_buf[128] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 salt_len = input_len - 128 - 1;
+
+  u8 *salt_buf = input_buf + 128 + 1;
+
+  u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
+
+  salt_len = parse_and_store_salt (salt_buf_ptr, salt_buf, salt_len, hashconfig);
+
+  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
+
+  salt->salt_len = salt_len;
+
+  return (PARSER_OK);
+}
+
 /**
  * hook functions
  */
@@ -14618,6 +14673,7 @@ char *strhashtype (const u32 hash_mode)
     case 14700: return ((char *) HT_14700);
     case 14800: return ((char *) HT_14800);
     case 14900: return ((char *) HT_14900);
+    case 15000: return ((char *) HT_15000);
     case 99999: return ((char *) HT_99999);
   }
 
@@ -21842,6 +21898,26 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 3;
+                 break;
+
+    case 15000:  hashconfig->hash_type      = HASH_TYPE_SHA512;
+                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE; // OPTS_TYPE_ST_ADD80 added within kernel
+                 hashconfig->kern_type      = KERN_TYPE_FILEZILLA_SERVER;
+                 hashconfig->dgst_size      = DGST_SIZE_8_8;
+                 hashconfig->parse_func     = filezilla_server_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_PRECOMPUTE_INIT
+                                            | OPTI_TYPE_PRECOMPUTE_MERKLE
+                                            | OPTI_TYPE_EARLY_SKIP
+                                            | OPTI_TYPE_NOT_ITERATED
+                                            | OPTI_TYPE_USES_BITS_64
+                                            | OPTI_TYPE_RAW_HASH;
+                 hashconfig->dgst_pos0      = 14;
+                 hashconfig->dgst_pos1      = 15;
+                 hashconfig->dgst_pos2      = 6;
+                 hashconfig->dgst_pos3      = 7;
                  break;
 
     case 99999:  hashconfig->hash_type      = HASH_TYPE_PLAINTEXT;

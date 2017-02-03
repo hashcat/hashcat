@@ -138,6 +138,7 @@ NVidia users require "NVIDIA Driver" (367.x or later)
 - Kerberos 5 AS-REQ Pre-Auth etype 23
 - Kerberos 5 TGS-REP etype 23
 - Netscape LDAP SHA/SSHA
+- FileZilla Server
 - LM
 - NTLM
 - Domain Cached Credentials (DCC), MS Cache
