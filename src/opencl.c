@@ -306,7 +306,7 @@ static int read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_fi
 
     if (num_read != (size_t) st.st_size)
     {
-      event_log_error (hashcat_ctx, "%s: %m", kernel_file);
+      event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
 
       return -1;
     }
@@ -322,7 +322,7 @@ static int read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_fi
   }
   else
   {
-    event_log_error (hashcat_ctx, "%s: %m", kernel_file);
+    event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
 
     return -1;
   }
@@ -338,7 +338,7 @@ static int write_kernel_binary (hashcat_ctx_t *hashcat_ctx, char *kernel_file, c
 
     if (fp == NULL)
     {
-      event_log_error (hashcat_ctx, "%s: %m", kernel_file);
+      event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
 
       return -1;
     }
@@ -347,7 +347,7 @@ static int write_kernel_binary (hashcat_ctx_t *hashcat_ctx, char *kernel_file, c
     {
       fclose (fp);
 
-      event_log_error (hashcat_ctx, "%s: %m", kernel_file);
+      event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
 
       return -1;
     }
@@ -3772,7 +3772,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (chdir (folder_config->cpath_real) == -1)
     {
-      event_log_error (hashcat_ctx, "%s: %m", folder_config->cpath_real);
+      event_log_error (hashcat_ctx, "%s: %s", folder_config->cpath_real, strerror (errno));
 
       return -1;
     }
@@ -3814,7 +3814,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     {
       if (hc_path_read (files_names[i]) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %m", files_names[i]);
+        event_log_error (hashcat_ctx, "%s: %s", files_names[i], strerror (errno));
 
         return -1;
       }
@@ -3851,7 +3851,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_read (source_file) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %m", source_file);
+        event_log_error (hashcat_ctx, "%s: %s", source_file, strerror (errno));
 
         return -1;
       }
@@ -4052,7 +4052,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_read (source_file) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %m", source_file);
+        event_log_error (hashcat_ctx, "%s: %s", source_file, strerror (errno));
 
         return -1;
       }
@@ -4191,7 +4191,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_read (source_file) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %m", source_file);
+        event_log_error (hashcat_ctx, "%s: %s", source_file, strerror (errno));
 
         return -1;
       }
@@ -4314,7 +4314,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (chdir (folder_config->cwd) == -1)
     {
-      event_log_error (hashcat_ctx, "%s: %m", folder_config->cwd);
+      event_log_error (hashcat_ctx, "%s: %s", folder_config->cwd, strerror (errno));
 
       return -1;
     }

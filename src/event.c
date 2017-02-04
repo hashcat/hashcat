@@ -58,11 +58,7 @@ static int event_log (const char *fmt, va_list ap, char *s, const size_t sz)
 {
   size_t length;
 
-#if defined (__MINGW32__)
-  length = __mingw_vsnprintf (s, sz, fmt, ap);
-#else
   length = vsnprintf (s, sz, fmt, ap);
-#endif
   length = MIN (length, sz);
 
   s[length] = 0;

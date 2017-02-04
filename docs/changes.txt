@@ -53,6 +53,7 @@
 - OpenCL Kernel: Renumbered hash-mode 7600 to 4521
 - OpenCL Device: Do a check on available constant memory size and abort if it's less than 64kB
 - Sessions: Move out handling of multiple instance from restore file into separate pidfile
+- Threads: Restored strerror as %m is unsupported by the BSDs
 - Wordlists: Disable dictstat handling for hash-mode 3000 as it virtually creates words in the wordlist which is not the case for other modes
 - WPA: Changed format for outfile and potfile from essid:mac1:mac2 to hash:essid
 - WPA: Changed format for outfile_check from essid:mac1:mac2 to hash

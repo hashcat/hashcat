@@ -134,7 +134,7 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 
   if (fp == NULL)
   {
-    event_log_error (hashcat_ctx, "%s: %m", new_hashfile);
+    event_log_error (hashcat_ctx, "%s: %s", new_hashfile, strerror (errno));
 
     return -1;
   }
@@ -143,7 +143,7 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
   {
     fclose (fp);
 
-    event_log_error (hashcat_ctx, "%s: %m", new_hashfile);
+    event_log_error (hashcat_ctx, "%s: %s", new_hashfile, strerror (errno));
 
     return -1;
   }
@@ -209,7 +209,7 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 
   if (rename (hashfile, old_hashfile) != 0)
   {
-    event_log_error (hashcat_ctx, "Rename file '%s' to '%s': %m", hashfile, old_hashfile);
+    event_log_error (hashcat_ctx, "Rename file '%s' to '%s': %s", hashfile, old_hashfile, strerror (errno));
 
     return -1;
   }
@@ -218,7 +218,7 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 
   if (rename (new_hashfile, hashfile) != 0)
   {
-    event_log_error (hashcat_ctx, "Rename file '%s' to '%s': %m", new_hashfile, hashfile);
+    event_log_error (hashcat_ctx, "Rename file '%s' to '%s': %s", new_hashfile, hashfile, strerror (errno));
 
     return -1;
   }
@@ -472,7 +472,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
         if (hc_stat (hashes->hashfile, &st) == -1)
         {
-          event_log_error (hashcat_ctx, "%s: %m", hashes->hashfile);
+          event_log_error (hashcat_ctx, "%s: %s", hashes->hashfile, strerror (errno));
 
           return -1;
         }
@@ -485,7 +485,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
         if (hc_stat (hashes->hashfile, &st) == -1)
         {
-          event_log_error (hashcat_ctx, "%s: %m", hashes->hashfile);
+          event_log_error (hashcat_ctx, "%s: %s", hashes->hashfile, strerror (errno));
 
           return -1;
         }
@@ -507,7 +507,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       if ((fp = fopen (hashfile, "rb")) == NULL)
       {
-        event_log_error (hashcat_ctx, "%s: %m", hashfile);
+        event_log_error (hashcat_ctx, "%s: %s", hashfile, strerror (errno));
 
         return -1;
       }
@@ -726,7 +726,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
           if (fp == NULL)
           {
-            event_log_error (hashcat_ctx, "%s: %m", hash_buf);
+            event_log_error (hashcat_ctx, "%s: %s", hash_buf, strerror (errno));
 
             return -1;
           }
@@ -864,7 +864,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       if ((fp = fopen (hashfile, "rb")) == NULL)
       {
-        event_log_error (hashcat_ctx, "%s: %m", hashfile);
+        event_log_error (hashcat_ctx, "%s: %s", hashfile, strerror (errno));
 
         return -1;
       }

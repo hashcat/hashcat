@@ -1277,42 +1277,42 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
   if (hc_path_read (folder_config->cwd) == false)
   {
-    event_log_error (hashcat_ctx, "%s: %m", folder_config->cwd);
+    event_log_error (hashcat_ctx, "%s: %s", folder_config->cwd, strerror (errno));
 
     return -1;
   }
 
   if (hc_path_read (folder_config->install_dir) == false)
   {
-    event_log_error (hashcat_ctx, "%s: %m", folder_config->install_dir);
+    event_log_error (hashcat_ctx, "%s: %s", folder_config->install_dir, strerror (errno));
 
     return -1;
   }
 
   if (hc_path_read (folder_config->profile_dir) == false)
   {
-    event_log_error (hashcat_ctx, "%s: %m", folder_config->profile_dir);
+    event_log_error (hashcat_ctx, "%s: %s", folder_config->profile_dir, strerror (errno));
 
     return -1;
   }
 
   if (hc_path_write (folder_config->session_dir) == false)
   {
-    event_log_error (hashcat_ctx, "%s: %m", folder_config->session_dir);
+    event_log_error (hashcat_ctx, "%s: %s", folder_config->session_dir, strerror (errno));
 
     return -1;
   }
 
   if (hc_path_read (folder_config->shared_dir) == false)
   {
-    event_log_error (hashcat_ctx, "%s: %m", folder_config->shared_dir);
+    event_log_error (hashcat_ctx, "%s: %s", folder_config->shared_dir, strerror (errno));
 
     return -1;
   }
 
   if (hc_path_read (folder_config->cpath_real) == false)
   {
-    event_log_error (hashcat_ctx, "%s: %m", folder_config->cpath_real);
+    event_log_error (hashcat_ctx, "%s: %s", folder_config->cpath_real, strerror (errno));
 
     return -1;
   }
@@ -1325,7 +1325,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     {
       if (hc_path_read (user_options_extra->hc_hash) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %m", user_options_extra->hc_hash);
+        event_log_error (hashcat_ctx, "%s: %s", user_options_extra->hc_hash, strerror (errno));
 
         return -1;
       }
@@ -1342,7 +1342,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_exist (wlfile) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %m", wlfile);
+        event_log_error (hashcat_ctx, "%s: %s", wlfile, strerror (errno));
 
         return -1;
       }
@@ -1354,7 +1354,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_exist (rp_file) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %m", rp_file);
+        event_log_error (hashcat_ctx, "%s: %s", rp_file, strerror (errno));
 
         return -1;
       }
@@ -1371,14 +1371,14 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_read (dictfile1) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %m", dictfile1);
+        event_log_error (hashcat_ctx, "%s: %s", dictfile1, strerror (errno));
 
         return -1;
       }
 
       if (hc_path_read (dictfile2) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %m", dictfile2);
+        event_log_error (hashcat_ctx, "%s: %s", dictfile2, strerror (errno));
 
         return -1;
       }
@@ -1396,7 +1396,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         if (hc_path_read (maskfile) == false)
         {
-          event_log_error (hashcat_ctx, "%s: %m", maskfile);
+          event_log_error (hashcat_ctx, "%s: %s", maskfile, strerror (errno));
 
           return -1;
         }
@@ -1415,7 +1415,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_exist (wlfile) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %m", wlfile);
+        event_log_error (hashcat_ctx, "%s: %s", wlfile, strerror (errno));
 
         return -1;
       }
@@ -1426,7 +1426,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         if (hc_path_read (maskfile) == false)
         {
-          event_log_error (hashcat_ctx, "%s: %m", maskfile);
+          event_log_error (hashcat_ctx, "%s: %s", maskfile, strerror (errno));
 
           return -1;
         }
@@ -1445,7 +1445,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_exist (wlfile) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %m", wlfile);
+        event_log_error (hashcat_ctx, "%s: %s", wlfile, strerror (errno));
 
         return -1;
       }
@@ -1456,7 +1456,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         if (hc_path_read (maskfile) == false)
         {
-          event_log_error (hashcat_ctx, "%s: %m", maskfile);
+          event_log_error (hashcat_ctx, "%s: %s", maskfile, strerror (errno));
 
           return -1;
         }
@@ -1472,7 +1472,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     {
       if (hc_path_write (logfile_ctx->logfile) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %m", logfile_ctx->logfile);
+        event_log_error (hashcat_ctx, "%s: %s", logfile_ctx->logfile, strerror (errno));
 
         return -1;
       }
@@ -1481,7 +1481,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     {
       if (hc_path_create (logfile_ctx->logfile) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %m", logfile_ctx->logfile);
+        event_log_error (hashcat_ctx, "%s: %s", logfile_ctx->logfile, strerror (errno));
 
         return -1;
       }
@@ -1513,7 +1513,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     {
       if (hc_path_write (outfile_ctx->filename) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %m", outfile_ctx->filename);
+        event_log_error (hashcat_ctx, "%s: %s", outfile_ctx->filename, strerror (errno));
 
         return -1;
       }
@@ -1522,7 +1522,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     {
       if (hc_path_create (outfile_ctx->filename) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %m", outfile_ctx->filename);
+        event_log_error (hashcat_ctx, "%s: %s", outfile_ctx->filename, strerror (errno));
 
         return -1;
       }
@@ -1597,7 +1597,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   {
     if (hc_path_write (pidfile_ctx->filename) == false)
     {
-      event_log_error (hashcat_ctx, "%s: %m", pidfile_ctx->filename);
+      event_log_error (hashcat_ctx, "%s: %s", pidfile_ctx->filename, strerror (errno));
 
       return -1;
     }
@@ -1606,7 +1606,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   {
     if (hc_path_create (pidfile_ctx->filename) == false)
     {
-      event_log_error (hashcat_ctx, "%s: %m", pidfile_ctx->filename);
+      event_log_error (hashcat_ctx, "%s: %s", pidfile_ctx->filename, strerror (errno));
 
       return -1;
     }
@@ -1620,7 +1620,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     {
       if (hc_path_write (potfile_ctx->filename) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %m", potfile_ctx->filename);
+        event_log_error (hashcat_ctx, "%s: %s", potfile_ctx->filename, strerror (errno));
 
         return -1;
       }
@@ -1629,7 +1629,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     {
       if (hc_path_create (potfile_ctx->filename) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %m", potfile_ctx->filename);
+        event_log_error (hashcat_ctx, "%s: %s", potfile_ctx->filename, strerror (errno));
 
         return -1;
       }
@@ -1644,7 +1644,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     {
       if (hc_path_write (dictstat_ctx->filename) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %m", dictstat_ctx->filename);
+        event_log_error (hashcat_ctx, "%s: %s", dictstat_ctx->filename, strerror (errno));
 
         return -1;
       }
@@ -1653,7 +1653,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     {
       if (hc_path_create (dictstat_ctx->filename) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %m", dictstat_ctx->filename);
+        event_log_error (hashcat_ctx, "%s: %s", dictstat_ctx->filename, strerror (errno));
 
         return -1;
       }

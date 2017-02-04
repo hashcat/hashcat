@@ -66,7 +66,7 @@ int induct_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         if (rename (root_directory, root_directory_mv) != 0)
         {
-          event_log_error (hashcat_ctx, "Rename directory %s to %s: %m", root_directory, root_directory_mv);
+          event_log_error (hashcat_ctx, "Rename directory %s to %s: %s", root_directory, root_directory_mv, strerror (errno));
 
           return -1;
         }
@@ -75,7 +75,7 @@ int induct_ctx_init (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        event_log_error (hashcat_ctx, "%s: %m", root_directory);
+        event_log_error (hashcat_ctx, "%s: %s", root_directory, strerror (errno));
 
         return -1;
       }
@@ -83,7 +83,7 @@ int induct_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (hc_mkdir (root_directory, 0700) == -1)
     {
-      event_log_error (hashcat_ctx, "%s: %m", root_directory);
+      event_log_error (hashcat_ctx, "%s: %s", root_directory, strerror (errno));
 
       return -1;
     }
@@ -129,7 +129,7 @@ void induct_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      event_log_error (hashcat_ctx, "%s: %m", induct_ctx->root_directory);
+      event_log_error (hashcat_ctx, "%s: %s", induct_ctx->root_directory, strerror (errno));
 
       //return -1;
     }

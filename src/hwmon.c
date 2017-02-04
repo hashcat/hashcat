@@ -109,7 +109,7 @@ static int hm_SYSFS_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int
 
   if (fd_cur == NULL)
   {
-    event_log_error (hashcat_ctx, "%s: %m", path_cur);
+    event_log_error (hashcat_ctx, "%s: %s", path_cur, strerror (errno));
 
     return -1;
   }
@@ -131,7 +131,7 @@ static int hm_SYSFS_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int
 
   if (fd_max == NULL)
   {
-    event_log_error (hashcat_ctx, "%s: %m", path_max);
+    event_log_error (hashcat_ctx, "%s: %s", path_max, strerror (errno));
 
     return -1;
   }
@@ -184,7 +184,7 @@ static int hm_SYSFS_set_fan_control (hashcat_ctx_t *hashcat_ctx, const int devic
 
   if (fd == NULL)
   {
-    event_log_error (hashcat_ctx, "%s: %m", path);
+    event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
 
     return -1;
   }
@@ -216,7 +216,7 @@ static int hm_SYSFS_set_fan_speed_target (hashcat_ctx_t *hashcat_ctx, const int 
 
   if (fd_max == NULL)
   {
-    event_log_error (hashcat_ctx, "%s: %m", path_max);
+    event_log_error (hashcat_ctx, "%s: %s", path_max, strerror (errno));
 
     return -1;
   }
@@ -247,7 +247,7 @@ static int hm_SYSFS_set_fan_speed_target (hashcat_ctx_t *hashcat_ctx, const int 
 
   if (fd == NULL)
   {
-    event_log_error (hashcat_ctx, "%s: %m", path);
+    event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
 
     return -1;
   }
@@ -278,7 +278,7 @@ static int hm_SYSFS_get_temperature_current (hashcat_ctx_t *hashcat_ctx, const i
 
   if (fd == NULL)
   {
-    event_log_error (hashcat_ctx, "%s: %m", path);
+    event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
 
     return -1;
   }
@@ -319,7 +319,7 @@ static int hm_SYSFS_get_pp_dpm_sclk (hashcat_ctx_t *hashcat_ctx, const int devic
 
   if (fd == NULL)
   {
-    event_log_error (hashcat_ctx, "%s: %m", path);
+    event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
 
     return -1;
   }
@@ -372,7 +372,7 @@ static int hm_SYSFS_get_pp_dpm_mclk (hashcat_ctx_t *hashcat_ctx, const int devic
 
   if (fd == NULL)
   {
-    event_log_error (hashcat_ctx, "%s: %m", path);
+    event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
 
     return -1;
   }
@@ -425,7 +425,7 @@ static int hm_SYSFS_get_pp_dpm_pcie (hashcat_ctx_t *hashcat_ctx, const int devic
 
   if (fd == NULL)
   {
-    event_log_error (hashcat_ctx, "%s: %m", path);
+    event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
 
     return -1;
   }
@@ -479,7 +479,7 @@ static int hm_SYSFS_set_power_dpm_force_performance_level (hashcat_ctx_t *hashca
 
   if (fd == NULL)
   {
-    event_log_error (hashcat_ctx, "%s: %m", path);
+    event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
 
     return -1;
   }

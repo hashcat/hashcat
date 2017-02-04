@@ -69,7 +69,7 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       if (fd == NULL)
       {
-        event_log_error (hashcat_ctx, "%s: %m", straight_ctx->dict);
+        event_log_error (hashcat_ctx, "%s: %s", straight_ctx->dict, strerror (errno));
 
         return -1;
       }
@@ -97,7 +97,7 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       if (fd == NULL)
       {
-        event_log_error (hashcat_ctx, "%s: %m", combinator_ctx->dict1);
+        event_log_error (hashcat_ctx, "%s: %s", combinator_ctx->dict1, strerror (errno));
 
         return -1;
       }
@@ -112,7 +112,7 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       if (fd == NULL)
       {
-        event_log_error (hashcat_ctx, "%s: %m", combinator_ctx->dict2);
+        event_log_error (hashcat_ctx, "%s: %s", combinator_ctx->dict2, strerror (errno));
 
         return -1;
       }
@@ -151,7 +151,7 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
     if (fd == NULL)
     {
-      event_log_error (hashcat_ctx, "%s: %m", straight_ctx->dict);
+      event_log_error (hashcat_ctx, "%s: %s", straight_ctx->dict, strerror (errno));
 
       return -1;
     }
@@ -286,7 +286,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
               if (hc_path_read (l1_filename) == false)
               {
-                event_log_error (hashcat_ctx, "%s: %m", l1_filename);
+                event_log_error (hashcat_ctx, "%s: %s", l1_filename, strerror (errno));
 
                 return -1;
               }
@@ -350,7 +350,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
             if (hc_path_read (l1_filename) == false)
             {
-              event_log_error (hashcat_ctx, "%s: %m", l1_filename);
+              event_log_error (hashcat_ctx, "%s: %s", l1_filename, strerror (errno));
 
               return -1;
             }
@@ -405,7 +405,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
             if (hc_path_read (l1_filename) == false)
             {
-              event_log_error (hashcat_ctx, "%s: %m", l1_filename);
+              event_log_error (hashcat_ctx, "%s: %s", l1_filename, strerror (errno));
 
               return -1;
             }

@@ -108,7 +108,7 @@ int loopback_write_open (hashcat_ctx_t *hashcat_ctx)
 
   if (fp == NULL)
   {
-    event_log_error (hashcat_ctx, "%s: %m", loopback_ctx->filename);
+    event_log_error (hashcat_ctx, "%s: %s", loopback_ctx->filename, strerror (errno));
 
     return -1;
   }
