@@ -54,7 +54,7 @@ install:
     - if defined MSYSTEM (%BASH% -lc "pacman -Suuy --noconfirm")
     - if defined MSYSTEM (%BASH% -lc "pacman -Suuy --noconfirm")
 build_script:
-    - %BASH% -lc "cd $(cygpath ${APPVEYOR_BUILD_FOLDER}) && git submodule init && git submodule update && make"
+    - (%BASH% -lc "cd $(cygpath ${APPVEYOR_BUILD_FOLDER}) && git submodule init && git submodule update && make")
 # Allows RDP
 #on_finish:
 #    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
