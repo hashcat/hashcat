@@ -176,12 +176,13 @@ typedef struct wpa
 {
   u32  pke[25];
   u32  eapol[64];
-  int  eapol_size;
-  int  keyver;
-  u8   orig_mac1[6];
-  u8   orig_mac2[6];
-  u8   orig_nonce1[32];
-  u8   orig_nonce2[32];
+  u16  eapol_len;
+  u8   authenticated;
+  u8   keyver;
+  u8   orig_mac_ap[6];
+  u8   orig_mac_sta[6];
+  u8   orig_nonce_ap[32];
+  u8   orig_nonce_sta[32];
   int  essid_reuse;
 
 } wpa_t;
@@ -809,22 +810,27 @@ typedef struct struct_psafe2_hdr
 
 } psafe2_hdr;
 
-typedef struct hccap
+#define HCCAPX_SIGNATURE 0x58504348 // HCPX
+
+struct hccapx
 {
-  char essid[36];
+  u32 signature;
+  u32 version;
+  u8  authenticated;
+  u8  essid_len;
+  u8  essid[32];
+  u8  keyver;
+  u8  keymic[16];
+  u8  mac_ap[6];
+  u8  nonce_ap[32];
+  u8  mac_sta[6];
+  u8  nonce_sta[32];
+  u16 eapol_len;
+  u8  eapol[256];
 
-  u8   mac1[6];
-  u8   mac2[6];
-  u8   nonce1[32];
-  u8   nonce2[32];
+} __attribute__((packed));
 
-  u8   eapol[256];
-  int  eapol_size;
-
-  int  keyver;
-  u8   keymic[16];
-
-} hccap_t;
+typedef struct hccapx hccapx_t;
 
 /**
  * hashtypes enums
@@ -1722,7 +1728,7 @@ char *stroptitype (const u32 opti_type);
 char *strhashtype (const u32 hash_mode);
 char *strparser   (const u32 parser_status);
 
-void to_hccap_t (hashcat_ctx_t *hashcat_ctx, hccap_t *hccap, const u32 salt_pos, const u32 digest_pos);
+void to_hccapx_t (hashcat_ctx_t *hashcat_ctx, hccapx_t *hccapx, const u32 salt_pos, const u32 digest_pos);
 
 void wpa_essid_reuse (hashcat_ctx_t *hashcat_ctx);
 

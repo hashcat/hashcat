@@ -166,11 +166,11 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
       {
         if (hashconfig->hash_mode == 2500)
         {
-          hccap_t hccap;
+          hccapx_t hccapx;
 
-          to_hccap_t (hashcat_ctx, &hccap, salt_pos, digest_pos);
+          to_hccapx_t (hashcat_ctx, &hccapx, salt_pos, digest_pos);
 
-          fwrite (&hccap, sizeof (hccap_t), 1, fp);
+          fwrite (&hccapx, sizeof (hccapx_t), 1, fp);
         }
         else
         {
@@ -477,7 +477,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           return -1;
         }
 
-        hashes_avail = st.st_size / sizeof (hccap_t);
+        hashes_avail = st.st_size / sizeof (hccapx_t);
       }
       else if (hashconfig->hash_mode == 14600)
       {
@@ -713,7 +713,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         {
           if (hash_len == 0)
           {
-            event_log_error (hashcat_ctx, "hccap file not specified");
+            event_log_error (hashcat_ctx, "hccapx file not specified");
 
             return -1;
           }
@@ -733,18 +733,18 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
           if (hashes_avail < 1)
           {
-            event_log_error (hashcat_ctx, "hccap file is empty or corrupt");
+            event_log_error (hashcat_ctx, "hccapx file is empty or corrupt");
 
             fclose (fp);
 
             return -1;
           }
 
-          char *in = (char *) hcmalloc (sizeof (hccap_t));
+          char *in = (char *) hcmalloc (sizeof (hccapx_t));
 
           while (!feof (fp))
           {
-            const int nread = fread (in, sizeof (hccap_t), 1, fp);
+            const int nread = fread (in, sizeof (hccapx_t), 1, fp);
 
             if (nread == 0) break;
 
@@ -755,7 +755,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
               break;
             }
 
-            parser_status = hashconfig->parse_func ((u8 *) in, sizeof (hccap_t), &hashes_buf[hashes_cnt], hashconfig);
+            parser_status = hashconfig->parse_func ((u8 *) in, sizeof (hccapx_t), &hashes_buf[hashes_cnt], hashconfig);
 
             if (parser_status != PARSER_OK)
             {

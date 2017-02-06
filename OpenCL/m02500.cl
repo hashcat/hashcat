@@ -916,12 +916,12 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
     hmac_md5_pad_S (w0, w1, w2, w3, ipad, opad);
 
-    int eapol_size = wpa_bufs[salt_pos].eapol_size;
+    int eapol_len = wpa_bufs[salt_pos].eapol_len;
 
     int eapol_left;
     int eapol_off;
 
-    for (eapol_left = eapol_size, eapol_off = 0; eapol_left >= 56; eapol_left -= 64, eapol_off += 16)
+    for (eapol_left = eapol_len, eapol_off = 0; eapol_left >= 56; eapol_left -= 64, eapol_off += 16)
     {
       w0[0] = wpa_bufs[salt_pos].eapol[eapol_off +  0];
       w0[1] = wpa_bufs[salt_pos].eapol[eapol_off +  1];
@@ -957,7 +957,7 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     w2[3] = wpa_bufs[salt_pos].eapol[eapol_off + 11];
     w3[0] = wpa_bufs[salt_pos].eapol[eapol_off + 12];
     w3[1] = wpa_bufs[salt_pos].eapol[eapol_off + 13];
-    w3[2] = (64 + eapol_size) * 8;
+    w3[2] = (64 + eapol_len) * 8;
     w3[3] = 0;
 
     u32 digest1[4];
@@ -998,12 +998,12 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
     hmac_sha1_pad_S (w0, w1, w2, w3, ipad, opad);
 
-    int eapol_size = wpa_bufs[salt_pos].eapol_size;
+    int eapol_len = wpa_bufs[salt_pos].eapol_len;
 
     int eapol_left;
     int eapol_off;
 
-    for (eapol_left = eapol_size, eapol_off = 0; eapol_left >= 56; eapol_left -= 64, eapol_off += 16)
+    for (eapol_left = eapol_len, eapol_off = 0; eapol_left >= 56; eapol_left -= 64, eapol_off += 16)
     {
       w0[0] = wpa_bufs[salt_pos].eapol[eapol_off +  0];
       w0[1] = wpa_bufs[salt_pos].eapol[eapol_off +  1];
@@ -1040,7 +1040,7 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     w3[0] = wpa_bufs[salt_pos].eapol[eapol_off + 12];
     w3[1] = wpa_bufs[salt_pos].eapol[eapol_off + 13];
     w3[2] = 0;
-    w3[3] = (64 + eapol_size) * 8;
+    w3[3] = (64 + eapol_len) * 8;
 
     u32 digest2[5];
 

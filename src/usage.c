@@ -8,7 +8,7 @@
 
 static const char *USAGE_MINI[] =
 {
-  "Usage: %s [options]... hash|hashfile|hccapfile [dictionary|mask|directory]...",
+  "Usage: %s [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]...",
   "",
   "Try --help for more help.",
   NULL
@@ -18,7 +18,7 @@ static const char *USAGE_BIG[] =
 {
   "%s, advanced password recovery",
   "",
-  "Usage: %s [options]... hash|hashfile|hccapfile [dictionary|mask|directory]...",
+  "Usage: %s [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]...",
   "",
   "- [ Options ] -",
   "",

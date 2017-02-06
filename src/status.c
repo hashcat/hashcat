@@ -241,20 +241,20 @@ char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
 
       wpa_t *wpa = (wpa_t *) hashes->esalts_buf;
 
-      snprintf (tmp_buf, HCBUFSIZ_TINY - 1, "%s (%02x:%02x:%02x:%02x:%02x:%02x <-> %02x:%02x:%02x:%02x:%02x:%02x)",
+      snprintf (tmp_buf, HCBUFSIZ_TINY - 1, "%s (AP:%02x:%02x:%02x:%02x:%02x:%02x STA:%02x:%02x:%02x:%02x:%02x:%02x)",
         (char *) hashes->salts_buf[0].salt_buf,
-        wpa->orig_mac1[0],
-        wpa->orig_mac1[1],
-        wpa->orig_mac1[2],
-        wpa->orig_mac1[3],
-        wpa->orig_mac1[4],
-        wpa->orig_mac1[5],
-        wpa->orig_mac2[0],
-        wpa->orig_mac2[1],
-        wpa->orig_mac2[2],
-        wpa->orig_mac2[3],
-        wpa->orig_mac2[4],
-        wpa->orig_mac2[5]);
+        wpa->orig_mac_ap[0],
+        wpa->orig_mac_ap[1],
+        wpa->orig_mac_ap[2],
+        wpa->orig_mac_ap[3],
+        wpa->orig_mac_ap[4],
+        wpa->orig_mac_ap[5],
+        wpa->orig_mac_sta[0],
+        wpa->orig_mac_sta[1],
+        wpa->orig_mac_sta[2],
+        wpa->orig_mac_sta[3],
+        wpa->orig_mac_sta[4],
+        wpa->orig_mac_sta[5]);
 
       return tmp_buf;
     }
