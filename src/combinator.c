@@ -66,14 +66,14 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if ((fp1 = fopen (dictfile1, "rb")) == NULL)
     {
-      event_log_error (hashcat_ctx, "%s: %m", dictfile1);
+      event_log_error (hashcat_ctx, "%s: %s", dictfile1, strerror (errno));
 
       return -1;
     }
 
     if ((fp2 = fopen (dictfile2, "rb")) == NULL)
     {
-      event_log_error (hashcat_ctx, "%s: %m", dictfile2);
+      event_log_error (hashcat_ctx, "%s: %s", dictfile2, strerror (errno));
 
       return -1;
     }

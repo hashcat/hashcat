@@ -315,7 +315,7 @@ int outfile_write_open (hashcat_ctx_t *hashcat_ctx)
 
   if (fp == NULL)
   {
-    event_log_error (hashcat_ctx, "%s: %m", outfile_ctx->filename);
+    event_log_error (hashcat_ctx, "%s: %s", outfile_ctx->filename, strerror (errno));
 
     return -1;
   }
@@ -324,7 +324,7 @@ int outfile_write_open (hashcat_ctx_t *hashcat_ctx)
   {
     fclose (fp);
 
-    event_log_error (hashcat_ctx, "%s: %m", outfile_ctx->filename);
+    event_log_error (hashcat_ctx, "%s: %s", outfile_ctx->filename, strerror (errno));
 
     return -1;
   }

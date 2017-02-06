@@ -118,7 +118,7 @@ static int write_pidfile (hashcat_ctx_t *hashcat_ctx)
 
   if (fp == NULL)
   {
-    event_log_error (hashcat_ctx, "%s: %m", pidfile_filename);
+    event_log_error (hashcat_ctx, "%s: %s", pidfile_filename, strerror (errno));
 
     return -1;
   }

@@ -77,7 +77,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
           if (hc_stat (root_directory, &outfile_check_stat) == -1)
           {
-            event_log_error (hashcat_ctx, "%s: %m", root_directory);
+            event_log_error (hashcat_ctx, "%s: %s", root_directory, strerror (errno));
 
             return -1;
           }
@@ -331,7 +331,7 @@ int outcheck_ctx_init (hashcat_ctx_t *hashcat_ctx)
   {
     if (hc_mkdir (outcheck_ctx->root_directory, 0700) == -1)
     {
-      event_log_error (hashcat_ctx, "%s: %m", outcheck_ctx->root_directory);
+      event_log_error (hashcat_ctx, "%s: %s", outcheck_ctx->root_directory, strerror (errno));
 
       return -1;
     }
@@ -359,7 +359,7 @@ void outcheck_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      event_log_error (hashcat_ctx, "%s: %m", outcheck_ctx->root_directory);
+      event_log_error (hashcat_ctx, "%s: %s", outcheck_ctx->root_directory, strerror (errno));
 
       //return -1;
     }

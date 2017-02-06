@@ -35,7 +35,7 @@ static int init_restore (hashcat_ctx_t *hashcat_ctx)
 
   if (getcwd (rd->cwd, 255) == NULL)
   {
-    event_log_error (hashcat_ctx, "getcwd(): %m");
+    event_log_error (hashcat_ctx, "getcwd(): %s", strerror (errno));
 
     return -1;
   }
@@ -55,7 +55,7 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
 
   if (fp == NULL)
   {
-    event_log_error (hashcat_ctx, "Restore file '%s': %m", eff_restore_file);
+    event_log_error (hashcat_ctx, "Restore file '%s': %s", eff_restore_file, strerror (errno));
 
     return -1;
   }
@@ -134,14 +134,14 @@ static int write_restore (hashcat_ctx_t *hashcat_ctx)
 
   if (fp == NULL)
   {
-    event_log_error (hashcat_ctx, "%s: %m", new_restore_file);
+    event_log_error (hashcat_ctx, "%s: %s", new_restore_file, strerror (errno));
 
     return -1;
   }
 
   if (setvbuf (fp, NULL, _IONBF, 0))
   {
-    event_log_error (hashcat_ctx, "setvbuf file '%s': %m", new_restore_file);
+    event_log_error (hashcat_ctx, "setvbuf file '%s': %s", new_restore_file, strerror (errno));
 
     fclose (fp);
 
@@ -187,13 +187,13 @@ int cycle_restore (hashcat_ctx_t *hashcat_ctx)
   {
     if (unlink (eff_restore_file) == -1)
     {
-      event_log_warning (hashcat_ctx, "Unlink file '%s': %m", eff_restore_file);
+      event_log_warning (hashcat_ctx, "Unlink file '%s': %s", eff_restore_file, strerror (errno));
     }
   }
 
   if (rename (new_restore_file, eff_restore_file) == -1)
   {
-    event_log_warning (hashcat_ctx, "Rename file '%s' to '%s': %m", new_restore_file, eff_restore_file);
+    event_log_warning (hashcat_ctx, "Rename file '%s' to '%s': %s", new_restore_file, eff_restore_file, strerror (errno));
   }
 
   return 0;
