@@ -14736,7 +14736,9 @@ void to_hccapx_t (hashcat_ctx_t *hashcat_ctx, hccapx_t *hccapx, const u32 salt_p
 
   const salt_t *salt = &salts_buf[salt_pos];
 
-  memcpy (hccapx->essid, salt->salt_buf, salt->salt_len);
+  hccapx->essid_len = salt->salt_len;
+
+  memcpy (hccapx->essid, salt->salt_buf, hccapx->essid_len);
 
   wpa_t *wpas = (wpa_t *) esalts_buf;
   wpa_t *wpa  = &wpas[salt_pos];
