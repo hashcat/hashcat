@@ -40,6 +40,7 @@
 - Fixed use of option --keyspace in combination with -m 2500 (WPA)
 - Fixed rule 'O' (RULE_OP_MANGLE_OMIT) in host mode in case the offset + length parameter equals the length of the input word
 - Fixed duplicate detection for WPA handshakes with the same ESSID
+- Fixed clEnqueueNDRangeKernel(): CL_UNKNOWN_ERROR caused by an invalid work-item count during weak-hash-check
 
 ##
 ## Technical

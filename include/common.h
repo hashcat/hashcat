@@ -34,6 +34,7 @@
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
 
 #define CEIL(a) ((a - (int) (a)) > 0 ? a + 1 : a)
+#define CEILDIV(a,b) (((a) + (b) - 1) / (b))
 
 #if defined (__APPLE__)
 #define __stdcall

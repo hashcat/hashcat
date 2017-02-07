@@ -1366,7 +1366,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
     {
       if (hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD)
       {
-        num_elements = CEIL (num_elements / device_param->vector_width);
+        num_elements = CEILDIV (num_elements, device_param->vector_width);
       }
     }
 
