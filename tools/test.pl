@@ -4857,7 +4857,7 @@ sub gen_hash
   }
   elsif ($mode == 2500)
   {
-    my ($bssid, $stmac, $snonce, $anonce, $eapol, $keyver, $eapol_size);
+    my ($bssid, $stmac, $snonce, $anonce, $eapol, $keyver, $eapol_len, $essid_len);
 
     if (! defined ($additional_param))
     {
@@ -4886,7 +4886,7 @@ sub gen_hash
       $eapol  = $additional_param6;
     }
 
-    $eapol_size = length ($eapol);
+    $eapol_len = length ($eapol);
 
     # constants
 
@@ -4927,45 +4927,54 @@ sub gen_hash
     $mic = substr ($mic, 0, 16);
 
     #
-    # format the binary output
+    # format the binary output (.hccapx version 3)
     #
 
-    $hash_buf = "";
+    my $HCCAPX_VERSION = 3;
 
-    # first the essid (NULL-padded up to the first 36 bytes)
+    # signature
+    $hash_buf = "HCPX";
 
+    # format version
+    $hash_buf .= pack ("L<", $HCCAPX_VERSION);
+
+    # authenticated
+    $hash_buf .= pack ("C", 1);
+
+    # essid length
+    $essid_len = length ($salt_buf);
+    $hash_buf .= pack ("C", $essid_len);
+
+    # essid (NULL-padded up to the first 32 bytes)
     $hash_buf .= $salt_buf;
-    $hash_buf .= "\x00" x (36 - length ($salt_buf));
-
-    # the 2 MAC addresses
-
-    $hash_buf .= $bssid;
-    $hash_buf .= $stmac;
-
-    # nonces
-
-    $hash_buf .= $snonce;
-    $hash_buf .= $anonce;
-
-    # eapol
-
-    $hash_buf .= $eapol;
-    $hash_buf .= "\x00" x (256 - $eapol_size);
-
-    # eapol size
-
-    $hash_buf .= pack ("L*", $eapol_size);
+    $hash_buf .= "\x00" x (32 - $essid_len);
 
     # key version
+    $hash_buf .= pack ("C", $keyver);
 
-    $hash_buf .= pack ("L*", $keyver);
-
-    # and finally: the key mic
-
+    # key mic
     $hash_buf .= $mic;
 
-    # base64 encode the output
+    # access point MAC
+    $hash_buf .= $bssid;
 
+    # access point nonce
+    $hash_buf .= $snonce;
+
+    # client MAC
+    $hash_buf .= $stmac;
+
+    # client nonce
+    $hash_buf .= $anonce;
+
+    # eapol length
+    $hash_buf .= pack ("S<", $eapol_len);
+
+    # eapol
+    $hash_buf .= $eapol;
+    $hash_buf .= "\x00" x (256 - $eapol_len);
+
+    # base64 encode the output
     $tmp_hash = encode_base64 ($hash_buf, '');
   }
   elsif ($mode == 2600)
