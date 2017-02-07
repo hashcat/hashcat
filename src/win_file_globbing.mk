@@ -104,7 +104,7 @@ ifneq (,$(IS_WIN_BUILD_NATIVE))
 
 # entering this code path means: we need to check for CRT_glob.o since we try to build binaries for windows operating systems
 
-CRT_GLOB := $(CRT_GLOB_FILE_NAME)
+CRT_GLOB := $(shell $(FIND) / -name $(CRT_GLOB_FILE_NAME) -print -quit)
 
 ifeq (,$(CRT_GLOB))
 define WARNING_MESSAGE=
