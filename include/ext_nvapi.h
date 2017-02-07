@@ -12,8 +12,8 @@
 
 #define NVAPI_INTERFACE extern NvAPI_Status
 
-typedef unsigned long NvU32;
-typedef   signed long NvS32;
+typedef unsigned int NvU32;
+typedef   signed int NvS32;
 
 #define NV_DECLARE_HANDLE(name) struct name##__ { int unused; }; typedef struct name##__ *name
 
