@@ -812,6 +812,9 @@ typedef struct struct_psafe2_hdr
 
 #define HCCAPX_SIGNATURE 0x58504348 // HCPX
 
+// this is required to force mingw to accept the packed attribute
+#pragma pack(push,1)
+
 struct hccapx
 {
   u32 signature;
@@ -831,6 +834,8 @@ struct hccapx
 } __attribute__((packed));
 
 typedef struct hccapx hccapx_t;
+
+#pragma pack(pop)
 
 /**
  * hashtypes enums
