@@ -98,7 +98,7 @@ endif
 ## win native
 ##
 
-IS_WIN_BUILD_NATIVE := $(filter CYGWIN,$(UNAME))$(filter MSYS2,$(UNAME))
+IS_WIN_BUILD_NATIVE := $(filter MSYS2,$(UNAME))
 
 ifneq (,$(IS_WIN_BUILD_NATIVE))
 
