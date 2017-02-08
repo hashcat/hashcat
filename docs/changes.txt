@@ -8,6 +8,7 @@
 - Added support for decompressing LZMA1/LZMA2 data for -m 11600 = 7-Zip to validate the CRC
 - Added support for showing all user names with --show and --left if --username was specified
 - Added support for loading hccapx files
+- Added support for GPU temperature management on cygwin build
 
 ##
 ## Algorithms
@@ -41,6 +42,7 @@
 - Fixed rule 'O' (RULE_OP_MANGLE_OMIT) in host mode in case the offset + length parameter equals the length of the input word
 - Fixed duplicate detection for WPA handshakes with the same ESSID
 - Fixed clEnqueueNDRangeKernel(): CL_UNKNOWN_ERROR caused by an invalid work-item count during weak-hash-check
+- Fixed nvapi datatype definition for NvS32 and NvU32
 
 ##
 ## Technical
