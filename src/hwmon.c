@@ -549,6 +549,49 @@ static int nvml_init (hashcat_ctx_t *hashcat_ctx)
     hcfree (Buffer);
   }
 
+  #elif defined (__CYGWIN__)
+
+  nvml->lib = hc_dlopen("nvml.dll", RTLD_NOW);
+
+  if (!nvml->lib)
+  {
+    FILE *nvml_lib = fopen ("/proc/registry/HKEY_LOCAL_MACHINE/SOFTWARE/NVIDIA Corporation/Global/NVSMI/NVSMIPATH", "rb");
+
+    if (nvml_lib == NULL)
+    {
+      //if (user_options->quiet == false)
+      //  event_log_error (hashcat_ctx, "NVML library load failed: %m, proceed without NVML HWMon enabled");
+
+      return -1;
+    }
+
+    char *nvml_winpath, *nvml_cygpath;
+
+    nvml_winpath = (char *) hcmalloc (100);
+
+    fread (nvml_winpath, 100, 1, nvml_lib);
+
+    ssize_t size = cygwin_conv_path (CCP_WIN_A_TO_POSIX | CCP_PROC_CYGDRIVE, nvml_winpath, NULL, 0);
+
+    if (size > 0)
+    {
+      nvml_cygpath = (char *) hcmalloc (size + 9);
+
+      cygwin_conv_path (CCP_WIN_A_TO_POSIX | CCP_PROC_CYGDRIVE, nvml_winpath, nvml_cygpath, size);
+    }
+    else
+    {
+      //if (user_options->quiet == false)
+      //  event_log_error (hashcat_ctx, "Could not find NVML in the system, proceed without NVML HWMon enabled");
+
+      return -1;
+    }
+
+    strcat (nvml_cygpath, "/nvml.dll");
+
+    nvml->lib = hc_dlopen (nvml_cygpath, RTLD_NOW);
+  }
+
   #elif defined (_POSIX)
   nvml->lib = hc_dlopen ("libnvidia-ml.so", RTLD_NOW);
   #endif
@@ -1052,13 +1095,27 @@ static int nvapi_init (hashcat_ctx_t *hashcat_ctx)
   memset (nvapi, 0, sizeof (NVAPI_PTR));
 
   #if defined (_WIN)
+
   #if defined (_WIN64)
   nvapi->lib = hc_dlopen ("nvapi64.dll");
   #else
   nvapi->lib = hc_dlopen ("nvapi.dll");
   #endif
+
+  #else
+
+  #if defined (__CYGWIN__)
+
+  #if defined (__x86_x64__)
+  nvapi->lib = hc_dlopen ("nvapi64.dll", RTLD_NOW);
+  #else
+  nvapi->lib = hc_dlopen ("nvapi.dll", RTLD_NOW);
+  #endif
+
   #else
   nvapi->lib = hc_dlopen ("nvapi.so", RTLD_NOW); // uhm yes, but .. yeah
+  #endif
+
   #endif
 
   if (!nvapi->lib)
