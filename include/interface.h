@@ -1733,6 +1733,7 @@ char *stroptitype (const u32 opti_type);
 char *strhashtype (const u32 hash_mode);
 char *strparser   (const u32 parser_status);
 
+int check_old_hccap (const char *hashfile);
 void to_hccapx_t (hashcat_ctx_t *hashcat_ctx, hccapx_t *hccapx, const u32 salt_pos, const u32 digest_pos);
 
 void wpa_essid_reuse (hashcat_ctx_t *hashcat_ctx);

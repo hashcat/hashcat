@@ -477,6 +477,20 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           return -1;
         }
 
+        // 392 = old hccap_t size
+
+        if ((st.st_size % 392) == 0)
+        {
+          const int rc = check_old_hccap (hashes->hashfile);
+
+          if (rc == 1)
+          {
+            event_log_error (hashcat_ctx, "%s: Old hccap file format detected! You need to update: https://hashcat.net/forum/thread-6273.html", hashes->hashfile);
+
+            return -1;
+          }
+        }
+
         hashes_avail = st.st_size / sizeof (hccapx_t);
       }
       else if (hashconfig->hash_mode == 14600)

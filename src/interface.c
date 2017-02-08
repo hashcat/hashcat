@@ -14720,6 +14720,25 @@ char *strparser (const u32 parser_status)
   return ((char *) PA_255);
 }
 
+int check_old_hccap (const char *hashfile)
+{
+  FILE *fp = fopen (hashfile, "rb");
+
+  if (fp == NULL) return -1;
+
+  u32 signature;
+
+  const int nread = fread (&signature, sizeof (u32), 1, fp);
+
+  if (nread != 1) return -1;
+
+  fclose (fp);
+
+  if (signature == HCCAPX_SIGNATURE) return 0;
+
+  return 1;
+}
+
 void to_hccapx_t (hashcat_ctx_t *hashcat_ctx, hccapx_t *hccapx, const u32 salt_pos, const u32 digest_pos)
 {
   const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
