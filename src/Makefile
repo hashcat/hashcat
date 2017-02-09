@@ -16,6 +16,11 @@ UNAME                   := $(shell uname -s)
 # we need to strip the windows version number to be able to build hashcat on cygwin hosts
 UNAME                   := $(patsubst CYGWIN_NT-%,CYGWIN,$(UNAME))
 
+##
+## Detect Operating System version
+## 
+OSVERSION		:= $(shell uname -r|cut -d. -f1)
+
 # same for msys
 UNAME                   := $(patsubst MSYS_NT-%,MSYS2,$(UNAME))
 UNAME                   := $(patsubst MINGW32_NT-%,MSYS2,$(UNAME))
@@ -85,11 +90,18 @@ FIND                    := find
 INSTALL                 := install
 RM                      := rm
 SED                     := sed
-
+SEDOPS			:= -i
 ifeq ($(UNAME),Darwin)
 CC                      := clang
+ifeq ($(OSVERSION),16)
+SED			:= sed
+SEDOPS			:= -i ""
+else
 SED                     := gsed
 endif
+endif
+
+
 
 ifeq ($(UNAME),FreeBSD)
 CC                      := cc
@@ -353,9 +365,9 @@ install_docs:
 	$(FIND) masks/    -type f -exec $(INSTALL) -m 644 {}    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
 	$(FIND) rules/    -type d -exec $(INSTALL) -m 755 -d    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
 	$(FIND) rules/    -type f -exec $(INSTALL) -m 644 {}    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
-	$(SED) -i 's/\.\/hashcat/hashcat/'                      $(DESTDIR)$(DOCUMENT_FOLDER)/example0.sh
-	$(SED) -i 's/\.\/hashcat/hashcat/'                      $(DESTDIR)$(DOCUMENT_FOLDER)/example400.sh
-	$(SED) -i 's/\.\/hashcat/hashcat/'                      $(DESTDIR)$(DOCUMENT_FOLDER)/example500.sh
+	$(SED) $(SEDOPS) 's/\.\/hashcat/hashcat/'			$(DESTDIR)$(DOCUMENT_FOLDER)/example0.sh
+	$(SED) $(SEDOPS) 's/\.\/hashcat/hashcat/'                   $(DESTDIR)$(DOCUMENT_FOLDER)/example400.sh
+	$(SED) $(SEDOPS) 's/\.\/hashcat/hashcat/'                  	$(DESTDIR)$(DOCUMENT_FOLDER)/example500.sh
 
 install_shared:
 	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(SHARED_FOLDER)
