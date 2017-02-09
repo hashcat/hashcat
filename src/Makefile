@@ -259,16 +259,6 @@ LFLAGS_CROSS_WIN64      += -Wl,--dynamicbase -Wl,--nxcompat
 LFLAGS_CROSS_WIN64      += -lpsapi
 
 ##
-## Windows CRT file globbing
-##
-
-CRT_GLOB_32              :=
-CRT_GLOB_64              :=
-CRT_GLOB_INCLUDE_FOLDER  := $(dir $(lastword $(MAKEFILE_LIST)))
-
-include $(CRT_GLOB_INCLUDE_FOLDER)/win_file_globbing.mk
-
-##
 ## Objects
 ##
 
@@ -277,19 +267,11 @@ OBJS_ALL                := affinity autotune benchmark bitmap bitops combinator 
 NATIVE_STATIC_OBJS      := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).NATIVE.STATIC.o)
 NATIVE_SHARED_OBJS      := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).NATIVE.SHARED.o)
 
-ifeq ($(UNAME),CYGWIN)
-NATIVE_STATIC_OBJS      += $(CRT_GLOB)
-endif # CYGWIN
-
-ifeq ($(UNAME),MSYS2)
-NATIVE_STATIC_OBJS      += $(CRT_GLOB)
-endif # MSYS2
-
 LINUX_32_OBJS           := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).LINUX.32.o)
 LINUX_64_OBJS           := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).LINUX.64.o)
 
-WIN_32_OBJS             := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.32.o) $(CRT_GLOB_32)
-WIN_64_OBJS             := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.64.o) $(CRT_GLOB_64)
+WIN_32_OBJS             := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.32.o)
+WIN_64_OBJS             := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.64.o)
 
 ##
 ## Targets: Native Compilation

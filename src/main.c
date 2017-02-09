@@ -20,6 +20,10 @@
 #include "interface.h"
 #include "event.h"
 
+#if defined(__MINGW64__) || defined(__MINGW32__)
+int _dowildcard = -1;
+#endif
+
 static void main_log_clear_line (MAYBE_UNUSED const int prev_len, MAYBE_UNUSED FILE *fp)
 {
   #if defined (_WIN)
