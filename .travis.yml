@@ -2,12 +2,8 @@ os:
   - linux
   - osx
 language: c
-install:
-  - git submodule init
-  - git submodule update
 compiler:
   - clang
   - gcc
 script:
   - make
-
