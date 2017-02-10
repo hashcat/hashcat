@@ -2,14 +2,6 @@ environment:
     CYG_MIRROR: http://cygwin.mirror.constant.com
     CYG_PACKAGES: make,gcc-core,clang
     matrix:
-        - MSYSTEM: MINGW64
-          BASH: C:\msys64\usr\bin\bash
-          MSYS_CACHE: C:\msys64\var\cache\pacman\pkg
-          CC: gcc
-        - MSYSTEM: MINGW32
-          BASH: C:\msys64\usr\bin\bash
-          MSYS_CACHE: C:\msys64\var\cache\pacman\pkg
-          CC: gcc
         - CYG_ROOT: C:\cygwin64
           CYG_CACHE: C:\cygwin64\var\cache\setup
           CYG_SETUP: setup-x86_64.exe
@@ -20,6 +12,14 @@ environment:
           CYG_SETUP: setup-x86.exe
           BASH: C:\cygwin\bin\bash
           CC: gcc
+        - MSYSTEM: MINGW64
+          BASH: C:\msys64\usr\bin\bash
+          MSYS_CACHE: C:\msys64\var\cache\pacman\pkg
+          CC: gcc
+        - MSYSTEM: MINGW32
+          BASH: C:\msys64\usr\bin\bash
+          MSYS_CACHE: C:\msys64\var\cache\pacman\pkg
+          CC: gcc
 
 clone_depth: 1
 
@@ -27,7 +27,7 @@ clone_depth: 1
 init:
     - git config --global core.autocrlf input
 # Allows RDP
-#    - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+    - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 # Install needed build dependencies
 install:
@@ -39,4 +39,4 @@ build_script:
     - if defined BASH (%BASH% -lc "cd $(cygpath ${APPVEYOR_BUILD_FOLDER}) && git submodule update --init && make")
 # Allows RDP
 #on_finish:
-#    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
