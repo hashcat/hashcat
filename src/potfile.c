@@ -123,7 +123,7 @@ int potfile_init (hashcat_ctx_t *hashcat_ctx)
     {
       event_log_warning (hashcat_ctx, "Old potfile detected: %s", potfile_old);
       event_log_warning (hashcat_ctx, "New potfile is: %s ", potfile_ctx->filename);
-      event_log_warning (hashcat_ctx, "");
+      event_log_warning (hashcat_ctx, NULL);
     }
 
     hcfree (potfile_old);
@@ -365,13 +365,13 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
     {
       if (potfile_ctx->keep_all_usernames == true)
       {
-        potfile_update_hashes (hashcat_ctx, &hash_buf, hashes_buf, hashes_cnt, sort_by_hash_no_salt, "", 0);
+        potfile_update_hashes (hashcat_ctx, &hash_buf, hashes_buf, hashes_cnt, sort_by_hash_no_salt, NULL, 0);
       }
       else
       {
         hash_t *found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_no_salt, (void *) hashconfig);
 
-        potfile_update_hash (hashcat_ctx, found, "", 0);
+        potfile_update_hash (hashcat_ctx, found, NULL, 0);
       }
     }
   }

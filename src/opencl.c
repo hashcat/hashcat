@@ -387,7 +387,7 @@ int ocl_init (hashcat_ctx_t *hashcat_ctx)
   if (ocl->lib == NULL)
   {
     event_log_error (hashcat_ctx, "Can not find an OpenCL ICD loader library");
-    event_log_error (hashcat_ctx, "");
+    event_log_error (hashcat_ctx, NULL);
     event_log_error (hashcat_ctx, "You're probably missing the OpenCL runtime and driver installation");
 
     #if defined (__linux__)
@@ -2210,7 +2210,7 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (platforms_cnt == 0)
   {
     event_log_error (hashcat_ctx, "ATTENTION! No OpenCL compatible platform found");
-    event_log_error (hashcat_ctx, "");
+    event_log_error (hashcat_ctx, NULL);
     event_log_error (hashcat_ctx, "You're probably missing the OpenCL runtime installation");
 
     #if defined (__linux__)
@@ -2988,7 +2988,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
               if (intel_warn == true)
               {
                 event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken Intel OpenCL runtime detected!", device_id + 1);
-                event_log_error (hashcat_ctx, "");
+                event_log_error (hashcat_ctx, NULL);
                 event_log_error (hashcat_ctx, "You are STRONGLY encouraged to use the official supported NVIDIA driver");
                 event_log_error (hashcat_ctx, "See hashcat's homepage for official supported NVIDIA drivers");
                 event_log_error (hashcat_ctx, "You can use --force to override this but do not post error reports if you do so");
@@ -3021,7 +3021,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
               if (amd_warn == true)
               {
                 event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken AMD driver detected!", device_id + 1);
-                event_log_error (hashcat_ctx, "");
+                event_log_error (hashcat_ctx, NULL);
                 event_log_error (hashcat_ctx, "You are STRONGLY encouraged to use the official supported AMD driver");
                 event_log_error (hashcat_ctx, "See hashcat's homepage for official supported AMD drivers");
                 event_log_error (hashcat_ctx, "Also see: https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#i_may_have_the_wrong_driver_installed_what_should_i_do");
@@ -3041,7 +3041,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
               if (nv_warn == true)
               {
                 event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken NVIDIA driver detected!", device_id + 1);
-                event_log_error (hashcat_ctx, "");
+                event_log_error (hashcat_ctx, NULL);
                 event_log_error (hashcat_ctx, "You are STRONGLY encouraged to use the official supported NVIDIA driver");
                 event_log_error (hashcat_ctx, "See hashcat's homepage for official supported NVIDIA drivers");
                 event_log_error (hashcat_ctx, "Also see: https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#i_may_have_the_wrong_driver_installed_what_should_i_do");
@@ -3060,7 +3060,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
             if ((strstr (device_param->device_opencl_version, "beignet")) || (strstr (device_param->device_version, "beignet")))
             {
               event_log_error (hashcat_ctx, "* Device #%u: Intel beignet driver detected!", device_id + 1);
-              event_log_error (hashcat_ctx, "");
+              event_log_error (hashcat_ctx, NULL);
               event_log_error (hashcat_ctx, "The beignet driver has been marked as half-baked and likely to fail kernel compilation");
               event_log_error (hashcat_ctx, "You can use --force to override this but do not post error reports if you do so");
 
@@ -3187,7 +3187,7 @@ void opencl_ctx_devices_update_power (hashcat_ctx_t *hashcat_ctx)
         event_log_warning (hashcat_ctx, "Therefore, hashcat is unable to utilize the full parallelization power of your device(s).");
         event_log_warning (hashcat_ctx, "The cracking speed will drop.");
         event_log_warning (hashcat_ctx, "Workaround: https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#how_to_create_more_work_for_full_speed");
-        event_log_warning (hashcat_ctx, "");
+        event_log_warning (hashcat_ctx, NULL);
       }
     }
   }
@@ -3645,7 +3645,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       #if defined (DEBUG)
       if (user_options->quiet == false) event_log_warning (hashcat_ctx, "SCRYPT tmto optimizer value set to: %u, mem: %" PRIu64, scrypt_tmto_final, (u64) size_scrypt);
-      if (user_options->quiet == false) event_log_warning (hashcat_ctx, "");
+      if (user_options->quiet == false) event_log_warning (hashcat_ctx, NULL);
       #endif
     }
 
