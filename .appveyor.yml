@@ -1,42 +1,64 @@
 environment:
-    CYG_MIRROR: http://cygwin.mirror.constant.com
-    CYG_PACKAGES: make,gcc-core,clang
-    matrix:
-        - CYG_ROOT: C:\cygwin64
-          CYG_CACHE: C:\cygwin64\var\cache\setup
-          CYG_SETUP: setup-x86_64.exe
-          BASH: C:\cygwin64\bin\bash
-          CC: gcc
-        - CYG_ROOT: C:\cygwin
-          CYG_CACHE: C:\cygwin\var\cache\setup
-          CYG_SETUP: setup-x86.exe
-          BASH: C:\cygwin\bin\bash
-          CC: gcc
-        - MSYSTEM: MINGW64
-          BASH: C:\msys64\usr\bin\bash
-          MSYS_CACHE: C:\msys64\var\cache\pacman\pkg
-          CC: gcc
-        - MSYSTEM: MINGW32
-          BASH: C:\msys64\usr\bin\bash
-          MSYS_CACHE: C:\msys64\var\cache\pacman\pkg
-          CC: gcc
+  CYG_MIRROR: http://cygwin.mirror.constant.com
+  CYG_PACKAGES: make,gcc-core
+  DOCUMENT_FOLDER: /share/doc/hashcat
+  matrix:
+    - CYG_ROOT: C:\cygwin64
+      CYG_CACHE: C:\cygwin64\var\cache\setup
+      CYG_SETUP: setup-x86_64.exe
+      BASH: C:\cygwin64\bin\bash
+      CC: gcc
+    - CYG_ROOT: C:\cygwin
+      CYG_CACHE: C:\cygwin\var\cache\setup
+      CYG_SETUP: setup-x86.exe
+      BASH: C:\cygwin\bin\bash
+      CC: gcc
+    - MSYSTEM: MINGW64
+      MSYS_CACHE: C:\msys64\var\cache\pacman\pkg
+      KERNEL_CACHE: C:\msys64\usr\local\bin\OpenCL\
+      BASH: C:\msys64\usr\bin\bash
+      CC: gcc
+    - MSYSTEM: MINGW32
+      MSYS_CACHE: C:\msys64\var\cache\pacman\pkg
+      KERNEL_CACHE: C:\msys64\usr\local\bin\OpenCL\
+      BASH: C:\msys64\usr\bin\bash
+      CC: gcc
 
-clone_depth: 1
+# if we have too many commits at the same time, we might need to download more than just the last commit for appveyor to succeed
+# otherwise we get the error: "fatal: reference is not a tree <commit>"
+clone_depth: 15
 
-# Attempt to ensure we don't try to convert line endings to Win32 CRLF as this will cause build to fail
 init:
-    - git config --global core.autocrlf input
-# Allows RDP
-#    - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+  # Don't try to convert line endings to Win32 CRLF
+  - git config --global core.autocrlf input
 
-# Install needed build dependencies
 install:
-    - ps: if (Test-Path Env:\CYG_ROOT) { Start-FileDownload "http://cygwin.com/$env:CYG_SETUP" -FileName "$env:CYG_SETUP" }
-    - if defined CYG_ROOT (%CYG_SETUP% --quiet-mode --no-shortcuts --only-site --root "%CYG_ROOT%" --site "%CYG_MIRROR%" --local-package-dir "%CYG_CACHE%" --packages "%CYG_PACKAGES%" --upgrade-also)
-    - if defined MSYSTEM (%BASH% -lc "pacman -Suuy --noconfirm")
-    - if defined MSYSTEM (%BASH% -lc "pacman -Suuy --noconfirm")
+  - ps: if (Test-Path Env:\CYG_ROOT) { Start-FileDownload "http://cygwin.com/$env:CYG_SETUP" -FileName "$env:CYG_SETUP" }
+  - if defined CYG_ROOT (%CYG_SETUP% --quiet-mode --no-shortcuts --only-site --root "%CYG_ROOT%" --site "%CYG_MIRROR%" --local-package-dir "%CYG_CACHE%" --packages "%CYG_PACKAGES%" --upgrade-also)
+  - if defined MSYSTEM (%BASH% -lc "pacman -Suuy --noconfirm")
+  # the following line is not a duplicate line:
+  # it is necessary to upgrade the MSYS base files and after that all the packages
+  # the 2 separate commands/lines are required because a new shell is necessary for each step
+  - if defined MSYSTEM (%BASH% -lc "pacman -Suuy --noconfirm")
+
 build_script:
-    - if defined BASH (%BASH% -lc "cd $(cygpath ${APPVEYOR_BUILD_FOLDER}) && git submodule update --init && make")
-# Allows RDP
-#on_finish:
-#    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+  - if defined BASH (%BASH% -lc "cd $(cygpath ${APPVEYOR_BUILD_FOLDER}) && git submodule update --init && make install")
+
+test_script:
+  # some file globbing tests
+  #  1. hash file should not exist and therefore hashcat should complain (if it does not there might be a problem)
+  #  2. hash file should expand to example0.hash and succeed
+  - ps: >-
+      if (Test-Path Env:\MSYSTEM)
+      {
+        mkdir $env:KERNEL_CACHE 2>&1 | out-null
+      }
+
+      & $env:BASH -lc "hashcat.exe -m 0 --show $env:DOCUMENT_FOLDER/*file_not_found.hash" 2>&1 | out-null
+
+      if ($LastExitCode -eq 0)
+      {
+        throw "test failed"
+      }
+
+      & $env:BASH -lc "hashcat.exe -m 0 --show $env:DOCUMENT_FOLDER/*ple0.hash"
