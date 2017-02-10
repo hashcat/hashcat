@@ -774,6 +774,34 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  // custom charset checks
+
+  if ((user_options->custom_charset_1 != NULL)
+   || (user_options->custom_charset_2 != NULL)
+   || (user_options->custom_charset_3 != NULL)
+   || (user_options->custom_charset_4 != NULL))
+  {
+    if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+    {
+      event_log_error (hashcat_ctx, "Custom-charsets not supported in attack-mode 0");
+
+      return -1;
+    }
+    else if (user_options->attack_mode == ATTACK_MODE_COMBI)
+    {
+      event_log_error (hashcat_ctx, "Custom-charsets not supported in attack-mode 1");
+
+      return -1;
+    }
+
+    if (user_options->hc_argc < 2)
+    {
+      event_log_error (hashcat_ctx, "You need to specify a mask if you specify a custom-charset");
+
+      return -1;
+    }
+  }
+
   // argc / argv checks
 
   bool show_error = true;
