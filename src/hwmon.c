@@ -1510,7 +1510,7 @@ static int hm_XNVCTRL_get_fan_control (hashcat_ctx_t *hashcat_ctx, const int gpu
     event_log_warning (hashcat_ctx, "This error typically occurs when you did not setup NVidia Coolbits.");
     event_log_warning (hashcat_ctx, "Run the following command to fix: sudo nvidia-xconfig --cool-bits=12");
     event_log_warning (hashcat_ctx, "Do not forget to restart X afterwards.");
-    event_log_warning (hashcat_ctx, "");
+    event_log_warning (hashcat_ctx, NULL);
 
     return -1;
   }

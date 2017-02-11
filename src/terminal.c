@@ -36,7 +36,7 @@ void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
     if (user_options->machine_readable == false)
     {
       event_log_info (hashcat_ctx, "%s (%s) starting in benchmark mode...", PROGNAME, version_tag);
-      event_log_info (hashcat_ctx, "");
+      event_log_info (hashcat_ctx, NULL);
     }
     else
     {
@@ -46,22 +46,22 @@ void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
   else if (user_options->restore == true)
   {
     event_log_info (hashcat_ctx, "%s (%s) starting in restore mode...", PROGNAME, version_tag);
-    event_log_info (hashcat_ctx, "");
+    event_log_info (hashcat_ctx, NULL);
   }
   else if (user_options->speed_only == true)
   {
     event_log_info (hashcat_ctx, "%s (%s) starting in speed-only mode...", PROGNAME, version_tag);
-    event_log_info (hashcat_ctx, "");
+    event_log_info (hashcat_ctx, NULL);
   }
   else if (user_options->progress_only == true)
   {
     event_log_info (hashcat_ctx, "%s (%s) starting in progress-only mode...", PROGNAME, version_tag);
-    event_log_info (hashcat_ctx, "");
+    event_log_info (hashcat_ctx, NULL);
   }
   else
   {
     event_log_info (hashcat_ctx, "%s (%s) starting...", PROGNAME, version_tag);
-    event_log_info (hashcat_ctx, "");
+    event_log_info (hashcat_ctx, NULL);
   }
 }
 
@@ -160,7 +160,7 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
 
     hc_thread_mutex_lock (status_ctx->mux_display);
 
-    event_log_info (hashcat_ctx, "");
+    event_log_info (hashcat_ctx, NULL);
 
     switch (ch)
     {
@@ -168,11 +168,11 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
       case '\r':
       case '\n':
 
-        event_log_info (hashcat_ctx, "");
+        event_log_info (hashcat_ctx, NULL);
 
         status_display (hashcat_ctx);
 
-        event_log_info (hashcat_ctx, "");
+        event_log_info (hashcat_ctx, NULL);
 
         if (quiet == false) send_prompt ();
 
@@ -180,13 +180,13 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
 
       case 'b':
 
-        event_log_info (hashcat_ctx, "");
+        event_log_info (hashcat_ctx, NULL);
 
         bypass (hashcat_ctx);
 
         event_log_info (hashcat_ctx, "Next dictionary / mask in queue selected, bypassing current one");
 
-        event_log_info (hashcat_ctx, "");
+        event_log_info (hashcat_ctx, NULL);
 
         if (quiet == false) send_prompt ();
 
@@ -194,7 +194,7 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
 
       case 'p':
 
-        event_log_info (hashcat_ctx, "");
+        event_log_info (hashcat_ctx, NULL);
 
         SuspendThreads (hashcat_ctx);
 
@@ -203,7 +203,7 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
           event_log_info (hashcat_ctx, "Paused");
         }
 
-        event_log_info (hashcat_ctx, "");
+        event_log_info (hashcat_ctx, NULL);
 
         if (quiet == false) send_prompt ();
 
@@ -211,7 +211,7 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
 
       case 'r':
 
-        event_log_info (hashcat_ctx, "");
+        event_log_info (hashcat_ctx, NULL);
 
         ResumeThreads (hashcat_ctx);
 
@@ -220,7 +220,7 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
           event_log_info (hashcat_ctx, "Resumed");
         }
 
-        event_log_info (hashcat_ctx, "");
+        event_log_info (hashcat_ctx, NULL);
 
         if (quiet == false) send_prompt ();
 
@@ -228,7 +228,7 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
 
       case 'c':
 
-        event_log_info (hashcat_ctx, "");
+        event_log_info (hashcat_ctx, NULL);
 
         stop_at_checkpoint (hashcat_ctx);
 
@@ -241,7 +241,7 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
           event_log_info (hashcat_ctx, "Checkpoint disabled: Restore Point updates will no longer be monitored");
         }
 
-        event_log_info (hashcat_ctx, "");
+        event_log_info (hashcat_ctx, NULL);
 
         if (quiet == false) send_prompt ();
 
@@ -249,7 +249,7 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
 
       case 'q':
 
-        event_log_info (hashcat_ctx, "");
+        event_log_info (hashcat_ctx, NULL);
 
         myquit (hashcat_ctx);
 
@@ -468,7 +468,7 @@ void opencl_info (hashcat_ctx_t *hashcat_ctx)
   const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
 
   event_log_info (hashcat_ctx, "OpenCL Info:");
-  event_log_info (hashcat_ctx, "");
+  event_log_info (hashcat_ctx, NULL);
 
   cl_uint         platforms_cnt         = opencl_ctx->platforms_cnt;
   cl_platform_id *platforms             = opencl_ctx->platforms;
@@ -488,7 +488,7 @@ void opencl_info (hashcat_ctx_t *hashcat_ctx)
     event_log_info (hashcat_ctx, "  Vendor  : %s",  platform_vendor);
     event_log_info (hashcat_ctx, "  Name    : %s",  platform_name);
     event_log_info (hashcat_ctx, "  Version : %s",  platform_version);
-    event_log_info (hashcat_ctx, "");
+    event_log_info (hashcat_ctx, NULL);
 
     for (cl_uint devices_idx = 0; devices_idx < devices_cnt; devices_idx++)
     {
@@ -519,7 +519,7 @@ void opencl_info (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "    Memory         : %" PRIu64 "/%" PRIu64 " MB allocatable", device_maxmem_alloc / 1024 / 1024, device_global_mem / 1024 / 1024);
       event_log_info (hashcat_ctx, "    OpenCL Version : %s", device_opencl_version);
       event_log_info (hashcat_ctx, "    Driver Version : %s", driver_version);
-      event_log_info (hashcat_ctx, "");
+      event_log_info (hashcat_ctx, NULL);
     }
   }
 }
@@ -589,7 +589,7 @@ void opencl_info_compact (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
-    event_log_info (hashcat_ctx, "");
+    event_log_info (hashcat_ctx, NULL);
   }
 }
 
