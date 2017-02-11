@@ -272,7 +272,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         if (hc_path_is_directory (l0_filename) == true)
         {
-          char **dictionary_files = NULL;
+          char **dictionary_files;
 
           dictionary_files = scan_directory (l0_filename);
 
@@ -336,7 +336,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_is_directory (l0_filename) == true)
       {
-        char **dictionary_files = NULL;
+        char **dictionary_files;
 
         dictionary_files = scan_directory (l0_filename);
 
@@ -391,7 +391,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_is_directory (l0_filename) == true)
       {
-        char **dictionary_files = NULL;
+        char **dictionary_files;
 
         dictionary_files = scan_directory (l0_filename);
 

@@ -573,8 +573,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
    * load hashes, part II: allocate required memory, set pointers
    */
 
-  hash_t *hashes_buf     = NULL;
-  void   *digests_buf    = NULL;
+  hash_t *hashes_buf;
+  void   *digests_buf;
   salt_t *salts_buf      = NULL;
   void   *esalts_buf     = NULL;
   void   *hook_salts_buf = NULL;
@@ -758,7 +758,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
           while (!feof (fp))
           {
-            const int nread = fread (in, sizeof (hccapx_t), 1, fp);
+            const size_t nread = fread (in, sizeof (hccapx_t), 1, fp);
 
             if (nread == 0) break;
 

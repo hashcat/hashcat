@@ -256,8 +256,6 @@ char **scan_directory (const char *path)
 
   files[num_files] = NULL;
 
-  num_files++;
-
   hcfree (tmp_path);
 
   return (files);
