@@ -2365,7 +2365,16 @@ if [ "${PACKAGE}" -eq 1 ]; then
 
   # for convenience: 'run package' is default action for packaged test.sh ( + add other defaults too )
 
-  sed -i -e 's/^\(PACKAGE_FOLDER\)=""/\1="$( echo "${BASH_SOURCE[0]}" | sed \"s!test.sh\\$!!\" )"/' \
+  SED_IN_PLACE='-i'
+
+  UNAME=$(uname -s)
+
+  # of course OSX requires us to implement a special case (sed -i "" for the backup file)
+  if [ "${UNAME}" == "Darwin" ] ; then
+    SED_IN_PLACE='-i ""'
+  fi
+
+  sed "${SED_IN_PLACE}" -e 's/^\(PACKAGE_FOLDER\)=""/\1="$( echo "${BASH_SOURCE[0]}" | sed \"s!test.sh\\$!!\" )"/' \
     -e "s/^\(HT\)=0/\1=${HT}/" \
     -e "s/^\(MODE\)=0/\1=${MODE}/" \
     -e "s/^\(ATTACK\)=0/\1=${ATTACK}/" \
