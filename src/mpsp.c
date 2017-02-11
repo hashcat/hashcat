@@ -531,13 +531,13 @@ static void mp_setup_sys (cs_t *mp_sys)
                                                    mp_sys[7].cs_len = pos; }
 }
 
-static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr, char *buf, u32 index)
+static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr, char *buf, const u32 userindex)
 {
   FILE *fp = fopen (buf, "rb");
 
   if (fp == NULL) // feof() in case if file is empty
   {
-    const int rc = mp_expand (hashcat_ctx, buf, strlen (buf), mp_sys, mp_usr, index, 1);
+    const int rc = mp_expand (hashcat_ctx, buf, strlen (buf), mp_sys, mp_usr, userindex, 1);
 
     if (rc == -1) return -1;
   }
@@ -576,7 +576,7 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
       return -1;
     }
 
-    const int rc = mp_expand (hashcat_ctx, mp_file, len, mp_sys, mp_usr, index, 0);
+    const int rc = mp_expand (hashcat_ctx, mp_file, len, mp_sys, mp_usr, userindex, 0);
 
     if (rc == -1) return -1;
   }
@@ -584,11 +584,11 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
   return 0;
 }
 
-static void mp_reset_usr (cs_t *mp_usr, u32 index)
+static void mp_reset_usr (cs_t *mp_usr, const u32 userindex)
 {
-  mp_usr[index].cs_len = 0;
+  mp_usr[userindex].cs_len = 0;
 
-  memset (mp_usr[index].cs_buf, 0, sizeof (mp_usr[index].cs_buf));
+  memset (mp_usr[userindex].cs_buf, 0, sizeof (mp_usr[userindex].cs_buf));
 }
 
 static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)

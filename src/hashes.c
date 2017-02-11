@@ -573,15 +573,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
    * load hashes, part II: allocate required memory, set pointers
    */
 
-  hash_t *hashes_buf;
-  void   *digests_buf;
+  hash_t *hashes_buf     = (hash_t *) hccalloc (hashes_avail, sizeof (hash_t));
+  void   *digests_buf    = (void *)   hccalloc (hashes_avail, hashconfig->dgst_size);
   salt_t *salts_buf      = NULL;
   void   *esalts_buf     = NULL;
   void   *hook_salts_buf = NULL;
-
-  hashes_buf = (hash_t *) hccalloc (hashes_avail, sizeof (hash_t));
-
-  digests_buf = (void *) hccalloc (hashes_avail, hashconfig->dgst_size);
 
   if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY))
   {

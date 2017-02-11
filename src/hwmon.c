@@ -324,7 +324,7 @@ static int hm_SYSFS_get_pp_dpm_sclk (hashcat_ctx_t *hashcat_ctx, const int devic
     return -1;
   }
 
-  int clock = 0;
+  int clockfreq = 0;
 
   while (!feof (fd))
   {
@@ -342,14 +342,14 @@ static int hm_SYSFS_get_pp_dpm_sclk (hashcat_ctx_t *hashcat_ctx, const int devic
 
     int profile = 0;
 
-    int rc = sscanf (ptr, "%d: %dMhz", &profile, &clock);
+    int rc = sscanf (ptr, "%d: %dMhz", &profile, &clockfreq);
 
     if (rc == 2) break;
   }
 
   fclose (fd);
 
-  *val = clock;
+  *val = clockfreq;
 
   hcfree (syspath);
 
@@ -377,7 +377,7 @@ static int hm_SYSFS_get_pp_dpm_mclk (hashcat_ctx_t *hashcat_ctx, const int devic
     return -1;
   }
 
-  int clock = 0;
+  int clockfreq = 0;
 
   while (!feof (fd))
   {
@@ -395,14 +395,14 @@ static int hm_SYSFS_get_pp_dpm_mclk (hashcat_ctx_t *hashcat_ctx, const int devic
 
     int profile = 0;
 
-    int rc = sscanf (ptr, "%d: %dMhz", &profile, &clock);
+    int rc = sscanf (ptr, "%d: %dMhz", &profile, &clockfreq);
 
     if (rc == 2) break;
   }
 
   fclose (fd);
 
-  *val = clock;
+  *val = clockfreq;
 
   hcfree (syspath);
 
@@ -712,13 +712,13 @@ static int hm_NVML_nvmlDeviceGetCount (hashcat_ctx_t *hashcat_ctx, unsigned int 
   return 0;
 }
 
-static int hm_NVML_nvmlDeviceGetHandleByIndex (hashcat_ctx_t *hashcat_ctx, unsigned int index, nvmlDevice_t *device)
+static int hm_NVML_nvmlDeviceGetHandleByIndex (hashcat_ctx_t *hashcat_ctx, unsigned int device_index, nvmlDevice_t *device)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
   NVML_PTR *nvml = hwmon_ctx->hm_nvml;
 
-  const nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetHandleByIndex (index, device);
+  const nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetHandleByIndex (device_index, device);
 
   if (nvml_rc != NVML_SUCCESS)
   {
@@ -836,13 +836,13 @@ static int hm_NVML_nvmlDeviceGetUtilizationRates (hashcat_ctx_t *hashcat_ctx, nv
   return 0;
 }
 
-static int hm_NVML_nvmlDeviceGetClockInfo (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, nvmlClockType_t type, unsigned int *clock)
+static int hm_NVML_nvmlDeviceGetClockInfo (hashcat_ctx_t *hashcat_ctx, nvmlDevice_t device, nvmlClockType_t type, unsigned int *clockfreq)
 {
   hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
   NVML_PTR *nvml = hwmon_ctx->hm_nvml;
 
-  const nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetClockInfo (device, type, clock);
+  const nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetClockInfo (device, type, clockfreq);
 
   if (nvml_rc != NVML_SUCCESS)
   {
@@ -2840,16 +2840,16 @@ int hm_get_memoryspeed_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 dev
 
     if (hwmon_ctx->hm_sysfs)
     {
-      int clock;
+      int clockfreq;
 
-      if (hm_SYSFS_get_pp_dpm_mclk (hashcat_ctx, device_id, &clock) == -1)
+      if (hm_SYSFS_get_pp_dpm_mclk (hashcat_ctx, device_id, &clockfreq) == -1)
       {
         hwmon_ctx->hm_device[device_id].memoryspeed_get_supported = false;
 
         return -1;
       }
 
-      return clock;
+      return clockfreq;
     }
   }
 
@@ -2857,16 +2857,16 @@ int hm_get_memoryspeed_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 dev
   {
     if (hwmon_ctx->hm_nvml)
     {
-      unsigned int clock;
+      unsigned int clockfreq;
 
-      if (hm_NVML_nvmlDeviceGetClockInfo (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvml, NVML_CLOCK_MEM, &clock) == -1)
+      if (hm_NVML_nvmlDeviceGetClockInfo (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvml, NVML_CLOCK_MEM, &clockfreq) == -1)
       {
         hwmon_ctx->hm_device[device_id].memoryspeed_get_supported = false;
 
         return -1;
       }
 
-      return clock;
+      return clockfreq;
     }
   }
 
@@ -2906,16 +2906,16 @@ int hm_get_corespeed_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 devic
 
     if (hwmon_ctx->hm_sysfs)
     {
-      int clock;
+      int clockfreq;
 
-      if (hm_SYSFS_get_pp_dpm_sclk (hashcat_ctx, device_id, &clock) == -1)
+      if (hm_SYSFS_get_pp_dpm_sclk (hashcat_ctx, device_id, &clockfreq) == -1)
       {
         hwmon_ctx->hm_device[device_id].corespeed_get_supported = false;
 
         return -1;
       }
 
-      return clock;
+      return clockfreq;
     }
   }
 
@@ -2923,16 +2923,16 @@ int hm_get_corespeed_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 devic
   {
     if (hwmon_ctx->hm_nvml)
     {
-      unsigned int clock;
+      unsigned int clockfreq;
 
-      if (hm_NVML_nvmlDeviceGetClockInfo (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvml, NVML_CLOCK_SM, &clock) == -1)
+      if (hm_NVML_nvmlDeviceGetClockInfo (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvml, NVML_CLOCK_SM, &clockfreq) == -1)
       {
         hwmon_ctx->hm_device[device_id].corespeed_get_supported = false;
 
         return -1;
       }
 
-      return clock;
+      return clockfreq;
     }
   }
 
