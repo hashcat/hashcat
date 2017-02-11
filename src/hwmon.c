@@ -571,6 +571,8 @@ static int nvml_init (hashcat_ctx_t *hashcat_ctx)
 
     fread (nvml_winpath, 100, 1, nvml_lib);
 
+    fclose (nvml_lib);
+
     ssize_t size = cygwin_conv_path (CCP_WIN_A_TO_POSIX | CCP_PROC_CYGDRIVE, nvml_winpath, NULL, 0);
 
     if (size > 0)

@@ -12275,9 +12275,6 @@ int axcrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   if (salt_len != 32) return (PARSER_SALT_LENGTH);
 
-  /* Skip '*' */
-  wrapped_key_pos++;
-
   u32 wrapped_key_len = input_len - 11 - 1 - wrapping_rounds_len - 1 - salt_len - 1;
 
   if (wrapped_key_len != 48) return (PARSER_SALT_LENGTH);
@@ -13120,8 +13117,6 @@ int zip2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   u32 param7_len = param8_pos - param7_pos;
 
-  param8_pos++;
-
   const u32 type  = atoll ((const char *) param0_pos);
   const u32 mode  = atoll ((const char *) param1_pos);
   const u32 magic = atoll ((const char *) param2_pos);
@@ -13428,7 +13423,7 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   struct luks_phdr hdr;
 
-  const int nread = fread (&hdr, sizeof (hdr), 1, fp);
+  const size_t nread = fread (&hdr, sizeof (hdr), 1, fp);
 
   if (nread != 1) return (PARSER_LUKS_FILE_SIZE);
 
@@ -13637,23 +13632,23 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   const u32 keyMaterialOffset = byte_swap_32 (hdr.keyblock[keyslot_idx].keyMaterialOffset);
 
-  const int rc_seek1 = fseek (fp, keyMaterialOffset * 512, SEEK_SET);
+  const int rc_seek1 = fseeko (fp, keyMaterialOffset * 512, SEEK_SET);
 
   if (rc_seek1 == -1) return (PARSER_LUKS_FILE_SIZE);
 
-  const int nread2 = fread (luks->af_src_buf, keyBytes, stripes, fp);
+  const size_t nread2 = fread (luks->af_src_buf, keyBytes, stripes, fp);
 
-  if (nread2 != (int) stripes) return (PARSER_LUKS_FILE_SIZE);
+  if (nread2 != stripes) return (PARSER_LUKS_FILE_SIZE);
 
   // finally, copy some encrypted payload data for entropy check
 
   const u32 payloadOffset = byte_swap_32 (hdr.payloadOffset);
 
-  const int rc_seek2 = fseek (fp, payloadOffset * 512, SEEK_SET);
+  const int rc_seek2 = fseeko (fp, payloadOffset * 512, SEEK_SET);
 
   if (rc_seek2 == -1) return (PARSER_LUKS_FILE_SIZE);
 
-  const int nread3 = fread (luks->ct_buf, sizeof (u32), 128, fp);
+  const size_t nread3 = fread (luks->ct_buf, sizeof (u32), 128, fp);
 
   if (nread3 != 128) return (PARSER_LUKS_FILE_SIZE);
 
@@ -14728,7 +14723,7 @@ int check_old_hccap (const char *hashfile)
 
   u32 signature;
 
-  const int nread = fread (&signature, sizeof (u32), 1, fp);
+  const size_t nread = fread (&signature, sizeof (u32), 1, fp);
 
   if (nread != 1) return -1;
 
