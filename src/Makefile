@@ -16,11 +16,6 @@ UNAME                   := $(shell uname -s)
 # we need to strip the windows version number to be able to build hashcat on cygwin hosts
 UNAME                   := $(patsubst CYGWIN_NT-%,CYGWIN,$(UNAME))
 
-##
-## Detect Operating System version
-## 
-OSVERSION		:= $(shell uname -r|cut -d. -f1)
-
 # same for msys
 UNAME                   := $(patsubst MSYS_NT-%,MSYS2,$(UNAME))
 UNAME                   := $(patsubst MINGW32_NT-%,MSYS2,$(UNAME))
@@ -90,16 +85,12 @@ FIND                    := find
 INSTALL                 := install
 RM                      := rm
 SED                     := sed
-SEDOPS			:= -i
+SED_IN_PLACE            := -i
 
 ifeq ($(UNAME),Darwin)
 CC                      := clang
-ifeq ($(OSVERSION),16)
-SED			:= sed
-SEDOPS			:= -i ""
-else
-SED                     := gsed
-endif
+# the sed -i option of OSX requires a parameter for the backup file (we just use "")
+SED_IN_PLACE            := -i ""
 endif
 
 ifeq ($(UNAME),FreeBSD)
@@ -173,10 +164,10 @@ LFLAGS                  := $(LDFLAGS)
 ifeq ($(DEBUG),0)
 CFLAGS                  += -O2
 LFLAGS                  += -s
-else 
+else
 ifeq ($(DEBUG),1)
 CFLAGS                  += -DDEBUG -g -ggdb
-else 
+else
 ifeq ($(DEBUG),2)
 CFLAGS                  += -DDEBUG -g -ggdb
 CFLAGS                  += -fsanitize=address -fno-omit-frame-pointer
@@ -345,9 +336,9 @@ install_docs:
 	$(FIND) masks/    -type f -exec $(INSTALL) -m 644 {}    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
 	$(FIND) rules/    -type d -exec $(INSTALL) -m 755 -d    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
 	$(FIND) rules/    -type f -exec $(INSTALL) -m 644 {}    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
-	$(SED) $(SEDOPS) 's/\.\/hashcat/hashcat/'		$(DESTDIR)$(DOCUMENT_FOLDER)/example0.sh
-	$(SED) $(SEDOPS) 's/\.\/hashcat/hashcat/'		$(DESTDIR)$(DOCUMENT_FOLDER)/example400.sh
-	$(SED) $(SEDOPS) 's/\.\/hashcat/hashcat/'		$(DESTDIR)$(DOCUMENT_FOLDER)/example500.sh
+	$(SED) $(SED_IN_PLACE) 's/\.\/hashcat/hashcat/'         $(DESTDIR)$(DOCUMENT_FOLDER)/example0.sh
+	$(SED) $(SED_IN_PLACE) 's/\.\/hashcat/hashcat/'         $(DESTDIR)$(DOCUMENT_FOLDER)/example400.sh
+	$(SED) $(SED_IN_PLACE) 's/\.\/hashcat/hashcat/'         $(DESTDIR)$(DOCUMENT_FOLDER)/example500.sh
 
 install_shared:
 	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(SHARED_FOLDER)
