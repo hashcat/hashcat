@@ -1,6 +1,7 @@
 # this is a workaround because some OpenCL headers cause problems with older gcc compilers (undefined macro: _WIN32)
 before_install:
- - sed -i 's/if _WIN32/if defined (_WIN32)/' deps/OpenCL-Headers/CL/cl_platform.h
+ - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sed -i "" 's/if _WIN32/if defined (_WIN32)/' deps/OpenCL-Headers/CL/cl_platform.h; fi
+ - if [[ "$TRAVIS_OS_NAME" != "osx" ]]; then sed -i    's/if _WIN32/if defined (_WIN32)/' deps/OpenCL-Headers/CL/cl_platform.h; fi
 os:
   - linux
   - osx
