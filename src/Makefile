@@ -120,7 +120,6 @@ VERSION_TAG             := $(shell test -d .git && git describe --tags --dirty=+
 ##
 
 CFLAGS                  += -pipe -std=c99 -Iinclude/ -Iinclude/lzma_sdk/ -IOpenCL/
-CFLAGS                  += -Wno-format-zero-length
 
 ifeq ($(PRODUCTION),0)
 CFLAGS                  += -W
