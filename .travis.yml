@@ -1,3 +1,9 @@
+# disable the default submodule logic (it doesn't respect our "opencl12" branch dependency of the OpenCL-Headers)
+git:
+  submodules: false
+before_install:
+  - git submodule update --init --recursive
+
 os:
   - linux
   - osx
