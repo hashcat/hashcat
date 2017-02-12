@@ -13,12 +13,10 @@
 #if defined (_POSIX)
 #include <sys/types.h>
 #include <sys/stat.h>
-#endif // _POSIX
-
-#if defined (_WIN)
+#else
 #include <windows.h>
 #include <psapi.h>
-#endif // _WIN
+#endif // _POSIX
 
 #define RESTORE_VERSION_MIN 340
 #define RESTORE_VERSION_CUR 340

@@ -40,7 +40,7 @@ static void out_push (out_t *out, const u8 *pw_buf, const int pw_len)
 
   out->len += pw_len + 2;
 
-  #endif
+  #endif // _POSIX
 
   if (out->len >= BUFSIZ - 100)
   {

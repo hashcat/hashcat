@@ -12,7 +12,7 @@
 #include "thread.h"
 
 /*
-#if defined (_WIN)
+#if defined (__WIN32__)
 
 BOOL WINAPI sigHandler_default (DWORD sig)
 {

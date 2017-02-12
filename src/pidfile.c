@@ -57,7 +57,7 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
 
     hcfree (pidbin);
 
-    #elif defined (_WIN)
+    #elif defined (__WIN32__)
 
     HANDLE hProcess = OpenProcess (PROCESS_ALL_ACCESS, FALSE, pd->pid);
 
@@ -88,7 +88,7 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
     hcfree (pidbin);
     hcfree (pidbin2);
 
-    #endif
+    #endif // _POSIX
   }
 
   hcfree (pd);
@@ -108,11 +108,11 @@ static int init_pidfile (hashcat_ctx_t *hashcat_ctx)
 
   if (rc == -1) return -1;
 
-  #if defined (_POSIX)
-  pd->pid = getpid ();
-  #elif defined (_WIN)
+  #if   defined (__WIN32__)
   pd->pid = GetCurrentProcessId ();
-  #endif
+  #else
+  pd->pid = getpid ();
+  #endif // __WIN32__
 
   return 0;
 }

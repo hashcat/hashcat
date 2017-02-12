@@ -11,23 +11,9 @@
 
 #if defined (__APPLE__)
 #include <OpenCL/cl.h>
-#endif
-
-#if defined (_WIN)
+#else
 #include <CL/cl.h>
-#endif
-
-#if defined (__linux__)
-#include <CL/cl.h>
-#endif
-
-#if defined (__FreeBSD__)
-#include <CL/cl.h>
-#endif
-
-#if defined (__CYGWIN__)
-#include <CL/cl.h>
-#endif
+#endif // __APPLE__
 
 // NVIDIA extras
 
@@ -82,11 +68,11 @@ typedef cl_int           (CL_API_CALL *OCL_CLRELEASEPROGRAM)          (cl_progra
 typedef cl_int           (CL_API_CALL *OCL_CLSETKERNELARG)            (cl_kernel, cl_uint, size_t, const void *);
 typedef cl_int           (CL_API_CALL *OCL_CLWAITFOREVENTS)           (cl_uint, const cl_event *);
 
-#if defined (_POSIX)
-typedef void *OCL_LIB;
-#else
+#if defined (__WIN32__)
 typedef HINSTANCE OCL_LIB;
-#endif
+#else
+typedef void *OCL_LIB;
+#endif // __WIN32__
 
 typedef struct hc_opencl_lib
 {

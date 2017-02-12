@@ -217,11 +217,11 @@ NVAPI_INTERFACE NvAPI_GPU_GetBusSlotId (NvPhysicalGpuHandle hPhysicalGpu, NvU32 
 
 typedef NvPhysicalGpuHandle HM_ADAPTER_NVAPI;
 
-#if defined(_WIN32) || defined(__WIN32__)
+#if defined (__WIN32__)
 #define NVAPI_API_CALL __stdcall
 #else
 #define NVAPI_API_CALL
-#endif
+#endif // __WIN32__
 
 typedef int *(*NVAPI_API_CALL NVAPI_QUERYINTERFACE) (unsigned int);
 typedef int (*NVAPI_API_CALL NVAPI_INITIALIZE) (void);
@@ -235,11 +235,11 @@ typedef int (*NVAPI_API_CALL NVAPI_GPU_RESTORECOOLERSETTINGS) (NvPhysicalGpuHand
 typedef int (*NVAPI_API_CALL NVAPI_GPU_GETBUSID) (NvPhysicalGpuHandle, NvU32 *);
 typedef int (*NVAPI_API_CALL NVAPI_GPU_GETBUSSLOTID) (NvPhysicalGpuHandle, NvU32 *);
 
-#if defined (_POSIX)
-typedef void *NVAPI_LIB;
-#else
+#if defined (__WIN32__)
 typedef HINSTANCE NVAPI_LIB;
-#endif
+#else
+typedef void *NVAPI_LIB;
+#endif // __WIN32__
 
 typedef struct hm_nvapi_lib
 {

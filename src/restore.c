@@ -11,7 +11,7 @@
 #include "shared.h"
 #include "restore.h"
 
-#if defined (_WIN)
+#if defined (__WIN32__)
 static void fsync (int fd)
 {
   HANDLE h = (HANDLE) _get_osfhandle (fd);

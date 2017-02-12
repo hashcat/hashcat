@@ -19,9 +19,9 @@
 #endif // __APPLE__
 #endif // _POSIX
 
-#if defined (_WIN)
+#if defined (__WIN32__)
 #include <windows.h>
-#endif // _WIN
+#endif // __WIN32__
 
 void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag);
 void goodbye_screen (hashcat_ctx_t *hashcat_ctx, const time_t proc_start, const time_t proc_stop);
@@ -33,9 +33,9 @@ void clear_prompt (void);
 
 void *thread_keypress (void *p);
 
-#if defined (_WIN)
+#if defined (__WIN32__)
 void SetConsoleWindowSize (const int x);
-#endif
+#endif // __WIN32__
 
 int tty_break(void);
 int tty_getchar(void);

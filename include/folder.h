@@ -13,16 +13,16 @@
 #if defined (_POSIX)
 #include <sys/types.h>
 #include <pwd.h>
-#endif
+#endif // _POSIX_
 
 #if defined (__APPLE__)
 #include <mach-o/dyld.h>
 #endif // __APPLE__
 
-#if defined (_WIN)
+#if defined (__WIN32__)
 #include <windows.h>
 #include <direct.h>
-#endif
+#endif // __WIN32__
 
 #define DOT_HASHCAT     ".hashcat"
 #define SESSIONS_FOLDER "sessions"

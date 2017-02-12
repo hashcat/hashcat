@@ -108,19 +108,7 @@ void hc_asprintf (char **strp, const char *fmt, ...)
   va_end (args);
 }
 
-#if defined (_POSIX)
-int hc_stat (const char *pathname, hc_stat_t *buf)
-{
-  return stat (pathname, buf);
-}
-
-int hc_fstat (int fd, hc_stat_t *buf)
-{
-  return fstat (fd, buf);
-}
-#endif
-
-#if defined (_WIN)
+#if defined (__WIN32__)
 int hc_stat (const char *pathname, hc_stat_t *buf)
 {
   return stat64 (pathname, buf);
@@ -130,33 +118,43 @@ int hc_fstat (int fd, hc_stat_t *buf)
 {
   return fstat64 (fd, buf);
 }
-#endif
+#else
+int hc_stat (const char *pathname, hc_stat_t *buf)
+{
+  return stat (pathname, buf);
+}
+
+int hc_fstat (int fd, hc_stat_t *buf)
+{
+  return fstat (fd, buf);
+}
+#endif // __WIN32__
 
 void hc_sleep_msec (const u32 msec)
 {
-  #if defined (_WIN)
+  #if defined (__WIN32__)
   Sleep (msec);
   #else
   usleep (msec * 1000);
-  #endif
+  #endif // __WIN32__
 }
 
 void hc_sleep (const u32 sec)
 {
-  #if defined (_WIN)
+  #if defined (__WIN32__)
   Sleep (sec * 1000);
   #else
   sleep (sec);
-  #endif
+  #endif // __WIN32__
 }
 
-#if defined (_WIN)
+#if defined (__WIN32__)
 #define __WINDOWS__
-#endif
+#endif // __WIN32__
 #include "sort_r.h"
-#if defined (_WIN)
+#if defined (__WIN32__)
 #undef __WINDOWS__
-#endif
+#endif // __WIN32__
 
 void hc_qsort_r (void *base, size_t nmemb, size_t size, int (*compar) (const void *, const void *, void *), void *arg)
 {

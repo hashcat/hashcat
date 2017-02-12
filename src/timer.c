@@ -7,7 +7,7 @@
 #include "types.h"
 #include "timer.h"
 
-#if defined (_WIN)
+#if defined (__WIN32__)
 
 inline void hc_timer_set (hc_timer_t *a)
 {
@@ -27,7 +27,7 @@ inline double hc_timer_get (hc_timer_t a)
   return (double) ((double) (hr_tmp.QuadPart - a.QuadPart) / (double) (hr_freq.QuadPart / 1000));
 }
 
-#elif defined(_POSIX)
+#else
 
 inline void hc_timer_set (hc_timer_t* a)
 {
@@ -43,4 +43,4 @@ inline double hc_timer_get (hc_timer_t a)
   return (double) (((hr_tmp.tv_sec - (a).tv_sec) * 1000) + ((double) (hr_tmp.tv_usec - (a).tv_usec) / 1000));
 }
 
-#endif
+#endif // __WIN32__
