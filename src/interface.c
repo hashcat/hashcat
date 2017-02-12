@@ -127,6 +127,7 @@ static const char HT_03200[] = "bcrypt, Blowfish(OpenBSD)";
 static const char HT_03710[] = "md5($salt.md5($pass))";
 static const char HT_03711[] = "Mediawiki B type";
 static const char HT_03800[] = "md5($salt.$pass.$salt)";
+static const char HT_03910[] = "md5(md5($pass).md5($salt))";
 static const char HT_04010[] = "md5($salt.md5($salt.$pass))";
 static const char HT_04110[] = "md5($salt.md5($pass.$salt))";
 static const char HT_04300[] = "md5(strtoupper(md5($pass)))";
@@ -2142,6 +2143,30 @@ static u32 parse_and_store_salt (u8 *out, u8 *in, u32 salt_len, MAYBE_UNUSED con
   return (salt_len);
 }
 
+static void precompute_salt_md5 (u8 *salt, u32 salt_len, u8 *salt_pc)
+{
+  u32 salt_pc_block[16] = { 0 };
+
+  u8 *salt_pc_block_ptr = (u8 *) salt_pc_block;
+
+  memcpy (salt_pc_block_ptr, salt, salt_len);
+
+  salt_pc_block_ptr[salt_len] = 0x80;
+
+  salt_pc_block[14] = salt_len * 8;
+
+  u32 salt_pc_digest[4] = { MD5M_A, MD5M_B, MD5M_C, MD5M_D };
+
+  md5_64 (salt_pc_block, salt_pc_digest);
+
+  u8 *salt_buf_pc_ptr = salt_pc;
+
+  u32_to_hex_lower (salt_pc_digest[0], salt_buf_pc_ptr +  0);
+  u32_to_hex_lower (salt_pc_digest[1], salt_buf_pc_ptr +  8);
+  u32_to_hex_lower (salt_pc_digest[2], salt_buf_pc_ptr + 16);
+  u32_to_hex_lower (salt_pc_digest[3], salt_buf_pc_ptr + 24);
+}
+
 int bcrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_3200) || (input_len > DISPLAY_LEN_MAX_3200)) return (PARSER_GLOBAL_LENGTH);
@@ -3242,6 +3267,8 @@ int md5s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
     if ((input_len < DISPLAY_LEN_MIN_10) || (input_len > DISPLAY_LEN_MAX_10)) return (PARSER_GLOBAL_LENGTH);
   }
 
+  const u32 opti_type = hashconfig->opti_type;
+
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
@@ -3253,10 +3280,13 @@ int md5s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
 
-  digest[0] -= MD5M_A;
-  digest[1] -= MD5M_B;
-  digest[2] -= MD5M_C;
-  digest[3] -= MD5M_D;
+  if (opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= MD5M_A;
+    digest[1] -= MD5M_B;
+    digest[2] -= MD5M_C;
+    digest[3] -= MD5M_D;
+  }
 
   if (input_buf[32] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -3271,6 +3301,13 @@ int md5s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
 
   salt->salt_len = salt_len;
+
+  if (hashconfig->opts_type & OPTS_TYPE_ST_HASH_MD5)
+  {
+    // precompute md5 of the salt
+
+    precompute_salt_md5 (salt_buf_ptr, salt_len, (u8 *) salt->salt_buf_pc);
+  }
 
   return (PARSER_OK);
 }
@@ -4084,28 +4121,9 @@ int ipb2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   salt->salt_len = salt_len;
 
-  // precomput first md5
+  // precompute md5 of the salt
 
-  u32 salt_pc_block[16] = { 0 };
-
-  u8 *salt_pc_block_ptr = (u8 *) salt_pc_block;
-
-  memcpy (salt_pc_block_ptr, salt_buf_ptr, salt_len);
-
-  salt_pc_block_ptr[salt_len] = 0x80;
-
-  salt_pc_block[14] = salt_len * 8;
-
-  u32 salt_pc_digest[4] = { MD5M_A, MD5M_B, MD5M_C, MD5M_D };
-
-  md5_64 (salt_pc_block, salt_pc_digest);
-
-  u8 *salt_buf_pc_ptr = (u8 *) salt->salt_buf_pc;
-
-  u32_to_hex_lower (salt_pc_digest[0], salt_buf_pc_ptr +  0);
-  u32_to_hex_lower (salt_pc_digest[1], salt_buf_pc_ptr +  8);
-  u32_to_hex_lower (salt_pc_digest[2], salt_buf_pc_ptr + 16);
-  u32_to_hex_lower (salt_pc_digest[3], salt_buf_pc_ptr + 24);
+  precompute_salt_md5 (salt_buf_ptr, salt_len, (u8 *) salt->salt_buf_pc);
 
   return (PARSER_OK);
 }
@@ -14526,6 +14544,7 @@ char *strhashtype (const u32 hash_mode)
     case  3710: return ((char *) HT_03710);
     case  3711: return ((char *) HT_03711);
     case  3800: return ((char *) HT_03800);
+    case  3910: return ((char *) HT_03910);
     case  4010: return ((char *) HT_04010);
     case  4110: return ((char *) HT_04110);
     case  4300: return ((char *) HT_04300);
@@ -19523,6 +19542,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_INTERN;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_ST_HASH_MD5
                                             | OPTS_TYPE_PT_ADD80
                                             | OPTS_TYPE_PT_ADDBITS14;
                  hashconfig->kern_type      = KERN_TYPE_MD55_SLTPW;
@@ -19638,6 +19658,27 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                                             | OPTI_TYPE_EARLY_SKIP
                                             | OPTI_TYPE_NOT_ITERATED
                                             | OPTI_TYPE_RAW_HASH;
+                 hashconfig->dgst_pos0      = 0;
+                 hashconfig->dgst_pos1      = 3;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 1;
+                 break;
+
+    case  3910:  hashconfig->hash_type      = HASH_TYPE_MD5;
+                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_PT_ADD80
+                                            | OPTS_TYPE_PT_ADDBITS14
+                                            | OPTS_TYPE_ST_HASH_MD5
+                                            | OPTS_TYPE_ST_ADD80
+                                            | OPTS_TYPE_ST_ADDBITS14;
+                 hashconfig->kern_type      = KERN_TYPE_MD55_PWSLT;
+                 hashconfig->dgst_size      = DGST_SIZE_4_4;
+                 hashconfig->parse_func     = md5s_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_PRECOMPUTE_INIT
+                                            | OPTI_TYPE_EARLY_SKIP;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 3;
                  hashconfig->dgst_pos2      = 2;
