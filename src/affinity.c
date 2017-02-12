@@ -54,12 +54,12 @@ int set_cpu_affinity (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->cpu_affinity == NULL) return 0;
 
-  #if defined (_WIN)
+  #if defined (__WIN32__)
   DWORD_PTR aff_mask = 0;
   #else
   cpu_set_t cpuset;
   CPU_ZERO (&cpuset);
-  #endif
+  #endif // __WIN32__
 
   char *devices = hcstrdup (user_options->cpu_affinity);
 
@@ -73,11 +73,11 @@ int set_cpu_affinity (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
     if (cpu_id == 0)
     {
-      #if defined (_WIN)
+      #if defined (__WIN32__)
       aff_mask = 0;
       #else
       CPU_ZERO (&cpuset);
-      #endif
+      #endif // __WIN32__
 
       break;
     }
@@ -89,17 +89,17 @@ int set_cpu_affinity (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
       return (-1);
     }
 
-    #if defined (_WIN)
+    #if defined (__WIN32__)
     aff_mask |= 1u << (cpu_id - 1);
     #else
     CPU_SET ((cpu_id - 1), &cpuset);
-    #endif
+    #endif // __WIN32__
 
   } while ((next = strtok_r (NULL, ",", &saveptr)) != NULL);
 
   hcfree (devices);
 
-  #if defined (_WIN)
+  #if defined (__WIN32__)
 
   SetProcessAffinityMask (GetCurrentProcess (), aff_mask);
 
@@ -121,8 +121,8 @@ int set_cpu_affinity (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  #endif
+  #endif // __WIN32__
 
   return 0;
-#endif
+#endif // __CYGWIN__
 }

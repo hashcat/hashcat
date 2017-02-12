@@ -370,9 +370,9 @@ int ocl_init (hashcat_ctx_t *hashcat_ctx)
 
   memset (ocl, 0, sizeof (OCL_PTR));
 
-  #if   defined(_WIN)
+  #if   defined (__WIN32__)
   ocl->lib = hc_dlopen ("OpenCL");
-  #elif defined(__APPLE__)
+  #elif defined (__APPLE__)
   ocl->lib = hc_dlopen ("/System/Library/Frameworks/OpenCL.framework/OpenCL", RTLD_NOW);
   #elif defined (__CYGWIN__)
   ocl->lib = hc_dlopen ("opencl.dll", RTLD_NOW);
@@ -382,7 +382,7 @@ int ocl_init (hashcat_ctx_t *hashcat_ctx)
   ocl->lib = hc_dlopen ("libOpenCL.so", RTLD_NOW);
 
   if (ocl->lib == NULL) ocl->lib = hc_dlopen ("libOpenCL.so.1", RTLD_NOW);
-  #endif
+  #endif // __WIN32__
 
   if (ocl->lib == NULL)
   {
@@ -390,17 +390,17 @@ int ocl_init (hashcat_ctx_t *hashcat_ctx)
     event_log_error (hashcat_ctx, NULL);
     event_log_error (hashcat_ctx, "You're probably missing the OpenCL runtime and driver installation");
 
-    #if defined (__linux__)
+    #if   defined (__linux__)
     event_log_error (hashcat_ctx, "* AMD users on Linux require \"AMDGPU-Pro Driver\" (16.40 or later)");
-    #elif defined (_WIN)
+    #elif defined (__WIN32__)
     event_log_error (hashcat_ctx, "* AMD users on Windows require \"AMD Radeon Software Crimson Edition\" (15.12 or later)");
     #endif
 
     event_log_error (hashcat_ctx, "* Intel CPU users require \"OpenCL Runtime for Intel Core and Intel Xeon Processors\" (16.1.1 or later)");
 
-    #if defined (__linux__)
+    #if   defined (__linux__)
     event_log_error (hashcat_ctx, "* Intel GPU on Linux users require \"OpenCL 2.0 GPU Driver Package for Linux\" (2.0 or later)");
-    #elif defined (_WIN)
+    #elif defined (__WIN32__)
     event_log_error (hashcat_ctx, "* Intel GPU on Windows users require \"OpenCL Driver for Intel Iris and Intel HD Graphics\"");
     #endif
 
@@ -1776,19 +1776,19 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
   u32 speed_pos = device_param->speed_pos;
 
-  #if defined (_POSIX)
+  #if defined (__unix__)
   if (device_param->timer_speed.tv_sec == 0)
   {
     hc_timer_set (&device_param->timer_speed);
   }
-  #endif
+  #endif // __unix__
 
-  #if defined (_WIN)
+  #if defined (__WIN32__)
   if (device_param->timer_speed.QuadPart == 0)
   {
     hc_timer_set (&device_param->timer_speed);
   }
-  #endif
+  #endif // __WIN32__
 
   // find higest password length, this is for optimization stuff
 
@@ -2213,17 +2213,17 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
     event_log_error (hashcat_ctx, NULL);
     event_log_error (hashcat_ctx, "You're probably missing the OpenCL runtime installation");
 
-    #if defined (__linux__)
+    #if   defined (__linux__)
     event_log_error (hashcat_ctx, "* AMD users on Linux require \"AMDGPU-Pro Driver\" (16.40 or later)");
-    #elif defined (_WIN)
+    #elif defined (__WIN32__)
     event_log_error (hashcat_ctx, "* AMD users on Windows require \"AMD Radeon Software Crimson Edition\" (15.12 or later)");
     #endif
 
     event_log_error (hashcat_ctx, "* Intel CPU users require \"OpenCL Runtime for Intel Core and Intel Xeon Processors\" (16.1.1 or later)");
 
-    #if defined (__linux__)
+    #if   defined (__linux__)
     event_log_error (hashcat_ctx, "* Intel GPU on Linux users require \"OpenCL 2.0 GPU Driver Package for Linux\" (2.0 or later)");
-    #elif defined (_WIN)
+    #elif defined (__WIN32__)
     event_log_error (hashcat_ctx, "* Intel GPU on Windows users require \"OpenCL Driver for Intel Iris and Intel HD Graphics\"");
     #endif
 
@@ -2232,9 +2232,9 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if (opencl_platforms_filter != (u32) -1)
+  if (opencl_platforms_filter != -1u)
   {
-    u32 platform_cnt_mask = ~(((u32) -1 >> platforms_cnt) << platforms_cnt);
+    u32 platform_cnt_mask = ~(( -1u >> platforms_cnt) << platforms_cnt);
 
     if (opencl_platforms_filter > platform_cnt_mask)
     {
@@ -2881,11 +2881,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           need_xnvctrl = true;
           #endif
 
-          #if defined (_WIN)
-          need_nvapi = true;
-          #endif
-
-          #if defined (__CYGWIN__)
+          #if defined (__WIN32__) || defined (__CYGWIN__)
           need_nvapi = true;
           #endif
         }
@@ -3010,7 +3006,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
               if (atoi (device_param->driver_version) == 2236) amd_warn = true;
               // AMDGPU-Pro Driver 16.60 is known to be broken
               if (atoi (device_param->driver_version) == 2264) amd_warn = true;
-              #elif defined (_WIN)
+              #elif defined (__WIN32__)
               // AMD Radeon Software 14.9 and higher, should be updated to 15.12
               if (atoi (device_param->driver_version) >= 1573) amd_warn = false;
               #else
@@ -3783,11 +3779,11 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     char build_opts[1024] = { 0 };
 
-    #if defined (_WIN)
+    #if defined (__WIN32__)
     snprintf (build_opts, sizeof (build_opts) - 1, "-I \"%s\"", folder_config->cpath_real);
     #else
     snprintf (build_opts, sizeof (build_opts) - 1, "-I %s", folder_config->cpath_real);
-    #endif
+    #endif // __WIN32__
 
     // include check
     // this test needs to be done manually because of osx opencl runtime

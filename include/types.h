@@ -17,7 +17,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#if defined (_WIN)
+#if defined (__WIN32__)
 #include <windows.h>
 #if defined (_BASETSD_H)
 #else
@@ -30,7 +30,7 @@ typedef INT16  int16_t;
 typedef INT32  int32_t;
 typedef INT64  int64_t;
 #endif
-#endif // _WIN
+#endif // __WIN32__
 
 typedef uint8_t  u8;
 typedef uint16_t u16;
@@ -39,35 +39,33 @@ typedef uint64_t u64;
 
 // timer
 
-#if defined (_WIN)
+#if defined (__WIN32__)
 typedef LARGE_INTEGER     hc_timer_t;
-#elif defined (_POSIX)
+#else
 typedef struct timeval    hc_timer_t;
-#endif
+#endif // WIN32
 
 // thread
 
-#if defined (_POSIX)
+#if defined (__unix__)
 #include <pthread.h>
-#endif
+#endif // __unix__
 
-#if defined (_WIN)
+#if defined (__WIN32__)
 typedef HANDLE            hc_thread_t;
 typedef CRITICAL_SECTION  hc_thread_mutex_t;
-#elif defined (_POSIX)
+#else
 typedef pthread_t         hc_thread_t;
 typedef pthread_mutex_t   hc_thread_mutex_t;
-#endif
+#endif // __WIN32__
 
 // stat
 
-#if defined (_POSIX)
-typedef struct stat hc_stat_t;
-#endif
-
-#if defined (_WIN)
+#if defined (__WIN32__)
 typedef struct _stat64 hc_stat_t;
-#endif
+#else
+typedef struct stat hc_stat_t;
+#endif // __WIN32__
 
 // enums
 
@@ -1183,11 +1181,11 @@ typedef struct dictstat_ctx
 
   dictstat_t *base;
 
-  #if defined (_POSIX)
+  #if defined (__unix__)
   size_t cnt;
   #else
   u32    cnt;
-  #endif
+  #endif // __unix__
 
 } dictstat_ctx_t;
 

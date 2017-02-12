@@ -8,18 +8,18 @@
 
 #include <stdlib.h>
 
-#if defined (_POSIX)
+#if defined (__unix__)
 #include <dlfcn.h>
 #if defined (__APPLE__)
 #include <mach-o/dyld.h>
 #endif // __APPLE__
-#endif // _POSIX
+#endif // __unix__
 
-#ifdef _WIN
+#if defined (__WIN32__)
 #include <windows.h>
-#endif
+#endif // __WIN32__
 
-#ifdef _WIN
+#if defined (__WIN32__)
 HMODULE hc_dlopen  (LPCSTR lpLibFileName);
 BOOL    hc_dlclose (HMODULE hLibModule);
 FARPROC hc_dlsym   (HMODULE hModule, LPCSTR lpProcName);
@@ -27,7 +27,7 @@ FARPROC hc_dlsym   (HMODULE hModule, LPCSTR lpProcName);
 void *hc_dlopen  (const char *fileName, int flag);
 int   hc_dlclose (void *handle);
 void *hc_dlsym   (void *module, const char *symbol);
-#endif
+#endif // __WIN32__
 
 #define HC_LOAD_FUNC2(ptr,name,type,var,libname,noerr) \
   ptr->name = (type) hc_dlsym (ptr->var, #name); \

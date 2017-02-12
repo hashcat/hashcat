@@ -27,7 +27,7 @@ static void out_push (out_t *out, const u8 *pw_buf, const int pw_len)
 
   memcpy (ptr, pw_buf, pw_len);
 
-  #if defined (_POSIX)
+  #if defined (__unix__)
 
   ptr[pw_len] = '\n';
 
@@ -40,7 +40,7 @@ static void out_push (out_t *out, const u8 *pw_buf, const int pw_len)
 
   out->len += pw_len + 2;
 
-  #endif
+  #endif // __unix__
 
   if (out->len >= BUFSIZ - 100)
   {
