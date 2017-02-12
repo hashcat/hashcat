@@ -363,12 +363,13 @@ typedef enum opts_type
   OPTS_TYPE_ST_GENERATE_BE    = (1 << 22),
   OPTS_TYPE_ST_HEX            = (1 << 23),
   OPTS_TYPE_ST_BASE64         = (1 << 24),
-  OPTS_TYPE_HASH_COPY         = (1 << 25),
-  OPTS_TYPE_HOOK12            = (1 << 26),
-  OPTS_TYPE_HOOK23            = (1 << 27),
-  OPTS_TYPE_INIT2             = (1 << 28),
-  OPTS_TYPE_LOOP2             = (1 << 29),
-  OPTS_TYPE_BINARY_HASHFILE   = (1 << 30),
+  OPTS_TYPE_ST_HASH_MD5       = (1 << 25),
+  OPTS_TYPE_HASH_COPY         = (1 << 26),
+  OPTS_TYPE_HOOK12            = (1 << 27),
+  OPTS_TYPE_HOOK23            = (1 << 28),
+  OPTS_TYPE_INIT2             = (1 << 29),
+  OPTS_TYPE_LOOP2             = (1 << 30),
+  OPTS_TYPE_BINARY_HASHFILE   = (1 << 31),
 
 } opts_type_t;
 

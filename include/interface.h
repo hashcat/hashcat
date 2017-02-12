@@ -1349,6 +1349,7 @@ typedef enum kern_type
   KERN_TYPE_BCRYPT                  = 3200,
   KERN_TYPE_MD5_SLT_MD5_PW          = 3710,
   KERN_TYPE_MD5_SLT_PW_SLT          = 3800,
+  KERN_TYPE_MD55_PWSLT              = 3910,
   KERN_TYPE_MD5_SLT_MD5_SLT_PW      = 4010,
   KERN_TYPE_MD5_SLT_MD5_PW_SLT      = 4110,
   KERN_TYPE_MD5U5                   = 4300,
