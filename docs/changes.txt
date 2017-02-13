@@ -9,6 +9,7 @@
 - Added support for showing all user names with --show and --left if --username was specified
 - Added support for loading hccapx files
 - Added support for GPU temperature management on cygwin build
+- Added support for automatic merge of LM halfes when --show and --left is used
 
 ##
 ## Algorithms

@@ -579,7 +579,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
   void   *esalts_buf     = NULL;
   void   *hook_salts_buf = NULL;
 
-  if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY))
+  if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY) || (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT))
   {
     u32 hash_pos;
 
@@ -591,7 +591,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       if (user_options->username == true)
       {
-        hash_info->user = (user_t*) hcmalloc (sizeof (user_t));
+        hash_info->user = (user_t *) hcmalloc (sizeof (user_t));
       }
 
       if (hashconfig->opts_type & OPTS_TYPE_HASH_COPY)
@@ -602,6 +602,10 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         }
       }
 
+      if (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT)
+      {
+        hash_info->split = (split_t *) hcmalloc (sizeof (split_t));
+      }
     }
   }
 
@@ -789,6 +793,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             if (parser_status == PARSER_OK)
             {
+              hashes_buf[hashes_cnt].hash_info->split->split_group  = 0;
+              hashes_buf[hashes_cnt].hash_info->split->split_origin = SPLIT_ORIGIN_LEFT;
+
               hashes_cnt++;
             }
             else
@@ -800,6 +807,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             if (parser_status == PARSER_OK)
             {
+              hashes_buf[hashes_cnt].hash_info->split->split_group  = 0;
+              hashes_buf[hashes_cnt].hash_info->split->split_origin = SPLIT_ORIGIN_RIGHT;
+
               hashes_cnt++;
             }
             else
@@ -813,6 +823,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             if (parser_status == PARSER_OK)
             {
+              hashes_buf[hashes_cnt].hash_info->split->split_group  = 0;
+              hashes_buf[hashes_cnt].hash_info->split->split_origin = SPLIT_ORIGIN_NONE;
+
               hashes_cnt++;
             }
             else
@@ -984,6 +997,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
               continue;
             }
 
+            hashes_buf[hashes_cnt].hash_info->split->split_group  = line_num;
+            hashes_buf[hashes_cnt].hash_info->split->split_origin = SPLIT_ORIGIN_LEFT;
+
             hashes_cnt++;
 
             parser_status = hashconfig->parse_func ((u8 *) hash_buf + 16, 16, &hashes_buf[hashes_cnt], hashconfig);
@@ -994,6 +1010,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
               continue;
             }
+
+            hashes_buf[hashes_cnt].hash_info->split->split_group  = line_num;
+            hashes_buf[hashes_cnt].hash_info->split->split_origin = SPLIT_ORIGIN_RIGHT;
 
             hashes_cnt++;
           }
@@ -1007,6 +1026,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
               continue;
             }
+
+            hashes_buf[hashes_cnt].hash_info->split->split_group  = line_num;
+            hashes_buf[hashes_cnt].hash_info->split->split_origin = SPLIT_ORIGIN_NONE;
 
             hashes_cnt++;
           }
@@ -1070,6 +1092,33 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     EVENT (EVENT_HASHLIST_SORT_HASH_POST);
   }
 
+  if (hashconfig->hash_mode == 3000)
+  {
+    // update split split_neighbor after sorting
+    // see https://github.com/hashcat/hashcat/issues/1034 for good examples for testing
+
+    for (u32 i = 0; i < hashes_cnt; i++)
+    {
+      split_t *split1 = hashes_buf[i].hash_info->split;
+
+      if (split1->split_origin != SPLIT_ORIGIN_LEFT) continue;
+
+      for (u32 j = 0; j < hashes_cnt; j++)
+      {
+        split_t *split2 = hashes_buf[j].hash_info->split;
+
+        if (split2->split_origin != SPLIT_ORIGIN_RIGHT) continue;
+
+        if (split1->split_group != split2->split_group) continue;
+
+        split1->split_neighbor = j;
+        split2->split_neighbor = i;
+
+        break;
+      }
+    }
+  }
+
   return 0;
 }
 
@@ -1093,7 +1142,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
   for (u32 hashes_pos = 1; hashes_pos < hashes_cnt; hashes_pos++)
   {
-    if (potfile_ctx->keep_all_usernames == true)
+    if (potfile_ctx->keep_all_hashes == true)
     {
       // do not sort, because we need to keep all hashes in this particular case
     }
@@ -1170,7 +1219,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
   hashinfo_t **hash_info = NULL;
 
-  if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY))
+  if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY) || (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT))
   {
     hash_info = (hashinfo_t **) hccalloc (hashes_cnt, sizeof (hashinfo_t *));
   }
@@ -1221,7 +1270,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
   hashes_buf[0].digest = digests_buf_new_ptr;
 
-  if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY))
+  if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY) || (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT))
   {
     hash_info[0] = hashes_buf[0].hash_info;
   }
@@ -1290,7 +1339,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
     hashes_buf[hashes_pos].digest = digests_buf_new_ptr;
 
-    if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY))
+    if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY) || (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT))
     {
       hash_info[hashes_pos] = hashes_buf[hashes_pos].hash_info;
     }
@@ -1480,6 +1529,11 @@ void hashes_destroy (hashcat_ctx_t *hashcat_ctx)
       if (hashconfig->opts_type & OPTS_TYPE_HASH_COPY)
       {
         hcfree (hashes->hash_info[hash_pos]->orighash);
+      }
+
+      if (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT)
+      {
+        hcfree (hashes->hash_info[hash_pos]->split);
       }
     }
   }

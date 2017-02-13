@@ -14860,7 +14860,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   const u32 hash_type = hashconfig->hash_type;
   const u32 hash_mode = hashconfig->hash_mode;
   const u32 salt_type = hashconfig->salt_type;
-  const u32 opts_type = hashconfig->opts_type;
+  const u64 opts_type = hashconfig->opts_type;
   const u32 opti_type = hashconfig->opti_type;
   const u32 dgst_size = hashconfig->dgst_size;
 
@@ -19563,7 +19563,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_PT_UPPER
                                             | OPTS_TYPE_PT_BITSLICE
-                                            | OPTS_TYPE_PT_ALWAYS_ASCII;
+                                            | OPTS_TYPE_PT_ALWAYS_ASCII
+                                            | OPTS_TYPE_HASH_SPLIT;
                  hashconfig->kern_type      = KERN_TYPE_LM;
                  hashconfig->dgst_size      = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
                  hashconfig->parse_func     = lm_parse_hash;
