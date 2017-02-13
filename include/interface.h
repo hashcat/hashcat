@@ -175,7 +175,7 @@ typedef struct pdf
 typedef struct wpa
 {
   u32  pke[25];
-  u32  eapol[64];
+  u32  eapol[64 + 16];
   u16  eapol_len;
   u8   authenticated;
   u8   keyver;

@@ -2784,7 +2784,7 @@ int wpa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
 
   memcpy (eapol_ptr, in.eapol, wpa->eapol_len);
 
-  memset (eapol_ptr + wpa->eapol_len, 0, 256 - wpa->eapol_len);
+  memset (eapol_ptr + wpa->eapol_len, 0, (256 + 64) - wpa->eapol_len);
 
   eapol_ptr[wpa->eapol_len] = 0x80;
 
