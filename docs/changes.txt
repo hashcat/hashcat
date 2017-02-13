@@ -32,6 +32,7 @@
 ##
 
 - Workaround added for AMDGPU-Pro OpenCL runtime: AES encrypt and decrypt Invertkey function was calculated wrong in certain cases
+- Workaround added for AMDGPU-Pro OpenCL runtime: RAR3 kernel require a volatile variable to work correctly
 
 ##
 ## Bugs
