@@ -298,7 +298,7 @@ static int setup_device_types_filter (hashcat_ctx_t *hashcat_ctx, const char *op
   return 0;
 }
 
-static int read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, int num_devices, size_t *kernel_lengths, char **kernel_sources)
+static int read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, size_t *kernel_lengths, char **kernel_sources)
 {
   FILE *fp = fopen (kernel_file, "rb");
 
@@ -323,12 +323,9 @@ static int read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_fi
 
     buf[st.st_size] = 0;
 
-    for (int i = 0; i < num_devices; i++)
-    {
-      kernel_lengths[i] = (size_t) st.st_size;
+    kernel_lengths[0] = (size_t) st.st_size;
 
-      kernel_sources[i] = buf;
-    }
+    kernel_sources[0] = buf;
   }
   else
   {
@@ -3934,7 +3931,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
           if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
           #endif
 
-          const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, 1, kernel_lengths, kernel_sources);
+          const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources);
 
           if (rc_read_kernel == -1) return -1;
 
@@ -3998,7 +3995,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
-          const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, 1, kernel_lengths, kernel_sources);
+          const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, kernel_lengths, kernel_sources);
 
           if (rc_read_kernel == -1) return -1;
 
@@ -4013,7 +4010,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, 1, kernel_lengths, kernel_sources);
+        const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources);
 
         if (rc_read_kernel == -1) return -1;
 
@@ -4135,7 +4132,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
         #endif
 
-        const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, 1, kernel_lengths, kernel_sources);
+        const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources);
 
         if (rc_read_kernel == -1) return -1;
 
@@ -4197,7 +4194,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, 1, kernel_lengths, kernel_sources);
+        const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, kernel_lengths, kernel_sources);
 
         if (rc_read_kernel == -1) return -1;
 
@@ -4276,7 +4273,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
         #endif
 
-        const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, 1, kernel_lengths, kernel_sources);
+        const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources);
 
         if (rc_read_kernel == -1) return -1;
 
@@ -4338,7 +4335,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, 1, kernel_lengths, kernel_sources);
+        const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, kernel_lengths, kernel_sources);
 
         if (rc_read_kernel == -1) return -1;
 

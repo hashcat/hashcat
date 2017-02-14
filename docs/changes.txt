@@ -71,6 +71,7 @@
 - Mask Checks: Added additional memory cleanups after parsing/verifying masks
 - OpenCL Device Management: Fixed several memory leaks in case initialization of an OpenCL device or platform failed
 - OpenCL Kernel: Move kernel binary buffer from heap to stack memory
+- OpenCL Kernel: Refactored read_kernel_binary to load only a single kernel for a single device
 - Outfile Check: Fixed a memory leak for failed outfile reads
 - Rule Engine: Fixed several memory leaks in case loading of rules failed
 - Session Management: Fixed several memory leaks in case profile- or install-folder setup failed
