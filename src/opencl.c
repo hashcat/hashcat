@@ -274,6 +274,8 @@ static int setup_device_types_filter (hashcat_ctx_t *hashcat_ctx, const char *op
       {
         event_log_error (hashcat_ctx, "Invalid device_type %d specified", device_type);
 
+        hcfree (device_types);
+
         return -1;
       }
 
