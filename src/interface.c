@@ -7448,6 +7448,8 @@ int des_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
 
   u8 *salt_pos = (u8 *) strchr ((const char *) digest_pos, ':');
 
+  if (salt_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
   if (input_buf[16] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
 
   u32 salt_len = salt_pos - digest_pos;
@@ -8021,6 +8023,8 @@ int juniper_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   u8 *salt_pos = md5crypt_hash + 3;
 
   u8 *hash_pos = (u8 *) strchr ((const char *) salt_pos, '$'); // or simply salt_pos + 8
+
+  if (hash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   salt->salt_len = hash_pos - salt_pos;    // should be 8
 
@@ -10544,6 +10548,8 @@ int postgresql_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, 
 
   u8 *hash_pos = (u8 *) strchr ((const char *) salt_pos, '*');
 
+  if (hash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
   hash_pos++;
 
   u32 hash_len = input_len - (hash_pos - input_buf);
@@ -12669,6 +12675,8 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   if (is_keyfile_present == true)
   {
     u8 *keyfile_len_pos = (u8 *) strchr ((const char *) keyfile_inline_pos, '*');
+
+    if (keyfile_len_pos == NULL) return (PARSER_SALT_LENGTH);
 
     keyfile_len_pos++;
 
