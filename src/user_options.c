@@ -1568,25 +1568,41 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     hc_stat_t tmpstat_outfile  = { 0 };
     hc_stat_t tmpstat_hashfile = { 0 };
 
+    int do_check = 0;
+
     FILE *tmp_outfile_fp = fopen (outfile, "r");
 
     if (tmp_outfile_fp)
     {
-      if (hc_fstat (fileno (tmp_outfile_fp), &tmpstat_outfile)) return -1;
+      if (hc_fstat (fileno (tmp_outfile_fp), &tmpstat_outfile))
+      {
+        fclose (tmp_outfile_fp);
+
+        return -1;
+      }
 
       fclose (tmp_outfile_fp);
+
+      do_check++;
     }
 
     FILE *tmp_hashfile_fp = fopen (hashfile, "r");
 
     if (tmp_hashfile_fp)
     {
-      if (hc_fstat (fileno (tmp_hashfile_fp), &tmpstat_hashfile)) return -1;
+      if (hc_fstat (fileno (tmp_hashfile_fp), &tmpstat_hashfile))
+      {
+        fclose (tmp_hashfile_fp);
+
+        return -1;
+      }
 
       fclose (tmp_hashfile_fp);
+
+      do_check++;
     }
 
-    if (tmp_outfile_fp)
+    if (do_check == 2)
     {
       tmpstat_outfile.st_mode     = 0;
       tmpstat_outfile.st_nlink    = 0;

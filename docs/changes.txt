@@ -77,6 +77,7 @@
 - OpenCL Kernel: Renumbered hash-mode 7600 to 4521
 - OpenCL Device: Do a check on available constant memory size and abort if it's less than 64kB
 - File Reads: Improved error detection on file reads, especially when getting the file stats
+- File Reads: Fixed memory leak in case outfile or hashfile was not accessible
 - File Locking: Improved error detection on file locks
 - Hash Parsing: Added additional bound checks for the SIP digest authentication (MD5) parser (-m 11400)
 - Sessions: Move out handling of multiple instance from restore file into separate pidfile
