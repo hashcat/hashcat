@@ -47,6 +47,7 @@
 - Fixed clEnqueueNDRangeKernel(): CL_UNKNOWN_ERROR caused by an invalid work-item count during weak-hash-check
 - Fixed nvapi datatype definition for NvS32 and NvU32
 - Fixed WPA/WPA2 cracking in case eapol frame is >= 248 byte
+- Fixed string not null terminated inside workaround for checking drm driver path
 
 ##
 ## Technical

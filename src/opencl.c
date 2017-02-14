@@ -77,7 +77,11 @@ static int ocl_check_dri (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
   char buf[HCBUFSIZ_TINY];
 
-  if (readlink (drm_card0_driver_path, buf, HCBUFSIZ_TINY) == -1) return 0;
+  const ssize_t len = readlink (drm_card0_driver_path, buf, HCBUFSIZ_TINY - 1);
+
+  if (len == -1) return 0;
+
+  buf[len] = 0;
 
   if (strstr (buf, "amdgpu") == NULL) return 0;
 
