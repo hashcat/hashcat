@@ -306,7 +306,12 @@ static int read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_fi
   {
     hc_stat_t st;
 
-    hc_stat (kernel_file, &st);
+    if (hc_stat (kernel_file, &st))
+    {
+      fclose (fp);
+
+      return -1;
+    }
 
     char *buf = (char *) hcmalloc (st.st_size + 1);
 
