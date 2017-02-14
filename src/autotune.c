@@ -235,17 +235,17 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     }
   }
 
-  const double exec_left = target_msec / exec_msec_pre_final;
+  const u32 exec_left = target_msec / exec_msec_pre_final;
 
-  const double accel_left = kernel_accel_max / kernel_accel;
+  const u32 accel_left = kernel_accel_max / kernel_accel;
 
-  const double exec_accel_min = MIN (exec_left, accel_left); // we want that to be int
+  const u32 exec_accel_min = MIN (exec_left, accel_left); // we want that to be int
 
-  if (exec_accel_min >= 1.0)
+  if (exec_accel_min >= 1)
   {
     // this is safe to not overflow kernel_accel_max because of accel_left
 
-    kernel_accel *= (u32) exec_accel_min;
+    kernel_accel *= exec_accel_min;
   }
 
   // reset them fake words
