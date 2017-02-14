@@ -11412,11 +11412,6 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   seven_zip->iv_buf[2] = hex_to_u32 ((const u8 *) &iv_buf_pos[16]);
   seven_zip->iv_buf[3] = hex_to_u32 ((const u8 *) &iv_buf_pos[24]);
 
-  seven_zip->iv_buf[0] = seven_zip->iv_buf[0];
-  seven_zip->iv_buf[1] = seven_zip->iv_buf[1];
-  seven_zip->iv_buf[2] = seven_zip->iv_buf[2];
-  seven_zip->iv_buf[3] = seven_zip->iv_buf[3];
-
   seven_zip->iv_len = iv_len;
 
   memcpy (seven_zip->salt_buf, salt_buf_pos, salt_buf_len); // we just need that for later ascii_digest()
