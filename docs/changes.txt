@@ -68,6 +68,7 @@
 - OpenCL Device Management: Fixed several memory leaks when initialization of a device/platform failed
 - Outfile Check: Fixed a memory leak for failed outfile reads
 - Rule Engine: Fixed several memory leaks when loading of rules failed
+- Session Management: Fixed several memory leaks when profile/install folder setup failed
 - OpenCL Header: Updated CL_* errorcode to OpenCL 1.2 standard
 - OpenCL Runtime: Updated AMDGPU-Pro driver version check, do warn if version 16.60 is detected which is known to be broken
 - OpenCL Kernel: Renumbered hash-mode 7600 to 4521

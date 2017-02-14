@@ -412,6 +412,11 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   {
     event_log_error (hashcat_ctx, "%s: %s", cpath, strerror (errno));
 
+    hcfree (shared_dir);
+    hcfree (profile_dir);
+    hcfree (cpath_real);
+    hcfree (session_dir);
+
     return -1;
   }
 
