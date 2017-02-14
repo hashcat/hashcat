@@ -13157,7 +13157,12 @@ int zip2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   u8 *salt_buf = param3_pos;
 
-  u32 verify_bytes; sscanf ((const char *) param4_pos, "%4x*", &verify_bytes);
+  u32 verify_bytes;
+
+  if (sscanf ((const char *) param4_pos, "%4x*", &verify_bytes) == EOF)
+  {
+    return (PARSER_SALT_VALUE);
+  }
 
   const u32 compress_length = atoll ((const char *) param5_pos);
 
