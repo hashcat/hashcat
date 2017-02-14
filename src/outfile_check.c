@@ -144,7 +144,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
               if (hc_fstat (fileno (fp), &outfile_stat))
               {
-                close (fp);
+                fclose (fp);
 
                 continue;
               }
