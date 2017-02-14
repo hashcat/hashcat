@@ -50,7 +50,7 @@
 - Fixed string not null terminated inside workaround for checking drm driver path
 - Fixed string not null terminated when reading maskfiles
 - Fixed pointer to local outside scope when using -j or -k
-- Fixed pointer to local outside scope when using not specifying --markov-hcstat
+- Fixed pointer to local outside scope when not specifying --markov-hcstat
 
 ##
 ## Technical
