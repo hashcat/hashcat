@@ -10467,7 +10467,7 @@ int pbkdf2_sha256_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MA
 
   salt_len = parse_and_store_salt (salt_buf_ptr, salt_pos, salt_len, hashconfig);
 
-  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
+  if (salt_len > (64 - 8)) return (PARSER_SALT_LENGTH);
 
   salt_buf_ptr[salt_len + 3] = 0x01;
   salt_buf_ptr[salt_len + 4] = 0x80;
@@ -11635,7 +11635,7 @@ int pbkdf2_md5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   salt_len = parse_and_store_salt (salt_buf_ptr, salt_pos, salt_len, hashconfig);
 
-  if (salt_len > (64 - 4)) return (PARSER_SALT_LENGTH);
+  if (salt_len > (64 - 8)) return (PARSER_SALT_LENGTH);
 
   salt_buf_ptr[salt_len + 3] = 0x01;
   salt_buf_ptr[salt_len + 4] = 0x80;
@@ -11717,7 +11717,7 @@ int pbkdf2_sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
 
   salt_len = parse_and_store_salt (salt_buf_ptr, salt_pos, salt_len, hashconfig);
 
-  if (salt_len > (64 - 4)) return (PARSER_SALT_LENGTH);
+  if (salt_len > (64 - 8)) return (PARSER_SALT_LENGTH);
 
   salt_buf_ptr[salt_len + 3] = 0x01;
   salt_buf_ptr[salt_len + 4] = 0x80;
@@ -11804,7 +11804,7 @@ int pbkdf2_sha512_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MA
 
   salt_len = parse_and_store_salt (salt_buf_ptr, salt_pos, salt_len, hashconfig);
 
-  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
+  if (salt_len > (128 - 16)) return (PARSER_SALT_LENGTH);
 
   salt_buf_ptr[salt_len + 3] = 0x01;
   salt_buf_ptr[salt_len + 4] = 0x80;
