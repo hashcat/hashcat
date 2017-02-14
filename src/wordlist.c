@@ -294,10 +294,10 @@ u64 count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile)
   d.stat.st_rdev    = 0;
   d.stat.st_atime   = 0;
 
-  #if defined (_POSIX)
+  #if defined (__unix__)
   d.stat.st_blksize = 0;
   d.stat.st_blocks  = 0;
-  #endif
+  #endif // __unix__
 
   if (d.stat.st_size == 0) return 0;
 

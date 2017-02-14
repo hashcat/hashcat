@@ -9,9 +9,9 @@
 #include <string.h>
 #include <stdlib.h>
 
-#if defined (_WIN)
+#if defined (__WIN32__)
 #include <windows.h>
-#endif // _WIN
+#endif // __WIN32__
 
 /**
  * Declarations from adl_sdk.h and subheaders
@@ -45,19 +45,19 @@ typedef struct AdapterInfo
   char strDisplayName[ADL_MAX_PATH];
   int  iPresent;
 
-  #if defined (_WIN32) || defined (_WIN64)
+  #if defined (__WIN32__) || defined (__CYGWIN__)
   int  iExist;
   char strDriverPath[ADL_MAX_PATH];
   char strDriverPathExt[ADL_MAX_PATH];
   char strPNPString[ADL_MAX_PATH];
   int  iOSDisplayIndex;
-  #endif /* (_WIN32) || (_WIN64) */
+  #endif
 
   #if defined (__linux__)
   int  iXScreenNum;
   int  iDrvIndex;
   char strXScreenConfigName[ADL_MAX_PATH];
-  #endif /* (__linux__) */
+  #endif // __linux__
 } AdapterInfo, *LPAdapterInfo;
 
 typedef struct ADLThermalControllerInfo
@@ -250,9 +250,9 @@ typedef struct ADLOD6PowerControlInfo
   int iExtMask;
 } ADLOD6PowerControlInfo;
 
-#if defined (__MSC_VER)
+#if   defined (__MSC_VER)
 #define ADL_API_CALL __cdecl
-#elif defined (_WIN32) || defined (__WIN32__)
+#elif defined (__WIN32__)
 #define ADL_API_CALL __stdcall
 #else
 #define ADL_API_CALL
@@ -308,11 +308,11 @@ typedef int (ADL_API_CALL *ADL_OVERDRIVE6_TARGETTEMPERATUREDATA_GET) (int, int *
 typedef int (ADL_API_CALL *ADL_OVERDRIVE6_TARGETTEMPERATURERANGEINFO_GET) (int, ADLOD6ParameterRange *);
 typedef int (ADL_API_CALL *ADL_OVERDRIVE6_FANSPEED_RESET) (int);
 
-#if defined (_POSIX)
-typedef void *ADL_LIB;
-#else
+#if defined (__WIN32__)
 typedef HINSTANCE ADL_LIB;
-#endif
+#else
+typedef void *ADL_LIB;
+#endif // __WIN32__
 
 typedef struct hm_adl_lib
 {

@@ -61,21 +61,21 @@ typedef int   (*XCLOSEDISPLAY) (void *);
 
 typedef int HM_ADAPTER_XNVCTRL;
 
-#if defined(_WIN32) || defined(__WIN32__)
+#if defined(__WIN32__)
 #define XNVCTRL_API_CALL __stdcall
 #else
 #define XNVCTRL_API_CALL
-#endif
+#endif // __WIN32__
 
 typedef int  (*XNVCTRL_API_CALL XNVCTRLQUERYTARGETCOUNT)     (void *, int, int *);
 typedef int  (*XNVCTRL_API_CALL XNVCTRLQUERYTARGETATTRIBUTE) (void *, int, int, unsigned int, unsigned int, int *);
 typedef void (*XNVCTRL_API_CALL XNVCTRLSETTARGETATTRIBUTE)   (void *, int, int, unsigned int, unsigned int, int);
 
-#if defined (_POSIX)
-typedef void *XNVCTRL_LIB;
-#else
+#if defined (__WIN32__)
 typedef HINSTANCE XNVCTRL_LIB;
-#endif
+#else
+typedef void *XNVCTRL_LIB;
+#endif // __WIN32__
 
 typedef struct hm_xnvctrl_lib
 {

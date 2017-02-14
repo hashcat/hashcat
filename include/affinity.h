@@ -9,12 +9,12 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-#if defined (_POSIX)
+#if defined (__unix__)
 #include <pthread.h>
 #if defined (__linux__)
 #include <sys/sysctl.h>
 #endif // __linux__
-#endif // _POSIX
+#endif // __unix__
 
 #if defined (__APPLE__)
 #include <mach-o/dyld.h>
@@ -22,9 +22,9 @@
 #include <mach/thread_policy.h>
 #endif // __APPLE__
 
-#if defined (_WIN)
+#if defined (__WIN32__)
 #include <windows.h>
-#endif // _WIN
+#endif // __WIN32__
 
 int set_cpu_affinity (hashcat_ctx_t *hashcat_ctx);
 

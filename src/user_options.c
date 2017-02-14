@@ -1602,13 +1602,13 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       tmpstat_hashfile.st_rdev    = 0;
       tmpstat_hashfile.st_atime   = 0;
 
-      #if defined (_POSIX)
+      #if defined (__unix__)
       tmpstat_outfile.st_blksize  = 0;
       tmpstat_outfile.st_blocks   = 0;
 
       tmpstat_hashfile.st_blksize = 0;
       tmpstat_hashfile.st_blocks  = 0;
-      #endif
+      #endif // __unix__
 
       if (memcmp (&tmpstat_outfile, &tmpstat_hashfile, sizeof (hc_stat_t)) == 0)
       {

@@ -12,7 +12,7 @@
 
 #if defined (__APPLE__)
 #include "event.h"
-#endif
+#endif // __APPLE__
 
 int sort_by_stringptr (const void *p1, const void *p2)
 {
@@ -36,7 +36,7 @@ static int get_exec_path (char *exec_path, const size_t exec_path_sz)
 
   if (len == -1) return -1;
 
-  #elif defined (_WIN)
+  #elif defined (__WIN32__)
 
   const DWORD len = GetModuleFileName (NULL, exec_path, exec_path_sz - 1);
 
@@ -97,7 +97,7 @@ static void get_install_dir (char *install_dir, const char *exec_path)
   }
 }
 
-#if defined (_POSIX)
+#if defined (__unix__)
 static void get_profile_dir (char *profile_dir, const char *home_dir)
 {
   snprintf (profile_dir, HCBUFSIZ_TINY - 1, "%s/%s", home_dir, DOT_HASHCAT);
@@ -107,7 +107,7 @@ static void get_session_dir (char *session_dir, const char *profile_dir)
 {
   snprintf (session_dir, HCBUFSIZ_TINY - 1, "%s/%s", profile_dir, SESSIONS_FOLDER);
 }
-#endif
+#endif // __unix__
 
 int count_dictionaries (char **dictionary_files)
 {
@@ -389,7 +389,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   char *cpath;
 
-  #if defined (_WIN)
+  #if defined (__WIN32__)
 
   hc_asprintf (&cpath, "%s\\OpenCL\\", shared_dir);
 
@@ -415,7 +415,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
     return -1;
   }
 
-  #endif
+  #endif // __WIN32__
 
   hcfree (cpath);
 
@@ -429,7 +429,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
     putenv (tmp);
   }
 
-  #if defined (_WIN)
+  #if defined (__WIN32__)
 
   naive_replace (cpath_real, '\\', '/');
 
@@ -440,7 +440,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   naive_escape (cpath_real, PATH_MAX,  ' ', '\\');
 
-  #endif
+  #endif // __WIN32__
 
   /**
    * kernel cache, we need to make sure folder exist
@@ -481,9 +481,9 @@ void folder_config_destroy (hashcat_ctx_t *hashcat_ctx)
 
 int hc_mkdir (const char *name, MAYBE_UNUSED const int mode)
 {
-  #if defined (_WIN)
+  #if defined (__WIN32__)
   return _mkdir (name);
   #else
   return mkdir (name, mode);
-  #endif
+  #endif // __WIN32__
 }

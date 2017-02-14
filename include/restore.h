@@ -10,15 +10,15 @@
 #include <unistd.h>
 #include <errno.h>
 
-#if defined (_POSIX)
+#if defined (__unix__)
 #include <sys/types.h>
 #include <sys/stat.h>
-#endif // _POSIX
+#endif // __unix__
 
-#if defined (_WIN)
+#if defined (__WIN32__)
 #include <windows.h>
 #include <psapi.h>
-#endif // _WIN
+#endif // __WIN32__
 
 #define RESTORE_VERSION_MIN 340
 #define RESTORE_VERSION_CUR 340

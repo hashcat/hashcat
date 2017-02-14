@@ -15,10 +15,10 @@
 #include <inttypes.h>
 #include <signal.h>
 
-#if defined (_POSIX)
+#if defined (__unix__)
 #include <pthread.h>
 #include <pwd.h>
-#endif // _POSIX
+#endif // __unix__
 
 int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 pws_cnt);
 

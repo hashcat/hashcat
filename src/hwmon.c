@@ -551,7 +551,7 @@ static int nvml_init (hashcat_ctx_t *hashcat_ctx)
 
   memset (nvml, 0, sizeof (NVML_PTR));
 
-  #if defined (_WIN)
+  #if defined (__WIN32__)
   nvml->lib = hc_dlopen ("nvml.dll");
 
   if (!nvml->lib)
@@ -640,7 +640,7 @@ static int nvml_init (hashcat_ctx_t *hashcat_ctx)
     nvml->lib = hc_dlopen (nvml_cygpath, RTLD_NOW);
   }
 
-  #elif defined (_POSIX)
+  #elif defined (__unix__)
   nvml->lib = hc_dlopen ("libnvidia-ml.so", RTLD_NOW);
   #endif
 
@@ -1142,13 +1142,13 @@ static int nvapi_init (hashcat_ctx_t *hashcat_ctx)
 
   memset (nvapi, 0, sizeof (NVAPI_PTR));
 
-  #if defined (_WIN)
+  #if defined (__WIN32__)
 
-  #if defined (_WIN64)
+  #if defined (__WIN64__)
   nvapi->lib = hc_dlopen ("nvapi64.dll");
   #else
   nvapi->lib = hc_dlopen ("nvapi.dll");
-  #endif
+  #endif // __WIN64__
 
   #else
 
@@ -1158,13 +1158,13 @@ static int nvapi_init (hashcat_ctx_t *hashcat_ctx)
   nvapi->lib = hc_dlopen ("nvapi64.dll", RTLD_NOW);
   #else
   nvapi->lib = hc_dlopen ("nvapi.dll", RTLD_NOW);
-  #endif
+  #endif // __x86_64__
 
   #else
   nvapi->lib = hc_dlopen ("nvapi.so", RTLD_NOW); // uhm yes, but .. yeah
-  #endif
+  #endif // __CYGWIN__
 
-  #endif
+  #endif // __WIN32__
 
   if (!nvapi->lib)
   {
@@ -1415,12 +1415,12 @@ static int xnvctrl_init (hashcat_ctx_t *hashcat_ctx)
 
   memset (xnvctrl, 0, sizeof (XNVCTRL_PTR));
 
-  #if defined (_WIN)
+  #if defined (__WIN32__)
 
   // unsupport platform?
   return -1;
 
-  #elif defined (_POSIX)
+  #else
 
   xnvctrl->lib_x11 = dlopen ("libX11.so", RTLD_LAZY);
 
@@ -1451,7 +1451,7 @@ static int xnvctrl_init (hashcat_ctx_t *hashcat_ctx)
 
   return 0;
 
-  #endif
+  #endif // // __WIN32__
 }
 
 static void xnvctrl_close (hashcat_ctx_t *hashcat_ctx)
@@ -1462,7 +1462,7 @@ static void xnvctrl_close (hashcat_ctx_t *hashcat_ctx)
 
   if (xnvctrl)
   {
-    #if defined (_POSIX)
+    #if defined (__unix__)
 
     if (xnvctrl->lib_x11)
     {
@@ -1474,7 +1474,7 @@ static void xnvctrl_close (hashcat_ctx_t *hashcat_ctx)
       dlclose (xnvctrl->lib_xnvctrl);
     }
 
-    #endif
+    #endif // __unix__
 
     hcfree (xnvctrl);
   }
@@ -1766,16 +1766,16 @@ static int adl_init (hashcat_ctx_t *hashcat_ctx)
 
   memset (adl, 0, sizeof (ADL_PTR));
 
-  #if defined (_WIN)
+  #if defined (__WIN32__)
   adl->lib = hc_dlopen ("atiadlxx.dll");
 
   if (!adl->lib)
   {
     adl->lib = hc_dlopen ("atiadlxy.dll");
   }
-  #elif defined (_POSIX)
+  #else
   adl->lib = hc_dlopen ("libatiadlxx.so", RTLD_NOW);
-  #endif
+  #endif // __WIN32__
 
   if (!adl->lib)
   {

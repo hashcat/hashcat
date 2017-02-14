@@ -870,21 +870,21 @@ char *status_get_time_started_relative (const hashcat_ctx_t *hashcat_ctx)
 
   const time_t time_start = status_ctx->runtime_start;
 
-  #if defined (_WIN)
+  #if defined (__WIN32__)
   __time64_t sec_run = time_now - time_start;
   #else
   time_t sec_run = time_now - time_start;
-  #endif
+  #endif // __WIN32__
 
   struct tm *tmp;
 
-  #if defined (_WIN)
+  #if defined (__WIN32__)
   tmp = _gmtime64 (&sec_run);
   #else
   struct tm tm;
 
   tmp = gmtime_r (&sec_run, &tm);
-  #endif
+  #endif // __WIN32__
 
   char *display_run = (char *) malloc (HCBUFSIZ_TINY);
 
@@ -898,11 +898,11 @@ char *status_get_time_estimated_absolute (const hashcat_ctx_t *hashcat_ctx)
   const status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
-  #if defined (_WIN)
+  #if defined (__WIN32__)
   __time64_t sec_etc = 0;
   #else
   time_t sec_etc = 0;
-  #endif
+  #endif // __WIN32__
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
@@ -956,11 +956,11 @@ char *status_get_time_estimated_relative (const hashcat_ctx_t *hashcat_ctx)
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
-  #if defined (_WIN)
+  #if defined (__WIN32__)
   __time64_t sec_etc = 0;
   #else
   time_t sec_etc = 0;
-  #endif
+  #endif // __WIN32__
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
@@ -985,22 +985,22 @@ char *status_get_time_estimated_relative (const hashcat_ctx_t *hashcat_ctx)
   }
 
   // we need this check to avoid integer overflow
-  #if defined (_WIN)
+  #if defined (__WIN32__)
   if (sec_etc > 100000000)
   {
     sec_etc = 100000000;
   }
-  #endif
+  #endif // __WIN32__
 
   struct tm *tmp;
 
-  #if defined (_WIN)
+  #if defined (__WIN32__)
   tmp = _gmtime64 (&sec_etc);
   #else
   struct tm tm;
 
   tmp = gmtime_r (&sec_etc, &tm);
-  #endif
+  #endif // __WIN32__
 
   char *display = (char *) malloc (HCBUFSIZ_TINY);
 
@@ -1014,21 +1014,21 @@ char *status_get_time_estimated_relative (const hashcat_ctx_t *hashcat_ctx)
 
     if (runtime_left > 0)
     {
-      #if defined (_WIN)
+      #if defined (__WIN32__)
       __time64_t sec_left = runtime_left;
       #else
       time_t sec_left = runtime_left;
-      #endif
+      #endif // __WIN32__
 
       struct tm *tmp_left;
 
-      #if defined (_WIN)
+      #if defined (__WIN32__)
       tmp_left = _gmtime64 (&sec_left);
       #else
       struct tm tm_left;
 
       tmp_left = gmtime_r (&sec_left, &tm_left);
-      #endif
+      #endif // __WIN32__
 
       char *display_left = (char *) malloc (HCBUFSIZ_TINY);
 

@@ -84,7 +84,7 @@ void goodbye_screen (hashcat_ctx_t *hashcat_ctx, const time_t proc_start, const 
 
 int setup_console ()
 {
-  #if defined (_WIN)
+  #if defined (__WIN32__)
   SetConsoleWindowSize (132);
 
   if (_setmode (_fileno (stdin), _O_BINARY) == -1)
@@ -107,7 +107,7 @@ int setup_console ()
 
     return -1;
   }
-  #endif
+  #endif // __WIN32__
 
   return 0;
 }
@@ -154,9 +154,9 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
     if (ch ==  0) continue;
 
     //https://github.com/hashcat/hashcat/issues/302
-    //#if defined (_POSIX)
+    //#if defined (__unix__)
     //if (ch != '\n')
-    //#endif
+    //#endif // __unix__
 
     hc_thread_mutex_lock (status_ctx->mux_display);
 
@@ -257,9 +257,9 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
     }
 
     //https://github.com/hashcat/hashcat/issues/302
-    //#if defined (_POSIX)
+    //#if defined (__unix__)
     //if (ch != '\n')
-    //#endif
+    //#endif // __unix__
 
     hc_thread_mutex_unlock (status_ctx->mux_display);
   }
@@ -276,7 +276,7 @@ void *thread_keypress (void *p)
   return NULL;
 }
 
-#if defined (_WIN)
+#if defined (__WIN32__)
 void SetConsoleWindowSize (const int x)
 {
   HANDLE h = GetStdHandle (STD_OUTPUT_HANDLE);
@@ -300,7 +300,7 @@ void SetConsoleWindowSize (const int x)
 
   if (!SetConsoleWindowInfo (h, TRUE, sr)) return;
 }
-#endif
+#endif // __WIN32__
 
 #if defined (__linux__) || defined (__CYGWIN__)
 static struct termios savemodes;
@@ -400,7 +400,7 @@ int tty_fix()
 }
 #endif
 
-#if defined (_WIN)
+#if defined (__WIN32__)
 static DWORD saveMode = 0;
 
 int tty_break()
@@ -461,7 +461,7 @@ int tty_fix()
 
   return 0;
 }
-#endif
+#endif // __WIN32__
 
 void opencl_info (hashcat_ctx_t *hashcat_ctx)
 {

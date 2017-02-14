@@ -168,11 +168,11 @@ typedef enum nvmlGom_enum
 
 typedef nvmlDevice_t HM_ADAPTER_NVML;
 
-#if defined(_WIN32) || defined(__WIN32__)
+#if defined (__WIN32__)
 #define NVML_API_CALL __stdcall
 #else
 #define NVML_API_CALL
-#endif
+#endif // __WIN32__
 
 typedef const char * (*NVML_API_CALL NVML_ERROR_STRING) (nvmlReturn_t);
 typedef int (*NVML_API_CALL NVML_INIT) (void);
@@ -197,11 +197,11 @@ typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_SET_POWERMANAGEMENTLIMIT) (nvml
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_POWERMANAGEMENTLIMIT) (nvmlDevice_t, unsigned int *);
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_PCIINFO) (nvmlDevice_t, nvmlPciInfo_t *);
 
-#if defined (_POSIX)
-typedef void *NVML_LIB;
-#else
+#if defined (__WIN32__)
 typedef HINSTANCE NVML_LIB;
-#endif
+#else
+typedef void *NVML_LIB;
+#endif // __WIN32__
 
 typedef struct hm_nvml_lib
 {
