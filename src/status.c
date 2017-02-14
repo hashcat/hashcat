@@ -539,6 +539,8 @@ double status_get_input_base_percent (const hashcat_ctx_t *hashcat_ctx)
   const int input_base_offset = status_get_input_base_offset (hashcat_ctx);
   const int input_base_count  = status_get_input_base_count (hashcat_ctx);
 
+  if (input_base_count == 0) return 0;
+
   return ((double) input_base_offset / (double) input_base_count) * 100;
 }
 
@@ -651,6 +653,8 @@ double status_get_input_mod_percent (const hashcat_ctx_t *hashcat_ctx)
 {
   const int input_mod_offset = status_get_input_mod_offset (hashcat_ctx);
   const int input_mod_count  = status_get_input_mod_count  (hashcat_ctx);
+
+  if (input_mod_count == 0) return 0;
 
   return ((double) input_mod_offset / (double) input_mod_count) * 100;
 }
@@ -783,6 +787,8 @@ double status_get_digests_percent (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;
 
+  if (hashes->digests_cnt == 0) return 0;
+
   return ((double) hashes->digests_done / (double) hashes->digests_cnt) * 100;
 }
 
@@ -803,6 +809,8 @@ int status_get_salts_cnt (const hashcat_ctx_t *hashcat_ctx)
 double status_get_salts_percent (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;
+
+  if (hashes->salts_cnt == 0) return 0;
 
   return ((double) hashes->salts_done / (double) hashes->salts_cnt) * 100;
 }
