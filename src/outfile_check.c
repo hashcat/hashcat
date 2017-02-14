@@ -141,7 +141,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
               hc_stat_t outfile_stat;
 
-              hc_fstat (fileno (fp), &outfile_stat);
+              if (hc_fstat (fileno (fp), &outfile_stat)) continue;
 
               if (outfile_stat.st_ctime > out_info[j].ctime)
               {

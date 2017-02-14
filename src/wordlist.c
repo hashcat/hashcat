@@ -285,7 +285,7 @@ u64 count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile)
 
   d.cnt = 0;
 
-  hc_fstat (fileno (fd), &d.stat);
+  if (hc_fstat (fileno (fd), &d.stat)) return 0;
 
   d.stat.st_mode    = 0;
   d.stat.st_nlink   = 0;
