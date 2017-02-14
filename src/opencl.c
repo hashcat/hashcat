@@ -180,6 +180,8 @@ static int setup_opencl_platforms_filter (hashcat_ctx_t *hashcat_ctx, const char
   {
     char *platforms = hcstrdup (opencl_platforms);
 
+    if (platforms == NULL) return -1;
+
     char *saveptr;
 
     char *next = strtok_r (platforms, ",", &saveptr);
@@ -221,6 +223,8 @@ static int setup_devices_filter (hashcat_ctx_t *hashcat_ctx, const char *opencl_
   {
     char *devices = hcstrdup (opencl_devices);
 
+    if (devices == NULL) return -1;
+
     char *saveptr;
 
     char *next = strtok_r (devices, ",", &saveptr);
@@ -261,6 +265,8 @@ static int setup_device_types_filter (hashcat_ctx_t *hashcat_ctx, const char *op
   if (opencl_device_types)
   {
     char *device_types = hcstrdup (opencl_device_types);
+
+    if (device_types == NULL) return -1;
 
     char *saveptr;
 

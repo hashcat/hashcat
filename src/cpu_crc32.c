@@ -99,7 +99,7 @@ int cpu_crc32 (hashcat_ctx_t *hashcat_ctx, const char *filename, u8 keytab[64])
   {
     event_log_error (hashcat_ctx, "%s: %s", filename, strerror (errno));
 
-    return (-1);
+    return -1;
   }
 
   #define MAX_KEY_SIZE (1024 * 1024)

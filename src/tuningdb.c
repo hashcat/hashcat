@@ -119,6 +119,8 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
     int token_cnt = 0;
 
+    if (line_buf == NULL) continue;
+
     char *saveptr;
 
     char *next = strtok_r (line_buf, "\t ", &saveptr);
