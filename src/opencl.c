@@ -318,6 +318,8 @@ static int read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_fi
     {
       event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
 
+      hcfree (buf);
+
       return -1;
     }
 
