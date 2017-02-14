@@ -246,7 +246,11 @@ bool hc_path_create (const char *path)
 {
   if (hc_path_exist (path) == true) return false;
 
-  if (creat (path, S_IRUSR | S_IWUSR) == -1) return false;
+  const int fd = creat (path, S_IRUSR | S_IWUSR);
+
+  if (fd == -1) return false;
+
+  close (fd);
 
   unlink (path);
 
