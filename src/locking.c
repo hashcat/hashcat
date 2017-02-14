@@ -27,7 +27,7 @@ int lock_file (FILE *fp)
   return 0;
 }
 
-void unlock_file (FILE *fp)
+int unlock_file (FILE *fp)
 {
   struct flock lock;
 
@@ -35,7 +35,12 @@ void unlock_file (FILE *fp)
 
   lock.l_type = F_UNLCK;
 
-  fcntl (fileno (fp), F_SETLK, &lock);
+  if (fcntl (fileno (fp), F_SETLK, &lock))
+  {
+    return -1;
+  }
+
+  return 0;
 }
 
 #else
@@ -47,7 +52,7 @@ int lock_file (MAYBE_UNUSED FILE *fp)
   return 0;
 }
 
-void unlock_file (MAYBE_UNUSED FILE *fp)
+int unlock_file (MAYBE_UNUSED FILE *fp)
 {
   // we should put windows specific code here
 }
