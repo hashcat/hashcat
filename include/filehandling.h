@@ -14,6 +14,8 @@ u64 count_lines (FILE *fd);
 
 int fgetl (FILE *fp, char *line_buf);
 
+size_t superchop_with_length (char *buf, const size_t len);
+
 int in_superchop (char *buf);
 
 #endif // _FILEHANDLING_H

@@ -567,7 +567,9 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
       return -1;
     }
 
-    const size_t len = in_superchop (mp_file);
+    mp_file[nread] = 0;
+
+    const size_t len = superchop_with_length (mp_file, nread);
 
     if (len == 0)
     {

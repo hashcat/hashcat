@@ -82,6 +82,37 @@ int fgetl (FILE *fp, char *line_buf)
   return (line_len);
 }
 
+
+size_t superchop_with_length (char *buf, const size_t len)
+{
+  size_t new_len = len;
+
+  while (new_len)
+  {
+    if (buf[new_len - 1] == '\n')
+    {
+      new_len--;
+
+      buf[new_len] = 0;
+
+      continue;
+    }
+
+    if (buf[new_len - 1] == '\r')
+    {
+      new_len--;
+
+      buf[new_len] = 0;
+
+      continue;
+    }
+
+    break;
+  }
+
+  return new_len;
+}
+
 int in_superchop (char *buf)
 {
   size_t len = strlen (buf);
@@ -92,6 +123,8 @@ int in_superchop (char *buf)
     {
       len--;
 
+      buf[len] = 0;
+
       continue;
     }
 
@@ -99,13 +132,13 @@ int in_superchop (char *buf)
     {
       len--;
 
+      buf[len] = 0;
+
       continue;
     }
 
     break;
   }
-
-  buf[len] = 0;
 
   return len;
 }

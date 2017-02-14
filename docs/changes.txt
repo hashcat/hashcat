@@ -48,6 +48,7 @@
 - Fixed nvapi datatype definition for NvS32 and NvU32
 - Fixed WPA/WPA2 cracking in case eapol frame is >= 248 byte
 - Fixed string not null terminated inside workaround for checking drm driver path
+- Fixed string not null terminated when reading maskfiles
 
 ##
 ## Technical
