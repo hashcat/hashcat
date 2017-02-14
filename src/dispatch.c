@@ -150,10 +150,10 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
       // post-process rule engine
 
+      char rule_buf_out[BLOCK_SIZE] = { 0 };
+
       if (run_rule_engine ((int) user_options_extra->rule_len_l, user_options->rule_buf_l))
       {
-        char rule_buf_out[BLOCK_SIZE] = { 0 };
-
         int rule_len_out = -1;
 
         if (line_len < BLOCK_SIZE)
@@ -453,10 +453,10 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
           // post-process rule engine
 
+          char rule_buf_out[BLOCK_SIZE] = { 0 };
+
           if (run_rule_engine ((int) user_options_extra->rule_len_l, user_options->rule_buf_l))
           {
-            char rule_buf_out[BLOCK_SIZE] = { 0 };
-
             int rule_len_out = -1;
 
             if (line_len < BLOCK_SIZE)
