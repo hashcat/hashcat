@@ -976,12 +976,9 @@ static int mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask, const char
 
       const int rc = mask_append_final (hashcat_ctx, mask_truncated);
 
-      if (rc == -1)
-      {
-        hcfree (mask_truncated);
+      hcfree (mask_truncated);
 
-        return -1;
-      }
+      if (rc == -1) return -1;
     }
   }
   else
@@ -996,9 +993,9 @@ static int mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask, const char
 
       const int rc = mask_append_final (hashcat_ctx, prepend_mask);
 
-      if (rc == -1) return -1;
-
       hcfree (prepend_mask);
+
+      if (rc == -1) return -1;
     }
     else
     {
