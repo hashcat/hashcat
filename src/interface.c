@@ -14124,7 +14124,7 @@ void seven_zip_hook_func (hc_device_param_t *device_param, hashes_t *hashes, con
 
     // init AES
 
-    AES_KEY aes_key;
+    AES_KEY aes_key = { 0 };
     AES_set_decrypt_key (ukey, 256, &aes_key);
 
     AES_KEY aes_key_copied;
