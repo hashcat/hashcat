@@ -11122,6 +11122,8 @@ int sip_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
       tmp_digest[3]);
   }
 
+  if (esalt_len >= 152) return (PARSER_SALT_LENGTH);
+
   // add 0x80 to esalt
 
   esalt_buf_ptr[esalt_len] = 0x80;
