@@ -4805,7 +4805,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       // mp_r
 
-      CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program_mp, "r_markov", &device_param->kernel_mp_r); if (CL_rc == -1) return -1;
+      CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program_mp, "r_markov", &device_param->kernel_mp_r);
 
       if (CL_rc == -1) return -1;
 
