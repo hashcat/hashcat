@@ -58,6 +58,7 @@
 - Building: Removed the use of RPATH on linker level
 - Building: Replaced linking of CRT_glob.o with the use of int _dowildcard
 - Commandline: Do some checks related to custom-charset options if user specifies them
+- CPU Affinity: Fixed memory leak when invalid cpu Id was specified
 - Events: Improved the maximum event message handling. event_log () will now also internally make sure that the message is properly terminated
 - Files: Do several file and folder checks on startup rather than when they are actually used to avoid related error after eventual intense operations
 - Helper: Added functions to check existence, type, read- and write-permissions and rewrite sources to use them instead of stat()
