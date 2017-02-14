@@ -62,6 +62,7 @@
 - Files: Do several file and folder checks on startup rather than when they are actually used to avoid related error after eventual intense operations
 - Helper: Added functions to check existence, type, read- and write-permissions and rewrite sources to use them instead of stat()
 - Hardware Monitor: Fixed several memory leaks when no hardware monitor sensor is found
+- OpenCL Device Management: Fixed several memory leaks when initialization of a device/platform failed
 - OpenCL Header: Updated CL_* errorcode to OpenCL 1.2 standard
 - OpenCL Runtime: Updated AMDGPU-Pro driver version check, do warn if version 16.60 is detected which is known to be broken
 - OpenCL Kernel: Renumbered hash-mode 7600 to 4521
