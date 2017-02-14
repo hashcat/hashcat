@@ -645,11 +645,11 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
    * Load hcstats File
    */
 
+  char hcstat_tmp[256];
+
   if (hcstat == NULL)
   {
-    char hcstat_tmp[256] = { 0 };
-
-    snprintf (hcstat_tmp, sizeof (hcstat_tmp) - 1, "%s/%s", shared_dir, SP_HCSTAT);
+    snprintf (hcstat_tmp, sizeof (hcstat_tmp), "%s/%s", shared_dir, SP_HCSTAT);
 
     hcstat = hcstat_tmp;
   }
