@@ -745,15 +745,6 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
             return -1;
           }
 
-          if (hashes_avail < 1)
-          {
-            event_log_error (hashcat_ctx, "hccapx file is empty or corrupt");
-
-            fclose (fp);
-
-            return -1;
-          }
-
           char *in = (char *) hcmalloc (sizeof (hccapx_t));
 
           while (!feof (fp))
@@ -836,13 +827,6 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         }
         else if (hashconfig->hash_mode == 14600)
         {
-          if (hash_len == 0)
-          {
-            event_log_error (hashcat_ctx, "LUKS container not specified");
-
-            return -1;
-          }
-
           hashlist_mode = HL_MODE_FILE;
 
           hashes->hashlist_mode = hashlist_mode;
