@@ -278,6 +278,8 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   {
     event_log_error (hashcat_ctx, "getcwd(): %s", strerror (errno));
 
+    hcfree (cwd);
+
     return -1;
   }
 
@@ -294,6 +296,10 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   if (rc == -1)
   {
     event_log_error (hashcat_ctx, "get_exec_path() failed");
+
+    hcfree (cwd);
+
+    hcfree (exec_path);
 
     return -1;
   }
@@ -315,6 +321,12 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   {
     event_log_error (hashcat_ctx, "%s: %s", resolved_install_folder, strerror (errno));
 
+    hcfree (cwd);
+
+    hcfree (exec_path);
+
+    hcfree (resolved_install_folder);
+
     return -1;
   }
   */
@@ -322,6 +334,12 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   if (resolved_exec_path == NULL)
   {
     event_log_error (hashcat_ctx, "%s: %s", resolved_exec_path, strerror (errno));
+
+    hcfree (cwd);
+
+    hcfree (exec_path);
+
+    hcfree (resolved_install_folder);
 
     return -1;
   }
@@ -399,6 +417,8 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   {
     event_log_error (hashcat_ctx, "%s: %s", cpath, "GetFullPathName()");
 
+    hcfree (cwd);
+
     return -1;
   }
 
@@ -411,6 +431,8 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   if (realpath (cpath, cpath_real) == NULL)
   {
     event_log_error (hashcat_ctx, "%s: %s", cpath, strerror (errno));
+
+    hcfree (cwd);
 
     hcfree (shared_dir);
     hcfree (profile_dir);
