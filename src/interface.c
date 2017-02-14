@@ -22506,7 +22506,12 @@ int hashconfig_general_defaults (hashcat_ctx_t *hashcat_ctx)
     {
       const int rc_crc32 = cpu_crc32 (hashcat_ctx, keyfile, (u8 *) keyfile_buf);
 
-      if (rc_crc32 == -1) return -1;
+      if (rc_crc32 == -1)
+      {
+        free (keyfiles);
+
+        return -1;
+      }
 
     } while ((keyfile = strtok_r (NULL, ",", &saveptr)) != NULL);
 
