@@ -3914,9 +3914,13 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
        * kernel compile or load
        */
 
-      size_t *kernel_lengths = (size_t *) hcmalloc (sizeof (size_t));
+      size_t kernel_lengths_buf = 0;
 
-      char **kernel_sources = (char **) hcmalloc (sizeof (char *));
+      size_t *kernel_lengths = &kernel_lengths_buf;
+
+      char *kernel_sources_buf = NULL;
+
+      char **kernel_sources = &kernel_sources_buf;
 
       if (opencl_ctx->force_jit_compilation == -1)
       {
@@ -4065,9 +4069,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         }
       }
 
-      hcfree (kernel_lengths);
       hcfree (kernel_sources[0]);
-      hcfree (kernel_sources);
     }
 
     /**
