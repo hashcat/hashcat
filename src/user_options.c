@@ -1572,7 +1572,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
     if (tmp_outfile_fp)
     {
-      hc_fstat (fileno (tmp_outfile_fp), &tmpstat_outfile);
+      if (hc_fstat (fileno (tmp_outfile_fp), &tmpstat_outfile)) return -1;
 
       fclose (tmp_outfile_fp);
     }
@@ -1581,7 +1581,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
     if (tmp_hashfile_fp)
     {
-      hc_fstat (fileno (tmp_hashfile_fp), &tmpstat_hashfile);
+      if (hc_fstat (fileno (tmp_hashfile_fp), &tmpstat_hashfile)) return -1;
 
       fclose (tmp_hashfile_fp);
     }

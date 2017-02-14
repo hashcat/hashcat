@@ -69,6 +69,7 @@
 - OpenCL Runtime: Updated AMDGPU-Pro driver version check, do warn if version 16.60 is detected which is known to be broken
 - OpenCL Kernel: Renumbered hash-mode 7600 to 4521
 - OpenCL Device: Do a check on available constant memory size and abort if it's less than 64kB
+- File Reads: Improved error detection on file reads, especially when getting the file stats
 - Sessions: Move out handling of multiple instance from restore file into separate pidfile
 - Threads: Restored strerror as %m is unsupported by the BSDs
 - Wordlists: Disable dictstat handling for hash-mode 3000 as it virtually creates words in the wordlist which is not the case for other modes
