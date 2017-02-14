@@ -2115,6 +2115,13 @@ static int hm_ADL_Overdrive_PowerControl_Set (hashcat_ctx_t *hashcat_ctx, int iA
     return -1;
   }
 
+  if (step == 0)
+  {
+    event_log_error (hashcat_ctx, "ADL PowerControl step invalid");
+
+    return -1;
+  }
+
   if (level % step != 0)
   {
     event_log_error (hashcat_ctx, "ADL PowerControl step invalid");
