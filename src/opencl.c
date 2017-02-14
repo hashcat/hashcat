@@ -1906,9 +1906,11 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
           char *line_buf_new = line_buf;
 
+          char rule_buf_out[BLOCK_SIZE];
+
           if (run_rule_engine (user_options_extra->rule_len_r, user_options->rule_buf_r))
           {
-            char rule_buf_out[BLOCK_SIZE] = { 0 };
+            memset (rule_buf_out, 0, sizeof (rule_buf_out));
 
             int rule_len_out = _old_apply_rule (user_options->rule_buf_r, user_options_extra->rule_len_r, line_buf, line_len, rule_buf_out);
 
