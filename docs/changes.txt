@@ -83,6 +83,7 @@
 - File Reads: Fixed memory leak in case outfile or hashfile was not accessible
 - File Locking: Improved error detection on file locks
 - Hash Parsing: Added additional bound checks for the SIP digest authentication (MD5) parser (-m 11400)
+- Hash Parsing: Make sure that all files are correctly closed whenever a hash file parsing error occurs
 - Sessions: Move out handling of multiple instance from restore file into separate pidfile
 - Threads: Restored strerror as %m is unsupported by the BSDs
 - Wordlists: Fixed memory leak in case access a file in a wordlist folder fails
