@@ -656,6 +656,13 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
       break;
     }
 
+    if (device_param == NULL)
+    {
+      event_log_error (hashcat_ctx, "No device found for weak-hash-check");
+
+      return -1;
+    }
+
     EVENT (EVENT_WEAK_HASH_PRE);
 
     for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
