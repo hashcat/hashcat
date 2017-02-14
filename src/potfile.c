@@ -619,18 +619,15 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
 
         u32 user_len = 0;
 
-        if (hash1->hash_info != NULL)
+        user_t *user = hash1->hash_info->user;
+
+        if (user)
         {
-          user_t *user = hash1->hash_info->user;
+          username = (unsigned char *) (user->user_name);
 
-          if (user)
-          {
-            username = (unsigned char *) (user->user_name);
+          user_len = user->user_len;
 
-            user_len = user->user_len;
-
-            username[user_len] = 0;
-          }
+          username[user_len] = 0;
         }
 
         u8 *tmp_buf = potfile_ctx->tmp_buf;
@@ -641,20 +638,17 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
 
         u8 mixed_len = 0;
 
-        if (hash1)
+        if (digests_shown[hashes_idx] == 1)
         {
-          if (digests_shown[hashes_idx] == 1)
-          {
-            memcpy (mixed_buf + mixed_len, hash1->pw_buf, hash1->pw_len);
+          memcpy (mixed_buf + mixed_len, hash1->pw_buf, hash1->pw_len);
 
-            mixed_len += hash1->pw_len;
-          }
-          else
-          {
-            memcpy (mixed_buf + mixed_len, LM_MASKED_PLAIN, strlen (LM_MASKED_PLAIN));
+          mixed_len += hash1->pw_len;
+        }
+        else
+        {
+          memcpy (mixed_buf + mixed_len, LM_MASKED_PLAIN, strlen (LM_MASKED_PLAIN));
 
-            mixed_len += strlen (LM_MASKED_PLAIN);
-          }
+          mixed_len += strlen (LM_MASKED_PLAIN);
         }
 
         if (hash2)
@@ -803,18 +797,15 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
 
         u32 user_len = 0;
 
-        if (hash1->hash_info != NULL)
+        user_t *user = hash1->hash_info->user;
+
+        if (user)
         {
-          user_t *user = hash1->hash_info->user;
+          username = (unsigned char *) (user->user_name);
 
-          if (user)
-          {
-            username = (unsigned char *) (user->user_name);
+          user_len = user->user_len;
 
-            user_len = user->user_len;
-
-            username[user_len] = 0;
-          }
+          username[user_len] = 0;
         }
 
         u8 *tmp_buf = potfile_ctx->tmp_buf;
