@@ -271,7 +271,10 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, u8 *
 
   fflush (potfile_ctx->fp);
 
-  unlock_file (potfile_ctx->fp);
+  if (unlock_file (potfile_ctx->fp))
+  {
+    event_log_error (hashcat_ctx, "%s: Failed to unlock file", potfile_ctx->filename);
+  }
 }
 
 void potfile_update_hash (hashcat_ctx_t *hashcat_ctx, hash_t *found, char *line_pw_buf, int line_pw_len)
