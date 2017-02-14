@@ -7868,7 +7868,8 @@ int androidfde_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   u32 data_len = input_len - 1 - 3 - 1 - saltlen_len - 1 - saltbuf_len - 1 - keylen_len - 1 - keybuf_len - 1;
 
-  if (data_len != 3072) return (PARSER_SALT_LENGTH);
+  // the following check is not needed, since we already checked all the other lengths (sub strings)
+  // if (data_len != 3072) return (PARSER_SALT_LENGTH);
 
   /**
    * copy data
