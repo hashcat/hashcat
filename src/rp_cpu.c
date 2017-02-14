@@ -78,8 +78,7 @@ static int mangle_reverse (char arr[BLOCK_SIZE], int arr_len)
 
 static int mangle_double (char arr[BLOCK_SIZE], int arr_len)
 {
-  //if ((arr_len * 2) >= BLOCK_SIZE) return (arr_len);
-  if (arr_len >= (BLOCK_SIZE / 2)) return (arr_len);
+  if ((arr_len * 2) >= BLOCK_SIZE) return (arr_len);
 
   memcpy (&arr[arr_len], arr, (size_t) arr_len);
 
