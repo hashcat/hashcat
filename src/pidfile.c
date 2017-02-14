@@ -46,6 +46,10 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
     {
       event_log_error (hashcat_ctx, "Already an instance running on pid %u", pd->pid);
 
+      hcfree (pd);
+
+      hcfree (pidbin);
+
       return -1;
     }
 
@@ -70,12 +74,17 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_error (hashcat_ctx, "Already an instance %s running on pid %d", pidbin2, pd->pid);
 
+        hcfree (pd);
+
+        hcfree (pidbin);
+        hcfree (pidbin2);
+
         return -1;
       }
     }
 
-    hcfree (pidbin2);
     hcfree (pidbin);
+    hcfree (pidbin2);
 
     #endif
   }
