@@ -63,6 +63,8 @@ int set_cpu_affinity (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
   char *devices = hcstrdup (user_options->cpu_affinity);
 
+  if (devices == NULL) return -1;
+
   char *saveptr;
 
   char *next = strtok_r (devices, ",", &saveptr);
@@ -88,7 +90,7 @@ int set_cpu_affinity (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
       hcfree (devices);
 
-      return (-1);
+      return -1;
     }
 
     #if defined (_WIN)

@@ -5112,9 +5112,9 @@ int ikepsk_md5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   size_t in_len[9] = { 0 };
 
-  char *saveptr;
-
   if (input_buf == NULL) return (PARSER_HASH_VALUE);
+
+  char *saveptr;
 
   in_off[0] = (u8 *) strtok_r ((char *) input_buf, ":", &saveptr);
 
@@ -5200,9 +5200,9 @@ int ikepsk_sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
 
   size_t in_len[9] = { 0 };
 
-  char *saveptr;
-
   if (input_buf == NULL) return (PARSER_HASH_VALUE);
+
+  char *saveptr;
 
   in_off[0] = (u8 *) strtok_r ((char *) input_buf, ":", &saveptr);
 
@@ -22510,6 +22510,8 @@ int hashconfig_general_defaults (hashcat_ctx_t *hashcat_ctx)
     u32 *keyfile_buf = ((tc_t *) esalts_buf)->keyfile_buf;
 
     char *keyfiles = hcstrdup (tcvc_keyfiles);
+
+    if (keyfiles == NULL) return -1;
 
     char *saveptr;
 
