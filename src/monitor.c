@@ -102,12 +102,19 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
   // these variables are mainly used for fan control
 
-  int *fan_speed_chgd = (int *) hccalloc (opencl_ctx->devices_cnt, sizeof (int));
+  int fan_speed_chgd[DEVICES_MAX];
+
+  memset (fan_speed_chgd, 0, sizeof (fan_speed_chgd));
 
   // temperature controller "loopback" values
 
-  int *temp_diff_old = (int *) hccalloc (opencl_ctx->devices_cnt, sizeof (int));
-  int *temp_diff_sum = (int *) hccalloc (opencl_ctx->devices_cnt, sizeof (int));
+  int temp_diff_old[DEVICES_MAX];
+  int temp_diff_sum[DEVICES_MAX];
+
+  memset (temp_diff_old, 0, sizeof (temp_diff_old));
+  memset (temp_diff_sum, 0, sizeof (temp_diff_sum));
+
+  // timer
 
   time_t last_temp_check_time;
 
@@ -404,11 +411,6 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
     if (rc == -1) return -1;
   }
-
-  hcfree (fan_speed_chgd);
-
-  hcfree (temp_diff_old);
-  hcfree (temp_diff_sum);
 
   return 0;
 }

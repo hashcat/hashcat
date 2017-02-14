@@ -66,6 +66,7 @@
 - Files: Do several file and folder checks on startup rather than when they are actually used to avoid related error after eventual intense operations
 - Helper: Added functions to check existence, type, read- and write-permissions and rewrite sources to use them instead of stat()
 - Hardware Monitor: Fixed several memory leaks in case no hardware monitor sensor is found
+- Hardware Monitor: Fixed several memory leaks in case hash-file writing (in case of --remove) failed
 - Mask Increment: Fixed memory leak in case mask_append() fails
 - OpenCL Device Management: Fixed several memory leaks in case initialization of an OpenCL device or platform failed
 - Outfile Check: Fixed a memory leak for failed outfile reads
