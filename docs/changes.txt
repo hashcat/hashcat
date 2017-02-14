@@ -9,7 +9,7 @@
 - Added support for showing all user names with --show and --left if --username was specified
 - Added support for loading hccapx files
 - Added support for GPU temperature management on cygwin build
-- Added support for automatic merge of LM halfes when --show and --left is used
+- Added support for automatic merge of LM halfes in case --show and --left is used
 
 ##
 ## Algorithms
@@ -48,9 +48,9 @@
 - Fixed nvapi datatype definition for NvS32 and NvU32
 - Fixed WPA/WPA2 cracking in case eapol frame is >= 248 byte
 - Fixed string not null terminated inside workaround for checking drm driver path
-- Fixed string not null terminated when reading maskfiles
-- Fixed pointer to local outside scope when using -j or -k
-- Fixed pointer to local outside scope when not specifying --markov-hcstat
+- Fixed string not null terminated while reading maskfiles
+- Fixed pointer to local outside scope in case -j or -k is used
+- Fixed pointer to local outside scope in case --markov-hcstat is not used
 
 ##
 ## Technical
@@ -60,16 +60,17 @@
 - Building: Removed the use of RPATH on linker level
 - Building: Replaced linking of CRT_glob.o with the use of int _dowildcard
 - Commandline: Do some checks related to custom-charset options if user specifies them
-- CPU Affinity: Fixed memory leak when invalid cpu Id was specified
-- Dispatcher: Fixed several memory leaks when an OpenCL error occurs
+- CPU Affinity: Fixed memory leak in case invalid cpu Id was specified
+- Dispatcher: Fixed several memory leaks in case an OpenCL error occurs
 - Events: Improved the maximum event message handling. event_log () will now also internally make sure that the message is properly terminated
 - Files: Do several file and folder checks on startup rather than when they are actually used to avoid related error after eventual intense operations
 - Helper: Added functions to check existence, type, read- and write-permissions and rewrite sources to use them instead of stat()
-- Hardware Monitor: Fixed several memory leaks when no hardware monitor sensor is found
-- OpenCL Device Management: Fixed several memory leaks when initialization of a device/platform failed
+- Hardware Monitor: Fixed several memory leaks in case no hardware monitor sensor is found
+- Mask Increment: Fixed memory leak in case mask_append() fails
+- OpenCL Device Management: Fixed several memory leaks in case initialization of an OpenCL device or platform failed
 - Outfile Check: Fixed a memory leak for failed outfile reads
-- Rule Engine: Fixed several memory leaks when loading of rules failed
-- Session Management: Fixed several memory leaks when profile/install folder setup failed
+- Rule Engine: Fixed several memory leaks in case loading of rules failed
+- Session Management: Fixed several memory leaks in case profile- or install-folder setup failed
 - OpenCL Header: Updated CL_* errorcode to OpenCL 1.2 standard
 - OpenCL Runtime: Updated AMDGPU-Pro driver version check, do warn if version 16.60 is detected which is known to be broken
 - OpenCL Kernel: Renumbered hash-mode 7600 to 4521

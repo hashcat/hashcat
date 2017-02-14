@@ -967,11 +967,21 @@ static int mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask, const char
 
       const int rc_truncated_mask = mp_get_truncated_mask (hashcat_ctx, mask, strlen (mask), increment_len, mask_truncated_next);
 
-      if (rc_truncated_mask == -1) break;
+      if (rc_truncated_mask == -1)
+      {
+        hcfree (mask_truncated);
+
+        break;
+      }
 
       const int rc = mask_append_final (hashcat_ctx, mask_truncated);
 
-      if (rc == -1) return -1;
+      if (rc == -1)
+      {
+        hcfree (mask_truncated);
+
+        return -1;
+      }
     }
   }
   else
