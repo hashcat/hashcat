@@ -288,6 +288,8 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
               {
                 event_log_error (hashcat_ctx, "%s: %s", l1_filename, strerror (errno));
 
+                hcfree (dictionary_files);
+
                 return -1;
               }
 
@@ -295,7 +297,12 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
               {
                 const int rc = straight_ctx_add_wl (hashcat_ctx, l1_filename);
 
-                if (rc == -1) return -1;
+                if (rc == -1)
+                {
+                  hcfree (dictionary_files);
+
+                  return -1;
+                }
               }
             }
           }
@@ -352,6 +359,8 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
             {
               event_log_error (hashcat_ctx, "%s: %s", l1_filename, strerror (errno));
 
+              hcfree (dictionary_files);
+
               return -1;
             }
 
@@ -359,7 +368,12 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
             {
               const int rc = straight_ctx_add_wl (hashcat_ctx, l1_filename);
 
-              if (rc == -1) return -1;
+              if (rc == -1)
+              {
+                hcfree (dictionary_files);
+
+                return -1;
+              }
             }
           }
         }
@@ -407,6 +421,8 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
             {
               event_log_error (hashcat_ctx, "%s: %s", l1_filename, strerror (errno));
 
+              hcfree (dictionary_files);
+
               return -1;
             }
 
@@ -414,7 +430,12 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
             {
               const int rc = straight_ctx_add_wl (hashcat_ctx, l1_filename);
 
-              if (rc == -1) return -1;
+              if (rc == -1)
+              {
+                hcfree (dictionary_files);
+
+                return -1;
+              }
             }
           }
         }
