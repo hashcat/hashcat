@@ -80,6 +80,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
             event_log_error (hashcat_ctx, "%s: %s", root_directory, strerror (errno));
 
             hcfree (out_files);
+            hcfree (out_info);
 
             return -1;
           }
