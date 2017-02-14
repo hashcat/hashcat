@@ -10998,6 +10998,13 @@ int sip_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   u32 md5_max_len = 4 * 64;
 
+  u32 total_length = method_len + 1 + URI_prefix_len + URI_prefix_len + URI_resource_len + URI_suffix_len + URI_suffix_len;
+
+  if (URI_prefix_len) total_length++;
+  if (URI_suffix_len) total_length++;
+
+  if (total_length > md5_max_len) return (PARSER_SALT_LENGTH);
+
   u32 md5_remaining_len = md5_max_len;
 
   u32 tmp_md5_buf[64] = { 0 };
