@@ -3274,21 +3274,15 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
    * Initialize shared libraries
    */
 
-  ADL_PTR     *adl     = (ADL_PTR *)     hcmalloc (sizeof (ADL_PTR));
-  NVAPI_PTR   *nvapi   = (NVAPI_PTR *)   hcmalloc (sizeof (NVAPI_PTR));
-  NVML_PTR    *nvml    = (NVML_PTR *)    hcmalloc (sizeof (NVML_PTR));
-  XNVCTRL_PTR *xnvctrl = (XNVCTRL_PTR *) hcmalloc (sizeof (XNVCTRL_PTR));
-  SYSFS_PTR   *sysfs   = (SYSFS_PTR *)   hcmalloc (sizeof (SYSFS_PTR));
-
-  hm_attrs_t *hm_adapters_adl      = (hm_attrs_t *) hccalloc (DEVICES_MAX, sizeof (hm_attrs_t));
-  hm_attrs_t *hm_adapters_nvapi    = (hm_attrs_t *) hccalloc (DEVICES_MAX, sizeof (hm_attrs_t));
-  hm_attrs_t *hm_adapters_nvml     = (hm_attrs_t *) hccalloc (DEVICES_MAX, sizeof (hm_attrs_t));
-  hm_attrs_t *hm_adapters_xnvctrl  = (hm_attrs_t *) hccalloc (DEVICES_MAX, sizeof (hm_attrs_t));
-  hm_attrs_t *hm_adapters_sysfs    = (hm_attrs_t *) hccalloc (DEVICES_MAX, sizeof (hm_attrs_t));
+  hm_attrs_t *hm_adapters_adl     = (hm_attrs_t *) hccalloc (DEVICES_MAX, sizeof (hm_attrs_t));
+  hm_attrs_t *hm_adapters_nvapi   = (hm_attrs_t *) hccalloc (DEVICES_MAX, sizeof (hm_attrs_t));
+  hm_attrs_t *hm_adapters_nvml    = (hm_attrs_t *) hccalloc (DEVICES_MAX, sizeof (hm_attrs_t));
+  hm_attrs_t *hm_adapters_xnvctrl = (hm_attrs_t *) hccalloc (DEVICES_MAX, sizeof (hm_attrs_t));
+  hm_attrs_t *hm_adapters_sysfs   = (hm_attrs_t *) hccalloc (DEVICES_MAX, sizeof (hm_attrs_t));
 
   if (opencl_ctx->need_nvml == true)
   {
-    hwmon_ctx->hm_nvml = nvml;
+    hwmon_ctx->hm_nvml = (NVML_PTR *) hcmalloc (sizeof (NVML_PTR));
 
     if (nvml_init (hashcat_ctx) == -1)
     {
@@ -3300,7 +3294,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (opencl_ctx->need_nvapi == true)
   {
-    hwmon_ctx->hm_nvapi = nvapi;
+    hwmon_ctx->hm_nvapi = (NVAPI_PTR *) hcmalloc (sizeof (NVAPI_PTR));
 
     if (nvapi_init (hashcat_ctx) == -1)
     {
@@ -3312,7 +3306,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (opencl_ctx->need_xnvctrl == true)
   {
-    hwmon_ctx->hm_xnvctrl = xnvctrl;
+    hwmon_ctx->hm_xnvctrl = (XNVCTRL_PTR *) hcmalloc (sizeof (XNVCTRL_PTR));
 
     if (xnvctrl_init (hashcat_ctx) == -1)
     {
@@ -3324,7 +3318,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (opencl_ctx->need_adl == true)
   {
-    hwmon_ctx->hm_adl = adl;
+    hwmon_ctx->hm_adl = (ADL_PTR *) hcmalloc (sizeof (ADL_PTR));
 
     if (adl_init (hashcat_ctx) == -1)
     {
@@ -3336,7 +3330,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (opencl_ctx->need_sysfs == true)
   {
-    hwmon_ctx->hm_sysfs = sysfs;
+    hwmon_ctx->hm_sysfs = (SYSFS_PTR *) hcmalloc (sizeof (SYSFS_PTR));
 
     if (sysfs_init (hashcat_ctx) == false)
     {
@@ -3602,6 +3596,12 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (hwmon_ctx->hm_adl == NULL && hwmon_ctx->hm_nvml == NULL && hwmon_ctx->hm_xnvctrl == NULL && hwmon_ctx->hm_sysfs == NULL)
   {
+    hcfree (hm_adapters_adl);
+    hcfree (hm_adapters_nvapi);
+    hcfree (hm_adapters_nvml);
+    hcfree (hm_adapters_xnvctrl);
+    hcfree (hm_adapters_sysfs);
+
     return 0;
   }
 
