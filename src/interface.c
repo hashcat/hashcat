@@ -13450,7 +13450,12 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   const size_t nread = fread (&hdr, sizeof (hdr), 1, fp);
 
-  if (nread != 1) return (PARSER_LUKS_FILE_SIZE);
+  if (nread != 1)
+  {
+    fclose (fp);
+
+    return (PARSER_LUKS_FILE_SIZE);
+  }
 
   // copy digest which we're not using ;)
 
@@ -13469,9 +13474,19 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   char luks_magic[6] = LUKS_MAGIC;
 
-  if (memcmp (hdr.magic, luks_magic, LUKS_MAGIC_L)) return (PARSER_LUKS_MAGIC);
+  if (memcmp (hdr.magic, luks_magic, LUKS_MAGIC_L))
+  {
+    fclose (fp);
 
-  if (byte_swap_16 (hdr.version) != 1) return (PARSER_LUKS_VERSION);
+    return (PARSER_LUKS_MAGIC);
+  }
+
+  if (byte_swap_16 (hdr.version) != 1)
+  {
+    fclose (fp);
+
+    return (PARSER_LUKS_VERSION);
+  }
 
   if (strcmp (hdr.cipherName, "aes") == 0)
   {
@@ -13487,6 +13502,8 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   }
   else
   {
+    fclose (fp);
+
     return (PARSER_LUKS_CIPHER_TYPE);
   }
 
@@ -13512,6 +13529,8 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   }
   else
   {
+    fclose (fp);
+
     return (PARSER_LUKS_CIPHER_MODE);
   }
 
@@ -13537,6 +13556,8 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   }
   else
   {
+    fclose (fp);
+
     return (PARSER_LUKS_HASH_TYPE);
   }
 
@@ -13556,6 +13577,8 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   }
   else
   {
+    fclose (fp);
+
     return (PARSER_LUKS_KEY_SIZE);
   }
 
@@ -13623,6 +13646,8 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   }
   else
   {
+    fclose (fp);
+
     return (PARSER_LUKS_HASH_CIPHER);
   }
 
@@ -13631,8 +13656,19 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   const u32 active  = byte_swap_32 (hdr.keyblock[keyslot_idx].active);
   const u32 stripes = byte_swap_32 (hdr.keyblock[keyslot_idx].stripes);
 
-  if (active  != LUKS_KEY_ENABLED) return (PARSER_LUKS_KEY_DISABLED);
-  if (stripes != LUKS_STRIPES)     return (PARSER_LUKS_KEY_STRIPES);
+  if (active  != LUKS_KEY_ENABLED)
+  {
+    fclose (fp);
+
+    return (PARSER_LUKS_KEY_DISABLED);
+  }
+
+  if (stripes != LUKS_STRIPES)
+  {
+    fclose (fp);
+
+    return (PARSER_LUKS_KEY_STRIPES);
+  }
 
   // configure the salt (not esalt)
 
@@ -13659,11 +13695,21 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   const int rc_seek1 = fseeko (fp, keyMaterialOffset * 512, SEEK_SET);
 
-  if (rc_seek1 == -1) return (PARSER_LUKS_FILE_SIZE);
+  if (rc_seek1 == -1)
+  {
+    fclose (fp);
+
+    return (PARSER_LUKS_FILE_SIZE);
+  }
 
   const size_t nread2 = fread (luks->af_src_buf, keyBytes, stripes, fp);
 
-  if (nread2 != stripes) return (PARSER_LUKS_FILE_SIZE);
+  if (nread2 != stripes)
+  {
+    fclose (fp);
+
+    return (PARSER_LUKS_FILE_SIZE);
+  }
 
   // finally, copy some encrypted payload data for entropy check
 
@@ -13671,11 +13717,21 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   const int rc_seek2 = fseeko (fp, payloadOffset * 512, SEEK_SET);
 
-  if (rc_seek2 == -1) return (PARSER_LUKS_FILE_SIZE);
+  if (rc_seek2 == -1)
+  {
+    fclose (fp);
+
+    return (PARSER_LUKS_FILE_SIZE);
+  }
 
   const size_t nread3 = fread (luks->ct_buf, sizeof (u32), 128, fp);
 
-  if (nread3 != 128) return (PARSER_LUKS_FILE_SIZE);
+  if (nread3 != 128)
+  {
+    fclose (fp);
+
+    return (PARSER_LUKS_FILE_SIZE);
+  }
 
   // that should be it, close the fp
 
@@ -14751,9 +14807,9 @@ int check_old_hccap (const char *hashfile)
 
   const size_t nread = fread (&signature, sizeof (u32), 1, fp);
 
-  if (nread != 1) return -1;
-
   fclose (fp);
+
+  if (nread != 1) return -1;
 
   if (signature == HCCAPX_SIGNATURE) return 0;
 
