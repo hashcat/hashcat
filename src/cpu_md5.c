@@ -155,11 +155,13 @@ void md5_complete_no_limit (u32 digest[4], u32 *plain, u32 plain_len)
     int cur_len  = MIN (block_total_len, remaining_len);
     int copy_len = MAX (cur_len, 0);  // should never be negative of course
 
+    // initialize the block
+
+    memset (block_ptr, 0, block_total_len);
+
+    // copy the bytes from the plain pointer (plain_ptr)
+
     memcpy (block_ptr, plain_ptr, (size_t) copy_len);
-
-    // clear the remaining bytes of the block
-
-    memset (block_ptr + copy_len, 0, (size_t) block_total_len - (size_t) copy_len);
 
     /*
      * final block
