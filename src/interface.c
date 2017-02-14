@@ -12186,10 +12186,10 @@ int krb5tgs_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
     data_pos = (u8 *) strchr ((const char *) account_pos, '*');
 
+    if (data_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
     /* Skip '*' */
     data_pos++;
-
-    if (data_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
     u32 account_len = data_pos - account_pos + 1;
 
