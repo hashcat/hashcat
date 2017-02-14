@@ -2041,6 +2041,8 @@ static u32 parse_and_store_salt (u8 *out, u8 *in, u32 salt_len, MAYBE_UNUSED con
     return UINT_MAX;
   }
 
+  memset (tmp, 0, sizeof (tmp_u32));
+
   memcpy (tmp, in, salt_len);
 
   if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
@@ -2069,8 +2071,6 @@ static u32 parse_and_store_salt (u8 *out, u8 *in, u32 salt_len, MAYBE_UNUSED con
   {
     salt_len = base64_decode (base64_to_int, (const u8 *) in, salt_len, (u8 *) tmp);
   }
-
-  memset (tmp + salt_len, 0, sizeof (tmp_u32) - salt_len);
 
   if (hashconfig->opts_type & OPTS_TYPE_ST_UNICODE)
   {
