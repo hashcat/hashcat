@@ -81,14 +81,19 @@ static char *hm_SYSFS_get_syspath_hwmon (hashcat_ctx_t *hashcat_ctx, const int d
   {
     event_log_error (hashcat_ctx, "first_file_in_directory() failed");
 
+    hcfree (syspath);
+
+    hcfree (hwmon);
+    hcfree (hwmonN);
+
     return NULL;
   }
 
   snprintf (hwmon, HCBUFSIZ_TINY - 1, "%s/hwmon/%s", syspath, hwmonN);
 
-  hcfree (hwmonN);
-
   hcfree (syspath);
+
+  hcfree (hwmonN);
 
   return hwmon;
 }
@@ -113,6 +118,9 @@ static int hm_SYSFS_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int
   {
     event_log_error (hashcat_ctx, "%s: %s", path_cur, strerror (errno));
 
+    hcfree (path_cur);
+    hcfree (path_max);
+
     return -1;
   }
 
@@ -123,6 +131,9 @@ static int hm_SYSFS_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int
     fclose (fd_cur);
 
     event_log_error (hashcat_ctx, "%s: unexpected data", path_cur);
+
+    hcfree (path_cur);
+    hcfree (path_max);
 
     return -1;
   }
@@ -135,6 +146,9 @@ static int hm_SYSFS_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int
   {
     event_log_error (hashcat_ctx, "%s: %s", path_max, strerror (errno));
 
+    hcfree (path_cur);
+    hcfree (path_max);
+
     return -1;
   }
 
@@ -146,6 +160,9 @@ static int hm_SYSFS_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int
 
     event_log_error (hashcat_ctx, "%s: unexpected data", path_max);
 
+    hcfree (path_cur);
+    hcfree (path_max);
+
     return -1;
   }
 
@@ -154,6 +171,9 @@ static int hm_SYSFS_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int
   if (pwm1_max == 0)
   {
     event_log_error (hashcat_ctx, "%s: pwm1_max can not be 0", path_max);
+
+    hcfree (path_cur);
+    hcfree (path_max);
 
     return -1;
   }
@@ -188,6 +208,8 @@ static int hm_SYSFS_set_fan_control (hashcat_ctx_t *hashcat_ctx, const int devic
   {
     event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
 
+    hcfree (path);
+
     return -1;
   }
 
@@ -220,6 +242,9 @@ static int hm_SYSFS_set_fan_speed_target (hashcat_ctx_t *hashcat_ctx, const int 
   {
     event_log_error (hashcat_ctx, "%s: %s", path_max, strerror (errno));
 
+    hcfree (path);
+    hcfree (path_max);
+
     return -1;
   }
 
@@ -231,6 +256,9 @@ static int hm_SYSFS_set_fan_speed_target (hashcat_ctx_t *hashcat_ctx, const int 
 
     event_log_error (hashcat_ctx, "%s: unexpected data", path_max);
 
+    hcfree (path);
+    hcfree (path_max);
+
     return -1;
   }
 
@@ -239,6 +267,9 @@ static int hm_SYSFS_set_fan_speed_target (hashcat_ctx_t *hashcat_ctx, const int 
   if (pwm1_max == 0)
   {
     event_log_error (hashcat_ctx, "%s: pwm1_max can not be 0", path_max);
+
+    hcfree (path);
+    hcfree (path_max);
 
     return -1;
   }
@@ -251,6 +282,9 @@ static int hm_SYSFS_set_fan_speed_target (hashcat_ctx_t *hashcat_ctx, const int 
   {
     event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
 
+    hcfree (path);
+    hcfree (path_max);
+
     return -1;
   }
 
@@ -258,8 +292,8 @@ static int hm_SYSFS_set_fan_speed_target (hashcat_ctx_t *hashcat_ctx, const int 
 
   fclose (fd);
 
-  hcfree (path_max);
   hcfree (path);
+  hcfree (path_max);
 
   return 0;
 }
@@ -282,6 +316,8 @@ static int hm_SYSFS_get_temperature_current (hashcat_ctx_t *hashcat_ctx, const i
   {
     event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
 
+    hcfree (path);
+
     return -1;
   }
 
@@ -292,6 +328,8 @@ static int hm_SYSFS_get_temperature_current (hashcat_ctx_t *hashcat_ctx, const i
     fclose (fd);
 
     event_log_error (hashcat_ctx, "%s: unexpected data", path);
+
+    hcfree (path);
 
     return -1;
   }
@@ -322,6 +360,8 @@ static int hm_SYSFS_get_pp_dpm_sclk (hashcat_ctx_t *hashcat_ctx, const int devic
   if (fd == NULL)
   {
     event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
+
+    hcfree (path);
 
     return -1;
   }
@@ -376,6 +416,8 @@ static int hm_SYSFS_get_pp_dpm_mclk (hashcat_ctx_t *hashcat_ctx, const int devic
   {
     event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
 
+    hcfree (path);
+
     return -1;
   }
 
@@ -428,6 +470,8 @@ static int hm_SYSFS_get_pp_dpm_pcie (hashcat_ctx_t *hashcat_ctx, const int devic
   if (fd == NULL)
   {
     event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
+
+    hcfree (path);
 
     return -1;
   }
@@ -482,6 +526,8 @@ static int hm_SYSFS_set_power_dpm_force_performance_level (hashcat_ctx_t *hashca
   if (fd == NULL)
   {
     event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
+
+    hcfree (path);
 
     return -1;
   }
@@ -3280,6 +3326,15 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
   hm_attrs_t *hm_adapters_xnvctrl = (hm_attrs_t *) hccalloc (DEVICES_MAX, sizeof (hm_attrs_t));
   hm_attrs_t *hm_adapters_sysfs   = (hm_attrs_t *) hccalloc (DEVICES_MAX, sizeof (hm_attrs_t));
 
+  #define FREE_ADAPTERS           \
+  {                               \
+    hcfree (hm_adapters_adl);     \
+    hcfree (hm_adapters_nvapi);   \
+    hcfree (hm_adapters_nvml);    \
+    hcfree (hm_adapters_xnvctrl); \
+    hcfree (hm_adapters_sysfs);   \
+  }
+
   if (opencl_ctx->need_nvml == true)
   {
     hwmon_ctx->hm_nvml = (NVML_PTR *) hcmalloc (sizeof (NVML_PTR));
@@ -3510,7 +3565,12 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       int tmp_in;
 
-      if (get_adapters_num_adl (hashcat_ctx, &tmp_in) == -1) return -1;
+      if (get_adapters_num_adl (hashcat_ctx, &tmp_in) == -1)
+      {
+        FREE_ADAPTERS;
+
+        return -1;
+      }
 
       // adapter info
 
@@ -3518,7 +3578,12 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       const int rc_adapter_info_adl = hm_ADL_Adapter_AdapterInfo_Get (hashcat_ctx, lpAdapterInfo, tmp_in * sizeof (AdapterInfo));
 
-      if (rc_adapter_info_adl == -1) return -1;
+      if (rc_adapter_info_adl == -1)
+      {
+        FREE_ADAPTERS;
+
+        return -1;
+      }
 
       for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
       {
@@ -3596,11 +3661,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (hwmon_ctx->hm_adl == NULL && hwmon_ctx->hm_nvml == NULL && hwmon_ctx->hm_xnvctrl == NULL && hwmon_ctx->hm_sysfs == NULL)
   {
-    hcfree (hm_adapters_adl);
-    hcfree (hm_adapters_nvapi);
-    hcfree (hm_adapters_nvml);
-    hcfree (hm_adapters_xnvctrl);
-    hcfree (hm_adapters_sysfs);
+    FREE_ADAPTERS;
 
     return 0;
   }
@@ -3752,11 +3813,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
     hm_get_utilization_with_device_id         (hashcat_ctx, device_id);
   }
 
-  hcfree (hm_adapters_adl);
-  hcfree (hm_adapters_nvapi);
-  hcfree (hm_adapters_nvml);
-  hcfree (hm_adapters_xnvctrl);
-  hcfree (hm_adapters_sysfs);
+  FREE_ADAPTERS;
 
   /**
    * powertune on user request
