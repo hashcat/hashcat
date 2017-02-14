@@ -192,6 +192,8 @@ static int setup_opencl_platforms_filter (hashcat_ctx_t *hashcat_ctx, const char
       {
         event_log_error (hashcat_ctx, "Invalid OpenCL platform %d specified", platform);
 
+        hcfree (platforms);
+
         return -1;
       }
 
