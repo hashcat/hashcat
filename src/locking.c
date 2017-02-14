@@ -55,6 +55,8 @@ int lock_file (MAYBE_UNUSED FILE *fp)
 int unlock_file (MAYBE_UNUSED FILE *fp)
 {
   // we should put windows specific code here
+
+  return 0;
 }
 
 #endif // F_SETLKW
