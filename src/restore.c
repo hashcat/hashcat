@@ -97,6 +97,20 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
 
   fclose (fp);
 
+  if (hc_path_exist (rd->cwd) == false)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", rd->cwd, strerror (errno));
+
+    return -1;
+  }
+
+  if (hc_path_is_directory (rd->cwd) == false)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", rd->cwd, strerror (errno));
+
+    return -1;
+  }
+
   event_log_warning (hashcat_ctx, "Changing current working directory to '%s'", rd->cwd);
   event_log_warning (hashcat_ctx, NULL);
 
