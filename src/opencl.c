@@ -2209,7 +2209,22 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   int CL_rc = hc_clGetPlatformIDs (hashcat_ctx, CL_PLATFORMS_MAX, platforms, &platforms_cnt);
 
-  if (CL_rc == -1) return -1;
+  #define FREE_OPENCL_CTX_ON_ERROR \
+  {                                \
+      hcfree (platforms_vendor);   \
+      hcfree (platforms_name);     \
+      hcfree (platforms_version);  \
+      hcfree (platforms_skipped);  \
+      hcfree (platforms);          \
+      hcfree (platform_devices);   \
+  }
+
+  if (CL_rc == -1)
+  {
+    FREE_OPENCL_CTX_ON_ERROR;
+
+    return -1;
+  }
 
   if (platforms_cnt == 0)
   {
@@ -2233,6 +2248,8 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     event_log_error (hashcat_ctx, "* NVidia users require \"NVIDIA Driver\" (367.x or later)");
 
+    FREE_OPENCL_CTX_ON_ERROR;
+
     return -1;
   }
 
@@ -2243,6 +2260,8 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
     if (opencl_platforms_filter > platform_cnt_mask)
     {
       event_log_error (hashcat_ctx, "The platform selected by the --opencl-platforms parameter is larger than the number of available platforms (%u)", platforms_cnt);
+
+      FREE_OPENCL_CTX_ON_ERROR;
 
       return -1;
     }
@@ -2275,7 +2294,12 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device, CL_DEVICE_TYPE, sizeof (device_type), &device_type, NULL);
 
-        if (CL_rc == -1) return -1;
+        if (CL_rc == -1)
+        {
+          FREE_OPENCL_CTX_ON_ERROR;
+
+          return -1;
+        }
 
         device_types_all |= device_type;
       }
