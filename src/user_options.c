@@ -1565,8 +1565,8 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
     char *outfile = outfile_ctx->filename;
 
-    hc_stat_t tmpstat_outfile;
-    hc_stat_t tmpstat_hashfile;
+    hc_stat_t tmpstat_outfile  = { 0 };
+    hc_stat_t tmpstat_hashfile = { 0 };
 
     FILE *tmp_outfile_fp = fopen (outfile, "r");
 
