@@ -725,13 +725,6 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
         if (hashconfig->hash_mode == 2500)
         {
-          if (hash_len == 0)
-          {
-            event_log_error (hashcat_ctx, "hccapx file not specified");
-
-            return -1;
-          }
-
           hashlist_mode = HL_MODE_FILE;
 
           hashes->hashlist_mode = hashlist_mode;
