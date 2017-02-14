@@ -63,7 +63,7 @@ int set_cpu_affinity (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
   char *devices = hcstrdup (user_options->cpu_affinity);
 
-  char *saveptr = NULL;
+  char *saveptr;
 
   char *next = strtok_r (devices, ",", &saveptr);
 
