@@ -233,6 +233,8 @@ static int setup_devices_filter (hashcat_ctx_t *hashcat_ctx, const char *opencl_
       {
         event_log_error (hashcat_ctx, "Invalid device_id %d specified", device_id);
 
+        hcfree (devices);
+
         return -1;
       }
 
