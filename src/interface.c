@@ -13479,9 +13479,9 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   digest[2] = mkDigest_ptr[2];
   digest[3] = mkDigest_ptr[3];
   digest[4] = mkDigest_ptr[4];
-  digest[5] = mkDigest_ptr[5];
-  digest[6] = mkDigest_ptr[6];
-  digest[7] = mkDigest_ptr[7];
+  digest[5] = 0;
+  digest[6] = 0;
+  digest[7] = 0;
 
   // verify the content
 
