@@ -735,6 +735,9 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
     {
       event_log_error (hashcat_ctx, "%s: %s", rp_file, strerror (errno));
 
+      hcfree (all_kernel_rules_cnt);
+      hcfree (all_kernel_rules_buf);
+
       hcfree (rule_buf);
 
       return -1;
