@@ -258,18 +258,18 @@ void setup_environment_variables ()
   {
     static char display[100];
 
-    snprintf (display, sizeof (display) - 1, "DISPLAY=%s", compute);
+    u32 compute_len_max = sizeof (display);
 
     // we only use this check to avoid "tainted string" warnings
 
-    u32 display_len_max = sizeof (display);
+    u32 compute_len = strnlen (compute, compute_len_max);
 
-    u32 display_len = strnlen (display, display_len_max);
-
-    if (display_len > 0) // should be always true
+    if (compute_len > 0) // should be always true
     {
-      if (display_len < display_len_max) // some upper bound is always good
+      if (compute_len < compute_len_max) // some upper bound is always good
       {
+        snprintf (display, compute_len_max, "DISPLAY=%s", compute);
+
         putenv (display);
       }
     }
