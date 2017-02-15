@@ -256,6 +256,10 @@ void setup_environment_variables ()
 
   if (compute)
   {
+    // fix for coverity "TAINTED_STRING" issue (using the environment variable directly could be "dangerous")
+
+    compute = strdup (compute);
+
     static char display[100];
 
     u32 compute_len_max = sizeof (display);
@@ -273,6 +277,8 @@ void setup_environment_variables ()
         putenv (display);
       }
     }
+
+    free (compute);
   }
   else
   {
