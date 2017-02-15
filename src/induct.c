@@ -16,8 +16,14 @@ static int sort_by_mtime (const void *p1, const void *p2)
   const char **f1 = (const char **) p1;
   const char **f2 = (const char **) p2;
 
-  hc_stat_t s1; hc_stat (*f1, &s1);
-  hc_stat_t s2; hc_stat (*f2, &s2);
+  hc_stat_t s1;
+  hc_stat_t s2;
+
+  const int rc1 = hc_stat (*f1, &s1);
+  const int rc2 = hc_stat (*f2, &s2);
+
+  if (rc1 < rc2) return  1;
+  if (rc1 > rc2) return -1;
 
   return s2.st_mtime - s1.st_mtime;
 }
