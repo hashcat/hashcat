@@ -167,11 +167,11 @@ void md5_complete_no_limit (u32 digest[4], u32 *plain, u32 plain_len)
      * final block
      */
 
-    // set 0x80 if neeeded
+    // set 0x80 if needed
 
     if (cur_len >= 0)
     {
-      if (cur_len != block_total_len)
+      if (copy_len < block_total_len)
       {
         block_ptr[copy_len] = (char) 0x80;
       }
