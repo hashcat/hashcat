@@ -6,7 +6,7 @@
 #include "common.h"
 #include "dynloader.h"
 
-#ifdef _WIN
+#if defined (__WIN32__)
 
 HMODULE hc_dlopen (LPCSTR lpLibFileName)
 {
@@ -40,4 +40,4 @@ void *hc_dlsym (void *module, const char *symbol)
   return dlsym (module, symbol);
 }
 
-#endif
+#endif // __WIN32__

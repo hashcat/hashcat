@@ -8,22 +8,17 @@
 
 #define PROGNAME "hashcat"
 
-#if   defined (__linux__) || defined (__CYGWIN__)
+#if defined (__unix__) || defined (__APPLE__) || defined (__FreeBSD___) 
 #define _POSIX
-#elif defined (__APPLE__)
-#define _POSIX
-#elif defined (__FreeBSD__)
-#define _POSIX
-#elif defined (_WIN32) || defined (_WIN64)
-#define _WIN 1
-#define WIN 1
-#define _POSIX_THREAD_SAFE_FUNCTIONS 200112L //for *time_r functions
-#else
-#error Your Operating System is not supported or detected
 #endif
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
+
+//needed for *time_r functions in MinGW.
+#ifndef _POSIX_THREAD_SAFE_FUNCTIONS
+#define _POSIX_THREAD_SAFE_FUNCTIONS 200112L
 #endif
 
 #define _FILE_OFFSET_BITS 64
@@ -48,9 +43,9 @@
 #define HC_API_CALL
 #endif
 
-#if defined (_WIN)
+#if defined (__WIN32__)
 #define WIN32_LEAN_AND_MEAN
-#endif
+#endif // __WIN32__
 
 /* The C++ standard denies redefinition of keywords,
 but this is nededed for VS compiler which doesn't have inline keyword but has __inline
@@ -84,10 +79,10 @@ but this is nededed for VS compiler which doesn't have inline keyword but has __
 #define BLOCK_SIZE          64
 #define EXPECTED_ITERATIONS 10000
 
-#if defined (_WIN)
+#if defined (__WIN32__)
 #define EOL "\r\n"
 #else
 #define EOL "\n"
-#endif
+#endif // __WIN32__
 
 #endif // _COMMON_H

@@ -20,13 +20,13 @@
 #include "interface.h"
 #include "event.h"
 
-#if defined(__MINGW64__) || defined(__MINGW32__)
+#if defined(__MINGW32__)
 int _dowildcard = -1;
 #endif
 
 static void main_log_clear_line (MAYBE_UNUSED const int prev_len, MAYBE_UNUSED FILE *fp)
 {
-  #if defined (_WIN)
+  #if defined (__WIN32__)
 
   fputc ('\r', fp);
 
@@ -41,7 +41,7 @@ static void main_log_clear_line (MAYBE_UNUSED const int prev_len, MAYBE_UNUSED F
 
   printf ("\033[2K\r");
 
-  #endif
+  #endif // __WIN32__
 }
 
 static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
@@ -72,7 +72,7 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
 
   // color stuff pre
 
-  #if defined (_WIN)
+  #if defined (__WIN32__)
   HANDLE hConsole = GetStdHandle (STD_OUTPUT_HANDLE);
 
   CONSOLE_SCREEN_BUFFER_INFO con_info;
@@ -98,7 +98,7 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
     case LOGLEVEL_WARNING: fwrite ("\033[33m", 5, 1, fp); break;
     case LOGLEVEL_ERROR:   fwrite ("\033[31m", 5, 1, fp); break;
   }
-  #endif
+  #endif // __WIN32__
 
   // finally, print
 
@@ -106,7 +106,7 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
 
   // color stuff post
 
-  #if defined (_WIN)
+  #if defined (__WIN32__)
   switch (loglevel)
   {
     case LOGLEVEL_INFO:                                              break;
@@ -120,7 +120,7 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
     case LOGLEVEL_WARNING: fwrite ("\033[0m", 4, 1, fp); break;
     case LOGLEVEL_ERROR:   fwrite ("\033[0m", 4, 1, fp); break;
   }
-  #endif
+  #endif // __WIN32__
 
   // eventual newline
 

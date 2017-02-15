@@ -28,10 +28,10 @@ Slightly modified to work with hashcat to no falsly detect _SORT_R_LINUX with mi
      defined __FreeBSD__ || defined __DragonFly__)
 #  define _SORT_R_BSD
 #  define _SORT_R_INLINE inline
-#elif (defined __linux__) || defined (__CYGWIN__)
+#elif (defined __unix__)
 #  define _SORT_R_LINUX
 #  define _SORT_R_INLINE inline
-#elif (defined _WIN32 || defined _WIN64 || defined __WINDOWS__)
+#elif (defined __WIN32__)
 #  define _SORT_R_WINDOWS
 #  define _SORT_R_INLINE __inline
 #else

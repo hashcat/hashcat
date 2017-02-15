@@ -297,7 +297,7 @@ u64 count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile)
   #if defined (_POSIX)
   d.stat.st_blksize = 0;
   d.stat.st_blocks  = 0;
-  #endif
+  #endif // _POSIX
 
   if (d.stat.st_size == 0) return 0;
 

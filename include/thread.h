@@ -11,12 +11,11 @@
 #if defined (_POSIX)
 #include <pthread.h>
 #include <semaphore.h>
-#endif // _POSIX
-#if defined (_WIN)
+#else
 #include <windows.h>
-#endif // _WIN
+#endif // _POSIX
 
-#if defined (_WIN)
+#if defined (__WIN32__)
 
 #define hc_thread_create(t,f,a)     t = CreateThread (NULL, 0, (LPTHREAD_START_ROUTINE) &f, a, 0, NULL)
 #define hc_thread_wait(n,a)         for (u32 i = 0; i < n; i++) WaitForSingleObject ((a)[i], INFINITE)
@@ -27,7 +26,7 @@
 #define hc_thread_mutex_init(m)     InitializeCriticalSection (&m)
 #define hc_thread_mutex_delete(m)   DeleteCriticalSection     (&m)
 
-#elif defined (_POSIX)
+#else
 
 #define hc_thread_create(t,f,a)     pthread_create (&t, NULL, f, a)
 #define hc_thread_wait(n,a)         for (u32 i = 0; i < n; i++) pthread_join ((a)[i], NULL)
@@ -41,7 +40,7 @@
 #endif
 
 /*
-#if defined (_WIN)
+#if defined (__WIN32__)
 
 BOOL WINAPI sigHandler_default (DWORD sig);
 BOOL WINAPI sigHandler_benchmark (DWORD sig);

@@ -6,7 +6,7 @@
 #include <errno.h>
 #if defined (__CYGWIN__)
 #include <sys/cygwin.h>
-#endif
+#endif // __CYGWIN__
 
 #ifndef _HWMON_H
 #define _HWMON_H

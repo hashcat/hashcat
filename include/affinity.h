@@ -22,9 +22,9 @@
 #include <mach/thread_policy.h>
 #endif // __APPLE__
 
-#if defined (_WIN)
+#if defined (__WIN32__)
 #include <windows.h>
-#endif // _WIN
+#endif // __WIN32__
 
 int set_cpu_affinity (hashcat_ctx_t *hashcat_ctx);
 

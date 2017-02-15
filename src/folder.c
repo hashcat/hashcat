@@ -10,10 +10,6 @@
 #include "shared.h"
 #include "folder.h"
 
-#if defined (__APPLE__)
-#include "event.h"
-#endif
-
 int sort_by_stringptr (const void *p1, const void *p2)
 {
   const char **s1 = (const char **) p1;
@@ -24,7 +20,7 @@ int sort_by_stringptr (const void *p1, const void *p2)
 
 static int get_exec_path (char *exec_path, const size_t exec_path_sz)
 {
-  #if defined (__linux__) || defined (__CYGWIN__)
+  #if defined (__unix__)
 
   char *tmp;
 
@@ -36,7 +32,7 @@ static int get_exec_path (char *exec_path, const size_t exec_path_sz)
 
   if (len == -1) return -1;
 
-  #elif defined (_WIN)
+  #elif defined (__WIN32__)
 
   const DWORD len = GetModuleFileName (NULL, exec_path, exec_path_sz - 1);
 
@@ -107,7 +103,7 @@ static void get_session_dir (char *session_dir, const char *profile_dir)
 {
   snprintf (session_dir, HCBUFSIZ_TINY - 1, "%s/%s", profile_dir, SESSIONS_FOLDER);
 }
-#endif
+#endif // _POSIX
 
 int count_dictionaries (char **dictionary_files)
 {
@@ -304,7 +300,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
     return -1;
   }
 
-  #if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined (__CYGWIN__)
+  #if defined (_POSIX)
 
   static const char SLASH[] = "/";
 
@@ -407,7 +403,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   char *cpath;
 
-  #if defined (_WIN)
+  #if defined (__WIN32__)
 
   hc_asprintf (&cpath, "%s\\OpenCL\\", shared_dir);
 
@@ -442,7 +438,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
     return -1;
   }
 
-  #endif
+  #endif // __WIN32__
 
   hcfree (cpath);
 
@@ -456,7 +452,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
     putenv (tmp);
   }
 
-  #if defined (_WIN)
+  #if defined (__WIN32__)
 
   naive_replace (cpath_real, '\\', '/');
 
@@ -467,7 +463,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   naive_escape (cpath_real, PATH_MAX,  ' ', '\\');
 
-  #endif
+  #endif // __WIN32__
 
   /**
    * kernel cache, we need to make sure folder exist
@@ -508,9 +504,9 @@ void folder_config_destroy (hashcat_ctx_t *hashcat_ctx)
 
 int hc_mkdir (const char *name, MAYBE_UNUSED const int mode)
 {
-  #if defined (_WIN)
+  #if defined (__WIN32__)
   return _mkdir (name);
   #else
   return mkdir (name, mode);
-  #endif
+  #endif // __WIN32__
 }

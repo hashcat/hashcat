@@ -1624,7 +1624,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
       tmpstat_hashfile.st_blksize = 0;
       tmpstat_hashfile.st_blocks  = 0;
-      #endif
+      #endif // _POSIX
 
       if (memcmp (&tmpstat_outfile, &tmpstat_hashfile, sizeof (hc_stat_t)) == 0)
       {
