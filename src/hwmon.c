@@ -3354,7 +3354,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if (opencl_ctx->need_nvapi == true)
+  if ((opencl_ctx->need_nvapi == true) && (hwmon_ctx->hm_nvml)) // nvapi can't work alone, we need nvml, too
   {
     hwmon_ctx->hm_nvapi = (NVAPI_PTR *) hcmalloc (sizeof (NVAPI_PTR));
 
@@ -3366,7 +3366,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if (opencl_ctx->need_xnvctrl == true)
+  if ((opencl_ctx->need_xnvctrl == true) && (hwmon_ctx->hm_nvml)) // xnvctrl can't work alone, we need nvml, too
   {
     hwmon_ctx->hm_xnvctrl = (XNVCTRL_PTR *) hcmalloc (sizeof (XNVCTRL_PTR));
 
