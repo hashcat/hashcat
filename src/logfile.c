@@ -11,26 +11,17 @@
 #include "locking.h"
 #include "shared.h"
 
-static u32 logfile_generate_id (void)
-{
-  const u32 n = (u32) rand ();
-
-  time_t t;
-
-  time (&t);
-
-  return (u32) t + n;
-}
-
 void logfile_generate_topid (hashcat_ctx_t *hashcat_ctx)
 {
   logfile_ctx_t *logfile_ctx = hashcat_ctx->logfile_ctx;
 
   if (logfile_ctx->enabled == false) return;
 
-  const u32 id = logfile_generate_id ();
+  u32 v[4];
 
-  snprintf (logfile_ctx->topid, 1 + 16, "TOP%08x", id);
+  gettimeofday ((struct timeval *) v, NULL);
+
+  snprintf (logfile_ctx->topid, 40, "TOP.%08x.%08x", v[0], v[2]);
 }
 
 void logfile_generate_subid (hashcat_ctx_t *hashcat_ctx)
@@ -39,9 +30,11 @@ void logfile_generate_subid (hashcat_ctx_t *hashcat_ctx)
 
   if (logfile_ctx->enabled == false) return;
 
-  const u32 id = logfile_generate_id ();
+  u32 v[4];
 
-  snprintf (logfile_ctx->subid, 1 + 16, "SUB%08x", id);
+  gettimeofday ((struct timeval *) v, NULL);
+
+  snprintf (logfile_ctx->subid, 40, "SUB.%08x.%08x", v[0], v[2]);
 }
 
 void logfile_append (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
