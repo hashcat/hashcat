@@ -268,7 +268,10 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   logfile_sub_uint (runtime_start);
   logfile_sub_uint (runtime_stop);
 
-  hashcat_get_status (hashcat_ctx, status_ctx->hashcat_status_final);
+  if (hashcat_get_status (hashcat_ctx, status_ctx->hashcat_status_final) == -1)
+  {
+    fprintf (stderr, "Initialization problem: the hashcat status monitoring function returned an unexpected value\n");
+  }
 
   status_ctx->accessible = false;
 
@@ -1219,7 +1222,7 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
 
   memset (hashcat_status, 0, sizeof (hashcat_status_t));
 
-  if (status_ctx == NULL) return -1; // ways too early
+  if (status_ctx == NULL) return -1; // way too early
 
   if (status_ctx->accessible == false)
   {
