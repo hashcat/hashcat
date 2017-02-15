@@ -2109,11 +2109,15 @@ static u32 parse_and_store_salt (u8 *out, u8 *in, u32 salt_len, MAYBE_UNUSED con
 
   if (hashconfig->opts_type & OPTS_TYPE_ST_ADD80)
   {
+    if (len >= 256) return UINT_MAX;
+
     tmp[len++] = 0x80;
   }
 
   if (hashconfig->opts_type & OPTS_TYPE_ST_ADD01)
   {
+    if (len >= 256) return UINT_MAX;
+
     tmp[len++] = 0x01;
   }
 
