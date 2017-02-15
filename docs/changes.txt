@@ -64,34 +64,34 @@
 - CPU Affinity: Fixed memory leak in case invalid cpu Id was specified
 - Dispatcher: Fixed several memory leaks in case an OpenCL error occurs
 - Events: Improved the maximum event message handling. event_log () will now also internally make sure that the message is properly terminated
+- File Locking: Improved error detection on file locks
+- File Reads: Fixed memory leak in case outfile or hashfile was not accessible
+- File Reads: Improved error detection on file reads, especially when getting the file stats
 - Files: Do several file and folder checks on startup rather than when they are actually used to avoid related error after eventual intense operations
-- Helper: Added functions to check existence, type, read- and write-permissions and rewrite sources to use them instead of stat()
-- Hardware Monitor: In case NVML initialization failed, do not try to initialiaze NVAPI or XNVCTRL because they both depend on NVML
-- Hardware Monitor: Fixed several memory leaks in case no hardware monitor sensor is found
 - Hardware Monitor: Fixed several memory leaks in case hash-file writing (caused by --remove) failed
-- Mask Increment: Fixed memory leak in case mask_append() fails
+- Hardware Monitor: Fixed several memory leaks in case no hardware monitor sensor is found
+- Hardware Monitor: In case NVML initialization failed, do not try to initialiaze NVAPI or XNVCTRL because they both depend on NVML
+- Hash Parsing: Added additional bound checks for the SIP digest authentication (MD5) parser (-m 11400)
+- Hash Parsing: Make sure that all files are correctly closed whenever a hash file parsing error occurs
+- Helper: Added functions to check existence, type, read- and write-permissions and rewrite sources to use them instead of stat()
+- Keyfile handling: Make sure that the memory is cleanly freed whenever a VeraCrypt/TrueCrypt keyfile fails to load
 - Mask Checks: Added additional memory cleanups after parsing/verifying masks
+- Mask Increment: Fixed memory leak in case mask_append() fails
+- OpenCL Device: Do a check on available constant memory size and abort if it's less than 64kB
 - OpenCL Device Management: Fixed several memory leaks in case initialization of an OpenCL device or platform failed
+- OpenCL Header: Updated CL_* errorcode to OpenCL 1.2 standard
 - OpenCL Kernel: Move kernel binary buffer from heap to stack memory
 - OpenCL Kernel: Refactored read_kernel_binary to load only a single kernel for a single device
+- OpenCL Kernel: Renumbered hash-mode 7600 to 4521
+- OpenCL Runtime: Updated AMDGPU-Pro driver version check, do warn if version 16.60 is detected which is known to be broken
 - Outfile Check: Fixed a memory leak for failed outfile reads
 - Restore: Add some checks on the rd->cwd variable in restore case
 - Rule Engine: Fixed several memory leaks in case loading of rules failed
 - Session Management: Fixed several memory leaks in case profile- or install-folder setup failed
-- OpenCL Header: Updated CL_* errorcode to OpenCL 1.2 standard
-- OpenCL Runtime: Updated AMDGPU-Pro driver version check, do warn if version 16.60 is detected which is known to be broken
-- OpenCL Kernel: Renumbered hash-mode 7600 to 4521
-- OpenCL Device: Do a check on available constant memory size and abort if it's less than 64kB
-- File Reads: Improved error detection on file reads, especially when getting the file stats
-- File Reads: Fixed memory leak in case outfile or hashfile was not accessible
-- File Locking: Improved error detection on file locks
-- Hash Parsing: Added additional bound checks for the SIP digest authentication (MD5) parser (-m 11400)
-- Hash Parsing: Make sure that all files are correctly closed whenever a hash file parsing error occurs
-- Keyfile handling: Make sure that the memory is cleanly freed whenever a VeraCrypt/TrueCrypt keyfile fails to load
 - Sessions: Move out handling of multiple instance from restore file into separate pidfile
 - Threads: Restored strerror as %m is unsupported by the BSDs
-- Wordlists: Fixed memory leak in case access a file in a wordlist folder fails
 - Wordlists: Disable dictstat handling for hash-mode 3000 as it virtually creates words in the wordlist which is not the case for other modes
+- Wordlists: Fixed memory leak in case access a file in a wordlist folder fails
 - WPA: Changed format for outfile and potfile from essid:mac1:mac2 to hash:essid
 - WPA: Changed format for outfile_check from essid:mac1:mac2 to hash
 
