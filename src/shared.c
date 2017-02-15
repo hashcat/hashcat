@@ -339,7 +339,7 @@ u32 get_random_num (const u32 min, const u32 max)
 {
   if (min == max) return (min);
 
-  const uint low = max - min;
+  const u32 low = max - min;
 
   if (low == 0) return (0);
 
