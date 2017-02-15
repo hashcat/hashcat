@@ -71,6 +71,26 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
+  // we only use these 2 checks to avoid "tainted string" warnings
+
+  if (rd->argc < 1)
+  {
+    event_log_error (hashcat_ctx, "Unusual low number of arguments (argc) within the restore file %s", eff_restore_file);
+
+    fclose (fp);
+
+    return -1;
+  }
+
+  if (rd->argc > 250) // some upper bound check is always good (with some dirs/dicts it could be a large string)
+  {
+    event_log_error (hashcat_ctx, "Unusual high number of arguments (argc) within the restore file %s", eff_restore_file);
+
+    fclose (fp);
+
+    return -1;
+  }
+
   rd->argv = (char **) hccalloc (rd->argc, sizeof (char *));
 
   char *buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
