@@ -663,6 +663,7 @@ int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)
         break;
 
       case 0:
+        if (rule_pos == 0) return -1;
         return rule_pos - 1;
 
       default:
@@ -670,12 +671,7 @@ int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)
     }
   }
 
-  if (rule_cnt > 0)
-  {
-    return rule_pos;
-  }
-
-  return -1;
+  return rule_pos;
 }
 
 bool kernel_rules_has_noop (const kernel_rule_t *kernel_rules_buf, const u32 kernel_rules_cnt)
