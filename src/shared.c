@@ -12,13 +12,6 @@ bool is_power_of_2 (const u32 v)
   return (v && !(v & (v - 1)));
 }
 
-u32 get_random_num (const u32 min, const u32 max)
-{
-  if (min == max) return (min);
-
-  return (((u32) rand () % (max - min)) + min);
-}
-
 u32 mydivc32 (const u32 dividend, const u32 divisor)
 {
   u32 quotient = dividend / divisor;
@@ -328,4 +321,37 @@ void setup_seeding (const bool rp_gen_seed_chgd, const u32 rp_gen_seed)
 
     srand (ts);
   }
+}
+
+u32 get_random_num (const u32 min, const u32 max)
+{
+  if (min == max) return (min);
+
+  const uint low = max - min;
+
+  if (low == 0) return (0);
+
+  #if defined (__linux__)
+
+  u32 data;
+
+  FILE *fp = fopen ("/dev/urandom", "rb");
+
+  if (fp == NULL) return (0);
+
+  const int nread = fread (&data, sizeof (u32), 1, fp);
+
+  fclose (fp);
+
+  if (nread != 1) return 0;
+
+  u64 r = data % low; r += min;
+
+  return (u32) r;
+
+  #else
+
+  return (((u32) rand () % (max - min)) + min);
+
+  #endif
 }
