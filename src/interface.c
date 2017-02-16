@@ -14206,10 +14206,14 @@ void seven_zip_hook_func (hc_device_param_t *device_param, hashes_t *hashes, con
 
     // init AES
 
-    AES_KEY aes_key = { 0 };
+    AES_KEY aes_key;
+
+    memset (&aes_key, 0, sizeof (aes_key));
+
     AES_set_decrypt_key (ukey, 256, &aes_key);
 
     AES_KEY aes_key_copied;
+
     memcpy (&aes_key_copied, &aes_key, sizeof (AES_KEY));
 
     if (padding_check_fast == true) // use part of the data as initialization vector

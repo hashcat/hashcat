@@ -1565,8 +1565,11 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
     char *outfile = outfile_ctx->filename;
 
-    hc_stat_t tmpstat_outfile  = { 0 };
-    hc_stat_t tmpstat_hashfile = { 0 };
+    hc_stat_t tmpstat_outfile;
+    hc_stat_t tmpstat_hashfile;
+
+    memset (&tmpstat_outfile,  0, sizeof (tmpstat_outfile));
+    memset (&tmpstat_hashfile, 0, sizeof (tmpstat_hashfile));
 
     int do_check = 0;
 
