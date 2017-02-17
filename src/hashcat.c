@@ -1125,10 +1125,6 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
   unlink_restore (hashcat_ctx);
 
-  // unlink the pidfile
-
-  unlink_pidfile (hashcat_ctx);
-
   // final update dictionary cache
 
   dictstat_write (hashcat_ctx);

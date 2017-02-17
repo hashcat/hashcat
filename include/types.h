@@ -1319,6 +1319,8 @@ typedef struct pidfile_ctx
 
   pidfile_data_t *pd;
 
+  bool  pidfile_written;
+
 } pidfile_ctx_t;
 
 typedef struct kernel_rule
