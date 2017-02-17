@@ -6,7 +6,7 @@
 ##
 
 export IN=$HOME/hashcat
-export OUT=$HOME/xy/hashcat-3.30
+export OUT=$HOME/xy/hashcat-3.40
 
 rm -rf $OUT
 rm -rf $OUT.7z
