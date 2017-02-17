@@ -27,7 +27,7 @@ __constant u32 theMagicArray[64] =
   0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
 };
 
-static u32 GETSHIFTEDINT_CONST (__constant u32 *a, const int n)
+u32 GETSHIFTEDINT_CONST (__constant u32 *a, const int n)
 {
   const int d = n / 4;
   const int m = n & 3;
@@ -40,7 +40,7 @@ static u32 GETSHIFTEDINT_CONST (__constant u32 *a, const int n)
 }
 
 
-static void SETSHIFTEDINT (u32 *a, const int n, const u32 v)
+void SETSHIFTEDINT (u32 *a, const int n, const u32 v)
 {
   const int d = n / 4;
   const int m = n & 3;
@@ -53,7 +53,7 @@ static void SETSHIFTEDINT (u32 *a, const int n, const u32 v)
   a[d + 1]  = l32_from_64_S (tmp);
 }
 
-static void sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
+void sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
 {
   u32 A = digest[0];
   u32 B = digest[1];

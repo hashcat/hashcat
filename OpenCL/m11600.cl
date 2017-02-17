@@ -31,7 +31,7 @@ __constant u32 k_sha256[64] =
   SHA256C3c, SHA256C3d, SHA256C3e, SHA256C3f,
 };
 
-static void sha256_transform (const u32 w[16], u32 digest[8])
+void sha256_transform (const u32 w[16], u32 digest[8])
 {
   u32 a = digest[0];
   u32 b = digest[1];
@@ -119,7 +119,7 @@ static void sha256_transform (const u32 w[16], u32 digest[8])
   digest[7] += h;
 }
 
-static u32 memcat8c_be (u32 block[16], const u32 block_len, const u32 append, const u32 append_len, u32 digest[8])
+u32 memcat8c_be (u32 block[16], const u32 block_len, const u32 append, const u32 append_len, u32 digest[8])
 {
   const u32 mod = block_len & 3;
   const u32 div = block_len / 4;
@@ -222,7 +222,7 @@ static u32 memcat8c_be (u32 block[16], const u32 block_len, const u32 append, co
   return new_len;
 }
 
-static u32 memcat64c_be (u32 block[16], const u32 block_len, const u32 append[16], const u32 append_len, u32 digest[8])
+u32 memcat64c_be (u32 block[16], const u32 block_len, const u32 append[16], const u32 append_len, u32 digest[8])
 {
   const u32 mod = block_len & 3;
   const u32 div = block_len / 4;

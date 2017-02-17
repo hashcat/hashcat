@@ -27,7 +27,7 @@
 
 #define MAX_ENTROPY 7.0
 
-static void ripemd160_transform_S (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
+void ripemd160_transform_S (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
 {
   u32 w0_t = w0[0];
   u32 w1_t = w0[1];
@@ -241,7 +241,7 @@ static void ripemd160_transform_S (const u32 w0[4], const u32 w1[4], const u32 w
   digest[4] = e;
 }
 
-static void hmac_ripemd160_pad_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[5], u32 opad[5])
+void hmac_ripemd160_pad_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[5], u32 opad[5])
 {
   w0[0] = w0[0] ^ 0x36363636;
   w0[1] = w0[1] ^ 0x36363636;
@@ -294,7 +294,7 @@ static void hmac_ripemd160_pad_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u3
   ripemd160_transform_S (w0, w1, w2, w3, opad);
 }
 
-static void hmac_ripemd160_run_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[5], u32 opad[5], u32 digest[5])
+void hmac_ripemd160_run_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[5], u32 opad[5], u32 digest[5])
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];
@@ -330,7 +330,7 @@ static void hmac_ripemd160_run_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u3
   ripemd160_transform_S (w0, w1, w2, w3, digest);
 }
 
-static void ripemd160_transform_V (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[5])
+void ripemd160_transform_V (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[5])
 {
   u32x w0_t = w0[0];
   u32x w1_t = w0[1];
@@ -544,7 +544,7 @@ static void ripemd160_transform_V (const u32x w0[4], const u32x w1[4], const u32
   digest[4] = e;
 }
 
-static void hmac_ripemd160_run_V (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[5], u32x opad[5], u32x digest[5])
+void hmac_ripemd160_run_V (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[5], u32x opad[5], u32x digest[5])
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];

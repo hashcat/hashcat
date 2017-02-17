@@ -41,7 +41,7 @@ __constant u64 k_sha512[80] =
   SHA512C4c, SHA512C4d, SHA512C4e, SHA512C4f,
 };
 
-static void sha512_transform_S (const u64 w[16], u64 dgst[8])
+void sha512_transform_S (const u64 w[16], u64 dgst[8])
 {
   u64 a = dgst[0];
   u64 b = dgst[1];
@@ -129,7 +129,7 @@ static void sha512_transform_S (const u64 w[16], u64 dgst[8])
   dgst[7] += h;
 }
 
-static void hmac_sha512_run_S (const u64 w1[16], const u64 ipad[8], const u64 opad[8], u64 dgst[8])
+void hmac_sha512_run_S (const u64 w1[16], const u64 ipad[8], const u64 opad[8], u64 dgst[8])
 {
   dgst[0] = ipad[0];
   dgst[1] = ipad[1];
@@ -173,7 +173,7 @@ static void hmac_sha512_run_S (const u64 w1[16], const u64 ipad[8], const u64 op
   sha512_transform_S (w, dgst);
 }
 
-static void hmac_sha512_init_S (u64 w[16], u64 ipad[8], u64 opad[8])
+void hmac_sha512_init_S (u64 w[16], u64 ipad[8], u64 opad[8])
 {
   w[ 0] ^= 0x3636363636363636;
   w[ 1] ^= 0x3636363636363636;
@@ -232,7 +232,7 @@ static void hmac_sha512_init_S (u64 w[16], u64 ipad[8], u64 opad[8])
   sha512_transform_S (w, opad);
 }
 
-static void sha512_transform_V (const u64x w[16], u64x dgst[8])
+void sha512_transform_V (const u64x w[16], u64x dgst[8])
 {
   u64x a = dgst[0];
   u64x b = dgst[1];
@@ -320,7 +320,7 @@ static void sha512_transform_V (const u64x w[16], u64x dgst[8])
   dgst[7] += h;
 }
 
-static void hmac_sha512_run_V (const u64x w1[16], const u64x ipad[8], const u64x opad[8], u64x dgst[8])
+void hmac_sha512_run_V (const u64x w1[16], const u64x ipad[8], const u64x opad[8], u64x dgst[8])
 {
   dgst[0] = ipad[0];
   dgst[1] = ipad[1];
@@ -364,7 +364,7 @@ static void hmac_sha512_run_V (const u64x w1[16], const u64x ipad[8], const u64x
   sha512_transform_V (w, dgst);
 }
 
-static void hmac_sha512_run_V_x (const u64x ipad[8], const u64x opad[8], u64x dgst[8])
+void hmac_sha512_run_V_x (const u64x ipad[8], const u64x opad[8], u64x dgst[8])
 {
   u64x w[16];
 
@@ -417,7 +417,7 @@ static void hmac_sha512_run_V_x (const u64x ipad[8], const u64x opad[8], u64x dg
   sha512_transform_V (w, dgst);
 }
 
-static void hmac_sha512_init_V (u64x w[16], u64x ipad[8], u64x opad[8])
+void hmac_sha512_init_V (u64x w[16], u64x ipad[8], u64x opad[8])
 {
   w[ 0] ^= 0x3636363636363636;
   w[ 1] ^= 0x3636363636363636;

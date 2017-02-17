@@ -83,6 +83,7 @@
 - OpenCL Kernel: Move kernel binary buffer from heap to stack memory
 - OpenCL Kernel: Refactored read_kernel_binary to load only a single kernel for a single device
 - OpenCL Kernel: Renumbered hash-mode 7600 to 4521
+- OpenCL Kernel: Remove "static" keyword from function declarations; Causes older Intel OpenCL runtimes to fail compiling
 - OpenCL Runtime: Updated AMDGPU-Pro driver version check, do warn if version 16.60 is detected which is known to be broken
 - Outfile Check: Fixed a memory leak for failed outfile reads
 - Restore: Add some checks on the rd->cwd variable in restore case

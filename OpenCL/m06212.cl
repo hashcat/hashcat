@@ -18,7 +18,7 @@
 #include "inc_truecrypt_crc32.cl"
 #include "inc_truecrypt_xts.cl"
 
-static void ripemd160_transform (const u32 w[16], u32 dgst[5])
+void ripemd160_transform (const u32 w[16], u32 dgst[5])
 {
   u32 a1 = dgst[0];
   u32 b1 = dgst[1];
@@ -215,7 +215,7 @@ static void ripemd160_transform (const u32 w[16], u32 dgst[5])
   dgst[4] = e;
 }
 
-static void hmac_run2 (const u32 w1[16], const u32 w2[16], const u32 ipad[5], const u32 opad[5], u32 dgst[5])
+void hmac_run2 (const u32 w1[16], const u32 w2[16], const u32 ipad[5], const u32 opad[5], u32 dgst[5])
 {
   dgst[0] = ipad[0];
   dgst[1] = ipad[1];
@@ -254,7 +254,7 @@ static void hmac_run2 (const u32 w1[16], const u32 w2[16], const u32 ipad[5], co
   ripemd160_transform (w, dgst);
 }
 
-static void hmac_run (u32 w[16], const u32 ipad[5], const u32 opad[5], u32 dgst[5])
+void hmac_run (u32 w[16], const u32 ipad[5], const u32 opad[5], u32 dgst[5])
 {
   dgst[0] = ipad[0];
   dgst[1] = ipad[1];
@@ -290,7 +290,7 @@ static void hmac_run (u32 w[16], const u32 ipad[5], const u32 opad[5], u32 dgst[
   ripemd160_transform (w, dgst);
 }
 
-static void hmac_init (u32 w[16], u32 ipad[5], u32 opad[5])
+void hmac_init (u32 w[16], u32 ipad[5], u32 opad[5])
 {
   w[ 0] ^= 0x36363636;
   w[ 1] ^= 0x36363636;
@@ -343,7 +343,7 @@ static void hmac_init (u32 w[16], u32 ipad[5], u32 opad[5])
   ripemd160_transform (w, opad);
 }
 
-static u32 u8add (const u32 a, const u32 b)
+u32 u8add (const u32 a, const u32 b)
 {
   const u32 a1 = (a >>  0) & 0xff;
   const u32 a2 = (a >>  8) & 0xff;

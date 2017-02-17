@@ -1126,7 +1126,7 @@ __constant u32 rcl[R + 1] =
 
 // this is a highly optimized that assumes dgst[16] = { 0 }; only reuse of no 2nd transform is needed
 
-static void whirlpool_transform (const u32x w[16], u32x dgst[16], __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
+void whirlpool_transform (const u32x w[16], u32x dgst[16], __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
 {
   u32x Kh[8];
   u32x Kl[8];

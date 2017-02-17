@@ -1,4 +1,4 @@
-static void xts_mul2 (u32 *in, u32 *out)
+void xts_mul2 (u32 *in, u32 *out)
 {
   const u32 c = in[3] >> 31;
 

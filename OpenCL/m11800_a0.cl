@@ -2235,7 +2235,7 @@ __constant u64 sbob_rc64[12][8] =
   },
 };
 
-static void streebog_g (u64x h[8], const u64x m[8], __local u64 (*s_sbob_sl64)[256])
+void streebog_g (u64x h[8], const u64x m[8], __local u64 (*s_sbob_sl64)[256])
 {
   u64x k[8];
   u64x s[8];

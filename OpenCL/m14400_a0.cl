@@ -26,7 +26,7 @@
 #define uint_to_hex_lower8_le(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7], l_bin2asc[(i).s8], l_bin2asc[(i).s9], l_bin2asc[(i).sa], l_bin2asc[(i).sb], l_bin2asc[(i).sc], l_bin2asc[(i).sd], l_bin2asc[(i).se], l_bin2asc[(i).sf])
 #endif
 
-static void append_4 (const u32 offset, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 src_r0)
+void append_4 (const u32 offset, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 src_r0)
 {
   u32 tmp[2];
 
@@ -98,7 +98,7 @@ static void append_4 (const u32 offset, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[
   }
 }
 
-static void shift_2 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4])
+void shift_2 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4])
 {
   w3[3] = w3[2] >> 16 | w3[3] << 16;
   w3[2] = w3[1] >> 16 | w3[2] << 16;
@@ -118,7 +118,7 @@ static void shift_2 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4])
   w0[0] =           0 | w0[0] << 16;
 }
 
-static void sha1_transform (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[5])
+void sha1_transform (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[5])
 {
   u32x A = digest[0];
   u32x B = digest[1];

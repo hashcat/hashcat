@@ -49,7 +49,7 @@ __constant u8 c_ftable[256] =
   0xbd, 0xa8, 0x3a, 0x01, 0x05, 0x59, 0x2a, 0x46
 };
 
-static void g (__local u8 s_ftable[256], const u32 *key, const int k, const u32 *wx, u32 *out)
+void g (__local u8 s_ftable[256], const u32 *key, const int k, const u32 *wx, u32 *out)
 {
   const u32 g1 = wx[1];
   const u32 g2 = wx[0];
@@ -62,7 +62,7 @@ static void g (__local u8 s_ftable[256], const u32 *key, const int k, const u32 
   out[1] = g5;
 }
 
-static u32 skip32 (__local u8 s_ftable[256], const u32 KP, const u32 *key)
+u32 skip32 (__local u8 s_ftable[256], const u32 KP, const u32 *key)
 {
   u32 wl[2];
   u32 wr[2];
