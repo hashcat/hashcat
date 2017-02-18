@@ -1,4 +1,3 @@
-# this is a workaround because some OpenCL headers cause problems with older gcc compilers (undefined macro: _WIN32)
 before_install:
  - echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-certificates.crt
 os:
@@ -10,10 +9,14 @@ script:
   - make
 env:
   global:
-   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
-   #   via the "travis encrypt" command using the project repo's public key
+   - CC=gcc-5
    - secure: "EQhY6iBjtU7978g1PBkQLvTnb7EBDLrf7FVBETfYqGTYMNUKn31JP3357gcE9EVSbgq94qMA/A60oa4WqvRUCk+JhqpBrTYPSY19IgRqYpHHmXMGwmCF+kITpITDaiASK+cHHpc1/QXAelOI+ovdQpIcQUCQ1jrzDc1aF6k89qxOW884RwNFZzwqjWP1YCZRaecm6k0J7pKZpbT0oXTmtAFQE3EhP0XZG8JkLIXTGvjg30UHkKNgooeL9c/y2Q7tnua97SKpHtEgZP41Yg6BcWcbWWZPH4WfSIskV4uafhGwbr3IxSLOoiYX4+bOxXiY3GLQU4Qhro81AfcR5c7+mBQwbJPxPtqaeQfv2YGyzXJnyLZqVBZ0yKhKRX/QU7up7+BpVMzAdSmRQvgq2B1Nb2B/p+dKFnkzAS83Y8rpYyOxscRODqbQIPwK3LPZ+0CExbKShIbxWcVhVcQVRMBlh4mblLre463KPCXE4mGMD4TKUxTNat7mq237qzYoA9g3x5uIKWAxNG4ZHyQuvYFT3mfmTDlSLx7f6NtgNLVT1SpIdJDbCqoAAf56P52Eympz+T91Gpc1Ecxr2isKKAQ11myPzLjUNyU3CGA65EUf0V1ghYa9IZcq7H/lnBfyDkwsLbkRad4p3Q7kUNjuo91VqT4bBlrb4AuFf4zbsy+IKe8="
 addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - gcc-5
   coverity_scan:
     project:
       name: "hashcat/hashcat"
