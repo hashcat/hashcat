@@ -5,7 +5,6 @@ os:
 language: c
 sudo: required
 script:
-  - sudo unlink /usr/bin/gcc && sudo ln -s /usr/bin/gcc-5 /usr/bin/gcc
   - make
 env:
   global:
@@ -22,6 +21,6 @@ addons:
       name: "hashcat/hashcat"
       description: "Build submitted via Travis CI"
     notification_email: jens.steube@gmail.com
-    build_command_prepend: "make clean"
+    build_command_prepend: "sudo unlink /usr/bin/gcc && sudo ln -s /usr/bin/gcc-5 /usr/bin/gcc && make clean"
     build_command:   "make"
     branch_pattern: coverity_scan
