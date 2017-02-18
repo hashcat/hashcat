@@ -18,7 +18,7 @@ addons:
     - gcc-5
   coverity_scan:
     project:
-      name: "hashcat"
+      name: "hashcat/hashcat"
       description: "Build submitted via Travis CI"
     notification_email: jens.steube@gmail.com
     build_command_prepend: "sudo unlink /usr/bin/gcc && sudo ln -s /usr/bin/gcc-5 /usr/bin/gcc && make clean"
