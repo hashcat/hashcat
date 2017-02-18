@@ -1,14 +1,10 @@
 # this is a workaround because some OpenCL headers cause problems with older gcc compilers (undefined macro: _WIN32)
 before_install:
- - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sed -i "" 's/if _WIN32/if defined (_WIN32)/' deps/OpenCL-Headers/CL/cl_platform.h; fi
- - if [[ "$TRAVIS_OS_NAME" != "osx" ]]; then sed -i    's/if _WIN32/if defined (_WIN32)/' deps/OpenCL-Headers/CL/cl_platform.h; fi
  - echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-certificates.crt
 os:
   - linux
-  - osx
 language: c
 compiler:
-  - clang
   - gcc
 script:
   - make
