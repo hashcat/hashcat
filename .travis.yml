@@ -3,8 +3,8 @@ before_install:
 os:
   - linux
 language: c
-compiler:
-  - gcc
+#compiler:
+#  - gcc
 script:
   - make
 env:
