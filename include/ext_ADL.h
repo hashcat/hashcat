@@ -45,13 +45,13 @@ typedef struct AdapterInfo
   char strDisplayName[ADL_MAX_PATH];
   int  iPresent;
 
-  #if defined (_WIN32) || defined (_WIN64)
+  #if defined (_WIN32) || defined (_WIN64) || defined (__CYGWIN__)
   int  iExist;
   char strDriverPath[ADL_MAX_PATH];
   char strDriverPathExt[ADL_MAX_PATH];
   char strPNPString[ADL_MAX_PATH];
   int  iOSDisplayIndex;
-  #endif /* (_WIN32) || (_WIN64) */
+  #endif /* (_WIN32) || (_WIN64) || (__CYGWIN__) */
 
   #if defined (__linux__)
   int  iXScreenNum;
