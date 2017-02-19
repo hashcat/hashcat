@@ -8,6 +8,9 @@
 
 #include <ctype.h>
 
+bool is_hexify (const u8 *buf, const int len);
+int exec_unhexify (const u8 *in_buf, const int in_len, u8 *out_buf, const int out_sz);
+
 bool need_hexify (const u8 *buf, const int len, const char separator, bool always_ascii);
 void exec_hexify (const u8 *buf, const int len, u8 *out);
 

@@ -796,6 +796,8 @@ typedef struct wpa
   u8   orig_nonce_ap[32];
   u8   orig_nonce_sta[32];
   int  essid_reuse;
+  u8   essid_len;
+  u8   essid[32];
 
 } wpa_t;
 

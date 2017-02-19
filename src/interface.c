@@ -2740,6 +2740,10 @@ int wpa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
 
   salt->salt_iter = ROUNDS_WPA2 - 1;
 
+  memcpy (wpa->essid, in.essid, in.essid_len);
+
+  wpa->essid_len = in.essid_len;
+
   u8 *pke_ptr = (u8 *) wpa->pke;
 
   memcpy (pke_ptr, "Pairwise key expansion", 23);
@@ -15676,12 +15680,50 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   }
   else if (hash_mode == 2500)
   {
-    snprintf (out_buf, out_len - 1, "%08x%08x%08x%08x:%s",
+    wpa_t *wpas = (wpa_t *) esalts_buf;
+
+    wpa_t *wpa = &wpas[salt_pos];
+
+    char *essid = (char *) wpa->essid;
+
+    char tmp_buf[HCBUFSIZ_TINY];
+    int  tmp_len = 0;
+
+    if (need_hexify (wpa->essid, wpa->essid_len, hashconfig->separator, 0) == true)
+    {
+      tmp_buf[tmp_len++] = '$';
+      tmp_buf[tmp_len++] = 'H';
+      tmp_buf[tmp_len++] = 'E';
+      tmp_buf[tmp_len++] = 'X';
+      tmp_buf[tmp_len++] = '[';
+
+      exec_hexify (wpa->essid, wpa->essid_len, (u8 *) tmp_buf + tmp_len);
+
+      tmp_len += wpa->essid_len * 2;
+
+      tmp_buf[tmp_len++] = ']';
+
+      essid = tmp_buf;
+    }
+
+    snprintf (out_buf, out_len - 1, "%08x%08x%08x%08x:%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x:%s",
       salt.salt_buf[12],
       salt.salt_buf[13],
       salt.salt_buf[14],
       salt.salt_buf[15],
-      (char *) salt.salt_buf);
+      wpa->orig_mac_ap[0],
+      wpa->orig_mac_ap[1],
+      wpa->orig_mac_ap[2],
+      wpa->orig_mac_ap[3],
+      wpa->orig_mac_ap[4],
+      wpa->orig_mac_ap[5],
+      wpa->orig_mac_sta[0],
+      wpa->orig_mac_sta[1],
+      wpa->orig_mac_sta[2],
+      wpa->orig_mac_sta[3],
+      wpa->orig_mac_sta[4],
+      wpa->orig_mac_sta[5],
+      essid);
   }
   else if (hash_mode == 4400)
   {

@@ -451,7 +451,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
     }
     else if (hashconfig->hash_mode == 2500)
     {
-      // here we have in line_hash_buf: hash:essid (without the plain)
+      // here we have in line_hash_buf: hash:macap:macsta:essid:password
 
       char *sep_pos = strrchr (line_hash_buf, ':');
 
@@ -463,13 +463,18 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
       const size_t hash_len = strlen (hash_pos);
 
-      if (hash_len != 32) continue;
+      if (hash_len != 32 + 1 + 12 + 1 + 12) continue;
 
       char *essid_pos = sep_pos + 1;
 
-      const size_t essid_len = strlen (essid_pos);
+      int essid_len = (int) strlen (essid_pos);
 
-      if (essid_len > 36) continue;
+      if (is_hexify ((const u8 *) essid_pos, (const int) essid_len) == true)
+      {
+        essid_len = exec_unhexify ((const u8 *) essid_pos, (int) essid_len, (u8 *) essid_pos, (int) essid_len);
+      }
+
+      if (essid_len > 32) continue;
 
       if (hashconfig->is_salted)
       {
