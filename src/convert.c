@@ -98,6 +98,8 @@ bool is_hexify (const u8 *buf, const int len)
   if (buf[4]       != '[') return (false);
   if (buf[len - 1] != ']') return (false);
 
+  if (is_valid_hex_string (buf + 5, len - 6) == false) return false;
+
   return true;
 }
 
