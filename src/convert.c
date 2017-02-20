@@ -87,6 +87,38 @@ static bool matches_separator (const u8 *buf, const int len, const char separato
   return false;
 }
 
+bool is_hexify (const u8 *buf, const int len)
+{
+  if (len < 6) return false; // $HEX[] = 6
+
+  if (buf[0]       != '$') return (false);
+  if (buf[1]       != 'H') return (false);
+  if (buf[2]       != 'E') return (false);
+  if (buf[3]       != 'X') return (false);
+  if (buf[4]       != '[') return (false);
+  if (buf[len - 1] != ']') return (false);
+
+  if (is_valid_hex_string (buf + 5, len - 6) == false) return false;
+
+  return true;
+}
+
+int exec_unhexify (const u8 *in_buf, const int in_len, u8 *out_buf, const int out_sz)
+{
+  int i, j;
+
+  for (i = 0, j = 5; j < in_len - 1; i += 1, j += 2)
+  {
+    const u8 c = hex_to_u8 (&in_buf[j]);
+
+    out_buf[i] = c;
+  }
+
+  memset (out_buf + i, 0, out_sz - i);
+
+  return (i);
+}
+
 bool need_hexify (const u8 *buf, const int len, const char separator, bool always_ascii)
 {
   bool rc = false;

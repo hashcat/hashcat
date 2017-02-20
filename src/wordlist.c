@@ -34,27 +34,11 @@ u32 convert_from_hex (hashcat_ctx_t *hashcat_ctx, char *line_buf, const u32 line
     return (i);
   }
 
-  if (line_len >= 6) // $HEX[] = 6
+  if (is_hexify (line_buf, line_len) == true)
   {
-    if (line_buf[0]            != '$') return (line_len);
-    if (line_buf[1]            != 'H') return (line_len);
-    if (line_buf[2]            != 'E') return (line_len);
-    if (line_buf[3]            != 'X') return (line_len);
-    if (line_buf[4]            != '[') return (line_len);
-    if (line_buf[line_len - 1] != ']') return (line_len);
+    const int new_len = exec_unhexify ((const u8 *) line_buf, (int) line_len, (u8 *) line_buf, (int) line_len);
 
-    size_t i, j;
-
-    for (i = 0, j = 5; j < line_len - 1; i += 1, j += 2)
-    {
-      const u8 c = hex_to_u8 ((const u8 *) &line_buf[j]);
-
-      line_buf[i] = c;
-    }
-
-    memset (line_buf + i, 0, line_len - i);
-
-    return (i);
+    return (u32) new_len;
   }
 
   return (line_len);
