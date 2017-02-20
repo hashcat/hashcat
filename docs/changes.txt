@@ -59,6 +59,7 @@
 
 - Building: Add SHARED variable to Makefile to choose if hashcat is build as static or shared binary (using libhashcat.so/hashcat.dll)
 - Building: Removed the use of RPATH on linker level
+- Building: Removed compiler option -march=native as this created problems for maintainers on various distributions
 - Building: Replaced linking of CRT_glob.o with the use of int _dowildcard
 - Commandline: Do some checks related to custom-charset options if user specifies them
 - CPU Affinity: Fixed memory leak in case invalid cpu Id was specified
