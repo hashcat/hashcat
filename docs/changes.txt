@@ -59,6 +59,7 @@
 
 - Building: Add SHARED variable to Makefile to choose if hashcat is build as static or shared binary (using libhashcat.so/hashcat.dll)
 - Building: Removed the use of RPATH on linker level
+- Building: Removed compiler option -march=native as this created problems for maintainers on various distributions
 - Building: Replaced linking of CRT_glob.o with the use of int _dowildcard
 - Commandline: Do some checks related to custom-charset options if user specifies them
 - CPU Affinity: Fixed memory leak in case invalid cpu Id was specified
@@ -71,6 +72,7 @@
 - Hardware Monitor: Fixed several memory leaks in case hash-file writing (caused by --remove) failed
 - Hardware Monitor: Fixed several memory leaks in case no hardware monitor sensor is found
 - Hardware Monitor: In case NVML initialization failed, do not try to initialiaze NVAPI or XNVCTRL because they both depend on NVML
+- Hardware Management: Bring back kernel exec timeout detection for NVidia on user request
 - Hash Parsing: Added additional bound checks for the SIP digest authentication (MD5) parser (-m 11400)
 - Hash Parsing: Make sure that all files are correctly closed whenever a hash file parsing error occurs
 - Helper: Added functions to check existence, type, read- and write-permissions and rewrite sources to use them instead of stat()

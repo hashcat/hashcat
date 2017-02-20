@@ -2983,6 +2983,14 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           device_param->sm_minor = sm_minor;
           device_param->sm_major = sm_major;
 
+          cl_uint kernel_exec_timeout = 0;
+
+          CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV, sizeof (kernel_exec_timeout), &kernel_exec_timeout, NULL);
+
+          if (CL_rc == -1) return -1;
+
+          device_param->kernel_exec_timeout = kernel_exec_timeout;
+
           // CPU burning loop damper
           // Value is given as number between 0-100
           // By default 100%
@@ -3100,6 +3108,12 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
               {
                 if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Old CUDA compute capability %u.%u detected, OpenCL performance is reduced.", device_id + 1, device_param->sm_major, device_param->sm_minor);
                 if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             For ideal hashcat performance on NVIDIA GPU you need CUDA compute capability 5.0 or higher (Maxwell)");
+              }
+
+              if (device_param->kernel_exec_timeout != 0)
+              {
+                if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: WARNING! Kernel exec timeout is not disabled, it might cause you errors of code CL_OUT_OF_RESOURCES", device_id + 1);
+                if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             See the wiki on how to disable it: https://hashcat.net/wiki/doku.php?id=timeout_patch");
               }
             }
 
