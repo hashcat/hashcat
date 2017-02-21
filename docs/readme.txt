@@ -31,7 +31,7 @@ NVidia users require "NVIDIA Driver" (367.x or later)
 - Supports automatic keyspace ordering markov-chains
 - Built-in benchmarking system
 - Integrated thermal watchdog
-- 160+ Hash-types implemented with performance in mind
+- 200+ Hash-types implemented with performance in mind
 
 ##
 ## Hash-Types
