@@ -721,6 +721,16 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           memset (hashes_buf[0].salt, 0, sizeof (salt_t));
         }
 
+        if (hashconfig->esalt_size)
+        {
+          memset (hashes_buf[0].esalt, 0, hashconfig->esalt_size);
+        }
+
+        if (hashconfig->hook_salt_size)
+        {
+          memset (hashes_buf[0].hook_salt, 0, hashconfig->hook_salt_size);
+        }
+
         int parser_status = PARSER_OK;
 
         if (hashconfig->hash_mode == 2500)
@@ -751,6 +761,21 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
               event_log_warning (hashcat_ctx, "Hashfile '%s': File changed during runtime, skipping new data", hash_buf);
 
               break;
+            }
+
+            if (hashconfig->is_salted)
+            {
+              memset (hashes_buf[hashes_cnt].salt, 0, sizeof (salt_t));
+            }
+
+            if (hashconfig->esalt_size)
+            {
+              memset (hashes_buf[hashes_cnt].esalt, 0, hashconfig->esalt_size);
+            }
+
+            if (hashconfig->hook_salt_size)
+            {
+              memset (hashes_buf[hashes_cnt].hook_salt, 0, hashconfig->hook_salt_size);
             }
 
             parser_status = hashconfig->parse_func ((u8 *) in, sizeof (hccapx_t), &hashes_buf[hashes_cnt], hashconfig);
@@ -959,6 +984,16 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         if (hashconfig->is_salted)
         {
           memset (hashes_buf[hashes_cnt].salt, 0, sizeof (salt_t));
+        }
+
+        if (hashconfig->esalt_size)
+        {
+          memset (hashes_buf[hashes_cnt].esalt, 0, hashconfig->esalt_size);
+        }
+
+        if (hashconfig->hook_salt_size)
+        {
+          memset (hashes_buf[hashes_cnt].hook_salt, 0, hashconfig->hook_salt_size);
         }
 
         if (hashconfig->hash_mode == 3000)

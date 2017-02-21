@@ -2826,6 +2826,8 @@ int wpa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
 
   u32 block[16];
 
+  memset (block, 0, sizeof (block));
+
   u8 *block_ptr = (u8 *) block;
 
   for (int i = 0; i < 16; i++) block[i] = salt->salt_buf[i];
