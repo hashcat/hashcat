@@ -2715,7 +2715,7 @@ int wpa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
 
   if (in.signature != HCCAPX_SIGNATURE) return (PARSER_HCCAPX_SIGNATURE);
 
-  if (in.version != 3) return (PARSER_HCCAPX_VERSION);
+  if (in.version != HCCAPX_VERSION) return (PARSER_HCCAPX_VERSION);
 
   if (in.eapol_len < 1 || in.eapol_len > 255) return (PARSER_HCCAPX_EAPOL_LEN);
 
@@ -2780,7 +2780,7 @@ int wpa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
   memcpy (wpa->orig_nonce_ap,  in.nonce_ap,  32);
   memcpy (wpa->orig_nonce_sta, in.nonce_sta, 32);
 
-  wpa->authenticated = in.authenticated;
+  wpa->message_pair = in.message_pair;
 
   wpa->keyver = in.keyver;
 
@@ -14857,7 +14857,7 @@ void to_hccapx_t (hashcat_ctx_t *hashcat_ctx, hccapx_t *hccapx, const u32 salt_p
   memset (hccapx, 0, sizeof (hccapx_t));
 
   hccapx->signature = HCCAPX_SIGNATURE;
-  hccapx->version = 3;
+  hccapx->version   = HCCAPX_VERSION;
 
   const salt_t *salt = &salts_buf[salt_pos];
 
@@ -14868,7 +14868,7 @@ void to_hccapx_t (hashcat_ctx_t *hashcat_ctx, hccapx_t *hccapx, const u32 salt_p
   wpa_t *wpas = (wpa_t *) esalts_buf;
   wpa_t *wpa  = &wpas[salt_pos];
 
-  hccapx->authenticated = wpa->authenticated;
+  hccapx->message_pair = wpa->message_pair;
   hccapx->keyver = wpa->keyver;
 
   hccapx->eapol_len = wpa->eapol_len;
