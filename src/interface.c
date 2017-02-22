@@ -2868,6 +2868,15 @@ int wpa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
 
   md5_64 (block, hash);
 
+  memset (block, 0, sizeof (block));
+
+  block[0] = digest[0];
+  block[1] = digest[1];
+  block[2] = digest[2];
+  block[3] = digest[3];
+
+  md5_64 (block, hash);
+
   salt->salt_buf[12] = hash[0];
   salt->salt_buf[13] = hash[1];
   salt->salt_buf[14] = hash[2];
