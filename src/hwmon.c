@@ -1773,6 +1773,13 @@ static int adl_init (hashcat_ctx_t *hashcat_ctx)
   {
     adl->lib = hc_dlopen ("atiadlxy.dll");
   }
+  #elif defined (__CYGWIN__)
+  adl->lib = hc_dlopen ("atiadlxx.dll", RTLD_NOW);
+
+  if (!adl->lib)
+  {
+    adl->lib = hc_dlopen ("atiadlxy.dll", RTLD_NOW);
+  }
   #elif defined (_POSIX)
   adl->lib = hc_dlopen ("libatiadlxx.so", RTLD_NOW);
   #endif
