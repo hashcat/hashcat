@@ -1211,6 +1211,6 @@ __kernel void m13200_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   if(tmps[gid].cipher[0]==0xA6A6A6A6 && tmps[gid].cipher[1]==0xA6A6A6A6)
   {
-    mark_hash (plains_buf, d_return_buf, salt_pos, 0, digests_offset + 0, gid, il_pos);
+    mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
   }
 }
