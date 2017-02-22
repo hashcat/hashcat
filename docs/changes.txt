@@ -78,6 +78,7 @@
 - Helper: Added functions to check existence, type, read- and write-permissions and rewrite sources to use them instead of stat()
 - Keyfile handling: Make sure that the memory is cleanly freed whenever a VeraCrypt/TrueCrypt keyfile fails to load
 - Mask Checks: Added additional memory cleanups after parsing/verifying masks
+- Mask Checks: Added integer overflow detection for a keyspace of a mask provided by user
 - Mask Increment: Fixed memory leak in case mask_append() fails
 - OpenCL Device: Do a check on available constant memory size and abort if it's less than 64kB
 - OpenCL Device Management: Fixed several memory leaks in case initialization of an OpenCL device or platform failed

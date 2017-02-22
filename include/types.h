@@ -1589,7 +1589,7 @@ typedef struct combinator_ctx
   char *dict2;
 
   u32 combs_mode;
-  u32 combs_cnt;
+  u64 combs_cnt;
 
 } combinator_ctx_t;
 
