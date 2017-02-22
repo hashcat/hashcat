@@ -817,7 +817,7 @@ static int sp_get_sum (u32 start, u32 stop, cs_t *root_css_buf, u64 *result)
   {
     u64 t;
 
-    if (__builtin_umull_overflow (sum, root_css_buf[i].cs_len, &t) == true) return -1;
+    if (__builtin_mul_overflow (sum, root_css_buf[i].cs_len, &t) == true) return -1;
 
     sum *= root_css_buf[i].cs_len;
   }
