@@ -7,6 +7,20 @@
 #include "types.h"
 #include "shared.h"
 
+bool overflow_check_int64_add (const u64 a, const u64 b)
+{
+  u64 t;
+
+  return __builtin_add_overflow (a, b, &t);
+}
+
+bool overflow_check_int64_mul (const u64 a, const u64 b)
+{
+  u64 t;
+
+  return __builtin_mul_overflow (a, b, &t);
+}
+
 bool is_power_of_2 (const u32 v)
 {
   return (v && !(v & (v - 1)));
