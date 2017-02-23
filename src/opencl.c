@@ -2515,6 +2515,21 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
     if (platform_skipped == true) continue;
 
+    if (user_options->force == false)
+    {
+      if (platform_vendor_id == VENDOR_ID_MESA)
+      {
+        event_log_error (hashcat_ctx, "Mesa (Gallium) OpenCL platform detected!");
+
+        event_log_warning (hashcat_ctx, "It is known to cause errors which an unexperienced user misinterpret as a bug in hashcat");
+        event_log_warning (hashcat_ctx, "You are STRONGLY encouraged to use the driver as listed in docs/readme.txt");
+        event_log_warning (hashcat_ctx, "You can use --opencl-platforms to manually deselect the platform and get rid of this error");
+        event_log_warning (hashcat_ctx, "You can use --force to override this but do not post error reports if you do so");
+
+        return -1;
+      }
+    }
+
     hc_device_param_t *devices_param = opencl_ctx->devices_param;
 
     for (u32 platform_devices_id = 0; platform_devices_id < platform_devices_cnt; platform_devices_id++)
@@ -2827,7 +2842,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       {
         if (device_param->device_vendor_id == VENDOR_ID_AMD_USE_INTEL)
         {
-          if (user_options->force == 0)
+          if (user_options->force == false)
           {
             if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Not a native Intel OpenCL runtime, expect massive speed loss", device_id + 1);
             if (user_options->quiet == false) event_log_warning (hashcat_ctx, "             You can use --force to override this but do not post error reports if you do so");
