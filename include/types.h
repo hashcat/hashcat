@@ -41,7 +41,7 @@ typedef uint64_t u64;
 
 #if defined (_WIN)
 typedef LARGE_INTEGER     hc_timer_t;
-#elif defined (_POSIX)
+#else
 typedef struct timeval    hc_timer_t;
 #endif
 
@@ -54,19 +54,17 @@ typedef struct timeval    hc_timer_t;
 #if defined (_WIN)
 typedef HANDLE            hc_thread_t;
 typedef CRITICAL_SECTION  hc_thread_mutex_t;
-#elif defined (_POSIX)
+#else
 typedef pthread_t         hc_thread_t;
 typedef pthread_mutex_t   hc_thread_mutex_t;
 #endif
 
 // stat
 
-#if defined (_POSIX)
-typedef struct stat hc_stat_t;
-#endif
-
 #if defined (_WIN)
 typedef struct _stat64 hc_stat_t;
+#else
+typedef struct stat hc_stat_t;
 #endif
 
 // enums
@@ -1205,10 +1203,10 @@ typedef struct dictstat_ctx
 
   dictstat_t *base;
 
-  #if defined (_POSIX)
-  size_t cnt;
-  #else
+  #if defined (_WIN)
   u32    cnt;
+  #else
+  size_t cnt;
   #endif
 
 } dictstat_ctx_t;

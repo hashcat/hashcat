@@ -20,7 +20,7 @@
 #include "interface.h"
 #include "event.h"
 
-#if defined(__MINGW64__) || defined(__MINGW32__)
+#if defined (__MINGW64__) || defined (__MINGW32__)
 int _dowildcard = -1;
 #endif
 

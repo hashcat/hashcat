@@ -10,19 +10,16 @@
 #include <unistd.h>
 #include <limits.h>
 
-#if defined (_POSIX)
-#include <sys/types.h>
-#include <pwd.h>
-#endif
-
-#if defined (__APPLE__)
-#include <mach-o/dyld.h>
-#endif // __APPLE__
-
 #if defined (_WIN)
 #include <windows.h>
 #include <direct.h>
-#endif
+#else
+#include <sys/types.h>
+#include <pwd.h>
+#if defined (__APPLE__)
+#include <mach-o/dyld.h>
+#endif // __APPLE__
+#endif // _WIN
 
 #define DOT_HASHCAT     ".hashcat"
 #define SESSIONS_FOLDER "sessions"

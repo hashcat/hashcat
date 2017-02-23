@@ -12,15 +12,13 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#if defined (_POSIX)
+#if defined (_WIN)
+#include <windows.h>
+#else
 #include <termios.h>
 #if defined (__APPLE__)
 #include <sys/ioctl.h>
 #endif // __APPLE__
-#endif // _POSIX
-
-#if defined (_WIN)
-#include <windows.h>
 #endif // _WIN
 
 void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag);
