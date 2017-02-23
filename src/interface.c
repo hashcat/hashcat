@@ -15695,8 +15695,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     char *essid = (char *) wpa->essid;
 
-    char tmp_buf[HCBUFSIZ_TINY];
-    int  tmp_len = 0;
+    int tmp_len = 0;
 
     if (need_hexify (wpa->essid, wpa->essid_len, hashconfig->separator, 0) == true)
     {
