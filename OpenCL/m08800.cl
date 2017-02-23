@@ -1885,7 +1885,7 @@ __kernel void m08800_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     // MSDOS5.0
     if ((r0 == 0x4f44534d) && (r1 == 0x302e3553))
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, 0, digests_offset + 0, gid, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0);
     }
   }
 
@@ -1951,7 +1951,7 @@ __kernel void m08800_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
     if ((r[5] < 2) && (r[6] < 16) && ((r[14] & 0xffff) == 0xEF53))
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, 0, digests_offset + 0, gid, 0);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0);
     }
   }
 }

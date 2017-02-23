@@ -384,7 +384,7 @@ static int hm_SYSFS_get_pp_dpm_sclk (hashcat_ctx_t *hashcat_ctx, const int devic
 
     int profile = 0;
 
-    int rc = sscanf (ptr, "%d: %dMhz", &profile, &clockfreq);
+    int rc = sscanf (ptr, "%d: %dMHz", &profile, &clockfreq);
 
     if (rc == 2) break;
   }
@@ -439,7 +439,7 @@ static int hm_SYSFS_get_pp_dpm_mclk (hashcat_ctx_t *hashcat_ctx, const int devic
 
     int profile = 0;
 
-    int rc = sscanf (ptr, "%d: %dMhz", &profile, &clockfreq);
+    int rc = sscanf (ptr, "%d: %dMHz", &profile, &clockfreq);
 
     if (rc == 2) break;
   }
@@ -1772,6 +1772,13 @@ static int adl_init (hashcat_ctx_t *hashcat_ctx)
   if (!adl->lib)
   {
     adl->lib = hc_dlopen ("atiadlxy.dll");
+  }
+  #elif defined (__CYGWIN__)
+  adl->lib = hc_dlopen ("atiadlxx.dll", RTLD_NOW);
+
+  if (!adl->lib)
+  {
+    adl->lib = hc_dlopen ("atiadlxy.dll", RTLD_NOW);
   }
   #elif defined (_POSIX)
   adl->lib = hc_dlopen ("libatiadlxx.so", RTLD_NOW);

@@ -807,7 +807,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-static u64 sp_get_sum (u32 start, u32 stop, cs_t *root_css_buf)
+static int sp_get_sum (u32 start, u32 stop, cs_t *root_css_buf, u64 *result)
 {
   u64 sum = 1;
 
@@ -815,10 +815,14 @@ static u64 sp_get_sum (u32 start, u32 stop, cs_t *root_css_buf)
 
   for (i = start; i < stop; i++)
   {
+    if (overflow_check_u64_mul (sum, root_css_buf[i].cs_len) == false) return -1;
+
     sum *= root_css_buf[i].cs_len;
   }
 
-  return (sum);
+  *result = sum;
+
+  return 0;
 }
 
 static void sp_tbl_to_css (hcstat_table_t *root_table_buf, hcstat_table_t *markov_table_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 threshold, u32 uniq_tbls[SP_PW_MAX][CHARSIZ])
@@ -1089,7 +1093,14 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
 
-      combinator_ctx->combs_cnt = sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf);
+      const int rc_get_sum = sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &combinator_ctx->combs_cnt);
+
+      if (rc_get_sum == -1)
+      {
+        event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
+
+        return -1;
+      }
 
       const int rc_update_mp = opencl_session_update_mp (hashcat_ctx);
 
@@ -1179,7 +1190,14 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
 
-      status_ctx->words_cnt = sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf);
+      const int rc_get_sum1 = sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &status_ctx->words_cnt);
+
+      if (rc_get_sum1 == -1)
+      {
+        event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
+
+        return -1;
+      }
 
       // copy + args
 
@@ -1187,7 +1205,14 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       mp_css_split_cnt (hashcat_ctx, css_cnt_orig, css_cnt_lr);
 
-      mask_ctx->bfs_cnt = sp_get_sum (0, css_cnt_lr[1], mask_ctx->root_css_buf);
+      const int rc_get_sum2 = sp_get_sum (0, css_cnt_lr[1], mask_ctx->root_css_buf, &mask_ctx->bfs_cnt);
+
+      if (rc_get_sum2 == -1)
+      {
+        event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
+
+        return -1;
+      }
 
       const int rc_update_mp_rl = opencl_session_update_mp_rl (hashcat_ctx, css_cnt_lr[0], css_cnt_lr[1]);
 

@@ -76,9 +76,19 @@ inline u32 check (const u32 digest[4], __global const u32 *bitmap_s1_a, __global
   return (1);
 }
 
-inline void mark_hash (__global plain_t *plains_buf, __global u32 *d_result, const int salt_pos, const int digest_pos, const int hash_pos, const u32 gid, const u32 il_pos)
+inline void mark_hash (__global plain_t *plains_buf, __global u32 *d_result, const u32 salt_pos, const u32 digests_cnt, const u32 digest_pos, const u32 hash_pos, const u32 gid, const u32 il_pos)
 {
   const u32 idx = atomic_inc (d_result);
+
+  if (idx >= digests_cnt)
+  {
+    // this is kind of tricky: we *must* call atomic_inc() to know about the current value from a multi-thread perspective
+    // this action creates a buffer overflow, so we need to fix it here
+
+    atomic_dec (d_result);
+
+    return;
+  }
 
   plains_buf[idx].salt_pos    = salt_pos;
   plains_buf[idx].digest_pos  = digest_pos; // relative

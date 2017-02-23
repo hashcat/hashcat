@@ -994,7 +994,7 @@ __kernel void m13400_comp (__global pw_t *pws, __global const kernel_rule_t *rul
         && esalt_bufs[salt_pos].contents_hash[6] == final_digest[6]
         && esalt_bufs[salt_pos].contents_hash[7] == final_digest[7])
         {
-          mark_hash (plains_buf, d_return_buf, salt_pos, 0, digests_offset + 0, gid, il_pos);
+          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
         }
     }
     else
@@ -1198,7 +1198,7 @@ __kernel void m13400_comp (__global pw_t *pws, __global const kernel_rule_t *rul
         && esalt_bufs[salt_pos].contents_hash[6] == final_digest[6]
         && esalt_bufs[salt_pos].contents_hash[7] == final_digest[7])
         {
-          mark_hash (plains_buf, d_return_buf, salt_pos, 0, digests_offset + 0, gid, il_pos);
+          mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
         }
     }
   }
@@ -1236,7 +1236,7 @@ __kernel void m13400_comp (__global pw_t *pws, __global const kernel_rule_t *rul
       && esalt_bufs[salt_pos].expected_bytes[2] == out[2]
       && esalt_bufs[salt_pos].expected_bytes[3] == out[3])
       {
-        mark_hash (plains_buf, d_return_buf, salt_pos, 0, digests_offset + 0, gid, il_pos);
+        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
       }
   }
 }

@@ -137,9 +137,11 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
   if (chdir (rd->cwd))
   {
     event_log_error (hashcat_ctx, "The directory '%s' does not exist. It is needed to restore (--restore) the session.", rd->cwd);
-    event_log_error (hashcat_ctx, "You could either create this directory or update the .restore file using e.g. the analyze_hc_restore.pl tool:");
-    event_log_error (hashcat_ctx, "https://github.com/philsmd/analyze_hc_restore");
-    event_log_error (hashcat_ctx, "The directory must contain all files and folders mentioned within the command line.");
+
+    event_log_warning (hashcat_ctx, "You could either create this directory or update the .restore file using e.g. the analyze_hc_restore.pl tool:");
+    event_log_warning (hashcat_ctx, "https://github.com/philsmd/analyze_hc_restore");
+    event_log_warning (hashcat_ctx, "The directory must contain all files and folders mentioned within the command line.");
+    event_log_warning (hashcat_ctx, NULL);
 
     return -1;
   }

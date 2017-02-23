@@ -82,7 +82,19 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     combinator_ctx->combs_cnt = 1;
 
-    const u64 words1_cnt = count_words (hashcat_ctx, fp1, dictfile1);
+    u64 words1_cnt = 0;
+
+    const int rc1 = count_words (hashcat_ctx, fp1, dictfile1, &words1_cnt);
+
+    if (rc1 == -1)
+    {
+      event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of wordlist: %s", dictfile1);
+
+      fclose (fp1);
+      fclose (fp2);
+
+      return -1;
+    }
 
     if (words1_cnt == 0)
     {
@@ -96,7 +108,19 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     combinator_ctx->combs_cnt = 1;
 
-    const u64 words2_cnt = count_words (hashcat_ctx, fp2, dictfile2);
+    u64 words2_cnt = 0;
+
+    const int rc2 = count_words (hashcat_ctx, fp2, dictfile2, &words2_cnt);
+
+    if (rc2 == -1)
+    {
+      event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of wordlist: %s", dictfile2);
+
+      fclose (fp1);
+      fclose (fp2);
+
+      return -1;
+    }
 
     if (words2_cnt == 0)
     {

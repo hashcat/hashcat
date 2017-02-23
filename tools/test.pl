@@ -4930,7 +4930,7 @@ sub gen_hash
     # format the binary output (.hccapx version 3)
     #
 
-    my $HCCAPX_VERSION = 3;
+    my $HCCAPX_VERSION = 4;
 
     # signature
     $hash_buf = "HCPX";
@@ -4939,7 +4939,7 @@ sub gen_hash
     $hash_buf .= pack ("L<", $HCCAPX_VERSION);
 
     # authenticated
-    $hash_buf .= pack ("C", 1);
+    $hash_buf .= pack ("C", 0);
 
     # essid length
     $essid_len = length ($salt_buf);

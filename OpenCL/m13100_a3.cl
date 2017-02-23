@@ -772,7 +772,7 @@ void m13100 (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[
 
     if (decrypt_and_check (&rc4_keys[lid], tmp, krb5tgs_bufs[salt_pos].edata2, krb5tgs_bufs[salt_pos].edata2_len, K2, checksum) == 1)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, 0, digests_offset + 0, gid, il_pos);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
     }
   }
 }

@@ -803,6 +803,6 @@ __kernel void m14643_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   if (entropy < MAX_ENTROPY)
   {
-    mark_hash (plains_buf, d_return_buf, salt_pos, 0, 0, gid, 0);
+    mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
   }
 }

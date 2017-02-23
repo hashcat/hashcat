@@ -15,6 +15,11 @@ const char *val2cstr_cl (cl_int CL_err)
 
   switch (CL_err)
   {
+    /**
+     * OpenCL runtime errors
+     */
+
+    #if defined (CL_VERSION_1_0)
     CLERR (CL_SUCCESS);
     CLERR (CL_DEVICE_NOT_FOUND);
     CLERR (CL_DEVICE_NOT_AVAILABLE);
@@ -28,13 +33,26 @@ const char *val2cstr_cl (cl_int CL_err)
     CLERR (CL_IMAGE_FORMAT_NOT_SUPPORTED);
     CLERR (CL_BUILD_PROGRAM_FAILURE);
     CLERR (CL_MAP_FAILURE);
+    #endif
+
+    #if defined (CL_VERSION_1_1)
     CLERR (CL_MISALIGNED_SUB_BUFFER_OFFSET);
     CLERR (CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST);
+    #endif
+
+    #if defined (CL_VERSION_1_2)
     CLERR (CL_COMPILE_PROGRAM_FAILURE);
     CLERR (CL_LINKER_NOT_AVAILABLE);
     CLERR (CL_LINK_PROGRAM_FAILURE);
     CLERR (CL_DEVICE_PARTITION_FAILED);
     CLERR (CL_KERNEL_ARG_INFO_NOT_AVAILABLE);
+    #endif
+
+    /**
+     * OpenCL compile-time errors
+     */
+
+    #if defined (CL_VERSION_1_0)
     CLERR (CL_INVALID_VALUE);
     CLERR (CL_INVALID_DEVICE_TYPE);
     CLERR (CL_INVALID_PLATFORM);
@@ -69,15 +87,79 @@ const char *val2cstr_cl (cl_int CL_err)
     CLERR (CL_INVALID_BUFFER_SIZE);
     CLERR (CL_INVALID_MIP_LEVEL);
     CLERR (CL_INVALID_GLOBAL_WORK_SIZE);
+    #endif
+
+    #if defined (CL_VERSION_1_1)
     CLERR (CL_INVALID_PROPERTY);
+    #endif
+
+    #if defined (CL_VERSION_1_2)
     CLERR (CL_INVALID_IMAGE_DESCRIPTOR);
     CLERR (CL_INVALID_COMPILER_OPTIONS);
     CLERR (CL_INVALID_LINKER_OPTIONS);
     CLERR (CL_INVALID_DEVICE_PARTITION_COUNT);
-    //Do not exist in OpenCL 1.2 header
-    //CLERR (CL_INVALID_PIPE_SIZE);
-    //CLERR (CL_INVALID_DEVICE_QUEUE);
+    #endif
+
+    #if defined (CL_VERSION_2_0)
+    CLERR (CL_INVALID_PIPE_SIZE);
+    CLERR (CL_INVALID_DEVICE_QUEUE);
+    #endif
+
+    /**
+     * OpenCL extension error values
+     */
+
+    #if defined (__OPENCL_CL_GL_H) && defined (cl_khr_gl_sharing)
+    CLERR (CL_INVALID_GL_SHAREGROUP_REFERENCE_KHR);
+    #endif
+
+    #if defined (__CL_EXT_H) && defined (cl_khr_icd)
+    CLERR (CL_PLATFORM_NOT_FOUND_KHR);
+    #else
+    case -1001: return "CL_PLATFORM_NOT_FOUND_KHR";
+    #endif
+
+    #if defined (__OPENCL_CL_D3D10_H)
+    CLERR (CL_INVALID_D3D10_DEVICE_KHR);
+    CLERR (CL_INVALID_D3D10_RESOURCE_KHR);
+    CLERR (CL_D3D10_RESOURCE_ALREADY_ACQUIRED_KHR);
+    CLERR (CL_D3D10_RESOURCE_NOT_ACQUIRED_KHR);
+    #endif
+
+    #if defined (__OPENCL_CL_D3D11_H)
+    CLERR (CL_INVALID_D3D11_DEVICE_KHR);
+    CLERR (CL_INVALID_D3D11_RESOURCE_KHR);
+    CLERR (CL_D3D11_RESOURCE_ALREADY_ACQUIRED_KHR);
+    CLERR (CL_D3D11_RESOURCE_NOT_ACQUIRED_KHR);
+    #endif
+
+    #if defined (__OPENCL_CL_DX9_MEDIA_SHARING_H)
+    CLERR (CL_INVALID_DX9_MEDIA_ADAPTER_KHR);
+    CLERR (CL_INVALID_DX9_MEDIA_SURFACE_KHR);
+    CLERR (CL_DX9_MEDIA_SURFACE_ALREADY_ACQUIRED_KHR);
+    CLERR (CL_DX9_MEDIA_SURFACE_NOT_ACQUIRED_KHR);
+    #endif
+
+    #if defined (__CL_EXT_H) && defined (cl_ext_device_fission)
+    CLERR (CL_DEVICE_PARTITION_FAILED_EXT);
+    CLERR (CL_INVALID_PARTITION_COUNT_EXT);
+    CLERR (CL_INVALID_PARTITION_NAME_EXT);
+    #endif
+
+    #if defined (__OPENCL_CL_EGL_H)
+    CLERR (CL_EGL_RESOURCE_NOT_ACQUIRED_KHR);
+    CLERR (CL_INVALID_EGL_OBJECT_KHR);
+    #endif
+
+    #if defined (__CL_EXT_H) && defined (cl_intel_accelerator)
+    CLERR (CL_INVALID_ACCELERATOR_INTEL);
+    CLERR (CL_INVALID_ACCELERATOR_TYPE_INTEL);
+    CLERR (CL_INVALID_ACCELERATOR_DESCRIPTOR_INTEL);
+    CLERR (CL_ACCELERATOR_TYPE_NOT_SUPPORTED_INTEL);
+    #endif
   }
+
+  #undef CLERR
 
   return "CL_UNKNOWN_ERROR";
 }
