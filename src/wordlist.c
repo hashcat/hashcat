@@ -305,13 +305,13 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
 
       if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
       {
-        if (overflow_check_int64_mul (keyspace, (u64) straight_ctx->kernel_rules_cnt) == true) return -1;
+        if (overflow_check_u64_mul (keyspace, straight_ctx->kernel_rules_cnt) == false) return -1;
 
         keyspace *= straight_ctx->kernel_rules_cnt;
       }
       else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
       {
-        if (overflow_check_int64_mul (keyspace, combinator_ctx->combs_cnt) == true) return -1;
+        if (overflow_check_u64_mul (keyspace, combinator_ctx->combs_cnt) == false) return -1;
 
         keyspace *= combinator_ctx->combs_cnt;
       }
@@ -378,13 +378,13 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
       {
         if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
         {
-          if (overflow_check_int64_add (cnt, (u64) straight_ctx->kernel_rules_cnt) == true) return -1;
+          if (overflow_check_u64_add (cnt, straight_ctx->kernel_rules_cnt) == false) return -1;
 
           cnt += straight_ctx->kernel_rules_cnt;
         }
         else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
         {
-          if (overflow_check_int64_add (cnt, combinator_ctx->combs_cnt) == true) return -1;
+          if (overflow_check_u64_add (cnt, combinator_ctx->combs_cnt) == false) return -1;
 
           cnt += combinator_ctx->combs_cnt;
         }

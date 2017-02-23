@@ -7,18 +7,46 @@
 #include "types.h"
 #include "shared.h"
 
-bool overflow_check_int64_add (const u64 a, const u64 b)
+static inline int get_msb32 (const u32 v)
 {
-  u64 t;
-
-  return __builtin_add_overflow (a, b, &t);
+  return 32 - __builtin_clz (v);
 }
 
-bool overflow_check_int64_mul (const u64 a, const u64 b)
+static inline int get_msb64 (const u64 v)
 {
-  u64 t;
+  return 64 - __builtin_clzll (v);
+}
 
-  return __builtin_mul_overflow (a, b, &t);
+bool overflow_check_u32_add (const u32 a, const u32 b)
+{
+  const int a_msb = get_msb32 (a);
+  const int b_msb = get_msb32 (b);
+
+  return ((a_msb < 32) && (b_msb < 32));
+}
+
+bool overflow_check_u32_mul (const u32 a, const u32 b)
+{
+  const int a_msb = get_msb32 (a);
+  const int b_msb = get_msb32 (b);
+
+  return ((a_msb + b_msb) < 32);
+}
+
+bool overflow_check_u64_add (const u64 a, const u64 b)
+{
+  const int a_msb = get_msb64 (a);
+  const int b_msb = get_msb64 (b);
+
+  return ((a_msb < 64) && (b_msb < 64));
+}
+
+bool overflow_check_u64_mul (const u64 a, const u64 b)
+{
+  const int a_msb = get_msb64 (a);
+  const int b_msb = get_msb64 (b);
+
+  return ((a_msb + b_msb) < 64);
 }
 
 bool is_power_of_2 (const u32 v)
