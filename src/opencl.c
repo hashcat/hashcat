@@ -2527,7 +2527,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       {
         event_log_error (hashcat_ctx, "Mesa (Gallium) OpenCL platform detected!");
 
-        event_log_warning (hashcat_ctx, "It is known to cause errors which an unexperienced user misinterpret as a bug in hashcat");
+        event_log_warning (hashcat_ctx, "It is known to cause errors which an unexperienced user could misinterpret as a bug in hashcat");
         event_log_warning (hashcat_ctx, "You are STRONGLY encouraged to use the driver as listed in docs/readme.txt");
         event_log_warning (hashcat_ctx, "You can use --opencl-platforms to manually deselect the platform and get rid of this error");
         event_log_warning (hashcat_ctx, "You can use --force to override this but do not post error reports if you do so");
