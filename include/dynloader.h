@@ -8,16 +8,14 @@
 
 #include <stdlib.h>
 
-#if defined (_POSIX)
+#ifdef _WIN
+#include <windows.h>
+#else
 #include <dlfcn.h>
 #if defined (__APPLE__)
 #include <mach-o/dyld.h>
 #endif // __APPLE__
-#endif // _POSIX
-
-#ifdef _WIN
-#include <windows.h>
-#endif
+#endif // _WIN
 
 #ifdef _WIN
 HMODULE hc_dlopen  (LPCSTR lpLibFileName);

@@ -8,12 +8,11 @@
 
 #include <signal.h>
 
-#if defined (_POSIX)
-#include <pthread.h>
-#include <semaphore.h>
-#endif // _POSIX
 #if defined (_WIN)
 #include <windows.h>
+#else
+#include <pthread.h>
+#include <semaphore.h>
 #endif // _WIN
 
 #if defined (_WIN)
@@ -27,7 +26,7 @@
 #define hc_thread_mutex_init(m)     InitializeCriticalSection (&m)
 #define hc_thread_mutex_delete(m)   DeleteCriticalSection     (&m)
 
-#elif defined (_POSIX)
+#else
 
 #define hc_thread_create(t,f,a)     pthread_create (&t, NULL, f, a)
 #define hc_thread_wait(n,a)         for (u32 i = 0; i < n; i++) pthread_join ((a)[i], NULL)

@@ -304,7 +304,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
     return -1;
   }
 
-  #if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined (__CYGWIN__)
+  #if defined (_POSIX)
 
   static const char SLASH[] = "/";
 

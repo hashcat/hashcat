@@ -392,9 +392,9 @@ int ocl_init (hashcat_ctx_t *hashcat_ctx)
 
   memset (ocl, 0, sizeof (OCL_PTR));
 
-  #if   defined(_WIN)
+  #if   defined (_WIN)
   ocl->lib = hc_dlopen ("OpenCL");
-  #elif defined(__APPLE__)
+  #elif defined (__APPLE__)
   ocl->lib = hc_dlopen ("/System/Library/Frameworks/OpenCL.framework/OpenCL", RTLD_NOW);
   #elif defined (__CYGWIN__)
   ocl->lib = hc_dlopen ("opencl.dll", RTLD_NOW);
@@ -1800,15 +1800,13 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
   u32 speed_pos = device_param->speed_pos;
 
-  #if defined (_POSIX)
-  if (device_param->timer_speed.tv_sec == 0)
+  #if defined (_WIN)
+  if (device_param->timer_speed.QuadPart == 0)
   {
     hc_timer_set (&device_param->timer_speed);
   }
-  #endif
-
-  #if defined (_WIN)
-  if (device_param->timer_speed.QuadPart == 0)
+  #else
+  if (device_param->timer_speed.tv_sec == 0)
   {
     hc_timer_set (&device_param->timer_speed);
   }

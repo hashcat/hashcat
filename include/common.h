@@ -12,7 +12,6 @@
 #define _POSIX
 #elif defined (__WINNT__)
 #define _WIN 1
-#define WIN 1
 #else
 #error Your Operating System is not supported or detected
 #endif
