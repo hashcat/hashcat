@@ -91,7 +91,6 @@ void SetLargePageSize()
   #endif
 }
 
-
 void *BigAlloc(size_t size)
 {
   if (size == 0)
@@ -125,7 +124,6 @@ void BigFree(void *address)
 }
 
 #endif
-
 
 static void *SzAlloc(void *p, size_t size) { UNUSED_VAR(p); return MyAlloc(size); }
 static void SzFree(void *p, void *address) { UNUSED_VAR(p); MyFree(address); }

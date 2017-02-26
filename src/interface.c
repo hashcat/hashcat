@@ -11358,7 +11358,6 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
     data_buf_len = input_len - 1 - 2 - 1 - data_type_len - 1 - NumCyclesPower_len - 1 - salt_len_len - 1 - salt_buf_len - 1 - iv_len_len - 1 - iv_buf_len - 1 - crc_buf_len - 1 - data_len_len - 1 - unpack_size_len - 1;
   }
 
-
   const u32 iter         = atoll ((const char *) NumCyclesPower_pos);
   const u32 crc          = atoll ((const char *) crc_buf_pos);
   const u32 data_type    = atoll ((const char *) data_type_pos);
@@ -11381,7 +11380,6 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
     crc_len = atoll ((const char *) crc_len_pos);
   }
-
 
   /**
    * verify some data
@@ -22766,7 +22764,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                   break;
     }
   }
-
 
   // set default iterations
 

@@ -161,7 +161,6 @@ typedef enum nvmlGom_enum
  * */
 #define nvmlClocksThrottleReasonNone                      0x0000000000000000LL
 
-
 /*
  * End of declarations from nvml.h
  **/

@@ -119,7 +119,6 @@ static _SORT_R_INLINE void sort_r_simple(void *base, size_t nel, size_t w,
   }
 }
 
-
 #if defined NESTED_QSORT
 
   static _SORT_R_INLINE void sort_r(void *base, size_t nel, size_t width,

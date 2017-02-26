@@ -693,7 +693,6 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-
   if (user_options->debug_mode > 0)
   {
     if (user_options->attack_mode != ATTACK_MODE_STRAIGHT)

@@ -65,7 +65,6 @@
 #define TREE_DECODE_CHECK(probs, limit, i) \
   { i = 1; do { GET_BIT_CHECK(probs + i, i) } while (i < limit); i -= limit; }
 
-
 #define kNumPosBitsMax 4
 #define kNumPosStatesMax (1 << kNumPosBitsMax)
 
@@ -82,7 +81,6 @@
 #define LenMid (LenLow + (kNumPosStatesMax << kLenNumLowBits))
 #define LenHigh (LenMid + (kNumPosStatesMax << kLenNumMidBits))
 #define kNumLenProbs (LenHigh + kLenNumHighSymbols)
-
 
 #define kNumStates 12
 #define kNumLitStates 7
@@ -764,7 +762,6 @@ static ELzmaDummy LzmaDec_TryDummy(const CLzmaDec *p, const Byte *buf, SizeT inS
   NORMALIZE_CHECK;
   return res;
 }
-
 
 void LzmaDec_InitDicAndState(CLzmaDec *p, Bool initDic, Bool initState)
 {

@@ -615,7 +615,6 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   EVENT (EVENT_OUTERLOOP_MAINSCREEN);
 
-
   /**
    * Tell user about cracked hashes by potfile
    */
