@@ -18,7 +18,7 @@
 #include "inc_truecrypt_crc32.cl"
 #include "inc_truecrypt_xts.cl"
 
-__constant u64 k_sha512[80] =
+__constant u64a k_sha512[80] =
 {
   SHA512C00, SHA512C01, SHA512C02, SHA512C03,
   SHA512C04, SHA512C05, SHA512C06, SHA512C07,
@@ -301,17 +301,17 @@ __kernel void m06223_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   #else
 
-  __constant u32 *s_td0 = td0;
-  __constant u32 *s_td1 = td1;
-  __constant u32 *s_td2 = td2;
-  __constant u32 *s_td3 = td3;
-  __constant u32 *s_td4 = td4;
+  __constant u32a *s_td0 = td0;
+  __constant u32a *s_td1 = td1;
+  __constant u32a *s_td2 = td2;
+  __constant u32a *s_td3 = td3;
+  __constant u32a *s_td4 = td4;
 
-  __constant u32 *s_te0 = te0;
-  __constant u32 *s_te1 = te1;
-  __constant u32 *s_te2 = te2;
-  __constant u32 *s_te3 = te3;
-  __constant u32 *s_te4 = te4;
+  __constant u32a *s_te0 = te0;
+  __constant u32a *s_te1 = te1;
+  __constant u32a *s_te2 = te2;
+  __constant u32a *s_te3 = te3;
+  __constant u32a *s_te4 = te4;
 
   #endif
 
@@ -609,17 +609,17 @@ __kernel void m06223_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   #else
 
-  __constant u32 *s_td0 = td0;
-  __constant u32 *s_td1 = td1;
-  __constant u32 *s_td2 = td2;
-  __constant u32 *s_td3 = td3;
-  __constant u32 *s_td4 = td4;
+  __constant u32a *s_td0 = td0;
+  __constant u32a *s_td1 = td1;
+  __constant u32a *s_td2 = td2;
+  __constant u32a *s_td3 = td3;
+  __constant u32a *s_td4 = td4;
 
-  __constant u32 *s_te0 = te0;
-  __constant u32 *s_te1 = te1;
-  __constant u32 *s_te2 = te2;
-  __constant u32 *s_te3 = te3;
-  __constant u32 *s_te4 = te4;
+  __constant u32a *s_te0 = te0;
+  __constant u32a *s_te1 = te1;
+  __constant u32a *s_te2 = te2;
+  __constant u32a *s_te3 = te3;
+  __constant u32a *s_te4 = te4;
 
   #endif
 

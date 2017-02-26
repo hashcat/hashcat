@@ -28,7 +28,7 @@
 #define BOX(S,n,i) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3], (S)[(n)][(i).s4], (S)[(n)][(i).s5], (S)[(n)][(i).s6], (S)[(n)][(i).s7], (S)[(n)][(i).s8], (S)[(n)][(i).s9], (S)[(n)][(i).sa], (S)[(n)][(i).sb], (S)[(n)][(i).sc], (S)[(n)][(i).sd], (S)[(n)][(i).se], (S)[(n)][(i).sf])
 #endif
 
-__constant u32 Ch[8][256] =
+__constant u32a Ch[8][256] =
 {
   {
     0x18186018, 0x23238c23, 0xc6c63fc6, 0xe8e887e8,
@@ -560,7 +560,7 @@ __constant u32 Ch[8][256] =
   }
 };
 
-__constant u32 Cl[8][256] =
+__constant u32a Cl[8][256] =
 {
   {
     0xc07830d8, 0x05af4626, 0x7ef991b8, 0x136fcdfb,
@@ -1092,7 +1092,7 @@ __constant u32 Cl[8][256] =
   },
 };
 
-__constant u32 rch[R + 1] =
+__constant u32a rch[R + 1] =
 {
   0x00000000,
   0x1823c6e8,
@@ -1107,7 +1107,7 @@ __constant u32 rch[R + 1] =
   0xca2dbf07,
 };
 
-__constant u32 rcl[R + 1] =
+__constant u32a rcl[R + 1] =
 {
   0x00000000,
   0x87b8014f,
