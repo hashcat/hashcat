@@ -442,6 +442,9 @@ ALIAS_Apple_Iris                                *       12700   1       64      
 ALIAS_Apple_Iris                                *       12800   1       64      100
 ALIAS_Apple_Iris                                *       12900   1       8       64
 ALIAS_Apple_Iris                                *       13000   1       1       64
+ALIAS_Apple_Iris                                *       13200   1       1       1
+ALIAS_Apple_Iris                                *       14700   1       1       1
+ALIAS_Apple_Iris                                *       14800   1       1       1
 
 ALIAS_Apple_Iris_Pro                            *       5000    1       8       8
 ALIAS_Apple_Iris_Pro                            *       6100    1       4       16
