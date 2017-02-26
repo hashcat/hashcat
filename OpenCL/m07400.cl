@@ -3,7 +3,6 @@
  * License.....: MIT
  */
 
-
 #include "inc_vendor.cl"
 #include "inc_hash_constants.h"
 #include "inc_hash_functions.cl"
@@ -1633,7 +1632,6 @@ __kernel void m07400_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   alt_result[5] = tmps[gid].alt_result[5];
   alt_result[6] = tmps[gid].alt_result[6];
   alt_result[7] = tmps[gid].alt_result[7];
-
 
   /* Repeatedly run the collected hash value through SHA256 to burn
      CPU cycles.  */

@@ -5,7 +5,6 @@
  *             : sboxes for others were takes fron JtR, license below
  */
 
-
 #include "inc_vendor.cl"
 #include "inc_hash_constants.h"
 #include "inc_hash_functions.cl"
@@ -2064,7 +2063,6 @@ void m14000m (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __glo
     &D48, &D49, &D50, &D51, &D52, &D53, &D54, &D55,
     &D56, &D57, &D58, &D59, &D60, &D61, &D62, &D63
   );
-
 
   u32 out[64];
 

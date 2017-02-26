@@ -3,7 +3,6 @@
  * License.....: MIT
  */
 
-
 #define NEW_SIMD_CODE
 
 #include "inc_vendor.cl"
@@ -589,7 +588,6 @@ __kernel void m14100_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
   pw_buf1[2] = 0;
   pw_buf1[3] = 0;
 
-
   const u32 pw_l_len = pws[gid].pw_len;
 
   /**
@@ -780,7 +778,6 @@ __kernel void m14100_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
   pw_buf1[1] = pws[gid].i[ 5];
   pw_buf1[2] = 0;
   pw_buf1[3] = 0;
-
 
   const u32 pw_l_len = pws[gid].pw_len;
 

@@ -3,7 +3,6 @@
  * License.....: MIT
  */
 
-
 #include "inc_vendor.cl"
 #include "inc_hash_constants.h"
 #include "inc_hash_functions.cl"
@@ -1144,7 +1143,6 @@ __kernel void m13200_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   cipher[1] = tmps[gid].cipher[1];
   cipher[2] = tmps[gid].cipher[2];
   cipher[3] = tmps[gid].cipher[3];
-
 
   /**
   * AxCrypt main cipher routine

@@ -3,7 +3,6 @@
  * License.....: MIT
  */
 
-
 #define NEW_SIMD_CODE
 
 #include "inc_vendor.cl"
@@ -35,7 +34,6 @@ void m01430m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global const ke
 
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
-
 
   /**
    * salt

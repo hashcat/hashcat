@@ -3,7 +3,6 @@
  * License.....: MIT
  */
 
-
 //shared mem too small
 //#define NEW_SIMD_CODE
 

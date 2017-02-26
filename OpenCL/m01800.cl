@@ -3,7 +3,6 @@
  * License.....: MIT
  */
 
-
 #include "inc_vendor.cl"
 #include "inc_hash_constants.h"
 #include "inc_hash_functions.cl"
@@ -459,7 +458,6 @@ __kernel void m01800_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   l_alt_result[5] = tmps[gid].l_alt_result[5];
   l_alt_result[6] = tmps[gid].l_alt_result[6];
   l_alt_result[7] = tmps[gid].l_alt_result[7];
-
 
   /* Repeatedly run the collected hash value through SHA512 to burn
      CPU cycles.  */

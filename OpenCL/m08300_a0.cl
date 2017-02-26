@@ -3,7 +3,6 @@
  * License.....: MIT
  */
 
-
 #define NEW_SIMD_CODE
 
 #include "inc_vendor.cl"
@@ -291,7 +290,6 @@ __kernel void m08300_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
     w3_t[2] |= s3[2];
     w3_t[3] |= s3[3];
 
-
     s0[0] = salt_buf0[0];
     s0[1] = salt_buf0[1];
     s0[2] = salt_buf0[2];
@@ -560,7 +558,6 @@ __kernel void m08300_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
     w3_t[1] |= s3[1];
     w3_t[2] |= s3[2];
     w3_t[3] |= s3[3];
-
 
     s0[0] = salt_buf0[0];
     s0[1] = salt_buf0[1];

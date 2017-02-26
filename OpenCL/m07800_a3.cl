@@ -3,7 +3,6 @@
  * License.....: MIT
  */
 
-
 //incompatible data-dependant code
 //#define NEW_SIMD_CODE
 
@@ -37,7 +36,6 @@ u32 GETSHIFTEDINT_CONST (__constant u32 *a, const int n)
 
   return h32_from_64_S (tmp);
 }
-
 
 void SETSHIFTEDINT (u32 *a, const int n, const u32 v)
 {

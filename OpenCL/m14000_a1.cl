@@ -3,7 +3,6 @@
  * License.....: MIT
  */
 
-
 #define NEW_SIMD_CODE
 
 #include "inc_vendor.cl"
@@ -779,7 +778,6 @@ __kernel void m14000_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     w0[0] = wordl0[0] | wordr0[0];
     w0[1] = wordl0[1] | wordr0[1];
-
 
     const u32x c = (w0[0]);
     const u32x d = (w0[1]);

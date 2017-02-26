@@ -695,7 +695,6 @@ typedef struct
 
 } salt_t;
 
-
 #define LUKS_STRIPES 4000
 
 typedef enum hc_luks_hash_type

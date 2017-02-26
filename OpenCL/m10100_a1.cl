@@ -3,7 +3,6 @@
  * License.....: MIT
  */
 
-
 //incompatible to simd
 //#define NEW_SIMD_CODE
 
