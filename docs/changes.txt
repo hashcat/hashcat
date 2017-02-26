@@ -100,6 +100,7 @@
 - Wordlists: Fixed memory leak in case access a file in a wordlist folder fails
 - WPA: Changed format for outfile and potfile from essid:mac1:mac2 to hash:mac_ap:mac_sta:essid
 - WPA: Changed format for outfile_check from essid:mac1:mac2 to hash
+- Tests: Fixed the timeout status code value and increased the runtime to 400 seconds
 
 * changes v3.20 -> v3.30:
 
