@@ -3,7 +3,6 @@
  * License.....: MIT
  */
 
-#define _CRC32_
 
 //incompatible because of branches
 //#define NEW_SIMD_CODE

@@ -3,7 +3,6 @@
  * License.....: MIT
  */
 
-#define _RIPEMD160_
 
 #define NEW_SIMD_CODE
 

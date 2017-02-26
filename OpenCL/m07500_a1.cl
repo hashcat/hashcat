@@ -3,7 +3,6 @@
  * License.....: MIT
  */
 
-#define _KRB5PA_
 
 //shared mem too small
 //#define NEW_SIMD_CODE

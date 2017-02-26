@@ -3,7 +3,6 @@
  * License.....: MIT
  */
 
-#define _LUKS_
 
 #define NEW_SIMD_CODE
 

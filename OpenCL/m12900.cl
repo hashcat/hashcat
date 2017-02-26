@@ -3,7 +3,6 @@
  * License.....: MIT
  */
 
-#define _ANDROIDFDE_SAMSUNG_
 
 #include "inc_vendor.cl"
 #include "inc_hash_constants.h"

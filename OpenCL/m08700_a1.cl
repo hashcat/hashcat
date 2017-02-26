@@ -3,7 +3,6 @@
  * License.....: MIT
  */
 
-#define _LOTUS6_
 
 //incompatible
 //#define NEW_SIMD_CODE

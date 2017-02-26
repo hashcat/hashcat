@@ -5,7 +5,6 @@
  *             : sboxes for others were takes fron JtR, license below
  */
 
-#define _DES_
 
 #include "inc_vendor.cl"
 #include "inc_hash_constants.h"

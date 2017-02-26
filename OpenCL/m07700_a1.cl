@@ -3,7 +3,6 @@
  * License.....: MIT
  */
 
-#define _SAPB_
 
 //too much register pressure
 //#define NEW_SIMD_CODE

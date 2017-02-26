@@ -3,7 +3,6 @@
  * License.....: MIT
  */
 
-#define _PBKDF2_SHA256_
 
 #define NEW_SIMD_CODE
 

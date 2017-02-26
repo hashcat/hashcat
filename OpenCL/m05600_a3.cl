@@ -3,7 +3,6 @@
  * License.....: MIT
  */
 
-#define _NETNTLMV2_
 
 #define NEW_SIMD_CODE
 

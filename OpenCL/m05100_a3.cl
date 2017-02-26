@@ -3,7 +3,6 @@
  * License.....: MIT
  */
 
-#define _MD5H_
 
 #define NEW_SIMD_CODE
 

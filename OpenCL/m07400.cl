@@ -3,7 +3,6 @@
  * License.....: MIT
  */
 
-#define _SHA256_
 
 #include "inc_vendor.cl"
 #include "inc_hash_constants.h"

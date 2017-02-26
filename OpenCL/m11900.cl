@@ -3,7 +3,6 @@
  * License.....: MIT
  */
 
-#define _PBKDF2_MD5_
 
 #define NEW_SIMD_CODE
 

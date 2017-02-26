@@ -3,7 +3,6 @@
  * License.....: MIT
  */
 
-#define _SHA384_
 
 #define NEW_SIMD_CODE
 

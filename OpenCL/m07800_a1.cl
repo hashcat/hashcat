@@ -3,7 +3,6 @@
  * License.....: MIT
  */
 
-#define _SAPG_
 
 //incompatible data-dependant code
 //#define NEW_SIMD_CODE

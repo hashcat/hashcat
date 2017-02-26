@@ -3,7 +3,6 @@
  * License.....: MIT
  */
 
-#define _GOST2012_256_
 
 //too much register pressure
 //#define NEW_SIMD_CODE

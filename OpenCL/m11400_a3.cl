@@ -3,7 +3,6 @@
  * License.....: MIT
  */
 
-#define _MD5_
 
 //incompatible because of brances
 //#define NEW_SIMD_CODE

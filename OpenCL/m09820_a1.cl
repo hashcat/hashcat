@@ -3,7 +3,6 @@
  * License.....: MIT
  */
 
-#define _OLDOFFICE34_
 
 #define NEW_SIMD_CODE
 
