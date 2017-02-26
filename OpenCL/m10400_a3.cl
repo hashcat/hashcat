@@ -15,7 +15,7 @@
 #include "inc_common.cl"
 #include "inc_simd.cl"
 
-__constant u32a padding[8] =
+__constant u32 padding[8] =
 {
   0x5e4ebf28,
   0x418a754e,
@@ -82,7 +82,7 @@ void rc4_init_16 (__local RC4_KEY *rc4_key, const u32 data[4])
   j += rc4_key->S[255] + d0; swap (rc4_key, 255, j);
 }
 
-u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, __constant u32a *in, u32 out[4])
+u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, __constant u32 *in, u32 out[4])
 {
   #ifdef _unroll
   #pragma unroll
