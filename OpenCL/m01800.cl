@@ -3,8 +3,6 @@
  * License.....: MIT
  */
 
-#define _SHA512_
-
 #include "inc_vendor.cl"
 #include "inc_hash_constants.h"
 #include "inc_hash_functions.cl"
@@ -34,7 +32,7 @@ typedef struct
 
 } sha512_ctx_t;
 
-__constant u64 k_sha512[80] =
+__constant u64a k_sha512[80] =
 {
   SHA512C00, SHA512C01, SHA512C02, SHA512C03,
   SHA512C04, SHA512C05, SHA512C06, SHA512C07,
@@ -460,7 +458,6 @@ __kernel void m01800_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   l_alt_result[5] = tmps[gid].l_alt_result[5];
   l_alt_result[6] = tmps[gid].l_alt_result[6];
   l_alt_result[7] = tmps[gid].l_alt_result[7];
-
 
   /* Repeatedly run the collected hash value through SHA512 to burn
      CPU cycles.  */

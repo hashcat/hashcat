@@ -97,7 +97,6 @@ typedef int Bool;
 #define True 1
 #define False 0
 
-
 #ifdef _WIN32
 #define MY_STD_CALL __stdcall
 #else
@@ -122,7 +121,6 @@ typedef int Bool;
 #define MY_FAST_CALL
 
 #endif
-
 
 /* The following interfaces use first parameter as pointer to structure */
 

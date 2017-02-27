@@ -3,8 +3,6 @@
  * License.....: MIT
  */
 
-#define _GOST_
-
 #define NEW_SIMD_CODE
 
 #include "inc_vendor.cl"
@@ -16,7 +14,7 @@
 #include "inc_rp.cl"
 #include "inc_simd.cl"
 
-__constant u32 c_tables[4][256] =
+__constant u32a c_tables[4][256] =
 {
   {
     0x00072000, 0x00075000, 0x00074800, 0x00071000,

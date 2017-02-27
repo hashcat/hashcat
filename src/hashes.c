@@ -375,6 +375,11 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
         }
       }
 
+      if (hashconfig->hash_mode == 2500)
+      {
+        wpa_essid_reuse_next (hashcat_ctx, salt_pos);
+      }
+
       if (hashes->salts_done == hashes->salts_cnt) mycracked (hashcat_ctx);
 
       check_hash (hashcat_ctx, device_param, &cracked[i]);
@@ -771,6 +776,14 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
             if (hashconfig->esalt_size)
             {
               memset (hashes_buf[hashes_cnt].esalt, 0, hashconfig->esalt_size);
+
+              if (user_options->hccapx_message_pair_chgd == true)
+              {
+                wpa_t *wpa = (wpa_t *) hashes_buf[hashes_cnt].esalt;
+
+                wpa->message_pair_chgd = (int) user_options->hccapx_message_pair_chgd;
+                wpa->message_pair      = (u8)  user_options->hccapx_message_pair;
+              }
             }
 
             if (hashconfig->hook_salt_size)

@@ -3,8 +3,6 @@
  * License.....: MIT
  */
 
-#define _PBKDF2_SHA256_
-
 #define NEW_SIMD_CODE
 
 #include "inc_vendor.cl"
@@ -17,7 +15,7 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
-__constant u32 k_sha256[64] =
+__constant u32a k_sha256[64] =
 {
   SHA256C00, SHA256C01, SHA256C02, SHA256C03,
   SHA256C04, SHA256C05, SHA256C06, SHA256C07,

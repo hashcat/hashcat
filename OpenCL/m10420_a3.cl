@@ -3,8 +3,6 @@
  * License.....: MIT
  */
 
-#define _MD5_
-
 #define NEW_SIMD_CODE
 
 #include "inc_vendor.cl"
@@ -14,7 +12,7 @@
 #include "inc_common.cl"
 #include "inc_simd.cl"
 
-__constant u32 padding[8] =
+__constant u32a padding[8] =
 {
   0x5e4ebf28,
   0x418a754e,

@@ -66,6 +66,7 @@ static const char *USAGE_BIG[] =
   "     --induction-dir           | Dir  | Specify the induction directory to use for loopback  | --induction=inducts",
   "     --outfile-check-dir       | Dir  | Specify the outfile directory to monitor for plains  | --outfile-check-dir=x",
   "     --logfile-disable         |      | Disable the logfile                                  |",
+  "     --hccapx-message-pair     | Num  | Load only message pairs from hccapx matching X       | --hccapx-message-pair=2",
   "     --truecrypt-keyfiles      | File | Keyfiles used, separate with comma                   | --truecrypt-key=x.png",
   "     --veracrypt-keyfiles      | File | Keyfiles used, separate with comma                   | --veracrypt-key=x.txt",
   "     --veracrypt-pim           | Num  | VeraCrypt personal iterations multiplier             | --veracrypt-pim=1000",

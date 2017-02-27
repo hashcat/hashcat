@@ -1420,7 +1420,7 @@ static int xnvctrl_init (hashcat_ctx_t *hashcat_ctx)
   // unsupport platform?
   return -1;
 
-  #elif defined (_POSIX)
+  #else
 
   xnvctrl->lib_x11 = dlopen ("libX11.so", RTLD_LAZY);
 

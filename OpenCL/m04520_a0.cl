@@ -3,8 +3,6 @@
  * License.....: MIT
  */
 
-#define _SHA1_
-
 #define NEW_SIMD_CODE
 
 #include "inc_vendor.cl"
@@ -285,7 +283,7 @@ __kernel void m04520_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
     d = SHA1M_D;
     e = SHA1M_E;
 
-    if (salt_len > 14)
+    if (salt_len > 15)
     {
       u32x c0[4] = { 0 };
       u32x c1[4] = { 0 };
@@ -865,7 +863,7 @@ __kernel void m04520_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
     d = SHA1M_D;
     e = SHA1M_E;
 
-    if (salt_len > 14)
+    if (salt_len > 15)
     {
       u32x c0[4] = { 0 };
       u32x c1[4] = { 0 };

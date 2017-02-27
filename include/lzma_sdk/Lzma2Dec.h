@@ -30,7 +30,6 @@ SRes Lzma2Dec_AllocateProbs(CLzma2Dec *p, Byte prop, ISzAlloc *alloc);
 SRes Lzma2Dec_Allocate(CLzma2Dec *p, Byte prop, ISzAlloc *alloc);
 void Lzma2Dec_Init(CLzma2Dec *p);
 
-
 /*
 finishMode:
   It has meaning only if the decoding reaches output limit (*destLen or dicLimit).
@@ -51,7 +50,6 @@ SRes Lzma2Dec_DecodeToDic(CLzma2Dec *p, SizeT dicLimit,
 
 SRes Lzma2Dec_DecodeToBuf(CLzma2Dec *p, Byte *dest, SizeT *destLen,
     const Byte *src, SizeT *srcLen, ELzmaFinishMode finishMode, ELzmaStatus *status);
-
 
 /* ---------- One Call Interface ---------- */
 

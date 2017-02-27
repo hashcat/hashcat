@@ -3,8 +3,6 @@
  * License.....: MIT
  */
 
-#define _WHIRLPOOL_
-
 #include "inc_vendor.cl"
 #include "inc_hash_constants.h"
 #include "inc_hash_functions.cl"
@@ -20,7 +18,7 @@
 
 #define R 10
 
-__constant u32 Ch[8][256] =
+__constant u32a Ch[8][256] =
 {
   {
     0x18186018, 0x23238c23, 0xc6c63fc6, 0xe8e887e8,
@@ -552,7 +550,7 @@ __constant u32 Ch[8][256] =
   }
 };
 
-__constant u32 Cl[8][256] =
+__constant u32a Cl[8][256] =
 {
   {
     0xc07830d8, 0x05af4626, 0x7ef991b8, 0x136fcdfb,
@@ -1964,17 +1962,17 @@ __kernel void m06232_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   #else
 
-  __constant u32 *s_td0 = td0;
-  __constant u32 *s_td1 = td1;
-  __constant u32 *s_td2 = td2;
-  __constant u32 *s_td3 = td3;
-  __constant u32 *s_td4 = td4;
+  __constant u32a *s_td0 = td0;
+  __constant u32a *s_td1 = td1;
+  __constant u32a *s_td2 = td2;
+  __constant u32a *s_td3 = td3;
+  __constant u32a *s_td4 = td4;
 
-  __constant u32 *s_te0 = te0;
-  __constant u32 *s_te1 = te1;
-  __constant u32 *s_te2 = te2;
-  __constant u32 *s_te3 = te3;
-  __constant u32 *s_te4 = te4;
+  __constant u32a *s_te0 = te0;
+  __constant u32a *s_te1 = te1;
+  __constant u32a *s_te2 = te2;
+  __constant u32a *s_te3 = te3;
+  __constant u32a *s_te4 = te4;
 
   #endif
 

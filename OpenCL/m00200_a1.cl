@@ -3,8 +3,6 @@
  * License.....: MIT
  */
 
-#define _MYSQL323_
-
 //incompatible
 //#define NEW_SIMD_CODE
 

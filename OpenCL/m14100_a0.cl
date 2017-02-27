@@ -3,8 +3,6 @@
  * License.....: MIT
  */
 
-#define _DES_
-
 #define NEW_SIMD_CODE
 
 #include "inc_vendor.cl"
@@ -54,7 +52,7 @@
   PERM_OP (l, r, tt,  4, 0x0f0f0f0f);  \
 }
 
-__constant u32 c_SPtrans[8][64] =
+__constant u32a c_SPtrans[8][64] =
 {
   {
     /* nibble 0 */
@@ -210,7 +208,7 @@ __constant u32 c_SPtrans[8][64] =
   },
 };
 
-__constant u32 c_skb[8][64] =
+__constant u32a c_skb[8][64] =
 {
   {
     0x00000000, 0x00000010, 0x20000000, 0x20000010,

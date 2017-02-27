@@ -3,8 +3,6 @@
  * License.....: MIT
  */
 
-#define _DCC2_
-
 #define NEW_SIMD_CODE
 
 #include "inc_vendor.cl"

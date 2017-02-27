@@ -3,8 +3,6 @@
  * License.....: MIT
  */
 
-#define _SIPHASH_
-
 //incompatible to simd
 //#define NEW_SIMD_CODE
 

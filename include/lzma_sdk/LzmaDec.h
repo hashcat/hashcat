@@ -18,7 +18,6 @@ EXTERN_C_BEGIN
 #define CLzmaProb UInt16
 #endif
 
-
 /* ---------- LZMA Properties ---------- */
 
 #define LZMA_PROPS_SIZE 5
@@ -36,7 +35,6 @@ Returns:
 */
 
 SRes LzmaProps_Decode(CLzmaProps *p, const Byte *data, unsigned size);
-
 
 /* ---------- LZMA Decoder state ---------- */
 
@@ -106,7 +104,6 @@ typedef enum
 
 /* ELzmaStatus is used only as output value for function call */
 
-
 /* ---------- Interfaces ---------- */
 
 /* There are 3 levels of interfaces:
@@ -115,7 +112,6 @@ typedef enum
      3) One Call Interface
    You can select any of these interfaces, but don't mix functions from different
    groups for same object. */
-
 
 /* There are two variants to allocate state for Dictionary Interface:
      1) LzmaDec_Allocate / LzmaDec_Free
@@ -179,7 +175,6 @@ Returns:
 SRes LzmaDec_DecodeToDic(CLzmaDec *p, SizeT dicLimit,
     const Byte *src, SizeT *srcLen, ELzmaFinishMode finishMode, ELzmaStatus *status);
 
-
 /* ---------- Buffer Interface ---------- */
 
 /* It's zlib-like interface.
@@ -195,7 +190,6 @@ finishMode:
 
 SRes LzmaDec_DecodeToBuf(CLzmaDec *p, Byte *dest, SizeT *destLen,
     const Byte *src, SizeT *srcLen, ELzmaFinishMode finishMode, ELzmaStatus *status);
-
 
 /* ---------- One Call Interface ---------- */
 

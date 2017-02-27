@@ -40,7 +40,6 @@ typedef int   (*XCLOSEDISPLAY) (void *);
 
 #define NV_CTRL_PCI_DEVICE                                       240 /* R--GI */
 
-
 /*
  * NV_CTRL_PCI_FUNCTION - Returns the PCI function number the specified device
  * is using.

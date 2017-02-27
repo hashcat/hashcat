@@ -3,8 +3,6 @@
  * License.....: MIT
  */
 
-#define _LUKS_
-
 #define NEW_SIMD_CODE
 
 #include "inc_vendor.cl"
@@ -826,17 +824,17 @@ __kernel void m14641_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   #else
 
-  __constant u32 *s_td0 = td0;
-  __constant u32 *s_td1 = td1;
-  __constant u32 *s_td2 = td2;
-  __constant u32 *s_td3 = td3;
-  __constant u32 *s_td4 = td4;
+  __constant u32a *s_td0 = td0;
+  __constant u32a *s_td1 = td1;
+  __constant u32a *s_td2 = td2;
+  __constant u32a *s_td3 = td3;
+  __constant u32a *s_td4 = td4;
 
-  __constant u32 *s_te0 = te0;
-  __constant u32 *s_te1 = te1;
-  __constant u32 *s_te2 = te2;
-  __constant u32 *s_te3 = te3;
-  __constant u32 *s_te4 = te4;
+  __constant u32a *s_te0 = te0;
+  __constant u32a *s_te1 = te1;
+  __constant u32a *s_te2 = te2;
+  __constant u32a *s_te3 = te3;
+  __constant u32a *s_te4 = te4;
 
   #endif
 

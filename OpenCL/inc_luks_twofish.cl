@@ -3271,6 +3271,25 @@ void luks_af_sha512_then_twofish_decrypt (__global luks_t *luks_bufs, __global l
   #define OFFSET_PER_BLOCK (16 / 4)
   #define OFFSET_PER_SECTOR (BLOCKS_PER_SECTOR * OFFSET_PER_BLOCK)
 
+  // move data from out64 to out32
+
+  tmps->out32[ 0] = l32_from_64_S (tmps->out64[0]);
+  tmps->out32[ 1] = h32_from_64_S (tmps->out64[0]);
+  tmps->out32[ 2] = l32_from_64_S (tmps->out64[1]);
+  tmps->out32[ 3] = h32_from_64_S (tmps->out64[1]);
+  tmps->out32[ 4] = l32_from_64_S (tmps->out64[2]);
+  tmps->out32[ 5] = h32_from_64_S (tmps->out64[2]);
+  tmps->out32[ 6] = l32_from_64_S (tmps->out64[3]);
+  tmps->out32[ 7] = h32_from_64_S (tmps->out64[3]);
+  tmps->out32[ 8] = l32_from_64_S (tmps->out64[4]);
+  tmps->out32[ 9] = h32_from_64_S (tmps->out64[4]);
+  tmps->out32[10] = l32_from_64_S (tmps->out64[5]);
+  tmps->out32[11] = h32_from_64_S (tmps->out64[5]);
+  tmps->out32[12] = l32_from_64_S (tmps->out64[6]);
+  tmps->out32[13] = h32_from_64_S (tmps->out64[6]);
+  tmps->out32[14] = l32_from_64_S (tmps->out64[7]);
+  tmps->out32[15] = h32_from_64_S (tmps->out64[7]);
+
   // decrypt AF data and do the AF merge inline
 
   u32 mk[16] = { 0 };

@@ -3,8 +3,6 @@
  * License.....: MIT
  */
 
-#define _MD5_SHA1_
-
 #define NEW_SIMD_CODE
 
 #include "inc_vendor.cl"

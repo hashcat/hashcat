@@ -392,9 +392,9 @@ int ocl_init (hashcat_ctx_t *hashcat_ctx)
 
   memset (ocl, 0, sizeof (OCL_PTR));
 
-  #if   defined(_WIN)
+  #if   defined (_WIN)
   ocl->lib = hc_dlopen ("OpenCL");
-  #elif defined(__APPLE__)
+  #elif defined (__APPLE__)
   ocl->lib = hc_dlopen ("/System/Library/Frameworks/OpenCL.framework/OpenCL", RTLD_NOW);
   #elif defined (__CYGWIN__)
   ocl->lib = hc_dlopen ("opencl.dll", RTLD_NOW);
@@ -1800,15 +1800,13 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
   u32 speed_pos = device_param->speed_pos;
 
-  #if defined (_POSIX)
-  if (device_param->timer_speed.tv_sec == 0)
+  #if defined (_WIN)
+  if (device_param->timer_speed.QuadPart == 0)
   {
     hc_timer_set (&device_param->timer_speed);
   }
-  #endif
-
-  #if defined (_WIN)
-  if (device_param->timer_speed.QuadPart == 0)
+  #else
+  if (device_param->timer_speed.tv_sec == 0)
   {
     hc_timer_set (&device_param->timer_speed);
   }
@@ -2383,6 +2381,7 @@ void opencl_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
 int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 {
+  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   opencl_ctx_t   *opencl_ctx   = hashcat_ctx->opencl_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -2527,7 +2526,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       {
         event_log_error (hashcat_ctx, "Mesa (Gallium) OpenCL platform detected!");
 
-        event_log_warning (hashcat_ctx, "It is known to cause errors which an unexperienced user misinterpret as a bug in hashcat");
+        event_log_warning (hashcat_ctx, "It is known to cause errors which an unexperienced user could misinterpret as a bug in hashcat");
         event_log_warning (hashcat_ctx, "You are STRONGLY encouraged to use the driver as listed in docs/readme.txt");
         event_log_warning (hashcat_ctx, "You can use --opencl-platforms to manually deselect the platform and get rid of this error");
         event_log_warning (hashcat_ctx, "You can use --force to override this but do not post error reports if you do so");
@@ -2912,9 +2911,9 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       char *device_name_chksum = (char *) hcmalloc (HCBUFSIZ_TINY);
 
       #if defined (__x86_64__)
-      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY - 1, "%d-%u-%u-%s-%s-%s-%d-%u", 64, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, comptime, user_options->opencl_vector_width);
+      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY - 1, "%d-%u-%u-%s-%s-%s-%d-%u-%u", 64, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, comptime, user_options->opencl_vector_width, hashconfig->hash_mode);
       #else
-      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY - 1, "%d-%u-%u-%s-%s-%s-%d-%u", 32, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, comptime, user_options->opencl_vector_width);
+      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY - 1, "%d-%u-%u-%s-%s-%s-%d-%u-%u", 32, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, comptime, user_options->opencl_vector_width, hashconfig->hash_mode);
       #endif
 
       u32 device_name_digest[4] = { 0 };

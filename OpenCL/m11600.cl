@@ -3,15 +3,13 @@
  * License.....: MIT
  */
 
-#define _SEVEN_ZIP_
-
 #include "inc_vendor.cl"
 #include "inc_hash_constants.h"
 #include "inc_hash_functions.cl"
 #include "inc_types.cl"
 #include "inc_common.cl"
 
-__constant u32 k_sha256[64] =
+__constant u32a k_sha256[64] =
 {
   SHA256C00, SHA256C01, SHA256C02, SHA256C03,
   SHA256C04, SHA256C05, SHA256C06, SHA256C07,

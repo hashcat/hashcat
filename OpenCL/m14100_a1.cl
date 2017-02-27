@@ -3,8 +3,6 @@
  * License.....: MIT
  */
 
-#define _DES_
-
 #define NEW_SIMD_CODE
 
 #include "inc_vendor.cl"
@@ -52,7 +50,7 @@
   PERM_OP (l, r, tt,  4, 0x0f0f0f0f);  \
 }
 
-__constant u32 c_SPtrans[8][64] =
+__constant u32a c_SPtrans[8][64] =
 {
   {
     0x02080800, 0x00080000, 0x02000002, 0x02080802,
@@ -200,7 +198,7 @@ __constant u32 c_SPtrans[8][64] =
   }
 };
 
-__constant u32 c_skb[8][64] =
+__constant u32a c_skb[8][64] =
 {
   {
     0x00000000, 0x00000010, 0x20000000, 0x20000010,
@@ -590,7 +588,6 @@ __kernel void m14100_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
   pw_buf1[2] = 0;
   pw_buf1[3] = 0;
 
-
   const u32 pw_l_len = pws[gid].pw_len;
 
   /**
@@ -781,7 +778,6 @@ __kernel void m14100_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
   pw_buf1[1] = pws[gid].i[ 5];
   pw_buf1[2] = 0;
   pw_buf1[3] = 0;
-
 
   const u32 pw_l_len = pws[gid].pw_len;
 

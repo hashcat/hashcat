@@ -38,26 +38,7 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
 
   if (pd->pid)
   {
-    #if defined (_POSIX)
-
-    char *pidbin;
-
-    hc_asprintf (&pidbin, "/proc/%u/cmdline", pd->pid);
-
-    if (hc_path_exist (pidbin) == true)
-    {
-      event_log_error (hashcat_ctx, "Already an instance running on pid %u", pd->pid);
-
-      hcfree (pd);
-
-      hcfree (pidbin);
-
-      return -1;
-    }
-
-    hcfree (pidbin);
-
-    #elif defined (_WIN)
+    #if defined (_WIN)
 
     HANDLE hProcess = OpenProcess (PROCESS_ALL_ACCESS, FALSE, pd->pid);
 
@@ -88,6 +69,25 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
     hcfree (pidbin);
     hcfree (pidbin2);
 
+    #else
+
+    char *pidbin;
+
+    hc_asprintf (&pidbin, "/proc/%u/cmdline", pd->pid);
+
+    if (hc_path_exist (pidbin) == true)
+    {
+      event_log_error (hashcat_ctx, "Already an instance running on pid %u", pd->pid);
+
+      hcfree (pd);
+
+      hcfree (pidbin);
+
+      return -1;
+    }
+
+    hcfree (pidbin);
+
     #endif
   }
 
@@ -108,10 +108,10 @@ static int init_pidfile (hashcat_ctx_t *hashcat_ctx)
 
   if (rc == -1) return -1;
 
-  #if defined (_POSIX)
-  pd->pid = getpid ();
-  #elif defined (_WIN)
+  #if defined (_WIN)
   pd->pid = GetCurrentProcessId ();
+  #else
+  pd->pid = getpid ();
   #endif
 
   return 0;

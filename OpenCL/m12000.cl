@@ -3,8 +3,6 @@
  * License.....: MIT
  */
 
-#define _PBKDF2_SHA1_
-
 #define NEW_SIMD_CODE
 
 #include "inc_vendor.cl"

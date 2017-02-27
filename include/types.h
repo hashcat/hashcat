@@ -41,7 +41,7 @@ typedef uint64_t u64;
 
 #if defined (_WIN)
 typedef LARGE_INTEGER     hc_timer_t;
-#elif defined (_POSIX)
+#else
 typedef struct timeval    hc_timer_t;
 #endif
 
@@ -54,19 +54,17 @@ typedef struct timeval    hc_timer_t;
 #if defined (_WIN)
 typedef HANDLE            hc_thread_t;
 typedef CRITICAL_SECTION  hc_thread_mutex_t;
-#elif defined (_POSIX)
+#else
 typedef pthread_t         hc_thread_t;
 typedef pthread_mutex_t   hc_thread_mutex_t;
 #endif
 
 // stat
 
-#if defined (_POSIX)
-typedef struct stat hc_stat_t;
-#endif
-
 #if defined (_WIN)
 typedef struct _stat64 hc_stat_t;
+#else
+typedef struct stat hc_stat_t;
 #endif
 
 // enums
@@ -457,6 +455,7 @@ typedef enum parser_rc
   PARSER_LUKS_HASH_CIPHER    = -30,
   PARSER_HCCAPX_SIGNATURE    = -31,
   PARSER_HCCAPX_VERSION      = -32,
+  PARSER_HCCAPX_MESSAGE_PAIR = -33,
   PARSER_UNKNOWN_ERROR       = -255
 
 } parser_rc_t;
@@ -501,6 +500,7 @@ typedef enum user_options_defaults
   GPU_TEMP_DISABLE        = false,
   GPU_TEMP_RETAIN         = 75,
   HASH_MODE               = 0,
+  HCCAPX_MESSAGE_PAIR     = 0,
   HEX_CHARSET             = false,
   HEX_SALT                = false,
   HEX_WORDLIST            = false,
@@ -573,73 +573,74 @@ typedef enum user_options_map
   IDX_GPU_TEMP_DISABLE         = 0xff07,
   IDX_GPU_TEMP_RETAIN          = 0xff08,
   IDX_HASH_MODE                = 'm',
+  IDX_HCCAPX_MESSAGE_PAIR      = 0xff09,
   IDX_HELP                     = 'h',
-  IDX_HEX_CHARSET              = 0xff09,
-  IDX_HEX_SALT                 = 0xff0a,
-  IDX_HEX_WORDLIST             = 0xff0b,
+  IDX_HEX_CHARSET              = 0xff0a,
+  IDX_HEX_SALT                 = 0xff0b,
+  IDX_HEX_WORDLIST             = 0xff0c,
   IDX_INCREMENT                = 'i',
-  IDX_INCREMENT_MAX            = 0xff0c,
-  IDX_INCREMENT_MIN            = 0xff0d,
-  IDX_INDUCTION_DIR            = 0xff0e,
-  IDX_KEEP_GUESSING            = 0xff0f,
+  IDX_INCREMENT_MAX            = 0xff0d,
+  IDX_INCREMENT_MIN            = 0xff0e,
+  IDX_INDUCTION_DIR            = 0xff0f,
+  IDX_KEEP_GUESSING            = 0xff10,
   IDX_KERNEL_ACCEL             = 'n',
   IDX_KERNEL_LOOPS             = 'u',
-  IDX_KEYSPACE                 = 0xff10,
-  IDX_LEFT                     = 0xff11,
+  IDX_KEYSPACE                 = 0xff11,
+  IDX_LEFT                     = 0xff12,
   IDX_LIMIT                    = 'l',
-  IDX_LOGFILE_DISABLE          = 0xff12,
-  IDX_LOOPBACK                 = 0xff13,
-  IDX_MACHINE_READABLE         = 0xff14,
-  IDX_MARKOV_CLASSIC           = 0xff15,
-  IDX_MARKOV_DISABLE           = 0xff16,
-  IDX_MARKOV_HCSTAT            = 0xff17,
+  IDX_LOGFILE_DISABLE          = 0xff13,
+  IDX_LOOPBACK                 = 0xff14,
+  IDX_MACHINE_READABLE         = 0xff15,
+  IDX_MARKOV_CLASSIC           = 0xff16,
+  IDX_MARKOV_DISABLE           = 0xff17,
+  IDX_MARKOV_HCSTAT            = 0xff18,
   IDX_MARKOV_THRESHOLD         = 't',
-  IDX_NVIDIA_SPIN_DAMP         = 0xff18,
+  IDX_NVIDIA_SPIN_DAMP         = 0xff19,
   IDX_OPENCL_DEVICES           = 'd',
   IDX_OPENCL_DEVICE_TYPES      = 'D',
   IDX_OPENCL_INFO              = 'I',
-  IDX_OPENCL_PLATFORMS         = 0xff19,
-  IDX_OPENCL_VECTOR_WIDTH      = 0xff1a,
-  IDX_OUTFILE_AUTOHEX_DISABLE  = 0xff1b,
-  IDX_OUTFILE_CHECK_DIR        = 0xff1c,
-  IDX_OUTFILE_CHECK_TIMER      = 0xff1d,
-  IDX_OUTFILE_FORMAT           = 0xff1e,
+  IDX_OPENCL_PLATFORMS         = 0xff1a,
+  IDX_OPENCL_VECTOR_WIDTH      = 0xff1b,
+  IDX_OUTFILE_AUTOHEX_DISABLE  = 0xff1c,
+  IDX_OUTFILE_CHECK_DIR        = 0xff1d,
+  IDX_OUTFILE_CHECK_TIMER      = 0xff1e,
+  IDX_OUTFILE_FORMAT           = 0xff1f,
   IDX_OUTFILE                  = 'o',
-  IDX_POTFILE_DISABLE          = 0xff1f,
-  IDX_POTFILE_PATH             = 0xff20,
-  IDX_POWERTUNE_ENABLE         = 0xff21,
-  IDX_QUIET                    = 0xff22,
-  IDX_REMOVE                   = 0xff23,
-  IDX_REMOVE_TIMER             = 0xff24,
-  IDX_RESTORE                  = 0xff25,
-  IDX_RESTORE_DISABLE          = 0xff26,
-  IDX_RESTORE_FILE_PATH        = 0xff27,
+  IDX_POTFILE_DISABLE          = 0xff20,
+  IDX_POTFILE_PATH             = 0xff21,
+  IDX_POWERTUNE_ENABLE         = 0xff22,
+  IDX_QUIET                    = 0xff23,
+  IDX_REMOVE                   = 0xff24,
+  IDX_REMOVE_TIMER             = 0xff25,
+  IDX_RESTORE                  = 0xff26,
+  IDX_RESTORE_DISABLE          = 0xff27,
+  IDX_RESTORE_FILE_PATH        = 0xff28,
   IDX_RP_FILE                  = 'r',
-  IDX_RP_GEN_FUNC_MAX          = 0xff28,
-  IDX_RP_GEN_FUNC_MIN          = 0xff29,
+  IDX_RP_GEN_FUNC_MAX          = 0xff29,
+  IDX_RP_GEN_FUNC_MIN          = 0xff2a,
   IDX_RP_GEN                   = 'g',
-  IDX_RP_GEN_SEED              = 0xff2a,
+  IDX_RP_GEN_SEED              = 0xff2b,
   IDX_RULE_BUF_L               = 'j',
   IDX_RULE_BUF_R               = 'k',
-  IDX_RUNTIME                  = 0xff2b,
-  IDX_SCRYPT_TMTO              = 0xff2c,
+  IDX_RUNTIME                  = 0xff2c,
+  IDX_SCRYPT_TMTO              = 0xff2d,
   IDX_SEGMENT_SIZE             = 'c',
   IDX_SEPARATOR                = 'p',
-  IDX_SESSION                  = 0xff2d,
-  IDX_SHOW                     = 0xff2e,
+  IDX_SESSION                  = 0xff2e,
+  IDX_SHOW                     = 0xff2f,
   IDX_SKIP                     = 's',
-  IDX_STATUS                   = 0xff2f,
-  IDX_STATUS_TIMER             = 0xff30,
-  IDX_STDOUT_FLAG              = 0xff31,
-  IDX_SPEED_ONLY               = 0xff32,
-  IDX_PROGRESS_ONLY            = 0xff33,
-  IDX_TRUECRYPT_KEYFILES       = 0xff34,
-  IDX_USERNAME                 = 0xff35,
-  IDX_VERACRYPT_KEYFILES       = 0xff36,
-  IDX_VERACRYPT_PIM            = 0xff37,
+  IDX_STATUS                   = 0xff30,
+  IDX_STATUS_TIMER             = 0xff31,
+  IDX_STDOUT_FLAG              = 0xff32,
+  IDX_SPEED_ONLY               = 0xff33,
+  IDX_PROGRESS_ONLY            = 0xff34,
+  IDX_TRUECRYPT_KEYFILES       = 0xff35,
+  IDX_USERNAME                 = 0xff36,
+  IDX_VERACRYPT_KEYFILES       = 0xff37,
+  IDX_VERACRYPT_PIM            = 0xff38,
   IDX_VERSION_LOWER            = 'v',
   IDX_VERSION                  = 'V',
-  IDX_WEAK_HASH_THRESHOLD      = 0xff38,
+  IDX_WEAK_HASH_THRESHOLD      = 0xff39,
   IDX_WORKLOAD_PROFILE         = 'w'
 
 } user_options_map_t;
@@ -1205,10 +1206,10 @@ typedef struct dictstat_ctx
 
   dictstat_t *base;
 
-  #if defined (_POSIX)
-  size_t cnt;
-  #else
+  #if defined (_WIN)
   u32    cnt;
+  #else
+  size_t cnt;
   #endif
 
 } dictstat_ctx_t;
@@ -1405,6 +1406,7 @@ typedef struct user_options
   bool   runtime_chgd;
   bool   workload_profile_chgd;
   bool   segment_size_chgd;
+  bool   hccapx_message_pair_chgd;
 
   bool   benchmark;
   bool   force;
@@ -1466,6 +1468,7 @@ typedef struct user_options
   u32    gpu_temp_abort;
   u32    gpu_temp_retain;
   u32    hash_mode;
+  u32    hccapx_message_pair;
   u32    increment_max;
   u32    increment_min;
   u32    kernel_accel;

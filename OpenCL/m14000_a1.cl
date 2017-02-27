@@ -3,8 +3,6 @@
  * License.....: MIT
  */
 
-#define _DES_
-
 #define NEW_SIMD_CODE
 
 #include "inc_vendor.cl"
@@ -52,7 +50,7 @@
   PERM_OP (l, r, tt,  4, 0x0f0f0f0f);  \
 }
 
-__constant u32 c_SPtrans[8][64] =
+__constant u32a c_SPtrans[8][64] =
 {
   {
     0x02080800, 0x00080000, 0x02000002, 0x02080802,
@@ -200,7 +198,7 @@ __constant u32 c_SPtrans[8][64] =
   }
 };
 
-__constant u32 c_skb[8][64] =
+__constant u32a c_skb[8][64] =
 {
   {
     0x00000000, 0x00000010, 0x20000000, 0x20000010,
@@ -780,7 +778,6 @@ __kernel void m14000_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     w0[0] = wordl0[0] | wordr0[0];
     w0[1] = wordl0[1] | wordr0[1];
-
 
     const u32x c = (w0[0]);
     const u32x d = (w0[1]);

@@ -73,6 +73,7 @@ static const char PA_029[] = "Invalid LUKS key AF stripes count";
 static const char PA_030[] = "Invalid combination of LUKS hash type and cipher type";
 static const char PA_031[] = "Invalid hccapx signature";
 static const char PA_032[] = "Invalid hccapx version";
+static const char PA_033[] = "Invalid hccapx message pair";
 static const char PA_255[] = "Unknown error";
 
 static const char HT_00000[] = "MD5";
@@ -2779,6 +2780,11 @@ int wpa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
   memcpy (wpa->orig_mac_sta,   in.mac_sta,   6);
   memcpy (wpa->orig_nonce_ap,  in.nonce_ap,  32);
   memcpy (wpa->orig_nonce_sta, in.nonce_sta, 32);
+
+  if (wpa->message_pair_chgd == true)
+  {
+    if (wpa->message_pair != in.message_pair) return (PARSER_HCCAPX_MESSAGE_PAIR);
+  }
 
   wpa->message_pair = in.message_pair;
 
@@ -11358,7 +11364,6 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
     data_buf_len = input_len - 1 - 2 - 1 - data_type_len - 1 - NumCyclesPower_len - 1 - salt_len_len - 1 - salt_buf_len - 1 - iv_len_len - 1 - iv_buf_len - 1 - crc_buf_len - 1 - data_len_len - 1 - unpack_size_len - 1;
   }
 
-
   const u32 iter         = atoll ((const char *) NumCyclesPower_pos);
   const u32 crc          = atoll ((const char *) crc_buf_pos);
   const u32 data_type    = atoll ((const char *) data_type_pos);
@@ -11381,7 +11386,6 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
     crc_len = atoll ((const char *) crc_len_pos);
   }
-
 
   /**
    * verify some data
@@ -14828,6 +14832,7 @@ char *strparser (const u32 parser_status)
     case PARSER_LUKS_HASH_CIPHER:     return ((char *) PA_030);
     case PARSER_HCCAPX_SIGNATURE:     return ((char *) PA_031);
     case PARSER_HCCAPX_VERSION:       return ((char *) PA_032);
+    case PARSER_HCCAPX_MESSAGE_PAIR:  return ((char *) PA_033);
   }
 
   return ((char *) PA_255);
@@ -14930,11 +14935,11 @@ void wpa_essid_reuse (hashcat_ctx_t *hashcat_ctx)
 
   hashes_t *hashes = hashcat_ctx->hashes;
 
-  u32 salts_cnt = hashes->salts_cnt;
-
   salt_t *salts_buf = hashes->salts_buf;
 
   wpa_t *esalts_buf = hashes->esalts_buf;
+
+  const u32 salts_cnt = hashes->salts_cnt;
 
   for (u32 salt_idx = 1; salt_idx < salts_cnt; salt_idx++)
   {
@@ -14942,6 +14947,29 @@ void wpa_essid_reuse (hashcat_ctx_t *hashcat_ctx)
     {
       esalts_buf[salt_idx].essid_reuse = 1;
     }
+  }
+}
+
+void wpa_essid_reuse_next (hashcat_ctx_t *hashcat_ctx, const u32 salt_idx_cracked)
+{
+  // the first essid salt has been cracked, but it's possible others with the same essid are not
+  // thus we have to update essid_reuse to find the next uncracked salt with the same essid
+
+  hashes_t *hashes = hashcat_ctx->hashes;
+
+  salt_t *salts_buf = hashes->salts_buf;
+
+  wpa_t *esalts_buf = hashes->esalts_buf;
+
+  const u32 salts_cnt = hashes->salts_cnt;
+
+  const u32 salts_idx_next = salt_idx_cracked + 1;
+
+  if (salts_idx_next == salts_cnt) return;
+
+  if (memcmp ((char *) salts_buf[salts_idx_next].salt_buf, (char *) salts_buf[salt_idx_cracked].salt_buf, salts_buf[salts_idx_next].salt_len) == 0)
+  {
+    esalts_buf[salts_idx_next].essid_reuse = 0;
   }
 }
 
@@ -15695,8 +15723,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     char *essid = (char *) wpa->essid;
 
-    char tmp_buf[HCBUFSIZ_TINY];
-    int  tmp_len = 0;
+    int tmp_len = 0;
 
     if (need_hexify (wpa->essid, wpa->essid_len, hashconfig->separator, 0) == true)
     {
@@ -21647,7 +21674,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->parse_func     = pstoken_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
                                             | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_EARLY_SKIP
                                             | OPTI_TYPE_NOT_ITERATED
                                             | OPTI_TYPE_PREPENDED_SALT
                                             | OPTI_TYPE_RAW_HASH;
@@ -22767,7 +22793,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                   break;
     }
   }
-
 
   // set default iterations
 

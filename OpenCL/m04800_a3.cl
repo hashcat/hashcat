@@ -3,8 +3,6 @@
  * License.....: MIT
  */
 
-#define _MD5_
-
 #define NEW_SIMD_CODE
 
 #include "inc_vendor.cl"
@@ -412,7 +410,6 @@ __kernel void m04800_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
    */
 
   const u32 lid = get_local_id (0);
-
 
   u32 w0[4];
 

@@ -3,8 +3,6 @@
  * License.....: MIT
  */
 
-#define _SHA1_
-
 #define NEW_SIMD_CODE
 
 #include "inc_vendor.cl"
@@ -242,7 +240,7 @@ void m04520m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
     d = SHA1M_D;
     e = SHA1M_E;
 
-    if (salt_len > 14)
+    if (salt_len > 15)
     {
       u32x c0[4] = { 0 };
       u32x c1[4] = { 0 };
@@ -773,7 +771,7 @@ void m04520s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
     d = SHA1M_D;
     e = SHA1M_E;
 
-    if (salt_len > 14)
+    if (salt_len > 15)
     {
       u32x c0[4] = { 0 };
       u32x c1[4] = { 0 };

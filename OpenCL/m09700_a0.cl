@@ -3,8 +3,6 @@
  * License.....: MIT
  */
 
-#define _OLDOFFICE01_
-
 //too much register pressure
 //#define NEW_SIMD_CODE
 

@@ -8,6 +8,11 @@ typedef ushort u16;
 typedef uint   u32;
 typedef ulong  u64;
 
+typedef u8  u8a  __attribute__ ((aligned (8)));
+typedef u16 u16a __attribute__ ((aligned (8)));
+typedef u32 u32a __attribute__ ((aligned (8)));
+typedef u64 u64a __attribute__ ((aligned (8)));
+
 #ifndef NEW_SIMD_CODE
 #undef  VECT_SIZE
 #define VECT_SIZE 1
@@ -690,7 +695,6 @@ typedef struct
 
 } salt_t;
 
-
 #define LUKS_STRIPES 4000
 
 typedef enum hc_luks_hash_type
@@ -790,6 +794,7 @@ typedef struct wpa
   u32  eapol[64 + 16];
   u16  eapol_len;
   u8   message_pair;
+  int  message_pair_chgd;
   u8   keyver;
   u8   orig_mac_ap[6];
   u8   orig_mac_sta[6];
