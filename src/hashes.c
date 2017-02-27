@@ -375,6 +375,11 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
         }
       }
 
+      if (hashconfig->hash_mode == 2500)
+      {
+        wpa_essid_reuse_next (hashcat_ctx, salt_pos);
+      }
+
       if (hashes->salts_done == hashes->salts_cnt) mycracked (hashcat_ctx);
 
       check_hash (hashcat_ctx, device_param, &cracked[i]);

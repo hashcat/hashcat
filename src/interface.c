@@ -14928,11 +14928,11 @@ void wpa_essid_reuse (hashcat_ctx_t *hashcat_ctx)
 
   hashes_t *hashes = hashcat_ctx->hashes;
 
-  u32 salts_cnt = hashes->salts_cnt;
-
   salt_t *salts_buf = hashes->salts_buf;
 
   wpa_t *esalts_buf = hashes->esalts_buf;
+
+  const u32 salts_cnt = hashes->salts_cnt;
 
   for (u32 salt_idx = 1; salt_idx < salts_cnt; salt_idx++)
   {
@@ -14940,6 +14940,29 @@ void wpa_essid_reuse (hashcat_ctx_t *hashcat_ctx)
     {
       esalts_buf[salt_idx].essid_reuse = 1;
     }
+  }
+}
+
+void wpa_essid_reuse_next (hashcat_ctx_t *hashcat_ctx, const u32 salt_idx_cracked)
+{
+  // the first essid salt has been cracked, but it's possible others with the same essid are not
+  // thus we have to update essid_reuse to find the next uncracked salt with the same essid
+
+  hashes_t *hashes = hashcat_ctx->hashes;
+
+  salt_t *salts_buf = hashes->salts_buf;
+
+  wpa_t *esalts_buf = hashes->esalts_buf;
+
+  const u32 salts_cnt = hashes->salts_cnt;
+
+  const u32 salts_idx_next = salt_idx_cracked + 1;
+
+  if (salts_idx_next == salts_cnt) return;
+
+  if (memcmp ((char *) salts_buf[salts_idx_next].salt_buf, (char *) salts_buf[salt_idx_cracked].salt_buf, salts_buf[salts_idx_next].salt_len) == 0)
+  {
+    esalts_buf[salts_idx_next].essid_reuse = 0;
   }
 }
 
