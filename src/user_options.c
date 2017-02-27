@@ -38,6 +38,7 @@ static const struct option long_options[] =
   {"gpu-temp-disable",          no_argument,       0, IDX_GPU_TEMP_DISABLE},
   {"gpu-temp-retain",           required_argument, 0, IDX_GPU_TEMP_RETAIN},
   {"hash-type",                 required_argument, 0, IDX_HASH_MODE},
+  {"hccapx-message-pair",       required_argument, 0, IDX_HCCAPX_MESSAGE_PAIR},
   {"help",                      no_argument,       0, IDX_HELP},
   {"hex-charset",               no_argument,       0, IDX_HEX_CHARSET},
   {"hex-salt",                  no_argument,       0, IDX_HEX_SALT},
@@ -132,6 +133,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->gpu_temp_disable          = GPU_TEMP_DISABLE;
   user_options->gpu_temp_retain           = GPU_TEMP_RETAIN;
   user_options->hash_mode                 = HASH_MODE;
+  user_options->hccapx_message_pair       = HCCAPX_MESSAGE_PAIR;
   user_options->hex_charset               = HEX_CHARSET;
   user_options->hex_salt                  = HEX_SALT;
   user_options->hex_wordlist              = HEX_WORDLIST;
@@ -313,6 +315,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_GPU_TEMP_RETAIN:           user_options->gpu_temp_retain           = atoi (optarg);  break;
       case IDX_POWERTUNE_ENABLE:          user_options->powertune_enable          = true;           break;
       case IDX_LOGFILE_DISABLE:           user_options->logfile_disable           = true;           break;
+      case IDX_HCCAPX_MESSAGE_PAIR:       user_options->hccapx_message_pair       = atoi (optarg);
+                                          user_options->hccapx_message_pair_chgd  = true;           break;
       case IDX_TRUECRYPT_KEYFILES:        user_options->truecrypt_keyfiles        = optarg;         break;
       case IDX_VERACRYPT_KEYFILES:        user_options->veracrypt_keyfiles        = optarg;         break;
       case IDX_VERACRYPT_PIM:             user_options->veracrypt_pim             = atoi (optarg);  break;
@@ -384,6 +388,23 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     event_log_error (hashcat_ctx, "Invalid attack-mode specified");
 
     return -1;
+  }
+
+  if (user_options->hccapx_message_pair_chgd == true)
+  {
+    if (user_options->remove == true)
+    {
+      event_log_error (hashcat_ctx, "Mixing remove parameter not allowed with hccapx-message-pair parameter");
+
+      return -1;
+    }
+
+    if (user_options->hccapx_message_pair >= 6)
+    {
+      event_log_error (hashcat_ctx, "Invalid hccapx-message-pair specified");
+
+      return -1;
+    }
   }
 
   if (user_options->runtime_chgd == true && user_options->runtime == 0)

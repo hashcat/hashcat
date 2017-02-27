@@ -8,6 +8,7 @@
 - Added support for decompressing LZMA1/LZMA2 data for -m 11600 = 7-Zip to validate the CRC
 - Added support for showing all user names with --show and --left if --username was specified
 - Added support for loading hccapx files
+- Added support for filtering hccapx message pairs using --hccapx-message-pair
 - Added support for GPU temperature management on cygwin build
 - Added support for automatic merge of LM halfes in case --show and --left is used
 
