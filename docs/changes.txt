@@ -40,20 +40,21 @@
 ## Bugs
 ##
 
-- Fixed truncation of password after position 32 with the combinator attack
-- Fixed DEScrypt cracking in BF mode in case the hashlist contains more than 16 times the same salt
-- Fixed use of option --keyspace in combination with -m 2500 (WPA)
-- Fixed rule 'O' (RULE_OP_MANGLE_OMIT) in host mode in case the offset + length parameter equals the length of the input word
-- Fixed duplicate detection for WPA handshakes with the same ESSID
+- Fixed a problem within the Kerberos 5 TGS-REP (-m 13100) hash parser
 - Fixed clEnqueueNDRangeKernel(): CL_UNKNOWN_ERROR caused by an invalid work-item count during weak-hash-check
+- Fixed cracking of PeopleSoft Token (-m 13500) if salt length + password length is >= 128 byte
+- Fixed cracking of Plaintext (-m 99999) in case MD4 was used in a previous session 
+- Fixed DEScrypt cracking in BF mode in case the hashlist contains more than 16 times the same salt
+- Fixed duplicate detection for WPA handshakes with the same ESSID
 - Fixed nvapi datatype definition for NvS32 and NvU32
-- Fixed WPA/WPA2 cracking in case eapol frame is >= 248 byte
-- Fixed string not null terminated inside workaround for checking drm driver path
-- Fixed string not null terminated while reading maskfiles
 - Fixed pointer to local outside scope in case -j or -k is used
 - Fixed pointer to local outside scope in case --markov-hcstat is not used
-- Fixed a problem within the Kerberos 5 TGS-REP (-m 13100) hash parser
-- Fixed cracking of PeopleSoft Token if salt length + password length is >= 128 byte
+- Fixed rule 'O' (RULE_OP_MANGLE_OMIT) in host mode in case the offset + length parameter equals the length of the input word
+- Fixed string not null terminated inside workaround for checking drm driver path
+- Fixed string not null terminated while reading maskfiles
+- Fixed truncation of password after position 32 with the combinator attack
+- Fixed use of option --keyspace in combination with -m 2500 (WPA)
+- Fixed WPA/WPA2 cracking in case eapol frame is >= 248 byte
 
 ##
 ## Technical
