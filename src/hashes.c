@@ -776,6 +776,14 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
             if (hashconfig->esalt_size)
             {
               memset (hashes_buf[hashes_cnt].esalt, 0, hashconfig->esalt_size);
+
+              if (user_options->hccapx_message_pair_chgd == true)
+              {
+                wpa_t *wpa = (wpa_t *) hashes_buf[hashes_cnt].esalt;
+
+                wpa->message_pair_chgd = (int) user_options->hccapx_message_pair_chgd;
+                wpa->message_pair      = (u8)  user_options->hccapx_message_pair;
+              }
             }
 
             if (hashconfig->hook_salt_size)

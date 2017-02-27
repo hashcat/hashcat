@@ -178,6 +178,7 @@ typedef struct wpa
   u32  eapol[64 + 16];
   u16  eapol_len;
   u8   message_pair;
+  int  message_pair_chgd;
   u8   keyver;
   u8   orig_mac_ap[6];
   u8   orig_mac_sta[6];

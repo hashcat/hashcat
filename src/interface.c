@@ -73,6 +73,7 @@ static const char PA_029[] = "Invalid LUKS key AF stripes count";
 static const char PA_030[] = "Invalid combination of LUKS hash type and cipher type";
 static const char PA_031[] = "Invalid hccapx signature";
 static const char PA_032[] = "Invalid hccapx version";
+static const char PA_033[] = "Invalid hccapx message pair";
 static const char PA_255[] = "Unknown error";
 
 static const char HT_00000[] = "MD5";
@@ -2779,6 +2780,11 @@ int wpa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
   memcpy (wpa->orig_mac_sta,   in.mac_sta,   6);
   memcpy (wpa->orig_nonce_ap,  in.nonce_ap,  32);
   memcpy (wpa->orig_nonce_sta, in.nonce_sta, 32);
+
+  if (wpa->message_pair_chgd == true)
+  {
+    if (wpa->message_pair != in.message_pair) return (PARSER_HCCAPX_MESSAGE_PAIR);
+  }
 
   wpa->message_pair = in.message_pair;
 
@@ -14826,6 +14832,7 @@ char *strparser (const u32 parser_status)
     case PARSER_LUKS_HASH_CIPHER:     return ((char *) PA_030);
     case PARSER_HCCAPX_SIGNATURE:     return ((char *) PA_031);
     case PARSER_HCCAPX_VERSION:       return ((char *) PA_032);
+    case PARSER_HCCAPX_MESSAGE_PAIR:  return ((char *) PA_033);
   }
 
   return ((char *) PA_255);
