@@ -14,11 +14,11 @@
 
 void sha1_64 (u32 block[16], u32 digest[5])
 {
-  u32 a = SHA1M_A;
-  u32 b = SHA1M_B;
-  u32 c = SHA1M_C;
-  u32 d = SHA1M_D;
-  u32 e = SHA1M_E;
+  u32 a = digest[0];
+  u32 b = digest[1];
+  u32 c = digest[2];
+  u32 d = digest[3];
+  u32 e = digest[4];
 
   u32 w0_t = block[ 0];
   u32 w1_t = block[ 1];

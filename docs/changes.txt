@@ -53,6 +53,7 @@
 - Fixed pointer to local outside scope in case -j or -k is used
 - Fixed pointer to local outside scope in case --markov-hcstat is not used
 - Fixed a problem within the Kerberos 5 TGS-REP (-m 13100) hash parser
+- Fixed cracking of PeopleSoft Token if salt length + password length is >= 128 byte
 
 ##
 ## Technical

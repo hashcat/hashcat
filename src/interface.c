@@ -21667,7 +21667,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->parse_func     = pstoken_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
                                             | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_EARLY_SKIP
                                             | OPTI_TYPE_NOT_ITERATED
                                             | OPTI_TYPE_PREPENDED_SALT
                                             | OPTI_TYPE_RAW_HASH;
