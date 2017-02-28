@@ -2381,7 +2381,6 @@ void opencl_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
 int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 {
-  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   opencl_ctx_t   *opencl_ctx   = hashcat_ctx->opencl_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -2911,9 +2910,9 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       char *device_name_chksum = (char *) hcmalloc (HCBUFSIZ_TINY);
 
       #if defined (__x86_64__)
-      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY - 1, "%d-%u-%u-%s-%s-%s-%d-%u-%u", 64, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, comptime, user_options->opencl_vector_width, hashconfig->hash_mode);
+      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY - 1, "%d-%u-%u-%s-%s-%s-%d-%u-%u", 64, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, comptime, user_options->opencl_vector_width, user_options->hash_mode);
       #else
-      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY - 1, "%d-%u-%u-%s-%s-%s-%d-%u-%u", 32, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, comptime, user_options->opencl_vector_width, hashconfig->hash_mode);
+      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY - 1, "%d-%u-%u-%s-%s-%s-%d-%u-%u", 32, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, comptime, user_options->opencl_vector_width, user_options->hash_mode);
       #endif
 
       u32 device_name_digest[4] = { 0 };
