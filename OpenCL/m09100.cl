@@ -12,7 +12,8 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
-__constant u8a lotus64_table[64] =
+// breaks if used with u8a on AMDGPU-Pro
+__constant u8 lotus64_table[64] =
 {
   '0', '1', '2', '3', '4', '5', '6', '7',
   '8', '9', 'A', 'B', 'C', 'D', 'E', 'F',
@@ -24,6 +25,7 @@ __constant u8a lotus64_table[64] =
   'u', 'v', 'w', 'x', 'y', 'z', '+', '/',
 };
 
+// break if used with u8 on NVidia driver 378.x
 __constant u8a lotus_magic_table[256] =
 {
   0xbd, 0x56, 0xea, 0xf2, 0xa2, 0xf1, 0xac, 0x2a,
