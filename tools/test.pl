@@ -8069,6 +8069,11 @@ sub rnd
   {
     my $c = get_random_chr (0x30, 0x39);
 
+    if (($mode == 14000) || ($mode == 14100))
+    {
+      $c &= 0xfe;
+    }
+
     push (@word_arr, $c);
   }
 
