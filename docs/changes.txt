@@ -23,6 +23,7 @@
 - Added hash-mode  4520 = sha1($salt.sha1($pass))
 - Added hash-mode  4522 = PunBB
 - Added hash-mode  7000 = Fortigate (FortiOS)
+- Added hash-mode 12001 = Atlassian (PBKDF2-HMAC-SHA1)
 - Added hash-mode 14600 = LUKS
 - Added hash-mode 14700 = iTunes Backup < 10.0
 - Added hash-mode 14800 = iTunes Backup >= 10.0
