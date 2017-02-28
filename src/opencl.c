@@ -2381,6 +2381,7 @@ void opencl_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
 int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 {
+  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   opencl_ctx_t   *opencl_ctx   = hashcat_ctx->opencl_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -2699,6 +2700,14 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       // note we'll limit to 2gb, otherwise this causes all kinds of weird errors because of possible integer overflows in opencl runtimes
       // testwise disabling that
       //device_param->device_maxmem_alloc = MIN (device_maxmem_alloc, 0x7fffffff);
+
+      if ((hashconfig->hash_mode == 8900) || (hashconfig->hash_mode == 9300))
+      {
+        // in scrypt we really need to get all memory we can get, thus we workaround the 1/4 limit
+        // by allocating 4 blocks but this can eventually be larger than the total maximum available memory
+
+        device_param->device_maxmem_alloc = MIN (device_maxmem_alloc, device_param->device_global_mem / 4);
+      }
 
       // max_work_group_size
 
