@@ -2676,17 +2676,6 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       device_param->device_processors = device_processors;
 
-      // device_maxmem_alloc
-      // note we'll limit to 2gb, otherwise this causes all kinds of weird errors because of possible integer overflows in opencl runtimes
-
-      cl_ulong device_maxmem_alloc;
-
-      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof (device_maxmem_alloc), &device_maxmem_alloc, NULL);
-
-      if (CL_rc == -1) return -1;
-
-      device_param->device_maxmem_alloc = MIN (device_maxmem_alloc, 0x7fffffff);
-
       // device_global_mem
 
       cl_ulong device_global_mem;
@@ -2696,6 +2685,20 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       if (CL_rc == -1) return -1;
 
       device_param->device_global_mem = device_global_mem;
+
+      // device_maxmem_alloc
+
+      cl_ulong device_maxmem_alloc;
+
+      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof (device_maxmem_alloc), &device_maxmem_alloc, NULL);
+
+      if (CL_rc == -1) return -1;
+
+      device_param->device_maxmem_alloc = device_maxmem_alloc;
+
+      // note we'll limit to 2gb, otherwise this causes all kinds of weird errors because of possible integer overflows in opencl runtimes
+      // testwise disabling that
+      //device_param->device_maxmem_alloc = MIN (device_maxmem_alloc, 0x7fffffff);
 
       // max_work_group_size
 
