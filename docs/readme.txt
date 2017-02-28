@@ -182,6 +182,7 @@ NVidia users require "NVIDIA Driver" (367.x or later)
 - Redmine
 - PunBB
 - OpenCart
+- Atlassian (PBKDF2-HMAC-SHA1)
 - Citrix Netscaler
 - SAP CODVN B (BCODE)
 - SAP CODVN F/G (PASSCODE)

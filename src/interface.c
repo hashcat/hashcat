@@ -298,6 +298,7 @@ static const char HT_13753[] = "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 1536 bit";
 static const char HT_13761[] = "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 512 bit + boot-mode";
 static const char HT_13762[] = "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 1024 bit + boot-mode";
 static const char HT_13763[] = "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 1536 bit + boot-mode";
+static const char HT_12001[] = "Atlassian (PBKDF2-HMAC-SHA1)";
 
 static const char SIGNATURE_ANDROIDFDE[]      = "$fde$";
 static const char SIGNATURE_AXCRYPT[]         = "$axcrypt$*1";
@@ -373,6 +374,7 @@ static const char SIGNATURE_ZIP2_START[]      = "$zip2$";
 static const char SIGNATURE_ZIP2_STOP[]       = "$/zip2$";
 static const char SIGNATURE_ITUNES_BACKUP[]   = "$itunes_backup$";
 static const char SIGNATURE_FORTIGATE[]       = "AK1";
+static const char SIGNATURE_ATLASSIAN[]       = "{PKCS5S2}";
 
 /**
  * decoder / encoder
@@ -14191,6 +14193,70 @@ int filezilla_server_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf,
   return (PARSER_OK);
 }
 
+int atlassian_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
+{
+  if ((input_len < DISPLAY_LEN_MIN_12001) || (input_len > DISPLAY_LEN_MAX_12001)) return (PARSER_GLOBAL_LENGTH);
+
+  if (memcmp (SIGNATURE_ATLASSIAN, input_buf, 9)) return (PARSER_SIGNATURE_UNMATCHED);
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  pbkdf2_sha1_t *pbkdf2_sha1 = (pbkdf2_sha1_t *) hash_buf->esalt;
+
+  /**
+   * parse line
+   */
+
+  u8 *base64_pos = input_buf + 9;
+
+  // base64 ($salt . $digest)
+
+  u8 tmp_buf[100] = { 0 };
+
+  int base64_decode_len = base64_decode (base64_to_int, (const u8 *) base64_pos, input_len - 9, tmp_buf);
+
+  if (base64_decode_len != (16 + 32)) return (PARSER_HASH_LENGTH);
+
+  /**
+   * store data
+   */
+
+  // store salt
+
+  u8 *salt_buf_ptr = (u8 *) pbkdf2_sha1->salt_buf;
+
+  u32 salt_len = parse_and_store_salt (salt_buf_ptr, tmp_buf, 16, hashconfig);
+
+  if (salt_len != 16) return (PARSER_SALT_LENGTH);
+
+  salt_buf_ptr[salt_len + 3] = 0x01;
+  salt_buf_ptr[salt_len + 4] = 0x80;
+
+  salt->salt_len  = salt_len;
+  salt->salt_iter = ROUNDS_ATLASSIAN - 1;
+
+  // store hash
+
+  memcpy (digest, tmp_buf + 16, 16);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+
+  // add some stuff to normal salt to make sorted happy
+
+  salt->salt_buf[0] = pbkdf2_sha1->salt_buf[0];
+  salt->salt_buf[1] = pbkdf2_sha1->salt_buf[1];
+  salt->salt_buf[2] = pbkdf2_sha1->salt_buf[2];
+  salt->salt_buf[3] = pbkdf2_sha1->salt_buf[3];
+  salt->salt_buf[4] = salt->salt_iter;
+
+  return (PARSER_OK);
+}
+
 /**
  * hook functions
  */
@@ -14745,6 +14811,7 @@ char *strhashtype (const u32 hash_mode)
     case 11800: return ((char *) HT_11800);
     case 11900: return ((char *) HT_11900);
     case 12000: return ((char *) HT_12000);
+    case 12001: return ((char *) HT_12001);
     case 12100: return ((char *) HT_12100);
     case 12200: return ((char *) HT_12200);
     case 12300: return ((char *) HT_12300);
@@ -17328,6 +17395,15 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     snprintf (out_buf, out_len - 1, "%s", hash_buf);
   }
   else if (hash_mode == 12000)
+  {
+    u32 digest_idx = salt.digests_offset + digest_pos;
+
+    hashinfo_t **hashinfo_ptr = hash_info;
+    char        *hash_buf     = hashinfo_ptr[digest_idx]->orighash;
+
+    snprintf (out_buf, out_len - 1, "%s", hash_buf);
+  }
+  else if (hash_mode == 12001)
   {
     u32 digest_idx = salt.digests_offset + digest_pos;
 
@@ -21453,6 +21529,22 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos3      = 3;
                  break;
 
+    case 12001:  hashconfig->hash_type      = HASH_TYPE_PBKDF2_SHA1;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_HASH_COPY;
+                 hashconfig->kern_type      = KERN_TYPE_PBKDF2_SHA1;
+                 hashconfig->dgst_size      = DGST_SIZE_4_32;
+                 hashconfig->parse_func     = atlassian_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_SLOW_HASH_SIMD;
+                 hashconfig->dgst_pos0      = 0;
+                 hashconfig->dgst_pos1      = 1;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 3;
+                 break;
+
     case 12100:  hashconfig->hash_type      = HASH_TYPE_PBKDF2_SHA512;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -22256,6 +22348,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 11400: hashconfig->esalt_size = sizeof (sip_t);            break;
     case 11900: hashconfig->esalt_size = sizeof (pbkdf2_md5_t);     break;
     case 12000: hashconfig->esalt_size = sizeof (pbkdf2_sha1_t);    break;
+    case 12001: hashconfig->esalt_size = sizeof (pbkdf2_sha1_t);    break;
     case 12100: hashconfig->esalt_size = sizeof (pbkdf2_sha512_t);  break;
     case 13000: hashconfig->esalt_size = sizeof (rar5_t);           break;
     case 13100: hashconfig->esalt_size = sizeof (krb5tgs_t);        break;
@@ -22351,6 +22444,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 11600: hashconfig->tmp_size = sizeof (seven_zip_tmp_t);       break;
     case 11900: hashconfig->tmp_size = sizeof (pbkdf2_md5_tmp_t);      break;
     case 12000: hashconfig->tmp_size = sizeof (pbkdf2_sha1_tmp_t);     break;
+    case 12001: hashconfig->tmp_size = sizeof (pbkdf2_sha1_tmp_t);     break;
     case 12100: hashconfig->tmp_size = sizeof (pbkdf2_sha512_tmp_t);   break;
     case 12200: hashconfig->tmp_size = sizeof (ecryptfs_tmp_t);        break;
     case 12300: hashconfig->tmp_size = sizeof (oraclet_tmp_t);         break;
@@ -22906,6 +23000,8 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
     case 11900:  salt->salt_iter  = ROUNDS_PBKDF2_MD5 - 1;
                  break;
     case 12000:  salt->salt_iter  = ROUNDS_PBKDF2_SHA1 - 1;
+                 break;
+    case 12001:  salt->salt_iter  = ROUNDS_ATLASSIAN - 1;
                  break;
     case 12100:  salt->salt_iter  = ROUNDS_PBKDF2_SHA512 - 1;
                  break;

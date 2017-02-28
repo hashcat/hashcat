@@ -211,6 +211,7 @@ static const char *USAGE_BIG[] =
   "  13900 | OpenCart                                         | Forums, CMS, E-Commerce, Frameworks",
   "   4521 | Redmine                                          | Forums, CMS, E-Commerce, Frameworks",
   "   4522 | PunBB                                            | Forums, CMS, E-Commerce, Frameworks",
+  "  12001 | Atlassian (PBKDF2-HMAC-SHA1)                     | Forums, CMS, E-Commerce, Frameworks",
   "     12 | PostgreSQL                                       | Database Server",
   "    131 | MSSQL(2000)                                      | Database Server",
   "    132 | MSSQL(2005)                                      | Database Server",

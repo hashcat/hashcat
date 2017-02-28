@@ -1232,6 +1232,8 @@ typedef enum display_len
   DISPLAY_LEN_MAX_4521  = 40 + 1 + 32,
   DISPLAY_LEN_MIN_4522  = 40 + 1 + 12,
   DISPLAY_LEN_MAX_4522  = 40 + 1 + 12,
+  DISPLAY_LEN_MIN_12001 = 9 + 64,
+  DISPLAY_LEN_MAX_12001 = 9 + 64,
 
 } display_len_t;
 
@@ -1549,6 +1551,7 @@ typedef enum rounds_count
    ROUNDS_ITUNES9_BACKUP     = 10000,
    ROUNDS_ITUNES101_BACKUP   = 10000000, // wtf, i mean, really?
    ROUNDS_ITUNES102_BACKUP   = 10000,
+   ROUNDS_ATLASSIAN          = 10000,
    ROUNDS_STDOUT             = 0
 
 } rounds_count_t;
