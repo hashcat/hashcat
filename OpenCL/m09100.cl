@@ -6,9 +6,6 @@
 #include "inc_vendor.cl"
 #include "inc_hash_constants.h"
 #include "inc_hash_functions.cl"
-
-#undef _SHA1_
-
 #include "inc_types.cl"
 #include "inc_common.cl"
 
@@ -65,56 +62,46 @@ __constant u8a lotus_magic_table[256] =
 
 #define uint_to_hex_upper8(i) l_bin2asc[(i)]
 
-#if   VECT_SIZE == 1
 #define BOX1(S,i) (S)[(i)]
-#elif VECT_SIZE == 2
-#define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1])
-#elif VECT_SIZE == 4
-#define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3])
-#elif VECT_SIZE == 8
-#define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7])
-#elif VECT_SIZE == 16
-#define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7], (S)[(i).s8], (S)[(i).s9], (S)[(i).sa], (S)[(i).sb], (S)[(i).sc], (S)[(i).sd], (S)[(i).se], (S)[(i).sf])
-#endif
 
-void lotus_mix (u32x *in, __local u32 *s_lotus_magic_table)
+void lotus_mix (u32 *in, const __local u8 *s_lotus_magic_table)
 {
-  u32x p = 0;
+  u8 p = 0;
 
   for (int i = 0; i < 18; i++)
   {
-    u32 s = 48;
+    u8 s = 48;
 
     for (int j = 0; j < 12; j++)
     {
-      u32x tmp_in = in[j];
-      u32x tmp_out = 0;
+      u32 tmp_in  = in[j];
+      u32 tmp_out = 0;
 
-      p = (p + s--) & 0xff; p = ((tmp_in >>  0) & 0xff) ^ BOX1 (s_lotus_magic_table, p); tmp_out |= p <<  0;
-      p = (p + s--) & 0xff; p = ((tmp_in >>  8) & 0xff) ^ BOX1 (s_lotus_magic_table, p); tmp_out |= p <<  8;
-      p = (p + s--) & 0xff; p = ((tmp_in >> 16) & 0xff) ^ BOX1 (s_lotus_magic_table, p); tmp_out |= p << 16;
-      p = (p + s--) & 0xff; p = ((tmp_in >> 24) & 0xff) ^ BOX1 (s_lotus_magic_table, p); tmp_out |= p << 24;
+      p = (p + s--); p = (u8) (tmp_in >>  0) ^ BOX1 (s_lotus_magic_table, p); tmp_out |= (u32) p <<  0;
+      p = (p + s--); p = (u8) (tmp_in >>  8) ^ BOX1 (s_lotus_magic_table, p); tmp_out |= (u32) p <<  8;
+      p = (p + s--); p = (u8) (tmp_in >> 16) ^ BOX1 (s_lotus_magic_table, p); tmp_out |= (u32) p << 16;
+      p = (p + s--); p = (u8) (tmp_in >> 24) ^ BOX1 (s_lotus_magic_table, p); tmp_out |= (u32) p << 24;
 
       in[j] = tmp_out;
     }
   }
 }
 
-void lotus_transform_password (u32x in[4], u32x out[4], __local u32 *s_lotus_magic_table)
+void lotus_transform_password (const u32 in[4], u32 out[4], const __local u8 *s_lotus_magic_table)
 {
-  u32x t = out[3] >> 24;
+  u8 t = (u8) (out[3] >> 24);
 
-  u32x c;
+  u8 c;
 
   #ifdef _unroll
   #pragma unroll
   #endif
   for (int i = 0; i < 4; i++)
   {
-    t ^= (in[i] >>  0) & 0xff; c = BOX1 (s_lotus_magic_table, t); out[i] ^= c <<  0; t = ((out[i] >>  0) & 0xff);
-    t ^= (in[i] >>  8) & 0xff; c = BOX1 (s_lotus_magic_table, t); out[i] ^= c <<  8; t = ((out[i] >>  8) & 0xff);
-    t ^= (in[i] >> 16) & 0xff; c = BOX1 (s_lotus_magic_table, t); out[i] ^= c << 16; t = ((out[i] >> 16) & 0xff);
-    t ^= (in[i] >> 24) & 0xff; c = BOX1 (s_lotus_magic_table, t); out[i] ^= c << 24; t = ((out[i] >> 24) & 0xff);
+    t ^= (u8) (in[i] >>  0); c = BOX1 (s_lotus_magic_table, t); out[i] ^= (u32) c <<  0; t = (u8) (out[i] >>  0);
+    t ^= (u8) (in[i] >>  8); c = BOX1 (s_lotus_magic_table, t); out[i] ^= (u32) c <<  8; t = (u8) (out[i] >>  8);
+    t ^= (u8) (in[i] >> 16); c = BOX1 (s_lotus_magic_table, t); out[i] ^= (u32) c << 16; t = (u8) (out[i] >> 16);
+    t ^= (u8) (in[i] >> 24); c = BOX1 (s_lotus_magic_table, t); out[i] ^= (u32) c << 24; t = (u8) (out[i] >> 24);
   }
 }
 
@@ -125,16 +112,16 @@ void pad (u32 w[4], const u32 len)
   const u32 mask1 = val << 24;
 
   const u32 mask2 = val << 16
-                   | val << 24;
+                  | val << 24;
 
   const u32 mask3 = val <<  8
-                   | val << 16
-                   | val << 24;
+                  | val << 16
+                  | val << 24;
 
   const u32 mask4 = val <<  0
-                   | val <<  8
-                   | val << 16
-                   | val << 24;
+                  | val <<  8
+                  | val << 16
+                  | val << 24;
 
   switch (len)
   {
@@ -197,9 +184,9 @@ void pad (u32 w[4], const u32 len)
   }
 }
 
-void mdtransform_norecalc (u32x state[4], u32x block[4], __local u32 *s_lotus_magic_table)
+void mdtransform_norecalc (u32 state[4], const u32 block[4], const __local u8 *s_lotus_magic_table)
 {
-  u32x x[12];
+  u32 x[12];
 
   x[ 0] = state[0];
   x[ 1] = state[1];
@@ -222,23 +209,23 @@ void mdtransform_norecalc (u32x state[4], u32x block[4], __local u32 *s_lotus_ma
   state[3] = x[3];
 }
 
-void mdtransform (u32x state[4], u32x checksum[4], u32x block[4], __local u32 *s_lotus_magic_table)
+void mdtransform (u32 state[4], u32 checksum[4], const u32 block[4], const __local u8 *s_lotus_magic_table)
 {
   mdtransform_norecalc (state, block, s_lotus_magic_table);
 
   lotus_transform_password (block, checksum, s_lotus_magic_table);
 }
 
-void domino_big_md (const u32x saved_key[16], const u32 size, u32x state[4], __local u32 *s_lotus_magic_table)
+void domino_big_md (const u32 saved_key[16], const u32 size, u32 state[4], const __local u8 *s_lotus_magic_table)
 {
-  u32x checksum[4];
+  u32 checksum[4];
 
   checksum[0] = 0;
   checksum[1] = 0;
   checksum[2] = 0;
   checksum[3] = 0;
 
-  u32x block[4];
+  u32 block[4];
 
   block[0] = 0;
   block[1] = 0;
@@ -449,7 +436,7 @@ void hmac_sha1_pad (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[5], u32
   sha1_transform (w0, w1, w2, w3, opad);
 }
 
-void hmac_sha1_run (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[5], u32 opad[5], u32 digest[5])
+void hmac_sha1_run (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 ipad[5], const u32 opad[5], u32 digest[5])
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];
@@ -494,10 +481,10 @@ void base64_encode (u8 *base64_hash, const u32 len, const u8 *base64_plain)
 
   for (i = 0; i < len; i += 3)
   {
-    char out_val0 = lotus64_table [                            ((in_ptr[0] >> 2) & 0x3f)];
-    char out_val1 = lotus64_table [((in_ptr[0] << 4) & 0x30) | ((in_ptr[1] >> 4) & 0x0f)];
-    char out_val2 = lotus64_table [((in_ptr[1] << 2) & 0x3c) | ((in_ptr[2] >> 6) & 0x03)];
-    char out_val3 = lotus64_table [                            ((in_ptr[2] >> 0) & 0x3f)];
+    const u8 out_val0 = lotus64_table [                            ((in_ptr[0] >> 2) & 0x3f)];
+    const u8 out_val1 = lotus64_table [((in_ptr[0] << 4) & 0x30) | ((in_ptr[1] >> 4) & 0x0f)];
+    const u8 out_val2 = lotus64_table [((in_ptr[1] << 2) & 0x3c) | ((in_ptr[2] >> 6) & 0x03)];
+    const u8 out_val3 = lotus64_table [                            ((in_ptr[2] >> 0) & 0x3f)];
 
     out_ptr[0] = out_val0 & 0x7f;
     out_ptr[1] = out_val1 & 0x7f;
@@ -509,18 +496,14 @@ void base64_encode (u8 *base64_hash, const u32 len, const u8 *base64_plain)
   }
 }
 
-void lotus6_base64_encode (u8 base64_hash[24], const u32 salt0, const u32 salt1, u32 a, u32 b, u32 c)
+void lotus6_base64_encode (u8 base64_hash[24], const u32 salt0, const u32 salt1, const u32 a, const u32 b, const u32 c)
 {
-  uchar4 salt0c = as_uchar4 (salt0);
-  uchar4 salt1c = as_uchar4 (salt1);
+  const uchar4 salt0c = as_uchar4 (salt0);
+  const uchar4 salt1c = as_uchar4 (salt1);
 
-  uchar4 ac;
-  uchar4 bc;
-  uchar4 cc;
-
-  ac = as_uchar4 (a);
-  bc = as_uchar4 (b);
-  cc = as_uchar4 (c);
+  const uchar4 ac = as_uchar4 (a);
+  const uchar4 bc = as_uchar4 (b);
+  const uchar4 cc = as_uchar4 (c);
 
   u8 tmp[24]; // size 22 (=pw_len) is needed but base64 needs size divisible by 4
 
@@ -592,7 +575,7 @@ __kernel void m09100_init (__global pw_t *pws, __global const kernel_rule_t *rul
    * sbox
    */
 
-  __local u32 s_lotus_magic_table[256];
+  __local u8 s_lotus_magic_table[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
@@ -624,17 +607,14 @@ __kernel void m09100_init (__global pw_t *pws, __global const kernel_rule_t *rul
   w[ 1] = pws[gid].i[ 1];
   w[ 2] = pws[gid].i[ 2];
   w[ 3] = pws[gid].i[ 3];
-
   w[ 4] = pws[gid].i[ 4];
   w[ 5] = pws[gid].i[ 5];
   w[ 6] = pws[gid].i[ 6];
   w[ 7] = pws[gid].i[ 7];
-
   w[ 8] = pws[gid].i[ 8];
   w[ 9] = pws[gid].i[ 9];
   w[10] = pws[gid].i[10];
   w[11] = pws[gid].i[11];
-
   w[12] = pws[gid].i[12];
   w[13] = pws[gid].i[13];
   w[14] = pws[gid].i[14];
@@ -733,19 +713,19 @@ __kernel void m09100_init (__global pw_t *pws, __global const kernel_rule_t *rul
   domino_big_md (w_tmp, pw_len, state, s_lotus_magic_table);
 
   const u32 w0_t = uint_to_hex_upper8 ((state[0] >>  0) & 255) <<  0
-                   | uint_to_hex_upper8 ((state[0] >>  8) & 255) << 16;
+                 | uint_to_hex_upper8 ((state[0] >>  8) & 255) << 16;
   const u32 w1_t = uint_to_hex_upper8 ((state[0] >> 16) & 255) <<  0
-                   | uint_to_hex_upper8 ((state[0] >> 24) & 255) << 16;
+                 | uint_to_hex_upper8 ((state[0] >> 24) & 255) << 16;
   const u32 w2_t = uint_to_hex_upper8 ((state[1] >>  0) & 255) <<  0
-                   | uint_to_hex_upper8 ((state[1] >>  8) & 255) << 16;
+                 | uint_to_hex_upper8 ((state[1] >>  8) & 255) << 16;
   const u32 w3_t = uint_to_hex_upper8 ((state[1] >> 16) & 255) <<  0
-                   | uint_to_hex_upper8 ((state[1] >> 24) & 255) << 16;
+                 | uint_to_hex_upper8 ((state[1] >> 24) & 255) << 16;
   const u32 w4_t = uint_to_hex_upper8 ((state[2] >>  0) & 255) <<  0
-                   | uint_to_hex_upper8 ((state[2] >>  8) & 255) << 16;
+                 | uint_to_hex_upper8 ((state[2] >>  8) & 255) << 16;
   const u32 w5_t = uint_to_hex_upper8 ((state[2] >> 16) & 255) <<  0
-                   | uint_to_hex_upper8 ((state[2] >> 24) & 255) << 16;
+                 | uint_to_hex_upper8 ((state[2] >> 24) & 255) << 16;
   const u32 w6_t = uint_to_hex_upper8 ((state[3] >>  0) & 255) <<  0
-                   | uint_to_hex_upper8 ((state[3] >>  8) & 255) << 16;
+                 | uint_to_hex_upper8 ((state[3] >>  8) & 255) << 16;
 
   const u32 pade = 0x0e0e0e0e;
 
