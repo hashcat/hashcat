@@ -213,7 +213,7 @@ static int mangle_omit (char arr[BLOCK_SIZE], int arr_len, int upos, int ulen)
 
 static int mangle_insert (char arr[BLOCK_SIZE], int arr_len, int upos, char c)
 {
-  if (upos >= arr_len) return (arr_len);
+  if (upos > arr_len) return (arr_len);
 
   if ((arr_len + 1) >= BLOCK_SIZE) return (arr_len);
 
