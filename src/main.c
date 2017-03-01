@@ -243,7 +243,7 @@ static void main_cracker_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    if (user_options->speed_only == false)
+    if ((user_options->speed_only == false) && (user_options->quiet == false))
     {
       clear_prompt ();
     }

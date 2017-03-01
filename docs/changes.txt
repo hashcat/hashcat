@@ -100,6 +100,7 @@
 - Rule Engine: Fixed several memory leaks in case loading of rules failed
 - Session Management: Fixed several memory leaks in case profile- or install-folder setup failed
 - Sessions: Move out handling of multiple instance from restore file into separate pidfile
+- Status screen: Do not try to clear prompt in --quiet mode
 - Threads: Restored strerror as %m is unsupported by the BSDs
 - Wordlists: Disable dictstat handling for hash-mode 3000 as it virtually creates words in the wordlist which is not the case for other modes
 - Wordlists: Fixed memory leak in case access a file in a wordlist folder fails
