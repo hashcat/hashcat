@@ -305,13 +305,17 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
 
       if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
       {
-        if (overflow_check_u64_mul (keyspace, straight_ctx->kernel_rules_cnt) == false) return -1;
+        volatile const u64 kernel_rules_cnt = (const u64) straight_ctx->kernel_rules_cnt; // temporary hack needed for OSX
+
+        if (overflow_check_u64_mul (keyspace, kernel_rules_cnt) == false) return -1;
 
         keyspace *= straight_ctx->kernel_rules_cnt;
       }
       else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
       {
-        if (overflow_check_u64_mul (keyspace, combinator_ctx->combs_cnt) == false) return -1;
+        volatile const u64 combs_cnt = (const u64) combinator_ctx->combs_cnt; // temporary hack needed for OSX
+
+        if (overflow_check_u64_mul (keyspace, combs_cnt) == false) return -1;
 
         keyspace *= combinator_ctx->combs_cnt;
       }
@@ -378,13 +382,17 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
       {
         if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
         {
-          if (overflow_check_u64_add (cnt, straight_ctx->kernel_rules_cnt) == false) return -1;
+          volatile const u64 kernel_rules_cnt = (const u64) straight_ctx->kernel_rules_cnt; // temporary hack needed for OSX
+
+          if (overflow_check_u64_add (cnt, kernel_rules_cnt) == false) return -1;
 
           cnt += straight_ctx->kernel_rules_cnt;
         }
         else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
         {
-          if (overflow_check_u64_add (cnt, combinator_ctx->combs_cnt) == false) return -1;
+          volatile const u64 combs_cnt = (const u64) combinator_ctx->combs_cnt; // temporary hack needed for OSX
+
+          if (overflow_check_u64_add (cnt, combs_cnt) == false) return -1;
 
           cnt += combinator_ctx->combs_cnt;
         }
