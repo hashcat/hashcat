@@ -52,6 +52,7 @@
 - Fixed nvapi datatype definition for NvS32 and NvU32
 - Fixed pointer to local outside scope in case -j or -k is used
 - Fixed pointer to local outside scope in case --markov-hcstat is not used
+- Fixed recursion in loopback handling when session was aborted by the user
 - Fixed rule 'O' (RULE_OP_MANGLE_OMIT) in host mode in case the offset + length parameter equals the length of the input word
 - Fixed rule 'i' (RULE_OP_MANGLE_INSERT) in host mode in case the offset parameter equals the length of the input word
 - Fixed string not null terminated inside workaround for checking drm driver path
