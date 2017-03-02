@@ -332,6 +332,14 @@ __constant u32a c_sbox3[256] =
 }
 #endif
 
+// temporary hack for Apple Iris GPUs (with as little performance drop as possible)
+
+#ifdef IS_APPLE
+#define TMP_TYPE volatile u32
+#else
+#define TMP_TYPE u32
+#endif
+
 #define BF_ENCRYPT(L,R) \
 {                       \
   L ^= P[0];            \
@@ -353,7 +361,7 @@ __constant u32a c_sbox3[256] =
   BF_ROUND (L, R, 15);  \
   BF_ROUND (R, L, 16);  \
                         \
-  u32 tmp;            \
+  TMP_TYPE tmp;         \
                         \
   tmp = R;              \
   R = L;                \
