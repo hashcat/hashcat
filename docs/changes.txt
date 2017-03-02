@@ -35,6 +35,7 @@
 ##
 
 - Workaround added for NVidia OpenCL runtime: RACF kernel requires EBCDIC lookup to be done on shared memory
+- Workaround added for Apple  OpenCL runtime: bcrypt kernel requires a volatile variable because of a compiler optimization bug
 - Workaround added for AMDGPU-Pro OpenCL runtime: AES encrypt and decrypt Invertkey function was calculated wrong in certain cases
 - Workaround added for AMDGPU-Pro OpenCL runtime: RAR3 kernel require a volatile variable to work correctly
 
