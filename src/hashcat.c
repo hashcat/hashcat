@@ -869,6 +869,12 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, char *install_folder, char
   user_options_t *user_options = hashcat_ctx->user_options;
 
   /**
+   * make it a bit more comfortable to use some of the special modes in hashcat
+   */
+
+  user_options_session_auto (hashcat_ctx);
+
+  /**
    * event init (needed for logging so should be first)
    */
 

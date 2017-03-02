@@ -98,6 +98,7 @@
 - Outfile Check: Fixed a memory leak for failed outfile reads
 - Restore: Add some checks on the rd->cwd variable in restore case
 - Rule Engine: Fixed several memory leaks in case loading of rules failed
+- Session Management: Automatically set dedicated session names for non-cracking parameters, for example: --stdout
 - Session Management: Fixed several memory leaks in case profile- or install-folder setup failed
 - Sessions: Move out handling of multiple instance from restore file into separate pidfile
 - Status screen: Do not try to clear prompt in --quiet mode

@@ -16,6 +16,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv);
 
 int user_options_sanity (hashcat_ctx_t *hashcat_ctx);
 
+void user_options_session_auto (hashcat_ctx_t *hashcat_ctx);
+
 void user_options_preprocess (hashcat_ctx_t *hashcat_ctx);
 
 void user_options_postprocess (hashcat_ctx_t *hashcat_ctx);

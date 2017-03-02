@@ -983,6 +983,54 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
+void user_options_session_auto (hashcat_ctx_t *hashcat_ctx)
+{
+  user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->session == PROGNAME)
+  {
+    if (user_options->benchmark == true)
+    {
+      user_options->session = "benchmark";
+    }
+
+    if (user_options->speed_only == true)
+    {
+      user_options->session = "speed-only";
+    }
+
+    if (user_options->progress_only == true)
+    {
+      user_options->session = "progress-only";
+    }
+
+    if (user_options->keyspace == true)
+    {
+      user_options->session = "keyspace";
+    }
+
+    if (user_options->stdout_flag == true)
+    {
+      user_options->session = "stdout";
+    }
+
+    if (user_options->opencl_info == true)
+    {
+      user_options->session = "opencl_info";
+    }
+
+    if (user_options->show == true)
+    {
+      user_options->session = "show";
+    }
+
+    if (user_options->left == true)
+    {
+      user_options->session = "left";
+    }
+  }
+}
+
 void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
 {
   user_options_t *user_options = hashcat_ctx->user_options;
@@ -1032,7 +1080,6 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->restore_disable     = true;
     user_options->restore             = false;
     user_options->restore_timer       = 0;
-    user_options->session             = "benchmark";
     user_options->show                = false;
     user_options->status              = false;
     user_options->status_timer        = 0;
@@ -1053,13 +1100,11 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->keyspace == true)
   {
-    user_options->session             = "keyspace";
     user_options->quiet               = true;
   }
 
   if (user_options->stdout_flag == true)
   {
-    user_options->session             = "stdout";
     user_options->quiet               = true;
     user_options->hash_mode           = 2000;
     user_options->outfile_format      = OUTFILE_FMT_PLAIN;
@@ -1071,7 +1116,6 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->opencl_info == true)
   {
-    user_options->session             = "opencl_info";
     user_options->quiet               = true;
     user_options->opencl_platforms    = NULL;
     user_options->opencl_devices      = NULL;
