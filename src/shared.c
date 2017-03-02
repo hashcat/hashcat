@@ -9,12 +9,20 @@
 
 static inline int get_msb32 (const u32 v)
 {
-  return 32 - __builtin_clz (v);
+  int i;
+
+  for (i = 32; i > 0; i--) if ((v >> (i - 1)) & 1) break;
+
+  return i;
 }
 
 static inline int get_msb64 (const u64 v)
 {
-  return 64 - __builtin_clzll (v);
+  int i;
+
+  for (i = 64; i > 0; i--) if ((v >> (i - 1)) & 1) break;
+
+  return i;
 }
 
 bool overflow_check_u32_add (const u32 a, const u32 b)
