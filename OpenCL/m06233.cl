@@ -1978,7 +1978,11 @@ __kernel void m06233_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   if (gid >= gid_max) return;
 
+  #if defined (IS_APPLE) && defined (IS_GPU)
+  volatile u32 ukey1[8];
+  #else
   u32 ukey1[8];
+  #endif
 
   ukey1[0] = swap32 (tmps[gid].out[ 0]);
   ukey1[1] = swap32 (tmps[gid].out[ 1]);
@@ -1989,7 +1993,11 @@ __kernel void m06233_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   ukey1[6] = swap32 (tmps[gid].out[ 6]);
   ukey1[7] = swap32 (tmps[gid].out[ 7]);
 
+  #if defined (IS_APPLE) && defined (IS_GPU)
+  volatile u32 ukey2[8];
+  #else
   u32 ukey2[8];
+  #endif
 
   ukey2[0] = swap32 (tmps[gid].out[ 8]);
   ukey2[1] = swap32 (tmps[gid].out[ 9]);
@@ -2015,7 +2023,11 @@ __kernel void m06233_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
   }
 
+  #if defined (IS_APPLE) && defined (IS_GPU)
+  volatile u32 ukey3[8];
+  #else
   u32 ukey3[8];
+  #endif
 
   ukey3[0] = swap32 (tmps[gid].out[16]);
   ukey3[1] = swap32 (tmps[gid].out[17]);
