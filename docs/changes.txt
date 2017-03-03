@@ -4,13 +4,13 @@
 ## Features
 ##
 
-- Added support for parsing 7-Zip hashes with LZMA/LZMA2 compression indicator set to a non-zero value
-- Added support for decompressing LZMA1/LZMA2 data for -m 11600 = 7-Zip to validate the CRC
-- Added support for showing all user names with --show and --left if --username was specified
 - Added support for loading hccapx files
 - Added support for filtering hccapx message pairs using --hccapx-message-pair
-- Added support for GPU temperature management on cygwin build
+- Added support for parsing 7-Zip hashes with LZMA/LZMA2 compression indicator set to a non-zero value
+- Added support for decompressing LZMA1/LZMA2 data for -m 11600 = 7-Zip to validate the CRC
 - Added support for automatic merge of LM halfes in case --show and --left is used
+- Added support for showing all user names with --show and --left if --username was specified
+- Added support for GPU temperature management on cygwin build
 
 ##
 ## Algorithms
@@ -23,6 +23,7 @@
 - Added hash-mode  4520 = sha1($salt.sha1($pass))
 - Added hash-mode  4522 = PunBB
 - Added hash-mode  7000 = Fortigate (FortiOS)
+- Added hash-mode 12001 = Atlassian (PBKDF2-HMAC-SHA1)
 - Added hash-mode 14600 = LUKS
 - Added hash-mode 14700 = iTunes Backup < 10.0
 - Added hash-mode 14800 = iTunes Backup >= 10.0
@@ -33,9 +34,12 @@
 ## Workarounds
 ##
 
-- Workaround added for NVidia OpenCL runtime: RACF kernel requires EBCDIC lookup to be done on shared memory
 - Workaround added for AMDGPU-Pro OpenCL runtime: AES encrypt and decrypt Invertkey function was calculated wrong in certain cases
 - Workaround added for AMDGPU-Pro OpenCL runtime: RAR3 kernel require a volatile variable to work correctly
+- Workaround added for Apple OpenCL runtime: bcrypt kernel requires a volatile variable because of a compiler optimization bug
+- Workaround added for Apple OpenCL runtime: LUKS kernel requires some volatile variables because of a compiler optimization bug
+- Workaround added for Apple OpenCL runtime: TrueCrypt kernel requires some volatile variables because of a compiler optimization bug
+- Workaround added for NVidia OpenCL runtime: RACF kernel requires EBCDIC lookup to be done on shared memory
 
 ##
 ## Bugs
@@ -44,13 +48,16 @@
 - Fixed a problem within the Kerberos 5 TGS-REP (-m 13100) hash parser
 - Fixed clEnqueueNDRangeKernel(): CL_UNKNOWN_ERROR caused by an invalid work-item count during weak-hash-check
 - Fixed cracking of PeopleSoft Token (-m 13500) if salt length + password length is >= 128 byte
-- Fixed cracking of Plaintext (-m 99999) in case MD4 was used in a previous session 
+- Fixed cracking of Plaintext (-m 99999) in case MD4 was used in a previous session
 - Fixed DEScrypt cracking in BF mode in case the hashlist contains more than 16 times the same salt
 - Fixed duplicate detection for WPA handshakes with the same ESSID
 - Fixed nvapi datatype definition for NvS32 and NvU32
-- Fixed pointer to local outside scope in case -j or -k is used
-- Fixed pointer to local outside scope in case --markov-hcstat is not used
+- Fixed overflow in bcrypt kernel in expand_key() function
+- Fixed pointer to local variable outside scope in case -j or -k is used
+- Fixed pointer to local variable outside scope in case --markov-hcstat is not used
+- Fixed recursion in loopback handling when session was aborted by the user
 - Fixed rule 'O' (RULE_OP_MANGLE_OMIT) in host mode in case the offset + length parameter equals the length of the input word
+- Fixed rule 'i' (RULE_OP_MANGLE_INSERT) in host mode in case the offset parameter equals the length of the input word
 - Fixed string not null terminated inside workaround for checking drm driver path
 - Fixed string not null terminated while reading maskfiles
 - Fixed truncation of password after position 32 with the combinator attack
@@ -62,8 +69,8 @@
 ##
 
 - Building: Add SHARED variable to Makefile to choose if hashcat is build as static or shared binary (using libhashcat.so/hashcat.dll)
-- Building: Removed the use of RPATH on linker level
 - Building: Removed compiler option -march=native as this created problems for maintainers on various distributions
+- Building: Removed the use of RPATH on linker level
 - Building: Replaced linking of CRT_glob.o with the use of int _dowildcard
 - Commandline: Do some checks related to custom-charset options if user specifies them
 - CPU Affinity: Fixed memory leak in case invalid cpu Id was specified
@@ -73,10 +80,10 @@
 - File Reads: Fixed memory leak in case outfile or hashfile was not accessible
 - File Reads: Improved error detection on file reads, especially when getting the file stats
 - Files: Do several file and folder checks on startup rather than when they are actually used to avoid related error after eventual intense operations
+- Hardware Management: Bring back kernel exec timeout detection for NVidia on user request
 - Hardware Monitor: Fixed several memory leaks in case hash-file writing (caused by --remove) failed
 - Hardware Monitor: Fixed several memory leaks in case no hardware monitor sensor is found
 - Hardware Monitor: In case NVML initialization failed, do not try to initialiaze NVAPI or XNVCTRL because they both depend on NVML
-- Hardware Management: Bring back kernel exec timeout detection for NVidia on user request
 - Hash Parsing: Added additional bound checks for the SIP digest authentication (MD5) parser (-m 11400)
 - Hash Parsing: Make sure that all files are correctly closed whenever a hash file parsing error occurs
 - Helper: Added functions to check existence, type, read- and write-permissions and rewrite sources to use them instead of stat()
@@ -89,21 +96,23 @@
 - OpenCL Header: Updated CL_* errorcode to OpenCL 1.2 standard
 - OpenCL Kernel: Move kernel binary buffer from heap to stack memory
 - OpenCL Kernel: Refactored read_kernel_binary to load only a single kernel for a single device
-- OpenCL Kernel: Renumbered hash-mode 7600 to 4521
 - OpenCL Kernel: Remove "static" keyword from function declarations; Causes older Intel OpenCL runtimes to fail compiling
-- OpenCL Runtime: Updated AMDGPU-Pro driver version check, do warn if version 16.60 is detected which is known to be broken
+- OpenCL Kernel: Renumbered hash-mode 7600 to 4521
 - OpenCL Runtime: Added a warning about using Mesa OpenCL runtime
+- OpenCL Runtime: Updated AMDGPU-Pro driver version check, do warn if version 16.60 is detected which is known to be broken
 - Outfile Check: Fixed a memory leak for failed outfile reads
 - Restore: Add some checks on the rd->cwd variable in restore case
 - Rule Engine: Fixed several memory leaks in case loading of rules failed
+- Session Management: Automatically set dedicated session names for non-cracking parameters, for example: --stdout
 - Session Management: Fixed several memory leaks in case profile- or install-folder setup failed
 - Sessions: Move out handling of multiple instance from restore file into separate pidfile
+- Status screen: Do not try to clear prompt in --quiet mode
+- Tests: Fixed the timeout status code value and increased the runtime to 400 seconds
 - Threads: Restored strerror as %m is unsupported by the BSDs
 - Wordlists: Disable dictstat handling for hash-mode 3000 as it virtually creates words in the wordlist which is not the case for other modes
 - Wordlists: Fixed memory leak in case access a file in a wordlist folder fails
 - WPA: Changed format for outfile and potfile from essid:mac1:mac2 to hash:mac_ap:mac_sta:essid
 - WPA: Changed format for outfile_check from essid:mac1:mac2 to hash
-- Tests: Fixed the timeout status code value and increased the runtime to 400 seconds
 
 * changes v3.20 -> v3.30:
 

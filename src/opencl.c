@@ -2381,7 +2381,6 @@ void opencl_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
 int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 {
-  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   opencl_ctx_t   *opencl_ctx   = hashcat_ctx->opencl_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -2677,17 +2676,6 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       device_param->device_processors = device_processors;
 
-      // device_maxmem_alloc
-      // note we'll limit to 2gb, otherwise this causes all kinds of weird errors because of possible integer overflows in opencl runtimes
-
-      cl_ulong device_maxmem_alloc;
-
-      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof (device_maxmem_alloc), &device_maxmem_alloc, NULL);
-
-      if (CL_rc == -1) return -1;
-
-      device_param->device_maxmem_alloc = MIN (device_maxmem_alloc, 0x7fffffff);
-
       // device_global_mem
 
       cl_ulong device_global_mem;
@@ -2697,6 +2685,20 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       if (CL_rc == -1) return -1;
 
       device_param->device_global_mem = device_global_mem;
+
+      // device_maxmem_alloc
+
+      cl_ulong device_maxmem_alloc;
+
+      CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof (device_maxmem_alloc), &device_maxmem_alloc, NULL);
+
+      if (CL_rc == -1) return -1;
+
+      device_param->device_maxmem_alloc = device_maxmem_alloc;
+
+      // note we'll limit to 2gb, otherwise this causes all kinds of weird errors because of possible integer overflows in opencl runtimes
+      // testwise disabling that
+      //device_param->device_maxmem_alloc = MIN (device_maxmem_alloc, 0x7fffffff);
 
       // max_work_group_size
 
@@ -2911,9 +2913,9 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       char *device_name_chksum = (char *) hcmalloc (HCBUFSIZ_TINY);
 
       #if defined (__x86_64__)
-      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY - 1, "%d-%u-%u-%s-%s-%s-%d-%u-%u", 64, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, comptime, user_options->opencl_vector_width, hashconfig->hash_mode);
+      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY - 1, "%d-%u-%u-%s-%s-%s-%d-%u-%u", 64, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, comptime, user_options->opencl_vector_width, user_options->hash_mode);
       #else
-      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY - 1, "%d-%u-%u-%s-%s-%s-%d-%u-%u", 32, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, comptime, user_options->opencl_vector_width, hashconfig->hash_mode);
+      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY - 1, "%d-%u-%u-%s-%s-%s-%d-%u-%u", 32, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, comptime, user_options->opencl_vector_width, user_options->hash_mode);
       #endif
 
       u32 device_name_digest[4] = { 0 };
@@ -3689,6 +3691,47 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->kernel_accel_min = 1;
       device_param->kernel_accel_max = 8;
 
+      const u32 kernel_power_max = device_param->hardware_power * device_param->kernel_accel_max;
+
+      // size_pws
+
+      const size_t size_pws = kernel_power_max * sizeof (pw_t);
+
+      // size_tmps
+
+      const size_t size_tmps = kernel_power_max * hashconfig->tmp_size;
+
+      // size_hooks
+
+      const size_t size_hooks = kernel_power_max * hashconfig->hook_size;
+
+      const u64 scrypt_extra_space
+        = bitmap_ctx->bitmap_size
+        + bitmap_ctx->bitmap_size
+        + bitmap_ctx->bitmap_size
+        + bitmap_ctx->bitmap_size
+        + bitmap_ctx->bitmap_size
+        + bitmap_ctx->bitmap_size
+        + bitmap_ctx->bitmap_size
+        + bitmap_ctx->bitmap_size
+        + size_bfs
+        + size_combs
+        + size_digests
+        + size_esalts
+        + size_hooks
+        + size_markov_css
+        + size_plains
+        + size_pws
+        + size_pws // not a bug
+        + size_results
+        + size_root_css
+        + size_rules
+        + size_rules_c
+        + size_salts
+        + size_shown
+        + size_tm
+        + size_tmps;
+
       u32 tmto;
 
       for (tmto = tmto_start; tmto < tmto_stop; tmto++)
@@ -3706,7 +3749,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
           continue;
         }
 
-        if (size_scrypt > device_param->device_global_mem)
+        if ((size_scrypt + scrypt_extra_space) > device_param->device_global_mem)
         {
           if (user_options->quiet == false) event_log_warning (hashcat_ctx, "Not enough total device memory allocatable to use --scrypt-tmto %u, increasing...", tmto);
 

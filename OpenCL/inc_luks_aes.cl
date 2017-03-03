@@ -2757,7 +2757,11 @@ void luks_af_sha1_then_aes_decrypt (__global luks_t *luks_bufs, __global luks_tm
   {
     if (key_size == HC_LUKS_KEY_SIZE_128)
     {
+      #if defined (IS_APPLE) && defined (IS_GPU)
+      volatile u32 ukey[4];
+      #else
       u32 ukey[4];
+      #endif
 
       ukey[0] = mk[0];
       ukey[1] = mk[1];
@@ -2778,7 +2782,11 @@ void luks_af_sha1_then_aes_decrypt (__global luks_t *luks_bufs, __global luks_tm
     }
     else if (key_size == HC_LUKS_KEY_SIZE_256)
     {
+      #if defined (IS_APPLE) && defined (IS_GPU)
+      volatile u32 ukey[8];
+      #else
       u32 ukey[8];
+      #endif
 
       ukey[0] = mk[0];
       ukey[1] = mk[1];
@@ -2806,7 +2814,11 @@ void luks_af_sha1_then_aes_decrypt (__global luks_t *luks_bufs, __global luks_tm
   {
     if (key_size == HC_LUKS_KEY_SIZE_128)
     {
+      #if defined (IS_APPLE) && defined (IS_GPU)
+      volatile u32 ukey[4];
+      #else
       u32 ukey[4];
+      #endif
 
       ukey[0] = mk[0];
       ukey[1] = mk[1];
@@ -2821,7 +2833,11 @@ void luks_af_sha1_then_aes_decrypt (__global luks_t *luks_bufs, __global luks_tm
     }
     else if (key_size == HC_LUKS_KEY_SIZE_256)
     {
+      #if defined (IS_APPLE) && defined (IS_GPU)
+      volatile u32 ukey[8];
+      #else
       u32 ukey[8];
+      #endif
 
       ukey[0] = mk[0];
       ukey[1] = mk[1];
@@ -2843,14 +2859,22 @@ void luks_af_sha1_then_aes_decrypt (__global luks_t *luks_bufs, __global luks_tm
   {
     if (key_size == HC_LUKS_KEY_SIZE_256)
     {
+      #if defined (IS_APPLE) && defined (IS_GPU)
+      volatile u32 ukey1[4];
+      #else
       u32 ukey1[4];
+      #endif
 
       ukey1[0] = mk[0];
       ukey1[1] = mk[1];
       ukey1[2] = mk[2];
       ukey1[3] = mk[3];
 
+      #if defined (IS_APPLE) && defined (IS_GPU)
+      volatile u32 ukey2[4];
+      #else
       u32 ukey2[4];
+      #endif
 
       ukey2[0] = mk[4];
       ukey2[1] = mk[5];
@@ -2867,7 +2891,11 @@ void luks_af_sha1_then_aes_decrypt (__global luks_t *luks_bufs, __global luks_tm
     }
     else if (key_size == HC_LUKS_KEY_SIZE_512)
     {
+      #if defined (IS_APPLE) && defined (IS_GPU)
+      volatile u32 ukey1[8];
+      #else
       u32 ukey1[8];
+      #endif
 
       ukey1[0] = mk[ 0];
       ukey1[1] = mk[ 1];
@@ -2878,7 +2906,11 @@ void luks_af_sha1_then_aes_decrypt (__global luks_t *luks_bufs, __global luks_tm
       ukey1[6] = mk[ 6];
       ukey1[7] = mk[ 7];
 
+      #if defined (IS_APPLE) && defined (IS_GPU)
+      volatile u32 ukey2[8];
+      #else
       u32 ukey2[8];
+      #endif
 
       ukey2[0] = mk[ 8];
       ukey2[1] = mk[ 9];

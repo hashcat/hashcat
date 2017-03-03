@@ -300,7 +300,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     {
       for (induct_ctx->induction_dictionaries_pos = 0; induct_ctx->induction_dictionaries_pos < induct_ctx->induction_dictionaries_cnt; induct_ctx->induction_dictionaries_pos++)
       {
-        if (status_ctx->devices_status != STATUS_CRACKED)
+        if (status_ctx->devices_status == STATUS_EXHAUSTED)
         {
           const int rc_inner2_loop = inner2_loop (hashcat_ctx);
 
@@ -867,6 +867,12 @@ void hashcat_destroy (hashcat_ctx_t *hashcat_ctx)
 int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_folder, int argc, char **argv, const int comptime)
 {
   user_options_t *user_options = hashcat_ctx->user_options;
+
+  /**
+   * make it a bit more comfortable to use some of the special modes in hashcat
+   */
+
+  user_options_session_auto (hashcat_ctx);
 
   /**
    * event init (needed for logging so should be first)
