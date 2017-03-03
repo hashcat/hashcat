@@ -383,6 +383,8 @@ void expand_key (u32 E[18], const u32 W[16], const u32 len)
     while (W_cur < W_stop)
     {
       *E_cur++ = *W_cur++;
+
+      if (E_cur == E_stop) return;
     }
 
     *E_cur++ = 0;

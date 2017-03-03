@@ -52,6 +52,7 @@
 - Fixed DEScrypt cracking in BF mode in case the hashlist contains more than 16 times the same salt
 - Fixed duplicate detection for WPA handshakes with the same ESSID
 - Fixed nvapi datatype definition for NvS32 and NvU32
+- Fixed overflow in bcrypt kernel in expand_key() function
 - Fixed pointer to local variable outside scope in case -j or -k is used
 - Fixed pointer to local variable outside scope in case --markov-hcstat is not used
 - Fixed recursion in loopback handling when session was aborted by the user
