@@ -22491,7 +22491,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   // pw_min
 
-  hashconfig->pw_max = PW_MIN;
+  hashconfig->pw_min = PW_MIN;
 
   switch (hashconfig->hash_mode)
   {

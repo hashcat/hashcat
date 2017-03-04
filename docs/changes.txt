@@ -5,6 +5,7 @@
 ##
 
 - Fixed a problem where --keyspace combined with custom charsets incorrectly displayed an error message
+- Fixed a typo that resulted in the minimum password length not being correctly initialized
 
 * changes v3.30 -> v3.40:
 
