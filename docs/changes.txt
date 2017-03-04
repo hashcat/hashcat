@@ -1,3 +1,11 @@
+* changes v3.40 -> ?:
+
+##
+## Bugs
+##
+
+- Fixed a problem where --keyspace combined with custom charsets incorrectly displayed an error message
+
 * changes v3.30 -> v3.40:
 
 ##

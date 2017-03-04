@@ -820,9 +820,12 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
     if (user_options->hc_argc < 2)
     {
-      event_log_error (hashcat_ctx, "You need to specify a mask if you specify a custom-charset");
+      if (user_options->keyspace == false) // special case, we do not need a hash file
+      {
+        event_log_error (hashcat_ctx, "You need to specify a mask if you specify a custom-charset");
 
-      return -1;
+        return -1;
+      }
     }
   }
 
