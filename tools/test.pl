@@ -5492,7 +5492,7 @@ sub gen_hash
 
     my $hash = sha1 ($salt_bin . $word_buf . $FORTIGATE_MAGIC);
 
-    $hash = encode_base64 ($salt_bin . $hash . "\x00");
+    $hash = encode_base64 ($salt_bin . $hash);
     $hash =~ s/[\r\n]//g;
 
     $tmp_hash = sprintf ("%s%s", $FORTIGATE_SIGNATURE, $hash);

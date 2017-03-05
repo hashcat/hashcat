@@ -14054,7 +14054,7 @@ int fortigate_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   int decoded_len = base64_decode (base64_to_int, (const u8 *) hash_pos, DISPLAY_LEN_MAX_7000 - 3, tmp_buf);
 
-  if (decoded_len != 32 + 1) return (PARSER_HASH_LENGTH);
+  if (decoded_len != 32) return (PARSER_HASH_LENGTH);
 
   /**
    * store data
@@ -16219,7 +16219,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     // base64 encode (salt + SHA1)
 
-    base64_encode (int_to_base64, (const u8 *) tmp_buf, 12 + 20 + 1, (u8 *) ptr_plain);
+    base64_encode (int_to_base64, (const u8 *) tmp_buf, 12 + 20, (u8 *) ptr_plain);
 
     ptr_plain[44] = 0;
 
