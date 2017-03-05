@@ -22,7 +22,7 @@
 
 // needed for *time_r functions under MinGW
 #ifndef _POSIX_THREAD_SAFE_FUNCTIONS
-#define _POSIX_THREAD_SAFE_FUNCTIONS 200112L
+#define _POSIX_THREAD_SAFE_FUNCTIONS 200809L
 #endif
 
 // needed for 64-bit off_t on 32-bit OSes
