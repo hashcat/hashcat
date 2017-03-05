@@ -30,6 +30,10 @@
 #define _FILE_OFFSET_BITS 64
 #endif
 
+#ifndef _FORTIFY_SOURCE
+#define _FORTIFY_SOURCE 2
+#endif
+
 #define NOMINMAX 1
 
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
