@@ -121,7 +121,7 @@ VERSION_TAG             := $(shell test -d .git && git describe --tags --dirty=+
 ## General compiler and linker options
 ##
 
-CFLAGS                  += -pipe -std=c99 -Iinclude/ -Iinclude/lzma_sdk/ -IOpenCL/
+CFLAGS                  += -pipe -std=gnu99 -Iinclude/ -Iinclude/lzma_sdk/ -IOpenCL/
 
 ifeq ($(PRODUCTION),0)
 CFLAGS                  += -W
