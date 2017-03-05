@@ -13,9 +13,6 @@
 #if defined (_WIN)
 #include <windows.h>
 #include <psapi.h>
-#else
-#include <sys/types.h>
-#include <sys/stat.h>
 #endif // _WIN
 
 int pidfile_ctx_init (hashcat_ctx_t *hashcat_ctx);
