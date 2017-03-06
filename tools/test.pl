@@ -214,7 +214,7 @@ sub verify
     # remember always do "exists ($db->{$hash_in})" checks as soon as possible and don't forget it
 
     # unsalted
-    if ($mode == 0 || $mode == 100 || $mode == 101 || $mode == 133 || $mode == 200 || $mode == 300 || $mode == 900 || $mode == 1000 || $mode == 1300 || $mode == 1400 || $mode == 1700 || $mode == 2400 || $mode == 2600 || $mode == 3000 || $mode == 3500 || $mode == 4300 || $mode == 4400 || $mode == 4500 || $mode == 4600 || $mode == 4700 || $mode == 5000 || $mode == 5100 || $mode == 5700 || $mode == 6000 || $mode == 6100 || $mode == 6900 || $mode == 8600 || $mode == 9900 || $mode == 10800 || $mode == 11500 || $mode == 15000 || $mode == 99999)
+    if ($mode == 0 || $mode == 100 || $mode == 101 || $mode == 133 || $mode == 200 || $mode == 300 || $mode == 900 || $mode == 1000 || $mode == 1300 || $mode == 1400 || $mode == 1700 || $mode == 2400 || $mode == 2600 || $mode == 3000 || $mode == 3500 || $mode == 4300 || $mode == 4400 || $mode == 4500 || $mode == 4600 || $mode == 4700 || $mode == 5000 || $mode == 5100 || $mode == 5700 || $mode == 6000 || $mode == 6100 || $mode == 6900 || $mode == 8600 || $mode == 9900 || $mode == 10800 || $mode == 11500 || $mode == 99999)
     {
       my $index = index ($line, ":");
 
@@ -227,7 +227,7 @@ sub verify
       $word = substr ($line, $index + 1);
     }
     # hash:salt
-    elsif ($mode == 10 || $mode == 11 || $mode == 12 || $mode == 20 || $mode == 21 || $mode == 22 || $mode == 23 || $mode == 30 || $mode == 40 || $mode == 50 || $mode == 60 || $mode == 110 || $mode == 112 || $mode == 120 || $mode == 121 || $mode == 130 || $mode == 140 || $mode == 150 || $mode == 160 || $mode == 1100 || $mode == 1410 || $mode == 1420 || $mode == 1430 || $mode == 1440 || $mode == 1450 || $mode == 1460 || $mode == 1710 || $mode == 1720 || $mode == 1730 || $mode == 1740 || $mode == 1750 || $mode == 1760 || $mode == 2410 || $mode == 2611 || $mode == 2711 || $mode == 2811 || $mode == 3100 || $mode == 3610 || $mode == 3710 || $mode == 3720 || $mode == 3800 || $mode == 3910 || $mode == 4010 || $mode == 4110 || $mode == 4210 || $mode == 4520 || $mode == 4521 || $mode == 4522 || $mode == 4900 || $mode == 5800 || $mode == 8400 || $mode == 11000 || $mode == 12600 || $mode == 13500 || $mode == 13800 || $mode == 13900 || $mode == 14000 || $mode == 14100 || $mode == 14400 || $mode == 14900)
+    elsif ($mode == 10 || $mode == 11 || $mode == 12 || $mode == 20 || $mode == 21 || $mode == 22 || $mode == 23 || $mode == 30 || $mode == 40 || $mode == 50 || $mode == 60 || $mode == 110 || $mode == 112 || $mode == 120 || $mode == 121 || $mode == 130 || $mode == 140 || $mode == 150 || $mode == 160 || $mode == 1100 || $mode == 1410 || $mode == 1420 || $mode == 1430 || $mode == 1440 || $mode == 1450 || $mode == 1460 || $mode == 1710 || $mode == 1720 || $mode == 1730 || $mode == 1740 || $mode == 1750 || $mode == 1760 || $mode == 2410 || $mode == 2611 || $mode == 2711 || $mode == 2811 || $mode == 3100 || $mode == 3610 || $mode == 3710 || $mode == 3720 || $mode == 3800 || $mode == 3910 || $mode == 4010 || $mode == 4110 || $mode == 4210 || $mode == 4520 || $mode == 4521 || $mode == 4522 || $mode == 4900 || $mode == 5800 || $mode == 8400 || $mode == 11000 || $mode == 12600 || $mode == 13500 || $mode == 13800 || $mode == 13900 || $mode == 14000 || $mode == 14100 || $mode == 14400 || $mode == 14900 || $mode == 15000)
     {
       # get hash
       my $index1 = index ($line, ":");
@@ -4950,7 +4950,7 @@ sub gen_hash
     $mic = substr ($mic, 0, 16);
 
     #
-    # format the binary output (.hccapx version 3)
+    # format the binary output
     #
 
     my $HCCAPX_VERSION = 4;
