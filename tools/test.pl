@@ -5594,7 +5594,6 @@ sub gen_hash
       my $timestamp = substr ($clear_data, 14, 14);
 
       my $is_numeric = 1;
-      my $num;
 
       if ($timestamp !~ /^[[:digit:]]{14}$/)
       {
@@ -5911,8 +5910,6 @@ sub gen_hash
     }
 
     my $digest_new = $pbkdf2->PBKDF2 ($salt_buf, $tmp_hash);
-
-    my $iteration_str = "" . $iterations;
 
     for (my $i = length ($iterations); $i < 10; $i++)
     {
@@ -9858,8 +9855,6 @@ sub domino_big_md
 
   for ($curpos = 0; $curpos + 16 < $size; $curpos += 16)
   {
-    my $curpos16 = $curpos + 16;
-
     my @block = splice (@{$saved_key_ref}, 0, 16);
 
     mdtransform (\@state, \@checksum, \@block);
@@ -10083,7 +10078,7 @@ sub gen_random_wpa_eapol
 
     my $vendor_specific_unicast_oui = pack ("H*", "0050f2");
 
-    $vendor_specific_data .= $vendor_specific_multicast_oui;
+    $vendor_specific_data .= $vendor_specific_unicast_oui;
 
     my $vendor_specific_unicast_type = 2; # TKIP
 
