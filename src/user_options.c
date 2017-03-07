@@ -60,6 +60,7 @@ static const struct option long_options[] =
   {"markov-disable",            no_argument,       0, IDX_MARKOV_DISABLE},
   {"markov-hcstat",             required_argument, 0, IDX_MARKOV_HCSTAT},
   {"markov-threshold",          required_argument, 0, IDX_MARKOV_THRESHOLD},
+  {"nonce-error-corrections",   required_argument, 0, IDX_NONCE_ERROR_CORRECTIONS},
   {"nvidia-spin-damp",          required_argument, 0, IDX_NVIDIA_SPIN_DAMP},
   {"opencl-devices",            required_argument, 0, IDX_OPENCL_DEVICES},
   {"opencl-device-types",       required_argument, 0, IDX_OPENCL_DEVICE_TYPES},
@@ -154,6 +155,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->markov_disable            = MARKOV_DISABLE;
   user_options->markov_hcstat             = NULL;
   user_options->markov_threshold          = MARKOV_THRESHOLD;
+  user_options->nonce_error_corrections   = NONCE_ERROR_CORRECTIONS;
   user_options->nvidia_spin_damp          = NVIDIA_SPIN_DAMP;
   user_options->opencl_devices            = NULL;
   user_options->opencl_device_types       = NULL;
@@ -317,6 +319,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_LOGFILE_DISABLE:           user_options->logfile_disable           = true;           break;
       case IDX_HCCAPX_MESSAGE_PAIR:       user_options->hccapx_message_pair       = atoi (optarg);
                                           user_options->hccapx_message_pair_chgd  = true;           break;
+      case IDX_NONCE_ERROR_CORRECTIONS:   user_options->nonce_error_corrections   = atoi (optarg);  break;
       case IDX_TRUECRYPT_KEYFILES:        user_options->truecrypt_keyfiles        = optarg;         break;
       case IDX_VERACRYPT_KEYFILES:        user_options->veracrypt_keyfiles        = optarg;         break;
       case IDX_VERACRYPT_PIM:             user_options->veracrypt_pim             = atoi (optarg);  break;
@@ -990,7 +993,7 @@ void user_options_session_auto (hashcat_ctx_t *hashcat_ctx)
 {
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (user_options->session == PROGNAME)
+  if (strcmp (user_options->session, PROGNAME) == 0)
   {
     if (user_options->benchmark == true)
     {

@@ -2762,7 +2762,9 @@ int wpa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
     memcpy (pke_ptr + 29, in.mac_ap,  6);
   }
 
-  if (memcmp (in.nonce_ap, in.nonce_sta, 32) < 0)
+  wpa->nonce_compare = memcmp (in.nonce_ap, in.nonce_sta, 32);
+
+  if (wpa->nonce_compare < 0)
   {
     memcpy (pke_ptr + 35, in.nonce_ap,  32);
     memcpy (pke_ptr + 67, in.nonce_sta, 32);
@@ -2789,6 +2791,11 @@ int wpa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
   }
 
   wpa->message_pair = in.message_pair;
+
+  if ((wpa->message_pair == MESSAGE_PAIR_M32E3) || (wpa->message_pair == MESSAGE_PAIR_M34E3))
+  {
+    wpa->nonce_error_corrections = 0;
+  }
 
   wpa->keyver = in.keyver;
 
@@ -14933,10 +14940,8 @@ int check_old_hccap (const char *hashfile)
 
 void to_hccapx_t (hashcat_ctx_t *hashcat_ctx, hccapx_t *hccapx, const u32 salt_pos, const u32 digest_pos)
 {
-  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
-  const hashes_t     *hashes     = hashcat_ctx->hashes;
+  const hashes_t *hashes = hashcat_ctx->hashes;
 
-  const void   *digests_buf = hashes->digests_buf;
   const salt_t *salts_buf   = hashes->salts_buf;
   const void   *esalts_buf  = hashes->esalts_buf;
 

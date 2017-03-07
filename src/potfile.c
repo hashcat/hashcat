@@ -24,7 +24,7 @@ int sort_by_hash_no_salt (const void *v1, const void *v2, void *v3);
 
 // this function is for potfile comparison where the potfile does not contain all the
 // information requires to do a true sort_by_hash() bsearch
-static int sort_by_hash_t_salt (const void *v1, const void *v2, void *v3)
+static int sort_by_hash_t_salt (const void *v1, const void *v2)
 {
   const hash_t *h1 = (const hash_t *) v1;
   const hash_t *h2 = (const hash_t *) v2;
@@ -446,7 +446,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
         hash_buf.salt->salt_len = line_hash_len;
 
-        found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_t_salt, (void *) hashconfig);
+        found = (hash_t *) bsearch (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_t_salt);
       }
     }
     else if (hashconfig->hash_mode == 2500)

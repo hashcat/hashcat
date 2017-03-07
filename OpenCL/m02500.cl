@@ -827,38 +827,38 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   const u32 lid = get_local_id (0);
 
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  w0[0] = tmps[gid].out[0];
+  w0[1] = tmps[gid].out[1];
+  w0[2] = tmps[gid].out[2];
+  w0[3] = tmps[gid].out[3];
+  w1[0] = tmps[gid].out[4];
+  w1[1] = tmps[gid].out[5];
+  w1[2] = tmps[gid].out[6];
+  w1[3] = tmps[gid].out[7];
+  w2[0] = 0;
+  w2[1] = 0;
+  w2[2] = 0;
+  w2[3] = 0;
+  w3[0] = 0;
+  w3[1] = 0;
+  w3[2] = 0;
+  w3[3] = 0;
+
+  u32 ipad_l0[5];
+  u32 opad_l0[5];
+
+  hmac_sha1_pad_S (w0, w1, w2, w3, ipad_l0, opad_l0);
+
   for (u32 digest_pos = 0; digest_pos < digests_cnt; digest_pos++)
   {
     const u32 digest_cur = digests_offset + digest_pos;
 
     __global wpa_t *wpa = &wpa_bufs[digest_cur];
-
-    u32 w0[4];
-    u32 w1[4];
-    u32 w2[4];
-    u32 w3[4];
-
-    w0[0] = tmps[gid].out[0];
-    w0[1] = tmps[gid].out[1];
-    w0[2] = tmps[gid].out[2];
-    w0[3] = tmps[gid].out[3];
-    w1[0] = tmps[gid].out[4];
-    w1[1] = tmps[gid].out[5];
-    w1[2] = tmps[gid].out[6];
-    w1[3] = tmps[gid].out[7];
-    w2[0] = 0;
-    w2[1] = 0;
-    w2[2] = 0;
-    w2[3] = 0;
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
-    w3[3] = 0;
-
-    u32 ipad[5];
-    u32 opad[5];
-
-    hmac_sha1_pad_S (w0, w1, w2, w3, ipad, opad);
 
     w0[0] = wpa->pke[ 0];
     w0[1] = wpa->pke[ 1];
@@ -877,59 +877,124 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     w3[2] = wpa->pke[14];
     w3[3] = wpa->pke[15];
 
-    sha1_transform_S (w0, w1, w2, w3, ipad);
+    u32 ipad_l1[5];
+    u32 opad_l1[5];
 
-    w0[0] = wpa->pke[16];
-    w0[1] = wpa->pke[17];
-    w0[2] = wpa->pke[18];
-    w0[3] = wpa->pke[19];
-    w1[0] = wpa->pke[20];
-    w1[1] = wpa->pke[21];
-    w1[2] = wpa->pke[22];
-    w1[3] = wpa->pke[23];
-    w2[0] = wpa->pke[24];
-    w2[1] = 0x80000000;
-    w2[2] = 0;
-    w2[3] = 0;
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
-    w3[3] = (64 + 100) * 8;
+    ipad_l1[0] = ipad_l0[0];
+    ipad_l1[1] = ipad_l0[1];
+    ipad_l1[2] = ipad_l0[2];
+    ipad_l1[3] = ipad_l0[3];
+    ipad_l1[4] = ipad_l0[4];
 
-    u32 digest[5];
+    opad_l1[0] = opad_l0[0];
+    opad_l1[1] = opad_l0[1];
+    opad_l1[2] = opad_l0[2];
+    opad_l1[3] = opad_l0[3];
+    opad_l1[4] = opad_l0[4];
 
-    hmac_sha1_run_S (w0, w1, w2, w3, ipad, opad, digest);
+    sha1_transform_S (w0, w1, w2, w3, ipad_l1);
 
-    u32 digest_final[5];
+    const u32 nonce_error_corrections = wpa->nonce_error_corrections;
 
-    if (wpa->keyver == 1)
+    for (u32 nonce_error_correction = 0; nonce_error_correction <= nonce_error_corrections; nonce_error_correction++)
     {
-      w0[0] = swap32_S (digest[0]);
-      w0[1] = swap32_S (digest[1]);
-      w0[2] = swap32_S (digest[2]);
-      w0[3] = swap32_S (digest[3]);
-      w1[0] = 0;
-      w1[1] = 0;
-      w1[2] = 0;
-      w1[3] = 0;
-      w2[0] = 0;
-      w2[1] = 0;
+      w0[0] = wpa->pke[16];
+      w0[1] = wpa->pke[17];
+      w0[2] = wpa->pke[18];
+      w0[3] = wpa->pke[19];
+      w1[0] = wpa->pke[20];
+      w1[1] = wpa->pke[21];
+      w1[2] = wpa->pke[22];
+      w1[3] = wpa->pke[23];
+      w2[0] = wpa->pke[24];
+      w2[1] = 0x80000000;
       w2[2] = 0;
       w2[3] = 0;
       w3[0] = 0;
       w3[1] = 0;
       w3[2] = 0;
-      w3[3] = 0;
+      w3[3] = (64 + 100) * 8;
 
-      hmac_md5_pad_S (w0, w1, w2, w3, ipad, opad);
+      const u32 incval = (1 << 8) * nonce_error_correction;
 
-      int eapol_len = wpa->eapol_len;
-
-      int eapol_left;
-      int eapol_off;
-
-      for (eapol_left = eapol_len, eapol_off = 0; eapol_left >= 56; eapol_left -= 64, eapol_off += 16)
+      if (wpa->nonce_compare < 0)
       {
+        w0[0] += incval;
+      }
+      else
+      {
+        w2[0] += incval;
+      }
+
+      u32 ipad[5];
+      u32 opad[5];
+
+      ipad[0] = ipad_l1[0];
+      ipad[1] = ipad_l1[1];
+      ipad[2] = ipad_l1[2];
+      ipad[3] = ipad_l1[3];
+      ipad[4] = ipad_l1[4];
+
+      opad[0] = opad_l1[0];
+      opad[1] = opad_l1[1];
+      opad[2] = opad_l1[2];
+      opad[3] = opad_l1[3];
+      opad[4] = opad_l1[4];
+
+      u32 digest[5];
+
+      hmac_sha1_run_S (w0, w1, w2, w3, ipad, opad, digest);
+
+      u32 digest_final[5];
+
+      if (wpa->keyver == 1)
+      {
+        w0[0] = swap32_S (digest[0]);
+        w0[1] = swap32_S (digest[1]);
+        w0[2] = swap32_S (digest[2]);
+        w0[3] = swap32_S (digest[3]);
+        w1[0] = 0;
+        w1[1] = 0;
+        w1[2] = 0;
+        w1[3] = 0;
+        w2[0] = 0;
+        w2[1] = 0;
+        w2[2] = 0;
+        w2[3] = 0;
+        w3[0] = 0;
+        w3[1] = 0;
+        w3[2] = 0;
+        w3[3] = 0;
+
+        hmac_md5_pad_S (w0, w1, w2, w3, ipad, opad);
+
+        int eapol_len = wpa->eapol_len;
+
+        int eapol_left;
+        int eapol_off;
+
+        for (eapol_left = eapol_len, eapol_off = 0; eapol_left >= 56; eapol_left -= 64, eapol_off += 16)
+        {
+          w0[0] = wpa->eapol[eapol_off +  0];
+          w0[1] = wpa->eapol[eapol_off +  1];
+          w0[2] = wpa->eapol[eapol_off +  2];
+          w0[3] = wpa->eapol[eapol_off +  3];
+          w1[0] = wpa->eapol[eapol_off +  4];
+          w1[1] = wpa->eapol[eapol_off +  5];
+          w1[2] = wpa->eapol[eapol_off +  6];
+          w1[3] = wpa->eapol[eapol_off +  7];
+          w2[0] = wpa->eapol[eapol_off +  8];
+          w2[1] = wpa->eapol[eapol_off +  9];
+          w2[2] = wpa->eapol[eapol_off + 10];
+          w2[3] = wpa->eapol[eapol_off + 11];
+          w3[0] = wpa->eapol[eapol_off + 12];
+          w3[1] = wpa->eapol[eapol_off + 13];
+          w3[2] = wpa->eapol[eapol_off + 14];
+          w3[3] = wpa->eapol[eapol_off + 15];
+
+          md5_transform_S (w0, w1, w2, w3, ipad);
+        }
+
         w0[0] = wpa->eapol[eapol_off +  0];
         w0[1] = wpa->eapol[eapol_off +  1];
         w0[2] = wpa->eapol[eapol_off +  2];
@@ -944,59 +1009,59 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
         w2[3] = wpa->eapol[eapol_off + 11];
         w3[0] = wpa->eapol[eapol_off + 12];
         w3[1] = wpa->eapol[eapol_off + 13];
-        w3[2] = wpa->eapol[eapol_off + 14];
-        w3[3] = wpa->eapol[eapol_off + 15];
+        w3[2] = (64 + eapol_len) * 8;
+        w3[3] = 0;
 
-        md5_transform_S (w0, w1, w2, w3, ipad);
+        hmac_md5_run_S (w0, w1, w2, w3, ipad, opad, digest_final);
       }
-
-      w0[0] = wpa->eapol[eapol_off +  0];
-      w0[1] = wpa->eapol[eapol_off +  1];
-      w0[2] = wpa->eapol[eapol_off +  2];
-      w0[3] = wpa->eapol[eapol_off +  3];
-      w1[0] = wpa->eapol[eapol_off +  4];
-      w1[1] = wpa->eapol[eapol_off +  5];
-      w1[2] = wpa->eapol[eapol_off +  6];
-      w1[3] = wpa->eapol[eapol_off +  7];
-      w2[0] = wpa->eapol[eapol_off +  8];
-      w2[1] = wpa->eapol[eapol_off +  9];
-      w2[2] = wpa->eapol[eapol_off + 10];
-      w2[3] = wpa->eapol[eapol_off + 11];
-      w3[0] = wpa->eapol[eapol_off + 12];
-      w3[1] = wpa->eapol[eapol_off + 13];
-      w3[2] = (64 + eapol_len) * 8;
-      w3[3] = 0;
-
-      hmac_md5_run_S (w0, w1, w2, w3, ipad, opad, digest_final);
-    }
-    else
-    {
-      w0[0] = digest[0];
-      w0[1] = digest[1];
-      w0[2] = digest[2];
-      w0[3] = digest[3];
-      w1[0] = 0;
-      w1[1] = 0;
-      w1[2] = 0;
-      w1[3] = 0;
-      w2[0] = 0;
-      w2[1] = 0;
-      w2[2] = 0;
-      w2[3] = 0;
-      w3[0] = 0;
-      w3[1] = 0;
-      w3[2] = 0;
-      w3[3] = 0;
-
-      hmac_sha1_pad_S (w0, w1, w2, w3, ipad, opad);
-
-      int eapol_len = wpa->eapol_len;
-
-      int eapol_left;
-      int eapol_off;
-
-      for (eapol_left = eapol_len, eapol_off = 0; eapol_left >= 56; eapol_left -= 64, eapol_off += 16)
+      else
       {
+        w0[0] = digest[0];
+        w0[1] = digest[1];
+        w0[2] = digest[2];
+        w0[3] = digest[3];
+        w1[0] = 0;
+        w1[1] = 0;
+        w1[2] = 0;
+        w1[3] = 0;
+        w2[0] = 0;
+        w2[1] = 0;
+        w2[2] = 0;
+        w2[3] = 0;
+        w3[0] = 0;
+        w3[1] = 0;
+        w3[2] = 0;
+        w3[3] = 0;
+
+        hmac_sha1_pad_S (w0, w1, w2, w3, ipad, opad);
+
+        int eapol_len = wpa->eapol_len;
+
+        int eapol_left;
+        int eapol_off;
+
+        for (eapol_left = eapol_len, eapol_off = 0; eapol_left >= 56; eapol_left -= 64, eapol_off += 16)
+        {
+          w0[0] = wpa->eapol[eapol_off +  0];
+          w0[1] = wpa->eapol[eapol_off +  1];
+          w0[2] = wpa->eapol[eapol_off +  2];
+          w0[3] = wpa->eapol[eapol_off +  3];
+          w1[0] = wpa->eapol[eapol_off +  4];
+          w1[1] = wpa->eapol[eapol_off +  5];
+          w1[2] = wpa->eapol[eapol_off +  6];
+          w1[3] = wpa->eapol[eapol_off +  7];
+          w2[0] = wpa->eapol[eapol_off +  8];
+          w2[1] = wpa->eapol[eapol_off +  9];
+          w2[2] = wpa->eapol[eapol_off + 10];
+          w2[3] = wpa->eapol[eapol_off + 11];
+          w3[0] = wpa->eapol[eapol_off + 12];
+          w3[1] = wpa->eapol[eapol_off + 13];
+          w3[2] = wpa->eapol[eapol_off + 14];
+          w3[3] = wpa->eapol[eapol_off + 15];
+
+          sha1_transform_S (w0, w1, w2, w3, ipad);
+        }
+
         w0[0] = wpa->eapol[eapol_off +  0];
         w0[1] = wpa->eapol[eapol_off +  1];
         w0[2] = wpa->eapol[eapol_off +  2];
@@ -1011,44 +1076,25 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
         w2[3] = wpa->eapol[eapol_off + 11];
         w3[0] = wpa->eapol[eapol_off + 12];
         w3[1] = wpa->eapol[eapol_off + 13];
-        w3[2] = wpa->eapol[eapol_off + 14];
-        w3[3] = wpa->eapol[eapol_off + 15];
+        w3[2] = 0;
+        w3[3] = (64 + eapol_len) * 8;
 
-        sha1_transform_S (w0, w1, w2, w3, ipad);
+        u32 digest2[5];
+
+        hmac_sha1_run_S (w0, w1, w2, w3, ipad, opad, digest_final);
       }
 
-      w0[0] = wpa->eapol[eapol_off +  0];
-      w0[1] = wpa->eapol[eapol_off +  1];
-      w0[2] = wpa->eapol[eapol_off +  2];
-      w0[3] = wpa->eapol[eapol_off +  3];
-      w1[0] = wpa->eapol[eapol_off +  4];
-      w1[1] = wpa->eapol[eapol_off +  5];
-      w1[2] = wpa->eapol[eapol_off +  6];
-      w1[3] = wpa->eapol[eapol_off +  7];
-      w2[0] = wpa->eapol[eapol_off +  8];
-      w2[1] = wpa->eapol[eapol_off +  9];
-      w2[2] = wpa->eapol[eapol_off + 10];
-      w2[3] = wpa->eapol[eapol_off + 11];
-      w3[0] = wpa->eapol[eapol_off + 12];
-      w3[1] = wpa->eapol[eapol_off + 13];
-      w3[2] = 0;
-      w3[3] = (64 + eapol_len) * 8;
+      /**
+       * final compare
+       */
 
-      u32 digest2[5];
-
-      hmac_sha1_run_S (w0, w1, w2, w3, ipad, opad, digest_final);
-    }
-
-    /**
-     * final compare
-     */
-
-    if ((digest_final[0] == wpa->keymic[0])
-     && (digest_final[1] == wpa->keymic[1])
-     && (digest_final[2] == wpa->keymic[2])
-     && (digest_final[3] == wpa->keymic[3]))
-    {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, digest_cur, gid, 0);
+      if ((digest_final[0] == wpa->keymic[0])
+       && (digest_final[1] == wpa->keymic[1])
+       && (digest_final[2] == wpa->keymic[2])
+       && (digest_final[3] == wpa->keymic[3]))
+      {
+        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, digest_cur, gid, 0);
+      }
     }
   }
 }
