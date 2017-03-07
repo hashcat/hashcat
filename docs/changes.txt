@@ -1,6 +1,12 @@
 * changes v3.40 -> ?:
 
 ##
+## Improvements
+##
+
+- Refactored internal use of esalt from sync with number of salts to sync with number of digests
+
+##
 ## Bugs
 ##
 
