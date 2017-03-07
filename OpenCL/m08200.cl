@@ -736,47 +736,47 @@ __kernel void m08200_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   hmac_sha256_pad (w0, w1, w2, w3, ipad, opad);
 
-  int size = esalt_bufs[salt_pos].data_len;
+  int size = esalt_bufs[digests_offset].data_len;
 
   int left;
   int off;
 
   for (left = size, off = 0; left >= 56; left -= 64, off += 16)
   {
-    w0[0] = esalt_bufs[salt_pos].data_buf[off +  0];
-    w0[1] = esalt_bufs[salt_pos].data_buf[off +  1];
-    w0[2] = esalt_bufs[salt_pos].data_buf[off +  2];
-    w0[3] = esalt_bufs[salt_pos].data_buf[off +  3];
-    w1[0] = esalt_bufs[salt_pos].data_buf[off +  4];
-    w1[1] = esalt_bufs[salt_pos].data_buf[off +  5];
-    w1[2] = esalt_bufs[salt_pos].data_buf[off +  6];
-    w1[3] = esalt_bufs[salt_pos].data_buf[off +  7];
-    w2[0] = esalt_bufs[salt_pos].data_buf[off +  8];
-    w2[1] = esalt_bufs[salt_pos].data_buf[off +  9];
-    w2[2] = esalt_bufs[salt_pos].data_buf[off + 10];
-    w2[3] = esalt_bufs[salt_pos].data_buf[off + 11];
-    w3[0] = esalt_bufs[salt_pos].data_buf[off + 12];
-    w3[1] = esalt_bufs[salt_pos].data_buf[off + 13];
-    w3[2] = esalt_bufs[salt_pos].data_buf[off + 14];
-    w3[3] = esalt_bufs[salt_pos].data_buf[off + 15];
+    w0[0] = esalt_bufs[digests_offset].data_buf[off +  0];
+    w0[1] = esalt_bufs[digests_offset].data_buf[off +  1];
+    w0[2] = esalt_bufs[digests_offset].data_buf[off +  2];
+    w0[3] = esalt_bufs[digests_offset].data_buf[off +  3];
+    w1[0] = esalt_bufs[digests_offset].data_buf[off +  4];
+    w1[1] = esalt_bufs[digests_offset].data_buf[off +  5];
+    w1[2] = esalt_bufs[digests_offset].data_buf[off +  6];
+    w1[3] = esalt_bufs[digests_offset].data_buf[off +  7];
+    w2[0] = esalt_bufs[digests_offset].data_buf[off +  8];
+    w2[1] = esalt_bufs[digests_offset].data_buf[off +  9];
+    w2[2] = esalt_bufs[digests_offset].data_buf[off + 10];
+    w2[3] = esalt_bufs[digests_offset].data_buf[off + 11];
+    w3[0] = esalt_bufs[digests_offset].data_buf[off + 12];
+    w3[1] = esalt_bufs[digests_offset].data_buf[off + 13];
+    w3[2] = esalt_bufs[digests_offset].data_buf[off + 14];
+    w3[3] = esalt_bufs[digests_offset].data_buf[off + 15];
 
     sha256_transform (w0, w1, w2, w3, ipad);
   }
 
-  w0[0] = esalt_bufs[salt_pos].data_buf[off +  0];
-  w0[1] = esalt_bufs[salt_pos].data_buf[off +  1];
-  w0[2] = esalt_bufs[salt_pos].data_buf[off +  2];
-  w0[3] = esalt_bufs[salt_pos].data_buf[off +  3];
-  w1[0] = esalt_bufs[salt_pos].data_buf[off +  4];
-  w1[1] = esalt_bufs[salt_pos].data_buf[off +  5];
-  w1[2] = esalt_bufs[salt_pos].data_buf[off +  6];
-  w1[3] = esalt_bufs[salt_pos].data_buf[off +  7];
-  w2[0] = esalt_bufs[salt_pos].data_buf[off +  8];
-  w2[1] = esalt_bufs[salt_pos].data_buf[off +  9];
-  w2[2] = esalt_bufs[salt_pos].data_buf[off + 10];
-  w2[3] = esalt_bufs[salt_pos].data_buf[off + 11];
-  w3[0] = esalt_bufs[salt_pos].data_buf[off + 12];
-  w3[1] = esalt_bufs[salt_pos].data_buf[off + 13];
+  w0[0] = esalt_bufs[digests_offset].data_buf[off +  0];
+  w0[1] = esalt_bufs[digests_offset].data_buf[off +  1];
+  w0[2] = esalt_bufs[digests_offset].data_buf[off +  2];
+  w0[3] = esalt_bufs[digests_offset].data_buf[off +  3];
+  w1[0] = esalt_bufs[digests_offset].data_buf[off +  4];
+  w1[1] = esalt_bufs[digests_offset].data_buf[off +  5];
+  w1[2] = esalt_bufs[digests_offset].data_buf[off +  6];
+  w1[3] = esalt_bufs[digests_offset].data_buf[off +  7];
+  w2[0] = esalt_bufs[digests_offset].data_buf[off +  8];
+  w2[1] = esalt_bufs[digests_offset].data_buf[off +  9];
+  w2[2] = esalt_bufs[digests_offset].data_buf[off + 10];
+  w2[3] = esalt_bufs[digests_offset].data_buf[off + 11];
+  w3[0] = esalt_bufs[digests_offset].data_buf[off + 12];
+  w3[1] = esalt_bufs[digests_offset].data_buf[off + 13];
   w3[2] = 0;
   w3[3] = (64 + size) * 8;
 

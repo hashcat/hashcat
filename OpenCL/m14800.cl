@@ -1787,11 +1787,11 @@ __kernel void m14800_init (__global pw_t *pws, __global const kernel_rule_t *rul
   u32 dpsl0[4];
   u32 dpsl1[4];
 
-  dpsl0[0] = esalt_bufs[salt_pos].dpsl[0];
-  dpsl0[1] = esalt_bufs[salt_pos].dpsl[1];
-  dpsl0[2] = esalt_bufs[salt_pos].dpsl[2];
-  dpsl0[3] = esalt_bufs[salt_pos].dpsl[3];
-  dpsl1[0] = esalt_bufs[salt_pos].dpsl[4];
+  dpsl0[0] = esalt_bufs[digests_offset].dpsl[0];
+  dpsl0[1] = esalt_bufs[digests_offset].dpsl[1];
+  dpsl0[2] = esalt_bufs[digests_offset].dpsl[2];
+  dpsl0[3] = esalt_bufs[digests_offset].dpsl[3];
+  dpsl1[0] = esalt_bufs[digests_offset].dpsl[4];
   dpsl1[1] = 0;
   dpsl1[2] = 0;
   dpsl1[3] = 0;
@@ -2228,21 +2228,21 @@ __kernel void m14800_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   u32 cipher[4];
 
-  cipher[0] = esalt_bufs[salt_pos].wpky[0];
-  cipher[1] = esalt_bufs[salt_pos].wpky[1];
+  cipher[0] = esalt_bufs[digests_offset].wpky[0];
+  cipher[1] = esalt_bufs[digests_offset].wpky[1];
   cipher[2] = 0;
   cipher[3] = 0;
 
   u32 lsb[8];
 
-  lsb[0] = esalt_bufs[salt_pos].wpky[8];
-  lsb[1] = esalt_bufs[salt_pos].wpky[9];
-  lsb[2] = esalt_bufs[salt_pos].wpky[6];
-  lsb[3] = esalt_bufs[salt_pos].wpky[7];
-  lsb[4] = esalt_bufs[salt_pos].wpky[4];
-  lsb[5] = esalt_bufs[salt_pos].wpky[5];
-  lsb[6] = esalt_bufs[salt_pos].wpky[2];
-  lsb[7] = esalt_bufs[salt_pos].wpky[3];
+  lsb[0] = esalt_bufs[digests_offset].wpky[8];
+  lsb[1] = esalt_bufs[digests_offset].wpky[9];
+  lsb[2] = esalt_bufs[digests_offset].wpky[6];
+  lsb[3] = esalt_bufs[digests_offset].wpky[7];
+  lsb[4] = esalt_bufs[digests_offset].wpky[4];
+  lsb[5] = esalt_bufs[digests_offset].wpky[5];
+  lsb[6] = esalt_bufs[digests_offset].wpky[2];
+  lsb[7] = esalt_bufs[digests_offset].wpky[3];
 
   for (int j = 5; j >= 0; j--)
   {

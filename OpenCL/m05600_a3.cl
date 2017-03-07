@@ -289,11 +289,11 @@ void m05600m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
    * prepare
    */
 
-  const u32 userdomain_len = netntlm_bufs[salt_pos].user_len
-                           + netntlm_bufs[salt_pos].domain_len;
+  const u32 userdomain_len = netntlm_bufs[digests_offset].user_len
+                           + netntlm_bufs[digests_offset].domain_len;
 
-  const u32 chall_len = netntlm_bufs[salt_pos].srvchall_len
-                      + netntlm_bufs[salt_pos].clichall_len;
+  const u32 chall_len = netntlm_bufs[digests_offset].srvchall_len
+                      + netntlm_bufs[digests_offset].clichall_len;
 
   /**
    * loop
@@ -495,11 +495,11 @@ void m05600s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
    * prepare
    */
 
-  const u32 userdomain_len = netntlm_bufs[salt_pos].user_len
-                           + netntlm_bufs[salt_pos].domain_len;
+  const u32 userdomain_len = netntlm_bufs[digests_offset].user_len
+                           + netntlm_bufs[digests_offset].domain_len;
 
-  const u32 chall_len = netntlm_bufs[salt_pos].srvchall_len
-                      + netntlm_bufs[salt_pos].clichall_len;
+  const u32 chall_len = netntlm_bufs[digests_offset].srvchall_len
+                      + netntlm_bufs[digests_offset].clichall_len;
 
   /**
    * digest
@@ -718,25 +718,25 @@ __kernel void m05600_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 i = lid; i < 64; i += lsz)
   {
-    s_userdomain_buf[i] = netntlm_bufs[salt_pos].userdomain_buf[i];
+    s_userdomain_buf[i] = netntlm_bufs[digests_offset].userdomain_buf[i];
   }
 
   __local u32 s_chall_buf[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_chall_buf[i] = netntlm_bufs[salt_pos].chall_buf[i];
+    s_chall_buf[i] = netntlm_bufs[digests_offset].chall_buf[i];
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
 
   if (gid >= gid_max) return;
 
-  const u32 userdomain_len = netntlm_bufs[salt_pos].user_len
-                           + netntlm_bufs[salt_pos].domain_len;
+  const u32 userdomain_len = netntlm_bufs[digests_offset].user_len
+                           + netntlm_bufs[digests_offset].domain_len;
 
-  const u32 chall_len = netntlm_bufs[salt_pos].srvchall_len
-                      + netntlm_bufs[salt_pos].clichall_len;
+  const u32 chall_len = netntlm_bufs[digests_offset].srvchall_len
+                      + netntlm_bufs[digests_offset].clichall_len;
 
   /**
    * base
@@ -797,25 +797,25 @@ __kernel void m05600_m08 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 i = lid; i < 64; i += lsz)
   {
-    s_userdomain_buf[i] = netntlm_bufs[salt_pos].userdomain_buf[i];
+    s_userdomain_buf[i] = netntlm_bufs[digests_offset].userdomain_buf[i];
   }
 
   __local u32 s_chall_buf[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_chall_buf[i] = netntlm_bufs[salt_pos].chall_buf[i];
+    s_chall_buf[i] = netntlm_bufs[digests_offset].chall_buf[i];
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
 
   if (gid >= gid_max) return;
 
-  const u32 userdomain_len = netntlm_bufs[salt_pos].user_len
-                           + netntlm_bufs[salt_pos].domain_len;
+  const u32 userdomain_len = netntlm_bufs[digests_offset].user_len
+                           + netntlm_bufs[digests_offset].domain_len;
 
-  const u32 chall_len = netntlm_bufs[salt_pos].srvchall_len
-                      + netntlm_bufs[salt_pos].clichall_len;
+  const u32 chall_len = netntlm_bufs[digests_offset].srvchall_len
+                      + netntlm_bufs[digests_offset].clichall_len;
 
   /**
    * base
@@ -880,25 +880,25 @@ __kernel void m05600_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 i = lid; i < 64; i += lsz)
   {
-    s_userdomain_buf[i] = netntlm_bufs[salt_pos].userdomain_buf[i];
+    s_userdomain_buf[i] = netntlm_bufs[digests_offset].userdomain_buf[i];
   }
 
   __local u32 s_chall_buf[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_chall_buf[i] = netntlm_bufs[salt_pos].chall_buf[i];
+    s_chall_buf[i] = netntlm_bufs[digests_offset].chall_buf[i];
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
 
   if (gid >= gid_max) return;
 
-  const u32 userdomain_len = netntlm_bufs[salt_pos].user_len
-                           + netntlm_bufs[salt_pos].domain_len;
+  const u32 userdomain_len = netntlm_bufs[digests_offset].user_len
+                           + netntlm_bufs[digests_offset].domain_len;
 
-  const u32 chall_len = netntlm_bufs[salt_pos].srvchall_len
-                      + netntlm_bufs[salt_pos].clichall_len;
+  const u32 chall_len = netntlm_bufs[digests_offset].srvchall_len
+                      + netntlm_bufs[digests_offset].clichall_len;
 
   /**
    * base
@@ -959,25 +959,25 @@ __kernel void m05600_s08 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 i = lid; i < 64; i += lsz)
   {
-    s_userdomain_buf[i] = netntlm_bufs[salt_pos].userdomain_buf[i];
+    s_userdomain_buf[i] = netntlm_bufs[digests_offset].userdomain_buf[i];
   }
 
   __local u32 s_chall_buf[256];
 
   for (u32 i = lid; i < 256; i += lsz)
   {
-    s_chall_buf[i] = netntlm_bufs[salt_pos].chall_buf[i];
+    s_chall_buf[i] = netntlm_bufs[digests_offset].chall_buf[i];
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
 
   if (gid >= gid_max) return;
 
-  const u32 userdomain_len = netntlm_bufs[salt_pos].user_len
-                           + netntlm_bufs[salt_pos].domain_len;
+  const u32 userdomain_len = netntlm_bufs[digests_offset].user_len
+                           + netntlm_bufs[digests_offset].domain_len;
 
-  const u32 chall_len = netntlm_bufs[salt_pos].srvchall_len
-                      + netntlm_bufs[salt_pos].clichall_len;
+  const u32 chall_len = netntlm_bufs[digests_offset].srvchall_len
+                      + netntlm_bufs[digests_offset].clichall_len;
 
   /**
    * base

@@ -375,11 +375,6 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
         }
       }
 
-      if (hashconfig->hash_mode == 2500)
-      {
-        wpa_essid_reuse_next (hashcat_ctx, salt_pos);
-      }
-
       if (hashes->salts_done == hashes->salts_cnt) mycracked (hashcat_ctx);
 
       check_hash (hashcat_ctx, device_param, &cracked[i]);
@@ -1262,15 +1257,6 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
     hashes_buf[0].salt = salt_buf;
 
-    if (hashconfig->esalt_size)
-    {
-      char *esalts_buf_new_ptr = ((char *) esalts_buf_new) + (salts_cnt * hashconfig->esalt_size);
-
-      memcpy (esalts_buf_new_ptr, hashes_buf[0].esalt, hashconfig->esalt_size);
-
-      hashes_buf[0].esalt = esalts_buf_new_ptr;
-    }
-
     if (hashconfig->hook_salt_size)
     {
       char *hook_salts_buf_new_ptr = ((char *) hook_salts_buf_new) + (salts_cnt * hashconfig->hook_salt_size);
@@ -1295,6 +1281,15 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
   hashes_buf[0].digest = digests_buf_new_ptr;
 
+  if (hashconfig->esalt_size)
+  {
+    char *esalts_buf_new_ptr = ((char *) esalts_buf_new) + (0 * hashconfig->esalt_size);
+
+    memcpy (esalts_buf_new_ptr, hashes_buf[0].esalt, hashconfig->esalt_size);
+
+    hashes_buf[0].esalt = esalts_buf_new_ptr;
+  }
+
   if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY) || (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT))
   {
     hash_info[0] = hashes_buf[0].hash_info;
@@ -1314,15 +1309,6 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
         hashes_buf[hashes_pos].salt = salt_buf;
 
-        if (hashconfig->esalt_size)
-        {
-          char *esalts_buf_new_ptr = ((char *) esalts_buf_new) + (salts_cnt * hashconfig->esalt_size);
-
-          memcpy (esalts_buf_new_ptr, hashes_buf[hashes_pos].esalt, hashconfig->esalt_size);
-
-          hashes_buf[hashes_pos].esalt = esalts_buf_new_ptr;
-        }
-
         if (hashconfig->hook_salt_size)
         {
           char *hook_salts_buf_new_ptr = ((char *) hook_salts_buf_new) + (salts_cnt * hashconfig->hook_salt_size);
@@ -1341,13 +1327,6 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
       hashes_buf[hashes_pos].salt = salt_buf;
 
-      if (hashconfig->esalt_size)
-      {
-        char *esalts_buf_new_ptr = ((char *) esalts_buf_new) + (salts_cnt * hashconfig->esalt_size);
-
-        hashes_buf[hashes_pos].esalt = esalts_buf_new_ptr;
-      }
-
       if (hashconfig->hook_salt_size)
       {
         char *hook_salts_buf_new_ptr = ((char *) hook_salts_buf_new) + (salts_cnt * hashconfig->hook_salt_size);
@@ -1363,6 +1342,15 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
     memcpy (digests_buf_new_ptr, hashes_buf[hashes_pos].digest, hashconfig->dgst_size);
 
     hashes_buf[hashes_pos].digest = digests_buf_new_ptr;
+
+    if (hashconfig->esalt_size)
+    {
+      char *esalts_buf_new_ptr = ((char *) esalts_buf_new) + (hashes_pos * hashconfig->esalt_size);
+
+      memcpy (esalts_buf_new_ptr, hashes_buf[hashes_pos].esalt, hashconfig->esalt_size);
+
+      hashes_buf[hashes_pos].esalt = esalts_buf_new_ptr;
+    }
 
     if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY) || (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT))
     {
@@ -1518,13 +1506,6 @@ int hashes_init_stage4 (hashcat_ctx_t *hashcat_ctx)
   u8 *tmp_buf = (u8 *) hcmalloc (HCBUFSIZ_LARGE);
 
   hashes->tmp_buf = tmp_buf;
-
-  // special wpa booster case
-
-  if (hashconfig->hash_mode == 2500)
-  {
-    wpa_essid_reuse (hashcat_ctx);
-  }
 
   return 0;
 }

@@ -1144,17 +1144,6 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
     bool run_loop = true;
     bool run_comp = true;
 
-    if (hashconfig->hash_mode == 2500)
-    {
-      wpa_t *esalts_buf = hashes->esalts_buf;
-
-      if (esalts_buf[salt_pos].essid_reuse == 1)
-      {
-        run_init = false;
-        run_loop = false;
-      }
-    }
-
     if (run_init == true)
     {
       CL_rc = run_kernel_amp (hashcat_ctx, device_param, pws_cnt);
@@ -3608,7 +3597,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     size_t size_plains  = hashes->digests_cnt * sizeof (plain_t);
     size_t size_salts   = hashes->salts_cnt   * sizeof (salt_t);
-    size_t size_esalts  = hashes->salts_cnt   * hashconfig->esalt_size;
+    size_t size_esalts  = hashes->digests_cnt * hashconfig->esalt_size;
     size_t size_shown   = hashes->digests_cnt * sizeof (u32);
     size_t size_digests = hashes->digests_cnt * hashconfig->dgst_size;
 

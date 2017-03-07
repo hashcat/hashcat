@@ -347,22 +347,22 @@ __kernel void m06223_init (__global pw_t *pws, __global const kernel_rule_t *rul
    * keyfile
    */
 
-  w0[0] = u8add (w0[0], esalt_bufs[salt_pos].keyfile_buf[ 0]);
-  w0[1] = u8add (w0[1], esalt_bufs[salt_pos].keyfile_buf[ 1]);
-  w0[2] = u8add (w0[2], esalt_bufs[salt_pos].keyfile_buf[ 2]);
-  w0[3] = u8add (w0[3], esalt_bufs[salt_pos].keyfile_buf[ 3]);
-  w1[0] = u8add (w1[0], esalt_bufs[salt_pos].keyfile_buf[ 4]);
-  w1[1] = u8add (w1[1], esalt_bufs[salt_pos].keyfile_buf[ 5]);
-  w1[2] = u8add (w1[2], esalt_bufs[salt_pos].keyfile_buf[ 6]);
-  w1[3] = u8add (w1[3], esalt_bufs[salt_pos].keyfile_buf[ 7]);
-  w2[0] = u8add (w2[0], esalt_bufs[salt_pos].keyfile_buf[ 8]);
-  w2[1] = u8add (w2[1], esalt_bufs[salt_pos].keyfile_buf[ 9]);
-  w2[2] = u8add (w2[2], esalt_bufs[salt_pos].keyfile_buf[10]);
-  w2[3] = u8add (w2[3], esalt_bufs[salt_pos].keyfile_buf[11]);
-  w3[0] = u8add (w3[0], esalt_bufs[salt_pos].keyfile_buf[12]);
-  w3[1] = u8add (w3[1], esalt_bufs[salt_pos].keyfile_buf[13]);
-  w3[2] = u8add (w3[2], esalt_bufs[salt_pos].keyfile_buf[14]);
-  w3[3] = u8add (w3[3], esalt_bufs[salt_pos].keyfile_buf[15]);
+  w0[0] = u8add (w0[0], esalt_bufs[digests_offset].keyfile_buf[ 0]);
+  w0[1] = u8add (w0[1], esalt_bufs[digests_offset].keyfile_buf[ 1]);
+  w0[2] = u8add (w0[2], esalt_bufs[digests_offset].keyfile_buf[ 2]);
+  w0[3] = u8add (w0[3], esalt_bufs[digests_offset].keyfile_buf[ 3]);
+  w1[0] = u8add (w1[0], esalt_bufs[digests_offset].keyfile_buf[ 4]);
+  w1[1] = u8add (w1[1], esalt_bufs[digests_offset].keyfile_buf[ 5]);
+  w1[2] = u8add (w1[2], esalt_bufs[digests_offset].keyfile_buf[ 6]);
+  w1[3] = u8add (w1[3], esalt_bufs[digests_offset].keyfile_buf[ 7]);
+  w2[0] = u8add (w2[0], esalt_bufs[digests_offset].keyfile_buf[ 8]);
+  w2[1] = u8add (w2[1], esalt_bufs[digests_offset].keyfile_buf[ 9]);
+  w2[2] = u8add (w2[2], esalt_bufs[digests_offset].keyfile_buf[10]);
+  w2[3] = u8add (w2[3], esalt_bufs[digests_offset].keyfile_buf[11]);
+  w3[0] = u8add (w3[0], esalt_bufs[digests_offset].keyfile_buf[12]);
+  w3[1] = u8add (w3[1], esalt_bufs[digests_offset].keyfile_buf[13]);
+  w3[2] = u8add (w3[2], esalt_bufs[digests_offset].keyfile_buf[14]);
+  w3[3] = u8add (w3[3], esalt_bufs[digests_offset].keyfile_buf[15]);
 
   /**
    * salt
@@ -372,14 +372,14 @@ __kernel void m06223_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   // swap fehlt
 
-  salt_buf[ 0] = ((u64) swap32 (esalt_bufs[salt_pos].salt_buf[ 0])) << 32 | (u64) swap32 (esalt_bufs[salt_pos].salt_buf[ 1]);
-  salt_buf[ 1] = ((u64) swap32 (esalt_bufs[salt_pos].salt_buf[ 2])) << 32 | (u64) swap32 (esalt_bufs[salt_pos].salt_buf[ 3]);
-  salt_buf[ 2] = ((u64) swap32 (esalt_bufs[salt_pos].salt_buf[ 4])) << 32 | (u64) swap32 (esalt_bufs[salt_pos].salt_buf[ 5]);
-  salt_buf[ 3] = ((u64) swap32 (esalt_bufs[salt_pos].salt_buf[ 6])) << 32 | (u64) swap32 (esalt_bufs[salt_pos].salt_buf[ 7]);
-  salt_buf[ 4] = ((u64) swap32 (esalt_bufs[salt_pos].salt_buf[ 8])) << 32 | (u64) swap32 (esalt_bufs[salt_pos].salt_buf[ 9]);
-  salt_buf[ 5] = ((u64) swap32 (esalt_bufs[salt_pos].salt_buf[10])) << 32 | (u64) swap32 (esalt_bufs[salt_pos].salt_buf[11]);
-  salt_buf[ 6] = ((u64) swap32 (esalt_bufs[salt_pos].salt_buf[12])) << 32 | (u64) swap32 (esalt_bufs[salt_pos].salt_buf[13]);
-  salt_buf[ 7] = ((u64) swap32 (esalt_bufs[salt_pos].salt_buf[14])) << 32 | (u64) swap32 (esalt_bufs[salt_pos].salt_buf[15]);
+  salt_buf[ 0] = ((u64) swap32 (esalt_bufs[digests_offset].salt_buf[ 0])) << 32 | (u64) swap32 (esalt_bufs[digests_offset].salt_buf[ 1]);
+  salt_buf[ 1] = ((u64) swap32 (esalt_bufs[digests_offset].salt_buf[ 2])) << 32 | (u64) swap32 (esalt_bufs[digests_offset].salt_buf[ 3]);
+  salt_buf[ 2] = ((u64) swap32 (esalt_bufs[digests_offset].salt_buf[ 4])) << 32 | (u64) swap32 (esalt_bufs[digests_offset].salt_buf[ 5]);
+  salt_buf[ 3] = ((u64) swap32 (esalt_bufs[digests_offset].salt_buf[ 6])) << 32 | (u64) swap32 (esalt_bufs[digests_offset].salt_buf[ 7]);
+  salt_buf[ 4] = ((u64) swap32 (esalt_bufs[digests_offset].salt_buf[ 8])) << 32 | (u64) swap32 (esalt_bufs[digests_offset].salt_buf[ 9]);
+  salt_buf[ 5] = ((u64) swap32 (esalt_bufs[digests_offset].salt_buf[10])) << 32 | (u64) swap32 (esalt_bufs[digests_offset].salt_buf[11]);
+  salt_buf[ 6] = ((u64) swap32 (esalt_bufs[digests_offset].salt_buf[12])) << 32 | (u64) swap32 (esalt_bufs[digests_offset].salt_buf[13]);
+  salt_buf[ 7] = ((u64) swap32 (esalt_bufs[digests_offset].salt_buf[14])) << 32 | (u64) swap32 (esalt_bufs[digests_offset].salt_buf[15]);
   salt_buf[ 8] = 0;
   salt_buf[ 9] = 0;
   salt_buf[10] = 0;

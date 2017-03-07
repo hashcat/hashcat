@@ -177,23 +177,23 @@ __kernel void m10410_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   u32 o_buf[8];
 
-  o_buf[0] = pdf_bufs[salt_pos].o_buf[0];
-  o_buf[1] = pdf_bufs[salt_pos].o_buf[1];
-  o_buf[2] = pdf_bufs[salt_pos].o_buf[2];
-  o_buf[3] = pdf_bufs[salt_pos].o_buf[3];
-  o_buf[4] = pdf_bufs[salt_pos].o_buf[4];
-  o_buf[5] = pdf_bufs[salt_pos].o_buf[5];
-  o_buf[6] = pdf_bufs[salt_pos].o_buf[6];
-  o_buf[7] = pdf_bufs[salt_pos].o_buf[7];
+  o_buf[0] = pdf_bufs[digests_offset].o_buf[0];
+  o_buf[1] = pdf_bufs[digests_offset].o_buf[1];
+  o_buf[2] = pdf_bufs[digests_offset].o_buf[2];
+  o_buf[3] = pdf_bufs[digests_offset].o_buf[3];
+  o_buf[4] = pdf_bufs[digests_offset].o_buf[4];
+  o_buf[5] = pdf_bufs[digests_offset].o_buf[5];
+  o_buf[6] = pdf_bufs[digests_offset].o_buf[6];
+  o_buf[7] = pdf_bufs[digests_offset].o_buf[7];
 
-  u32 P = pdf_bufs[salt_pos].P;
+  u32 P = pdf_bufs[digests_offset].P;
 
   u32 id_buf[4];
 
-  id_buf[0] = pdf_bufs[salt_pos].id_buf[0];
-  id_buf[1] = pdf_bufs[salt_pos].id_buf[1];
-  id_buf[2] = pdf_bufs[salt_pos].id_buf[2];
-  id_buf[3] = pdf_bufs[salt_pos].id_buf[3];
+  id_buf[0] = pdf_bufs[digests_offset].id_buf[0];
+  id_buf[1] = pdf_bufs[digests_offset].id_buf[1];
+  id_buf[2] = pdf_bufs[digests_offset].id_buf[2];
+  id_buf[3] = pdf_bufs[digests_offset].id_buf[3];
 
   /**
    * loop
@@ -319,23 +319,23 @@ __kernel void m10410_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   u32 o_buf[8];
 
-  o_buf[0] = pdf_bufs[salt_pos].o_buf[0];
-  o_buf[1] = pdf_bufs[salt_pos].o_buf[1];
-  o_buf[2] = pdf_bufs[salt_pos].o_buf[2];
-  o_buf[3] = pdf_bufs[salt_pos].o_buf[3];
-  o_buf[4] = pdf_bufs[salt_pos].o_buf[4];
-  o_buf[5] = pdf_bufs[salt_pos].o_buf[5];
-  o_buf[6] = pdf_bufs[salt_pos].o_buf[6];
-  o_buf[7] = pdf_bufs[salt_pos].o_buf[7];
+  o_buf[0] = pdf_bufs[digests_offset].o_buf[0];
+  o_buf[1] = pdf_bufs[digests_offset].o_buf[1];
+  o_buf[2] = pdf_bufs[digests_offset].o_buf[2];
+  o_buf[3] = pdf_bufs[digests_offset].o_buf[3];
+  o_buf[4] = pdf_bufs[digests_offset].o_buf[4];
+  o_buf[5] = pdf_bufs[digests_offset].o_buf[5];
+  o_buf[6] = pdf_bufs[digests_offset].o_buf[6];
+  o_buf[7] = pdf_bufs[digests_offset].o_buf[7];
 
-  u32 P = pdf_bufs[salt_pos].P;
+  u32 P = pdf_bufs[digests_offset].P;
 
   u32 id_buf[4];
 
-  id_buf[0] = pdf_bufs[salt_pos].id_buf[0];
-  id_buf[1] = pdf_bufs[salt_pos].id_buf[1];
-  id_buf[2] = pdf_bufs[salt_pos].id_buf[2];
-  id_buf[3] = pdf_bufs[salt_pos].id_buf[3];
+  id_buf[0] = pdf_bufs[digests_offset].id_buf[0];
+  id_buf[1] = pdf_bufs[digests_offset].id_buf[1];
+  id_buf[2] = pdf_bufs[digests_offset].id_buf[2];
+  id_buf[3] = pdf_bufs[digests_offset].id_buf[3];
 
   /**
    * digest

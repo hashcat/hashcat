@@ -462,7 +462,7 @@ __kernel void m14612_init (__global pw_t *pws, __global const kernel_rule_t *rul
   salt_buf1[2] = swap32_S (salt_bufs[salt_pos].salt_buf[6]);
   salt_buf1[3] = swap32_S (salt_bufs[salt_pos].salt_buf[7]);
 
-  u32 key_size = luks_bufs[salt_pos].key_size;
+  u32 key_size = luks_bufs[digests_offset].key_size;
 
   /**
    * pads
@@ -560,7 +560,7 @@ __kernel void m14612_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   opad[3] = packv (tmps, opad32, gid, 3);
   opad[4] = packv (tmps, opad32, gid, 4);
 
-  u32 key_size = luks_bufs[salt_pos].key_size;
+  u32 key_size = luks_bufs[digests_offset].key_size;
 
   for (u32 i = 0; i < ((key_size / 8) / 4); i += 5)
   {
@@ -638,7 +638,7 @@ __kernel void m14612_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   u32 pt_buf[128];
 
-  luks_af_sha1_then_serpent_decrypt (&luks_bufs[salt_pos], &tmps[gid], pt_buf);
+  luks_af_sha1_then_serpent_decrypt (&luks_bufs[digests_offset], &tmps[gid], pt_buf);
 
   // check entropy
 

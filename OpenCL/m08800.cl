@@ -1843,10 +1843,10 @@ __kernel void m08800_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
     // 3. decrypt real data, xor essiv afterwards
 
-    data[0] = androidfde_bufs[salt_pos].data[0];
-    data[1] = androidfde_bufs[salt_pos].data[1];
-    data[2] = androidfde_bufs[salt_pos].data[2];
-    data[3] = androidfde_bufs[salt_pos].data[3];
+    data[0] = androidfde_bufs[digests_offset].data[0];
+    data[1] = androidfde_bufs[digests_offset].data[1];
+    data[2] = androidfde_bufs[digests_offset].data[2];
+    data[3] = androidfde_bufs[digests_offset].data[3];
 
     iv[0] = essiv[0];
     iv[1] = essiv[1];
@@ -1920,15 +1920,15 @@ __kernel void m08800_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
     for (u32 i = 4; i < 16; i += 4)
     {
-      data[0] = androidfde_bufs[salt_pos].data[256 + i + 0];
-      data[1] = androidfde_bufs[salt_pos].data[256 + i + 1];
-      data[2] = androidfde_bufs[salt_pos].data[256 + i + 2];
-      data[3] = androidfde_bufs[salt_pos].data[256 + i + 3];
+      data[0] = androidfde_bufs[digests_offset].data[256 + i + 0];
+      data[1] = androidfde_bufs[digests_offset].data[256 + i + 1];
+      data[2] = androidfde_bufs[digests_offset].data[256 + i + 2];
+      data[3] = androidfde_bufs[digests_offset].data[256 + i + 3];
 
-      iv[0] = androidfde_bufs[salt_pos].data[256 + i + 0 - 4];
-      iv[1] = androidfde_bufs[salt_pos].data[256 + i + 1 - 4];
-      iv[2] = androidfde_bufs[salt_pos].data[256 + i + 2 - 4];
-      iv[3] = androidfde_bufs[salt_pos].data[256 + i + 3 - 4];
+      iv[0] = androidfde_bufs[digests_offset].data[256 + i + 0 - 4];
+      iv[1] = androidfde_bufs[digests_offset].data[256 + i + 1 - 4];
+      iv[2] = androidfde_bufs[digests_offset].data[256 + i + 2 - 4];
+      iv[3] = androidfde_bufs[digests_offset].data[256 + i + 3 - 4];
 
       AES128_decrypt (data, out, rdk, s_td0, s_td1, s_td2, s_td3, s_td4);
 

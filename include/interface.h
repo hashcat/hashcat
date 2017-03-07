@@ -187,6 +187,8 @@ typedef struct wpa
   int  essid_reuse;
   u8   essid_len;
   u8   essid[32];
+  u32  keymic[4];
+  u32  hash[4];
 
 } wpa_t;
 
@@ -1743,9 +1745,6 @@ char *strparser   (const u32 parser_status);
 
 int check_old_hccap (const char *hashfile);
 void to_hccapx_t (hashcat_ctx_t *hashcat_ctx, hccapx_t *hccapx, const u32 salt_pos, const u32 digest_pos);
-
-void wpa_essid_reuse      (hashcat_ctx_t *hashcat_ctx);
-void wpa_essid_reuse_next (hashcat_ctx_t *hashcat_ctx, const u32 salt_idx_cracked);
 
 int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_len, const u32 salt_pos, const u32 digest_pos);
 

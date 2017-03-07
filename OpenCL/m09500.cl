@@ -1328,10 +1328,10 @@ __kernel void m09500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   u32 data[4];
 
-  data[0] = office2010_bufs[salt_pos].encryptedVerifier[0];
-  data[1] = office2010_bufs[salt_pos].encryptedVerifier[1];
-  data[2] = office2010_bufs[salt_pos].encryptedVerifier[2];
-  data[3] = office2010_bufs[salt_pos].encryptedVerifier[3];
+  data[0] = office2010_bufs[digests_offset].encryptedVerifier[0];
+  data[1] = office2010_bufs[digests_offset].encryptedVerifier[1];
+  data[2] = office2010_bufs[digests_offset].encryptedVerifier[2];
+  data[3] = office2010_bufs[digests_offset].encryptedVerifier[3];
 
   u32 ukeyx[4];
 

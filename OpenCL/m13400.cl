@@ -383,7 +383,7 @@ __kernel void m13400_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   sha256_transform (w0, w1, w2, w3, digest);
 
-  if (esalt_bufs[salt_pos].version == 2 && esalt_bufs[salt_pos].keyfile_len == 0)
+  if (esalt_bufs[digests_offset].version == 2 && esalt_bufs[digests_offset].keyfile_len == 0)
   {
     w0[0] = digest[0];
     w0[1] = digest[1];
@@ -417,7 +417,7 @@ __kernel void m13400_init (__global pw_t *pws, __global const kernel_rule_t *rul
     sha256_transform (w0, w1, w2, w3, digest);
   }
 
-  if (esalt_bufs[salt_pos].keyfile_len != 0)
+  if (esalt_bufs[digests_offset].keyfile_len != 0)
   {
     w0[0] = digest[0];
     w0[1] = digest[1];
@@ -429,15 +429,15 @@ __kernel void m13400_init (__global pw_t *pws, __global const kernel_rule_t *rul
     w1[2] = digest[6];
     w1[3] = digest[7];
 
-    w2[0] = esalt_bufs[salt_pos].keyfile[0];
-    w2[1] = esalt_bufs[salt_pos].keyfile[1];
-    w2[2] = esalt_bufs[salt_pos].keyfile[2];
-    w2[3] = esalt_bufs[salt_pos].keyfile[3];
+    w2[0] = esalt_bufs[digests_offset].keyfile[0];
+    w2[1] = esalt_bufs[digests_offset].keyfile[1];
+    w2[2] = esalt_bufs[digests_offset].keyfile[2];
+    w2[3] = esalt_bufs[digests_offset].keyfile[3];
 
-    w3[0] = esalt_bufs[salt_pos].keyfile[4];
-    w3[1] = esalt_bufs[salt_pos].keyfile[5];
-    w3[3] = esalt_bufs[salt_pos].keyfile[7];
-    w3[2] = esalt_bufs[salt_pos].keyfile[6];
+    w3[0] = esalt_bufs[digests_offset].keyfile[4];
+    w3[1] = esalt_bufs[digests_offset].keyfile[5];
+    w3[3] = esalt_bufs[digests_offset].keyfile[7];
+    w3[2] = esalt_bufs[digests_offset].keyfile[6];
 
     digest[0] = SHA256M_A;
     digest[1] = SHA256M_B;
@@ -528,14 +528,14 @@ __kernel void m13400_loop (__global pw_t *pws, __global const kernel_rule_t *rul
 
   u32 key[8];
 
-  key[0] = esalt_bufs[salt_pos].transf_random_seed[0];
-  key[1] = esalt_bufs[salt_pos].transf_random_seed[1];
-  key[2] = esalt_bufs[salt_pos].transf_random_seed[2];
-  key[3] = esalt_bufs[salt_pos].transf_random_seed[3];
-  key[4] = esalt_bufs[salt_pos].transf_random_seed[4];
-  key[5] = esalt_bufs[salt_pos].transf_random_seed[5];
-  key[6] = esalt_bufs[salt_pos].transf_random_seed[6];
-  key[7] = esalt_bufs[salt_pos].transf_random_seed[7];
+  key[0] = esalt_bufs[digests_offset].transf_random_seed[0];
+  key[1] = esalt_bufs[digests_offset].transf_random_seed[1];
+  key[2] = esalt_bufs[digests_offset].transf_random_seed[2];
+  key[3] = esalt_bufs[digests_offset].transf_random_seed[3];
+  key[4] = esalt_bufs[digests_offset].transf_random_seed[4];
+  key[5] = esalt_bufs[digests_offset].transf_random_seed[5];
+  key[6] = esalt_bufs[digests_offset].transf_random_seed[6];
+  key[7] = esalt_bufs[digests_offset].transf_random_seed[7];
 
   #define KEYLEN 60
 
@@ -673,14 +673,14 @@ __kernel void m13400_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   sha256_transform (w0, w1, w2, w3, digest);
 
   /* ...then hash final_random_seed | output */
-  if (esalt_bufs[salt_pos].version == 1)
+  if (esalt_bufs[digests_offset].version == 1)
   {
     u32 final_random_seed[4];
 
-    final_random_seed[0] = esalt_bufs[salt_pos].final_random_seed[0];
-    final_random_seed[1] = esalt_bufs[salt_pos].final_random_seed[1];
-    final_random_seed[2] = esalt_bufs[salt_pos].final_random_seed[2];
-    final_random_seed[3] = esalt_bufs[salt_pos].final_random_seed[3];
+    final_random_seed[0] = esalt_bufs[digests_offset].final_random_seed[0];
+    final_random_seed[1] = esalt_bufs[digests_offset].final_random_seed[1];
+    final_random_seed[2] = esalt_bufs[digests_offset].final_random_seed[2];
+    final_random_seed[3] = esalt_bufs[digests_offset].final_random_seed[3];
 
     w0[0] = final_random_seed[0];
     w0[1] = final_random_seed[1];
@@ -715,14 +715,14 @@ __kernel void m13400_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     /* merkle-damgard implementation */
     u32 final_random_seed[8];
 
-    final_random_seed[0] = esalt_bufs[salt_pos].final_random_seed[0];
-    final_random_seed[1] = esalt_bufs[salt_pos].final_random_seed[1];
-    final_random_seed[2] = esalt_bufs[salt_pos].final_random_seed[2];
-    final_random_seed[3] = esalt_bufs[salt_pos].final_random_seed[3];
-    final_random_seed[4] = esalt_bufs[salt_pos].final_random_seed[4];
-    final_random_seed[5] = esalt_bufs[salt_pos].final_random_seed[5];
-    final_random_seed[6] = esalt_bufs[salt_pos].final_random_seed[6];
-    final_random_seed[7] = esalt_bufs[salt_pos].final_random_seed[7];
+    final_random_seed[0] = esalt_bufs[digests_offset].final_random_seed[0];
+    final_random_seed[1] = esalt_bufs[digests_offset].final_random_seed[1];
+    final_random_seed[2] = esalt_bufs[digests_offset].final_random_seed[2];
+    final_random_seed[3] = esalt_bufs[digests_offset].final_random_seed[3];
+    final_random_seed[4] = esalt_bufs[digests_offset].final_random_seed[4];
+    final_random_seed[5] = esalt_bufs[digests_offset].final_random_seed[5];
+    final_random_seed[6] = esalt_bufs[digests_offset].final_random_seed[6];
+    final_random_seed[7] = esalt_bufs[digests_offset].final_random_seed[7];
 
     w0[0] = final_random_seed[0];
     w0[1] = final_random_seed[1];
@@ -776,16 +776,16 @@ __kernel void m13400_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   u32 iv[4];
 
-  iv[0] = esalt_bufs[salt_pos].enc_iv[0];
-  iv[1] = esalt_bufs[salt_pos].enc_iv[1];
-  iv[2] = esalt_bufs[salt_pos].enc_iv[2];
-  iv[3] = esalt_bufs[salt_pos].enc_iv[3];
+  iv[0] = esalt_bufs[digests_offset].enc_iv[0];
+  iv[1] = esalt_bufs[digests_offset].enc_iv[1];
+  iv[2] = esalt_bufs[digests_offset].enc_iv[2];
+  iv[3] = esalt_bufs[digests_offset].enc_iv[3];
 
   u32 out[8];
 
-  if (esalt_bufs[salt_pos].version == 1)
+  if (esalt_bufs[digests_offset].version == 1)
   {
-    if (esalt_bufs[salt_pos].algorithm == 1)
+    if (esalt_bufs[digests_offset].algorithm == 1)
     {
       /* Construct final Twofish key */
       u32 sk[4];
@@ -820,7 +820,7 @@ __kernel void m13400_comp (__global pw_t *pws, __global const kernel_rule_t *rul
       final_digest[6] = SHA256M_G;
       final_digest[7] = SHA256M_H;
 
-      u32 contents_len = esalt_bufs[salt_pos].contents_len;
+      u32 contents_len = esalt_bufs[digests_offset].contents_len;
 
       u32 contents_pos;
       u32 contents_off;
@@ -833,10 +833,10 @@ __kernel void m13400_comp (__global pw_t *pws, __global const kernel_rule_t *rul
         {
           u32 data[4];
 
-          data[0] = swap32 (esalt_bufs[salt_pos].contents[contents_off + se + 0]);
-          data[1] = swap32 (esalt_bufs[salt_pos].contents[contents_off + se + 1]);
-          data[2] = swap32 (esalt_bufs[salt_pos].contents[contents_off + se + 2]);
-          data[3] = swap32 (esalt_bufs[salt_pos].contents[contents_off + se + 3]);
+          data[0] = swap32 (esalt_bufs[digests_offset].contents[contents_off + se + 0]);
+          data[1] = swap32 (esalt_bufs[digests_offset].contents[contents_off + se + 1]);
+          data[2] = swap32 (esalt_bufs[digests_offset].contents[contents_off + se + 2]);
+          data[3] = swap32 (esalt_bufs[digests_offset].contents[contents_off + se + 3]);
 
           u32 out[4];
 
@@ -888,10 +888,10 @@ __kernel void m13400_comp (__global pw_t *pws, __global const kernel_rule_t *rul
       {
         u32 data[4];
 
-        data[0] = swap32 (esalt_bufs[salt_pos].contents[contents_off + 0]);
-        data[1] = swap32 (esalt_bufs[salt_pos].contents[contents_off + 1]);
-        data[2] = swap32 (esalt_bufs[salt_pos].contents[contents_off + 2]);
-        data[3] = swap32 (esalt_bufs[salt_pos].contents[contents_off + 3]);
+        data[0] = swap32 (esalt_bufs[digests_offset].contents[contents_off + 0]);
+        data[1] = swap32 (esalt_bufs[digests_offset].contents[contents_off + 1]);
+        data[2] = swap32 (esalt_bufs[digests_offset].contents[contents_off + 2]);
+        data[3] = swap32 (esalt_bufs[digests_offset].contents[contents_off + 3]);
 
         u32 out[4];
 
@@ -917,10 +917,10 @@ __kernel void m13400_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
       u32 data[4];
 
-      data[0] = swap32 (esalt_bufs[salt_pos].contents[contents_off + 0]);
-      data[1] = swap32 (esalt_bufs[salt_pos].contents[contents_off + 1]);
-      data[2] = swap32 (esalt_bufs[salt_pos].contents[contents_off + 2]);
-      data[3] = swap32 (esalt_bufs[salt_pos].contents[contents_off + 3]);
+      data[0] = swap32 (esalt_bufs[digests_offset].contents[contents_off + 0]);
+      data[1] = swap32 (esalt_bufs[digests_offset].contents[contents_off + 1]);
+      data[2] = swap32 (esalt_bufs[digests_offset].contents[contents_off + 2]);
+      data[3] = swap32 (esalt_bufs[digests_offset].contents[contents_off + 3]);
 
       u32 out[4];
 
@@ -935,7 +935,7 @@ __kernel void m13400_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
       const u32 pad_byte = out[3] >> 24;
 
-      const u32 real_len = esalt_bufs[salt_pos].contents_len - pad_byte;
+      const u32 real_len = esalt_bufs[digests_offset].contents_len - pad_byte;
 
       // we need to clear the buffer of the padding data
 
@@ -983,14 +983,14 @@ __kernel void m13400_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
       #define il_pos 0
 
-      if ( esalt_bufs[salt_pos].contents_hash[0] == final_digest[0]
-        && esalt_bufs[salt_pos].contents_hash[1] == final_digest[1]
-        && esalt_bufs[salt_pos].contents_hash[2] == final_digest[2]
-        && esalt_bufs[salt_pos].contents_hash[3] == final_digest[3]
-        && esalt_bufs[salt_pos].contents_hash[4] == final_digest[4]
-        && esalt_bufs[salt_pos].contents_hash[5] == final_digest[5]
-        && esalt_bufs[salt_pos].contents_hash[6] == final_digest[6]
-        && esalt_bufs[salt_pos].contents_hash[7] == final_digest[7])
+      if ( esalt_bufs[digests_offset].contents_hash[0] == final_digest[0]
+        && esalt_bufs[digests_offset].contents_hash[1] == final_digest[1]
+        && esalt_bufs[digests_offset].contents_hash[2] == final_digest[2]
+        && esalt_bufs[digests_offset].contents_hash[3] == final_digest[3]
+        && esalt_bufs[digests_offset].contents_hash[4] == final_digest[4]
+        && esalt_bufs[digests_offset].contents_hash[5] == final_digest[5]
+        && esalt_bufs[digests_offset].contents_hash[6] == final_digest[6]
+        && esalt_bufs[digests_offset].contents_hash[7] == final_digest[7])
         {
           mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
         }
@@ -1019,7 +1019,7 @@ __kernel void m13400_comp (__global pw_t *pws, __global const kernel_rule_t *rul
       final_digest[6] = SHA256M_G;
       final_digest[7] = SHA256M_H;
 
-      u32 contents_len = esalt_bufs[salt_pos].contents_len;
+      u32 contents_len = esalt_bufs[digests_offset].contents_len;
 
       u32 contents_pos;
       u32 contents_off;
@@ -1032,10 +1032,10 @@ __kernel void m13400_comp (__global pw_t *pws, __global const kernel_rule_t *rul
         {
           u32 data[4];
 
-          data[0] = esalt_bufs[salt_pos].contents[contents_off + se + 0];
-          data[1] = esalt_bufs[salt_pos].contents[contents_off + se + 1];
-          data[2] = esalt_bufs[salt_pos].contents[contents_off + se + 2];
-          data[3] = esalt_bufs[salt_pos].contents[contents_off + se + 3];
+          data[0] = esalt_bufs[digests_offset].contents[contents_off + se + 0];
+          data[1] = esalt_bufs[digests_offset].contents[contents_off + se + 1];
+          data[2] = esalt_bufs[digests_offset].contents[contents_off + se + 2];
+          data[3] = esalt_bufs[digests_offset].contents[contents_off + se + 3];
 
           u32 out[4];
 
@@ -1087,10 +1087,10 @@ __kernel void m13400_comp (__global pw_t *pws, __global const kernel_rule_t *rul
       {
         u32 data[4];
 
-        data[0] = esalt_bufs[salt_pos].contents[contents_off + 0];
-        data[1] = esalt_bufs[salt_pos].contents[contents_off + 1];
-        data[2] = esalt_bufs[salt_pos].contents[contents_off + 2];
-        data[3] = esalt_bufs[salt_pos].contents[contents_off + 3];
+        data[0] = esalt_bufs[digests_offset].contents[contents_off + 0];
+        data[1] = esalt_bufs[digests_offset].contents[contents_off + 1];
+        data[2] = esalt_bufs[digests_offset].contents[contents_off + 2];
+        data[3] = esalt_bufs[digests_offset].contents[contents_off + 3];
 
         u32 out[4];
 
@@ -1116,10 +1116,10 @@ __kernel void m13400_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
       u32 data[4];
 
-      data[0] = esalt_bufs[salt_pos].contents[contents_off + 0];
-      data[1] = esalt_bufs[salt_pos].contents[contents_off + 1];
-      data[2] = esalt_bufs[salt_pos].contents[contents_off + 2];
-      data[3] = esalt_bufs[salt_pos].contents[contents_off + 3];
+      data[0] = esalt_bufs[digests_offset].contents[contents_off + 0];
+      data[1] = esalt_bufs[digests_offset].contents[contents_off + 1];
+      data[2] = esalt_bufs[digests_offset].contents[contents_off + 2];
+      data[3] = esalt_bufs[digests_offset].contents[contents_off + 3];
 
       u32 out[4];
 
@@ -1139,7 +1139,7 @@ __kernel void m13400_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
       const u32 pad_byte = out[3] >> 24;
 
-      const u32 real_len = esalt_bufs[salt_pos].contents_len - pad_byte;
+      const u32 real_len = esalt_bufs[digests_offset].contents_len - pad_byte;
 
       // we need to clear the buffer of the padding data
 
@@ -1187,14 +1187,14 @@ __kernel void m13400_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
       #define il_pos 0
 
-      if ( esalt_bufs[salt_pos].contents_hash[0] == final_digest[0]
-        && esalt_bufs[salt_pos].contents_hash[1] == final_digest[1]
-        && esalt_bufs[salt_pos].contents_hash[2] == final_digest[2]
-        && esalt_bufs[salt_pos].contents_hash[3] == final_digest[3]
-        && esalt_bufs[salt_pos].contents_hash[4] == final_digest[4]
-        && esalt_bufs[salt_pos].contents_hash[5] == final_digest[5]
-        && esalt_bufs[salt_pos].contents_hash[6] == final_digest[6]
-        && esalt_bufs[salt_pos].contents_hash[7] == final_digest[7])
+      if ( esalt_bufs[digests_offset].contents_hash[0] == final_digest[0]
+        && esalt_bufs[digests_offset].contents_hash[1] == final_digest[1]
+        && esalt_bufs[digests_offset].contents_hash[2] == final_digest[2]
+        && esalt_bufs[digests_offset].contents_hash[3] == final_digest[3]
+        && esalt_bufs[digests_offset].contents_hash[4] == final_digest[4]
+        && esalt_bufs[digests_offset].contents_hash[5] == final_digest[5]
+        && esalt_bufs[digests_offset].contents_hash[6] == final_digest[6]
+        && esalt_bufs[digests_offset].contents_hash[7] == final_digest[7])
         {
           mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
         }
@@ -1213,10 +1213,10 @@ __kernel void m13400_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
     u32 contents_hash[4];
 
-    contents_hash[0] = esalt_bufs[salt_pos].contents_hash[0];
-    contents_hash[1] = esalt_bufs[salt_pos].contents_hash[1];
-    contents_hash[2] = esalt_bufs[salt_pos].contents_hash[2];
-    contents_hash[3] = esalt_bufs[salt_pos].contents_hash[3];
+    contents_hash[0] = esalt_bufs[digests_offset].contents_hash[0];
+    contents_hash[1] = esalt_bufs[digests_offset].contents_hash[1];
+    contents_hash[2] = esalt_bufs[digests_offset].contents_hash[2];
+    contents_hash[3] = esalt_bufs[digests_offset].contents_hash[3];
 
     AES256_decrypt (contents_hash, out, final_rk, s_td0, s_td1, s_td2, s_td3, s_td4);
 
@@ -1229,10 +1229,10 @@ __kernel void m13400_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
     #define il_pos 0
 
-    if ( esalt_bufs[salt_pos].expected_bytes[0] == out[0]
-      && esalt_bufs[salt_pos].expected_bytes[1] == out[1]
-      && esalt_bufs[salt_pos].expected_bytes[2] == out[2]
-      && esalt_bufs[salt_pos].expected_bytes[3] == out[3])
+    if ( esalt_bufs[digests_offset].expected_bytes[0] == out[0]
+      && esalt_bufs[digests_offset].expected_bytes[1] == out[1]
+      && esalt_bufs[digests_offset].expected_bytes[2] == out[2]
+      && esalt_bufs[digests_offset].expected_bytes[3] == out[3])
       {
         mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
       }

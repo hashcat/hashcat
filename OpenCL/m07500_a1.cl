@@ -578,21 +578,21 @@ __kernel void m07500_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   u32 checksum[4];
 
-  checksum[0] = krb5pa_bufs[salt_pos].checksum[0];
-  checksum[1] = krb5pa_bufs[salt_pos].checksum[1];
-  checksum[2] = krb5pa_bufs[salt_pos].checksum[2];
-  checksum[3] = krb5pa_bufs[salt_pos].checksum[3];
+  checksum[0] = krb5pa_bufs[digests_offset].checksum[0];
+  checksum[1] = krb5pa_bufs[digests_offset].checksum[1];
+  checksum[2] = krb5pa_bufs[digests_offset].checksum[2];
+  checksum[3] = krb5pa_bufs[digests_offset].checksum[3];
 
   u32 timestamp_ct[8];
 
-  timestamp_ct[0] = krb5pa_bufs[salt_pos].timestamp[0];
-  timestamp_ct[1] = krb5pa_bufs[salt_pos].timestamp[1];
-  timestamp_ct[2] = krb5pa_bufs[salt_pos].timestamp[2];
-  timestamp_ct[3] = krb5pa_bufs[salt_pos].timestamp[3];
-  timestamp_ct[4] = krb5pa_bufs[salt_pos].timestamp[4];
-  timestamp_ct[5] = krb5pa_bufs[salt_pos].timestamp[5];
-  timestamp_ct[6] = krb5pa_bufs[salt_pos].timestamp[6];
-  timestamp_ct[7] = krb5pa_bufs[salt_pos].timestamp[7];
+  timestamp_ct[0] = krb5pa_bufs[digests_offset].timestamp[0];
+  timestamp_ct[1] = krb5pa_bufs[digests_offset].timestamp[1];
+  timestamp_ct[2] = krb5pa_bufs[digests_offset].timestamp[2];
+  timestamp_ct[3] = krb5pa_bufs[digests_offset].timestamp[3];
+  timestamp_ct[4] = krb5pa_bufs[digests_offset].timestamp[4];
+  timestamp_ct[5] = krb5pa_bufs[digests_offset].timestamp[5];
+  timestamp_ct[6] = krb5pa_bufs[digests_offset].timestamp[6];
+  timestamp_ct[7] = krb5pa_bufs[digests_offset].timestamp[7];
 
   /**
    * shared
@@ -729,21 +729,21 @@ __kernel void m07500_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   u32 checksum[4];
 
-  checksum[0] = krb5pa_bufs[salt_pos].checksum[0];
-  checksum[1] = krb5pa_bufs[salt_pos].checksum[1];
-  checksum[2] = krb5pa_bufs[salt_pos].checksum[2];
-  checksum[3] = krb5pa_bufs[salt_pos].checksum[3];
+  checksum[0] = krb5pa_bufs[digests_offset].checksum[0];
+  checksum[1] = krb5pa_bufs[digests_offset].checksum[1];
+  checksum[2] = krb5pa_bufs[digests_offset].checksum[2];
+  checksum[3] = krb5pa_bufs[digests_offset].checksum[3];
 
   u32 timestamp_ct[8];
 
-  timestamp_ct[0] = krb5pa_bufs[salt_pos].timestamp[0];
-  timestamp_ct[1] = krb5pa_bufs[salt_pos].timestamp[1];
-  timestamp_ct[2] = krb5pa_bufs[salt_pos].timestamp[2];
-  timestamp_ct[3] = krb5pa_bufs[salt_pos].timestamp[3];
-  timestamp_ct[4] = krb5pa_bufs[salt_pos].timestamp[4];
-  timestamp_ct[5] = krb5pa_bufs[salt_pos].timestamp[5];
-  timestamp_ct[6] = krb5pa_bufs[salt_pos].timestamp[6];
-  timestamp_ct[7] = krb5pa_bufs[salt_pos].timestamp[7];
+  timestamp_ct[0] = krb5pa_bufs[digests_offset].timestamp[0];
+  timestamp_ct[1] = krb5pa_bufs[digests_offset].timestamp[1];
+  timestamp_ct[2] = krb5pa_bufs[digests_offset].timestamp[2];
+  timestamp_ct[3] = krb5pa_bufs[digests_offset].timestamp[3];
+  timestamp_ct[4] = krb5pa_bufs[digests_offset].timestamp[4];
+  timestamp_ct[5] = krb5pa_bufs[digests_offset].timestamp[5];
+  timestamp_ct[6] = krb5pa_bufs[digests_offset].timestamp[6];
+  timestamp_ct[7] = krb5pa_bufs[digests_offset].timestamp[7];
 
   /**
    * shared

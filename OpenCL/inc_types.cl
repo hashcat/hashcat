@@ -803,6 +803,8 @@ typedef struct wpa
   int  essid_reuse;
   u8   essid_len;
   u8   essid[32];
+  u32  keymic[4];
+  u32  hash[4];
 
 } wpa_t;
 

@@ -1312,14 +1312,14 @@ __kernel void m11300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   u32 out[4];
 
-  for (u32 i = 0; i < esalt_bufs[salt_pos].cry_master_len; i += 16)
+  for (u32 i = 0; i < esalt_bufs[digests_offset].cry_master_len; i += 16)
   {
     u32 data[4];
 
-    data[0] = swap32 (esalt_bufs[salt_pos].cry_master_buf[(i / 4) + 0]);
-    data[1] = swap32 (esalt_bufs[salt_pos].cry_master_buf[(i / 4) + 1]);
-    data[2] = swap32 (esalt_bufs[salt_pos].cry_master_buf[(i / 4) + 2]);
-    data[3] = swap32 (esalt_bufs[salt_pos].cry_master_buf[(i / 4) + 3]);
+    data[0] = swap32 (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 0]);
+    data[1] = swap32 (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 1]);
+    data[2] = swap32 (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 2]);
+    data[3] = swap32 (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 3]);
 
     AES256_decrypt (data, out, rk, s_td0, s_td1, s_td2, s_td3, s_td4);
 

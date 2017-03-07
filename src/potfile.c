@@ -24,7 +24,7 @@ int sort_by_hash_no_salt (const void *v1, const void *v2, void *v3);
 
 // this function is for potfile comparison where the potfile does not contain all the
 // information requires to do a true sort_by_hash() bsearch
-static int sort_by_hash_t_salt (const void *v1, const void *v2)
+static int sort_by_hash_t_salt (const void *v1, const void *v2, void *v3)
 {
   const hash_t *h1 = (const hash_t *) v1;
   const hash_t *h2 = (const hash_t *) v2;
@@ -446,7 +446,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
         hash_buf.salt->salt_len = line_hash_len;
 
-        found = (hash_t *) bsearch (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_t_salt);
+        found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_t_salt, (void *) hashconfig);
       }
     }
     else if (hashconfig->hash_mode == 2500)
@@ -482,7 +482,8 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
         memcpy (hash_buf.salt->salt_buf, essid_pos, essid_len);
 
-        hash_buf.salt->salt_len = essid_len;
+        hash_buf.salt->salt_len  = essid_len;
+        hash_buf.salt->salt_iter = ROUNDS_WPA2 - 1;
 
         u32 hash[4];
 
@@ -491,13 +492,20 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
         hash[2] = hex_to_u32 ((const u8 *) &hash_pos[16]);
         hash[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
 
-        hash_buf.salt->salt_buf[12] = byte_swap_32 (hash[0]);
-        hash_buf.salt->salt_buf[13] = byte_swap_32 (hash[1]);
-        hash_buf.salt->salt_buf[14] = byte_swap_32 (hash[2]);
-        hash_buf.salt->salt_buf[15] = byte_swap_32 (hash[3]);
+        hash[0] = byte_swap_32 (hash[0]);
+        hash[1] = byte_swap_32 (hash[1]);
+        hash[2] = byte_swap_32 (hash[2]);
+        hash[3] = byte_swap_32 (hash[3]);
+
+        u32 *digest = (u32 *) hash_buf.digest;
+
+        digest[0] = hash[0];
+        digest[1] = hash[1];
+        digest[2] = hash[2];
+        digest[3] = hash[3];
       }
 
-      found = (hash_t *) bsearch (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_t_salt);
+      found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash, (void *) hashconfig);
     }
     else
     {

@@ -283,14 +283,14 @@ void m09810m (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3
    * esalt
    */
 
-  const u32 version = oldoffice34_bufs[salt_pos].version;
+  const u32 version = oldoffice34_bufs[digests_offset].version;
 
   u32 encryptedVerifier[4];
 
-  encryptedVerifier[0] = oldoffice34_bufs[salt_pos].encryptedVerifier[0];
-  encryptedVerifier[1] = oldoffice34_bufs[salt_pos].encryptedVerifier[1];
-  encryptedVerifier[2] = oldoffice34_bufs[salt_pos].encryptedVerifier[2];
-  encryptedVerifier[3] = oldoffice34_bufs[salt_pos].encryptedVerifier[3];
+  encryptedVerifier[0] = oldoffice34_bufs[digests_offset].encryptedVerifier[0];
+  encryptedVerifier[1] = oldoffice34_bufs[digests_offset].encryptedVerifier[1];
+  encryptedVerifier[2] = oldoffice34_bufs[digests_offset].encryptedVerifier[2];
+  encryptedVerifier[3] = oldoffice34_bufs[digests_offset].encryptedVerifier[3];
 
   /**
    * loop
@@ -379,14 +379,14 @@ void m09810s (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3
    * esalt
    */
 
-  const u32 version = oldoffice34_bufs[salt_pos].version;
+  const u32 version = oldoffice34_bufs[digests_offset].version;
 
   u32 encryptedVerifier[4];
 
-  encryptedVerifier[0] = oldoffice34_bufs[salt_pos].encryptedVerifier[0];
-  encryptedVerifier[1] = oldoffice34_bufs[salt_pos].encryptedVerifier[1];
-  encryptedVerifier[2] = oldoffice34_bufs[salt_pos].encryptedVerifier[2];
-  encryptedVerifier[3] = oldoffice34_bufs[salt_pos].encryptedVerifier[3];
+  encryptedVerifier[0] = oldoffice34_bufs[digests_offset].encryptedVerifier[0];
+  encryptedVerifier[1] = oldoffice34_bufs[digests_offset].encryptedVerifier[1];
+  encryptedVerifier[2] = oldoffice34_bufs[digests_offset].encryptedVerifier[2];
+  encryptedVerifier[3] = oldoffice34_bufs[digests_offset].encryptedVerifier[3];
 
   /**
    * digest

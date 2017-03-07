@@ -295,48 +295,48 @@ __kernel void m10500_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   u32 o_buf[8];
 
-  o_buf[0] = pdf_bufs[salt_pos].o_buf[0];
-  o_buf[1] = pdf_bufs[salt_pos].o_buf[1];
-  o_buf[2] = pdf_bufs[salt_pos].o_buf[2];
-  o_buf[3] = pdf_bufs[salt_pos].o_buf[3];
-  o_buf[4] = pdf_bufs[salt_pos].o_buf[4];
-  o_buf[5] = pdf_bufs[salt_pos].o_buf[5];
-  o_buf[6] = pdf_bufs[salt_pos].o_buf[6];
-  o_buf[7] = pdf_bufs[salt_pos].o_buf[7];
+  o_buf[0] = pdf_bufs[digests_offset].o_buf[0];
+  o_buf[1] = pdf_bufs[digests_offset].o_buf[1];
+  o_buf[2] = pdf_bufs[digests_offset].o_buf[2];
+  o_buf[3] = pdf_bufs[digests_offset].o_buf[3];
+  o_buf[4] = pdf_bufs[digests_offset].o_buf[4];
+  o_buf[5] = pdf_bufs[digests_offset].o_buf[5];
+  o_buf[6] = pdf_bufs[digests_offset].o_buf[6];
+  o_buf[7] = pdf_bufs[digests_offset].o_buf[7];
 
-  u32 P = pdf_bufs[salt_pos].P;
+  u32 P = pdf_bufs[digests_offset].P;
 
   u32 id_buf[12];
 
-  id_buf[ 0] = pdf_bufs[salt_pos].id_buf[0];
-  id_buf[ 1] = pdf_bufs[salt_pos].id_buf[1];
-  id_buf[ 2] = pdf_bufs[salt_pos].id_buf[2];
-  id_buf[ 3] = pdf_bufs[salt_pos].id_buf[3];
+  id_buf[ 0] = pdf_bufs[digests_offset].id_buf[0];
+  id_buf[ 1] = pdf_bufs[digests_offset].id_buf[1];
+  id_buf[ 2] = pdf_bufs[digests_offset].id_buf[2];
+  id_buf[ 3] = pdf_bufs[digests_offset].id_buf[3];
 
-  id_buf[ 4] = pdf_bufs[salt_pos].id_buf[4];
-  id_buf[ 5] = pdf_bufs[salt_pos].id_buf[5];
-  id_buf[ 6] = pdf_bufs[salt_pos].id_buf[6];
-  id_buf[ 7] = pdf_bufs[salt_pos].id_buf[7];
+  id_buf[ 4] = pdf_bufs[digests_offset].id_buf[4];
+  id_buf[ 5] = pdf_bufs[digests_offset].id_buf[5];
+  id_buf[ 6] = pdf_bufs[digests_offset].id_buf[6];
+  id_buf[ 7] = pdf_bufs[digests_offset].id_buf[7];
 
   id_buf[ 8] = 0;
   id_buf[ 9] = 0;
   id_buf[10] = 0;
   id_buf[11] = 0;
 
-  u32 id_len  = pdf_bufs[salt_pos].id_len;
+  u32 id_len  = pdf_bufs[digests_offset].id_len;
   u32 id_len4 = id_len / 4;
 
   u32 rc4data[2];
 
-  rc4data[0] = pdf_bufs[salt_pos].rc4data[0];
-  rc4data[1] = pdf_bufs[salt_pos].rc4data[1];
+  rc4data[0] = pdf_bufs[digests_offset].rc4data[0];
+  rc4data[1] = pdf_bufs[digests_offset].rc4data[1];
 
   u32 final_length = 68 + id_len;
 
   u32 w11 = 0x80;
   u32 w12 = 0;
 
-  if (pdf_bufs[salt_pos].enc_md != 1)
+  if (pdf_bufs[digests_offset].enc_md != 1)
   {
     w11 = 0xffffffff;
     w12 = 0x80;

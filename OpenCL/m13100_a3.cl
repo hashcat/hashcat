@@ -734,10 +734,10 @@ void m13100 (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[
 
   u32 checksum[4];
 
-  checksum[0] = krb5tgs_bufs[salt_pos].checksum[0];
-  checksum[1] = krb5tgs_bufs[salt_pos].checksum[1];
-  checksum[2] = krb5tgs_bufs[salt_pos].checksum[2];
-  checksum[3] = krb5tgs_bufs[salt_pos].checksum[3];
+  checksum[0] = krb5tgs_bufs[digests_offset].checksum[0];
+  checksum[1] = krb5tgs_bufs[digests_offset].checksum[1];
+  checksum[2] = krb5tgs_bufs[digests_offset].checksum[2];
+  checksum[3] = krb5tgs_bufs[digests_offset].checksum[3];
 
   /**
    * loop
@@ -768,7 +768,7 @@ void m13100 (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[
     tmp[2] = digest[2];
     tmp[3] = digest[3];
 
-    if (decrypt_and_check (&rc4_keys[lid], tmp, krb5tgs_bufs[salt_pos].edata2, krb5tgs_bufs[salt_pos].edata2_len, K2, checksum) == 1)
+    if (decrypt_and_check (&rc4_keys[lid], tmp, krb5tgs_bufs[digests_offset].edata2, krb5tgs_bufs[digests_offset].edata2_len, K2, checksum) == 1)
     {
       mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
     }
