@@ -29,6 +29,7 @@ static const char ST_0007[] = "Quit";
 static const char ST_0008[] = "Bypass";
 static const char ST_0009[] = "Aborted (Checkpoint)";
 static const char ST_0010[] = "Aborted (Runtime)";
+static const char ST_0011[] = "Running (Checkpoint Quit requested)";
 static const char ST_9999[] = "Unknown! Bug!";
 
 static const char UNITS[7] = { ' ', 'k', 'M', 'G', 'T', 'P', 'E' };
@@ -195,6 +196,16 @@ char *status_get_status_string (const hashcat_ctx_t *hashcat_ctx)
   const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
   const int devices_status = status_ctx->devices_status;
+
+  // special case: running but checkpoint quit requested
+
+  if (devices_status == STATUS_RUNNING)
+  {
+    if (status_ctx->checkpoint_shutdown == true)
+    {
+      return ((char *) ST_0011);
+    }
+  }
 
   switch (devices_status)
   {

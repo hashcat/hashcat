@@ -6,6 +6,7 @@
 
 - WPA cracking: Added support for WPA/WPA2 handshake AP nonce automatic error correction
 - WPA cracking: Added parameter --nonce-error-corrections to configure range of error correction
+- Added visual indicator to the status screen to indicate if the checkpoint quit feature is enabled
 
 ##
 ## Improvements
