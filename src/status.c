@@ -29,7 +29,7 @@ static const char ST_0007[] = "Quit";
 static const char ST_0008[] = "Bypass";
 static const char ST_0009[] = "Aborted (Checkpoint)";
 static const char ST_0010[] = "Aborted (Runtime)";
-static const char ST_9998[] = "Running (Checkpoint Quit requested)";
+static const char ST_0011[] = "Running (Checkpoint Quit requested)";
 static const char ST_9999[] = "Unknown! Bug!";
 
 static const char UNITS[7] = { ' ', 'k', 'M', 'G', 'T', 'P', 'E' };
@@ -203,7 +203,7 @@ char *status_get_status_string (const hashcat_ctx_t *hashcat_ctx)
   {
     if (status_ctx->checkpoint_shutdown == true)
     {
-      return ((char *) ST_9998);
+      return ((char *) ST_0011);
     }
   }
 
