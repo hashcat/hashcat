@@ -2305,7 +2305,7 @@ sub verify
       my $signature = shift @data;
       my $digest    = shift @data;
 
-      my $param = length ($digest);
+      $param = length ($digest);
 
       next unless ($signature eq 'axcrypt_sha1');
       next unless (($param == 32) || ($param == 40));
@@ -7477,9 +7477,16 @@ END_CODE
   }
   elsif ($mode == 13300)
   {
+    my $length = 32;
+
+    if ($additional_param)
+    {
+      $length = $additional_param;
+    }
+
     $hash_buf = sha1_hex ($word_buf);
 
-    $tmp_hash = sprintf ('$axcrypt_sha1$%s', substr ($hash_buf, 0, 32));
+    $tmp_hash = sprintf ('$axcrypt_sha1$%s', substr ($hash_buf, 0, $length));
   }
   elsif ($mode == 13400)
   {
