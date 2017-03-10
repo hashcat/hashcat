@@ -1289,9 +1289,24 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
     if (run_comp == true)
     {
-      CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_3, pws_cnt, false, 0);
+      u32 loops_cnt = 1;
 
-      if (CL_rc == -1) return -1;
+      if (hashconfig->hash_mode == 2500)
+      {
+        loops_cnt = hashes->salts_buf[salt_pos].digests_cnt;
+      }
+
+      for (u32 loops_pos = 0; loops_pos < loops_cnt; loops_pos++)
+      {
+        device_param->kernel_params_buf32[28] = loops_pos;
+        device_param->kernel_params_buf32[29] = loops_cnt;
+
+        CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_3, pws_cnt, false, 0);
+
+        if (CL_rc == -1) return -1;
+
+        if (status_ctx->run_thread_level2 == false) break;
+      }
     }
   }
 
