@@ -574,7 +574,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   if (rc_mask_init == -1) return -1;
 
   /**
-   * prevent the user from using --skip/--limit together w/ maskfile and or dictfile
+   * prevent the user from using --skip/--limit together with maskfile and/or multiple word lists
    */
 
   if (user_options->skip != 0 || user_options->limit != 0)
@@ -588,7 +588,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   }
 
   /**
-   * prevent the user from using --keyspace together w/ maskfile and or dictfile
+   * prevent the user from using --keyspace together with maskfile and/or multiple word lists
    */
 
   if (user_options->keyspace == true)
