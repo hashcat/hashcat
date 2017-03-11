@@ -5,5 +5,9 @@ language: c
 compiler:
   - clang
   - gcc
+matrix:
+  include:
+    - os: linux
+      dist: trusty
 script:
   - make
