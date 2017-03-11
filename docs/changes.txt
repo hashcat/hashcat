@@ -19,6 +19,7 @@
 ##
 
 - Fixed a problem where --keyspace combined with custom charsets incorrectly displayed an error message
+- Fixed a problem where --stdout combined with custom charsets incorrectly displayed an error message
 - Fixed a typo that resulted in the minimum password length not being correctly initialized
 - Fixed a problem with parsing and displaying -m 7000 = Fortigate (FortiOS) hashes
 

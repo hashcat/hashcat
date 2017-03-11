@@ -821,14 +821,28 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
-    if (user_options->hc_argc < 2)
-    {
-      if (user_options->keyspace == false) // --keyspace would be a special case, i.e. we do not need a hash file
-      {
-        event_log_error (hashcat_ctx, "You need to specify a mask if you specify a custom-charset");
+    // detect if mask was specified:
 
-        return -1;
-      }
+    bool mask_is_missing = true;
+
+    if (user_options->keyspace == true) // special case if --keyspace was used: we need the mask but no hash file
+    {
+      if (user_options->hc_argc > 0) mask_is_missing = false;
+    }
+    else if (user_options->stdout_flag == true) // special case if --stdout was used: we need the mask but no hash file
+    {
+      if (user_options->hc_argc > 0) mask_is_missing = false;
+    }
+    else
+    {
+      if (user_options->hc_argc > 1) mask_is_missing = false;
+    }
+
+    if (mask_is_missing == true)
+    {
+      event_log_error (hashcat_ctx, "You need to specify a mask if you specify a custom-charset");
+
+      return -1;
     }
   }
 
