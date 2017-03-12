@@ -545,7 +545,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       hashlist_format = hlfmt_detect (hashcat_ctx, fp, 100); // 100 = max numbers to "scan". could be hashes_avail, too
 
-      if ((user_options->remove == 1) && (hashlist_format != HLFMT_HASHCAT))
+      if ((user_options->remove == true) && (hashlist_format != HLFMT_HASHCAT))
       {
         event_log_error (hashcat_ctx, "remove not supported in native hashfile-format mode");
 
