@@ -8,21 +8,29 @@ environment:
       CYG_SETUP: setup-x86_64.exe
       BASH: C:\cygwin64\bin\bash
       CC: gcc
+      DOCUMENT_FOLDER: /usr/local/share/doc/hashcat/
+      SHARED_FOLDER: /usr/local/share/hashcat/
     - CYG_ROOT: C:\cygwin
       CYG_CACHE: C:\cygwin\var\cache\setup
       CYG_SETUP: setup-x86.exe
       BASH: C:\cygwin\bin\bash
       CC: gcc
+      DOCUMENT_FOLDER: /usr/local/share/doc/hashcat/
+      SHARED_FOLDER: /usr/local/share/hashcat/
     - MSYSTEM: MINGW64
       MSYS_CACHE: C:\msys64\var\cache\pacman\pkg
       KERNEL_CACHE: C:\msys64\usr\local\bin\OpenCL\
       BASH: C:\msys64\usr\bin\bash
       CC: gcc
+      DOCUMENT_FOLDER: /bin/
+      SHARED_FOLDER: /bin/
     - MSYSTEM: MINGW32
       MSYS_CACHE: C:\msys64\var\cache\pacman\pkg
       KERNEL_CACHE: C:\msys64\usr\local\bin\OpenCL\
       BASH: C:\msys64\usr\bin\bash
       CC: gcc
+      DOCUMENT_FOLDER: /bin/
+      SHARED_FOLDER: /bin/
 
 # if we have too many commits at the same time, we might need to download more than just the last commit for appveyor to succeed
 # otherwise we get the error: "fatal: reference is not a tree <commit>"
@@ -42,7 +50,8 @@ install:
   - if defined MSYSTEM (%BASH% -lc "pacman -Suuy --noconfirm")
 
 build_script:
-  - if defined BASH (%BASH% -lc "cd $(cygpath ${APPVEYOR_BUILD_FOLDER}) && git submodule update --init && make install")
+  - if defined CYG_ROOT (%BASH% -lc "cd $(cygpath ${APPVEYOR_BUILD_FOLDER}) && git submodule update --init && ./autogen.sh && ./configure --enable-static --disable-shared --disable-debug CPPFLAGS=-I$(pwd)/deps/OpenCL-Headers/ && make install")
+  - if defined MSYSTEM (%BASH% -lc "cd $(cygpath ${APPVEYOR_BUILD_FOLDER}) && git submodule update --init && ./autogen.sh && ./configure --enable-static --disable-shared --disable-debug --bindir=/bin/ --datarootdir=/bin/ --docdir=/bin/ --includedir=/bin/ --libdir=/bin/ CPPFLAGS=-I$(pwd)/deps/OpenCL-Headers/ && make SHARED_FOLDER=$(cygpath %SHARED_FOLDER%) install")
 
 test_script:
   # some file globbing tests
@@ -54,11 +63,11 @@ test_script:
         mkdir $env:KERNEL_CACHE 2>&1 | out-null
       }
 
-      & $env:BASH -lc "hashcat.exe -m 0 --show $env:DOCUMENT_FOLDER/*file_not_found.hash" 2>&1 | out-null
+      & $env:BASH -lc "hashcat.exe -m 0 --show $env:DOCUMENT_FOLDER/examples/*file_not_found.hash" 2>&1 | out-null
 
       if ($LastExitCode -eq 0)
       {
         throw "test failed"
       }
 
-      & $env:BASH -lc "hashcat.exe -m 0 --show $env:DOCUMENT_FOLDER/*ple0.hash"
+      & $env:BASH -lc "hashcat.exe -m 0 --show $env:DOCUMENT_FOLDER/examples/*ple0.hash"
