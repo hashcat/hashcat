@@ -504,11 +504,14 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->devices_status == STATUS_CRACKED)
   {
-    if (hashes->digests_saved != hashes->digests_done)
+    if (user_options->remove == true)
     {
-      const int rc = save_hash (hashcat_ctx);
+      if (hashes->digests_saved != hashes->digests_done)
+      {
+        const int rc = save_hash (hashcat_ctx);
 
-      if (rc == -1) return -1;
+        if (rc == -1) return -1;
+      }
     }
 
     EVENT (EVENT_POTFILE_ALL_CRACKED);
@@ -690,11 +693,14 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->devices_status == STATUS_CRACKED)
   {
-    if (hashes->digests_saved != hashes->digests_done)
+    if (user_options->remove == true)
     {
-      const int rc = save_hash (hashcat_ctx);
+      if (hashes->digests_saved != hashes->digests_done)
+      {
+        const int rc = save_hash (hashcat_ctx);
 
-      if (rc == -1) return -1;
+        if (rc == -1) return -1;
+      }
     }
 
     EVENT (EVENT_WEAK_HASH_ALL_CRACKED);
