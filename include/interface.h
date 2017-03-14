@@ -184,9 +184,12 @@ typedef struct wpa
   u8   orig_mac_sta[6];
   u8   orig_nonce_ap[32];
   u8   orig_nonce_sta[32];
-  int  essid_reuse;
   u8   essid_len;
   u8   essid[32];
+  u32  keymic[4];
+  u32  hash[4];
+  int  nonce_compare;
+  int  nonce_error_corrections;
 
 } wpa_t;
 
@@ -812,6 +815,17 @@ typedef struct struct_psafe2_hdr
   u32  iv[2];     // unused, but makes better valid check
 
 } psafe2_hdr;
+
+typedef enum
+{
+  MESSAGE_PAIR_M12E2 = 0,
+  MESSAGE_PAIR_M14E4 = 1,
+  MESSAGE_PAIR_M32E2 = 2,
+  MESSAGE_PAIR_M32E3 = 3,
+  MESSAGE_PAIR_M34E3 = 4,
+  MESSAGE_PAIR_M34E4 = 5,
+
+} message_pair_t;
 
 #define HCCAPX_VERSION   4
 #define HCCAPX_SIGNATURE 0x58504348 // HCPX
@@ -1726,6 +1740,7 @@ int skip32_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int fortigate_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int sha256b64s_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int filezilla_server_parse_hash   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
+int atlassian_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 
 /**
  * hook functions
@@ -1743,9 +1758,6 @@ char *strparser   (const u32 parser_status);
 
 int check_old_hccap (const char *hashfile);
 void to_hccapx_t (hashcat_ctx_t *hashcat_ctx, hccapx_t *hccapx, const u32 salt_pos, const u32 digest_pos);
-
-void wpa_essid_reuse      (hashcat_ctx_t *hashcat_ctx);
-void wpa_essid_reuse_next (hashcat_ctx_t *hashcat_ctx, const u32 salt_idx_cracked);
 
 int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_len, const u32 salt_pos, const u32 digest_pos);
 

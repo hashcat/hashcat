@@ -800,9 +800,12 @@ typedef struct wpa
   u8   orig_mac_sta[6];
   u8   orig_nonce_ap[32];
   u8   orig_nonce_sta[32];
-  int  essid_reuse;
   u8   essid_len;
   u8   essid[32];
+  u32  keymic[4];
+  u32  hash[4];
+  int  nonce_compare;
+  int  nonce_error_corrections;
 
 } wpa_t;
 

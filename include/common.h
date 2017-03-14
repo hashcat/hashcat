@@ -22,12 +22,16 @@
 
 // needed for *time_r functions under MinGW
 #ifndef _POSIX_THREAD_SAFE_FUNCTIONS
-#define _POSIX_THREAD_SAFE_FUNCTIONS 200112L
+#define _POSIX_THREAD_SAFE_FUNCTIONS 200809L
 #endif
 
 // needed for 64-bit off_t on 32-bit OSes
 #ifndef _FILE_OFFSET_BITS
 #define _FILE_OFFSET_BITS 64
+#endif
+
+#ifndef _FORTIFY_SOURCE
+#define _FORTIFY_SOURCE 2
 #endif
 
 #define NOMINMAX 1

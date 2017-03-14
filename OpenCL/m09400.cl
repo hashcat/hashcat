@@ -1630,10 +1630,10 @@ __kernel void m09400_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   u32 verifier[4];
 
-  verifier[0] = office2007_bufs[salt_pos].encryptedVerifier[0];
-  verifier[1] = office2007_bufs[salt_pos].encryptedVerifier[1];
-  verifier[2] = office2007_bufs[salt_pos].encryptedVerifier[2];
-  verifier[3] = office2007_bufs[salt_pos].encryptedVerifier[3];
+  verifier[0] = office2007_bufs[digests_offset].encryptedVerifier[0];
+  verifier[1] = office2007_bufs[digests_offset].encryptedVerifier[1];
+  verifier[2] = office2007_bufs[digests_offset].encryptedVerifier[2];
+  verifier[3] = office2007_bufs[digests_offset].encryptedVerifier[3];
 
   u32 data[8];
 

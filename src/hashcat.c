@@ -94,6 +94,8 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
       rd->words_cur = 0;
 
+      // --restore always overrides --skip
+
       user_options->skip = 0;
     }
   }
@@ -102,8 +104,6 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   {
     status_ctx->words_off = user_options->skip;
     status_ctx->words_cur = status_ctx->words_off;
-
-    user_options->skip = 0;
   }
 
   opencl_session_reset (hashcat_ctx);
@@ -318,6 +318,11 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  // in case the user specified a --skip parameter we can use it only for the first inner loop
+  // we need to reset this
+
+  user_options->skip = 0;
+
   return 0;
 }
 
@@ -504,6 +509,16 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->devices_status == STATUS_CRACKED)
   {
+    if ((user_options->remove == true) && (hashes->hashlist_mode == HL_MODE_FILE))
+    {
+      if (hashes->digests_saved != hashes->digests_done)
+      {
+        const int rc = save_hash (hashcat_ctx);
+
+        if (rc == -1) return -1;
+      }
+    }
+
     EVENT (EVENT_POTFILE_ALL_CRACKED);
 
     return 0;
@@ -574,7 +589,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   if (rc_mask_init == -1) return -1;
 
   /**
-   * prevent the user from using --skip/--limit together w/ maskfile and or dictfile
+   * prevent the user from using --skip/--limit together with maskfile and/or multiple word lists
    */
 
   if (user_options->skip != 0 || user_options->limit != 0)
@@ -588,7 +603,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   }
 
   /**
-   * prevent the user from using --keyspace together w/ maskfile and or dictfile
+   * prevent the user from using --keyspace together with maskfile and/or multiple word lists
    */
 
   if (user_options->keyspace == true)
@@ -683,6 +698,16 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->devices_status == STATUS_CRACKED)
   {
+    if ((user_options->remove == true) && (hashes->hashlist_mode == HL_MODE_FILE))
+    {
+      if (hashes->digests_saved != hashes->digests_done)
+      {
+        const int rc = save_hash (hashcat_ctx);
+
+        if (rc == -1) return -1;
+      }
+    }
+
     EVENT (EVENT_WEAK_HASH_ALL_CRACKED);
 
     return 0;

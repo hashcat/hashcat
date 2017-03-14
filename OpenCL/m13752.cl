@@ -339,22 +339,22 @@ __kernel void m13752_init (__global pw_t *pws, __global const kernel_rule_t *rul
    * keyfile
    */
 
-  w0[0] = u8add (w0[0], esalt_bufs[salt_pos].keyfile_buf[ 0]);
-  w0[1] = u8add (w0[1], esalt_bufs[salt_pos].keyfile_buf[ 1]);
-  w0[2] = u8add (w0[2], esalt_bufs[salt_pos].keyfile_buf[ 2]);
-  w0[3] = u8add (w0[3], esalt_bufs[salt_pos].keyfile_buf[ 3]);
-  w1[0] = u8add (w1[0], esalt_bufs[salt_pos].keyfile_buf[ 4]);
-  w1[1] = u8add (w1[1], esalt_bufs[salt_pos].keyfile_buf[ 5]);
-  w1[2] = u8add (w1[2], esalt_bufs[salt_pos].keyfile_buf[ 6]);
-  w1[3] = u8add (w1[3], esalt_bufs[salt_pos].keyfile_buf[ 7]);
-  w2[0] = u8add (w2[0], esalt_bufs[salt_pos].keyfile_buf[ 8]);
-  w2[1] = u8add (w2[1], esalt_bufs[salt_pos].keyfile_buf[ 9]);
-  w2[2] = u8add (w2[2], esalt_bufs[salt_pos].keyfile_buf[10]);
-  w2[3] = u8add (w2[3], esalt_bufs[salt_pos].keyfile_buf[11]);
-  w3[0] = u8add (w3[0], esalt_bufs[salt_pos].keyfile_buf[12]);
-  w3[1] = u8add (w3[1], esalt_bufs[salt_pos].keyfile_buf[13]);
-  w3[2] = u8add (w3[2], esalt_bufs[salt_pos].keyfile_buf[14]);
-  w3[3] = u8add (w3[3], esalt_bufs[salt_pos].keyfile_buf[15]);
+  w0[0] = u8add (w0[0], esalt_bufs[digests_offset].keyfile_buf[ 0]);
+  w0[1] = u8add (w0[1], esalt_bufs[digests_offset].keyfile_buf[ 1]);
+  w0[2] = u8add (w0[2], esalt_bufs[digests_offset].keyfile_buf[ 2]);
+  w0[3] = u8add (w0[3], esalt_bufs[digests_offset].keyfile_buf[ 3]);
+  w1[0] = u8add (w1[0], esalt_bufs[digests_offset].keyfile_buf[ 4]);
+  w1[1] = u8add (w1[1], esalt_bufs[digests_offset].keyfile_buf[ 5]);
+  w1[2] = u8add (w1[2], esalt_bufs[digests_offset].keyfile_buf[ 6]);
+  w1[3] = u8add (w1[3], esalt_bufs[digests_offset].keyfile_buf[ 7]);
+  w2[0] = u8add (w2[0], esalt_bufs[digests_offset].keyfile_buf[ 8]);
+  w2[1] = u8add (w2[1], esalt_bufs[digests_offset].keyfile_buf[ 9]);
+  w2[2] = u8add (w2[2], esalt_bufs[digests_offset].keyfile_buf[10]);
+  w2[3] = u8add (w2[3], esalt_bufs[digests_offset].keyfile_buf[11]);
+  w3[0] = u8add (w3[0], esalt_bufs[digests_offset].keyfile_buf[12]);
+  w3[1] = u8add (w3[1], esalt_bufs[digests_offset].keyfile_buf[13]);
+  w3[2] = u8add (w3[2], esalt_bufs[digests_offset].keyfile_buf[14]);
+  w3[3] = u8add (w3[3], esalt_bufs[digests_offset].keyfile_buf[15]);
 
   w0[0] = swap32 (w0[0]);
   w0[1] = swap32 (w0[1]);
@@ -386,22 +386,22 @@ __kernel void m13752_init (__global pw_t *pws, __global const kernel_rule_t *rul
   u32 s6[4];
   u32 s7[4];
 
-  s0[0] = swap32 (esalt_bufs[salt_pos].salt_buf[ 0]);
-  s0[1] = swap32 (esalt_bufs[salt_pos].salt_buf[ 1]);
-  s0[2] = swap32 (esalt_bufs[salt_pos].salt_buf[ 2]);
-  s0[3] = swap32 (esalt_bufs[salt_pos].salt_buf[ 3]);
-  s1[0] = swap32 (esalt_bufs[salt_pos].salt_buf[ 4]);
-  s1[1] = swap32 (esalt_bufs[salt_pos].salt_buf[ 5]);
-  s1[2] = swap32 (esalt_bufs[salt_pos].salt_buf[ 6]);
-  s1[3] = swap32 (esalt_bufs[salt_pos].salt_buf[ 7]);
-  s2[0] = swap32 (esalt_bufs[salt_pos].salt_buf[ 8]);
-  s2[1] = swap32 (esalt_bufs[salt_pos].salt_buf[ 9]);
-  s2[2] = swap32 (esalt_bufs[salt_pos].salt_buf[10]);
-  s2[3] = swap32 (esalt_bufs[salt_pos].salt_buf[11]);
-  s3[0] = swap32 (esalt_bufs[salt_pos].salt_buf[12]);
-  s3[1] = swap32 (esalt_bufs[salt_pos].salt_buf[13]);
-  s3[2] = swap32 (esalt_bufs[salt_pos].salt_buf[14]);
-  s3[3] = swap32 (esalt_bufs[salt_pos].salt_buf[15]);
+  s0[0] = swap32 (esalt_bufs[digests_offset].salt_buf[ 0]);
+  s0[1] = swap32 (esalt_bufs[digests_offset].salt_buf[ 1]);
+  s0[2] = swap32 (esalt_bufs[digests_offset].salt_buf[ 2]);
+  s0[3] = swap32 (esalt_bufs[digests_offset].salt_buf[ 3]);
+  s1[0] = swap32 (esalt_bufs[digests_offset].salt_buf[ 4]);
+  s1[1] = swap32 (esalt_bufs[digests_offset].salt_buf[ 5]);
+  s1[2] = swap32 (esalt_bufs[digests_offset].salt_buf[ 6]);
+  s1[3] = swap32 (esalt_bufs[digests_offset].salt_buf[ 7]);
+  s2[0] = swap32 (esalt_bufs[digests_offset].salt_buf[ 8]);
+  s2[1] = swap32 (esalt_bufs[digests_offset].salt_buf[ 9]);
+  s2[2] = swap32 (esalt_bufs[digests_offset].salt_buf[10]);
+  s2[3] = swap32 (esalt_bufs[digests_offset].salt_buf[11]);
+  s3[0] = swap32 (esalt_bufs[digests_offset].salt_buf[12]);
+  s3[1] = swap32 (esalt_bufs[digests_offset].salt_buf[13]);
+  s3[2] = swap32 (esalt_bufs[digests_offset].salt_buf[14]);
+  s3[3] = swap32 (esalt_bufs[digests_offset].salt_buf[15]);
   s4[0] = 0;
   s4[1] = 0x80000000;
   s4[2] = 0;

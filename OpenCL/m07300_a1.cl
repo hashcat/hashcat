@@ -263,7 +263,7 @@ __kernel void m07300_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
    * salt
    */
 
-  const u32 esalt_len = rakp_bufs[salt_pos].salt_len;
+  const u32 esalt_len = rakp_bufs[digests_offset].salt_len;
 
   /**
    * loop
@@ -371,40 +371,40 @@ __kernel void m07300_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     for (esalt_left = esalt_size, esalt_off = 0; esalt_left >= 56; esalt_left -= 64, esalt_off += 16)
     {
-      w0[0] = rakp_bufs[salt_pos].salt_buf[esalt_off +  0];
-      w0[1] = rakp_bufs[salt_pos].salt_buf[esalt_off +  1];
-      w0[2] = rakp_bufs[salt_pos].salt_buf[esalt_off +  2];
-      w0[3] = rakp_bufs[salt_pos].salt_buf[esalt_off +  3];
-      w1[0] = rakp_bufs[salt_pos].salt_buf[esalt_off +  4];
-      w1[1] = rakp_bufs[salt_pos].salt_buf[esalt_off +  5];
-      w1[2] = rakp_bufs[salt_pos].salt_buf[esalt_off +  6];
-      w1[3] = rakp_bufs[salt_pos].salt_buf[esalt_off +  7];
-      w2[0] = rakp_bufs[salt_pos].salt_buf[esalt_off +  8];
-      w2[1] = rakp_bufs[salt_pos].salt_buf[esalt_off +  9];
-      w2[2] = rakp_bufs[salt_pos].salt_buf[esalt_off + 10];
-      w2[3] = rakp_bufs[salt_pos].salt_buf[esalt_off + 11];
-      w3[0] = rakp_bufs[salt_pos].salt_buf[esalt_off + 12];
-      w3[1] = rakp_bufs[salt_pos].salt_buf[esalt_off + 13];
-      w3[2] = rakp_bufs[salt_pos].salt_buf[esalt_off + 14];
-      w3[3] = rakp_bufs[salt_pos].salt_buf[esalt_off + 15];
+      w0[0] = rakp_bufs[digests_offset].salt_buf[esalt_off +  0];
+      w0[1] = rakp_bufs[digests_offset].salt_buf[esalt_off +  1];
+      w0[2] = rakp_bufs[digests_offset].salt_buf[esalt_off +  2];
+      w0[3] = rakp_bufs[digests_offset].salt_buf[esalt_off +  3];
+      w1[0] = rakp_bufs[digests_offset].salt_buf[esalt_off +  4];
+      w1[1] = rakp_bufs[digests_offset].salt_buf[esalt_off +  5];
+      w1[2] = rakp_bufs[digests_offset].salt_buf[esalt_off +  6];
+      w1[3] = rakp_bufs[digests_offset].salt_buf[esalt_off +  7];
+      w2[0] = rakp_bufs[digests_offset].salt_buf[esalt_off +  8];
+      w2[1] = rakp_bufs[digests_offset].salt_buf[esalt_off +  9];
+      w2[2] = rakp_bufs[digests_offset].salt_buf[esalt_off + 10];
+      w2[3] = rakp_bufs[digests_offset].salt_buf[esalt_off + 11];
+      w3[0] = rakp_bufs[digests_offset].salt_buf[esalt_off + 12];
+      w3[1] = rakp_bufs[digests_offset].salt_buf[esalt_off + 13];
+      w3[2] = rakp_bufs[digests_offset].salt_buf[esalt_off + 14];
+      w3[3] = rakp_bufs[digests_offset].salt_buf[esalt_off + 15];
 
       sha1_transform (w0, w1, w2, w3, ipad);
     }
 
-    w0[0] = rakp_bufs[salt_pos].salt_buf[esalt_off +  0];
-    w0[1] = rakp_bufs[salt_pos].salt_buf[esalt_off +  1];
-    w0[2] = rakp_bufs[salt_pos].salt_buf[esalt_off +  2];
-    w0[3] = rakp_bufs[salt_pos].salt_buf[esalt_off +  3];
-    w1[0] = rakp_bufs[salt_pos].salt_buf[esalt_off +  4];
-    w1[1] = rakp_bufs[salt_pos].salt_buf[esalt_off +  5];
-    w1[2] = rakp_bufs[salt_pos].salt_buf[esalt_off +  6];
-    w1[3] = rakp_bufs[salt_pos].salt_buf[esalt_off +  7];
-    w2[0] = rakp_bufs[salt_pos].salt_buf[esalt_off +  8];
-    w2[1] = rakp_bufs[salt_pos].salt_buf[esalt_off +  9];
-    w2[2] = rakp_bufs[salt_pos].salt_buf[esalt_off + 10];
-    w2[3] = rakp_bufs[salt_pos].salt_buf[esalt_off + 11];
-    w3[0] = rakp_bufs[salt_pos].salt_buf[esalt_off + 12];
-    w3[1] = rakp_bufs[salt_pos].salt_buf[esalt_off + 13];
+    w0[0] = rakp_bufs[digests_offset].salt_buf[esalt_off +  0];
+    w0[1] = rakp_bufs[digests_offset].salt_buf[esalt_off +  1];
+    w0[2] = rakp_bufs[digests_offset].salt_buf[esalt_off +  2];
+    w0[3] = rakp_bufs[digests_offset].salt_buf[esalt_off +  3];
+    w1[0] = rakp_bufs[digests_offset].salt_buf[esalt_off +  4];
+    w1[1] = rakp_bufs[digests_offset].salt_buf[esalt_off +  5];
+    w1[2] = rakp_bufs[digests_offset].salt_buf[esalt_off +  6];
+    w1[3] = rakp_bufs[digests_offset].salt_buf[esalt_off +  7];
+    w2[0] = rakp_bufs[digests_offset].salt_buf[esalt_off +  8];
+    w2[1] = rakp_bufs[digests_offset].salt_buf[esalt_off +  9];
+    w2[2] = rakp_bufs[digests_offset].salt_buf[esalt_off + 10];
+    w2[3] = rakp_bufs[digests_offset].salt_buf[esalt_off + 11];
+    w3[0] = rakp_bufs[digests_offset].salt_buf[esalt_off + 12];
+    w3[1] = rakp_bufs[digests_offset].salt_buf[esalt_off + 13];
     w3[2] = 0;
     w3[3] = (64 + esalt_size) * 8;
 
@@ -458,7 +458,7 @@ __kernel void m07300_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
    * salt
    */
 
-  const u32 esalt_len = rakp_bufs[salt_pos].salt_len;
+  const u32 esalt_len = rakp_bufs[digests_offset].salt_len;
 
   /**
    * digest
@@ -578,40 +578,40 @@ __kernel void m07300_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     for (esalt_left = esalt_size, esalt_off = 0; esalt_left >= 56; esalt_left -= 64, esalt_off += 16)
     {
-      w0[0] = rakp_bufs[salt_pos].salt_buf[esalt_off +  0];
-      w0[1] = rakp_bufs[salt_pos].salt_buf[esalt_off +  1];
-      w0[2] = rakp_bufs[salt_pos].salt_buf[esalt_off +  2];
-      w0[3] = rakp_bufs[salt_pos].salt_buf[esalt_off +  3];
-      w1[0] = rakp_bufs[salt_pos].salt_buf[esalt_off +  4];
-      w1[1] = rakp_bufs[salt_pos].salt_buf[esalt_off +  5];
-      w1[2] = rakp_bufs[salt_pos].salt_buf[esalt_off +  6];
-      w1[3] = rakp_bufs[salt_pos].salt_buf[esalt_off +  7];
-      w2[0] = rakp_bufs[salt_pos].salt_buf[esalt_off +  8];
-      w2[1] = rakp_bufs[salt_pos].salt_buf[esalt_off +  9];
-      w2[2] = rakp_bufs[salt_pos].salt_buf[esalt_off + 10];
-      w2[3] = rakp_bufs[salt_pos].salt_buf[esalt_off + 11];
-      w3[0] = rakp_bufs[salt_pos].salt_buf[esalt_off + 12];
-      w3[1] = rakp_bufs[salt_pos].salt_buf[esalt_off + 13];
-      w3[2] = rakp_bufs[salt_pos].salt_buf[esalt_off + 14];
-      w3[3] = rakp_bufs[salt_pos].salt_buf[esalt_off + 15];
+      w0[0] = rakp_bufs[digests_offset].salt_buf[esalt_off +  0];
+      w0[1] = rakp_bufs[digests_offset].salt_buf[esalt_off +  1];
+      w0[2] = rakp_bufs[digests_offset].salt_buf[esalt_off +  2];
+      w0[3] = rakp_bufs[digests_offset].salt_buf[esalt_off +  3];
+      w1[0] = rakp_bufs[digests_offset].salt_buf[esalt_off +  4];
+      w1[1] = rakp_bufs[digests_offset].salt_buf[esalt_off +  5];
+      w1[2] = rakp_bufs[digests_offset].salt_buf[esalt_off +  6];
+      w1[3] = rakp_bufs[digests_offset].salt_buf[esalt_off +  7];
+      w2[0] = rakp_bufs[digests_offset].salt_buf[esalt_off +  8];
+      w2[1] = rakp_bufs[digests_offset].salt_buf[esalt_off +  9];
+      w2[2] = rakp_bufs[digests_offset].salt_buf[esalt_off + 10];
+      w2[3] = rakp_bufs[digests_offset].salt_buf[esalt_off + 11];
+      w3[0] = rakp_bufs[digests_offset].salt_buf[esalt_off + 12];
+      w3[1] = rakp_bufs[digests_offset].salt_buf[esalt_off + 13];
+      w3[2] = rakp_bufs[digests_offset].salt_buf[esalt_off + 14];
+      w3[3] = rakp_bufs[digests_offset].salt_buf[esalt_off + 15];
 
       sha1_transform (w0, w1, w2, w3, ipad);
     }
 
-    w0[0] = rakp_bufs[salt_pos].salt_buf[esalt_off +  0];
-    w0[1] = rakp_bufs[salt_pos].salt_buf[esalt_off +  1];
-    w0[2] = rakp_bufs[salt_pos].salt_buf[esalt_off +  2];
-    w0[3] = rakp_bufs[salt_pos].salt_buf[esalt_off +  3];
-    w1[0] = rakp_bufs[salt_pos].salt_buf[esalt_off +  4];
-    w1[1] = rakp_bufs[salt_pos].salt_buf[esalt_off +  5];
-    w1[2] = rakp_bufs[salt_pos].salt_buf[esalt_off +  6];
-    w1[3] = rakp_bufs[salt_pos].salt_buf[esalt_off +  7];
-    w2[0] = rakp_bufs[salt_pos].salt_buf[esalt_off +  8];
-    w2[1] = rakp_bufs[salt_pos].salt_buf[esalt_off +  9];
-    w2[2] = rakp_bufs[salt_pos].salt_buf[esalt_off + 10];
-    w2[3] = rakp_bufs[salt_pos].salt_buf[esalt_off + 11];
-    w3[0] = rakp_bufs[salt_pos].salt_buf[esalt_off + 12];
-    w3[1] = rakp_bufs[salt_pos].salt_buf[esalt_off + 13];
+    w0[0] = rakp_bufs[digests_offset].salt_buf[esalt_off +  0];
+    w0[1] = rakp_bufs[digests_offset].salt_buf[esalt_off +  1];
+    w0[2] = rakp_bufs[digests_offset].salt_buf[esalt_off +  2];
+    w0[3] = rakp_bufs[digests_offset].salt_buf[esalt_off +  3];
+    w1[0] = rakp_bufs[digests_offset].salt_buf[esalt_off +  4];
+    w1[1] = rakp_bufs[digests_offset].salt_buf[esalt_off +  5];
+    w1[2] = rakp_bufs[digests_offset].salt_buf[esalt_off +  6];
+    w1[3] = rakp_bufs[digests_offset].salt_buf[esalt_off +  7];
+    w2[0] = rakp_bufs[digests_offset].salt_buf[esalt_off +  8];
+    w2[1] = rakp_bufs[digests_offset].salt_buf[esalt_off +  9];
+    w2[2] = rakp_bufs[digests_offset].salt_buf[esalt_off + 10];
+    w2[3] = rakp_bufs[digests_offset].salt_buf[esalt_off + 11];
+    w3[0] = rakp_bufs[digests_offset].salt_buf[esalt_off + 12];
+    w3[1] = rakp_bufs[digests_offset].salt_buf[esalt_off + 13];
     w3[2] = 0;
     w3[3] = (64 + esalt_size) * 8;
 

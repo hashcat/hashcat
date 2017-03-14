@@ -846,7 +846,7 @@ __kernel void m13800_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 i = lid; i < 32; i += lsz)
   {
-    s_esalt[i] = esalt_bufs[salt_pos].salt_buf[i];
+    s_esalt[i] = esalt_bufs[digests_offset].salt_buf[i];
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
@@ -903,7 +903,7 @@ __kernel void m13800_m08 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 i = lid; i < 32; i += lsz)
   {
-    s_esalt[i] = esalt_bufs[salt_pos].salt_buf[i];
+    s_esalt[i] = esalt_bufs[digests_offset].salt_buf[i];
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
@@ -960,7 +960,7 @@ __kernel void m13800_m16 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 i = lid; i < 32; i += lsz)
   {
-    s_esalt[i] = esalt_bufs[salt_pos].salt_buf[i];
+    s_esalt[i] = esalt_bufs[digests_offset].salt_buf[i];
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
@@ -1017,7 +1017,7 @@ __kernel void m13800_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 i = lid; i < 32; i += lsz)
   {
-    s_esalt[i] = esalt_bufs[salt_pos].salt_buf[i];
+    s_esalt[i] = esalt_bufs[digests_offset].salt_buf[i];
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
@@ -1074,7 +1074,7 @@ __kernel void m13800_s08 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 i = lid; i < 32; i += lsz)
   {
-    s_esalt[i] = esalt_bufs[salt_pos].salt_buf[i];
+    s_esalt[i] = esalt_bufs[digests_offset].salt_buf[i];
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
@@ -1131,7 +1131,7 @@ __kernel void m13800_s16 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 i = lid; i < 32; i += lsz)
   {
-    s_esalt[i] = esalt_bufs[salt_pos].salt_buf[i];
+    s_esalt[i] = esalt_bufs[digests_offset].salt_buf[i];
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);

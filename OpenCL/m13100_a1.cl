@@ -761,10 +761,10 @@ __kernel void m13100_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   u32 checksum[4];
 
-  checksum[0] = krb5tgs_bufs[salt_pos].checksum[0];
-  checksum[1] = krb5tgs_bufs[salt_pos].checksum[1];
-  checksum[2] = krb5tgs_bufs[salt_pos].checksum[2];
-  checksum[3] = krb5tgs_bufs[salt_pos].checksum[3];
+  checksum[0] = krb5tgs_bufs[digests_offset].checksum[0];
+  checksum[1] = krb5tgs_bufs[digests_offset].checksum[1];
+  checksum[2] = krb5tgs_bufs[digests_offset].checksum[2];
+  checksum[3] = krb5tgs_bufs[digests_offset].checksum[3];
 
   /**
    * loop
@@ -846,7 +846,7 @@ __kernel void m13100_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
     tmp[2] = digest[2];
     tmp[3] = digest[3];
 
-    if (decrypt_and_check (&rc4_keys[lid], tmp, krb5tgs_bufs[salt_pos].edata2, krb5tgs_bufs[salt_pos].edata2_len, K2, checksum) == 1)
+    if (decrypt_and_check (&rc4_keys[lid], tmp, krb5tgs_bufs[digests_offset].edata2, krb5tgs_bufs[digests_offset].edata2_len, K2, checksum) == 1)
     {
       mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
     }
@@ -903,10 +903,10 @@ __kernel void m13100_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   u32 checksum[4];
 
-  checksum[0] = krb5tgs_bufs[salt_pos].checksum[0];
-  checksum[1] = krb5tgs_bufs[salt_pos].checksum[1];
-  checksum[2] = krb5tgs_bufs[salt_pos].checksum[2];
-  checksum[3] = krb5tgs_bufs[salt_pos].checksum[3];
+  checksum[0] = krb5tgs_bufs[digests_offset].checksum[0];
+  checksum[1] = krb5tgs_bufs[digests_offset].checksum[1];
+  checksum[2] = krb5tgs_bufs[digests_offset].checksum[2];
+  checksum[3] = krb5tgs_bufs[digests_offset].checksum[3];
 
   /**
    * loop
@@ -988,7 +988,7 @@ __kernel void m13100_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
     tmp[2] = digest[2];
     tmp[3] = digest[3];
 
-    if (decrypt_and_check (&rc4_keys[lid], tmp, krb5tgs_bufs[salt_pos].edata2, krb5tgs_bufs[salt_pos].edata2_len, K2, checksum) == 1)
+    if (decrypt_and_check (&rc4_keys[lid], tmp, krb5tgs_bufs[digests_offset].edata2, krb5tgs_bufs[digests_offset].edata2_len, K2, checksum) == 1)
     {
       mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
     }

@@ -2722,7 +2722,7 @@ int wpa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
 
   if (in.eapol_len < 1 || in.eapol_len > 255) return (PARSER_HCCAPX_EAPOL_LEN);
 
-  memcpy (digest, in.keymic, 16);
+  memcpy (wpa->keymic, in.keymic, 16);
 
   /*
     http://www.one-net.eu/jsw/j_sec/m_ptype.html
@@ -2762,7 +2762,9 @@ int wpa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
     memcpy (pke_ptr + 29, in.mac_ap,  6);
   }
 
-  if (memcmp (in.nonce_ap, in.nonce_sta, 32) < 0)
+  wpa->nonce_compare = memcmp (in.nonce_ap, in.nonce_sta, 32);
+
+  if (wpa->nonce_compare < 0)
   {
     memcpy (pke_ptr + 35, in.nonce_ap,  32);
     memcpy (pke_ptr + 67, in.nonce_sta, 32);
@@ -2790,6 +2792,11 @@ int wpa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
 
   wpa->message_pair = in.message_pair;
 
+  if ((wpa->message_pair == MESSAGE_PAIR_M32E3) || (wpa->message_pair == MESSAGE_PAIR_M34E3))
+  {
+    wpa->nonce_error_corrections = 0;
+  }
+
   wpa->keyver = in.keyver;
 
   if (wpa->keyver & ~7) return (PARSER_SALT_VALUE);
@@ -2810,10 +2817,10 @@ int wpa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
   }
   else
   {
-    digest[0] = byte_swap_32 (digest[0]);
-    digest[1] = byte_swap_32 (digest[1]);
-    digest[2] = byte_swap_32 (digest[2]);
-    digest[3] = byte_swap_32 (digest[3]);
+    wpa->keymic[0] = byte_swap_32 (wpa->keymic[0]);
+    wpa->keymic[1] = byte_swap_32 (wpa->keymic[1]);
+    wpa->keymic[2] = byte_swap_32 (wpa->keymic[2]);
+    wpa->keymic[3] = byte_swap_32 (wpa->keymic[3]);
 
     for (int i = 0; i < 64; i++)
     {
@@ -2876,17 +2883,24 @@ int wpa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
 
   md5_64 (block, hash);
 
-  block[0] = digest[0];
-  block[1] = digest[1];
-  block[2] = digest[2];
-  block[3] = digest[3];
+  block[0] = wpa->keymic[0];
+  block[1] = wpa->keymic[1];
+  block[2] = wpa->keymic[2];
+  block[3] = wpa->keymic[3];
 
   md5_64 (block, hash);
 
-  salt->salt_buf[12] = hash[0];
-  salt->salt_buf[13] = hash[1];
-  salt->salt_buf[14] = hash[2];
-  salt->salt_buf[15] = hash[3];
+  wpa->hash[0] = hash[0];
+  wpa->hash[1] = hash[1];
+  wpa->hash[2] = hash[2];
+  wpa->hash[3] = hash[3];
+
+  // make all this stuff unique
+
+  digest[0] = wpa->hash[0];
+  digest[1] = wpa->hash[1];
+  digest[2] = wpa->hash[2];
+  digest[3] = wpa->hash[3];
 
   return (PARSER_OK);
 }
@@ -14054,7 +14068,7 @@ int fortigate_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   int decoded_len = base64_decode (base64_to_int, (const u8 *) hash_pos, DISPLAY_LEN_MAX_7000 - 3, tmp_buf);
 
-  if (decoded_len != 32 + 1) return (PARSER_HASH_LENGTH);
+  if (decoded_len != 32) return (PARSER_HASH_LENGTH);
 
   /**
    * store data
@@ -14926,10 +14940,8 @@ int check_old_hccap (const char *hashfile)
 
 void to_hccapx_t (hashcat_ctx_t *hashcat_ctx, hccapx_t *hccapx, const u32 salt_pos, const u32 digest_pos)
 {
-  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
-  const hashes_t     *hashes     = hashcat_ctx->hashes;
+  const hashes_t *hashes = hashcat_ctx->hashes;
 
-  const void   *digests_buf = hashes->digests_buf;
   const salt_t *salts_buf   = hashes->salts_buf;
   const void   *esalts_buf  = hashes->esalts_buf;
 
@@ -14940,12 +14952,14 @@ void to_hccapx_t (hashcat_ctx_t *hashcat_ctx, hccapx_t *hccapx, const u32 salt_p
 
   const salt_t *salt = &salts_buf[salt_pos];
 
+  const u32 digest_cur = salt->digests_offset + digest_pos;
+
   hccapx->essid_len = salt->salt_len;
 
   memcpy (hccapx->essid, salt->salt_buf, hccapx->essid_len);
 
   wpa_t *wpas = (wpa_t *) esalts_buf;
-  wpa_t *wpa  = &wpas[salt_pos];
+  wpa_t *wpa  = &wpas[digest_cur];
 
   hccapx->message_pair = wpa->message_pair;
   hccapx->keyver = wpa->keyver;
@@ -14973,76 +14987,21 @@ void to_hccapx_t (hashcat_ctx_t *hashcat_ctx, hccapx_t *hccapx, const u32 salt_p
   memcpy (hccapx->nonce_ap,  wpa->orig_nonce_ap,  32);
   memcpy (hccapx->nonce_sta, wpa->orig_nonce_sta, 32);
 
-  char *digests_buf_ptr = (char *) digests_buf;
-
-  u32 dgst_size = hashconfig->dgst_size;
-
-  u32 *digest_ptr = (u32 *) (digests_buf_ptr + (salts_buf[salt_pos].digests_offset * dgst_size) + (digest_pos * dgst_size));
-
   if (wpa->keyver != 1)
   {
-    u32 digest_tmp[4] = { 0 };
+    u32 digest_tmp[4];
 
-    digest_tmp[0] = byte_swap_32 (digest_ptr[0]);
-    digest_tmp[1] = byte_swap_32 (digest_ptr[1]);
-    digest_tmp[2] = byte_swap_32 (digest_ptr[2]);
-    digest_tmp[3] = byte_swap_32 (digest_ptr[3]);
+    digest_tmp[0] = byte_swap_32 (wpa->keymic[0]);
+    digest_tmp[1] = byte_swap_32 (wpa->keymic[1]);
+    digest_tmp[2] = byte_swap_32 (wpa->keymic[2]);
+    digest_tmp[3] = byte_swap_32 (wpa->keymic[3]);
 
     memcpy (hccapx->keymic, digest_tmp, 16);
   }
   else
   {
-    memcpy (hccapx->keymic, digest_ptr, 16);
+    memcpy (hccapx->keymic, wpa->keymic, 16);
   }
-}
-
-void wpa_essid_reuse (hashcat_ctx_t *hashcat_ctx)
-{
-  // find duplicate essid to speed up cracking
-
-  hashes_t *hashes = hashcat_ctx->hashes;
-
-  salt_t *salts_buf = hashes->salts_buf;
-
-  wpa_t *esalts_buf = hashes->esalts_buf;
-
-  const u32 salts_cnt = hashes->salts_cnt;
-
-  for (u32 salt_idx = 1; salt_idx < salts_cnt; salt_idx++)
-  {
-    if (memcmp ((char *) salts_buf[salt_idx].salt_buf, (char *) salts_buf[salt_idx - 1].salt_buf, salts_buf[salt_idx].salt_len) == 0)
-    {
-      esalts_buf[salt_idx].essid_reuse = 1;
-    }
-  }
-}
-
-void wpa_essid_reuse_next (hashcat_ctx_t *hashcat_ctx, const u32 salt_idx_cracked)
-{
-  hashes_t *hashes = hashcat_ctx->hashes;
-
-  salt_t *salts_buf = hashes->salts_buf;
-
-  wpa_t *esalts_buf = hashes->esalts_buf;
-
-  // the first essid salt has been cracked?
-  // since there's always just one with essid_reuse == 0 (which is always the first uncracked of N handshakes)
-  // we can do the following check:
-
-  if (esalts_buf[salt_idx_cracked].essid_reuse != 0) return;
-
-  // it's possible more handshakes with the same essid are following,
-  // thus we have to update the next essid_reuse with the same essid
-
-  const u32 salts_cnt = hashes->salts_cnt;
-
-  const u32 salts_idx_next = salt_idx_cracked + 1;
-
-  if (salts_idx_next == salts_cnt) return;
-
-  if (memcmp ((char *) salts_buf[salts_idx_next].salt_buf, (char *) salts_buf[salt_idx_cracked].salt_buf, salts_buf[salts_idx_next].salt_len)) return;
-
-  esalts_buf[salts_idx_next].essid_reuse = 0;
 }
 
 int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_len, const u32 salt_pos, const u32 digest_pos)
@@ -15062,6 +15021,8 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   const u64 opts_type = hashconfig->opts_type;
   const u32 opti_type = hashconfig->opti_type;
   const u32 dgst_size = hashconfig->dgst_size;
+
+  const u32 digest_cur = salts_buf[salt_pos].digests_offset + digest_pos;
 
   u8 datax[256] = { 0 };
 
@@ -15541,10 +15502,8 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   }
   else if (hash_mode == 501)
   {
-    u32 digest_idx = salt.digests_offset + digest_pos;
-
     hashinfo_t **hashinfo_ptr = hash_info;
-    char        *hash_buf     = hashinfo_ptr[digest_idx]->orighash;
+    char        *hash_buf     = hashinfo_ptr[digest_cur]->orighash;
 
     snprintf (out_buf, out_len - 1, "%s", hash_buf);
   }
@@ -15791,7 +15750,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     wpa_t *wpas = (wpa_t *) esalts_buf;
 
-    wpa_t *wpa = &wpas[salt_pos];
+    wpa_t *wpa = &wpas[digest_cur];
 
     char *essid = (char *) wpa->essid;
 
@@ -15815,10 +15774,10 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     }
 
     snprintf (out_buf, out_len - 1, "%08x%08x%08x%08x:%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x:%s",
-      salt.salt_buf[12],
-      salt.salt_buf[13],
-      salt.salt_buf[14],
-      salt.salt_buf[15],
+      wpa->hash[0],
+      wpa->hash[1],
+      wpa->hash[2],
+      wpa->hash[3],
       wpa->orig_mac_ap[0],
       wpa->orig_mac_ap[1],
       wpa->orig_mac_ap[2],
@@ -15888,7 +15847,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     ikepsk_t *ikepsks = (ikepsk_t *) esalts_buf;
 
-    ikepsk_t *ikepsk  = &ikepsks[salt_pos];
+    ikepsk_t *ikepsk  = &ikepsks[digest_cur];
 
     size_t buf_len = out_len - 1;
 
@@ -15954,7 +15913,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     ikepsk_t *ikepsks = (ikepsk_t *) esalts_buf;
 
-    ikepsk_t *ikepsk  = &ikepsks[salt_pos];
+    ikepsk_t *ikepsk  = &ikepsks[digest_cur];
 
     size_t buf_len = out_len - 1;
 
@@ -16020,7 +15979,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     netntlm_t *netntlms = (netntlm_t *) esalts_buf;
 
-    netntlm_t *netntlm = &netntlms[salt_pos];
+    netntlm_t *netntlm = &netntlms[digest_cur];
 
     char user_buf[64] = { 0 };
     char domain_buf[64] = { 0 };
@@ -16071,7 +16030,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     netntlm_t *netntlms = (netntlm_t *) esalts_buf;
 
-    netntlm_t *netntlm = &netntlms[salt_pos];
+    netntlm_t *netntlm = &netntlms[digest_cur];
 
     char user_buf[64] = { 0 };
     char domain_buf[64] = { 0 };
@@ -16185,7 +16144,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     agilekey_t *agilekeys = (agilekey_t *) esalts_buf;
 
-    agilekey_t *agilekey = &agilekeys[salt_pos];
+    agilekey_t *agilekey = &agilekeys[digest_cur];
 
     salt.salt_buf[0] = byte_swap_32 (salt.salt_buf[0]);
     salt.salt_buf[1] = byte_swap_32 (salt.salt_buf[1]);
@@ -16219,7 +16178,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     // base64 encode (salt + SHA1)
 
-    base64_encode (int_to_base64, (const u8 *) tmp_buf, 12 + 20 + 1, (u8 *) ptr_plain);
+    base64_encode (int_to_base64, (const u8 *) tmp_buf, 12 + 20, (u8 *) ptr_plain);
 
     ptr_plain[44] = 0;
 
@@ -16233,7 +16192,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     pbkdf2_sha512_t *pbkdf2_sha512s = (pbkdf2_sha512_t *) esalts_buf;
 
-    pbkdf2_sha512_t *pbkdf2_sha512  = &pbkdf2_sha512s[salt_pos];
+    pbkdf2_sha512_t *pbkdf2_sha512  = &pbkdf2_sha512s[digest_cur];
 
     u32 esalt[8] = { 0 };
 
@@ -16268,7 +16227,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     pbkdf2_sha512_t *pbkdf2_sha512s = (pbkdf2_sha512_t *) esalts_buf;
 
-    pbkdf2_sha512_t *pbkdf2_sha512  = &pbkdf2_sha512s[salt_pos];
+    pbkdf2_sha512_t *pbkdf2_sha512  = &pbkdf2_sha512s[digest_cur];
 
     u32 len_used = 0;
 
@@ -16297,7 +16256,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     rakp_t *rakps = (rakp_t *) esalts_buf;
 
-    rakp_t *rakp = &rakps[salt_pos];
+    rakp_t *rakp = &rakps[digest_cur];
 
     u32 i;
     u32 j;
@@ -16344,7 +16303,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     krb5pa_t *krb5pas = (krb5pa_t *) esalts_buf;
 
-    krb5pa_t *krb5pa = &krb5pas[salt_pos];
+    krb5pa_t *krb5pa = &krb5pas[digest_cur];
 
     u8 *ptr_timestamp = (u8 *) krb5pa->timestamp;
     u8 *ptr_checksum  = (u8 *) krb5pa->checksum;
@@ -16435,7 +16394,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     cloudkey_t *cloudkeys = (cloudkey_t *) esalts_buf;
 
-    cloudkey_t *cloudkey = &cloudkeys[salt_pos];
+    cloudkey_t *cloudkey = &cloudkeys[digest_cur];
 
     char data_buf[4096] = { 0 };
 
@@ -16545,7 +16504,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     androidfde_t *androidfdes = (androidfde_t *) esalts_buf;
 
-    androidfde_t *androidfde = &androidfdes[salt_pos];
+    androidfde_t *androidfde = &androidfdes[digest_cur];
 
     char tmp[3073] = { 0 };
 
@@ -16610,7 +16569,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     pbkdf2_sha256_t *pbkdf2_sha256s = (pbkdf2_sha256_t *) esalts_buf;
 
-    pbkdf2_sha256_t *pbkdf2_sha256  = &pbkdf2_sha256s[salt_pos];
+    pbkdf2_sha256_t *pbkdf2_sha256  = &pbkdf2_sha256s[digest_cur];
 
     unsigned char *salt_buf_ptr = (unsigned char *) pbkdf2_sha256->salt_buf;
 
@@ -16658,7 +16617,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     office2007_t *office2007s = (office2007_t *) esalts_buf;
 
-    office2007_t *office2007 = &office2007s[salt_pos];
+    office2007_t *office2007 = &office2007s[digest_cur];
 
     snprintf (out_buf, out_len - 1, "%s*%d*%d*%u*%d*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x%08x",
       SIGNATURE_OFFICE2007,
@@ -16684,7 +16643,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     office2010_t *office2010s = (office2010_t *) esalts_buf;
 
-    office2010_t *office2010 = &office2010s[salt_pos];
+    office2010_t *office2010 = &office2010s[digest_cur];
 
     snprintf (out_buf, out_len - 1, "%s*%d*%d*%d*%d*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x%08x%08x%08x%08x",
       SIGNATURE_OFFICE2010,
@@ -16713,7 +16672,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     office2013_t *office2013s = (office2013_t *) esalts_buf;
 
-    office2013_t *office2013 = &office2013s[salt_pos];
+    office2013_t *office2013 = &office2013s[digest_cur];
 
     snprintf (out_buf, out_len - 1, "%s*%d*%d*%d*%d*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x%08x%08x%08x%08x",
       SIGNATURE_OFFICE2013,
@@ -16742,7 +16701,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     oldoffice01_t *oldoffice01s = (oldoffice01_t *) esalts_buf;
 
-    oldoffice01_t *oldoffice01 = &oldoffice01s[salt_pos];
+    oldoffice01_t *oldoffice01 = &oldoffice01s[digest_cur];
 
     snprintf (out_buf, out_len - 1, "%s*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x",
       (oldoffice01->version == 0) ? SIGNATURE_OLDOFFICE0 : SIGNATURE_OLDOFFICE1,
@@ -16763,7 +16722,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     oldoffice01_t *oldoffice01s = (oldoffice01_t *) esalts_buf;
 
-    oldoffice01_t *oldoffice01 = &oldoffice01s[salt_pos];
+    oldoffice01_t *oldoffice01 = &oldoffice01s[digest_cur];
 
     snprintf (out_buf, out_len - 1, "%s*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x",
       (oldoffice01->version == 0) ? SIGNATURE_OLDOFFICE0 : SIGNATURE_OLDOFFICE1,
@@ -16784,7 +16743,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     oldoffice01_t *oldoffice01s = (oldoffice01_t *) esalts_buf;
 
-    oldoffice01_t *oldoffice01 = &oldoffice01s[salt_pos];
+    oldoffice01_t *oldoffice01 = &oldoffice01s[digest_cur];
 
     u8 *rc4key = (u8 *) oldoffice01->rc4key;
 
@@ -16812,7 +16771,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     oldoffice34_t *oldoffice34s = (oldoffice34_t *) esalts_buf;
 
-    oldoffice34_t *oldoffice34 = &oldoffice34s[salt_pos];
+    oldoffice34_t *oldoffice34 = &oldoffice34s[digest_cur];
 
     snprintf (out_buf, out_len - 1, "%s*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x%08x",
       (oldoffice34->version == 3) ? SIGNATURE_OLDOFFICE3 : SIGNATURE_OLDOFFICE4,
@@ -16834,7 +16793,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     oldoffice34_t *oldoffice34s = (oldoffice34_t *) esalts_buf;
 
-    oldoffice34_t *oldoffice34 = &oldoffice34s[salt_pos];
+    oldoffice34_t *oldoffice34 = &oldoffice34s[digest_cur];
 
     snprintf (out_buf, out_len - 1, "%s*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x%08x",
       (oldoffice34->version == 3) ? SIGNATURE_OLDOFFICE3 : SIGNATURE_OLDOFFICE4,
@@ -16856,7 +16815,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     oldoffice34_t *oldoffice34s = (oldoffice34_t *) esalts_buf;
 
-    oldoffice34_t *oldoffice34 = &oldoffice34s[salt_pos];
+    oldoffice34_t *oldoffice34 = &oldoffice34s[digest_cur];
 
     u8 *rc4key = (u8 *) oldoffice34->rc4key;
 
@@ -16887,7 +16846,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     pbkdf2_sha256_t *pbkdf2_sha256s = (pbkdf2_sha256_t *) esalts_buf;
 
-    pbkdf2_sha256_t *pbkdf2_sha256  = &pbkdf2_sha256s[salt_pos];
+    pbkdf2_sha256_t *pbkdf2_sha256  = &pbkdf2_sha256s[digest_cur];
 
     unsigned char *salt_buf_ptr = (unsigned char *) pbkdf2_sha256->salt_buf;
 
@@ -16925,7 +16884,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     cram_md5_t *cram_md5s = (cram_md5_t *) esalts_buf;
 
-    cram_md5_t *cram_md5 = &cram_md5s[salt_pos];
+    cram_md5_t *cram_md5 = &cram_md5s[digest_cur];
 
     // challenge
 
@@ -16967,7 +16926,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     pdf_t *pdfs = (pdf_t *) esalts_buf;
 
-    pdf_t *pdf = &pdfs[salt_pos];
+    pdf_t *pdf = &pdfs[digest_cur];
 
     snprintf (out_buf, out_len - 1, "$pdf$%d*%d*%d*%d*%d*%d*%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x",
 
@@ -17005,7 +16964,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     pdf_t *pdfs = (pdf_t *) esalts_buf;
 
-    pdf_t *pdf = &pdfs[salt_pos];
+    pdf_t *pdf = &pdfs[digest_cur];
 
     snprintf (out_buf, out_len - 1, "$pdf$%d*%d*%d*%d*%d*%d*%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x",
 
@@ -17043,7 +17002,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     pdf_t *pdfs = (pdf_t *) esalts_buf;
 
-    pdf_t *pdf = &pdfs[salt_pos];
+    pdf_t *pdf = &pdfs[digest_cur];
 
     u8 *rc4key = (u8 *) pdf->rc4key;
 
@@ -17088,7 +17047,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     pdf_t *pdfs = (pdf_t *) esalts_buf;
 
-    pdf_t *pdf = &pdfs[salt_pos];
+    pdf_t *pdf = &pdfs[digest_cur];
 
     if (pdf->id_len == 32)
     {
@@ -17165,28 +17124,22 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   }
   else if (hash_mode == 10600)
   {
-    u32 digest_idx = salt.digests_offset + digest_pos;
-
     hashinfo_t **hashinfo_ptr = hash_info;
-    char        *hash_buf     = hashinfo_ptr[digest_idx]->orighash;
+    char        *hash_buf     = hashinfo_ptr[digest_cur]->orighash;
 
     snprintf (out_buf, out_len - 1, "%s", hash_buf);
   }
   else if (hash_mode == 10700)
   {
-    u32 digest_idx = salt.digests_offset + digest_pos;
-
     hashinfo_t **hashinfo_ptr = hash_info;
-    char        *hash_buf     = hashinfo_ptr[digest_idx]->orighash;
+    char        *hash_buf     = hashinfo_ptr[digest_cur]->orighash;
 
     snprintf (out_buf, out_len - 1, "%s", hash_buf);
   }
   else if (hash_mode == 10900)
   {
-    u32 digest_idx = salt.digests_offset + digest_pos;
-
     hashinfo_t **hashinfo_ptr = hash_info;
-    char        *hash_buf     = hashinfo_ptr[digest_idx]->orighash;
+    char        *hash_buf     = hashinfo_ptr[digest_cur]->orighash;
 
     snprintf (out_buf, out_len - 1, "%s", hash_buf);
   }
@@ -17222,7 +17175,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     bitcoin_wallet_t *bitcoin_wallets = (bitcoin_wallet_t *) esalts_buf;
 
-    bitcoin_wallet_t *bitcoin_wallet = &bitcoin_wallets[salt_pos];
+    bitcoin_wallet_t *bitcoin_wallet = &bitcoin_wallets[digest_cur];
 
     const u32 cry_master_len = bitcoin_wallet->cry_master_len;
     const u32 ckey_len       = bitcoin_wallet->ckey_len;
@@ -17272,10 +17225,8 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   }
   else if (hash_mode == 11400)
   {
-    u32 digest_idx = salt.digests_offset + digest_pos;
-
     hashinfo_t **hashinfo_ptr = hash_info;
-    char        *hash_buf     = hashinfo_ptr[digest_idx]->orighash;
+    char        *hash_buf     = hashinfo_ptr[digest_cur]->orighash;
 
     snprintf (out_buf, out_len - 1, "%s", hash_buf);
   }
@@ -17283,7 +17234,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     seven_zip_hook_salt_t *seven_zips = (seven_zip_hook_salt_t *) hashes->hook_salts_buf;
 
-    seven_zip_hook_salt_t *seven_zip  = &seven_zips[salt_pos];
+    seven_zip_hook_salt_t *seven_zip  = &seven_zips[digest_cur];
 
     const u32 data_len = seven_zip->data_len;
 
@@ -17387,37 +17338,29 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   }
   else if (hash_mode == 11900)
   {
-    u32 digest_idx = salt.digests_offset + digest_pos;
-
     hashinfo_t **hashinfo_ptr = hash_info;
-    char        *hash_buf     = hashinfo_ptr[digest_idx]->orighash;
+    char        *hash_buf     = hashinfo_ptr[digest_cur]->orighash;
 
     snprintf (out_buf, out_len - 1, "%s", hash_buf);
   }
   else if (hash_mode == 12000)
   {
-    u32 digest_idx = salt.digests_offset + digest_pos;
-
     hashinfo_t **hashinfo_ptr = hash_info;
-    char        *hash_buf     = hashinfo_ptr[digest_idx]->orighash;
+    char        *hash_buf     = hashinfo_ptr[digest_cur]->orighash;
 
     snprintf (out_buf, out_len - 1, "%s", hash_buf);
   }
   else if (hash_mode == 12001)
   {
-    u32 digest_idx = salt.digests_offset + digest_pos;
-
     hashinfo_t **hashinfo_ptr = hash_info;
-    char        *hash_buf     = hashinfo_ptr[digest_idx]->orighash;
+    char        *hash_buf     = hashinfo_ptr[digest_cur]->orighash;
 
     snprintf (out_buf, out_len - 1, "%s", hash_buf);
   }
   else if (hash_mode == 12100)
   {
-    u32 digest_idx = salt.digests_offset + digest_pos;
-
     hashinfo_t **hashinfo_ptr = hash_info;
-    char        *hash_buf     = hashinfo_ptr[digest_idx]->orighash;
+    char        *hash_buf     = hashinfo_ptr[digest_cur]->orighash;
 
     snprintf (out_buf, out_len - 1, "%s", hash_buf);
   }
@@ -17512,10 +17455,8 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   }
   else if (hash_mode == 12700)
   {
-    u32 digest_idx = salt.digests_offset + digest_pos;
-
     hashinfo_t **hashinfo_ptr = hash_info;
-    char        *hash_buf     = hashinfo_ptr[digest_idx]->orighash;
+    char        *hash_buf     = hashinfo_ptr[digest_cur]->orighash;
 
     snprintf (out_buf, out_len - 1, "%s", hash_buf);
   }
@@ -17575,7 +17516,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     rar5_t *rar5s = (rar5_t *) esalts_buf;
 
-    rar5_t *rar5 = &rar5s[salt_pos];
+    rar5_t *rar5 = &rar5s[digest_cur];
 
     snprintf (out_buf, out_len - 1, "$rar5$16$%08x%08x%08x%08x$%u$%08x%08x%08x%08x$8$%08x%08x",
       salt.salt_buf[0],
@@ -17595,7 +17536,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     krb5tgs_t *krb5tgss = (krb5tgs_t *) esalts_buf;
 
-    krb5tgs_t *krb5tgs = &krb5tgss[salt_pos];
+    krb5tgs_t *krb5tgs = &krb5tgss[digest_cur];
 
     u8 *ptr_checksum  = (u8 *) krb5tgs->checksum;
     u8 *ptr_edata2 = (u8 *) krb5tgs->edata2;
@@ -17648,7 +17589,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     keepass_t *keepasss = (keepass_t *) esalts_buf;
 
-    keepass_t *keepass = &keepasss[salt_pos];
+    keepass_t *keepass = &keepasss[digest_cur];
 
     u32 version     = (u32) keepass->version;
     u32 rounds      = salt.salt_iter;
@@ -17782,7 +17723,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     pstoken_t *pstokens = (pstoken_t *) esalts_buf;
 
-    pstoken_t *pstoken = &pstokens[salt_pos];
+    pstoken_t *pstoken = &pstokens[digest_cur];
 
     const u32 salt_len = (pstoken->salt_len > 512) ? 512 : pstoken->salt_len;
 
@@ -17807,7 +17748,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     zip2_t *zip2s = (zip2_t *) esalts_buf;
 
-    zip2_t *zip2 = &zip2s[salt_pos];
+    zip2_t *zip2 = &zip2s[digest_cur];
 
     const u32 salt_len = zip2->salt_len;
 
@@ -17862,7 +17803,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     win8phone_t *esalts = (win8phone_t *) esalts_buf;
 
-    win8phone_t *esalt = &esalts[salt_pos];
+    win8phone_t *esalt = &esalts[digest_cur];
 
     char buf[256 + 1] = { 0 };
 
@@ -17908,7 +17849,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     // WPKY
 
     itunes_backup_t *itunes_backups = (itunes_backup_t *) esalts_buf;
-    itunes_backup_t *itunes_backup  = &itunes_backups[salt_pos];
+    itunes_backup_t *itunes_backup  = &itunes_backups[digest_cur];
 
     u32 wkpy_u32[10];
 
@@ -17950,7 +17891,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     // WPKY
 
     itunes_backup_t *itunes_backups = (itunes_backup_t *) esalts_buf;
-    itunes_backup_t *itunes_backup  = &itunes_backups[salt_pos];
+    itunes_backup_t *itunes_backup  = &itunes_backups[digest_cur];
 
     u32 wkpy_u32[10];
 
@@ -22491,7 +22432,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   // pw_min
 
-  hashconfig->pw_max = PW_MIN;
+  hashconfig->pw_min = PW_MIN;
 
   switch (hashconfig->hash_mode)
   {

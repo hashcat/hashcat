@@ -1,3 +1,37 @@
+* changes v3.40 -> ?:
+
+##
+## Features
+##
+
+- WPA cracking: Added support for WPA/WPA2 handshake AP nonce automatic error correction
+- WPA cracking: Added parameter --nonce-error-corrections to configure range of error correction
+- Added visual indicator to the status screen to indicate if the checkpoint quit feature is enabled
+
+##
+## Improvements
+##
+
+- Refactored internal use of esalt from sync with number of salts to sync with number of digests
+
+##
+## Bugs
+##
+
+- Fixed a problem where --keyspace combined with custom charsets incorrectly displayed an error message
+- Fixed a problem where --stdout combined with custom charsets incorrectly displayed an error message
+- Fixed a typo that resulted in the minimum password length not being correctly initialized
+- Fixed a problem with parsing and displaying -m 7000 = Fortigate (FortiOS) hashes
+- Fixed --remove was not applied in case all hashes have been cracked by help of potfile or weak-hash check
+- Fixed status view progress percentage in case -s was used
+
+##
+## Technical
+##
+
+- Building: Added missing prototypes for atlassian_parse_hash function
+- Sessions: Improved string comparison in case user sets --session to "hashcat"
+
 * changes v3.30 -> v3.40:
 
 ##

@@ -1,8 +1,25 @@
+<<<<<<< HEAD
+=======
 before_install:
  - echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-certificates.crt
+>>>>>>> refs/remotes/hashcat/coverity_scan
 os:
   - linux
 language: c
+<<<<<<< HEAD
+compiler:
+  - clang
+  - gcc
+matrix:
+  include:
+    - os: linux
+      dist: trusty
+      compiler: gcc
+    - os: linux
+      dist: trusty
+      compiler: clang
+=======
+>>>>>>> refs/remotes/hashcat/coverity_scan
 script:
   - make
 env:

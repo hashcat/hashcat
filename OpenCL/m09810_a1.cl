@@ -306,14 +306,14 @@ __kernel void m09810_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
    * esalt
    */
 
-  const u32 version = oldoffice34_bufs[salt_pos].version;
+  const u32 version = oldoffice34_bufs[digests_offset].version;
 
   u32 encryptedVerifier[4];
 
-  encryptedVerifier[0] = oldoffice34_bufs[salt_pos].encryptedVerifier[0];
-  encryptedVerifier[1] = oldoffice34_bufs[salt_pos].encryptedVerifier[1];
-  encryptedVerifier[2] = oldoffice34_bufs[salt_pos].encryptedVerifier[2];
-  encryptedVerifier[3] = oldoffice34_bufs[salt_pos].encryptedVerifier[3];
+  encryptedVerifier[0] = oldoffice34_bufs[digests_offset].encryptedVerifier[0];
+  encryptedVerifier[1] = oldoffice34_bufs[digests_offset].encryptedVerifier[1];
+  encryptedVerifier[2] = oldoffice34_bufs[digests_offset].encryptedVerifier[2];
+  encryptedVerifier[3] = oldoffice34_bufs[digests_offset].encryptedVerifier[3];
 
   /**
    * loop
@@ -479,14 +479,14 @@ __kernel void m09810_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
    * esalt
    */
 
-  const u32 version = oldoffice34_bufs[salt_pos].version;
+  const u32 version = oldoffice34_bufs[digests_offset].version;
 
   u32 encryptedVerifier[4];
 
-  encryptedVerifier[0] = oldoffice34_bufs[salt_pos].encryptedVerifier[0];
-  encryptedVerifier[1] = oldoffice34_bufs[salt_pos].encryptedVerifier[1];
-  encryptedVerifier[2] = oldoffice34_bufs[salt_pos].encryptedVerifier[2];
-  encryptedVerifier[3] = oldoffice34_bufs[salt_pos].encryptedVerifier[3];
+  encryptedVerifier[0] = oldoffice34_bufs[digests_offset].encryptedVerifier[0];
+  encryptedVerifier[1] = oldoffice34_bufs[digests_offset].encryptedVerifier[1];
+  encryptedVerifier[2] = oldoffice34_bufs[digests_offset].encryptedVerifier[2];
+  encryptedVerifier[3] = oldoffice34_bufs[digests_offset].encryptedVerifier[3];
 
   /**
    * digest

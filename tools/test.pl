@@ -214,7 +214,7 @@ sub verify
     # remember always do "exists ($db->{$hash_in})" checks as soon as possible and don't forget it
 
     # unsalted
-    if ($mode == 0 || $mode == 100 || $mode == 101 || $mode == 133 || $mode == 200 || $mode == 300 || $mode == 900 || $mode == 1000 || $mode == 1300 || $mode == 1400 || $mode == 1700 || $mode == 2400 || $mode == 2600 || $mode == 3000 || $mode == 3500 || $mode == 4300 || $mode == 4400 || $mode == 4500 || $mode == 4600 || $mode == 4700 || $mode == 5000 || $mode == 5100 || $mode == 5700 || $mode == 6000 || $mode == 6100 || $mode == 6900 || $mode == 8600 || $mode == 9900 || $mode == 10800 || $mode == 11500 || $mode == 15000 || $mode == 99999)
+    if ($mode == 0 || $mode == 100 || $mode == 101 || $mode == 133 || $mode == 200 || $mode == 300 || $mode == 900 || $mode == 1000 || $mode == 1300 || $mode == 1400 || $mode == 1700 || $mode == 2400 || $mode == 2600 || $mode == 3000 || $mode == 3500 || $mode == 4300 || $mode == 4400 || $mode == 4500 || $mode == 4600 || $mode == 4700 || $mode == 5000 || $mode == 5100 || $mode == 5700 || $mode == 6000 || $mode == 6100 || $mode == 6900 || $mode == 8600 || $mode == 9900 || $mode == 10800 || $mode == 11500 || $mode == 99999)
     {
       my $index = index ($line, ":");
 
@@ -227,7 +227,7 @@ sub verify
       $word = substr ($line, $index + 1);
     }
     # hash:salt
-    elsif ($mode == 10 || $mode == 11 || $mode == 12 || $mode == 20 || $mode == 21 || $mode == 22 || $mode == 23 || $mode == 30 || $mode == 40 || $mode == 50 || $mode == 60 || $mode == 110 || $mode == 112 || $mode == 120 || $mode == 121 || $mode == 130 || $mode == 140 || $mode == 150 || $mode == 160 || $mode == 1100 || $mode == 1410 || $mode == 1420 || $mode == 1430 || $mode == 1440 || $mode == 1450 || $mode == 1460 || $mode == 1710 || $mode == 1720 || $mode == 1730 || $mode == 1740 || $mode == 1750 || $mode == 1760 || $mode == 2410 || $mode == 2611 || $mode == 2711 || $mode == 2811 || $mode == 3100 || $mode == 3610 || $mode == 3710 || $mode == 3720 || $mode == 3800 || $mode == 3910 || $mode == 4010 || $mode == 4110 || $mode == 4210 || $mode == 4520 || $mode == 4521 || $mode == 4522 || $mode == 4900 || $mode == 5800 || $mode == 8400 || $mode == 11000 || $mode == 12600 || $mode == 13500 || $mode == 13800 || $mode == 13900 || $mode == 14000 || $mode == 14100 || $mode == 14400 || $mode == 14900)
+    elsif ($mode == 10 || $mode == 11 || $mode == 12 || $mode == 20 || $mode == 21 || $mode == 22 || $mode == 23 || $mode == 30 || $mode == 40 || $mode == 50 || $mode == 60 || $mode == 110 || $mode == 112 || $mode == 120 || $mode == 121 || $mode == 130 || $mode == 140 || $mode == 150 || $mode == 160 || $mode == 1100 || $mode == 1410 || $mode == 1420 || $mode == 1430 || $mode == 1440 || $mode == 1450 || $mode == 1460 || $mode == 1710 || $mode == 1720 || $mode == 1730 || $mode == 1740 || $mode == 1750 || $mode == 1760 || $mode == 2410 || $mode == 2611 || $mode == 2711 || $mode == 2811 || $mode == 3100 || $mode == 3610 || $mode == 3710 || $mode == 3720 || $mode == 3800 || $mode == 3910 || $mode == 4010 || $mode == 4110 || $mode == 4210 || $mode == 4520 || $mode == 4521 || $mode == 4522 || $mode == 4900 || $mode == 5800 || $mode == 8400 || $mode == 11000 || $mode == 12600 || $mode == 13500 || $mode == 13800 || $mode == 13900 || $mode == 14000 || $mode == 14100 || $mode == 14400 || $mode == 14900 || $mode == 15000)
     {
       # get hash
       my $index1 = index ($line, ":");
@@ -2298,15 +2298,17 @@ sub verify
 
       my @data = split ('\$', $hash_in);
 
-      next unless scalar @data == 2;
+      next unless scalar @data == 3;
 
       shift @data;
 
       my $signature = shift @data;
       my $digest    = shift @data;
 
-      next unless ($signature eq '$axcrypt_sha1');
-      next unless (length ($digest) == 32 || length ($digest) == 40);
+      $param = length ($digest);
+
+      next unless ($signature eq 'axcrypt_sha1');
+      next unless (($param == 32) || ($param == 40));
 
       next unless (exists ($db->{$hash_in}) and (! defined ($db->{$hash_in})));
     }
@@ -2695,6 +2697,14 @@ sub verify
 
       return unless (substr ($line, 0, $len) eq $hash_out);
     }
+    elsif ($mode == 10200)
+    {
+      $hash_out = gen_hash ($mode, $word, $salt, $param);
+
+      $len = length $hash_out;
+
+      return unless (substr ($line, 0, $len) eq $hash_out);
+    }
     elsif ($mode == 10400)
     {
       $hash_out = gen_hash ($mode, $word, $salt, 0, $param, $param2, $param3);
@@ -2850,6 +2860,14 @@ sub verify
       return unless (substr ($line, 0, $len) eq $hash_out);
     }
     elsif ($mode == 13200)
+    {
+      $hash_out = gen_hash ($mode, $word, $salt, $iter, $param);
+
+      $len = length $hash_out;
+
+      return unless (substr ($line, 0, $len) eq $hash_out);
+    }
+    elsif ($mode == 13300)
     {
       $hash_out = gen_hash ($mode, $word, $salt, $iter, $param);
 
@@ -4468,9 +4486,7 @@ sub gen_hash
   {
     $hash_buf = sha1 ($word_buf);
 
-    my $base64_buf = encode_base64 ($hash_buf);
-
-    chomp ($base64_buf);
+    my $base64_buf = encode_base64 ($hash_buf, "");
 
     $tmp_hash = sprintf ("{SHA}%s", $base64_buf);
   }
@@ -4484,9 +4500,7 @@ sub gen_hash
   {
     $hash_buf = sha1 ($word_buf . $salt_buf);
 
-    my $base64_buf = encode_base64 ($hash_buf . $salt_buf);
-
-    chomp ($base64_buf);
+    my $base64_buf = encode_base64 ($hash_buf . $salt_buf, "");
 
     $tmp_hash = sprintf ("{SSHA}%s", $base64_buf);
   }
@@ -4554,8 +4568,7 @@ sub gen_hash
   {
     $hash_buf = sha1 (encode ("UTF-16LE", $word_buf));
 
-    $hash_buf = encode_base64 ($hash_buf);
-    $hash_buf =~ s/[\r\n]//g;
+    $hash_buf = encode_base64 ($hash_buf, "");
 
     $tmp_hash = sprintf ("%s", $hash_buf);
   }
@@ -4569,11 +4582,8 @@ sub gen_hash
   {
     $hash_buf = sha1 ($salt_buf . encode ("UTF-16LE", $word_buf));
 
-    my $base64_salt_buf = encode_base64 ($salt_buf);
-
-    chomp ($base64_salt_buf);
-
-    my $base64_hash_buf = encode_base64 ($hash_buf);
+    my $base64_salt_buf = encode_base64 ($salt_buf, "");
+    my $base64_hash_buf = encode_base64 ($hash_buf, "");
 
     $base64_hash_buf = substr ($base64_hash_buf, 0, 27);
 
@@ -4683,9 +4693,7 @@ sub gen_hash
   {
     $hash_buf = sha256_hex ($word_buf . $salt_buf);
 
-    my $base64_buf = encode_base64 (pack ("H*", $hash_buf) . $salt_buf);
-
-    $base64_buf =~ s/[ \n]//g;
+    my $base64_buf = encode_base64 (pack ("H*", $hash_buf) . $salt_buf, "");
 
     $tmp_hash = sprintf ("{SSHA256}%s", $base64_buf);
   }
@@ -4711,13 +4719,8 @@ sub gen_hash
   {
     $hash_buf = sha256 ($salt_buf . encode ("UTF-16LE", $word_buf));
 
-    my $base64_salt_buf = encode_base64 ($salt_buf);
-
-    chomp ($base64_salt_buf);
-
-    my $base64_hash_buf = encode_base64 ($hash_buf);
-
-    chomp ($base64_hash_buf);
+    my $base64_salt_buf = encode_base64 ($salt_buf, "");
+    my $base64_hash_buf = encode_base64 ($hash_buf, "");
 
     $base64_hash_buf = substr ($base64_hash_buf, 0, 43);
 
@@ -4773,9 +4776,7 @@ sub gen_hash
   {
     $hash_buf = sha512_hex ($word_buf . $salt_buf);
 
-    my $base64_buf = encode_base64 (pack ("H*", $hash_buf) . $salt_buf);
-
-    $base64_buf =~ s/[ \n]//g;
+    my $base64_buf = encode_base64 (pack ("H*", $hash_buf) . $salt_buf, "");
 
     $tmp_hash = sprintf ("{SSHA512}%s", $base64_buf);
   }
@@ -4950,7 +4951,7 @@ sub gen_hash
     $mic = substr ($mic, 0, 16);
 
     #
-    # format the binary output (.hccapx version 3)
+    # format the binary output
     #
 
     my $HCCAPX_VERSION = 4;
@@ -4998,7 +4999,7 @@ sub gen_hash
     $hash_buf .= "\x00" x (256 - $eapol_len);
 
     # base64 encode the output
-    $tmp_hash = encode_base64 ($hash_buf, '');
+    $tmp_hash = encode_base64 ($hash_buf, "");
   }
   elsif ($mode == 2600)
   {
@@ -5307,7 +5308,7 @@ sub gen_hash
   {
     $hash_buf = sha256 ($word_buf);
 
-    my $base64_buf = encode_base64 ($hash_buf);
+    my $base64_buf = encode_base64 ($hash_buf, "");
 
     $tmp_hash = "";
 
@@ -5492,8 +5493,7 @@ sub gen_hash
 
     my $hash = sha1 ($salt_bin . $word_buf . $FORTIGATE_MAGIC);
 
-    $hash = encode_base64 ($salt_bin . $hash . "\x00");
-    $hash =~ s/[\r\n]//g;
+    $hash = encode_base64 ($salt_bin . $hash, "");
 
     $tmp_hash = sprintf ("%s%s", $FORTIGATE_SIGNATURE, $hash);
   }
@@ -5594,7 +5594,6 @@ sub gen_hash
       my $timestamp = substr ($clear_data, 14, 14);
 
       my $is_numeric = 1;
-      my $num;
 
       if ($timestamp !~ /^[[:digit:]]{14}$/)
       {
@@ -5912,8 +5911,6 @@ sub gen_hash
 
     my $digest_new = $pbkdf2->PBKDF2 ($salt_buf, $tmp_hash);
 
-    my $iteration_str = "" . $iterations;
-
     for (my $i = length ($iterations); $i < 10; $i++)
     {
       $iterations = "0" . $iterations;
@@ -5931,7 +5928,7 @@ sub gen_hash
       iterations => $iterations
     );
 
-    $hash_buf = encode_base64 ($pbkdf2->PBKDF2 ($salt_buf, $word_buf));
+    $hash_buf = encode_base64 ($pbkdf2->PBKDF2 ($salt_buf, $word_buf), "");
 
     $tmp_hash = "";
 
@@ -6287,8 +6284,7 @@ sub gen_hash
       iterations => $iterations
     );
 
-    $hash_buf = encode_base64 ($pbkdf2->PBKDF2 ($salt_buf, $word_buf));
-    $hash_buf =~ s/[\r\n]//g;
+    $hash_buf = encode_base64 ($pbkdf2->PBKDF2 ($salt_buf, $word_buf), "");
 
     $tmp_hash = sprintf ("pbkdf2_sha256\$%i\$%s\$%s", $iterations, $salt_buf, $hash_buf);
   }
@@ -6308,8 +6304,7 @@ sub gen_hash
   }
   elsif ($mode == 10200)
   {
-    my $challengeb64 = encode_base64 ($salt_buf);
-    $challengeb64 =~ s/[\r\n]//g;
+    my $challengeb64 = encode_base64 ($salt_buf, "");
 
     my $username;
 
@@ -6324,8 +6319,7 @@ sub gen_hash
 
     $hash_buf = hmac_hex ($salt_buf, $word_buf, \&md5);
 
-    my $responseb64 = encode_base64 ($username . " " . $hash_buf);
-    $responseb64 =~ s/[\r\n]//g;
+    my $responseb64 = encode_base64 ($username . " " . $hash_buf, "");
 
     $tmp_hash = sprintf ('$cram_md5$%s$%s', $challengeb64, $responseb64);
   }
@@ -6345,8 +6339,7 @@ sub gen_hash
       $hash_buf = sha1 ($word_buf . $hash_buf);
     }
 
-    $hash_buf = encode_base64 ($hash_buf . $salt_buf);
-    $hash_buf =~ s/[\r\n]//g;
+    $hash_buf = encode_base64 ($hash_buf . $salt_buf, "");
 
     $tmp_hash = sprintf ("{x-issha, %i}%s", $iterations, $hash_buf);
   }
@@ -6613,12 +6606,9 @@ sub gen_hash
       output_len => $out_len
     );
 
-    $hash_buf = encode_base64 ($pbkdf2->PBKDF2 ($salt_buf, $word_buf));
-    $hash_buf =~ s/[\r\n]//g;
+    $hash_buf = encode_base64 ($pbkdf2->PBKDF2 ($salt_buf, $word_buf), "");
 
-    my $base64_salt_buf = encode_base64 ($salt_buf);
-
-    chomp ($base64_salt_buf);
+    my $base64_salt_buf = encode_base64 ($salt_buf, "");
 
     $tmp_hash = sprintf ("sha256:%i:%s:%s", $iterations, $base64_salt_buf, $hash_buf);
   }
@@ -6956,11 +6946,8 @@ sub gen_hash
 
     # sanitize $word_buf and $salt_buf:
 
-    my $word_buf_base64 = encode_base64 ($word_buf);
-    $word_buf_base64 =~ s/[\r\n]//g;
-
-    my $salt_buf_base64 = encode_base64 ($salt_buf);
-    $salt_buf_base64 =~ s/[\r\n]//g;
+    my $word_buf_base64 = encode_base64 ($word_buf, "");
+    my $salt_buf_base64 = encode_base64 ($salt_buf, "");
 
     # sanitize lenghs
 
@@ -7038,12 +7025,9 @@ END_CODE
 
     $hash_buf = pack ("H*", $php_output);
 
-    $hash_buf = encode_base64 ($hash_buf);
-    $hash_buf =~ s/[\r\n]//g;
+    $hash_buf = encode_base64 ($hash_buf, "");
 
-    my $base64_salt_buf = encode_base64 ($salt_buf);
-
-    chomp ($base64_salt_buf);
+    my $base64_salt_buf = encode_base64 ($salt_buf, "");
 
     $tmp_hash = sprintf ("md5:%i:%s:%s", $iterations, $base64_salt_buf, $hash_buf);
   }
@@ -7070,12 +7054,9 @@ END_CODE
       output_len => $out_len
     );
 
-    $hash_buf = encode_base64 ($pbkdf2->PBKDF2 ($salt_buf, $word_buf));
-    $hash_buf =~ s/[\r\n]//g;
+    $hash_buf = encode_base64 ($pbkdf2->PBKDF2 ($salt_buf, $word_buf), "");
 
-    my $base64_salt_buf = encode_base64 ($salt_buf);
-
-    chomp ($base64_salt_buf);
+    my $base64_salt_buf = encode_base64 ($salt_buf, "");
 
     $tmp_hash = sprintf ("sha1:%i:%s:%s", $iterations, $base64_salt_buf, $hash_buf);
   }
@@ -7088,8 +7069,7 @@ END_CODE
       output_len => 32
     );
 
-    my $base64_buf = encode_base64 ($salt_buf . $pbkdf2->PBKDF2 ($salt_buf, $word_buf));
-    $base64_buf =~ s/[\r\n]//g;
+    my $base64_buf = encode_base64 ($salt_buf . $pbkdf2->PBKDF2 ($salt_buf, $word_buf), "");
 
     $tmp_hash = sprintf ("{PKCS5S2}%s", $base64_buf);
   }
@@ -7116,12 +7096,9 @@ END_CODE
       output_len => $out_len
     );
 
-    $hash_buf = encode_base64 ($pbkdf2->PBKDF2 ($salt_buf, $word_buf));
-    $hash_buf =~ s/[\r\n]//g;
+    $hash_buf = encode_base64 ($pbkdf2->PBKDF2 ($salt_buf, $word_buf), "");
 
-    my $base64_salt_buf = encode_base64 ($salt_buf);
-
-    chomp ($base64_salt_buf);
+    my $base64_salt_buf = encode_base64 ($salt_buf, "");
 
     $tmp_hash = sprintf ("sha512:%i:%s:%s", $iterations, $base64_salt_buf, $hash_buf);
   }
@@ -7500,9 +7477,16 @@ END_CODE
   }
   elsif ($mode == 13300)
   {
+    my $length = 32;
+
+    if ($additional_param)
+    {
+      $length = $additional_param;
+    }
+
     $hash_buf = sha1_hex ($word_buf);
 
-    $tmp_hash = sprintf ('$axcrypt_sha1$%s', substr ($hash_buf, 0, 32));
+    $tmp_hash = sprintf ('$axcrypt_sha1$%s', substr ($hash_buf, 0, $length));
   }
   elsif ($mode == 13400)
   {
@@ -9858,8 +9842,6 @@ sub domino_big_md
 
   for ($curpos = 0; $curpos + 16 < $size; $curpos += 16)
   {
-    my $curpos16 = $curpos + 16;
-
     my @block = splice (@{$saved_key_ref}, 0, 16);
 
     mdtransform (\@state, \@checksum, \@block);
@@ -10083,7 +10065,7 @@ sub gen_random_wpa_eapol
 
     my $vendor_specific_unicast_oui = pack ("H*", "0050f2");
 
-    $vendor_specific_data .= $vendor_specific_multicast_oui;
+    $vendor_specific_data .= $vendor_specific_unicast_oui;
 
     my $vendor_specific_unicast_type = 2; # TKIP
 

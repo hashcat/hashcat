@@ -247,7 +247,7 @@ __kernel void m05400_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 i = lid; i < 16; i += lsz)
   {
-    w_s[i] = swap32_S (ikepsk_bufs[salt_pos].nr_buf[i]);
+    w_s[i] = swap32_S (ikepsk_bufs[digests_offset].nr_buf[i]);
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
@@ -256,7 +256,7 @@ __kernel void m05400_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 i = lid; i < 128; i += lsz)
   {
-    s_msg_buf[i] = swap32_S (ikepsk_bufs[salt_pos].msg_buf[i]);
+    s_msg_buf[i] = swap32_S (ikepsk_bufs[digests_offset].msg_buf[i]);
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
@@ -285,8 +285,8 @@ __kernel void m05400_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
    * salt
    */
 
-  const u32 nr_len  = ikepsk_bufs[salt_pos].nr_len;
-  const u32 msg_len = ikepsk_bufs[salt_pos].msg_len;
+  const u32 nr_len  = ikepsk_bufs[digests_offset].nr_len;
+  const u32 msg_len = ikepsk_bufs[digests_offset].msg_len;
 
   /**
    * loop
@@ -430,7 +430,7 @@ __kernel void m05400_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
     int left;
     int off;
 
-    for (left = ikepsk_bufs[salt_pos].msg_len, off = 0; left >= 56; left -= 64, off += 16)
+    for (left = ikepsk_bufs[digests_offset].msg_len, off = 0; left >= 56; left -= 64, off += 16)
     {
       w0[0] = s_msg_buf[off +  0];
       w0[1] = s_msg_buf[off +  1];
@@ -501,7 +501,7 @@ __kernel void m05400_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 i = lid; i < 16; i += lsz)
   {
-    w_s[i] = swap32_S (ikepsk_bufs[salt_pos].nr_buf[i]);
+    w_s[i] = swap32_S (ikepsk_bufs[digests_offset].nr_buf[i]);
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
@@ -510,7 +510,7 @@ __kernel void m05400_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 i = lid; i < 128; i += lsz)
   {
-    s_msg_buf[i] = swap32_S (ikepsk_bufs[salt_pos].msg_buf[i]);
+    s_msg_buf[i] = swap32_S (ikepsk_bufs[digests_offset].msg_buf[i]);
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
@@ -539,8 +539,8 @@ __kernel void m05400_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
    * salt
    */
 
-  const u32 nr_len  = ikepsk_bufs[salt_pos].nr_len;
-  const u32 msg_len = ikepsk_bufs[salt_pos].msg_len;
+  const u32 nr_len  = ikepsk_bufs[digests_offset].nr_len;
+  const u32 msg_len = ikepsk_bufs[digests_offset].msg_len;
 
   /**
    * digest
@@ -696,7 +696,7 @@ __kernel void m05400_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
     int left;
     int off;
 
-    for (left = ikepsk_bufs[salt_pos].msg_len, off = 0; left >= 56; left -= 64, off += 16)
+    for (left = ikepsk_bufs[digests_offset].msg_len, off = 0; left >= 56; left -= 64, off += 16)
     {
       w0[0] = s_msg_buf[off +  0];
       w0[1] = s_msg_buf[off +  1];

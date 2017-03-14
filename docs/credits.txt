@@ -7,9 +7,9 @@ Jens "atom" Steube <jens.steube@gmail.com> (@hashcat)
 Philipp "philsmd" Schmidt <philsmd@hashcat.net> (@philsmd)
 
 * Multiple kernel modules
-* Hardware monitor maintainance
-* Test Suite maintainance
-* Makefile maintainance
+* Hardware monitor maintenance
+* Test Suite maintenance
+* Makefile maintenance
 * Potfile feature
 * Maskfile feature
 * Induction directory feature
@@ -46,8 +46,8 @@ Martin "purehate" Bos <purehate@derbycon.com> (@cantcomputer)
 
 Jeremi "epixoip" Gosney <jgosney@sagittahpc.com (@jmgosney)
 
-* For his continious work pushing hashcat to run on large clusters
-* For moderating hashcat forum
+* For his continuous work pushing hashcat to run on large clusters
+* For moderating the hashcat forum
 * For helping tons of new users find their way into the hashcat universe
 
 Per Thorsheim <per@thorsheim.net> (@thorsheim)

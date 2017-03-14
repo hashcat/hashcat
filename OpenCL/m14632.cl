@@ -413,7 +413,7 @@ __kernel void m14632_init (__global pw_t *pws, __global const kernel_rule_t *rul
   salt_buf0[2] = hl32_to_64_S (swap32_S (salt_bufs[salt_pos].salt_buf[4]), swap32_S (salt_bufs[salt_pos].salt_buf[5]));
   salt_buf0[3] = hl32_to_64_S (swap32_S (salt_bufs[salt_pos].salt_buf[6]), swap32_S (salt_bufs[salt_pos].salt_buf[7]));
 
-  u32 key_size = luks_bufs[salt_pos].key_size;
+  u32 key_size = luks_bufs[digests_offset].key_size;
 
   /**
    * pads
@@ -512,7 +512,7 @@ __kernel void m14632_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   opad[6] = pack64v (tmps, opad64, gid, 6);
   opad[7] = pack64v (tmps, opad64, gid, 7);
 
-  u32 key_size = luks_bufs[salt_pos].key_size;
+  u32 key_size = luks_bufs[digests_offset].key_size;
 
   for (u32 i = 0; i < ((key_size / 8) / 4); i += 16)
   {
@@ -605,7 +605,7 @@ __kernel void m14632_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   u32 pt_buf[128];
 
-  luks_af_sha512_then_serpent_decrypt (&luks_bufs[salt_pos], &tmps[gid], pt_buf);
+  luks_af_sha512_then_serpent_decrypt (&luks_bufs[digests_offset], &tmps[gid], pt_buf);
 
   // check entropy
 

@@ -11,21 +11,7 @@
 
 #if defined (__APPLE__)
 #include <OpenCL/cl.h>
-#endif
-
-#if defined (_WIN)
-#include <CL/cl.h>
-#endif
-
-#if defined (__linux__)
-#include <CL/cl.h>
-#endif
-
-#if defined (__FreeBSD__)
-#include <CL/cl.h>
-#endif
-
-#if defined (__CYGWIN__)
+#else
 #include <CL/cl.h>
 #endif
 
