@@ -104,6 +104,8 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   {
     status_ctx->words_off = user_options->skip;
     status_ctx->words_cur = status_ctx->words_off;
+
+    user_options->skip = 0;
   }
 
   opencl_session_reset (hashcat_ctx);
@@ -317,11 +319,6 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
       induct_ctx_scan (hashcat_ctx);
     }
   }
-
-  // in case the user specified a --skip parameter we can use it only for the first inner loop
-  // we need to reset this
-
-  user_options->skip = 0;
 
   return 0;
 }
