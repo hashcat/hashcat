@@ -188,7 +188,7 @@ char *status_get_session (const hashcat_ctx_t *hashcat_ctx)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  return user_options->session;
+  return strdup (user_options->session);
 }
 
 char *status_get_status_string (const hashcat_ctx_t *hashcat_ctx)
@@ -436,7 +436,7 @@ char *status_get_input_base (const hashcat_ctx_t *hashcat_ctx)
   {
     const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
-    return straight_ctx->dict;
+    return strdup (straight_ctx->dict);
   }
   else if (user_options->attack_mode == ATTACK_MODE_COMBI)
   {
@@ -444,30 +444,30 @@ char *status_get_input_base (const hashcat_ctx_t *hashcat_ctx)
 
     if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      return combinator_ctx->dict1;
+      return strdup (combinator_ctx->dict1);
     }
     else
     {
-      return combinator_ctx->dict2;
+      return strdup (combinator_ctx->dict2);
     }
   }
   else if (user_options->attack_mode == ATTACK_MODE_BF)
   {
     const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
-    return mask_ctx->mask;
+    return strdup (mask_ctx->mask);
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
   {
     const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
-    return straight_ctx->dict;
+    return strdup (straight_ctx->dict);
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
     const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
-    return straight_ctx->dict;
+    return strdup (straight_ctx->dict);
   }
 
   return NULL;
@@ -569,11 +569,11 @@ char *status_get_input_mod (const hashcat_ctx_t *hashcat_ctx)
 
     if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
-      return combinator_ctx->dict2;
+      return strdup (combinator_ctx->dict2);
     }
     else
     {
-      return combinator_ctx->dict1;
+      return strdup (combinator_ctx->dict1);
     }
   }
   else if (user_options->attack_mode == ATTACK_MODE_BF)
@@ -584,13 +584,13 @@ char *status_get_input_mod (const hashcat_ctx_t *hashcat_ctx)
   {
     const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
-    return mask_ctx->mask;
+    return strdup (mask_ctx->mask);
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
     const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
-    return mask_ctx->mask;
+    return strdup (mask_ctx->mask);
   }
 
   return NULL;

@@ -22,7 +22,8 @@
 - Fixed a problem where --stdout combined with custom charsets incorrectly displayed an error message
 - Fixed a typo that resulted in the minimum password length not being correctly initialized
 - Fixed a problem with parsing and displaying -m 7000 = Fortigate (FortiOS) hashes
-- Fixed --remove was not applied in case all hashes have been cracked by help of potfile or weak-hash check
+- Fixed --remove was not applied in case all hashes have been cracked by potfile or weak-hash check
+- Fixed a race condition when a session finishes the input-base was freed but accessed afterwards
 
 ##
 ## Technical
