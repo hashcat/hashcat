@@ -1439,6 +1439,13 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   {
     if (hc_path_exist (user_options_extra->hc_hash) == true)
     {
+      if (hc_path_is_file (user_options_extra->hc_hash) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: unsupported file-type", user_options_extra->hc_hash);
+
+        return -1;
+      }
+
       if (hc_path_read (user_options_extra->hc_hash) == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", user_options_extra->hc_hash, strerror (errno));
@@ -1474,6 +1481,20 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
         return -1;
       }
+
+      if (hc_path_is_file (rp_file) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: unsupported file-type", rp_file);
+
+        return -1;
+      }
+
+      if (hc_path_read (rp_file) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: %s", rp_file, strerror (errno));
+
+        return -1;
+      }
     }
   }
   else if (user_options->attack_mode == ATTACK_MODE_COMBI)
@@ -1485,9 +1506,37 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       char *dictfile1 = user_options_extra->hc_workv[0];
       char *dictfile2 = user_options_extra->hc_workv[1];
 
+      if (hc_path_exist (dictfile1) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: %s", dictfile1, strerror (errno));
+
+        return -1;
+      }
+
+      if (hc_path_is_file (dictfile1) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: unsupported file-type", dictfile1);
+
+        return -1;
+      }
+
       if (hc_path_read (dictfile1) == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", dictfile1, strerror (errno));
+
+        return -1;
+      }
+
+      if (hc_path_exist (dictfile2) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: %s", dictfile2, strerror (errno));
+
+        return -1;
+      }
+
+      if (hc_path_is_file (dictfile2) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: unsupported file-type", dictfile2);
 
         return -1;
       }
@@ -1510,6 +1559,13 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_exist (maskfile) == true)
       {
+        if (hc_path_is_file (maskfile) == false)
+        {
+          event_log_error (hashcat_ctx, "%s: unsupported file-type", maskfile);
+
+          return -1;
+        }
+
         if (hc_path_read (maskfile) == false)
         {
           event_log_error (hashcat_ctx, "%s: %s", maskfile, strerror (errno));
@@ -1540,6 +1596,13 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_exist (maskfile) == true)
       {
+        if (hc_path_is_file (maskfile) == false)
+        {
+          event_log_error (hashcat_ctx, "%s: unsupported file-type", maskfile);
+
+          return -1;
+        }
+
         if (hc_path_read (maskfile) == false)
         {
           event_log_error (hashcat_ctx, "%s: %s", maskfile, strerror (errno));
@@ -1570,6 +1633,13 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_exist (maskfile) == true)
       {
+        if (hc_path_is_file (maskfile) == false)
+        {
+          event_log_error (hashcat_ctx, "%s: unsupported file-type", maskfile);
+
+          return -1;
+        }
+
         if (hc_path_read (maskfile) == false)
         {
           event_log_error (hashcat_ctx, "%s: %s", maskfile, strerror (errno));
@@ -1586,6 +1656,13 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   {
     if (hc_path_exist (logfile_ctx->logfile) == true)
     {
+      if (hc_path_is_file (logfile_ctx->logfile) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: unsupported file-type", logfile_ctx->logfile);
+
+        return -1;
+      }
+
       if (hc_path_write (logfile_ctx->logfile) == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", logfile_ctx->logfile, strerror (errno));
@@ -1610,9 +1687,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   {
     if (hc_path_exist (outcheck_ctx->root_directory) == true)
     {
-      const bool is_dir = hc_path_is_directory (outcheck_ctx->root_directory);
-
-      if (is_dir == false)
+      if (hc_path_is_directory (outcheck_ctx->root_directory) == false)
       {
         event_log_error (hashcat_ctx, "Directory specified in outfile-check '%s' is not a directory", outcheck_ctx->root_directory);
 
@@ -1627,6 +1702,13 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   {
     if (hc_path_exist (outfile_ctx->filename) == true)
     {
+      if (hc_path_is_file (outfile_ctx->filename) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: unsupported file-type", outfile_ctx->filename);
+
+        return -1;
+      }
+
       if (hc_path_write (outfile_ctx->filename) == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", outfile_ctx->filename, strerror (errno));
@@ -1730,6 +1812,13 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
   if (hc_path_exist (pidfile_ctx->filename) == true)
   {
+    if (hc_path_is_file (pidfile_ctx->filename) == false)
+    {
+      event_log_error (hashcat_ctx, "%s: unsupported file-type", pidfile_ctx->filename);
+
+      return -1;
+    }
+
     if (hc_path_write (pidfile_ctx->filename) == false)
     {
       event_log_error (hashcat_ctx, "%s: %s", pidfile_ctx->filename, strerror (errno));
@@ -1753,6 +1842,13 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   {
     if (hc_path_exist (potfile_ctx->filename) == true)
     {
+      if (hc_path_is_file (potfile_ctx->filename) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: unsupported file-type", potfile_ctx->filename);
+
+        return -1;
+      }
+
       if (hc_path_write (potfile_ctx->filename) == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", potfile_ctx->filename, strerror (errno));
@@ -1777,6 +1873,13 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   {
     if (hc_path_exist (dictstat_ctx->filename) == true)
     {
+      if (hc_path_is_file (dictstat_ctx->filename) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: unsupported file-type", dictstat_ctx->filename);
+
+        return -1;
+      }
+
       if (hc_path_write (dictstat_ctx->filename) == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", dictstat_ctx->filename, strerror (errno));

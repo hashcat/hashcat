@@ -29,6 +29,7 @@
 ##
 
 - Building: Added missing prototypes for atlassian_parse_hash function
+- Files: Detect and warn when users try to use -r with a parameter which is not a file
 - Sessions: Improved string comparison in case user sets --session to "hashcat"
 
 * changes v3.30 -> v3.40:
