@@ -281,6 +281,16 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
     }
   }
 
+  if (optopt != 0)
+  {
+    event_log_error (hashcat_ctx, "Invalid argument specified");
+
+    return -1;
+  }
+
+  optind = 1;
+  optopt = 0;
+
   option_index = 0;
 
   while (((c = getopt_long (argc, argv, short_options, long_options, &option_index)) != -1) && optopt == 0)
