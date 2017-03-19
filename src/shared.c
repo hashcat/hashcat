@@ -298,6 +298,24 @@ bool hc_path_create (const char *path)
   return true;
 }
 
+bool hc_string_is_digit (const char *s)
+{
+  if (s == NULL) return false;
+
+  const size_t len = strlen (s);
+
+  if (len == 0) return false;
+
+  for (size_t i = 0; i < len; i++)
+  {
+    const int c = (const int) s[i];
+
+    if (isdigit (c) == 0) return false;
+  }
+
+  return true;
+}
+
 void setup_environment_variables ()
 {
   char *compute = getenv ("COMPUTE");

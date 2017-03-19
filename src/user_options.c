@@ -228,10 +228,60 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
   int c = -1;
 
+  int option_index;
+
   optind = 1;
   optopt = 0;
 
-  int option_index = 0;
+  option_index = 0;
+
+  while (((c = getopt_long (argc, argv, short_options, long_options, &option_index)) != -1) && optopt == 0)
+  {
+    switch (c)
+    {
+      case IDX_REMOVE_TIMER:
+      case IDX_DEBUG_MODE:
+      case IDX_SKIP:
+      case IDX_LIMIT:
+      case IDX_STATUS_TIMER:
+      case IDX_WEAK_HASH_THRESHOLD:
+      case IDX_HASH_MODE:
+      case IDX_RUNTIME:
+      case IDX_ATTACK_MODE:
+      case IDX_RP_GEN:
+      case IDX_RP_GEN_FUNC_MIN:
+      case IDX_RP_GEN_FUNC_MAX:
+      case IDX_RP_GEN_SEED:
+      case IDX_MARKOV_THRESHOLD:
+      case IDX_OUTFILE_FORMAT:
+      case IDX_OUTFILE_CHECK_TIMER:
+      case IDX_OPENCL_VECTOR_WIDTH:
+      case IDX_WORKLOAD_PROFILE:
+      case IDX_KERNEL_ACCEL:
+      case IDX_KERNEL_LOOPS:
+      case IDX_NVIDIA_SPIN_DAMP:
+      case IDX_GPU_TEMP_ABORT:
+      case IDX_GPU_TEMP_RETAIN:
+      case IDX_HCCAPX_MESSAGE_PAIR:
+      case IDX_NONCE_ERROR_CORRECTIONS:
+      case IDX_VERACRYPT_PIM:
+      case IDX_SEGMENT_SIZE:
+      case IDX_SCRYPT_TMTO:
+      case IDX_BITMAP_MIN:
+      case IDX_BITMAP_MAX:
+      case IDX_INCREMENT_MIN:
+      case IDX_INCREMENT_MAX:
+
+      if (hc_string_is_digit (optarg) == false)
+      {
+        event_log_error (hashcat_ctx, "Not a number '%s'", optarg);
+
+        return -1;
+      }
+    }
+  }
+
+  option_index = 0;
 
   while (((c = getopt_long (argc, argv, short_options, long_options, &option_index)) != -1) && optopt == 0)
   {

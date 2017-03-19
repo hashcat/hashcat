@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <fcntl.h>
+#include <ctype.h>
 
 bool overflow_check_u32_add (const u32 a, const u32 b);
 bool overflow_check_u32_mul (const u32 a, const u32 b);
@@ -52,5 +53,7 @@ bool hc_path_exist (const char *path);
 bool hc_path_read (const char *path);
 bool hc_path_write (const char *path);
 bool hc_path_create (const char *path);
+
+bool hc_string_is_digit (const char *s);
 
 #endif // _SHARED_H
