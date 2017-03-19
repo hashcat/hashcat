@@ -801,6 +801,96 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  if (user_options->markov_hcstat != NULL)
+  {
+    if (strlen (user_options->markov_hcstat) == 0)
+    {
+      event_log_error (hashcat_ctx, "If selected, option markov-hcstat can not have length zero string");
+
+      return -1;
+    }
+  }
+
+  if (user_options->restore_file_path != NULL)
+  {
+    if (strlen (user_options->restore_file_path) == 0)
+    {
+      event_log_error (hashcat_ctx, "If selected, option restore-file-path can not have length zero string");
+
+      return -1;
+    }
+  }
+
+  if (user_options->outfile != NULL)
+  {
+    if (strlen (user_options->outfile) == 0)
+    {
+      event_log_error (hashcat_ctx, "If selected, option outfile can not have length zero string");
+
+      return -1;
+    }
+  }
+
+  if (user_options->debug_file != NULL)
+  {
+    if (strlen (user_options->debug_file) == 0)
+    {
+      event_log_error (hashcat_ctx, "If selected, option debug-file can not have length zero string");
+
+      return -1;
+    }
+  }
+
+  if (user_options->session != NULL)
+  {
+    if (strlen (user_options->session) == 0)
+    {
+      event_log_error (hashcat_ctx, "If selected, option session can not have length zero string");
+
+      return -1;
+    }
+  }
+
+  if (user_options->cpu_affinity != NULL)
+  {
+    if (strlen (user_options->cpu_affinity) == 0)
+    {
+      event_log_error (hashcat_ctx, "If selected, option cpu-affinity can not have length zero string");
+
+      return -1;
+    }
+  }
+
+  if (user_options->opencl_platforms != NULL)
+  {
+    if (strlen (user_options->opencl_platforms) == 0)
+    {
+      event_log_error (hashcat_ctx, "If selected, option opencl-platforms can not have length zero string");
+
+      return -1;
+    }
+  }
+
+  if (user_options->opencl_devices != NULL)
+  {
+    if (strlen (user_options->opencl_devices) == 0)
+    {
+      event_log_error (hashcat_ctx, "If selected, option opencl-devices can not have length zero string");
+
+      return -1;
+    }
+  }
+
+  if (user_options->opencl_device_types != NULL)
+  {
+    if (strlen (user_options->opencl_device_types) == 0)
+    {
+      event_log_error (hashcat_ctx, "If selected, option opencl-device-types can not have length zero string");
+
+      return -1;
+    }
+  }
+
   // custom charset checks
 
   if ((user_options->custom_charset_1 != NULL)
