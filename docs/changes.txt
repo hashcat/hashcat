@@ -24,6 +24,7 @@
 - Fixed a problem with parsing and displaying -m 7000 = Fortigate (FortiOS) hashes
 - Fixed --remove was not applied in case all hashes have been cracked by potfile or weak-hash check
 - Fixed a race condition when a session finishes the input-base was freed but accessed afterwards
+- Fixed a hash validation error when trying to load Android FDE < 4.3 hashes
 
 ##
 ## Technical

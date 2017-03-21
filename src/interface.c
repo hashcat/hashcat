@@ -7930,7 +7930,7 @@ int androidfde_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   digest[2] = byte_swap_32 (digest[2]);
   digest[3] = byte_swap_32 (digest[3]);
 
-  if (is_valid_hex_string (saltbuf_pos, 64) == false) return (PARSER_HASH_ENCODING);
+  if (is_valid_hex_string (saltbuf_pos, 32) == false) return (PARSER_HASH_ENCODING);
 
   salt->salt_buf[0] = hex_to_u32 ((const u8 *) &saltbuf_pos[ 0]);
   salt->salt_buf[1] = hex_to_u32 ((const u8 *) &saltbuf_pos[ 8]);
