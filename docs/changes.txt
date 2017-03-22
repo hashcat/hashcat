@@ -25,6 +25,7 @@
 - Fixed --remove was not applied in case all hashes have been cracked by potfile or weak-hash check
 - Fixed a race condition when a session finishes the input-base was freed but accessed afterwards
 - Fixed a hash validation error when trying to load Android FDE < 4.3 hashes
+- Fixed --outfile-format 11 up to --outfile-format 15: the crack position was not correctly outputted
 
 ##
 ## Technical
