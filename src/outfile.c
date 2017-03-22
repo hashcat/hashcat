@@ -343,6 +343,17 @@ void outfile_write_close (hashcat_ctx_t *hashcat_ctx)
   fclose (outfile_ctx->fp);
 }
 
+int numDigits(u64 number)
+{
+    int digits = 0;
+    while (number) {
+        number /= 10;
+        digits++;
+    }
+    return digits;
+}
+
+
 int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsigned char *plain_ptr, const u32 plain_len, const u64 crackpos, const unsigned char *username, const u32 user_len, char tmp_buf[HCBUFSIZ_LARGE])
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
@@ -433,7 +444,9 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsign
 
   if (outfile_ctx->outfile_format & OUTFILE_FMT_CRACKPOS)
   {
-    sprintf (tmp_buf + tmp_len, "%" PRIu64, crackpos);
+    int digit_len = numDigits(crackpos);
+    snprintf (tmp_buf + tmp_len, HCBUFSIZ_LARGE - tmp_len, "%" PRIu64, crackpos);
+    tmp_len += digit_len + 1 ;
   }
 
   tmp_buf[tmp_len] = 0;
