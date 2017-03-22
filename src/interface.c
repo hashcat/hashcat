@@ -2785,6 +2785,8 @@ int wpa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
   memcpy (wpa->orig_nonce_ap,  in.nonce_ap,  32);
   memcpy (wpa->orig_nonce_sta, in.nonce_sta, 32);
 
+  in.message_pair &= 0x7f; // ignore the highest bit (it is used to indicate if the replay counters did match)
+
   if (wpa->message_pair_chgd == true)
   {
     if (wpa->message_pair != in.message_pair) return (PARSER_HCCAPX_MESSAGE_PAIR);
