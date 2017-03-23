@@ -430,13 +430,17 @@ int status_get_input_mode (const hashcat_ctx_t *hashcat_ctx)
 
 char *status_get_input_base (const hashcat_ctx_t *hashcat_ctx)
 {
-  const user_options_t *user_options = hashcat_ctx->user_options;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
   {
-    const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+    if (user_options_extra->wordlist_mode == WL_MODE_FILE)
+    {
+      const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
-    return strdup (straight_ctx->dict);
+      return strdup (straight_ctx->dict);
+    }
   }
   else if (user_options->attack_mode == ATTACK_MODE_COMBI)
   {
