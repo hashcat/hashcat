@@ -172,6 +172,7 @@ NVidia users require "NVIDIA Driver" (367.x or later)
 - Cisco $9$
 - Juniper IVE
 - Juniper Netscreen/SSG (ScreenOS)
+- Juniper/NetBSD sha1crypt
 - Fortigate (FortiOS)
 - Android PIN
 - Windows 8+ phone PIN/Password

@@ -238,6 +238,7 @@ static const char HT_14700[] = "iTunes Backup < 10.0";
 static const char HT_14800[] = "iTunes Backup >= 10.0";
 static const char HT_14900[] = "Skip32";
 static const char HT_15000[] = "FileZilla Server >= 0.9.55";
+static const char HT_15100[] = "Juniper/NetBSD sha1crypt";
 static const char HT_99999[] = "Plaintext";
 
 static const char HT_00011[] = "Joomla < 2.5.18";
@@ -300,81 +301,81 @@ static const char HT_13762[] = "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 1024 bit + bo
 static const char HT_13763[] = "VeraCrypt PBKDF2-HMAC-SHA256 + XTS 1536 bit + boot-mode";
 static const char HT_12001[] = "Atlassian (PBKDF2-HMAC-SHA1)";
 
-static const char SIGNATURE_ANDROIDFDE[]      = "$fde$";
-static const char SIGNATURE_AXCRYPT[]         = "$axcrypt$*1";
-static const char SIGNATURE_AXCRYPT_SHA1[]    = "$axcrypt_sha1";
-static const char SIGNATURE_BCRYPT1[]         = "$2a$";
-static const char SIGNATURE_BCRYPT2[]         = "$2b$";
-static const char SIGNATURE_BCRYPT3[]         = "$2x$";
-static const char SIGNATURE_BCRYPT4[]         = "$2y$";
-static const char SIGNATURE_BITCOIN_WALLET[]  = "$bitcoin$";
-static const char SIGNATURE_BSDICRYPT[]       = "_";
-static const char SIGNATURE_CISCO8[]          = "$8$";
-static const char SIGNATURE_CISCO9[]          = "$9$";
-static const char SIGNATURE_CRAM_MD5[]        = "$cram_md5$";
-static const char SIGNATURE_DCC2[]            = "$DCC2$";
-static const char SIGNATURE_DJANGOPBKDF2[]    = "pbkdf2_sha256$";
-static const char SIGNATURE_DJANGOSHA1[]      = "sha1$";
-static const char SIGNATURE_DRUPAL7[]         = "$S$";
-static const char SIGNATURE_ECRYPTFS[]        = "$ecryptfs$";
-static const char SIGNATURE_EPISERVER4[]      = "$episerver$*1*";
-static const char SIGNATURE_EPISERVER[]       = "$episerver$*0*";
-static const char SIGNATURE_KEEPASS[]         = "$keepass$";
-static const char SIGNATURE_KRB5PA[]          = "$krb5pa$23";
-static const char SIGNATURE_KRB5TGS[]         = "$krb5tgs$23";
-static const char SIGNATURE_MD5AIX[]          = "{smd5}";
-static const char SIGNATURE_MD5APR1[]         = "$apr1$";
-static const char SIGNATURE_MD5CRYPT[]        = "$1$";
-static const char SIGNATURE_MEDIAWIKI_B[]     = "$B$";
-static const char SIGNATURE_MS_DRSR[]         = "v1;PPH1_MD4";
-static const char SIGNATURE_MSSQL[]           = "0x0100";
-static const char SIGNATURE_MSSQL2012[]       = "0x0200";
-static const char SIGNATURE_MYSQL_AUTH[]      = "$mysqlna$";
-static const char SIGNATURE_MYWALLET[]        = "$blockchain$";
-static const char SIGNATURE_NETSCALER[]       = "1";
-static const char SIGNATURE_OFFICE2007[]      = "$office$";
-static const char SIGNATURE_OFFICE2010[]      = "$office$";
-static const char SIGNATURE_OFFICE2013[]      = "$office$";
-static const char SIGNATURE_OLDOFFICE0[]      = "$oldoffice$0";
-static const char SIGNATURE_OLDOFFICE1[]      = "$oldoffice$1";
-static const char SIGNATURE_OLDOFFICE3[]      = "$oldoffice$3";
-static const char SIGNATURE_OLDOFFICE4[]      = "$oldoffice$4";
-static const char SIGNATURE_PBKDF2_MD5[]      = "md5:";
-static const char SIGNATURE_PBKDF2_SHA1[]     = "sha1:";
-static const char SIGNATURE_PBKDF2_SHA256[]   = "sha256:";
-static const char SIGNATURE_PBKDF2_SHA512[]   = "sha512:";
-static const char SIGNATURE_PDF[]             = "$pdf$";
-static const char SIGNATURE_PHPASS1[]         = "$P$";
-static const char SIGNATURE_PHPASS2[]         = "$H$";
-static const char SIGNATURE_PHPS[]            = "$PHPS$";
-static const char SIGNATURE_POSTGRESQL_AUTH[] = "$postgres$";
-static const char SIGNATURE_PSAFE3[]          = "PWS3";
-static const char SIGNATURE_RACF[]            = "$racf$";
-static const char SIGNATURE_RAR3[]            = "$RAR3$";
-static const char SIGNATURE_RAR5[]            = "$rar5$";
-static const char SIGNATURE_SAPH_SHA1[]       = "{x-issha, ";
-static const char SIGNATURE_SCRYPT[]          = "SCRYPT";
-static const char SIGNATURE_SEVEN_ZIP[]       = "$7z$";
-static const char SIGNATURE_SHA1AIX[]         = "{ssha1}";
-static const char SIGNATURE_SHA1B64[]         = "{SHA}";
-static const char SIGNATURE_SHA256AIX[]       = "{ssha256}";
-static const char SIGNATURE_SHA256B64S[]      = "{SSHA256}";
-static const char SIGNATURE_SHA256CRYPT[]     = "$5$";
-static const char SIGNATURE_SHA512AIX[]       = "{ssha512}";
-static const char SIGNATURE_SHA512B64S[]      = "{SSHA512}";
-static const char SIGNATURE_SHA512CRYPT[]     = "$6$";
-static const char SIGNATURE_SHA512GRUB[]      = "grub.pbkdf2.sha512.";
-static const char SIGNATURE_SHA512OSX[]       = "$ml$";
-static const char SIGNATURE_SIP_AUTH[]        = "$sip$*";
-static const char SIGNATURE_SSHA1B64_lower[]  = "{ssha}";
-static const char SIGNATURE_SSHA1B64_upper[]  = "{SSHA}";
-static const char SIGNATURE_SYBASEASE[]       = "0xc007";
-//static const char SIGNATURE_TRUECRYPT[]       = "TRUE";
-static const char SIGNATURE_ZIP2_START[]      = "$zip2$";
-static const char SIGNATURE_ZIP2_STOP[]       = "$/zip2$";
-static const char SIGNATURE_ITUNES_BACKUP[]   = "$itunes_backup$";
-static const char SIGNATURE_FORTIGATE[]       = "AK1";
-static const char SIGNATURE_ATLASSIAN[]       = "{PKCS5S2}";
+static const char SIGNATURE_ANDROIDFDE[]       = "$fde$";
+static const char SIGNATURE_AXCRYPT[]          = "$axcrypt$*1";
+static const char SIGNATURE_AXCRYPT_SHA1[]     = "$axcrypt_sha1";
+static const char SIGNATURE_BCRYPT1[]          = "$2a$";
+static const char SIGNATURE_BCRYPT2[]          = "$2b$";
+static const char SIGNATURE_BCRYPT3[]          = "$2x$";
+static const char SIGNATURE_BCRYPT4[]          = "$2y$";
+static const char SIGNATURE_BITCOIN_WALLET[]   = "$bitcoin$";
+static const char SIGNATURE_BSDICRYPT[]        = "_";
+static const char SIGNATURE_CISCO8[]           = "$8$";
+static const char SIGNATURE_CISCO9[]           = "$9$";
+static const char SIGNATURE_CRAM_MD5[]         = "$cram_md5$";
+static const char SIGNATURE_DCC2[]             = "$DCC2$";
+static const char SIGNATURE_DJANGOPBKDF2[]     = "pbkdf2_sha256$";
+static const char SIGNATURE_DJANGOSHA1[]       = "sha1$";
+static const char SIGNATURE_DRUPAL7[]          = "$S$";
+static const char SIGNATURE_ECRYPTFS[]         = "$ecryptfs$";
+static const char SIGNATURE_EPISERVER4[]       = "$episerver$*1*";
+static const char SIGNATURE_EPISERVER[]        = "$episerver$*0*";
+static const char SIGNATURE_KEEPASS[]          = "$keepass$";
+static const char SIGNATURE_KRB5PA[]           = "$krb5pa$23";
+static const char SIGNATURE_KRB5TGS[]          = "$krb5tgs$23";
+static const char SIGNATURE_MD5AIX[]           = "{smd5}";
+static const char SIGNATURE_MD5APR1[]          = "$apr1$";
+static const char SIGNATURE_MD5CRYPT[]         = "$1$";
+static const char SIGNATURE_MEDIAWIKI_B[]      = "$B$";
+static const char SIGNATURE_MS_DRSR[]          = "v1;PPH1_MD4";
+static const char SIGNATURE_MSSQL[]            = "0x0100";
+static const char SIGNATURE_MSSQL2012[]        = "0x0200";
+static const char SIGNATURE_MYSQL_AUTH[]       = "$mysqlna$";
+static const char SIGNATURE_MYWALLET[]         = "$blockchain$";
+static const char SIGNATURE_NETSCALER[]        = "1";
+static const char SIGNATURE_OFFICE2007[]       = "$office$";
+static const char SIGNATURE_OFFICE2010[]       = "$office$";
+static const char SIGNATURE_OFFICE2013[]       = "$office$";
+static const char SIGNATURE_OLDOFFICE0[]       = "$oldoffice$0";
+static const char SIGNATURE_OLDOFFICE1[]       = "$oldoffice$1";
+static const char SIGNATURE_OLDOFFICE3[]       = "$oldoffice$3";
+static const char SIGNATURE_OLDOFFICE4[]       = "$oldoffice$4";
+static const char SIGNATURE_PBKDF2_MD5[]       = "md5:";
+static const char SIGNATURE_PBKDF2_SHA1[]      = "sha1:";
+static const char SIGNATURE_PBKDF2_SHA256[]    = "sha256:";
+static const char SIGNATURE_PBKDF2_SHA512[]    = "sha512:";
+static const char SIGNATURE_PDF[]              = "$pdf$";
+static const char SIGNATURE_PHPASS1[]          = "$P$";
+static const char SIGNATURE_PHPASS2[]          = "$H$";
+static const char SIGNATURE_PHPS[]             = "$PHPS$";
+static const char SIGNATURE_POSTGRESQL_AUTH[]  = "$postgres$";
+static const char SIGNATURE_PSAFE3[]           = "PWS3";
+static const char SIGNATURE_RACF[]             = "$racf$";
+static const char SIGNATURE_RAR3[]             = "$RAR3$";
+static const char SIGNATURE_RAR5[]             = "$rar5$";
+static const char SIGNATURE_SAPH_SHA1[]        = "{x-issha, ";
+static const char SIGNATURE_SCRYPT[]           = "SCRYPT";
+static const char SIGNATURE_SEVEN_ZIP[]        = "$7z$";
+static const char SIGNATURE_SHA1AIX[]          = "{ssha1}";
+static const char SIGNATURE_SHA1B64[]          = "{SHA}";
+static const char SIGNATURE_SHA256AIX[]        = "{ssha256}";
+static const char SIGNATURE_SHA256B64S[]       = "{SSHA256}";
+static const char SIGNATURE_SHA256CRYPT[]      = "$5$";
+static const char SIGNATURE_SHA512AIX[]        = "{ssha512}";
+static const char SIGNATURE_SHA512B64S[]       = "{SSHA512}";
+static const char SIGNATURE_SHA512CRYPT[]      = "$6$";
+static const char SIGNATURE_SHA512GRUB[]       = "grub.pbkdf2.sha512.";
+static const char SIGNATURE_SHA512OSX[]        = "$ml$";
+static const char SIGNATURE_SIP_AUTH[]         = "$sip$*";
+static const char SIGNATURE_SSHA1B64_lower[]   = "{ssha}";
+static const char SIGNATURE_SSHA1B64_upper[]   = "{SSHA}";
+static const char SIGNATURE_SYBASEASE[]        = "0xc007";
+static const char SIGNATURE_ZIP2_START[]       = "$zip2$";
+static const char SIGNATURE_ZIP2_STOP[]        = "$/zip2$";
+static const char SIGNATURE_ITUNES_BACKUP[]    = "$itunes_backup$";
+static const char SIGNATURE_FORTIGATE[]        = "AK1";
+static const char SIGNATURE_ATLASSIAN[]        = "{PKCS5S2}";
+static const char SIGNATURE_NETBSD_SHA1CRYPT[] = "$sha1$";
 
 /**
  * decoder / encoder
@@ -1626,6 +1627,129 @@ static void sha512aix_encode (u8 digest[64], u8 buf[86])
 
   buf[84] = int_to_itoa64 (l & 0x3f); l >>= 6;
   buf[85] = int_to_itoa64 (l & 0x3f); //l >>= 6;
+}
+
+static void netbsd_sha1crypt_decode (u8 digest[20], u8 buf[28], u8 *additional_byte)
+{
+  int l;
+
+  l  = itoa64_to_int (buf[ 0]) <<  0;
+  l |= itoa64_to_int (buf[ 1]) <<  6;
+  l |= itoa64_to_int (buf[ 2]) << 12;
+  l |= itoa64_to_int (buf[ 3]) << 18;
+
+  digest[ 2] = (l >>  0) & 0xff;
+  digest[ 1] = (l >>  8) & 0xff;
+  digest[ 0] = (l >> 16) & 0xff;
+
+  l  = itoa64_to_int (buf[ 4]) <<  0;
+  l |= itoa64_to_int (buf[ 5]) <<  6;
+  l |= itoa64_to_int (buf[ 6]) << 12;
+  l |= itoa64_to_int (buf[ 7]) << 18;
+
+  digest[ 5] = (l >>  0) & 0xff;
+  digest[ 4] = (l >>  8) & 0xff;
+  digest[ 3] = (l >> 16) & 0xff;
+
+  l  = itoa64_to_int (buf[ 8]) <<  0;
+  l |= itoa64_to_int (buf[ 9]) <<  6;
+  l |= itoa64_to_int (buf[10]) << 12;
+  l |= itoa64_to_int (buf[11]) << 18;
+
+  digest[ 8] = (l >>  0) & 0xff;
+  digest[ 7] = (l >>  8) & 0xff;
+  digest[ 6] = (l >> 16) & 0xff;
+
+  l  = itoa64_to_int (buf[12]) <<  0;
+  l |= itoa64_to_int (buf[13]) <<  6;
+  l |= itoa64_to_int (buf[14]) << 12;
+  l |= itoa64_to_int (buf[15]) << 18;
+
+  digest[11] = (l >>  0) & 0xff;
+  digest[10] = (l >>  8) & 0xff;
+  digest[ 9] = (l >> 16) & 0xff;
+
+  l  = itoa64_to_int (buf[16]) <<  0;
+  l |= itoa64_to_int (buf[17]) <<  6;
+  l |= itoa64_to_int (buf[18]) << 12;
+  l |= itoa64_to_int (buf[19]) << 18;
+
+  digest[14] = (l >>  0) & 0xff;
+  digest[13] = (l >>  8) & 0xff;
+  digest[12] = (l >> 16) & 0xff;
+
+  l  = itoa64_to_int (buf[20]) <<  0;
+  l |= itoa64_to_int (buf[21]) <<  6;
+  l |= itoa64_to_int (buf[22]) << 12;
+  l |= itoa64_to_int (buf[23]) << 18;
+
+  digest[17] = (l >>  0) & 0xff;
+  digest[16] = (l >>  8) & 0xff;
+  digest[15] = (l >> 16) & 0xff;
+
+  l  = itoa64_to_int (buf[24]) <<  0;
+  l |= itoa64_to_int (buf[25]) <<  6;
+  l |= itoa64_to_int (buf[26]) << 12;
+  l |= itoa64_to_int (buf[27]) << 18;
+
+  additional_byte[0] = (l >>  0) & 0xff;
+  digest[19] = (l >>  8) & 0xff;
+  digest[18] = (l >> 16) & 0xff;
+}
+
+static void netbsd_sha1crypt_encode (u8 digest[20], u8 additional_byte, u8 buf[30])
+{
+  int l;
+
+  l = (digest[ 2] << 0) | (digest[ 1] << 8) | (digest[ 0] << 16);
+
+  buf[ 0] = int_to_itoa64 (l & 0x3f); l >>= 6;
+  buf[ 1] = int_to_itoa64 (l & 0x3f); l >>= 6;
+  buf[ 2] = int_to_itoa64 (l & 0x3f); l >>= 6;
+  buf[ 3] = int_to_itoa64 (l & 0x3f);
+
+  l = (digest[ 5] << 0) | (digest[ 4] << 8) | (digest[ 3] << 16);
+
+  buf[ 4] = int_to_itoa64 (l & 0x3f); l >>= 6;
+  buf[ 5] = int_to_itoa64 (l & 0x3f); l >>= 6;
+  buf[ 6] = int_to_itoa64 (l & 0x3f); l >>= 6;
+  buf[ 7] = int_to_itoa64 (l & 0x3f);
+
+  l = (digest[ 8] << 0) | (digest[ 7] << 8) | (digest[ 6] << 16);
+
+  buf[ 8] = int_to_itoa64 (l & 0x3f); l >>= 6;
+  buf[ 9] = int_to_itoa64 (l & 0x3f); l >>= 6;
+  buf[10] = int_to_itoa64 (l & 0x3f); l >>= 6;
+  buf[11] = int_to_itoa64 (l & 0x3f);
+
+  l = (digest[11] << 0) | (digest[10] << 8) | (digest[ 9] << 16);
+
+  buf[12] = int_to_itoa64 (l & 0x3f); l >>= 6;
+  buf[13] = int_to_itoa64 (l & 0x3f); l >>= 6;
+  buf[14] = int_to_itoa64 (l & 0x3f); l >>= 6;
+  buf[15] = int_to_itoa64 (l & 0x3f);
+
+  l = (digest[14] << 0) | (digest[13] << 8) | (digest[12] << 16);
+
+  buf[16] = int_to_itoa64 (l & 0x3f); l >>= 6;
+  buf[17] = int_to_itoa64 (l & 0x3f); l >>= 6;
+  buf[18] = int_to_itoa64 (l & 0x3f); l >>= 6;
+  buf[19] = int_to_itoa64 (l & 0x3f);
+
+  l = (digest[17] << 0) | (digest[16] << 8) | (digest[15] << 16);
+
+  buf[20] = int_to_itoa64 (l & 0x3f); l >>= 6;
+  buf[21] = int_to_itoa64 (l & 0x3f); l >>= 6;
+  buf[22] = int_to_itoa64 (l & 0x3f); l >>= 6;
+  buf[23] = int_to_itoa64 (l & 0x3f);
+
+  l = (additional_byte << 0) | (digest[19] << 8) | (digest[18] << 16);
+
+  buf[24] = int_to_itoa64 (l & 0x3f); l >>= 6;
+  buf[25] = int_to_itoa64 (l & 0x3f); l >>= 6;
+  buf[26] = int_to_itoa64 (l & 0x3f); l >>= 6;
+  buf[27] = int_to_itoa64 (l & 0x3f);
+  buf[28] = 0;
 }
 
 static void sha256crypt_decode (u8 digest[32], u8 buf[43])
@@ -14211,6 +14335,89 @@ int filezilla_server_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf,
   return (PARSER_OK);
 }
 
+int netbsd_sha1crypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
+{
+  if ((input_len < DISPLAY_LEN_MIN_15100) || (input_len > DISPLAY_LEN_MAX_15100)) return (PARSER_GLOBAL_LENGTH);
+
+  if (memcmp (SIGNATURE_NETBSD_SHA1CRYPT, input_buf, 6)) return (PARSER_SIGNATURE_UNMATCHED);
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  u8 *iter_pos = input_buf + 6;
+
+  /**
+   * parse line
+   */
+
+  u8 *salt_pos = (u8 *) strchr ((const char *) iter_pos, '$');
+
+  if (salt_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  salt_pos++;
+
+  u8 *hash_pos = (u8 *) strchr ((const char *) salt_pos, '$');
+
+  if (hash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 salt_len = hash_pos - salt_pos;
+
+  hash_pos++;
+
+  u32 hash_len = input_len - (hash_pos - input_buf);
+
+  /**
+   * verify data
+   */
+
+  u32 iter = atoi ((const char *) iter_pos);
+
+  if (iter < 99) return (PARSER_SALT_ITERATION); // (actually: CRYPT_SHA1_ITERATIONS should be 24680 or more)
+
+  if (salt_len != 8) return (PARSER_SALT_LENGTH);
+
+  if (hash_len != 28) return (PARSER_HASH_LENGTH);
+
+  /**
+   * store data
+   */
+
+  // iterations:
+
+  salt->salt_iter = iter - 1;
+
+  // salt:
+
+  memcpy ((u8 *) salt->salt_buf, salt_pos, salt_len);
+
+  // salt length:
+
+  salt->salt_len = salt_len;
+
+  // digest:
+
+  netbsd_sha1crypt_decode ((u8 *) digest, (u8 *) hash_pos, (u8 *) salt->salt_sign);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
+
+  // precompute salt
+
+  char *ptr = (char *) salt->salt_buf_pc;
+
+  const int salt_len_pc = snprintf (ptr, 64, "%s$sha1$%u", (char *) salt->salt_buf, iter);
+
+  ptr[salt_len_pc] = 0x80;
+
+  salt->salt_len_pc = salt_len_pc;
+
+  return (PARSER_OK);
+}
+
 int atlassian_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_12001) || (input_len > DISPLAY_LEN_MAX_12001)) return (PARSER_GLOBAL_LENGTH);
@@ -14874,6 +15081,7 @@ char *strhashtype (const u32 hash_mode)
     case 14800: return ((char *) HT_14800);
     case 14900: return ((char *) HT_14900);
     case 15000: return ((char *) HT_15000);
+    case 15100: return ((char *) HT_15100);
     case 99999: return ((char *) HT_99999);
   }
 
@@ -17957,6 +18165,19 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   else if (hash_mode == 14900)
   {
     snprintf (out_buf, out_len - 1, "%08x:%08x", digest_buf[0], salt.salt_buf[0]);
+  }
+  else if (hash_mode == 15100)
+  {
+    // encode the digest:
+
+    netbsd_sha1crypt_encode ((unsigned char *) digest_buf, salt.salt_sign[0], (unsigned char *) ptr_plain);
+
+    // output:
+
+    snprintf (out_buf, out_len - 1, "$sha1$%i$%s$%s",
+      salt.salt_iter + 1,
+      (char *) salt.salt_buf,
+      ptr_plain);
   }
   else if (hash_mode == 99999)
   {
@@ -22187,6 +22408,20 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos3      = 7;
                  break;
 
+    case 15100:  hashconfig->hash_type      = HASH_TYPE_SHA1;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
+                 hashconfig->kern_type      = KERN_TYPE_NETBSD_SHA1CRYPT;
+                 hashconfig->dgst_size      = DGST_SIZE_4_5;
+                 hashconfig->parse_func     = netbsd_sha1crypt_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
+                 hashconfig->dgst_pos0      = 0;
+                 hashconfig->dgst_pos1      = 1;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 3;
+                 break;
+
     case 99999:  hashconfig->hash_type      = HASH_TYPE_PLAINTEXT;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -22423,6 +22658,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 14600: hashconfig->tmp_size = sizeof (luks_tmp_t);            break;
     case 14700: hashconfig->tmp_size = sizeof (pbkdf2_sha1_tmp_t);     break;
     case 14800: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);   break;
+    case 15100: hashconfig->tmp_size = sizeof (pbkdf1_sha1_tmp_t);     break;
   };
 
   // hook_size
@@ -22763,6 +22999,8 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                   break;
       case 14900: salt->salt_len = 4;
                   break;
+      case 15100: salt->salt_len = 8;
+                  break;
     }
 
     // special esalt handling
@@ -23014,6 +23252,8 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                  break;
     case 14800:  salt->salt_iter  = ROUNDS_ITUNES101_BACKUP - 1;
                  salt->salt_iter2 = ROUNDS_ITUNES102_BACKUP - 1;
+                 break;
+    case 15100:  salt->salt_iter  = ROUNDS_NETBSD_SHA1CRYPT - 1;
                  break;
   }
 }

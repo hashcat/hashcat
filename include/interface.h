@@ -667,6 +667,17 @@ typedef struct saph_sha1_tmp
 
 } saph_sha1_tmp_t;
 
+typedef struct pbkdf1_sha1_tmp
+{
+  // pbkdf1-sha1 is limited to 160 bits
+
+  u32  ipad[5];
+  u32  opad[5];
+
+  u32  out[5];
+
+} pbkdf1_sha1_tmp_t;
+
 typedef struct pbkdf2_md5_tmp
 {
   u32  ipad[4];
@@ -1173,6 +1184,8 @@ typedef enum display_len
   DISPLAY_LEN_MAX_14900 = 8 + 1 + 8,
   DISPLAY_LEN_MIN_15000 = 128 + 1 + 64,
   DISPLAY_LEN_MAX_15000 = 128 + 1 + 64,
+  DISPLAY_LEN_MIN_15100 = 6 + 3 + 1 + 8 + 1 + 28,
+  DISPLAY_LEN_MAX_15100 = 6 + 6 + 1 + 8 + 1 + 28,
   DISPLAY_LEN_MIN_99999 = 1,
   DISPLAY_LEN_MAX_99999 = 55,
 
@@ -1498,6 +1511,7 @@ typedef enum kern_type
   KERN_TYPE_ITUNES_BACKUP_10        = 14800,
   KERN_TYPE_SKIP32                  = 14900,
   KERN_TYPE_FILEZILLA_SERVER        = 15000,
+  KERN_TYPE_NETBSD_SHA1CRYPT        = 15100,
   KERN_TYPE_PLAINTEXT               = 99999,
 
 } kern_type_t;
@@ -1566,6 +1580,7 @@ typedef enum rounds_count
    ROUNDS_ITUNES101_BACKUP   = 10000000, // wtf, i mean, really?
    ROUNDS_ITUNES102_BACKUP   = 10000,
    ROUNDS_ATLASSIAN          = 10000,
+   ROUNDS_NETBSD_SHA1CRYPT   = 20000,
    ROUNDS_STDOUT             = 0
 
 } rounds_count_t;
@@ -1740,6 +1755,7 @@ int skip32_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int fortigate_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int sha256b64s_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int filezilla_server_parse_hash   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
+int netbsd_sha1crypt_parse_hash   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int atlassian_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 
 /**

@@ -675,9 +675,10 @@ typedef struct
 typedef struct
 {
   u32 salt_buf[16];
-  u32 salt_buf_pc[8];
+  u32 salt_buf_pc[16];
 
   u32 salt_len;
+  u32 salt_len_pc;
   u32 salt_iter;
   u32 salt_iter2;
   u32 salt_sign[2];
@@ -1164,6 +1165,17 @@ typedef struct
   u64 out[32];
 
 } tc64_tmp_t;
+
+typedef struct
+{
+  // pbkdf1-sha1 is limited to 160 bits
+
+  u32  ipad[5];
+  u32  opad[5];
+
+  u32  out[5];
+
+} pbkdf1_sha1_tmp_t;
 
 typedef struct
 {

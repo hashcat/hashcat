@@ -651,26 +651,27 @@ typedef enum user_options_map
  * structs
  */
 
-typedef struct salt
+typedef struct
 {
-  u32  salt_buf[16];
-  u32  salt_buf_pc[8];
+  u32 salt_buf[16];
+  u32 salt_buf_pc[16];
 
-  u32  salt_len;
-  u32  salt_iter;
-  u32  salt_iter2;
-  u32  salt_sign[2];
+  u32 salt_len;
+  u32 salt_len_pc;
+  u32 salt_iter;
+  u32 salt_iter2;
+  u32 salt_sign[2];
 
-  u32  keccak_mdlen;
+  u32 keccak_mdlen;
 
-  u32  digests_cnt;
-  u32  digests_done;
+  u32 digests_cnt;
+  u32 digests_done;
 
-  u32  digests_offset;
+  u32 digests_offset;
 
-  u32  scrypt_N;
-  u32  scrypt_r;
-  u32  scrypt_p;
+  u32 scrypt_N;
+  u32 scrypt_r;
+  u32 scrypt_p;
 
 } salt_t;
 

@@ -10,6 +10,12 @@
 - Added visual indicator to the status screen to indicate if the checkpoint quit feature is enabled
 
 ##
+## Algorithms
+##
+
+- Added hash-mode 15100 = Juniper/NetBSD sha1crypt
+
+##
 ## Improvements
 ##
 
