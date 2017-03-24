@@ -460,25 +460,25 @@ typedef enum parser_rc
 
 } parser_rc_t;
 
-typedef enum input_mode
+typedef enum guess_mode
 {
-  INPUT_MODE_NONE                       = 0,
-  INPUT_MODE_STRAIGHT_FILE              = 1,
-  INPUT_MODE_STRAIGHT_FILE_RULES_FILE   = 2,
-  INPUT_MODE_STRAIGHT_FILE_RULES_GEN    = 3,
-  INPUT_MODE_STRAIGHT_STDIN             = 4,
-  INPUT_MODE_STRAIGHT_STDIN_RULES_FILE  = 5,
-  INPUT_MODE_STRAIGHT_STDIN_RULES_GEN   = 6,
-  INPUT_MODE_COMBINATOR_BASE_LEFT       = 7,
-  INPUT_MODE_COMBINATOR_BASE_RIGHT      = 8,
-  INPUT_MODE_MASK                       = 9,
-  INPUT_MODE_MASK_CS                    = 10,
-  INPUT_MODE_HYBRID1                    = 11,
-  INPUT_MODE_HYBRID1_CS                 = 12,
-  INPUT_MODE_HYBRID2                    = 13,
-  INPUT_MODE_HYBRID2_CS                 = 14,
+  GUESS_MODE_NONE                       = 0,
+  GUESS_MODE_STRAIGHT_FILE              = 1,
+  GUESS_MODE_STRAIGHT_FILE_RULES_FILE   = 2,
+  GUESS_MODE_STRAIGHT_FILE_RULES_GEN    = 3,
+  GUESS_MODE_STRAIGHT_STDIN             = 4,
+  GUESS_MODE_STRAIGHT_STDIN_RULES_FILE  = 5,
+  GUESS_MODE_STRAIGHT_STDIN_RULES_GEN   = 6,
+  GUESS_MODE_COMBINATOR_BASE_LEFT       = 7,
+  GUESS_MODE_COMBINATOR_BASE_RIGHT      = 8,
+  GUESS_MODE_MASK                       = 9,
+  GUESS_MODE_MASK_CS                    = 10,
+  GUESS_MODE_HYBRID1                    = 11,
+  GUESS_MODE_HYBRID1_CS                 = 12,
+  GUESS_MODE_HYBRID2                    = 13,
+  GUESS_MODE_HYBRID2_CS                 = 14,
 
-} input_mode_t;
+} guess_mode_t;
 
 typedef enum progress_mode
 {
@@ -1649,7 +1649,7 @@ typedef struct
   double  hashes_msec_dev_benchmark;
   double  exec_msec_dev;
   char   *speed_sec_dev;
-  char   *input_candidates_dev;
+  char   *guess_candidates_dev;
   char   *hwmon_dev;
   int     corespeed_dev;
   int     memoryspeed_dev;
@@ -1662,17 +1662,17 @@ typedef struct
 {
   char   *hash_target;
   char   *hash_type;
-  int     input_mode;
-  char   *input_base;
-  int     input_base_offset;
-  int     input_base_count;
-  double  input_base_percent;
-  char   *input_mod;
-  int     input_mod_offset;
-  int     input_mod_count;
-  double  input_mod_percent;
-  char   *input_charset;
-  int     input_mask_length;
+  int     guess_mode;
+  char   *guess_base;
+  int     guess_base_offset;
+  int     guess_base_count;
+  double  guess_base_percent;
+  char   *guess_mod;
+  int     guess_mod_offset;
+  int     guess_mod_count;
+  double  guess_mod_percent;
+  char   *guess_charset;
+  int     guess_mask_length;
   char   *session;
   char   *status_string;
   int     status_number;

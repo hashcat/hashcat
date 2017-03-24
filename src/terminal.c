@@ -745,255 +745,255 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     hashcat_status->time_estimated_absolute,
     hashcat_status->time_estimated_relative);
 
-  switch (hashcat_status->input_mode)
+  switch (hashcat_status->guess_mode)
   {
-    case INPUT_MODE_STRAIGHT_FILE:
+    case GUESS_MODE_STRAIGHT_FILE:
 
       event_log_info (hashcat_ctx,
-        "Input.Base.....: File (%s)",
-        hashcat_status->input_base);
+        "Guess.Base.....: File (%s)",
+        hashcat_status->guess_base);
 
       break;
 
-    case INPUT_MODE_STRAIGHT_FILE_RULES_FILE:
+    case GUESS_MODE_STRAIGHT_FILE_RULES_FILE:
 
       event_log_info (hashcat_ctx,
-        "Input.Base.....: File (%s)",
-        hashcat_status->input_base);
+        "Guess.Base.....: File (%s)",
+        hashcat_status->guess_base);
 
       event_log_info (hashcat_ctx,
-        "Input.Mod......: Rules (%s)",
-        hashcat_status->input_mod);
+        "Guess.Mod......: Rules (%s)",
+        hashcat_status->guess_mod);
 
       break;
 
-    case INPUT_MODE_STRAIGHT_FILE_RULES_GEN:
+    case GUESS_MODE_STRAIGHT_FILE_RULES_GEN:
 
       event_log_info (hashcat_ctx,
-        "Input.Base.....: File (%s)",
-        hashcat_status->input_base);
+        "Guess.Base.....: File (%s)",
+        hashcat_status->guess_base);
 
       event_log_info (hashcat_ctx,
-        "Input.Mod......: Rules (Generated)");
+        "Guess.Mod......: Rules (Generated)");
 
       break;
 
-    case INPUT_MODE_STRAIGHT_STDIN:
+    case GUESS_MODE_STRAIGHT_STDIN:
 
       event_log_info (hashcat_ctx,
-        "Input.Base.....: Pipe");
+        "Guess.Base.....: Pipe");
 
       break;
 
-    case INPUT_MODE_STRAIGHT_STDIN_RULES_FILE:
+    case GUESS_MODE_STRAIGHT_STDIN_RULES_FILE:
 
       event_log_info (hashcat_ctx,
-        "Input.Base.....: Pipe");
+        "Guess.Base.....: Pipe");
 
       event_log_info (hashcat_ctx,
-        "Input.Mod......: Rules (%s)",
-        hashcat_status->input_mod);
+        "Guess.Mod......: Rules (%s)",
+        hashcat_status->guess_mod);
 
       break;
 
-    case INPUT_MODE_STRAIGHT_STDIN_RULES_GEN:
+    case GUESS_MODE_STRAIGHT_STDIN_RULES_GEN:
 
       event_log_info (hashcat_ctx,
-        "Input.Base.....: Pipe");
+        "Guess.Base.....: Pipe");
 
       event_log_info (hashcat_ctx,
-        "Input.Mod......: Rules (Generated)");
+        "Guess.Mod......: Rules (Generated)");
 
       break;
 
-    case INPUT_MODE_COMBINATOR_BASE_LEFT:
+    case GUESS_MODE_COMBINATOR_BASE_LEFT:
 
       event_log_info (hashcat_ctx,
-        "Input.Base.....: File (%s), Left Side",
-        hashcat_status->input_base);
+        "Guess.Base.....: File (%s), Left Side",
+        hashcat_status->guess_base);
 
       event_log_info (hashcat_ctx,
-        "Input.Mod......: File (%s), Right Side",
-        hashcat_status->input_mod);
+        "Guess.Mod......: File (%s), Right Side",
+        hashcat_status->guess_mod);
 
       break;
 
-    case INPUT_MODE_COMBINATOR_BASE_RIGHT:
+    case GUESS_MODE_COMBINATOR_BASE_RIGHT:
 
       event_log_info (hashcat_ctx,
-        "Input.Base.....: File (%s), Right Side",
-        hashcat_status->input_base);
+        "Guess.Base.....: File (%s), Right Side",
+        hashcat_status->guess_base);
 
       event_log_info (hashcat_ctx,
-        "Input.Mod......: File (%s), Left Side",
-        hashcat_status->input_mod);
+        "Guess.Mod......: File (%s), Left Side",
+        hashcat_status->guess_mod);
 
       break;
 
-    case INPUT_MODE_MASK:
+    case GUESS_MODE_MASK:
 
       event_log_info (hashcat_ctx,
-        "Input.Mask.....: %s [%d]",
-        hashcat_status->input_base,
-        hashcat_status->input_mask_length);
+        "Guess.Mask.....: %s [%d]",
+        hashcat_status->guess_base,
+        hashcat_status->guess_mask_length);
 
       break;
 
-    case INPUT_MODE_MASK_CS:
+    case GUESS_MODE_MASK_CS:
 
       event_log_info (hashcat_ctx,
-        "Input.Mask.....: %s [%d]",
-        hashcat_status->input_base,
-        hashcat_status->input_mask_length);
+        "Guess.Mask.....: %s [%d]",
+        hashcat_status->guess_base,
+        hashcat_status->guess_mask_length);
 
       event_log_info (hashcat_ctx,
-        "Input.Charset..: %s ",
-        hashcat_status->input_charset);
+        "Guess.Charset..: %s ",
+        hashcat_status->guess_charset);
 
       break;
 
-    case INPUT_MODE_HYBRID1:
+    case GUESS_MODE_HYBRID1:
 
       event_log_info (hashcat_ctx,
-        "Input.Base.....: File (%s), Left Side",
-        hashcat_status->input_base);
+        "Guess.Base.....: File (%s), Left Side",
+        hashcat_status->guess_base);
 
       event_log_info (hashcat_ctx,
-        "Input.Mod......: Mask (%s) [%d], Right Side",
-        hashcat_status->input_mod,
-        hashcat_status->input_mask_length);
+        "Guess.Mod......: Mask (%s) [%d], Right Side",
+        hashcat_status->guess_mod,
+        hashcat_status->guess_mask_length);
 
       break;
 
-    case INPUT_MODE_HYBRID1_CS:
+    case GUESS_MODE_HYBRID1_CS:
 
       event_log_info (hashcat_ctx,
-        "Input.Base.....: File (%s), Left Side",
-        hashcat_status->input_base);
+        "Guess.Base.....: File (%s), Left Side",
+        hashcat_status->guess_base);
 
       event_log_info (hashcat_ctx,
-        "Input.Mod......: Mask (%s) [%d], Right Side",
-        hashcat_status->input_mod,
-        hashcat_status->input_mask_length);
+        "Guess.Mod......: Mask (%s) [%d], Right Side",
+        hashcat_status->guess_mod,
+        hashcat_status->guess_mask_length);
 
       event_log_info (hashcat_ctx,
-        "Input.Charset..: %s",
-        hashcat_status->input_charset);
+        "Guess.Charset..: %s",
+        hashcat_status->guess_charset);
 
       break;
 
-    case INPUT_MODE_HYBRID2:
+    case GUESS_MODE_HYBRID2:
 
       event_log_info (hashcat_ctx,
-        "Input.Base.....: File (%s), Right Side",
-        hashcat_status->input_base);
+        "Guess.Base.....: File (%s), Right Side",
+        hashcat_status->guess_base);
 
       event_log_info (hashcat_ctx,
-        "Input.Mod......: Mask (%s) [%d], Left Side",
-        hashcat_status->input_mod,
-        hashcat_status->input_mask_length);
+        "Guess.Mod......: Mask (%s) [%d], Left Side",
+        hashcat_status->guess_mod,
+        hashcat_status->guess_mask_length);
 
       break;
 
-    case INPUT_MODE_HYBRID2_CS:
+    case GUESS_MODE_HYBRID2_CS:
 
       event_log_info (hashcat_ctx,
-        "Input.Base.....: File (%s), Right Side",
-        hashcat_status->input_base);
+        "Guess.Base.....: File (%s), Right Side",
+        hashcat_status->guess_base);
 
       event_log_info (hashcat_ctx,
-        "Input.Mod......: Mask (%s) [%d], Left Side",
-        hashcat_status->input_mod,
-        hashcat_status->input_mask_length);
+        "Guess.Mod......: Mask (%s) [%d], Left Side",
+        hashcat_status->guess_mod,
+        hashcat_status->guess_mask_length);
 
       event_log_info (hashcat_ctx,
-        "Input.Charset..: %s",
-        hashcat_status->input_charset);
+        "Guess.Charset..: %s",
+        hashcat_status->guess_charset);
 
       break;
   }
 
-  switch (hashcat_status->input_mode)
+  switch (hashcat_status->guess_mode)
   {
-    case INPUT_MODE_STRAIGHT_FILE:
+    case GUESS_MODE_STRAIGHT_FILE:
 
       event_log_info (hashcat_ctx,
-        "Input.Queue....: %d/%d (%.02f%%)",
-        hashcat_status->input_base_offset,
-        hashcat_status->input_base_count,
-        hashcat_status->input_base_percent);
+        "Guess.Queue....: %d/%d (%.02f%%)",
+        hashcat_status->guess_base_offset,
+        hashcat_status->guess_base_count,
+        hashcat_status->guess_base_percent);
 
       break;
 
-    case INPUT_MODE_STRAIGHT_FILE_RULES_FILE:
+    case GUESS_MODE_STRAIGHT_FILE_RULES_FILE:
 
       event_log_info (hashcat_ctx,
-        "Input.Queue....: %d/%d (%.02f%%)",
-        hashcat_status->input_base_offset,
-        hashcat_status->input_base_count,
-        hashcat_status->input_base_percent);
+        "Guess.Queue....: %d/%d (%.02f%%)",
+        hashcat_status->guess_base_offset,
+        hashcat_status->guess_base_count,
+        hashcat_status->guess_base_percent);
 
       break;
 
-    case INPUT_MODE_STRAIGHT_FILE_RULES_GEN:
+    case GUESS_MODE_STRAIGHT_FILE_RULES_GEN:
 
       event_log_info (hashcat_ctx,
-        "Input.Queue....: %d/%d (%.02f%%)",
-        hashcat_status->input_base_offset,
-        hashcat_status->input_base_count,
-        hashcat_status->input_base_percent);
+        "Guess.Queue....: %d/%d (%.02f%%)",
+        hashcat_status->guess_base_offset,
+        hashcat_status->guess_base_count,
+        hashcat_status->guess_base_percent);
 
       break;
 
-    case INPUT_MODE_MASK:
+    case GUESS_MODE_MASK:
 
       event_log_info (hashcat_ctx,
-        "Input.Queue....: %d/%d (%.02f%%)",
-        hashcat_status->input_base_offset,
-        hashcat_status->input_base_count,
-        hashcat_status->input_base_percent);
+        "Guess.Queue....: %d/%d (%.02f%%)",
+        hashcat_status->guess_base_offset,
+        hashcat_status->guess_base_count,
+        hashcat_status->guess_base_percent);
 
       break;
 
-    case INPUT_MODE_MASK_CS:
+    case GUESS_MODE_MASK_CS:
 
       event_log_info (hashcat_ctx,
-        "Input.Queue....: %d/%d (%.02f%%)",
-        hashcat_status->input_base_offset,
-        hashcat_status->input_base_count,
-        hashcat_status->input_base_percent);
+        "Guess.Queue....: %d/%d (%.02f%%)",
+        hashcat_status->guess_base_offset,
+        hashcat_status->guess_base_count,
+        hashcat_status->guess_base_percent);
 
       break;
 
-    case INPUT_MODE_HYBRID1:
+    case GUESS_MODE_HYBRID1:
 
       event_log_info (hashcat_ctx,
-        "Input.Queue.Base.: %d/%d (%.02f%%)",
-        hashcat_status->input_base_offset,
-        hashcat_status->input_base_count,
-        hashcat_status->input_base_percent);
+        "Guess.Queue.Base: %d/%d (%.02f%%)",
+        hashcat_status->guess_base_offset,
+        hashcat_status->guess_base_count,
+        hashcat_status->guess_base_percent);
 
       event_log_info (hashcat_ctx,
-        "Input.Queue.Mod: %d/%d (%.02f%%)",
-        hashcat_status->input_mod_offset,
-        hashcat_status->input_mod_count,
-        hashcat_status->input_mod_percent);
+        "Guess.Queue.Mod: %d/%d (%.02f%%)",
+        hashcat_status->guess_mod_offset,
+        hashcat_status->guess_mod_count,
+        hashcat_status->guess_mod_percent);
 
       break;
 
-    case INPUT_MODE_HYBRID2:
+    case GUESS_MODE_HYBRID2:
 
       event_log_info (hashcat_ctx,
-        "Input.Queue.Base.: %d/%d (%.02f%%)",
-        hashcat_status->input_base_offset,
-        hashcat_status->input_base_count,
-        hashcat_status->input_base_percent);
+        "Guess.Queue.Base: %d/%d (%.02f%%)",
+        hashcat_status->guess_base_offset,
+        hashcat_status->guess_base_count,
+        hashcat_status->guess_base_percent);
 
       event_log_info (hashcat_ctx,
-        "Input.Queue.Mod: %d/%d (%.02f%%)",
-        hashcat_status->input_mod_offset,
-        hashcat_status->input_mod_count,
-        hashcat_status->input_mod_percent);
+        "Guess.Queue.Mod: %d/%d (%.02f%%)",
+        hashcat_status->guess_mod_offset,
+        hashcat_status->guess_mod_count,
+        hashcat_status->guess_mod_percent);
 
       break;
   }
@@ -1080,11 +1080,11 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
     if (device_info->skipped_dev == true) continue;
 
-    if (device_info->input_candidates_dev == NULL) continue;
+    if (device_info->guess_candidates_dev == NULL) continue;
 
     event_log_info (hashcat_ctx,
       "Candidates.#%d..: %s", device_id + 1,
-      device_info->input_candidates_dev);
+      device_info->guess_candidates_dev);
   }
 
   if (user_options->gpu_temp_disable == false)
