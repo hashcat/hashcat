@@ -261,6 +261,7 @@ static const char *USAGE_BIG[] =
   "   9300 | Cisco-IOS $9$                                    | Operating-Systems",
   "     22 | Juniper Netscreen/SSG (ScreenOS)                 | Operating-Systems",
   "    501 | Juniper IVE                                      | Operating-Systems",
+  "  15100 | Juniper/NetBSD sha1crypt                         | Operating-Systems",
   "   7000 | Fortigate (FortiOS)                              | Operating-Systems",
   "   5800 | Android PIN                                      | Operating-Systems",
   "  13800 | Windows 8+ phone PIN/Password                    | Operating-Systems",
