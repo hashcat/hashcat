@@ -20,6 +20,7 @@
 ##
 
 - Refactored internal use of esalt from sync with number of salts to sync with number of digests
+- Truncate longer hash format in status output
 
 ##
 ## Bugs
