@@ -89,6 +89,8 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
       break;
     case LOGLEVEL_ERROR:   SetConsoleTextAttribute (hConsole, FOREGROUND_RED | FOREGROUND_INTENSITY);
       break;
+    case LOGLEVEL_ADVICE:  SetConsoleTextAttribute (hConsole, 6);
+      break;
   }
 
   #else
@@ -97,6 +99,7 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
     case LOGLEVEL_INFO:                                   break;
     case LOGLEVEL_WARNING: fwrite ("\033[33m", 5, 1, fp); break;
     case LOGLEVEL_ERROR:   fwrite ("\033[31m", 5, 1, fp); break;
+    case LOGLEVEL_ADVICE:  fwrite ("\033[33m", 5, 1, fp); break;
   }
   #endif
 
@@ -112,6 +115,7 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
     case LOGLEVEL_INFO:                                              break;
     case LOGLEVEL_WARNING: SetConsoleTextAttribute (hConsole, orig); break;
     case LOGLEVEL_ERROR:   SetConsoleTextAttribute (hConsole, orig); break;
+    case LOGLEVEL_ADVICE:  SetConsoleTextAttribute (hConsole, orig); break;
   }
   #else
   switch (loglevel)
@@ -119,6 +123,7 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
     case LOGLEVEL_INFO:                                  break;
     case LOGLEVEL_WARNING: fwrite ("\033[0m", 4, 1, fp); break;
     case LOGLEVEL_ERROR:   fwrite ("\033[0m", 4, 1, fp); break;
+    case LOGLEVEL_ADVICE:  fwrite ("\033[0m", 4, 1, fp); break;
   }
   #endif
 
@@ -137,6 +142,15 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
   }
 
   fflush (fp);
+}
+
+static void main_log_advice (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->advice_disable == true) return;
+
+  main_log (hashcat_ctx, stdout, LOGLEVEL_ADVICE);
 }
 
 static void main_log_info (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -559,8 +573,8 @@ static void main_set_kernel_power_final (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx
 
   clear_prompt ();
 
-  event_log_info (hashcat_ctx, "INFO: approaching final keyspace, workload adjusted");
-  event_log_info (hashcat_ctx, NULL);
+  event_log_advice (hashcat_ctx, "Approaching final keyspace, workload adjusted");
+  event_log_advice (hashcat_ctx, NULL);
 
   send_prompt ();
 }
@@ -646,19 +660,19 @@ static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
 
   if (user_options->workload_profile < 3)
   {
-    event_log_warning (hashcat_ctx, "Cracking performance lower than expected? Append -w 3 to the commandline!");
-    event_log_warning (hashcat_ctx, NULL);
+    event_log_advice (hashcat_ctx, "Cracking performance lower than expected? Append -w 3 to the commandline!");
+    event_log_advice (hashcat_ctx, NULL);
   }
   else
   {
-    event_log_warning (hashcat_ctx, "Cracking performance lower than expected?");
-    event_log_warning (hashcat_ctx, NULL);
-    event_log_warning (hashcat_ctx, "* Update your OpenCL runtime / Driver but the right way:");
-    event_log_warning (hashcat_ctx, "  https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#i_may_have_the_wrong_driver_installed_what_should_i_do");
-    event_log_warning (hashcat_ctx, NULL);
-    event_log_warning (hashcat_ctx, "* Create more work items to make use of your parallelization power:");
-    event_log_warning (hashcat_ctx, "  https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#how_to_create_more_work_for_full_speed");
-    event_log_warning (hashcat_ctx, NULL);
+    event_log_advice (hashcat_ctx, "Cracking performance lower than expected?");
+    event_log_advice (hashcat_ctx, NULL);
+    event_log_advice (hashcat_ctx, "* Update your OpenCL runtime / Driver but the right way:");
+    event_log_advice (hashcat_ctx, "  https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#i_may_have_the_wrong_driver_installed_what_should_i_do");
+    event_log_advice (hashcat_ctx, NULL);
+    event_log_advice (hashcat_ctx, "* Create more work items to make use of your parallelization power:");
+    event_log_advice (hashcat_ctx, "  https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#how_to_create_more_work_for_full_speed");
+    event_log_advice (hashcat_ctx, NULL);
   }
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
@@ -894,6 +908,7 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
     case EVENT_LOG_ERROR:                 main_log_error                 (hashcat_ctx, buf, len); break;
     case EVENT_LOG_INFO:                  main_log_info                  (hashcat_ctx, buf, len); break;
     case EVENT_LOG_WARNING:               main_log_warning               (hashcat_ctx, buf, len); break;
+    case EVENT_LOG_ADVICE:                main_log_advice                (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_RUNTIME_LIMIT:     main_monitor_runtime_limit     (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_STATUS_REFRESH:    main_monitor_status_refresh    (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_TEMP_ABORT:        main_monitor_temp_abort        (hashcat_ctx, buf, len); break;

@@ -3274,11 +3274,11 @@ void opencl_ctx_devices_update_power (hashcat_ctx_t *hashcat_ctx)
     {
       if (user_options->quiet == false)
       {
-        event_log_warning (hashcat_ctx, "The wordlist or mask you are using is too small.");
-        event_log_warning (hashcat_ctx, "Therefore, hashcat is unable to utilize the full parallelization power of your device(s).");
-        event_log_warning (hashcat_ctx, "The cracking speed will drop.");
-        event_log_warning (hashcat_ctx, "Workaround: https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#how_to_create_more_work_for_full_speed");
-        event_log_warning (hashcat_ctx, NULL);
+        event_log_advice (hashcat_ctx, "The wordlist or mask you are using is too small.");
+        event_log_advice (hashcat_ctx, "Therefore, hashcat is unable to utilize the full parallelization power of your device(s).");
+        event_log_advice (hashcat_ctx, "The cracking speed will drop.");
+        event_log_advice (hashcat_ctx, "Workaround: https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#how_to_create_more_work_for_full_speed");
+        event_log_advice (hashcat_ctx, NULL);
       }
     }
   }

@@ -18,6 +18,7 @@ static const char short_options[] = "hVvm:a:r:j:k:g:o:t:d:D:n:u:c:p:s:l:1:2:3:4:
 
 static const struct option long_options[] =
 {
+  {"advice-disable",            no_argument,       0, IDX_ADVICE_DISABLE},
   {"attack-mode",               required_argument, 0, IDX_ATTACK_MODE},
   {"benchmark",                 no_argument,       0, IDX_BENCHMARK},
   {"bitmap-max",                required_argument, 0, IDX_BITMAP_MAX},
@@ -118,6 +119,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
 {
   user_options_t *user_options = hashcat_ctx->user_options;
 
+  user_options->advice_disable            = ADVICE_DISABLE;
   user_options->attack_mode               = ATTACK_MODE;
   user_options->benchmark                 = BENCHMARK;
   user_options->bitmap_max                = BITMAP_MAX;
@@ -303,6 +305,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_QUIET:                     user_options->quiet                     = true;           break;
       case IDX_SHOW:                      user_options->show                      = true;           break;
       case IDX_LEFT:                      user_options->left                      = true;           break;
+      case IDX_ADVICE_DISABLE:            user_options->advice_disable            = true;           break;
       case IDX_USERNAME:                  user_options->username                  = true;           break;
       case IDX_REMOVE:                    user_options->remove                    = true;           break;
       case IDX_REMOVE_TIMER:              user_options->remove_timer              = atoi (optarg);
