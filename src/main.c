@@ -744,7 +744,11 @@ static void main_wordlist_cache_hit (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
 
   cache_hit_t *cache_hit = (cache_hit_t *) buf;
 
-  event_log_info (hashcat_ctx, "Cache-hit dictionary stats %s: %" PRId64 " bytes, %" PRIu64 " words, %" PRIu64 " keyspace", cache_hit->dictfile, cache_hit->stat.st_size, cache_hit->cached_cnt, cache_hit->keyspace);
+  event_log_info (hashcat_ctx, "Dictionary cache hit:");
+  event_log_info (hashcat_ctx, "* Filename..: %s", cache_hit->dictfile);
+  event_log_info (hashcat_ctx, "* Passwords.: %" PRIu64, cache_hit->cached_cnt);
+  event_log_info (hashcat_ctx, "* Bytes.....: %" PRId64, cache_hit->stat.st_size);
+  event_log_info (hashcat_ctx, "* Keyspace..: %" PRIu64, cache_hit->keyspace);
   event_log_info (hashcat_ctx, NULL);
 }
 
@@ -758,11 +762,15 @@ static void main_wordlist_cache_generate (MAYBE_UNUSED hashcat_ctx_t *hashcat_ct
 
   if (cache_generate->percent < 100)
   {
-    event_log_info_nn (hashcat_ctx, "Generating dictionary stats for %s: %" PRIu64 " bytes (%.2f%%), %" PRIu64 " words, %" PRIu64 " keyspace", cache_generate->dictfile, cache_generate->comp, cache_generate->percent, cache_generate->cnt2, cache_generate->cnt);
+    event_log_info_nn (hashcat_ctx, "Dictionary cache building %s: %" PRIu64 " bytes (%.2f%%)", cache_generate->dictfile, cache_generate->comp, cache_generate->percent);
   }
   else
   {
-    event_log_info (hashcat_ctx, "Generated dictionary stats for %s: %" PRIu64 " bytes, %" PRIu64 " words, %" PRIu64 " keyspace", cache_generate->dictfile, cache_generate->comp, cache_generate->cnt2, cache_generate->cnt);
+    event_log_info (hashcat_ctx, "Dictionary cache built:");
+    event_log_info (hashcat_ctx, "* Filename..: %s", cache_generate->dictfile);
+    event_log_info (hashcat_ctx, "* Passwords.: %" PRIu64, cache_generate->cnt2);
+    event_log_info (hashcat_ctx, "* Bytes.....: %" PRId64, cache_generate->comp);
+    event_log_info (hashcat_ctx, "* Keyspace..: %" PRIu64, cache_generate->cnt);
     event_log_info (hashcat_ctx, NULL);
   }
 }
