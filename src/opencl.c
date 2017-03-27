@@ -3464,7 +3464,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     if ((skipped_temp == true) && (user_options->force == false))
     {
       event_log_warning (hashcat_ctx, "* Device #%u: Skipping unstable hash-mode %u for this device.", device_id + 1, user_options->hash_mode);
-      event_log_warning (hashcat_ctx, "             You can use --force to override, but do not report related errors.", device_id + 1, user_options->hash_mode);
+      event_log_warning (hashcat_ctx, "             You can use --force to override, but do not report related errors.");
 
       device_param->skipped_temp = true;
 
