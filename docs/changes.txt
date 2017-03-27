@@ -21,6 +21,7 @@
 
 - Refactored internal use of esalt from sync with number of salts to sync with number of digests
 - Truncate longer hash format in status output
+- Refactored some output to improve display on physical consoles (80 characters wide)
 
 ##
 ## Bugs

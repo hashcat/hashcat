@@ -1,12 +1,12 @@
 hashcat v3.40
 =============
 
-AMD users on Windows require "AMD Radeon Software Crimson Edition" (15.12 or later)
-AMD users on Linux require "AMDGPU-Pro Driver" (16.40 or later)
-Intel CPU users require "OpenCL Runtime for Intel Core and Intel Xeon Processors" (16.1.1 or later)
-Intel GPU on Windows users require "OpenCL Driver for Intel Iris and Intel HD Graphics"
-Intel GPU on Linux users require "OpenCL 2.0 GPU Driver Package for Linux" (2.0 or later)
-NVidia users require "NVIDIA Driver" (367.x or later)
+AMD GPUs on Windows require "AMD Radeon Software Crimson Edition" (15.12 or later)
+AMD GPUs on Linux require "AMDGPU-Pro Driver" (16.40 or later)
+Intel CPUs require "OpenCL Runtime for Intel Core and Intel Xeon Processors" (16.1.1 or later)
+Intel GPUs on Windows require "OpenCL Driver for Intel Iris and Intel HD Graphics"
+Intel GPUs on Linux require "OpenCL 2.0 GPU Driver Package for Linux" (2.0 or later)
+NVIDIA GPUS require "NVIDIA Driver" (367.x or later)
 
 ##
 ## Features
