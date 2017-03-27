@@ -1592,9 +1592,9 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   {
     if (hc_path_exist (user_options_extra->hc_hash) == true)
     {
-      if (hc_path_is_file (user_options_extra->hc_hash) == false)
+      if (hc_path_is_directory (user_options_extra->hc_hash) == true)
       {
-        event_log_error (hashcat_ctx, "%s: unsupported file-type", user_options_extra->hc_hash);
+        event_log_error (hashcat_ctx, "%s: Can't use directory as hashfile argument", user_options_extra->hc_hash);
 
         return -1;
       }
@@ -1635,9 +1635,9 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
         return -1;
       }
 
-      if (hc_path_is_file (rp_file) == false)
+      if (hc_path_is_directory (rp_file) == true)
       {
-        event_log_error (hashcat_ctx, "%s: unsupported file-type", rp_file);
+        event_log_error (hashcat_ctx, "%s: Can't use directory as rulefile argument", rp_file);
 
         return -1;
       }
@@ -1666,9 +1666,9 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
         return -1;
       }
 
-      if (hc_path_is_file (dictfile1) == false)
+      if (hc_path_is_directory (dictfile1) == true)
       {
-        event_log_error (hashcat_ctx, "%s: unsupported file-type", dictfile1);
+        event_log_error (hashcat_ctx, "%s: Can't use directory as wordlist argument", dictfile1);
 
         return -1;
       }
@@ -1687,9 +1687,9 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
         return -1;
       }
 
-      if (hc_path_is_file (dictfile2) == false)
+      if (hc_path_is_directory (dictfile2) == true)
       {
-        event_log_error (hashcat_ctx, "%s: unsupported file-type", dictfile2);
+        event_log_error (hashcat_ctx, "%s: Can't use directory as wordlist argument", dictfile2);
 
         return -1;
       }
@@ -1712,9 +1712,9 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_exist (maskfile) == true)
       {
-        if (hc_path_is_file (maskfile) == false)
+        if (hc_path_is_directory (maskfile) == true)
         {
-          event_log_error (hashcat_ctx, "%s: unsupported file-type", maskfile);
+          event_log_error (hashcat_ctx, "%s: Can't use directory as maskfile argument", maskfile);
 
           return -1;
         }
@@ -1749,9 +1749,9 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_exist (maskfile) == true)
       {
-        if (hc_path_is_file (maskfile) == false)
+        if (hc_path_is_directory (maskfile) == true)
         {
-          event_log_error (hashcat_ctx, "%s: unsupported file-type", maskfile);
+          event_log_error (hashcat_ctx, "%s: Can't use directory as maskfile argument", maskfile);
 
           return -1;
         }
@@ -1786,9 +1786,9 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_exist (maskfile) == true)
       {
-        if (hc_path_is_file (maskfile) == false)
+        if (hc_path_is_directory (maskfile) == true)
         {
-          event_log_error (hashcat_ctx, "%s: unsupported file-type", maskfile);
+          event_log_error (hashcat_ctx, "%s: Can't use directory as maskfile argument", maskfile);
 
           return -1;
         }
@@ -1809,9 +1809,9 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   {
     if (hc_path_exist (logfile_ctx->logfile) == true)
     {
-      if (hc_path_is_file (logfile_ctx->logfile) == false)
+      if (hc_path_is_directory (logfile_ctx->logfile) == true)
       {
-        event_log_error (hashcat_ctx, "%s: unsupported file-type", logfile_ctx->logfile);
+        event_log_error (hashcat_ctx, "%s: Can't use directory as logfile argument", logfile_ctx->logfile);
 
         return -1;
       }
@@ -1855,9 +1855,9 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   {
     if (hc_path_exist (outfile_ctx->filename) == true)
     {
-      if (hc_path_is_file (outfile_ctx->filename) == false)
+      if (hc_path_is_directory (outfile_ctx->filename) == true)
       {
-        event_log_error (hashcat_ctx, "%s: unsupported file-type", outfile_ctx->filename);
+        event_log_error (hashcat_ctx, "%s: Can't use directory as outfile", outfile_ctx->filename);
 
         return -1;
       }
@@ -1965,9 +1965,9 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
   if (hc_path_exist (pidfile_ctx->filename) == true)
   {
-    if (hc_path_is_file (pidfile_ctx->filename) == false)
+    if (hc_path_is_directory (pidfile_ctx->filename) == true)
     {
-      event_log_error (hashcat_ctx, "%s: unsupported file-type", pidfile_ctx->filename);
+      event_log_error (hashcat_ctx, "%s: Can't use directory as pidfile argument", pidfile_ctx->filename);
 
       return -1;
     }
@@ -1995,9 +1995,9 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   {
     if (hc_path_exist (potfile_ctx->filename) == true)
     {
-      if (hc_path_is_file (potfile_ctx->filename) == false)
+      if (hc_path_is_directory (potfile_ctx->filename) == true)
       {
-        event_log_error (hashcat_ctx, "%s: unsupported file-type", potfile_ctx->filename);
+        event_log_error (hashcat_ctx, "%s: Can't use directory as potfile argument", potfile_ctx->filename);
 
         return -1;
       }
@@ -2026,9 +2026,9 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   {
     if (hc_path_exist (dictstat_ctx->filename) == true)
     {
-      if (hc_path_is_file (dictstat_ctx->filename) == false)
+      if (hc_path_is_directory (dictstat_ctx->filename) == true)
       {
-        event_log_error (hashcat_ctx, "%s: unsupported file-type", dictstat_ctx->filename);
+        event_log_error (hashcat_ctx, "%s: Can't use directory as dictstat argument", dictstat_ctx->filename);
 
         return -1;
       }
