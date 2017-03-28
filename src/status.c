@@ -294,7 +294,7 @@ char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
 
       ascii_digest ((hashcat_ctx_t *) hashcat_ctx, tmp_buf, HCBUFSIZ_LARGE, 0, 0);
 
-      compress_terminal_line_length (tmp_buf, 17, 6); // 17 = strlen ("Hash.Target....: ")
+      compress_terminal_line_length (tmp_buf, 19, 6); // 19 = strlen ("Hash.Target......: ")
 
       char *tmp_buf2 = strdup (tmp_buf);
 
