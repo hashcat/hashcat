@@ -686,6 +686,8 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  printf ("REJECTED\t%" PRIu64 "\t", hashcat_status->progress_rejected);
+
   fwrite (EOL, strlen (EOL), 1, stdout);
 
   fflush (stdout);
