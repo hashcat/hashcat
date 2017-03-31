@@ -1,5 +1,5 @@
-hashcat v3.40
-=============
+hashcat v3.5.0
+==============
 
 AMD GPUs on Windows require "AMD Radeon Software Crimson Edition" (15.12 or later)
 AMD GPUs on Linux require "AMDGPU-Pro Driver" (16.40 or later)
