@@ -6,8 +6,8 @@
 
 - WPA cracking: Added support for WPA/WPA2 handshake AP nonce automatic error correction
 - WPA cracking: Added parameter --nonce-error-corrections to configure range of error correction
-- WPA cracking: Added support for a special bit (bit 8) of the message_pair that indicates if replay counters did match
-- Added visual indicator to the status screen to indicate if the checkpoint quit feature is enabled
+- WPA cracking: Added support for a special bit (bit 8) of the message_pair that indicates if replay counters match
+- Added a visual indicator to the status screen when checkpoint quit has been requested
 
 ##
 ## Algorithms
@@ -19,9 +19,9 @@
 ## Improvements
 ##
 
-- Refactored internal use of esalt from sync with number of salts to sync with number of digests
-- Truncate longer hash format in status output
-- Refactored some output to improve display on physical consoles (80 characters wide)
+- Refactored internal use of esalt to sync with the number of digests instead of the number of salts
+- Abbreviate long hashes to display the Hash.Target status line within 80 characters
+- Refactored other output to display within 80 characters without wrapping
 
 ##
 ## Bugs
@@ -31,10 +31,10 @@
 - Fixed a problem where --stdout combined with custom charsets incorrectly displayed an error message
 - Fixed a typo that resulted in the minimum password length not being correctly initialized
 - Fixed a problem with parsing and displaying -m 7000 = Fortigate (FortiOS) hashes
-- Fixed --remove was not applied in case all hashes have been cracked by potfile or weak-hash check
-- Fixed a race condition when a session finishes the input-base was freed but accessed afterwards
+- Fixed --remove to apply even when all hashes are either found in the potfile or detected in weak-hash checks
+- Fixed a race condition after sessions finish, where the input-base was freed but accessed afterwards
 - Fixed a hash validation error when trying to load Android FDE < 4.3 hashes
-- Fixed --outfile-format 11 up to --outfile-format 15: the crack position was not correctly outputted
+- Fixed --outfile-format formats 11 through 15 to show the correct crack position
 
 ##
 ## Technical
@@ -44,10 +44,10 @@
 - Dictionary Cache: Split long status line into multiple lines to stay < 80 chars
 - Files: Detect and error when users try to use -r with a parameter which is not a file
 - Parameter: Detect and error when users try to use an empty string (length 0) for parameters like --session=
-- Parameter: Detect and error when users try to use a non-digit where a digit is expected
+- Parameter: Detect and error when users try to use non-digit input when only digits are expected
 - Sessions: Improved string comparison in case user sets --session to "hashcat"
 - Status View: Rename labels Input.Mode, Input.Base, ... to Guess.Mode, Guess.Base, ...
-- Status View: Add rejected counter to machine readable output
+- Status View: Add rejected counter to machine-readable output
 - Versions: Changed version naming convention from x.yz to x.y.z
 
 * changes v3.30 -> v3.40:
