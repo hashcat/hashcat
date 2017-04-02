@@ -6,8 +6,6 @@
 
 - WPA cracking: Added support for WPA/WPA2 handshake AP nonce automatic error correction
 - WPA cracking: Added parameter --nonce-error-corrections to configure range of error correction
-- WPA cracking: Added support for a special bit (bit 8) of the message_pair that indicates if replay counters match
-- Added a visual indicator to the status screen when checkpoint quit has been requested
 
 ##
 ## Algorithms
@@ -19,22 +17,22 @@
 ## Improvements
 ##
 
-- Refactored internal use of esalt to sync with the number of digests instead of the number of salts
 - Abbreviate long hashes to display the Hash.Target status line within 80 characters
+- Refactored internal use of esalt to sync with the number of digests instead of the number of salts
 - Refactored other output to display within 80 characters without wrapping
 
 ##
 ## Bugs
 ##
 
+- Fixed a hash validation error when trying to load Android FDE < 4.3 hashes
 - Fixed a problem where --keyspace combined with custom charsets incorrectly displayed an error message
 - Fixed a problem where --stdout combined with custom charsets incorrectly displayed an error message
-- Fixed a typo that resulted in the minimum password length not being correctly initialized
 - Fixed a problem with parsing and displaying -m 7000 = Fortigate (FortiOS) hashes
-- Fixed --remove to apply even when all hashes are either found in the potfile or detected in weak-hash checks
 - Fixed a race condition after sessions finish, where the input-base was freed but accessed afterwards
-- Fixed a hash validation error when trying to load Android FDE < 4.3 hashes
+- Fixed a typo that resulted in the minimum password length not being correctly initialized
 - Fixed --outfile-format formats 11 through 15 to show the correct crack position
+- Fixed --remove to apply even when all hashes are either found in the potfile or detected in weak-hash checks
 
 ##
 ## Technical
@@ -43,11 +41,13 @@
 - Building: Added missing prototypes for atlassian_parse_hash function
 - Dictionary Cache: Split long status line into multiple lines to stay < 80 chars
 - Files: Detect and error when users try to use -r with a parameter which is not a file
+- HCCAPX Parser: Added support for a special bit (bit 8) of the message_pair that indicates if replay counters match
 - Parameter: Detect and error when users try to use an empty string (length 0) for parameters like --session=
 - Parameter: Detect and error when users try to use non-digit input when only digits are expected
 - Sessions: Improved string comparison in case user sets --session to "hashcat"
-- Status View: Rename labels Input.Mode, Input.Base, ... to Guess.Mode, Guess.Base, ...
 - Status View: Add rejected counter to machine-readable output
+- Status View: Rename labels Input.Mode, Input.Base, ... to Guess.Mode, Guess.Base, ...
+- Status View: Added a visual indicator to the status screen when checkpoint quit has been requested
 - Versions: Changed version naming convention from x.yz to x.y.z
 
 * changes v3.30 -> v3.40:
