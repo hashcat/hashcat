@@ -712,7 +712,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
     if (user_options->potfile_disable == true)
     {
-      event_log_error (hashcat_ctx, "Mixing --potfile-disable not allowed with --show or --left.");
+      event_log_error (hashcat_ctx, "Mixing --potfile-disable is not allowed with --show or --left.");
 
       return -1;
     }
@@ -722,7 +722,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->outfile_autohex == false)
     {
-      event_log_error (hashcat_ctx, "Mixing --outfile-autohex-disable not allowed with --show.");
+      event_log_error (hashcat_ctx, "Mixing --outfile-autohex-disable is not allowed with --show.");
 
       return -1;
     }
@@ -784,7 +784,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->attack_mode != ATTACK_MODE_STRAIGHT)
     {
-      event_log_error (hashcat_ctx, "Parameter --debug-mode option is only allowed with attack mode 0 (straight).");
+      event_log_error (hashcat_ctx, "Parameter --debug-mode option is only allowed in attack mode 0 (straight).");
 
       return -1;
     }
@@ -845,7 +845,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->gpu_temp_abort < user_options->gpu_temp_retain)
     {
-      event_log_error (hashcat_ctx, "Invalid value for --gpu-temp-abort. Must not be less than --gpu-temp-retain.");
+      event_log_error (hashcat_ctx, "Value for --gpu-temp-abort must not be less than --gpu-temp-retain value.");
 
       return -1;
     }
@@ -868,7 +868,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (strlen (user_options->markov_hcstat) == 0)
     {
-      event_log_error (hashcat_ctx, "Invalid --markov-hcstat value. Must not be empty.");
+      event_log_error (hashcat_ctx, "Invalid --markov-hcstat value - must not be empty.");
 
       return -1;
     }
@@ -878,7 +878,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (strlen (user_options->restore_file_path) == 0)
     {
-      event_log_error (hashcat_ctx, "Invalid --restore-file-path value. Must not be empty.");
+      event_log_error (hashcat_ctx, "Invalid --restore-file-path value - must not be empty.");
 
       return -1;
     }
@@ -888,7 +888,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (strlen (user_options->outfile) == 0)
     {
-      event_log_error (hashcat_ctx, "Invalid --outfile value. Must not be empty.");
+      event_log_error (hashcat_ctx, "Invalid --outfile value - must not be empty.");
 
       return -1;
     }
@@ -898,7 +898,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (strlen (user_options->debug_file) == 0)
     {
-      event_log_error (hashcat_ctx, "Invalid --debug-file value. Must not be empty.");
+      event_log_error (hashcat_ctx, "Invalid --debug-file value - must not be empty.");
 
       return -1;
     }
@@ -908,7 +908,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (strlen (user_options->session) == 0)
     {
-      event_log_error (hashcat_ctx, "Invalid --session value. Must not be empty.");
+      event_log_error (hashcat_ctx, "Invalid --session value - must not be empty.");
 
       return -1;
     }
@@ -918,7 +918,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (strlen (user_options->cpu_affinity) == 0)
     {
-      event_log_error (hashcat_ctx, "Invalid --cpu-affinity value. Must not be empty.");
+      event_log_error (hashcat_ctx, "Invalid --cpu-affinity value - must not be empty.");
 
       return -1;
     }
@@ -928,7 +928,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (strlen (user_options->opencl_platforms) == 0)
     {
-      event_log_error (hashcat_ctx, "Invalid --opencl-platforms value. Must not be empty.");
+      event_log_error (hashcat_ctx, "Invalid --opencl-platforms value - must not be empty.");
 
       return -1;
     }
@@ -938,7 +938,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (strlen (user_options->opencl_devices) == 0)
     {
-      event_log_error (hashcat_ctx, "Invalid --opencl-devices value. Must not be empty.");
+      event_log_error (hashcat_ctx, "Invalid --opencl-devices value - must not be empty.");
 
       return -1;
     }
@@ -948,7 +948,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (strlen (user_options->opencl_device_types) == 0)
     {
-      event_log_error (hashcat_ctx, "Invalid --opencl-device-types value. Must not be empty.");
+      event_log_error (hashcat_ctx, "Invalid --opencl-device-types value - must not be empty.");
 
       return -1;
     }
@@ -963,7 +963,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
     {
-      event_log_error (hashcat_ctx, "Custom charsets are not supported in attack mode 0 (straight)..");
+      event_log_error (hashcat_ctx, "Custom charsets are not supported in attack mode 0 (straight).");
 
       return -1;
     }

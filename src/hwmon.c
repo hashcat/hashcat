@@ -4188,7 +4188,7 @@ void hwmon_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
             if ((hm_ADL_Overdrive6_PowerControl_Caps (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, &powertune_supported)) == -1)
             {
-              //event_log_error (hashcat_ctx, "Failed to get ADL PowerControl Capabilities.");
+              //event_log_error (hashcat_ctx, "Failed to get ADL PowerControl capabilities.");
 
               continue;
             }

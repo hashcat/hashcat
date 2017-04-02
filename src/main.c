@@ -473,7 +473,7 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
   if (hwmon_ctx->enabled == false && user_options->gpu_temp_disable == false)
   {
-    event_log_info (hashcat_ctx, "Watchdog: Hardware Monitoring Interface not found on your system.");
+    event_log_info (hashcat_ctx, "Watchdog: Hardware monitoring interface not found on your system.");
   }
 
   if (hwmon_ctx->enabled == true && user_options->gpu_temp_abort > 0)
