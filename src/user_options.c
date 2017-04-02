@@ -276,7 +276,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
       if (hc_string_is_digit (optarg) == false)
       {
-        event_log_error (hashcat_ctx, "Not a number '%s'", optarg);
+        event_log_error (hashcat_ctx, "The specified parameter cannot use '%s' as a value - must be a number.", optarg);
 
         return -1;
       }
@@ -285,7 +285,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
   if (optopt != 0)
   {
-    event_log_error (hashcat_ctx, "Invalid argument specified");
+    event_log_error (hashcat_ctx, "Invalid argument specified.");
 
     return -1;
   }
@@ -404,7 +404,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
       default:
       {
-        event_log_error (hashcat_ctx, "Invalid argument specified");
+        event_log_error (hashcat_ctx, "Invalid argument specified.");
 
         return -1;
       }
@@ -413,7 +413,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
   if (optopt != 0)
   {
-    event_log_error (hashcat_ctx, "Invalid argument specified");
+    event_log_error (hashcat_ctx, "Invalid argument specified.");
 
     return -1;
   }
@@ -432,14 +432,14 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->hc_argc < 0)
   {
-    event_log_error (hashcat_ctx, "hc_argc %d is invalid", user_options->hc_argc);
+    event_log_error (hashcat_ctx, "hc_argc %d is invalid.", user_options->hc_argc);
 
     return -1;
   }
 
   if (user_options->hc_argv == NULL)
   {
-    event_log_error (hashcat_ctx, "hc_argv is NULL");
+    event_log_error (hashcat_ctx, "hc_argv is NULL.");
 
     return -1;
   }
@@ -451,7 +451,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
    && (user_options->attack_mode != ATTACK_MODE_HYBRID2)
    && (user_options->attack_mode != ATTACK_MODE_NONE))
   {
-    event_log_error (hashcat_ctx, "Invalid attack-mode specified");
+    event_log_error (hashcat_ctx, "Invalid attack mode (-a) value specified.");
 
     return -1;
   }
@@ -460,14 +460,14 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->remove == true)
     {
-      event_log_error (hashcat_ctx, "Mixing remove parameter not allowed with hccapx-message-pair parameter");
+      event_log_error (hashcat_ctx, "Combining --remove with --hccapx-message-pair is not allowed.");
 
       return -1;
     }
 
     if (user_options->hccapx_message_pair >= 6)
     {
-      event_log_error (hashcat_ctx, "Invalid hccapx-message-pair specified");
+      event_log_error (hashcat_ctx, "Invalid --hccapx-message-pair value specified.");
 
       return -1;
     }
@@ -475,21 +475,21 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->runtime_chgd == true && user_options->runtime == 0)
   {
-    event_log_error (hashcat_ctx, "Invalid runtime specified");
+    event_log_error (hashcat_ctx, "Invalid --runtime value specified.");
 
     return -1;
   }
 
   if (user_options->runtime_chgd == true && user_options->loopback == true)
   {
-    event_log_error (hashcat_ctx, "Runtime-Limit is not allowed in combination with --loopback");
+    event_log_error (hashcat_ctx, "Combining --limit with --loopback is not allowed.");
 
     return -1;
   }
 
   if (user_options->hash_mode > 99999)
   {
-    event_log_error (hashcat_ctx, "Invalid hash-type specified");
+    event_log_error (hashcat_ctx, "Invalid -m (hash type) value specified.");
 
     return -1;
   }
@@ -502,7 +502,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
      || ((user_options->hash_mode >= 13700) && (user_options->hash_mode <= 13799))
      ||  (user_options->hash_mode ==  9000))
     {
-      event_log_error (hashcat_ctx, "Mixing support for user names and hashes of type %s is not supported", strhashtype (user_options->hash_mode));
+      event_log_error (hashcat_ctx, "Combining --username with hashes of type %s is not supported.", strhashtype (user_options->hash_mode));
 
       return -1;
     }
@@ -510,7 +510,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->outfile_format > 16)
   {
-    event_log_error (hashcat_ctx, "Invalid outfile-format specified");
+    event_log_error (hashcat_ctx, "Invalid --outfile-format value specified.");
 
     return -1;
   }
@@ -521,7 +521,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     {
       if (user_options->outfile_format > 1)
       {
-        event_log_error (hashcat_ctx, "Mixing outfile-format > 1 with left parameter is not allowed");
+        event_log_error (hashcat_ctx, "Combining --outfile-format > 1 with --left is not allowed.");
 
         return -1;
       }
@@ -534,7 +534,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     {
       if (user_options->outfile_format > 7)
       {
-        event_log_error (hashcat_ctx, "Mixing outfile-format > 7 with show parameter is not allowed");
+        event_log_error (hashcat_ctx, "Combining --outfile-format > 7 with --show is not allowed.");
 
         return -1;
       }
@@ -543,63 +543,63 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->increment_min < INCREMENT_MIN)
   {
-    event_log_error (hashcat_ctx, "Invalid increment-min specified");
+    event_log_error (hashcat_ctx, "Invalid --increment-min value specified.");
 
     return -1;
   }
 
   if (user_options->increment_max > INCREMENT_MAX)
   {
-    event_log_error (hashcat_ctx, "Invalid increment-max specified");
+    event_log_error (hashcat_ctx, "Invalid --increment-max value specified.");
 
     return -1;
   }
 
   if (user_options->increment_min > user_options->increment_max)
   {
-    event_log_error (hashcat_ctx, "Invalid increment-min specified");
+    event_log_error (hashcat_ctx, "Invalid --increment-min value specified - must be >= --increment-max.");
 
     return -1;
   }
 
   if ((user_options->increment == true) && (user_options->progress_only == true))
   {
-    event_log_error (hashcat_ctx, "Increment is not allowed in combination with --progress-only");
+    event_log_error (hashcat_ctx, "Increment is not allowed in combination with --progress-only.");
 
     return -1;
   }
 
   if ((user_options->increment == true) && (user_options->speed_only == true))
   {
-    event_log_error (hashcat_ctx, "Increment is not allowed in combination with --speed-only");
+    event_log_error (hashcat_ctx, "Increment is not allowed in combination with --speed-only.");
 
     return -1;
   }
 
   if ((user_options->increment == true) && (user_options->attack_mode == ATTACK_MODE_STRAIGHT))
   {
-    event_log_error (hashcat_ctx, "Increment is not allowed in attack-mode 0");
+    event_log_error (hashcat_ctx, "Increment is not allowed in attack mode 0 (straight).");
 
     return -1;
   }
 
   if ((user_options->increment == false) && (user_options->increment_min_chgd == true))
   {
-    event_log_error (hashcat_ctx, "Increment-min is only supported combined with increment switch");
+    event_log_error (hashcat_ctx, "Increment-min is only supported when combined with -i/--increment.");
 
     return -1;
   }
 
   if ((user_options->increment == false) && (user_options->increment_max_chgd == true))
   {
-    event_log_error (hashcat_ctx, "Increment-max is only supported combined with increment switch");
+    event_log_error (hashcat_ctx, "Increment-max is only supported combined with -i/--increment.");
 
     return -1;
   }
 
   if (user_options->rp_files_cnt > 0 && user_options->rp_gen == true)
   {
-    event_log_error (hashcat_ctx, "Use of both rules-file and rules-generate is not supported");
+    event_log_error (hashcat_ctx, "Combining -r/--rules-file and -g/--rules-generate is not supported.");
 
     return -1;
   }
@@ -608,7 +608,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->attack_mode != ATTACK_MODE_STRAIGHT)
     {
-      event_log_error (hashcat_ctx, "Use of rules-file or rules-generate only allowed in attack-mode 0");
+      event_log_error (hashcat_ctx, "Use of -r/--rules-file and -g/--rules-generate only allowed in attack mode 0.");
 
       return -1;
     }
@@ -616,14 +616,14 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->bitmap_min > user_options->bitmap_max)
   {
-    event_log_error (hashcat_ctx, "Invalid bitmap-min specified");
+    event_log_error (hashcat_ctx, "Invalid --bitmap-min value specified.");
 
     return -1;
   }
 
   if (user_options->rp_gen_func_min > user_options->rp_gen_func_max)
   {
-    event_log_error (hashcat_ctx, "Invalid rp-gen-func-min specified");
+    event_log_error (hashcat_ctx, "Invalid --rp-gen-func-min value specified.");
 
     return -1;
   }
@@ -635,7 +635,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       event_log_error (hashcat_ctx, "The manual use of the -n option (or --kernel-accel) is outdated.");
 
       event_log_warning (hashcat_ctx, "Please consider using the -w option instead.");
-      event_log_warning (hashcat_ctx, "You can use --force to override this but do not post error reports if you do so.");
+      event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
       event_log_warning (hashcat_ctx, NULL);
 
       return -1;
@@ -643,14 +643,14 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
     if (user_options->kernel_accel < 1)
     {
-      event_log_error (hashcat_ctx, "Invalid kernel-accel specified");
+      event_log_error (hashcat_ctx, "Invalid --kernel-accel value specified - must be greater than 0.");
 
       return -1;
     }
 
     if (user_options->kernel_accel > 1024)
     {
-      event_log_error (hashcat_ctx, "Invalid kernel-accel specified");
+      event_log_error (hashcat_ctx, "Invalid --kernel-accel value specified - must be <= 1024.");
 
       return -1;
     }
@@ -663,7 +663,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       event_log_error (hashcat_ctx, "The manual use of the -u option (or --kernel-loops) is outdated.");
 
       event_log_warning (hashcat_ctx, "Please consider using the -w option instead.");
-      event_log_warning (hashcat_ctx, "You can use --force to override this but do not post error reports if you do so.");
+      event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
       event_log_warning (hashcat_ctx, NULL);
 
       return -1;
@@ -671,14 +671,14 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
     if (user_options->kernel_loops < 1)
     {
-      event_log_error (hashcat_ctx, "Invalid kernel-loops specified");
+      event_log_error (hashcat_ctx, "Invalid kernel-loops specified.");
 
       return -1;
     }
 
     if (user_options->kernel_loops > 1024)
     {
-      event_log_error (hashcat_ctx, "Invalid kernel-loops specified");
+      event_log_error (hashcat_ctx, "Invalid kernel-loops specified.");
 
       return -1;
     }
@@ -686,7 +686,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   if ((user_options->workload_profile < 1) || (user_options->workload_profile > 4))
   {
-    event_log_error (hashcat_ctx, "workload-profile %u not available", user_options->workload_profile);
+    event_log_error (hashcat_ctx, "workload-profile %u is not available.", user_options->workload_profile);
 
     return -1;
   }
@@ -695,7 +695,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (is_power_of_2 (user_options->opencl_vector_width) == false || user_options->opencl_vector_width > 16)
     {
-      event_log_error (hashcat_ctx, "opencl-vector-width %u not allowed", user_options->opencl_vector_width);
+      event_log_error (hashcat_ctx, "opencl-vector-width %u is not allowed.", user_options->opencl_vector_width);
 
       return -1;
     }
@@ -705,14 +705,14 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->remove == true)
     {
-      event_log_error (hashcat_ctx, "Mixing remove parameter not allowed with show parameter or left parameter");
+      event_log_error (hashcat_ctx, "Mixing --remove not allowed with --show or --left.");
 
       return -1;
     }
 
     if (user_options->potfile_disable == true)
     {
-      event_log_error (hashcat_ctx, "Mixing potfile-disable parameter not allowed with show parameter or left parameter");
+      event_log_error (hashcat_ctx, "Mixing --potfile-disable not allowed with --show or --left.");
 
       return -1;
     }
@@ -722,7 +722,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->outfile_autohex == false)
     {
-      event_log_error (hashcat_ctx, "Mixing outfile-autohex-disable parameter not allowed with show parameter");
+      event_log_error (hashcat_ctx, "Mixing --outfile-autohex-disable not allowed with --show.");
 
       return -1;
     }
@@ -732,13 +732,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->show == true)
     {
-      event_log_error (hashcat_ctx, "Combining show parameter with keyspace parameter is not allowed");
+      event_log_error (hashcat_ctx, "Combining --show with --keyspace is not allowed.");
 
       return -1;
     }
     else if (user_options->left == true)
     {
-      event_log_error (hashcat_ctx, "Combining left parameter with keyspace parameter is not allowed");
+      event_log_error (hashcat_ctx, "Combining --left with --keyspace is not allowed.");
 
       return -1;
     }
@@ -748,14 +748,14 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->remove == false)
     {
-      event_log_error (hashcat_ctx, "Parameter remove-timer require parameter remove enabled");
+      event_log_error (hashcat_ctx, "The --remove-timer requires --remove.");
 
       return -1;
     }
 
     if (user_options->remove_timer < 1)
     {
-      event_log_error (hashcat_ctx, "Parameter remove-timer must have a value greater than or equal to 1");
+      event_log_error (hashcat_ctx, "The --remove-timer parameter must have a value greater than or equal to 1.");
 
       return -1;
     }
@@ -767,14 +767,14 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     {
       if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0))
       {
-        event_log_error (hashcat_ctx, "Parameter loopback not allowed without rules-file or rules-generate");
+        event_log_error (hashcat_ctx, "Parameter --loopback not allowed without -r/--rules-file or -g/--rules-generate.");
 
         return -1;
       }
     }
     else
     {
-      event_log_error (hashcat_ctx, "Parameter loopback allowed in attack-mode 0 only");
+      event_log_error (hashcat_ctx, "Parameter --loopback is only allowed in attack mode 0 (straight).");
 
       return -1;
     }
@@ -784,14 +784,14 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->attack_mode != ATTACK_MODE_STRAIGHT)
     {
-      event_log_error (hashcat_ctx, "Parameter debug-mode option is only available with attack-mode 0");
+      event_log_error (hashcat_ctx, "Parameter --debug-mode option is only allowed with attack mode 0 (straight).");
 
       return -1;
     }
 
     if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0))
     {
-      event_log_error (hashcat_ctx, "Parameter debug-mode not allowed without rules-file or rules-generate");
+      event_log_error (hashcat_ctx, "Use of --debug-mode requires -r/--rules-file or -g/--rules-generate.");
 
       return -1;
     }
@@ -799,7 +799,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->debug_mode > 4)
   {
-    event_log_error (hashcat_ctx, "Invalid debug-mode specified");
+    event_log_error (hashcat_ctx, "Invalid --debug-mode value specified.");
 
     return -1;
   }
@@ -808,7 +808,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->debug_mode < 1)
     {
-      event_log_error (hashcat_ctx, "Parameter debug-file requires parameter debug-mode to be set");
+      event_log_error (hashcat_ctx, "Parameter --debug-file requires --debug-mode.");
 
       return -1;
     }
@@ -818,7 +818,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->attack_mode == ATTACK_MODE_BF)
     {
-      event_log_error (hashcat_ctx, "Parameter induction-dir not allowed with brute-force attacks");
+      event_log_error (hashcat_ctx, "Use of --induction-dir is not allowed in attack mode 3 (brute-force).");
 
       return -1;
     }
@@ -828,7 +828,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if ((user_options->weak_hash_threshold != WEAK_HASH_THRESHOLD) && (user_options->weak_hash_threshold != 0))
     {
-      event_log_error (hashcat_ctx, "setting --weak-hash-threshold allowed only in straight-attack mode");
+      event_log_error (hashcat_ctx, "Use of --weak-hash-threshold is only allowed in attack mode 0 (straight).");
 
       return -1;
     }
@@ -836,7 +836,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->nvidia_spin_damp > 100)
   {
-    event_log_error (hashcat_ctx, "setting --nvidia-spin-damp must be between 0 and 100 (inclusive)");
+    event_log_error (hashcat_ctx, "Values of --nvidia-spin-damp must be between 0 and 100 (inclusive).");
 
     return -1;
   }
@@ -845,7 +845,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->gpu_temp_abort < user_options->gpu_temp_retain)
     {
-      event_log_error (hashcat_ctx, "Invalid values for gpu-temp-abort. Parameter gpu-temp-abort is less than gpu-temp-retain.");
+      event_log_error (hashcat_ctx, "Invalid value for --gpu-temp-abort. Must not be less than --gpu-temp-retain.");
 
       return -1;
     }
@@ -857,7 +857,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     {
       if (user_options->attack_mode != ATTACK_MODE_BF)
       {
-        event_log_error (hashcat_ctx, "Only attack-mode 3 allowed in benchmark mode");
+        event_log_error (hashcat_ctx, "Benchmark mode is only allowed in attack mode 3 (brute-force).");
 
         return -1;
       }
@@ -868,7 +868,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (strlen (user_options->markov_hcstat) == 0)
     {
-      event_log_error (hashcat_ctx, "If selected, option markov-hcstat can not have length zero string");
+      event_log_error (hashcat_ctx, "Invalid --markov-hcstat value. Must not be empty.");
 
       return -1;
     }
@@ -878,7 +878,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (strlen (user_options->restore_file_path) == 0)
     {
-      event_log_error (hashcat_ctx, "If selected, option restore-file-path can not have length zero string");
+      event_log_error (hashcat_ctx, "Invalid --restore-file-path value. Must not be empty.");
 
       return -1;
     }
@@ -888,7 +888,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (strlen (user_options->outfile) == 0)
     {
-      event_log_error (hashcat_ctx, "If selected, option outfile can not have length zero string");
+      event_log_error (hashcat_ctx, "Invalid --outfile value. Must not be empty.");
 
       return -1;
     }
@@ -898,7 +898,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (strlen (user_options->debug_file) == 0)
     {
-      event_log_error (hashcat_ctx, "If selected, option debug-file can not have length zero string");
+      event_log_error (hashcat_ctx, "Invalid --debug-file value. Must not be empty.");
 
       return -1;
     }
@@ -908,7 +908,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (strlen (user_options->session) == 0)
     {
-      event_log_error (hashcat_ctx, "If selected, option session can not have length zero string");
+      event_log_error (hashcat_ctx, "Invalid --session value. Must not be empty.");
 
       return -1;
     }
@@ -918,7 +918,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (strlen (user_options->cpu_affinity) == 0)
     {
-      event_log_error (hashcat_ctx, "If selected, option cpu-affinity can not have length zero string");
+      event_log_error (hashcat_ctx, "Invalid --cpu-affinity value. Must not be empty.");
 
       return -1;
     }
@@ -928,7 +928,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (strlen (user_options->opencl_platforms) == 0)
     {
-      event_log_error (hashcat_ctx, "If selected, option opencl-platforms can not have length zero string");
+      event_log_error (hashcat_ctx, "Invalid --opencl-platforms value. Must not be empty.");
 
       return -1;
     }
@@ -938,7 +938,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (strlen (user_options->opencl_devices) == 0)
     {
-      event_log_error (hashcat_ctx, "If selected, option opencl-devices can not have length zero string");
+      event_log_error (hashcat_ctx, "Invalid --opencl-devices value. Must not be empty.");
 
       return -1;
     }
@@ -948,7 +948,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (strlen (user_options->opencl_device_types) == 0)
     {
-      event_log_error (hashcat_ctx, "If selected, option opencl-device-types can not have length zero string");
+      event_log_error (hashcat_ctx, "Invalid --opencl-device-types value. Must not be empty.");
 
       return -1;
     }
@@ -963,13 +963,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
     {
-      event_log_error (hashcat_ctx, "Custom-charsets not supported in attack-mode 0");
+      event_log_error (hashcat_ctx, "Custom charsets are not supported in attack mode 0 (straight)..");
 
       return -1;
     }
     else if (user_options->attack_mode == ATTACK_MODE_COMBI)
     {
-      event_log_error (hashcat_ctx, "Custom-charsets not supported in attack-mode 1");
+      event_log_error (hashcat_ctx, "Custom charsets re not supported in attack mode 1 (combination).");
 
       return -1;
     }
@@ -993,7 +993,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
     if (mask_is_missing == true)
     {
-      event_log_error (hashcat_ctx, "You need to specify a mask if you specify a custom-charset");
+      event_log_error (hashcat_ctx, "If you specify a custom charset, you must also specify a mask.");
 
       return -1;
     }
@@ -1594,7 +1594,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     {
       if (hc_path_is_directory (user_options_extra->hc_hash) == true)
       {
-        event_log_error (hashcat_ctx, "%s: Can't use directory as hashfile argument", user_options_extra->hc_hash);
+        event_log_error (hashcat_ctx, "%s: A directory cannot be used as a hashfile argument.", user_options_extra->hc_hash);
 
         return -1;
       }
@@ -1637,7 +1637,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_is_directory (rp_file) == true)
       {
-        event_log_error (hashcat_ctx, "%s: Can't use directory as rulefile argument", rp_file);
+        event_log_error (hashcat_ctx, "%s: A directory cannot be used as a rulefile argument.", rp_file);
 
         return -1;
       }
@@ -1668,7 +1668,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_is_directory (dictfile1) == true)
       {
-        event_log_error (hashcat_ctx, "%s: Can't use directory as wordlist argument", dictfile1);
+        event_log_error (hashcat_ctx, "%s: A directory cannot be used as a wordlist argument.", dictfile1);
 
         return -1;
       }
@@ -1689,7 +1689,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_is_directory (dictfile2) == true)
       {
-        event_log_error (hashcat_ctx, "%s: Can't use directory as wordlist argument", dictfile2);
+        event_log_error (hashcat_ctx, "%s: A directory cannot be used as a wordlist argument.", dictfile2);
 
         return -1;
       }
@@ -1714,7 +1714,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         if (hc_path_is_directory (maskfile) == true)
         {
-          event_log_error (hashcat_ctx, "%s: Can't use directory as maskfile argument", maskfile);
+          event_log_error (hashcat_ctx, "%s: A directory cannot be used as a maskfile argument.", maskfile);
 
           return -1;
         }
@@ -1751,7 +1751,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         if (hc_path_is_directory (maskfile) == true)
         {
-          event_log_error (hashcat_ctx, "%s: Can't use directory as maskfile argument", maskfile);
+          event_log_error (hashcat_ctx, "%s: A directory cannot be used as a maskfile argument.", maskfile);
 
           return -1;
         }
@@ -1788,7 +1788,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
       {
         if (hc_path_is_directory (maskfile) == true)
         {
-          event_log_error (hashcat_ctx, "%s: Can't use directory as maskfile argument", maskfile);
+          event_log_error (hashcat_ctx, "%s: A directory cannot be used as a maskfile argument.", maskfile);
 
           return -1;
         }
@@ -1811,7 +1811,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     {
       if (hc_path_is_directory (logfile_ctx->logfile) == true)
       {
-        event_log_error (hashcat_ctx, "%s: Can't use directory as logfile argument", logfile_ctx->logfile);
+        event_log_error (hashcat_ctx, "%s: A directory cannot be used as a logfile argument.", logfile_ctx->logfile);
 
         return -1;
       }
@@ -1842,7 +1842,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     {
       if (hc_path_is_directory (outcheck_ctx->root_directory) == false)
       {
-        event_log_error (hashcat_ctx, "Directory specified in outfile-check '%s' is not a directory", outcheck_ctx->root_directory);
+        event_log_error (hashcat_ctx, "Directory specified in outfile-check '%s' is not a directory.", outcheck_ctx->root_directory);
 
         return -1;
       }
@@ -1857,7 +1857,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     {
       if (hc_path_is_directory (outfile_ctx->filename) == true)
       {
-        event_log_error (hashcat_ctx, "%s: Can't use directory as outfile", outfile_ctx->filename);
+        event_log_error (hashcat_ctx, "%s: A directory cannot be used as an outfile.", outfile_ctx->filename);
 
         return -1;
       }
@@ -1954,7 +1954,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
       if (memcmp (&tmpstat_outfile, &tmpstat_hashfile, sizeof (hc_stat_t)) == 0)
       {
-        event_log_error (hashcat_ctx, "Hashfile and Outfile are not allowed to point to the same file");
+        event_log_error (hashcat_ctx, "Hashfile and outfile cannot point to the same file.");
 
         return -1;
       }
@@ -1967,7 +1967,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   {
     if (hc_path_is_directory (pidfile_ctx->filename) == true)
     {
-      event_log_error (hashcat_ctx, "%s: Can't use directory as pidfile argument", pidfile_ctx->filename);
+      event_log_error (hashcat_ctx, "%s: A directory cannot be used as a pidfile argument.", pidfile_ctx->filename);
 
       return -1;
     }
@@ -1997,7 +1997,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     {
       if (hc_path_is_directory (potfile_ctx->filename) == true)
       {
-        event_log_error (hashcat_ctx, "%s: Can't use directory as potfile argument", potfile_ctx->filename);
+        event_log_error (hashcat_ctx, "%s: A directory cannot be used as a potfile argument.", potfile_ctx->filename);
 
         return -1;
       }
@@ -2028,7 +2028,7 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     {
       if (hc_path_is_directory (dictstat_ctx->filename) == true)
       {
-        event_log_error (hashcat_ctx, "%s: Can't use directory as dictstat argument", dictstat_ctx->filename);
+        event_log_error (hashcat_ctx, "%s: A directory cannot be used as a dictstat argument.", dictstat_ctx->filename);
 
         return -1;
       }

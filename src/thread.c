@@ -254,7 +254,7 @@ int stop_at_checkpoint (hashcat_ctx_t *hashcat_ctx)
 
   if (restore_ctx->enabled == false)
   {
-    event_log_warning (hashcat_ctx, "This feature is disabled when --restore-disable is specified");
+    event_log_warning (hashcat_ctx, "This feature is disabled when --restore-disable is specified.");
 
     return -1;
   }

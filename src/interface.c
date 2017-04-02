@@ -22445,7 +22445,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos3      = 1;
                  break;
 
-    default:     event_log_error (hashcat_ctx, "Unknown hash-type '%u' selected", hashconfig->hash_mode);
+    default:     event_log_error (hashcat_ctx, "Unknown hash-type '%u' selected.", hashconfig->hash_mode);
                  return -1;
   }
 

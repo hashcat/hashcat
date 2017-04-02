@@ -49,14 +49,14 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (hc_path_is_file (dictfile1) == false)
     {
-      event_log_error (hashcat_ctx, "%s: Not a regular file", dictfile1);
+      event_log_error (hashcat_ctx, "%s: Not a regular file.", dictfile1);
 
       return -1;
     }
 
     if (hc_path_is_file (dictfile2) == false)
     {
-      event_log_error (hashcat_ctx, "%s: Not a regular file", dictfile2);
+      event_log_error (hashcat_ctx, "%s: Not a regular file.", dictfile2);
 
       return -1;
     }
@@ -98,7 +98,7 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (words1_cnt == 0)
     {
-      event_log_error (hashcat_ctx, "%s: empty file", dictfile1);
+      event_log_error (hashcat_ctx, "%s: empty file.", dictfile1);
 
       fclose (fp1);
       fclose (fp2);
@@ -124,7 +124,7 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     if (words2_cnt == 0)
     {
-      event_log_error (hashcat_ctx, "%s: empty file", dictfile2);
+      event_log_error (hashcat_ctx, "%s: empty file.", dictfile2);
 
       fclose (fp1);
       fclose (fp2);

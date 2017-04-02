@@ -295,7 +295,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   if (rc == -1)
   {
-    event_log_error (hashcat_ctx, "get_exec_path() failed");
+    event_log_error (hashcat_ctx, "get_exec_path() failed.");
 
     hcfree (cwd);
 
@@ -399,10 +399,10 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   hcfree (exec_path);
 
   /**
-   * There's alot of problem related to bad support -I parameters when building the kernel.
-   * Each OpenCL runtime handles it slightly different.
-   * The most problematic is with new AMD drivers on Windows, which can not handle quote characters!
-   * The best workaround found so far is to modify the TMP variable (only inside hashcat process) before the runtime is load
+   * There are a lot of problems related to bad support of -I parameters when building the kernel.
+   * Each OpenCL runtime handles it slightly differently.
+   * The most problematic is with new AMD drivers on Windows, which cannot handle quote characters!
+   * The best workaround found so far is to modify the TMP variable (only inside hashcat process) before the runtime is loaded.
    */
 
   char *cpath;
@@ -415,7 +415,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   if (GetFullPathName (cpath, HCBUFSIZ_TINY - 1, cpath_real, NULL) == 0)
   {
-    event_log_error (hashcat_ctx, "%s: %s", cpath, "GetFullPathName()");
+    event_log_error (hashcat_ctx, "%s: %s", cpath, "GetFullPathName().");
 
     hcfree (cwd);
 

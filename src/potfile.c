@@ -273,7 +273,7 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, u8 *
 
   if (unlock_file (potfile_ctx->fp))
   {
-    event_log_error (hashcat_ctx, "%s: Failed to unlock file", potfile_ctx->filename);
+    event_log_error (hashcat_ctx, "%s: Failed to unlock file.", potfile_ctx->filename);
   }
 }
 

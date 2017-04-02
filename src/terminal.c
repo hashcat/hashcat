@@ -186,7 +186,7 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
 
         bypass (hashcat_ctx);
 
-        event_log_info (hashcat_ctx, "Next dictionary / mask in queue selected, bypassing current one");
+        event_log_info (hashcat_ctx, "Next dictionary / mask in queue selected. Bypassing current one.");
 
         event_log_info (hashcat_ctx, NULL);
 
@@ -236,11 +236,11 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
 
         if (status_ctx->checkpoint_shutdown == true)
         {
-          event_log_info (hashcat_ctx, "Checkpoint enabled: Will quit at next Restore Point update");
+          event_log_info (hashcat_ctx, "Checkpoint enabled. Will quit at next restore-point update.");
         }
         else
         {
-          event_log_info (hashcat_ctx, "Checkpoint disabled: Restore Point updates will no longer be monitored");
+          event_log_info (hashcat_ctx, "Checkpoint disabled. Restore-point updates will no longer be monitored.");
         }
 
         event_log_info (hashcat_ctx, NULL);
@@ -583,7 +583,7 @@ void opencl_info_compact (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      event_log_info (hashcat_ctx, "OpenCL Platform #%u: %s, skipped or no OpenCL compatible devices found", platforms_idx + 1, platform_vendor);
+      event_log_info (hashcat_ctx, "OpenCL Platform #%u: %s, skipped or no OpenCL compatible devices found.", platforms_idx + 1, platform_vendor);
     }
 
     for (cl_uint devices_idx = 0; devices_idx < devices_cnt; devices_idx++)
@@ -608,7 +608,7 @@ void opencl_info_compact (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        event_log_info (hashcat_ctx, "* Device #%u: %s, skipped",
+        event_log_info (hashcat_ctx, "* Device #%u: %s, skipped.",
                   devices_idx + 1,
                   device_name);
       }

@@ -3895,7 +3895,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (kernel_accel_max < kernel_accel_min)
     {
-      event_log_error (hashcat_ctx, "* Device #%u: Does not provide enough allocatable device memory for this attack.", device_id + 1);
+      event_log_error (hashcat_ctx, "* Device #%u: Not enough allocatable device memory for this attack.", device_id + 1);
 
       return -1;
     }
