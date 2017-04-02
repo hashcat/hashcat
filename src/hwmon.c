@@ -66,7 +66,7 @@ static char *hm_SYSFS_get_syspath_hwmon (hashcat_ctx_t *hashcat_ctx, const int d
 
   if (syspath == NULL)
   {
-    event_log_error (hashcat_ctx, "hm_SYSFS_get_syspath_device() failed");
+    event_log_error (hashcat_ctx, "hm_SYSFS_get_syspath_device() failed.");
 
     return NULL;
   }
@@ -79,7 +79,7 @@ static char *hm_SYSFS_get_syspath_hwmon (hashcat_ctx_t *hashcat_ctx, const int d
 
   if (hwmonN == NULL)
   {
-    event_log_error (hashcat_ctx, "first_file_in_directory() failed");
+    event_log_error (hashcat_ctx, "First_file_in_directory() failed.");
 
     hcfree (syspath);
 
@@ -130,7 +130,7 @@ static int hm_SYSFS_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int
   {
     fclose (fd_cur);
 
-    event_log_error (hashcat_ctx, "%s: unexpected data", path_cur);
+    event_log_error (hashcat_ctx, "%s: unexpected data.", path_cur);
 
     hcfree (path_cur);
     hcfree (path_max);
@@ -158,7 +158,7 @@ static int hm_SYSFS_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int
   {
     fclose (fd_max);
 
-    event_log_error (hashcat_ctx, "%s: unexpected data", path_max);
+    event_log_error (hashcat_ctx, "%s: unexpected data.", path_max);
 
     hcfree (path_cur);
     hcfree (path_max);
@@ -170,7 +170,7 @@ static int hm_SYSFS_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int
 
   if (pwm1_max == 0)
   {
-    event_log_error (hashcat_ctx, "%s: pwm1_max can not be 0", path_max);
+    event_log_error (hashcat_ctx, "%s: pwm1_max cannot be 0.", path_max);
 
     hcfree (path_cur);
     hcfree (path_max);
@@ -254,7 +254,7 @@ static int hm_SYSFS_set_fan_speed_target (hashcat_ctx_t *hashcat_ctx, const int 
   {
     fclose (fd_max);
 
-    event_log_error (hashcat_ctx, "%s: unexpected data", path_max);
+    event_log_error (hashcat_ctx, "%s: unexpected data.", path_max);
 
     hcfree (path);
     hcfree (path_max);
@@ -266,7 +266,7 @@ static int hm_SYSFS_set_fan_speed_target (hashcat_ctx_t *hashcat_ctx, const int 
 
   if (pwm1_max == 0)
   {
-    event_log_error (hashcat_ctx, "%s: pwm1_max can not be 0", path_max);
+    event_log_error (hashcat_ctx, "%s: pwm1_max cannot be 0.", path_max);
 
     hcfree (path);
     hcfree (path_max);
@@ -327,7 +327,7 @@ static int hm_SYSFS_get_temperature_current (hashcat_ctx_t *hashcat_ctx, const i
   {
     fclose (fd);
 
-    event_log_error (hashcat_ctx, "%s: unexpected data", path);
+    event_log_error (hashcat_ctx, "%s: unexpected data.", path);
 
     hcfree (path);
 
@@ -573,7 +573,7 @@ static int nvml_init (hashcat_ctx_t *hashcat_ctx)
       else
       {
         //if (user_options->quiet == false)
-        //  event_log_error (hashcat_ctx, "NVML library load failed, proceed without NVML HWMon enabled");
+        //  event_log_error (hashcat_ctx, "NVML library load failed. Proceeding without NVML HWMon enabled.");
 
         return -1;
       }
@@ -583,7 +583,7 @@ static int nvml_init (hashcat_ctx_t *hashcat_ctx)
     else
     {
       //if (user_options->quiet == false)
-      //  event_log_error (hashcat_ctx, "NVML library load failed, proceed without NVML HWMon enabled");
+      //  event_log_error (hashcat_ctx, "NVML library load failed. Proceeding without NVML HWMon enabled.");
 
       return -1;
     }
@@ -606,7 +606,7 @@ static int nvml_init (hashcat_ctx_t *hashcat_ctx)
     if (nvml_lib == NULL)
     {
       //if (user_options->quiet == false)
-      //  event_log_error (hashcat_ctx, "NVML library load failed: %m, proceed without NVML HWMon enabled");
+      //  event_log_error (hashcat_ctx, "NVML library load failed: %m. Proceeding without NVML HWMon enabled.");
 
       return -1;
     }
@@ -630,7 +630,7 @@ static int nvml_init (hashcat_ctx_t *hashcat_ctx)
     else
     {
       //if (user_options->quiet == false)
-      //  event_log_error (hashcat_ctx, "Could not find NVML in the system, proceed without NVML HWMon enabled");
+      //  event_log_error (hashcat_ctx, "Could not find NVML on this system. Proceeding without NVML HWMon enabled.");
 
       return -1;
     }
@@ -647,7 +647,7 @@ static int nvml_init (hashcat_ctx_t *hashcat_ctx)
   if (!nvml->lib)
   {
     //if (user_options->quiet == false)
-    //  event_log_error (hashcat_ctx, "NVML library load failed, proceed without NVML HWMon enabled");
+    //  event_log_error (hashcat_ctx, "NVML library load failed. Proceeding without NVML HWMon enabled.");
 
     return -1;
   }
@@ -1169,7 +1169,7 @@ static int nvapi_init (hashcat_ctx_t *hashcat_ctx)
   if (!nvapi->lib)
   {
     //if (user_options->quiet == false)
-    //  event_log_error (hashcat_ctx, "load NVAPI library failed, proceed without NVAPI HWMon enabled");
+    //  event_log_error (hashcat_ctx, "Load of NVAPI library failed. Proceeding without NVAPI HWMon enabled.");
 
     return -1;
   }
@@ -1426,8 +1426,8 @@ static int xnvctrl_init (hashcat_ctx_t *hashcat_ctx)
 
   if (xnvctrl->lib_x11 == NULL)
   {
-    //event_log_error (hashcat_ctx, "Failed loading the X11 library: %s", dlerror());
-    //event_log_error (hashcat_ctx, "Please install libx11-dev package");
+    //event_log_error (hashcat_ctx, "Failed to load the X11 library: %s", dlerror());
+    //event_log_error (hashcat_ctx, "Please install the libx11-dev package.");
 
     return -1;
   }
@@ -1436,8 +1436,8 @@ static int xnvctrl_init (hashcat_ctx_t *hashcat_ctx)
 
   if (xnvctrl->lib_xnvctrl == NULL)
   {
-    //event_log_error (hashcat_ctx, "Failed loading the XNVCTRL library: %s", dlerror());
-    //event_log_error (hashcat_ctx, "Please install libxnvctrl-dev package");
+    //event_log_error (hashcat_ctx, "Failed to load the XNVCTRL library: %s", dlerror());
+    //event_log_error (hashcat_ctx, "Please install the libxnvctrl-dev package.");
 
     return -1;
   }
@@ -1492,7 +1492,7 @@ static int hm_XNVCTRL_XOpenDisplay (hashcat_ctx_t *hashcat_ctx)
 
   if (dpy == NULL)
   {
-    event_log_error (hashcat_ctx, "XOpenDisplay() failed");
+    event_log_error (hashcat_ctx, "XOpenDisplay() failed.");
 
     return -1;
   }
@@ -1529,7 +1529,7 @@ static int hm_XNVCTRL_query_target_count (hashcat_ctx_t *hashcat_ctx, int *val)
 
   if (rc == false)
   {
-    event_log_error (hashcat_ctx, "%s", "XNVCTRLQueryTargetCount() failed");
+    event_log_error (hashcat_ctx, "%s", "XNVCTRLQueryTargetCount() failed.");
 
     return -1;
   }
@@ -1551,12 +1551,13 @@ static int hm_XNVCTRL_get_fan_control (hashcat_ctx_t *hashcat_ctx, const int gpu
 
   if (rc == false)
   {
-    event_log_error (hashcat_ctx, "XNVCTRLQueryTargetAttribute() failed");
+    event_log_error (hashcat_ctx, "XNVCTRLQueryTargetAttribute() failed.");
 
     // help the user to fix the problem
 
-    event_log_warning (hashcat_ctx, "This error typically occurs when you did not setup NVidia Coolbits.");
-    event_log_warning (hashcat_ctx, "Run the following command to fix: sudo nvidia-xconfig --cool-bits=12");
+    event_log_warning (hashcat_ctx, "This error typically occurs when you did not set up NVidia Coolbits.");
+    event_log_warning (hashcat_ctx, "To fix, run this command:");
+    event_log_warning (hashcat_ctx, "    sudo nvidia-xconfig --cool-bits=12");
     event_log_warning (hashcat_ctx, "Do not forget to restart X afterwards.");
     event_log_warning (hashcat_ctx, NULL);
 
@@ -1608,7 +1609,7 @@ static int hm_XNVCTRL_get_core_threshold (hashcat_ctx_t *hashcat_ctx, const int 
 
   if (rc == false)
   {
-    event_log_error (hashcat_ctx, "XNVCTRLQueryTargetAttribute(NV_CTRL_GPU_CORE_THRESHOLD) failed");
+    event_log_error (hashcat_ctx, "XNVCTRLQueryTargetAttribute(NV_CTRL_GPU_CORE_THRESHOLD) failed.");
 
     return -1;
   }
@@ -1632,7 +1633,7 @@ static int hm_XNVCTRL_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const i
 
   if (rc == false)
   {
-    event_log_error (hashcat_ctx, "XNVCTRLQueryTargetAttribute(NV_CTRL_THERMAL_COOLER_CURRENT_LEVEL) failed");
+    event_log_error (hashcat_ctx, "XNVCTRLQueryTargetAttribute(NV_CTRL_THERMAL_COOLER_CURRENT_LEVEL) failed.");
 
     return -1;
   }
@@ -1655,7 +1656,7 @@ static int hm_XNVCTRL_get_fan_speed_target (hashcat_ctx_t *hashcat_ctx, const in
 
   if (rc == false)
   {
-    event_log_error (hashcat_ctx, "%s", "XNVCTRLQueryTargetAttribute(NV_CTRL_THERMAL_COOLER_LEVEL) failed");
+    event_log_error (hashcat_ctx, "%s", "XNVCTRLQueryTargetAttribute(NV_CTRL_THERMAL_COOLER_LEVEL) failed.");
 
     return -1;
   }
@@ -1704,7 +1705,7 @@ static int hm_XNVCTRL_get_pci_bus (hashcat_ctx_t *hashcat_ctx, const int gpu, in
 
   if (rc == false)
   {
-    event_log_error (hashcat_ctx, "%s", "XNVCTRLQueryTargetAttribute(NV_CTRL_PCI_BUS) failed");
+    event_log_error (hashcat_ctx, "%s", "XNVCTRLQueryTargetAttribute(NV_CTRL_PCI_BUS) failed.");
 
     return -1;
   }
@@ -1726,7 +1727,7 @@ static int hm_XNVCTRL_get_pci_device (hashcat_ctx_t *hashcat_ctx, const int gpu,
 
   if (rc == false)
   {
-    event_log_error (hashcat_ctx, "%s", "XNVCTRLQueryTargetAttribute(NV_CTRL_PCI_DEVICE) failed");
+    event_log_error (hashcat_ctx, "%s", "XNVCTRLQueryTargetAttribute(NV_CTRL_PCI_DEVICE) failed.");
 
     return -1;
   }
@@ -1748,7 +1749,7 @@ static int hm_XNVCTRL_get_pci_function (hashcat_ctx_t *hashcat_ctx, const int gp
 
   if (rc == false)
   {
-    event_log_error (hashcat_ctx, "%s", "XNVCTRLQueryTargetAttribute(NV_CTRL_PCI_FUNCTION) failed");
+    event_log_error (hashcat_ctx, "%s", "XNVCTRLQueryTargetAttribute(NV_CTRL_PCI_FUNCTION) failed.");
 
     return -1;
   }
@@ -1787,7 +1788,7 @@ static int adl_init (hashcat_ctx_t *hashcat_ctx)
   if (!adl->lib)
   {
     //if (user_options->quiet == false)
-    //  event_log_error (hashcat_ctx, "load ADL library failed, proceed without ADL HWMon enabled");
+    //  event_log_error (hashcat_ctx, "Load of ADL library failed. Proceeding without ADL HWMon enabled.");
 
     return -1;
   }
@@ -2117,21 +2118,21 @@ static int hm_ADL_Overdrive_PowerControl_Set (hashcat_ctx_t *hashcat_ctx, int iA
 
   if (level < min || level > max)
   {
-    event_log_error (hashcat_ctx, "ADL PowerControl level invalid");
+    event_log_error (hashcat_ctx, "ADL PowerControl level invalid.");
 
     return -1;
   }
 
   if (step == 0)
   {
-    event_log_error (hashcat_ctx, "ADL PowerControl step invalid");
+    event_log_error (hashcat_ctx, "ADL PowerControl step invalid.");
 
     return -1;
   }
 
   if (level % step != 0)
   {
-    event_log_error (hashcat_ctx, "ADL PowerControl step invalid");
+    event_log_error (hashcat_ctx, "ADL PowerControl step invalid.");
 
     return -1;
   }
@@ -2223,7 +2224,7 @@ static int hm_ADL_Overdrive_StateInfo_Get (hashcat_ctx_t *hashcat_ctx, int iAdap
 
     if (state->state.aLevels[0].iEngineClock % caps.sEngineClockRange.iStep != 0)
     {
-      event_log_error (hashcat_ctx, "ADL engine step size invalid for performance level 1");
+      event_log_error (hashcat_ctx, "ADL engine step size invalid for performance level 1.");
 
       //state->state.aLevels[0].iEngineClock -= state->state.aLevels[0].iEngineClock % caps.sEngineClockRange.iStep;
 
@@ -2232,7 +2233,7 @@ static int hm_ADL_Overdrive_StateInfo_Get (hashcat_ctx_t *hashcat_ctx, int iAdap
 
     if (state->state.aLevels[1].iEngineClock % caps.sEngineClockRange.iStep != 0)
     {
-      event_log_error (hashcat_ctx, "ADL engine step size invalid for performance level 2");
+      event_log_error (hashcat_ctx, "ADL engine step size invalid for performance level 2.");
 
       //state->state.aLevels[1].iEngineClock -= state->state.aLevels[1].iEngineClock % caps.sEngineClockRange.iStep;
 
@@ -2241,7 +2242,7 @@ static int hm_ADL_Overdrive_StateInfo_Get (hashcat_ctx_t *hashcat_ctx, int iAdap
 
     if (state->state.aLevels[0].iMemoryClock % caps.sMemoryClockRange.iStep != 0)
     {
-      event_log_error (hashcat_ctx, "ADL memory step size invalid for performance level 1");
+      event_log_error (hashcat_ctx, "ADL memory step size invalid for performance level 1.");
 
       //state->state.aLevels[0].iMemoryClock -= state->state.aLevels[0].iMemoryClock % caps.sMemoryClockRange.iStep;
 
@@ -2250,7 +2251,7 @@ static int hm_ADL_Overdrive_StateInfo_Get (hashcat_ctx_t *hashcat_ctx, int iAdap
 
     if (state->state.aLevels[1].iMemoryClock % caps.sMemoryClockRange.iStep != 0)
     {
-      event_log_error (hashcat_ctx, "ADL memory step size invalid for performance level 2");
+      event_log_error (hashcat_ctx, "ADL memory step size invalid for performance level 2.");
 
       //state->state.aLevels[1].iMemoryClock -= state->state.aLevels[1].iMemoryClock % caps.sMemoryClockRange.iStep;
 
@@ -2283,28 +2284,28 @@ static int hm_ADL_Overdrive_State_Set (hashcat_ctx_t *hashcat_ctx, int iAdapterI
 
   if (state->aLevels[0].iEngineClock < caps.sEngineClockRange.iMin || state->aLevels[1].iEngineClock > caps.sEngineClockRange.iMax)
   {
-    event_log_error (hashcat_ctx, "ADL engine clock outside valid range");
+    event_log_error (hashcat_ctx, "ADL engine clock outside valid range.");
 
     return -1;
   }
 
   if (state->aLevels[1].iEngineClock % caps.sEngineClockRange.iStep != 0)
   {
-    event_log_error (hashcat_ctx, "ADL engine step size invalid");
+    event_log_error (hashcat_ctx, "ADL engine step size invalid.");
 
     return -1;
   }
 
   if (state->aLevels[0].iMemoryClock < caps.sMemoryClockRange.iMin || state->aLevels[1].iMemoryClock > caps.sMemoryClockRange.iMax)
   {
-    event_log_error (hashcat_ctx, "ADL memory clock outside valid range");
+    event_log_error (hashcat_ctx, "ADL memory clock outside valid range.");
 
     return -1;
   }
 
   if (state->aLevels[1].iMemoryClock % caps.sMemoryClockRange.iStep != 0)
   {
-    event_log_error (hashcat_ctx, "ADL memory step size invalid");
+    event_log_error (hashcat_ctx, "ADL memory step size invalid.");
 
     return -1;
   }
@@ -2367,7 +2368,7 @@ static int get_adapters_num_adl (hashcat_ctx_t *hashcat_ctx, int *iNumberAdapter
 
   if (iNumberAdapters == NULL)
   {
-    event_log_error (hashcat_ctx, "No ADL adapters found");
+    event_log_error (hashcat_ctx, "No ADL adapters found.");
 
     return -1;
   }
@@ -2383,7 +2384,7 @@ static int hm_get_adapter_index_nvapi (hashcat_ctx_t *hashcat_ctx, HM_ADAPTER_NV
 
   if (pGpuCount == 0)
   {
-    event_log_error (hashcat_ctx, "No NvAPI adapters found");
+    event_log_error (hashcat_ctx, "No NvAPI adapters found.");
 
     return 0;
   }
@@ -2399,7 +2400,7 @@ static int hm_get_adapter_index_nvml (hashcat_ctx_t *hashcat_ctx, HM_ADAPTER_NVM
 
   if (deviceCount == 0)
   {
-    event_log_error (hashcat_ctx, "No NVML adapters found");
+    event_log_error (hashcat_ctx, "No NVML adapters found.");
 
     return 0;
   }
@@ -3867,7 +3868,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
             if (ADL_rc == ADL_ERR)
             {
-              event_log_error (hashcat_ctx, "Failed to get ADL PowerControl Capabilities");
+              event_log_error (hashcat_ctx, "Failed to get ADL PowerControl capabilities.");
 
               return -1;
             }
@@ -3884,7 +3885,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
               if (ADL_rc == ADL_ERR)
               {
-                event_log_error (hashcat_ctx, "Failed to get current ADL PowerControl values");
+                event_log_error (hashcat_ctx, "Failed to get current ADL PowerControl values.");
 
                 return -1;
               }
@@ -3893,7 +3894,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
               if (ADL_rc == ADL_ERR)
               {
-                event_log_error (hashcat_ctx, "Failed to get current ADL PowerControl values");
+                event_log_error (hashcat_ctx, "Failed to get current ADL PowerControl values.");
 
                 return -1;
               }
@@ -3902,7 +3903,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
               if (ADL_rc == ADL_ERR)
               {
-                event_log_error (hashcat_ctx, "Failed to set new ADL PowerControl values");
+                event_log_error (hashcat_ctx, "Failed to set new ADL PowerControl values.");
 
                 return -1;
               }
@@ -3917,7 +3918,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
               if (ADL_rc == ADL_ERR)
               {
-                event_log_error (hashcat_ctx, "Failed to get ADL memory and engine clock frequency");
+                event_log_error (hashcat_ctx, "Failed to get ADL memory and engine clock frequency.");
 
                 return -1;
               }
@@ -3930,7 +3931,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
               if (ADL_rc == ADL_ERR)
               {
-                event_log_error (hashcat_ctx, "Failed to get ADL device capabilities");
+                event_log_error (hashcat_ctx, "Failed to get ADL device capabilities.");
 
                 return -1;
               }
@@ -3948,12 +3949,12 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
               if ((engine_clock_max - engine_clock_profile_max) > warning_trigger_engine)
               {
-                event_log_error (hashcat_ctx, "The custom profile seems to have too low maximum engine clock values. You therefore may not reach full performance");
+                event_log_error (hashcat_ctx, "Custom profile has low maximum engine clock value. Expect reduced performance.");
               }
 
               if ((memory_clock_max - memory_clock_profile_max) > warning_trigger_memory)
               {
-                event_log_error (hashcat_ctx, "The custom profile seems to have too low maximum memory clock values. You therefore may not reach full performance");
+                event_log_error (hashcat_ctx, "Custom profile has low maximum memory clock value. Expect reduced performance.");
               }
 
               ADLOD6StateInfo *performance_state = (ADLOD6StateInfo*) hccalloc (1, sizeof (ADLOD6StateInfo) + sizeof (ADLOD6PerformanceLevel));
@@ -3969,7 +3970,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
               if (ADL_rc == ADL_ERR)
               {
-                event_log_error (hashcat_ctx, "Failed to set ADL performance state");
+                event_log_error (hashcat_ctx, "Failed to set ADL performance state.");
 
                 return -1;
               }
@@ -3988,7 +3989,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
               if (ADL_rc == ADL_ERR)
               {
-                event_log_error (hashcat_ctx, "Failed to get current ADL PowerControl settings");
+                event_log_error (hashcat_ctx, "Failed to get current ADL PowerControl settings.");
 
                 return -1;
               }
@@ -3997,7 +3998,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
               if (ADL_rc == ADL_ERR)
               {
-                event_log_error (hashcat_ctx, "Failed to set new ADL PowerControl values");
+                event_log_error (hashcat_ctx, "Failed to set new ADL PowerControl values.");
 
                 return -1;
               }
@@ -4187,7 +4188,7 @@ void hwmon_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
             if ((hm_ADL_Overdrive6_PowerControl_Caps (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, &powertune_supported)) == -1)
             {
-              //event_log_error (hashcat_ctx, "Failed to get ADL PowerControl Capabilities");
+              //event_log_error (hashcat_ctx, "Failed to get ADL PowerControl capabilities.");
 
               continue;
             }
@@ -4198,7 +4199,7 @@ void hwmon_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
               if ((hm_ADL_Overdrive_PowerControl_Set (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, hwmon_ctx->od_power_control_status[device_id])) == -1)
               {
-                //event_log_error (hashcat_ctx, "Failed to restore the ADL PowerControl values");
+                //event_log_error (hashcat_ctx, "Failed to restore the ADL PowerControl values.");
 
                 continue;
               }
@@ -4216,7 +4217,7 @@ void hwmon_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
               if ((hm_ADL_Overdrive_State_Set (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl, ADL_OD6_SETSTATE_PERFORMANCE, performance_state)) == -1)
               {
-                //event_log_error (hashcat_ctx, "Failed to restore ADL performance state");
+                //event_log_error (hashcat_ctx, "Failed to restore ADL performance state.");
 
                 continue;
               }

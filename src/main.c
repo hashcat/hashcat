@@ -396,12 +396,12 @@ static void main_potfile_num_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, M
   {
     if (potfile_remove_cracks == 1)
     {
-      event_log_info (hashcat_ctx, "INFO: Removed 1 hash found in potfile");
+      event_log_info (hashcat_ctx, "INFO: Removed 1 hash found in potfile.");
       event_log_info (hashcat_ctx, NULL);
     }
     else
     {
-      event_log_info (hashcat_ctx, "INFO: Removed %d hashes found in potfile", potfile_remove_cracks);
+      event_log_info (hashcat_ctx, "INFO: Removed %d hashes found in potfile.", potfile_remove_cracks);
       event_log_info (hashcat_ctx, NULL);
     }
   }
@@ -413,7 +413,7 @@ static void main_potfile_all_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, M
 
   if (user_options->quiet == true) return;
 
-  event_log_info (hashcat_ctx, "INFO: All hashes found in potfile! You can use --show to display them.");
+  event_log_info (hashcat_ctx, "INFO: All hashes found in potfile! Use --show to display them.");
   event_log_info (hashcat_ctx, NULL);
 }
 
@@ -455,7 +455,7 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
   if (hashconfig->opti_type)
   {
-    event_log_info (hashcat_ctx, "Applicable Optimizers:");
+    event_log_info (hashcat_ctx, "Applicable optimizers:");
 
     for (u32 i = 0; i < 32; i++)
     {
@@ -473,7 +473,7 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
   if (hwmon_ctx->enabled == false && user_options->gpu_temp_disable == false)
   {
-    event_log_info (hashcat_ctx, "Watchdog: Hardware Monitoring Interface not found on your system");
+    event_log_info (hashcat_ctx, "Watchdog: Hardware monitoring interface not found on your system.");
   }
 
   if (hwmon_ctx->enabled == true && user_options->gpu_temp_abort > 0)
@@ -482,7 +482,7 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   }
   else
   {
-    event_log_info (hashcat_ctx, "Watchdog: Temperature abort trigger disabled");
+    event_log_info (hashcat_ctx, "Watchdog: Temperature abort trigger disabled.");
   }
 
   if (hwmon_ctx->enabled == true && user_options->gpu_temp_retain > 0)
@@ -491,7 +491,7 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   }
   else
   {
-    event_log_info (hashcat_ctx, "Watchdog: Temperature retain trigger disabled");
+    event_log_info (hashcat_ctx, "Watchdog: Temperature retain trigger disabled.");
   }
 
   event_log_info (hashcat_ctx, NULL);
@@ -543,7 +543,7 @@ static void main_weak_hash_all_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx,
 
   if (user_options->quiet == true) return;
 
-  event_log_info (hashcat_ctx, "INFO: All hashes found during weak hashes check! You can use --show to display them.");
+  event_log_info (hashcat_ctx, "INFO: All hashes found during weak hashes check! Use --show to display them.");
   event_log_info (hashcat_ctx, NULL);
 }
 
@@ -573,7 +573,7 @@ static void main_set_kernel_power_final (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx
 
   clear_prompt ();
 
-  event_log_advice (hashcat_ctx, "Approaching final keyspace, workload adjusted");
+  event_log_advice (hashcat_ctx, "Approaching final keyspace - workload adjusted.");
   event_log_advice (hashcat_ctx, NULL);
 
   send_prompt ();
@@ -593,7 +593,7 @@ static void main_monitor_throttle1 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
   u32 *device_id = (u32 *) buf;
 
-  event_log_warning (hashcat_ctx, "Drivers temperature threshold hit on GPU #%u, expect performance to drop...", *device_id + 1);
+  event_log_warning (hashcat_ctx, "Driver temperature threshold met on GPU #%u. Expect reduced performance.", *device_id + 1);
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
@@ -615,7 +615,7 @@ static void main_monitor_throttle2 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
   u32 *device_id = (u32 *) buf;
 
-  event_log_warning (hashcat_ctx, "Drivers temperature threshold hit on GPU #%u, expect performance to drop...", *device_id + 1);
+  event_log_warning (hashcat_ctx, "Driver temperature threshold met on GPU #%u. Expect reduced performance.", *device_id + 1);
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
@@ -637,7 +637,7 @@ static void main_monitor_throttle3 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
   u32 *device_id = (u32 *) buf;
 
-  event_log_warning (hashcat_ctx, "Drivers temperature threshold hit on GPU #%u, expect performance to drop...", *device_id + 1);
+  event_log_warning (hashcat_ctx, "Driver temperature threshold met on GPU #%u. Expect reduced performance.", *device_id + 1);
   event_log_warning (hashcat_ctx, NULL);
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
@@ -660,18 +660,18 @@ static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
 
   if (user_options->workload_profile < 3)
   {
-    event_log_advice (hashcat_ctx, "Cracking performance lower than expected? Append -w 3 to the commandline!");
+    event_log_advice (hashcat_ctx, "Cracking performance lower than expected? Append -w 3 to the commandline.");
     event_log_advice (hashcat_ctx, NULL);
   }
   else
   {
     event_log_advice (hashcat_ctx, "Cracking performance lower than expected?");
     event_log_advice (hashcat_ctx, NULL);
-    event_log_advice (hashcat_ctx, "* Update your OpenCL runtime / Driver but the right way:");
-    event_log_advice (hashcat_ctx, "  https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#i_may_have_the_wrong_driver_installed_what_should_i_do");
+    event_log_advice (hashcat_ctx, "* Update your OpenCL runtime / driver the right way:");
+    event_log_advice (hashcat_ctx, "  https://hashcat.net/faq/wrongdriver");
     event_log_advice (hashcat_ctx, NULL);
     event_log_advice (hashcat_ctx, "* Create more work items to make use of your parallelization power:");
-    event_log_advice (hashcat_ctx, "  https://hashcat.net/wiki/doku.php?id=frequently_asked_questions#how_to_create_more_work_for_full_speed");
+    event_log_advice (hashcat_ctx, "  https://hashcat.net/faq/morework");
     event_log_advice (hashcat_ctx, NULL);
   }
 

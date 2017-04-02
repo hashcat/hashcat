@@ -824,7 +824,7 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
       {
         if (out_pos == RULES_MAX - 1)
         {
-          // event_log_warning (hashcat_ctx, "Truncating chaining of rule %d and rule %d as maximum number of function calls per rule exceeded", i, in_off);
+          // event_log_warning (hashcat_ctx, "Truncated chaining of rule %d and rule %d - maximum functions per rule exceeded.", i, in_off);
 
           break;
         }
@@ -841,7 +841,7 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
 
   if (kernel_rules_cnt == 0)
   {
-    event_log_error (hashcat_ctx, "No valid rules left");
+    event_log_error (hashcat_ctx, "No valid rules left.");
 
     hcfree (kernel_rules_buf);
 

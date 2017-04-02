@@ -64,7 +64,7 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
 
   if (fread (rd, sizeof (restore_data_t), 1, fp) != 1)
   {
-    event_log_error (hashcat_ctx, "Can't read %s", eff_restore_file);
+    event_log_error (hashcat_ctx, "Cannot read %s", eff_restore_file);
 
     fclose (fp);
 
@@ -75,7 +75,7 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
 
   if (rd->argc < 1)
   {
-    event_log_error (hashcat_ctx, "Unusual low number of arguments (argc) within the restore file %s", eff_restore_file);
+    event_log_error (hashcat_ctx, "Unusually low number of arguments (argc) within restore file %s", eff_restore_file);
 
     fclose (fp);
 
@@ -84,7 +84,7 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
 
   if (rd->argc > 250) // some upper bound check is always good (with some dirs/dicts it could be a large string)
   {
-    event_log_error (hashcat_ctx, "Unusual high number of arguments (argc) within the restore file %s", eff_restore_file);
+    event_log_error (hashcat_ctx, "Unusually high number of arguments (argc) within restore file %s", eff_restore_file);
 
     fclose (fp);
 
@@ -99,7 +99,7 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
   {
     if (fgets (buf, HCBUFSIZ_LARGE - 1, fp) == NULL)
     {
-      event_log_error (hashcat_ctx, "Can't read %s", eff_restore_file);
+      event_log_error (hashcat_ctx, "Cannot read %s", eff_restore_file);
 
       fclose (fp);
 
@@ -136,11 +136,12 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
 
   if (chdir (rd->cwd))
   {
-    event_log_error (hashcat_ctx, "The directory '%s' does not exist. It is needed to restore (--restore) the session.", rd->cwd);
+    event_log_error (hashcat_ctx, "Directory '%s' needed to restore the session was not found.", rd->cwd);
 
-    event_log_warning (hashcat_ctx, "You could either create this directory or update the .restore file using e.g. the analyze_hc_restore.pl tool:");
-    event_log_warning (hashcat_ctx, "https://github.com/philsmd/analyze_hc_restore");
-    event_log_warning (hashcat_ctx, "The directory must contain all files and folders mentioned within the command line.");
+    event_log_warning (hashcat_ctx, "Either create the directory, or update the directory within the .restore file.");
+    event_log_warning (hashcat_ctx, "Restore files can be analyzed and modified with analyze_hc_restore.pl:");
+    event_log_warning (hashcat_ctx, "    https://github.com/philsmd/analyze_hc_restore");
+    event_log_warning (hashcat_ctx, "Directory must contain all files and folders from the original command line.");
     event_log_warning (hashcat_ctx, NULL);
 
     return -1;
@@ -308,7 +309,7 @@ int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
     if (rd->version < RESTORE_VERSION_MIN)
     {
-      event_log_error (hashcat_ctx, "Incompatible restore-file version");
+      event_log_error (hashcat_ctx, "Incompatible restore-file version.");
 
       return -1;
     }

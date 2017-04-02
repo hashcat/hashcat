@@ -485,7 +485,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
           if (rc == 1)
           {
-            event_log_error (hashcat_ctx, "%s: Old hccap file format detected! You need to update: https://hashcat.net/forum/thread-6273.html", hashes->hashfile);
+            event_log_error (hashcat_ctx, "%s: Old hccap format detected! You need to update: https://hashcat.net/q/hccapx", hashes->hashfile);
 
             return -1;
           }
@@ -536,7 +536,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       if (hashes_avail == 0)
       {
-        event_log_error (hashcat_ctx, "hashfile is empty or corrupt");
+        event_log_error (hashcat_ctx, "hashfile is empty or corrupt.");
 
         fclose (fp);
 
@@ -547,7 +547,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       if ((user_options->remove == true) && (hashlist_format != HLFMT_HASHCAT))
       {
-        event_log_error (hashcat_ctx, "remove not supported in native hashfile-format mode");
+        event_log_error (hashcat_ctx, "Use of --remove is not supported in native hashfile-format mode.");
 
         fclose (fp);
 
@@ -705,7 +705,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       if (hash_fmt_error)
       {
-        event_log_warning (hashcat_ctx, "Failed to parse hashes using the '%s' format", strhlfmt (hashlist_format));
+        event_log_warning (hashcat_ctx, "Failed to parse hashes using the '%s' format.", strhlfmt (hashlist_format));
       }
       else
       {
@@ -758,7 +758,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             if (hashes_avail == hashes_cnt)
             {
-              event_log_warning (hashcat_ctx, "Hashfile '%s': File changed during runtime, skipping new data", hash_buf);
+              event_log_warning (hashcat_ctx, "Hashfile '%s': File changed during runtime. Skipping new data.", hash_buf);
 
               break;
             }
@@ -924,7 +924,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
         if (hashes_avail == hashes_cnt)
         {
-          event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u: File changed during runtime, skipping new data", hashes->hashfile, line_num);
+          event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u: File changed during runtime. Skipping new data.", hashes->hashfile, line_num);
 
           break;
         }
@@ -941,7 +941,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
         if (hash_fmt_error)
         {
-          event_log_warning (hashcat_ctx, "failed to parse hashes using the '%s' format", strhlfmt (hashlist_format));
+          event_log_warning (hashcat_ctx, "Failed to parse hashes using the '%s' format.", strhlfmt (hashlist_format));
 
           continue;
         }
