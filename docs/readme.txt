@@ -159,8 +159,8 @@ NVIDIA GPUS require "NVIDIA Driver" (367.x or later)
 - OSX v10.8
 - OSX v10.9
 - OSX v10.10
-- iTunes Backup < 10.0
-- iTunes Backup >= 10.0
+- iTunes backup < 10.0
+- iTunes backup >= 10.0
 - AIX {smd5}
 - AIX {ssha1}
 - AIX {ssha256}
@@ -175,7 +175,7 @@ NVIDIA GPUS require "NVIDIA Driver" (367.x or later)
 - Juniper/NetBSD sha1crypt
 - Fortigate (FortiOS)
 - Android PIN
-- Windows 8+ phone PIN/password
+- Windows Phone 8+ PIN/password
 - GRUB 2
 - CRC32
 - RACF
