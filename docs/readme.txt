@@ -48,7 +48,7 @@ NVIDIA GPUS require "NVIDIA Driver" (367.x or later)
 - SHA-3 (Keccak)
 - SipHash
 - Skip32
-- RipeMD160
+- RIPEMD-160
 - Whirlpool
 - DES (PT = $salt, key = $pass)
 - 3DES (PT = $salt, key = $pass)
@@ -98,21 +98,21 @@ NVIDIA GPUS require "NVIDIA Driver" (367.x or later)
 - PBKDF2-HMAC-SHA512
 - MyBB
 - phpBB3
-- SMF
+- SMF (Simple Machines Forum)
 - vBulletin
-- IPB
-- Woltlab Burning Board
+- IPB (Invision Power Board)
+- WBB (Woltlab Burning Board)
 - osCommerce
 - xt:Commerce
 - PrestaShop
-- Mediawiki B type
-- Wordpress
-- Drupal
+- MediaWiki B type
+- WordPress
+- Drupal 7
 - Joomla
 - PHPS
 - Django (SHA-1)
 - Django (PBKDF2-SHA256)
-- EPiServer
+- Episerver
 - ColdFusion 10+
 - Apache MD5-APR
 - MySQL
@@ -127,14 +127,14 @@ NVIDIA GPUS require "NVIDIA Driver" (367.x or later)
 - IKE-PSK
 - IPMI2 RAKP
 - iSCSI CHAP
-- Cram MD5
-- MySQL Challenge-Response Authentication (SHA1)
-- PostgreSQL Challenge-Response Authentication (MD5)
-- SIP Digest Authentication (MD5)
+- CRAM-MD5
+- MySQL CRAM (SHA1)
+- PostgreSQL CRAM (MD5)
+- SIP digest authentication (MD5)
 - WPA
 - WPA2
 - NetNTLMv1
-- NetNTLMv1 + ESS
+- NetNTLMv1+ESS
 - NetNTLMv2
 - Kerberos 5 AS-REQ Pre-Auth etype 23
 - Kerberos 5 TGS-REP etype 23
@@ -165,17 +165,17 @@ NVIDIA GPUS require "NVIDIA Driver" (367.x or later)
 - AIX {ssha1}
 - AIX {ssha256}
 - AIX {ssha512}
-- Cisco-ASA
-- Cisco-PIX
-- Cisco-IOS
-- Cisco $8$
-- Cisco $9$
+- Cisco-ASA MD5
+- Cisco-PIX MD5
+- Cisco-IOS $1$ (MD5), $4$ (SHA256)
+- Cisco $8$ (PBKDF2-SHA256)
+- Cisco $9$ (scrypt)
 - Juniper IVE
-- Juniper Netscreen/SSG (ScreenOS)
+- Juniper NetScreen/SSG (ScreenOS)
 - Juniper/NetBSD sha1crypt
 - Fortigate (FortiOS)
 - Android PIN
-- Windows 8+ phone PIN/Password
+- Windows 8+ phone PIN/password
 - GRUB 2
 - CRC32
 - RACF
@@ -184,7 +184,7 @@ NVIDIA GPUS require "NVIDIA Driver" (367.x or later)
 - PunBB
 - OpenCart
 - Atlassian (PBKDF2-HMAC-SHA1)
-- Citrix Netscaler
+- Citrix NetScaler
 - SAP CODVN B (BCODE)
 - SAP CODVN F/G (PASSCODE)
 - SAP CODVN H (PWDSALTEDHASH) iSSHA-1
@@ -196,7 +196,7 @@ NVIDIA GPUS require "NVIDIA Driver" (367.x or later)
 - RAR3-hp
 - RAR5
 - AxCrypt
-- AxCrypt in memory SHA1
+- AxCrypt in-memory SHA1
 - PDF 1.1 - 1.3 (Acrobat 2 - 4)
 - PDF 1.4 - 1.6 (Acrobat 5 - 8)
 - PDF 1.7 Level 3 (Acrobat 9)
@@ -213,17 +213,17 @@ NVIDIA GPUS require "NVIDIA Driver" (367.x or later)
 - Blockchain, My Wallet
 - 1Password, agilekeychain
 - 1Password, cloudkeychain
-- Lastpass
+- LastPass
 - Password Safe v2
 - Password Safe v3
-- Keepass 1 (AES/Twofish) and Keepass 2 (AES)
-- Plaintext
+- KeePass 1 (AES/Twofish) and KeePass 2 (AES)
 - eCryptfs
 - Android FDE <= 4.3
 - Android FDE (Samsung DEK)
 - TrueCrypt
 - VeraCrypt
 - LUKS
+- Plaintext
 
 ##
 ## Attack-Modes
