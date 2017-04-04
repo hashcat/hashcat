@@ -159,23 +159,24 @@ NVIDIA GPUS require "NVIDIA Driver" (367.x or later)
 - OSX v10.8
 - OSX v10.9
 - OSX v10.10
-- iTunes Backup < 10.0
-- iTunes Backup >= 10.0
+- iTunes backup < 10.0
+- iTunes backup >= 10.0
 - AIX {smd5}
 - AIX {ssha1}
 - AIX {ssha256}
 - AIX {ssha512}
 - Cisco-ASA MD5
 - Cisco-PIX MD5
-- Cisco-IOS $1$ (MD5), $4$ (SHA256)
+- Cisco-IOS $1$ (MD5)
+- Cisco-IOS type 4 (SHA256)
 - Cisco $8$ (PBKDF2-SHA256)
 - Cisco $9$ (scrypt)
 - Juniper IVE
 - Juniper NetScreen/SSG (ScreenOS)
 - Juniper/NetBSD sha1crypt
 - Fortigate (FortiOS)
-- Android PIN
-- Windows 8+ phone PIN/password
+- Samsung Android Password/PIN
+- Windows Phone 8+ PIN/password
 - GRUB 2
 - CRC32
 - RACF
