@@ -262,7 +262,7 @@ static const char *USAGE_BIG[] =
   "    501 | Juniper IVE                                      | Operating Systems",
   "  15100 | Juniper/NetBSD sha1crypt                         | Operating Systems",
   "   7000 | FortiGate (FortiOS)                              | Operating Systems",
-  "   5800 | Android PIN                                      | Operating Systems",
+  "   5800 | Samsung Android Password/PIN                     | Operating Systems",
   "  13800 | Windows Phone 8+ PIN/password                    | Operating Systems",
   "   8100 | Citrix NetScaler                                 | Operating Systems",
   "   8500 | RACF                                             | Operating Systems",
