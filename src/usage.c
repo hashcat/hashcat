@@ -255,7 +255,7 @@ static const char *USAGE_BIG[] =
   "   2400 | Cisco-PIX MD5                                    | Operating Systems",
   "   2410 | Cisco-ASA MD5                                    | Operating Systems",
   "    500 | Cisco-IOS $1$ (MD5)                              | Operating Systems",
-  "   5700 | Cisco-IOS $4$ (SHA256)                           | Operating Systems",
+  "   5700 | Cisco-IOS type 4 (SHA256)                        | Operating Systems",
   "   9200 | Cisco-IOS $8$ (PBKDF2-SHA256)                    | Operating Systems",
   "   9300 | Cisco-IOS $9$ (scrypt)                           | Operating Systems",
   "     22 | Juniper NetScreen/SSG (ScreenOS)                 | Operating Systems",

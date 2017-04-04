@@ -167,14 +167,15 @@ NVIDIA GPUS require "NVIDIA Driver" (367.x or later)
 - AIX {ssha512}
 - Cisco-ASA MD5
 - Cisco-PIX MD5
-- Cisco-IOS $1$ (MD5), $4$ (SHA256)
+- Cisco-IOS $1$ (MD5)
+- Cisco-IOS type 4 (SHA256)
 - Cisco $8$ (PBKDF2-SHA256)
 - Cisco $9$ (scrypt)
 - Juniper IVE
 - Juniper NetScreen/SSG (ScreenOS)
 - Juniper/NetBSD sha1crypt
 - Fortigate (FortiOS)
-- Android PIN
+- Samsung Android Password/PIN
 - Windows Phone 8+ PIN/password
 - GRUB 2
 - CRC32
