@@ -8009,8 +8009,6 @@ END_CODE
 
     my $tmp = hmac ($pbkdf1_salt_buf, $word_buf, \&sha1, 64);
 
-print unpack ("H*", $tmp), "\n";
-
     for (my $r = 1; $r < $iterations; $r++)
     {
       $tmp = hmac ($tmp, $word_buf, \&sha1, 64);
