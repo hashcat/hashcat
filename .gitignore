@@ -11,6 +11,7 @@ hashcat.dll
 *.pot
 *.pid
 *.log
+*.out
 *.dSYM
 kernels/**
 lib/*.a
