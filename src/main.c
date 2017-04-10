@@ -954,8 +954,8 @@ int main (int argc, char **argv)
 
   // install and shared folder need to be set to recognize "make install" use
 
-  char *install_folder = NULL;
-  char *shared_folder  = NULL;
+  const char *install_folder = NULL;
+  const char *shared_folder  = NULL;
 
   #if defined (INSTALL_FOLDER)
   install_folder = INSTALL_FOLDER;

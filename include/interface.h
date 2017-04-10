@@ -1777,12 +1777,12 @@ void to_hccapx_t (hashcat_ctx_t *hashcat_ctx, hccapx_t *hccapx, const u32 salt_p
 
 int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_len, const u32 salt_pos, const u32 digest_pos);
 
-int     hashconfig_init               (hashcat_ctx_t *hashcat_ctx);
-void    hashconfig_destroy            (hashcat_ctx_t *hashcat_ctx);
-u32     hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param);
-u32     hashconfig_get_kernel_loops   (hashcat_ctx_t *hashcat_ctx);
-int     hashconfig_general_defaults   (hashcat_ctx_t *hashcat_ctx);
-void    hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, void *esalt, void *hook_salt);
-char   *hashconfig_benchmark_mask     (hashcat_ctx_t *hashcat_ctx);
+int         hashconfig_init               (hashcat_ctx_t *hashcat_ctx);
+void        hashconfig_destroy            (hashcat_ctx_t *hashcat_ctx);
+u32         hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param);
+u32         hashconfig_get_kernel_loops   (hashcat_ctx_t *hashcat_ctx);
+int         hashconfig_general_defaults   (hashcat_ctx_t *hashcat_ctx);
+void        hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, void *esalt, void *hook_salt);
+const char *hashconfig_benchmark_mask     (hashcat_ctx_t *hashcat_ctx);
 
 #endif // _INTERFACE_H

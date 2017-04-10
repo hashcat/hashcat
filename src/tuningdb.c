@@ -266,7 +266,7 @@ void tuning_db_destroy (hashcat_ctx_t *hashcat_ctx)
   {
     tuning_db_entry_t *entry = &tuning_db->entry_buf[i];
 
-    hcfree (entry->device_name);
+    hcfree ((void *)entry->device_name);
   }
 
   hcfree (tuning_db->alias_buf);

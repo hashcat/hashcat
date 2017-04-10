@@ -240,7 +240,7 @@ char *status_get_hash_type (const hashcat_ctx_t *hashcat_ctx)
   return strhashtype (hashconfig->hash_mode);
 }
 
-char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
+const char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
   const hashes_t     *hashes     = hashcat_ctx->hashes;

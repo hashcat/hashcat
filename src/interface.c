@@ -15223,7 +15223,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   salt_t      *salts_buf   = hashes->salts_buf;
   void        *esalts_buf  = hashes->esalts_buf;
   hashinfo_t **hash_info   = hashes->hash_info;
-  char        *hashfile    = hashes->hashfile;
+  const char  *hashfile    = hashes->hashfile;
 
   const u32 hash_type = hashconfig->hash_type;
   const u32 hash_mode = hashconfig->hash_mode;
@@ -23256,11 +23256,11 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
   }
 }
 
-char *hashconfig_benchmark_mask (hashcat_ctx_t *hashcat_ctx)
+const char *hashconfig_benchmark_mask (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
-  char *mask = NULL;
+  const char *mask = NULL;
 
   switch (hashconfig->hash_mode)
   {
