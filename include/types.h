@@ -522,7 +522,7 @@ typedef enum user_options_defaults
   MARKOV_CLASSIC          = false,
   MARKOV_DISABLE          = false,
   MARKOV_THRESHOLD        = 0,
-  NONCE_ERROR_CORRECTIONS = 16,
+  NONCE_ERROR_CORRECTIONS = 8,
   NVIDIA_SPIN_DAMP        = 100,
   OPENCL_VECTOR_WIDTH     = 0,
   OUTFILE_AUTOHEX         = true,
