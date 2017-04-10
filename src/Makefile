@@ -276,11 +276,14 @@ WIN_64_OBJS             := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.64.o)
 default: $(HASHCAT_FRONTEND)
 
 clean:
-	$(RM) -f obj/*.o obj/lzma_sdk/*.o *.bin *.exe *.so *.dll *.restore *.out *.pid *.log hashcat core
+	$(RM) -f obj/*.o obj/lzma_sdk/*.o *.bin *.exe *.so *.dll *.pid hashcat core
 	$(RM) -rf *.induct
 	$(RM) -rf *.outfiles
 	$(RM) -rf *.dSYM
 	$(RM) -rf kernels
+
+distclean: clean
+	$(RM) -f *.restore *.pot *.out *.log
 
 ##
 ## Targets: Cross Compilation (for binary release version)
