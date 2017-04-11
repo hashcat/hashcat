@@ -10,6 +10,7 @@
 ## Technical
 ##
 
+- OpenCL Runtime: Updated AMDGPU-Pro driver version check, do warn if version 17.10 is detected which is known to be broken
 - WPA cracking: Reduced --nonce-error-corrections default from 16 to 8 to compensate speed drop caused due to Big-Endian fixes
 
 * changes v3.40 -> 3.5.0:
