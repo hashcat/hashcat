@@ -141,6 +141,7 @@ CFLAGS                  += -Winit-self
 CFLAGS                  += -Werror-implicit-function-declaration
 CFLAGS                  += -Wformat
 CFLAGS                  += -ftrapv
+CFLAGS                  += -Wwrite-strings
 
 # the following compiler options produce warnings that should be fixed at some time
 
@@ -148,7 +149,6 @@ CFLAGS                  += -ftrapv
 #CFLAGS                  += -Wcast-align
 #CFLAGS                  += -Wcast-qual
 #CFLAGS                  += -Wsign-conversion
-#CFLAGS                  += -Wwrite-strings
 #CFLAGS                  += -pedantic
 endif
 

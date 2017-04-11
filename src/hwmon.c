@@ -509,7 +509,7 @@ static int hm_SYSFS_get_pp_dpm_pcie (hashcat_ctx_t *hashcat_ctx, const int devic
   return 0;
 }
 
-static int hm_SYSFS_set_power_dpm_force_performance_level (hashcat_ctx_t *hashcat_ctx, const int device_id, char *val)
+static int hm_SYSFS_set_power_dpm_force_performance_level (hashcat_ctx_t *hashcat_ctx, const int device_id, const char *val)
 {
   char *syspath = hm_SYSFS_get_syspath_device (hashcat_ctx, device_id);
 

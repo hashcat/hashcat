@@ -118,7 +118,7 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
   hashconfig_t    *hashconfig   = hashcat_ctx->hashconfig;
   user_options_t  *user_options = hashcat_ctx->user_options;
 
-  char *hashfile = hashes->hashfile;
+  const char *hashfile = hashes->hashfile;
 
   char new_hashfile[256] = { 0 };
   char old_hashfile[256] = { 0 };
@@ -896,7 +896,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     }
     else if (hashlist_mode == HL_MODE_FILE)
     {
-      char *hashfile = hashes->hashfile;
+      const char *hashfile = hashes->hashfile;
 
       FILE *fp;
 

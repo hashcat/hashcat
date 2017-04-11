@@ -9,7 +9,7 @@
 int   hashcat_init               (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct hashcat_ctx *, const void *, const size_t));
 void  hashcat_destroy            (hashcat_ctx_t *hashcat_ctx);
 
-int   hashcat_session_init       (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_folder, int argc, char **argv, const int comptime);
+int   hashcat_session_init       (hashcat_ctx_t *hashcat_ctx, const char *install_folder, const char *shared_folder, int argc, char **argv, const int comptime);
 int   hashcat_session_execute    (hashcat_ctx_t *hashcat_ctx);
 int   hashcat_session_pause      (hashcat_ctx_t *hashcat_ctx);
 int   hashcat_session_resume     (hashcat_ctx_t *hashcat_ctx);

@@ -886,7 +886,7 @@ void hashcat_destroy (hashcat_ctx_t *hashcat_ctx)
   memset (hashcat_ctx, 0, sizeof (hashcat_ctx_t));
 }
 
-int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, char *install_folder, char *shared_folder, int argc, char **argv, const int comptime)
+int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder, const char *shared_folder, int argc, char **argv, const int comptime)
 {
   user_options_t *user_options = hashcat_ctx->user_options;
 
