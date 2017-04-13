@@ -1016,6 +1016,8 @@ typedef enum display_len
   DISPLAY_LEN_MAX_6000  = 40,
   DISPLAY_LEN_MIN_6100  = 128,
   DISPLAY_LEN_MAX_6100  = 128,
+  DISPLAY_LEN_MIN_6200  = 128,
+  DISPLAY_LEN_MAX_6200  = 128,
   DISPLAY_LEN_MIN_6300  =  6 + 1 + 8 + 22,
   DISPLAY_LEN_MAX_6300  =  6 + 1 + 48 + 22,
   DISPLAY_LEN_MIN_6400  =  9 + 2 + 1 + 16 + 1 + 43,
@@ -1324,6 +1326,7 @@ typedef enum hash_type
   HASH_TYPE_ITUNES_BACKUP_9     = 56,
   HASH_TYPE_ITUNES_BACKUP_10    = 57,
   HASH_TYPE_SKIP32              = 58,
+  HASH_TYPE_BLAKE2G             = 59,
 
 } hash_type_t;
 
@@ -1403,6 +1406,7 @@ typedef enum kern_type
   KERN_TYPE_ANDROIDPIN              = 5800,
   KERN_TYPE_RIPEMD160               = 6000,
   KERN_TYPE_WHIRLPOOL               = 6100,
+  KERN_TYPE_BLAKE2G                 = 6200,
   KERN_TYPE_TCRIPEMD160_XTS512      = 6211,
   KERN_TYPE_TCRIPEMD160_XTS1024     = 6212,
   KERN_TYPE_TCRIPEMD160_XTS1536     = 6213,
@@ -1601,6 +1605,7 @@ int joomla_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int postgresql_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int netscreen_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int keccak_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
+int blake2g_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int lm_parse_hash                 (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int md4_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int md5_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);

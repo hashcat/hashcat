@@ -148,6 +148,7 @@ static const char HT_05700[] = "Cisco-IOS type 4 (SHA256)";
 static const char HT_05800[] = "Samsung Android Password/PIN";
 static const char HT_06000[] = "RIPEMD-160";
 static const char HT_06100[] = "Whirlpool";
+static const char HT_06200[] = "Blake2g";
 static const char HT_06300[] = "AIX {smd5}";
 static const char HT_06400[] = "AIX {ssha256}";
 static const char HT_06500[] = "AIX {ssha512}";
@@ -5257,6 +5258,30 @@ int keccak_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
   salt->keccak_mdlen = keccak_mdlen;
 
+  return (PARSER_OK);
+}
+
+int blake2g_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
+{
+  if ((input_len < DISPLAY_LEN_MIN_6200) || (input_len > DISPLAY_LEN_MAX_6200)) return (PARSE_GLOBAL_LENGTH);
+
+  if (input_len % 16) return (PARSER_GLOBAL_LENGTH);
+
+  if (is_valid_hex_string (input_buf, input_len) == false) return (PARSER_HASH_ENCODING);
+
+  u64 *digest = (u64 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+  /*
+  u32 keccak_mdlen = input_len / 2;
+
+  for (u32 i = 0; i < keccak_mdlen / 8; i++)
+  {
+    digest[i] = hex_to_u64 ((const u8 *) &input_buf[i * 16]);
+  }
+
+  salt->keccak_mdlen = keccak_mdlen;
+  */
   return (PARSER_OK);
 }
 
@@ -18314,6 +18339,26 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
       out_buf[salt.keccak_mdlen * 2] = 0;
     }
+    else if (hash_type == HASH_TYPE_BLAKE2G)
+    {
+      snprintf (out_buf, out_len - 1, "%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
+        digest_buf[ 0],
+        digest_buf[ 1],
+        digest_buf[ 2],
+        digest_buf[ 3],
+        digest_buf[ 4],
+        digest_buf[ 5],
+        digest_buf[ 6],
+        digest_buf[ 7],
+        digest_buf[ 8],
+        digest_buf[ 9],
+        digest_buf[10],
+        digest_buf[11],
+        digest_buf[12],
+        digest_buf[13],
+        digest_buf[14],
+        digest_buf[15],
+    }
     else if (hash_type == HASH_TYPE_RIPEMD160)
     {
       snprintf (out_buf, out_len - 1, "%08x%08x%08x%08x%08x",
@@ -20490,6 +20535,23 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 3;
+                 break;
+
+    case  6200:  hashconfig->hash_type      = HASH_TYPE_BLAKE2G;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_PT_ADD01;
+                 hashconfig->kern_type      = KERN_TYPE_BLAKE2G;
+                 hashconfig->dgst_size      = DGST_SIZE_8_25;
+                 hashconfig->parse_func     = blake2g_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_USES_BITS_64
+                                            | OPTI_TYPE_RAW_HASH;
+                 hashconfig->dgst_pos0      = 2;
+                 hashconfig->dgst_pos1      = 3;
+                 hashconfig->dgst_pos2      = 4;
+                 hashconfig->dgst_pos3      = 5;
                  break;
 
     case  6211:  hashconfig->hash_type      = HASH_TYPE_RIPEMD160;
@@ -22936,6 +22998,8 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
       case  5000: salt->keccak_mdlen = 32;
                   break;
       case  5800: salt->salt_len = 16;
+                  break;
+      case  6200: salt->salt_len = 16;
                   break;
       case  6800: salt->salt_len = 32;
                   break;
