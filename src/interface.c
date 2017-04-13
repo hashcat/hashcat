@@ -148,7 +148,7 @@ static const char HT_05700[] = "Cisco-IOS type 4 (SHA256)";
 static const char HT_05800[] = "Samsung Android Password/PIN";
 static const char HT_06000[] = "RIPEMD-160";
 static const char HT_06100[] = "Whirlpool";
-static const char HT_06200[] = "Blake2g";
+static const char HT_06200[] = "Blake2b";
 static const char HT_06300[] = "AIX {smd5}";
 static const char HT_06400[] = "AIX {ssha256}";
 static const char HT_06500[] = "AIX {ssha512}";
@@ -5261,7 +5261,7 @@ int keccak_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   return (PARSER_OK);
 }
 
-int blake2g_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
+int blake2b_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_6200) || (input_len > DISPLAY_LEN_MAX_6200)) return (PARSE_GLOBAL_LENGTH);
 
@@ -18340,7 +18340,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
       out_buf[salt.keccak_mdlen * 2] = 0;
     }
-    else if (hash_type == HASH_TYPE_BLAKE2G)
+    else if (hash_type == HASH_TYPE_BLAKE2B)
     {
       snprintf (out_buf, out_len - 1, "%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
         digest_buf[ 0],
@@ -20538,14 +20538,14 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos3      = 3;
                  break;
 
-    case  6200:  hashconfig->hash_type      = HASH_TYPE_BLAKE2G;
+    case  6200:  hashconfig->hash_type      = HASH_TYPE_BLAKE2B;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_PT_ADD01;
-                 hashconfig->kern_type      = KERN_TYPE_BLAKE2G;
+                 hashconfig->kern_type      = KERN_TYPE_BLAKE2B;
                  hashconfig->dgst_size      = DGST_SIZE_8_25;
-                 hashconfig->parse_func     = blake2g_parse_hash;
+                 hashconfig->parse_func     = blake2b_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
                                             | OPTI_TYPE_USES_BITS_64
                                             | OPTI_TYPE_RAW_HASH;
