@@ -407,3 +407,27 @@
   a += e;                                 \
   c  = rotl32 (c, 10u);                   \
 }
+
+#define BLAKE2B_G(r,i,a,b,c,d)                      \
+  do {                                      \
+    a = a + b + m[blake2b_sigma[r][2*i+0]]; \
+    d = rotr64(d ^ a, 32);                  \
+    c = c + d;                              \
+    b = rotr64(b ^ c, 24);                  \
+    a = a + b + m[blake2b_sigma[r][2*i+1]]; \
+    d = rotr64(d ^ a, 16);                  \
+    c = c + d;                              \
+    b = rotr64(b ^ c, 63);                  \
+  } while(0)
+
+#define BLAKE2B_ROUND(r)                    \
+  do {                              \
+    G(r,0,v[ 0],v[ 4],v[ 8],v[12]); \
+    G(r,1,v[ 1],v[ 5],v[ 9],v[13]); \
+    G(r,2,v[ 2],v[ 6],v[10],v[14]); \
+    G(r,3,v[ 3],v[ 7],v[11],v[15]); \
+    G(r,4,v[ 0],v[ 5],v[10],v[15]); \
+    G(r,5,v[ 1],v[ 6],v[11],v[12]); \
+    G(r,6,v[ 2],v[ 7],v[ 8],v[13]); \
+    G(r,7,v[ 3],v[ 4],v[ 9],v[14]); \
+} while(0)

@@ -621,15 +621,6 @@ typedef enum keccak_constants
 
 } keccak_constants_t;
 
-typedef enum blake2b_constants
-{
-  BLAKE2B_BLOCKBYTES = 128,
-  BLAKE2B_OUTBYTES   = 64,
-  BLAKE2B_KEYBYTES   = 64,
-  BLAKE2B_SALTBYTES  = 16,
-  BLAKE2B_PERSONALBYTES = 16
-} blake2b_constants_t;
-
 typedef enum mysql323_constants
 {
   MYSQL323_A=0x50305735,

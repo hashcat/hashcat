@@ -1468,3 +1468,46 @@ typedef enum combinator_mode
   COMBINATOR_MODE_BASE_RIGHT = 10002
 
 } combinator_mode_t;
+
+typdef enum blake2b_constant
+{
+  BLAKE2B_BLOCKBYTES = 128,
+  BLAKE2B_OUTBYTES   = 64,
+  BLAKE2B_KEYBYTES   = 64,
+  BLAKE2B_SALTBYTES  = 16,
+  BLAKE2B_PERSONALBYTES = 16
+};
+
+typedef struct
+{
+  u64 h[8];
+  u64 t[2];
+  u64 f[2];
+  u8  buf[BLAKE2B_BLOCKBYTES];
+  u32 buflen;
+  u32 outlen;
+  u8  last_node;
+} blake2b_state;
+
+
+#if defined(_MSC_VER)
+#define BLAKE2_PACKED(x) __pragma(pack(push, 1)) x __pragma(pack(pop))
+#else
+#define BLAKE2_PACKED(x) x __attribute__((packed))
+#endif
+
+BLAKE2_PACKED(struct blake2b_param__
+{
+  u8  digest_length; /* 1 */
+  u8  key_length;    /* 2 */
+  u8  fanout;        /* 3 */
+  u8  depth;         /* 4 */
+  u32 leaf_length;   /* 8 */
+  u32 node_offset;   /* 12 */
+  u32 xof_length;    /* 16 */
+  u8  node_depth;    /* 17 */
+  u8  inner_length;  /* 18 */
+  u8  reserved[14];  /* 32 */
+  u8  salt[BLAKE2B_SALTBYTES]; /* 48 */
+  u8  personal[BLAKE2B_PERSONALBYTES];  /* 64 */
+});

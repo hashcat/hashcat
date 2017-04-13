@@ -14984,6 +14984,7 @@ char *strhashtype (const u32 hash_mode)
     case  5800: return ((char *) HT_05800);
     case  6000: return ((char *) HT_06000);
     case  6100: return ((char *) HT_06100);
+    case  6200: return ((char *) HT_06200);
     case  6211: return ((char *) HT_06211);
     case  6212: return ((char *) HT_06212);
     case  6213: return ((char *) HT_06213);
