@@ -61,6 +61,8 @@ static const char *USAGE_BIG[] =
   "     --remove-timer            | Num  | Update input hash file each X seconds                | --remove-timer=30",
   "     --potfile-disable         |      | Do not write potfile                                 |",
   "     --potfile-path            | Dir  | Specific path to potfile                             | --potfile-path=my.pot",
+  "     --encoding-from           | Code | Force internal wordlist encoding from X              | --encoding-from=iso-8859-15",
+  "     --encoding-from           | Code | Force internal wordlist encoding to X                | --encoding-to=utf-32le",
   "     --debug-mode              | Num  | Defines the debug mode (hybrid only by using rules)  | --debug-mode=4",
   "     --debug-file              | File | Output file for debugging rules                      | --debug-file=good.log",
   "     --induction-dir           | Dir  | Specify the induction directory to use for loopback  | --induction=inducts",

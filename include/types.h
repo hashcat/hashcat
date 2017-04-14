@@ -16,6 +16,7 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <iconv.h>
 
 #if defined (_WIN)
 #include <windows.h>
@@ -573,80 +574,82 @@ typedef enum user_options_map
   IDX_CUSTOM_CHARSET_4         = '4',
   IDX_DEBUG_FILE               = 0xff04,
   IDX_DEBUG_MODE               = 0xff05,
-  IDX_FORCE                    = 0xff06,
-  IDX_GPU_TEMP_ABORT           = 0xff07,
-  IDX_GPU_TEMP_DISABLE         = 0xff08,
-  IDX_GPU_TEMP_RETAIN          = 0xff09,
+  IDX_ENCODING_FROM            = 0xff06,
+  IDX_ENCODING_TO              = 0xff07,
+  IDX_FORCE                    = 0xff08,
+  IDX_GPU_TEMP_ABORT           = 0xff09,
+  IDX_GPU_TEMP_DISABLE         = 0xff0a,
+  IDX_GPU_TEMP_RETAIN          = 0xff0b,
   IDX_HASH_MODE                = 'm',
-  IDX_HCCAPX_MESSAGE_PAIR      = 0xff0a,
+  IDX_HCCAPX_MESSAGE_PAIR      = 0xff0c,
   IDX_HELP                     = 'h',
-  IDX_HEX_CHARSET              = 0xff0b,
-  IDX_HEX_SALT                 = 0xff0c,
-  IDX_HEX_WORDLIST             = 0xff0d,
+  IDX_HEX_CHARSET              = 0xff0d,
+  IDX_HEX_SALT                 = 0xff0e,
+  IDX_HEX_WORDLIST             = 0xff0f,
   IDX_INCREMENT                = 'i',
-  IDX_INCREMENT_MAX            = 0xff0e,
-  IDX_INCREMENT_MIN            = 0xff0f,
-  IDX_INDUCTION_DIR            = 0xff10,
-  IDX_KEEP_GUESSING            = 0xff11,
+  IDX_INCREMENT_MAX            = 0xff10,
+  IDX_INCREMENT_MIN            = 0xff11,
+  IDX_INDUCTION_DIR            = 0xff12,
+  IDX_KEEP_GUESSING            = 0xff13,
   IDX_KERNEL_ACCEL             = 'n',
   IDX_KERNEL_LOOPS             = 'u',
-  IDX_KEYSPACE                 = 0xff12,
-  IDX_LEFT                     = 0xff13,
+  IDX_KEYSPACE                 = 0xff14,
+  IDX_LEFT                     = 0xff15,
   IDX_LIMIT                    = 'l',
-  IDX_LOGFILE_DISABLE          = 0xff14,
-  IDX_LOOPBACK                 = 0xff15,
-  IDX_MACHINE_READABLE         = 0xff16,
-  IDX_MARKOV_CLASSIC           = 0xff17,
-  IDX_MARKOV_DISABLE           = 0xff18,
-  IDX_MARKOV_HCSTAT            = 0xff19,
+  IDX_LOGFILE_DISABLE          = 0xff16,
+  IDX_LOOPBACK                 = 0xff17,
+  IDX_MACHINE_READABLE         = 0xff18,
+  IDX_MARKOV_CLASSIC           = 0xff19,
+  IDX_MARKOV_DISABLE           = 0xff1a,
+  IDX_MARKOV_HCSTAT            = 0xff1b,
   IDX_MARKOV_THRESHOLD         = 't',
-  IDX_NONCE_ERROR_CORRECTIONS  = 0xff1a,
-  IDX_NVIDIA_SPIN_DAMP         = 0xff1b,
+  IDX_NONCE_ERROR_CORRECTIONS  = 0xff1c,
+  IDX_NVIDIA_SPIN_DAMP         = 0xff1d,
   IDX_OPENCL_DEVICES           = 'd',
   IDX_OPENCL_DEVICE_TYPES      = 'D',
   IDX_OPENCL_INFO              = 'I',
-  IDX_OPENCL_PLATFORMS         = 0xff1c,
-  IDX_OPENCL_VECTOR_WIDTH      = 0xff1d,
-  IDX_OUTFILE_AUTOHEX_DISABLE  = 0xff1e,
-  IDX_OUTFILE_CHECK_DIR        = 0xff1f,
-  IDX_OUTFILE_CHECK_TIMER      = 0xff20,
-  IDX_OUTFILE_FORMAT           = 0xff21,
+  IDX_OPENCL_PLATFORMS         = 0xff1e,
+  IDX_OPENCL_VECTOR_WIDTH      = 0xff1f,
+  IDX_OUTFILE_AUTOHEX_DISABLE  = 0xff20,
+  IDX_OUTFILE_CHECK_DIR        = 0xff21,
+  IDX_OUTFILE_CHECK_TIMER      = 0xff22,
+  IDX_OUTFILE_FORMAT           = 0xff23,
   IDX_OUTFILE                  = 'o',
-  IDX_POTFILE_DISABLE          = 0xff22,
-  IDX_POTFILE_PATH             = 0xff23,
-  IDX_POWERTUNE_ENABLE         = 0xff24,
-  IDX_QUIET                    = 0xff25,
-  IDX_REMOVE                   = 0xff26,
-  IDX_REMOVE_TIMER             = 0xff27,
-  IDX_RESTORE                  = 0xff28,
-  IDX_RESTORE_DISABLE          = 0xff29,
-  IDX_RESTORE_FILE_PATH        = 0xff2a,
+  IDX_POTFILE_DISABLE          = 0xff24,
+  IDX_POTFILE_PATH             = 0xff25,
+  IDX_POWERTUNE_ENABLE         = 0xff26,
+  IDX_QUIET                    = 0xff27,
+  IDX_REMOVE                   = 0xff28,
+  IDX_REMOVE_TIMER             = 0xff29,
+  IDX_RESTORE                  = 0xff2a,
+  IDX_RESTORE_DISABLE          = 0xff2b,
+  IDX_RESTORE_FILE_PATH        = 0xff2c,
   IDX_RP_FILE                  = 'r',
-  IDX_RP_GEN_FUNC_MAX          = 0xff2b,
-  IDX_RP_GEN_FUNC_MIN          = 0xff2c,
+  IDX_RP_GEN_FUNC_MAX          = 0xff2d,
+  IDX_RP_GEN_FUNC_MIN          = 0xff2e,
   IDX_RP_GEN                   = 'g',
-  IDX_RP_GEN_SEED              = 0xff2d,
+  IDX_RP_GEN_SEED              = 0xff2f,
   IDX_RULE_BUF_L               = 'j',
   IDX_RULE_BUF_R               = 'k',
-  IDX_RUNTIME                  = 0xff2e,
-  IDX_SCRYPT_TMTO              = 0xff2f,
+  IDX_RUNTIME                  = 0xff30,
+  IDX_SCRYPT_TMTO              = 0xff31,
   IDX_SEGMENT_SIZE             = 'c',
   IDX_SEPARATOR                = 'p',
-  IDX_SESSION                  = 0xff30,
-  IDX_SHOW                     = 0xff31,
+  IDX_SESSION                  = 0xff32,
+  IDX_SHOW                     = 0xff33,
   IDX_SKIP                     = 's',
-  IDX_STATUS                   = 0xff32,
-  IDX_STATUS_TIMER             = 0xff33,
-  IDX_STDOUT_FLAG              = 0xff34,
-  IDX_SPEED_ONLY               = 0xff35,
-  IDX_PROGRESS_ONLY            = 0xff36,
-  IDX_TRUECRYPT_KEYFILES       = 0xff37,
-  IDX_USERNAME                 = 0xff38,
-  IDX_VERACRYPT_KEYFILES       = 0xff39,
-  IDX_VERACRYPT_PIM            = 0xff3a,
+  IDX_STATUS                   = 0xff34,
+  IDX_STATUS_TIMER             = 0xff35,
+  IDX_STDOUT_FLAG              = 0xff36,
+  IDX_SPEED_ONLY               = 0xff37,
+  IDX_PROGRESS_ONLY            = 0xff38,
+  IDX_TRUECRYPT_KEYFILES       = 0xff39,
+  IDX_USERNAME                 = 0xff3a,
+  IDX_VERACRYPT_KEYFILES       = 0xff3b,
+  IDX_VERACRYPT_PIM            = 0xff3c,
   IDX_VERSION_LOWER            = 'v',
   IDX_VERSION                  = 'V',
-  IDX_WEAK_HASH_THRESHOLD      = 0xff3b,
+  IDX_WEAK_HASH_THRESHOLD      = 0xff3d,
   IDX_WORKLOAD_PROFILE         = 'w'
 
 } user_options_map_t;
@@ -1203,6 +1206,9 @@ typedef struct dictstat
 
   hc_stat_t stat;
 
+  char encoding_from[64];
+  char encoding_to[64];
+
 } dictstat_t;
 
 typedef struct dictstat_ctx
@@ -1388,6 +1394,10 @@ typedef struct wl_data
   u64  cnt;
   u64  pos;
 
+  bool    iconv_enabled;
+  iconv_t iconv_ctx;
+  char   *iconv_tmp;
+
   void (*func) (char *, u64, u64 *, u64 *);
 
 } wl_data_t;
@@ -1453,6 +1463,8 @@ typedef struct user_options
   char        *custom_charset_3;
   char        *custom_charset_4;
   char        *debug_file;
+  char        *encoding_from;
+  char        *encoding_to;
   char        *induction_dir;
   char        *markov_hcstat;
   char        *opencl_devices;

@@ -30,6 +30,8 @@ static const struct option long_options[] =
   {"custom-charset4",           required_argument, 0, IDX_CUSTOM_CHARSET_4},
   {"debug-file",                required_argument, 0, IDX_DEBUG_FILE},
   {"debug-mode",                required_argument, 0, IDX_DEBUG_MODE},
+  {"encoding-from",             required_argument, 0, IDX_ENCODING_FROM},
+  {"encoding-to",               required_argument, 0, IDX_ENCODING_TO},
   {"force",                     no_argument,       0, IDX_FORCE},
   {"generate-rules-func-max",   required_argument, 0, IDX_RP_GEN_FUNC_MAX},
   {"generate-rules-func-min",   required_argument, 0, IDX_RP_GEN_FUNC_MIN},
@@ -108,6 +110,9 @@ static const struct option long_options[] =
   {0, 0, 0, 0}
 };
 
+static char ENCODING_FROM[] = "utf-8";
+static char ENCODING_TO[]   = "utf-8";
+
 static char RULE_BUF_R[] = ":";
 static char RULE_BUF_L[] = ":";
 
@@ -131,6 +136,8 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->custom_charset_4          = NULL;
   user_options->debug_file                = NULL;
   user_options->debug_mode                = DEBUG_MODE;
+  user_options->encoding_from             = ENCODING_FROM;
+  user_options->encoding_to               = ENCODING_TO;
   user_options->force                     = FORCE;
   user_options->gpu_temp_abort            = GPU_TEMP_ABORT;
   user_options->gpu_temp_disable          = GPU_TEMP_DISABLE;
@@ -314,6 +321,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_POTFILE_PATH:              user_options->potfile_path              = optarg;         break;
       case IDX_DEBUG_MODE:                user_options->debug_mode                = atoi (optarg);  break;
       case IDX_DEBUG_FILE:                user_options->debug_file                = optarg;         break;
+      case IDX_ENCODING_FROM:             user_options->encoding_from             = optarg;         break;
+      case IDX_ENCODING_TO:               user_options->encoding_to               = optarg;         break;
       case IDX_INDUCTION_DIR:             user_options->induction_dir             = optarg;         break;
       case IDX_OUTFILE_CHECK_DIR:         user_options->outfile_check_dir         = optarg;         break;
       case IDX_FORCE:                     user_options->force                     = true;           break;
@@ -2072,6 +2081,8 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_string (user_options->custom_charset_3);
   logfile_top_string (user_options->custom_charset_4);
   logfile_top_string (user_options->debug_file);
+  logfile_top_string (user_options->encoding_from);
+  logfile_top_string (user_options->encoding_to);
   logfile_top_string (user_options->induction_dir);
   logfile_top_string (user_options->markov_hcstat);
   logfile_top_string (user_options->opencl_devices);

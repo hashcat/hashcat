@@ -18,6 +18,14 @@ int sort_by_dictstat (const void *s1, const void *s2)
 
   d2->stat.st_atime = d1->stat.st_atime;
 
+  const int rc_from = strcmp (d1->encoding_from, d2->encoding_from);
+
+  if (rc_from != 0) return rc_from;
+
+  const int rc_to = strcmp (d1->encoding_to, d2->encoding_to);
+
+  if (rc_to != 0) return rc_to;
+
   return memcmp (&d1->stat, &d2->stat, sizeof (struct stat));
 }
 

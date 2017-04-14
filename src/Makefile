@@ -108,6 +108,15 @@ CC_LINUX_64             := gcc
 CC_WIN_32               := i686-w64-mingw32-gcc
 CC_WIN_64               := x86_64-w64-mingw32-gcc
 
+## To compile mingw iconv:
+##
+## ./configure --host=i686-w64-mingw32   --prefix=/opt/iconv-w32 && make install
+## ./configure --host=x86_64-w64-mingw32 --prefix=/opt/iconv-w64 && make install
+##
+
+ICONV_WIN_32             := /opt/iconv-w32
+ICONV_WIN_64             := /opt/iconv-w64
+
 ##
 ## Misc stuff
 ##
@@ -184,7 +193,8 @@ CFLAGS_NATIVE           := $(CFLAGS)
 CFLAGS_NATIVE           += -I$(OPENCL_HEADERS_KHRONOS)/
 CFLAGS_NATIVE           += -DWITH_HWMON
 LFLAGS_NATIVE           := $(LFLAGS)
-LFLAGS_NATIVE           += -lpthread -ldl
+LFLAGS_NATIVE           += -lpthread
+LFLAGS_NATIVE           += -ldl 
 endif # Linux
 
 ifeq ($(UNAME),FreeBSD)
@@ -192,7 +202,7 @@ ifndef PORTNAME
 CFLAGS_NATIVE           := $(CFLAGS)
 CFLAGS_NATIVE           += -I$(OPENCL_HEADERS_KHRONOS)/
 LFLAGS_NATIVE           := $(LFLAGS)
-LFLAGS_NATIVE           += -lpthread
+LFLAGS_NATIVE           += -lpthread 
 endif
 endif # FreeBSD
 
@@ -211,6 +221,7 @@ CFLAGS_NATIVE           += -DWITH_HWMON
 LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -Wl,--dynamicbase -Wl,--nxcompat
 LFLAGS_NATIVE           += -lpsapi
+LFLAGS_NATIVE           += -liconv
 endif # CYGWIN
 
 ifeq ($(UNAME),MSYS2)
@@ -220,6 +231,7 @@ CFLAGS_NATIVE           += -DWITH_HWMON
 LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -Wl,--dynamicbase -Wl,--nxcompat
 LFLAGS_NATIVE           += -lpsapi
+LFLAGS_NATIVE           += -liconv
 endif # MSYS2
 
 ##
@@ -236,23 +248,31 @@ CFLAGS_CROSS_LINUX64    += -m64
 CFLAGS_CROSS_LINUX64    += -DWITH_HWMON
 CFLAGS_CROSS_WIN32      := $(CFLAGS)
 CFLAGS_CROSS_WIN32      += -I$(OPENCL_HEADERS_KHRONOS)/
+CFLAGS_CROSS_WIN32      += -I$(ICONV_WIN_32)/include/
 CFLAGS_CROSS_WIN32      += -m32
 CFLAGS_CROSS_WIN32      += -DWITH_HWMON
 CFLAGS_CROSS_WIN64      := $(CFLAGS)
 CFLAGS_CROSS_WIN64      += -I$(OPENCL_HEADERS_KHRONOS)/
+CFLAGS_CROSS_WIN64      += -I$(ICONV_WIN_64)/include/
 CFLAGS_CROSS_WIN64      += -m64
 CFLAGS_CROSS_WIN64      += -DWITH_HWMON
 
 LFLAGS_CROSS_LINUX32    := $(LFLAGS)
-LFLAGS_CROSS_LINUX32    += -lpthread -ldl
+LFLAGS_CROSS_LINUX32    += -lpthread 
+LFLAGS_CROSS_LINUX32    += -ldl 
 LFLAGS_CROSS_LINUX64    := $(LFLAGS)
-LFLAGS_CROSS_LINUX64    += -lpthread -ldl
+LFLAGS_CROSS_LINUX64    += -lpthread 
+LFLAGS_CROSS_LINUX64    += -ldl 
 LFLAGS_CROSS_WIN32      := $(LFLAGS)
 LFLAGS_CROSS_WIN32      += -Wl,--dynamicbase -Wl,--nxcompat
+LFLAGS_CROSS_WIN32      += -L$(ICONV_WIN_32)/lib/
 LFLAGS_CROSS_WIN32      += -lpsapi
+LFLAGS_CROSS_WIN32      += -liconv
 LFLAGS_CROSS_WIN64      := $(LFLAGS)
 LFLAGS_CROSS_WIN64      += -Wl,--dynamicbase -Wl,--nxcompat
+LFLAGS_CROSS_WIN64      += -L$(ICONV_WIN_64)/lib/
 LFLAGS_CROSS_WIN64      += -lpsapi
+LFLAGS_CROSS_WIN64      += -liconv
 
 ##
 ## Objects
