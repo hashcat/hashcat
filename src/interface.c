@@ -95,6 +95,7 @@ static const char HT_00300[] = "MySQL4.1/MySQL5";
 static const char HT_00400[] = "phpass, WordPress (MD5), phpBB3 (MD5), Joomla (MD5)";
 static const char HT_00500[] = "md5crypt, MD5 (Unix), Cisco-IOS $1$ (MD5)";
 static const char HT_00501[] = "Juniper IVE";
+static const char HT_00600[] = "Blake2b";
 static const char HT_00900[] = "MD4";
 static const char HT_01000[] = "NTLM";
 static const char HT_01100[] = "Domain Cached Credentials (DCC), MS Cache";
@@ -148,7 +149,6 @@ static const char HT_05700[] = "Cisco-IOS type 4 (SHA256)";
 static const char HT_05800[] = "Samsung Android Password/PIN";
 static const char HT_06000[] = "RIPEMD-160";
 static const char HT_06100[] = "Whirlpool";
-static const char HT_06200[] = "Blake2b";
 static const char HT_06300[] = "AIX {smd5}";
 static const char HT_06400[] = "AIX {ssha256}";
 static const char HT_06500[] = "AIX {ssha512}";
@@ -5263,7 +5263,7 @@ int keccak_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
 int blake2b_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_6200) || (input_len > DISPLAY_LEN_MAX_6200)) return (PARSER_GLOBAL_LENGTH);
+  if ((input_len < DISPLAY_LEN_MIN_600) || (input_len > DISPLAY_LEN_MAX_600)) return (PARSER_GLOBAL_LENGTH);
 
   if (input_len % 16) return (PARSER_GLOBAL_LENGTH);
 
@@ -14919,6 +14919,7 @@ char *strhashtype (const u32 hash_mode)
     case   400: return ((char *) HT_00400);
     case   500: return ((char *) HT_00500);
     case   501: return ((char *) HT_00501);
+    case   600: return ((char *) HT_00600);
     case   900: return ((char *) HT_00900);
     case  1000: return ((char *) HT_01000);
     case  1100: return ((char *) HT_01100);
@@ -14984,7 +14985,6 @@ char *strhashtype (const u32 hash_mode)
     case  5800: return ((char *) HT_05800);
     case  6000: return ((char *) HT_06000);
     case  6100: return ((char *) HT_06100);
-    case  6200: return ((char *) HT_06200);
     case  6211: return ((char *) HT_06211);
     case  6212: return ((char *) HT_06212);
     case  6213: return ((char *) HT_06213);
@@ -19255,6 +19255,23 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos3      = 3;
                  break;
 
+    case   600:  hashconfig->hash_type      = HASH_TYPE_BLAKE2B;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_PT_ADD01;
+                 hashconfig->kern_type      = KERN_TYPE_BLAKE2B;
+                 hashconfig->dgst_size      = DGST_SIZE_8_25;
+                 hashconfig->parse_func     = blake2b_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_USES_BITS_64
+                                            | OPTI_TYPE_RAW_HASH;
+                 hashconfig->dgst_pos0      = 2;
+                 hashconfig->dgst_pos1      = 3;
+                 hashconfig->dgst_pos2      = 4;
+                 hashconfig->dgst_pos3      = 5;
+                 break;
+
     case   900:  hashconfig->hash_type      = HASH_TYPE_MD4;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -20537,23 +20554,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 3;
-                 break;
-
-    case  6200:  hashconfig->hash_type      = HASH_TYPE_BLAKE2B;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PT_ADD01;
-                 hashconfig->kern_type      = KERN_TYPE_BLAKE2B;
-                 hashconfig->dgst_size      = DGST_SIZE_8_25;
-                 hashconfig->parse_func     = blake2b_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_USES_BITS_64
-                                            | OPTI_TYPE_RAW_HASH;
-                 hashconfig->dgst_pos0      = 2;
-                 hashconfig->dgst_pos1      = 3;
-                 hashconfig->dgst_pos2      = 4;
-                 hashconfig->dgst_pos3      = 5;
                  break;
 
     case  6211:  hashconfig->hash_type      = HASH_TYPE_RIPEMD160;
@@ -23000,8 +23000,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
       case  5000: salt->keccak_mdlen = 32;
                   break;
       case  5800: salt->salt_len = 16;
-                  break;
-      case  6200: salt->salt_len = 16;
                   break;
       case  6800: salt->salt_len = 32;
                   break;
