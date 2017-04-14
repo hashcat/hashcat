@@ -5263,7 +5263,7 @@ int keccak_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
 int blake2b_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_6200) || (input_len > DISPLAY_LEN_MAX_6200)) return (PARSE_GLOBAL_LENGTH);
+  if ((input_len < DISPLAY_LEN_MIN_6200) || (input_len > DISPLAY_LEN_MAX_6200)) return (PARSER_GLOBAL_LENGTH);
 
   if (input_len % 16) return (PARSER_GLOBAL_LENGTH);
 
@@ -18358,7 +18358,8 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
         digest_buf[12],
         digest_buf[13],
         digest_buf[14],
-        digest_buf[15],
+        digest_buf[15]
+      );
     }
     else if (hash_type == HASH_TYPE_RIPEMD160)
     {
