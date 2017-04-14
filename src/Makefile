@@ -212,6 +212,7 @@ CFLAGS_NATIVE           := $(CFLAGS)
 LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -framework OpenCL
 LFLAGS_NATIVE           += -lpthread
+LFLAGS_NATIVE           += -liconv
 endif # Darwin
 
 ifeq ($(UNAME),CYGWIN)
