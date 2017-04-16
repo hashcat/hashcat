@@ -2,7 +2,7 @@
  * Author......: See docs/credits.txt
  * License.....: MIT
  */
-
+#include "signal.h"
 #include "common.h"
 #include "types.h"
 #include "bitops.h"
@@ -5263,25 +5263,31 @@ int keccak_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
 int blake2b_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
+  //raise(SIGINT);
   if ((input_len < DISPLAY_LEN_MIN_600) || (input_len > DISPLAY_LEN_MAX_600)) return (PARSER_GLOBAL_LENGTH);
 
-  if (input_len % 16) return (PARSER_GLOBAL_LENGTH);
-
-  if (is_valid_hex_string (input_buf, input_len) == false) return (PARSER_HASH_ENCODING);
+  if (is_valid_hex_string (input_buf, 128) == false) return (PARSER_HASH_ENCODING);
 
   u64 *digest = (u64 *) hash_buf->digest;
 
-  salt_t *salt = hash_buf->salt;
-  /*
-  u32 keccak_mdlen = input_len / 2;
+  digest[0] = hex_to_u64 ((const u8 *) &input_buf[  0]);
+  digest[1] = hex_to_u64 ((const u8 *) &input_buf[ 16]);
+  digest[2] = hex_to_u64 ((const u8 *) &input_buf[ 32]);
+  digest[3] = hex_to_u64 ((const u8 *) &input_buf[ 48]);
+  digest[4] = hex_to_u64 ((const u8 *) &input_buf[ 64]);
+  digest[5] = hex_to_u64 ((const u8 *) &input_buf[ 80]);
+  digest[6] = hex_to_u64 ((const u8 *) &input_buf[ 96]);
+  digest[7] = hex_to_u64 ((const u8 *) &input_buf[112]);
 
-  for (u32 i = 0; i < keccak_mdlen / 8; i++)
-  {
-    digest[i] = hex_to_u64 ((const u8 *) &input_buf[i * 16]);
-  }
+  digest[0] = byte_swap_64 (digest[0]);
+  digest[1] = byte_swap_64 (digest[1]);
+  digest[2] = byte_swap_64 (digest[2]);
+  digest[3] = byte_swap_64 (digest[3]);
+  digest[4] = byte_swap_64 (digest[4]);
+  digest[5] = byte_swap_64 (digest[5]);
+  digest[6] = byte_swap_64 (digest[6]);
+  digest[7] = byte_swap_64 (digest[7]);
 
-  salt->keccak_mdlen = keccak_mdlen;
-  */
   return (PARSER_OK);
 }
 
@@ -18342,24 +18348,17 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     }
     else if (hash_type == HASH_TYPE_BLAKE2B)
     {
+      u32 *ptr = digest_buf;
+
       snprintf (out_buf, out_len - 1, "%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
-        digest_buf[ 0],
-        digest_buf[ 1],
-        digest_buf[ 2],
-        digest_buf[ 3],
-        digest_buf[ 4],
-        digest_buf[ 5],
-        digest_buf[ 6],
-        digest_buf[ 7],
-        digest_buf[ 8],
-        digest_buf[ 9],
-        digest_buf[10],
-        digest_buf[11],
-        digest_buf[12],
-        digest_buf[13],
-        digest_buf[14],
-        digest_buf[15]
-      );
+        ptr[ 1], ptr[ 0],
+        ptr[ 3], ptr[ 2],
+        ptr[ 5], ptr[ 4],
+        ptr[ 7], ptr[ 6],
+        ptr[ 9], ptr[ 8],
+        ptr[11], ptr[10],
+        ptr[13], ptr[12],
+        ptr[15], ptr[14]);
     }
     else if (hash_type == HASH_TYPE_RIPEMD160)
     {
@@ -19256,19 +19255,23 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case   600:  hashconfig->hash_type      = HASH_TYPE_BLAKE2B;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = 0;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
+                                            | OPTS_TYPE_PT_ADD80
+                                            | OPTS_TYPE_PT_ADDBITS15;
                  hashconfig->kern_type      = KERN_TYPE_BLAKE2B;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
+                 hashconfig->dgst_size      = DGST_SIZE_8_8;
                  hashconfig->parse_func     = blake2b_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_NOT_ITERATED
+                                            | OPTI_TYPE_NOT_SALTED
                                             | OPTI_TYPE_USES_BITS_64
                                             | OPTI_TYPE_RAW_HASH;
-                 hashconfig->dgst_pos0      = 2;
-                 hashconfig->dgst_pos1      = 3;
-                 hashconfig->dgst_pos2      = 4;
-                 hashconfig->dgst_pos3      = 5;
+                 hashconfig->dgst_pos0      = 14;
+                 hashconfig->dgst_pos1      = 15;
+                 hashconfig->dgst_pos2      = 6;
+                 hashconfig->dgst_pos3      = 7;
                  break;
 
     case   900:  hashconfig->hash_type      = HASH_TYPE_MD4;
