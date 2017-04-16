@@ -19258,10 +19258,9 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case   600:  hashconfig->hash_type      = HASH_TYPE_BLAKE2B;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PT_ADD01;
+                 hashconfig->opts_type      = 0;
                  hashconfig->kern_type      = KERN_TYPE_BLAKE2B;
-                 hashconfig->dgst_size      = DGST_SIZE_8_25;
+                 hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = blake2b_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
                                             | OPTI_TYPE_USES_BITS_64
