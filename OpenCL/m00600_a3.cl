@@ -12,8 +12,6 @@
 #include "inc_common.cl"
 #include "inc_simd.cl"
 
-#define BLAKE2B_DEFAULT_OUTLEN 64
-
 #if defined(_MSC_VER)
 #define BLAKE2_PACKED(x) __pragma(pack(push, 1)) x __pragma(pack(pop))
 #else
@@ -97,7 +95,7 @@ __constant u8 blake2b_sigma[12][16] =
     BLAKE2B_G(r,7,v[ 3],v[ 4],v[ 9],v[14]); \
 } while(0)
 
-void blake2b_compress (const u32x m[16], u64x digest[8])
+void blake2b_compress (const u32x *pw, u64x digest[8])
 {
 
   /*
@@ -107,7 +105,7 @@ void blake2b_compress (const u32x m[16], u64x digest[8])
   u32 i;
   blake2b_param P[1];
 
-  P->digest_length = BLAKE2B_DEFAULT_OUTLEN;
+  P->digest_length = BLAKE2B_OUTBYTES;
   P->key_length = 0;
   P->fanout = 1;
   P->depth = 1;
@@ -125,7 +123,8 @@ void blake2b_compress (const u32x m[16], u64x digest[8])
    */
   blake2b_state S[1];
 
-  for (i = 0; i < 8; i++) S->h[i] = blake2b_IV[i];
+  for (i = 0; i < 8; i++) 
+    S->h[i] = blake2b_IV[i];
   S->t[0] = 0;
   S->t[1] = 0;
   S->f[0] = 0;
@@ -134,11 +133,11 @@ void blake2b_compress (const u32x m[16], u64x digest[8])
   S->outlen = 0;
   S->last_node = 0;
 
-  const u8 *p = ( const u8 * )( P );
+  const u8 *p = (const u8 *)(P);
 
   /* IV XOR ParamBlock */
   for( i = 0; i < 8; ++i )
-    S->h[i] ^= *(p + sizeof( S->h[i] ) * i);
+    S->h[i] ^= *(p + sizeof(S->h[i]) * i);
 
   S->outlen = P->digest_length;
 
@@ -146,10 +145,10 @@ void blake2b_compress (const u32x m[16], u64x digest[8])
    * Compress
    */
   u64 v[16];
+  u64 *m = pw;
 
-  for ( i = 0; i < 8; ++i ) {
+  for ( i = 0; i < 8; ++i )
     v[i] = S->h[i];
-  }
 
   v[ 8] = blake2b_IV[0];
   v[ 9] = blake2b_IV[1];
@@ -160,16 +159,16 @@ void blake2b_compress (const u32x m[16], u64x digest[8])
   v[14] = blake2b_IV[6] ^ S->f[0];
   v[15] = blake2b_IV[7] ^ S->f[1];
 
-  BLAKE2B_ROUND( 0 );
-  BLAKE2B_ROUND( 1 );
-  BLAKE2B_ROUND( 2 );
-  BLAKE2B_ROUND( 3 );
-  BLAKE2B_ROUND( 4 );
-  BLAKE2B_ROUND( 5 );
-  BLAKE2B_ROUND( 6 );
-  BLAKE2B_ROUND( 7 );
-  BLAKE2B_ROUND( 8 );
-  BLAKE2B_ROUND( 9 );
+  BLAKE2B_ROUND(  0 );
+  BLAKE2B_ROUND(  1 );
+  BLAKE2B_ROUND(  2 );
+  BLAKE2B_ROUND(  3 );
+  BLAKE2B_ROUND(  4 );
+  BLAKE2B_ROUND(  5 );
+  BLAKE2B_ROUND(  6 );
+  BLAKE2B_ROUND(  7 );
+  BLAKE2B_ROUND(  8 );
+  BLAKE2B_ROUND(  9 );
   BLAKE2B_ROUND( 10 );
   BLAKE2B_ROUND( 11 );
 
@@ -177,7 +176,8 @@ void blake2b_compress (const u32x m[16], u64x digest[8])
     S->h[i] = S->h[i] ^ v[i] ^ v[i + 8];
   }
 
-  for ( i = 0; i < 8; i++ ) digest[i] = S->h[i];
+  for ( i = 0; i < 8; i++ ) 
+    digest[i] = S->h[i];
 }
 
 void m00600s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const comb_t *combs_buf, __global const u32x *words_buf_r, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
@@ -213,47 +213,25 @@ void m00600s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global const ke
 
     const u32x w0 = w0l | w0r;
 
-    u32x m[16];
-    m[ 0] = w0;
-    m[ 1] = w[ 1];
-    m[ 2] = w[ 2];
-    m[ 3] = w[ 3];
-    m[ 4] = w[ 4];
-    m[ 5] = w[ 5];
-    m[ 6] = w[ 6];
-    m[ 7] = w[ 7];
-    m[ 8] = w[ 8];
-    m[ 9] = w[ 9];
-    m[10] = w[10];
-    m[11] = w[11];
-    m[12] = w[12];
-    m[13] = w[13];
-    m[14] = w[14];
-    m[15] = w[15];
+    u32x pw[16];
 
-    /*
-    u32x w0_t[4];
-    u32x w1_t[4];
-    u32x w2_t[4];
-    u32x w3_t[4];
+    pw[ 0] = w0;
+    pw[ 1] = w[ 1];
+    pw[ 2] = w[ 2];
+    pw[ 3] = w[ 3];
+    pw[ 4] = w[ 4];
+    pw[ 5] = w[ 5];
+    pw[ 6] = w[ 6];
+    pw[ 7] = w[ 7];
+    pw[ 8] = w[ 8];
+    pw[ 9] = w[ 9];
+    pw[10] = w[10];
+    pw[11] = w[11];
+    pw[12] = w[12];
+    pw[13] = w[13];
+    pw[14] = w[14];
+    pw[15] = w[15];
 
-    w0_t[0] = w0;
-    w0_t[1] = w[ 1];
-    w0_t[2] = w[ 2];
-    w0_t[3] = w[ 3];
-    w1_t[0] = w[ 4];
-    w1_t[1] = w[ 5];
-    w1_t[2] = w[ 6];
-    w1_t[3] = w[ 7];
-    w2_t[0] = w[ 8];
-    w2_t[1] = w[ 9];
-    w2_t[2] = w[10];
-    w2_t[3] = w[11];
-    w3_t[0] = w[12];
-    w3_t[1] = w[13];
-    w3_t[2] = w[14];
-    w3_t[3] = w[15];
-    */
     u64x digest[8];
 
     digest[0] = 0;
@@ -265,7 +243,7 @@ void m00600s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global const ke
     digest[6] = 0;
     digest[7] = 0;
 
-    blake2b_compress (m, digest);
+    blake2b_compress (&pw, digest);
 
     const u32x r0 = l32_from_64 (digest[7]);
     const u32x r1 = h32_from_64 (digest[7]);
