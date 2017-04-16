@@ -1186,6 +1186,8 @@ typedef enum display_len
   DISPLAY_LEN_MAX_15000 = 128 + 1 + 64,
   DISPLAY_LEN_MIN_15100 = 6 + 3 + 1 + 8 + 1 + 28,
   DISPLAY_LEN_MAX_15100 = 6 + 6 + 1 + 8 + 1 + 28,
+  DISPLAY_LEN_MIN_15200 =  1 + 10 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 64,
+  DISPLAY_LEN_MAX_15200 =  1 + 10 + 1 + 2 + 1 + 8 + 1 + 5 + 1 + 20000,
   DISPLAY_LEN_MIN_99999 = 1,
   DISPLAY_LEN_MAX_99999 = 55,
 
@@ -1569,6 +1571,7 @@ typedef enum rounds_count
    ROUNDS_BSDICRYPT          = 2900,
    ROUNDS_RAR3               = 262144,
    ROUNDS_MYWALLET           = 10,
+   ROUNDS_MYWALLETV2         = 5000,
    ROUNDS_MS_DRSR            = 100,
    ROUNDS_ANDROIDFDE_SAMSUNG = 4096,
    ROUNDS_RAR5               = (1 << 15),
@@ -1734,6 +1737,7 @@ int rar3hp_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int rar5_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int cf10_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int mywallet_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
+int mywalletv2_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int ms_drsr_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int androidfde_samsung_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int axcrypt_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);

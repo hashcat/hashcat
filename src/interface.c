@@ -238,6 +238,7 @@ static const char HT_14800[] = "iTunes backup >= 10.0";
 static const char HT_14900[] = "Skip32 (PT = $salt, key = $pass)";
 static const char HT_15000[] = "FileZilla Server >= 0.9.55";
 static const char HT_15100[] = "Juniper/NetBSD sha1crypt";
+static const char HT_15200[] = "Blockchain, My Wallet, V2";
 static const char HT_99999[] = "Plaintext";
 
 static const char HT_00011[] = "Joomla < 2.5.18";
@@ -331,6 +332,7 @@ static const char SIGNATURE_MSSQL[]            = "0x0100";
 static const char SIGNATURE_MSSQL2012[]        = "0x0200";
 static const char SIGNATURE_MYSQL_AUTH[]       = "$mysqlna$";
 static const char SIGNATURE_MYWALLET[]         = "$blockchain$";
+static const char SIGNATURE_MYWALLETV2[]       = "$blockchain$v2$";
 static const char SIGNATURE_NETSCALER[]        = "1";
 static const char SIGNATURE_OFFICE2007[]       = "$office$";
 static const char SIGNATURE_OFFICE2010[]       = "$office$";
@@ -13073,6 +13075,102 @@ int mywallet_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   return (PARSER_OK);
 }
 
+int mywalletv2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
+{
+  if ((input_len < DISPLAY_LEN_MIN_15200) || (input_len > DISPLAY_LEN_MAX_15200)) return (PARSER_GLOBAL_LENGTH);
+
+  if (memcmp (SIGNATURE_MYWALLETV2, input_buf, 15)) return (PARSER_SIGNATURE_UNMATCHED);
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  /**
+   * parse line
+   */
+
+  u8 *iter_pos = input_buf + 1 + 10 + 1 + 2 + 1;
+
+  u8 *data_len_pos = (u8 *) strchr ((const char *) iter_pos, '$');
+
+  if (data_len_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 iter_pos_len = data_len_pos - iter_pos;
+
+  if (iter_pos_len < 1) return (PARSER_SALT_LENGTH);
+  if (iter_pos_len > 8) return (PARSER_SALT_LENGTH);
+
+  data_len_pos++;
+
+  u8 *data_buf_pos = (u8 *) strchr ((const char *) data_len_pos, '$');
+
+  if (data_buf_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 data_len_len = data_buf_pos - data_len_pos;
+
+  if (data_len_len < 1) return (PARSER_SALT_LENGTH);
+  if (data_len_len > 5) return (PARSER_SALT_LENGTH);
+
+  data_buf_pos++;
+
+  u32 data_buf_len = input_len - 1 - 10 - 1 - 2 - 1 - iter_pos_len - 1 - data_len_len - 1;
+
+  if (data_buf_len < 64) return (PARSER_HASH_LENGTH);
+
+  if (data_buf_len % 16) return (PARSER_HASH_LENGTH);
+
+  u32 data_len = atoll ((const char *) data_len_pos);
+
+  if ((data_len * 2) != data_buf_len) return (PARSER_HASH_LENGTH);
+
+  u32 iter = atoll ((const char *) iter_pos);
+
+  /**
+   * salt
+   */
+
+  u8 *salt_pos = data_buf_pos;
+
+  if (is_valid_hex_string (salt_pos, 64) == false) return (PARSER_SALT_ENCODING);
+
+  salt->salt_buf[0] = hex_to_u32 ((const u8 *) &salt_pos[ 0]);
+  salt->salt_buf[1] = hex_to_u32 ((const u8 *) &salt_pos[ 8]);
+  salt->salt_buf[2] = hex_to_u32 ((const u8 *) &salt_pos[16]);
+  salt->salt_buf[3] = hex_to_u32 ((const u8 *) &salt_pos[24]);
+
+  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
+  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
+  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
+  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
+
+  // this is actually the CT, which is also the hash later (if matched)
+
+  salt->salt_buf[4] = hex_to_u32 ((const u8 *) &salt_pos[32]);
+  salt->salt_buf[5] = hex_to_u32 ((const u8 *) &salt_pos[40]);
+  salt->salt_buf[6] = hex_to_u32 ((const u8 *) &salt_pos[48]);
+  salt->salt_buf[7] = hex_to_u32 ((const u8 *) &salt_pos[56]);
+
+  salt->salt_buf[4] = byte_swap_32 (salt->salt_buf[4]);
+  salt->salt_buf[5] = byte_swap_32 (salt->salt_buf[5]);
+  salt->salt_buf[6] = byte_swap_32 (salt->salt_buf[6]);
+  salt->salt_buf[7] = byte_swap_32 (salt->salt_buf[7]);
+
+  salt->salt_len = 32; // note we need to fix this to 16 in kernel
+
+  salt->salt_iter = iter - 1;
+
+  /**
+   * digest buf
+   */
+
+  digest[0] = salt->salt_buf[4];
+  digest[1] = salt->salt_buf[5];
+  digest[2] = salt->salt_buf[6];
+  digest[3] = salt->salt_buf[7];
+
+  return (PARSER_OK);
+}
+
 int ms_drsr_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_12800) || (input_len > DISPLAY_LEN_MAX_12800)) return (PARSER_GLOBAL_LENGTH);
@@ -15080,6 +15178,7 @@ char *strhashtype (const u32 hash_mode)
     case 14900: return ((char *) HT_14900);
     case 15000: return ((char *) HT_15000);
     case 15100: return ((char *) HT_15100);
+    case 15200: return ((char *) HT_15200);
     case 99999: return ((char *) HT_99999);
   }
 
@@ -18176,6 +18275,13 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
       salt.salt_iter + 1,
       (char *) salt.salt_buf,
       ptr_plain);
+  }
+  else if (hash_mode == 15200)
+  {
+    hashinfo_t **hashinfo_ptr = hash_info;
+    char        *hash_buf     = hashinfo_ptr[digest_cur]->orighash;
+
+    snprintf (out_buf, out_len - 1, "%s", hash_buf);
   }
   else if (hash_mode == 99999)
   {
@@ -22420,6 +22526,21 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos3      = 3;
                  break;
 
+    case 15200:  hashconfig->hash_type      = HASH_TYPE_AES;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_HASH_COPY;
+                 hashconfig->kern_type      = KERN_TYPE_MYWALLET;
+                 hashconfig->dgst_size      = DGST_SIZE_4_5; // because kernel uses _SHA1_
+                 hashconfig->parse_func     = mywalletv2_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
+                 hashconfig->dgst_pos0      = 0;
+                 hashconfig->dgst_pos1      = 1;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 3;
+                 break;
+
     case 99999:  hashconfig->hash_type      = HASH_TYPE_PLAINTEXT;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -22657,6 +22778,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 14700: hashconfig->tmp_size = sizeof (pbkdf2_sha1_tmp_t);     break;
     case 14800: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);   break;
     case 15100: hashconfig->tmp_size = sizeof (pbkdf1_sha1_tmp_t);     break;
+    case 15200: hashconfig->tmp_size = sizeof (mywallet_tmp_t);        break;
   };
 
   // hook_size
@@ -23252,6 +23374,8 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                  salt->salt_iter2 = ROUNDS_ITUNES102_BACKUP - 1;
                  break;
     case 15100:  salt->salt_iter  = ROUNDS_NETBSD_SHA1CRYPT - 1;
+                 break;
+    case 15200:  salt->salt_iter  = ROUNDS_MYWALLETV2;
                  break;
   }
 }

@@ -212,6 +212,7 @@ NVIDIA GPUs require "NVIDIA Driver" (367.x or later)
 - Lotus Notes/Domino 8
 - Bitcoin/Litecoin wallet.dat
 - Blockchain, My Wallet
+- Blockchain, My Wallet, V2
 - 1Password, agilekeychain
 - 1Password, cloudkeychain
 - LastPass

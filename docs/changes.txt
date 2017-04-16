@@ -1,4 +1,10 @@
-* changes v3.40 -> 3.5.x:
+* changes v3.5.0 -> 3.x.x:
+
+##
+## Algorithms
+##
+
+- Added hash-mode 15200 = Blockchain, My Wallet, V2
 
 ##
 ## Features
