@@ -13059,7 +13059,7 @@ int mywallet_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   salt->salt_len = 32; // note we need to fix this to 16 in kernel
 
-  salt->salt_iter = 10 - 1;
+  salt->salt_iter = ROUNDS_MYWALLET - 1;
 
   /**
    * digest buf
