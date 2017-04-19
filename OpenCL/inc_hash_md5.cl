@@ -2,7 +2,7 @@
 // important notes on this:
 // input buf unused bytes needs to be set to zero
 // input buf need to be in algorithm native byte order (md5 = LE, sha1 = BE, etc)
-// input len can not be > 64. if you need it longer, loop it while calling update functions multiple times
+// input buf need to be 64 byte aligned when usin md5_update()
 
 typedef struct md5_ctx
 {

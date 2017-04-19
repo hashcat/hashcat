@@ -2,7 +2,7 @@
 // important notes on this:
 // input buf unused bytes needs to be set to zero
 // input buf need to be in algorithm native byte order (md5 = LE, sha1 = BE, etc)
-// input len can not be > 64. if you need it longer, loop it while calling update functions multiple times
+// input buf need to be 64 byte aligned when usin sha1_update()
 
 typedef struct sha1_ctx
 {
@@ -173,7 +173,7 @@ void sha1_init (sha1_ctx_t *sha1_ctx)
   sha1_ctx->len = 0;
 }
 
-void sha1_update (sha1_ctx_t *sha1_ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], int len)
+void sha1_update_64 (sha1_ctx_t *sha1_ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const int len)
 {
   const int pos = sha1_ctx->len & 0x3f;
 
@@ -245,6 +245,58 @@ void sha1_update (sha1_ctx_t *sha1_ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x
     sha1_ctx->w3[2] = c3[2];
     sha1_ctx->w3[3] = c3[3];
   }
+}
+
+void sha1_update (sha1_ctx_t *sha1_ctx, const u32x *w, const int len)
+{
+  u32x w0[4];
+  u32x w1[4];
+  u32x w2[4];
+  u32x w3[4];
+
+  int i;
+  int j;
+
+  for (i = 0, j = 0; i < len - 64; i += 64, j += 16)
+  {
+    w0[0] = w[i +  0];
+    w0[1] = w[i +  1];
+    w0[2] = w[i +  2];
+    w0[3] = w[i +  3];
+    w1[0] = w[i +  4];
+    w1[1] = w[i +  5];
+    w1[2] = w[i +  6];
+    w1[3] = w[i +  7];
+    w2[0] = w[i +  8];
+    w2[1] = w[i +  9];
+    w2[2] = w[i + 10];
+    w2[3] = w[i + 11];
+    w3[0] = w[i + 12];
+    w3[1] = w[i + 13];
+    w3[2] = w[i + 14];
+    w3[3] = w[i + 15];
+
+    sha1_update_64 (sha1_ctx, w0, w1, w2, w3, 64);
+  }
+
+  w0[0] = w[i +  0];
+  w0[1] = w[i +  1];
+  w0[2] = w[i +  2];
+  w0[3] = w[i +  3];
+  w1[0] = w[i +  4];
+  w1[1] = w[i +  5];
+  w1[2] = w[i +  6];
+  w1[3] = w[i +  7];
+  w2[0] = w[i +  8];
+  w2[1] = w[i +  9];
+  w2[2] = w[i + 10];
+  w2[3] = w[i + 11];
+  w3[0] = w[i + 12];
+  w3[1] = w[i + 13];
+  w3[2] = w[i + 14];
+  w3[3] = w[i + 15];
+
+  sha1_update_64 (sha1_ctx, w0, w1, w2, w3, len & 0x3f);
 }
 
 void sha1_final (sha1_ctx_t *sha1_ctx)
