@@ -665,8 +665,8 @@ typedef enum user_options_map
 
 typedef struct
 {
-  u32 salt_buf[16];
-  u32 salt_buf_pc[16];
+  u32 salt_buf[64];
+  u32 salt_buf_pc[64];
 
   u32 salt_len;
   u32 salt_len_pc;
@@ -820,7 +820,7 @@ typedef struct hashconfig hashconfig_t;
 
 typedef struct pw
 {
-  u32 i[16];
+  u32 i[64];
 
   u32 pw_len;
 
@@ -836,19 +836,19 @@ typedef struct bf
 
 } bf_t;
 
+typedef struct comb
+{
+  u32  i[64];
+
+  u32  pw_len;
+
+} comb_t;
+
 typedef struct bs_word
 {
   u32  b[32];
 
 } bs_word_t;
-
-typedef struct comb
-{
-  u32  i[8];
-
-  u32  pw_len;
-
-} comb_t;
 
 typedef struct cpt
 {
@@ -866,18 +866,6 @@ typedef struct plain
   u32  il_pos;
 
 } plain_t;
-
-typedef struct wordl
-{
-  u32  word_buf[16];
-
-} wordl_t;
-
-typedef struct wordr
-{
-  u32  word_buf[1];
-
-} wordr_t;
 
 #include "ext_OpenCL.h"
 

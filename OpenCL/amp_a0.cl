@@ -20,24 +20,9 @@ __kernel void amp (__global pw_t *pws, __global pw_t *pws_amp, __global const ke
 
   if (rules_buf[0].cmds[0] == RULE_OP_MANGLE_NOOP && rules_buf[0].cmds[1] == 0)
   {
-    pws_amp[gid].i[ 0] = pws[gid].i[ 0];
-    pws_amp[gid].i[ 1] = pws[gid].i[ 1];
-    pws_amp[gid].i[ 2] = pws[gid].i[ 2];
-    pws_amp[gid].i[ 3] = pws[gid].i[ 3];
-    pws_amp[gid].i[ 4] = pws[gid].i[ 4];
-    pws_amp[gid].i[ 5] = pws[gid].i[ 5];
-    pws_amp[gid].i[ 6] = pws[gid].i[ 6];
-    pws_amp[gid].i[ 7] = pws[gid].i[ 7];
-    pws_amp[gid].i[ 8] = pws[gid].i[ 8];
-    pws_amp[gid].i[ 9] = pws[gid].i[ 9];
-    pws_amp[gid].i[10] = pws[gid].i[10];
-    pws_amp[gid].i[11] = pws[gid].i[11];
-    pws_amp[gid].i[12] = pws[gid].i[12];
-    pws_amp[gid].i[13] = pws[gid].i[13];
-    pws_amp[gid].i[14] = pws[gid].i[14];
-    pws_amp[gid].i[15] = pws[gid].i[15];
+    const pw_t pw = pws[gid];
 
-    pws_amp[gid].pw_len = pws[gid].pw_len;
+    pws_amp[gid] = pw;
 
     return;
   }

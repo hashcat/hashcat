@@ -674,8 +674,8 @@ typedef struct
 
 typedef struct
 {
-  u32 salt_buf[16];
-  u32 salt_buf_pc[16];
+  u32 salt_buf[64];
+  u32 salt_buf_pc[64];
 
   u32 salt_len;
   u32 salt_len_pc;
@@ -1422,7 +1422,7 @@ typedef struct
 
 typedef struct
 {
-  u32 i[16];
+  u32 i[64];
 
   u32 pw_len;
 
@@ -1440,7 +1440,7 @@ typedef struct
 
 typedef struct
 {
-  u32 i[8];
+  u32 i[64];
 
   u32 pw_len;
 

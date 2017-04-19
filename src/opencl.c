@@ -1951,13 +1951,13 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
             line_buf_new = rule_buf_out;
           }
 
-          line_len = MIN (line_len, PW_DICTMAX);
+          line_len = MIN (line_len, PW_MAX);
 
           u8 *ptr = (u8 *) device_param->combs_buf[i].i;
 
           memcpy (ptr, line_buf_new, line_len);
 
-          memset (ptr + line_len, 0, PW_DICTMAX1 - line_len);
+          memset (ptr + line_len, 0, PW_MAX1 - line_len);
 
           if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
           {

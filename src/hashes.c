@@ -247,7 +247,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   // plain
 
-  u32 plain_buf[16] = { 0 };
+  u32 plain_buf[64] = { 0 };
 
   u8 *plain_ptr = (u8 *) plain_buf;
   int plain_len = 0;
