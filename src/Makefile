@@ -110,8 +110,8 @@ CC_WIN_64               := x86_64-w64-mingw32-gcc
 
 ## To compile mingw iconv:
 ##
-## ./configure --host=i686-w64-mingw32   --prefix=/opt/iconv-w32 && make install
-## ./configure --host=x86_64-w64-mingw32 --prefix=/opt/iconv-w64 && make install
+## ./configure --host=i686-w64-mingw32   --prefix=/opt/iconv-w32 --enable-static --disable-shared && make install
+## ./configure --host=x86_64-w64-mingw32 --prefix=/opt/iconv-w64 --enable-static --disable-shared && make install
 ##
 
 ICONV_WIN_32             := /opt/iconv-w32
@@ -194,7 +194,7 @@ CFLAGS_NATIVE           += -I$(OPENCL_HEADERS_KHRONOS)/
 CFLAGS_NATIVE           += -DWITH_HWMON
 LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -lpthread
-LFLAGS_NATIVE           += -ldl 
+LFLAGS_NATIVE           += -ldl
 endif # Linux
 
 ifeq ($(UNAME),FreeBSD)
@@ -202,7 +202,7 @@ ifndef PORTNAME
 CFLAGS_NATIVE           := $(CFLAGS)
 CFLAGS_NATIVE           += -I$(OPENCL_HEADERS_KHRONOS)/
 LFLAGS_NATIVE           := $(LFLAGS)
-LFLAGS_NATIVE           += -lpthread 
+LFLAGS_NATIVE           += -lpthread
 endif
 endif # FreeBSD
 
@@ -259,21 +259,17 @@ CFLAGS_CROSS_WIN64      += -m64
 CFLAGS_CROSS_WIN64      += -DWITH_HWMON
 
 LFLAGS_CROSS_LINUX32    := $(LFLAGS)
-LFLAGS_CROSS_LINUX32    += -lpthread 
-LFLAGS_CROSS_LINUX32    += -ldl 
+LFLAGS_CROSS_LINUX32    += -lpthread
+LFLAGS_CROSS_LINUX32    += -ldl
 LFLAGS_CROSS_LINUX64    := $(LFLAGS)
-LFLAGS_CROSS_LINUX64    += -lpthread 
-LFLAGS_CROSS_LINUX64    += -ldl 
+LFLAGS_CROSS_LINUX64    += -lpthread
+LFLAGS_CROSS_LINUX64    += -ldl
 LFLAGS_CROSS_WIN32      := $(LFLAGS)
 LFLAGS_CROSS_WIN32      += -Wl,--dynamicbase -Wl,--nxcompat
-LFLAGS_CROSS_WIN32      += -L$(ICONV_WIN_32)/lib/
 LFLAGS_CROSS_WIN32      += -lpsapi
-LFLAGS_CROSS_WIN32      += -liconv
 LFLAGS_CROSS_WIN64      := $(LFLAGS)
 LFLAGS_CROSS_WIN64      += -Wl,--dynamicbase -Wl,--nxcompat
-LFLAGS_CROSS_WIN64      += -L$(ICONV_WIN_64)/lib/
 LFLAGS_CROSS_WIN64      += -lpsapi
-LFLAGS_CROSS_WIN64      += -liconv
 
 ##
 ## Objects
@@ -424,10 +420,10 @@ hashcat32.bin: src/main.c $(LINUX_32_OBJS)
 hashcat64.bin: src/main.c $(LINUX_64_OBJS)
 	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX64)    -o $@ $^ $(LFLAGS_CROSS_LINUX64) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
-hashcat32.exe: src/main.c $(WIN_32_OBJS)
+hashcat32.exe: src/main.c $(WIN_32_OBJS) $(ICONV_WIN_32)/lib/libiconv.a
 	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN32)      -o $@ $^ $(LFLAGS_CROSS_WIN32)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\"
 
-hashcat64.exe: src/main.c $(WIN_64_OBJS)
+hashcat64.exe: src/main.c $(WIN_64_OBJS) $(ICONV_WIN_64)/lib/libiconv.a
 	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)      -o $@ $^ $(LFLAGS_CROSS_WIN64)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\"
 
 hashcat32.dll: src/main.c $(WIN_32_OBJS)
