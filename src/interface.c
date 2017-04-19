@@ -19254,11 +19254,10 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case   600:  hashconfig->hash_type      = HASH_TYPE_BLAKE2B;
-                 hashconfig->salt_type      = SALT_TYPE_NONE;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
-                                            | OPTS_TYPE_PT_ADD80
-                                            | OPTS_TYPE_PT_ADDBITS15;
+                                            | OPTS_TYPE_ST_ADDBITS15;
                  hashconfig->kern_type      = KERN_TYPE_BLAKE2B;
                  hashconfig->dgst_size      = DGST_SIZE_8_8;
                  hashconfig->parse_func     = blake2b_parse_hash;
@@ -19267,10 +19266,10 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                                             | OPTI_TYPE_NOT_SALTED
                                             | OPTI_TYPE_USES_BITS_64
                                             | OPTI_TYPE_RAW_HASH;
-                 hashconfig->dgst_pos0      = 14;
-                 hashconfig->dgst_pos1      = 15;
-                 hashconfig->dgst_pos2      = 6;
-                 hashconfig->dgst_pos3      = 7;
+                 hashconfig->dgst_pos0      = 1;
+                 hashconfig->dgst_pos1      = 0;
+                 hashconfig->dgst_pos2      = 3;
+                 hashconfig->dgst_pos3      = 2;
                  break;
 
     case   900:  hashconfig->hash_type      = HASH_TYPE_MD4;
