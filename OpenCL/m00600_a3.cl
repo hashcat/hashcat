@@ -20,27 +20,27 @@ u64 rotr64_w(const u64x w, const u32 c)
 u64 load64(const void *src)
 {
   const u8 *p = ( const u8 * )src;
-  return (( u64 )( p[0] ) <<  0) |
-         (( u64 )( p[1] ) <<  8) |
-         (( u64 )( p[2] ) << 16) |
-         (( u64 )( p[3] ) << 24) |
-         (( u64 )( p[4] ) << 32) |
-         (( u64 )( p[5] ) << 40) |
-         (( u64 )( p[6] ) << 48) |
-         (( u64 )( p[7] ) << 56) ;
+  return ((u64)(p[0]) <<  0) |
+         ((u64)(p[1]) <<  8) |
+         ((u64)(p[2]) << 16) |
+         ((u64)(p[3]) << 24) |
+         ((u64)(p[4]) << 32) |
+         ((u64)(p[5]) << 40) |
+         ((u64)(p[6]) << 48) |
+         ((u64)(p[7]) << 56) ;
 }
 
 u64 load64_reverse(const void *src)
 {
   const u8 *p = ( const u8 * )src;
-  return (( u64 )( p[7] ) <<  0) |
-         (( u64 )( p[6] ) <<  8) |
-         (( u64 )( p[5] ) << 16) |
-         (( u64 )( p[4] ) << 24) |
-         (( u64 )( p[3] ) << 32) |
-         (( u64 )( p[2] ) << 40) |
-         (( u64 )( p[1] ) << 48) |
-         (( u64 )( p[0] ) << 56) ;
+  return ((u64)(p[7]) <<  0) |
+         ((u64)(p[6]) <<  8) |
+         ((u64)(p[5]) << 16) |
+         ((u64)(p[4]) << 24) |
+         ((u64)(p[3]) << 32) |
+         ((u64)(p[2]) << 40) |
+         ((u64)(p[1]) << 48) |
+         ((u64)(p[0]) << 56) ;
 }
 
 typedef struct
@@ -165,7 +165,7 @@ void blake2b_compress (const u32x pw[16], const u64 pw_len, u64x digest[8])
   const u8 *p = (const u8 *)(P);
 
   /* IV XOR ParamBlock */
-  for(i = 0; i < 8; ++i)
+  for (i = 0; i < 8; ++i)
     S->h[i] ^= load64(p + sizeof(S->h[i]) * i);
 
   S->outlen = P->digest_length;
@@ -203,22 +203,21 @@ void blake2b_compress (const u32x pw[16], const u64 pw_len, u64x digest[8])
   v[14] = blake2b_IV[6] ^ S->f[0];
   v[15] = blake2b_IV[7] ^ S->f[1];
 
-  BLAKE2B_ROUND(  0 );
-  BLAKE2B_ROUND(  1 );
-  BLAKE2B_ROUND(  2 );
-  BLAKE2B_ROUND(  3 );
-  BLAKE2B_ROUND(  4 );
-  BLAKE2B_ROUND(  5 );
-  BLAKE2B_ROUND(  6 );
-  BLAKE2B_ROUND(  7 );
-  BLAKE2B_ROUND(  8 );
-  BLAKE2B_ROUND(  9 );
-  BLAKE2B_ROUND( 10 );
-  BLAKE2B_ROUND( 11 );
+  BLAKE2B_ROUND( 0);
+  BLAKE2B_ROUND( 1);
+  BLAKE2B_ROUND( 2);
+  BLAKE2B_ROUND( 3);
+  BLAKE2B_ROUND( 4);
+  BLAKE2B_ROUND( 5);
+  BLAKE2B_ROUND( 6);
+  BLAKE2B_ROUND( 7);
+  BLAKE2B_ROUND( 8);
+  BLAKE2B_ROUND( 9);
+  BLAKE2B_ROUND(10);
+  BLAKE2B_ROUND(11);
 
-  for (i = 0; i < 8; ++i) {
+  for (i = 0; i < 8; ++i)
     S->h[i] = S->h[i] ^ v[i] ^ v[i + 8];
-  }
 
   for (i = 0; i < 8; ++i) 
     digest[i] = load64_reverse(&(S->h[i]));
@@ -254,9 +253,7 @@ void m00600s (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __glo
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
-
     const u32x w0 = w0l | w0r;
-
     u32x pw[16];
 
     pw[ 1] = w0;
@@ -289,14 +286,14 @@ void m00600s (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __glo
     digest[6] = 0;
     digest[7] = 0;
 
-    blake2b_compress (pw, pw_len, digest);
+    blake2b_compress(pw, pw_len, digest);
 
-    const u32x r0 = h32_from_64 (digest[0]);
-    const u32x r1 = l32_from_64 (digest[0]);
-    const u32x r2 = h32_from_64 (digest[1]);
-    const u32x r3 = l32_from_64 (digest[1]);
+    const u32x r0 = h32_from_64(digest[0]);
+    const u32x r1 = l32_from_64(digest[0]);
+    const u32x r2 = h32_from_64(digest[1]);
+    const u32x r3 = l32_from_64(digest[1]);
 
-    COMPARE_S_SIMD (r0, r1, r2, r3);
+    COMPARE_S_SIMD(r0, r1, r2, r3);
   }
 }
 
@@ -317,7 +314,7 @@ __kernel void m00600_m16 (__global pw_t *pws, __global const kernel_rule_t *rule
 __kernel void m00600_s04 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const comb_t *combs_buf, __global const u32x *words_buf_r, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 { 
  
-  m00600s (pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);  
+  m00600s(pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);  
 }
 
 __kernel void m00600_s08 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const comb_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
