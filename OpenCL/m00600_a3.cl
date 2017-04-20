@@ -17,7 +17,7 @@ u64 rotr64_w( const u64x w, const u32 c )
   return ( w >> c ) | ( w << ( 64 - c ) );
 }
 
-u64 load64( const void *src )
+u64 load64(const void *src)
 {
   const u8 *p = ( const u8 * )src;
   return (( u64 )( p[0] ) <<  0) |
@@ -30,7 +30,7 @@ u64 load64( const void *src )
          (( u64 )( p[7] ) << 56) ;
 }
 
-u64 load64_inv( const void *src )
+u64 load64_reverse(const void *src)
 {
   const u8 *p = ( const u8 * )src;
   return (( u64 )( p[7] ) <<  0) |
@@ -180,7 +180,7 @@ void blake2b_compress (const u32x pw[16], const u64 pw_len, u64x digest[8])
   p = (const u8 *)pw;
 
   for (i = 0; i < 8; ++i)
-    m[i] = load64_inv(p + sizeof(m[i]) * i);
+    m[i] = load64_reverse(p + sizeof(m[i]) * i);
 
   m[8] = 0;
   m[9] = 0;
@@ -221,7 +221,7 @@ void blake2b_compress (const u32x pw[16], const u64 pw_len, u64x digest[8])
   }
 
   for ( i = 0; i < 8; ++i ) 
-    digest[i] = load64_inv(&(S->h[i]));
+    digest[i] = load64_reverse(&(S->h[i]));
 }
 
 void m00600s (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const comb_t *combs_buf, __global const u32x *words_buf_r, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
