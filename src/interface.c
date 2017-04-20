@@ -19254,7 +19254,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case   600:  hashconfig->hash_type      = HASH_TYPE_BLAKE2B;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_ST_ADDBITS15;
