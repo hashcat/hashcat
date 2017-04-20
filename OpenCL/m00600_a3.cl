@@ -12,9 +12,9 @@
 #include "inc_common.cl"
 #include "inc_simd.cl"
 
-u64 rotr64_w( const u64x w, const u32 c )
+u64 rotr64_w(const u64x w, const u32 c)
 {
-  return ( w >> c ) | ( w << ( 64 - c ) );
+  return (w >> c) | (w << (64 - c));
 }
 
 u64 load64(const void *src)
@@ -43,7 +43,7 @@ u64 load64_reverse(const void *src)
          (( u64 )( p[0] ) << 56) ;
 }
 
-typedef struct blake2b_param__
+typedef struct
 {
   u8  digest_length;                    /*  1 */
   u8  key_length;                       /*  2 */
@@ -165,7 +165,7 @@ void blake2b_compress (const u32x pw[16], const u64 pw_len, u64x digest[8])
   const u8 *p = (const u8 *)(P);
 
   /* IV XOR ParamBlock */
-  for( i = 0; i < 8; ++i )
+  for(i = 0; i < 8; ++i)
     S->h[i] ^= load64(p + sizeof(S->h[i]) * i);
 
   S->outlen = P->digest_length;
@@ -191,7 +191,7 @@ void blake2b_compress (const u32x pw[16], const u64 pw_len, u64x digest[8])
   m[14] = 0;
   m[15] = 0;
 
-  for ( i = 0; i < 8; ++i )
+  for (i = 0; i < 8; ++i)
     v[i] = S->h[i];
 
   v[ 8] = blake2b_IV[0];
@@ -216,11 +216,11 @@ void blake2b_compress (const u32x pw[16], const u64 pw_len, u64x digest[8])
   BLAKE2B_ROUND( 10 );
   BLAKE2B_ROUND( 11 );
 
-  for ( i = 0; i < 8; ++i ) {
+  for (i = 0; i < 8; ++i) {
     S->h[i] = S->h[i] ^ v[i] ^ v[i + 8];
   }
 
-  for ( i = 0; i < 8; ++i ) 
+  for (i = 0; i < 8; ++i) 
     digest[i] = load64_reverse(&(S->h[i]));
 }
 
