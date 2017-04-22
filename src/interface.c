@@ -375,6 +375,7 @@ static const char SIGNATURE_ITUNES_BACKUP[]    = "$itunes_backup$";
 static const char SIGNATURE_FORTIGATE[]        = "AK1";
 static const char SIGNATURE_ATLASSIAN[]        = "{PKCS5S2}";
 static const char SIGNATURE_NETBSD_SHA1CRYPT[] = "$sha1$";
+static const char SIGNATURE_BLAKE2B[]          = "$BLAKE2$";
 
 /**
  * decoder / encoder
@@ -5262,21 +5263,24 @@ int keccak_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
 int blake2b_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
-  //raise(SIGINT);
   if ((input_len < DISPLAY_LEN_MIN_600) || (input_len > DISPLAY_LEN_MAX_600)) return (PARSER_GLOBAL_LENGTH);
 
-  if (is_valid_hex_string (input_buf, 128) == false) return (PARSER_HASH_ENCODING);
+  if (memcmp (SIGNATURE_BLAKE2B, input_buf, 8)) return (PARSER_SIGNATURE_UNMATCHED);
+
+  if (is_valid_hex_string (input_buf + 8, 128) == false) return (PARSER_HASH_ENCODING);
 
   u64 *digest = (u64 *) hash_buf->digest;
 
-  digest[0] = hex_to_u64 ((const u8 *) &input_buf[  0]);
-  digest[1] = hex_to_u64 ((const u8 *) &input_buf[ 16]);
-  digest[2] = hex_to_u64 ((const u8 *) &input_buf[ 32]);
-  digest[3] = hex_to_u64 ((const u8 *) &input_buf[ 48]);
-  digest[4] = hex_to_u64 ((const u8 *) &input_buf[ 64]);
-  digest[5] = hex_to_u64 ((const u8 *) &input_buf[ 80]);
-  digest[6] = hex_to_u64 ((const u8 *) &input_buf[ 96]);
-  digest[7] = hex_to_u64 ((const u8 *) &input_buf[112]);
+  u8 *input_hash_buf = input_buf + 8;
+
+  digest[0] = hex_to_u64 ((const u8 *) &input_hash_buf[  0]);
+  digest[1] = hex_to_u64 ((const u8 *) &input_hash_buf[ 16]);
+  digest[2] = hex_to_u64 ((const u8 *) &input_hash_buf[ 32]);
+  digest[3] = hex_to_u64 ((const u8 *) &input_hash_buf[ 48]);
+  digest[4] = hex_to_u64 ((const u8 *) &input_hash_buf[ 64]);
+  digest[5] = hex_to_u64 ((const u8 *) &input_hash_buf[ 80]);
+  digest[6] = hex_to_u64 ((const u8 *) &input_hash_buf[ 96]);
+  digest[7] = hex_to_u64 ((const u8 *) &input_hash_buf[112]);
 
   digest[0] = byte_swap_64 (digest[0]);
   digest[1] = byte_swap_64 (digest[1]);
