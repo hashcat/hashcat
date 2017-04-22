@@ -17,32 +17,6 @@ u64 rotr64_w(const u64x w, const u32 c)
   return (w >> c) | (w << (64 - c));
 }
 
-u64 load64(const void *src)
-{
-  const u8 *p = ( const u8 * )src;
-  return ((u64)(p[0]) <<  0) |
-         ((u64)(p[1]) <<  8) |
-         ((u64)(p[2]) << 16) |
-         ((u64)(p[3]) << 24) |
-         ((u64)(p[4]) << 32) |
-         ((u64)(p[5]) << 40) |
-         ((u64)(p[6]) << 48) |
-         ((u64)(p[7]) << 56) ;
-}
-
-u64 load64_reverse(const void *src)
-{
-  const u8 *p = ( const u8 * )src;
-  return ((u64)(p[7]) <<  0) |
-         ((u64)(p[6]) <<  8) |
-         ((u64)(p[5]) << 16) |
-         ((u64)(p[4]) << 24) |
-         ((u64)(p[3]) << 32) |
-         ((u64)(p[2]) << 40) |
-         ((u64)(p[1]) << 48) |
-         ((u64)(p[0]) << 56) ;
-}
-
 typedef struct
 {
   u8  digest_length;                    /*  1 */
@@ -166,7 +140,7 @@ void blake2b_compress (const u32x pw[16], const u64 pw_len, u64x digest[8])
 
   /* IV XOR ParamBlock */
   for (i = 0; i < 8; ++i)
-    S->h[i] ^= load64(p + sizeof(S->h[i]) * i);
+    S->h[i] ^= *((u64*)(p + sizeof(S->h[i]) * i));
 
   S->outlen = P->digest_length;
 
@@ -177,11 +151,12 @@ void blake2b_compress (const u32x pw[16], const u64 pw_len, u64x digest[8])
   u64 v[16];
   u64 m[16];
 
-  p = (const u8 *)pw;
-
-  for (i = 0; i < 8; ++i)
-    m[i] = load64_reverse(p + sizeof(m[i]) * i);
-
+  for (i = 0; i < 8; ++i) {
+    m[i] = swap32(pw[i * 2]);
+    m[i] <<= 32;
+    m[i] |= swap32(pw[i * 2 + 1]); 
+  }
+ 
   m[8] = 0;
   m[9] = 0;
   m[10] = 0;
@@ -218,7 +193,7 @@ void blake2b_compress (const u32x pw[16], const u64 pw_len, u64x digest[8])
 
   for (i = 0; i < 8; ++i) {
     S->h[i] = S->h[i] ^ v[i] ^ v[i + 8];
-    digest[i] = load64_reverse(&(S->h[i]));
+    digest[i] = swap64(S->h[i]);
   }
 }
 
