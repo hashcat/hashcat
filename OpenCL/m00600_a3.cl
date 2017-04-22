@@ -12,11 +12,6 @@
 #include "inc_common.cl"
 #include "inc_simd.cl"
 
-u64 rotr64_w(const u64x w, const u32 c)
-{
-  return (w >> c) | (w << (64 - c));
-}
-
 typedef struct
 {
   u8  digest_length;                    /*  1 */
@@ -71,13 +66,13 @@ __constant u8 blake2b_sigma[12][16] =
 #define BLAKE2B_G(r,i,a,b,c,d)                \
   do {                                        \
     a = a + b + m[blake2b_sigma[r][2*i+0]];   \
-    d = rotr64_w(d ^ a, 32);                  \
+    d = rotr64(d ^ a, 32);                    \
     c = c + d;                                \
-    b = rotr64_w(b ^ c, 24);                  \
+    b = rotr64(b ^ c, 24);                  \
     a = a + b + m[blake2b_sigma[r][2*i+1]];   \
-    d = rotr64_w(d ^ a, 16);                  \
+    d = rotr64(d ^ a, 16);                  \
     c = c + d;                                \
-    b = rotr64_w(b ^ c, 63);                  \
+    b = rotr64(b ^ c, 63);                  \
   } while(0)
 
 #define BLAKE2B_ROUND(r)                    \
