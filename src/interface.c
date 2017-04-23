@@ -18353,7 +18353,8 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     {
       u32 *ptr = digest_buf;
 
-      snprintf (out_buf, out_len - 1, "%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
+      snprintf (out_buf, out_len - 1, "%s%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
+        SIGNATURE_BLAKE2B,
         ptr[ 1], ptr[ 0],
         ptr[ 3], ptr[ 2],
         ptr[ 5], ptr[ 4],
