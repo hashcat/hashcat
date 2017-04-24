@@ -16,29 +16,29 @@
 
 typedef struct
 {
-  u8  digest_length;                    /*  1 */
-  u8  key_length;                       /*  2 */
-  u8  fanout;                           /*  3 */
-  u8  depth;                            /*  4 */
-  u32 leaf_length;                      /*  8 */
-  u32 node_offset;                      /* 12 */
-  u32 xof_length;                       /* 16 */
-  u8  node_depth;                       /* 17 */
-  u8  inner_length;                     /* 18 */
-  u8  reserved[14];                     /* 32 */
-  u8  salt[BLAKE2B_SALTBYTES];          /* 48 */
-  u8  personal[BLAKE2B_PERSONALBYTES];  /* 64 */
+  u8x  digest_length;                    /*  1 */
+  u8x  key_length;                       /*  2 */
+  u8x  fanout;                           /*  3 */
+  u8x  depth;                            /*  4 */
+  u32x leaf_length;                      /*  8 */
+  u32x node_offset;                      /* 12 */
+  u32x xof_length;                       /* 16 */
+  u8x  node_depth;                       /* 17 */
+  u8x  inner_length;                     /* 18 */
+  u8x  reserved[14];                     /* 32 */
+  u8x  salt[BLAKE2B_SALTBYTES];          /* 48 */
+  u8x  personal[BLAKE2B_PERSONALBYTES];  /* 64 */
 } blake2b_param;
 
 typedef struct
 {
-  u64 h[8];
-  u64 t[2];
-  u64 f[2];
-  u8  buf[BLAKE2B_BLOCKBYTES];
-  u32 buflen;
-  u32 outlen;
-  u8  last_node;
+  u64x h[8];
+  u64x t[2];
+  u64x f[2];
+  u8x  buf[BLAKE2B_BLOCKBYTES];
+  u32x buflen;
+  u32x outlen;
+  u8x  last_node;
 } blake2b_state;
 
 __constant u64a blake2b_IV[8] =
@@ -49,7 +49,7 @@ __constant u64a blake2b_IV[8] =
   0x1f83d9abfb41bd6b, 0x5be0cd19137e2179
 };
 
-__constant u8 blake2b_sigma[12][16] =
+__constant u8a blake2b_sigma[12][16] =
 {
   {  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15 } ,
   { 14, 10,  4,  8,  9, 15, 13,  6,  1, 12,  0,  2, 11,  7,  5,  3 } ,
@@ -89,7 +89,7 @@ __constant u8 blake2b_sigma[12][16] =
     BLAKE2B_G(r,7,v[ 3],v[ 4],v[ 9],v[14]); \
 } while(0)
 
-void blake2b_compress (const u32x pw[16], const u64 pw_len, u64x digest[8])
+void blake2b_compress (const u32x pw[16], const u64x pw_len, u64x digest[8])
 {
 
   /*
@@ -133,25 +133,23 @@ void blake2b_compress (const u32x pw[16], const u64 pw_len, u64x digest[8])
   S->outlen = 0;
   S->last_node = 0;
 
-  const u8 *p = (const u8 *)(P);
+  const u8x *p = (const u8x *)(P);
 
   /* IV XOR ParamBlock */
   for (i = 0; i < 8; ++i)
-    S->h[i] ^= *((u64*)(p + sizeof(S->h[i]) * i));
+    S->h[i] ^= *((u64x*)(p + sizeof(S->h[i]) * i));
 
-  S->outlen = P->digest_length;
+  // S->outlen = P->digest_length;
 
   /*
    * Compress
    */
 
-  u64 v[16];
-  u64 m[16];
+  u64x v[16];
+  u64x m[16];
 
   for (i = 0; i < 8; ++i) {
-    m[i] = swap32(pw[i * 2]);
-    m[i] <<= 32;
-    m[i] |= swap32(pw[i * 2 + 1]); 
+    m[i] = swap64(hl32_to_64(pw[i * 2 + 1], pw[i * 2]));
   }
  
   m[8] = 0;
@@ -328,7 +326,7 @@ __kernel void m00600_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
     u32x w2[4] = { 0 };
     u32x w3[4] = { 0 };
     
-    const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    const u32x out_len = apply_rules_vect(pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
     u32x pw[16];
 
