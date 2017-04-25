@@ -123,7 +123,22 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
   char *buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-  const u32 attack_kern = user_options_extra->attack_kern;
+  bool iconv_enabled = false;
+
+  iconv_t iconv_ctx;
+
+  char *iconv_tmp = NULL;
+
+  if (strcmp (user_options->encoding_from, user_options->encoding_to))
+  {
+    iconv_enabled = true;
+
+    iconv_ctx = iconv_open (user_options->encoding_to, user_options->encoding_from);
+
+    if (iconv_ctx == (iconv_t) -1) return -1;
+
+    iconv_tmp = (char *) hcmalloc (HCBUFSIZ_TINY);
+  }
 
   while (status_ctx->run_thread_level1 == true)
   {
@@ -144,9 +159,29 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
       if (line_buf == NULL) break;
 
-      u32 line_len = (u32) in_superchop (line_buf);
+      size_t line_len = in_superchop (line_buf);
 
       line_len = convert_from_hex (hashcat_ctx, line_buf, line_len);
+
+      // do the on-the-fly encoding
+
+      if (iconv_enabled == true)
+      {
+        char  *iconv_ptr = iconv_tmp;
+        size_t iconv_sz  = HCBUFSIZ_TINY;
+
+        const size_t iconv_rc = iconv (iconv_ctx, &line_buf, &line_len, &iconv_ptr, &iconv_sz);
+
+        if (iconv_rc == (size_t) -1)
+        {
+          line_len = PW_MAX1;
+        }
+        else
+        {
+          line_buf = iconv_tmp;
+          line_len = HCBUFSIZ_TINY - iconv_sz;
+        }
+      }
 
       // post-process rule engine
 
@@ -175,6 +210,8 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
       }
 
       // hmm that's always the case, or?
+
+      const u32 attack_kern = user_options_extra->attack_kern;
 
       if (attack_kern == ATTACK_KERN_STRAIGHT)
       {
@@ -240,6 +277,15 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
   device_param->kernel_accel = 0;
   device_param->kernel_loops = 0;
+
+  if (iconv_enabled == true)
+  {
+    iconv_close (iconv_ctx);
+
+    iconv_enabled = false;
+
+    hcfree (iconv_tmp);
+  }
 
   hcfree (buf);
 

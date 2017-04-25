@@ -184,6 +184,28 @@ void get_next_word (hashcat_ctx_t *hashcat_ctx, FILE *fd, char **out_buf, u32 *o
 
     wl_data->pos += off;
 
+    // do the on-the-fly encoding
+
+    if (wl_data->iconv_enabled == true)
+    {
+      char  *iconv_ptr = wl_data->iconv_tmp;
+      size_t iconv_sz  = HCBUFSIZ_TINY;
+
+      size_t ptr_len = len;
+
+      const size_t iconv_rc = iconv (wl_data->iconv_ctx, &ptr, &ptr_len, &iconv_ptr, &iconv_sz);
+
+      if (iconv_rc == (size_t) -1)
+      {
+        len = PW_MAX1;
+      }
+      else
+      {
+        ptr = wl_data->iconv_tmp;
+        len = HCBUFSIZ_TINY - iconv_sz;
+      }
+    }
+
     if (run_rule_engine (user_options_extra->rule_len_l, user_options->rule_buf_l))
     {
       int rule_len_out = -1;
@@ -288,6 +310,12 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
   d.stat.st_blocks  = 0;
   #endif
 
+  memset (d.encoding_from, 0, sizeof (d.encoding_from));
+  memset (d.encoding_to,   0, sizeof (d.encoding_to));
+
+  strncpy (d.encoding_from, user_options->encoding_from, sizeof (d.encoding_from));
+  strncpy (d.encoding_to,   user_options->encoding_to,   sizeof (d.encoding_to));
+
   if (d.stat.st_size == 0)
   {
     *result = 0;
@@ -351,7 +379,31 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
       u64 len;
       u64 off;
 
-      wl_data->func (wl_data->buf + i, wl_data->cnt - i, &len, &off);
+      char *ptr = wl_data->buf + i;
+
+      wl_data->func (ptr, wl_data->cnt - i, &len, &off);
+
+      // do the on-the-fly encoding
+
+      if (wl_data->iconv_enabled == true)
+      {
+        char  *iconv_ptr = wl_data->iconv_tmp;
+        size_t iconv_sz  = HCBUFSIZ_TINY;
+
+        size_t ptr_len = len;
+
+        const size_t iconv_rc = iconv (wl_data->iconv_ctx, &ptr, &ptr_len, &iconv_ptr, &iconv_sz);
+
+        if (iconv_rc == (size_t) -1)
+        {
+          len = PW_MAX1;
+        }
+        else
+        {
+          ptr = wl_data->iconv_tmp;
+          len = HCBUFSIZ_TINY - iconv_sz;
+        }
+      }
 
       if (run_rule_engine (user_options_extra->rule_len_l, user_options->rule_buf_l))
       {
@@ -361,7 +413,7 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
         {
           char unused[BLOCK_SIZE] = { 0 };
 
-          rule_len_out = _old_apply_rule (user_options->rule_buf_l, user_options_extra->rule_len_l, wl_data->buf + i, len, unused);
+          rule_len_out = _old_apply_rule (user_options->rule_buf_l, user_options_extra->rule_len_l, ptr, len, unused);
         }
 
         if (rule_len_out < 0)
@@ -476,6 +528,21 @@ int wl_data_init (hashcat_ctx_t *hashcat_ctx)
     wl_data->func = get_next_word_lm;
   }
 
+  /**
+   * iconv
+   */
+
+  if (strcmp (user_options->encoding_from, user_options->encoding_to))
+  {
+    wl_data->iconv_enabled = true;
+
+    wl_data->iconv_ctx = iconv_open (user_options->encoding_to, user_options->encoding_from);
+
+    if (wl_data->iconv_ctx == (iconv_t) -1) return -1;
+
+    wl_data->iconv_tmp = (char *) hcmalloc (HCBUFSIZ_TINY);
+  }
+
   return 0;
 }
 
@@ -486,6 +553,15 @@ void wl_data_destroy (hashcat_ctx_t *hashcat_ctx)
   if (wl_data->enabled == false) return;
 
   hcfree (wl_data->buf);
+
+  if (wl_data->iconv_enabled == true)
+  {
+    iconv_close (wl_data->iconv_ctx);
+
+    wl_data->iconv_enabled = false;
+
+    hcfree (wl_data->iconv_tmp);
+  }
 
   memset (wl_data, 0, sizeof (wl_data_t));
 }

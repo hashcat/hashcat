@@ -891,11 +891,11 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   {
     u32 t = to;
 
-    t = swap32 (t);
+    t = swap32_S (t);
 
     t += nonce_error_correction;
 
-    t = swap32 (t);
+    t = swap32_S (t);
 
     if (wpa->nonce_compare < 0)
     {

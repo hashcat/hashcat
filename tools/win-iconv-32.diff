@@ -1,0 +1,32 @@
+diff --git a/Makefile b/Makefile
+index 5937584..8777fad 100644
+--- a/Makefile
++++ b/Makefile
+@@ -6,10 +6,10 @@
+ # MKDIR_P, INSTALL, RM
+ # prefix, BINARY_PATH, INCLUDE_PATH, LIBRARY_PATH
+ 
+-CC ?= gcc
+-AR ?= ar
+-RANLIB ?= ranlib
+-DLLTOOL ?= dlltool
++CC := i686-w64-mingw32-gcc
++AR := i686-w64-mingw32-ar
++RANLIB := i686-w64-mingw32-ranlib
++DLLTOOL := i686-w64-mingw32-dlltool
+ 
+ MKDIR_P = mkdir -p
+ INSTALL = install -c
+@@ -19,10 +19,10 @@ RM = rm -f
+ DEFAULT_LIBICONV_DLL ?= \"\"
+ 
+ CFLAGS += -pedantic -Wall
+-CFLAGS += -DUSE_LIBICONV_DLL
++#CFLAGS += -DUSE_LIBICONV_DLL
+ CFLAGS += -DDEFAULT_LIBICONV_DLL=$(DEFAULT_LIBICONV_DLL)
+ 
+-prefix ?= /usr/local
++prefix ?= /opt/win-iconv-32
+ BINARY_PATH = $(prefix)/bin
+ INCLUDE_PATH = $(prefix)/include
+ LIBRARY_PATH = $(prefix)/lib

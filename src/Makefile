@@ -108,6 +108,14 @@ CC_LINUX_64             := gcc
 CC_WIN_32               := i686-w64-mingw32-gcc
 CC_WIN_64               := x86_64-w64-mingw32-gcc
 
+## To compile win-iconv with mingw clone from here: https://github.com/win-iconv/win-iconv
+##
+## Then patch the makefile withe the patches from tools/win-iconv-*.diff and run make install
+##
+
+WIN_ICONV_32             := /opt/win-iconv-32
+WIN_ICONV_64             := /opt/win-iconv-64
+
 ##
 ## Misc stuff
 ##
@@ -184,7 +192,8 @@ CFLAGS_NATIVE           := $(CFLAGS)
 CFLAGS_NATIVE           += -I$(OPENCL_HEADERS_KHRONOS)/
 CFLAGS_NATIVE           += -DWITH_HWMON
 LFLAGS_NATIVE           := $(LFLAGS)
-LFLAGS_NATIVE           += -lpthread -ldl
+LFLAGS_NATIVE           += -lpthread
+LFLAGS_NATIVE           += -ldl
 endif # Linux
 
 ifeq ($(UNAME),FreeBSD)
@@ -202,6 +211,7 @@ CFLAGS_NATIVE           := $(CFLAGS)
 LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -framework OpenCL
 LFLAGS_NATIVE           += -lpthread
+LFLAGS_NATIVE           += -liconv
 endif # Darwin
 
 ifeq ($(UNAME),CYGWIN)
@@ -211,6 +221,7 @@ CFLAGS_NATIVE           += -DWITH_HWMON
 LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -Wl,--dynamicbase -Wl,--nxcompat
 LFLAGS_NATIVE           += -lpsapi
+LFLAGS_NATIVE           += -liconv
 endif # CYGWIN
 
 ifeq ($(UNAME),MSYS2)
@@ -220,6 +231,7 @@ CFLAGS_NATIVE           += -DWITH_HWMON
 LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -Wl,--dynamicbase -Wl,--nxcompat
 LFLAGS_NATIVE           += -lpsapi
+LFLAGS_NATIVE           += -liconv
 endif # MSYS2
 
 ##
@@ -236,17 +248,21 @@ CFLAGS_CROSS_LINUX64    += -m64
 CFLAGS_CROSS_LINUX64    += -DWITH_HWMON
 CFLAGS_CROSS_WIN32      := $(CFLAGS)
 CFLAGS_CROSS_WIN32      += -I$(OPENCL_HEADERS_KHRONOS)/
+CFLAGS_CROSS_WIN32      += -I$(WIN_ICONV_32)/include/
 CFLAGS_CROSS_WIN32      += -m32
 CFLAGS_CROSS_WIN32      += -DWITH_HWMON
 CFLAGS_CROSS_WIN64      := $(CFLAGS)
 CFLAGS_CROSS_WIN64      += -I$(OPENCL_HEADERS_KHRONOS)/
+CFLAGS_CROSS_WIN64      += -I$(WIN_ICONV_64)/include/
 CFLAGS_CROSS_WIN64      += -m64
 CFLAGS_CROSS_WIN64      += -DWITH_HWMON
 
 LFLAGS_CROSS_LINUX32    := $(LFLAGS)
-LFLAGS_CROSS_LINUX32    += -lpthread -ldl
+LFLAGS_CROSS_LINUX32    += -lpthread
+LFLAGS_CROSS_LINUX32    += -ldl
 LFLAGS_CROSS_LINUX64    := $(LFLAGS)
-LFLAGS_CROSS_LINUX64    += -lpthread -ldl
+LFLAGS_CROSS_LINUX64    += -lpthread
+LFLAGS_CROSS_LINUX64    += -ldl
 LFLAGS_CROSS_WIN32      := $(LFLAGS)
 LFLAGS_CROSS_WIN32      += -Wl,--dynamicbase -Wl,--nxcompat
 LFLAGS_CROSS_WIN32      += -lpsapi
@@ -403,10 +419,10 @@ hashcat32.bin: src/main.c $(LINUX_32_OBJS)
 hashcat64.bin: src/main.c $(LINUX_64_OBJS)
 	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX64)    -o $@ $^ $(LFLAGS_CROSS_LINUX64) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
-hashcat32.exe: src/main.c $(WIN_32_OBJS)
+hashcat32.exe: src/main.c $(WIN_32_OBJS) $(WIN_ICONV_32)/lib/libiconv.a
 	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN32)      -o $@ $^ $(LFLAGS_CROSS_WIN32)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\"
 
-hashcat64.exe: src/main.c $(WIN_64_OBJS)
+hashcat64.exe: src/main.c $(WIN_64_OBJS) $(WIN_ICONV_64)/lib/libiconv.a
 	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)      -o $@ $^ $(LFLAGS_CROSS_WIN64)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\"
 
 hashcat32.dll: src/main.c $(WIN_32_OBJS)

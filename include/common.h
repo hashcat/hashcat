@@ -16,6 +16,10 @@
 #error Your Operating System is not supported or detected
 #endif
 
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+#error "compiling for big-endian architecture not supported"
+#endif
+
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif

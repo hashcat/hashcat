@@ -1,4 +1,17 @@
-* changes v3.40 -> 3.5.x:
+* changes v3.5.0 -> 3.x.x:
+
+##
+## Algorithms
+##
+
+- Added hash-mode 15200 = Blockchain, My Wallet, V2
+
+##
+## Features
+##
+
+- Wordlist encoding: Support added for internal convert from and to user-defined encoding during runtime
+- Wordlist encoding: Added parameters --encoding-from and --encoding-to to configure wordlist encoding handling
 
 ##
 ## Improvements
@@ -10,6 +23,8 @@
 ## Technical
 ##
 
+- Building: On binary release package, link libiconv static for windows binaries
+- Dictstat: Structure for dictstat file changed as it has to include --encoding-from and --encoding-to parameter now
 - OpenCL Runtime: Updated AMDGPU-Pro driver version check, do warn if version 17.10 is detected which is known to be broken
 - WPA cracking: Reduced --nonce-error-corrections default from 16 to 8 to compensate speed drop caused due to Big-Endian fixes
 
