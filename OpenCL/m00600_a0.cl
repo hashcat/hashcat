@@ -89,7 +89,7 @@ __constant u8a blake2b_sigma[12][16] =
     BLAKE2B_G(r,7,v[ 3],v[ 4],v[ 9],v[14]); \
 } while(0)
 
-void blake2b_compress (const u32x pw[16], const u64x pw_len, u64x digest[8])
+void blake2b_compress (const u32x pw[16], const u32x out_len, u64x digest[8])
 {
 
   /*
@@ -125,7 +125,7 @@ void blake2b_compress (const u32x pw[16], const u64x pw_len, u64x digest[8])
   for (i = 0; i < 8; ++i) 
     S->h[i] = blake2b_IV[i];
 
-  S->t[0] =  pw_len;
+  S->t[0] =  hl32_to_64(0, out_len);
   S->t[1] =  0;
   S->f[0] = -1;
   S->f[1] =  0;
@@ -358,7 +358,7 @@ __kernel void m00600_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
     digest[6] = 0;
     digest[7] = 0;
 
-    blake2b_compress(pw, pw_len, digest);
+    blake2b_compress(pw, out_len, digest);
 
     const u32x r0 = h32_from_64(digest[0]);
     const u32x r1 = l32_from_64(digest[0]);
