@@ -96,7 +96,6 @@ void blake2b_compress (const u32x pw[16], const u32x out_len, u64x digest[8])
    * Blake2b Init Param
    */
 
-  u32 i;
   blake2b_param P[1];
 
   P->digest_length = BLAKE2B_OUTBYTES;
@@ -109,11 +108,11 @@ void blake2b_compress (const u32x pw[16], const u32x out_len, u64x digest[8])
   P->node_depth = 0;
   P->inner_length = 0;
 
-  for (i = 0; i < 14; i++) 
+  for (int i = 0; i < 14; i++) 
     P->reserved[i] = 0;
-  for (i = 0; i < BLAKE2B_SALTBYTES; i++) 
+  for (int i = 0; i < BLAKE2B_SALTBYTES; i++) 
     P->salt[i] = 0;
-  for (i = 0; i < BLAKE2B_PERSONALBYTES; i++) 
+  for (int i = 0; i < BLAKE2B_PERSONALBYTES; i++) 
     P->personal[i] = 0;
 
   /*
@@ -122,7 +121,7 @@ void blake2b_compress (const u32x pw[16], const u32x out_len, u64x digest[8])
 
   blake2b_state S[1];
 
-  for (i = 0; i < 8; ++i) 
+  for (int i = 0; i < 8; ++i) 
     S->h[i] = blake2b_IV[i];
 
   S->t[0] =  hl32_to_64(0, out_len);
@@ -136,7 +135,7 @@ void blake2b_compress (const u32x pw[16], const u32x out_len, u64x digest[8])
   const u8x *p = (const u8x *)(P);
 
   /* IV XOR ParamBlock */
-  for (i = 0; i < 8; ++i)
+  for (int i = 0; i < 8; ++i)
     S->h[i] ^= *((u64x*)(p + sizeof(S->h[i]) * i));
 
   // S->outlen = P->digest_length;
@@ -148,7 +147,7 @@ void blake2b_compress (const u32x pw[16], const u32x out_len, u64x digest[8])
   u64x v[16];
   u64x m[16];
 
-  for (i = 0; i < 8; ++i) {
+  for (int i = 0; i < 8; ++i) {
     m[i] = swap64(hl32_to_64(pw[i * 2 + 1], pw[i * 2]));
   }
  
@@ -161,7 +160,7 @@ void blake2b_compress (const u32x pw[16], const u32x out_len, u64x digest[8])
   m[14] = 0;
   m[15] = 0;
 
-  for (i = 0; i < 8; ++i)
+  for (int i = 0; i < 8; ++i)
     v[i] = S->h[i];
 
   v[ 8] = blake2b_IV[0];
@@ -186,7 +185,7 @@ void blake2b_compress (const u32x pw[16], const u32x out_len, u64x digest[8])
   BLAKE2B_ROUND(10);
   BLAKE2B_ROUND(11);
 
-  for (i = 0; i < 8; ++i) {
+  for (int i = 0; i < 8; ++i) {
     S->h[i] = S->h[i] ^ v[i] ^ v[i + 8];
     digest[i] = swap64(S->h[i]);
   }
