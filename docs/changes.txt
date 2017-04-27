@@ -20,6 +20,12 @@
 - WPA cracking: Improved nonce-error-corrections mode to fix corrupt nonce generated on Big-Endian devices
 
 ##
+## Bugs
+##
+
+- Fixed a missing type specifier in a function declaration of the RACF kernel
+
+##
 ## Technical
 ##
 
