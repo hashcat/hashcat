@@ -14,32 +14,11 @@
 #include "inc_rp.cl"
 #include "inc_simd.cl"
 
-typedef struct
-{
-  u8x  digest_length;                    /*  1 */
-  u8x  key_length;                       /*  2 */
-  u8x  fanout;                           /*  3 */
-  u8x  depth;                            /*  4 */
-  u32x leaf_length;                      /*  8 */
-  u32x node_offset;                      /* 12 */
-  u32x xof_length;                       /* 16 */
-  u8x  node_depth;                       /* 17 */
-  u8x  inner_length;                     /* 18 */
-  u8x  reserved[14];                     /* 32 */
-  u8x  salt[BLAKE2B_SALTBYTES];          /* 48 */
-  u8x  personal[BLAKE2B_PERSONALBYTES];  /* 64 */
-} blake2b_param;
 
-typedef struct
+inline u64 hl8_to_32(const u8 a, const u8 b, const u8 c, const u8 d)
 {
-  u64x h[8];
-  u64x t[2];
-  u64x f[2];
-  u8x  buf[BLAKE2B_BLOCKBYTES];
-  u32x buflen;
-  u32x outlen;
-  u8x  last_node;
-} blake2b_state;
+  return as_uint((uchar4) (a, b, c, d));
+}
 
 __constant u64a blake2b_IV[8] =
 {
@@ -89,56 +68,50 @@ __constant u8a blake2b_sigma[12][16] =
     BLAKE2B_G(r,7,v[ 3],v[ 4],v[ 9],v[14]); \
 } while(0)
 
-void blake2b_compress (const u32x pw[16], const u32x out_len, u64x digest[8])
+void blake2b_compress(const u32x pw[16], const u32x out_len, const u64 p_salt[2], const u8 key_length, const u8 digest_length, u64x digest[8])
 {
-
   /*
    * Blake2b Init Param
    */
 
-  blake2b_param P[1];
-
-  P->digest_length = BLAKE2B_OUTBYTES;
-  P->key_length = 0;
-  P->fanout = 1;
-  P->depth = 1;
-  P->leaf_length = 0;
-  P->node_offset = 0;
-  P->xof_length = 0;
-  P->node_depth = 0;
-  P->inner_length = 0;
-
-  for (int i = 0; i < 14; i++) 
-    P->reserved[i] = 0;
-  for (int i = 0; i < BLAKE2B_SALTBYTES; i++) 
-    P->salt[i] = 0;
-  for (int i = 0; i < BLAKE2B_PERSONALBYTES; i++) 
-    P->personal[i] = 0;
+  u8  p_digest_length = digest_length;
+  u8  p_key_length    = key_length;
+  u8  p_fanout        = 1;
+  u8  p_depth         = 1;
+  u32 p_leaf_length   = 0;
+  u32 p_node_offset   = 0;
+  u32 p_xof_length    = 0;
+  u8  p_node_depth    = 0;
+  u8  p_inner_length  = 0;
+  u8  p_reserved[14];			     /* UNUSED */
+  // u64 p_salt[2];			    
+  u8  p_personnel[BLAKE2B_PERSONALBYTES];   /* UNUSED */
 
   /*
    * Blake2b Init State
    */
 
-  blake2b_state S[1];
+  u64x s_h[8];                             /* 64 */
+  u64x s_t[2];
+  u64x s_f[2];
+  u32x s_buflen;
+  u32x s_outlen;
+  u8x  s_last_node;
 
-  for (int i = 0; i < 8; ++i) 
-    S->h[i] = blake2b_IV[i];
-
-  S->t[0] =  hl32_to_64(0, out_len);
-  S->t[1] =  0;
-  S->f[0] = -1;
-  S->f[1] =  0;
-  S->buflen = 0;
-  S->outlen = 0;
-  S->last_node = 0;
-
-  const u8x *p = (const u8x *)(P);
-
-  /* IV XOR ParamBlock */
-  for (int i = 0; i < 8; ++i)
-    S->h[i] ^= *((u64x*)(p + sizeof(S->h[i]) * i));
-
-  // S->outlen = P->digest_length;
+  s_h[0] = blake2b_IV[0] ^ hl8_to_32(p_digest_length, p_key_length, p_fanout, p_depth);
+  s_h[1] = blake2b_IV[1];
+  s_h[2] = blake2b_IV[2];
+  s_h[3] = blake2b_IV[3];
+  s_h[4] = blake2b_IV[4] ^ p_salt[0];
+  s_h[5] = blake2b_IV[5] ^ p_salt[1];
+  s_h[6] = blake2b_IV[6];
+  s_h[7] = blake2b_IV[7];
+  s_t[0] = hl32_to_64(0, out_len);
+  s_t[1] =  0;
+  s_f[0] = -1;
+  s_f[1] =  0;
+  s_outlen = 0;
+  s_last_node = 0;
 
   /*
    * Compress
@@ -147,10 +120,14 @@ void blake2b_compress (const u32x pw[16], const u32x out_len, u64x digest[8])
   u64x v[16];
   u64x m[16];
 
-  for (int i = 0; i < 8; ++i) {
-    m[i] = swap64(hl32_to_64(pw[i * 2 + 1], pw[i * 2]));
-  }
- 
+  m[0] = swap64(hl32_to_64(pw[ 1], pw[ 0]));
+  m[1] = swap64(hl32_to_64(pw[ 3], pw[ 2]));
+  m[2] = swap64(hl32_to_64(pw[ 5], pw[ 4]));
+  m[3] = swap64(hl32_to_64(pw[ 7], pw[ 6]));
+  m[4] = swap64(hl32_to_64(pw[ 9], pw[ 8]));
+  m[5] = swap64(hl32_to_64(pw[11], pw[10]));
+  m[6] = swap64(hl32_to_64(pw[13], pw[12]));
+  m[7] = swap64(hl32_to_64(pw[15], pw[14]));
   m[8] = 0;
   m[9] = 0;
   m[10] = 0;
@@ -160,17 +137,22 @@ void blake2b_compress (const u32x pw[16], const u32x out_len, u64x digest[8])
   m[14] = 0;
   m[15] = 0;
 
-  for (int i = 0; i < 8; ++i)
-    v[i] = S->h[i];
-
+  v[ 0] = s_h[0];
+  v[ 1] = s_h[1];
+  v[ 2] = s_h[2];
+  v[ 3] = s_h[3];
+  v[ 4] = s_h[4];
+  v[ 5] = s_h[5];
+  v[ 6] = s_h[6];
+  v[ 7] = s_h[7];
   v[ 8] = blake2b_IV[0];
   v[ 9] = blake2b_IV[1];
   v[10] = blake2b_IV[2];
   v[11] = blake2b_IV[3];
-  v[12] = blake2b_IV[4] ^ S->t[0];
-  v[13] = blake2b_IV[5] ^ S->t[1];
-  v[14] = blake2b_IV[6] ^ S->f[0];
-  v[15] = blake2b_IV[7] ^ S->f[1];
+  v[12] = blake2b_IV[4] ^ s_t[0];
+  v[13] = blake2b_IV[5] ^ s_t[1];
+  v[14] = blake2b_IV[6] ^ s_f[0];
+  v[15] = blake2b_IV[7] ^ s_f[1];
 
   BLAKE2B_ROUND( 0);
   BLAKE2B_ROUND( 1);
@@ -186,8 +168,8 @@ void blake2b_compress (const u32x pw[16], const u32x out_len, u64x digest[8])
   BLAKE2B_ROUND(11);
 
   for (int i = 0; i < 8; ++i) {
-    S->h[i] = S->h[i] ^ v[i] ^ v[i + 8];
-    digest[i] = swap64(S->h[i]);
+    s_h[i] = s_h[i] ^ v[i] ^ v[i + 8];
+    digest[i] = swap64(s_h[i]);
   }
 }
 
@@ -257,7 +239,9 @@ __kernel void m00600_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
     digest[6] = 0;
     digest[7] = 0;
 
-    blake2b_compress(pw, pw_len, digest);
+    u64 salt_param[2] = { 0, 0 };
+
+    blake2b_compress(pw, out_len, salt_param, 0, BLAKE2B_OUTBYTES, digest);
 
     const u32x r0 = h32_from_64(digest[0]);
     const u32x r1 = l32_from_64(digest[0]);
@@ -357,7 +341,9 @@ __kernel void m00600_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
     digest[6] = 0;
     digest[7] = 0;
 
-    blake2b_compress(pw, out_len, digest);
+    u64 salt_param[2] = { 0, 0 };
+
+    blake2b_compress(pw, out_len, salt_param, 0, BLAKE2B_OUTBYTES, digest);
 
     const u32x r0 = h32_from_64(digest[0]);
     const u32x r1 = l32_from_64(digest[0]);
