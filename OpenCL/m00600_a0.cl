@@ -49,11 +49,11 @@ __constant u8a blake2b_sigma[12][16] =
     a = a + b + m[blake2b_sigma[r][2*i+0]];   \
     d = rotr64(d ^ a, 32);                    \
     c = c + d;                                \
-    b = rotr64(b ^ c, 24);                  \
+    b = rotr64(b ^ c, 24);                    \
     a = a + b + m[blake2b_sigma[r][2*i+1]];   \
-    d = rotr64(d ^ a, 16);                  \
+    d = rotr64(d ^ a, 16);                    \
     c = c + d;                                \
-    b = rotr64(b ^ c, 63);                  \
+    b = rotr64(b ^ c, 63);                    \
   } while(0)
 
 #define BLAKE2B_ROUND(r)                    \
@@ -68,7 +68,7 @@ __constant u8a blake2b_sigma[12][16] =
     BLAKE2B_G(r,7,v[ 3],v[ 4],v[ 9],v[14]); \
 } while(0)
 
-void blake2b_compress(const u32x pw[16], const u32x out_len, const u64 p_salt[2], const u8 key_length, const u8 digest_length, u64x digest[8])
+void blake2b_transform(const u32x pw[16], const u32x out_len, const u64 p_salt[2], const u64 p_key[16], const u8 key_length, const u8 digest_length, u64x digest[8])
 {
   /*
    * Blake2b Init Param
@@ -83,15 +83,14 @@ void blake2b_compress(const u32x pw[16], const u32x out_len, const u64 p_salt[2]
   u32 p_xof_length    = 0;
   u8  p_node_depth    = 0;
   u8  p_inner_length  = 0;
-  u8  p_reserved[14];			     /* UNUSED */
-  // u64 p_salt[2];			    
-  u8  p_personnel[BLAKE2B_PERSONALBYTES];   /* UNUSED */
+  u8  p_reserved[14];
+  u8  p_personnel[BLAKE2B_PERSONALBYTES];
 
   /*
    * Blake2b Init State
    */
 
-  u64x s_h[8];                             /* 64 */
+  u64x s_h[8];
   u64x s_t[2];
   u64x s_f[2];
   u32x s_buflen;
@@ -239,9 +238,9 @@ __kernel void m00600_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
     digest[6] = 0;
     digest[7] = 0;
 
-    u64 salt_param[2] = { 0, 0 };
-
-    blake2b_compress(pw, out_len, salt_param, 0, BLAKE2B_OUTBYTES, digest);
+    u64 p_salt[2] = { 0, 0 };
+    u64 p_key[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    blake2b_transform(pw, out_len, p_salt, p_key, 0, BLAKE2B_OUTBYTES, digest);
 
     const u32x r0 = h32_from_64(digest[0]);
     const u32x r1 = l32_from_64(digest[0]);
@@ -341,9 +340,9 @@ __kernel void m00600_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
     digest[6] = 0;
     digest[7] = 0;
 
-    u64 salt_param[2] = { 0, 0 };
-
-    blake2b_compress(pw, out_len, salt_param, 0, BLAKE2B_OUTBYTES, digest);
+    u64 p_salt[2] = { 0, 0 };
+    u64 p_key[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    blake2b_transform(pw, out_len, p_salt, p_key, 0, BLAKE2B_OUTBYTES, digest);
 
     const u32x r0 = h32_from_64(digest[0]);
     const u32x r1 = l32_from_64(digest[0]);
