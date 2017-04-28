@@ -1,6 +1,6 @@
 environment:
   CYG_MIRROR: http://cygwin.mirror.constant.com
-  CYG_PACKAGES: make,gcc-core
+  CYG_PACKAGES: make,gcc-core,libiconv-devel
   DOCUMENT_FOLDER: /share/doc/hashcat
   matrix:
     - CYG_ROOT: C:\cygwin64
