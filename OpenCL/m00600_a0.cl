@@ -168,7 +168,7 @@ void blake2b_transform(const u32x pw[16], const u32x out_len, const u64 p_salt[2
 
   for (int i = 0; i < 8; ++i) {
     s_h[i] = s_h[i] ^ v[i] ^ v[i + 8];
-    digest[i] = swap64(s_h[i]);
+    digest[i] = s_h[i];
   }
 }
 

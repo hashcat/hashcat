@@ -5284,15 +5284,6 @@ int blake2b_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   digest[6] = hex_to_u64 ((const u8 *) &input_hash_buf[ 96]);
   digest[7] = hex_to_u64 ((const u8 *) &input_hash_buf[112]);
 
-  digest[0] = byte_swap_64 (digest[0]);
-  digest[1] = byte_swap_64 (digest[1]);
-  digest[2] = byte_swap_64 (digest[2]);
-  digest[3] = byte_swap_64 (digest[3]);
-  digest[4] = byte_swap_64 (digest[4]);
-  digest[5] = byte_swap_64 (digest[5]);
-  digest[6] = byte_swap_64 (digest[6]);
-  digest[7] = byte_swap_64 (digest[7]);
-
   return (PARSER_OK);
 }
 
@@ -18461,14 +18452,22 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
       snprintf (out_buf, out_len - 1, "%s%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
         SIGNATURE_BLAKE2B,
-        ptr[ 1], ptr[ 0],
-        ptr[ 3], ptr[ 2],
-        ptr[ 5], ptr[ 4],
-        ptr[ 7], ptr[ 6],
-        ptr[ 9], ptr[ 8],
-        ptr[11], ptr[10],
-        ptr[13], ptr[12],
-        ptr[15], ptr[14]);
+        byte_swap_32(ptr[ 0]),
+        byte_swap_32(ptr[ 1]),
+        byte_swap_32(ptr[ 2]),
+        byte_swap_32(ptr[ 3]),
+        byte_swap_32(ptr[ 4]),
+        byte_swap_32(ptr[ 5]),
+        byte_swap_32(ptr[ 6]),
+        byte_swap_32(ptr[ 7]),
+        byte_swap_32(ptr[ 8]),
+        byte_swap_32(ptr[ 9]),
+        byte_swap_32(ptr[10]),
+        byte_swap_32(ptr[11]),
+        byte_swap_32(ptr[12]),
+        byte_swap_32(ptr[13]),
+        byte_swap_32(ptr[14]),
+        byte_swap_32(ptr[15]));
     }
     else if (hash_type == HASH_TYPE_RIPEMD160)
     {
@@ -19367,7 +19366,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case   600:  hashconfig->hash_type      = HASH_TYPE_BLAKE2B;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
                  hashconfig->kern_type      = KERN_TYPE_BLAKE2B;
                  hashconfig->dgst_size      = DGST_SIZE_8_8;
                  hashconfig->parse_func     = blake2b_parse_hash;
