@@ -2454,7 +2454,7 @@ inline u32 rule_op_mangle_dupeblock_last (const u32 p0, const u32 p1, u32 buf0[4
   return out_len;
 }
 
-inline u32 rule_op_mangle_title (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+inline u32 rule_op_mangle_title_sep (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   buf0[0] |= (generate_cmask (buf0[0]));
   buf0[1] |= (generate_cmask (buf0[1]));
@@ -2468,7 +2468,7 @@ inline u32 rule_op_mangle_title (const u32 p0, const u32 p1, u32 buf0[4], u32 bu
   u32 tib40[4];
   u32 tib41[4];
 
-  const uchar4 tmp0 = (uchar4) (' ');
+  const uchar4 tmp0 = (uchar4) (p0);
   const uchar4 tmp1 = (uchar4) (0x00);
   const uchar4 tmp2 = (uchar4) (0xff);
 
@@ -2542,7 +2542,8 @@ inline u32 apply_rule (const u32 name, const u32 p0, const u32 p1, u32 buf0[4], 
     case RULE_OP_MANGLE_REPLACE_NM1:      out_len = rule_op_mangle_replace_nm1      (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_DUPEBLOCK_FIRST:  out_len = rule_op_mangle_dupeblock_first  (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_DUPEBLOCK_LAST:   out_len = rule_op_mangle_dupeblock_last   (p0, p1, buf0, buf1, out_len); break;
-    case RULE_OP_MANGLE_TITLE:            out_len = rule_op_mangle_title            (p0, p1, buf0, buf1, out_len); break;
+    case RULE_OP_MANGLE_TITLE_SEP:        out_len = rule_op_mangle_title_sep        (p0, p1, buf0, buf1, out_len); break;
+    case RULE_OP_MANGLE_TITLE:            out_len = rule_op_mangle_title_sep        (' ', p1, buf0, buf1, out_len); break;
   }
 
   return out_len;

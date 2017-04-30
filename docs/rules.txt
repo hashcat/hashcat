@@ -38,6 +38,7 @@
 #define RULE_OP_MANGLE_DUPEBLOCK_FIRST  'y' // duplicates first n characters
 #define RULE_OP_MANGLE_DUPEBLOCK_LAST   'Y' // duplicates last n characters
 #define RULE_OP_MANGLE_TITLE            'E' // lowercase everything then upper case the first letter and every letter after a space
+#define RULE_OP_MANGLE_TITLE_SEP        'e' // lowercase everything then upper case the first letter and every letter after char X
 
 /* With -j or -k only */
 

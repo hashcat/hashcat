@@ -280,6 +280,7 @@ typedef enum rule_functions
   RULE_OP_MANGLE_EXTRACT_MEMORY  = 'X',
   RULE_OP_MANGLE_APPEND_MEMORY   = '4',
   RULE_OP_MANGLE_PREPEND_MEMORY  = '6',
+  RULE_OP_MANGLE_TITLE_SEP       = 'e',
 
   RULE_OP_MEMORIZE_WORD          = 'M',
 

@@ -2393,7 +2393,7 @@ static u32 rule_op_mangle_dupeblock_last (MAYBE_UNUSED const u32 p0, MAYBE_UNUSE
   return out_len;
 }
 
-static u32 rule_op_mangle_title (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_title_sep (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   buf0[0] |= (generate_cmask (buf0[0]));
   buf0[1] |= (generate_cmask (buf0[1]));
@@ -2405,6 +2405,8 @@ static u32 rule_op_mangle_title (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u
   buf1[3] |= (generate_cmask (buf1[3]));
 
   buf0[0] &= ~(0x00000020 & generate_cmask (buf0[0]));
+
+  const u8 tmp2 = (u8) p0;
 
   for (u32 i = 0; i < in_len; i++)
   {
@@ -2479,35 +2481,35 @@ static u32 rule_op_mangle_title (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u
 
     if (i < 3)
     {
-      if (tmp0   == ' ') buf0[0]   &= tmp1  ;
+      if (tmp0   == tmp2) buf0[0]   &= tmp1  ;
     }
     else if (i < 7)
     {
-      if (tmp0   == ' ') buf0[1]   &= tmp1  ;
+      if (tmp0   == tmp2) buf0[1]   &= tmp1  ;
     }
     else if (i < 11)
     {
-      if (tmp0   == ' ') buf0[2]   &= tmp1  ;
+      if (tmp0   == tmp2) buf0[2]   &= tmp1  ;
     }
     else if (i < 15)
     {
-      if (tmp0   == ' ') buf0[3]   &= tmp1  ;
+      if (tmp0   == tmp2) buf0[3]   &= tmp1  ;
     }
     else if (i < 19)
     {
-      if (tmp0   == ' ') buf1[0]   &= tmp1  ;
+      if (tmp0   == tmp2) buf1[0]   &= tmp1  ;
     }
     else if (i < 23)
     {
-      if (tmp0   == ' ') buf1[1]   &= tmp1  ;
+      if (tmp0   == tmp2) buf1[1]   &= tmp1  ;
     }
     else if (i < 27)
     {
-      if (tmp0   == ' ') buf1[2]   &= tmp1  ;
+      if (tmp0   == tmp2) buf1[2]   &= tmp1  ;
     }
     else if (i < 31)
     {
-      if (tmp0   == ' ') buf1[3]   &= tmp1  ;
+      if (tmp0   == tmp2) buf1[3]   &= tmp1  ;
     }
   }
 
@@ -2559,7 +2561,8 @@ u32 apply_rule (const u32 name, const u32 p0, const u32 p1, u32 buf0[4], u32 buf
     case RULE_OP_MANGLE_REPLACE_NM1:      out_len = rule_op_mangle_replace_nm1      (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_DUPEBLOCK_FIRST:  out_len = rule_op_mangle_dupeblock_first  (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_DUPEBLOCK_LAST:   out_len = rule_op_mangle_dupeblock_last   (p0, p1, buf0, buf1, out_len); break;
-    case RULE_OP_MANGLE_TITLE:            out_len = rule_op_mangle_title            (p0, p1, buf0, buf1, out_len); break;
+    case RULE_OP_MANGLE_TITLE_SEP:        out_len = rule_op_mangle_title_sep        (p0, p1, buf0, buf1, out_len); break;
+    case RULE_OP_MANGLE_TITLE:            out_len = rule_op_mangle_title_sep        (' ', p1, buf0, buf1, out_len); break;
   }
 
   return out_len;
