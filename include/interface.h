@@ -420,6 +420,24 @@ typedef struct psafe3
 
 } psafe3_t;
 
+/* Fist0urs */
+typedef struct dpapimk
+{
+  u32 version;
+  u32 context;
+
+  u8 SID_tmp[64];
+  u32 SID[64];
+  u8 cipher_algo[16];
+  u8 hash_algo[16];
+
+  u32 iv[4];
+  u32 contents_len;
+  u32 contents[128];
+
+} dpapimk_t;
+/* Fist0urs_end */
+
 typedef struct pdf14_tmp
 {
   u32 digest[4];
@@ -810,6 +828,18 @@ typedef struct keepass_tmp
 
 } keepass_tmp_t;
 
+/* Fist0urs */
+typedef struct dpapimk_tmp
+{
+  u32 ipad[5];
+  u32 opad[5];
+
+  u32 dgst[5];
+  u32 out[4];
+
+} dpapimk_tmp_t;
+/* Fist0urs_end */
+
 typedef struct seven_zip_hook
 {
   u32 ukey[8];
@@ -1188,6 +1218,10 @@ typedef enum display_len
   DISPLAY_LEN_MAX_15100 = 6 + 6 + 1 + 8 + 1 + 28,
   DISPLAY_LEN_MIN_15200 =  1 + 10 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 64,
   DISPLAY_LEN_MAX_15200 =  1 + 10 + 1 + 2 + 1 + 8 + 1 + 5 + 1 + 20000,
+/* Fist0urs */
+  DISPLAY_LEN_MIN_15300 =  1 + 7 + 1 + 1 + 1 + 1 + 1 + 10 + 1 + 4 + 1 + 4 + 1 + 1 + 1 + 32 + 1 + 3 + 128,
+  DISPLAY_LEN_MAX_15300 =  1 + 7 + 1 + 1 + 1 + 1 + 1 + 100 + 1 + 6 + 1 + 6 + 1 + 10 + 1 + 32 + 1 + 4 + 1 + 512,
+/* Fist0urs_end */
   DISPLAY_LEN_MIN_99999 = 1,
   DISPLAY_LEN_MAX_99999 = 55,
 
@@ -1326,6 +1360,7 @@ typedef enum hash_type
   HASH_TYPE_ITUNES_BACKUP_9     = 56,
   HASH_TYPE_ITUNES_BACKUP_10    = 57,
   HASH_TYPE_SKIP32              = 58,
+  HASH_TYPE_DPAPIMK             = 59,
 
 } hash_type_t;
 
@@ -1514,6 +1549,9 @@ typedef enum kern_type
   KERN_TYPE_SKIP32                  = 14900,
   KERN_TYPE_FILEZILLA_SERVER        = 15000,
   KERN_TYPE_NETBSD_SHA1CRYPT        = 15100,
+/* Fist0urs */
+  KERN_TYPE_DPAPIMK                 = 15300,
+/* Fist0urs_end */
   KERN_TYPE_PLAINTEXT               = 99999,
 
 } kern_type_t;
@@ -1584,6 +1622,9 @@ typedef enum rounds_count
    ROUNDS_ITUNES102_BACKUP   = 10000,
    ROUNDS_ATLASSIAN          = 10000,
    ROUNDS_NETBSD_SHA1CRYPT   = 20000,
+/* Fist0urs */
+   ROUNDS_DPAPIMK            = 14000, // can be really different but fits jtr -test
+/* Fist0urs_end */
    ROUNDS_STDOUT             = 0
 
 } rounds_count_t;
@@ -1761,7 +1802,9 @@ int sha256b64s_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int filezilla_server_parse_hash   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int netbsd_sha1crypt_parse_hash   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int atlassian_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
-
+/* Fist0urs */
+int dpapimk_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
+/* Fist0urs_end */
 /**
  * hook functions
  */
