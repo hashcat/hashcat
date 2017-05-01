@@ -148,8 +148,8 @@ __kernel void m00600_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE) {
-
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  {
     u32x w0[4] = { 0 };
     u32x w1[4] = { 0 };
     u32x w2[4] = { 0 };
@@ -250,8 +250,8 @@ __kernel void m00600_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE) {
-
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  {
     u32x w0[4] = { 0 };
     u32x w1[4] = { 0 };
     u32x w2[4] = { 0 };

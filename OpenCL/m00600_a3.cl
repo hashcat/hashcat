@@ -134,8 +134,8 @@ __kernel void m00600_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   u32 w0l = pws[gid].i[0];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE) {
-
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
     const u32x w0x = w0l | w0r;
 
@@ -240,8 +240,8 @@ __kernel void m00600_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   u32 w0l = pws[gid].i[0];
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE) {
-
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
+  {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
     const u32x w0x = w0l | w0r;
     
