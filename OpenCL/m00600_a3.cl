@@ -128,6 +128,24 @@ __kernel void m00600_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
 
+  u64 tmp_h[8];
+  u64 tmp_t[2];
+  u64 tmp_f[2];
+
+  tmp_h[0] = esalt_bufs->h[0];
+  tmp_h[1] = esalt_bufs->h[1];
+  tmp_h[2] = esalt_bufs->h[2];
+  tmp_h[3] = esalt_bufs->h[3];
+  tmp_h[4] = esalt_bufs->h[4];
+  tmp_h[5] = esalt_bufs->h[5];
+  tmp_h[6] = esalt_bufs->h[6];
+  tmp_h[7] = esalt_bufs->h[7];
+
+  tmp_t[0] = esalt_bufs->t[0];
+  tmp_t[1] = esalt_bufs->t[1];
+  tmp_f[0] = esalt_bufs->f[0];
+  tmp_f[1] = esalt_bufs->f[1];
+
   /**
    * loop
    */
@@ -171,19 +189,19 @@ __kernel void m00600_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
     u64x t[2];
     u64x f[2];
 
-    h[0] = esalt_bufs->h[0];
-    h[1] = esalt_bufs->h[1];
-    h[2] = esalt_bufs->h[2];
-    h[3] = esalt_bufs->h[3];
-    h[4] = esalt_bufs->h[4];
-    h[5] = esalt_bufs->h[5];
-    h[6] = esalt_bufs->h[6];
-    h[7] = esalt_bufs->h[7];
+    h[0] = tmp_h[0];
+    h[1] = tmp_h[1];
+    h[2] = tmp_h[2];
+    h[3] = tmp_h[3];
+    h[4] = tmp_h[4];
+    h[5] = tmp_h[5];
+    h[6] = tmp_h[6];
+    h[7] = tmp_h[7];
 
-    t[0] = esalt_bufs->t[0];
-    t[1] = esalt_bufs->t[1];
-    f[0] = esalt_bufs->f[0];
-    f[1] = esalt_bufs->f[1];
+    t[0] = tmp_t[0];
+    t[1] = tmp_t[1];
+    f[0] = tmp_f[0];
+    f[1] = tmp_f[1];
 
     blake2b_transform(h, t, f, m, v, w0, w1, w2, w3, out_len, BLAKE2B_FINAL);
 
@@ -221,6 +239,24 @@ __kernel void m00600_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
+
+  u64 tmp_h[8];
+  u64 tmp_t[2];
+  u64 tmp_f[2];
+
+  tmp_h[0] = esalt_bufs->h[0];
+  tmp_h[1] = esalt_bufs->h[1];
+  tmp_h[2] = esalt_bufs->h[2];
+  tmp_h[3] = esalt_bufs->h[3];
+  tmp_h[4] = esalt_bufs->h[4];
+  tmp_h[5] = esalt_bufs->h[5];
+  tmp_h[6] = esalt_bufs->h[6];
+  tmp_h[7] = esalt_bufs->h[7];
+
+  tmp_t[0] = esalt_bufs->t[0];
+  tmp_t[1] = esalt_bufs->t[1];
+  tmp_f[0] = esalt_bufs->f[0];
+  tmp_f[1] = esalt_bufs->f[1];
 
   /**
    * digest
@@ -277,19 +313,19 @@ __kernel void m00600_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
     u64x t[2];
     u64x f[2];
 
-    h[0] = esalt_bufs->h[0];
-    h[1] = esalt_bufs->h[1];
-    h[2] = esalt_bufs->h[2];
-    h[3] = esalt_bufs->h[3];
-    h[4] = esalt_bufs->h[4];
-    h[5] = esalt_bufs->h[5];
-    h[6] = esalt_bufs->h[6];
-    h[7] = esalt_bufs->h[7];
+    h[0] = tmp_h[0];
+    h[1] = tmp_h[1];
+    h[2] = tmp_h[2];
+    h[3] = tmp_h[3];
+    h[4] = tmp_h[4];
+    h[5] = tmp_h[5];
+    h[6] = tmp_h[6];
+    h[7] = tmp_h[7];
 
-    t[0] = esalt_bufs->t[0];
-    t[1] = esalt_bufs->t[1];
-    f[0] = esalt_bufs->f[0];
-    f[1] = esalt_bufs->f[1];
+    t[0] = tmp_t[0];
+    t[1] = tmp_t[1];
+    f[0] = tmp_f[0];
+    f[1] = tmp_f[1];
 
     blake2b_transform(h, t, f, m, v, w0, w1, w2, w3, out_len, BLAKE2B_FINAL);
 
