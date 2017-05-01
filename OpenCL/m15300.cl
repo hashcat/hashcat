@@ -3,11 +3,14 @@
  * License.....: MIT
  */
 
+#define NEW_SIMD_CODE
+
 #include "inc_vendor.cl"
 #include "inc_hash_constants.h"
 #include "inc_hash_functions.cl"
 #include "inc_types.cl"
 #include "inc_common.cl"
+#include "inc_simd.cl"
 
 #include "inc_cipher_aes.cl"
 
@@ -30,28 +33,50 @@ void u32_to_hex_lower (const u32 v, u8 hex[8])
   hex[6] = tbl[v >> 28 & 15];
 }
 
+void u64_to_hex_lower (const u64 v, u8 hex[16])
+{
+  const u8 tbl[0x10] =
+  {
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+    'a', 'b', 'c', 'd', 'e', 'f',
+  };
+
+  hex[ 1] = tbl[v >>  0 & 15];
+  hex[ 0] = tbl[v >>  4 & 15];
+  hex[ 3] = tbl[v >>  8 & 15];
+  hex[ 2] = tbl[v >> 12 & 15];
+  hex[ 5] = tbl[v >> 16 & 15];
+  hex[ 4] = tbl[v >> 20 & 15];
+  hex[ 7] = tbl[v >> 24 & 15];
+  hex[ 6] = tbl[v >> 28 & 15];
+  hex[ 9] = tbl[v >> 32 & 15];
+  hex[ 8] = tbl[v >> 36 & 15];
+  hex[11] = tbl[v >> 40 & 15];
+  hex[10] = tbl[v >> 44 & 15];
+  hex[13] = tbl[v >> 48 & 15];
+  hex[12] = tbl[v >> 52 & 15];
+  hex[15] = tbl[v >> 56 & 15];
+  hex[14] = tbl[v >> 60 & 15];
+}
+
 int
 pretty_print(char *message, void *data, int len)
 {
-    int g = 0;
-    for (int i = 0 ; i < len; i++)
+  int g = 0;
+  for (int i = 0 ; i < len; i++)
+  {
+    if (g == 0)
     {
-        if (g == 0)
-        {
-            printf("%s: ", message);
-            g++;
-        }
-        printf("%02x", ((char *)(data))[i]);
+      printf("%s: ", message);
+      g++;
     }
-    printf("\n");
-    
-    return 1;
-    
+    printf("%02x", ((char *)(data))[i]);
+  }
+  printf("\n");
+
+  return 1;
 }
 /* Fist0urs_end */
-
-
-
 
 void AES256_ExpandKey (u32 *userkey, u32 *rek, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
@@ -686,6 +711,349 @@ void hmac_sha1_run_V (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[
   sha1_transform_V (w0, w1, w2, w3, digest);
 }
 
+__constant u64a k_sha512[80] =
+{
+  SHA512C00, SHA512C01, SHA512C02, SHA512C03,
+  SHA512C04, SHA512C05, SHA512C06, SHA512C07,
+  SHA512C08, SHA512C09, SHA512C0a, SHA512C0b,
+  SHA512C0c, SHA512C0d, SHA512C0e, SHA512C0f,
+  SHA512C10, SHA512C11, SHA512C12, SHA512C13,
+  SHA512C14, SHA512C15, SHA512C16, SHA512C17,
+  SHA512C18, SHA512C19, SHA512C1a, SHA512C1b,
+  SHA512C1c, SHA512C1d, SHA512C1e, SHA512C1f,
+  SHA512C20, SHA512C21, SHA512C22, SHA512C23,
+  SHA512C24, SHA512C25, SHA512C26, SHA512C27,
+  SHA512C28, SHA512C29, SHA512C2a, SHA512C2b,
+  SHA512C2c, SHA512C2d, SHA512C2e, SHA512C2f,
+  SHA512C30, SHA512C31, SHA512C32, SHA512C33,
+  SHA512C34, SHA512C35, SHA512C36, SHA512C37,
+  SHA512C38, SHA512C39, SHA512C3a, SHA512C3b,
+  SHA512C3c, SHA512C3d, SHA512C3e, SHA512C3f,
+  SHA512C40, SHA512C41, SHA512C42, SHA512C43,
+  SHA512C44, SHA512C45, SHA512C46, SHA512C47,
+  SHA512C48, SHA512C49, SHA512C4a, SHA512C4b,
+  SHA512C4c, SHA512C4d, SHA512C4e, SHA512C4f,
+};
+
+void sha512_transform_S (const u64 w0[4], const u64 w1[4], const u64 w2[4], const u64 w3[4], u64 digest[8])
+{
+  u64 a = digest[0];
+  u64 b = digest[1];
+  u64 c = digest[2];
+  u64 d = digest[3];
+  u64 e = digest[4];
+  u64 f = digest[5];
+  u64 g = digest[6];
+  u64 h = digest[7];
+
+  u64 w0_t = w0[0];
+  u64 w1_t = w0[1];
+  u64 w2_t = w0[2];
+  u64 w3_t = w0[3];
+  u64 w4_t = w1[0];
+  u64 w5_t = w1[1];
+  u64 w6_t = w1[2];
+  u64 w7_t = w1[3];
+  u64 w8_t = w2[0];
+  u64 w9_t = w2[1];
+  u64 wa_t = w2[2];
+  u64 wb_t = w2[3];
+  u64 wc_t = w3[0];
+  u64 wd_t = w3[1];
+  u64 we_t = w3[2];
+  u64 wf_t = w3[3];
+
+  #define ROUND_EXPAND_S()                            \
+  {                                                   \
+    w0_t = SHA512_EXPAND_S (we_t, w9_t, w1_t, w0_t);  \
+    w1_t = SHA512_EXPAND_S (wf_t, wa_t, w2_t, w1_t);  \
+    w2_t = SHA512_EXPAND_S (w0_t, wb_t, w3_t, w2_t);  \
+    w3_t = SHA512_EXPAND_S (w1_t, wc_t, w4_t, w3_t);  \
+    w4_t = SHA512_EXPAND_S (w2_t, wd_t, w5_t, w4_t);  \
+    w5_t = SHA512_EXPAND_S (w3_t, we_t, w6_t, w5_t);  \
+    w6_t = SHA512_EXPAND_S (w4_t, wf_t, w7_t, w6_t);  \
+    w7_t = SHA512_EXPAND_S (w5_t, w0_t, w8_t, w7_t);  \
+    w8_t = SHA512_EXPAND_S (w6_t, w1_t, w9_t, w8_t);  \
+    w9_t = SHA512_EXPAND_S (w7_t, w2_t, wa_t, w9_t);  \
+    wa_t = SHA512_EXPAND_S (w8_t, w3_t, wb_t, wa_t);  \
+    wb_t = SHA512_EXPAND_S (w9_t, w4_t, wc_t, wb_t);  \
+    wc_t = SHA512_EXPAND_S (wa_t, w5_t, wd_t, wc_t);  \
+    wd_t = SHA512_EXPAND_S (wb_t, w6_t, we_t, wd_t);  \
+    we_t = SHA512_EXPAND_S (wc_t, w7_t, wf_t, we_t);  \
+    wf_t = SHA512_EXPAND_S (wd_t, w8_t, w0_t, wf_t);  \
+  }
+
+  #define ROUND_STEP_S(i)                                                                   \
+  {                                                                                         \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, a, b, c, d, e, f, g, h, w0_t, k_sha512[i +  0]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, h, a, b, c, d, e, f, g, w1_t, k_sha512[i +  1]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, g, h, a, b, c, d, e, f, w2_t, k_sha512[i +  2]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, f, g, h, a, b, c, d, e, w3_t, k_sha512[i +  3]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, e, f, g, h, a, b, c, d, w4_t, k_sha512[i +  4]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, d, e, f, g, h, a, b, c, w5_t, k_sha512[i +  5]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, c, d, e, f, g, h, a, b, w6_t, k_sha512[i +  6]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, b, c, d, e, f, g, h, a, w7_t, k_sha512[i +  7]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, a, b, c, d, e, f, g, h, w8_t, k_sha512[i +  8]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, h, a, b, c, d, e, f, g, w9_t, k_sha512[i +  9]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, g, h, a, b, c, d, e, f, wa_t, k_sha512[i + 10]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, f, g, h, a, b, c, d, e, wb_t, k_sha512[i + 11]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, e, f, g, h, a, b, c, d, wc_t, k_sha512[i + 12]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, d, e, f, g, h, a, b, c, wd_t, k_sha512[i + 13]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, c, d, e, f, g, h, a, b, we_t, k_sha512[i + 14]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, b, c, d, e, f, g, h, a, wf_t, k_sha512[i + 15]); \
+  }
+
+  ROUND_STEP_S (0);
+
+  #ifdef _unroll
+  #pragma unroll
+  #endif
+  for (int i = 16; i < 80; i += 16)
+  {
+    ROUND_EXPAND_S (); ROUND_STEP_S (i);
+  }
+
+  digest[0] += a;
+  digest[1] += b;
+  digest[2] += c;
+  digest[3] += d;
+  digest[4] += e;
+  digest[5] += f;
+  digest[6] += g;
+  digest[7] += h;
+}
+
+void hmac_sha512_pad_S (u64 w0[4], u64 w1[4], u64 w2[4], u64 w3[4], u64 ipad[8], u64 opad[8])
+{
+  w0[0] = w0[0] ^ 0x3636363636363636;
+  w0[1] = w0[1] ^ 0x3636363636363636;
+  w0[2] = w0[2] ^ 0x3636363636363636;
+  w0[3] = w0[3] ^ 0x3636363636363636;
+  w1[0] = w1[0] ^ 0x3636363636363636;
+  w1[1] = w1[1] ^ 0x3636363636363636;
+  w1[2] = w1[2] ^ 0x3636363636363636;
+  w1[3] = w1[3] ^ 0x3636363636363636;
+  w2[0] = w2[0] ^ 0x3636363636363636;
+  w2[1] = w2[1] ^ 0x3636363636363636;
+  w2[2] = w2[2] ^ 0x3636363636363636;
+  w2[3] = w2[3] ^ 0x3636363636363636;
+  w3[0] = w3[0] ^ 0x3636363636363636;
+  w3[1] = w3[1] ^ 0x3636363636363636;
+  w3[2] = w3[2] ^ 0x3636363636363636;
+  w3[3] = w3[3] ^ 0x3636363636363636;
+
+  ipad[0] = SHA512M_A;
+  ipad[1] = SHA512M_B;
+  ipad[2] = SHA512M_C;
+  ipad[3] = SHA512M_D;
+  ipad[4] = SHA512M_E;
+  ipad[5] = SHA512M_F;
+  ipad[6] = SHA512M_G;
+  ipad[7] = SHA512M_H;
+
+  sha512_transform_S (w0, w1, w2, w3, ipad);
+
+  w0[0] = w0[0] ^ 0x6a6a6a6a6a6a6a6a;
+  w0[1] = w0[1] ^ 0x6a6a6a6a6a6a6a6a;
+  w0[2] = w0[2] ^ 0x6a6a6a6a6a6a6a6a;
+  w0[3] = w0[3] ^ 0x6a6a6a6a6a6a6a6a;
+  w1[0] = w1[0] ^ 0x6a6a6a6a6a6a6a6a;
+  w1[1] = w1[1] ^ 0x6a6a6a6a6a6a6a6a;
+  w1[2] = w1[2] ^ 0x6a6a6a6a6a6a6a6a;
+  w1[3] = w1[3] ^ 0x6a6a6a6a6a6a6a6a;
+  w2[0] = w2[0] ^ 0x6a6a6a6a6a6a6a6a;
+  w2[1] = w2[1] ^ 0x6a6a6a6a6a6a6a6a;
+  w2[2] = w2[2] ^ 0x6a6a6a6a6a6a6a6a;
+  w2[3] = w2[3] ^ 0x6a6a6a6a6a6a6a6a;
+  w3[0] = w3[0] ^ 0x6a6a6a6a6a6a6a6a;
+  w3[1] = w3[1] ^ 0x6a6a6a6a6a6a6a6a;
+  w3[2] = w3[2] ^ 0x6a6a6a6a6a6a6a6a;
+  w3[3] = w3[3] ^ 0x6a6a6a6a6a6a6a6a;
+
+  opad[0] = SHA512M_A;
+  opad[1] = SHA512M_B;
+  opad[2] = SHA512M_C;
+  opad[3] = SHA512M_D;
+  opad[4] = SHA512M_E;
+  opad[5] = SHA512M_F;
+  opad[6] = SHA512M_G;
+  opad[7] = SHA512M_H;
+
+  sha512_transform_S (w0, w1, w2, w3, opad);
+}
+
+void hmac_sha512_run_S (u64 w0[4], u64 w1[4], u64 w2[4], u64 w3[4], u64 ipad[8], u64 opad[8], u64 digest[8])
+{
+  digest[0] = ipad[0];
+  digest[1] = ipad[1];
+  digest[2] = ipad[2];
+  digest[3] = ipad[3];
+  digest[4] = ipad[4];
+  digest[5] = ipad[5];
+  digest[6] = ipad[6];
+  digest[7] = ipad[7];
+
+  sha512_transform_S (w0, w1, w2, w3, digest);
+
+  w0[0] = digest[0];
+  w0[1] = digest[1];
+  w0[2] = digest[2];
+  w0[3] = digest[3];
+  w1[0] = digest[4];
+  w1[1] = digest[5];
+  w1[2] = digest[6];
+  w1[3] = digest[7];
+  w2[0] = 0x8000000000000000;
+  w2[1] = 0;
+  w2[2] = 0;
+  w2[3] = 0;
+  w3[0] = 0;
+  w3[1] = 0;
+  w3[2] = 0;
+  w3[3] = (128 + 64) * 8;
+
+  digest[0] = opad[0];
+  digest[1] = opad[1];
+  digest[2] = opad[2];
+  digest[3] = opad[3];
+  digest[4] = opad[4];
+  digest[5] = opad[5];
+  digest[6] = opad[6];
+  digest[7] = opad[7];
+
+  sha512_transform_S (w0, w1, w2, w3, digest);
+}
+
+void sha512_transform_V (const u64x w0[4], const u64x w1[4], const u64x w2[4], const u64x w3[4], u64x digest[8])
+{
+  u64x a = digest[0];
+  u64x b = digest[1];
+  u64x c = digest[2];
+  u64x d = digest[3];
+  u64x e = digest[4];
+  u64x f = digest[5];
+  u64x g = digest[6];
+  u64x h = digest[7];
+
+  u64x w0_t = w0[0];
+  u64x w1_t = w0[1];
+  u64x w2_t = w0[2];
+  u64x w3_t = w0[3];
+  u64x w4_t = w1[0];
+  u64x w5_t = w1[1];
+  u64x w6_t = w1[2];
+  u64x w7_t = w1[3];
+  u64x w8_t = w2[0];
+  u64x w9_t = w2[1];
+  u64x wa_t = w2[2];
+  u64x wb_t = w2[3];
+  u64x wc_t = w3[0];
+  u64x wd_t = w3[1];
+  u64x we_t = w3[2];
+  u64x wf_t = w3[3];
+
+  #define ROUND_EXPAND()                            \
+  {                                                 \
+    w0_t = SHA512_EXPAND (we_t, w9_t, w1_t, w0_t);  \
+    w1_t = SHA512_EXPAND (wf_t, wa_t, w2_t, w1_t);  \
+    w2_t = SHA512_EXPAND (w0_t, wb_t, w3_t, w2_t);  \
+    w3_t = SHA512_EXPAND (w1_t, wc_t, w4_t, w3_t);  \
+    w4_t = SHA512_EXPAND (w2_t, wd_t, w5_t, w4_t);  \
+    w5_t = SHA512_EXPAND (w3_t, we_t, w6_t, w5_t);  \
+    w6_t = SHA512_EXPAND (w4_t, wf_t, w7_t, w6_t);  \
+    w7_t = SHA512_EXPAND (w5_t, w0_t, w8_t, w7_t);  \
+    w8_t = SHA512_EXPAND (w6_t, w1_t, w9_t, w8_t);  \
+    w9_t = SHA512_EXPAND (w7_t, w2_t, wa_t, w9_t);  \
+    wa_t = SHA512_EXPAND (w8_t, w3_t, wb_t, wa_t);  \
+    wb_t = SHA512_EXPAND (w9_t, w4_t, wc_t, wb_t);  \
+    wc_t = SHA512_EXPAND (wa_t, w5_t, wd_t, wc_t);  \
+    wd_t = SHA512_EXPAND (wb_t, w6_t, we_t, wd_t);  \
+    we_t = SHA512_EXPAND (wc_t, w7_t, wf_t, we_t);  \
+    wf_t = SHA512_EXPAND (wd_t, w8_t, w0_t, wf_t);  \
+  }
+
+  #define ROUND_STEP(i)                                                                   \
+  {                                                                                       \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, a, b, c, d, e, f, g, h, w0_t, k_sha512[i +  0]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, h, a, b, c, d, e, f, g, w1_t, k_sha512[i +  1]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, g, h, a, b, c, d, e, f, w2_t, k_sha512[i +  2]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, f, g, h, a, b, c, d, e, w3_t, k_sha512[i +  3]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, e, f, g, h, a, b, c, d, w4_t, k_sha512[i +  4]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, d, e, f, g, h, a, b, c, w5_t, k_sha512[i +  5]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, c, d, e, f, g, h, a, b, w6_t, k_sha512[i +  6]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, b, c, d, e, f, g, h, a, w7_t, k_sha512[i +  7]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, a, b, c, d, e, f, g, h, w8_t, k_sha512[i +  8]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, h, a, b, c, d, e, f, g, w9_t, k_sha512[i +  9]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, g, h, a, b, c, d, e, f, wa_t, k_sha512[i + 10]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, f, g, h, a, b, c, d, e, wb_t, k_sha512[i + 11]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, e, f, g, h, a, b, c, d, wc_t, k_sha512[i + 12]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, d, e, f, g, h, a, b, c, wd_t, k_sha512[i + 13]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, c, d, e, f, g, h, a, b, we_t, k_sha512[i + 14]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, b, c, d, e, f, g, h, a, wf_t, k_sha512[i + 15]); \
+  }
+
+  ROUND_STEP (0);
+
+  #ifdef _unroll
+  #pragma unroll
+  #endif
+  for (int i = 16; i < 80; i += 16)
+  {
+    ROUND_EXPAND (); ROUND_STEP (i);
+  }
+
+  digest[0] += a;
+  digest[1] += b;
+  digest[2] += c;
+  digest[3] += d;
+  digest[4] += e;
+  digest[5] += f;
+  digest[6] += g;
+  digest[7] += h;
+}
+
+void hmac_sha512_run_V (u64x w0[4], u64x w1[4], u64x w2[4], u64x w3[4], u64x ipad[8], u64x opad[8], u64x digest[8])
+{
+  digest[0] = ipad[0];
+  digest[1] = ipad[1];
+  digest[2] = ipad[2];
+  digest[3] = ipad[3];
+  digest[4] = ipad[4];
+  digest[5] = ipad[5];
+  digest[6] = ipad[6];
+  digest[7] = ipad[7];
+
+  sha512_transform_V (w0, w1, w2, w3, digest);
+
+  w0[0] = digest[0];
+  w0[1] = digest[1];
+  w0[2] = digest[2];
+  w0[3] = digest[3];
+  w1[0] = digest[4];
+  w1[1] = digest[5];
+  w1[2] = digest[6];
+  w1[3] = digest[7];
+  w2[0] = 0x8000000000000000;
+  w2[1] = 0;
+  w2[2] = 0;
+  w2[3] = 0;
+  w3[0] = 0;
+  w3[1] = 0;
+  w3[2] = 0;
+  w3[3] = (128 + 64) * 8;
+
+  digest[0] = opad[0];
+  digest[1] = opad[1];
+  digest[2] = opad[2];
+  digest[3] = opad[3];
+  digest[4] = opad[4];
+  digest[5] = opad[5];
+  digest[6] = opad[6];
+  digest[7] = opad[7];
+
+  sha512_transform_V (w0, w1, w2, w3, digest);
+}
+
 __kernel void m15300_init (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const comb_t *combs_buf, __global const bf_t *bfs_buf, __global dpapimk_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global dpapimk_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 rules_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
   /**
@@ -742,30 +1110,26 @@ __kernel void m15300_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   u32 salt_len = salt_bufs[salt_pos].salt_len;
 
-  u32 salt_buf0[4];
-  u32 salt_buf1[4];
-  u32 salt_buf2[4];
-  u32 salt_buf3[4];
-  u32 salt_buf4[4];
-  u32 salt_buf5[4];
+  // u32 salt_buf0[4];
+  // u32 salt_buf1[4];
+  // u32 salt_buf2[4];
+  // u32 salt_buf3[4];
+  // u32 salt_buf4[4];
+  // u32 salt_buf5[4];
 
-  salt_buf0[0] = esalt_bufs[digests_offset].SID[0];
-  salt_buf0[1] = esalt_bufs[digests_offset].SID[1];
-  salt_buf0[2] = esalt_bufs[digests_offset].SID[2];
-  salt_buf0[3] = esalt_bufs[digests_offset].SID[3];
-  salt_buf1[0] = esalt_bufs[digests_offset].SID[4];
-  salt_buf1[1] = esalt_bufs[digests_offset].SID[5];
-  salt_buf1[2] = esalt_bufs[digests_offset].SID[6];
-  salt_buf1[3] = esalt_bufs[digests_offset].SID[7];
-  salt_buf2[0] = esalt_bufs[digests_offset].SID[8];
-  salt_buf2[1] = esalt_bufs[digests_offset].SID[9];
-  salt_buf2[2] = 0;
-  salt_buf2[3] = 0;   
-   
-  /*
-  ici on va faire le hmac sha1 avec md4 et sha1
-  
-  */
+  // salt_buf0[0] = esalt_bufs[digests_offset].SID[0];
+  // salt_buf0[1] = esalt_bufs[digests_offset].SID[1];
+  // salt_buf0[2] = esalt_bufs[digests_offset].SID[2];
+  // salt_buf0[3] = esalt_bufs[digests_offset].SID[3];
+  // salt_buf1[0] = esalt_bufs[digests_offset].SID[4];
+  // salt_buf1[1] = esalt_bufs[digests_offset].SID[5];
+  // salt_buf1[2] = esalt_bufs[digests_offset].SID[6];
+  // salt_buf1[3] = esalt_bufs[digests_offset].SID[7];
+  // salt_buf2[0] = esalt_bufs[digests_offset].SID[8];
+  // salt_buf2[1] = esalt_bufs[digests_offset].SID[9];
+  // salt_buf2[2] = 0;
+  // salt_buf2[3] = 0;
+
   u32 digest_context[5];
 
   /* local credentials */
@@ -776,17 +1140,17 @@ __kernel void m15300_init (__global pw_t *pws, __global const kernel_rule_t *rul
     digest_context[2] = SHA1M_C;
     digest_context[3] = SHA1M_D;
     digest_context[4] = SHA1M_E;
-    
+
     w0[0] = swap32 (w0[0]);
     w0[1] = swap32 (w0[1]);
     w0[2] = swap32 (w0[2]);
     w0[3] = swap32 (w0[3]);
-    
+
     w1[0] = swap32 (w1[0]);
     w1[1] = swap32 (w1[1]);
     w1[2] = swap32 (w1[2]);
     w1[3] = swap32 (w1[3]);
-    
+
     w2[0] = swap32 (w2[0]);
     w2[1] = swap32 (w2[1]);
     w2[2] = swap32 (w2[2]);
@@ -798,11 +1162,6 @@ __kernel void m15300_init (__global pw_t *pws, __global const kernel_rule_t *rul
     w3[3] = pw_len * 2 * 8;
 
     sha1_transform_S (w0, w1, w2, w3, digest_context);
-
-    digest_context[0] = swap32 (digest_context[0]);
-    digest_context[1] = swap32 (digest_context[1]);
-    digest_context[2] = swap32 (digest_context[2]);
-    digest_context[3] = swap32 (digest_context[3]);
   }
   /* domain credentials */
   else if (esalt_bufs[digests_offset].context == 2)
@@ -816,45 +1175,24 @@ __kernel void m15300_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
     md4_transform_S (w0, w1, w2, w3, digest_context);
 
+    digest_context[0] = swap32_S (digest_context[0]);
+    digest_context[1] = swap32_S (digest_context[1]);
+    digest_context[2] = swap32_S (digest_context[2]);
+    digest_context[3] = swap32_S (digest_context[3]);
     digest_context[4] = 0;
   }
 
-  u8 hex[8] = {0};
-  u32_to_hex_lower(digest_context[0], hex);
-  printf("digest_context[0]: %uld\n", digest_context[0]);
-  for (int i = 0; i < 8; i++)
-    printf("%c", hex[i]);
-  printf("\n");
+  /* initialize hmac-sha1 */
 
-  u32_to_hex_lower(digest_context[1], hex);
-  printf("digest_context[1]: %uld\n", digest_context[1]);
-  for (int i = 0; i < 8; i++)
-    printf("%c", hex[i]);
-  printf("\n");
-
-  u32_to_hex_lower(digest_context[2], hex);
-  printf("digest_context[2]: %uld\n", digest_context[2]);
-  for (int i = 0; i < 8; i++)
-    printf("%c", hex[i]);
-  printf("\n");
-
-  u32_to_hex_lower(digest_context[3], hex);
-  printf("digest_context[3]: %uld\n", digest_context[3]);
-  for (int i = 0; i < 8; i++)
-    printf("%c", hex[i]);
-  printf("\n");  
-
-  /* initialize hmac sha1 */
-  
-    /**
+   /**
    * pads
    */
 
-  w0[0] = swap32_S (digest_context[0]);
-  w0[1] = swap32_S (digest_context[1]);
-  w0[2] = swap32_S (digest_context[2]);
-  w0[3] = swap32_S (digest_context[3]);
-  w1[0] = swap32_S (digest_context[4]);
+  w0[0] = digest_context[0];
+  w0[1] = digest_context[1];
+  w0[2] = digest_context[2];
+  w0[3] = digest_context[3];
+  w1[0] = digest_context[4];
   w1[1] = 0;
   w1[2] = 0;
   w1[3] = 0;
@@ -883,99 +1221,409 @@ __kernel void m15300_init (__global pw_t *pws, __global const kernel_rule_t *rul
   tmps[gid].opad[2] = opad[2];
   tmps[gid].opad[3] = opad[3];
   tmps[gid].opad[4] = opad[4];
-  
+
   /**
    * hmac1
    */
 
-   /* salt_buf c'est le SID là */
-  w0[0] = salt_buf0[0];
-  w0[1] = salt_buf0[1];
-  w0[2] = salt_buf0[2];
-  w0[3] = salt_buf0[3];
-  w1[0] = salt_buf1[0];
-  w1[1] = salt_buf1[1];
-  w1[2] = salt_buf1[2];
-  w1[3] = salt_buf1[3];
-  w2[0] = salt_buf2[0];
-  w2[1] = salt_buf2[1];
+  w0[0] = 0xdddddddd;
+  w0[1] = 0xdddddddd;
+  w0[2] = 0xdddddddd;
+  w0[3] = 0xdddddddd;
+  w1[0] = 0xdddddddd;
+  w1[1] = 0x80000000;
+  w1[2] = 0;
+  w1[3] = 0;
+  w2[0] = 0;
+  w2[1] = 0;
   w2[2] = 0;
   w2[3] = 0;
   w3[0] = 0;
   w3[1] = 0;
   w3[2] = 0;
-  w3[3] = (64 + salt_len + 4) * 8;
+  w3[3] = (64 + 20) * 8;
 
-  append_0x01_4x4_S (w0, w1, w2, w3, salt_len + 3);
-  append_0x80_4x4_S (w0, w1, w2, w3, salt_len + 4);
+  u32 key[5];
 
-  w0[0] = swap32_S (w0[0]);
-  w0[1] = swap32_S (w0[1]);
-  w0[2] = swap32_S (w0[2]);
-  w0[3] = swap32_S (w0[3]);
-  w1[0] = swap32_S (w1[0]);
-  w1[1] = swap32_S (w1[1]);
-  w1[2] = swap32_S (w1[2]);
-  w1[3] = swap32_S (w1[3]);
-  w2[0] = swap32_S (w2[0]);
-  w2[1] = swap32_S (w2[1]);
-  w2[2] = swap32_S (w2[2]);
-  w2[3] = swap32_S (w2[3]);
-  w3[0] = swap32_S (w3[0]);
-  w3[1] = swap32_S (w3[1]);
+  hmac_sha1_run_S (w0, w1, w2, w3, ipad, opad, key);
 
-  u32 digest[5];
+  /* this key is used as password for pbkdf2-hmac-* */
 
-  hmac_sha1_run_S (w0, w1, w2, w3, ipad, opad, digest);
+  /* if DPAPImk version 1, pbkdf-hmac-sha1 is used */
+  if (esalt_bufs[digests_offset].version == 1)
+  {
+    /**
+     * pads
+     */
 
-  // tmps[gid].tmp_digest[0] = digest[0];
-  // tmps[gid].tmp_digest[1] = digest[1];
-  // tmps[gid].tmp_digest[2] = digest[2];
-  // tmps[gid].tmp_digest[3] = digest[3];
-  // tmps[gid].tmp_digest[4] = digest[4];
-  // tmps[gid].tmp_digest[5] = digest[5];
-  // tmps[gid].tmp_digest[6] = digest[6];
-  // tmps[gid].tmp_digest[7] = digest[7];
-  
+    w0[0] = key[0];
+    w0[1] = key[1];
+    w0[2] = key[2];
+    w0[3] = key[3];
+    w1[0] = key[4];
+    w1[1] = 0;
+    w1[2] = 0;
+    w1[3] = 0;
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 0;
+    w3[3] = 0;
 
-  u32_to_hex_lower(digest[0], hex);
-  printf("digest[0]: %uld\n", digest[0]);
-  for (int i = 0; i < 8; i++)
-    printf("%c", hex[i]);
-  printf("\n");
+    hmac_sha1_pad_S (w0, w1, w2, w3, ipad, opad);
 
-  u32_to_hex_lower(digest[1], hex);
-  printf("digest[1]: %uld\n", digest[1]);
-  for (int i = 0; i < 8; i++)
-    printf("%c", hex[i]);
-  printf("\n");
+    tmps[gid].ipad[0] = ipad[0];
+    tmps[gid].ipad[1] = ipad[1];
+    tmps[gid].ipad[2] = ipad[2];
+    tmps[gid].ipad[3] = ipad[3];
+    tmps[gid].ipad[4] = ipad[4];
 
-  u32_to_hex_lower(digest[2], hex);
-  printf("digest[2]: %uld\n", digest[2]);
-  for (int i = 0; i < 8; i++)
-    printf("%c", hex[i]);
-  printf("\n");
+    tmps[gid].opad[0] = opad[0];
+    tmps[gid].opad[1] = opad[1];
+    tmps[gid].opad[2] = opad[2];
+    tmps[gid].opad[3] = opad[3];
+    tmps[gid].opad[4] = opad[4];
 
-  u32_to_hex_lower(digest[3], hex);
-  printf("digest[3]: %uld\n", digest[3]);
-  for (int i = 0; i < 8; i++)
-    printf("%c", hex[i]);
-  printf("\n"); 
-  
+    /**
+     * hmac1
+     */
+
+    w0[0] = 0xdddddddd;
+    w0[1] = 0xdddddddd;
+    w0[2] = 0xdddddddd;
+    w0[3] = 0xdddddddd;
+    w1[0] = 0xdddddddd;
+    w1[1] = 1;
+    w1[2] = 0x80000000;
+    w1[3] = 0;
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 0;
+    w3[3] = (64 + 20 + 4) * 8;
+
+    u32 digest[5];
+
+    hmac_sha1_run_S (w0, w1, w2, w3, ipad, opad, digest);
+
+    tmps[gid].dgst[0] = digest[0];
+    tmps[gid].dgst[1] = digest[1];
+    tmps[gid].dgst[2] = digest[2];
+    tmps[gid].dgst[3] = digest[3];
+    tmps[gid].dgst[4] = digest[4];
+
+    tmps[gid].out[0] = digest[0];
+    tmps[gid].out[1] = digest[1];
+    tmps[gid].out[2] = digest[2];
+    tmps[gid].out[3] = digest[3];
+    tmps[gid].out[4] = digest[4];
+  }
+  /* if DPAPImk version 2, pbkdf-hmac-sha512 is used*/
+  else if (esalt_bufs[digests_offset].version == 2)
+  {
+    u64 w0_x64[4];
+    u64 w1_x64[4];
+    u64 w2_x64[4];
+    u64 w3_x64[4];
+
+    w0_x64[0] = hl32_to_64_S (key[0], key[1]);
+    w0_x64[1] = hl32_to_64_S (key[2], key[3]);
+    w0_x64[2] = hl32_to_64_S (key[4], 0);
+    w0_x64[3] = 0;
+    w1_x64[0] = 0;
+    w1_x64[1] = 0;
+    w1_x64[2] = 0;
+    w1_x64[3] = 0;
+    w2_x64[0] = 0;
+    w2_x64[1] = 0;
+    w2_x64[2] = 0;
+    w2_x64[3] = 0;
+    w3_x64[0] = 0;
+    w3_x64[1] = 0;
+    w3_x64[2] = 0;
+    w3_x64[3] = 0;
+
+    u64 ipad64[8];
+    u64 opad64[8];
+
+    hmac_sha512_pad_S (w0_x64, w1_x64, w2_x64, w3_x64, ipad64, opad64);
+
+    tmps[gid].ipad64[0] = ipad64[0];
+    tmps[gid].ipad64[1] = ipad64[1];
+    tmps[gid].ipad64[2] = ipad64[2];
+    tmps[gid].ipad64[3] = ipad64[3];
+    tmps[gid].ipad64[4] = ipad64[4];
+    tmps[gid].ipad64[5] = ipad64[5];
+    tmps[gid].ipad64[6] = ipad64[6];
+    tmps[gid].ipad64[7] = ipad64[7];
+
+    tmps[gid].opad64[0] = opad64[0];
+    tmps[gid].opad64[1] = opad64[1];
+    tmps[gid].opad64[2] = opad64[2];
+    tmps[gid].opad64[3] = opad64[3];
+    tmps[gid].opad64[4] = opad64[4];
+    tmps[gid].opad64[5] = opad64[5];
+    tmps[gid].opad64[6] = opad64[6];
+    tmps[gid].opad64[7] = opad64[7];
+
+    w0_x64[0] = hl32_to_64_S (0xdddddddd, 0xdddddddd);
+    w0_x64[1] = hl32_to_64_S (0xdddddddd, 0xdddddddd);
+    w0_x64[2] = hl32_to_64_S (0xdddddddd, 1);
+    w0_x64[3] = hl32_to_64_S (0x80000000, 0);
+    w1_x64[0] = 0;
+    w1_x64[1] = 0;
+    w1_x64[2] = 0;
+    w1_x64[3] = 0;
+    w2_x64[0] = 0;
+    w2_x64[1] = 0;
+    w2_x64[2] = 0;
+    w2_x64[3] = 0;
+    w3_x64[0] = 0;
+    w3_x64[1] = 0;
+    w3_x64[2] = 0;
+    w3_x64[3] = (128 + 20 + 4) * 8;
+
+    u64 dgst64[8];
+
+    hmac_sha512_run_S (w0_x64, w1_x64, w2_x64, w3_x64, ipad64, opad64, dgst64);
+
+    tmps[gid].dgst64[0] = dgst64[0];
+    tmps[gid].dgst64[1] = dgst64[1];
+    tmps[gid].dgst64[2] = dgst64[2];
+    tmps[gid].dgst64[3] = dgst64[3];
+    tmps[gid].dgst64[4] = dgst64[4];
+    tmps[gid].dgst64[5] = dgst64[5];
+    tmps[gid].dgst64[6] = dgst64[6];
+    tmps[gid].dgst64[7] = dgst64[7];
+
+    tmps[gid].out64[0] = dgst64[0];
+    tmps[gid].out64[1] = dgst64[1];
+    tmps[gid].out64[2] = dgst64[2];
+    tmps[gid].out64[3] = dgst64[3];
+    tmps[gid].out64[4] = dgst64[4];
+    tmps[gid].out64[5] = dgst64[5];
+    tmps[gid].out64[6] = dgst64[6];
+    tmps[gid].out64[7] = dgst64[7];
+  }
 }
 
 __kernel void m15300_loop (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const comb_t *combs_buf, __global const bf_t *bfs_buf, __global dpapimk_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global dpapimk_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 rules_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
-  const u32 gid = get_global_id (0);
-  const u32 lid = get_local_id (0);
-  const u32 lsz = get_local_size (0);
+  /**
+   * base
+   */
 
+  const u32 gid = get_global_id (0);
+
+  if ((gid * VECT_SIZE) >= gid_max) return;
+
+  if (esalt_bufs[digests_offset].version == 1)
+  {
+    u32x ipad[5];
+    u32x opad[5];
+
+    ipad[0] = packv (tmps, ipad, gid, 0);
+    ipad[1] = packv (tmps, ipad, gid, 1);
+    ipad[2] = packv (tmps, ipad, gid, 2);
+    ipad[3] = packv (tmps, ipad, gid, 3);
+    ipad[4] = packv (tmps, ipad, gid, 4);
+
+    opad[0] = packv (tmps, opad, gid, 0);
+    opad[1] = packv (tmps, opad, gid, 1);
+    opad[2] = packv (tmps, opad, gid, 2);
+    opad[3] = packv (tmps, opad, gid, 3);
+    opad[4] = packv (tmps, opad, gid, 4);
+
+    /**
+     * iter1
+     */
+
+    u32x dgst[5];
+    u32x out[5];
+
+    dgst[0] = packv (tmps, dgst, gid, 0);
+    dgst[1] = packv (tmps, dgst, gid, 1);
+    dgst[2] = packv (tmps, dgst, gid, 2);
+    dgst[3] = packv (tmps, dgst, gid, 3);
+    dgst[4] = packv (tmps, dgst, gid, 4);
+
+    out[0] = packv (tmps, out, gid, 0);
+    out[1] = packv (tmps, out, gid, 1);
+    out[2] = packv (tmps, out, gid, 2);
+    out[3] = packv (tmps, out, gid, 3);
+    out[4] = packv (tmps, out, gid, 4);
+
+    u8 hex[8] = {0};
+
+    for (u32 i = 0; i < loop_cnt; i++)
+    {
+      u32x w0[4];
+      u32x w1[4];
+      u32x w2[4];
+      u32x w3[4];
+
+      /* Microsoft PBKDF2 implementation. On purpose?
+         Misunderstanding of them? Dunno...
+      */
+      w0[0] = out[0];
+      w0[1] = out[1];
+      w0[2] = out[2];
+      w0[3] = out[3];
+      w1[0] = out[4];
+      w1[1] = 0x80000000;
+      w1[2] = 0;
+      w1[3] = 0;
+      w2[0] = 0;
+      w2[1] = 0;
+      w2[2] = 0;
+      w2[3] = 0;
+      w3[0] = 0;
+      w3[1] = 0;
+      w3[2] = 0;
+      w3[3] = (64 + 20) * 8;
+
+      hmac_sha1_run_V (w0, w1, w2, w3, ipad, opad, dgst);
+
+      out[0] ^= dgst[0];
+      out[1] ^= dgst[1];
+      out[2] ^= dgst[2];
+      out[3] ^= dgst[3];
+      out[4] ^= dgst[4];
+    }
+
+    unpackv (tmps, dgst, gid, 0, dgst[0]);
+    unpackv (tmps, dgst, gid, 1, dgst[1]);
+    unpackv (tmps, dgst, gid, 2, dgst[2]);
+    unpackv (tmps, dgst, gid, 3, dgst[3]);
+    unpackv (tmps, dgst, gid, 4, dgst[4]);
+
+    unpackv (tmps, out, gid, 0, out[0]);
+    unpackv (tmps, out, gid, 1, out[1]);
+    unpackv (tmps, out, gid, 2, out[2]);
+    unpackv (tmps, out, gid, 3, out[3]);
+    unpackv (tmps, out, gid, 4, out[4]);
+  }
+  else if (esalt_bufs[digests_offset].version == 2)
+  {
+    u64x ipad[8];
+    u64x opad[8];
+
+    ipad[0] = pack64v (tmps, ipad64, gid, 0);
+    ipad[1] = pack64v (tmps, ipad64, gid, 1);
+    ipad[2] = pack64v (tmps, ipad64, gid, 2);
+    ipad[3] = pack64v (tmps, ipad64, gid, 3);
+    ipad[4] = pack64v (tmps, ipad64, gid, 4);
+    ipad[5] = pack64v (tmps, ipad64, gid, 5);
+    ipad[6] = pack64v (tmps, ipad64, gid, 6);
+    ipad[7] = pack64v (tmps, ipad64, gid, 7);
+
+    opad[0] = pack64v (tmps, opad64, gid, 0);
+    opad[1] = pack64v (tmps, opad64, gid, 1);
+    opad[2] = pack64v (tmps, opad64, gid, 2);
+    opad[3] = pack64v (tmps, opad64, gid, 3);
+    opad[4] = pack64v (tmps, opad64, gid, 4);
+    opad[5] = pack64v (tmps, opad64, gid, 5);
+    opad[6] = pack64v (tmps, opad64, gid, 6);
+    opad[7] = pack64v (tmps, opad64, gid, 7);
+
+    u64x dgst[8];
+    u64x out[8];
+
+    dgst[0] = pack64v (tmps, dgst64, gid, 0);
+    dgst[1] = pack64v (tmps, dgst64, gid, 1);
+    dgst[2] = pack64v (tmps, dgst64, gid, 2);
+    dgst[3] = pack64v (tmps, dgst64, gid, 3);
+    dgst[4] = pack64v (tmps, dgst64, gid, 4);
+    dgst[5] = pack64v (tmps, dgst64, gid, 5);
+    dgst[6] = pack64v (tmps, dgst64, gid, 6);
+    dgst[7] = pack64v (tmps, dgst64, gid, 7);
+
+    out[0] = pack64v (tmps, out64, gid, 0);
+    out[1] = pack64v (tmps, out64, gid, 1);
+    out[2] = pack64v (tmps, out64, gid, 2);
+    out[3] = pack64v (tmps, out64, gid, 3);
+    out[4] = pack64v (tmps, out64, gid, 4);
+    out[5] = pack64v (tmps, out64, gid, 5);
+    out[6] = pack64v (tmps, out64, gid, 6);
+    out[7] = pack64v (tmps, out64, gid, 7);
+
+    for (u32 j = 0; j < loop_cnt; j++)
+    {
+      u64x w0[4];
+      u64x w1[4];
+      u64x w2[4];
+      u64x w3[4];
+
+      /* Microsoft PBKDF2 implementation. On purpose? 
+         Misunderstanding of them? Dunno...
+      */
+      w0[0] = out[0];
+      w0[1] = out[1];
+      w0[2] = out[2];
+      w0[3] = out[3];
+      w1[0] = out[4];
+      w1[1] = out[5];
+      w1[2] = out[6];
+      w1[3] = out[7];
+      w2[0] = 0x8000000000000000;
+      w2[1] = 0;
+      w2[2] = 0;
+      w2[3] = 0;
+      w3[0] = 0;
+      w3[1] = 0;
+      w3[2] = 0;
+      w3[3] = (128 + 64) * 8;
+
+      hmac_sha512_run_V (w0, w1, w2, w3, ipad, opad, dgst);
+
+      out[0] ^= dgst[0];
+      out[1] ^= dgst[1];
+      out[2] ^= dgst[2];
+      out[3] ^= dgst[3];
+      out[4] ^= dgst[4];
+      out[5] ^= dgst[5];
+      out[6] ^= dgst[6];
+      out[7] ^= dgst[7];
+    }
+
+    unpackv (tmps, dgst64, gid, 0, dgst[0]);
+    unpackv (tmps, dgst64, gid, 1, dgst[1]);
+    unpackv (tmps, dgst64, gid, 2, dgst[2]);
+    unpackv (tmps, dgst64, gid, 3, dgst[3]);
+    unpackv (tmps, dgst64, gid, 4, dgst[4]);
+    unpackv (tmps, dgst64, gid, 5, dgst[5]);
+    unpackv (tmps, dgst64, gid, 6, dgst[6]);
+    unpackv (tmps, dgst64, gid, 7, dgst[7]);
+
+    unpackv (tmps, out64, gid, 0, out[0]);
+    unpackv (tmps, out64, gid, 1, out[1]);
+    unpackv (tmps, out64, gid, 2, out[2]);
+    unpackv (tmps, out64, gid, 3, out[3]);
+    unpackv (tmps, out64, gid, 4, out[4]);
+    unpackv (tmps, out64, gid, 5, out[5]);
+    unpackv (tmps, out64, gid, 6, out[6]);
+    unpackv (tmps, out64, gid, 7, out[7]);
+  }
 }
 
 __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const comb_t *combs_buf, __global const bf_t *bfs_buf, __global dpapimk_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global dpapimk_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 rules_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
-  const u32 gid = get_global_id (0);
-  const u32 lid = get_local_id (0);
-  const u32 lsz = get_local_size (0);
-
+  // u8 hex[16] = {0};
+  // u64_to_hex_lower(r0, hex);
+  // printf("\n\nout[0]: %llu => ", r0);
+  // for (int i = 0; i < 16; i++)
+    // printf("%c", hex[i]);
+  // printf("\n"); 
+  
+  // u64_to_hex_lower(r2, hex);
+  // printf("out[2]: %llu => ", r2);
+  // for (int i = 0; i < 16; i++)
+    // printf("%c", hex[i]);
+  // printf("\n"); 
 }

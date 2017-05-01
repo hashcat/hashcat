@@ -2969,7 +2969,7 @@ int dpapimk_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   rounds_pos++;
 
-  salt->salt_iter = (atoll ((const char *) rounds_pos));
+  salt->salt_iter = (atoll ((const char *) rounds_pos)) - 1;
 
   iv_pos = (u8 *) strchr ((const char *) rounds_pos, '*');
 
@@ -18513,7 +18513,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     u32 version      = (u32) dpapimk->version;
     u32 context      = (u32) dpapimk->context;
-    u32 rounds       = salt.salt_iter;
+    u32 rounds       = salt.salt_iter + 1;
     u32 iv_len       = 16;
     u32 contents_len = (u32) dpapimk->contents_len;
 

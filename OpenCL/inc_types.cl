@@ -1382,12 +1382,18 @@ typedef struct
 /* Fist0urs */
 typedef struct
 {
+  /* dedicated to hmac-sha1 */
   u32 ipad[5];
   u32 opad[5];
-
   u32 dgst[5];
-  u32 out[4];
+  u32 out[5];
 
+  /* dedicated to hmac-sha512 */
+  u64 ipad64[8];
+  u64 opad64[8];
+  u64 dgst64[16];
+  u64 out64[16];
+  
 } dpapimk_tmp_t;
 /* Fist0urs_end */
 

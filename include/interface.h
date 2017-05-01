@@ -831,12 +831,18 @@ typedef struct keepass_tmp
 /* Fist0urs */
 typedef struct dpapimk_tmp
 {
+  /* dedicated to hmac-sha1 */
   u32 ipad[5];
   u32 opad[5];
-
   u32 dgst[5];
-  u32 out[4];
+  u32 out[5];
 
+  /* dedicated to hmac-sha512 */
+  u64 ipad64[8];
+  u64 opad64[8];
+  u64 dgst64[16];
+  u64 out64[16];
+  
 } dpapimk_tmp_t;
 /* Fist0urs_end */
 
@@ -1623,7 +1629,7 @@ typedef enum rounds_count
    ROUNDS_ATLASSIAN          = 10000,
    ROUNDS_NETBSD_SHA1CRYPT   = 20000,
 /* Fist0urs */
-   ROUNDS_DPAPIMK            = 14000, // can be really different but fits jtr -test
+   ROUNDS_DPAPIMK            = 24000 - 1, // can be really different but fits jtr -test
 /* Fist0urs_end */
    ROUNDS_STDOUT             = 0
 
