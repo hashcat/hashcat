@@ -678,7 +678,7 @@ typedef struct
   u8  salt[16];
   u8  personnel[16];
 
-} blake2_params_t;
+} blake2params_t;
 
 typedef struct
 {
@@ -689,7 +689,7 @@ typedef struct
   u32 outlen;
   u8  last_node;
 
-} blake2_state_t;
+} blake2_t;
 
 typedef struct
 {

@@ -95,7 +95,7 @@ static const char HT_00300[] = "MySQL4.1/MySQL5";
 static const char HT_00400[] = "phpass, WordPress (MD5), phpBB3 (MD5), Joomla (MD5)";
 static const char HT_00500[] = "md5crypt, MD5 (Unix), Cisco-IOS $1$ (MD5)";
 static const char HT_00501[] = "Juniper IVE";
-static const char HT_00600[] = "Blake2b";
+static const char HT_00600[] = "Blake2-512";
 static const char HT_00900[] = "MD4";
 static const char HT_01000[] = "NTLM";
 static const char HT_01100[] = "Domain Cached Credentials (DCC), MS Cache";
@@ -5287,15 +5287,9 @@ int blake2b_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   // Initialize Blake2 Params and State
 
-  blake2_params_t P[1];
-  blake2_state_t  *S = (blake2_state_t *) hash_buf->esalt;
+  blake2_t  *S = (blake2_t *) hash_buf->esalt;
 
-  memset(P,  0, sizeof(blake2_params_t));
-  memset(S,  0, sizeof(blake2_state_t));
-
-  P->digest_length = 64;
-  P->fanout = 1;
-  P->depth  = 1;
+  memset(S,  0, sizeof(blake2_t));
 
   S->h[0] = blake2b_IV[0];
   S->h[1] = blake2b_IV[1];
@@ -5306,9 +5300,7 @@ int blake2b_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   S->h[6] = blake2b_IV[6];
   S->h[7] = blake2b_IV[7];
 
-  // XOR P with S
-  for (u8 i = 0; i < sizeof(blake2_params_t); i++)
-    ((u8 *)S)[i] ^= ((u8 *)P)[i];
+  S->h[0] ^= 0x0000000001010040; // digest_lenght = 0x40, depth = 0x01, fanout = 0x01
 
   return (PARSER_OK);
 }
@@ -22691,7 +22683,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   switch (hashconfig->hash_mode)
   {
-    case   600: hashconfig->esalt_size = sizeof (blake2_state_t);   break;
+    case   600: hashconfig->esalt_size = sizeof (blake2_t);         break;
     case  2500: hashconfig->esalt_size = sizeof (wpa_t);            break;
     case  5300: hashconfig->esalt_size = sizeof (ikepsk_t);         break;
     case  5400: hashconfig->esalt_size = sizeof (ikepsk_t);         break;
