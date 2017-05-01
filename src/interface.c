@@ -5307,7 +5307,7 @@ int blake2b_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   S->h[7] = blake2b_IV[7];
 
   // XOR P with S
-  for (uint i = 0; i < sizeof(blake2_params_t); i++)
+  for (u8 i = 0; i < sizeof(blake2_params_t); i++)
     ((u8 *)S)[i] ^= ((u8 *)P)[i];
 
   return (PARSER_OK);
