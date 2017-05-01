@@ -752,6 +752,17 @@ typedef struct itunes_backup
 
 } itunes_backup_t;
 
+typedef struct
+{
+  u64 h[8];
+  u64 t[2];
+  u64 f[2];
+  u32 buflen;
+  u32 outlen;
+  u8  last_node;
+
+} blake2_state_t;
+
 typedef struct luks_tmp
 {
   u32 ipad32[8];
@@ -1468,13 +1479,4 @@ typedef enum combinator_mode
   COMBINATOR_MODE_BASE_RIGHT = 10002
 
 } combinator_mode_t;
-
-typedef enum blake2b_constants__
-{
-  BLAKE2B_BLOCKBYTES = 128,
-  BLAKE2B_OUTBYTES   = 64,
-  BLAKE2B_KEYBYTES   = 64,
-  BLAKE2B_SALTBYTES  = 16,
-  BLAKE2B_PERSONALBYTES = 16
-} blake2b_constants;
 

@@ -16,6 +16,7 @@
 #include "cpu_md5.h"
 #include "cpu_sha1.h"
 #include "cpu_sha256.h"
+#include "cpu_blake2.h"
 #include "interface.h"
 #include "ext_lzma.h"
 
@@ -5283,6 +5284,31 @@ int blake2b_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   digest[5] = hex_to_u64 ((const u8 *) &input_hash_buf[ 80]);
   digest[6] = hex_to_u64 ((const u8 *) &input_hash_buf[ 96]);
   digest[7] = hex_to_u64 ((const u8 *) &input_hash_buf[112]);
+
+  // Initialize Blake2 Params and State
+
+  blake2_params_t P[1];
+  blake2_state_t  *S = (blake2_state_t *) hash_buf->esalt;
+
+  memset(P,  0, sizeof(blake2_params_t));
+  memset(S,  0, sizeof(blake2_state_t));
+
+  P->digest_length = 64;
+  P->fanout = 1;
+  P->depth  = 1;
+
+  S->h[0] = blake2b_IV[0];
+  S->h[1] = blake2b_IV[1];
+  S->h[2] = blake2b_IV[2];
+  S->h[3] = blake2b_IV[3];
+  S->h[4] = blake2b_IV[4];
+  S->h[5] = blake2b_IV[5];
+  S->h[6] = blake2b_IV[6];
+  S->h[7] = blake2b_IV[7];
+
+  // XOR P with S
+  for (uint i = 0; i < sizeof(blake2_params_t); i++)
+    ((u8 *)S)[i] ^= ((u8 *)P)[i];
 
   return (PARSER_OK);
 }
@@ -19364,15 +19390,13 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case   600:  hashconfig->hash_type      = HASH_TYPE_BLAKE2B;
-                 hashconfig->salt_type      = SALT_TYPE_NONE;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
                  hashconfig->kern_type      = KERN_TYPE_BLAKE2B;
                  hashconfig->dgst_size      = DGST_SIZE_8_8;
                  hashconfig->parse_func     = blake2b_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_NOT_ITERATED
-                                            | OPTI_TYPE_NOT_SALTED
                                             | OPTI_TYPE_USES_BITS_64
                                             | OPTI_TYPE_RAW_HASH;
                  hashconfig->dgst_pos0      = 1;
@@ -22667,6 +22691,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   switch (hashconfig->hash_mode)
   {
+    case   600: hashconfig->esalt_size = sizeof (blake2_state_t);   break;
     case  2500: hashconfig->esalt_size = sizeof (wpa_t);            break;
     case  5300: hashconfig->esalt_size = sizeof (ikepsk_t);         break;
     case  5400: hashconfig->esalt_size = sizeof (ikepsk_t);         break;
