@@ -125,7 +125,7 @@ static const char *USAGE_BIG[] =
   "  10800 | SHA-384                                          | Raw Hash",
   "   1700 | SHA-512                                          | Raw Hash",
   "   5000 | SHA-3 (Keccak)                                   | Raw Hash",
-  "    600 | Blake2-512                                       | Raw Hash",
+  "    600 | Blake2b-512                                      | Raw Hash",
   "  10100 | SipHash                                          | Raw Hash",
   "   6000 | RIPEMD-160                                       | Raw Hash",
   "   6100 | Whirlpool                                        | Raw Hash",

@@ -5289,7 +5289,7 @@ int blake2b_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   blake2_t  *S = (blake2_t *) hash_buf->esalt;
 
-  memset(S,  0, sizeof(blake2_t));
+  memset(S,  0, sizeof (blake2_t));
 
   S->h[0] = blake2b_IV[0];
   S->h[1] = blake2b_IV[1];
@@ -5300,7 +5300,10 @@ int blake2b_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   S->h[6] = blake2b_IV[6];
   S->h[7] = blake2b_IV[7];
 
-  S->h[0] ^= 0x0000000001010040; // digest_lenght = 0x40, depth = 0x01, fanout = 0x01
+  // S->h[0] ^= 0x0000000001010040; // digest_lenght = 0x40, depth = 0x01, fanout = 0x01
+  S->h[0] ^= 0x40 <<  0;
+  S->h[0] ^= 0x01 << 16;
+  S->h[0] ^= 0x01 << 24;
 
   return (PARSER_OK);
 }

@@ -4,6 +4,7 @@
 ## Algorithms
 ##
 
+- Added hash-mode   600 = Blake2-512
 - Added hash-mode 15200 = Blockchain, My Wallet, V2
 
 ##
