@@ -46,7 +46,7 @@ NVIDIA GPUs require "NVIDIA Driver" (367.x or later)
 - SHA-384
 - SHA-512
 - SHA-3 (Keccak)
-- Blake2-512
+- Blake2b-512
 - SipHash
 - Skip32
 - RIPEMD-160
