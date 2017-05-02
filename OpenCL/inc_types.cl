@@ -761,7 +761,7 @@ typedef struct
   u32 outlen;
   u8  last_node;
 
-} blake2_state_t;
+} blake2_t;
 
 typedef struct luks_tmp
 {
