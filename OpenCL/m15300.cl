@@ -1071,7 +1071,6 @@ __kernel void m15300_init (__global pw_t *pws, __global const kernel_rule_t *rul
   w0[2] = pws[gid].i[ 2];
   w0[3] = pws[gid].i[ 3];
 
-
   u32 w1[4];
 
   w1[0] = pws[gid].i[ 4];
@@ -1226,22 +1225,41 @@ __kernel void m15300_init (__global pw_t *pws, __global const kernel_rule_t *rul
    * hmac1
    */
 
-  w0[0] = 0xdddddddd;
-  w0[1] = 0xdddddddd;
-  w0[2] = 0xdddddddd;
-  w0[3] = 0xdddddddd;
-  w1[0] = 0xdddddddd;
-  w1[1] = 0x80000000;
-  w1[2] = 0;
-  w1[3] = 0;
-  w2[0] = 0;
-  w2[1] = 0;
-  w2[2] = 0;
-  w2[3] = 0;
-  w3[0] = 0;
-  w3[1] = 0;
+  w0[0] = esalt_bufs[digests_offset].SID[ 0];
+  w0[1] = esalt_bufs[digests_offset].SID[ 1];
+  w0[2] = esalt_bufs[digests_offset].SID[ 2];
+  w0[3] = esalt_bufs[digests_offset].SID[ 3];
+  w1[0] = esalt_bufs[digests_offset].SID[ 4];
+  w1[1] = esalt_bufs[digests_offset].SID[ 5];
+  w1[2] = esalt_bufs[digests_offset].SID[ 6];
+  w1[3] = esalt_bufs[digests_offset].SID[ 7];
+  w2[0] = esalt_bufs[digests_offset].SID[ 8];
+  w2[1] = esalt_bufs[digests_offset].SID[ 9];
+  w2[2] = esalt_bufs[digests_offset].SID[10];
+  w2[3] = esalt_bufs[digests_offset].SID[11];
+  w3[0] = esalt_bufs[digests_offset].SID[12];
+  w3[1] = esalt_bufs[digests_offset].SID[13];
+  w3[2] = esalt_bufs[digests_offset].SID[14];
+  w3[3] = esalt_bufs[digests_offset].SID[15];
+
+  sha1_transform_S (w0, w1, w2, w3, ipad);
+
+  w0[0] = esalt_bufs[digests_offset].SID[16 +  0];
+  w0[1] = esalt_bufs[digests_offset].SID[16 +  1];
+  w0[2] = esalt_bufs[digests_offset].SID[16 +  2];
+  w0[3] = esalt_bufs[digests_offset].SID[16 +  3];
+  w1[0] = esalt_bufs[digests_offset].SID[16 +  4];
+  w1[1] = esalt_bufs[digests_offset].SID[16 +  5];
+  w1[2] = esalt_bufs[digests_offset].SID[16 +  6];
+  w1[3] = esalt_bufs[digests_offset].SID[16 +  7];
+  w2[0] = esalt_bufs[digests_offset].SID[16 +  8];
+  w2[1] = esalt_bufs[digests_offset].SID[16 +  9];
+  w2[2] = esalt_bufs[digests_offset].SID[16 + 10];
+  w2[3] = esalt_bufs[digests_offset].SID[16 + 11];
+  w3[0] = esalt_bufs[digests_offset].SID[16 + 12];
+  w3[1] = esalt_bufs[digests_offset].SID[16 + 13];
   w3[2] = 0;
-  w3[3] = (64 + 20) * 8;
+  w3[3] = (64 + salt_len) * 8;
 
   u32 key[5];
 

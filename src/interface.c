@@ -2208,24 +2208,8 @@ static u32 parse_and_store_salt (u8 *out, u8 *in, u32 salt_len, MAYBE_UNUSED con
 
   if (hashconfig->opts_type & OPTS_TYPE_ST_UNICODE)
   {
-    if (salt_len < 52)
+    if (salt_len < 20)
     {
-      tmp_u32[25] = ((tmp_u32[12] >> 8) & 0x00FF0000) | ((tmp_u32[12] >> 16) & 0x000000FF);
-      tmp_u32[24] = ((tmp_u32[12] << 8) & 0x00FF0000) | ((tmp_u32[12] >>  0) & 0x000000FF);
-      tmp_u32[23] = ((tmp_u32[11] >> 8) & 0x00FF0000) | ((tmp_u32[11] >> 16) & 0x000000FF);
-      tmp_u32[22] = ((tmp_u32[11] << 8) & 0x00FF0000) | ((tmp_u32[11] >>  0) & 0x000000FF);
-      tmp_u32[21] = ((tmp_u32[10] >> 8) & 0x00FF0000) | ((tmp_u32[10] >> 16) & 0x000000FF);
-      tmp_u32[20] = ((tmp_u32[10] << 8) & 0x00FF0000) | ((tmp_u32[10] >>  0) & 0x000000FF);
-      tmp_u32[19] = ((tmp_u32[ 9] >> 8) & 0x00FF0000) | ((tmp_u32[ 9] >> 16) & 0x000000FF);
-      tmp_u32[18] = ((tmp_u32[ 9] << 8) & 0x00FF0000) | ((tmp_u32[ 9] >>  0) & 0x000000FF);
-      tmp_u32[17] = ((tmp_u32[ 8] >> 8) & 0x00FF0000) | ((tmp_u32[ 8] >> 16) & 0x000000FF);
-      tmp_u32[16] = ((tmp_u32[ 8] << 8) & 0x00FF0000) | ((tmp_u32[ 8] >>  0) & 0x000000FF);
-      tmp_u32[15] = ((tmp_u32[ 7] >> 8) & 0x00FF0000) | ((tmp_u32[ 7] >> 16) & 0x000000FF);
-      tmp_u32[14] = ((tmp_u32[ 7] << 8) & 0x00FF0000) | ((tmp_u32[ 7] >>  0) & 0x000000FF);
-      tmp_u32[13] = ((tmp_u32[ 6] >> 8) & 0x00FF0000) | ((tmp_u32[ 6] >> 16) & 0x000000FF);
-      tmp_u32[12] = ((tmp_u32[ 6] << 8) & 0x00FF0000) | ((tmp_u32[ 6] >>  0) & 0x000000FF);
-      tmp_u32[11] = ((tmp_u32[ 5] >> 8) & 0x00FF0000) | ((tmp_u32[ 5] >> 16) & 0x000000FF);
-      tmp_u32[10] = ((tmp_u32[ 5] << 8) & 0x00FF0000) | ((tmp_u32[ 5] >>  0) & 0x000000FF);
       tmp_u32[ 9] = ((tmp_u32[ 4] >> 8) & 0x00FF0000) | ((tmp_u32[ 4] >> 16) & 0x000000FF);
       tmp_u32[ 8] = ((tmp_u32[ 4] << 8) & 0x00FF0000) | ((tmp_u32[ 4] >>  0) & 0x000000FF);
       tmp_u32[ 7] = ((tmp_u32[ 3] >> 8) & 0x00FF0000) | ((tmp_u32[ 3] >> 16) & 0x000000FF);
@@ -2900,10 +2884,8 @@ int dpapimk_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   u8  *contents_len_pos;
   u8  *contents_pos;
 
-  u32 salt_len;
-  u8  *salt_pos;
-
   int dbg = 1;
+
   version_pos = input_buf + 8 + 1;
 
   dpapimk->version = atoll ((const char *) version_pos);
@@ -3024,26 +3006,39 @@ int dpapimk_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   digest[2] = dpapimk->iv[2];
   digest[3] = dpapimk->iv[3];
 
-  salt_len = cipher_algo_pos - 1 - SID_pos;
+  u32 SID_len = cipher_algo_pos - 1 - SID_pos;
+  
+  u8 *SID_unicode = (u8 *) hcmalloc ((SID_len + 1) * 2);
+
+  memset (SID_unicode, 0, (SID_len + 1) * 2);
 
   if (dbg)
-    printf("SID_len_before: %d\n", salt_len);
+    printf("SID_len_before: %d\n", SID_len);
  
   /* Specific to DPAPI, SID + '\0' */
-  salt_len = parse_and_store_salt (dpapimk->SID, dpapimk->SID_tmp, salt_len + 1, hashconfig);
-
-  if (dbg)
+  for (u32 i = 0; i < SID_len; i += 1)
   {
-    printf("SID_hex :%02x%02x%02x%02x\n", dpapimk->SID[0],dpapimk->SID[1],dpapimk->SID[2],dpapimk->SID[3]);
-    printf("SID_hex :%c%c%c%c\n", dpapimk->SID[0],dpapimk->SID[1],dpapimk->SID[2],dpapimk->SID[3]);
+    SID_unicode[i*2] = SID_pos[i];
   }
   
-  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
+  //SID_unicode[SID_len*2] = '\0';
+  //SID_unicode[SID_len*2+1] = '\0';
 
-  salt->salt_len = salt_len;
+  salt->salt_len = (SID_len) * 2;
+  
+  memcpy ((u8 *) dpapimk->SID, SID_unicode, salt->salt_len);
 
-  if (dbg)
-    printf("SID_len_after: %d\n", salt_len);
+  u32 max = salt->salt_len / 4;
+
+  if (salt->salt_len % 4) max++;
+
+  for (u32 i = 0; i < max; i++)
+  {
+    dpapimk->SID[i] = byte_swap_32 (dpapimk->SID[i]);
+  }
+  dpapimk->SID[max] = 0x80000000;
+  
+  hcfree(SID_unicode);
   
   return (PARSER_OK);
 }
