@@ -2,7 +2,6 @@
  * Author......: See docs/credits.txt
  * License.....: MIT
  */
-
 #include "common.h"
 #include "types.h"
 #include "bitops.h"
@@ -17,6 +16,7 @@
 #include "cpu_md5.h"
 #include "cpu_sha1.h"
 #include "cpu_sha256.h"
+#include "cpu_blake2.h"
 #include "interface.h"
 #include "ext_lzma.h"
 
@@ -95,6 +95,7 @@ static const char HT_00300[] = "MySQL4.1/MySQL5";
 static const char HT_00400[] = "phpass, WordPress (MD5), phpBB3 (MD5), Joomla (MD5)";
 static const char HT_00500[] = "md5crypt, MD5 (Unix), Cisco-IOS $1$ (MD5)";
 static const char HT_00501[] = "Juniper IVE";
+static const char HT_00600[] = "Blake2-512";
 static const char HT_00900[] = "MD4";
 static const char HT_01000[] = "NTLM";
 static const char HT_01100[] = "Domain Cached Credentials (DCC), MS Cache";
@@ -377,6 +378,7 @@ static const char SIGNATURE_ITUNES_BACKUP[]    = "$itunes_backup$";
 static const char SIGNATURE_FORTIGATE[]        = "AK1";
 static const char SIGNATURE_ATLASSIAN[]        = "{PKCS5S2}";
 static const char SIGNATURE_NETBSD_SHA1CRYPT[] = "$sha1$";
+static const char SIGNATURE_BLAKE2B[]          = "$BLAKE2$";
 
 /**
  * decoder / encoder
@@ -5258,6 +5260,50 @@ int keccak_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   }
 
   salt->keccak_mdlen = keccak_mdlen;
+
+  return (PARSER_OK);
+}
+
+int blake2b_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
+{
+  if ((input_len < DISPLAY_LEN_MIN_600) || (input_len > DISPLAY_LEN_MAX_600)) return (PARSER_GLOBAL_LENGTH);
+
+  if (memcmp (SIGNATURE_BLAKE2B, input_buf, 8)) return (PARSER_SIGNATURE_UNMATCHED);
+
+  if (is_valid_hex_string (input_buf + 8, 128) == false) return (PARSER_HASH_ENCODING);
+
+  u64 *digest = (u64 *) hash_buf->digest;
+
+  u8 *input_hash_buf = input_buf + 8;
+
+  digest[0] = hex_to_u64 ((const u8 *) &input_hash_buf[  0]);
+  digest[1] = hex_to_u64 ((const u8 *) &input_hash_buf[ 16]);
+  digest[2] = hex_to_u64 ((const u8 *) &input_hash_buf[ 32]);
+  digest[3] = hex_to_u64 ((const u8 *) &input_hash_buf[ 48]);
+  digest[4] = hex_to_u64 ((const u8 *) &input_hash_buf[ 64]);
+  digest[5] = hex_to_u64 ((const u8 *) &input_hash_buf[ 80]);
+  digest[6] = hex_to_u64 ((const u8 *) &input_hash_buf[ 96]);
+  digest[7] = hex_to_u64 ((const u8 *) &input_hash_buf[112]);
+
+  // Initialize Blake2 Params and State
+
+  blake2_t  *S = (blake2_t *) hash_buf->esalt;
+
+  memset(S,  0, sizeof (blake2_t));
+
+  S->h[0] = blake2b_IV[0];
+  S->h[1] = blake2b_IV[1];
+  S->h[2] = blake2b_IV[2];
+  S->h[3] = blake2b_IV[3];
+  S->h[4] = blake2b_IV[4];
+  S->h[5] = blake2b_IV[5];
+  S->h[6] = blake2b_IV[6];
+  S->h[7] = blake2b_IV[7];
+
+  // S->h[0] ^= 0x0000000001010040; // digest_lenght = 0x40, depth = 0x01, fanout = 0x01
+  S->h[0] ^= 0x40 <<  0;
+  S->h[0] ^= 0x01 << 16;
+  S->h[0] ^= 0x01 << 24;
 
   return (PARSER_OK);
 }
@@ -14992,6 +15038,7 @@ char *strhashtype (const u32 hash_mode)
     case   400: return ((char *) HT_00400);
     case   500: return ((char *) HT_00500);
     case   501: return ((char *) HT_00501);
+    case   600: return ((char *) HT_00600);
     case   900: return ((char *) HT_00900);
     case  1000: return ((char *) HT_01000);
     case  1100: return ((char *) HT_01100);
@@ -18420,6 +18467,29 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
       out_buf[salt.keccak_mdlen * 2] = 0;
     }
+    else if (hash_type == HASH_TYPE_BLAKE2B)
+    {
+      u32 *ptr = digest_buf;
+
+      snprintf (out_buf, out_len - 1, "%s%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
+        SIGNATURE_BLAKE2B,
+        byte_swap_32(ptr[ 0]),
+        byte_swap_32(ptr[ 1]),
+        byte_swap_32(ptr[ 2]),
+        byte_swap_32(ptr[ 3]),
+        byte_swap_32(ptr[ 4]),
+        byte_swap_32(ptr[ 5]),
+        byte_swap_32(ptr[ 6]),
+        byte_swap_32(ptr[ 7]),
+        byte_swap_32(ptr[ 8]),
+        byte_swap_32(ptr[ 9]),
+        byte_swap_32(ptr[10]),
+        byte_swap_32(ptr[11]),
+        byte_swap_32(ptr[12]),
+        byte_swap_32(ptr[13]),
+        byte_swap_32(ptr[14]),
+        byte_swap_32(ptr[15]));
+    }
     else if (hash_type == HASH_TYPE_RIPEMD160)
     {
       snprintf (out_buf, out_len - 1, "%08x%08x%08x%08x%08x",
@@ -19312,6 +19382,22 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 3;
+                 break;
+
+    case   600:  hashconfig->hash_type      = HASH_TYPE_BLAKE2B;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
+                 hashconfig->kern_type      = KERN_TYPE_BLAKE2B;
+                 hashconfig->dgst_size      = DGST_SIZE_8_8;
+                 hashconfig->parse_func     = blake2b_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_USES_BITS_64
+                                            | OPTI_TYPE_RAW_HASH;
+                 hashconfig->dgst_pos0      = 1;
+                 hashconfig->dgst_pos1      = 0;
+                 hashconfig->dgst_pos2      = 3;
+                 hashconfig->dgst_pos3      = 2;
                  break;
 
     case   900:  hashconfig->hash_type      = HASH_TYPE_MD4;
@@ -22600,6 +22686,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   switch (hashconfig->hash_mode)
   {
+    case   600: hashconfig->esalt_size = sizeof (blake2_t);         break;
     case  2500: hashconfig->esalt_size = sizeof (wpa_t);            break;
     case  5300: hashconfig->esalt_size = sizeof (ikepsk_t);         break;
     case  5400: hashconfig->esalt_size = sizeof (ikepsk_t);         break;
