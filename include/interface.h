@@ -912,6 +912,8 @@ typedef enum display_len
   DISPLAY_LEN_MAX_501   = 104,
   DISPLAY_LEN_MIN_600   = 8 + 128,
   DISPLAY_LEN_MAX_600   = 8 + 128,
+  DISPLAY_LEN_MIN_670   = 10 + 1 + 1 + 1 + 16 + 1 +  12 + 1 +  12,
+  DISPLAY_LEN_MAX_670   = 10 + 1 + 5 + 1 + 16 + 1 + 128 + 1 + 128,
   DISPLAY_LEN_MIN_900   = 32,
   DISPLAY_LEN_MAX_900   = 32,
   DISPLAY_LEN_MIN_910   = 32 + 1 + 0,
@@ -1329,6 +1331,7 @@ typedef enum hash_type
   HASH_TYPE_ITUNES_BACKUP_10    = 57,
   HASH_TYPE_SKIP32              = 58,
   HASH_TYPE_BLAKE2B             = 59,
+  HASH_TYPE_CHACHA20            = 60,
 
 } hash_type_t;
 
@@ -1353,6 +1356,7 @@ typedef enum kern_type
   KERN_TYPE_PHPASS                  = 400,
   KERN_TYPE_MD5CRYPT                = 500,
   KERN_TYPE_BLAKE2B                 = 600,
+  KERN_TYPE_CHACHA20                = 670,
   KERN_TYPE_MD4                     = 900,
   KERN_TYPE_MD4_PWU                 = 1000,
   KERN_TYPE_MD44_PWUSLT             = 1100,
@@ -1609,6 +1613,7 @@ int postgresql_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int netscreen_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int keccak_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int blake2b_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
+int chacha20_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int lm_parse_hash                 (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int md4_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int md5_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);

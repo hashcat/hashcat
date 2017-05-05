@@ -96,6 +96,7 @@ static const char HT_00400[] = "phpass, WordPress (MD5), phpBB3 (MD5), Joomla (M
 static const char HT_00500[] = "md5crypt, MD5 (Unix), Cisco-IOS $1$ (MD5)";
 static const char HT_00501[] = "Juniper IVE";
 static const char HT_00600[] = "Blake2-512";
+static const char HT_00670[] = "Chacha20";
 static const char HT_00900[] = "MD4";
 static const char HT_01000[] = "NTLM";
 static const char HT_01100[] = "Domain Cached Credentials (DCC), MS Cache";
@@ -379,6 +380,7 @@ static const char SIGNATURE_FORTIGATE[]        = "AK1";
 static const char SIGNATURE_ATLASSIAN[]        = "{PKCS5S2}";
 static const char SIGNATURE_NETBSD_SHA1CRYPT[] = "$sha1$";
 static const char SIGNATURE_BLAKE2B[]          = "$BLAKE2$";
+static const char SIGNATURE_CHACHA20[]         = "$Chacha20$";
 
 /**
  * decoder / encoder
@@ -5307,6 +5309,49 @@ int blake2b_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   return (PARSER_OK);
 }
+
+int chacha20_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
+{
+  if ((input_len < DISPLAY_LEN_MIN_670) || (input_len > DISPLAY_LEN_MAX_670)) return (PARSER_GLOBAL_LENGTH);
+
+  if (memcmp (SIGNATURE_CHACHA20, input_buf, 10)) return (PARSER_SIGNATURE_UNMATCHED);
+
+  // if (is_valid_hex_string (input_buf + 8, 128) == false) return (PARSER_HASH_ENCODING);
+
+  u8 *digest = (u8 *) hash_buf->digest;
+
+  chacha20_t *chacha20 = (chacha20_t *) hash_buf->esalt;
+
+  u8 *position_marker = (u8 *) strchr ((const char *) input_buf, '*') + 1;
+  if (position_marker == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u8 *iv_marker = (u8 *) strchr ((const char *) position_marker, '*') + 1;
+  if (iv_marker == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u8 *plain_marker = (u8 *) strchr ((const char *) iv_marker, '*') + 1;
+  if (plain_marker == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u8 *cipher_marker = (u8 *) strchr ((const char *) plain_marker, '*') + 1;
+  if (cipher_marker == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  chacha20->position     = 1;
+  chacha20->plain_length = cipher_marker - plain_marker - 1;
+
+  for (int i = 0; i < chacha20->plain_length; i++)
+    chacha20->plain[i] = plain_marker[i];
+
+  chacha20->iv[0] = hex_to_u32 ((const u8 *) iv_marker + 8);
+  chacha20->iv[1] = hex_to_u32 ((const u8 *) iv_marker + 0);
+
+  digest[0] = cipher_marker[ 0];
+  digest[1] = cipher_marker[ 1];
+  digest[2] = cipher_marker[ 2];
+  digest[3] = cipher_marker[ 3];
+
+
+  return (PARSER_OK);
+}
+
 
 int ikepsk_md5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
@@ -15039,6 +15084,7 @@ char *strhashtype (const u32 hash_mode)
     case   500: return ((char *) HT_00500);
     case   501: return ((char *) HT_00501);
     case   600: return ((char *) HT_00600);
+    case   670: return ((char *) HT_00670);
     case   900: return ((char *) HT_00900);
     case  1000: return ((char *) HT_01000);
     case  1100: return ((char *) HT_01100);
@@ -18490,6 +18536,29 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
         byte_swap_32(ptr[14]),
         byte_swap_32(ptr[15]));
     }
+    else if (hash_type == HASH_TYPE_CHACHA20)
+    {
+      u32 *ptr = digest_buf;
+
+      snprintf (out_buf, out_len - 1, "%s%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
+        SIGNATURE_CHACHA20,
+        byte_swap_32(ptr[ 0]),
+        byte_swap_32(ptr[ 1]),
+        byte_swap_32(ptr[ 2]),
+        byte_swap_32(ptr[ 3]),
+        byte_swap_32(ptr[ 4]),
+        byte_swap_32(ptr[ 5]),
+        byte_swap_32(ptr[ 6]),
+        byte_swap_32(ptr[ 7]),
+        byte_swap_32(ptr[ 8]),
+        byte_swap_32(ptr[ 9]),
+        byte_swap_32(ptr[10]),
+        byte_swap_32(ptr[11]),
+        byte_swap_32(ptr[12]),
+        byte_swap_32(ptr[13]),
+        byte_swap_32(ptr[14]),
+        byte_swap_32(ptr[15]));
+    }
     else if (hash_type == HASH_TYPE_RIPEMD160)
     {
       snprintf (out_buf, out_len - 1, "%08x%08x%08x%08x%08x",
@@ -19398,6 +19467,22 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos1      = 0;
                  hashconfig->dgst_pos2      = 3;
                  hashconfig->dgst_pos3      = 2;
+                 break;
+
+    case   670:  hashconfig->hash_type      = HASH_TYPE_CHACHA20;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
+                 hashconfig->kern_type      = KERN_TYPE_CHACHA20;
+                 hashconfig->dgst_size      = DGST_SIZE_8_8;
+                 hashconfig->parse_func     = chacha20_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_USES_BITS_32
+                                            | OPTI_TYPE_RAW_HASH;
+                 hashconfig->dgst_pos0      = 0;
+                 hashconfig->dgst_pos1      = 1;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 3;
                  break;
 
     case   900:  hashconfig->hash_type      = HASH_TYPE_MD4;
@@ -22687,6 +22772,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   switch (hashconfig->hash_mode)
   {
     case   600: hashconfig->esalt_size = sizeof (blake2_t);         break;
+    case   670: hashconfig->esalt_size = sizeof (chacha20_t);       break;
     case  2500: hashconfig->esalt_size = sizeof (wpa_t);            break;
     case  5300: hashconfig->esalt_size = sizeof (ikepsk_t);         break;
     case  5400: hashconfig->esalt_size = sizeof (ikepsk_t);         break;

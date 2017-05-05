@@ -694,6 +694,15 @@ typedef struct
 
 typedef struct
 {
+  u32 iv[2];
+  u8  plain[64];
+  u32 plain_length;
+  u32 position;
+
+} chacha20_t;
+
+typedef struct
+{
   u32 salt_buf[16];
   u32 salt_buf_pc[16];
 

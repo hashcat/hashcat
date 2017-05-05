@@ -779,6 +779,15 @@ typedef struct luks_tmp
 
 } luks_tmp_t;
 
+typedef struct chacha20
+{
+  u32 iv[2];
+  u8  plain[64];
+  u32 plain_length;
+  u32 position;
+
+} chacha20_t;
+
 typedef struct
 {
   int V;
