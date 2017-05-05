@@ -18537,24 +18537,17 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     {
       u32 *ptr = digest_buf;
 
-      snprintf (out_buf, out_len - 1, "%s%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
+      const chacha20_t *chacha20 = (const chacha20_t *) esalts_buf;
+
+      snprintf (out_buf, out_len - 1, "%s*%d*%08x%08x*%08x%08x*%08x%08x",
         SIGNATURE_CHACHA20,
-        byte_swap_32(ptr[ 0]),
-        byte_swap_32(ptr[ 1]),
-        byte_swap_32(ptr[ 2]),
-        byte_swap_32(ptr[ 3]),
-        byte_swap_32(ptr[ 4]),
-        byte_swap_32(ptr[ 5]),
-        byte_swap_32(ptr[ 6]),
-        byte_swap_32(ptr[ 7]),
-        byte_swap_32(ptr[ 8]),
-        byte_swap_32(ptr[ 9]),
-        byte_swap_32(ptr[10]),
-        byte_swap_32(ptr[11]),
-        byte_swap_32(ptr[12]),
-        byte_swap_32(ptr[13]),
-        byte_swap_32(ptr[14]),
-        byte_swap_32(ptr[15]));
+        chacha20->position,
+        byte_swap_32(chacha20->iv[1]),
+        byte_swap_32(chacha20->iv[0]),
+        byte_swap_32(chacha20->plain[1]),
+        byte_swap_32(chacha20->plain[0]),
+        byte_swap_32(ptr[1]),
+        byte_swap_32(ptr[0]));
     }
     else if (hash_type == HASH_TYPE_RIPEMD160)
     {
