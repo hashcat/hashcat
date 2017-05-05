@@ -5318,7 +5318,7 @@ int chacha20_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   // if (is_valid_hex_string (input_buf + 8, 128) == false) return (PARSER_HASH_ENCODING);
 
-  u8 *digest = (u8 *) hash_buf->digest;
+  u32 *digest = (u32 *) hash_buf->digest;
 
   chacha20_t *chacha20 = (chacha20_t *) hash_buf->esalt;
 
@@ -5334,20 +5334,17 @@ int chacha20_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   u8 *cipher_marker = (u8 *) strchr ((const char *) plain_marker, '*') + 1;
   if (cipher_marker == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
-  chacha20->position     = 1;
-  chacha20->plain_length = cipher_marker - plain_marker - 1;
-
-  for (int i = 0; i < chacha20->plain_length; i++)
-    chacha20->plain[i] = plain_marker[i];
+  chacha20->position = 1;
+  chacha20->plain_length = 16;
 
   chacha20->iv[0] = hex_to_u32 ((const u8 *) iv_marker + 8);
   chacha20->iv[1] = hex_to_u32 ((const u8 *) iv_marker + 0);
 
-  digest[0] = cipher_marker[ 0];
-  digest[1] = cipher_marker[ 1];
-  digest[2] = cipher_marker[ 2];
-  digest[3] = cipher_marker[ 3];
+  chacha20->plain[0] = hex_to_u32 ((const u8 *) plain_marker + 8);
+  chacha20->plain[1] = hex_to_u32 ((const u8 *) plain_marker + 0);
 
+  digest[0] = hex_to_u32 ((const u8 *) cipher_marker + 8);
+  digest[1] = hex_to_u32 ((const u8 *) cipher_marker + 0);
 
   return (PARSER_OK);
 }

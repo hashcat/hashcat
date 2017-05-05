@@ -695,7 +695,7 @@ typedef struct
 typedef struct
 {
   u32 iv[2];
-  u8  plain[64];
+  u32 plain[2];
   u32 plain_length;
   u32 position;
 

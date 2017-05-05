@@ -37,22 +37,6 @@ __kernel void m00670_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   const u32 pw_len = pws[gid].pw_len;
 
-  u32 iv[2];
-
-  iv[0] = esalt_bufs->iv[0];
-  iv[1] = esalt_bufs->iv[1];
-
-  u8 plain[64] = { 0 };
-  u32 plain_length = esalt_bufs->plain_length;
-  u32 position     = esalt_bufs->position;
-
-  for (int i = 0; i < plain_length; i++)
-  {
-    plain[i] = esalt_bufs->plain[i];
-  }
-
-  printf("position: %d, iv: %08x%08x, plain_length: %d, plain: %s\n", position, iv[0], iv[1], plain_length, plain);
-
   /**
    * loop
    */
@@ -112,21 +96,18 @@ __kernel void m00670_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   const u32 pw_len = pws[gid].pw_len;
 
-  u32 iv[2];
+  u32 iv[2]    = { 0 };
+  u32 plain[2] = { 0 };
+  u32 position = esalt_bufs->position;
+  u32 plain_length = esalt_bufs->plain_length;
 
   iv[0] = esalt_bufs->iv[0];
   iv[1] = esalt_bufs->iv[1];
 
-  u8 plain[64] = { 0 };
-  u32 plain_length = esalt_bufs->plain_length;
-  u32 position     = esalt_bufs->position;
-
-  for (int i = 0; i < plain_length; i++)
-  {
-    plain[i] = esalt_bufs->plain[i];
-  } 
-
-  printf("s04-> position: %d, iv: %08x%08x, plain_length: %d, plain: %s, cipher: %llu\n", position, iv[0], iv[1], plain_length, plain, digests_buf[digests_offset].digest_buf[0]);
+  plain[0] = esalt_bufs->plain[0];
+  plain[1] = esalt_bufs->plain[1];
+  
+  printf("s04-> position: %d, iv: %08x%08x, plain_length: %d, plain: %08x%08x, cipher: %08x%08x\n", position, iv[0], iv[1], plain_length, plain[0], plain[1], digests_buf[digests_offset].digest_buf[0], digests_buf[digests_offset].digest_buf[1]);
   
   /**
    * digest
