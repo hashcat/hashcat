@@ -5334,7 +5334,7 @@ int chacha20_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   u8 *cipher_marker = (u8 *) strchr ((const char *) plain_marker, '*') + 1;
   if (cipher_marker == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
-  chacha20->position = 1;
+  chacha20->position = 0;
   chacha20->plain_length = 16;
 
   chacha20->iv[0] = hex_to_u32 ((const u8 *) iv_marker + 8);
@@ -19464,7 +19464,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
                  hashconfig->kern_type      = KERN_TYPE_CHACHA20;
-                 hashconfig->dgst_size      = DGST_SIZE_8_8;
+                 hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = chacha20_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
                                             | OPTI_TYPE_USES_BITS_32
