@@ -280,6 +280,7 @@ typedef enum rule_functions
   RULE_OP_MANGLE_EXTRACT_MEMORY  = 'X',
   RULE_OP_MANGLE_APPEND_MEMORY   = '4',
   RULE_OP_MANGLE_PREPEND_MEMORY  = '6',
+  RULE_OP_MANGLE_TITLE_SEP       = 'e',
 
   RULE_OP_MEMORIZE_WORD          = 'M',
 
@@ -662,6 +663,34 @@ typedef enum user_options_map
 /**
  * structs
  */
+
+typedef struct
+{
+  u8  digest_length;
+  u8  key_length;
+  u8  fanout;
+  u8  depth;
+  u32 leaf_length;
+  u32 node_offset;
+  u32 xof_length;
+  u8  node_depth;
+  u8  inner_length;
+  u8  reserved[14];
+  u8  salt[16];
+  u8  personnel[16];
+
+} blake2params_t;
+
+typedef struct
+{
+  u64 h[8];
+  u64 t[2];
+  u64 f[2];
+  u32 buflen;
+  u32 outlen;
+  u8  last_node;
+
+} blake2_t;
 
 typedef struct
 {

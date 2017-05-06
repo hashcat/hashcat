@@ -58,7 +58,8 @@ static const char grp_op_chr[] =
 {
   RULE_OP_MANGLE_APPEND,
   RULE_OP_MANGLE_PREPEND,
-  RULE_OP_MANGLE_PURGECHAR
+  RULE_OP_MANGLE_PURGECHAR,
+  RULE_OP_MANGLE_TITLE_SEP
 };
 
 static const char grp_op_chr_chr[] =
@@ -444,6 +445,11 @@ int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
         SET_NAME (rule, rule_buf[rule_pos]);
         break;
 
+      case RULE_OP_MANGLE_TITLE_SEP:
+        SET_NAME (rule, rule_buf[rule_pos]);
+        SET_P0   (rule, rule_buf[rule_pos]);
+        break;
+
       default:
         return -1;
     }
@@ -660,6 +666,11 @@ int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)
 
       case RULE_OP_MANGLE_TITLE:
         rule_buf[rule_pos] = rule_cmd;
+        break;
+
+      case RULE_OP_MANGLE_TITLE_SEP:
+        rule_buf[rule_pos] = rule_cmd;
+        GET_P0 (rule);
         break;
 
       case 0:

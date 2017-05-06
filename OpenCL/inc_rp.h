@@ -32,6 +32,7 @@
 #define RULE_OP_MANGLE_DUPECHAR_FIRST   'z'
 #define RULE_OP_MANGLE_DUPECHAR_LAST    'Z'
 #define RULE_OP_MANGLE_DUPECHAR_ALL     'q'
+#define RULE_OP_MANGLE_TITLE_SEP        'e'
 
 #define RULE_OP_REJECT_LESS             '<'
 #define RULE_OP_REJECT_GREATER          '>'

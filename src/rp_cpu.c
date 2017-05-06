@@ -431,7 +431,7 @@ static int mangle_chr_decr (char arr[BLOCK_SIZE], int arr_len, int upos)
   return (arr_len);
 }
 
-static int mangle_title (char arr[BLOCK_SIZE], int arr_len)
+static int mangle_title_sep (char arr[BLOCK_SIZE], int arr_len, char c)
 {
   int upper_next = 1;
 
@@ -439,7 +439,7 @@ static int mangle_title (char arr[BLOCK_SIZE], int arr_len)
 
   for (pos = 0; pos < arr_len; pos++)
   {
-    if (arr[pos] == ' ')
+    if (arr[pos] == c)
     {
       upper_next = 1;
 
@@ -702,8 +702,13 @@ int _old_apply_rule (char *rule, int rule_len, char in[BLOCK_SIZE], int in_len, 
         if ((upos >= 1) && ((upos + 0) < out_len)) mangle_overstrike (out, out_len, upos, out[upos - 1]);
         break;
 
+      case RULE_OP_MANGLE_TITLE_SEP:
+        NEXT_RULEPOS (rule_pos);
+        out_len = mangle_title_sep (out, out_len, rule[rule_pos]);
+        break;
+
       case RULE_OP_MANGLE_TITLE:
-        out_len = mangle_title (out, out_len);
+        out_len = mangle_title_sep (out, out_len, ' ');
         break;
 
       case RULE_OP_MANGLE_EXTRACT_MEMORY:
