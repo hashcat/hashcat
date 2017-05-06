@@ -1022,14 +1022,16 @@ typedef struct
 
 } keepass_t;
 
-/* Fist0urs */
 typedef struct
 {
   u32 version;
   u32 context;
 
   u8 SID_tmp[64];
-  u32 SID[64];
+  u32 SID[32];
+  u32 SID_len;
+  u32 SID_offset;
+  u32 userKey[5];
   char cipher_algo[16];
   char hash_algo[16];
 
@@ -1038,7 +1040,6 @@ typedef struct
   u32 contents[128];
 
 } dpapimk_t;
-/* Fist0urs_end */
 
 typedef struct
 {
@@ -1379,14 +1380,13 @@ typedef struct
 
 } keepass_tmp_t;
 
-/* Fist0urs */
 typedef struct
 {
   /* dedicated to hmac-sha1 */
   u32 ipad[5];
   u32 opad[5];
-  u32 dgst[5];
-  u32 out[5];
+  u32 dgst[10];
+  u32 out[10];
 
   /* dedicated to hmac-sha512 */
   u64 ipad64[8];
@@ -1395,7 +1395,6 @@ typedef struct
   u64 out64[16];
   
 } dpapimk_tmp_t;
-/* Fist0urs_end */
 
 typedef struct
 {
