@@ -429,7 +429,6 @@ typedef struct dpapimk
   u32 SID[32];
   u32 SID_len;
   u32 SID_offset;
-  u32 userKey[5];
   u8 cipher_algo[16];
   u8 hash_algo[16];
 
@@ -837,12 +836,14 @@ typedef struct dpapimk_tmp
   u32 dgst[10];
   u32 out[10];
 
+  u32 userKey[5];
+
   /* dedicated to hmac-sha512 */
   u64 ipad64[8];
   u64 opad64[8];
   u64 dgst64[16];
   u64 out64[16];
-  
+
 } dpapimk_tmp_t;
 
 typedef struct seven_zip_hook
@@ -1366,7 +1367,8 @@ typedef enum hash_type
   HASH_TYPE_ITUNES_BACKUP_10    = 57,
   HASH_TYPE_SKIP32              = 58,
   HASH_TYPE_BLAKE2B             = 59,
-  HASH_TYPE_DPAPIMK             = 60,
+  HASH_TYPE_CHACHA20            = 60,
+  HASH_TYPE_DPAPIMK             = 61,
 
 } hash_type_t;
 

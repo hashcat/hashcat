@@ -6,6 +6,7 @@
 
 - Added hash-mode   600 = Blake2-512
 - Added hash-mode 15200 = Blockchain, My Wallet, V2
+- Added hash-mode 15300 = DPAPI masterkey file v1 and v2
 
 ##
 ## Features

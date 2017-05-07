@@ -85,6 +85,7 @@ const unsigned int DEFAULT_BENCHMARK_ALGORITHMS_BUF[] =
   1000,
   1100,
   2100,
+  15300,
   12800,
   1500,
   12400,

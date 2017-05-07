@@ -1042,7 +1042,6 @@ typedef struct
   u32 SID[32];
   u32 SID_len;
   u32 SID_offset;
-  u32 userKey[5];
   char cipher_algo[16];
   char hash_algo[16];
 
@@ -1399,12 +1398,14 @@ typedef struct
   u32 dgst[10];
   u32 out[10];
 
+  u32 userKey[5];
+
   /* dedicated to hmac-sha512 */
   u64 ipad64[8];
   u64 opad64[8];
   u64 dgst64[16];
   u64 out64[16];
-  
+
 } dpapimk_tmp_t;
 
 typedef struct

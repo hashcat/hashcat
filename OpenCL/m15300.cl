@@ -698,9 +698,6 @@ void AES256_decrypt (const u32 *in, u32 *out, const u32 *rdk, SHM_TYPE u32 *s_td
          ^ rdk[59];
 }
 
-#define COMPARE_S "inc_comp_single.cl"
-#define COMPARE_M "inc_comp_multi.cl"
-
 void md4_transform_S (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[4])
 {
   u32 a = digest[0];
@@ -1501,38 +1498,38 @@ __kernel void m15300_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   u32 w0[4];
 
-  w0[0] = pws[gid].i[ 0];
-  w0[1] = pws[gid].i[ 1];
-  w0[2] = pws[gid].i[ 2];
-  w0[3] = pws[gid].i[ 3];
+  w0[0] = pws[gid].i[0];
+  w0[1] = pws[gid].i[1];
+  w0[2] = pws[gid].i[2];
+  w0[3] = pws[gid].i[3];
 
   u32 w1[4];
 
-  w1[0] = pws[gid].i[ 4];
-  w1[1] = pws[gid].i[ 5];
-  w1[2] = pws[gid].i[ 6];
-  w1[3] = pws[gid].i[ 7];
+  w1[0] = pws[gid].i[4];
+  w1[1] = pws[gid].i[5];
+  w1[2] = pws[gid].i[6];
+  w1[3] = pws[gid].i[7];
 
   u32 w2[4];
 
-  w2[0] = pws[gid].i[ 8];
-  w2[1] = pws[gid].i[ 9];
-  w2[2] = pws[gid].i[10];
-  w2[3] = pws[gid].i[11];
+  w2[0] = 0;
+  w2[1] = 0;
+  w2[2] = 0;
+  w2[3] = 0;
 
   u32 w3[4];
 
-  w3[0] = pws[gid].i[12];
-  w3[1] = pws[gid].i[13];
-  w3[2] = pws[gid].i[14];
-  w3[3] = pws[gid].i[15];
+  w3[0] = 0;
+  w3[1] = 0;
+  w3[2] = 0;
+  w3[3] = 0;
 
-  u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len;
 
-  append_0x80_4x4_S (w0, w1, w2, w3, pw_len);
+  append_0x80_2x4_S (w0, w1, pw_len);
 
-  make_unicode (w1, w2, w3);
-  make_unicode (w0, w0, w1);
+  make_unicode_S (w1, w2, w3);
+  make_unicode_S (w0, w0, w1);
 
   /**
    * main
@@ -1555,23 +1552,23 @@ __kernel void m15300_init (__global pw_t *pws, __global const kernel_rule_t *rul
     digest_context[3] = SHA1M_D;
     digest_context[4] = SHA1M_E;
 
-    w0[0] = swap32 (w0[0]);
-    w0[1] = swap32 (w0[1]);
-    w0[2] = swap32 (w0[2]);
-    w0[3] = swap32 (w0[3]);
+    w0[0] = swap32_S (w0[0]);
+    w0[1] = swap32_S (w0[1]);
+    w0[2] = swap32_S (w0[2]);
+    w0[3] = swap32_S (w0[3]);
 
-    w1[0] = swap32 (w1[0]);
-    w1[1] = swap32 (w1[1]);
-    w1[2] = swap32 (w1[2]);
-    w1[3] = swap32 (w1[3]);
+    w1[0] = swap32_S (w1[0]);
+    w1[1] = swap32_S (w1[1]);
+    w1[2] = swap32_S (w1[2]);
+    w1[3] = swap32_S (w1[3]);
 
-    w2[0] = swap32 (w2[0]);
-    w2[1] = swap32 (w2[1]);
-    w2[2] = swap32 (w2[2]);
-    w2[3] = swap32 (w2[3]);
+    w2[0] = swap32_S (w2[0]);
+    w2[1] = swap32_S (w2[1]);
+    w2[2] = swap32_S (w2[2]);
+    w2[3] = swap32_S (w2[3]);
 
-    w3[0] = swap32 (w3[0]);
-    w3[1] = swap32 (w3[1]);
+    w3[0] = swap32_S (w3[0]);
+    w3[1] = swap32_S (w3[1]);
     w3[2] = 0;
     w3[3] = pw_len * 2 * 8;
 
@@ -1595,7 +1592,6 @@ __kernel void m15300_init (__global pw_t *pws, __global const kernel_rule_t *rul
     digest_context[3] = swap32_S (digest_context[3]);
     digest_context[4] = 0;
   }
-
   /* initialize hmac-sha1 */
 
    /**
@@ -1681,13 +1677,12 @@ __kernel void m15300_init (__global pw_t *pws, __global const kernel_rule_t *rul
   hmac_sha1_run_S (w0, w1, w2, w3, ipad, opad, key);
   /* this key is used as password for pbkdf2-hmac-* */
 
-  esalt_bufs[digests_offset].userKey[0] = key[0];
-  esalt_bufs[digests_offset].userKey[1] = key[1];
-  esalt_bufs[digests_offset].userKey[2] = key[2];
-  esalt_bufs[digests_offset].userKey[3] = key[3];
-  esalt_bufs[digests_offset].userKey[4] = key[4];
-  
-  
+  tmps[gid].userKey[0] = key[0];
+  tmps[gid].userKey[1] = key[1];
+  tmps[gid].userKey[2] = key[2];
+  tmps[gid].userKey[3] = key[3];
+  tmps[gid].userKey[4] = key[4];
+
   /* if DPAPImk version 1, pbkdf-hmac-sha1 is used */
   if (esalt_bufs[digests_offset].version == 1)
   {
@@ -1757,13 +1752,13 @@ __kernel void m15300_init (__global pw_t *pws, __global const kernel_rule_t *rul
     tmps[gid].dgst[3] = digest[3];
     tmps[gid].dgst[4] = digest[4];
 
-    tmps[gid].out[0] = digest[0];
-    tmps[gid].out[1] = digest[1];
-    tmps[gid].out[2] = digest[2];
-    tmps[gid].out[3] = digest[3];
-    tmps[gid].out[4] = digest[4];
+    tmps[gid].out[0]  = digest[0];
+    tmps[gid].out[1]  = digest[1];
+    tmps[gid].out[2]  = digest[2];
+    tmps[gid].out[3]  = digest[3];
+    tmps[gid].out[4]  = digest[4];
 
-    /* We need bigger output ! */
+    /* We need bigger output! */
     w0[0] = esalt_bufs[digests_offset].iv[0];
     w0[1] = esalt_bufs[digests_offset].iv[1];
     w0[2] = esalt_bufs[digests_offset].iv[2];
@@ -1789,11 +1784,11 @@ __kernel void m15300_init (__global pw_t *pws, __global const kernel_rule_t *rul
     tmps[gid].dgst[8] = digest[3];
     tmps[gid].dgst[9] = digest[4];
 
-    tmps[gid].out[5] = digest[0];
-    tmps[gid].out[6] = digest[1];
-    tmps[gid].out[7] = digest[2];
-    tmps[gid].out[8] = digest[3];
-    tmps[gid].out[9] = digest[4];
+    tmps[gid].out[5]  = digest[0];
+    tmps[gid].out[6]  = digest[1];
+    tmps[gid].out[7]  = digest[2];
+    tmps[gid].out[8]  = digest[3];
+    tmps[gid].out[9]  = digest[4];
   }
   /* if DPAPImk version 2, pbkdf-hmac-sha512 is used*/
   else if (esalt_bufs[digests_offset].version == 2)
@@ -1873,14 +1868,14 @@ __kernel void m15300_init (__global pw_t *pws, __global const kernel_rule_t *rul
     tmps[gid].dgst64[6] = dgst64[6];
     tmps[gid].dgst64[7] = dgst64[7];
 
-    tmps[gid].out64[0] = dgst64[0];
-    tmps[gid].out64[1] = dgst64[1];
-    tmps[gid].out64[2] = dgst64[2];
-    tmps[gid].out64[3] = dgst64[3];
-    tmps[gid].out64[4] = dgst64[4];
-    tmps[gid].out64[5] = dgst64[5];
-    tmps[gid].out64[6] = dgst64[6];
-    tmps[gid].out64[7] = dgst64[7];
+    tmps[gid].out64[0]  = dgst64[0];
+    tmps[gid].out64[1]  = dgst64[1];
+    tmps[gid].out64[2]  = dgst64[2];
+    tmps[gid].out64[3]  = dgst64[3];
+    tmps[gid].out64[4]  = dgst64[4];
+    tmps[gid].out64[5]  = dgst64[5];
+    tmps[gid].out64[6]  = dgst64[6];
+    tmps[gid].out64[7]  = dgst64[7];
   }
 }
 
@@ -1919,18 +1914,18 @@ __kernel void m15300_loop (__global pw_t *pws, __global const kernel_rule_t *rul
     {
       u32x dgst[5];
       u32x out[5];
-    
+
       dgst[0] = packv (tmps, dgst, gid, i + 0);
       dgst[1] = packv (tmps, dgst, gid, i + 1);
       dgst[2] = packv (tmps, dgst, gid, i + 2);
       dgst[3] = packv (tmps, dgst, gid, i + 3);
       dgst[4] = packv (tmps, dgst, gid, i + 4);
-    
-      out[0] = packv (tmps, out, gid, i + 0);
-      out[1] = packv (tmps, out, gid, i + 1);
-      out[2] = packv (tmps, out, gid, i + 2);
-      out[3] = packv (tmps, out, gid, i + 3);
-      out[4] = packv (tmps, out, gid, i + 4);
+
+      out[0]  = packv (tmps, out, gid, i + 0);
+      out[1]  = packv (tmps, out, gid, i + 1);
+      out[2]  = packv (tmps, out, gid, i + 2);
+      out[3]  = packv (tmps, out, gid, i + 3);
+      out[4]  = packv (tmps, out, gid, i + 4);
 
       for (u32 j = 0; j < loop_cnt; j++)
       {
@@ -1938,7 +1933,7 @@ __kernel void m15300_loop (__global pw_t *pws, __global const kernel_rule_t *rul
         u32x w1[4];
         u32x w2[4];
         u32x w3[4];
-    
+
         /* Microsoft PBKDF2 implementation. On purpose?
            Misunderstanding of them? Dunno...
         */
@@ -1958,22 +1953,22 @@ __kernel void m15300_loop (__global pw_t *pws, __global const kernel_rule_t *rul
         w3[1] = 0;
         w3[2] = 0;
         w3[3] = (64 + 20) * 8;
-    
+
         hmac_sha1_run_V (w0, w1, w2, w3, ipad, opad, dgst);
-    
+
         out[0] ^= dgst[0];
         out[1] ^= dgst[1];
         out[2] ^= dgst[2];
         out[3] ^= dgst[3];
         out[4] ^= dgst[4];
       }
-    
+
       unpackv (tmps, dgst, gid, i + 0, dgst[0]);
       unpackv (tmps, dgst, gid, i + 1, dgst[1]);
       unpackv (tmps, dgst, gid, i + 2, dgst[2]);
       unpackv (tmps, dgst, gid, i + 3, dgst[3]);
       unpackv (tmps, dgst, gid, i + 4, dgst[4]);
-    
+
       unpackv (tmps, out, gid, i + 0, out[0]);
       unpackv (tmps, out, gid, i + 1, out[1]);
       unpackv (tmps, out, gid, i + 2, out[2]);
@@ -2016,14 +2011,14 @@ __kernel void m15300_loop (__global pw_t *pws, __global const kernel_rule_t *rul
     dgst[6] = pack64v (tmps, dgst64, gid, 6);
     dgst[7] = pack64v (tmps, dgst64, gid, 7);
 
-    out[0] = pack64v (tmps, out64, gid, 0);
-    out[1] = pack64v (tmps, out64, gid, 1);
-    out[2] = pack64v (tmps, out64, gid, 2);
-    out[3] = pack64v (tmps, out64, gid, 3);
-    out[4] = pack64v (tmps, out64, gid, 4);
-    out[5] = pack64v (tmps, out64, gid, 5);
-    out[6] = pack64v (tmps, out64, gid, 6);
-    out[7] = pack64v (tmps, out64, gid, 7);
+    out[0]  = pack64v (tmps, out64, gid, 0);
+    out[1]  = pack64v (tmps, out64, gid, 1);
+    out[2]  = pack64v (tmps, out64, gid, 2);
+    out[3]  = pack64v (tmps, out64, gid, 3);
+    out[4]  = pack64v (tmps, out64, gid, 4);
+    out[5]  = pack64v (tmps, out64, gid, 5);
+    out[6]  = pack64v (tmps, out64, gid, 6);
+    out[7]  = pack64v (tmps, out64, gid, 7);
 
     for (u32 j = 0; j < loop_cnt; j++)
     {
@@ -2032,7 +2027,7 @@ __kernel void m15300_loop (__global pw_t *pws, __global const kernel_rule_t *rul
       u64x w2[4];
       u64x w3[4];
 
-      /* Microsoft PBKDF2 implementation. On purpose? 
+      /* Microsoft PBKDF2 implementation. On purpose?
          Misunderstanding of them? Dunno...
       */
       w0[0] = out[0];
@@ -2096,7 +2091,7 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     u32 w1[4];
     u32 w2[4];
     u32 w3[4];
-    
+
     u32 ipad[5];
     u32 opad[5];
 
@@ -2106,7 +2101,7 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
     __local u32 s_SPtrans[8][64];
     __local u32 s_skb[8][64];
-    
+
     for (u32 i = lid; i < 64; i += lsz)
     {
       s_SPtrans[0][i] = c_SPtrans[0][i];
@@ -2117,7 +2112,7 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
       s_SPtrans[5][i] = c_SPtrans[5][i];
       s_SPtrans[6][i] = c_SPtrans[6][i];
       s_SPtrans[7][i] = c_SPtrans[7][i];
-    
+
       s_skb[0][i] = c_skb[0][i];
       s_skb[1][i] = c_skb[1][i];
       s_skb[2][i] = c_skb[2][i];
@@ -2127,13 +2122,13 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
       s_skb[6][i] = c_skb[6][i];
       s_skb[7][i] = c_skb[7][i];
     }
-    
+
     barrier (CLK_LOCAL_MEM_FENCE);
-    
+
     if (gid >= gid_max) return;
 
     u32 key[6];
-    
+
     key[0] = swap32_S (tmps[gid].out[0]);
     key[1] = swap32_S (tmps[gid].out[1]);
     key[2] = swap32_S (tmps[gid].out[2]);
@@ -2142,102 +2137,102 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     key[5] = swap32_S (tmps[gid].out[5]);
 
     u32x iv[2];
-    
-    iv[0] = swap32_S (tmps[gid].out[6]);
-    iv[1] = swap32_S (tmps[gid].out[7]);
+
+    iv[0]  = swap32_S (tmps[gid].out[6]);
+    iv[1]  = swap32_S (tmps[gid].out[7]);
 
     u32 decrypted[26];
-    
+
     /* Construct 3DES keys */
-    
+
     const u32x a = (key[0]);
     const u32x b = (key[1]);
-    
+
     u32x Ka[16];
     u32x Kb[16];
-    
+
     _des_crypt_keysetup (a, b, Ka, Kb, s_skb);
-    
+
     const u32x c = (key[2]);
     const u32x d = (key[3]);
-    
+
     u32x Kc[16];
     u32x Kd[16];
-    
+
     _des_crypt_keysetup (c, d, Kc, Kd, s_skb);
-    
+
     const u32x e = (key[4]);
     const u32x f = (key[5]);
 
     u32x Ke[16];
     u32x Kf[16];
-    
+
     _des_crypt_keysetup (e, f, Ke, Kf, s_skb);
 
     u32 contents_pos;
     u32 contents_off;
     u32 wx_off;
-    
+
     for (wx_off = 0, contents_pos = 0, contents_off = 0; contents_pos < esalt_bufs[digests_offset].contents_len; wx_off += 2, contents_pos += 8, contents_off += 2)
     {
       /* First Pass */
-    
+
       u32x data[2];
-      
+
       data[0] = (u32x) swap32_S (esalt_bufs[digests_offset].contents[contents_off + 0]);
       data[1] = (u32x) swap32_S (esalt_bufs[digests_offset].contents[contents_off + 1]);
 
       u32x p1[2];
-    
+
       _des_crypt_decrypt (p1, data, Ke, Kf, s_SPtrans);
 
       /* Second Pass */
-      
+
       u32x p2[2];
-      
+
       _des_crypt_encrypt (p2, p1, Kc, Kd, s_SPtrans);
-      
+
       /* Third Pass */
 
       u32x out[2];
-      
+
       _des_crypt_decrypt (out, p2, Ka, Kb, s_SPtrans);
-      
+
       out[0] ^= iv[0];
       out[1] ^= iv[1];
 
       decrypted[wx_off + 0] = out[0];
       decrypted[wx_off + 1] = out[1];
-      
+
       iv[0] = data[0];
       iv[1] = data[1];
     }
 
     u32 hmacSalt[4];
-    u32 hmacTemoin[5];
+    u32 expectedHmac[5];
     u32 lastKey[16];
 
-    hmacSalt[0] = swap32_S (decrypted[0]);
-    hmacSalt[1] = swap32_S (decrypted[1]);
-    hmacSalt[2] = swap32_S (decrypted[2]);
-    hmacSalt[3] = swap32_S (decrypted[3]);
+    hmacSalt[0]     = swap32_S (decrypted[0]);
+    hmacSalt[1]     = swap32_S (decrypted[1]);
+    hmacSalt[2]     = swap32_S (decrypted[2]);
+    hmacSalt[3]     = swap32_S (decrypted[3]);
 
-    hmacTemoin[0] = swap32_S (decrypted[0 + 4]);
-    hmacTemoin[1] = swap32_S (decrypted[1 + 4]);
-    hmacTemoin[2] = swap32_S (decrypted[2 + 4]);
-    hmacTemoin[3] = swap32_S (decrypted[3 + 4]);
-    hmacTemoin[4] = swap32_S (decrypted[4 + 4]);
+    expectedHmac[0] = swap32_S (decrypted[4 + 0]);
+    expectedHmac[1] = swap32_S (decrypted[4 + 1]);
+    expectedHmac[2] = swap32_S (decrypted[4 + 2]);
+    expectedHmac[3] = swap32_S (decrypted[4 + 3]);
+    expectedHmac[4] = swap32_S (decrypted[4 + 4]);
 
     for(int i = 0; i < 16; i++)
     {
-      lastKey[i] = decrypted[i + 26 - 16]; 
+      lastKey[i] = decrypted[i + 26 - 16];
     }
 
-    w0[0] = esalt_bufs[digests_offset].userKey[0];
-    w0[1] = esalt_bufs[digests_offset].userKey[1];
-    w0[2] = esalt_bufs[digests_offset].userKey[2];
-    w0[3] = esalt_bufs[digests_offset].userKey[3];
-    w1[0] = esalt_bufs[digests_offset].userKey[4];
+    w0[0] = tmps[gid].userKey[0];
+    w0[1] = tmps[gid].userKey[1];
+    w0[2] = tmps[gid].userKey[2];
+    w0[3] = tmps[gid].userKey[3];
+    w1[0] = tmps[gid].userKey[4];
     w1[1] = 0;
     w1[2] = 0;
     w1[3] = 0;
@@ -2293,7 +2288,7 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     w3[1] = 0;
     w3[2] = 0;
     w3[3] = 0;
-    
+
     hmac_sha1_pad_S (w0, w1, w2, w3, ipad, opad);
 
     /**
@@ -2340,11 +2335,13 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
     #define il_pos 0
 
-    if ((hmacTemoin[0] == digest[0]) && (hmacTemoin[1] == digest[1])
-       && (hmacTemoin[2] == digest[2]) && (hmacTemoin[3] == digest[3])
-       && (hmacTemoin[4] == digest[4]))
+    if (  expectedHmac[0] == digest[0]
+      &&  expectedHmac[1] == digest[1]
+      &&  expectedHmac[2] == digest[2]
+      &&  expectedHmac[3] == digest[3]
+      &&  expectedHmac[4] == digest[4])
     {
-        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
     }
   }
   else if (esalt_bufs[digests_offset].version == 2)
@@ -2352,21 +2349,21 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     /**
      * aes shared
      */
-    
+
     #ifdef REAL_SHM
-    
+
     __local u32 s_td0[256];
     __local u32 s_td1[256];
     __local u32 s_td2[256];
     __local u32 s_td3[256];
     __local u32 s_td4[256];
-    
+
     __local u32 s_te0[256];
     __local u32 s_te1[256];
     __local u32 s_te2[256];
     __local u32 s_te3[256];
     __local u32 s_te4[256];
-    
+
     for (u32 i = lid; i < 256; i += lsz)
     {
       s_td0[i] = td0[i];
@@ -2374,38 +2371,38 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
       s_td2[i] = td2[i];
       s_td3[i] = td3[i];
       s_td4[i] = td4[i];
-    
+
       s_te0[i] = te0[i];
       s_te1[i] = te1[i];
       s_te2[i] = te2[i];
       s_te3[i] = te3[i];
       s_te4[i] = te4[i];
     }
-    
+
     barrier (CLK_LOCAL_MEM_FENCE);
-    
+
     #else
-    
+
     __constant u32a *s_td0 = td0;
     __constant u32a *s_td1 = td1;
     __constant u32a *s_td2 = td2;
     __constant u32a *s_td3 = td3;
     __constant u32a *s_td4 = td4;
-    
+
     __constant u32a *s_te0 = te0;
     __constant u32a *s_te1 = te1;
     __constant u32a *s_te2 = te2;
     __constant u32a *s_te3 = te3;
     __constant u32a *s_te4 = te4;
-    
+
     #endif
-    
+
     if (gid >= gid_max) return;
-    
+
     /* Construct AES key */
-    
+
     u32 key[8];
-    
+
     key[0] = h32_from_64 (tmps[gid].out64[0]);
     key[1] = l32_from_64 (tmps[gid].out64[0]);
     key[2] = h32_from_64 (tmps[gid].out64[1]);
@@ -2414,88 +2411,88 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     key[5] = l32_from_64 (tmps[gid].out64[2]);
     key[6] = h32_from_64 (tmps[gid].out64[3]);
     key[7] = l32_from_64 (tmps[gid].out64[3]);
-    
+
     u32 iv[4];
-    
-    iv[0] = h32_from_64 (tmps[gid].out64[4]);
-    iv[1] = l32_from_64 (tmps[gid].out64[4]);
-    iv[2] = h32_from_64 (tmps[gid].out64[5]);
-    iv[3] = l32_from_64 (tmps[gid].out64[5]);
-    
+
+    iv[0]  = h32_from_64 (tmps[gid].out64[4]);
+    iv[1]  = l32_from_64 (tmps[gid].out64[4]);
+    iv[2]  = h32_from_64 (tmps[gid].out64[5]);
+    iv[3]  = l32_from_64 (tmps[gid].out64[5]);
+
     #define KEYLEN 60
-    
+
     u32 rek[KEYLEN];
-    
+
     AES256_ExpandKey (key, rek, s_te0, s_te1, s_te2, s_te3, s_te4);
-    
+
     u32 rdk[KEYLEN];
-    
+
     #ifdef _unroll
     #pragma unroll
     #endif
     for (u32 i = 0; i < KEYLEN; i++) rdk[i] = rek[i];
-    
+
     AES256_InvertKey (rdk, s_td0, s_td1, s_td2, s_td3, s_td4, s_te0, s_te1, s_te2, s_te3, s_te4);
-    
+
     /* 144 bytes */
     u32 decrypted[36] = { 0 };
-    
+
     u32 contents_pos;
     u32 contents_off;
     u32 wx_off;
-    
+
     for (wx_off = 0, contents_pos = 0, contents_off = 0; contents_pos < esalt_bufs[digests_offset].contents_len; wx_off += 4, contents_pos += 16, contents_off += 4)
     {
       u32 data[4];
-    
+
       data[0] = esalt_bufs[digests_offset].contents[contents_off + 0];
       data[1] = esalt_bufs[digests_offset].contents[contents_off + 1];
       data[2] = esalt_bufs[digests_offset].contents[contents_off + 2];
       data[3] = esalt_bufs[digests_offset].contents[contents_off + 3];
-    
+
       u32 out[4];
-    
+
       AES256_decrypt (data, out, rdk, s_td0, s_td1, s_td2, s_td3, s_td4);
-    
+
       out[0] ^= iv[0];
       out[1] ^= iv[1];
       out[2] ^= iv[2];
       out[3] ^= iv[3];
-    
+
       decrypted[wx_off + 0] = out[0];
       decrypted[wx_off + 1] = out[1];
       decrypted[wx_off + 2] = out[2];
       decrypted[wx_off + 3] = out[3];
-    
+
       iv[0] = data[0];
       iv[1] = data[1];
       iv[2] = data[2];
       iv[3] = data[3];
     }
-    
+
     u32 hmacSalt[4];
-    u32 hmacTemoin[16];
+    u32 expectedHmac[16];
     u32 lastKey[16];
-      
+
     hmacSalt[0] = decrypted[0];
     hmacSalt[1] = decrypted[1];
     hmacSalt[2] = decrypted[2];
     hmacSalt[3] = decrypted[3];
-      
+
     for(int i = 0; i < 16; i++)
     {
-      hmacTemoin[i] = decrypted[i + 4];
-      lastKey[i] = decrypted[i + 36 - 16]; 
+      expectedHmac[i] = decrypted[i + 4];
+      lastKey[i]      = decrypted[i + 36 - 16];
     }
-    
+
     u64 w0_x64[4];
     u64 w1_x64[4];
     u64 w2_x64[4];
     u64 w3_x64[4];
-    
-    w0_x64[0] = hl32_to_64_S (esalt_bufs[digests_offset].userKey[0], esalt_bufs[digests_offset].userKey[1]);
-    w0_x64[1] = hl32_to_64_S (esalt_bufs[digests_offset].userKey[2], esalt_bufs[digests_offset].userKey[3]);
-    w0_x64[2] = hl32_to_64_S (esalt_bufs[digests_offset].userKey[4], 0);
+
+    w0_x64[0] = hl32_to_64_S (tmps[gid].userKey[0], tmps[gid].userKey[1]);
+    w0_x64[1] = hl32_to_64_S (tmps[gid].userKey[2], tmps[gid].userKey[3]);
+    w0_x64[2] = hl32_to_64_S (tmps[gid].userKey[4], 0);
     w0_x64[3] = 0;
     w1_x64[0] = 0;
     w1_x64[1] = 0;
@@ -2509,12 +2506,12 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     w3_x64[1] = 0;
     w3_x64[2] = 0;
     w3_x64[3] = 0;
-    
+
     u64 ipad64[8];
     u64 opad64[8];
-    
+
     hmac_sha512_pad_S (w0_x64, w1_x64, w2_x64, w3_x64, ipad64, opad64);
-    
+
     w0_x64[0] = hl32_to_64_S (hmacSalt[0], hmacSalt[1]);
     w0_x64[1] = hl32_to_64_S (hmacSalt[2], hmacSalt[3]);
     w0_x64[2] = hl32_to_64_S (0x80000000, 0);
@@ -2531,13 +2528,13 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     w3_x64[1] = 0;
     w3_x64[2] = 0;
     w3_x64[3] = (128 + 16) * 8;
-    
+
     u64 dgst64[8];
-    
+
     hmac_sha512_run_S (w0_x64, w1_x64, w2_x64, w3_x64, ipad64, opad64, dgst64);
-    
+
     u64 encKey[8];
-    
+
     encKey[0] = dgst64[0];
     encKey[1] = dgst64[1];
     encKey[2] = dgst64[2];
@@ -2546,7 +2543,7 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     encKey[5] = dgst64[5];
     encKey[6] = dgst64[6];
     encKey[7] = dgst64[7];
-    
+
     w0_x64[0] = encKey[0];
     w0_x64[1] = encKey[1];
     w0_x64[2] = encKey[2];
@@ -2563,9 +2560,9 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     w3_x64[1] = 0;
     w3_x64[2] = 0;
     w3_x64[3] = 0;
-    
+
     hmac_sha512_pad_S (w0_x64, w1_x64, w2_x64, w3_x64, ipad64, opad64);
-    
+
     w0_x64[0] = hl32_to_64_S (lastKey[ 0], lastKey[ 1]);
     w0_x64[1] = hl32_to_64_S (lastKey[ 2], lastKey[ 3]);
     w0_x64[2] = hl32_to_64_S (lastKey[ 4], lastKey[ 5]);
@@ -2582,15 +2579,21 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     w3_x64[1] = 0;
     w3_x64[2] = 0;
     w3_x64[3] = (128 + 16 * 4) * 8;
-    
+
     hmac_sha512_run_S (w0_x64, w1_x64, w2_x64, w3_x64, ipad64, opad64, dgst64);
 
     #define il_pos 0
 
-    if ((hmacTemoin[0] == h32_from_64 (dgst64[0])) && (hmacTemoin[1] == l32_from_64 (dgst64[0]))
-       && (hmacTemoin[14] == h32_from_64 (dgst64[7])) && (hmacTemoin[15] == l32_from_64 (dgst64[7])))
+    if (  expectedHmac[ 0] == h32_from_64 (dgst64[0])
+       && expectedHmac[ 1] == l32_from_64 (dgst64[0])
+       && expectedHmac[ 2] == h32_from_64 (dgst64[1])
+       && expectedHmac[ 3] == l32_from_64 (dgst64[1])
+       && expectedHmac[12] == h32_from_64 (dgst64[6])
+       && expectedHmac[13] == l32_from_64 (dgst64[6])
+       && expectedHmac[14] == h32_from_64 (dgst64[7])
+       && expectedHmac[15] == l32_from_64 (dgst64[7]))
     {
-        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
     }
   }
 }
