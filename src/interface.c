@@ -5334,7 +5334,6 @@ int chacha20_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   u8 *cipher_marker = (u8 *) strchr ((const char *) plain_marker, '*') + 1;
   if (cipher_marker == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
-  chacha20->position = 0;
   chacha20->plain_length = 16;
 
   chacha20->iv[0] = hex_to_u32 ((const u8 *) iv_marker + 8);
@@ -5342,6 +5341,9 @@ int chacha20_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   chacha20->plain[0] = hex_to_u32 ((const u8 *) plain_marker + 8);
   chacha20->plain[1] = hex_to_u32 ((const u8 *) plain_marker + 0);
+
+  chacha20->position[0] = byte_swap_32(hex_to_u32 ((const u8 *) position_marker + 8));
+  chacha20->position[1] = byte_swap_32(hex_to_u32 ((const u8 *) position_marker + 0));
 
   digest[0] = hex_to_u32 ((const u8 *) cipher_marker + 8);
   digest[1] = hex_to_u32 ((const u8 *) cipher_marker + 0);
@@ -18539,9 +18541,10 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
       const chacha20_t *chacha20 = (const chacha20_t *) esalts_buf;
 
-      snprintf (out_buf, out_len - 1, "%s*%d*%08x%08x*%08x%08x*%08x%08x",
+      snprintf (out_buf, out_len - 1, "%s*%08x%08x*%08x%08x*%08x%08x*%08x%08x",
         SIGNATURE_CHACHA20,
-        chacha20->position,
+        chacha20->position[1],
+        chacha20->position[0],
         byte_swap_32(chacha20->iv[1]),
         byte_swap_32(chacha20->iv[0]),
         byte_swap_32(chacha20->plain[1]),

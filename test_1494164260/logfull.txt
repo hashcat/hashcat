@@ -1,0 +1,67 @@
+> Testing hash type 670 with attack mode 0, markov enabled, single hash, device-type Gpu, vector-width 1.
+[ len 1 ] 
+password not found, cmdline : echo -n 6 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*e74972dcb1a311da'
+[ len 2 ] 
+password not found, cmdline : echo -n 67 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*5fa5b0cb4ad78633'
+[ len 3 ] 
+password not found, cmdline : echo -n 372 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*26844d7278439094'
+[ len 4 ] 
+password not found, cmdline : echo -n 3258 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*36d5c22e9463f5e0'
+[ len 5 ] 
+password not found, cmdline : echo -n 04578 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*2a56b9c04c8c807a'
+[ len 6 ] 
+password not found, cmdline : echo -n 862731 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*64aed2d9b5ec57cb'
+[ len 7 ] 
+password not found, cmdline : echo -n 6641065 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*ed197923c1b80802'
+[ len 8 ] 
+password not found, cmdline : echo -n 55017033 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*b7677152b944f15f'
+[ len 9 ] 
+password not found, cmdline : echo -n 318437374 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*9ef832b1facf7b02'
+[ len 10 ] 
+password not found, cmdline : echo -n 6188666824 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*4b2f4ee9d9721b70'
+[ len 11 ] 
+password not found, cmdline : echo -n 65111124746 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*cdf9e19a7dcff72f'
+[ len 12 ] 
+password not found, cmdline : echo -n 707286574020 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*f109ba93033d7d7b'
+[ len 13 ] 
+password not found, cmdline : echo -n 1364055712721 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*42c6f16d08eb9f83'
+[ len 14 ] 
+password not found, cmdline : echo -n 33576028412173 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*ca2f41af00e46882'
+[ len 15 ] 
+password not found, cmdline : echo -n 180220531108674 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*fe98396e6e4d25d8'
+[ len 16 ] 
+password not found, cmdline : echo -n 5687321174705784 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*5ad25ae0d430605f'
+[ len 17 ] 
+password not found, cmdline : echo -n 23428127634565012 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*e5df92115a372c41'
+[ len 18 ] 
+password not found, cmdline : echo -n 611743681244133710 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*99fd00afe5553e22'
+[ len 19 ] 
+password not found, cmdline : echo -n 5746637407230647757 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*99c7972917f60d49'
+[ len 20 ] 
+password not found, cmdline : echo -n 16804857456865046234 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*772643d5645d48e2'
+[ len 21 ] 
+password not found, cmdline : echo -n 621740885826550151540 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*6d5d121ce3bdc4df'
+[ len 22 ] 
+password not found, cmdline : echo -n 4768135722377150535557 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*f84cc47dbb5efce0'
+[ len 23 ] 
+password not found, cmdline : echo -n 04388682802800407544507 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*a2703cf7eb03af9c'
+[ len 24 ] 
+password not found, cmdline : echo -n 455584300266578162770535 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*3bb4dd56564c19b9'
+[ len 25 ] 
+password not found, cmdline : echo -n 8621747574334541782265207 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*732356a298d7bdac'
+[ len 26 ] 
+password not found, cmdline : echo -n 37387417345107623802352705 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*fa127872b666d0fe'
+[ len 27 ] 
+password not found, cmdline : echo -n 472726203313536683746116085 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*bd258e2dd97026c6'
+[ len 28 ] 
+password not found, cmdline : echo -n 3438786707836244223228160350 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*aa75df3534f6eaf4'
+[ len 29 ] 
+password not found, cmdline : echo -n 61475343544670682047082330273 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*a80d0b76ca84c689'
+[ len 30 ] 
+password not found, cmdline : echo -n 118532031271510410414246417562 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*5cfd148402efe1c8'
+[ len 31 ] 
+password not found, cmdline : echo -n 2854812181768416063005655422754 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*89c77ecc1409069a'
+> Testing hash type 670 with attack mode 0, markov enabled, single hash, device-type Gpu, vector-width 4.
+[ len 1 ] 
+password not found, cmdline : echo -n 6 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 4 -a 0 -m 670 '$Chacha20$*1*0000000000000000*4141414141414141*e74972dcb1a311da'
+[ len 2 ] 

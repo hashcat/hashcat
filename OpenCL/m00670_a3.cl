@@ -29,7 +29,7 @@
     x[b] = rotl32(x[b] ^ x[c], 7);    \
   } while (0);
 
-void chacha20_transform (const u32x w0[4], const u32x w1[4], const u32 position, const u32 iv[2], const u32 plain[4], u32x digest[4])
+void chacha20_transform (const u32x w0[4], const u32x w1[4], const u32 position[2], const u32 iv[2], const u32 plain[4], u32x digest[4])
 {
   u32x ctx[16];
   
@@ -45,8 +45,8 @@ void chacha20_transform (const u32x w0[4], const u32x w1[4], const u32 position,
   ctx[ 9] = w1[1];
   ctx[10] = w1[2];
   ctx[11] = w1[3];
-  ctx[12] = 0;
-  ctx[13] = 0;
+  ctx[12] = position[0];
+  ctx[13] = position[1];
   ctx[14] = iv[1];
   ctx[15] = iv[0];
 
@@ -118,7 +118,11 @@ __kernel void m00670_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   u32 iv[2]    = { 0 };
   u32 plain[2] = { 0 };
-  u32 position = esalt_bufs->position;
+  u32 position[2] = { 0 };
+ 
+  position[0] = esalt_bufs->position[0];
+  position[1] = esalt_bufs->position[1];
+
   u32 plain_length = esalt_bufs->plain_length;
 
   iv[0] = esalt_bufs->iv[0];
@@ -194,7 +198,11 @@ __kernel void m00670_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   u32 iv[2]    = { 0 };
   u32 plain[2] = { 0 };
-  u32 position = esalt_bufs->position;
+  u32 position[2] = { 0 };
+ 
+  position[0] = esalt_bufs->position[0];
+  position[1] = esalt_bufs->position[1];
+
   u32 plain_length = esalt_bufs->plain_length;
 
   iv[0] = esalt_bufs->iv[0];

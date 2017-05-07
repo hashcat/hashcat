@@ -4787,8 +4787,7 @@ sub gen_hash
   elsif ($mode == 670)
   {
     my $eight_byte_iv = pack("H*",      "0000000000000000");
-    my $eight_byte_counter = pack("H*", "0000000000000000"); # little endian
-
+    my $eight_byte_counter = pack("H*", "0100000000000000"); # little endian 64 bits
     my $pad_len = 32 - length $word_buf;
     my $key = $word_buf . "\0" x $pad_len;
     my $cipher = Crypt::OpenSSH::ChachaPoly->new($key);
@@ -4798,7 +4797,7 @@ sub gen_hash
     my $enc = $cipher->encrypt("AAAAAAAA");
     $hash_buf = $enc;
 
-    $tmp_hash = sprintf ("\$Chacha20\$\*0\*0000000000000000\*4141414141414141\*%s", unpack("H*", $enc));
+    $tmp_hash = sprintf ("\$Chacha20\$\*%08x%08x\*0000000000000000\*4141414141414141\*%s", (unpack("V*", $eight_byte_counter))[1], (unpack("V*", $eight_byte_counter))[0], unpack("H*", $enc));
   }
   elsif ($mode == 900)
   {

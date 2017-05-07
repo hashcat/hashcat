@@ -1,0 +1,16 @@
+> Testing hash type 670 with attack mode 0, markov enabled, single hash, device-type Gpu, vector-width 1.
+[ len 1 ] 
+password not found, cmdline : echo -n 8 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1073741824*0000000000000000*4141414141414141*c6bf511d2b0dd783'
+[ len 2 ] 
+password not found, cmdline : echo -n 44 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1073741824*0000000000000000*4141414141414141*667750ca74739c80'
+[ len 3 ] 
+password not found, cmdline : echo -n 018 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1073741824*0000000000000000*4141414141414141*92c6af108649b627'
+[ len 4 ] 
+password not found, cmdline : echo -n 3733 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1073741824*0000000000000000*4141414141414141*748d90f335b2ce3e'
+[ len 5 ] 
+password not found, cmdline : echo -n 83456 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1073741824*0000000000000000*4141414141414141*88068711f5fc14e9'
+[ len 6 ] 
+password not found, cmdline : echo -n 773458 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1073741824*0000000000000000*4141414141414141*0544e26b061adc97'
+[ len 7 ] 
+password not found, cmdline : echo -n 0280427 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1073741824*0000000000000000*4141414141414141*20dd9f06388c5b1d'
+[ len 8 ] 

@@ -1,0 +1,10 @@
+> Testing hash type 670 with attack mode 0, markov enabled, single hash, device-type Gpu, vector-width 1.
+[ len 1 ] 
+password not found, cmdline : echo -n 7 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*383684322*0000000000000000*4141414141414141*807cedeef2cab65c'
+[ len 2 ] 
+password not found, cmdline : echo -n 25 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*1959436804*0000000000000000*4141414141414141*26a0b394aa82f6db'
+[ len 3 ] 
+password not found, cmdline : echo -n 206 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*2266624981*0000000000000000*4141414141414141*3f0a04606fff3e0c'
+[ len 4 ] 
+password not found, cmdline : echo -n 3748 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*129397811*0000000000000000*4141414141414141*92f36e8d43b8211b'
+[ len 5 ] 

@@ -1,0 +1,29 @@
+> Testing hash type 670 with attack mode 0, markov enabled, single hash, device-type Gpu, vector-width 1.
+[ len 1 ] [33mHash '$Chacha20$*0000000000000001*0000000000000000*4141414141414141*04f3f25775177638': Line-length exception[0m
+[31mNo hashes loaded.[0m
+! unhandled return code 255, cmdline : echo -n 4 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*0000000000000001*0000000000000000*4141414141414141*04f3f25775177638'
+[ len 2 ] [33mHash '$Chacha20$*0000000000000001*0000000000000000*4141414141414141*7b32f020bed5347b': Line-length exception[0m
+[31mNo hashes loaded.[0m
+! unhandled return code 255, cmdline : echo -n 15 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*0000000000000001*0000000000000000*4141414141414141*7b32f020bed5347b'
+[ len 3 ] [33mHash '$Chacha20$*0000000000000001*0000000000000000*4141414141414141*fa46718874ba3062': Line-length exception[0m
+[31mNo hashes loaded.[0m
+! unhandled return code 255, cmdline : echo -n 726 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*0000000000000001*0000000000000000*4141414141414141*fa46718874ba3062'
+[ len 4 ] [33mHash '$Chacha20$*0000000000000001*0000000000000000*4141414141414141*5a4119aac81f0eb8': Line-length exception[0m
+[31mNo hashes loaded.[0m
+! unhandled return code 255, cmdline : echo -n 8260 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*0000000000000001*0000000000000000*4141414141414141*5a4119aac81f0eb8'
+[ len 5 ] [33mHash '$Chacha20$*0000000000000001*0000000000000000*4141414141414141*6190dfbdba2225d3': Line-length exception[0m
+[31mNo hashes loaded.[0m
+! unhandled return code 255, cmdline : echo -n 00136 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*0000000000000001*0000000000000000*4141414141414141*6190dfbdba2225d3'
+[ len 6 ] [33mHash '$Chacha20$*0000000000000001*0000000000000000*4141414141414141*0fd0300b1bde8c5a': Line-length exception[0m
+[31mNo hashes loaded.[0m
+! unhandled return code 255, cmdline : echo -n 715630 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*0000000000000001*0000000000000000*4141414141414141*0fd0300b1bde8c5a'
+[ len 7 ] [33mHash '$Chacha20$*0000000000000001*0000000000000000*4141414141414141*b8021b4c6394fcd9': Line-length exception[0m
+[31mNo hashes loaded.[0m
+! unhandled return code 255, cmdline : echo -n 5081080 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*0000000000000001*0000000000000000*4141414141414141*b8021b4c6394fcd9'
+[ len 8 ] [33mHash '$Chacha20$*0000000000000001*0000000000000000*4141414141414141*7a5293b0ba14c529': Line-length exception[0m
+[31mNo hashes loaded.[0m
+! unhandled return code 255, cmdline : echo -n 41001115 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*0000000000000001*0000000000000000*4141414141414141*7a5293b0ba14c529'
+[ len 9 ] [33mHash '$Chacha20$*0000000000000001*0000000000000000*4141414141414141*ea0f26f2b1e39a81': Line-length exception[0m
+[31mNo hashes loaded.[0m
+! unhandled return code 255, cmdline : echo -n 773204560 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 1 -a 0 -m 670 '$Chacha20$*0000000000000001*0000000000000000*4141414141414141*ea0f26f2b1e39a81'
+[ len 10 ] 

@@ -1,0 +1,218 @@
+> Testing hash type 670 with attack mode 0, markov enabled, single hash, device-type Gpu, vector-width 1.
+[ len 1 ] $Chacha20$*0*0000000000000000*4141414141414141*4b6ad071020dfe00:2
+[ len 2 ] $Chacha20$*0*0000000000000000*4141414141414141*06fba69f7b86e743:31
+[ len 3 ] $Chacha20$*0*0000000000000000*4141414141414141*34f3705210118105:077
+[ len 4 ] $Chacha20$*0*0000000000000000*4141414141414141*f0a73ea31df82a2a:7264
+[ len 5 ] $Chacha20$*0*0000000000000000*4141414141414141*9845941f52919c3f:66523
+[ len 6 ] $Chacha20$*0*0000000000000000*4141414141414141*410c9d57c0425c70:621813
+[ len 7 ] $Chacha20$*0*0000000000000000*4141414141414141*792a9724aee806ea:0770460
+[ len 8 ] $Chacha20$*0*0000000000000000*4141414141414141*5b161e04649d8568:70620666
+[ len 9 ] $Chacha20$*0*0000000000000000*4141414141414141*a78b4fc1074f0cdd:502200584
+[ len 10 ] $Chacha20$*0*0000000000000000*4141414141414141*fdae8c5ced447420:6261283752
+[ len 11 ] $Chacha20$*0*0000000000000000*4141414141414141*d5cd0f37edc06f0d:12500314022
+[ len 12 ] $Chacha20$*0*0000000000000000*4141414141414141*8201059e70006d56:141082368558
+[ len 13 ] $Chacha20$*0*0000000000000000*4141414141414141*8ea5879fed92ca31:5362034283304
+[ len 14 ] $Chacha20$*0*0000000000000000*4141414141414141*f10e6758010f4493:05273870647143
+[ len 15 ] $Chacha20$*0*0000000000000000*4141414141414141*f7e2876efd8928e9:776071073145546
+[ len 16 ] $Chacha20$*0*0000000000000000*4141414141414141*de5b08ae6f3d9406:0812067162662100
+[ len 17 ] $Chacha20$*0*0000000000000000*4141414141414141*3774f6b6b47cd0a6:51021147801078250
+[ len 18 ] $Chacha20$*0*0000000000000000*4141414141414141*77a1fb6fc53f9230:263250817422236305
+[ len 19 ] $Chacha20$*0*0000000000000000*4141414141414141*8989a1c0164774ed:6551672172055161877
+[ len 20 ] $Chacha20$*0*0000000000000000*4141414141414141*e2a7cea4a9702179:80333846843788781385
+[ len 21 ] $Chacha20$*0*0000000000000000*4141414141414141*6b6d48e884b30bf7:287285785522773701463
+[ len 22 ] $Chacha20$*0*0000000000000000*4141414141414141*d308917987921ccc:4382022558685648548024
+[ len 23 ] $Chacha20$*0*0000000000000000*4141414141414141*061909936ec35d52:62734262463326265522816
+[ len 24 ] $Chacha20$*0*0000000000000000*4141414141414141*0a32a064c0de7c8b:440063523001112873165433
+[ len 25 ] $Chacha20$*0*0000000000000000*4141414141414141*a20c3f7c50b149ea:1043611042636470518620354
+[ len 26 ] $Chacha20$*0*0000000000000000*4141414141414141*a67eb2bcd80322e0:64562647038105513312624170
+[ len 27 ] $Chacha20$*0*0000000000000000*4141414141414141*9bd2966012e0f922:703332846055658636370544221
+[ len 28 ] $Chacha20$*0*0000000000000000*4141414141414141*af7a7215f825c19b:6046521184446187330000210818
+[ len 29 ] $Chacha20$*0*0000000000000000*4141414141414141*d93cc7db214c365d:56746387828540308585846722851
+[ len 30 ] $Chacha20$*0*0000000000000000*4141414141414141*f6c104b7d2986680:531543666557813186553423775134
+[ len 31 ] $Chacha20$*0*0000000000000000*4141414141414141*3b6b2fd1963b9980:4814730040624742325706570126847
+> Testing hash type 670 with attack mode 0, markov enabled, single hash, device-type Gpu, vector-width 4.
+[ len 1 ] [31mclBuildProgram(): CL_BUILD_PROGRAM_FAILURE[0m
+
+[31m* Device #1: Kernel /home/mlemay/dev/hashcat/OpenCL/m00670_a0.cl build failed - proceeding without this device.[0m
+
+<kernel>:208:7: error: initializing '__attribute__((address_space(16776963))) u32' (aka '__attribute__((address_space(16776963))) unsigned int') with an expression of incompatible type 'u32x' (aka 'uint4')
+  u32 position = swap32(esalt_bufs->position);
+      ^          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+! unhandled return code 255, cmdline : echo -n 2 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 4 -a 0 -m 670 '$Chacha20$*0*0000000000000000*4141414141414141*4b6ad071020dfe00'
+[ len 2 ] [31mclBuildProgram(): CL_BUILD_PROGRAM_FAILURE[0m
+
+[31m* Device #1: Kernel /home/mlemay/dev/hashcat/OpenCL/m00670_a0.cl build failed - proceeding without this device.[0m
+
+<kernel>:208:7: error: initializing '__attribute__((address_space(16776963))) u32' (aka '__attribute__((address_space(16776963))) unsigned int') with an expression of incompatible type 'u32x' (aka 'uint4')
+  u32 position = swap32(esalt_bufs->position);
+      ^          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+! unhandled return code 255, cmdline : echo -n 31 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 4 -a 0 -m 670 '$Chacha20$*0*0000000000000000*4141414141414141*06fba69f7b86e743'
+[ len 3 ] [31mclBuildProgram(): CL_BUILD_PROGRAM_FAILURE[0m
+
+[31m* Device #1: Kernel /home/mlemay/dev/hashcat/OpenCL/m00670_a0.cl build failed - proceeding without this device.[0m
+
+<kernel>:208:7: error: initializing '__attribute__((address_space(16776963))) u32' (aka '__attribute__((address_space(16776963))) unsigned int') with an expression of incompatible type 'u32x' (aka 'uint4')
+  u32 position = swap32(esalt_bufs->position);
+      ^          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+! unhandled return code 255, cmdline : echo -n 077 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 4 -a 0 -m 670 '$Chacha20$*0*0000000000000000*4141414141414141*34f3705210118105'
+[ len 4 ] [31mclBuildProgram(): CL_BUILD_PROGRAM_FAILURE[0m
+
+[31m* Device #1: Kernel /home/mlemay/dev/hashcat/OpenCL/m00670_a0.cl build failed - proceeding without this device.[0m
+
+<kernel>:208:7: error: initializing '__attribute__((address_space(16776963))) u32' (aka '__attribute__((address_space(16776963))) unsigned int') with an expression of incompatible type 'u32x' (aka 'uint4')
+  u32 position = swap32(esalt_bufs->position);
+      ^          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+! unhandled return code 255, cmdline : echo -n 7264 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 4 -a 0 -m 670 '$Chacha20$*0*0000000000000000*4141414141414141*f0a73ea31df82a2a'
+[ len 5 ] [31mclBuildProgram(): CL_BUILD_PROGRAM_FAILURE[0m
+
+[31m* Device #1: Kernel /home/mlemay/dev/hashcat/OpenCL/m00670_a0.cl build failed - proceeding without this device.[0m
+
+<kernel>:208:7: error: initializing '__attribute__((address_space(16776963))) u32' (aka '__attribute__((address_space(16776963))) unsigned int') with an expression of incompatible type 'u32x' (aka 'uint4')
+  u32 position = swap32(esalt_bufs->position);
+      ^          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+! unhandled return code 255, cmdline : echo -n 66523 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 4 -a 0 -m 670 '$Chacha20$*0*0000000000000000*4141414141414141*9845941f52919c3f'
+[ len 6 ] [31mclBuildProgram(): CL_BUILD_PROGRAM_FAILURE[0m
+
+[31m* Device #1: Kernel /home/mlemay/dev/hashcat/OpenCL/m00670_a0.cl build failed - proceeding without this device.[0m
+
+<kernel>:208:7: error: initializing '__attribute__((address_space(16776963))) u32' (aka '__attribute__((address_space(16776963))) unsigned int') with an expression of incompatible type 'u32x' (aka 'uint4')
+  u32 position = swap32(esalt_bufs->position);
+      ^          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+! unhandled return code 255, cmdline : echo -n 621813 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 4 -a 0 -m 670 '$Chacha20$*0*0000000000000000*4141414141414141*410c9d57c0425c70'
+[ len 7 ] [31mclBuildProgram(): CL_BUILD_PROGRAM_FAILURE[0m
+
+[31m* Device #1: Kernel /home/mlemay/dev/hashcat/OpenCL/m00670_a0.cl build failed - proceeding without this device.[0m
+
+<kernel>:208:7: error: initializing '__attribute__((address_space(16776963))) u32' (aka '__attribute__((address_space(16776963))) unsigned int') with an expression of incompatible type 'u32x' (aka 'uint4')
+  u32 position = swap32(esalt_bufs->position);
+      ^          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+! unhandled return code 255, cmdline : echo -n 0770460 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 4 -a 0 -m 670 '$Chacha20$*0*0000000000000000*4141414141414141*792a9724aee806ea'
+[ len 8 ] [31mclBuildProgram(): CL_BUILD_PROGRAM_FAILURE[0m
+
+[31m* Device #1: Kernel /home/mlemay/dev/hashcat/OpenCL/m00670_a0.cl build failed - proceeding without this device.[0m
+
+<kernel>:208:7: error: initializing '__attribute__((address_space(16776963))) u32' (aka '__attribute__((address_space(16776963))) unsigned int') with an expression of incompatible type 'u32x' (aka 'uint4')
+  u32 position = swap32(esalt_bufs->position);
+      ^          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+! unhandled return code 255, cmdline : echo -n 70620666 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 4 -a 0 -m 670 '$Chacha20$*0*0000000000000000*4141414141414141*5b161e04649d8568'
+[ len 9 ] [31mclBuildProgram(): CL_BUILD_PROGRAM_FAILURE[0m
+
+[31m* Device #1: Kernel /home/mlemay/dev/hashcat/OpenCL/m00670_a0.cl build failed - proceeding without this device.[0m
+
+<kernel>:208:7: error: initializing '__attribute__((address_space(16776963))) u32' (aka '__attribute__((address_space(16776963))) unsigned int') with an expression of incompatible type 'u32x' (aka 'uint4')
+  u32 position = swap32(esalt_bufs->position);
+      ^          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+! unhandled return code 255, cmdline : echo -n 502200584 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 4 -a 0 -m 670 '$Chacha20$*0*0000000000000000*4141414141414141*a78b4fc1074f0cdd'
+[ len 10 ] [31mclBuildProgram(): CL_BUILD_PROGRAM_FAILURE[0m
+
+[31m* Device #1: Kernel /home/mlemay/dev/hashcat/OpenCL/m00670_a0.cl build failed - proceeding without this device.[0m
+
+<kernel>:208:7: error: initializing '__attribute__((address_space(16776963))) u32' (aka '__attribute__((address_space(16776963))) unsigned int') with an expression of incompatible type 'u32x' (aka 'uint4')
+  u32 position = swap32(esalt_bufs->position);
+      ^          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+! unhandled return code 255, cmdline : echo -n 6261283752 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 4 -a 0 -m 670 '$Chacha20$*0*0000000000000000*4141414141414141*fdae8c5ced447420'
+[ len 11 ] [31mclBuildProgram(): CL_BUILD_PROGRAM_FAILURE[0m
+
+[31m* Device #1: Kernel /home/mlemay/dev/hashcat/OpenCL/m00670_a0.cl build failed - proceeding without this device.[0m
+
+<kernel>:208:7: error: initializing '__attribute__((address_space(16776963))) u32' (aka '__attribute__((address_space(16776963))) unsigned int') with an expression of incompatible type 'u32x' (aka 'uint4')
+  u32 position = swap32(esalt_bufs->position);
+      ^          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+! unhandled return code 255, cmdline : echo -n 12500314022 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 4 -a 0 -m 670 '$Chacha20$*0*0000000000000000*4141414141414141*d5cd0f37edc06f0d'
+[ len 12 ] [31mclBuildProgram(): CL_BUILD_PROGRAM_FAILURE[0m
+
+[31m* Device #1: Kernel /home/mlemay/dev/hashcat/OpenCL/m00670_a0.cl build failed - proceeding without this device.[0m
+
+<kernel>:208:7: error: initializing '__attribute__((address_space(16776963))) u32' (aka '__attribute__((address_space(16776963))) unsigned int') with an expression of incompatible type 'u32x' (aka 'uint4')
+  u32 position = swap32(esalt_bufs->position);
+      ^          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+! unhandled return code 255, cmdline : echo -n 141082368558 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 4 -a 0 -m 670 '$Chacha20$*0*0000000000000000*4141414141414141*8201059e70006d56'
+[ len 13 ] [31mclBuildProgram(): CL_BUILD_PROGRAM_FAILURE[0m
+
+[31m* Device #1: Kernel /home/mlemay/dev/hashcat/OpenCL/m00670_a0.cl build failed - proceeding without this device.[0m
+
+<kernel>:208:7: error: initializing '__attribute__((address_space(16776963))) u32' (aka '__attribute__((address_space(16776963))) unsigned int') with an expression of incompatible type 'u32x' (aka 'uint4')
+  u32 position = swap32(esalt_bufs->position);
+      ^          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+! unhandled return code 255, cmdline : echo -n 5362034283304 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 4 -a 0 -m 670 '$Chacha20$*0*0000000000000000*4141414141414141*8ea5879fed92ca31'
+[ len 14 ] [31mclBuildProgram(): CL_BUILD_PROGRAM_FAILURE[0m
+
+[31m* Device #1: Kernel /home/mlemay/dev/hashcat/OpenCL/m00670_a0.cl build failed - proceeding without this device.[0m
+
+<kernel>:208:7: error: initializing '__attribute__((address_space(16776963))) u32' (aka '__attribute__((address_space(16776963))) unsigned int') with an expression of incompatible type 'u32x' (aka 'uint4')
+  u32 position = swap32(esalt_bufs->position);
+      ^          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+! unhandled return code 255, cmdline : echo -n 05273870647143 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 4 -a 0 -m 670 '$Chacha20$*0*0000000000000000*4141414141414141*f10e6758010f4493'
+[ len 15 ] [31mclBuildProgram(): CL_BUILD_PROGRAM_FAILURE[0m
+
+[31m* Device #1: Kernel /home/mlemay/dev/hashcat/OpenCL/m00670_a0.cl build failed - proceeding without this device.[0m
+
+<kernel>:208:7: error: initializing '__attribute__((address_space(16776963))) u32' (aka '__attribute__((address_space(16776963))) unsigned int') with an expression of incompatible type 'u32x' (aka 'uint4')
+  u32 position = swap32(esalt_bufs->position);
+      ^          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+! unhandled return code 255, cmdline : echo -n 776071073145546 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 4 -a 0 -m 670 '$Chacha20$*0*0000000000000000*4141414141414141*f7e2876efd8928e9'
+[ len 16 ] [31mclBuildProgram(): CL_BUILD_PROGRAM_FAILURE[0m
+
+[31m* Device #1: Kernel /home/mlemay/dev/hashcat/OpenCL/m00670_a0.cl build failed - proceeding without this device.[0m
+
+<kernel>:208:7: error: initializing '__attribute__((address_space(16776963))) u32' (aka '__attribute__((address_space(16776963))) unsigned int') with an expression of incompatible type 'u32x' (aka 'uint4')
+  u32 position = swap32(esalt_bufs->position);
+      ^          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+! unhandled return code 255, cmdline : echo -n 0812067162662100 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 4 -a 0 -m 670 '$Chacha20$*0*0000000000000000*4141414141414141*de5b08ae6f3d9406'
+[ len 17 ] [31mclBuildProgram(): CL_BUILD_PROGRAM_FAILURE[0m
+
+[31m* Device #1: Kernel /home/mlemay/dev/hashcat/OpenCL/m00670_a0.cl build failed - proceeding without this device.[0m
+
+<kernel>:208:7: error: initializing '__attribute__((address_space(16776963))) u32' (aka '__attribute__((address_space(16776963))) unsigned int') with an expression of incompatible type 'u32x' (aka 'uint4')
+  u32 position = swap32(esalt_bufs->position);
+      ^          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+! unhandled return code 255, cmdline : echo -n 51021147801078250 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 4 -a 0 -m 670 '$Chacha20$*0*0000000000000000*4141414141414141*3774f6b6b47cd0a6'
+[ len 18 ] [31mclBuildProgram(): CL_BUILD_PROGRAM_FAILURE[0m
+
+[31m* Device #1: Kernel /home/mlemay/dev/hashcat/OpenCL/m00670_a0.cl build failed - proceeding without this device.[0m
+
+<kernel>:208:7: error: initializing '__attribute__((address_space(16776963))) u32' (aka '__attribute__((address_space(16776963))) unsigned int') with an expression of incompatible type 'u32x' (aka 'uint4')
+  u32 position = swap32(esalt_bufs->position);
+      ^          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+! unhandled return code 255, cmdline : echo -n 263250817422236305 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 4 -a 0 -m 670 '$Chacha20$*0*0000000000000000*4141414141414141*77a1fb6fc53f9230'
+[ len 19 ] [31mclBuildProgram(): CL_BUILD_PROGRAM_FAILURE[0m
+
+[31m* Device #1: Kernel /home/mlemay/dev/hashcat/OpenCL/m00670_a0.cl build failed - proceeding without this device.[0m
+
+<kernel>:208:7: error: initializing '__attribute__((address_space(16776963))) u32' (aka '__attribute__((address_space(16776963))) unsigned int') with an expression of incompatible type 'u32x' (aka 'uint4')
+  u32 position = swap32(esalt_bufs->position);
+      ^          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+! unhandled return code 255, cmdline : echo -n 6551672172055161877 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 4 -a 0 -m 670 '$Chacha20$*0*0000000000000000*4141414141414141*8989a1c0164774ed'
+[ len 20 ] [31mclBuildProgram(): CL_BUILD_PROGRAM_FAILURE[0m
+
+[31m* Device #1: Kernel /home/mlemay/dev/hashcat/OpenCL/m00670_a0.cl build failed - proceeding without this device.[0m
+
+<kernel>:208:7: error: initializing '__attribute__((address_space(16776963))) u32' (aka '__attribute__((address_space(16776963))) unsigned int') with an expression of incompatible type 'u32x' (aka 'uint4')
+  u32 position = swap32(esalt_bufs->position);
+      ^          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+! unhandled return code 255, cmdline : echo -n 80333846843788781385 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 4 -a 0 -m 670 '$Chacha20$*0*0000000000000000*4141414141414141*e2a7cea4a9702179'
+[ len 21 ] [31mclBuildProgram(): CL_BUILD_PROGRAM_FAILURE[0m
+
+[31m* Device #1: Kernel /home/mlemay/dev/hashcat/OpenCL/m00670_a0.cl build failed - proceeding without this device.[0m
+
+<kernel>:208:7: error: initializing '__attribute__((address_space(16776963))) u32' (aka '__attribute__((address_space(16776963))) unsigned int') with an expression of incompatible type 'u32x' (aka 'uint4')
+  u32 position = swap32(esalt_bufs->position);
+      ^          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+! unhandled return code 255, cmdline : echo -n 287285785522773701463 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 4 -a 0 -m 670 '$Chacha20$*0*0000000000000000*4141414141414141*6b6d48e884b30bf7'
+[ len 22 ] [31mclBuildProgram(): CL_BUILD_PROGRAM_FAILURE[0m
+
+[31m* Device #1: Kernel /home/mlemay/dev/hashcat/OpenCL/m00670_a0.cl build failed - proceeding without this device.[0m
+
+<kernel>:208:7: error: initializing '__attribute__((address_space(16776963))) u32' (aka '__attribute__((address_space(16776963))) unsigned int') with an expression of incompatible type 'u32x' (aka 'uint4')
+  u32 position = swap32(esalt_bufs->position);
+      ^          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+! unhandled return code 255, cmdline : echo -n 4382022558685648548024 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 4 -a 0 -m 670 '$Chacha20$*0*0000000000000000*4141414141414141*d308917987921ccc'
+[ len 23 ] [31mclBuildProgram(): CL_BUILD_PROGRAM_FAILURE[0m
+
+[31m* Device #1: Kernel /home/mlemay/dev/hashcat/OpenCL/m00670_a0.cl build failed - proceeding without this device.[0m
+
+<kernel>:208:7: error: initializing '__attribute__((address_space(16776963))) u32' (aka '__attribute__((address_space(16776963))) unsigned int') with an expression of incompatible type 'u32x' (aka 'uint4')
+  u32 position = swap32(esalt_bufs->position);
+      ^          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+! unhandled return code 255, cmdline : echo -n 62734262463326265522816 | ./hashcat --quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 --opencl-device-types 2 --opencl-vector-width 4 -a 0 -m 670 '$Chacha20$*0*0000000000000000*4141414141414141*061909936ec35d52'
+[ len 24 ] 
