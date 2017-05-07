@@ -1,2 +1,0 @@
-> Testing hash type 670 with attack mode 0, markov enabled, single hash, device-type Gpu, vector-width 1.
-[ len 1 ] 
