@@ -132,6 +132,17 @@ __kernel void m00670_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   const u32 pw_len = pws[gid].pw_len;
 
+  u32 iv[2]    = { 0 };
+  u32 plain[2] = { 0 };
+  u32 position = esalt_bufs->position;
+  u32 plain_length = esalt_bufs->plain_length;
+
+  iv[0] = esalt_bufs->iv[0];
+  iv[1] = esalt_bufs->iv[1];
+
+  plain[0] = esalt_bufs->plain[0];
+  plain[1] = esalt_bufs->plain[1];
+
   /**
    * loop
    */
@@ -145,13 +156,14 @@ __kernel void m00670_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     const u32x out_len = apply_rules_vect(pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
-    u64x digest[8];
+    u32x digest[4] = { 0 };
 
+    chacha20_transform (w0, w1, position, iv, plain, digest);
 
-    const u32x r0 = h32_from_64(digest[0]);
-    const u32x r1 = l32_from_64(digest[0]);
-    const u32x r2 = h32_from_64(digest[1]);
-    const u32x r3 = l32_from_64(digest[1]);
+    const u32x r0 = digest[0];
+    const u32x r1 = digest[1];
+    const u32x r2 = digest[2];
+    const u32x r3 = digest[3];
 
     COMPARE_M_SIMD(r0, r1, r2, r3);
   } 
