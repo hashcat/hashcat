@@ -1131,7 +1131,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
       if (CL_rc == -1) return -1;
     }
-    else if (highest_pw_len <= 32)
+    else if (highest_pw_len < 32)
     {
       CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_2, pws_cnt, true, fast_iteration);
 
