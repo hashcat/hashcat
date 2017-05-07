@@ -71,7 +71,7 @@ void chacha20_transform (const u32x w0[4], const u32x w1[4], const u32 position,
   x[14] = ctx[14];
   x[15] = ctx[15];
 
-  for (int i = 0; i < 10; ++i) {
+  for (u8 i = 0; i < 10; ++i) {
 
     /* Column round */
     QR(0, 4, 8,  12);
@@ -103,10 +103,10 @@ void chacha20_transform (const u32x w0[4], const u32x w1[4], const u32 position,
   x[14] += ctx[14];
   x[15] += ctx[15];
 
-  digest[0] = plain[0] ^ x[0];
-  digest[1] = plain[1] ^ x[1];
-  digest[2] = plain[2] ^ x[2];
-  digest[3] = plain[3] ^ x[3];
+  digest[1] = plain[0] ^ x[0];
+  digest[0] = plain[1] ^ x[1];
+  digest[3] = plain[2] ^ x[2];
+  digest[2] = plain[3] ^ x[3];
 }  
 
 __kernel void m00670_m04 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const comb_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const chacha20_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
@@ -231,10 +231,10 @@ __kernel void m00670_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     chacha20_transform (w0, w1, position, iv, plain, digest);
 
-    const u32x r0 = digest[1];
-    const u32x r1 = digest[0];
-    const u32x r2 = digest[3];
-    const u32x r3 = digest[2];
+    const u32x r0 = digest[0];
+    const u32x r1 = digest[1];
+    const u32x r2 = digest[2];
+    const u32x r3 = digest[3];
 
     COMPARE_S_SIMD(r0, r1, r2, r3);
   }  

@@ -18546,8 +18546,8 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
         byte_swap_32(chacha20->iv[0]),
         byte_swap_32(chacha20->plain[1]),
         byte_swap_32(chacha20->plain[0]),
-        byte_swap_32(ptr[1]),
-        byte_swap_32(ptr[0]));
+        ptr[1],
+        ptr[0]);
     }
     else if (hash_type == HASH_TYPE_RIPEMD160)
     {
