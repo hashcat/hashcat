@@ -5316,8 +5316,6 @@ int chacha20_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   if (memcmp (SIGNATURE_CHACHA20, input_buf, 10)) return (PARSER_SIGNATURE_UNMATCHED);
 
-  // if (is_valid_hex_string (input_buf + 8, 128) == false) return (PARSER_HASH_ENCODING);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
   chacha20_t *chacha20 = (chacha20_t *) hash_buf->esalt;
