@@ -139,8 +139,6 @@ __kernel void m15400_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
   position[0] = esalt_bufs->position[0];
   position[1] = esalt_bufs->position[1];
 
-  u32 plain_length = esalt_bufs->plain_length;
-
   iv[0] = esalt_bufs->iv[0];
   iv[1] = esalt_bufs->iv[1];
 
@@ -273,8 +271,6 @@ __kernel void m15400_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
  
   position[0] = esalt_bufs->position[0];
   position[1] = esalt_bufs->position[1];
-
-  u32 plain_length = esalt_bufs->plain_length;
 
   iv[0] = esalt_bufs->iv[0];
   iv[1] = esalt_bufs->iv[1];

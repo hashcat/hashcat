@@ -783,7 +783,6 @@ typedef struct chacha20
 {
   u32 iv[2];
   u32 plain[2];
-  u32 plain_length;
   u32 position[2];
 
 } chacha20_t;

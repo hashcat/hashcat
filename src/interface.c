@@ -5320,6 +5320,8 @@ int chacha20_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   chacha20_t *chacha20 = (chacha20_t *) hash_buf->esalt;
 
+  salt_t *salt = (salt_t *) hash_buf->salt;
+
   u8 *position_marker = (u8 *) strchr ((const char *) input_buf, '*') + 1;
   if (position_marker == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -5332,8 +5334,6 @@ int chacha20_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   u8 *cipher_marker = (u8 *) strchr ((const char *) plain_marker, '*') + 1;
   if (cipher_marker == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
-  chacha20->plain_length = 16;
-
   chacha20->iv[0] = hex_to_u32 ((const u8 *) iv_marker + 8);
   chacha20->iv[1] = hex_to_u32 ((const u8 *) iv_marker + 0);
 
@@ -5343,6 +5343,19 @@ int chacha20_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   chacha20->position[0] = byte_swap_32(hex_to_u32 ((const u8 *) position_marker + 8));
   chacha20->position[1] = byte_swap_32(hex_to_u32 ((const u8 *) position_marker + 0));
 
+  /* some fake salt for the sorting mechanisms */
+
+  salt->salt_buf[0] = chacha20->iv[0];
+  salt->salt_buf[1] = chacha20->iv[1];
+  salt->salt_buf[2] = chacha20->plain[0];
+  salt->salt_buf[3] = chacha20->plain[1];
+  salt->salt_buf[4] = chacha20->position[0];
+  salt->salt_buf[5] = chacha20->position[1];
+  salt->salt_buf[6] = 0;
+  salt->salt_buf[7] = 0;
+  salt->salt_len    = 24;
+
+  /* Store cipher for search mechanism */
   digest[0] = hex_to_u32 ((const u8 *) cipher_marker + 8);
   digest[1] = hex_to_u32 ((const u8 *) cipher_marker + 0);
 
