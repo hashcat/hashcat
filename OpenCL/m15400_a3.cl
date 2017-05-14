@@ -116,6 +116,10 @@ __kernel void m15400_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
 
+  /**
+   * Salt prep       
+   */
+
   u32 iv[2]    = { 0 };
   u32 plain[2] = { 0 };
   u32 position[2] = { 0 };
@@ -193,6 +197,10 @@ __kernel void m15400_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
+
+  /**
+   * Salt prep       
+   */
 
   u32 iv[2]    = { 0 };
   u32 plain[2] = { 0 };

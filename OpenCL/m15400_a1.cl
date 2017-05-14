@@ -132,6 +132,10 @@ __kernel void m15400_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   const u32 pw_l_len = pws[gid].pw_len;
 
+  /**
+   * Salt prep       
+   */
+
   u32 iv[2]    = { 0 };
   u32 plain[2] = { 0 };
   u32 position[2] = { 0 }; 
@@ -264,6 +268,10 @@ __kernel void m15400_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
   pw_buf1[3] = pws[gid].i[7];
 
   const u32 pw_l_len = pws[gid].pw_len;
+
+  /**
+   * Salt prep       
+   */
 
   u32 iv[2]    = { 0 };
   u32 plain[2] = { 0 };
