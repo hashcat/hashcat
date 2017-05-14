@@ -5324,15 +5324,19 @@ int chacha20_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   u8 *position_marker = (u8 *) strchr ((const char *) input_buf, '*') + 1;
   if (position_marker == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  if (is_valid_hex_string (position_marker, 16) == false) return (PARSER_SALT_ENCODING);
 
   u8 *iv_marker = (u8 *) strchr ((const char *) position_marker, '*') + 1;
   if (iv_marker == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  if (is_valid_hex_string (iv_marker, 16) == false) return (PARSER_SALT_ENCODING);
 
   u8 *plain_marker = (u8 *) strchr ((const char *) iv_marker, '*') + 1;
   if (plain_marker == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  if (is_valid_hex_string (plain_marker, 16) == false) return (PARSER_SALT_ENCODING);
 
   u8 *cipher_marker = (u8 *) strchr ((const char *) plain_marker, '*') + 1;
   if (cipher_marker == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  if (is_valid_hex_string (cipher_marker, 16) == false) return (PARSER_SALT_ENCODING);
 
   chacha20->iv[0] = hex_to_u32 ((const u8 *) iv_marker + 8);
   chacha20->iv[1] = hex_to_u32 ((const u8 *) iv_marker + 0);
