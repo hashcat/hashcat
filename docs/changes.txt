@@ -14,6 +14,7 @@
 - Wordlist encoding: Support added for internal convert from and to user-defined encoding during runtime
 - Wordlist encoding: Added parameters --encoding-from and --encoding-to to configure wordlist encoding handling
 - Rules: Support added for rule 'eX'
+- Rules: Support added for position 'p' in host mode (using -j or -k)
 
 ##
 ## Improvements

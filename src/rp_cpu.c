@@ -9,7 +9,18 @@
 #include "rp_cpu.h"
 
 #define NEXT_RULEPOS(rp)      if (++(rp) == rule_len) return (RULE_RC_SYNTAX_ERROR)
-#define NEXT_RPTOI(r,rp,up)   if (((up) = conv_ctoi ((r)[(rp)])) == -1) return (RULE_RC_SYNTAX_ERROR)
+#define NEXT_RPTOI(r,rp,up)   if (((up) = conv_pos ((r)[(rp)], pos_mem)) == -1) return (RULE_RC_SYNTAX_ERROR)
+
+static int conv_pos (const u8 c, const int pos_mem) {
+  if (c == RULE_LAST_REJECTED_SAVED_POS)
+  {
+    return pos_mem;
+  }
+  else
+  {
+    return conv_ctoi (c);
+  }
+}
 
 static void MANGLE_TOGGLE_AT (char *arr, const int pos)
 {
@@ -464,6 +475,7 @@ static int mangle_title_sep (char arr[BLOCK_SIZE], int arr_len, char c)
 int _old_apply_rule (char *rule, int rule_len, char in[BLOCK_SIZE], int in_len, char out[BLOCK_SIZE])
 {
   char mem[BLOCK_SIZE] = { 0 };
+  int pos_mem = -1;
 
   if (in == NULL) return (RULE_RC_REJECT_ERROR);
 
@@ -761,7 +773,15 @@ int _old_apply_rule (char *rule, int rule_len, char in[BLOCK_SIZE], int in_len, 
 
       case RULE_OP_REJECT_NOT_CONTAIN:
         NEXT_RULEPOS (rule_pos);
-        if (strchr (out, rule[rule_pos]) == NULL) return (RULE_RC_REJECT_ERROR);
+        char *match = strchr (out, rule[rule_pos]);
+        if (match != NULL)
+        {
+          pos_mem = (int)(match - out);
+        }
+        else
+        {
+          return (RULE_RC_REJECT_ERROR);
+        }
         break;
 
       case RULE_OP_REJECT_EQUAL_FIRST:
@@ -787,7 +807,15 @@ int _old_apply_rule (char *rule, int rule_len, char in[BLOCK_SIZE], int in_len, 
         NEXT_RPTOI (rule, rule_pos, upos);
         if ((upos + 1) > out_len) return (RULE_RC_REJECT_ERROR);
         NEXT_RULEPOS (rule_pos);
-        int c; int cnt; for (c = 0, cnt = 0; c < out_len; c++) if (out[c] == rule[rule_pos]) cnt++;
+        int c; int cnt;
+        for (c = 0, cnt = 0; c < out_len && cnt < upos; c++) {
+          if (out[c] == rule[rule_pos])
+          {
+            cnt++;
+            pos_mem = c;
+          }
+        }
+
         if (cnt < upos) return (RULE_RC_REJECT_ERROR);
         break;
 
