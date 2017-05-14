@@ -15,6 +15,9 @@
 #include "inc_rp.cl"
 #include "inc_cipher_aes.cl"
 
+#define COMPARE_S "inc_comp_single.cl"
+#define COMPARE_M "inc_comp_multi.cl"
+
 #define PERM_OP(a,b,tt,n,m) \
 {                           \
   tt = a >> n;              \
@@ -357,52 +360,31 @@ __constant u32a c_skb[8][64] =
   }
 };
 
-#if   VECT_SIZE == 1
 #define BOX(i,n,S) (S)[(n)][(i)]
-#elif VECT_SIZE == 2
-#define BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1])
-#elif VECT_SIZE == 4
-#define BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3])
-#elif VECT_SIZE == 8
-#define BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3], (S)[(n)][(i).s4], (S)[(n)][(i).s5], (S)[(n)][(i).s6], (S)[(n)][(i).s7])
-#elif VECT_SIZE == 16
-#define BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3], (S)[(n)][(i).s4], (S)[(n)][(i).s5], (S)[(n)][(i).s6], (S)[(n)][(i).s7], (S)[(n)][(i).s8], (S)[(n)][(i).s9], (S)[(n)][(i).sa], (S)[(n)][(i).sb], (S)[(n)][(i).sc], (S)[(n)][(i).sd], (S)[(n)][(i).se], (S)[(n)][(i).sf])
-#endif
-
-#if   VECT_SIZE == 1
 #define BOX1(i,S) (S)[(i)]
-#elif VECT_SIZE == 2
-#define BOX1(i,S) (u32x) ((S)[(i).s0], (S)[(i).s1])
-#elif VECT_SIZE == 4
-#define BOX1(i,S) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3])
-#elif VECT_SIZE == 8
-#define BOX1(i,S) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7])
-#elif VECT_SIZE == 16
-#define BOX1(i,S) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7], (S)[(i).s8], (S)[(i).s9], (S)[(i).sa], (S)[(i).sb], (S)[(i).sc], (S)[(i).sd], (S)[(i).se], (S)[(i).sf])
-#endif
 
-void _des_crypt_encrypt (u32x iv[2], u32x data[2], u32x Kc[16], u32x Kd[16], __local u32 (*s_SPtrans)[64])
+void _des_crypt_encrypt (u32 iv[2], u32 data[2], u32 Kc[16], u32 Kd[16], __local u32 (*s_SPtrans)[64])
 {
-  u32x tt;
+  u32 tt;
 
-  u32x r = data[0];
-  u32x l = data[1];
+  u32 r = data[0];
+  u32 l = data[1];
 
   IP (r, l, tt);
 
-  r = rotl32 (r, 3u);
-  l = rotl32 (l, 3u);
+  r = rotl32_S (r, 3u);
+  l = rotl32_S (l, 3u);
 
   #ifdef _unroll
   #pragma unroll
   #endif
   for (u32 i = 0; i < 16; i += 2)
   {
-    u32x u;
-    u32x t;
+    u32 u;
+    u32 t;
 
     u = Kc[i + 0] ^ r;
-    t = Kd[i + 0] ^ rotl32 (r, 28u);
+    t = Kd[i + 0] ^ rotl32_S (r, 28u);
 
     l ^= BOX (((u >>  2) & 0x3f), 0, s_SPtrans)
        | BOX (((u >> 10) & 0x3f), 2, s_SPtrans)
@@ -414,7 +396,7 @@ void _des_crypt_encrypt (u32x iv[2], u32x data[2], u32x Kc[16], u32x Kd[16], __l
        | BOX (((t >> 26) & 0x3f), 7, s_SPtrans);
 
     u = Kc[i + 1] ^ l;
-    t = Kd[i + 1] ^ rotl32 (l, 28u);
+    t = Kd[i + 1] ^ rotl32_S (l, 28u);
 
     r ^= BOX (((u >>  2) & 0x3f), 0, s_SPtrans)
        | BOX (((u >> 10) & 0x3f), 2, s_SPtrans)
@@ -426,8 +408,8 @@ void _des_crypt_encrypt (u32x iv[2], u32x data[2], u32x Kc[16], u32x Kd[16], __l
        | BOX (((t >> 26) & 0x3f), 7, s_SPtrans);
   }
 
-  l = rotl32 (l, 29u);
-  r = rotl32 (r, 29u);
+  l = rotl32_S (l, 29u);
+  r = rotl32_S (r, 29u);
 
   FP (r, l, tt);
 
@@ -435,28 +417,28 @@ void _des_crypt_encrypt (u32x iv[2], u32x data[2], u32x Kc[16], u32x Kd[16], __l
   iv[1] = r;
 }
 
-void _des_crypt_decrypt (u32x iv[2], u32x data[2], u32x Kc[16], u32x Kd[16], __local u32 (*s_SPtrans)[64])
+void _des_crypt_decrypt (u32 iv[2], u32 data[2], u32 Kc[16], u32 Kd[16], __local u32 (*s_SPtrans)[64])
 {
-  u32x tt;
+  u32 tt;
 
-  u32x r = data[0];
-  u32x l = data[1];
+  u32 r = data[0];
+  u32 l = data[1];
 
   IP (r, l, tt);
 
-  r = rotl32 (r, 3u);
-  l = rotl32 (l, 3u);
+  r = rotl32_S (r, 3u);
+  l = rotl32_S (l, 3u);
 
   #ifdef _unroll
   #pragma unroll
   #endif
   for (u32 i = 16; i > 0; i -= 2)
   {
-    u32x u;
-    u32x t;
+    u32 u;
+    u32 t;
 
     u = Kc[i - 1] ^ r;
-    t = Kd[i - 1] ^ rotl32 (r, 28u);
+    t = Kd[i - 1] ^ rotl32_S (r, 28u);
 
     l ^= BOX (((u >>  2) & 0x3f), 0, s_SPtrans)
        | BOX (((u >> 10) & 0x3f), 2, s_SPtrans)
@@ -468,7 +450,7 @@ void _des_crypt_decrypt (u32x iv[2], u32x data[2], u32x Kc[16], u32x Kd[16], __l
        | BOX (((t >> 26) & 0x3f), 7, s_SPtrans);
 
     u = Kc[i - 2] ^ l;
-    t = Kd[i - 2] ^ rotl32 (l, 28u);
+    t = Kd[i - 2] ^ rotl32_S (l, 28u);
 
     r ^= BOX (((u >>  2) & 0x3f), 0, s_SPtrans)
        | BOX (((u >> 10) & 0x3f), 2, s_SPtrans)
@@ -480,8 +462,8 @@ void _des_crypt_decrypt (u32x iv[2], u32x data[2], u32x Kc[16], u32x Kd[16], __l
        | BOX (((t >> 26) & 0x3f), 7, s_SPtrans);
   }
 
-  l = rotl32 (l, 29u);
-  r = rotl32 (r, 29u);
+  l = rotl32_S (l, 29u);
+  r = rotl32_S (r, 29u);
 
   FP (r, l, tt);
 
@@ -489,9 +471,9 @@ void _des_crypt_decrypt (u32x iv[2], u32x data[2], u32x Kc[16], u32x Kd[16], __l
   iv[1] = r;
 }
 
-void _des_crypt_keysetup (u32x c, u32x d, u32x Kc[16], u32x Kd[16], __local u32 (*s_skb)[64])
+void _des_crypt_keysetup (u32 c, u32 d, u32 Kc[16], u32 Kd[16], __local u32 (*s_skb)[64])
 {
-  u32x tt;
+  u32 tt;
 
   PERM_OP  (d, c, tt, 4, 0x0f0f0f0f);
   HPERM_OP (c,    tt, 2, 0xcccc0000);
@@ -526,13 +508,13 @@ void _des_crypt_keysetup (u32x c, u32x d, u32x Kc[16], u32x Kd[16], __local u32 
     c = c & 0x0fffffff;
     d = d & 0x0fffffff;
 
-    const u32x c00 = (c >>  0) & 0x0000003f;
-    const u32x c06 = (c >>  6) & 0x00383003;
-    const u32x c07 = (c >>  7) & 0x0000003c;
-    const u32x c13 = (c >> 13) & 0x0000060f;
-    const u32x c20 = (c >> 20) & 0x00000001;
+    const u32 c00 = (c >>  0) & 0x0000003f;
+    const u32 c06 = (c >>  6) & 0x00383003;
+    const u32 c07 = (c >>  7) & 0x0000003c;
+    const u32 c13 = (c >> 13) & 0x0000060f;
+    const u32 c20 = (c >> 20) & 0x00000001;
 
-    u32x s = BOX (((c00 >>  0) & 0xff), 0, s_skb)
+    u32 s = BOX (((c00 >>  0) & 0xff), 0, s_skb)
            | BOX (((c06 >>  0) & 0xff)
                  |((c07 >>  0) & 0xff), 1, s_skb)
            | BOX (((c13 >>  0) & 0xff)
@@ -541,12 +523,12 @@ void _des_crypt_keysetup (u32x c, u32x d, u32x Kc[16], u32x Kd[16], __local u32 
                  |((c13 >>  8) & 0xff)
                  |((c06 >> 16) & 0xff), 3, s_skb);
 
-    const u32x d00 = (d >>  0) & 0x00003c3f;
-    const u32x d07 = (d >>  7) & 0x00003f03;
-    const u32x d21 = (d >> 21) & 0x0000000f;
-    const u32x d22 = (d >> 22) & 0x00000030;
+    const u32 d00 = (d >>  0) & 0x00003c3f;
+    const u32 d07 = (d >>  7) & 0x00003f03;
+    const u32 d21 = (d >> 21) & 0x0000000f;
+    const u32 d22 = (d >> 22) & 0x00000030;
 
-    u32x t = BOX (((d00 >>  0) & 0xff), 4, s_skb)
+    u32 t = BOX (((d00 >>  0) & 0xff), 4, s_skb)
            | BOX (((d07 >>  0) & 0xff)
                  |((d00 >>  8) & 0xff), 5, s_skb)
            | BOX (((d07 >>  8) & 0xff), 6, s_skb)
@@ -556,8 +538,8 @@ void _des_crypt_keysetup (u32x c, u32x d, u32x Kc[16], u32x Kd[16], __local u32 
     Kc[i] = ((t << 16) | (s & 0x0000ffff));
     Kd[i] = ((s >> 16) | (t & 0xffff0000));
 
-    Kc[i] = rotl32 (Kc[i], 2u);
-    Kd[i] = rotl32 (Kd[i], 2u);
+    Kc[i] = rotl32_S (Kc[i], 2u);
+    Kd[i] = rotl32_S (Kd[i], 2u);
   }
 }
 
@@ -1105,6 +1087,59 @@ void sha1_transform_V (const u32x w0[4], const u32x w1[4], const u32x w2[4], con
   digest[2] += C;
   digest[3] += D;
   digest[4] += E;
+}
+
+void hmac_sha1_pad_V (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[5], u32x opad[5])
+{
+  w0[0] = w0[0] ^ 0x36363636;
+  w0[1] = w0[1] ^ 0x36363636;
+  w0[2] = w0[2] ^ 0x36363636;
+  w0[3] = w0[3] ^ 0x36363636;
+  w1[0] = w1[0] ^ 0x36363636;
+  w1[1] = w1[1] ^ 0x36363636;
+  w1[2] = w1[2] ^ 0x36363636;
+  w1[3] = w1[3] ^ 0x36363636;
+  w2[0] = w2[0] ^ 0x36363636;
+  w2[1] = w2[1] ^ 0x36363636;
+  w2[2] = w2[2] ^ 0x36363636;
+  w2[3] = w2[3] ^ 0x36363636;
+  w3[0] = w3[0] ^ 0x36363636;
+  w3[1] = w3[1] ^ 0x36363636;
+  w3[2] = w3[2] ^ 0x36363636;
+  w3[3] = w3[3] ^ 0x36363636;
+
+  ipad[0] = SHA1M_A;
+  ipad[1] = SHA1M_B;
+  ipad[2] = SHA1M_C;
+  ipad[3] = SHA1M_D;
+  ipad[4] = SHA1M_E;
+
+  sha1_transform_V (w0, w1, w2, w3, ipad);
+
+  w0[0] = w0[0] ^ 0x6a6a6a6a;
+  w0[1] = w0[1] ^ 0x6a6a6a6a;
+  w0[2] = w0[2] ^ 0x6a6a6a6a;
+  w0[3] = w0[3] ^ 0x6a6a6a6a;
+  w1[0] = w1[0] ^ 0x6a6a6a6a;
+  w1[1] = w1[1] ^ 0x6a6a6a6a;
+  w1[2] = w1[2] ^ 0x6a6a6a6a;
+  w1[3] = w1[3] ^ 0x6a6a6a6a;
+  w2[0] = w2[0] ^ 0x6a6a6a6a;
+  w2[1] = w2[1] ^ 0x6a6a6a6a;
+  w2[2] = w2[2] ^ 0x6a6a6a6a;
+  w2[3] = w2[3] ^ 0x6a6a6a6a;
+  w3[0] = w3[0] ^ 0x6a6a6a6a;
+  w3[1] = w3[1] ^ 0x6a6a6a6a;
+  w3[2] = w3[2] ^ 0x6a6a6a6a;
+  w3[3] = w3[3] ^ 0x6a6a6a6a;
+
+  opad[0] = SHA1M_A;
+  opad[1] = SHA1M_B;
+  opad[2] = SHA1M_C;
+  opad[3] = SHA1M_D;
+  opad[4] = SHA1M_E;
+
+  sha1_transform_V (w0, w1, w2, w3, opad);
 }
 
 void hmac_sha1_run_V (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[5], u32x opad[5], u32x digest[5])
@@ -2136,7 +2171,7 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     key[4] = swap32_S (tmps[gid].out[4]);
     key[5] = swap32_S (tmps[gid].out[5]);
 
-    u32x iv[2];
+    u32 iv[2];
 
     iv[0]  = swap32_S (tmps[gid].out[6]);
     iv[1]  = swap32_S (tmps[gid].out[7]);
@@ -2145,27 +2180,27 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
     /* Construct 3DES keys */
 
-    const u32x a = (key[0]);
-    const u32x b = (key[1]);
+    const u32 a = (key[0]);
+    const u32 b = (key[1]);
 
-    u32x Ka[16];
-    u32x Kb[16];
+    u32 Ka[16];
+    u32 Kb[16];
 
     _des_crypt_keysetup (a, b, Ka, Kb, s_skb);
 
-    const u32x c = (key[2]);
-    const u32x d = (key[3]);
+    const u32 c = (key[2]);
+    const u32 d = (key[3]);
 
-    u32x Kc[16];
-    u32x Kd[16];
+    u32 Kc[16];
+    u32 Kd[16];
 
     _des_crypt_keysetup (c, d, Kc, Kd, s_skb);
 
-    const u32x e = (key[4]);
-    const u32x f = (key[5]);
+    const u32 e = (key[4]);
+    const u32 f = (key[5]);
 
-    u32x Ke[16];
-    u32x Kf[16];
+    u32 Ke[16];
+    u32 Kf[16];
 
     _des_crypt_keysetup (e, f, Ke, Kf, s_skb);
 
@@ -2177,24 +2212,24 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     {
       /* First Pass */
 
-      u32x data[2];
+      u32 data[2];
 
-      data[0] = (u32x) swap32_S (esalt_bufs[digests_offset].contents[contents_off + 0]);
-      data[1] = (u32x) swap32_S (esalt_bufs[digests_offset].contents[contents_off + 1]);
+      data[0] = swap32_S (esalt_bufs[digests_offset].contents[contents_off + 0]);
+      data[1] = swap32_S (esalt_bufs[digests_offset].contents[contents_off + 1]);
 
-      u32x p1[2];
+      u32 p1[2];
 
       _des_crypt_decrypt (p1, data, Ke, Kf, s_SPtrans);
 
       /* Second Pass */
 
-      u32x p2[2];
+      u32 p2[2];
 
       _des_crypt_encrypt (p2, p1, Kc, Kd, s_SPtrans);
 
       /* Third Pass */
 
-      u32x out[2];
+      u32 out[2];
 
       _des_crypt_decrypt (out, p2, Ka, Kb, s_SPtrans);
 
@@ -2403,21 +2438,21 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
     u32 key[8];
 
-    key[0] = h32_from_64 (tmps[gid].out64[0]);
-    key[1] = l32_from_64 (tmps[gid].out64[0]);
-    key[2] = h32_from_64 (tmps[gid].out64[1]);
-    key[3] = l32_from_64 (tmps[gid].out64[1]);
-    key[4] = h32_from_64 (tmps[gid].out64[2]);
-    key[5] = l32_from_64 (tmps[gid].out64[2]);
-    key[6] = h32_from_64 (tmps[gid].out64[3]);
-    key[7] = l32_from_64 (tmps[gid].out64[3]);
+    key[0] = h32_from_64_S (tmps[gid].out64[0]);
+    key[1] = l32_from_64_S (tmps[gid].out64[0]);
+    key[2] = h32_from_64_S (tmps[gid].out64[1]);
+    key[3] = l32_from_64_S (tmps[gid].out64[1]);
+    key[4] = h32_from_64_S (tmps[gid].out64[2]);
+    key[5] = l32_from_64_S (tmps[gid].out64[2]);
+    key[6] = h32_from_64_S (tmps[gid].out64[3]);
+    key[7] = l32_from_64_S (tmps[gid].out64[3]);
 
     u32 iv[4];
 
-    iv[0]  = h32_from_64 (tmps[gid].out64[4]);
-    iv[1]  = l32_from_64 (tmps[gid].out64[4]);
-    iv[2]  = h32_from_64 (tmps[gid].out64[5]);
-    iv[3]  = l32_from_64 (tmps[gid].out64[5]);
+    iv[0]  = h32_from_64_S (tmps[gid].out64[4]);
+    iv[1]  = l32_from_64_S (tmps[gid].out64[4]);
+    iv[2]  = h32_from_64_S (tmps[gid].out64[5]);
+    iv[3]  = l32_from_64_S (tmps[gid].out64[5]);
 
     #define KEYLEN 60
 
@@ -2584,14 +2619,14 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
     #define il_pos 0
 
-    if (  expectedHmac[ 0] == h32_from_64 (dgst64[0])
-       && expectedHmac[ 1] == l32_from_64 (dgst64[0])
-       && expectedHmac[ 2] == h32_from_64 (dgst64[1])
-       && expectedHmac[ 3] == l32_from_64 (dgst64[1])
-       && expectedHmac[12] == h32_from_64 (dgst64[6])
-       && expectedHmac[13] == l32_from_64 (dgst64[6])
-       && expectedHmac[14] == h32_from_64 (dgst64[7])
-       && expectedHmac[15] == l32_from_64 (dgst64[7]))
+    if (  expectedHmac[ 0] == h32_from_64_S (dgst64[0])
+       && expectedHmac[ 1] == l32_from_64_S (dgst64[0])
+       && expectedHmac[ 2] == h32_from_64_S (dgst64[1])
+       && expectedHmac[ 3] == l32_from_64_S (dgst64[1])
+       && expectedHmac[12] == h32_from_64_S (dgst64[6])
+       && expectedHmac[13] == l32_from_64_S (dgst64[6])
+       && expectedHmac[14] == h32_from_64_S (dgst64[7])
+       && expectedHmac[15] == l32_from_64_S (dgst64[7]))
     {
       mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
     }

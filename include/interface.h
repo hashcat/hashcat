@@ -49,28 +49,28 @@ static const char LM_MASKED_PLAIN[] = "[notfound]";
 #define LUKS_ALIGN_KEYSLOTS 4096
 
 struct luks_phdr {
-	char		magic[LUKS_MAGIC_L];
-	uint16_t	version;
-	char		cipherName[LUKS_CIPHERNAME_L];
-	char		cipherMode[LUKS_CIPHERMODE_L];
-	char            hashSpec[LUKS_HASHSPEC_L];
-	uint32_t	payloadOffset;
-	uint32_t	keyBytes;
-	char		mkDigest[LUKS_DIGESTSIZE];
-	char		mkDigestSalt[LUKS_SALTSIZE];
-	uint32_t	mkDigestIterations;
-	char            uuid[UUID_STRING_L];
-	struct {
-		uint32_t active;
-		/* parameters used for password processing */
-		uint32_t passwordIterations;
-		char     passwordSalt[LUKS_SALTSIZE];
-		/* parameters used for AF store/load */
-		uint32_t keyMaterialOffset;
-		uint32_t stripes;
-	} keyblock[LUKS_NUMKEYS];
-	/* Align it to 512 sector size */
-	char		_padding[432];
+  char      magic[LUKS_MAGIC_L];
+  uint16_t  version;
+  char      cipherName[LUKS_CIPHERNAME_L];
+  char      cipherMode[LUKS_CIPHERMODE_L];
+  char      hashSpec[LUKS_HASHSPEC_L];
+  uint32_t  payloadOffset;
+  uint32_t  keyBytes;
+  char      mkDigest[LUKS_DIGESTSIZE];
+  char      mkDigestSalt[LUKS_SALTSIZE];
+  uint32_t  mkDigestIterations;
+  char      uuid[UUID_STRING_L];
+  struct {
+    uint32_t active;
+    /* parameters used for password processing */
+    uint32_t passwordIterations;
+    char     passwordSalt[LUKS_SALTSIZE];
+    /* parameters used for AF store/load */
+    uint32_t keyMaterialOffset;
+    uint32_t stripes;
+  } keyblock[LUKS_NUMKEYS];
+  /* Align it to 512 sector size */
+  char       _padding[432];
 };
 
 // not from original headers start with hc_
@@ -425,12 +425,15 @@ typedef struct dpapimk
   u32 version;
   u32 context;
 
-  u8 SID_tmp[64];
   u32 SID[32];
   u32 SID_len;
   u32 SID_offset;
-  u8 cipher_algo[16];
-  u8 hash_algo[16];
+
+  /* here only for possible
+     forward compatibiliy
+  */
+  // u8 cipher_algo[16];
+  // u8 hash_algo[16];
 
   u32 iv[4];
   u32 contents_len;
@@ -1226,7 +1229,7 @@ typedef enum display_len
   DISPLAY_LEN_MAX_15100 = 6 + 6 + 1 + 8 + 1 + 28,
   DISPLAY_LEN_MIN_15200 =  1 + 10 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 64,
   DISPLAY_LEN_MAX_15200 =  1 + 10 + 1 + 2 + 1 + 8 + 1 + 5 + 1 + 20000,
-  DISPLAY_LEN_MIN_15300 =  1 + 7 + 1 + 1 + 1 + 1 + 1 + 10 + 1 + 4 + 1 + 4 + 1 + 1 + 1 + 32 + 1 + 3 + 128,
+  DISPLAY_LEN_MIN_15300 =  1 + 7 + 1 + 1 + 1 + 1 + 1 +  10 + 1 + 4 + 1 + 4 + 1 +  1 + 1 + 32 + 1 + 3 + 1 + 128,
   DISPLAY_LEN_MAX_15300 =  1 + 7 + 1 + 1 + 1 + 1 + 1 + 100 + 1 + 6 + 1 + 6 + 1 + 10 + 1 + 32 + 1 + 4 + 1 + 512,
   DISPLAY_LEN_MIN_99999 = 1,
   DISPLAY_LEN_MAX_99999 = 55,

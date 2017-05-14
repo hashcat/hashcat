@@ -1038,12 +1038,15 @@ typedef struct
   u32 version;
   u32 context;
 
-  u8 SID_tmp[64];
   u32 SID[32];
   u32 SID_len;
   u32 SID_offset;
-  char cipher_algo[16];
-  char hash_algo[16];
+
+  /* here only for possible
+     forward compatibiliy
+  */
+  //char cipher_algo[16];
+  //char hash_algo[16];
 
   u32 iv[4];
   u32 contents_len;

@@ -2862,15 +2862,11 @@ int dpapimk_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   version_pos = input_buf + 8 + 1;
 
-  dpapimk->version = atoll ((const char *) version_pos);
-
   context_pos = (u8 *) strchr ((const char *) version_pos, '*');
 
   if (context_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   context_pos++;
-
-  dpapimk->context = atoll ((const char *) context_pos);
 
   SID_pos = (u8 *) strchr ((const char *) context_pos, '*');
 
@@ -2882,21 +2878,11 @@ int dpapimk_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   if (cipher_algo_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
-  for (int i = 0; i < cipher_algo_pos - SID_pos; i++)
-    dpapimk->SID_tmp[i] = SID_pos[i];
-  dpapimk->SID_tmp[cipher_algo_pos - SID_pos] = '\0';
-
   cipher_algo_pos++;
 
   hash_algo_pos = (u8 *) strchr ((const char *) cipher_algo_pos, '*');
 
   if (hash_algo_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  for (int i = 0; i < hash_algo_pos - cipher_algo_pos; i++)
-  {
-    dpapimk->cipher_algo[i] = cipher_algo_pos[i];
-  }
-  dpapimk->cipher_algo[hash_algo_pos - cipher_algo_pos] = '\0';
 
   hash_algo_pos++;
 
@@ -2904,13 +2890,7 @@ int dpapimk_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   if (rounds_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
-  for (int i = 0; i < rounds_pos - hash_algo_pos; i++)
-    dpapimk->hash_algo[i] = hash_algo_pos[i];
-  dpapimk->hash_algo[rounds_pos - hash_algo_pos] = '\0';
-
   rounds_pos++;
-
-  salt->salt_iter = (atoll ((const char *) rounds_pos)) - 1;
 
   iv_pos = (u8 *) strchr ((const char *) rounds_pos, '*');
 
@@ -2926,6 +2906,32 @@ int dpapimk_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   if (is_valid_hex_string (iv_pos, 32) == false) return (PARSER_SALT_ENCODING);
 
+  contents_len_pos++;
+
+  contents_pos = (u8 *) strchr ((const char *) contents_len_pos, '*');
+
+  if (contents_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  contents_pos++;
+
+  u32 version      = atoll ((const char *) version_pos);
+  u32 contents_len = atoll ((const char *) contents_len_pos);
+
+  if (version == 1 && contents_len != 208) return (PARSER_SALT_LENGTH);
+  if (version == 2 && contents_len != 288) return (PARSER_SALT_LENGTH);
+
+  if (is_valid_hex_string (contents_pos, contents_len) == false) return (PARSER_SALT_ENCODING);
+
+  u8 *end_line  = (u8 *) strchr ((const char *) contents_pos, 0);
+
+  if (end_line - contents_pos != contents_len) return (PARSER_SALT_LENGTH);
+
+  dpapimk->version = version;
+
+  dpapimk->context = atoll ((const char *) context_pos);
+
+  salt->salt_iter = (atoll ((const char *) rounds_pos)) - 1;
+
   dpapimk->iv[0] = hex_to_u32 ((const u8 *) &iv_pos[ 0]);
   dpapimk->iv[1] = hex_to_u32 ((const u8 *) &iv_pos[ 8]);
   dpapimk->iv[2] = hex_to_u32 ((const u8 *) &iv_pos[16]);
@@ -2936,24 +2942,7 @@ int dpapimk_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   dpapimk->iv[2] = byte_swap_32 (dpapimk->iv[2]);
   dpapimk->iv[3] = byte_swap_32 (dpapimk->iv[3]);
 
-  contents_len_pos++;
-
-  dpapimk->contents_len = (atoll ((const char *) contents_len_pos));
-
-  contents_pos = (u8 *) strchr ((const char *) contents_len_pos, '*');
-
-  if (contents_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  contents_pos++;
-
-  if (dpapimk->version == 1 && dpapimk->contents_len != 208) return (PARSER_SALT_LENGTH);
-  if (dpapimk->version == 2 && dpapimk->contents_len != 288) return (PARSER_SALT_LENGTH);
-
-  if (is_valid_hex_string (contents_pos, dpapimk->contents_len) == false) return (PARSER_SALT_ENCODING);
-
-  u8 *end_line  = (u8 *) strchr ((const char *) contents_pos, '\0');
-
-  if (end_line - contents_pos != dpapimk->contents_len) return (PARSER_SALT_LENGTH);
+  dpapimk->contents_len = contents_len;
 
   for (u32 i = 0; i < dpapimk->contents_len / 4; i++)
   {
@@ -2995,7 +2984,7 @@ int dpapimk_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   salt->salt_buf[2] = dpapimk->iv[2];
   salt->salt_buf[3] = dpapimk->iv[3];
 
-  salt->salt_len = 32;
+  salt->salt_len = 16;
 
   hcfree(SID_unicode);
 
@@ -18511,24 +18500,52 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     u32 version      = (u32) dpapimk->version;
     u32 context      = (u32) dpapimk->context;
     u32 rounds       = salt.salt_iter + 1;
-    u32 iv_len       = 32;
     u32 contents_len = (u32) dpapimk->contents_len;
+    u32 SID_len      = (u32) dpapimk->SID_len;
+    u32 iv_len       = 32;
 
-    char *ptr_SID               = (char *) dpapimk->SID_tmp;
-    char *ptr_cipher_algorithm  = (char *) dpapimk->cipher_algo;
-    char *ptr_hash_algorithm    = (char *) dpapimk->hash_algo;
-    u32  *ptr_iv                = (u32 *)  dpapimk->iv;
-    u32  *ptr_contents          = (u32 *)  dpapimk->contents;
+    u8 cipher_algorithm[8] = { 0 };
+    u8 hash_algorithm[8]   = { 0 };
+    u8 SID[512]            = { 0 };
+    u8* SID_tmp;
+
+    u32  *ptr_SID          = (u32 *)  dpapimk->SID;
+    u32  *ptr_iv           = (u32 *)  dpapimk->iv;
+    u32  *ptr_contents     = (u32 *)  dpapimk->contents;
 
     u32 u32_iv[4];
     u8 iv[32 + 1];
+
+    /* convert back SID */
+
+    SID_tmp = (u8 *) hcmalloc ((SID_len + 1) * sizeof(u8));
+
+    for (u32 i = 0; i < (SID_len / 4) + 1; i++)
+    {
+      u8 hex[8] = { 0 };
+      u32_to_hex_lower (byte_swap_32 (ptr_SID[i]), hex);
+
+      for (u32 j = 0, k = 0; j < 8; j += 2, k++)
+      {
+        SID_tmp[i * 4 + k] = hex_to_u8 (&hex[j]);
+      }
+    }
+    /* overwrite trailing 0x80 */
+    SID_tmp[SID_len] = 0;
+
+    for (u32 i = 0, j = 0 ; j < SID_len ; i++, j += 2)
+    {
+      SID[i] = SID_tmp[j];
+    }
+
+    hcfree(SID_tmp);
 
     for (u32 i = 0; i < iv_len / 8; i++)
     {
       u32_iv[i] = byte_swap_32 (ptr_iv[i]);
       u32_to_hex_lower (u32_iv[i], iv +  i * 8);
     }
-    iv[32] = '\0';
+    iv[32] = 0;
 
     u32 u32_contents[36];
     u8  contents[288 + 1];
@@ -18541,20 +18558,31 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     if (version == 1)
     {
-      contents[208] = '\0';
+      contents[208] = 0;
     }
     else
     {
-      contents[288] = '\0';
+      contents[288] = 0;
+    }
+
+    if (contents_len == 288 && version == 2)
+    {
+      memcpy(cipher_algorithm, "aes256", strlen("aes256"));
+      memcpy(hash_algorithm,   "sha512", strlen("sha512"));
+    }
+    else if (contents_len == 208 && version == 1)
+    {
+      memcpy(cipher_algorithm, "des3", strlen("des3"));
+      memcpy(hash_algorithm,   "sha1", strlen("sha1"));
     }
 
     snprintf (out_buf, out_len - 1, "%s%d*%d*%s*%s*%s*%d*%s*%d*%s",
       SIGNATURE_DPAPIMK,
       version,
       context,
-      ptr_SID,
-      ptr_cipher_algorithm,
-      ptr_hash_algorithm,
+      SID,
+      cipher_algorithm,
+      hash_algorithm,
       rounds,
       iv,
       contents_len,
