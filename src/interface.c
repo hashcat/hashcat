@@ -96,7 +96,6 @@ static const char HT_00400[] = "phpass, WordPress (MD5), phpBB3 (MD5), Joomla (M
 static const char HT_00500[] = "md5crypt, MD5 (Unix), Cisco-IOS $1$ (MD5)";
 static const char HT_00501[] = "Juniper IVE";
 static const char HT_00600[] = "Blake2-512";
-static const char HT_00670[] = "Chacha20";
 static const char HT_00900[] = "MD4";
 static const char HT_01000[] = "NTLM";
 static const char HT_01100[] = "Domain Cached Credentials (DCC), MS Cache";
@@ -241,6 +240,7 @@ static const char HT_14900[] = "Skip32 (PT = $salt, key = $pass)";
 static const char HT_15000[] = "FileZilla Server >= 0.9.55";
 static const char HT_15100[] = "Juniper/NetBSD sha1crypt";
 static const char HT_15200[] = "Blockchain, My Wallet, V2";
+static const char HT_15400[] = "Chacha20";
 static const char HT_99999[] = "Plaintext";
 
 static const char HT_00011[] = "Joomla < 2.5.18";
@@ -5312,7 +5312,7 @@ int blake2b_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
 int chacha20_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_670) || (input_len > DISPLAY_LEN_MAX_670)) return (PARSER_GLOBAL_LENGTH);
+  if ((input_len < DISPLAY_LEN_MIN_15400) || (input_len > DISPLAY_LEN_MAX_15400)) return (PARSER_GLOBAL_LENGTH);
 
   if (memcmp (SIGNATURE_CHACHA20, input_buf, 10)) return (PARSER_SIGNATURE_UNMATCHED);
 
@@ -15081,7 +15081,6 @@ char *strhashtype (const u32 hash_mode)
     case   500: return ((char *) HT_00500);
     case   501: return ((char *) HT_00501);
     case   600: return ((char *) HT_00600);
-    case   670: return ((char *) HT_00670);
     case   900: return ((char *) HT_00900);
     case  1000: return ((char *) HT_01000);
     case  1100: return ((char *) HT_01100);
@@ -15269,6 +15268,7 @@ char *strhashtype (const u32 hash_mode)
     case 15000: return ((char *) HT_15000);
     case 15100: return ((char *) HT_15100);
     case 15200: return ((char *) HT_15200);
+    case 15400: return ((char *) HT_15400);
     case 99999: return ((char *) HT_99999);
   }
 
@@ -19460,22 +19460,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos3      = 2;
                  break;
 
-    case   670:  hashconfig->hash_type      = HASH_TYPE_CHACHA20;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_CHACHA20;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = chacha20_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_USES_BITS_32
-                                            | OPTI_TYPE_RAW_HASH;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 break;
-
     case   900:  hashconfig->hash_type      = HASH_TYPE_MD4;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -22703,6 +22687,23 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos3      = 3;
                  break;
 
+    case 15400:  hashconfig->hash_type      = HASH_TYPE_CHACHA20;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
+                 hashconfig->kern_type      = KERN_TYPE_CHACHA20;
+                 hashconfig->dgst_size      = DGST_SIZE_4_4;
+                 hashconfig->parse_func     = chacha20_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_USES_BITS_32
+                                            | OPTI_TYPE_RAW_HASH;
+                 hashconfig->dgst_pos0      = 0;
+                 hashconfig->dgst_pos1      = 1;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 3;
+                 break;
+
+
     case 99999:  hashconfig->hash_type      = HASH_TYPE_PLAINTEXT;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -22763,7 +22764,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   switch (hashconfig->hash_mode)
   {
     case   600: hashconfig->esalt_size = sizeof (blake2_t);         break;
-    case   670: hashconfig->esalt_size = sizeof (chacha20_t);       break;
     case  2500: hashconfig->esalt_size = sizeof (wpa_t);            break;
     case  5300: hashconfig->esalt_size = sizeof (ikepsk_t);         break;
     case  5400: hashconfig->esalt_size = sizeof (ikepsk_t);         break;
@@ -22840,6 +22840,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 14600: hashconfig->esalt_size = sizeof (luks_t);           break;
     case 14700: hashconfig->esalt_size = sizeof (itunes_backup_t);  break;
     case 14800: hashconfig->esalt_size = sizeof (itunes_backup_t);  break;
+    case 15400: hashconfig->esalt_size = sizeof (chacha20_t);       break;
   }
 
   // hook_salt_size
@@ -22993,8 +22994,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                 break;
     case   500: hashconfig->pw_max = 16;
                 break;
-    case   670: hashconfig->pw_max = 32;
-                break;
     case  1500: hashconfig->pw_max = 8;
                 break;
     case  1600: hashconfig->pw_max = 16;
@@ -23050,6 +23049,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 14400: hashconfig->pw_max = 24;
                 break;
     case 14900: hashconfig->pw_max = 10;
+                break;
+    case 15400: hashconfig->pw_max = 32;
                 break;
   }
 
