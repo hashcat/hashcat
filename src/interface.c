@@ -5347,11 +5347,11 @@ int chacha20_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   chacha20->iv[0] = hex_to_u32 ((const u8 *) iv_marker + 8);
   chacha20->iv[1] = hex_to_u32 ((const u8 *) iv_marker + 0);
 
-  chacha20->plain[0] = hex_to_u32 ((const u8 *) plain_marker + 8);
-  chacha20->plain[1] = hex_to_u32 ((const u8 *) plain_marker + 0);
+  chacha20->plain[0] = hex_to_u32 ((const u8 *) plain_marker + 0);
+  chacha20->plain[1] = hex_to_u32 ((const u8 *) plain_marker + 8);
 
-  chacha20->position[0] = byte_swap_32(hex_to_u32 ((const u8 *) position_marker + 8));
-  chacha20->position[1] = byte_swap_32(hex_to_u32 ((const u8 *) position_marker + 0));
+  chacha20->position[0] = hex_to_u32 ((const u8 *) position_marker + 0);
+  chacha20->position[1] = hex_to_u32 ((const u8 *) position_marker + 8);
 
   chacha20->offset = offset;
 
@@ -18566,13 +18566,13 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
       snprintf (out_buf, out_len - 1, "%s*%08x%08x*%d*%08x%08x*%08x%08x*%08x%08x",
         SIGNATURE_CHACHA20,
-        chacha20->position[1],
-        chacha20->position[0],
+        byte_swap_32(chacha20->position[0]),
+        byte_swap_32(chacha20->position[1]),
         chacha20->offset,
         byte_swap_32(chacha20->iv[1]),
         byte_swap_32(chacha20->iv[0]),
-        byte_swap_32(chacha20->plain[1]),
         byte_swap_32(chacha20->plain[0]),
+        byte_swap_32(chacha20->plain[1]),
         ptr[1],
         ptr[0]);
     }

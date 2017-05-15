@@ -8156,20 +8156,23 @@ END_CODE
   }
   elsif ($mode == 15400)
   {
-    my $eight_byte_iv = pack("H*",      "0000000000000000");
-    my $eight_byte_counter = pack("H*", "0100000000000000"); # little endian 64 bits
+    my $iv = "0200000000000001";
+    my $counter = "0400000000000003";
+    my $plaintext = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz0a2b4c6d8e";
+    my $eight_byte_iv = pack("H*",      $iv);
+    my $eight_byte_counter = pack("H*", $counter);
     my $offset = int(rand(63));
     my $pad_len = 32 - length $word_buf;
     my $key = $word_buf . "\0" x $pad_len;
     my $cipher = Crypt::OpenSSH::ChachaPoly->new($key);
 
     $cipher->ivsetup($eight_byte_iv, $eight_byte_counter);
-
-    my $enc = $cipher->encrypt("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+   
+    my $enc = $cipher->encrypt($plaintext);
     my $enc_offset = substr($enc, $offset, 8);
     $hash_buf = $enc_offset;
 
-    $tmp_hash = sprintf ("\$Chacha20\$\*%08x%08x\*%d\*0000000000000000\*4141414141414141\*%s", (unpack("V*", $eight_byte_counter))[1], (unpack("V*", $eight_byte_counter))[0], $offset, unpack("H*", $enc_offset));
+    $tmp_hash = sprintf ("\$Chacha20\$\*%s\*%d\*%s\*%s\*%s", $counter, $offset, $iv, unpack("H*", substr($plaintext, $offset, 8)), unpack("H*", $enc_offset));
   }
   elsif ($mode == 99999)
   {
