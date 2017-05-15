@@ -33,6 +33,10 @@
 
 void chacha20_transform (const u32x w0[4], const u32x w1[4], const u32 position[2], const u32 offset, const u32 iv[2], const u32 plain[4], u32x digest[4])
 {
+  /**
+   * Key expansion
+   */
+
   u32x ctx[16];
   
   ctx[ 0] = CHACHA_CONST_00;
@@ -52,7 +56,11 @@ void chacha20_transform (const u32x w0[4], const u32x w1[4], const u32 position[
   ctx[14] = iv[1];
   ctx[15] = iv[0];
 
-  u32x x[16];
+  /**
+   * Generate 64 byte keystream
+   */
+
+  u32x x[32];
 
   x[ 0] = ctx[ 0];
   x[ 1] = ctx[ 1];
@@ -103,11 +111,68 @@ void chacha20_transform (const u32x w0[4], const u32x w1[4], const u32 position[
   x[14] += ctx[14];
   x[15] += ctx[15];
 
+  if (offset > 36)
+  {
+    /**
+     * Generate a second 64 byte keystream 
+     */
+ 
+    ctx[12]++;
+    
+    if (all(ctx[12] == 0)) ctx[13]++;
+
+    x[16] = ctx[ 0];
+    x[17] = ctx[ 1];
+    x[18] = ctx[ 2];
+    x[19] = ctx[ 3];
+    x[20] = ctx[ 4];
+    x[21] = ctx[ 5];
+    x[22] = ctx[ 6];
+    x[23] = ctx[ 7];
+    x[24] = ctx[ 8];
+    x[25] = ctx[ 9];
+    x[26] = ctx[10];
+    x[27] = ctx[11];
+    x[28] = ctx[12];
+    x[29] = ctx[13];
+    x[30] = ctx[14];
+    x[31] = ctx[15];
+
+    for (u8 i = 0; i < 10; ++i)
+    {
+      /* Column round */
+      QR(16, 20, 24, 28);
+      QR(17, 21, 25, 29);
+      QR(18, 22, 26, 30);
+      QR(19, 23, 27, 31);
+
+      /* Diagonal round */
+      QR(16, 21, 26, 31);
+      QR(17, 22, 27, 28);
+      QR(18, 23, 24, 29);
+      QR(19, 20, 25, 30);
+    }
+
+    x[16] += ctx[ 0];
+    x[17] += ctx[ 1];
+    x[18] += ctx[ 2];
+    x[19] += ctx[ 3];
+    x[20] += ctx[ 4];
+    x[21] += ctx[ 5];
+    x[22] += ctx[ 6];
+    x[23] += ctx[ 7];
+    x[24] += ctx[ 8];
+    x[25] += ctx[ 9];
+    x[26] += ctx[10];
+    x[27] += ctx[11];
+    x[28] += ctx[12];
+    x[29] += ctx[13];
+    x[30] += ctx[14];
+    x[31] += ctx[15];
+  }
 
   u32 index  = offset / 4;
   u32 remain = offset % 4;
-
-  //printf("index: %d, offset: %d, remain: %d\n", index, offset, remain);
 
   digest[0] = plain[1];
   digest[1] = plain[0];
@@ -130,8 +195,6 @@ void chacha20_transform (const u32x w0[4], const u32x w1[4], const u32 position[
     digest[1] ^= x[index + 0];
     digest[0] ^= x[index + 1];    
   }
-
-  //printf("digest[0]: %08x, x[0]: %08x, digest[1]: %08x, x[1]: %08x\n", digest[0], x[0], digest[1], x[1]); 
 }  
 
 __kernel void m15400_m04 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const comb_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const chacha20_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
@@ -290,8 +353,6 @@ __kernel void m15400_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
     const u32x r1 = digest[1];
     const u32x r2 = digest[2];
     const u32x r3 = digest[3];
-
-    // printf("r0: %08x, search[0]: %08x, r1: %08x, search[1]: %08x, r2: %08x, search[2]: %08x, r3: %08x, search[3]: %08x\n", r0, search[0], r1, search[1], r2, search[2], r3, search[3]);
 
     COMPARE_S_SIMD(r0, r1, r2, r3);
   }  

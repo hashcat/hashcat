@@ -8158,14 +8158,14 @@ END_CODE
   {
     my $eight_byte_iv = pack("H*",      "0000000000000000");
     my $eight_byte_counter = pack("H*", "0100000000000000"); # little endian 64 bits
-    my $offset = int(rand(36));
+    my $offset = int(rand(63));
     my $pad_len = 32 - length $word_buf;
     my $key = $word_buf . "\0" x $pad_len;
     my $cipher = Crypt::OpenSSH::ChachaPoly->new($key);
 
     $cipher->ivsetup($eight_byte_iv, $eight_byte_counter);
 
-    my $enc = $cipher->encrypt("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+    my $enc = $cipher->encrypt("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
     my $enc_offset = substr($enc, $offset, 8);
     $hash_buf = $enc_offset;
 

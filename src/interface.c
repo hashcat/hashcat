@@ -5330,7 +5330,7 @@ int chacha20_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   if (offset_marker == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   int offset = atoi ((char*) offset_marker);
-  if (offset > 36) return (PARSER_SALT_VALUE);
+  if (offset > 63) return (PARSER_SALT_VALUE);
 
   u8 *iv_marker = (u8 *) strchr ((const char *) offset_marker, '*') + 1;
   if (iv_marker == NULL) return (PARSER_SEPARATOR_UNMATCHED);
