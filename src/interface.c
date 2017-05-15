@@ -5326,7 +5326,13 @@ int chacha20_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   if (position_marker == NULL) return (PARSER_SEPARATOR_UNMATCHED);
   if (is_valid_hex_string (position_marker, 16) == false) return (PARSER_SALT_ENCODING);
 
-  u8 *iv_marker = (u8 *) strchr ((const char *) position_marker, '*') + 1;
+  u8 *offset_marker = (u8 *) strchr ((const char *) position_marker, '*') + 1;
+  if (offset_marker == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  int offset = atoi ((char*) offset_marker);
+  if (offset > 36) return (PARSER_SALT_VALUE);
+
+  u8 *iv_marker = (u8 *) strchr ((const char *) offset_marker, '*') + 1;
   if (iv_marker == NULL) return (PARSER_SEPARATOR_UNMATCHED);
   if (is_valid_hex_string (iv_marker, 16) == false) return (PARSER_SALT_ENCODING);
 
@@ -5347,6 +5353,8 @@ int chacha20_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   chacha20->position[0] = byte_swap_32(hex_to_u32 ((const u8 *) position_marker + 8));
   chacha20->position[1] = byte_swap_32(hex_to_u32 ((const u8 *) position_marker + 0));
 
+  chacha20->offset = offset;
+
   /* some fake salt for the sorting mechanisms */
 
   salt->salt_buf[0] = chacha20->iv[0];
@@ -5355,9 +5363,9 @@ int chacha20_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   salt->salt_buf[3] = chacha20->plain[1];
   salt->salt_buf[4] = chacha20->position[0];
   salt->salt_buf[5] = chacha20->position[1];
-  salt->salt_buf[6] = 0;
+  salt->salt_buf[6] = chacha20->offset;
   salt->salt_buf[7] = 0;
-  salt->salt_len    = 24;
+  salt->salt_len    = 32;
 
   /* Store cipher for search mechanism */
   digest[0] = hex_to_u32 ((const u8 *) cipher_marker + 8);
@@ -18556,10 +18564,11 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
       const chacha20_t *chacha20 = (const chacha20_t *) esalts_buf;
 
-      snprintf (out_buf, out_len - 1, "%s*%08x%08x*%08x%08x*%08x%08x*%08x%08x",
+      snprintf (out_buf, out_len - 1, "%s*%08x%08x*%d*%08x%08x*%08x%08x*%08x%08x",
         SIGNATURE_CHACHA20,
         chacha20->position[1],
         chacha20->position[0],
+        chacha20->offset,
         byte_swap_32(chacha20->iv[1]),
         byte_swap_32(chacha20->iv[0]),
         byte_swap_32(chacha20->plain[1]),

@@ -31,7 +31,7 @@
     x[b] = rotl32(x[b] ^ x[c], 7);    \
   } while (0);
 
-void chacha20_transform (const u32x w0[4], const u32x w1[4], const u32 position[2], const u32 iv[2], const u32 plain[4], u32x digest[4])
+void chacha20_transform (const u32x w0[4], const u32x w1[4], const u32 position[2], const u32 offset, const u32 iv[2], const u32 plain[4], u32x digest[4])
 {
   u32x ctx[16];
   
@@ -102,11 +102,36 @@ void chacha20_transform (const u32x w0[4], const u32x w1[4], const u32 position[
   x[13] += ctx[13];
   x[14] += ctx[14];
   x[15] += ctx[15];
- 
-  digest[1] = plain[0] ^ x[0];
-  digest[0] = plain[1] ^ x[1];
-  digest[3] = plain[2] ^ x[2];
-  digest[2] = plain[3] ^ x[3];
+
+
+  u32 index  = offset / 4;
+  u32 remain = offset % 4;
+
+  //printf("index: %d, offset: %d, remain: %d\n", index, offset, remain);
+
+  digest[0] = plain[1];
+  digest[1] = plain[0];
+
+  if (remain > 0)
+  {
+    u32x tmp[3];
+    tmp[0] = x[index + 0];
+    tmp[1] = x[index + 1];
+    tmp[2] = x[index + 2];
+
+    digest[1] ^= tmp[0] >> (remain * 8);
+    digest[1] ^= tmp[1] << (32 - remain * 8);
+
+    digest[0] ^= tmp[1] >> (remain * 8);
+    digest[0] ^= tmp[2] << (32 - remain * 8); 
+  }
+  else
+  {
+    digest[1] ^= x[index + 0];
+    digest[0] ^= x[index + 1];    
+  }
+
+  //printf("digest[0]: %08x, x[0]: %08x, digest[1]: %08x, x[1]: %08x\n", digest[0], x[0], digest[1], x[1]); 
 }  
 
 __kernel void m15400_m04 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const comb_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const chacha20_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
@@ -139,9 +164,12 @@ __kernel void m15400_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
   u32 iv[2]    = { 0 };
   u32 plain[2] = { 0 };
   u32 position[2] = { 0 };
+  u32 offset = 0;
 
   position[0] = esalt_bufs->position[0];
   position[1] = esalt_bufs->position[1];
+
+  offset = esalt_bufs->offset;
 
   iv[0] = esalt_bufs->iv[0];
   iv[1] = esalt_bufs->iv[1];
@@ -164,7 +192,7 @@ __kernel void m15400_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     u32x digest[4] = { 0 };
 
-    chacha20_transform (w0, w1, position, iv, plain, digest);
+    chacha20_transform (w0, w1, position, offset, iv, plain, digest);
 
     const u32x r0 = digest[0];
     const u32x r1 = digest[1];
@@ -216,9 +244,12 @@ __kernel void m15400_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
   u32 iv[2]    = { 0 };
   u32 plain[2] = { 0 };
   u32 position[2] = { 0 };
+  u32 offset = 0;
 
   position[0] = esalt_bufs->position[0];
   position[1] = esalt_bufs->position[1];
+
+  offset = esalt_bufs->offset;
 
   iv[0] = esalt_bufs->iv[0];
   iv[1] = esalt_bufs->iv[1];
@@ -253,12 +284,14 @@ __kernel void m15400_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     u32x digest[4] = { 0 };
 
-    chacha20_transform (w0, w1, position, iv, plain, digest);
+    chacha20_transform (w0, w1, position, offset, iv, plain, digest);
 
     const u32x r0 = digest[0];
     const u32x r1 = digest[1];
     const u32x r2 = digest[2];
     const u32x r3 = digest[3];
+
+    // printf("r0: %08x, search[0]: %08x, r1: %08x, search[1]: %08x, r2: %08x, search[2]: %08x, r3: %08x, search[3]: %08x\n", r0, search[0], r1, search[1], r2, search[2], r3, search[3]);
 
     COMPARE_S_SIMD(r0, r1, r2, r3);
   }  
