@@ -109,7 +109,7 @@ void chacha20_transform (const u32x w0[4], const u32x w1[4], const u32 position[
   x[14] += ctx[14];
   x[15] += ctx[15];
 
-  if (offset > 36)
+  if (offset > 56)
   {
     /**
      * Generate a second 64 byte keystream 
@@ -168,6 +168,10 @@ void chacha20_transform (const u32x w0[4], const u32x w1[4], const u32 position[
     x[30] += ctx[14];
     x[31] += ctx[15];
   }
+
+  /**
+   * Encrypt plaintext with keystream
+   */
 
   u32 index  = offset / 4;
   u32 remain = offset % 4;
