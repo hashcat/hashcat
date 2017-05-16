@@ -145,6 +145,7 @@ NVIDIA GPUs require "NVIDIA Driver" (367.x or later)
 - NTLM
 - Domain Cached Credentials (DCC), MS Cache
 - Domain Cached Credentials 2 (DCC2), MS Cache 2
+- DPAPI masterkey file v1 and v2
 - MS-AzureSync PBKDF2-HMAC-SHA256
 - descrypt
 - bsdicrypt

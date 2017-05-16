@@ -241,6 +241,7 @@ static const char *USAGE_BIG[] =
   "   1000 | NTLM                                             | Operating Systems",
   "   1100 | Domain Cached Credentials (DCC), MS Cache        | Operating Systems",
   "   2100 | Domain Cached Credentials 2 (DCC2), MS Cache 2   | Operating Systems",
+  "  15300 | DPAPI masterkey file v1 and v2                   | Operating Systems",
   "  12800 | MS-AzureSync  PBKDF2-HMAC-SHA256                 | Operating Systems",
   "   1500 | descrypt, DES (Unix), Traditional DES            | Operating Systems",
   "  12400 | BSDiCrypt, Extended DES                          | Operating Systems",

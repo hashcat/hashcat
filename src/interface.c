@@ -240,6 +240,7 @@ static const char HT_14900[] = "Skip32 (PT = $salt, key = $pass)";
 static const char HT_15000[] = "FileZilla Server >= 0.9.55";
 static const char HT_15100[] = "Juniper/NetBSD sha1crypt";
 static const char HT_15200[] = "Blockchain, My Wallet, V2";
+static const char HT_15300[] = "DPAPI masterkey file v1 and v2";
 static const char HT_99999[] = "Plaintext";
 
 static const char HT_00011[] = "Joomla < 2.5.18";
@@ -317,6 +318,7 @@ static const char SIGNATURE_CRAM_MD5[]         = "$cram_md5$";
 static const char SIGNATURE_DCC2[]             = "$DCC2$";
 static const char SIGNATURE_DJANGOPBKDF2[]     = "pbkdf2_sha256$";
 static const char SIGNATURE_DJANGOSHA1[]       = "sha1$";
+static const char SIGNATURE_DPAPIMK[]          = "$DPAPImk$";
 static const char SIGNATURE_DRUPAL7[]          = "$S$";
 static const char SIGNATURE_ECRYPTFS[]         = "$ecryptfs$";
 static const char SIGNATURE_EPISERVER4[]       = "$episerver$*1*";
@@ -2827,6 +2829,164 @@ int dcc2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
 
   salt->salt_len = salt_len;
+
+  return (PARSER_OK);
+}
+
+int dpapimk_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
+{
+  if ((input_len < DISPLAY_LEN_MIN_15300) || (input_len > DISPLAY_LEN_MAX_15300)) return (PARSER_GLOBAL_LENGTH);
+
+  if (memcmp (SIGNATURE_DPAPIMK, input_buf, 9)) return (PARSER_SIGNATURE_UNMATCHED);
+
+  u32 *digest        = (u32 *) hash_buf->digest;
+
+  salt_t *salt       = hash_buf->salt;
+
+  dpapimk_t *dpapimk = (dpapimk_t *) hash_buf->esalt;
+
+  /**
+   * parse line
+   */
+
+  u8  *version_pos;
+  u8  *context_pos;
+  u8  *SID_pos;
+  u8  *cipher_algo_pos; // here just for possible forward compatibilities
+  u8  *hash_algo_pos;   // same
+  u8  *rounds_pos;
+  u32 iv_len = 32;
+  u8  *iv_pos;
+  u8  *contents_len_pos;
+  u8  *contents_pos;
+
+  version_pos = input_buf + 8 + 1;
+
+  context_pos = (u8 *) strchr ((const char *) version_pos, '*');
+
+  if (context_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  context_pos++;
+
+  SID_pos = (u8 *) strchr ((const char *) context_pos, '*');
+
+  if (SID_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  SID_pos++;
+
+  cipher_algo_pos = (u8 *) strchr ((const char *) SID_pos, '*');
+
+  if (cipher_algo_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  cipher_algo_pos++;
+
+  hash_algo_pos = (u8 *) strchr ((const char *) cipher_algo_pos, '*');
+
+  if (hash_algo_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  hash_algo_pos++;
+
+  rounds_pos = (u8 *) strchr ((const char *) hash_algo_pos, '*');
+
+  if (rounds_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  rounds_pos++;
+
+  iv_pos = (u8 *) strchr ((const char *) rounds_pos, '*');
+
+  if (iv_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  iv_pos++;
+
+  contents_len_pos = (u8 *) strchr ((const char *) iv_pos, '*');
+
+  if (contents_len_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  if (contents_len_pos - iv_pos != iv_len) return (PARSER_SALT_LENGTH);
+
+  if (is_valid_hex_string (iv_pos, 32) == false) return (PARSER_SALT_ENCODING);
+
+  contents_len_pos++;
+
+  contents_pos = (u8 *) strchr ((const char *) contents_len_pos, '*');
+
+  if (contents_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  contents_pos++;
+
+  u32 version      = atoll ((const char *) version_pos);
+  u32 contents_len = atoll ((const char *) contents_len_pos);
+
+  if (version == 1 && contents_len != 208) return (PARSER_SALT_LENGTH);
+  if (version == 2 && contents_len != 288) return (PARSER_SALT_LENGTH);
+
+  if (is_valid_hex_string (contents_pos, contents_len) == false) return (PARSER_SALT_ENCODING);
+
+  u8 *end_line  = (u8 *) strchr ((const char *) contents_pos, 0);
+
+  if (end_line - contents_pos != contents_len) return (PARSER_SALT_LENGTH);
+
+  dpapimk->version = version;
+
+  dpapimk->context = atoll ((const char *) context_pos);
+
+  salt->salt_iter = (atoll ((const char *) rounds_pos)) - 1;
+
+  dpapimk->iv[0] = hex_to_u32 ((const u8 *) &iv_pos[ 0]);
+  dpapimk->iv[1] = hex_to_u32 ((const u8 *) &iv_pos[ 8]);
+  dpapimk->iv[2] = hex_to_u32 ((const u8 *) &iv_pos[16]);
+  dpapimk->iv[3] = hex_to_u32 ((const u8 *) &iv_pos[24]);
+
+  dpapimk->iv[0] = byte_swap_32 (dpapimk->iv[0]);
+  dpapimk->iv[1] = byte_swap_32 (dpapimk->iv[1]);
+  dpapimk->iv[2] = byte_swap_32 (dpapimk->iv[2]);
+  dpapimk->iv[3] = byte_swap_32 (dpapimk->iv[3]);
+
+  dpapimk->contents_len = contents_len;
+
+  for (u32 i = 0; i < dpapimk->contents_len / 4; i++)
+  {
+    dpapimk->contents[i] = hex_to_u32 ((const u8 *) &contents_pos[i * 8]);
+
+    dpapimk->contents[i] = byte_swap_32 (dpapimk->contents[i]);
+  }
+
+  u32 SID_len = cipher_algo_pos - 1 - SID_pos;
+
+  /* maximum size of SID supported */
+  u8 *SID_unicode = (u8 *) hcmalloc (32 * 4);
+  memset (SID_unicode, 0, 32 * 4);
+
+  for (u32 i = 0; i < SID_len; i += 1)
+  {
+    SID_unicode[i * 2] = SID_pos[i];
+  }
+
+  SID_unicode[(SID_len + 1) * 2] = 0x80;
+
+  /* Specific to DPAPI: needs trailing '\0' while computing hash */
+  dpapimk->SID_len = (SID_len + 1) * 2;
+
+  memcpy ((u8 *) dpapimk->SID, SID_unicode, 32 * 4);
+
+  for (u32 i = 0; i < 32; i++)
+  {
+    dpapimk->SID[i] = byte_swap_32 (dpapimk->SID[i]);
+  }
+
+  digest[0] = dpapimk->iv[0];
+  digest[1] = dpapimk->iv[1];
+  digest[2] = dpapimk->iv[2];
+  digest[3] = dpapimk->iv[3];
+
+  salt->salt_buf[0] = dpapimk->iv[0];
+  salt->salt_buf[1] = dpapimk->iv[1];
+  salt->salt_buf[2] = dpapimk->iv[2];
+  salt->salt_buf[3] = dpapimk->iv[3];
+
+  salt->salt_len = 16;
+
+  hcfree(SID_unicode);
 
   return (PARSER_OK);
 }
@@ -12447,7 +12607,7 @@ int krb5tgs_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   u8 *edata_ptr = (u8 *) krb5tgs->edata2;
 
-  krb5tgs->edata2_len = (data_len - 32) / 2 ;
+  krb5tgs->edata2_len = (data_len - 32) / 2;
 
   /* skip '$' */
   for (u32 i = 16 * 2 + 1; i < (krb5tgs->edata2_len * 2) + (16 * 2 + 1); i += 2)
@@ -15226,6 +15386,7 @@ char *strhashtype (const u32 hash_mode)
     case 15000: return ((char *) HT_15000);
     case 15100: return ((char *) HT_15100);
     case 15200: return ((char *) HT_15200);
+    case 15300: return ((char *) HT_15300);
     case 99999: return ((char *) HT_99999);
   }
 
@@ -17952,11 +18113,11 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     u32 algorithm   = (u32) keepass->algorithm;
     u32 keyfile_len = (u32) keepass->keyfile_len;
 
-    u32 *ptr_final_random_seed  = (u32 *) keepass->final_random_seed ;
-    u32 *ptr_transf_random_seed = (u32 *) keepass->transf_random_seed ;
-    u32 *ptr_enc_iv             = (u32 *) keepass->enc_iv ;
-    u32 *ptr_contents_hash      = (u32 *) keepass->contents_hash ;
-    u32 *ptr_keyfile            = (u32 *) keepass->keyfile ;
+    u32 *ptr_final_random_seed  = (u32 *) keepass->final_random_seed;
+    u32 *ptr_transf_random_seed = (u32 *) keepass->transf_random_seed;
+    u32 *ptr_enc_iv             = (u32 *) keepass->enc_iv;
+    u32 *ptr_contents_hash      = (u32 *) keepass->contents_hash;
+    u32 *ptr_keyfile            = (u32 *) keepass->keyfile;
 
     /* specific to version 2 */
     u32 expected_bytes_len;
@@ -18041,7 +18202,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     else if (version == 2)
     {
       expected_bytes_len = 8;
-      ptr_expected_bytes = (u32 *) keepass->expected_bytes ;
+      ptr_expected_bytes = (u32 *) keepass->expected_bytes;
 
       for (u32 i = 0; i < expected_bytes_len; i++, ptr_data += 8)
         sprintf (ptr_data, "%08x", ptr_expected_bytes[i]);
@@ -18329,6 +18490,103 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     char        *hash_buf     = hashinfo_ptr[digest_cur]->orighash;
 
     snprintf (out_buf, out_len - 1, "%s", hash_buf);
+  }
+  else if (hash_mode == 15300)
+  {
+    dpapimk_t *dpapimks = (dpapimk_t *) esalts_buf;
+
+    dpapimk_t *dpapimk  = &dpapimks[digest_cur];
+
+    u32 version      = (u32) dpapimk->version;
+    u32 context      = (u32) dpapimk->context;
+    u32 rounds       = salt.salt_iter + 1;
+    u32 contents_len = (u32) dpapimk->contents_len;
+    u32 SID_len      = (u32) dpapimk->SID_len;
+    u32 iv_len       = 32;
+
+    u8 cipher_algorithm[8] = { 0 };
+    u8 hash_algorithm[8]   = { 0 };
+    u8 SID[512]            = { 0 };
+    u8* SID_tmp;
+
+    u32  *ptr_SID          = (u32 *)  dpapimk->SID;
+    u32  *ptr_iv           = (u32 *)  dpapimk->iv;
+    u32  *ptr_contents     = (u32 *)  dpapimk->contents;
+
+    u32 u32_iv[4];
+    u8 iv[32 + 1];
+
+    /* convert back SID */
+
+    SID_tmp = (u8 *) hcmalloc ((SID_len + 1) * sizeof(u8));
+
+    for (u32 i = 0; i < (SID_len / 4) + 1; i++)
+    {
+      u8 hex[8] = { 0 };
+      u32_to_hex_lower (byte_swap_32 (ptr_SID[i]), hex);
+
+      for (u32 j = 0, k = 0; j < 8; j += 2, k++)
+      {
+        SID_tmp[i * 4 + k] = hex_to_u8 (&hex[j]);
+      }
+    }
+    /* overwrite trailing 0x80 */
+    SID_tmp[SID_len] = 0;
+
+    for (u32 i = 0, j = 0 ; j < SID_len ; i++, j += 2)
+    {
+      SID[i] = SID_tmp[j];
+    }
+
+    hcfree(SID_tmp);
+
+    for (u32 i = 0; i < iv_len / 8; i++)
+    {
+      u32_iv[i] = byte_swap_32 (ptr_iv[i]);
+      u32_to_hex_lower (u32_iv[i], iv +  i * 8);
+    }
+    iv[32] = 0;
+
+    u32 u32_contents[36];
+    u8  contents[288 + 1];
+
+    for (u32 i = 0; i < contents_len / 8; i++)
+    {
+      u32_contents[i] = byte_swap_32 (ptr_contents[i]);
+      u32_to_hex_lower (u32_contents[i], contents +  i * 8);
+    }
+
+    if (version == 1)
+    {
+      contents[208] = 0;
+    }
+    else
+    {
+      contents[288] = 0;
+    }
+
+    if (contents_len == 288 && version == 2)
+    {
+      memcpy(cipher_algorithm, "aes256", strlen("aes256"));
+      memcpy(hash_algorithm,   "sha512", strlen("sha512"));
+    }
+    else if (contents_len == 208 && version == 1)
+    {
+      memcpy(cipher_algorithm, "des3", strlen("des3"));
+      memcpy(hash_algorithm,   "sha1", strlen("sha1"));
+    }
+
+    snprintf (out_buf, out_len - 1, "%s%d*%d*%s*%s*%s*%d*%s*%d*%s",
+      SIGNATURE_DPAPIMK,
+      version,
+      context,
+      SID,
+      cipher_algorithm,
+      hash_algorithm,
+      rounds,
+      iv,
+      contents_len,
+      contents);
   }
   else if (hash_mode == 99999)
   {
@@ -22627,6 +22885,20 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos3      = 3;
                  break;
 
+    case 15300:  hashconfig->hash_type      = HASH_TYPE_DPAPIMK;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
+                 hashconfig->kern_type      = KERN_TYPE_DPAPIMK;
+                 hashconfig->dgst_size      = DGST_SIZE_4_4;
+                 hashconfig->parse_func     = dpapimk_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
+                 hashconfig->dgst_pos0      = 0;
+                 hashconfig->dgst_pos1      = 1;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 3;
+                 break;
+
     case 99999:  hashconfig->hash_type      = HASH_TYPE_PLAINTEXT;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -22763,6 +23035,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 14600: hashconfig->esalt_size = sizeof (luks_t);           break;
     case 14700: hashconfig->esalt_size = sizeof (itunes_backup_t);  break;
     case 14800: hashconfig->esalt_size = sizeof (itunes_backup_t);  break;
+    case 15300: hashconfig->esalt_size = sizeof (dpapimk_t);        break;
   }
 
   // hook_salt_size
@@ -22866,6 +23139,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 14800: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);   break;
     case 15100: hashconfig->tmp_size = sizeof (pbkdf1_sha1_tmp_t);     break;
     case 15200: hashconfig->tmp_size = sizeof (mywallet_tmp_t);        break;
+    case 15300: hashconfig->tmp_size = sizeof (dpapimk_tmp_t);         break;
   };
 
   // hook_size
@@ -23270,6 +23544,8 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                   ((luks_t *)          esalt)->cipher_type   = HC_LUKS_CIPHER_TYPE_AES;
                   ((luks_t *)          esalt)->cipher_mode   = HC_LUKS_CIPHER_MODE_XTS_PLAIN;
                   break;
+      case 15300: ((dpapimk_t *)       esalt)->version       = 1;
+                  break;
     }
 
     // special hook salt handling
@@ -23463,6 +23739,8 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
     case 15100:  salt->salt_iter  = ROUNDS_NETBSD_SHA1CRYPT - 1;
                  break;
     case 15200:  salt->salt_iter  = ROUNDS_MYWALLETV2;
+                 break;
+    case 15300:  salt->salt_iter  = ROUNDS_DPAPIMK;
                  break;
   }
 }
