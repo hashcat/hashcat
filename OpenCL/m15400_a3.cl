@@ -77,7 +77,8 @@ void chacha20_transform (const u32x w0[4], const u32x w1[4], const u32 position[
   x[14] = ctx[14];
   x[15] = ctx[15];
 
-  for (u8 i = 0; i < 10; ++i) 
+  #pragma unroll
+  for (u8 i = 0; i < 10; i++) 
   {
     /* Column round */
     QR(0, 4, 8,  12);
@@ -136,7 +137,8 @@ void chacha20_transform (const u32x w0[4], const u32x w1[4], const u32 position[
     x[30] = ctx[14];
     x[31] = ctx[15];
 
-    for (u8 i = 0; i < 10; ++i)
+    #pragma unroll
+    for (u8 i = 0; i < 10; i++)
     {
       /* Column round */
       QR(16, 20, 24, 28);
@@ -208,6 +210,22 @@ __kernel void m15400_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
 
+  u32x w0[4];
+  u32x w1[4];
+  u32x w2[4];
+  u32x w3[4];
+
+  w0[0] = pws[gid].i[0];
+  w0[1] = pws[gid].i[1];
+  w0[2] = pws[gid].i[2];
+  w0[3] = pws[gid].i[3];
+  w1[0] = pws[gid].i[4];
+  w1[1] = pws[gid].i[5];
+  w1[2] = pws[gid].i[6];
+  w1[3] = pws[gid].i[7];
+
+  u32x out_len = pws[gid].pw_len;
+
   /**
    * Salt prep       
    */
@@ -217,16 +235,16 @@ __kernel void m15400_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
   u32 position[2] = { 0 };
   u32 offset = 0;
 
-  position[0] = esalt_bufs->position[0];
-  position[1] = esalt_bufs->position[1];
+  position[0] = esalt_bufs[digests_offset].position[0];
+  position[1] = esalt_bufs[digests_offset].position[1];
 
-  offset = esalt_bufs->offset;
+  offset = esalt_bufs[digests_offset].offset;
   
-  iv[0] = esalt_bufs->iv[0];
-  iv[1] = esalt_bufs->iv[1];
+  iv[0] = esalt_bufs[digests_offset].iv[0];
+  iv[1] = esalt_bufs[digests_offset].iv[1];
 
-  plain[0] = esalt_bufs->plain[0];
-  plain[1] = esalt_bufs->plain[1];
+  plain[0] = esalt_bufs[digests_offset].plain[0];
+  plain[1] = esalt_bufs[digests_offset].plain[1];
 
   /**
    * loop
@@ -239,33 +257,21 @@ __kernel void m15400_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
     const u32x w0x = w0l | w0r;
 
-    u32x w0[4];
-    u32x w1[4];
-    u32x w2[4];
-    u32x w3[4];
+    u32x w0_t[4];
+    u32x w1_t[4];
 
-    w0[0] = w0x;
-    w0[1] = pws[gid].i[ 1];
-    w0[2] = pws[gid].i[ 2];
-    w0[3] = pws[gid].i[ 3];
-    w1[0] = pws[gid].i[ 4];
-    w1[1] = pws[gid].i[ 5];
-    w1[2] = pws[gid].i[ 6];
-    w1[3] = pws[gid].i[ 7];
-    w2[0] = pws[gid].i[ 8];
-    w2[1] = pws[gid].i[ 9];
-    w2[2] = pws[gid].i[10];
-    w2[3] = pws[gid].i[11];
-    w3[0] = pws[gid].i[12];
-    w3[1] = pws[gid].i[13];
-    w3[2] = pws[gid].i[14];
-    w3[3] = pws[gid].i[15];
-
-    u32x out_len = pws[gid].pw_len;
+    w0_t[0] = w0x;
+    w0_t[1] = w0[1];
+    w0_t[2] = w0[2];
+    w0_t[3] = w0[3];
+    w1_t[0] = w1[0];
+    w1_t[1] = w1[1];
+    w1_t[2] = w1[2];
+    w1_t[3] = w1[3];
 
     u32x digest[4] = { 0 };
 
-    chacha20_transform (w0, w1, position, offset, iv, plain, digest);
+    chacha20_transform (w0_t, w1_t, position, offset, iv, plain, digest);
 
     const u32x r0 = digest[0];
     const u32x r1 = digest[1];
@@ -292,6 +298,22 @@ __kernel void m15400_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
+
+  u32x w0[4];
+  u32x w1[4];
+  u32x w2[4];
+  u32x w3[4];
+
+  w0[0] = pws[gid].i[0];
+  w0[1] = pws[gid].i[1];
+  w0[2] = pws[gid].i[2];
+  w0[3] = pws[gid].i[3];
+  w1[0] = pws[gid].i[4];
+  w1[1] = pws[gid].i[5];
+  w1[2] = pws[gid].i[6];
+  w1[3] = pws[gid].i[7];
+
+  u32x out_len = pws[gid].pw_len;
 
   /**
    * Salt prep       
@@ -336,33 +358,21 @@ __kernel void m15400_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
     const u32x w0x = w0l | w0r;
     
-    u32x w0[4];
-    u32x w1[4];
-    u32x w2[4];
-    u32x w3[4];
+    u32x w0_t[4];
+    u32x w1_t[4];
 
-    w0[0] = w0x;
-    w0[1] = pws[gid].i[ 1];
-    w0[2] = pws[gid].i[ 2];
-    w0[3] = pws[gid].i[ 3];
-    w1[0] = pws[gid].i[ 4];
-    w1[1] = pws[gid].i[ 5];
-    w1[2] = pws[gid].i[ 6];
-    w1[3] = pws[gid].i[ 7];
-    w2[0] = pws[gid].i[ 8];
-    w2[1] = pws[gid].i[ 9];
-    w2[2] = pws[gid].i[10];
-    w2[3] = pws[gid].i[11];
-    w3[0] = pws[gid].i[12];
-    w3[1] = pws[gid].i[13];
-    w3[2] = pws[gid].i[14];
-    w3[3] = pws[gid].i[15];
-
-    u32x out_len = pws[gid].pw_len;
+    w0_t[0] = w0x;
+    w0_t[1] = w0[1];
+    w0_t[2] = w0[2];
+    w0_t[3] = w0[3];
+    w1_t[0] = w1[0];
+    w1_t[1] = w1[1];
+    w1_t[2] = w1[2];
+    w1_t[3] = w1[3];
 
     u32x digest[4] = { 0 };
 
-    chacha20_transform (w0, w1, position, offset, iv, plain, digest);
+    chacha20_transform (w0_t, w1_t, position, offset, iv, plain, digest);
 
     const u32x r0 = digest[0];
     const u32x r1 = digest[1];

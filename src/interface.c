@@ -18562,7 +18562,8 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     {
       u32 *ptr = digest_buf;
 
-      const chacha20_t *chacha20 = (const chacha20_t *) esalts_buf;
+      const chacha20_t *chacha20_tmp = (const chacha20_t *) esalts_buf;
+      const chacha20_t *chacha20     = &chacha20_tmp[digest_cur];
 
       snprintf (out_buf, out_len - 1, "%s*%08x%08x*%d*%08x%08x*%08x%08x*%08x%08x",
         SIGNATURE_CHACHA20,

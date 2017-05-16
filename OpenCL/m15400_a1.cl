@@ -79,7 +79,8 @@ void chacha20_transform (const u32x w0[4], const u32x w1[4], const u32 position[
   x[14] = ctx[14];
   x[15] = ctx[15];
 
-  for (u8 i = 0; i < 10; ++i) 
+  #pragma unroll
+  for (u8 i = 0; i < 10; i++) 
   {
     /* Column round */
     QR(0, 4, 8,  12);
@@ -138,7 +139,8 @@ void chacha20_transform (const u32x w0[4], const u32x w1[4], const u32 position[
     x[30] = ctx[14];
     x[31] = ctx[15];
 
-    for (u8 i = 0; i < 10; ++i)
+    #pragma unroll
+    for (u8 i = 0; i < 10; i++)
     {
       /* Column round */
       QR(16, 20, 24, 28);
@@ -233,16 +235,16 @@ __kernel void m15400_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
   u32 position[2] = { 0 }; 
   u32 offset = 0;
   
-  position[0] = esalt_bufs->position[0];
-  position[1] = esalt_bufs->position[1];
+  position[0] = esalt_bufs[digests_offset].position[0];
+  position[1] = esalt_bufs[digests_offset].position[1];
 
-  offset = esalt_bufs->offset;
+  offset = esalt_bufs[digests_offset].offset;
 
-  iv[0] = esalt_bufs->iv[0];
-  iv[1] = esalt_bufs->iv[1];
+  iv[0] = esalt_bufs[digests_offset].iv[0];
+  iv[1] = esalt_bufs[digests_offset].iv[1];
 
-  plain[0] = esalt_bufs->plain[0];
-  plain[1] = esalt_bufs->plain[1];
+  plain[0] = esalt_bufs[digests_offset].plain[0];
+  plain[1] = esalt_bufs[digests_offset].plain[1];
 
   /**
    * loop
@@ -297,8 +299,6 @@ __kernel void m15400_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     u32x w0[4];
     u32x w1[4];
-    u32x w2[4];
-    u32x w3[4];
 
     w0[0] = wordl0[0] | wordr0[0];
     w0[1] = wordl0[1] | wordr0[1];
@@ -308,14 +308,6 @@ __kernel void m15400_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
     w1[1] = wordl1[1] | wordr1[1];
     w1[2] = wordl1[2] | wordr1[2];
     w1[3] = wordl1[3] | wordr1[3];
-    w2[0] = wordl2[0] | wordr2[0];
-    w2[1] = wordl2[1] | wordr2[1];
-    w2[2] = wordl2[2] | wordr2[2];
-    w2[3] = wordl2[3] | wordr2[3];
-    w3[0] = wordl3[0] | wordr3[0];
-    w3[1] = wordl3[1] | wordr3[1];
-    w3[2] = wordl3[2] | wordr3[2];
-    w3[3] = wordl3[3] | wordr3[3];
 
     u32x digest[4] = { 0 };
 
@@ -449,8 +441,6 @@ __kernel void m15400_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     u32x w0[4];
     u32x w1[4];
-    u32x w2[4];
-    u32x w3[4];
 
     w0[0] = wordl0[0] | wordr0[0];
     w0[1] = wordl0[1] | wordr0[1];
@@ -460,14 +450,6 @@ __kernel void m15400_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
     w1[1] = wordl1[1] | wordr1[1];
     w1[2] = wordl1[2] | wordr1[2];
     w1[3] = wordl1[3] | wordr1[3];
-    w2[0] = wordl2[0] | wordr2[0];
-    w2[1] = wordl2[1] | wordr2[1];
-    w2[2] = wordl2[2] | wordr2[2];
-    w2[3] = wordl2[3] | wordr2[3];
-    w3[0] = wordl3[0] | wordr3[0];
-    w3[1] = wordl3[1] | wordr3[1];
-    w3[2] = wordl3[2] | wordr3[2];
-    w3[3] = wordl3[3] | wordr3[3];
 
     u32x digest[4] = { 0 };
 
