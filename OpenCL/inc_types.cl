@@ -1044,6 +1044,27 @@ typedef struct
 
 typedef struct
 {
+  u32 version;
+  u32 context;
+
+  u32 SID[32];
+  u32 SID_len;
+  u32 SID_offset;
+
+  /* here only for possible
+     forward compatibiliy
+  */
+  //char cipher_algo[16];
+  //char hash_algo[16];
+
+  u32 iv[4];
+  u32 contents_len;
+  u32 contents[128];
+
+} dpapimk_t;
+
+typedef struct
+{
   u32 digest[4];
   u32 out[4];
 
@@ -1380,6 +1401,24 @@ typedef struct
   u32 tmp_digest[8];
 
 } keepass_tmp_t;
+
+typedef struct
+{
+  /* dedicated to hmac-sha1 */
+  u32 ipad[5];
+  u32 opad[5];
+  u32 dgst[10];
+  u32 out[10];
+
+  u32 userKey[5];
+
+  /* dedicated to hmac-sha512 */
+  u64 ipad64[8];
+  u64 opad64[8];
+  u64 dgst64[16];
+  u64 out64[16];
+
+} dpapimk_tmp_t;
 
 typedef struct
 {

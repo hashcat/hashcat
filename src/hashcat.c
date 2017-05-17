@@ -138,7 +138,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->words_off > status_ctx->words_base)
   {
-    event_log_error (hashcat_ctx, "Restore value greater keyspace.");
+    event_log_error (hashcat_ctx, "Restore value is greater than keyspace.");
 
     return -1;
   }
