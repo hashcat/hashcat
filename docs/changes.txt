@@ -16,6 +16,7 @@
 - Wordlist encoding: Added parameters --encoding-from and --encoding-to to configure wordlist encoding handling
 - Rules: Support added for rule 'eX'
 - Rules: Support added for position 'p' in host mode (using -j or -k)
+- 7-Zip cracking: increased max. data length to 320k and removed AES padding attack to avoid false negatives
 
 ##
 ## Workarounds
