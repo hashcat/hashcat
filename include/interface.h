@@ -808,11 +808,6 @@ typedef struct seven_zip_hook_salt
   char coder_attributes[5 + 1];
   u8   coder_attributes_len;
 
-  u32 margin;
-
-  bool padding_check_full;
-  bool padding_check_fast;
-
   int aes_len; // pre-computed length of the maximal (subset of) data we need for AES-CBC
 
 } seven_zip_hook_salt_t;

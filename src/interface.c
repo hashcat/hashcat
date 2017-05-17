@@ -11854,21 +11854,6 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   seven_zip->aes_len = aes_len;
 
   const u32  margin = data_len - unpack_size;
-  seven_zip->margin = margin;
-
-  seven_zip->padding_check_fast = (margin > 0) && (data_len >= 32);
-
-  if ((margin > 0) && (data_len < 32))
-  {
-    if ((data_len - aes_len) <= 16)         // we need the same amount of AES BLOCKS (should always be true)!
-    {
-      seven_zip->padding_check_full = true; // determine if AES-CBC padding attack is possible
-    }
-  }
-  else
-  {
-    seven_zip->padding_check_full = false;
-  }
 
   if (data_type != 0x80)
   {
@@ -14798,14 +14783,7 @@ void seven_zip_hook_func (hc_device_param_t *device_param, hashes_t *hashes, con
 
   u8   data_type   = seven_zip->data_type;
   u32 *data_buf    = seven_zip->data_buf;
-  u32  data_len    = seven_zip->data_len;
   u32  unpack_size = seven_zip->unpack_size;
-  u32  margin      = seven_zip->margin;
-
-  // can we use the padding attack:
-
-  u32  padding_check_fast = seven_zip->padding_check_fast;
-  u32  padding_check_full = seven_zip->padding_check_full;
 
   for (u32 pw_pos = 0; pw_pos < pws_cnt; pw_pos++)
   {
@@ -14822,99 +14800,6 @@ void seven_zip_hook_func (hc_device_param_t *device_param, hashes_t *hashes, con
     memset (&aes_key, 0, sizeof (aes_key));
 
     AES_set_decrypt_key (ukey, 256, &aes_key);
-
-    AES_KEY aes_key_copied;
-
-    memcpy (&aes_key_copied, &aes_key, sizeof (AES_KEY));
-
-    if (padding_check_fast == true) // use part of the data as initialization vector
-    {
-      u8  *data_buf_ptr = (u8 *) data_buf;
-
-      u32 data_tmp_buf[8];
-
-      memcpy (&data_tmp_buf, data_buf_ptr + data_len - 32, 32);
-
-      u32 data[4];
-
-      data[0] = data_tmp_buf[4];
-      data[1] = data_tmp_buf[5];
-      data[2] = data_tmp_buf[6];
-      data[3] = data_tmp_buf[7];
-
-      u32 out[4];
-
-      AES_decrypt (&aes_key, (u8*) data, (u8*) out);
-
-      out[0] ^= data_tmp_buf[0];
-      out[1] ^= data_tmp_buf[1];
-      out[2] ^= data_tmp_buf[2];
-      out[3] ^= data_tmp_buf[3];
-
-      switch (margin)
-      {
-        case 15:  out[0] &= 0xffffff00;
-                  break;
-        case 14:  out[0] &= 0xffff0000;
-                  break;
-        case 13:  out[0] &= 0xff000000;
-                  break;
-        case 12:  out[0]  = 0;
-                  break;
-        case 11:  out[0]  = 0;
-                  out[1] &= 0xffffff00;
-                  break;
-        case 10:  out[0]  = 0;
-                  out[1] &= 0xffff0000;
-                  break;
-        case  9:  out[0]  = 0;
-                  out[1] &= 0xff000000;
-                  break;
-        case  8:  out[0]  = 0;
-                  out[1]  = 0;
-                  break;
-        case  7:  out[0]  = 0;
-                  out[1]  = 0;
-                  out[2] &= 0xffffff00;
-                  break;
-        case  6:  out[0]  = 0;
-                  out[1]  = 0;
-                  out[2] &= 0xffff0000;
-                  break;
-        case  5:  out[0]  = 0;
-                  out[1]  = 0;
-                  out[2] &= 0xff000000;
-                  break;
-        case  4:  out[0]  = 0;
-                  out[1]  = 0;
-                  out[2]  = 0;
-                  break;
-        case  3:  out[0]  = 0;
-                  out[1]  = 0;
-                  out[2]  = 0;
-                  out[3] &= 0xffffff00;
-                  break;
-        case  2:  out[0]  = 0;
-                  out[1]  = 0;
-                  out[2]  = 0;
-                  out[3] &= 0xffff0000;
-                  break;
-        case  1:  out[0]  = 0;
-                  out[1]  = 0;
-                  out[2]  = 0;
-                  out[3] &= 0xff000000;
-                  break;
-      }
-
-      if ((out[0] != 0) || (out[1] != 0) || (out[2] != 0) || (out[3] != 0))
-      {
-         hook_item->hook_success = 0;
-
-         continue;
-      }
-    }
-
-    // if the previous check was okay, we need to do some more staff to eliminate some possible false positives
 
     int aes_len = seven_zip->aes_len;
 
@@ -14941,7 +14826,7 @@ void seven_zip_hook_func (hc_device_param_t *device_param, hashes_t *hashes, con
       data[2] = data_buf[j + 2];
       data[3] = data_buf[j + 3];
 
-      AES_decrypt (&aes_key_copied, (u8*) data, (u8*) out);
+      AES_decrypt (&aes_key, (u8*) data, (u8*) out);
 
       out[0] ^= iv[0];
       out[1] ^= iv[1];
@@ -14966,7 +14851,7 @@ void seven_zip_hook_func (hc_device_param_t *device_param, hashes_t *hashes, con
     data[2] = data_buf[j + 2];
     data[3] = data_buf[j + 3];
 
-    AES_decrypt (&aes_key_copied, (u8*) data, (u8*) out);
+    AES_decrypt (&aes_key, (u8*) data, (u8*) out);
 
     out[0] ^= iv[0];
     out[1] ^= iv[1];
@@ -14977,73 +14862,6 @@ void seven_zip_hook_func (hc_device_param_t *device_param, hashes_t *hashes, con
     out_full[j + 1] = out[1];
     out_full[j + 2] = out[2];
     out_full[j + 3] = out[3];
-
-    if (padding_check_full == true)
-    {
-      // do the check if margin > 0 but data_len < 32
-
-      switch (margin)
-      {
-        case 15:  out[0] &= 0xffffff00;
-                  break;
-        case 14:  out[0] &= 0xffff0000;
-                  break;
-        case 13:  out[0] &= 0xff000000;
-                  break;
-        case 12:  out[0]  = 0;
-                  break;
-        case 11:  out[0]  = 0;
-                  out[1] &= 0xffffff00;
-                  break;
-        case 10:  out[0]  = 0;
-                  out[1] &= 0xffff0000;
-                  break;
-        case  9:  out[0]  = 0;
-                  out[1] &= 0xff000000;
-                  break;
-        case  8:  out[0]  = 0;
-                  out[1]  = 0;
-                  break;
-        case  7:  out[0]  = 0;
-                  out[1]  = 0;
-                  out[2] &= 0xffffff00;
-                  break;
-        case  6:  out[0]  = 0;
-                  out[1]  = 0;
-                  out[2] &= 0xffff0000;
-                  break;
-        case  5:  out[0]  = 0;
-                  out[1]  = 0;
-                  out[2] &= 0xff000000;
-                  break;
-        case  4:  out[0]  = 0;
-                  out[1]  = 0;
-                  out[2]  = 0;
-                  break;
-        case  3:  out[0]  = 0;
-                  out[1]  = 0;
-                  out[2]  = 0;
-                  out[3] &= 0xffffff00;
-                  break;
-        case  2:  out[0]  = 0;
-                  out[1]  = 0;
-                  out[2]  = 0;
-                  out[3] &= 0xffff0000;
-                  break;
-        case  1:  out[0]  = 0;
-                  out[1]  = 0;
-                  out[2]  = 0;
-                  out[3] &= 0xff000000;
-                  break;
-      }
-
-      if ((out[0] != 0) || (out[1] != 0) || (out[2] != 0) || (out[3] != 0))
-      {
-         hook_item->hook_success = 0;
-
-         continue;
-      }
-    }
 
     if (data_type > 2)
     {
