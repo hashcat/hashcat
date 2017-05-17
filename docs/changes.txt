@@ -34,6 +34,7 @@
 ##
 
 - Fixed a missing type specifier in a function declaration of the RACF kernel
+- Fixed a condition that caused a hybrid attack using a maskfile to not select all wordlists from a wordlist folder
 
 ##
 ## Technical
