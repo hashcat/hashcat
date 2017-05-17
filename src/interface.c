@@ -11853,16 +11853,11 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   seven_zip->aes_len = aes_len;
 
-  const u32  margin = data_len - unpack_size;
-
   if (data_type != 0x80)
   {
     if (data_type > 2)
     {
-      if (margin < 4) // we can't be sure about too many false positives
-      {
-        return (PARSER_SALT_VALUE);
-      }
+      return (PARSER_SALT_VALUE);
     }
   }
 
@@ -14862,20 +14857,6 @@ void seven_zip_hook_func (hc_device_param_t *device_param, hashes_t *hashes, con
     out_full[j + 1] = out[1];
     out_full[j + 2] = out[2];
     out_full[j + 3] = out[3];
-
-    if (data_type > 2)
-    {
-      // This decompression is currently not supported
-
-      // this check implies also this case:
-      // if (data_type == 0x80) // truncated
-      // we can't do a full CRC check since data in this case is truncated
-      // could lead to a higher number of false positives in very rare cases
-
-      hook_item->hook_success = 1;
-
-      continue;
-    }
 
     /*
      * check the CRC32 "hash"
