@@ -11742,18 +11742,16 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
    * verify some data
    */
 
-  if (data_type == 0x80) // 0x80 is a special case and means "truncated"
+  if (data_type > 2) // this includes also 0x80 (special case that means "truncated")
   {
-    // we always should have a data_len of exactly 16 if the data was truncated
-
-    if (data_len != 16) return (PARSER_SALT_VALUE);
+    return (PARSER_SALT_VALUE);
   }
 
   if (salt_len != 0) return (PARSER_SALT_VALUE);
 
   if ((data_len * 2) != data_buf_len) return (PARSER_SALT_VALUE);
 
-  if (data_len > 8192) return (PARSER_SALT_VALUE);
+  if (data_len > 327528) return (PARSER_SALT_VALUE);
 
   if (unpack_size > data_len) return (PARSER_SALT_VALUE);
 
@@ -11852,14 +11850,6 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   }
 
   seven_zip->aes_len = aes_len;
-
-  if (data_type != 0x80)
-  {
-    if (data_type > 2)
-    {
-      return (PARSER_SALT_VALUE);
-    }
-  }
 
   // real salt
 
@@ -14807,7 +14797,7 @@ void seven_zip_hook_func (hc_device_param_t *device_param, hashes_t *hashes, con
     iv[2] = seven_zip->iv_buf[2];
     iv[3] = seven_zip->iv_buf[3];
 
-    u32 out_full[2048];
+    u32 out_full[81882];
 
     // if aes_len > 16 we need to loop
 
@@ -17599,22 +17589,19 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     if (seven_zip->data_type > 0)
     {
-      if (seven_zip->data_type != 0x80)  // 0x80 would be a special case: means truncated
+      u32 bytes_written = strlen (out_buf);
+
+      snprintf (out_buf + bytes_written, out_len - bytes_written - 1, "$%i$", seven_zip->crc_len);
+
+      bytes_written = strlen (out_buf);
+
+      const u8 *ptr = (const u8 *) seven_zip->coder_attributes;
+
+      for (u32 i = 0, j = 0; i < seven_zip->coder_attributes_len; i += 1, j += 2)
       {
-        u32 bytes_written = strlen (out_buf);
+        snprintf (out_buf + bytes_written, out_len - bytes_written - 1, "%02x", ptr[i]);
 
-        snprintf (out_buf + bytes_written, out_len - bytes_written - 1, "$%i$", seven_zip->crc_len);
-
-        bytes_written = strlen (out_buf);
-
-        const u8 *ptr = (const u8 *) seven_zip->coder_attributes;
-
-        for (u32 i = 0, j = 0; i < seven_zip->coder_attributes_len; i += 1, j += 2)
-        {
-          snprintf (out_buf + bytes_written, out_len - bytes_written - 1, "%02x", ptr[i]);
-
-          bytes_written += 2;
-        }
+        bytes_written += 2;
       }
     }
 
