@@ -56,4 +56,4 @@
 #define RULE_OP_REJECT_EQUAL_AT         '=' // reject plains that do not contain char X at position N
 #define RULE_OP_REJECT_CONTAINS         '%' // reject plains that contain char X less than N times
 #define RULE_OP_REJECT_MEMORY           'Q' // reject plains that match the plain saved (see M), i.e. if unchanged
-
+#define RULE_LAST_REJECTED_SAVED_POS    'p' // position of the character last found with '/' or '%'

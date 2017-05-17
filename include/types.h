@@ -293,6 +293,7 @@ typedef enum rule_functions
   RULE_OP_REJECT_EQUAL_AT        = '=',
   RULE_OP_REJECT_CONTAINS        = '%',
   RULE_OP_REJECT_MEMORY          = 'Q',
+  RULE_LAST_REJECTED_SAVED_POS   = 'p',
 
   RULE_OP_MANGLE_SWITCH_FIRST    = 'k',
   RULE_OP_MANGLE_SWITCH_LAST     = 'K',
