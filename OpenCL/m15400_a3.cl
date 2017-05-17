@@ -175,24 +175,19 @@ void chacha20_transform (const u32x w0[4], const u32x w1[4], const u32 position[
    * Encrypt plaintext with keystream
    */
 
-  u32 index  = offset / 4;
-  u32 remain = offset % 4;
+  const u32 index  = offset / 4;
+  const u32 remain = offset % 4;
 
   digest[0] = plain[1];
   digest[1] = plain[0];
 
   if (remain > 0)
   {
-    u32x tmp[3];
-    tmp[0] = x[index + 0];
-    tmp[1] = x[index + 1];
-    tmp[2] = x[index + 2];
+    digest[1] ^= x[index + 0] >> ( 0 + remain * 8);
+    digest[1] ^= x[index + 1] << (32 - remain * 8);
 
-    digest[1] ^= tmp[0] >> (remain * 8);
-    digest[1] ^= tmp[1] << (32 - remain * 8);
-
-    digest[0] ^= tmp[1] >> (remain * 8);
-    digest[0] ^= tmp[2] << (32 - remain * 8); 
+    digest[0] ^= x[index + 1] >> ( 0 + remain * 8);
+    digest[0] ^= x[index + 2] << (32 - remain * 8); 
   }
   else
   {
@@ -210,10 +205,8 @@ __kernel void m15400_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
 
-  u32x w0[4];
-  u32x w1[4];
-  u32x w2[4];
-  u32x w3[4];
+  u32 w0[4];
+  u32 w1[4];
 
   w0[0] = pws[gid].i[0];
   w0[1] = pws[gid].i[1];
@@ -230,10 +223,10 @@ __kernel void m15400_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
    * Salt prep       
    */
 
-  u32 iv[2]    = { 0 };
-  u32 plain[2] = { 0 };
+  u32 iv[2]       = { 0 };
+  u32 plain[2]    = { 0 };
   u32 position[2] = { 0 };
-  u32 offset = 0;
+  u32 offset      = 0;
 
   position[0] = esalt_bufs[digests_offset].position[0];
   position[1] = esalt_bufs[digests_offset].position[1];
@@ -299,10 +292,8 @@ __kernel void m15400_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
 
-  u32x w0[4];
-  u32x w1[4];
-  u32x w2[4];
-  u32x w3[4];
+  u32 w0[4];
+  u32 w1[4];
 
   w0[0] = pws[gid].i[0];
   w0[1] = pws[gid].i[1];
@@ -313,27 +304,27 @@ __kernel void m15400_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
   w1[2] = pws[gid].i[6];
   w1[3] = pws[gid].i[7];
 
-  u32x out_len = pws[gid].pw_len;
+  u32 out_len = pws[gid].pw_len;
 
   /**
    * Salt prep       
    */
 
-  u32 iv[2]    = { 0 };
-  u32 plain[2] = { 0 };
+  u32 iv[2]       = { 0 };
+  u32 plain[2]    = { 0 };
   u32 position[2] = { 0 };
-  u32 offset = 0;
+  u32 offset      = 0;
 
-  position[0] = esalt_bufs->position[0];
-  position[1] = esalt_bufs->position[1];
+  position[0] = esalt_bufs[digests_offset].position[0];
+  position[1] = esalt_bufs[digests_offset].position[1];
 
-  offset = esalt_bufs->offset;
+  offset = esalt_bufs[digests_offset].offset;
 
-  iv[0] = esalt_bufs->iv[0];
-  iv[1] = esalt_bufs->iv[1];
+  iv[0] = esalt_bufs[digests_offset].iv[0];
+  iv[1] = esalt_bufs[digests_offset].iv[1];
 
-  plain[0] = esalt_bufs->plain[0];
-  plain[1] = esalt_bufs->plain[1];
+  plain[0] = esalt_bufs[digests_offset].plain[0];
+  plain[1] = esalt_bufs[digests_offset].plain[1];
 
   /**
    * digest
