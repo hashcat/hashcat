@@ -800,7 +800,7 @@ typedef struct seven_zip_hook_salt
 
   u8  data_type;
 
-  u32 data_buf[2048];
+  u32 data_buf[81882];
   u32 data_len;
 
   u32 unpack_size;
@@ -1162,8 +1162,8 @@ typedef enum display_len
   DISPLAY_LEN_MAX_11400 = 6 + 512 + 1 + 512 + 1 + 116 + 1 + 116 + 1 + 246 + 1 + 245 + 1 + 246 + 1 + 245 + 1 + 50 + 1 + 50 + 1 + 50 + 1 + 50 + 1 + 3 + 1 + 32,
   DISPLAY_LEN_MIN_11500 = 8 + 1 + 8,
   DISPLAY_LEN_MAX_11500 = 8 + 1 + 8,
-  DISPLAY_LEN_MIN_11600 = 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 +  0 + 1 + 1 + 1 + 32 + 1 +  1 + 1 + 1 + 1 + 1 + 1 +     2,
-  DISPLAY_LEN_MAX_11600 = 1 + 2 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 64 + 1 + 1 + 1 + 32 + 1 + 10 + 1 + 4 + 1 + 4 + 1 + 16384+ /* only for compression: */ + 1 + 4 + 1 + 10,
+  DISPLAY_LEN_MIN_11600 = 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 +  0 + 1 + 1 + 1 + 32 + 1 +  1 + 1 + 1 + 1 + 1 + 1 +      2 + 0 + 0 + 0 +  0,
+  DISPLAY_LEN_MAX_11600 = 1 + 2 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 64 + 1 + 1 + 1 + 32 + 1 + 10 + 1 + 4 + 1 + 4 + 1 + 655056 + 1 + 4 + 1 + 10,
   DISPLAY_LEN_MIN_11700 = 64,
   DISPLAY_LEN_MAX_11700 = 64,
   DISPLAY_LEN_MIN_11800 = 128,
