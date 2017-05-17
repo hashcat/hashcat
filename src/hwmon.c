@@ -552,6 +552,7 @@ static int nvml_init (hashcat_ctx_t *hashcat_ctx)
   memset (nvml, 0, sizeof (NVML_PTR));
 
   #if defined (_WIN)
+
   nvml->lib = hc_dlopen ("nvml.dll");
 
   if (!nvml->lib)
@@ -641,7 +642,14 @@ static int nvml_init (hashcat_ctx_t *hashcat_ctx)
   }
 
   #elif defined (_POSIX)
+
   nvml->lib = hc_dlopen ("libnvidia-ml.so", RTLD_NOW);
+
+  if (!nvml->lib)
+  {
+    nvml->lib = hc_dlopen ("libnvidia-ml.so.1", RTLD_NOW);
+  }
+
   #endif
 
   if (!nvml->lib)

@@ -18,6 +18,12 @@
 - Rules: Support added for position 'p' in host mode (using -j or -k)
 
 ##
+## Workarounds
+##
+
+- Workaround added for NVidia NVML library: If libnvidia-ml.so couldn't be load try again using libnvidia-ml.so.1
+
+##
 ## Improvements
 ##
 
