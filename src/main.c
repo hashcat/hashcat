@@ -717,6 +717,9 @@ static void main_monitor_status_refresh (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx
 {
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+  const status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
+
+  if (status_ctx->accessible == false) return;
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
