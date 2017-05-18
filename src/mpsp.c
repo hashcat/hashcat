@@ -815,7 +815,9 @@ static int sp_get_sum (u32 start, u32 stop, cs_t *root_css_buf, u64 *result)
 
   for (i = start; i < stop; i++)
   {
-    if (overflow_check_u64_mul (sum, root_css_buf[i].cs_len) == false) return -1;
+    volatile const u64 cs_len = (const u64) root_css_buf[i].cs_len; // temporary hack needed for OSX
+
+    if (overflow_check_u64_mul (sum, cs_len) == false) return -1;
 
     sum *= root_css_buf[i].cs_len;
   }
