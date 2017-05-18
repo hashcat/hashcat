@@ -241,6 +241,8 @@ static const char HT_15000[] = "FileZilla Server >= 0.9.55";
 static const char HT_15100[] = "Juniper/NetBSD sha1crypt";
 static const char HT_15200[] = "Blockchain, My Wallet, V2";
 static const char HT_15300[] = "DPAPI masterkey file v1 and v2";
+static const char HT_15400[] = "Chacha20";
+
 static const char HT_99999[] = "Plaintext";
 
 static const char HT_00011[] = "Joomla < 2.5.18";
@@ -381,6 +383,7 @@ static const char SIGNATURE_FORTIGATE[]        = "AK1";
 static const char SIGNATURE_ATLASSIAN[]        = "{PKCS5S2}";
 static const char SIGNATURE_NETBSD_SHA1CRYPT[] = "$sha1$";
 static const char SIGNATURE_BLAKE2B[]          = "$BLAKE2$";
+static const char SIGNATURE_CHACHA20[]         = "$Chacha20$";
 
 /**
  * decoder / encoder
@@ -5467,6 +5470,71 @@ int blake2b_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   return (PARSER_OK);
 }
+
+int chacha20_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
+{
+  if ((input_len < DISPLAY_LEN_MIN_15400) || (input_len > DISPLAY_LEN_MAX_15400)) return (PARSER_GLOBAL_LENGTH);
+
+  if (memcmp (SIGNATURE_CHACHA20, input_buf, 10)) return (PARSER_SIGNATURE_UNMATCHED);
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  chacha20_t *chacha20 = (chacha20_t *) hash_buf->esalt;
+
+  salt_t *salt = (salt_t *) hash_buf->salt;
+
+  u8 *position_marker = (u8 *) strchr ((const char *) input_buf, '*') + 1;
+  if (position_marker == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  if (is_valid_hex_string (position_marker, 16) == false) return (PARSER_SALT_ENCODING);
+
+  u8 *offset_marker = (u8 *) strchr ((const char *) position_marker, '*') + 1;
+  if (offset_marker == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  int offset = atoi ((char*) offset_marker);
+  if (offset > 63) return (PARSER_SALT_VALUE);
+
+  u8 *iv_marker = (u8 *) strchr ((const char *) offset_marker, '*') + 1;
+  if (iv_marker == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  if (is_valid_hex_string (iv_marker, 16) == false) return (PARSER_SALT_ENCODING);
+
+  u8 *plain_marker = (u8 *) strchr ((const char *) iv_marker, '*') + 1;
+  if (plain_marker == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  if (is_valid_hex_string (plain_marker, 16) == false) return (PARSER_SALT_ENCODING);
+
+  u8 *cipher_marker = (u8 *) strchr ((const char *) plain_marker, '*') + 1;
+  if (cipher_marker == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  if (is_valid_hex_string (cipher_marker, 16) == false) return (PARSER_SALT_ENCODING);
+
+  chacha20->iv[0] = hex_to_u32 ((const u8 *) iv_marker + 8);
+  chacha20->iv[1] = hex_to_u32 ((const u8 *) iv_marker + 0);
+
+  chacha20->plain[0] = hex_to_u32 ((const u8 *) plain_marker + 0);
+  chacha20->plain[1] = hex_to_u32 ((const u8 *) plain_marker + 8);
+
+  chacha20->position[0] = hex_to_u32 ((const u8 *) position_marker + 0);
+  chacha20->position[1] = hex_to_u32 ((const u8 *) position_marker + 8);
+
+  chacha20->offset = offset;
+
+  /* some fake salt for the sorting mechanisms */
+
+  salt->salt_buf[0] = chacha20->iv[0];
+  salt->salt_buf[1] = chacha20->iv[1];
+  salt->salt_buf[2] = chacha20->plain[0];
+  salt->salt_buf[3] = chacha20->plain[1];
+  salt->salt_buf[4] = chacha20->position[0];
+  salt->salt_buf[5] = chacha20->position[1];
+  salt->salt_buf[6] = chacha20->offset;
+  salt->salt_buf[7] = 0;
+  salt->salt_len    = 32;
+
+  /* Store cipher for search mechanism */
+  digest[0] = hex_to_u32 ((const u8 *) cipher_marker + 8);
+  digest[1] = hex_to_u32 ((const u8 *) cipher_marker + 0);
+
+  return (PARSER_OK);
+}
+
 
 int ikepsk_md5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
@@ -15176,6 +15244,7 @@ char *strhashtype (const u32 hash_mode)
     case 15100: return ((char *) HT_15100);
     case 15200: return ((char *) HT_15200);
     case 15300: return ((char *) HT_15300);
+    case 15400: return ((char *) HT_15400);
     case 99999: return ((char *) HT_99999);
   }
 
@@ -18533,6 +18602,25 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
         byte_swap_32(ptr[13]),
         byte_swap_32(ptr[14]),
         byte_swap_32(ptr[15]));
+    }
+    else if (hash_type == HASH_TYPE_CHACHA20)
+    {
+      u32 *ptr = digest_buf;
+
+      const chacha20_t *chacha20_tmp = (const chacha20_t *) esalts_buf;
+      const chacha20_t *chacha20     = &chacha20_tmp[digest_cur];
+
+      snprintf (out_buf, out_len - 1, "%s*%08x%08x*%d*%08x%08x*%08x%08x*%08x%08x",
+        SIGNATURE_CHACHA20,
+        byte_swap_32(chacha20->position[0]),
+        byte_swap_32(chacha20->position[1]),
+        chacha20->offset,
+        byte_swap_32(chacha20->iv[1]),
+        byte_swap_32(chacha20->iv[0]),
+        byte_swap_32(chacha20->plain[0]),
+        byte_swap_32(chacha20->plain[1]),
+        ptr[1],
+        ptr[0]);
     }
     else if (hash_type == HASH_TYPE_RIPEMD160)
     {
@@ -22685,6 +22773,22 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos3      = 3;
                  break;
 
+    case 15400:  hashconfig->hash_type      = HASH_TYPE_CHACHA20;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
+                 hashconfig->kern_type      = KERN_TYPE_CHACHA20;
+                 hashconfig->dgst_size      = DGST_SIZE_4_4;
+                 hashconfig->parse_func     = chacha20_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_USES_BITS_32
+                                            | OPTI_TYPE_RAW_HASH;
+                 hashconfig->dgst_pos0      = 0;
+                 hashconfig->dgst_pos1      = 1;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 3;
+                 break;
+
     case 99999:  hashconfig->hash_type      = HASH_TYPE_PLAINTEXT;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -22822,6 +22926,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 14700: hashconfig->esalt_size = sizeof (itunes_backup_t);  break;
     case 14800: hashconfig->esalt_size = sizeof (itunes_backup_t);  break;
     case 15300: hashconfig->esalt_size = sizeof (dpapimk_t);        break;
+    case 15400: hashconfig->esalt_size = sizeof (chacha20_t);       break;
   }
 
   // hook_salt_size
@@ -23031,6 +23136,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 14400: hashconfig->pw_max = 24;
                 break;
     case 14900: hashconfig->pw_max = 10;
+                break;
+    case 15400: hashconfig->pw_max = 32;
                 break;
   }
 

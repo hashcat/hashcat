@@ -53,6 +53,7 @@ NVIDIA GPUs require "NVIDIA Driver" (367.x or later)
 - Whirlpool
 - DES (PT = $salt, key = $pass)
 - 3DES (PT = $salt, key = $pass)
+- Chacha20
 - GOST R 34.11-94
 - GOST R 34.11-2012 (Streebog) 256-bit
 - GOST R 34.11-2012 (Streebog) 512-bit

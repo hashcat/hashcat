@@ -172,6 +172,7 @@ static const char *USAGE_BIG[] =
   "  14000 | DES (PT = $salt, key = $pass)                    | Raw Cipher, Known-Plaintext attack",
   "  14100 | 3DES (PT = $salt, key = $pass)                   | Raw Cipher, Known-Plaintext attack",
   "  14900 | Skip32 (PT = $salt, key = $pass)                 | Raw Cipher, Known-Plaintext attack",
+  "  15400 | Chacha20                                         | Raw Cipher, Known-Plaintext attack",
   "    400 | phpass                                           | Generic KDF",
   "   8900 | scrypt                                           | Generic KDF",
   "  11900 | PBKDF2-HMAC-MD5                                  | Generic KDF",
