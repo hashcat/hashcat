@@ -499,6 +499,18 @@ uMl6:
     ab
     abc
 
+_2:
+  mode: 1
+  input: |
+    a
+    ab
+    abc
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    ab
+
 '!a':
   mode: 1
   input: |

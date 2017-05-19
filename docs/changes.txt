@@ -18,6 +18,7 @@
 - Rules: Support added for rule 'eX'
 - Rules: Support added for position 'p' in host mode (using -j or -k)
 - 7-Zip cracking: increased max. data length to 320k and removed AES padding attack to avoid false negatives
+- Rules: Support added for rejection rule '_N' in host mode
 
 ##
 ## Workarounds

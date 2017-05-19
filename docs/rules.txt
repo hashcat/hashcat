@@ -49,6 +49,7 @@
 
 #define RULE_OP_REJECT_LESS             '<' // reject plains of length greater than N
 #define RULE_OP_REJECT_GREATER          '>' // reject plains of length less than N
+#define RULE_OP_REJECT_EQUAL            '_' // reject plains of length not equal to N
 #define RULE_OP_REJECT_CONTAIN          '!' // reject plains that contain char X
 #define RULE_OP_REJECT_NOT_CONTAIN      '/' // reject plains that do not contain char X
 #define RULE_OP_REJECT_EQUAL_FIRST      '(' // reject plains that do not contain char X at first position
