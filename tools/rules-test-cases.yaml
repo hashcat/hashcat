@@ -1,0 +1,796 @@
+---
+::
+  input: |
+    AbCd
+    abcd
+    ABCD
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    AbCd
+    abcd
+    ABCD
+
+l:
+  input: |
+    AbCd
+    abcd
+    ABCD
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    abcd
+    abcd
+    abcd
+
+u:
+  input: |
+    AbCd
+    abcd
+    ABCD
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    ABCD
+    ABCD
+    ABCD
+
+c:
+  input: |
+    AbCd
+    abcd
+    ABCD
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    Abcd
+    Abcd
+    Abcd
+
+C:
+  input: |
+    AbCd
+    abcd
+    ABCD
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    aBCD
+    aBCD
+    aBCD
+
+t:
+  input: |
+    AbCd
+    abcd
+    ABCD
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    aBcD
+    ABCD
+    abcd
+
+T5:
+  input: |
+    AbCde
+    abcdef
+    ABCDEFg
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    AbCde
+    abcdeF
+    ABCDEfg
+
+r:
+  input: |
+    AbCd
+    abcd
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    dCbA
+    dcba
+
+d:
+  input: |
+    3abc
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    3abc3abc
+
+ddd:
+  input: |
+    3ab
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    3ab3ab3ab3ab3ab3ab3ab3ab
+
+p0:
+  input: |
+    3abc
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    3abc
+
+p3:
+  input: |
+    3abc
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    3abc3abc3abc3abc
+
+f:
+  input: |
+    3abc
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    3abccba3
+
+'{':
+  input: |
+    3abc
+    a
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    abc3
+    a
+
+'}':
+  input: |
+    3abc
+    a
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    c3ab
+    a
+
+$1$2:
+  input: |
+    abc
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    abc12
+
+^1^2:
+  input: |
+    abc
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    21abc
+
+'[':
+  input: |
+    a
+    abc
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+
+    bc
+
+']':
+  input: |
+    a
+    abc
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+
+    ab
+
+D3:
+  input: |
+    abc
+    abcd
+    abcde
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    abc
+    abc
+    abce
+
+x14:
+  input: |
+    a
+    abc
+    abcde
+    abcdef
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    a
+    abc
+    bcde
+    bcde
+
+O22:
+  input: |
+    a
+    ab
+    abc
+    abcd
+    abcde
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    a
+    ab
+    abc
+    ab
+    abe
+
+O04:
+  input: |
+    a
+    abc
+    abcd
+    abcde
+    abcdef
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    a
+    abc
+
+    e
+    ef
+
+i3!:
+  input: |
+    a
+    abc
+    abcd
+    abcde
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    a
+    abc!
+    abc!d
+    abc!de
+
+o3!:
+  input: |
+    a
+    abc
+    abcd
+    abcde
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    a
+    abc
+    abc!
+    abc!e
+
+'''4':
+  input: |
+    a
+    abc
+    abcd
+    abcde
+    abcdef
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+    123456790abcdefghijklmnopqrstuvwxyz
+    123456790abcdefghijklmnopqrstuvwxyzA
+    123456790abcdefghijklmnopqrstuvwxyzAB
+    123456790abcdefghijklmnopqrstuvwxyzABC
+    123456790abcdefghijklmnopqrstuvwxyzABCDEF
+
+  expected_output: |
+    a
+    abc
+    abcd
+    abcd
+    abcd
+
+sab:
+  input: |
+    123b
+    a123ba
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    123b
+    b123bb
+
+saa:
+  input: |
+    123b
+    a123ba
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    123b
+    a123ba
+
+'@a':
+  input: |
+    123b
+    aaa
+    a123ba
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    123b
+
+    123b
+
+z0:
+  input: |
+    abc
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    abc
+
+z3:
+  input: |
+    abc
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    aaaabc
+
+Z0:
+  input: |
+    abc
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    abc
+
+Z3:
+  input: |
+    abc
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    abcccc
+
+q:
+  input: |
+    a
+    abc
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    aa
+    aabbcc
+
+qqq:
+  input: |
+    a
+    abc
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    aaaaaaaa
+    aaaaaaaabbbbbbbbcccccccc
+
+uMlX134:
+  mode: 1
+  input: |
+    a
+    abc
+    abcd
+    abcdef
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    abcdBCD
+    abcdBCDef
+
+uMl4:
+  mode: 1
+  input: |
+    a
+    abc
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    aA
+    abcABC
+
+uMl6:
+  mode: 1
+  input: |
+    a
+    abc
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    Aa
+    ABCabc
+
+<0:
+  mode: 1
+  input: |
+    a
+    abc
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+
+<1:
+  mode: 1
+  input: |
+    a
+    abc
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    a
+
+'>0':
+  mode: 1
+  input: |
+    a
+    abc
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    a
+    abc
+
+'>2':
+  mode: 1
+  input: |
+    a
+    ab
+    abc
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    ab
+    abc
+
+'!a':
+  mode: 1
+  input: |
+    1
+    ab
+    abc
+    bcde
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    1
+    bcde
+
+/a:
+  mode: 1
+  input: |
+    1
+    ab
+    abc
+    bcde
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    ab
+    abc
+
+(a:
+  mode: 1
+  input: |
+    1
+    ab
+    bac
+    abc
+    bcde
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    ab
+    abc
+
+)c:
+  mode: 1
+  input: |
+    1
+    ab
+    bac
+    abc
+    bcde
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    bac
+    abc
+
+=2c:
+  mode: 1
+  input: |
+    1
+    ab
+    bac
+    abc
+    bcde
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    bac
+    abc
+
+'%2a':
+  mode: 1
+  input: |
+    a
+    aa
+    aaa
+    aaaa
+    bcde
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    aaa
+    aaaa
+
+Q:
+  mode: 1
+  input: |
+    a
+    abc
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    a
+    abc
+
+rMrQ:
+  mode: 1
+  input: |
+    ab
+    abcba
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    ab
+
+k:
+  input: |
+    a
+    ab
+    abc
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    a
+    ba
+    bac
+
+K:
+  input: |
+    a
+    ab
+    abc
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    a
+    ba
+    acb
+
+'*24':
+  input: |
+    a
+    ab
+    abc
+    abcd
+    abcde
+    abcdef
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    a
+    ab
+    abc
+    abcd
+    abedc
+    abedcf
+
+L2:
+  input: |
+    a
+    ab
+    ab!
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    a
+    ab
+    abB
+
+R2:
+  input: |
+    a
+    ab
+    abB
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    a
+    ab
+    ab!
+
++2:
+  input: |
+    a
+    ab
+    abc
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    a
+    ab
+    abd
+
+-2:
+  input: |
+    a
+    ab
+    abc
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    a
+    ab
+    abb
+
+.2:
+  input: |
+    a
+    ab
+    abc
+    abcd
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    a
+    ab
+    abc
+    abdd
+
+',2':
+  input: |
+    a
+    ab
+    abc
+    abcd
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    a
+    ab
+    abb
+    abbd
+
+y2:
+  input: |
+    a
+    ab
+    abc
+    123456790abcdefghijklmnopqrst
+    123456790abcdefghijklmnopqrstu
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    a
+    abab
+    ababc
+    12123456790abcdefghijklmnopqrst
+
+Y2:
+  input: |
+    a
+    ab
+    abc
+    123456790abcdefghijklmnopqrst
+    123456790abcdefghijklmnopqrstu
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    a
+    abab
+    abcbc
+    123456790abcdefghijklmnopqrstst
+
+E:
+  input: |
+    a bc
+    ab c
+    abc
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    A Bc
+    Ab C
+    Abc
+
+e-:
+  input: |
+    a-bc
+    ab-c
+    abc
+    123456790abcdefghijklmnopqrstuvw
+    123456790abcdefghijklmnopqrstuvwx
+
+  expected_output: |
+    A-Bc
+    Ab-C
+    Abc
