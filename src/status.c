@@ -1809,25 +1809,24 @@ void status_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
 void status_status_destroy (hashcat_status_t *status_ctx)
 {
-  if (NULL == status_ctx)
-    return;
+  if (NULL == status_ctx) return;
 
-  hcfree(status_ctx->session);
-  hcfree(status_ctx->time_estimated_absolute);
-  hcfree(status_ctx->time_estimated_relative);
-  hcfree(status_ctx->time_started_absolute);
-  hcfree(status_ctx->time_started_relative);
-  hcfree(status_ctx->speed_sec_all);
-  hcfree(status_ctx->guess_base);
-  hcfree(status_ctx->guess_mod);
-  hcfree(status_ctx->guess_charset);
-  hcfree(status_ctx->cpt);
+  hcfree (status_ctx->session);
+  hcfree (status_ctx->time_estimated_absolute);
+  hcfree (status_ctx->time_estimated_relative);
+  hcfree (status_ctx->time_started_absolute);
+  hcfree (status_ctx->time_started_relative);
+  hcfree (status_ctx->speed_sec_all);
+  hcfree (status_ctx->guess_base);
+  hcfree (status_ctx->guess_mod);
+  hcfree (status_ctx->guess_charset);
+  hcfree (status_ctx->cpt);
 
   for (int device_id = 0; device_id < status_ctx->device_info_cnt; device_id++)
   {
     device_info_t *device_info = status_ctx->device_info_buf + device_id;
-    hcfree(device_info->speed_sec_dev);
-    hcfree(device_info->guess_candidates_dev);
-    hcfree(device_info->hwmon_dev);
+    hcfree (device_info->speed_sec_dev);
+    hcfree (device_info->guess_candidates_dev);
+    hcfree (device_info->hwmon_dev);
   }
 }
