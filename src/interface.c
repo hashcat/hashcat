@@ -2858,7 +2858,9 @@ int dpapimk_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   u8  *cipher_algo_pos; // here just for possible forward compatibilities
   u8  *hash_algo_pos;   // same
   u8  *rounds_pos;
-  u32 iv_len = 32;
+  u32 iv_len                 = 32;
+  u32 effective_iv_len       =  0;
+  u32 effective_contents_len =  0;
   u8  *iv_pos;
   u8  *contents_len_pos;
   u8  *contents_pos;
@@ -2905,7 +2907,9 @@ int dpapimk_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   if (contents_len_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
-  if (contents_len_pos - iv_pos != iv_len) return (PARSER_SALT_LENGTH);
+  effective_iv_len = (u32) (contents_len_pos - iv_pos);
+
+  if (effective_iv_len != iv_len) return (PARSER_SALT_LENGTH);
 
   if (is_valid_hex_string (iv_pos, 32) == false) return (PARSER_SALT_ENCODING);
 
@@ -2927,7 +2931,9 @@ int dpapimk_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   u8 *end_line  = (u8 *) strchr ((const char *) contents_pos, 0);
 
-  if (end_line - contents_pos != contents_len) return (PARSER_SALT_LENGTH);
+  effective_contents_len = (u32) (end_line - contents_pos);
+
+  if (effective_contents_len != contents_len) return (PARSER_SALT_LENGTH);
 
   dpapimk->version = version;
 
