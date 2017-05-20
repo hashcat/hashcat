@@ -766,6 +766,12 @@ int _old_apply_rule (char *rule, int rule_len, char in[BLOCK_SIZE], int in_len, 
         if (out_len < upos) return (RULE_RC_REJECT_ERROR);
         break;
 
+      case RULE_OP_REJECT_EQUAL:
+        NEXT_RULEPOS (rule_pos);
+        NEXT_RPTOI (rule, rule_pos, upos);
+        if (out_len != upos) return (RULE_RC_REJECT_ERROR);
+        break;
+
       case RULE_OP_REJECT_CONTAIN:
         NEXT_RULEPOS (rule_pos);
         if (strchr (out, rule[rule_pos]) != NULL) return (RULE_RC_REJECT_ERROR);
