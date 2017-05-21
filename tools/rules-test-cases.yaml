@@ -4,8 +4,6 @@
     AbCd
     abcd
     ABCD
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     AbCd
@@ -17,8 +15,6 @@ l:
     AbCd
     abcd
     ABCD
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     abcd
@@ -30,8 +26,6 @@ u:
     AbCd
     abcd
     ABCD
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     ABCD
@@ -43,8 +37,6 @@ c:
     AbCd
     abcd
     ABCD
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     Abcd
@@ -56,8 +48,6 @@ C:
     AbCd
     abcd
     ABCD
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     aBCD
@@ -69,8 +59,6 @@ t:
     AbCd
     abcd
     ABCD
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     aBcD
@@ -82,8 +70,6 @@ T5:
     AbCde
     abcdef
     ABCDEFg
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     AbCde
@@ -94,8 +80,6 @@ r:
   input: |
     AbCd
     abcd
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     dCbA
@@ -104,8 +88,6 @@ r:
 d:
   input: |
     3abc
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     3abc3abc
@@ -113,8 +95,6 @@ d:
 ddd:
   input: |
     3ab
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     3ab3ab3ab3ab3ab3ab3ab3ab
@@ -122,8 +102,6 @@ ddd:
 p0:
   input: |
     3abc
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     3abc
@@ -131,8 +109,6 @@ p0:
 p3:
   input: |
     3abc
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     3abc3abc3abc3abc
@@ -140,8 +116,6 @@ p3:
 f:
   input: |
     3abc
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     3abccba3
@@ -150,8 +124,6 @@ f:
   input: |
     3abc
     a
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     abc3
@@ -161,8 +133,6 @@ f:
   input: |
     3abc
     a
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     c3ab
@@ -171,8 +141,6 @@ f:
 $1$2:
   input: |
     abc
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     abc12
@@ -180,8 +148,6 @@ $1$2:
 ^1^2:
   input: |
     abc
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     21abc
@@ -190,8 +156,6 @@ $1$2:
   input: |
     a
     abc
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
 
@@ -201,8 +165,6 @@ $1$2:
   input: |
     a
     abc
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
 
@@ -213,8 +175,6 @@ D3:
     abc
     abcd
     abcde
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     abc
@@ -227,8 +187,6 @@ x14:
     abc
     abcde
     abcdef
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     a
@@ -243,8 +201,6 @@ O22:
     abc
     abcd
     abcde
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     a
@@ -260,8 +216,6 @@ O04:
     abcd
     abcde
     abcdef
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     a
@@ -276,8 +230,6 @@ i3!:
     abc
     abcd
     abcde
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     a
@@ -291,8 +243,6 @@ o3!:
     abc
     abcd
     abcde
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     a
@@ -307,13 +257,6 @@ o3!:
     abcd
     abcde
     abcdef
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
-    123456790abcdefghijklmnopqrstuvwxyz
-    123456790abcdefghijklmnopqrstuvwxyzA
-    123456790abcdefghijklmnopqrstuvwxyzAB
-    123456790abcdefghijklmnopqrstuvwxyzABC
-    123456790abcdefghijklmnopqrstuvwxyzABCDEF
 
   expected_output: |
     a
@@ -326,8 +269,6 @@ sab:
   input: |
     123b
     a123ba
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     123b
@@ -337,8 +278,6 @@ saa:
   input: |
     123b
     a123ba
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     123b
@@ -349,8 +288,6 @@ saa:
     123b
     aaa
     a123ba
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     123b
@@ -360,8 +297,6 @@ saa:
 z0:
   input: |
     abc
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     abc
@@ -369,8 +304,6 @@ z0:
 z3:
   input: |
     abc
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     aaaabc
@@ -378,8 +311,6 @@ z3:
 Z0:
   input: |
     abc
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     abc
@@ -387,8 +318,6 @@ Z0:
 Z3:
   input: |
     abc
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     abcccc
@@ -397,8 +326,6 @@ q:
   input: |
     a
     abc
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     aa
@@ -408,8 +335,6 @@ qqq:
   input: |
     a
     abc
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     aaaaaaaa
@@ -422,8 +347,6 @@ uMlX134:
     abc
     abcd
     abcdef
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     abcdBCD
@@ -434,8 +357,6 @@ uMl4:
   input: |
     a
     abc
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     aA
@@ -446,8 +367,6 @@ uMl6:
   input: |
     a
     abc
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     Aa
@@ -458,8 +377,6 @@ uMl6:
   input: |
     a
     abc
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
 
@@ -468,8 +385,6 @@ uMl6:
   input: |
     a
     abc
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     a
@@ -479,8 +394,6 @@ uMl6:
   input: |
     a
     abc
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     a
@@ -492,8 +405,6 @@ uMl6:
     a
     ab
     abc
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     ab
@@ -505,8 +416,6 @@ _2:
     a
     ab
     abc
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     ab
@@ -518,8 +427,6 @@ _2:
     ab
     abc
     bcde
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     1
@@ -532,8 +439,6 @@ _2:
     ab
     abc
     bcde
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     ab
@@ -547,8 +452,6 @@ _2:
     bac
     abc
     bcde
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     ab
@@ -562,8 +465,6 @@ _2:
     bac
     abc
     bcde
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     bac
@@ -577,8 +478,6 @@ _2:
     bac
     abc
     bcde
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     bac
@@ -592,8 +491,6 @@ _2:
     aaa
     aaaa
     bcde
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     aaa
@@ -604,8 +501,6 @@ Q:
   input: |
     a
     abc
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     a
@@ -616,8 +511,6 @@ rMrQ:
   input: |
     ab
     abcba
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     ab
@@ -627,8 +520,6 @@ k:
     a
     ab
     abc
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     a
@@ -640,8 +531,6 @@ K:
     a
     ab
     abc
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     a
@@ -656,8 +545,6 @@ K:
     abcd
     abcde
     abcdef
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     a
@@ -672,8 +559,6 @@ L2:
     a
     ab
     ab!
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     a
@@ -685,8 +570,6 @@ R2:
     a
     ab
     abB
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     a
@@ -698,8 +581,6 @@ R2:
     a
     ab
     abc
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     a
@@ -711,8 +592,6 @@ R2:
     a
     ab
     abc
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     a
@@ -725,8 +604,6 @@ R2:
     ab
     abc
     abcd
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     a
@@ -740,8 +617,6 @@ R2:
     ab
     abc
     abcd
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     a
@@ -754,40 +629,29 @@ y2:
     a
     ab
     abc
-    123456790abcdefghijklmnopqrst
-    123456790abcdefghijklmnopqrstu
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
+
 
   expected_output: |
     a
     abab
     ababc
-    12123456790abcdefghijklmnopqrst
 
 Y2:
   input: |
     a
     ab
     abc
-    123456790abcdefghijklmnopqrst
-    123456790abcdefghijklmnopqrstu
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     a
     abab
     abcbc
-    123456790abcdefghijklmnopqrstst
 
 E:
   input: |
     a bc
     ab c
     abc
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     A Bc
@@ -799,8 +663,6 @@ e-:
     a-bc
     ab-c
     abc
-    123456790abcdefghijklmnopqrstuvw
-    123456790abcdefghijklmnopqrstuvwx
 
   expected_output: |
     A-Bc
