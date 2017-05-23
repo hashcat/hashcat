@@ -359,6 +359,10 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
     }
   }
 
+  time_t rt_start;
+
+  time (&rt_start);
+
   time_t now  = 0;
   time_t prev = 0;
 
@@ -471,6 +475,10 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
     }
   }
 
+  time_t rt_stop;
+
+  time (&rt_stop);
+
   cache_generate_t cache_generate;
 
   cache_generate.dictfile    = (char *) dictfile;
@@ -478,6 +486,7 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
   cache_generate.percent     = 100;
   cache_generate.cnt         = cnt;
   cache_generate.cnt2        = cnt2;
+  cache_generate.runtime     = rt_stop - rt_start;
 
   EVENT_DATA (EVENT_WORDLIST_CACHE_GENERATE, &cache_generate, sizeof (cache_generate));
 

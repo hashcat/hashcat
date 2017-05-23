@@ -19,6 +19,7 @@
 - Rules: Support added for position 'p' in host mode (using -j or -k)
 - 7-Zip cracking: increased max. data length to 320k and removed AES padding attack to avoid false negatives
 - Rules: Support added for rejection rule '_N' in host mode
+- Dictionary cache: Show time spent for dictionary cache building on startup
 
 ##
 ## Workarounds

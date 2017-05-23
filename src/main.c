@@ -783,12 +783,29 @@ static void main_wordlist_cache_generate (MAYBE_UNUSED hashcat_ctx_t *hashcat_ct
   }
   else
   {
+    char *runtime = (char *) malloc (HCBUFSIZ_TINY);
+
+    struct tm *tmp;
+
+    #if defined (_WIN)
+    tmp = _gmtime64 (&cache_generate->runtime);
+    #else
+    struct tm tm;
+
+    tmp = gmtime_r (&cache_generate->runtime, &tm);
+    #endif
+
+    format_timer_display (tmp, runtime, HCBUFSIZ_TINY);
+
     event_log_info (hashcat_ctx, "Dictionary cache built:");
     event_log_info (hashcat_ctx, "* Filename..: %s", cache_generate->dictfile);
     event_log_info (hashcat_ctx, "* Passwords.: %" PRIu64, cache_generate->cnt2);
     event_log_info (hashcat_ctx, "* Bytes.....: %" PRId64, cache_generate->comp);
     event_log_info (hashcat_ctx, "* Keyspace..: %" PRIu64, cache_generate->cnt);
+    event_log_info (hashcat_ctx, "* Runtime...: %s", runtime);
     event_log_info (hashcat_ctx, NULL);
+
+    hcfree (runtime);
   }
 }
 

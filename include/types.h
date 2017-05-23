@@ -1866,6 +1866,8 @@ typedef struct cache_generate
   u64 cnt;
   u64 cnt2;
 
+  time_t runtime;
+
 } cache_generate_t;
 
 typedef struct hashlist_parse
