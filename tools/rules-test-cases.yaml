@@ -650,6 +650,18 @@ _2:
     aaa
     aaaa
 
+'/a op4 %3a op4':
+  input: |
+    a
+    aa
+    aaa
+    aaaa
+    aaaaa
+
+  expected_cpu: |
+    4aa4
+    4aa4a
+
 Q:
   input: |
     a
