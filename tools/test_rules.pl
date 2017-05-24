@@ -85,13 +85,16 @@ sub run_case_mode1
 {
   my $rule = shift;
 
-  my $case       = $cases{$rule};
+  my $case = $cases{$rule};
+
+  die("Expected output for mode 1 (expected_cpu) isn't defined for rule: $rule") unless defined $case->{expected_cpu};
+
   my $input_file = input_to_file ($case, $rule);
 
   my $quoted_rule   = quotemeta ($rule);
   my $actual_output = qx($hashcat $OPTS -j $quoted_rule $input_file);
 
-  eq_or_diff ($actual_output, $case->{expected_output}, $rule . " - mode 1");
+  eq_or_diff ($actual_output, $case->{expected_cpu}, $rule . " - mode 1");
 }
 
 # Mode 2: GPU mode, using -r
@@ -100,14 +103,17 @@ sub run_case_mode2
 {
   my $rule = shift;
 
-  my $case       = $cases{$rule};
+  my $case = $cases{$rule};
+
+  die("Expected output for mode 2 (expected_opencl) isn't defined for rule: $rule") unless defined $case->{expected_opencl};
+
   my $input_file = input_to_file ($case, $rule);
   my $rule_file  = rule_to_file ($rule);
 
   my $quoted_rule   = quotemeta ($rule);
   my $actual_output = qx($hashcat $OPTS -r $rule_file $input_file);
 
-  eq_or_diff ($actual_output, $case->{expected_output}, $rule . " - mode 2");
+  eq_or_diff ($actual_output, $case->{expected_opencl}, $rule . " - mode 2");
 }
 
 sub run_case_all_mods
@@ -116,16 +122,8 @@ sub run_case_all_mods
 
   my $case = $cases{$rule};
 
-  if (defined $case->{mode})
-  {
-    run_case_mode1 ($rule) if $case->{mode} == 1;
-    run_case_mode2 ($rule) if $case->{mode} == 2;
-  }
-  else
-  {
-    run_case_mode1 ($rule);
-    run_case_mode2 ($rule);
-  }
+  run_case_mode1 ($rule) if defined $case->{expected_cpu};
+  run_case_mode2 ($rule) if defined $case->{expected_opencl};
 }
 
 sub input_to_file
@@ -164,11 +162,13 @@ sub rule_file_name
 sub usage_die
 {
   die ("usage: $0 [rule] [mode] \n" .
-       "       [mode]: 1 for host mode, 2 for GPU mode \n" .
-       "       If [rule] was not specified, run all test cases \n" .
-       "       If [mode] was not specified, run test for all modes \n" .
+       "       [mode]: 1 for host/cpu mode, 2 for GPU/opencl mode \n" .
+       "       run all test cases if [rule] was not specified \n" .
+       "       run test for both modes if [mode] was not specified \n" .
+       "       --help will show this help message \n" .
        "\n" .
        "examples: \n" .
+       "run all available cases      : perl $0 \n" .
        "run i3! case on modes 1 & 2  : perl $0 i3! \n" .
        "run O04 case on mode 1       : perl $0 O04 1 \n" .
        "run sab case on mode 2       : perl $0 sab 2 \n");

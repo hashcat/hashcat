@@ -5,7 +5,12 @@
     abcd
     ABCD
 
-  expected_output: |
+  expected_cpu: |
+    AbCd
+    abcd
+    ABCD
+
+  expected_opencl: |
     AbCd
     abcd
     ABCD
@@ -16,7 +21,12 @@ l:
     abcd
     ABCD
 
-  expected_output: |
+  expected_cpu: |
+    abcd
+    abcd
+    abcd
+
+  expected_opencl: |
     abcd
     abcd
     abcd
@@ -27,7 +37,12 @@ u:
     abcd
     ABCD
 
-  expected_output: |
+  expected_cpu: |
+    ABCD
+    ABCD
+    ABCD
+
+  expected_opencl: |
     ABCD
     ABCD
     ABCD
@@ -38,7 +53,12 @@ c:
     abcd
     ABCD
 
-  expected_output: |
+  expected_cpu: |
+    Abcd
+    Abcd
+    Abcd
+
+  expected_opencl: |
     Abcd
     Abcd
     Abcd
@@ -49,7 +69,12 @@ C:
     abcd
     ABCD
 
-  expected_output: |
+  expected_cpu: |
+    aBCD
+    aBCD
+    aBCD
+
+  expected_opencl: |
     aBCD
     aBCD
     aBCD
@@ -60,7 +85,12 @@ t:
     abcd
     ABCD
 
-  expected_output: |
+  expected_cpu: |
+    aBcD
+    ABCD
+    abcd
+
+  expected_opencl: |
     aBcD
     ABCD
     abcd
@@ -71,7 +101,12 @@ T5:
     abcdef
     ABCDEFg
 
-  expected_output: |
+  expected_cpu: |
+    AbCde
+    abcdeF
+    ABCDEfg
+
+  expected_opencl: |
     AbCde
     abcdeF
     ABCDEfg
@@ -81,7 +116,11 @@ r:
     AbCd
     abcd
 
-  expected_output: |
+  expected_cpu: |
+    dCbA
+    dcba
+
+  expected_opencl: |
     dCbA
     dcba
 
@@ -89,35 +128,50 @@ d:
   input: |
     3abc
 
-  expected_output: |
+  expected_cpu: |
+    3abc3abc
+
+  expected_opencl: |
     3abc3abc
 
 ddd:
   input: |
     3ab
 
-  expected_output: |
+  expected_cpu: |
+    3ab3ab3ab3ab3ab3ab3ab3ab
+
+  expected_opencl: |
     3ab3ab3ab3ab3ab3ab3ab3ab
 
 p0:
   input: |
     3abc
 
-  expected_output: |
+  expected_cpu: |
+    3abc
+
+  expected_opencl: |
     3abc
 
 p3:
   input: |
     3abc
 
-  expected_output: |
+  expected_cpu: |
+    3abc3abc3abc3abc
+
+  expected_opencl: |
     3abc3abc3abc3abc
 
 f:
   input: |
     3abc
 
-  expected_output: |
+  expected_cpu: |
+    3abccba3
+
+  expected_opencl: |
     3abccba3
 
 '{':
@@ -125,7 +179,11 @@ f:
     3abc
     a
 
-  expected_output: |
+  expected_cpu: |
+    abc3
+    a
+
+  expected_opencl: |
     abc3
     a
 
@@ -134,7 +192,11 @@ f:
     3abc
     a
 
-  expected_output: |
+  expected_cpu: |
+    c3ab
+    a
+
+  expected_opencl: |
     c3ab
     a
 
@@ -142,22 +204,34 @@ $1$2:
   input: |
     abc
 
-  expected_output: |
+  expected_cpu: |
+    abc12
+
+  expected_opencl: |
     abc12
 
 ^1^2:
   input: |
     abc
 
-  expected_output: |
+  expected_cpu: |
+    21abc
+
+  expected_opencl: |
     21abc
 
 '[':
   input: |
     a
     abc
+    123456790abcdefghijklmnopqrstuvw
 
-  expected_output: |
+  expected_cpu: |
+
+    bc
+    23456790abcdefghijklmnopqrstuvw
+
+  expected_opencl: |
 
     bc
 
@@ -165,8 +239,14 @@ $1$2:
   input: |
     a
     abc
+    123456790abcdefghijklmnopqrstuvw
 
-  expected_output: |
+  expected_cpu: |
+
+    ab
+    123456790abcdefghijklmnopqrstuv
+
+  expected_opencl: |
 
     ab
 
@@ -175,8 +255,15 @@ D3:
     abc
     abcd
     abcde
+    123456790abcdefghijklmnopqrstuvw
 
-  expected_output: |
+  expected_cpu: |
+    abc
+    abc
+    abce
+    12356790abcdefghijklmnopqrstuvw
+
+  expected_opencl: |
     abc
     abc
     abce
@@ -187,8 +274,16 @@ x14:
     abc
     abcde
     abcdef
+    123456790abcdefghijklmnopqrstuvw
 
-  expected_output: |
+  expected_cpu: |
+    a
+    abc
+    bcde
+    bcde
+    2345
+
+  expected_opencl: |
     a
     abc
     bcde
@@ -201,8 +296,17 @@ O22:
     abc
     abcd
     abcde
+    123456790abcdefghijklmnopqrstuvw
 
-  expected_output: |
+  expected_cpu: |
+    a
+    ab
+    abc
+    ab
+    abe
+    1256790abcdefghijklmnopqrstuvw
+
+  expected_opencl: |
     a
     ab
     abc
@@ -216,8 +320,17 @@ O04:
     abcd
     abcde
     abcdef
+    123456790abcdefghijklmnopqrstuvw
 
-  expected_output: |
+  expected_cpu: |
+    a
+    abc
+
+    e
+    ef
+    56790abcdefghijklmnopqrstuvw
+
+  expected_opencl: |
     a
     abc
 
@@ -231,7 +344,13 @@ i3!:
     abcd
     abcde
 
-  expected_output: |
+  expected_cpu: |
+    a
+    abc!
+    abc!d
+    abc!de
+
+  expected_cpu: |
     a
     abc!
     abc!d
@@ -244,7 +363,13 @@ o3!:
     abcd
     abcde
 
-  expected_output: |
+  expected_cpu: |
+    a
+    abc
+    abc!
+    abc!e
+
+  expected_cpu: |
     a
     abc
     abc!
@@ -258,7 +383,14 @@ o3!:
     abcde
     abcdef
 
-  expected_output: |
+  expected_cpu: |
+    a
+    abc
+    abcd
+    abcd
+    abcd
+
+  expected_opencl: |
     a
     abc
     abcd
@@ -270,7 +402,11 @@ sab:
     123b
     a123ba
 
-  expected_output: |
+  expected_cpu: |
+    123b
+    b123bb
+
+  expected_opencl: |
     123b
     b123bb
 
@@ -279,17 +415,29 @@ saa:
     123b
     a123ba
 
-  expected_output: |
+  expected_cpu: |
     123b
     a123ba
+
+  expected_opencl: |
+    123b
+    a123ba
+
 
 '@a':
   input: |
     123b
     aaa
     a123ba
+    123456790abcdefghijklmnopqrstuvw
 
-  expected_output: |
+  expected_cpu: |
+    123b
+
+    123b
+    123456790bcdefghijklmnopqrstuvw
+
+  expected_opencl: |
     123b
 
     123b
@@ -298,28 +446,40 @@ z0:
   input: |
     abc
 
-  expected_output: |
+  expected_cpu: |
+    abc
+
+  expected_opencl: |
     abc
 
 z3:
   input: |
     abc
 
-  expected_output: |
+  expected_cpu: |
+    aaaabc
+
+  expected_opencl: |
     aaaabc
 
 Z0:
   input: |
     abc
 
-  expected_output: |
+  expected_cpu: |
+    abc
+
+  expected_opencl: |
     abc
 
 Z3:
   input: |
     abc
 
-  expected_output: |
+  expected_cpu: |
+    abcccc
+
+  expected_opencl: |
     abcccc
 
 q:
@@ -327,7 +487,11 @@ q:
     a
     abc
 
-  expected_output: |
+  expected_cpu: |
+    aa
+    aabbcc
+
+  expected_opencl: |
     aa
     aabbcc
 
@@ -336,116 +500,109 @@ qqq:
     a
     abc
 
-  expected_output: |
+  expected_cpu: |
+    aaaaaaaa
+    aaaaaaaabbbbbbbbcccccccc
+
+  expected_opencl: |
     aaaaaaaa
     aaaaaaaabbbbbbbbcccccccc
 
 uMlX134:
-  mode: 1
   input: |
     a
     abc
     abcd
     abcdef
 
-  expected_output: |
+  expected_cpu: |
     abcdBCD
     abcdBCDef
 
 uMl4:
-  mode: 1
   input: |
     a
     abc
 
-  expected_output: |
+  expected_cpu: |
     aA
     abcABC
 
 uMl6:
-  mode: 1
   input: |
     a
     abc
 
-  expected_output: |
+  expected_cpu: |
     Aa
     ABCabc
 
 <0:
-  mode: 1
   input: |
     a
     abc
 
-  expected_output: |
+  expected_cpu: |
 
 <1:
-  mode: 1
   input: |
     a
     abc
 
-  expected_output: |
+  expected_cpu: |
     a
 
 '>0':
-  mode: 1
   input: |
     a
     abc
 
-  expected_output: |
+  expected_cpu: |
     a
     abc
 
 '>2':
-  mode: 1
   input: |
     a
     ab
     abc
 
-  expected_output: |
+  expected_cpu: |
     ab
     abc
 
 _2:
-  mode: 1
   input: |
     a
     ab
     abc
 
-  expected_output: |
+  expected_cpu: |
     ab
 
 '!a':
-  mode: 1
   input: |
     1
     ab
     abc
     bcde
 
-  expected_output: |
+  expected_cpu: |
     1
     bcde
 
 /a:
-  mode: 1
   input: |
     1
     ab
     abc
     bcde
 
-  expected_output: |
+  expected_cpu: |
     ab
     abc
 
 (a:
-  mode: 1
   input: |
     1
     ab
@@ -453,12 +610,11 @@ _2:
     abc
     bcde
 
-  expected_output: |
+  expected_cpu: |
     ab
     abc
 
 )c:
-  mode: 1
   input: |
     1
     ab
@@ -466,12 +622,11 @@ _2:
     abc
     bcde
 
-  expected_output: |
+  expected_cpu: |
     bac
     abc
 
 =2c:
-  mode: 1
   input: |
     1
     ab
@@ -479,12 +634,11 @@ _2:
     abc
     bcde
 
-  expected_output: |
+  expected_cpu: |
     bac
     abc
 
 '%2a':
-  mode: 1
   input: |
     a
     aa
@@ -492,27 +646,37 @@ _2:
     aaaa
     bcde
 
-  expected_output: |
+  expected_cpu: |
     aaa
     aaaa
 
+'/a op4 %3a op4':
+  input: |
+    a
+    aa
+    aaa
+    aaaa
+    aaaaa
+
+  expected_cpu: |
+    4aa4
+    4aa4a
+
 Q:
-  mode: 1
   input: |
     a
     abc
 
-  expected_output: |
+  expected_cpu: |
     a
     abc
 
 rMrQ:
-  mode: 1
   input: |
     ab
     abcba
 
-  expected_output: |
+  expected_cpu: |
     ab
 
 k:
@@ -521,7 +685,12 @@ k:
     ab
     abc
 
-  expected_output: |
+  expected_cpu: |
+    a
+    ba
+    bac
+
+  expected_opencl: |
     a
     ba
     bac
@@ -532,7 +701,12 @@ K:
     ab
     abc
 
-  expected_output: |
+  expected_cpu: |
+    a
+    ba
+    acb
+
+  expected_opencl: |
     a
     ba
     acb
@@ -546,7 +720,15 @@ K:
     abcde
     abcdef
 
-  expected_output: |
+  expected_cpu: |
+    a
+    ab
+    abc
+    abcd
+    abedc
+    abedcf
+
+  expected_opencl: |
     a
     ab
     abc
@@ -560,7 +742,12 @@ L2:
     ab
     ab!
 
-  expected_output: |
+  expected_cpu: |
+    a
+    ab
+    abB
+
+  expected_opencl: |
     a
     ab
     abB
@@ -571,7 +758,12 @@ R2:
     ab
     abB
 
-  expected_output: |
+  expected_cpu: |
+    a
+    ab
+    ab!
+
+  expected_cpu: |
     a
     ab
     ab!
@@ -582,7 +774,12 @@ R2:
     ab
     abc
 
-  expected_output: |
+  expected_cpu: |
+    a
+    ab
+    abd
+
+  expected_opencl: |
     a
     ab
     abd
@@ -593,7 +790,12 @@ R2:
     ab
     abc
 
-  expected_output: |
+  expected_cpu: |
+    a
+    ab
+    abb
+
+  expected_opencl: |
     a
     ab
     abb
@@ -605,7 +807,13 @@ R2:
     abc
     abcd
 
-  expected_output: |
+  expected_cpu: |
+    a
+    ab
+    abc
+    abdd
+
+  expected_opencl: |
     a
     ab
     abc
@@ -618,7 +826,13 @@ R2:
     abc
     abcd
 
-  expected_output: |
+  expected_cpu: |
+    a
+    ab
+    abb
+    abbd
+
+  expected_opencl: |
     a
     ab
     abb
@@ -629,23 +843,36 @@ y2:
     a
     ab
     abc
+    123456790abcdefghijklmnopqrstuv
 
-
-  expected_output: |
+  expected_cpu: |
     a
     abab
     ababc
+
+  expected_opencl: |
+    a
+    abab
+    ababc
+    123456790abcdefghijklmnopqrstuv
 
 Y2:
   input: |
     a
     ab
     abc
+    123456790abcdefghijklmnopqrstuv
 
-  expected_output: |
+  expected_cpu: |
     a
     abab
     abcbc
+
+  expected_opencl: |
+    a
+    abab
+    abcbc
+    123456790abcdefghijklmnopqrstuv
 
 E:
   input: |
@@ -653,7 +880,12 @@ E:
     ab c
     abc
 
-  expected_output: |
+  expected_cpu: |
+    A Bc
+    Ab C
+    Abc
+
+  expected_opencl: |
     A Bc
     Ab C
     Abc
@@ -664,7 +896,12 @@ e-:
     ab-c
     abc
 
-  expected_output: |
+  expected_cpu: |
+    A-Bc
+    Ab-C
+    Abc
+
+  expected_opencl: |
     A-Bc
     Ab-C
     Abc
