@@ -42,7 +42,8 @@ static const char grp_op_pos_p0[] =
   RULE_OP_MANGLE_CHR_SHIFTL,
   RULE_OP_MANGLE_CHR_SHIFTR,
   RULE_OP_MANGLE_REPLACE_NP1,
-  RULE_OP_MANGLE_REPLACE_NM1
+  RULE_OP_MANGLE_REPLACE_NM1,
+  RULE_OP_MANGLE_FIXPAD,
 };
 
 static const char grp_op_pos_p1[] =
@@ -291,6 +292,11 @@ int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
         break;
 
       case RULE_OP_MANGLE_DUPEWORD_TIMES:
+        SET_NAME    (rule, rule_buf[rule_pos]);
+        SET_P0_CONV (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_FIXPAD:
         SET_NAME    (rule, rule_buf[rule_pos]);
         SET_P0_CONV (rule, rule_buf[rule_pos]);
         break;

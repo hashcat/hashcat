@@ -1185,6 +1185,22 @@ inline u32 rule_op_mangle_reflect (const u32 p0, const u32 p1, u32 buf0[4], u32 
   return out_len;
 }
 
+/**
+* Pad with zero's or truncate to padding length
+* p0 is length of padded password
+*/
+inline u32 rule_op_fixpad (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+{
+  if (in_len > p0) return (p0);
+
+  u32 tib40[4] = { 0 };
+  u32 tib41[4] = { 0 };
+
+  append_block8 (in_len, buf0, buf1, buf0, buf1, tib40, tib41);
+
+  return p0;
+}
+
 inline u32 rule_op_mangle_append (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if ((in_len + 1) >= 32) return (in_len);
@@ -2513,6 +2529,7 @@ inline u32 apply_rule (const u32 name, const u32 p0, const u32 p1, u32 buf0[4], 
     case RULE_OP_MANGLE_DUPEWORD:         out_len = rule_op_mangle_dupeword         (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_DUPEWORD_TIMES:   out_len = rule_op_mangle_dupeword_times   (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_REFLECT:          out_len = rule_op_mangle_reflect          (p0, p1, buf0, buf1, out_len); break;
+    case RULE_OP_MANGLE_FIXPAD:           out_len = rule_op_fixpad                  (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_APPEND:           out_len = rule_op_mangle_append           (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_PREPEND:          out_len = rule_op_mangle_prepend          (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_ROTATE_LEFT:      out_len = rule_op_mangle_rotate_left      (p0, p1, buf0, buf1, out_len); break;

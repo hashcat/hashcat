@@ -258,6 +258,7 @@ typedef enum rule_functions
   RULE_OP_MANGLE_REVERSE         = 'r',
   RULE_OP_MANGLE_DUPEWORD        = 'd',
   RULE_OP_MANGLE_DUPEWORD_TIMES  = 'p',
+  RULE_OP_MANGLE_FIXPAD          = 'P',
   RULE_OP_MANGLE_REFLECT         = 'f',
   RULE_OP_MANGLE_ROTATE_LEFT     = '{',
   RULE_OP_MANGLE_ROTATE_RIGHT    = '}',
