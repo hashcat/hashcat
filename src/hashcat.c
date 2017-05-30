@@ -1216,8 +1216,8 @@ int hashcat_session_destroy (hashcat_ctx_t *hashcat_ctx)
   induct_ctx_destroy         (hashcat_ctx);
   logfile_destroy            (hashcat_ctx);
   loopback_destroy           (hashcat_ctx);
-  opencl_ctx_destroy         (hashcat_ctx);
   opencl_ctx_devices_destroy (hashcat_ctx);
+  opencl_ctx_destroy         (hashcat_ctx);
   outcheck_ctx_destroy       (hashcat_ctx);
   outfile_destroy            (hashcat_ctx);
   pidfile_ctx_destroy        (hashcat_ctx);
