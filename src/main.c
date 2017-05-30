@@ -785,14 +785,20 @@ static void main_wordlist_cache_generate (MAYBE_UNUSED hashcat_ctx_t *hashcat_ct
   {
     char *runtime = (char *) malloc (HCBUFSIZ_TINY);
 
+    #if defined (_WIN)
+    __time64_t runtime_sec = cache_generate->runtime;
+    #else
+    time_t runtime_sec = cache_generate->runtime;
+    #endif
+
     struct tm *tmp;
 
     #if defined (_WIN)
-    tmp = _gmtime64 (&cache_generate->runtime);
+    tmp = _gmtime64 (&runtime_sec);
     #else
     struct tm tm;
 
-    tmp = gmtime_r (&cache_generate->runtime, &tm);
+    tmp = gmtime_r (&runtime_sec, &tm);
     #endif
 
     format_timer_display (tmp, runtime, HCBUFSIZ_TINY);
