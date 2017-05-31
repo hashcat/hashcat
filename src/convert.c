@@ -7,6 +7,12 @@
 #include "types.h"
 #include "convert.h"
 
+#if (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__) >= 70101
+#define FALLTHROUGH __attribute__ ((fallthrough))
+#else
+#define FALLTHROUGH
+#endif
+
 static bool printable_utf8 (const u8 *buf, const int len)
 {
   u8 a;
@@ -38,9 +44,9 @@ static bool printable_utf8 (const u8 *buf, const int len)
     default:
       return false;
     case 4:
-      if ((a = (*--srcptr)) < 0x80 || a > 0xbf) return false;
+      if ((a = (*--srcptr)) < 0x80 || a > 0xbf) return false; FALLTHROUGH;
     case 3:
-      if ((a = (*--srcptr)) < 0x80 || a > 0xbf) return false;
+      if ((a = (*--srcptr)) < 0x80 || a > 0xbf) return false; FALLTHROUGH;
     case 2:
       if ((a = (*--srcptr)) < 0x80 || a > 0xbf) return false;
 
@@ -48,7 +54,7 @@ static bool printable_utf8 (const u8 *buf, const int len)
       case 0xE0: if (a < 0xa0) return false; break;
       case 0xED: if (a > 0x9f) return false; break;
       case 0xF0: if (a < 0x90) return false; break;
-      case 0xF4: if (a > 0x8f) return false;
+      case 0xF4: if (a > 0x8f) return false; FALLTHROUGH;
       }
 
     case 1:
