@@ -421,3 +421,49 @@ u32 get_random_num (const u32 min, const u32 max)
 
   #endif
 }
+
+void hc_string_trim_leading (char *s)
+{
+  int skip = 0;
+
+  const int len = (int) strlen (s);
+
+  for (int i = 0; i < len; i++)
+  {
+    const int c = (const int) s[i];
+
+    if (isspace (c) == 0) break;
+
+    skip++;
+  }
+
+  if (skip == 0) return;
+
+  const int new_len = len - skip;
+
+  memmove (s, s + skip, new_len);
+
+  s[new_len] = 0;
+}
+
+void hc_string_trim_trailing (char *s)
+{
+  int skip = 0;
+
+  const int len = (int) strlen (s);
+
+  for (int i = len - 1; i >= 0; i--)
+  {
+    const int c = (const int) s[i];
+
+    if (isspace (c) == 0) break;
+
+    skip++;
+  }
+
+  if (skip == 0) return;
+
+  const size_t new_len = len - skip;
+
+  s[new_len] = 0;
+}

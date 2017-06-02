@@ -2596,6 +2596,10 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       device_param->device_name = device_name;
 
+      hc_string_trim_leading (device_param->device_name);
+
+      hc_string_trim_trailing (device_param->device_name);
+
       // device_vendor
 
       CL_rc = hc_clGetDeviceInfo (hashcat_ctx, device_param->device, CL_DEVICE_VENDOR, 0, NULL, &param_value_size);

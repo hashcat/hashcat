@@ -56,4 +56,7 @@ bool hc_path_create (const char *path);
 
 bool hc_string_is_digit (const char *s);
 
+void hc_string_trim_trailing (char *s);
+void hc_string_trim_leading (char *s);
+
 #endif // _SHARED_H
