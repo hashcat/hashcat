@@ -3716,8 +3716,11 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         }
       }
 
-      device_param->kernel_accel_min = 1;
-      device_param->kernel_accel_max = 8;
+      if (user_options->kernel_accel_chgd == false)
+      {
+        device_param->kernel_accel_min = 1;
+        device_param->kernel_accel_max = 8;
+      }
 
       const u32 kernel_power_max = device_param->hardware_power * device_param->kernel_accel_max;
 

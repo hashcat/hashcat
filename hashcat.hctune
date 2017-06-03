@@ -464,3 +464,10 @@ ALIAS_Apple_Iris_Pro                            *       13733   1       1       
 
 DEVICE_TYPE_GPU                                 *       14600   1       2       1024
 DEVICE_TYPE_GPU                                 *       14800   1       2       1000
+
+###########
+## SCRYPT #
+###########
+
+DEVICE_TYPE_CPU                                 *       8900    1       1       1
+DEVICE_TYPE_CPU                                 *       9300    1       1       1
