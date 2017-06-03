@@ -3412,6 +3412,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
   {
     opencl_ctx->force_jit_compilation = 8900;
   }
+  else if (hashconfig->hash_mode == 15700)
+  {
+    opencl_ctx->force_jit_compilation = 15700;
+  }
   else if (hashconfig->hash_mode == 1500 && user_options->attack_mode == ATTACK_MODE_BF && hashes->salts_cnt == 1)
   {
     opencl_ctx->force_jit_compilation = 1500;
@@ -3656,7 +3660,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     size_t size_scrypt = 4;
 
-    if ((hashconfig->hash_mode == 8900) || (hashconfig->hash_mode == 9300))
+    if ((hashconfig->hash_mode == 8900) || (hashconfig->hash_mode == 9300) || (hashconfig->hash_mode == 15700))
     {
       // we need to check that all hashes have the same scrypt settings
 
@@ -3712,6 +3716,17 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
           else if (device_param->device_vendor_id == VENDOR_ID_NV)
           {
             tmto_start = 4;
+          }
+        }
+        else if (hashconfig->hash_mode == 15700)
+        {
+          if (device_param->device_vendor_id == VENDOR_ID_AMD)
+          {
+            tmto_start = 5;
+          }
+          else if (device_param->device_vendor_id == VENDOR_ID_NV)
+          {
+            tmto_start = 6;
           }
         }
       }
@@ -4146,7 +4161,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         {
           snprintf (build_opts_update, sizeof (build_opts_update) - 1, "%s -DDESCRYPT_SALT=%u", build_opts, hashes->salts_buf[0].salt_buf[0]);
         }
-        else if (opencl_ctx->force_jit_compilation == 8900)
+        else if ((opencl_ctx->force_jit_compilation == 8900) || (opencl_ctx->force_jit_compilation == 15700))
         {
           snprintf (build_opts_update, sizeof (build_opts_update) - 1, "%s -DSCRYPT_N=%u -DSCRYPT_R=%u -DSCRYPT_P=%u -DSCRYPT_TMTO=%u -DSCRYPT_TMP_ELEM=%u", build_opts, hashes->salts_buf[0].scrypt_N, hashes->salts_buf[0].scrypt_r, hashes->salts_buf[0].scrypt_p, 1u << scrypt_tmto_final, scrypt_tmp_size / 16);
         }

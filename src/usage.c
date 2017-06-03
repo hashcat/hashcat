@@ -350,6 +350,8 @@ static const char *USAGE_BIG[] =
   "  12700 | Blockchain, My Wallet                            | Password Managers",
   "  15200 | Blockchain, My Wallet, V2                        | Password Managers",
   "  13400 | KeePass 1 (AES/Twofish) and KeePass 2 (AES)      | Password Managers",
+  "  15600 | Ethereum Wallet, PBKDF2-HMAC-SHA256              | Password Managers",
+  "  15700 | Ethereum Wallet, SCRYPT                          | Password Managers",
   "  99999 | Plaintext                                        | Plaintext",
   "",
   "- [ Outfile Formats ] -",

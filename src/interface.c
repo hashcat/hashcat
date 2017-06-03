@@ -242,7 +242,8 @@ static const char HT_15100[] = "Juniper/NetBSD sha1crypt";
 static const char HT_15200[] = "Blockchain, My Wallet, V2";
 static const char HT_15300[] = "DPAPI masterkey file v1 and v2";
 static const char HT_15400[] = "Chacha20";
-
+static const char HT_15600[] = "Ethereum Wallet, PBKDF2-HMAC-SHA256";
+static const char HT_15700[] = "Ethereum Wallet, SCRYPT";
 static const char HT_99999[] = "Plaintext";
 
 static const char HT_00011[] = "Joomla < 2.5.18";
@@ -384,6 +385,8 @@ static const char SIGNATURE_ATLASSIAN[]        = "{PKCS5S2}";
 static const char SIGNATURE_NETBSD_SHA1CRYPT[] = "$sha1$";
 static const char SIGNATURE_BLAKE2B[]          = "$BLAKE2$";
 static const char SIGNATURE_CHACHA20[]         = "$Chacha20$";
+static const char SIGNATURE_ETHEREUM_PBKDF2[]  = "$ethereum$p";
+static const char SIGNATURE_ETHEREUM_SCRYPT[]  = "$ethereum$s";
 
 /**
  * decoder / encoder
@@ -14829,6 +14832,263 @@ int atlassian_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   return (PARSER_OK);
 }
 
+int ethereum_pbkdf2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
+{
+  if ((input_len < DISPLAY_LEN_MIN_15600) || (input_len > DISPLAY_LEN_MAX_15600)) return (PARSER_GLOBAL_LENGTH);
+
+  if (memcmp (SIGNATURE_ETHEREUM_PBKDF2, input_buf, 11)) return (PARSER_SIGNATURE_UNMATCHED);
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  ethereum_pbkdf2_t *ethereum_pbkdf2 = (ethereum_pbkdf2_t *) hash_buf->esalt;
+
+  /**
+   * parse line
+   */
+
+  // iter
+
+  u8 *iter_pos = input_buf + 11 + 1;
+
+  // salt
+
+  u8 *salt_pos = (u8 *) strchr ((const char *) iter_pos, '*');
+
+  if (salt_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 iter_len = salt_pos - iter_pos;
+
+  salt_pos++;
+
+  // ciphertext
+
+  u8 *ciphertext_pos = (u8 *) strchr ((const char *) salt_pos, '*');
+
+  if (ciphertext_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 salt_len = ciphertext_pos - salt_pos;
+
+  ciphertext_pos++;
+
+  // hash
+
+  u8 *hash_pos = (u8 *) strchr ((const char *) ciphertext_pos, '*');
+
+  if (hash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 ciphertext_len = hash_pos - ciphertext_pos;
+
+  hash_pos++;
+
+  u32 hash_len = input_len - 11 - 1 - iter_len - 1 - salt_len - 1 - ciphertext_len - 1;
+
+  /**
+   * verify some data
+   */
+
+  const u32 iter = atoi ((const char *) iter_pos);
+
+  if (iter < 1) return (PARSER_SALT_ITERATION);
+
+  if ((salt_len != 32) && (salt_len != 64)) return (PARSER_SALT_LENGTH);
+  if (ciphertext_len != 64)                 return (PARSER_SALT_LENGTH);
+  if (hash_len       != 64)                 return (PARSER_SALT_LENGTH);
+
+  if (is_valid_hex_string (salt_pos, salt_len)             == false) return (PARSER_SALT_ENCODING);
+  if (is_valid_hex_string (ciphertext_pos, ciphertext_len) == false) return (PARSER_HASH_ENCODING);
+  if (is_valid_hex_string (hash_pos, hash_len)             == false) return (PARSER_HASH_ENCODING);
+
+  /**
+   * store data
+   */
+
+  u8 *salt_buf_ptr = (u8 *) ethereum_pbkdf2->salt_buf;
+
+  salt_len = parse_and_store_salt (salt_buf_ptr, salt_pos, salt_len, hashconfig);
+
+  salt_buf_ptr[salt_len + 3] = 0x01;
+  salt_buf_ptr[salt_len + 4] = 0x80;
+
+  // salt
+
+  salt->salt_buf[0] = ethereum_pbkdf2->salt_buf[0];
+  salt->salt_buf[1] = ethereum_pbkdf2->salt_buf[1];
+  salt->salt_buf[2] = ethereum_pbkdf2->salt_buf[2];
+  salt->salt_buf[3] = ethereum_pbkdf2->salt_buf[3];
+  salt->salt_buf[4] = ethereum_pbkdf2->salt_buf[4];
+  salt->salt_buf[5] = ethereum_pbkdf2->salt_buf[5];
+  salt->salt_buf[6] = ethereum_pbkdf2->salt_buf[6];
+  salt->salt_buf[7] = ethereum_pbkdf2->salt_buf[7];
+
+  salt->salt_len  = salt_len;
+  salt->salt_iter = iter - 1;
+
+  // ciphtertext
+
+  ethereum_pbkdf2->ciphertext[0] = hex_to_u32 ((const u8 *) &ciphertext_pos[ 0]);
+  ethereum_pbkdf2->ciphertext[1] = hex_to_u32 ((const u8 *) &ciphertext_pos[ 8]);
+  ethereum_pbkdf2->ciphertext[2] = hex_to_u32 ((const u8 *) &ciphertext_pos[16]);
+  ethereum_pbkdf2->ciphertext[3] = hex_to_u32 ((const u8 *) &ciphertext_pos[24]);
+  ethereum_pbkdf2->ciphertext[4] = hex_to_u32 ((const u8 *) &ciphertext_pos[32]);
+  ethereum_pbkdf2->ciphertext[5] = hex_to_u32 ((const u8 *) &ciphertext_pos[40]);
+  ethereum_pbkdf2->ciphertext[6] = hex_to_u32 ((const u8 *) &ciphertext_pos[48]);
+  ethereum_pbkdf2->ciphertext[7] = hex_to_u32 ((const u8 *) &ciphertext_pos[56]);
+
+  // hash
+
+  digest[0] = hex_to_u32 ((const u8 *) &hash_pos[ 0]);
+  digest[1] = hex_to_u32 ((const u8 *) &hash_pos[ 8]);
+  digest[2] = hex_to_u32 ((const u8 *) &hash_pos[16]);
+  digest[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
+  digest[4] = hex_to_u32 ((const u8 *) &hash_pos[32]);
+  digest[5] = hex_to_u32 ((const u8 *) &hash_pos[40]);
+  digest[6] = hex_to_u32 ((const u8 *) &hash_pos[48]);
+  digest[7] = hex_to_u32 ((const u8 *) &hash_pos[56]);
+
+  return (PARSER_OK);
+}
+
+int ethereum_scrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
+{
+  if ((input_len < DISPLAY_LEN_MIN_15700) || (input_len > DISPLAY_LEN_MAX_15700)) return (PARSER_GLOBAL_LENGTH);
+
+  if (memcmp (SIGNATURE_ETHEREUM_SCRYPT, input_buf, 11)) return (PARSER_SIGNATURE_UNMATCHED);
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  ethereum_scrypt_t *ethereum_scrypt = (ethereum_scrypt_t *) hash_buf->esalt;
+
+  /**
+   * parse line
+   */
+
+  // scryptN
+
+  u8 *scryptN_pos = input_buf + 11 + 1;
+
+  // scryptr
+
+  u8 *scryptr_pos = (u8 *) strchr ((const char *) scryptN_pos, '*');
+
+  if (scryptr_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 scryptN_len = scryptr_pos - scryptN_pos;
+
+  scryptr_pos++;
+
+  // scryptp
+
+  u8 *scryptp_pos = (u8 *) strchr ((const char *) scryptr_pos, '*');
+
+  if (scryptp_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 scryptr_len = scryptp_pos - scryptr_pos;
+
+  scryptp_pos++;
+
+  // salt
+
+  u8 *salt_pos = (u8 *) strchr ((const char *) scryptp_pos, '*');
+
+  if (salt_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 scryptp_len = salt_pos - scryptp_pos;
+
+  salt_pos++;
+
+  // ciphertext
+
+  u8 *ciphertext_pos = (u8 *) strchr ((const char *) salt_pos, '*');
+
+  if (ciphertext_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 salt_len = ciphertext_pos - salt_pos;
+
+  ciphertext_pos++;
+
+  // hash
+
+  u8 *hash_pos = (u8 *) strchr ((const char *) ciphertext_pos, '*');
+
+  if (hash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 ciphertext_len = hash_pos - ciphertext_pos;
+
+  hash_pos++;
+
+  u32 hash_len = input_len - 11 - 1 - scryptN_len - 1 - scryptr_len - 1 - scryptp_len - 1 - salt_len - 1 - ciphertext_len - 1;
+
+  /**
+   * verify some data
+   */
+
+  const u32 scrypt_N = atoi ((const char *) scryptN_pos);
+  const u32 scrypt_r = atoi ((const char *) scryptr_pos);
+  const u32 scrypt_p = atoi ((const char *) scryptp_pos);
+
+  if (salt_len       != 64) return (PARSER_SALT_LENGTH);
+  if (ciphertext_len != 64) return (PARSER_SALT_LENGTH);
+  if (hash_len       != 64) return (PARSER_SALT_LENGTH);
+
+  if (is_valid_hex_string (salt_pos, salt_len)             == false) return (PARSER_SALT_ENCODING);
+  if (is_valid_hex_string (ciphertext_pos, ciphertext_len) == false) return (PARSER_HASH_ENCODING);
+  if (is_valid_hex_string (hash_pos, hash_len)             == false) return (PARSER_HASH_ENCODING);
+
+  /**
+   * store data
+   */
+
+  u8 *salt_buf_ptr = (u8 *) ethereum_scrypt->salt_buf;
+
+  salt_len = parse_and_store_salt (salt_buf_ptr, salt_pos, salt_len, hashconfig);
+
+  // salt
+
+  salt->salt_buf[0] = ethereum_scrypt->salt_buf[0];
+  salt->salt_buf[1] = ethereum_scrypt->salt_buf[1];
+  salt->salt_buf[2] = ethereum_scrypt->salt_buf[2];
+  salt->salt_buf[3] = ethereum_scrypt->salt_buf[3];
+  salt->salt_buf[4] = ethereum_scrypt->salt_buf[4];
+  salt->salt_buf[5] = ethereum_scrypt->salt_buf[5];
+  salt->salt_buf[6] = ethereum_scrypt->salt_buf[6];
+  salt->salt_buf[7] = ethereum_scrypt->salt_buf[7];
+
+  salt->salt_len  = salt_len;
+  salt->salt_iter = 1;
+
+  salt->scrypt_N = scrypt_N;
+  salt->scrypt_r = scrypt_r;
+  salt->scrypt_p = scrypt_p;
+
+  // ciphtertext
+
+  ethereum_scrypt->ciphertext[0] = hex_to_u32 ((const u8 *) &ciphertext_pos[ 0]);
+  ethereum_scrypt->ciphertext[1] = hex_to_u32 ((const u8 *) &ciphertext_pos[ 8]);
+  ethereum_scrypt->ciphertext[2] = hex_to_u32 ((const u8 *) &ciphertext_pos[16]);
+  ethereum_scrypt->ciphertext[3] = hex_to_u32 ((const u8 *) &ciphertext_pos[24]);
+  ethereum_scrypt->ciphertext[4] = hex_to_u32 ((const u8 *) &ciphertext_pos[32]);
+  ethereum_scrypt->ciphertext[5] = hex_to_u32 ((const u8 *) &ciphertext_pos[40]);
+  ethereum_scrypt->ciphertext[6] = hex_to_u32 ((const u8 *) &ciphertext_pos[48]);
+  ethereum_scrypt->ciphertext[7] = hex_to_u32 ((const u8 *) &ciphertext_pos[56]);
+
+  // hash
+
+  digest[0] = hex_to_u32 ((const u8 *) &hash_pos[ 0]);
+  digest[1] = hex_to_u32 ((const u8 *) &hash_pos[ 8]);
+  digest[2] = hex_to_u32 ((const u8 *) &hash_pos[16]);
+  digest[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
+  digest[4] = hex_to_u32 ((const u8 *) &hash_pos[32]);
+  digest[5] = hex_to_u32 ((const u8 *) &hash_pos[40]);
+  digest[6] = hex_to_u32 ((const u8 *) &hash_pos[48]);
+  digest[7] = hex_to_u32 ((const u8 *) &hash_pos[56]);
+
+  return (PARSER_OK);
+}
+
 /**
  * hook functions
  */
@@ -15251,6 +15511,8 @@ char *strhashtype (const u32 hash_mode)
     case 15200: return ((char *) HT_15200);
     case 15300: return ((char *) HT_15300);
     case 15400: return ((char *) HT_15400);
+    case 15600: return ((char *) HT_15600);
+    case 15700: return ((char *) HT_15700);
     case 99999: return ((char *) HT_99999);
   }
 
@@ -18448,6 +18710,62 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
       iv,
       contents_len,
       contents);
+  }
+  else if (hash_mode == 15600)
+  {
+    ethereum_pbkdf2_t *ethereum_pbkdf2s = (ethereum_pbkdf2_t *) esalts_buf;
+    ethereum_pbkdf2_t *ethereum_pbkdf2  = &ethereum_pbkdf2s[digest_cur];
+
+    snprintf (out_buf, out_len - 1, "%s*%d*%s*%08x%08x%08x%08x%08x%08x%08x%08x*%08x%08x%08x%08x%08x%08x%08x%08x",
+      SIGNATURE_ETHEREUM_PBKDF2,
+      salt.salt_iter + 1,
+      (char *) salt.salt_buf,
+      byte_swap_32 (ethereum_pbkdf2->ciphertext[0]),
+      byte_swap_32 (ethereum_pbkdf2->ciphertext[1]),
+      byte_swap_32 (ethereum_pbkdf2->ciphertext[2]),
+      byte_swap_32 (ethereum_pbkdf2->ciphertext[3]),
+      byte_swap_32 (ethereum_pbkdf2->ciphertext[4]),
+      byte_swap_32 (ethereum_pbkdf2->ciphertext[5]),
+      byte_swap_32 (ethereum_pbkdf2->ciphertext[6]),
+      byte_swap_32 (ethereum_pbkdf2->ciphertext[7]),
+      digest_buf[0],
+      digest_buf[1],
+      digest_buf[2],
+      digest_buf[3],
+      digest_buf[4],
+      digest_buf[5],
+      digest_buf[6],
+      digest_buf[7]
+    );
+  }
+  else if (hash_mode == 15700)
+  {
+    ethereum_scrypt_t *ethereum_scrypts = (ethereum_scrypt_t *) esalts_buf;
+    ethereum_scrypt_t *ethereum_scrypt  = &ethereum_scrypts[digest_cur];
+
+    snprintf (out_buf, out_len - 1, "%s*%d*%d*%d*%s*%08x%08x%08x%08x%08x%08x%08x%08x*%08x%08x%08x%08x%08x%08x%08x%08x",
+      SIGNATURE_ETHEREUM_SCRYPT,
+      salt.scrypt_N,
+      salt.scrypt_r,
+      salt.scrypt_p,
+      (char *) salt.salt_buf,
+      byte_swap_32 (ethereum_scrypt->ciphertext[0]),
+      byte_swap_32 (ethereum_scrypt->ciphertext[1]),
+      byte_swap_32 (ethereum_scrypt->ciphertext[2]),
+      byte_swap_32 (ethereum_scrypt->ciphertext[3]),
+      byte_swap_32 (ethereum_scrypt->ciphertext[4]),
+      byte_swap_32 (ethereum_scrypt->ciphertext[5]),
+      byte_swap_32 (ethereum_scrypt->ciphertext[6]),
+      byte_swap_32 (ethereum_scrypt->ciphertext[7]),
+      digest_buf[0],
+      digest_buf[1],
+      digest_buf[2],
+      digest_buf[3],
+      digest_buf[4],
+      digest_buf[5],
+      digest_buf[6],
+      digest_buf[7]
+    );
   }
   else if (hash_mode == 99999)
   {
@@ -22795,6 +23113,37 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos3      = 3;
                  break;
 
+    case 15600:  hashconfig->hash_type      = HASH_TYPE_PBKDF2_SHA256;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_ST_HEX;
+                 hashconfig->kern_type      = KERN_TYPE_ETHEREUM_PBKDF2;
+                 hashconfig->dgst_size      = DGST_SIZE_4_8;
+                 hashconfig->parse_func     = ethereum_pbkdf2_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_SLOW_HASH_SIMD;
+                 hashconfig->dgst_pos0      = 0;
+                 hashconfig->dgst_pos1      = 1;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 3;
+                 break;
+
+    case 15700:  hashconfig->hash_type      = HASH_TYPE_SCRYPT;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_ST_HEX;
+                 hashconfig->kern_type      = KERN_TYPE_ETHEREUM_SCRYPT;
+                 hashconfig->dgst_size      = DGST_SIZE_4_8;
+                 hashconfig->parse_func     = ethereum_scrypt_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
+                 hashconfig->dgst_pos0      = 0;
+                 hashconfig->dgst_pos1      = 1;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 3;
+                 break;
+
     case 99999:  hashconfig->hash_type      = HASH_TYPE_PLAINTEXT;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -22933,6 +23282,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 14800: hashconfig->esalt_size = sizeof (itunes_backup_t);  break;
     case 15300: hashconfig->esalt_size = sizeof (dpapimk_t);        break;
     case 15400: hashconfig->esalt_size = sizeof (chacha20_t);       break;
+    case 15600: hashconfig->esalt_size = sizeof (ethereum_pbkdf2_t); break;
+    case 15700: hashconfig->esalt_size = sizeof (ethereum_scrypt_t); break;
   }
 
   // hook_salt_size
@@ -23037,6 +23388,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 15100: hashconfig->tmp_size = sizeof (pbkdf1_sha1_tmp_t);     break;
     case 15200: hashconfig->tmp_size = sizeof (mywallet_tmp_t);        break;
     case 15300: hashconfig->tmp_size = sizeof (dpapimk_tmp_t);         break;
+    case 15600: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);   break;
   };
 
   // hook_size
@@ -23165,6 +23517,7 @@ u32 hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_p
 
   if (hashconfig->hash_mode ==  8900) kernel_threads = 64; // Scrypt
   if (hashconfig->hash_mode ==  9300) kernel_threads = 64; // Scrypt
+  if (hashconfig->hash_mode == 15700) kernel_threads = 64; // Scrypt
 
   if (device_param->device_type & CL_DEVICE_TYPE_CPU)
   {
@@ -23232,6 +23585,11 @@ u32 hashconfig_get_kernel_loops (hashcat_ctx_t *hashcat_ctx)
   if (hashconfig->hash_mode == 14100 && user_options->attack_mode == ATTACK_MODE_BF)
   {
     kernel_loops_fixed = 1024;
+  }
+
+  if (hashconfig->hash_mode == 15700)
+  {
+    kernel_loops_fixed = 1;
   }
 
   return kernel_loops_fixed;
@@ -23380,6 +23738,13 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
       case 14900: salt->salt_len = 4;
                   break;
       case 15100: salt->salt_len = 8;
+                  break;
+      case 15600: salt->salt_len = 32;
+                  break;
+      case 15700: salt->salt_len = 32;
+                  salt->scrypt_N = 262144;
+                  salt->scrypt_r = 1;
+                  salt->scrypt_p = 8;
                   break;
     }
 
@@ -23640,6 +24005,10 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
     case 15200:  salt->salt_iter  = ROUNDS_MYWALLETV2;
                  break;
     case 15300:  salt->salt_iter  = ROUNDS_DPAPIMK;
+                 break;
+    case 15600:  salt->salt_iter  = ROUNDS_ETHEREUM_PBKDF2;
+                 break;
+    case 15700:  salt->salt_iter  = 1;
                  break;
   }
 }

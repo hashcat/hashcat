@@ -1063,6 +1063,20 @@ typedef struct
 
 } dpapimk_t;
 
+typedef struct ethereum_pbkdf2
+{
+  u32 salt_buf[16];
+  u32 ciphertext[8];
+
+} ethereum_pbkdf2_t;
+
+typedef struct ethereum_scrypt
+{
+  u32 salt_buf[16];
+  u32 ciphertext[8];
+
+} ethereum_scrypt_t;
+
 typedef struct
 {
   u32 digest[4];

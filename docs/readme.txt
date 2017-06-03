@@ -222,6 +222,8 @@ NVIDIA GPUs require "NVIDIA Driver" (367.x or later)
 - Password Safe v2
 - Password Safe v3
 - KeePass 1 (AES/Twofish) and KeePass 2 (AES)
+- Ethereum Wallet, PBKDF2-HMAC-SHA256
+- Ethereum Wallet, SCRYPT
 - eCryptfs
 - Android FDE <= 4.3
 - Android FDE (Samsung DEK)
