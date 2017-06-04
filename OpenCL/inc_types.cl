@@ -763,22 +763,6 @@ typedef struct blake2
 
 } blake2_t;
 
-typedef struct luks_tmp
-{
-  u32 ipad32[8];
-  u64 ipad64[8];
-
-  u32 opad32[8];
-  u64 opad64[8];
-
-  u32 dgst32[32];
-  u64 dgst64[16];
-
-  u32 out32[32];
-  u64 out64[16];
-
-} luks_tmp_t;
-
 typedef struct chacha20
 {
   u32 iv[2];
@@ -1083,6 +1067,22 @@ typedef struct pdf14_tmp
   u32 out[4];
 
 } pdf14_tmp_t;
+
+typedef struct luks_tmp
+{
+  u32 ipad32[8];
+  u64 ipad64[8];
+
+  u32 opad32[8];
+  u64 opad64[8];
+
+  u32 dgst32[32];
+  u64 dgst64[16];
+
+  u32 out32[32];
+  u64 out64[16];
+
+} luks_tmp_t;
 
 typedef struct pdf17l8_tmp
 {
@@ -1541,4 +1541,3 @@ typedef enum combinator_mode
   COMBINATOR_MODE_BASE_RIGHT = 10002
 
 } combinator_mode_t;
-
