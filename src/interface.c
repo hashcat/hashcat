@@ -23515,9 +23515,23 @@ u32 hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_p
 
   u32 kernel_threads = MIN (KERNEL_THREADS_MAX, device_param->device_maxworkgroup_size);
 
-  if (hashconfig->hash_mode ==  8900) kernel_threads = 64; // Scrypt
-  if (hashconfig->hash_mode ==  9300) kernel_threads = 64; // Scrypt
-  if (hashconfig->hash_mode == 15700) kernel_threads = 64; // Scrypt
+  if ((hashconfig->hash_mode == 8900) || (hashconfig->hash_mode == 9300) || (hashconfig->hash_mode == 15700))
+  {
+    const hashes_t *hashes = hashcat_ctx->hashes;
+
+    const u32 scrypt_r = hashes->salts_buf[0].scrypt_r;
+    const u32 scrypt_p = hashes->salts_buf[0].scrypt_p;
+    const u32 scrypt_l = scrypt_r * scrypt_p;
+
+    if (scrypt_l)
+    {
+      kernel_threads = 256 / scrypt_l;
+    }
+    else
+    {
+      kernel_threads = 256;
+    }
+  }
 
   if (device_param->device_type & CL_DEVICE_TYPE_CPU)
   {

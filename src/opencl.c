@@ -3685,11 +3685,12 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       hashconfig->tmp_size = scrypt_tmp_size;
 
       u32 tmto_start = 0;
-      u32 tmto_stop  = 10;
+      u32 tmto_stop  = 5;
 
       if (user_options->scrypt_tmto)
       {
         tmto_start = user_options->scrypt_tmto;
+        tmto_stop  = user_options->scrypt_tmto;
       }
       else
       {
@@ -3716,17 +3717,6 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
           else if (device_param->device_vendor_id == VENDOR_ID_NV)
           {
             tmto_start = 4;
-          }
-        }
-        else if (hashconfig->hash_mode == 15700)
-        {
-          if (device_param->device_vendor_id == VENDOR_ID_AMD)
-          {
-            tmto_start = 5;
-          }
-          else if (device_param->device_vendor_id == VENDOR_ID_NV)
-          {
-            tmto_start = 6;
           }
         }
       }
@@ -3772,9 +3762,11 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         + size_tm
         + size_tmps;
 
+      bool not_enough_memory = true;
+
       u32 tmto;
 
-      for (tmto = tmto_start; tmto < tmto_stop; tmto++)
+      for (tmto = tmto_start; tmto <= tmto_stop; tmto++)
       {
         size_scrypt = (128 * scrypt_r) * scrypt_N;
 
@@ -3801,10 +3793,12 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
           scrypt_tmto_final = tmto;
         }
 
+        not_enough_memory = false;
+
         break;
       }
 
-      if (tmto == tmto_stop)
+      if (not_enough_memory == true)
       {
         event_log_error (hashcat_ctx, "Cannot allocate enough device memory.");
 
