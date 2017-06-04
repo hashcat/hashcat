@@ -666,7 +666,7 @@ typedef enum user_options_map
  * structs
  */
 
-typedef struct
+typedef struct salt
 {
   u32 salt_buf[16];
   u32 salt_buf_pc[16];
@@ -1667,7 +1667,7 @@ typedef struct cpt_ctx
 
 } cpt_ctx_t;
 
-typedef struct
+typedef struct device_info
 {
   bool    skipped_dev;
   double  hashes_msec_dev;
@@ -1683,7 +1683,7 @@ typedef struct
 
 } device_info_t;
 
-typedef struct
+typedef struct hashcat_status
 {
   const char *hash_target;
   char       *hash_type;
