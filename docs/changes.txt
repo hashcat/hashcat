@@ -4,10 +4,10 @@
 ## Algorithms
 ##
 
-- Added hash-mode   600 = Blake2-512
+- Added hash-mode   600 = BLAKE2-512
 - Added hash-mode 15200 = Blockchain, My Wallet, V2
 - Added hash-mode 15300 = DPAPI masterkey file v1 and v2
-- Added hash-mode 15400 = Chacha20
+- Added hash-mode 15400 = ChaCha20
 - Added hash-mode 15600 = Ethereum Wallet, PBKDF2-HMAC-SHA256
 - Added hash-mode 15700 = Ethereum Wallet, PBKDF2-SCRYPT
 
@@ -15,42 +15,42 @@
 ## Features
 ##
 
-- Wordlist encoding: Support added for internal convert from and to user-defined encoding during runtime
+- Wordlist encoding: Support added for internal conversion between user-defined encodings during runtime
 - Wordlist encoding: Added parameters --encoding-from and --encoding-to to configure wordlist encoding handling
 - Rules: Support added for rule 'eX'
-- Rules: Support added for position 'p' in host mode (using -j or -k)
+- Rules: Support added for position 'p' (Nth instance of a character) in host mode (using -j or -k)
 - 7-Zip cracking: increased max. data length to 320k and removed AES padding attack to avoid false negatives
-- Rules: Support added for rejection rule '_N' in host mode
-- Dictionary cache: Show time spent for dictionary cache building on startup
+- Rules: Support added for rejection rule '_N' (reject plains of length not equal to N) in host mode
+- Dictionary cache: Show time spent on dictionary cache building at startup
 
 ##
 ## Workarounds
 ##
 
-- Workaround added for NVidia NVML library: If libnvidia-ml.so couldn't be load try again using libnvidia-ml.so.1
+- Workaround added for NVIDIA NVML library: If libnvidia-ml.so couldn't be loaded, try again using libnvidia-ml.so.1
 
 ##
 ## Improvements
 ##
 
-- WPA cracking: Improved nonce-error-corrections mode to fix corrupt nonce generated on Big-Endian devices
+- WPA cracking: Improved nonce-error-corrections mode to fix corrupt nonces generated on big-endian devices
 
 ##
 ## Bugs
 ##
 
 - Fixed a missing type specifier in a function declaration of the RACF kernel
-- Fixed a condition that caused a hybrid attack using a maskfile to not select all wordlists from a wordlist folder
-- Fixed a memory leak that is present when a user is periodically printing hashcat status (using --status-timer)
+- Fixed a condition that caused hybrid attacks using a maskfile to not select all wordlists from a wordlist folder
+- Fixed a memory leak that was present when a user periodically prints hashcat status (using --status-timer)
 
 ##
 ## Technical
 ##
 
-- Building: On binary release package, link libiconv static for windows binaries
-- Dictstat: Structure for dictstat file changed as it has to include --encoding-from and --encoding-to parameter now
-- OpenCL Runtime: Updated AMDGPU-Pro driver version check, do warn if version 17.10 is detected which is known to be broken
-- WPA cracking: Reduced --nonce-error-corrections default from 16 to 8 to compensate speed drop caused due to Big-Endian fixes
+- Building: In the binary release packages, link libiconv static for Windows binaries
+- Dictstat: Structure for dictstat file changed to include --encoding-from and --encoding-to parameters
+- OpenCL Runtime: Updated AMDGPU-PRO driver version check, warn if version 17.10 (known to be broken) is detected
+- WPA cracking: Reduced --nonce-error-corrections default from 16 to 8 to compensate for speed drop caused by big-endian fixes
 
 * changes v3.40 -> 3.5.0:
 

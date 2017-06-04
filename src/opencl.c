@@ -73,7 +73,7 @@ static int ocl_check_dri (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
   if (vendor != 4098) return 0;
 
-  // Now the problem is only with AMDGPU-Pro, not with oldschool AMD driver
+  // Now the problem is only with AMDGPU-PRO, not with oldschool AMD driver
 
   char buf[HCBUFSIZ_TINY];
 
@@ -415,7 +415,7 @@ int ocl_init (hashcat_ctx_t *hashcat_ctx)
 
     #if defined (__linux__)
     event_log_warning (hashcat_ctx, "* AMD GPUs on Linux require this runtime and/or driver:");
-    event_log_warning (hashcat_ctx, "  \"AMDGPU-Pro Driver\" (16.40 or later)");
+    event_log_warning (hashcat_ctx, "  \"AMDGPU-PRO Driver\" (16.40 or later)");
     #elif defined (_WIN)
     event_log_warning (hashcat_ctx, "* AMD GPUs on Windows require this runtime and/or driver:");
     event_log_warning (hashcat_ctx, "  \"AMD Radeon Software Crimson Edition\" (15.12 or later)");
@@ -2181,7 +2181,7 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (rc_ocl_init == -1) return -1;
 
   /**
-   * Some permission pre-check, because AMDGPU-Pro Driver crashes if the user has no permission to do this
+   * Some permission pre-check, because AMDGPU-PRO Driver crashes if the user has no permission to do this
    */
 
   const int rc_ocl_check = ocl_check_dri (hashcat_ctx);
@@ -2265,7 +2265,7 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     #if defined (__linux__)
     event_log_warning (hashcat_ctx, "* AMD GPUs on Linux require this runtime and/or driver:");
-    event_log_warning (hashcat_ctx, "  \"AMDGPU-Pro Driver\" (16.40 or later)");
+    event_log_warning (hashcat_ctx, "  \"AMDGPU-PRO Driver\" (16.40 or later)");
     #elif defined (_WIN)
     event_log_warning (hashcat_ctx, "* AMD GPUs on Windows require this runtime and/or driver:");
     event_log_warning (hashcat_ctx, "  \"AMD Radeon Software Crimson Edition\" (15.12 or later)");
@@ -3104,13 +3104,13 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
               bool amd_warn = true;
 
               #if defined (__linux__)
-              // AMDGPU-Pro Driver 16.40 and higher
+              // AMDGPU-PRO Driver 16.40 and higher
               if (atoi (device_param->driver_version) >= 2117) amd_warn = false;
-              // AMDGPU-Pro Driver 16.50 is known to be broken
+              // AMDGPU-PRO Driver 16.50 is known to be broken
               if (atoi (device_param->driver_version) == 2236) amd_warn = true;
-              // AMDGPU-Pro Driver 16.60 is known to be broken
+              // AMDGPU-PRO Driver 16.60 is known to be broken
               if (atoi (device_param->driver_version) == 2264) amd_warn = true;
-              // AMDGPU-Pro Driver 17.10 is known to be broken
+              // AMDGPU-PRO Driver 17.10 is known to be broken
               if (atoi (device_param->driver_version) == 2348) amd_warn = true;
               #elif defined (_WIN)
               // AMD Radeon Software 14.9 and higher, should be updated to 15.12
