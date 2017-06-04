@@ -201,6 +201,31 @@ inline void truncate_block (u32x w[4], const u32 len)
   }
 }
 
+inline void make_unicode_be (const u32x in[4], u32x out1[4], u32x out2[4])
+{
+  #ifdef IS_NV
+  out2[3] = __byte_perm (in[3], 0, 0x3727);
+  out2[2] = __byte_perm (in[3], 0, 0x1707);
+  out2[1] = __byte_perm (in[2], 0, 0x3727);
+  out2[0] = __byte_perm (in[2], 0, 0x1707);
+  out1[3] = __byte_perm (in[1], 0, 0x3727);
+  out1[2] = __byte_perm (in[1], 0, 0x1707);
+  out1[1] = __byte_perm (in[0], 0, 0x3727);
+  out1[0] = __byte_perm (in[0], 0, 0x1707);
+  #endif
+
+  #if defined IS_AMD || defined IS_GENERIC
+  out2[3]  = ((in[3] >>  0) & 0xFF000000) | ((in[3] >> 8) & 0x0000FF00);
+  out2[2]  = ((in[3] << 16) & 0xFF000000) | ((in[3] << 8) & 0x0000FF00);
+  out2[1]  = ((in[2] >>  0) & 0xFF000000) | ((in[2] >> 8) & 0x0000FF00);
+  out2[0]  = ((in[2] << 16) & 0xFF000000) | ((in[2] << 8) & 0x0000FF00);
+  out1[3]  = ((in[1] >>  0) & 0xFF000000) | ((in[1] >> 8) & 0x0000FF00);
+  out1[2]  = ((in[1] << 16) & 0xFF000000) | ((in[1] << 8) & 0x0000FF00);
+  out1[1]  = ((in[0] >>  0) & 0xFF000000) | ((in[0] >> 8) & 0x0000FF00);
+  out1[0]  = ((in[0] << 16) & 0xFF000000) | ((in[0] << 8) & 0x0000FF00);
+  #endif
+}
+
 inline void make_unicode (const u32x in[4], u32x out1[4], u32x out2[4])
 {
   #ifdef IS_NV
@@ -223,6 +248,27 @@ inline void make_unicode (const u32x in[4], u32x out1[4], u32x out2[4])
   out1[2]  = ((in[1] << 8) & 0x00FF0000) | ((in[1] >>  0) & 0x000000FF);
   out1[1]  = ((in[0] >> 8) & 0x00FF0000) | ((in[0] >> 16) & 0x000000FF);
   out1[0]  = ((in[0] << 8) & 0x00FF0000) | ((in[0] >>  0) & 0x000000FF);
+  #endif
+}
+
+inline void undo_unicode_be (const u32x in1[4], const u32x in2[4], u32x out[4])
+{
+  #ifdef IS_NV
+  out[0] = __byte_perm (in1[0], in1[1], 0x4602);
+  out[1] = __byte_perm (in1[2], in1[3], 0x4602);
+  out[2] = __byte_perm (in2[0], in2[1], 0x4602);
+  out[3] = __byte_perm (in2[2], in2[3], 0x4602);
+  #endif
+
+  #if defined IS_AMD || defined IS_GENERIC
+  out[0] = ((in1[0] & 0x0000ff00) >>  8) | ((in1[0] & 0xff000000) >> 16)
+         | ((in1[1] & 0x0000ff00) <<  8) | ((in1[1] & 0xff000000) <<  0);
+  out[1] = ((in1[2] & 0x0000ff00) >>  8) | ((in1[2] & 0xff000000) >> 16)
+         | ((in1[3] & 0x0000ff00) <<  8) | ((in1[3] & 0xff000000) <<  0);
+  out[2] = ((in2[0] & 0x0000ff00) >>  8) | ((in2[0] & 0xff000000) >> 16)
+         | ((in2[1] & 0x0000ff00) <<  8) | ((in2[1] & 0xff000000) <<  0);
+  out[3] = ((in2[2] & 0x0000ff00) >>  8) | ((in2[2] & 0xff000000) >> 16)
+         | ((in2[3] & 0x0000ff00) <<  8) | ((in2[3] & 0xff000000) <<  0);
   #endif
 }
 
@@ -6066,6 +6112,31 @@ inline void truncate_block_S (u32 w[4], const u32 len)
   }
 }
 
+inline void make_unicode_be_S (const u32 in[4], u32 out1[4], u32 out2[4])
+{
+  #ifdef IS_NV
+  out2[3] = __byte_perm_S (in[3], 0, 0x3727);
+  out2[2] = __byte_perm_S (in[3], 0, 0x1707);
+  out2[1] = __byte_perm_S (in[2], 0, 0x3727);
+  out2[0] = __byte_perm_S (in[2], 0, 0x1707);
+  out1[3] = __byte_perm_S (in[1], 0, 0x3727);
+  out1[2] = __byte_perm_S (in[1], 0, 0x1707);
+  out1[1] = __byte_perm_S (in[0], 0, 0x3727);
+  out1[0] = __byte_perm_S (in[0], 0, 0x1707);
+  #endif
+
+  #if defined IS_AMD || defined IS_GENERIC
+  out2[3]  = ((in[3] >>  0) & 0xFF000000) | ((in[3] >> 8) & 0x0000FF00);
+  out2[2]  = ((in[3] << 16) & 0xFF000000) | ((in[3] << 8) & 0x0000FF00);
+  out2[1]  = ((in[2] >>  0) & 0xFF000000) | ((in[2] >> 8) & 0x0000FF00);
+  out2[0]  = ((in[2] << 16) & 0xFF000000) | ((in[2] << 8) & 0x0000FF00);
+  out1[3]  = ((in[1] >>  0) & 0xFF000000) | ((in[1] >> 8) & 0x0000FF00);
+  out1[2]  = ((in[1] << 16) & 0xFF000000) | ((in[1] << 8) & 0x0000FF00);
+  out1[1]  = ((in[0] >>  0) & 0xFF000000) | ((in[0] >> 8) & 0x0000FF00);
+  out1[0]  = ((in[0] << 16) & 0xFF000000) | ((in[0] << 8) & 0x0000FF00);
+  #endif
+}
+
 inline void make_unicode_S (const u32 in[4], u32 out1[4], u32 out2[4])
 {
   #ifdef IS_NV
@@ -6088,6 +6159,27 @@ inline void make_unicode_S (const u32 in[4], u32 out1[4], u32 out2[4])
   out1[2]  = ((in[1] << 8) & 0x00FF0000) | ((in[1] >>  0) & 0x000000FF);
   out1[1]  = ((in[0] >> 8) & 0x00FF0000) | ((in[0] >> 16) & 0x000000FF);
   out1[0]  = ((in[0] << 8) & 0x00FF0000) | ((in[0] >>  0) & 0x000000FF);
+  #endif
+}
+
+inline void undo_unicode_be_S (const u32 in1[4], const u32 in2[4], u32 out[4])
+{
+  #ifdef IS_NV
+  out[0] = __byte_perm_S (in1[0], in1[1], 0x4602);
+  out[1] = __byte_perm_S (in1[2], in1[3], 0x4602);
+  out[2] = __byte_perm_S (in2[0], in2[1], 0x4602);
+  out[3] = __byte_perm_S (in2[2], in2[3], 0x4602);
+  #endif
+
+  #if defined IS_AMD || defined IS_GENERIC
+  out[0] = ((in1[0] & 0x0000ff00) >>  8) | ((in1[0] & 0xff000000) >> 16)
+         | ((in1[1] & 0x0000ff00) <<  8) | ((in1[1] & 0xff000000) <<  0);
+  out[1] = ((in1[2] & 0x0000ff00) >>  8) | ((in1[2] & 0xff000000) >> 16)
+         | ((in1[3] & 0x0000ff00) <<  8) | ((in1[3] & 0xff000000) <<  0);
+  out[2] = ((in2[0] & 0x0000ff00) >>  8) | ((in2[0] & 0xff000000) >> 16)
+         | ((in2[1] & 0x0000ff00) <<  8) | ((in2[1] & 0xff000000) <<  0);
+  out[3] = ((in2[2] & 0x0000ff00) >>  8) | ((in2[2] & 0xff000000) >> 16)
+         | ((in2[3] & 0x0000ff00) <<  8) | ((in2[3] & 0xff000000) <<  0);
   #endif
 }
 
