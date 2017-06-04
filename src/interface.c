@@ -19284,7 +19284,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_INTERN;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PT_UNICODE
+                                            | OPTS_TYPE_PT_UNICODE_LE
                                             | OPTS_TYPE_ST_ADD80
                                             | OPTS_TYPE_ST_ADDBITS14;
                  hashconfig->kern_type      = KERN_TYPE_MD5_PWUSLT;
@@ -19310,7 +19310,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_PT_ADD80
                                             | OPTS_TYPE_PT_ADDBITS14
-                                            | OPTS_TYPE_PT_UNICODE;
+                                            | OPTS_TYPE_PT_UNICODE_LE;
                  hashconfig->kern_type      = KERN_TYPE_MD5_SLTPWU;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = md5s_parse_hash;
@@ -19589,7 +19589,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_INTERN;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
-                                            | OPTS_TYPE_PT_UNICODE
+                                            | OPTS_TYPE_PT_UNICODE_LE
                                             | OPTS_TYPE_ST_ADD80
                                             | OPTS_TYPE_ST_ADDBITS15;
                  hashconfig->kern_type      = KERN_TYPE_SHA1_PWUSLT;
@@ -19612,7 +19612,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
-                                            | OPTS_TYPE_PT_UNICODE
+                                            | OPTS_TYPE_PT_UNICODE_LE
                                             | OPTS_TYPE_PT_UPPER
                                             | OPTS_TYPE_ST_ADD80
                                             | OPTS_TYPE_ST_ADDBITS15
@@ -19637,7 +19637,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
-                                            | OPTS_TYPE_PT_UNICODE
+                                            | OPTS_TYPE_PT_UNICODE_LE
                                             | OPTS_TYPE_ST_ADD80
                                             | OPTS_TYPE_ST_ADDBITS15
                                             | OPTS_TYPE_ST_HEX;
@@ -19661,7 +19661,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
-                                            | OPTS_TYPE_PT_UNICODE
+                                            | OPTS_TYPE_PT_UNICODE_LE
                                             | OPTS_TYPE_ST_ADD80
                                             | OPTS_TYPE_ST_ADDBITS15;
                  hashconfig->kern_type      = KERN_TYPE_SHA1_PWUSLT;
@@ -19686,7 +19686,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_PT_ADD80
                                             | OPTS_TYPE_PT_ADDBITS15
-                                            | OPTS_TYPE_PT_UNICODE;
+                                            | OPTS_TYPE_PT_UNICODE_LE;
                  hashconfig->kern_type      = KERN_TYPE_SHA1_SLTPWU;
                  hashconfig->dgst_size      = DGST_SIZE_4_5;
                  hashconfig->parse_func     = sha1s_parse_hash;
@@ -19709,7 +19709,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_PT_ADD80
                                             | OPTS_TYPE_PT_ADDBITS15
-                                            | OPTS_TYPE_PT_UNICODE
+                                            | OPTS_TYPE_PT_UNICODE_LE
                                             | OPTS_TYPE_ST_BASE64;
                  hashconfig->kern_type      = KERN_TYPE_SHA1_SLTPWU;
                  hashconfig->dgst_size      = DGST_SIZE_4_5;
@@ -19885,7 +19885,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_PT_ADD80
                                             | OPTS_TYPE_PT_ADDBITS14
-                                            | OPTS_TYPE_PT_UNICODE;
+                                            | OPTS_TYPE_PT_UNICODE_LE;
                  hashconfig->kern_type      = KERN_TYPE_MD4_PWU;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = md4_parse_hash;
@@ -19909,7 +19909,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_PT_ADD80
                                             | OPTS_TYPE_PT_ADDBITS14
-                                            | OPTS_TYPE_PT_UNICODE
+                                            | OPTS_TYPE_PT_UNICODE_LE
                                             | OPTS_TYPE_ST_ADD80
                                             | OPTS_TYPE_ST_UNICODE
                                             | OPTS_TYPE_ST_LOWER;
@@ -20063,7 +20063,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_INTERN;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
-                                            | OPTS_TYPE_PT_UNICODE
+                                            | OPTS_TYPE_PT_UNICODE_LE
                                             | OPTS_TYPE_ST_ADD80
                                             | OPTS_TYPE_ST_ADDBITS15;
                  hashconfig->kern_type      = KERN_TYPE_SHA256_PWUSLT;
@@ -20088,7 +20088,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_PT_ADD80
                                             | OPTS_TYPE_PT_ADDBITS15
-                                            | OPTS_TYPE_PT_UNICODE;
+                                            | OPTS_TYPE_PT_UNICODE_LE;
                  hashconfig->kern_type      = KERN_TYPE_SHA256_SLTPWU;
                  hashconfig->dgst_size      = DGST_SIZE_4_8;
                  hashconfig->parse_func     = sha256s_parse_hash;
@@ -20111,7 +20111,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_PT_ADD80
                                             | OPTS_TYPE_PT_ADDBITS15
-                                            | OPTS_TYPE_PT_UNICODE
+                                            | OPTS_TYPE_PT_UNICODE_LE
                                             | OPTS_TYPE_ST_BASE64;
                  hashconfig->kern_type      = KERN_TYPE_SHA256_SLTPWU;
                  hashconfig->dgst_size      = DGST_SIZE_4_8;
@@ -20312,7 +20312,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_INTERN;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
-                                            | OPTS_TYPE_PT_UNICODE
+                                            | OPTS_TYPE_PT_UNICODE_LE
                                             | OPTS_TYPE_ST_ADD80
                                             | OPTS_TYPE_ST_ADDBITS15;
                  hashconfig->kern_type      = KERN_TYPE_SHA512_PWSLTU;
@@ -20336,7 +20336,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
-                                            | OPTS_TYPE_PT_UNICODE
+                                            | OPTS_TYPE_PT_UNICODE_LE
                                             | OPTS_TYPE_ST_ADD80
                                             | OPTS_TYPE_ST_ADDBITS15
                                             | OPTS_TYPE_ST_HEX;
@@ -20363,7 +20363,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_PT_ADD80
                                             | OPTS_TYPE_PT_ADDBITS15
-                                            | OPTS_TYPE_PT_UNICODE;
+                                            | OPTS_TYPE_PT_UNICODE_LE;
                  hashconfig->kern_type      = KERN_TYPE_SHA512_SLTPWU;
                  hashconfig->dgst_size      = DGST_SIZE_8_8;
                  hashconfig->parse_func     = sha512s_parse_hash;
@@ -21043,7 +21043,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_PT_ADD80
                                             | OPTS_TYPE_PT_ADDBITS14
-                                            | OPTS_TYPE_PT_UNICODE
+                                            | OPTS_TYPE_PT_UNICODE_LE
                                             | OPTS_TYPE_ST_HEX;
                  hashconfig->kern_type      = KERN_TYPE_NETNTLMv1;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
@@ -21062,7 +21062,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_PT_ADD80
                                             | OPTS_TYPE_PT_ADDBITS14
-                                            | OPTS_TYPE_PT_UNICODE;
+                                            | OPTS_TYPE_PT_UNICODE_LE;
                  hashconfig->kern_type      = KERN_TYPE_NETNTLMv2;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = netntlmv2_parse_hash;
@@ -21572,7 +21572,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
-                                            | OPTS_TYPE_PT_UNICODE
+                                            | OPTS_TYPE_PT_UNICODE_LE
                                             | OPTS_TYPE_ST_ADD80
                                             | OPTS_TYPE_ST_HEX;
                  hashconfig->kern_type      = KERN_TYPE_SYBASEASE;
@@ -21840,7 +21840,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_PT_ADD80
-                                            | OPTS_TYPE_PT_UNICODE;
+                                            | OPTS_TYPE_PT_UNICODE_LE;
                  hashconfig->kern_type      = KERN_TYPE_OLDOFFICE01;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = oldoffice01_parse_hash;
@@ -21875,7 +21875,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_PT_ADD80
-                                            | OPTS_TYPE_PT_UNICODE
+                                            | OPTS_TYPE_PT_UNICODE_LE
                                             | OPTS_TYPE_PT_NEVERCRACK;
                  hashconfig->kern_type      = KERN_TYPE_OLDOFFICE01CM2;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
@@ -21894,7 +21894,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_PT_ADD80
-                                            | OPTS_TYPE_PT_UNICODE;
+                                            | OPTS_TYPE_PT_UNICODE_LE;
                  hashconfig->kern_type      = KERN_TYPE_OLDOFFICE34;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = oldoffice34_parse_hash;
@@ -21928,7 +21928,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_PT_ADD80
-                                            | OPTS_TYPE_PT_UNICODE
+                                            | OPTS_TYPE_PT_UNICODE_LE
                                             | OPTS_TYPE_PT_NEVERCRACK;
                  hashconfig->kern_type      = KERN_TYPE_OLDOFFICE34CM2;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
@@ -22576,7 +22576,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
-                                            | OPTS_TYPE_PT_UNICODE
+                                            | OPTS_TYPE_PT_UNICODE_LE
                                             | OPTS_TYPE_PT_ADD80;
                  hashconfig->kern_type      = KERN_TYPE_PSTOKEN;
                  hashconfig->dgst_size      = DGST_SIZE_4_5;
@@ -22883,7 +22883,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
-                                            | OPTS_TYPE_PT_UNICODE;
+                                            | OPTS_TYPE_PT_UNICODE_LE;
                  hashconfig->kern_type      = KERN_TYPE_WIN8PHONE;
                  hashconfig->dgst_size      = DGST_SIZE_4_8;
                  hashconfig->parse_func     = win8phone_parse_hash;
@@ -23426,7 +23426,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   hashconfig->pw_max = PW_MAX;
 
-  if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
+  if ((hashconfig->opts_type & OPTS_TYPE_PT_UNICODE_LE) || (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE_BE))
   {
     hashconfig->pw_max = PW_MAX / 2;
   }

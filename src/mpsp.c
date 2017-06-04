@@ -47,7 +47,7 @@ static void mp_css_split_cnt (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_orig
     }
     else
     {
-      if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
+      if ((hashconfig->opts_type & OPTS_TYPE_PT_UNICODE_LE) || (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE_BE))
       {
         if (css_cnt_orig == 8 || css_cnt_orig == 10)
         {
@@ -122,7 +122,7 @@ static int mp_css_append_salt (hashcat_ctx_t *hashcat_ctx, salt_t *salt_buf)
   return 0;
 }
 
-static int mp_css_unicode_expand (hashcat_ctx_t *hashcat_ctx)
+static int mp_css_unicode_expand_le (hashcat_ctx_t *hashcat_ctx)
 {
   mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
@@ -136,6 +136,30 @@ static int mp_css_unicode_expand (hashcat_ctx_t *hashcat_ctx)
 
     css_buf_unicode[j + 1].cs_buf[0] = 0;
     css_buf_unicode[j + 1].cs_len    = 1;
+  }
+
+  hcfree (mask_ctx->css_buf);
+
+  mask_ctx->css_buf = css_buf_unicode;
+  mask_ctx->css_cnt = css_cnt_unicode;
+
+  return 0;
+}
+
+static int mp_css_unicode_expand_be (hashcat_ctx_t *hashcat_ctx)
+{
+  mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+  u32 css_cnt_unicode = mask_ctx->css_cnt * 2;
+
+  cs_t *css_buf_unicode = (cs_t *) hccalloc (css_cnt_unicode, sizeof (cs_t));
+
+  for (u32 i = 0, j = 0; i < mask_ctx->css_cnt; i += 1, j += 2)
+  {
+    css_buf_unicode[j + 0].cs_buf[0] = 0;
+    css_buf_unicode[j + 0].cs_len    = 1;
+
+    memcpy (&css_buf_unicode[j + 1], &mask_ctx->css_buf[i], sizeof (cs_t));
   }
 
   hcfree (mask_ctx->css_buf);
@@ -1165,9 +1189,15 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
         return 0;
       }
 
-      if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE)
+      if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE_LE)
       {
-        const int rc = mp_css_unicode_expand (hashcat_ctx);
+        const int rc = mp_css_unicode_expand_le (hashcat_ctx);
+
+        if (rc == -1) return -1;
+      }
+      else if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE_BE)
+      {
+        const int rc = mp_css_unicode_expand_be (hashcat_ctx);
 
         if (rc == -1) return -1;
       }
