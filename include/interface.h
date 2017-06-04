@@ -129,21 +129,25 @@ typedef struct itunes_backup
 
 } itunes_backup_t;
 
-typedef struct luks_tmp
+typedef struct blake2
 {
-  u32 ipad32[8];
-  u64 ipad64[8];
+  u64 h[8];
+  u64 t[2];
+  u64 f[2];
+  u32 buflen;
+  u32 outlen;
+  u8  last_node;
 
-  u32 opad32[8];
-  u64 opad64[8];
+} blake2_t;
 
-  u32 dgst32[32];
-  u64 dgst64[16];
+typedef struct chacha20
+{
+  u32 iv[2];
+  u32 plain[2];
+  u32 position[2];
+  u32 offset;
 
-  u32 out32[32];
-  u64 out64[16];
-
-} luks_tmp_t;
+} chacha20_t;
 
 typedef struct rar5
 {
@@ -454,6 +458,22 @@ typedef struct ethereum_scrypt
   u32 ciphertext[8];
 
 } ethereum_scrypt_t;
+
+typedef struct luks_tmp
+{
+  u32 ipad32[8];
+  u64 ipad64[8];
+
+  u32 opad32[8];
+  u64 opad64[8];
+
+  u32 dgst32[32];
+  u64 dgst64[16];
+
+  u32 out32[32];
+  u64 out64[16];
+
+} luks_tmp_t;
 
 typedef struct pdf14_tmp
 {

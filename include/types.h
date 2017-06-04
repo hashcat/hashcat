@@ -668,26 +668,6 @@ typedef enum user_options_map
 
 typedef struct
 {
-  u64 h[8];
-  u64 t[2];
-  u64 f[2];
-  u32 buflen;
-  u32 outlen;
-  u8  last_node;
-
-} blake2_t;
-
-typedef struct
-{
-  u32 iv[2];
-  u32 plain[2];
-  u32 position[2];
-  u32 offset;
-
-} chacha20_t;
-
-typedef struct
-{
   u32 salt_buf[16];
   u32 salt_buf_pc[16];
 
