@@ -8584,7 +8584,7 @@ END_CODE
     my $enc_offset = substr($enc, $offset, 8);
     $hash_buf = $enc_offset;
 
-    $tmp_hash = sprintf ("\$Chacha20\$\*%s\*%d\*%s\*%s\*%s", $counter, $offset, $iv, unpack("H*", substr($plaintext, $offset, 8)), unpack("H*", $enc_offset));
+    $tmp_hash = sprintf ("\$ChaCha20\$\*%s\*%d\*%s\*%s\*%s", $counter, $offset, $iv, unpack("H*", substr($plaintext, $offset, 8)), unpack("H*", $enc_offset));
   }
   elsif ($mode == 15600)
   {
