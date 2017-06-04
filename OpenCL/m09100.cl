@@ -12,7 +12,7 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
-// breaks if used with u8a on AMDGPU-Pro
+// breaks if used with u8a on AMDGPU-PRO
 __constant u8 lotus64_table[64] =
 {
   '0', '1', '2', '3', '4', '5', '6', '7',

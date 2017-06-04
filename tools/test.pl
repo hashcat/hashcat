@@ -2117,7 +2117,7 @@ sub verify
 
       next unless (exists ($db->{$hash_in}) and (! defined ($db->{$hash_in})));
     }
-    # BSDiCrypt, Extended DES
+    # BSDi Crypt, Extended DES
     elsif ($mode == 12400)
     {
       next unless (substr ($line, 0, 1) eq '_');

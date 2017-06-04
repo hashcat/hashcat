@@ -95,7 +95,7 @@ static const char HT_00300[] = "MySQL4.1/MySQL5";
 static const char HT_00400[] = "phpass, WordPress (MD5), phpBB3 (MD5), Joomla (MD5)";
 static const char HT_00500[] = "md5crypt, MD5 (Unix), Cisco-IOS $1$ (MD5)";
 static const char HT_00501[] = "Juniper IVE";
-static const char HT_00600[] = "Blake2-512";
+static const char HT_00600[] = "BLAKE2-512";
 static const char HT_00900[] = "MD4";
 static const char HT_01000[] = "NTLM";
 static const char HT_01100[] = "Domain Cached Credentials (DCC), MS Cache";
@@ -215,7 +215,7 @@ static const char HT_12000[] = "PBKDF2-HMAC-SHA1";
 static const char HT_12100[] = "PBKDF2-HMAC-SHA512";
 static const char HT_12200[] = "eCryptfs";
 static const char HT_12300[] = "Oracle T: Type (Oracle 12+)";
-static const char HT_12400[] = "BSDiCrypt, Extended DES";
+static const char HT_12400[] = "BSDi Crypt, Extended DES";
 static const char HT_12500[] = "RAR3-hp";
 static const char HT_12600[] = "ColdFusion 10+";
 static const char HT_12700[] = "Blockchain, My Wallet";
@@ -241,7 +241,7 @@ static const char HT_15000[] = "FileZilla Server >= 0.9.55";
 static const char HT_15100[] = "Juniper/NetBSD sha1crypt";
 static const char HT_15200[] = "Blockchain, My Wallet, V2";
 static const char HT_15300[] = "DPAPI masterkey file v1 and v2";
-static const char HT_15400[] = "Chacha20";
+static const char HT_15400[] = "ChaCha20";
 static const char HT_15600[] = "Ethereum Wallet, PBKDF2-HMAC-SHA256";
 static const char HT_15700[] = "Ethereum Wallet, SCRYPT";
 static const char HT_99999[] = "Plaintext";
@@ -384,7 +384,7 @@ static const char SIGNATURE_FORTIGATE[]        = "AK1";
 static const char SIGNATURE_ATLASSIAN[]        = "{PKCS5S2}";
 static const char SIGNATURE_NETBSD_SHA1CRYPT[] = "$sha1$";
 static const char SIGNATURE_BLAKE2B[]          = "$BLAKE2$";
-static const char SIGNATURE_CHACHA20[]         = "$Chacha20$";
+static const char SIGNATURE_CHACHA20[]         = "$ChaCha20$";
 static const char SIGNATURE_ETHEREUM_PBKDF2[]  = "$ethereum$p";
 static const char SIGNATURE_ETHEREUM_SCRYPT[]  = "$ethereum$s";
 
@@ -5457,7 +5457,7 @@ int blake2b_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   digest[6] = hex_to_u64 ((const u8 *) &input_hash_buf[ 96]);
   digest[7] = hex_to_u64 ((const u8 *) &input_hash_buf[112]);
 
-  // Initialize Blake2 Params and State
+  // Initialize BLAKE2 Params and State
 
   blake2_t  *S = (blake2_t *) hash_buf->esalt;
 
