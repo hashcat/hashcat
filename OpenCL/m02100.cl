@@ -529,7 +529,7 @@ __kernel void m02100_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   append_0x80_1x4_S (w0, pw_len);
 
-  make_unicode_S (w0, w0, w1);
+  make_utf16le_S (w0, w0, w1);
 
   w3[2] = pw_len * 2 * 8;
 

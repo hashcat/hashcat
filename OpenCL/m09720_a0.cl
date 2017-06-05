@@ -516,8 +516,8 @@ __kernel void m09720_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
      * md5
      */
 
-    make_unicode (w1, w2, w3);
-    make_unicode (w0, w0, w1);
+    make_utf16le (w1, w2, w3);
+    make_utf16le (w0, w0, w1);
 
     w3[2] = out_len * 8 * 2;
     w3[3] = 0;
@@ -634,8 +634,8 @@ __kernel void m09720_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
      * md5
      */
 
-    make_unicode (w1, w2, w3);
-    make_unicode (w0, w0, w1);
+    make_utf16le (w1, w2, w3);
+    make_utf16le (w0, w0, w1);
 
     w3[2] = out_len * 8 * 2;
     w3[3] = 0;

@@ -99,8 +99,8 @@ __kernel void m01430_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
-    make_unicode (w1, w2, w3);
-    make_unicode (w0, w0, w1);
+    make_utf16le (w1, w2, w3);
+    make_utf16le (w0, w0, w1);
 
     const u32x out_len2 = out_len * 2;
 
@@ -362,8 +362,8 @@ __kernel void m01430_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
-    make_unicode (w1, w2, w3);
-    make_unicode (w0, w0, w1);
+    make_utf16le (w1, w2, w3);
+    make_utf16le (w0, w0, w1);
 
     const u32x out_len2 = out_len * 2;
 

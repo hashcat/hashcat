@@ -1563,8 +1563,8 @@ __kernel void m15300_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   append_0x80_2x4_S (w0, w1, pw_len);
 
-  make_unicode_S (w1, w2, w3);
-  make_unicode_S (w0, w0, w1);
+  make_utf16le_S (w1, w2, w3);
+  make_utf16le_S (w0, w0, w1);
 
   /**
    * main

@@ -556,8 +556,8 @@ __kernel void m13800_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     const u32x out_len2 = out_len * 2;
 
-    make_unicode (w1, w2, w3);
-    make_unicode (w0, w0, w1);
+    make_utf16le (w1, w2, w3);
+    make_utf16le (w0, w0, w1);
 
     u32x w[16];
 
@@ -764,8 +764,8 @@ __kernel void m13800_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     const u32x out_len2 = out_len * 2;
 
-    make_unicode (w1, w2, w3);
-    make_unicode (w0, w0, w1);
+    make_utf16le (w1, w2, w3);
+    make_utf16le (w0, w0, w1);
 
     u32x w[16];
 

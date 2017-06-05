@@ -675,8 +675,8 @@ __kernel void m11600_loop (__global pw_t *pws, __global const kernel_rule_t *rul
 
   u32 pw_len = pws[gid].pw_len;
 
-  make_unicode (&pw[ 4], &pw[ 8], &pw[12]);
-  make_unicode (&pw[ 0], &pw[ 0], &pw[ 4]);
+  make_utf16le (&pw[ 4], &pw[ 8], &pw[12]);
+  make_utf16le (&pw[ 0], &pw[ 0], &pw[ 4]);
 
   pw_len *= 2;
 

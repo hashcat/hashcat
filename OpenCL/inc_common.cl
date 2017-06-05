@@ -201,7 +201,7 @@ inline void truncate_block (u32x w[4], const u32 len)
   }
 }
 
-inline void make_unicode_be (const u32x in[4], u32x out1[4], u32x out2[4])
+inline void make_utf16be (const u32x in[4], u32x out1[4], u32x out2[4])
 {
   #ifdef IS_NV
   out2[3] = __byte_perm (in[3], 0, 0x3727);
@@ -226,7 +226,7 @@ inline void make_unicode_be (const u32x in[4], u32x out1[4], u32x out2[4])
   #endif
 }
 
-inline void make_unicode (const u32x in[4], u32x out1[4], u32x out2[4])
+inline void make_utf16le (const u32x in[4], u32x out1[4], u32x out2[4])
 {
   #ifdef IS_NV
   out2[3] = __byte_perm (in[3], 0, 0x7372);
@@ -251,7 +251,7 @@ inline void make_unicode (const u32x in[4], u32x out1[4], u32x out2[4])
   #endif
 }
 
-inline void undo_unicode_be (const u32x in1[4], const u32x in2[4], u32x out[4])
+inline void undo_utf16be (const u32x in1[4], const u32x in2[4], u32x out[4])
 {
   #ifdef IS_NV
   out[0] = __byte_perm (in1[0], in1[1], 0x4602);
@@ -272,7 +272,7 @@ inline void undo_unicode_be (const u32x in1[4], const u32x in2[4], u32x out[4])
   #endif
 }
 
-inline void undo_unicode (const u32x in1[4], const u32x in2[4], u32x out[4])
+inline void undo_utf16le (const u32x in1[4], const u32x in2[4], u32x out[4])
 {
   #ifdef IS_NV
   out[0] = __byte_perm (in1[0], in1[1], 0x6420);
@@ -6112,7 +6112,7 @@ inline void truncate_block_S (u32 w[4], const u32 len)
   }
 }
 
-inline void make_unicode_be_S (const u32 in[4], u32 out1[4], u32 out2[4])
+inline void make_utf16be_S (const u32 in[4], u32 out1[4], u32 out2[4])
 {
   #ifdef IS_NV
   out2[3] = __byte_perm_S (in[3], 0, 0x3727);
@@ -6137,7 +6137,7 @@ inline void make_unicode_be_S (const u32 in[4], u32 out1[4], u32 out2[4])
   #endif
 }
 
-inline void make_unicode_S (const u32 in[4], u32 out1[4], u32 out2[4])
+inline void make_utf16le_S (const u32 in[4], u32 out1[4], u32 out2[4])
 {
   #ifdef IS_NV
   out2[3] = __byte_perm_S (in[3], 0, 0x7372);
@@ -6162,7 +6162,7 @@ inline void make_unicode_S (const u32 in[4], u32 out1[4], u32 out2[4])
   #endif
 }
 
-inline void undo_unicode_be_S (const u32 in1[4], const u32 in2[4], u32 out[4])
+inline void undo_utf16be_S (const u32 in1[4], const u32 in2[4], u32 out[4])
 {
   #ifdef IS_NV
   out[0] = __byte_perm_S (in1[0], in1[1], 0x4602);
@@ -6183,7 +6183,7 @@ inline void undo_unicode_be_S (const u32 in1[4], const u32 in2[4], u32 out[4])
   #endif
 }
 
-inline void undo_unicode_S (const u32 in1[4], const u32 in2[4], u32 out[4])
+inline void undo_utf16le_S (const u32 in1[4], const u32 in2[4], u32 out[4])
 {
   #ifdef IS_NV
   out[0] = __byte_perm_S (in1[0], in1[1], 0x6420);

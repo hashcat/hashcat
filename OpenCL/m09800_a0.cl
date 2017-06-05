@@ -347,8 +347,8 @@ __kernel void m09800_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
      * sha1
      */
 
-    make_unicode (w1, w2, w3);
-    make_unicode (w0, w0, w1);
+    make_utf16le (w1, w2, w3);
+    make_utf16le (w0, w0, w1);
 
     const u32x pw_salt_len = (out_len * 2) + 16;
 
@@ -559,8 +559,8 @@ __kernel void m09800_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
      * sha1
      */
 
-    make_unicode (w1, w2, w3);
-    make_unicode (w0, w0, w1);
+    make_utf16le (w1, w2, w3);
+    make_utf16le (w0, w0, w1);
 
     const u32x pw_salt_len = (out_len * 2) + 16;
 

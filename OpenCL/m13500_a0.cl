@@ -100,8 +100,8 @@ __kernel void m13500_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     append_0x80_2x4_VV (w0, w1, out_len);
 
-    make_unicode (w1, w2, w3);
-    make_unicode (w0, w0, w1);
+    make_utf16le (w1, w2, w3);
+    make_utf16le (w0, w0, w1);
 
     const u32x out_len2 = out_len * 2;
 
@@ -537,8 +537,8 @@ __kernel void m13500_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     append_0x80_2x4_VV (w0, w1, out_len);
 
-    make_unicode (w1, w2, w3);
-    make_unicode (w0, w0, w1);
+    make_utf16le (w1, w2, w3);
+    make_utf16le (w0, w0, w1);
 
     const u32x out_len2 = out_len * 2;
 

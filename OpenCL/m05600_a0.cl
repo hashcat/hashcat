@@ -354,8 +354,8 @@ __kernel void m05600_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
     u32x w2_t[4];
     u32x w3_t[4];
 
-    make_unicode (w0, w0_t, w1_t);
-    make_unicode (w1, w2_t, w3_t);
+    make_utf16le (w0, w0_t, w1_t);
+    make_utf16le (w1, w2_t, w3_t);
 
     w3_t[2] = out_len * 8 * 2;
     w3_t[3] = 0;
@@ -605,8 +605,8 @@ __kernel void m05600_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
     u32x w2_t[4];
     u32x w3_t[4];
 
-    make_unicode (w0, w0_t, w1_t);
-    make_unicode (w1, w2_t, w3_t);
+    make_utf16le (w0, w0_t, w1_t);
+    make_utf16le (w1, w2_t, w3_t);
 
     w3_t[2] = out_len * 8 * 2;
     w3_t[3] = 0;

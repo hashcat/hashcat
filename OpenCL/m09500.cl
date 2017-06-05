@@ -1083,8 +1083,8 @@ __kernel void m09500_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   append_0x80_4x4 (w0, w1, w2, w3, pw_len);
 
-  make_unicode (w1, w2, w3);
-  make_unicode (w0, w0, w1);
+  make_utf16le (w1, w2, w3);
+  make_utf16le (w0, w0, w1);
 
   /**
    * salt

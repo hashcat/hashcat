@@ -182,7 +182,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
         }
       }
 
-      if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE_LE)
+      if (hashconfig->opts_type & OPTS_TYPE_PT_UTF16LE)
       {
         for (int i = 0, j = 0; i < plain_len; i += 2, j += 1)
         {
@@ -191,7 +191,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
         plain_len = plain_len / 2;
       }
-      else if (hashconfig->opts_type & OPTS_TYPE_PT_UNICODE_BE)
+      else if (hashconfig->opts_type & OPTS_TYPE_PT_UTF16BE)
       {
         for (int i = 1, j = 0; i < plain_len; i += 2, j += 1)
         {

@@ -617,8 +617,8 @@ void kerb_prepare (const u32 w0[4], const u32 w1[4], const u32 pw_len, const u32
 
   append_0x80_2x4 (w0_t, w1_t, pw_len);
 
-  make_unicode (w1_t, w2_t, w3_t);
-  make_unicode (w0_t, w0_t, w1_t);
+  make_utf16le (w1_t, w2_t, w3_t);
+  make_utf16le (w0_t, w0_t, w1_t);
 
   w3_t[2] = pw_len * 8 * 2;
   w3_t[3] = 0;

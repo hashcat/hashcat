@@ -328,8 +328,8 @@ __kernel void m08000_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
     u32x w2_t[4];
     u32x w3_t[4];
 
-    make_unicode (w0, w0_t, w1_t);
-    make_unicode (w1, w2_t, w3_t);
+    make_utf16le (w0, w0_t, w1_t);
+    make_utf16le (w1, w2_t, w3_t);
 
     u32x w_t[16];
 
@@ -511,8 +511,8 @@ __kernel void m08000_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
     u32x w2_t[4];
     u32x w3_t[4];
 
-    make_unicode (w0, w0_t, w1_t);
-    make_unicode (w1, w2_t, w3_t);
+    make_utf16le (w0, w0_t, w1_t);
+    make_utf16le (w1, w2_t, w3_t);
 
     u32x w_t[16];
 

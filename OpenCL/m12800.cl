@@ -391,8 +391,8 @@ __kernel void m12800_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   append_0x80_2x4 (w0, w1, pw_len);
 
-  make_unicode (w1, w2, w3);
-  make_unicode (w0, w0, w1);
+  make_utf16le (w1, w2, w3);
+  make_utf16le (w0, w0, w1);
 
   w3[2] = pw_len * 2 * 8;
 
@@ -422,8 +422,8 @@ __kernel void m12800_init (__global pw_t *pws, __global const kernel_rule_t *rul
   w1[3] = uint_to_hex_lower8 ((digest_md4[3] >> 16) & 255) <<  0
         | uint_to_hex_lower8 ((digest_md4[3] >> 24) & 255) << 16;
 
-  make_unicode (w1, w2, w3);
-  make_unicode (w0, w0, w1);
+  make_utf16le (w1, w2, w3);
+  make_utf16le (w0, w0, w1);
 
   w0[0] = swap32 (w0[0]);
   w0[1] = swap32 (w0[1]);
