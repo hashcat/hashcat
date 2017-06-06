@@ -384,7 +384,7 @@ static const char SIGNATURE_FORTIGATE[]        = "AK1";
 static const char SIGNATURE_ATLASSIAN[]        = "{PKCS5S2}";
 static const char SIGNATURE_NETBSD_SHA1CRYPT[] = "$sha1$";
 static const char SIGNATURE_BLAKE2B[]          = "$BLAKE2$";
-static const char SIGNATURE_CHACHA20[]         = "$ChaCha20$";
+static const char SIGNATURE_CHACHA20[]         = "$chacha20$";
 static const char SIGNATURE_ETHEREUM_PBKDF2[]  = "$ethereum$p";
 static const char SIGNATURE_ETHEREUM_SCRYPT[]  = "$ethereum$s";
 
