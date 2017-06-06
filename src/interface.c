@@ -5541,6 +5541,8 @@ int chacha20_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   digest[1] = hex_to_u32 ((const u8 *) cipher_marker + 0);
 
   return (PARSER_OK);
+
+#undef INVALID_SEPARATOR_POINTER
 }
 
 
