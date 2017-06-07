@@ -5479,8 +5479,6 @@ int blake2b_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
 int chacha20_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
-#define INVALID_SEPARATOR_POINTER (void *)1
-
   if ((input_len < DISPLAY_LEN_MIN_15400) || (input_len > DISPLAY_LEN_MAX_15400)) return (PARSER_GLOBAL_LENGTH);
 
   if (memcmp (SIGNATURE_CHACHA20, input_buf, 10)) return (PARSER_SIGNATURE_UNMATCHED);
@@ -5491,26 +5489,31 @@ int chacha20_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   salt_t *salt = (salt_t *) hash_buf->salt;
 
-  u8 *position_marker = (u8 *) strchr ((const char *) input_buf, '*') + 1;
-  if (position_marker == INVALID_SEPARATOR_POINTER) return (PARSER_SEPARATOR_UNMATCHED);
+  u8 *position_marker = (u8 *) strchr ((const char *) input_buf, '*');
+  if (position_marker == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  position_marker++;
   if (is_valid_hex_string (position_marker, 16) == false) return (PARSER_SALT_ENCODING);
 
-  u8 *offset_marker = (u8 *) strchr ((const char *) position_marker, '*') + 1;
-  if (offset_marker == INVALID_SEPARATOR_POINTER) return (PARSER_SEPARATOR_UNMATCHED);
+  u8 *offset_marker = (u8 *) strchr ((const char *) position_marker, '*');
+  if (offset_marker == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  offset_marker++;
 
   int offset = atoi ((char*) offset_marker);
   if (offset > 63) return (PARSER_SALT_VALUE);
 
-  u8 *iv_marker = (u8 *) strchr ((const char *) offset_marker, '*') + 1;
-  if (iv_marker == INVALID_SEPARATOR_POINTER) return (PARSER_SEPARATOR_UNMATCHED);
+  u8 *iv_marker = (u8 *) strchr ((const char *) offset_marker, '*');
+  if (iv_marker == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  iv_marker++;
   if (is_valid_hex_string (iv_marker, 16) == false) return (PARSER_SALT_ENCODING);
 
-  u8 *plain_marker = (u8 *) strchr ((const char *) iv_marker, '*') + 1;
-  if (plain_marker == INVALID_SEPARATOR_POINTER) return (PARSER_SEPARATOR_UNMATCHED);
+  u8 *plain_marker = (u8 *) strchr ((const char *) iv_marker, '*');
+  if (plain_marker == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  plain_marker++;
   if (is_valid_hex_string (plain_marker, 16) == false) return (PARSER_SALT_ENCODING);
 
-  u8 *cipher_marker = (u8 *) strchr ((const char *) plain_marker, '*') + 1;
-  if (cipher_marker == INVALID_SEPARATOR_POINTER) return (PARSER_SEPARATOR_UNMATCHED);
+  u8 *cipher_marker = (u8 *) strchr ((const char *) plain_marker, '*');
+  if (cipher_marker == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  cipher_marker++;
   if (is_valid_hex_string (cipher_marker, 16) == false) return (PARSER_SALT_ENCODING);
 
   chacha20->iv[0] = hex_to_u32 ((const u8 *) iv_marker + 8);
@@ -5541,8 +5544,6 @@ int chacha20_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   digest[1] = hex_to_u32 ((const u8 *) cipher_marker + 0);
 
   return (PARSER_OK);
-
-#undef INVALID_SEPARATOR_POINTER
 }
 
 
