@@ -2676,6 +2676,30 @@ sub verify
 
       next unless (exists ($db->{$hash_in}) and (! defined ($db->{$hash_in})));
     }
+    # chacha
+    elsif ($mode == 15400)
+    {
+      my $index1 = index ($line, ':');
+
+      next if ($index1 < 0);
+
+      $hash_in = substr ($line, 0, $index1);
+      $word    = substr ($line, $index1 + 1);
+
+      next if (length ($hash_in) < 11);
+
+      next unless (substr ($hash_in, 0, 11) eq "\$chacha20\$\*");
+
+      my @data = split ('\*', $hash_in);
+
+      next unless (scalar (@data) == 6);
+
+      $param  = $data[1]; # counter
+      $param2 = $data[2]; # offset
+      $param3 = $data[3]; # iv
+
+      next unless (exists ($db->{$hash_in}) and (! defined ($db->{$hash_in})));
+    }
     # Ethereum - PBKDF2
     elsif ($mode == 15600)
     {
@@ -3108,6 +3132,14 @@ sub verify
     elsif ($mode == 15300)
     {
       $hash_out = gen_hash ($mode, $word, $salt, $iter, $param);
+
+      $len = length $hash_out;
+
+      return unless (substr ($line, 0, $len) eq $hash_out);
+    }
+    elsif ($mode == 15400)
+    {
+      $hash_out = gen_hash ($mode, $word, $salt, 0, $param, $param2, $param3);
 
       $len = length $hash_out;
 
@@ -8568,23 +8600,40 @@ END_CODE
   }
   elsif ($mode == 15400)
   {
-    my $iv = "0200000000000001";
-    my $counter = "0400000000000003";
+    my $counter;
+    my $offset;
+    my $iv;
+
+    if (defined $additional_param)
+    {
+      $counter = $additional_param;
+      $offset  = $additional_param2;
+      $iv      = $additional_param3;
+    }
+    else
+    {
+      $counter = "0400000000000003";
+      $offset  = int (rand (63));
+      $iv      = "0200000000000001";
+    }
+
     my $plaintext = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz0a2b4c6d8e";
-    my $eight_byte_iv = pack("H*",      $iv);
-    my $eight_byte_counter = pack("H*", $counter);
-    my $offset = int(rand(63));
-    my $pad_len = 32 - length $word_buf;
+    my $eight_byte_iv = pack ("H*", $iv);
+    my $eight_byte_counter = pack ("H*", $counter);
+    my $pad_len = 32 - length ($word_buf);
     my $key = $word_buf . "\0" x $pad_len;
-    my $cipher = Crypt::OpenSSH::ChachaPoly->new($key);
 
-    $cipher->ivsetup($eight_byte_iv, $eight_byte_counter);
+    my $cipher = Crypt::OpenSSH::ChachaPoly->new ($key);
 
-    my $enc = $cipher->encrypt($plaintext);
-    my $enc_offset = substr($enc, $offset, 8);
+    $cipher->ivsetup ($eight_byte_iv, $eight_byte_counter);
+
+    my $enc = $cipher->encrypt ($plaintext);
+
+    my $enc_offset = substr ($enc, $offset, 8);
+
     $hash_buf = $enc_offset;
 
-    $tmp_hash = sprintf ("\$chacha20\$\*%s\*%d\*%s\*%s\*%s", $counter, $offset, $iv, unpack("H*", substr($plaintext, $offset, 8)), unpack("H*", $enc_offset));
+    $tmp_hash = sprintf ("\$chacha20\$\*%s\*%d\*%s\*%s\*%s", $counter, $offset, $iv, unpack ("H*", substr ($plaintext, $offset, 8)), unpack ("H*", $enc_offset));
   }
   elsif ($mode == 15600)
   {
