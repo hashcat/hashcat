@@ -1,3 +1,4 @@
+sudo: required
 os:
   - linux
   - osx
@@ -14,4 +15,4 @@ matrix:
       dist: trusty
       compiler: clang
 script:
-  - make
+  - ./autogen.sh && ./configure --enable-static --disable-shared --disable-debug CPPFLAGS=-I$(pwd)/deps/OpenCL-Headers/ && make && sudo make install
