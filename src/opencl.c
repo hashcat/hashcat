@@ -3685,7 +3685,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       hashconfig->tmp_size = scrypt_tmp_size;
 
       u32 tmto_start = 0;
-      u32 tmto_stop  = 5;
+      u32 tmto_stop  = 6;
 
       if (user_options->scrypt_tmto)
       {
@@ -3800,7 +3800,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (not_enough_memory == true)
       {
-        event_log_error (hashcat_ctx, "Cannot allocate enough device memory.");
+        event_log_error (hashcat_ctx, "Cannot allocate enough device memory. Perhaps retry with -n 1.");
 
         return -1;
       }
