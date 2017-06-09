@@ -445,6 +445,17 @@ typedef struct dpapimk
 
 } dpapimk_t;
 
+typedef struct jks_sha1
+{
+  u32 checksum[5];
+  u32 iv[5];
+  u32 enc_key_buf[4096];
+  u32 enc_key_len;
+  u32 der[5];
+  u32 alias[16];
+
+} jks_sha1_t;
+
 typedef struct ethereum_pbkdf2
 {
   u32 salt_buf[16];
@@ -1262,6 +1273,8 @@ typedef enum display_len
   DISPLAY_LEN_MAX_15300 =  1 + 7 + 1 + 1 + 1 + 1 + 1 + 100 + 1 + 6 + 1 + 6 + 1 + 10 + 1 + 32 + 1 + 4 + 1 + 512,
   DISPLAY_LEN_MIN_15400 = 10 + 1 + 16 + 1 + 1 + 1 + 16 + 1 + 16 + 1 + 16,
   DISPLAY_LEN_MAX_15400 = 10 + 1 + 16 + 1 + 2 + 1 + 16 + 1 + 16 + 1 + 16,
+  DISPLAY_LEN_MIN_15500 = 10 + 1 + 40 + 1 + 40 + 1 +     1 + 1 + 2 + 1 + 28 + 1 +  1,
+  DISPLAY_LEN_MAX_15500 = 10 + 1 + 40 + 1 + 40 + 1 + 16384 + 1 + 2 + 1 + 28 + 1 + 64,
   DISPLAY_LEN_MIN_15600 = 11 + 1 + 1 + 1 + 32 + 1 + 64 + 1 + 64,
   DISPLAY_LEN_MAX_15600 = 11 + 1 + 6 + 1 + 64 + 1 + 64 + 1 + 64,
   DISPLAY_LEN_MIN_15700 = 11 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 64 + 1 + 64 + 1 + 64,
@@ -1407,6 +1420,7 @@ typedef enum hash_type
   HASH_TYPE_BLAKE2B             = 59,
   HASH_TYPE_CHACHA20            = 60,
   HASH_TYPE_DPAPIMK             = 61,
+  HASH_TYPE_JKS_SHA1            = 62,
 
 } hash_type_t;
 
@@ -1598,6 +1612,7 @@ typedef enum kern_type
   KERN_TYPE_NETBSD_SHA1CRYPT        = 15100,
   KERN_TYPE_DPAPIMK                 = 15300,
   KERN_TYPE_CHACHA20                = 15400,
+  KERN_TYPE_JKS_SHA1                = 15500,
   KERN_TYPE_ETHEREUM_PBKDF2         = 15600,
   KERN_TYPE_ETHEREUM_SCRYPT         = 15700,
   KERN_TYPE_PLAINTEXT               = 99999,
@@ -1852,6 +1867,7 @@ int filezilla_server_parse_hash   (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int netbsd_sha1crypt_parse_hash   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int atlassian_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int dpapimk_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
+int jks_sha1_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int ethereum_pbkdf2_parse_hash    (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int ethereum_scrypt_parse_hash    (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 

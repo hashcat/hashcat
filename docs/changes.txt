@@ -8,6 +8,7 @@
 - Added hash-mode 15200 = Blockchain, My Wallet, V2
 - Added hash-mode 15300 = DPAPI masterkey file v1 and v2
 - Added hash-mode 15400 = ChaCha20
+- Added hash-mode 15500 = JKS Java Key Store Private Keys (SHA1)
 - Added hash-mode 15600 = Ethereum Wallet, PBKDF2-HMAC-SHA256
 - Added hash-mode 15700 = Ethereum Wallet, PBKDF2-SCRYPT
 

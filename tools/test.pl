@@ -48,7 +48,7 @@ my $hashcat = "./hashcat";
 
 my $MAX_LEN = 55;
 
-my @modes = (0, 10, 11, 12, 20, 21, 22, 23, 30, 40, 50, 60, 100, 101, 110, 111, 112, 120, 121, 122, 125, 130, 131, 132, 133, 140, 141, 150, 160, 200, 300, 400, 500, 600, 900, 1000, 1100, 1300, 1400, 1410, 1411, 1420, 1430, 1440, 1441, 1450, 1460, 1500, 1600, 1700, 1710, 1711, 1720, 1730, 1740, 1722, 1731, 1750, 1760, 1800, 2100, 2400, 2410, 2500, 2600, 2611, 2612, 2711, 2811, 3000, 3100, 3200, 3710, 3711, 3300, 3500, 3610, 3720, 3800, 3910, 4010, 4110, 4210, 4300, 4400, 4500, 4520, 4521, 4522, 4600, 4700, 4800, 4900, 5000, 5100, 5300, 5400, 5500, 5600, 5700, 5800, 6000, 6100, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7000, 7100, 7200, 7300, 7400, 7500, 7700, 7800, 7900, 8000, 8100, 8200, 8300, 8400, 8500, 8600, 8700, 8900, 9100, 9200, 9300, 9400, 9500, 9600, 9700, 9800, 9900, 10000, 10100, 10200, 10300, 10400, 10500, 10600, 10700, 10800, 10900, 11000, 11100, 11200, 11300, 11400, 11500, 11600, 11900, 12000, 12001, 12100, 12200, 12300, 12400, 12600, 12700, 12800, 12900, 13000, 13100, 13200, 13300, 13400, 13500, 13600, 13800, 13900, 14000, 14100, 14400, 14700, 14800, 14900, 15000, 15100, 15200, 15300, 15400, 15600, 15700, 99999);
+my @modes = (0, 10, 11, 12, 20, 21, 22, 23, 30, 40, 50, 60, 100, 101, 110, 111, 112, 120, 121, 122, 125, 130, 131, 132, 133, 140, 141, 150, 160, 200, 300, 400, 500, 600, 900, 1000, 1100, 1300, 1400, 1410, 1411, 1420, 1430, 1440, 1441, 1450, 1460, 1500, 1600, 1700, 1710, 1711, 1720, 1730, 1740, 1722, 1731, 1750, 1760, 1800, 2100, 2400, 2410, 2500, 2600, 2611, 2612, 2711, 2811, 3000, 3100, 3200, 3710, 3711, 3300, 3500, 3610, 3720, 3800, 3910, 4010, 4110, 4210, 4300, 4400, 4500, 4520, 4521, 4522, 4600, 4700, 4800, 4900, 5000, 5100, 5300, 5400, 5500, 5600, 5700, 5800, 6000, 6100, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7000, 7100, 7200, 7300, 7400, 7500, 7700, 7800, 7900, 8000, 8100, 8200, 8300, 8400, 8500, 8600, 8700, 8900, 9100, 9200, 9300, 9400, 9500, 9600, 9700, 9800, 9900, 10000, 10100, 10200, 10300, 10400, 10500, 10600, 10700, 10800, 10900, 11000, 11100, 11200, 11300, 11400, 11500, 11600, 11900, 12000, 12001, 12100, 12200, 12300, 12400, 12600, 12700, 12800, 12900, 13000, 13100, 13200, 13300, 13400, 13500, 13600, 13800, 13900, 14000, 14100, 14400, 14700, 14800, 14900, 15000, 15100, 15200, 15300, 15400, 15500, 15600, 15700, 99999);
 
 my %is_utf16le      = map { $_ => 1 } qw (30 40 130 131 132 133 140 141 1000 1100 1430 1440 1441 1730 1740 1731 5500 5600 8000 9400 9500 9600 9700 9800 11600 13500 13800);
 my %less_fifteen    = map { $_ => 1 } qw (500 1600 1800 2400 2410 3200 6300 7400 10500 10700);
@@ -2700,6 +2700,35 @@ sub verify
 
       next unless (exists ($db->{$hash_in}) and (! defined ($db->{$hash_in})));
     }
+    # jksprivk
+    elsif ($mode == 15500)
+    {
+      ($hash_in, $word) = split ":", $line;
+
+      next unless defined $hash_in;
+      next unless defined $word;
+
+      my @data = split ('\*', $hash_in);
+
+      next unless scalar @data == 7;
+
+      my $signature = shift @data;
+
+      next unless ($signature eq '$jksprivk$');
+
+      my $checksum  = shift @data;
+      my $iv        = shift @data;
+      my $enc_key   = shift @data;
+      my $DER1      = shift @data;
+      my $DER2      = shift @data;
+      my $alias     = shift @data;
+
+      $param  = $iv;
+      $param2 = $enc_key;
+      $param3 = $alias;
+
+      next unless (exists ($db->{$hash_in}) and (! defined ($db->{$hash_in})));
+    }
     # Ethereum - PBKDF2
     elsif ($mode == 15600)
     {
@@ -3140,6 +3169,14 @@ sub verify
     elsif ($mode == 15400)
     {
       $hash_out = gen_hash ($mode, $word, $salt, 0, $param, $param2, $param3);
+
+      $len = length $hash_out;
+
+      return unless (substr ($line, 0, $len) eq $hash_out);
+    }
+    elsif ($mode == 15500)
+    {
+      $hash_out = gen_hash ($mode, $word, undef, undef, $param, $param2, $param3);
 
       $len = length $hash_out;
 
@@ -3680,6 +3717,10 @@ sub passthrough
       $salt_buf = get_random_dpapimk_salt ();
 
       $tmp_hash = gen_hash ($mode, $word_buf, $salt_buf);
+    }
+    elsif ($mode == 15500)
+    {
+      $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, 40));
     }
     else
     {
@@ -4632,6 +4673,20 @@ sub single
         else
         {
           rnd ($mode, $i, 16);
+        }
+      }
+    }
+    elsif ($mode == 15500)
+    {
+      for (my $i = 1; $i < 16; $i++)
+      {
+        if ($len != 0)
+        {
+          rnd ($mode, $len, 40);
+        }
+        else
+        {
+          rnd ($mode, $i, 40);
         }
       }
     }
@@ -8634,6 +8689,62 @@ END_CODE
     $hash_buf = $enc_offset;
 
     $tmp_hash = sprintf ("\$chacha20\$\*%s\*%d\*%s\*%s\*%s", $counter, $offset, $iv, unpack ("H*", substr ($plaintext, $offset, 8)), unpack ("H*", $enc_offset));
+  }
+  elsif ($mode == 15500)
+  {
+    my $iv = pack ("H*", $salt_buf);
+
+    if (length $additional_param)
+    {
+      $iv = pack ("H*", $additional_param);
+    }
+
+    my $enc_key = randbytes (get_random_num (1, 1500));
+
+    if (length $additional_param2)
+    {
+      $enc_key = pack ("H*", $additional_param2);
+    }
+
+    my $alias = "test";
+
+    if (length $additional_param3)
+    {
+      $alias = $additional_param3;
+    }
+
+    my $word_buf_utf16be = encode ("UTF-16BE", $word_buf);
+
+    my $hash_buf = sha1 ($word_buf_utf16be . $iv);
+
+    my $DER1 = substr ($hash_buf, 0, 1);
+    my $DER2 = substr ($hash_buf, 6, 14);
+
+    my @enc_key_data = split "", $enc_key;
+
+    my $enc_key_data_length = scalar @enc_key_data;
+
+    my @key_data = ();
+
+    for (my $i = 0; $i < scalar $enc_key_data_length; $i += 20)
+    {
+      my @hash_buf_data = split "", $hash_buf;
+
+      for (my $j = 0; $j < 20; $j++)
+      {
+        last if (($i + $j) >= $enc_key_data_length);
+
+        $key_data[$i + $j] = $enc_key_data[$i + $j] ^ $hash_buf_data[$j];
+      }
+
+      $hash_buf = sha1 ($word_buf_utf16be . $hash_buf);
+    }
+
+    my $key = join "", @key_data;
+
+    $hash_buf = sha1 ($word_buf_utf16be . $key);
+
+    $tmp_hash = sprintf ("\$jksprivk\$*%s*%s*%s*%s*%s*%s", uc unpack ("H*", $hash_buf), uc unpack ("H*", $iv), uc unpack ("H*", $enc_key), uc unpack ("H*", $DER1), uc unpack ("H*", $DER2), $alias);
   }
   elsif ($mode == 15600)
   {

@@ -242,6 +242,7 @@ static const char HT_15100[] = "Juniper/NetBSD sha1crypt";
 static const char HT_15200[] = "Blockchain, My Wallet, V2";
 static const char HT_15300[] = "DPAPI masterkey file v1 and v2";
 static const char HT_15400[] = "ChaCha20";
+static const char HT_15500[] = "JKS Java Key Store Private Keys (SHA1)";
 static const char HT_15600[] = "Ethereum Wallet, PBKDF2-HMAC-SHA256";
 static const char HT_15700[] = "Ethereum Wallet, SCRYPT";
 static const char HT_99999[] = "Plaintext";
@@ -385,6 +386,7 @@ static const char SIGNATURE_ATLASSIAN[]        = "{PKCS5S2}";
 static const char SIGNATURE_NETBSD_SHA1CRYPT[] = "$sha1$";
 static const char SIGNATURE_BLAKE2B[]          = "$BLAKE2$";
 static const char SIGNATURE_CHACHA20[]         = "$chacha20$";
+static const char SIGNATURE_JKS_SHA1[]         = "$jksprivk$";
 static const char SIGNATURE_ETHEREUM_PBKDF2[]  = "$ethereum$p";
 static const char SIGNATURE_ETHEREUM_SCRYPT[]  = "$ethereum$s";
 
@@ -5548,7 +5550,6 @@ int chacha20_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   return (PARSER_OK);
 }
-
 
 int ikepsk_md5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
@@ -14837,6 +14838,169 @@ int atlassian_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   return (PARSER_OK);
 }
 
+int jks_sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
+{
+  if ((input_len < DISPLAY_LEN_MIN_15500) || (input_len > DISPLAY_LEN_MAX_15500)) return (PARSER_GLOBAL_LENGTH);
+
+  if (memcmp (SIGNATURE_JKS_SHA1, input_buf, 10)) return (PARSER_SIGNATURE_UNMATCHED);
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  jks_sha1_t *jks_sha1 = (jks_sha1_t *) hash_buf->esalt;
+
+  /**
+   * parse line
+   */
+
+  // checksum
+
+  u8 *checksum_pos = input_buf + 10 + 1;
+
+  // iv
+
+  u8 *iv_pos = (u8 *) strchr ((const char *) checksum_pos, '*');
+
+  if (iv_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 checksum_len = iv_pos - checksum_pos;
+
+  iv_pos++;
+
+  // iterations
+
+  u8 *enc_key_pos = (u8 *) strchr ((const char *) iv_pos, '*');
+
+  if (enc_key_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 iv_len = enc_key_pos - iv_pos;
+
+  enc_key_pos++;
+
+  // der1
+
+  u8 *der1_pos = (u8 *) strchr ((const char *) enc_key_pos, '*');
+
+  if (der1_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 enc_key_len = der1_pos - enc_key_pos;
+
+  der1_pos++;
+
+  // der2
+
+  u8 *der2_pos = (u8 *) strchr ((const char *) der1_pos, '*');
+
+  if (der2_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 der1_len = der2_pos - der1_pos;
+
+  der2_pos++;
+
+  // alias
+
+  u8 *alias_pos = (u8 *) strchr ((const char *) der2_pos, '*');
+
+  if (alias_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 der2_len = alias_pos - der2_pos;
+
+  alias_pos++;
+
+  u32 alias_len = input_len - 10 - 1 - checksum_len - 1 - iv_len - 1 - enc_key_len - 1 - der1_len - 1 - der2_len - 1;
+
+  /**
+   * verify data
+   */
+
+  if (checksum_len != 40)    return (PARSER_HASH_LENGTH);
+  if (iv_len       != 40)    return (PARSER_SALT_LENGTH);
+  if (enc_key_len  >= 16384) return (PARSER_SALT_LENGTH);
+  if (der1_len     != 2)     return (PARSER_SALT_LENGTH);
+  if (der2_len     != 28)    return (PARSER_SALT_LENGTH);
+  if (alias_len    >= 64)    return (PARSER_SALT_LENGTH);
+
+  if (is_valid_hex_string (checksum_pos, 40) == false) return (PARSER_SALT_ENCODING);
+  if (is_valid_hex_string (iv_pos,       40) == false) return (PARSER_SALT_ENCODING);
+  if (is_valid_hex_string (der1_pos,      2) == false) return (PARSER_SALT_ENCODING);
+  if (is_valid_hex_string (der2_pos,     28) == false) return (PARSER_SALT_ENCODING);
+
+  /**
+   * store data
+   */
+
+  // checksum
+
+  jks_sha1->checksum[0] = hex_to_u32 ((const u8 *) &checksum_pos[ 0]);
+  jks_sha1->checksum[1] = hex_to_u32 ((const u8 *) &checksum_pos[ 8]);
+  jks_sha1->checksum[2] = hex_to_u32 ((const u8 *) &checksum_pos[16]);
+  jks_sha1->checksum[3] = hex_to_u32 ((const u8 *) &checksum_pos[24]);
+  jks_sha1->checksum[4] = hex_to_u32 ((const u8 *) &checksum_pos[32]);
+
+  // iv
+
+  jks_sha1->iv[0] = hex_to_u32 ((const u8 *) &iv_pos[ 0]);
+  jks_sha1->iv[1] = hex_to_u32 ((const u8 *) &iv_pos[ 8]);
+  jks_sha1->iv[2] = hex_to_u32 ((const u8 *) &iv_pos[16]);
+  jks_sha1->iv[3] = hex_to_u32 ((const u8 *) &iv_pos[24]);
+  jks_sha1->iv[4] = hex_to_u32 ((const u8 *) &iv_pos[32]);
+
+  // enc_key
+
+  u8 *enc_key_buf = (u8 *) jks_sha1->enc_key_buf;
+
+  for (u32 i = 0, j = 0; j < enc_key_len; i += 1, j += 2)
+  {
+    enc_key_buf[i] = hex_to_u8 ((const u8 *) &enc_key_pos[j]);
+
+    jks_sha1->enc_key_len++;
+  }
+
+  // der1
+
+  u8 *der = (u8 *) jks_sha1->der;
+
+  der[0] = hex_to_u8 ((const u8 *) &der1_pos[0]);
+
+  // der2
+
+  for (u32 i = 6, j = 0; j < 28; i += 1, j += 2)
+  {
+    der[i] = hex_to_u8 ((const u8 *) &der2_pos[j]);
+  }
+
+  der[1] = 0;
+  der[2] = 0;
+  der[3] = 0;
+  der[4] = 0;
+  der[5] = 0;
+
+  // alias
+
+  strncpy ((char *) jks_sha1->alias, (const char *) alias_pos, (size_t) 64);
+
+  // fake salt
+
+  salt->salt_buf[0] = jks_sha1->iv[0];
+  salt->salt_buf[1] = jks_sha1->iv[1];
+  salt->salt_buf[2] = jks_sha1->iv[2];
+  salt->salt_buf[3] = jks_sha1->iv[3];
+  salt->salt_buf[4] = jks_sha1->iv[4];
+
+  salt->salt_len = 20;
+
+  // fake digest
+
+  digest[0] = byte_swap_32 (jks_sha1->der[0]);
+  digest[1] = byte_swap_32 (jks_sha1->der[1]);
+  digest[2] = byte_swap_32 (jks_sha1->der[2]);
+  digest[3] = byte_swap_32 (jks_sha1->der[3]);
+  digest[4] = byte_swap_32 (jks_sha1->der[4]);
+
+  return (PARSER_OK);
+}
+
 int ethereum_pbkdf2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_15600) || (input_len > DISPLAY_LEN_MAX_15600)) return (PARSER_GLOBAL_LENGTH);
@@ -15516,6 +15680,7 @@ char *strhashtype (const u32 hash_mode)
     case 15200: return ((char *) HT_15200);
     case 15300: return ((char *) HT_15300);
     case 15400: return ((char *) HT_15400);
+    case 15500: return ((char *) HT_15500);
     case 15600: return ((char *) HT_15600);
     case 15700: return ((char *) HT_15700);
     case 99999: return ((char *) HT_99999);
@@ -18715,6 +18880,54 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
       iv,
       contents_len,
       contents);
+  }
+  else if (hash_mode == 15500)
+  {
+    jks_sha1_t *jks_sha1s = (jks_sha1_t *) esalts_buf;
+
+    jks_sha1_t *jks_sha1 = &jks_sha1s[digest_cur];
+
+    char enc_key[16384 + 1] = { 0 };
+
+    u8 *ptr = (u8 *) jks_sha1->enc_key_buf;
+
+    for (u32 i = 0, j = 0; i < jks_sha1->enc_key_len; i += 1, j += 2)
+    {
+      sprintf (enc_key + j, "%02X", ptr[i]);
+    }
+
+    u8 *der = (u8 *) jks_sha1->der;
+
+    snprintf (out_buf, out_len - 1, "%s*%08X%08X%08X%08X%08X*%08X%08X%08X%08X%08X*%s*%02X*%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X*%s",
+      SIGNATURE_JKS_SHA1,
+      byte_swap_32 (jks_sha1->checksum[0]),
+      byte_swap_32 (jks_sha1->checksum[1]),
+      byte_swap_32 (jks_sha1->checksum[2]),
+      byte_swap_32 (jks_sha1->checksum[3]),
+      byte_swap_32 (jks_sha1->checksum[4]),
+      byte_swap_32 (jks_sha1->iv[0]),
+      byte_swap_32 (jks_sha1->iv[1]),
+      byte_swap_32 (jks_sha1->iv[2]),
+      byte_swap_32 (jks_sha1->iv[3]),
+      byte_swap_32 (jks_sha1->iv[4]),
+      enc_key,
+      der[ 0],
+      der[ 6],
+      der[ 7],
+      der[ 8],
+      der[ 9],
+      der[10],
+      der[11],
+      der[12],
+      der[13],
+      der[14],
+      der[15],
+      der[16],
+      der[17],
+      der[18],
+      der[19],
+      (char *) jks_sha1->alias
+    );
   }
   else if (hash_mode == 15600)
   {
@@ -23118,6 +23331,26 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos3      = 3;
                  break;
 
+    case 15500:  hashconfig->hash_type      = HASH_TYPE_JKS_SHA1;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
+                                            | OPTS_TYPE_PT_UTF16BE
+                                            | OPTS_TYPE_ST_ADD80
+                                            | OPTS_TYPE_ST_ADDBITS15;
+                 hashconfig->kern_type      = KERN_TYPE_JKS_SHA1;
+                 hashconfig->dgst_size      = DGST_SIZE_4_5;
+                 hashconfig->parse_func     = jks_sha1_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_PRECOMPUTE_INIT
+                                            | OPTI_TYPE_NOT_ITERATED
+                                            | OPTI_TYPE_APPENDED_SALT;
+                 hashconfig->dgst_pos0      = 3;
+                 hashconfig->dgst_pos1      = 4;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 1;
+                 break;
+
     case 15600:  hashconfig->hash_type      = HASH_TYPE_PBKDF2_SHA256;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -23208,85 +23441,86 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   switch (hashconfig->hash_mode)
   {
-    case   600: hashconfig->esalt_size = sizeof (blake2_t);         break;
-    case  2500: hashconfig->esalt_size = sizeof (wpa_t);            break;
-    case  5300: hashconfig->esalt_size = sizeof (ikepsk_t);         break;
-    case  5400: hashconfig->esalt_size = sizeof (ikepsk_t);         break;
-    case  5500: hashconfig->esalt_size = sizeof (netntlm_t);        break;
-    case  5600: hashconfig->esalt_size = sizeof (netntlm_t);        break;
-    case  6211: hashconfig->esalt_size = sizeof (tc_t);             break;
-    case  6212: hashconfig->esalt_size = sizeof (tc_t);             break;
-    case  6213: hashconfig->esalt_size = sizeof (tc_t);             break;
-    case  6221: hashconfig->esalt_size = sizeof (tc_t);             break;
-    case  6222: hashconfig->esalt_size = sizeof (tc_t);             break;
-    case  6223: hashconfig->esalt_size = sizeof (tc_t);             break;
-    case  6231: hashconfig->esalt_size = sizeof (tc_t);             break;
-    case  6232: hashconfig->esalt_size = sizeof (tc_t);             break;
-    case  6233: hashconfig->esalt_size = sizeof (tc_t);             break;
-    case  6241: hashconfig->esalt_size = sizeof (tc_t);             break;
-    case  6242: hashconfig->esalt_size = sizeof (tc_t);             break;
-    case  6243: hashconfig->esalt_size = sizeof (tc_t);             break;
-    case  6600: hashconfig->esalt_size = sizeof (agilekey_t);       break;
-    case  7100: hashconfig->esalt_size = sizeof (pbkdf2_sha512_t);  break;
-    case  7200: hashconfig->esalt_size = sizeof (pbkdf2_sha512_t);  break;
-    case  7300: hashconfig->esalt_size = sizeof (rakp_t);           break;
-    case  7500: hashconfig->esalt_size = sizeof (krb5pa_t);         break;
-    case  8200: hashconfig->esalt_size = sizeof (cloudkey_t);       break;
-    case  8800: hashconfig->esalt_size = sizeof (androidfde_t);     break;
-    case  9200: hashconfig->esalt_size = sizeof (pbkdf2_sha256_t);  break;
-    case  9400: hashconfig->esalt_size = sizeof (office2007_t);     break;
-    case  9500: hashconfig->esalt_size = sizeof (office2010_t);     break;
-    case  9600: hashconfig->esalt_size = sizeof (office2013_t);     break;
-    case  9700: hashconfig->esalt_size = sizeof (oldoffice01_t);    break;
-    case  9710: hashconfig->esalt_size = sizeof (oldoffice01_t);    break;
-    case  9720: hashconfig->esalt_size = sizeof (oldoffice01_t);    break;
-    case  9800: hashconfig->esalt_size = sizeof (oldoffice34_t);    break;
-    case  9810: hashconfig->esalt_size = sizeof (oldoffice34_t);    break;
-    case  9820: hashconfig->esalt_size = sizeof (oldoffice34_t);    break;
-    case 10000: hashconfig->esalt_size = sizeof (pbkdf2_sha256_t);  break;
-    case 10200: hashconfig->esalt_size = sizeof (cram_md5_t);       break;
-    case 10400: hashconfig->esalt_size = sizeof (pdf_t);            break;
-    case 10410: hashconfig->esalt_size = sizeof (pdf_t);            break;
-    case 10420: hashconfig->esalt_size = sizeof (pdf_t);            break;
-    case 10500: hashconfig->esalt_size = sizeof (pdf_t);            break;
-    case 10600: hashconfig->esalt_size = sizeof (pdf_t);            break;
-    case 10700: hashconfig->esalt_size = sizeof (pdf_t);            break;
-    case 10900: hashconfig->esalt_size = sizeof (pbkdf2_sha256_t);  break;
-    case 11300: hashconfig->esalt_size = sizeof (bitcoin_wallet_t); break;
-    case 11400: hashconfig->esalt_size = sizeof (sip_t);            break;
-    case 11900: hashconfig->esalt_size = sizeof (pbkdf2_md5_t);     break;
-    case 12000: hashconfig->esalt_size = sizeof (pbkdf2_sha1_t);    break;
-    case 12001: hashconfig->esalt_size = sizeof (pbkdf2_sha1_t);    break;
-    case 12100: hashconfig->esalt_size = sizeof (pbkdf2_sha512_t);  break;
-    case 13000: hashconfig->esalt_size = sizeof (rar5_t);           break;
-    case 13100: hashconfig->esalt_size = sizeof (krb5tgs_t);        break;
-    case 13400: hashconfig->esalt_size = sizeof (keepass_t);        break;
-    case 13500: hashconfig->esalt_size = sizeof (pstoken_t);        break;
-    case 13600: hashconfig->esalt_size = sizeof (zip2_t);           break;
-    case 13711: hashconfig->esalt_size = sizeof (tc_t);             break;
-    case 13712: hashconfig->esalt_size = sizeof (tc_t);             break;
-    case 13713: hashconfig->esalt_size = sizeof (tc_t);             break;
-    case 13721: hashconfig->esalt_size = sizeof (tc_t);             break;
-    case 13722: hashconfig->esalt_size = sizeof (tc_t);             break;
-    case 13723: hashconfig->esalt_size = sizeof (tc_t);             break;
-    case 13731: hashconfig->esalt_size = sizeof (tc_t);             break;
-    case 13732: hashconfig->esalt_size = sizeof (tc_t);             break;
-    case 13733: hashconfig->esalt_size = sizeof (tc_t);             break;
-    case 13741: hashconfig->esalt_size = sizeof (tc_t);             break;
-    case 13742: hashconfig->esalt_size = sizeof (tc_t);             break;
-    case 13743: hashconfig->esalt_size = sizeof (tc_t);             break;
-    case 13751: hashconfig->esalt_size = sizeof (tc_t);             break;
-    case 13752: hashconfig->esalt_size = sizeof (tc_t);             break;
-    case 13753: hashconfig->esalt_size = sizeof (tc_t);             break;
-    case 13761: hashconfig->esalt_size = sizeof (tc_t);             break;
-    case 13762: hashconfig->esalt_size = sizeof (tc_t);             break;
-    case 13763: hashconfig->esalt_size = sizeof (tc_t);             break;
-    case 13800: hashconfig->esalt_size = sizeof (win8phone_t);      break;
-    case 14600: hashconfig->esalt_size = sizeof (luks_t);           break;
-    case 14700: hashconfig->esalt_size = sizeof (itunes_backup_t);  break;
-    case 14800: hashconfig->esalt_size = sizeof (itunes_backup_t);  break;
-    case 15300: hashconfig->esalt_size = sizeof (dpapimk_t);        break;
-    case 15400: hashconfig->esalt_size = sizeof (chacha20_t);       break;
+    case   600: hashconfig->esalt_size = sizeof (blake2_t);          break;
+    case  2500: hashconfig->esalt_size = sizeof (wpa_t);             break;
+    case  5300: hashconfig->esalt_size = sizeof (ikepsk_t);          break;
+    case  5400: hashconfig->esalt_size = sizeof (ikepsk_t);          break;
+    case  5500: hashconfig->esalt_size = sizeof (netntlm_t);         break;
+    case  5600: hashconfig->esalt_size = sizeof (netntlm_t);         break;
+    case  6211: hashconfig->esalt_size = sizeof (tc_t);              break;
+    case  6212: hashconfig->esalt_size = sizeof (tc_t);              break;
+    case  6213: hashconfig->esalt_size = sizeof (tc_t);              break;
+    case  6221: hashconfig->esalt_size = sizeof (tc_t);              break;
+    case  6222: hashconfig->esalt_size = sizeof (tc_t);              break;
+    case  6223: hashconfig->esalt_size = sizeof (tc_t);              break;
+    case  6231: hashconfig->esalt_size = sizeof (tc_t);              break;
+    case  6232: hashconfig->esalt_size = sizeof (tc_t);              break;
+    case  6233: hashconfig->esalt_size = sizeof (tc_t);              break;
+    case  6241: hashconfig->esalt_size = sizeof (tc_t);              break;
+    case  6242: hashconfig->esalt_size = sizeof (tc_t);              break;
+    case  6243: hashconfig->esalt_size = sizeof (tc_t);              break;
+    case  6600: hashconfig->esalt_size = sizeof (agilekey_t);        break;
+    case  7100: hashconfig->esalt_size = sizeof (pbkdf2_sha512_t);   break;
+    case  7200: hashconfig->esalt_size = sizeof (pbkdf2_sha512_t);   break;
+    case  7300: hashconfig->esalt_size = sizeof (rakp_t);            break;
+    case  7500: hashconfig->esalt_size = sizeof (krb5pa_t);          break;
+    case  8200: hashconfig->esalt_size = sizeof (cloudkey_t);        break;
+    case  8800: hashconfig->esalt_size = sizeof (androidfde_t);      break;
+    case  9200: hashconfig->esalt_size = sizeof (pbkdf2_sha256_t);   break;
+    case  9400: hashconfig->esalt_size = sizeof (office2007_t);      break;
+    case  9500: hashconfig->esalt_size = sizeof (office2010_t);      break;
+    case  9600: hashconfig->esalt_size = sizeof (office2013_t);      break;
+    case  9700: hashconfig->esalt_size = sizeof (oldoffice01_t);     break;
+    case  9710: hashconfig->esalt_size = sizeof (oldoffice01_t);     break;
+    case  9720: hashconfig->esalt_size = sizeof (oldoffice01_t);     break;
+    case  9800: hashconfig->esalt_size = sizeof (oldoffice34_t);     break;
+    case  9810: hashconfig->esalt_size = sizeof (oldoffice34_t);     break;
+    case  9820: hashconfig->esalt_size = sizeof (oldoffice34_t);     break;
+    case 10000: hashconfig->esalt_size = sizeof (pbkdf2_sha256_t);   break;
+    case 10200: hashconfig->esalt_size = sizeof (cram_md5_t);        break;
+    case 10400: hashconfig->esalt_size = sizeof (pdf_t);             break;
+    case 10410: hashconfig->esalt_size = sizeof (pdf_t);             break;
+    case 10420: hashconfig->esalt_size = sizeof (pdf_t);             break;
+    case 10500: hashconfig->esalt_size = sizeof (pdf_t);             break;
+    case 10600: hashconfig->esalt_size = sizeof (pdf_t);             break;
+    case 10700: hashconfig->esalt_size = sizeof (pdf_t);             break;
+    case 10900: hashconfig->esalt_size = sizeof (pbkdf2_sha256_t);   break;
+    case 11300: hashconfig->esalt_size = sizeof (bitcoin_wallet_t);  break;
+    case 11400: hashconfig->esalt_size = sizeof (sip_t);             break;
+    case 11900: hashconfig->esalt_size = sizeof (pbkdf2_md5_t);      break;
+    case 12000: hashconfig->esalt_size = sizeof (pbkdf2_sha1_t);     break;
+    case 12001: hashconfig->esalt_size = sizeof (pbkdf2_sha1_t);     break;
+    case 12100: hashconfig->esalt_size = sizeof (pbkdf2_sha512_t);   break;
+    case 13000: hashconfig->esalt_size = sizeof (rar5_t);            break;
+    case 13100: hashconfig->esalt_size = sizeof (krb5tgs_t);         break;
+    case 13400: hashconfig->esalt_size = sizeof (keepass_t);         break;
+    case 13500: hashconfig->esalt_size = sizeof (pstoken_t);         break;
+    case 13600: hashconfig->esalt_size = sizeof (zip2_t);            break;
+    case 13711: hashconfig->esalt_size = sizeof (tc_t);              break;
+    case 13712: hashconfig->esalt_size = sizeof (tc_t);              break;
+    case 13713: hashconfig->esalt_size = sizeof (tc_t);              break;
+    case 13721: hashconfig->esalt_size = sizeof (tc_t);              break;
+    case 13722: hashconfig->esalt_size = sizeof (tc_t);              break;
+    case 13723: hashconfig->esalt_size = sizeof (tc_t);              break;
+    case 13731: hashconfig->esalt_size = sizeof (tc_t);              break;
+    case 13732: hashconfig->esalt_size = sizeof (tc_t);              break;
+    case 13733: hashconfig->esalt_size = sizeof (tc_t);              break;
+    case 13741: hashconfig->esalt_size = sizeof (tc_t);              break;
+    case 13742: hashconfig->esalt_size = sizeof (tc_t);              break;
+    case 13743: hashconfig->esalt_size = sizeof (tc_t);              break;
+    case 13751: hashconfig->esalt_size = sizeof (tc_t);              break;
+    case 13752: hashconfig->esalt_size = sizeof (tc_t);              break;
+    case 13753: hashconfig->esalt_size = sizeof (tc_t);              break;
+    case 13761: hashconfig->esalt_size = sizeof (tc_t);              break;
+    case 13762: hashconfig->esalt_size = sizeof (tc_t);              break;
+    case 13763: hashconfig->esalt_size = sizeof (tc_t);              break;
+    case 13800: hashconfig->esalt_size = sizeof (win8phone_t);       break;
+    case 14600: hashconfig->esalt_size = sizeof (luks_t);            break;
+    case 14700: hashconfig->esalt_size = sizeof (itunes_backup_t);   break;
+    case 14800: hashconfig->esalt_size = sizeof (itunes_backup_t);   break;
+    case 15300: hashconfig->esalt_size = sizeof (dpapimk_t);         break;
+    case 15400: hashconfig->esalt_size = sizeof (chacha20_t);        break;
+    case 15500: hashconfig->esalt_size = sizeof (jks_sha1_t);        break;
     case 15600: hashconfig->esalt_size = sizeof (ethereum_pbkdf2_t); break;
     case 15700: hashconfig->esalt_size = sizeof (ethereum_scrypt_t); break;
   }
@@ -23501,6 +23735,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 14900: hashconfig->pw_max = 10;
                 break;
     case 15400: hashconfig->pw_max = 32;
+                break;
+    case 15500: hashconfig->pw_max = 16;
                 break;
   }
 

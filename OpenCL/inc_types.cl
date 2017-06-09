@@ -1047,6 +1047,17 @@ typedef struct dpapimk
 
 } dpapimk_t;
 
+typedef struct jks_sha1
+{
+  u32 checksum[5];
+  u32 iv[5];
+  u32 enc_key_buf[4096];
+  u32 enc_key_len;
+  u32 der[5];
+  u32 alias[16];
+
+} jks_sha1_t;
+
 typedef struct ethereum_pbkdf2
 {
   u32 salt_buf[16];
