@@ -29,8 +29,8 @@ Travis | Appveyor | Coverity
 Contributions are welcome and encouraged, provided your code is of sufficient quality. Before submitting a pull request, please ensure your code adheres to the following requirements:
 
 1. Licensed under MIT license, or dedicated to public domain (BSD, GPL, etc. code is incompatible)
-2. Adheres to either C89, C90, or C99 standards
-3. Compiles cleanly with no warnings when compiled with `-W -Wall -std=c99`
+2. Adheres to gnu99 standard
+3. Compiles cleanly with no warnings when compiled with `-W -Wall -std=gnu99`
 4. Uses [Allman-style](https://en.wikipedia.org/wiki/Indent_style#Allman_style) code blocks & indentation 
 5. Uses 2-spaces as indentation or a tab if it's required (for example: Makefiles)
 6. Uses lower-case function and variable names 
