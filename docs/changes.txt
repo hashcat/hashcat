@@ -1,4 +1,7 @@
-* changes v3.5.0 -> 3.6.0:
+* changes v3.6.0 -> xxx:
+
+
+* changes v3.5.0 -> v3.6.0:
 
 ##
 ## Algorithms
@@ -53,7 +56,7 @@
 - OpenCL Runtime: Updated AMDGPU-PRO driver version check, warn if version 17.10 (known to be broken) is detected
 - WPA cracking: Reduced --nonce-error-corrections default from 16 to 8 to compensate for speed drop caused by big-endian fixes
 
-* changes v3.40 -> 3.5.0:
+* changes v3.40 -> v3.5.0:
 
 ##
 ## Features
