@@ -893,6 +893,7 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
     t = swap32_S (t);
 
+    t -= nonce_error_corrections / 2;
     t += nonce_error_correction;
 
     t = swap32_S (t);
@@ -1134,6 +1135,7 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   {
     u32 t = to;
 
+    t -= nonce_error_corrections / 2;
     t += nonce_error_correction;
 
     if (wpa->nonce_compare < 0)

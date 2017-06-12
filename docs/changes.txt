@@ -1,5 +1,10 @@
 * changes v3.6.0 -> xxx:
 
+##
+## Improvements
+##
+
+- WPA cracking: Improved nonce-error-corrections mode to use a both positive and negative corrections
 
 * changes v3.5.0 -> v3.6.0:
 
