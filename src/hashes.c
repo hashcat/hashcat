@@ -1515,11 +1515,62 @@ int hashes_init_stage4 (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
+int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
+{
+  hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+  hashes_t     *hashes     = hashcat_ctx->hashes;
+
+  if (hashconfig->st_hash == NULL) return 0;
+
+  void   *st_digests_buf = NULL;
+  salt_t *st_salts_buf   = NULL;
+  void   *st_esalts_buf  = NULL;
+
+  st_digests_buf = (void *) hccalloc (1, hashconfig->dgst_size);
+
+  st_salts_buf = (salt_t *) hccalloc (1, sizeof (salt_t));
+
+  if (hashconfig->esalt_size)
+  {
+    st_esalts_buf = (void *) hccalloc (1, hashconfig->esalt_size);
+  }
+
+  hash_t hash;
+
+  hash.digest    = st_digests_buf;
+  hash.salt      = st_salts_buf;
+  hash.esalt     = st_esalts_buf;
+  hash.hook_salt = NULL;
+  hash.cracked   = 0;
+  hash.hash_info = NULL;
+  hash.pw_buf    = NULL;
+  hash.pw_len    = 0;
+
+  const int parser_status = hashconfig->parse_func ((u8 *) hashconfig->st_hash, strlen (hashconfig->st_hash), &hash, hashconfig);
+
+  if (parser_status == PARSER_OK)
+  {
+    // nothing to do
+  }
+  else
+  {
+    event_log_error (hashcat_ctx, "Self-test Hash '%s': %s", hashconfig->st_hash, strparser (parser_status));
+
+    return -1;
+  }
+
+  hashes->st_digests_buf = st_digests_buf;
+  hashes->st_salts_buf   = st_salts_buf;
+  hashes->st_esalts_buf  = st_esalts_buf;
+
+  return 0;
+}
+
 void hashes_destroy (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  hashes_t       *hashes       = hashcat_ctx->hashes;
   user_options_t *user_options = hashcat_ctx->user_options;
-  hashes_t *hashes             = hashcat_ctx->hashes;
 
   hcfree (hashes->digests_buf);
   hcfree (hashes->digests_shown);
@@ -1556,6 +1607,10 @@ void hashes_destroy (hashcat_ctx_t *hashcat_ctx)
 
   hcfree (hashes->out_buf);
   hcfree (hashes->tmp_buf);
+
+  hcfree (hashes->st_digests_buf);
+  hcfree (hashes->st_salts_buf);
+  hcfree (hashes->st_esalts_buf);
 
   memset (hashes, 0, sizeof (hashes_t));
 }

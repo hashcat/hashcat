@@ -43,6 +43,7 @@
 #include "potfile.h"
 #include "restore.h"
 #include "rp.h"
+#include "selftest.h"
 #include "status.h"
 #include "straight.h"
 #include "tuningdb.h"
@@ -159,14 +160,18 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   opencl_ctx_devices_kernel_loops (hashcat_ctx);
 
   /**
-   * create autotune threads
+   * prepare thread buffers
    */
-
-  EVENT (EVENT_AUTOTUNE_STARTING);
 
   thread_param_t *threads_param = (thread_param_t *) hccalloc (opencl_ctx->devices_cnt, sizeof (thread_param_t));
 
   hc_thread_t *c_threads = (hc_thread_t *) hccalloc (opencl_ctx->devices_cnt, sizeof (hc_thread_t));
+
+  /**
+   * create autotune threads
+   */
+
+  EVENT (EVENT_AUTOTUNE_STARTING);
 
   status_ctx->devices_status = STATUS_AUTOTUNE;
 
@@ -530,6 +535,14 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   if (rc_hashes_init_stage4 == -1) return -1;
 
   /**
+   * load hashes, selftest
+   */
+
+  const int rc_hashes_init_selftest = hashes_init_selftest (hashcat_ctx);
+
+  if (rc_hashes_init_selftest == -1) return -1;
+
+  /**
    * Done loading hashes, log results
    */
 
@@ -644,6 +657,38 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   if (rc_session_begin == -1) return -1;
 
   EVENT (EVENT_OPENCL_SESSION_POST);
+
+  /**
+   * create self-test threads
+   */
+
+  EVENT (EVENT_SELFTEST_STARTING);
+
+  thread_param_t *threads_param = (thread_param_t *) hccalloc (opencl_ctx->devices_cnt, sizeof (thread_param_t));
+
+  hc_thread_t *selftest_threads = (hc_thread_t *) hccalloc (opencl_ctx->devices_cnt, sizeof (hc_thread_t));
+
+  status_ctx->devices_status = STATUS_SELFTEST;
+
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  {
+    thread_param_t *thread_param = threads_param + device_id;
+
+    thread_param->hashcat_ctx = hashcat_ctx;
+    thread_param->tid         = device_id;
+
+    hc_thread_create (selftest_threads[device_id], thread_selftest, thread_param);
+  }
+
+  hc_thread_wait (opencl_ctx->devices_cnt, selftest_threads);
+
+  hcfree (threads_param);
+
+  hcfree (selftest_threads);
+
+  status_ctx->devices_status = STATUS_INIT;
+
+  EVENT (EVENT_SELFTEST_FINISHED);
 
   /**
    * weak hash check is the first to write to potfile, so open it for writing from here

@@ -129,12 +129,14 @@ typedef enum event_identifier
   EVENT_POTFILE_NUM_CRACKED       = 0x000000b3,
   EVENT_POTFILE_REMOVE_PARSE_POST = 0x000000b4,
   EVENT_POTFILE_REMOVE_PARSE_PRE  = 0x000000b5,
-  EVENT_SET_KERNEL_POWER_FINAL    = 0x000000c0,
-  EVENT_WEAK_HASH_POST            = 0x000000d0,
-  EVENT_WEAK_HASH_PRE             = 0x000000d1,
-  EVENT_WEAK_HASH_ALL_CRACKED     = 0x000000d2,
-  EVENT_WORDLIST_CACHE_GENERATE   = 0x000000e0,
-  EVENT_WORDLIST_CACHE_HIT        = 0x000000e1,
+  EVENT_SELFTEST_FINISHED         = 0x000000c0,
+  EVENT_SELFTEST_STARTING         = 0x000000c1,
+  EVENT_SET_KERNEL_POWER_FINAL    = 0x000000d0,
+  EVENT_WEAK_HASH_POST            = 0x000000e0,
+  EVENT_WEAK_HASH_PRE             = 0x000000e1,
+  EVENT_WEAK_HASH_ALL_CRACKED     = 0x000000e2,
+  EVENT_WORDLIST_CACHE_GENERATE   = 0x000000f0,
+  EVENT_WORDLIST_CACHE_HIT        = 0x000000f1,
 
   // there will be much more event types soon
 
@@ -168,15 +170,16 @@ typedef enum status_rc
 {
   STATUS_INIT               = 0,
   STATUS_AUTOTUNE           = 1,
-  STATUS_RUNNING            = 2,
-  STATUS_PAUSED             = 3,
-  STATUS_EXHAUSTED          = 4,
-  STATUS_CRACKED            = 5,
-  STATUS_ABORTED            = 6,
-  STATUS_QUIT               = 7,
-  STATUS_BYPASS             = 8,
-  STATUS_ABORTED_CHECKPOINT = 9,
-  STATUS_ABORTED_RUNTIME    = 10,
+  STATUS_SELFTEST           = 2,
+  STATUS_RUNNING            = 3,
+  STATUS_PAUSED             = 4,
+  STATUS_EXHAUSTED          = 5,
+  STATUS_CRACKED            = 6,
+  STATUS_ABORTED            = 7,
+  STATUS_QUIT               = 8,
+  STATUS_BYPASS             = 9,
+  STATUS_ABORTED_CHECKPOINT = 10,
+  STATUS_ABORTED_RUNTIME    = 11,
 
 } status_rc_t;
 
@@ -790,6 +793,12 @@ typedef struct hashes
   u8          *out_buf; // allocates [HCBUFSIZ_LARGE];
   u8          *tmp_buf; // allocates [HCBUFSIZ_LARGE];
 
+  // selftest buffers
+
+  void        *st_digests_buf;
+  salt_t      *st_salts_buf;
+  void        *st_esalts_buf;
+
 } hashes_t;
 
 struct hashconfig
@@ -819,6 +828,9 @@ struct hashconfig
   u32   pw_max;
 
   int (*parse_func) (u8 *, u32, hash_t *, const struct hashconfig *);
+
+  char *st_hash;
+  char *st_pass;
 };
 
 typedef struct hashconfig hashconfig_t;
@@ -954,6 +966,9 @@ typedef struct hc_device_param
   size_t  size_shown;
   size_t  size_results;
   size_t  size_plains;
+  size_t  size_st_digests;
+  size_t  size_st_salts;
+  size_t  size_st_esalts;
 
   FILE   *combs_fp;
   comb_t *combs_buf;
@@ -1054,7 +1069,6 @@ typedef struct hc_device_param
   cl_mem  d_digests_shown;
   cl_mem  d_salt_bufs;
   cl_mem  d_esalt_bufs;
-  cl_mem  d_bcrypt_bufs;
   cl_mem  d_tmps;
   cl_mem  d_hooks;
   cl_mem  d_result;
@@ -1064,6 +1078,9 @@ typedef struct hc_device_param
   cl_mem  d_scryptV3_buf;
   cl_mem  d_root_css_buf;
   cl_mem  d_markov_css_buf;
+  cl_mem  d_st_digests_buf;
+  cl_mem  d_st_salts_buf;
+  cl_mem  d_st_esalts_buf;
 
   void   *kernel_params[PARAMCNT];
   void   *kernel_params_mp[PARAMCNT];

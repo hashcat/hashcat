@@ -1,6 +1,18 @@
 * changes v3.6.0 -> xxx:
 
 ##
+## Features
+##
+
+- Added self-test functionality for OpenCL kernels on startup
+
+##
+## Bugs
+##
+
+- Fixed a parser error for mode -m 9820 = MS Office <= 2003 $3, SHA1 + RC4, collider #2
+
+##
 ## Improvements
 ##
 
