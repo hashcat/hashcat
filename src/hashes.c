@@ -1522,9 +1522,10 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
 
   if (hashconfig->st_hash == NULL) return 0;
 
-  void   *st_digests_buf = NULL;
-  salt_t *st_salts_buf   = NULL;
-  void   *st_esalts_buf  = NULL;
+  void   *st_digests_buf    = NULL;
+  salt_t *st_salts_buf      = NULL;
+  void   *st_esalts_buf     = NULL;
+  void   *st_hook_salts_buf = NULL;
 
   st_digests_buf = (void *) hccalloc (1, hashconfig->dgst_size);
 
@@ -1535,12 +1536,17 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
     st_esalts_buf = (void *) hccalloc (1, hashconfig->esalt_size);
   }
 
+  if (hashconfig->hook_salt_size)
+  {
+    st_hook_salts_buf = (void *) hccalloc (1, hashconfig->hook_salt_size);
+  }
+
   hash_t hash;
 
   hash.digest    = st_digests_buf;
   hash.salt      = st_salts_buf;
   hash.esalt     = st_esalts_buf;
-  hash.hook_salt = NULL;
+  hash.hook_salt = st_hook_salts_buf;
   hash.cracked   = 0;
   hash.hash_info = NULL;
   hash.pw_buf    = NULL;
@@ -1559,9 +1565,10 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  hashes->st_digests_buf = st_digests_buf;
-  hashes->st_salts_buf   = st_salts_buf;
-  hashes->st_esalts_buf  = st_esalts_buf;
+  hashes->st_digests_buf    = st_digests_buf;
+  hashes->st_salts_buf      = st_salts_buf;
+  hashes->st_esalts_buf     = st_esalts_buf;
+  hashes->st_hook_salts_buf = st_hook_salts_buf;
 
   return 0;
 }
@@ -1611,6 +1618,7 @@ void hashes_destroy (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashes->st_digests_buf);
   hcfree (hashes->st_salts_buf);
   hcfree (hashes->st_esalts_buf);
+  hcfree (hashes->st_hook_salts_buf);
 
   memset (hashes, 0, sizeof (hashes_t));
 }

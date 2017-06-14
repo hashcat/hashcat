@@ -38,7 +38,6 @@ static char ST_PASS_BIN_10410[]     = "\x6a\x8a\xed\xcc\xb7";
  * ST_HASH_05200  file-based
  * ST_HASH_062xx  file-based
  * ST_HASH_09000  file-based
- * ST_HASH_11600  hooks not working yet
  * ST_HASH_137xx  file-based
  * ST_HASH_14600  file-based
  */
@@ -199,7 +198,7 @@ static char ST_HASH_11200[] = "$mysqlna$2576670568531371763643101056213751754328
 static char ST_HASH_11300[] = "$bitcoin$96$c265931309b4a59307921cf054b4ec6b6e4554369be79802e94e16477645777d948ae1d375191831efc78e5acd1f0443$16$8017214013543185$200460$96$480008005625057442352316337722323437108374245623701184230273883222762730232857701607167815448714$66$014754433300175043011633205413774877455616682000536368706315333388";
 static char ST_HASH_11400[] = "$sip$*72087*1215344588738747***342210558720*737232616*1215344588738747*8867133055*65600****MD5*e9980869221f9d1182c83b0d5e56a7db";
 static char ST_HASH_11500[] = "c762de4a:00000000";
-//static char ST_HASH_11600[] = "$7z$0$14$0$$11$33363437353138333138300000000000$2365089182$16$12$d00321533b483f54a523f624a5f63269";
+static char ST_HASH_11600[] = "$7z$0$14$0$$11$33363437353138333138300000000000$2365089182$16$12$d00321533b483f54a523f624a5f63269";
 static char ST_HASH_11700[] = "57e9e50caec93d72e9498c211d6dc4f4d328248b48ecf46ba7abfa874f666e36";
 static char ST_HASH_11800[] = "5d5bdba48c8f89ee6c0a0e11023540424283e84902de08013aeeb626e819950bb32842903593a1d2e8f71897ff7fe72e17ac9ba8ce1d1d2f7e9c4359ea63bdc3";
 static char ST_HASH_11900[] = "md5:1000:NjAxMDY4MQ==:a00DtIW9hP9voC85fmEA5uVhgdDx67nSPSm9yADHjkI=";
@@ -15486,11 +15485,11 @@ int ethereum_scrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, 
  * hook functions
  */
 
-void seven_zip_hook_func (hc_device_param_t *device_param, hashes_t *hashes, const u32 salt_pos, const u32 pws_cnt)
+void seven_zip_hook_func (hc_device_param_t *device_param, void *hook_salts_buf, const u32 salt_pos, const u32 pws_cnt)
 {
   seven_zip_hook_t *hook_items = (seven_zip_hook_t *) device_param->hooks_buf;
 
-  seven_zip_hook_salt_t *seven_zips = (seven_zip_hook_salt_t *) hashes->hook_salts_buf;
+  seven_zip_hook_salt_t *seven_zips = (seven_zip_hook_salt_t *) hook_salts_buf;
   seven_zip_hook_salt_t *seven_zip  = &seven_zips[salt_pos];
 
   u8   data_type   = seven_zip->data_type;
@@ -23063,7 +23062,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = NULL;
+                 hashconfig->st_hash        = ST_HASH_11600;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 

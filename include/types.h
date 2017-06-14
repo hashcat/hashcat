@@ -798,6 +798,7 @@ typedef struct hashes
   void        *st_digests_buf;
   salt_t      *st_salts_buf;
   void        *st_esalts_buf;
+  void        *st_hook_salts_buf;
 
 } hashes_t;
 

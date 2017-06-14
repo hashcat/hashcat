@@ -1240,7 +1240,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
         switch (hashconfig->hash_mode)
         {
           // for 7z we only need device_param->hooks_buf, but other hooks could use any info from device_param. All of them should/must update hooks_buf
-          case 11600: seven_zip_hook_func (device_param, hashes, salt_pos, pws_cnt); break;
+          case 11600: seven_zip_hook_func (device_param, hashes->hook_salts_buf, salt_pos, pws_cnt); break;
         }
 
         /*

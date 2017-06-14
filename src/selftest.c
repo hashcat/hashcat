@@ -322,6 +322,23 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     if (CL_rc == -1) return -1;
 
+    if (hashconfig->opts_type & OPTS_TYPE_HOOK12)
+    {
+      CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_12, 1, false, 0);
+
+      if (CL_rc == -1) return -1;
+
+      CL_rc = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
+
+      if (CL_rc == -1) return -1;
+
+      // do something with data
+
+      CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
+
+      if (CL_rc == -1) return -1;
+    }
+
     const u32 salt_pos = 0;
 
     salt_t *salt_buf = &hashes->st_salts_buf[salt_pos];
@@ -342,6 +359,35 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       device_param->kernel_params_buf32[29] = loop_left;
 
       CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_2, 1, false, 0);
+
+      if (CL_rc == -1) return -1;
+    }
+
+    if (hashconfig->opts_type & OPTS_TYPE_HOOK23)
+    {
+      CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_23, 1, false, 0);
+
+      if (CL_rc == -1) return -1;
+
+      CL_rc = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
+
+      if (CL_rc == -1) return -1;
+
+      /*
+       * The following section depends on the hash mode
+       */
+
+      switch (hashconfig->hash_mode)
+      {
+        // for 7z we only need device_param->hooks_buf, but other hooks could use any info from device_param. All of them should/must update hooks_buf
+        case 11600: seven_zip_hook_func (device_param, hashes->st_hook_salts_buf, 0, 1); break;
+      }
+
+      /*
+       * END of hash mode specific hook operations
+       */
+
+      CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
 
       if (CL_rc == -1) return -1;
     }
