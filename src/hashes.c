@@ -9,6 +9,7 @@
 #include "event.h"
 #include "hashes.h"
 
+#include "convert.h"
 #include "debugfile.h"
 #include "filehandling.h"
 #include "hlfmt.h"
@@ -1517,8 +1518,9 @@ int hashes_init_stage4 (hashcat_ctx_t *hashcat_ctx)
 
 int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
 {
-  hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
-  hashes_t     *hashes     = hashcat_ctx->hashes;
+  folder_config_t *folder_config = hashcat_ctx->folder_config;
+  hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
+  hashes_t        *hashes        = hashcat_ctx->hashes;
 
   if (hashconfig->st_hash == NULL) return 0;
 
@@ -1552,7 +1554,58 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
   hash.pw_buf    = NULL;
   hash.pw_len    = 0;
 
-  const int parser_status = hashconfig->parse_func ((u8 *) hashconfig->st_hash, strlen (hashconfig->st_hash), &hash, hashconfig);
+  int parser_status;
+
+  if (hashconfig->hash_mode == 2500)
+  {
+    char *tmpdata = (char *) hcmalloc (sizeof (hccapx_t));
+
+    const int st_hash_len = strlen (hashconfig->st_hash);
+
+    for (int i = 0, j = 0; j < st_hash_len; i += 1, j += 2)
+    {
+      const u8 c = hex_to_u8 ((u8 *) hashconfig->st_hash + j);
+
+      tmpdata[i] = c;
+    }
+
+    parser_status = hashconfig->parse_func ((u8 *) tmpdata, sizeof (hccapx_t), &hash, hashconfig);
+
+    hcfree (tmpdata);
+
+    wpa_t *wpa = (wpa_t *) st_esalts_buf;
+
+    wpa->nonce_error_corrections = 3;
+  }
+  else if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
+  {
+    char *tmpfile = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+    snprintf (tmpfile, HCBUFSIZ_TINY - 1, "%s/selftest.hash", folder_config->session_dir);
+
+    FILE *fp = fopen (tmpfile, "wb");
+
+    const int st_hash_len = strlen (hashconfig->st_hash);
+
+    for (int i = 0; i < st_hash_len; i += 2)
+    {
+      const u8 c = hex_to_u8 ((u8 *) hashconfig->st_hash + i);
+
+      fputc (c, fp);
+    }
+
+    fclose (fp);
+
+    parser_status = hashconfig->parse_func ((u8 *) tmpfile, strlen (tmpfile), &hash, hashconfig);
+
+    unlink (tmpfile);
+
+    hcfree (tmpfile);
+  }
+  else
+  {
+    parser_status = hashconfig->parse_func ((u8 *) hashconfig->st_hash, strlen (hashconfig->st_hash), &hash, hashconfig);
+  }
 
   if (parser_status == PARSER_OK)
   {
@@ -1560,7 +1613,7 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    event_log_error (hashcat_ctx, "Self-test Hash '%s': %s", hashconfig->st_hash, strparser (parser_status));
+    event_log_error (hashcat_ctx, "Self-test hash parsing error: %s", strparser (parser_status));
 
     return -1;
   }
