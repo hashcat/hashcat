@@ -43,7 +43,11 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   const u32 kernel_threads_by_wgs_kernel_init2_sav = device_param->kernel_threads_by_wgs_kernel_init2;
   const u32 kernel_threads_by_wgs_kernel_loop2_sav = device_param->kernel_threads_by_wgs_kernel_loop2;
 
-  if (hashconfig_forced_kernel_threads (hashcat_ctx) == 0)
+  if ((hashconfig->opts_type & OPTS_TYPE_PT_BITSLICE) && (user_options_extra->attack_kern == ATTACK_KERN_BF))
+  {
+    // do nothing
+  }
+  else
   {
     device_param->kernel_threads_by_wgs_kernel1      = 1;
     device_param->kernel_threads_by_wgs_kernel12     = 1;
