@@ -1124,7 +1124,10 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
      && (digest_final[2] == wpa->keymic[2])
      && (digest_final[3] == wpa->keymic[3]))
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, digest_cur, gid, 0);
+      if (atomic_inc (&hashes_shown[digest_cur]) == 0)
+      {
+        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, digest_cur, gid, 0);
+      }
     }
   }
 
@@ -1364,7 +1367,10 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
      && (digest_final[2] == wpa->keymic[2])
      && (digest_final[3] == wpa->keymic[3]))
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, digest_cur, gid, 0);
+      if (atomic_inc (&hashes_shown[digest_cur]) == 0)
+      {
+        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, digest_pos, digest_cur, gid, 0);
+      }
     }
   }
 }
