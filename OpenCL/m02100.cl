@@ -479,10 +479,10 @@ __kernel void m02100_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   u32 w1[4];
 
-  w1[0] = 0;
-  w1[1] = 0;
-  w1[2] = 0;
-  w1[3] = 0;
+  w1[0] = pws[gid].i[ 4];
+  w1[1] = pws[gid].i[ 5];
+  w1[2] = pws[gid].i[ 6];
+  w1[3] = pws[gid].i[ 7];
 
   u32 w2[4];
 
@@ -527,8 +527,9 @@ __kernel void m02100_init (__global pw_t *pws, __global const kernel_rule_t *rul
    * generate dcc
    */
 
-  append_0x80_1x4_S (w0, pw_len);
+  append_0x80_4x4_S (w0, w1, w2, w3, pw_len);
 
+  make_utf16le_S (w1, w2, w3);
   make_utf16le_S (w0, w0, w1);
 
   w3[2] = pw_len * 2 * 8;
