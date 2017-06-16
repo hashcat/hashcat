@@ -49,13 +49,17 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   }
   else
   {
-    device_param->kernel_threads_by_wgs_kernel1      = 1;
-    device_param->kernel_threads_by_wgs_kernel12     = 1;
-    device_param->kernel_threads_by_wgs_kernel2      = 1;
-    device_param->kernel_threads_by_wgs_kernel23     = 1;
-    device_param->kernel_threads_by_wgs_kernel3      = 1;
-    device_param->kernel_threads_by_wgs_kernel_init2 = 1;
-    device_param->kernel_threads_by_wgs_kernel_loop2 = 1;
+    // there's a few algorithm that force a fixed thread size but are not listed in hashconfig_forced_kernel_threads()
+    // because it's not a global fixed thread, just a single one on a single kernel
+    // if it wants to run at 8 and we set it to 1 it will return CL_INVALID_WORK_GROUP_SIZE
+
+    if (device_param->kernel_threads_by_user == device_param->kernel_threads_by_wgs_kernel1)      device_param->kernel_threads_by_wgs_kernel1      = 1;
+    if (device_param->kernel_threads_by_user == device_param->kernel_threads_by_wgs_kernel12)     device_param->kernel_threads_by_wgs_kernel12     = 1;
+    if (device_param->kernel_threads_by_user == device_param->kernel_threads_by_wgs_kernel2)      device_param->kernel_threads_by_wgs_kernel2      = 1;
+    if (device_param->kernel_threads_by_user == device_param->kernel_threads_by_wgs_kernel23)     device_param->kernel_threads_by_wgs_kernel23     = 1;
+    if (device_param->kernel_threads_by_user == device_param->kernel_threads_by_wgs_kernel3)      device_param->kernel_threads_by_wgs_kernel3      = 1;
+    if (device_param->kernel_threads_by_user == device_param->kernel_threads_by_wgs_kernel_init2) device_param->kernel_threads_by_wgs_kernel_init2 = 1;
+    if (device_param->kernel_threads_by_user == device_param->kernel_threads_by_wgs_kernel_loop2) device_param->kernel_threads_by_wgs_kernel_loop2 = 1;
   }
 
   // password : move the known password into a fake buffer
