@@ -2010,17 +2010,26 @@ __kernel void m06233_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   if (verify_header_aes (esalt_bufs, ukey1, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {
-    mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+    if (atomic_inc (&hashes_shown[0]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+    }
   }
 
   if (verify_header_serpent (esalt_bufs, ukey1, ukey2) == 1)
   {
-    mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+    if (atomic_inc (&hashes_shown[0]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+    }
   }
 
   if (verify_header_twofish (esalt_bufs, ukey1, ukey2) == 1)
   {
-    mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+    if (atomic_inc (&hashes_shown[0]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+    }
   }
 
   #if defined (IS_APPLE) && defined (IS_GPU)
@@ -2055,17 +2064,26 @@ __kernel void m06233_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   if (verify_header_aes_twofish (esalt_bufs, ukey1, ukey2, ukey3, ukey4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {
-    mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+    if (atomic_inc (&hashes_shown[0]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+    }
   }
 
   if (verify_header_serpent_aes (esalt_bufs, ukey1, ukey2, ukey3, ukey4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {
-    mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+    if (atomic_inc (&hashes_shown[0]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+    }
   }
 
   if (verify_header_twofish_serpent (esalt_bufs, ukey1, ukey2, ukey3, ukey4) == 1)
   {
-    mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+    if (atomic_inc (&hashes_shown[0]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+    }
   }
 
   #if defined (IS_APPLE) && defined (IS_GPU)
@@ -2100,11 +2118,17 @@ __kernel void m06233_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   if (verify_header_aes_twofish_serpent (esalt_bufs, ukey1, ukey2, ukey3, ukey4, ukey5, ukey6, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {
-    mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+    if (atomic_inc (&hashes_shown[0]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+    }
   }
 
   if (verify_header_serpent_twofish_aes (esalt_bufs, ukey1, ukey2, ukey3, ukey4, ukey5, ukey6, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {
-    mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+    if (atomic_inc (&hashes_shown[0]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+    }
   }
 }

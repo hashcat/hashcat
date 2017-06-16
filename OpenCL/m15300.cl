@@ -2376,7 +2376,10 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
       &&  expectedHmac[3] == digest[3]
       &&  expectedHmac[4] == digest[4])
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+      if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+      {
+        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+      }
     }
   }
   else if (esalt_bufs[digests_offset].version == 2)
@@ -2628,7 +2631,10 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
        && expectedHmac[14] == h32_from_64_S (dgst64[7])
        && expectedHmac[15] == l32_from_64_S (dgst64[7]))
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+      if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+      {
+        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+      }
     }
   }
 }

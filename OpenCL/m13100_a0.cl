@@ -721,58 +721,6 @@ void kerb_prepare (const u32 w0[4], const u32 w1[4], const u32 pw_len, const u32
   hmac_md5_run (w0_t, w1_t, w2_t, w3_t, ipad, opad, digest);
 }
 
-void m13100 (__local RC4_KEY *rc4_keys, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const comb_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global krb5tgs_t *krb5tgs_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
-{
-  /**
-   * modifier
-   */
-
-  const u32 gid = get_global_id (0);
-  const u32 lid = get_local_id (0);
-
-  /**
-   * salt
-   */
-
-  u32 checksum[4];
-
-  checksum[0] = krb5tgs_bufs[digests_offset].checksum[0];
-  checksum[1] = krb5tgs_bufs[digests_offset].checksum[1];
-  checksum[2] = krb5tgs_bufs[digests_offset].checksum[2];
-  checksum[3] = krb5tgs_bufs[digests_offset].checksum[3];
-
-  /**
-   * loop
-   */
-
-  u32 w0l = w0[0];
-
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
-  {
-    const u32 w0r = bfs_buf[il_pos].i;
-
-    w0[0] = w0l | w0r;
-
-    u32 digest[4];
-
-    u32 K2[4];
-
-    kerb_prepare (w0, w1, pw_len, checksum, digest, K2);
-
-    u32 tmp[4];
-
-    tmp[0] = digest[0];
-    tmp[1] = digest[1];
-    tmp[2] = digest[2];
-    tmp[3] = digest[3];
-
-    if (decrypt_and_check (&rc4_keys[lid], tmp, krb5tgs_bufs[digests_offset].edata2, krb5tgs_bufs[digests_offset].edata2_len, K2, checksum) == 1)
-    {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
-    }
-  }
-}
-
 __kernel void m13100_m04 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const comb_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global krb5tgs_t *krb5tgs_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
   /**
@@ -853,7 +801,10 @@ __kernel void m13100_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     if (decrypt_and_check (&rc4_keys[lid], tmp, krb5tgs_bufs[digests_offset].edata2, krb5tgs_bufs[digests_offset].edata2_len, K2, checksum) == 1)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+      if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+      {
+        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+      }
     }
   }
 }
@@ -946,7 +897,10 @@ __kernel void m13100_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     if (decrypt_and_check (&rc4_keys[lid], tmp, krb5tgs_bufs[digests_offset].edata2, krb5tgs_bufs[digests_offset].edata2_len, K2, checksum) == 1)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+      if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+      {
+        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+      }
     }
   }
 }

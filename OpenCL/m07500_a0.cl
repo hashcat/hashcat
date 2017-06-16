@@ -632,7 +632,10 @@ __kernel void m07500_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     if (decrypt_and_check (&rc4_keys[lid], tmp, timestamp_ct) == 1)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+      if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+      {
+        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+      }
     }
   }
 }
@@ -733,7 +736,10 @@ __kernel void m07500_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     if (decrypt_and_check (&rc4_keys[lid], tmp, timestamp_ct) == 1)
     {
-      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+      if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+      {
+        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+      }
     }
   }
 }

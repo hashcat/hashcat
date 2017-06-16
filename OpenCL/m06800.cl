@@ -1563,7 +1563,10 @@ __kernel void m06800_comp (__global pw_t *pws, __global const kernel_rule_t *rul
    && (out[2] == salt_buf[2])
    && (out[3] == salt_buf[3]))
   {
-    mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0);
+    if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, 0);
+    }
   }
 
   /**
