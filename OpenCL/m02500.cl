@@ -1132,14 +1132,15 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   }
 
   // the same code again, but with BE order for the t++
-  // note we dont need nonce_error_correction = 0, we already tested this above
 
-  for (u32 nonce_error_correction = 1; nonce_error_correction <= nonce_error_corrections; nonce_error_correction++)
+  for (u32 nonce_error_correction = 0; nonce_error_correction <= nonce_error_corrections; nonce_error_correction++)
   {
     u32 t = to;
 
     t -= nonce_error_corrections / 2;
     t += nonce_error_correction;
+
+    if (t == to) continue; // we already had this checked in the LE loop
 
     if (wpa->nonce_compare < 0)
     {
