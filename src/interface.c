@@ -2414,7 +2414,7 @@ static void drupal7_encode (u8 digest[64], u8 buf[43])
 
 static u32 parse_and_store_salt (u8 *out, u8 *in, u32 salt_len, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
-  u32 tmp_u32[64] = { 0 };
+  u32 tmp_u32[(64 * 2) + 1] = { 0 };
 
   u8 *tmp = (u8 *) tmp_u32;
 
@@ -2456,18 +2456,15 @@ static u32 parse_and_store_salt (u8 *out, u8 *in, u32 salt_len, MAYBE_UNUSED con
 
   if (hashconfig->opts_type & OPTS_TYPE_ST_UTF16LE)
   {
-    if (salt_len < 20)
+    if (salt_len <= 128)
     {
-      tmp_u32[9] = ((tmp_u32[4] >> 8) & 0x00FF0000) | ((tmp_u32[4] >> 16) & 0x000000FF);
-      tmp_u32[8] = ((tmp_u32[4] << 8) & 0x00FF0000) | ((tmp_u32[4] >>  0) & 0x000000FF);
-      tmp_u32[7] = ((tmp_u32[3] >> 8) & 0x00FF0000) | ((tmp_u32[3] >> 16) & 0x000000FF);
-      tmp_u32[6] = ((tmp_u32[3] << 8) & 0x00FF0000) | ((tmp_u32[3] >>  0) & 0x000000FF);
-      tmp_u32[5] = ((tmp_u32[2] >> 8) & 0x00FF0000) | ((tmp_u32[2] >> 16) & 0x000000FF);
-      tmp_u32[4] = ((tmp_u32[2] << 8) & 0x00FF0000) | ((tmp_u32[2] >>  0) & 0x000000FF);
-      tmp_u32[3] = ((tmp_u32[1] >> 8) & 0x00FF0000) | ((tmp_u32[1] >> 16) & 0x000000FF);
-      tmp_u32[2] = ((tmp_u32[1] << 8) & 0x00FF0000) | ((tmp_u32[1] >>  0) & 0x000000FF);
-      tmp_u32[1] = ((tmp_u32[0] >> 8) & 0x00FF0000) | ((tmp_u32[0] >> 16) & 0x000000FF);
-      tmp_u32[0] = ((tmp_u32[0] << 8) & 0x00FF0000) | ((tmp_u32[0] >>  0) & 0x000000FF);
+      for (int i = 64 - 1; i >= 1; i -= 2)
+      {
+        const u32 v = tmp_u32[i / 2];
+
+        tmp_u32[i - 0] = ((v >> 8) & 0x00FF0000) | ((v >> 16) & 0x000000FF);
+        tmp_u32[i - 1] = ((v << 8) & 0x00FF0000) | ((v >>  0) & 0x000000FF);
+      }
 
       salt_len = salt_len * 2;
     }

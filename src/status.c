@@ -751,8 +751,8 @@ char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
   plain_t plain1 = { 0, 0, 0, outerloop_first, innerloop_first };
   plain_t plain2 = { 0, 0, 0, outerloop_last,  innerloop_last  };
 
-  u32 plain_buf1[40] = { 0 };
-  u32 plain_buf2[40] = { 0 };
+  u32 plain_buf1[(64 * 2) + 2] = { 0 };
+  u32 plain_buf2[(64 * 2) + 2] = { 0 };
 
   u8 *plain_ptr1 = (u8 *) plain_buf1;
   u8 *plain_ptr2 = (u8 *) plain_buf2;

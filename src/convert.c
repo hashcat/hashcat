@@ -157,7 +157,7 @@ bool need_hexify (const u8 *buf, const int len, const char separator, bool alway
 
 void exec_hexify (const u8 *buf, const int len, u8 *out)
 {
-  const int max_len = (len >= 31) ? 31 : len;
+  const int max_len = (len >= PW_MAX) ? PW_MAX : len;
 
   for (int i = max_len - 1, j = i * 2; i >= 0; i -= 1, j -= 2)
   {

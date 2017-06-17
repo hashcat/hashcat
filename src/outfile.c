@@ -42,7 +42,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
     if (rc == -1) return -1;
 
-    for (int i = 0; i < 16; i++)
+    for (int i = 0; i < 64; i++)
     {
       plain_buf[i] = pw.i[i];
     }
@@ -63,7 +63,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
     if (rc == -1) return -1;
 
-    for (int i = 0; i < 16; i++)
+    for (int i = 0; i < 64; i++)
     {
       plain_buf[i] = pw.i[i];
     }
@@ -123,7 +123,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
     if (rc == -1) return -1;
 
-    for (int i = 0; i < 16; i++)
+    for (int i = 0; i < 64; i++)
     {
       plain_buf[i] = pw.i[i];
     }
@@ -149,7 +149,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
     if (rc == -1) return -1;
 
-    for (int i = 0; i < 16; i++)
+    for (int i = 0; i < 64; i++)
     {
       plain_buf[i] = pw.i[i];
     }

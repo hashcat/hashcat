@@ -1152,6 +1152,10 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
     if (run_init == true)
     {
+      CL_rc = hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, device_param->d_pws_amp_buf, 0, 0, pws_cnt * sizeof (pw_t), 0, NULL, NULL);
+
+      if (CL_rc == -1) return -1;
+
       CL_rc = run_kernel_amp (hashcat_ctx, device_param, pws_cnt);
 
       if (CL_rc == -1) return -1;

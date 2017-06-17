@@ -88,7 +88,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
   out.len = 0;
 
-  u32 plain_buf[16] = { 0 };
+  u32 plain_buf[64] = { 0 };
 
   u8 *plain_ptr = (u8 *) plain_buf;
 
@@ -115,7 +115,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
       for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
       {
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < 64; i++)
         {
           plain_buf[i] = pw.i[i];
         }
@@ -147,7 +147,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
       for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
       {
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < 64; i++)
         {
           plain_buf[i] = pw.i[i];
         }
@@ -217,7 +217,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
       for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
       {
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < 64; i++)
         {
           plain_buf[i] = pw.i[i];
         }
@@ -254,7 +254,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
       for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
       {
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < 64; i++)
         {
           plain_buf[i] = pw.i[i];
         }

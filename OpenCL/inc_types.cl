@@ -674,8 +674,8 @@ typedef struct digest
 
 typedef struct salt
 {
-  u32 salt_buf[16];
-  u32 salt_buf_pc[16];
+  u32 salt_buf[64];
+  u32 salt_buf_pc[64];
 
   u32 salt_len;
   u32 salt_len_pc;
@@ -1494,19 +1494,9 @@ typedef struct
 
 } kernel_rule_t;
 
-typedef struct
+typedef struct pw
 {
-  u32 salt_pos;
-  u32 digest_pos;
-  u32 hash_pos;
-  u32 gidvid;
-  u32 il_pos;
-
-} plain_t;
-
-typedef struct
-{
-  u32 i[16];
+  u32 i[64];
 
   u32 pw_len;
 
@@ -1516,25 +1506,35 @@ typedef struct
 
 } pw_t;
 
-typedef struct
+typedef struct bf
 {
-  u32 i;
+  u32  i;
 
 } bf_t;
 
-typedef struct
+typedef struct comb
 {
-  u32 i[8];
+  u32  i[64];
 
-  u32 pw_len;
+  u32  pw_len;
 
 } comb_t;
 
-typedef struct
+typedef struct bs_word
 {
-  u32 b[32];
+  u32  b[32];
 
 } bs_word_t;
+
+typedef struct
+{
+  u32 salt_pos;
+  u32 digest_pos;
+  u32 hash_pos;
+  u32 gidvid;
+  u32 il_pos;
+
+} plain_t;
 
 typedef struct
 {
