@@ -1402,9 +1402,23 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
   }
   else
   {
-    if (kern_run == KERN_RUN_2)
+    if (kern_run == KERN_RUN_1)
     {
-      if (hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD)
+      if (hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_INIT)
+      {
+        num_elements = CEILDIV (num_elements, device_param->vector_width);
+      }
+    }
+    else if (kern_run == KERN_RUN_2)
+    {
+      if (hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_LOOP)
+      {
+        num_elements = CEILDIV (num_elements, device_param->vector_width);
+      }
+    }
+    else if (kern_run == KERN_RUN_3)
+    {
+      if (hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_SIMD_COMP)
       {
         num_elements = CEILDIV (num_elements, device_param->vector_width);
       }

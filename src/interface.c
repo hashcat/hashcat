@@ -262,25 +262,27 @@ static char ST_HASH_15600[] = "$ethereum$p*1024*38353131353831333338313138363430
 static char ST_HASH_15700[] = "$ethereum$s*1024*1*1*3033363133373132373638333437323331383637383437333631373038323434*69eaf081695cf971ef7ee5a49997c1a3922e7efef59068109e83853755ee31c3*64a1adec1750ee4416b22b81111dd2a3c2fede820d6da8bf788dca2641d5b181";
 static char ST_HASH_99999[] = "hashcat";
 
-static const char OPTI_STR_ZERO_BYTE[]         = "Zero-Byte";
-static const char OPTI_STR_PRECOMPUTE_INIT[]   = "Precompute-Init";
-static const char OPTI_STR_PRECOMPUTE_MERKLE[] = "Precompute-Merkle-Demgard";
-static const char OPTI_STR_PRECOMPUTE_PERMUT[] = "Precompute-Final-Permutation";
-static const char OPTI_STR_MEET_IN_MIDDLE[]    = "Meet-In-The-Middle";
-static const char OPTI_STR_EARLY_SKIP[]        = "Early-Skip";
-static const char OPTI_STR_NOT_SALTED[]        = "Not-Salted";
-static const char OPTI_STR_NOT_ITERATED[]      = "Not-Iterated";
-static const char OPTI_STR_PREPENDED_SALT[]    = "Prepended-Salt";
-static const char OPTI_STR_APPENDED_SALT[]     = "Appended-Salt";
-static const char OPTI_STR_SINGLE_HASH[]       = "Single-Hash";
-static const char OPTI_STR_SINGLE_SALT[]       = "Single-Salt";
-static const char OPTI_STR_BRUTE_FORCE[]       = "Brute-Force";
-static const char OPTI_STR_RAW_HASH[]          = "Raw-Hash";
-static const char OPTI_STR_SLOW_HASH_SIMD[]    = "Slow-Hash-SIMD";
-static const char OPTI_STR_USES_BITS_8[]       = "Uses-8-Bit";
-static const char OPTI_STR_USES_BITS_16[]      = "Uses-16-Bit";
-static const char OPTI_STR_USES_BITS_32[]      = "Uses-32-Bit";
-static const char OPTI_STR_USES_BITS_64[]      = "Uses-64-Bit";
+static const char OPTI_STR_ZERO_BYTE[]            = "Zero-Byte";
+static const char OPTI_STR_PRECOMPUTE_INIT[]      = "Precompute-Init";
+static const char OPTI_STR_PRECOMPUTE_MERKLE[]    = "Precompute-Merkle-Demgard";
+static const char OPTI_STR_PRECOMPUTE_PERMUT[]    = "Precompute-Final-Permutation";
+static const char OPTI_STR_MEET_IN_MIDDLE[]       = "Meet-In-The-Middle";
+static const char OPTI_STR_EARLY_SKIP[]           = "Early-Skip";
+static const char OPTI_STR_NOT_SALTED[]           = "Not-Salted";
+static const char OPTI_STR_NOT_ITERATED[]         = "Not-Iterated";
+static const char OPTI_STR_PREPENDED_SALT[]       = "Prepended-Salt";
+static const char OPTI_STR_APPENDED_SALT[]        = "Appended-Salt";
+static const char OPTI_STR_SINGLE_HASH[]          = "Single-Hash";
+static const char OPTI_STR_SINGLE_SALT[]          = "Single-Salt";
+static const char OPTI_STR_BRUTE_FORCE[]          = "Brute-Force";
+static const char OPTI_STR_RAW_HASH[]             = "Raw-Hash";
+static const char OPTI_STR_SLOW_HASH_SIMD_INIT[]  = "Slow-Hash-SIMD-INIT";
+static const char OPTI_STR_SLOW_HASH_SIMD_LOOP[]  = "Slow-Hash-SIMD-LOOP";
+static const char OPTI_STR_SLOW_HASH_SIMD_COMP[]  = "Slow-Hash-SIMD-COMP";
+static const char OPTI_STR_USES_BITS_8[]          = "Uses-8-Bit";
+static const char OPTI_STR_USES_BITS_16[]         = "Uses-16-Bit";
+static const char OPTI_STR_USES_BITS_32[]         = "Uses-32-Bit";
+static const char OPTI_STR_USES_BITS_64[]         = "Uses-64-Bit";
 
 static const char PA_000[] = "OK";
 static const char PA_001[] = "Ignored due to comment";
@@ -15671,25 +15673,27 @@ char *stroptitype (const u32 opti_type)
 {
   switch (opti_type)
   {
-    case OPTI_TYPE_ZERO_BYTE:         return ((char *) OPTI_STR_ZERO_BYTE);
-    case OPTI_TYPE_PRECOMPUTE_INIT:   return ((char *) OPTI_STR_PRECOMPUTE_INIT);
-    case OPTI_TYPE_PRECOMPUTE_MERKLE: return ((char *) OPTI_STR_PRECOMPUTE_MERKLE);
-    case OPTI_TYPE_PRECOMPUTE_PERMUT: return ((char *) OPTI_STR_PRECOMPUTE_PERMUT);
-    case OPTI_TYPE_MEET_IN_MIDDLE:    return ((char *) OPTI_STR_MEET_IN_MIDDLE);
-    case OPTI_TYPE_EARLY_SKIP:        return ((char *) OPTI_STR_EARLY_SKIP);
-    case OPTI_TYPE_NOT_SALTED:        return ((char *) OPTI_STR_NOT_SALTED);
-    case OPTI_TYPE_NOT_ITERATED:      return ((char *) OPTI_STR_NOT_ITERATED);
-    case OPTI_TYPE_PREPENDED_SALT:    return ((char *) OPTI_STR_PREPENDED_SALT);
-    case OPTI_TYPE_APPENDED_SALT:     return ((char *) OPTI_STR_APPENDED_SALT);
-    case OPTI_TYPE_SINGLE_HASH:       return ((char *) OPTI_STR_SINGLE_HASH);
-    case OPTI_TYPE_SINGLE_SALT:       return ((char *) OPTI_STR_SINGLE_SALT);
-    case OPTI_TYPE_BRUTE_FORCE:       return ((char *) OPTI_STR_BRUTE_FORCE);
-    case OPTI_TYPE_RAW_HASH:          return ((char *) OPTI_STR_RAW_HASH);
-    case OPTI_TYPE_SLOW_HASH_SIMD:    return ((char *) OPTI_STR_SLOW_HASH_SIMD);
-    case OPTI_TYPE_USES_BITS_8:       return ((char *) OPTI_STR_USES_BITS_8);
-    case OPTI_TYPE_USES_BITS_16:      return ((char *) OPTI_STR_USES_BITS_16);
-    case OPTI_TYPE_USES_BITS_32:      return ((char *) OPTI_STR_USES_BITS_32);
-    case OPTI_TYPE_USES_BITS_64:      return ((char *) OPTI_STR_USES_BITS_64);
+    case OPTI_TYPE_ZERO_BYTE:           return ((char *) OPTI_STR_ZERO_BYTE);
+    case OPTI_TYPE_PRECOMPUTE_INIT:     return ((char *) OPTI_STR_PRECOMPUTE_INIT);
+    case OPTI_TYPE_PRECOMPUTE_MERKLE:   return ((char *) OPTI_STR_PRECOMPUTE_MERKLE);
+    case OPTI_TYPE_PRECOMPUTE_PERMUT:   return ((char *) OPTI_STR_PRECOMPUTE_PERMUT);
+    case OPTI_TYPE_MEET_IN_MIDDLE:      return ((char *) OPTI_STR_MEET_IN_MIDDLE);
+    case OPTI_TYPE_EARLY_SKIP:          return ((char *) OPTI_STR_EARLY_SKIP);
+    case OPTI_TYPE_NOT_SALTED:          return ((char *) OPTI_STR_NOT_SALTED);
+    case OPTI_TYPE_NOT_ITERATED:        return ((char *) OPTI_STR_NOT_ITERATED);
+    case OPTI_TYPE_PREPENDED_SALT:      return ((char *) OPTI_STR_PREPENDED_SALT);
+    case OPTI_TYPE_APPENDED_SALT:       return ((char *) OPTI_STR_APPENDED_SALT);
+    case OPTI_TYPE_SINGLE_HASH:         return ((char *) OPTI_STR_SINGLE_HASH);
+    case OPTI_TYPE_SINGLE_SALT:         return ((char *) OPTI_STR_SINGLE_SALT);
+    case OPTI_TYPE_BRUTE_FORCE:         return ((char *) OPTI_STR_BRUTE_FORCE);
+    case OPTI_TYPE_RAW_HASH:            return ((char *) OPTI_STR_RAW_HASH);
+    case OPTI_TYPE_SLOW_HASH_SIMD_INIT: return ((char *) OPTI_STR_SLOW_HASH_SIMD_INIT);
+    case OPTI_TYPE_SLOW_HASH_SIMD_LOOP: return ((char *) OPTI_STR_SLOW_HASH_SIMD_LOOP);
+    case OPTI_TYPE_SLOW_HASH_SIMD_COMP: return ((char *) OPTI_STR_SLOW_HASH_SIMD_COMP);
+    case OPTI_TYPE_USES_BITS_8:         return ((char *) OPTI_STR_USES_BITS_8);
+    case OPTI_TYPE_USES_BITS_16:        return ((char *) OPTI_STR_USES_BITS_16);
+    case OPTI_TYPE_USES_BITS_32:        return ((char *) OPTI_STR_USES_BITS_32);
+    case OPTI_TYPE_USES_BITS_64:        return ((char *) OPTI_STR_USES_BITS_64);
   }
 
   return (NULL);
@@ -20332,7 +20336,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = phpass_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD;
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
@@ -21047,7 +21051,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = dcc2_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD;
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
@@ -21106,7 +21110,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = wpa_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD;
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
@@ -22156,7 +22160,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->parse_func     = sha512osx_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
                                             | OPTI_TYPE_USES_BITS_64
-                                            | OPTI_TYPE_SLOW_HASH_SIMD;
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
@@ -22174,7 +22178,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->parse_func     = sha512grub_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
                                             | OPTI_TYPE_USES_BITS_64
-                                            | OPTI_TYPE_SLOW_HASH_SIMD;
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
@@ -22520,7 +22524,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_size      = DGST_SIZE_4_32;
                  hashconfig->parse_func     = cisco8_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD;
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
@@ -22740,7 +22744,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_size      = DGST_SIZE_4_32;
                  hashconfig->parse_func     = djangopbkdf2_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD;
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
@@ -22948,7 +22952,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_size      = DGST_SIZE_4_32;
                  hashconfig->parse_func     = pbkdf2_sha256_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD;
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
@@ -23131,7 +23135,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_size      = DGST_SIZE_4_32;
                  hashconfig->parse_func     = pbkdf2_md5_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD;
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
@@ -23150,7 +23154,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_size      = DGST_SIZE_4_32;
                  hashconfig->parse_func     = pbkdf2_sha1_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD;
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
@@ -23168,7 +23172,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_size      = DGST_SIZE_4_32;
                  hashconfig->parse_func     = atlassian_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD;
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
@@ -23188,7 +23192,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->parse_func     = pbkdf2_sha512_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
                                             | OPTI_TYPE_USES_BITS_64
-                                            | OPTI_TYPE_SLOW_HASH_SIMD;
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
@@ -23892,7 +23896,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_size      = DGST_SIZE_4_4; // we actually do not have a digest
                  hashconfig->parse_func     = itunes_backup_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD;
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
@@ -23913,7 +23917,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_size      = DGST_SIZE_4_4; // we actually do not have a digest
                  hashconfig->parse_func     = itunes_backup_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD;
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
@@ -24060,7 +24064,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_size      = DGST_SIZE_4_8;
                  hashconfig->parse_func     = ethereum_pbkdf2_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD;
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;

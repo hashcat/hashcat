@@ -11,6 +11,7 @@
 #include "inc_types.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
+#include "inc_hash_md4.cl"
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
@@ -470,113 +471,51 @@ __kernel void m02100_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   if (gid >= gid_max) return;
 
-  u32 w0[4];
+  md4_ctx_scalar_t md4_ctx1;
 
-  w0[0] = pws[gid].i[ 0];
-  w0[1] = pws[gid].i[ 1];
-  w0[2] = pws[gid].i[ 2];
-  w0[3] = pws[gid].i[ 3];
+  md4_init_scalar (&md4_ctx1);
 
-  u32 w1[4];
+  md4_update_scalar_global_utf16le (&md4_ctx1, pws[gid].i, pws[gid].pw_len);
 
-  w1[0] = pws[gid].i[ 4];
-  w1[1] = pws[gid].i[ 5];
-  w1[2] = pws[gid].i[ 6];
-  w1[3] = pws[gid].i[ 7];
-
-  u32 w2[4];
-
-  w2[0] = 0;
-  w2[1] = 0;
-  w2[2] = 0;
-  w2[3] = 0;
-
-  u32 w3[4];
-
-  w3[0] = 0;
-  w3[1] = 0;
-  w3[2] = 0;
-  w3[3] = 0;
-
-  const u32 pw_len = pws[gid].pw_len;
+  md4_final_scalar (&md4_ctx1);
 
   /**
    * salt
    */
 
-  u32 salt_len = salt_bufs[salt_pos].salt_len;
+  md4_ctx_scalar_t md4_ctx2;
 
-  u32 salt_buf0[4];
-  u32 salt_buf1[4];
-  u32 salt_buf2[4];
+  md4_init_scalar (&md4_ctx2);
 
-  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf0[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf0[2] = salt_bufs[salt_pos].salt_buf[2];
-  salt_buf0[3] = salt_bufs[salt_pos].salt_buf[3];
-  salt_buf1[0] = salt_bufs[salt_pos].salt_buf[4];
-  salt_buf1[1] = salt_bufs[salt_pos].salt_buf[5];
-  salt_buf1[2] = salt_bufs[salt_pos].salt_buf[6];
-  salt_buf1[3] = salt_bufs[salt_pos].salt_buf[7];
-  salt_buf2[0] = salt_bufs[salt_pos].salt_buf[8];
-  salt_buf2[1] = salt_bufs[salt_pos].salt_buf[9];
-  salt_buf2[2] = 0;
-  salt_buf2[3] = 0;
+  md4_ctx2.w0[0] = md4_ctx1.h[0];
+  md4_ctx2.w0[1] = md4_ctx1.h[1];
+  md4_ctx2.w0[2] = md4_ctx1.h[2];
+  md4_ctx2.w0[3] = md4_ctx1.h[3];
 
-  /**
-   * generate dcc
-   */
+  md4_ctx2.len = 16;
 
-  append_0x80_4x4_S (w0, w1, w2, w3, pw_len);
+  md4_update_scalar_global (&md4_ctx2, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
 
-  make_utf16le_S (w1, w2, w3);
-  make_utf16le_S (w0, w0, w1);
+  md4_final_scalar (&md4_ctx2);
 
-  w3[2] = pw_len * 2 * 8;
-
-  u32 digest_md4[4];
-
-  digest_md4[0] = MD4M_A;
-  digest_md4[1] = MD4M_B;
-  digest_md4[2] = MD4M_C;
-  digest_md4[3] = MD4M_D;
-
-  md4_transform_S (w0, w1, w2, w3, digest_md4);
-
-  w0[0] = digest_md4[0];
-  w0[1] = digest_md4[1];
-  w0[2] = digest_md4[2];
-  w0[3] = digest_md4[3];
-  w1[0] = salt_buf0[0];
-  w1[1] = salt_buf0[1];
-  w1[2] = salt_buf0[2];
-  w1[3] = salt_buf0[3];
-  w2[0] = salt_buf1[0];
-  w2[1] = salt_buf1[1];
-  w2[2] = salt_buf1[2];
-  w2[3] = salt_buf1[3];
-  w3[0] = salt_buf2[0];
-  w3[1] = salt_buf2[1];
-  w3[2] = (16 + salt_len) * 8;
-  w3[3] = 0;
-
-  append_0x80_4x4_S (w0, w1, w2, w3, 16 + salt_len);
-
-  digest_md4[0] = MD4M_A;
-  digest_md4[1] = MD4M_B;
-  digest_md4[2] = MD4M_C;
-  digest_md4[3] = MD4M_D;
-
-  md4_transform_S (w0, w1, w2, w3, digest_md4);
+  md4_ctx2.h[0] = swap32_S (md4_ctx2.h[0]);
+  md4_ctx2.h[1] = swap32_S (md4_ctx2.h[1]);
+  md4_ctx2.h[2] = swap32_S (md4_ctx2.h[2]);
+  md4_ctx2.h[3] = swap32_S (md4_ctx2.h[3]);
 
   /**
    * pads
    */
 
-  w0[0] = swap32_S (digest_md4[0]);
-  w0[1] = swap32_S (digest_md4[1]);
-  w0[2] = swap32_S (digest_md4[2]);
-  w0[3] = swap32_S (digest_md4[3]);
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  w0[0] = md4_ctx2.h[0];
+  w0[1] = md4_ctx2.h[1];
+  w0[2] = md4_ctx2.h[2];
+  w0[3] = md4_ctx2.h[3];
   w1[0] = 0;
   w1[1] = 0;
   w1[2] = 0;
@@ -611,19 +550,21 @@ __kernel void m02100_init (__global pw_t *pws, __global const kernel_rule_t *rul
    * hmac1
    */
 
-  w0[0] = salt_buf0[0];
-  w0[1] = salt_buf0[1];
-  w0[2] = salt_buf0[2];
-  w0[3] = salt_buf0[3];
-  w1[0] = salt_buf1[0];
-  w1[1] = salt_buf1[1];
-  w1[2] = salt_buf1[2];
-  w1[3] = salt_buf1[3];
-  w2[0] = salt_buf2[0];
-  w2[1] = salt_buf2[1];
-  w2[2] = 0;
-  w2[3] = 0;
-  w3[0] = 0;
+  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+
+  w0[0] = salt_bufs[salt_pos].salt_buf[ 0];
+  w0[1] = salt_bufs[salt_pos].salt_buf[ 1];
+  w0[2] = salt_bufs[salt_pos].salt_buf[ 2];
+  w0[3] = salt_bufs[salt_pos].salt_buf[ 3];
+  w1[0] = salt_bufs[salt_pos].salt_buf[ 4];
+  w1[1] = salt_bufs[salt_pos].salt_buf[ 5];
+  w1[2] = salt_bufs[salt_pos].salt_buf[ 6];
+  w1[3] = salt_bufs[salt_pos].salt_buf[ 7];
+  w2[0] = salt_bufs[salt_pos].salt_buf[ 8];
+  w2[1] = salt_bufs[salt_pos].salt_buf[ 9];
+  w2[2] = salt_bufs[salt_pos].salt_buf[10];
+  w2[3] = salt_bufs[salt_pos].salt_buf[11];
+  w3[0] = salt_bufs[salt_pos].salt_buf[12];
   w3[1] = 0;
   w3[2] = 0;
   w3[3] = (64 + salt_len + 4) * 8;
