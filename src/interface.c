@@ -12901,7 +12901,7 @@ int krb5tgs_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
     const u8 p1 = data_pos[i + 1];
 
     *checksum_ptr++ = hex_convert (p1) << 0
-                     | hex_convert (p0) << 4;
+                    | hex_convert (p0) << 4;
   }
 
   u8 *edata_ptr = (u8 *) krb5tgs->edata2;
@@ -12913,8 +12913,9 @@ int krb5tgs_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   {
     const u8 p0 = data_pos[i + 0];
     const u8 p1 = data_pos[i + 1];
+
     *edata_ptr++ = hex_convert (p1) << 0
-                    | hex_convert (p0) << 4;
+                 | hex_convert (p0) << 4;
   }
 
  /* this is needed for hmac_md5 */
@@ -21045,8 +21046,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_ST_LOWER
-                                            | OPTS_TYPE_ST_UTF16LE;
+                                            | OPTS_TYPE_ST_LOWER;
                  hashconfig->kern_type      = KERN_TYPE_DCC2;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = dcc2_parse_hash;

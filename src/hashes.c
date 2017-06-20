@@ -64,13 +64,13 @@ int sort_by_salt (const void *v1, const void *v2)
 
   if (res2 != 0) return (res2);
 
-  for (int n = 0; n < 16; n++)
+  for (int n = 0; n < 64; n++)
   {
     if (s1->salt_buf[n] > s2->salt_buf[n]) return  1;
     if (s1->salt_buf[n] < s2->salt_buf[n]) return -1;
   }
 
-  for (int n = 0; n < 8; n++)
+  for (int n = 0; n < 64; n++)
   {
     if (s1->salt_buf_pc[n] > s2->salt_buf_pc[n]) return  1;
     if (s1->salt_buf_pc[n] < s2->salt_buf_pc[n]) return -1;

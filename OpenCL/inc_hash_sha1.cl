@@ -259,42 +259,42 @@ void sha1_update (sha1_ctx_t *ctx, const u32 *w, const int len)
 
   for (i = 0, j = 0; i < len - 64; i += 64, j += 16)
   {
-    w0[0] = w[i +  0];
-    w0[1] = w[i +  1];
-    w0[2] = w[i +  2];
-    w0[3] = w[i +  3];
-    w1[0] = w[i +  4];
-    w1[1] = w[i +  5];
-    w1[2] = w[i +  6];
-    w1[3] = w[i +  7];
-    w2[0] = w[i +  8];
-    w2[1] = w[i +  9];
-    w2[2] = w[i + 10];
-    w2[3] = w[i + 11];
-    w3[0] = w[i + 12];
-    w3[1] = w[i + 13];
-    w3[2] = w[i + 14];
-    w3[3] = w[i + 15];
+    w0[0] = w[j +  0];
+    w0[1] = w[j +  1];
+    w0[2] = w[j +  2];
+    w0[3] = w[j +  3];
+    w1[0] = w[j +  4];
+    w1[1] = w[j +  5];
+    w1[2] = w[j +  6];
+    w1[3] = w[j +  7];
+    w2[0] = w[j +  8];
+    w2[1] = w[j +  9];
+    w2[2] = w[j + 10];
+    w2[3] = w[j + 11];
+    w3[0] = w[j + 12];
+    w3[1] = w[j + 13];
+    w3[2] = w[j + 14];
+    w3[3] = w[j + 15];
 
     sha1_update_64 (ctx, w0, w1, w2, w3, 64);
   }
 
-  w0[0] = w[i +  0];
-  w0[1] = w[i +  1];
-  w0[2] = w[i +  2];
-  w0[3] = w[i +  3];
-  w1[0] = w[i +  4];
-  w1[1] = w[i +  5];
-  w1[2] = w[i +  6];
-  w1[3] = w[i +  7];
-  w2[0] = w[i +  8];
-  w2[1] = w[i +  9];
-  w2[2] = w[i + 10];
-  w2[3] = w[i + 11];
-  w3[0] = w[i + 12];
-  w3[1] = w[i + 13];
-  w3[2] = w[i + 14];
-  w3[3] = w[i + 15];
+  w0[0] = w[j +  0];
+  w0[1] = w[j +  1];
+  w0[2] = w[j +  2];
+  w0[3] = w[j +  3];
+  w1[0] = w[j +  4];
+  w1[1] = w[j +  5];
+  w1[2] = w[j +  6];
+  w1[3] = w[j +  7];
+  w2[0] = w[j +  8];
+  w2[1] = w[j +  9];
+  w2[2] = w[j + 10];
+  w2[3] = w[j + 11];
+  w3[0] = w[j + 12];
+  w3[1] = w[j + 13];
+  w3[2] = w[j + 14];
+  w3[3] = w[j + 15];
 
   sha1_update_64 (ctx, w0, w1, w2, w3, len & 63);
 }
@@ -311,42 +311,42 @@ void sha1_update_global (sha1_ctx_t *ctx, const __global u32 *w, const int len)
 
   for (i = 0, j = 0; i < len - 64; i += 64, j += 16)
   {
-    w0[0] = w[i +  0];
-    w0[1] = w[i +  1];
-    w0[2] = w[i +  2];
-    w0[3] = w[i +  3];
-    w1[0] = w[i +  4];
-    w1[1] = w[i +  5];
-    w1[2] = w[i +  6];
-    w1[3] = w[i +  7];
-    w2[0] = w[i +  8];
-    w2[1] = w[i +  9];
-    w2[2] = w[i + 10];
-    w2[3] = w[i + 11];
-    w3[0] = w[i + 12];
-    w3[1] = w[i + 13];
-    w3[2] = w[i + 14];
-    w3[3] = w[i + 15];
+    w0[0] = w[j +  0];
+    w0[1] = w[j +  1];
+    w0[2] = w[j +  2];
+    w0[3] = w[j +  3];
+    w1[0] = w[j +  4];
+    w1[1] = w[j +  5];
+    w1[2] = w[j +  6];
+    w1[3] = w[j +  7];
+    w2[0] = w[j +  8];
+    w2[1] = w[j +  9];
+    w2[2] = w[j + 10];
+    w2[3] = w[j + 11];
+    w3[0] = w[j + 12];
+    w3[1] = w[j + 13];
+    w3[2] = w[j + 14];
+    w3[3] = w[j + 15];
 
     sha1_update_64 (ctx, w0, w1, w2, w3, 64);
   }
 
-  w0[0] = w[i +  0];
-  w0[1] = w[i +  1];
-  w0[2] = w[i +  2];
-  w0[3] = w[i +  3];
-  w1[0] = w[i +  4];
-  w1[1] = w[i +  5];
-  w1[2] = w[i +  6];
-  w1[3] = w[i +  7];
-  w2[0] = w[i +  8];
-  w2[1] = w[i +  9];
-  w2[2] = w[i + 10];
-  w2[3] = w[i + 11];
-  w3[0] = w[i + 12];
-  w3[1] = w[i + 13];
-  w3[2] = w[i + 14];
-  w3[3] = w[i + 15];
+  w0[0] = w[j +  0];
+  w0[1] = w[j +  1];
+  w0[2] = w[j +  2];
+  w0[3] = w[j +  3];
+  w1[0] = w[j +  4];
+  w1[1] = w[j +  5];
+  w1[2] = w[j +  6];
+  w1[3] = w[j +  7];
+  w2[0] = w[j +  8];
+  w2[1] = w[j +  9];
+  w2[2] = w[j + 10];
+  w2[3] = w[j + 11];
+  w3[0] = w[j + 12];
+  w3[1] = w[j + 13];
+  w3[2] = w[j + 14];
+  w3[3] = w[j + 15];
 
   sha1_update_64 (ctx, w0, w1, w2, w3, len & 63);
 }
@@ -363,42 +363,76 @@ void sha1_update_global_swap (sha1_ctx_t *ctx, const __global u32 *w, const int 
 
   for (i = 0, j = 0; i < len - 64; i += 64, j += 16)
   {
-    w0[0] = swap32_S (w[i +  0]);
-    w0[1] = swap32_S (w[i +  1]);
-    w0[2] = swap32_S (w[i +  2]);
-    w0[3] = swap32_S (w[i +  3]);
-    w1[0] = swap32_S (w[i +  4]);
-    w1[1] = swap32_S (w[i +  5]);
-    w1[2] = swap32_S (w[i +  6]);
-    w1[3] = swap32_S (w[i +  7]);
-    w2[0] = swap32_S (w[i +  8]);
-    w2[1] = swap32_S (w[i +  9]);
-    w2[2] = swap32_S (w[i + 10]);
-    w2[3] = swap32_S (w[i + 11]);
-    w3[0] = swap32_S (w[i + 12]);
-    w3[1] = swap32_S (w[i + 13]);
-    w3[2] = swap32_S (w[i + 14]);
-    w3[3] = swap32_S (w[i + 15]);
+    w0[0] = w[j +  0];
+    w0[1] = w[j +  1];
+    w0[2] = w[j +  2];
+    w0[3] = w[j +  3];
+    w1[0] = w[j +  4];
+    w1[1] = w[j +  5];
+    w1[2] = w[j +  6];
+    w1[3] = w[j +  7];
+    w2[0] = w[j +  8];
+    w2[1] = w[j +  9];
+    w2[2] = w[j + 10];
+    w2[3] = w[j + 11];
+    w3[0] = w[j + 12];
+    w3[1] = w[j + 13];
+    w3[2] = w[j + 14];
+    w3[3] = w[j + 15];
+
+    w0[0] = swap32_S (w0[0]);
+    w0[1] = swap32_S (w0[1]);
+    w0[2] = swap32_S (w0[2]);
+    w0[3] = swap32_S (w0[3]);
+    w1[0] = swap32_S (w1[0]);
+    w1[1] = swap32_S (w1[1]);
+    w1[2] = swap32_S (w1[2]);
+    w1[3] = swap32_S (w1[3]);
+    w2[0] = swap32_S (w2[0]);
+    w2[1] = swap32_S (w2[1]);
+    w2[2] = swap32_S (w2[2]);
+    w2[3] = swap32_S (w2[3]);
+    w3[0] = swap32_S (w3[0]);
+    w3[1] = swap32_S (w3[1]);
+    w3[2] = swap32_S (w3[2]);
+    w3[3] = swap32_S (w3[3]);
 
     sha1_update_64 (ctx, w0, w1, w2, w3, 64);
   }
 
-  w0[0] = swap32_S (w[i +  0]);
-  w0[1] = swap32_S (w[i +  1]);
-  w0[2] = swap32_S (w[i +  2]);
-  w0[3] = swap32_S (w[i +  3]);
-  w1[0] = swap32_S (w[i +  4]);
-  w1[1] = swap32_S (w[i +  5]);
-  w1[2] = swap32_S (w[i +  6]);
-  w1[3] = swap32_S (w[i +  7]);
-  w2[0] = swap32_S (w[i +  8]);
-  w2[1] = swap32_S (w[i +  9]);
-  w2[2] = swap32_S (w[i + 10]);
-  w2[3] = swap32_S (w[i + 11]);
-  w3[0] = swap32_S (w[i + 12]);
-  w3[1] = swap32_S (w[i + 13]);
-  w3[2] = swap32_S (w[i + 14]);
-  w3[3] = swap32_S (w[i + 15]);
+  w0[0] = w[j +  0];
+  w0[1] = w[j +  1];
+  w0[2] = w[j +  2];
+  w0[3] = w[j +  3];
+  w1[0] = w[j +  4];
+  w1[1] = w[j +  5];
+  w1[2] = w[j +  6];
+  w1[3] = w[j +  7];
+  w2[0] = w[j +  8];
+  w2[1] = w[j +  9];
+  w2[2] = w[j + 10];
+  w2[3] = w[j + 11];
+  w3[0] = w[j + 12];
+  w3[1] = w[j + 13];
+  w3[2] = w[j + 14];
+  w3[3] = w[j + 15];
+
+  w0[0] = swap32_S (w0[0]);
+  w0[1] = swap32_S (w0[1]);
+  w0[2] = swap32_S (w0[2]);
+  w0[3] = swap32_S (w0[3]);
+  w1[0] = swap32_S (w1[0]);
+  w1[1] = swap32_S (w1[1]);
+  w1[2] = swap32_S (w1[2]);
+  w1[3] = swap32_S (w1[3]);
+  w2[0] = swap32_S (w2[0]);
+  w2[1] = swap32_S (w2[1]);
+  w2[2] = swap32_S (w2[2]);
+  w2[3] = swap32_S (w2[3]);
+  w3[0] = swap32_S (w3[0]);
+  w3[1] = swap32_S (w3[1]);
+  w3[2] = swap32_S (w3[2]);
+  w3[3] = swap32_S (w3[3]);
 
   sha1_update_64 (ctx, w0, w1, w2, w3, len & 63);
 }
@@ -415,14 +449,14 @@ void sha1_update_global_utf16le (sha1_ctx_t *ctx, const __global u32 *w, const i
 
   for (i = 0, j = 0; i < len - 32; i += 32, j += 8)
   {
-    w0[0] = w[i + 0];
-    w0[1] = w[i + 1];
-    w0[2] = w[i + 2];
-    w0[3] = w[i + 3];
-    w1[0] = w[i + 4];
-    w1[1] = w[i + 5];
-    w1[2] = w[i + 6];
-    w1[3] = w[i + 7];
+    w0[0] = w[j + 0];
+    w0[1] = w[j + 1];
+    w0[2] = w[j + 2];
+    w0[3] = w[j + 3];
+    w1[0] = w[j + 4];
+    w1[1] = w[j + 5];
+    w1[2] = w[j + 6];
+    w1[3] = w[j + 7];
 
     make_utf16le_S (w1, w2, w3);
     make_utf16le_S (w0, w0, w1);
@@ -430,17 +464,93 @@ void sha1_update_global_utf16le (sha1_ctx_t *ctx, const __global u32 *w, const i
     sha1_update_64 (ctx, w0, w1, w2, w3, 32 * 2);
   }
 
-  w0[0] = w[i + 0];
-  w0[1] = w[i + 1];
-  w0[2] = w[i + 2];
-  w0[3] = w[i + 3];
-  w1[0] = w[i + 4];
-  w1[1] = w[i + 5];
-  w1[2] = w[i + 6];
-  w1[3] = w[i + 7];
+  w0[0] = w[j + 0];
+  w0[1] = w[j + 1];
+  w0[2] = w[j + 2];
+  w0[3] = w[j + 3];
+  w1[0] = w[j + 4];
+  w1[1] = w[j + 5];
+  w1[2] = w[j + 6];
+  w1[3] = w[j + 7];
 
   make_utf16le_S (w1, w2, w3);
   make_utf16le_S (w0, w0, w1);
+
+  sha1_update_64 (ctx, w0, w1, w2, w3, (len & 31) * 2);
+}
+
+void sha1_update_global_utf16le_swap (sha1_ctx_t *ctx, const __global u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  int i;
+  int j;
+
+  for (i = 0, j = 0; i < len - 32; i += 32, j += 8)
+  {
+    w0[0] = w[j + 0];
+    w0[1] = w[j + 1];
+    w0[2] = w[j + 2];
+    w0[3] = w[j + 3];
+    w1[0] = w[j + 4];
+    w1[1] = w[j + 5];
+    w1[2] = w[j + 6];
+    w1[3] = w[j + 7];
+
+    make_utf16le_S (w1, w2, w3);
+    make_utf16le_S (w0, w0, w1);
+
+    w0[0] = swap32_S (w0[0]);
+    w0[1] = swap32_S (w0[1]);
+    w0[2] = swap32_S (w0[2]);
+    w0[3] = swap32_S (w0[3]);
+    w1[0] = swap32_S (w1[0]);
+    w1[1] = swap32_S (w1[1]);
+    w1[2] = swap32_S (w1[2]);
+    w1[3] = swap32_S (w1[3]);
+    w2[0] = swap32_S (w2[0]);
+    w2[1] = swap32_S (w2[1]);
+    w2[2] = swap32_S (w2[2]);
+    w2[3] = swap32_S (w2[3]);
+    w3[0] = swap32_S (w3[0]);
+    w3[1] = swap32_S (w3[1]);
+    w3[2] = swap32_S (w3[2]);
+    w3[3] = swap32_S (w3[3]);
+
+    sha1_update_64 (ctx, w0, w1, w2, w3, 32 * 2);
+  }
+
+  w0[0] = w[j + 0];
+  w0[1] = w[j + 1];
+  w0[2] = w[j + 2];
+  w0[3] = w[j + 3];
+  w1[0] = w[j + 4];
+  w1[1] = w[j + 5];
+  w1[2] = w[j + 6];
+  w1[3] = w[j + 7];
+
+  make_utf16le_S (w1, w2, w3);
+  make_utf16le_S (w0, w0, w1);
+
+  w0[0] = swap32_S (w0[0]);
+  w0[1] = swap32_S (w0[1]);
+  w0[2] = swap32_S (w0[2]);
+  w0[3] = swap32_S (w0[3]);
+  w1[0] = swap32_S (w1[0]);
+  w1[1] = swap32_S (w1[1]);
+  w1[2] = swap32_S (w1[2]);
+  w1[3] = swap32_S (w1[3]);
+  w2[0] = swap32_S (w2[0]);
+  w2[1] = swap32_S (w2[1]);
+  w2[2] = swap32_S (w2[2]);
+  w2[3] = swap32_S (w2[3]);
+  w3[0] = swap32_S (w3[0]);
+  w3[1] = swap32_S (w3[1]);
+  w3[2] = swap32_S (w3[2]);
+  w3[3] = swap32_S (w3[3]);
 
   sha1_update_64 (ctx, w0, w1, w2, w3, (len & 31) * 2);
 }
@@ -565,6 +675,16 @@ void sha1_hmac_update_global (sha1_hmac_ctx_t *ctx, const __global u32 *w, const
 void sha1_hmac_update_global_swap (sha1_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   sha1_update_global_swap (&ctx->ipad, w, len);
+}
+
+void sha1_hmac_update_global_utf16le (sha1_hmac_ctx_t *ctx, const __global u32 *w, const int len)
+{
+  sha1_update_global_utf16le (&ctx->ipad, w, len);
+}
+
+void sha1_hmac_update_global_utf16le_swap (sha1_hmac_ctx_t *ctx, const __global u32 *w, const int len)
+{
+  sha1_update_global_utf16le_swap (&ctx->ipad, w, len);
 }
 
 void sha1_hmac_final (sha1_hmac_ctx_t *ctx)
@@ -855,42 +975,42 @@ void sha1_update_vector (sha1_ctx_vector_t *ctx, const u32x *w, const int len)
 
   for (i = 0, j = 0; i < len - 64; i += 64, j += 16)
   {
-    w0[0] = w[i +  0];
-    w0[1] = w[i +  1];
-    w0[2] = w[i +  2];
-    w0[3] = w[i +  3];
-    w1[0] = w[i +  4];
-    w1[1] = w[i +  5];
-    w1[2] = w[i +  6];
-    w1[3] = w[i +  7];
-    w2[0] = w[i +  8];
-    w2[1] = w[i +  9];
-    w2[2] = w[i + 10];
-    w2[3] = w[i + 11];
-    w3[0] = w[i + 12];
-    w3[1] = w[i + 13];
-    w3[2] = w[i + 14];
-    w3[3] = w[i + 15];
+    w0[0] = w[j +  0];
+    w0[1] = w[j +  1];
+    w0[2] = w[j +  2];
+    w0[3] = w[j +  3];
+    w1[0] = w[j +  4];
+    w1[1] = w[j +  5];
+    w1[2] = w[j +  6];
+    w1[3] = w[j +  7];
+    w2[0] = w[j +  8];
+    w2[1] = w[j +  9];
+    w2[2] = w[j + 10];
+    w2[3] = w[j + 11];
+    w3[0] = w[j + 12];
+    w3[1] = w[j + 13];
+    w3[2] = w[j + 14];
+    w3[3] = w[j + 15];
 
     sha1_update_vector_64 (ctx, w0, w1, w2, w3, 64);
   }
 
-  w0[0] = w[i +  0];
-  w0[1] = w[i +  1];
-  w0[2] = w[i +  2];
-  w0[3] = w[i +  3];
-  w1[0] = w[i +  4];
-  w1[1] = w[i +  5];
-  w1[2] = w[i +  6];
-  w1[3] = w[i +  7];
-  w2[0] = w[i +  8];
-  w2[1] = w[i +  9];
-  w2[2] = w[i + 10];
-  w2[3] = w[i + 11];
-  w3[0] = w[i + 12];
-  w3[1] = w[i + 13];
-  w3[2] = w[i + 14];
-  w3[3] = w[i + 15];
+  w0[0] = w[j +  0];
+  w0[1] = w[j +  1];
+  w0[2] = w[j +  2];
+  w0[3] = w[j +  3];
+  w1[0] = w[j +  4];
+  w1[1] = w[j +  5];
+  w1[2] = w[j +  6];
+  w1[3] = w[j +  7];
+  w2[0] = w[j +  8];
+  w2[1] = w[j +  9];
+  w2[2] = w[j + 10];
+  w2[3] = w[j + 11];
+  w3[0] = w[j + 12];
+  w3[1] = w[j + 13];
+  w3[2] = w[j + 14];
+  w3[3] = w[j + 15];
 
   sha1_update_vector_64 (ctx, w0, w1, w2, w3, len & 63);
 }

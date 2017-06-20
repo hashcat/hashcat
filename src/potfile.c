@@ -439,7 +439,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
     if (hashconfig->hash_mode == 6800)
     {
-      if (line_hash_len < 64) // 64 = 16 * u32 in salt_buf[]
+      if (line_hash_len < 256) // 64 = 64 * u32 in salt_buf[]
       {
         // manipulate salt_buf
         memcpy (hash_buf.salt->salt_buf, line_hash_buf, line_hash_len);
