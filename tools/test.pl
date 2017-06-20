@@ -3255,7 +3255,7 @@ sub passthrough
   {
     chomp ($word_buf);
 
-    next if length ($word_buf) > 31;
+    next if length ($word_buf) > 256;
 
     ##
     ## gen salt

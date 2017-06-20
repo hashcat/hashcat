@@ -24450,6 +24450,14 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                 break;
   }
 
+  // converted to length 256
+
+  switch (hashconfig->hash_mode)
+  {
+    case  2100: hashconfig->pw_max = 256;
+                break;
+  }
+
   return 0;
 }
 
