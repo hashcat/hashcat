@@ -189,49 +189,49 @@ void md4_update (md4_ctx_t *ctx, const u32 *w, const int len)
   u32 w2[4];
   u32 w3[4];
 
-  int i;
-  int j;
+  int pos1;
+  int pos4;
 
-  for (i = 0, j = 0; i < len - 64; i += 64, j += 16)
+  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
   {
-    w0[0] = w[j +  0];
-    w0[1] = w[j +  1];
-    w0[2] = w[j +  2];
-    w0[3] = w[j +  3];
-    w1[0] = w[j +  4];
-    w1[1] = w[j +  5];
-    w1[2] = w[j +  6];
-    w1[3] = w[j +  7];
-    w2[0] = w[j +  8];
-    w2[1] = w[j +  9];
-    w2[2] = w[j + 10];
-    w2[3] = w[j + 11];
-    w3[0] = w[j + 12];
-    w3[1] = w[j + 13];
-    w3[2] = w[j + 14];
-    w3[3] = w[j + 15];
+    w0[0] = w[pos4 +  0];
+    w0[1] = w[pos4 +  1];
+    w0[2] = w[pos4 +  2];
+    w0[3] = w[pos4 +  3];
+    w1[0] = w[pos4 +  4];
+    w1[1] = w[pos4 +  5];
+    w1[2] = w[pos4 +  6];
+    w1[3] = w[pos4 +  7];
+    w2[0] = w[pos4 +  8];
+    w2[1] = w[pos4 +  9];
+    w2[2] = w[pos4 + 10];
+    w2[3] = w[pos4 + 11];
+    w3[0] = w[pos4 + 12];
+    w3[1] = w[pos4 + 13];
+    w3[2] = w[pos4 + 14];
+    w3[3] = w[pos4 + 15];
 
     md4_update_64 (ctx, w0, w1, w2, w3, 64);
   }
 
-  w0[0] = w[j +  0];
-  w0[1] = w[j +  1];
-  w0[2] = w[j +  2];
-  w0[3] = w[j +  3];
-  w1[0] = w[j +  4];
-  w1[1] = w[j +  5];
-  w1[2] = w[j +  6];
-  w1[3] = w[j +  7];
-  w2[0] = w[j +  8];
-  w2[1] = w[j +  9];
-  w2[2] = w[j + 10];
-  w2[3] = w[j + 11];
-  w3[0] = w[j + 12];
-  w3[1] = w[j + 13];
-  w3[2] = w[j + 14];
-  w3[3] = w[j + 15];
+  w0[0] = w[pos4 +  0];
+  w0[1] = w[pos4 +  1];
+  w0[2] = w[pos4 +  2];
+  w0[3] = w[pos4 +  3];
+  w1[0] = w[pos4 +  4];
+  w1[1] = w[pos4 +  5];
+  w1[2] = w[pos4 +  6];
+  w1[3] = w[pos4 +  7];
+  w2[0] = w[pos4 +  8];
+  w2[1] = w[pos4 +  9];
+  w2[2] = w[pos4 + 10];
+  w2[3] = w[pos4 + 11];
+  w3[0] = w[pos4 + 12];
+  w3[1] = w[pos4 + 13];
+  w3[2] = w[pos4 + 14];
+  w3[3] = w[pos4 + 15];
 
-  md4_update_64 (ctx, w0, w1, w2, w3, len & 63);
+  md4_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
 void md4_update_global (md4_ctx_t *ctx, const __global u32 *w, const int len)
@@ -241,49 +241,49 @@ void md4_update_global (md4_ctx_t *ctx, const __global u32 *w, const int len)
   u32 w2[4];
   u32 w3[4];
 
-  int i;
-  int j;
+  int pos1;
+  int pos4;
 
-  for (i = 0, j = 0; i < len - 64; i += 64, j += 16)
+  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
   {
-    w0[0] = w[j +  0];
-    w0[1] = w[j +  1];
-    w0[2] = w[j +  2];
-    w0[3] = w[j +  3];
-    w1[0] = w[j +  4];
-    w1[1] = w[j +  5];
-    w1[2] = w[j +  6];
-    w1[3] = w[j +  7];
-    w2[0] = w[j +  8];
-    w2[1] = w[j +  9];
-    w2[2] = w[j + 10];
-    w2[3] = w[j + 11];
-    w3[0] = w[j + 12];
-    w3[1] = w[j + 13];
-    w3[2] = w[j + 14];
-    w3[3] = w[j + 15];
+    w0[0] = w[pos4 +  0];
+    w0[1] = w[pos4 +  1];
+    w0[2] = w[pos4 +  2];
+    w0[3] = w[pos4 +  3];
+    w1[0] = w[pos4 +  4];
+    w1[1] = w[pos4 +  5];
+    w1[2] = w[pos4 +  6];
+    w1[3] = w[pos4 +  7];
+    w2[0] = w[pos4 +  8];
+    w2[1] = w[pos4 +  9];
+    w2[2] = w[pos4 + 10];
+    w2[3] = w[pos4 + 11];
+    w3[0] = w[pos4 + 12];
+    w3[1] = w[pos4 + 13];
+    w3[2] = w[pos4 + 14];
+    w3[3] = w[pos4 + 15];
 
     md4_update_64 (ctx, w0, w1, w2, w3, 64);
   }
 
-  w0[0] = w[j +  0];
-  w0[1] = w[j +  1];
-  w0[2] = w[j +  2];
-  w0[3] = w[j +  3];
-  w1[0] = w[j +  4];
-  w1[1] = w[j +  5];
-  w1[2] = w[j +  6];
-  w1[3] = w[j +  7];
-  w2[0] = w[j +  8];
-  w2[1] = w[j +  9];
-  w2[2] = w[j + 10];
-  w2[3] = w[j + 11];
-  w3[0] = w[j + 12];
-  w3[1] = w[j + 13];
-  w3[2] = w[j + 14];
-  w3[3] = w[j + 15];
+  w0[0] = w[pos4 +  0];
+  w0[1] = w[pos4 +  1];
+  w0[2] = w[pos4 +  2];
+  w0[3] = w[pos4 +  3];
+  w1[0] = w[pos4 +  4];
+  w1[1] = w[pos4 +  5];
+  w1[2] = w[pos4 +  6];
+  w1[3] = w[pos4 +  7];
+  w2[0] = w[pos4 +  8];
+  w2[1] = w[pos4 +  9];
+  w2[2] = w[pos4 + 10];
+  w2[3] = w[pos4 + 11];
+  w3[0] = w[pos4 + 12];
+  w3[1] = w[pos4 + 13];
+  w3[2] = w[pos4 + 14];
+  w3[3] = w[pos4 + 15];
 
-  md4_update_64 (ctx, w0, w1, w2, w3, len & 63);
+  md4_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
 void md4_update_global_utf16le (md4_ctx_t *ctx, const __global u32 *w, const int len)
@@ -293,19 +293,19 @@ void md4_update_global_utf16le (md4_ctx_t *ctx, const __global u32 *w, const int
   u32 w2[4];
   u32 w3[4];
 
-  int i;
-  int j;
+  int pos1;
+  int pos4;
 
-  for (i = 0, j = 0; i < len - 32; i += 32, j += 8)
+  for (pos1 = 0, pos4 = 0; pos1 < len - 32; pos1 += 32, pos4 += 8)
   {
-    w0[0] = w[j + 0];
-    w0[1] = w[j + 1];
-    w0[2] = w[j + 2];
-    w0[3] = w[j + 3];
-    w1[0] = w[j + 4];
-    w1[1] = w[j + 5];
-    w1[2] = w[j + 6];
-    w1[3] = w[j + 7];
+    w0[0] = w[pos4 + 0];
+    w0[1] = w[pos4 + 1];
+    w0[2] = w[pos4 + 2];
+    w0[3] = w[pos4 + 3];
+    w1[0] = w[pos4 + 4];
+    w1[1] = w[pos4 + 5];
+    w1[2] = w[pos4 + 6];
+    w1[3] = w[pos4 + 7];
 
     make_utf16le_S (w1, w2, w3);
     make_utf16le_S (w0, w0, w1);
@@ -313,19 +313,19 @@ void md4_update_global_utf16le (md4_ctx_t *ctx, const __global u32 *w, const int
     md4_update_64 (ctx, w0, w1, w2, w3, 32 * 2);
   }
 
-  w0[0] = w[j + 0];
-  w0[1] = w[j + 1];
-  w0[2] = w[j + 2];
-  w0[3] = w[j + 3];
-  w1[0] = w[j + 4];
-  w1[1] = w[j + 5];
-  w1[2] = w[j + 6];
-  w1[3] = w[j + 7];
+  w0[0] = w[pos4 + 0];
+  w0[1] = w[pos4 + 1];
+  w0[2] = w[pos4 + 2];
+  w0[3] = w[pos4 + 3];
+  w1[0] = w[pos4 + 4];
+  w1[1] = w[pos4 + 5];
+  w1[2] = w[pos4 + 6];
+  w1[3] = w[pos4 + 7];
 
   make_utf16le_S (w1, w2, w3);
   make_utf16le_S (w0, w0, w1);
 
-  md4_update_64 (ctx, w0, w1, w2, w3, (len & 31) * 2);
+  md4_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
 void md4_final (md4_ctx_t *ctx)
@@ -554,49 +554,49 @@ void md4_update_vector (md4_ctx_vector_t *ctx, const u32x *w, const int len)
   u32x w2[4];
   u32x w3[4];
 
-  int i;
-  int j;
+  int pos1;
+  int pos4;
 
-  for (i = 0, j = 0; i < len - 64; i += 64, j += 16)
+  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
   {
-    w0[0] = w[j +  0];
-    w0[1] = w[j +  1];
-    w0[2] = w[j +  2];
-    w0[3] = w[j +  3];
-    w1[0] = w[j +  4];
-    w1[1] = w[j +  5];
-    w1[2] = w[j +  6];
-    w1[3] = w[j +  7];
-    w2[0] = w[j +  8];
-    w2[1] = w[j +  9];
-    w2[2] = w[j + 10];
-    w2[3] = w[j + 11];
-    w3[0] = w[j + 12];
-    w3[1] = w[j + 13];
-    w3[2] = w[j + 14];
-    w3[3] = w[j + 15];
+    w0[0] = w[pos4 +  0];
+    w0[1] = w[pos4 +  1];
+    w0[2] = w[pos4 +  2];
+    w0[3] = w[pos4 +  3];
+    w1[0] = w[pos4 +  4];
+    w1[1] = w[pos4 +  5];
+    w1[2] = w[pos4 +  6];
+    w1[3] = w[pos4 +  7];
+    w2[0] = w[pos4 +  8];
+    w2[1] = w[pos4 +  9];
+    w2[2] = w[pos4 + 10];
+    w2[3] = w[pos4 + 11];
+    w3[0] = w[pos4 + 12];
+    w3[1] = w[pos4 + 13];
+    w3[2] = w[pos4 + 14];
+    w3[3] = w[pos4 + 15];
 
     md4_update_vector_64 (ctx, w0, w1, w2, w3, 64);
   }
 
-  w0[0] = w[j +  0];
-  w0[1] = w[j +  1];
-  w0[2] = w[j +  2];
-  w0[3] = w[j +  3];
-  w1[0] = w[j +  4];
-  w1[1] = w[j +  5];
-  w1[2] = w[j +  6];
-  w1[3] = w[j +  7];
-  w2[0] = w[j +  8];
-  w2[1] = w[j +  9];
-  w2[2] = w[j + 10];
-  w2[3] = w[j + 11];
-  w3[0] = w[j + 12];
-  w3[1] = w[j + 13];
-  w3[2] = w[j + 14];
-  w3[3] = w[j + 15];
+  w0[0] = w[pos4 +  0];
+  w0[1] = w[pos4 +  1];
+  w0[2] = w[pos4 +  2];
+  w0[3] = w[pos4 +  3];
+  w1[0] = w[pos4 +  4];
+  w1[1] = w[pos4 +  5];
+  w1[2] = w[pos4 +  6];
+  w1[3] = w[pos4 +  7];
+  w2[0] = w[pos4 +  8];
+  w2[1] = w[pos4 +  9];
+  w2[2] = w[pos4 + 10];
+  w2[3] = w[pos4 + 11];
+  w3[0] = w[pos4 + 12];
+  w3[1] = w[pos4 + 13];
+  w3[2] = w[pos4 + 14];
+  w3[3] = w[pos4 + 15];
 
-  md4_update_vector_64 (ctx, w0, w1, w2, w3, len & 63);
+  md4_update_vector_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
 void md4_final_vector (md4_ctx_vector_t *ctx)
