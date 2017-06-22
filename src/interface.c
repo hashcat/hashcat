@@ -20336,8 +20336,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->kern_type      = KERN_TYPE_PHPASS;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = phpass_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
@@ -24454,6 +24453,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   switch (hashconfig->hash_mode)
   {
+    case   400: hashconfig->pw_max = 256;
+                break;
     case  2100: hashconfig->pw_max = 256;
                 break;
   }
