@@ -5328,7 +5328,7 @@ void opencl_session_reset (hashcat_ctx_t *hashcat_ctx)
 int opencl_session_update_combinator (hashcat_ctx_t *hashcat_ctx)
 {
   combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
-  //hashconfig_t     *hashconfig     = hashcat_ctx->hashconfig;
+  hashconfig_t     *hashconfig     = hashcat_ctx->hashconfig;
   opencl_ctx_t     *opencl_ctx     = hashcat_ctx->opencl_ctx;
 
   if (opencl_ctx->enabled == false) return 0;
@@ -5360,14 +5360,14 @@ int opencl_session_update_combinator (hashcat_ctx_t *hashcat_ctx)
 
     device_param->kernel_params_amp_buf32[5] = combinator_ctx->combs_mode;
 
-    /*
     if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
     {
+      int CL_rc;
+
       CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_amp, 5, sizeof (cl_uint), device_param->kernel_params_amp[5]);
 
       if (CL_rc == -1) return -1;
     }
-    */
   }
 
   return 0;
