@@ -362,11 +362,6 @@ void md4_final (md4_ctx_t *ctx)
   md4_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
 }
 
-void md4_optimize_max_length (md4_ctx_t *ctx, const int bits)
-{
-  ctx->len &= (1 << bits) - 1;
-}
-
 // while input buf can be a vector datatype, the length of the different elements can not
 
 typedef struct md4_ctx_vector
@@ -631,9 +626,4 @@ void md4_final_vector (md4_ctx_vector_t *ctx)
   ctx->w3[3] = 0;
 
   md4_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
-}
-
-void md4_optimize_max_length_vector (md4_ctx_vector_t *ctx, const int bits)
-{
-  ctx->len &= (1 << bits) - 1;
 }

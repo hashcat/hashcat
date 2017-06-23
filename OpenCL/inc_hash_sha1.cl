@@ -589,11 +589,6 @@ void sha1_final (sha1_ctx_t *ctx)
   sha1_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
 }
 
-void sha1_optimize_max_length (sha1_ctx_t *ctx, const int bits)
-{
-  ctx->len &= (1 << bits) - 1;
-}
-
 // sha1_hmac
 
 typedef struct sha1_hmac_ctx
@@ -1047,9 +1042,4 @@ void sha1_final_vector (sha1_ctx_vector_t *ctx)
   ctx->w3[3] = ctx->len * 8;
 
   sha1_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
-}
-
-void sha1_optimize_max_length_vector (sha1_ctx_vector_t *ctx, const int bits)
-{
-  ctx->len &= (1 << bits) - 1;
 }
