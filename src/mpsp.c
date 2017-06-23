@@ -7,6 +7,7 @@
 #include "types.h"
 #include "memory.h"
 #include "event.h"
+#include "bitops.h"
 #include "logfile.h"
 #include "convert.h"
 #include "filehandling.h"
@@ -687,6 +688,27 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
+  u64 v = 0;
+  u64 z = 0;
+
+  if (fread (&v, sizeof (u64), 1, fd) != 1)
+  {
+    event_log_error (hashcat_ctx, "%s: Could not load data.", hcstat);
+
+    fclose (fd);
+
+    return -1;
+  }
+
+  if (fread (&z, sizeof (u64), 1, fd) != 1)
+  {
+    event_log_error (hashcat_ctx, "%s: Could not load data.", hcstat);
+
+    fclose (fd);
+
+    return -1;
+  }
+
   if (fread (root_stats_buf, sizeof (u64), SP_ROOT_CNT, fd) != SP_ROOT_CNT)
   {
     event_log_error (hashcat_ctx, "%s: Could not load data.", hcstat);
@@ -706,6 +728,34 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
   }
 
   fclose (fd);
+
+  /**
+   * switch endianess
+   */
+
+  v = byte_swap_64 (v);
+  z = byte_swap_64 (z);
+
+  for (int i = 0; i < SP_ROOT_CNT; i++)   root_stats_buf[i]   = byte_swap_64 (root_stats_buf[i]);
+  for (int i = 0; i < SP_MARKOV_CNT; i++) markov_stats_buf[i] = byte_swap_64 (markov_stats_buf[i]);
+
+  /**
+   * verify header
+   */
+
+  if (v != SP_VERSION)
+  {
+    event_log_error (hashcat_ctx, "%s: Invalid header", hcstat);
+
+    return -1;
+  }
+
+  if (z != 0)
+  {
+    event_log_error (hashcat_ctx, "%s: Invalid header", hcstat);
+
+    return -1;
+  }
 
   /**
    * Markov modifier of hcstat_table on user request

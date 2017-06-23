@@ -12,9 +12,10 @@
 
 #define CHARSIZ       0x100
 
-#define SP_HCSTAT     "hashcat.hcstat"
+#define SP_HCSTAT     "hashcat.hcstat2"
+#define SP_VERSION    (0x6863737461740000 | 0x0002)
 #define SP_PW_MIN     2
-#define SP_PW_MAX     64
+#define SP_PW_MAX     256
 #define SP_ROOT_CNT   (SP_PW_MAX * CHARSIZ)
 #define SP_MARKOV_CNT (SP_PW_MAX * CHARSIZ * CHARSIZ)
 
