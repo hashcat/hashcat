@@ -14,6 +14,7 @@
 #include "interface.h"
 #include "opencl.h"
 #include "shared.h"
+#include "ext_lzma.h"
 #include "mpsp.h"
 
 static const char DEF_MASK[] = "?1?2?2?2?2?2?2?3?3?3?3?d?d?d?d";
@@ -679,6 +680,15 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
     hcstat = hcstat_tmp;
   }
 
+  hc_stat_t s;
+
+  if (hc_stat (hcstat, &s) == -1)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", hcstat, strerror (errno));
+
+    return -1;
+  }
+
   FILE *fd = fopen (hcstat, "rb");
 
   if (fd == NULL)
@@ -688,46 +698,65 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  u64 v = 0;
-  u64 z = 0;
+  u8 *inbuf = (u8 *) hcmalloc (s.st_size);
 
-  if (fread (&v, sizeof (u64), 1, fd) != 1)
+  size_t inlen = fread (inbuf, 1, SP_FILESZ, fd);
+
+  if (inlen != (size_t) s.st_size)
   {
-    event_log_error (hashcat_ctx, "%s: Could not load data.", hcstat);
+    event_log_error (hashcat_ctx, "%s: Could not read data.", hcstat);
 
     fclose (fd);
 
-    return -1;
-  }
-
-  if (fread (&z, sizeof (u64), 1, fd) != 1)
-  {
-    event_log_error (hashcat_ctx, "%s: Could not load data.", hcstat);
-
-    fclose (fd);
-
-    return -1;
-  }
-
-  if (fread (root_stats_buf, sizeof (u64), SP_ROOT_CNT, fd) != SP_ROOT_CNT)
-  {
-    event_log_error (hashcat_ctx, "%s: Could not load data.", hcstat);
-
-    fclose (fd);
-
-    return -1;
-  }
-
-  if (fread (markov_stats_buf, sizeof (u64), SP_MARKOV_CNT, fd) != SP_MARKOV_CNT)
-  {
-    event_log_error (hashcat_ctx, "%s: Could not load data.", hcstat);
-
-    fclose (fd);
+    hcfree (inbuf);
 
     return -1;
   }
 
   fclose (fd);
+
+  u8 *outbuf = (u8 *) hcmalloc (SP_FILESZ);
+
+  size_t outlen = SP_FILESZ;
+
+  ISzAlloc hc_lzma_mem_alloc = {hc_lzma_alloc, hc_lzma_free};
+
+  ELzmaStatus status;
+
+  #define LZMA2_PROPS 0x1c //
+
+  const SRes res = Lzma2Decode (outbuf, &outlen, inbuf, &inlen, (Byte) LZMA2_PROPS, LZMA_FINISH_END, &status, &hc_lzma_mem_alloc);
+
+  if (res != SZ_OK)
+  {
+    event_log_error (hashcat_ctx, "%s: Could not uncompress data.", hcstat);
+
+    hcfree (inbuf);
+    hcfree (outbuf);
+
+    return -1;
+  }
+
+  if (outlen != SP_FILESZ)
+  {
+    event_log_error (hashcat_ctx, "%s: Could not uncompress data.", hcstat);
+
+    hcfree (inbuf);
+    hcfree (outbuf);
+
+    return -1;
+  }
+
+  u64 *ptr = (u64 *) outbuf;
+
+  u64 v = *ptr++;
+  u64 z = *ptr++;
+
+  memcpy (root_stats_buf,   ptr, sizeof (u64) * SP_ROOT_CNT);   ptr += SP_ROOT_CNT;
+  memcpy (markov_stats_buf, ptr, sizeof (u64) * SP_MARKOV_CNT); ptr += SP_MARKOV_CNT;
+
+  hcfree (inbuf);
+  hcfree (outbuf);
 
   /**
    * switch endianess

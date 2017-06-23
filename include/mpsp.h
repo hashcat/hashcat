@@ -18,6 +18,7 @@
 #define SP_PW_MAX     256
 #define SP_ROOT_CNT   (SP_PW_MAX * CHARSIZ)
 #define SP_MARKOV_CNT (SP_PW_MAX * CHARSIZ * CHARSIZ)
+#define SP_FILESZ     (sizeof (u64) + sizeof (u64) + (sizeof (u64) * SP_ROOT_CNT) + (sizeof (u64) * SP_MARKOV_CNT))
 
 #define INCR_MASKS    1000
 
