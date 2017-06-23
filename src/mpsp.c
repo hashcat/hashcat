@@ -700,9 +700,9 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
 
   u8 *inbuf = (u8 *) hcmalloc (s.st_size);
 
-  size_t inlen = fread (inbuf, 1, SP_FILESZ, fd);
+  SizeT inlen = (SizeT) fread (inbuf, 1, SP_FILESZ, fd);
 
-  if (inlen != (size_t) s.st_size)
+  if (inlen != (SizeT) s.st_size)
   {
     event_log_error (hashcat_ctx, "%s: Could not read data.", hcstat);
 
@@ -717,15 +717,11 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
 
   u8 *outbuf = (u8 *) hcmalloc (SP_FILESZ);
 
-  size_t outlen = SP_FILESZ;
+  SizeT outlen = SP_FILESZ;
 
-  ISzAlloc hc_lzma_mem_alloc = {hc_lzma_alloc, hc_lzma_free};
+  const char props = 0x1c; // lzma properties constant, retrieved with 7z2hashcat
 
-  ELzmaStatus status;
-
-  #define LZMA2_PROPS 0x1c //
-
-  const SRes res = Lzma2Decode (outbuf, &outlen, inbuf, &inlen, (Byte) LZMA2_PROPS, LZMA_FINISH_END, &status, &hc_lzma_mem_alloc);
+  const SRes res = hc_lzma2_decompress (inbuf, &inlen, outbuf, &outlen, &props);
 
   if (res != SZ_OK)
   {
