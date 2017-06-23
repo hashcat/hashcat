@@ -15,7 +15,7 @@ mkdir -p $OUT
 
 cp    $IN/hashcat??.exe                 $OUT/
 cp    $IN/hashcat??.bin                 $OUT/
-cp    $IN/hashcat.hcstat                $OUT/
+cp    $IN/hashcat.hcstat2               $OUT/
 cp    $IN/hashcat.hctune                $OUT/
 
 cp -r $IN/docs                          $OUT/
