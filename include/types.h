@@ -856,14 +856,6 @@ typedef struct bf
 
 } bf_t;
 
-typedef struct comb
-{
-  u32  i[64];
-
-  u32  pw_len;
-
-} comb_t;
-
 typedef struct bs_word
 {
   u32  b[32];
@@ -962,7 +954,7 @@ typedef struct hc_device_param
   size_t  size_st_esalts;
 
   FILE   *combs_fp;
-  comb_t *combs_buf;
+  pw_t   *combs_buf;
 
   void   *hooks_buf;
 

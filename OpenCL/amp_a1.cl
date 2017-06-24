@@ -8478,7 +8478,7 @@ inline void switch_buffer_by_offset_le_S (u32 w[64], const u32 offset)
   #endif
 }
 
-__kernel void amp (__global pw_t *pws, __global pw_t *pws_amp, __global const kernel_rule_t *rules_buf, __global const comb_t *combs_buf, __global const bf_t *bfs_buf, const u32 combs_mode, const u32 gid_max)
+__kernel void amp (__global pw_t *pws, __global pw_t *pws_amp, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, const u32 combs_mode, const u32 gid_max)
 {
   const u32 gid = get_global_id (0);
 
@@ -8486,7 +8486,7 @@ __kernel void amp (__global pw_t *pws, __global pw_t *pws_amp, __global const ke
 
   pw_t pw = pws[gid];
 
-  comb_t comb = combs_buf[0];
+  pw_t comb = combs_buf[0];
 
   const u32 pw_len = pw.pw_len;
 

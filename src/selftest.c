@@ -101,7 +101,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       pw.pw_len = pw_len - 1;
 
-      comb_t comb; memset (&comb, 0, sizeof (comb));
+      pw_t comb; memset (&comb, 0, sizeof (comb));
 
       char *comb_ptr = (char *) &comb.i;
 
@@ -119,7 +119,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
         comb_ptr[comb.pw_len] = 0x80;
       }
 
-      CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_combs_c, CL_TRUE, 0, 1 * sizeof (comb_t), &comb, 0, NULL, NULL);
+      CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_combs_c, CL_TRUE, 0, 1 * sizeof (pw_t), &comb, 0, NULL, NULL);
 
       if (CL_err != CL_SUCCESS) return -1;
 

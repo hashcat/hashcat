@@ -2059,7 +2059,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
       }
       else if (user_options->attack_mode == ATTACK_MODE_COMBI)
       {
-        int CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_combs_c, CL_TRUE, 0, innerloop_left * sizeof (comb_t), device_param->combs_buf, 0, NULL, NULL);
+        int CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_combs_c, CL_TRUE, 0, innerloop_left * sizeof (pw_t), device_param->combs_buf, 0, NULL, NULL);
 
         if (CL_rc == -1) return -1;
       }
@@ -2071,13 +2071,13 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
       }
       else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
       {
-        int CL_rc = hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->command_queue, device_param->d_combs, device_param->d_combs_c, 0, 0, innerloop_left * sizeof (comb_t), 0, NULL, NULL);
+        int CL_rc = hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->command_queue, device_param->d_combs, device_param->d_combs_c, 0, 0, innerloop_left * sizeof (pw_t), 0, NULL, NULL);
 
         if (CL_rc == -1) return -1;
       }
       else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
       {
-        int CL_rc = hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->command_queue, device_param->d_combs, device_param->d_combs_c, 0, 0, innerloop_left * sizeof (comb_t), 0, NULL, NULL);
+        int CL_rc = hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->command_queue, device_param->d_combs, device_param->d_combs_c, 0, 0, innerloop_left * sizeof (pw_t), 0, NULL, NULL);
 
         if (CL_rc == -1) return -1;
       }
@@ -3669,7 +3669,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->size_shown    = size_shown;
     device_param->size_salts    = size_salts;
 
-    size_t size_combs = KERNEL_COMBS * sizeof (comb_t);
+    size_t size_combs = KERNEL_COMBS * sizeof (pw_t);
     size_t size_bfs   = KERNEL_BFS   * sizeof (bf_t);
     size_t size_tm    = 32           * sizeof (bs_word_t);
 
@@ -4637,7 +4637,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     device_param->pws_buf = pws_buf;
 
-    comb_t *combs_buf = (comb_t *) hccalloc (KERNEL_COMBS, sizeof (comb_t));
+    pw_t *combs_buf = (pw_t *) hccalloc (KERNEL_COMBS, sizeof (pw_t));
 
     device_param->combs_buf = combs_buf;
 

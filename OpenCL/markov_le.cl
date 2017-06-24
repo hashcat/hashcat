@@ -76,7 +76,7 @@ __kernel void r_markov (__global bf_t *pws_buf_r, __global const cs_t *root_css_
   pws_buf_r[gid].i = pw_buf[0];
 }
 
-__kernel void C_markov (__global comb_t *pws_buf, __global const cs_t *root_css_buf, __global const cs_t *markov_css_buf, const u64 off, const u32 pw_len, const u32 mask80, const u32 bits14, const u32 bits15, const u32 gid_max)
+__kernel void C_markov (__global pw_t *pws_buf, __global const cs_t *root_css_buf, __global const cs_t *markov_css_buf, const u64 off, const u32 pw_len, const u32 mask80, const u32 bits14, const u32 bits15, const u32 gid_max)
 {
   const u32 gid = get_global_id (0);
 
