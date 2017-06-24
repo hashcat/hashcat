@@ -700,7 +700,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
 
   u8 *inbuf = (u8 *) hcmalloc (s.st_size);
 
-  SizeT inlen = (SizeT) fread (inbuf, 1, SP_FILESZ, fd);
+  SizeT inlen = (SizeT) fread (inbuf, 1, s.st_size, fd);
 
   if (inlen != (SizeT) s.st_size)
   {
