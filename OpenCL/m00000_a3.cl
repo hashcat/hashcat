@@ -42,7 +42,7 @@ void m00000m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global const ke
    * base
    */
 
-  const u32 F_w0c00 =    0  + MD5C00;
+  const u32 F_w0c00 =    0u + MD5C00;
   const u32 F_w1c01 = w[ 1] + MD5C01;
   const u32 F_w2c02 = w[ 2] + MD5C02;
   const u32 F_w3c03 = w[ 3] + MD5C03;
@@ -62,7 +62,7 @@ void m00000m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global const ke
   const u32 G_w1c10 = w[ 1] + MD5C10;
   const u32 G_w6c11 = w[ 6] + MD5C11;
   const u32 G_wbc12 = w[11] + MD5C12;
-  const u32 G_w0c13 =    0  + MD5C13;
+  const u32 G_w0c13 =    0u + MD5C13;
   const u32 G_w5c14 = w[ 5] + MD5C14;
   const u32 G_wac15 = w[10] + MD5C15;
   const u32 G_wfc16 = w[15] + MD5C16;
@@ -85,7 +85,7 @@ void m00000m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global const ke
   const u32 H_w7c26 = w[ 7] + MD5C26;
   const u32 H_wac27 = w[10] + MD5C27;
   const u32 H_wdc28 = w[13] + MD5C28;
-  const u32 H_w0c29 =    0  + MD5C29;
+  const u32 H_w0c29 =    0u + MD5C29;
   const u32 H_w3c2a = w[ 3] + MD5C2a;
   const u32 H_w6c2b = w[ 6] + MD5C2b;
   const u32 H_w9c2c = w[ 9] + MD5C2c;
@@ -93,7 +93,7 @@ void m00000m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global const ke
   const u32 H_wfc2e = w[15] + MD5C2e;
   const u32 H_w2c2f = w[ 2] + MD5C2f;
 
-  const u32 I_w0c30 =    0  + MD5C30;
+  const u32 I_w0c30 =    0u + MD5C30;
   const u32 I_w7c31 = w[ 7] + MD5C31;
   const u32 I_wec32 = w[14] + MD5C32;
   const u32 I_w5c33 = w[ 5] + MD5C33;
@@ -212,7 +212,7 @@ void m00000s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global const ke
    * base
    */
 
-  const u32 F_w0c00 =    0  + MD5C00;
+  const u32 F_w0c00 =    0u + MD5C00;
   const u32 F_w1c01 = w[ 1] + MD5C01;
   const u32 F_w2c02 = w[ 2] + MD5C02;
   const u32 F_w3c03 = w[ 3] + MD5C03;
@@ -232,7 +232,7 @@ void m00000s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global const ke
   const u32 G_w1c10 = w[ 1] + MD5C10;
   const u32 G_w6c11 = w[ 6] + MD5C11;
   const u32 G_wbc12 = w[11] + MD5C12;
-  const u32 G_w0c13 =    0  + MD5C13;
+  const u32 G_w0c13 =    0u + MD5C13;
   const u32 G_w5c14 = w[ 5] + MD5C14;
   const u32 G_wac15 = w[10] + MD5C15;
   const u32 G_wfc16 = w[15] + MD5C16;
@@ -255,7 +255,7 @@ void m00000s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global const ke
   const u32 H_w7c26 = w[ 7] + MD5C26;
   const u32 H_wac27 = w[10] + MD5C27;
   const u32 H_wdc28 = w[13] + MD5C28;
-  const u32 H_w0c29 =    0  + MD5C29;
+  const u32 H_w0c29 =    0u + MD5C29;
   const u32 H_w3c2a = w[ 3] + MD5C2a;
   const u32 H_w6c2b = w[ 6] + MD5C2b;
   const u32 H_w9c2c = w[ 9] + MD5C2c;
@@ -263,7 +263,7 @@ void m00000s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global const ke
   const u32 H_wfc2e = w[15] + MD5C2e;
   const u32 H_w2c2f = w[ 2] + MD5C2f;
 
-  const u32 I_w0c30 =    0  + MD5C30;
+  const u32 I_w0c30 =    0u + MD5C30;
   const u32 I_w7c31 = w[ 7] + MD5C31;
   const u32 I_wec32 = w[14] + MD5C32;
   const u32 I_w5c33 = w[ 5] + MD5C33;
