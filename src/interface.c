@@ -2632,14 +2632,17 @@ int cisco4_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   digest[6] = byte_swap_32 (digest[6]);
   digest[7] = byte_swap_32 (digest[7]);
 
-  digest[0] -= SHA256M_A;
-  digest[1] -= SHA256M_B;
-  digest[2] -= SHA256M_C;
-  digest[3] -= SHA256M_D;
-  digest[4] -= SHA256M_E;
-  digest[5] -= SHA256M_F;
-  digest[6] -= SHA256M_G;
-  digest[7] -= SHA256M_H;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA256M_A;
+    digest[1] -= SHA256M_B;
+    digest[2] -= SHA256M_C;
+    digest[3] -= SHA256M_D;
+    digest[4] -= SHA256M_E;
+    digest[5] -= SHA256M_F;
+    digest[6] -= SHA256M_G;
+    digest[7] -= SHA256M_H;
+  }
 
   return (PARSER_OK);
 }
@@ -2691,11 +2694,14 @@ int arubaos_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   digest[3] = byte_swap_32 (digest[3]);
   digest[4] = byte_swap_32 (digest[4]);
 
-  digest[0] -= SHA1M_A;
-  digest[1] -= SHA1M_B;
-  digest[2] -= SHA1M_C;
-  digest[3] -= SHA1M_D;
-  digest[4] -= SHA1M_E;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA1M_A;
+    digest[1] -= SHA1M_B;
+    digest[2] -= SHA1M_C;
+    digest[3] -= SHA1M_D;
+    digest[4] -= SHA1M_E;
+  }
 
   u32 salt_len = 10;
 
@@ -2734,11 +2740,14 @@ int osx1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   digest[3] = byte_swap_32 (digest[3]);
   digest[4] = byte_swap_32 (digest[4]);
 
-  digest[0] -= SHA1M_A;
-  digest[1] -= SHA1M_B;
-  digest[2] -= SHA1M_C;
-  digest[3] -= SHA1M_D;
-  digest[4] -= SHA1M_E;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA1M_A;
+    digest[1] -= SHA1M_B;
+    digest[2] -= SHA1M_C;
+    digest[3] -= SHA1M_D;
+    digest[4] -= SHA1M_E;
+  }
 
   u32 salt_len = 8;
 
@@ -2783,14 +2792,17 @@ int osx512_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   digest[6] = byte_swap_64 (digest[6]);
   digest[7] = byte_swap_64 (digest[7]);
 
-  digest[0] -= SHA512M_A;
-  digest[1] -= SHA512M_B;
-  digest[2] -= SHA512M_C;
-  digest[3] -= SHA512M_D;
-  digest[4] -= SHA512M_E;
-  digest[5] -= SHA512M_F;
-  digest[6] -= SHA512M_G;
-  digest[7] -= SHA512M_H;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA512M_A;
+    digest[1] -= SHA512M_B;
+    digest[2] -= SHA512M_C;
+    digest[3] -= SHA512M_D;
+    digest[4] -= SHA512M_E;
+    digest[5] -= SHA512M_F;
+    digest[6] -= SHA512M_G;
+    digest[7] -= SHA512M_H;
+  }
 
   u32 salt_len = 8;
 
@@ -2827,10 +2839,13 @@ int osc_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
 
-  digest[0] -= MD5M_A;
-  digest[1] -= MD5M_B;
-  digest[2] -= MD5M_C;
-  digest[3] -= MD5M_D;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= MD5M_A;
+    digest[1] -= MD5M_B;
+    digest[2] -= MD5M_C;
+    digest[3] -= MD5M_D;
+  }
 
   if (input_buf[32] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -2936,10 +2951,13 @@ int netscreen_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   digest[2] = byte_swap_32 (digest[2]);
   digest[3] = byte_swap_32 (digest[3]);
 
-  digest[0] -= MD5M_A;
-  digest[1] -= MD5M_B;
-  digest[2] -= MD5M_C;
-  digest[3] -= MD5M_D;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= MD5M_A;
+    digest[1] -= MD5M_B;
+    digest[2] -= MD5M_C;
+    digest[3] -= MD5M_D;
+  }
 
   if (input_buf[30] != ':') return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -2994,11 +3012,14 @@ int smf_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
   digest[3] = byte_swap_32 (digest[3]);
   digest[4] = byte_swap_32 (digest[4]);
 
-  digest[0] -= SHA1M_A;
-  digest[1] -= SHA1M_B;
-  digest[2] -= SHA1M_C;
-  digest[3] -= SHA1M_D;
-  digest[4] -= SHA1M_E;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA1M_A;
+    digest[1] -= SHA1M_B;
+    digest[2] -= SHA1M_C;
+    digest[3] -= SHA1M_D;
+    digest[4] -= SHA1M_E;
+  }
 
   if (input_buf[40] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -3737,11 +3758,14 @@ int episerver_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   digest[3] = byte_swap_32 (digest[3]);
   digest[4] = byte_swap_32 (digest[4]);
 
-  digest[0] -= SHA1M_A;
-  digest[1] -= SHA1M_B;
-  digest[2] -= SHA1M_C;
-  digest[3] -= SHA1M_D;
-  digest[4] -= SHA1M_E;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA1M_A;
+    digest[1] -= SHA1M_B;
+    digest[2] -= SHA1M_C;
+    digest[3] -= SHA1M_D;
+    digest[4] -= SHA1M_E;
+  }
 
   return (PARSER_OK);
 }
@@ -3796,10 +3820,13 @@ int md4_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
 
-  digest[0] -= MD4M_A;
-  digest[1] -= MD4M_B;
-  digest[2] -= MD4M_C;
-  digest[3] -= MD4M_D;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= MD4M_A;
+    digest[1] -= MD4M_B;
+    digest[2] -= MD4M_C;
+    digest[3] -= MD4M_D;
+  }
 
   return (PARSER_OK);
 }
@@ -3817,10 +3844,13 @@ int md5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
 
-  digest[0] -= MD5M_A;
-  digest[1] -= MD5M_B;
-  digest[2] -= MD5M_C;
-  digest[3] -= MD5M_D;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= MD5M_A;
+    digest[1] -= MD5M_B;
+    digest[2] -= MD5M_C;
+    digest[3] -= MD5M_D;
+  }
 
   return (PARSER_OK);
 }
@@ -3852,8 +3882,6 @@ int md5s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
     if ((input_len < DISPLAY_LEN_MIN_10) || (input_len > DISPLAY_LEN_MAX_10)) return (PARSER_GLOBAL_LENGTH);
   }
 
-  const u32 opti_type = hashconfig->opti_type;
-
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
@@ -3865,7 +3893,7 @@ int md5s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
 
-  if (opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
   {
     digest[0] -= MD5M_A;
     digest[1] -= MD5M_B;
@@ -3920,10 +3948,13 @@ int md5pix_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
             | itoa64_to_int (input_buf[14]) << 12
             | itoa64_to_int (input_buf[15]) << 18;
 
-  digest[0] -= MD5M_A;
-  digest[1] -= MD5M_B;
-  digest[2] -= MD5M_C;
-  digest[3] -= MD5M_D;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= MD5M_A;
+    digest[1] -= MD5M_B;
+    digest[2] -= MD5M_C;
+    digest[3] -= MD5M_D;
+  }
 
   digest[0] &= 0x00ffffff;
   digest[1] &= 0x00ffffff;
@@ -3965,10 +3996,13 @@ int md5asa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
             | itoa64_to_int (input_buf[14]) << 12
             | itoa64_to_int (input_buf[15]) << 18;
 
-  digest[0] -= MD5M_A;
-  digest[1] -= MD5M_B;
-  digest[2] -= MD5M_C;
-  digest[3] -= MD5M_D;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= MD5M_A;
+    digest[1] -= MD5M_B;
+    digest[2] -= MD5M_C;
+    digest[3] -= MD5M_D;
+  }
 
   digest[0] &= 0x00ffffff;
   digest[1] &= 0x00ffffff;
@@ -4440,10 +4474,13 @@ int joomla_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
 
-  digest[0] -= MD5M_A;
-  digest[1] -= MD5M_B;
-  digest[2] -= MD5M_C;
-  digest[3] -= MD5M_D;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= MD5M_A;
+    digest[1] -= MD5M_B;
+    digest[2] -= MD5M_C;
+    digest[3] -= MD5M_D;
+  }
 
   if (input_buf[32] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -4484,10 +4521,13 @@ int postgresql_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
 
-  digest[0] -= MD5M_A;
-  digest[1] -= MD5M_B;
-  digest[2] -= MD5M_C;
-  digest[3] -= MD5M_D;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= MD5M_A;
+    digest[1] -= MD5M_B;
+    digest[2] -= MD5M_C;
+    digest[3] -= MD5M_D;
+  }
 
   if (input_buf[32] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -4521,10 +4561,13 @@ int md5md5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
 
-  digest[0] -= MD5M_A;
-  digest[1] -= MD5M_B;
-  digest[2] -= MD5M_C;
-  digest[3] -= MD5M_D;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= MD5M_A;
+    digest[1] -= MD5M_B;
+    digest[2] -= MD5M_C;
+    digest[3] -= MD5M_D;
+  }
 
   /**
    * This is a virtual salt. While the algorithm is basically not salted
@@ -4565,10 +4608,13 @@ int vb3_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
 
-  digest[0] -= MD5M_A;
-  digest[1] -= MD5M_B;
-  digest[2] -= MD5M_C;
-  digest[3] -= MD5M_D;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= MD5M_A;
+    digest[1] -= MD5M_B;
+    digest[2] -= MD5M_C;
+    digest[3] -= MD5M_D;
+  }
 
   if (input_buf[32] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -4648,10 +4694,13 @@ int dcc_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
 
-  digest[0] -= MD4M_A;
-  digest[1] -= MD4M_B;
-  digest[2] -= MD4M_C;
-  digest[3] -= MD4M_D;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= MD4M_A;
+    digest[1] -= MD4M_B;
+    digest[2] -= MD4M_C;
+    digest[3] -= MD4M_D;
+  }
 
   if (input_buf[32] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -4733,11 +4782,14 @@ int sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   digest[3] = byte_swap_32 (digest[3]);
   digest[4] = byte_swap_32 (digest[4]);
 
-  digest[0] -= SHA1M_A;
-  digest[1] -= SHA1M_B;
-  digest[2] -= SHA1M_C;
-  digest[3] -= SHA1M_D;
-  digest[4] -= SHA1M_E;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA1M_A;
+    digest[1] -= SHA1M_B;
+    digest[2] -= SHA1M_C;
+    digest[3] -= SHA1M_D;
+    digest[4] -= SHA1M_E;
+  }
 
   return (PARSER_OK);
 }
@@ -4798,11 +4850,14 @@ int sha1s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUS
   digest[3] = byte_swap_32 (digest[3]);
   digest[4] = byte_swap_32 (digest[4]);
 
-  digest[0] -= SHA1M_A;
-  digest[1] -= SHA1M_B;
-  digest[2] -= SHA1M_C;
-  digest[3] -= SHA1M_D;
-  digest[4] -= SHA1M_E;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA1M_A;
+    digest[1] -= SHA1M_B;
+    digest[2] -= SHA1M_C;
+    digest[3] -= SHA1M_D;
+    digest[4] -= SHA1M_E;
+  }
 
   if (input_buf[40] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -4974,11 +5029,14 @@ int sha1b64_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   digest[3] = byte_swap_32 (digest[3]);
   digest[4] = byte_swap_32 (digest[4]);
 
-  digest[0] -= SHA1M_A;
-  digest[1] -= SHA1M_B;
-  digest[2] -= SHA1M_C;
-  digest[3] -= SHA1M_D;
-  digest[4] -= SHA1M_E;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA1M_A;
+    digest[1] -= SHA1M_B;
+    digest[2] -= SHA1M_C;
+    digest[3] -= SHA1M_D;
+    digest[4] -= SHA1M_E;
+  }
 
   return (PARSER_OK);
 }
@@ -5020,11 +5078,14 @@ int sha1b64s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   digest[3] = byte_swap_32 (digest[3]);
   digest[4] = byte_swap_32 (digest[4]);
 
-  digest[0] -= SHA1M_A;
-  digest[1] -= SHA1M_B;
-  digest[2] -= SHA1M_C;
-  digest[3] -= SHA1M_D;
-  digest[4] -= SHA1M_E;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA1M_A;
+    digest[1] -= SHA1M_B;
+    digest[2] -= SHA1M_C;
+    digest[3] -= SHA1M_D;
+    digest[4] -= SHA1M_E;
+  }
 
   return (PARSER_OK);
 }
@@ -5067,11 +5128,14 @@ int mssql2000_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   digest[3] = byte_swap_32 (digest[3]);
   digest[4] = byte_swap_32 (digest[4]);
 
-  digest[0] -= SHA1M_A;
-  digest[1] -= SHA1M_B;
-  digest[2] -= SHA1M_C;
-  digest[3] -= SHA1M_D;
-  digest[4] -= SHA1M_E;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA1M_A;
+    digest[1] -= SHA1M_B;
+    digest[2] -= SHA1M_C;
+    digest[3] -= SHA1M_D;
+    digest[4] -= SHA1M_E;
+  }
 
   return (PARSER_OK);
 }
@@ -5114,11 +5178,14 @@ int mssql2005_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   digest[3] = byte_swap_32 (digest[3]);
   digest[4] = byte_swap_32 (digest[4]);
 
-  digest[0] -= SHA1M_A;
-  digest[1] -= SHA1M_B;
-  digest[2] -= SHA1M_C;
-  digest[3] -= SHA1M_D;
-  digest[4] -= SHA1M_E;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA1M_A;
+    digest[1] -= SHA1M_B;
+    digest[2] -= SHA1M_C;
+    digest[3] -= SHA1M_D;
+    digest[4] -= SHA1M_E;
+  }
 
   return (PARSER_OK);
 }
@@ -5167,14 +5234,17 @@ int mssql2012_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   digest[6] = byte_swap_64 (digest[6]);
   digest[7] = byte_swap_64 (digest[7]);
 
-  digest[0] -= SHA512M_A;
-  digest[1] -= SHA512M_B;
-  digest[2] -= SHA512M_C;
-  digest[3] -= SHA512M_D;
-  digest[4] -= SHA512M_E;
-  digest[5] -= SHA512M_F;
-  digest[6] -= SHA512M_G;
-  digest[7] -= SHA512M_H;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA512M_A;
+    digest[1] -= SHA512M_B;
+    digest[2] -= SHA512M_C;
+    digest[3] -= SHA512M_D;
+    digest[4] -= SHA512M_E;
+    digest[5] -= SHA512M_F;
+    digest[6] -= SHA512M_G;
+    digest[7] -= SHA512M_H;
+  }
 
   return (PARSER_OK);
 }
@@ -5240,11 +5310,14 @@ int oracles_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   digest[3] = byte_swap_32 (digest[3]);
   digest[4] = byte_swap_32 (digest[4]);
 
-  digest[0] -= SHA1M_A;
-  digest[1] -= SHA1M_B;
-  digest[2] -= SHA1M_C;
-  digest[3] -= SHA1M_D;
-  digest[4] -= SHA1M_E;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA1M_A;
+    digest[1] -= SHA1M_B;
+    digest[2] -= SHA1M_C;
+    digest[3] -= SHA1M_D;
+    digest[4] -= SHA1M_E;
+  }
 
   if (input_buf[40] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -5353,13 +5426,16 @@ int sha224_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   digest[5] = byte_swap_32 (digest[5]);
   digest[6] = byte_swap_32 (digest[6]);
 
-  digest[0] -= SHA224M_A;
-  digest[1] -= SHA224M_B;
-  digest[2] -= SHA224M_C;
-  digest[3] -= SHA224M_D;
-  digest[4] -= SHA224M_E;
-  digest[5] -= SHA224M_F;
-  digest[6] -= SHA224M_G;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA224M_A;
+    digest[1] -= SHA224M_B;
+    digest[2] -= SHA224M_C;
+    digest[3] -= SHA224M_D;
+    digest[4] -= SHA224M_E;
+    digest[5] -= SHA224M_F;
+    digest[6] -= SHA224M_G;
+  }
 
   return (PARSER_OK);
 }
@@ -5390,14 +5466,17 @@ int sha256_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   digest[6] = byte_swap_32 (digest[6]);
   digest[7] = byte_swap_32 (digest[7]);
 
-  digest[0] -= SHA256M_A;
-  digest[1] -= SHA256M_B;
-  digest[2] -= SHA256M_C;
-  digest[3] -= SHA256M_D;
-  digest[4] -= SHA256M_E;
-  digest[5] -= SHA256M_F;
-  digest[6] -= SHA256M_G;
-  digest[7] -= SHA256M_H;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA256M_A;
+    digest[1] -= SHA256M_B;
+    digest[2] -= SHA256M_C;
+    digest[3] -= SHA256M_D;
+    digest[4] -= SHA256M_E;
+    digest[5] -= SHA256M_F;
+    digest[6] -= SHA256M_G;
+    digest[7] -= SHA256M_H;
+  }
 
   return (PARSER_OK);
 }
@@ -5437,14 +5516,17 @@ int sha256s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   digest[6] = byte_swap_32 (digest[6]);
   digest[7] = byte_swap_32 (digest[7]);
 
-  digest[0] -= SHA256M_A;
-  digest[1] -= SHA256M_B;
-  digest[2] -= SHA256M_C;
-  digest[3] -= SHA256M_D;
-  digest[4] -= SHA256M_E;
-  digest[5] -= SHA256M_F;
-  digest[6] -= SHA256M_G;
-  digest[7] -= SHA256M_H;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA256M_A;
+    digest[1] -= SHA256M_B;
+    digest[2] -= SHA256M_C;
+    digest[3] -= SHA256M_D;
+    digest[4] -= SHA256M_E;
+    digest[5] -= SHA256M_F;
+    digest[6] -= SHA256M_G;
+    digest[7] -= SHA256M_H;
+  }
 
   if (input_buf[64] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -5489,14 +5571,17 @@ int sha384_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   digest[6] = 0;
   digest[7] = 0;
 
-  digest[0] -= SHA384M_A;
-  digest[1] -= SHA384M_B;
-  digest[2] -= SHA384M_C;
-  digest[3] -= SHA384M_D;
-  digest[4] -= SHA384M_E;
-  digest[5] -= SHA384M_F;
-  digest[6] -= 0;
-  digest[7] -= 0;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA384M_A;
+    digest[1] -= SHA384M_B;
+    digest[2] -= SHA384M_C;
+    digest[3] -= SHA384M_D;
+    digest[4] -= SHA384M_E;
+    digest[5] -= SHA384M_F;
+    digest[6] -= 0;
+    digest[7] -= 0;
+  }
 
   return (PARSER_OK);
 }
@@ -5527,14 +5612,17 @@ int sha512_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   digest[6] = byte_swap_64 (digest[6]);
   digest[7] = byte_swap_64 (digest[7]);
 
-  digest[0] -= SHA512M_A;
-  digest[1] -= SHA512M_B;
-  digest[2] -= SHA512M_C;
-  digest[3] -= SHA512M_D;
-  digest[4] -= SHA512M_E;
-  digest[5] -= SHA512M_F;
-  digest[6] -= SHA512M_G;
-  digest[7] -= SHA512M_H;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA512M_A;
+    digest[1] -= SHA512M_B;
+    digest[2] -= SHA512M_C;
+    digest[3] -= SHA512M_D;
+    digest[4] -= SHA512M_E;
+    digest[5] -= SHA512M_F;
+    digest[6] -= SHA512M_G;
+    digest[7] -= SHA512M_H;
+  }
 
   return (PARSER_OK);
 }
@@ -5574,14 +5662,17 @@ int sha512s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   digest[6] = byte_swap_64 (digest[6]);
   digest[7] = byte_swap_64 (digest[7]);
 
-  digest[0] -= SHA512M_A;
-  digest[1] -= SHA512M_B;
-  digest[2] -= SHA512M_C;
-  digest[3] -= SHA512M_D;
-  digest[4] -= SHA512M_E;
-  digest[5] -= SHA512M_F;
-  digest[6] -= SHA512M_G;
-  digest[7] -= SHA512M_H;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA512M_A;
+    digest[1] -= SHA512M_B;
+    digest[2] -= SHA512M_C;
+    digest[3] -= SHA512M_D;
+    digest[4] -= SHA512M_E;
+    digest[5] -= SHA512M_F;
+    digest[6] -= SHA512M_G;
+    digest[7] -= SHA512M_H;
+  }
 
   if (input_buf[128] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -6863,14 +6954,17 @@ int episerver4_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   digest[6] = byte_swap_32 (digest[6]);
   digest[7] = byte_swap_32 (digest[7]);
 
-  digest[0] -= SHA256M_A;
-  digest[1] -= SHA256M_B;
-  digest[2] -= SHA256M_C;
-  digest[3] -= SHA256M_D;
-  digest[4] -= SHA256M_E;
-  digest[5] -= SHA256M_F;
-  digest[6] -= SHA256M_G;
-  digest[7] -= SHA256M_H;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA256M_A;
+    digest[1] -= SHA256M_B;
+    digest[2] -= SHA256M_C;
+    digest[3] -= SHA256M_D;
+    digest[4] -= SHA256M_E;
+    digest[5] -= SHA256M_F;
+    digest[6] -= SHA256M_G;
+    digest[7] -= SHA256M_H;
+  }
 
   return (PARSER_OK);
 }
@@ -6979,14 +7073,17 @@ int sha512b64s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   digest[6] = byte_swap_64 (digest[6]);
   digest[7] = byte_swap_64 (digest[7]);
 
-  digest[0] -= SHA512M_A;
-  digest[1] -= SHA512M_B;
-  digest[2] -= SHA512M_C;
-  digest[3] -= SHA512M_D;
-  digest[4] -= SHA512M_E;
-  digest[5] -= SHA512M_F;
-  digest[6] -= SHA512M_G;
-  digest[7] -= SHA512M_H;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA512M_A;
+    digest[1] -= SHA512M_B;
+    digest[2] -= SHA512M_C;
+    digest[3] -= SHA512M_D;
+    digest[4] -= SHA512M_E;
+    digest[5] -= SHA512M_F;
+    digest[6] -= SHA512M_G;
+    digest[7] -= SHA512M_H;
+  }
 
   const int salt_len = tmp_len - 64;
 
@@ -7682,11 +7779,14 @@ int netscaler_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   digest[3] = byte_swap_32 (digest[3]);
   digest[4] = byte_swap_32 (digest[4]);
 
-  digest[0] -= SHA1M_A;
-  digest[1] -= SHA1M_B;
-  digest[2] -= SHA1M_C;
-  digest[3] -= SHA1M_D;
-  digest[4] -= SHA1M_E;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA1M_A;
+    digest[1] -= SHA1M_B;
+    digest[2] -= SHA1M_C;
+    digest[3] -= SHA1M_D;
+    digest[4] -= SHA1M_E;
+  }
 
   return (PARSER_OK);
 }
@@ -7706,10 +7806,13 @@ int chap_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
 
-  digest[0] -= MD5M_A;
-  digest[1] -= MD5M_B;
-  digest[2] -= MD5M_C;
-  digest[3] -= MD5M_D;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= MD5M_A;
+    digest[1] -= MD5M_B;
+    digest[2] -= MD5M_C;
+    digest[3] -= MD5M_D;
+  }
 
   if (input_buf[32] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -8324,14 +8427,17 @@ int hmailserver_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
   digest[6] = byte_swap_32 (digest[6]);
   digest[7] = byte_swap_32 (digest[7]);
 
-  digest[0] -= SHA256M_A;
-  digest[1] -= SHA256M_B;
-  digest[2] -= SHA256M_C;
-  digest[3] -= SHA256M_D;
-  digest[4] -= SHA256M_E;
-  digest[5] -= SHA256M_F;
-  digest[6] -= SHA256M_G;
-  digest[7] -= SHA256M_H;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA256M_A;
+    digest[1] -= SHA256M_B;
+    digest[2] -= SHA256M_C;
+    digest[3] -= SHA256M_D;
+    digest[4] -= SHA256M_E;
+    digest[5] -= SHA256M_F;
+    digest[6] -= SHA256M_G;
+    digest[7] -= SHA256M_H;
+  }
 
   u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
 
@@ -8379,10 +8485,13 @@ int phps_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   digest[2] = hex_to_u32 ((const u8 *) &digest_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &digest_buf[24]);
 
-  digest[0] -= MD5M_A;
-  digest[1] -= MD5M_B;
-  digest[2] -= MD5M_C;
-  digest[3] -= MD5M_D;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= MD5M_A;
+    digest[1] -= MD5M_B;
+    digest[2] -= MD5M_C;
+    digest[3] -= MD5M_D;
+  }
 
   return (PARSER_OK);
 }
@@ -8424,10 +8533,13 @@ int mediawiki_b_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
   digest[2] = hex_to_u32 ((const u8 *) &digest_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &digest_buf[24]);
 
-  digest[0] -= MD5M_A;
-  digest[1] -= MD5M_B;
-  digest[2] -= MD5M_C;
-  digest[3] -= MD5M_D;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= MD5M_A;
+    digest[1] -= MD5M_B;
+    digest[2] -= MD5M_C;
+    digest[3] -= MD5M_D;
+  }
 
   return (PARSER_OK);
 }
@@ -8452,11 +8564,14 @@ int peoplesoft_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   digest[3] = byte_swap_32 (digest[3]);
   digest[4] = byte_swap_32 (digest[4]);
 
-  digest[0] -= SHA1M_A;
-  digest[1] -= SHA1M_B;
-  digest[2] -= SHA1M_C;
-  digest[3] -= SHA1M_D;
-  digest[4] -= SHA1M_E;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA1M_A;
+    digest[1] -= SHA1M_B;
+    digest[2] -= SHA1M_C;
+    digest[3] -= SHA1M_D;
+    digest[4] -= SHA1M_E;
+  }
 
   salt->salt_buf[0] = 0x80;
 
@@ -8480,10 +8595,13 @@ int skype_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUS
   digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
   digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
 
-  digest[0] -= MD5M_A;
-  digest[1] -= MD5M_B;
-  digest[2] -= MD5M_C;
-  digest[3] -= MD5M_D;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= MD5M_A;
+    digest[1] -= MD5M_B;
+    digest[2] -= MD5M_C;
+    digest[3] -= MD5M_D;
+  }
 
   if (input_buf[32] != ':') return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -9917,11 +10035,14 @@ int djangosha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   digest[3] = byte_swap_32 (digest[3]);
   digest[4] = byte_swap_32 (digest[4]);
 
-  digest[0] -= SHA1M_A;
-  digest[1] -= SHA1M_B;
-  digest[2] -= SHA1M_C;
-  digest[3] -= SHA1M_D;
-  digest[4] -= SHA1M_E;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA1M_A;
+    digest[1] -= SHA1M_B;
+    digest[2] -= SHA1M_C;
+    digest[3] -= SHA1M_D;
+    digest[4] -= SHA1M_E;
+  }
 
   u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
 
@@ -10933,14 +11054,17 @@ int pdf17l3_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   salt_t *salt = hash_buf->salt;
 
-  digest[0] -= SHA256M_A;
-  digest[1] -= SHA256M_B;
-  digest[2] -= SHA256M_C;
-  digest[3] -= SHA256M_D;
-  digest[4] -= SHA256M_E;
-  digest[5] -= SHA256M_F;
-  digest[6] -= SHA256M_G;
-  digest[7] -= SHA256M_H;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA256M_A;
+    digest[1] -= SHA256M_B;
+    digest[2] -= SHA256M_C;
+    digest[3] -= SHA256M_D;
+    digest[4] -= SHA256M_E;
+    digest[5] -= SHA256M_F;
+    digest[6] -= SHA256M_G;
+    digest[7] -= SHA256M_H;
+  }
 
   salt->salt_buf[2] = 0x80;
 
@@ -11281,10 +11405,13 @@ int postgresql_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, 
   digest[2] = hex_to_u32 ((const u8 *) &hash_pos[16]);
   digest[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
 
-  digest[0] -= MD5M_A;
-  digest[1] -= MD5M_B;
-  digest[2] -= MD5M_C;
-  digest[3] -= MD5M_D;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= MD5M_A;
+    digest[1] -= MD5M_B;
+    digest[2] -= MD5M_C;
+    digest[3] -= MD5M_D;
+  }
 
   /*
    * store salt
@@ -14163,10 +14290,13 @@ int plaintext_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   md4_64 (w, dgst);
 
-  dgst[0] -= MD4M_A;
-  dgst[1] -= MD4M_B;
-  dgst[2] -= MD4M_C;
-  dgst[3] -= MD4M_D;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    dgst[0] -= MD4M_A;
+    dgst[1] -= MD4M_B;
+    dgst[2] -= MD4M_C;
+    dgst[3] -= MD4M_D;
+  }
 
   digest[0] = dgst[0];
   digest[1] = dgst[1];
@@ -14823,11 +14953,14 @@ int fortigate_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   digest[3] = byte_swap_32 (digest[3]);
   digest[4] = byte_swap_32 (digest[4]);
 
-  digest[0] -= SHA1M_A;
-  digest[1] -= SHA1M_B;
-  digest[2] -= SHA1M_C;
-  digest[3] -= SHA1M_D;
-  digest[4] -= SHA1M_E;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA1M_A;
+    digest[1] -= SHA1M_B;
+    digest[2] -= SHA1M_C;
+    digest[3] -= SHA1M_D;
+    digest[4] -= SHA1M_E;
+  }
 
   return (PARSER_OK);
 }
@@ -14859,14 +14992,17 @@ int sha256b64s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   digest[6] = byte_swap_32 (digest[6]);
   digest[7] = byte_swap_32 (digest[7]);
 
-  digest[0] -= SHA256M_A;
-  digest[1] -= SHA256M_B;
-  digest[2] -= SHA256M_C;
-  digest[3] -= SHA256M_D;
-  digest[4] -= SHA256M_E;
-  digest[5] -= SHA256M_F;
-  digest[6] -= SHA256M_G;
-  digest[7] -= SHA256M_H;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA256M_A;
+    digest[1] -= SHA256M_B;
+    digest[2] -= SHA256M_C;
+    digest[3] -= SHA256M_D;
+    digest[4] -= SHA256M_E;
+    digest[5] -= SHA256M_F;
+    digest[6] -= SHA256M_G;
+    digest[7] -= SHA256M_H;
+  }
 
   const int salt_len = tmp_len - 32;
 
@@ -14912,14 +15048,17 @@ int filezilla_server_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf,
   digest[6] = byte_swap_64 (digest[6]);
   digest[7] = byte_swap_64 (digest[7]);
 
-  digest[0] -= SHA512M_A;
-  digest[1] -= SHA512M_B;
-  digest[2] -= SHA512M_C;
-  digest[3] -= SHA512M_D;
-  digest[4] -= SHA512M_E;
-  digest[5] -= SHA512M_F;
-  digest[6] -= SHA512M_G;
-  digest[7] -= SHA512M_H;
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA512M_A;
+    digest[1] -= SHA512M_B;
+    digest[2] -= SHA512M_C;
+    digest[3] -= SHA512M_D;
+    digest[4] -= SHA512M_E;
+    digest[5] -= SHA512M_F;
+    digest[6] -= SHA512M_G;
+    digest[7] -= SHA512M_H;
+  }
 
   if (input_buf[128] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
 
