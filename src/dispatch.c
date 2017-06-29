@@ -172,15 +172,10 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
         const size_t iconv_rc = iconv (iconv_ctx, &line_buf, &line_len, &iconv_ptr, &iconv_sz);
 
-        if (iconv_rc == (size_t) -1)
-        {
-          line_len = PW_MAX1;
-        }
-        else
-        {
-          line_buf = iconv_tmp;
-          line_len = HCBUFSIZ_TINY - iconv_sz;
-        }
+        if (iconv_rc == (size_t) -1) continue;
+
+        line_buf = iconv_tmp;
+        line_len = HCBUFSIZ_TINY - iconv_sz;
       }
 
       // post-process rule engine
@@ -189,25 +184,19 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
       if (run_rule_engine ((int) user_options_extra->rule_len_l, user_options->rule_buf_l))
       {
+        if (line_len >= BLOCK_SIZE) continue;
+
         memset (rule_buf_out, 0, sizeof (rule_buf_out));
 
-        int rule_len_out = -1;
-
-        if (line_len < BLOCK_SIZE)
-        {
-          rule_len_out = _old_apply_rule (user_options->rule_buf_l, (int) user_options_extra->rule_len_l, line_buf, (int) line_len, rule_buf_out);
-        }
+        const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, (int) user_options_extra->rule_len_l, line_buf, (int) line_len, rule_buf_out);
 
         if (rule_len_out < 0) continue;
 
         line_buf = rule_buf_out;
-        line_len = (u32) rule_len_out;
+        line_len = (size_t) rule_len_out;
       }
 
-      if (line_len > PW_MAX)
-      {
-        continue;
-      }
+      if (line_len >= PW_MAX) continue;
 
       // hmm that's always the case, or?
 
@@ -505,14 +494,11 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
           if (run_rule_engine ((int) user_options_extra->rule_len_l, user_options->rule_buf_l))
           {
+            if (line_len >= BLOCK_SIZE) continue;
+
             memset (rule_buf_out, 0, sizeof (rule_buf_out));
 
-            int rule_len_out = -1;
-
-            if (line_len < BLOCK_SIZE)
-            {
-              rule_len_out = _old_apply_rule (user_options->rule_buf_l, (int) user_options_extra->rule_len_l, line_buf, (int) line_len, rule_buf_out);
-            }
+            const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, (int) user_options_extra->rule_len_l, line_buf, (int) line_len, rule_buf_out);
 
             if (rule_len_out < 0) continue;
 

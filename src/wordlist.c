@@ -195,45 +195,26 @@ void get_next_word (hashcat_ctx_t *hashcat_ctx, FILE *fd, char **out_buf, u32 *o
 
       const size_t iconv_rc = iconv (wl_data->iconv_ctx, &ptr, &ptr_len, &iconv_ptr, &iconv_sz);
 
-      if (iconv_rc == (size_t) -1)
-      {
-        len = PW_MAX1;
-      }
-      else
-      {
-        ptr = wl_data->iconv_tmp;
-        len = HCBUFSIZ_TINY - iconv_sz;
-      }
+      if (iconv_rc == (size_t) -1) continue;
+
+      ptr = wl_data->iconv_tmp;
+      len = HCBUFSIZ_TINY - iconv_sz;
     }
 
     if (run_rule_engine (user_options_extra->rule_len_l, user_options->rule_buf_l))
     {
-      int rule_len_out = -1;
+      if (len >= BLOCK_SIZE) continue;
 
-      if (len < BLOCK_SIZE)
-      {
-        char unused[BLOCK_SIZE] = { 0 };
+      char rule_buf_out[BLOCK_SIZE];
 
-        rule_len_out = _old_apply_rule (user_options->rule_buf_l, user_options_extra->rule_len_l, ptr, len, unused);
-      }
+      memset (rule_buf_out, 0, sizeof (rule_buf_out));
 
-      if (rule_len_out < 0)
-      {
-        continue;
-      }
+      const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, user_options_extra->rule_len_l, ptr, len, rule_buf_out);
 
-      if (rule_len_out > PW_MAX)
-      {
-        continue;
-      }
+      if (rule_len_out < 0) continue;
     }
-    else
-    {
-      if (len > PW_MAX)
-      {
-        continue;
-      }
-    }
+
+    if (len >= PW_MAX) continue;
 
     *out_buf = ptr;
     *out_len = len;
@@ -387,6 +368,8 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
 
       wl_data->func (ptr, wl_data->cnt - i, &len, &off);
 
+      i += off;
+
       // do the on-the-fly encoding
 
       if (wl_data->iconv_enabled == true)
@@ -398,59 +381,43 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
 
         const size_t iconv_rc = iconv (wl_data->iconv_ctx, &ptr, &ptr_len, &iconv_ptr, &iconv_sz);
 
-        if (iconv_rc == (size_t) -1)
-        {
-          len = PW_MAX1;
-        }
-        else
-        {
-          ptr = wl_data->iconv_tmp;
-          len = HCBUFSIZ_TINY - iconv_sz;
-        }
+        if (iconv_rc == (size_t) -1) continue;
+
+        ptr = wl_data->iconv_tmp;
+        len = HCBUFSIZ_TINY - iconv_sz;
       }
 
       if (run_rule_engine (user_options_extra->rule_len_l, user_options->rule_buf_l))
       {
-        int rule_len_out = -1;
+        if (len >= BLOCK_SIZE) continue;
 
-        if (len < BLOCK_SIZE)
-        {
-          char unused[BLOCK_SIZE] = { 0 };
+        char rule_buf_out[BLOCK_SIZE];
 
-          rule_len_out = _old_apply_rule (user_options->rule_buf_l, user_options_extra->rule_len_l, ptr, len, unused);
-        }
+        memset (rule_buf_out, 0, sizeof (rule_buf_out));
 
-        if (rule_len_out < 0)
-        {
-          len = PW_MAX1;
-        }
-        else
-        {
-          len = rule_len_out;
-        }
+        const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, user_options_extra->rule_len_l, ptr, len, rule_buf_out);
+
+        if (rule_len_out < 0) continue;
       }
-
-      if (len < PW_MAX1)
-      {
-        if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
-        {
-          if (overflow_check_u64_add (cnt, straight_ctx->kernel_rules_cnt) == false) return -1;
-
-          cnt += straight_ctx->kernel_rules_cnt;
-        }
-        else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
-        {
-          if (overflow_check_u64_add (cnt, combinator_ctx->combs_cnt) == false) return -1;
-
-          cnt += combinator_ctx->combs_cnt;
-        }
-
-        d.cnt++;
-      }
-
-      i += off;
 
       cnt2++;
+
+      if (len >= PW_MAX) continue;
+
+      d.cnt++;
+
+      if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+      {
+        if (overflow_check_u64_add (cnt, straight_ctx->kernel_rules_cnt) == false) return -1;
+
+        cnt += straight_ctx->kernel_rules_cnt;
+      }
+      else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+      {
+        if (overflow_check_u64_add (cnt, combinator_ctx->combs_cnt) == false) return -1;
+
+        cnt += combinator_ctx->combs_cnt;
+      }
     }
 
     time (&now);

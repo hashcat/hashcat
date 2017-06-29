@@ -24276,6 +24276,30 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     hashconfig->opts_type |= OPTS_TYPE_PT_NEVERCRACK;
   }
 
+  if (user_options->length_limit_disable == true)
+  {
+    hashconfig->opts_type &= ~OPTS_TYPE_PT_UTF16LE;
+    hashconfig->opts_type &= ~OPTS_TYPE_PT_UTF16BE;
+    hashconfig->opts_type &= ~OPTS_TYPE_PT_ADD01;
+    hashconfig->opts_type &= ~OPTS_TYPE_PT_ADD02;
+    hashconfig->opts_type &= ~OPTS_TYPE_PT_ADD80;
+    hashconfig->opts_type &= ~OPTS_TYPE_PT_ADDBITS14;
+    hashconfig->opts_type &= ~OPTS_TYPE_PT_ADDBITS15;
+    hashconfig->opts_type &= ~OPTS_TYPE_ST_UTF16LE;
+    hashconfig->opts_type &= ~OPTS_TYPE_ST_UTF16BE;
+    hashconfig->opts_type &= ~OPTS_TYPE_ST_ADD01;
+    hashconfig->opts_type &= ~OPTS_TYPE_ST_ADD02;
+    hashconfig->opts_type &= ~OPTS_TYPE_ST_ADD80;
+    hashconfig->opts_type &= ~OPTS_TYPE_ST_ADDBITS14;
+    hashconfig->opts_type &= ~OPTS_TYPE_ST_ADDBITS15;
+
+    hashconfig->opti_type &= ~OPTI_TYPE_PRECOMPUTE_INIT;
+    hashconfig->opti_type &= ~OPTI_TYPE_PRECOMPUTE_MERKLE;
+    hashconfig->opti_type &= ~OPTI_TYPE_MEET_IN_MIDDLE;
+    hashconfig->opti_type &= ~OPTI_TYPE_PREPENDED_SALT;
+    hashconfig->opti_type &= ~OPTI_TYPE_APPENDED_SALT;
+  }
+
   const u32 is_salted = ((hashconfig->salt_type == SALT_TYPE_INTERN)
                       |  (hashconfig->salt_type == SALT_TYPE_EXTERN)
                       |  (hashconfig->salt_type == SALT_TYPE_EMBEDDED)
@@ -24511,48 +24535,91 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   // pw_max
 
-  hashconfig->pw_max = PW_MAX;
-
-  if ((hashconfig->opts_type & OPTS_TYPE_PT_UTF16LE) || (hashconfig->opts_type & OPTS_TYPE_PT_UTF16BE))
+  if (user_options->length_limit_disable == false)
   {
-    hashconfig->pw_max = PW_MAX / 2;
+    hashconfig->pw_max = PW_MAX;
   }
+  else
+  {
+    hashconfig->pw_max = PW_MAX_OLD;
+
+    if ((hashconfig->opts_type & OPTS_TYPE_PT_UTF16LE) || (hashconfig->opts_type & OPTS_TYPE_PT_UTF16BE))
+    {
+      hashconfig->pw_max /= 2;
+    }
+
+    switch (hashconfig->hash_mode)
+    {
+      case   125: hashconfig->pw_max = 32;
+                  break;
+      case   500: hashconfig->pw_max = 16;
+                  break;
+      case  1600: hashconfig->pw_max = 16;
+                  break;
+      case  1800: hashconfig->pw_max = 16;
+                  break;
+      case  2100: hashconfig->pw_max = 27;
+                  break;
+      case  5200: hashconfig->pw_max = 24;
+                  break;
+      case  5800: hashconfig->pw_max = 16;
+                  break;
+      case  6300: hashconfig->pw_max = 16;
+                  break;
+      case  7000: hashconfig->pw_max = 19;
+                  break;
+      case  7400: hashconfig->pw_max = 16;
+                  break;
+      case  7700: hashconfig->pw_max = 8;
+                  break;
+      case  7900: hashconfig->pw_max = 48;
+                  break;
+      case  8600: hashconfig->pw_max = 16;
+                  break;
+      case 10300: hashconfig->pw_max = 40;
+                  break;
+      case 10500: hashconfig->pw_max = 40;
+                  break;
+      case 10700: hashconfig->pw_max = 16;
+                  break;
+      case 11300: hashconfig->pw_max = 40;
+                  break;
+      case 11600: hashconfig->pw_max = 32;
+                  break;
+      case 12500: hashconfig->pw_max = 20;
+                  break;
+      case 12800: hashconfig->pw_max = 24;
+                  break;
+      case 14400: hashconfig->pw_max = 24;
+                  break;
+      case 15400: hashconfig->pw_max = 32;
+                  break;
+      case 15500: hashconfig->pw_max = 16;
+                  break;
+    }
+
+    // fully converted to length 256
+
+    switch (hashconfig->hash_mode)
+    {
+      case   400: hashconfig->pw_max = 256;
+                  break;
+      case  2100: hashconfig->pw_max = 256;
+                  break;
+    }
+  }
+
+  // pw_max : algo specific hard limits
 
   switch (hashconfig->hash_mode)
   {
-    case   125: hashconfig->pw_max = 32;
-                break;
-    case   400: hashconfig->pw_max = 40;
-                break;
-    case   500: hashconfig->pw_max = 16;
-                break;
     case  1500: hashconfig->pw_max = 8;
                 break;
-    case  1600: hashconfig->pw_max = 16;
-                break;
-    case  1800: hashconfig->pw_max = 16;
-                break;
-    case  2100: hashconfig->pw_max = 27;
+    case  2500: hashconfig->pw_max = 64;
                 break;
     case  3000: hashconfig->pw_max = 7;
                 break;
-    case  5200: hashconfig->pw_max = 24;
-                break;
-    case  5800: hashconfig->pw_max = 16;
-                break;
-    case  6300: hashconfig->pw_max = 16;
-                break;
-    case  7000: hashconfig->pw_max = 19;
-                break;
-    case  7400: hashconfig->pw_max = 16;
-                break;
-    case  7700: hashconfig->pw_max = 8;
-                break;
-    case  7900: hashconfig->pw_max = 48;
-                break;
     case  8500: hashconfig->pw_max = 8;
-                break;
-    case  8600: hashconfig->pw_max = 16;
                 break;
     case  9710: hashconfig->pw_max = 5;
                 break;
@@ -24560,41 +24627,11 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                 break;
     case 10410: hashconfig->pw_max = 5;
                 break;
-    case 10300: hashconfig->pw_max = 40;
-                break;
-    case 10500: hashconfig->pw_max = 40;
-                break;
-    case 10700: hashconfig->pw_max = 16;
-                break;
-    case 11300: hashconfig->pw_max = 40;
-                break;
-    case 11600: hashconfig->pw_max = 32;
-                break;
-    case 12500: hashconfig->pw_max = 20;
-                break;
-    case 12800: hashconfig->pw_max = 24;
-                break;
     case 14000: hashconfig->pw_max = 8;
                 break;
     case 14100: hashconfig->pw_max = 24;
                 break;
-    case 14400: hashconfig->pw_max = 24;
-                break;
     case 14900: hashconfig->pw_max = 10;
-                break;
-    case 15400: hashconfig->pw_max = 32;
-                break;
-    case 15500: hashconfig->pw_max = 16;
-                break;
-  }
-
-  // converted to length 256
-
-  switch (hashconfig->hash_mode)
-  {
-    case   400: hashconfig->pw_max = 256;
-                break;
-    case  2100: hashconfig->pw_max = 256;
                 break;
   }
 

@@ -4,7 +4,10 @@
 ## Features
 ##
 
+- Added more preparations to support to crack passwords and salts up to length 256 (unfinished yet)
+- Added option --length-limit-disable to disable optimization based on password- and salt-length
 - Added self-test functionality for OpenCL kernels on startup
+- Added option --self-test-disable to disable self-test functionality on startup
 
 ##
 ## Bugs

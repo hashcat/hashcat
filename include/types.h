@@ -236,8 +236,9 @@ typedef enum kern_run
   KERN_RUN_2     = 2000,
   KERN_RUN_23    = 2500,
   KERN_RUN_3     = 3000,
-  KERN_RUN_INIT2 = 4000,
-  KERN_RUN_LOOP2 = 5000
+  KERN_RUN_4     = 4000,
+  KERN_RUN_INIT2 = 5000,
+  KERN_RUN_LOOP2 = 6000
 
 } kern_run_t;
 
@@ -531,6 +532,7 @@ typedef enum user_options_defaults
   KERNEL_LOOPS            = 0,
   KEYSPACE                = false,
   LEFT                    = false,
+  LENGTH_LIMIT_DISABLE    = false,
   LIMIT                   = 0,
   LOGFILE_DISABLE         = false,
   LOOPBACK                = false,
@@ -558,6 +560,7 @@ typedef enum user_options_defaults
   RP_GEN_SEED             = 0,
   RUNTIME                 = 0,
   SCRYPT_TMTO             = 0,
+  SELF_TEST_DISABLE       = false,
   SEGMENT_SIZE            = 33554432,
   SEPARATOR               = ':',
   SHOW                    = false,
@@ -610,6 +613,7 @@ typedef enum user_options_map
   IDX_KERNEL_LOOPS             = 'u',
   IDX_KEYSPACE                 = 0xff14,
   IDX_LEFT                     = 0xff15,
+  IDX_LENGTH_LIMIT_DISABLE     = 'L',
   IDX_LIMIT                    = 'l',
   IDX_LOGFILE_DISABLE          = 0xff16,
   IDX_LOOPBACK                 = 0xff17,
@@ -648,23 +652,24 @@ typedef enum user_options_map
   IDX_RULE_BUF_R               = 'k',
   IDX_RUNTIME                  = 0xff30,
   IDX_SCRYPT_TMTO              = 0xff31,
+  IDX_SELF_TEST_DISABLE        = 0xff32,
   IDX_SEGMENT_SIZE             = 'c',
   IDX_SEPARATOR                = 'p',
-  IDX_SESSION                  = 0xff32,
-  IDX_SHOW                     = 0xff33,
+  IDX_SESSION                  = 0xff33,
+  IDX_SHOW                     = 0xff34,
   IDX_SKIP                     = 's',
-  IDX_STATUS                   = 0xff34,
-  IDX_STATUS_TIMER             = 0xff35,
-  IDX_STDOUT_FLAG              = 0xff36,
-  IDX_SPEED_ONLY               = 0xff37,
-  IDX_PROGRESS_ONLY            = 0xff38,
-  IDX_TRUECRYPT_KEYFILES       = 0xff39,
-  IDX_USERNAME                 = 0xff3a,
-  IDX_VERACRYPT_KEYFILES       = 0xff3b,
-  IDX_VERACRYPT_PIM            = 0xff3c,
+  IDX_STATUS                   = 0xff35,
+  IDX_STATUS_TIMER             = 0xff36,
+  IDX_STDOUT_FLAG              = 0xff37,
+  IDX_SPEED_ONLY               = 0xff38,
+  IDX_PROGRESS_ONLY            = 0xff39,
+  IDX_TRUECRYPT_KEYFILES       = 0xff3a,
+  IDX_USERNAME                 = 0xff3b,
+  IDX_VERACRYPT_KEYFILES       = 0xff3c,
+  IDX_VERACRYPT_PIM            = 0xff3d,
   IDX_VERSION_LOWER            = 'v',
   IDX_VERSION                  = 'V',
-  IDX_WEAK_HASH_THRESHOLD      = 0xff3d,
+  IDX_WEAK_HASH_THRESHOLD      = 0xff3e,
   IDX_WORKLOAD_PROFILE         = 'w'
 
 } user_options_map_t;
@@ -915,6 +920,7 @@ typedef struct hc_device_param
   u32     kernel_threads_by_wgs_kernel2;
   u32     kernel_threads_by_wgs_kernel23;
   u32     kernel_threads_by_wgs_kernel3;
+  u32     kernel_threads_by_wgs_kernel4;
   u32     kernel_threads_by_wgs_kernel_init2;
   u32     kernel_threads_by_wgs_kernel_loop2;
   u32     kernel_threads_by_wgs_kernel_mp;
@@ -979,6 +985,7 @@ typedef struct hc_device_param
   double  exec_us_prev1[EXPECTED_ITERATIONS];
   double  exec_us_prev2[EXPECTED_ITERATIONS];
   double  exec_us_prev3[EXPECTED_ITERATIONS];
+  double  exec_us_prev4[EXPECTED_ITERATIONS];
   double  exec_us_prev_init2[EXPECTED_ITERATIONS];
   double  exec_us_prev_loop2[EXPECTED_ITERATIONS];
 
@@ -1011,6 +1018,7 @@ typedef struct hc_device_param
   cl_kernel  kernel2;
   cl_kernel  kernel23;
   cl_kernel  kernel3;
+  cl_kernel  kernel4;
   cl_kernel  kernel_init2;
   cl_kernel  kernel_loop2;
   cl_kernel  kernel_mp;
@@ -1446,6 +1454,7 @@ typedef struct user_options
   bool         keep_guessing;
   bool         keyspace;
   bool         left;
+  bool         length_limit_disable;
   bool         logfile_disable;
   bool         loopback;
   bool         machine_readable;
@@ -1459,6 +1468,7 @@ typedef struct user_options
   bool         remove;
   bool         restore;
   bool         restore_disable;
+  bool         self_test_disable;
   bool         show;
   bool         status;
   bool         stdout_flag;

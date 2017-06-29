@@ -138,27 +138,35 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
     combinator_ctx->dict1 = dictfile1;
     combinator_ctx->dict2 = dictfile2;
 
-    if (words1_cnt >= words2_cnt)
+    if (user_options->length_limit_disable == true)
     {
       combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_LEFT;
       combinator_ctx->combs_cnt  = words2_cnt;
     }
     else
     {
-      combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_RIGHT;
-      combinator_ctx->combs_cnt  = words1_cnt;
+      if (words1_cnt >= words2_cnt)
+      {
+        combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_LEFT;
+        combinator_ctx->combs_cnt  = words2_cnt;
+      }
+      else
+      {
+        combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_RIGHT;
+        combinator_ctx->combs_cnt  = words1_cnt;
 
-      // we also have to switch wordlist related rules!
+        // we also have to switch wordlist related rules!
 
-      char *tmpc = user_options->rule_buf_l;
+        char *tmpc = user_options->rule_buf_l;
 
-      user_options->rule_buf_l = user_options->rule_buf_r;
-      user_options->rule_buf_r = tmpc;
+        user_options->rule_buf_l = user_options->rule_buf_r;
+        user_options->rule_buf_r = tmpc;
 
-      u32 tmpi = user_options_extra->rule_len_l;
+        u32 tmpi = user_options_extra->rule_len_l;
 
-      user_options_extra->rule_len_l = user_options_extra->rule_len_r;
-      user_options_extra->rule_len_r = tmpi;
+        user_options_extra->rule_len_l = user_options_extra->rule_len_r;
+        user_options_extra->rule_len_r = tmpi;
+      }
     }
   }
   else if (user_options->attack_mode == ATTACK_MODE_BF)
@@ -171,7 +179,14 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_RIGHT;
+    if (user_options->length_limit_disable == true)
+    {
+      combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_LEFT;
+    }
+    else
+    {
+      combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_RIGHT;
+    }
   }
 
   return 0;

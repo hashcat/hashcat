@@ -253,6 +253,10 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   const bool has_noop = kernel_rules_has_noop (straight_ctx->kernel_rules_buf, straight_ctx->kernel_rules_cnt);
 
+  // this entire section should go away as soon as we have a rule engine for 256 byte
+
+  #define PW_DICTMAX 32
+
   if (has_noop == false)
   {
     switch (user_options_extra->attack_kern)

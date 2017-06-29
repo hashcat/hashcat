@@ -14,7 +14,7 @@
 #include "outfile.h"
 #include "user_options.h"
 
-static const char short_options[] = "hVvm:a:r:j:k:g:o:t:d:D:n:u:c:p:s:l:1:2:3:4:iIbw:";
+static const char short_options[] = "hVvm:a:r:j:k:g:o:t:d:D:n:u:c:p:s:l:1:2:3:4:iIbw:L";
 
 static const struct option long_options[] =
 {
@@ -55,6 +55,7 @@ static const struct option long_options[] =
   {"kernel-loops",              required_argument, 0, IDX_KERNEL_LOOPS},
   {"keyspace",                  no_argument,       0, IDX_KEYSPACE},
   {"left",                      no_argument,       0, IDX_LEFT},
+  {"length-limit-disable",      no_argument,       0, IDX_LENGTH_LIMIT_DISABLE},
   {"limit",                     required_argument, 0, IDX_LIMIT},
   {"logfile-disable",           no_argument,       0, IDX_LOGFILE_DISABLE},
   {"loopback",                  no_argument,       0, IDX_LOOPBACK},
@@ -89,6 +90,7 @@ static const struct option long_options[] =
   {"rules-file",                required_argument, 0, IDX_RP_FILE},
   {"runtime",                   required_argument, 0, IDX_RUNTIME},
   {"scrypt-tmto",               required_argument, 0, IDX_SCRYPT_TMTO},
+  {"self-test-disable",         no_argument,       0, IDX_SELF_TEST_DISABLE},
   {"segment-size",              required_argument, 0, IDX_SEGMENT_SIZE},
   {"separator",                 required_argument, 0, IDX_SEPARATOR},
   {"seperator",                 required_argument, 0, IDX_SEPARATOR},
@@ -156,6 +158,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->keep_guessing             = KEEP_GUESSING;
   user_options->keyspace                  = KEYSPACE;
   user_options->left                      = LEFT;
+  user_options->length_limit_disable      = LENGTH_LIMIT_DISABLE;
   user_options->limit                     = LIMIT;
   user_options->logfile_disable           = LOGFILE_DISABLE;
   user_options->loopback                  = LOOPBACK;
@@ -194,6 +197,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->rule_buf_r                = RULE_BUF_R;
   user_options->runtime                   = RUNTIME;
   user_options->scrypt_tmto               = SCRYPT_TMTO;
+  user_options->self_test_disable         = SELF_TEST_DISABLE;
   user_options->segment_size              = SEGMENT_SIZE;
   user_options->separator                 = SEPARATOR;
   user_options->session                   = PROGNAME;
@@ -312,6 +316,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_QUIET:                     user_options->quiet                     = true;           break;
       case IDX_SHOW:                      user_options->show                      = true;           break;
       case IDX_LEFT:                      user_options->left                      = true;           break;
+      case IDX_LENGTH_LIMIT_DISABLE:      user_options->length_limit_disable      = true;           break;
       case IDX_ADVICE_DISABLE:            user_options->advice_disable            = true;           break;
       case IDX_USERNAME:                  user_options->username                  = true;           break;
       case IDX_REMOVE:                    user_options->remove                    = true;           break;
@@ -326,6 +331,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_INDUCTION_DIR:             user_options->induction_dir             = optarg;         break;
       case IDX_OUTFILE_CHECK_DIR:         user_options->outfile_check_dir         = optarg;         break;
       case IDX_FORCE:                     user_options->force                     = true;           break;
+      case IDX_SELF_TEST_DISABLE:         user_options->self_test_disable         = true;           break;
       case IDX_SKIP:                      user_options->skip                      = atoll (optarg); break;
       case IDX_LIMIT:                     user_options->limit                     = atoll (optarg); break;
       case IDX_KEEP_GUESSING:             user_options->keep_guessing             = true;           break;
@@ -2121,6 +2127,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->kernel_loops);
   logfile_top_uint   (user_options->keyspace);
   logfile_top_uint   (user_options->left);
+  logfile_top_uint   (user_options->length_limit_disable);
   logfile_top_uint   (user_options->logfile_disable);
   logfile_top_uint   (user_options->loopback);
   logfile_top_uint   (user_options->machine_readable);
@@ -2135,6 +2142,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->outfile_format);
   logfile_top_uint   (user_options->potfile_disable);
   logfile_top_uint   (user_options->powertune_enable);
+  logfile_top_uint   (user_options->progress_only);
   logfile_top_uint   (user_options->quiet);
   logfile_top_uint   (user_options->remove);
   logfile_top_uint   (user_options->remove_timer);
@@ -2149,12 +2157,12 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->runtime);
   logfile_top_uint   (user_options->scrypt_tmto);
   logfile_top_uint   (user_options->segment_size);
+  logfile_top_uint   (user_options->self_test_disable);
   logfile_top_uint   (user_options->show);
+  logfile_top_uint   (user_options->speed_only);
   logfile_top_uint   (user_options->status);
   logfile_top_uint   (user_options->status_timer);
   logfile_top_uint   (user_options->stdout_flag);
-  logfile_top_uint   (user_options->speed_only);
-  logfile_top_uint   (user_options->progress_only);
   logfile_top_uint   (user_options->usage);
   logfile_top_uint   (user_options->username);
   logfile_top_uint   (user_options->veracrypt_pim);

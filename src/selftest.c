@@ -18,6 +18,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
   hashes_t             *hashes             = hashcat_ctx->hashes;
   status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
+  user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   cl_int CL_err;
@@ -40,6 +41,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   const u32 kernel_threads_by_wgs_kernel2_sav      = device_param->kernel_threads_by_wgs_kernel2;
   const u32 kernel_threads_by_wgs_kernel23_sav     = device_param->kernel_threads_by_wgs_kernel23;
   const u32 kernel_threads_by_wgs_kernel3_sav      = device_param->kernel_threads_by_wgs_kernel3;
+  const u32 kernel_threads_by_wgs_kernel4_sav      = device_param->kernel_threads_by_wgs_kernel4;
   const u32 kernel_threads_by_wgs_kernel_init2_sav = device_param->kernel_threads_by_wgs_kernel_init2;
   const u32 kernel_threads_by_wgs_kernel_loop2_sav = device_param->kernel_threads_by_wgs_kernel_loop2;
 
@@ -58,6 +60,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     if (device_param->kernel_threads_by_user == device_param->kernel_threads_by_wgs_kernel2)      device_param->kernel_threads_by_wgs_kernel2      = 1;
     if (device_param->kernel_threads_by_user == device_param->kernel_threads_by_wgs_kernel23)     device_param->kernel_threads_by_wgs_kernel23     = 1;
     if (device_param->kernel_threads_by_user == device_param->kernel_threads_by_wgs_kernel3)      device_param->kernel_threads_by_wgs_kernel3      = 1;
+    if (device_param->kernel_threads_by_user == device_param->kernel_threads_by_wgs_kernel4)      device_param->kernel_threads_by_wgs_kernel4      = 1;
     if (device_param->kernel_threads_by_user == device_param->kernel_threads_by_wgs_kernel_init2) device_param->kernel_threads_by_wgs_kernel_init2 = 1;
     if (device_param->kernel_threads_by_user == device_param->kernel_threads_by_wgs_kernel_loop2) device_param->kernel_threads_by_wgs_kernel_loop2 = 1;
   }
@@ -303,23 +306,32 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
-    if (highest_pw_len < 16)
+    if (user_options->length_limit_disable == true)
     {
-      CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_1, 1, false, 0);
-
-      if (CL_rc == -1) return -1;
-    }
-    else if (highest_pw_len < 32)
-    {
-      CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_2, 1, false, 0);
+      CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_4, 1, false, 0);
 
       if (CL_rc == -1) return -1;
     }
     else
     {
-      CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_3, 1, false, 0);
+      if (highest_pw_len < 16)
+      {
+        CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_1, 1, false, 0);
 
-      if (CL_rc == -1) return -1;
+        if (CL_rc == -1) return -1;
+      }
+      else if (highest_pw_len < 32)
+      {
+        CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_2, 1, false, 0);
+
+        if (CL_rc == -1) return -1;
+      }
+      else
+      {
+        CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_3, 1, false, 0);
+
+        if (CL_rc == -1) return -1;
+      }
     }
   }
   else
@@ -426,6 +438,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   device_param->kernel_threads_by_wgs_kernel2      = kernel_threads_by_wgs_kernel2_sav;
   device_param->kernel_threads_by_wgs_kernel23     = kernel_threads_by_wgs_kernel23_sav;
   device_param->kernel_threads_by_wgs_kernel3      = kernel_threads_by_wgs_kernel3_sav;
+  device_param->kernel_threads_by_wgs_kernel4      = kernel_threads_by_wgs_kernel4_sav;
   device_param->kernel_threads_by_wgs_kernel_init2 = kernel_threads_by_wgs_kernel_init2_sav;
   device_param->kernel_threads_by_wgs_kernel_loop2 = kernel_threads_by_wgs_kernel_loop2_sav;
 
@@ -499,6 +512,10 @@ void *thread_selftest (void *p)
 
   if (opencl_ctx->enabled == false) return NULL;
 
+  user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->self_test_disable == true) return NULL;
+
   hc_device_param_t *device_param = opencl_ctx->devices_param + thread_param->tid;
 
   if (device_param->skipped == true) return NULL;
@@ -507,7 +524,7 @@ void *thread_selftest (void *p)
 
   if (rc_selftest == -1)
   {
-    // we should do something here, tell hashcat main that autotune failed to abort
+    // we should do something here, tell hashcat main that selftest failed to abort
   }
 
   return NULL;

@@ -84,20 +84,29 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
       memcpy (plain_ptr, comb_buf, comb_len);
     }
 
-    int pw_max_combi;
+    plain_len += comb_len;
 
-    if (hashconfig->pw_max < PW_DICTMAX)
+    if (user_options->length_limit_disable == true)
     {
-      pw_max_combi = hashconfig->pw_max;
+      int pw_max_combi;
+
+      #define PW_DICTMAX 32
+
+      if (hashconfig->pw_max < PW_DICTMAX)
+      {
+        pw_max_combi = hashconfig->pw_max;
+      }
+      else
+      {
+        pw_max_combi = PW_MAX_OLD;
+      }
+
+      plain_len = MIN ((int) plain_len, (int) pw_max_combi);
     }
     else
     {
-      pw_max_combi = PW_MAX;
+      plain_len = MIN ((int) plain_len, (int) hashconfig->pw_max);
     }
-
-    plain_len += comb_len;
-
-    if (plain_len > pw_max_combi) plain_len = pw_max_combi;
   }
   else if (user_options->attack_mode == ATTACK_MODE_BF)
   {
