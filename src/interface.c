@@ -24535,7 +24535,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   // pw_max
 
-  if (user_options->length_limit_disable == false)
+  if (user_options->length_limit_disable == true)
   {
     hashconfig->pw_max = PW_MAX;
   }
