@@ -262,6 +262,7 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
 {
   combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
   straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
+  mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
   user_options_t       *user_options       = hashcat_ctx->user_options;
   wl_data_t            *wl_data            = hashcat_ctx->wl_data;
@@ -320,9 +321,18 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
       }
       else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
       {
-        if (overflow_check_u64_mul (keyspace, combinator_ctx->combs_cnt) == false) return -1;
+        if ((user_options->length_limit_disable == true) && (user_options->attack_mode == ATTACK_MODE_HYBRID2))
+        {
+          if (overflow_check_u64_mul (keyspace, mask_ctx->bfs_cnt) == false) return -1;
 
-        keyspace *= combinator_ctx->combs_cnt;
+          keyspace *= mask_ctx->bfs_cnt;
+        }
+        else
+        {
+          if (overflow_check_u64_mul (keyspace, combinator_ctx->combs_cnt) == false) return -1;
+
+          keyspace *= combinator_ctx->combs_cnt;
+        }
       }
 
       cache_hit_t cache_hit;
@@ -414,9 +424,18 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
       }
       else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
       {
-        if (overflow_check_u64_add (cnt, combinator_ctx->combs_cnt) == false) return -1;
+        if ((user_options->length_limit_disable == true) && (user_options->attack_mode == ATTACK_MODE_HYBRID2))
+        {
+          if (overflow_check_u64_add (cnt, mask_ctx->bfs_cnt) == false) return -1;
 
-        cnt += combinator_ctx->combs_cnt;
+          cnt += mask_ctx->bfs_cnt;
+        }
+        else
+        {
+          if (overflow_check_u64_add (cnt, combinator_ctx->combs_cnt) == false) return -1;
+
+          cnt += combinator_ctx->combs_cnt;
+        }
       }
     }
 

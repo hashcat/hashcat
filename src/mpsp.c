@@ -1174,36 +1174,72 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     }
     else if ((user_options->attack_mode == ATTACK_MODE_HYBRID1) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
     {
-      mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
-
-      const int rc_mask_file = mask_ctx_parse_maskfile (hashcat_ctx);
-
-      if (rc_mask_file == -1) return -1;
-
-      mask_ctx->css_buf = (cs_t *) hccalloc (256, sizeof (cs_t));
-
-      const int rc_gen_css = mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt);
-
-      if (rc_gen_css == -1) return -1;
-
-      u32 uniq_tbls[SP_PW_MAX][CHARSIZ] = { { 0 } };
-
-      mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
-
-      sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
-
-      const int rc_get_sum = sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &combinator_ctx->combs_cnt);
-
-      if (rc_get_sum == -1)
+      if ((user_options->length_limit_disable == true) && (user_options->attack_mode == ATTACK_MODE_HYBRID2))
       {
-        event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
+        mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
 
-        return -1;
+        const int rc_mask_file = mask_ctx_parse_maskfile (hashcat_ctx);
+
+        if (rc_mask_file == -1) return -1;
+
+        mask_ctx->css_buf = (cs_t *) hccalloc (256, sizeof (cs_t));
+
+        const int rc_gen_css = mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt);
+
+        if (rc_gen_css == -1) return -1;
+
+        u32 uniq_tbls[SP_PW_MAX][CHARSIZ] = { { 0 } };
+
+        mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
+
+        sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
+
+        const int rc_get_sum = sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &mask_ctx->bfs_cnt);
+
+        if (rc_get_sum == -1)
+        {
+          event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
+
+          return -1;
+        }
+
+        const int rc_update_mp = opencl_session_update_mp (hashcat_ctx);
+
+        if (rc_update_mp == -1) return -1;
       }
+      else
+      {
+        mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
 
-      const int rc_update_mp = opencl_session_update_mp (hashcat_ctx);
+        const int rc_mask_file = mask_ctx_parse_maskfile (hashcat_ctx);
 
-      if (rc_update_mp == -1) return -1;
+        if (rc_mask_file == -1) return -1;
+
+        mask_ctx->css_buf = (cs_t *) hccalloc (256, sizeof (cs_t));
+
+        const int rc_gen_css = mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt);
+
+        if (rc_gen_css == -1) return -1;
+
+        u32 uniq_tbls[SP_PW_MAX][CHARSIZ] = { { 0 } };
+
+        mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
+
+        sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
+
+        const int rc_get_sum = sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &combinator_ctx->combs_cnt);
+
+        if (rc_get_sum == -1)
+        {
+          event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
+
+          return -1;
+        }
+
+        const int rc_update_mp = opencl_session_update_mp (hashcat_ctx);
+
+        if (rc_update_mp == -1) return -1;
+      }
     }
 
     const int rc_update_combinator = opencl_session_update_combinator (hashcat_ctx);

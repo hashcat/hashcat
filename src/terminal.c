@@ -888,31 +888,63 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
     case GUESS_MODE_HYBRID2:
 
-      event_log_info (hashcat_ctx,
-        "Guess.Base.......: File (%s), Right Side",
-        hashcat_status->guess_base);
+      if (user_options->length_limit_disable == true)
+      {
+        event_log_info (hashcat_ctx,
+          "Guess.Base.......: Mask (%s) [%d], Left Side",
+          hashcat_status->guess_base,
+          hashcat_status->guess_mask_length);
 
-      event_log_info (hashcat_ctx,
-        "Guess.Mod........: Mask (%s) [%d], Left Side",
-        hashcat_status->guess_mod,
-        hashcat_status->guess_mask_length);
+        event_log_info (hashcat_ctx,
+          "Guess.Mod........: File (%s), Right Side",
+          hashcat_status->guess_mod);
+      }
+      else
+      {
+        event_log_info (hashcat_ctx,
+          "Guess.Base.......: File (%s), Right Side",
+          hashcat_status->guess_base);
+
+        event_log_info (hashcat_ctx,
+          "Guess.Mod........: Mask (%s) [%d], Left Side",
+          hashcat_status->guess_mod,
+          hashcat_status->guess_mask_length);
+      }
 
       break;
 
     case GUESS_MODE_HYBRID2_CS:
 
-      event_log_info (hashcat_ctx,
-        "Guess.Base.......: File (%s), Right Side",
-        hashcat_status->guess_base);
+      if (user_options->length_limit_disable == true)
+      {
+        event_log_info (hashcat_ctx,
+          "Guess.Base.......: Mask (%s) [%d], Left Side",
+          hashcat_status->guess_base,
+          hashcat_status->guess_mask_length);
 
-      event_log_info (hashcat_ctx,
-        "Guess.Mod........: Mask (%s) [%d], Left Side",
-        hashcat_status->guess_mod,
-        hashcat_status->guess_mask_length);
+        event_log_info (hashcat_ctx,
+          "Guess.Mod........: File (%s), Right Side",
+          hashcat_status->guess_mod);
 
-      event_log_info (hashcat_ctx,
-        "Guess.Charset....: %s",
-        hashcat_status->guess_charset);
+        event_log_info (hashcat_ctx,
+          "Guess.Charset....: %s",
+          hashcat_status->guess_charset);
+      }
+      else
+      {
+        event_log_info (hashcat_ctx,
+          "Guess.Base.......: File (%s), Right Side",
+          hashcat_status->guess_base);
+
+        event_log_info (hashcat_ctx,
+          "Guess.Mod........: Mask (%s) [%d], Left Side",
+          hashcat_status->guess_mod,
+          hashcat_status->guess_mask_length);
+
+        event_log_info (hashcat_ctx,
+          "Guess.Charset....: %s",
+          hashcat_status->guess_charset);
+      }
 
       break;
   }

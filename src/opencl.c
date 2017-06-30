@@ -1746,9 +1746,7 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
 
   if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
   {
-    int CL_rc;
-
-    CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, pws_cnt * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+    const int CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, pws_cnt * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
 
     if (CL_rc == -1) return -1;
   }
@@ -1756,8 +1754,28 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
   {
     if (user_options->length_limit_disable == true)
     {
+      if (user_options->attack_mode == ATTACK_MODE_COMBI)
+      {
+        const int CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, pws_cnt * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
 
+        if (CL_rc == -1) return -1;
+      }
+      else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+      {
+        const int CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, pws_cnt * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
 
+        if (CL_rc == -1) return -1;
+      }
+      else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+      {
+        const u64 off = device_param->words_off;
+
+        device_param->kernel_params_mp_buf64[3] = off;
+
+        const int CL_rc = run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP, pws_cnt);
+
+        if (CL_rc == -1) return -1;
+      }
     }
     else
     {
@@ -1815,9 +1833,7 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
         }
       }
 
-      int CL_rc;
-
-      CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, pws_cnt * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+      const int CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, pws_cnt * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
 
       if (CL_rc == -1) return -1;
     }
@@ -1828,9 +1844,7 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
 
     device_param->kernel_params_mp_l_buf64[3] = off;
 
-    int CL_rc;
-
-    CL_rc = run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP_L, pws_cnt);
+    const int CL_rc = run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP_L, pws_cnt);
 
     if (CL_rc == -1) return -1;
   }
@@ -1900,7 +1914,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
     FILE *combs_fp = device_param->combs_fp;
 
-    if (user_options->attack_mode == ATTACK_MODE_COMBI)
+    if ((user_options->attack_mode == ATTACK_MODE_COMBI) || ((user_options->length_limit_disable == true) && (user_options->attack_mode == ATTACK_MODE_HYBRID2)))
     {
       rewind (combs_fp);
     }
@@ -1954,155 +1968,248 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
         continue;
       }
 
-      // initialize amplifiers
+      // initialize and copy amplifiers
 
-      if (user_options->attack_mode == ATTACK_MODE_COMBI)
+      if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
       {
-        char *line_buf = combinator_ctx->scratch_buf;
+        const int CL_rc = hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->command_queue, device_param->d_rules, device_param->d_rules_c, innerloop_pos * sizeof (kernel_rule_t), 0, innerloop_left * sizeof (kernel_rule_t), 0, NULL, NULL);
 
-        u32 i = 0;
-
-        while (i < innerloop_left)
-        {
-          if (feof (combs_fp)) break;
-
-          int line_len = fgetl (combs_fp, line_buf);
-
-          line_len = convert_from_hex (hashcat_ctx, line_buf, line_len);
-
-          if (line_len >= PW_MAX) continue;
-
-          char *line_buf_new = line_buf;
-
-          char rule_buf_out[BLOCK_SIZE];
-
-          if (run_rule_engine (user_options_extra->rule_len_r, user_options->rule_buf_r))
-          {
-            if (line_len >= BLOCK_SIZE) continue;
-
-            memset (rule_buf_out, 0, sizeof (rule_buf_out));
-
-            const int rule_len_out = _old_apply_rule (user_options->rule_buf_r, user_options_extra->rule_len_r, line_buf, line_len, rule_buf_out);
-
-            if (rule_len_out < 0)
-            {
-              status_ctx->words_progress_rejected[salt_pos] += pws_cnt;
-
-              continue;
-            }
-
-            line_len = rule_len_out;
-
-            line_buf_new = rule_buf_out;
-          }
-
-          line_len = MIN (line_len, PW_MAX - 1);
-
-          u8 *ptr = (u8 *) device_param->combs_buf[i].i;
-
-          memcpy (ptr, line_buf_new, line_len);
-
-          memset (ptr + line_len, 0, PW_MAX - line_len);
-
-          if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
-          {
-            uppercase (ptr, line_len);
-          }
-
-          if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
-          {
-            if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)
-            {
-              ptr[line_len] = 0x80;
-            }
-
-            if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)
-            {
-              ptr[line_len] = 0x01;
-            }
-          }
-
-          device_param->combs_buf[i].pw_len = line_len;
-
-          i++;
-        }
-
-        for (u32 j = i; j < innerloop_left; j++)
-        {
-          device_param->combs_buf[j].i[0] = 0;
-          device_param->combs_buf[j].i[1] = 0;
-          device_param->combs_buf[j].i[2] = 0;
-          device_param->combs_buf[j].i[3] = 0;
-          device_param->combs_buf[j].i[4] = 0;
-          device_param->combs_buf[j].i[5] = 0;
-          device_param->combs_buf[j].i[6] = 0;
-          device_param->combs_buf[j].i[7] = 0;
-
-          device_param->combs_buf[j].pw_len = 0;
-        }
-
-        innerloop_left = i;
+        if (CL_rc == -1) return -1;
       }
-      else if (user_options->attack_mode == ATTACK_MODE_BF)
+      else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+      {
+        if (user_options->length_limit_disable == true)
+        {
+          if ((user_options->attack_mode == ATTACK_MODE_COMBI) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
+          {
+            char *line_buf = combinator_ctx->scratch_buf;
+
+            u32 i = 0;
+
+            while (i < innerloop_left)
+            {
+              if (feof (combs_fp)) break;
+
+              int line_len = fgetl (combs_fp, line_buf);
+
+              line_len = convert_from_hex (hashcat_ctx, line_buf, line_len);
+
+              if (line_len >= PW_MAX) continue;
+
+              char *line_buf_new = line_buf;
+
+              char rule_buf_out[BLOCK_SIZE];
+
+              if (run_rule_engine (user_options_extra->rule_len_r, user_options->rule_buf_r))
+              {
+                if (line_len >= BLOCK_SIZE) continue;
+
+                memset (rule_buf_out, 0, sizeof (rule_buf_out));
+
+                const int rule_len_out = _old_apply_rule (user_options->rule_buf_r, user_options_extra->rule_len_r, line_buf, line_len, rule_buf_out);
+
+                if (rule_len_out < 0)
+                {
+                  status_ctx->words_progress_rejected[salt_pos] += pws_cnt;
+
+                  continue;
+                }
+
+                line_len = rule_len_out;
+
+                line_buf_new = rule_buf_out;
+              }
+
+              line_len = MIN (line_len, PW_MAX - 1);
+
+              u8 *ptr = (u8 *) device_param->combs_buf[i].i;
+
+              memcpy (ptr, line_buf_new, line_len);
+
+              memset (ptr + line_len, 0, PW_MAX - line_len);
+
+              if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
+              {
+                uppercase (ptr, line_len);
+              }
+
+              if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
+              {
+                if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)
+                {
+                  ptr[line_len] = 0x80;
+                }
+
+                if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)
+                {
+                  ptr[line_len] = 0x01;
+                }
+              }
+
+              device_param->combs_buf[i].pw_len = line_len;
+
+              i++;
+            }
+
+            for (u32 j = i; j < innerloop_left; j++)
+            {
+              memset (&device_param->combs_buf[j], 0, sizeof (pw_t));
+            }
+
+            innerloop_left = i;
+
+            const int CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_combs_c, CL_TRUE, 0, innerloop_left * sizeof (pw_t), device_param->combs_buf, 0, NULL, NULL);
+
+            if (CL_rc == -1) return -1;
+          }
+          else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+          {
+            u64 off = innerloop_pos;
+
+            device_param->kernel_params_mp_buf64[3] = off;
+
+            int CL_rc;
+
+            CL_rc = run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP, innerloop_left);
+
+            if (CL_rc == -1) return -1;
+
+            CL_rc = hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->command_queue, device_param->d_combs, device_param->d_combs_c, 0, 0, innerloop_left * sizeof (pw_t), 0, NULL, NULL);
+
+            if (CL_rc == -1) return -1;
+          }
+        }
+        else
+        {
+          if (user_options->attack_mode == ATTACK_MODE_COMBI)
+          {
+            char *line_buf = combinator_ctx->scratch_buf;
+
+            u32 i = 0;
+
+            while (i < innerloop_left)
+            {
+              if (feof (combs_fp)) break;
+
+              int line_len = fgetl (combs_fp, line_buf);
+
+              line_len = convert_from_hex (hashcat_ctx, line_buf, line_len);
+
+              if (line_len >= PW_MAX) continue;
+
+              char *line_buf_new = line_buf;
+
+              char rule_buf_out[BLOCK_SIZE];
+
+              if (run_rule_engine (user_options_extra->rule_len_r, user_options->rule_buf_r))
+              {
+                if (line_len >= BLOCK_SIZE) continue;
+
+                memset (rule_buf_out, 0, sizeof (rule_buf_out));
+
+                const int rule_len_out = _old_apply_rule (user_options->rule_buf_r, user_options_extra->rule_len_r, line_buf, line_len, rule_buf_out);
+
+                if (rule_len_out < 0)
+                {
+                  status_ctx->words_progress_rejected[salt_pos] += pws_cnt;
+
+                  continue;
+                }
+
+                line_len = rule_len_out;
+
+                line_buf_new = rule_buf_out;
+              }
+
+              line_len = MIN (line_len, PW_MAX - 1);
+
+              u8 *ptr = (u8 *) device_param->combs_buf[i].i;
+
+              memcpy (ptr, line_buf_new, line_len);
+
+              memset (ptr + line_len, 0, PW_MAX - line_len);
+
+              if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
+              {
+                uppercase (ptr, line_len);
+              }
+
+              if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
+              {
+                if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)
+                {
+                  ptr[line_len] = 0x80;
+                }
+
+                if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)
+                {
+                  ptr[line_len] = 0x01;
+                }
+              }
+
+              device_param->combs_buf[i].pw_len = line_len;
+
+              i++;
+            }
+
+            for (u32 j = i; j < innerloop_left; j++)
+            {
+              memset (&device_param->combs_buf[j], 0, sizeof (pw_t));
+            }
+
+            innerloop_left = i;
+
+            const int CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_combs_c, CL_TRUE, 0, innerloop_left * sizeof (pw_t), device_param->combs_buf, 0, NULL, NULL);
+
+            if (CL_rc == -1) return -1;
+          }
+          else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+          {
+            u64 off = innerloop_pos;
+
+            device_param->kernel_params_mp_buf64[3] = off;
+
+            int CL_rc;
+
+            CL_rc = run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP, innerloop_left);
+
+            if (CL_rc == -1) return -1;
+
+            CL_rc = hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->command_queue, device_param->d_combs, device_param->d_combs_c, 0, 0, innerloop_left * sizeof (pw_t), 0, NULL, NULL);
+
+            if (CL_rc == -1) return -1;
+          }
+          else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+          {
+            u64 off = innerloop_pos;
+
+            device_param->kernel_params_mp_buf64[3] = off;
+
+            int CL_rc;
+
+            CL_rc = run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP, innerloop_left);
+
+            if (CL_rc == -1) return -1;
+
+            CL_rc = hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->command_queue, device_param->d_combs, device_param->d_combs_c, 0, 0, innerloop_left * sizeof (pw_t), 0, NULL, NULL);
+
+            if (CL_rc == -1) return -1;
+          }
+        }
+      }
+      else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
       {
         u64 off = innerloop_pos;
 
         device_param->kernel_params_mp_r_buf64[3] = off;
 
-        int CL_rc = run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP_R, innerloop_left);
+        int CL_rc;
+
+        CL_rc = run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP_R, innerloop_left);
 
         if (CL_rc == -1) return -1;
-      }
-      else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
-      {
-        u64 off = innerloop_pos;
 
-        device_param->kernel_params_mp_buf64[3] = off;
-
-        int CL_rc = run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP, innerloop_left);
-
-        if (CL_rc == -1) return -1;
-      }
-      else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
-      {
-        u64 off = innerloop_pos;
-
-        device_param->kernel_params_mp_buf64[3] = off;
-
-        int CL_rc = run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP, innerloop_left);
-
-        if (CL_rc == -1) return -1;
-      }
-
-      // copy amplifiers
-
-      if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
-      {
-        int CL_rc = hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->command_queue, device_param->d_rules, device_param->d_rules_c, innerloop_pos * sizeof (kernel_rule_t), 0, innerloop_left * sizeof (kernel_rule_t), 0, NULL, NULL);
-
-        if (CL_rc == -1) return -1;
-      }
-      else if (user_options->attack_mode == ATTACK_MODE_COMBI)
-      {
-        int CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_combs_c, CL_TRUE, 0, innerloop_left * sizeof (pw_t), device_param->combs_buf, 0, NULL, NULL);
-
-        if (CL_rc == -1) return -1;
-      }
-      else if (user_options->attack_mode == ATTACK_MODE_BF)
-      {
-        int CL_rc = hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->command_queue, device_param->d_bfs, device_param->d_bfs_c, 0, 0, innerloop_left * sizeof (bf_t), 0, NULL, NULL);
-
-        if (CL_rc == -1) return -1;
-      }
-      else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
-      {
-        int CL_rc = hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->command_queue, device_param->d_combs, device_param->d_combs_c, 0, 0, innerloop_left * sizeof (pw_t), 0, NULL, NULL);
-
-        if (CL_rc == -1) return -1;
-      }
-      else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
-      {
-        int CL_rc = hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->command_queue, device_param->d_combs, device_param->d_combs_c, 0, 0, innerloop_left * sizeof (pw_t), 0, NULL, NULL);
+        CL_rc = hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->command_queue, device_param->d_bfs, device_param->d_bfs_c, 0, 0, innerloop_left * sizeof (bf_t), 0, NULL, NULL);
 
         if (CL_rc == -1) return -1;
       }
@@ -4731,7 +4838,22 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_params_mp_buf32[7] = 0;
     device_param->kernel_params_mp_buf32[8] = 0;
 
-    device_param->kernel_params_mp[0] = &device_param->d_combs;
+    if (user_options->length_limit_disable == true)
+    {
+      if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+      {
+        device_param->kernel_params_mp[0] = &device_param->d_combs;
+      }
+      else
+      {
+        device_param->kernel_params_mp[0] = &device_param->d_pws_buf;
+      }
+    }
+    else
+    {
+      device_param->kernel_params_mp[0] = &device_param->d_combs;
+    }
+
     device_param->kernel_params_mp[1] = &device_param->d_root_css_buf;
     device_param->kernel_params_mp[2] = &device_param->d_markov_css_buf;
     device_param->kernel_params_mp[3] = &device_param->kernel_params_mp_buf64[3];

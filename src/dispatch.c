@@ -313,8 +313,24 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   const u32 attack_mode = user_options->attack_mode;
   const u32 attack_kern = user_options_extra->attack_kern;
 
-  if (attack_mode == ATTACK_MODE_BF)
+  if ((attack_mode == ATTACK_MODE_BF) || ((user_options->length_limit_disable == true) && (attack_mode == ATTACK_MODE_HYBRID2)))
   {
+    if ((user_options->length_limit_disable == true) && (attack_mode == ATTACK_MODE_HYBRID2))
+    {
+      char *dictfile = straight_ctx->dict;
+
+      FILE *combs_fp = fopen (dictfile, "rb");
+
+      if (combs_fp == NULL)
+      {
+        event_log_error (hashcat_ctx, "%s: %s", dictfile, strerror (errno));
+
+        return -1;
+      }
+
+      device_param->combs_fp = combs_fp;
+    }
+
     while (status_ctx->run_thread_level1 == true)
     {
       const u32 work = get_work (hashcat_ctx, device_param, -1u);

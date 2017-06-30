@@ -152,31 +152,60 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    pw_t pw;
-
-    const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
-
-    if (rc == -1) return -1;
-
-    for (int i = 0; i < 64; i++)
+    if (user_options->length_limit_disable == true)
     {
-      plain_buf[i] = pw.i[i];
+      pw_t pw;
+
+      const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
+
+      if (rc == -1) return -1;
+
+      u64 off = device_param->kernel_params_mp_buf64[3] + gidvid;
+
+      u32 start = 0;
+      u32 stop  = device_param->kernel_params_mp_buf32[4];
+
+      sp_exec (off, (char *) plain_ptr, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, start, start + stop);
+
+      plain_len = stop;
+
+      char *comb_buf = (char *) device_param->combs_buf[il_pos].i;
+      u32   comb_len =          device_param->combs_buf[il_pos].pw_len;
+
+      memcpy (plain_ptr + plain_len, comb_buf, comb_len);
+
+      plain_len += comb_len;
+
+      if (plain_len > (int) hashconfig->pw_max) plain_len = (int) hashconfig->pw_max;
     }
+    else
+    {
+      pw_t pw;
 
-    plain_len = (int) pw.pw_len;
+      const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
 
-    u64 off = device_param->kernel_params_mp_buf64[3] + il_pos;
+      if (rc == -1) return -1;
 
-    u32 start = 0;
-    u32 stop  = device_param->kernel_params_mp_buf32[4];
+      for (int i = 0; i < 64; i++)
+      {
+        plain_buf[i] = pw.i[i];
+      }
 
-    memmove (plain_ptr + stop, plain_ptr, plain_len);
+      plain_len = (int) pw.pw_len;
 
-    sp_exec (off, (char *) plain_ptr, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, start, start + stop);
+      u64 off = device_param->kernel_params_mp_buf64[3] + il_pos;
 
-    plain_len += start + stop;
+      u32 start = 0;
+      u32 stop  = device_param->kernel_params_mp_buf32[4];
 
-    if (plain_len > (int) hashconfig->pw_max) plain_len = (int) hashconfig->pw_max;
+      memmove (plain_ptr + stop, plain_ptr, plain_len);
+
+      sp_exec (off, (char *) plain_ptr, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, start, start + stop);
+
+      plain_len += start + stop;
+
+      if (plain_len > (int) hashconfig->pw_max) plain_len = (int) hashconfig->pw_max;
+    }
   }
 
   if (user_options->attack_mode == ATTACK_MODE_BF)

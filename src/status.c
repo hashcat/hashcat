@@ -474,9 +474,18 @@ char *status_get_guess_base (const hashcat_ctx_t *hashcat_ctx)
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+    if (user_options->length_limit_disable == true)
+    {
+      const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
-    return strdup (straight_ctx->dict);
+      return strdup (mask_ctx->mask);
+    }
+    else
+    {
+      const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+
+      return strdup (straight_ctx->dict);
+    }
   }
 
   return NULL;
@@ -510,9 +519,18 @@ int status_get_guess_base_offset (const hashcat_ctx_t *hashcat_ctx)
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+    if (user_options->length_limit_disable == true)
+    {
+      const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
-    return straight_ctx->dicts_pos + 1;
+      return mask_ctx->masks_pos + 1;
+    }
+    else
+    {
+      const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+
+      return straight_ctx->dicts_pos + 1;
+    }
   }
 
   return 0;
@@ -546,9 +564,18 @@ int status_get_guess_base_count (const hashcat_ctx_t *hashcat_ctx)
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+    if (user_options->length_limit_disable == true)
+    {
+      const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
-    return straight_ctx->dicts_cnt;
+      return mask_ctx->masks_cnt;
+    }
+    else
+    {
+      const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+
+      return straight_ctx->dicts_cnt;
+    }
   }
 
   return 0;
@@ -597,9 +624,18 @@ char *status_get_guess_mod (const hashcat_ctx_t *hashcat_ctx)
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+    if (user_options->length_limit_disable == true)
+    {
+      const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
-    return strdup (mask_ctx->mask);
+      return strdup (straight_ctx->dict);
+    }
+    else
+    {
+      const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+      return strdup (mask_ctx->mask);
+    }
   }
 
   return NULL;
@@ -629,9 +665,18 @@ int status_get_guess_mod_offset (const hashcat_ctx_t *hashcat_ctx)
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+    if (user_options->length_limit_disable == true)
+    {
+      const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
-    return mask_ctx->masks_pos + 1;
+      return straight_ctx->dicts_pos + 1;
+    }
+    else
+    {
+      const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+      return mask_ctx->masks_pos + 1;
+    }
   }
 
   return 0;
@@ -661,9 +706,18 @@ int status_get_guess_mod_count (const hashcat_ctx_t *hashcat_ctx)
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+    if (user_options->length_limit_disable == true)
+    {
+      const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
-    return mask_ctx->masks_cnt;
+      return straight_ctx->dicts_cnt;
+    }
+    else
+    {
+      const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+      return mask_ctx->masks_cnt;
+    }
   }
 
   return 0;
