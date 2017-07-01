@@ -24606,6 +24606,10 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   {
     case  2100: hashconfig->pw_max = PW_MAX;
                 break;
+    case  2500: hashconfig->pw_max = PW_MAX;
+                break;
+    case  3200: hashconfig->pw_max = PW_MAX;
+                break;
   }
 
   // pw_max : algo specific hard limits
