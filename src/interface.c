@@ -20475,7 +20475,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->kern_type      = KERN_TYPE_PHPASS;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = phpass_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
@@ -24552,9 +24553,9 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     {
       case   125: hashconfig->pw_max = 32;
                   break;
-      case   500: hashconfig->pw_max = 16;
+      case   500: hashconfig->pw_max = 15;
                   break;
-      case  1600: hashconfig->pw_max = 16;
+      case  1600: hashconfig->pw_max = 15;
                   break;
       case  1800: hashconfig->pw_max = 16;
                   break;
@@ -24564,7 +24565,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                   break;
       case  5800: hashconfig->pw_max = 16;
                   break;
-      case  6300: hashconfig->pw_max = 16;
+      case  6300: hashconfig->pw_max = 15;
                   break;
       case  7000: hashconfig->pw_max = 19;
                   break;
@@ -24597,16 +24598,14 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
       case 15500: hashconfig->pw_max = 16;
                   break;
     }
+  }
 
-    // fully converted to length 256
+  // pw_max : kernel fully compatible to length PW_MAX - those don't need to use --length-limit-disable
 
-    switch (hashconfig->hash_mode)
-    {
-      case   400: hashconfig->pw_max = 256;
-                  break;
-      case  2100: hashconfig->pw_max = 256;
-                  break;
-    }
+  switch (hashconfig->hash_mode)
+  {
+    case  2100: hashconfig->pw_max = PW_MAX;
+                break;
   }
 
   // pw_max : algo specific hard limits

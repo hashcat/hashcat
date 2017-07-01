@@ -108,35 +108,75 @@ static int ocl_check_dri (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-static void generate_source_kernel_filename (const u32 attack_exec, const u32 attack_kern, const u32 kern_type, char *shared_dir, char *source_file)
+static void generate_source_kernel_filename (const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const bool length_limit_disable, char *shared_dir, char *source_file)
 {
-  if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+  if (length_limit_disable == true)
   {
-    if (attack_kern == ATTACK_KERN_STRAIGHT)
-      snprintf (source_file, 255, "%s/OpenCL/m%05d_a0.cl", shared_dir, (int) kern_type);
-    else if (attack_kern == ATTACK_KERN_COMBI)
-      snprintf (source_file, 255, "%s/OpenCL/m%05d_a1.cl", shared_dir, (int) kern_type);
-    else if (attack_kern == ATTACK_KERN_BF)
-      snprintf (source_file, 255, "%s/OpenCL/m%05d_a3.cl", shared_dir, (int) kern_type);
+    if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+    {
+      if (attack_kern == ATTACK_KERN_STRAIGHT)
+        snprintf (source_file, 255, "%s/OpenCL/m%05d_a0-pure.cl", shared_dir, (int) kern_type);
+      else if (attack_kern == ATTACK_KERN_COMBI)
+        snprintf (source_file, 255, "%s/OpenCL/m%05d_a1-pure.cl", shared_dir, (int) kern_type);
+      else if (attack_kern == ATTACK_KERN_BF)
+        snprintf (source_file, 255, "%s/OpenCL/m%05d_a3-pure.cl", shared_dir, (int) kern_type);
+    }
+    else
+    {
+      snprintf (source_file, 255, "%s/OpenCL/m%05d-pure.cl", shared_dir, (int) kern_type);
+    }
   }
   else
-    snprintf (source_file, 255, "%s/OpenCL/m%05d.cl", shared_dir, (int) kern_type);
+  {
+    if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+    {
+      if (attack_kern == ATTACK_KERN_STRAIGHT)
+        snprintf (source_file, 255, "%s/OpenCL/m%05d_a0.cl", shared_dir, (int) kern_type);
+      else if (attack_kern == ATTACK_KERN_COMBI)
+        snprintf (source_file, 255, "%s/OpenCL/m%05d_a1.cl", shared_dir, (int) kern_type);
+      else if (attack_kern == ATTACK_KERN_BF)
+        snprintf (source_file, 255, "%s/OpenCL/m%05d_a3.cl", shared_dir, (int) kern_type);
+    }
+    else
+    {
+      snprintf (source_file, 255, "%s/OpenCL/m%05d.cl", shared_dir, (int) kern_type);
+    }
+  }
 }
 
-static void generate_cached_kernel_filename (const u32 attack_exec, const u32 attack_kern, const u32 kern_type, char *profile_dir, const char *device_name_chksum, char *cached_file)
+static void generate_cached_kernel_filename (const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const bool length_limit_disable, char *profile_dir, const char *device_name_chksum, char *cached_file)
 {
-  if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+  if (length_limit_disable == true)
   {
-    if (attack_kern == ATTACK_KERN_STRAIGHT)
-      snprintf (cached_file, 255, "%s/kernels/m%05d_a0.%s.kernel", profile_dir, (int) kern_type, device_name_chksum);
-    else if (attack_kern == ATTACK_KERN_COMBI)
-      snprintf (cached_file, 255, "%s/kernels/m%05d_a1.%s.kernel", profile_dir, (int) kern_type, device_name_chksum);
-    else if (attack_kern == ATTACK_KERN_BF)
-      snprintf (cached_file, 255, "%s/kernels/m%05d_a3.%s.kernel", profile_dir, (int) kern_type, device_name_chksum);
+    if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+    {
+      if (attack_kern == ATTACK_KERN_STRAIGHT)
+        snprintf (cached_file, 255, "%s/kernels/m%05d_a0-pure.%s.kernel", profile_dir, (int) kern_type, device_name_chksum);
+      else if (attack_kern == ATTACK_KERN_COMBI)
+        snprintf (cached_file, 255, "%s/kernels/m%05d_a1-pure.%s.kernel", profile_dir, (int) kern_type, device_name_chksum);
+      else if (attack_kern == ATTACK_KERN_BF)
+        snprintf (cached_file, 255, "%s/kernels/m%05d_a3-pure.%s.kernel", profile_dir, (int) kern_type, device_name_chksum);
+    }
+    else
+    {
+      snprintf (cached_file, 255, "%s/kernels/m%05d-pure.%s.kernel", profile_dir, (int) kern_type, device_name_chksum);
+    }
   }
   else
   {
-    snprintf (cached_file, 255, "%s/kernels/m%05d.%s.kernel", profile_dir, (int) kern_type, device_name_chksum);
+    if (attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+    {
+      if (attack_kern == ATTACK_KERN_STRAIGHT)
+        snprintf (cached_file, 255, "%s/kernels/m%05d_a0.%s.kernel", profile_dir, (int) kern_type, device_name_chksum);
+      else if (attack_kern == ATTACK_KERN_COMBI)
+        snprintf (cached_file, 255, "%s/kernels/m%05d_a1.%s.kernel", profile_dir, (int) kern_type, device_name_chksum);
+      else if (attack_kern == ATTACK_KERN_BF)
+        snprintf (cached_file, 255, "%s/kernels/m%05d_a3.%s.kernel", profile_dir, (int) kern_type, device_name_chksum);
+    }
+    else
+    {
+      snprintf (cached_file, 255, "%s/kernels/m%05d.%s.kernel", profile_dir, (int) kern_type, device_name_chksum);
+    }
   }
 }
 
@@ -3672,6 +3712,23 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       vector_width = user_options->opencl_vector_width;
     }
 
+    // We can't have SIMD in kernels where final password length depends on user input we can't precompute
+
+    if (user_options->length_limit_disable == true)
+    {
+      if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+      {
+        if ((user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) || (user_options_extra->attack_kern == ATTACK_KERN_COMBI))
+        {
+          vector_width = 1;
+        }
+      }
+      else
+      {
+        vector_width = 1;
+      }
+    }
+
     if (vector_width > 16) vector_width = 16;
 
     device_param->vector_width = vector_width;
@@ -4179,7 +4236,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       char source_file[256] = { 0 };
 
-      generate_source_kernel_filename (hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, folder_config->shared_dir, source_file);
+      generate_source_kernel_filename (hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, user_options->length_limit_disable, folder_config->shared_dir, source_file);
 
       if (hc_path_read (source_file) == false)
       {
@@ -4194,7 +4251,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       char cached_file[256] = { 0 };
 
-      generate_cached_kernel_filename (hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, folder_config->profile_dir, device_name_chksum, cached_file);
+      generate_cached_kernel_filename (hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, user_options->length_limit_disable, folder_config->profile_dir, device_name_chksum, cached_file);
 
       bool cached = true;
 
@@ -4930,24 +4987,6 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     {
       if (hashconfig->opti_type & OPTI_TYPE_SINGLE_HASH)
       {
-        snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_s%02d", hashconfig->kern_type, 4);
-
-        CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel1);
-
-        if (CL_rc == -1) return -1;
-
-        snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_s%02d", hashconfig->kern_type, 8);
-
-        CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel2);
-
-        if (CL_rc == -1) return -1;
-
-        snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_s%02d", hashconfig->kern_type, 16);
-
-        CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel3);
-
-        if (CL_rc == -1) return -1;
-
         if (user_options->length_limit_disable == true)
         {
           snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_sxx", hashconfig->kern_type);
@@ -4955,33 +4994,99 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
           CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel4);
 
           if (CL_rc == -1) return -1;
+
+          CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel4, &device_param->kernel_threads_by_wgs_kernel4);
+
+          if (CL_rc == -1) return -1;
+        }
+        else
+        {
+          // kernel1
+
+          snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_s%02d", hashconfig->kern_type, 4);
+
+          CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel1);
+
+          if (CL_rc == -1) return -1;
+
+          CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel1, &device_param->kernel_threads_by_wgs_kernel1);
+
+          if (CL_rc == -1) return -1;
+
+          // kernel2
+
+          snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_s%02d", hashconfig->kern_type, 8);
+
+          CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel2);
+
+          if (CL_rc == -1) return -1;
+
+          CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel2, &device_param->kernel_threads_by_wgs_kernel2);
+
+          if (CL_rc == -1) return -1;
+
+          // kernel3
+
+          snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_s%02d", hashconfig->kern_type, 16);
+
+          CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel3);
+
+          if (CL_rc == -1) return -1;
+
+          CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel3, &device_param->kernel_threads_by_wgs_kernel3);
+
+          if (CL_rc == -1) return -1;
         }
       }
       else
       {
-        snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_m%02d", hashconfig->kern_type, 4);
-
-        CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel1);
-
-        if (CL_rc == -1) return -1;
-
-        snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_m%02d", hashconfig->kern_type, 8);
-
-        CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel2);
-
-        if (CL_rc == -1) return -1;
-
-        snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_m%02d", hashconfig->kern_type, 16);
-
-        CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel3);
-
-        if (CL_rc == -1) return -1;
-
         if (user_options->length_limit_disable == true)
         {
           snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_mxx", hashconfig->kern_type);
 
           CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel4);
+
+          if (CL_rc == -1) return -1;
+
+          CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel4, &device_param->kernel_threads_by_wgs_kernel4);
+
+          if (CL_rc == -1) return -1;
+        }
+        else
+        {
+          // kernel1
+
+          snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_m%02d", hashconfig->kern_type, 4);
+
+          CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel1);
+
+          if (CL_rc == -1) return -1;
+
+          CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel1, &device_param->kernel_threads_by_wgs_kernel1);
+
+          if (CL_rc == -1) return -1;
+
+          // kernel2
+
+          snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_m%02d", hashconfig->kern_type, 8);
+
+          CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel2);
+
+          if (CL_rc == -1) return -1;
+
+          CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel2, &device_param->kernel_threads_by_wgs_kernel2);
+
+          if (CL_rc == -1) return -1;
+
+          // kernel3
+
+          snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_m%02d", hashconfig->kern_type, 16);
+
+          CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel3);
+
+          if (CL_rc == -1) return -1;
+
+          CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel3, &device_param->kernel_threads_by_wgs_kernel3);
 
           if (CL_rc == -1) return -1;
         }
@@ -5013,6 +5118,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (CL_rc == -1) return -1;
 
+      CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel1, &device_param->kernel_threads_by_wgs_kernel1);
+
+      if (CL_rc == -1) return -1;
+
       // kernel2
 
       snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_loop", hashconfig->kern_type);
@@ -5021,11 +5130,19 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (CL_rc == -1) return -1;
 
+      CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel2, &device_param->kernel_threads_by_wgs_kernel2);
+
+      if (CL_rc == -1) return -1;
+
       // kernel3
 
       snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_comp", hashconfig->kern_type);
 
       CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel3);
+
+      if (CL_rc == -1) return -1;
+
+      CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel3, &device_param->kernel_threads_by_wgs_kernel3);
 
       if (CL_rc == -1) return -1;
 
@@ -5088,33 +5205,6 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (CL_rc == -1) return -1;
       }
-    }
-
-    // kernel1
-
-    CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel1, &device_param->kernel_threads_by_wgs_kernel1);
-
-    if (CL_rc == -1) return -1;
-
-    // kernel2
-
-    CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel2, &device_param->kernel_threads_by_wgs_kernel2);
-
-    if (CL_rc == -1) return -1;
-
-    // kernel3
-
-    CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel3, &device_param->kernel_threads_by_wgs_kernel3);
-
-    if (CL_rc == -1) return -1;
-
-    // kernel4
-
-    if (user_options->length_limit_disable == true)
-    {
-      CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel4, &device_param->kernel_threads_by_wgs_kernel4);
-
-      if (CL_rc == -1) return -1;
     }
 
     // GPU memset
