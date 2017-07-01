@@ -11,6 +11,8 @@
 #include "inc_types.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
+#include "inc_hash_md5.cl"
+#include "inc_hash_sha1.cl"
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
@@ -551,7 +553,7 @@ void hmac_sha1_run_V (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[
   digest[3] = ipad[3];
   digest[4] = ipad[4];
 
-  sha1_transform_V (w0, w1, w2, w3, digest);
+  sha1_transform_vector (w0, w1, w2, w3, digest);
 
   w0[0] = digest[0];
   w0[1] = digest[1];
@@ -576,10 +578,10 @@ void hmac_sha1_run_V (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[
   digest[3] = opad[3];
   digest[4] = opad[4];
 
-  sha1_transform_V (w0, w1, w2, w3, digest);
+  sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-__kernel void m02500_init (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global wpa_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global wpa_t *wpa_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
+__kernel void m02500_init (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global wpa_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const wpa_t *wpa_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
   /**
    * base
@@ -590,54 +592,26 @@ __kernel void m02500_init (__global pw_t *pws, __global const kernel_rule_t *rul
   if (gid >= gid_max) return;
 
   u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
 
   w0[0] = pws[gid].i[ 0];
   w0[1] = pws[gid].i[ 1];
   w0[2] = pws[gid].i[ 2];
   w0[3] = pws[gid].i[ 3];
-
-  u32 w1[4];
-
   w1[0] = pws[gid].i[ 4];
   w1[1] = pws[gid].i[ 5];
   w1[2] = pws[gid].i[ 6];
   w1[3] = pws[gid].i[ 7];
-
-  u32 w2[4];
-
   w2[0] = pws[gid].i[ 8];
   w2[1] = pws[gid].i[ 9];
   w2[2] = pws[gid].i[10];
   w2[3] = pws[gid].i[11];
-
-  u32 w3[4];
-
   w3[0] = pws[gid].i[12];
   w3[1] = pws[gid].i[13];
   w3[2] = pws[gid].i[14];
   w3[3] = pws[gid].i[15];
-
-  /**
-   * salt
-   */
-
-  u32 salt_len = salt_bufs[salt_pos].salt_len;
-
-  u32 salt_buf0[4];
-  u32 salt_buf1[4];
-
-  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf0[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf0[2] = salt_bufs[salt_pos].salt_buf[2];
-  salt_buf0[3] = salt_bufs[salt_pos].salt_buf[3];
-  salt_buf1[0] = salt_bufs[salt_pos].salt_buf[4];
-  salt_buf1[1] = salt_bufs[salt_pos].salt_buf[5];
-  salt_buf1[2] = salt_bufs[salt_pos].salt_buf[6];
-  salt_buf1[3] = salt_bufs[salt_pos].salt_buf[7];
-
-  /**
-   * pads
-   */
 
   w0[0] = swap32_S (w0[0]);
   w0[1] = swap32_S (w0[1]);
@@ -656,33 +630,36 @@ __kernel void m02500_init (__global pw_t *pws, __global const kernel_rule_t *rul
   w3[2] = swap32_S (w3[2]);
   w3[3] = swap32_S (w3[3]);
 
-  u32 ipad[5];
-  u32 opad[5];
+  sha1_hmac_ctx_t sha1_hmac_ctx;
 
-  hmac_sha1_pad_S (w0, w1, w2, w3, ipad, opad);
+  sha1_hmac_init (&sha1_hmac_ctx, w0, w1, w2, w3);
 
-  tmps[gid].ipad[0] = ipad[0];
-  tmps[gid].ipad[1] = ipad[1];
-  tmps[gid].ipad[2] = ipad[2];
-  tmps[gid].ipad[3] = ipad[3];
-  tmps[gid].ipad[4] = ipad[4];
+  tmps[gid].ipad[0] = sha1_hmac_ctx.ipad.h[0];
+  tmps[gid].ipad[1] = sha1_hmac_ctx.ipad.h[1];
+  tmps[gid].ipad[2] = sha1_hmac_ctx.ipad.h[2];
+  tmps[gid].ipad[3] = sha1_hmac_ctx.ipad.h[3];
+  tmps[gid].ipad[4] = sha1_hmac_ctx.ipad.h[4];
 
-  tmps[gid].opad[0] = opad[0];
-  tmps[gid].opad[1] = opad[1];
-  tmps[gid].opad[2] = opad[2];
-  tmps[gid].opad[3] = opad[3];
-  tmps[gid].opad[4] = opad[4];
+  tmps[gid].opad[0] = sha1_hmac_ctx.opad.h[0];
+  tmps[gid].opad[1] = sha1_hmac_ctx.opad.h[1];
+  tmps[gid].opad[2] = sha1_hmac_ctx.opad.h[2];
+  tmps[gid].opad[3] = sha1_hmac_ctx.opad.h[3];
+  tmps[gid].opad[4] = sha1_hmac_ctx.opad.h[4];
+
+  sha1_hmac_update_global_swap (&sha1_hmac_ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
 
   for (u32 i = 0, j = 1; i < 8; i += 5, j += 1)
   {
-    w0[0] = salt_buf0[0];
-    w0[1] = salt_buf0[1];
-    w0[2] = salt_buf0[2];
-    w0[3] = salt_buf0[3];
-    w1[0] = salt_buf1[0];
-    w1[1] = salt_buf1[1];
-    w1[2] = salt_buf1[2];
-    w1[3] = salt_buf1[3];
+    sha1_hmac_ctx_t sha1_hmac_ctx2 = sha1_hmac_ctx;
+
+    w0[0] = j;
+    w0[1] = 0;
+    w0[2] = 0;
+    w0[3] = 0;
+    w1[0] = 0;
+    w1[1] = 0;
+    w1[2] = 0;
+    w1[3] = 0;
     w2[0] = 0;
     w2[1] = 0;
     w2[2] = 0;
@@ -692,49 +669,25 @@ __kernel void m02500_init (__global pw_t *pws, __global const kernel_rule_t *rul
     w3[2] = 0;
     w3[3] = 0;
 
-    if (j == 1)
-      append_0x01_3x4_S (w0, w1, w2, salt_len + 3);
-    else
-      append_0x02_3x4_S (w0, w1, w2, salt_len + 3);
+    sha1_hmac_update_64 (&sha1_hmac_ctx2, w0, w1, w2, w3, 4);
 
-    append_0x80_3x4_S (w0, w1, w2, salt_len + 4);
+    sha1_hmac_final (&sha1_hmac_ctx2);
 
-    w0[0] = swap32_S (w0[0]);
-    w0[1] = swap32_S (w0[1]);
-    w0[2] = swap32_S (w0[2]);
-    w0[3] = swap32_S (w0[3]);
-    w1[0] = swap32_S (w1[0]);
-    w1[1] = swap32_S (w1[1]);
-    w1[2] = swap32_S (w1[2]);
-    w1[3] = swap32_S (w1[3]);
-    w2[0] = swap32_S (w2[0]);
-    w2[1] = swap32_S (w2[1]);
-    w2[2] = 0;
-    w2[3] = 0;
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
-    w3[3] = (64 + salt_len + 4) * 8;
+    tmps[gid].dgst[i + 0] = sha1_hmac_ctx2.opad.h[0];
+    tmps[gid].dgst[i + 1] = sha1_hmac_ctx2.opad.h[1];
+    tmps[gid].dgst[i + 2] = sha1_hmac_ctx2.opad.h[2];
+    tmps[gid].dgst[i + 3] = sha1_hmac_ctx2.opad.h[3];
+    tmps[gid].dgst[i + 4] = sha1_hmac_ctx2.opad.h[4];
 
-    u32 dgst[5];
-
-    hmac_sha1_run_S (w0, w1, w2, w3, ipad, opad, dgst);
-
-    tmps[gid].dgst[i + 0] = dgst[0];
-    tmps[gid].dgst[i + 1] = dgst[1];
-    tmps[gid].dgst[i + 2] = dgst[2];
-    tmps[gid].dgst[i + 3] = dgst[3];
-    tmps[gid].dgst[i + 4] = dgst[4];
-
-    tmps[gid].out[i + 0] = dgst[0];
-    tmps[gid].out[i + 1] = dgst[1];
-    tmps[gid].out[i + 2] = dgst[2];
-    tmps[gid].out[i + 3] = dgst[3];
-    tmps[gid].out[i + 4] = dgst[4];
+    tmps[gid].out[i + 0] = tmps[gid].dgst[i + 0];
+    tmps[gid].out[i + 1] = tmps[gid].dgst[i + 1];
+    tmps[gid].out[i + 2] = tmps[gid].dgst[i + 2];
+    tmps[gid].out[i + 3] = tmps[gid].dgst[i + 3];
+    tmps[gid].out[i + 4] = tmps[gid].dgst[i + 4];
   }
 }
 
-__kernel void m02500_loop (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global wpa_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global wpa_t *wpa_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
+__kernel void m02500_loop (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global wpa_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const wpa_t *wpa_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
   const u32 gid = get_global_id (0);
 
@@ -819,13 +772,11 @@ __kernel void m02500_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   }
 }
 
-__kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global wpa_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global wpa_t *wpa_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
+__kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global wpa_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const wpa_t *wpa_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
   const u32 gid = get_global_id (0);
 
   if (gid >= gid_max) return;
-
-  const u32 lid = get_local_id (0);
 
   u32 out[8];
 
@@ -838,13 +789,15 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   out[6] = tmps[gid].out[6];
   out[7] = tmps[gid].out[7];
 
+  const u32 lid = get_local_id (0);
+
   const u32 digest_pos = loop_pos;
 
   const u32 digest_cur = digests_offset + digest_pos;
 
-  __global wpa_t *wpa = &wpa_bufs[digest_cur];
+  __global const wpa_t *wpa = &wpa_bufs[digest_cur];
 
-  u32 pke[25];
+  u32 pke[32];
 
   pke[ 0] = wpa->pke[ 0];
   pke[ 1] = wpa->pke[ 1];
@@ -871,6 +824,13 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   pke[22] = wpa->pke[22];
   pke[23] = wpa->pke[23];
   pke[24] = wpa->pke[24];
+  pke[25] = 0;
+  pke[26] = 0;
+  pke[27] = 0;
+  pke[28] = 0;
+  pke[29] = 0;
+  pke[30] = 0;
+  pke[31] = 0;
 
   u32 to;
 
@@ -931,198 +891,104 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     w3[2] = 0;
     w3[3] = 0;
 
-    u32 ipad[5];
-    u32 opad[5];
+    sha1_hmac_ctx_t ctx1;
 
-    hmac_sha1_pad_S (w0, w1, w2, w3, ipad, opad);
+    sha1_hmac_init (&ctx1, w0, w1, w2, w3);
 
-    w0[0] = pke[ 0];
-    w0[1] = pke[ 1];
-    w0[2] = pke[ 2];
-    w0[3] = pke[ 3];
-    w1[0] = pke[ 4];
-    w1[1] = pke[ 5];
-    w1[2] = pke[ 6];
-    w1[3] = pke[ 7];
-    w2[0] = pke[ 8];
-    w2[1] = pke[ 9];
-    w2[2] = pke[10];
-    w2[3] = pke[11];
-    w3[0] = pke[12];
-    w3[1] = pke[13];
-    w3[2] = pke[14];
-    w3[3] = pke[15];
+    sha1_hmac_update (&ctx1, pke, 100);
 
-    sha1_transform_S (w0, w1, w2, w3, ipad);
+    sha1_hmac_final (&ctx1);
 
-    w0[0] = pke[16];
-    w0[1] = pke[17];
-    w0[2] = pke[18];
-    w0[3] = pke[19];
-    w1[0] = pke[20];
-    w1[1] = pke[21];
-    w1[2] = pke[22];
-    w1[3] = pke[23];
-    w2[0] = pke[24];
-    w2[1] = 0x80000000;
-    w2[2] = 0;
-    w2[3] = 0;
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
-    w3[3] = (64 + 100) * 8;
+    u32 digest[4];
 
-    u32 digest[5];
-
-    hmac_sha1_run_S (w0, w1, w2, w3, ipad, opad, digest);
-
-    u32 digest_final[5];
+    digest[0] = ctx1.opad.h[0];
+    digest[1] = ctx1.opad.h[1];
+    digest[2] = ctx1.opad.h[2];
+    digest[3] = ctx1.opad.h[3];
 
     if (wpa->keyver == 1)
     {
-      w0[0] = swap32_S (digest[0]);
-      w0[1] = swap32_S (digest[1]);
-      w0[2] = swap32_S (digest[2]);
-      w0[3] = swap32_S (digest[3]);
-      w1[0] = 0;
-      w1[1] = 0;
-      w1[2] = 0;
-      w1[3] = 0;
-      w2[0] = 0;
-      w2[1] = 0;
-      w2[2] = 0;
-      w2[3] = 0;
-      w3[0] = 0;
-      w3[1] = 0;
-      w3[2] = 0;
-      w3[3] = 0;
+      u32 t0[4];
+      u32 t1[4];
+      u32 t2[4];
+      u32 t3[4];
 
-      hmac_md5_pad_S (w0, w1, w2, w3, ipad, opad);
+      t0[0] = swap32_S (digest[0]);
+      t0[1] = swap32_S (digest[1]);
+      t0[2] = swap32_S (digest[2]);
+      t0[3] = swap32_S (digest[3]);
+      t1[0] = 0;
+      t1[1] = 0;
+      t1[2] = 0;
+      t1[3] = 0;
+      t2[0] = 0;
+      t2[1] = 0;
+      t2[2] = 0;
+      t2[3] = 0;
+      t3[0] = 0;
+      t3[1] = 0;
+      t3[2] = 0;
+      t3[3] = 0;
 
-      int eapol_len = wpa->eapol_len;
+      md5_hmac_ctx_t ctx2;
 
-      int eapol_left;
-      int eapol_off;
+      md5_hmac_init (&ctx2, t0, t1, t2, t3);
 
-      for (eapol_left = eapol_len, eapol_off = 0; eapol_left >= 56; eapol_left -= 64, eapol_off += 16)
-      {
-        w0[0] = wpa->eapol[eapol_off +  0];
-        w0[1] = wpa->eapol[eapol_off +  1];
-        w0[2] = wpa->eapol[eapol_off +  2];
-        w0[3] = wpa->eapol[eapol_off +  3];
-        w1[0] = wpa->eapol[eapol_off +  4];
-        w1[1] = wpa->eapol[eapol_off +  5];
-        w1[2] = wpa->eapol[eapol_off +  6];
-        w1[3] = wpa->eapol[eapol_off +  7];
-        w2[0] = wpa->eapol[eapol_off +  8];
-        w2[1] = wpa->eapol[eapol_off +  9];
-        w2[2] = wpa->eapol[eapol_off + 10];
-        w2[3] = wpa->eapol[eapol_off + 11];
-        w3[0] = wpa->eapol[eapol_off + 12];
-        w3[1] = wpa->eapol[eapol_off + 13];
-        w3[2] = wpa->eapol[eapol_off + 14];
-        w3[3] = wpa->eapol[eapol_off + 15];
+      md5_hmac_update_global (&ctx2, wpa->eapol, wpa->eapol_len);
 
-        md5_transform_S (w0, w1, w2, w3, ipad);
-      }
+      md5_hmac_final (&ctx2);
 
-      w0[0] = wpa->eapol[eapol_off +  0];
-      w0[1] = wpa->eapol[eapol_off +  1];
-      w0[2] = wpa->eapol[eapol_off +  2];
-      w0[3] = wpa->eapol[eapol_off +  3];
-      w1[0] = wpa->eapol[eapol_off +  4];
-      w1[1] = wpa->eapol[eapol_off +  5];
-      w1[2] = wpa->eapol[eapol_off +  6];
-      w1[3] = wpa->eapol[eapol_off +  7];
-      w2[0] = wpa->eapol[eapol_off +  8];
-      w2[1] = wpa->eapol[eapol_off +  9];
-      w2[2] = wpa->eapol[eapol_off + 10];
-      w2[3] = wpa->eapol[eapol_off + 11];
-      w3[0] = wpa->eapol[eapol_off + 12];
-      w3[1] = wpa->eapol[eapol_off + 13];
-      w3[2] = (64 + eapol_len) * 8;
-      w3[3] = 0;
-
-      hmac_md5_run_S (w0, w1, w2, w3, ipad, opad, digest_final);
+      digest[0] = ctx2.opad.h[0];
+      digest[1] = ctx2.opad.h[1];
+      digest[2] = ctx2.opad.h[2];
+      digest[3] = ctx2.opad.h[3];
     }
     else
     {
-      w0[0] = digest[0];
-      w0[1] = digest[1];
-      w0[2] = digest[2];
-      w0[3] = digest[3];
-      w1[0] = 0;
-      w1[1] = 0;
-      w1[2] = 0;
-      w1[3] = 0;
-      w2[0] = 0;
-      w2[1] = 0;
-      w2[2] = 0;
-      w2[3] = 0;
-      w3[0] = 0;
-      w3[1] = 0;
-      w3[2] = 0;
-      w3[3] = 0;
+      u32 t0[4];
+      u32 t1[4];
+      u32 t2[4];
+      u32 t3[4];
 
-      hmac_sha1_pad_S (w0, w1, w2, w3, ipad, opad);
+      t0[0] = digest[0];
+      t0[1] = digest[1];
+      t0[2] = digest[2];
+      t0[3] = digest[3];
+      t1[0] = 0;
+      t1[1] = 0;
+      t1[2] = 0;
+      t1[3] = 0;
+      t2[0] = 0;
+      t2[1] = 0;
+      t2[2] = 0;
+      t2[3] = 0;
+      t3[0] = 0;
+      t3[1] = 0;
+      t3[2] = 0;
+      t3[3] = 0;
 
-      int eapol_len = wpa->eapol_len;
+      sha1_hmac_ctx_t ctx2;
 
-      int eapol_left;
-      int eapol_off;
+      sha1_hmac_init (&ctx2, t0, t1, t2, t3);
 
-      for (eapol_left = eapol_len, eapol_off = 0; eapol_left >= 56; eapol_left -= 64, eapol_off += 16)
-      {
-        w0[0] = wpa->eapol[eapol_off +  0];
-        w0[1] = wpa->eapol[eapol_off +  1];
-        w0[2] = wpa->eapol[eapol_off +  2];
-        w0[3] = wpa->eapol[eapol_off +  3];
-        w1[0] = wpa->eapol[eapol_off +  4];
-        w1[1] = wpa->eapol[eapol_off +  5];
-        w1[2] = wpa->eapol[eapol_off +  6];
-        w1[3] = wpa->eapol[eapol_off +  7];
-        w2[0] = wpa->eapol[eapol_off +  8];
-        w2[1] = wpa->eapol[eapol_off +  9];
-        w2[2] = wpa->eapol[eapol_off + 10];
-        w2[3] = wpa->eapol[eapol_off + 11];
-        w3[0] = wpa->eapol[eapol_off + 12];
-        w3[1] = wpa->eapol[eapol_off + 13];
-        w3[2] = wpa->eapol[eapol_off + 14];
-        w3[3] = wpa->eapol[eapol_off + 15];
+      sha1_hmac_update_global (&ctx2, wpa->eapol, wpa->eapol_len);
 
-        sha1_transform_S (w0, w1, w2, w3, ipad);
-      }
+      sha1_hmac_final (&ctx2);
 
-      w0[0] = wpa->eapol[eapol_off +  0];
-      w0[1] = wpa->eapol[eapol_off +  1];
-      w0[2] = wpa->eapol[eapol_off +  2];
-      w0[3] = wpa->eapol[eapol_off +  3];
-      w1[0] = wpa->eapol[eapol_off +  4];
-      w1[1] = wpa->eapol[eapol_off +  5];
-      w1[2] = wpa->eapol[eapol_off +  6];
-      w1[3] = wpa->eapol[eapol_off +  7];
-      w2[0] = wpa->eapol[eapol_off +  8];
-      w2[1] = wpa->eapol[eapol_off +  9];
-      w2[2] = wpa->eapol[eapol_off + 10];
-      w2[3] = wpa->eapol[eapol_off + 11];
-      w3[0] = wpa->eapol[eapol_off + 12];
-      w3[1] = wpa->eapol[eapol_off + 13];
-      w3[2] = 0;
-      w3[3] = (64 + eapol_len) * 8;
-
-      u32 digest2[5];
-
-      hmac_sha1_run_S (w0, w1, w2, w3, ipad, opad, digest_final);
+      digest[0] = ctx2.opad.h[0];
+      digest[1] = ctx2.opad.h[1];
+      digest[2] = ctx2.opad.h[2];
+      digest[3] = ctx2.opad.h[3];
     }
 
     /**
      * final compare
      */
 
-    if ((digest_final[0] == wpa->keymic[0])
-     && (digest_final[1] == wpa->keymic[1])
-     && (digest_final[2] == wpa->keymic[2])
-     && (digest_final[3] == wpa->keymic[3]))
+    if ((digest[0] == wpa->keymic[0])
+     && (digest[1] == wpa->keymic[1])
+     && (digest[2] == wpa->keymic[2])
+     && (digest[3] == wpa->keymic[3]))
     {
       if (atomic_inc (&hashes_shown[digest_cur]) == 0)
       {
@@ -1175,198 +1041,104 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     w3[2] = 0;
     w3[3] = 0;
 
-    u32 ipad[5];
-    u32 opad[5];
+    sha1_hmac_ctx_t ctx1;
 
-    hmac_sha1_pad_S (w0, w1, w2, w3, ipad, opad);
+    sha1_hmac_init (&ctx1, w0, w1, w2, w3);
 
-    w0[0] = pke[ 0];
-    w0[1] = pke[ 1];
-    w0[2] = pke[ 2];
-    w0[3] = pke[ 3];
-    w1[0] = pke[ 4];
-    w1[1] = pke[ 5];
-    w1[2] = pke[ 6];
-    w1[3] = pke[ 7];
-    w2[0] = pke[ 8];
-    w2[1] = pke[ 9];
-    w2[2] = pke[10];
-    w2[3] = pke[11];
-    w3[0] = pke[12];
-    w3[1] = pke[13];
-    w3[2] = pke[14];
-    w3[3] = pke[15];
+    sha1_hmac_update (&ctx1, pke, 100);
 
-    sha1_transform_S (w0, w1, w2, w3, ipad);
+    sha1_hmac_final (&ctx1);
 
-    w0[0] = pke[16];
-    w0[1] = pke[17];
-    w0[2] = pke[18];
-    w0[3] = pke[19];
-    w1[0] = pke[20];
-    w1[1] = pke[21];
-    w1[2] = pke[22];
-    w1[3] = pke[23];
-    w2[0] = pke[24];
-    w2[1] = 0x80000000;
-    w2[2] = 0;
-    w2[3] = 0;
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
-    w3[3] = (64 + 100) * 8;
+    u32 digest[4];
 
-    u32 digest[5];
-
-    hmac_sha1_run_S (w0, w1, w2, w3, ipad, opad, digest);
-
-    u32 digest_final[5];
+    digest[0] = ctx1.opad.h[0];
+    digest[1] = ctx1.opad.h[1];
+    digest[2] = ctx1.opad.h[2];
+    digest[3] = ctx1.opad.h[3];
 
     if (wpa->keyver == 1)
     {
-      w0[0] = swap32_S (digest[0]);
-      w0[1] = swap32_S (digest[1]);
-      w0[2] = swap32_S (digest[2]);
-      w0[3] = swap32_S (digest[3]);
-      w1[0] = 0;
-      w1[1] = 0;
-      w1[2] = 0;
-      w1[3] = 0;
-      w2[0] = 0;
-      w2[1] = 0;
-      w2[2] = 0;
-      w2[3] = 0;
-      w3[0] = 0;
-      w3[1] = 0;
-      w3[2] = 0;
-      w3[3] = 0;
+      u32 t0[4];
+      u32 t1[4];
+      u32 t2[4];
+      u32 t3[4];
 
-      hmac_md5_pad_S (w0, w1, w2, w3, ipad, opad);
+      t0[0] = swap32_S (digest[0]);
+      t0[1] = swap32_S (digest[1]);
+      t0[2] = swap32_S (digest[2]);
+      t0[3] = swap32_S (digest[3]);
+      t1[0] = 0;
+      t1[1] = 0;
+      t1[2] = 0;
+      t1[3] = 0;
+      t2[0] = 0;
+      t2[1] = 0;
+      t2[2] = 0;
+      t2[3] = 0;
+      t3[0] = 0;
+      t3[1] = 0;
+      t3[2] = 0;
+      t3[3] = 0;
 
-      int eapol_len = wpa->eapol_len;
+      md5_hmac_ctx_t ctx2;
 
-      int eapol_left;
-      int eapol_off;
+      md5_hmac_init (&ctx2, t0, t1, t2, t3);
 
-      for (eapol_left = eapol_len, eapol_off = 0; eapol_left >= 56; eapol_left -= 64, eapol_off += 16)
-      {
-        w0[0] = wpa->eapol[eapol_off +  0];
-        w0[1] = wpa->eapol[eapol_off +  1];
-        w0[2] = wpa->eapol[eapol_off +  2];
-        w0[3] = wpa->eapol[eapol_off +  3];
-        w1[0] = wpa->eapol[eapol_off +  4];
-        w1[1] = wpa->eapol[eapol_off +  5];
-        w1[2] = wpa->eapol[eapol_off +  6];
-        w1[3] = wpa->eapol[eapol_off +  7];
-        w2[0] = wpa->eapol[eapol_off +  8];
-        w2[1] = wpa->eapol[eapol_off +  9];
-        w2[2] = wpa->eapol[eapol_off + 10];
-        w2[3] = wpa->eapol[eapol_off + 11];
-        w3[0] = wpa->eapol[eapol_off + 12];
-        w3[1] = wpa->eapol[eapol_off + 13];
-        w3[2] = wpa->eapol[eapol_off + 14];
-        w3[3] = wpa->eapol[eapol_off + 15];
+      md5_hmac_update_global (&ctx2, wpa->eapol, wpa->eapol_len);
 
-        md5_transform_S (w0, w1, w2, w3, ipad);
-      }
+      md5_hmac_final (&ctx2);
 
-      w0[0] = wpa->eapol[eapol_off +  0];
-      w0[1] = wpa->eapol[eapol_off +  1];
-      w0[2] = wpa->eapol[eapol_off +  2];
-      w0[3] = wpa->eapol[eapol_off +  3];
-      w1[0] = wpa->eapol[eapol_off +  4];
-      w1[1] = wpa->eapol[eapol_off +  5];
-      w1[2] = wpa->eapol[eapol_off +  6];
-      w1[3] = wpa->eapol[eapol_off +  7];
-      w2[0] = wpa->eapol[eapol_off +  8];
-      w2[1] = wpa->eapol[eapol_off +  9];
-      w2[2] = wpa->eapol[eapol_off + 10];
-      w2[3] = wpa->eapol[eapol_off + 11];
-      w3[0] = wpa->eapol[eapol_off + 12];
-      w3[1] = wpa->eapol[eapol_off + 13];
-      w3[2] = (64 + eapol_len) * 8;
-      w3[3] = 0;
-
-      hmac_md5_run_S (w0, w1, w2, w3, ipad, opad, digest_final);
+      digest[0] = ctx2.opad.h[0];
+      digest[1] = ctx2.opad.h[1];
+      digest[2] = ctx2.opad.h[2];
+      digest[3] = ctx2.opad.h[3];
     }
     else
     {
-      w0[0] = digest[0];
-      w0[1] = digest[1];
-      w0[2] = digest[2];
-      w0[3] = digest[3];
-      w1[0] = 0;
-      w1[1] = 0;
-      w1[2] = 0;
-      w1[3] = 0;
-      w2[0] = 0;
-      w2[1] = 0;
-      w2[2] = 0;
-      w2[3] = 0;
-      w3[0] = 0;
-      w3[1] = 0;
-      w3[2] = 0;
-      w3[3] = 0;
+      u32 t0[4];
+      u32 t1[4];
+      u32 t2[4];
+      u32 t3[4];
 
-      hmac_sha1_pad_S (w0, w1, w2, w3, ipad, opad);
+      t0[0] = digest[0];
+      t0[1] = digest[1];
+      t0[2] = digest[2];
+      t0[3] = digest[3];
+      t1[0] = 0;
+      t1[1] = 0;
+      t1[2] = 0;
+      t1[3] = 0;
+      t2[0] = 0;
+      t2[1] = 0;
+      t2[2] = 0;
+      t2[3] = 0;
+      t3[0] = 0;
+      t3[1] = 0;
+      t3[2] = 0;
+      t3[3] = 0;
 
-      int eapol_len = wpa->eapol_len;
+      sha1_hmac_ctx_t ctx2;
 
-      int eapol_left;
-      int eapol_off;
+      sha1_hmac_init (&ctx2, t0, t1, t2, t3);
 
-      for (eapol_left = eapol_len, eapol_off = 0; eapol_left >= 56; eapol_left -= 64, eapol_off += 16)
-      {
-        w0[0] = wpa->eapol[eapol_off +  0];
-        w0[1] = wpa->eapol[eapol_off +  1];
-        w0[2] = wpa->eapol[eapol_off +  2];
-        w0[3] = wpa->eapol[eapol_off +  3];
-        w1[0] = wpa->eapol[eapol_off +  4];
-        w1[1] = wpa->eapol[eapol_off +  5];
-        w1[2] = wpa->eapol[eapol_off +  6];
-        w1[3] = wpa->eapol[eapol_off +  7];
-        w2[0] = wpa->eapol[eapol_off +  8];
-        w2[1] = wpa->eapol[eapol_off +  9];
-        w2[2] = wpa->eapol[eapol_off + 10];
-        w2[3] = wpa->eapol[eapol_off + 11];
-        w3[0] = wpa->eapol[eapol_off + 12];
-        w3[1] = wpa->eapol[eapol_off + 13];
-        w3[2] = wpa->eapol[eapol_off + 14];
-        w3[3] = wpa->eapol[eapol_off + 15];
+      sha1_hmac_update_global (&ctx2, wpa->eapol, wpa->eapol_len);
 
-        sha1_transform_S (w0, w1, w2, w3, ipad);
-      }
+      sha1_hmac_final (&ctx2);
 
-      w0[0] = wpa->eapol[eapol_off +  0];
-      w0[1] = wpa->eapol[eapol_off +  1];
-      w0[2] = wpa->eapol[eapol_off +  2];
-      w0[3] = wpa->eapol[eapol_off +  3];
-      w1[0] = wpa->eapol[eapol_off +  4];
-      w1[1] = wpa->eapol[eapol_off +  5];
-      w1[2] = wpa->eapol[eapol_off +  6];
-      w1[3] = wpa->eapol[eapol_off +  7];
-      w2[0] = wpa->eapol[eapol_off +  8];
-      w2[1] = wpa->eapol[eapol_off +  9];
-      w2[2] = wpa->eapol[eapol_off + 10];
-      w2[3] = wpa->eapol[eapol_off + 11];
-      w3[0] = wpa->eapol[eapol_off + 12];
-      w3[1] = wpa->eapol[eapol_off + 13];
-      w3[2] = 0;
-      w3[3] = (64 + eapol_len) * 8;
-
-      u32 digest2[5];
-
-      hmac_sha1_run_S (w0, w1, w2, w3, ipad, opad, digest_final);
+      digest[0] = ctx2.opad.h[0];
+      digest[1] = ctx2.opad.h[1];
+      digest[2] = ctx2.opad.h[2];
+      digest[3] = ctx2.opad.h[3];
     }
 
     /**
      * final compare
      */
 
-    if ((digest_final[0] == wpa->keymic[0])
-     && (digest_final[1] == wpa->keymic[1])
-     && (digest_final[2] == wpa->keymic[2])
-     && (digest_final[3] == wpa->keymic[3]))
+    if ((digest[0] == wpa->keymic[0])
+     && (digest[1] == wpa->keymic[1])
+     && (digest[2] == wpa->keymic[2])
+     && (digest[3] == wpa->keymic[3]))
     {
       if (atomic_inc (&hashes_shown[digest_cur]) == 0)
       {

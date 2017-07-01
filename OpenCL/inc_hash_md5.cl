@@ -396,6 +396,130 @@ void md5_final (md5_ctx_t *ctx)
   md5_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
 }
 
+// md5_hmac
+
+typedef struct md5_hmac_ctx
+{
+  md5_ctx_t ipad;
+  md5_ctx_t opad;
+
+} md5_hmac_ctx_t;
+
+void md5_hmac_init (md5_hmac_ctx_t *ctx, const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4])
+{
+  u32 t0[4];
+  u32 t1[4];
+  u32 t2[4];
+  u32 t3[4];
+
+  // ipad
+
+  t0[0] = w0[0] ^ 0x36363636;
+  t0[1] = w0[1] ^ 0x36363636;
+  t0[2] = w0[2] ^ 0x36363636;
+  t0[3] = w0[3] ^ 0x36363636;
+  t1[0] = w1[0] ^ 0x36363636;
+  t1[1] = w1[1] ^ 0x36363636;
+  t1[2] = w1[2] ^ 0x36363636;
+  t1[3] = w1[3] ^ 0x36363636;
+  t2[0] = w2[0] ^ 0x36363636;
+  t2[1] = w2[1] ^ 0x36363636;
+  t2[2] = w2[2] ^ 0x36363636;
+  t2[3] = w2[3] ^ 0x36363636;
+  t3[0] = w3[0] ^ 0x36363636;
+  t3[1] = w3[1] ^ 0x36363636;
+  t3[2] = w3[2] ^ 0x36363636;
+  t3[3] = w3[3] ^ 0x36363636;
+
+  md5_init (&ctx->ipad);
+
+  md5_update_64 (&ctx->ipad, t0, t1, t2, t3, 64);
+
+  // opad
+
+  t0[0] = w0[0] ^ 0x5c5c5c5c;
+  t0[1] = w0[1] ^ 0x5c5c5c5c;
+  t0[2] = w0[2] ^ 0x5c5c5c5c;
+  t0[3] = w0[3] ^ 0x5c5c5c5c;
+  t1[0] = w1[0] ^ 0x5c5c5c5c;
+  t1[1] = w1[1] ^ 0x5c5c5c5c;
+  t1[2] = w1[2] ^ 0x5c5c5c5c;
+  t1[3] = w1[3] ^ 0x5c5c5c5c;
+  t2[0] = w2[0] ^ 0x5c5c5c5c;
+  t2[1] = w2[1] ^ 0x5c5c5c5c;
+  t2[2] = w2[2] ^ 0x5c5c5c5c;
+  t2[3] = w2[3] ^ 0x5c5c5c5c;
+  t3[0] = w3[0] ^ 0x5c5c5c5c;
+  t3[1] = w3[1] ^ 0x5c5c5c5c;
+  t3[2] = w3[2] ^ 0x5c5c5c5c;
+  t3[3] = w3[3] ^ 0x5c5c5c5c;
+
+  md5_init (&ctx->opad);
+
+  md5_update_64 (&ctx->opad, t0, t1, t2, t3, 64);
+}
+
+void md5_hmac_update_64 (md5_hmac_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len)
+{
+  md5_update_64 (&ctx->ipad, w0, w1, w2, w3, len);
+}
+
+void md5_hmac_update (md5_hmac_ctx_t *ctx, const u32 *w, const int len)
+{
+  md5_update (&ctx->ipad, w, len);
+}
+
+void md5_hmac_update_global (md5_hmac_ctx_t *ctx, const __global u32 *w, const int len)
+{
+  md5_update_global (&ctx->ipad, w, len);
+}
+
+void md5_hmac_update_global_swap (md5_hmac_ctx_t *ctx, const __global u32 *w, const int len)
+{
+  md5_update_global_swap (&ctx->ipad, w, len);
+}
+
+void md5_hmac_update_global_utf16le (md5_hmac_ctx_t *ctx, const __global u32 *w, const int len)
+{
+  md5_update_global_utf16le (&ctx->ipad, w, len);
+}
+
+void md5_hmac_update_global_utf16le_swap (md5_hmac_ctx_t *ctx, const __global u32 *w, const int len)
+{
+  md5_update_global_utf16le_swap (&ctx->ipad, w, len);
+}
+
+void md5_hmac_final (md5_hmac_ctx_t *ctx)
+{
+  md5_final (&ctx->ipad);
+
+  u32 t0[4];
+  u32 t1[4];
+  u32 t2[4];
+  u32 t3[4];
+
+  t0[0] = ctx->ipad.h[0];
+  t0[1] = ctx->ipad.h[1];
+  t0[2] = ctx->ipad.h[2];
+  t0[3] = ctx->ipad.h[3];
+  t1[0] = 0;
+  t1[1] = 0;
+  t1[2] = 0;
+  t1[3] = 0;
+  t2[0] = 0;
+  t2[1] = 0;
+  t2[2] = 0;
+  t2[3] = 0;
+  t3[0] = 0;
+  t3[1] = 0;
+  t3[2] = 0;
+  t3[3] = 0;
+
+  md5_update_64 (&ctx->opad, t0, t1, t2, t3, 16);
+
+  md5_final (&ctx->opad);
+}
+
 // while input buf can be a vector datatype, the length of the different elements can not
 
 typedef struct md5_ctx_vector
