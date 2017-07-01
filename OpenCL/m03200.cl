@@ -370,7 +370,7 @@ __constant u32a c_sbox3[256] =
   L ^= P[17];           \
 }
 
-void expand_key (u32 E[18], const u32 W[16], const u32 len)
+void expand_key (u32 E[18], const u32 W[18], const u32 len)
 {
   u8 *E_cur  = (u8 *) E;
   u8 *E_stop = E_cur + 72;
@@ -404,7 +404,7 @@ __kernel void m03200_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   const u32 pw_len = pws[gid].pw_len;
 
-  u32 w[16];
+  u32 w[18];
 
   w[ 0] = pws[gid].i[ 0];
   w[ 1] = pws[gid].i[ 1];
@@ -422,6 +422,8 @@ __kernel void m03200_init (__global pw_t *pws, __global const kernel_rule_t *rul
   w[13] = pws[gid].i[13];
   w[14] = pws[gid].i[14];
   w[15] = pws[gid].i[15];
+  w[16] = pws[gid].i[16];
+  w[17] = pws[gid].i[17];
 
   u32 E[18];
 
