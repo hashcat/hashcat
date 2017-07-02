@@ -7,7 +7,7 @@
 #include "inc_vendor.cl"
 #include "inc_types.cl"
 
-inline void switch_buffer_by_offset_le_S (u32 w[64], const u32 offset)
+inline void switch_buffer_by_offset_64x1_le_S (u32 w[64], const u32 offset)
 {
   #if defined IS_AMD || defined IS_GENERIC
   const int offset_mod_4 = offset & 3;
@@ -8494,12 +8494,12 @@ __kernel void amp (__global pw_t *pws, __global pw_t *pws_amp, __global const ke
 
   if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
   {
-    switch_buffer_by_offset_le_S (comb.i, pw_len);
+    switch_buffer_by_offset_64x1_le_S (comb.i, pw_len);
   }
 
   if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
   {
-    switch_buffer_by_offset_le_S (pw.i, comb_len);
+    switch_buffer_by_offset_64x1_le_S (pw.i, comb_len);
   }
 
   #pragma unroll
