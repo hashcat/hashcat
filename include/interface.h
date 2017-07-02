@@ -518,15 +518,6 @@ typedef struct md5crypt_tmp
 
 } md5crypt_tmp_t;
 
-typedef struct sha512crypt_tmp
-{
-  u64  l_alt_result[8];
-
-  u64  l_p_bytes[2];
-  u64  l_s_bytes[2];
-
-} sha512crypt_tmp_t;
-
 typedef struct sha256crypt_tmp
 {
   u32 alt_result[8];
@@ -535,6 +526,20 @@ typedef struct sha256crypt_tmp
   u32 s_bytes[4];
 
 } sha256crypt_tmp_t;
+
+typedef struct sha512crypt_tmp
+{
+  u64 l_alt_result[8];
+  u64 l_p_bytes[2];
+  u64 l_s_bytes[2];
+
+  // pure version
+
+  u32 alt_result[16];
+  u32 p_bytes[64];
+  u32 s_bytes[64];
+
+} sha512crypt_tmp_t;
 
 typedef struct wpa_tmp
 {

@@ -201,6 +201,27 @@ inline void truncate_block (u32x w[4], const u32 len)
   }
 }
 
+inline void truncate_block_64 (u32x w[16], const u32 len)
+{
+  switch (len / 16)
+  {
+    case 0: truncate_block (w +  0, len & 15);
+            truncate_block (w +  4, 0);
+            truncate_block (w +  8, 0);
+            truncate_block (w + 12, 0);
+            break;
+    case 1: truncate_block (w +  4, len & 15);
+            truncate_block (w +  8, 0);
+            truncate_block (w + 12, 0);
+            break;
+    case 2: truncate_block (w +  8, len & 15);
+            truncate_block (w + 12, 0);
+            break;
+    case 3: truncate_block (w + 12, len & 15);
+            break;
+  }
+}
+
 inline void make_utf16be (const u32x in[4], u32x out1[4], u32x out2[4])
 {
   #ifdef IS_NV
