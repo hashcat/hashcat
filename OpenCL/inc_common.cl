@@ -8390,7 +8390,7 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
   #if defined IS_AMD || defined IS_GENERIC
   switch (offset / 4)
   {
-    case 0:
+    case  0:
       w3[3] = amd_bytealign_S (w3[2], w3[3], offset);
       w3[2] = amd_bytealign_S (w3[1], w3[2], offset);
       w3[1] = amd_bytealign_S (w3[0], w3[1], offset);
@@ -8407,9 +8407,10 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = amd_bytealign_S (w0[1], w0[2], offset);
       w0[1] = amd_bytealign_S (w0[0], w0[1], offset);
       w0[0] = amd_bytealign_S (    0, w0[0], offset);
+
       break;
 
-    case 1:
+    case  1:
       w3[3] = amd_bytealign_S (w3[1], w3[2], offset);
       w3[2] = amd_bytealign_S (w3[0], w3[1], offset);
       w3[1] = amd_bytealign_S (w2[3], w3[0], offset);
@@ -8426,9 +8427,10 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = amd_bytealign_S (w0[0], w0[1], offset);
       w0[1] = amd_bytealign_S (    0, w0[0], offset);
       w0[0] = 0;
+
       break;
 
-    case 2:
+    case  2:
       w3[3] = amd_bytealign_S (w3[0], w3[1], offset);
       w3[2] = amd_bytealign_S (w2[3], w3[0], offset);
       w3[1] = amd_bytealign_S (w2[2], w2[3], offset);
@@ -8445,9 +8447,10 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = amd_bytealign_S (    0, w0[0], offset);
       w0[1] = 0;
       w0[0] = 0;
+
       break;
 
-    case 3:
+    case  3:
       w3[3] = amd_bytealign_S (w2[3], w3[0], offset);
       w3[2] = amd_bytealign_S (w2[2], w2[3], offset);
       w3[1] = amd_bytealign_S (w2[1], w2[2], offset);
@@ -8464,9 +8467,10 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
+
       break;
 
-    case 4:
+    case  4:
       w3[3] = amd_bytealign_S (w2[2], w2[3], offset);
       w3[2] = amd_bytealign_S (w2[1], w2[2], offset);
       w3[1] = amd_bytealign_S (w2[0], w2[1], offset);
@@ -8483,9 +8487,10 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
+
       break;
 
-    case 5:
+    case  5:
       w3[3] = amd_bytealign_S (w2[1], w2[2], offset);
       w3[2] = amd_bytealign_S (w2[0], w2[1], offset);
       w3[1] = amd_bytealign_S (w1[3], w2[0], offset);
@@ -8502,9 +8507,10 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
+
       break;
 
-    case 6:
+    case  6:
       w3[3] = amd_bytealign_S (w2[0], w2[1], offset);
       w3[2] = amd_bytealign_S (w1[3], w2[0], offset);
       w3[1] = amd_bytealign_S (w1[2], w1[3], offset);
@@ -8521,9 +8527,10 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
+
       break;
 
-    case 7:
+    case  7:
       w3[3] = amd_bytealign_S (w1[3], w2[0], offset);
       w3[2] = amd_bytealign_S (w1[2], w1[3], offset);
       w3[1] = amd_bytealign_S (w1[1], w1[2], offset);
@@ -8540,9 +8547,10 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
+
       break;
 
-    case 8:
+    case  8:
       w3[3] = amd_bytealign_S (w1[2], w1[3], offset);
       w3[2] = amd_bytealign_S (w1[1], w1[2], offset);
       w3[1] = amd_bytealign_S (w1[0], w1[1], offset);
@@ -8559,9 +8567,10 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
+
       break;
 
-    case 9:
+    case  9:
       w3[3] = amd_bytealign_S (w1[1], w1[2], offset);
       w3[2] = amd_bytealign_S (w1[0], w1[1], offset);
       w3[1] = amd_bytealign_S (w0[3], w1[0], offset);
@@ -8578,6 +8587,7 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
+
       break;
 
     case 10:
@@ -8597,6 +8607,7 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
+
       break;
 
     case 11:
@@ -8616,6 +8627,7 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
+
       break;
 
     case 12:
@@ -8635,6 +8647,7 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
+
       break;
 
     case 13:
@@ -8654,6 +8667,7 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
+
       break;
 
     case 14:
@@ -8673,6 +8687,7 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
+
       break;
 
     case 15:
@@ -8692,6 +8707,7 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
+
       break;
   }
   #endif
@@ -8701,7 +8717,7 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
 
   switch (offset / 4)
   {
-    case 0:
+    case  0:
       w3[3] = __byte_perm_S (w3[3], w3[2], selector);
       w3[2] = __byte_perm_S (w3[2], w3[1], selector);
       w3[1] = __byte_perm_S (w3[1], w3[0], selector);
@@ -8718,9 +8734,10 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = __byte_perm_S (w0[2], w0[1], selector);
       w0[1] = __byte_perm_S (w0[1], w0[0], selector);
       w0[0] = __byte_perm_S (w0[0],     0, selector);
+
       break;
 
-    case 1:
+    case  1:
       w3[3] = __byte_perm_S (w3[2], w3[1], selector);
       w3[2] = __byte_perm_S (w3[1], w3[0], selector);
       w3[1] = __byte_perm_S (w3[0], w2[3], selector);
@@ -8737,9 +8754,10 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = __byte_perm_S (w0[1], w0[0], selector);
       w0[1] = __byte_perm_S (w0[0],     0, selector);
       w0[0] = 0;
+
       break;
 
-    case 2:
+    case  2:
       w3[3] = __byte_perm_S (w3[1], w3[0], selector);
       w3[2] = __byte_perm_S (w3[0], w2[3], selector);
       w3[1] = __byte_perm_S (w2[3], w2[2], selector);
@@ -8756,9 +8774,10 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = __byte_perm_S (w0[0],     0, selector);
       w0[1] = 0;
       w0[0] = 0;
+
       break;
 
-    case 3:
+    case  3:
       w3[3] = __byte_perm_S (w3[0], w2[3], selector);
       w3[2] = __byte_perm_S (w2[3], w2[2], selector);
       w3[1] = __byte_perm_S (w2[2], w2[1], selector);
@@ -8775,9 +8794,10 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
+
       break;
 
-    case 4:
+    case  4:
       w3[3] = __byte_perm_S (w2[3], w2[2], selector);
       w3[2] = __byte_perm_S (w2[2], w2[1], selector);
       w3[1] = __byte_perm_S (w2[1], w2[0], selector);
@@ -8794,9 +8814,10 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
+
       break;
 
-    case 5:
+    case  5:
       w3[3] = __byte_perm_S (w2[2], w2[1], selector);
       w3[2] = __byte_perm_S (w2[1], w2[0], selector);
       w3[1] = __byte_perm_S (w2[0], w1[3], selector);
@@ -8813,9 +8834,10 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
+
       break;
 
-    case 6:
+    case  6:
       w3[3] = __byte_perm_S (w2[1], w2[0], selector);
       w3[2] = __byte_perm_S (w2[0], w1[3], selector);
       w3[1] = __byte_perm_S (w1[3], w1[2], selector);
@@ -8832,9 +8854,10 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
+
       break;
 
-    case 7:
+    case  7:
       w3[3] = __byte_perm_S (w2[0], w1[3], selector);
       w3[2] = __byte_perm_S (w1[3], w1[2], selector);
       w3[1] = __byte_perm_S (w1[2], w1[1], selector);
@@ -8851,9 +8874,10 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
+
       break;
 
-    case 8:
+    case  8:
       w3[3] = __byte_perm_S (w1[3], w1[2], selector);
       w3[2] = __byte_perm_S (w1[2], w1[1], selector);
       w3[1] = __byte_perm_S (w1[1], w1[0], selector);
@@ -8870,9 +8894,10 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
+
       break;
 
-    case 9:
+    case  9:
       w3[3] = __byte_perm_S (w1[2], w1[1], selector);
       w3[2] = __byte_perm_S (w1[1], w1[0], selector);
       w3[1] = __byte_perm_S (w1[0], w0[3], selector);
@@ -8889,6 +8914,7 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
+
       break;
 
     case 10:
@@ -8908,6 +8934,7 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
+
       break;
 
     case 11:
@@ -8927,6 +8954,7 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
+
       break;
 
     case 12:
@@ -8946,6 +8974,7 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
+
       break;
 
     case 13:
@@ -8965,6 +8994,7 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
+
       break;
 
     case 14:
@@ -8984,6 +9014,7 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
+
       break;
 
     case 15:
@@ -9003,6 +9034,7 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
       w0[2] = 0;
       w0[1] = 0;
       w0[0] = 0;
+
       break;
   }
   #endif
