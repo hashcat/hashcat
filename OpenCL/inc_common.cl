@@ -14428,7 +14428,7 @@ inline void switch_buffer_by_offset_8x4_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u
   #endif
 }
 
-inline void switch_buffer_by_offset_8x4_carry_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const u32 offset)
+inline void switch_buffer_by_offset_8x4_carry_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], u32 c0[4], u32 c1[4], u32 c2[4], u32 c3[4], u32 c4[4], u32 c5[4], u32 c6[4], u32 c7[4], const u32 offset)
 {
   #if defined IS_AMD || defined IS_GENERIC
   switch (offset / 4)
