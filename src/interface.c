@@ -22233,7 +22233,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->kern_type      = KERN_TYPE_SHA1AIX;
                  hashconfig->dgst_size      = DGST_SIZE_4_5;
                  hashconfig->parse_func     = sha1aix_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
@@ -24621,6 +24622,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case  6500: hashconfig->pw_max = 128; // PBKDF2-HMAC-SHA512 max
                 break;
     case  6600: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA1 max
+                break;
+    case  6700: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA1 max
                 break;
     case  8500: hashconfig->pw_max = 8;   // DES max
                 break;
