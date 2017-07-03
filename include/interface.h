@@ -551,6 +551,12 @@ typedef struct wpa_tmp
 
 } wpa_tmp_t;
 
+typedef struct wpapmk_tmp
+{
+  u32 out[8];
+
+} wpapmk_tmp_t;
+
 typedef struct bitcoin_wallet_tmp
 {
   u64  dgst[8];
@@ -1062,8 +1068,6 @@ typedef enum display_len
   DISPLAY_LEN_MAX_2410  = 16 + 1 + 16,
   DISPLAY_LEN_MIN_2410H = 16 + 1 + 0,
   DISPLAY_LEN_MAX_2410H = 16 + 1 + 32,
-  DISPLAY_LEN_MIN_2500  = 64 + 1 + 0,
-  DISPLAY_LEN_MAX_2500  = 64 + 1 + 15,
   DISPLAY_LEN_MIN_2600  = 32,
   DISPLAY_LEN_MAX_2600  = 32,
   DISPLAY_LEN_MIN_3000  = 16,
@@ -1476,6 +1480,7 @@ typedef enum kern_type
   KERN_TYPE_MD5PIX                  = 2400,
   KERN_TYPE_MD5ASA                  = 2410,
   KERN_TYPE_WPA                     = 2500,
+  KERN_TYPE_WPAPMK                  = 2501,
   KERN_TYPE_MD55                    = 2600,
   KERN_TYPE_MD55_PWSLT1             = 2610,
   KERN_TYPE_MD55_PWSLT2             = 2710,
@@ -1632,7 +1637,8 @@ typedef enum rounds_count
 {
    ROUNDS_PHPASS             = (1 << 11), // $P$B
    ROUNDS_DCC2               = 10240,
-   ROUNDS_WPA2               = 4096,
+   ROUNDS_WPA                = 4096,
+   ROUNDS_WPAPMK             = 1,
    ROUNDS_BCRYPT             = (1 << 5),
    ROUNDS_PSAFE3             = 2048,
    ROUNDS_ANDROIDPIN         = 1024,

@@ -26,6 +26,7 @@ static char ST_PASS_HASHCAT_EXCL[]  = "hashcat!";
 static char ST_PASS_HASHCAT_EXCL3[] = "hashcat!!!";
 static char ST_PASS_HASHCAT_ONE[]   = "hashcat1";
 static char ST_PASS_HASHCAT_ONET3[] = "hashcat1hashcat1hashcat1";
+static char ST_PASS_HEX_02501[]     = "d57c2900bd83d5098003bf803ad7e204260a84ac164f12e03552d92280a6943e";
 static char ST_PASS_BIN_09710[]     = "\x91\xb2\xe0\x62\xb9";
 static char ST_PASS_BIN_09810[]     = "\xb8\xf6\x36\x19\xca";
 static char ST_PASS_BIN_10410[]     = "\x6a\x8a\xed\xcc\xb7";
@@ -105,6 +106,7 @@ static char ST_HASH_01800[] = "$6$72820166$U4DVzpcYxgw7MVVDGGvB2/H5lRistD5.Ah4up
 static char ST_HASH_02100[] = "$DCC2$10240#6848#e2829c8af2232fa53797e2f0e35e4626";
 static char ST_HASH_02400[] = "dRRVnUmUHXOTt9nk";
 static char ST_HASH_02500[] = "4843505804000000000235380000000000000000000000000000000000000000000000000000000000000151aecc428f182acefbd1a9e62d369a079265784da83ba4cf88375c44c830e6e5aa5d6faf352aa496a9ee129fb8292f7435df5420b823a1cd402aed449cced04f552c5b5acfebf06ae96a09c96d9a01c443a17aa62258c4f651a68aa67b0001030077fe010900200000000000000001a4cf88375c44c830e6e5aa5d6faf352aa496a9ee129fb8292f7435df5420b8230000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000018dd160050f20101000050f20201000050f20201000050f20200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
+static char ST_HASH_02501[] = "48435058040000000013303638353333303430353632363637323238330000000000000000000000000002aa8c03531d05376358e25a5248ba2b45e2a2c5d4cf88d71258a797ac501653bbbb4512d8f1ab32584641df9e40e098c5df48acc3baa9ba60ea99968f9377d8a596d33fd762366677b37683fc00693899edc9569c284cbe15c570f56379000103007501010a00000000000000000001d71258a797ac501653bbbb4512d8f1ab32584641df9e40e098c5df48acc3baa9000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001630140100000fac040100000fac040100000fac020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 static char ST_HASH_02410[] = "YjDBNr.A0AN7DA8s:4684";
 static char ST_HASH_02600[] = "a936af92b0ae20b1ff6c3347a72e5fbe";
 static char ST_HASH_02611[] = "28f9975808ae2bdc5847b1cda26033ea:308";
@@ -365,6 +367,7 @@ static const char HT_02100[] = "Domain Cached Credentials 2 (DCC2), MS Cache 2";
 static const char HT_02400[] = "Cisco-PIX MD5";
 static const char HT_02410[] = "Cisco-ASA MD5";
 static const char HT_02500[] = "WPA/WPA2";
+static const char HT_02501[] = "WPA/WPA2 PMK";
 static const char HT_02600[] = "md5(md5($pass))";
 static const char HT_03000[] = "LM";
 static const char HT_03100[] = "Oracle H: Type (Oracle 7+)";
@@ -3304,7 +3307,7 @@ int wpa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
 
   salt->salt_len = salt_len;
 
-  salt->salt_iter = ROUNDS_WPA2 - 1;
+  salt->salt_iter = ROUNDS_WPA - 1;
 
   memcpy (wpa->essid, in.essid, in.essid_len);
 
@@ -15910,6 +15913,7 @@ char *strhashtype (const u32 hash_mode)
     case  2400: return ((char *) HT_02400);
     case  2410: return ((char *) HT_02410);
     case  2500: return ((char *) HT_02500);
+    case  2501: return ((char *) HT_02501);
     case  2600: return ((char *) HT_02600);
     case  2611: return ((char *) HT_02611);
     case  2612: return ((char *) HT_02612);
@@ -16947,7 +16951,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     out_buf[16] = 0;
   }
-  else if (hash_mode == 2500)
+  else if ((hash_mode == 2500) || (hash_mode == 2501))
   {
     wpa_t *wpas = (wpa_t *) esalts_buf;
 
@@ -21258,6 +21262,24 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_EXCL;
                  break;
 
+    case  2501:  hashconfig->hash_type      = HASH_TYPE_WPA;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_BINARY_HASHFILE;
+                 hashconfig->kern_type      = KERN_TYPE_WPAPMK;
+                 hashconfig->dgst_size      = DGST_SIZE_4_4;
+                 hashconfig->parse_func     = wpa_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
+                 hashconfig->dgst_pos0      = 0;
+                 hashconfig->dgst_pos1      = 1;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 3;
+                 hashconfig->st_hash        = ST_HASH_02501;
+                 hashconfig->st_pass        = ST_PASS_HEX_02501;
+                 break;
+
     case  2600:  hashconfig->hash_type      = HASH_TYPE_MD5;
                  hashconfig->salt_type      = SALT_TYPE_VIRTUAL;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -24322,6 +24344,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   {
     case   600: hashconfig->esalt_size = sizeof (blake2_t);          break;
     case  2500: hashconfig->esalt_size = sizeof (wpa_t);             break;
+    case  2501: hashconfig->esalt_size = sizeof (wpa_t);             break;
     case  5300: hashconfig->esalt_size = sizeof (ikepsk_t);          break;
     case  5400: hashconfig->esalt_size = sizeof (ikepsk_t);          break;
     case  5500: hashconfig->esalt_size = sizeof (netntlm_t);         break;
@@ -24426,6 +24449,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case  1800: hashconfig->tmp_size = sizeof (sha512crypt_tmp_t);     break;
     case  2100: hashconfig->tmp_size = sizeof (dcc2_tmp_t);            break;
     case  2500: hashconfig->tmp_size = sizeof (wpa_tmp_t);             break;
+    case  2501: hashconfig->tmp_size = sizeof (wpapmk_tmp_t);          break;
     case  3200: hashconfig->tmp_size = sizeof (bcrypt_tmp_t);          break;
     case  5200: hashconfig->tmp_size = sizeof (pwsafe3_tmp_t);         break;
     case  5800: hashconfig->tmp_size = sizeof (androidpin_tmp_t);      break;
@@ -24526,6 +24550,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   {
     case  2500: hashconfig->pw_min = 8;  // WPA min
                 break;
+    case  2501: hashconfig->pw_min = 64; // WPA PMK min
+                break;
     case  9710: hashconfig->pw_min = 5;  // RC4-40 min
                 break;
     case  9810: hashconfig->pw_min = 5;  // RC4-40 min
@@ -24612,7 +24638,9 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                 break;
     case  2100: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA1 max
                 break;
-    case  2500: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA1 max
+    case  2500: hashconfig->pw_max = 63;  // WPA max
+                break;
+    case  2501: hashconfig->pw_max = 64;  // WPA PMK max
                 break;
     case  3000: hashconfig->pw_max = 7;   // LM half max
                 break;
@@ -24848,6 +24876,8 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                   break;
       case  2500: memcpy (salt->salt_buf, "hashcat.net", 11);
                   break;
+      case  2501: memcpy (salt->salt_buf, "hashcat.net", 11);
+                  break;
       case  3100: salt->salt_len = 1;
                   break;
       case  5000: salt->keccak_mdlen = 32;
@@ -24930,6 +24960,8 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
     switch (hashconfig->hash_mode)
     {
       case  2500: ((wpa_t *)           esalt)->eapol_len    = 128;
+                  break;
+      case  2501: ((wpa_t *)           esalt)->eapol_len    = 128;
                   break;
       case  5300: ((ikepsk_t *)        esalt)->nr_len        = 1;
                   ((ikepsk_t *)        esalt)->msg_len       = 1;
@@ -25016,7 +25048,9 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                  break;
     case  2100:  salt->salt_iter  = ROUNDS_DCC2;
                  break;
-    case  2500:  salt->salt_iter  = ROUNDS_WPA2;
+    case  2500:  salt->salt_iter  = ROUNDS_WPA;
+                 break;
+    case  2501:  salt->salt_iter  = ROUNDS_WPAPMK;
                  break;
     case  3200:  salt->salt_iter  = ROUNDS_BCRYPT;
                  break;
@@ -25199,6 +25233,8 @@ const char *hashconfig_benchmark_mask (hashcat_ctx_t *hashcat_ctx)
   switch (hashconfig->hash_mode)
   {
     case  2500: mask = "?a?a?a?a?a?a?a?a";
+                break;
+    case  2501: mask = "?a?a?a?a?a?a?a?axxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
                 break;
     case  9710: mask = "?b?b?b?b?b";
                 break;

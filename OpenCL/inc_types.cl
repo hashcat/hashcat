@@ -1153,6 +1153,12 @@ typedef struct wpa_tmp
 
 } wpa_tmp_t;
 
+typedef struct wpapmk_tmp
+{
+  u32 out[8];
+
+} wpapmk_tmp_t;
+
 typedef struct bitcoin_wallet_tmp
 {
   u64  dgst[8];

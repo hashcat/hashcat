@@ -179,7 +179,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
                   int parser_status = PARSER_OK;
 
-                  if ((hash_mode != 2500) && (hash_mode != 6800))
+                  if ((hash_mode != 2500) && (hash_mode != 2501) && (hash_mode != 6800))
                   {
                     parser_status = hashconfig->parse_func ((u8 *) line_buf, line_len - 1, &hash_buf, hashconfig);
                   }
@@ -209,7 +209,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
                             cracked = (memcmp (line_buf, salt_buf->salt_buf, salt_buf->salt_len) == 0);
                           }
                         }
-                        else if (hash_mode == 2500)
+                        else if ((hash_mode == 2500) || (hash_mode == 2501))
                         {
                           // this comparison is a bit inaccurate as we compare only ESSID
                           // call it a bug, but it's good enough for a special case used in a special case

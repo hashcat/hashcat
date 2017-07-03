@@ -449,7 +449,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
         found = (hash_t *) bsearch (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_t_salt);
       }
     }
-    else if (hashconfig->hash_mode == 2500)
+    else if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
     {
       // here we have in line_hash_buf: hash:macap:macsta:essid:password
 
@@ -483,7 +483,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
         memcpy (hash_buf.salt->salt_buf, essid_pos, essid_len);
 
         hash_buf.salt->salt_len  = essid_len;
-        hash_buf.salt->salt_iter = ROUNDS_WPA2 - 1;
+        hash_buf.salt->salt_iter = ROUNDS_WPA - 1;
 
         u32 hash[4];
 

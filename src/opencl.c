@@ -1350,7 +1350,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
     {
       u32 loops_cnt = 1;
 
-      if (hashconfig->hash_mode == 2500)
+      if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
       {
         loops_cnt = hashes->salts_buf[salt_pos].digests_cnt;
       }

@@ -1,6 +1,12 @@
 * changes v3.6.0 -> xxx:
 
 ##
+## Algorithms
+##
+
+- Added hash-mode 2501 = WPA/WPA2 PMK
+
+##
 ## Features
 ##
 

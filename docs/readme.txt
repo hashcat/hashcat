@@ -133,8 +133,8 @@ NVIDIA GPUs require "NVIDIA Driver" (367.x or later)
 - MySQL CRAM (SHA1)
 - PostgreSQL CRAM (MD5)
 - SIP digest authentication (MD5)
-- WPA
-- WPA2
+- WPA/WPA2
+- WPA/WPA2 PMK
 - NetNTLMv1
 - NetNTLMv1+ESS
 - NetNTLMv2

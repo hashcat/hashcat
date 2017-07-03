@@ -165,7 +165,7 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 
       if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
       {
-        if (hashconfig->hash_mode == 2500)
+        if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
         {
           hccapx_t hccapx;
 
@@ -467,7 +467,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
     if (hashlist_mode == HL_MODE_ARG)
     {
-      if (hashconfig->hash_mode == 2500)
+      if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
       {
         hc_stat_t st;
 
@@ -734,7 +734,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
         int parser_status = PARSER_OK;
 
-        if (hashconfig->hash_mode == 2500)
+        if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
         {
           hashlist_mode = HL_MODE_FILE;
 
@@ -773,7 +773,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
             {
               memset (hashes_buf[hashes_cnt].esalt, 0, hashconfig->esalt_size);
 
-              if (user_options->hash_mode == 2500)
+              if ((user_options->hash_mode == 2500) || (user_options->hash_mode == 2501))
               {
                 wpa_t *wpa = (wpa_t *) hashes_buf[hashes_cnt].esalt;
 
@@ -1556,7 +1556,7 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
 
   int parser_status;
 
-  if (hashconfig->hash_mode == 2500)
+  if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
   {
     char *tmpdata = (char *) hcmalloc (sizeof (hccapx_t));
 
