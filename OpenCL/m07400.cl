@@ -868,7 +868,7 @@ __kernel void m07400_init (__global pw_t *pws, __global const kernel_rule_t *rul
   alt_result_tmp[6] = 0;
   alt_result_tmp[7] = 0;
 
-  truncate_block (alt_result_tmp, pw_len);
+  truncate_block_4x4_le (alt_result_tmp, pw_len);
 
   /* Add the key string.  */
 
@@ -978,7 +978,7 @@ __kernel void m07400_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   bswap8 (p_bytes);
 
-  truncate_block (p_bytes, pw_len);
+  truncate_block_4x4_le (p_bytes, pw_len);
 
   tmps[gid].p_bytes[0] = p_bytes[0];
   tmps[gid].p_bytes[1] = p_bytes[1];
@@ -1021,7 +1021,7 @@ __kernel void m07400_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   bswap8 (s_bytes);
 
-  truncate_block (s_bytes, salt_len);
+  truncate_block_4x4_le (s_bytes, salt_len);
 
   tmps[gid].s_bytes[0] = s_bytes[0];
   tmps[gid].s_bytes[1] = s_bytes[1];

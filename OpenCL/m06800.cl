@@ -1556,7 +1556,7 @@ __kernel void m06800_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   out[2] = swap32 (out[2]);
   out[3] = swap32 (out[3]);
 
-  truncate_block (out, salt_len);
+  truncate_block_4x4_le (out, salt_len);
 
   if ((out[0] == salt_buf[0])
    && (out[1] == salt_buf[1])

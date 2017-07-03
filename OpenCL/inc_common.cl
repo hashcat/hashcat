@@ -138,69 +138,6 @@ inline float get_entropy (const u32 *buf, const int elems)
  * vector functions
  */
 
-inline void truncate_block (u32x w[4], const u32 len)
-{
-  switch (len)
-  {
-    case  0:  w[0] &= 0;
-              w[1] &= 0;
-              w[2] &= 0;
-              w[3] &= 0;
-              break;
-    case  1:  w[0] &= 0x000000FF;
-              w[1] &= 0;
-              w[2] &= 0;
-              w[3] &= 0;
-              break;
-    case  2:  w[0] &= 0x0000FFFF;
-              w[1] &= 0;
-              w[2] &= 0;
-              w[3] &= 0;
-              break;
-    case  3:  w[0] &= 0x00FFFFFF;
-              w[1] &= 0;
-              w[2] &= 0;
-              w[3] &= 0;
-              break;
-    case  4:  w[1] &= 0;
-              w[2] &= 0;
-              w[3] &= 0;
-              break;
-    case  5:  w[1] &= 0x000000FF;
-              w[2] &= 0;
-              w[3] &= 0;
-              break;
-    case  6:  w[1] &= 0x0000FFFF;
-              w[2] &= 0;
-              w[3] &= 0;
-              break;
-    case  7:  w[1] &= 0x00FFFFFF;
-              w[2] &= 0;
-              w[3] &= 0;
-              break;
-    case  8:  w[2] &= 0;
-              w[3] &= 0;
-              break;
-    case  9:  w[2] &= 0x000000FF;
-              w[3] &= 0;
-              break;
-    case 10:  w[2] &= 0x0000FFFF;
-              w[3] &= 0;
-              break;
-    case 11:  w[2] &= 0x00FFFFFF;
-              w[3] &= 0;
-              break;
-    case 12:  w[3] &= 0;
-              break;
-    case 13:  w[3] &= 0x000000FF;
-              break;
-    case 14:  w[3] &= 0x0000FFFF;
-              break;
-    case 15:  w[3] &= 0x00FFFFFF;
-              break;
-  }
-}
-
 inline void truncate_block_4x4_le (u32x w0[4], const u32 len)
 {
   switch (len)
@@ -16232,69 +16169,6 @@ inline void append_0x80_8x4_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w
     case 127:
       w7[3] = w7[3] | 0x80000000;
       break;
-  }
-}
-
-inline void truncate_block_S (u32 w[4], const u32 len)
-{
-  switch (len)
-  {
-    case  0:  w[0] &= 0;
-              w[1] &= 0;
-              w[2] &= 0;
-              w[3] &= 0;
-              break;
-    case  1:  w[0] &= 0x000000FF;
-              w[1] &= 0;
-              w[2] &= 0;
-              w[3] &= 0;
-              break;
-    case  2:  w[0] &= 0x0000FFFF;
-              w[1] &= 0;
-              w[2] &= 0;
-              w[3] &= 0;
-              break;
-    case  3:  w[0] &= 0x00FFFFFF;
-              w[1] &= 0;
-              w[2] &= 0;
-              w[3] &= 0;
-              break;
-    case  4:  w[1] &= 0;
-              w[2] &= 0;
-              w[3] &= 0;
-              break;
-    case  5:  w[1] &= 0x000000FF;
-              w[2] &= 0;
-              w[3] &= 0;
-              break;
-    case  6:  w[1] &= 0x0000FFFF;
-              w[2] &= 0;
-              w[3] &= 0;
-              break;
-    case  7:  w[1] &= 0x00FFFFFF;
-              w[2] &= 0;
-              w[3] &= 0;
-              break;
-    case  8:  w[2] &= 0;
-              w[3] &= 0;
-              break;
-    case  9:  w[2] &= 0x000000FF;
-              w[3] &= 0;
-              break;
-    case 10:  w[2] &= 0x0000FFFF;
-              w[3] &= 0;
-              break;
-    case 11:  w[2] &= 0x00FFFFFF;
-              w[3] &= 0;
-              break;
-    case 12:  w[3] &= 0;
-              break;
-    case 13:  w[3] &= 0x000000FF;
-              break;
-    case 14:  w[3] &= 0x0000FFFF;
-              break;
-    case 15:  w[3] &= 0x00FFFFFF;
-              break;
   }
 }
 

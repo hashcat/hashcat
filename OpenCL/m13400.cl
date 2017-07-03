@@ -939,7 +939,7 @@ __kernel void m13400_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
       // we need to clear the buffer of the padding data
 
-      truncate_block (out, 16 - pad_byte);
+      truncate_block_4x4_le (out, 16 - pad_byte);
 
       // it's also a good point to push our 0x80
 
@@ -1146,7 +1146,7 @@ __kernel void m13400_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
       // we need to clear the buffer of the padding data
 
-      truncate_block (out, 16 - pad_byte);
+      truncate_block_4x4_le (out, 16 - pad_byte);
 
       // it's also a good point to push our 0x80
 
