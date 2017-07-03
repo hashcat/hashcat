@@ -24513,25 +24513,25 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 11600: hashconfig->hook_size = sizeof (seven_zip_hook_t);     break;
   };
 
-  // pw_min
+  // pw_min : algo specific hard min length
 
   hashconfig->pw_min = PW_MIN;
 
   switch (hashconfig->hash_mode)
   {
-    case  2500: hashconfig->pw_min = 8;
+    case  2500: hashconfig->pw_min = 8;  // WPA min
                 break;
-    case  9710: hashconfig->pw_min = 5;
+    case  9710: hashconfig->pw_min = 5;  // RC4-40 min
                 break;
-    case  9810: hashconfig->pw_min = 5;
+    case  9810: hashconfig->pw_min = 5;  // RC4-40 min
                 break;
-    case 10410: hashconfig->pw_min = 5;
+    case 10410: hashconfig->pw_min = 5;  // RC4-40 min
                 break;
-    case 14000: hashconfig->pw_min = 8;
+    case 14000: hashconfig->pw_min = 8;  // DES min
                 break;
-    case 14100: hashconfig->pw_min = 24;
+    case 14100: hashconfig->pw_min = 24; // 3DES min
                 break;
-    case 14900: hashconfig->pw_min = 10;
+    case 14900: hashconfig->pw_min = 10; // Skip32 min
                 break;
   }
 
@@ -24559,8 +24559,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
       case  1600: hashconfig->pw_max = 15;
                   break;
       case  1800: hashconfig->pw_max = 16;
-                  break;
-      case  2100: hashconfig->pw_max = 27;
                   break;
       case  5200: hashconfig->pw_max = 24;
                   break;
@@ -24601,37 +24599,37 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  // pw_max : algo specific hard limits
+  // pw_max : algo specific hard max length
 
   switch (hashconfig->hash_mode)
   {
-    case  1500: hashconfig->pw_max = 8;
+    case  1500: hashconfig->pw_max = 8;  // DES max
                 break;
-    case  2100: hashconfig->pw_max = 64; // PBKDF2-HMAC-SHA1 limit
+    case  2100: hashconfig->pw_max = 64; // PBKDF2-HMAC-SHA1 max
                 break;
-    case  2500: hashconfig->pw_max = 64; // PBKDF2-HMAC-SHA1 limit
+    case  2500: hashconfig->pw_max = 64; // PBKDF2-HMAC-SHA1 max
                 break;
-    case  3000: hashconfig->pw_max = 7;
+    case  3000: hashconfig->pw_max = 7;  // LM half max
                 break;
-    case  3200: hashconfig->pw_max = 72;
+    case  3200: hashconfig->pw_max = 72; // bcrypt max
                 break;
-    case  6400: hashconfig->pw_max = 64; // PBKDF2-HMAC-SHA256 limit
+    case  6400: hashconfig->pw_max = 64; // PBKDF2-HMAC-SHA256 max
                 break;
-    case  8500: hashconfig->pw_max = 8;
+    case  8500: hashconfig->pw_max = 8;  // DES max
                 break;
-    case  8800: hashconfig->pw_max = 64; // PBKDF2-HMAC-SHA1 limit
+    case  8800: hashconfig->pw_max = 64; // PBKDF2-HMAC-SHA1 max
                 break;
-    case  9710: hashconfig->pw_max = 5;
+    case  9710: hashconfig->pw_max = 5;  // RC4-40 max
                 break;
-    case  9810: hashconfig->pw_max = 5;
+    case  9810: hashconfig->pw_max = 5;  // RC4-40 max
                 break;
-    case 10410: hashconfig->pw_max = 5;
+    case 10410: hashconfig->pw_max = 5;  // RC4-40 max
                 break;
-    case 14000: hashconfig->pw_max = 8;
+    case 14000: hashconfig->pw_max = 8;  // DES max
                 break;
-    case 14100: hashconfig->pw_max = 24;
+    case 14100: hashconfig->pw_max = 24; // 3DES max
                 break;
-    case 14900: hashconfig->pw_max = 10;
+    case 14900: hashconfig->pw_max = 10; // Skip32 max
                 break;
   }
 
