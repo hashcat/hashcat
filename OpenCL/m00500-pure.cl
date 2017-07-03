@@ -101,7 +101,7 @@ __kernel void m00500_init (__global pw_t *pws, __global const kernel_rule_t *rul
     md5_update (&md5_ctx, final, 16);
   }
 
-  truncate_block (final, pl);
+  truncate_block_4x4_le (final, pl);
 
   md5_update (&md5_ctx, final, pl);
 
