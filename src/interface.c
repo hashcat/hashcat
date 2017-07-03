@@ -24601,33 +24601,25 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  // pw_max : kernel fully compatible to length PW_MAX - those don't need to use --length-limit-disable
-
-  switch (hashconfig->hash_mode)
-  {
-    case  2100: hashconfig->pw_max = PW_MAX;
-                break;
-    case  2500: hashconfig->pw_max = PW_MAX;
-                break;
-    case  3200: hashconfig->pw_max = PW_MAX;
-                break;
-    case  8800: hashconfig->pw_max = PW_MAX;
-                break;
-  }
-
   // pw_max : algo specific hard limits
 
   switch (hashconfig->hash_mode)
   {
     case  1500: hashconfig->pw_max = 8;
                 break;
-    case  2500: hashconfig->pw_max = 64;
+    case  2100: hashconfig->pw_max = 64; // PBKDF2-HMAC-SHA1 limit
+                break;
+    case  2500: hashconfig->pw_max = 64; // PBKDF2-HMAC-SHA1 limit
                 break;
     case  3000: hashconfig->pw_max = 7;
                 break;
     case  3200: hashconfig->pw_max = 72;
                 break;
+    case  6400: hashconfig->pw_max = 64; // PBKDF2-HMAC-SHA256 limit
+                break;
     case  8500: hashconfig->pw_max = 8;
+                break;
+    case  8800: hashconfig->pw_max = 64; // PBKDF2-HMAC-SHA1 limit
                 break;
     case  9710: hashconfig->pw_max = 5;
                 break;
