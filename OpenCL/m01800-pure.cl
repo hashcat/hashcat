@@ -118,14 +118,9 @@ __kernel void m01800_init (__global pw_t *pws, __global const kernel_rule_t *rul
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (int i = 0; i < 16; i++) t_final[i] = swap32 (final[i]);
+  for (int i = 0; i < 16; i++) t_final[i] = final[i];
 
-  truncate_block_64 (t_final, pl);
-
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (int i = 0; i < 16; i++) t_final[i] = swap32 (t_final[i]);
+  truncate_block_16x4_be (t_final + 0, t_final + 4, t_final + 8, t_final + 12, pl);
 
   sha512_update (&ctx, t_final, pl);
 
@@ -212,17 +207,7 @@ __kernel void m01800_init (__global pw_t *pws, __global const kernel_rule_t *rul
     p_final[idx + 15] = final[15];
   }
 
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (int i = 0; i < 16; i++) final[i] = swap32 (final[i]);
-
-  truncate_block_64 (final, pl);
-
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (int i = 0; i < 16; i++) final[i] = swap32 (final[i]);
+  truncate_block_16x4_be (final + 0, final + 4, final + 8, final + 12, pl);
 
   p_final[idx +  0] = final[ 0];
   p_final[idx +  1] = final[ 1];
@@ -250,7 +235,7 @@ __kernel void m01800_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   sha512_init (&ctx);
 
-  for (u32 j = 0; j < 16 + ((tmps[gid].alt_result[ 0] >> 24) & 0xff); j++)
+  for (u32 j = 0; j < 16 + (tmps[gid].alt_result[0] >> 24); j++)
   {
     sha512_update (&ctx, s, salt_len);
   }
@@ -296,17 +281,7 @@ __kernel void m01800_init (__global pw_t *pws, __global const kernel_rule_t *rul
     s_final[idx + 15] = final[15];
   }
 
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (int i = 0; i < 16; i++) final[i] = swap32 (final[i]);
-
-  truncate_block_64 (final, pl);
-
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (int i = 0; i < 16; i++) final[i] = swap32 (final[i]);
+  truncate_block_16x4_be (final + 0, final + 4, final + 8, final + 12, pl);
 
   s_final[idx +  0] = final[ 0];
   s_final[idx +  1] = final[ 1];
