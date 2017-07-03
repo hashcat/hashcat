@@ -2068,70 +2068,6 @@ inline void undo_utf16le (const u32x in1[4], const u32x in2[4], u32x out[4])
   #endif
 }
 
-inline void append_0x01_1x4 (u32x w0[4], const u32 offset)
-{
-  const u32 tmp = 0x01 << ((offset & 3) * 8);
-
-  w0[0] |=                    (offset <  4)  ? tmp : 0;
-  w0[1] |= ((offset >=  4) && (offset <  8)) ? tmp : 0;
-  w0[2] |= ((offset >=  8) && (offset < 12)) ? tmp : 0;
-  w0[3] |=  (offset >= 12)                   ? tmp : 0;
-}
-
-inline void append_0x01_2x4 (u32x w0[4], u32x w1[4], const u32 offset)
-{
-  const u32 tmp = 0x01 << ((offset & 3) * 8);
-
-  w0[0] |=                    (offset <  4)  ? tmp : 0;
-  w0[1] |= ((offset >=  4) && (offset <  8)) ? tmp : 0;
-  w0[2] |= ((offset >=  8) && (offset < 12)) ? tmp : 0;
-  w0[3] |= ((offset >= 12) && (offset < 16)) ? tmp : 0;
-  w1[0] |= ((offset >= 16) && (offset < 20)) ? tmp : 0;
-  w1[1] |= ((offset >= 20) && (offset < 24)) ? tmp : 0;
-  w1[2] |= ((offset >= 24) && (offset < 28)) ? tmp : 0;
-  w1[3] |=  (offset >= 28)                   ? tmp : 0;
-}
-
-inline void append_0x01_3x4 (u32x w0[4], u32x w1[4], u32x w2[4], const u32 offset)
-{
-  const u32 tmp = 0x01 << ((offset & 3) * 8);
-
-  w0[0] |=                    (offset <  4)  ? tmp : 0;
-  w0[1] |= ((offset >=  4) && (offset <  8)) ? tmp : 0;
-  w0[2] |= ((offset >=  8) && (offset < 12)) ? tmp : 0;
-  w0[3] |= ((offset >= 12) && (offset < 16)) ? tmp : 0;
-  w1[0] |= ((offset >= 16) && (offset < 20)) ? tmp : 0;
-  w1[1] |= ((offset >= 20) && (offset < 24)) ? tmp : 0;
-  w1[2] |= ((offset >= 24) && (offset < 28)) ? tmp : 0;
-  w1[3] |= ((offset >= 28) && (offset < 32)) ? tmp : 0;
-  w2[0] |= ((offset >= 32) && (offset < 36)) ? tmp : 0;
-  w2[1] |= ((offset >= 36) && (offset < 40)) ? tmp : 0;
-  w2[2] |= ((offset >= 40) && (offset < 44)) ? tmp : 0;
-  w2[3] |=  (offset >= 44)                   ? tmp : 0;
-}
-
-inline void append_0x01_4x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 offset)
-{
-  const u32 tmp = 0x01 << ((offset & 3) * 8);
-
-  w0[0] |=                    (offset <  4)  ? tmp : 0;
-  w0[1] |= ((offset >=  4) && (offset <  8)) ? tmp : 0;
-  w0[2] |= ((offset >=  8) && (offset < 12)) ? tmp : 0;
-  w0[3] |= ((offset >= 12) && (offset < 16)) ? tmp : 0;
-  w1[0] |= ((offset >= 16) && (offset < 20)) ? tmp : 0;
-  w1[1] |= ((offset >= 20) && (offset < 24)) ? tmp : 0;
-  w1[2] |= ((offset >= 24) && (offset < 28)) ? tmp : 0;
-  w1[3] |= ((offset >= 28) && (offset < 32)) ? tmp : 0;
-  w2[0] |= ((offset >= 32) && (offset < 36)) ? tmp : 0;
-  w2[1] |= ((offset >= 36) && (offset < 40)) ? tmp : 0;
-  w2[2] |= ((offset >= 40) && (offset < 44)) ? tmp : 0;
-  w2[3] |= ((offset >= 44) && (offset < 48)) ? tmp : 0;
-  w3[0] |= ((offset >= 48) && (offset < 52)) ? tmp : 0;
-  w3[1] |= ((offset >= 52) && (offset < 56)) ? tmp : 0;
-  w3[2] |= ((offset >= 56) && (offset < 60)) ? tmp : 0;
-  w3[3] |=  (offset >= 60)                   ? tmp : 0;
-}
-
 inline void append_0x80_1x4 (u32x w0[4], const u32 offset)
 {
   const u32 tmp = 0x80 << ((offset & 3) * 8);
@@ -14368,16 +14304,6 @@ inline void overwrite_at_be_4x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4],
  * vector functions as scalar (for outer loop usage)
  */
 
-inline void append_0x01_1x4_S (u32 w0[4], const u32 offset)
-{
-  const u32 tmp = 0x01 << ((offset & 3) * 8);
-
-  w0[0] |=                    (offset <  4)  ? tmp : 0;
-  w0[1] |= ((offset >=  4) && (offset <  8)) ? tmp : 0;
-  w0[2] |= ((offset >=  8) && (offset < 12)) ? tmp : 0;
-  w0[3] |=  (offset >= 12)                   ? tmp : 0;
-}
-
 inline void append_0x01_2x4_S (u32 w0[4], u32 w1[4], const u32 offset)
 {
   const u32 tmp = 0x01 << ((offset & 3) * 8);
@@ -14390,46 +14316,6 @@ inline void append_0x01_2x4_S (u32 w0[4], u32 w1[4], const u32 offset)
   w1[1] |= ((offset >= 20) && (offset < 24)) ? tmp : 0;
   w1[2] |= ((offset >= 24) && (offset < 28)) ? tmp : 0;
   w1[3] |=  (offset >= 28)                   ? tmp : 0;
-}
-
-inline void append_0x01_3x4_S (u32 w0[4], u32 w1[4], u32 w2[4], const u32 offset)
-{
-  const u32 tmp = 0x01 << ((offset & 3) * 8);
-
-  w0[0] |=                    (offset <  4)  ? tmp : 0;
-  w0[1] |= ((offset >=  4) && (offset <  8)) ? tmp : 0;
-  w0[2] |= ((offset >=  8) && (offset < 12)) ? tmp : 0;
-  w0[3] |= ((offset >= 12) && (offset < 16)) ? tmp : 0;
-  w1[0] |= ((offset >= 16) && (offset < 20)) ? tmp : 0;
-  w1[1] |= ((offset >= 20) && (offset < 24)) ? tmp : 0;
-  w1[2] |= ((offset >= 24) && (offset < 28)) ? tmp : 0;
-  w1[3] |= ((offset >= 28) && (offset < 32)) ? tmp : 0;
-  w2[0] |= ((offset >= 32) && (offset < 36)) ? tmp : 0;
-  w2[1] |= ((offset >= 36) && (offset < 40)) ? tmp : 0;
-  w2[2] |= ((offset >= 40) && (offset < 44)) ? tmp : 0;
-  w2[3] |=  (offset >= 44)                   ? tmp : 0;
-}
-
-inline void append_0x01_4x4_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
-{
-  const u32 tmp = 0x01 << ((offset & 3) * 8);
-
-  w0[0] |=                    (offset <  4)  ? tmp : 0;
-  w0[1] |= ((offset >=  4) && (offset <  8)) ? tmp : 0;
-  w0[2] |= ((offset >=  8) && (offset < 12)) ? tmp : 0;
-  w0[3] |= ((offset >= 12) && (offset < 16)) ? tmp : 0;
-  w1[0] |= ((offset >= 16) && (offset < 20)) ? tmp : 0;
-  w1[1] |= ((offset >= 20) && (offset < 24)) ? tmp : 0;
-  w1[2] |= ((offset >= 24) && (offset < 28)) ? tmp : 0;
-  w1[3] |= ((offset >= 28) && (offset < 32)) ? tmp : 0;
-  w2[0] |= ((offset >= 32) && (offset < 36)) ? tmp : 0;
-  w2[1] |= ((offset >= 36) && (offset < 40)) ? tmp : 0;
-  w2[2] |= ((offset >= 40) && (offset < 44)) ? tmp : 0;
-  w2[3] |= ((offset >= 44) && (offset < 48)) ? tmp : 0;
-  w3[0] |= ((offset >= 48) && (offset < 52)) ? tmp : 0;
-  w3[1] |= ((offset >= 52) && (offset < 56)) ? tmp : 0;
-  w3[2] |= ((offset >= 56) && (offset < 60)) ? tmp : 0;
-  w3[3] |=  (offset >= 60)                   ? tmp : 0;
 }
 
 inline void append_0x80_1x4_S (u32 w0[4], const u32 offset)
