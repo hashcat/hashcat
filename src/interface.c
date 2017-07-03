@@ -22181,7 +22181,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->kern_type      = KERN_TYPE_SHA256AIX;
                  hashconfig->dgst_size      = DGST_SIZE_4_8;
                  hashconfig->parse_func     = sha256aix_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
@@ -22198,6 +22199,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_size      = DGST_SIZE_8_8;
                  hashconfig->parse_func     = sha512aix_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP
                                             | OPTI_TYPE_USES_BITS_64;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
@@ -24603,33 +24605,35 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   switch (hashconfig->hash_mode)
   {
-    case  1500: hashconfig->pw_max = 8;  // DES max
+    case  1500: hashconfig->pw_max = 8;   // DES max
                 break;
-    case  2100: hashconfig->pw_max = 64; // PBKDF2-HMAC-SHA1 max
+    case  2100: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA1 max
                 break;
-    case  2500: hashconfig->pw_max = 64; // PBKDF2-HMAC-SHA1 max
+    case  2500: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA1 max
                 break;
-    case  3000: hashconfig->pw_max = 7;  // LM half max
+    case  3000: hashconfig->pw_max = 7;   // LM half max
                 break;
-    case  3200: hashconfig->pw_max = 72; // bcrypt max
+    case  3200: hashconfig->pw_max = 72;  // bcrypt max
                 break;
-    case  6400: hashconfig->pw_max = 64; // PBKDF2-HMAC-SHA256 max
+    case  6400: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA256 max
                 break;
-    case  8500: hashconfig->pw_max = 8;  // DES max
+    case  6500: hashconfig->pw_max = 128; // PBKDF2-HMAC-SHA512 max
                 break;
-    case  8800: hashconfig->pw_max = 64; // PBKDF2-HMAC-SHA1 max
+    case  8500: hashconfig->pw_max = 8;   // DES max
                 break;
-    case  9710: hashconfig->pw_max = 5;  // RC4-40 max
+    case  8800: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA1 max
                 break;
-    case  9810: hashconfig->pw_max = 5;  // RC4-40 max
+    case  9710: hashconfig->pw_max = 5;   // RC4-40 max
                 break;
-    case 10410: hashconfig->pw_max = 5;  // RC4-40 max
+    case  9810: hashconfig->pw_max = 5;   // RC4-40 max
                 break;
-    case 14000: hashconfig->pw_max = 8;  // DES max
+    case 10410: hashconfig->pw_max = 5;   // RC4-40 max
                 break;
-    case 14100: hashconfig->pw_max = 24; // 3DES max
+    case 14000: hashconfig->pw_max = 8;   // DES max
                 break;
-    case 14900: hashconfig->pw_max = 10; // Skip32 max
+    case 14100: hashconfig->pw_max = 24;  // 3DES max
+                break;
+    case 14900: hashconfig->pw_max = 10;  // Skip32 max
                 break;
   }
 
