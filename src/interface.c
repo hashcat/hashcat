@@ -23693,6 +23693,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_size      = DGST_SIZE_8_8;
                  hashconfig->parse_func     = veracrypt_parse_hash_500000;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP
                                             | OPTI_TYPE_USES_BITS_64;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
@@ -23711,6 +23712,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_size      = DGST_SIZE_8_8;
                  hashconfig->parse_func     = veracrypt_parse_hash_500000;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP
                                             | OPTI_TYPE_USES_BITS_64;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
@@ -23729,6 +23731,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_size      = DGST_SIZE_8_8;
                  hashconfig->parse_func     = veracrypt_parse_hash_500000;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP
                                             | OPTI_TYPE_USES_BITS_64;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
@@ -23848,7 +23851,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->kern_type      = KERN_TYPE_VCSHA256_XTS512;
                  hashconfig->dgst_size      = DGST_SIZE_4_8;
                  hashconfig->parse_func     = veracrypt_parse_hash_500000;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
@@ -23865,7 +23869,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->kern_type      = KERN_TYPE_VCSHA256_XTS1024;
                  hashconfig->dgst_size      = DGST_SIZE_4_8;
                  hashconfig->parse_func     = veracrypt_parse_hash_500000;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
@@ -23882,7 +23887,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->kern_type      = KERN_TYPE_VCSHA256_XTS1536;
                  hashconfig->dgst_size      = DGST_SIZE_4_8;
                  hashconfig->parse_func     = veracrypt_parse_hash_500000;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
@@ -24683,6 +24689,18 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case  9810: hashconfig->pw_max = 5;   // RC4-40 max
                 break;
     case 10410: hashconfig->pw_max = 5;   // RC4-40 max
+                break;
+    case 13721: hashconfig->pw_max = 128; // PBKDF2-HMAC-SHA512 max
+                break;
+    case 13722: hashconfig->pw_max = 128; // PBKDF2-HMAC-SHA512 max
+                break;
+    case 13723: hashconfig->pw_max = 128; // PBKDF2-HMAC-SHA512 max
+                break;
+    case 13751: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA256 max
+                break;
+    case 13752: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA256 max
+                break;
+    case 13753: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA256 max
                 break;
     case 14000: hashconfig->pw_max = 8;   // DES max
                 break;

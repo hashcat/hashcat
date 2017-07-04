@@ -173,7 +173,7 @@ int verify_header_aes (__global tc_t *esalt_bufs, const u32 *ukey1, const u32 *u
 
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32 (~tmp[2]);
+  const u32 crc32_save = swap32_S (~tmp[2]);
 
   // seek to byte 256
 
@@ -229,7 +229,7 @@ int verify_header_serpent (__global tc_t *esalt_bufs, const u32 *ukey1, const u3
 
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32 (~tmp[2]);
+  const u32 crc32_save = swap32_S (~tmp[2]);
 
   // seek to byte 256
 
@@ -286,7 +286,7 @@ int verify_header_twofish (__global tc_t *esalt_bufs, const u32 *ukey1, const u3
 
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32 (~tmp[2]);
+  const u32 crc32_save = swap32_S (~tmp[2]);
 
   // seek to byte 256
 
@@ -349,7 +349,7 @@ int verify_header_aes_twofish (__global tc_t *esalt_bufs, const u32 *ukey1, cons
 
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32 (~tmp[2]);
+  const u32 crc32_save = swap32_S (~tmp[2]);
 
   // seek to byte 256
 
@@ -410,7 +410,7 @@ int verify_header_serpent_aes (__global tc_t *esalt_bufs, const u32 *ukey1, cons
 
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32 (~tmp[2]);
+  const u32 crc32_save = swap32_S (~tmp[2]);
 
   // seek to byte 256
 
@@ -473,7 +473,7 @@ int verify_header_twofish_serpent (__global tc_t *esalt_bufs, const u32 *ukey1, 
 
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32 (~tmp[2]);
+  const u32 crc32_save = swap32_S (~tmp[2]);
 
   // seek to byte 256
 
@@ -542,7 +542,7 @@ int verify_header_aes_twofish_serpent (__global tc_t *esalt_bufs, const u32 *uke
 
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32 (~tmp[2]);
+  const u32 crc32_save = swap32_S (~tmp[2]);
 
   // seek to byte 256
 
@@ -611,7 +611,7 @@ int verify_header_serpent_twofish_aes (__global tc_t *esalt_bufs, const u32 *uke
 
   if (tmp[0] != signature) return 0;
 
-  const u32 crc32_save = swap32 (~tmp[2]);
+  const u32 crc32_save = swap32_S (~tmp[2]);
 
   // seek to byte 256
 
