@@ -21815,7 +21815,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->kern_type      = KERN_TYPE_PSAFE3;
                  hashconfig->dgst_size      = DGST_SIZE_4_8;
                  hashconfig->parse_func     = psafe3_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
@@ -24626,6 +24627,14 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
       case 15400: hashconfig->pw_max = 32;
                   break;
       case 15500: hashconfig->pw_max = 16;
+                  break;
+    }
+
+    // some mode are converted to long passwords but without dropping performance, so they don't need the -L option set by user
+
+    switch (hashconfig->hash_mode)
+    {
+      case  5200: hashconfig->pw_max = PW_MAX;
                   break;
     }
   }
