@@ -291,7 +291,7 @@ typedef struct keepass
 
 typedef struct tc
 {
-  u32 salt_buf[16];
+  u32 salt_buf[32];
   u32 data_buf[112];
   u32 keyfile_buf[16];
   u32 signature;

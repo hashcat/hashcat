@@ -22034,6 +22034,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_size      = DGST_SIZE_8_8;
                  hashconfig->parse_func     = truecrypt_parse_hash_1k;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP
                                             | OPTI_TYPE_USES_BITS_64;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
@@ -22052,6 +22053,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_size      = DGST_SIZE_8_8;
                  hashconfig->parse_func     = truecrypt_parse_hash_1k;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP
                                             | OPTI_TYPE_USES_BITS_64;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
@@ -22070,6 +22072,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_size      = DGST_SIZE_8_8;
                  hashconfig->parse_func     = truecrypt_parse_hash_1k;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP
                                             | OPTI_TYPE_USES_BITS_64;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
@@ -24629,14 +24632,14 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
       case 15500: hashconfig->pw_max = 16;
                   break;
     }
+  }
 
-    // some mode are converted to long passwords but without dropping performance, so they don't need the -L option set by user
+  // pw_max : some algo are converted to long password support but without dropping performance
 
-    switch (hashconfig->hash_mode)
-    {
-      case  5200: hashconfig->pw_max = PW_MAX;
-                  break;
-    }
+  switch (hashconfig->hash_mode)
+  {
+    case  5200: hashconfig->pw_max = PW_MAX;
+                break;
   }
 
   // pw_max : algo specific hard max length
@@ -24654,6 +24657,12 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case  3000: hashconfig->pw_max = 7;   // LM half max
                 break;
     case  3200: hashconfig->pw_max = 72;  // bcrypt max
+                break;
+    case  6221: hashconfig->pw_max = 128; // PBKDF2-HMAC-SHA512 max
+                break;
+    case  6222: hashconfig->pw_max = 128; // PBKDF2-HMAC-SHA512 max
+                break;
+    case  6223: hashconfig->pw_max = 128; // PBKDF2-HMAC-SHA512 max
                 break;
     case  6400: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA256 max
                 break;
