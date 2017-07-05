@@ -1945,24 +1945,24 @@ void whirlpool_hmac_final (whirlpool_hmac_ctx_t *ctx, __local u32 (*s_Ch)[256], 
   u32 t2[4];
   u32 t3[4];
 
-  t0[0] = ctx->ipad.h[0];
-  t0[1] = ctx->ipad.h[1];
-  t0[2] = ctx->ipad.h[2];
-  t0[3] = ctx->ipad.h[3];
-  t1[0] = ctx->ipad.h[4];
-  t1[1] = ctx->ipad.h[5];
-  t1[2] = ctx->ipad.h[6];
-  t1[3] = ctx->ipad.h[7];
-  t2[0] = 0;
-  t2[1] = 0;
-  t2[2] = 0;
-  t2[3] = 0;
-  t3[0] = 0;
-  t3[1] = 0;
-  t3[2] = 0;
-  t3[3] = 0;
+  t0[0] = ctx->ipad.h[ 0];
+  t0[1] = ctx->ipad.h[ 1];
+  t0[2] = ctx->ipad.h[ 2];
+  t0[3] = ctx->ipad.h[ 3];
+  t1[0] = ctx->ipad.h[ 4];
+  t1[1] = ctx->ipad.h[ 5];
+  t1[2] = ctx->ipad.h[ 6];
+  t1[3] = ctx->ipad.h[ 7];
+  t2[0] = ctx->ipad.h[ 8];
+  t2[1] = ctx->ipad.h[ 9];
+  t2[2] = ctx->ipad.h[10];
+  t2[3] = ctx->ipad.h[11];
+  t3[0] = ctx->ipad.h[12];
+  t3[1] = ctx->ipad.h[13];
+  t3[2] = ctx->ipad.h[14];
+  t3[3] = ctx->ipad.h[15];
 
-  whirlpool_update_64 (&ctx->opad, t0, t1, t2, t3, 32, s_Ch, s_Cl);
+  whirlpool_update_64 (&ctx->opad, t0, t1, t2, t3, 64, s_Ch, s_Cl);
 
   whirlpool_final (&ctx->opad, s_Ch, s_Cl);
 }
