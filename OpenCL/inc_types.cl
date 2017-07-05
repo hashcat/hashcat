@@ -1122,10 +1122,11 @@ typedef struct md5crypt_tmp
 
 typedef struct sha256crypt_tmp
 {
-  u32 alt_result[8];
+  // pure version
 
-  u32 p_bytes[4];
-  u32 s_bytes[4];
+  u32 alt_result[8];
+  u32 p_bytes[64];
+  u32 s_bytes[64];
 
 } sha256crypt_tmp_t;
 

@@ -24612,7 +24612,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                   break;
       case  7000: hashconfig->pw_max = 19;
                   break;
-      case  7400: hashconfig->pw_max = 16;
+      case  7400: hashconfig->pw_max = 15;
                   break;
       case  7700: hashconfig->pw_max = 8;
                   break;
