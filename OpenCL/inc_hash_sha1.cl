@@ -1,8 +1,8 @@
 
 // important notes on this:
 // input buf unused bytes needs to be set to zero
-// input buf need to be in algorithm native byte order (md5 = LE, sha1 = BE, etc)
-// input buf need to be 64 byte aligned when usin md5_update()
+// input buf needs to be in algorithm native byte order (md5 = LE, sha1 = BE, etc)
+// input buf needs to be 64 byte aligned when using md5_update()
 
 typedef struct sha1_ctx
 {
