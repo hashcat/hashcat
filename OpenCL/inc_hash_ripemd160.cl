@@ -1,8 +1,8 @@
 
 // important notes on this:
 // input buf unused bytes needs to be set to zero
-// input buf need to be in algorithm native byte order (ripemd160 = LE, sha1 = BE, etc)
-// input buf need to be 64 byte aligned when usin ripemd160_update()
+// input buf needs to be in algorithm native byte order (ripemd160 = LE, sha1 = BE, etc)
+// input buf needs to be 64 byte aligned when using ripemd160_update()
 
 typedef struct ripemd160_ctx
 {
