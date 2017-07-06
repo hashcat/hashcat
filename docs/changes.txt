@@ -25,6 +25,7 @@
 ## Improvements
 ##
 
+- OpenCL Runtime: Updated AMD ROCm driver version check, warn if version < 1.1
 - WPA cracking: Improved nonce-error-corrections mode to use a both positive and negative corrections
 
 * changes v3.5.0 -> v3.6.0:
