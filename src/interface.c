@@ -24668,11 +24668,11 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                 break;
     case  3200: hashconfig->pw_max = 72;  // bcrypt max
                 break;
-    case  6211: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA256 max
+    case  6211: hashconfig->pw_max = 64;  // PBKDF2-HMAC-RipeMD160 max
                 break;
-    case  6212: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA256 max
+    case  6212: hashconfig->pw_max = 64;  // PBKDF2-HMAC-RipeMD160 max
                 break;
-    case  6213: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA256 max
+    case  6213: hashconfig->pw_max = 64;  // PBKDF2-HMAC-RipeMD160 max
                 break;
     case  6221: hashconfig->pw_max = 128; // PBKDF2-HMAC-SHA512 max
                 break;
@@ -24686,6 +24686,12 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                 break;
     case  6233: hashconfig->pw_max = 64;  // PBKDF2-HMAC-Whirlpool max
                 break;
+    case  6241: hashconfig->pw_max = 64;  // PBKDF2-HMAC-RipeMD160 max
+                break;
+    case  6242: hashconfig->pw_max = 64;  // PBKDF2-HMAC-RipeMD160 max
+                break;
+    case  6243: hashconfig->pw_max = 64;  // PBKDF2-HMAC-RipeMD160 max
+                break;
     case  6400: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA256 max
                 break;
     case  6500: hashconfig->pw_max = 128; // PBKDF2-HMAC-SHA512 max
@@ -24698,6 +24704,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                 break;
     case  7100: hashconfig->pw_max = 128; // PBKDF2-HMAC-SHA512 max
                 break;
+    case  7200: hashconfig->pw_max = 128; // PBKDF2-HMAC-SHA512 max
+                break;
     case  8200: hashconfig->pw_max = 128; // PBKDF2-HMAC-SHA512 max
                 break;
     case  8500: hashconfig->pw_max = 8;   // DES max
@@ -24706,11 +24714,29 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                 break;
     case  8900: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA256 max
                 break;
+    case  9200: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA256 max
+                break;
+    case  9300: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA256 max
+                break;
     case  9710: hashconfig->pw_max = 5;   // RC4-40 max
                 break;
     case  9810: hashconfig->pw_max = 5;   // RC4-40 max
                 break;
+    case 10000: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA256 max
+                break;
     case 10410: hashconfig->pw_max = 5;   // RC4-40 max
+                break;
+    case 10900: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA256 max
+                break;
+    case 12000: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA1 max
+                break;
+    case 12001: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA1 max
+                break;
+    case 13711: hashconfig->pw_max = 64;  // PBKDF2-HMAC-RipeMD160 max
+                break;
+    case 13712: hashconfig->pw_max = 64;  // PBKDF2-HMAC-RipeMD160 max
+                break;
+    case 13713: hashconfig->pw_max = 64;  // PBKDF2-HMAC-RipeMD160 max
                 break;
     case 13721: hashconfig->pw_max = 128; // PBKDF2-HMAC-SHA512 max
                 break;
@@ -24718,11 +24744,29 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                 break;
     case 13723: hashconfig->pw_max = 128; // PBKDF2-HMAC-SHA512 max
                 break;
+    case 13731: hashconfig->pw_max = 64;  // PBKDF2-HMAC-Whirlpool max
+                break;
+    case 13732: hashconfig->pw_max = 64;  // PBKDF2-HMAC-Whirlpool max
+                break;
+    case 13733: hashconfig->pw_max = 64;  // PBKDF2-HMAC-Whirlpool max
+                break;
+    case 13741: hashconfig->pw_max = 64;  // PBKDF2-HMAC-RipeMD160 max
+                break;
+    case 13742: hashconfig->pw_max = 64;  // PBKDF2-HMAC-RipeMD160 max
+                break;
+    case 13743: hashconfig->pw_max = 64;  // PBKDF2-HMAC-RipeMD160 max
+                break;
     case 13751: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA256 max
                 break;
     case 13752: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA256 max
                 break;
     case 13753: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA256 max
+                break;
+    case 13761: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA256 max
+                break;
+    case 13762: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA256 max
+                break;
+    case 13763: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA256 max
                 break;
     case 14000: hashconfig->pw_max = 8;   // DES max
                 break;
