@@ -10,13 +10,14 @@
 #include "rp_kernel_on_cpu.h"
 #include "mpsp.h"
 #include "opencl.h"
+#include "shared.h"
 #include "stdout.h"
 
 static void out_flush (out_t *out)
 {
   if (out->len == 0) return;
 
-  fwrite (out->buf, 1, out->len, out->fp);
+  hc_fwrite (out->buf, 1, out->len, out->fp);
 
   out->len = 0;
 }

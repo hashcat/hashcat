@@ -52,7 +52,7 @@ int load_segment (hashcat_ctx_t *hashcat_ctx, FILE *fd)
 
   wl_data->pos = 0;
 
-  wl_data->cnt = fread (wl_data->buf, 1, wl_data->incr - 1000, fd);
+  wl_data->cnt = hc_fread (wl_data->buf, 1, wl_data->incr - 1000, fd);
 
   wl_data->buf[wl_data->cnt] = 0;
 

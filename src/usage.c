@@ -4,6 +4,8 @@
  */
 
 #include "common.h"
+#include "types.h"
+#include "shared.h"
 #include "usage.h"
 
 static const char *USAGE_MINI[] =
@@ -450,7 +452,7 @@ void usage_mini_print (const char *progname)
   {
     printf (USAGE_MINI[i], progname);
 
-    fwrite (EOL, strlen (EOL), 1, stdout);
+    hc_fwrite (EOL, strlen (EOL), 1, stdout);
   }
 }
 
@@ -460,6 +462,6 @@ void usage_big_print (const char *progname)
   {
     printf (USAGE_BIG[i], progname);
 
-    fwrite (EOL, strlen (EOL), 1, stdout);
+    hc_fwrite (EOL, strlen (EOL), 1, stdout);
   }
 }

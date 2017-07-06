@@ -363,7 +363,7 @@ static int read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_fi
 
     char *buf = (char *) hcmalloc (st.st_size + 1);
 
-    size_t num_read = fread (buf, sizeof (char), st.st_size, fp);
+    size_t num_read = hc_fread (buf, sizeof (char), st.st_size, fp);
 
     fclose (fp);
 
@@ -414,7 +414,7 @@ static int write_kernel_binary (hashcat_ctx_t *hashcat_ctx, char *kernel_file, c
       return -1;
     }
 
-    fwrite (binary, sizeof (char), binary_size, fp);
+    hc_fwrite (binary, sizeof (char), binary_size, fp);
 
     fflush (fp);
 

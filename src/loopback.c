@@ -49,7 +49,7 @@ static void loopback_format_plain (hashcat_ctx_t *hashcat_ctx, const u8 *plain_p
   }
   else
   {
-    fwrite (plain_ptr, plain_len, 1, loopback_ctx->fp);
+    hc_fwrite (plain_ptr, plain_len, 1, loopback_ctx->fp);
   }
 }
 
@@ -159,7 +159,7 @@ void loopback_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *plain_ptr, con
 
   lock_file (fp);
 
-  fwrite (EOL, strlen (EOL), 1, fp);
+  hc_fwrite (EOL, strlen (EOL), 1, fp);
 
   fflush (fp);
 

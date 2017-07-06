@@ -467,3 +467,15 @@ void hc_string_trim_trailing (char *s)
 
   s[new_len] = 0;
 }
+
+size_t hc_fread (void *ptr, size_t size, size_t nmemb, FILE *stream)
+{
+  return fread (ptr, size, nmemb, stream);
+}
+
+void hc_fwrite (const void *ptr, size_t size, size_t nmemb, FILE *stream)
+{
+  size_t rc = fwrite (ptr, size, nmemb, stream);
+
+  if (rc == 0) rc = 0;
+}

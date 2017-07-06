@@ -171,7 +171,7 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 
           to_hccapx_t (hashcat_ctx, &hccapx, salt_pos, digest_pos);
 
-          fwrite (&hccapx, sizeof (hccapx_t), 1, fp);
+          hc_fwrite (&hccapx, sizeof (hccapx_t), 1, fp);
         }
         else
         {
@@ -753,7 +753,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
           while (!feof (fp))
           {
-            const size_t nread = fread (in, sizeof (hccapx_t), 1, fp);
+            const size_t nread = hc_fread (in, sizeof (hccapx_t), 1, fp);
 
             if (nread == 0) break;
 
@@ -1579,11 +1579,11 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
   }
   else if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
   {
-    char *tmpfile = (char *) hcmalloc (HCBUFSIZ_TINY);
+    char *tmpfile_bin = (char *) hcmalloc (HCBUFSIZ_TINY);
 
-    snprintf (tmpfile, HCBUFSIZ_TINY - 1, "%s/selftest.hash", folder_config->session_dir);
+    snprintf (tmpfile_bin, HCBUFSIZ_TINY - 1, "%s/selftest.hash", folder_config->session_dir);
 
-    FILE *fp = fopen (tmpfile, "wb");
+    FILE *fp = fopen (tmpfile_bin, "wb");
 
     const int st_hash_len = strlen (hashconfig->st_hash);
 
@@ -1596,11 +1596,11 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
 
     fclose (fp);
 
-    parser_status = hashconfig->parse_func ((u8 *) tmpfile, strlen (tmpfile), &hash, hashconfig);
+    parser_status = hashconfig->parse_func ((u8 *) tmpfile_bin, strlen (tmpfile_bin), &hash, hashconfig);
 
-    unlink (tmpfile);
+    unlink (tmpfile_bin);
 
-    hcfree (tmpfile);
+    hcfree (tmpfile_bin);
   }
   else
   {

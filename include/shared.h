@@ -59,4 +59,7 @@ bool hc_string_is_digit (const char *s);
 void hc_string_trim_trailing (char *s);
 void hc_string_trim_leading (char *s);
 
+size_t hc_fread (void *ptr, size_t size, size_t nmemb, FILE *stream);
+void   hc_fwrite (const void *ptr, size_t size, size_t nmemb, FILE *stream);
+
 #endif // _SHARED_H

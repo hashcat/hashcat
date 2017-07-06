@@ -6,6 +6,7 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
+#include "shared.h"
 #include "filehandling.h"
 
 u64 count_lines (FILE *fd)
@@ -18,7 +19,7 @@ u64 count_lines (FILE *fd)
 
   while (!feof (fd))
   {
-    size_t nread = fread (buf, sizeof (char), HCBUFSIZ_LARGE, fd);
+    size_t nread = hc_fread (buf, sizeof (char), HCBUFSIZ_LARGE, fd);
 
     if (nread < 1) continue;
 

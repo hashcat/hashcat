@@ -89,7 +89,7 @@ void dictstat_read (hashcat_ctx_t *hashcat_ctx)
   {
     dictstat_t d;
 
-    const size_t nread = fread (&d, sizeof (dictstat_t), 1, fp);
+    const size_t nread = hc_fread (&d, sizeof (dictstat_t), 1, fp);
 
     if (nread == 0) continue;
 
@@ -130,7 +130,7 @@ int dictstat_write (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  fwrite (dictstat_ctx->base, sizeof (dictstat_t), dictstat_ctx->cnt, fp);
+  hc_fwrite (dictstat_ctx->base, sizeof (dictstat_t), dictstat_ctx->cnt, fp);
 
   fclose (fp);
 

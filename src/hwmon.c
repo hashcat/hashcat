@@ -616,7 +616,7 @@ static int nvml_init (hashcat_ctx_t *hashcat_ctx)
 
     nvml_winpath = (char *) hcmalloc (100);
 
-    fread (nvml_winpath, 100, 1, nvml_lib);
+    hc_fread (nvml_winpath, 100, 1, nvml_lib);
 
     fclose (nvml_lib);
 

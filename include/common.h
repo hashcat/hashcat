@@ -8,7 +8,7 @@
 
 #define PROGNAME "hashcat"
 
-#if   defined (__unix__) || defined (__APPLE__)
+#if defined (__unix__) || defined (__APPLE__)
 #define _POSIX
 #elif defined (__WINNT__)
 #define _WIN 1
@@ -16,8 +16,10 @@
 #error Your Operating System is not supported or detected
 #endif
 
+#if defined (__BYTE_ORDER__) && defined (__ORDER_BIG_ENDIAN__)
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 #error "compiling for big-endian architecture not supported"
+#endif
 #endif
 
 #ifndef _GNU_SOURCE

@@ -18,6 +18,7 @@
 #include "cpu_sha1.h"
 #include "cpu_sha256.h"
 #include "cpu_blake2.h"
+#include "shared.h"
 #include "interface.h"
 #include "ext_lzma.h"
 
@@ -3491,7 +3492,7 @@ int psafe2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
   memset (&buf, 0, sizeof (psafe2_hdr));
 
-  const size_t n = fread (&buf, sizeof (psafe2_hdr), 1, fp);
+  const size_t n = hc_fread (&buf, sizeof (psafe2_hdr), 1, fp);
 
   fclose (fp);
 
@@ -3528,7 +3529,7 @@ int psafe3_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
   memset (&in, 0, sizeof (psafe3_t));
 
-  const size_t n = fread (&in, sizeof (psafe3_t), 1, fp);
+  const size_t n = hc_fread (&in, sizeof (psafe3_t), 1, fp);
 
   fclose (fp);
 
@@ -6188,7 +6189,7 @@ int truecrypt_parse_hash_1k (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAY
 
   char buf[512] = { 0 };
 
-  const size_t n = fread (buf, 1, sizeof (buf), fp);
+  const size_t n = hc_fread (buf, 1, sizeof (buf), fp);
 
   fclose (fp);
 
@@ -6227,7 +6228,7 @@ int truecrypt_parse_hash_2k (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAY
 
   char buf[512] = { 0 };
 
-  const size_t n = fread (buf, 1, sizeof (buf), fp);
+  const size_t n = hc_fread (buf, 1, sizeof (buf), fp);
 
   fclose (fp);
 
@@ -6266,7 +6267,7 @@ int veracrypt_parse_hash_200000 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   char buf[512] = { 0 };
 
-  const size_t n = fread (buf, 1, sizeof (buf), fp);
+  const size_t n = hc_fread (buf, 1, sizeof (buf), fp);
 
   fclose (fp);
 
@@ -6305,7 +6306,7 @@ int veracrypt_parse_hash_500000 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   char buf[512] = { 0 };
 
-  const size_t n = fread (buf, 1, sizeof (buf), fp);
+  const size_t n = hc_fread (buf, 1, sizeof (buf), fp);
 
   fclose (fp);
 
@@ -6344,7 +6345,7 @@ int veracrypt_parse_hash_327661 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   char buf[512] = { 0 };
 
-  const size_t n = fread (buf, 1, sizeof (buf), fp);
+  const size_t n = hc_fread (buf, 1, sizeof (buf), fp);
 
   fclose (fp);
 
@@ -6383,7 +6384,7 @@ int veracrypt_parse_hash_655331 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   char buf[512] = { 0 };
 
-  const size_t n = fread (buf, 1, sizeof (buf), fp);
+  const size_t n = hc_fread (buf, 1, sizeof (buf), fp);
 
   fclose (fp);
 
@@ -14364,7 +14365,7 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   struct luks_phdr hdr;
 
-  const size_t nread = fread (&hdr, sizeof (hdr), 1, fp);
+  const size_t nread = hc_fread (&hdr, sizeof (hdr), 1, fp);
 
   if (nread != 1)
   {
@@ -14618,7 +14619,7 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
     return (PARSER_LUKS_FILE_SIZE);
   }
 
-  const size_t nread2 = fread (luks->af_src_buf, keyBytes, stripes, fp);
+  const size_t nread2 = hc_fread (luks->af_src_buf, keyBytes, stripes, fp);
 
   if (nread2 != stripes)
   {
@@ -14640,7 +14641,7 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
     return (PARSER_LUKS_FILE_SIZE);
   }
 
-  const size_t nread3 = fread (luks->ct_buf, sizeof (u32), 128, fp);
+  const size_t nread3 = hc_fread (luks->ct_buf, sizeof (u32), 128, fp);
 
   if (nread3 != 128)
   {
@@ -16132,7 +16133,7 @@ int check_old_hccap (const char *hashfile)
 
   u32 signature;
 
-  const size_t nread = fread (&signature, sizeof (u32), 1, fp);
+  const size_t nread = hc_fread (&signature, sizeof (u32), 1, fp);
 
   fclose (fp);
 

@@ -62,7 +62,7 @@ void logfile_append (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 
   va_end (ap);
 
-  fwrite (EOL, strlen (EOL), 1, fp);
+  hc_fwrite (EOL, strlen (EOL), 1, fp);
 
   fflush (fp);
 

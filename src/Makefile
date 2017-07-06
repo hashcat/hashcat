@@ -144,7 +144,6 @@ CFLAGS                  += -Wpointer-arith
 CFLAGS                  += -Wstrict-prototypes
 CFLAGS                  += -Waggregate-return
 CFLAGS                  += -Wswitch-enum
-CFLAGS                  += -Wunreachable-code
 CFLAGS                  += -Winit-self
 CFLAGS                  += -Werror-implicit-function-declaration
 CFLAGS                  += -Wformat

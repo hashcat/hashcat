@@ -487,8 +487,8 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsign
 
   if (outfile_ctx->fp != NULL)
   {
-    fwrite (tmp_buf, tmp_len,      1, outfile_ctx->fp);
-    fwrite (EOL,     strlen (EOL), 1, outfile_ctx->fp);
+    hc_fwrite (tmp_buf, tmp_len,      1, outfile_ctx->fp);
+    hc_fwrite (EOL,     strlen (EOL), 1, outfile_ctx->fp);
   }
 
   return tmp_len;
