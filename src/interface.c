@@ -22732,7 +22732,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->kern_type      = KERN_TYPE_OFFICE2007;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = office2007_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
@@ -24650,6 +24651,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case  5200: hashconfig->pw_max = PW_MAX;
                 break;
     case  7900: hashconfig->pw_max = PW_MAX;
+                break;
+    case  9400: hashconfig->pw_max = PW_MAX;
                 break;
   }
 
