@@ -8,35 +8,12 @@
 #include "inc_hash_functions.cl"
 #include "inc_types.cl"
 #include "inc_common.cl"
+#include "inc_hash_sha512.cl"
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
-__constant u64a k_sha512[80] =
-{
-  SHA512C00, SHA512C01, SHA512C02, SHA512C03,
-  SHA512C04, SHA512C05, SHA512C06, SHA512C07,
-  SHA512C08, SHA512C09, SHA512C0a, SHA512C0b,
-  SHA512C0c, SHA512C0d, SHA512C0e, SHA512C0f,
-  SHA512C10, SHA512C11, SHA512C12, SHA512C13,
-  SHA512C14, SHA512C15, SHA512C16, SHA512C17,
-  SHA512C18, SHA512C19, SHA512C1a, SHA512C1b,
-  SHA512C1c, SHA512C1d, SHA512C1e, SHA512C1f,
-  SHA512C20, SHA512C21, SHA512C22, SHA512C23,
-  SHA512C24, SHA512C25, SHA512C26, SHA512C27,
-  SHA512C28, SHA512C29, SHA512C2a, SHA512C2b,
-  SHA512C2c, SHA512C2d, SHA512C2e, SHA512C2f,
-  SHA512C30, SHA512C31, SHA512C32, SHA512C33,
-  SHA512C34, SHA512C35, SHA512C36, SHA512C37,
-  SHA512C38, SHA512C39, SHA512C3a, SHA512C3b,
-  SHA512C3c, SHA512C3d, SHA512C3e, SHA512C3f,
-  SHA512C40, SHA512C41, SHA512C42, SHA512C43,
-  SHA512C44, SHA512C45, SHA512C46, SHA512C47,
-  SHA512C48, SHA512C49, SHA512C4a, SHA512C4b,
-  SHA512C4c, SHA512C4d, SHA512C4e, SHA512C4f,
-};
-
-void sha512_transform (const u64 w[16], u64 dgst[8])
+void orig_sha512_transform (const u64 w[16], u64 dgst[8])
 {
   u64 a = dgst[0];
   u64 b = dgst[1];
@@ -134,97 +111,24 @@ __kernel void m07900_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   if (gid >= gid_max) return;
 
-  u32 w0[4];
+  sha512_ctx_t ctx;
 
-  w0[0] = pws[gid].i[ 0];
-  w0[1] = pws[gid].i[ 1];
-  w0[2] = pws[gid].i[ 2];
-  w0[3] = pws[gid].i[ 3];
+  sha512_init (&ctx);
 
-  u32 w1[4];
+  sha512_update_global_swap (&ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
 
-  w1[0] = pws[gid].i[ 4];
-  w1[1] = pws[gid].i[ 5];
-  w1[2] = pws[gid].i[ 6];
-  w1[3] = pws[gid].i[ 7];
+  sha512_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
-  u32 w2[4];
+  sha512_final (&ctx);
 
-  w2[0] = pws[gid].i[ 8];
-  w2[1] = pws[gid].i[ 9];
-  w2[2] = pws[gid].i[10];
-  w2[3] = pws[gid].i[11];
-
-  u32 w3[4];
-
-  w3[0] = 0;
-  w3[1] = 0;
-  w3[2] = 0;
-  w3[3] = 0;
-
-  const u32 pw_len = pws[gid].pw_len;
-
-  append_0x80_4x4 (w0, w1, w2, w3, pw_len);
-
-  /**
-   * salt
-   */
-
-  u32 salt_buf[2];
-
-  salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
-
-  /**
-   * init
-   */
-
-  u32 block_len = 8 + pw_len;
-
-  u64 w[16];
-
-  w[ 0] = ((u64) swap32 (salt_buf[0])) << 32 | (u64) swap32 (salt_buf[1]);
-  w[ 1] = ((u64) swap32 (w0[0])) << 32 | (u64) swap32 (w0[1]);
-  w[ 2] = ((u64) swap32 (w0[2])) << 32 | (u64) swap32 (w0[3]);
-  w[ 3] = ((u64) swap32 (w1[0])) << 32 | (u64) swap32 (w1[1]);
-  w[ 4] = ((u64) swap32 (w1[2])) << 32 | (u64) swap32 (w1[3]);
-  w[ 5] = ((u64) swap32 (w2[0])) << 32 | (u64) swap32 (w2[1]);
-  w[ 6] = ((u64) swap32 (w2[2])) << 32 | (u64) swap32 (w2[3]);
-  w[ 7] = ((u64) swap32 (w3[0])) << 32 | (u64) swap32 (w3[1]);
-  w[ 8] = ((u64) swap32 (w3[2])) << 32 | (u64) swap32 (w3[3]);
-  w[ 9] = 0;
-  w[10] = 0;
-  w[11] = 0;
-  w[12] = 0;
-  w[13] = 0;
-  w[14] = 0;
-  w[15] = block_len * 8;
-
-  /**
-   * init
-   */
-
-  u64 digest[8];
-
-  digest[0] = SHA512M_A;
-  digest[1] = SHA512M_B;
-  digest[2] = SHA512M_C;
-  digest[3] = SHA512M_D;
-  digest[4] = SHA512M_E;
-  digest[5] = SHA512M_F;
-  digest[6] = SHA512M_G;
-  digest[7] = SHA512M_H;
-
-  sha512_transform (w, digest);
-
-  tmps[gid].digest_buf[0] = digest[0];
-  tmps[gid].digest_buf[1] = digest[1];
-  tmps[gid].digest_buf[2] = digest[2];
-  tmps[gid].digest_buf[3] = digest[3];
-  tmps[gid].digest_buf[4] = digest[4];
-  tmps[gid].digest_buf[5] = digest[5];
-  tmps[gid].digest_buf[6] = digest[6];
-  tmps[gid].digest_buf[7] = digest[7];
+  tmps[gid].digest_buf[0] = ctx.h[0];
+  tmps[gid].digest_buf[1] = ctx.h[1];
+  tmps[gid].digest_buf[2] = ctx.h[2];
+  tmps[gid].digest_buf[3] = ctx.h[3];
+  tmps[gid].digest_buf[4] = ctx.h[4];
+  tmps[gid].digest_buf[5] = ctx.h[5];
+  tmps[gid].digest_buf[6] = ctx.h[6];
+  tmps[gid].digest_buf[7] = ctx.h[7];
 }
 
 __kernel void m07900_loop (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global drupal7_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
@@ -237,34 +141,30 @@ __kernel void m07900_loop (__global pw_t *pws, __global const kernel_rule_t *rul
 
   if (gid >= gid_max) return;
 
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
-
-  w0[0] = pws[gid].i[ 0];
-  w0[1] = pws[gid].i[ 1];
-  w0[2] = pws[gid].i[ 2];
-  w0[3] = pws[gid].i[ 3];
-  w1[0] = pws[gid].i[ 4];
-  w1[1] = pws[gid].i[ 5];
-  w1[2] = pws[gid].i[ 6];
-  w1[3] = pws[gid].i[ 7];
-  w2[0] = pws[gid].i[ 8];
-  w2[1] = pws[gid].i[ 9];
-  w2[2] = pws[gid].i[10];
-  w2[3] = pws[gid].i[11];
-  w3[0] = 0;
-  w3[1] = 0;
-  w3[2] = 0;
-  w3[3] = 0;
+  /**
+   * init
+   */
 
   const u32 pw_len = pws[gid].pw_len;
 
-  append_0x80_4x4 (w0, w1, w2, w3, pw_len);
+  const u32 pw_lenv = ceil ((float) pw_len / 4);
+
+  u32 w[64] = { 0 };
+
+  for (int idx = 0; idx < pw_lenv; idx++)
+  {
+    w[idx] = pws[gid].i[idx];
+
+    barrier (CLK_GLOBAL_MEM_FENCE);
+  }
+
+  for (int idx = 0; idx < pw_lenv; idx++)
+  {
+    w[idx] = swap32_S (w[idx]);
+  }
 
   /**
-   * digest
+   * load
    */
 
   u64 digest[8];
@@ -282,52 +182,113 @@ __kernel void m07900_loop (__global pw_t *pws, __global const kernel_rule_t *rul
    * loop
    */
 
-  u32 block_len = (64 + pw_len);
+  sha512_ctx_t sha512_ctx;
 
-  u64 w_t[6];
+  sha512_init (&sha512_ctx);
 
-  w_t[0] = ((u64) swap32 (w0[0])) << 32 | (u64) swap32 (w0[1]);
-  w_t[1] = ((u64) swap32 (w0[2])) << 32 | (u64) swap32 (w0[3]);
-  w_t[2] = ((u64) swap32 (w1[0])) << 32 | (u64) swap32 (w1[1]);
-  w_t[3] = ((u64) swap32 (w1[2])) << 32 | (u64) swap32 (w1[3]);
-  w_t[4] = ((u64) swap32 (w2[0])) << 32 | (u64) swap32 (w2[1]);
-  w_t[5] = ((u64) swap32 (w2[2])) << 32 | (u64) swap32 (w2[3]);
+  sha512_ctx.w0[0] = h32_from_64_S (digest[0]);
+  sha512_ctx.w0[1] = l32_from_64_S (digest[0]);
+  sha512_ctx.w0[2] = h32_from_64_S (digest[1]);
+  sha512_ctx.w0[3] = l32_from_64_S (digest[1]);
+  sha512_ctx.w1[0] = h32_from_64_S (digest[2]);
+  sha512_ctx.w1[1] = l32_from_64_S (digest[2]);
+  sha512_ctx.w1[2] = h32_from_64_S (digest[3]);
+  sha512_ctx.w1[3] = l32_from_64_S (digest[3]);
+  sha512_ctx.w2[0] = h32_from_64_S (digest[4]);
+  sha512_ctx.w2[1] = l32_from_64_S (digest[4]);
+  sha512_ctx.w2[2] = h32_from_64_S (digest[5]);
+  sha512_ctx.w2[3] = l32_from_64_S (digest[5]);
+  sha512_ctx.w3[0] = h32_from_64_S (digest[6]);
+  sha512_ctx.w3[1] = l32_from_64_S (digest[6]);
+  sha512_ctx.w3[2] = h32_from_64_S (digest[7]);
+  sha512_ctx.w3[3] = l32_from_64_S (digest[7]);
 
-  /**
-   * init
-   */
+  sha512_ctx.len = 64;
 
-  for (u32 i = 0; i < loop_cnt; i++)
+  sha512_update (&sha512_ctx, w, pw_len);
+
+  sha512_final (&sha512_ctx);
+
+  digest[0] = sha512_ctx.h[0];
+  digest[1] = sha512_ctx.h[1];
+  digest[2] = sha512_ctx.h[2];
+  digest[3] = sha512_ctx.h[3];
+  digest[4] = sha512_ctx.h[4];
+  digest[5] = sha512_ctx.h[5];
+  digest[6] = sha512_ctx.h[6];
+  digest[7] = sha512_ctx.h[7];
+
+  if ((64 + pw_len + 1) >= 112)
   {
-    u64 w[16];
+    for (u32 i = 1; i < loop_cnt; i++)
+    {
+      sha512_init (&sha512_ctx);
 
-    w[ 0] = digest[0];
-    w[ 1] = digest[1];
-    w[ 2] = digest[2];
-    w[ 3] = digest[3];
-    w[ 4] = digest[4];
-    w[ 5] = digest[5];
-    w[ 6] = digest[6];
-    w[ 7] = digest[7];
-    w[ 8] = w_t[0];
-    w[ 9] = w_t[1];
-    w[10] = w_t[2];
-    w[11] = w_t[3];
-    w[12] = w_t[4];
-    w[13] = w_t[5];
-    w[14] = 0;
-    w[15] = block_len * 8;
+      sha512_ctx.w0[0] = h32_from_64_S (digest[0]);
+      sha512_ctx.w0[1] = l32_from_64_S (digest[0]);
+      sha512_ctx.w0[2] = h32_from_64_S (digest[1]);
+      sha512_ctx.w0[3] = l32_from_64_S (digest[1]);
+      sha512_ctx.w1[0] = h32_from_64_S (digest[2]);
+      sha512_ctx.w1[1] = l32_from_64_S (digest[2]);
+      sha512_ctx.w1[2] = h32_from_64_S (digest[3]);
+      sha512_ctx.w1[3] = l32_from_64_S (digest[3]);
+      sha512_ctx.w2[0] = h32_from_64_S (digest[4]);
+      sha512_ctx.w2[1] = l32_from_64_S (digest[4]);
+      sha512_ctx.w2[2] = h32_from_64_S (digest[5]);
+      sha512_ctx.w2[3] = l32_from_64_S (digest[5]);
+      sha512_ctx.w3[0] = h32_from_64_S (digest[6]);
+      sha512_ctx.w3[1] = l32_from_64_S (digest[6]);
+      sha512_ctx.w3[2] = h32_from_64_S (digest[7]);
+      sha512_ctx.w3[3] = l32_from_64_S (digest[7]);
 
-    digest[0] = SHA512M_A;
-    digest[1] = SHA512M_B;
-    digest[2] = SHA512M_C;
-    digest[3] = SHA512M_D;
-    digest[4] = SHA512M_E;
-    digest[5] = SHA512M_F;
-    digest[6] = SHA512M_G;
-    digest[7] = SHA512M_H;
+      sha512_ctx.len = 64;
 
-    sha512_transform (w, digest);
+      sha512_update (&sha512_ctx, w, pw_len);
+
+      sha512_final (&sha512_ctx);
+
+      digest[0] = sha512_ctx.h[0];
+      digest[1] = sha512_ctx.h[1];
+      digest[2] = sha512_ctx.h[2];
+      digest[3] = sha512_ctx.h[3];
+      digest[4] = sha512_ctx.h[4];
+      digest[5] = sha512_ctx.h[5];
+      digest[6] = sha512_ctx.h[6];
+      digest[7] = sha512_ctx.h[7];
+    }
+  }
+  else
+  {
+    for (u32 i = 1; i < loop_cnt; i++)
+    {
+      sha512_ctx.w0[0] = h32_from_64_S (digest[0]);
+      sha512_ctx.w0[1] = l32_from_64_S (digest[0]);
+      sha512_ctx.w0[2] = h32_from_64_S (digest[1]);
+      sha512_ctx.w0[3] = l32_from_64_S (digest[1]);
+      sha512_ctx.w1[0] = h32_from_64_S (digest[2]);
+      sha512_ctx.w1[1] = l32_from_64_S (digest[2]);
+      sha512_ctx.w1[2] = h32_from_64_S (digest[3]);
+      sha512_ctx.w1[3] = l32_from_64_S (digest[3]);
+      sha512_ctx.w2[0] = h32_from_64_S (digest[4]);
+      sha512_ctx.w2[1] = l32_from_64_S (digest[4]);
+      sha512_ctx.w2[2] = h32_from_64_S (digest[5]);
+      sha512_ctx.w2[3] = l32_from_64_S (digest[5]);
+      sha512_ctx.w3[0] = h32_from_64_S (digest[6]);
+      sha512_ctx.w3[1] = l32_from_64_S (digest[6]);
+      sha512_ctx.w3[2] = h32_from_64_S (digest[7]);
+      sha512_ctx.w3[3] = l32_from_64_S (digest[7]);
+
+      digest[0] = SHA512M_A;
+      digest[1] = SHA512M_B;
+      digest[2] = SHA512M_C;
+      digest[3] = SHA512M_D;
+      digest[4] = SHA512M_A;
+      digest[5] = SHA512M_B;
+      digest[6] = SHA512M_C;
+      digest[7] = SHA512M_D;
+
+      sha512_transform (sha512_ctx.w0, sha512_ctx.w1, sha512_ctx.w2, sha512_ctx.w3, sha512_ctx.w4, sha512_ctx.w5, sha512_ctx.w6, sha512_ctx.w7, digest);
+    }
   }
 
   tmps[gid].digest_buf[0] = digest[0];
