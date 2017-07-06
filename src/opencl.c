@@ -3296,14 +3296,23 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
               bool amd_warn = true;
 
               #if defined (__linux__)
-              // AMDGPU-PRO Driver 16.40 and higher
-              if (atoi (device_param->driver_version) >= 2117) amd_warn = false;
-              // AMDGPU-PRO Driver 16.50 is known to be broken
-              if (atoi (device_param->driver_version) == 2236) amd_warn = true;
-              // AMDGPU-PRO Driver 16.60 is known to be broken
-              if (atoi (device_param->driver_version) == 2264) amd_warn = true;
-              // AMDGPU-PRO Driver 17.10 is known to be broken
-              if (atoi (device_param->driver_version) == 2348) amd_warn = true;
+              if (strstr (device_param->driver_version, "(HSA,LC)") == NULL)
+              {
+                // AMDGPU-PRO Driver 16.40 and higher
+                if (atoi (device_param->driver_version) >= 2117) amd_warn = false;
+                // AMDGPU-PRO Driver 16.50 is known to be broken
+                if (atoi (device_param->driver_version) == 2236) amd_warn = true;
+                // AMDGPU-PRO Driver 16.60 is known to be broken
+                if (atoi (device_param->driver_version) == 2264) amd_warn = true;
+                // AMDGPU-PRO Driver 17.10 is known to be broken
+                if (atoi (device_param->driver_version) == 2348) amd_warn = true;
+                // AMDGPU-PRO Driver 17.20 (2416) is fine, doesn't need check will match >= 2117
+              }
+              else
+              {
+                // Support for ROCm platform
+                if (atof (device_param->driver_version) >= 1.1) amd_warn = false;
+              }
               #elif defined (_WIN)
               // AMD Radeon Software 14.9 and higher, should be updated to 15.12
               if (atoi (device_param->driver_version) >= 1573) amd_warn = false;
