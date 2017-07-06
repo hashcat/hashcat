@@ -3295,8 +3295,15 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
             {
               bool amd_warn = true;
 
+              const char *t1 = strstr (device_param->driver_version, "(HSA,LC)");
+              const char *t2 = strstr (device_param->driver_version, "(PAL,LC)");
+              const char *t3 = strstr (device_param->driver_version, "(PAL,HSAIL)");
+              const char *t4 = strstr (device_param->driver_version, "(HSA, LC)");
+              const char *t5 = strstr (device_param->driver_version, "(PAL, LC)");
+              const char *t6 = strstr (device_param->driver_version, "(PAL, HSAIL)");
+
               #if defined (__linux__)
-              if (strstr (device_param->driver_version, "(HSA,LC)") == NULL)
+              if ((t1 == NULL) && (t2 == NULL) && (t3 == NULL) && (t4 == NULL) && (t5 == NULL) && (t6 == NULL))
               {
                 // AMDGPU-PRO Driver 16.40 and higher
                 if (atoi (device_param->driver_version) >= 2117) amd_warn = false;
