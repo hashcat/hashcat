@@ -42,7 +42,6 @@ void sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u3
   u32 we_t = w3[2];
   u32 wf_t = w3[3];
 
-  #undef K
   #define K SHA1C00
 
   SHA1_STEP_S (SHA1_F0o, a, b, c, d, e, w0_t);
@@ -137,6 +136,8 @@ void sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u3
   wd_t = rotl32_S ((wa_t ^ w5_t ^ wf_t ^ wd_t), 1u); SHA1_STEP_S (SHA1_F1, d, e, a, b, c, wd_t);
   we_t = rotl32_S ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u); SHA1_STEP_S (SHA1_F1, c, d, e, a, b, we_t);
   wf_t = rotl32_S ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u); SHA1_STEP_S (SHA1_F1, b, c, d, e, a, wf_t);
+
+  #undef K
 
   digest[0] += a;
   digest[1] += b;
@@ -844,7 +845,6 @@ void sha1_transform_vector (const u32x w0[4], const u32x w1[4], const u32x w2[4]
   u32x we_t = w3[2];
   u32x wf_t = w3[3];
 
-  #undef K
   #define K SHA1C00
 
   SHA1_STEP (SHA1_F0o, a, b, c, d, e, w0_t);
@@ -939,6 +939,8 @@ void sha1_transform_vector (const u32x w0[4], const u32x w1[4], const u32x w2[4]
   wd_t = rotl32 ((wa_t ^ w5_t ^ wf_t ^ wd_t), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, wd_t);
   we_t = rotl32 ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, we_t);
   wf_t = rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wf_t);
+
+  #undef K
 
   digest[0] += a;
   digest[1] += b;

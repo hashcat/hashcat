@@ -123,6 +123,9 @@ void sha512_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const 
     ROUND_EXPAND_S (); ROUND_STEP_S (i);
   }
 
+  #undef ROUND_EXPAND_S
+  #undef ROUND_STEP_S
+
   digest[0] += a;
   digest[1] += b;
   digest[2] += c;
@@ -1314,6 +1317,9 @@ void sha512_transform_vector (const u32x w0[4], const u32x w1[4], const u32x w2[
   {
     ROUND_EXPAND (); ROUND_STEP (i);
   }
+
+  #undef ROUND_EXPAND
+  #undef ROUND_STEP
 
   digest[0] += a;
   digest[1] += b;

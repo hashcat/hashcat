@@ -2351,5 +2351,6 @@ void whirlpool_final_vector (whirlpool_ctx_vector_t *ctx, __local u32 (*s_Ch)[25
   whirlpool_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h, s_Ch, s_Cl);
 }
 
+#undef R
 #undef BOX
 #undef BOX_S
