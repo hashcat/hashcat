@@ -267,6 +267,19 @@
 #define SHA384_F1o(x,y,z) (SHA384_F1 ((x), (y), (z)))
 #endif
 
+#define SHA384_STEP_S(F0,F1,a,b,c,d,e,f,g,h,x,K)  \
+{                                                 \
+  h += K;                                         \
+  h += x;                                         \
+  h += SHA384_S1_S (e);                           \
+  h += F0 (e, f, g);                              \
+  d += h;                                         \
+  h += SHA384_S0_S (a);                           \
+  h += F1 (a, b, c);                              \
+}
+
+#define SHA384_EXPAND_S(x,y,z,w) (SHA384_S3_S (x) + y + SHA384_S2_S (z) + w)
+
 #define SHA384_STEP(F0,F1,a,b,c,d,e,f,g,h,x,K)  \
 {                                               \
   h += K;                                       \
