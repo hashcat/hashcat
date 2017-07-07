@@ -24623,8 +24623,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                   break;
       case  8600: hashconfig->pw_max = 16;
                   break;
-      case 10300: hashconfig->pw_max = 40;
-                  break;
       case 10500: hashconfig->pw_max = 40;
                   break;
       case 10700: hashconfig->pw_max = 16;
@@ -24659,6 +24657,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case  9500: hashconfig->pw_max = PW_MAX;
                 break;
     case  9600: hashconfig->pw_max = PW_MAX;
+                break;
+    case 10300: hashconfig->pw_max = PW_MAX;
                 break;
   }
 
