@@ -950,17 +950,23 @@ __kernel void m09500_loop (__global pw_t *pws, __global const kernel_rule_t *rul
 
   if ((gid * VECT_SIZE) >= gid_max) return;
 
+  u32x t0 = packv (tmps, out, gid, 0);
+  u32x t1 = packv (tmps, out, gid, 1);
+  u32x t2 = packv (tmps, out, gid, 2);
+  u32x t3 = packv (tmps, out, gid, 3);
+  u32x t4 = packv (tmps, out, gid, 4);
+
   u32x w0[4];
   u32x w1[4];
   u32x w2[4];
   u32x w3[4];
 
   w0[0] = 0;
-  w0[1] = packv (tmps, out, gid, 0);
-  w0[2] = packv (tmps, out, gid, 1);
-  w0[3] = packv (tmps, out, gid, 2);
-  w1[0] = packv (tmps, out, gid, 3);
-  w1[1] = packv (tmps, out, gid, 4);
+  w0[1] = 0;
+  w0[2] = 0;
+  w0[3] = 0;
+  w1[0] = 0;
+  w1[1] = 0;
   w1[2] = 0x80000000;
   w1[3] = 0;
   w2[0] = 0;
@@ -975,6 +981,11 @@ __kernel void m09500_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   for (u32 i = 0, j = loop_pos; i < loop_cnt; i++, j++)
   {
     w0[0] = swap32 (j);
+    w0[1] = t0;
+    w0[2] = t1;
+    w0[3] = t2;
+    w1[0] = t3;
+    w1[1] = t4;
 
     u32x digest[5];
 
@@ -986,18 +997,18 @@ __kernel void m09500_loop (__global pw_t *pws, __global const kernel_rule_t *rul
 
     sha1_transform_vector (w0, w1, w2, w3, digest);
 
-    w0[1] = digest[0];
-    w0[2] = digest[1];
-    w0[3] = digest[2];
-    w1[0] = digest[3];
-    w1[1] = digest[4];
+    t0 = digest[0];
+    t1 = digest[1];
+    t2 = digest[2];
+    t3 = digest[3];
+    t4 = digest[4];
   }
 
-  unpackv (tmps, out, gid, 0, w0[1]);
-  unpackv (tmps, out, gid, 1, w0[2]);
-  unpackv (tmps, out, gid, 2, w0[3]);
-  unpackv (tmps, out, gid, 3, w1[0]);
-  unpackv (tmps, out, gid, 4, w1[1]);
+  unpackv (tmps, out, gid, 0, t0);
+  unpackv (tmps, out, gid, 1, t1);
+  unpackv (tmps, out, gid, 2, t2);
+  unpackv (tmps, out, gid, 3, t3);
+  unpackv (tmps, out, gid, 4, t4);
 }
 
 __kernel void m09500_comp (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global office2010_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global office2010_t *office2010_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
