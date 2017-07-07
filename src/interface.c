@@ -24604,31 +24604,25 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     {
       case   125: hashconfig->pw_max = 32;
                   break;
-      case   500: hashconfig->pw_max = 15;
+      case   500: hashconfig->pw_max = 15; // pure kernel available
                   break;
-      case  1600: hashconfig->pw_max = 15;
+      case  1600: hashconfig->pw_max = 15; // pure kernel available
                   break;
-      case  1800: hashconfig->pw_max = 16;
+      case  1800: hashconfig->pw_max = 16; // pure kernel available
                   break;
-      case  5200: hashconfig->pw_max = 24;
+      case  5800: hashconfig->pw_max = 16; // pure kernel available
                   break;
-      case  5800: hashconfig->pw_max = 16;
-                  break;
-      case  6300: hashconfig->pw_max = 15;
+      case  6300: hashconfig->pw_max = 15; // pure kernel available
                   break;
       case  7000: hashconfig->pw_max = 19;
                   break;
-      case  7400: hashconfig->pw_max = 15;
+      case  7400: hashconfig->pw_max = 15; // pure kernel available
                   break;
       case  7700: hashconfig->pw_max = 8;
                   break;
       case  8600: hashconfig->pw_max = 16;
                   break;
       case 10700: hashconfig->pw_max = 16;
-                  break;
-      case 11300: hashconfig->pw_max = 40;
-                  break;
-      case 11600: hashconfig->pw_max = 32;
                   break;
       case 12500: hashconfig->pw_max = 20;
                   break;
@@ -24660,6 +24654,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 10300: hashconfig->pw_max = PW_MAX;
                 break;
     case 11300: hashconfig->pw_max = PW_MAX;
+                break;
+    case 11600: hashconfig->pw_max = PW_MAX;
                 break;
   }
 

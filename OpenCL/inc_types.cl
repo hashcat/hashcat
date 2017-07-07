@@ -1416,12 +1416,14 @@ typedef struct saph_sha1_tmp
 
 typedef struct seven_zip_tmp
 {
-  u32 block[16];
+  u32 h[8];
 
-  u32 dgst[8];
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
 
-  u32 block_len;
-  u32 final_len;
+  int len;
 
 } seven_zip_tmp_t;
 
