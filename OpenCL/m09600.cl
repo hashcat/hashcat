@@ -3,11 +3,15 @@
  * License.....: MIT
  */
 
+#define NEW_SIMD_CODE
+
 #include "inc_vendor.cl"
 #include "inc_hash_constants.h"
 #include "inc_hash_functions.cl"
 #include "inc_types.cl"
 #include "inc_common.cl"
+#include "inc_simd.cl"
+#include "inc_hash_sha512.cl"
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
@@ -969,118 +973,6 @@ void AES256_encrypt (const u32 *in, u32 *out, const u32 *rek, __local u32 *s_te0
          ^ rek[59];
 }
 
-__constant u64a k_sha512[80] =
-{
-  SHA512C00, SHA512C01, SHA512C02, SHA512C03,
-  SHA512C04, SHA512C05, SHA512C06, SHA512C07,
-  SHA512C08, SHA512C09, SHA512C0a, SHA512C0b,
-  SHA512C0c, SHA512C0d, SHA512C0e, SHA512C0f,
-  SHA512C10, SHA512C11, SHA512C12, SHA512C13,
-  SHA512C14, SHA512C15, SHA512C16, SHA512C17,
-  SHA512C18, SHA512C19, SHA512C1a, SHA512C1b,
-  SHA512C1c, SHA512C1d, SHA512C1e, SHA512C1f,
-  SHA512C20, SHA512C21, SHA512C22, SHA512C23,
-  SHA512C24, SHA512C25, SHA512C26, SHA512C27,
-  SHA512C28, SHA512C29, SHA512C2a, SHA512C2b,
-  SHA512C2c, SHA512C2d, SHA512C2e, SHA512C2f,
-  SHA512C30, SHA512C31, SHA512C32, SHA512C33,
-  SHA512C34, SHA512C35, SHA512C36, SHA512C37,
-  SHA512C38, SHA512C39, SHA512C3a, SHA512C3b,
-  SHA512C3c, SHA512C3d, SHA512C3e, SHA512C3f,
-  SHA512C40, SHA512C41, SHA512C42, SHA512C43,
-  SHA512C44, SHA512C45, SHA512C46, SHA512C47,
-  SHA512C48, SHA512C49, SHA512C4a, SHA512C4b,
-  SHA512C4c, SHA512C4d, SHA512C4e, SHA512C4f,
-};
-
-void sha512_transform (const u64 w0[4], const u64 w1[4], const u64 w2[4], const u64 w3[4], u64 dgst[8])
-{
-  u64 a = dgst[0];
-  u64 b = dgst[1];
-  u64 c = dgst[2];
-  u64 d = dgst[3];
-  u64 e = dgst[4];
-  u64 f = dgst[5];
-  u64 g = dgst[6];
-  u64 h = dgst[7];
-
-  u64 w0_t = w0[0];
-  u64 w1_t = w0[1];
-  u64 w2_t = w0[2];
-  u64 w3_t = w0[3];
-  u64 w4_t = w1[0];
-  u64 w5_t = w1[1];
-  u64 w6_t = w1[2];
-  u64 w7_t = w1[3];
-  u64 w8_t = w2[0];
-  u64 w9_t = w2[1];
-  u64 wa_t = w2[2];
-  u64 wb_t = w2[3];
-  u64 wc_t = w3[0];
-  u64 wd_t = w3[1];
-  u64 we_t = w3[2];
-  u64 wf_t = w3[3];
-
-  #define ROUND_EXPAND()                            \
-  {                                                 \
-    w0_t = SHA512_EXPAND (we_t, w9_t, w1_t, w0_t);  \
-    w1_t = SHA512_EXPAND (wf_t, wa_t, w2_t, w1_t);  \
-    w2_t = SHA512_EXPAND (w0_t, wb_t, w3_t, w2_t);  \
-    w3_t = SHA512_EXPAND (w1_t, wc_t, w4_t, w3_t);  \
-    w4_t = SHA512_EXPAND (w2_t, wd_t, w5_t, w4_t);  \
-    w5_t = SHA512_EXPAND (w3_t, we_t, w6_t, w5_t);  \
-    w6_t = SHA512_EXPAND (w4_t, wf_t, w7_t, w6_t);  \
-    w7_t = SHA512_EXPAND (w5_t, w0_t, w8_t, w7_t);  \
-    w8_t = SHA512_EXPAND (w6_t, w1_t, w9_t, w8_t);  \
-    w9_t = SHA512_EXPAND (w7_t, w2_t, wa_t, w9_t);  \
-    wa_t = SHA512_EXPAND (w8_t, w3_t, wb_t, wa_t);  \
-    wb_t = SHA512_EXPAND (w9_t, w4_t, wc_t, wb_t);  \
-    wc_t = SHA512_EXPAND (wa_t, w5_t, wd_t, wc_t);  \
-    wd_t = SHA512_EXPAND (wb_t, w6_t, we_t, wd_t);  \
-    we_t = SHA512_EXPAND (wc_t, w7_t, wf_t, we_t);  \
-    wf_t = SHA512_EXPAND (wd_t, w8_t, w0_t, wf_t);  \
-  }
-
-  #define ROUND_STEP(i)                                                                   \
-  {                                                                                       \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, a, b, c, d, e, f, g, h, w0_t, k_sha512[i +  0]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, h, a, b, c, d, e, f, g, w1_t, k_sha512[i +  1]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, g, h, a, b, c, d, e, f, w2_t, k_sha512[i +  2]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, f, g, h, a, b, c, d, e, w3_t, k_sha512[i +  3]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, e, f, g, h, a, b, c, d, w4_t, k_sha512[i +  4]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, d, e, f, g, h, a, b, c, w5_t, k_sha512[i +  5]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, c, d, e, f, g, h, a, b, w6_t, k_sha512[i +  6]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, b, c, d, e, f, g, h, a, w7_t, k_sha512[i +  7]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, a, b, c, d, e, f, g, h, w8_t, k_sha512[i +  8]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, h, a, b, c, d, e, f, g, w9_t, k_sha512[i +  9]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, g, h, a, b, c, d, e, f, wa_t, k_sha512[i + 10]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, f, g, h, a, b, c, d, e, wb_t, k_sha512[i + 11]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, e, f, g, h, a, b, c, d, wc_t, k_sha512[i + 12]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, d, e, f, g, h, a, b, c, wd_t, k_sha512[i + 13]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, c, d, e, f, g, h, a, b, we_t, k_sha512[i + 14]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, b, c, d, e, f, g, h, a, wf_t, k_sha512[i + 15]); \
-  }
-
-  ROUND_STEP (0);
-
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (int i = 16; i < 80; i += 16)
-  {
-    ROUND_EXPAND (); ROUND_STEP (i);
-  }
-
-  dgst[0] += a;
-  dgst[1] += b;
-  dgst[2] += c;
-  dgst[3] += d;
-  dgst[4] += e;
-  dgst[5] += f;
-  dgst[6] += g;
-  dgst[7] += h;
-}
-
 __kernel void m09600_init (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global office2013_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global office2013_t *office2013_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
   /**
@@ -1091,148 +983,104 @@ __kernel void m09600_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   if (gid >= gid_max) return;
 
-  u32 w0[4];
+  sha512_ctx_t ctx;
 
-  w0[0] = pws[gid].i[ 0];
-  w0[1] = pws[gid].i[ 1];
-  w0[2] = pws[gid].i[ 2];
-  w0[3] = pws[gid].i[ 3];
+  sha512_init (&ctx);
 
-  u32 w1[4];
+  sha512_update_global (&ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
 
-  w1[0] = pws[gid].i[ 4];
-  w1[1] = pws[gid].i[ 5];
-  w1[2] = pws[gid].i[ 6];
-  w1[3] = pws[gid].i[ 7];
+  sha512_update_global_utf16le_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
-  u32 w2[4];
+  sha512_final (&ctx);
 
-  w2[0] = pws[gid].i[ 8];
-  w2[1] = pws[gid].i[ 9];
-  w2[2] = pws[gid].i[10];
-  w2[3] = pws[gid].i[11];
-
-  u32 w3[4];
-
-  w3[0] = pws[gid].i[12];
-  w3[1] = pws[gid].i[13];
-  w3[2] = pws[gid].i[14];
-  w3[3] = pws[gid].i[15];
-
-  u32 pw_len = pws[gid].pw_len;
-
-  append_0x80_4x4 (w0, w1, w2, w3, pw_len);
-
-  make_utf16le (w1, w2, w3);
-  make_utf16le (w0, w0, w1);
-
-  /**
-   * salt
-   */
-
-  u32 salt_len = salt_bufs[salt_pos].salt_len;
-
-  u32 salt_buf[4];
-
-  salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf[2] = salt_bufs[salt_pos].salt_buf[2];
-  salt_buf[3] = salt_bufs[salt_pos].salt_buf[3];
-
-  /**
-   * init
-   */
-
-  u64 t0[4];
-
-  t0[0] = (u64) salt_buf[0]             << 32 | salt_buf[1];
-  t0[1] = (u64) salt_buf[2]             << 32 | salt_buf[3];
-  t0[2] = (u64) swap32 (w0[0]) << 32 | swap32 (w0[1]);
-  t0[3] = (u64) swap32 (w0[2]) << 32 | swap32 (w0[3]);
-
-  u64 t1[4];
-
-  t1[0] = (u64) swap32 (w1[0]) << 32 | swap32 (w1[1]);
-  t1[1] = (u64) swap32 (w1[2]) << 32 | swap32 (w1[3]);
-  t1[2] = (u64) swap32 (w2[0]) << 32 | swap32 (w2[1]);
-  t1[3] = (u64) swap32 (w2[2]) << 32 | swap32 (w2[3]);
-
-  u64 t2[4];
-
-  t2[0] = (u64) swap32 (w3[0]) << 32 | swap32 (w3[1]);
-  t2[1] = (u64) swap32 (w3[2]) << 32 | swap32 (w3[3]);
-  t2[2] = 0;
-  t2[3] = 0;
-
-  u64 t3[4];
-
-  t3[0] = 0;
-  t3[1] = 0;
-  t3[2] = 0;
-  t3[3] = (salt_len + (pw_len * 2)) * 8;
-
-  u64 digest[8];
-
-  digest[0] = SHA512M_A;
-  digest[1] = SHA512M_B;
-  digest[2] = SHA512M_C;
-  digest[3] = SHA512M_D;
-  digest[4] = SHA512M_E;
-  digest[5] = SHA512M_F;
-  digest[6] = SHA512M_G;
-  digest[7] = SHA512M_H;
-
-  sha512_transform (t0, t1, t2, t3, digest);
-
-  tmps[gid].out[0] = digest[0];
-  tmps[gid].out[1] = digest[1];
-  tmps[gid].out[2] = digest[2];
-  tmps[gid].out[3] = digest[3];
-  tmps[gid].out[4] = digest[4];
-  tmps[gid].out[5] = digest[5];
-  tmps[gid].out[6] = digest[6];
-  tmps[gid].out[7] = digest[7];
+  tmps[gid].out[0] = ctx.h[0];
+  tmps[gid].out[1] = ctx.h[1];
+  tmps[gid].out[2] = ctx.h[2];
+  tmps[gid].out[3] = ctx.h[3];
+  tmps[gid].out[4] = ctx.h[4];
+  tmps[gid].out[5] = ctx.h[5];
+  tmps[gid].out[6] = ctx.h[6];
+  tmps[gid].out[7] = ctx.h[7];
 }
 
 __kernel void m09600_loop (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global office2013_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global office2013_t *office2013_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
   const u32 gid = get_global_id (0);
 
-  if (gid >= gid_max) return;
+  if ((gid * VECT_SIZE) >= gid_max) return;
 
-  u64 w0[4];
+  u64x t0 = pack64v (tmps, out, gid, 0);
+  u64x t1 = pack64v (tmps, out, gid, 1);
+  u64x t2 = pack64v (tmps, out, gid, 2);
+  u64x t3 = pack64v (tmps, out, gid, 3);
+  u64x t4 = pack64v (tmps, out, gid, 4);
+  u64x t5 = pack64v (tmps, out, gid, 5);
+  u64x t6 = pack64v (tmps, out, gid, 6);
+  u64x t7 = pack64v (tmps, out, gid, 7);
 
-  w0[0] =                          tmps[gid].out[0] >> 32;
-  w0[1] = tmps[gid].out[0] << 32 | tmps[gid].out[1] >> 32;
-  w0[2] = tmps[gid].out[1] << 32 | tmps[gid].out[2] >> 32;
-  w0[3] = tmps[gid].out[2] << 32 | tmps[gid].out[3] >> 32;
+  u32x w0[4];
+  u32x w1[4];
+  u32x w2[4];
+  u32x w3[4];
+  u32x w4[4];
+  u32x w5[4];
+  u32x w6[4];
+  u32x w7[4];
 
-  u64 w1[4];
-
-  w1[0] = tmps[gid].out[3] << 32 | tmps[gid].out[4] >> 32;
-  w1[1] = tmps[gid].out[4] << 32 | tmps[gid].out[5] >> 32;
-  w1[2] = tmps[gid].out[5] << 32 | tmps[gid].out[6] >> 32;
-  w1[3] = tmps[gid].out[6] << 32 | tmps[gid].out[7] >> 32;
-
-  u64 w2[4];
-
-  w2[0] = tmps[gid].out[7] << 32 | 0x80000000;
+  w0[0] = 0;
+  w0[1] = 0;
+  w0[2] = 0;
+  w0[3] = 0;
+  w1[0] = 0;
+  w1[1] = 0;
+  w1[2] = 0;
+  w1[3] = 0;
+  w2[0] = 0;
   w2[1] = 0;
   w2[2] = 0;
   w2[3] = 0;
-
-  u64 w3[4];
-
   w3[0] = 0;
   w3[1] = 0;
   w3[2] = 0;
-  w3[3] = (4 + 64) * 8;
+  w3[3] = 0;
+  w4[0] = 0;
+  w4[1] = 0x80000000;
+  w4[2] = 0;
+  w4[3] = 0;
+  w5[0] = 0;
+  w5[1] = 0;
+  w5[2] = 0;
+  w5[3] = 0;
+  w6[0] = 0;
+  w6[1] = 0;
+  w6[2] = 0;
+  w6[3] = 0;
+  w7[0] = 0;
+  w7[1] = 0;
+  w7[2] = 0;
+  w7[3] = (4 + 64) * 8;
 
   for (u32 i = 0, j = loop_pos; i < loop_cnt; i++, j++)
   {
-    w0[0] = (u64) swap32 (j) << 32 | (w0[0] & 0xffffffff);
+    w0[0] = swap32 (j);
+    w0[1] = h32_from_64 (t0);
+    w0[2] = l32_from_64 (t0);
+    w0[3] = h32_from_64 (t1);
+    w1[0] = l32_from_64 (t1);
+    w1[1] = h32_from_64 (t2);
+    w1[2] = l32_from_64 (t2);
+    w1[3] = h32_from_64 (t3);
+    w2[0] = l32_from_64 (t3);
+    w2[1] = h32_from_64 (t4);
+    w2[2] = l32_from_64 (t4);
+    w2[3] = h32_from_64 (t5);
+    w3[0] = l32_from_64 (t5);
+    w3[1] = h32_from_64 (t6);
+    w3[2] = l32_from_64 (t6);
+    w3[3] = h32_from_64 (t7);
+    w4[0] = l32_from_64 (t7);
 
-    u64 digest[8];
+    u64x digest[8];
 
     digest[0] = SHA512M_A;
     digest[1] = SHA512M_B;
@@ -1243,27 +1091,26 @@ __kernel void m09600_loop (__global pw_t *pws, __global const kernel_rule_t *rul
     digest[6] = SHA512M_G;
     digest[7] = SHA512M_H;
 
-    sha512_transform (w0, w1, w2, w3, digest);
+    sha512_transform_vector (w0, w1, w2, w3, w4, w5, w6, w7, digest);
 
-    w0[0] =                   digest[0] >> 32;
-    w0[1] = digest[0] << 32 | digest[1] >> 32;
-    w0[2] = digest[1] << 32 | digest[2] >> 32;
-    w0[3] = digest[2] << 32 | digest[3] >> 32;
-    w1[0] = digest[3] << 32 | digest[4] >> 32;
-    w1[1] = digest[4] << 32 | digest[5] >> 32;
-    w1[2] = digest[5] << 32 | digest[6] >> 32;
-    w1[3] = digest[6] << 32 | digest[7] >> 32;
-    w2[0] = digest[7] << 32 | 0x80000000;
+    t0 = digest[0];
+    t1 = digest[1];
+    t2 = digest[2];
+    t3 = digest[3];
+    t4 = digest[4];
+    t5 = digest[5];
+    t6 = digest[6];
+    t7 = digest[7];
   }
 
-  tmps[gid].out[0] = w0[0] << 32 | w0[1] >> 32;
-  tmps[gid].out[1] = w0[1] << 32 | w0[2] >> 32;
-  tmps[gid].out[2] = w0[2] << 32 | w0[3] >> 32;
-  tmps[gid].out[3] = w0[3] << 32 | w1[0] >> 32;
-  tmps[gid].out[4] = w1[0] << 32 | w1[1] >> 32;
-  tmps[gid].out[5] = w1[1] << 32 | w1[2] >> 32;
-  tmps[gid].out[6] = w1[2] << 32 | w1[3] >> 32;
-  tmps[gid].out[7] = w1[3] << 32 | w2[0] >> 32;
+  unpack64v (tmps, out, gid, 0, t0);
+  unpack64v (tmps, out, gid, 1, t1);
+  unpack64v (tmps, out, gid, 2, t2);
+  unpack64v (tmps, out, gid, 3, t3);
+  unpack64v (tmps, out, gid, 4, t4);
+  unpack64v (tmps, out, gid, 5, t5);
+  unpack64v (tmps, out, gid, 6, t6);
+  unpack64v (tmps, out, gid, 7, t7);
 }
 
 __kernel void m09600_comp (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global office2013_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global office2013_t *office2013_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
@@ -1318,70 +1165,127 @@ __kernel void m09600_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   u32 encryptedVerifierHashInputBlockKey[2] = { 0xfea7d276, 0x3b4b9e79 };
   u32 encryptedVerifierHashValueBlockKey[2] = { 0xd7aa0f6d, 0x3061344e };
 
-  u64 w0[4];
-  u64 w1[4];
-  u64 w2[4];
-  u64 w3[4];
+  u64 tmp[8];
 
-  w0[0] = tmps[gid].out[0];
-  w0[1] = tmps[gid].out[1];
-  w0[2] = tmps[gid].out[2];
-  w0[3] = tmps[gid].out[3];
-  w1[0] = tmps[gid].out[4];
-  w1[1] = tmps[gid].out[5];
-  w1[2] = tmps[gid].out[6];
-  w1[3] = tmps[gid].out[7];
-  w2[0] = hl32_to_64 (encryptedVerifierHashInputBlockKey[0], encryptedVerifierHashInputBlockKey[1]);
-  w2[1] = 0x8000000000000000;
-  w2[2] = 0;
-  w2[3] = 0;
-  w3[0] = 0;
-  w3[1] = 0;
-  w3[2] = 0;
-  w3[3] = (64 + 8) * 8;
+  tmp[0] = tmps[gid].out[0];
+  tmp[1] = tmps[gid].out[1];
+  tmp[2] = tmps[gid].out[2];
+  tmp[3] = tmps[gid].out[3];
+  tmp[4] = tmps[gid].out[4];
+  tmp[5] = tmps[gid].out[5];
+  tmp[6] = tmps[gid].out[6];
+  tmp[7] = tmps[gid].out[7];
+
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+  u32 w4[4];
+  u32 w5[4];
+  u32 w6[4];
+  u32 w7[4];
+
+  w0[0] = h32_from_64 (tmp[0]);
+  w0[1] = l32_from_64 (tmp[0]);
+  w0[2] = h32_from_64 (tmp[1]);
+  w0[3] = l32_from_64 (tmp[1]);
+  w1[0] = h32_from_64 (tmp[2]);
+  w1[1] = l32_from_64 (tmp[2]);
+  w1[2] = h32_from_64 (tmp[3]);
+  w1[3] = l32_from_64 (tmp[3]);
+  w2[0] = h32_from_64 (tmp[4]);
+  w2[1] = l32_from_64 (tmp[4]);
+  w2[2] = h32_from_64 (tmp[5]);
+  w2[3] = l32_from_64 (tmp[5]);
+  w3[0] = h32_from_64 (tmp[6]);
+  w3[1] = l32_from_64 (tmp[6]);
+  w3[2] = h32_from_64 (tmp[7]);
+  w3[3] = l32_from_64 (tmp[7]);
+  w4[0] = encryptedVerifierHashInputBlockKey[0];
+  w4[1] = encryptedVerifierHashInputBlockKey[1];
+  w4[2] = 0;
+  w4[3] = 0;
+  w5[0] = 0;
+  w5[1] = 0;
+  w5[2] = 0;
+  w5[3] = 0;
+  w6[0] = 0;
+  w6[1] = 0;
+  w6[2] = 0;
+  w6[3] = 0;
+  w7[0] = 0;
+  w7[1] = 0;
+  w7[2] = 0;
+  w7[3] = 0;
+
+  sha512_ctx_t ctx;
+
+  sha512_init (&ctx);
+
+  sha512_update_128 (&ctx, w0, w1, w2, w3, w4, w5, w6, w7, 64 + 8);
+
+  sha512_final (&ctx);
 
   u64 digest0[8];
 
-  digest0[0] = SHA512M_A;
-  digest0[1] = SHA512M_B;
-  digest0[2] = SHA512M_C;
-  digest0[3] = SHA512M_D;
-  digest0[4] = SHA512M_E;
-  digest0[5] = SHA512M_F;
-  digest0[6] = SHA512M_G;
-  digest0[7] = SHA512M_H;
+  digest0[0] = ctx.h[0];
+  digest0[1] = ctx.h[1];
+  digest0[2] = ctx.h[2];
+  digest0[3] = ctx.h[3];
+  digest0[4] = ctx.h[4];
+  digest0[5] = ctx.h[5];
+  digest0[6] = ctx.h[6];
+  digest0[7] = ctx.h[7];
 
-  sha512_transform (w0, w1, w2, w3, digest0);
+  w0[0] = h32_from_64 (tmp[0]);
+  w0[1] = l32_from_64 (tmp[0]);
+  w0[2] = h32_from_64 (tmp[1]);
+  w0[3] = l32_from_64 (tmp[1]);
+  w1[0] = h32_from_64 (tmp[2]);
+  w1[1] = l32_from_64 (tmp[2]);
+  w1[2] = h32_from_64 (tmp[3]);
+  w1[3] = l32_from_64 (tmp[3]);
+  w2[0] = h32_from_64 (tmp[4]);
+  w2[1] = l32_from_64 (tmp[4]);
+  w2[2] = h32_from_64 (tmp[5]);
+  w2[3] = l32_from_64 (tmp[5]);
+  w3[0] = h32_from_64 (tmp[6]);
+  w3[1] = l32_from_64 (tmp[6]);
+  w3[2] = h32_from_64 (tmp[7]);
+  w3[3] = l32_from_64 (tmp[7]);
+  w4[0] = encryptedVerifierHashValueBlockKey[0];
+  w4[1] = encryptedVerifierHashValueBlockKey[1];
+  w4[2] = 0;
+  w4[3] = 0;
+  w5[0] = 0;
+  w5[1] = 0;
+  w5[2] = 0;
+  w5[3] = 0;
+  w6[0] = 0;
+  w6[1] = 0;
+  w6[2] = 0;
+  w6[3] = 0;
+  w7[0] = 0;
+  w7[1] = 0;
+  w7[2] = 0;
+  w7[3] = 0;
 
-  w0[0] = tmps[gid].out[0];
-  w0[1] = tmps[gid].out[1];
-  w0[2] = tmps[gid].out[2];
-  w0[3] = tmps[gid].out[3];
-  w1[0] = tmps[gid].out[4];
-  w1[1] = tmps[gid].out[5];
-  w1[2] = tmps[gid].out[6];
-  w1[3] = tmps[gid].out[7];
-  w2[0] = hl32_to_64 (encryptedVerifierHashValueBlockKey[0], encryptedVerifierHashValueBlockKey[1]);
-  w2[1] = 0x8000000000000000;
-  w2[2] = 0;
-  w2[3] = 0;
-  w3[0] = 0;
-  w3[1] = 0;
-  w3[2] = 0;
-  w3[3] = (64 + 8) * 8;
+  sha512_init (&ctx);
+
+  sha512_update_128 (&ctx, w0, w1, w2, w3, w4, w5, w6, w7, 64 + 8);
+
+  sha512_final (&ctx);
 
   u64 digest1[8];
 
-  digest1[0] = SHA512M_A;
-  digest1[1] = SHA512M_B;
-  digest1[2] = SHA512M_C;
-  digest1[3] = SHA512M_D;
-  digest1[4] = SHA512M_E;
-  digest1[5] = SHA512M_F;
-  digest1[6] = SHA512M_G;
-  digest1[7] = SHA512M_H;
-
-  sha512_transform (w0, w1, w2, w3, digest1);
+  digest1[0] = ctx.h[0];
+  digest1[1] = ctx.h[1];
+  digest1[2] = ctx.h[2];
+  digest1[3] = ctx.h[3];
+  digest1[4] = ctx.h[4];
+  digest1[5] = ctx.h[5];
+  digest1[6] = ctx.h[6];
+  digest1[7] = ctx.h[7];
 
   // now we got the AES key, decrypt the verifier
 
@@ -1423,10 +1327,10 @@ __kernel void m09600_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   // final sha512
 
-  w0[0] = hl32_to_64 (out[0], out[1]);
-  w0[1] = hl32_to_64 (out[2], out[3]);
-  w0[2] = 0x8000000000000000;
-  w0[3] = 0;
+  w0[0] = out[0];
+  w0[1] = out[1];
+  w0[2] = out[2];
+  w0[3] = out[3];
   w1[0] = 0;
   w1[1] = 0;
   w1[2] = 0;
@@ -1438,20 +1342,40 @@ __kernel void m09600_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   w3[0] = 0;
   w3[1] = 0;
   w3[2] = 0;
-  w3[3] = 16 * 8;
+  w3[3] = 0;
+  w4[0] = 0;
+  w4[1] = 0;
+  w4[2] = 0;
+  w4[3] = 0;
+  w5[0] = 0;
+  w5[1] = 0;
+  w5[2] = 0;
+  w5[3] = 0;
+  w6[0] = 0;
+  w6[1] = 0;
+  w6[2] = 0;
+  w6[3] = 0;
+  w7[0] = 0;
+  w7[1] = 0;
+  w7[2] = 0;
+  w7[3] = 0;
+
+  sha512_init (&ctx);
+
+  sha512_update_128 (&ctx, w0, w1, w2, w3, w4, w5, w6, w7, 16);
+
+  sha512_final (&ctx);
 
   u64 digest[8];
 
-  digest[0] = SHA512M_A;
-  digest[1] = SHA512M_B;
-  digest[2] = SHA512M_C;
-  digest[3] = SHA512M_D;
-  digest[4] = SHA512M_E;
-  digest[5] = SHA512M_F;
-  digest[6] = SHA512M_G;
-  digest[7] = SHA512M_H;
-
-  sha512_transform (w0, w1, w2, w3, digest);
+  digest[0] = ctx.h[0];
+  digest[1] = ctx.h[1];
+  digest[2] = ctx.h[2];
+  digest[3] = ctx.h[3];
+  digest[4] = ctx.h[4];
+  digest[5] = ctx.h[5];
+  digest[6] = ctx.h[6];
+  digest[7] = ctx.h[7];
 
   // encrypt with 2nd key
 
