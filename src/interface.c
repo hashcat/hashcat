@@ -23407,7 +23407,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_size      = DGST_SIZE_8_16;
                  hashconfig->parse_func     = oraclet_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_USES_BITS_64;
+                                            | OPTI_TYPE_USES_BITS_64
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
@@ -24747,6 +24748,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 12000: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA1 max
                 break;
     case 12001: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA1 max
+                break;
+    case 12300: hashconfig->pw_max = 128; // PBKDF2-HMAC-SHA512 max
                 break;
     case 13711: hashconfig->pw_max = 64;  // PBKDF2-HMAC-RipeMD160 max
                 break;
