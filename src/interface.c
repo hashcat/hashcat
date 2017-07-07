@@ -24623,8 +24623,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                   break;
       case  8600: hashconfig->pw_max = 16;
                   break;
-      case 10500: hashconfig->pw_max = 40;
-                  break;
       case 10700: hashconfig->pw_max = 16;
                   break;
       case 11300: hashconfig->pw_max = 40;
@@ -24737,6 +24735,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 10000: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA256 max
                 break;
     case 10410: hashconfig->pw_max = 5;   // RC4-40 max
+                break;
+    case 10500: hashconfig->pw_max = 32;  // PDF 1.4 - 1.6 (Acrobat 5 - 8) max
                 break;
     case 10900: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA256 max
                 break;
