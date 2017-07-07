@@ -23208,7 +23208,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->kern_type      = KERN_TYPE_BITCOIN_WALLET;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = bitcoin_wallet_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
@@ -24657,6 +24658,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case  9600: hashconfig->pw_max = PW_MAX;
                 break;
     case 10300: hashconfig->pw_max = PW_MAX;
+                break;
+    case 11300: hashconfig->pw_max = PW_MAX;
                 break;
   }
 
