@@ -535,26 +535,18 @@ __kernel void m12400_init (__global pw_t *pws, __global const kernel_rule_t *rul
    * word
    */
 
-  u32 w[16];
+  const u32 pw_len = pws[gid].pw_len;
 
-  w[ 0] = pws[gid].i[ 0];
-  w[ 1] = pws[gid].i[ 1];
-  w[ 2] = pws[gid].i[ 2];
-  w[ 3] = pws[gid].i[ 3];
-  w[ 4] = pws[gid].i[ 4];
-  w[ 5] = pws[gid].i[ 5];
-  w[ 6] = pws[gid].i[ 6];
-  w[ 7] = pws[gid].i[ 7];
-  w[ 8] = pws[gid].i[ 8];
-  w[ 9] = pws[gid].i[ 9];
-  w[10] = pws[gid].i[10];
-  w[11] = pws[gid].i[11];
-  w[12] = pws[gid].i[12];
-  w[13] = pws[gid].i[13];
-  w[14] = pws[gid].i[14];
-  w[15] = pws[gid].i[15];
+  const u32 pw_lenv = ceil ((float) pw_len / 4);
 
-  u32 pw_len = pws[gid].pw_len;
+  u32 w[64] = { 0 };
+
+  for (int idx = 0; idx < pw_lenv; idx++)
+  {
+    w[idx] = pws[gid].i[idx];
+
+    barrier (CLK_GLOBAL_MEM_FENCE);
+  }
 
   u32 tt;
 
