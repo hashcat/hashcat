@@ -23529,7 +23529,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->kern_type      = KERN_TYPE_RAR5;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = rar5_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
@@ -24759,6 +24760,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 12700: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA1 max
                 break;
     case 12900: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA256 max
+                break;
+    case 13000: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA256 max
                 break;
     case 13711: hashconfig->pw_max = 64;  // PBKDF2-HMAC-RipeMD160 max
                 break;
