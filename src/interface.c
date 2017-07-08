@@ -13857,7 +13857,7 @@ int ms_drsr_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   salt->salt_buf[0] = hex_to_u32 ((const u8 *) &salt_pos[ 0]);
   salt->salt_buf[1] = hex_to_u32 ((const u8 *) &salt_pos[ 8]);
   salt->salt_buf[2] = hex_to_u32 ((const u8 *) &salt_pos[16]) & 0x0000ffff;
-  salt->salt_buf[3] = 0x00800100;
+  salt->salt_buf[3] = 0;
 
   salt->salt_len = salt_len / 2;
 
@@ -23495,7 +23495,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->kern_type      = KERN_TYPE_MS_DRSR;
                  hashconfig->dgst_size      = DGST_SIZE_4_8;
                  hashconfig->parse_func     = ms_drsr_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
@@ -24629,8 +24630,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                   break;
       case 12500: hashconfig->pw_max = 20; // todo
                   break;
-      case 12800: hashconfig->pw_max = 24;
-                  break;
       case 14400: hashconfig->pw_max = 24;
                   break;
       case 15400: hashconfig->pw_max = 32;
@@ -24663,6 +24662,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 12200: hashconfig->pw_max = PW_MAX;
                 break;
     case 12400: hashconfig->pw_max = PW_MAX;
+                break;
+    case 12800: hashconfig->pw_max = PW_MAX;
                 break;
   }
 
