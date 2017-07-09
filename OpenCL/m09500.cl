@@ -246,21 +246,16 @@ __kernel void m09500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   // now we got the AES key, decrypt the verifier
 
-  u32 ukeyx[4];
+  u32 ukey[4];
 
-  ukeyx[0] = digest0[0];
-  ukeyx[1] = digest0[1];
-  ukeyx[2] = digest0[2];
-  ukeyx[3] = digest0[3];
-
-  ukeyx[0] = swap32_S (ukeyx[0]);
-  ukeyx[1] = swap32_S (ukeyx[1]);
-  ukeyx[2] = swap32_S (ukeyx[2]);
-  ukeyx[3] = swap32_S (ukeyx[3]);
+  ukey[0] = digest0[0];
+  ukey[1] = digest0[1];
+  ukey[2] = digest0[2];
+  ukey[3] = digest0[3];
 
   u32 ks[44];
 
-  aes128_set_decrypt_key (ks, ukeyx, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+  AES128_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
 
   u32 data[4];
 
@@ -269,19 +264,9 @@ __kernel void m09500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   data[2] = office2010_bufs[digests_offset].encryptedVerifier[2];
   data[3] = office2010_bufs[digests_offset].encryptedVerifier[3];
 
-  data[0] = swap32_S (data[0]);
-  data[1] = swap32_S (data[1]);
-  data[2] = swap32_S (data[2]);
-  data[3] = swap32_S (data[3]);
-
   u32 out[4];
 
-  aes128_decrypt (ks, data, out, s_td0, s_td1, s_td2, s_td3, s_td4);
-
-  out[0] = swap32_S (out[0]);
-  out[1] = swap32_S (out[1]);
-  out[2] = swap32_S (out[2]);
-  out[3] = swap32_S (out[3]);
+  AES128_decrypt (ks, data, out, s_td0, s_td1, s_td2, s_td3, s_td4);
 
   out[0] ^= salt_bufs[salt_pos].salt_buf[0];
   out[1] ^= salt_bufs[salt_pos].salt_buf[1];
@@ -322,34 +307,19 @@ __kernel void m09500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   // encrypt it again for verify
 
-  ukeyx[0] = digest1[0];
-  ukeyx[1] = digest1[1];
-  ukeyx[2] = digest1[2];
-  ukeyx[3] = digest1[3];
+  ukey[0] = digest1[0];
+  ukey[1] = digest1[1];
+  ukey[2] = digest1[2];
+  ukey[3] = digest1[3];
 
-  ukeyx[0] = swap32_S (ukeyx[0]);
-  ukeyx[1] = swap32_S (ukeyx[1]);
-  ukeyx[2] = swap32_S (ukeyx[2]);
-  ukeyx[3] = swap32_S (ukeyx[3]);
-
-  aes128_set_encrypt_key (ks, ukeyx, s_te0, s_te1, s_te2, s_te3, s_te4);
+  AES128_set_encrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   data[0] = digest[0] ^ salt_bufs[salt_pos].salt_buf[0];
   data[1] = digest[1] ^ salt_bufs[salt_pos].salt_buf[1];
   data[2] = digest[2] ^ salt_bufs[salt_pos].salt_buf[2];
   data[3] = digest[3] ^ salt_bufs[salt_pos].salt_buf[3];
 
-  data[0] = swap32_S (data[0]);
-  data[1] = swap32_S (data[1]);
-  data[2] = swap32_S (data[2]);
-  data[3] = swap32_S (data[3]);
-
-  aes128_encrypt (ks, data, out, s_te0, s_te1, s_te2, s_te3, s_te4);
-
-  out[0] = swap32_S (out[0]);
-  out[1] = swap32_S (out[1]);
-  out[2] = swap32_S (out[2]);
-  out[3] = swap32_S (out[3]);
+  AES128_encrypt (ks, data, out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   const u32 r0 = out[0];
   const u32 r1 = out[1];

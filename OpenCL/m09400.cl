@@ -245,21 +245,16 @@ __kernel void m09400_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   // now we got the AES key, decrypt the verifier
 
-  u32 ukeyx[8];
+  u32 ukey[8];
 
-  ukeyx[0] = digest_saved[0];
-  ukeyx[1] = digest_saved[1];
-  ukeyx[2] = digest_saved[2];
-  ukeyx[3] = digest_saved[3];
-
-  ukeyx[0] = swap32_S (ukeyx[0]);
-  ukeyx[1] = swap32_S (ukeyx[1]);
-  ukeyx[2] = swap32_S (ukeyx[2]);
-  ukeyx[3] = swap32_S (ukeyx[3]);
+  ukey[0] = digest_saved[0];
+  ukey[1] = digest_saved[1];
+  ukey[2] = digest_saved[2];
+  ukey[3] = digest_saved[3];
 
   u32 ks[60];
 
-  aes128_set_decrypt_key (ks, ukeyx, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+  AES128_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
 
   u32 verifier[4];
 
@@ -275,19 +270,9 @@ __kernel void m09400_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   data[2] = verifier[2];
   data[3] = verifier[3];
 
-  data[0] = swap32_S (data[0]);
-  data[1] = swap32_S (data[1]);
-  data[2] = swap32_S (data[2]);
-  data[3] = swap32_S (data[3]);
-
   u32 out[4];
 
-  aes128_decrypt (ks, data, out, s_td0, s_td1, s_td2, s_td3, s_td4);
-
-  out[0] = swap32_S (out[0]);
-  out[1] = swap32_S (out[1]);
-  out[2] = swap32_S (out[2]);
-  out[3] = swap32_S (out[3]);
+  AES128_decrypt (ks, data, out, s_td0, s_td1, s_td2, s_td3, s_td4);
 
   // do a sha1 of the result
 
@@ -316,24 +301,14 @@ __kernel void m09400_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   // encrypt it again for verify
 
-  aes128_set_encrypt_key (ks, ukeyx, s_te0, s_te1, s_te2, s_te3, s_te4);
+  AES128_set_encrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   data[0] = ctx.h[0];
   data[1] = ctx.h[1];
   data[2] = ctx.h[2];
   data[3] = ctx.h[3];
 
-  data[0] = swap32_S (data[0]);
-  data[1] = swap32_S (data[1]);
-  data[2] = swap32_S (data[2]);
-  data[3] = swap32_S (data[3]);
-
-  aes128_encrypt (ks, data, out, s_te0, s_te1, s_te2, s_te3, s_te4);
-
-  out[0] = swap32_S (out[0]);
-  out[1] = swap32_S (out[1]);
-  out[2] = swap32_S (out[2]);
-  out[3] = swap32_S (out[3]);
+  AES128_encrypt (ks, data, out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   {
     const u32 r0 = out[0];
@@ -377,42 +352,23 @@ __kernel void m09400_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   // now we got the AES key, decrypt the verifier
 
-  ukeyx[0] = digest_saved[0];
-  ukeyx[1] = digest_saved[1];
-  ukeyx[2] = digest_saved[2];
-  ukeyx[3] = digest_saved[3];
-  ukeyx[4] = digest_saved[4];
-  ukeyx[5] = ctx.h[0];
-  ukeyx[6] = ctx.h[1];
-  ukeyx[7] = ctx.h[2];
+  ukey[0] = digest_saved[0];
+  ukey[1] = digest_saved[1];
+  ukey[2] = digest_saved[2];
+  ukey[3] = digest_saved[3];
+  ukey[4] = digest_saved[4];
+  ukey[5] = ctx.h[0];
+  ukey[6] = ctx.h[1];
+  ukey[7] = ctx.h[2];
 
-  ukeyx[0] = swap32_S (ukeyx[0]);
-  ukeyx[1] = swap32_S (ukeyx[1]);
-  ukeyx[2] = swap32_S (ukeyx[2]);
-  ukeyx[3] = swap32_S (ukeyx[3]);
-  ukeyx[4] = swap32_S (ukeyx[4]);
-  ukeyx[5] = swap32_S (ukeyx[5]);
-  ukeyx[6] = swap32_S (ukeyx[6]);
-  ukeyx[7] = swap32_S (ukeyx[7]);
-
-  aes256_set_decrypt_key (ks, ukeyx, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+  AES256_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
 
   data[0] = verifier[0];
   data[1] = verifier[1];
   data[2] = verifier[2];
   data[3] = verifier[3];
 
-  data[0] = swap32_S (data[0]);
-  data[1] = swap32_S (data[1]);
-  data[2] = swap32_S (data[2]);
-  data[3] = swap32_S (data[3]);
-
-  aes256_decrypt (ks, data, out, s_td0, s_td1, s_td2, s_td3, s_td4);
-
-  out[0] = swap32_S (out[0]);
-  out[1] = swap32_S (out[1]);
-  out[2] = swap32_S (out[2]);
-  out[3] = swap32_S (out[3]);
+  AES256_decrypt (ks, data, out, s_td0, s_td1, s_td2, s_td3, s_td4);
 
   // do a sha1 of the result
 
@@ -441,24 +397,14 @@ __kernel void m09400_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   // encrypt it again for verify
 
-  aes256_set_encrypt_key (ks, ukeyx, s_te0, s_te1, s_te2, s_te3, s_te4);
+  AES256_set_encrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   data[0] = ctx.h[0];
   data[1] = ctx.h[1];
   data[2] = ctx.h[2];
   data[3] = ctx.h[3];
 
-  data[0] = swap32_S (data[0]);
-  data[1] = swap32_S (data[1]);
-  data[2] = swap32_S (data[2]);
-  data[3] = swap32_S (data[3]);
-
-  aes256_encrypt (ks, data, out, s_te0, s_te1, s_te2, s_te3, s_te4);
-
-  out[0] = swap32_S (out[0]);
-  out[1] = swap32_S (out[1]);
-  out[2] = swap32_S (out[2]);
-  out[3] = swap32_S (out[3]);
+  AES256_encrypt (ks, data, out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   {
     const u32 r0 = out[0];

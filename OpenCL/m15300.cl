@@ -543,143 +543,6 @@ void _des_crypt_keysetup (u32 c, u32 d, u32 Kc[16], u32 Kd[16], __local u32 (*s_
   }
 }
 
-void AES256_ExpandKey (u32 *userkey, u32 *rek, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
-{
-  rek[0] = userkey[0];
-  rek[1] = userkey[1];
-  rek[2] = userkey[2];
-  rek[3] = userkey[3];
-  rek[4] = userkey[4];
-  rek[5] = userkey[5];
-  rek[6] = userkey[6];
-  rek[7] = userkey[7];
-
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (int i = 0, j = 0; i < 7; i += 1, j += 8)
-  {
-    const u32 temp1 = rek[j + 7];
-
-    rek[j +  8] = rek[j + 0]
-                ^ (s_te2[(temp1 >> 16) & 0xff] & 0xff000000)
-                ^ (s_te3[(temp1 >>  8) & 0xff] & 0x00ff0000)
-                ^ (s_te0[(temp1 >>  0) & 0xff] & 0x0000ff00)
-                ^ (s_te1[(temp1 >> 24) & 0xff] & 0x000000ff)
-                ^ rcon[i];
-    rek[j +  9] = rek[j + 1] ^ rek[j +  8];
-    rek[j + 10] = rek[j + 2] ^ rek[j +  9];
-    rek[j + 11] = rek[j + 3] ^ rek[j + 10];
-
-    if (i == 6) continue;
-
-    const u32 temp2 = rek[j + 11];
-
-    rek[j + 12] = rek[j + 4]
-                ^ (s_te2[(temp2 >> 24) & 0xff] & 0xff000000)
-                ^ (s_te3[(temp2 >> 16) & 0xff] & 0x00ff0000)
-                ^ (s_te0[(temp2 >>  8) & 0xff] & 0x0000ff00)
-                ^ (s_te1[(temp2 >>  0) & 0xff] & 0x000000ff);
-    rek[j + 13] = rek[j + 5] ^ rek[j + 12];
-    rek[j + 14] = rek[j + 6] ^ rek[j + 13];
-    rek[j + 15] = rek[j + 7] ^ rek[j + 14];
-  }
-}
-
-void AES256_InvertKey (u32 *rdk, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
-{
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (u32 i = 0, j = 56; i < 28; i += 4, j -= 4)
-  {
-    u32 temp;
-
-    temp = rdk[i + 0]; rdk[i + 0] = rdk[j + 0]; rdk[j + 0] = temp;
-    temp = rdk[i + 1]; rdk[i + 1] = rdk[j + 1]; rdk[j + 1] = temp;
-    temp = rdk[i + 2]; rdk[i + 2] = rdk[j + 2]; rdk[j + 2] = temp;
-    temp = rdk[i + 3]; rdk[i + 3] = rdk[j + 3]; rdk[j + 3] = temp;
-  }
-
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (u32 i = 1, j = 4; i < 14; i += 1, j += 4)
-  {
-    rdk[j + 0] =
-      s_td0[s_te1[(rdk[j + 0] >> 24) & 0xff] & 0xff] ^
-      s_td1[s_te1[(rdk[j + 0] >> 16) & 0xff] & 0xff] ^
-      s_td2[s_te1[(rdk[j + 0] >>  8) & 0xff] & 0xff] ^
-      s_td3[s_te1[(rdk[j + 0] >>  0) & 0xff] & 0xff];
-
-    rdk[j + 1] =
-      s_td0[s_te1[(rdk[j + 1] >> 24) & 0xff] & 0xff] ^
-      s_td1[s_te1[(rdk[j + 1] >> 16) & 0xff] & 0xff] ^
-      s_td2[s_te1[(rdk[j + 1] >>  8) & 0xff] & 0xff] ^
-      s_td3[s_te1[(rdk[j + 1] >>  0) & 0xff] & 0xff];
-
-    rdk[j + 2] =
-      s_td0[s_te1[(rdk[j + 2] >> 24) & 0xff] & 0xff] ^
-      s_td1[s_te1[(rdk[j + 2] >> 16) & 0xff] & 0xff] ^
-      s_td2[s_te1[(rdk[j + 2] >>  8) & 0xff] & 0xff] ^
-      s_td3[s_te1[(rdk[j + 2] >>  0) & 0xff] & 0xff];
-
-    rdk[j + 3] =
-      s_td0[s_te1[(rdk[j + 3] >> 24) & 0xff] & 0xff] ^
-      s_td1[s_te1[(rdk[j + 3] >> 16) & 0xff] & 0xff] ^
-      s_td2[s_te1[(rdk[j + 3] >>  8) & 0xff] & 0xff] ^
-      s_td3[s_te1[(rdk[j + 3] >>  0) & 0xff] & 0xff];
-  }
-}
-
-void AES256_decrypt (const u32 *in, u32 *out, const u32 *rdk, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
-{
-  u32 t0 = in[0] ^ rdk[0];
-  u32 t1 = in[1] ^ rdk[1];
-  u32 t2 = in[2] ^ rdk[2];
-  u32 t3 = in[3] ^ rdk[3];
-
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (int i = 4; i < 56; i += 4)
-  {
-    const uchar4 x0 = as_uchar4 (t0);
-    const uchar4 x1 = as_uchar4 (t1);
-    const uchar4 x2 = as_uchar4 (t2);
-    const uchar4 x3 = as_uchar4 (t3);
-
-    t0 = s_td0[x0.s3] ^ s_td1[x3.s2] ^ s_td2[x2.s1] ^ s_td3[x1.s0] ^ rdk[i + 0];
-    t1 = s_td0[x1.s3] ^ s_td1[x0.s2] ^ s_td2[x3.s1] ^ s_td3[x2.s0] ^ rdk[i + 1];
-    t2 = s_td0[x2.s3] ^ s_td1[x1.s2] ^ s_td2[x0.s1] ^ s_td3[x3.s0] ^ rdk[i + 2];
-    t3 = s_td0[x3.s3] ^ s_td1[x2.s2] ^ s_td2[x1.s1] ^ s_td3[x0.s0] ^ rdk[i + 3];
-  }
-
-  out[0] = (s_td4[(t0 >> 24) & 0xff] & 0xff000000)
-         ^ (s_td4[(t3 >> 16) & 0xff] & 0x00ff0000)
-         ^ (s_td4[(t2 >>  8) & 0xff] & 0x0000ff00)
-         ^ (s_td4[(t1 >>  0) & 0xff] & 0x000000ff)
-         ^ rdk[56];
-
-  out[1] = (s_td4[(t1 >> 24) & 0xff] & 0xff000000)
-         ^ (s_td4[(t0 >> 16) & 0xff] & 0x00ff0000)
-         ^ (s_td4[(t3 >>  8) & 0xff] & 0x0000ff00)
-         ^ (s_td4[(t2 >>  0) & 0xff] & 0x000000ff)
-         ^ rdk[57];
-
-  out[2] = (s_td4[(t2 >> 24) & 0xff] & 0xff000000)
-         ^ (s_td4[(t1 >> 16) & 0xff] & 0x00ff0000)
-         ^ (s_td4[(t0 >>  8) & 0xff] & 0x0000ff00)
-         ^ (s_td4[(t3 >>  0) & 0xff] & 0x000000ff)
-         ^ rdk[58];
-
-  out[3] = (s_td4[(t3 >> 24) & 0xff] & 0xff000000)
-         ^ (s_td4[(t2 >> 16) & 0xff] & 0x00ff0000)
-         ^ (s_td4[(t1 >>  8) & 0xff] & 0x0000ff00)
-         ^ (s_td4[(t0 >>  0) & 0xff] & 0x000000ff)
-         ^ rdk[59];
-}
-
 void md4_transform_S (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[4])
 {
   u32 a = digest[0];
@@ -1591,17 +1454,14 @@ __kernel void m15300_init (__global pw_t *pws, __global const kernel_rule_t *rul
     w0[1] = swap32_S (w0[1]);
     w0[2] = swap32_S (w0[2]);
     w0[3] = swap32_S (w0[3]);
-
     w1[0] = swap32_S (w1[0]);
     w1[1] = swap32_S (w1[1]);
     w1[2] = swap32_S (w1[2]);
     w1[3] = swap32_S (w1[3]);
-
     w2[0] = swap32_S (w2[0]);
     w2[1] = swap32_S (w2[1]);
     w2[2] = swap32_S (w2[2]);
     w2[3] = swap32_S (w2[3]);
-
     w3[0] = swap32_S (w3[0]);
     w3[1] = swap32_S (w3[1]);
     w3[2] = 0;
@@ -2120,6 +1980,93 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   const u32 lid = get_local_id (0);
   const u32 lsz = get_local_size (0);
 
+  /**
+   * des shared
+   */
+
+  __local u32 s_SPtrans[8][64];
+  __local u32 s_skb[8][64];
+
+  for (u32 i = lid; i < 64; i += lsz)
+  {
+    s_SPtrans[0][i] = c_SPtrans[0][i];
+    s_SPtrans[1][i] = c_SPtrans[1][i];
+    s_SPtrans[2][i] = c_SPtrans[2][i];
+    s_SPtrans[3][i] = c_SPtrans[3][i];
+    s_SPtrans[4][i] = c_SPtrans[4][i];
+    s_SPtrans[5][i] = c_SPtrans[5][i];
+    s_SPtrans[6][i] = c_SPtrans[6][i];
+    s_SPtrans[7][i] = c_SPtrans[7][i];
+
+    s_skb[0][i] = c_skb[0][i];
+    s_skb[1][i] = c_skb[1][i];
+    s_skb[2][i] = c_skb[2][i];
+    s_skb[3][i] = c_skb[3][i];
+    s_skb[4][i] = c_skb[4][i];
+    s_skb[5][i] = c_skb[5][i];
+    s_skb[6][i] = c_skb[6][i];
+    s_skb[7][i] = c_skb[7][i];
+  }
+
+  barrier (CLK_LOCAL_MEM_FENCE);
+
+  /**
+   * aes shared
+   */
+
+  #ifdef REAL_SHM
+
+  __local u32 s_td0[256];
+  __local u32 s_td1[256];
+  __local u32 s_td2[256];
+  __local u32 s_td3[256];
+  __local u32 s_td4[256];
+
+  __local u32 s_te0[256];
+  __local u32 s_te1[256];
+  __local u32 s_te2[256];
+  __local u32 s_te3[256];
+  __local u32 s_te4[256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    s_td0[i] = td0[i];
+    s_td1[i] = td1[i];
+    s_td2[i] = td2[i];
+    s_td3[i] = td3[i];
+    s_td4[i] = td4[i];
+
+    s_te0[i] = te0[i];
+    s_te1[i] = te1[i];
+    s_te2[i] = te2[i];
+    s_te3[i] = te3[i];
+    s_te4[i] = te4[i];
+  }
+
+  barrier (CLK_LOCAL_MEM_FENCE);
+
+  #else
+
+  __constant u32a *s_td0 = td0;
+  __constant u32a *s_td1 = td1;
+  __constant u32a *s_td2 = td2;
+  __constant u32a *s_td3 = td3;
+  __constant u32a *s_td4 = td4;
+
+  __constant u32a *s_te0 = te0;
+  __constant u32a *s_te1 = te1;
+  __constant u32a *s_te2 = te2;
+  __constant u32a *s_te3 = te3;
+  __constant u32a *s_te4 = te4;
+
+  #endif
+
+  if (gid >= gid_max) return;
+
+  /**
+   * main
+   */
+
   if (esalt_bufs[digests_offset].version == 1)
   {
     u32 w0[4];
@@ -2129,38 +2076,6 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
     u32 ipad[5];
     u32 opad[5];
-
-  /**
-   * shared
-   */
-
-    __local u32 s_SPtrans[8][64];
-    __local u32 s_skb[8][64];
-
-    for (u32 i = lid; i < 64; i += lsz)
-    {
-      s_SPtrans[0][i] = c_SPtrans[0][i];
-      s_SPtrans[1][i] = c_SPtrans[1][i];
-      s_SPtrans[2][i] = c_SPtrans[2][i];
-      s_SPtrans[3][i] = c_SPtrans[3][i];
-      s_SPtrans[4][i] = c_SPtrans[4][i];
-      s_SPtrans[5][i] = c_SPtrans[5][i];
-      s_SPtrans[6][i] = c_SPtrans[6][i];
-      s_SPtrans[7][i] = c_SPtrans[7][i];
-
-      s_skb[0][i] = c_skb[0][i];
-      s_skb[1][i] = c_skb[1][i];
-      s_skb[2][i] = c_skb[2][i];
-      s_skb[3][i] = c_skb[3][i];
-      s_skb[4][i] = c_skb[4][i];
-      s_skb[5][i] = c_skb[5][i];
-      s_skb[6][i] = c_skb[6][i];
-      s_skb[7][i] = c_skb[7][i];
-    }
-
-    barrier (CLK_LOCAL_MEM_FENCE);
-
-    if (gid >= gid_max) return;
 
     u32 key[6];
 
@@ -2173,8 +2088,8 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
     u32 iv[2];
 
-    iv[0]  = swap32_S (tmps[gid].out[6]);
-    iv[1]  = swap32_S (tmps[gid].out[7]);
+    iv[0] = swap32_S (tmps[gid].out[6]);
+    iv[1] = swap32_S (tmps[gid].out[7]);
 
     u32 decrypted[26];
 
@@ -2247,10 +2162,10 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     u32 expectedHmac[5];
     u32 lastKey[16];
 
-    hmacSalt[0]     = swap32_S (decrypted[0]);
-    hmacSalt[1]     = swap32_S (decrypted[1]);
-    hmacSalt[2]     = swap32_S (decrypted[2]);
-    hmacSalt[3]     = swap32_S (decrypted[3]);
+    hmacSalt[0] = swap32_S (decrypted[0]);
+    hmacSalt[1] = swap32_S (decrypted[1]);
+    hmacSalt[2] = swap32_S (decrypted[2]);
+    hmacSalt[3] = swap32_S (decrypted[3]);
 
     expectedHmac[0] = swap32_S (decrypted[4 + 0]);
     expectedHmac[1] = swap32_S (decrypted[4 + 1]);
@@ -2384,59 +2299,6 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   }
   else if (esalt_bufs[digests_offset].version == 2)
   {
-    /**
-     * aes shared
-     */
-
-    #ifdef REAL_SHM
-
-    __local u32 s_td0[256];
-    __local u32 s_td1[256];
-    __local u32 s_td2[256];
-    __local u32 s_td3[256];
-    __local u32 s_td4[256];
-
-    __local u32 s_te0[256];
-    __local u32 s_te1[256];
-    __local u32 s_te2[256];
-    __local u32 s_te3[256];
-    __local u32 s_te4[256];
-
-    for (u32 i = lid; i < 256; i += lsz)
-    {
-      s_td0[i] = td0[i];
-      s_td1[i] = td1[i];
-      s_td2[i] = td2[i];
-      s_td3[i] = td3[i];
-      s_td4[i] = td4[i];
-
-      s_te0[i] = te0[i];
-      s_te1[i] = te1[i];
-      s_te2[i] = te2[i];
-      s_te3[i] = te3[i];
-      s_te4[i] = te4[i];
-    }
-
-    barrier (CLK_LOCAL_MEM_FENCE);
-
-    #else
-
-    __constant u32a *s_td0 = td0;
-    __constant u32a *s_td1 = td1;
-    __constant u32a *s_td2 = td2;
-    __constant u32a *s_td3 = td3;
-    __constant u32a *s_td4 = td4;
-
-    __constant u32a *s_te0 = te0;
-    __constant u32a *s_te1 = te1;
-    __constant u32a *s_te2 = te2;
-    __constant u32a *s_te3 = te3;
-    __constant u32a *s_te4 = te4;
-
-    #endif
-
-    if (gid >= gid_max) return;
-
     /* Construct AES key */
 
     u32 key[8];
@@ -2452,25 +2314,16 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
     u32 iv[4];
 
-    iv[0]  = h32_from_64_S (tmps[gid].out64[4]);
-    iv[1]  = l32_from_64_S (tmps[gid].out64[4]);
-    iv[2]  = h32_from_64_S (tmps[gid].out64[5]);
-    iv[3]  = l32_from_64_S (tmps[gid].out64[5]);
+    iv[0] = h32_from_64_S (tmps[gid].out64[4]);
+    iv[1] = l32_from_64_S (tmps[gid].out64[4]);
+    iv[2] = h32_from_64_S (tmps[gid].out64[5]);
+    iv[3] = l32_from_64_S (tmps[gid].out64[5]);
 
     #define KEYLEN 60
 
-    u32 rek[KEYLEN];
+    u32 ks[KEYLEN];
 
-    AES256_ExpandKey (key, rek, s_te0, s_te1, s_te2, s_te3, s_te4);
-
-    u32 rdk[KEYLEN];
-
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (u32 i = 0; i < KEYLEN; i++) rdk[i] = rek[i];
-
-    AES256_InvertKey (rdk, s_td0, s_td1, s_td2, s_td3, s_td4, s_te0, s_te1, s_te2, s_te3, s_te4);
+    AES256_set_decrypt_key (ks, key, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
 
     /* 144 bytes */
     u32 decrypted[36] = { 0 };
@@ -2490,7 +2343,7 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
       u32 out[4];
 
-      AES256_decrypt (data, out, rdk, s_td0, s_td1, s_td2, s_td3, s_td4);
+      AES256_decrypt (ks, data, out, s_td0, s_td1, s_td2, s_td3, s_td4);
 
       out[0] ^= iv[0];
       out[1] ^= iv[1];

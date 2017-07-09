@@ -213,10 +213,6 @@ __kernel void m11300_loop (__global pw_t *pws, __global const kernel_rule_t *rul
 
 __kernel void m11300_comp (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global bitcoin_wallet_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global bitcoin_wallet_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
-  /**
-   * base
-   */
-
   const u32 gid = get_global_id (0);
   const u32 lid = get_local_id (0);
   const u32 lsz = get_local_size (0);
@@ -224,6 +220,8 @@ __kernel void m11300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   /**
    * aes shared
    */
+
+  #ifdef REAL_SHM
 
   __local u32 s_td0[256];
   __local u32 s_td1[256];
@@ -253,6 +251,22 @@ __kernel void m11300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
+
+  #else
+
+  __constant u32a *s_td0 = td0;
+  __constant u32a *s_td1 = td1;
+  __constant u32a *s_td2 = td2;
+  __constant u32a *s_td3 = td3;
+  __constant u32a *s_td4 = td4;
+
+  __constant u32a *s_te0 = te0;
+  __constant u32a *s_te1 = te1;
+  __constant u32a *s_te2 = te2;
+  __constant u32a *s_te3 = te3;
+  __constant u32a *s_te4 = te4;
+
+  #endif
 
   if (gid >= gid_max) return;
 
@@ -291,11 +305,9 @@ __kernel void m11300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   #define KEYLEN 60
 
-  u32 rk[KEYLEN];
+  u32 ks[KEYLEN];
 
-  AES256_ExpandKey (key, rk, s_te0, s_te1, s_te2, s_te3, s_te4);
-
-  AES256_InvertKey (rk, s_td0, s_td1, s_td2, s_td3, s_td4, s_te0, s_te1, s_te2, s_te3, s_te4);
+  AES256_set_decrypt_key (ks, key, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
 
   u32 out[4];
 
@@ -308,7 +320,7 @@ __kernel void m11300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     data[2] = swap32 (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 2]);
     data[3] = swap32 (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 3]);
 
-    AES256_decrypt (data, out, rk, s_td0, s_td1, s_td2, s_td3, s_td4);
+    AES256_decrypt (ks, data, out, s_td0, s_td1, s_td2, s_td3, s_td4);
 
     out[0] ^= iv[0];
     out[1] ^= iv[1];

@@ -17,25 +17,6 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
-void AES256_decrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
-{
-  u32 in_s[4];
-
-  in_s[0] = swap32_S (in[0]);
-  in_s[1] = swap32_S (in[1]);
-  in_s[2] = swap32_S (in[2]);
-  in_s[3] = swap32_S (in[3]);
-
-  u32 out_s[4];
-
-  aes256_decrypt (ks, in_s, out_s, s_td0, s_td1, s_td2, s_td3, s_td4);
-
-  out[0] = swap32_S (out_s[0]);
-  out[1] = swap32_S (out_s[1]);
-  out[2] = swap32_S (out_s[2]);
-  out[3] = swap32_S (out_s[3]);
-}
-
 void hmac_sha1_run_V (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[5], u32x opad[5], u32x digest[5])
 {
   digest[0] = ipad[0];
@@ -358,9 +339,7 @@ __kernel void m12700_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   u32 ks[KEYLEN];
 
-  aes256_ExpandKey (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_te4);
-
-  aes256_InvertKey (ks, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+  AES256_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
 
   u32 data[4];
 

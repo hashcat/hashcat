@@ -157,12 +157,7 @@ __kernel void m13200_loop (__global pw_t *pws, __global const kernel_rule_t *rul
    * aes decrypt key
    */
 
-  ukey[0] = swap32_S (ukey[0]);
-  ukey[1] = swap32_S (ukey[1]);
-  ukey[2] = swap32_S (ukey[2]);
-  ukey[3] = swap32_S (ukey[3]);
-
-  aes128_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+  AES128_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
 
   const u32 wrapping_rounds = salt_bufs[salt_pos].salt_iter - 1;
 
@@ -179,17 +174,7 @@ __kernel void m13200_loop (__global pw_t *pws, __global const kernel_rule_t *rul
 
     /* AES_ECB(KEK, (MSB XOR (NUMBER_AES_BLOCKS * j + i)) | R[i]) */
 
-    cipher[0] = swap32_S (cipher[0]);
-    cipher[1] = swap32_S (cipher[1]);
-    cipher[2] = swap32_S (cipher[2]);
-    cipher[3] = swap32_S (cipher[3]);
-
-    aes128_decrypt (ks, cipher, cipher, s_td0, s_td1, s_td2, s_td3, s_td4);
-
-    cipher[0] = swap32_S (cipher[0]);
-    cipher[1] = swap32_S (cipher[1]);
-    cipher[2] = swap32_S (cipher[2]);
-    cipher[3] = swap32_S (cipher[3]);
+    AES128_decrypt (ks, cipher, cipher, s_td0, s_td1, s_td2, s_td3, s_td4);
 
     lsb[2] = cipher[2];
     lsb[3] = cipher[3];
@@ -200,17 +185,7 @@ __kernel void m13200_loop (__global pw_t *pws, __global const kernel_rule_t *rul
     cipher[2] = lsb[0];
     cipher[3] = lsb[1];
 
-    cipher[0] = swap32_S (cipher[0]);
-    cipher[1] = swap32_S (cipher[1]);
-    cipher[2] = swap32_S (cipher[2]);
-    cipher[3] = swap32_S (cipher[3]);
-
-    aes128_decrypt (ks, cipher, cipher, s_td0, s_td1, s_td2, s_td3, s_td4);
-
-    cipher[0] = swap32_S (cipher[0]);
-    cipher[1] = swap32_S (cipher[1]);
-    cipher[2] = swap32_S (cipher[2]);
-    cipher[3] = swap32_S (cipher[3]);
+    AES128_decrypt (ks, cipher, cipher, s_td0, s_td1, s_td2, s_td3, s_td4);
 
     lsb[0] = cipher[2];
     lsb[1] = cipher[3];
