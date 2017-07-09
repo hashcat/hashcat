@@ -8,682 +8,10 @@
 #include "inc_hash_functions.cl"
 #include "inc_types.cl"
 #include "inc_common.cl"
+#include "inc_hash_sha256.cl"
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
-
-__constant u64a keccakf_rndc[24] =
-{
-  0x0000000000000001, 0x0000000000008082, 0x800000000000808a,
-  0x8000000080008000, 0x000000000000808b, 0x0000000080000001,
-  0x8000000080008081, 0x8000000000008009, 0x000000000000008a,
-  0x0000000000000088, 0x0000000080008009, 0x000000008000000a,
-  0x000000008000808b, 0x800000000000008b, 0x8000000000008089,
-  0x8000000000008003, 0x8000000000008002, 0x8000000000000080,
-  0x000000000000800a, 0x800000008000000a, 0x8000000080008081,
-  0x8000000000008080, 0x0000000080000001, 0x8000000080008008
-};
-
-#ifndef KECCAK_ROUNDS
-#define KECCAK_ROUNDS 24
-#endif
-
-#define Theta1(s) (st[0 + s] ^ st[5 + s] ^ st[10 + s] ^ st[15 + s] ^ st[20 + s])
-
-#define Theta2(s)               \
-{                               \
-  st[ 0 + s] ^= t;              \
-  st[ 5 + s] ^= t;              \
-  st[10 + s] ^= t;              \
-  st[15 + s] ^= t;              \
-  st[20 + s] ^= t;              \
-}
-
-#define Rho_Pi(s)               \
-{                               \
-  u32 j = keccakf_piln[s];      \
-  u32 k = keccakf_rotc[s];      \
-  bc0 = st[j];                  \
-  st[j] = rotl64_S (t, k);      \
-  t = bc0;                      \
-}
-
-#define Chi(s)                  \
-{                               \
-  bc0 = st[0 + s];              \
-  bc1 = st[1 + s];              \
-  bc2 = st[2 + s];              \
-  bc3 = st[3 + s];              \
-  bc4 = st[4 + s];              \
-  st[0 + s] ^= ~bc1 & bc2;      \
-  st[1 + s] ^= ~bc2 & bc3;      \
-  st[2 + s] ^= ~bc3 & bc4;      \
-  st[3 + s] ^= ~bc4 & bc0;      \
-  st[4 + s] ^= ~bc0 & bc1;      \
-}
-
-__constant u32a k_sha256[64] =
-{
-  SHA256C00, SHA256C01, SHA256C02, SHA256C03,
-  SHA256C04, SHA256C05, SHA256C06, SHA256C07,
-  SHA256C08, SHA256C09, SHA256C0a, SHA256C0b,
-  SHA256C0c, SHA256C0d, SHA256C0e, SHA256C0f,
-  SHA256C10, SHA256C11, SHA256C12, SHA256C13,
-  SHA256C14, SHA256C15, SHA256C16, SHA256C17,
-  SHA256C18, SHA256C19, SHA256C1a, SHA256C1b,
-  SHA256C1c, SHA256C1d, SHA256C1e, SHA256C1f,
-  SHA256C20, SHA256C21, SHA256C22, SHA256C23,
-  SHA256C24, SHA256C25, SHA256C26, SHA256C27,
-  SHA256C28, SHA256C29, SHA256C2a, SHA256C2b,
-  SHA256C2c, SHA256C2d, SHA256C2e, SHA256C2f,
-  SHA256C30, SHA256C31, SHA256C32, SHA256C33,
-  SHA256C34, SHA256C35, SHA256C36, SHA256C37,
-  SHA256C38, SHA256C39, SHA256C3a, SHA256C3b,
-  SHA256C3c, SHA256C3d, SHA256C3e, SHA256C3f,
-};
-
-void keccak_transform_S (u64 st[25])
-{
-  const u8 keccakf_rotc[24] =
-  {
-     1,  3,  6, 10, 15, 21, 28, 36, 45, 55,  2, 14,
-    27, 41, 56,  8, 25, 43, 62, 18, 39, 61, 20, 44
-  };
-
-  const u8 keccakf_piln[24] =
-  {
-    10,  7, 11, 17, 18,  3,  5, 16,  8, 21, 24,  4,
-    15, 23, 19, 13, 12,  2, 20, 14, 22,  9,  6,  1
-  };
-
-  /**
-   * Keccak
-   */
-
-  int round;
-
-  for (round = 0; round < KECCAK_ROUNDS; round++)
-  {
-    // Theta
-
-    u64 bc0 = Theta1 (0);
-    u64 bc1 = Theta1 (1);
-    u64 bc2 = Theta1 (2);
-    u64 bc3 = Theta1 (3);
-    u64 bc4 = Theta1 (4);
-
-    u64 t;
-
-    t = bc4 ^ rotl64_S (bc1, 1); Theta2 (0);
-    t = bc0 ^ rotl64_S (bc2, 1); Theta2 (1);
-    t = bc1 ^ rotl64_S (bc3, 1); Theta2 (2);
-    t = bc2 ^ rotl64_S (bc4, 1); Theta2 (3);
-    t = bc3 ^ rotl64_S (bc0, 1); Theta2 (4);
-
-    // Rho Pi
-
-    t = st[1];
-
-    Rho_Pi (0);
-    Rho_Pi (1);
-    Rho_Pi (2);
-    Rho_Pi (3);
-    Rho_Pi (4);
-    Rho_Pi (5);
-    Rho_Pi (6);
-    Rho_Pi (7);
-    Rho_Pi (8);
-    Rho_Pi (9);
-    Rho_Pi (10);
-    Rho_Pi (11);
-    Rho_Pi (12);
-    Rho_Pi (13);
-    Rho_Pi (14);
-    Rho_Pi (15);
-    Rho_Pi (16);
-    Rho_Pi (17);
-    Rho_Pi (18);
-    Rho_Pi (19);
-    Rho_Pi (20);
-    Rho_Pi (21);
-    Rho_Pi (22);
-    Rho_Pi (23);
-
-    //  Chi
-
-    Chi (0);
-    Chi (5);
-    Chi (10);
-    Chi (15);
-    Chi (20);
-
-    //  Iota
-
-    st[0] ^= keccakf_rndc[round];
-  }
-}
-
-void sha256_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[8])
-{
-  u32 a = digest[0];
-  u32 b = digest[1];
-  u32 c = digest[2];
-  u32 d = digest[3];
-  u32 e = digest[4];
-  u32 f = digest[5];
-  u32 g = digest[6];
-  u32 h = digest[7];
-
-  u32 w0_t = w0[0];
-  u32 w1_t = w0[1];
-  u32 w2_t = w0[2];
-  u32 w3_t = w0[3];
-  u32 w4_t = w1[0];
-  u32 w5_t = w1[1];
-  u32 w6_t = w1[2];
-  u32 w7_t = w1[3];
-  u32 w8_t = w2[0];
-  u32 w9_t = w2[1];
-  u32 wa_t = w2[2];
-  u32 wb_t = w2[3];
-  u32 wc_t = w3[0];
-  u32 wd_t = w3[1];
-  u32 we_t = w3[2];
-  u32 wf_t = w3[3];
-
-  #define ROUND_EXPAND()                            \
-  {                                                 \
-    w0_t = SHA256_EXPAND (we_t, w9_t, w1_t, w0_t);  \
-    w1_t = SHA256_EXPAND (wf_t, wa_t, w2_t, w1_t);  \
-    w2_t = SHA256_EXPAND (w0_t, wb_t, w3_t, w2_t);  \
-    w3_t = SHA256_EXPAND (w1_t, wc_t, w4_t, w3_t);  \
-    w4_t = SHA256_EXPAND (w2_t, wd_t, w5_t, w4_t);  \
-    w5_t = SHA256_EXPAND (w3_t, we_t, w6_t, w5_t);  \
-    w6_t = SHA256_EXPAND (w4_t, wf_t, w7_t, w6_t);  \
-    w7_t = SHA256_EXPAND (w5_t, w0_t, w8_t, w7_t);  \
-    w8_t = SHA256_EXPAND (w6_t, w1_t, w9_t, w8_t);  \
-    w9_t = SHA256_EXPAND (w7_t, w2_t, wa_t, w9_t);  \
-    wa_t = SHA256_EXPAND (w8_t, w3_t, wb_t, wa_t);  \
-    wb_t = SHA256_EXPAND (w9_t, w4_t, wc_t, wb_t);  \
-    wc_t = SHA256_EXPAND (wa_t, w5_t, wd_t, wc_t);  \
-    wd_t = SHA256_EXPAND (wb_t, w6_t, we_t, wd_t);  \
-    we_t = SHA256_EXPAND (wc_t, w7_t, wf_t, we_t);  \
-    wf_t = SHA256_EXPAND (wd_t, w8_t, w0_t, wf_t);  \
-  }
-
-  #define ROUND_STEP(i)                                                                   \
-  {                                                                                       \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, a, b, c, d, e, f, g, h, w0_t, k_sha256[i +  0]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, h, a, b, c, d, e, f, g, w1_t, k_sha256[i +  1]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, g, h, a, b, c, d, e, f, w2_t, k_sha256[i +  2]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, f, g, h, a, b, c, d, e, w3_t, k_sha256[i +  3]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, e, f, g, h, a, b, c, d, w4_t, k_sha256[i +  4]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, d, e, f, g, h, a, b, c, w5_t, k_sha256[i +  5]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, c, d, e, f, g, h, a, b, w6_t, k_sha256[i +  6]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, b, c, d, e, f, g, h, a, w7_t, k_sha256[i +  7]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, a, b, c, d, e, f, g, h, w8_t, k_sha256[i +  8]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, h, a, b, c, d, e, f, g, w9_t, k_sha256[i +  9]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, g, h, a, b, c, d, e, f, wa_t, k_sha256[i + 10]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, f, g, h, a, b, c, d, e, wb_t, k_sha256[i + 11]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, e, f, g, h, a, b, c, d, wc_t, k_sha256[i + 12]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, d, e, f, g, h, a, b, c, wd_t, k_sha256[i + 13]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, c, d, e, f, g, h, a, b, we_t, k_sha256[i + 14]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, b, c, d, e, f, g, h, a, wf_t, k_sha256[i + 15]); \
-  }
-
-  ROUND_STEP (0);
-
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (int i = 16; i < 64; i += 16)
-  {
-    ROUND_EXPAND (); ROUND_STEP (i);
-  }
-
-  digest[0] += a;
-  digest[1] += b;
-  digest[2] += c;
-  digest[3] += d;
-  digest[4] += e;
-  digest[5] += f;
-  digest[6] += g;
-  digest[7] += h;
-}
-
-void hmac_sha256_pad (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[8], u32 opad[8])
-{
-  w0[0] = w0[0] ^ 0x36363636;
-  w0[1] = w0[1] ^ 0x36363636;
-  w0[2] = w0[2] ^ 0x36363636;
-  w0[3] = w0[3] ^ 0x36363636;
-  w1[0] = w1[0] ^ 0x36363636;
-  w1[1] = w1[1] ^ 0x36363636;
-  w1[2] = w1[2] ^ 0x36363636;
-  w1[3] = w1[3] ^ 0x36363636;
-  w2[0] = w2[0] ^ 0x36363636;
-  w2[1] = w2[1] ^ 0x36363636;
-  w2[2] = w2[2] ^ 0x36363636;
-  w2[3] = w2[3] ^ 0x36363636;
-  w3[0] = w3[0] ^ 0x36363636;
-  w3[1] = w3[1] ^ 0x36363636;
-  w3[2] = w3[2] ^ 0x36363636;
-  w3[3] = w3[3] ^ 0x36363636;
-
-  ipad[0] = SHA256M_A;
-  ipad[1] = SHA256M_B;
-  ipad[2] = SHA256M_C;
-  ipad[3] = SHA256M_D;
-  ipad[4] = SHA256M_E;
-  ipad[5] = SHA256M_F;
-  ipad[6] = SHA256M_G;
-  ipad[7] = SHA256M_H;
-
-  sha256_transform (w0, w1, w2, w3, ipad);
-
-  w0[0] = w0[0] ^ 0x6a6a6a6a;
-  w0[1] = w0[1] ^ 0x6a6a6a6a;
-  w0[2] = w0[2] ^ 0x6a6a6a6a;
-  w0[3] = w0[3] ^ 0x6a6a6a6a;
-  w1[0] = w1[0] ^ 0x6a6a6a6a;
-  w1[1] = w1[1] ^ 0x6a6a6a6a;
-  w1[2] = w1[2] ^ 0x6a6a6a6a;
-  w1[3] = w1[3] ^ 0x6a6a6a6a;
-  w2[0] = w2[0] ^ 0x6a6a6a6a;
-  w2[1] = w2[1] ^ 0x6a6a6a6a;
-  w2[2] = w2[2] ^ 0x6a6a6a6a;
-  w2[3] = w2[3] ^ 0x6a6a6a6a;
-  w3[0] = w3[0] ^ 0x6a6a6a6a;
-  w3[1] = w3[1] ^ 0x6a6a6a6a;
-  w3[2] = w3[2] ^ 0x6a6a6a6a;
-  w3[3] = w3[3] ^ 0x6a6a6a6a;
-
-  opad[0] = SHA256M_A;
-  opad[1] = SHA256M_B;
-  opad[2] = SHA256M_C;
-  opad[3] = SHA256M_D;
-  opad[4] = SHA256M_E;
-  opad[5] = SHA256M_F;
-  opad[6] = SHA256M_G;
-  opad[7] = SHA256M_H;
-
-  sha256_transform (w0, w1, w2, w3, opad);
-}
-
-void hmac_sha256_run (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 ipad[8], u32 opad[8], u32 digest[8])
-{
-  digest[0] = ipad[0];
-  digest[1] = ipad[1];
-  digest[2] = ipad[2];
-  digest[3] = ipad[3];
-  digest[4] = ipad[4];
-  digest[5] = ipad[5];
-  digest[6] = ipad[6];
-  digest[7] = ipad[7];
-
-  sha256_transform (w0, w1, w2, w3, digest);
-
-  w0[0] = digest[0];
-  w0[1] = digest[1];
-  w0[2] = digest[2];
-  w0[3] = digest[3];
-  w1[0] = digest[4];
-  w1[1] = digest[5];
-  w1[2] = digest[6];
-  w1[3] = digest[7];
-  w2[0] = 0x80000000;
-  w2[1] = 0;
-  w2[2] = 0;
-  w2[3] = 0;
-  w3[0] = 0;
-  w3[1] = 0;
-  w3[2] = 0;
-  w3[3] = (64 + 32) * 8;
-
-  digest[0] = opad[0];
-  digest[1] = opad[1];
-  digest[2] = opad[2];
-  digest[3] = opad[3];
-  digest[4] = opad[4];
-  digest[5] = opad[5];
-  digest[6] = opad[6];
-  digest[7] = opad[7];
-
-  sha256_transform (w0, w1, w2, w3, digest);
-}
-
-void memcat8 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append[2])
-{
-  switch (block_len)
-  {
-    case 0:
-      block0[0] = append[0];
-      block0[1] = append[1];
-      break;
-
-    case 1:
-      block0[0] = block0[0]       | append[0] <<  8;
-      block0[1] = append[0] >> 24 | append[1] <<  8;
-      block0[2] = append[1] >> 24;
-      break;
-
-    case 2:
-      block0[0] = block0[0]       | append[0] << 16;
-      block0[1] = append[0] >> 16 | append[1] << 16;
-      block0[2] = append[1] >> 16;
-      break;
-
-    case 3:
-      block0[0] = block0[0]       | append[0] << 24;
-      block0[1] = append[0] >>  8 | append[1] << 24;
-      block0[2] = append[1] >>  8;
-      break;
-
-    case 4:
-      block0[1] = append[0];
-      block0[2] = append[1];
-      break;
-
-    case 5:
-      block0[1] = block0[1]       | append[0] <<  8;
-      block0[2] = append[0] >> 24 | append[1] <<  8;
-      block0[3] = append[1] >> 24;
-      break;
-
-    case 6:
-      block0[1] = block0[1]       | append[0] << 16;
-      block0[2] = append[0] >> 16 | append[1] << 16;
-      block0[3] = append[1] >> 16;
-      break;
-
-    case 7:
-      block0[1] = block0[1]       | append[0] << 24;
-      block0[2] = append[0] >>  8 | append[1] << 24;
-      block0[3] = append[1] >>  8;
-      break;
-
-    case 8:
-      block0[2] = append[0];
-      block0[3] = append[1];
-      break;
-
-    case 9:
-      block0[2] = block0[2]       | append[0] <<  8;
-      block0[3] = append[0] >> 24 | append[1] <<  8;
-      block1[0] = append[1] >> 24;
-      break;
-
-    case 10:
-      block0[2] = block0[2]       | append[0] << 16;
-      block0[3] = append[0] >> 16 | append[1] << 16;
-      block1[0] = append[1] >> 16;
-      break;
-
-    case 11:
-      block0[2] = block0[2]       | append[0] << 24;
-      block0[3] = append[0] >>  8 | append[1] << 24;
-      block1[0] = append[1] >>  8;
-      break;
-
-    case 12:
-      block0[3] = append[0];
-      block1[0] = append[1];
-      break;
-
-    case 13:
-      block0[3] = block0[3]       | append[0] <<  8;
-      block1[0] = append[0] >> 24 | append[1] <<  8;
-      block1[1] = append[1] >> 24;
-      break;
-
-    case 14:
-      block0[3] = block0[3]       | append[0] << 16;
-      block1[0] = append[0] >> 16 | append[1] << 16;
-      block1[1] = append[1] >> 16;
-      break;
-
-    case 15:
-      block0[3] = block0[3]       | append[0] << 24;
-      block1[0] = append[0] >>  8 | append[1] << 24;
-      block1[1] = append[1] >>  8;
-      break;
-
-    case 16:
-      block1[0] = append[0];
-      block1[1] = append[1];
-      break;
-
-    case 17:
-      block1[0] = block1[0]       | append[0] <<  8;
-      block1[1] = append[0] >> 24 | append[1] <<  8;
-      block1[2] = append[1] >> 24;
-      break;
-
-    case 18:
-      block1[0] = block1[0]       | append[0] << 16;
-      block1[1] = append[0] >> 16 | append[1] << 16;
-      block1[2] = append[1] >> 16;
-      break;
-
-    case 19:
-      block1[0] = block1[0]       | append[0] << 24;
-      block1[1] = append[0] >>  8 | append[1] << 24;
-      block1[2] = append[1] >>  8;
-      break;
-
-    case 20:
-      block1[1] = append[0];
-      block1[2] = append[1];
-      break;
-
-    case 21:
-      block1[1] = block1[1]       | append[0] <<  8;
-      block1[2] = append[0] >> 24 | append[1] <<  8;
-      block1[3] = append[1] >> 24;
-      break;
-
-    case 22:
-      block1[1] = block1[1]       | append[0] << 16;
-      block1[2] = append[0] >> 16 | append[1] << 16;
-      block1[3] = append[1] >> 16;
-      break;
-
-    case 23:
-      block1[1] = block1[1]       | append[0] << 24;
-      block1[2] = append[0] >>  8 | append[1] << 24;
-      block1[3] = append[1] >>  8;
-      break;
-
-    case 24:
-      block1[2] = append[0];
-      block1[3] = append[1];
-      break;
-
-    case 25:
-      block1[2] = block1[2]       | append[0] <<  8;
-      block1[3] = append[0] >> 24 | append[1] <<  8;
-      block2[0] = append[1] >> 24;
-      break;
-
-    case 26:
-      block1[2] = block1[2]       | append[0] << 16;
-      block1[3] = append[0] >> 16 | append[1] << 16;
-      block2[0] = append[1] >> 16;
-      break;
-
-    case 27:
-      block1[2] = block1[2]       | append[0] << 24;
-      block1[3] = append[0] >>  8 | append[1] << 24;
-      block2[0] = append[1] >>  8;
-      break;
-
-    case 28:
-      block1[3] = append[0];
-      block2[0] = append[1];
-      break;
-
-    case 29:
-      block1[3] = block1[3]       | append[0] <<  8;
-      block2[0] = append[0] >> 24 | append[1] <<  8;
-      block2[1] = append[1] >> 24;
-      break;
-
-    case 30:
-      block1[3] = block1[3]       | append[0] << 16;
-      block2[0] = append[0] >> 16 | append[1] << 16;
-      block2[1] = append[1] >> 16;
-      break;
-
-    case 31:
-      block1[3] = block1[3]       | append[0] << 24;
-      block2[0] = append[0] >>  8 | append[1] << 24;
-      block2[1] = append[1] >>  8;
-      break;
-
-    case 32:
-      block2[0] = append[0];
-      block2[1] = append[1];
-      break;
-
-    case 33:
-      block2[0] = block2[0]       | append[0] <<  8;
-      block2[1] = append[0] >> 24 | append[1] <<  8;
-      block2[2] = append[1] >> 24;
-      break;
-
-    case 34:
-      block2[0] = block2[0]       | append[0] << 16;
-      block2[1] = append[0] >> 16 | append[1] << 16;
-      block2[2] = append[1] >> 16;
-      break;
-
-    case 35:
-      block2[0] = block2[0]       | append[0] << 24;
-      block2[1] = append[0] >>  8 | append[1] << 24;
-      block2[2] = append[1] >>  8;
-      break;
-
-    case 36:
-      block2[1] = append[0];
-      block2[2] = append[1];
-      break;
-
-    case 37:
-      block2[1] = block2[1]       | append[0] <<  8;
-      block2[2] = append[0] >> 24 | append[1] <<  8;
-      block2[3] = append[1] >> 24;
-      break;
-
-    case 38:
-      block2[1] = block2[1]       | append[0] << 16;
-      block2[2] = append[0] >> 16 | append[1] << 16;
-      block2[3] = append[1] >> 16;
-      break;
-
-    case 39:
-      block2[1] = block2[1]       | append[0] << 24;
-      block2[2] = append[0] >>  8 | append[1] << 24;
-      block2[3] = append[1] >>  8;
-      break;
-
-    case 40:
-      block2[2] = append[0];
-      block2[3] = append[1];
-      break;
-
-    case 41:
-      block2[2] = block2[2]       | append[0] <<  8;
-      block2[3] = append[0] >> 24 | append[1] <<  8;
-      block3[0] = append[1] >> 24;
-      break;
-
-    case 42:
-      block2[2] = block2[2]       | append[0] << 16;
-      block2[3] = append[0] >> 16 | append[1] << 16;
-      block3[0] = append[1] >> 16;
-      break;
-
-    case 43:
-      block2[2] = block2[2]       | append[0] << 24;
-      block2[3] = append[0] >>  8 | append[1] << 24;
-      block3[0] = append[1] >>  8;
-      break;
-
-    case 44:
-      block2[3] = append[0];
-      block3[0] = append[1];
-      break;
-
-    case 45:
-      block2[3] = block2[3]       | append[0] <<  8;
-      block3[0] = append[0] >> 24 | append[1] <<  8;
-      block3[1] = append[1] >> 24;
-      break;
-
-    case 46:
-      block2[3] = block2[3]       | append[0] << 16;
-      block3[0] = append[0] >> 16 | append[1] << 16;
-      block3[1] = append[1] >> 16;
-      break;
-
-    case 47:
-      block2[3] = block2[3]       | append[0] << 24;
-      block3[0] = append[0] >>  8 | append[1] << 24;
-      block3[1] = append[1] >>  8;
-      break;
-
-    case 48:
-      block3[0] = append[0];
-      block3[1] = append[1];
-      break;
-
-    case 49:
-      block3[0] = block3[0]       | append[0] <<  8;
-      block3[1] = append[0] >> 24 | append[1] <<  8;
-      block3[2] = append[1] >> 24;
-      break;
-
-    case 50:
-      block3[0] = block3[0]       | append[0] << 16;
-      block3[1] = append[0] >> 16 | append[1] << 16;
-      block3[2] = append[1] >> 16;
-      break;
-
-    case 51:
-      block3[0] = block3[0]       | append[0] << 24;
-      block3[1] = append[0] >>  8 | append[1] << 24;
-      block3[2] = append[1] >>  8;
-      break;
-
-    case 52:
-      block3[1] = append[0];
-      block3[2] = append[1];
-      break;
-
-    case 53:
-      block3[1] = block3[1]       | append[0] <<  8;
-      block3[2] = append[0] >> 24 | append[1] <<  8;
-      block3[3] = append[1] >> 24;
-      break;
-
-    case 54:
-      block3[1] = block3[1]       | append[0] << 16;
-      block3[2] = append[0] >> 16 | append[1] << 16;
-      block3[3] = append[1] >> 16;
-      break;
-
-    case 55:
-      block3[1] = block3[1]       | append[0] << 24;
-      block3[2] = append[0] >>  8 | append[1] << 24;
-      block3[3] = append[1] >>  8;
-      break;
-
-    case 56:
-      block3[2] = append[0];
-      block3[3] = append[1];
-      break;
-  }
-}
 
 uint4 swap32_4 (uint4 v)
 {
@@ -879,6 +207,137 @@ void scrypt_smix (uint4 *X, uint4 *T, __global uint4 *V0, __global uint4 *V1, __
   }
 }
 
+#ifndef KECCAK_ROUNDS
+#define KECCAK_ROUNDS 24
+#endif
+
+#define Theta1(s) (st[0 + s] ^ st[5 + s] ^ st[10 + s] ^ st[15 + s] ^ st[20 + s])
+
+#define Theta2(s)               \
+{                               \
+  st[ 0 + s] ^= t;              \
+  st[ 5 + s] ^= t;              \
+  st[10 + s] ^= t;              \
+  st[15 + s] ^= t;              \
+  st[20 + s] ^= t;              \
+}
+
+#define Rho_Pi(s)               \
+{                               \
+  u32 j = keccakf_piln[s];      \
+  u32 k = keccakf_rotc[s];      \
+  bc0 = st[j];                  \
+  st[j] = rotl64_S (t, k);      \
+  t = bc0;                      \
+}
+
+#define Chi(s)                  \
+{                               \
+  bc0 = st[0 + s];              \
+  bc1 = st[1 + s];              \
+  bc2 = st[2 + s];              \
+  bc3 = st[3 + s];              \
+  bc4 = st[4 + s];              \
+  st[0 + s] ^= ~bc1 & bc2;      \
+  st[1 + s] ^= ~bc2 & bc3;      \
+  st[2 + s] ^= ~bc3 & bc4;      \
+  st[3 + s] ^= ~bc4 & bc0;      \
+  st[4 + s] ^= ~bc0 & bc1;      \
+}
+
+__constant u64a keccakf_rndc[24] =
+{
+  0x0000000000000001, 0x0000000000008082, 0x800000000000808a,
+  0x8000000080008000, 0x000000000000808b, 0x0000000080000001,
+  0x8000000080008081, 0x8000000000008009, 0x000000000000008a,
+  0x0000000000000088, 0x0000000080008009, 0x000000008000000a,
+  0x000000008000808b, 0x800000000000008b, 0x8000000000008089,
+  0x8000000000008003, 0x8000000000008002, 0x8000000000000080,
+  0x000000000000800a, 0x800000008000000a, 0x8000000080008081,
+  0x8000000000008080, 0x0000000080000001, 0x8000000080008008
+};
+
+void keccak_transform_S (u64 st[25])
+{
+  const u8 keccakf_rotc[24] =
+  {
+     1,  3,  6, 10, 15, 21, 28, 36, 45, 55,  2, 14,
+    27, 41, 56,  8, 25, 43, 62, 18, 39, 61, 20, 44
+  };
+
+  const u8 keccakf_piln[24] =
+  {
+    10,  7, 11, 17, 18,  3,  5, 16,  8, 21, 24,  4,
+    15, 23, 19, 13, 12,  2, 20, 14, 22,  9,  6,  1
+  };
+
+  /**
+   * Keccak
+   */
+
+  int round;
+
+  for (round = 0; round < KECCAK_ROUNDS; round++)
+  {
+    // Theta
+
+    u64 bc0 = Theta1 (0);
+    u64 bc1 = Theta1 (1);
+    u64 bc2 = Theta1 (2);
+    u64 bc3 = Theta1 (3);
+    u64 bc4 = Theta1 (4);
+
+    u64 t;
+
+    t = bc4 ^ rotl64_S (bc1, 1); Theta2 (0);
+    t = bc0 ^ rotl64_S (bc2, 1); Theta2 (1);
+    t = bc1 ^ rotl64_S (bc3, 1); Theta2 (2);
+    t = bc2 ^ rotl64_S (bc4, 1); Theta2 (3);
+    t = bc3 ^ rotl64_S (bc0, 1); Theta2 (4);
+
+    // Rho Pi
+
+    t = st[1];
+
+    Rho_Pi (0);
+    Rho_Pi (1);
+    Rho_Pi (2);
+    Rho_Pi (3);
+    Rho_Pi (4);
+    Rho_Pi (5);
+    Rho_Pi (6);
+    Rho_Pi (7);
+    Rho_Pi (8);
+    Rho_Pi (9);
+    Rho_Pi (10);
+    Rho_Pi (11);
+    Rho_Pi (12);
+    Rho_Pi (13);
+    Rho_Pi (14);
+    Rho_Pi (15);
+    Rho_Pi (16);
+    Rho_Pi (17);
+    Rho_Pi (18);
+    Rho_Pi (19);
+    Rho_Pi (20);
+    Rho_Pi (21);
+    Rho_Pi (22);
+    Rho_Pi (23);
+
+    //  Chi
+
+    Chi (0);
+    Chi (5);
+    Chi (10);
+    Chi (15);
+    Chi (20);
+
+    //  Iota
+
+    st[0] ^= keccakf_rndc[round];
+  }
+}
+
 __kernel void m15700_init (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global scrypt_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const ethereum_scrypt_t *esalt_bufs, __global u32 *d_return_buf, __global uint4 *d_scryptV0_buf, __global uint4 *d_scryptV1_buf, __global uint4 *d_scryptV2_buf, __global uint4 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
   /**
@@ -890,89 +349,62 @@ __kernel void m15700_init (__global pw_t *pws, __global const kernel_rule_t *rul
   if (gid >= gid_max) return;
 
   u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
 
   w0[0] = pws[gid].i[ 0];
   w0[1] = pws[gid].i[ 1];
   w0[2] = pws[gid].i[ 2];
   w0[3] = pws[gid].i[ 3];
-
-  u32 w1[4];
-
   w1[0] = pws[gid].i[ 4];
   w1[1] = pws[gid].i[ 5];
   w1[2] = pws[gid].i[ 6];
   w1[3] = pws[gid].i[ 7];
-
-  u32 w2[4];
-
   w2[0] = pws[gid].i[ 8];
   w2[1] = pws[gid].i[ 9];
   w2[2] = pws[gid].i[10];
   w2[3] = pws[gid].i[11];
-
-  u32 w3[4];
-
   w3[0] = pws[gid].i[12];
   w3[1] = pws[gid].i[13];
   w3[2] = pws[gid].i[14];
   w3[3] = pws[gid].i[15];
 
-  /**
-   * salt
-   */
+  w0[0] = swap32_S (w0[0]);
+  w0[1] = swap32_S (w0[1]);
+  w0[2] = swap32_S (w0[2]);
+  w0[3] = swap32_S (w0[3]);
+  w1[0] = swap32_S (w1[0]);
+  w1[1] = swap32_S (w1[1]);
+  w1[2] = swap32_S (w1[2]);
+  w1[3] = swap32_S (w1[3]);
+  w2[0] = swap32_S (w2[0]);
+  w2[1] = swap32_S (w2[1]);
+  w2[2] = swap32_S (w2[2]);
+  w2[3] = swap32_S (w2[3]);
+  w3[0] = swap32_S (w3[0]);
+  w3[1] = swap32_S (w3[1]);
+  w3[2] = swap32_S (w3[2]);
+  w3[3] = swap32_S (w3[3]);
 
-  u32 salt_buf0[4];
+  sha256_hmac_ctx_t sha256_hmac_ctx;
 
-  salt_buf0[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf0[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf0[2] = salt_bufs[salt_pos].salt_buf[2];
-  salt_buf0[3] = salt_bufs[salt_pos].salt_buf[3];
+  sha256_hmac_init (&sha256_hmac_ctx, w0, w1, w2, w3);
 
-  u32 salt_buf1[4];
+  sha256_hmac_update_global_swap (&sha256_hmac_ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
 
-  salt_buf1[0] = salt_bufs[salt_pos].salt_buf[4];
-  salt_buf1[1] = salt_bufs[salt_pos].salt_buf[5];
-  salt_buf1[2] = salt_bufs[salt_pos].salt_buf[6];
-  salt_buf1[3] = salt_bufs[salt_pos].salt_buf[7];
-
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
-
-  /**
-   * 1st pbkdf2, creates B
-   */
-
-  w0[0] = swap32 (w0[0]);
-  w0[1] = swap32 (w0[1]);
-  w0[2] = swap32 (w0[2]);
-  w0[3] = swap32 (w0[3]);
-  w1[0] = swap32 (w1[0]);
-  w1[1] = swap32 (w1[1]);
-  w1[2] = swap32 (w1[2]);
-  w1[3] = swap32 (w1[3]);
-  w2[0] = swap32 (w2[0]);
-  w2[1] = swap32 (w2[1]);
-  w2[2] = swap32 (w2[2]);
-  w2[3] = swap32 (w2[3]);
-  w3[0] = swap32 (w3[0]);
-  w3[1] = swap32 (w3[1]);
-  w3[2] = swap32 (w3[2]);
-  w3[3] = swap32 (w3[3]);
-
-  u32 ipad[8];
-  u32 opad[8];
-
-  hmac_sha256_pad (w0, w1, w2, w3, ipad, opad);
-
-  for (u32 i = 0, j = 0, k = 0; i < SCRYPT_CNT; i += 8, j += 1, k += 2)
+  for (u32 i = 0, j = 1, k = 0; i < SCRYPT_CNT; i += 8, j += 1, k += 2)
   {
-    w0[0] = salt_buf0[0];
-    w0[1] = salt_buf0[1];
-    w0[2] = salt_buf0[2];
-    w0[3] = salt_buf0[3];
-    w1[0] = salt_buf1[0];
-    w1[1] = salt_buf1[1];
-    w1[2] = salt_buf1[2];
-    w1[3] = salt_buf1[3];
+    sha256_hmac_ctx_t sha256_hmac_ctx2 = sha256_hmac_ctx;
+
+    w0[0] = j;
+    w0[1] = 0;
+    w0[2] = 0;
+    w0[3] = 0;
+    w1[0] = 0;
+    w1[1] = 0;
+    w1[2] = 0;
+    w1[3] = 0;
     w2[0] = 0;
     w2[1] = 0;
     w2[2] = 0;
@@ -982,33 +414,20 @@ __kernel void m15700_init (__global pw_t *pws, __global const kernel_rule_t *rul
     w3[2] = 0;
     w3[3] = 0;
 
-    u32 append[2];
+    sha256_hmac_update_64 (&sha256_hmac_ctx2, w0, w1, w2, w3, 4);
 
-    append[0] = swap32 (j + 1);
-    append[1] = 0x80;
-
-    memcat8 (w0, w1, w2, w3, salt_len, append);
-
-    w0[0] = swap32 (w0[0]);
-    w0[1] = swap32 (w0[1]);
-    w0[2] = swap32 (w0[2]);
-    w0[3] = swap32 (w0[3]);
-    w1[0] = swap32 (w1[0]);
-    w1[1] = swap32 (w1[1]);
-    w1[2] = swap32 (w1[2]);
-    w1[3] = swap32 (w1[3]);
-    w2[0] = swap32 (w2[0]);
-    w2[1] = swap32 (w2[1]);
-    w2[2] = swap32 (w2[2]);
-    w2[3] = swap32 (w2[3]);
-    w3[0] = swap32 (w3[0]);
-    w3[1] = swap32 (w3[1]);
-    w3[2] = 0;
-    w3[3] = (64 + salt_len + 4) * 8;
+    sha256_hmac_final (&sha256_hmac_ctx2);
 
     u32 digest[8];
 
-    hmac_sha256_run (w0, w1, w2, w3, ipad, opad, digest);
+    digest[0] = sha256_hmac_ctx2.opad.h[0];
+    digest[1] = sha256_hmac_ctx2.opad.h[1];
+    digest[2] = sha256_hmac_ctx2.opad.h[2];
+    digest[3] = sha256_hmac_ctx2.opad.h[3];
+    digest[4] = sha256_hmac_ctx2.opad.h[4];
+    digest[5] = sha256_hmac_ctx2.opad.h[5];
+    digest[6] = sha256_hmac_ctx2.opad.h[6];
+    digest[7] = sha256_hmac_ctx2.opad.h[7];
 
     const uint4 tmp0 = (uint4) (digest[0], digest[1], digest[2], digest[3]);
     const uint4 tmp1 = (uint4) (digest[4], digest[5], digest[6], digest[7]);
@@ -1065,58 +484,51 @@ __kernel void m15700_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   if (gid >= gid_max) return;
 
   u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
 
   w0[0] = pws[gid].i[ 0];
   w0[1] = pws[gid].i[ 1];
   w0[2] = pws[gid].i[ 2];
   w0[3] = pws[gid].i[ 3];
-
-  u32 w1[4];
-
   w1[0] = pws[gid].i[ 4];
   w1[1] = pws[gid].i[ 5];
   w1[2] = pws[gid].i[ 6];
   w1[3] = pws[gid].i[ 7];
-
-  u32 w2[4];
-
   w2[0] = pws[gid].i[ 8];
   w2[1] = pws[gid].i[ 9];
   w2[2] = pws[gid].i[10];
   w2[3] = pws[gid].i[11];
-
-  u32 w3[4];
-
   w3[0] = pws[gid].i[12];
   w3[1] = pws[gid].i[13];
   w3[2] = pws[gid].i[14];
   w3[3] = pws[gid].i[15];
 
+  w0[0] = swap32_S (w0[0]);
+  w0[1] = swap32_S (w0[1]);
+  w0[2] = swap32_S (w0[2]);
+  w0[3] = swap32_S (w0[3]);
+  w1[0] = swap32_S (w1[0]);
+  w1[1] = swap32_S (w1[1]);
+  w1[2] = swap32_S (w1[2]);
+  w1[3] = swap32_S (w1[3]);
+  w2[0] = swap32_S (w2[0]);
+  w2[1] = swap32_S (w2[1]);
+  w2[2] = swap32_S (w2[2]);
+  w2[3] = swap32_S (w2[3]);
+  w3[0] = swap32_S (w3[0]);
+  w3[1] = swap32_S (w3[1]);
+  w3[2] = swap32_S (w3[2]);
+  w3[3] = swap32_S (w3[3]);
+
   /**
    * 2nd pbkdf2, creates B
    */
 
-  w0[0] = swap32 (w0[0]);
-  w0[1] = swap32 (w0[1]);
-  w0[2] = swap32 (w0[2]);
-  w0[3] = swap32 (w0[3]);
-  w1[0] = swap32 (w1[0]);
-  w1[1] = swap32 (w1[1]);
-  w1[2] = swap32 (w1[2]);
-  w1[3] = swap32 (w1[3]);
-  w2[0] = swap32 (w2[0]);
-  w2[1] = swap32 (w2[1]);
-  w2[2] = swap32 (w2[2]);
-  w2[3] = swap32 (w2[3]);
-  w3[0] = swap32 (w3[0]);
-  w3[1] = swap32 (w3[1]);
-  w3[2] = swap32 (w3[2]);
-  w3[3] = swap32 (w3[3]);
+  sha256_hmac_ctx_t ctx;
 
-  u32 ipad[8];
-  u32 opad[8];
-
-  hmac_sha256_pad (w0, w1, w2, w3, ipad, opad);
+  sha256_hmac_init (&ctx, w0, w1, w2, w3);
 
   for (u32 l = 0; l < SCRYPT_CNT4; l += 4)
   {
@@ -1152,11 +564,11 @@ __kernel void m15700_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     w3[2] = tmp.s2;
     w3[3] = tmp.s3;
 
-    sha256_transform (w0, w1, w2, w3, ipad);
+    sha256_hmac_update_64 (&ctx, w0, w1, w2, w3, 64);
   }
 
-  w0[0] = 0x00000001;
-  w0[1] = 0x80000000;
+  w0[0] = 1;
+  w0[1] = 0;
   w0[2] = 0;
   w0[3] = 0;
   w1[0] = 0;
@@ -1170,11 +582,11 @@ __kernel void m15700_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   w3[0] = 0;
   w3[1] = 0;
   w3[2] = 0;
-  w3[3] = (64 + (SCRYPT_CNT * 4) + 4) * 8;
+  w3[3] = 0;
 
-  u32 digest[8];
+  sha256_hmac_update_64 (&ctx, w0, w1, w2, w3, 4);
 
-  hmac_sha256_run (w0, w1, w2, w3, ipad, opad, digest);
+  sha256_hmac_final (&ctx);
 
   /**
    * keccak
@@ -1193,10 +605,10 @@ __kernel void m15700_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   u32 key[4];
 
-  key[0] = swap32_S (digest[4]);
-  key[1] = swap32_S (digest[5]);
-  key[2] = swap32_S (digest[6]);
-  key[3] = swap32_S (digest[7]);
+  key[0] = swap32_S (ctx.opad.h[4]);
+  key[1] = swap32_S (ctx.opad.h[5]);
+  key[2] = swap32_S (ctx.opad.h[6]);
+  key[3] = swap32_S (ctx.opad.h[7]);
 
   u64 st[25];
 

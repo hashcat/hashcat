@@ -24875,6 +24875,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                 break;
     case 15600: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA256 max
                 break;
+    case 15700: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA256 max
+                break;
   }
 
   return 0;
