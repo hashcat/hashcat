@@ -404,7 +404,7 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
       md5_hmac_ctx_t ctx2;
 
-      md5_hmac_init (&ctx2, t0, t1, t2, t3);
+      md5_hmac_init_64 (&ctx2, t0, t1, t2, t3);
 
       md5_hmac_update_global (&ctx2, wpa->eapol, wpa->eapol_len);
 
@@ -554,7 +554,7 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
       md5_hmac_ctx_t ctx2;
 
-      md5_hmac_init (&ctx2, t0, t1, t2, t3);
+      md5_hmac_init_64 (&ctx2, t0, t1, t2, t3);
 
       md5_hmac_update_global (&ctx2, wpa->eapol, wpa->eapol_len);
 
