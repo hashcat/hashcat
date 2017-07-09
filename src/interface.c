@@ -24844,6 +24844,30 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                 break;
     case 14100: hashconfig->pw_max = 24;  // 3DES max
                 break;
+    case 14611: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA1 max
+                break;
+    case 14612: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA1 max
+                break;
+    case 14613: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA1 max
+                break;
+    case 14621: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA256 max
+                break;
+    case 14622: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA256 max
+                break;
+    case 14623: hashconfig->pw_max = 64;  // PBKDF2-HMAC-SHA256 max
+                break;
+    case 14631: hashconfig->pw_max = 128; // PBKDF2-HMAC-SHA512 max
+                break;
+    case 14632: hashconfig->pw_max = 128; // PBKDF2-HMAC-SHA512 max
+                break;
+    case 14633: hashconfig->pw_max = 128; // PBKDF2-HMAC-SHA512 max
+                break;
+    case 14641: hashconfig->pw_max = 64;  // PBKDF2-HMAC-RipeMD160 max
+                break;
+    case 14642: hashconfig->pw_max = 64;  // PBKDF2-HMAC-RipeMD160 max
+                break;
+    case 14643: hashconfig->pw_max = 64;  // PBKDF2-HMAC-RipeMD160 max
+                break;
     case 14900: hashconfig->pw_max = 10;  // Skip32 max
                 break;
   }
