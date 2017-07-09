@@ -3363,11 +3363,6 @@ int wpa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
 
   wpa->message_pair = message_pair_orig;
 
-  if ((in.message_pair == MESSAGE_PAIR_M32E3) || (in.message_pair == MESSAGE_PAIR_M34E3))
-  {
-    wpa->nonce_error_corrections = 0;
-  }
-
   wpa->keyver = in.keyver;
 
   if (wpa->keyver & ~7) return (PARSER_SALT_VALUE);
