@@ -13522,10 +13522,20 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
     keepass->keyfile[7] = byte_swap_32 (keepass->keyfile[7]);
   }
 
-  digest[0] = keepass->enc_iv[0];
-  digest[1] = keepass->enc_iv[1];
-  digest[2] = keepass->enc_iv[2];
-  digest[3] = keepass->enc_iv[3];
+  if (keepass->version == 1)
+  {
+    digest[0] = keepass->contents_hash[0];
+    digest[1] = keepass->contents_hash[1];
+    digest[2] = keepass->contents_hash[2];
+    digest[3] = keepass->contents_hash[3];
+  }
+  else
+  {
+    digest[0] = keepass->expected_bytes[0];
+    digest[1] = keepass->expected_bytes[1];
+    digest[2] = keepass->expected_bytes[2];
+    digest[3] = keepass->expected_bytes[3];
+  }
 
   salt->salt_buf[0] = keepass->transf_random_seed[0];
   salt->salt_buf[1] = keepass->transf_random_seed[1];
@@ -13535,6 +13545,8 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   salt->salt_buf[5] = keepass->transf_random_seed[5];
   salt->salt_buf[6] = keepass->transf_random_seed[6];
   salt->salt_buf[7] = keepass->transf_random_seed[7];
+
+  salt->salt_len = 32;
 
   return (PARSER_OK);
 }
@@ -24668,6 +24680,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 12800: hashconfig->pw_max = PW_MAX;
                 break;
     case 13200: hashconfig->pw_max = PW_MAX;
+                break;
+    case 13400: hashconfig->pw_max = PW_MAX;
                 break;
   }
 
