@@ -397,7 +397,7 @@ void make_pt_with_offset (u32 *pt, const u32 offset, const u32 *sc, const u32 pw
   #endif
 }
 
-void make_w_with_offset (ctx_t *ctx, const u32 W_len, const u32 offset, const u32 *sc, const u32 pwbl_len, u32 *iv, const u32 *ks, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
+void make_w_with_offset (ctx_t *ctx, const u32 W_len, const u32 offset, const u32 *sc, const u32 pwbl_len, u32 *iv, const u32 *ks, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   for (u32 k = 0, wk = 0; k < W_len; k += AESSZ, wk += AESSZ4)
   {
@@ -419,7 +419,7 @@ void make_w_with_offset (ctx_t *ctx, const u32 W_len, const u32 offset, const u3
   }
 }
 
-u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, __local u32 *s_te0, __local u32 *s_te1, __local u32 *s_te2, __local u32 *s_te3, __local u32 *s_te4)
+u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   // make scratch buffer
 
