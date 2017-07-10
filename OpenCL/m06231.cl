@@ -241,7 +241,7 @@ __kernel void m06231_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   whirlpool_hmac_ctx_t whirlpool_hmac_ctx;
 
-  whirlpool_hmac_init (&whirlpool_hmac_ctx, w0, w1, w2, w3, s_Ch, s_Cl);
+  whirlpool_hmac_init_64 (&whirlpool_hmac_ctx, w0, w1, w2, w3, s_Ch, s_Cl);
 
   tmps[gid].ipad[ 0] = whirlpool_hmac_ctx.ipad.h[ 0];
   tmps[gid].ipad[ 1] = whirlpool_hmac_ctx.ipad.h[ 1];

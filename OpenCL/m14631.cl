@@ -93,84 +93,9 @@ __kernel void m14631_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   if (gid >= gid_max) return;
 
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
-  u32 w4[4];
-  u32 w5[4];
-  u32 w6[4];
-  u32 w7[4];
-
-  w0[0] = pws[gid].i[ 0];
-  w0[1] = pws[gid].i[ 1];
-  w0[2] = pws[gid].i[ 2];
-  w0[3] = pws[gid].i[ 3];
-  w1[0] = pws[gid].i[ 4];
-  w1[1] = pws[gid].i[ 5];
-  w1[2] = pws[gid].i[ 6];
-  w1[3] = pws[gid].i[ 7];
-  w2[0] = pws[gid].i[ 8];
-  w2[1] = pws[gid].i[ 9];
-  w2[2] = pws[gid].i[10];
-  w2[3] = pws[gid].i[11];
-  w3[0] = pws[gid].i[12];
-  w3[1] = pws[gid].i[13];
-  w3[2] = pws[gid].i[14];
-  w3[3] = pws[gid].i[15];
-  w4[0] = pws[gid].i[16];
-  w4[1] = pws[gid].i[17];
-  w4[2] = pws[gid].i[18];
-  w4[3] = pws[gid].i[19];
-  w5[0] = pws[gid].i[20];
-  w5[1] = pws[gid].i[21];
-  w5[2] = pws[gid].i[22];
-  w5[3] = pws[gid].i[23];
-  w6[0] = pws[gid].i[24];
-  w6[1] = pws[gid].i[25];
-  w6[2] = pws[gid].i[26];
-  w6[3] = pws[gid].i[27];
-  w7[0] = pws[gid].i[28];
-  w7[1] = pws[gid].i[29];
-  w7[2] = pws[gid].i[30];
-  w7[3] = pws[gid].i[31];
-
-  w0[0] = swap32_S (w0[0]);
-  w0[1] = swap32_S (w0[1]);
-  w0[2] = swap32_S (w0[2]);
-  w0[3] = swap32_S (w0[3]);
-  w1[0] = swap32_S (w1[0]);
-  w1[1] = swap32_S (w1[1]);
-  w1[2] = swap32_S (w1[2]);
-  w1[3] = swap32_S (w1[3]);
-  w2[0] = swap32_S (w2[0]);
-  w2[1] = swap32_S (w2[1]);
-  w2[2] = swap32_S (w2[2]);
-  w2[3] = swap32_S (w2[3]);
-  w3[0] = swap32_S (w3[0]);
-  w3[1] = swap32_S (w3[1]);
-  w3[2] = swap32_S (w3[2]);
-  w3[3] = swap32_S (w3[3]);
-  w4[0] = swap32_S (w4[0]);
-  w4[1] = swap32_S (w4[1]);
-  w4[2] = swap32_S (w4[2]);
-  w4[3] = swap32_S (w4[3]);
-  w5[0] = swap32_S (w5[0]);
-  w5[1] = swap32_S (w5[1]);
-  w5[2] = swap32_S (w5[2]);
-  w5[3] = swap32_S (w5[3]);
-  w6[0] = swap32_S (w6[0]);
-  w6[1] = swap32_S (w6[1]);
-  w6[2] = swap32_S (w6[2]);
-  w6[3] = swap32_S (w6[3]);
-  w7[0] = swap32_S (w7[0]);
-  w7[1] = swap32_S (w7[1]);
-  w7[2] = swap32_S (w7[2]);
-  w7[3] = swap32_S (w7[3]);
-
   sha512_hmac_ctx_t sha512_hmac_ctx;
 
-  sha512_hmac_init (&sha512_hmac_ctx, w0, w1, w2, w3, w5, w5, w6, w7);
+  sha512_hmac_init_global_swap (&sha512_hmac_ctx, pws[gid].i, pws[gid].pw_len);
 
   tmps[gid].ipad64[0] = sha512_hmac_ctx.ipad.h[0];
   tmps[gid].ipad64[1] = sha512_hmac_ctx.ipad.h[1];
@@ -197,6 +122,15 @@ __kernel void m14631_init (__global pw_t *pws, __global const kernel_rule_t *rul
   for (u32 i = 0, j = 1; i < ((key_size / 8) / 4); i += 16, j += 1)
   {
     sha512_hmac_ctx_t sha512_hmac_ctx2 = sha512_hmac_ctx;
+
+    u32 w0[4];
+    u32 w1[4];
+    u32 w2[4];
+    u32 w3[4];
+    u32 w4[4];
+    u32 w5[4];
+    u32 w6[4];
+    u32 w7[4];
 
     w0[0] = j;
     w0[1] = 0;

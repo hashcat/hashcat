@@ -279,31 +279,12 @@ inline u32 amd_bytealign_S (const u32 a, const u32 b, const u32 c)
 #ifdef IS_NV
 inline u32 swap32_S (const u32 v)
 {
-  u32 r;
-
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(r) : "r"(v));
-
-  return r;
+  return (as_uint (as_uchar4 (v).s3210));
 }
 
 inline u64 swap64_S (const u64 v)
 {
-  u32 il;
-  u32 ir;
-
-  asm ("mov.b64 {%0, %1}, %2;" : "=r"(il), "=r"(ir) : "l"(v));
-
-  u32 tl;
-  u32 tr;
-
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tl) : "r"(il));
-  asm ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr) : "r"(ir));
-
-  u64 r;
-
-  asm ("mov.b64 %0, {%1, %2};" : "=l"(r) : "r"(tr), "r"(tl));
-
-  return r;
+  return (as_ulong (as_uchar8 (v).s76543210));
 }
 
 inline u32 rotr32_S (const u32 a, const u32 n)

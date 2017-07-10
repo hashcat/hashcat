@@ -207,7 +207,7 @@ __kernel void m06221_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   sha512_hmac_ctx_t sha512_hmac_ctx;
 
-  sha512_hmac_init (&sha512_hmac_ctx, w0, w1, w2, w3, w5, w5, w6, w7);
+  sha512_hmac_init_128 (&sha512_hmac_ctx, w0, w1, w2, w3, w5, w5, w6, w7);
 
   tmps[gid].ipad[0] = sha512_hmac_ctx.ipad.h[0];
   tmps[gid].ipad[1] = sha512_hmac_ctx.ipad.h[1];
@@ -477,25 +477,25 @@ __kernel void m06221_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   u32 ukey1[8];
 
-  ukey1[0] = swap32_S (h32_from_64 (tmps[gid].out[ 0]));
-  ukey1[1] = swap32_S (l32_from_64 (tmps[gid].out[ 0]));
-  ukey1[2] = swap32_S (h32_from_64 (tmps[gid].out[ 1]));
-  ukey1[3] = swap32_S (l32_from_64 (tmps[gid].out[ 1]));
-  ukey1[4] = swap32_S (h32_from_64 (tmps[gid].out[ 2]));
-  ukey1[5] = swap32_S (l32_from_64 (tmps[gid].out[ 2]));
-  ukey1[6] = swap32_S (h32_from_64 (tmps[gid].out[ 3]));
-  ukey1[7] = swap32_S (l32_from_64 (tmps[gid].out[ 3]));
+  ukey1[0] = swap32_S (h32_from_64_S (tmps[gid].out[0]));
+  ukey1[1] = swap32_S (l32_from_64_S (tmps[gid].out[0]));
+  ukey1[2] = swap32_S (h32_from_64_S (tmps[gid].out[1]));
+  ukey1[3] = swap32_S (l32_from_64_S (tmps[gid].out[1]));
+  ukey1[4] = swap32_S (h32_from_64_S (tmps[gid].out[2]));
+  ukey1[5] = swap32_S (l32_from_64_S (tmps[gid].out[2]));
+  ukey1[6] = swap32_S (h32_from_64_S (tmps[gid].out[3]));
+  ukey1[7] = swap32_S (l32_from_64_S (tmps[gid].out[3]));
 
   u32 ukey2[8];
 
-  ukey2[0] = swap32_S (h32_from_64 (tmps[gid].out[ 4]));
-  ukey2[1] = swap32_S (l32_from_64 (tmps[gid].out[ 4]));
-  ukey2[2] = swap32_S (h32_from_64 (tmps[gid].out[ 5]));
-  ukey2[3] = swap32_S (l32_from_64 (tmps[gid].out[ 5]));
-  ukey2[4] = swap32_S (h32_from_64 (tmps[gid].out[ 6]));
-  ukey2[5] = swap32_S (l32_from_64 (tmps[gid].out[ 6]));
-  ukey2[6] = swap32_S (h32_from_64 (tmps[gid].out[ 7]));
-  ukey2[7] = swap32_S (l32_from_64 (tmps[gid].out[ 7]));
+  ukey2[0] = swap32_S (h32_from_64_S (tmps[gid].out[4]));
+  ukey2[1] = swap32_S (l32_from_64_S (tmps[gid].out[4]));
+  ukey2[2] = swap32_S (h32_from_64_S (tmps[gid].out[5]));
+  ukey2[3] = swap32_S (l32_from_64_S (tmps[gid].out[5]));
+  ukey2[4] = swap32_S (h32_from_64_S (tmps[gid].out[6]));
+  ukey2[5] = swap32_S (l32_from_64_S (tmps[gid].out[6]));
+  ukey2[6] = swap32_S (h32_from_64_S (tmps[gid].out[7]));
+  ukey2[7] = swap32_S (l32_from_64_S (tmps[gid].out[7]));
 
   if (verify_header_aes (esalt_bufs, ukey1, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {

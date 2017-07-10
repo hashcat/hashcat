@@ -1050,7 +1050,7 @@ typedef struct sha384_hmac_ctx
 
 } sha384_hmac_ctx_t;
 
-void sha384_hmac_init (sha384_hmac_ctx_t *ctx, const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], const u32 w4[4], const u32 w5[4], const u32 w6[4], const u32 w7[4])
+void sha384_hmac_init_128 (sha384_hmac_ctx_t *ctx, const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], const u32 w4[4], const u32 w5[4], const u32 w6[4], const u32 w7[4])
 {
   u32 t0[4];
   u32 t1[4];
@@ -1140,6 +1140,285 @@ void sha384_hmac_init (sha384_hmac_ctx_t *ctx, const u32 w0[4], const u32 w1[4],
   sha384_update_128 (&ctx->opad, t0, t1, t2, t3, t4, t5, t6, t7, 128);
 }
 
+void sha384_hmac_init (sha384_hmac_ctx_t *ctx, const u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+  u32 w4[4];
+  u32 w5[4];
+  u32 w6[4];
+  u32 w7[4];
+
+  if (len > 128)
+  {
+    sha384_ctx_t tmp;
+
+    sha384_init (&tmp);
+
+    sha384_update (&tmp, w, len);
+
+    sha384_final (&tmp);
+
+    w0[0] = h32_from_64_S (tmp.h[0]);
+    w0[1] = l32_from_64_S (tmp.h[0]);
+    w0[2] = h32_from_64_S (tmp.h[1]);
+    w0[3] = l32_from_64_S (tmp.h[1]);
+    w1[0] = h32_from_64_S (tmp.h[2]);
+    w1[1] = l32_from_64_S (tmp.h[2]);
+    w1[2] = h32_from_64_S (tmp.h[3]);
+    w1[3] = l32_from_64_S (tmp.h[3]);
+    w2[0] = h32_from_64_S (tmp.h[4]);
+    w2[1] = l32_from_64_S (tmp.h[4]);
+    w2[2] = h32_from_64_S (tmp.h[5]);
+    w2[3] = l32_from_64_S (tmp.h[5]);
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 0;
+    w3[3] = 0;
+    w4[0] = 0;
+    w4[1] = 0;
+    w4[2] = 0;
+    w4[3] = 0;
+    w5[0] = 0;
+    w5[1] = 0;
+    w5[2] = 0;
+    w5[3] = 0;
+    w6[0] = 0;
+    w6[1] = 0;
+    w6[2] = 0;
+    w6[3] = 0;
+    w7[0] = 0;
+    w7[1] = 0;
+    w7[2] = 0;
+    w7[3] = 0;
+  }
+  else
+  {
+    w0[0] = w[ 0];
+    w0[1] = w[ 1];
+    w0[2] = w[ 2];
+    w0[3] = w[ 3];
+    w1[0] = w[ 4];
+    w1[1] = w[ 5];
+    w1[2] = w[ 6];
+    w1[3] = w[ 7];
+    w2[0] = w[ 8];
+    w2[1] = w[ 9];
+    w2[2] = w[10];
+    w2[3] = w[11];
+    w3[0] = w[12];
+    w3[1] = w[13];
+    w3[2] = w[14];
+    w3[3] = w[15];
+    w4[0] = w[16];
+    w4[1] = w[17];
+    w4[2] = w[18];
+    w4[3] = w[19];
+    w5[0] = w[20];
+    w5[1] = w[21];
+    w5[2] = w[22];
+    w5[3] = w[23];
+    w6[0] = w[24];
+    w6[1] = w[25];
+    w6[2] = w[26];
+    w6[3] = w[27];
+    w7[0] = w[28];
+    w7[1] = w[29];
+    w7[2] = w[30];
+    w7[3] = w[31];
+  }
+
+  sha384_hmac_init_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7);
+}
+
+void sha384_hmac_init_global (sha384_hmac_ctx_t *ctx, __global const u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+  u32 w4[4];
+  u32 w5[4];
+  u32 w6[4];
+  u32 w7[4];
+
+  if (len > 128)
+  {
+    sha384_ctx_t tmp;
+
+    sha384_init (&tmp);
+
+    sha384_update_global (&tmp, w, len);
+
+    sha384_final (&tmp);
+
+    w0[0] = h32_from_64_S (tmp.h[0]);
+    w0[1] = l32_from_64_S (tmp.h[0]);
+    w0[2] = h32_from_64_S (tmp.h[1]);
+    w0[3] = l32_from_64_S (tmp.h[1]);
+    w1[0] = h32_from_64_S (tmp.h[2]);
+    w1[1] = l32_from_64_S (tmp.h[2]);
+    w1[2] = h32_from_64_S (tmp.h[3]);
+    w1[3] = l32_from_64_S (tmp.h[3]);
+    w2[0] = h32_from_64_S (tmp.h[4]);
+    w2[1] = l32_from_64_S (tmp.h[4]);
+    w2[2] = h32_from_64_S (tmp.h[5]);
+    w2[3] = l32_from_64_S (tmp.h[5]);
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 0;
+    w3[3] = 0;
+    w4[0] = 0;
+    w4[1] = 0;
+    w4[2] = 0;
+    w4[3] = 0;
+    w5[0] = 0;
+    w5[1] = 0;
+    w5[2] = 0;
+    w5[3] = 0;
+    w6[0] = 0;
+    w6[1] = 0;
+    w6[2] = 0;
+    w6[3] = 0;
+    w7[0] = 0;
+    w7[1] = 0;
+    w7[2] = 0;
+    w7[3] = 0;
+  }
+  else
+  {
+    w0[0] = w[ 0];
+    w0[1] = w[ 1];
+    w0[2] = w[ 2];
+    w0[3] = w[ 3];
+    w1[0] = w[ 4];
+    w1[1] = w[ 5];
+    w1[2] = w[ 6];
+    w1[3] = w[ 7];
+    w2[0] = w[ 8];
+    w2[1] = w[ 9];
+    w2[2] = w[10];
+    w2[3] = w[11];
+    w3[0] = w[12];
+    w3[1] = w[13];
+    w3[2] = w[14];
+    w3[3] = w[15];
+    w4[0] = w[16];
+    w4[1] = w[17];
+    w4[2] = w[18];
+    w4[3] = w[19];
+    w5[0] = w[20];
+    w5[1] = w[21];
+    w5[2] = w[22];
+    w5[3] = w[23];
+    w6[0] = w[24];
+    w6[1] = w[25];
+    w6[2] = w[26];
+    w6[3] = w[27];
+    w7[0] = w[28];
+    w7[1] = w[29];
+    w7[2] = w[30];
+    w7[3] = w[31];
+  }
+
+  sha384_hmac_init_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7);
+}
+
+void sha256_hmac_init_global_swap (sha256_hmac_ctx_t *ctx, __global const u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+  u32 w4[4];
+  u32 w5[4];
+  u32 w6[4];
+  u32 w7[4];
+
+  if (len > 128)
+  {
+    sha384_ctx_t tmp;
+
+    sha384_init (&tmp);
+
+    sha384_update_global_swap (&tmp, w, len);
+
+    sha384_final (&tmp);
+
+    w0[0] = h32_from_64_S (tmp.h[0]);
+    w0[1] = l32_from_64_S (tmp.h[0]);
+    w0[2] = h32_from_64_S (tmp.h[1]);
+    w0[3] = l32_from_64_S (tmp.h[1]);
+    w1[0] = h32_from_64_S (tmp.h[2]);
+    w1[1] = l32_from_64_S (tmp.h[2]);
+    w1[2] = h32_from_64_S (tmp.h[3]);
+    w1[3] = l32_from_64_S (tmp.h[3]);
+    w2[0] = h32_from_64_S (tmp.h[4]);
+    w2[1] = l32_from_64_S (tmp.h[4]);
+    w2[2] = h32_from_64_S (tmp.h[5]);
+    w2[3] = l32_from_64_S (tmp.h[5]);
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 0;
+    w3[3] = 0;
+    w4[0] = 0;
+    w4[1] = 0;
+    w4[2] = 0;
+    w4[3] = 0;
+    w5[0] = 0;
+    w5[1] = 0;
+    w5[2] = 0;
+    w5[3] = 0;
+    w6[0] = 0;
+    w6[1] = 0;
+    w6[2] = 0;
+    w6[3] = 0;
+    w7[0] = 0;
+    w7[1] = 0;
+    w7[2] = 0;
+    w7[3] = 0;
+  }
+  else
+  {
+    w0[0] = swap32_S (w[ 0]);
+    w0[1] = swap32_S (w[ 1]);
+    w0[2] = swap32_S (w[ 2]);
+    w0[3] = swap32_S (w[ 3]);
+    w1[0] = swap32_S (w[ 4]);
+    w1[1] = swap32_S (w[ 5]);
+    w1[2] = swap32_S (w[ 6]);
+    w1[3] = swap32_S (w[ 7]);
+    w2[0] = swap32_S (w[ 8]);
+    w2[1] = swap32_S (w[ 9]);
+    w2[2] = swap32_S (w[10]);
+    w2[3] = swap32_S (w[11]);
+    w3[0] = swap32_S (w[12]);
+    w3[1] = swap32_S (w[13]);
+    w3[2] = swap32_S (w[14]);
+    w3[3] = swap32_S (w[15]);
+    w4[0] = swap32_S (w[16]);
+    w4[1] = swap32_S (w[17]);
+    w4[2] = swap32_S (w[18]);
+    w4[3] = swap32_S (w[19]);
+    w5[0] = swap32_S (w[20]);
+    w5[1] = swap32_S (w[21]);
+    w5[2] = swap32_S (w[22]);
+    w5[3] = swap32_S (w[23]);
+    w6[0] = swap32_S (w[24]);
+    w6[1] = swap32_S (w[25]);
+    w6[2] = swap32_S (w[26]);
+    w6[3] = swap32_S (w[27]);
+    w7[0] = swap32_S (w[28]);
+    w7[1] = swap32_S (w[29]);
+    w7[2] = swap32_S (w[30]);
+    w7[3] = swap32_S (w[31]);
+  }
+
+  sha384_hmac_init_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7);
+}
+
 void sha384_hmac_update_128 (sha384_hmac_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const int len)
 {
   sha384_update_128 (&ctx->ipad, w0, w1, w2, w3, w4, w5, w6, w7, len);
@@ -1195,10 +1474,10 @@ void sha384_hmac_final (sha384_hmac_ctx_t *ctx)
   t2[1] = l32_from_64_S (ctx->ipad.h[4]);
   t2[2] = h32_from_64_S (ctx->ipad.h[5]);
   t2[3] = l32_from_64_S (ctx->ipad.h[5]);
-  t3[0] = h32_from_64_S (ctx->ipad.h[6]);
-  t3[1] = l32_from_64_S (ctx->ipad.h[6]);
-  t3[2] = h32_from_64_S (ctx->ipad.h[7]);
-  t3[3] = l32_from_64_S (ctx->ipad.h[7]);
+  t3[0] = 0;
+  t3[1] = 0;
+  t3[2] = 0;
+  t3[3] = 0;
   t4[0] = 0;
   t4[1] = 0;
   t4[2] = 0;

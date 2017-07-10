@@ -155,7 +155,7 @@ __kernel void m13753_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   sha256_hmac_ctx_t sha256_hmac_ctx;
 
-  sha256_hmac_init (&sha256_hmac_ctx, w0, w1, w2, w3);
+  sha256_hmac_init_64 (&sha256_hmac_ctx, w0, w1, w2, w3);
 
   tmps[gid].ipad[0] = sha256_hmac_ctx.ipad.h[0];
   tmps[gid].ipad[1] = sha256_hmac_ctx.ipad.h[1];

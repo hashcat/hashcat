@@ -132,7 +132,7 @@ __kernel void m06213_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   ripemd160_hmac_ctx_t ripemd160_hmac_ctx;
 
-  ripemd160_hmac_init (&ripemd160_hmac_ctx, w0, w1, w2, w3);
+  ripemd160_hmac_init_64 (&ripemd160_hmac_ctx, w0, w1, w2, w3);
 
   tmps[gid].ipad[0] = ripemd160_hmac_ctx.ipad.h[0];
   tmps[gid].ipad[1] = ripemd160_hmac_ctx.ipad.h[1];

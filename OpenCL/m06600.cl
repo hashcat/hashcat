@@ -61,48 +61,9 @@ __kernel void m06600_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   if (gid >= gid_max) return;
 
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
-
-  w0[0] = pws[gid].i[ 0];
-  w0[1] = pws[gid].i[ 1];
-  w0[2] = pws[gid].i[ 2];
-  w0[3] = pws[gid].i[ 3];
-  w1[0] = pws[gid].i[ 4];
-  w1[1] = pws[gid].i[ 5];
-  w1[2] = pws[gid].i[ 6];
-  w1[3] = pws[gid].i[ 7];
-  w2[0] = pws[gid].i[ 8];
-  w2[1] = pws[gid].i[ 9];
-  w2[2] = pws[gid].i[10];
-  w2[3] = pws[gid].i[11];
-  w3[0] = pws[gid].i[12];
-  w3[1] = pws[gid].i[13];
-  w3[2] = pws[gid].i[14];
-  w3[3] = pws[gid].i[15];
-
-  w0[0] = swap32_S (w0[0]);
-  w0[1] = swap32_S (w0[1]);
-  w0[2] = swap32_S (w0[2]);
-  w0[3] = swap32_S (w0[3]);
-  w1[0] = swap32_S (w1[0]);
-  w1[1] = swap32_S (w1[1]);
-  w1[2] = swap32_S (w1[2]);
-  w1[3] = swap32_S (w1[3]);
-  w2[0] = swap32_S (w2[0]);
-  w2[1] = swap32_S (w2[1]);
-  w2[2] = swap32_S (w2[2]);
-  w2[3] = swap32_S (w2[3]);
-  w3[0] = swap32_S (w3[0]);
-  w3[1] = swap32_S (w3[1]);
-  w3[2] = swap32_S (w3[2]);
-  w3[3] = swap32_S (w3[3]);
-
   sha1_hmac_ctx_t sha1_hmac_ctx;
 
-  sha1_hmac_init (&sha1_hmac_ctx, w0, w1, w2, w3);
+  sha1_hmac_init_global_swap (&sha1_hmac_ctx, pws[gid].i, pws[gid].pw_len);
 
   tmps[gid].ipad[0] = sha1_hmac_ctx.ipad.h[0];
   tmps[gid].ipad[1] = sha1_hmac_ctx.ipad.h[1];
@@ -129,6 +90,11 @@ __kernel void m06600_init (__global pw_t *pws, __global const kernel_rule_t *rul
   for (u32 i = 0, j = 1; i < 4; i += 5, j += 1)
   {
     sha1_hmac_ctx_t sha1_hmac_ctx2 = sha1_hmac_ctx;
+
+    u32 w0[4];
+    u32 w1[4];
+    u32 w2[4];
+    u32 w3[4];
 
     w0[0] = j;
     w0[1] = 0;

@@ -71,31 +71,9 @@ __kernel void m14642_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   if (gid >= gid_max) return;
 
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
-
-  w0[0] = pws[gid].i[ 0];
-  w0[1] = pws[gid].i[ 1];
-  w0[2] = pws[gid].i[ 2];
-  w0[3] = pws[gid].i[ 3];
-  w1[0] = pws[gid].i[ 4];
-  w1[1] = pws[gid].i[ 5];
-  w1[2] = pws[gid].i[ 6];
-  w1[3] = pws[gid].i[ 7];
-  w2[0] = pws[gid].i[ 8];
-  w2[1] = pws[gid].i[ 9];
-  w2[2] = pws[gid].i[10];
-  w2[3] = pws[gid].i[11];
-  w3[0] = pws[gid].i[12];
-  w3[1] = pws[gid].i[13];
-  w3[2] = pws[gid].i[14];
-  w3[3] = pws[gid].i[15];
-
   ripemd160_hmac_ctx_t ripemd160_hmac_ctx;
 
-  ripemd160_hmac_init (&ripemd160_hmac_ctx, w0, w1, w2, w3);
+  ripemd160_hmac_init_global (&sha1_hmac_ctx, pws[gid].i, pws[gid].pw_len);
 
   tmps[gid].ipad32[0] = ripemd160_hmac_ctx.ipad.h[0];
   tmps[gid].ipad32[1] = ripemd160_hmac_ctx.ipad.h[1];
@@ -116,6 +94,11 @@ __kernel void m14642_init (__global pw_t *pws, __global const kernel_rule_t *rul
   for (u32 i = 0, j = 1; i < ((key_size / 8) / 4); i += 5, j += 1)
   {
     ripemd160_hmac_ctx_t ripemd160_hmac_ctx2 = ripemd160_hmac_ctx;
+
+    u32 w0[4];
+    u32 w1[4];
+    u32 w2[4];
+    u32 w3[4];
 
     w0[0] = j << 24;
     w0[1] = 0;

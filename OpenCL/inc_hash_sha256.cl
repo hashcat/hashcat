@@ -788,7 +788,7 @@ typedef struct sha256_hmac_ctx
 
 } sha256_hmac_ctx_t;
 
-void sha256_hmac_init (sha256_hmac_ctx_t *ctx, const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4])
+void sha256_hmac_init_64 (sha256_hmac_ctx_t *ctx, const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4])
 {
   u32 t0[4];
   u32 t1[4];
@@ -840,6 +840,177 @@ void sha256_hmac_init (sha256_hmac_ctx_t *ctx, const u32 w0[4], const u32 w1[4],
   sha256_init (&ctx->opad);
 
   sha256_update_64 (&ctx->opad, t0, t1, t2, t3, 64);
+}
+
+void sha256_hmac_init (sha256_hmac_ctx_t *ctx, const u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  if (len > 64)
+  {
+    sha256_ctx_t tmp;
+
+    sha256_init (&tmp);
+
+    sha256_update (&tmp, w, len);
+
+    sha256_final (&tmp);
+
+    w0[0] = tmp.h[0];
+    w0[1] = tmp.h[1];
+    w0[2] = tmp.h[2];
+    w0[3] = tmp.h[3];
+    w1[0] = tmp.h[4];
+    w1[1] = tmp.h[5];
+    w1[2] = tmp.h[6];
+    w1[3] = tmp.h[7];
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 0;
+    w3[3] = 0;
+  }
+  else
+  {
+    w0[0] = w[ 0];
+    w0[1] = w[ 1];
+    w0[2] = w[ 2];
+    w0[3] = w[ 3];
+    w1[0] = w[ 4];
+    w1[1] = w[ 5];
+    w1[2] = w[ 6];
+    w1[3] = w[ 7];
+    w2[0] = w[ 8];
+    w2[1] = w[ 9];
+    w2[2] = w[10];
+    w2[3] = w[11];
+    w3[0] = w[12];
+    w3[1] = w[13];
+    w3[2] = w[14];
+    w3[3] = w[15];
+  }
+
+  sha256_hmac_init_64 (ctx, w0, w1, w2, w3);
+}
+
+void sha256_hmac_init_global (sha256_hmac_ctx_t *ctx, __global const u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  if (len > 64)
+  {
+    sha256_ctx_t tmp;
+
+    sha256_init (&tmp);
+
+    sha256_update_global (&tmp, w, len);
+
+    sha256_final (&tmp);
+
+    w0[0] = tmp.h[0];
+    w0[1] = tmp.h[1];
+    w0[2] = tmp.h[2];
+    w0[3] = tmp.h[3];
+    w1[0] = tmp.h[4];
+    w1[1] = tmp.h[5];
+    w1[2] = tmp.h[6];
+    w1[3] = tmp.h[7];
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 0;
+    w3[3] = 0;
+  }
+  else
+  {
+    w0[0] = w[ 0];
+    w0[1] = w[ 1];
+    w0[2] = w[ 2];
+    w0[3] = w[ 3];
+    w1[0] = w[ 4];
+    w1[1] = w[ 5];
+    w1[2] = w[ 6];
+    w1[3] = w[ 7];
+    w2[0] = w[ 8];
+    w2[1] = w[ 9];
+    w2[2] = w[10];
+    w2[3] = w[11];
+    w3[0] = w[12];
+    w3[1] = w[13];
+    w3[2] = w[14];
+    w3[3] = w[15];
+  }
+
+  sha256_hmac_init_64 (ctx, w0, w1, w2, w3);
+}
+
+void sha256_hmac_init_global_swap (sha256_hmac_ctx_t *ctx, __global const u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  if (len > 64)
+  {
+    sha256_ctx_t tmp;
+
+    sha256_init (&tmp);
+
+    sha256_update_global_swap (&tmp, w, len);
+
+    sha256_final (&tmp);
+
+    w0[0] = tmp.h[0];
+    w0[1] = tmp.h[1];
+    w0[2] = tmp.h[2];
+    w0[3] = tmp.h[3];
+    w1[0] = tmp.h[4];
+    w1[1] = tmp.h[5];
+    w1[2] = tmp.h[6];
+    w1[3] = tmp.h[7];
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 0;
+    w3[3] = 0;
+  }
+  else
+  {
+    w0[0] = swap32_S (w[ 0]);
+    w0[1] = swap32_S (w[ 1]);
+    w0[2] = swap32_S (w[ 2]);
+    w0[3] = swap32_S (w[ 3]);
+    w1[0] = swap32_S (w[ 4]);
+    w1[1] = swap32_S (w[ 5]);
+    w1[2] = swap32_S (w[ 6]);
+    w1[3] = swap32_S (w[ 7]);
+    w2[0] = swap32_S (w[ 8]);
+    w2[1] = swap32_S (w[ 9]);
+    w2[2] = swap32_S (w[10]);
+    w2[3] = swap32_S (w[11]);
+    w3[0] = swap32_S (w[12]);
+    w3[1] = swap32_S (w[13]);
+    w3[2] = swap32_S (w[14]);
+    w3[3] = swap32_S (w[15]);
+  }
+
+  sha256_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
 void sha256_hmac_update_64 (sha256_hmac_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len)

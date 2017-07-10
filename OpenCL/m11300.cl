@@ -287,21 +287,21 @@ __kernel void m11300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   u32 key[8];
 
-  key[0] = h32_from_64 (dgst[0]);
-  key[1] = l32_from_64 (dgst[0]);
-  key[2] = h32_from_64 (dgst[1]);
-  key[3] = l32_from_64 (dgst[1]);
-  key[4] = h32_from_64 (dgst[2]);
-  key[5] = l32_from_64 (dgst[2]);
-  key[6] = h32_from_64 (dgst[3]);
-  key[7] = l32_from_64 (dgst[3]);
+  key[0] = h32_from_64_S (dgst[0]);
+  key[1] = l32_from_64_S (dgst[0]);
+  key[2] = h32_from_64_S (dgst[1]);
+  key[3] = l32_from_64_S (dgst[1]);
+  key[4] = h32_from_64_S (dgst[2]);
+  key[5] = l32_from_64_S (dgst[2]);
+  key[6] = h32_from_64_S (dgst[3]);
+  key[7] = l32_from_64_S (dgst[3]);
 
   u32 iv[4];
 
-  iv[0] = h32_from_64 (dgst[4]);
-  iv[1] = l32_from_64 (dgst[4]);
-  iv[2] = h32_from_64 (dgst[5]);
-  iv[3] = l32_from_64 (dgst[5]);
+  iv[0] = h32_from_64_S (dgst[4]);
+  iv[1] = l32_from_64_S (dgst[4]);
+  iv[2] = h32_from_64_S (dgst[5]);
+  iv[3] = l32_from_64_S (dgst[5]);
 
   #define KEYLEN 60
 
@@ -315,10 +315,10 @@ __kernel void m11300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   {
     u32 data[4];
 
-    data[0] = swap32 (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 0]);
-    data[1] = swap32 (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 1]);
-    data[2] = swap32 (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 2]);
-    data[3] = swap32 (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 3]);
+    data[0] = swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 0]);
+    data[1] = swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 1]);
+    data[2] = swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 2]);
+    data[3] = swap32_S (esalt_bufs[digests_offset].cry_master_buf[(i / 4) + 3]);
 
     AES256_decrypt (ks, data, out, s_td0, s_td1, s_td2, s_td3, s_td4);
 

@@ -206,7 +206,7 @@ __kernel void m02501_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
     sha1_hmac_ctx_t ctx1;
 
-    sha1_hmac_init (&ctx1, w0, w1, w2, w3);
+    sha1_hmac_init_64 (&ctx1, w0, w1, w2, w3);
 
     sha1_hmac_update (&ctx1, pke, 100);
 
@@ -282,7 +282,7 @@ __kernel void m02501_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
       sha1_hmac_ctx_t ctx2;
 
-      sha1_hmac_init (&ctx2, t0, t1, t2, t3);
+      sha1_hmac_init_64 (&ctx2, t0, t1, t2, t3);
 
       sha1_hmac_update_global (&ctx2, wpa->eapol, wpa->eapol_len);
 
@@ -356,7 +356,7 @@ __kernel void m02501_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
     sha1_hmac_ctx_t ctx1;
 
-    sha1_hmac_init (&ctx1, w0, w1, w2, w3);
+    sha1_hmac_init_64 (&ctx1, w0, w1, w2, w3);
 
     sha1_hmac_update (&ctx1, pke, 100);
 
@@ -432,7 +432,7 @@ __kernel void m02501_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
       sha1_hmac_ctx_t ctx2;
 
-      sha1_hmac_init (&ctx2, t0, t1, t2, t3);
+      sha1_hmac_init_64 (&ctx2, t0, t1, t2, t3);
 
       sha1_hmac_update_global (&ctx2, wpa->eapol, wpa->eapol_len);
 

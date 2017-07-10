@@ -722,7 +722,7 @@ __kernel void m15300_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   sha1_hmac_ctx_t ctx;
 
-  sha1_hmac_init (&ctx, w0, w1, w2, w3);
+  sha1_hmac_init_64 (&ctx, w0, w1, w2, w3);
 
   sha1_hmac_update_global (&ctx, esalt_bufs[digests_offset].SID, esalt_bufs[digests_offset].SID_len);
 
@@ -767,7 +767,7 @@ __kernel void m15300_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
     sha1_hmac_ctx_t sha1_hmac_ctx;
 
-    sha1_hmac_init (&sha1_hmac_ctx, w0, w1, w2, w3);
+    sha1_hmac_init_64 (&sha1_hmac_ctx, w0, w1, w2, w3);
 
     tmps[gid].ipad[0] = sha1_hmac_ctx.ipad.h[0];
     tmps[gid].ipad[1] = sha1_hmac_ctx.ipad.h[1];
@@ -886,7 +886,7 @@ __kernel void m15300_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
     sha512_hmac_ctx_t sha512_hmac_ctx;
 
-    sha512_hmac_init (&sha512_hmac_ctx, w0, w1, w2, w3, w5, w5, w6, w7);
+    sha512_hmac_init_128 (&sha512_hmac_ctx, w0, w1, w2, w3, w5, w5, w6, w7);
 
     tmps[gid].ipad64[0] = sha512_hmac_ctx.ipad.h[0];
     tmps[gid].ipad64[1] = sha512_hmac_ctx.ipad.h[1];
@@ -1438,7 +1438,7 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
     sha1_hmac_ctx_t ctx;
 
-    sha1_hmac_init (&ctx, w0, w1, w2, w3);
+    sha1_hmac_init_64 (&ctx, w0, w1, w2, w3);
 
     w0[0] = hmacSalt[0];
     w0[1] = hmacSalt[1];
@@ -1478,7 +1478,7 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     w3[2] = 0;
     w3[3] = 0;
 
-    sha1_hmac_init (&ctx, w0, w1, w2, w3);
+    sha1_hmac_init_64 (&ctx, w0, w1, w2, w3);
 
     w0[0] = swap32_S (lastKey[ 0]);
     w0[1] = swap32_S (lastKey[ 1]);
@@ -1637,7 +1637,7 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
     sha512_hmac_ctx_t ctx;
 
-    sha512_hmac_init (&ctx, w0, w1, w2, w3, w4, w5, w6, w7);
+    sha512_hmac_init_128 (&ctx, w0, w1, w2, w3, w4, w5, w6, w7);
 
     w0[0] = hmacSalt[0];
     w0[1] = hmacSalt[1];
@@ -1709,7 +1709,7 @@ __kernel void m15300_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     w7[2] = 0;
     w7[3] = 0;
 
-    sha512_hmac_init (&ctx, w0, w1, w2, w3, w4, w5, w6, w7);
+    sha512_hmac_init_128 (&ctx, w0, w1, w2, w3, w4, w5, w6, w7);
 
     w0[0] = lastKey[ 0];
     w0[1] = lastKey[ 1];
