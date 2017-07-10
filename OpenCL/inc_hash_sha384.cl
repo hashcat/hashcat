@@ -1326,7 +1326,7 @@ void sha384_hmac_init_global (sha384_hmac_ctx_t *ctx, __global const u32 *w, con
   sha384_hmac_init_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7);
 }
 
-void sha256_hmac_init_global_swap (sha256_hmac_ctx_t *ctx, __global const u32 *w, const int len)
+void sha384_hmac_init_global_swap (sha256_hmac_ctx_t *ctx, __global const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
