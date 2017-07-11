@@ -23100,8 +23100,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->kern_type      = KERN_TYPE_PDF17L8;
                  hashconfig->dgst_size      = DGST_SIZE_4_8;
                  hashconfig->parse_func     = pdf17l8_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_NOT_ITERATED;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
@@ -24658,7 +24657,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                   break;
       case  8600: hashconfig->pw_max = 16;
                   break;
-      case 10700: hashconfig->pw_max = 16; // todo
+      case 10700: hashconfig->pw_max = 16; // -L available
                   break;
       case 12500: hashconfig->pw_max = 20; // todo
                   break;

@@ -781,7 +781,7 @@ __kernel void m10700_loop (__global pw_t *pws, __global const kernel_rule_t *rul
 
   if ((loop_pos + loop_cnt) == 64)
   {
-    for (u32 i = 64; i < ex + 32; i++)
+    for (u32 i = 64; i < (ex & 0xff) + 32; i++)
     {
       ex = do_round (w0, pw_len, &ctx, s_te0, s_te1, s_te2, s_te3, s_te4);
     }
