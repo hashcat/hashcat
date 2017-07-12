@@ -59,11 +59,11 @@ __kernel void m06100_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
    * base
    */
 
-  whirlpool_ctx_t ctx_outer;
+  whirlpool_ctx_t ctx0;
 
-  whirlpool_init (&ctx_outer, s_Ch, s_Cl);
+  whirlpool_init (&ctx0, s_Ch, s_Cl);
 
-  whirlpool_update_global (&ctx_outer, pws[gid].i, pws[gid].pw_len);
+  whirlpool_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -71,11 +71,11 @@ __kernel void m06100_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    whirlpool_ctx_t ctx_inner = ctx_outer;
+    whirlpool_ctx_t ctx = ctx0;
 
-    whirlpool_update_global (&ctx_inner, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    whirlpool_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
-    whirlpool_final (&ctx_inner);
+    whirlpool_final (&ctx);
 
     const u32 r0 = ctx.h[DGST_R0];
     const u32 r1 = ctx.h[DGST_R1];
@@ -144,11 +144,11 @@ __kernel void m06100_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
    * base
    */
 
-  whirlpool_ctx_t ctx_outer;
+  whirlpool_ctx_t ctx0;
 
-  whirlpool_init (&ctx_outer, s_Ch, s_Cl);
+  whirlpool_init (&ctx0, s_Ch, s_Cl);
 
-  whirlpool_update_global (&ctx_outer, pws[gid].i, pws[gid].pw_len);
+  whirlpool_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -156,11 +156,11 @@ __kernel void m06100_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    whirlpool_ctx_t ctx_inner = ctx_outer;
+    whirlpool_ctx_t ctx = ctx0;
 
-    whirlpool_update_global (&ctx_inner, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    whirlpool_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
-    whirlpool_final (&ctx_inner);
+    whirlpool_final (&ctx);
 
     const u32 r0 = ctx.h[DGST_R0];
     const u32 r1 = ctx.h[DGST_R1];

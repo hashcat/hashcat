@@ -28,11 +28,11 @@ __kernel void m01700_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
    * base
    */
 
-  sha512_ctx_t ctx_outer;
+  sha512_ctx_t ctx0;
 
-  sha512_init (&ctx_outer);
+  sha512_init (&ctx0);
 
-  sha512_update_global (&ctx_outer, pws[gid].i, pws[gid].pw_len);
+  sha512_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -40,11 +40,11 @@ __kernel void m01700_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    sha512_ctx_t ctx_inner = ctx_outer;
+    sha512_ctx_t ctx = ctx0;
 
-    sha512_update_global (&ctx_inner, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    sha512_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
-    sha512_final (&ctx_inner);
+    sha512_final (&ctx);
 
     const u32x r0 = l32_from_64 (ctx.h[7]);
     const u32x r1 = h32_from_64 (ctx.h[7]);
@@ -82,11 +82,11 @@ __kernel void m01700_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
    * base
    */
 
-  sha512_ctx_t ctx_outer;
+  sha512_ctx_t ctx0;
 
-  sha512_init (&ctx_outer);
+  sha512_init (&ctx0);
 
-  sha512_update_global (&ctx_outer, pws[gid].i, pws[gid].pw_len);
+  sha512_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -94,11 +94,11 @@ __kernel void m01700_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    sha512_ctx_t ctx_inner = ctx_outer;
+    sha512_ctx_t ctx = ctx0;
 
-    sha512_update_global (&ctx_inner, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    sha512_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
-    sha512_final (&ctx_inner);
+    sha512_final (&ctx);
 
     const u32x r0 = l32_from_64 (ctx.h[7]);
     const u32x r1 = h32_from_64 (ctx.h[7]);

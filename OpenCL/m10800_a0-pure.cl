@@ -80,6 +80,18 @@ __kernel void m10800_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
   if (gid >= gid_max) return;
 
   /**
+   * digest
+   */
+
+  const u32 search[4] =
+  {
+    digests_buf[digests_offset].digest_buf[DGST_R0],
+    digests_buf[digests_offset].digest_buf[DGST_R1],
+    digests_buf[digests_offset].digest_buf[DGST_R2],
+    digests_buf[digests_offset].digest_buf[DGST_R3]
+  };
+
+  /**
    * base
    */
 
@@ -95,18 +107,6 @@ __kernel void m10800_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     barrier (CLK_GLOBAL_MEM_FENCE);
   }
-
-  /**
-   * digest
-   */
-
-  const u32 search[4] =
-  {
-    digests_buf[digests_offset].digest_buf[DGST_R0],
-    digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
-  };
 
   /**
    * loop

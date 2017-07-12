@@ -28,11 +28,11 @@ __kernel void m00000_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
    * base
    */
 
-  md5_ctx_t ctx_outer;
+  md5_ctx_t ctx0;
 
-  md5_init (&ctx_outer);
+  md5_init (&ctx0);
 
-  md5_update_global (&ctx_outer, pws[gid].i, pws[gid].pw_len);
+  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -40,11 +40,11 @@ __kernel void m00000_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    md5_ctx_t ctx_inner = ctx_outer;
+    md5_ctx_t ctx = ctx0;
 
-    md5_update_global (&ctx_inner, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
-    md5_final (&ctx_inner);
+    md5_final (&ctx);
 
     const u32 r0 = ctx.h[DGST_R0];
     const u32 r1 = ctx.h[DGST_R1];
@@ -82,11 +82,11 @@ __kernel void m00000_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
    * base
    */
 
-  md5_ctx_t ctx_outer;
+  md5_ctx_t ctx0;
 
-  md5_init (&ctx_outer);
+  md5_init (&ctx0);
 
-  md5_update_global (&ctx_outer, pws[gid].i, pws[gid].pw_len);
+  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -94,11 +94,11 @@ __kernel void m00000_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    md5_ctx_t ctx_inner = ctx_outer;
+    md5_ctx_t ctx = ctx0;
 
-    md5_update_global (&ctx_inner, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
-    md5_final (&ctx_inner);
+    md5_final (&ctx);
 
     const u32 r0 = ctx.h[DGST_R0];
     const u32 r1 = ctx.h[DGST_R1];
