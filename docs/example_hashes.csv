@@ -14,8 +14,7 @@
 160|HMAC-SHA1 (key = $salt)|d89c92b4400b15c39e462a8caa939ab40c3aeeea:1234
 200|MySQL323|7196759210defdc0
 300|MySQL4.1/MySQL5|fcf7c1b8749cf99d88e5f34271d636178fb5d130
-400|"phpass, WordPress (MD5),
-Joomla (MD5)"|$P$984478476IagS59wHZvyQMArzfx58u.
+400|phpass, WordPress (MD5),Joomla (MD5)|$P$984478476IagS59wHZvyQMArzfx58u.
 400|phpass, phpBB3 (MD5)|$H$984478476IagS59wHZvyQMArzfx58u.
 500|md5crypt, MD5 (Unix), Cisco-IOS $1$ (MD5) 2|$1$28772684$iEwNOgGugqO9.bIz5sk8k/
 501|Juniper IVE|3u+UR6n8AgABAAAAHxxdXKmiOmUoqKnZlf8lTOhlPYy93EAkbPfs5+49YLFd/B1+omSKbW7DoqNM40/EeVnwJ8kYoXv9zy9D5C5m5A==
