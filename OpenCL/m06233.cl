@@ -277,7 +277,7 @@ __kernel void m06233_init (__global pw_t *pws, __global const kernel_rule_t *rul
   tmps[gid].opad[14] = whirlpool_hmac_ctx.opad.h[14];
   tmps[gid].opad[15] = whirlpool_hmac_ctx.opad.h[15];
 
-  whirlpool_hmac_update_global_swap (&whirlpool_hmac_ctx, esalt_bufs[digests_offset].salt_buf, 64, s_Ch, s_Cl);
+  whirlpool_hmac_update_global_swap (&whirlpool_hmac_ctx, esalt_bufs[digests_offset].salt_buf, 64);
 
   for (u32 i = 0, j = 1; i < 48; i += 16, j += 1)
   {
@@ -300,9 +300,9 @@ __kernel void m06233_init (__global pw_t *pws, __global const kernel_rule_t *rul
     w3[2] = 0;
     w3[3] = 0;
 
-    whirlpool_hmac_update_64 (&whirlpool_hmac_ctx2, w0, w1, w2, w3, 4, s_Ch, s_Cl);
+    whirlpool_hmac_update_64 (&whirlpool_hmac_ctx2, w0, w1, w2, w3, 4);
 
-    whirlpool_hmac_final (&whirlpool_hmac_ctx2, s_Ch, s_Cl);
+    whirlpool_hmac_final (&whirlpool_hmac_ctx2);
 
     tmps[gid].dgst[i +  0] = whirlpool_hmac_ctx2.opad.h[ 0];
     tmps[gid].dgst[i +  1] = whirlpool_hmac_ctx2.opad.h[ 1];

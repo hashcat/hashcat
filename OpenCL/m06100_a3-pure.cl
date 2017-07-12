@@ -88,16 +88,16 @@ __kernel void m06100_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     whirlpool_ctx_vector_t ctx;
 
-    whirlpool_init_vector (&ctx);
+    whirlpool_init_vector (&ctx, s_Ch, s_Cl);
 
-    whirlpool_update_vector (&ctx, w, pw_len, s_Ch, s_Cl);
+    whirlpool_update_vector (&ctx, w, pw_len);
 
-    whirlpool_final_vector (&ctx, s_Ch, s_Cl);
+    whirlpool_final_vector (&ctx);
 
-    const u32x r0 = ctx.h[0];
-    const u32x r1 = ctx.h[1];
-    const u32x r2 = ctx.h[2];
-    const u32x r3 = ctx.h[3];
+    const u32x r0 = ctx.h[DGST_R0];
+    const u32x r1 = ctx.h[DGST_R1];
+    const u32x r2 = ctx.h[DGST_R2];
+    const u32x r3 = ctx.h[DGST_R3];
 
     COMPARE_M_SIMD (r0, r1, r2, r3);
   }
@@ -190,16 +190,16 @@ __kernel void m06100_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     whirlpool_ctx_vector_t ctx;
 
-    whirlpool_init_vector (&ctx);
+    whirlpool_init_vector (&ctx, s_Ch, s_Cl);
 
-    whirlpool_update_vector (&ctx, w, pw_len, s_Ch, s_Cl);
+    whirlpool_update_vector (&ctx, w, pw_len);
 
-    whirlpool_final_vector (&ctx, s_Ch, s_Cl);
+    whirlpool_final_vector (&ctx);
 
-    const u32x r0 = ctx.h[0];
-    const u32x r1 = ctx.h[1];
-    const u32x r2 = ctx.h[2];
-    const u32x r3 = ctx.h[3];
+    const u32x r0 = ctx.h[DGST_R0];
+    const u32x r1 = ctx.h[DGST_R1];
+    const u32x r2 = ctx.h[DGST_R2];
+    const u32x r3 = ctx.h[DGST_R3];
 
     COMPARE_S_SIMD (r0, r1, r2, r3);
   }
