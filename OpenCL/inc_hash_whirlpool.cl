@@ -2374,6 +2374,48 @@ void whirlpool_init_vector (whirlpool_ctx_vector_t *ctx, __local u32 (*s_Ch)[256
   ctx->s_Cl = s_Cl;
 }
 
+void whirlpool_init_vector_from_scalar (whirlpool_ctx_vector_t *ctx, whirlpool_ctx_t *ctx0)
+{
+  ctx->h[ 0] = ctx0->h[ 0];
+  ctx->h[ 1] = ctx0->h[ 1];
+  ctx->h[ 2] = ctx0->h[ 2];
+  ctx->h[ 3] = ctx0->h[ 3];
+  ctx->h[ 4] = ctx0->h[ 4];
+  ctx->h[ 5] = ctx0->h[ 5];
+  ctx->h[ 6] = ctx0->h[ 6];
+  ctx->h[ 7] = ctx0->h[ 7];
+  ctx->h[ 8] = ctx0->h[ 8];
+  ctx->h[ 9] = ctx0->h[ 9];
+  ctx->h[10] = ctx0->h[10];
+  ctx->h[11] = ctx0->h[11];
+  ctx->h[12] = ctx0->h[12];
+  ctx->h[13] = ctx0->h[13];
+  ctx->h[14] = ctx0->h[14];
+  ctx->h[15] = ctx0->h[15];
+
+  ctx->w0[0] = ctx0->w0[0];
+  ctx->w0[1] = ctx0->w0[1];
+  ctx->w0[2] = ctx0->w0[2];
+  ctx->w0[3] = ctx0->w0[3];
+  ctx->w1[0] = ctx0->w1[0];
+  ctx->w1[1] = ctx0->w1[1];
+  ctx->w1[2] = ctx0->w1[2];
+  ctx->w1[3] = ctx0->w1[3];
+  ctx->w2[0] = ctx0->w2[0];
+  ctx->w2[1] = ctx0->w2[1];
+  ctx->w2[2] = ctx0->w2[2];
+  ctx->w2[3] = ctx0->w2[3];
+  ctx->w3[0] = ctx0->w3[0];
+  ctx->w3[1] = ctx0->w3[1];
+  ctx->w3[2] = ctx0->w3[2];
+  ctx->w3[3] = ctx0->w3[3];
+
+  ctx->len = ctx0->len;
+
+  ctx->s_Ch = ctx0->s_Ch;
+  ctx->s_Cl = ctx0->s_Cl;
+}
+
 void whirlpool_update_vector_64 (whirlpool_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const int len)
 {
   const int pos = ctx->len & 63;

@@ -1657,6 +1657,53 @@ void sha384_init_vector (sha384_ctx_vector_t *ctx)
   ctx->len = 0;
 }
 
+void sha384_init_vector_from_scalar (sha384_ctx_vector_t *ctx, sha384_ctx_t *ctx0)
+{
+  ctx->h[0] = ctx0->h[0];
+  ctx->h[1] = ctx0->h[1];
+  ctx->h[2] = ctx0->h[2];
+  ctx->h[3] = ctx0->h[3];
+  ctx->h[4] = ctx0->h[4];
+  ctx->h[5] = ctx0->h[5];
+  ctx->h[6] = ctx0->h[6];
+  ctx->h[7] = ctx0->h[7];
+
+  ctx->w0[0] = ctx0->w0[0];
+  ctx->w0[1] = ctx0->w0[1];
+  ctx->w0[2] = ctx0->w0[2];
+  ctx->w0[3] = ctx0->w0[3];
+  ctx->w1[0] = ctx0->w1[0];
+  ctx->w1[1] = ctx0->w1[1];
+  ctx->w1[2] = ctx0->w1[2];
+  ctx->w1[3] = ctx0->w1[3];
+  ctx->w2[0] = ctx0->w2[0];
+  ctx->w2[1] = ctx0->w2[1];
+  ctx->w2[2] = ctx0->w2[2];
+  ctx->w2[3] = ctx0->w2[3];
+  ctx->w3[0] = ctx0->w3[0];
+  ctx->w3[1] = ctx0->w3[1];
+  ctx->w3[2] = ctx0->w3[2];
+  ctx->w3[3] = ctx0->w3[3];
+  ctx->w4[0] = ctx0->w4[0];
+  ctx->w4[1] = ctx0->w4[1];
+  ctx->w4[2] = ctx0->w4[2];
+  ctx->w4[3] = ctx0->w4[3];
+  ctx->w5[0] = ctx0->w5[0];
+  ctx->w5[1] = ctx0->w5[1];
+  ctx->w5[2] = ctx0->w5[2];
+  ctx->w5[3] = ctx0->w5[3];
+  ctx->w6[0] = ctx0->w6[0];
+  ctx->w6[1] = ctx0->w6[1];
+  ctx->w6[2] = ctx0->w6[2];
+  ctx->w6[3] = ctx0->w6[3];
+  ctx->w7[0] = ctx0->w7[0];
+  ctx->w7[1] = ctx0->w7[1];
+  ctx->w7[2] = ctx0->w7[2];
+  ctx->w7[3] = ctx0->w7[3];
+
+  ctx->len = ctx0->len;
+}
+
 void sha384_update_vector_128 (sha384_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const int len)
 {
   const int pos = ctx->len & 127;

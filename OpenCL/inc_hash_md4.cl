@@ -925,6 +925,33 @@ void md4_init_vector (md4_ctx_vector_t *ctx)
   ctx->len = 0;
 }
 
+void md4_init_vector_from_scalar (md4_ctx_vector_t *ctx, md4_ctx_t *ctx0)
+{
+  ctx->h[0] = ctx0->h[0];
+  ctx->h[1] = ctx0->h[1];
+  ctx->h[2] = ctx0->h[2];
+  ctx->h[3] = ctx0->h[3];
+
+  ctx->w0[0] = ctx0->w0[0];
+  ctx->w0[1] = ctx0->w0[1];
+  ctx->w0[2] = ctx0->w0[2];
+  ctx->w0[3] = ctx0->w0[3];
+  ctx->w1[0] = ctx0->w1[0];
+  ctx->w1[1] = ctx0->w1[1];
+  ctx->w1[2] = ctx0->w1[2];
+  ctx->w1[3] = ctx0->w1[3];
+  ctx->w2[0] = ctx0->w2[0];
+  ctx->w2[1] = ctx0->w2[1];
+  ctx->w2[2] = ctx0->w2[2];
+  ctx->w2[3] = ctx0->w2[3];
+  ctx->w3[0] = ctx0->w3[0];
+  ctx->w3[1] = ctx0->w3[1];
+  ctx->w3[2] = ctx0->w3[2];
+  ctx->w3[3] = ctx0->w3[3];
+
+  ctx->len = ctx0->len;
+}
+
 void md4_update_vector_64 (md4_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const int len)
 {
   const int pos = ctx->len & 63;
