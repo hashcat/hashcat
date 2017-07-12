@@ -42,6 +42,18 @@ __kernel void m00000_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
   }
 
   /**
+   * digest
+   */
+
+  const u32 search[4] =
+  {
+    digests_buf[digests_offset].digest_buf[DGST_R0],
+    digests_buf[digests_offset].digest_buf[DGST_R1],
+    digests_buf[digests_offset].digest_buf[DGST_R2],
+    digests_buf[digests_offset].digest_buf[DGST_R3]
+  };
+
+  /**
    * loop
    */
 
@@ -63,12 +75,12 @@ __kernel void m00000_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     md5_final_vector (&ctx);
 
-    const u32x a = ctx.h[0];
-    const u32x b = ctx.h[1];
-    const u32x c = ctx.h[2];
-    const u32x d = ctx.h[3];
+    const u32x r0 = ctx.h[DGST_R0];
+    const u32x r1 = ctx.h[DGST_R1];
+    const u32x r2 = ctx.h[DGST_R2];
+    const u32x r3 = ctx.h[DGST_R3];
 
-    COMPARE_M_SIMD (a, d, c, b);
+    COMPARE_M_SIMD (r0, r1, r2, r3);
   }
 }
 
@@ -134,11 +146,11 @@ __kernel void m00000_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     md5_final_vector (&ctx);
 
-    const u32x a = ctx.h[0];
-    const u32x b = ctx.h[1];
-    const u32x c = ctx.h[2];
-    const u32x d = ctx.h[3];
+    const u32x r0 = ctx.h[DGST_R0];
+    const u32x r1 = ctx.h[DGST_R1];
+    const u32x r2 = ctx.h[DGST_R2];
+    const u32x r3 = ctx.h[DGST_R3];
 
-    COMPARE_S_SIMD (a, d, c, b);
+    COMPARE_S_SIMD (r0, r1, r2, r3);
   }
 }

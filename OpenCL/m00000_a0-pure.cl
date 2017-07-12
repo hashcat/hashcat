@@ -3,7 +3,7 @@
  * License.....: MIT
  */
 
-#define NEW_SIMD_CODE
+//#define NEW_SIMD_CODE
 
 #include "inc_vendor.cl"
 #include "inc_hash_constants.h"
@@ -27,12 +27,44 @@ __kernel void m00000_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
   if (gid >= gid_max) return;
 
   /**
+   * base
+   */
+
+  const u32 pw_len = pws[gid].pw_len;
+
+  const u32 pw_lenv = ceil ((float) pw_len / 4);
+
+  u32 w[64] = { 0 };
+
+  for (int idx = 0; idx < pw_lenv; idx++)
+  {
+    w[idx] = pws[gid].i[idx];
+
+    barrier (CLK_GLOBAL_MEM_FENCE);
+  }
+
+  /**
    * loop
    */
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
+    // todo: add rules engine
 
+    md5_ctx_t ctx;
+
+    md5_init (&ctx);
+
+    md5_update (&ctx, w, pw_len);
+
+    md5_final (&ctx);
+
+    const u32 r0 = ctx.h[DGST_R0];
+    const u32 r1 = ctx.h[DGST_R1];
+    const u32 r2 = ctx.h[DGST_R2];
+    const u32 r3 = ctx.h[DGST_R3];
+
+    COMPARE_M_SCALAR (r0, r1, r2, r3);
   }
 }
 
@@ -46,6 +78,23 @@ __kernel void m00000_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
   const u32 gid = get_global_id (0);
 
   if (gid >= gid_max) return;
+
+  /**
+   * base
+   */
+
+  const u32 pw_len = pws[gid].pw_len;
+
+  const u32 pw_lenv = ceil ((float) pw_len / 4);
+
+  u32 w[64] = { 0 };
+
+  for (int idx = 0; idx < pw_lenv; idx++)
+  {
+    w[idx] = pws[gid].i[idx];
+
+    barrier (CLK_GLOBAL_MEM_FENCE);
+  }
 
   /**
    * digest
@@ -65,6 +114,21 @@ __kernel void m00000_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
+    // todo: add rules engine
 
+    md5_ctx_t ctx;
+
+    md5_init (&ctx);
+
+    md5_update (&ctx, w, pw_len);
+
+    md5_final (&ctx);
+
+    const u32 r0 = ctx.h[DGST_R0];
+    const u32 r1 = ctx.h[DGST_R1];
+    const u32 r2 = ctx.h[DGST_R2];
+    const u32 r3 = ctx.h[DGST_R3];
+
+    COMPARE_S_SCALAR (r0, r1, r2, r3);
   }
 }
