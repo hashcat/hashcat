@@ -2420,6 +2420,17 @@ static void drupal7_encode (u8 digest[64], u8 buf[43])
 
 static u32 parse_and_store_salt (u8 *out, u8 *in, u32 salt_len, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
+  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
+  {
+    if (salt_len < (hashconfig->salt_min * 2)) return UINT_MAX;
+    if (salt_len > (hashconfig->salt_max * 2)) return UINT_MAX;
+  }
+  else
+  {
+    if (salt_len < hashconfig->salt_min) return UINT_MAX;
+    if (salt_len > hashconfig->salt_max) return UINT_MAX;
+  }
+
   u32 tmp_u32[(64 * 2) + 1] = { 0 };
 
   u8 *tmp = (u8 *) tmp_u32;
@@ -2823,14 +2834,7 @@ int osx512_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
 int osc_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
-  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
-  {
-    if ((input_len < DISPLAY_LEN_MIN_21H) || (input_len > DISPLAY_LEN_MAX_21H)) return (PARSER_GLOBAL_LENGTH);
-  }
-  else
-  {
-    if ((input_len < DISPLAY_LEN_MIN_21) || (input_len > DISPLAY_LEN_MAX_21)) return (PARSER_GLOBAL_LENGTH);
-  }
+  if ((input_len < DISPLAY_LEN_MIN_21) || (input_len > DISPLAY_LEN_MAX_21)) return (PARSER_GLOBAL_LENGTH);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -2870,14 +2874,7 @@ int osc_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
 
 int netscreen_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
-  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
-  {
-    if ((input_len < DISPLAY_LEN_MIN_22H) || (input_len > DISPLAY_LEN_MAX_22H)) return (PARSER_GLOBAL_LENGTH);
-  }
-  else
-  {
-    if ((input_len < DISPLAY_LEN_MIN_22) || (input_len > DISPLAY_LEN_MAX_22)) return (PARSER_GLOBAL_LENGTH);
-  }
+  if ((input_len < DISPLAY_LEN_MIN_22) || (input_len > DISPLAY_LEN_MAX_22)) return (PARSER_GLOBAL_LENGTH);
 
   // unscramble
 
@@ -2989,14 +2986,7 @@ int netscreen_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
 int smf_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
-  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
-  {
-    if ((input_len < DISPLAY_LEN_MIN_121H) || (input_len > DISPLAY_LEN_MAX_121H)) return (PARSER_GLOBAL_LENGTH);
-  }
-  else
-  {
-    if ((input_len < DISPLAY_LEN_MIN_121) || (input_len > DISPLAY_LEN_MAX_121)) return (PARSER_GLOBAL_LENGTH);
-  }
+  if ((input_len < DISPLAY_LEN_MIN_121) || (input_len > DISPLAY_LEN_MAX_121)) return (PARSER_GLOBAL_LENGTH);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -3044,14 +3034,7 @@ int smf_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
 
 int dcc2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
-  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
-  {
-    if ((input_len < DISPLAY_LEN_MIN_2100H) || (input_len > DISPLAY_LEN_MAX_2100H)) return (PARSER_GLOBAL_LENGTH);
-  }
-  else
-  {
-    if ((input_len < DISPLAY_LEN_MIN_2100) || (input_len > DISPLAY_LEN_MAX_2100)) return (PARSER_GLOBAL_LENGTH);
-  }
+  if ((input_len < DISPLAY_LEN_MIN_2100) || (input_len > DISPLAY_LEN_MAX_2100)) return (PARSER_GLOBAL_LENGTH);
 
   if (memcmp (SIGNATURE_DCC2, input_buf, 6)) return (PARSER_SIGNATURE_UNMATCHED);
 
@@ -3965,14 +3948,7 @@ int md5pix_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
 int md5asa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
-  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
-  {
-    if ((input_len < DISPLAY_LEN_MIN_2410H) || (input_len > DISPLAY_LEN_MAX_2410H)) return (PARSER_GLOBAL_LENGTH);
-  }
-  else
-  {
-    if ((input_len < DISPLAY_LEN_MIN_2410) || (input_len > DISPLAY_LEN_MAX_2410)) return (PARSER_GLOBAL_LENGTH);
-  }
+  if ((input_len < DISPLAY_LEN_MIN_2410) || (input_len > DISPLAY_LEN_MAX_2410)) return (PARSER_GLOBAL_LENGTH);
 
   int *digest = (int *) hash_buf->digest;
 
@@ -4453,14 +4429,7 @@ int netntlmv2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
 int joomla_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
-  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
-  {
-    if ((input_len < DISPLAY_LEN_MIN_11H) || (input_len > DISPLAY_LEN_MAX_11H)) return (PARSER_GLOBAL_LENGTH);
-  }
-  else
-  {
-    if ((input_len < DISPLAY_LEN_MIN_11) || (input_len > DISPLAY_LEN_MAX_11)) return (PARSER_GLOBAL_LENGTH);
-  }
+  if ((input_len < DISPLAY_LEN_MIN_11) || (input_len > DISPLAY_LEN_MAX_11)) return (PARSER_GLOBAL_LENGTH);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -4500,14 +4469,7 @@ int joomla_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
 int postgresql_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
-  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
-  {
-    if ((input_len < DISPLAY_LEN_MIN_12H) || (input_len > DISPLAY_LEN_MAX_12H)) return (PARSER_GLOBAL_LENGTH);
-  }
-  else
-  {
-    if ((input_len < DISPLAY_LEN_MIN_12) || (input_len > DISPLAY_LEN_MAX_12)) return (PARSER_GLOBAL_LENGTH);
-  }
+  if ((input_len < DISPLAY_LEN_MIN_12) || (input_len > DISPLAY_LEN_MAX_12)) return (PARSER_GLOBAL_LENGTH);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -4587,14 +4549,7 @@ int md5md5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
 int vb3_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
-  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
-  {
-    if ((input_len < DISPLAY_LEN_MIN_2611H) || (input_len > DISPLAY_LEN_MAX_2611H)) return (PARSER_GLOBAL_LENGTH);
-  }
-  else
-  {
-    if ((input_len < DISPLAY_LEN_MIN_2611) || (input_len > DISPLAY_LEN_MAX_2611)) return (PARSER_GLOBAL_LENGTH);
-  }
+  if ((input_len < DISPLAY_LEN_MIN_2611) || (input_len > DISPLAY_LEN_MAX_2611)) return (PARSER_GLOBAL_LENGTH);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -4634,14 +4589,7 @@ int vb3_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
 
 int vb30_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
-  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
-  {
-    if ((input_len < DISPLAY_LEN_MIN_2711H) || (input_len > DISPLAY_LEN_MAX_2711H)) return (PARSER_GLOBAL_LENGTH);
-  }
-  else
-  {
-    if ((input_len < DISPLAY_LEN_MIN_2711) || (input_len > DISPLAY_LEN_MAX_2711)) return (PARSER_GLOBAL_LENGTH);
-  }
+  if ((input_len < DISPLAY_LEN_MIN_2711) || (input_len > DISPLAY_LEN_MAX_2711)) return (PARSER_GLOBAL_LENGTH);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -4673,14 +4621,7 @@ int vb30_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
 int dcc_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
-  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
-  {
-    if ((input_len < DISPLAY_LEN_MIN_1100H) || (input_len > DISPLAY_LEN_MAX_1100H)) return (PARSER_GLOBAL_LENGTH);
-  }
-  else
-  {
-    if ((input_len < DISPLAY_LEN_MIN_1100) || (input_len > DISPLAY_LEN_MAX_1100)) return (PARSER_GLOBAL_LENGTH);
-  }
+  if ((input_len < DISPLAY_LEN_MIN_1100) || (input_len > DISPLAY_LEN_MAX_1100)) return (PARSER_GLOBAL_LENGTH);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -4720,14 +4661,7 @@ int dcc_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
 
 int ipb2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
-  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
-  {
-    if ((input_len < DISPLAY_LEN_MIN_2811H) || (input_len > DISPLAY_LEN_MAX_2811H)) return (PARSER_GLOBAL_LENGTH);
-  }
-  else
-  {
-    if ((input_len < DISPLAY_LEN_MIN_2811) || (input_len > DISPLAY_LEN_MAX_2811)) return (PARSER_GLOBAL_LENGTH);
-  }
+  if ((input_len < DISPLAY_LEN_MIN_2811) || (input_len > DISPLAY_LEN_MAX_2811)) return (PARSER_GLOBAL_LENGTH);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -5250,14 +5184,7 @@ int mssql2012_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
 int oracleh_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
-  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
-  {
-    if ((input_len < DISPLAY_LEN_MIN_3100H) || (input_len > DISPLAY_LEN_MAX_3100H)) return (PARSER_GLOBAL_LENGTH);
-  }
-  else
-  {
-    if ((input_len < DISPLAY_LEN_MIN_3100) || (input_len > DISPLAY_LEN_MAX_3100)) return (PARSER_GLOBAL_LENGTH);
-  }
+  if ((input_len < DISPLAY_LEN_MIN_3100) || (input_len > DISPLAY_LEN_MAX_3100)) return (PARSER_GLOBAL_LENGTH);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -24779,6 +24706,29 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 14000: hashconfig->pw_max = 8;  break; // DES max
     case 14100: hashconfig->pw_max = 24; break; // 3DES max
     case 14900: hashconfig->pw_max = 10; break; // Skip32 max
+  }
+
+  // salt_min and salt_max : this limit is only interessting for generic hash types that support a salt
+
+  hashconfig->salt_min = SALT_MIN;
+  hashconfig->salt_max = SALT_MAX;
+
+  if (user_options->length_limit_disable == true)
+  {
+    // nothing to do
+  }
+  else
+  {
+    hashconfig->pw_max = SALT_MAX_OLD;
+  }
+
+  if (hashconfig->salt_type == SALT_TYPE_INTERN)
+  {
+    if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
+    {
+      hashconfig->salt_min *= 2;
+      hashconfig->salt_max *= 2;
+    }
   }
 
   return 0;

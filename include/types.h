@@ -832,8 +832,15 @@ struct hashconfig
   u32   tmp_size;
   u32   hook_size;
 
+  // password length limit
+
   u32   pw_min;
   u32   pw_max;
+
+  // salt length limit (generic hashes)
+
+  u32   salt_min;
+  u32   salt_max;
 
   int (*parse_func) (u8 *, u32, hash_t *, const struct hashconfig *);
 
