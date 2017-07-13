@@ -2118,14 +2118,14 @@ void sha384_update_vector (sha384_ctx_vector_t *ctx, const u32x *w, const int le
 
 void sha384_update_vector_utf16le (sha384_ctx_vector_t *ctx, const u32x *w, const int len)
 {
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
-  u32 w4[4];
-  u32 w5[4];
-  u32 w6[4];
-  u32 w7[4];
+  u32x w0[4];
+  u32x w1[4];
+  u32x w2[4];
+  u32x w3[4];
+  u32x w4[4];
+  u32x w5[4];
+  u32x w6[4];
+  u32x w7[4];
 
   int pos1;
   int pos4;
