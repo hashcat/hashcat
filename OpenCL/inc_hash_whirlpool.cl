@@ -2082,6 +2082,63 @@ void whirlpool_hmac_init (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len
   whirlpool_hmac_init_64 (ctx, w0, w1, w2, w3, s_Ch, s_Cl);
 }
 
+void whirlpool_hmac_init_swap (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len, __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  if (len > 64)
+  {
+    whirlpool_ctx_t tmp;
+
+    whirlpool_init (&tmp, s_Ch, s_Cl);
+
+    whirlpool_update_swap (&tmp, w, len);
+
+    whirlpool_final (&tmp);
+
+    w0[0] = tmp.h[ 0];
+    w0[1] = tmp.h[ 1];
+    w0[2] = tmp.h[ 2];
+    w0[3] = tmp.h[ 3];
+    w1[0] = tmp.h[ 4];
+    w1[1] = tmp.h[ 5];
+    w1[2] = tmp.h[ 6];
+    w1[3] = tmp.h[ 7];
+    w2[0] = tmp.h[ 8];
+    w2[1] = tmp.h[ 9];
+    w2[2] = tmp.h[10];
+    w2[3] = tmp.h[11];
+    w3[0] = tmp.h[12];
+    w3[1] = tmp.h[13];
+    w3[2] = tmp.h[14];
+    w3[3] = tmp.h[15];
+  }
+  else
+  {
+    w0[0] = swap32_S (w[ 0]);
+    w0[1] = swap32_S (w[ 1]);
+    w0[2] = swap32_S (w[ 2]);
+    w0[3] = swap32_S (w[ 3]);
+    w1[0] = swap32_S (w[ 4]);
+    w1[1] = swap32_S (w[ 5]);
+    w1[2] = swap32_S (w[ 6]);
+    w1[3] = swap32_S (w[ 7]);
+    w2[0] = swap32_S (w[ 8]);
+    w2[1] = swap32_S (w[ 9]);
+    w2[2] = swap32_S (w[10]);
+    w2[3] = swap32_S (w[11]);
+    w3[0] = swap32_S (w[12]);
+    w3[1] = swap32_S (w[13]);
+    w3[2] = swap32_S (w[14]);
+    w3[3] = swap32_S (w[15]);
+  }
+
+  whirlpool_hmac_init_64 (ctx, w0, w1, w2, w3, s_Ch, s_Cl);
+}
+
 void whirlpool_hmac_init_global (whirlpool_hmac_ctx_t *ctx, __global const u32 *w, const int len, __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
 {
   u32 w0[4];

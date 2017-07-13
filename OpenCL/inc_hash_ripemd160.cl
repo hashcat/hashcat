@@ -982,6 +982,63 @@ void ripemd160_hmac_init (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len
   ripemd160_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
+void ripemd160_hmac_init_swap (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  if (len > 64)
+  {
+    ripemd160_ctx_t tmp;
+
+    ripemd160_init (&tmp);
+
+    ripemd160_update_swap (&tmp, w, len);
+
+    ripemd160_final (&tmp);
+
+    w0[0] = tmp.h[0];
+    w0[1] = tmp.h[1];
+    w0[2] = tmp.h[2];
+    w0[3] = tmp.h[3];
+    w1[0] = tmp.h[4];
+    w1[1] = 0;
+    w1[2] = 0;
+    w1[3] = 0;
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 0;
+    w3[3] = 0;
+  }
+  else
+  {
+    w0[0] = swap32_S (w[ 0]);
+    w0[1] = swap32_S (w[ 1]);
+    w0[2] = swap32_S (w[ 2]);
+    w0[3] = swap32_S (w[ 3]);
+    w1[0] = swap32_S (w[ 4]);
+    w1[1] = swap32_S (w[ 5]);
+    w1[2] = swap32_S (w[ 6]);
+    w1[3] = swap32_S (w[ 7]);
+    w2[0] = swap32_S (w[ 8]);
+    w2[1] = swap32_S (w[ 9]);
+    w2[2] = swap32_S (w[10]);
+    w2[3] = swap32_S (w[11]);
+    w3[0] = swap32_S (w[12]);
+    w3[1] = swap32_S (w[13]);
+    w3[2] = swap32_S (w[14]);
+    w3[3] = swap32_S (w[15]);
+  }
+
+  ripemd160_hmac_init_64 (ctx, w0, w1, w2, w3);
+}
+
 void ripemd160_hmac_init_global (ripemd160_hmac_ctx_t *ctx, __global const u32 *w, const int len)
 {
   u32 w0[4];
