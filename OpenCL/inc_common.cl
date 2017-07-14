@@ -36658,10 +36658,6 @@ inline void switch_buffer_by_offset_1x64_le_S (u32 w[64], const u32 offset)
 inline void switch_buffer_by_offset_1x64_be_S (u32 w[64], const u32 offset)
 {
   #if defined IS_AMD || defined IS_GENERIC
-  const int offset_mod_4 = offset & 3;
-
-  const int offset_minus_4 = 4 - offset;
-
   switch (offset / 4)
   {
     case  0:
@@ -41019,9 +41015,7 @@ inline void switch_buffer_by_offset_1x64_be_S (u32 w[64], const u32 offset)
   #endif
 
   #ifdef IS_NV
-  const int offset_minus_4 = 4 - (offset % 4);
-
-  const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
+  const int selector = (0x76543210 >> ((offset & 3) * 4)) & 0xffff;
 
   switch (offset / 4)
   {
