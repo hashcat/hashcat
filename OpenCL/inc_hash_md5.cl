@@ -1576,7 +1576,7 @@ void md5_update_vector_utf16le_swap (md5_ctx_vector_t *ctx, const u32x *w, const
     w3[2] = swap32 (w3[2]);
     w3[3] = swap32 (w3[3]);
 
-    md5_update_64 (ctx, w0, w1, w2, w3, 32 * 2);
+    md5_update_vector_64 (ctx, w0, w1, w2, w3, 32 * 2);
   }
 
   w0[0] = w[pos4 + 0];
@@ -1608,7 +1608,7 @@ void md5_update_vector_utf16le_swap (md5_ctx_vector_t *ctx, const u32x *w, const
   w3[2] = swap32 (w3[2]);
   w3[3] = swap32 (w3[3]);
 
-  md5_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
+  md5_update_vector_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
 void md5_final_vector (md5_ctx_vector_t *ctx)
