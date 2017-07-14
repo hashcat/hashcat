@@ -24719,7 +24719,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    hashconfig->pw_max = SALT_MAX_OLD;
+    hashconfig->salt_max = SALT_MAX_OLD;
   }
 
   if (hashconfig->salt_type == SALT_TYPE_INTERN)
