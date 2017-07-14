@@ -2209,6 +2209,160 @@ void sha512_update_vector (sha512_ctx_vector_t *ctx, const u32x *w, const int le
   sha512_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - pos1);
 }
 
+void sha512_update_vector_swap (sha512_ctx_vector_t *ctx, const u32x *w, const int len)
+{
+  u32x w0[4];
+  u32x w1[4];
+  u32x w2[4];
+  u32x w3[4];
+  u32x w4[4];
+  u32x w5[4];
+  u32x w6[4];
+  u32x w7[4];
+
+  int pos1;
+  int pos4;
+
+  for (pos1 = 0, pos4 = 0; pos1 < len - 128; pos1 += 128, pos4 += 32)
+  {
+    w0[0] = w[pos4 +  0];
+    w0[1] = w[pos4 +  1];
+    w0[2] = w[pos4 +  2];
+    w0[3] = w[pos4 +  3];
+    w1[0] = w[pos4 +  4];
+    w1[1] = w[pos4 +  5];
+    w1[2] = w[pos4 +  6];
+    w1[3] = w[pos4 +  7];
+    w2[0] = w[pos4 +  8];
+    w2[1] = w[pos4 +  9];
+    w2[2] = w[pos4 + 10];
+    w2[3] = w[pos4 + 11];
+    w3[0] = w[pos4 + 12];
+    w3[1] = w[pos4 + 13];
+    w3[2] = w[pos4 + 14];
+    w3[3] = w[pos4 + 15];
+    w4[0] = w[pos4 + 16];
+    w4[1] = w[pos4 + 17];
+    w4[2] = w[pos4 + 18];
+    w4[3] = w[pos4 + 19];
+    w5[0] = w[pos4 + 20];
+    w5[1] = w[pos4 + 21];
+    w5[2] = w[pos4 + 22];
+    w5[3] = w[pos4 + 23];
+    w6[0] = w[pos4 + 24];
+    w6[1] = w[pos4 + 25];
+    w6[2] = w[pos4 + 26];
+    w6[3] = w[pos4 + 27];
+    w7[0] = w[pos4 + 28];
+    w7[1] = w[pos4 + 29];
+    w7[2] = w[pos4 + 30];
+    w7[3] = w[pos4 + 31];
+
+    w0[0] = swap32 (w0[0]);
+    w0[1] = swap32 (w0[1]);
+    w0[2] = swap32 (w0[2]);
+    w0[3] = swap32 (w0[3]);
+    w1[0] = swap32 (w1[0]);
+    w1[1] = swap32 (w1[1]);
+    w1[2] = swap32 (w1[2]);
+    w1[3] = swap32 (w1[3]);
+    w2[0] = swap32 (w2[0]);
+    w2[1] = swap32 (w2[1]);
+    w2[2] = swap32 (w2[2]);
+    w2[3] = swap32 (w2[3]);
+    w3[0] = swap32 (w3[0]);
+    w3[1] = swap32 (w3[1]);
+    w3[2] = swap32 (w3[2]);
+    w3[3] = swap32 (w3[3]);
+    w4[0] = swap32 (w4[0]);
+    w4[1] = swap32 (w4[1]);
+    w4[2] = swap32 (w4[2]);
+    w4[3] = swap32 (w4[3]);
+    w5[0] = swap32 (w5[0]);
+    w5[1] = swap32 (w5[1]);
+    w5[2] = swap32 (w5[2]);
+    w5[3] = swap32 (w5[3]);
+    w6[0] = swap32 (w6[0]);
+    w6[1] = swap32 (w6[1]);
+    w6[2] = swap32 (w6[2]);
+    w6[3] = swap32 (w6[3]);
+    w7[0] = swap32 (w7[0]);
+    w7[1] = swap32 (w7[1]);
+    w7[2] = swap32 (w7[2]);
+    w7[3] = swap32 (w7[3]);
+
+    sha512_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, 128);
+  }
+
+  w0[0] = w[pos4 +  0];
+  w0[1] = w[pos4 +  1];
+  w0[2] = w[pos4 +  2];
+  w0[3] = w[pos4 +  3];
+  w1[0] = w[pos4 +  4];
+  w1[1] = w[pos4 +  5];
+  w1[2] = w[pos4 +  6];
+  w1[3] = w[pos4 +  7];
+  w2[0] = w[pos4 +  8];
+  w2[1] = w[pos4 +  9];
+  w2[2] = w[pos4 + 10];
+  w2[3] = w[pos4 + 11];
+  w3[0] = w[pos4 + 12];
+  w3[1] = w[pos4 + 13];
+  w3[2] = w[pos4 + 14];
+  w3[3] = w[pos4 + 15];
+  w4[0] = w[pos4 + 16];
+  w4[1] = w[pos4 + 17];
+  w4[2] = w[pos4 + 18];
+  w4[3] = w[pos4 + 19];
+  w5[0] = w[pos4 + 20];
+  w5[1] = w[pos4 + 21];
+  w5[2] = w[pos4 + 22];
+  w5[3] = w[pos4 + 23];
+  w6[0] = w[pos4 + 24];
+  w6[1] = w[pos4 + 25];
+  w6[2] = w[pos4 + 26];
+  w6[3] = w[pos4 + 27];
+  w7[0] = w[pos4 + 28];
+  w7[1] = w[pos4 + 29];
+  w7[2] = w[pos4 + 30];
+  w7[3] = w[pos4 + 31];
+
+  w0[0] = swap32 (w0[0]);
+  w0[1] = swap32 (w0[1]);
+  w0[2] = swap32 (w0[2]);
+  w0[3] = swap32 (w0[3]);
+  w1[0] = swap32 (w1[0]);
+  w1[1] = swap32 (w1[1]);
+  w1[2] = swap32 (w1[2]);
+  w1[3] = swap32 (w1[3]);
+  w2[0] = swap32 (w2[0]);
+  w2[1] = swap32 (w2[1]);
+  w2[2] = swap32 (w2[2]);
+  w2[3] = swap32 (w2[3]);
+  w3[0] = swap32 (w3[0]);
+  w3[1] = swap32 (w3[1]);
+  w3[2] = swap32 (w3[2]);
+  w3[3] = swap32 (w3[3]);
+  w4[0] = swap32 (w4[0]);
+  w4[1] = swap32 (w4[1]);
+  w4[2] = swap32 (w4[2]);
+  w4[3] = swap32 (w4[3]);
+  w5[0] = swap32 (w5[0]);
+  w5[1] = swap32 (w5[1]);
+  w5[2] = swap32 (w5[2]);
+  w5[3] = swap32 (w5[3]);
+  w6[0] = swap32 (w6[0]);
+  w6[1] = swap32 (w6[1]);
+  w6[2] = swap32 (w6[2]);
+  w6[3] = swap32 (w6[3]);
+  w7[0] = swap32 (w7[0]);
+  w7[1] = swap32 (w7[1]);
+  w7[2] = swap32 (w7[2]);
+  w7[3] = swap32 (w7[3]);
+
+  sha512_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - pos1);
+}
+
 void sha512_update_vector_utf16le (sha512_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
@@ -2271,6 +2425,204 @@ void sha512_update_vector_utf16le (sha512_ctx_vector_t *ctx, const u32x *w, cons
   make_utf16le_S (w2, w4, w5);
   make_utf16le_S (w1, w2, w3);
   make_utf16le_S (w0, w0, w1);
+
+  sha512_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, (len - pos1) * 2);
+}
+
+void sha512_update_vector_utf16le_swap (sha512_ctx_vector_t *ctx, const u32x *w, const int len)
+{
+  u32x w0[4];
+  u32x w1[4];
+  u32x w2[4];
+  u32x w3[4];
+  u32x w4[4];
+  u32x w5[4];
+  u32x w6[4];
+  u32x w7[4];
+
+  int pos1;
+  int pos4;
+
+  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
+  {
+    w0[0] = w[pos4 +  0];
+    w0[1] = w[pos4 +  1];
+    w0[2] = w[pos4 +  2];
+    w0[3] = w[pos4 +  3];
+    w1[0] = w[pos4 +  4];
+    w1[1] = w[pos4 +  5];
+    w1[2] = w[pos4 +  6];
+    w1[3] = w[pos4 +  7];
+    w2[0] = w[pos4 +  8];
+    w2[1] = w[pos4 +  9];
+    w2[2] = w[pos4 + 10];
+    w2[3] = w[pos4 + 11];
+    w3[0] = w[pos4 + 12];
+    w3[1] = w[pos4 + 13];
+    w3[2] = w[pos4 + 14];
+    w3[3] = w[pos4 + 15];
+
+    make_utf16le_S (w3, w6, w7);
+    make_utf16le_S (w2, w4, w5);
+    make_utf16le_S (w1, w2, w3);
+    make_utf16le_S (w0, w0, w1);
+
+    w0[0] = swap32 (w0[0]);
+    w0[1] = swap32 (w0[1]);
+    w0[2] = swap32 (w0[2]);
+    w0[3] = swap32 (w0[3]);
+    w1[0] = swap32 (w1[0]);
+    w1[1] = swap32 (w1[1]);
+    w1[2] = swap32 (w1[2]);
+    w1[3] = swap32 (w1[3]);
+    w2[0] = swap32 (w2[0]);
+    w2[1] = swap32 (w2[1]);
+    w2[2] = swap32 (w2[2]);
+    w2[3] = swap32 (w2[3]);
+    w3[0] = swap32 (w3[0]);
+    w3[1] = swap32 (w3[1]);
+    w3[2] = swap32 (w3[2]);
+    w3[3] = swap32 (w3[3]);
+    w4[0] = swap32 (w4[0]);
+    w4[1] = swap32 (w4[1]);
+    w4[2] = swap32 (w4[2]);
+    w4[3] = swap32 (w4[3]);
+    w5[0] = swap32 (w5[0]);
+    w5[1] = swap32 (w5[1]);
+    w5[2] = swap32 (w5[2]);
+    w5[3] = swap32 (w5[3]);
+    w6[0] = swap32 (w6[0]);
+    w6[1] = swap32 (w6[1]);
+    w6[2] = swap32 (w6[2]);
+    w6[3] = swap32 (w6[3]);
+    w7[0] = swap32 (w7[0]);
+    w7[1] = swap32 (w7[1]);
+    w7[2] = swap32 (w7[2]);
+    w7[3] = swap32 (w7[3]);
+
+    sha512_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, 64 * 2);
+  }
+
+  w0[0] = w[pos4 +  0];
+  w0[1] = w[pos4 +  1];
+  w0[2] = w[pos4 +  2];
+  w0[3] = w[pos4 +  3];
+  w1[0] = w[pos4 +  4];
+  w1[1] = w[pos4 +  5];
+  w1[2] = w[pos4 +  6];
+  w1[3] = w[pos4 +  7];
+  w2[0] = w[pos4 +  8];
+  w2[1] = w[pos4 +  9];
+  w2[2] = w[pos4 + 10];
+  w2[3] = w[pos4 + 11];
+  w3[0] = w[pos4 + 12];
+  w3[1] = w[pos4 + 13];
+  w3[2] = w[pos4 + 14];
+  w3[3] = w[pos4 + 15];
+
+  make_utf16le_S (w3, w6, w7);
+  make_utf16le_S (w2, w4, w5);
+  make_utf16le_S (w1, w2, w3);
+  make_utf16le_S (w0, w0, w1);
+
+  w0[0] = swap32 (w0[0]);
+  w0[1] = swap32 (w0[1]);
+  w0[2] = swap32 (w0[2]);
+  w0[3] = swap32 (w0[3]);
+  w1[0] = swap32 (w1[0]);
+  w1[1] = swap32 (w1[1]);
+  w1[2] = swap32 (w1[2]);
+  w1[3] = swap32 (w1[3]);
+  w2[0] = swap32 (w2[0]);
+  w2[1] = swap32 (w2[1]);
+  w2[2] = swap32 (w2[2]);
+  w2[3] = swap32 (w2[3]);
+  w3[0] = swap32 (w3[0]);
+  w3[1] = swap32 (w3[1]);
+  w3[2] = swap32 (w3[2]);
+  w3[3] = swap32 (w3[3]);
+  w4[0] = swap32 (w4[0]);
+  w4[1] = swap32 (w4[1]);
+  w4[2] = swap32 (w4[2]);
+  w4[3] = swap32 (w4[3]);
+  w5[0] = swap32 (w5[0]);
+  w5[1] = swap32 (w5[1]);
+  w5[2] = swap32 (w5[2]);
+  w5[3] = swap32 (w5[3]);
+  w6[0] = swap32 (w6[0]);
+  w6[1] = swap32 (w6[1]);
+  w6[2] = swap32 (w6[2]);
+  w6[3] = swap32 (w6[3]);
+  w7[0] = swap32 (w7[0]);
+  w7[1] = swap32 (w7[1]);
+  w7[2] = swap32 (w7[2]);
+  w7[3] = swap32 (w7[3]);
+
+  sha512_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, (len - pos1) * 2);
+}
+
+void sha512_update_vector_utf16beN (sha512_ctx_vector_t *ctx, const u32x *w, const int len)
+{
+  u32x w0[4];
+  u32x w1[4];
+  u32x w2[4];
+  u32x w3[4];
+  u32x w4[4];
+  u32x w5[4];
+  u32x w6[4];
+  u32x w7[4];
+
+  int pos1;
+  int pos4;
+
+  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
+  {
+    w0[0] = w[pos4 +  0];
+    w0[1] = w[pos4 +  1];
+    w0[2] = w[pos4 +  2];
+    w0[3] = w[pos4 +  3];
+    w1[0] = w[pos4 +  4];
+    w1[1] = w[pos4 +  5];
+    w1[2] = w[pos4 +  6];
+    w1[3] = w[pos4 +  7];
+    w2[0] = w[pos4 +  8];
+    w2[1] = w[pos4 +  9];
+    w2[2] = w[pos4 + 10];
+    w2[3] = w[pos4 + 11];
+    w3[0] = w[pos4 + 12];
+    w3[1] = w[pos4 + 13];
+    w3[2] = w[pos4 + 14];
+    w3[3] = w[pos4 + 15];
+
+    make_utf16beN_S (w3, w6, w7);
+    make_utf16beN_S (w2, w4, w5);
+    make_utf16beN_S (w1, w2, w3);
+    make_utf16beN_S (w0, w0, w1);
+
+    sha512_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, 64 * 2);
+  }
+
+  w0[0] = w[pos4 +  0];
+  w0[1] = w[pos4 +  1];
+  w0[2] = w[pos4 +  2];
+  w0[3] = w[pos4 +  3];
+  w1[0] = w[pos4 +  4];
+  w1[1] = w[pos4 +  5];
+  w1[2] = w[pos4 +  6];
+  w1[3] = w[pos4 +  7];
+  w2[0] = w[pos4 +  8];
+  w2[1] = w[pos4 +  9];
+  w2[2] = w[pos4 + 10];
+  w2[3] = w[pos4 + 11];
+  w3[0] = w[pos4 + 12];
+  w3[1] = w[pos4 + 13];
+  w3[2] = w[pos4 + 14];
+  w3[3] = w[pos4 + 15];
+
+  make_utf16beN_S (w3, w6, w7);
+  make_utf16beN_S (w2, w4, w5);
+  make_utf16beN_S (w1, w2, w3);
+  make_utf16beN_S (w0, w0, w1);
 
   sha512_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, (len - pos1) * 2);
 }
