@@ -1163,6 +1163,21 @@ void ripemd160_hmac_update (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int l
   ripemd160_update (&ctx->ipad, w, len);
 }
 
+void ripemd160_hmac_update_swap (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len)
+{
+  ripemd160_update_swap (&ctx->ipad, w, len);
+}
+
+void ripemd160_hmac_update_utf16le (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len)
+{
+  ripemd160_update_utf16le (&ctx->ipad, w, len);
+}
+
+void ripemd160_hmac_update_utf16le_swap (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len)
+{
+  ripemd160_update_utf16le_swap (&ctx->ipad, w, len);
+}
+
 void ripemd160_hmac_update_global (ripemd160_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   ripemd160_update_global (&ctx->ipad, w, len);

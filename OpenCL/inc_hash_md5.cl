@@ -1063,6 +1063,21 @@ void md5_hmac_update (md5_hmac_ctx_t *ctx, const u32 *w, const int len)
   md5_update (&ctx->ipad, w, len);
 }
 
+void md5_hmac_update_swap (md5_hmac_ctx_t *ctx, const u32 *w, const int len)
+{
+  md5_update_swap (&ctx->ipad, w, len);
+}
+
+void md5_hmac_update_utf16le (md5_hmac_ctx_t *ctx, const u32 *w, const int len)
+{
+  md5_update_utf16le (&ctx->ipad, w, len);
+}
+
+void md5_hmac_update_utf16le_swap (md5_hmac_ctx_t *ctx, const u32 *w, const int len)
+{
+  md5_update_utf16le_swap (&ctx->ipad, w, len);
+}
+
 void md5_hmac_update_global (md5_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   md5_update_global (&ctx->ipad, w, len);

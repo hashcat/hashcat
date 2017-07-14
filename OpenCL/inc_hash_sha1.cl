@@ -1100,6 +1100,16 @@ void sha1_hmac_update_swap (sha1_hmac_ctx_t *ctx, const u32 *w, const int len)
   sha1_update_swap (&ctx->ipad, w, len);
 }
 
+void sha1_hmac_update_utf16le (sha1_hmac_ctx_t *ctx, const u32 *w, const int len)
+{
+  sha1_update_utf16le (&ctx->ipad, w, len);
+}
+
+void sha1_hmac_update_utf16le_swap (sha1_hmac_ctx_t *ctx, const u32 *w, const int len)
+{
+  sha1_update_utf16le_swap (&ctx->ipad, w, len);
+}
+
 void sha1_hmac_update_global (sha1_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   sha1_update_global (&ctx->ipad, w, len);

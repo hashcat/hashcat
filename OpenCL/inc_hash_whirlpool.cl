@@ -2268,6 +2268,16 @@ void whirlpool_hmac_update_swap (whirlpool_hmac_ctx_t *ctx, const u32 *w, const 
   whirlpool_update_swap (&ctx->ipad, w, len);
 }
 
+void whirlpool_hmac_update_utf16le (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len)
+{
+  whirlpool_update_utf16le (&ctx->ipad, w, len);
+}
+
+void whirlpool_hmac_update_utf16le_swap (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len)
+{
+  whirlpool_update_utf16le_swap (&ctx->ipad, w, len);
+}
+
 void whirlpool_hmac_update_global (whirlpool_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   whirlpool_update_global (&ctx->ipad, w, len);
