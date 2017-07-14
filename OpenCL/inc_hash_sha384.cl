@@ -2879,7 +2879,7 @@ void sha384_hmac_update_vector (sha384_hmac_ctx_vector_t *ctx, const u32x *w, co
   sha384_update_vector (&ctx->ipad, w, len);
 }
 
-void sha384_hmac_final_vector (sha384_hmac_ctx_t *ctx)
+void sha384_hmac_final_vector (sha384_hmac_ctx_vector_t *ctx)
 {
   sha384_final_vector (&ctx->ipad);
 

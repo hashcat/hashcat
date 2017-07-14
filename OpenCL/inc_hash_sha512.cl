@@ -2396,10 +2396,10 @@ void sha512_update_vector_utf16le (sha512_ctx_vector_t *ctx, const u32x *w, cons
     w3[2] = w[pos4 + 14];
     w3[3] = w[pos4 + 15];
 
-    make_utf16le_S (w3, w6, w7);
-    make_utf16le_S (w2, w4, w5);
-    make_utf16le_S (w1, w2, w3);
-    make_utf16le_S (w0, w0, w1);
+    make_utf16le (w3, w6, w7);
+    make_utf16le (w2, w4, w5);
+    make_utf16le (w1, w2, w3);
+    make_utf16le (w0, w0, w1);
 
     sha512_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, 64 * 2);
   }
@@ -2421,10 +2421,10 @@ void sha512_update_vector_utf16le (sha512_ctx_vector_t *ctx, const u32x *w, cons
   w3[2] = w[pos4 + 14];
   w3[3] = w[pos4 + 15];
 
-  make_utf16le_S (w3, w6, w7);
-  make_utf16le_S (w2, w4, w5);
-  make_utf16le_S (w1, w2, w3);
-  make_utf16le_S (w0, w0, w1);
+  make_utf16le (w3, w6, w7);
+  make_utf16le (w2, w4, w5);
+  make_utf16le (w1, w2, w3);
+  make_utf16le (w0, w0, w1);
 
   sha512_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, (len - pos1) * 2);
 }
@@ -2462,10 +2462,10 @@ void sha512_update_vector_utf16le_swap (sha512_ctx_vector_t *ctx, const u32x *w,
     w3[2] = w[pos4 + 14];
     w3[3] = w[pos4 + 15];
 
-    make_utf16le_S (w3, w6, w7);
-    make_utf16le_S (w2, w4, w5);
-    make_utf16le_S (w1, w2, w3);
-    make_utf16le_S (w0, w0, w1);
+    make_utf16le (w3, w6, w7);
+    make_utf16le (w2, w4, w5);
+    make_utf16le (w1, w2, w3);
+    make_utf16le (w0, w0, w1);
 
     w0[0] = swap32 (w0[0]);
     w0[1] = swap32 (w0[1]);
@@ -2520,10 +2520,10 @@ void sha512_update_vector_utf16le_swap (sha512_ctx_vector_t *ctx, const u32x *w,
   w3[2] = w[pos4 + 14];
   w3[3] = w[pos4 + 15];
 
-  make_utf16le_S (w3, w6, w7);
-  make_utf16le_S (w2, w4, w5);
-  make_utf16le_S (w1, w2, w3);
-  make_utf16le_S (w0, w0, w1);
+  make_utf16le (w3, w6, w7);
+  make_utf16le (w2, w4, w5);
+  make_utf16le (w1, w2, w3);
+  make_utf16le (w0, w0, w1);
 
   w0[0] = swap32 (w0[0]);
   w0[1] = swap32 (w0[1]);
@@ -2594,10 +2594,10 @@ void sha512_update_vector_utf16beN (sha512_ctx_vector_t *ctx, const u32x *w, con
     w3[2] = w[pos4 + 14];
     w3[3] = w[pos4 + 15];
 
-    make_utf16beN_S (w3, w6, w7);
-    make_utf16beN_S (w2, w4, w5);
-    make_utf16beN_S (w1, w2, w3);
-    make_utf16beN_S (w0, w0, w1);
+    make_utf16beN (w3, w6, w7);
+    make_utf16beN (w2, w4, w5);
+    make_utf16beN (w1, w2, w3);
+    make_utf16beN (w0, w0, w1);
 
     sha512_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, 64 * 2);
   }
@@ -2619,10 +2619,10 @@ void sha512_update_vector_utf16beN (sha512_ctx_vector_t *ctx, const u32x *w, con
   w3[2] = w[pos4 + 14];
   w3[3] = w[pos4 + 15];
 
-  make_utf16beN_S (w3, w6, w7);
-  make_utf16beN_S (w2, w4, w5);
-  make_utf16beN_S (w1, w2, w3);
-  make_utf16beN_S (w0, w0, w1);
+  make_utf16beN (w3, w6, w7);
+  make_utf16beN (w2, w4, w5);
+  make_utf16beN (w1, w2, w3);
+  make_utf16beN (w0, w0, w1);
 
   sha512_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, (len - pos1) * 2);
 }
@@ -2879,7 +2879,7 @@ void sha512_hmac_update_vector (sha512_hmac_ctx_vector_t *ctx, const u32x *w, co
   sha512_update_vector (&ctx->ipad, w, len);
 }
 
-void sha512_hmac_final_vector (sha512_hmac_ctx_t *ctx)
+void sha512_hmac_final_vector (sha512_hmac_ctx_vector_t *ctx)
 {
   sha512_final_vector (&ctx->ipad);
 

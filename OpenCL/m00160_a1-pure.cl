@@ -92,10 +92,10 @@ __kernel void m00160_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     sha1_hmac_final (&ctx);
 
-    const u32x r0 = ctx.opad.h[DGST_R0];
-    const u32x r1 = ctx.opad.h[DGST_R1];
-    const u32x r2 = ctx.opad.h[DGST_R2];
-    const u32x r3 = ctx.opad.h[DGST_R3];
+    const u32 r0 = ctx.opad.h[DGST_R0];
+    const u32 r1 = ctx.opad.h[DGST_R1];
+    const u32 r2 = ctx.opad.h[DGST_R2];
+    const u32 r3 = ctx.opad.h[DGST_R3];
 
     COMPARE_M_SCALAR (r0, r1, r2, r3);
   }
@@ -192,10 +192,10 @@ __kernel void m00160_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     sha1_hmac_final (&ctx);
 
-    const u32x r0 = ctx.opad.h[DGST_R0];
-    const u32x r1 = ctx.opad.h[DGST_R1];
-    const u32x r2 = ctx.opad.h[DGST_R2];
-    const u32x r3 = ctx.opad.h[DGST_R3];
+    const u32 r0 = ctx.opad.h[DGST_R0];
+    const u32 r1 = ctx.opad.h[DGST_R1];
+    const u32 r2 = ctx.opad.h[DGST_R2];
+    const u32 r3 = ctx.opad.h[DGST_R3];
 
     COMPARE_S_SCALAR (r0, r1, r2, r3);
   }
