@@ -16345,8 +16345,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
   salt_t salt;
 
-  const bool isSalted = ((hashconfig->salt_type == SALT_TYPE_INTERN)
-                      |  (hashconfig->salt_type == SALT_TYPE_EXTERN)
+  const bool isSalted = ((hashconfig->salt_type == SALT_TYPE_GENERIC)
                       |  (hashconfig->salt_type == SALT_TYPE_EMBEDDED));
 
   if (isSalted == true)
@@ -19602,7 +19601,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     }
   }
 
-  if (salt_type == SALT_TYPE_INTERN)
+  if (salt_type == SALT_TYPE_GENERIC)
   {
     size_t pos = strlen (out_buf);
 
@@ -19673,7 +19672,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case    10:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_ST_ADD80
@@ -19698,7 +19697,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case    11:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_ST_ADD80
@@ -19723,7 +19722,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case    12:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_ST_ADD80
@@ -19748,7 +19747,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case    20:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_PT_ADD80
@@ -19772,7 +19771,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case    21:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_PT_ADD80
@@ -19844,7 +19843,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case    30:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_PT_UTF16LE
@@ -19870,7 +19869,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case    40:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_PT_ADD80
@@ -19895,7 +19894,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case    50:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_ST_ADD80
@@ -19914,7 +19913,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case    60:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_PT_ADD80
@@ -19981,7 +19980,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case   110:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_ST_ADD80
@@ -20029,7 +20028,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case   112:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_ST_ADD80
@@ -20054,7 +20053,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case   120:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_PT_ADD80
@@ -20078,7 +20077,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case   121:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_PT_ADD80
@@ -20177,7 +20176,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case   130:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_PT_UTF16LE
@@ -20280,7 +20279,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case   140:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_PT_ADD80
@@ -20331,7 +20330,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case   150:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_ST_ADD80
@@ -20350,7 +20349,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case   160:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_PT_ADD80
@@ -20527,7 +20526,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case  1100:  hashconfig->hash_type      = HASH_TYPE_MD4;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_PT_ADD80
@@ -20601,7 +20600,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case  1410:  hashconfig->hash_type      = HASH_TYPE_SHA256;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_ST_ADD80
@@ -20649,7 +20648,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case  1420:  hashconfig->hash_type      = HASH_TYPE_SHA256;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_PT_ADD80
@@ -20697,7 +20696,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case  1430:  hashconfig->hash_type      = HASH_TYPE_SHA256;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_PT_UTF16LE
@@ -20722,7 +20721,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case  1440:  hashconfig->hash_type      = HASH_TYPE_SHA256;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_PT_ADD80
@@ -20773,7 +20772,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case  1450:  hashconfig->hash_type      = HASH_TYPE_SHA256;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_ST_ADD80;
@@ -20791,7 +20790,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case  1460:  hashconfig->hash_type      = HASH_TYPE_SHA256;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_PT_ADD80
@@ -20869,7 +20868,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case  1710:  hashconfig->hash_type      = HASH_TYPE_SHA512;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_ST_ADD80
@@ -20919,7 +20918,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case  1720:  hashconfig->hash_type      = HASH_TYPE_SHA512;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_PT_ADD80
@@ -20970,7 +20969,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case  1730:  hashconfig->hash_type      = HASH_TYPE_SHA512;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_PT_UTF16LE
@@ -21023,7 +21022,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case  1740:  hashconfig->hash_type      = HASH_TYPE_SHA512;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_PT_ADD80
@@ -21049,7 +21048,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case  1750:  hashconfig->hash_type      = HASH_TYPE_SHA512;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_ST_ADD80;
@@ -21068,7 +21067,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case  1760:  hashconfig->hash_type      = HASH_TYPE_SHA512;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_PT_ADD80
@@ -21160,7 +21159,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case  2410:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
                  hashconfig->kern_type      = KERN_TYPE_MD5ASA;
@@ -21238,7 +21237,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case  2611:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_PT_ADD80
@@ -21283,7 +21282,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case  2711:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_PT_ADD80
@@ -21304,7 +21303,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case  2811:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_ST_HASH_MD5
@@ -21346,7 +21345,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case  3100:  hashconfig->hash_type      = HASH_TYPE_ORACLEH;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_PT_UPPER
@@ -21381,7 +21380,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case  3710:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_PT_ADD80
@@ -21423,7 +21422,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case  3800:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_ST_ADDBITS14;
@@ -21445,7 +21444,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case  3910:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_PT_ADD80
@@ -21468,7 +21467,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case  4010:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_PT_ADD80
@@ -21489,7 +21488,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case  4110:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
                  hashconfig->kern_type      = KERN_TYPE_MD5_SLT_MD5_PW_SLT;
@@ -21576,7 +21575,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case  4520:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_PT_ADD80
@@ -21597,7 +21596,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case  4521:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_PT_ADD80
@@ -21618,7 +21617,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case  4522:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_PT_ADD80
@@ -21686,7 +21685,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case  4900:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
                  hashconfig->kern_type      = KERN_TYPE_SHA1_SLT_PW_SLT;
@@ -21859,7 +21858,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case  5800:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_ST_ADD80;
@@ -22491,7 +22490,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case  8400:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_PT_ADD80
@@ -23081,7 +23080,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case 11000:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_PT_ADD80;
@@ -23177,7 +23176,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case 11500:  hashconfig->hash_type      = HASH_TYPE_CRC32;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_ST_GENERATE_LE
@@ -23391,7 +23390,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case 12600:  hashconfig->hash_type      = HASH_TYPE_SHA256;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_PT_ADD80;
@@ -23938,7 +23937,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case 13900:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_PT_ADD80
@@ -23997,7 +23996,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case 14400:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
                  hashconfig->kern_type      = KERN_TYPE_SHA1CX;
@@ -24091,7 +24090,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case 15000:  hashconfig->hash_type      = HASH_TYPE_SHA512;
-                 hashconfig->salt_type      = SALT_TYPE_INTERN;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE; // OPTS_TYPE_ST_ADD80 added within kernel
                  hashconfig->kern_type      = KERN_TYPE_FILEZILLA_SERVER;
@@ -24269,7 +24268,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->hex_salt)
   {
-    if (hashconfig->salt_type == SALT_TYPE_INTERN)
+    if (hashconfig->salt_type == SALT_TYPE_GENERIC)
     {
       hashconfig->opts_type |= OPTS_TYPE_ST_HEX;
     }
@@ -24310,8 +24309,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     hashconfig->opti_type &= ~OPTI_TYPE_APPENDED_SALT;
   }
 
-  const u32 is_salted = ((hashconfig->salt_type == SALT_TYPE_INTERN)
-                      |  (hashconfig->salt_type == SALT_TYPE_EXTERN)
+  const u32 is_salted = ((hashconfig->salt_type == SALT_TYPE_GENERIC)
                       |  (hashconfig->salt_type == SALT_TYPE_EMBEDDED)
                       |  (hashconfig->salt_type == SALT_TYPE_VIRTUAL));
 
@@ -24722,7 +24720,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     hashconfig->salt_max = SALT_MAX_OLD;
   }
 
-  if (hashconfig->salt_type == SALT_TYPE_INTERN)
+  if (hashconfig->salt_type == SALT_TYPE_GENERIC)
   {
     if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
     {

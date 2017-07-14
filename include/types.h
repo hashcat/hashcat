@@ -319,8 +319,7 @@ typedef enum salt_type
 {
   SALT_TYPE_NONE     = 1,
   SALT_TYPE_EMBEDDED = 2,
-  SALT_TYPE_INTERN   = 3,
-  SALT_TYPE_EXTERN   = 4,
+  SALT_TYPE_GENERIC  = 3,
   SALT_TYPE_VIRTUAL  = 5
 
 } salt_type_t;
