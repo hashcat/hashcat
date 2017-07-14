@@ -46,10 +46,10 @@ __kernel void m01700_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     sha512_final (&ctx);
 
-    const u32x r0 = l32_from_64 (ctx.h[7]);
-    const u32x r1 = h32_from_64 (ctx.h[7]);
-    const u32x r2 = l32_from_64 (ctx.h[3]);
-    const u32x r3 = h32_from_64 (ctx.h[3]);
+    const u32 r0 = l32_from_64_S (ctx.h[7]);
+    const u32 r1 = h32_from_64_S (ctx.h[7]);
+    const u32 r2 = l32_from_64_S (ctx.h[3]);
+    const u32 r3 = h32_from_64_S (ctx.h[3]);
 
     COMPARE_M_SCALAR (r0, r1, r2, r3);
   }
@@ -100,10 +100,10 @@ __kernel void m01700_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     sha512_final (&ctx);
 
-    const u32x r0 = l32_from_64 (ctx.h[7]);
-    const u32x r1 = h32_from_64 (ctx.h[7]);
-    const u32x r2 = l32_from_64 (ctx.h[3]);
-    const u32x r3 = h32_from_64 (ctx.h[3]);
+    const u32 r0 = l32_from_64_S (ctx.h[7]);
+    const u32 r1 = h32_from_64_S (ctx.h[7]);
+    const u32 r2 = l32_from_64_S (ctx.h[3]);
+    const u32 r3 = h32_from_64_S (ctx.h[3]);
 
     COMPARE_S_SCALAR (r0, r1, r2, r3);
   }

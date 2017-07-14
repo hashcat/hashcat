@@ -38,7 +38,7 @@ __kernel void m01700_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (int idx = 0; idx < pw_lenv; idx++)
   {
-    w[idx] = swap32_S (pws[gid].i[idx]);
+    w[idx] = pws[gid].i[idx];
 
     barrier (CLK_GLOBAL_MEM_FENCE);
   }
@@ -55,14 +55,14 @@ __kernel void m01700_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     sha512_init (&ctx);
 
-    sha512_update (&ctx, w, pw_len);
+    sha512_update_swap (&ctx, w, pw_len);
 
     sha512_final (&ctx);
 
-    const u32x r0 = l32_from_64 (ctx.h[7]);
-    const u32x r1 = h32_from_64 (ctx.h[7]);
-    const u32x r2 = l32_from_64 (ctx.h[3]);
-    const u32x r3 = h32_from_64 (ctx.h[3]);
+    const u32 r0 = l32_from_64_S (ctx.h[7]);
+    const u32 r1 = h32_from_64_S (ctx.h[7]);
+    const u32 r2 = l32_from_64_S (ctx.h[3]);
+    const u32 r3 = h32_from_64_S (ctx.h[3]);
 
     COMPARE_M_SCALAR (r0, r1, r2, r3);
   }
@@ -103,7 +103,7 @@ __kernel void m01700_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (int idx = 0; idx < pw_lenv; idx++)
   {
-    w[idx] = swap32_S (pws[gid].i[idx]);
+    w[idx] = pws[gid].i[idx];
 
     barrier (CLK_GLOBAL_MEM_FENCE);
   }
@@ -120,14 +120,14 @@ __kernel void m01700_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     sha512_init (&ctx);
 
-    sha512_update (&ctx, w, pw_len);
+    sha512_update_swap (&ctx, w, pw_len);
 
     sha512_final (&ctx);
 
-    const u32x r0 = l32_from_64 (ctx.h[7]);
-    const u32x r1 = h32_from_64 (ctx.h[7]);
-    const u32x r2 = l32_from_64 (ctx.h[3]);
-    const u32x r3 = h32_from_64 (ctx.h[3]);
+    const u32 r0 = l32_from_64_S (ctx.h[7]);
+    const u32 r1 = h32_from_64_S (ctx.h[7]);
+    const u32 r2 = l32_from_64_S (ctx.h[3]);
+    const u32 r3 = h32_from_64_S (ctx.h[3]);
 
     COMPARE_S_SCALAR (r0, r1, r2, r3);
   }

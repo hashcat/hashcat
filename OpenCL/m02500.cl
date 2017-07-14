@@ -17,42 +17,6 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
-void hmac_sha1_run_V (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[5], u32x opad[5], u32x digest[5])
-{
-  digest[0] = ipad[0];
-  digest[1] = ipad[1];
-  digest[2] = ipad[2];
-  digest[3] = ipad[3];
-  digest[4] = ipad[4];
-
-  sha1_transform_vector (w0, w1, w2, w3, digest);
-
-  w0[0] = digest[0];
-  w0[1] = digest[1];
-  w0[2] = digest[2];
-  w0[3] = digest[3];
-  w1[0] = digest[4];
-  w1[1] = 0x80000000;
-  w1[2] = 0;
-  w1[3] = 0;
-  w2[0] = 0;
-  w2[1] = 0;
-  w2[2] = 0;
-  w2[3] = 0;
-  w3[0] = 0;
-  w3[1] = 0;
-  w3[2] = 0;
-  w3[3] = (64 + 20) * 8;
-
-  digest[0] = opad[0];
-  digest[1] = opad[1];
-  digest[2] = opad[2];
-  digest[3] = opad[3];
-  digest[4] = opad[4];
-
-  sha1_transform_vector (w0, w1, w2, w3, digest);
-}
-
 __kernel void m02500_init (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global wpa_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const wpa_t *wpa_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
   /**
@@ -131,20 +95,25 @@ __kernel void m02500_loop (__global pw_t *pws, __global const kernel_rule_t *rul
 
   if ((gid * VECT_SIZE) >= gid_max) return;
 
-  u32x ipad[5];
-  u32x opad[5];
+  sha1_hmac_ctx_vector_t ctx;
 
-  ipad[0] = packv (tmps, ipad, gid, 0);
-  ipad[1] = packv (tmps, ipad, gid, 1);
-  ipad[2] = packv (tmps, ipad, gid, 2);
-  ipad[3] = packv (tmps, ipad, gid, 3);
-  ipad[4] = packv (tmps, ipad, gid, 4);
+  sha1_hmac_init (&ctx);
 
-  opad[0] = packv (tmps, opad, gid, 0);
-  opad[1] = packv (tmps, opad, gid, 1);
-  opad[2] = packv (tmps, opad, gid, 2);
-  opad[3] = packv (tmps, opad, gid, 3);
-  opad[4] = packv (tmps, opad, gid, 4);
+  ctx.ipad.h[0] = packv (tmps, ipad, gid, 0);
+  ctx.ipad.h[1] = packv (tmps, ipad, gid, 1);
+  ctx.ipad.h[2] = packv (tmps, ipad, gid, 2);
+  ctx.ipad.h[3] = packv (tmps, ipad, gid, 3);
+  ctx.ipad.h[4] = packv (tmps, ipad, gid, 4);
+
+  ctx.ipad.len = 64;
+
+  ctx.opad.h[0] = packv (tmps, opad, gid, 0);
+  ctx.opad.h[1] = packv (tmps, opad, gid, 1);
+  ctx.opad.h[2] = packv (tmps, opad, gid, 2);
+  ctx.opad.h[3] = packv (tmps, opad, gid, 3);
+  ctx.opad.h[4] = packv (tmps, opad, gid, 4);
+
+  ctx.opad.len = 64;
 
   for (u32 i = 0; i < 8; i += 5)
   {
@@ -175,7 +144,7 @@ __kernel void m02500_loop (__global pw_t *pws, __global const kernel_rule_t *rul
       w0[2] = dgst[2];
       w0[3] = dgst[3];
       w1[0] = dgst[4];
-      w1[1] = 0x80000000;
+      w1[1] = 0;
       w1[2] = 0;
       w1[3] = 0;
       w2[0] = 0;
@@ -185,9 +154,17 @@ __kernel void m02500_loop (__global pw_t *pws, __global const kernel_rule_t *rul
       w3[0] = 0;
       w3[1] = 0;
       w3[2] = 0;
-      w3[3] = (64 + 20) * 8;
+      w3[3] = 0;
 
-      hmac_sha1_run_V (w0, w1, w2, w3, ipad, opad, dgst);
+      sha1_hmac_update_vector_64 (&ctx, w0, w1, w2, w3, 20);
+
+      sha1_hmac_final_vector (&ctx);
+
+      dgst[0] = ctx.opad.h[0];
+      dgst[1] = ctx.opad.h[1];
+      dgst[2] = ctx.opad.h[2];
+      dgst[3] = ctx.opad.h[3];
+      dgst[4] = ctx.opad.h[4];
 
       out[0] ^= dgst[0];
       out[1] ^= dgst[1];
