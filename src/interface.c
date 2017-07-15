@@ -24727,6 +24727,14 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
       hashconfig->salt_min *= 2;
       hashconfig->salt_max *= 2;
     }
+
+    switch (hashconfig->hash_mode)
+    {
+      case 11000: hashconfig->salt_min = 56;
+                  hashconfig->salt_max = 56; break;
+      case 12600: hashconfig->salt_min = 64;
+                  hashconfig->salt_max = 64; break;
+    }
   }
 
   return 0;
