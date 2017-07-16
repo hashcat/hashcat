@@ -1043,8 +1043,14 @@
 
 #endif
 
+#ifdef IS_CPU
+// CPU seem to have a bit more advanced vector comparison functions (on XOP/AVX2)
+#define MATCHES_NONE_VV(a,b) all ((a) != (b))
+#define MATCHES_NONE_VS(a,b) all ((a) != (b))
+#else
 #define MATCHES_NONE_VV(a,b) !(MATCHES_ONE_VV ((a), (b)))
 #define MATCHES_NONE_VS(a,b) !(MATCHES_ONE_VS ((a), (b)))
+#endif
 
 // attack-mode 0
 
