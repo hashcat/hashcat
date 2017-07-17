@@ -24574,6 +24574,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
       {
         case ATTACK_KERN_STRAIGHT:  if (hashconfig->pw_max > PW_DICTMAX) hashconfig->pw_max = PW_DICTMAX;
                                     break;
+        case ATTACK_KERN_COMBI:     if (hashconfig->pw_max > PW_DICTMAX) hashconfig->pw_max = PW_DICTMAX;
+                                    break;
       }
     }
     else
@@ -24584,11 +24586,13 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
         {
           case ATTACK_KERN_STRAIGHT:  if (hashconfig->pw_max > PW_DICTMAX) hashconfig->pw_max = PW_DICTMAX;
                                       break;
+          case ATTACK_KERN_COMBI:     if (hashconfig->pw_max > PW_DICTMAX) hashconfig->pw_max = PW_DICTMAX;
+                                      break;
         }
       }
       else
       {
-        // If we have a NOOP rule then we can process words from wordlists > length 32 for slow hashes
+        // If we have a NOOP rule then we can process words from wordlists > PW_DICTMAX for slow hashes
       }
     }
 
