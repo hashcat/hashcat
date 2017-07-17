@@ -866,7 +866,7 @@ void sha224_hmac_init (sha224_hmac_ctx_t *ctx, const u32 *w, const int len)
     w1[0] = tmp.h[4];
     w1[1] = tmp.h[5];
     w1[2] = tmp.h[6];
-    w1[3] = tmp.h[7];
+    w1[3] = 0;
     w2[0] = 0;
     w2[1] = 0;
     w2[2] = 0;
@@ -923,7 +923,7 @@ void sha224_hmac_init_swap (sha224_hmac_ctx_t *ctx, const u32 *w, const int len)
     w1[0] = tmp.h[4];
     w1[1] = tmp.h[5];
     w1[2] = tmp.h[6];
-    w1[3] = tmp.h[7];
+    w1[3] = 0;
     w2[0] = 0;
     w2[1] = 0;
     w2[2] = 0;
@@ -980,7 +980,7 @@ void sha224_hmac_init_global (sha224_hmac_ctx_t *ctx, __global const u32 *w, con
     w1[0] = tmp.h[4];
     w1[1] = tmp.h[5];
     w1[2] = tmp.h[6];
-    w1[3] = tmp.h[7];
+    w1[3] = 0;
     w2[0] = 0;
     w2[1] = 0;
     w2[2] = 0;
@@ -1037,7 +1037,7 @@ void sha224_hmac_init_global_swap (sha224_hmac_ctx_t *ctx, __global const u32 *w
     w1[0] = tmp.h[4];
     w1[1] = tmp.h[5];
     w1[2] = tmp.h[6];
-    w1[3] = tmp.h[7];
+    w1[3] = 0;
     w2[0] = 0;
     w2[1] = 0;
     w2[2] = 0;
@@ -1131,7 +1131,7 @@ void sha224_hmac_final (sha224_hmac_ctx_t *ctx)
   t1[0] = ctx->ipad.h[4];
   t1[1] = ctx->ipad.h[5];
   t1[2] = ctx->ipad.h[6];
-  t1[3] = ctx->ipad.h[7];
+  t1[3] = 0;
   t2[0] = 0;
   t2[1] = 0;
   t2[2] = 0;
@@ -1141,7 +1141,7 @@ void sha224_hmac_final (sha224_hmac_ctx_t *ctx)
   t3[2] = 0;
   t3[3] = 0;
 
-  sha224_update_64 (&ctx->opad, t0, t1, t2, t3, 32);
+  sha224_update_64 (&ctx->opad, t0, t1, t2, t3, 28);
 
   sha224_final (&ctx->opad);
 }
@@ -1807,7 +1807,7 @@ void sha224_hmac_init_vector (sha224_hmac_ctx_vector_t *ctx, const u32x *w, cons
     w1[0] = tmp.h[4];
     w1[1] = tmp.h[5];
     w1[2] = tmp.h[6];
-    w1[3] = tmp.h[7];
+    w1[3] = 0;
     w2[0] = 0;
     w2[1] = 0;
     w2[2] = 0;
@@ -1866,7 +1866,7 @@ void sha224_hmac_final_vector (sha224_hmac_ctx_vector_t *ctx)
   t1[0] = ctx->ipad.h[4];
   t1[1] = ctx->ipad.h[5];
   t1[2] = ctx->ipad.h[6];
-  t1[3] = ctx->ipad.h[7];
+  t1[3] = 0;
   t2[0] = 0;
   t2[1] = 0;
   t2[2] = 0;
@@ -1876,7 +1876,7 @@ void sha224_hmac_final_vector (sha224_hmac_ctx_vector_t *ctx)
   t3[2] = 0;
   t3[3] = 0;
 
-  sha224_update_vector_64 (&ctx->opad, t0, t1, t2, t3, 32);
+  sha224_update_vector_64 (&ctx->opad, t0, t1, t2, t3, 28);
 
   sha224_final_vector (&ctx->opad);
 }

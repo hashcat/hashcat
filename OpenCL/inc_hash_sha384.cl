@@ -75,42 +75,42 @@ void sha384_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const 
 
   #define ROUND_EXPAND_S()                            \
   {                                                   \
-    w0_t = SHA384_EXPAND_S (we_t, w9_t, w1_t, w0_t);  \
-    w1_t = SHA384_EXPAND_S (wf_t, wa_t, w2_t, w1_t);  \
-    w2_t = SHA384_EXPAND_S (w0_t, wb_t, w3_t, w2_t);  \
-    w3_t = SHA384_EXPAND_S (w1_t, wc_t, w4_t, w3_t);  \
-    w4_t = SHA384_EXPAND_S (w2_t, wd_t, w5_t, w4_t);  \
-    w5_t = SHA384_EXPAND_S (w3_t, we_t, w6_t, w5_t);  \
-    w6_t = SHA384_EXPAND_S (w4_t, wf_t, w7_t, w6_t);  \
-    w7_t = SHA384_EXPAND_S (w5_t, w0_t, w8_t, w7_t);  \
-    w8_t = SHA384_EXPAND_S (w6_t, w1_t, w9_t, w8_t);  \
-    w9_t = SHA384_EXPAND_S (w7_t, w2_t, wa_t, w9_t);  \
-    wa_t = SHA384_EXPAND_S (w8_t, w3_t, wb_t, wa_t);  \
-    wb_t = SHA384_EXPAND_S (w9_t, w4_t, wc_t, wb_t);  \
-    wc_t = SHA384_EXPAND_S (wa_t, w5_t, wd_t, wc_t);  \
-    wd_t = SHA384_EXPAND_S (wb_t, w6_t, we_t, wd_t);  \
-    we_t = SHA384_EXPAND_S (wc_t, w7_t, wf_t, we_t);  \
-    wf_t = SHA384_EXPAND_S (wd_t, w8_t, w0_t, wf_t);  \
+    w0_t = SHA512_EXPAND_S (we_t, w9_t, w1_t, w0_t);  \
+    w1_t = SHA512_EXPAND_S (wf_t, wa_t, w2_t, w1_t);  \
+    w2_t = SHA512_EXPAND_S (w0_t, wb_t, w3_t, w2_t);  \
+    w3_t = SHA512_EXPAND_S (w1_t, wc_t, w4_t, w3_t);  \
+    w4_t = SHA512_EXPAND_S (w2_t, wd_t, w5_t, w4_t);  \
+    w5_t = SHA512_EXPAND_S (w3_t, we_t, w6_t, w5_t);  \
+    w6_t = SHA512_EXPAND_S (w4_t, wf_t, w7_t, w6_t);  \
+    w7_t = SHA512_EXPAND_S (w5_t, w0_t, w8_t, w7_t);  \
+    w8_t = SHA512_EXPAND_S (w6_t, w1_t, w9_t, w8_t);  \
+    w9_t = SHA512_EXPAND_S (w7_t, w2_t, wa_t, w9_t);  \
+    wa_t = SHA512_EXPAND_S (w8_t, w3_t, wb_t, wa_t);  \
+    wb_t = SHA512_EXPAND_S (w9_t, w4_t, wc_t, wb_t);  \
+    wc_t = SHA512_EXPAND_S (wa_t, w5_t, wd_t, wc_t);  \
+    wd_t = SHA512_EXPAND_S (wb_t, w6_t, we_t, wd_t);  \
+    we_t = SHA512_EXPAND_S (wc_t, w7_t, wf_t, we_t);  \
+    wf_t = SHA512_EXPAND_S (wd_t, w8_t, w0_t, wf_t);  \
   }
 
   #define ROUND_STEP_S(i)                                                                   \
   {                                                                                         \
-    SHA384_STEP_S (SHA384_F0o, SHA384_F1o, a, b, c, d, e, f, g, h, w0_t, k_sha384[i +  0]); \
-    SHA384_STEP_S (SHA384_F0o, SHA384_F1o, h, a, b, c, d, e, f, g, w1_t, k_sha384[i +  1]); \
-    SHA384_STEP_S (SHA384_F0o, SHA384_F1o, g, h, a, b, c, d, e, f, w2_t, k_sha384[i +  2]); \
-    SHA384_STEP_S (SHA384_F0o, SHA384_F1o, f, g, h, a, b, c, d, e, w3_t, k_sha384[i +  3]); \
-    SHA384_STEP_S (SHA384_F0o, SHA384_F1o, e, f, g, h, a, b, c, d, w4_t, k_sha384[i +  4]); \
-    SHA384_STEP_S (SHA384_F0o, SHA384_F1o, d, e, f, g, h, a, b, c, w5_t, k_sha384[i +  5]); \
-    SHA384_STEP_S (SHA384_F0o, SHA384_F1o, c, d, e, f, g, h, a, b, w6_t, k_sha384[i +  6]); \
-    SHA384_STEP_S (SHA384_F0o, SHA384_F1o, b, c, d, e, f, g, h, a, w7_t, k_sha384[i +  7]); \
-    SHA384_STEP_S (SHA384_F0o, SHA384_F1o, a, b, c, d, e, f, g, h, w8_t, k_sha384[i +  8]); \
-    SHA384_STEP_S (SHA384_F0o, SHA384_F1o, h, a, b, c, d, e, f, g, w9_t, k_sha384[i +  9]); \
-    SHA384_STEP_S (SHA384_F0o, SHA384_F1o, g, h, a, b, c, d, e, f, wa_t, k_sha384[i + 10]); \
-    SHA384_STEP_S (SHA384_F0o, SHA384_F1o, f, g, h, a, b, c, d, e, wb_t, k_sha384[i + 11]); \
-    SHA384_STEP_S (SHA384_F0o, SHA384_F1o, e, f, g, h, a, b, c, d, wc_t, k_sha384[i + 12]); \
-    SHA384_STEP_S (SHA384_F0o, SHA384_F1o, d, e, f, g, h, a, b, c, wd_t, k_sha384[i + 13]); \
-    SHA384_STEP_S (SHA384_F0o, SHA384_F1o, c, d, e, f, g, h, a, b, we_t, k_sha384[i + 14]); \
-    SHA384_STEP_S (SHA384_F0o, SHA384_F1o, b, c, d, e, f, g, h, a, wf_t, k_sha384[i + 15]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, a, b, c, d, e, f, g, h, w0_t, k_sha384[i +  0]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, h, a, b, c, d, e, f, g, w1_t, k_sha384[i +  1]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, g, h, a, b, c, d, e, f, w2_t, k_sha384[i +  2]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, f, g, h, a, b, c, d, e, w3_t, k_sha384[i +  3]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, e, f, g, h, a, b, c, d, w4_t, k_sha384[i +  4]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, d, e, f, g, h, a, b, c, w5_t, k_sha384[i +  5]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, c, d, e, f, g, h, a, b, w6_t, k_sha384[i +  6]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, b, c, d, e, f, g, h, a, w7_t, k_sha384[i +  7]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, a, b, c, d, e, f, g, h, w8_t, k_sha384[i +  8]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, h, a, b, c, d, e, f, g, w9_t, k_sha384[i +  9]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, g, h, a, b, c, d, e, f, wa_t, k_sha384[i + 10]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, f, g, h, a, b, c, d, e, wb_t, k_sha384[i + 11]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, e, f, g, h, a, b, c, d, wc_t, k_sha384[i + 12]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, d, e, f, g, h, a, b, c, wd_t, k_sha384[i + 13]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, c, d, e, f, g, h, a, b, we_t, k_sha384[i + 14]); \
+    SHA512_STEP_S (SHA512_F0o, SHA512_F1o, b, c, d, e, f, g, h, a, wf_t, k_sha384[i + 15]); \
   }
 
   ROUND_STEP_S (0);
@@ -1855,42 +1855,42 @@ void sha384_transform_vector (const u32x w0[4], const u32x w1[4], const u32x w2[
 
   #define ROUND_EXPAND()                            \
   {                                                 \
-    w0_t = SHA384_EXPAND (we_t, w9_t, w1_t, w0_t);  \
-    w1_t = SHA384_EXPAND (wf_t, wa_t, w2_t, w1_t);  \
-    w2_t = SHA384_EXPAND (w0_t, wb_t, w3_t, w2_t);  \
-    w3_t = SHA384_EXPAND (w1_t, wc_t, w4_t, w3_t);  \
-    w4_t = SHA384_EXPAND (w2_t, wd_t, w5_t, w4_t);  \
-    w5_t = SHA384_EXPAND (w3_t, we_t, w6_t, w5_t);  \
-    w6_t = SHA384_EXPAND (w4_t, wf_t, w7_t, w6_t);  \
-    w7_t = SHA384_EXPAND (w5_t, w0_t, w8_t, w7_t);  \
-    w8_t = SHA384_EXPAND (w6_t, w1_t, w9_t, w8_t);  \
-    w9_t = SHA384_EXPAND (w7_t, w2_t, wa_t, w9_t);  \
-    wa_t = SHA384_EXPAND (w8_t, w3_t, wb_t, wa_t);  \
-    wb_t = SHA384_EXPAND (w9_t, w4_t, wc_t, wb_t);  \
-    wc_t = SHA384_EXPAND (wa_t, w5_t, wd_t, wc_t);  \
-    wd_t = SHA384_EXPAND (wb_t, w6_t, we_t, wd_t);  \
-    we_t = SHA384_EXPAND (wc_t, w7_t, wf_t, we_t);  \
-    wf_t = SHA384_EXPAND (wd_t, w8_t, w0_t, wf_t);  \
+    w0_t = SHA512_EXPAND (we_t, w9_t, w1_t, w0_t);  \
+    w1_t = SHA512_EXPAND (wf_t, wa_t, w2_t, w1_t);  \
+    w2_t = SHA512_EXPAND (w0_t, wb_t, w3_t, w2_t);  \
+    w3_t = SHA512_EXPAND (w1_t, wc_t, w4_t, w3_t);  \
+    w4_t = SHA512_EXPAND (w2_t, wd_t, w5_t, w4_t);  \
+    w5_t = SHA512_EXPAND (w3_t, we_t, w6_t, w5_t);  \
+    w6_t = SHA512_EXPAND (w4_t, wf_t, w7_t, w6_t);  \
+    w7_t = SHA512_EXPAND (w5_t, w0_t, w8_t, w7_t);  \
+    w8_t = SHA512_EXPAND (w6_t, w1_t, w9_t, w8_t);  \
+    w9_t = SHA512_EXPAND (w7_t, w2_t, wa_t, w9_t);  \
+    wa_t = SHA512_EXPAND (w8_t, w3_t, wb_t, wa_t);  \
+    wb_t = SHA512_EXPAND (w9_t, w4_t, wc_t, wb_t);  \
+    wc_t = SHA512_EXPAND (wa_t, w5_t, wd_t, wc_t);  \
+    wd_t = SHA512_EXPAND (wb_t, w6_t, we_t, wd_t);  \
+    we_t = SHA512_EXPAND (wc_t, w7_t, wf_t, we_t);  \
+    wf_t = SHA512_EXPAND (wd_t, w8_t, w0_t, wf_t);  \
   }
 
   #define ROUND_STEP(i)                                                                   \
   {                                                                                       \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, a, b, c, d, e, f, g, h, w0_t, k_sha384[i +  0]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, h, a, b, c, d, e, f, g, w1_t, k_sha384[i +  1]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, g, h, a, b, c, d, e, f, w2_t, k_sha384[i +  2]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, f, g, h, a, b, c, d, e, w3_t, k_sha384[i +  3]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, e, f, g, h, a, b, c, d, w4_t, k_sha384[i +  4]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, d, e, f, g, h, a, b, c, w5_t, k_sha384[i +  5]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, c, d, e, f, g, h, a, b, w6_t, k_sha384[i +  6]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, b, c, d, e, f, g, h, a, w7_t, k_sha384[i +  7]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, a, b, c, d, e, f, g, h, w8_t, k_sha384[i +  8]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, h, a, b, c, d, e, f, g, w9_t, k_sha384[i +  9]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, g, h, a, b, c, d, e, f, wa_t, k_sha384[i + 10]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, f, g, h, a, b, c, d, e, wb_t, k_sha384[i + 11]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, e, f, g, h, a, b, c, d, wc_t, k_sha384[i + 12]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, d, e, f, g, h, a, b, c, wd_t, k_sha384[i + 13]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, c, d, e, f, g, h, a, b, we_t, k_sha384[i + 14]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, b, c, d, e, f, g, h, a, wf_t, k_sha384[i + 15]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, a, b, c, d, e, f, g, h, w0_t, k_sha384[i +  0]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, h, a, b, c, d, e, f, g, w1_t, k_sha384[i +  1]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, g, h, a, b, c, d, e, f, w2_t, k_sha384[i +  2]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, f, g, h, a, b, c, d, e, w3_t, k_sha384[i +  3]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, e, f, g, h, a, b, c, d, w4_t, k_sha384[i +  4]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, d, e, f, g, h, a, b, c, w5_t, k_sha384[i +  5]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, c, d, e, f, g, h, a, b, w6_t, k_sha384[i +  6]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, b, c, d, e, f, g, h, a, w7_t, k_sha384[i +  7]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, a, b, c, d, e, f, g, h, w8_t, k_sha384[i +  8]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, h, a, b, c, d, e, f, g, w9_t, k_sha384[i +  9]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, g, h, a, b, c, d, e, f, wa_t, k_sha384[i + 10]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, f, g, h, a, b, c, d, e, wb_t, k_sha384[i + 11]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, e, f, g, h, a, b, c, d, wc_t, k_sha384[i + 12]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, d, e, f, g, h, a, b, c, wd_t, k_sha384[i + 13]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, c, d, e, f, g, h, a, b, we_t, k_sha384[i + 14]); \
+    SHA512_STEP (SHA512_F0o, SHA512_F1o, b, c, d, e, f, g, h, a, wf_t, k_sha384[i + 15]); \
   }
 
   ROUND_STEP (0);
@@ -2411,10 +2411,10 @@ void sha384_update_vector_utf16le (sha384_ctx_vector_t *ctx, const u32x *w, cons
     w3[2] = w[pos4 + 14];
     w3[3] = w[pos4 + 15];
 
-    make_utf16le_S (w3, w6, w7);
-    make_utf16le_S (w2, w4, w5);
-    make_utf16le_S (w1, w2, w3);
-    make_utf16le_S (w0, w0, w1);
+    make_utf16le (w3, w6, w7);
+    make_utf16le (w2, w4, w5);
+    make_utf16le (w1, w2, w3);
+    make_utf16le (w0, w0, w1);
 
     sha384_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, 64 * 2);
   }
@@ -2436,10 +2436,10 @@ void sha384_update_vector_utf16le (sha384_ctx_vector_t *ctx, const u32x *w, cons
   w3[2] = w[pos4 + 14];
   w3[3] = w[pos4 + 15];
 
-  make_utf16le_S (w3, w6, w7);
-  make_utf16le_S (w2, w4, w5);
-  make_utf16le_S (w1, w2, w3);
-  make_utf16le_S (w0, w0, w1);
+  make_utf16le (w3, w6, w7);
+  make_utf16le (w2, w4, w5);
+  make_utf16le (w1, w2, w3);
+  make_utf16le (w0, w0, w1);
 
   sha384_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, (len - pos1) * 2);
 }
@@ -2477,10 +2477,10 @@ void sha384_update_vector_utf16le_swap (sha384_ctx_vector_t *ctx, const u32x *w,
     w3[2] = w[pos4 + 14];
     w3[3] = w[pos4 + 15];
 
-    make_utf16le_S (w3, w6, w7);
-    make_utf16le_S (w2, w4, w5);
-    make_utf16le_S (w1, w2, w3);
-    make_utf16le_S (w0, w0, w1);
+    make_utf16le (w3, w6, w7);
+    make_utf16le (w2, w4, w5);
+    make_utf16le (w1, w2, w3);
+    make_utf16le (w0, w0, w1);
 
     w0[0] = swap32 (w0[0]);
     w0[1] = swap32 (w0[1]);
@@ -2535,10 +2535,10 @@ void sha384_update_vector_utf16le_swap (sha384_ctx_vector_t *ctx, const u32x *w,
   w3[2] = w[pos4 + 14];
   w3[3] = w[pos4 + 15];
 
-  make_utf16le_S (w3, w6, w7);
-  make_utf16le_S (w2, w4, w5);
-  make_utf16le_S (w1, w2, w3);
-  make_utf16le_S (w0, w0, w1);
+  make_utf16le (w3, w6, w7);
+  make_utf16le (w2, w4, w5);
+  make_utf16le (w1, w2, w3);
+  make_utf16le (w0, w0, w1);
 
   w0[0] = swap32 (w0[0]);
   w0[1] = swap32 (w0[1]);
@@ -2609,10 +2609,10 @@ void sha384_update_vector_utf16beN (sha384_ctx_vector_t *ctx, const u32x *w, con
     w3[2] = w[pos4 + 14];
     w3[3] = w[pos4 + 15];
 
-    make_utf16beN_S (w3, w6, w7);
-    make_utf16beN_S (w2, w4, w5);
-    make_utf16beN_S (w1, w2, w3);
-    make_utf16beN_S (w0, w0, w1);
+    make_utf16beN (w3, w6, w7);
+    make_utf16beN (w2, w4, w5);
+    make_utf16beN (w1, w2, w3);
+    make_utf16beN (w0, w0, w1);
 
     sha384_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, 64 * 2);
   }
@@ -2634,10 +2634,10 @@ void sha384_update_vector_utf16beN (sha384_ctx_vector_t *ctx, const u32x *w, con
   w3[2] = w[pos4 + 14];
   w3[3] = w[pos4 + 15];
 
-  make_utf16beN_S (w3, w6, w7);
-  make_utf16beN_S (w2, w4, w5);
-  make_utf16beN_S (w1, w2, w3);
-  make_utf16beN_S (w0, w0, w1);
+  make_utf16beN (w3, w6, w7);
+  make_utf16beN (w2, w4, w5);
+  make_utf16beN (w1, w2, w3);
+  make_utf16beN (w0, w0, w1);
 
   sha384_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, (len - pos1) * 2);
 }
