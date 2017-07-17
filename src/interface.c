@@ -24623,8 +24623,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case  6800: hashconfig->pw_max = PW_MAX;  break;
     case  7100: hashconfig->pw_max = PW_MAX;  break;
     case  7200: hashconfig->pw_max = PW_MAX;  break;
-    case  7700: hashconfig->pw_max = 8;       break; // CODVN B max is 8
-    case  7800: hashconfig->pw_max = 48;      break; // CODVN F/G max is 48
+    case  7700: hashconfig->pw_max = 8;       break; // https://www.daniel-berlin.de/security/sap-sec/password-hash-algorithms/
+    case  7800: hashconfig->pw_max = 40;      break; // https://www.daniel-berlin.de/security/sap-sec/password-hash-algorithms/
     case  7900: hashconfig->pw_max = PW_MAX;  break;
     case  8200: hashconfig->pw_max = PW_MAX;  break;
     case  8500: hashconfig->pw_max = 8;       break; // Underlaying DES max
@@ -24640,7 +24640,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case  9710: hashconfig->pw_max = 5;       break; // Underlaying RC4-40 max
     case  9810: hashconfig->pw_max = 5;       break; // Underlaying RC4-40 max
     case 10000: hashconfig->pw_max = PW_MAX;  break;
-    case 10300: hashconfig->pw_max = PW_MAX;  break;
+    case 10300: hashconfig->pw_max = 40;      break; // https://www.daniel-berlin.de/security/sap-sec/password-hash-algorithms/
     case 10410: hashconfig->pw_max = 5;       break; // Underlaying RC4-40 max
     case 10500: hashconfig->pw_max = 32;      break; // PDF 1.4 - 1.6 (Acrobat 5 - 8) max
     case 10900: hashconfig->pw_max = PW_MAX;  break;
