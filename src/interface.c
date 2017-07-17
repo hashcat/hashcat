@@ -19619,8 +19619,9 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
 int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 {
-  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
-  user_options_t *user_options = hashcat_ctx->user_options;
+  hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  user_options_t       *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   hashconfig->hash_mode       = user_options->hash_mode;
   hashconfig->hash_type       = 0;
@@ -24521,10 +24522,14 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 11600: hashconfig->hook_size = sizeof (seven_zip_hook_t);     break;
   };
 
-  // pw_min : algo specific hard min length
+  /**
+   * pw_min and pw_max
+   */
 
   hashconfig->pw_min = PW_MIN;
   hashconfig->pw_max = PW_MAX;
+
+  // pw_min : algo specific hard min length
 
   switch (hashconfig->hash_mode)
   {
@@ -24559,6 +24564,32 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     if ((hashconfig->opts_type & OPTS_TYPE_PT_UTF16LE) || (hashconfig->opts_type & OPTS_TYPE_PT_UTF16BE))
     {
       hashconfig->pw_max /= 2;
+    }
+
+    #define PW_DICTMAX 31
+
+    if ((user_options->rp_files_cnt > 0) || (user_options->rp_gen > 0))
+    {
+      switch (user_options_extra->attack_kern)
+      {
+        case ATTACK_KERN_STRAIGHT:  if (hashconfig->pw_max > PW_DICTMAX) hashconfig->pw_max = PW_DICTMAX;
+                                    break;
+      }
+    }
+    else
+    {
+      if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+      {
+        switch (user_options_extra->attack_kern)
+        {
+          case ATTACK_KERN_STRAIGHT:  if (hashconfig->pw_max > PW_DICTMAX) hashconfig->pw_max = PW_DICTMAX;
+                                      break;
+        }
+      }
+      else
+      {
+        // If we have a NOOP rule then we can process words from wordlists > length 32 for slow hashes
+      }
     }
 
     switch (hashconfig->hash_mode)

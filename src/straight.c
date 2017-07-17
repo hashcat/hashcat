@@ -201,7 +201,6 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
 int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
-  hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
   straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
   user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
   user_options_t       *user_options        = hashcat_ctx->user_options;
@@ -245,57 +244,6 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
       if (rc_kernel_generate == -1) return -1;
     }
   }
-
-  /**
-   * pw_min and pw_max
-   */
-
-  u32 pw_min = hashconfig->pw_min;
-  u32 pw_max = hashconfig->pw_max;
-
-  if (user_options->length_limit_disable == true)
-  {
-
-  }
-  else
-  {
-    // If we have a NOOP rule then we can process words from wordlists > length 32 for slow hashes
-
-    const bool has_noop = kernel_rules_has_noop (straight_ctx->kernel_rules_buf, straight_ctx->kernel_rules_cnt);
-
-    #define PW_DICTMAX 32
-
-    if (has_noop == false)
-    {
-      switch (user_options_extra->attack_kern)
-      {
-        case ATTACK_KERN_STRAIGHT:  if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX;
-                                    break;
-        case ATTACK_KERN_COMBI:     if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX;
-                                    break;
-      }
-    }
-    else
-    {
-      if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
-      {
-        switch (user_options_extra->attack_kern)
-        {
-          case ATTACK_KERN_STRAIGHT:  if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX;
-                                      break;
-          case ATTACK_KERN_COMBI:     if (pw_max > PW_DICTMAX) pw_max = PW_DICTMAX;
-                                      break;
-        }
-      }
-      else
-      {
-        // in this case we can process > 32
-      }
-    }
-  }
-
-  hashconfig->pw_min = pw_min;
-  hashconfig->pw_max = pw_max;
 
   /**
    * wordlist based work
