@@ -24528,11 +24528,13 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   switch (hashconfig->hash_mode)
   {
+    case   112: hashconfig->pw_min = 8;   break; // https://www.toadworld.com/platforms/oracle/b/weblog/archive/2013/11/12/oracle-12c-passwords
     case  2500: hashconfig->pw_min = 8;   break; // WPA min RFC
     case  2501: hashconfig->pw_min = 64;  break; // WPA PMK fixed
     case  9710: hashconfig->pw_min = 5;   break; // RC4-40 fixed
     case  9810: hashconfig->pw_min = 5;   break; // RC4-40 fixed
     case 10410: hashconfig->pw_min = 5;   break; // RC4-40 fixed
+    case 12300: hashconfig->pw_min = 9;   break; // https://www.toadworld.com/platforms/oracle/b/weblog/archive/2013/11/12/oracle-12c-passwords
     case 14000: hashconfig->pw_min = 8;   break; // DES fixed
     case 14100: hashconfig->pw_min = 24;  break; // 3DES fixed
     case 14900: hashconfig->pw_min = 10;  break; // Skip32 fixed
@@ -24591,6 +24593,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   switch (hashconfig->hash_mode)
   {
+    case   112: hashconfig->pw_min = 30;      break; // https://www.toadworld.com/platforms/oracle/b/weblog/archive/2013/11/12/oracle-12c-passwords
     case  1500: hashconfig->pw_max = 8;       break; // Underlaying DES max
     case  2100: hashconfig->pw_max = PW_MAX;  break;
     case  2400: hashconfig->pw_max = 16;      break; // Cisco-PIX MD5 sets w[4] = 0x80
@@ -24598,6 +24601,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case  2500: hashconfig->pw_max = 63;      break; // WPA/WPA2 limits itself to 63 by RFC
     case  2501: hashconfig->pw_max = 64;      break; // WPA/WPA2 PMK fixed length
     case  3000: hashconfig->pw_max = 7;       break; // LM max
+    case  3100: hashconfig->pw_min = 30;      break; // http://www.red-database-security.de/whitepaper/oracle_passwords.html
     case  3200: hashconfig->pw_max = 72;      break; // Underlaying Blowfish max
     case  5200: hashconfig->pw_max = PW_MAX;  break;
     case  6211: hashconfig->pw_max = 64;      break; // TC limits itself to 64
