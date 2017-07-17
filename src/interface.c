@@ -24661,6 +24661,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   switch (hashconfig->hash_mode)
   {
     case  1500: hashconfig->pw_max = 8;  break; // DES max
+    case  2400: hashconfig->pw_max = 16; break; // Cisco-PIX MD5 sets w[4] = 0x80
+    case  2410: hashconfig->pw_max = 16; break; // Cisco-ASA MD5 sets w[4] = 0x80
     case  2500: hashconfig->pw_max = 63; break; // WPA/WPA2 limits itself to 63
     case  2501: hashconfig->pw_max = 64; break; // WPA/WPA2 PMK max
     case  3000: hashconfig->pw_max = 7;  break; // LM max
