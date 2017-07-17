@@ -24546,7 +24546,11 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->length_limit_disable == true)
   {
-    // nothing to do
+    switch (hashconfig->hash_mode)
+    {
+      case 10700: hashconfig->pw_max = 127; // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
+                  break;
+    }
   }
   else
   {
@@ -24641,8 +24645,11 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case  9810: hashconfig->pw_max = 5;       break; // Underlaying RC4-40 max
     case 10000: hashconfig->pw_max = PW_MAX;  break;
     case 10300: hashconfig->pw_max = 40;      break; // https://www.daniel-berlin.de/security/sap-sec/password-hash-algorithms/
+    case 10400: hashconfig->pw_max = 32;      break; // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
     case 10410: hashconfig->pw_max = 5;       break; // Underlaying RC4-40 max
-    case 10500: hashconfig->pw_max = 32;      break; // PDF 1.4 - 1.6 (Acrobat 5 - 8) max
+    case 10420: hashconfig->pw_max = 32;      break; // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
+    case 10500: hashconfig->pw_max = 32;      break; // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
+    case 10600: hashconfig->pw_max = 127;     break; // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
     case 10900: hashconfig->pw_max = PW_MAX;  break;
     case 11300: hashconfig->pw_max = PW_MAX;  break;
     case 11600: hashconfig->pw_max = PW_MAX;  break;
