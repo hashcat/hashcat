@@ -4811,7 +4811,14 @@ int sha1s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUS
 
 int sha1sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_4520) || (input_len > DISPLAY_LEN_MAX_4520)) return (PARSER_GLOBAL_LENGTH);
+  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
+  {
+    if ((input_len < DISPLAY_LEN_MIN_4520H) || (input_len > DISPLAY_LEN_MAX_4520H)) return (PARSER_GLOBAL_LENGTH);
+  }
+  else
+  {
+    if ((input_len < DISPLAY_LEN_MIN_4520) || (input_len > DISPLAY_LEN_MAX_4520)) return (PARSER_GLOBAL_LENGTH);
+  }
 
   u32 *digest = (u32 *) hash_buf->digest;
 
