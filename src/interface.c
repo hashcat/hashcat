@@ -24524,32 +24524,27 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   // pw_min : algo specific hard min length
 
   hashconfig->pw_min = PW_MIN;
+  hashconfig->pw_max = PW_MAX;
 
   switch (hashconfig->hash_mode)
   {
-    case  2500: hashconfig->pw_min = 8;  // WPA min
-                break;
-    case  2501: hashconfig->pw_min = 64; // WPA PMK min
-                break;
-    case  9710: hashconfig->pw_min = 5;  // RC4-40 min
-                break;
-    case  9810: hashconfig->pw_min = 5;  // RC4-40 min
-                break;
-    case 10410: hashconfig->pw_min = 5;  // RC4-40 min
-                break;
-    case 14000: hashconfig->pw_min = 8;  // DES min
-                break;
-    case 14100: hashconfig->pw_min = 24; // 3DES min
-                break;
-    case 14900: hashconfig->pw_min = 10; // Skip32 min
-                break;
+    case  2500: hashconfig->pw_min = 8;   break; // WPA min RFC
+    case  2501: hashconfig->pw_min = 64;  break; // WPA PMK fixed
+    case  9710: hashconfig->pw_min = 5;   break; // RC4-40 fixed
+    case  9810: hashconfig->pw_min = 5;   break; // RC4-40 fixed
+    case 10410: hashconfig->pw_min = 5;   break; // RC4-40 fixed
+    case 14000: hashconfig->pw_min = 8;   break; // DES fixed
+    case 14100: hashconfig->pw_min = 24;  break; // 3DES fixed
+    case 14900: hashconfig->pw_min = 10;  break; // Skip32 fixed
+    case 15400: hashconfig->pw_min = 32;  break; // ChaCha20 fixed
   }
 
-  // pw_max : some algo suffer from support for long passwords, the user need to add -L to enable support for them
+  // pw_max : some algo suffer from support for long passwords,
+  //          the user need to add -L to enable support for them
 
   if (user_options->length_limit_disable == true)
   {
-    hashconfig->pw_max = PW_MAX;
+    // nothing to do
   }
   else
   {
@@ -24562,8 +24557,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
     switch (hashconfig->hash_mode)
     {
-      case   125: hashconfig->pw_max = 32;
-                  break;
       case   500: hashconfig->pw_max = 15; // -L available
                   break;
       case  1600: hashconfig->pw_max = 15; // -L available
@@ -24574,138 +24567,134 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                   break;
       case  6300: hashconfig->pw_max = 15; // -L available
                   break;
-      case  7000: hashconfig->pw_max = 19;
+      case  7000: hashconfig->pw_max = 19; // todo
                   break;
       case  7400: hashconfig->pw_max = 15; // -L available
-                  break;
-      case  7700: hashconfig->pw_max = 8;
-                  break;
-      case  8600: hashconfig->pw_max = 16;
                   break;
       case 10700: hashconfig->pw_max = 16; // -L available
                   break;
       case 12500: hashconfig->pw_max = 20; // todo
                   break;
-      case 14400: hashconfig->pw_max = 24;
+      case 14400: hashconfig->pw_max = 24; // todo
                   break;
-      case 15400: hashconfig->pw_max = 32;
-                  break;
-      case 15500: hashconfig->pw_max = 16;
+      case 15500: hashconfig->pw_max = 16; // todo
                   break;
     }
   }
 
-  // pw_max : all modes listed in the follow 2 switch cases are at maximum possible
-  // pw_max : some algo are converted to long password support but without dropping performance
+  // pw_max : all modes listed in the following switch cases are
+  //          the maximum possible password length by the related system
+  //          plus the opencl kernels support to crack them without -L set by the user
+  //          however, some modes have a self-set and some have
+  //          underlaying algorithms specific hard maximum password length
+  //          these limits override all previous restrictions, always
 
   switch (hashconfig->hash_mode)
   {
-    case  2100: hashconfig->pw_max = PW_MAX; break;
-    case  5200: hashconfig->pw_max = PW_MAX; break;
-    case  6400: hashconfig->pw_max = PW_MAX; break;
-    case  6500: hashconfig->pw_max = PW_MAX; break;
-    case  6600: hashconfig->pw_max = PW_MAX; break;
-    case  6700: hashconfig->pw_max = PW_MAX; break;
-    case  6800: hashconfig->pw_max = PW_MAX; break;
-    case  7100: hashconfig->pw_max = PW_MAX; break;
-    case  7200: hashconfig->pw_max = PW_MAX; break;
-    case  7900: hashconfig->pw_max = PW_MAX; break;
-    case  8200: hashconfig->pw_max = PW_MAX; break;
-    case  8800: hashconfig->pw_max = PW_MAX; break;
-    case  8900: hashconfig->pw_max = PW_MAX; break;
-    case  9200: hashconfig->pw_max = PW_MAX; break;
-    case  9300: hashconfig->pw_max = PW_MAX; break;
-    case  9400: hashconfig->pw_max = PW_MAX; break;
-    case  9500: hashconfig->pw_max = PW_MAX; break;
-    case  9600: hashconfig->pw_max = PW_MAX; break;
-    case 10000: hashconfig->pw_max = PW_MAX; break;
-    case 10300: hashconfig->pw_max = PW_MAX; break;
-    case 10900: hashconfig->pw_max = PW_MAX; break;
-    case 11300: hashconfig->pw_max = PW_MAX; break;
-    case 11600: hashconfig->pw_max = PW_MAX; break;
-    case 11900: hashconfig->pw_max = PW_MAX; break;
-    case 12000: hashconfig->pw_max = PW_MAX; break;
-    case 12001: hashconfig->pw_max = PW_MAX; break;
-    case 12200: hashconfig->pw_max = PW_MAX; break;
-    case 12300: hashconfig->pw_max = PW_MAX; break;
-    case 12400: hashconfig->pw_max = PW_MAX; break;
-    case 12700: hashconfig->pw_max = PW_MAX; break;
-    case 12800: hashconfig->pw_max = PW_MAX; break;
-    case 12900: hashconfig->pw_max = PW_MAX; break;
-    case 13000: hashconfig->pw_max = PW_MAX; break;
-    case 13200: hashconfig->pw_max = PW_MAX; break;
-    case 13400: hashconfig->pw_max = PW_MAX; break;
-    case 13600: hashconfig->pw_max = PW_MAX; break;
-    case 14611: hashconfig->pw_max = PW_MAX; break;
-    case 14612: hashconfig->pw_max = PW_MAX; break;
-    case 14613: hashconfig->pw_max = PW_MAX; break;
-    case 14621: hashconfig->pw_max = PW_MAX; break;
-    case 14622: hashconfig->pw_max = PW_MAX; break;
-    case 14623: hashconfig->pw_max = PW_MAX; break;
-    case 14631: hashconfig->pw_max = PW_MAX; break;
-    case 14632: hashconfig->pw_max = PW_MAX; break;
-    case 14633: hashconfig->pw_max = PW_MAX; break;
-    case 14641: hashconfig->pw_max = PW_MAX; break;
-    case 14642: hashconfig->pw_max = PW_MAX; break;
-    case 14643: hashconfig->pw_max = PW_MAX; break;
-    case 14700: hashconfig->pw_max = PW_MAX; break;
-    case 14800: hashconfig->pw_max = PW_MAX; break;
-    case 15100: hashconfig->pw_max = PW_MAX; break;
-    case 15300: hashconfig->pw_max = PW_MAX; break;
-    case 15600: hashconfig->pw_max = PW_MAX; break;
-    case 15700: hashconfig->pw_max = PW_MAX; break;
-  }
-
-  // pw_max : algo specific hard max length
-
-  switch (hashconfig->hash_mode)
-  {
-    case  1500: hashconfig->pw_max = 8;  break; // DES max
-    case  2400: hashconfig->pw_max = 16; break; // Cisco-PIX MD5 sets w[4] = 0x80
-    case  2410: hashconfig->pw_max = 16; break; // Cisco-ASA MD5 sets w[4] = 0x80
-    case  2500: hashconfig->pw_max = 63; break; // WPA/WPA2 limits itself to 63
-    case  2501: hashconfig->pw_max = 64; break; // WPA/WPA2 PMK max
-    case  3000: hashconfig->pw_max = 7;  break; // LM max
-    case  3200: hashconfig->pw_max = 72; break; // blowfish max
-    case  6211: hashconfig->pw_max = 64; break; // TC limits itself to 64
-    case  6212: hashconfig->pw_max = 64; break; // TC limits itself to 64
-    case  6213: hashconfig->pw_max = 64; break; // TC limits itself to 64
-    case  6221: hashconfig->pw_max = 64; break; // TC limits itself to 64
-    case  6222: hashconfig->pw_max = 64; break; // TC limits itself to 64
-    case  6223: hashconfig->pw_max = 64; break; // TC limits itself to 64
-    case  6231: hashconfig->pw_max = 64; break; // TC limits itself to 64
-    case  6232: hashconfig->pw_max = 64; break; // TC limits itself to 64
-    case  6233: hashconfig->pw_max = 64; break; // TC limits itself to 64
-    case  6241: hashconfig->pw_max = 64; break; // TC limits itself to 64
-    case  6242: hashconfig->pw_max = 64; break; // TC limits itself to 64
-    case  6243: hashconfig->pw_max = 64; break; // TC limits itself to 64
-    case  8500: hashconfig->pw_max = 8;  break; // DES max
-    case  9100: hashconfig->pw_max = 64; break; // Lotus Notes/Domino limits itself to 8
-    case  9710: hashconfig->pw_max = 5;  break; // RC4-40 max
-    case  9810: hashconfig->pw_max = 5;  break; // RC4-40 max
-    case 10410: hashconfig->pw_max = 5;  break; // RC4-40 max
-    case 10500: hashconfig->pw_max = 32; break; // PDF 1.4 - 1.6 (Acrobat 5 - 8) max
-    case 13711: hashconfig->pw_max = 64; break; // VC limits itself to 64
-    case 13712: hashconfig->pw_max = 64; break; // VC limits itself to 64
-    case 13713: hashconfig->pw_max = 64; break; // VC limits itself to 64
-    case 13721: hashconfig->pw_max = 64; break; // VC limits itself to 64
-    case 13722: hashconfig->pw_max = 64; break; // VC limits itself to 64
-    case 13723: hashconfig->pw_max = 64; break; // VC limits itself to 64
-    case 13731: hashconfig->pw_max = 64; break; // VC limits itself to 64
-    case 13732: hashconfig->pw_max = 64; break; // VC limits itself to 64
-    case 13733: hashconfig->pw_max = 64; break; // VC limits itself to 64
-    case 13741: hashconfig->pw_max = 64; break; // VC limits itself to 64
-    case 13742: hashconfig->pw_max = 64; break; // VC limits itself to 64
-    case 13743: hashconfig->pw_max = 64; break; // VC limits itself to 64
-    case 13751: hashconfig->pw_max = 64; break; // VC limits itself to 64
-    case 13752: hashconfig->pw_max = 64; break; // VC limits itself to 64
-    case 13753: hashconfig->pw_max = 64; break; // VC limits itself to 64
-    case 13761: hashconfig->pw_max = 64; break; // VC limits itself to 64
-    case 13762: hashconfig->pw_max = 64; break; // VC limits itself to 64
-    case 13763: hashconfig->pw_max = 64; break; // VC limits itself to 64
-    case 14000: hashconfig->pw_max = 8;  break; // DES max
-    case 14100: hashconfig->pw_max = 24; break; // 3DES max
-    case 14900: hashconfig->pw_max = 10; break; // Skip32 max
+    case  1500: hashconfig->pw_max = 8;       break; // Underlaying DES max
+    case  2100: hashconfig->pw_max = PW_MAX;  break;
+    case  2400: hashconfig->pw_max = 16;      break; // Cisco-PIX MD5 sets w[4] = 0x80
+    case  2410: hashconfig->pw_max = 12;      break; // Cisco-ASA MD5 sets w[4] = 0x80 and has a 4 byte fixed salt
+    case  2500: hashconfig->pw_max = 63;      break; // WPA/WPA2 limits itself to 63 by RFC
+    case  2501: hashconfig->pw_max = 64;      break; // WPA/WPA2 PMK fixed length
+    case  3000: hashconfig->pw_max = 7;       break; // LM max
+    case  3200: hashconfig->pw_max = 72;      break; // Underlaying Blowfish max
+    case  5200: hashconfig->pw_max = PW_MAX;  break;
+    case  6211: hashconfig->pw_max = 64;      break; // TC limits itself to 64
+    case  6212: hashconfig->pw_max = 64;      break; // TC limits itself to 64
+    case  6213: hashconfig->pw_max = 64;      break; // TC limits itself to 64
+    case  6221: hashconfig->pw_max = 64;      break; // TC limits itself to 64
+    case  6222: hashconfig->pw_max = 64;      break; // TC limits itself to 64
+    case  6223: hashconfig->pw_max = 64;      break; // TC limits itself to 64
+    case  6231: hashconfig->pw_max = 64;      break; // TC limits itself to 64
+    case  6232: hashconfig->pw_max = 64;      break; // TC limits itself to 64
+    case  6233: hashconfig->pw_max = 64;      break; // TC limits itself to 64
+    case  6241: hashconfig->pw_max = 64;      break; // TC limits itself to 64
+    case  6242: hashconfig->pw_max = 64;      break; // TC limits itself to 64
+    case  6243: hashconfig->pw_max = 64;      break; // TC limits itself to 64
+    case  6400: hashconfig->pw_max = PW_MAX;  break;
+    case  6500: hashconfig->pw_max = PW_MAX;  break;
+    case  6600: hashconfig->pw_max = PW_MAX;  break;
+    case  6700: hashconfig->pw_max = PW_MAX;  break;
+    case  6800: hashconfig->pw_max = PW_MAX;  break;
+    case  7100: hashconfig->pw_max = PW_MAX;  break;
+    case  7200: hashconfig->pw_max = PW_MAX;  break;
+    case  7700: hashconfig->pw_max = 8;       break; // CODVN B max is 8
+    case  7800: hashconfig->pw_max = 48;      break; // CODVN F/G max is 48
+    case  7900: hashconfig->pw_max = PW_MAX;  break;
+    case  8200: hashconfig->pw_max = PW_MAX;  break;
+    case  8500: hashconfig->pw_max = 8;       break; // Underlaying DES max
+    case  8600: hashconfig->pw_max = 16;      break; // Lotus Notes/Domino 5 limits itself to 8
+    case  8800: hashconfig->pw_max = PW_MAX;  break;
+    case  8900: hashconfig->pw_max = PW_MAX;  break;
+    case  9100: hashconfig->pw_max = 64;      break; // Lotus Notes/Domino 8 limits itself to 64
+    case  9200: hashconfig->pw_max = PW_MAX;  break;
+    case  9300: hashconfig->pw_max = PW_MAX;  break;
+    case  9400: hashconfig->pw_max = PW_MAX;  break;
+    case  9500: hashconfig->pw_max = PW_MAX;  break;
+    case  9600: hashconfig->pw_max = PW_MAX;  break;
+    case  9710: hashconfig->pw_max = 5;       break; // Underlaying RC4-40 max
+    case  9810: hashconfig->pw_max = 5;       break; // Underlaying RC4-40 max
+    case 10000: hashconfig->pw_max = PW_MAX;  break;
+    case 10300: hashconfig->pw_max = PW_MAX;  break;
+    case 10410: hashconfig->pw_max = 5;       break; // Underlaying RC4-40 max
+    case 10500: hashconfig->pw_max = 32;      break; // PDF 1.4 - 1.6 (Acrobat 5 - 8) max
+    case 10900: hashconfig->pw_max = PW_MAX;  break;
+    case 11300: hashconfig->pw_max = PW_MAX;  break;
+    case 11600: hashconfig->pw_max = PW_MAX;  break;
+    case 11900: hashconfig->pw_max = PW_MAX;  break;
+    case 12000: hashconfig->pw_max = PW_MAX;  break;
+    case 12001: hashconfig->pw_max = PW_MAX;  break;
+    case 12200: hashconfig->pw_max = PW_MAX;  break;
+    case 12300: hashconfig->pw_max = PW_MAX;  break;
+    case 12400: hashconfig->pw_max = PW_MAX;  break;
+    case 12700: hashconfig->pw_max = PW_MAX;  break;
+    case 12800: hashconfig->pw_max = PW_MAX;  break;
+    case 12900: hashconfig->pw_max = PW_MAX;  break;
+    case 13000: hashconfig->pw_max = PW_MAX;  break;
+    case 13200: hashconfig->pw_max = PW_MAX;  break;
+    case 13400: hashconfig->pw_max = PW_MAX;  break;
+    case 13600: hashconfig->pw_max = PW_MAX;  break;
+    case 13711: hashconfig->pw_max = 64;      break; // VC limits itself to 64
+    case 13712: hashconfig->pw_max = 64;      break; // VC limits itself to 64
+    case 13713: hashconfig->pw_max = 64;      break; // VC limits itself to 64
+    case 13721: hashconfig->pw_max = 64;      break; // VC limits itself to 64
+    case 13722: hashconfig->pw_max = 64;      break; // VC limits itself to 64
+    case 13723: hashconfig->pw_max = 64;      break; // VC limits itself to 64
+    case 13731: hashconfig->pw_max = 64;      break; // VC limits itself to 64
+    case 13732: hashconfig->pw_max = 64;      break; // VC limits itself to 64
+    case 13733: hashconfig->pw_max = 64;      break; // VC limits itself to 64
+    case 13741: hashconfig->pw_max = 64;      break; // VC limits itself to 64
+    case 13742: hashconfig->pw_max = 64;      break; // VC limits itself to 64
+    case 13743: hashconfig->pw_max = 64;      break; // VC limits itself to 64
+    case 13751: hashconfig->pw_max = 64;      break; // VC limits itself to 64
+    case 13752: hashconfig->pw_max = 64;      break; // VC limits itself to 64
+    case 13753: hashconfig->pw_max = 64;      break; // VC limits itself to 64
+    case 13761: hashconfig->pw_max = 64;      break; // VC limits itself to 64
+    case 13762: hashconfig->pw_max = 64;      break; // VC limits itself to 64
+    case 13763: hashconfig->pw_max = 64;      break; // VC limits itself to 64
+    case 14000: hashconfig->pw_max = 8;       break; // Underlaying DES fixed
+    case 14100: hashconfig->pw_max = 24;      break; // Underlaying 3DES fixed
+    case 14611: hashconfig->pw_max = PW_MAX;  break;
+    case 14612: hashconfig->pw_max = PW_MAX;  break;
+    case 14613: hashconfig->pw_max = PW_MAX;  break;
+    case 14621: hashconfig->pw_max = PW_MAX;  break;
+    case 14622: hashconfig->pw_max = PW_MAX;  break;
+    case 14623: hashconfig->pw_max = PW_MAX;  break;
+    case 14631: hashconfig->pw_max = PW_MAX;  break;
+    case 14632: hashconfig->pw_max = PW_MAX;  break;
+    case 14633: hashconfig->pw_max = PW_MAX;  break;
+    case 14641: hashconfig->pw_max = PW_MAX;  break;
+    case 14642: hashconfig->pw_max = PW_MAX;  break;
+    case 14643: hashconfig->pw_max = PW_MAX;  break;
+    case 14700: hashconfig->pw_max = PW_MAX;  break;
+    case 14800: hashconfig->pw_max = PW_MAX;  break;
+    case 14900: hashconfig->pw_max = 10;      break; // Underlaying Skip32 fixed
+    case 15100: hashconfig->pw_max = PW_MAX;  break;
+    case 15300: hashconfig->pw_max = PW_MAX;  break;
+    case 15400: hashconfig->pw_max = 32;      break; // Underlaying ChaCha20 fixed
+    case 15600: hashconfig->pw_max = PW_MAX;  break;
+    case 15700: hashconfig->pw_max = PW_MAX;  break;
   }
 
   // salt_min and salt_max : this limit is only interessting for generic hash types that support a salt
@@ -24720,6 +24709,11 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   else
   {
     hashconfig->salt_max = SALT_MAX_OLD;
+
+    if ((hashconfig->opts_type & OPTS_TYPE_ST_UTF16LE) || (hashconfig->opts_type & OPTS_TYPE_ST_UTF16BE))
+    {
+      hashconfig->salt_max /= 2;
+    }
   }
 
   if (hashconfig->salt_type == SALT_TYPE_GENERIC)
