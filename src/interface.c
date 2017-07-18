@@ -24302,7 +24302,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   {
     char source_file[256] = { 0 };
 
-    generate_source_kernel_filename (hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, user_options->optimized_kernel_enable, folder_config->shared_dir, source_file);
+    generate_source_kernel_filename (hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, true, folder_config->shared_dir, source_file);
 
     if (hc_path_read (source_file) == false)
     {
@@ -24311,6 +24311,23 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     else
     {
       hashconfig->opti_type |= OPTI_TYPE_OPTIMIZED_KERNEL;
+    }
+  }
+  else
+  {
+    char source_file[256] = { 0 };
+
+    generate_source_kernel_filename (hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, false, folder_config->shared_dir, source_file);
+
+    if (hc_path_read (source_file) == false)
+    {
+      if (user_options->quiet == false) event_log_warning (hashcat_ctx, "%s: Pure kernel not found, falling back to optimized kernel", source_file);
+
+      hashconfig->opti_type |= OPTI_TYPE_OPTIMIZED_KERNEL;
+    }
+    else
+    {
+      // nothing to do
     }
   }
 
