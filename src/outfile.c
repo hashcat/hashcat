@@ -86,7 +86,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
     plain_len += comb_len;
 
-    if (user_options->optimized_kernel_enable == true)
+    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
     {
       int pw_max_combi;
 
@@ -152,7 +152,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    if (user_options->optimized_kernel_enable == true)
+    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
     {
       pw_t pw;
 

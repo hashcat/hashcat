@@ -1174,7 +1174,7 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     }
     else if ((user_options->attack_mode == ATTACK_MODE_HYBRID1) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
     {
-      if ((user_options->optimized_kernel_enable == false) && (user_options->attack_mode == ATTACK_MODE_HYBRID2))
+      if (((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0) && (user_options->attack_mode == ATTACK_MODE_HYBRID2))
       {
         mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
 

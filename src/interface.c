@@ -19,6 +19,7 @@
 #include "cpu_sha256.h"
 #include "cpu_blake2.h"
 #include "shared.h"
+#include "opencl.h"
 #include "interface.h"
 #include "ext_lzma.h"
 
@@ -19626,6 +19627,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
 int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 {
+  folder_config_t      *folder_config      = hashcat_ctx->folder_config;
   hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
   user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
@@ -24293,7 +24295,26 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     hashconfig->opts_type |= OPTS_TYPE_PT_NEVERCRACK;
   }
 
-  if (user_options->optimized_kernel_enable == false)
+  // some kernels do not have an optimized kernel, simply because they do not need them
+  // or because they are not yet converted, for them we should switch off optimized mode
+
+  if (user_options->optimized_kernel_enable == true)
+  {
+    char source_file[256] = { 0 };
+
+    generate_source_kernel_filename (hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, user_options->optimized_kernel_enable, folder_config->shared_dir, source_file);
+
+    if (hc_path_read (source_file) == false)
+    {
+      if (user_options->quiet == false) event_log_warning (hashcat_ctx, "%s: Optimized kernel not found, falling back to pure kernel", source_file);
+    }
+    else
+    {
+      hashconfig->opti_type |= OPTI_TYPE_OPTIMIZED_KERNEL;
+    }
+  }
+
+  if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
   {
     hashconfig->opts_type &= ~OPTS_TYPE_PT_UTF16LE;
     hashconfig->opts_type &= ~OPTS_TYPE_PT_UTF16BE;
@@ -24556,7 +24577,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   // pw_max : some algo suffer from support for long passwords,
   //          the user need to add -L to enable support for them
 
-  if (user_options->optimized_kernel_enable == true)
+  if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
   {
     hashconfig->pw_max = PW_MAX_OLD;
 
@@ -24755,7 +24776,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   hashconfig->salt_min = SALT_MIN;
   hashconfig->salt_max = SALT_MAX;
 
-  if (user_options->optimized_kernel_enable == true)
+  if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
   {
     hashconfig->salt_max = SALT_MAX_OLD;
 

@@ -699,6 +699,7 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 
 void status_display (hashcat_ctx_t *hashcat_ctx)
 {
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->machine_readable == true)
@@ -888,7 +889,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
     case GUESS_MODE_HYBRID2:
 
-      if (user_options->optimized_kernel_enable == true)
+      if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
       {
         event_log_info (hashcat_ctx,
           "Guess.Base.......: Mask (%s) [%d], Left Side",
@@ -915,7 +916,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
     case GUESS_MODE_HYBRID2_CS:
 
-      if (user_options->optimized_kernel_enable == true)
+      if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
       {
         event_log_info (hashcat_ctx,
           "Guess.Base.......: Mask (%s) [%d], Left Side",

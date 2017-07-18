@@ -435,6 +435,7 @@ int status_get_guess_mode (const hashcat_ctx_t *hashcat_ctx)
 
 char *status_get_guess_base (const hashcat_ctx_t *hashcat_ctx)
 {
+  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
@@ -474,7 +475,7 @@ char *status_get_guess_base (const hashcat_ctx_t *hashcat_ctx)
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    if (user_options->optimized_kernel_enable == true)
+    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
     {
       const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
@@ -493,6 +494,7 @@ char *status_get_guess_base (const hashcat_ctx_t *hashcat_ctx)
 
 int status_get_guess_base_offset (const hashcat_ctx_t *hashcat_ctx)
 {
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
@@ -519,7 +521,7 @@ int status_get_guess_base_offset (const hashcat_ctx_t *hashcat_ctx)
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    if (user_options->optimized_kernel_enable == true)
+    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
     {
       const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
@@ -538,6 +540,7 @@ int status_get_guess_base_offset (const hashcat_ctx_t *hashcat_ctx)
 
 int status_get_guess_base_count (const hashcat_ctx_t *hashcat_ctx)
 {
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
@@ -564,7 +567,7 @@ int status_get_guess_base_count (const hashcat_ctx_t *hashcat_ctx)
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    if (user_options->optimized_kernel_enable == true)
+    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
     {
       const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
@@ -593,6 +596,7 @@ double status_get_guess_base_percent (const hashcat_ctx_t *hashcat_ctx)
 
 char *status_get_guess_mod (const hashcat_ctx_t *hashcat_ctx)
 {
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
@@ -624,7 +628,7 @@ char *status_get_guess_mod (const hashcat_ctx_t *hashcat_ctx)
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    if (user_options->optimized_kernel_enable == true)
+    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
     {
       const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
@@ -643,6 +647,7 @@ char *status_get_guess_mod (const hashcat_ctx_t *hashcat_ctx)
 
 int status_get_guess_mod_offset (const hashcat_ctx_t *hashcat_ctx)
 {
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
@@ -665,7 +670,7 @@ int status_get_guess_mod_offset (const hashcat_ctx_t *hashcat_ctx)
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    if (user_options->optimized_kernel_enable == true)
+    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
     {
       const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
@@ -684,6 +689,7 @@ int status_get_guess_mod_offset (const hashcat_ctx_t *hashcat_ctx)
 
 int status_get_guess_mod_count (const hashcat_ctx_t *hashcat_ctx)
 {
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
@@ -706,7 +712,7 @@ int status_get_guess_mod_count (const hashcat_ctx_t *hashcat_ctx)
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    if (user_options->optimized_kernel_enable == true)
+    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
     {
       const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 

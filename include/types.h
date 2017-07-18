@@ -326,6 +326,7 @@ typedef enum salt_type
 
 typedef enum opti_type
 {
+  OPTI_TYPE_OPTIMIZED_KERNEL    = (1 <<  0),
   OPTI_TYPE_ZERO_BYTE           = (1 <<  1),
   OPTI_TYPE_PRECOMPUTE_INIT     = (1 <<  2),
   OPTI_TYPE_PRECOMPUTE_MERKLE   = (1 <<  3),

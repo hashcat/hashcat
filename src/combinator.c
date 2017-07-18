@@ -14,6 +14,7 @@
 int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
   combinator_ctx_t     *combinator_ctx      = hashcat_ctx->combinator_ctx;
+  hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
   user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
   user_options_t       *user_options        = hashcat_ctx->user_options;
 
@@ -33,7 +34,7 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   combinator_ctx->scratch_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-  if (user_options->optimized_kernel_enable == true)
+  if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
   {
     if (user_options->attack_mode == ATTACK_MODE_COMBI)
     {
