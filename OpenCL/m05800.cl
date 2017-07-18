@@ -8,6 +8,7 @@
 #include "inc_hash_functions.cl"
 #include "inc_types.cl"
 #include "inc_common.cl"
+#include "inc_hash_sha1.cl"
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
@@ -2193,7 +2194,7 @@ void append_salt (u32 w0[4], u32 w1[4], u32 w2[4], const u32 append[5], const u3
   }
 }
 
-void sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
+void orig_sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
 {
   u32 A = digest[0];
   u32 B = digest[1];
@@ -2323,91 +2324,32 @@ void sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u3
 
 __kernel void m05800_init (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global androidpin_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
 {
-  /**
-   * base
-   */
-
   const u32 gid = get_global_id (0);
 
   if (gid >= gid_max) return;
 
-  u32 word_buf[4];
+  sha1_ctx_t ctx;
 
-  word_buf[0] = pws[gid].i[ 0];
-  word_buf[1] = pws[gid].i[ 1];
-  word_buf[2] = pws[gid].i[ 2];
-  word_buf[3] = pws[gid].i[ 3];
+  sha1_init (&ctx);
 
-  const u32 pw_len = pws[gid].pw_len;
+  u32 w0[4] = { 0 }; w0[0] = 0x30000000;
+  u32 w1[4] = { 0 };
+  u32 w2[4] = { 0 };
+  u32 w3[4] = { 0 };
 
-  /**
-   * salt
-   */
+  sha1_update_64 (&ctx, w0, w1, w2, w3, 1);
 
-  u32 salt_len = salt_bufs[salt_pos].salt_len;
+  sha1_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
-  u32 salt_buf[5];
+  sha1_update_global_swap (&ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
 
-  salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf[2] = salt_bufs[salt_pos].salt_buf[2];
-  salt_buf[3] = salt_bufs[salt_pos].salt_buf[3];
-  salt_buf[4] = salt_bufs[salt_pos].salt_buf[4];
+  sha1_final (&ctx);
 
-  /**
-   * init
-   */
-
-  const u32 pc_len = 1;
-  const u32 pc_dec = 0x30;
-
-  u32 data0[4] = { 0, 0, 0, 0 };
-  u32 data1[4] = { 0, 0, 0, 0 };
-  u32 data2[4] = { 0, 0, 0, 0 };
-
-  data0[0] = pc_dec;
-
-  append_word (data0, data1, word_buf, pc_len);
-
-  append_salt (data0, data1, data2, salt_buf, pc_len + pw_len);
-
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
-
-  w0[0] = swap32 (data0[0]);
-  w0[1] = swap32 (data0[1]);
-  w0[2] = swap32 (data0[2]);
-  w0[3] = swap32 (data0[3]);
-  w1[0] = swap32 (data1[0]);
-  w1[1] = swap32 (data1[1]);
-  w1[2] = swap32 (data1[2]);
-  w1[3] = swap32 (data1[3]);
-  w2[0] = swap32 (data2[0]);
-  w2[1] = swap32 (data2[1]);
-  w2[2] = 0;
-  w2[3] = 0;
-  w3[0] = 0;
-  w3[1] = 0;
-  w3[2] = 0;
-  w3[3] = (pc_len + pw_len + salt_len) * 8;
-
-  u32 digest[5];
-
-  digest[0] = SHA1M_A;
-  digest[1] = SHA1M_B;
-  digest[2] = SHA1M_C;
-  digest[3] = SHA1M_D;
-  digest[4] = SHA1M_E;
-
-  sha1_transform (w0, w1, w2, w3, digest);
-
-  tmps[gid].digest_buf[0] = digest[0];
-  tmps[gid].digest_buf[1] = digest[1];
-  tmps[gid].digest_buf[2] = digest[2];
-  tmps[gid].digest_buf[3] = digest[3];
-  tmps[gid].digest_buf[4] = digest[4];
+  tmps[gid].digest_buf[0] = ctx.h[0];
+  tmps[gid].digest_buf[1] = ctx.h[1];
+  tmps[gid].digest_buf[2] = ctx.h[2];
+  tmps[gid].digest_buf[3] = ctx.h[3];
+  tmps[gid].digest_buf[4] = ctx.h[4];
 }
 
 __kernel void m05800_loop (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global androidpin_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
@@ -2438,17 +2380,34 @@ __kernel void m05800_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   if (gid >= gid_max) return;
 
   /**
-   * base
+   * init
    */
 
-  u32 word_buf[4];
-
-  word_buf[0] = pws[gid].i[ 0];
-  word_buf[1] = pws[gid].i[ 1];
-  word_buf[2] = pws[gid].i[ 2];
-  word_buf[3] = pws[gid].i[ 3];
-
   const u32 pw_len = pws[gid].pw_len;
+
+  const u32 pw_lenv = ceil ((float) pw_len / 4);
+
+  u32 w[64] = { 0 };
+
+  for (int idx = 0; idx < pw_lenv; idx++)
+  {
+    w[idx] = swap32 (pws[gid].i[idx]);
+
+    barrier (CLK_GLOBAL_MEM_FENCE);
+  }
+
+  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+
+  const u32 salt_lenv = ceil ((float) salt_len / 4);
+
+  u32 s[64] = { 0 };
+
+  for (int idx = 0; idx < salt_lenv; idx++)
+  {
+    s[idx] = swap32 (salt_bufs[salt_pos].salt_buf[idx]);
+
+    barrier (CLK_GLOBAL_MEM_FENCE);
+  }
 
   u32 digest[5];
 
@@ -2459,20 +2418,6 @@ __kernel void m05800_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   digest[4] = tmps[gid].digest_buf[4];
 
   /**
-   * salt
-   */
-
-  u32 salt_len = salt_bufs[salt_pos].salt_len;
-
-  u32 salt_buf[5];
-
-  salt_buf[0] = salt_bufs[salt_pos].salt_buf[0];
-  salt_buf[1] = salt_bufs[salt_pos].salt_buf[1];
-  salt_buf[2] = salt_bufs[salt_pos].salt_buf[2];
-  salt_buf[3] = salt_bufs[salt_pos].salt_buf[3];
-  salt_buf[4] = salt_bufs[salt_pos].salt_buf[4];
-
-  /**
    * loop
    */
 
@@ -2481,45 +2426,30 @@ __kernel void m05800_loop (__global pw_t *pws, __global const kernel_rule_t *rul
     const u32 pc_dec = s_pc_dec[j];
     const u32 pc_len = s_pc_len[j];
 
-    u32 data0[4] = { 0, 0, 0, 0 };
-    u32 data1[4] = { 0, 0, 0, 0 };
-    u32 data2[4] = { 0, 0, 0, 0 };
+    sha1_ctx_t ctx;
 
-    data0[0] = pc_dec;
+    sha1_init (&ctx);
 
-    append_word (data0, data1, word_buf, pc_len);
+    ctx.w0[0] = digest[0];
+    ctx.w0[1] = digest[1];
+    ctx.w0[2] = digest[2];
+    ctx.w0[3] = digest[3];
+    ctx.w1[0] = digest[4];
+    ctx.w1[1] = swap32 (pc_dec);
 
-    append_salt (data0, data1, data2, salt_buf, pc_len + pw_len);
+    ctx.len = 20 + pc_len;
 
-    u32 w0[4];
-    u32 w1[4];
-    u32 w2[4];
-    u32 w3[4];
+    sha1_update (&ctx, w, pw_len);
 
-    w0[0] = digest[0];
-    w0[1] = digest[1];
-    w0[2] = digest[2];
-    w0[3] = digest[3];
-    w1[0] = digest[4];
-    w1[1] = swap32 (data0[0]);
-    w1[2] = swap32 (data0[1]);
-    w1[3] = swap32 (data0[2]);
-    w2[0] = swap32 (data0[3]);
-    w2[1] = swap32 (data1[0]);
-    w2[2] = swap32 (data1[1]);
-    w2[3] = swap32 (data1[2]);
-    w3[0] = swap32 (data1[3]);
-    w3[1] = swap32 (data2[0]);
-    w3[2] = 0;
-    w3[3] = (20 + pc_len + pw_len + salt_len) * 8;
+    sha1_update (&ctx, s, salt_len);
 
-    digest[0] = SHA1M_A;
-    digest[1] = SHA1M_B;
-    digest[2] = SHA1M_C;
-    digest[3] = SHA1M_D;
-    digest[4] = SHA1M_E;
+    sha1_final (&ctx);
 
-    sha1_transform (w0, w1, w2, w3, digest);
+    digest[0] = ctx.h[0];
+    digest[1] = ctx.h[1];
+    digest[2] = ctx.h[2];
+    digest[3] = ctx.h[3];
+    digest[4] = ctx.h[4];
   }
 
   tmps[gid].digest_buf[0] = digest[0];

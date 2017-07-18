@@ -888,7 +888,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
     case GUESS_MODE_HYBRID2:
 
-      if (user_options->length_limit_disable == true)
+      if (user_options->optimized_kernel_enable == true)
       {
         event_log_info (hashcat_ctx,
           "Guess.Base.......: Mask (%s) [%d], Left Side",
@@ -915,7 +915,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
     case GUESS_MODE_HYBRID2_CS:
 
-      if (user_options->length_limit_disable == true)
+      if (user_options->optimized_kernel_enable == true)
       {
         event_log_info (hashcat_ctx,
           "Guess.Base.......: Mask (%s) [%d], Left Side",

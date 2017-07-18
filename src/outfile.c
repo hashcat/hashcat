@@ -86,7 +86,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
     plain_len += comb_len;
 
-    if (user_options->length_limit_disable == true)
+    if (user_options->optimized_kernel_enable == true)
     {
       int pw_max_combi;
 
@@ -152,33 +152,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    if (user_options->length_limit_disable == true)
-    {
-      pw_t pw;
-
-      const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
-
-      if (rc == -1) return -1;
-
-      u64 off = device_param->kernel_params_mp_buf64[3] + gidvid;
-
-      u32 start = 0;
-      u32 stop  = device_param->kernel_params_mp_buf32[4];
-
-      sp_exec (off, (char *) plain_ptr, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, start, start + stop);
-
-      plain_len = stop;
-
-      char *comb_buf = (char *) device_param->combs_buf[il_pos].i;
-      u32   comb_len =          device_param->combs_buf[il_pos].pw_len;
-
-      memcpy (plain_ptr + plain_len, comb_buf, comb_len);
-
-      plain_len += comb_len;
-
-      if (plain_len > (int) hashconfig->pw_max) plain_len = (int) hashconfig->pw_max;
-    }
-    else
+    if (user_options->optimized_kernel_enable == true)
     {
       pw_t pw;
 
@@ -203,6 +177,32 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
       sp_exec (off, (char *) plain_ptr, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, start, start + stop);
 
       plain_len += start + stop;
+
+      if (plain_len > (int) hashconfig->pw_max) plain_len = (int) hashconfig->pw_max;
+    }
+    else
+    {
+      pw_t pw;
+
+      const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
+
+      if (rc == -1) return -1;
+
+      u64 off = device_param->kernel_params_mp_buf64[3] + gidvid;
+
+      u32 start = 0;
+      u32 stop  = device_param->kernel_params_mp_buf32[4];
+
+      sp_exec (off, (char *) plain_ptr, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, start, start + stop);
+
+      plain_len = stop;
+
+      char *comb_buf = (char *) device_param->combs_buf[il_pos].i;
+      u32   comb_len =          device_param->combs_buf[il_pos].pw_len;
+
+      memcpy (plain_ptr + plain_len, comb_buf, comb_len);
+
+      plain_len += comb_len;
 
       if (plain_len > (int) hashconfig->pw_max) plain_len = (int) hashconfig->pw_max;
     }

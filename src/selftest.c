@@ -306,13 +306,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
-    if (user_options->length_limit_disable == true)
-    {
-      CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_4, 1, false, 0);
-
-      if (CL_rc == -1) return -1;
-    }
-    else
+    if (user_options->optimized_kernel_enable == true)
     {
       if (highest_pw_len < 16)
       {
@@ -332,6 +326,12 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
         if (CL_rc == -1) return -1;
       }
+    }
+    else
+    {
+      CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_4, 1, false, 0);
+
+      if (CL_rc == -1) return -1;
     }
   }
   else

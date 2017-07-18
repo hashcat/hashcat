@@ -24293,7 +24293,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     hashconfig->opts_type |= OPTS_TYPE_PT_NEVERCRACK;
   }
 
-  if (user_options->length_limit_disable == true)
+  if (user_options->optimized_kernel_enable == false)
   {
     hashconfig->opts_type &= ~OPTS_TYPE_PT_UTF16LE;
     hashconfig->opts_type &= ~OPTS_TYPE_PT_UTF16BE;
@@ -24556,15 +24556,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   // pw_max : some algo suffer from support for long passwords,
   //          the user need to add -L to enable support for them
 
-  if (user_options->length_limit_disable == true)
-  {
-    switch (hashconfig->hash_mode)
-    {
-      case 10700: hashconfig->pw_max = 127; // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
-                  break;
-    }
-  }
-  else
+  if (user_options->optimized_kernel_enable == true)
   {
     hashconfig->pw_max = PW_MAX_OLD;
 
@@ -24626,6 +24618,14 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
       case 14400: hashconfig->pw_max = 24; // todo
                   break;
       case 15500: hashconfig->pw_max = 16; // todo
+                  break;
+    }
+  }
+  else
+  {
+    switch (hashconfig->hash_mode)
+    {
+      case 10700: hashconfig->pw_max = 127; // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
                   break;
     }
   }
@@ -24755,11 +24755,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   hashconfig->salt_min = SALT_MIN;
   hashconfig->salt_max = SALT_MAX;
 
-  if (user_options->length_limit_disable == true)
-  {
-    // nothing to do
-  }
-  else
+  if (user_options->optimized_kernel_enable == true)
   {
     hashconfig->salt_max = SALT_MAX_OLD;
 

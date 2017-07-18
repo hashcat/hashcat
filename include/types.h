@@ -531,7 +531,6 @@ typedef enum user_options_defaults
   KERNEL_LOOPS            = 0,
   KEYSPACE                = false,
   LEFT                    = false,
-  LENGTH_LIMIT_DISABLE    = false,
   LIMIT                   = 0,
   LOGFILE_DISABLE         = false,
   LOOPBACK                = false,
@@ -542,6 +541,7 @@ typedef enum user_options_defaults
   NONCE_ERROR_CORRECTIONS = 8,
   NVIDIA_SPIN_DAMP        = 100,
   OPENCL_VECTOR_WIDTH     = 0,
+  OPTIMIZED_KERNEL_ENABLE = false,
   OUTFILE_AUTOHEX         = true,
   OUTFILE_CHECK_TIMER     = 5,
   OUTFILE_FORMAT          = 3,
@@ -612,7 +612,6 @@ typedef enum user_options_map
   IDX_KERNEL_LOOPS             = 'u',
   IDX_KEYSPACE                 = 0xff14,
   IDX_LEFT                     = 0xff15,
-  IDX_LENGTH_LIMIT_DISABLE     = 'L',
   IDX_LIMIT                    = 'l',
   IDX_LOGFILE_DISABLE          = 0xff16,
   IDX_LOOPBACK                 = 0xff17,
@@ -628,6 +627,7 @@ typedef enum user_options_map
   IDX_OPENCL_INFO              = 'I',
   IDX_OPENCL_PLATFORMS         = 0xff1e,
   IDX_OPENCL_VECTOR_WIDTH      = 0xff1f,
+  IDX_OPTIMIZED_KERNEL_ENABLE  = 'O',
   IDX_OUTFILE_AUTOHEX_DISABLE  = 0xff20,
   IDX_OUTFILE_CHECK_DIR        = 0xff21,
   IDX_OUTFILE_CHECK_TIMER      = 0xff22,
@@ -1460,13 +1460,13 @@ typedef struct user_options
   bool         keep_guessing;
   bool         keyspace;
   bool         left;
-  bool         length_limit_disable;
   bool         logfile_disable;
   bool         loopback;
   bool         machine_readable;
   bool         markov_classic;
   bool         markov_disable;
   bool         opencl_info;
+  bool         optimized_kernel_enable;
   bool         outfile_autohex;
   bool         potfile_disable;
   bool         powertune_enable;

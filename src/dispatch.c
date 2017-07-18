@@ -313,9 +313,9 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   const u32 attack_mode = user_options->attack_mode;
   const u32 attack_kern = user_options_extra->attack_kern;
 
-  if ((attack_mode == ATTACK_MODE_BF) || ((user_options->length_limit_disable == true) && (attack_mode == ATTACK_MODE_HYBRID2)))
+  if ((attack_mode == ATTACK_MODE_BF) || ((user_options->optimized_kernel_enable == false) && (attack_mode == ATTACK_MODE_HYBRID2)))
   {
-    if ((user_options->length_limit_disable == true) && (attack_mode == ATTACK_MODE_HYBRID2))
+    if ((user_options->optimized_kernel_enable == false) && (attack_mode == ATTACK_MODE_HYBRID2))
     {
       char *dictfile = straight_ctx->dict;
 

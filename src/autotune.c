@@ -22,17 +22,17 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
   if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
-    if (user_options->length_limit_disable == true)
-    {
-      const u32 kernel_power_try = device_param->device_processors * device_param->kernel_threads_by_wgs_kernel4 * kernel_accel;
-
-      run_kernel (hashcat_ctx, device_param, KERN_RUN_4, kernel_power_try, true, 0);
-    }
-    else
+    if (user_options->optimized_kernel_enable == true)
     {
       const u32 kernel_power_try = device_param->device_processors * device_param->kernel_threads_by_wgs_kernel1 * kernel_accel;
 
       run_kernel (hashcat_ctx, device_param, KERN_RUN_1, kernel_power_try, true, 0);
+    }
+    else
+    {
+      const u32 kernel_power_try = device_param->device_processors * device_param->kernel_threads_by_wgs_kernel4 * kernel_accel;
+
+      run_kernel (hashcat_ctx, device_param, KERN_RUN_4, kernel_power_try, true, 0);
     }
   }
   else

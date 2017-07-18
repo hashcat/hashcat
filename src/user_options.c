@@ -14,7 +14,7 @@
 #include "outfile.h"
 #include "user_options.h"
 
-static const char short_options[] = "hVvm:a:r:j:k:g:o:t:d:D:n:u:c:p:s:l:1:2:3:4:iIbw:L";
+static const char short_options[] = "hVvm:a:r:j:k:g:o:t:d:D:n:u:c:p:s:l:1:2:3:4:iIbw:O";
 
 static const struct option long_options[] =
 {
@@ -55,7 +55,6 @@ static const struct option long_options[] =
   {"kernel-loops",              required_argument, 0, IDX_KERNEL_LOOPS},
   {"keyspace",                  no_argument,       0, IDX_KEYSPACE},
   {"left",                      no_argument,       0, IDX_LEFT},
-  {"length-limit-disable",      no_argument,       0, IDX_LENGTH_LIMIT_DISABLE},
   {"limit",                     required_argument, 0, IDX_LIMIT},
   {"logfile-disable",           no_argument,       0, IDX_LOGFILE_DISABLE},
   {"loopback",                  no_argument,       0, IDX_LOOPBACK},
@@ -71,6 +70,7 @@ static const struct option long_options[] =
   {"opencl-info",               no_argument,       0, IDX_OPENCL_INFO},
   {"opencl-platforms",          required_argument, 0, IDX_OPENCL_PLATFORMS},
   {"opencl-vector-width",       required_argument, 0, IDX_OPENCL_VECTOR_WIDTH},
+  {"optimized-kernel-enable",   no_argument,       0, IDX_OPTIMIZED_KERNEL_ENABLE},
   {"outfile-autohex-disable",   no_argument,       0, IDX_OUTFILE_AUTOHEX_DISABLE},
   {"outfile-check-dir",         required_argument, 0, IDX_OUTFILE_CHECK_DIR},
   {"outfile-check-timer",       required_argument, 0, IDX_OUTFILE_CHECK_TIMER},
@@ -158,7 +158,6 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->keep_guessing             = KEEP_GUESSING;
   user_options->keyspace                  = KEYSPACE;
   user_options->left                      = LEFT;
-  user_options->length_limit_disable      = LENGTH_LIMIT_DISABLE;
   user_options->limit                     = LIMIT;
   user_options->logfile_disable           = LOGFILE_DISABLE;
   user_options->loopback                  = LOOPBACK;
@@ -174,6 +173,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->opencl_info               = 0;
   user_options->opencl_platforms          = NULL;
   user_options->opencl_vector_width       = OPENCL_VECTOR_WIDTH;
+  user_options->optimized_kernel_enable   = OPTIMIZED_KERNEL_ENABLE;
   user_options->outfile_autohex           = OUTFILE_AUTOHEX;
   user_options->outfile_check_dir         = NULL;
   user_options->outfile_check_timer       = OUTFILE_CHECK_TIMER;
@@ -316,7 +316,6 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_QUIET:                     user_options->quiet                     = true;           break;
       case IDX_SHOW:                      user_options->show                      = true;           break;
       case IDX_LEFT:                      user_options->left                      = true;           break;
-      case IDX_LENGTH_LIMIT_DISABLE:      user_options->length_limit_disable      = true;           break;
       case IDX_ADVICE_DISABLE:            user_options->advice_disable            = true;           break;
       case IDX_USERNAME:                  user_options->username                  = true;           break;
       case IDX_REMOVE:                    user_options->remove                    = true;           break;
@@ -382,6 +381,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_OPENCL_DEVICE_TYPES:       user_options->opencl_device_types       = optarg;         break;
       case IDX_OPENCL_VECTOR_WIDTH:       user_options->opencl_vector_width       = atoi (optarg);
                                           user_options->opencl_vector_width_chgd  = true;           break;
+      case IDX_OPTIMIZED_KERNEL_ENABLE:   user_options->optimized_kernel_enable   = true;           break;
       case IDX_WORKLOAD_PROFILE:          user_options->workload_profile          = atoi (optarg);
                                           user_options->workload_profile_chgd     = true;           break;
       case IDX_KERNEL_ACCEL:              user_options->kernel_accel              = atoi (optarg);
@@ -613,14 +613,14 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if (user_options->rp_files_cnt > 0 && user_options->rp_gen == true)
+  if ((user_options->rp_files_cnt > 0) && (user_options->rp_gen > 0))
   {
     event_log_error (hashcat_ctx, "Combining -r/--rules-file and -g/--rules-generate is not supported.");
 
     return -1;
   }
 
-  if (user_options->rp_files_cnt > 0 || user_options->rp_gen == true)
+  if ((user_options->rp_files_cnt > 0) || (user_options->rp_gen > 0))
   {
     if (user_options->attack_mode != ATTACK_MODE_STRAIGHT)
     {
@@ -1266,49 +1266,50 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->nvidia_spin_damp    = 0;
     user_options->potfile_disable     = true;
     user_options->powertune_enable    = true;
+    user_options->progress_only       = false;
     user_options->restore_disable     = true;
     user_options->restore             = false;
     user_options->restore_timer       = 0;
     user_options->show                = false;
+    user_options->speed_only          = true;
     user_options->status              = false;
     user_options->status_timer        = 0;
-    user_options->speed_only          = true;
-    user_options->progress_only       = false;
     user_options->weak_hash_threshold = 0;
 
     if (user_options->workload_profile_chgd == false)
     {
-      user_options->workload_profile = 3;
+      user_options->optimized_kernel_enable = true;
+      user_options->workload_profile        = 3;
     }
   }
 
   if (user_options->progress_only == true)
   {
-    user_options->speed_only          = true;
+    user_options->speed_only = true;
   }
 
   if (user_options->keyspace == true)
   {
-    user_options->quiet               = true;
+    user_options->quiet = true;
   }
 
   if (user_options->stdout_flag == true)
   {
-    user_options->quiet               = true;
-    user_options->hash_mode           = 2000;
-    user_options->outfile_format      = OUTFILE_FMT_PLAIN;
     user_options->force               = true;
+    user_options->hash_mode           = 2000;
     user_options->kernel_accel        = 1024;
     user_options->kernel_loops        = 1024;
     user_options->opencl_vector_width = 1;
+    user_options->outfile_format      = OUTFILE_FMT_PLAIN;
+    user_options->quiet               = true;
   }
 
   if (user_options->opencl_info == true)
   {
-    user_options->quiet               = true;
-    user_options->opencl_platforms    = NULL;
     user_options->opencl_devices      = NULL;
     user_options->opencl_device_types = hcstrdup ("1,2,3");
+    user_options->opencl_platforms    = NULL;
+    user_options->quiet               = true;
   }
 
   if (user_options->left == true)
@@ -1419,6 +1420,16 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
         user_options->increment = true;
       }
     }
+  }
+
+  // temp
+
+  if ((user_options->rp_files_cnt > 0) || (user_options->rp_gen > 0))
+  {
+    // pure (unoptimized) kernels do not yet have support for rules, switch to opimized mode
+    // we can remove this after rule engine has been converted
+
+    user_options->optimized_kernel_enable = true;
   }
 }
 
@@ -2128,7 +2139,6 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->kernel_loops);
   logfile_top_uint   (user_options->keyspace);
   logfile_top_uint   (user_options->left);
-  logfile_top_uint   (user_options->length_limit_disable);
   logfile_top_uint   (user_options->logfile_disable);
   logfile_top_uint   (user_options->loopback);
   logfile_top_uint   (user_options->machine_readable);
@@ -2138,6 +2148,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->nvidia_spin_damp);
   logfile_top_uint   (user_options->opencl_info);
   logfile_top_uint   (user_options->opencl_vector_width);
+  logfile_top_uint   (user_options->optimized_kernel_enable);
   logfile_top_uint   (user_options->outfile_autohex);
   logfile_top_uint   (user_options->outfile_check_timer);
   logfile_top_uint   (user_options->outfile_format);

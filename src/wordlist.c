@@ -321,7 +321,7 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
       }
       else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
       {
-        if ((user_options->length_limit_disable == true) && (user_options->attack_mode == ATTACK_MODE_HYBRID2))
+        if ((user_options->optimized_kernel_enable == false) && (user_options->attack_mode == ATTACK_MODE_HYBRID2))
         {
           if (overflow_check_u64_mul (keyspace, mask_ctx->bfs_cnt) == false) return -1;
 
@@ -424,7 +424,7 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
       }
       else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
       {
-        if ((user_options->length_limit_disable == true) && (user_options->attack_mode == ATTACK_MODE_HYBRID2))
+        if ((user_options->optimized_kernel_enable == false) && (user_options->attack_mode == ATTACK_MODE_HYBRID2))
         {
           if (overflow_check_u64_add (cnt, mask_ctx->bfs_cnt) == false) return -1;
 

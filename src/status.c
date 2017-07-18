@@ -474,7 +474,7 @@ char *status_get_guess_base (const hashcat_ctx_t *hashcat_ctx)
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    if (user_options->length_limit_disable == true)
+    if (user_options->optimized_kernel_enable == true)
     {
       const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
@@ -519,7 +519,7 @@ int status_get_guess_base_offset (const hashcat_ctx_t *hashcat_ctx)
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    if (user_options->length_limit_disable == true)
+    if (user_options->optimized_kernel_enable == true)
     {
       const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
@@ -564,7 +564,7 @@ int status_get_guess_base_count (const hashcat_ctx_t *hashcat_ctx)
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    if (user_options->length_limit_disable == true)
+    if (user_options->optimized_kernel_enable == true)
     {
       const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
@@ -624,7 +624,7 @@ char *status_get_guess_mod (const hashcat_ctx_t *hashcat_ctx)
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    if (user_options->length_limit_disable == true)
+    if (user_options->optimized_kernel_enable == true)
     {
       const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
@@ -665,7 +665,7 @@ int status_get_guess_mod_offset (const hashcat_ctx_t *hashcat_ctx)
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    if (user_options->length_limit_disable == true)
+    if (user_options->optimized_kernel_enable == true)
     {
       const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
@@ -706,7 +706,7 @@ int status_get_guess_mod_count (const hashcat_ctx_t *hashcat_ctx)
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    if (user_options->length_limit_disable == true)
+    if (user_options->optimized_kernel_enable == true)
     {
       const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 

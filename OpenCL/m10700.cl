@@ -16,652 +16,1089 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
-typedef struct
+#define PUTCHAR(a,p,c) ((u8 *)(a))[(p)] = (u8) (c)
+#define GETCHAR(a,p)   ((u8 *)(a))[(p)]
+
+#define PUTCHAR_BE(a,p,c) ((u8 *)(a))[(p) ^ 3] = (u8) (c)
+#define GETCHAR_BE(a,p)   ((u8 *)(a))[(p) ^ 3]
+
+void aes128_encrypt_cbc (const u32 *aes_ks, u32 *aes_iv, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
-  union
-  {
-    u32 dgst32[16];
-    u64 dgst64[8];
-  };
+  u32 data[4];
 
-  u32 dgst_len;
+  data[0] = swap32_S (in[0]);
+  data[1] = swap32_S (in[1]);
+  data[2] = swap32_S (in[2]);
+  data[3] = swap32_S (in[3]);
 
-  union
-  {
-    u32 W32[32];
-    u64 W64[16];
-  };
+  data[0] ^= aes_iv[0];
+  data[1] ^= aes_iv[1];
+  data[2] ^= aes_iv[2];
+  data[3] ^= aes_iv[3];
 
-  u32 W_len;
+  aes128_encrypt (aes_ks, data, out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-} ctx_t;
+  aes_iv[0] = out[0];
+  aes_iv[1] = out[1];
+  aes_iv[2] = out[2];
+  aes_iv[3] = out[3];
 
-void orig_sha256_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest)
-{
-  u32 a = digest[0];
-  u32 b = digest[1];
-  u32 c = digest[2];
-  u32 d = digest[3];
-  u32 e = digest[4];
-  u32 f = digest[5];
-  u32 g = digest[6];
-  u32 h = digest[7];
-
-  u32 w0_t = swap32 (w0[0]);
-  u32 w1_t = swap32 (w0[1]);
-  u32 w2_t = swap32 (w0[2]);
-  u32 w3_t = swap32 (w0[3]);
-  u32 w4_t = swap32 (w1[0]);
-  u32 w5_t = swap32 (w1[1]);
-  u32 w6_t = swap32 (w1[2]);
-  u32 w7_t = swap32 (w1[3]);
-  u32 w8_t = swap32 (w2[0]);
-  u32 w9_t = swap32 (w2[1]);
-  u32 wa_t = swap32 (w2[2]);
-  u32 wb_t = swap32 (w2[3]);
-  u32 wc_t = swap32 (w3[0]);
-  u32 wd_t = swap32 (w3[1]);
-  u32 we_t = swap32 (w3[2]);
-  u32 wf_t = swap32 (w3[3]);
-
-  #define ROUND256_EXPAND()                         \
-  {                                                 \
-    w0_t = SHA256_EXPAND (we_t, w9_t, w1_t, w0_t);  \
-    w1_t = SHA256_EXPAND (wf_t, wa_t, w2_t, w1_t);  \
-    w2_t = SHA256_EXPAND (w0_t, wb_t, w3_t, w2_t);  \
-    w3_t = SHA256_EXPAND (w1_t, wc_t, w4_t, w3_t);  \
-    w4_t = SHA256_EXPAND (w2_t, wd_t, w5_t, w4_t);  \
-    w5_t = SHA256_EXPAND (w3_t, we_t, w6_t, w5_t);  \
-    w6_t = SHA256_EXPAND (w4_t, wf_t, w7_t, w6_t);  \
-    w7_t = SHA256_EXPAND (w5_t, w0_t, w8_t, w7_t);  \
-    w8_t = SHA256_EXPAND (w6_t, w1_t, w9_t, w8_t);  \
-    w9_t = SHA256_EXPAND (w7_t, w2_t, wa_t, w9_t);  \
-    wa_t = SHA256_EXPAND (w8_t, w3_t, wb_t, wa_t);  \
-    wb_t = SHA256_EXPAND (w9_t, w4_t, wc_t, wb_t);  \
-    wc_t = SHA256_EXPAND (wa_t, w5_t, wd_t, wc_t);  \
-    wd_t = SHA256_EXPAND (wb_t, w6_t, we_t, wd_t);  \
-    we_t = SHA256_EXPAND (wc_t, w7_t, wf_t, we_t);  \
-    wf_t = SHA256_EXPAND (wd_t, w8_t, w0_t, wf_t);  \
-  }
-
-  #define ROUND256_STEP(i)                                                                \
-  {                                                                                       \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, a, b, c, d, e, f, g, h, w0_t, k_sha256[i +  0]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, h, a, b, c, d, e, f, g, w1_t, k_sha256[i +  1]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, g, h, a, b, c, d, e, f, w2_t, k_sha256[i +  2]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, f, g, h, a, b, c, d, e, w3_t, k_sha256[i +  3]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, e, f, g, h, a, b, c, d, w4_t, k_sha256[i +  4]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, d, e, f, g, h, a, b, c, w5_t, k_sha256[i +  5]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, c, d, e, f, g, h, a, b, w6_t, k_sha256[i +  6]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, b, c, d, e, f, g, h, a, w7_t, k_sha256[i +  7]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, a, b, c, d, e, f, g, h, w8_t, k_sha256[i +  8]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, h, a, b, c, d, e, f, g, w9_t, k_sha256[i +  9]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, g, h, a, b, c, d, e, f, wa_t, k_sha256[i + 10]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, f, g, h, a, b, c, d, e, wb_t, k_sha256[i + 11]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, e, f, g, h, a, b, c, d, wc_t, k_sha256[i + 12]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, d, e, f, g, h, a, b, c, wd_t, k_sha256[i + 13]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, c, d, e, f, g, h, a, b, we_t, k_sha256[i + 14]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, b, c, d, e, f, g, h, a, wf_t, k_sha256[i + 15]); \
-  }
-
-  ROUND256_STEP (0);
-
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (int i = 16; i < 64; i += 16)
-  {
-    ROUND256_EXPAND (); ROUND256_STEP (i);
-  }
-
-  #undef ROUND256_EXPAND
-  #undef ROUND256_STEP
-
-  digest[0] += a;
-  digest[1] += b;
-  digest[2] += c;
-  digest[3] += d;
-  digest[4] += e;
-  digest[5] += f;
-  digest[6] += g;
-  digest[7] += h;
+  out[0] = swap32_S (out[0]);
+  out[1] = swap32_S (out[1]);
+  out[2] = swap32_S (out[2]);
+  out[3] = swap32_S (out[3]);
 }
 
-void orig_sha384_transform (const u64 *w0, const u64 *w1, const u64 *w2, const u64 *w3, u64 *digest)
+u32 sha256_update_aes_64 (sha256_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
-  u64 a = digest[0];
-  u64 b = digest[1];
-  u64 c = digest[2];
-  u64 d = digest[3];
-  u64 e = digest[4];
-  u64 f = digest[5];
-  u64 g = digest[6];
-  u64 h = digest[7];
+  u32 ex = 0;
 
-  u64 w0_t = swap64 (w0[0]);
-  u64 w1_t = swap64 (w0[1]);
-  u64 w2_t = swap64 (w0[2]);
-  u64 w3_t = swap64 (w0[3]);
-  u64 w4_t = swap64 (w1[0]);
-  u64 w5_t = swap64 (w1[1]);
-  u64 w6_t = swap64 (w1[2]);
-  u64 w7_t = swap64 (w1[3]);
-  u64 w8_t = swap64 (w2[0]);
-  u64 w9_t = swap64 (w2[1]);
-  u64 wa_t = swap64 (w2[2]);
-  u64 wb_t = swap64 (w2[3]);
-  u64 wc_t = swap64 (w3[0]);
-  u64 wd_t = swap64 (w3[1]);
-  u64 we_t = swap64 (w3[2]);
-  u64 wf_t = swap64 (w3[3]);
+  const int pos = ctx->len & 63;
 
-  #define ROUND384_EXPAND()                         \
-  {                                                 \
-    w0_t = SHA384_EXPAND (we_t, w9_t, w1_t, w0_t);  \
-    w1_t = SHA384_EXPAND (wf_t, wa_t, w2_t, w1_t);  \
-    w2_t = SHA384_EXPAND (w0_t, wb_t, w3_t, w2_t);  \
-    w3_t = SHA384_EXPAND (w1_t, wc_t, w4_t, w3_t);  \
-    w4_t = SHA384_EXPAND (w2_t, wd_t, w5_t, w4_t);  \
-    w5_t = SHA384_EXPAND (w3_t, we_t, w6_t, w5_t);  \
-    w6_t = SHA384_EXPAND (w4_t, wf_t, w7_t, w6_t);  \
-    w7_t = SHA384_EXPAND (w5_t, w0_t, w8_t, w7_t);  \
-    w8_t = SHA384_EXPAND (w6_t, w1_t, w9_t, w8_t);  \
-    w9_t = SHA384_EXPAND (w7_t, w2_t, wa_t, w9_t);  \
-    wa_t = SHA384_EXPAND (w8_t, w3_t, wb_t, wa_t);  \
-    wb_t = SHA384_EXPAND (w9_t, w4_t, wc_t, wb_t);  \
-    wc_t = SHA384_EXPAND (wa_t, w5_t, wd_t, wc_t);  \
-    wd_t = SHA384_EXPAND (wb_t, w6_t, we_t, wd_t);  \
-    we_t = SHA384_EXPAND (wc_t, w7_t, wf_t, we_t);  \
-    wf_t = SHA384_EXPAND (wd_t, w8_t, w0_t, wf_t);  \
-  }
+  ctx->len += len;
 
-  #define ROUND384_STEP(i)                                                                \
-  {                                                                                       \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, a, b, c, d, e, f, g, h, w0_t, k_sha384[i +  0]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, h, a, b, c, d, e, f, g, w1_t, k_sha384[i +  1]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, g, h, a, b, c, d, e, f, w2_t, k_sha384[i +  2]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, f, g, h, a, b, c, d, e, w3_t, k_sha384[i +  3]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, e, f, g, h, a, b, c, d, w4_t, k_sha384[i +  4]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, d, e, f, g, h, a, b, c, w5_t, k_sha384[i +  5]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, c, d, e, f, g, h, a, b, w6_t, k_sha384[i +  6]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, b, c, d, e, f, g, h, a, w7_t, k_sha384[i +  7]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, a, b, c, d, e, f, g, h, w8_t, k_sha384[i +  8]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, h, a, b, c, d, e, f, g, w9_t, k_sha384[i +  9]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, g, h, a, b, c, d, e, f, wa_t, k_sha384[i + 10]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, f, g, h, a, b, c, d, e, wb_t, k_sha384[i + 11]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, e, f, g, h, a, b, c, d, wc_t, k_sha384[i + 12]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, d, e, f, g, h, a, b, c, wd_t, k_sha384[i + 13]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, c, d, e, f, g, h, a, b, we_t, k_sha384[i + 14]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, b, c, d, e, f, g, h, a, wf_t, k_sha384[i + 15]); \
-  }
-
-  ROUND384_STEP (0);
-
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (int i = 16; i < 80; i += 16)
+  if ((pos + len) < 64)
   {
-    ROUND384_EXPAND (); ROUND384_STEP (i);
-  }
+    switch_buffer_by_offset_be_S (w0, w1, w2, w3, pos);
 
-  #undef ROUND384_EXPAND
-  #undef ROUND384_STEP
-
-  digest[0] += a;
-  digest[1] += b;
-  digest[2] += c;
-  digest[3] += d;
-  digest[4] += e;
-  digest[5] += f;
-  digest[6] += g;
-  digest[7] += h;
-}
-
-void orig_sha512_transform (const u64 *w0, const u64 *w1, const u64 *w2, const u64 *w3, u64 *digest)
-{
-  u64 a = digest[0];
-  u64 b = digest[1];
-  u64 c = digest[2];
-  u64 d = digest[3];
-  u64 e = digest[4];
-  u64 f = digest[5];
-  u64 g = digest[6];
-  u64 h = digest[7];
-
-  u64 w0_t = swap64 (w0[0]);
-  u64 w1_t = swap64 (w0[1]);
-  u64 w2_t = swap64 (w0[2]);
-  u64 w3_t = swap64 (w0[3]);
-  u64 w4_t = swap64 (w1[0]);
-  u64 w5_t = swap64 (w1[1]);
-  u64 w6_t = swap64 (w1[2]);
-  u64 w7_t = swap64 (w1[3]);
-  u64 w8_t = swap64 (w2[0]);
-  u64 w9_t = swap64 (w2[1]);
-  u64 wa_t = swap64 (w2[2]);
-  u64 wb_t = swap64 (w2[3]);
-  u64 wc_t = swap64 (w3[0]);
-  u64 wd_t = swap64 (w3[1]);
-  u64 we_t = swap64 (w3[2]);
-  u64 wf_t = swap64 (w3[3]);
-
-  #define ROUND512_EXPAND()                         \
-  {                                                 \
-    w0_t = SHA512_EXPAND (we_t, w9_t, w1_t, w0_t);  \
-    w1_t = SHA512_EXPAND (wf_t, wa_t, w2_t, w1_t);  \
-    w2_t = SHA512_EXPAND (w0_t, wb_t, w3_t, w2_t);  \
-    w3_t = SHA512_EXPAND (w1_t, wc_t, w4_t, w3_t);  \
-    w4_t = SHA512_EXPAND (w2_t, wd_t, w5_t, w4_t);  \
-    w5_t = SHA512_EXPAND (w3_t, we_t, w6_t, w5_t);  \
-    w6_t = SHA512_EXPAND (w4_t, wf_t, w7_t, w6_t);  \
-    w7_t = SHA512_EXPAND (w5_t, w0_t, w8_t, w7_t);  \
-    w8_t = SHA512_EXPAND (w6_t, w1_t, w9_t, w8_t);  \
-    w9_t = SHA512_EXPAND (w7_t, w2_t, wa_t, w9_t);  \
-    wa_t = SHA512_EXPAND (w8_t, w3_t, wb_t, wa_t);  \
-    wb_t = SHA512_EXPAND (w9_t, w4_t, wc_t, wb_t);  \
-    wc_t = SHA512_EXPAND (wa_t, w5_t, wd_t, wc_t);  \
-    wd_t = SHA512_EXPAND (wb_t, w6_t, we_t, wd_t);  \
-    we_t = SHA512_EXPAND (wc_t, w7_t, wf_t, we_t);  \
-    wf_t = SHA512_EXPAND (wd_t, w8_t, w0_t, wf_t);  \
-  }
-
-  #define ROUND512_STEP(i)                                                                \
-  {                                                                                       \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, a, b, c, d, e, f, g, h, w0_t, k_sha512[i +  0]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, h, a, b, c, d, e, f, g, w1_t, k_sha512[i +  1]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, g, h, a, b, c, d, e, f, w2_t, k_sha512[i +  2]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, f, g, h, a, b, c, d, e, w3_t, k_sha512[i +  3]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, e, f, g, h, a, b, c, d, w4_t, k_sha512[i +  4]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, d, e, f, g, h, a, b, c, w5_t, k_sha512[i +  5]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, c, d, e, f, g, h, a, b, w6_t, k_sha512[i +  6]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, b, c, d, e, f, g, h, a, w7_t, k_sha512[i +  7]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, a, b, c, d, e, f, g, h, w8_t, k_sha512[i +  8]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, h, a, b, c, d, e, f, g, w9_t, k_sha512[i +  9]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, g, h, a, b, c, d, e, f, wa_t, k_sha512[i + 10]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, f, g, h, a, b, c, d, e, wb_t, k_sha512[i + 11]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, e, f, g, h, a, b, c, d, wc_t, k_sha512[i + 12]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, d, e, f, g, h, a, b, c, wd_t, k_sha512[i + 13]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, c, d, e, f, g, h, a, b, we_t, k_sha512[i + 14]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, b, c, d, e, f, g, h, a, wf_t, k_sha512[i + 15]); \
-  }
-
-  ROUND512_STEP (0);
-
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (int i = 16; i < 80; i += 16)
-  {
-    ROUND512_EXPAND (); ROUND512_STEP (i);
-  }
-
-  #undef ROUND512_EXPAND
-  #undef ROUND512_STEP
-
-  digest[0] += a;
-  digest[1] += b;
-  digest[2] += c;
-  digest[3] += d;
-  digest[4] += e;
-  digest[5] += f;
-  digest[6] += g;
-  digest[7] += h;
-}
-
-#define AESSZ       16        // AES_BLOCK_SIZE
-
-#define BLSZ256     32
-#define BLSZ384     48
-#define BLSZ512     64
-
-#define WORDSZ256   64
-#define WORDSZ384   128
-#define WORDSZ512   128
-
-#define PWMAXSZ     32        // hashcat password length limit
-#define BLMAXSZ     BLSZ512
-#define WORDMAXSZ   WORDSZ512
-
-#define PWMAXSZ4    (PWMAXSZ    / 4)
-#define BLMAXSZ4    (BLMAXSZ    / 4)
-#define WORDMAXSZ4  (WORDMAXSZ  / 4)
-#define AESSZ4      (AESSZ      / 4)
-
-void make_sc (u32 *sc, const u32 *pw, const u32 pw_len, const u32 *bl, const u32 bl_len)
-{
-  const u32 bd = bl_len / 4;
-
-  const u32 pm = pw_len % 4;
-  const u32 pd = pw_len / 4;
-
-  u32 idx = 0;
-
-  if (pm == 0)
-  {
-    for (u32 i = 0; i < pd; i++) sc[idx++] = pw[i];
-    for (u32 i = 0; i < bd; i++) sc[idx++] = bl[i];
-    for (u32 i = 0; i <  4; i++) sc[idx++] = sc[i];
+    ctx->w0[0] |= w0[0];
+    ctx->w0[1] |= w0[1];
+    ctx->w0[2] |= w0[2];
+    ctx->w0[3] |= w0[3];
+    ctx->w1[0] |= w1[0];
+    ctx->w1[1] |= w1[1];
+    ctx->w1[2] |= w1[2];
+    ctx->w1[3] |= w1[3];
+    ctx->w2[0] |= w2[0];
+    ctx->w2[1] |= w2[1];
+    ctx->w2[2] |= w2[2];
+    ctx->w2[3] |= w2[3];
+    ctx->w3[0] |= w3[0];
+    ctx->w3[1] |= w3[1];
+    ctx->w3[2] |= w3[2];
+    ctx->w3[3] |= w3[3];
   }
   else
   {
-    u32 pm4 = 4 - pm;
+    u32 c0[4] = { 0 };
+    u32 c1[4] = { 0 };
+    u32 c2[4] = { 0 };
+    u32 c3[4] = { 0 };
 
-    u32 i;
+    switch_buffer_by_offset_carry_be_S (w0, w1, w2, w3, c0, c1, c2, c3, pos);
 
-    #if defined IS_AMD || defined IS_GENERIC
-    for (i = 0; i < pd; i++) sc[idx++] = pw[i];
-                             sc[idx++] = pw[i]
-                                       | amd_bytealign (bl[0],         0, pm4);
-    for (i = 1; i < bd; i++) sc[idx++] = amd_bytealign (bl[i], bl[i - 1], pm4);
-                             sc[idx++] = amd_bytealign (sc[0], bl[i - 1], pm4);
-    for (i = 1; i <  4; i++) sc[idx++] = amd_bytealign (sc[i], sc[i - 1], pm4);
-                             sc[idx++] = amd_bytealign (    0, sc[i - 1], pm4);
-    #endif
+    ctx->w0[0] |= w0[0];
+    ctx->w0[1] |= w0[1];
+    ctx->w0[2] |= w0[2];
+    ctx->w0[3] |= w0[3];
+    ctx->w1[0] |= w1[0];
+    ctx->w1[1] |= w1[1];
+    ctx->w1[2] |= w1[2];
+    ctx->w1[3] |= w1[3];
+    ctx->w2[0] |= w2[0];
+    ctx->w2[1] |= w2[1];
+    ctx->w2[2] |= w2[2];
+    ctx->w2[3] |= w2[3];
+    ctx->w3[0] |= w3[0];
+    ctx->w3[1] |= w3[1];
+    ctx->w3[2] |= w3[2];
+    ctx->w3[3] |= w3[3];
 
-    #ifdef IS_NV
-    int selector = (0x76543210 >> (pm4 * 4)) & 0xffff;
+    aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w0, ctx->w0, s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w1, ctx->w1, s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w2, ctx->w2, s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w3, ctx->w3, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-    for (i = 0; i < pd; i++) sc[idx++] = pw[i];
-                             sc[idx++] = pw[i]
-                                       | __byte_perm (        0, bl[0], selector);
-    for (i = 1; i < bd; i++) sc[idx++] = __byte_perm (bl[i - 1], bl[i], selector);
-                             sc[idx++] = __byte_perm (bl[i - 1], sc[0], selector);
-    for (i = 1; i <  4; i++) sc[idx++] = __byte_perm (sc[i - 1], sc[i], selector);
-                             sc[idx++] = __byte_perm (sc[i - 1],     0, selector);
-    #endif
+    ex = ctx->w3[3] & 0xff;
+
+    sha256_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
+
+    ctx->w0[0] = c0[0];
+    ctx->w0[1] = c0[1];
+    ctx->w0[2] = c0[2];
+    ctx->w0[3] = c0[3];
+    ctx->w1[0] = c1[0];
+    ctx->w1[1] = c1[1];
+    ctx->w1[2] = c1[2];
+    ctx->w1[3] = c1[3];
+    ctx->w2[0] = c2[0];
+    ctx->w2[1] = c2[1];
+    ctx->w2[2] = c2[2];
+    ctx->w2[3] = c2[3];
+    ctx->w3[0] = c3[0];
+    ctx->w3[1] = c3[1];
+    ctx->w3[2] = c3[2];
+    ctx->w3[3] = c3[3];
   }
+
+  return ex;
 }
 
-void make_pt_with_offset (u32 *pt, const u32 offset, const u32 *sc, const u32 pwbl_len)
+void sha256_update_aes (sha256_ctx_t *ctx, const u32 *w, const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
-  const u32 m = offset % pwbl_len;
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
 
-  const u32 om = m % 4;
-  const u32 od = m / 4;
+  int pos1;
+  int pos4;
 
-  #if defined IS_AMD || defined IS_GENERIC
-  pt[0] = amd_bytealign (sc[od + 1], sc[od + 0], om);
-  pt[1] = amd_bytealign (sc[od + 2], sc[od + 1], om);
-  pt[2] = amd_bytealign (sc[od + 3], sc[od + 2], om);
-  pt[3] = amd_bytealign (sc[od + 4], sc[od + 3], om);
-  #endif
-
-  #ifdef IS_NV
-  int selector = (0x76543210 >> (om * 4)) & 0xffff;
-
-  pt[0] = __byte_perm (sc[od + 0], sc[od + 1], selector);
-  pt[1] = __byte_perm (sc[od + 1], sc[od + 2], selector);
-  pt[2] = __byte_perm (sc[od + 2], sc[od + 3], selector);
-  pt[3] = __byte_perm (sc[od + 3], sc[od + 4], selector);
-  #endif
-}
-
-void make_w_with_offset (ctx_t *ctx, const u32 W_len, const u32 offset, const u32 *sc, const u32 pwbl_len, u32 *iv, const u32 *ks, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
-{
-  for (u32 k = 0, wk = 0; k < W_len; k += AESSZ, wk += AESSZ4)
+  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
   {
-    u32 pt[AESSZ4];
+    w0[0] = w[pos4 +  0];
+    w0[1] = w[pos4 +  1];
+    w0[2] = w[pos4 +  2];
+    w0[3] = w[pos4 +  3];
+    w1[0] = w[pos4 +  4];
+    w1[1] = w[pos4 +  5];
+    w1[2] = w[pos4 +  6];
+    w1[3] = w[pos4 +  7];
+    w2[0] = w[pos4 +  8];
+    w2[1] = w[pos4 +  9];
+    w2[2] = w[pos4 + 10];
+    w2[3] = w[pos4 + 11];
+    w3[0] = w[pos4 + 12];
+    w3[1] = w[pos4 + 13];
+    w3[2] = w[pos4 + 14];
+    w3[3] = w[pos4 + 15];
 
-    make_pt_with_offset (pt, offset + k, sc, pwbl_len);
+    sha256_update_aes_64 (ctx, w0, w1, w2, w3, 64, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
+  }
 
-    pt[0] ^= iv[0];
-    pt[1] ^= iv[1];
-    pt[2] ^= iv[2];
-    pt[3] ^= iv[3];
+  w0[0] = w[pos4 +  0];
+  w0[1] = w[pos4 +  1];
+  w0[2] = w[pos4 +  2];
+  w0[3] = w[pos4 +  3];
+  w1[0] = w[pos4 +  4];
+  w1[1] = w[pos4 +  5];
+  w1[2] = w[pos4 +  6];
+  w1[3] = w[pos4 +  7];
+  w2[0] = w[pos4 +  8];
+  w2[1] = w[pos4 +  9];
+  w2[2] = w[pos4 + 10];
+  w2[3] = w[pos4 + 11];
+  w3[0] = w[pos4 + 12];
+  w3[1] = w[pos4 + 13];
+  w3[2] = w[pos4 + 14];
+  w3[3] = w[pos4 + 15];
 
-    aes128_encrypt (ks, pt, iv, s_te0, s_te1, s_te2, s_te3, s_te4);
+  sha256_update_aes_64 (ctx, w0, w1, w2, w3, len - pos1, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
+}
 
-    ctx->W32[wk + 0] = iv[0];
-    ctx->W32[wk + 1] = iv[1];
-    ctx->W32[wk + 2] = iv[2];
-    ctx->W32[wk + 3] = iv[3];
+void sha256_final_aes (sha256_ctx_t *ctx, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+{
+  int pos = ctx->len & 63;
+
+  // no encryption needed, because pos is always 0
+
+  append_0x80_4x4_S (ctx->w0, ctx->w1, ctx->w2, ctx->w3, pos ^ 3);
+
+  if (pos >= 56)
+  {
+    sha256_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
+
+    ctx->w0[0] = 0;
+    ctx->w0[1] = 0;
+    ctx->w0[2] = 0;
+    ctx->w0[3] = 0;
+    ctx->w1[0] = 0;
+    ctx->w1[1] = 0;
+    ctx->w1[2] = 0;
+    ctx->w1[3] = 0;
+    ctx->w2[0] = 0;
+    ctx->w2[1] = 0;
+    ctx->w2[2] = 0;
+    ctx->w2[3] = 0;
+    ctx->w3[0] = 0;
+    ctx->w3[1] = 0;
+    ctx->w3[2] = 0;
+    ctx->w3[3] = 0;
+  }
+
+  ctx->w3[2] = 0;
+  ctx->w3[3] = ctx->len * 8;
+
+  sha256_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
+}
+
+void sha384_update_aes_128 (sha384_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+{
+  const int pos = ctx->len & 127;
+
+  ctx->len += len;
+
+  if ((pos + len) < 128)
+  {
+    switch_buffer_by_offset_8x4_be_S (w0, w1, w2, w3, w4, w5, w6, w7, pos);
+
+    ctx->w0[0] |= w0[0];
+    ctx->w0[1] |= w0[1];
+    ctx->w0[2] |= w0[2];
+    ctx->w0[3] |= w0[3];
+    ctx->w1[0] |= w1[0];
+    ctx->w1[1] |= w1[1];
+    ctx->w1[2] |= w1[2];
+    ctx->w1[3] |= w1[3];
+    ctx->w2[0] |= w2[0];
+    ctx->w2[1] |= w2[1];
+    ctx->w2[2] |= w2[2];
+    ctx->w2[3] |= w2[3];
+    ctx->w3[0] |= w3[0];
+    ctx->w3[1] |= w3[1];
+    ctx->w3[2] |= w3[2];
+    ctx->w3[3] |= w3[3];
+    ctx->w4[0] |= w4[0];
+    ctx->w4[1] |= w4[1];
+    ctx->w4[2] |= w4[2];
+    ctx->w4[3] |= w4[3];
+    ctx->w5[0] |= w5[0];
+    ctx->w5[1] |= w5[1];
+    ctx->w5[2] |= w5[2];
+    ctx->w5[3] |= w5[3];
+    ctx->w6[0] |= w6[0];
+    ctx->w6[1] |= w6[1];
+    ctx->w6[2] |= w6[2];
+    ctx->w6[3] |= w6[3];
+    ctx->w7[0] |= w7[0];
+    ctx->w7[1] |= w7[1];
+    ctx->w7[2] |= w7[2];
+    ctx->w7[3] |= w7[3];
+  }
+  else
+  {
+    u32 c0[4] = { 0 };
+    u32 c1[4] = { 0 };
+    u32 c2[4] = { 0 };
+    u32 c3[4] = { 0 };
+    u32 c4[4] = { 0 };
+    u32 c5[4] = { 0 };
+    u32 c6[4] = { 0 };
+    u32 c7[4] = { 0 };
+
+    switch_buffer_by_offset_8x4_carry_be_S (w0, w1, w2, w3, w4, w5, w6, w7, c0, c1, c2, c3, c4, c5, c6, c7, pos);
+
+    ctx->w0[0] |= w0[0];
+    ctx->w0[1] |= w0[1];
+    ctx->w0[2] |= w0[2];
+    ctx->w0[3] |= w0[3];
+    ctx->w1[0] |= w1[0];
+    ctx->w1[1] |= w1[1];
+    ctx->w1[2] |= w1[2];
+    ctx->w1[3] |= w1[3];
+    ctx->w2[0] |= w2[0];
+    ctx->w2[1] |= w2[1];
+    ctx->w2[2] |= w2[2];
+    ctx->w2[3] |= w2[3];
+    ctx->w3[0] |= w3[0];
+    ctx->w3[1] |= w3[1];
+    ctx->w3[2] |= w3[2];
+    ctx->w3[3] |= w3[3];
+    ctx->w4[0] |= w4[0];
+    ctx->w4[1] |= w4[1];
+    ctx->w4[2] |= w4[2];
+    ctx->w4[3] |= w4[3];
+    ctx->w5[0] |= w5[0];
+    ctx->w5[1] |= w5[1];
+    ctx->w5[2] |= w5[2];
+    ctx->w5[3] |= w5[3];
+    ctx->w6[0] |= w6[0];
+    ctx->w6[1] |= w6[1];
+    ctx->w6[2] |= w6[2];
+    ctx->w6[3] |= w6[3];
+    ctx->w7[0] |= w7[0];
+    ctx->w7[1] |= w7[1];
+    ctx->w7[2] |= w7[2];
+    ctx->w7[3] |= w7[3];
+
+    aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w0, ctx->w0, s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w1, ctx->w1, s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w2, ctx->w2, s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w3, ctx->w3, s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w4, ctx->w4, s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w5, ctx->w5, s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w6, ctx->w6, s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w7, ctx->w7, s_te0, s_te1, s_te2, s_te3, s_te4);
+
+    sha384_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->w4, ctx->w5, ctx->w6, ctx->w7, ctx->h);
+
+    ctx->w0[0] = c0[0];
+    ctx->w0[1] = c0[1];
+    ctx->w0[2] = c0[2];
+    ctx->w0[3] = c0[3];
+    ctx->w1[0] = c1[0];
+    ctx->w1[1] = c1[1];
+    ctx->w1[2] = c1[2];
+    ctx->w1[3] = c1[3];
+    ctx->w2[0] = c2[0];
+    ctx->w2[1] = c2[1];
+    ctx->w2[2] = c2[2];
+    ctx->w2[3] = c2[3];
+    ctx->w3[0] = c3[0];
+    ctx->w3[1] = c3[1];
+    ctx->w3[2] = c3[2];
+    ctx->w3[3] = c3[3];
+    ctx->w4[0] = c4[0];
+    ctx->w4[1] = c4[1];
+    ctx->w4[2] = c4[2];
+    ctx->w4[3] = c4[3];
+    ctx->w5[0] = c5[0];
+    ctx->w5[1] = c5[1];
+    ctx->w5[2] = c5[2];
+    ctx->w5[3] = c5[3];
+    ctx->w6[0] = c6[0];
+    ctx->w6[1] = c6[1];
+    ctx->w6[2] = c6[2];
+    ctx->w6[3] = c6[3];
+    ctx->w7[0] = c7[0];
+    ctx->w7[1] = c7[1];
+    ctx->w7[2] = c7[2];
+    ctx->w7[3] = c7[3];
   }
 }
 
-u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+void sha384_update_aes (sha384_ctx_t *ctx, const u32 *w, const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
-  // make scratch buffer
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+  u32 w4[4];
+  u32 w5[4];
+  u32 w6[4];
+  u32 w7[4];
 
-  u32 sc[PWMAXSZ4 + BLMAXSZ4 + AESSZ4];
+  int pos1;
+  int pos4;
 
-  make_sc (sc, pw, pw_len, ctx->dgst32, ctx->dgst_len);
+  for (pos1 = 0, pos4 = 0; pos1 < len - 128; pos1 += 128, pos4 += 32)
+  {
+    w0[0] = w[pos4 +  0];
+    w0[1] = w[pos4 +  1];
+    w0[2] = w[pos4 +  2];
+    w0[3] = w[pos4 +  3];
+    w1[0] = w[pos4 +  4];
+    w1[1] = w[pos4 +  5];
+    w1[2] = w[pos4 +  6];
+    w1[3] = w[pos4 +  7];
+    w2[0] = w[pos4 +  8];
+    w2[1] = w[pos4 +  9];
+    w2[2] = w[pos4 + 10];
+    w2[3] = w[pos4 + 11];
+    w3[0] = w[pos4 + 12];
+    w3[1] = w[pos4 + 13];
+    w3[2] = w[pos4 + 14];
+    w3[3] = w[pos4 + 15];
+    w4[0] = w[pos4 + 16];
+    w4[1] = w[pos4 + 17];
+    w4[2] = w[pos4 + 18];
+    w4[3] = w[pos4 + 19];
+    w5[0] = w[pos4 + 20];
+    w5[1] = w[pos4 + 21];
+    w5[2] = w[pos4 + 22];
+    w5[3] = w[pos4 + 23];
+    w6[0] = w[pos4 + 24];
+    w6[1] = w[pos4 + 25];
+    w6[2] = w[pos4 + 26];
+    w6[3] = w[pos4 + 27];
+    w7[0] = w[pos4 + 28];
+    w7[1] = w[pos4 + 29];
+    w7[2] = w[pos4 + 30];
+    w7[3] = w[pos4 + 31];
 
-  // make sure pwbl_len is calculcated before it gets changed
+    sha384_update_aes_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, 128, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
+  }
 
-  const u32 pwbl_len = pw_len + ctx->dgst_len;
+  w0[0] = w[pos4 +  0];
+  w0[1] = w[pos4 +  1];
+  w0[2] = w[pos4 +  2];
+  w0[3] = w[pos4 +  3];
+  w1[0] = w[pos4 +  4];
+  w1[1] = w[pos4 +  5];
+  w1[2] = w[pos4 +  6];
+  w1[3] = w[pos4 +  7];
+  w2[0] = w[pos4 +  8];
+  w2[1] = w[pos4 +  9];
+  w2[2] = w[pos4 + 10];
+  w2[3] = w[pos4 + 11];
+  w3[0] = w[pos4 + 12];
+  w3[1] = w[pos4 + 13];
+  w3[2] = w[pos4 + 14];
+  w3[3] = w[pos4 + 15];
+  w4[0] = w[pos4 + 16];
+  w4[1] = w[pos4 + 17];
+  w4[2] = w[pos4 + 18];
+  w4[3] = w[pos4 + 19];
+  w5[0] = w[pos4 + 20];
+  w5[1] = w[pos4 + 21];
+  w5[2] = w[pos4 + 22];
+  w5[3] = w[pos4 + 23];
+  w6[0] = w[pos4 + 24];
+  w6[1] = w[pos4 + 25];
+  w6[2] = w[pos4 + 26];
+  w6[3] = w[pos4 + 27];
+  w7[0] = w[pos4 + 28];
+  w7[1] = w[pos4 + 29];
+  w7[2] = w[pos4 + 30];
+  w7[3] = w[pos4 + 31];
 
-  // init iv
+  sha384_update_aes_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - pos1, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
+}
 
-  u32 iv[AESSZ4];
+void sha384_final_aes (sha384_ctx_t *ctx, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+{
+  int pos = ctx->len & 127;
 
-  iv[0] = ctx->dgst32[4];
-  iv[1] = ctx->dgst32[5];
-  iv[2] = ctx->dgst32[6];
-  iv[3] = ctx->dgst32[7];
+  aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w0, ctx->w0, s_te0, s_te1, s_te2, s_te3, s_te4);
+  aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w1, ctx->w1, s_te0, s_te1, s_te2, s_te3, s_te4);
+  aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w2, ctx->w2, s_te0, s_te1, s_te2, s_te3, s_te4);
+  aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w3, ctx->w3, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-  // init aes
+  append_0x80_8x4_S (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->w4, ctx->w5, ctx->w6, ctx->w7, pos ^ 3);
 
-  u32 ks[44];
+  if (pos >= 112)
+  {
+    sha384_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->w4, ctx->w5, ctx->w6, ctx->w7, ctx->h);
 
-  aes128_set_encrypt_key (ks, ctx->dgst32, s_te0, s_te1, s_te2, s_te3, s_te4);
+    ctx->w0[0] = 0;
+    ctx->w0[1] = 0;
+    ctx->w0[2] = 0;
+    ctx->w0[3] = 0;
+    ctx->w1[0] = 0;
+    ctx->w1[1] = 0;
+    ctx->w1[2] = 0;
+    ctx->w1[3] = 0;
+    ctx->w2[0] = 0;
+    ctx->w2[1] = 0;
+    ctx->w2[2] = 0;
+    ctx->w2[3] = 0;
+    ctx->w3[0] = 0;
+    ctx->w3[1] = 0;
+    ctx->w3[2] = 0;
+    ctx->w3[3] = 0;
+    ctx->w4[0] = 0;
+    ctx->w4[1] = 0;
+    ctx->w4[2] = 0;
+    ctx->w4[3] = 0;
+    ctx->w5[0] = 0;
+    ctx->w5[1] = 0;
+    ctx->w5[2] = 0;
+    ctx->w5[3] = 0;
+    ctx->w6[0] = 0;
+    ctx->w6[1] = 0;
+    ctx->w6[2] = 0;
+    ctx->w6[3] = 0;
+    ctx->w7[0] = 0;
+    ctx->w7[1] = 0;
+    ctx->w7[2] = 0;
+    ctx->w7[3] = 0;
+  }
 
-  // first call is special as the hash depends on the result of it
-  // but since we do not know about the outcome at this time
-  // we must use the max
+  ctx->w7[2] = 0;
+  ctx->w7[3] = ctx->len * 8;
 
-  make_w_with_offset (ctx, WORDMAXSZ, 0, sc, pwbl_len, iv, ks, s_te0, s_te1, s_te2, s_te3, s_te4);
+  sha384_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->w4, ctx->w5, ctx->w6, ctx->w7, ctx->h);
+}
 
-  // now we can find out hash to use
+void sha512_update_aes_128 (sha512_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+{
+  const int pos = ctx->len & 127;
+
+  ctx->len += len;
+
+  if ((pos + len) < 128)
+  {
+    switch_buffer_by_offset_8x4_be_S (w0, w1, w2, w3, w4, w5, w6, w7, pos);
+
+    ctx->w0[0] |= w0[0];
+    ctx->w0[1] |= w0[1];
+    ctx->w0[2] |= w0[2];
+    ctx->w0[3] |= w0[3];
+    ctx->w1[0] |= w1[0];
+    ctx->w1[1] |= w1[1];
+    ctx->w1[2] |= w1[2];
+    ctx->w1[3] |= w1[3];
+    ctx->w2[0] |= w2[0];
+    ctx->w2[1] |= w2[1];
+    ctx->w2[2] |= w2[2];
+    ctx->w2[3] |= w2[3];
+    ctx->w3[0] |= w3[0];
+    ctx->w3[1] |= w3[1];
+    ctx->w3[2] |= w3[2];
+    ctx->w3[3] |= w3[3];
+    ctx->w4[0] |= w4[0];
+    ctx->w4[1] |= w4[1];
+    ctx->w4[2] |= w4[2];
+    ctx->w4[3] |= w4[3];
+    ctx->w5[0] |= w5[0];
+    ctx->w5[1] |= w5[1];
+    ctx->w5[2] |= w5[2];
+    ctx->w5[3] |= w5[3];
+    ctx->w6[0] |= w6[0];
+    ctx->w6[1] |= w6[1];
+    ctx->w6[2] |= w6[2];
+    ctx->w6[3] |= w6[3];
+    ctx->w7[0] |= w7[0];
+    ctx->w7[1] |= w7[1];
+    ctx->w7[2] |= w7[2];
+    ctx->w7[3] |= w7[3];
+  }
+  else
+  {
+    u32 c0[4] = { 0 };
+    u32 c1[4] = { 0 };
+    u32 c2[4] = { 0 };
+    u32 c3[4] = { 0 };
+    u32 c4[4] = { 0 };
+    u32 c5[4] = { 0 };
+    u32 c6[4] = { 0 };
+    u32 c7[4] = { 0 };
+
+    switch_buffer_by_offset_8x4_carry_be_S (w0, w1, w2, w3, w4, w5, w6, w7, c0, c1, c2, c3, c4, c5, c6, c7, pos);
+
+    ctx->w0[0] |= w0[0];
+    ctx->w0[1] |= w0[1];
+    ctx->w0[2] |= w0[2];
+    ctx->w0[3] |= w0[3];
+    ctx->w1[0] |= w1[0];
+    ctx->w1[1] |= w1[1];
+    ctx->w1[2] |= w1[2];
+    ctx->w1[3] |= w1[3];
+    ctx->w2[0] |= w2[0];
+    ctx->w2[1] |= w2[1];
+    ctx->w2[2] |= w2[2];
+    ctx->w2[3] |= w2[3];
+    ctx->w3[0] |= w3[0];
+    ctx->w3[1] |= w3[1];
+    ctx->w3[2] |= w3[2];
+    ctx->w3[3] |= w3[3];
+    ctx->w4[0] |= w4[0];
+    ctx->w4[1] |= w4[1];
+    ctx->w4[2] |= w4[2];
+    ctx->w4[3] |= w4[3];
+    ctx->w5[0] |= w5[0];
+    ctx->w5[1] |= w5[1];
+    ctx->w5[2] |= w5[2];
+    ctx->w5[3] |= w5[3];
+    ctx->w6[0] |= w6[0];
+    ctx->w6[1] |= w6[1];
+    ctx->w6[2] |= w6[2];
+    ctx->w6[3] |= w6[3];
+    ctx->w7[0] |= w7[0];
+    ctx->w7[1] |= w7[1];
+    ctx->w7[2] |= w7[2];
+    ctx->w7[3] |= w7[3];
+
+    aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w0, ctx->w0, s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w1, ctx->w1, s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w2, ctx->w2, s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w3, ctx->w3, s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w4, ctx->w4, s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w5, ctx->w5, s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w6, ctx->w6, s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w7, ctx->w7, s_te0, s_te1, s_te2, s_te3, s_te4);
+
+    sha512_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->w4, ctx->w5, ctx->w6, ctx->w7, ctx->h);
+
+    ctx->w0[0] = c0[0];
+    ctx->w0[1] = c0[1];
+    ctx->w0[2] = c0[2];
+    ctx->w0[3] = c0[3];
+    ctx->w1[0] = c1[0];
+    ctx->w1[1] = c1[1];
+    ctx->w1[2] = c1[2];
+    ctx->w1[3] = c1[3];
+    ctx->w2[0] = c2[0];
+    ctx->w2[1] = c2[1];
+    ctx->w2[2] = c2[2];
+    ctx->w2[3] = c2[3];
+    ctx->w3[0] = c3[0];
+    ctx->w3[1] = c3[1];
+    ctx->w3[2] = c3[2];
+    ctx->w3[3] = c3[3];
+    ctx->w4[0] = c4[0];
+    ctx->w4[1] = c4[1];
+    ctx->w4[2] = c4[2];
+    ctx->w4[3] = c4[3];
+    ctx->w5[0] = c5[0];
+    ctx->w5[1] = c5[1];
+    ctx->w5[2] = c5[2];
+    ctx->w5[3] = c5[3];
+    ctx->w6[0] = c6[0];
+    ctx->w6[1] = c6[1];
+    ctx->w6[2] = c6[2];
+    ctx->w6[3] = c6[3];
+    ctx->w7[0] = c7[0];
+    ctx->w7[1] = c7[1];
+    ctx->w7[2] = c7[2];
+    ctx->w7[3] = c7[3];
+  }
+}
+
+void sha512_update_aes (sha512_ctx_t *ctx, const u32 *w, const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+  u32 w4[4];
+  u32 w5[4];
+  u32 w6[4];
+  u32 w7[4];
+
+  int pos1;
+  int pos4;
+
+  for (pos1 = 0, pos4 = 0; pos1 < len - 128; pos1 += 128, pos4 += 32)
+  {
+    w0[0] = w[pos4 +  0];
+    w0[1] = w[pos4 +  1];
+    w0[2] = w[pos4 +  2];
+    w0[3] = w[pos4 +  3];
+    w1[0] = w[pos4 +  4];
+    w1[1] = w[pos4 +  5];
+    w1[2] = w[pos4 +  6];
+    w1[3] = w[pos4 +  7];
+    w2[0] = w[pos4 +  8];
+    w2[1] = w[pos4 +  9];
+    w2[2] = w[pos4 + 10];
+    w2[3] = w[pos4 + 11];
+    w3[0] = w[pos4 + 12];
+    w3[1] = w[pos4 + 13];
+    w3[2] = w[pos4 + 14];
+    w3[3] = w[pos4 + 15];
+    w4[0] = w[pos4 + 16];
+    w4[1] = w[pos4 + 17];
+    w4[2] = w[pos4 + 18];
+    w4[3] = w[pos4 + 19];
+    w5[0] = w[pos4 + 20];
+    w5[1] = w[pos4 + 21];
+    w5[2] = w[pos4 + 22];
+    w5[3] = w[pos4 + 23];
+    w6[0] = w[pos4 + 24];
+    w6[1] = w[pos4 + 25];
+    w6[2] = w[pos4 + 26];
+    w6[3] = w[pos4 + 27];
+    w7[0] = w[pos4 + 28];
+    w7[1] = w[pos4 + 29];
+    w7[2] = w[pos4 + 30];
+    w7[3] = w[pos4 + 31];
+
+    sha512_update_aes_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, 128, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
+  }
+
+  w0[0] = w[pos4 +  0];
+  w0[1] = w[pos4 +  1];
+  w0[2] = w[pos4 +  2];
+  w0[3] = w[pos4 +  3];
+  w1[0] = w[pos4 +  4];
+  w1[1] = w[pos4 +  5];
+  w1[2] = w[pos4 +  6];
+  w1[3] = w[pos4 +  7];
+  w2[0] = w[pos4 +  8];
+  w2[1] = w[pos4 +  9];
+  w2[2] = w[pos4 + 10];
+  w2[3] = w[pos4 + 11];
+  w3[0] = w[pos4 + 12];
+  w3[1] = w[pos4 + 13];
+  w3[2] = w[pos4 + 14];
+  w3[3] = w[pos4 + 15];
+  w4[0] = w[pos4 + 16];
+  w4[1] = w[pos4 + 17];
+  w4[2] = w[pos4 + 18];
+  w4[3] = w[pos4 + 19];
+  w5[0] = w[pos4 + 20];
+  w5[1] = w[pos4 + 21];
+  w5[2] = w[pos4 + 22];
+  w5[3] = w[pos4 + 23];
+  w6[0] = w[pos4 + 24];
+  w6[1] = w[pos4 + 25];
+  w6[2] = w[pos4 + 26];
+  w6[3] = w[pos4 + 27];
+  w7[0] = w[pos4 + 28];
+  w7[1] = w[pos4 + 29];
+  w7[2] = w[pos4 + 30];
+  w7[3] = w[pos4 + 31];
+
+  sha512_update_aes_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - pos1, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
+}
+
+void sha512_final_aes (sha512_ctx_t *ctx, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+{
+  int pos = ctx->len & 127;
+
+  aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w0, ctx->w0, s_te0, s_te1, s_te2, s_te3, s_te4);
+  aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w1, ctx->w1, s_te0, s_te1, s_te2, s_te3, s_te4);
+  aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w2, ctx->w2, s_te0, s_te1, s_te2, s_te3, s_te4);
+  aes128_encrypt_cbc (aes_ks, aes_iv, ctx->w3, ctx->w3, s_te0, s_te1, s_te2, s_te3, s_te4);
+
+  append_0x80_8x4_S (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->w4, ctx->w5, ctx->w6, ctx->w7, pos ^ 3);
+
+  if (pos >= 112)
+  {
+    sha512_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->w4, ctx->w5, ctx->w6, ctx->w7, ctx->h);
+
+    ctx->w0[0] = 0;
+    ctx->w0[1] = 0;
+    ctx->w0[2] = 0;
+    ctx->w0[3] = 0;
+    ctx->w1[0] = 0;
+    ctx->w1[1] = 0;
+    ctx->w1[2] = 0;
+    ctx->w1[3] = 0;
+    ctx->w2[0] = 0;
+    ctx->w2[1] = 0;
+    ctx->w2[2] = 0;
+    ctx->w2[3] = 0;
+    ctx->w3[0] = 0;
+    ctx->w3[1] = 0;
+    ctx->w3[2] = 0;
+    ctx->w3[3] = 0;
+    ctx->w4[0] = 0;
+    ctx->w4[1] = 0;
+    ctx->w4[2] = 0;
+    ctx->w4[3] = 0;
+    ctx->w5[0] = 0;
+    ctx->w5[1] = 0;
+    ctx->w5[2] = 0;
+    ctx->w5[3] = 0;
+    ctx->w6[0] = 0;
+    ctx->w6[1] = 0;
+    ctx->w6[2] = 0;
+    ctx->w6[3] = 0;
+    ctx->w7[0] = 0;
+    ctx->w7[1] = 0;
+    ctx->w7[2] = 0;
+    ctx->w7[3] = 0;
+  }
+
+  ctx->w7[2] = 0;
+  ctx->w7[3] = ctx->len * 8;
+
+  sha512_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->w4, ctx->w5, ctx->w6, ctx->w7, ctx->h);
+}
+
+int find_sum (const u32 *w, const u32 pw_len, u32 *bb, const u32 *aes_ks, const u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+{
+  u32 data[4];
+
+  data[0] = w[0];
+  data[1] = w[1];
+  data[2] = w[2];
+  data[3] = w[3];
+
+  for (int i = pw_len, j = 0; i < 16; i++, j++)
+  {
+    PUTCHAR_BE (data, i, GETCHAR_BE (bb, j));
+  }
+
+  data[0] = swap32_S (data[0]);
+  data[1] = swap32_S (data[1]);
+  data[2] = swap32_S (data[2]);
+  data[3] = swap32_S (data[3]);
+
+  data[0] ^= aes_iv[0];
+  data[1] ^= aes_iv[1];
+  data[2] ^= aes_iv[2];
+  data[3] ^= aes_iv[3];
+
+  u32 out[4];
+
+  aes128_encrypt (aes_ks, data, out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   u32 sum = 0;
 
   for (u32 i = 0; i < 4; i++)
   {
-    sum += (ctx->W32[i] >> 24) & 0xff;
-    sum += (ctx->W32[i] >> 16) & 0xff;
-    sum += (ctx->W32[i] >>  8) & 0xff;
-    sum += (ctx->W32[i] >>  0) & 0xff;
+    sum += (out[i] >> 24) & 0xff;
+    sum += (out[i] >> 16) & 0xff;
+    sum += (out[i] >>  8) & 0xff;
+    sum += (out[i] >>  0) & 0xff;
   }
 
-  // init hash
+  return sum;
+}
 
-  switch (sum % 3)
-  {
-    case 0: ctx->dgst32[0] = SHA256M_A;
-            ctx->dgst32[1] = SHA256M_B;
-            ctx->dgst32[2] = SHA256M_C;
-            ctx->dgst32[3] = SHA256M_D;
-            ctx->dgst32[4] = SHA256M_E;
-            ctx->dgst32[5] = SHA256M_F;
-            ctx->dgst32[6] = SHA256M_G;
-            ctx->dgst32[7] = SHA256M_H;
-            ctx->dgst_len  = BLSZ256;
-            ctx->W_len     = WORDSZ256;
-            orig_sha256_transform (&ctx->W32[ 0], &ctx->W32[ 4], &ctx->W32[ 8], &ctx->W32[12], ctx->dgst32);
-            orig_sha256_transform (&ctx->W32[16], &ctx->W32[20], &ctx->W32[24], &ctx->W32[28], ctx->dgst32);
-            break;
-    case 1: ctx->dgst64[0] = SHA384M_A;
-            ctx->dgst64[1] = SHA384M_B;
-            ctx->dgst64[2] = SHA384M_C;
-            ctx->dgst64[3] = SHA384M_D;
-            ctx->dgst64[4] = SHA384M_E;
-            ctx->dgst64[5] = SHA384M_F;
-            ctx->dgst64[6] = SHA384M_G;
-            ctx->dgst64[7] = SHA384M_H;
-            ctx->dgst_len  = BLSZ384;
-            ctx->W_len     = WORDSZ384;
-            orig_sha384_transform (&ctx->W64[ 0], &ctx->W64[ 4], &ctx->W64[ 8], &ctx->W64[12], ctx->dgst64);
-            break;
-    case 2: ctx->dgst64[0] = SHA512M_A;
-            ctx->dgst64[1] = SHA512M_B;
-            ctx->dgst64[2] = SHA512M_C;
-            ctx->dgst64[3] = SHA512M_D;
-            ctx->dgst64[4] = SHA512M_E;
-            ctx->dgst64[5] = SHA512M_F;
-            ctx->dgst64[6] = SHA512M_G;
-            ctx->dgst64[7] = SHA512M_H;
-            ctx->dgst_len  = BLSZ512;
-            ctx->W_len     = WORDSZ512;
-            orig_sha512_transform (&ctx->W64[ 0], &ctx->W64[ 4], &ctx->W64[ 8], &ctx->W64[12], ctx->dgst64);
-            break;
-  }
+u32 do_round (const u32 *w, const u32 pw_len, pdf17l8_tmp_t *tmp, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+{
+  // get previous hash (already padded)
 
-  // main loop
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+  u32 w4[4];
+  u32 w5[4];
+  u32 w6[4];
+  u32 w7[4];
 
-  const u32 final_len = pwbl_len * 64;
+  w0[0] = tmp->dgst32[0];
+  w0[1] = tmp->dgst32[1];
+  w0[2] = tmp->dgst32[2];
+  w0[3] = tmp->dgst32[3];
+  w1[0] = tmp->dgst32[4];
+  w1[1] = tmp->dgst32[5];
+  w1[2] = tmp->dgst32[6];
+  w1[3] = tmp->dgst32[7];
+  w2[0] = 0;
+  w2[1] = 0;
+  w2[2] = 0;
+  w2[3] = 0;
+  w3[0] = 0;
+  w3[1] = 0;
+  w3[2] = 0;
+  w3[3] = 0;
+  w4[0] = 0;
+  w4[1] = 0;
+  w4[2] = 0;
+  w4[3] = 0;
+  w5[0] = 0;
+  w5[1] = 0;
+  w5[2] = 0;
+  w5[3] = 0;
+  w6[0] = 0;
+  w6[1] = 0;
+  w6[2] = 0;
+  w6[3] = 0;
+  w7[0] = 0;
+  w7[1] = 0;
+  w7[2] = 0;
+  w7[3] = 0;
 
-  const u32 iter_max = ctx->W_len - (ctx->W_len / 8);
+  // cipher setup
 
-  u32 offset;
-  u32 left;
+  u32 aes_key[4];
 
-  for (offset = WORDMAXSZ, left = final_len - offset; left >= iter_max; offset += ctx->W_len, left -= ctx->W_len)
-  {
-    make_w_with_offset (ctx, ctx->W_len, offset, sc, pwbl_len, iv, ks, s_te0, s_te1, s_te2, s_te3, s_te4);
+  aes_key[0] = swap32_S (w0[0]);
+  aes_key[1] = swap32_S (w0[1]);
+  aes_key[2] = swap32_S (w0[2]);
+  aes_key[3] = swap32_S (w0[3]);
 
-    switch (ctx->dgst_len)
-    {
-      case BLSZ256: orig_sha256_transform (&ctx->W32[ 0], &ctx->W32[ 4], &ctx->W32[ 8], &ctx->W32[12], ctx->dgst32);
-                    break;
-      case BLSZ384: orig_sha384_transform (&ctx->W64[ 0], &ctx->W64[ 4], &ctx->W64[ 8], &ctx->W64[12], ctx->dgst64);
-                    break;
-      case BLSZ512: orig_sha512_transform (&ctx->W64[ 0], &ctx->W64[ 4], &ctx->W64[ 8], &ctx->W64[12], ctx->dgst64);
-                    break;
-    }
-  }
+  u32 aes_ks[44];
+
+  aes128_set_encrypt_key (aes_ks, aes_key, s_te0, s_te1, s_te2, s_te3, s_te4);
+
+  u32 aes_iv[4];
+
+  aes_iv[0] = swap32_S (w1[0]);
+  aes_iv[1] = swap32_S (w1[1]);
+  aes_iv[2] = swap32_S (w1[2]);
+  aes_iv[3] = swap32_S (w1[3]);
+
+  // find hash to use
+
+  const int sum = find_sum (w, pw_len, w0, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
+
+  int sum3 = sum % 3;
+
+  // hash data
 
   u32 ex = 0;
 
-  if (left)
+  if (sum3 == 0)
   {
-    switch (ctx->dgst_len)
-    {
-      case BLSZ384: make_w_with_offset (ctx, 64, offset, sc, pwbl_len, iv, ks, s_te0, s_te1, s_te2, s_te3, s_te4);
-                    ctx->W64[ 8] = 0x80;
-                    ctx->W64[ 9] = 0;
-                    ctx->W64[10] = 0;
-                    ctx->W64[11] = 0;
-                    ctx->W64[12] = 0;
-                    ctx->W64[13] = 0;
-                    ctx->W64[14] = 0;
-                    ctx->W64[15] = swap64 ((u64) (final_len * 8));
-                    ex = ctx->W64[7] >> 56;
-                    break;
-      case BLSZ512: make_w_with_offset (ctx, 64, offset, sc, pwbl_len, iv, ks, s_te0, s_te1, s_te2, s_te3, s_te4);
-                    ctx->W64[ 8] = 0x80;
-                    ctx->W64[ 9] = 0;
-                    ctx->W64[10] = 0;
-                    ctx->W64[11] = 0;
-                    ctx->W64[12] = 0;
-                    ctx->W64[13] = 0;
-                    ctx->W64[14] = 0;
-                    ctx->W64[15] = swap64 ((u64) (final_len * 8));
-                    ex = ctx->W64[7] >> 56;
-                    break;
-    }
-  }
-  else
-  {
-    switch (ctx->dgst_len)
-    {
-      case BLSZ256: ex = ctx->W32[15] >> 24;
-                    ctx->W32[ 0] = 0x80;
-                    ctx->W32[ 1] = 0;
-                    ctx->W32[ 2] = 0;
-                    ctx->W32[ 3] = 0;
-                    ctx->W32[ 4] = 0;
-                    ctx->W32[ 5] = 0;
-                    ctx->W32[ 6] = 0;
-                    ctx->W32[ 7] = 0;
-                    ctx->W32[ 8] = 0;
-                    ctx->W32[ 9] = 0;
-                    ctx->W32[10] = 0;
-                    ctx->W32[11] = 0;
-                    ctx->W32[12] = 0;
-                    ctx->W32[13] = 0;
-                    ctx->W32[14] = 0;
-                    ctx->W32[15] = swap32 (final_len * 8);
-                    break;
-      case BLSZ384: ex = ctx->W64[15] >> 56;
-                    ctx->W64[ 0] = 0x80;
-                    ctx->W64[ 1] = 0;
-                    ctx->W64[ 2] = 0;
-                    ctx->W64[ 3] = 0;
-                    ctx->W64[ 4] = 0;
-                    ctx->W64[ 5] = 0;
-                    ctx->W64[ 6] = 0;
-                    ctx->W64[ 7] = 0;
-                    ctx->W64[ 8] = 0;
-                    ctx->W64[ 9] = 0;
-                    ctx->W64[10] = 0;
-                    ctx->W64[11] = 0;
-                    ctx->W64[12] = 0;
-                    ctx->W64[13] = 0;
-                    ctx->W64[14] = 0;
-                    ctx->W64[15] = swap64 ((u64) (final_len * 8));
-                    break;
-      case BLSZ512: ex = ctx->W64[15] >> 56;
-                    ctx->W64[ 0] = 0x80;
-                    ctx->W64[ 1] = 0;
-                    ctx->W64[ 2] = 0;
-                    ctx->W64[ 3] = 0;
-                    ctx->W64[ 4] = 0;
-                    ctx->W64[ 5] = 0;
-                    ctx->W64[ 6] = 0;
-                    ctx->W64[ 7] = 0;
-                    ctx->W64[ 8] = 0;
-                    ctx->W64[ 9] = 0;
-                    ctx->W64[10] = 0;
-                    ctx->W64[11] = 0;
-                    ctx->W64[12] = 0;
-                    ctx->W64[13] = 0;
-                    ctx->W64[14] = 0;
-                    ctx->W64[15] = swap64 ((u64) (final_len * 8));
-                    break;
-    }
-  }
+    sha256_ctx_t ctx256;
 
-  switch (ctx->dgst_len)
+    sha256_init (&ctx256);
+
+    for (int i = 0; i < 64; i++)
+    {
+      sha256_update_aes (&ctx256, w, pw_len, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
+
+      w0[0] = tmp->dgst32[ 0];
+      w0[1] = tmp->dgst32[ 1];
+      w0[2] = tmp->dgst32[ 2];
+      w0[3] = tmp->dgst32[ 3];
+      w1[0] = tmp->dgst32[ 4];
+      w1[1] = tmp->dgst32[ 5];
+      w1[2] = tmp->dgst32[ 6];
+      w1[3] = tmp->dgst32[ 7];
+      w2[0] = tmp->dgst32[ 8];
+      w2[1] = tmp->dgst32[ 9];
+      w2[2] = tmp->dgst32[10];
+      w2[3] = tmp->dgst32[11];
+      w3[0] = tmp->dgst32[12];
+      w3[1] = tmp->dgst32[13];
+      w3[2] = tmp->dgst32[14];
+      w3[3] = tmp->dgst32[15];
+      w4[0] = 0;
+      w4[1] = 0;
+      w4[2] = 0;
+      w4[3] = 0;
+      w5[0] = 0;
+      w5[1] = 0;
+      w5[2] = 0;
+      w5[3] = 0;
+      w6[0] = 0;
+      w6[1] = 0;
+      w6[2] = 0;
+      w6[3] = 0;
+      w7[0] = 0;
+      w7[1] = 0;
+      w7[2] = 0;
+      w7[3] = 0;
+
+      ex = sha256_update_aes_64 (&ctx256, w0, w1, w2, w3, tmp->dgst_len, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
+    }
+
+    sha256_final_aes (&ctx256, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
+
+    tmp->dgst32[ 0] = ctx256.h[0];
+    tmp->dgst32[ 1] = ctx256.h[1];
+    tmp->dgst32[ 2] = ctx256.h[2];
+    tmp->dgst32[ 3] = ctx256.h[3];
+    tmp->dgst32[ 4] = ctx256.h[4];
+    tmp->dgst32[ 5] = ctx256.h[5];
+    tmp->dgst32[ 6] = ctx256.h[6];
+    tmp->dgst32[ 7] = ctx256.h[7];
+    tmp->dgst32[ 8] = 0;
+    tmp->dgst32[ 9] = 0;
+    tmp->dgst32[10] = 0;
+    tmp->dgst32[11] = 0;
+    tmp->dgst32[12] = 0;
+    tmp->dgst32[13] = 0;
+    tmp->dgst32[14] = 0;
+    tmp->dgst32[15] = 0;
+
+    tmp->dgst_len = 32;
+  }
+  else if (sum3 == 1)
   {
-    case BLSZ256: orig_sha256_transform (&ctx->W32[ 0], &ctx->W32[ 4], &ctx->W32[ 8], &ctx->W32[12], ctx->dgst32);
-                  ctx->dgst32[ 0] = swap32 (ctx->dgst32[0]);
-                  ctx->dgst32[ 1] = swap32 (ctx->dgst32[1]);
-                  ctx->dgst32[ 2] = swap32 (ctx->dgst32[2]);
-                  ctx->dgst32[ 3] = swap32 (ctx->dgst32[3]);
-                  ctx->dgst32[ 4] = swap32 (ctx->dgst32[4]);
-                  ctx->dgst32[ 5] = swap32 (ctx->dgst32[5]);
-                  ctx->dgst32[ 6] = swap32 (ctx->dgst32[6]);
-                  ctx->dgst32[ 7] = swap32 (ctx->dgst32[7]);
-                  ctx->dgst32[ 8] = 0;
-                  ctx->dgst32[ 9] = 0;
-                  ctx->dgst32[10] = 0;
-                  ctx->dgst32[11] = 0;
-                  ctx->dgst32[12] = 0;
-                  ctx->dgst32[13] = 0;
-                  ctx->dgst32[14] = 0;
-                  ctx->dgst32[15] = 0;
-                  break;
-    case BLSZ384: orig_sha384_transform (&ctx->W64[ 0], &ctx->W64[ 4], &ctx->W64[ 8], &ctx->W64[12], ctx->dgst64);
-                  ctx->dgst64[0] = swap64 (ctx->dgst64[0]);
-                  ctx->dgst64[1] = swap64 (ctx->dgst64[1]);
-                  ctx->dgst64[2] = swap64 (ctx->dgst64[2]);
-                  ctx->dgst64[3] = swap64 (ctx->dgst64[3]);
-                  ctx->dgst64[4] = swap64 (ctx->dgst64[4]);
-                  ctx->dgst64[5] = swap64 (ctx->dgst64[5]);
-                  ctx->dgst64[6] = 0;
-                  ctx->dgst64[7] = 0;
-                  break;
-    case BLSZ512: orig_sha512_transform (&ctx->W64[ 0], &ctx->W64[ 4], &ctx->W64[ 8], &ctx->W64[12], ctx->dgst64);
-                  ctx->dgst64[0] = swap64 (ctx->dgst64[0]);
-                  ctx->dgst64[1] = swap64 (ctx->dgst64[1]);
-                  ctx->dgst64[2] = swap64 (ctx->dgst64[2]);
-                  ctx->dgst64[3] = swap64 (ctx->dgst64[3]);
-                  ctx->dgst64[4] = swap64 (ctx->dgst64[4]);
-                  ctx->dgst64[5] = swap64 (ctx->dgst64[5]);
-                  ctx->dgst64[6] = swap64 (ctx->dgst64[6]);
-                  ctx->dgst64[7] = swap64 (ctx->dgst64[7]);
-                  break;
+    sha384_ctx_t ctx384;
+
+    sha384_init (&ctx384);
+
+    for (int i = 0; i < 64; i++)
+    {
+      sha384_update_aes (&ctx384, w, pw_len, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
+
+      w0[0] = tmp->dgst32[ 0];
+      w0[1] = tmp->dgst32[ 1];
+      w0[2] = tmp->dgst32[ 2];
+      w0[3] = tmp->dgst32[ 3];
+      w1[0] = tmp->dgst32[ 4];
+      w1[1] = tmp->dgst32[ 5];
+      w1[2] = tmp->dgst32[ 6];
+      w1[3] = tmp->dgst32[ 7];
+      w2[0] = tmp->dgst32[ 8];
+      w2[1] = tmp->dgst32[ 9];
+      w2[2] = tmp->dgst32[10];
+      w2[3] = tmp->dgst32[11];
+      w3[0] = tmp->dgst32[12];
+      w3[1] = tmp->dgst32[13];
+      w3[2] = tmp->dgst32[14];
+      w3[3] = tmp->dgst32[15];
+      w4[0] = 0;
+      w4[1] = 0;
+      w4[2] = 0;
+      w4[3] = 0;
+      w5[0] = 0;
+      w5[1] = 0;
+      w5[2] = 0;
+      w5[3] = 0;
+      w6[0] = 0;
+      w6[1] = 0;
+      w6[2] = 0;
+      w6[3] = 0;
+      w7[0] = 0;
+      w7[1] = 0;
+      w7[2] = 0;
+      w7[3] = 0;
+
+      sha384_update_aes_128 (&ctx384, w0, w1, w2, w3, w4, w5, w6, w7, tmp->dgst_len, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
+    }
+
+    sha384_final_aes (&ctx384, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
+
+    ex = ctx384.w3[3] & 0xff;
+
+    tmp->dgst32[ 0] = h32_from_64_S (ctx384.h[0]);
+    tmp->dgst32[ 1] = l32_from_64_S (ctx384.h[0]);
+    tmp->dgst32[ 2] = h32_from_64_S (ctx384.h[1]);
+    tmp->dgst32[ 3] = l32_from_64_S (ctx384.h[1]);
+    tmp->dgst32[ 4] = h32_from_64_S (ctx384.h[2]);
+    tmp->dgst32[ 5] = l32_from_64_S (ctx384.h[2]);
+    tmp->dgst32[ 6] = h32_from_64_S (ctx384.h[3]);
+    tmp->dgst32[ 7] = l32_from_64_S (ctx384.h[3]);
+    tmp->dgst32[ 8] = h32_from_64_S (ctx384.h[4]);
+    tmp->dgst32[ 9] = l32_from_64_S (ctx384.h[4]);
+    tmp->dgst32[10] = h32_from_64_S (ctx384.h[5]);
+    tmp->dgst32[11] = l32_from_64_S (ctx384.h[5]);
+    tmp->dgst32[12] = 0;
+    tmp->dgst32[13] = 0;
+    tmp->dgst32[14] = 0;
+    tmp->dgst32[15] = 0;
+
+    tmp->dgst_len = 48;
+  }
+  else if (sum3 == 2)
+  {
+    sha512_ctx_t ctx512;
+
+    sha512_init (&ctx512);
+
+    for (int i = 0; i < 64; i++)
+    {
+      sha512_update_aes (&ctx512, w, pw_len, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
+
+      w0[0] = tmp->dgst32[ 0];
+      w0[1] = tmp->dgst32[ 1];
+      w0[2] = tmp->dgst32[ 2];
+      w0[3] = tmp->dgst32[ 3];
+      w1[0] = tmp->dgst32[ 4];
+      w1[1] = tmp->dgst32[ 5];
+      w1[2] = tmp->dgst32[ 6];
+      w1[3] = tmp->dgst32[ 7];
+      w2[0] = tmp->dgst32[ 8];
+      w2[1] = tmp->dgst32[ 9];
+      w2[2] = tmp->dgst32[10];
+      w2[3] = tmp->dgst32[11];
+      w3[0] = tmp->dgst32[12];
+      w3[1] = tmp->dgst32[13];
+      w3[2] = tmp->dgst32[14];
+      w3[3] = tmp->dgst32[15];
+      w4[0] = 0;
+      w4[1] = 0;
+      w4[2] = 0;
+      w4[3] = 0;
+      w5[0] = 0;
+      w5[1] = 0;
+      w5[2] = 0;
+      w5[3] = 0;
+      w6[0] = 0;
+      w6[1] = 0;
+      w6[2] = 0;
+      w6[3] = 0;
+      w7[0] = 0;
+      w7[1] = 0;
+      w7[2] = 0;
+      w7[3] = 0;
+
+      sha512_update_aes_128 (&ctx512, w0, w1, w2, w3, w4, w5, w6, w7, tmp->dgst_len, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
+    }
+
+    sha512_final_aes (&ctx512, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
+
+    ex = ctx512.w3[3] & 0xff;
+
+    tmp->dgst32[ 0] = h32_from_64_S (ctx512.h[0]);
+    tmp->dgst32[ 1] = l32_from_64_S (ctx512.h[0]);
+    tmp->dgst32[ 2] = h32_from_64_S (ctx512.h[1]);
+    tmp->dgst32[ 3] = l32_from_64_S (ctx512.h[1]);
+    tmp->dgst32[ 4] = h32_from_64_S (ctx512.h[2]);
+    tmp->dgst32[ 5] = l32_from_64_S (ctx512.h[2]);
+    tmp->dgst32[ 6] = h32_from_64_S (ctx512.h[3]);
+    tmp->dgst32[ 7] = l32_from_64_S (ctx512.h[3]);
+    tmp->dgst32[ 8] = h32_from_64_S (ctx512.h[4]);
+    tmp->dgst32[ 9] = l32_from_64_S (ctx512.h[4]);
+    tmp->dgst32[10] = h32_from_64_S (ctx512.h[5]);
+    tmp->dgst32[11] = l32_from_64_S (ctx512.h[5]);
+    tmp->dgst32[12] = h32_from_64_S (ctx512.h[6]);
+    tmp->dgst32[13] = l32_from_64_S (ctx512.h[6]);
+    tmp->dgst32[14] = h32_from_64_S (ctx512.h[7]);
+    tmp->dgst32[15] = l32_from_64_S (ctx512.h[7]);
+
+    tmp->dgst_len = 64;
   }
 
   return ex;
@@ -687,16 +1124,28 @@ __kernel void m10700_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   sha256_final (&ctx);
 
-  tmps[gid].dgst32[0] = swap32_S (ctx.h[0]);
-  tmps[gid].dgst32[1] = swap32_S (ctx.h[1]);
-  tmps[gid].dgst32[2] = swap32_S (ctx.h[2]);
-  tmps[gid].dgst32[3] = swap32_S (ctx.h[3]);
-  tmps[gid].dgst32[4] = swap32_S (ctx.h[4]);
-  tmps[gid].dgst32[5] = swap32_S (ctx.h[5]);
-  tmps[gid].dgst32[6] = swap32_S (ctx.h[6]);
-  tmps[gid].dgst32[7] = swap32_S (ctx.h[7]);
-  tmps[gid].dgst_len  = BLSZ256;
-  tmps[gid].W_len     = WORDSZ256;
+  pdf17l8_tmp_t tmp;
+
+  tmp.dgst32[ 0] = ctx.h[0];
+  tmp.dgst32[ 1] = ctx.h[1];
+  tmp.dgst32[ 2] = ctx.h[2];
+  tmp.dgst32[ 3] = ctx.h[3];
+  tmp.dgst32[ 4] = ctx.h[4];
+  tmp.dgst32[ 5] = ctx.h[5];
+  tmp.dgst32[ 6] = ctx.h[6];
+  tmp.dgst32[ 7] = ctx.h[7];
+  tmp.dgst32[ 8] = 0;
+  tmp.dgst32[ 9] = 0;
+  tmp.dgst32[10] = 0;
+  tmp.dgst32[11] = 0;
+  tmp.dgst32[12] = 0;
+  tmp.dgst32[13] = 0;
+  tmp.dgst32[14] = 0;
+  tmp.dgst32[15] = 0;
+
+  tmp.dgst_len = 32;
+
+  tmps[gid] = tmp;
 }
 
 __kernel void m10700_loop (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global pdf17l8_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const pdf_t *pdf_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
@@ -744,59 +1193,41 @@ __kernel void m10700_loop (__global pw_t *pws, __global const kernel_rule_t *rul
    * base
    */
 
-  u32 w0[4];
-
-  w0[0] = pws[gid].i[0];
-  w0[1] = pws[gid].i[1];
-  w0[2] = pws[gid].i[2];
-  w0[3] = pws[gid].i[3];
-
   const u32 pw_len = pws[gid].pw_len;
 
-  if (pw_len == 0) return;
+  const u32 pw_lenv = ceil ((float) pw_len / 4);
+
+  u32 w[64] = { 0 };
+
+  for (int idx = 0; idx < pw_lenv; idx++)
+  {
+    w[idx] = swap32_S (pws[gid].i[idx]);
+
+    barrier (CLK_GLOBAL_MEM_FENCE);
+  }
 
   /**
    * digest
    */
 
-  ctx_t ctx;
-
-  ctx.dgst64[0] = tmps[gid].dgst64[0];
-  ctx.dgst64[1] = tmps[gid].dgst64[1];
-  ctx.dgst64[2] = tmps[gid].dgst64[2];
-  ctx.dgst64[3] = tmps[gid].dgst64[3];
-  ctx.dgst64[4] = tmps[gid].dgst64[4];
-  ctx.dgst64[5] = tmps[gid].dgst64[5];
-  ctx.dgst64[6] = tmps[gid].dgst64[6];
-  ctx.dgst64[7] = tmps[gid].dgst64[7];
-  ctx.dgst_len  = tmps[gid].dgst_len;
-  ctx.W_len     = tmps[gid].W_len;
+  pdf17l8_tmp_t tmp = tmps[gid];
 
   u32 ex = 0;
 
   for (u32 i = 0, j = loop_pos; i < loop_cnt; i++, j++)
   {
-    ex = do_round (w0, pw_len, &ctx, s_te0, s_te1, s_te2, s_te3, s_te4);
+    ex = do_round (w, pw_len, &tmp, s_te0, s_te1, s_te2, s_te3, s_te4);
   }
 
   if ((loop_pos + loop_cnt) == 64)
   {
     for (u32 i = 64; i < (ex & 0xff) + 32; i++)
     {
-      ex = do_round (w0, pw_len, &ctx, s_te0, s_te1, s_te2, s_te3, s_te4);
+      ex = do_round (w, pw_len, &tmp, s_te0, s_te1, s_te2, s_te3, s_te4);
     }
   }
 
-  tmps[gid].dgst64[0] = ctx.dgst64[0];
-  tmps[gid].dgst64[1] = ctx.dgst64[1];
-  tmps[gid].dgst64[2] = ctx.dgst64[2];
-  tmps[gid].dgst64[3] = ctx.dgst64[3];
-  tmps[gid].dgst64[4] = ctx.dgst64[4];
-  tmps[gid].dgst64[5] = ctx.dgst64[5];
-  tmps[gid].dgst64[6] = ctx.dgst64[6];
-  tmps[gid].dgst64[7] = ctx.dgst64[7];
-  tmps[gid].dgst_len  = ctx.dgst_len;
-  tmps[gid].W_len     = ctx.W_len;
+  tmps[gid] = tmp;
 }
 
 __kernel void m10700_comp (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global pdf17l8_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const pdf_t *pdf_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
@@ -815,10 +1246,10 @@ __kernel void m10700_comp (__global pw_t *pws, __global const kernel_rule_t *rul
    * digest
    */
 
-  const u32 r0 = swap32_S (tmps[gid].dgst32[DGST_R0]);
-  const u32 r1 = swap32_S (tmps[gid].dgst32[DGST_R1]);
-  const u32 r2 = swap32_S (tmps[gid].dgst32[DGST_R2]);
-  const u32 r3 = swap32_S (tmps[gid].dgst32[DGST_R3]);
+  const u32 r0 = tmps[gid].dgst32[DGST_R0];
+  const u32 r1 = tmps[gid].dgst32[DGST_R1];
+  const u32 r2 = tmps[gid].dgst32[DGST_R2];
+  const u32 r3 = tmps[gid].dgst32[DGST_R3];
 
   #define il_pos 0
 
