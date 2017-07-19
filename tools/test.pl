@@ -3277,7 +3277,7 @@ sub passthrough
 
     my $tmp_hash;
 
-    if ($mode == 0 || $mode == 100 || $mode == 101 || $mode == 133 || $mode == 200 || $mode == 300 || $mode == 600 || $mode == 900 || $mode == 1000 || $mode == 1300 || $mode == 1400 || $mode == 1700 || $mode == 2400 || $mode == 2600 || $mode == 3500 || $mode == 4300 || $mode == 4400 || $mode == 4500 || $mode == 4600 || $mode == 4700 || $mode == 5000 || $mode == 5100 || $mode == 6000 || $mode == 6100 || $mode == 6900 || $mode == 5700 || $mode == 9900 || $mode == 10800 || $mode == 11500 || $mode == 13300 || $mode == 15400 || $mode == 99999)
+    if ($mode == 0 || $mode == 100 || $mode == 101 || $mode == 133 || $mode == 200 || $mode == 300 || $mode == 600 || $mode == 900 || $mode == 1000 || $mode == 1300 || $mode == 1400 || $mode == 1700 || $mode == 2400 || $mode == 2600 || $mode == 3500 || $mode == 4300 || $mode == 4400 || $mode == 4500 || $mode == 4600 || $mode == 4700 || $mode == 5000 || $mode == 5100 || $mode == 6000 || $mode == 6100 || $mode == 6900 || $mode == 5700 || $mode == 9900 || $mode == 10800 || $mode == 11500 || $mode == 13300 || $mode == 99999)
     {
       $tmp_hash = gen_hash ($mode, $word_buf, "");
     }
@@ -3287,7 +3287,7 @@ sub passthrough
 
       $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, $salt_len));
     }
-    elsif ($mode == 11 || $mode == 12 || $mode == 12300)
+    elsif ($mode == 11 || $mode == 12)
     {
       $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, 32));
     }
@@ -3307,6 +3307,8 @@ sub passthrough
     }
     elsif ($mode == 112)
     {
+      next if length ($word_buf) > 30;
+
       $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, 20));
     }
     elsif ($mode == 121)
@@ -3391,6 +3393,8 @@ sub passthrough
     }
     elsif ($mode == 3100)
     {
+      next if length ($word_buf) > 30;
+
       $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, 10));
     }
     elsif ($mode == 3200 || $mode == 5800 || $mode == 6400 || $mode == 6500 || $mode == 6700 || $mode == 7400 || $mode == 3300 || $mode == 8000 || $mode == 9100 || $mode == 12001 || $mode == 12200 || $mode == 15600)
@@ -3616,6 +3620,10 @@ sub passthrough
 
       $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, $salt_len));
     }
+    elsif ($mode == 12300)
+    {
+      $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, 32));
+    }
     elsif ($mode == 12400)
     {
       $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, 4));
@@ -3718,6 +3726,12 @@ sub passthrough
 
       $tmp_hash = gen_hash ($mode, $word_buf, $salt_buf);
     }
+    elsif ($mode == 15400)
+    {
+      next if length ($word_buf) != 32;
+
+      $tmp_hash = gen_hash ($mode, $word_buf, "");
+    }
     elsif ($mode == 15500)
     {
       $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, 40));
@@ -3776,7 +3790,7 @@ sub single
         }
       }
     }
-    elsif ($mode == 11 || $mode == 12 || $mode == 12300)
+    elsif ($mode == 11 || $mode == 12)
     {
       for (my $i = 1; $i < 32; $i++)
       {
@@ -3820,7 +3834,7 @@ sub single
     }
     elsif ($mode == 112)
     {
-      for (my $i = 1; $i < 32; $i++)
+      for (my $i = 1; $i < 31; $i++)
       {
         if ($len != 0)
         {
@@ -3898,8 +3912,6 @@ sub single
 
       for (my $i = 8; $i < 16; $i++)
       {
-        my $generate_from_len = 0;
-
         if ($len != 0)
         {
           if ($len < 8)
@@ -3989,7 +4001,7 @@ sub single
     }
     elsif ($mode == 3100)
     {
-      for (my $i = 1; $i < 32; $i++)
+      for (my $i = 1; $i < 31; $i++)
       {
         if ($len != 0)
         {
@@ -4423,6 +4435,20 @@ sub single
         }
       }
     }
+    elsif ($mode == 12300)
+    {
+      for (my $i = 1; $i < 32; $i++)
+      {
+        if ($len != 0)
+        {
+          rnd ($mode, $len, 32);
+        }
+        else
+        {
+          rnd ($mode, $i, 32);
+        }
+      }
+    }
     elsif ($mode == 12400)
     {
       for (my $i = 1; $i < 32; $i++)
@@ -4629,10 +4655,7 @@ sub single
     }
     elsif ($mode == 14900)
     {
-      for (my $i = 1; $i < 8; $i++)
-      {
-        rnd ($mode, 10, 8);
-      }
+      rnd ($mode, 10, 8);
     }
     elsif ($mode == 15100)
     {

@@ -266,6 +266,7 @@ static char ST_HASH_15600[] = "$ethereum$p*1024*38353131353831333338313138363430
 static char ST_HASH_15700[] = "$ethereum$s*1024*1*1*3033363133373132373638333437323331383637383437333631373038323434*69eaf081695cf971ef7ee5a49997c1a3922e7efef59068109e83853755ee31c3*64a1adec1750ee4416b22b81111dd2a3c2fede820d6da8bf788dca2641d5b181";
 static char ST_HASH_99999[] = "hashcat";
 
+static const char OPTI_STR_OPTIMIZED_KERNEL[]     = "Optimized-Kernel";
 static const char OPTI_STR_ZERO_BYTE[]            = "Zero-Byte";
 static const char OPTI_STR_PRECOMPUTE_INIT[]      = "Precompute-Init";
 static const char OPTI_STR_PRECOMPUTE_MERKLE[]    = "Precompute-Merkle-Demgard";
@@ -15759,6 +15760,7 @@ char *stroptitype (const u32 opti_type)
 {
   switch (opti_type)
   {
+    case OPTI_TYPE_OPTIMIZED_KERNEL:    return ((char *) OPTI_STR_OPTIMIZED_KERNEL);
     case OPTI_TYPE_ZERO_BYTE:           return ((char *) OPTI_STR_ZERO_BYTE);
     case OPTI_TYPE_PRECOMPUTE_INIT:     return ((char *) OPTI_STR_PRECOMPUTE_INIT);
     case OPTI_TYPE_PRECOMPUTE_MERKLE:   return ((char *) OPTI_STR_PRECOMPUTE_MERKLE);
@@ -24578,13 +24580,11 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   switch (hashconfig->hash_mode)
   {
-    case   112: hashconfig->pw_min = 8;   break; // https://www.toadworld.com/platforms/oracle/b/weblog/archive/2013/11/12/oracle-12c-passwords
     case  2500: hashconfig->pw_min = 8;   break; // WPA min RFC
     case  2501: hashconfig->pw_min = 64;  break; // WPA PMK fixed
     case  9710: hashconfig->pw_min = 5;   break; // RC4-40 fixed
     case  9810: hashconfig->pw_min = 5;   break; // RC4-40 fixed
     case 10410: hashconfig->pw_min = 5;   break; // RC4-40 fixed
-    case 12300: hashconfig->pw_min = 9;   break; // https://www.toadworld.com/platforms/oracle/b/weblog/archive/2013/11/12/oracle-12c-passwords
     case 14000: hashconfig->pw_min = 8;   break; // DES fixed
     case 14100: hashconfig->pw_min = 24;  break; // 3DES fixed
     case 14900: hashconfig->pw_min = 10;  break; // Skip32 fixed
