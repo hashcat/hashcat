@@ -194,10 +194,10 @@ __kernel void m07900_loop (__global pw_t *pws, __global const kernel_rule_t *rul
       digest[1] = SHA512M_B;
       digest[2] = SHA512M_C;
       digest[3] = SHA512M_D;
-      digest[4] = SHA512M_A;
-      digest[5] = SHA512M_B;
-      digest[6] = SHA512M_C;
-      digest[7] = SHA512M_D;
+      digest[4] = SHA512M_E;
+      digest[5] = SHA512M_F;
+      digest[6] = SHA512M_G;
+      digest[7] = SHA512M_H;
 
       sha512_transform (sha512_ctx.w0, sha512_ctx.w1, sha512_ctx.w2, sha512_ctx.w3, sha512_ctx.w4, sha512_ctx.w5, sha512_ctx.w6, sha512_ctx.w7, digest);
     }
@@ -229,10 +229,10 @@ __kernel void m07900_comp (__global pw_t *pws, __global const kernel_rule_t *rul
    * digest
    */
 
-  const u32 r0 = l32_from_64 (tmps[gid].digest_buf[0]);
-  const u32 r1 = h32_from_64 (tmps[gid].digest_buf[0]);
-  const u32 r2 = l32_from_64 (tmps[gid].digest_buf[1]);
-  const u32 r3 = h32_from_64 (tmps[gid].digest_buf[1]);
+  const u32 r0 = l32_from_64_S (tmps[gid].digest_buf[0]);
+  const u32 r1 = h32_from_64_S (tmps[gid].digest_buf[0]);
+  const u32 r2 = l32_from_64_S (tmps[gid].digest_buf[1]);
+  const u32 r3 = h32_from_64_S (tmps[gid].digest_buf[1]);
 
   #define il_pos 0
 
