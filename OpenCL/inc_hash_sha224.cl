@@ -161,7 +161,11 @@ void sha224_init (sha224_ctx_t *ctx)
 
 void sha224_update_64 (sha224_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len)
 {
+  #ifdef IS_AMD
+  volatile const int pos = ctx->len & 63;
+  #else
   const int pos = ctx->len & 63;
+  #endif
 
   ctx->len += len;
 
@@ -747,7 +751,7 @@ void sha224_update_global_utf16le_swap (sha224_ctx_t *ctx, const __global u32 *w
 
 void sha224_final (sha224_ctx_t *ctx)
 {
-  int pos = ctx->len & 63;
+  const int pos = ctx->len & 63;
 
   append_0x80_4x4_S (ctx->w0, ctx->w1, ctx->w2, ctx->w3, pos ^ 3);
 
@@ -1316,7 +1320,11 @@ void sha224_init_vector_from_scalar (sha224_ctx_vector_t *ctx, sha224_ctx_t *ctx
 
 void sha224_update_vector_64 (sha224_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const int len)
 {
+  #ifdef IS_AMD
+  volatile const int pos = ctx->len & 63;
+  #else
   const int pos = ctx->len & 63;
+  #endif
 
   ctx->len += len;
 
@@ -1688,7 +1696,7 @@ void sha224_update_vector_utf16beN (sha224_ctx_vector_t *ctx, const u32x *w, con
 
 void sha224_final_vector (sha224_ctx_vector_t *ctx)
 {
-  int pos = ctx->len & 63;
+  const int pos = ctx->len & 63;
 
   append_0x80_4x4 (ctx->w0, ctx->w1, ctx->w2, ctx->w3, pos ^ 3);
 
