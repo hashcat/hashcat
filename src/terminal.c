@@ -39,6 +39,8 @@ void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
     {
       event_log_info (hashcat_ctx, "%s (%s) starting in benchmark mode...", PROGNAME, version_tag);
       event_log_info (hashcat_ctx, NULL);
+      event_log_advice (hashcat_ctx, "Benchmarking uses optimized kernels (-O). To disable, use a workload profile (-w)");
+      event_log_advice (hashcat_ctx, NULL);
     }
     else
     {
