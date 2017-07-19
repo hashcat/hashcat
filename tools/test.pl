@@ -3756,7 +3756,7 @@ sub single
   {
     my $mode = $modes[$j];
 
-    if ($mode == 0 || $mode == 100 || $mode == 101 || $mode == 133 || $mode == 200 || $mode == 300 || $mode == 600 || $mode == 900 || $mode == 1000 || $mode == 1300 || $mode == 1400 || $mode == 1700 || $mode == 2600 || $mode == 3500 || $mode == 4300 || $mode == 4400 || $mode == 4500 || $mode == 4600 || $mode == 4700 || $mode == 5000 || $mode == 5100 || $mode == 5300 || $mode == 5400 || $mode == 6000 || $mode == 6100 || $mode == 6600 || $mode == 6900 || $mode == 5700 || $mode == 8200 || $mode == 8300 || $mode == 9900 || $mode == 10800 || $mode == 11500 || $mode == 13300 || $mode == 15400 || $mode == 99999)
+    if ($mode == 0 || $mode == 100 || $mode == 101 || $mode == 133 || $mode == 200 || $mode == 300 || $mode == 600 || $mode == 900 || $mode == 1000 || $mode == 1300 || $mode == 1400 || $mode == 1700 || $mode == 2600 || $mode == 3500 || $mode == 4300 || $mode == 4400 || $mode == 4500 || $mode == 4600 || $mode == 4700 || $mode == 5000 || $mode == 5100 || $mode == 5300 || $mode == 5400 || $mode == 6000 || $mode == 6100 || $mode == 6600 || $mode == 6900 || $mode == 5700 || $mode == 8200 || $mode == 8300 || $mode == 9900 || $mode == 10800 || $mode == 11500 || $mode == 13300 || $mode == 99999)
     {
       for (my $i = 1; $i < 32; $i++)
       {
@@ -4724,6 +4724,10 @@ sub single
           rnd ($mode, $i, 16);
         }
       }
+    }
+    elsif ($mode == 15400)
+    {
+      rnd ($mode, 32, 0);
     }
     elsif ($mode == 15500)
     {

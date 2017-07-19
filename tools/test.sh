@@ -252,6 +252,8 @@ function init()
     min_len=23
   elif [ "${hash_type}" -eq 14900 ]; then
     min_len=9
+  elif [ "${hash_type}" -eq 15400 ]; then
+    min_len=31
   fi
 
   while read -u 9 pass; do
@@ -300,6 +302,8 @@ function init()
     min_len=23
   elif [ "${hash_type}" -eq 14900 ]; then
     min_len=9
+  elif [ "${hash_type}" -eq 15400 ]; then
+    min_len=31
   fi
 
   # generate multiple pass/hash foreach len (2 to 8)
@@ -690,6 +694,8 @@ function attack_1()
       offset=23
     elif [ ${hash_type} -eq 14900 ]; then
       offset=9
+    elif [ ${hash_type} -eq 15400 ]; then
+      offset=31
     fi
 
     hash_file=${OUTD}/${hash_type}_multihash_combi.txt
@@ -812,6 +818,9 @@ function attack_3()
     elif [ "${hash_type}" -eq 14900 ]; then
       mask_offset=9
       max=9
+    elif [ "${hash_type}" -eq 15400 ]; then
+      mask_offset=31
+      max=31
     fi
 
     i=1
@@ -946,6 +955,9 @@ function attack_3()
     elif [ "${hash_type}" -eq 14900 ]; then
       increment_min=10
       increment_max=10
+    elif [ "${hash_type}" -eq 15400 ]; then
+      increment_min=32
+      increment_max=32
     fi
 
     hash_file=${OUTD}/${hash_type}_multihash_bruteforce.txt
@@ -1156,6 +1168,8 @@ function attack_6()
       max=6
     elif [ "${hash_type}" -eq 14900 ]; then
       max=6
+    elif [ "${hash_type}" -eq 15400 ]; then
+      max=6
     fi
 
     while read -u 9 hash; do
@@ -1262,6 +1276,8 @@ function attack_6()
     elif [ ${hash_type} -eq 14100 ]; then
       max=5
     elif [ ${hash_type} -eq 14900 ]; then
+      max=5
+    elif [ ${hash_type} -eq 15400 ]; then
       max=5
     fi
 
@@ -1390,6 +1406,8 @@ function attack_7()
       max=5
     elif [ "${hash_type}" -eq 14900 ]; then
       max=5
+    elif [ "${hash_type}" -eq 15400 ]; then
+      max=5
     fi
 
     i=1
@@ -1514,6 +1532,8 @@ function attack_7()
     elif [ ${hash_type} -eq 14100 ]; then
       max=5
     elif [ ${hash_type} -eq 14900 ]; then
+      max=5
+    elif [ ${hash_type} -eq 15400 ]; then
       max=5
     fi
 
