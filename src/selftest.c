@@ -411,7 +411,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       if (CL_rc == -1) return -1;
     }
 
-    if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
+    if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501) || (hashconfig->hash_mode == 15800))
     {
       device_param->kernel_params_buf32[28] = 0;
       device_param->kernel_params_buf32[29] = 1;

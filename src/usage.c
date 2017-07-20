@@ -186,6 +186,7 @@ static const char *USAGE_BIG[] =
   "     23 | Skype                                            | Network Protocols",
   "   2500 | WPA/WPA2                                         | Network Protocols",
   "   2501 | WPA/WPA2 PMK                                     | Network Protocols",
+  "  15800 | WPA/WPA2 AES-CMAC                                | Network Protocols",
   "   4800 | iSCSI CHAP authentication, MD5(CHAP)             | Network Protocols",
   "   5300 | IKE-PSK MD5                                      | Network Protocols",
   "   5400 | IKE-PSK SHA1                                     | Network Protocols",

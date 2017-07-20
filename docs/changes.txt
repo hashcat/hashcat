@@ -4,7 +4,7 @@
 ## Algorithms
 ##
 
-- Added hash-mode 2501 = WPA/WPA2 PMK
+- Added hash-mode  2501 = WPA/WPA2 PMK
 
 ##
 ## Features

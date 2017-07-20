@@ -29,9 +29,11 @@ static char ST_PASS_HASHCAT_EXCL3[] = "hashcat!!!";
 static char ST_PASS_HASHCAT_ONE[]   = "hashcat1";
 static char ST_PASS_HASHCAT_ONET3[] = "hashcat1hashcat1hashcat1";
 static char ST_PASS_HEX_02501[]     = "d57c2900bd83d5098003bf803ad7e204260a84ac164f12e03552d92280a6943e";
+static char ST_PASS_BOSSPW_PLAIN[]  = "bo$$password";
 static char ST_PASS_BIN_09710[]     = "\x91\xb2\xe0\x62\xb9";
 static char ST_PASS_BIN_09810[]     = "\xb8\xf6\x36\x19\xca";
 static char ST_PASS_BIN_10410[]     = "\x6a\x8a\xed\xcc\xb7";
+
 
 /**
  * Missing self-test hashes:
@@ -264,6 +266,7 @@ static char ST_HASH_15400[] = "$chacha20$*0400000000000003*35*0200000000000001*3
 static char ST_HASH_15500[] = "$jksprivk$*338BD2FBEBA7B3EF198A4CBFC6E18AFF1E229367*5225850113575146134463704406336350011656*D5253EB151EB92DC73E542D8C0A4D7A848A5B0C0E370E625E6547D4E6F23416FC85A27BC295731B8021CDFBD003551C66C434FFBC87DACAD1FDF39022320034A2F86E779F2B1B3325428A666518FA89507AD63E15FD9C57B9E36EF5B642A2F448A9A3F09B79AD93D65F46B8692CD07539FD140146F8F219DC262971AF019E18EDC16C3C240569E1673F4D98BC818CCF28298D5A7BFF038A663DD10FE5E48643C3217C237D342164E2D41EF15075431FBD5B34800E5AE7EB80FAA5AE9982A55F35379AA7B31217E7F1C5F1964A15024A305AE4B3981FE1C80C163BC38ECA5581F11867E5C34C5D124D0367B3737E5E5BB14D2CAB26A698C8DAAB755C82BA6B823BCAECDD4A89C831651ACE5A6029FD0D3515C5D1D53AD8B9062CE8C445373862035CBBF60D490CA2E4975EE6E0358EC32E871FAB15347E3032E21F30F543BAAB01D779BA833CA0B8C7591B42C7C59A8FDD46D7DECEC0E91ADBF331177605E7830ABED62FAD7D5D806D8EFD01C38765940B7F97168FC72C39BF4C98F944FFC310CA8F4EB1D0F960F352CC5E2BB23A1EB221072A5471EDA2CE81C04595B8D37088CFB5C14F6A4A881AD12125DEFBB8154EB4C130AB7FD9933FD36DF1A6A26B51AB169866788678FCED988C8E017CA84354F487A5508210181AFB8B3AD0753E3E28BE674DFBD4E4FBDFD1E30D592F4EA3A77A2F0F5CF9A175DBC590EF5D42971A39918F12B92DCD8BFD56BE9A3459856B5587603C7B53062663A4C8894BBC9894FB1663BF30F32D907664328138B7A50EAC7F8E3183D74562A5C90FE1889AC4C5FE43EBEB8974563B6682F92591ECA4FA0DA72236C3851DA102DB6BA0CC07BFD32F7E962AB0EDCF4A8DEA6525174F5BB5C021E2A9A3F7F761E9CA90B6E27FB7E55CD91DA184FAC5E534E8AD25314C56CE5796506A0CA70881782F9C5147D87705065D68BD67D2B0344205BA6445D562273690004CA5A303274FB283A75F49BA968D7947943AA98F2AF9CB8253B425B86225E7395A331AC4CB1B1700C64D4F458D5D642C54148AE6DA41D9E26657D331B157D76042C2CF3057B83997C23D8BF68FB3C7337CAFB8B324AD0DF7A80B554B4D7F9AD6ED527E7932F1741A573C152A41610F6517E3F4A3BC6B66685871A7CE3795C559BD47CDB8E34CB2C1DFE980518D79E2078C258C54F312EB38609F640E7DC013E0F2A16A25BB5971882B4308D27930CA99FEC231AE927B62215A1B56098C362B7F20593953B29428681875070E84BF5B60BEA3948127151634123DA77C814AAD54CE10905763C8C19BC191C0C40458C809402E1957C4C05C4EAE27576B2D30593F7FDCC9A248DB5DB23CF2FA22A92C016090F611690BF0AB5B8B2866ED25F345EFE85DF3311C9E91C37CEE709CF16E7CB09D01BECD2961D094C02D42EC85BF47FAB1B67A13B9A1741C15F7156D57A71BFFABB03B71E69707913A5C136B3D69CE3F71ABFE376F0A21D723FFA2E60AC180689D3E8AF4348C9F555CD897387327FC8BA2B9C51A7298547E556A11A60441EF5331A1BFB847A3D23DD9F7C50E636A2C6309BC82E1A8852F5A8569B6D93*14*78D6A2424484CF5149932B7EA8BF*test";
 static char ST_HASH_15600[] = "$ethereum$p*1024*38353131353831333338313138363430*a8b4dfe92687dbc0afeb5dae7863f18964241e96b264f09959903c8c924583fc*0a9252861d1e235994ce33dbca91c98231764d8ecb4950015a8ae20d6415b986";
 static char ST_HASH_15700[] = "$ethereum$s*1024*1*1*3033363133373132373638333437323331383637383437333631373038323434*69eaf081695cf971ef7ee5a49997c1a3922e7efef59068109e83853755ee31c3*64a1adec1750ee4416b22b81111dd2a3c2fede820d6da8bf788dca2641d5b181";
+static char ST_HASH_15800[] = "484350580400000000054e65686562000000000000000000000000000000000000000000000000000000032e13c40ca1c2e4e2037f99a2da18a46bb0b98a568dea0218c7b64ecef40c4f15915fbceb19c8d62608387eb6b986d9599a8bd70dc85d2cf0a2ddbcd06467233e730767c33e1df875c3ad0eb58a51ad704a3fae06b818c0c5fcebf3af79000203007502010b001000000000000000036467233e730767c33e1df875c3ad0eb58a51ad704a3fae06b818c0c5fcebf3af000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001630140100000fac040100000fac040100000fac068c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 static char ST_HASH_99999[] = "hashcat";
 
 static const char OPTI_STR_OPTIMIZED_KERNEL[]     = "Optimized-Kernel";
@@ -495,6 +498,7 @@ static const char HT_15400[] = "ChaCha20";
 static const char HT_15500[] = "JKS Java Key Store Private Keys (SHA1)";
 static const char HT_15600[] = "Ethereum Wallet, PBKDF2-HMAC-SHA256";
 static const char HT_15700[] = "Ethereum Wallet, SCRYPT";
+static const char HT_15800[] = "WPA/WPA2 AES-CMAC";
 static const char HT_99999[] = "Plaintext";
 
 static const char HT_00011[] = "Joomla < 2.5.18";
@@ -3350,7 +3354,14 @@ int wpa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
 
   wpa->keyver = in.keyver;
 
-  if (wpa->keyver & ~7) return (PARSER_SALT_VALUE);
+  if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
+  {
+    if ((wpa->keyver != 1) && (wpa->keyver != 2)) return (PARSER_SALT_VALUE);
+  }
+  else if (hashconfig->hash_mode == 15800)
+  {
+    if (wpa->keyver != 3) return (PARSER_SALT_VALUE);
+  }
 
   wpa->eapol_len = in.eapol_len;
 
@@ -16020,6 +16031,7 @@ char *strhashtype (const u32 hash_mode)
     case 15500: return ((char *) HT_15500);
     case 15600: return ((char *) HT_15600);
     case 15700: return ((char *) HT_15700);
+    case 15800: return ((char *) HT_15800);
     case 99999: return ((char *) HT_99999);
   }
 
@@ -16895,7 +16907,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     out_buf[16] = 0;
   }
-  else if ((hash_mode == 2500) || (hash_mode == 2501))
+  else if ((hash_mode == 2500) || (hash_mode == 2501) || (hash_mode == 15800))
   {
     wpa_t *wpas = (wpa_t *) esalts_buf;
 
@@ -24249,6 +24261,24 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
+    case 15800:  hashconfig->hash_type      = HASH_TYPE_WPA;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_BINARY_HASHFILE;
+                 hashconfig->kern_type      = KERN_TYPE_WPAAES;
+                 hashconfig->dgst_size      = DGST_SIZE_4_4;
+                 hashconfig->parse_func     = wpa_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
+                 hashconfig->dgst_pos0      = 0;
+                 hashconfig->dgst_pos1      = 1;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 3;
+                 hashconfig->st_hash        = ST_HASH_15800;
+                 hashconfig->st_pass        = ST_PASS_BOSSPW_PLAIN;
+                 break;
+
     case 99999:  hashconfig->hash_type      = HASH_TYPE_PLAINTEXT;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -24452,6 +24482,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 15500: hashconfig->esalt_size = sizeof (jks_sha1_t);        break;
     case 15600: hashconfig->esalt_size = sizeof (ethereum_pbkdf2_t); break;
     case 15700: hashconfig->esalt_size = sizeof (ethereum_scrypt_t); break;
+    case 15800: hashconfig->esalt_size = sizeof (wpa_t);             break;
   }
 
   // hook_salt_size
@@ -24558,6 +24589,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 15200: hashconfig->tmp_size = sizeof (mywallet_tmp_t);        break;
     case 15300: hashconfig->tmp_size = sizeof (dpapimk_tmp_t);         break;
     case 15600: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);   break;
+    case 15800: hashconfig->tmp_size = sizeof (wpaaes_tmp_t);          break;
   };
 
   // hook_size
@@ -24589,6 +24621,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 14100: hashconfig->pw_min = 24;  break; // 3DES fixed
     case 14900: hashconfig->pw_min = 10;  break; // Skip32 fixed
     case 15400: hashconfig->pw_min = 32;  break; // ChaCha20 fixed
+    case 15800: hashconfig->pw_min = 8;   break; // WPA min RFC
   }
 
   // pw_max : some algo suffer from support for long passwords,
@@ -24786,6 +24819,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 15400: hashconfig->pw_max = 32;      break; // Underlaying ChaCha20 fixed
     case 15600: hashconfig->pw_max = PW_MAX;  break;
     case 15700: hashconfig->pw_max = PW_MAX;  break;
+    case 15800: hashconfig->pw_max = 63;      break; // WPA/WPA2 limits itself to 63 by RFC
   }
 
   // salt_min and salt_max : this limit is only interessting for generic hash types that support a salt
@@ -25099,6 +25133,8 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                   salt->scrypt_r = 1;
                   salt->scrypt_p = 8;
                   break;
+      case 15800: memcpy (salt->salt_buf, "hashcat.net", 11);
+                  break;
     }
 
     // special esalt handling
@@ -25164,6 +25200,8 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                   ((luks_t *)          esalt)->cipher_mode   = HC_LUKS_CIPHER_MODE_XTS_PLAIN;
                   break;
       case 15300: ((dpapimk_t *)       esalt)->version       = 1;
+                  break;
+      case 15800: ((wpa_t *)           esalt)->eapol_len    = 128;
                   break;
     }
 
@@ -25367,6 +25405,8 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                  break;
     case 15700:  salt->salt_iter  = 1;
                  break;
+    case 15800:  salt->salt_iter  = ROUNDS_WPA;
+                 break;
   }
 }
 
@@ -25395,6 +25435,8 @@ const char *hashconfig_benchmark_mask (hashcat_ctx_t *hashcat_ctx)
     case 14100: mask = "?b?b?b?b?b?b?bxxxxxxxxxxxxxxxxx";
                 break;
     case 14900: mask = "?b?b?b?b?bxxxxx";
+                break;
+    case 15800: mask = "?a?a?a?a?a?a?a?a";
                 break;
     default:    mask = "?b?b?b?b?b?b?b";
                 break;

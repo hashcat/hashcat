@@ -249,7 +249,7 @@ const char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
 
   if (hashes->digests_cnt == 1)
   {
-    if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
+    if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501) || (hashconfig->hash_mode == 15800))
     {
       char *tmp_buf = (char *) malloc (HCBUFSIZ_TINY);
 

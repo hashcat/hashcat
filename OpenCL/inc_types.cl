@@ -1141,6 +1141,16 @@ typedef struct wpapmk_tmp
 
 } wpapmk_tmp_t;
 
+typedef struct wpaaes_tmp
+{
+  u32 ipad[8];
+  u32 opad[8];
+
+  u32 dgst[8];
+  u32 out[8];
+
+} wpaaes_tmp_t;
+
 typedef struct bitcoin_wallet_tmp
 {
   u64  dgst[8];
