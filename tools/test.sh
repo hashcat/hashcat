@@ -674,7 +674,9 @@ function attack_1()
 
     offset=14
 
-    if   [ ${hash_type} -eq  2500 ]; then
+    if   [ ${hash_type} -eq  2410 ]; then
+      offset=11
+    elif [ ${hash_type} -eq  2500 ]; then
       offset=7
     elif [ ${hash_type} -eq  5800 ]; then
       offset=6
