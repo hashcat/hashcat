@@ -3121,27 +3121,6 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       device_param->driver_version = driver_version;
 
-      // device_name_chksum
-
-      char *device_name_chksum = (char *) hcmalloc (HCBUFSIZ_TINY);
-
-      #if defined (__x86_64__)
-      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY - 1, "%d-%u-%u-%s-%s-%s-%d-%u-%u", 64, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, comptime, user_options->opencl_vector_width, user_options->hash_mode);
-      #else
-      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY - 1, "%d-%u-%u-%s-%s-%s-%d-%u-%u", 32, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, comptime, user_options->opencl_vector_width, user_options->hash_mode);
-      #endif
-
-      u32 device_name_digest[4] = { 0 };
-
-      for (size_t i = 0; i < dnclen; i += 64)
-      {
-        md5_64 ((u32 *) (device_name_chksum + i), device_name_digest);
-      }
-
-      snprintf (device_name_chksum, HCBUFSIZ_TINY - 1, "%08x", device_name_digest[0]);
-
-      device_param->device_name_chksum = device_name_chksum;
-
       // vendor specific
 
       if (device_param->device_type & CL_DEVICE_TYPE_GPU)
@@ -3436,6 +3415,8 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
   opencl_ctx->need_xnvctrl        = need_xnvctrl;
   opencl_ctx->need_sysfs          = need_sysfs;
 
+  opencl_ctx->comptime            = comptime;
+
   return 0;
 }
 
@@ -3459,7 +3440,6 @@ void opencl_ctx_devices_destroy (hashcat_ctx_t *hashcat_ctx)
     if (device_param->skipped == true) continue;
 
     hcfree (device_param->device_name);
-    hcfree (device_param->device_name_chksum);
     hcfree (device_param->device_version);
     hcfree (device_param->driver_version);
     hcfree (device_param->device_opencl_version);
@@ -3810,8 +3790,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
      * device properties
      */
 
-    const char *device_name_chksum  = device_param->device_name_chksum;
-    const u32   device_processors   = device_param->device_processors;
+    const u32 device_processors = device_param->device_processors;
 
     /**
      * create context for each device
@@ -4252,6 +4231,27 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     #if defined (DEBUG)
     if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: build_opts '%s'", device_id + 1, build_opts);
     #endif
+
+    /**
+     * device_name_chksum
+     */
+
+    char *device_name_chksum = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+    #if defined (__x86_64__)
+    const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY - 1, "%d-%u-%u-%s-%s-%s-%d-%u-%u", 64, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, opencl_ctx->comptime, user_options->opencl_vector_width, user_options->hash_mode);
+    #else
+    const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY - 1, "%d-%u-%u-%s-%s-%s-%d-%u-%u", 32, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, opencl_ctx->comptime, user_options->opencl_vector_width, user_options->hash_mode);
+    #endif
+
+    u32 device_name_digest[4] = { 0 };
+
+    for (size_t i = 0; i < dnclen; i += 64)
+    {
+      md5_64 ((u32 *) (device_name_chksum + i), device_name_digest);
+    }
+
+    snprintf (device_name_chksum, HCBUFSIZ_TINY - 1, "%08x", device_name_digest[0]);
 
     /**
      * main kernel
@@ -4732,6 +4732,8 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       hcfree (kernel_sources[0]);
     }
+
+    hcfree (device_name_chksum);
 
     // return back to the folder we came from initially (workaround)
 
