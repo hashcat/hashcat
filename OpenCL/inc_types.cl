@@ -186,7 +186,7 @@ u64 swap64_S (const u64 v)
 
 u32 rotr32_S (const u32 a, const u32 n)
 {
-  return rotate (a, 32 - n);
+  return rotate (a, (32 - n));
 }
 
 u32 rotl32_S (const u32 a, const u32 n)
@@ -226,7 +226,7 @@ u64x swap64 (const u64x v)
 
 u32x rotr32 (const u32x a, const u32 n)
 {
-  return rotate (a, 32 - n);
+  return rotate (a, (32 - n));
 }
 
 u32x rotl32 (const u32x a, const u32 n)
@@ -273,7 +273,7 @@ u64 swap64_S (const u64 v)
 
 u32 rotr32_S (const u32 a, const u32 n)
 {
-  return rotate (a, 32 - n);
+  return rotate (a, (32 - n));
 }
 
 u32 rotl32_S (const u32 a, const u32 n)
@@ -283,12 +283,12 @@ u32 rotl32_S (const u32 a, const u32 n)
 
 u64 rotr64_S (const u64 a, const u32 n)
 {
-  return rotate (a, (u64) 64 - n);
+  return rotate (a, (u64) (64 - n));
 }
 
 u64 rotl64_S (const u64 a, const u32 n)
 {
-  return rotr64_S (a, 64 - n);
+  return rotate (a, (u64) n);
 }
 
 u32x swap32 (const u32x v)
@@ -313,7 +313,7 @@ u64x swap64 (const u64x v)
 
 u32x rotr32 (const u32x a, const u32 n)
 {
-  return rotate (a, 32 - n);
+  return rotate (a, (32 - n));
 }
 
 u32x rotl32 (const u32x a, const u32 n)
@@ -323,12 +323,12 @@ u32x rotl32 (const u32x a, const u32 n)
 
 u64x rotr64 (const u64x a, const u32 n)
 {
-  return rotate (a, (u64) 64 - n);
+  return rotate (a, (u64x) (64 - n));
 }
 
 u64x rotl64 (const u64x a, const u32 n)
 {
-  return rotate (a, (u64) n);
+  return rotate (a, (u64x) n);
 }
 
 u32x __byte_perm (const u32x a, const u32x b, const u32x c)
@@ -505,7 +505,7 @@ u64 swap64_S (const u64 v)
 
 u32 rotr32_S (const u32 a, const u32 n)
 {
-  return rotate (a, 32 - n);
+  return rotate (a, (32 - n));
 }
 
 u32 rotl32_S (const u32 a, const u32 n)
@@ -515,7 +515,7 @@ u32 rotl32_S (const u32 a, const u32 n)
 
 u64 rotr64_S (const u64 a, const u32 n)
 {
-  return rotate (a, (u64) 64 - n);
+  return rotate (a, (u64) (64 - n));
 }
 
 u64 rotl64_S (const u64 a, const u32 n)
@@ -545,7 +545,7 @@ u64x swap64 (const u64x v)
 
 u32x rotr32 (const u32x a, const u32 n)
 {
-  return rotate (a, 32 - n);
+  return rotate (a, (32 - n));
 }
 
 u32x rotl32 (const u32x a, const u32 n)
@@ -555,12 +555,12 @@ u32x rotl32 (const u32x a, const u32 n)
 
 u64x rotr64 (const u64x a, const u32 n)
 {
-  return rotate (a, (u64) 64 - n);
+  return rotate (a, (u64x) (64 - n));
 }
 
 u64x rotl64 (const u64x a, const u32 n)
 {
-  return rotate (a, (u64) n);
+  return rotate (a, (u64x) n);
 }
 
 u32x __bfe (const u32x a, const u32x b, const u32x c)
