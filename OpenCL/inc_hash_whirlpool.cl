@@ -1345,7 +1345,7 @@ void whirlpool_init (whirlpool_ctx_t *ctx, __local u32 (*s_Ch)[256], __local u32
 void whirlpool_update_64 (whirlpool_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len)
 {
   #ifdef IS_AMD
-  volatile const int pos = ctx->len & 63;
+  const int pos = ctx->len & 63;
   #else
   const int pos = ctx->len & 63;
   #endif
@@ -2608,7 +2608,7 @@ void whirlpool_init_vector_from_scalar (whirlpool_ctx_vector_t *ctx, whirlpool_c
 void whirlpool_update_vector_64 (whirlpool_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const int len)
 {
   #ifdef IS_AMD
-  volatile const int pos = ctx->len & 63;
+  const int pos = ctx->len & 63;
   #else
   const int pos = ctx->len & 63;
   #endif

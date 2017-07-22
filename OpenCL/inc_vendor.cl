@@ -153,9 +153,6 @@
 #if KERN_TYPE == 13800
 #undef _unroll
 #endif
-#if KERN_TYPE == 14100
-#undef _unroll
-#endif
 
 // nvidia specific
 
@@ -175,6 +172,9 @@
 #undef _unroll
 #endif
 #if KERN_TYPE == 14000
+#undef _unroll
+#endif
+#if KERN_TYPE == 14100
 #undef _unroll
 #endif
 

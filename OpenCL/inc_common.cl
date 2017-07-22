@@ -7,7 +7,7 @@
  * pure scalar functions
  */
 
-inline int ffz (const u32 v)
+int ffz (const u32 v)
 {
   #ifdef _unroll
   #pragma unroll
@@ -22,7 +22,7 @@ inline int ffz (const u32 v)
   return -1;
 }
 
-inline int hash_comp (const u32 d1[4], __global const u32 *d2)
+int hash_comp (const u32 d1[4], __global const u32 *d2)
 {
   if (d1[3] > d2[DGST_R3]) return ( 1);
   if (d1[3] < d2[DGST_R3]) return (-1);
@@ -36,7 +36,7 @@ inline int hash_comp (const u32 d1[4], __global const u32 *d2)
   return (0);
 }
 
-inline int find_hash (const u32 digest[4], const u32 digests_cnt, __global const digest_t *digests_buf)
+int find_hash (const u32 digest[4], const u32 digests_cnt, __global const digest_t *digests_buf)
 {
   for (u32 l = 0, r = digests_cnt; r; r >>= 1)
   {
@@ -59,12 +59,12 @@ inline int find_hash (const u32 digest[4], const u32 digests_cnt, __global const
   return (-1);
 }
 
-inline u32 check_bitmap (__global const u32 *bitmap, const u32 bitmap_mask, const u32 bitmap_shift, const u32 digest)
+u32 check_bitmap (__global const u32 *bitmap, const u32 bitmap_mask, const u32 bitmap_shift, const u32 digest)
 {
   return (bitmap[(digest >> bitmap_shift) & bitmap_mask] & (1 << (digest & 0x1f)));
 }
 
-inline u32 check (const u32 digest[4], __global const u32 *bitmap_s1_a, __global const u32 *bitmap_s1_b, __global const u32 *bitmap_s1_c, __global const u32 *bitmap_s1_d, __global const u32 *bitmap_s2_a, __global const u32 *bitmap_s2_b, __global const u32 *bitmap_s2_c, __global const u32 *bitmap_s2_d, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2)
+u32 check (const u32 digest[4], __global const u32 *bitmap_s1_a, __global const u32 *bitmap_s1_b, __global const u32 *bitmap_s1_c, __global const u32 *bitmap_s1_d, __global const u32 *bitmap_s2_a, __global const u32 *bitmap_s2_b, __global const u32 *bitmap_s2_c, __global const u32 *bitmap_s2_d, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2)
 {
   if (check_bitmap (bitmap_s1_a, bitmap_mask, bitmap_shift1, digest[0]) == 0) return (0);
   if (check_bitmap (bitmap_s1_b, bitmap_mask, bitmap_shift1, digest[1]) == 0) return (0);
@@ -79,7 +79,7 @@ inline u32 check (const u32 digest[4], __global const u32 *bitmap_s1_a, __global
   return (1);
 }
 
-inline void mark_hash (__global plain_t *plains_buf, __global u32 *d_result, const u32 salt_pos, const u32 digests_cnt, const u32 digest_pos, const u32 hash_pos, const u32 gid, const u32 il_pos)
+void mark_hash (__global plain_t *plains_buf, __global u32 *d_result, const u32 salt_pos, const u32 digests_cnt, const u32 digest_pos, const u32 hash_pos, const u32 gid, const u32 il_pos)
 {
   const u32 idx = atomic_inc (d_result);
 
@@ -100,7 +100,7 @@ inline void mark_hash (__global plain_t *plains_buf, __global u32 *d_result, con
   plains_buf[idx].il_pos      = il_pos;
 }
 
-inline int count_char (const u32 *buf, const int elems, const u32 c)
+int count_char (const u32 *buf, const int elems, const u32 c)
 {
   int r = 0;
 
@@ -117,7 +117,7 @@ inline int count_char (const u32 *buf, const int elems, const u32 c)
   return r;
 }
 
-inline float get_entropy (const u32 *buf, const int elems)
+float get_entropy (const u32 *buf, const int elems)
 {
   const int length = elems * 4;
 
@@ -144,7 +144,7 @@ inline float get_entropy (const u32 *buf, const int elems)
  * vector functions
  */
 
-inline void truncate_block_4x4_le (u32x w0[4], const u32 len)
+void truncate_block_4x4_le (u32x w0[4], const u32 len)
 {
   switch (len)
   {
@@ -254,7 +254,7 @@ inline void truncate_block_4x4_le (u32x w0[4], const u32 len)
   }
 }
 
-inline void truncate_block_16x4_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 len)
+void truncate_block_16x4_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 len)
 {
   switch (len)
   {
@@ -1060,7 +1060,7 @@ inline void truncate_block_16x4_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[
   }
 }
 
-inline void truncate_block_4x4_be (u32x w0[4], const u32 len)
+void truncate_block_4x4_be (u32x w0[4], const u32 len)
 {
   switch (len)
   {
@@ -1170,7 +1170,7 @@ inline void truncate_block_4x4_be (u32x w0[4], const u32 len)
   }
 }
 
-inline void truncate_block_16x4_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 len)
+void truncate_block_16x4_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 len)
 {
   switch (len)
   {
@@ -1976,7 +1976,7 @@ inline void truncate_block_16x4_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[
   }
 }
 
-inline void make_utf16be (const u32x in[4], u32x out1[4], u32x out2[4])
+void make_utf16be (const u32x in[4], u32x out1[4], u32x out2[4])
 {
   #ifdef IS_NV
   out2[3] = __byte_perm (in[3], 0, 0x3727);
@@ -2001,7 +2001,7 @@ inline void make_utf16be (const u32x in[4], u32x out1[4], u32x out2[4])
   #endif
 }
 
-inline void make_utf16beN (const u32x in[4], u32x out1[4], u32x out2[4])
+void make_utf16beN (const u32x in[4], u32x out1[4], u32x out2[4])
 {
   #ifdef IS_NV
   out2[3] = __byte_perm (in[3], 0, 0x1707);
@@ -2026,7 +2026,7 @@ inline void make_utf16beN (const u32x in[4], u32x out1[4], u32x out2[4])
   #endif
 }
 
-inline void make_utf16le (const u32x in[4], u32x out1[4], u32x out2[4])
+void make_utf16le (const u32x in[4], u32x out1[4], u32x out2[4])
 {
   #ifdef IS_NV
   out2[3] = __byte_perm (in[3], 0, 0x7372);
@@ -2051,7 +2051,7 @@ inline void make_utf16le (const u32x in[4], u32x out1[4], u32x out2[4])
   #endif
 }
 
-inline void undo_utf16be (const u32x in1[4], const u32x in2[4], u32x out[4])
+void undo_utf16be (const u32x in1[4], const u32x in2[4], u32x out[4])
 {
   #ifdef IS_NV
   out[0] = __byte_perm (in1[0], in1[1], 0x4602);
@@ -2072,7 +2072,7 @@ inline void undo_utf16be (const u32x in1[4], const u32x in2[4], u32x out[4])
   #endif
 }
 
-inline void undo_utf16le (const u32x in1[4], const u32x in2[4], u32x out[4])
+void undo_utf16le (const u32x in1[4], const u32x in2[4], u32x out[4])
 {
   #ifdef IS_NV
   out[0] = __byte_perm (in1[0], in1[1], 0x6420);
@@ -2093,7 +2093,7 @@ inline void undo_utf16le (const u32x in1[4], const u32x in2[4], u32x out[4])
   #endif
 }
 
-inline void append_0x80_1x4 (u32x w0[4], const u32 offset)
+void append_0x80_1x4 (u32x w0[4], const u32 offset)
 {
   const u32 tmp = 0x80 << ((offset & 3) * 8);
 
@@ -2103,7 +2103,7 @@ inline void append_0x80_1x4 (u32x w0[4], const u32 offset)
   w0[3] |=  (offset >= 12)                   ? tmp : 0;
 }
 
-inline void append_0x80_2x4 (u32x w0[4], u32x w1[4], const u32 offset)
+void append_0x80_2x4 (u32x w0[4], u32x w1[4], const u32 offset)
 {
   const u32 tmp = 0x80 << ((offset & 3) * 8);
 
@@ -2117,7 +2117,7 @@ inline void append_0x80_2x4 (u32x w0[4], u32x w1[4], const u32 offset)
   w1[3] |=  (offset >= 28)                   ? tmp : 0;
 }
 
-inline void append_0x80_3x4 (u32x w0[4], u32x w1[4], u32x w2[4], const u32 offset)
+void append_0x80_3x4 (u32x w0[4], u32x w1[4], u32x w2[4], const u32 offset)
 {
   const u32 tmp = 0x80 << ((offset & 3) * 8);
 
@@ -2135,7 +2135,7 @@ inline void append_0x80_3x4 (u32x w0[4], u32x w1[4], u32x w2[4], const u32 offse
   w2[3] |=  (offset >= 44)                   ? tmp : 0;
 }
 
-inline void append_0x80_4x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 offset)
+void append_0x80_4x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 offset)
 {
   const u32 tmp = 0x80 << ((offset & 3) * 8);
 
@@ -2157,7 +2157,7 @@ inline void append_0x80_4x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], con
   w3[3] |=  (offset >= 60)                   ? tmp : 0;
 }
 
-inline void append_0x80_8x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32 offset)
+void append_0x80_8x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32 offset)
 {
   switch (offset)
   {
@@ -2675,7 +2675,7 @@ inline void append_0x80_8x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32
   }
 }
 
-inline void append_0x80_1x16 (u32x w[16], const u32 offset)
+void append_0x80_1x16 (u32x w[16], const u32 offset)
 {
   switch (offset)
   {
@@ -2937,7 +2937,7 @@ inline void append_0x80_1x16 (u32x w[16], const u32 offset)
   }
 }
 
-inline void switch_buffer_by_offset_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 offset)
+void switch_buffer_by_offset_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 offset)
 {
   #if defined IS_AMD || defined IS_GENERIC
   const int offset_mod_4 = offset & 3;
@@ -3798,7 +3798,7 @@ inline void switch_buffer_by_offset_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x
   #endif
 }
 
-inline void switch_buffer_by_offset_carry_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x c0[4], u32x c1[4], u32x c2[4], u32x c3[4], const u32 offset)
+void switch_buffer_by_offset_carry_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x c0[4], u32x c1[4], u32x c2[4], u32x c3[4], const u32 offset)
 {
   const int offset_mod_4 = offset & 3;
 
@@ -4600,7 +4600,7 @@ inline void switch_buffer_by_offset_carry_le (u32x w0[4], u32x w1[4], u32x w2[4]
   }
 }
 
-inline void switch_buffer_by_offset_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 offset)
+void switch_buffer_by_offset_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 offset)
 {
   #if defined IS_AMD || defined IS_GENERIC
   switch (offset / 4)
@@ -5255,7 +5255,7 @@ inline void switch_buffer_by_offset_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x
   #endif
 }
 
-inline void switch_buffer_by_offset_carry_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x c0[4], u32x c1[4], u32x c2[4], u32x c3[4], const u32 offset)
+void switch_buffer_by_offset_carry_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x c0[4], u32x c1[4], u32x c2[4], u32x c3[4], const u32 offset)
 {
   #if defined IS_AMD || defined IS_GENERIC
   switch (offset / 4)
@@ -6182,7 +6182,7 @@ inline void switch_buffer_by_offset_carry_be (u32x w0[4], u32x w1[4], u32x w2[4]
   #endif
 }
 
-inline void switch_buffer_by_offset_8x4_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32 offset)
+void switch_buffer_by_offset_8x4_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32 offset)
 {
   #if defined IS_AMD || defined IS_GENERIC
   const int offset_mod_4 = offset & 3;
@@ -7795,7 +7795,7 @@ inline void switch_buffer_by_offset_8x4_le (u32x w0[4], u32x w1[4], u32x w2[4], 
   #endif
 }
 
-inline void switch_buffer_by_offset_8x4_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32 offset)
+void switch_buffer_by_offset_8x4_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32 offset)
 {
   #if defined IS_AMD || defined IS_GENERIC
   switch (offset / 4)
@@ -10114,7 +10114,7 @@ inline void switch_buffer_by_offset_8x4_be (u32x w0[4], u32x w1[4], u32x w2[4], 
   #endif
 }
 
-inline void switch_buffer_by_offset_8x4_carry_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], u32x c0[4], u32x c1[4], u32x c2[4], u32x c3[4], u32x c4[4], u32x c5[4], u32x c6[4], u32x c7[4], const u32 offset)
+void switch_buffer_by_offset_8x4_carry_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], u32x c0[4], u32x c1[4], u32x c2[4], u32x c3[4], u32x c4[4], u32x c5[4], u32x c6[4], u32x c7[4], const u32 offset)
 {
   #if defined IS_AMD || defined IS_GENERIC
   switch (offset / 4)
@@ -13489,7 +13489,7 @@ inline void switch_buffer_by_offset_8x4_carry_be (u32x w0[4], u32x w1[4], u32x w
   #endif
 }
 
-inline void overwrite_at_le (u32x sw[16], const u32x w0, const u32 salt_len)
+void overwrite_at_le (u32x sw[16], const u32x w0, const u32 salt_len)
 {
   #if defined cl_amd_media_ops
   switch (salt_len)
@@ -13678,7 +13678,7 @@ inline void overwrite_at_le (u32x sw[16], const u32x w0, const u32 salt_len)
   #endif
 }
 
-inline void overwrite_at_be (u32x sw[16], const u32x w0, const u32 salt_len)
+void overwrite_at_be (u32x sw[16], const u32x w0, const u32 salt_len)
 {
   // would be nice to have optimization based on amd_bytealign as with _le counterpart
 
@@ -13775,7 +13775,7 @@ inline void overwrite_at_be (u32x sw[16], const u32x w0, const u32 salt_len)
   }
 }
 
-inline void overwrite_at_le_4x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32x wx, const u32 salt_len)
+void overwrite_at_le_4x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32x wx, const u32 salt_len)
 {
   #if defined cl_amd_media_ops
   switch (salt_len)
@@ -14140,7 +14140,7 @@ inline void overwrite_at_le_4x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4],
   #endif
 }
 
-inline void overwrite_at_be_4x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32x wx, const u32 salt_len)
+void overwrite_at_be_4x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32x wx, const u32 salt_len)
 {
   // would be nice to have optimization based on amd_bytealign as with _le counterpart
 
@@ -14329,7 +14329,7 @@ inline void overwrite_at_be_4x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4],
  * vector functions as scalar (for outer loop usage)
  */
 
-inline void append_0x01_2x4_S (u32 w0[4], u32 w1[4], const u32 offset)
+void append_0x01_2x4_S (u32 w0[4], u32 w1[4], const u32 offset)
 {
   const u32 tmp = 0x01 << ((offset & 3) * 8);
 
@@ -14343,7 +14343,7 @@ inline void append_0x01_2x4_S (u32 w0[4], u32 w1[4], const u32 offset)
   w1[3] |=  (offset >= 28)                   ? tmp : 0;
 }
 
-inline void append_0x80_1x4_S (u32 w0[4], const u32 offset)
+void append_0x80_1x4_S (u32 w0[4], const u32 offset)
 {
   const u32 tmp = 0x80 << ((offset & 3) * 8);
 
@@ -14353,7 +14353,7 @@ inline void append_0x80_1x4_S (u32 w0[4], const u32 offset)
   w0[3] |=  (offset >= 12)                   ? tmp : 0;
 }
 
-inline void append_0x80_2x4_S (u32 w0[4], u32 w1[4], const u32 offset)
+void append_0x80_2x4_S (u32 w0[4], u32 w1[4], const u32 offset)
 {
   const u32 tmp = 0x80 << ((offset & 3) * 8);
 
@@ -14367,7 +14367,7 @@ inline void append_0x80_2x4_S (u32 w0[4], u32 w1[4], const u32 offset)
   w1[3] |=  (offset >= 28)                   ? tmp : 0;
 }
 
-inline void append_0x80_3x4_S (u32 w0[4], u32 w1[4], u32 w2[4], const u32 offset)
+void append_0x80_3x4_S (u32 w0[4], u32 w1[4], u32 w2[4], const u32 offset)
 {
   const u32 tmp = 0x80 << ((offset & 3) * 8);
 
@@ -14385,7 +14385,7 @@ inline void append_0x80_3x4_S (u32 w0[4], u32 w1[4], u32 w2[4], const u32 offset
   w2[3] |=  (offset >= 44)                   ? tmp : 0;
 }
 
-inline void append_0x80_4x4_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
+void append_0x80_4x4_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
 {
   const u32 tmp = 0x80 << ((offset & 3) * 8);
 
@@ -14407,7 +14407,7 @@ inline void append_0x80_4x4_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const
   w3[3] |=  (offset >= 60)                   ? tmp : 0;
 }
 
-inline void append_0x80_8x4_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const u32 offset)
+void append_0x80_8x4_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const u32 offset)
 {
   switch (offset)
   {
@@ -14925,7 +14925,7 @@ inline void append_0x80_8x4_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w
   }
 }
 
-inline void make_utf16be_S (const u32 in[4], u32 out1[4], u32 out2[4])
+void make_utf16be_S (const u32 in[4], u32 out1[4], u32 out2[4])
 {
   #ifdef IS_NV
   out2[3] = __byte_perm_S (in[3], 0, 0x3727);
@@ -14950,7 +14950,7 @@ inline void make_utf16be_S (const u32 in[4], u32 out1[4], u32 out2[4])
   #endif
 }
 
-inline void make_utf16beN_S (const u32 in[4], u32 out1[4], u32 out2[4])
+void make_utf16beN_S (const u32 in[4], u32 out1[4], u32 out2[4])
 {
   #ifdef IS_NV
   out2[3] = __byte_perm_S (in[3], 0, 0x1707);
@@ -14975,7 +14975,7 @@ inline void make_utf16beN_S (const u32 in[4], u32 out1[4], u32 out2[4])
   #endif
 }
 
-inline void make_utf16le_S (const u32 in[4], u32 out1[4], u32 out2[4])
+void make_utf16le_S (const u32 in[4], u32 out1[4], u32 out2[4])
 {
   #ifdef IS_NV
   out2[3] = __byte_perm_S (in[3], 0, 0x7372);
@@ -15000,7 +15000,7 @@ inline void make_utf16le_S (const u32 in[4], u32 out1[4], u32 out2[4])
   #endif
 }
 
-inline void undo_utf16be_S (const u32 in1[4], const u32 in2[4], u32 out[4])
+void undo_utf16be_S (const u32 in1[4], const u32 in2[4], u32 out[4])
 {
   #ifdef IS_NV
   out[0] = __byte_perm_S (in1[0], in1[1], 0x4602);
@@ -15021,7 +15021,7 @@ inline void undo_utf16be_S (const u32 in1[4], const u32 in2[4], u32 out[4])
   #endif
 }
 
-inline void undo_utf16le_S (const u32 in1[4], const u32 in2[4], u32 out[4])
+void undo_utf16le_S (const u32 in1[4], const u32 in2[4], u32 out[4])
 {
   #ifdef IS_NV
   out[0] = __byte_perm_S (in1[0], in1[1], 0x6420);
@@ -15042,7 +15042,7 @@ inline void undo_utf16le_S (const u32 in1[4], const u32 in2[4], u32 out[4])
   #endif
 }
 
-inline void switch_buffer_by_offset_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
+void switch_buffer_by_offset_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
 {
   #if defined IS_AMD || defined IS_GENERIC
   const int offset_mod_4 = offset & 3;
@@ -15903,7 +15903,7 @@ inline void switch_buffer_by_offset_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
   #endif
 }
 
-inline void switch_buffer_by_offset_carry_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 c0[4], u32 c1[4], u32 c2[4], u32 c3[4], const u32 offset)
+void switch_buffer_by_offset_carry_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 c0[4], u32 c1[4], u32 c2[4], u32 c3[4], const u32 offset)
 {
   const int offset_mod_4 = offset & 3;
 
@@ -16705,7 +16705,7 @@ inline void switch_buffer_by_offset_carry_le_S (u32 w0[4], u32 w1[4], u32 w2[4],
   }
 }
 
-inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
+void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
 {
   #if defined IS_AMD || defined IS_GENERIC
   switch (offset / 4)
@@ -17360,7 +17360,7 @@ inline void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
   #endif
 }
 
-inline void switch_buffer_by_offset_carry_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 c0[4], u32 c1[4], u32 c2[4], u32 c3[4], const u32 offset)
+void switch_buffer_by_offset_carry_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 c0[4], u32 c1[4], u32 c2[4], u32 c3[4], const u32 offset)
 {
   #if defined IS_AMD || defined IS_GENERIC
   switch (offset / 4)
@@ -18287,7 +18287,7 @@ inline void switch_buffer_by_offset_carry_be_S (u32 w0[4], u32 w1[4], u32 w2[4],
   #endif
 }
 
-inline void switch_buffer_by_offset_8x4_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const u32 offset)
+void switch_buffer_by_offset_8x4_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const u32 offset)
 {
   #if defined IS_AMD || defined IS_GENERIC
   const int offset_mod_4 = offset & 3;
@@ -19900,7 +19900,7 @@ inline void switch_buffer_by_offset_8x4_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u
   #endif
 }
 
-inline void switch_buffer_by_offset_8x4_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const u32 offset)
+void switch_buffer_by_offset_8x4_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const u32 offset)
 {
   #if defined IS_AMD || defined IS_GENERIC
   switch (offset / 4)
@@ -22219,7 +22219,7 @@ inline void switch_buffer_by_offset_8x4_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u
   #endif
 }
 
-inline void switch_buffer_by_offset_8x4_carry_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], u32 c0[4], u32 c1[4], u32 c2[4], u32 c3[4], u32 c4[4], u32 c5[4], u32 c6[4], u32 c7[4], const u32 offset)
+void switch_buffer_by_offset_8x4_carry_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], u32 c0[4], u32 c1[4], u32 c2[4], u32 c3[4], u32 c4[4], u32 c5[4], u32 c6[4], u32 c7[4], const u32 offset)
 {
   #if defined IS_AMD || defined IS_GENERIC
   switch (offset / 4)
@@ -25594,7 +25594,7 @@ inline void switch_buffer_by_offset_8x4_carry_be_S (u32 w0[4], u32 w1[4], u32 w2
   #endif
 }
 
-inline void switch_buffer_by_offset_1x64_le_S (u32 w[64], const u32 offset)
+void switch_buffer_by_offset_1x64_le_S (u32 w[64], const u32 offset)
 {
   #if defined IS_AMD || defined IS_GENERIC
   const int offset_mod_4 = offset & 3;
@@ -36655,7 +36655,7 @@ inline void switch_buffer_by_offset_1x64_le_S (u32 w[64], const u32 offset)
   #endif
 }
 
-inline void switch_buffer_by_offset_1x64_be_S (u32 w[64], const u32 offset)
+void switch_buffer_by_offset_1x64_be_S (u32 w[64], const u32 offset)
 {
   #if defined IS_AMD || defined IS_GENERIC
   switch (offset / 4)
@@ -45438,7 +45438,7 @@ inline void switch_buffer_by_offset_1x64_be_S (u32 w[64], const u32 offset)
   PACKSV4 (s6, v6, e);                                              \
   PACKSV4 (s7, v7, e);
 
-inline void switch_buffer_by_offset_le_VV (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32x offset)
+void switch_buffer_by_offset_le_VV (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32x offset)
 {
   #if VECT_SIZE == 1
 
@@ -45498,7 +45498,7 @@ inline void switch_buffer_by_offset_le_VV (u32x w0[4], u32x w1[4], u32x w2[4], u
   #endif
 }
 
-inline void switch_buffer_by_offset_8x4_le_VV (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32x offset)
+void switch_buffer_by_offset_8x4_le_VV (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32x offset)
 {
   #if VECT_SIZE == 1
 
@@ -45678,7 +45678,7 @@ inline void switch_buffer_by_offset_8x4_le_VV (u32x w0[4], u32x w1[4], u32x w2[4
   #endif
 }
 
-inline void append_0x01_2x4_VV (u32x w0[4], u32x w1[4], const u32x offset)
+void append_0x01_2x4_VV (u32x w0[4], u32x w1[4], const u32x offset)
 {
   #if VECT_SIZE == 1
 
@@ -45736,7 +45736,7 @@ inline void append_0x01_2x4_VV (u32x w0[4], u32x w1[4], const u32x offset)
   #endif
 }
 
-inline void append_0x80_2x4_VV (u32x w0[4], u32x w1[4], const u32x offset)
+void append_0x80_2x4_VV (u32x w0[4], u32x w1[4], const u32x offset)
 {
   #if VECT_SIZE == 1
 
@@ -45794,7 +45794,7 @@ inline void append_0x80_2x4_VV (u32x w0[4], u32x w1[4], const u32x offset)
   #endif
 }
 
-inline void append_0x80_4x4_VV (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32x offset)
+void append_0x80_4x4_VV (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32x offset)
 {
   #if VECT_SIZE == 1
 
