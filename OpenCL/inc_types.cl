@@ -176,12 +176,16 @@ u64x hl32_to_64 (const u32x a, const u32x b)
 #ifdef IS_AMD
 u32 swap32_S (const u32 v)
 {
-  return (as_uint (as_uchar4 (v).s3210));
+  return bitselect (rotate (v, 24u), rotate (v, 8u), 0x00ff00ffu);
 }
 
 u64 swap64_S (const u64 v)
 {
-  return (as_ulong (as_uchar8 (v).s76543210));
+  return bitselect (bitselect (rotate (v, 24ul),
+                               rotate (v,  8ul), 0x000000ff000000fful),
+                    bitselect (rotate (v, 56ul),
+                               rotate (v, 40ul), 0x00ff000000ff0000ul),
+                                                 0xffff0000ffff0000ul);
 }
 
 u32 rotr32_S (const u32 a, const u32 n)
@@ -206,22 +210,16 @@ u64 rotl64_S (const u64 a, const u32 n)
 
 u32x swap32 (const u32x v)
 {
-  return ((v >> 24) & 0x000000ff)
-       | ((v >>  8) & 0x0000ff00)
-       | ((v <<  8) & 0x00ff0000)
-       | ((v << 24) & 0xff000000);
+  return bitselect (rotate (v, 24u), rotate (v, 8u), 0x00ff00ffu);
 }
 
 u64x swap64 (const u64x v)
 {
-  return ((v >> 56) & 0x00000000000000ff)
-       | ((v >> 40) & 0x000000000000ff00)
-       | ((v >> 24) & 0x0000000000ff0000)
-       | ((v >>  8) & 0x00000000ff000000)
-       | ((v <<  8) & 0x000000ff00000000)
-       | ((v << 24) & 0x0000ff0000000000)
-       | ((v << 40) & 0x00ff000000000000)
-       | ((v << 56) & 0xff00000000000000);
+  return bitselect (bitselect (rotate (v, 24ul),
+                               rotate (v,  8ul), 0x000000ff000000fful),
+                    bitselect (rotate (v, 56ul),
+                               rotate (v, 40ul), 0x00ff000000ff0000ul),
+                                                 0xffff0000ffff0000ul);
 }
 
 u32x rotr32 (const u32x a, const u32 n)
