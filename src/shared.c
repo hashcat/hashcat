@@ -379,27 +379,16 @@ u32 get_random_num (const u32 min, const u32 max)
 
   if (low == 0) return (0);
 
-  #if defined (__linux__)
+  #if defined (_WIN)
 
-  u32 data;
+  u32 r;
+  rand_s(&r);
 
-  FILE *fp = fopen ("/dev/urandom", "rb");
-
-  if (fp == NULL) return (0);
-
-  const int nread = fread (&data, sizeof (u32), 1, fp);
-
-  fclose (fp);
-
-  if (nread != 1) return 0;
-
-  u64 r = data % low; r += min;
-
-  return (u32) r;
+  return ((r % (max - min)) + min);
 
   #else
 
-  return (((u32) rand () % (max - min)) + min);
+  return (((u32) random () % (max - min)) + min);
 
   #endif
 }
