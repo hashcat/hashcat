@@ -334,12 +334,6 @@ void setup_environment_variables ()
       putenv ((char *) "DISPLAY=:0");
   }
 
-  if (getenv ("GPU_FORCE_64BIT_PTR") == NULL)
-    putenv ((char *) "GPU_FORCE_64BIT_PTR=0");
-
-  if (getenv ("GPU_USE_SYNC_OBJECTS") == NULL)
-    putenv ((char *) "GPU_USE_SYNC_OBJECTS=1");
-
   if (getenv ("OCL_CODE_CACHE_ENABLE") == NULL)
     putenv ((char *) "OCL_CODE_CACHE_ENABLE=0");
 
