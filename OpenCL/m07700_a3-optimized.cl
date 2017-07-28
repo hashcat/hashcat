@@ -296,7 +296,7 @@ void m07700m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
     t[14] = pw_salt_len * 8;
     t[15] = 0;
 
-    PUTCHAR (t, pw_salt_len, 0x80);
+    append_0x80_4x4_S (t + 0, t + 4, t + 8, t + 12, pw_salt_len);
 
     /**
      * md5
@@ -382,7 +382,7 @@ void m07700m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
 
     const u32 sum20 = walld0rf_magic (w0, pw_len, salt_buf0, salt_len, a, b, c, d, t);
 
-    PUTCHAR (t, sum20, 0x80);
+    append_0x80_4x4_S (t + 0, t + 4, t + 8, t + 12, sum20);
 
     t[14] = sum20 * 8;
 
@@ -572,7 +572,7 @@ void m07700s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
     t[14] = pw_salt_len * 8;
     t[15] = 0;
 
-    PUTCHAR (t, pw_salt_len, 0x80);
+    append_0x80_4x4_S (t + 0, t + 4, t + 8, t + 12, pw_salt_len);
 
     /**
      * md5
@@ -658,7 +658,7 @@ void m07700s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
 
     const u32 sum20 = walld0rf_magic (w0, pw_len, salt_buf0, salt_len, a, b, c, d, t);
 
-    PUTCHAR (t, sum20, 0x80);
+    append_0x80_4x4_S (t + 0, t + 4, t + 8, t + 12, sum20);
 
     t[14] = sum20 * 8;
 

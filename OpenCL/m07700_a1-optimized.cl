@@ -370,7 +370,7 @@ __kernel void m07700_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
     t[14] = pw_salt_len * 8;
     t[15] = 0;
 
-    PUTCHAR (t, pw_salt_len, 0x80);
+    append_0x80_4x4_S (t + 0, t + 4, t + 8, t + 12, pw_salt_len);
 
     /**
      * md5
@@ -456,7 +456,7 @@ __kernel void m07700_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     const u32 sum20 = walld0rf_magic (w0, pw_len, salt_buf0, salt_len, a, b, c, d, t);
 
-    PUTCHAR (t, sum20, 0x80);
+    append_0x80_4x4_S (t + 0, t + 4, t + 8, t + 12, sum20);
 
     t[14] = sum20 * 8;
 
@@ -728,7 +728,7 @@ __kernel void m07700_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
     t[14] = pw_salt_len * 8;
     t[15] = 0;
 
-    PUTCHAR (t, pw_salt_len, 0x80);
+    append_0x80_4x4_S (t + 0, t + 4, t + 8, t + 12, pw_salt_len);
 
     /**
      * md5
@@ -814,7 +814,7 @@ __kernel void m07700_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     const u32 sum20 = walld0rf_magic (w0, pw_len, salt_buf0, salt_len, a, b, c, d, t);
 
-    PUTCHAR (t, sum20, 0x80);
+    append_0x80_4x4_S (t + 0, t + 4, t + 8, t + 12, sum20);
 
     t[14] = sum20 * 8;
 
