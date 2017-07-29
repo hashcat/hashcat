@@ -381,10 +381,7 @@ u32 get_random_num (const u32 min, const u32 max)
 
   #if defined (_WIN)
 
-  u32 r;
-  rand_s(&r);
-
-  return ((r % (max - min)) + min);
+  return (((u32) rand () % (max - min)) + min);
 
   #else
 
