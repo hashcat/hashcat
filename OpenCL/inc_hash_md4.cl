@@ -1047,6 +1047,7 @@ void md4_hmac_update_utf16le_swap (md4_hmac_ctx_t *ctx, const u32 *w, const int 
 {
   md4_update_utf16le_swap (&ctx->ipad, w, len);
 }
+
 void md4_hmac_update_global (md4_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   md4_update_global (&ctx->ipad, w, len);
