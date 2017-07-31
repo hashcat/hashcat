@@ -69,9 +69,9 @@ __kernel void m05300_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
       c[i] |= w[i];
     }
 
-    md5_hmac_ctx_vector_t ctx0;
+    md5_hmac_ctx_t ctx0;
 
-    md5_hmac_init_vector (&ctx0, c, pw_len + comb_len);
+    md5_hmac_init (&ctx0, c, pw_len + comb_len);
 
     md5_hmac_update_global (&ctx0, ikepsk_bufs[digests_offset].nr_buf, ikepsk_bufs[digests_offset].nr_len);
 
@@ -101,7 +101,7 @@ __kernel void m05300_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     md5_hmac_ctx_t ctx;
 
-    md5_hmac_init_vector_64 (&ctx, w0, w1, w2, w3);
+    md5_hmac_init_64 (&ctx, w0, w1, w2, w3);
 
     md5_hmac_update_global (&ctx, ikepsk_bufs[digests_offset].msg_buf, ikepsk_bufs[digests_offset].msg_len);
 
@@ -184,9 +184,9 @@ __kernel void m05300_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
       c[i] |= w[i];
     }
 
-    md5_hmac_ctx_vector_t ctx0;
+    md5_hmac_ctx_t ctx0;
 
-    md5_hmac_init_vector (&ctx0, c, pw_len + comb_len);
+    md5_hmac_init (&ctx0, c, pw_len + comb_len);
 
     md5_hmac_update_global (&ctx0, ikepsk_bufs[digests_offset].nr_buf, ikepsk_bufs[digests_offset].nr_len);
 
@@ -216,7 +216,7 @@ __kernel void m05300_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     md5_hmac_ctx_t ctx;
 
-    md5_hmac_init_vector_64 (&ctx, w0, w1, w2, w3);
+    md5_hmac_init_64 (&ctx, w0, w1, w2, w3);
 
     md5_hmac_update_global (&ctx, ikepsk_bufs[digests_offset].msg_buf, ikepsk_bufs[digests_offset].msg_len);
 

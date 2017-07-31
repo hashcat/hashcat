@@ -87,7 +87,7 @@ __kernel void m05400_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     sha1_hmac_ctx_t ctx;
 
-    sha1_hmac_init_vector_64 (&ctx, w0, w1, w2, w3);
+    sha1_hmac_init_64 (&ctx, w0, w1, w2, w3);
 
     sha1_hmac_update_global_swap (&ctx, ikepsk_bufs[digests_offset].msg_buf, ikepsk_bufs[digests_offset].msg_len);
 
@@ -188,7 +188,7 @@ __kernel void m05400_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     sha1_hmac_ctx_t ctx;
 
-    sha1_hmac_init_vector_64 (&ctx, w0, w1, w2, w3);
+    sha1_hmac_init_64 (&ctx, w0, w1, w2, w3);
 
     sha1_hmac_update_global_swap (&ctx, ikepsk_bufs[digests_offset].msg_buf, ikepsk_bufs[digests_offset].msg_len);
 
