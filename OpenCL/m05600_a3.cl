@@ -88,7 +88,7 @@ __kernel void m05600_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     md5_hmac_ctx_t ctx0;
 
-    md5_hmac_init (&ctx0, w, pw_len);
+    md5_hmac_init_64 (&ctx0, w0, w1, w2, w3);
 
     md5_hmac_update_global (&ctx0, netntlm_bufs[digests_offset].userdomain_buf, netntlm_bufs[digests_offset].user_len + netntlm_bufs[digests_offset].domain_len);
 
@@ -214,7 +214,7 @@ __kernel void m05600_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     md5_hmac_ctx_t ctx0;
 
-    md5_hmac_init (&ctx0, w, pw_len);
+    md5_hmac_init_64 (&ctx0, w0, w1, w2, w3);
 
     md5_hmac_update_global (&ctx0, netntlm_bufs[digests_offset].userdomain_buf, netntlm_bufs[digests_offset].user_len + netntlm_bufs[digests_offset].domain_len);
 
