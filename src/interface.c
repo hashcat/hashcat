@@ -24680,7 +24680,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                   break;
       case  6900: hashconfig->pw_max = MIN (hashconfig->pw_max, 32); // todo
                   break;
-      case  7000: hashconfig->pw_max = MIN (hashconfig->pw_max, 19); // todo
+      case  7000: hashconfig->pw_max = MIN (hashconfig->pw_max, 19); // pure kernel available
                   break;
       case  7400: hashconfig->pw_max = MIN (hashconfig->pw_max, 15); // pure kernel available
                   break;
