@@ -2190,6 +2190,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
                 uppercase (ptr, line_len);
               }
 
+              /*
               if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
               {
                 if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)
@@ -2202,6 +2203,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
                   ptr[line_len] = 0x01;
                 }
               }
+              */
 
               device_param->combs_buf[i].pw_len = line_len;
 
