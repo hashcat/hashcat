@@ -77,7 +77,7 @@ __kernel void m03710_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   const u32 salt_lenv = ceil ((float) salt_len / 4);
 
-  u32x s[64] = { 0 };
+  u32 s[64] = { 0 };
 
   for (int idx = 0; idx < salt_lenv; idx++)
   {
@@ -218,7 +218,7 @@ __kernel void m03710_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   const u32 salt_lenv = ceil ((float) salt_len / 4);
 
-  u32x s[64] = { 0 };
+  u32 s[64] = { 0 };
 
   for (int idx = 0; idx < salt_lenv; idx++)
   {

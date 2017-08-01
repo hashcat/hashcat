@@ -57,7 +57,7 @@ __kernel void m04800_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
-    md5_update_vector (&ctx, s, salt_len);
+    md5_update (&ctx, s, salt_len);
 
     md5_final (&ctx);
 
@@ -126,7 +126,7 @@ __kernel void m04800_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
-    md5_update_vector (&ctx, s, salt_len);
+    md5_update (&ctx, s, salt_len);
 
     md5_final (&ctx);
 

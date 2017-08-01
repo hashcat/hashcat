@@ -82,13 +82,13 @@ __kernel void m00150_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
       c[i] |= w[i];
     }
 
-    sha1_hmac_ctx_vector_t ctx;
+    sha1_hmac_ctx_t ctx;
 
-    sha1_hmac_init_vector (&ctx, c, pw_len + comb_len);
+    sha1_hmac_init (&ctx, c, pw_len + comb_len);
 
-    sha1_hmac_update_vector (&ctx, s, salt_len);
+    sha1_hmac_update (&ctx, s, salt_len);
 
-    sha1_hmac_final_vector (&ctx);
+    sha1_hmac_final (&ctx);
 
     const u32 r0 = ctx.opad.h[DGST_R0];
     const u32 r1 = ctx.opad.h[DGST_R1];
@@ -180,13 +180,13 @@ __kernel void m00150_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
       c[i] |= w[i];
     }
 
-    sha1_hmac_ctx_vector_t ctx;
+    sha1_hmac_ctx_t ctx;
 
-    sha1_hmac_init_vector (&ctx, c, pw_len + comb_len);
+    sha1_hmac_init (&ctx, c, pw_len + comb_len);
 
-    sha1_hmac_update_vector (&ctx, s, salt_len);
+    sha1_hmac_update (&ctx, s, salt_len);
 
-    sha1_hmac_final_vector (&ctx);
+    sha1_hmac_final (&ctx);
 
     const u32 r0 = ctx.opad.h[DGST_R0];
     const u32 r1 = ctx.opad.h[DGST_R1];
