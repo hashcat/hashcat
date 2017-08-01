@@ -24642,9 +24642,9 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     {
       switch (user_options_extra->attack_kern)
       {
-        case ATTACK_KERN_STRAIGHT:  if (hashconfig->pw_max > PW_DICTMAX) hashconfig->pw_max = PW_DICTMAX;
+        case ATTACK_KERN_STRAIGHT:  hashconfig->pw_max = MIN (hashconfig->pw_max, PW_DICTMAX);
                                     break;
-        case ATTACK_KERN_COMBI:     if (hashconfig->pw_max > PW_DICTMAX) hashconfig->pw_max = PW_DICTMAX;
+        case ATTACK_KERN_COMBI:     hashconfig->pw_max = MIN (hashconfig->pw_max, PW_DICTMAX);
                                     break;
       }
     }
@@ -24654,9 +24654,9 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
       {
         switch (user_options_extra->attack_kern)
         {
-          case ATTACK_KERN_STRAIGHT:  if (hashconfig->pw_max > PW_DICTMAX) hashconfig->pw_max = PW_DICTMAX;
+          case ATTACK_KERN_STRAIGHT:  hashconfig->pw_max = MIN (hashconfig->pw_max, PW_DICTMAX);
                                       break;
-          case ATTACK_KERN_COMBI:     if (hashconfig->pw_max > PW_DICTMAX) hashconfig->pw_max = PW_DICTMAX;
+          case ATTACK_KERN_COMBI:     hashconfig->pw_max = MIN (hashconfig->pw_max, PW_DICTMAX);
                                       break;
         }
       }
@@ -24668,27 +24668,29 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
     switch (hashconfig->hash_mode)
     {
-      case   500: hashconfig->pw_max = 15; // -L available
+      case   500: hashconfig->pw_max = MIN (hashconfig->pw_max, 15); // pure kernel available
                   break;
-      case  1600: hashconfig->pw_max = 15; // -L available
+      case  1600: hashconfig->pw_max = MIN (hashconfig->pw_max, 15); // pure kernel available
                   break;
-      case  1800: hashconfig->pw_max = 16; // -L available
+      case  1800: hashconfig->pw_max = MIN (hashconfig->pw_max, 16); // pure kernel available
                   break;
-      case  5800: hashconfig->pw_max = 16; // -L available
+      case  5800: hashconfig->pw_max = MIN (hashconfig->pw_max, 16); // pure kernel available
                   break;
-      case  6300: hashconfig->pw_max = 15; // -L available
+      case  6300: hashconfig->pw_max = MIN (hashconfig->pw_max, 15); // pure kernel available
                   break;
-      case  7000: hashconfig->pw_max = 19; // todo
+      case  6900: hashconfig->pw_max = MIN (hashconfig->pw_max, 32); // todo
                   break;
-      case  7400: hashconfig->pw_max = 15; // -L available
+      case  7000: hashconfig->pw_max = MIN (hashconfig->pw_max, 19); // todo
                   break;
-      case 10700: hashconfig->pw_max = 16; // -L available
+      case  7400: hashconfig->pw_max = MIN (hashconfig->pw_max, 15); // pure kernel available
                   break;
-      case 12500: hashconfig->pw_max = 20; // todo
+      case 10700: hashconfig->pw_max = MIN (hashconfig->pw_max, 16); // pure kernel available
                   break;
-      case 14400: hashconfig->pw_max = 24; // todo
+      case 12500: hashconfig->pw_max = MIN (hashconfig->pw_max, 20); // todo
                   break;
-      case 15500: hashconfig->pw_max = 16; // todo
+      case 14400: hashconfig->pw_max = MIN (hashconfig->pw_max, 24); // todo
+                  break;
+      case 15500: hashconfig->pw_max = MIN (hashconfig->pw_max, 16); // todo
                   break;
     }
   }
