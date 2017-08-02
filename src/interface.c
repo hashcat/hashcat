@@ -24745,6 +24745,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case  7700: hashconfig->pw_max = 8;       break; // https://www.daniel-berlin.de/security/sap-sec/password-hash-algorithms/
     case  7800: hashconfig->pw_max = 40;      break; // https://www.daniel-berlin.de/security/sap-sec/password-hash-algorithms/
     case  7900: hashconfig->pw_max = PW_MAX;  break;
+    case  8000: hashconfig->pw_max = 30;      break; // http://infocenter.sybase.com/help/index.jsp?topic=/com.sybase.infocenter.dc31654.1570/html/sag1/CIHIBDBA.htm
     case  8200: hashconfig->pw_max = PW_MAX;  break;
     case  8500: hashconfig->pw_max = 8;       break; // Underlaying DES max
     case  8600: hashconfig->pw_max = 16;      break; // Lotus Notes/Domino 5 limits itself to 8
