@@ -20,6 +20,7 @@
 ##
 
 - Fixed a parser error for mode -m 9820 = MS Office <= 2003 $3, SHA1 + RC4, collider #2
+- Fixed a problem with changed current working directory, for instance by using --restore together with --remove
 
 ##
 ## Improvements
