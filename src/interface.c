@@ -24704,9 +24704,9 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   }
 
   // pw_max : all modes listed in the following switch cases are
-  //          the maximum possible password length by the related system
-  //          plus the opencl kernels support to crack them without -L set by the user
-  //          however, some modes have a self-set and some have
+  //          the maximum possible password length of the related system
+  //          plus the opencl kernels which eventually allows cracking of passwords of up length PW_MAX for free (no speed drop).
+  //          some modes have a self-set and some have
   //          underlaying algorithms specific hard maximum password length
   //          these limits override all previous restrictions, always
 
@@ -24716,7 +24716,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case  1500: hashconfig->pw_max = 8;       break; // Underlaying DES max
     case  2100: hashconfig->pw_max = PW_MAX;  break;
     case  2400: hashconfig->pw_max = 16;      break; // Cisco-PIX MD5 sets w[4] = 0x80
-    case  2410: hashconfig->pw_max = 12;      break; // Cisco-ASA MD5 sets w[4] = 0x80 and has a 4 byte fixed salt
+    case  2410: hashconfig->pw_max = 12;      break; // Cisco-ASA MD5 sets w[4] = 0x80 plus has a 4 byte fixed salt
     case  2500: hashconfig->pw_max = 63;      break; // WPA/WPA2 limits itself to 63 by RFC
     case  2501: hashconfig->pw_max = 64;      break; // WPA/WPA2 PMK fixed length
     case  3000: hashconfig->pw_max = 7;       break; // LM max
@@ -24758,8 +24758,12 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case  9400: hashconfig->pw_max = PW_MAX;  break;
     case  9500: hashconfig->pw_max = PW_MAX;  break;
     case  9600: hashconfig->pw_max = PW_MAX;  break;
+    case  9700: hashconfig->pw_max = 15;      break; // https://msdn.microsoft.com/en-us/library/dd772916(v=office.12).aspx
     case  9710: hashconfig->pw_max = 5;       break; // Underlaying RC4-40 max
+    case  9720: hashconfig->pw_max = 15;      break; // https://msdn.microsoft.com/en-us/library/dd772916(v=office.12).aspx
+    case  9800: hashconfig->pw_max = 15;      break; // https://msdn.microsoft.com/en-us/library/dd772916(v=office.12).aspx
     case  9810: hashconfig->pw_max = 5;       break; // Underlaying RC4-40 max
+    case  9820: hashconfig->pw_max = 15;      break; // https://msdn.microsoft.com/en-us/library/dd772916(v=office.12).aspx
     case 10000: hashconfig->pw_max = PW_MAX;  break;
     case 10300: hashconfig->pw_max = 40;      break; // https://www.daniel-berlin.de/security/sap-sec/password-hash-algorithms/
     case 10400: hashconfig->pw_max = 32;      break; // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
