@@ -24749,9 +24749,10 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case  8200: hashconfig->pw_max = PW_MAX;  break;
     case  8500: hashconfig->pw_max = 8;       break; // Underlaying DES max
     case  8600: hashconfig->pw_max = 16;      break; // Lotus Notes/Domino 5 limits itself to 16
+    case  8700: hashconfig->pw_max = 64;      break; // https://www.ibm.com/support/knowledgecenter/en/SSKTWP_8.5.3/com.ibm.notes85.client.doc/fram_limits_of_notes_r.html
     case  8800: hashconfig->pw_max = PW_MAX;  break;
     case  8900: hashconfig->pw_max = PW_MAX;  break;
-    case  9100: hashconfig->pw_max = 64;      break; // Lotus Notes/Domino 8 limits itself to 64
+    case  9100: hashconfig->pw_max = 64;      break; // https://www.ibm.com/support/knowledgecenter/en/SSKTWP_8.5.3/com.ibm.notes85.client.doc/fram_limits_of_notes_r.html
     case  9200: hashconfig->pw_max = PW_MAX;  break;
     case  9300: hashconfig->pw_max = PW_MAX;  break;
     case  9400: hashconfig->pw_max = PW_MAX;  break;
