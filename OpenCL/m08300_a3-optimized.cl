@@ -54,7 +54,7 @@ void m08300m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
   domain_buf1[2] = swap32_S (salt_bufs[salt_pos].salt_buf_pc[ 6]);
   domain_buf1[3] = 0;
 
-  const u32 domain_len = salt_bufs[salt_pos].salt_buf_pc[ 7];
+  const u32 domain_len = salt_bufs[salt_pos].salt_len_pc;
 
   u32 s0[4];
   u32 s1[4];
@@ -262,7 +262,7 @@ void m08300s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
   domain_buf1[2] = swap32_S (salt_bufs[salt_pos].salt_buf_pc[ 6]);
   domain_buf1[3] = 0;
 
-  const u32 domain_len = salt_bufs[salt_pos].salt_buf_pc[ 7];
+  const u32 domain_len = salt_bufs[salt_pos].salt_len_pc;
 
   u32 s0[4];
   u32 s1[4];

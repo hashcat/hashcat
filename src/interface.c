@@ -8004,7 +8004,7 @@ int nsec3_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUS
     }
   }
 
-  salt->salt_buf_pc[7] = domainbuf_len;
+  salt->salt_len_pc = domainbuf_len;
 
   // "real" salt
 
@@ -17612,7 +17612,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     // domain
 
-    const u32 salt_pc_len = salt.salt_buf_pc[7]; // what a hack
+    const u32 salt_pc_len = salt.salt_len_pc;
 
     char domain_buf_c[33] = { 0 };
 

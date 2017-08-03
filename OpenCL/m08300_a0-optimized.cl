@@ -77,7 +77,7 @@ __kernel void m08300_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
   domain_buf1[2] = salt_bufs[salt_pos].salt_buf_pc[ 6];
   domain_buf1[3] = 0;
 
-  const u32 domain_len = salt_bufs[salt_pos].salt_buf_pc[ 7];
+  const u32 domain_len = salt_bufs[salt_pos].salt_len_pc;
 
   /**
    * loop
@@ -334,7 +334,7 @@ __kernel void m08300_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
   domain_buf1[2] = salt_bufs[salt_pos].salt_buf_pc[ 6];
   domain_buf1[3] = 0;
 
-  const u32 domain_len = salt_bufs[salt_pos].salt_buf_pc[ 7];
+  const u32 domain_len = salt_bufs[salt_pos].salt_len_pc;
 
   /**
    * digest
