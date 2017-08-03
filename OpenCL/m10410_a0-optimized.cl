@@ -14,6 +14,7 @@
 #include "inc_rp.h"
 #include "inc_rp.cl"
 #include "inc_simd.cl"
+#include "inc_hash_md5.cl"
 
 __constant u32 padding[8] =
 {
