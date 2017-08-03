@@ -24764,6 +24764,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case  9800: hashconfig->pw_max = 15;      break; // https://msdn.microsoft.com/en-us/library/dd772916(v=office.12).aspx
     case  9810: hashconfig->pw_max = 5;       break; // Underlaying RC4-40 max
     case  9820: hashconfig->pw_max = 15;      break; // https://msdn.microsoft.com/en-us/library/dd772916(v=office.12).aspx
+    case  9900: hashconfig->pw_max = 100;     break; // RAdmin2 sets w[25] = 0x80
     case 10000: hashconfig->pw_max = PW_MAX;  break;
     case 10300: hashconfig->pw_max = 40;      break; // https://www.daniel-berlin.de/security/sap-sec/password-hash-algorithms/
     case 10400: hashconfig->pw_max = 32;      break; // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
