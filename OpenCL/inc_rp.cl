@@ -756,11 +756,11 @@ void append_block1 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32 src_r0
 
 void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32 src_l0[4], const u32 src_l1[4], const u32 src_r0[4], const u32 src_r1[4])
 {
-  #if defined IS_AMD || defined IS_GENERIC
   const int offset_mod_4 = offset & 3;
 
-  const int offset_minus_4 = 4 - offset;
+  const int offset_minus_4 = 4 - offset_mod_4;
 
+  #if defined IS_AMD || defined IS_GENERIC
   u32 s0 = 0;
   u32 s1 = 0;
   u32 s2 = 0;
@@ -895,8 +895,6 @@ void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32 src_l0
   #endif
 
   #ifdef IS_NV
-  const int offset_minus_4 = 4 - (offset % 4);
-
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
   u32 s0 = 0;

@@ -190,27 +190,26 @@ void bswap8 (u32 block[16])
   block[ 7] = swap32 (block[ 7]);
 }
 
-u32 memcat16 (u32 block[16], const u32 block_len, const u32 append[4], const u32 append_len)
+u32 memcat16 (u32 block[16], const u32 offset, const u32 append[4], const u32 append_len)
 {
-  const u32 mod = block_len & 3;
-  const u32 div = block_len / 4;
-
   u32 tmp0;
   u32 tmp1;
   u32 tmp2;
   u32 tmp3;
   u32 tmp4;
 
-  #if defined IS_AMD || defined IS_GENERIC
-  const int offset_minus_4 = 4 - block_len;
+  const int offset_mod_4 = offset & 3;
 
+  const int offset_minus_4 = 4 - offset_mod_4;
+
+  #if defined IS_AMD || defined IS_GENERIC
   tmp0 = amd_bytealign (append[0],         0, offset_minus_4);
   tmp1 = amd_bytealign (append[1], append[0], offset_minus_4);
   tmp2 = amd_bytealign (append[2], append[1], offset_minus_4);
   tmp3 = amd_bytealign (append[3], append[2], offset_minus_4);
   tmp4 = amd_bytealign (        0, append[3], offset_minus_4);
 
-  if (mod == 0)
+  if (offset_mod_4 == 0)
   {
     tmp0 = tmp1;
     tmp1 = tmp2;
@@ -221,8 +220,6 @@ u32 memcat16 (u32 block[16], const u32 block_len, const u32 append[4], const u32
   #endif
 
   #ifdef IS_NV
-  const int offset_minus_4 = 4 - (block_len & 3);
-
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
   tmp0 = __byte_perm (        0, append[0], selector);
@@ -232,7 +229,7 @@ u32 memcat16 (u32 block[16], const u32 block_len, const u32 append[4], const u32
   tmp4 = __byte_perm (append[3],         0, selector);
   #endif
 
-  switch (div)
+  switch (offset / 4)
   {
     case  0:  block[ 0] |= tmp0;
               block[ 1]  = tmp1;
@@ -322,32 +319,31 @@ u32 memcat16 (u32 block[16], const u32 block_len, const u32 append[4], const u32
               break;
   }
 
-  u32 new_len = block_len + append_len;
+  u32 new_len = offset + append_len;
 
   return new_len;
 }
 
-u32 memcat16c (u32 block[16], const u32 block_len, const u32 append[4], const u32 append_len, u32 digest[8])
+u32 memcat16c (u32 block[16], const u32 offset, const u32 append[4], const u32 append_len, u32 digest[8])
 {
-  const u32 mod = block_len & 3;
-  const u32 div = block_len / 4;
-
   u32 tmp0;
   u32 tmp1;
   u32 tmp2;
   u32 tmp3;
   u32 tmp4;
 
-  #if defined IS_AMD || defined IS_GENERIC
-  const int offset_minus_4 = 4 - block_len;
+  const int offset_mod_4 = offset & 3;
 
+  const int offset_minus_4 = 4 - offset_mod_4;
+
+  #if defined IS_AMD || defined IS_GENERIC
   tmp0 = amd_bytealign (append[0],         0, offset_minus_4);
   tmp1 = amd_bytealign (append[1], append[0], offset_minus_4);
   tmp2 = amd_bytealign (append[2], append[1], offset_minus_4);
   tmp3 = amd_bytealign (append[3], append[2], offset_minus_4);
   tmp4 = amd_bytealign (        0, append[3], offset_minus_4);
 
-  if (mod == 0)
+  if (offset_mod_4 == 0)
   {
     tmp0 = tmp1;
     tmp1 = tmp2;
@@ -358,8 +354,6 @@ u32 memcat16c (u32 block[16], const u32 block_len, const u32 append[4], const u3
   #endif
 
   #ifdef IS_NV
-  const int offset_minus_4 = 4 - (block_len & 3);
-
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
   tmp0 = __byte_perm (        0, append[0], selector);
@@ -371,7 +365,7 @@ u32 memcat16c (u32 block[16], const u32 block_len, const u32 append[4], const u3
 
   u32 carry[4] = { 0, 0, 0, 0 };
 
-  switch (div)
+  switch (offset / 4)
   {
     case  0:  block[ 0] |= tmp0;
               block[ 1]  = tmp1;
@@ -471,7 +465,7 @@ u32 memcat16c (u32 block[16], const u32 block_len, const u32 append[4], const u3
               break;
   }
 
-  u32 new_len = block_len + append_len;
+  u32 new_len = offset + append_len;
 
   if (new_len >= 64)
   {
@@ -490,27 +484,26 @@ u32 memcat16c (u32 block[16], const u32 block_len, const u32 append[4], const u3
   return new_len;
 }
 
-u32 memcat20 (u32 block[20], const u32 block_len, const u32 append[4], const u32 append_len)
+u32 memcat20 (u32 block[20], const u32 offset, const u32 append[4], const u32 append_len)
 {
-  const u32 mod = block_len & 3;
-  const u32 div = block_len / 4;
-
   u32 tmp0;
   u32 tmp1;
   u32 tmp2;
   u32 tmp3;
   u32 tmp4;
 
-  #if defined IS_AMD || defined IS_GENERIC
-  const int offset_minus_4 = 4 - block_len;
+  const int offset_mod_4 = offset & 3;
 
+  const int offset_minus_4 = 4 - offset_mod_4;
+
+  #if defined IS_AMD || defined IS_GENERIC
   tmp0 = amd_bytealign (append[0],         0, offset_minus_4);
   tmp1 = amd_bytealign (append[1], append[0], offset_minus_4);
   tmp2 = amd_bytealign (append[2], append[1], offset_minus_4);
   tmp3 = amd_bytealign (append[3], append[2], offset_minus_4);
   tmp4 = amd_bytealign (        0, append[3], offset_minus_4);
 
-  if (mod == 0)
+  if (offset_mod_4 == 0)
   {
     tmp0 = tmp1;
     tmp1 = tmp2;
@@ -521,8 +514,6 @@ u32 memcat20 (u32 block[20], const u32 block_len, const u32 append[4], const u32
   #endif
 
   #ifdef IS_NV
-  const int offset_minus_4 = 4 - (block_len & 3);
-
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
   tmp0 = __byte_perm (        0, append[0], selector);
@@ -532,7 +523,7 @@ u32 memcat20 (u32 block[20], const u32 block_len, const u32 append[4], const u32
   tmp4 = __byte_perm (append[3],         0, selector);
   #endif
 
-  switch (div)
+  switch (offset / 4)
   {
     case  0:  block[ 0] |= tmp0;
               block[ 1]  = tmp1;
@@ -632,30 +623,29 @@ u32 memcat20 (u32 block[20], const u32 block_len, const u32 append[4], const u32
               break;
   }
 
-  return block_len + append_len;
+  return offset + append_len;
 }
 
-u32 memcat20_x80 (u32 block[20], const u32 block_len, const u32 append[4], const u32 append_len)
+u32 memcat20_x80 (u32 block[20], const u32 offset, const u32 append[4], const u32 append_len)
 {
-  const u32 mod = block_len & 3;
-  const u32 div = block_len / 4;
-
   u32 tmp0;
   u32 tmp1;
   u32 tmp2;
   u32 tmp3;
   u32 tmp4;
 
-  #if defined IS_AMD || defined IS_GENERIC
-  const int offset_minus_4 = 4 - block_len;
+  const int offset_mod_4 = offset & 3;
 
+  const int offset_minus_4 = 4 - offset_mod_4;
+
+  #if defined IS_AMD || defined IS_GENERIC
   tmp0 = amd_bytealign (append[0],         0, offset_minus_4);
   tmp1 = amd_bytealign (append[1], append[0], offset_minus_4);
   tmp2 = amd_bytealign (append[2], append[1], offset_minus_4);
   tmp3 = amd_bytealign (append[3], append[2], offset_minus_4);
   tmp4 = amd_bytealign (     0x80, append[3], offset_minus_4);
 
-  if (mod == 0)
+  if (offset_mod_4 == 0)
   {
     tmp0 = tmp1;
     tmp1 = tmp2;
@@ -666,8 +656,6 @@ u32 memcat20_x80 (u32 block[20], const u32 block_len, const u32 append[4], const
   #endif
 
   #ifdef IS_NV
-  const int offset_minus_4 = 4 - (block_len & 3);
-
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
   tmp0 = __byte_perm (        0, append[0], selector);
@@ -677,7 +665,7 @@ u32 memcat20_x80 (u32 block[20], const u32 block_len, const u32 append[4], const
   tmp4 = __byte_perm (append[3],      0x80, selector);
   #endif
 
-  switch (div)
+  switch (offset / 4)
   {
     case  0:  block[ 0] |= tmp0;
               block[ 1]  = tmp1;
@@ -777,7 +765,7 @@ u32 memcat20_x80 (u32 block[20], const u32 block_len, const u32 append[4], const
               break;
   }
 
-  return block_len + append_len;
+  return offset + append_len;
 }
 
 __kernel void m07400_init (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global sha256crypt_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)

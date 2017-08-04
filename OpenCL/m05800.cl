@@ -2112,10 +2112,11 @@ void append_salt (u32 w0[4], u32 w1[4], u32 w2[4], const u32 append[5], const u3
   u32 tmp4;
   u32 tmp5;
 
+  const int offset_mod_4 = offset & 3;
+
+  const int offset_minus_4 = 4 - offset_mod_4;
+
   #if defined IS_AMD || defined IS_GENERIC
-
-  const int offset_minus_4 = 4 - (offset & 3);
-
   tmp0 = amd_bytealign (append[0],         0, offset_minus_4);
   tmp1 = amd_bytealign (append[1], append[0], offset_minus_4);
   tmp2 = amd_bytealign (append[2], append[1], offset_minus_4);
@@ -2123,9 +2124,7 @@ void append_salt (u32 w0[4], u32 w1[4], u32 w2[4], const u32 append[5], const u3
   tmp4 = amd_bytealign (append[4], append[3], offset_minus_4);
   tmp5 = amd_bytealign (        0, append[4], offset_minus_4);
 
-  const u32 mod = offset & 3;
-
-  if (mod == 0)
+  if (offset_mod_4 == 0)
   {
     tmp0 = tmp1;
     tmp1 = tmp2;
@@ -2134,13 +2133,9 @@ void append_salt (u32 w0[4], u32 w1[4], u32 w2[4], const u32 append[5], const u3
     tmp4 = tmp5;
     tmp5 = 0;
   }
-
   #endif
 
   #ifdef IS_NV
-
-  const int offset_minus_4 = 4 - (offset & 3);
-
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
   tmp0 = __byte_perm (        0, append[0], selector);
@@ -2149,7 +2144,6 @@ void append_salt (u32 w0[4], u32 w1[4], u32 w2[4], const u32 append[5], const u3
   tmp3 = __byte_perm (append[2], append[3], selector);
   tmp4 = __byte_perm (append[3], append[4], selector);
   tmp5 = __byte_perm (append[4],         0, selector);
-
   #endif
 
   const u32 div = offset / 4;

@@ -2939,11 +2939,11 @@ void append_0x80_1x16 (u32x w[16], const u32 offset)
 
 void switch_buffer_by_offset_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 offset)
 {
-  #if defined IS_AMD || defined IS_GENERIC
   const int offset_mod_4 = offset & 3;
 
-  const int offset_minus_4 = 4 - offset;
+  const int offset_minus_4 = 4 - offset_mod_4;
 
+  #if defined IS_AMD || defined IS_GENERIC
   switch (offset / 4)
   {
     case  0:
@@ -3469,8 +3469,6 @@ void switch_buffer_by_offset_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4],
   #endif
 
   #ifdef IS_NV
-  const int offset_minus_4 = 4 - (offset % 4);
-
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
   switch (offset / 4)
@@ -3802,7 +3800,7 @@ void switch_buffer_by_offset_carry_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x 
 {
   const int offset_mod_4 = offset & 3;
 
-  const int offset_minus_4 = 4 - offset;
+  const int offset_minus_4 = 4 - offset_mod_4;
 
   switch (offset / 4)
   {
@@ -6184,11 +6182,11 @@ void switch_buffer_by_offset_carry_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x 
 
 void switch_buffer_by_offset_8x4_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32 offset)
 {
-  #if defined IS_AMD || defined IS_GENERIC
   const int offset_mod_4 = offset & 3;
 
-  const int offset_minus_4 = 4 - offset;
+  const int offset_minus_4 = 4 - offset_mod_4;
 
+  #if defined IS_AMD || defined IS_GENERIC
   switch (offset / 4)
   {
     case 0:
@@ -7226,8 +7224,6 @@ void switch_buffer_by_offset_8x4_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3
   #endif
 
   #ifdef IS_NV
-  const int offset_minus_4 = 4 - (offset % 4);
-
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
   switch (offset / 4)
@@ -15044,11 +15040,11 @@ void undo_utf16le_S (const u32 in1[4], const u32 in2[4], u32 out[4])
 
 void switch_buffer_by_offset_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
 {
-  #if defined IS_AMD || defined IS_GENERIC
   const int offset_mod_4 = offset & 3;
 
-  const int offset_minus_4 = 4 - offset;
+  const int offset_minus_4 = 4 - offset_mod_4;
 
+  #if defined IS_AMD || defined IS_GENERIC
   switch (offset / 4)
   {
     case  0:
@@ -15574,8 +15570,6 @@ void switch_buffer_by_offset_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], c
   #endif
 
   #ifdef IS_NV
-  const int offset_minus_4 = 4 - (offset % 4);
-
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
   switch (offset / 4)
@@ -15907,7 +15901,7 @@ void switch_buffer_by_offset_carry_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3
 {
   const int offset_mod_4 = offset & 3;
 
-  const int offset_minus_4 = 4 - offset;
+  const int offset_minus_4 = 4 - offset_mod_4;
 
   switch (offset / 4)
   {
@@ -18289,11 +18283,11 @@ void switch_buffer_by_offset_carry_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3
 
 void switch_buffer_by_offset_8x4_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const u32 offset)
 {
-  #if defined IS_AMD || defined IS_GENERIC
   const int offset_mod_4 = offset & 3;
 
-  const int offset_minus_4 = 4 - offset;
+  const int offset_minus_4 = 4 - offset_mod_4;
 
+  #if defined IS_AMD || defined IS_GENERIC
   switch (offset / 4)
   {
     case 0:
@@ -19331,8 +19325,6 @@ void switch_buffer_by_offset_8x4_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4
   #endif
 
   #ifdef IS_NV
-  const int offset_minus_4 = 4 - (offset % 4);
-
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
   switch (offset / 4)
@@ -25596,11 +25588,11 @@ void switch_buffer_by_offset_8x4_carry_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u3
 
 void switch_buffer_by_offset_1x64_le_S (u32 w[64], const u32 offset)
 {
-  #if defined IS_AMD || defined IS_GENERIC
   const int offset_mod_4 = offset & 3;
 
-  const int offset_minus_4 = 4 - offset;
+  const int offset_minus_4 = 4 - offset_mod_4;
 
+  #if defined IS_AMD || defined IS_GENERIC
   switch (offset / 4)
   {
     case  0:
@@ -32294,8 +32286,6 @@ void switch_buffer_by_offset_1x64_le_S (u32 w[64], const u32 offset)
   #endif
 
   #ifdef IS_NV
-  const int offset_minus_4 = 4 - (offset % 4);
-
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
   switch (offset / 4)

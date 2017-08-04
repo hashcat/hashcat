@@ -114,7 +114,7 @@ void md5_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32
   digest[3] += d;
 }
 
-void memcat16 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append[4])
+void memcat16 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 offset, const u32 append[4])
 {
   u32 tmp0;
   u32 tmp1;
@@ -122,19 +122,18 @@ void memcat16 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const
   u32 tmp3;
   u32 tmp4;
 
+  const int offset_mod_4 = offset & 3;
+
+  const int offset_minus_4 = 4 - offset_mod_4;
+
   #if defined IS_AMD || defined IS_GENERIC
-
-  const int offset_minus_4 = 4 - (block_len & 3);
-
   tmp0 = amd_bytealign (append[0],         0, offset_minus_4);
   tmp1 = amd_bytealign (append[1], append[0], offset_minus_4);
   tmp2 = amd_bytealign (append[2], append[1], offset_minus_4);
   tmp3 = amd_bytealign (append[3], append[2], offset_minus_4);
   tmp4 = amd_bytealign (        0, append[3], offset_minus_4);
 
-  const u32 mod = block_len & 3;
-
-  if (mod == 0)
+  if (offset_mod_4 == 0)
   {
     tmp0 = tmp1;
     tmp1 = tmp2;
@@ -142,13 +141,9 @@ void memcat16 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const
     tmp3 = tmp4;
     tmp4 = 0;
   }
-
   #endif
 
   #ifdef IS_NV
-
-  const int offset_minus_4 = 4 - (block_len & 3);
-
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
   tmp0 = __byte_perm (        0, append[0], selector);
@@ -156,10 +151,9 @@ void memcat16 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const
   tmp2 = __byte_perm (append[1], append[2], selector);
   tmp3 = __byte_perm (append[2], append[3], selector);
   tmp4 = __byte_perm (append[3],         0, selector);
-
   #endif
 
-  const u32 div = block_len / 4;
+  const u32 div = offset / 4;
 
   switch (div)
   {
@@ -226,7 +220,7 @@ void memcat16 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const
   }
 }
 
-void memcat16_x80 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append[4])
+void memcat16_x80 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 offset, const u32 append[4])
 {
   u32 tmp0;
   u32 tmp1;
@@ -234,19 +228,18 @@ void memcat16_x80 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], c
   u32 tmp3;
   u32 tmp4;
 
+  const int offset_mod_4 = offset & 3;
+
+  const int offset_minus_4 = 4 - offset_mod_4;
+
   #if defined IS_AMD || defined IS_GENERIC
-
-  const int offset_minus_4 = 4 - (block_len & 3);
-
   tmp0 = amd_bytealign (append[0],         0, offset_minus_4);
   tmp1 = amd_bytealign (append[1], append[0], offset_minus_4);
   tmp2 = amd_bytealign (append[2], append[1], offset_minus_4);
   tmp3 = amd_bytealign (append[3], append[2], offset_minus_4);
   tmp4 = amd_bytealign (     0x80, append[3], offset_minus_4);
 
-  const u32 mod = block_len & 3;
-
-  if (mod == 0)
+  if (offset_mod_4 == 0)
   {
     tmp0 = tmp1;
     tmp1 = tmp2;
@@ -254,13 +247,9 @@ void memcat16_x80 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], c
     tmp3 = tmp4;
     tmp4 = 0x80;
   }
-
   #endif
 
   #ifdef IS_NV
-
-  const int offset_minus_4 = 4 - (block_len & 3);
-
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
   tmp0 = __byte_perm (        0, append[0], selector);
@@ -268,10 +257,9 @@ void memcat16_x80 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], c
   tmp2 = __byte_perm (append[1], append[2], selector);
   tmp3 = __byte_perm (append[2], append[3], selector);
   tmp4 = __byte_perm (append[3],      0x80, selector);
-
   #endif
 
-  const u32 div = block_len / 4;
+  const u32 div = offset / 4;
 
   switch (div)
   {
@@ -338,44 +326,38 @@ void memcat16_x80 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], c
   }
 }
 
-void memcat8 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append[2])
+void memcat8 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 offset, const u32 append[2])
 {
   u32 tmp0;
   u32 tmp1;
   u32 tmp2;
 
+  const int offset_mod_4 = offset & 3;
+
+  const int offset_minus_4 = 4 - offset_mod_4;
+
   #if defined IS_AMD || defined IS_GENERIC
-
-  const int offset_minus_4 = 4 - (block_len & 3);
-
   tmp0 = amd_bytealign (append[0],         0, offset_minus_4);
   tmp1 = amd_bytealign (append[1], append[0], offset_minus_4);
   tmp2 = amd_bytealign (        0, append[1], offset_minus_4);
 
-  const u32 mod = block_len & 3;
-
-  if (mod == 0)
+  if (offset_mod_4 == 0)
   {
     tmp0 = tmp1;
     tmp1 = tmp2;
     tmp2 = 0;
   }
-
   #endif
 
   #ifdef IS_NV
-
-  const int offset_minus_4 = 4 - (block_len & 3);
-
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
   tmp0 = __byte_perm (        0, append[0], selector);
   tmp1 = __byte_perm (append[0], append[1], selector);
   tmp2 = __byte_perm (append[1],         0, selector);
-
   #endif
 
-  const u32 div = block_len / 4;
+  const u32 div = offset / 4;
 
   switch (div)
   {
