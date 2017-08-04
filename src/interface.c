@@ -25111,6 +25111,8 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                   break;
       case 10300: salt->salt_len = 12;
                   break;
+      case 11000: salt->salt_len = 56;
+                  break;
       case 11500: salt->salt_len = 4;
                   break;
       case 11600: salt->salt_len = 4;
