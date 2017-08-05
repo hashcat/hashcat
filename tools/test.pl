@@ -3545,9 +3545,17 @@ sub passthrough
 
       $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, $salt_len));
     }
-    elsif ($mode == 9400 || $mode == 9500 || $mode == 9600 || $mode == 9700 || $mode == 9800)
+    elsif ($mode == 9400 || $mode == 9500 || $mode == 9600)
     {
       next if length ($word_buf) > 19;
+
+      my $salt_len = 32;
+
+      $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, $salt_len));
+    }
+    elsif ($mode == 9700 || $mode == 9800)
+    {
+      next if length ($word_buf) > 15;
 
       my $salt_len = 32;
 
@@ -4326,11 +4334,27 @@ sub single
         }
       }
     }
-    elsif ($mode == 9400 || $mode == 9500 || $mode == 9600 || $mode == 9700 || $mode == 9800)
+    elsif ($mode == 9400 || $mode == 9500 || $mode == 9600)
     {
       my $salt_len = 32;
 
       for (my $i = 1; $i < 20; $i++)
+      {
+        if ($len != 0)
+        {
+          rnd ($mode, $len, $salt_len);
+        }
+        else
+        {
+          rnd ($mode, $i, $salt_len);
+        }
+      }
+    }
+    elsif ($mode == 9700 || $mode == 9800)
+    {
+      my $salt_len = 32;
+
+      for (my $i = 1; $i < 16; $i++)
       {
         if ($len != 0)
         {
