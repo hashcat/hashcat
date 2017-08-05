@@ -94,6 +94,7 @@ static char ST_HASH_01440[] = "84ebe1bc3d59919a8c4f9337d66bd163661586c828b24b806
 static char ST_HASH_01441[] = "$episerver$*1*NDg1NTIz*8BFCg/YJBAuZs/wjbH3OWKe69BLr5Lao26ybpnD48Zk";
 static char ST_HASH_01450[] = "b435ffbacea34d5eb0dbc4d69a92f0152f2cf4cd364d34c2ece322ca22d8b334:21217";
 static char ST_HASH_01460[] = "8b9472281c36c3a693703de0e0f1ffab8fc0ecdd3bc5ead04c76dd74ef431e49:70108387805";
+static char ST_HASH_01470[] = "0cc1b58a543f372327aa0281e97ab56e345267ee46feabf7709515debb7ec43c";
 //static char ST_HASH_01500[] = "8133vc.5rieNk";
 static char ST_HASH_01600[] = "$apr1$62722340$zGjeAwVP2KwY6MtumUI1N/";
 static char ST_HASH_01700[] = "82a9dda829eb7f8ffe9fbe49e45d47d2dad9664fbb7adf72492e3c81ebd3e29134d9bc12212bf83c6840f10e8246b9db54a4859b7ccd0123d86e5872c1e5082f";
@@ -359,6 +360,7 @@ static const char HT_01430[] = "sha256(utf16le($pass).$salt)";
 static const char HT_01440[] = "sha256($salt.utf16le($pass))";
 static const char HT_01450[] = "HMAC-SHA256 (key = $pass)";
 static const char HT_01460[] = "HMAC-SHA256 (key = $salt)";
+static const char HT_01470[] = "sha256(sha256($pass))";
 static const char HT_01500[] = "descrypt, DES (Unix), Traditional DES";
 static const char HT_01600[] = "Apache $apr1$ MD5, md5apr1, MD5 (APR)";
 static const char HT_01700[] = "SHA-512";
@@ -15852,6 +15854,7 @@ char *strhashtype (const u32 hash_mode)
     case  1441: return ((char *) HT_01441);
     case  1450: return ((char *) HT_01450);
     case  1460: return ((char *) HT_01460);
+    case  1470: return ((char *) HT_01470);
     case  1500: return ((char *) HT_01500);
     case  1600: return ((char *) HT_01600);
     case  1700: return ((char *) HT_01700);
@@ -20829,6 +20832,28 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 6;
                  hashconfig->st_hash        = ST_HASH_01460;
+                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
+                 break;
+
+    case  1470:  hashconfig->hash_type      = HASH_TYPE_SHA256;
+                 hashconfig->salt_type      = SALT_TYPE_NONE;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
+                                            | OPTS_TYPE_PT_ADD80
+                                            | OPTS_TYPE_PT_ADDBITS15;
+                 hashconfig->kern_type      = KERN_TYPE_SHA2566;
+                 hashconfig->dgst_size      = DGST_SIZE_4_8;
+                 hashconfig->parse_func     = sha256_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_PRECOMPUTE_INIT
+                                            | OPTI_TYPE_PRECOMPUTE_MERKLE
+                                            | OPTI_TYPE_EARLY_SKIP
+                                            | OPTI_TYPE_NOT_SALTED;
+                 hashconfig->dgst_pos0      = 3;
+                 hashconfig->dgst_pos1      = 7;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 6;
+                 hashconfig->st_hash        = ST_HASH_01470;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
