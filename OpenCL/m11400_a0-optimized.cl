@@ -27,76 +27,79 @@
 #define uint_to_hex_lower8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7], l_bin2asc[(i).s8], l_bin2asc[(i).s9], l_bin2asc[(i).sa], l_bin2asc[(i).sb], l_bin2asc[(i).sc], l_bin2asc[(i).sd], l_bin2asc[(i).se], l_bin2asc[(i).sf])
 #endif
 
-u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x append0[4], const u32x append1[4], const u32x append2[4], const u32x append3[4], const u32 append_len)
+u32 memcat32 (u32x block0[16], u32x block1[16], const u32 offset, const u32x append0[4], const u32x append1[4], const u32x append2[4], const u32x append3[4], const u32 append_len)
 {
-  const u32 mod = block_len & 3;
-  const u32 div = block_len / 4;
+  const u32 mod = offset & 3;
+  const u32 div = offset / 4;
 
   #if defined IS_AMD || defined IS_GENERIC
   const int offset_minus_4 = 4 - mod;
 
+  u32x append00 = swap32 (append0[0]);
+  u32x append01 = swap32 (append0[1]);
+  u32x append02 = swap32 (append0[2]);
+  u32x append03 = swap32 (append0[3]);
+  u32x append10 = swap32 (append1[0]);
+  u32x append11 = swap32 (append1[1]);
+  u32x append12 = swap32 (append1[2]);
+  u32x append13 = swap32 (append1[3]);
+  u32x append20 = swap32 (append2[0]);
+  u32x append21 = swap32 (append2[1]);
+  u32x append22 = swap32 (append2[2]);
+  u32x append23 = swap32 (append2[3]);
+  u32x append30 = swap32 (append3[0]);
+  u32x append31 = swap32 (append3[1]);
+  u32x append32 = swap32 (append3[2]);
+  u32x append33 = swap32 (append3[3]);
+
   u32x append0_t[4];
-
-  append0_t[0] = amd_bytealign (append0[0],          0, offset_minus_4);
-  append0_t[1] = amd_bytealign (append0[1], append0[0], offset_minus_4);
-  append0_t[2] = amd_bytealign (append0[2], append0[1], offset_minus_4);
-  append0_t[3] = amd_bytealign (append0[3], append0[2], offset_minus_4);
-
   u32x append1_t[4];
-
-  append1_t[0] = amd_bytealign (append1[0], append0[3], offset_minus_4);
-  append1_t[1] = amd_bytealign (append1[1], append1[0], offset_minus_4);
-  append1_t[2] = amd_bytealign (append1[2], append1[1], offset_minus_4);
-  append1_t[3] = amd_bytealign (append1[3], append1[2], offset_minus_4);
-
   u32x append2_t[4];
-
-  append2_t[0] = amd_bytealign (append2[0], append1[3], offset_minus_4);
-  append2_t[1] = amd_bytealign (append2[1], append2[0], offset_minus_4);
-  append2_t[2] = amd_bytealign (append2[2], append2[1], offset_minus_4);
-  append2_t[3] = amd_bytealign (append2[3], append2[2], offset_minus_4);
-
   u32x append3_t[4];
-
-  append3_t[0] = amd_bytealign (append3[0], append2[3], offset_minus_4);
-  append3_t[1] = amd_bytealign (append3[1], append3[0], offset_minus_4);
-  append3_t[2] = amd_bytealign (append3[2], append3[1], offset_minus_4);
-  append3_t[3] = amd_bytealign (append3[3], append3[2], offset_minus_4);
-
   u32x append4_t[4];
 
-  append4_t[0] = amd_bytealign (         0, append3[3], offset_minus_4);
+  append0_t[0] = amd_bytealign (       0, append00, offset);
+  append0_t[1] = amd_bytealign (append00, append01, offset);
+  append0_t[2] = amd_bytealign (append01, append02, offset);
+  append0_t[3] = amd_bytealign (append02, append03, offset);
+  append1_t[0] = amd_bytealign (append03, append10, offset);
+  append1_t[1] = amd_bytealign (append10, append11, offset);
+  append1_t[2] = amd_bytealign (append11, append12, offset);
+  append1_t[3] = amd_bytealign (append12, append13, offset);
+  append2_t[0] = amd_bytealign (append13, append20, offset);
+  append2_t[1] = amd_bytealign (append20, append21, offset);
+  append2_t[2] = amd_bytealign (append21, append22, offset);
+  append2_t[3] = amd_bytealign (append22, append23, offset);
+  append3_t[0] = amd_bytealign (append23, append30, offset);
+  append3_t[1] = amd_bytealign (append30, append31, offset);
+  append3_t[2] = amd_bytealign (append31, append32, offset);
+  append3_t[3] = amd_bytealign (append32, append33, offset);
+  append4_t[0] = amd_bytealign (append33,        0, offset);
   append4_t[1] = 0;
   append4_t[2] = 0;
   append4_t[3] = 0;
 
-  if (mod == 0)
-  {
-    append0_t[0] = append0[0];
-    append0_t[1] = append0[1];
-    append0_t[2] = append0[2];
-    append0_t[3] = append0[3];
+  append0_t[0] = swap32 (append0_t[0]);
+  append0_t[1] = swap32 (append0_t[1]);
+  append0_t[2] = swap32 (append0_t[2]);
+  append0_t[3] = swap32 (append0_t[3]);
+  append1_t[0] = swap32 (append1_t[0]);
+  append1_t[1] = swap32 (append1_t[1]);
+  append1_t[2] = swap32 (append1_t[2]);
+  append1_t[3] = swap32 (append1_t[3]);
+  append2_t[0] = swap32 (append2_t[0]);
+  append2_t[1] = swap32 (append2_t[1]);
+  append2_t[2] = swap32 (append2_t[2]);
+  append2_t[3] = swap32 (append2_t[3]);
+  append3_t[0] = swap32 (append3_t[0]);
+  append3_t[1] = swap32 (append3_t[1]);
+  append3_t[2] = swap32 (append3_t[2]);
+  append3_t[3] = swap32 (append3_t[3]);
+  append4_t[0] = swap32 (append4_t[0]);
+  append4_t[1] = swap32 (append4_t[1]);
+  append4_t[2] = swap32 (append4_t[2]);
+  append4_t[3] = swap32 (append4_t[3]);
 
-    append1_t[0] = append1[0];
-    append1_t[1] = append1[1];
-    append1_t[2] = append1[2];
-    append1_t[3] = append1[3];
-
-    append2_t[0] = append2[0];
-    append2_t[1] = append2[1];
-    append2_t[2] = append2[2];
-    append2_t[3] = append2[3];
-
-    append3_t[0] = append3[0];
-    append3_t[1] = append3[1];
-    append3_t[2] = append3[2];
-    append3_t[3] = append3[3];
-
-    append4_t[0] = 0;
-    append4_t[1] = 0;
-    append4_t[2] = 0;
-    append4_t[3] = 0;
-  }
   #endif
 
   #ifdef IS_NV
@@ -105,40 +108,50 @@ u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x 
 
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
+  u32x append00 = append0[0];
+  u32x append01 = append0[1];
+  u32x append02 = append0[2];
+  u32x append03 = append0[3];
+  u32x append10 = append1[0];
+  u32x append11 = append1[1];
+  u32x append12 = append1[2];
+  u32x append13 = append1[3];
+  u32x append20 = append2[0];
+  u32x append21 = append2[1];
+  u32x append22 = append2[2];
+  u32x append23 = append2[3];
+  u32x append30 = append3[0];
+  u32x append31 = append3[1];
+  u32x append32 = append3[2];
+  u32x append33 = append3[3];
+
   u32x append0_t[4];
-
-  append0_t[0] = __byte_perm (         0, append0[0], selector);
-  append0_t[1] = __byte_perm (append0[0], append0[1], selector);
-  append0_t[2] = __byte_perm (append0[1], append0[2], selector);
-  append0_t[3] = __byte_perm (append0[2], append0[3], selector);
-
   u32x append1_t[4];
-
-  append1_t[0] = __byte_perm (append0[3], append1[0], selector);
-  append1_t[1] = __byte_perm (append1[0], append1[1], selector);
-  append1_t[2] = __byte_perm (append1[1], append1[2], selector);
-  append1_t[3] = __byte_perm (append1[2], append1[3], selector);
-
   u32x append2_t[4];
-
-  append2_t[0] = __byte_perm (append1[3], append2[0], selector);
-  append2_t[1] = __byte_perm (append2[0], append2[1], selector);
-  append2_t[2] = __byte_perm (append2[1], append2[2], selector);
-  append2_t[3] = __byte_perm (append2[2], append2[3], selector);
-
   u32x append3_t[4];
-
-  append3_t[0] = __byte_perm (append2[3], append3[0], selector);
-  append3_t[1] = __byte_perm (append3[0], append3[1], selector);
-  append3_t[2] = __byte_perm (append3[1], append3[2], selector);
-  append3_t[3] = __byte_perm (append3[2], append3[3], selector);
-
   u32x append4_t[4];
 
-  append4_t[0] = __byte_perm (append3[3],          0, selector);
+  append0_t[0] = __byte_perm (       0, append00, selector);
+  append0_t[1] = __byte_perm (append00, append01, selector);
+  append0_t[2] = __byte_perm (append01, append02, selector);
+  append0_t[3] = __byte_perm (append02, append03, selector);
+  append1_t[0] = __byte_perm (append03, append10, selector);
+  append1_t[1] = __byte_perm (append10, append11, selector);
+  append1_t[2] = __byte_perm (append11, append12, selector);
+  append1_t[3] = __byte_perm (append12, append13, selector);
+  append2_t[0] = __byte_perm (append13, append20, selector);
+  append2_t[1] = __byte_perm (append20, append21, selector);
+  append2_t[2] = __byte_perm (append21, append22, selector);
+  append2_t[3] = __byte_perm (append22, append23, selector);
+  append3_t[0] = __byte_perm (append23, append30, selector);
+  append3_t[1] = __byte_perm (append30, append31, selector);
+  append3_t[2] = __byte_perm (append31, append32, selector);
+  append3_t[3] = __byte_perm (append32, append33, selector);
+  append4_t[0] = __byte_perm (append33,        0, selector);
   append4_t[1] = 0;
   append4_t[2] = 0;
   append4_t[3] = 0;
+
   #endif
 
   switch (div)
@@ -147,22 +160,18 @@ u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x 
               block0[ 1]  = append0_t[1];
               block0[ 2]  = append0_t[2];
               block0[ 3]  = append0_t[3];
-
               block0[ 4]  = append1_t[0];
               block0[ 5]  = append1_t[1];
               block0[ 6]  = append1_t[2];
               block0[ 7]  = append1_t[3];
-
               block0[ 8]  = append2_t[0];
               block0[ 9]  = append2_t[1];
               block0[10]  = append2_t[2];
               block0[11]  = append2_t[3];
-
               block0[12]  = append3_t[0];
               block0[13]  = append3_t[1];
               block0[14]  = append3_t[2];
               block0[15]  = append3_t[3];
-
               block1[ 0]  = append4_t[0];
               block1[ 1]  = append4_t[1];
               block1[ 2]  = append4_t[2];
@@ -173,22 +182,18 @@ u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x 
               block0[ 2]  = append0_t[1];
               block0[ 3]  = append0_t[2];
               block0[ 4]  = append0_t[3];
-
               block0[ 5]  = append1_t[0];
               block0[ 6]  = append1_t[1];
               block0[ 7]  = append1_t[2];
               block0[ 8]  = append1_t[3];
-
               block0[ 9]  = append2_t[0];
               block0[10]  = append2_t[1];
               block0[11]  = append2_t[2];
               block0[12]  = append2_t[3];
-
               block0[13]  = append3_t[0];
               block0[14]  = append3_t[1];
               block0[15]  = append3_t[2];
               block1[ 0]  = append3_t[3];
-
               block1[ 1]  = append4_t[0];
               block1[ 2]  = append4_t[1];
               block1[ 3]  = append4_t[2];
@@ -199,22 +204,18 @@ u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x 
               block0[ 3]  = append0_t[1];
               block0[ 4]  = append0_t[2];
               block0[ 5]  = append0_t[3];
-
               block0[ 6]  = append1_t[0];
               block0[ 7]  = append1_t[1];
               block0[ 8]  = append1_t[2];
               block0[ 9]  = append1_t[3];
-
               block0[10]  = append2_t[0];
               block0[11]  = append2_t[1];
               block0[12]  = append2_t[2];
               block0[13]  = append2_t[3];
-
               block0[14]  = append3_t[0];
               block0[15]  = append3_t[1];
               block1[ 0]  = append3_t[2];
               block1[ 1]  = append3_t[3];
-
               block1[ 2]  = append4_t[0];
               block1[ 3]  = append4_t[1];
               block1[ 4]  = append4_t[2];
@@ -225,22 +226,18 @@ u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x 
               block0[ 4]  = append0_t[1];
               block0[ 5]  = append0_t[2];
               block0[ 6]  = append0_t[3];
-
               block0[ 7]  = append1_t[0];
               block0[ 8]  = append1_t[1];
               block0[ 9]  = append1_t[2];
               block0[10]  = append1_t[3];
-
               block0[11]  = append2_t[0];
               block0[12]  = append2_t[1];
               block0[13]  = append2_t[2];
               block0[14]  = append2_t[3];
-
               block0[15]  = append3_t[0];
               block1[ 0]  = append3_t[1];
               block1[ 1]  = append3_t[2];
               block1[ 2]  = append3_t[3];
-
               block1[ 3]  = append4_t[0];
               block1[ 4]  = append4_t[1];
               block1[ 5]  = append4_t[2];
@@ -251,22 +248,18 @@ u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x 
               block0[ 5]  = append0_t[1];
               block0[ 6]  = append0_t[2];
               block0[ 7]  = append0_t[3];
-
               block0[ 8]  = append1_t[0];
               block0[ 9]  = append1_t[1];
               block0[10]  = append1_t[2];
               block0[11]  = append1_t[3];
-
               block0[12]  = append2_t[0];
               block0[13]  = append2_t[1];
               block0[14]  = append2_t[2];
               block0[15]  = append2_t[3];
-
               block1[ 0]  = append3_t[0];
               block1[ 1]  = append3_t[1];
               block1[ 2]  = append3_t[2];
               block1[ 3]  = append3_t[3];
-
               block1[ 4]  = append4_t[0];
               block1[ 5]  = append4_t[1];
               block1[ 6]  = append4_t[2];
@@ -277,22 +270,18 @@ u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x 
               block0[ 6]  = append0_t[1];
               block0[ 7]  = append0_t[2];
               block0[ 8]  = append0_t[3];
-
               block0[ 9]  = append1_t[0];
               block0[10]  = append1_t[1];
               block0[11]  = append1_t[2];
               block0[12]  = append1_t[3];
-
               block0[13]  = append2_t[0];
               block0[14]  = append2_t[1];
               block0[15]  = append2_t[2];
               block1[ 0]  = append2_t[3];
-
               block1[ 1]  = append3_t[0];
               block1[ 2]  = append3_t[1];
               block1[ 3]  = append3_t[2];
               block1[ 4]  = append3_t[3];
-
               block1[ 5]  = append4_t[0];
               block1[ 6]  = append4_t[1];
               block1[ 7]  = append4_t[2];
@@ -303,22 +292,18 @@ u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x 
               block0[ 7]  = append0_t[1];
               block0[ 8]  = append0_t[2];
               block0[ 9]  = append0_t[3];
-
               block0[10]  = append1_t[0];
               block0[11]  = append1_t[1];
               block0[12]  = append1_t[2];
               block0[13]  = append1_t[3];
-
               block0[14]  = append2_t[0];
               block0[15]  = append2_t[1];
               block1[ 0]  = append2_t[2];
               block1[ 1]  = append2_t[3];
-
               block1[ 2]  = append3_t[0];
               block1[ 3]  = append3_t[1];
               block1[ 4]  = append3_t[2];
               block1[ 5]  = append3_t[3];
-
               block1[ 6]  = append4_t[0];
               block1[ 7]  = append4_t[1];
               block1[ 8]  = append4_t[2];
@@ -329,22 +314,18 @@ u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x 
               block0[ 8]  = append0_t[1];
               block0[ 9]  = append0_t[2];
               block0[10]  = append0_t[3];
-
               block0[11]  = append1_t[0];
               block0[12]  = append1_t[1];
               block0[13]  = append1_t[2];
               block0[14]  = append1_t[3];
-
               block0[15]  = append2_t[0];
               block1[ 0]  = append2_t[1];
               block1[ 1]  = append2_t[2];
               block1[ 2]  = append2_t[3];
-
               block1[ 3]  = append3_t[0];
               block1[ 4]  = append3_t[1];
               block1[ 5]  = append3_t[2];
               block1[ 6]  = append3_t[3];
-
               block1[ 7]  = append4_t[0];
               block1[ 8]  = append4_t[1];
               block1[ 9]  = append4_t[2];
@@ -355,22 +336,18 @@ u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x 
               block0[ 9]  = append0_t[1];
               block0[10]  = append0_t[2];
               block0[11]  = append0_t[3];
-
               block0[12]  = append1_t[0];
               block0[13]  = append1_t[1];
               block0[14]  = append1_t[2];
               block0[15]  = append1_t[3];
-
               block1[ 0]  = append2_t[0];
               block1[ 1]  = append2_t[1];
               block1[ 2]  = append2_t[2];
               block1[ 3]  = append2_t[3];
-
               block1[ 4]  = append3_t[0];
               block1[ 5]  = append3_t[1];
               block1[ 6]  = append3_t[2];
               block1[ 7]  = append3_t[3];
-
               block1[ 8]  = append4_t[0];
               block1[ 9]  = append4_t[1];
               block1[10]  = append4_t[2];
@@ -381,22 +358,18 @@ u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x 
               block0[10]  = append0_t[1];
               block0[11]  = append0_t[2];
               block0[12]  = append0_t[3];
-
               block0[13]  = append1_t[0];
               block0[14]  = append1_t[1];
               block0[15]  = append1_t[2];
               block1[ 0]  = append1_t[3];
-
               block1[ 1]  = append2_t[0];
               block1[ 2]  = append2_t[1];
               block1[ 3]  = append2_t[2];
               block1[ 4]  = append2_t[3];
-
               block1[ 5]  = append3_t[0];
               block1[ 6]  = append3_t[1];
               block1[ 7]  = append3_t[2];
               block1[ 8]  = append3_t[3];
-
               block1[ 9]  = append4_t[0];
               block1[10]  = append4_t[1];
               block1[11]  = append4_t[2];
@@ -407,22 +380,18 @@ u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x 
               block0[11]  = append0_t[1];
               block0[12]  = append0_t[2];
               block0[13]  = append0_t[3];
-
               block0[14]  = append1_t[0];
               block0[15]  = append1_t[1];
               block1[ 0]  = append1_t[2];
               block1[ 1]  = append1_t[3];
-
               block1[ 2]  = append2_t[0];
               block1[ 3]  = append2_t[1];
               block1[ 4]  = append2_t[2];
               block1[ 5]  = append2_t[3];
-
               block1[ 6]  = append3_t[0];
               block1[ 7]  = append3_t[1];
               block1[ 8]  = append3_t[2];
               block1[ 9]  = append3_t[3];
-
               block1[10]  = append4_t[0];
               block1[11]  = append4_t[1];
               block1[12]  = append4_t[2];
@@ -433,22 +402,18 @@ u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x 
               block0[12]  = append0_t[1];
               block0[13]  = append0_t[2];
               block0[14]  = append0_t[3];
-
               block0[15]  = append1_t[0];
               block1[ 0]  = append1_t[1];
               block1[ 1]  = append1_t[2];
               block1[ 2]  = append1_t[3];
-
               block1[ 3]  = append2_t[0];
               block1[ 4]  = append2_t[1];
               block1[ 5]  = append2_t[2];
               block1[ 6]  = append2_t[3];
-
               block1[ 7]  = append3_t[0];
               block1[ 8]  = append3_t[1];
               block1[ 9]  = append3_t[2];
               block1[10]  = append3_t[3];
-
               block1[11]  = append4_t[0];
               block1[12]  = append4_t[1];
               block1[13]  = append4_t[2];
@@ -459,22 +424,18 @@ u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x 
               block0[13]  = append0_t[1];
               block0[14]  = append0_t[2];
               block0[15]  = append0_t[3];
-
               block1[ 0]  = append1_t[0];
               block1[ 1]  = append1_t[1];
               block1[ 2]  = append1_t[2];
               block1[ 3]  = append1_t[3];
-
               block1[ 4]  = append2_t[0];
               block1[ 5]  = append2_t[1];
               block1[ 6]  = append2_t[2];
               block1[ 7]  = append2_t[3];
-
               block1[ 8]  = append3_t[0];
               block1[ 9]  = append3_t[1];
               block1[10]  = append3_t[2];
               block1[11]  = append3_t[3];
-
               block1[12]  = append4_t[0];
               block1[13]  = append4_t[1];
               block1[14]  = append4_t[2];
@@ -485,22 +446,18 @@ u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x 
               block0[14]  = append0_t[1];
               block0[15]  = append0_t[2];
               block1[ 0]  = append0_t[3];
-
               block1[ 1]  = append1_t[0];
               block1[ 2]  = append1_t[1];
               block1[ 3]  = append1_t[2];
               block1[ 4]  = append1_t[3];
-
               block1[ 5]  = append2_t[0];
               block1[ 6]  = append2_t[1];
               block1[ 7]  = append2_t[2];
               block1[ 8]  = append2_t[3];
-
               block1[ 9]  = append3_t[0];
               block1[10]  = append3_t[1];
               block1[11]  = append3_t[2];
               block1[12]  = append3_t[3];
-
               block1[13]  = append4_t[0];
               block1[14]  = append4_t[1];
               block1[15]  = append4_t[2];
@@ -510,22 +467,18 @@ u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x 
               block0[15]  = append0_t[1];
               block1[ 0]  = append0_t[2];
               block1[ 1]  = append0_t[3];
-
               block1[ 2]  = append1_t[0];
               block1[ 3]  = append1_t[1];
               block1[ 4]  = append1_t[2];
               block1[ 5]  = append1_t[3];
-
               block1[ 6]  = append2_t[0];
               block1[ 7]  = append2_t[1];
               block1[ 8]  = append2_t[2];
               block1[ 9]  = append2_t[3];
-
               block1[10]  = append3_t[0];
               block1[11]  = append3_t[1];
               block1[12]  = append3_t[2];
               block1[13]  = append3_t[3];
-
               block1[14]  = append4_t[0];
               block1[15]  = append4_t[1];
               break;
@@ -534,22 +487,18 @@ u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x 
               block1[ 0]  = append0_t[1];
               block1[ 1]  = append0_t[2];
               block1[ 2]  = append0_t[3];
-
               block1[ 3]  = append1_t[1];
               block1[ 4]  = append1_t[2];
               block1[ 5]  = append1_t[3];
               block1[ 6]  = append1_t[0];
-
               block1[ 7]  = append2_t[0];
               block1[ 8]  = append2_t[1];
               block1[ 9]  = append2_t[2];
               block1[10]  = append2_t[3];
-
               block1[11]  = append3_t[0];
               block1[12]  = append3_t[1];
               block1[13]  = append3_t[2];
               block1[14]  = append3_t[3];
-
               block1[15]  = append4_t[0];
               break;
 
@@ -557,17 +506,14 @@ u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x 
               block1[ 1]  = append0_t[1];
               block1[ 2]  = append0_t[2];
               block1[ 3]  = append0_t[3];
-
               block1[ 4]  = append1_t[0];
               block1[ 5]  = append1_t[1];
               block1[ 6]  = append1_t[2];
               block1[ 7]  = append1_t[3];
-
               block1[ 8]  = append2_t[0];
               block1[ 9]  = append2_t[1];
               block1[10]  = append2_t[2];
               block1[11]  = append2_t[3];
-
               block1[12]  = append3_t[0];
               block1[13]  = append3_t[1];
               block1[14]  = append3_t[2];
@@ -578,17 +524,14 @@ u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x 
               block1[ 2]  = append0_t[1];
               block1[ 3]  = append0_t[2];
               block1[ 4]  = append0_t[3];
-
               block1[ 5]  = append1_t[0];
               block1[ 6]  = append1_t[1];
               block1[ 7]  = append1_t[2];
               block1[ 8]  = append1_t[3];
-
               block1[ 9]  = append2_t[0];
               block1[10]  = append2_t[1];
               block1[11]  = append2_t[2];
               block1[12]  = append2_t[3];
-
               block1[13]  = append3_t[0];
               block1[14]  = append3_t[1];
               block1[15]  = append3_t[2];
@@ -598,17 +541,14 @@ u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x 
               block1[ 3]  = append0_t[1];
               block1[ 4]  = append0_t[2];
               block1[ 5]  = append0_t[3];
-
               block1[ 6]  = append1_t[0];
               block1[ 7]  = append1_t[1];
               block1[ 8]  = append1_t[2];
               block1[ 9]  = append1_t[3];
-
               block1[10]  = append2_t[0];
               block1[11]  = append2_t[1];
               block1[12]  = append2_t[2];
               block1[13]  = append2_t[3];
-
               block1[14]  = append3_t[0];
               block1[15]  = append3_t[1];
               break;
@@ -617,17 +557,14 @@ u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x 
               block1[ 4]  = append0_t[1];
               block1[ 5]  = append0_t[2];
               block1[ 6]  = append0_t[3];
-
               block1[ 7]  = append1_t[0];
               block1[ 8]  = append1_t[1];
               block1[ 9]  = append1_t[2];
               block1[10]  = append1_t[3];
-
               block1[11]  = append2_t[0];
               block1[12]  = append2_t[1];
               block1[13]  = append2_t[2];
               block1[14]  = append2_t[3];
-
               block1[15]  = append3_t[0];
               break;
 
@@ -635,12 +572,10 @@ u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x 
               block1[ 5]  = append0_t[1];
               block1[ 6]  = append0_t[2];
               block1[ 7]  = append0_t[3];
-
               block1[ 8]  = append1_t[0];
               block1[ 9]  = append1_t[1];
               block1[10]  = append1_t[2];
               block1[11]  = append1_t[3];
-
               block1[12]  = append2_t[0];
               block1[13]  = append2_t[1];
               block1[14]  = append2_t[2];
@@ -651,12 +586,10 @@ u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x 
               block1[ 6]  = append0_t[1];
               block1[ 7]  = append0_t[2];
               block1[ 8]  = append0_t[3];
-
               block1[ 9]  = append1_t[0];
               block1[10]  = append1_t[1];
               block1[11]  = append1_t[2];
               block1[12]  = append1_t[3];
-
               block1[13]  = append2_t[0];
               block1[14]  = append2_t[1];
               block1[15]  = append2_t[2];
@@ -666,12 +599,10 @@ u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x 
               block1[ 7]  = append0_t[1];
               block1[ 8]  = append0_t[2];
               block1[ 9]  = append0_t[3];
-
               block1[10]  = append1_t[0];
               block1[11]  = append1_t[1];
               block1[12]  = append1_t[2];
               block1[13]  = append1_t[3];
-
               block1[14]  = append2_t[0];
               block1[15]  = append2_t[1];
               break;
@@ -680,12 +611,10 @@ u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x 
               block1[ 8]  = append0_t[1];
               block1[ 9]  = append0_t[2];
               block1[10]  = append0_t[3];
-
               block1[11]  = append1_t[0];
               block1[12]  = append1_t[1];
               block1[13]  = append1_t[2];
               block1[14]  = append1_t[3];
-
               block1[15]  = append2_t[0];
               break;
 
@@ -693,7 +622,6 @@ u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x 
               block1[ 9]  = append0_t[1];
               block1[10]  = append0_t[2];
               block1[11]  = append0_t[3];
-
               block1[12]  = append1_t[0];
               block1[13]  = append1_t[1];
               block1[14]  = append1_t[2];
@@ -704,7 +632,6 @@ u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x 
               block1[10]  = append0_t[1];
               block1[11]  = append0_t[2];
               block1[12]  = append0_t[3];
-
               block1[13]  = append1_t[0];
               block1[14]  = append1_t[1];
               block1[15]  = append1_t[2];
@@ -714,7 +641,6 @@ u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x 
               block1[11]  = append0_t[1];
               block1[12]  = append0_t[2];
               block1[13]  = append0_t[3];
-
               block1[14]  = append1_t[0];
               block1[15]  = append1_t[1];
               break;
@@ -723,7 +649,6 @@ u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x 
               block1[12]  = append0_t[1];
               block1[13]  = append0_t[2];
               block1[14]  = append0_t[3];
-
               block1[15]  = append1_t[0];
               break;
 
@@ -743,7 +668,7 @@ u32 memcat32 (u32x block0[16], u32x block1[16], const u32 block_len, const u32x 
               break;
   }
 
-  u32 new_len = block_len + append_len;
+  u32 new_len = offset + append_len;
 
   return new_len;
 }

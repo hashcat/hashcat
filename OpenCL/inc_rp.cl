@@ -760,7 +760,6 @@ void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32 src_l0
 
   const int offset_minus_4 = 4 - offset_mod_4;
 
-  #if defined IS_AMD || defined IS_GENERIC
   u32 s0 = 0;
   u32 s1 = 0;
   u32 s2 = 0;
@@ -769,64 +768,69 @@ void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32 src_l0
   u32 s5 = 0;
   u32 s6 = 0;
   u32 s7 = 0;
-  u32 s8 = 0;
+
+  #if defined IS_AMD || defined IS_GENERIC
+  const u32 src_r00 = swap32_S (src_r0[0]);
+  const u32 src_r01 = swap32_S (src_r0[1]);
+  const u32 src_r02 = swap32_S (src_r0[2]);
+  const u32 src_r03 = swap32_S (src_r0[3]);
+  const u32 src_r10 = swap32_S (src_r1[0]);
+  const u32 src_r11 = swap32_S (src_r1[1]);
+  const u32 src_r12 = swap32_S (src_r1[2]);
+  const u32 src_r13 = swap32_S (src_r1[3]);
 
   switch (offset / 4)
   {
     case 0:
-      s8 = amd_bytealign_S (        0, src_r1[3], offset_minus_4);
-      s7 = amd_bytealign_S (src_r1[3], src_r1[2], offset_minus_4);
-      s6 = amd_bytealign_S (src_r1[2], src_r1[1], offset_minus_4);
-      s5 = amd_bytealign_S (src_r1[1], src_r1[0], offset_minus_4);
-      s4 = amd_bytealign_S (src_r1[0], src_r0[3], offset_minus_4);
-      s3 = amd_bytealign_S (src_r0[3], src_r0[2], offset_minus_4);
-      s2 = amd_bytealign_S (src_r0[2], src_r0[1], offset_minus_4);
-      s1 = amd_bytealign_S (src_r0[1], src_r0[0], offset_minus_4);
-      s0 = amd_bytealign_S (src_r0[0],         0, offset_minus_4);
+      s7 = amd_bytealign_S (src_r12, src_r13, offset);
+      s6 = amd_bytealign_S (src_r11, src_r12, offset);
+      s5 = amd_bytealign_S (src_r10, src_r11, offset);
+      s4 = amd_bytealign_S (src_r03, src_r10, offset);
+      s3 = amd_bytealign_S (src_r02, src_r03, offset);
+      s2 = amd_bytealign_S (src_r01, src_r02, offset);
+      s1 = amd_bytealign_S (src_r00, src_r01, offset);
+      s0 = amd_bytealign_S (      0, src_r00, offset);
       break;
 
     case 1:
-      s8 = amd_bytealign_S (        0, src_r1[2], offset_minus_4);
-      s7 = amd_bytealign_S (src_r1[2], src_r1[1], offset_minus_4);
-      s6 = amd_bytealign_S (src_r1[1], src_r1[0], offset_minus_4);
-      s5 = amd_bytealign_S (src_r1[0], src_r0[3], offset_minus_4);
-      s4 = amd_bytealign_S (src_r0[3], src_r0[2], offset_minus_4);
-      s3 = amd_bytealign_S (src_r0[2], src_r0[1], offset_minus_4);
-      s2 = amd_bytealign_S (src_r0[1], src_r0[0], offset_minus_4);
-      s1 = amd_bytealign_S (src_r0[0],         0, offset_minus_4);
+      s7 = amd_bytealign_S (src_r11, src_r12, offset);
+      s6 = amd_bytealign_S (src_r10, src_r11, offset);
+      s5 = amd_bytealign_S (src_r03, src_r10, offset);
+      s4 = amd_bytealign_S (src_r02, src_r03, offset);
+      s3 = amd_bytealign_S (src_r01, src_r02, offset);
+      s2 = amd_bytealign_S (src_r00, src_r01, offset);
+      s1 = amd_bytealign_S (      0, src_r00, offset);
       s0 = 0;
       break;
 
     case 2:
-      s8 = amd_bytealign_S (        0, src_r1[1], offset_minus_4);
-      s7 = amd_bytealign_S (src_r1[1], src_r1[0], offset_minus_4);
-      s6 = amd_bytealign_S (src_r1[0], src_r0[3], offset_minus_4);
-      s5 = amd_bytealign_S (src_r0[3], src_r0[2], offset_minus_4);
-      s4 = amd_bytealign_S (src_r0[2], src_r0[1], offset_minus_4);
-      s3 = amd_bytealign_S (src_r0[1], src_r0[0], offset_minus_4);
-      s2 = amd_bytealign_S (src_r0[0],         0, offset_minus_4);
+      s7 = amd_bytealign_S (src_r10, src_r11, offset);
+      s6 = amd_bytealign_S (src_r03, src_r10, offset);
+      s5 = amd_bytealign_S (src_r02, src_r03, offset);
+      s4 = amd_bytealign_S (src_r01, src_r02, offset);
+      s3 = amd_bytealign_S (src_r00, src_r01, offset);
+      s2 = amd_bytealign_S (      0, src_r00, offset);
       s1 = 0;
       s0 = 0;
       break;
 
     case 3:
-      s8 = amd_bytealign_S (        0, src_r1[0], offset_minus_4);
-      s7 = amd_bytealign_S (src_r1[0], src_r0[3], offset_minus_4);
-      s6 = amd_bytealign_S (src_r0[3], src_r0[2], offset_minus_4);
-      s5 = amd_bytealign_S (src_r0[2], src_r0[1], offset_minus_4);
-      s4 = amd_bytealign_S (src_r0[1], src_r0[0], offset_minus_4);
-      s3 = amd_bytealign_S (src_r0[0],         0, offset_minus_4);
+      s7 = amd_bytealign_S (src_r03, src_r10, offset);
+      s6 = amd_bytealign_S (src_r02, src_r03, offset);
+      s5 = amd_bytealign_S (src_r01, src_r02, offset);
+      s4 = amd_bytealign_S (src_r00, src_r01, offset);
+      s3 = amd_bytealign_S (      0, src_r00, offset);
       s2 = 0;
       s1 = 0;
       s0 = 0;
+
       break;
 
     case 4:
-      s8 = amd_bytealign_S (        0, src_r0[3], offset_minus_4);
-      s7 = amd_bytealign_S (src_r0[3], src_r0[2], offset_minus_4);
-      s6 = amd_bytealign_S (src_r0[2], src_r0[1], offset_minus_4);
-      s5 = amd_bytealign_S (src_r0[1], src_r0[0], offset_minus_4);
-      s4 = amd_bytealign_S (src_r0[0],         0, offset_minus_4);
+      s7 = amd_bytealign_S (src_r02, src_r03, offset);
+      s6 = amd_bytealign_S (src_r01, src_r02, offset);
+      s5 = amd_bytealign_S (src_r00, src_r01, offset);
+      s4 = amd_bytealign_S (      0, src_r00, offset);
       s3 = 0;
       s2 = 0;
       s1 = 0;
@@ -834,10 +838,9 @@ void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32 src_l0
       break;
 
     case 5:
-      s8 = amd_bytealign_S (        0, src_r0[2], offset_minus_4);
-      s7 = amd_bytealign_S (src_r0[2], src_r0[1], offset_minus_4);
-      s6 = amd_bytealign_S (src_r0[1], src_r0[0], offset_minus_4);
-      s5 = amd_bytealign_S (src_r0[0],         0, offset_minus_4);
+      s7 = amd_bytealign_S (src_r01, src_r02, offset);
+      s6 = amd_bytealign_S (src_r00, src_r01, offset);
+      s5 = amd_bytealign_S (      0, src_r00, offset);
       s4 = 0;
       s3 = 0;
       s2 = 0;
@@ -846,9 +849,8 @@ void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32 src_l0
       break;
 
     case 6:
-      s8 = amd_bytealign_S (        0, src_r0[1], offset_minus_4);
-      s7 = amd_bytealign_S (src_r0[1], src_r0[0], offset_minus_4);
-      s6 = amd_bytealign_S (src_r0[0],         0, offset_minus_4);
+      s7 = amd_bytealign_S (src_r00, src_r01, offset);
+      s6 = amd_bytealign_S (      0, src_r00, offset);
       s5 = 0;
       s4 = 0;
       s3 = 0;
@@ -858,8 +860,7 @@ void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32 src_l0
       break;
 
     case 7:
-      s8 = amd_bytealign_S (        0, src_r0[0], offset_minus_4);
-      s7 = amd_bytealign_S (src_r0[0],         0, offset_minus_4);
+      s7 = amd_bytealign_S (      0, src_r00, offset);
       s6 = 0;
       s5 = 0;
       s4 = 0;
@@ -870,83 +871,69 @@ void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32 src_l0
       break;
   }
 
-  if (offset_mod_4 == 0)
-  {
-    buf0[0] = src_l0[0] | s1;
-    buf0[1] = src_l0[1] | s2;
-    buf0[2] = src_l0[2] | s3;
-    buf0[3] = src_l0[3] | s4;
-    buf1[0] = src_l1[0] | s5;
-    buf1[1] = src_l1[1] | s6;
-    buf1[2] = src_l1[2] | s7;
-    buf1[3] = src_l1[3] | s8;
-  }
-  else
-  {
-    buf0[0] = src_l0[0] | s0;
-    buf0[1] = src_l0[1] | s1;
-    buf0[2] = src_l0[2] | s2;
-    buf0[3] = src_l0[3] | s3;
-    buf1[0] = src_l1[0] | s4;
-    buf1[1] = src_l1[1] | s5;
-    buf1[2] = src_l1[2] | s6;
-    buf1[3] = src_l1[3] | s7;
-  }
+  s0 = swap32_S (s0);
+  s1 = swap32_S (s1);
+  s2 = swap32_S (s2);
+  s3 = swap32_S (s3);
+  s4 = swap32_S (s4);
+  s5 = swap32_S (s5);
+  s6 = swap32_S (s6);
+  s7 = swap32_S (s7);
   #endif
 
   #ifdef IS_NV
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
-  u32 s0 = 0;
-  u32 s1 = 0;
-  u32 s2 = 0;
-  u32 s3 = 0;
-  u32 s4 = 0;
-  u32 s5 = 0;
-  u32 s6 = 0;
-  u32 s7 = 0;
+  const u32 src_r00 = src_r0[0];
+  const u32 src_r01 = src_r0[1];
+  const u32 src_r02 = src_r0[2];
+  const u32 src_r03 = src_r0[3];
+  const u32 src_r10 = src_r1[0];
+  const u32 src_r11 = src_r1[1];
+  const u32 src_r12 = src_r1[2];
+  const u32 src_r13 = src_r1[3];
 
   switch (offset / 4)
   {
     case 0:
-      s7 = __byte_perm_S (src_r1[2], src_r1[3], selector);
-      s6 = __byte_perm_S (src_r1[1], src_r1[2], selector);
-      s5 = __byte_perm_S (src_r1[0], src_r1[1], selector);
-      s4 = __byte_perm_S (src_r0[3], src_r1[0], selector);
-      s3 = __byte_perm_S (src_r0[2], src_r0[3], selector);
-      s2 = __byte_perm_S (src_r0[1], src_r0[2], selector);
-      s1 = __byte_perm_S (src_r0[0], src_r0[1], selector);
-      s0 = __byte_perm_S (        0, src_r0[0], selector);
+      s7 = __byte_perm_S (src_r12, src_r13, selector);
+      s6 = __byte_perm_S (src_r11, src_r12, selector);
+      s5 = __byte_perm_S (src_r10, src_r11, selector);
+      s4 = __byte_perm_S (src_r03, src_r10, selector);
+      s3 = __byte_perm_S (src_r02, src_r03, selector);
+      s2 = __byte_perm_S (src_r01, src_r02, selector);
+      s1 = __byte_perm_S (src_r00, src_r01, selector);
+      s0 = __byte_perm_S (      0, src_r00, selector);
       break;
 
     case 1:
-      s7 = __byte_perm_S (src_r1[1], src_r1[2], selector);
-      s6 = __byte_perm_S (src_r1[0], src_r1[1], selector);
-      s5 = __byte_perm_S (src_r0[3], src_r1[0], selector);
-      s4 = __byte_perm_S (src_r0[2], src_r0[3], selector);
-      s3 = __byte_perm_S (src_r0[1], src_r0[2], selector);
-      s2 = __byte_perm_S (src_r0[0], src_r0[1], selector);
-      s1 = __byte_perm_S (        0, src_r0[0], selector);
+      s7 = __byte_perm_S (src_r11, src_r12, selector);
+      s6 = __byte_perm_S (src_r10, src_r11, selector);
+      s5 = __byte_perm_S (src_r03, src_r10, selector);
+      s4 = __byte_perm_S (src_r02, src_r03, selector);
+      s3 = __byte_perm_S (src_r01, src_r02, selector);
+      s2 = __byte_perm_S (src_r00, src_r01, selector);
+      s1 = __byte_perm_S (      0, src_r00, selector);
       s0 = 0;
       break;
 
     case 2:
-      s7 = __byte_perm_S (src_r1[0], src_r1[1], selector);
-      s6 = __byte_perm_S (src_r0[3], src_r1[0], selector);
-      s5 = __byte_perm_S (src_r0[2], src_r0[3], selector);
-      s4 = __byte_perm_S (src_r0[1], src_r0[2], selector);
-      s3 = __byte_perm_S (src_r0[0], src_r0[1], selector);
-      s2 = __byte_perm_S (        0, src_r0[0], selector);
+      s7 = __byte_perm_S (src_r10, src_r11, selector);
+      s6 = __byte_perm_S (src_r03, src_r10, selector);
+      s5 = __byte_perm_S (src_r02, src_r03, selector);
+      s4 = __byte_perm_S (src_r01, src_r02, selector);
+      s3 = __byte_perm_S (src_r00, src_r01, selector);
+      s2 = __byte_perm_S (      0, src_r00, selector);
       s1 = 0;
       s0 = 0;
       break;
 
     case 3:
-      s7 = __byte_perm_S (src_r0[3], src_r1[0], selector);
-      s6 = __byte_perm_S (src_r0[2], src_r0[3], selector);
-      s5 = __byte_perm_S (src_r0[1], src_r0[2], selector);
-      s4 = __byte_perm_S (src_r0[0], src_r0[1], selector);
-      s3 = __byte_perm_S (        0, src_r0[0], selector);
+      s7 = __byte_perm_S (src_r03, src_r10, selector);
+      s6 = __byte_perm_S (src_r02, src_r03, selector);
+      s5 = __byte_perm_S (src_r01, src_r02, selector);
+      s4 = __byte_perm_S (src_r00, src_r01, selector);
+      s3 = __byte_perm_S (      0, src_r00, selector);
       s2 = 0;
       s1 = 0;
       s0 = 0;
@@ -954,10 +941,10 @@ void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32 src_l0
       break;
 
     case 4:
-      s7 = __byte_perm_S (src_r0[2], src_r0[3], selector);
-      s6 = __byte_perm_S (src_r0[1], src_r0[2], selector);
-      s5 = __byte_perm_S (src_r0[0], src_r0[1], selector);
-      s4 = __byte_perm_S (        0, src_r0[0], selector);
+      s7 = __byte_perm_S (src_r02, src_r03, selector);
+      s6 = __byte_perm_S (src_r01, src_r02, selector);
+      s5 = __byte_perm_S (src_r00, src_r01, selector);
+      s4 = __byte_perm_S (      0, src_r00, selector);
       s3 = 0;
       s2 = 0;
       s1 = 0;
@@ -965,9 +952,9 @@ void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32 src_l0
       break;
 
     case 5:
-      s7 = __byte_perm_S (src_r0[1], src_r0[2], selector);
-      s6 = __byte_perm_S (src_r0[0], src_r0[1], selector);
-      s5 = __byte_perm_S (        0, src_r0[0], selector);
+      s7 = __byte_perm_S (src_r01, src_r02, selector);
+      s6 = __byte_perm_S (src_r00, src_r01, selector);
+      s5 = __byte_perm_S (      0, src_r00, selector);
       s4 = 0;
       s3 = 0;
       s2 = 0;
@@ -976,8 +963,8 @@ void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32 src_l0
       break;
 
     case 6:
-      s7 = __byte_perm_S (src_r0[0], src_r0[1], selector);
-      s6 = __byte_perm_S (        0, src_r0[0], selector);
+      s7 = __byte_perm_S (src_r00, src_r01, selector);
+      s6 = __byte_perm_S (      0, src_r00, selector);
       s5 = 0;
       s4 = 0;
       s3 = 0;
@@ -987,7 +974,7 @@ void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32 src_l0
       break;
 
     case 7:
-      s7 = __byte_perm_S (        0, src_r0[0], selector);
+      s7 = __byte_perm_S (      0, src_r00, selector);
       s6 = 0;
       s5 = 0;
       s4 = 0;
@@ -997,6 +984,7 @@ void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32 src_l0
       s0 = 0;
       break;
   }
+  #endif
 
   buf0[0] = src_l0[0] | s0;
   buf0[1] = src_l0[1] | s1;
@@ -1006,8 +994,6 @@ void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32 src_l0
   buf1[1] = src_l1[1] | s5;
   buf1[2] = src_l1[2] | s6;
   buf1[3] = src_l1[3] | s7;
-
-  #endif
 }
 
 void reverse_block (u32 in0[4], u32 in1[4], u32 out0[4], u32 out1[4], const u32 len)

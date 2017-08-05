@@ -62,7 +62,7 @@ __kernel void m02810_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   const u32 pw_lenv = ceil ((float) pw_len / 4);
 
-  u32 w[64] = { 0 };
+  u32x w[64] = { 0 };
 
   for (int idx = 0; idx < pw_lenv; idx++)
   {
@@ -88,13 +88,13 @@ __kernel void m02810_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
    * loop
    */
 
-  u32 w0l = w[0];
+  u32x w0l = w[0];
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = words_buf_r[il_pos / VECT_SIZE];
+    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
-    const u32 w0lr = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
     w[0] = w0lr;
 
@@ -106,10 +106,10 @@ __kernel void m02810_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     md5_final_vector (&ctx0);
 
-    const u32 a = ctx0.h[0];
-    const u32 b = ctx0.h[1];
-    const u32 c = ctx0.h[2];
-    const u32 d = ctx0.h[3];
+    const u32x a = ctx0.h[0];
+    const u32x b = ctx0.h[1];
+    const u32x c = ctx0.h[2];
+    const u32x d = ctx0.h[3];
 
     md5_ctx_vector_t ctx;
 
@@ -161,10 +161,10 @@ __kernel void m02810_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     md5_transform_vector (ctx.w0, ctx.w1, ctx.w2, ctx.w3, ctx.h);
 
-    const u32 r0 = ctx.h[DGST_R0];
-    const u32 r1 = ctx.h[DGST_R1];
-    const u32 r2 = ctx.h[DGST_R2];
-    const u32 r3 = ctx.h[DGST_R3];
+    const u32x r0 = ctx.h[DGST_R0];
+    const u32x r1 = ctx.h[DGST_R1];
+    const u32x r2 = ctx.h[DGST_R2];
+    const u32x r3 = ctx.h[DGST_R3];
 
     COMPARE_M_SIMD (r0, r1, r2, r3);
   }
@@ -219,7 +219,7 @@ __kernel void m02810_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   const u32 pw_lenv = ceil ((float) pw_len / 4);
 
-  u32 w[64] = { 0 };
+  u32x w[64] = { 0 };
 
   for (int idx = 0; idx < pw_lenv; idx++)
   {
@@ -245,13 +245,13 @@ __kernel void m02810_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
    * loop
    */
 
-  u32 w0l = w[0];
+  u32x w0l = w[0];
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32 w0r = words_buf_r[il_pos / VECT_SIZE];
+    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
-    const u32 w0lr = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
     w[0] = w0lr;
 
@@ -263,10 +263,10 @@ __kernel void m02810_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     md5_final_vector (&ctx0);
 
-    const u32 a = ctx0.h[0];
-    const u32 b = ctx0.h[1];
-    const u32 c = ctx0.h[2];
-    const u32 d = ctx0.h[3];
+    const u32x a = ctx0.h[0];
+    const u32x b = ctx0.h[1];
+    const u32x c = ctx0.h[2];
+    const u32x d = ctx0.h[3];
 
     md5_ctx_vector_t ctx;
 
@@ -318,10 +318,10 @@ __kernel void m02810_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     md5_transform_vector (ctx.w0, ctx.w1, ctx.w2, ctx.w3, ctx.h);
 
-    const u32 r0 = ctx.h[DGST_R0];
-    const u32 r1 = ctx.h[DGST_R1];
-    const u32 r2 = ctx.h[DGST_R2];
-    const u32 r3 = ctx.h[DGST_R3];
+    const u32x r0 = ctx.h[DGST_R0];
+    const u32x r1 = ctx.h[DGST_R1];
+    const u32x r2 = ctx.h[DGST_R2];
+    const u32x r3 = ctx.h[DGST_R3];
 
     COMPARE_S_SIMD (r0, r1, r2, r3);
   }
