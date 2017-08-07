@@ -37,8 +37,6 @@ __kernel void m04900_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
   for (int idx = 0; idx < salt_lenv; idx++)
   {
     s[idx] = swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   sha1_ctx_t ctx0;
@@ -108,8 +106,6 @@ __kernel void m04900_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
   for (int idx = 0; idx < salt_lenv; idx++)
   {
     s[idx] = swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   sha1_ctx_t ctx0;

@@ -2267,8 +2267,6 @@ __kernel void m05800_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   for (int idx = 0; idx < pw_lenv; idx++)
   {
     w[idx] = swap32 (pws[gid].i[idx]);
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
@@ -2280,8 +2278,6 @@ __kernel void m05800_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   for (int idx = 0; idx < salt_lenv; idx++)
   {
     s[idx] = swap32 (salt_bufs[salt_pos].salt_buf[idx]);
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   u32 digest[5];

@@ -1202,8 +1202,6 @@ __kernel void m10700_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   for (int idx = 0; idx < pw_lenv; idx++)
   {
     w[idx] = swap32_S (pws[gid].i[idx]);
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   /**

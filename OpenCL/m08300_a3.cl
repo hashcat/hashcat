@@ -37,8 +37,6 @@ __kernel void m08300_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
   for (int idx = 0; idx < pw_lenv; idx++)
   {
     w[idx] = pws[gid].i[idx];
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
@@ -50,8 +48,6 @@ __kernel void m08300_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
   for (int idx = 0; idx < salt_lenv; idx++)
   {
     s[idx] = swap32 (salt_bufs[salt_pos].salt_buf[idx]);
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   const u32 salt_len_pc = salt_bufs[salt_pos].salt_len_pc;
@@ -63,8 +59,6 @@ __kernel void m08300_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
   for (int idx = 0; idx < salt_len_pcv; idx++)
   {
     s_pc[idx] = swap32 (salt_bufs[salt_pos].salt_buf_pc[idx]);
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   const u32 salt_iter = salt_bufs[salt_pos].salt_iter;
@@ -179,8 +173,6 @@ __kernel void m08300_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
   for (int idx = 0; idx < pw_lenv; idx++)
   {
     w[idx] = pws[gid].i[idx];
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
@@ -192,8 +184,6 @@ __kernel void m08300_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
   for (int idx = 0; idx < salt_lenv; idx++)
   {
     s[idx] = swap32 (salt_bufs[salt_pos].salt_buf[idx]);
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   const u32 salt_len_pc = salt_bufs[salt_pos].salt_len_pc;
@@ -205,8 +195,6 @@ __kernel void m08300_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
   for (int idx = 0; idx < salt_len_pcv; idx++)
   {
     s_pc[idx] = swap32 (salt_bufs[salt_pos].salt_buf_pc[idx]);
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   const u32 salt_iter = salt_bufs[salt_pos].salt_iter;

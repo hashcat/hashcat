@@ -265,8 +265,6 @@ __kernel void m08900_init (__global pw_t *pws, __global const kernel_rule_t *rul
     const uint4 tmp0 = (uint4) (digest[0], digest[1], digest[2], digest[3]);
     const uint4 tmp1 = (uint4) (digest[4], digest[5], digest[6], digest[7]);
 
-    barrier (CLK_GLOBAL_MEM_FENCE);
-
     tmps[gid].P[k + 0] = tmp0;
     tmps[gid].P[k + 1] = tmp1;
   }
@@ -331,8 +329,6 @@ __kernel void m08900_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   for (u32 l = 0; l < SCRYPT_CNT4; l += 4)
   {
-    barrier (CLK_GLOBAL_MEM_FENCE);
-
     uint4 tmp;
 
     tmp = tmps[gid].P[l + 0];

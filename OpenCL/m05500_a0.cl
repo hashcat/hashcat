@@ -553,8 +553,6 @@ __kernel void m05500_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
   for (int idx = 0; idx < pw_lenv; idx++)
   {
     w[idx] = pws[gid].i[idx];
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   /**
@@ -698,8 +696,6 @@ __kernel void m05500_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
   for (int idx = 0; idx < pw_lenv; idx++)
   {
     w[idx] = pws[gid].i[idx];
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   /**
