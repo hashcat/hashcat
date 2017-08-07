@@ -791,10 +791,10 @@ typedef struct bitcoin_wallet
 
 typedef struct sip
 {
-  u32 salt_buf[30];
+  u32 salt_buf[32];
   u32 salt_len;
 
-  u32 esalt_buf[38];
+  u32 esalt_buf[48];
   u32 esalt_len;
 
 } sip_t;
