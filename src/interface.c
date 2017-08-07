@@ -94,7 +94,6 @@ static char ST_HASH_01440[] = "84ebe1bc3d59919a8c4f9337d66bd163661586c828b24b806
 static char ST_HASH_01441[] = "$episerver$*1*NDg1NTIz*8BFCg/YJBAuZs/wjbH3OWKe69BLr5Lao26ybpnD48Zk";
 static char ST_HASH_01450[] = "b435ffbacea34d5eb0dbc4d69a92f0152f2cf4cd364d34c2ece322ca22d8b334:21217";
 static char ST_HASH_01460[] = "8b9472281c36c3a693703de0e0f1ffab8fc0ecdd3bc5ead04c76dd74ef431e49:70108387805";
-static char ST_HASH_01470[] = "47b604fe6993fdb942917db92ae836eba179b69dc5b5ea2a983caf5bac1119f6";
 //static char ST_HASH_01500[] = "8133vc.5rieNk";
 static char ST_HASH_01600[] = "$apr1$62722340$zGjeAwVP2KwY6MtumUI1N/";
 static char ST_HASH_01700[] = "82a9dda829eb7f8ffe9fbe49e45d47d2dad9664fbb7adf72492e3c81ebd3e29134d9bc12212bf83c6840f10e8246b9db54a4859b7ccd0123d86e5872c1e5082f";
@@ -268,6 +267,7 @@ static char ST_HASH_15500[] = "$jksprivk$*338BD2FBEBA7B3EF198A4CBFC6E18AFF1E2293
 static char ST_HASH_15600[] = "$ethereum$p*1024*38353131353831333338313138363430*a8b4dfe92687dbc0afeb5dae7863f18964241e96b264f09959903c8c924583fc*0a9252861d1e235994ce33dbca91c98231764d8ecb4950015a8ae20d6415b986";
 static char ST_HASH_15700[] = "$ethereum$s*1024*1*1*3033363133373132373638333437323331383637383437333631373038323434*69eaf081695cf971ef7ee5a49997c1a3922e7efef59068109e83853755ee31c3*64a1adec1750ee4416b22b81111dd2a3c2fede820d6da8bf788dca2641d5b181";
 static char ST_HASH_15800[] = "484350580400000000054e65686562000000000000000000000000000000000000000000000000000000032e13c40ca1c2e4e2037f99a2da18a46bb0b98a568dea0218c7b64ecef40c4f15915fbceb19c8d62608387eb6b986d9599a8bd70dc85d2cf0a2ddbcd06467233e730767c33e1df875c3ad0eb58a51ad704a3fae06b818c0c5fcebf3af79000203007502010b001000000000000000036467233e730767c33e1df875c3ad0eb58a51ad704a3fae06b818c0c5fcebf3af000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001630140100000fac040100000fac040100000fac068c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
+static char ST_HASH_15900[] = "47b604fe6993fdb942917db92ae836eba179b69dc5b5ea2a983caf5bac1119f6";
 static char ST_HASH_99999[] = "hashcat";
 
 static const char OPTI_STR_OPTIMIZED_KERNEL[]     = "Optimized-Kernel";
@@ -360,7 +360,6 @@ static const char HT_01430[] = "sha256(utf16le($pass).$salt)";
 static const char HT_01440[] = "sha256($salt.utf16le($pass))";
 static const char HT_01450[] = "HMAC-SHA256 (key = $pass)";
 static const char HT_01460[] = "HMAC-SHA256 (key = $salt)";
-static const char HT_01470[] = "sha256(sha256($pass))";
 static const char HT_01500[] = "descrypt, DES (Unix), Traditional DES";
 static const char HT_01600[] = "Apache $apr1$ MD5, md5apr1, MD5 (APR)";
 static const char HT_01700[] = "SHA-512";
@@ -501,6 +500,7 @@ static const char HT_15500[] = "JKS Java Key Store Private Keys (SHA1)";
 static const char HT_15600[] = "Ethereum Wallet, PBKDF2-HMAC-SHA256";
 static const char HT_15700[] = "Ethereum Wallet, SCRYPT";
 static const char HT_15800[] = "WPA/WPA2 AES-CMAC";
+static const char HT_15900[] = "sha256(sha256($pass))";
 static const char HT_99999[] = "Plaintext";
 
 static const char HT_00011[] = "Joomla < 2.5.18";
@@ -15854,7 +15854,6 @@ char *strhashtype (const u32 hash_mode)
     case  1441: return ((char *) HT_01441);
     case  1450: return ((char *) HT_01450);
     case  1460: return ((char *) HT_01460);
-    case  1470: return ((char *) HT_01470);
     case  1500: return ((char *) HT_01500);
     case  1600: return ((char *) HT_01600);
     case  1700: return ((char *) HT_01700);
@@ -16035,6 +16034,7 @@ char *strhashtype (const u32 hash_mode)
     case 15600: return ((char *) HT_15600);
     case 15700: return ((char *) HT_15700);
     case 15800: return ((char *) HT_15800);
+    case 15900: return ((char *) HT_15900);
     case 99999: return ((char *) HT_99999);
   }
 
@@ -20835,7 +20835,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case  1470:  hashconfig->hash_type      = HASH_TYPE_SHA256;
+    case 15900:  hashconfig->hash_type      = HASH_TYPE_SHA256;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
@@ -20853,7 +20853,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos1      = 7;
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 6;
-                 hashconfig->st_hash        = ST_HASH_01470;
+                 hashconfig->st_hash        = ST_HASH_15900;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 

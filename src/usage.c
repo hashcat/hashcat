@@ -161,7 +161,7 @@ static const char *USAGE_BIG[] =
   "   1420 | sha256($salt.$pass)                              | Raw Hash, Salted and/or Iterated",
   "   1430 | sha256(utf16le($pass).$salt)                     | Raw Hash, Salted and/or Iterated",
   "   1440 | sha256($salt.utf16le($pass))                     | Raw Hash, Salted and/or Iterated",
-  "   1470 | sha256(sha265($pass))                            | Raw Hash, Salted and/or Iterated",
+  "  15900 | sha256(sha265($pass))                            | Raw Hash, Salted and/or Iterated",
   "   1710 | sha512($pass.$salt)                              | Raw Hash, Salted and/or Iterated",
   "   1720 | sha512($salt.$pass)                              | Raw Hash, Salted and/or Iterated",
   "   1730 | sha512(utf16le($pass).$salt)                     | Raw Hash, Salted and/or Iterated",

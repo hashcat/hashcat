@@ -1034,8 +1034,6 @@ typedef enum display_len
   DISPLAY_LEN_MAX_1421  = 70,
   DISPLAY_LEN_MIN_1450  = 64 + 1 + 0,
   DISPLAY_LEN_MAX_1450  = 64 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_1470  = 64,
-  DISPLAY_LEN_MAX_1470  = 64,
   DISPLAY_LEN_MIN_1450H = 64 + 1 + 0,
   DISPLAY_LEN_MAX_1450H = 64 + 1 + (SALT_MAX * 2),
   DISPLAY_LEN_MIN_1500  = 13,
@@ -1288,6 +1286,8 @@ typedef enum display_len
   DISPLAY_LEN_MAX_15600 = 11 + 1 + 6 + 1 + 64 + 1 + 64 + 1 + 64,
   DISPLAY_LEN_MIN_15700 = 11 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 64 + 1 + 64 + 1 + 64,
   DISPLAY_LEN_MAX_15700 = 11 + 1 + 6 + 1 + 1 + 1 + 1 + 1 + 64 + 1 + 64 + 1 + 64,
+  DISPLAY_LEN_MIN_15900 = 64,
+  DISPLAY_LEN_MAX_15900 = 64,
   DISPLAY_LEN_MIN_99999 = 1,
   DISPLAY_LEN_MAX_99999 = 55,
 
@@ -1451,7 +1451,6 @@ typedef enum kern_type
   KERN_TYPE_SHA256_SLTPWU           = 1440,
   KERN_TYPE_HMACSHA256_PW           = 1450,
   KERN_TYPE_HMACSHA256_SLT          = 1460,
-  KERN_TYPE_SHA2566                 = 1470,
   KERN_TYPE_DESCRYPT                = 1500,
   KERN_TYPE_APR1CRYPT               = 1600,
   KERN_TYPE_SHA512                  = 1700,
@@ -1613,6 +1612,7 @@ typedef enum kern_type
   KERN_TYPE_ETHEREUM_PBKDF2         = 15600,
   KERN_TYPE_ETHEREUM_SCRYPT         = 15700,
   KERN_TYPE_WPAAES                  = 15800,
+  KERN_TYPE_SHA2566                 = 15900,
   KERN_TYPE_PLAINTEXT               = 99999,
 
 } kern_type_t;
