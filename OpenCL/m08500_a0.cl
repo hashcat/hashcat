@@ -559,6 +559,8 @@ __kernel void m08500_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
     s_skb[7][i] = c_skb[7][i];
   }
 
+  barrier (CLK_LOCAL_MEM_FENCE);
+
   if (gid >= gid_max) return;
 
   /**
