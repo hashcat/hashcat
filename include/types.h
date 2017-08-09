@@ -1008,7 +1008,6 @@ typedef struct hc_device_param
 
   char   *device_name;
   char   *device_vendor;
-  char   *device_name_chksum;
   char   *device_version;
   char   *driver_version;
   char   *device_opencl_version;
@@ -1141,6 +1140,8 @@ typedef struct opencl_ctx
   bool                need_nvapi;
   bool                need_xnvctrl;
   bool                need_sysfs;
+
+  int                 comptime;
 
   int                 force_jit_compilation;
 

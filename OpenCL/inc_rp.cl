@@ -3,7 +3,7 @@
  * License.....: MIT
  */
 
-inline u32 generate_cmask (const u32 value)
+u32 generate_cmask (const u32 value)
 {
   const u32 rmask =  ((value & 0x40404040u) >> 1u)
                   & ~((value & 0x80808080u) >> 2u);
@@ -14,7 +14,7 @@ inline u32 generate_cmask (const u32 value)
   return rmask & ~hmask & lmask;
 }
 
-inline void truncate_right (u32 buf0[4], u32 buf1[4], const u32 offset)
+void truncate_right (u32 buf0[4], u32 buf1[4], const u32 offset)
 {
   const u32 tmp = (1u << ((offset & 3u) * 8u)) - 1u;
 
@@ -67,7 +67,7 @@ inline void truncate_right (u32 buf0[4], u32 buf1[4], const u32 offset)
   }
 }
 
-inline void truncate_left (u32 buf0[4], u32 buf1[4], const u32 offset)
+void truncate_left (u32 buf0[4], u32 buf1[4], const u32 offset)
 {
   const u32 tmp = ~((1u << ((offset & 3u) * 8u)) - 1u);
 
@@ -120,7 +120,7 @@ inline void truncate_left (u32 buf0[4], u32 buf1[4], const u32 offset)
   }
 }
 
-inline void lshift_block (const u32 in0[4], const u32 in1[4], u32 out0[4], u32 out1[4])
+void lshift_block (const u32 in0[4], const u32 in1[4], u32 out0[4], u32 out1[4])
 {
   out0[0] = amd_bytealign_S (in0[1], in0[0], 1);
   out0[1] = amd_bytealign_S (in0[2], in0[1], 1);
@@ -132,7 +132,7 @@ inline void lshift_block (const u32 in0[4], const u32 in1[4], u32 out0[4], u32 o
   out1[3] = amd_bytealign_S (     0, in1[3], 1);
 }
 
-inline void rshift_block (const u32 in0[4], const u32 in1[4], u32 out0[4], u32 out1[4])
+void rshift_block (const u32 in0[4], const u32 in1[4], u32 out0[4], u32 out1[4])
 {
   out1[3] = amd_bytealign_S (in1[3], in1[2], 3);
   out1[2] = amd_bytealign_S (in1[2], in1[1], 3);
@@ -144,7 +144,7 @@ inline void rshift_block (const u32 in0[4], const u32 in1[4], u32 out0[4], u32 o
   out0[0] = amd_bytealign_S (in0[0],      0, 3);
 }
 
-inline void lshift_block_N (const u32 in0[4], const u32 in1[4], u32 out0[4], u32 out1[4], const u32 num)
+void lshift_block_N (const u32 in0[4], const u32 in1[4], u32 out0[4], u32 out1[4], const u32 num)
 {
   switch (num)
   {
@@ -439,7 +439,7 @@ inline void lshift_block_N (const u32 in0[4], const u32 in1[4], u32 out0[4], u32
   }
 }
 
-inline void rshift_block_N (const u32 in0[4], const u32 in1[4], u32 out0[4], u32 out1[4], const u32 num)
+void rshift_block_N (const u32 in0[4], const u32 in1[4], u32 out0[4], u32 out1[4], const u32 num)
 {
   switch (num)
   {
@@ -734,7 +734,7 @@ inline void rshift_block_N (const u32 in0[4], const u32 in1[4], u32 out0[4], u32
   }
 }
 
-inline void append_block1 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32 src_r0)
+void append_block1 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32 src_r0)
 {
   // this version works with 1 byte append only
 
@@ -754,12 +754,11 @@ inline void append_block1 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
   buf1[3] |=  (offset >= 28)                   ? tmp : 0;
 }
 
-inline void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32 src_l0[4], const u32 src_l1[4], const u32 src_r0[4], const u32 src_r1[4])
+void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32 src_l0[4], const u32 src_l1[4], const u32 src_r0[4], const u32 src_r1[4])
 {
-  #if defined IS_AMD || defined IS_GENERIC
   const int offset_mod_4 = offset & 3;
 
-  const int offset_minus_4 = 4 - offset;
+  const int offset_minus_4 = 4 - offset_mod_4;
 
   u32 s0 = 0;
   u32 s1 = 0;
@@ -769,64 +768,69 @@ inline void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
   u32 s5 = 0;
   u32 s6 = 0;
   u32 s7 = 0;
-  u32 s8 = 0;
+
+  #if defined IS_AMD || defined IS_GENERIC
+  const u32 src_r00 = swap32_S (src_r0[0]);
+  const u32 src_r01 = swap32_S (src_r0[1]);
+  const u32 src_r02 = swap32_S (src_r0[2]);
+  const u32 src_r03 = swap32_S (src_r0[3]);
+  const u32 src_r10 = swap32_S (src_r1[0]);
+  const u32 src_r11 = swap32_S (src_r1[1]);
+  const u32 src_r12 = swap32_S (src_r1[2]);
+  const u32 src_r13 = swap32_S (src_r1[3]);
 
   switch (offset / 4)
   {
     case 0:
-      s8 = amd_bytealign_S (        0, src_r1[3], offset_minus_4);
-      s7 = amd_bytealign_S (src_r1[3], src_r1[2], offset_minus_4);
-      s6 = amd_bytealign_S (src_r1[2], src_r1[1], offset_minus_4);
-      s5 = amd_bytealign_S (src_r1[1], src_r1[0], offset_minus_4);
-      s4 = amd_bytealign_S (src_r1[0], src_r0[3], offset_minus_4);
-      s3 = amd_bytealign_S (src_r0[3], src_r0[2], offset_minus_4);
-      s2 = amd_bytealign_S (src_r0[2], src_r0[1], offset_minus_4);
-      s1 = amd_bytealign_S (src_r0[1], src_r0[0], offset_minus_4);
-      s0 = amd_bytealign_S (src_r0[0],         0, offset_minus_4);
+      s7 = amd_bytealign_S (src_r12, src_r13, offset);
+      s6 = amd_bytealign_S (src_r11, src_r12, offset);
+      s5 = amd_bytealign_S (src_r10, src_r11, offset);
+      s4 = amd_bytealign_S (src_r03, src_r10, offset);
+      s3 = amd_bytealign_S (src_r02, src_r03, offset);
+      s2 = amd_bytealign_S (src_r01, src_r02, offset);
+      s1 = amd_bytealign_S (src_r00, src_r01, offset);
+      s0 = amd_bytealign_S (      0, src_r00, offset);
       break;
 
     case 1:
-      s8 = amd_bytealign_S (        0, src_r1[2], offset_minus_4);
-      s7 = amd_bytealign_S (src_r1[2], src_r1[1], offset_minus_4);
-      s6 = amd_bytealign_S (src_r1[1], src_r1[0], offset_minus_4);
-      s5 = amd_bytealign_S (src_r1[0], src_r0[3], offset_minus_4);
-      s4 = amd_bytealign_S (src_r0[3], src_r0[2], offset_minus_4);
-      s3 = amd_bytealign_S (src_r0[2], src_r0[1], offset_minus_4);
-      s2 = amd_bytealign_S (src_r0[1], src_r0[0], offset_minus_4);
-      s1 = amd_bytealign_S (src_r0[0],         0, offset_minus_4);
+      s7 = amd_bytealign_S (src_r11, src_r12, offset);
+      s6 = amd_bytealign_S (src_r10, src_r11, offset);
+      s5 = amd_bytealign_S (src_r03, src_r10, offset);
+      s4 = amd_bytealign_S (src_r02, src_r03, offset);
+      s3 = amd_bytealign_S (src_r01, src_r02, offset);
+      s2 = amd_bytealign_S (src_r00, src_r01, offset);
+      s1 = amd_bytealign_S (      0, src_r00, offset);
       s0 = 0;
       break;
 
     case 2:
-      s8 = amd_bytealign_S (        0, src_r1[1], offset_minus_4);
-      s7 = amd_bytealign_S (src_r1[1], src_r1[0], offset_minus_4);
-      s6 = amd_bytealign_S (src_r1[0], src_r0[3], offset_minus_4);
-      s5 = amd_bytealign_S (src_r0[3], src_r0[2], offset_minus_4);
-      s4 = amd_bytealign_S (src_r0[2], src_r0[1], offset_minus_4);
-      s3 = amd_bytealign_S (src_r0[1], src_r0[0], offset_minus_4);
-      s2 = amd_bytealign_S (src_r0[0],         0, offset_minus_4);
+      s7 = amd_bytealign_S (src_r10, src_r11, offset);
+      s6 = amd_bytealign_S (src_r03, src_r10, offset);
+      s5 = amd_bytealign_S (src_r02, src_r03, offset);
+      s4 = amd_bytealign_S (src_r01, src_r02, offset);
+      s3 = amd_bytealign_S (src_r00, src_r01, offset);
+      s2 = amd_bytealign_S (      0, src_r00, offset);
       s1 = 0;
       s0 = 0;
       break;
 
     case 3:
-      s8 = amd_bytealign_S (        0, src_r1[0], offset_minus_4);
-      s7 = amd_bytealign_S (src_r1[0], src_r0[3], offset_minus_4);
-      s6 = amd_bytealign_S (src_r0[3], src_r0[2], offset_minus_4);
-      s5 = amd_bytealign_S (src_r0[2], src_r0[1], offset_minus_4);
-      s4 = amd_bytealign_S (src_r0[1], src_r0[0], offset_minus_4);
-      s3 = amd_bytealign_S (src_r0[0],         0, offset_minus_4);
+      s7 = amd_bytealign_S (src_r03, src_r10, offset);
+      s6 = amd_bytealign_S (src_r02, src_r03, offset);
+      s5 = amd_bytealign_S (src_r01, src_r02, offset);
+      s4 = amd_bytealign_S (src_r00, src_r01, offset);
+      s3 = amd_bytealign_S (      0, src_r00, offset);
       s2 = 0;
       s1 = 0;
       s0 = 0;
+
       break;
 
     case 4:
-      s8 = amd_bytealign_S (        0, src_r0[3], offset_minus_4);
-      s7 = amd_bytealign_S (src_r0[3], src_r0[2], offset_minus_4);
-      s6 = amd_bytealign_S (src_r0[2], src_r0[1], offset_minus_4);
-      s5 = amd_bytealign_S (src_r0[1], src_r0[0], offset_minus_4);
-      s4 = amd_bytealign_S (src_r0[0],         0, offset_minus_4);
+      s7 = amd_bytealign_S (src_r02, src_r03, offset);
+      s6 = amd_bytealign_S (src_r01, src_r02, offset);
+      s5 = amd_bytealign_S (src_r00, src_r01, offset);
+      s4 = amd_bytealign_S (      0, src_r00, offset);
       s3 = 0;
       s2 = 0;
       s1 = 0;
@@ -834,10 +838,9 @@ inline void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
       break;
 
     case 5:
-      s8 = amd_bytealign_S (        0, src_r0[2], offset_minus_4);
-      s7 = amd_bytealign_S (src_r0[2], src_r0[1], offset_minus_4);
-      s6 = amd_bytealign_S (src_r0[1], src_r0[0], offset_minus_4);
-      s5 = amd_bytealign_S (src_r0[0],         0, offset_minus_4);
+      s7 = amd_bytealign_S (src_r01, src_r02, offset);
+      s6 = amd_bytealign_S (src_r00, src_r01, offset);
+      s5 = amd_bytealign_S (      0, src_r00, offset);
       s4 = 0;
       s3 = 0;
       s2 = 0;
@@ -846,9 +849,8 @@ inline void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
       break;
 
     case 6:
-      s8 = amd_bytealign_S (        0, src_r0[1], offset_minus_4);
-      s7 = amd_bytealign_S (src_r0[1], src_r0[0], offset_minus_4);
-      s6 = amd_bytealign_S (src_r0[0],         0, offset_minus_4);
+      s7 = amd_bytealign_S (src_r00, src_r01, offset);
+      s6 = amd_bytealign_S (      0, src_r00, offset);
       s5 = 0;
       s4 = 0;
       s3 = 0;
@@ -858,8 +860,7 @@ inline void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
       break;
 
     case 7:
-      s8 = amd_bytealign_S (        0, src_r0[0], offset_minus_4);
-      s7 = amd_bytealign_S (src_r0[0],         0, offset_minus_4);
+      s7 = amd_bytealign_S (      0, src_r00, offset);
       s6 = 0;
       s5 = 0;
       s4 = 0;
@@ -870,85 +871,69 @@ inline void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
       break;
   }
 
-  if (offset_mod_4 == 0)
-  {
-    buf0[0] = src_l0[0] | s1;
-    buf0[1] = src_l0[1] | s2;
-    buf0[2] = src_l0[2] | s3;
-    buf0[3] = src_l0[3] | s4;
-    buf1[0] = src_l1[0] | s5;
-    buf1[1] = src_l1[1] | s6;
-    buf1[2] = src_l1[2] | s7;
-    buf1[3] = src_l1[3] | s8;
-  }
-  else
-  {
-    buf0[0] = src_l0[0] | s0;
-    buf0[1] = src_l0[1] | s1;
-    buf0[2] = src_l0[2] | s2;
-    buf0[3] = src_l0[3] | s3;
-    buf1[0] = src_l1[0] | s4;
-    buf1[1] = src_l1[1] | s5;
-    buf1[2] = src_l1[2] | s6;
-    buf1[3] = src_l1[3] | s7;
-  }
+  s0 = swap32_S (s0);
+  s1 = swap32_S (s1);
+  s2 = swap32_S (s2);
+  s3 = swap32_S (s3);
+  s4 = swap32_S (s4);
+  s5 = swap32_S (s5);
+  s6 = swap32_S (s6);
+  s7 = swap32_S (s7);
   #endif
 
   #ifdef IS_NV
-  const int offset_minus_4 = 4 - (offset % 4);
-
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
-  u32 s0 = 0;
-  u32 s1 = 0;
-  u32 s2 = 0;
-  u32 s3 = 0;
-  u32 s4 = 0;
-  u32 s5 = 0;
-  u32 s6 = 0;
-  u32 s7 = 0;
+  const u32 src_r00 = src_r0[0];
+  const u32 src_r01 = src_r0[1];
+  const u32 src_r02 = src_r0[2];
+  const u32 src_r03 = src_r0[3];
+  const u32 src_r10 = src_r1[0];
+  const u32 src_r11 = src_r1[1];
+  const u32 src_r12 = src_r1[2];
+  const u32 src_r13 = src_r1[3];
 
   switch (offset / 4)
   {
     case 0:
-      s7 = __byte_perm_S (src_r1[2], src_r1[3], selector);
-      s6 = __byte_perm_S (src_r1[1], src_r1[2], selector);
-      s5 = __byte_perm_S (src_r1[0], src_r1[1], selector);
-      s4 = __byte_perm_S (src_r0[3], src_r1[0], selector);
-      s3 = __byte_perm_S (src_r0[2], src_r0[3], selector);
-      s2 = __byte_perm_S (src_r0[1], src_r0[2], selector);
-      s1 = __byte_perm_S (src_r0[0], src_r0[1], selector);
-      s0 = __byte_perm_S (        0, src_r0[0], selector);
+      s7 = __byte_perm_S (src_r12, src_r13, selector);
+      s6 = __byte_perm_S (src_r11, src_r12, selector);
+      s5 = __byte_perm_S (src_r10, src_r11, selector);
+      s4 = __byte_perm_S (src_r03, src_r10, selector);
+      s3 = __byte_perm_S (src_r02, src_r03, selector);
+      s2 = __byte_perm_S (src_r01, src_r02, selector);
+      s1 = __byte_perm_S (src_r00, src_r01, selector);
+      s0 = __byte_perm_S (      0, src_r00, selector);
       break;
 
     case 1:
-      s7 = __byte_perm_S (src_r1[1], src_r1[2], selector);
-      s6 = __byte_perm_S (src_r1[0], src_r1[1], selector);
-      s5 = __byte_perm_S (src_r0[3], src_r1[0], selector);
-      s4 = __byte_perm_S (src_r0[2], src_r0[3], selector);
-      s3 = __byte_perm_S (src_r0[1], src_r0[2], selector);
-      s2 = __byte_perm_S (src_r0[0], src_r0[1], selector);
-      s1 = __byte_perm_S (        0, src_r0[0], selector);
+      s7 = __byte_perm_S (src_r11, src_r12, selector);
+      s6 = __byte_perm_S (src_r10, src_r11, selector);
+      s5 = __byte_perm_S (src_r03, src_r10, selector);
+      s4 = __byte_perm_S (src_r02, src_r03, selector);
+      s3 = __byte_perm_S (src_r01, src_r02, selector);
+      s2 = __byte_perm_S (src_r00, src_r01, selector);
+      s1 = __byte_perm_S (      0, src_r00, selector);
       s0 = 0;
       break;
 
     case 2:
-      s7 = __byte_perm_S (src_r1[0], src_r1[1], selector);
-      s6 = __byte_perm_S (src_r0[3], src_r1[0], selector);
-      s5 = __byte_perm_S (src_r0[2], src_r0[3], selector);
-      s4 = __byte_perm_S (src_r0[1], src_r0[2], selector);
-      s3 = __byte_perm_S (src_r0[0], src_r0[1], selector);
-      s2 = __byte_perm_S (        0, src_r0[0], selector);
+      s7 = __byte_perm_S (src_r10, src_r11, selector);
+      s6 = __byte_perm_S (src_r03, src_r10, selector);
+      s5 = __byte_perm_S (src_r02, src_r03, selector);
+      s4 = __byte_perm_S (src_r01, src_r02, selector);
+      s3 = __byte_perm_S (src_r00, src_r01, selector);
+      s2 = __byte_perm_S (      0, src_r00, selector);
       s1 = 0;
       s0 = 0;
       break;
 
     case 3:
-      s7 = __byte_perm_S (src_r0[3], src_r1[0], selector);
-      s6 = __byte_perm_S (src_r0[2], src_r0[3], selector);
-      s5 = __byte_perm_S (src_r0[1], src_r0[2], selector);
-      s4 = __byte_perm_S (src_r0[0], src_r0[1], selector);
-      s3 = __byte_perm_S (        0, src_r0[0], selector);
+      s7 = __byte_perm_S (src_r03, src_r10, selector);
+      s6 = __byte_perm_S (src_r02, src_r03, selector);
+      s5 = __byte_perm_S (src_r01, src_r02, selector);
+      s4 = __byte_perm_S (src_r00, src_r01, selector);
+      s3 = __byte_perm_S (      0, src_r00, selector);
       s2 = 0;
       s1 = 0;
       s0 = 0;
@@ -956,10 +941,10 @@ inline void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
       break;
 
     case 4:
-      s7 = __byte_perm_S (src_r0[2], src_r0[3], selector);
-      s6 = __byte_perm_S (src_r0[1], src_r0[2], selector);
-      s5 = __byte_perm_S (src_r0[0], src_r0[1], selector);
-      s4 = __byte_perm_S (        0, src_r0[0], selector);
+      s7 = __byte_perm_S (src_r02, src_r03, selector);
+      s6 = __byte_perm_S (src_r01, src_r02, selector);
+      s5 = __byte_perm_S (src_r00, src_r01, selector);
+      s4 = __byte_perm_S (      0, src_r00, selector);
       s3 = 0;
       s2 = 0;
       s1 = 0;
@@ -967,9 +952,9 @@ inline void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
       break;
 
     case 5:
-      s7 = __byte_perm_S (src_r0[1], src_r0[2], selector);
-      s6 = __byte_perm_S (src_r0[0], src_r0[1], selector);
-      s5 = __byte_perm_S (        0, src_r0[0], selector);
+      s7 = __byte_perm_S (src_r01, src_r02, selector);
+      s6 = __byte_perm_S (src_r00, src_r01, selector);
+      s5 = __byte_perm_S (      0, src_r00, selector);
       s4 = 0;
       s3 = 0;
       s2 = 0;
@@ -978,8 +963,8 @@ inline void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
       break;
 
     case 6:
-      s7 = __byte_perm_S (src_r0[0], src_r0[1], selector);
-      s6 = __byte_perm_S (        0, src_r0[0], selector);
+      s7 = __byte_perm_S (src_r00, src_r01, selector);
+      s6 = __byte_perm_S (      0, src_r00, selector);
       s5 = 0;
       s4 = 0;
       s3 = 0;
@@ -989,7 +974,7 @@ inline void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
       break;
 
     case 7:
-      s7 = __byte_perm_S (        0, src_r0[0], selector);
+      s7 = __byte_perm_S (      0, src_r00, selector);
       s6 = 0;
       s5 = 0;
       s4 = 0;
@@ -999,6 +984,7 @@ inline void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
       s0 = 0;
       break;
   }
+  #endif
 
   buf0[0] = src_l0[0] | s0;
   buf0[1] = src_l0[1] | s1;
@@ -1008,11 +994,9 @@ inline void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
   buf1[1] = src_l1[1] | s5;
   buf1[2] = src_l1[2] | s6;
   buf1[3] = src_l1[3] | s7;
-
-  #endif
 }
 
-inline void reverse_block (u32 in0[4], u32 in1[4], u32 out0[4], u32 out1[4], const u32 len)
+void reverse_block (u32 in0[4], u32 in1[4], u32 out0[4], u32 out1[4], const u32 len)
 {
   rshift_block_N (in0, in1, out0, out1, 32 - len);
 
@@ -1038,7 +1022,7 @@ inline void reverse_block (u32 in0[4], u32 in1[4], u32 out0[4], u32 out1[4], con
   out1[3] = swap32_S (tib41[3]);
 }
 
-inline u32 rule_op_mangle_lrest (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_lrest (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   buf0[0] |= (generate_cmask (buf0[0]));
   buf0[1] |= (generate_cmask (buf0[1]));
@@ -1052,7 +1036,7 @@ inline u32 rule_op_mangle_lrest (const u32 p0, const u32 p1, u32 buf0[4], u32 bu
   return in_len;
 }
 
-inline u32 rule_op_mangle_urest (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_urest (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   buf0[0] &= ~(generate_cmask (buf0[0]));
   buf0[1] &= ~(generate_cmask (buf0[1]));
@@ -1066,7 +1050,7 @@ inline u32 rule_op_mangle_urest (const u32 p0, const u32 p1, u32 buf0[4], u32 bu
   return in_len;
 }
 
-inline u32 rule_op_mangle_lrest_ufirst (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_lrest_ufirst (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   rule_op_mangle_lrest (p0, p1, buf0, buf1, in_len);
 
@@ -1075,7 +1059,7 @@ inline u32 rule_op_mangle_lrest_ufirst (const u32 p0, const u32 p1, u32 buf0[4],
   return in_len;
 }
 
-inline u32 rule_op_mangle_urest_lfirst (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_urest_lfirst (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   rule_op_mangle_urest (p0, p1, buf0, buf1, in_len);
 
@@ -1084,7 +1068,7 @@ inline u32 rule_op_mangle_urest_lfirst (const u32 p0, const u32 p1, u32 buf0[4],
   return in_len;
 }
 
-inline u32 rule_op_mangle_trest (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_trest (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   buf0[0] ^= (generate_cmask (buf0[0]));
   buf0[1] ^= (generate_cmask (buf0[1]));
@@ -1098,7 +1082,7 @@ inline u32 rule_op_mangle_trest (const u32 p0, const u32 p1, u32 buf0[4], u32 bu
   return in_len;
 }
 
-inline u32 rule_op_mangle_toggle_at (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_toggle_at (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if (p0 >= in_len) return (in_len);
 
@@ -1119,14 +1103,14 @@ inline u32 rule_op_mangle_toggle_at (const u32 p0, const u32 p1, u32 buf0[4], u3
   return in_len;
 }
 
-inline u32 rule_op_mangle_reverse (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_reverse (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   reverse_block (buf0, buf1, buf0, buf1, in_len);
 
   return in_len;
 }
 
-inline u32 rule_op_mangle_dupeword (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_dupeword (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if ((in_len + in_len) >= 32) return (in_len);
 
@@ -1139,7 +1123,7 @@ inline u32 rule_op_mangle_dupeword (const u32 p0, const u32 p1, u32 buf0[4], u32
   return out_len;
 }
 
-inline u32 rule_op_mangle_dupeword_times (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_dupeword_times (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if (((in_len * p0) + in_len) >= 32) return (in_len);
 
@@ -1167,7 +1151,7 @@ inline u32 rule_op_mangle_dupeword_times (const u32 p0, const u32 p1, u32 buf0[4
   return out_len;
 }
 
-inline u32 rule_op_mangle_reflect (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_reflect (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if ((in_len + in_len) >= 32) return (in_len);
 
@@ -1185,7 +1169,7 @@ inline u32 rule_op_mangle_reflect (const u32 p0, const u32 p1, u32 buf0[4], u32 
   return out_len;
 }
 
-inline u32 rule_op_mangle_append (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_append (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if ((in_len + 1) >= 32) return (in_len);
 
@@ -1198,7 +1182,7 @@ inline u32 rule_op_mangle_append (const u32 p0, const u32 p1, u32 buf0[4], u32 b
   return out_len;
 }
 
-inline u32 rule_op_mangle_prepend (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_prepend (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if ((in_len + 1) >= 32) return (in_len);
 
@@ -1213,7 +1197,7 @@ inline u32 rule_op_mangle_prepend (const u32 p0, const u32 p1, u32 buf0[4], u32 
   return out_len;
 }
 
-inline u32 rule_op_mangle_rotate_left (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_rotate_left (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if (in_len == 0) return (in_len);
 
@@ -1237,7 +1221,7 @@ inline u32 rule_op_mangle_rotate_left (const u32 p0, const u32 p1, u32 buf0[4], 
   return in_len;
 }
 
-inline u32 rule_op_mangle_rotate_right (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_rotate_right (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if (in_len == 0) return (in_len);
 
@@ -1267,7 +1251,7 @@ inline u32 rule_op_mangle_rotate_right (const u32 p0, const u32 p1, u32 buf0[4],
   return in_len;
 }
 
-inline u32 rule_op_mangle_delete_first (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_delete_first (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if (in_len == 0) return (in_len);
 
@@ -1278,7 +1262,7 @@ inline u32 rule_op_mangle_delete_first (const u32 p0, const u32 p1, u32 buf0[4],
   return in_len1;
 }
 
-inline u32 rule_op_mangle_delete_last (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_delete_last (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if (in_len == 0) return (in_len);
 
@@ -1298,7 +1282,7 @@ inline u32 rule_op_mangle_delete_last (const u32 p0, const u32 p1, u32 buf0[4], 
   return in_len1;
 }
 
-inline u32 rule_op_mangle_delete_at (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_delete_at (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if (p0 >= in_len) return (in_len);
 
@@ -1373,7 +1357,7 @@ inline u32 rule_op_mangle_delete_at (const u32 p0, const u32 p1, u32 buf0[4], u3
   return out_len;
 }
 
-inline u32 rule_op_mangle_extract (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_extract (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if (p0 >= in_len) return (in_len);
 
@@ -1388,7 +1372,7 @@ inline u32 rule_op_mangle_extract (const u32 p0, const u32 p1, u32 buf0[4], u32 
   return out_len;
 }
 
-inline u32 rule_op_mangle_omit (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_omit (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if (p0 >= in_len) return (in_len);
 
@@ -1474,7 +1458,7 @@ inline u32 rule_op_mangle_omit (const u32 p0, const u32 p1, u32 buf0[4], u32 buf
   return out_len;
 }
 
-inline u32 rule_op_mangle_insert (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_insert (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if (p0 > in_len) return (in_len);
 
@@ -1546,7 +1530,7 @@ inline u32 rule_op_mangle_insert (const u32 p0, const u32 p1, u32 buf0[4], u32 b
   return out_len;
 }
 
-inline u32 rule_op_mangle_overstrike (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_overstrike (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if (p0 >= in_len) return (in_len);
 
@@ -1569,7 +1553,7 @@ inline u32 rule_op_mangle_overstrike (const u32 p0, const u32 p1, u32 buf0[4], u
   return in_len;
 }
 
-inline u32 rule_op_mangle_truncate_at (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_truncate_at (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if (p0 >= in_len) return (in_len);
 
@@ -1578,7 +1562,7 @@ inline u32 rule_op_mangle_truncate_at (const u32 p0, const u32 p1, u32 buf0[4], 
   return p0;
 }
 
-inline u32 rule_op_mangle_replace (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_replace (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   const uchar4 tmp0 = (uchar4) (p0);
   const uchar4 tmp1 = (uchar4) (p1);
@@ -1597,7 +1581,7 @@ inline u32 rule_op_mangle_replace (const u32 p0, const u32 p1, u32 buf0[4], u32 
   return in_len;
 }
 
-inline u32 rule_op_mangle_purgechar (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_purgechar (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   u32 out_len = 0;
 
@@ -1638,13 +1622,13 @@ inline u32 rule_op_mangle_purgechar (const u32 p0, const u32 p1, u32 buf0[4], u3
   return out_len;
 }
 
-inline u32 rule_op_mangle_togglecase_rec (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_togglecase_rec (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   // TODO
   return in_len;
 }
 
-inline u32 rule_op_mangle_dupechar_first (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_dupechar_first (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if ( in_len       ==  0) return (in_len);
   if ((in_len + p0) >= 32) return (in_len);
@@ -1831,7 +1815,7 @@ inline u32 rule_op_mangle_dupechar_first (const u32 p0, const u32 p1, u32 buf0[4
   return out_len;
 }
 
-inline u32 rule_op_mangle_dupechar_last (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_dupechar_last (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if ( in_len       ==  0) return (in_len);
   if ((in_len + p0) >= 32) return (in_len);
@@ -1865,7 +1849,7 @@ inline u32 rule_op_mangle_dupechar_last (const u32 p0, const u32 p1, u32 buf0[4]
   return out_len;
 }
 
-inline u32 rule_op_mangle_dupechar_all (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_dupechar_all (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if ( in_len           ==  0) return (in_len);
   if ((in_len + in_len) >= 32) return (in_len);
@@ -1898,7 +1882,7 @@ inline u32 rule_op_mangle_dupechar_all (const u32 p0, const u32 p1, u32 buf0[4],
   return out_len;
 }
 
-inline u32 rule_op_mangle_switch_first (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_switch_first (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if (in_len < 2) return (in_len);
 
@@ -1907,7 +1891,7 @@ inline u32 rule_op_mangle_switch_first (const u32 p0, const u32 p1, u32 buf0[4],
   return in_len;
 }
 
-inline u32 rule_op_mangle_switch_last (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_switch_last (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if (in_len < 2) return (in_len);
 
@@ -1992,7 +1976,7 @@ inline u32 rule_op_mangle_switch_last (const u32 p0, const u32 p1, u32 buf0[4], 
   return in_len;
 }
 
-inline u32 rule_op_mangle_switch_at (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_switch_at (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if (p0 >= in_len) return (in_len);
   if (p1 >= in_len) return (in_len);
@@ -2239,7 +2223,7 @@ inline u32 rule_op_mangle_switch_at (const u32 p0, const u32 p1, u32 buf0[4], u3
   return in_len;
 }
 
-inline u32 rule_op_mangle_chr_shiftl (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_chr_shiftl (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if (p0 >= in_len) return (in_len);
 
@@ -2261,7 +2245,7 @@ inline u32 rule_op_mangle_chr_shiftl (const u32 p0, const u32 p1, u32 buf0[4], u
   return in_len;
 }
 
-inline u32 rule_op_mangle_chr_shiftr (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_chr_shiftr (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if (p0 >= in_len) return (in_len);
 
@@ -2283,7 +2267,7 @@ inline u32 rule_op_mangle_chr_shiftr (const u32 p0, const u32 p1, u32 buf0[4], u
   return in_len;
 }
 
-inline u32 rule_op_mangle_chr_incr (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_chr_incr (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if (p0 >= in_len) return (in_len);
 
@@ -2307,7 +2291,7 @@ inline u32 rule_op_mangle_chr_incr (const u32 p0, const u32 p1, u32 buf0[4], u32
   return in_len;
 }
 
-inline u32 rule_op_mangle_chr_decr (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_chr_decr (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if (p0 >= in_len) return (in_len);
 
@@ -2331,7 +2315,7 @@ inline u32 rule_op_mangle_chr_decr (const u32 p0, const u32 p1, u32 buf0[4], u32
   return in_len;
 }
 
-inline u32 rule_op_mangle_replace_np1 (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_replace_np1 (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if ((p0 + 1) >= in_len) return (in_len);
 
@@ -2358,7 +2342,7 @@ inline u32 rule_op_mangle_replace_np1 (const u32 p0, const u32 p1, u32 buf0[4], 
   return in_len;
 }
 
-inline u32 rule_op_mangle_replace_nm1 (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_replace_nm1 (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if (p0 == 0) return (in_len);
 
@@ -2387,7 +2371,7 @@ inline u32 rule_op_mangle_replace_nm1 (const u32 p0, const u32 p1, u32 buf0[4], 
   return in_len;
 }
 
-inline u32 rule_op_mangle_dupeblock_first (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_dupeblock_first (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if (p0 > in_len) return (in_len);
 
@@ -2425,7 +2409,7 @@ inline u32 rule_op_mangle_dupeblock_first (const u32 p0, const u32 p1, u32 buf0[
   return out_len;
 }
 
-inline u32 rule_op_mangle_dupeblock_last (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_dupeblock_last (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   if (p0 > in_len) return (in_len);
 
@@ -2454,7 +2438,7 @@ inline u32 rule_op_mangle_dupeblock_last (const u32 p0, const u32 p1, u32 buf0[4
   return out_len;
 }
 
-inline u32 rule_op_mangle_title_sep (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 rule_op_mangle_title_sep (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   buf0[0] |= (generate_cmask (buf0[0]));
   buf0[1] |= (generate_cmask (buf0[1]));
@@ -2497,7 +2481,7 @@ inline u32 rule_op_mangle_title_sep (const u32 p0, const u32 p1, u32 buf0[4], u3
   return in_len;
 }
 
-inline u32 apply_rule (const u32 name, const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+u32 apply_rule (const u32 name, const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
 {
   u32 out_len = in_len;
 
@@ -2549,7 +2533,7 @@ inline u32 apply_rule (const u32 name, const u32 p0, const u32 p1, u32 buf0[4], 
   return out_len;
 }
 
-inline u32 apply_rules (__global const u32 *cmds, u32 buf0[4], u32 buf1[4], const u32 len)
+u32 apply_rules (__global const u32 *cmds, u32 buf0[4], u32 buf1[4], const u32 len)
 {
   u32 out_len = len;
 
@@ -2567,7 +2551,7 @@ inline u32 apply_rules (__global const u32 *cmds, u32 buf0[4], u32 buf1[4], cons
   return out_len;
 }
 
-inline u32x apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_len, __global const kernel_rule_t *rules_buf, const u32 il_pos, u32x buf0[4], u32x buf1[4])
+u32x apply_rules_vect (const u32 pw_buf0[4], const u32 pw_buf1[4], const u32 pw_len, __global const kernel_rule_t *rules_buf, const u32 il_pos, u32x buf0[4], u32x buf1[4])
 {
   #if VECT_SIZE == 1
 

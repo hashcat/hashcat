@@ -10,111 +10,14 @@
 #include "inc_hash_functions.cl"
 #include "inc_types.cl"
 #include "inc_common.cl"
+#include "inc_hash_md5.cl"
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
 #define md5crypt_magic 0x00243124u
 
-void md5_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[4])
-{
-  u32 a = digest[0];
-  u32 b = digest[1];
-  u32 c = digest[2];
-  u32 d = digest[3];
-
-  u32 w0_t = w0[0];
-  u32 w1_t = w0[1];
-  u32 w2_t = w0[2];
-  u32 w3_t = w0[3];
-  u32 w4_t = w1[0];
-  u32 w5_t = w1[1];
-  u32 w6_t = w1[2];
-  u32 w7_t = w1[3];
-  u32 w8_t = w2[0];
-  u32 w9_t = w2[1];
-  u32 wa_t = w2[2];
-  u32 wb_t = w2[3];
-  u32 wc_t = w3[0];
-  u32 wd_t = w3[1];
-  u32 we_t = w3[2];
-  u32 wf_t = 0;
-
-  MD5_STEP (MD5_Fo, a, b, c, d, w0_t, MD5C00, MD5S00);
-  MD5_STEP (MD5_Fo, d, a, b, c, w1_t, MD5C01, MD5S01);
-  MD5_STEP (MD5_Fo, c, d, a, b, w2_t, MD5C02, MD5S02);
-  MD5_STEP (MD5_Fo, b, c, d, a, w3_t, MD5C03, MD5S03);
-  MD5_STEP (MD5_Fo, a, b, c, d, w4_t, MD5C04, MD5S00);
-  MD5_STEP (MD5_Fo, d, a, b, c, w5_t, MD5C05, MD5S01);
-  MD5_STEP (MD5_Fo, c, d, a, b, w6_t, MD5C06, MD5S02);
-  MD5_STEP (MD5_Fo, b, c, d, a, w7_t, MD5C07, MD5S03);
-  MD5_STEP (MD5_Fo, a, b, c, d, w8_t, MD5C08, MD5S00);
-  MD5_STEP (MD5_Fo, d, a, b, c, w9_t, MD5C09, MD5S01);
-  MD5_STEP (MD5_Fo, c, d, a, b, wa_t, MD5C0a, MD5S02);
-  MD5_STEP (MD5_Fo, b, c, d, a, wb_t, MD5C0b, MD5S03);
-  MD5_STEP (MD5_Fo, a, b, c, d, wc_t, MD5C0c, MD5S00);
-  MD5_STEP (MD5_Fo, d, a, b, c, wd_t, MD5C0d, MD5S01);
-  MD5_STEP (MD5_Fo, c, d, a, b, we_t, MD5C0e, MD5S02);
-  MD5_STEP (MD5_Fo, b, c, d, a, wf_t, MD5C0f, MD5S03);
-
-  MD5_STEP (MD5_Go, a, b, c, d, w1_t, MD5C10, MD5S10);
-  MD5_STEP (MD5_Go, d, a, b, c, w6_t, MD5C11, MD5S11);
-  MD5_STEP (MD5_Go, c, d, a, b, wb_t, MD5C12, MD5S12);
-  MD5_STEP (MD5_Go, b, c, d, a, w0_t, MD5C13, MD5S13);
-  MD5_STEP (MD5_Go, a, b, c, d, w5_t, MD5C14, MD5S10);
-  MD5_STEP (MD5_Go, d, a, b, c, wa_t, MD5C15, MD5S11);
-  MD5_STEP (MD5_Go, c, d, a, b, wf_t, MD5C16, MD5S12);
-  MD5_STEP (MD5_Go, b, c, d, a, w4_t, MD5C17, MD5S13);
-  MD5_STEP (MD5_Go, a, b, c, d, w9_t, MD5C18, MD5S10);
-  MD5_STEP (MD5_Go, d, a, b, c, we_t, MD5C19, MD5S11);
-  MD5_STEP (MD5_Go, c, d, a, b, w3_t, MD5C1a, MD5S12);
-  MD5_STEP (MD5_Go, b, c, d, a, w8_t, MD5C1b, MD5S13);
-  MD5_STEP (MD5_Go, a, b, c, d, wd_t, MD5C1c, MD5S10);
-  MD5_STEP (MD5_Go, d, a, b, c, w2_t, MD5C1d, MD5S11);
-  MD5_STEP (MD5_Go, c, d, a, b, w7_t, MD5C1e, MD5S12);
-  MD5_STEP (MD5_Go, b, c, d, a, wc_t, MD5C1f, MD5S13);
-
-  MD5_STEP (MD5_H , a, b, c, d, w5_t, MD5C20, MD5S20);
-  MD5_STEP (MD5_H , d, a, b, c, w8_t, MD5C21, MD5S21);
-  MD5_STEP (MD5_H , c, d, a, b, wb_t, MD5C22, MD5S22);
-  MD5_STEP (MD5_H , b, c, d, a, we_t, MD5C23, MD5S23);
-  MD5_STEP (MD5_H , a, b, c, d, w1_t, MD5C24, MD5S20);
-  MD5_STEP (MD5_H , d, a, b, c, w4_t, MD5C25, MD5S21);
-  MD5_STEP (MD5_H , c, d, a, b, w7_t, MD5C26, MD5S22);
-  MD5_STEP (MD5_H , b, c, d, a, wa_t, MD5C27, MD5S23);
-  MD5_STEP (MD5_H , a, b, c, d, wd_t, MD5C28, MD5S20);
-  MD5_STEP (MD5_H , d, a, b, c, w0_t, MD5C29, MD5S21);
-  MD5_STEP (MD5_H , c, d, a, b, w3_t, MD5C2a, MD5S22);
-  MD5_STEP (MD5_H , b, c, d, a, w6_t, MD5C2b, MD5S23);
-  MD5_STEP (MD5_H , a, b, c, d, w9_t, MD5C2c, MD5S20);
-  MD5_STEP (MD5_H , d, a, b, c, wc_t, MD5C2d, MD5S21);
-  MD5_STEP (MD5_H , c, d, a, b, wf_t, MD5C2e, MD5S22);
-  MD5_STEP (MD5_H , b, c, d, a, w2_t, MD5C2f, MD5S23);
-
-  MD5_STEP (MD5_I , a, b, c, d, w0_t, MD5C30, MD5S30);
-  MD5_STEP (MD5_I , d, a, b, c, w7_t, MD5C31, MD5S31);
-  MD5_STEP (MD5_I , c, d, a, b, we_t, MD5C32, MD5S32);
-  MD5_STEP (MD5_I , b, c, d, a, w5_t, MD5C33, MD5S33);
-  MD5_STEP (MD5_I , a, b, c, d, wc_t, MD5C34, MD5S30);
-  MD5_STEP (MD5_I , d, a, b, c, w3_t, MD5C35, MD5S31);
-  MD5_STEP (MD5_I , c, d, a, b, wa_t, MD5C36, MD5S32);
-  MD5_STEP (MD5_I , b, c, d, a, w1_t, MD5C37, MD5S33);
-  MD5_STEP (MD5_I , a, b, c, d, w8_t, MD5C38, MD5S30);
-  MD5_STEP (MD5_I , d, a, b, c, wf_t, MD5C39, MD5S31);
-  MD5_STEP (MD5_I , c, d, a, b, w6_t, MD5C3a, MD5S32);
-  MD5_STEP (MD5_I , b, c, d, a, wd_t, MD5C3b, MD5S33);
-  MD5_STEP (MD5_I , a, b, c, d, w4_t, MD5C3c, MD5S30);
-  MD5_STEP (MD5_I , d, a, b, c, wb_t, MD5C3d, MD5S31);
-  MD5_STEP (MD5_I , c, d, a, b, w2_t, MD5C3e, MD5S32);
-  MD5_STEP (MD5_I , b, c, d, a, w9_t, MD5C3f, MD5S33);
-
-  digest[0] += a;
-  digest[1] += b;
-  digest[2] += c;
-  digest[3] += d;
-}
-
-void memcat16 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append[4])
+void memcat16 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 offset, const u32 append[4])
 {
   u32 tmp0;
   u32 tmp1;
@@ -122,44 +25,45 @@ void memcat16 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const
   u32 tmp3;
   u32 tmp4;
 
+  const int offset_mod_4 = offset & 3;
+
+  const int offset_minus_4 = 4 - offset_mod_4;
+
   #if defined IS_AMD || defined IS_GENERIC
+  u32 in0 = swap32_S (append[0]);
+  u32 in1 = swap32_S (append[1]);
+  u32 in2 = swap32_S (append[2]);
+  u32 in3 = swap32_S (append[3]);
 
-  const int offset_minus_4 = 4 - (block_len & 3);
+  tmp0 = amd_bytealign (  0, in0, offset);
+  tmp1 = amd_bytealign (in0, in1, offset);
+  tmp2 = amd_bytealign (in1, in2, offset);
+  tmp3 = amd_bytealign (in2, in3, offset);
+  tmp4 = amd_bytealign (in3,   0, offset);
 
-  tmp0 = amd_bytealign (append[0],         0, offset_minus_4);
-  tmp1 = amd_bytealign (append[1], append[0], offset_minus_4);
-  tmp2 = amd_bytealign (append[2], append[1], offset_minus_4);
-  tmp3 = amd_bytealign (append[3], append[2], offset_minus_4);
-  tmp4 = amd_bytealign (        0, append[3], offset_minus_4);
-
-  const u32 mod = block_len & 3;
-
-  if (mod == 0)
-  {
-    tmp0 = tmp1;
-    tmp1 = tmp2;
-    tmp2 = tmp3;
-    tmp3 = tmp4;
-    tmp4 = 0;
-  }
-
+  tmp0 = swap32_S (tmp0);
+  tmp1 = swap32_S (tmp1);
+  tmp2 = swap32_S (tmp2);
+  tmp3 = swap32_S (tmp3);
+  tmp4 = swap32_S (tmp4);
   #endif
 
   #ifdef IS_NV
-
-  const int offset_minus_4 = 4 - (block_len & 3);
-
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
-  tmp0 = __byte_perm (        0, append[0], selector);
-  tmp1 = __byte_perm (append[0], append[1], selector);
-  tmp2 = __byte_perm (append[1], append[2], selector);
-  tmp3 = __byte_perm (append[2], append[3], selector);
-  tmp4 = __byte_perm (append[3],         0, selector);
+  u32 in0 = append[0];
+  u32 in1 = append[1];
+  u32 in2 = append[2];
+  u32 in3 = append[3];
 
+  tmp0 = __byte_perm (  0, in0, selector);
+  tmp1 = __byte_perm (in0, in1, selector);
+  tmp2 = __byte_perm (in1, in2, selector);
+  tmp3 = __byte_perm (in2, in3, selector);
+  tmp4 = __byte_perm (in3,   0, selector);
   #endif
 
-  const u32 div = block_len / 4;
+  const u32 div = offset / 4;
 
   switch (div)
   {
@@ -226,7 +130,7 @@ void memcat16 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const
   }
 }
 
-void memcat16_x80 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append[4])
+void memcat16_x80 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 offset, const u32 append[4])
 {
   u32 tmp0;
   u32 tmp1;
@@ -234,44 +138,47 @@ void memcat16_x80 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], c
   u32 tmp3;
   u32 tmp4;
 
+  const int offset_mod_4 = offset & 3;
+
+  const int offset_minus_4 = 4 - offset_mod_4;
+
   #if defined IS_AMD || defined IS_GENERIC
+  u32 in0 = swap32_S (append[0]);
+  u32 in1 = swap32_S (append[1]);
+  u32 in2 = swap32_S (append[2]);
+  u32 in3 = swap32_S (append[3]);
+  u32 in4 = 0x80000000;
 
-  const int offset_minus_4 = 4 - (block_len & 3);
+  tmp0 = amd_bytealign (  0, in0, offset);
+  tmp1 = amd_bytealign (in0, in1, offset);
+  tmp2 = amd_bytealign (in1, in2, offset);
+  tmp3 = amd_bytealign (in2, in3, offset);
+  tmp4 = amd_bytealign (in3, in4, offset);
 
-  tmp0 = amd_bytealign (append[0],         0, offset_minus_4);
-  tmp1 = amd_bytealign (append[1], append[0], offset_minus_4);
-  tmp2 = amd_bytealign (append[2], append[1], offset_minus_4);
-  tmp3 = amd_bytealign (append[3], append[2], offset_minus_4);
-  tmp4 = amd_bytealign (     0x80, append[3], offset_minus_4);
-
-  const u32 mod = block_len & 3;
-
-  if (mod == 0)
-  {
-    tmp0 = tmp1;
-    tmp1 = tmp2;
-    tmp2 = tmp3;
-    tmp3 = tmp4;
-    tmp4 = 0x80;
-  }
-
+  tmp0 = swap32_S (tmp0);
+  tmp1 = swap32_S (tmp1);
+  tmp2 = swap32_S (tmp2);
+  tmp3 = swap32_S (tmp3);
+  tmp4 = swap32_S (tmp4);
   #endif
 
   #ifdef IS_NV
-
-  const int offset_minus_4 = 4 - (block_len & 3);
-
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
-  tmp0 = __byte_perm (        0, append[0], selector);
-  tmp1 = __byte_perm (append[0], append[1], selector);
-  tmp2 = __byte_perm (append[1], append[2], selector);
-  tmp3 = __byte_perm (append[2], append[3], selector);
-  tmp4 = __byte_perm (append[3],      0x80, selector);
+  u32 in0 = append[0];
+  u32 in1 = append[1];
+  u32 in2 = append[2];
+  u32 in3 = append[3];
+  u32 in4 = 0x80;
 
+  tmp0 = __byte_perm (  0, in0, selector);
+  tmp1 = __byte_perm (in0, in1, selector);
+  tmp2 = __byte_perm (in1, in2, selector);
+  tmp3 = __byte_perm (in2, in3, selector);
+  tmp4 = __byte_perm (in3, in4, selector);
   #endif
 
-  const u32 div = block_len / 4;
+  const u32 div = offset / 4;
 
   switch (div)
   {
@@ -338,44 +245,41 @@ void memcat16_x80 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], c
   }
 }
 
-void memcat8 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append[2])
+void memcat8 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 offset, const u32 append[2])
 {
   u32 tmp0;
   u32 tmp1;
   u32 tmp2;
 
+  const int offset_mod_4 = offset & 3;
+
+  const int offset_minus_4 = 4 - offset_mod_4;
+
   #if defined IS_AMD || defined IS_GENERIC
+  u32 in0 = swap32_S (append[0]);
+  u32 in1 = swap32_S (append[1]);
 
-  const int offset_minus_4 = 4 - (block_len & 3);
+  tmp0 = amd_bytealign (  0, in0, offset);
+  tmp1 = amd_bytealign (in0, in1, offset);
+  tmp2 = amd_bytealign (in1,   0, offset);
 
-  tmp0 = amd_bytealign (append[0],         0, offset_minus_4);
-  tmp1 = amd_bytealign (append[1], append[0], offset_minus_4);
-  tmp2 = amd_bytealign (        0, append[1], offset_minus_4);
-
-  const u32 mod = block_len & 3;
-
-  if (mod == 0)
-  {
-    tmp0 = tmp1;
-    tmp1 = tmp2;
-    tmp2 = 0;
-  }
-
+  tmp0 = swap32_S (tmp0);
+  tmp1 = swap32_S (tmp1);
+  tmp2 = swap32_S (tmp2);
   #endif
 
   #ifdef IS_NV
-
-  const int offset_minus_4 = 4 - (block_len & 3);
-
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
-  tmp0 = __byte_perm (        0, append[0], selector);
-  tmp1 = __byte_perm (append[0], append[1], selector);
-  tmp2 = __byte_perm (append[1],         0, selector);
+  u32 in0 = append[0];
+  u32 in1 = append[1];
 
+  tmp0 = __byte_perm (  0, in0, selector);
+  tmp1 = __byte_perm (in0, in1, selector);
+  tmp2 = __byte_perm (in1,   0, selector);
   #endif
 
-  const u32 div = block_len / 4;
+  const u32 div = offset / 4;
 
   switch (div)
   {

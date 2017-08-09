@@ -37,8 +37,6 @@ __kernel void m01750_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
   for (int idx = 0; idx < pw_lenv; idx++)
   {
     w[idx] = swap32_S (pws[gid].i[idx]);
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
@@ -50,8 +48,6 @@ __kernel void m01750_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
   for (int idx = 0; idx < salt_lenv; idx++)
   {
     s[idx] = swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   /**
@@ -82,13 +78,13 @@ __kernel void m01750_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
       c[i] |= w[i];
     }
 
-    sha512_hmac_ctx_vector_t ctx;
+    sha512_hmac_ctx_t ctx;
 
-    sha512_hmac_init_vector (&ctx, c, pw_len + comb_len);
+    sha512_hmac_init (&ctx, c, pw_len + comb_len);
 
-    sha512_hmac_update_vector (&ctx, s, salt_len);
+    sha512_hmac_update (&ctx, s, salt_len);
 
-    sha512_hmac_final_vector (&ctx);
+    sha512_hmac_final (&ctx);
 
     const u32 r0 = l32_from_64_S (ctx.opad.h[7]);
     const u32 r1 = h32_from_64_S (ctx.opad.h[7]);
@@ -135,8 +131,6 @@ __kernel void m01750_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
   for (int idx = 0; idx < pw_lenv; idx++)
   {
     w[idx] = swap32_S (pws[gid].i[idx]);
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
@@ -148,8 +142,6 @@ __kernel void m01750_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
   for (int idx = 0; idx < salt_lenv; idx++)
   {
     s[idx] = swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   /**
@@ -180,13 +172,13 @@ __kernel void m01750_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
       c[i] |= w[i];
     }
 
-    sha512_hmac_ctx_vector_t ctx;
+    sha512_hmac_ctx_t ctx;
 
-    sha512_hmac_init_vector (&ctx, c, pw_len + comb_len);
+    sha512_hmac_init (&ctx, c, pw_len + comb_len);
 
-    sha512_hmac_update_vector (&ctx, s, salt_len);
+    sha512_hmac_update (&ctx, s, salt_len);
 
-    sha512_hmac_final_vector (&ctx);
+    sha512_hmac_final (&ctx);
 
     const u32 r0 = l32_from_64_S (ctx.opad.h[7]);
     const u32 r1 = h32_from_64_S (ctx.opad.h[7]);

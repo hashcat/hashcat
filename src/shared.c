@@ -334,32 +334,8 @@ void setup_environment_variables ()
       putenv ((char *) "DISPLAY=:0");
   }
 
-  if (getenv ("GPU_FORCE_64BIT_PTR") == NULL)
-    putenv ((char *) "GPU_FORCE_64BIT_PTR=1");
-
-  if (getenv ("GPU_MAX_ALLOC_PERCENT") == NULL)
-    putenv ((char *) "GPU_MAX_ALLOC_PERCENT=100");
-
-  if (getenv ("GPU_SINGLE_ALLOC_PERCENT") == NULL)
-    putenv ((char *) "GPU_SINGLE_ALLOC_PERCENT=100");
-
-  if (getenv ("GPU_MAX_HEAP_SIZE") == NULL)
-    putenv ((char *) "GPU_MAX_HEAP_SIZE=100");
-
-  if (getenv ("CPU_FORCE_64BIT_PTR") == NULL)
-    putenv ((char *) "CPU_FORCE_64BIT_PTR=1");
-
-  if (getenv ("CPU_MAX_ALLOC_PERCENT") == NULL)
-    putenv ((char *) "CPU_MAX_ALLOC_PERCENT=100");
-
-  if (getenv ("CPU_SINGLE_ALLOC_PERCENT") == NULL)
-    putenv ((char *) "CPU_SINGLE_ALLOC_PERCENT=100");
-
-  if (getenv ("CPU_MAX_HEAP_SIZE") == NULL)
-    putenv ((char *) "CPU_MAX_HEAP_SIZE=100");
-
-  if (getenv ("GPU_USE_SYNC_OBJECTS") == NULL)
-    putenv ((char *) "GPU_USE_SYNC_OBJECTS=1");
+  if (getenv ("OCL_CODE_CACHE_ENABLE") == NULL)
+    putenv ((char *) "OCL_CODE_CACHE_ENABLE=0");
 
   if (getenv ("CUDA_CACHE_DISABLE") == NULL)
     putenv ((char *) "CUDA_CACHE_DISABLE=1");
@@ -397,27 +373,13 @@ u32 get_random_num (const u32 min, const u32 max)
 
   if (low == 0) return (0);
 
-  #if defined (__linux__)
+  #if defined (_WIN)
 
-  u32 data;
-
-  FILE *fp = fopen ("/dev/urandom", "rb");
-
-  if (fp == NULL) return (0);
-
-  const int nread = fread (&data, sizeof (u32), 1, fp);
-
-  fclose (fp);
-
-  if (nread != 1) return 0;
-
-  u64 r = data % low; r += min;
-
-  return (u32) r;
+  return (((u32) rand () % (max - min)) + min);
 
   #else
 
-  return (((u32) rand () % (max - min)) + min);
+  return (((u32) random () % (max - min)) + min);
 
   #endif
 }

@@ -62,13 +62,11 @@ __kernel void m02810_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   const u32 salt_lenv = ceil ((float) salt_len / 4);
 
-  u32x s[8] = { 0 };
+  u32 s[8] = { 0 };
 
   for (int idx = 0; idx < salt_lenv; idx++)
   {
     s[idx] = salt_bufs[salt_pos].salt_buf_pc[idx];
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   md5_ctx_t ctx0;
@@ -202,13 +200,11 @@ __kernel void m02810_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   const u32 salt_lenv = ceil ((float) salt_len / 4);
 
-  u32x s[8] = { 0 };
+  u32 s[8] = { 0 };
 
   for (int idx = 0; idx < salt_lenv; idx++)
   {
     s[idx] = salt_bufs[salt_pos].salt_buf_pc[idx];
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   md5_ctx_t ctx0;

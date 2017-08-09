@@ -138,6 +138,16 @@ void scrypt_smix (uint4 *X, uint4 *T, __global uint4 *V0, __global uint4 *V1, __
   const u32 xd4 = x / 4;
   const u32 xm4 = x & 3;
 
+  __global uint4 *V;
+
+  switch (xm4)
+  {
+    case 0: V = V0; break;
+    case 1: V = V1; break;
+    case 2: V = V2; break;
+    case 3: V = V3; break;
+  }
+
   #ifdef _unroll
   #pragma unroll
   #endif
@@ -156,13 +166,7 @@ void scrypt_smix (uint4 *X, uint4 *T, __global uint4 *V0, __global uint4 *V1, __
 
   for (u32 y = 0; y < ySIZE; y++)
   {
-    switch (xm4)
-    {
-      case 0: for (u32 z = 0; z < zSIZE; z++) V0[CO] = X[z]; break;
-      case 1: for (u32 z = 0; z < zSIZE; z++) V1[CO] = X[z]; break;
-      case 2: for (u32 z = 0; z < zSIZE; z++) V2[CO] = X[z]; break;
-      case 3: for (u32 z = 0; z < zSIZE; z++) V3[CO] = X[z]; break;
-    }
+    for (u32 z = 0; z < zSIZE; z++) V[CO] = X[z];
 
     for (u32 i = 0; i < SCRYPT_TMTO; i++) salsa_r (X);
   }
@@ -175,13 +179,7 @@ void scrypt_smix (uint4 *X, uint4 *T, __global uint4 *V0, __global uint4 *V1, __
 
     const u32 km = k - (y * SCRYPT_TMTO);
 
-    switch (xm4)
-    {
-      case 0: for (u32 z = 0; z < zSIZE; z++) T[z] = V0[CO]; break;
-      case 1: for (u32 z = 0; z < zSIZE; z++) T[z] = V1[CO]; break;
-      case 2: for (u32 z = 0; z < zSIZE; z++) T[z] = V2[CO]; break;
-      case 3: for (u32 z = 0; z < zSIZE; z++) T[z] = V3[CO]; break;
-    }
+    for (u32 z = 0; z < zSIZE; z++) T[z] = V[CO];
 
     for (u32 i = 0; i < km; i++) salsa_r (T);
 
@@ -267,8 +265,6 @@ __kernel void m08900_init (__global pw_t *pws, __global const kernel_rule_t *rul
     const uint4 tmp0 = (uint4) (digest[0], digest[1], digest[2], digest[3]);
     const uint4 tmp1 = (uint4) (digest[4], digest[5], digest[6], digest[7]);
 
-    barrier (CLK_GLOBAL_MEM_FENCE);
-
     tmps[gid].P[k + 0] = tmp0;
     tmps[gid].P[k + 1] = tmp1;
   }
@@ -333,8 +329,6 @@ __kernel void m08900_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   for (u32 l = 0; l < SCRYPT_CNT4; l += 4)
   {
-    barrier (CLK_GLOBAL_MEM_FENCE);
-
     uint4 tmp;
 
     tmp = tmps[gid].P[l + 0];

@@ -37,8 +37,6 @@ __kernel void m01450_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
   for (int idx = 0; idx < pw_lenv; idx++)
   {
     w[idx] = swap32_S (pws[gid].i[idx]);
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
@@ -50,8 +48,6 @@ __kernel void m01450_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
   for (int idx = 0; idx < salt_lenv; idx++)
   {
     s[idx] = swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   /**
@@ -82,13 +78,13 @@ __kernel void m01450_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
       c[i] |= w[i];
     }
 
-    sha256_hmac_ctx_vector_t ctx;
+    sha256_hmac_ctx_t ctx;
 
-    sha256_hmac_init_vector (&ctx, c, pw_len + comb_len);
+    sha256_hmac_init (&ctx, c, pw_len + comb_len);
 
-    sha256_hmac_update_vector (&ctx, s, salt_len);
+    sha256_hmac_update (&ctx, s, salt_len);
 
-    sha256_hmac_final_vector (&ctx);
+    sha256_hmac_final (&ctx);
 
     const u32 r0 = ctx.opad.h[DGST_R0];
     const u32 r1 = ctx.opad.h[DGST_R1];
@@ -135,8 +131,6 @@ __kernel void m01450_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
   for (int idx = 0; idx < pw_lenv; idx++)
   {
     w[idx] = swap32_S (pws[gid].i[idx]);
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
@@ -148,8 +142,6 @@ __kernel void m01450_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
   for (int idx = 0; idx < salt_lenv; idx++)
   {
     s[idx] = swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   /**
@@ -180,13 +172,13 @@ __kernel void m01450_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
       c[i] |= w[i];
     }
 
-    sha256_hmac_ctx_vector_t ctx;
+    sha256_hmac_ctx_t ctx;
 
-    sha256_hmac_init_vector (&ctx, c, pw_len + comb_len);
+    sha256_hmac_init (&ctx, c, pw_len + comb_len);
 
-    sha256_hmac_update_vector (&ctx, s, salt_len);
+    sha256_hmac_update (&ctx, s, salt_len);
 
-    sha256_hmac_final_vector (&ctx);
+    sha256_hmac_final (&ctx);
 
     const u32 r0 = ctx.opad.h[DGST_R0];
     const u32 r1 = ctx.opad.h[DGST_R1];

@@ -39,8 +39,6 @@ __kernel void m10800_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
   for (int idx = 0; idx < pw_lenv; idx++)
   {
     w[idx] = swap32_S (pws[gid].i[idx]);
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   /**
@@ -59,10 +57,10 @@ __kernel void m10800_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     sha384_final (&ctx);
 
-    const u32x r0 = l32_from_64 (ctx.h[3]);
-    const u32x r1 = h32_from_64 (ctx.h[3]);
-    const u32x r2 = l32_from_64 (ctx.h[2]);
-    const u32x r3 = h32_from_64 (ctx.h[2]);
+    const u32 r0 = l32_from_64 (ctx.h[3]);
+    const u32 r1 = h32_from_64 (ctx.h[3]);
+    const u32 r2 = l32_from_64 (ctx.h[2]);
+    const u32 r3 = h32_from_64 (ctx.h[2]);
 
     COMPARE_M_SCALAR (r0, r1, r2, r3);
   }
@@ -104,8 +102,6 @@ __kernel void m10800_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
   for (int idx = 0; idx < pw_lenv; idx++)
   {
     w[idx] = swap32_S (pws[gid].i[idx]);
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   /**
@@ -124,10 +120,10 @@ __kernel void m10800_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     sha384_final (&ctx);
 
-    const u32x r0 = l32_from_64 (ctx.h[3]);
-    const u32x r1 = h32_from_64 (ctx.h[3]);
-    const u32x r2 = l32_from_64 (ctx.h[2]);
-    const u32x r3 = h32_from_64 (ctx.h[2]);
+    const u32 r0 = l32_from_64 (ctx.h[3]);
+    const u32 r1 = h32_from_64 (ctx.h[3]);
+    const u32 r2 = l32_from_64 (ctx.h[2]);
+    const u32 r3 = h32_from_64 (ctx.h[2]);
 
     COMPARE_S_SCALAR (r0, r1, r2, r3);
   }

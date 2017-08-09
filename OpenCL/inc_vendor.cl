@@ -153,9 +153,6 @@
 #if KERN_TYPE == 13800
 #undef _unroll
 #endif
-#if KERN_TYPE == 14100
-#undef _unroll
-#endif
 
 // nvidia specific
 
@@ -177,6 +174,9 @@
 #if KERN_TYPE == 14000
 #undef _unroll
 #endif
+#if KERN_TYPE == 14100
+#undef _unroll
+#endif
 
 #endif
 #endif
@@ -186,25 +186,7 @@
 #ifdef IS_AMD
 #ifdef IS_GPU
 
-#if KERN_TYPE == 1700
-#undef _unroll
-#endif
-#if KERN_TYPE == 1710
-#undef _unroll
-#endif
-#if KERN_TYPE == 5200
-#undef _unroll
-#endif
-#if KERN_TYPE == 10800
-#undef _unroll
-#endif
-#if KERN_TYPE == 10900
-#undef _unroll
-#endif
-#if KERN_TYPE == 12800
-#undef _unroll
-#endif
-#if KERN_TYPE == 12900
+#if KERN_TYPE == 8000
 #undef _unroll
 #endif
 

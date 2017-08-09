@@ -76,8 +76,6 @@ __kernel void m00400_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   for (int idx = 0; idx < pw_lenv; idx++)
   {
     w[idx] = pws[gid].i[idx];
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   u32 digest[4];

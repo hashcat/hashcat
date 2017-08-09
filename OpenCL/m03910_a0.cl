@@ -69,21 +69,17 @@ __kernel void m03910_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
   for (int idx = 0; idx < pw_lenv; idx++)
   {
     w[idx] = pws[gid].i[idx];
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   const u32 salt_len = 32;
 
   const u32 salt_lenv = ceil ((float) salt_len / 4);
 
-  u32x s[8] = { 0 };
+  u32 s[8] = { 0 };
 
   for (int idx = 0; idx < salt_lenv; idx++)
   {
     s[idx] = salt_bufs[salt_pos].salt_buf_pc[idx];
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   /**
@@ -220,21 +216,17 @@ __kernel void m03910_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
   for (int idx = 0; idx < pw_lenv; idx++)
   {
     w[idx] = pws[gid].i[idx];
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   const u32 salt_len = 32;
 
   const u32 salt_lenv = ceil ((float) salt_len / 4);
 
-  u32x s[8] = { 0 };
+  u32 s[8] = { 0 };
 
   for (int idx = 0; idx < salt_lenv; idx++)
   {
     s[idx] = salt_bufs[salt_pos].salt_buf_pc[idx];
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   /**

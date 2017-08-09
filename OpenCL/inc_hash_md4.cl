@@ -111,7 +111,7 @@ void md4_init (md4_ctx_t *ctx)
 void md4_update_64 (md4_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len)
 {
   #ifdef IS_AMD
-  volatile const int pos = ctx->len & 63;
+  const int pos = ctx->len & 63;
   #else
   const int pos = ctx->len & 63;
   #endif
@@ -1047,6 +1047,7 @@ void md4_hmac_update_utf16le_swap (md4_hmac_ctx_t *ctx, const u32 *w, const int 
 {
   md4_update_utf16le_swap (&ctx->ipad, w, len);
 }
+
 void md4_hmac_update_global (md4_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   md4_update_global (&ctx->ipad, w, len);
@@ -1234,7 +1235,7 @@ void md4_init_vector_from_scalar (md4_ctx_vector_t *ctx, md4_ctx_t *ctx0)
 void md4_update_vector_64 (md4_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const int len)
 {
   #ifdef IS_AMD
-  volatile const int pos = ctx->len & 63;
+  const int pos = ctx->len & 63;
   #else
   const int pos = ctx->len & 63;
   #endif

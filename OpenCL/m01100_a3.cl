@@ -37,8 +37,6 @@ __kernel void m01100_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
   for (int idx = 0; idx < pw_lenv; idx++)
   {
     w[idx] = pws[gid].i[idx];
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
@@ -50,8 +48,6 @@ __kernel void m01100_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
   for (int idx = 0; idx < salt_lenv; idx++)
   {
     s[idx] = salt_bufs[salt_pos].salt_buf[idx];
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   /**
@@ -136,8 +132,6 @@ __kernel void m01100_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
   for (int idx = 0; idx < pw_lenv; idx++)
   {
     w[idx] = pws[gid].i[idx];
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
@@ -149,8 +143,6 @@ __kernel void m01100_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
   for (int idx = 0; idx < salt_lenv; idx++)
   {
     s[idx] = salt_bufs[salt_pos].salt_buf[idx];
-
-    barrier (CLK_GLOBAL_MEM_FENCE);
   }
 
   /**

@@ -24,7 +24,7 @@ NEVER_CRACK="11600 14900"
 
 SLOW_ALGOS="400 500 501 1600 1800 2100 2500 3200 5200 5800 6211 6212 6213 6221 6222 6223 6231 6232 6233 6241 6242 6243 6251 6261 6271 6281 6300 6400 6500 6600 6700 6800 7100 7200 7400 7900 8200 8800 8900 9000 9100 9200 9300 9400 9500 9600 10000 10300 10500 10700 10900 11300 11600 11900 12000 12001 12100 12200 12300 12400 12500 12700 12800 12900 13000 13200 13400 13600 14600 14700 14800 15100 15200 15300 15600 15700 15800"
 
-OPTS="--quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0 -d 1"
+OPTS="--quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0"
 
 OUTD="test_$(date +%s)"
 
@@ -237,30 +237,36 @@ function init()
   rm -rf ${OUTD}/${hash_type}_dict1 ${OUTD}/${hash_type}_dict2
   touch ${OUTD}/${hash_type}_dict1 ${OUTD}/${hash_type}_dict2
 
-  # foreach password entry split password in 2 (skip first entry, is len 1)
-  i=1
-
   # minimum password length
 
-  min_len=0
+  min=1         # minimum line number from start of the file
+  min_offset=0  # minimum offset starting from ${min} lines
 
   if   [ "${hash_type}" -eq  2500 ]; then
-    min_len=7 # means length 8, since we start with 0
+    min_offset=7 # means length 8, since we start with 0
   elif [ "${hash_type}" -eq 14000 ]; then
-    min_len=7
+    min=0
+    min_offset=4
   elif [ "${hash_type}" -eq 14100 ]; then
-    min_len=23
+    min=0
+    min_offset=3
   elif [ "${hash_type}" -eq 14900 ]; then
-    min_len=9
+    min=0
+    min_offset=5
   elif [ "${hash_type}" -eq 15400 ]; then
-    min_len=31
+    min=0
+    min_offset=3
   elif [ "${hash_type}" -eq 15800 ]; then
     min_len=7
   fi
 
+  # foreach password entry split password in 2 (skip first entry, is len 1)
+
+  i=1
+
   while read -u 9 pass; do
 
-    if [ ${i} -gt 1 ]; then
+    if [ ${i} -gt ${min} ]; then
 
       # split password, 'i' is the len
       p0=$((i / 2))
@@ -272,8 +278,8 @@ function init()
       if [ "${pass_len}" -gt 1 ]
       then
 
-        p1=$((p1 + ${min_len}))
-        p0=$((p0 + ${min_len}))
+        p1=$((p1 + ${min_offset}))
+        p0=$((p0 + ${min_offset}))
 
         if [ "${p1}" -gt ${pass_len} ]; then
 
@@ -597,11 +603,23 @@ function attack_1()
     e_nm=0
     cnt=0
 
+    min=1
+
+    if   [ "${hash_type}" -eq 14000 ]; then
+      min=0
+    elif [ "${hash_type}" -eq 14100 ]; then
+      min=0
+    elif [ "${hash_type}" -eq 14900 ]; then
+      min=0
+    elif [ "${hash_type}" -eq 15400 ]; then
+      min=0
+    fi
+
     echo "> Testing hash type $hash_type with attack mode 1, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}." &>> ${OUTD}/logfull.txt
     i=1
     while read -u 9 hash; do
 
-      if [ $i -gt 1 ]; then
+      if [ $i -gt ${min} ]; then
 
         if [ "${file_only}" -eq 1 ]; then
 
@@ -623,7 +641,11 @@ function attack_1()
 
         if [ "${ret}" -eq 0 ]; then
 
-          line_nr=$((i - 1))
+          line_nr=1
+
+          if [ "${i}" -gt 1 ]; then
+            line_nr=$((${i} - 1))
+          fi
 
           line_dict1=$(sed -n ${line_nr}p ${OUTD}/${hash_type}_dict1)
           line_dict2=$(sed -n ${line_nr}p ${OUTD}/${hash_type}_dict2)
@@ -671,6 +693,18 @@ function attack_1()
   # multihash
   if [ ${MODE} -ne 0 ]; then
 
+    # no multi hash checks for these modes (because we only have 1 hash for each of them)
+
+    if   [ "${hash_type}" -eq 14000 ]; then
+      return
+    elif [ "${hash_type}" -eq 14100 ]; then
+      return
+    elif [ "${hash_type}" -eq 14900 ]; then
+      return
+    elif [ "${hash_type}" -eq 15400 ]; then
+      return
+    fi
+
     e_to=0
     e_nf=0
     e_nm=0
@@ -694,14 +728,6 @@ function attack_1()
       offset=7
     elif [ ${hash_type} -eq  8500 ]; then
       offset=7
-    elif [ ${hash_type} -eq 14000 ]; then
-      offset=7
-    elif [ ${hash_type} -eq 14100 ]; then
-      offset=23
-    elif [ ${hash_type} -eq 14900 ]; then
-      offset=9
-    elif [ ${hash_type} -eq 15400 ]; then
-      offset=31
     elif [ ${hash_type} -eq 15800 ]; then
       offset=7
     fi
@@ -743,7 +769,11 @@ function attack_1()
 
       while read -u 9 hash; do
 
-        line_nr=$((offset - i))
+        line_nr=1
+
+        if [ "${offset}" -gt ${i} ]; then
+          line_nr=$((${offset} - ${i}))
+        fi
 
         line_dict1=$(tail -n ${line_nr} ${OUTD}/${hash_type}_dict1 | head -1)
         line_dict2=$(tail -n ${line_nr} ${OUTD}/${hash_type}_dict2 | head -1)
@@ -818,20 +848,50 @@ function attack_3()
       mask_offset=7
       max=7
     elif [ "${hash_type}" -eq 14000 ]; then
-      mask_offset=7
-      max=7
+      mask_offset=4
+      max=1
     elif [ "${hash_type}" -eq 14100 ]; then
-      mask_offset=23
-      max=23
+      mask_offset=3
+      max=1
     elif [ "${hash_type}" -eq 14900 ]; then
-      mask_offset=9
-      max=9
+      mask_offset=5
+      max=1
     elif [ "${hash_type}" -eq 15400 ]; then
-      mask_offset=31
-      max=31
+      mask_offset=3
+      max=1
     elif [ "${hash_type}" -eq 15800 ]; then
       mask_offset=7
       max=7
+    fi
+
+    # special case: we need to split the first line
+
+    if [ "${mask_offset}" -ne 0 ]; then
+
+      pass=$(sed -n 1p ${OUTD}/${hash_type}_passwords.txt)
+
+      pass_part_2=$(echo -n ${pass} | cut -b  $((${mask_offset} + 1))-)
+
+      mask_custom=""
+
+      if   [ "${hash_type}" -eq 14000 ]; then
+
+        mask_custom="${pass}"
+
+      elif [ "${hash_type}" -eq 14100 ]; then
+
+        mask_custom="${pass}"
+
+      else
+
+        for i in $(seq 1 ${mask_offset}); do
+          mask_custom="${mask_custom}?d"
+        done
+
+        mask_custom="${mask_custom}${pass_part_2}"
+
+      fi
+
     fi
 
     i=1
@@ -842,7 +902,7 @@ function attack_3()
 
         if ! contains ${hash_type} ${TIMEOUT_ALGOS}; then
 
-          break;
+          break
 
         fi
 
@@ -857,12 +917,13 @@ function attack_3()
       fi
 
       mask=${mask_3[$((i + ${mask_offset}))]}
+      dict="${OUTD}/${hash_type}_passwords.txt"
 
       # modify "default" mask if needed (and set custom charset to reduce keyspace)
 
       if [ "${hash_type}" -eq 2500 ] || [ "${hash_type}" -eq 15800 ]; then
 
-        pass=$(sed -n ${i}p ${OUTD}/${hash_type}_passwords.txt)
+        pass=$(sed -n ${i}p ${dict})
 
         mask=${pass}
 
@@ -882,6 +943,10 @@ function attack_3()
 
       fi
 
+      if [ "${mask_offset}" -ne 0 ]; then
+        mask=${mask_custom}
+      fi
+
       CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} '${hash}' ${mask}"
 
       echo -n "[ len $i ] " &>> ${OUTD}/logfull.txt
@@ -894,7 +959,7 @@ function attack_3()
 
       if [ "${ret}" -eq 0 ]; then
 
-        line_dict=$(sed -n ${i}p ${OUTD}/${hash_type}_passwords.txt)
+        line_dict=$(sed -n ${i}p ${dict})
 
         if [ ${pass_only} -eq 1 ]; then
           search=":${line_dict}"
@@ -939,6 +1004,18 @@ function attack_3()
   # multihash
   if [ ${MODE} -ne 0 ]; then
 
+    # no multi hash checks for these modes (because we only have 1 hash for each of them)
+
+    if   [ "${hash_type}" -eq 14000 ]; then
+      return
+    elif [ "${hash_type}" -eq 14100 ]; then
+      return
+    elif [ "${hash_type}" -eq 14900 ]; then
+      return
+    elif [ "${hash_type}" -eq 15400 ]; then
+      return
+    fi
+
     e_to=0
     e_nf=0
     e_nm=0
@@ -957,18 +1034,6 @@ function attack_3()
     if   [ "${hash_type}" -eq  2500 ]; then
       increment_min=8
       increment_max=9
-    elif [ "${hash_type}" -eq 14000 ]; then
-      increment_min=8
-      increment_max=8
-    elif [ "${hash_type}" -eq 14100 ]; then
-      increment_min=24
-      increment_max=24
-    elif [ "${hash_type}" -eq 14900 ]; then
-      increment_min=10
-      increment_max=10
-    elif [ "${hash_type}" -eq 15400 ]; then
-      increment_min=32
-      increment_max=32
     elif [ "${hash_type}" -eq 15800 ]; then
       increment_min=8
       increment_max=9
@@ -1170,23 +1235,70 @@ function attack_6()
 
     echo "> Testing hash type $hash_type with attack mode 6, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}." &>> ${OUTD}/logfull.txt
 
-    i=1
-
+    min=1
     max=8
+    mask_offset=0
 
     if   [ "${hash_type}" -eq  2500 ]; then
       max=6
     elif [ "${hash_type}" -eq 14000 ]; then
-      max=6
+      min=0
+      max=1
+      mask_offset=4
     elif [ "${hash_type}" -eq 14100 ]; then
-      max=6
+      min=0
+      max=1
+      mask_offset=21
     elif [ "${hash_type}" -eq 14900 ]; then
-      max=6
+      min=0
+      max=1
+      mask_offset=5
     elif [ "${hash_type}" -eq 15400 ]; then
-      max=6
+      min=0
+      max=1
+      mask_offset=29
     elif [ "${hash_type}" -eq 15800 ]; then
       max=6
     fi
+
+    # special case: we need to split the first line
+
+    if [ "${min}" -eq 0 ]; then
+
+      pass_part_1=$(sed -n 1p ${OUTD}/${hash_type}_dict1)
+      pass_part_2=$(sed -n 1p ${OUTD}/${hash_type}_dict2)
+
+      pass="${pass_part_1}${pass_part_2}"
+
+      echo -n ${pass} | cut -b -$((${mask_offset} + 0))  > ${OUTD}/${hash_type}_dict1_custom
+      echo -n ${pass} | cut -b  $((${mask_offset} + 1))- > ${OUTD}/${hash_type}_dict2_custom
+
+      mask_custom=""
+
+      for i in $(seq 1 $((${#pass} - ${mask_offset}))); do
+
+        if   [ "${hash_type}" -eq 14000 ]; then
+
+          char=$(echo -n ${pass} | cut -b $((${i} + ${mask_offset})))
+          mask_custom="${mask_custom}${char}"
+
+        elif [ "${hash_type}" -eq 14100 ]; then
+
+          char=$(echo -n ${pass} | cut -b $((${i} + ${mask_offset})))
+          mask_custom="${mask_custom}${char}"
+
+        else
+
+          mask_custom="${mask_custom}?d"
+
+        fi
+
+      done
+
+    fi
+
+
+    i=1
 
     while read -u 9 hash; do
 
@@ -1194,13 +1306,13 @@ function attack_6()
 
         if ! contains ${hash_type} ${TIMEOUT_ALGOS}; then
 
-          break;
+          break
 
         fi
 
       fi
 
-      if [ $i -gt 1 ]; then
+      if [ ${i} -gt ${min} ]; then
 
         if [ "${file_only}" -eq 1 ]; then
 
@@ -1210,11 +1322,23 @@ function attack_6()
 
         fi
 
-        CMD="./${BIN} ${OPTS} -a 6 -m ${hash_type} '${hash}' ${OUTD}/${hash_type}_dict1 ${mask_6[$i]}"
+        mask=${mask_6[${i}]}
+
+        dict1=${OUTD}/${hash_type}_dict1
+        dict2=${OUTD}/${hash_type}_dict2
+
+        if [ "${min}" -eq 0 ]; then
+          mask=${mask_custom}
+
+          dict1=${OUTD}/${hash_type}_dict1_custom
+          dict2=${OUTD}/${hash_type}_dict2_custom
+        fi
+
+        CMD="./${BIN} ${OPTS} -a 6 -m ${hash_type} '${hash}' ${dict1} ${mask}"
 
         echo -n "[ len $i ] " &>> ${OUTD}/logfull.txt
 
-        output=$(./${BIN} ${OPTS} -a 6 -m ${hash_type} "${hash}" ${OUTD}/${hash_type}_dict1 ${mask_6[$i]} 2>&1)
+        output=$(./${BIN} ${OPTS} -a 6 -m ${hash_type} "${hash}" ${dict1} ${mask} 2>&1)
 
         ret=${?}
 
@@ -1222,10 +1346,14 @@ function attack_6()
 
         if [ "${ret}" -eq 0 ]; then
 
-          line_nr=$((i - 1))
+          line_nr=1
 
-          line_dict1=$(sed -n ${line_nr}p ${OUTD}/${hash_type}_dict1)
-          line_dict2=$(sed -n ${line_nr}p ${OUTD}/${hash_type}_dict2)
+          if [ "${i}" -gt 1 ]; then
+            line_nr=$((${i} - 1))
+          fi
+
+          line_dict1=$(sed -n ${line_nr}p ${dict1})
+          line_dict2=$(sed -n ${line_nr}p ${dict2})
 
           if [ ${pass_only} -eq 1 ]; then
             search=":${line_dict1}${line_dict2}"
@@ -1267,10 +1395,25 @@ function attack_6()
 
     echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 6, Mode single, Device-Type ${TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
 
+    rm -f ${OUTD}/${hash_type}_dict1_custom
+    rm -f ${OUTD}/${hash_type}_dict2_custom
+
   fi
 
   # multihash
   if [ ${MODE} -ne 0 ]; then
+
+    # no multi hash checks for these modes (because we only have 1 hash for each of them)
+
+    if   [ "${hash_type}" -eq 14000 ]; then
+      return
+    elif [ "${hash_type}" -eq 14100 ]; then
+      return
+    elif [ "${hash_type}" -eq 14900 ]; then
+      return
+    elif [ "${hash_type}" -eq 15400 ]; then
+      return
+    fi
 
     e_to=0
     e_nf=0
@@ -1287,14 +1430,6 @@ function attack_6()
       max=8
     elif [ ${hash_type} -eq  8500 ]; then
       max=8
-    elif [ ${hash_type} -eq 14000 ]; then
-      max=5
-    elif [ ${hash_type} -eq 14100 ]; then
-      max=5
-    elif [ ${hash_type} -eq 14900 ]; then
-      max=5
-    elif [ ${hash_type} -eq 15400 ]; then
-      max=5
     elif [ ${hash_type} -eq 15800 ]; then
       max=5
     fi
@@ -1332,11 +1467,13 @@ function attack_6()
 
       fi
 
-      CMD="./${BIN} ${OPTS} -a 6 -m ${hash_type} ${hash_file} ${OUTD}/${hash_type}_dict1_multi_${i} ${mask_6[$i]}"
+      mask=${mask_6[$i]}
+
+      CMD="./${BIN} ${OPTS} -a 6 -m ${hash_type} ${hash_file} ${OUTD}/${hash_type}_dict1_multi_${i} ${mask}"
 
       echo "> Testing hash type $hash_type with attack mode 6, markov ${MARKOV}, multi hash with word len ${i}." &>> ${OUTD}/logfull.txt
 
-      output=$(./${BIN} ${OPTS} -a 6 -m ${hash_type} ${hash_file} ${OUTD}/${hash_type}_dict1_multi_${i} ${mask_6[$i]} 2>&1)
+      output=$(./${BIN} ${OPTS} -a 6 -m ${hash_type} ${hash_file} ${OUTD}/${hash_type}_dict1_multi_${i} ${mask} 2>&1)
 
       ret=${?}
 
@@ -1414,27 +1551,74 @@ function attack_7()
 
     echo "> Testing hash type $hash_type with attack mode 7, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}." &>> ${OUTD}/logfull.txt
 
+    min=1
     max=8
+
+    mask_offset=0
 
     if   [ "${hash_type}" -eq  2500 ]; then
       max=5
     elif [ "${hash_type}" -eq 14000 ]; then
-      max=5
+      mask_offset=4
+      min=0
+      max=1
     elif [ "${hash_type}" -eq 14100 ]; then
-      max=5
+      mask_offset=3
+      min=0
+      max=1
     elif [ "${hash_type}" -eq 14900 ]; then
-      max=5
+      mask_offset=5
+      min=0
+      max=1
     elif [ "${hash_type}" -eq 15400 ]; then
-      max=5
+      mask_offset=3
+      min=0
+      max=1
     elif [ "${hash_type}" -eq 15800 ]; then
       max=5
+    fi
+
+    # special case: we need to split the first line
+
+    if [ "${min}" -eq 0 ]; then
+
+      pass_part_1=$(sed -n 1p ${OUTD}/${hash_type}_dict1)
+      pass_part_2=$(sed -n 1p ${OUTD}/${hash_type}_dict2)
+
+      pass="${pass_part_1}${pass_part_2}"
+
+      echo -n ${pass} | cut -b -$((${mask_offset} + 0))  > ${OUTD}/${hash_type}_dict1_custom
+      echo -n ${pass} | cut -b  $((${mask_offset} + 1))- > ${OUTD}/${hash_type}_dict2_custom
+
+      mask_custom=""
+
+      for i in $(seq 1 ${mask_offset}); do
+
+        if   [ "${hash_type}" -eq 14000 ]; then
+
+          char=$(echo -n ${pass} | cut -b ${i})
+          mask_custom="${mask_custom}${char}"
+
+        elif [ "${hash_type}" -eq 14100 ]; then
+
+          char=$(echo -n ${pass} | cut -b ${i})
+          mask_custom="${mask_custom}${char}"
+
+        else
+
+          mask_custom="${mask_custom}?d"
+
+        fi
+
+      done
+
     fi
 
     i=1
 
     while read -u 9 hash; do
 
-      if [ $i -gt 1 ]; then
+      if [ ${i} -gt ${min} ]; then
 
         if [ "${file_only}" -eq 1 ]; then
 
@@ -1450,7 +1634,11 @@ function attack_7()
 
         if [ "${hash_type}" -eq 2500 ] || [ "${hash_type}" -eq 15800 ]; then
 
-          line_nr=$((i - 1))
+          line_nr=1
+
+          if [ "${i}" -gt 1 ]; then
+            line_nr=$((${i} - 1))
+          fi
 
           pass_part_1=$(sed -n ${line_nr}p ${OUTD}/${hash_type}_dict1)
           pass_part_2=$(sed -n ${line_nr}p ${OUTD}/${hash_type}_dict2)
@@ -1470,11 +1658,21 @@ function attack_7()
 
         fi
 
-        CMD="./${BIN} ${OPTS} -a 7 -m ${hash_type} '${hash}' ${mask} ${OUTD}/${hash_type}_dict2"
+        dict1=${OUTD}/${hash_type}_dict1
+        dict2=${OUTD}/${hash_type}_dict2
+
+        if [ "${min}" -eq 0 ]; then
+          mask=${mask_custom}
+
+          dict1=${OUTD}/${hash_type}_dict1_custom
+          dict2=${OUTD}/${hash_type}_dict2_custom
+        fi
+
+        CMD="./${BIN} ${OPTS} -a 7 -m ${hash_type} '${hash}' ${mask} ${dict2}"
 
         echo -n "[ len $i ] " &>> ${OUTD}/logfull.txt
 
-        output=$(./${BIN} ${OPTS} -a 7 -m ${hash_type} "${hash}" ${mask} ${OUTD}/${hash_type}_dict2 2>&1)
+        output=$(./${BIN} ${OPTS} -a 7 -m ${hash_type} "${hash}" ${mask} ${dict2} 2>&1)
 
         ret=${?}
 
@@ -1482,10 +1680,14 @@ function attack_7()
 
         if [ "${ret}" -eq 0 ]; then
 
-          line_nr=$((i - 1))
+          line_nr=1
 
-          line_dict1=$(sed -n ${line_nr}p ${OUTD}/${hash_type}_dict1)
-          line_dict2=$(sed -n ${line_nr}p ${OUTD}/${hash_type}_dict2)
+          if [ "${i}" -gt 1 ]; then
+            line_nr=$((${i} - 1))
+          fi
+
+          line_dict1=$(sed -n ${line_nr}p ${dict1})
+          line_dict2=$(sed -n ${line_nr}p ${dict2})
 
           if [ ${pass_only} -eq 1 ]; then
             search=":${line_dict1}${line_dict2}"
@@ -1527,10 +1729,25 @@ function attack_7()
 
     echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 7, Mode single, Device-Type ${TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout"
 
+    rm -f ${OUTD}/${hash_type}_dict1_custom
+    rm -f ${OUTD}/${hash_type}_dict2_custom
+
   fi
 
   # multihash
   if [ ${MODE} -ne 0 ]; then
+
+    # no multi hash checks for these modes (because we only have 1 hash for each of them)
+
+    if   [ "${hash_type}" -eq 14000 ]; then
+      return
+    elif [ "${hash_type}" -eq 14100 ]; then
+      return
+    elif [ "${hash_type}" -eq 14900 ]; then
+      return
+    elif [ "${hash_type}" -eq 15400 ]; then
+      return
+    fi
 
     e_to=0
     e_nf=0

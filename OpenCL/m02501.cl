@@ -17,12 +17,12 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
-inline u8 hex_convert (const u8 c)
+u8 hex_convert (const u8 c)
 {
   return (c & 15) + (c >> 6) * 9;
 }
 
-inline u8 hex_to_u8 (const u8 hex[2])
+u8 hex_to_u8 (const u8 hex[2])
 {
   u8 v = 0;
 

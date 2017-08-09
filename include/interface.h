@@ -211,10 +211,10 @@ typedef struct bitcoin_wallet
 
 typedef struct sip
 {
-  u32 salt_buf[30];
+  u32 salt_buf[32];
   u32 salt_len;
 
-  u32 esalt_buf[38];
+  u32 esalt_buf[48];
   u32 esalt_len;
 
 } sip_t;
@@ -1289,24 +1289,24 @@ typedef enum display_len
   DISPLAY_LEN_MIN_99999 = 1,
   DISPLAY_LEN_MAX_99999 = 55,
 
-  DISPLAY_LEN_MIN_11    = 32 + 1 + 16,
-  DISPLAY_LEN_MAX_11    = 32 + 1 + 32,
-  DISPLAY_LEN_MIN_12    = 32 + 1 + 1,
+  DISPLAY_LEN_MIN_11    = 32 + 1 + 0,
+  DISPLAY_LEN_MAX_11    = 32 + 1 + SALT_MAX,
+  DISPLAY_LEN_MIN_12    = 32 + 1 + 0,
   DISPLAY_LEN_MAX_12    = 32 + 1 + 32,
-  DISPLAY_LEN_MIN_21    = 32 + 1 + 1,
-  DISPLAY_LEN_MAX_21    = 32 + 1 + 15,
+  DISPLAY_LEN_MIN_21    = 32 + 1 + 2,
+  DISPLAY_LEN_MAX_21    = 32 + 1 + 2,
   DISPLAY_LEN_MIN_22    = 30 + 1 + 1,
-  DISPLAY_LEN_MAX_22    = 30 + 1 + 28,
+  DISPLAY_LEN_MAX_22    = 30 + 1 + 32,
   DISPLAY_LEN_MIN_23    = 32 + 1 + 0,
   DISPLAY_LEN_MAX_23    = 32 + 1 + SALT_MAX,
   DISPLAY_LEN_MIN_101   =  5 + 28,
   DISPLAY_LEN_MAX_101   =  5 + 28,
-  DISPLAY_LEN_MIN_111   =  6 + 28 + 0,
-  DISPLAY_LEN_MAX_111   =  6 + 28 + 40,
+  DISPLAY_LEN_MIN_111   =  6 + 28 + 1,
+  DISPLAY_LEN_MAX_111   =  6 + 28 + SALT_MAX,
   DISPLAY_LEN_MIN_112   = 40 + 1 + 20,
   DISPLAY_LEN_MAX_112   = 40 + 1 + 20,
   DISPLAY_LEN_MIN_121   = 40 + 1 + 1,
-  DISPLAY_LEN_MAX_121   = 40 + 1 + 32,
+  DISPLAY_LEN_MAX_121   = 40 + 1 + SALT_MAX,
   DISPLAY_LEN_MIN_122   =  8 + 40,
   DISPLAY_LEN_MAX_122   =  8 + 40,
   DISPLAY_LEN_MIN_124   = 4 + 1 +  0 + 1 + 40,
@@ -1332,13 +1332,13 @@ typedef enum display_len
   DISPLAY_LEN_MIN_1731  = 128 + 6 + 0,
   DISPLAY_LEN_MAX_1731  = 128 + 6 + 16,
   DISPLAY_LEN_MIN_2611  = 32 + 1 + 0,
-  DISPLAY_LEN_MAX_2611  = 32 + 1 + 23,
-  DISPLAY_LEN_MIN_2612  = 6 +  0 + 1 + 32,
-  DISPLAY_LEN_MAX_2612  = 6 + 46 + 1 + 32,
+  DISPLAY_LEN_MAX_2611  = 32 + 1 + SALT_MAX,
+  DISPLAY_LEN_MIN_2612  = 6 +        0 + 1 + 32,
+  DISPLAY_LEN_MAX_2612  = 6 + SALT_MAX + 1 + 32,
   DISPLAY_LEN_MIN_2711  = 32 + 1 + 23,
   DISPLAY_LEN_MAX_2711  = 32 + 1 + 31,
   DISPLAY_LEN_MIN_2811  = 32 + 1 + 0,
-  DISPLAY_LEN_MAX_2811  = 32 + 1 + 31,
+  DISPLAY_LEN_MAX_2811  = 32 + 1 + SALT_MAX,
   DISPLAY_LEN_MIN_3711  = 3 +  0 + 1 + 32,
   DISPLAY_LEN_MAX_3711  = 3 + 31 + 1 + 32,
   DISPLAY_LEN_MIN_4521  = 40 + 1 + 32,
