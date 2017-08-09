@@ -24860,6 +24860,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                   hashconfig->salt_max = 56; break;
       case 12600: hashconfig->salt_min = 64;
                   hashconfig->salt_max = 64; break;
+      case 15000: hashconfig->salt_min = 64;
+                  hashconfig->salt_max = 64; break;
     }
   }
 
