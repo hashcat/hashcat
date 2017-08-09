@@ -1286,6 +1286,8 @@ typedef enum display_len
   DISPLAY_LEN_MAX_15600 = 11 + 1 + 6 + 1 + 64 + 1 + 64 + 1 + 64,
   DISPLAY_LEN_MIN_15700 = 11 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 64 + 1 + 64 + 1 + 64,
   DISPLAY_LEN_MAX_15700 = 11 + 1 + 6 + 1 + 1 + 1 + 1 + 1 + 64 + 1 + 64 + 1 + 64,
+  DISPLAY_LEN_MIN_15900 = 64,
+  DISPLAY_LEN_MAX_15900 = 64,
   DISPLAY_LEN_MIN_99999 = 1,
   DISPLAY_LEN_MAX_99999 = 55,
 
@@ -1610,6 +1612,7 @@ typedef enum kern_type
   KERN_TYPE_ETHEREUM_PBKDF2         = 15600,
   KERN_TYPE_ETHEREUM_SCRYPT         = 15700,
   KERN_TYPE_WPAAES                  = 15800,
+  KERN_TYPE_SHA2566                 = 15900,
   KERN_TYPE_PLAINTEXT               = 99999,
 
 } kern_type_t;

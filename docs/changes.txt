@@ -5,6 +5,7 @@
 ##
 
 - Added hash-mode  2501 = WPA/WPA2 PMK
+- Added hash-mode 15900 = sha256(sha256($pass))
 
 ##
 ## Features
