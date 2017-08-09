@@ -2051,6 +2051,31 @@ void make_utf16le (const u32x in[4], u32x out1[4], u32x out2[4])
   #endif
 }
 
+void make_utf16leN (const u32x in[4], u32x out1[4], u32x out2[4])
+{
+  #ifdef IS_NV
+  out2[3] = __byte_perm (in[3], 0, 0x7170);
+  out2[2] = __byte_perm (in[3], 0, 0x7372);
+  out2[1] = __byte_perm (in[2], 0, 0x7170);
+  out2[0] = __byte_perm (in[2], 0, 0x7372);
+  out1[3] = __byte_perm (in[1], 0, 0x7170);
+  out1[2] = __byte_perm (in[1], 0, 0x7372);
+  out1[1] = __byte_perm (in[0], 0, 0x7170);
+  out1[0] = __byte_perm (in[0], 0, 0x7372);
+  #endif
+
+  #if defined IS_AMD || defined IS_GENERIC
+  out2[3] = ((in[3] << 8) & 0x00FF0000) | ((in[3] >>  0) & 0x000000FF);
+  out2[2] = ((in[3] >> 8) & 0x00FF0000) | ((in[3] >> 16) & 0x000000FF);
+  out2[1] = ((in[2] << 8) & 0x00FF0000) | ((in[2] >>  0) & 0x000000FF);
+  out2[0] = ((in[2] >> 8) & 0x00FF0000) | ((in[2] >> 16) & 0x000000FF);
+  out1[3] = ((in[1] << 8) & 0x00FF0000) | ((in[1] >>  0) & 0x000000FF);
+  out1[2] = ((in[1] >> 8) & 0x00FF0000) | ((in[1] >> 16) & 0x000000FF);
+  out1[1] = ((in[0] << 8) & 0x00FF0000) | ((in[0] >>  0) & 0x000000FF);
+  out1[0] = ((in[0] >> 8) & 0x00FF0000) | ((in[0] >> 16) & 0x000000FF);
+  #endif
+}
+
 void undo_utf16be (const u32x in1[4], const u32x in2[4], u32x out[4])
 {
   #ifdef IS_NV
@@ -32927,31 +32952,6 @@ void make_utf16be_S (const u32 in[4], u32 out1[4], u32 out2[4])
   out1[2] = ((in[1] << 16) & 0xFF000000) | ((in[1] << 8) & 0x0000FF00);
   out1[1] = ((in[0] >>  0) & 0xFF000000) | ((in[0] >> 8) & 0x0000FF00);
   out1[0] = ((in[0] << 16) & 0xFF000000) | ((in[0] << 8) & 0x0000FF00);
-  #endif
-}
-
-void make_utf16beN_S (const u32 in[4], u32 out1[4], u32 out2[4])
-{
-  #ifdef IS_NV
-  out2[3] = __byte_perm_S (in[3], 0, 0x1707);
-  out2[2] = __byte_perm_S (in[3], 0, 0x3727);
-  out2[1] = __byte_perm_S (in[2], 0, 0x1707);
-  out2[0] = __byte_perm_S (in[2], 0, 0x3727);
-  out1[3] = __byte_perm_S (in[1], 0, 0x1707);
-  out1[2] = __byte_perm_S (in[1], 0, 0x3727);
-  out1[1] = __byte_perm_S (in[0], 0, 0x1707);
-  out1[0] = __byte_perm_S (in[0], 0, 0x3727);
-  #endif
-
-  #if defined IS_AMD || defined IS_GENERIC
-  out2[3] = ((in[3] << 16) & 0xFF000000) | ((in[3] << 8) & 0x0000FF00);
-  out2[2] = ((in[3] >>  0) & 0xFF000000) | ((in[3] >> 8) & 0x0000FF00);
-  out2[1] = ((in[2] << 16) & 0xFF000000) | ((in[2] << 8) & 0x0000FF00);
-  out2[0] = ((in[2] >>  0) & 0xFF000000) | ((in[2] >> 8) & 0x0000FF00);
-  out1[3] = ((in[1] << 16) & 0xFF000000) | ((in[1] << 8) & 0x0000FF00);
-  out1[2] = ((in[1] >>  0) & 0xFF000000) | ((in[1] >> 8) & 0x0000FF00);
-  out1[1] = ((in[0] << 16) & 0xFF000000) | ((in[0] << 8) & 0x0000FF00);
-  out1[0] = ((in[0] >>  0) & 0xFF000000) | ((in[0] >> 8) & 0x0000FF00);
   #endif
 }
 
