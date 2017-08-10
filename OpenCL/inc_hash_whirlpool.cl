@@ -2351,7 +2351,7 @@ typedef struct whirlpool_ctx_vector
 
 } whirlpool_ctx_vector_t;
 
-void whirlpool_transform_vector (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[8], __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
+void whirlpool_transform_vector (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[16], __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
 {
   u32x Kh[8];
   u32x Kl[8];
