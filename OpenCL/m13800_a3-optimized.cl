@@ -11,113 +11,11 @@
 #include "inc_types.cl"
 #include "inc_common.cl"
 #include "inc_simd.cl"
+#include "inc_hash_sha256.cl"
 
-__constant u32a k_sha256[64] =
+void sha256_transform_transport_vector (const u32x w[16], u32x digest[8])
 {
-  SHA256C00, SHA256C01, SHA256C02, SHA256C03,
-  SHA256C04, SHA256C05, SHA256C06, SHA256C07,
-  SHA256C08, SHA256C09, SHA256C0a, SHA256C0b,
-  SHA256C0c, SHA256C0d, SHA256C0e, SHA256C0f,
-  SHA256C10, SHA256C11, SHA256C12, SHA256C13,
-  SHA256C14, SHA256C15, SHA256C16, SHA256C17,
-  SHA256C18, SHA256C19, SHA256C1a, SHA256C1b,
-  SHA256C1c, SHA256C1d, SHA256C1e, SHA256C1f,
-  SHA256C20, SHA256C21, SHA256C22, SHA256C23,
-  SHA256C24, SHA256C25, SHA256C26, SHA256C27,
-  SHA256C28, SHA256C29, SHA256C2a, SHA256C2b,
-  SHA256C2c, SHA256C2d, SHA256C2e, SHA256C2f,
-  SHA256C30, SHA256C31, SHA256C32, SHA256C33,
-  SHA256C34, SHA256C35, SHA256C36, SHA256C37,
-  SHA256C38, SHA256C39, SHA256C3a, SHA256C3b,
-  SHA256C3c, SHA256C3d, SHA256C3e, SHA256C3f,
-};
-
-void sha256_transform (const u32x w[16], u32x digest[8])
-{
-  u32x a = digest[0];
-  u32x b = digest[1];
-  u32x c = digest[2];
-  u32x d = digest[3];
-  u32x e = digest[4];
-  u32x f = digest[5];
-  u32x g = digest[6];
-  u32x h = digest[7];
-
-  u32x w0_t = w[ 0];
-  u32x w1_t = w[ 1];
-  u32x w2_t = w[ 2];
-  u32x w3_t = w[ 3];
-  u32x w4_t = w[ 4];
-  u32x w5_t = w[ 5];
-  u32x w6_t = w[ 6];
-  u32x w7_t = w[ 7];
-  u32x w8_t = w[ 8];
-  u32x w9_t = w[ 9];
-  u32x wa_t = w[10];
-  u32x wb_t = w[11];
-  u32x wc_t = w[12];
-  u32x wd_t = w[13];
-  u32x we_t = w[14];
-  u32x wf_t = w[15];
-
-  #define ROUND_EXPAND()                            \
-  {                                                 \
-    w0_t = SHA256_EXPAND (we_t, w9_t, w1_t, w0_t);  \
-    w1_t = SHA256_EXPAND (wf_t, wa_t, w2_t, w1_t);  \
-    w2_t = SHA256_EXPAND (w0_t, wb_t, w3_t, w2_t);  \
-    w3_t = SHA256_EXPAND (w1_t, wc_t, w4_t, w3_t);  \
-    w4_t = SHA256_EXPAND (w2_t, wd_t, w5_t, w4_t);  \
-    w5_t = SHA256_EXPAND (w3_t, we_t, w6_t, w5_t);  \
-    w6_t = SHA256_EXPAND (w4_t, wf_t, w7_t, w6_t);  \
-    w7_t = SHA256_EXPAND (w5_t, w0_t, w8_t, w7_t);  \
-    w8_t = SHA256_EXPAND (w6_t, w1_t, w9_t, w8_t);  \
-    w9_t = SHA256_EXPAND (w7_t, w2_t, wa_t, w9_t);  \
-    wa_t = SHA256_EXPAND (w8_t, w3_t, wb_t, wa_t);  \
-    wb_t = SHA256_EXPAND (w9_t, w4_t, wc_t, wb_t);  \
-    wc_t = SHA256_EXPAND (wa_t, w5_t, wd_t, wc_t);  \
-    wd_t = SHA256_EXPAND (wb_t, w6_t, we_t, wd_t);  \
-    we_t = SHA256_EXPAND (wc_t, w7_t, wf_t, we_t);  \
-    wf_t = SHA256_EXPAND (wd_t, w8_t, w0_t, wf_t);  \
-  }
-
-  #define ROUND_STEP(i)                                                                   \
-  {                                                                                       \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, a, b, c, d, e, f, g, h, w0_t, k_sha256[i +  0]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, h, a, b, c, d, e, f, g, w1_t, k_sha256[i +  1]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, g, h, a, b, c, d, e, f, w2_t, k_sha256[i +  2]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, f, g, h, a, b, c, d, e, w3_t, k_sha256[i +  3]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, e, f, g, h, a, b, c, d, w4_t, k_sha256[i +  4]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, d, e, f, g, h, a, b, c, w5_t, k_sha256[i +  5]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, c, d, e, f, g, h, a, b, w6_t, k_sha256[i +  6]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, b, c, d, e, f, g, h, a, w7_t, k_sha256[i +  7]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, a, b, c, d, e, f, g, h, w8_t, k_sha256[i +  8]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, h, a, b, c, d, e, f, g, w9_t, k_sha256[i +  9]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, g, h, a, b, c, d, e, f, wa_t, k_sha256[i + 10]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, f, g, h, a, b, c, d, e, wb_t, k_sha256[i + 11]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, e, f, g, h, a, b, c, d, wc_t, k_sha256[i + 12]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, d, e, f, g, h, a, b, c, wd_t, k_sha256[i + 13]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, c, d, e, f, g, h, a, b, we_t, k_sha256[i + 14]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, b, c, d, e, f, g, h, a, wf_t, k_sha256[i + 15]); \
-  }
-
-  ROUND_STEP (0);
-
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (int i = 16; i < 64; i += 16)
-  {
-    ROUND_EXPAND (); ROUND_STEP (i);
-  }
-
-  digest[0] += a;
-  digest[1] += b;
-  digest[2] += c;
-  digest[3] += d;
-  digest[4] += e;
-  digest[5] += f;
-  digest[6] += g;
-  digest[7] += h;
+  sha256_transform_vector (w + 0, w + 4, w + 8, w + 12, digest);
 }
 
 void memcat64c_be (u32x block[16], const u32 offset, u32x carry[16])
@@ -568,7 +466,7 @@ void m13800m (__local u32 *s_esalt, u32 w[16], const u32 pw_len, __global pw_t *
     digest[6] = SHA256M_G;
     digest[7] = SHA256M_H;
 
-    sha256_transform (w_t, digest);
+    sha256_transform_transport_vector (w_t, digest);
 
     w_t[ 0] = carry[ 0];
     w_t[ 1] = carry[ 1];
@@ -607,7 +505,7 @@ void m13800m (__local u32 *s_esalt, u32 w[16], const u32 pw_len, __global pw_t *
     // we can always use pw_len here, since we add exactly the hash buffer size
     memcat64c_be (w_t, pw_len, carry);
 
-    sha256_transform (w_t, digest);
+    sha256_transform_transport_vector (w_t, digest);
 
     w_t[ 0] = carry[ 0];
     w_t[ 1] = carry[ 1];
@@ -632,7 +530,7 @@ void m13800m (__local u32 *s_esalt, u32 w[16], const u32 pw_len, __global pw_t *
     w_t[14] = 0;
     w_t[15] = (pw_len + 128) * 8;
 
-    sha256_transform (w_t, digest);
+    sha256_transform_transport_vector (w_t, digest);
 
     const u32x d = digest[DGST_R0];
     const u32x h = digest[DGST_R1];
@@ -728,7 +626,7 @@ void m13800s (__local u32 *s_esalt, u32 w[16], const u32 pw_len, __global pw_t *
     digest[6] = SHA256M_G;
     digest[7] = SHA256M_H;
 
-    sha256_transform (w_t, digest);
+    sha256_transform_transport_vector (w_t, digest);
 
     w_t[ 0] = carry[ 0];
     w_t[ 1] = carry[ 1];
@@ -767,7 +665,7 @@ void m13800s (__local u32 *s_esalt, u32 w[16], const u32 pw_len, __global pw_t *
     // we can always use pw_len here, since we add exactly the hash buffer size
     memcat64c_be (w_t, pw_len, carry);
 
-    sha256_transform (w_t, digest);
+    sha256_transform_transport_vector (w_t, digest);
 
     w_t[ 0] = carry[ 0];
     w_t[ 1] = carry[ 1];
@@ -792,7 +690,7 @@ void m13800s (__local u32 *s_esalt, u32 w[16], const u32 pw_len, __global pw_t *
     w_t[14] = 0;
     w_t[15] = (pw_len + 128) * 8;
 
-    sha256_transform (w_t, digest);
+    sha256_transform_transport_vector (w_t, digest);
 
     const u32x d = digest[DGST_R0];
     const u32x h = digest[DGST_R1];
