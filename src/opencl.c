@@ -4180,7 +4180,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     // this test needs to be done manually because of osx opencl runtime
     // if there's a problem with permission, its not reporting back and erroring out silently
 
-    #define files_cnt 15
+    #define files_cnt 16
 
     const char *files_names[files_cnt] =
     {
@@ -4194,9 +4194,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       "inc_comp_single.cl",
       "inc_hash_constants.h",
       "inc_hash_functions.cl",
-      "inc_rp.cl",
-      "inc_rp.h",
+      "inc_rp_optimized.cl",
+      "inc_rp_optimized.h",
       "inc_simd.cl",
+      "inc_scalar.cl",
       "inc_types.cl",
       "inc_vendor.cl",
     };

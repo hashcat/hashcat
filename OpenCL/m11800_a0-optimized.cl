@@ -11,8 +11,8 @@
 #include "inc_hash_functions.cl"
 #include "inc_types.cl"
 #include "inc_common.cl"
-#include "inc_rp.h"
-#include "inc_rp.cl"
+#include "inc_rp_optimized.h"
+#include "inc_rp_optimized.cl"
 #include "inc_simd.cl"
 
 #define INITVAL 0
