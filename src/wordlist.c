@@ -10,6 +10,7 @@
 #include "convert.h"
 #include "dictstat.h"
 #include "thread.h"
+#include "rp.h"
 #include "rp_cpu.h"
 #include "shared.h"
 #include "wordlist.h"
@@ -203,9 +204,9 @@ void get_next_word (hashcat_ctx_t *hashcat_ctx, FILE *fd, char **out_buf, u32 *o
 
     if (run_rule_engine (user_options_extra->rule_len_l, user_options->rule_buf_l))
     {
-      if (len >= BLOCK_SIZE) continue;
+      if (len >= RP_PASSWORD_SIZE) continue;
 
-      char rule_buf_out[BLOCK_SIZE];
+      char rule_buf_out[RP_PASSWORD_SIZE];
 
       memset (rule_buf_out, 0, sizeof (rule_buf_out));
 
@@ -400,9 +401,9 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
 
       if (run_rule_engine (user_options_extra->rule_len_l, user_options->rule_buf_l))
       {
-        if (len >= BLOCK_SIZE) continue;
+        if (len >= RP_PASSWORD_SIZE) continue;
 
-        char rule_buf_out[BLOCK_SIZE];
+        char rule_buf_out[RP_PASSWORD_SIZE];
 
         memset (rule_buf_out, 0, sizeof (rule_buf_out));
 
