@@ -47,7 +47,9 @@ __kernel void m09900_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    // todo: add rules engine
+    u32 out_buf[64] = { 0 };
+
+    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w, pw_len, out_buf);
 
     md5_ctx_t ctx;
 
@@ -110,7 +112,9 @@ __kernel void m09900_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    // todo: add rules engine
+    u32 out_buf[64] = { 0 };
+
+    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w, pw_len, out_buf);
 
     md5_ctx_t ctx;
 

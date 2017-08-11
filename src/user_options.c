@@ -1422,16 +1422,6 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
       }
     }
   }
-
-  // temp
-
-  if ((user_options->rp_files_cnt > 0) || (user_options->rp_gen > 0))
-  {
-    // pure (unoptimized) kernels do not yet have support for rules, switch to opimized mode
-    // we can remove this after rule engine has been converted
-
-    user_options->optimized_kernel_enable = true;
-  }
 }
 
 void user_options_postprocess (hashcat_ctx_t *hashcat_ctx)

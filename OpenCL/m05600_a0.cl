@@ -48,13 +48,15 @@ __kernel void m05600_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    // todo: add rules engine
+    u32 out_buf[64] = { 0 };
+
+    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w, pw_len, out_buf);
 
     md4_ctx_t ctx1;
 
     md4_init (&ctx1);
 
-    md4_update_utf16le (&ctx1, w, pw_len);
+    md4_update_utf16le (&ctx1, out_buf, out_len);
 
     md4_final (&ctx1);
 
@@ -166,13 +168,15 @@ __kernel void m05600_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    // todo: add rules engine
+    u32 out_buf[64] = { 0 };
+
+    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w, pw_len, out_buf);
 
     md4_ctx_t ctx1;
 
     md4_init (&ctx1);
 
-    md4_update_utf16le (&ctx1, w, pw_len);
+    md4_update_utf16le (&ctx1, out_buf, out_len);
 
     md4_final (&ctx1);
 

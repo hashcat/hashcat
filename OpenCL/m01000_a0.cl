@@ -47,13 +47,15 @@ __kernel void m01000_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    // todo: add rules engine
+    u32 out_buf[64] = { 0 };
+
+    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w, pw_len, out_buf);
 
     md4_ctx_t ctx;
 
     md4_init (&ctx);
 
-    md4_update_utf16le (&ctx, w, pw_len);
+    md4_update_utf16le (&ctx, out_buf, out_len);
 
     md4_final (&ctx);
 
@@ -110,13 +112,15 @@ __kernel void m01000_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    // todo: add rules engine
+    u32 out_buf[64] = { 0 };
+
+    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w, pw_len, out_buf);
 
     md4_ctx_t ctx;
 
     md4_init (&ctx);
 
-    md4_update_utf16le (&ctx, w, pw_len);
+    md4_update_utf16le (&ctx, out_buf, out_len);
 
     md4_final (&ctx);
 

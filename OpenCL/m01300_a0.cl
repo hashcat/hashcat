@@ -47,13 +47,15 @@ __kernel void m01300_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    // todo: add rules engine
+    u32 out_buf[64] = { 0 };
+
+    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w, pw_len, out_buf);
 
     sha224_ctx_t ctx;
 
     sha224_init (&ctx);
 
-    sha224_update_swap (&ctx, w, pw_len);
+    sha224_update_swap (&ctx, out_buf, out_len);
 
     sha224_final (&ctx);
 
@@ -110,13 +112,15 @@ __kernel void m01300_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    // todo: add rules engine
+    u32 out_buf[64] = { 0 };
+
+    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w, pw_len, out_buf);
 
     sha224_ctx_t ctx;
 
     sha224_init (&ctx);
 
-    sha224_update_swap (&ctx, w, pw_len);
+    sha224_update_swap (&ctx, out_buf, out_len);
 
     sha224_final (&ctx);
 

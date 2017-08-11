@@ -78,13 +78,15 @@ __kernel void m06100_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    // todo: add rules engine
+    u32 out_buf[64] = { 0 };
+
+    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w, pw_len, out_buf);
 
     whirlpool_ctx_t ctx;
 
     whirlpool_init (&ctx, s_Ch, s_Cl);
 
-    whirlpool_update (&ctx, w, pw_len);
+    whirlpool_update (&ctx, out_buf, out_len);
 
     whirlpool_final (&ctx);
 
@@ -172,13 +174,15 @@ __kernel void m06100_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    // todo: add rules engine
+    u32 out_buf[64] = { 0 };
+
+    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w, pw_len, out_buf);
 
     whirlpool_ctx_t ctx;
 
     whirlpool_init (&ctx, s_Ch, s_Cl);
 
-    whirlpool_update (&ctx, w, pw_len);
+    whirlpool_update (&ctx, out_buf, out_len);
 
     whirlpool_final (&ctx);
 

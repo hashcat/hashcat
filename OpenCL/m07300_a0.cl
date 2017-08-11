@@ -47,11 +47,13 @@ __kernel void m07300_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    // todo: add rules engine
+    u32 out_buf[64] = { 0 };
+
+    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w, pw_len, out_buf);
 
     sha1_hmac_ctx_t ctx;
 
-    sha1_hmac_init_swap (&ctx, w, pw_len);
+    sha1_hmac_init_swap (&ctx, out_buf, out_len);
 
     sha1_hmac_update_global (&ctx, rakp_bufs[digests_offset].salt_buf, rakp_bufs[digests_offset].salt_len);
 
@@ -110,11 +112,13 @@ __kernel void m07300_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    // todo: add rules engine
+    u32 out_buf[64] = { 0 };
+
+    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w, pw_len, out_buf);
 
     sha1_hmac_ctx_t ctx;
 
-    sha1_hmac_init_swap (&ctx, w, pw_len);
+    sha1_hmac_init_swap (&ctx, out_buf, out_len);
 
     sha1_hmac_update_global (&ctx, rakp_bufs[digests_offset].salt_buf, rakp_bufs[digests_offset].salt_len);
 
