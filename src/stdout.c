@@ -128,7 +128,12 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
         }
         else
         {
-          plain_len = (int) apply_rules (straight_ctx->kernel_rules_buf[off].cmds, pw.i, pw.pw_len, plain_buf);
+          for (int i = 0; i < 64; i++)
+          {
+            plain_buf[i] = pw.i[i];
+          }
+
+          plain_len = (int) apply_rules (straight_ctx->kernel_rules_buf[off].cmds, plain_buf, pw.pw_len);
         }
 
         if (plain_len > hashconfig->pw_max) plain_len = hashconfig->pw_max;

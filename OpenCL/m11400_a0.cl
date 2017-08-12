@@ -60,16 +60,7 @@ __kernel void m11400_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
-
-  const u32 pw_lenv = ceil ((float) pw_len / 4);
-
-  u32 w[64] = { 0 };
-
-  for (int idx = 0; idx < pw_lenv; idx++)
-  {
-    w[idx] = pws[gid].i[idx];
-  }
+  pw_t pw = pws[gid];
 
   md5_ctx_t ctx0;
 
@@ -83,13 +74,13 @@ __kernel void m11400_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    u32 out_buf[64] = { 0 };
+    pw_t tmp = pw;
 
-    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w, pw_len, out_buf);
+    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
     md5_ctx_t ctx1 = ctx0;
 
-    md5_update (&ctx1, out_buf, out_len);
+    md5_update (&ctx1, tmp.i, tmp.pw_len);
 
     md5_final (&ctx1);
 
@@ -179,16 +170,7 @@ __kernel void m11400_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
-
-  const u32 pw_lenv = ceil ((float) pw_len / 4);
-
-  u32 w[64] = { 0 };
-
-  for (int idx = 0; idx < pw_lenv; idx++)
-  {
-    w[idx] = pws[gid].i[idx];
-  }
+  pw_t pw = pws[gid];
 
   md5_ctx_t ctx0;
 
@@ -202,13 +184,13 @@ __kernel void m11400_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    u32 out_buf[64] = { 0 };
+    pw_t tmp = pw;
 
-    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w, pw_len, out_buf);
+    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
     md5_ctx_t ctx1 = ctx0;
 
-    md5_update (&ctx1, out_buf, out_len);
+    md5_update (&ctx1, tmp.i, tmp.pw_len);
 
     md5_final (&ctx1);
 

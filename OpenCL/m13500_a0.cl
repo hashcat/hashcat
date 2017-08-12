@@ -63,16 +63,7 @@ __kernel void m13500_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
-
-  const u32 pw_lenv = ceil ((float) pw_len / 4);
-
-  u32 w[64] = { 0 };
-
-  for (int idx = 0; idx < pw_lenv; idx++)
-  {
-    w[idx] = pws[gid].i[idx];
-  }
+  pw_t pw = pws[gid];
 
   /**
    * loop
@@ -80,13 +71,13 @@ __kernel void m13500_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    u32 out_buf[64] = { 0 };
+    pw_t tmp = pw;
 
-    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w, pw_len, out_buf);
+    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
     sha1_ctx_t ctx = ctx0;
 
-    sha1_update_utf16le_swap (&ctx, out_buf, out_len);
+    sha1_update_utf16le_swap (&ctx, tmp.i, tmp.pw_len);
 
     sha1_final (&ctx);
 
@@ -159,16 +150,7 @@ __kernel void m13500_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
-
-  const u32 pw_lenv = ceil ((float) pw_len / 4);
-
-  u32 w[64] = { 0 };
-
-  for (int idx = 0; idx < pw_lenv; idx++)
-  {
-    w[idx] = pws[gid].i[idx];
-  }
+  pw_t pw = pws[gid];
 
   /**
    * loop
@@ -176,13 +158,13 @@ __kernel void m13500_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    u32 out_buf[64] = { 0 };
+    pw_t tmp = pw;
 
-    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w, pw_len, out_buf);
+    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
     sha1_ctx_t ctx = ctx0;
 
-    sha1_update_utf16le_swap (&ctx, out_buf, out_len);
+    sha1_update_utf16le_swap (&ctx, tmp.i, tmp.pw_len);
 
     sha1_final (&ctx);
 

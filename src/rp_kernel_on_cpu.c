@@ -567,14 +567,8 @@ static int apply_rule (const u32 name, MAYBE_UNUSED const u8 p0, MAYBE_UNUSED co
   return out_len;
 }
 
-int apply_rules (const u32 *cmds, u32 in_buf[64], const int in_len, u32 out_buf[64])
+int apply_rules (const u32 *cmds, u32 buf[64], const int in_len)
 {
-  //const int in_lenv = ceil ((float) in_len / 4);
-
-  //for (int i = 0; i < in_lenv; i++) out_buf[i] = in_buf[i];
-
-  for (int i = 0; i < 64; i++) out_buf[i] = in_buf[i];
-
   int out_len = in_len;
 
   for (u32 i = 0; cmds[i] != 0; i++)
@@ -585,7 +579,7 @@ int apply_rules (const u32 *cmds, u32 in_buf[64], const int in_len, u32 out_buf[
     const u8 p0   = (cmd >>  8) & 0xff;
     const u8 p1   = (cmd >> 16) & 0xff;
 
-    out_len = apply_rule (name, p0, p1, (u8 *) out_buf, out_len);
+    out_len = apply_rule (name, p0, p1, (u8 *) buf, out_len);
   }
 
   return out_len;

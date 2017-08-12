@@ -30,16 +30,7 @@ __kernel void m05400_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
-
-  const u32 pw_lenv = ceil ((float) pw_len / 4);
-
-  u32 w[64] = { 0 };
-
-  for (int idx = 0; idx < pw_lenv; idx++)
-  {
-    w[idx] = pws[gid].i[idx];
-  }
+  pw_t pw = pws[gid];
 
   /**
    * loop
@@ -47,13 +38,13 @@ __kernel void m05400_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    u32 out_buf[64] = { 0 };
+    pw_t tmp = pw;
 
-    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w, pw_len, out_buf);
+    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
     sha1_hmac_ctx_t ctx0;
 
-    sha1_hmac_init_swap (&ctx0, out_buf, out_len);
+    sha1_hmac_init_swap (&ctx0, tmp.i, tmp.pw_len);
 
     sha1_hmac_update_global_swap (&ctx0, ikepsk_bufs[digests_offset].nr_buf, ikepsk_bufs[digests_offset].nr_len);
 
@@ -125,16 +116,7 @@ __kernel void m05400_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
-
-  const u32 pw_lenv = ceil ((float) pw_len / 4);
-
-  u32 w[64] = { 0 };
-
-  for (int idx = 0; idx < pw_lenv; idx++)
-  {
-    w[idx] = pws[gid].i[idx];
-  }
+  pw_t pw = pws[gid];
 
   /**
    * loop
@@ -142,13 +124,13 @@ __kernel void m05400_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    u32 out_buf[64] = { 0 };
+    pw_t tmp = pw;
 
-    const u32 out_len = apply_rules (rules_buf[il_pos].cmds, w, pw_len, out_buf);
+    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
     sha1_hmac_ctx_t ctx0;
 
-    sha1_hmac_init_swap (&ctx0, out_buf, out_len);
+    sha1_hmac_init_swap (&ctx0, tmp.i, tmp.pw_len);
 
     sha1_hmac_update_global_swap (&ctx0, ikepsk_bufs[digests_offset].nr_buf, ikepsk_bufs[digests_offset].nr_len);
 

@@ -3,65 +3,45 @@
  * License.....: MIT
  */
 
-int class_digit (const u8 c)
-{
-  if ((c >= '0') && (c <= '9')) return 1;
+#define MAYBE_UNUSED
 
-  return 0;
+static void upper_at (u8 *buf, const int pos)
+{
+  const u8 c = buf[pos];
+
+  if ((c >= 'a') && (c <= 'z')) buf[pos] ^= 0x20;
 }
 
-int class_lower (const u8 c)
+static void lower_at (u8 *buf, const int pos)
 {
-  if ((c >= 'a') && (c <= 'z')) return 1;
+  const u8 c = buf[pos];
 
-  return 0;
+  if ((c >= 'A') && (c <= 'Z')) buf[pos] ^= 0x20;
 }
 
-int class_upper (const u8 c)
+static void toggle_at (u8 *buf, const int pos)
 {
-  if ((c >= 'A') && (c <= 'Z')) return 1;
+  const u8 c = buf[pos];
 
-  return 0;
+  if ((c >= 'a') && (c <= 'z')) buf[pos] ^= 0x20;
+  if ((c >= 'A') && (c <= 'Z')) buf[pos] ^= 0x20;
 }
 
-int class_alpha (const u8 c)
-{
-  if (class_lower (c) == 1) return 1;
-  if (class_upper (c) == 1) return 1;
-
-  return 0;
-}
-
-void upper_at (u8 *buf, const int pos)
-{
-  if (class_lower (buf[pos])) buf[pos] ^= 0x20;
-}
-
-void lower_at (u8 *buf, const int pos)
-{
-  if (class_upper (buf[pos])) buf[pos] ^= 0x20;
-}
-
-void toggle_at (u8 *buf, const int pos)
-{
-  if (class_alpha (buf[pos])) buf[pos] ^= 0x20;
-}
-
-void mangle_switch (u8 *buf, const int l, const int r)
+static void mangle_switch (u8 *buf, const int l, const int r)
 {
   const u8 c = buf[r];
   buf[r] = buf[l];
   buf[l] = c;
 }
 
-int mangle_lrest (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_lrest (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   for (int pos = 0; pos < len; pos++) lower_at (buf, pos);
 
   return (len);
 }
 
-int mangle_lrest_ufirst (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_lrest_ufirst (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   for (int pos = 0; pos < len; pos++) lower_at (buf, pos);
 
@@ -70,14 +50,14 @@ int mangle_lrest_ufirst (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (len);
 }
 
-int mangle_urest (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_urest (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   for (int pos = 0; pos < len; pos++) upper_at (buf, pos);
 
   return (len);
 }
 
-int mangle_urest_lfirst (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_urest_lfirst (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   for (int pos = 0; pos < len; pos++) upper_at (buf, pos);
 
@@ -86,14 +66,14 @@ int mangle_urest_lfirst (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (len);
 }
 
-int mangle_trest (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_trest (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   for (int pos = 0; pos < len; pos++) toggle_at (buf, pos);
 
   return (len);
 }
 
-int mangle_toggle_at (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_toggle_at (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   if (p0 >= len) return (len);
 
@@ -102,7 +82,7 @@ int mangle_toggle_at (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (len);
 }
 
-int mangle_reverse (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_reverse (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   for (int l = 0; l < len / 2; l++)
   {
@@ -114,7 +94,7 @@ int mangle_reverse (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (len);
 }
 
-int mangle_dupeword (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_dupeword (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   const int out_len = len * 2;
 
@@ -127,7 +107,7 @@ int mangle_dupeword (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (out_len);
 }
 
-int mangle_dupeword_times (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_dupeword_times (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   const int out_len = (len * p0) + len;
 
@@ -140,7 +120,7 @@ int mangle_dupeword_times (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (out_len);
 }
 
-int mangle_reflect (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_reflect (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   const int out_len = len * 2;
 
@@ -153,7 +133,7 @@ int mangle_reflect (const u8 p0, const u8 p1, u8 *buf, const int len)
   return out_len;
 }
 
-int mangle_append (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_append (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   const int out_len = len + 1;
 
@@ -164,7 +144,7 @@ int mangle_append (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (out_len);
 }
 
-int mangle_prepend (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_prepend (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   const int out_len = len + 1;
 
@@ -178,7 +158,7 @@ int mangle_prepend (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (out_len);
 }
 
-int mangle_rotate_left (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_rotate_left (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   for (int l = 0, r = len - 1; r > l; r--)
   {
@@ -188,7 +168,7 @@ int mangle_rotate_left (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (len);
 }
 
-int mangle_rotate_right (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_rotate_right (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   for (int l = 0, r = len - 1; l < r; l++)
   {
@@ -198,7 +178,7 @@ int mangle_rotate_right (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (len);
 }
 
-int mangle_delete_at (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_delete_at (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   if (p0 >= len) return (len);
 
@@ -212,19 +192,19 @@ int mangle_delete_at (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (len - 1);
 }
 
-int mangle_delete_first (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_delete_first (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   return mangle_delete_at (0, p1, buf, len);
 }
 
-int mangle_delete_last (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_delete_last (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   if (len == 0) return 0;
 
   return mangle_delete_at (len - 1, p1, buf, len);
 }
 
-int mangle_extract (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_extract (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   if (p0 >= len) return (len);
 
@@ -243,7 +223,7 @@ int mangle_extract (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (p1);
 }
 
-int mangle_omit (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_omit (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   if (p0 >= len) return (len);
 
@@ -262,7 +242,7 @@ int mangle_omit (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (len - p1);
 }
 
-int mangle_insert (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_insert (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   if (p0 >= len + 1) return (len);
 
@@ -280,7 +260,7 @@ int mangle_insert (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (out_len);
 }
 
-int mangle_overstrike (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_overstrike (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   if (p0 >= len) return (len);
 
@@ -289,7 +269,7 @@ int mangle_overstrike (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (len);
 }
 
-int mangle_truncate_at (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_truncate_at (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   if (p0 >= len) return (len);
 
@@ -301,7 +281,7 @@ int mangle_truncate_at (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (p0);
 }
 
-int mangle_replace (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_replace (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   for (int pos = 0; pos < len; pos++)
   {
@@ -313,7 +293,7 @@ int mangle_replace (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (len);
 }
 
-int mangle_purgechar (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_purgechar (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   int out_len = 0;
 
@@ -334,7 +314,7 @@ int mangle_purgechar (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (out_len);
 }
 
-int mangle_dupechar_first (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_dupechar_first (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   const int out_len = len + p0;
 
@@ -350,7 +330,7 @@ int mangle_dupechar_first (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (out_len);
 }
 
-int mangle_dupechar_last (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_dupechar_last (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   const int out_len = len + p0;
 
@@ -366,7 +346,7 @@ int mangle_dupechar_last (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (out_len);
 }
 
-int mangle_dupechar_all (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_dupechar_all (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   const int out_len = len + len;
 
@@ -384,7 +364,7 @@ int mangle_dupechar_all (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (out_len);
 }
 
-int mangle_switch_first (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_switch_first (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   if (len < 2) return (len);
 
@@ -393,7 +373,7 @@ int mangle_switch_first (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (len);
 }
 
-int mangle_switch_last (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_switch_last (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   if (len < 2) return (len);
 
@@ -402,7 +382,7 @@ int mangle_switch_last (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (len);
 }
 
-int mangle_switch_at (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_switch_at (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   if (p0 >= len) return (len);
   if (p1 >= len) return (len);
@@ -412,7 +392,7 @@ int mangle_switch_at (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (len);
 }
 
-int mangle_chr_shiftl (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_chr_shiftl (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   if (p0 >= len) return (len);
 
@@ -421,7 +401,7 @@ int mangle_chr_shiftl (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (len);
 }
 
-int mangle_chr_shiftr (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_chr_shiftr (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   if (p0 >= len) return (len);
 
@@ -430,7 +410,7 @@ int mangle_chr_shiftr (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (len);
 }
 
-int mangle_chr_incr (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_chr_incr (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   if (p0 >= len) return (len);
 
@@ -439,7 +419,7 @@ int mangle_chr_incr (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (len);
 }
 
-int mangle_chr_decr (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_chr_decr (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   if (p0 >= len) return (len);
 
@@ -448,7 +428,7 @@ int mangle_chr_decr (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (len);
 }
 
-int mangle_replace_np1 (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_replace_np1 (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   if ((p0 + 1) >= len) return (len);
 
@@ -457,7 +437,7 @@ int mangle_replace_np1 (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (len);
 }
 
-int mangle_replace_nm1 (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_replace_nm1 (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   if (p0 == 0) return (len);
 
@@ -468,7 +448,7 @@ int mangle_replace_nm1 (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (len);
 }
 
-int mangle_dupeblock_first (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_dupeblock_first (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   if (p0 >= len) return (len);
 
@@ -486,7 +466,7 @@ int mangle_dupeblock_first (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (out_len);
 }
 
-int mangle_dupeblock_last (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_dupeblock_last (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   if (p0 >= len) return (len);
 
@@ -504,7 +484,7 @@ int mangle_dupeblock_last (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (out_len);
 }
 
-int mangle_title_sep (const u8 p0, const u8 p1, u8 *buf, const int len)
+static int mangle_title_sep (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
 {
   int upper_next = 1;
 
@@ -532,7 +512,7 @@ int mangle_title_sep (const u8 p0, const u8 p1, u8 *buf, const int len)
   return (len);
 }
 
-int apply_rule (const u32 name, const u8 p0, const u8 p1, u8 *buf, const int in_len)
+static int apply_rule (const u32 name, MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int in_len)
 {
   int out_len = in_len;
 
@@ -583,12 +563,8 @@ int apply_rule (const u32 name, const u8 p0, const u8 p1, u8 *buf, const int in_
   return out_len;
 }
 
-u32 apply_rules (__global const u32 *cmds, u32 in_buf[64], const int in_len, u32 out_buf[64])
+int apply_rules (__global const u32 *cmds, u32 buf[64], const int in_len)
 {
-  const int in_lenv = ceil ((float) in_len / 4);
-
-  for (int i = 0; i < in_lenv; i++) out_buf[i] = in_buf[i];
-
   int out_len = in_len;
 
   for (u32 i = 0; cmds[i] != 0; i++)
@@ -599,8 +575,8 @@ u32 apply_rules (__global const u32 *cmds, u32 in_buf[64], const int in_len, u32
     const u8 p0   = (cmd >>  8) & 0xff;
     const u8 p1   = (cmd >> 16) & 0xff;
 
-    out_len = apply_rule (name, p0, p1, (u8 *) out_buf, out_len);
+    out_len = apply_rule (name, p0, p1, (u8 *) buf, out_len);
   }
 
-  return (u32) out_len;
+  return out_len;
 }
