@@ -152,6 +152,8 @@ static int mangle_prepend (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u
 {
   const int out_len = len + 1;
 
+  if (out_len >= RP_PASSWORD_SIZE) return (len);
+
   for (int pos = len - 1; pos >= 0; pos--)
   {
     buf[pos + 1] = buf[pos];
