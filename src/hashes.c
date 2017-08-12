@@ -21,7 +21,6 @@
 #include "outfile.h"
 #include "potfile.h"
 #include "rp.h"
-#include "rp_kernel_on_cpu.h"
 #include "shared.h"
 #include "thread.h"
 #include "timer.h"
