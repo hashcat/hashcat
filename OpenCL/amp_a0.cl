@@ -17,44 +17,9 @@ __kernel void amp (__global pw_t *pws, __global pw_t *pws_amp, __global const ke
 
   if (rules_buf[0].cmds[0] == RULE_OP_MANGLE_NOOP && rules_buf[0].cmds[1] == 0) return;
 
-  /**
-   * base
-   */
+  pw_t pw = pws[gid];
 
-  const u32 pw_len = pws[gid].pw_len;
+  pw.pw_len = apply_rules (rules_buf[0].cmds, pw.i, pw.pw_len);
 
-  const u32 pw_lenv = ceil ((float) pw_len / 4);
-
-  u32 w[64] = { 0 };
-
-  for (int idx = 0; idx < pw_lenv; idx++)
-  {
-    w[idx] = pws[gid].i[idx];
-  }
-
-  /**
-   * do work
-   */
-
-  u32 out_buf[64] = { 0 };
-
-  const u32 out_len = apply_rules (rules_buf[0].cmds, w, pw_len, out_buf);
-
-  /**
-   * out
-   */
-
-  const u32 out_lenv = ceil ((float) out_len / 4);
-
-  for (int idx = 0; idx < pw_lenv; idx++)
-  {
-    pws_amp[gid].i[idx] = out_buf[idx];
-  }
-
-  for (int idx = pw_lenv; idx < 64; idx++)
-  {
-    pws_amp[gid].i[idx] = 0;
-  }
-
-  pws_amp[gid].pw_len = out_len;
+  pws_amp[gid] = pw;
 }
