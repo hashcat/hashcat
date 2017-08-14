@@ -24,8 +24,8 @@ cp -r $IN/masks                         $OUT/
 cp -r $IN/rules                         $OUT/
 cp -r $IN/extra                         $OUT/
 cp    $IN/example.dict                  $OUT/
-cp    $IN/example[0123456789]*.hash	$OUT/
-cp    $IN/example[0123456789]*.cmd	$OUT/
+cp    $IN/example[0123456789]*.hash     $OUT/
+cp    $IN/example[0123456789]*.cmd      $OUT/
 cp -r $IN/OpenCL                        $OUT/
 
 # since for the binary distribution we still use .bin, we need to rewrite the commands
