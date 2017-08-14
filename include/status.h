@@ -47,6 +47,11 @@ double      status_get_msec_paused                (const hashcat_ctx_t *hashcat_
 double      status_get_msec_real                  (const hashcat_ctx_t *hashcat_ctx);
 char       *status_get_time_started_absolute      (const hashcat_ctx_t *hashcat_ctx);
 char       *status_get_time_started_relative      (const hashcat_ctx_t *hashcat_ctx);
+#if defined (_WIN)
+__time64_t  status_get_sec_etc                    (const hashcat_ctx_t *hashcat_ctx);
+#else
+time_t      status_get_sec_etc                    (const hashcat_ctx_t *hashcat_ctx);
+#endif
 char       *status_get_time_estimated_absolute    (const hashcat_ctx_t *hashcat_ctx);
 char       *status_get_time_estimated_relative    (const hashcat_ctx_t *hashcat_ctx);
 u64         status_get_restore_point              (const hashcat_ctx_t *hashcat_ctx);
