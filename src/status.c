@@ -18,6 +18,7 @@
 #include "mpsp.h"
 #include "terminal.h"
 #include "status.h"
+#include "shared.h"
 
 static const char ST_0000[] = "Initializing";
 static const char ST_0001[] = "Autotuning";
@@ -35,6 +36,9 @@ static const char ST_0012[] = "Running (Checkpoint Quit requested)";
 static const char ST_9999[] = "Unknown! Bug!";
 
 static const char UNITS[7] = { ' ', 'k', 'M', 'G', 'T', 'P', 'E' };
+
+static const char ETA_ABSOLUTE_MAX_EXCEEDED[] = "Next Big Bang"; // in honor of ighashgpu
+static const char ETA_RELATIVE_MAX_EXCEEDED[] = "> 10 years";
 
 static char *status_get_rules_file (const hashcat_ctx_t *hashcat_ctx)
 {
@@ -981,16 +985,12 @@ char *status_get_time_started_relative (const hashcat_ctx_t *hashcat_ctx)
   return display_run;
 }
 
-char *status_get_time_estimated_absolute (const hashcat_ctx_t *hashcat_ctx)
+hc_time_t status_get_sec_etc (const hashcat_ctx_t *hashcat_ctx)
 {
   const status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
-  #if defined (_WIN)
-  __time64_t sec_etc = 0;
-  #else
-  time_t sec_etc = 0;
-  #endif
+  hc_time_t sec_etc = 0;
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
@@ -1014,21 +1014,33 @@ char *status_get_time_estimated_absolute (const hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  // we need this check to avoid integer overflow
-  if (sec_etc > 100000000)
-  {
-    sec_etc = 100000000;
-  }
+  return sec_etc;
+}
 
-  time_t now;
+char *status_get_time_estimated_absolute (const hashcat_ctx_t *hashcat_ctx)
+{
+  hc_time_t sec_etc = status_get_sec_etc (hashcat_ctx);
 
-  time (&now);
+  hc_time_t now;
+  hc_time (&now);
 
-  now += sec_etc;
 
   char buf[32] = { 0 };
 
-  char *etc = ctime_r (&now, buf);
+  char *etc;
+
+  if (overflow_check_u64_add (now, sec_etc) == false)
+  {
+    etc = (char *) ETA_ABSOLUTE_MAX_EXCEEDED;
+  }
+  else
+  {
+    hc_time_t end = now + sec_etc;
+
+    etc = hc_ctime (&end, buf, sizeof (buf));
+
+    if (etc == NULL) etc = (char *) ETA_ABSOLUTE_MAX_EXCEEDED;
+  }
 
   const size_t etc_len = strlen (etc);
 
@@ -1040,59 +1052,22 @@ char *status_get_time_estimated_absolute (const hashcat_ctx_t *hashcat_ctx)
 
 char *status_get_time_estimated_relative (const hashcat_ctx_t *hashcat_ctx)
 {
-  const status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
-  const user_options_t       *user_options       = hashcat_ctx->user_options;
-  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
-
-  #if defined (_WIN)
-  __time64_t sec_etc = 0;
-  #else
-  time_t sec_etc = 0;
-  #endif
-
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
-  {
-    if (status_ctx->devices_status != STATUS_CRACKED)
-    {
-      const u64 progress_cur_relative_skip = status_get_progress_cur_relative_skip (hashcat_ctx);
-      const u64 progress_end_relative_skip = status_get_progress_end_relative_skip (hashcat_ctx);
-
-      const u64 progress_ignore = status_get_progress_ignore (hashcat_ctx);
-
-      const double hashes_msec_all = status_get_hashes_msec_all (hashcat_ctx);
-
-      if (hashes_msec_all > 0)
-      {
-        const u64 progress_left_relative_skip = progress_end_relative_skip - progress_cur_relative_skip;
-
-        u64 msec_left = (u64) ((progress_left_relative_skip - progress_ignore) / hashes_msec_all);
-
-        sec_etc = msec_left / 1000;
-      }
-    }
-  }
-
-  // we need this check to avoid integer overflow
-  #if defined (_WIN)
-  if (sec_etc > 100000000)
-  {
-    sec_etc = 100000000;
-  }
-  #endif
-
-  struct tm *tmp;
-
-  #if defined (_WIN)
-  tmp = _gmtime64 (&sec_etc);
-  #else
-  struct tm tm;
-
-  tmp = gmtime_r (&sec_etc, &tm);
-  #endif
+  const user_options_t *user_options = hashcat_ctx->user_options;
 
   char *display = (char *) malloc (HCBUFSIZ_TINY);
 
-  format_timer_display (tmp, display, HCBUFSIZ_TINY);
+  hc_time_t sec_etc = status_get_sec_etc (hashcat_ctx);
+
+  struct tm *tmp = hc_gmtime (&sec_etc);
+
+  if (tmp == NULL)
+  {
+    snprintf (display, HCBUFSIZ_TINY, "%s", ETA_RELATIVE_MAX_EXCEEDED);
+  }
+  else
+  {
+    format_timer_display (tmp, display, HCBUFSIZ_TINY);
+  }
 
   if (user_options->runtime > 0)
   {
@@ -1102,21 +1077,11 @@ char *status_get_time_estimated_relative (const hashcat_ctx_t *hashcat_ctx)
 
     if (runtime_left > 0)
     {
-      #if defined (_WIN)
-      __time64_t sec_left = runtime_left;
-      #else
-      time_t sec_left = runtime_left;
-      #endif
+      hc_time_t sec_left = runtime_left;
 
       struct tm *tmp_left;
 
-      #if defined (_WIN)
-      tmp_left = _gmtime64 (&sec_left);
-      #else
-      struct tm tm_left;
-
-      tmp_left = gmtime_r (&sec_left, &tm_left);
-      #endif
+      tmp_left = hc_gmtime (&sec_left);
 
       char *display_left = (char *) malloc (HCBUFSIZ_TINY);
 

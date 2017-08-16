@@ -62,4 +62,8 @@ void hc_string_trim_leading (char *s);
 size_t hc_fread (void *ptr, size_t size, size_t nmemb, FILE *stream);
 void   hc_fwrite (const void *ptr, size_t size, size_t nmemb, FILE *stream);
 
+void       hc_time   (hc_time_t *t);
+struct tm *hc_gmtime (hc_time_t *t);
+char      *hc_ctime  (hc_time_t *t, char *buf, MAYBE_UNUSED size_t buf_size);
+
 #endif // _SHARED_H
