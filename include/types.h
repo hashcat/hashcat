@@ -829,10 +829,13 @@ struct hashconfig
   u32   dgst_pos3;
 
   u32   is_salted;
-  u32   esalt_size;
-  u32   hook_salt_size;
-  u32   tmp_size;
-  u32   hook_size;
+
+  // sizes have to be size_t
+
+  size_t  esalt_size;
+  size_t  hook_salt_size;
+  size_t  tmp_size;
+  size_t  hook_size;
 
   // password length limit
 
