@@ -248,7 +248,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
   option_index = 0;
 
-  while (((c = getopt_long (argc, argv, short_options, long_options, &option_index)) != -1) && optopt == 0)
+  while ((c = getopt_long (argc, argv, short_options, long_options, &option_index)) != -1)
   {
     switch (c)
     {
@@ -291,14 +291,18 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
         return -1;
       }
+
+      break;
+
+      case '?':
+      {
+        event_log_error (hashcat_ctx, "Invalid argument specified.");
+
+        return -1;
+      }
+
+      break;
     }
-  }
-
-  if (optopt != 0)
-  {
-    event_log_error (hashcat_ctx, "Invalid argument specified.");
-
-    return -1;
   }
 
   optind = 1;
@@ -306,7 +310,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
   option_index = 0;
 
-  while (((c = getopt_long (argc, argv, short_options, long_options, &option_index)) != -1) && optopt == 0)
+  while ((c = getopt_long (argc, argv, short_options, long_options, &option_index)) != -1)
   {
     switch (c)
     {
@@ -416,21 +420,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_CUSTOM_CHARSET_2:          user_options->custom_charset_2          = optarg;         break;
       case IDX_CUSTOM_CHARSET_3:          user_options->custom_charset_3          = optarg;         break;
       case IDX_CUSTOM_CHARSET_4:          user_options->custom_charset_4          = optarg;         break;
-
-      default:
-      {
-        event_log_error (hashcat_ctx, "Invalid argument specified.");
-
-        return -1;
-      }
     }
-  }
-
-  if (optopt != 0)
-  {
-    event_log_error (hashcat_ctx, "Invalid argument specified.");
-
-    return -1;
   }
 
   user_options->hc_bin = argv[0];
