@@ -35,11 +35,14 @@ u32 convert_from_hex (hashcat_ctx_t *hashcat_ctx, char *line_buf, const u32 line
     return (i);
   }
 
-  if (is_hexify ((const u8 *) line_buf, (const int) line_len) == true)
+  if (user_options->wordlist_autohex_disable == false)
   {
-    const int new_len = exec_unhexify ((const u8 *) line_buf, (const int) line_len, (u8 *) line_buf, (const int) line_len);
+    if (is_hexify ((const u8 *) line_buf, (const int) line_len) == true)
+    {
+      const int new_len = exec_unhexify ((const u8 *) line_buf, (const int) line_len, (u8 *) line_buf, (const int) line_len);
 
-    return (u32) new_len;
+      return (u32) new_len;
+    }
   }
 
   return (line_len);
