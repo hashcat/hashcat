@@ -96,7 +96,7 @@ __kernel void m07400_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   int pl;
 
-	for (pl = pw_len; pl > 32; pl -= 32)
+  for (pl = pw_len; pl > 32; pl -= 32)
   {
     sha256_update (&ctx, final, 32);
   }
@@ -167,7 +167,7 @@ __kernel void m07400_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   int idx;
 
-	for (pl = pw_len, idx = 0; pl > 32; pl -= 32, idx += 8)
+  for (pl = pw_len, idx = 0; pl > 32; pl -= 32, idx += 8)
   {
     p_final[idx + 0] = final[0];
     p_final[idx + 1] = final[1];
@@ -225,7 +225,7 @@ __kernel void m07400_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   u32 s_final[64] = { 0 };
 
-	for (pl = salt_len, idx = 0; pl > 32; pl -= 32, idx += 8)
+  for (pl = salt_len, idx = 0; pl > 32; pl -= 32, idx += 8)
   {
     s_final[idx + 0] = final[0];
     s_final[idx + 1] = final[1];
@@ -288,32 +288,32 @@ __kernel void m07400_loop (__global pw_t *pws, __global const kernel_rule_t *rul
 
     sha256_init (&ctx);
 
-		if (j & 1)
+    if (j & 1)
     {
-			sha256_update_global (&ctx, tmps[gid].p_bytes, pw_len);
+      sha256_update_global (&ctx, tmps[gid].p_bytes, pw_len);
     }
-		else
+    else
     {
-			sha256_update (&ctx, alt_result, 32);
-    }
-
-		if (j % 3)
-    {
-			sha256_update_global (&ctx, tmps[gid].s_bytes, salt_len);
+      sha256_update (&ctx, alt_result, 32);
     }
 
-		if (j % 7)
+    if (j % 3)
     {
-			sha256_update_global (&ctx, tmps[gid].p_bytes, pw_len);
+      sha256_update_global (&ctx, tmps[gid].s_bytes, salt_len);
     }
 
-		if (j & 1)
+    if (j % 7)
     {
-			sha256_update (&ctx, alt_result, 32);
+      sha256_update_global (&ctx, tmps[gid].p_bytes, pw_len);
     }
-		else
+
+    if (j & 1)
     {
-			sha256_update_global (&ctx, tmps[gid].p_bytes, pw_len);
+      sha256_update (&ctx, alt_result, 32);
+    }
+    else
+    {
+      sha256_update_global (&ctx, tmps[gid].p_bytes, pw_len);
     }
 
     sha256_final (&ctx);
