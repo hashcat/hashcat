@@ -23,6 +23,7 @@
 - Fixed a problem with changed current working directory, for instance by using --restore together with --remove
 - Fixed a memory problem that occured when the OpenCL folder was not found and e.g. the shared and session folder were the same
 - Fixed the version number used in the restore file header
+- Fixed the parsing of command line options. It doesn't show two times the same error about an invalid option anymore.
 
 ##
 ## Improvements
