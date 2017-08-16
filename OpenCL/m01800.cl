@@ -104,7 +104,7 @@ __kernel void m01800_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   int pl;
 
-	for (pl = pw_len; pl > 64; pl -= 64)
+  for (pl = pw_len; pl > 64; pl -= 64)
   {
     sha512_update (&ctx, final, 64);
   }
@@ -183,7 +183,7 @@ __kernel void m01800_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   int idx;
 
-	for (pl = pw_len, idx = 0; pl > 64; pl -= 64, idx += 16)
+  for (pl = pw_len, idx = 0; pl > 64; pl -= 64, idx += 16)
   {
     p_final[idx +  0] = final[ 0];
     p_final[idx +  1] = final[ 1];
@@ -257,7 +257,7 @@ __kernel void m01800_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   u32 s_final[64] = { 0 };
 
-	for (pl = salt_len, idx = 0; pl > 64; pl -= 64, idx += 16)
+  for (pl = salt_len, idx = 0; pl > 64; pl -= 64, idx += 16)
   {
     s_final[idx +  0] = final[ 0];
     s_final[idx +  1] = final[ 1];
@@ -332,32 +332,32 @@ __kernel void m01800_loop (__global pw_t *pws, __global const kernel_rule_t *rul
 
     sha512_init (&ctx);
 
-		if (j & 1)
+    if (j & 1)
     {
-			sha512_update_global (&ctx, tmps[gid].p_bytes, pw_len);
+      sha512_update_global (&ctx, tmps[gid].p_bytes, pw_len);
     }
-		else
+    else
     {
-			sha512_update (&ctx, alt_result, 64);
-    }
-
-		if (j % 3)
-    {
-			sha512_update_global (&ctx, tmps[gid].s_bytes, salt_len);
+      sha512_update (&ctx, alt_result, 64);
     }
 
-		if (j % 7)
+    if (j % 3)
     {
-			sha512_update_global (&ctx, tmps[gid].p_bytes, pw_len);
+      sha512_update_global (&ctx, tmps[gid].s_bytes, salt_len);
     }
 
-		if (j & 1)
+    if (j % 7)
     {
-			sha512_update (&ctx, alt_result, 64);
+      sha512_update_global (&ctx, tmps[gid].p_bytes, pw_len);
     }
-		else
+
+    if (j & 1)
     {
-			sha512_update_global (&ctx, tmps[gid].p_bytes, pw_len);
+      sha512_update (&ctx, alt_result, 64);
+    }
+    else
+    {
+      sha512_update_global (&ctx, tmps[gid].p_bytes, pw_len);
     }
 
     sha512_final (&ctx);

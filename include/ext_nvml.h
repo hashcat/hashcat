@@ -55,9 +55,9 @@ typedef enum nvmlReturn_enum {
 } nvmlReturn_t;
 
 typedef enum nvmlClockType_enum {
-	NVML_CLOCK_GRAPHICS = 0,
-	NVML_CLOCK_SM = 1,
-	NVML_CLOCK_MEM = 2
+  NVML_CLOCK_GRAPHICS = 0,
+  NVML_CLOCK_SM = 1,
+  NVML_CLOCK_MEM = 2
 } nvmlClockType_t;
 
 typedef enum nvmlTemperatureThresholds_enum

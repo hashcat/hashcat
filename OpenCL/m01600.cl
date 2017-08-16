@@ -94,7 +94,7 @@ __kernel void m01600_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   int pl;
 
-	for (pl = pw_len; pl > 16; pl -= 16)
+  for (pl = pw_len; pl > 16; pl -= 16)
   {
     md5_update (&md5_ctx, final, 16);
   }
@@ -105,11 +105,11 @@ __kernel void m01600_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   /* Then something really weird... */
 
-	for (int i = pw_len; i != 0; i >>= 1)
+  for (int i = pw_len; i != 0; i >>= 1)
   {
     u32 t[16] = { 0 };
 
-		if (i & 1)
+    if (i & 1)
     {
       t[0] = 0;
     }
@@ -186,32 +186,32 @@ __kernel void m01600_loop (__global pw_t *pws, __global const kernel_rule_t *rul
 
     md5_init (&md5_ctx);
 
-		if (j & 1)
+    if (j & 1)
     {
-			md5_update (&md5_ctx, w, pw_len);
+      md5_update (&md5_ctx, w, pw_len);
     }
-		else
+    else
     {
-			md5_update (&md5_ctx, digest, 16);
-    }
-
-		if (j % 3)
-    {
-			md5_update (&md5_ctx, s, salt_len);
+      md5_update (&md5_ctx, digest, 16);
     }
 
-		if (j % 7)
+    if (j % 3)
     {
-			md5_update (&md5_ctx, w, pw_len);
+      md5_update (&md5_ctx, s, salt_len);
     }
 
-		if (j & 1)
+    if (j % 7)
     {
-			md5_update (&md5_ctx, digest, 16);
+      md5_update (&md5_ctx, w, pw_len);
     }
-		else
+
+    if (j & 1)
     {
-			md5_update (&md5_ctx, w, pw_len);
+      md5_update (&md5_ctx, digest, 16);
+    }
+    else
+    {
+      md5_update (&md5_ctx, w, pw_len);
     }
 
     md5_final (&md5_ctx);
