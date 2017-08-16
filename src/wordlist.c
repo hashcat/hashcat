@@ -355,12 +355,12 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
     }
   }
 
-  time_t rt_start;
+  hc_time_t rt_start;
 
-  time (&rt_start);
+  hc_time (&rt_start);
 
-  time_t now  = 0;
-  time_t prev = 0;
+  hc_time_t now  = 0;
+  hc_time_t prev = 0;
 
   u64 comp = 0;
   u64 cnt  = 0;
@@ -444,11 +444,11 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
       }
     }
 
-    time (&now);
+    hc_time (&now);
 
     if ((now - prev) == 0) continue;
 
-    time (&prev);
+    hc_time (&prev);
 
     double percent = ((double) comp / (double) d.stat.st_size) * 100;
 
@@ -466,9 +466,9 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
     }
   }
 
-  time_t rt_stop;
+  hc_time_t rt_stop;
 
-  time (&rt_stop);
+  hc_time (&rt_stop);
 
   cache_generate_t cache_generate;
 

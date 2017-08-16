@@ -357,9 +357,9 @@ void setup_seeding (const bool rp_gen_seed_chgd, const u32 rp_gen_seed)
   }
   else
   {
-    time_t ts;
+    hc_time_t ts;
 
-    time (&ts);
+    hc_time (&ts);
 
     srand (ts);
   }
@@ -443,25 +443,25 @@ void hc_fwrite (const void *ptr, size_t size, size_t nmemb, FILE *stream)
 }
 
 
-void hc_time (hc_time_t *t)
+hc_time_t hc_time (hc_time_t *t)
 {
   #if defined (_WIN)
-  _time64 (t);
+  return _time64 (t);
   #else
-  time (t);
+  return time (t);
   #endif
 }
 
-struct tm *hc_gmtime (hc_time_t *t)
+struct tm *hc_gmtime (const hc_time_t *t, MAYBE_UNUSED struct tm *result)
 {
   #if defined (_WIN)
   return _gmtime64 (t);
   #else
-  return gmtime (t);
+  return gmtime_r (t, result);
   #endif
 }
 
-char *hc_ctime (hc_time_t *t, char *buf, MAYBE_UNUSED size_t buf_size)
+char *hc_ctime (const hc_time_t *t, char *buf, MAYBE_UNUSED const size_t buf_size)
 {
   char *etc = NULL;
 
