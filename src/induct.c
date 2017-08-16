@@ -68,7 +68,7 @@ int induct_ctx_init (hashcat_ctx_t *hashcat_ctx)
       {
         char *root_directory_mv;
 
-        hc_asprintf (&root_directory_mv, "%s/%s.induct.%d", folder_config->session_dir, user_options->session, (int) time (NULL));
+        hc_asprintf (&root_directory_mv, "%s/%s.induct.%d", folder_config->session_dir, user_options->session, (int) hc_time (NULL));
 
         if (rename (root_directory, root_directory_mv) != 0)
         {

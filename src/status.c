@@ -938,11 +938,11 @@ char *status_get_time_started_absolute (const hashcat_ctx_t *hashcat_ctx)
 {
   const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
-  const time_t time_start = status_ctx->runtime_start;
+  const hc_time_t time_start = status_ctx->runtime_start;
 
   char buf[32] = { 0 };
 
-  char *start = ctime_r (&time_start, buf);
+  char *start = hc_ctime (&time_start, buf, 32);
 
   const size_t start_len = strlen (start);
 
@@ -956,27 +956,18 @@ char *status_get_time_started_relative (const hashcat_ctx_t *hashcat_ctx)
 {
   const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
-  time_t time_now;
+  hc_time_t time_now;
 
-  time (&time_now);
+  hc_time (&time_now);
 
-  const time_t time_start = status_ctx->runtime_start;
+  const hc_time_t time_start = status_ctx->runtime_start;
 
-  #if defined (_WIN)
-  __time64_t sec_run = time_now - time_start;
-  #else
-  time_t sec_run = time_now - time_start;
-  #endif
+  hc_time_t sec_run = time_now - time_start;
 
   struct tm *tmp;
+  struct tm  tm;
 
-  #if defined (_WIN)
-  tmp = _gmtime64 (&sec_run);
-  #else
-  struct tm tm;
-
-  tmp = gmtime_r (&sec_run, &tm);
-  #endif
+  tmp = hc_gmtime (&sec_run, &tm);
 
   char *display_run = (char *) malloc (HCBUFSIZ_TINY);
 
@@ -1058,7 +1049,10 @@ char *status_get_time_estimated_relative (const hashcat_ctx_t *hashcat_ctx)
 
   hc_time_t sec_etc = status_get_sec_etc (hashcat_ctx);
 
-  struct tm *tmp = hc_gmtime (&sec_etc);
+  struct tm *tmp;
+  struct tm  tm;
+
+  tmp = hc_gmtime (&sec_etc, &tm);
 
   if (tmp == NULL)
   {
@@ -1080,8 +1074,9 @@ char *status_get_time_estimated_relative (const hashcat_ctx_t *hashcat_ctx)
       hc_time_t sec_left = runtime_left;
 
       struct tm *tmp_left;
+      struct tm  tm_left;
 
-      tmp_left = hc_gmtime (&sec_left);
+      tmp_left = hc_gmtime (&sec_left, &tm_left);
 
       char *display_left = (char *) malloc (HCBUFSIZ_TINY);
 
@@ -1472,14 +1467,14 @@ int status_get_cpt_cur_min (const hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->accessible == false) return 0;
 
-  const time_t now = time (NULL);
+  const hc_time_t now = hc_time (NULL);
 
   int cpt_cur_min = 0;
 
   for (int i = 0; i < CPT_CACHE; i++)
   {
-    const u32    cracked   = cpt_ctx->cpt_buf[i].cracked;
-    const time_t timestamp = cpt_ctx->cpt_buf[i].timestamp;
+    const u32       cracked   = cpt_ctx->cpt_buf[i].cracked;
+    const hc_time_t timestamp = cpt_ctx->cpt_buf[i].timestamp;
 
     if ((timestamp + 60) > now)
     {
@@ -1497,14 +1492,14 @@ int status_get_cpt_cur_hour (const hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->accessible == false) return 0;
 
-  const time_t now = time (NULL);
+  const hc_time_t now = hc_time (NULL);
 
   int cpt_cur_hour = 0;
 
   for (int i = 0; i < CPT_CACHE; i++)
   {
-    const u32    cracked   = cpt_ctx->cpt_buf[i].cracked;
-    const time_t timestamp = cpt_ctx->cpt_buf[i].timestamp;
+    const u32       cracked   = cpt_ctx->cpt_buf[i].cracked;
+    const hc_time_t timestamp = cpt_ctx->cpt_buf[i].timestamp;
 
     if ((timestamp + 3600) > now)
     {
@@ -1522,14 +1517,14 @@ int status_get_cpt_cur_day (const hashcat_ctx_t *hashcat_ctx)
 
   if (status_ctx->accessible == false) return 0;
 
-  const time_t now = time (NULL);
+  const hc_time_t now = hc_time (NULL);
 
   int cpt_cur_day = 0;
 
   for (int i = 0; i < CPT_CACHE; i++)
   {
-    const u32    cracked   = cpt_ctx->cpt_buf[i].cracked;
-    const time_t timestamp = cpt_ctx->cpt_buf[i].timestamp;
+    const u32       cracked   = cpt_ctx->cpt_buf[i].cracked;
+    const hc_time_t timestamp = cpt_ctx->cpt_buf[i].timestamp;
 
     if ((timestamp + 86400) > now)
     {
@@ -1577,7 +1572,7 @@ char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
 {
   const cpt_ctx_t *cpt_ctx = hashcat_ctx->cpt_ctx;
 
-  const time_t now = time (NULL);
+  const hc_time_t now = hc_time (NULL);
 
   char *cpt = (char *) malloc (HCBUFSIZ_TINY);
 

@@ -51,7 +51,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
   char **out_files = NULL;
 
-  time_t folder_mtime = 0;
+  hc_time_t folder_mtime = 0;
 
   int out_cnt = 0;
 

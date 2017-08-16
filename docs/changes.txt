@@ -34,6 +34,12 @@
 - OpenCL Runtime: Updated AMD ROCm driver version check, warn if version < 1.1
 - WPA cracking: Improved nonce-error-corrections mode to use a both positive and negative corrections
 
+##
+## Technical
+##
+
+- Time: added new type for time measurements hc_time_t and related functions to force the use of 64 bit times
+
 * changes v3.5.0 -> v3.6.0:
 
 ##

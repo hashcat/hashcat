@@ -760,9 +760,9 @@ typedef struct hash
 
 typedef struct outfile_data
 {
-  char   *file_name;
-  off_t   seek;
-  time_t ctime;
+  char      *file_name;
+  off_t      seek;
+  hc_time_t  ctime;
 
 } outfile_data_t;
 
@@ -889,8 +889,8 @@ typedef struct bs_word
 
 typedef struct cpt
 {
-  u32    cracked;
-  time_t timestamp;
+  u32       cracked;
+  hc_time_t timestamp;
 
 } cpt_t;
 
@@ -1694,10 +1694,10 @@ typedef struct cpt_ctx
 {
   bool enabled;
 
-  cpt_t  *cpt_buf;
-  int     cpt_pos;
-  time_t  cpt_start;
-  u64     cpt_total;
+  cpt_t     *cpt_buf;
+  int        cpt_pos;
+  hc_time_t  cpt_start;
+  u64        cpt_total;
 
 } cpt_ctx_t;
 
@@ -1839,8 +1839,8 @@ typedef struct status_ctx
    * timer
    */
 
-  time_t  runtime_start;
-  time_t  runtime_stop;
+  hc_time_t runtime_start;
+  hc_time_t runtime_stop;
 
   hc_timer_t timer_running;     // timer on current dict
   hc_timer_t timer_paused;      // timer on current dict
@@ -1880,7 +1880,7 @@ typedef struct cache_generate
   u64 cnt;
   u64 cnt2;
 
-  time_t runtime;
+  hc_time_t runtime;
 
 } cache_generate_t;
 
