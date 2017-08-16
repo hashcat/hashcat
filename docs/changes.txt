@@ -14,6 +14,7 @@
 - Added option --length-limit-disable to disable optimization based on password- and salt-length
 - Added self-test functionality for OpenCL kernels on startup
 - Added option --self-test-disable to disable self-test functionality on startup
+- Added option --wordlist-autohex-disable to disable the automatical conversion of $HEX[] words from the word list
 
 ##
 ## Bugs
