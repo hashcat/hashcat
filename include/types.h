@@ -43,6 +43,14 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
 
+// time
+
+#if defined (_WIN)
+typedef __time64_t        hc_time_t;
+#else
+typedef time_t            hc_time_t;
+#endif
+
 // timer
 
 #if defined (_WIN)

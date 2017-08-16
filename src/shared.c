@@ -441,3 +441,40 @@ void hc_fwrite (const void *ptr, size_t size, size_t nmemb, FILE *stream)
 
   if (rc == 0) rc = 0;
 }
+
+
+void hc_time (hc_time_t *t)
+{
+  #if defined (_WIN)
+  _time64 (t);
+  #else
+  time (t);
+  #endif
+}
+
+struct tm *hc_gmtime (hc_time_t *t)
+{
+  #if defined (_WIN)
+  return _gmtime64 (t);
+  #else
+  return gmtime (t);
+  #endif
+}
+
+char *hc_ctime (hc_time_t *t, char *buf, MAYBE_UNUSED size_t buf_size)
+{
+  char *etc = NULL;
+
+  #if defined (_WIN)
+  etc = _ctime64 (t);
+
+  if (etc != NULL)
+  {
+    snprintf (buf, buf_size, "%s", etc);
+  }
+  #else
+  etc = ctime_r (t, buf); // buf should have room for at least 26 bytes
+  #endif
+
+  return etc;
+}
