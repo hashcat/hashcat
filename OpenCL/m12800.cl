@@ -137,8 +137,8 @@ __kernel void m12800_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   #undef uint_to_hex_lower8
 
-  make_utf16le (w1, w2, w3);
-  make_utf16le (w0, w0, w1);
+  make_utf16le_S (w1, w2, w3);
+  make_utf16le_S (w0, w0, w1);
 
   w0[0] = swap32_S (w0[0]);
   w0[1] = swap32_S (w0[1]);
