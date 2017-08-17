@@ -514,62 +514,6 @@ void m03100m (__local u32 (*s_SPtrans)[64], __local u32 (*s_skb)[64], u32 w[16],
   const u32 salt_word_len = (salt_len + pw_len) * 2;
 
   /**
-   * prepend salt
-   */
-
-  u32 w0_t[4];
-  u32 w1_t[4];
-  u32 w2_t[4];
-  u32 w3_t[4];
-
-  w0_t[0] = w[ 0];
-  w0_t[1] = w[ 1];
-  w0_t[2] = w[ 2];
-  w0_t[3] = w[ 3];
-  w1_t[0] = w[ 4];
-  w1_t[1] = w[ 5];
-  w1_t[2] = w[ 6];
-  w1_t[3] = w[ 7];
-  w2_t[0] = w[ 8];
-  w2_t[1] = w[ 9];
-  w2_t[2] = w[10];
-  w2_t[3] = w[11];
-  w3_t[0] = w[12];
-  w3_t[1] = w[13];
-  w3_t[2] = w[14];
-  w3_t[3] = w[15];
-
-  switch_buffer_by_offset_le_S (w0_t, w1_t, w2_t, w3_t, salt_len);
-
-  w0_t[0] |= salt_buf0[0];
-  w0_t[1] |= salt_buf0[1];
-  w0_t[2] |= salt_buf0[2];
-  w0_t[3] |= salt_buf0[3];
-  w1_t[0] |= salt_buf1[0];
-  w1_t[1] |= salt_buf1[1];
-  w1_t[2] |= salt_buf1[2];
-  w1_t[3] |= salt_buf1[3];
-
-  u32x dst[16];
-
-  dst[ 0] = w0_t[0];
-  dst[ 1] = w0_t[1];
-  dst[ 2] = w0_t[2];
-  dst[ 3] = w0_t[3];
-  dst[ 4] = w1_t[0];
-  dst[ 5] = w1_t[1];
-  dst[ 6] = w1_t[2];
-  dst[ 7] = w1_t[3];
-  dst[ 8] = w2_t[0];
-  dst[ 9] = w2_t[1];
-  dst[10] = w2_t[2];
-  dst[11] = w2_t[3];
-  dst[12] = w3_t[0];
-  dst[13] = w3_t[1];
-  dst[14] = w3_t[2];
-  dst[15] = w3_t[3];
-
-  /**
    * loop
    */
 
@@ -579,9 +523,50 @@ void m03100m (__local u32 (*s_SPtrans)[64], __local u32 (*s_skb)[64], u32 w[16],
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
-    const u32x w0 = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
-    overwrite_at_le (dst, w0, salt_len);
+    u32x w0[4];
+    u32x w1[4];
+    u32x w2[4];
+    u32x w3[4];
+
+    w0[0] = w0lr;
+    w0[1] = w[ 1];
+    w0[2] = w[ 2];
+    w0[3] = w[ 3];
+    w1[0] = w[ 4];
+    w1[1] = w[ 5];
+    w1[2] = w[ 6];
+    w1[3] = w[ 7];
+    w2[0] = w[ 8];
+    w2[1] = w[ 9];
+    w2[2] = w[10];
+    w2[3] = w[11];
+    w3[0] = w[12];
+    w3[1] = w[13];
+    w3[2] = w[14];
+    w3[3] = w[15];
+
+    switch_buffer_by_offset_le (w0, w1, w2, w3, salt_len);
+
+    u32x dst[16];
+
+    dst[ 0] = w0[0] | salt_buf0[0];
+    dst[ 1] = w0[1] | salt_buf0[1];
+    dst[ 2] = w0[2] | salt_buf0[2];
+    dst[ 3] = w0[3] | salt_buf0[3];
+    dst[ 4] = w1[0] | salt_buf1[0];
+    dst[ 5] = w1[1] | salt_buf1[1];
+    dst[ 6] = w1[2] | salt_buf1[2];
+    dst[ 7] = w1[3] | salt_buf1[3];
+    dst[ 8] = w2[0];
+    dst[ 9] = w2[1];
+    dst[10] = w2[2];
+    dst[11] = w2[3];
+    dst[12] = w3[0];
+    dst[13] = w3[1];
+    dst[14] = w3[2];
+    dst[15] = w3[3];
 
     /**
      * precompute key1 since key is static: 0x0123456789abcdef
@@ -710,62 +695,6 @@ void m03100s (__local u32 (*s_SPtrans)[64], __local u32 (*s_skb)[64], u32 w[16],
   const u32 salt_word_len = (salt_len + pw_len) * 2;
 
   /**
-   * prepend salt
-   */
-
-  u32 w0_t[4];
-  u32 w1_t[4];
-  u32 w2_t[4];
-  u32 w3_t[4];
-
-  w0_t[0] = w[ 0];
-  w0_t[1] = w[ 1];
-  w0_t[2] = w[ 2];
-  w0_t[3] = w[ 3];
-  w1_t[0] = w[ 4];
-  w1_t[1] = w[ 5];
-  w1_t[2] = w[ 6];
-  w1_t[3] = w[ 7];
-  w2_t[0] = w[ 8];
-  w2_t[1] = w[ 9];
-  w2_t[2] = w[10];
-  w2_t[3] = w[11];
-  w3_t[0] = w[12];
-  w3_t[1] = w[13];
-  w3_t[2] = w[14];
-  w3_t[3] = w[15];
-
-  switch_buffer_by_offset_le_S (w0_t, w1_t, w2_t, w3_t, salt_len);
-
-  w0_t[0] |= salt_buf0[0];
-  w0_t[1] |= salt_buf0[1];
-  w0_t[2] |= salt_buf0[2];
-  w0_t[3] |= salt_buf0[3];
-  w1_t[0] |= salt_buf1[0];
-  w1_t[1] |= salt_buf1[1];
-  w1_t[2] |= salt_buf1[2];
-  w1_t[3] |= salt_buf1[3];
-
-  u32x dst[16];
-
-  dst[ 0] = w0_t[0];
-  dst[ 1] = w0_t[1];
-  dst[ 2] = w0_t[2];
-  dst[ 3] = w0_t[3];
-  dst[ 4] = w1_t[0];
-  dst[ 5] = w1_t[1];
-  dst[ 6] = w1_t[2];
-  dst[ 7] = w1_t[3];
-  dst[ 8] = w2_t[0];
-  dst[ 9] = w2_t[1];
-  dst[10] = w2_t[2];
-  dst[11] = w2_t[3];
-  dst[12] = w3_t[0];
-  dst[13] = w3_t[1];
-  dst[14] = w3_t[2];
-  dst[15] = w3_t[3];
-
-  /**
    * digest
    */
 
@@ -787,9 +716,50 @@ void m03100s (__local u32 (*s_SPtrans)[64], __local u32 (*s_skb)[64], u32 w[16],
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
-    const u32x w0 = w0l | w0r;
+    const u32x w0lr = w0l | w0r;
 
-    overwrite_at_le (dst, w0, salt_len);
+    u32x w0[4];
+    u32x w1[4];
+    u32x w2[4];
+    u32x w3[4];
+
+    w0[0] = w0lr;
+    w0[1] = w[ 1];
+    w0[2] = w[ 2];
+    w0[3] = w[ 3];
+    w1[0] = w[ 4];
+    w1[1] = w[ 5];
+    w1[2] = w[ 6];
+    w1[3] = w[ 7];
+    w2[0] = w[ 8];
+    w2[1] = w[ 9];
+    w2[2] = w[10];
+    w2[3] = w[11];
+    w3[0] = w[12];
+    w3[1] = w[13];
+    w3[2] = w[14];
+    w3[3] = w[15];
+
+    switch_buffer_by_offset_le (w0, w1, w2, w3, salt_len);
+
+    u32x dst[16];
+
+    dst[ 0] = w0[0] | salt_buf0[0];
+    dst[ 1] = w0[1] | salt_buf0[1];
+    dst[ 2] = w0[2] | salt_buf0[2];
+    dst[ 3] = w0[3] | salt_buf0[3];
+    dst[ 4] = w1[0] | salt_buf1[0];
+    dst[ 5] = w1[1] | salt_buf1[1];
+    dst[ 6] = w1[2] | salt_buf1[2];
+    dst[ 7] = w1[3] | salt_buf1[3];
+    dst[ 8] = w2[0];
+    dst[ 9] = w2[1];
+    dst[10] = w2[2];
+    dst[11] = w2[3];
+    dst[12] = w3[0];
+    dst[13] = w3[1];
+    dst[14] = w3[2];
+    dst[15] = w3[3];
 
     /**
      * precompute key1 since key is static: 0x0123456789abcdef

@@ -66,55 +66,10 @@ void m01420m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
   const u32 pw_salt_len = pw_len + salt_len;
 
   /**
-   * prepend salt
+   * loop
    */
 
   const u32 w0l = w0[0];
-
-  switch_buffer_by_offset_be_S (w0, w1, w2, w3, salt_len);
-
-  w0[0] |= salt_buf0[0];
-  w0[1] |= salt_buf0[1];
-  w0[2] |= salt_buf0[2];
-  w0[3] |= salt_buf0[3];
-  w1[0] |= salt_buf1[0];
-  w1[1] |= salt_buf1[1];
-  w1[2] |= salt_buf1[2];
-  w1[3] |= salt_buf1[3];
-  w2[0] |= salt_buf2[0];
-  w2[1] |= salt_buf2[1];
-  w2[2] |= salt_buf2[2];
-  w2[3] |= salt_buf2[3];
-  w3[0] |= salt_buf3[0];
-  w3[1] |= salt_buf3[1];
-  w3[2] |= salt_buf3[2];
-  w3[3] |= salt_buf3[3];
-
-  u32x t0[4];
-  u32x t1[4];
-  u32x t2[4];
-  u32x t3[4];
-
-  t0[0] = w0[0];
-  t0[1] = w0[1];
-  t0[2] = w0[2];
-  t0[3] = w0[3];
-  t1[0] = w1[0];
-  t1[1] = w1[1];
-  t1[2] = w1[2];
-  t1[3] = w1[3];
-  t2[0] = w2[0];
-  t2[1] = w2[1];
-  t2[2] = w2[2];
-  t2[3] = w2[3];
-  t3[0] = w3[0];
-  t3[1] = w3[1];
-  t3[2] = w3[2];
-  t3[3] = w3[3];
-
-  /**
-   * loop
-   */
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
@@ -122,7 +77,46 @@ void m01420m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
 
     const u32x w0lr = w0l | w0r;
 
-    overwrite_at_be_4x4 (t0, t1, t2, t3, w0lr, salt_len);
+    u32x t0[4];
+    u32x t1[4];
+    u32x t2[4];
+    u32x t3[4];
+
+    t0[0] = w0lr;
+    t0[1] = w0[1];
+    t0[2] = w0[2];
+    t0[3] = w0[3];
+    t1[0] = w1[0];
+    t1[1] = w1[1];
+    t1[2] = w1[2];
+    t1[3] = w1[3];
+    t2[0] = w2[0];
+    t2[1] = w2[1];
+    t2[2] = w2[2];
+    t2[3] = w2[3];
+    t3[0] = w3[0];
+    t3[1] = w3[1];
+    t3[2] = w3[2];
+    t3[3] = w3[3];
+
+    switch_buffer_by_offset_be (t0, t1, t2, t3, salt_len);
+
+    t0[0] |= salt_buf0[0];
+    t0[1] |= salt_buf0[1];
+    t0[2] |= salt_buf0[2];
+    t0[3] |= salt_buf0[3];
+    t1[0] |= salt_buf1[0];
+    t1[1] |= salt_buf1[1];
+    t1[2] |= salt_buf1[2];
+    t1[3] |= salt_buf1[3];
+    t2[0] |= salt_buf2[0];
+    t2[1] |= salt_buf2[1];
+    t2[2] |= salt_buf2[2];
+    t2[3] |= salt_buf2[3];
+    t3[0] |= salt_buf3[0];
+    t3[1] |= salt_buf3[1];
+    t3[2]  = 0;
+    t3[3]  = pw_salt_len * 8;
 
     /**
      * sha256
@@ -248,6 +242,24 @@ void m01420s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
   };
 
   /**
+   * reverse
+   */
+
+  u32 a_rev = digests_buf[digests_offset].digest_buf[0];
+  u32 b_rev = digests_buf[digests_offset].digest_buf[1];
+  u32 c_rev = digests_buf[digests_offset].digest_buf[2];
+  u32 d_rev = digests_buf[digests_offset].digest_buf[3];
+  u32 e_rev = digests_buf[digests_offset].digest_buf[4];
+  u32 f_rev = digests_buf[digests_offset].digest_buf[5];
+  u32 g_rev = digests_buf[digests_offset].digest_buf[6];
+  u32 h_rev = digests_buf[digests_offset].digest_buf[7];
+
+  SHA256_STEP_REV (a_rev, b_rev, c_rev, d_rev, e_rev, f_rev, g_rev, h_rev);
+  SHA256_STEP_REV (a_rev, b_rev, c_rev, d_rev, e_rev, f_rev, g_rev, h_rev);
+  SHA256_STEP_REV (a_rev, b_rev, c_rev, d_rev, e_rev, f_rev, g_rev, h_rev);
+  SHA256_STEP_REV (a_rev, b_rev, c_rev, d_rev, e_rev, f_rev, g_rev, h_rev);
+
+  /**
    * salt
    */
 
@@ -278,73 +290,10 @@ void m01420s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
   const u32 pw_salt_len = pw_len + salt_len;
 
   /**
-   * prepend salt
+   * loop
    */
 
   const u32 w0l = w0[0];
-
-  switch_buffer_by_offset_be_S (w0, w1, w2, w3, salt_len);
-
-  w0[0] |= salt_buf0[0];
-  w0[1] |= salt_buf0[1];
-  w0[2] |= salt_buf0[2];
-  w0[3] |= salt_buf0[3];
-  w1[0] |= salt_buf1[0];
-  w1[1] |= salt_buf1[1];
-  w1[2] |= salt_buf1[2];
-  w1[3] |= salt_buf1[3];
-  w2[0] |= salt_buf2[0];
-  w2[1] |= salt_buf2[1];
-  w2[2] |= salt_buf2[2];
-  w2[3] |= salt_buf2[3];
-  w3[0] |= salt_buf3[0];
-  w3[1] |= salt_buf3[1];
-  w3[2] |= salt_buf3[2];
-  w3[3] |= salt_buf3[3];
-
-  u32x t0[4];
-  u32x t1[4];
-  u32x t2[4];
-  u32x t3[4];
-
-  t0[0] = w0[0];
-  t0[1] = w0[1];
-  t0[2] = w0[2];
-  t0[3] = w0[3];
-  t1[0] = w1[0];
-  t1[1] = w1[1];
-  t1[2] = w1[2];
-  t1[3] = w1[3];
-  t2[0] = w2[0];
-  t2[1] = w2[1];
-  t2[2] = w2[2];
-  t2[3] = w2[3];
-  t3[0] = w3[0];
-  t3[1] = w3[1];
-  t3[2] = w3[2];
-  t3[3] = w3[3];
-
-  /**
-   * reverse
-   */
-
-  u32 a_rev = digests_buf[digests_offset].digest_buf[0];
-  u32 b_rev = digests_buf[digests_offset].digest_buf[1];
-  u32 c_rev = digests_buf[digests_offset].digest_buf[2];
-  u32 d_rev = digests_buf[digests_offset].digest_buf[3];
-  u32 e_rev = digests_buf[digests_offset].digest_buf[4];
-  u32 f_rev = digests_buf[digests_offset].digest_buf[5];
-  u32 g_rev = digests_buf[digests_offset].digest_buf[6];
-  u32 h_rev = digests_buf[digests_offset].digest_buf[7];
-
-  SHA256_STEP_REV (a_rev, b_rev, c_rev, d_rev, e_rev, f_rev, g_rev, h_rev);
-  SHA256_STEP_REV (a_rev, b_rev, c_rev, d_rev, e_rev, f_rev, g_rev, h_rev);
-  SHA256_STEP_REV (a_rev, b_rev, c_rev, d_rev, e_rev, f_rev, g_rev, h_rev);
-  SHA256_STEP_REV (a_rev, b_rev, c_rev, d_rev, e_rev, f_rev, g_rev, h_rev);
-
-  /**
-   * loop
-   */
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
@@ -352,7 +301,46 @@ void m01420s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
 
     const u32x w0lr = w0l | w0r;
 
-    overwrite_at_be_4x4 (t0, t1, t2, t3, w0lr, salt_len);
+    u32x t0[4];
+    u32x t1[4];
+    u32x t2[4];
+    u32x t3[4];
+
+    t0[0] = w0lr;
+    t0[1] = w0[1];
+    t0[2] = w0[2];
+    t0[3] = w0[3];
+    t1[0] = w1[0];
+    t1[1] = w1[1];
+    t1[2] = w1[2];
+    t1[3] = w1[3];
+    t2[0] = w2[0];
+    t2[1] = w2[1];
+    t2[2] = w2[2];
+    t2[3] = w2[3];
+    t3[0] = w3[0];
+    t3[1] = w3[1];
+    t3[2] = w3[2];
+    t3[3] = w3[3];
+
+    switch_buffer_by_offset_be (t0, t1, t2, t3, salt_len);
+
+    t0[0] |= salt_buf0[0];
+    t0[1] |= salt_buf0[1];
+    t0[2] |= salt_buf0[2];
+    t0[3] |= salt_buf0[3];
+    t1[0] |= salt_buf1[0];
+    t1[1] |= salt_buf1[1];
+    t1[2] |= salt_buf1[2];
+    t1[3] |= salt_buf1[3];
+    t2[0] |= salt_buf2[0];
+    t2[1] |= salt_buf2[1];
+    t2[2] |= salt_buf2[2];
+    t2[3] |= salt_buf2[3];
+    t3[0] |= salt_buf3[0];
+    t3[1] |= salt_buf3[1];
+    t3[2]  = 0;
+    t3[3]  = pw_salt_len * 8;
 
     /**
      * sha256
