@@ -3728,7 +3728,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        vector_width = 1;
+        // there's currently no slow kernel that supports NEW_SIMD_CODE which
+        // has unknown final password length in _loop kernel
+        // vector_width = 1;
       }
     }
 
