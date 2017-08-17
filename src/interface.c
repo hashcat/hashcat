@@ -3786,7 +3786,13 @@ int descrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   salt->salt_buf[0] = itoa64_to_int (input_buf[0])
                     | itoa64_to_int (input_buf[1]) << 6;
 
-  salt->salt_len = 2;
+  // we need to add 2 additional bytes (the salt sign) such that the salt sorting algorithm
+  // doesn't eliminate salts that are identical but have different salt signs
+
+  salt->salt_buf[0] |= input_buf[0] << 16
+                    |  input_buf[1] << 24;
+
+  salt->salt_len = 4; // actually it is only 2 (but we need to add the original salt_sign to it)
 
   u8 tmp_buf[100] = { 0 };
 
