@@ -3063,7 +3063,9 @@ int dcc2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   salt_pos++;
 
-  u8 *digest_pos = (u8 *) strchr ((const char *) salt_pos, '#');
+  // search last '#' from the end since the username can consist of a '#' too
+
+  u8 *digest_pos = (u8 *) strrchr ((const char *) salt_pos, '#');
 
   if (digest_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
