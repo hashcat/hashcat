@@ -59,10 +59,10 @@ __kernel void m10800_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     sha384_final (&ctx);
 
-    const u32 r0 = l32_from_64 (ctx.h[3]);
-    const u32 r1 = h32_from_64 (ctx.h[3]);
-    const u32 r2 = l32_from_64 (ctx.h[2]);
-    const u32 r3 = h32_from_64 (ctx.h[2]);
+    const u32 r0 = l32_from_64_S (ctx.h[3]);
+    const u32 r1 = h32_from_64_S (ctx.h[3]);
+    const u32 r2 = l32_from_64_S (ctx.h[2]);
+    const u32 r3 = h32_from_64_S (ctx.h[2]);
 
     COMPARE_M_SCALAR (r0, r1, r2, r3);
   }
@@ -124,10 +124,10 @@ __kernel void m10800_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     sha384_final (&ctx);
 
-    const u32 r0 = l32_from_64 (ctx.h[3]);
-    const u32 r1 = h32_from_64 (ctx.h[3]);
-    const u32 r2 = l32_from_64 (ctx.h[2]);
-    const u32 r3 = h32_from_64 (ctx.h[2]);
+    const u32 r0 = l32_from_64_S (ctx.h[3]);
+    const u32 r1 = h32_from_64_S (ctx.h[3]);
+    const u32 r2 = l32_from_64_S (ctx.h[2]);
+    const u32 r3 = h32_from_64_S (ctx.h[2]);
 
     COMPARE_S_SCALAR (r0, r1, r2, r3);
   }

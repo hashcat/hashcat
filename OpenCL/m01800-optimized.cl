@@ -477,10 +477,10 @@ __kernel void m01800_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   const u64 a = swap64 (tmps[gid].l_alt_result[0]);
   const u64 b = swap64 (tmps[gid].l_alt_result[1]);
 
-  const u32 r0 = l32_from_64 (a);
-  const u32 r1 = h32_from_64 (a);
-  const u32 r2 = l32_from_64 (b);
-  const u32 r3 = h32_from_64 (b);
+  const u32 r0 = l32_from_64_S (a);
+  const u32 r1 = h32_from_64_S (a);
+  const u32 r2 = l32_from_64_S (b);
+  const u32 r3 = h32_from_64_S (b);
 
   #define il_pos 0
 

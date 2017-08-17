@@ -535,14 +535,14 @@ __kernel void m06222_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   u32 ukey3[8];
   #endif
 
-  ukey3[0] = swap32_S (h32_from_64 (tmps[gid].out[ 8]));
-  ukey3[1] = swap32_S (l32_from_64 (tmps[gid].out[ 8]));
-  ukey3[2] = swap32_S (h32_from_64 (tmps[gid].out[ 9]));
-  ukey3[3] = swap32_S (l32_from_64 (tmps[gid].out[ 9]));
-  ukey3[4] = swap32_S (h32_from_64 (tmps[gid].out[10]));
-  ukey3[5] = swap32_S (l32_from_64 (tmps[gid].out[10]));
-  ukey3[6] = swap32_S (h32_from_64 (tmps[gid].out[11]));
-  ukey3[7] = swap32_S (l32_from_64 (tmps[gid].out[11]));
+  ukey3[0] = swap32_S (h32_from_64_S (tmps[gid].out[ 8]));
+  ukey3[1] = swap32_S (l32_from_64_S (tmps[gid].out[ 8]));
+  ukey3[2] = swap32_S (h32_from_64_S (tmps[gid].out[ 9]));
+  ukey3[3] = swap32_S (l32_from_64_S (tmps[gid].out[ 9]));
+  ukey3[4] = swap32_S (h32_from_64_S (tmps[gid].out[10]));
+  ukey3[5] = swap32_S (l32_from_64_S (tmps[gid].out[10]));
+  ukey3[6] = swap32_S (h32_from_64_S (tmps[gid].out[11]));
+  ukey3[7] = swap32_S (l32_from_64_S (tmps[gid].out[11]));
 
   #if defined (IS_APPLE) && defined (IS_GPU)
   volatile u32 ukey4[8];
@@ -550,14 +550,14 @@ __kernel void m06222_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   u32 ukey4[8];
   #endif
 
-  ukey4[0] = swap32_S (h32_from_64 (tmps[gid].out[12]));
-  ukey4[1] = swap32_S (l32_from_64 (tmps[gid].out[12]));
-  ukey4[2] = swap32_S (h32_from_64 (tmps[gid].out[13]));
-  ukey4[3] = swap32_S (l32_from_64 (tmps[gid].out[13]));
-  ukey4[4] = swap32_S (h32_from_64 (tmps[gid].out[14]));
-  ukey4[5] = swap32_S (l32_from_64 (tmps[gid].out[14]));
-  ukey4[6] = swap32_S (h32_from_64 (tmps[gid].out[15]));
-  ukey4[7] = swap32_S (l32_from_64 (tmps[gid].out[15]));
+  ukey4[0] = swap32_S (h32_from_64_S (tmps[gid].out[12]));
+  ukey4[1] = swap32_S (l32_from_64_S (tmps[gid].out[12]));
+  ukey4[2] = swap32_S (h32_from_64_S (tmps[gid].out[13]));
+  ukey4[3] = swap32_S (l32_from_64_S (tmps[gid].out[13]));
+  ukey4[4] = swap32_S (h32_from_64_S (tmps[gid].out[14]));
+  ukey4[5] = swap32_S (l32_from_64_S (tmps[gid].out[14]));
+  ukey4[6] = swap32_S (h32_from_64_S (tmps[gid].out[15]));
+  ukey4[7] = swap32_S (l32_from_64_S (tmps[gid].out[15]));
 
   if (verify_header_aes_twofish (esalt_bufs, ukey1, ukey2, ukey3, ukey4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {

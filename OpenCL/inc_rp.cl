@@ -31,8 +31,8 @@ static void append_four_byte (const u32 *buf_src, const int off_src, u32 *buf_ds
   t64 >>= sm8;
   t64 <<= dm8;
 
-  const u32 t0 = l32_from_64 (t64);
-  const u32 t1 = h32_from_64 (t64);
+  const u32 t0 = l32_from_64_S (t64);
+  const u32 t1 = h32_from_64_S (t64);
 
   buf_dst[dd + 0] |= t0;
   buf_dst[dd + 1] |= t1;
@@ -54,8 +54,8 @@ static void append_three_byte (const u32 *buf_src, const int off_src, u32 *buf_d
   t64  &= 0x00ffffff;
   t64 <<= dm8;
 
-  const u32 t0 = l32_from_64 (t64);
-  const u32 t1 = h32_from_64 (t64);
+  const u32 t0 = l32_from_64_S (t64);
+  const u32 t1 = h32_from_64_S (t64);
 
   buf_dst[dd + 0] |= t0;
   buf_dst[dd + 1] |= t1;
@@ -77,8 +77,8 @@ static void append_two_byte (const u32 *buf_src, const int off_src, u32 *buf_dst
   t64  &= 0x0000ffff;
   t64 <<= dm8;
 
-  const u32 t0 = l32_from_64 (t64);
-  const u32 t1 = h32_from_64 (t64);
+  const u32 t0 = l32_from_64_S (t64);
+  const u32 t1 = h32_from_64_S (t64);
 
   buf_dst[dd + 0] |= t0;
   buf_dst[dd + 1] |= t1;
