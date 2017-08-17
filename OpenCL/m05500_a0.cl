@@ -15,7 +15,6 @@
 #include "inc_scalar.cl"
 #include "inc_hash_md4.cl"
 
-
 #define PERM_OP(a,b,tt,n,m) \
 {                           \
   tt = a >> n;              \

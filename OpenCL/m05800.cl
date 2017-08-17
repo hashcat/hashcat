@@ -2260,22 +2260,18 @@ __kernel void m05800_loop (__global pw_t *pws, __global const kernel_rule_t *rul
 
   const u32 pw_len = pws[gid].pw_len;
 
-  const u32 pw_lenv = ceil ((float) pw_len / 4);
-
   u32 w[64] = { 0 };
 
-  for (int idx = 0; idx < pw_lenv; idx++)
+  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
     w[idx] = swap32 (pws[gid].i[idx]);
   }
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
-  const u32 salt_lenv = ceil ((float) salt_len / 4);
-
   u32 s[64] = { 0 };
 
-  for (int idx = 0; idx < salt_lenv; idx++)
+  for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
     s[idx] = swap32 (salt_bufs[salt_pos].salt_buf[idx]);
   }

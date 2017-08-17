@@ -34,22 +34,18 @@ __kernel void m08300_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
-  const u32 salt_lenv = ceil ((float) salt_len / 4);
-
   u32 s[64] = { 0 };
 
-  for (int idx = 0; idx < salt_lenv; idx++)
+  for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
     s[idx] = swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
   }
 
   const u32 salt_len_pc = salt_bufs[salt_pos].salt_len_pc;
 
-  const u32 salt_len_pcv = ceil ((float) salt_len_pc / 4);
-
   u32 s_pc[64] = { 0 };
 
-  for (int idx = 0; idx < salt_len_pcv; idx++)
+  for (int i = 0, idx = 0; i < salt_len_pc; i += 4, idx += 1)
   {
     s_pc[idx] = swap32_S (salt_bufs[salt_pos].salt_buf_pc[idx]);
   }
@@ -157,22 +153,18 @@ __kernel void m08300_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
-  const u32 salt_lenv = ceil ((float) salt_len / 4);
-
   u32 s[64] = { 0 };
 
-  for (int idx = 0; idx < salt_lenv; idx++)
+  for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
     s[idx] = swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
   }
 
   const u32 salt_len_pc = salt_bufs[salt_pos].salt_len_pc;
 
-  const u32 salt_len_pcv = ceil ((float) salt_len_pc / 4);
-
   u32 s_pc[64] = { 0 };
 
-  for (int idx = 0; idx < salt_len_pcv; idx++)
+  for (int i = 0, idx = 0; i < salt_len_pc; i += 4, idx += 1)
   {
     s_pc[idx] = swap32_S (salt_bufs[salt_pos].salt_buf_pc[idx]);
   }

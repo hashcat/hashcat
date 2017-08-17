@@ -30,11 +30,9 @@ __kernel void m15000_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
-  const u32 salt_lenv = ceil ((float) salt_len / 4);
-
   u32 s[64] = { 0 };
 
-  for (int idx = 0; idx < salt_lenv; idx++)
+  for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
     s[idx] = swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
   }
@@ -97,11 +95,9 @@ __kernel void m15000_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
-  const u32 salt_lenv = ceil ((float) salt_len / 4);
-
   u32 s[64] = { 0 };
 
-  for (int idx = 0; idx < salt_lenv; idx++)
+  for (int i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
   {
     s[idx] = swap32_S (salt_bufs[salt_pos].salt_buf[idx]);
   }

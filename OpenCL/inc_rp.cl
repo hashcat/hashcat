@@ -163,13 +163,11 @@ static void exchange_byte (u32 *buf, const int off_src, const int off_dst)
 
 static int mangle_lrest (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u32 *buf, const int len)
 {
-  const int lenv = ceil ((float) len / 4);
-
-  for (int i = 0; i < lenv; i++)
+  for (int i = 0, idx = 0; i < len; i += 4, idx += 1)
   {
-    const u32 t = buf[i];
+    const u32 t = buf[idx];
 
-    buf[i] = t | generate_cmask (t);
+    buf[idx] = t | generate_cmask (t);
   }
 
   return (len);
@@ -177,13 +175,11 @@ static int mangle_lrest (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u32
 
 static int mangle_lrest_ufirst (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u32 *buf, const int len)
 {
-  const int lenv = ceil ((float) len / 4);
-
-  for (int i = 0; i < lenv; i++)
+  for (int i = 0, idx = 0; i < len; i += 4, idx += 1)
   {
-    const u32 t = buf[i];
+    const u32 t = buf[idx];
 
-    buf[i] = t | generate_cmask (t);
+    buf[idx] = t | generate_cmask (t);
   }
 
   const u32 t = buf[0];
@@ -195,13 +191,11 @@ static int mangle_lrest_ufirst (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 
 
 static int mangle_urest (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u32 *buf, const int len)
 {
-  const int lenv = ceil ((float) len / 4);
-
-  for (int i = 0; i < lenv; i++)
+  for (int i = 0, idx = 0; i < len; i += 4, idx += 1)
   {
-    const u32 t = buf[i];
+    const u32 t = buf[idx];
 
-    buf[i] = t & ~(generate_cmask (t));
+    buf[idx] = t & ~(generate_cmask (t));
   }
 
   return (len);
@@ -209,13 +203,11 @@ static int mangle_urest (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u32
 
 static int mangle_urest_lfirst (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u32 *buf, const int len)
 {
-  const int lenv = ceil ((float) len / 4);
-
-  for (int i = 0; i < lenv; i++)
+  for (int i = 0, idx = 0; i < len; i += 4, idx += 1)
   {
-    const u32 t = buf[i];
+    const u32 t = buf[idx];
 
-    buf[i] = t & ~(generate_cmask (t));
+    buf[idx] = t & ~(generate_cmask (t));
   }
 
   const u32 t = buf[0];
@@ -227,13 +219,11 @@ static int mangle_urest_lfirst (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 
 
 static int mangle_trest (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u32 *buf, const int len)
 {
-  const int lenv = ceil ((float) len / 4);
-
-  for (int i = 0; i < lenv; i++)
+  for (int i = 0, idx = 0; i < len; i += 4, idx += 1)
   {
-    const u32 t = buf[i];
+    const u32 t = buf[idx];
 
-    buf[i] = t ^ generate_cmask (t);
+    buf[idx] = t ^ generate_cmask (t);
   }
 
   return (len);
@@ -668,9 +658,9 @@ static int mangle_title_sep (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1,
 
   mangle_lrest_ufirst (0, 0, buf, len);
 
-  for (int i = 0; i < ceil ((float) len / 4); i++)
+  for (int i = 0, idx = 0; i < len; i += 4, idx += 1)
   {
-    const u32 v = buf[i];
+    const u32 v = buf[idx];
 
     u32 out0 = 0;
     u32 out1 = 0;
@@ -680,8 +670,8 @@ static int mangle_title_sep (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1,
     if (((v >> 16) & 0xff) == p0) out0 |= 0xff000000;
     if (((v >> 24) & 0xff) == p0) out1 |= 0x000000ff;
 
-    buf[i + 0] &= ~(generate_cmask (buf[i + 0]) & out0);
-    buf[i + 1] &= ~(generate_cmask (buf[i + 1]) & out1);
+    buf[idx + 0] &= ~(generate_cmask (buf[idx + 0]) & out0);
+    buf[idx + 1] &= ~(generate_cmask (buf[idx + 1]) & out1);
   }
 
   return (len);

@@ -114,7 +114,6 @@ __kernel void m07000_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
     digests_buf[digests_offset].digest_buf[DGST_R3]
   };
 
-
   /**
    * base
    */

@@ -60,22 +60,18 @@ __kernel void m11400_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   const u32 pw_len = pws[gid].pw_len;
 
-  const u32 pw_lenv = ceil ((float) pw_len / 4);
-
   u32x w[64] = { 0 };
 
-  for (int idx = 0; idx < pw_lenv; idx++)
+  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
     w[idx] = pws[gid].i[idx];
   }
 
   const u32 esalt_len = esalt_bufs[digests_offset].esalt_len;
 
-  const u32 esalt_lenv = ceil ((float) esalt_len / 4);
-
   u32x esalt_buf[48] = { 0 };
 
-  for (int idx = 0; idx < esalt_lenv; idx++)
+  for (int i = 0, idx = 0; i < esalt_len; i += 4, idx += 1)
   {
     esalt_buf[idx] = esalt_bufs[digests_offset].esalt_buf[idx];
   }
@@ -196,22 +192,18 @@ __kernel void m11400_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   const u32 pw_len = pws[gid].pw_len;
 
-  const u32 pw_lenv = ceil ((float) pw_len / 4);
-
   u32x w[64] = { 0 };
 
-  for (int idx = 0; idx < pw_lenv; idx++)
+  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
     w[idx] = pws[gid].i[idx];
   }
 
   const u32 esalt_len = esalt_bufs[digests_offset].esalt_len;
 
-  const u32 esalt_lenv = ceil ((float) esalt_len / 4);
-
   u32x esalt_buf[48] = { 0 };
 
-  for (int idx = 0; idx < esalt_lenv; idx++)
+  for (int i = 0, idx = 0; i < esalt_len; i += 4, idx += 1)
   {
     esalt_buf[idx] = esalt_bufs[digests_offset].esalt_buf[idx];
   }

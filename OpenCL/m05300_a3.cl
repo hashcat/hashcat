@@ -30,11 +30,9 @@ __kernel void m05300_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   const u32 pw_len = pws[gid].pw_len;
 
-  const u32 pw_lenv = ceil ((float) pw_len / 4);
-
   u32 w[64] = { 0 };
 
-  for (int idx = 0; idx < pw_lenv; idx++)
+  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
     w[idx] = pws[gid].i[idx];
   }
@@ -129,11 +127,9 @@ __kernel void m05300_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   const u32 pw_len = pws[gid].pw_len;
 
-  const u32 pw_lenv = ceil ((float) pw_len / 4);
-
   u32 w[64] = { 0 };
 
-  for (int idx = 0; idx < pw_lenv; idx++)
+  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
     w[idx] = pws[gid].i[idx];
   }
