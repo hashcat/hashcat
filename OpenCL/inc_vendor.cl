@@ -189,6 +189,9 @@
 #if KERN_TYPE == 8000
 #undef _unroll
 #endif
+#if KERN_TYPE == 15300
+#undef _unroll
+#endif
 
 #endif
 #endif
