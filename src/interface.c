@@ -25208,6 +25208,9 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                   ((pdf_t *)           esalt)->o_len         = 127;
                   ((pdf_t *)           esalt)->u_len         = 127;
                   break;
+      case 11400: ((sip_t *)           esalt)->salt_len      = 2;
+                  ((sip_t *)           esalt)->esalt_len     = 39;
+                  break;
       case 13400: ((keepass_t *)       esalt)->version       = 2;
                   break;
       case 13500: ((pstoken_t *)       esalt)->salt_len      = 113;
