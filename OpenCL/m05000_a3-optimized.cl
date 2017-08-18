@@ -75,27 +75,17 @@ void m05000m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
    * constants
    */
 
-  const u8 keccakf_rotc[24] =
+  const int keccakf_rotc[24] =
   {
      1,  3,  6, 10, 15, 21, 28, 36, 45, 55,  2, 14,
     27, 41, 56,  8, 25, 43, 62, 18, 39, 61, 20, 44
   };
 
-  const u8 keccakf_piln[24] =
+  const int keccakf_piln[24] =
   {
     10,  7, 11, 17, 18,  3,  5, 16,  8, 21, 24,  4,
     15, 23, 19, 13, 12,  2, 20, 14, 22,  9,  6,  1
   };
-
-  /**
-   * 0x80 keccak, very special
-   */
-
-  const u32 mdlen = salt_bufs[salt_pos].keccak_mdlen;
-
-  const u32 rsiz = 200 - (2 * mdlen);
-
-  const u32 add80w = (rsiz - 1) / 8;
 
   /**
    * loop
@@ -153,7 +143,7 @@ void m05000m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
     st[13] = 0;
     st[14] = 0;
     st[15] = 0;
-    st[16] = 0;
+    st[16] = 0x8000000000000000;
     st[17] = 0;
     st[18] = 0;
     st[19] = 0;
@@ -162,8 +152,6 @@ void m05000m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
     st[22] = 0;
     st[23] = 0;
     st[24] = 0;
-
-    st[add80w] |= 0x8000000000000000;
 
     int round;
 
@@ -238,27 +226,17 @@ void m05000s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
    * constants
    */
 
-  const u8 keccakf_rotc[24] =
+  const int keccakf_rotc[24] =
   {
      1,  3,  6, 10, 15, 21, 28, 36, 45, 55,  2, 14,
     27, 41, 56,  8, 25, 43, 62, 18, 39, 61, 20, 44
   };
 
-  const u8 keccakf_piln[24] =
+  const int keccakf_piln[24] =
   {
     10,  7, 11, 17, 18,  3,  5, 16,  8, 21, 24,  4,
     15, 23, 19, 13, 12,  2, 20, 14, 22,  9,  6,  1
   };
-
-  /**
-   * 0x80 keccak, very special
-   */
-
-  const u32 mdlen = salt_bufs[salt_pos].keccak_mdlen;
-
-  const u32 rsiz = 200 - (2 * mdlen);
-
-  const u32 add80w = (rsiz - 1) / 8;
 
   /**
    * digest
@@ -328,7 +306,7 @@ void m05000s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
     st[13] = 0;
     st[14] = 0;
     st[15] = 0;
-    st[16] = 0;
+    st[16] = 0x8000000000000000;
     st[17] = 0;
     st[18] = 0;
     st[19] = 0;
@@ -337,8 +315,6 @@ void m05000s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
     st[22] = 0;
     st[23] = 0;
     st[24] = 0;
-
-    st[add80w] |= 0x8000000000000000;
 
     int round;
 
