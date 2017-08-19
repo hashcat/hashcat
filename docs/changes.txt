@@ -6,7 +6,7 @@
 
 - Added support to crack passwords and salts up to length 256
 - Added option --optimized-kernel-enable to use faster kernels but limit the maximum supported password- and salt-length
-- Added self-test functionality for OpenCL kernels on startup
+- Added self-test functionality to detect broken OpenCL runtimes on startup
 - Added option --self-test-disable to disable self-test functionality on startup
 - Added option --wordlist-autohex-disable to disable the automatical conversion of $HEX[] words from the word list
 
