@@ -962,6 +962,7 @@ typedef struct hc_device_param
   u32     hardware_power;
 
   size_t  size_pws;
+  size_t  size_pws_amp;
   size_t  size_tmps;
   size_t  size_hooks;
   size_t  size_bfs;

@@ -38,6 +38,7 @@
 ##
 
 - Charset: Add additional DES charsets with corrected parity
+- OpenCL Buffers: Do not allocate memory for amplifiers for fast hashes, it's simply not needed
 - OpenCL Kernels: Improved performance of SHA-3 Kernel (keccak) by hardcoding the 0x80 stopbit
 - OpenCL Kernels: Move from ld.global.v4.u32 to ld.const.v4.u32 in _a3 kernels
 - OpenCL Kernels: Replace bitwise swaps with rotate() versions for AMD
