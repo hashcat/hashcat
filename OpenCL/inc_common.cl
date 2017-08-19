@@ -7,7 +7,7 @@
  * pure scalar functions
  */
 
-int ffz (const u32 v)
+static int ffz (const u32 v)
 {
   #ifdef _unroll
   #pragma unroll
@@ -22,7 +22,7 @@ int ffz (const u32 v)
   return -1;
 }
 
-int hash_comp (const u32 d1[4], __global const u32 *d2)
+static int hash_comp (const u32 d1[4], __global const u32 *d2)
 {
   if (d1[3] > d2[DGST_R3]) return ( 1);
   if (d1[3] < d2[DGST_R3]) return (-1);
@@ -36,7 +36,7 @@ int hash_comp (const u32 d1[4], __global const u32 *d2)
   return (0);
 }
 
-int find_hash (const u32 digest[4], const u32 digests_cnt, __global const digest_t *digests_buf)
+static int find_hash (const u32 digest[4], const u32 digests_cnt, __global const digest_t *digests_buf)
 {
   for (u32 l = 0, r = digests_cnt; r; r >>= 1)
   {
@@ -59,12 +59,12 @@ int find_hash (const u32 digest[4], const u32 digests_cnt, __global const digest
   return (-1);
 }
 
-u32 check_bitmap (__global const u32 *bitmap, const u32 bitmap_mask, const u32 bitmap_shift, const u32 digest)
+static u32 check_bitmap (__global const u32 *bitmap, const u32 bitmap_mask, const u32 bitmap_shift, const u32 digest)
 {
   return (bitmap[(digest >> bitmap_shift) & bitmap_mask] & (1 << (digest & 0x1f)));
 }
 
-u32 check (const u32 digest[4], __global const u32 *bitmap_s1_a, __global const u32 *bitmap_s1_b, __global const u32 *bitmap_s1_c, __global const u32 *bitmap_s1_d, __global const u32 *bitmap_s2_a, __global const u32 *bitmap_s2_b, __global const u32 *bitmap_s2_c, __global const u32 *bitmap_s2_d, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2)
+static u32 check (const u32 digest[4], __global const u32 *bitmap_s1_a, __global const u32 *bitmap_s1_b, __global const u32 *bitmap_s1_c, __global const u32 *bitmap_s1_d, __global const u32 *bitmap_s2_a, __global const u32 *bitmap_s2_b, __global const u32 *bitmap_s2_c, __global const u32 *bitmap_s2_d, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2)
 {
   if (check_bitmap (bitmap_s1_a, bitmap_mask, bitmap_shift1, digest[0]) == 0) return (0);
   if (check_bitmap (bitmap_s1_b, bitmap_mask, bitmap_shift1, digest[1]) == 0) return (0);
@@ -79,7 +79,7 @@ u32 check (const u32 digest[4], __global const u32 *bitmap_s1_a, __global const 
   return (1);
 }
 
-void mark_hash (__global plain_t *plains_buf, __global u32 *d_result, const u32 salt_pos, const u32 digests_cnt, const u32 digest_pos, const u32 hash_pos, const u32 gid, const u32 il_pos)
+static void mark_hash (__global plain_t *plains_buf, __global u32 *d_result, const u32 salt_pos, const u32 digests_cnt, const u32 digest_pos, const u32 hash_pos, const u32 gid, const u32 il_pos)
 {
   const u32 idx = atomic_inc (d_result);
 
@@ -100,7 +100,7 @@ void mark_hash (__global plain_t *plains_buf, __global u32 *d_result, const u32 
   plains_buf[idx].il_pos      = il_pos;
 }
 
-int count_char (const u32 *buf, const int elems, const u32 c)
+static int count_char (const u32 *buf, const int elems, const u32 c)
 {
   int r = 0;
 
@@ -117,7 +117,7 @@ int count_char (const u32 *buf, const int elems, const u32 c)
   return r;
 }
 
-float get_entropy (const u32 *buf, const int elems)
+static float get_entropy (const u32 *buf, const int elems)
 {
   const int length = elems * 4;
 
@@ -144,7 +144,7 @@ float get_entropy (const u32 *buf, const int elems)
  * vector functions
  */
 
-void truncate_block_4x4_le (u32x w0[4], const u32 len)
+static void truncate_block_4x4_le (u32x w0[4], const u32 len)
 {
   switch (len)
   {
@@ -254,7 +254,7 @@ void truncate_block_4x4_le (u32x w0[4], const u32 len)
   }
 }
 
-void truncate_block_16x4_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 len)
+static void truncate_block_16x4_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 len)
 {
   switch (len)
   {
@@ -1060,7 +1060,7 @@ void truncate_block_16x4_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], con
   }
 }
 
-void truncate_block_4x4_be (u32x w0[4], const u32 len)
+static void truncate_block_4x4_be (u32x w0[4], const u32 len)
 {
   switch (len)
   {
@@ -1170,7 +1170,7 @@ void truncate_block_4x4_be (u32x w0[4], const u32 len)
   }
 }
 
-void truncate_block_16x4_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 len)
+static void truncate_block_16x4_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 len)
 {
   switch (len)
   {
@@ -1976,7 +1976,7 @@ void truncate_block_16x4_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], con
   }
 }
 
-void make_utf16be (const u32x in[4], u32x out1[4], u32x out2[4])
+static void make_utf16be (const u32x in[4], u32x out1[4], u32x out2[4])
 {
   #ifdef IS_NV
   out2[3] = __byte_perm (in[3], 0, 0x3727);
@@ -2001,7 +2001,7 @@ void make_utf16be (const u32x in[4], u32x out1[4], u32x out2[4])
   #endif
 }
 
-void make_utf16beN (const u32x in[4], u32x out1[4], u32x out2[4])
+static void make_utf16beN (const u32x in[4], u32x out1[4], u32x out2[4])
 {
   #ifdef IS_NV
   out2[3] = __byte_perm (in[3], 0, 0x1707);
@@ -2026,7 +2026,7 @@ void make_utf16beN (const u32x in[4], u32x out1[4], u32x out2[4])
   #endif
 }
 
-void make_utf16le (const u32x in[4], u32x out1[4], u32x out2[4])
+static void make_utf16le (const u32x in[4], u32x out1[4], u32x out2[4])
 {
   #ifdef IS_NV
   out2[3] = __byte_perm (in[3], 0, 0x7372);
@@ -2051,7 +2051,32 @@ void make_utf16le (const u32x in[4], u32x out1[4], u32x out2[4])
   #endif
 }
 
-void undo_utf16be (const u32x in1[4], const u32x in2[4], u32x out[4])
+static void make_utf16leN (const u32x in[4], u32x out1[4], u32x out2[4])
+{
+  #ifdef IS_NV
+  out2[3] = __byte_perm (in[3], 0, 0x7170);
+  out2[2] = __byte_perm (in[3], 0, 0x7372);
+  out2[1] = __byte_perm (in[2], 0, 0x7170);
+  out2[0] = __byte_perm (in[2], 0, 0x7372);
+  out1[3] = __byte_perm (in[1], 0, 0x7170);
+  out1[2] = __byte_perm (in[1], 0, 0x7372);
+  out1[1] = __byte_perm (in[0], 0, 0x7170);
+  out1[0] = __byte_perm (in[0], 0, 0x7372);
+  #endif
+
+  #if defined IS_AMD || defined IS_GENERIC
+  out2[3] = ((in[3] << 8) & 0x00FF0000) | ((in[3] >>  0) & 0x000000FF);
+  out2[2] = ((in[3] >> 8) & 0x00FF0000) | ((in[3] >> 16) & 0x000000FF);
+  out2[1] = ((in[2] << 8) & 0x00FF0000) | ((in[2] >>  0) & 0x000000FF);
+  out2[0] = ((in[2] >> 8) & 0x00FF0000) | ((in[2] >> 16) & 0x000000FF);
+  out1[3] = ((in[1] << 8) & 0x00FF0000) | ((in[1] >>  0) & 0x000000FF);
+  out1[2] = ((in[1] >> 8) & 0x00FF0000) | ((in[1] >> 16) & 0x000000FF);
+  out1[1] = ((in[0] << 8) & 0x00FF0000) | ((in[0] >>  0) & 0x000000FF);
+  out1[0] = ((in[0] >> 8) & 0x00FF0000) | ((in[0] >> 16) & 0x000000FF);
+  #endif
+}
+
+static void undo_utf16be (const u32x in1[4], const u32x in2[4], u32x out[4])
 {
   #ifdef IS_NV
   out[0] = __byte_perm (in1[0], in1[1], 0x4602);
@@ -2072,7 +2097,7 @@ void undo_utf16be (const u32x in1[4], const u32x in2[4], u32x out[4])
   #endif
 }
 
-void undo_utf16le (const u32x in1[4], const u32x in2[4], u32x out[4])
+static void undo_utf16le (const u32x in1[4], const u32x in2[4], u32x out[4])
 {
   #ifdef IS_NV
   out[0] = __byte_perm (in1[0], in1[1], 0x6420);
@@ -2093,7 +2118,7 @@ void undo_utf16le (const u32x in1[4], const u32x in2[4], u32x out[4])
   #endif
 }
 
-void append_0x80_1x4 (u32x w0[4], const u32 offset)
+static void append_0x80_1x4 (u32x w0[4], const u32 offset)
 {
   const u32 tmp = 0x80 << ((offset & 3) * 8);
 
@@ -2103,7 +2128,7 @@ void append_0x80_1x4 (u32x w0[4], const u32 offset)
   w0[3] |=  (offset >= 12)                   ? tmp : 0;
 }
 
-void append_0x80_2x4 (u32x w0[4], u32x w1[4], const u32 offset)
+static void append_0x80_2x4 (u32x w0[4], u32x w1[4], const u32 offset)
 {
   const u32 tmp = 0x80 << ((offset & 3) * 8);
 
@@ -2117,7 +2142,7 @@ void append_0x80_2x4 (u32x w0[4], u32x w1[4], const u32 offset)
   w1[3] |=  (offset >= 28)                   ? tmp : 0;
 }
 
-void append_0x80_3x4 (u32x w0[4], u32x w1[4], u32x w2[4], const u32 offset)
+static void append_0x80_3x4 (u32x w0[4], u32x w1[4], u32x w2[4], const u32 offset)
 {
   const u32 tmp = 0x80 << ((offset & 3) * 8);
 
@@ -2135,7 +2160,7 @@ void append_0x80_3x4 (u32x w0[4], u32x w1[4], u32x w2[4], const u32 offset)
   w2[3] |=  (offset >= 44)                   ? tmp : 0;
 }
 
-void append_0x80_4x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 offset)
+static void append_0x80_4x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 offset)
 {
   const u32 tmp = 0x80 << ((offset & 3) * 8);
 
@@ -2157,7 +2182,7 @@ void append_0x80_4x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 
   w3[3] |=  (offset >= 60)                   ? tmp : 0;
 }
 
-void append_0x80_8x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32 offset)
+static void append_0x80_8x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32 offset)
 {
   switch (offset)
   {
@@ -2675,7 +2700,7 @@ void append_0x80_8x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4]
   }
 }
 
-void append_0x80_1x16 (u32x w[16], const u32 offset)
+static void append_0x80_1x16 (u32x w[16], const u32 offset)
 {
   switch (offset)
   {
@@ -2937,7 +2962,7 @@ void append_0x80_1x16 (u32x w[16], const u32 offset)
   }
 }
 
-void switch_buffer_by_offset_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 offset)
+static void switch_buffer_by_offset_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 offset)
 {
   const int offset_mod_4 = offset & 3;
 
@@ -3630,7 +3655,7 @@ void switch_buffer_by_offset_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4],
   #endif
 }
 
-void switch_buffer_by_offset_carry_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x c0[4], u32x c1[4], u32x c2[4], u32x c3[4], const u32 offset)
+static void switch_buffer_by_offset_carry_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x c0[4], u32x c1[4], u32x c2[4], u32x c3[4], const u32 offset)
 {
   const int offset_mod_4 = offset & 3;
 
@@ -4946,7 +4971,7 @@ void switch_buffer_by_offset_carry_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x 
   #endif
 }
 
-void switch_buffer_by_offset_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 offset)
+static void switch_buffer_by_offset_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 offset)
 {
   #if defined IS_AMD || defined IS_GENERIC
   switch (offset / 4)
@@ -5601,7 +5626,7 @@ void switch_buffer_by_offset_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4],
   #endif
 }
 
-void switch_buffer_by_offset_carry_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x c0[4], u32x c1[4], u32x c2[4], u32x c3[4], const u32 offset)
+static void switch_buffer_by_offset_carry_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x c0[4], u32x c1[4], u32x c2[4], u32x c3[4], const u32 offset)
 {
   #if defined IS_AMD || defined IS_GENERIC
   switch (offset / 4)
@@ -6528,7 +6553,7 @@ void switch_buffer_by_offset_carry_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x 
   #endif
 }
 
-void switch_buffer_by_offset_8x4_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32 offset)
+static void switch_buffer_by_offset_8x4_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32 offset)
 {
   const int offset_mod_4 = offset & 3;
 
@@ -8325,7 +8350,7 @@ void switch_buffer_by_offset_8x4_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3
   #endif
 }
 
-void switch_buffer_by_offset_8x4_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32 offset)
+static void switch_buffer_by_offset_8x4_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32 offset)
 {
   #if defined IS_AMD || defined IS_GENERIC
   switch (offset / 4)
@@ -10644,7 +10669,7 @@ void switch_buffer_by_offset_8x4_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3
   #endif
 }
 
-void switch_buffer_by_offset_8x4_carry_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], u32x c0[4], u32x c1[4], u32x c2[4], u32x c3[4], u32x c4[4], u32x c5[4], u32x c6[4], u32x c7[4], const u32 offset)
+static void switch_buffer_by_offset_8x4_carry_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], u32x c0[4], u32x c1[4], u32x c2[4], u32x c3[4], u32x c4[4], u32x c5[4], u32x c6[4], u32x c7[4], const u32 offset)
 {
   #if defined IS_AMD || defined IS_GENERIC
   switch (offset / 4)
@@ -14019,7 +14044,7 @@ void switch_buffer_by_offset_8x4_carry_be (u32x w0[4], u32x w1[4], u32x w2[4], u
   #endif
 }
 
-void switch_buffer_by_offset_1x64_le (u32x w[64], const u32 offset)
+static void switch_buffer_by_offset_1x64_le (u32x w[64], const u32 offset)
 {
   const int offset_mod_4 = offset & 3;
 
@@ -22750,7 +22775,7 @@ void switch_buffer_by_offset_1x64_le (u32x w[64], const u32 offset)
   #endif
 }
 
-void switch_buffer_by_offset_1x64_be (u32x w[64], const u32 offset)
+static void switch_buffer_by_offset_1x64_be (u32x w[64], const u32 offset)
 {
   #if defined IS_AMD || defined IS_GENERIC
   switch (offset / 4)
@@ -31469,847 +31494,11 @@ void switch_buffer_by_offset_1x64_be (u32x w[64], const u32 offset)
   #endif
 }
 
-void overwrite_at_le (u32x sw[16], const u32x w0, const u32 salt_len)
-{
-  #if defined cl_amd_media_ops
-  switch (salt_len)
-  {
-    case  0:  sw[0] = w0;
-              break;
-    case  1:  sw[0] = amd_bytealign (w0, sw[0] << 24, 3);
-              sw[1] = amd_bytealign (sw[1] >>  8, w0, 3);
-              break;
-    case  2:  sw[0] = amd_bytealign (w0, sw[0] << 16, 2);
-              sw[1] = amd_bytealign (sw[1] >> 16, w0, 2);
-              break;
-    case  3:  sw[0] = amd_bytealign (w0, sw[0] <<  8, 1);
-              sw[1] = amd_bytealign (sw[1] >> 24, w0, 1);
-              break;
-    case  4:  sw[1] = w0;
-              break;
-    case  5:  sw[1] = amd_bytealign (w0, sw[1] << 24, 3);
-              sw[2] = amd_bytealign (sw[2] >>  8, w0, 3);
-              break;
-    case  6:  sw[1] = amd_bytealign (w0, sw[1] << 16, 2);
-              sw[2] = amd_bytealign (sw[2] >> 16, w0, 2);
-              break;
-    case  7:  sw[1] = amd_bytealign (w0, sw[1] <<  8, 1);
-              sw[2] = amd_bytealign (sw[2] >> 24, w0, 1);
-              break;
-    case  8:  sw[2] = w0;
-              break;
-    case  9:  sw[2] = amd_bytealign (w0, sw[2] << 24, 3);
-              sw[3] = amd_bytealign (sw[3] >>  8, w0, 3);
-              break;
-    case 10:  sw[2] = amd_bytealign (w0, sw[2] << 16, 2);
-              sw[3] = amd_bytealign (sw[3] >> 16, w0, 2);
-              break;
-    case 11:  sw[2] = amd_bytealign (w0, sw[2] <<  8, 1);
-              sw[3] = amd_bytealign (sw[3] >> 24, w0, 1);
-              break;
-    case 12:  sw[3] = w0;
-              break;
-    case 13:  sw[3] = amd_bytealign (w0, sw[3] << 24, 3);
-              sw[4] = amd_bytealign (sw[4] >>  8, w0, 3);
-              break;
-    case 14:  sw[3] = amd_bytealign (w0, sw[3] << 16, 2);
-              sw[4] = amd_bytealign (sw[4] >> 16, w0, 2);
-              break;
-    case 15:  sw[3] = amd_bytealign (w0, sw[3] <<  8, 1);
-              sw[4] = amd_bytealign (sw[4] >> 24, w0, 1);
-              break;
-    case 16:  sw[4] = w0;
-              break;
-    case 17:  sw[4] = amd_bytealign (w0, sw[4] << 24, 3);
-              sw[5] = amd_bytealign (sw[5] >>  8, w0, 3);
-              break;
-    case 18:  sw[4] = amd_bytealign (w0, sw[4] << 16, 2);
-              sw[5] = amd_bytealign (sw[5] >> 16, w0, 2);
-              break;
-    case 19:  sw[4] = amd_bytealign (w0, sw[4] <<  8, 1);
-              sw[5] = amd_bytealign (sw[5] >> 24, w0, 1);
-              break;
-    case 20:  sw[5] = w0;
-              break;
-    case 21:  sw[5] = amd_bytealign (w0, sw[5] << 24, 3);
-              sw[6] = amd_bytealign (sw[6] >>  8, w0, 3);
-              break;
-    case 22:  sw[5] = amd_bytealign (w0, sw[5] << 16, 2);
-              sw[6] = amd_bytealign (sw[6] >> 16, w0, 2);
-              break;
-    case 23:  sw[5] = amd_bytealign (w0, sw[5] <<  8, 1);
-              sw[6] = amd_bytealign (sw[6] >> 24, w0, 1);
-              break;
-    case 24:  sw[6] = w0;
-              break;
-    case 25:  sw[6] = amd_bytealign (w0, sw[6] << 24, 3);
-              sw[7] = amd_bytealign (sw[7] >>  8, w0, 3);
-              break;
-    case 26:  sw[6] = amd_bytealign (w0, sw[6] << 16, 2);
-              sw[7] = amd_bytealign (sw[7] >> 16, w0, 2);
-              break;
-    case 27:  sw[6] = amd_bytealign (w0, sw[6] <<  8, 1);
-              sw[7] = amd_bytealign (sw[7] >> 24, w0, 1);
-              break;
-    case 28:  sw[7] = w0;
-              break;
-    case 29:  sw[7] = amd_bytealign (w0, sw[7] << 24, 3);
-              sw[8] = amd_bytealign (sw[8] >>  8, w0, 3);
-              break;
-    case 30:  sw[7] = amd_bytealign (w0, sw[7] << 16, 2);
-              sw[8] = amd_bytealign (sw[8] >> 16, w0, 2);
-              break;
-    case 31:  sw[7] = amd_bytealign (w0, sw[7] <<  8, 1);
-              sw[8] = amd_bytealign (sw[8] >> 24, w0, 1);
-              break;
-  }
-  #else
-  switch (salt_len)
-  {
-    case  0:  sw[0] =  w0;
-              break;
-    case  1:  sw[0] = (sw[0] & 0x000000ff) | (w0 <<  8);
-              sw[1] = (sw[1] & 0xffffff00) | (w0 >> 24);
-              break;
-    case  2:  sw[0] = (sw[0] & 0x0000ffff) | (w0 << 16);
-              sw[1] = (sw[1] & 0xffff0000) | (w0 >> 16);
-              break;
-    case  3:  sw[0] = (sw[0] & 0x00ffffff) | (w0 << 24);
-              sw[1] = (sw[1] & 0xff000000) | (w0 >>  8);
-              break;
-    case  4:  sw[1] =  w0;
-              break;
-    case  5:  sw[1] = (sw[1] & 0x000000ff) | (w0 <<  8);
-              sw[2] = (sw[2] & 0xffffff00) | (w0 >> 24);
-              break;
-    case  6:  sw[1] = (sw[1] & 0x0000ffff) | (w0 << 16);
-              sw[2] = (sw[2] & 0xffff0000) | (w0 >> 16);
-              break;
-    case  7:  sw[1] = (sw[1] & 0x00ffffff) | (w0 << 24);
-              sw[2] = (sw[2] & 0xff000000) | (w0 >>  8);
-              break;
-    case  8:  sw[2] =  w0;
-              break;
-    case  9:  sw[2] = (sw[2] & 0x000000ff) | (w0 <<  8);
-              sw[3] = (sw[3] & 0xffffff00) | (w0 >> 24);
-              break;
-    case 10:  sw[2] = (sw[2] & 0x0000ffff) | (w0 << 16);
-              sw[3] = (sw[3] & 0xffff0000) | (w0 >> 16);
-              break;
-    case 11:  sw[2] = (sw[2] & 0x00ffffff) | (w0 << 24);
-              sw[3] = (sw[3] & 0xff000000) | (w0 >>  8);
-              break;
-    case 12:  sw[3] =  w0;
-              break;
-    case 13:  sw[3] = (sw[3] & 0x000000ff) | (w0 <<  8);
-              sw[4] = (sw[4] & 0xffffff00) | (w0 >> 24);
-              break;
-    case 14:  sw[3] = (sw[3] & 0x0000ffff) | (w0 << 16);
-              sw[4] = (sw[4] & 0xffff0000) | (w0 >> 16);
-              break;
-    case 15:  sw[3] = (sw[3] & 0x00ffffff) | (w0 << 24);
-              sw[4] = (sw[4] & 0xff000000) | (w0 >>  8);
-              break;
-    case 16:  sw[4] =  w0;
-              break;
-    case 17:  sw[4] = (sw[4] & 0x000000ff) | (w0 <<  8);
-              sw[5] = (sw[5] & 0xffffff00) | (w0 >> 24);
-              break;
-    case 18:  sw[4] = (sw[4] & 0x0000ffff) | (w0 << 16);
-              sw[5] = (sw[5] & 0xffff0000) | (w0 >> 16);
-              break;
-    case 19:  sw[4] = (sw[4] & 0x00ffffff) | (w0 << 24);
-              sw[5] = (sw[5] & 0xff000000) | (w0 >>  8);
-              break;
-    case 20:  sw[5] =  w0;
-              break;
-    case 21:  sw[5] = (sw[5] & 0x000000ff) | (w0 <<  8);
-              sw[6] = (sw[6] & 0xffffff00) | (w0 >> 24);
-              break;
-    case 22:  sw[5] = (sw[5] & 0x0000ffff) | (w0 << 16);
-              sw[6] = (sw[6] & 0xffff0000) | (w0 >> 16);
-              break;
-    case 23:  sw[5] = (sw[5] & 0x00ffffff) | (w0 << 24);
-              sw[6] = (sw[6] & 0xff000000) | (w0 >>  8);
-              break;
-    case 24:  sw[6] =  w0;
-              break;
-    case 25:  sw[6] = (sw[6] & 0x000000ff) | (w0 <<  8);
-              sw[7] = (sw[7] & 0xffffff00) | (w0 >> 24);
-              break;
-    case 26:  sw[6] = (sw[6] & 0x0000ffff) | (w0 << 16);
-              sw[7] = (sw[7] & 0xffff0000) | (w0 >> 16);
-              break;
-    case 27:  sw[6] = (sw[6] & 0x00ffffff) | (w0 << 24);
-              sw[7] = (sw[7] & 0xff000000) | (w0 >>  8);
-              break;
-    case 28:  sw[7] =  w0;
-              break;
-    case 29:  sw[7] = (sw[7] & 0x000000ff) | (w0 <<  8);
-              sw[8] = (sw[8] & 0xffffff00) | (w0 >> 24);
-              break;
-    case 30:  sw[7] = (sw[7] & 0x0000ffff) | (w0 << 16);
-              sw[8] = (sw[8] & 0xffff0000) | (w0 >> 16);
-              break;
-    case 31:  sw[7] = (sw[7] & 0x00ffffff) | (w0 << 24);
-              sw[8] = (sw[8] & 0xff000000) | (w0 >>  8);
-              break;
-  }
-  #endif
-}
-
-void overwrite_at_be (u32x sw[16], const u32x w0, const u32 salt_len)
-{
-  // would be nice to have optimization based on amd_bytealign as with _le counterpart
-
-  switch (salt_len)
-  {
-    case  0:  sw[0] =  w0;
-              break;
-    case  1:  sw[0] = (sw[0] & 0xff000000) | (w0 >>  8);
-              sw[1] = (sw[1] & 0x00ffffff) | (w0 << 24);
-              break;
-    case  2:  sw[0] = (sw[0] & 0xffff0000) | (w0 >> 16);
-              sw[1] = (sw[1] & 0x0000ffff) | (w0 << 16);
-              break;
-    case  3:  sw[0] = (sw[0] & 0xffffff00) | (w0 >> 24);
-              sw[1] = (sw[1] & 0x000000ff) | (w0 <<  8);
-              break;
-    case  4:  sw[1] =  w0;
-              break;
-    case  5:  sw[1] = (sw[1] & 0xff000000) | (w0 >>  8);
-              sw[2] = (sw[2] & 0x00ffffff) | (w0 << 24);
-              break;
-    case  6:  sw[1] = (sw[1] & 0xffff0000) | (w0 >> 16);
-              sw[2] = (sw[2] & 0x0000ffff) | (w0 << 16);
-              break;
-    case  7:  sw[1] = (sw[1] & 0xffffff00) | (w0 >> 24);
-              sw[2] = (sw[2] & 0x000000ff) | (w0 <<  8);
-              break;
-    case  8:  sw[2] =  w0;
-              break;
-    case  9:  sw[2] = (sw[2] & 0xff000000) | (w0 >>  8);
-              sw[3] = (sw[3] & 0x00ffffff) | (w0 << 24);
-              break;
-    case 10:  sw[2] = (sw[2] & 0xffff0000) | (w0 >> 16);
-              sw[3] = (sw[3] & 0x0000ffff) | (w0 << 16);
-              break;
-    case 11:  sw[2] = (sw[2] & 0xffffff00) | (w0 >> 24);
-              sw[3] = (sw[3] & 0x000000ff) | (w0 <<  8);
-              break;
-    case 12:  sw[3] =  w0;
-              break;
-    case 13:  sw[3] = (sw[3] & 0xff000000) | (w0 >>  8);
-              sw[4] = (sw[4] & 0x00ffffff) | (w0 << 24);
-              break;
-    case 14:  sw[3] = (sw[3] & 0xffff0000) | (w0 >> 16);
-              sw[4] = (sw[4] & 0x0000ffff) | (w0 << 16);
-              break;
-    case 15:  sw[3] = (sw[3] & 0xffffff00) | (w0 >> 24);
-              sw[4] = (sw[4] & 0x000000ff) | (w0 <<  8);
-              break;
-    case 16:  sw[4] =  w0;
-              break;
-    case 17:  sw[4] = (sw[4] & 0xff000000) | (w0 >>  8);
-              sw[5] = (sw[5] & 0x00ffffff) | (w0 << 24);
-              break;
-    case 18:  sw[4] = (sw[4] & 0xffff0000) | (w0 >> 16);
-              sw[5] = (sw[5] & 0x0000ffff) | (w0 << 16);
-              break;
-    case 19:  sw[4] = (sw[4] & 0xffffff00) | (w0 >> 24);
-              sw[5] = (sw[5] & 0x000000ff) | (w0 <<  8);
-              break;
-    case 20:  sw[5] =  w0;
-              break;
-    case 21:  sw[5] = (sw[5] & 0xff000000) | (w0 >>  8);
-              sw[6] = (sw[6] & 0x00ffffff) | (w0 << 24);
-              break;
-    case 22:  sw[5] = (sw[5] & 0xffff0000) | (w0 >> 16);
-              sw[6] = (sw[6] & 0x0000ffff) | (w0 << 16);
-              break;
-    case 23:  sw[5] = (sw[5] & 0xffffff00) | (w0 >> 24);
-              sw[6] = (sw[6] & 0x000000ff) | (w0 <<  8);
-              break;
-    case 24:  sw[6] =  w0;
-              break;
-    case 25:  sw[6] = (sw[6] & 0xff000000) | (w0 >>  8);
-              sw[7] = (sw[7] & 0x00ffffff) | (w0 << 24);
-              break;
-    case 26:  sw[6] = (sw[6] & 0xffff0000) | (w0 >> 16);
-              sw[7] = (sw[7] & 0x0000ffff) | (w0 << 16);
-              break;
-    case 27:  sw[6] = (sw[6] & 0xffffff00) | (w0 >> 24);
-              sw[7] = (sw[7] & 0x000000ff) | (w0 <<  8);
-              break;
-    case 28:  sw[7] =  w0;
-              break;
-    case 29:  sw[7] = (sw[7] & 0xff000000) | (w0 >>  8);
-              sw[8] = (sw[8] & 0x00ffffff) | (w0 << 24);
-              break;
-    case 30:  sw[7] = (sw[7] & 0xffff0000) | (w0 >> 16);
-              sw[8] = (sw[8] & 0x0000ffff) | (w0 << 16);
-              break;
-    case 31:  sw[7] = (sw[7] & 0xffffff00) | (w0 >> 24);
-              sw[8] = (sw[8] & 0x000000ff) | (w0 <<  8);
-              break;
-  }
-}
-
-void overwrite_at_le_4x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32x wx, const u32 salt_len)
-{
-  #if defined cl_amd_media_ops
-  switch (salt_len)
-  {
-    case  0:  w0[0] = wx;
-              break;
-    case  1:  w0[0] = amd_bytealign (wx, w0[0] << 24, 3);
-              w0[1] = amd_bytealign (w0[1] >>  8, wx, 3);
-              break;
-    case  2:  w0[0] = amd_bytealign (wx, w0[0] << 16, 2);
-              w0[1] = amd_bytealign (w0[1] >> 16, wx, 2);
-              break;
-    case  3:  w0[0] = amd_bytealign (wx, w0[0] <<  8, 1);
-              w0[1] = amd_bytealign (w0[1] >> 24, wx, 1);
-              break;
-    case  4:  w0[1] = wx;
-              break;
-    case  5:  w0[1] = amd_bytealign (wx, w0[1] << 24, 3);
-              w0[2] = amd_bytealign (w0[2] >>  8, wx, 3);
-              break;
-    case  6:  w0[1] = amd_bytealign (wx, w0[1] << 16, 2);
-              w0[2] = amd_bytealign (w0[2] >> 16, wx, 2);
-              break;
-    case  7:  w0[1] = amd_bytealign (wx, w0[1] <<  8, 1);
-              w0[2] = amd_bytealign (w0[2] >> 24, wx, 1);
-              break;
-    case  8:  w0[2] = wx;
-              break;
-    case  9:  w0[2] = amd_bytealign (wx, w0[2] << 24, 3);
-              w0[3] = amd_bytealign (w0[3] >>  8, wx, 3);
-              break;
-    case 10:  w0[2] = amd_bytealign (wx, w0[2] << 16, 2);
-              w0[3] = amd_bytealign (w0[3] >> 16, wx, 2);
-              break;
-    case 11:  w0[2] = amd_bytealign (wx, w0[2] <<  8, 1);
-              w0[3] = amd_bytealign (w0[3] >> 24, wx, 1);
-              break;
-    case 12:  w0[3] = wx;
-              break;
-    case 13:  w0[3] = amd_bytealign (wx, w0[3] << 24, 3);
-              w1[0] = amd_bytealign (w1[0] >>  8, wx, 3);
-              break;
-    case 14:  w0[3] = amd_bytealign (wx, w0[3] << 16, 2);
-              w1[0] = amd_bytealign (w1[0] >> 16, wx, 2);
-              break;
-    case 15:  w0[3] = amd_bytealign (wx, w0[3] <<  8, 1);
-              w1[0] = amd_bytealign (w1[0] >> 24, wx, 1);
-              break;
-    case 16:  w1[0] = wx;
-              break;
-    case 17:  w1[0] = amd_bytealign (wx, w1[0] << 24, 3);
-              w1[1] = amd_bytealign (w1[1] >>  8, wx, 3);
-              break;
-    case 18:  w1[0] = amd_bytealign (wx, w1[0] << 16, 2);
-              w1[1] = amd_bytealign (w1[1] >> 16, wx, 2);
-              break;
-    case 19:  w1[0] = amd_bytealign (wx, w1[0] <<  8, 1);
-              w1[1] = amd_bytealign (w1[1] >> 24, wx, 1);
-              break;
-    case 20:  w1[1] = wx;
-              break;
-    case 21:  w1[1] = amd_bytealign (wx, w1[1] << 24, 3);
-              w1[2] = amd_bytealign (w1[2] >>  8, wx, 3);
-              break;
-    case 22:  w1[1] = amd_bytealign (wx, w1[1] << 16, 2);
-              w1[2] = amd_bytealign (w1[2] >> 16, wx, 2);
-              break;
-    case 23:  w1[1] = amd_bytealign (wx, w1[1] <<  8, 1);
-              w1[2] = amd_bytealign (w1[2] >> 24, wx, 1);
-              break;
-    case 24:  w1[2] = wx;
-              break;
-    case 25:  w1[2] = amd_bytealign (wx, w1[2] << 24, 3);
-              w1[3] = amd_bytealign (w1[3] >>  8, wx, 3);
-              break;
-    case 26:  w1[2] = amd_bytealign (wx, w1[2] << 16, 2);
-              w1[3] = amd_bytealign (w1[3] >> 16, wx, 2);
-              break;
-    case 27:  w1[2] = amd_bytealign (wx, w1[2] <<  8, 1);
-              w1[3] = amd_bytealign (w1[3] >> 24, wx, 1);
-              break;
-    case 28:  w1[3] = wx;
-              break;
-    case 29:  w1[3] = amd_bytealign (wx, w1[3] << 24, 3);
-              w2[0] = amd_bytealign (w2[0] >>  8, wx, 3);
-              break;
-    case 30:  w1[3] = amd_bytealign (wx, w1[3] << 16, 2);
-              w2[0] = amd_bytealign (w2[0] >> 16, wx, 2);
-              break;
-    case 31:  w1[3] = amd_bytealign (wx, w1[3] <<  8, 1);
-              w2[0] = amd_bytealign (w2[0] >> 24, wx, 1);
-              break;
-    case 32:  w2[0] = wx;
-              break;
-    case 33:  w2[0] = amd_bytealign (wx, w2[0] << 24, 3);
-              w2[1] = amd_bytealign (w2[1] >>  8, wx, 3);
-              break;
-    case 34:  w2[0] = amd_bytealign (wx, w2[0] << 16, 2);
-              w2[1] = amd_bytealign (w2[1] >> 16, wx, 2);
-              break;
-    case 35:  w2[0] = amd_bytealign (wx, w2[0] <<  8, 1);
-              w2[1] = amd_bytealign (w2[1] >> 24, wx, 1);
-              break;
-    case 36:  w2[1] = wx;
-              break;
-    case 37:  w2[1] = amd_bytealign (wx, w2[1] << 24, 3);
-              w2[2] = amd_bytealign (w2[2] >>  8, wx, 3);
-              break;
-    case 38:  w2[1] = amd_bytealign (wx, w2[1] << 16, 2);
-              w2[2] = amd_bytealign (w2[2] >> 16, wx, 2);
-              break;
-    case 39:  w2[1] = amd_bytealign (wx, w2[1] <<  8, 1);
-              w2[2] = amd_bytealign (w2[2] >> 24, wx, 1);
-              break;
-    case 40:  w2[2] = wx;
-              break;
-    case 41:  w2[2] = amd_bytealign (wx, w2[2] << 24, 3);
-              w2[3] = amd_bytealign (w2[3] >>  8, wx, 3);
-              break;
-    case 42:  w2[2] = amd_bytealign (wx, w2[2] << 16, 2);
-              w2[3] = amd_bytealign (w2[3] >> 16, wx, 2);
-              break;
-    case 43:  w2[2] = amd_bytealign (wx, w2[2] <<  8, 1);
-              w2[3] = amd_bytealign (w2[3] >> 24, wx, 1);
-              break;
-    case 44:  w2[3] = wx;
-              break;
-    case 45:  w2[3] = amd_bytealign (wx, w2[3] << 24, 3);
-              w3[0] = amd_bytealign (w3[0] >>  8, wx, 3);
-              break;
-    case 46:  w2[3] = amd_bytealign (wx, w2[3] << 16, 2);
-              w3[0] = amd_bytealign (w3[0] >> 16, wx, 2);
-              break;
-    case 47:  w2[3] = amd_bytealign (wx, w2[3] <<  8, 1);
-              w3[0] = amd_bytealign (w3[0] >> 24, wx, 1);
-              break;
-    case 48:  w3[0] = wx;
-              break;
-    case 49:  w3[0] = amd_bytealign (wx, w3[0] << 24, 3);
-              w3[1] = amd_bytealign (w3[1] >>  8, wx, 3);
-              break;
-    case 50:  w3[0] = amd_bytealign (wx, w3[0] << 16, 2);
-              w3[1] = amd_bytealign (w3[1] >> 16, wx, 2);
-              break;
-    case 51:  w3[0] = amd_bytealign (wx, w3[0] <<  8, 1);
-              w3[1] = amd_bytealign (w3[1] >> 24, wx, 1);
-              break;
-    case 52:  w3[1] = wx;
-              break;
-    case 53:  w3[1] = amd_bytealign (wx, w3[1] << 24, 3);
-              w3[2] = amd_bytealign (w3[2] >>  8, wx, 3);
-              break;
-    case 54:  w3[1] = amd_bytealign (wx, w3[1] << 16, 2);
-              w3[2] = amd_bytealign (w3[2] >> 16, wx, 2);
-              break;
-    case 55:  w3[1] = amd_bytealign (wx, w3[1] <<  8, 1);
-              w3[2] = amd_bytealign (w3[2] >> 24, wx, 1);
-              break;
-    case 56:  w3[2] = wx;
-              break;
-    case 57:  w3[2] = amd_bytealign (wx, w3[2] << 24, 3);
-              w3[3] = amd_bytealign (w3[3] >>  8, wx, 3);
-              break;
-    case 58:  w3[2] = amd_bytealign (wx, w3[2] << 16, 2);
-              w3[3] = amd_bytealign (w3[3] >> 16, wx, 2);
-              break;
-    case 59:  w3[2] = amd_bytealign (wx, w3[2] <<  8, 1);
-              w3[3] = amd_bytealign (w3[3] >> 24, wx, 1);
-              break;
-    case 60:  w3[3] = wx;
-              break;
-    case 61:  w3[3] = amd_bytealign (wx, w3[3] << 24, 3);
-              //w4[0] = amd_bytealign (w4[0] >>  8, wx, 3);
-              break;
-    case 62:  w3[3] = amd_bytealign (wx, w3[3] << 16, 2);
-              //w4[0] = amd_bytealign (w4[0] >> 16, wx, 2);
-              break;
-    case 63:  w3[3] = amd_bytealign (wx, w3[3] <<  8, 1);
-              //w4[0] = amd_bytealign (w4[0] >> 24, wx, 1);
-              break;
-  }
-  #else
-  switch (salt_len)
-  {
-    case  0:  w0[0] =  wx;
-              break;
-    case  1:  w0[0] = (w0[0] & 0x000000ff) | (wx <<  8);
-              w0[1] = (w0[1] & 0xffffff00) | (wx >> 24);
-              break;
-    case  2:  w0[0] = (w0[0] & 0x0000ffff) | (wx << 16);
-              w0[1] = (w0[1] & 0xffff0000) | (wx >> 16);
-              break;
-    case  3:  w0[0] = (w0[0] & 0x00ffffff) | (wx << 24);
-              w0[1] = (w0[1] & 0xff000000) | (wx >>  8);
-              break;
-    case  4:  w0[1] =  wx;
-              break;
-    case  5:  w0[1] = (w0[1] & 0x000000ff) | (wx <<  8);
-              w0[2] = (w0[2] & 0xffffff00) | (wx >> 24);
-              break;
-    case  6:  w0[1] = (w0[1] & 0x0000ffff) | (wx << 16);
-              w0[2] = (w0[2] & 0xffff0000) | (wx >> 16);
-              break;
-    case  7:  w0[1] = (w0[1] & 0x00ffffff) | (wx << 24);
-              w0[2] = (w0[2] & 0xff000000) | (wx >>  8);
-              break;
-    case  8:  w0[2] =  wx;
-              break;
-    case  9:  w0[2] = (w0[2] & 0x000000ff) | (wx <<  8);
-              w0[3] = (w0[3] & 0xffffff00) | (wx >> 24);
-              break;
-    case 10:  w0[2] = (w0[2] & 0x0000ffff) | (wx << 16);
-              w0[3] = (w0[3] & 0xffff0000) | (wx >> 16);
-              break;
-    case 11:  w0[2] = (w0[2] & 0x00ffffff) | (wx << 24);
-              w0[3] = (w0[3] & 0xff000000) | (wx >>  8);
-              break;
-    case 12:  w0[3] =  wx;
-              break;
-    case 13:  w0[3] = (w0[3] & 0x000000ff) | (wx <<  8);
-              w1[0] = (w1[0] & 0xffffff00) | (wx >> 24);
-              break;
-    case 14:  w0[3] = (w0[3] & 0x0000ffff) | (wx << 16);
-              w1[0] = (w1[0] & 0xffff0000) | (wx >> 16);
-              break;
-    case 15:  w0[3] = (w0[3] & 0x00ffffff) | (wx << 24);
-              w1[0] = (w1[0] & 0xff000000) | (wx >>  8);
-              break;
-    case 16:  w1[0] =  wx;
-              break;
-    case 17:  w1[0] = (w1[0] & 0x000000ff) | (wx <<  8);
-              w1[1] = (w1[1] & 0xffffff00) | (wx >> 24);
-              break;
-    case 18:  w1[0] = (w1[0] & 0x0000ffff) | (wx << 16);
-              w1[1] = (w1[1] & 0xffff0000) | (wx >> 16);
-              break;
-    case 19:  w1[0] = (w1[0] & 0x00ffffff) | (wx << 24);
-              w1[1] = (w1[1] & 0xff000000) | (wx >>  8);
-              break;
-    case 20:  w1[1] =  wx;
-              break;
-    case 21:  w1[1] = (w1[1] & 0x000000ff) | (wx <<  8);
-              w1[2] = (w1[2] & 0xffffff00) | (wx >> 24);
-              break;
-    case 22:  w1[1] = (w1[1] & 0x0000ffff) | (wx << 16);
-              w1[2] = (w1[2] & 0xffff0000) | (wx >> 16);
-              break;
-    case 23:  w1[1] = (w1[1] & 0x00ffffff) | (wx << 24);
-              w1[2] = (w1[2] & 0xff000000) | (wx >>  8);
-              break;
-    case 24:  w1[2] =  wx;
-              break;
-    case 25:  w1[2] = (w1[2] & 0x000000ff) | (wx <<  8);
-              w1[3] = (w1[3] & 0xffffff00) | (wx >> 24);
-              break;
-    case 26:  w1[2] = (w1[2] & 0x0000ffff) | (wx << 16);
-              w1[3] = (w1[3] & 0xffff0000) | (wx >> 16);
-              break;
-    case 27:  w1[2] = (w1[2] & 0x00ffffff) | (wx << 24);
-              w1[3] = (w1[3] & 0xff000000) | (wx >>  8);
-              break;
-    case 28:  w1[3] =  wx;
-              break;
-    case 29:  w1[3] = (w1[3] & 0x000000ff) | (wx <<  8);
-              w2[0] = (w2[0] & 0xffffff00) | (wx >> 24);
-              break;
-    case 30:  w1[3] = (w1[3] & 0x0000ffff) | (wx << 16);
-              w2[0] = (w2[0] & 0xffff0000) | (wx >> 16);
-              break;
-    case 31:  w1[3] = (w1[3] & 0x00ffffff) | (wx << 24);
-              w2[0] = (w2[0] & 0xff000000) | (wx >>  8);
-              break;
-    case 32:  w2[0] =  wx;
-              break;
-    case 33:  w2[0] = (w2[0] & 0x000000ff) | (wx <<  8);
-              w2[1] = (w2[1] & 0xffffff00) | (wx >> 24);
-              break;
-    case 34:  w2[0] = (w2[0] & 0x0000ffff) | (wx << 16);
-              w2[1] = (w2[1] & 0xffff0000) | (wx >> 16);
-              break;
-    case 35:  w2[0] = (w2[0] & 0x00ffffff) | (wx << 24);
-              w2[1] = (w2[1] & 0xff000000) | (wx >>  8);
-              break;
-    case 36:  w2[1] =  wx;
-              break;
-    case 37:  w2[1] = (w2[1] & 0x000000ff) | (wx <<  8);
-              w2[2] = (w2[2] & 0xffffff00) | (wx >> 24);
-              break;
-    case 38:  w2[1] = (w2[1] & 0x0000ffff) | (wx << 16);
-              w2[2] = (w2[2] & 0xffff0000) | (wx >> 16);
-              break;
-    case 39:  w2[1] = (w2[1] & 0x00ffffff) | (wx << 24);
-              w2[2] = (w2[2] & 0xff000000) | (wx >>  8);
-              break;
-    case 40:  w2[2] =  wx;
-              break;
-    case 41:  w2[2] = (w2[2] & 0x000000ff) | (wx <<  8);
-              w2[3] = (w2[3] & 0xffffff00) | (wx >> 24);
-              break;
-    case 42:  w2[2] = (w2[2] & 0x0000ffff) | (wx << 16);
-              w2[3] = (w2[3] & 0xffff0000) | (wx >> 16);
-              break;
-    case 43:  w2[2] = (w2[2] & 0x00ffffff) | (wx << 24);
-              w2[3] = (w2[3] & 0xff000000) | (wx >>  8);
-              break;
-    case 44:  w2[3] =  wx;
-              break;
-    case 45:  w2[3] = (w2[3] & 0x000000ff) | (wx <<  8);
-              w3[0] = (w3[0] & 0xffffff00) | (wx >> 24);
-              break;
-    case 46:  w2[3] = (w2[3] & 0x0000ffff) | (wx << 16);
-              w3[0] = (w3[0] & 0xffff0000) | (wx >> 16);
-              break;
-    case 47:  w2[3] = (w2[3] & 0x00ffffff) | (wx << 24);
-              w3[0] = (w3[0] & 0xff000000) | (wx >>  8);
-              break;
-    case 48:  w3[0] =  wx;
-              break;
-    case 49:  w3[0] = (w3[0] & 0x000000ff) | (wx <<  8);
-              w3[1] = (w3[1] & 0xffffff00) | (wx >> 24);
-              break;
-    case 50:  w3[0] = (w3[0] & 0x0000ffff) | (wx << 16);
-              w3[1] = (w3[1] & 0xffff0000) | (wx >> 16);
-              break;
-    case 51:  w3[0] = (w3[0] & 0x00ffffff) | (wx << 24);
-              w3[1] = (w3[1] & 0xff000000) | (wx >>  8);
-              break;
-    case 52:  w3[1] =  wx;
-              break;
-    case 53:  w3[1] = (w3[1] & 0x000000ff) | (wx <<  8);
-              w3[2] = (w3[2] & 0xffffff00) | (wx >> 24);
-              break;
-    case 54:  w3[1] = (w3[1] & 0x0000ffff) | (wx << 16);
-              w3[2] = (w3[2] & 0xffff0000) | (wx >> 16);
-              break;
-    case 55:  w3[1] = (w3[1] & 0x00ffffff) | (wx << 24);
-              w3[2] = (w3[2] & 0xff000000) | (wx >>  8);
-              break;
-    case 56:  w3[2] =  wx;
-              break;
-    case 57:  w3[2] = (w3[2] & 0x000000ff) | (wx <<  8);
-              w3[3] = (w3[3] & 0xffffff00) | (wx >> 24);
-              break;
-    case 58:  w3[2] = (w3[2] & 0x0000ffff) | (wx << 16);
-              w3[3] = (w3[3] & 0xffff0000) | (wx >> 16);
-              break;
-    case 59:  w3[2] = (w3[2] & 0x00ffffff) | (wx << 24);
-              w3[3] = (w3[3] & 0xff000000) | (wx >>  8);
-              break;
-    case 60:  w3[3] =  wx;
-              break;
-    case 61:  w3[3] = (w3[3] & 0x000000ff) | (wx <<  8);
-              //w4[0] = (w4[0] & 0xffffff00) | (wx >> 24);
-              break;
-    case 62:  w3[3] = (w3[3] & 0x0000ffff) | (wx << 16);
-              //w4[0] = (w4[0] & 0xffff0000) | (wx >> 16);
-              break;
-    case 63:  w3[3] = (w3[3] & 0x00ffffff) | (wx << 24);
-              //w4[0] = (w4[0] & 0xff000000) | (wx >>  8);
-              break;
-  }
-  #endif
-}
-
-void overwrite_at_be_4x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32x wx, const u32 salt_len)
-{
-  // would be nice to have optimization based on amd_bytealign as with _le counterpart
-
-  switch (salt_len)
-  {
-    case  0:  w0[0] =  wx;
-              break;
-    case  1:  w0[0] = (w0[0] & 0xff000000) | (wx >>  8);
-              w0[1] = (w0[1] & 0x00ffffff) | (wx << 24);
-              break;
-    case  2:  w0[0] = (w0[0] & 0xffff0000) | (wx >> 16);
-              w0[1] = (w0[1] & 0x0000ffff) | (wx << 16);
-              break;
-    case  3:  w0[0] = (w0[0] & 0xffffff00) | (wx >> 24);
-              w0[1] = (w0[1] & 0x000000ff) | (wx <<  8);
-              break;
-    case  4:  w0[1] =  wx;
-              break;
-    case  5:  w0[1] = (w0[1] & 0xff000000) | (wx >>  8);
-              w0[2] = (w0[2] & 0x00ffffff) | (wx << 24);
-              break;
-    case  6:  w0[1] = (w0[1] & 0xffff0000) | (wx >> 16);
-              w0[2] = (w0[2] & 0x0000ffff) | (wx << 16);
-              break;
-    case  7:  w0[1] = (w0[1] & 0xffffff00) | (wx >> 24);
-              w0[2] = (w0[2] & 0x000000ff) | (wx <<  8);
-              break;
-    case  8:  w0[2] =  wx;
-              break;
-    case  9:  w0[2] = (w0[2] & 0xff000000) | (wx >>  8);
-              w0[3] = (w0[3] & 0x00ffffff) | (wx << 24);
-              break;
-    case 10:  w0[2] = (w0[2] & 0xffff0000) | (wx >> 16);
-              w0[3] = (w0[3] & 0x0000ffff) | (wx << 16);
-              break;
-    case 11:  w0[2] = (w0[2] & 0xffffff00) | (wx >> 24);
-              w0[3] = (w0[3] & 0x000000ff) | (wx <<  8);
-              break;
-    case 12:  w0[3] =  wx;
-              break;
-    case 13:  w0[3] = (w0[3] & 0xff000000) | (wx >>  8);
-              w1[0] = (w1[0] & 0x00ffffff) | (wx << 24);
-              break;
-    case 14:  w0[3] = (w0[3] & 0xffff0000) | (wx >> 16);
-              w1[0] = (w1[0] & 0x0000ffff) | (wx << 16);
-              break;
-    case 15:  w0[3] = (w0[3] & 0xffffff00) | (wx >> 24);
-              w1[0] = (w1[0] & 0x000000ff) | (wx <<  8);
-              break;
-    case 16:  w1[0] =  wx;
-              break;
-    case 17:  w1[0] = (w1[0] & 0xff000000) | (wx >>  8);
-              w1[1] = (w1[1] & 0x00ffffff) | (wx << 24);
-              break;
-    case 18:  w1[0] = (w1[0] & 0xffff0000) | (wx >> 16);
-              w1[1] = (w1[1] & 0x0000ffff) | (wx << 16);
-              break;
-    case 19:  w1[0] = (w1[0] & 0xffffff00) | (wx >> 24);
-              w1[1] = (w1[1] & 0x000000ff) | (wx <<  8);
-              break;
-    case 20:  w1[1] =  wx;
-              break;
-    case 21:  w1[1] = (w1[1] & 0xff000000) | (wx >>  8);
-              w1[2] = (w1[2] & 0x00ffffff) | (wx << 24);
-              break;
-    case 22:  w1[1] = (w1[1] & 0xffff0000) | (wx >> 16);
-              w1[2] = (w1[2] & 0x0000ffff) | (wx << 16);
-              break;
-    case 23:  w1[1] = (w1[1] & 0xffffff00) | (wx >> 24);
-              w1[2] = (w1[2] & 0x000000ff) | (wx <<  8);
-              break;
-    case 24:  w1[2] =  wx;
-              break;
-    case 25:  w1[2] = (w1[2] & 0xff000000) | (wx >>  8);
-              w1[3] = (w1[3] & 0x00ffffff) | (wx << 24);
-              break;
-    case 26:  w1[2] = (w1[2] & 0xffff0000) | (wx >> 16);
-              w1[3] = (w1[3] & 0x0000ffff) | (wx << 16);
-              break;
-    case 27:  w1[2] = (w1[2] & 0xffffff00) | (wx >> 24);
-              w1[3] = (w1[3] & 0x000000ff) | (wx <<  8);
-              break;
-    case 28:  w1[3] =  wx;
-              break;
-    case 29:  w1[3] = (w1[3] & 0xff000000) | (wx >>  8);
-              w2[0] = (w2[0] & 0x00ffffff) | (wx << 24);
-              break;
-    case 30:  w1[3] = (w1[3] & 0xffff0000) | (wx >> 16);
-              w2[0] = (w2[0] & 0x0000ffff) | (wx << 16);
-              break;
-    case 31:  w1[3] = (w1[3] & 0xffffff00) | (wx >> 24);
-              w2[0] = (w2[0] & 0x000000ff) | (wx <<  8);
-              break;
-    case 32:  w2[0] =  wx;
-              break;
-    case 33:  w2[0] = (w2[0] & 0xff000000) | (wx >>  8);
-              w2[1] = (w2[1] & 0x00ffffff) | (wx << 24);
-              break;
-    case 34:  w2[0] = (w2[0] & 0xffff0000) | (wx >> 16);
-              w2[1] = (w2[1] & 0x0000ffff) | (wx << 16);
-              break;
-    case 35:  w2[0] = (w2[0] & 0xffffff00) | (wx >> 24);
-              w2[1] = (w2[1] & 0x000000ff) | (wx <<  8);
-              break;
-    case 36:  w2[1] =  wx;
-              break;
-    case 37:  w2[1] = (w2[1] & 0xff000000) | (wx >>  8);
-              w2[2] = (w2[2] & 0x00ffffff) | (wx << 24);
-              break;
-    case 38:  w2[1] = (w2[1] & 0xffff0000) | (wx >> 16);
-              w2[2] = (w2[2] & 0x0000ffff) | (wx << 16);
-              break;
-    case 39:  w2[1] = (w2[1] & 0xffffff00) | (wx >> 24);
-              w2[2] = (w2[2] & 0x000000ff) | (wx <<  8);
-              break;
-    case 40:  w2[2] =  wx;
-              break;
-    case 41:  w2[2] = (w2[2] & 0xff000000) | (wx >>  8);
-              w2[3] = (w2[3] & 0x00ffffff) | (wx << 24);
-              break;
-    case 42:  w2[2] = (w2[2] & 0xffff0000) | (wx >> 16);
-              w2[3] = (w2[3] & 0x0000ffff) | (wx << 16);
-              break;
-    case 43:  w2[2] = (w2[2] & 0xffffff00) | (wx >> 24);
-              w2[3] = (w2[3] & 0x000000ff) | (wx <<  8);
-              break;
-    case 44:  w2[3] =  wx;
-              break;
-    case 45:  w2[3] = (w2[3] & 0xff000000) | (wx >>  8);
-              w3[0] = (w3[0] & 0x00ffffff) | (wx << 24);
-              break;
-    case 46:  w2[3] = (w2[3] & 0xffff0000) | (wx >> 16);
-              w3[0] = (w3[0] & 0x0000ffff) | (wx << 16);
-              break;
-    case 47:  w2[3] = (w2[3] & 0xffffff00) | (wx >> 24);
-              w3[0] = (w3[0] & 0x000000ff) | (wx <<  8);
-              break;
-    case 48:  w3[0] =  wx;
-              break;
-    case 49:  w3[0] = (w3[0] & 0xff000000) | (wx >>  8);
-              w3[1] = (w3[1] & 0x00ffffff) | (wx << 24);
-              break;
-    case 50:  w3[0] = (w3[0] & 0xffff0000) | (wx >> 16);
-              w3[1] = (w3[1] & 0x0000ffff) | (wx << 16);
-              break;
-    case 51:  w3[0] = (w3[0] & 0xffffff00) | (wx >> 24);
-              w3[1] = (w3[1] & 0x000000ff) | (wx <<  8);
-              break;
-    case 52:  w3[1] =  wx;
-              break;
-    case 53:  w3[1] = (w3[1] & 0xff000000) | (wx >>  8);
-              w3[2] = (w3[2] & 0x00ffffff) | (wx << 24);
-              break;
-    case 54:  w3[1] = (w3[1] & 0xffff0000) | (wx >> 16);
-              w3[2] = (w3[2] & 0x0000ffff) | (wx << 16);
-              break;
-    case 55:  w3[1] = (w3[1] & 0xffffff00) | (wx >> 24);
-              w3[2] = (w3[2] & 0x000000ff) | (wx <<  8);
-              break;
-    case 56:  w3[2] =  wx;
-              break;
-    case 57:  w3[2] = (w3[2] & 0xff000000) | (wx >>  8);
-              w3[3] = (w3[3] & 0x00ffffff) | (wx << 24);
-              break;
-    case 58:  w3[2] = (w3[2] & 0xffff0000) | (wx >> 16);
-              w3[3] = (w3[3] & 0x0000ffff) | (wx << 16);
-              break;
-    case 59:  w3[2] = (w3[2] & 0xffffff00) | (wx >> 24);
-              w3[3] = (w3[3] & 0x000000ff) | (wx <<  8);
-              break;
-    case 60:  w3[3] =  wx;
-              break;
-    case 61:  w3[3] = (w3[3] & 0xff000000) | (wx >>  8);
-              //w4[0] = (w4[0] & 0x00ffffff) | (wx << 24);
-              break;
-    case 62:  w3[3] = (w3[3] & 0xffff0000) | (wx >> 16);
-              //w4[0] = (w4[0] & 0x0000ffff) | (wx << 16);
-              break;
-    case 63:  w3[3] = (w3[3] & 0xffffff00) | (wx >> 24);
-              //w4[0] = (w4[0] & 0x000000ff) | (wx <<  8);
-              break;
-  }
-}
-
 /**
  * vector functions as scalar (for outer loop usage)
  */
 
-void append_0x01_2x4_S (u32 w0[4], u32 w1[4], const u32 offset)
+static void append_0x01_2x4_S (u32 w0[4], u32 w1[4], const u32 offset)
 {
   const u32 tmp = 0x01 << ((offset & 3) * 8);
 
@@ -32323,7 +31512,7 @@ void append_0x01_2x4_S (u32 w0[4], u32 w1[4], const u32 offset)
   w1[3] |=  (offset >= 28)                   ? tmp : 0;
 }
 
-void append_0x80_1x4_S (u32 w0[4], const u32 offset)
+static void append_0x80_1x4_S (u32 w0[4], const u32 offset)
 {
   const u32 tmp = 0x80 << ((offset & 3) * 8);
 
@@ -32333,7 +31522,7 @@ void append_0x80_1x4_S (u32 w0[4], const u32 offset)
   w0[3] |=  (offset >= 12)                   ? tmp : 0;
 }
 
-void append_0x80_2x4_S (u32 w0[4], u32 w1[4], const u32 offset)
+static void append_0x80_2x4_S (u32 w0[4], u32 w1[4], const u32 offset)
 {
   const u32 tmp = 0x80 << ((offset & 3) * 8);
 
@@ -32347,7 +31536,7 @@ void append_0x80_2x4_S (u32 w0[4], u32 w1[4], const u32 offset)
   w1[3] |=  (offset >= 28)                   ? tmp : 0;
 }
 
-void append_0x80_3x4_S (u32 w0[4], u32 w1[4], u32 w2[4], const u32 offset)
+static void append_0x80_3x4_S (u32 w0[4], u32 w1[4], u32 w2[4], const u32 offset)
 {
   const u32 tmp = 0x80 << ((offset & 3) * 8);
 
@@ -32365,7 +31554,7 @@ void append_0x80_3x4_S (u32 w0[4], u32 w1[4], u32 w2[4], const u32 offset)
   w2[3] |=  (offset >= 44)                   ? tmp : 0;
 }
 
-void append_0x80_4x4_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
+static void append_0x80_4x4_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
 {
   const u32 tmp = 0x80 << ((offset & 3) * 8);
 
@@ -32387,7 +31576,7 @@ void append_0x80_4x4_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 of
   w3[3] |=  (offset >= 60)                   ? tmp : 0;
 }
 
-void append_0x80_8x4_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const u32 offset)
+static void append_0x80_8x4_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const u32 offset)
 {
   switch (offset)
   {
@@ -32905,7 +32094,7 @@ void append_0x80_8x4_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u
   }
 }
 
-void make_utf16be_S (const u32 in[4], u32 out1[4], u32 out2[4])
+static void make_utf16be_S (const u32 in[4], u32 out1[4], u32 out2[4])
 {
   #ifdef IS_NV
   out2[3] = __byte_perm_S (in[3], 0, 0x3727);
@@ -32930,32 +32119,7 @@ void make_utf16be_S (const u32 in[4], u32 out1[4], u32 out2[4])
   #endif
 }
 
-void make_utf16beN_S (const u32 in[4], u32 out1[4], u32 out2[4])
-{
-  #ifdef IS_NV
-  out2[3] = __byte_perm_S (in[3], 0, 0x1707);
-  out2[2] = __byte_perm_S (in[3], 0, 0x3727);
-  out2[1] = __byte_perm_S (in[2], 0, 0x1707);
-  out2[0] = __byte_perm_S (in[2], 0, 0x3727);
-  out1[3] = __byte_perm_S (in[1], 0, 0x1707);
-  out1[2] = __byte_perm_S (in[1], 0, 0x3727);
-  out1[1] = __byte_perm_S (in[0], 0, 0x1707);
-  out1[0] = __byte_perm_S (in[0], 0, 0x3727);
-  #endif
-
-  #if defined IS_AMD || defined IS_GENERIC
-  out2[3] = ((in[3] << 16) & 0xFF000000) | ((in[3] << 8) & 0x0000FF00);
-  out2[2] = ((in[3] >>  0) & 0xFF000000) | ((in[3] >> 8) & 0x0000FF00);
-  out2[1] = ((in[2] << 16) & 0xFF000000) | ((in[2] << 8) & 0x0000FF00);
-  out2[0] = ((in[2] >>  0) & 0xFF000000) | ((in[2] >> 8) & 0x0000FF00);
-  out1[3] = ((in[1] << 16) & 0xFF000000) | ((in[1] << 8) & 0x0000FF00);
-  out1[2] = ((in[1] >>  0) & 0xFF000000) | ((in[1] >> 8) & 0x0000FF00);
-  out1[1] = ((in[0] << 16) & 0xFF000000) | ((in[0] << 8) & 0x0000FF00);
-  out1[0] = ((in[0] >>  0) & 0xFF000000) | ((in[0] >> 8) & 0x0000FF00);
-  #endif
-}
-
-void make_utf16le_S (const u32 in[4], u32 out1[4], u32 out2[4])
+static void make_utf16le_S (const u32 in[4], u32 out1[4], u32 out2[4])
 {
   #ifdef IS_NV
   out2[3] = __byte_perm_S (in[3], 0, 0x7372);
@@ -32980,7 +32144,7 @@ void make_utf16le_S (const u32 in[4], u32 out1[4], u32 out2[4])
   #endif
 }
 
-void undo_utf16be_S (const u32 in1[4], const u32 in2[4], u32 out[4])
+static void undo_utf16be_S (const u32 in1[4], const u32 in2[4], u32 out[4])
 {
   #ifdef IS_NV
   out[0] = __byte_perm_S (in1[0], in1[1], 0x4602);
@@ -33001,7 +32165,7 @@ void undo_utf16be_S (const u32 in1[4], const u32 in2[4], u32 out[4])
   #endif
 }
 
-void undo_utf16le_S (const u32 in1[4], const u32 in2[4], u32 out[4])
+static void undo_utf16le_S (const u32 in1[4], const u32 in2[4], u32 out[4])
 {
   #ifdef IS_NV
   out[0] = __byte_perm_S (in1[0], in1[1], 0x6420);
@@ -33022,7 +32186,7 @@ void undo_utf16le_S (const u32 in1[4], const u32 in2[4], u32 out[4])
   #endif
 }
 
-void switch_buffer_by_offset_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
+static void switch_buffer_by_offset_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
 {
   const int offset_mod_4 = offset & 3;
 
@@ -33715,7 +32879,7 @@ void switch_buffer_by_offset_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], c
   #endif
 }
 
-void switch_buffer_by_offset_carry_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 c0[4], u32 c1[4], u32 c2[4], u32 c3[4], const u32 offset)
+static void switch_buffer_by_offset_carry_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 c0[4], u32 c1[4], u32 c2[4], u32 c3[4], const u32 offset)
 {
   const int offset_mod_4 = offset & 3;
 
@@ -35031,7 +34195,7 @@ void switch_buffer_by_offset_carry_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3
   #endif
 }
 
-void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
+static void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
 {
   #if defined IS_AMD || defined IS_GENERIC
   switch (offset / 4)
@@ -35686,7 +34850,7 @@ void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], c
   #endif
 }
 
-void switch_buffer_by_offset_carry_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 c0[4], u32 c1[4], u32 c2[4], u32 c3[4], const u32 offset)
+static void switch_buffer_by_offset_carry_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 c0[4], u32 c1[4], u32 c2[4], u32 c3[4], const u32 offset)
 {
   #if defined IS_AMD || defined IS_GENERIC
   switch (offset / 4)
@@ -36613,7 +35777,7 @@ void switch_buffer_by_offset_carry_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3
   #endif
 }
 
-void switch_buffer_by_offset_8x4_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const u32 offset)
+static void switch_buffer_by_offset_8x4_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const u32 offset)
 {
   const int offset_mod_4 = offset & 3;
 
@@ -38410,7 +37574,7 @@ void switch_buffer_by_offset_8x4_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4
   #endif
 }
 
-void switch_buffer_by_offset_8x4_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const u32 offset)
+static void switch_buffer_by_offset_8x4_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const u32 offset)
 {
   #if defined IS_AMD || defined IS_GENERIC
   switch (offset / 4)
@@ -40729,7 +39893,7 @@ void switch_buffer_by_offset_8x4_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4
   #endif
 }
 
-void switch_buffer_by_offset_8x4_carry_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], u32 c0[4], u32 c1[4], u32 c2[4], u32 c3[4], u32 c4[4], u32 c5[4], u32 c6[4], u32 c7[4], const u32 offset)
+static void switch_buffer_by_offset_8x4_carry_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], u32 c0[4], u32 c1[4], u32 c2[4], u32 c3[4], u32 c4[4], u32 c5[4], u32 c6[4], u32 c7[4], const u32 offset)
 {
   #if defined IS_AMD || defined IS_GENERIC
   switch (offset / 4)
@@ -44104,7 +43268,7 @@ void switch_buffer_by_offset_8x4_carry_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u3
   #endif
 }
 
-void switch_buffer_by_offset_1x64_le_S (u32 w[64], const u32 offset)
+static void switch_buffer_by_offset_1x64_le_S (u32 w[64], const u32 offset)
 {
   const int offset_mod_4 = offset & 3;
 
@@ -52835,7 +51999,7 @@ void switch_buffer_by_offset_1x64_le_S (u32 w[64], const u32 offset)
   #endif
 }
 
-void switch_buffer_by_offset_1x64_be_S (u32 w[64], const u32 offset)
+static void switch_buffer_by_offset_1x64_be_S (u32 w[64], const u32 offset)
 {
   #if defined IS_AMD || defined IS_GENERIC
   switch (offset / 4)
@@ -61618,7 +60782,7 @@ void switch_buffer_by_offset_1x64_be_S (u32 w[64], const u32 offset)
   PACKSV4 (s6, v6, e);                                              \
   PACKSV4 (s7, v7, e);
 
-void switch_buffer_by_offset_le_VV (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32x offset)
+static void switch_buffer_by_offset_le_VV (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32x offset)
 {
   #if VECT_SIZE == 1
 
@@ -61678,7 +60842,7 @@ void switch_buffer_by_offset_le_VV (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[
   #endif
 }
 
-void switch_buffer_by_offset_8x4_le_VV (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32x offset)
+static void switch_buffer_by_offset_8x4_le_VV (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32x offset)
 {
   #if VECT_SIZE == 1
 
@@ -61858,7 +61022,7 @@ void switch_buffer_by_offset_8x4_le_VV (u32x w0[4], u32x w1[4], u32x w2[4], u32x
   #endif
 }
 
-void append_0x01_2x4_VV (u32x w0[4], u32x w1[4], const u32x offset)
+static void append_0x01_2x4_VV (u32x w0[4], u32x w1[4], const u32x offset)
 {
   #if VECT_SIZE == 1
 
@@ -61916,7 +61080,7 @@ void append_0x01_2x4_VV (u32x w0[4], u32x w1[4], const u32x offset)
   #endif
 }
 
-void append_0x80_2x4_VV (u32x w0[4], u32x w1[4], const u32x offset)
+static void append_0x80_2x4_VV (u32x w0[4], u32x w1[4], const u32x offset)
 {
   #if VECT_SIZE == 1
 
@@ -61974,7 +61138,7 @@ void append_0x80_2x4_VV (u32x w0[4], u32x w1[4], const u32x offset)
   #endif
 }
 
-void append_0x80_4x4_VV (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32x offset)
+static void append_0x80_4x4_VV (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32x offset)
 {
   #if VECT_SIZE == 1
 
@@ -62034,9 +61198,9 @@ void append_0x80_4x4_VV (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u
   #endif
 }
 
-__kernel void gpu_memset (__global uint4 *buf, const u32 value, const u32 gid_max)
+__kernel void gpu_memset (__global uint4 *buf, const u32 value, const u64 gid_max)
 {
-  const u32 gid = get_global_id (0);
+  const u64 gid = get_global_id (0);
 
   if (gid >= gid_max) return;
 

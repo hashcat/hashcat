@@ -1,33 +1,68 @@
 * changes v3.6.0 -> xxx:
 
 ##
+## Features
+##
+
+- Added support to crack passwords and salts up to length 256
+- Added option --optimized-kernel-enable to use faster kernels but limit the maximum supported password- and salt-length
+- Added self-test functionality for OpenCL kernels on startup
+- Added option --self-test-disable to disable self-test functionality on startup
+- Added option --wordlist-autohex-disable to disable the automatical conversion of $HEX[] words from the word list
+
+##
 ## Algorithms
 ##
 
 - Added hash-mode  2501 = WPA/WPA2 PMK
 
 ##
-## Features
-##
-
-- Added more preparations to support to crack passwords and salts up to length 256 (unfinished yet)
-- Added option --length-limit-disable to disable optimization based on password- and salt-length
-- Added self-test functionality for OpenCL kernels on startup
-- Added option --self-test-disable to disable self-test functionality on startup
-
-##
 ## Bugs
 ##
 
+- Fixed a memory problem that occured when the OpenCL folder was not found and e.g. the shared and session folder were the same
+- Fixed a missing barrier() call in the RACF OpenCL kernel
+- Fixed a missing salt length value in benchmark mode for SIP
+- Fixed an invalid progress value in status view if words from the base wordlist get rejected because of length
 - Fixed a parser error for mode -m 9820 = MS Office <= 2003 $3, SHA1 + RC4, collider #2
 - Fixed a problem with changed current working directory, for instance by using --restore together with --remove
+- Fixed the calculation of device_name_chksum; should be done for each iteration
+- Fixed the estimated time value whenever the value is very large and overflows
+- Fixed the parsing of command line options. It doesn't show two times the same error about an invalid option anymore
+- Fixed the parsing of DCC2 hashes by allowing the "#" character within the user name
+- Fixed the parsing of descrypt hashes if the hashes do have non-standard characters within the salt
+- Fixed the version number used in the restore file header
 
 ##
 ## Improvements
 ##
 
+- Charset: Add additional DES charsets with corrected parity
+- OpenCL Kernels: Improved performance of SHA-3 Kernel (keccak) by hardcoding the 0x80 stopbit
+- OpenCL Kernels: Move from ld.global.v4.u32 to ld.const.v4.u32 in _a3 kernels
+- OpenCL Kernels: Replace bitwise swaps with rotate() versions for AMD
+- OpenCL Kernels: Rewritten SIP kernel from scratch
+- OpenCL Kernels: Updated default scrypt TMTO to be ideal for latest NV and AMD top models
+- OpenCL Kernels: Vectorized tons of slow kernels to improve CPU cracking speed
 - OpenCL Runtime: Updated AMD ROCm driver version check, warn if version < 1.1
 - WPA cracking: Improved nonce-error-corrections mode to use a both positive and negative corrections
+
+##
+## Technical
+##
+
+- General: Update C standard from c99 to gnu99
+- Hash Parser: Improved salt-length checks for generic hash modes
+- HCstat File: Add code to read LZMA compressed hashcat.hcstat2
+- HCstat File: Add hcstat2 support to enable masks of length up to 256, also adds a filetype header
+- OpenCL Kernels: Added code generator for most of the switch_* functions and replaced existing code
+- OpenCL Kernels: Declared all include functions as static to reduce binary kernel cache size
+- OpenCL Kernels: On AMD GPU, optimized kernels for use with AMD ROCm driver
+- OpenCL Kernels: Removed some include functions that are no longer needed to reduce compile time
+- OpenCL Runtime: Fall back to 64 threads default (from 256) because modern GPU create too many workitems otherwise
+- OpenCL Runtime: Forcing OpenCL 1.2 no longer needed. Option removed from build options
+- Restore: Fixed the version number used in the restore file header
+- Time: added new type for time measurements hc_time_t and related functions to force the use of 64 bit times
 
 * changes v3.5.0 -> v3.6.0:
 

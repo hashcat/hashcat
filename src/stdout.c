@@ -8,6 +8,7 @@
 #include "event.h"
 #include "locking.h"
 #include "rp_kernel_on_cpu.h"
+#include "rp_kernel_on_cpu_optimized.h"
 #include "mpsp.h"
 #include "opencl.h"
 #include "shared.h"
@@ -112,18 +113,28 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
         return -1;
       }
 
-      const u32 pos = device_param->innerloop_pos;
-
       for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
       {
-        for (int i = 0; i < 64; i++)
+        const u32 off = device_param->innerloop_pos + il_pos;
+
+        if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
         {
-          plain_buf[i] = pw.i[i];
+          for (int i = 0; i < 8; i++)
+          {
+            plain_buf[i] = pw.i[i];
+          }
+
+          plain_len = apply_rules_optimized (straight_ctx->kernel_rules_buf[off].cmds, &plain_buf[0], &plain_buf[4], pw.pw_len);
         }
+        else
+        {
+          for (int i = 0; i < 64; i++)
+          {
+            plain_buf[i] = pw.i[i];
+          }
 
-        plain_len = pw.pw_len;
-
-        plain_len = apply_rules (straight_ctx->kernel_rules_buf[pos + il_pos].cmds, &plain_buf[0], &plain_buf[4], plain_len);
+          plain_len = (int) apply_rules (straight_ctx->kernel_rules_buf[off].cmds, plain_buf, pw.pw_len);
+        }
 
         if (plain_len > hashconfig->pw_max) plain_len = hashconfig->pw_max;
 

@@ -8,7 +8,8 @@
 
 #include <string.h>
 
-#define RP_RULE_BUFSIZ 0x100
+#define RP_RULE_SIZE      256
+#define RP_PASSWORD_SIZE  256
 
 #define INCR_RULES 10000
 
@@ -23,7 +24,7 @@ bool class_alpha (const u8 c);
 int conv_ctoi (const u8 c);
 int conv_itoc (const u8 c);
 
-int generate_random_rule (char rule_buf[RP_RULE_BUFSIZ], const u32 rp_gen_func_min, const u32 rp_gen_func_max);
+int generate_random_rule (char rule_buf[RP_RULE_SIZE], const u32 rp_gen_func_min, const u32 rp_gen_func_max);
 
 int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule);
 int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule);

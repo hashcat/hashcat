@@ -38,275 +38,123 @@ typedef struct
 
 void orig_sha256_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest)
 {
-  u32 a = digest[0];
-  u32 b = digest[1];
-  u32 c = digest[2];
-  u32 d = digest[3];
-  u32 e = digest[4];
-  u32 f = digest[5];
-  u32 g = digest[6];
-  u32 h = digest[7];
+  u32 t0[4];
+  u32 t1[4];
+  u32 t2[4];
+  u32 t3[4];
 
-  u32 w0_t = swap32 (w0[0]);
-  u32 w1_t = swap32 (w0[1]);
-  u32 w2_t = swap32 (w0[2]);
-  u32 w3_t = swap32 (w0[3]);
-  u32 w4_t = swap32 (w1[0]);
-  u32 w5_t = swap32 (w1[1]);
-  u32 w6_t = swap32 (w1[2]);
-  u32 w7_t = swap32 (w1[3]);
-  u32 w8_t = swap32 (w2[0]);
-  u32 w9_t = swap32 (w2[1]);
-  u32 wa_t = swap32 (w2[2]);
-  u32 wb_t = swap32 (w2[3]);
-  u32 wc_t = swap32 (w3[0]);
-  u32 wd_t = swap32 (w3[1]);
-  u32 we_t = swap32 (w3[2]);
-  u32 wf_t = swap32 (w3[3]);
+  t0[0] = swap32_S (w0[0]);
+  t0[1] = swap32_S (w0[1]);
+  t0[2] = swap32_S (w0[2]);
+  t0[3] = swap32_S (w0[3]);
+  t1[0] = swap32_S (w1[0]);
+  t1[1] = swap32_S (w1[1]);
+  t1[2] = swap32_S (w1[2]);
+  t1[3] = swap32_S (w1[3]);
+  t2[0] = swap32_S (w2[0]);
+  t2[1] = swap32_S (w2[1]);
+  t2[2] = swap32_S (w2[2]);
+  t2[3] = swap32_S (w2[3]);
+  t3[0] = swap32_S (w3[0]);
+  t3[1] = swap32_S (w3[1]);
+  t3[2] = swap32_S (w3[2]);
+  t3[3] = swap32_S (w3[3]);
 
-  #define ROUND256_EXPAND()                         \
-  {                                                 \
-    w0_t = SHA256_EXPAND (we_t, w9_t, w1_t, w0_t);  \
-    w1_t = SHA256_EXPAND (wf_t, wa_t, w2_t, w1_t);  \
-    w2_t = SHA256_EXPAND (w0_t, wb_t, w3_t, w2_t);  \
-    w3_t = SHA256_EXPAND (w1_t, wc_t, w4_t, w3_t);  \
-    w4_t = SHA256_EXPAND (w2_t, wd_t, w5_t, w4_t);  \
-    w5_t = SHA256_EXPAND (w3_t, we_t, w6_t, w5_t);  \
-    w6_t = SHA256_EXPAND (w4_t, wf_t, w7_t, w6_t);  \
-    w7_t = SHA256_EXPAND (w5_t, w0_t, w8_t, w7_t);  \
-    w8_t = SHA256_EXPAND (w6_t, w1_t, w9_t, w8_t);  \
-    w9_t = SHA256_EXPAND (w7_t, w2_t, wa_t, w9_t);  \
-    wa_t = SHA256_EXPAND (w8_t, w3_t, wb_t, wa_t);  \
-    wb_t = SHA256_EXPAND (w9_t, w4_t, wc_t, wb_t);  \
-    wc_t = SHA256_EXPAND (wa_t, w5_t, wd_t, wc_t);  \
-    wd_t = SHA256_EXPAND (wb_t, w6_t, we_t, wd_t);  \
-    we_t = SHA256_EXPAND (wc_t, w7_t, wf_t, we_t);  \
-    wf_t = SHA256_EXPAND (wd_t, w8_t, w0_t, wf_t);  \
-  }
-
-  #define ROUND256_STEP(i)                                                                \
-  {                                                                                       \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, a, b, c, d, e, f, g, h, w0_t, k_sha256[i +  0]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, h, a, b, c, d, e, f, g, w1_t, k_sha256[i +  1]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, g, h, a, b, c, d, e, f, w2_t, k_sha256[i +  2]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, f, g, h, a, b, c, d, e, w3_t, k_sha256[i +  3]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, e, f, g, h, a, b, c, d, w4_t, k_sha256[i +  4]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, d, e, f, g, h, a, b, c, w5_t, k_sha256[i +  5]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, c, d, e, f, g, h, a, b, w6_t, k_sha256[i +  6]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, b, c, d, e, f, g, h, a, w7_t, k_sha256[i +  7]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, a, b, c, d, e, f, g, h, w8_t, k_sha256[i +  8]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, h, a, b, c, d, e, f, g, w9_t, k_sha256[i +  9]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, g, h, a, b, c, d, e, f, wa_t, k_sha256[i + 10]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, f, g, h, a, b, c, d, e, wb_t, k_sha256[i + 11]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, e, f, g, h, a, b, c, d, wc_t, k_sha256[i + 12]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, d, e, f, g, h, a, b, c, wd_t, k_sha256[i + 13]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, c, d, e, f, g, h, a, b, we_t, k_sha256[i + 14]); \
-    SHA256_STEP (SHA256_F0o, SHA256_F1o, b, c, d, e, f, g, h, a, wf_t, k_sha256[i + 15]); \
-  }
-
-  ROUND256_STEP (0);
-
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (int i = 16; i < 64; i += 16)
-  {
-    ROUND256_EXPAND (); ROUND256_STEP (i);
-  }
-
-  #undef ROUND256_EXPAND
-  #undef ROUND256_STEP
-
-  digest[0] += a;
-  digest[1] += b;
-  digest[2] += c;
-  digest[3] += d;
-  digest[4] += e;
-  digest[5] += f;
-  digest[6] += g;
-  digest[7] += h;
+  sha256_transform (t0, t1, t2, t3, digest);
 }
 
 void orig_sha384_transform (const u64 *w0, const u64 *w1, const u64 *w2, const u64 *w3, u64 *digest)
 {
-  u64 a = digest[0];
-  u64 b = digest[1];
-  u64 c = digest[2];
-  u64 d = digest[3];
-  u64 e = digest[4];
-  u64 f = digest[5];
-  u64 g = digest[6];
-  u64 h = digest[7];
+  u32 t0[4];
+  u32 t1[4];
+  u32 t2[4];
+  u32 t3[4];
+  u32 t4[4];
+  u32 t5[4];
+  u32 t6[4];
+  u32 t7[4];
 
-  u64 w0_t = swap64 (w0[0]);
-  u64 w1_t = swap64 (w0[1]);
-  u64 w2_t = swap64 (w0[2]);
-  u64 w3_t = swap64 (w0[3]);
-  u64 w4_t = swap64 (w1[0]);
-  u64 w5_t = swap64 (w1[1]);
-  u64 w6_t = swap64 (w1[2]);
-  u64 w7_t = swap64 (w1[3]);
-  u64 w8_t = swap64 (w2[0]);
-  u64 w9_t = swap64 (w2[1]);
-  u64 wa_t = swap64 (w2[2]);
-  u64 wb_t = swap64 (w2[3]);
-  u64 wc_t = swap64 (w3[0]);
-  u64 wd_t = swap64 (w3[1]);
-  u64 we_t = swap64 (w3[2]);
-  u64 wf_t = swap64 (w3[3]);
+  t0[0] = swap32_S (l32_from_64_S (w0[0]));
+  t0[1] = swap32_S (h32_from_64_S (w0[0]));
+  t0[2] = swap32_S (l32_from_64_S (w0[1]));
+  t0[3] = swap32_S (h32_from_64_S (w0[1]));
+  t1[0] = swap32_S (l32_from_64_S (w0[2]));
+  t1[1] = swap32_S (h32_from_64_S (w0[2]));
+  t1[2] = swap32_S (l32_from_64_S (w0[3]));
+  t1[3] = swap32_S (h32_from_64_S (w0[3]));
+  t2[0] = swap32_S (l32_from_64_S (w1[0]));
+  t2[1] = swap32_S (h32_from_64_S (w1[0]));
+  t2[2] = swap32_S (l32_from_64_S (w1[1]));
+  t2[3] = swap32_S (h32_from_64_S (w1[1]));
+  t3[0] = swap32_S (l32_from_64_S (w1[2]));
+  t3[1] = swap32_S (h32_from_64_S (w1[2]));
+  t3[2] = swap32_S (l32_from_64_S (w1[3]));
+  t3[3] = swap32_S (h32_from_64_S (w1[3]));
+  t4[0] = swap32_S (l32_from_64_S (w2[0]));
+  t4[1] = swap32_S (h32_from_64_S (w2[0]));
+  t4[2] = swap32_S (l32_from_64_S (w2[1]));
+  t4[3] = swap32_S (h32_from_64_S (w2[1]));
+  t5[0] = swap32_S (l32_from_64_S (w2[2]));
+  t5[1] = swap32_S (h32_from_64_S (w2[2]));
+  t5[2] = swap32_S (l32_from_64_S (w2[3]));
+  t5[3] = swap32_S (h32_from_64_S (w2[3]));
+  t6[0] = swap32_S (l32_from_64_S (w3[0]));
+  t6[1] = swap32_S (h32_from_64_S (w3[0]));
+  t6[2] = swap32_S (l32_from_64_S (w3[1]));
+  t6[3] = swap32_S (h32_from_64_S (w3[1]));
+  t7[0] = swap32_S (l32_from_64_S (w3[2]));
+  t7[1] = swap32_S (h32_from_64_S (w3[2]));
+  t7[2] = swap32_S (l32_from_64_S (w3[3]));
+  t7[3] = swap32_S (h32_from_64_S (w3[3]));
 
-  #define ROUND384_EXPAND()                         \
-  {                                                 \
-    w0_t = SHA384_EXPAND (we_t, w9_t, w1_t, w0_t);  \
-    w1_t = SHA384_EXPAND (wf_t, wa_t, w2_t, w1_t);  \
-    w2_t = SHA384_EXPAND (w0_t, wb_t, w3_t, w2_t);  \
-    w3_t = SHA384_EXPAND (w1_t, wc_t, w4_t, w3_t);  \
-    w4_t = SHA384_EXPAND (w2_t, wd_t, w5_t, w4_t);  \
-    w5_t = SHA384_EXPAND (w3_t, we_t, w6_t, w5_t);  \
-    w6_t = SHA384_EXPAND (w4_t, wf_t, w7_t, w6_t);  \
-    w7_t = SHA384_EXPAND (w5_t, w0_t, w8_t, w7_t);  \
-    w8_t = SHA384_EXPAND (w6_t, w1_t, w9_t, w8_t);  \
-    w9_t = SHA384_EXPAND (w7_t, w2_t, wa_t, w9_t);  \
-    wa_t = SHA384_EXPAND (w8_t, w3_t, wb_t, wa_t);  \
-    wb_t = SHA384_EXPAND (w9_t, w4_t, wc_t, wb_t);  \
-    wc_t = SHA384_EXPAND (wa_t, w5_t, wd_t, wc_t);  \
-    wd_t = SHA384_EXPAND (wb_t, w6_t, we_t, wd_t);  \
-    we_t = SHA384_EXPAND (wc_t, w7_t, wf_t, we_t);  \
-    wf_t = SHA384_EXPAND (wd_t, w8_t, w0_t, wf_t);  \
-  }
-
-  #define ROUND384_STEP(i)                                                                \
-  {                                                                                       \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, a, b, c, d, e, f, g, h, w0_t, k_sha384[i +  0]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, h, a, b, c, d, e, f, g, w1_t, k_sha384[i +  1]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, g, h, a, b, c, d, e, f, w2_t, k_sha384[i +  2]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, f, g, h, a, b, c, d, e, w3_t, k_sha384[i +  3]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, e, f, g, h, a, b, c, d, w4_t, k_sha384[i +  4]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, d, e, f, g, h, a, b, c, w5_t, k_sha384[i +  5]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, c, d, e, f, g, h, a, b, w6_t, k_sha384[i +  6]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, b, c, d, e, f, g, h, a, w7_t, k_sha384[i +  7]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, a, b, c, d, e, f, g, h, w8_t, k_sha384[i +  8]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, h, a, b, c, d, e, f, g, w9_t, k_sha384[i +  9]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, g, h, a, b, c, d, e, f, wa_t, k_sha384[i + 10]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, f, g, h, a, b, c, d, e, wb_t, k_sha384[i + 11]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, e, f, g, h, a, b, c, d, wc_t, k_sha384[i + 12]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, d, e, f, g, h, a, b, c, wd_t, k_sha384[i + 13]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, c, d, e, f, g, h, a, b, we_t, k_sha384[i + 14]); \
-    SHA384_STEP (SHA384_F0o, SHA384_F1o, b, c, d, e, f, g, h, a, wf_t, k_sha384[i + 15]); \
-  }
-
-  ROUND384_STEP (0);
-
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (int i = 16; i < 80; i += 16)
-  {
-    ROUND384_EXPAND (); ROUND384_STEP (i);
-  }
-
-  #undef ROUND384_EXPAND
-  #undef ROUND384_STEP
-
-  digest[0] += a;
-  digest[1] += b;
-  digest[2] += c;
-  digest[3] += d;
-  digest[4] += e;
-  digest[5] += f;
-  digest[6] += g;
-  digest[7] += h;
+  sha384_transform (t0, t1, t2, t3, t4, t5, t6, t7, digest);
 }
 
 void orig_sha512_transform (const u64 *w0, const u64 *w1, const u64 *w2, const u64 *w3, u64 *digest)
 {
-  u64 a = digest[0];
-  u64 b = digest[1];
-  u64 c = digest[2];
-  u64 d = digest[3];
-  u64 e = digest[4];
-  u64 f = digest[5];
-  u64 g = digest[6];
-  u64 h = digest[7];
+  u32 t0[4];
+  u32 t1[4];
+  u32 t2[4];
+  u32 t3[4];
+  u32 t4[4];
+  u32 t5[4];
+  u32 t6[4];
+  u32 t7[4];
 
-  u64 w0_t = swap64 (w0[0]);
-  u64 w1_t = swap64 (w0[1]);
-  u64 w2_t = swap64 (w0[2]);
-  u64 w3_t = swap64 (w0[3]);
-  u64 w4_t = swap64 (w1[0]);
-  u64 w5_t = swap64 (w1[1]);
-  u64 w6_t = swap64 (w1[2]);
-  u64 w7_t = swap64 (w1[3]);
-  u64 w8_t = swap64 (w2[0]);
-  u64 w9_t = swap64 (w2[1]);
-  u64 wa_t = swap64 (w2[2]);
-  u64 wb_t = swap64 (w2[3]);
-  u64 wc_t = swap64 (w3[0]);
-  u64 wd_t = swap64 (w3[1]);
-  u64 we_t = swap64 (w3[2]);
-  u64 wf_t = swap64 (w3[3]);
+  t0[0] = swap32_S (l32_from_64_S (w0[0]));
+  t0[1] = swap32_S (h32_from_64_S (w0[0]));
+  t0[2] = swap32_S (l32_from_64_S (w0[1]));
+  t0[3] = swap32_S (h32_from_64_S (w0[1]));
+  t1[0] = swap32_S (l32_from_64_S (w0[2]));
+  t1[1] = swap32_S (h32_from_64_S (w0[2]));
+  t1[2] = swap32_S (l32_from_64_S (w0[3]));
+  t1[3] = swap32_S (h32_from_64_S (w0[3]));
+  t2[0] = swap32_S (l32_from_64_S (w1[0]));
+  t2[1] = swap32_S (h32_from_64_S (w1[0]));
+  t2[2] = swap32_S (l32_from_64_S (w1[1]));
+  t2[3] = swap32_S (h32_from_64_S (w1[1]));
+  t3[0] = swap32_S (l32_from_64_S (w1[2]));
+  t3[1] = swap32_S (h32_from_64_S (w1[2]));
+  t3[2] = swap32_S (l32_from_64_S (w1[3]));
+  t3[3] = swap32_S (h32_from_64_S (w1[3]));
+  t4[0] = swap32_S (l32_from_64_S (w2[0]));
+  t4[1] = swap32_S (h32_from_64_S (w2[0]));
+  t4[2] = swap32_S (l32_from_64_S (w2[1]));
+  t4[3] = swap32_S (h32_from_64_S (w2[1]));
+  t5[0] = swap32_S (l32_from_64_S (w2[2]));
+  t5[1] = swap32_S (h32_from_64_S (w2[2]));
+  t5[2] = swap32_S (l32_from_64_S (w2[3]));
+  t5[3] = swap32_S (h32_from_64_S (w2[3]));
+  t6[0] = swap32_S (l32_from_64_S (w3[0]));
+  t6[1] = swap32_S (h32_from_64_S (w3[0]));
+  t6[2] = swap32_S (l32_from_64_S (w3[1]));
+  t6[3] = swap32_S (h32_from_64_S (w3[1]));
+  t7[0] = swap32_S (l32_from_64_S (w3[2]));
+  t7[1] = swap32_S (h32_from_64_S (w3[2]));
+  t7[2] = swap32_S (l32_from_64_S (w3[3]));
+  t7[3] = swap32_S (h32_from_64_S (w3[3]));
 
-  #define ROUND512_EXPAND()                         \
-  {                                                 \
-    w0_t = SHA512_EXPAND (we_t, w9_t, w1_t, w0_t);  \
-    w1_t = SHA512_EXPAND (wf_t, wa_t, w2_t, w1_t);  \
-    w2_t = SHA512_EXPAND (w0_t, wb_t, w3_t, w2_t);  \
-    w3_t = SHA512_EXPAND (w1_t, wc_t, w4_t, w3_t);  \
-    w4_t = SHA512_EXPAND (w2_t, wd_t, w5_t, w4_t);  \
-    w5_t = SHA512_EXPAND (w3_t, we_t, w6_t, w5_t);  \
-    w6_t = SHA512_EXPAND (w4_t, wf_t, w7_t, w6_t);  \
-    w7_t = SHA512_EXPAND (w5_t, w0_t, w8_t, w7_t);  \
-    w8_t = SHA512_EXPAND (w6_t, w1_t, w9_t, w8_t);  \
-    w9_t = SHA512_EXPAND (w7_t, w2_t, wa_t, w9_t);  \
-    wa_t = SHA512_EXPAND (w8_t, w3_t, wb_t, wa_t);  \
-    wb_t = SHA512_EXPAND (w9_t, w4_t, wc_t, wb_t);  \
-    wc_t = SHA512_EXPAND (wa_t, w5_t, wd_t, wc_t);  \
-    wd_t = SHA512_EXPAND (wb_t, w6_t, we_t, wd_t);  \
-    we_t = SHA512_EXPAND (wc_t, w7_t, wf_t, we_t);  \
-    wf_t = SHA512_EXPAND (wd_t, w8_t, w0_t, wf_t);  \
-  }
-
-  #define ROUND512_STEP(i)                                                                \
-  {                                                                                       \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, a, b, c, d, e, f, g, h, w0_t, k_sha512[i +  0]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, h, a, b, c, d, e, f, g, w1_t, k_sha512[i +  1]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, g, h, a, b, c, d, e, f, w2_t, k_sha512[i +  2]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, f, g, h, a, b, c, d, e, w3_t, k_sha512[i +  3]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, e, f, g, h, a, b, c, d, w4_t, k_sha512[i +  4]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, d, e, f, g, h, a, b, c, w5_t, k_sha512[i +  5]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, c, d, e, f, g, h, a, b, w6_t, k_sha512[i +  6]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, b, c, d, e, f, g, h, a, w7_t, k_sha512[i +  7]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, a, b, c, d, e, f, g, h, w8_t, k_sha512[i +  8]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, h, a, b, c, d, e, f, g, w9_t, k_sha512[i +  9]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, g, h, a, b, c, d, e, f, wa_t, k_sha512[i + 10]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, f, g, h, a, b, c, d, e, wb_t, k_sha512[i + 11]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, e, f, g, h, a, b, c, d, wc_t, k_sha512[i + 12]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, d, e, f, g, h, a, b, c, wd_t, k_sha512[i + 13]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, c, d, e, f, g, h, a, b, we_t, k_sha512[i + 14]); \
-    SHA512_STEP (SHA512_F0o, SHA512_F1o, b, c, d, e, f, g, h, a, wf_t, k_sha512[i + 15]); \
-  }
-
-  ROUND512_STEP (0);
-
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (int i = 16; i < 80; i += 16)
-  {
-    ROUND512_EXPAND (); ROUND512_STEP (i);
-  }
-
-  #undef ROUND512_EXPAND
-  #undef ROUND512_STEP
-
-  digest[0] += a;
-  digest[1] += b;
-  digest[2] += c;
-  digest[3] += d;
-  digest[4] += e;
-  digest[5] += f;
-  digest[6] += g;
-  digest[7] += h;
+  sha512_transform (t0, t1, t2, t3, t4, t5, t6, t7, digest);
 }
 
 #define AESSZ       16        // AES_BLOCK_SIZE
@@ -667,13 +515,13 @@ u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, SHM_TYPE u32 *s_te0, 
   return ex;
 }
 
-__kernel void m10700_init (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global pdf17l8_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const pdf_t *pdf_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
+__kernel void m10700_init (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global pdf17l8_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const pdf_t *pdf_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
 {
   /**
    * base
    */
 
-  const u32 gid = get_global_id (0);
+  const u64 gid = get_global_id (0);
 
   if (gid >= gid_max) return;
 
@@ -699,11 +547,11 @@ __kernel void m10700_init (__global pw_t *pws, __global const kernel_rule_t *rul
   tmps[gid].W_len     = WORDSZ256;
 }
 
-__kernel void m10700_loop (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global pdf17l8_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const pdf_t *pdf_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
+__kernel void m10700_loop (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global pdf17l8_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const pdf_t *pdf_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
 {
-  const u32 gid = get_global_id (0);
-  const u32 lid = get_local_id (0);
-  const u32 lsz = get_local_size (0);
+  const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
 
   /**
    * aes shared
@@ -799,17 +647,17 @@ __kernel void m10700_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   tmps[gid].W_len     = ctx.W_len;
 }
 
-__kernel void m10700_comp (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global pdf17l8_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const pdf_t *pdf_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
+__kernel void m10700_comp (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global pdf17l8_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const pdf_t *pdf_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
 {
   /**
    * modifier
    */
 
-  const u32 gid = get_global_id (0);
+  const u64 gid = get_global_id (0);
 
   if (gid >= gid_max) return;
 
-  const u32 lid = get_local_id (0);
+  const u64 lid = get_local_id (0);
 
   /**
    * digest

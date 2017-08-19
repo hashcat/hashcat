@@ -21,7 +21,6 @@
 #include "outfile.h"
 #include "potfile.h"
 #include "rp.h"
-#include "rp_kernel_on_cpu.h"
 #include "shared.h"
 #include "thread.h"
 #include "timer.h"
@@ -263,10 +262,10 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   // debug
 
-  u8  debug_rule_buf[BLOCK_SIZE] = { 0 };
+  u8  debug_rule_buf[RP_PASSWORD_SIZE] = { 0 };
   int debug_rule_len  = 0; // -1 error
 
-  u8  debug_plain_ptr[BLOCK_SIZE] = { 0 };
+  u8  debug_plain_ptr[RP_PASSWORD_SIZE] = { 0 };
   int debug_plain_len = 0;
 
   build_debugdata (hashcat_ctx, device_param, plain, debug_rule_buf, &debug_rule_len, debug_plain_ptr, &debug_plain_len);
@@ -389,7 +388,7 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
     {
       hc_thread_mutex_lock (status_ctx->mux_display);
 
-      cpt_ctx->cpt_buf[cpt_ctx->cpt_pos].timestamp = time (NULL);
+      cpt_ctx->cpt_buf[cpt_ctx->cpt_pos].timestamp = hc_time (NULL);
       cpt_ctx->cpt_buf[cpt_ctx->cpt_pos].cracked   = cpt_cracked;
 
       cpt_ctx->cpt_pos++;
@@ -912,8 +911,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-      time_t prev = 0;
-      time_t now  = 0;
+      hc_time_t prev = 0;
+      hc_time_t now  = 0;
 
       while (!feof (fp))
       {
@@ -1073,11 +1072,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           hashes_cnt++;
         }
 
-        time (&now);
+        hc_time (&now);
 
         if ((now - prev) == 0) continue;
 
-        time (&prev);
+        hc_time (&prev);
 
         hashlist_parse_t hashlist_parse;
 

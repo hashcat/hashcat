@@ -30,9 +30,9 @@ int get_runtime_left (const hashcat_ctx_t *hashcat_ctx)
     msec_paused += msec_paused_tmp;
   }
 
-  time_t runtime_cur;
+  hc_time_t runtime_cur;
 
-  time (&runtime_cur);
+  hc_time (&runtime_cur);
 
   const int runtime_left = (int) (status_ctx->runtime_start
                                 + user_options->runtime
@@ -116,9 +116,9 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
   // timer
 
-  time_t last_temp_check_time;
+  hc_time_t last_temp_check_time;
 
-  time (&last_temp_check_time);
+  hc_time (&last_temp_check_time);
 
   u32 slowdown_warnings    = 0;
   u32 performance_warnings = 0;
@@ -168,9 +168,9 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
     {
       hc_thread_mutex_lock (status_ctx->mux_hwmon);
 
-      time_t temp_check_time;
+      hc_time_t temp_check_time;
 
-      time (&temp_check_time);
+      hc_time (&temp_check_time);
 
       u32 Ta = temp_check_time - last_temp_check_time; // set Ta = sleep_time; is not good enough (see --remove etc)
 

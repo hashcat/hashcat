@@ -10,6 +10,7 @@
 #include "convert.h"
 #include "dictstat.h"
 #include "thread.h"
+#include "rp.h"
 #include "rp_cpu.h"
 #include "shared.h"
 #include "wordlist.h"
@@ -34,11 +35,14 @@ u32 convert_from_hex (hashcat_ctx_t *hashcat_ctx, char *line_buf, const u32 line
     return (i);
   }
 
-  if (is_hexify ((const u8 *) line_buf, (const int) line_len) == true)
+  if (user_options->wordlist_autohex_disable == false)
   {
-    const int new_len = exec_unhexify ((const u8 *) line_buf, (const int) line_len, (u8 *) line_buf, (const int) line_len);
+    if (is_hexify ((const u8 *) line_buf, (const int) line_len) == true)
+    {
+      const int new_len = exec_unhexify ((const u8 *) line_buf, (const int) line_len, (u8 *) line_buf, (const int) line_len);
 
-    return (u32) new_len;
+      return (u32) new_len;
+    }
   }
 
   return (line_len);
@@ -203,9 +207,9 @@ void get_next_word (hashcat_ctx_t *hashcat_ctx, FILE *fd, char **out_buf, u32 *o
 
     if (run_rule_engine (user_options_extra->rule_len_l, user_options->rule_buf_l))
     {
-      if (len >= BLOCK_SIZE) continue;
+      if (len >= RP_PASSWORD_SIZE) continue;
 
-      char rule_buf_out[BLOCK_SIZE];
+      char rule_buf_out[RP_PASSWORD_SIZE];
 
       memset (rule_buf_out, 0, sizeof (rule_buf_out));
 
@@ -351,12 +355,12 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
     }
   }
 
-  time_t rt_start;
+  hc_time_t rt_start;
 
-  time (&rt_start);
+  hc_time (&rt_start);
 
-  time_t now  = 0;
-  time_t prev = 0;
+  hc_time_t now  = 0;
+  hc_time_t prev = 0;
 
   u64 comp = 0;
   u64 cnt  = 0;
@@ -400,9 +404,9 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
 
       if (run_rule_engine (user_options_extra->rule_len_l, user_options->rule_buf_l))
       {
-        if (len >= BLOCK_SIZE) continue;
+        if (len >= RP_PASSWORD_SIZE) continue;
 
-        char rule_buf_out[BLOCK_SIZE];
+        char rule_buf_out[RP_PASSWORD_SIZE];
 
         memset (rule_buf_out, 0, sizeof (rule_buf_out));
 
@@ -440,11 +444,11 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
       }
     }
 
-    time (&now);
+    hc_time (&now);
 
     if ((now - prev) == 0) continue;
 
-    time (&prev);
+    hc_time (&prev);
 
     double percent = ((double) comp / (double) d.stat.st_size) * 100;
 
@@ -462,9 +466,9 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
     }
   }
 
-  time_t rt_stop;
+  hc_time_t rt_stop;
 
-  time (&rt_stop);
+  hc_time (&rt_stop);
 
   cache_generate_t cache_generate;
 

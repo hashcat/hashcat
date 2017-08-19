@@ -103,13 +103,13 @@ void hmac_sha512_run_V (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[
   sha512_transform_vector (w0, w1, w2, w3, w4, w5, w6, w7, digest);
 }
 
-__kernel void m06222_init (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global tc64_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const tc_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
+__kernel void m06222_init (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global tc64_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const tc_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
 {
   /**
    * base
    */
 
-  const u32 gid = get_global_id (0);
+  const u64 gid = get_global_id (0);
 
   if (gid >= gid_max) return;
 
@@ -290,9 +290,9 @@ __kernel void m06222_init (__global pw_t *pws, __global const kernel_rule_t *rul
   }
 }
 
-__kernel void m06222_loop (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global tc64_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const tc_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
+__kernel void m06222_loop (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global tc64_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const tc_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
 {
-  const u32 gid = get_global_id (0);
+  const u64 gid = get_global_id (0);
 
   if ((gid * VECT_SIZE) >= gid_max) return;
 
@@ -416,11 +416,11 @@ __kernel void m06222_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   }
 }
 
-__kernel void m06222_comp (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global tc64_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const tc_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u32 gid_max)
+__kernel void m06222_comp (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global tc64_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const tc_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
 {
-  const u32 gid = get_global_id (0);
-  const u32 lid = get_local_id (0);
-  const u32 lsz = get_local_size (0);
+  const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
 
   /**
    * aes shared
@@ -535,14 +535,14 @@ __kernel void m06222_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   u32 ukey3[8];
   #endif
 
-  ukey3[0] = swap32_S (h32_from_64 (tmps[gid].out[ 8]));
-  ukey3[1] = swap32_S (l32_from_64 (tmps[gid].out[ 8]));
-  ukey3[2] = swap32_S (h32_from_64 (tmps[gid].out[ 9]));
-  ukey3[3] = swap32_S (l32_from_64 (tmps[gid].out[ 9]));
-  ukey3[4] = swap32_S (h32_from_64 (tmps[gid].out[10]));
-  ukey3[5] = swap32_S (l32_from_64 (tmps[gid].out[10]));
-  ukey3[6] = swap32_S (h32_from_64 (tmps[gid].out[11]));
-  ukey3[7] = swap32_S (l32_from_64 (tmps[gid].out[11]));
+  ukey3[0] = swap32_S (h32_from_64_S (tmps[gid].out[ 8]));
+  ukey3[1] = swap32_S (l32_from_64_S (tmps[gid].out[ 8]));
+  ukey3[2] = swap32_S (h32_from_64_S (tmps[gid].out[ 9]));
+  ukey3[3] = swap32_S (l32_from_64_S (tmps[gid].out[ 9]));
+  ukey3[4] = swap32_S (h32_from_64_S (tmps[gid].out[10]));
+  ukey3[5] = swap32_S (l32_from_64_S (tmps[gid].out[10]));
+  ukey3[6] = swap32_S (h32_from_64_S (tmps[gid].out[11]));
+  ukey3[7] = swap32_S (l32_from_64_S (tmps[gid].out[11]));
 
   #if defined (IS_APPLE) && defined (IS_GPU)
   volatile u32 ukey4[8];
@@ -550,14 +550,14 @@ __kernel void m06222_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   u32 ukey4[8];
   #endif
 
-  ukey4[0] = swap32_S (h32_from_64 (tmps[gid].out[12]));
-  ukey4[1] = swap32_S (l32_from_64 (tmps[gid].out[12]));
-  ukey4[2] = swap32_S (h32_from_64 (tmps[gid].out[13]));
-  ukey4[3] = swap32_S (l32_from_64 (tmps[gid].out[13]));
-  ukey4[4] = swap32_S (h32_from_64 (tmps[gid].out[14]));
-  ukey4[5] = swap32_S (l32_from_64 (tmps[gid].out[14]));
-  ukey4[6] = swap32_S (h32_from_64 (tmps[gid].out[15]));
-  ukey4[7] = swap32_S (l32_from_64 (tmps[gid].out[15]));
+  ukey4[0] = swap32_S (h32_from_64_S (tmps[gid].out[12]));
+  ukey4[1] = swap32_S (l32_from_64_S (tmps[gid].out[12]));
+  ukey4[2] = swap32_S (h32_from_64_S (tmps[gid].out[13]));
+  ukey4[3] = swap32_S (l32_from_64_S (tmps[gid].out[13]));
+  ukey4[4] = swap32_S (h32_from_64_S (tmps[gid].out[14]));
+  ukey4[5] = swap32_S (l32_from_64_S (tmps[gid].out[14]));
+  ukey4[6] = swap32_S (h32_from_64_S (tmps[gid].out[15]));
+  ukey4[7] = swap32_S (l32_from_64_S (tmps[gid].out[15]));
 
   if (verify_header_aes_twofish (esalt_bufs, ukey1, ukey2, ukey3, ukey4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {

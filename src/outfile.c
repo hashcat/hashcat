@@ -13,6 +13,7 @@
 #include "mpsp.h"
 #include "rp.h"
 #include "rp_kernel_on_cpu.h"
+#include "rp_kernel_on_cpu_optimized.h"
 #include "opencl.h"
 #include "shared.h"
 #include "outfile.h"
@@ -42,16 +43,26 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
     if (rc == -1) return -1;
 
-    for (int i = 0; i < 64; i++)
-    {
-      plain_buf[i] = pw.i[i];
-    }
-
-    plain_len = (int) pw.pw_len;
-
     const u32 off = device_param->innerloop_pos + il_pos;
 
-    plain_len = (int) apply_rules (straight_ctx->kernel_rules_buf[off].cmds, &plain_buf[0], &plain_buf[4], (u32) plain_len);
+    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+    {
+      for (int i = 0; i < 8; i++)
+      {
+        plain_buf[i] = pw.i[i];
+      }
+
+      plain_len = (int) apply_rules_optimized (straight_ctx->kernel_rules_buf[off].cmds, &plain_buf[0], &plain_buf[4], (u32) pw.pw_len);
+    }
+    else
+    {
+      for (int i = 0; i < 64; i++)
+      {
+        plain_buf[i] = pw.i[i];
+      }
+
+      plain_len = (int) apply_rules (straight_ctx->kernel_rules_buf[off].cmds, plain_buf, pw.pw_len);
+    }
 
     if (plain_len > (int) hashconfig->pw_max) plain_len = (int) hashconfig->pw_max;
   }

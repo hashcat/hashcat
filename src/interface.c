@@ -3063,7 +3063,9 @@ int dcc2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   salt_pos++;
 
-  u8 *digest_pos = (u8 *) strchr ((const char *) salt_pos, '#');
+  // search last '#' from the end since the username can consist of a '#' too
+
+  u8 *digest_pos = (u8 *) strrchr ((const char *) salt_pos, '#');
 
   if (digest_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -3784,7 +3786,13 @@ int descrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   salt->salt_buf[0] = itoa64_to_int (input_buf[0])
                     | itoa64_to_int (input_buf[1]) << 6;
 
-  salt->salt_len = 2;
+  // we need to add 2 additional bytes (the salt sign) such that the salt sorting algorithm
+  // doesn't eliminate salts that are identical but have different salt signs
+
+  salt->salt_buf[0] |= input_buf[0] << 16
+                    |  input_buf[1] << 24;
+
+  salt->salt_len = 4; // actually it is only 2 (but we need to add the original salt_sign to it)
 
   u8 tmp_buf[100] = { 0 };
 
@@ -24860,6 +24868,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                   hashconfig->salt_max = 56; break;
       case 12600: hashconfig->salt_min = 64;
                   hashconfig->salt_max = 64; break;
+      case 15000: hashconfig->salt_min = 64;
+                  hashconfig->salt_max = 64; break;
     }
   }
 
@@ -24919,11 +24929,11 @@ u32 hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_p
 
     if (scrypt_l)
     {
-      kernel_threads = 256 / scrypt_l;
+      kernel_threads = KERNEL_THREADS_MAX / scrypt_l;
     }
     else
     {
-      kernel_threads = 256;
+      kernel_threads = KERNEL_THREADS_MAX;
     }
   }
 
@@ -25197,6 +25207,9 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
       case 10700: ((pdf_t *)           esalt)->id_len        = 16;
                   ((pdf_t *)           esalt)->o_len         = 127;
                   ((pdf_t *)           esalt)->u_len         = 127;
+                  break;
+      case 11400: ((sip_t *)           esalt)->salt_len      = 2;
+                  ((sip_t *)           esalt)->esalt_len     = 39;
                   break;
       case 13400: ((keepass_t *)       esalt)->version       = 2;
                   break;

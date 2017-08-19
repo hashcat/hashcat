@@ -357,9 +357,9 @@ void setup_seeding (const bool rp_gen_seed_chgd, const u32 rp_gen_seed)
   }
   else
   {
-    time_t ts;
+    hc_time_t ts;
 
-    time (&ts);
+    hc_time (&ts);
 
     srand (ts);
   }
@@ -440,4 +440,41 @@ void hc_fwrite (const void *ptr, size_t size, size_t nmemb, FILE *stream)
   size_t rc = fwrite (ptr, size, nmemb, stream);
 
   if (rc == 0) rc = 0;
+}
+
+
+hc_time_t hc_time (hc_time_t *t)
+{
+  #if defined (_WIN)
+  return _time64 (t);
+  #else
+  return time (t);
+  #endif
+}
+
+struct tm *hc_gmtime (const hc_time_t *t, MAYBE_UNUSED struct tm *result)
+{
+  #if defined (_WIN)
+  return _gmtime64 (t);
+  #else
+  return gmtime_r (t, result);
+  #endif
+}
+
+char *hc_ctime (const hc_time_t *t, char *buf, MAYBE_UNUSED const size_t buf_size)
+{
+  char *etc = NULL;
+
+  #if defined (_WIN)
+  etc = _ctime64 (t);
+
+  if (etc != NULL)
+  {
+    snprintf (buf, buf_size, "%s", etc);
+  }
+  #else
+  etc = ctime_r (t, buf); // buf should have room for at least 26 bytes
+  #endif
+
+  return etc;
 }

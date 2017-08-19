@@ -76,6 +76,7 @@ static const struct option long_options[] =
   {"outfile-check-timer",       required_argument, 0, IDX_OUTFILE_CHECK_TIMER},
   {"outfile-format",            required_argument, 0, IDX_OUTFILE_FORMAT},
   {"outfile",                   required_argument, 0, IDX_OUTFILE},
+  {"wordlist-autohex-disable",  no_argument,       0, IDX_WORDLIST_AUTOHEX_DISABLE},
   {"potfile-disable",           no_argument,       0, IDX_POTFILE_DISABLE},
   {"potfile-path",              required_argument, 0, IDX_POTFILE_PATH},
   {"powertune-enable",          no_argument,       0, IDX_POWERTUNE_ENABLE},
@@ -174,6 +175,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->opencl_platforms          = NULL;
   user_options->opencl_vector_width       = OPENCL_VECTOR_WIDTH;
   user_options->optimized_kernel_enable   = OPTIMIZED_KERNEL_ENABLE;
+  user_options->wordlist_autohex_disable  = WORDLIST_AUTOHEX_DISABLE;
   user_options->outfile_autohex           = OUTFILE_AUTOHEX;
   user_options->outfile_check_dir         = NULL;
   user_options->outfile_check_timer       = OUTFILE_CHECK_TIMER;
@@ -248,7 +250,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
   option_index = 0;
 
-  while (((c = getopt_long (argc, argv, short_options, long_options, &option_index)) != -1) && optopt == 0)
+  while ((c = getopt_long (argc, argv, short_options, long_options, &option_index)) != -1)
   {
     switch (c)
     {
@@ -291,14 +293,18 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
         return -1;
       }
+
+      break;
+
+      case '?':
+      {
+        event_log_error (hashcat_ctx, "Invalid argument specified.");
+
+        return -1;
+      }
+
+      break;
     }
-  }
-
-  if (optopt != 0)
-  {
-    event_log_error (hashcat_ctx, "Invalid argument specified.");
-
-    return -1;
   }
 
   optind = 1;
@@ -306,7 +312,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
   option_index = 0;
 
-  while (((c = getopt_long (argc, argv, short_options, long_options, &option_index)) != -1) && optopt == 0)
+  while ((c = getopt_long (argc, argv, short_options, long_options, &option_index)) != -1)
   {
     switch (c)
     {
@@ -371,6 +377,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
                                           user_options->outfile_format_chgd       = true;           break;
       case IDX_OUTFILE_AUTOHEX_DISABLE:   user_options->outfile_autohex           = false;          break;
       case IDX_OUTFILE_CHECK_TIMER:       user_options->outfile_check_timer       = atoi (optarg);  break;
+      case IDX_WORDLIST_AUTOHEX_DISABLE:  user_options->wordlist_autohex_disable  = true;           break;
       case IDX_HEX_CHARSET:               user_options->hex_charset               = true;           break;
       case IDX_HEX_SALT:                  user_options->hex_salt                  = true;           break;
       case IDX_HEX_WORDLIST:              user_options->hex_wordlist              = true;           break;
@@ -416,21 +423,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_CUSTOM_CHARSET_2:          user_options->custom_charset_2          = optarg;         break;
       case IDX_CUSTOM_CHARSET_3:          user_options->custom_charset_3          = optarg;         break;
       case IDX_CUSTOM_CHARSET_4:          user_options->custom_charset_4          = optarg;         break;
-
-      default:
-      {
-        event_log_error (hashcat_ctx, "Invalid argument specified.");
-
-        return -1;
-      }
     }
-  }
-
-  if (optopt != 0)
-  {
-    event_log_error (hashcat_ctx, "Invalid argument specified.");
-
-    return -1;
   }
 
   user_options->hc_bin = argv[0];
@@ -1422,16 +1415,6 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
       }
     }
   }
-
-  // temp
-
-  if ((user_options->rp_files_cnt > 0) || (user_options->rp_gen > 0))
-  {
-    // pure (unoptimized) kernels do not yet have support for rules, switch to opimized mode
-    // we can remove this after rule engine has been converted
-
-    user_options->optimized_kernel_enable = true;
-  }
 }
 
 void user_options_postprocess (hashcat_ctx_t *hashcat_ctx)
@@ -2153,6 +2136,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->outfile_autohex);
   logfile_top_uint   (user_options->outfile_check_timer);
   logfile_top_uint   (user_options->outfile_format);
+  logfile_top_uint   (user_options->wordlist_autohex_disable);
   logfile_top_uint   (user_options->potfile_disable);
   logfile_top_uint   (user_options->powertune_enable);
   logfile_top_uint   (user_options->progress_only);

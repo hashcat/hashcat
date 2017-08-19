@@ -13,6 +13,7 @@
 #include "shared.h"
 #include "thread.h"
 #include "filehandling.h"
+#include "rp.h"
 #include "rp_cpu.h"
 #include "dispatch.h"
 
@@ -180,11 +181,11 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
       // post-process rule engine
 
-      char rule_buf_out[BLOCK_SIZE];
+      char rule_buf_out[RP_PASSWORD_SIZE];
 
       if (run_rule_engine ((int) user_options_extra->rule_len_l, user_options->rule_buf_l))
       {
-        if (line_len >= BLOCK_SIZE) continue;
+        if (line_len >= RP_PASSWORD_SIZE) continue;
 
         memset (rule_buf_out, 0, sizeof (rule_buf_out));
 
@@ -496,7 +497,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         char *line_buf;
         u32   line_len;
 
-        char rule_buf_out[BLOCK_SIZE];
+        char rule_buf_out[RP_PASSWORD_SIZE];
 
         for ( ; words_cur < words_off; words_cur++) get_next_word (hashcat_ctx_tmp, fd, &line_buf, &line_len);
 
@@ -510,7 +511,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
           if (run_rule_engine ((int) user_options_extra->rule_len_l, user_options->rule_buf_l))
           {
-            if (line_len >= BLOCK_SIZE) continue;
+            if (line_len >= RP_PASSWORD_SIZE) continue;
 
             memset (rule_buf_out, 0, sizeof (rule_buf_out));
 
@@ -562,7 +563,14 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
         for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
         {
-          status_ctx->words_progress_rejected[salt_pos] += words_extra_total * straight_ctx->kernel_rules_cnt;
+          if (attack_kern == ATTACK_KERN_STRAIGHT)
+          {
+            status_ctx->words_progress_rejected[salt_pos] += words_extra_total * straight_ctx->kernel_rules_cnt;
+          }
+          else if (attack_kern == ATTACK_KERN_COMBI)
+          {
+            status_ctx->words_progress_rejected[salt_pos] += words_extra_total * combinator_ctx->combs_cnt;
+          }
         }
 
         hc_thread_mutex_unlock (status_ctx->mux_counter);
