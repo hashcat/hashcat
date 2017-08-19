@@ -563,7 +563,14 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
         for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
         {
-          status_ctx->words_progress_rejected[salt_pos] += words_extra_total * straight_ctx->kernel_rules_cnt;
+          if (attack_kern == ATTACK_KERN_STRAIGHT)
+          {
+            status_ctx->words_progress_rejected[salt_pos] += words_extra_total * straight_ctx->kernel_rules_cnt;
+          }
+          else if (attack_kern == ATTACK_KERN_COMBI)
+          {
+            status_ctx->words_progress_rejected[salt_pos] += words_extra_total * combinator_ctx->combs_cnt;
+          }
         }
 
         hc_thread_mutex_unlock (status_ctx->mux_counter);
