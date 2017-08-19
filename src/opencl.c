@@ -1373,18 +1373,18 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
   return 0;
 }
 
-int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u32 num, const u32 event_update, const u32 iteration)
+int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u64 num, const u32 event_update, const u32 iteration)
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  u32 num_elements = num;
+  u64 num_elements = num;
 
-  device_param->kernel_params_buf32[34] = num;
+  device_param->kernel_params_buf64[34] = num;
 
   cl_kernel kernel          = NULL;
-  u32       kernel_threads  = 0;
+  u64       kernel_threads  = 0;
 
   switch (kern_run)
   {
@@ -1436,9 +1436,16 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
     if (CL_rc == -1) return -1;
   }
 
-  for (u32 i = 24; i <= 34; i++)
+  for (u32 i = 24; i <= 33; i++)
   {
     CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, i, sizeof (cl_uint), device_param->kernel_params[i]);
+
+    if (CL_rc == -1) return -1;
+  }
+
+  for (u32 i = 34; i <= 34; i++)
+  {
+    CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, i, sizeof (cl_ulong), device_param->kernel_params[i]);
 
     if (CL_rc == -1) return -1;
   }
@@ -1566,19 +1573,19 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
   return 0;
 }
 
-int run_kernel_mp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u32 num)
+int run_kernel_mp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u64 num)
 {
-  u32 num_elements = num;
+  u64 num_elements = num;
 
   switch (kern_run)
   {
-    case KERN_RUN_MP:   device_param->kernel_params_mp_buf32[8]   = num; break;
-    case KERN_RUN_MP_R: device_param->kernel_params_mp_r_buf32[8] = num; break;
-    case KERN_RUN_MP_L: device_param->kernel_params_mp_l_buf32[9] = num; break;
+    case KERN_RUN_MP:   device_param->kernel_params_mp_buf64[8]   = num; break;
+    case KERN_RUN_MP_R: device_param->kernel_params_mp_r_buf64[8] = num; break;
+    case KERN_RUN_MP_L: device_param->kernel_params_mp_l_buf64[9] = num; break;
   }
 
   cl_kernel kernel         = NULL;
-  u32       kernel_threads = 0;
+  u64       kernel_threads = 0;
 
   switch (kern_run)
   {
@@ -1610,14 +1617,14 @@ int run_kernel_mp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
                         CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 5, sizeof (cl_uint),  device_param->kernel_params_mp[5]);   if (CL_rc == -1) return -1;
                         CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 6, sizeof (cl_uint),  device_param->kernel_params_mp[6]);   if (CL_rc == -1) return -1;
                         CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 7, sizeof (cl_uint),  device_param->kernel_params_mp[7]);   if (CL_rc == -1) return -1;
-                        CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 8, sizeof (cl_uint),  device_param->kernel_params_mp[8]);   if (CL_rc == -1) return -1;
+                        CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 8, sizeof (cl_ulong), device_param->kernel_params_mp[8]);   if (CL_rc == -1) return -1;
                         break;
     case KERN_RUN_MP_R: CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 3, sizeof (cl_ulong), device_param->kernel_params_mp_r[3]); if (CL_rc == -1) return -1;
                         CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 4, sizeof (cl_uint),  device_param->kernel_params_mp_r[4]); if (CL_rc == -1) return -1;
                         CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 5, sizeof (cl_uint),  device_param->kernel_params_mp_r[5]); if (CL_rc == -1) return -1;
                         CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 6, sizeof (cl_uint),  device_param->kernel_params_mp_r[6]); if (CL_rc == -1) return -1;
                         CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 7, sizeof (cl_uint),  device_param->kernel_params_mp_r[7]); if (CL_rc == -1) return -1;
-                        CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 8, sizeof (cl_uint),  device_param->kernel_params_mp_r[8]); if (CL_rc == -1) return -1;
+                        CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 8, sizeof (cl_ulong), device_param->kernel_params_mp_r[8]); if (CL_rc == -1) return -1;
                         break;
     case KERN_RUN_MP_L: CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 3, sizeof (cl_ulong), device_param->kernel_params_mp_l[3]); if (CL_rc == -1) return -1;
                         CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 4, sizeof (cl_uint),  device_param->kernel_params_mp_l[4]); if (CL_rc == -1) return -1;
@@ -1625,7 +1632,7 @@ int run_kernel_mp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
                         CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 6, sizeof (cl_uint),  device_param->kernel_params_mp_l[6]); if (CL_rc == -1) return -1;
                         CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 7, sizeof (cl_uint),  device_param->kernel_params_mp_l[7]); if (CL_rc == -1) return -1;
                         CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 8, sizeof (cl_uint),  device_param->kernel_params_mp_l[8]); if (CL_rc == -1) return -1;
-                        CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 9, sizeof (cl_uint),  device_param->kernel_params_mp_l[9]); if (CL_rc == -1) return -1;
+                        CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 9, sizeof (cl_ulong), device_param->kernel_params_mp_l[9]); if (CL_rc == -1) return -1;
                         break;
   }
 
@@ -1649,9 +1656,9 @@ int run_kernel_mp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
 int run_kernel_tm (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
-  const u32 num_elements = 1024; // fixed
+  const u64 num_elements = 1024; // fixed
 
-  u32 kernel_threads = device_param->kernel_threads_by_wgs_kernel_tm;
+  const u64 kernel_threads = device_param->kernel_threads_by_wgs_kernel_tm;
 
   cl_kernel kernel = device_param->kernel_tm;
 
@@ -1675,16 +1682,16 @@ int run_kernel_tm (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   return 0;
 }
 
-int run_kernel_amp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 num)
+int run_kernel_amp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 num)
 {
-  u32 num_elements = num;
+  u64 num_elements = num;
 
-  device_param->kernel_params_amp_buf32[6] = num_elements;
+  device_param->kernel_params_amp_buf64[6] = num_elements;
 
   // causes problems with special threads like in bcrypt
   // const u32 kernel_threads = device_param->kernel_threads;
 
-  u32 kernel_threads = device_param->kernel_threads_by_wgs_kernel_amp;
+  const u64 kernel_threads = device_param->kernel_threads_by_wgs_kernel_amp;
 
   while (num_elements % kernel_threads) num_elements++;
 
@@ -1692,7 +1699,7 @@ int run_kernel_amp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
   int CL_rc;
 
-  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 6, sizeof (cl_uint), device_param->kernel_params_amp[6]);
+  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 6, sizeof (cl_ulong), device_param->kernel_params_amp[6]);
 
   if (CL_rc == -1) return -1;
 
@@ -1714,19 +1721,19 @@ int run_kernel_amp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
   return 0;
 }
 
-int run_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u32 value, const u32 num)
+int run_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u32 value, const u64 size)
 {
-  const u32 num16d = num / 16;
-  const u32 num16m = num % 16;
+  const u64 num16d = size / 16;
+  const u64 num16m = size % 16;
 
   if (num16d)
   {
     device_param->kernel_params_memset_buf32[1] = value;
-    device_param->kernel_params_memset_buf32[2] = num16d;
+    device_param->kernel_params_memset_buf64[2] = num16d;
 
-    u32 kernel_threads = device_param->kernel_threads_by_wgs_kernel_memset;
+    const u64 kernel_threads = device_param->kernel_threads_by_wgs_kernel_memset;
 
-    u32 num_elements = num16d;
+    u64 num_elements = num16d;
 
     while (num_elements % kernel_threads) num_elements++;
 
@@ -1734,9 +1741,9 @@ int run_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
     int CL_rc;
 
-    CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 0, sizeof (cl_mem),  (void *) &buf);                         if (CL_rc == -1) return -1;
-    CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 1, sizeof (cl_uint), device_param->kernel_params_memset[1]); if (CL_rc == -1) return -1;
-    CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 2, sizeof (cl_uint), device_param->kernel_params_memset[2]); if (CL_rc == -1) return -1;
+    CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 0, sizeof (cl_mem),   (void *) &buf);                         if (CL_rc == -1) return -1;
+    CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 1, sizeof (cl_uint),  device_param->kernel_params_memset[1]); if (CL_rc == -1) return -1;
+    CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 2, sizeof (cl_ulong), device_param->kernel_params_memset[2]); if (CL_rc == -1) return -1;
 
     const size_t global_work_size[3] = { num_elements,   1, 1 };
     const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
@@ -1773,7 +1780,7 @@ int run_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
   return 0;
 }
 
-int run_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const size_t size)
+int run_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u64 size)
 {
   return run_kernel_memset (hashcat_ctx, device_param, buf, 0, size);
 }
@@ -4897,7 +4904,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_params_buf32[31] = 0; // digests_cnt
     device_param->kernel_params_buf32[32] = 0; // digests_offset
     device_param->kernel_params_buf32[33] = 0; // combs_mode
-    device_param->kernel_params_buf32[34] = 0; // gid_max
+    device_param->kernel_params_buf64[34] = 0; // gid_max
 
     device_param->kernel_params[ 0] = (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
                                     ? &device_param->d_pws_buf
@@ -4935,14 +4942,14 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_params[31] = &device_param->kernel_params_buf32[31];
     device_param->kernel_params[32] = &device_param->kernel_params_buf32[32];
     device_param->kernel_params[33] = &device_param->kernel_params_buf32[33];
-    device_param->kernel_params[34] = &device_param->kernel_params_buf32[34];
+    device_param->kernel_params[34] = &device_param->kernel_params_buf64[34];
 
     device_param->kernel_params_mp_buf64[3] = 0;
     device_param->kernel_params_mp_buf32[4] = 0;
     device_param->kernel_params_mp_buf32[5] = 0;
     device_param->kernel_params_mp_buf32[6] = 0;
     device_param->kernel_params_mp_buf32[7] = 0;
-    device_param->kernel_params_mp_buf32[8] = 0;
+    device_param->kernel_params_mp_buf64[8] = 0;
 
     if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
     {
@@ -4967,7 +4974,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_params_mp[5] = &device_param->kernel_params_mp_buf32[5];
     device_param->kernel_params_mp[6] = &device_param->kernel_params_mp_buf32[6];
     device_param->kernel_params_mp[7] = &device_param->kernel_params_mp_buf32[7];
-    device_param->kernel_params_mp[8] = &device_param->kernel_params_mp_buf32[8];
+    device_param->kernel_params_mp[8] = &device_param->kernel_params_mp_buf64[8];
 
     device_param->kernel_params_mp_l_buf64[3] = 0;
     device_param->kernel_params_mp_l_buf32[4] = 0;
@@ -4975,7 +4982,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_params_mp_l_buf32[6] = 0;
     device_param->kernel_params_mp_l_buf32[7] = 0;
     device_param->kernel_params_mp_l_buf32[8] = 0;
-    device_param->kernel_params_mp_l_buf32[9] = 0;
+    device_param->kernel_params_mp_l_buf64[9] = 0;
 
     device_param->kernel_params_mp_l[0] = &device_param->d_pws_buf;
     device_param->kernel_params_mp_l[1] = &device_param->d_root_css_buf;
@@ -4986,14 +4993,14 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_params_mp_l[6] = &device_param->kernel_params_mp_l_buf32[6];
     device_param->kernel_params_mp_l[7] = &device_param->kernel_params_mp_l_buf32[7];
     device_param->kernel_params_mp_l[8] = &device_param->kernel_params_mp_l_buf32[8];
-    device_param->kernel_params_mp_l[9] = &device_param->kernel_params_mp_l_buf32[9];
+    device_param->kernel_params_mp_l[9] = &device_param->kernel_params_mp_l_buf64[9];
 
     device_param->kernel_params_mp_r_buf64[3] = 0;
     device_param->kernel_params_mp_r_buf32[4] = 0;
     device_param->kernel_params_mp_r_buf32[5] = 0;
     device_param->kernel_params_mp_r_buf32[6] = 0;
     device_param->kernel_params_mp_r_buf32[7] = 0;
-    device_param->kernel_params_mp_r_buf32[8] = 0;
+    device_param->kernel_params_mp_r_buf64[8] = 0;
 
     device_param->kernel_params_mp_r[0] = &device_param->d_bfs;
     device_param->kernel_params_mp_r[1] = &device_param->d_root_css_buf;
@@ -5003,10 +5010,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_params_mp_r[5] = &device_param->kernel_params_mp_r_buf32[5];
     device_param->kernel_params_mp_r[6] = &device_param->kernel_params_mp_r_buf32[6];
     device_param->kernel_params_mp_r[7] = &device_param->kernel_params_mp_r_buf32[7];
-    device_param->kernel_params_mp_r[8] = &device_param->kernel_params_mp_r_buf32[8];
+    device_param->kernel_params_mp_r[8] = &device_param->kernel_params_mp_r_buf64[8];
 
     device_param->kernel_params_amp_buf32[5] = 0; // combs_mode
-    device_param->kernel_params_amp_buf32[6] = 0; // gid_max
+    device_param->kernel_params_amp_buf64[6] = 0; // gid_max
 
     device_param->kernel_params_amp[0] = &device_param->d_pws_buf;
     device_param->kernel_params_amp[1] = &device_param->d_pws_amp_buf;
@@ -5014,17 +5021,17 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_params_amp[3] = &device_param->d_combs_c;
     device_param->kernel_params_amp[4] = &device_param->d_bfs_c;
     device_param->kernel_params_amp[5] = &device_param->kernel_params_amp_buf32[5];
-    device_param->kernel_params_amp[6] = &device_param->kernel_params_amp_buf32[6];
+    device_param->kernel_params_amp[6] = &device_param->kernel_params_amp_buf64[6];
 
     device_param->kernel_params_tm[0] = &device_param->d_bfs_c;
     device_param->kernel_params_tm[1] = &device_param->d_tm_c;
 
     device_param->kernel_params_memset_buf32[1] = 0; // value
-    device_param->kernel_params_memset_buf32[2] = 0; // gid_max
+    device_param->kernel_params_memset_buf64[2] = 0; // gid_max
 
     device_param->kernel_params_memset[0] = NULL;
     device_param->kernel_params_memset[1] = &device_param->kernel_params_memset_buf32[1];
-    device_param->kernel_params_memset[2] = &device_param->kernel_params_memset_buf32[2];
+    device_param->kernel_params_memset[2] = &device_param->kernel_params_memset_buf64[2];
 
     /**
      * kernel name
@@ -5266,9 +5273,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (CL_rc == -1) return -1;
 
-    CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_memset, 0, sizeof (cl_mem),  device_param->kernel_params_memset[0]); if (CL_rc == -1) return -1;
-    CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_memset, 1, sizeof (cl_uint), device_param->kernel_params_memset[1]); if (CL_rc == -1) return -1;
-    CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_memset, 2, sizeof (cl_uint), device_param->kernel_params_memset[2]); if (CL_rc == -1) return -1;
+    CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_memset, 0, sizeof (cl_mem),   device_param->kernel_params_memset[0]); if (CL_rc == -1) return -1;
+    CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_memset, 1, sizeof (cl_uint),  device_param->kernel_params_memset[1]); if (CL_rc == -1) return -1;
+    CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_memset, 2, sizeof (cl_ulong), device_param->kernel_params_memset[2]); if (CL_rc == -1) return -1;
 
     // MP start
 
@@ -5349,9 +5356,16 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (CL_rc == -1) return -1;
       }
 
-      for (u32 i = 5; i < 7; i++)
+      for (u32 i = 5; i < 6; i++)
       {
         CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_amp, i, sizeof (cl_uint), device_param->kernel_params_amp[i]);
+
+        if (CL_rc == -1) return -1;
+      }
+
+      for (u32 i = 7; i < 7; i++)
+      {
+        CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_amp, i, sizeof (cl_ulong), device_param->kernel_params_amp[i]);
 
         if (CL_rc == -1) return -1;
       }
@@ -5740,10 +5754,12 @@ int opencl_session_update_mp_rl (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_l
     int CL_rc = CL_SUCCESS;
 
     for (u32 i = 3; i < 4; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp_l, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_l[i]); if (CL_rc == -1) return -1; }
-    for (u32 i = 4; i < 9; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp_l, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_l[i]); if (CL_rc == -1) return -1; }
+    for (u32 i = 4; i < 8; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp_l, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_l[i]); if (CL_rc == -1) return -1; }
+    for (u32 i = 9; i < 9; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp_l, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_l[i]); if (CL_rc == -1) return -1; }
 
     for (u32 i = 3; i < 4; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp_r, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_r[i]); if (CL_rc == -1) return -1; }
-    for (u32 i = 4; i < 8; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp_r, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_r[i]); if (CL_rc == -1) return -1; }
+    for (u32 i = 4; i < 7; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp_r, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_r[i]); if (CL_rc == -1) return -1; }
+    for (u32 i = 8; i < 8; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp_r, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_r[i]); if (CL_rc == -1) return -1; }
 
     CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_root_css_buf,   CL_TRUE, 0, device_param->size_root_css,   mask_ctx->root_css_buf,   0, NULL, NULL); if (CL_rc == -1) return -1;
     CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_markov_css_buf, CL_TRUE, 0, device_param->size_markov_css, mask_ctx->markov_css_buf, 0, NULL, NULL); if (CL_rc == -1) return -1;

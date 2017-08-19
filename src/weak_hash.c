@@ -23,7 +23,7 @@ int weak_hash_check (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   device_param->kernel_params_buf32[31] = salt_buf->digests_cnt;
   device_param->kernel_params_buf32[32] = salt_buf->digests_offset;
   device_param->kernel_params_buf32[33] = 0;
-  device_param->kernel_params_buf32[34] = 1;
+  device_param->kernel_params_buf64[34] = 1;
 
   u32 cmd0_rule_old = straight_ctx->kernel_rules_buf[0].cmds[0];
 
@@ -96,7 +96,7 @@ int weak_hash_check (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   device_param->kernel_params_buf32[31] = 0;
   device_param->kernel_params_buf32[32] = 0;
   device_param->kernel_params_buf32[33] = 0;
-  device_param->kernel_params_buf32[34] = 0;
+  device_param->kernel_params_buf64[34] = 0;
 
   straight_ctx->kernel_rules_buf[0].cmds[0] = cmd0_rule_old;
 

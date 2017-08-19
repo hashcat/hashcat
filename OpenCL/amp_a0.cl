@@ -9,9 +9,9 @@
 #include "inc_rp.h"
 #include "inc_rp.cl"
 
-__kernel void amp (__global pw_t *pws, __global pw_t *pws_amp, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, const u32 combs_mode, const u32 gid_max)
+__kernel void amp (__global pw_t *pws, __global pw_t *pws_amp, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, const u32 combs_mode, const u64 gid_max)
 {
-  const u32 gid = get_global_id (0);
+  const u64 gid = get_global_id (0);
 
   if (gid >= gid_max) return;
 

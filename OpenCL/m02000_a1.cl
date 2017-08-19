@@ -5,7 +5,7 @@
 
 __kernel void gpu_memset (__global uint4 *buf, const uint value, const uint gid_max)
 {
-  const uint gid = get_global_id (0);
+  const u64 gid = get_global_id (0);
 
   if (gid >= gid_max) return;
 

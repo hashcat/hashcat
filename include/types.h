@@ -1101,6 +1101,7 @@ typedef struct hc_device_param
   void   *kernel_params_memset[PARAMCNT];
 
   u32     kernel_params_buf32[PARAMCNT];
+  u64     kernel_params_buf64[PARAMCNT];
 
   u32     kernel_params_mp_buf32[PARAMCNT];
   u64     kernel_params_mp_buf64[PARAMCNT];
@@ -1112,7 +1113,10 @@ typedef struct hc_device_param
   u64     kernel_params_mp_l_buf64[PARAMCNT];
 
   u32     kernel_params_amp_buf32[PARAMCNT];
+  u64     kernel_params_amp_buf64[PARAMCNT];
+
   u32     kernel_params_memset_buf32[PARAMCNT];
+  u64     kernel_params_memset_buf64[PARAMCNT];
 
 } hc_device_param_t;
 

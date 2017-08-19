@@ -448,7 +448,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   device_param->kernel_params_buf32[31] = 0;
   device_param->kernel_params_buf32[32] = 0;
   device_param->kernel_params_buf32[33] = 0;
-  device_param->kernel_params_buf32[34] = 0;
+  device_param->kernel_params_buf64[34] = 0;
 
   device_param->kernel_params[15] = &device_param->d_digests_buf;
   device_param->kernel_params[17] = &device_param->d_salt_bufs;

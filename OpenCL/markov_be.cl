@@ -44,9 +44,9 @@ void generate_pw (u32 pw_buf[64], __global const cs_t *root_css_buf, __global co
   if (bits15) pw_buf[15] = (pw_l_len + pw_r_len) * 8;
 }
 
-__kernel void l_markov (__global pw_t *pws_buf_l, __global const cs_t *root_css_buf, __global const cs_t *markov_css_buf, const u64 off, const u32 pw_l_len, const u32 pw_r_len, const u32 mask80, const u32 bits14, const u32 bits15, const u32 gid_max)
+__kernel void l_markov (__global pw_t *pws_buf_l, __global const cs_t *root_css_buf, __global const cs_t *markov_css_buf, const u64 off, const u32 pw_l_len, const u32 pw_r_len, const u32 mask80, const u32 bits14, const u32 bits15, const u64 gid_max)
 {
-  const u32 gid = get_global_id (0);
+  const u64 gid = get_global_id (0);
 
   if (gid >= gid_max) return;
 
@@ -63,9 +63,9 @@ __kernel void l_markov (__global pw_t *pws_buf_l, __global const cs_t *root_css_
   pws_buf_l[gid].pw_len = pw_l_len + pw_r_len;
 }
 
-__kernel void r_markov (__global bf_t *pws_buf_r, __global const cs_t *root_css_buf, __global const cs_t *markov_css_buf, const u64 off, const u32 pw_r_len, const u32 mask80, const u32 bits14, const u32 bits15, const u32 gid_max)
+__kernel void r_markov (__global bf_t *pws_buf_r, __global const cs_t *root_css_buf, __global const cs_t *markov_css_buf, const u64 off, const u32 pw_r_len, const u32 mask80, const u32 bits14, const u32 bits15, const u64 gid_max)
 {
-  const u32 gid = get_global_id (0);
+  const u64 gid = get_global_id (0);
 
   if (gid >= gid_max) return;
 
@@ -76,9 +76,9 @@ __kernel void r_markov (__global bf_t *pws_buf_r, __global const cs_t *root_css_
   pws_buf_r[gid].i = pw_buf[0];
 }
 
-__kernel void C_markov (__global pw_t *pws_buf, __global const cs_t *root_css_buf, __global const cs_t *markov_css_buf, const u64 off, const u32 pw_len, const u32 mask80, const u32 bits14, const u32 bits15, const u32 gid_max)
+__kernel void C_markov (__global pw_t *pws_buf, __global const cs_t *root_css_buf, __global const cs_t *markov_css_buf, const u64 off, const u32 pw_len, const u32 mask80, const u32 bits14, const u32 bits15, const u64 gid_max)
 {
-  const u32 gid = get_global_id (0);
+  const u64 gid = get_global_id (0);
 
   if (gid >= gid_max) return;
 
