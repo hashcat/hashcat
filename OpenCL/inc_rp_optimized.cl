@@ -3,6 +3,8 @@
  * License.....: MIT
  */
 
+#define MAYBE_UNUSED
+
 static u32 generate_cmask (const u32 value)
 {
   const u32 rmask =  ((value & 0x40404040u) >> 1u)
@@ -756,10 +758,6 @@ static void append_block1 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
 
 static void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32 src_l0[4], const u32 src_l1[4], const u32 src_r0[4], const u32 src_r1[4])
 {
-  const int offset_mod_4 = offset & 3;
-
-  const int offset_minus_4 = 4 - offset_mod_4;
-
   u32 s0 = 0;
   u32 s1 = 0;
   u32 s2 = 0;
@@ -882,6 +880,10 @@ static void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
   #endif
 
   #ifdef IS_NV
+  const int offset_mod_4 = offset & 3;
+
+  const int offset_minus_4 = 4 - offset_mod_4;
+
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
 
   const u32 src_r00 = src_r0[0];
@@ -1022,7 +1024,7 @@ static void reverse_block (u32 in0[4], u32 in1[4], u32 out0[4], u32 out1[4], con
   out1[3] = swap32_S (tib41[3]);
 }
 
-static u32 rule_op_mangle_lrest (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_lrest (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   buf0[0] |= (generate_cmask (buf0[0]));
   buf0[1] |= (generate_cmask (buf0[1]));
@@ -1036,7 +1038,7 @@ static u32 rule_op_mangle_lrest (const u32 p0, const u32 p1, u32 buf0[4], u32 bu
   return in_len;
 }
 
-static u32 rule_op_mangle_urest (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_urest (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   buf0[0] &= ~(generate_cmask (buf0[0]));
   buf0[1] &= ~(generate_cmask (buf0[1]));
@@ -1050,7 +1052,7 @@ static u32 rule_op_mangle_urest (const u32 p0, const u32 p1, u32 buf0[4], u32 bu
   return in_len;
 }
 
-static u32 rule_op_mangle_lrest_ufirst (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_lrest_ufirst (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   rule_op_mangle_lrest (p0, p1, buf0, buf1, in_len);
 
@@ -1059,7 +1061,7 @@ static u32 rule_op_mangle_lrest_ufirst (const u32 p0, const u32 p1, u32 buf0[4],
   return in_len;
 }
 
-static u32 rule_op_mangle_urest_lfirst (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_urest_lfirst (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   rule_op_mangle_urest (p0, p1, buf0, buf1, in_len);
 
@@ -1068,7 +1070,7 @@ static u32 rule_op_mangle_urest_lfirst (const u32 p0, const u32 p1, u32 buf0[4],
   return in_len;
 }
 
-static u32 rule_op_mangle_trest (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_trest (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   buf0[0] ^= (generate_cmask (buf0[0]));
   buf0[1] ^= (generate_cmask (buf0[1]));
@@ -1082,7 +1084,7 @@ static u32 rule_op_mangle_trest (const u32 p0, const u32 p1, u32 buf0[4], u32 bu
   return in_len;
 }
 
-static u32 rule_op_mangle_toggle_at (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_toggle_at (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if (p0 >= in_len) return (in_len);
 
@@ -1103,14 +1105,14 @@ static u32 rule_op_mangle_toggle_at (const u32 p0, const u32 p1, u32 buf0[4], u3
   return in_len;
 }
 
-static u32 rule_op_mangle_reverse (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_reverse (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   reverse_block (buf0, buf1, buf0, buf1, in_len);
 
   return in_len;
 }
 
-static u32 rule_op_mangle_dupeword (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_dupeword (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if ((in_len + in_len) >= 32) return (in_len);
 
@@ -1123,7 +1125,7 @@ static u32 rule_op_mangle_dupeword (const u32 p0, const u32 p1, u32 buf0[4], u32
   return out_len;
 }
 
-static u32 rule_op_mangle_dupeword_times (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_dupeword_times (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if (((in_len * p0) + in_len) >= 32) return (in_len);
 
@@ -1151,7 +1153,7 @@ static u32 rule_op_mangle_dupeword_times (const u32 p0, const u32 p1, u32 buf0[4
   return out_len;
 }
 
-static u32 rule_op_mangle_reflect (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_reflect (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if ((in_len + in_len) >= 32) return (in_len);
 
@@ -1169,7 +1171,7 @@ static u32 rule_op_mangle_reflect (const u32 p0, const u32 p1, u32 buf0[4], u32 
   return out_len;
 }
 
-static u32 rule_op_mangle_append (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_append (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if ((in_len + 1) >= 32) return (in_len);
 
@@ -1182,7 +1184,7 @@ static u32 rule_op_mangle_append (const u32 p0, const u32 p1, u32 buf0[4], u32 b
   return out_len;
 }
 
-static u32 rule_op_mangle_prepend (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_prepend (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if ((in_len + 1) >= 32) return (in_len);
 
@@ -1197,7 +1199,7 @@ static u32 rule_op_mangle_prepend (const u32 p0, const u32 p1, u32 buf0[4], u32 
   return out_len;
 }
 
-static u32 rule_op_mangle_rotate_left (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_rotate_left (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if (in_len == 0) return (in_len);
 
@@ -1221,7 +1223,7 @@ static u32 rule_op_mangle_rotate_left (const u32 p0, const u32 p1, u32 buf0[4], 
   return in_len;
 }
 
-static u32 rule_op_mangle_rotate_right (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_rotate_right (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if (in_len == 0) return (in_len);
 
@@ -1251,7 +1253,7 @@ static u32 rule_op_mangle_rotate_right (const u32 p0, const u32 p1, u32 buf0[4],
   return in_len;
 }
 
-static u32 rule_op_mangle_delete_first (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_delete_first (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if (in_len == 0) return (in_len);
 
@@ -1262,7 +1264,7 @@ static u32 rule_op_mangle_delete_first (const u32 p0, const u32 p1, u32 buf0[4],
   return in_len1;
 }
 
-static u32 rule_op_mangle_delete_last (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_delete_last (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if (in_len == 0) return (in_len);
 
@@ -1282,7 +1284,7 @@ static u32 rule_op_mangle_delete_last (const u32 p0, const u32 p1, u32 buf0[4], 
   return in_len1;
 }
 
-static u32 rule_op_mangle_delete_at (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_delete_at (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if (p0 >= in_len) return (in_len);
 
@@ -1357,7 +1359,7 @@ static u32 rule_op_mangle_delete_at (const u32 p0, const u32 p1, u32 buf0[4], u3
   return out_len;
 }
 
-static u32 rule_op_mangle_extract (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_extract (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if (p0 >= in_len) return (in_len);
 
@@ -1372,7 +1374,7 @@ static u32 rule_op_mangle_extract (const u32 p0, const u32 p1, u32 buf0[4], u32 
   return out_len;
 }
 
-static u32 rule_op_mangle_omit (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_omit (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if (p0 >= in_len) return (in_len);
 
@@ -1458,7 +1460,7 @@ static u32 rule_op_mangle_omit (const u32 p0, const u32 p1, u32 buf0[4], u32 buf
   return out_len;
 }
 
-static u32 rule_op_mangle_insert (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_insert (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if (p0 > in_len) return (in_len);
 
@@ -1530,7 +1532,7 @@ static u32 rule_op_mangle_insert (const u32 p0, const u32 p1, u32 buf0[4], u32 b
   return out_len;
 }
 
-static u32 rule_op_mangle_overstrike (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_overstrike (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if (p0 >= in_len) return (in_len);
 
@@ -1553,7 +1555,7 @@ static u32 rule_op_mangle_overstrike (const u32 p0, const u32 p1, u32 buf0[4], u
   return in_len;
 }
 
-static u32 rule_op_mangle_truncate_at (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_truncate_at (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if (p0 >= in_len) return (in_len);
 
@@ -1562,7 +1564,7 @@ static u32 rule_op_mangle_truncate_at (const u32 p0, const u32 p1, u32 buf0[4], 
   return p0;
 }
 
-static u32 rule_op_mangle_replace (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_replace (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   const uchar4 tmp0 = (uchar4) (p0);
   const uchar4 tmp1 = (uchar4) (p1);
@@ -1581,7 +1583,7 @@ static u32 rule_op_mangle_replace (const u32 p0, const u32 p1, u32 buf0[4], u32 
   return in_len;
 }
 
-static u32 rule_op_mangle_purgechar (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_purgechar (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   u32 out_len = 0;
 
@@ -1622,13 +1624,7 @@ static u32 rule_op_mangle_purgechar (const u32 p0, const u32 p1, u32 buf0[4], u3
   return out_len;
 }
 
-static u32 rule_op_mangle_togglecase_rec (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
-{
-  // TODO
-  return in_len;
-}
-
-static u32 rule_op_mangle_dupechar_first (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_dupechar_first (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if ( in_len       ==  0) return (in_len);
   if ((in_len + p0) >= 32) return (in_len);
@@ -1815,7 +1811,7 @@ static u32 rule_op_mangle_dupechar_first (const u32 p0, const u32 p1, u32 buf0[4
   return out_len;
 }
 
-static u32 rule_op_mangle_dupechar_last (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_dupechar_last (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if ( in_len       ==  0) return (in_len);
   if ((in_len + p0) >= 32) return (in_len);
@@ -1849,7 +1845,7 @@ static u32 rule_op_mangle_dupechar_last (const u32 p0, const u32 p1, u32 buf0[4]
   return out_len;
 }
 
-static u32 rule_op_mangle_dupechar_all (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_dupechar_all (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if ( in_len           ==  0) return (in_len);
   if ((in_len + in_len) >= 32) return (in_len);
@@ -1882,7 +1878,7 @@ static u32 rule_op_mangle_dupechar_all (const u32 p0, const u32 p1, u32 buf0[4],
   return out_len;
 }
 
-static u32 rule_op_mangle_switch_first (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_switch_first (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if (in_len < 2) return (in_len);
 
@@ -1891,7 +1887,7 @@ static u32 rule_op_mangle_switch_first (const u32 p0, const u32 p1, u32 buf0[4],
   return in_len;
 }
 
-static u32 rule_op_mangle_switch_last (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_switch_last (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if (in_len < 2) return (in_len);
 
@@ -1976,7 +1972,7 @@ static u32 rule_op_mangle_switch_last (const u32 p0, const u32 p1, u32 buf0[4], 
   return in_len;
 }
 
-static u32 rule_op_mangle_switch_at (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_switch_at (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if (p0 >= in_len) return (in_len);
   if (p1 >= in_len) return (in_len);
@@ -2223,7 +2219,7 @@ static u32 rule_op_mangle_switch_at (const u32 p0, const u32 p1, u32 buf0[4], u3
   return in_len;
 }
 
-static u32 rule_op_mangle_chr_shiftl (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_chr_shiftl (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if (p0 >= in_len) return (in_len);
 
@@ -2245,7 +2241,7 @@ static u32 rule_op_mangle_chr_shiftl (const u32 p0, const u32 p1, u32 buf0[4], u
   return in_len;
 }
 
-static u32 rule_op_mangle_chr_shiftr (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_chr_shiftr (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if (p0 >= in_len) return (in_len);
 
@@ -2267,7 +2263,7 @@ static u32 rule_op_mangle_chr_shiftr (const u32 p0, const u32 p1, u32 buf0[4], u
   return in_len;
 }
 
-static u32 rule_op_mangle_chr_incr (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_chr_incr (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if (p0 >= in_len) return (in_len);
 
@@ -2291,7 +2287,7 @@ static u32 rule_op_mangle_chr_incr (const u32 p0, const u32 p1, u32 buf0[4], u32
   return in_len;
 }
 
-static u32 rule_op_mangle_chr_decr (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_chr_decr (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if (p0 >= in_len) return (in_len);
 
@@ -2315,7 +2311,7 @@ static u32 rule_op_mangle_chr_decr (const u32 p0, const u32 p1, u32 buf0[4], u32
   return in_len;
 }
 
-static u32 rule_op_mangle_replace_np1 (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_replace_np1 (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if ((p0 + 1) >= in_len) return (in_len);
 
@@ -2342,7 +2338,7 @@ static u32 rule_op_mangle_replace_np1 (const u32 p0, const u32 p1, u32 buf0[4], 
   return in_len;
 }
 
-static u32 rule_op_mangle_replace_nm1 (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_replace_nm1 (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if (p0 == 0) return (in_len);
 
@@ -2371,7 +2367,7 @@ static u32 rule_op_mangle_replace_nm1 (const u32 p0, const u32 p1, u32 buf0[4], 
   return in_len;
 }
 
-static u32 rule_op_mangle_dupeblock_first (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_dupeblock_first (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if (p0 > in_len) return (in_len);
 
@@ -2409,7 +2405,7 @@ static u32 rule_op_mangle_dupeblock_first (const u32 p0, const u32 p1, u32 buf0[
   return out_len;
 }
 
-static u32 rule_op_mangle_dupeblock_last (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_dupeblock_last (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if (p0 > in_len) return (in_len);
 
@@ -2438,7 +2434,7 @@ static u32 rule_op_mangle_dupeblock_last (const u32 p0, const u32 p1, u32 buf0[4
   return out_len;
 }
 
-static u32 rule_op_mangle_title_sep (const u32 p0, const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_title_sep (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   buf0[0] |= (generate_cmask (buf0[0]));
   buf0[1] |= (generate_cmask (buf0[1]));

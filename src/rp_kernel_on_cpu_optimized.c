@@ -9,7 +9,7 @@
 #include "rp.h"
 #include "rp_kernel_on_cpu_optimized.h"
 
-static u32 amd_bytealign (const u32 a, const u32 b, const u32 c)
+static u32 amd_bytealign_S (const u32 a, const u32 b, const u32 c)
 {
   const u64 tmp = ((((u64) (a)) << 32) | ((u64) (b))) >> ((c & 3) * 8);
 
@@ -140,321 +140,26 @@ static void truncate_left (u32 buf0[4], u32 buf1[4], const u32 offset)
 
 static void lshift_block (const u32 in0[4], const u32 in1[4], u32 out0[4], u32 out1[4])
 {
-  out0[0] = in0[0] >>  8 | in0[1] << 24;
-  out0[1] = in0[1] >>  8 | in0[2] << 24;
-  out0[2] = in0[2] >>  8 | in0[3] << 24;
-  out0[3] = in0[3] >>  8 | in1[0] << 24;
-  out1[0] = in1[0] >>  8 | in1[1] << 24;
-  out1[1] = in1[1] >>  8 | in1[2] << 24;
-  out1[2] = in1[2] >>  8 | in1[3] << 24;
-  out1[3] = in1[3] >>  8;
+  out0[0] = amd_bytealign_S (in0[1], in0[0], 1);
+  out0[1] = amd_bytealign_S (in0[2], in0[1], 1);
+  out0[2] = amd_bytealign_S (in0[3], in0[2], 1);
+  out0[3] = amd_bytealign_S (in1[0], in0[3], 1);
+  out1[0] = amd_bytealign_S (in1[1], in1[0], 1);
+  out1[1] = amd_bytealign_S (in1[2], in1[1], 1);
+  out1[2] = amd_bytealign_S (in1[3], in1[2], 1);
+  out1[3] = amd_bytealign_S (     0, in1[3], 1);
 }
 
 static void rshift_block (const u32 in0[4], const u32 in1[4], u32 out0[4], u32 out1[4])
 {
-  out1[3] = in1[3] <<  8 | in1[2] >> 24;
-  out1[2] = in1[2] <<  8 | in1[1] >> 24;
-  out1[1] = in1[1] <<  8 | in1[0] >> 24;
-  out1[0] = in1[0] <<  8 | in0[3] >> 24;
-  out0[3] = in0[3] <<  8 | in0[2] >> 24;
-  out0[2] = in0[2] <<  8 | in0[1] >> 24;
-  out0[1] = in0[1] <<  8 | in0[0] >> 24;
-  out0[0] = in0[0] <<  8;
-}
-
-static void rshift_block_N (const u32 in0[4], const u32 in1[4], u32 out0[4], u32 out1[4], const u32 num)
-{
-  switch (num)
-  {
-    case  0:  out1[3] = in1[3];
-              out1[2] = in1[2];
-              out1[1] = in1[1];
-              out1[0] = in1[0];
-              out0[3] = in0[3];
-              out0[2] = in0[2];
-              out0[1] = in0[1];
-              out0[0] = in0[0];
-              break;
-    case  1:  out1[3] = in1[3] <<  8 | in1[2] >> 24;
-              out1[2] = in1[2] <<  8 | in1[1] >> 24;
-              out1[1] = in1[1] <<  8 | in1[0] >> 24;
-              out1[0] = in1[0] <<  8 | in0[3] >> 24;
-              out0[3] = in0[3] <<  8 | in0[2] >> 24;
-              out0[2] = in0[2] <<  8 | in0[1] >> 24;
-              out0[1] = in0[1] <<  8 | in0[0] >> 24;
-              out0[0] = in0[0] <<  8;
-              break;
-    case  2:  out1[3] = in1[3] << 16 | in1[2] >> 16;
-              out1[2] = in1[2] << 16 | in1[1] >> 16;
-              out1[1] = in1[1] << 16 | in1[0] >> 16;
-              out1[0] = in1[0] << 16 | in0[3] >> 16;
-              out0[3] = in0[3] << 16 | in0[2] >> 16;
-              out0[2] = in0[2] << 16 | in0[1] >> 16;
-              out0[1] = in0[1] << 16 | in0[0] >> 16;
-              out0[0] = in0[0] << 16;
-              break;
-    case  3:  out1[3] = in1[3] << 24 | in1[2] >>  8;
-              out1[2] = in1[2] << 24 | in1[1] >>  8;
-              out1[1] = in1[1] << 24 | in1[0] >>  8;
-              out1[0] = in1[0] << 24 | in0[3] >>  8;
-              out0[3] = in0[3] << 24 | in0[2] >>  8;
-              out0[2] = in0[2] << 24 | in0[1] >>  8;
-              out0[1] = in0[1] << 24 | in0[0] >>  8;
-              out0[0] = in0[0] << 24;
-              break;
-    case  4:  out1[3] = in1[2];
-              out1[2] = in1[1];
-              out1[1] = in1[0];
-              out1[0] = in0[3];
-              out0[3] = in0[2];
-              out0[2] = in0[1];
-              out0[1] = in0[0];
-              out0[0] = 0;
-              break;
-    case  5:  out1[3] = in1[2] <<  8 | in1[1] >> 24;
-              out1[2] = in1[1] <<  8 | in1[0] >> 24;
-              out1[1] = in1[0] <<  8 | in0[3] >> 24;
-              out1[0] = in0[3] <<  8 | in0[2] >> 24;
-              out0[3] = in0[2] <<  8 | in0[1] >> 24;
-              out0[2] = in0[1] <<  8 | in0[0] >> 24;
-              out0[1] = in0[0] <<  8;
-              out0[0] = 0;
-              break;
-    case  6:  out1[3] = in1[2] << 16 | in1[1] >> 16;
-              out1[2] = in1[1] << 16 | in1[0] >> 16;
-              out1[1] = in1[0] << 16 | in0[3] >> 16;
-              out1[0] = in0[3] << 16 | in0[2] >> 16;
-              out0[3] = in0[2] << 16 | in0[1] >> 16;
-              out0[2] = in0[1] << 16 | in0[0] >> 16;
-              out0[1] = in0[0] << 16;
-              out0[0] = 0;
-              break;
-    case  7:  out1[3] = in1[2] << 24 | in1[1] >>  8;
-              out1[2] = in1[1] << 24 | in1[0] >>  8;
-              out1[1] = in1[0] << 24 | in0[3] >>  8;
-              out1[0] = in0[3] << 24 | in0[2] >>  8;
-              out0[3] = in0[2] << 24 | in0[1] >>  8;
-              out0[2] = in0[1] << 24 | in0[0] >>  8;
-              out0[1] = in0[0] << 24;
-              out0[0] = 0;
-              break;
-    case  8:  out1[3] = in1[1];
-              out1[2] = in1[0];
-              out1[1] = in0[3];
-              out1[0] = in0[2];
-              out0[3] = in0[1];
-              out0[2] = in0[0];
-              out0[1] = 0;
-              out0[0] = 0;
-              break;
-    case  9:  out1[3] = in1[1] <<  8 | in1[0] >> 24;
-              out1[2] = in1[0] <<  8 | in0[3] >> 24;
-              out1[1] = in0[3] <<  8 | in0[2] >> 24;
-              out1[0] = in0[2] <<  8 | in0[1] >> 24;
-              out0[3] = in0[1] <<  8 | in0[0] >> 24;
-              out0[2] = in0[0] <<  8;
-              out0[1] = 0;
-              out0[0] = 0;
-              break;
-    case 10:  out1[3] = in1[1] << 16 | in1[0] >> 16;
-              out1[2] = in1[0] << 16 | in0[3] >> 16;
-              out1[1] = in0[3] << 16 | in0[2] >> 16;
-              out1[0] = in0[2] << 16 | in0[1] >> 16;
-              out0[3] = in0[1] << 16 | in0[0] >> 16;
-              out0[2] = in0[0] << 16;
-              out0[1] = 0;
-              out0[0] = 0;
-              break;
-    case 11:  out1[3] = in1[1] << 24 | in1[0] >>  8;
-              out1[2] = in1[0] << 24 | in0[3] >>  8;
-              out1[1] = in0[3] << 24 | in0[2] >>  8;
-              out1[0] = in0[2] << 24 | in0[1] >>  8;
-              out0[3] = in0[1] << 24 | in0[0] >>  8;
-              out0[2] = in0[0] << 24;
-              out0[1] = 0;
-              out0[0] = 0;
-              break;
-    case 12:  out1[3] = in1[0];
-              out1[2] = in0[3];
-              out1[1] = in0[2];
-              out1[0] = in0[1];
-              out0[3] = in0[0];
-              out0[2] = 0;
-              out0[1] = 0;
-              out0[0] = 0;
-              break;
-    case 13:  out1[3] = in1[0] <<  8 | in0[3] >> 24;
-              out1[2] = in0[3] <<  8 | in0[2] >> 24;
-              out1[1] = in0[2] <<  8 | in0[1] >> 24;
-              out1[0] = in0[1] <<  8 | in0[0] >> 24;
-              out0[3] = in0[0] <<  8;
-              out0[2] = 0;
-              out0[1] = 0;
-              out0[0] = 0;
-              break;
-    case 14:  out1[3] = in1[0] << 16 | in0[3] >> 16;
-              out1[2] = in0[3] << 16 | in0[2] >> 16;
-              out1[1] = in0[2] << 16 | in0[1] >> 16;
-              out1[0] = in0[1] << 16 | in0[0] >> 16;
-              out0[3] = in0[0] << 16;
-              out0[2] = 0;
-              out0[1] = 0;
-              out0[0] = 0;
-              break;
-    case 15:  out1[3] = in1[0] << 24 | in0[3] >>  8;
-              out1[2] = in0[3] << 24 | in0[2] >>  8;
-              out1[1] = in0[2] << 24 | in0[1] >>  8;
-              out1[0] = in0[1] << 24 | in0[0] >>  8;
-              out0[3] = in0[0] << 24;
-              out0[2] = 0;
-              out0[1] = 0;
-              out0[0] = 0;
-              break;
-    case 16:  out1[3] = in0[3];
-              out1[2] = in0[2];
-              out1[1] = in0[1];
-              out1[0] = in0[0];
-              out0[3] = 0;
-              out0[2] = 0;
-              out0[1] = 0;
-              out0[0] = 0;
-              break;
-    case 17:  out1[3] = in0[3] <<  8 | in0[2] >> 24;
-              out1[2] = in0[2] <<  8 | in0[1] >> 24;
-              out1[1] = in0[1] <<  8 | in0[0] >> 24;
-              out1[0] = in0[0] <<  8;
-              out0[3] = 0;
-              out0[2] = 0;
-              out0[1] = 0;
-              out0[0] = 0;
-              break;
-    case 18:  out1[3] = in0[3] << 16 | in0[2] >> 16;
-              out1[2] = in0[2] << 16 | in0[1] >> 16;
-              out1[1] = in0[1] << 16 | in0[0] >> 16;
-              out1[0] = in0[0] << 16;
-              out0[3] = 0;
-              out0[2] = 0;
-              out0[1] = 0;
-              out0[0] = 0;
-              break;
-    case 19:  out1[3] = in0[3] << 24 | in0[2] >>  8;
-              out1[2] = in0[2] << 24 | in0[1] >>  8;
-              out1[1] = in0[1] << 24 | in0[0] >>  8;
-              out1[0] = in0[0] << 24;
-              out0[3] = 0;
-              out0[2] = 0;
-              out0[1] = 0;
-              out0[0] = 0;
-              break;
-    case 20:  out1[3] = in0[2];
-              out1[2] = in0[1];
-              out1[1] = in0[0];
-              out1[0] = 0;
-              out0[3] = 0;
-              out0[2] = 0;
-              out0[1] = 0;
-              out0[0] = 0;
-              break;
-    case 21:  out1[3] = in0[2] <<  8 | in0[1] >> 24;
-              out1[2] = in0[1] <<  8 | in0[0] >> 24;
-              out1[1] = in0[0] <<  8;
-              out1[0] = 0;
-              out0[3] = 0;
-              out0[2] = 0;
-              out0[1] = 0;
-              out0[0] = 0;
-              break;
-    case 22:  out1[3] = in0[2] << 16 | in0[1] >> 16;
-              out1[2] = in0[1] << 16 | in0[0] >> 16;
-              out1[1] = in0[0] << 16;
-              out1[0] = 0;
-              out0[3] = 0;
-              out0[2] = 0;
-              out0[1] = 0;
-              out0[0] = 0;
-              break;
-    case 23:  out1[3] = in0[2] << 24 | in0[1] >>  8;
-              out1[2] = in0[1] << 24 | in0[0] >>  8;
-              out1[1] = in0[0] << 24;
-              out1[0] = 0;
-              out0[3] = 0;
-              out0[2] = 0;
-              out0[1] = 0;
-              out0[0] = 0;
-              break;
-    case 24:  out1[3] = in0[1];
-              out1[2] = in0[0];
-              out1[1] = 0;
-              out1[0] = 0;
-              out0[3] = 0;
-              out0[2] = 0;
-              out0[1] = 0;
-              out0[0] = 0;
-              break;
-    case 25:  out1[3] = in0[1] <<  8 | in0[0] >> 24;
-              out1[2] = in0[0] <<  8;
-              out1[1] = 0;
-              out1[0] = 0;
-              out0[3] = 0;
-              out0[2] = 0;
-              out0[1] = 0;
-              out0[0] = 0;
-              break;
-    case 26:  out1[3] = in0[1] << 16 | in0[0] >> 16;
-              out1[2] = in0[0] << 16;
-              out1[1] = 0;
-              out1[0] = 0;
-              out0[3] = 0;
-              out0[2] = 0;
-              out0[1] = 0;
-              out0[0] = 0;
-              break;
-    case 27:  out1[3] = in0[1] << 24 | in0[0] >>  8;
-              out1[2] = in0[0] << 24;
-              out1[1] = 0;
-              out1[0] = 0;
-              out0[3] = 0;
-              out0[2] = 0;
-              out0[1] = 0;
-              out0[0] = 0;
-              break;
-    case 28:  out1[3] = in0[0];
-              out1[2] = 0;
-              out1[1] = 0;
-              out1[0] = 0;
-              out0[3] = 0;
-              out0[2] = 0;
-              out0[1] = 0;
-              out0[0] = 0;
-              break;
-    case 29:  out1[3] = in0[0] <<  8;
-              out1[2] = 0;
-              out1[1] = 0;
-              out1[0] = 0;
-              out0[3] = 0;
-              out0[2] = 0;
-              out0[1] = 0;
-              out0[0] = 0;
-              break;
-    case 30:  out1[3] = in0[0] << 16;
-              out1[2] = 0;
-              out1[1] = 0;
-              out1[0] = 0;
-              out0[3] = 0;
-              out0[2] = 0;
-              out0[1] = 0;
-              out0[0] = 0;
-              break;
-    case 31:  out1[3] = in0[0] << 24;
-              out1[2] = 0;
-              out1[1] = 0;
-              out1[0] = 0;
-              out0[3] = 0;
-              out0[2] = 0;
-              out0[1] = 0;
-              out0[0] = 0;
-              break;
-  }
+  out1[3] = amd_bytealign_S (in1[3], in1[2], 3);
+  out1[2] = amd_bytealign_S (in1[2], in1[1], 3);
+  out1[1] = amd_bytealign_S (in1[1], in1[0], 3);
+  out1[0] = amd_bytealign_S (in1[0], in0[3], 3);
+  out0[3] = amd_bytealign_S (in0[3], in0[2], 3);
+  out0[2] = amd_bytealign_S (in0[2], in0[1], 3);
+  out0[1] = amd_bytealign_S (in0[1], in0[0], 3);
+  out0[0] = amd_bytealign_S (in0[0],      0, 3);
 }
 
 static void lshift_block_N (const u32 in0[4], const u32 in1[4], u32 out0[4], u32 out1[4], const u32 num)
@@ -470,32 +175,32 @@ static void lshift_block_N (const u32 in0[4], const u32 in1[4], u32 out0[4], u32
               out1[2] = in1[2];
               out1[3] = in1[3];
               break;
-    case  1:  out0[0] = in0[0] >>  8 | in0[1] << 24;
-              out0[1] = in0[1] >>  8 | in0[2] << 24;
-              out0[2] = in0[2] >>  8 | in0[3] << 24;
-              out0[3] = in0[3] >>  8 | in1[0] << 24;
-              out1[0] = in1[0] >>  8 | in1[1] << 24;
-              out1[1] = in1[1] >>  8 | in1[2] << 24;
-              out1[2] = in1[2] >>  8 | in1[3] << 24;
-              out1[3] = in1[3] >>  8;
+    case  1:  out0[0] = amd_bytealign_S (in0[1], in0[0], 1);
+              out0[1] = amd_bytealign_S (in0[2], in0[1], 1);
+              out0[2] = amd_bytealign_S (in0[3], in0[2], 1);
+              out0[3] = amd_bytealign_S (in1[0], in0[3], 1);
+              out1[0] = amd_bytealign_S (in1[1], in1[0], 1);
+              out1[1] = amd_bytealign_S (in1[2], in1[1], 1);
+              out1[2] = amd_bytealign_S (in1[3], in1[2], 1);
+              out1[3] = amd_bytealign_S (     0, in1[3], 1);
               break;
-    case  2:  out0[0] = in0[0] >> 16 | in0[1] << 16;
-              out0[1] = in0[1] >> 16 | in0[2] << 16;
-              out0[2] = in0[2] >> 16 | in0[3] << 16;
-              out0[3] = in0[3] >> 16 | in1[0] << 16;
-              out1[0] = in1[0] >> 16 | in1[1] << 16;
-              out1[1] = in1[1] >> 16 | in1[2] << 16;
-              out1[2] = in1[2] >> 16 | in1[3] << 16;
-              out1[3] = in1[3] >> 16;
+    case  2:  out0[0] = amd_bytealign_S (in0[1], in0[0], 2);
+              out0[1] = amd_bytealign_S (in0[2], in0[1], 2);
+              out0[2] = amd_bytealign_S (in0[3], in0[2], 2);
+              out0[3] = amd_bytealign_S (in1[0], in0[3], 2);
+              out1[0] = amd_bytealign_S (in1[1], in1[0], 2);
+              out1[1] = amd_bytealign_S (in1[2], in1[1], 2);
+              out1[2] = amd_bytealign_S (in1[3], in1[2], 2);
+              out1[3] = amd_bytealign_S (     0, in1[3], 2);
               break;
-    case  3:  out0[0] = in0[0] >> 24 | in0[1] <<  8;
-              out0[1] = in0[1] >> 24 | in0[2] <<  8;
-              out0[2] = in0[2] >> 24 | in0[3] <<  8;
-              out0[3] = in0[3] >> 24 | in1[0] <<  8;
-              out1[0] = in1[0] >> 24 | in1[1] <<  8;
-              out1[1] = in1[1] >> 24 | in1[2] <<  8;
-              out1[2] = in1[2] >> 24 | in1[3] <<  8;
-              out1[3] = in1[3] >> 24;
+    case  3:  out0[0] = amd_bytealign_S (in0[1], in0[0], 3);
+              out0[1] = amd_bytealign_S (in0[2], in0[1], 3);
+              out0[2] = amd_bytealign_S (in0[3], in0[2], 3);
+              out0[3] = amd_bytealign_S (in1[0], in0[3], 3);
+              out1[0] = amd_bytealign_S (in1[1], in1[0], 3);
+              out1[1] = amd_bytealign_S (in1[2], in1[1], 3);
+              out1[2] = amd_bytealign_S (in1[3], in1[2], 3);
+              out1[3] = amd_bytealign_S (     0, in1[3], 3);
               break;
     case  4:  out0[0] = in0[1];
               out0[1] = in0[2];
@@ -506,31 +211,31 @@ static void lshift_block_N (const u32 in0[4], const u32 in1[4], u32 out0[4], u32
               out1[2] = in1[3];
               out1[3] = 0;
               break;
-    case  5:  out0[0] = in0[1] >>  8 | in0[2] << 24;
-              out0[1] = in0[2] >>  8 | in0[3] << 24;
-              out0[2] = in0[3] >>  8 | in1[0] << 24;
-              out0[3] = in1[0] >>  8 | in1[1] << 24;
-              out1[0] = in1[1] >>  8 | in1[2] << 24;
-              out1[1] = in1[2] >>  8 | in1[3] << 24;
-              out1[2] = in1[3] >>  8;
+    case  5:  out0[0] = amd_bytealign_S (in0[2], in0[1], 1);
+              out0[1] = amd_bytealign_S (in0[3], in0[2], 1);
+              out0[2] = amd_bytealign_S (in1[0], in0[3], 1);
+              out0[3] = amd_bytealign_S (in1[1], in1[0], 1);
+              out1[0] = amd_bytealign_S (in1[2], in1[1], 1);
+              out1[1] = amd_bytealign_S (in1[3], in1[2], 1);
+              out1[2] = amd_bytealign_S (     0, in1[3], 1);
               out1[3] = 0;
               break;
-    case  6:  out0[0] = in0[1] >> 16 | in0[2] << 16;
-              out0[1] = in0[2] >> 16 | in0[3] << 16;
-              out0[2] = in0[3] >> 16 | in1[0] << 16;
-              out0[3] = in1[0] >> 16 | in1[1] << 16;
-              out1[0] = in1[1] >> 16 | in1[2] << 16;
-              out1[1] = in1[2] >> 16 | in1[3] << 16;
-              out1[2] = in1[3] >> 16;
+    case  6:  out0[0] = amd_bytealign_S (in0[2], in0[1], 2);
+              out0[1] = amd_bytealign_S (in0[3], in0[2], 2);
+              out0[2] = amd_bytealign_S (in1[0], in0[3], 2);
+              out0[3] = amd_bytealign_S (in1[1], in1[0], 2);
+              out1[0] = amd_bytealign_S (in1[2], in1[1], 2);
+              out1[1] = amd_bytealign_S (in1[3], in1[2], 2);
+              out1[2] = amd_bytealign_S (     0, in1[3], 2);
               out1[3] = 0;
               break;
-    case  7:  out0[0] = in0[1] >> 24 | in0[2] <<  8;
-              out0[1] = in0[2] >> 24 | in0[3] <<  8;
-              out0[2] = in0[3] >> 24 | in1[0] <<  8;
-              out0[3] = in1[0] >> 24 | in1[1] <<  8;
-              out1[0] = in1[1] >> 24 | in1[2] <<  8;
-              out1[1] = in1[2] >> 24 | in1[3] <<  8;
-              out1[2] = in1[3] >> 24;
+    case  7:  out0[0] = amd_bytealign_S (in0[2], in0[1], 3);
+              out0[1] = amd_bytealign_S (in0[3], in0[2], 3);
+              out0[2] = amd_bytealign_S (in1[0], in0[3], 3);
+              out0[3] = amd_bytealign_S (in1[1], in1[0], 3);
+              out1[0] = amd_bytealign_S (in1[2], in1[1], 3);
+              out1[1] = amd_bytealign_S (in1[3], in1[2], 3);
+              out1[2] = amd_bytealign_S (     0, in1[3], 3);
               out1[3] = 0;
               break;
     case  8:  out0[0] = in0[2];
@@ -542,30 +247,30 @@ static void lshift_block_N (const u32 in0[4], const u32 in1[4], u32 out0[4], u32
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case  9:  out0[0] = in0[2] >>  8 | in0[3] << 24;
-              out0[1] = in0[3] >>  8 | in1[0] << 24;
-              out0[2] = in1[0] >>  8 | in1[1] << 24;
-              out0[3] = in1[1] >>  8 | in1[2] << 24;
-              out1[0] = in1[2] >>  8 | in1[3] << 24;
-              out1[1] = in1[3] >>  8;
+    case  9:  out0[0] = amd_bytealign_S (in0[3], in0[2], 1);
+              out0[1] = amd_bytealign_S (in1[0], in0[3], 1);
+              out0[2] = amd_bytealign_S (in1[1], in1[0], 1);
+              out0[3] = amd_bytealign_S (in1[2], in1[1], 1);
+              out1[0] = amd_bytealign_S (in1[3], in1[2], 1);
+              out1[1] = amd_bytealign_S (     0, in1[3], 1);
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 10:  out0[0] = in0[2] >> 16 | in0[3] << 16;
-              out0[1] = in0[3] >> 16 | in1[0] << 16;
-              out0[2] = in1[0] >> 16 | in1[1] << 16;
-              out0[3] = in1[1] >> 16 | in1[2] << 16;
-              out1[0] = in1[2] >> 16 | in1[3] << 16;
-              out1[1] = in1[3] >> 16;
+    case 10:  out0[0] = amd_bytealign_S (in0[3], in0[2], 2);
+              out0[1] = amd_bytealign_S (in1[0], in0[3], 2);
+              out0[2] = amd_bytealign_S (in1[1], in1[0], 2);
+              out0[3] = amd_bytealign_S (in1[2], in1[1], 2);
+              out1[0] = amd_bytealign_S (in1[3], in1[2], 2);
+              out1[1] = amd_bytealign_S (     0, in1[3], 2);
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 11:  out0[0] = in0[2] >> 24 | in0[3] <<  8;
-              out0[1] = in0[3] >> 24 | in1[0] <<  8;
-              out0[2] = in1[0] >> 24 | in1[1] <<  8;
-              out0[3] = in1[1] >> 24 | in1[2] <<  8;
-              out1[0] = in1[2] >> 24 | in1[3] <<  8;
-              out1[1] = in1[3] >> 24;
+    case 11:  out0[0] = amd_bytealign_S (in0[3], in0[2], 3);
+              out0[1] = amd_bytealign_S (in1[0], in0[3], 3);
+              out0[2] = amd_bytealign_S (in1[1], in1[0], 3);
+              out0[3] = amd_bytealign_S (in1[2], in1[1], 3);
+              out1[0] = amd_bytealign_S (in1[3], in1[2], 3);
+              out1[1] = amd_bytealign_S (     0, in1[3], 3);
               out1[2] = 0;
               out1[3] = 0;
               break;
@@ -578,30 +283,29 @@ static void lshift_block_N (const u32 in0[4], const u32 in1[4], u32 out0[4], u32
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 13:
-              out0[0] = in0[3] >>  8 | in1[0] << 24;
-              out0[1] = in1[0] >>  8 | in1[1] << 24;
-              out0[2] = in1[1] >>  8 | in1[2] << 24;
-              out0[3] = in1[2] >>  8 | in1[3] << 24;
-              out1[0] = in1[3] >>  8;
+    case 13:  out0[0] = amd_bytealign_S (in1[0], in0[3], 1);
+              out0[1] = amd_bytealign_S (in1[1], in1[0], 1);
+              out0[2] = amd_bytealign_S (in1[2], in1[1], 1);
+              out0[3] = amd_bytealign_S (in1[3], in1[2], 1);
+              out1[0] = amd_bytealign_S (     0, in1[3], 1);
               out1[1] = 0;
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 14:  out0[0] = in0[3] >> 16 | in1[0] << 16;
-              out0[1] = in1[0] >> 16 | in1[1] << 16;
-              out0[2] = in1[1] >> 16 | in1[2] << 16;
-              out0[3] = in1[2] >> 16 | in1[3] << 16;
-              out1[0] = in1[3] >> 16;
+    case 14:  out0[0] = amd_bytealign_S (in1[0], in0[3], 2);
+              out0[1] = amd_bytealign_S (in1[1], in1[0], 2);
+              out0[2] = amd_bytealign_S (in1[2], in1[1], 2);
+              out0[3] = amd_bytealign_S (in1[3], in1[2], 2);
+              out1[0] = amd_bytealign_S (     0, in1[3], 2);
               out1[1] = 0;
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 15:  out0[0] = in0[3] >> 24 | in1[0] <<  8;
-              out0[1] = in1[0] >> 24 | in1[1] <<  8;
-              out0[2] = in1[1] >> 24 | in1[2] <<  8;
-              out0[3] = in1[2] >> 24 | in1[3] <<  8;
-              out1[0] = in1[3] >> 24;
+    case 15:  out0[0] = amd_bytealign_S (in1[0], in0[3], 3);
+              out0[1] = amd_bytealign_S (in1[1], in1[0], 3);
+              out0[2] = amd_bytealign_S (in1[2], in1[1], 3);
+              out0[3] = amd_bytealign_S (in1[3], in1[2], 3);
+              out1[0] = amd_bytealign_S (     0, in1[3], 3);
               out1[1] = 0;
               out1[2] = 0;
               out1[3] = 0;
@@ -615,28 +319,28 @@ static void lshift_block_N (const u32 in0[4], const u32 in1[4], u32 out0[4], u32
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 17:  out0[0] = in1[0] >>  8 | in1[1] << 24;
-              out0[1] = in1[1] >>  8 | in1[2] << 24;
-              out0[2] = in1[2] >>  8 | in1[3] << 24;
-              out0[3] = in1[3] >>  8;
+    case 17:  out0[0] = amd_bytealign_S (in1[1], in1[0], 1);
+              out0[1] = amd_bytealign_S (in1[2], in1[1], 1);
+              out0[2] = amd_bytealign_S (in1[3], in1[2], 1);
+              out0[3] = amd_bytealign_S (     0, in1[3], 1);
               out1[0] = 0;
               out1[1] = 0;
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 18:  out0[0] = in1[0] >> 16 | in1[1] << 16;
-              out0[1] = in1[1] >> 16 | in1[2] << 16;
-              out0[2] = in1[2] >> 16 | in1[3] << 16;
-              out0[3] = in1[3] >> 16;
+    case 18:  out0[0] = amd_bytealign_S (in1[1], in1[0], 2);
+              out0[1] = amd_bytealign_S (in1[2], in1[1], 2);
+              out0[2] = amd_bytealign_S (in1[3], in1[2], 2);
+              out0[3] = amd_bytealign_S (     0, in1[3], 2);
               out1[0] = 0;
               out1[1] = 0;
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 19:  out0[0] = in1[0] >> 24 | in1[1] <<  8;
-              out0[1] = in1[1] >> 24 | in1[2] <<  8;
-              out0[2] = in1[2] >> 24 | in1[3] <<  8;
-              out0[3] = in1[3] >> 24;
+    case 19:  out0[0] = amd_bytealign_S (in1[1], in1[0], 3);
+              out0[1] = amd_bytealign_S (in1[2], in1[1], 3);
+              out0[2] = amd_bytealign_S (in1[3], in1[2], 3);
+              out0[3] = amd_bytealign_S (     0, in1[3], 3);
               out1[0] = 0;
               out1[1] = 0;
               out1[2] = 0;
@@ -651,27 +355,27 @@ static void lshift_block_N (const u32 in0[4], const u32 in1[4], u32 out0[4], u32
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 21:  out0[0] = in1[1] >>  8 | in1[2] << 24;
-              out0[1] = in1[2] >>  8 | in1[3] << 24;
-              out0[2] = in1[3] >>  8;
+    case 21:  out0[0] = amd_bytealign_S (in1[2], in1[1], 1);
+              out0[1] = amd_bytealign_S (in1[3], in1[2], 1);
+              out0[2] = amd_bytealign_S (     0, in1[3], 1);
               out0[3] = 0;
               out1[0] = 0;
               out1[1] = 0;
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 22:  out0[0] = in1[1] >> 16 | in1[2] << 16;
-              out0[1] = in1[2] >> 16 | in1[3] << 16;
-              out0[2] = in1[3] >> 16;
+    case 22:  out0[0] = amd_bytealign_S (in1[2], in1[1], 2);
+              out0[1] = amd_bytealign_S (in1[3], in1[2], 2);
+              out0[2] = amd_bytealign_S (     0, in1[3], 2);
               out0[3] = 0;
               out1[0] = 0;
               out1[1] = 0;
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 23:  out0[0] = in1[1] >> 24 | in1[2] <<  8;
-              out0[1] = in1[2] >> 24 | in1[3] <<  8;
-              out0[2] = in1[3] >> 24;
+    case 23:  out0[0] = amd_bytealign_S (in1[2], in1[1], 3);
+              out0[1] = amd_bytealign_S (in1[3], in1[2], 3);
+              out0[2] = amd_bytealign_S (     0, in1[3], 3);
               out0[3] = 0;
               out1[0] = 0;
               out1[1] = 0;
@@ -687,8 +391,8 @@ static void lshift_block_N (const u32 in0[4], const u32 in1[4], u32 out0[4], u32
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 25:  out0[0] = in1[2] >>  8 | in1[3] << 24;
-              out0[1] = in1[3] >>  8;
+    case 25:  out0[0] = amd_bytealign_S (in1[3], in1[2], 1);
+              out0[1] = amd_bytealign_S (     0, in1[3], 1);
               out0[2] = 0;
               out0[3] = 0;
               out1[0] = 0;
@@ -696,8 +400,8 @@ static void lshift_block_N (const u32 in0[4], const u32 in1[4], u32 out0[4], u32
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 26:  out0[0] = in1[2] >> 16 | in1[3] << 16;
-              out0[1] = in1[3] >> 16;
+    case 26:  out0[0] = amd_bytealign_S (in1[3], in1[2], 2);
+              out0[1] = amd_bytealign_S (     0, in1[3], 2);
               out0[2] = 0;
               out0[3] = 0;
               out1[0] = 0;
@@ -705,8 +409,8 @@ static void lshift_block_N (const u32 in0[4], const u32 in1[4], u32 out0[4], u32
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 27:  out0[0] = in1[2] >> 24 | in1[3] <<  8;
-              out0[1] = in1[3] >> 24;
+    case 27:  out0[0] = amd_bytealign_S (in1[3], in1[2], 3);
+              out0[1] = amd_bytealign_S (     0, in1[3], 3);
               out0[2] = 0;
               out0[3] = 0;
               out1[0] = 0;
@@ -723,7 +427,7 @@ static void lshift_block_N (const u32 in0[4], const u32 in1[4], u32 out0[4], u32
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 29:  out0[0] = in1[3] >>  8;
+    case 29:  out0[0] = amd_bytealign_S (     0, in1[3], 1);
               out0[1] = 0;
               out0[2] = 0;
               out0[3] = 0;
@@ -732,7 +436,7 @@ static void lshift_block_N (const u32 in0[4], const u32 in1[4], u32 out0[4], u32
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 30:  out0[0] = in1[3] >> 16;
+    case 30:  out0[0] = amd_bytealign_S (     0, in1[3], 2);
               out0[1] = 0;
               out0[2] = 0;
               out0[3] = 0;
@@ -741,7 +445,7 @@ static void lshift_block_N (const u32 in0[4], const u32 in1[4], u32 out0[4], u32
               out1[2] = 0;
               out1[3] = 0;
               break;
-    case 31:  out0[0] = in1[3] >> 24;
+    case 31:  out0[0] = amd_bytealign_S (     0, in1[3], 3);
               out0[1] = 0;
               out0[2] = 0;
               out0[3] = 0;
@@ -749,6 +453,301 @@ static void lshift_block_N (const u32 in0[4], const u32 in1[4], u32 out0[4], u32
               out1[1] = 0;
               out1[2] = 0;
               out1[3] = 0;
+              break;
+  }
+}
+
+static void rshift_block_N (const u32 in0[4], const u32 in1[4], u32 out0[4], u32 out1[4], const u32 num)
+{
+  switch (num)
+  {
+    case  0:  out1[3] = in1[3];
+              out1[2] = in1[2];
+              out1[1] = in1[1];
+              out1[0] = in1[0];
+              out0[3] = in0[3];
+              out0[2] = in0[2];
+              out0[1] = in0[1];
+              out0[0] = in0[0];
+              break;
+    case  1:  out1[3] = amd_bytealign_S (in1[3], in1[2], 3);
+              out1[2] = amd_bytealign_S (in1[2], in1[1], 3);
+              out1[1] = amd_bytealign_S (in1[1], in1[0], 3);
+              out1[0] = amd_bytealign_S (in1[0], in0[3], 3);
+              out0[3] = amd_bytealign_S (in0[3], in0[2], 3);
+              out0[2] = amd_bytealign_S (in0[2], in0[1], 3);
+              out0[1] = amd_bytealign_S (in0[1], in0[0], 3);
+              out0[0] = amd_bytealign_S (in0[0],      0, 3);
+              break;
+    case  2:  out1[3] = amd_bytealign_S (in1[3], in1[2], 2);
+              out1[2] = amd_bytealign_S (in1[2], in1[1], 2);
+              out1[1] = amd_bytealign_S (in1[1], in1[0], 2);
+              out1[0] = amd_bytealign_S (in1[0], in0[3], 2);
+              out0[3] = amd_bytealign_S (in0[3], in0[2], 2);
+              out0[2] = amd_bytealign_S (in0[2], in0[1], 2);
+              out0[1] = amd_bytealign_S (in0[1], in0[0], 2);
+              out0[0] = amd_bytealign_S (in0[0],      0, 2);
+              break;
+    case  3:  out1[3] = amd_bytealign_S (in1[3], in1[2], 1);
+              out1[2] = amd_bytealign_S (in1[2], in1[1], 1);
+              out1[1] = amd_bytealign_S (in1[1], in1[0], 1);
+              out1[0] = amd_bytealign_S (in1[0], in0[3], 1);
+              out0[3] = amd_bytealign_S (in0[3], in0[2], 1);
+              out0[2] = amd_bytealign_S (in0[2], in0[1], 1);
+              out0[1] = amd_bytealign_S (in0[1], in0[0], 1);
+              out0[0] = amd_bytealign_S (in0[0],      0, 1);
+              break;
+    case  4:  out1[3] = in1[2];
+              out1[2] = in1[1];
+              out1[1] = in1[0];
+              out1[0] = in0[3];
+              out0[3] = in0[2];
+              out0[2] = in0[1];
+              out0[1] = in0[0];
+              out0[0] = 0;
+              break;
+    case  5:  out1[3] = amd_bytealign_S (in1[2], in1[1], 3);
+              out1[2] = amd_bytealign_S (in1[1], in1[0], 3);
+              out1[1] = amd_bytealign_S (in1[0], in0[3], 3);
+              out1[0] = amd_bytealign_S (in0[3], in0[2], 3);
+              out0[3] = amd_bytealign_S (in0[2], in0[1], 3);
+              out0[2] = amd_bytealign_S (in0[1], in0[0], 3);
+              out0[1] = amd_bytealign_S (in0[0],      0, 3);
+              out0[0] = 0;
+              break;
+    case  6:  out1[3] = amd_bytealign_S (in1[2], in1[1], 2);
+              out1[2] = amd_bytealign_S (in1[1], in1[0], 2);
+              out1[1] = amd_bytealign_S (in1[0], in0[3], 2);
+              out1[0] = amd_bytealign_S (in0[3], in0[2], 2);
+              out0[3] = amd_bytealign_S (in0[2], in0[1], 2);
+              out0[2] = amd_bytealign_S (in0[1], in0[0], 2);
+              out0[1] = amd_bytealign_S (in0[0],      0, 2);
+              out0[0] = 0;
+              break;
+    case  7:  out1[3] = amd_bytealign_S (in1[2], in1[1], 1);
+              out1[2] = amd_bytealign_S (in1[1], in1[0], 1);
+              out1[1] = amd_bytealign_S (in1[0], in0[3], 1);
+              out1[0] = amd_bytealign_S (in0[3], in0[2], 1);
+              out0[3] = amd_bytealign_S (in0[2], in0[1], 1);
+              out0[2] = amd_bytealign_S (in0[1], in0[0], 1);
+              out0[1] = amd_bytealign_S (in0[0],      0, 1);
+              out0[0] = 0;
+              break;
+    case  8:  out1[3] = in1[1];
+              out1[2] = in1[0];
+              out1[1] = in0[3];
+              out1[0] = in0[2];
+              out0[3] = in0[1];
+              out0[2] = in0[0];
+              out0[1] = 0;
+              out0[0] = 0;
+              break;
+    case  9:  out1[3] = amd_bytealign_S (in1[1], in1[0], 3);
+              out1[2] = amd_bytealign_S (in1[0], in0[3], 3);
+              out1[1] = amd_bytealign_S (in0[3], in0[2], 3);
+              out1[0] = amd_bytealign_S (in0[2], in0[1], 3);
+              out0[3] = amd_bytealign_S (in0[1], in0[0], 3);
+              out0[2] = amd_bytealign_S (in0[0],      0, 3);
+              out0[1] = 0;
+              out0[0] = 0;
+              break;
+    case 10:  out1[3] = amd_bytealign_S (in1[1], in1[0], 2);
+              out1[2] = amd_bytealign_S (in1[0], in0[3], 2);
+              out1[1] = amd_bytealign_S (in0[3], in0[2], 2);
+              out1[0] = amd_bytealign_S (in0[2], in0[1], 2);
+              out0[3] = amd_bytealign_S (in0[1], in0[0], 2);
+              out0[2] = amd_bytealign_S (in0[0],      0, 2);
+              out0[1] = 0;
+              out0[0] = 0;
+              break;
+    case 11:  out1[3] = amd_bytealign_S (in1[1], in1[0], 1);
+              out1[2] = amd_bytealign_S (in1[0], in0[3], 1);
+              out1[1] = amd_bytealign_S (in0[3], in0[2], 1);
+              out1[0] = amd_bytealign_S (in0[2], in0[1], 1);
+              out0[3] = amd_bytealign_S (in0[1], in0[0], 1);
+              out0[2] = amd_bytealign_S (in0[0],      0, 1);
+              out0[1] = 0;
+              out0[0] = 0;
+              break;
+    case 12:  out1[3] = in1[0];
+              out1[2] = in0[3];
+              out1[1] = in0[2];
+              out1[0] = in0[1];
+              out0[3] = in0[0];
+              out0[2] = 0;
+              out0[1] = 0;
+              out0[0] = 0;
+              break;
+    case 13:  out1[3] = amd_bytealign_S (in1[0], in0[3], 3);
+              out1[2] = amd_bytealign_S (in0[3], in0[2], 3);
+              out1[1] = amd_bytealign_S (in0[2], in0[1], 3);
+              out1[0] = amd_bytealign_S (in0[1], in0[0], 3);
+              out0[3] = amd_bytealign_S (in0[0],      0, 3);
+              out0[2] = 0;
+              out0[1] = 0;
+              out0[0] = 0;
+              break;
+    case 14:  out1[3] = amd_bytealign_S (in1[0], in0[3], 2);
+              out1[2] = amd_bytealign_S (in0[3], in0[2], 2);
+              out1[1] = amd_bytealign_S (in0[2], in0[1], 2);
+              out1[0] = amd_bytealign_S (in0[1], in0[0], 2);
+              out0[3] = amd_bytealign_S (in0[0],      0, 2);
+              out0[2] = 0;
+              out0[1] = 0;
+              out0[0] = 0;
+              break;
+    case 15:  out1[3] = amd_bytealign_S (in1[0], in0[3], 1);
+              out1[2] = amd_bytealign_S (in0[3], in0[2], 1);
+              out1[1] = amd_bytealign_S (in0[2], in0[1], 1);
+              out1[0] = amd_bytealign_S (in0[1], in0[0], 1);
+              out0[3] = amd_bytealign_S (in0[0],      0, 1);
+              out0[2] = 0;
+              out0[1] = 0;
+              out0[0] = 0;
+              break;
+    case 16:  out1[3] = in0[3];
+              out1[2] = in0[2];
+              out1[1] = in0[1];
+              out1[0] = in0[0];
+              out0[3] = 0;
+              out0[2] = 0;
+              out0[1] = 0;
+              out0[0] = 0;
+              break;
+    case 17:  out1[3] = amd_bytealign_S (in0[3], in0[2], 3);
+              out1[2] = amd_bytealign_S (in0[2], in0[1], 3);
+              out1[1] = amd_bytealign_S (in0[1], in0[0], 3);
+              out1[0] = amd_bytealign_S (in0[0],      0, 3);
+              out0[3] = 0;
+              out0[2] = 0;
+              out0[1] = 0;
+              out0[0] = 0;
+              break;
+    case 18:  out1[3] = amd_bytealign_S (in0[3], in0[2], 2);
+              out1[2] = amd_bytealign_S (in0[2], in0[1], 2);
+              out1[1] = amd_bytealign_S (in0[1], in0[0], 2);
+              out1[0] = amd_bytealign_S (in0[0],      0, 2);
+              out0[3] = 0;
+              out0[2] = 0;
+              out0[1] = 0;
+              out0[0] = 0;
+              break;
+    case 19:  out1[3] = amd_bytealign_S (in0[3], in0[2], 1);
+              out1[2] = amd_bytealign_S (in0[2], in0[1], 1);
+              out1[1] = amd_bytealign_S (in0[1], in0[0], 1);
+              out1[0] = amd_bytealign_S (in0[0],      0, 1);
+              out0[3] = 0;
+              out0[2] = 0;
+              out0[1] = 0;
+              out0[0] = 0;
+              break;
+    case 20:  out1[3] = in0[2];
+              out1[2] = in0[1];
+              out1[1] = in0[0];
+              out1[0] = 0;
+              out0[3] = 0;
+              out0[2] = 0;
+              out0[1] = 0;
+              out0[0] = 0;
+              break;
+    case 21:  out1[3] = amd_bytealign_S (in0[2], in0[1], 3);
+              out1[2] = amd_bytealign_S (in0[1], in0[0], 3);
+              out1[1] = amd_bytealign_S (in0[0],      0, 3);
+              out1[0] = 0;
+              out0[3] = 0;
+              out0[2] = 0;
+              out0[1] = 0;
+              out0[0] = 0;
+              break;
+    case 22:  out1[3] = amd_bytealign_S (in0[2], in0[1], 2);
+              out1[2] = amd_bytealign_S (in0[1], in0[0], 2);
+              out1[1] = amd_bytealign_S (in0[0],      0, 2);
+              out1[0] = 0;
+              out0[3] = 0;
+              out0[2] = 0;
+              out0[1] = 0;
+              out0[0] = 0;
+              break;
+    case 23:  out1[3] = amd_bytealign_S (in0[2], in0[1], 1);
+              out1[2] = amd_bytealign_S (in0[1], in0[0], 1);
+              out1[1] = amd_bytealign_S (in0[0],      0, 1);
+              out1[0] = 0;
+              out0[3] = 0;
+              out0[2] = 0;
+              out0[1] = 0;
+              out0[0] = 0;
+              break;
+    case 24:  out1[3] = in0[1];
+              out1[2] = in0[0];
+              out1[1] = 0;
+              out1[0] = 0;
+              out0[3] = 0;
+              out0[2] = 0;
+              out0[1] = 0;
+              out0[0] = 0;
+              break;
+    case 25:  out1[3] = amd_bytealign_S (in0[1], in0[0], 3);
+              out1[2] = amd_bytealign_S (in0[0],      0, 3);
+              out1[1] = 0;
+              out1[0] = 0;
+              out0[3] = 0;
+              out0[2] = 0;
+              out0[1] = 0;
+              out0[0] = 0;
+              break;
+    case 26:  out1[3] = amd_bytealign_S (in0[1], in0[0], 2);
+              out1[2] = amd_bytealign_S (in0[0],      0, 2);
+              out1[1] = 0;
+              out1[0] = 0;
+              out0[3] = 0;
+              out0[2] = 0;
+              out0[1] = 0;
+              out0[0] = 0;
+              break;
+    case 27:  out1[3] = amd_bytealign_S (in0[1], in0[0], 1);
+              out1[2] = amd_bytealign_S (in0[0],      0, 1);
+              out1[1] = 0;
+              out1[0] = 0;
+              out0[3] = 0;
+              out0[2] = 0;
+              out0[1] = 0;
+              out0[0] = 0;
+              break;
+    case 28:  out1[3] = in0[0];
+              out1[2] = 0;
+              out1[1] = 0;
+              out1[0] = 0;
+              out0[3] = 0;
+              out0[2] = 0;
+              out0[1] = 0;
+              out0[0] = 0;
+              break;
+    case 29:  out1[3] = amd_bytealign_S (in0[0],      0, 3);
+              out1[2] = 0;
+              out1[1] = 0;
+              out1[0] = 0;
+              out0[3] = 0;
+              out0[2] = 0;
+              out0[1] = 0;
+              out0[0] = 0;
+              break;
+    case 30:  out1[3] = amd_bytealign_S (in0[0],      0, 2);
+              out1[2] = 0;
+              out1[1] = 0;
+              out1[0] = 0;
+              out0[3] = 0;
+              out0[2] = 0;
+              out0[1] = 0;
+              out0[0] = 0;
+              break;
+    case 31:  out1[3] = amd_bytealign_S (in0[0],      0, 1);
+              out1[2] = 0;
+              out1[1] = 0;
+              out1[0] = 0;
+              out0[3] = 0;
+              out0[2] = 0;
+              out0[1] = 0;
+              out0[0] = 0;
               break;
   }
 }
@@ -775,10 +774,6 @@ static void append_block1 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
 
 static void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32 src_l0[4], const u32 src_l1[4], const u32 src_r0[4], const u32 src_r1[4])
 {
-  const int offset_mod_4 = offset & 3;
-
-  const int offset_minus_4 = 4 - offset;
-
   u32 s0 = 0;
   u32 s1 = 0;
   u32 s2 = 0;
@@ -787,64 +782,68 @@ static void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
   u32 s5 = 0;
   u32 s6 = 0;
   u32 s7 = 0;
-  u32 s8 = 0;
+
+  const u32 src_r00 = swap32_S (src_r0[0]);
+  const u32 src_r01 = swap32_S (src_r0[1]);
+  const u32 src_r02 = swap32_S (src_r0[2]);
+  const u32 src_r03 = swap32_S (src_r0[3]);
+  const u32 src_r10 = swap32_S (src_r1[0]);
+  const u32 src_r11 = swap32_S (src_r1[1]);
+  const u32 src_r12 = swap32_S (src_r1[2]);
+  const u32 src_r13 = swap32_S (src_r1[3]);
 
   switch (offset / 4)
   {
     case 0:
-      s8 = amd_bytealign (        0, src_r1[3], offset_minus_4);
-      s7 = amd_bytealign (src_r1[3], src_r1[2], offset_minus_4);
-      s6 = amd_bytealign (src_r1[2], src_r1[1], offset_minus_4);
-      s5 = amd_bytealign (src_r1[1], src_r1[0], offset_minus_4);
-      s4 = amd_bytealign (src_r1[0], src_r0[3], offset_minus_4);
-      s3 = amd_bytealign (src_r0[3], src_r0[2], offset_minus_4);
-      s2 = amd_bytealign (src_r0[2], src_r0[1], offset_minus_4);
-      s1 = amd_bytealign (src_r0[1], src_r0[0], offset_minus_4);
-      s0 = amd_bytealign (src_r0[0],         0, offset_minus_4);
+      s7 = amd_bytealign_S (src_r12, src_r13, offset);
+      s6 = amd_bytealign_S (src_r11, src_r12, offset);
+      s5 = amd_bytealign_S (src_r10, src_r11, offset);
+      s4 = amd_bytealign_S (src_r03, src_r10, offset);
+      s3 = amd_bytealign_S (src_r02, src_r03, offset);
+      s2 = amd_bytealign_S (src_r01, src_r02, offset);
+      s1 = amd_bytealign_S (src_r00, src_r01, offset);
+      s0 = amd_bytealign_S (      0, src_r00, offset);
       break;
 
     case 1:
-      s8 = amd_bytealign (        0, src_r1[2], offset_minus_4);
-      s7 = amd_bytealign (src_r1[2], src_r1[1], offset_minus_4);
-      s6 = amd_bytealign (src_r1[1], src_r1[0], offset_minus_4);
-      s5 = amd_bytealign (src_r1[0], src_r0[3], offset_minus_4);
-      s4 = amd_bytealign (src_r0[3], src_r0[2], offset_minus_4);
-      s3 = amd_bytealign (src_r0[2], src_r0[1], offset_minus_4);
-      s2 = amd_bytealign (src_r0[1], src_r0[0], offset_minus_4);
-      s1 = amd_bytealign (src_r0[0],         0, offset_minus_4);
+      s7 = amd_bytealign_S (src_r11, src_r12, offset);
+      s6 = amd_bytealign_S (src_r10, src_r11, offset);
+      s5 = amd_bytealign_S (src_r03, src_r10, offset);
+      s4 = amd_bytealign_S (src_r02, src_r03, offset);
+      s3 = amd_bytealign_S (src_r01, src_r02, offset);
+      s2 = amd_bytealign_S (src_r00, src_r01, offset);
+      s1 = amd_bytealign_S (      0, src_r00, offset);
       s0 = 0;
       break;
 
     case 2:
-      s8 = amd_bytealign (        0, src_r1[1], offset_minus_4);
-      s7 = amd_bytealign (src_r1[1], src_r1[0], offset_minus_4);
-      s6 = amd_bytealign (src_r1[0], src_r0[3], offset_minus_4);
-      s5 = amd_bytealign (src_r0[3], src_r0[2], offset_minus_4);
-      s4 = amd_bytealign (src_r0[2], src_r0[1], offset_minus_4);
-      s3 = amd_bytealign (src_r0[1], src_r0[0], offset_minus_4);
-      s2 = amd_bytealign (src_r0[0],         0, offset_minus_4);
+      s7 = amd_bytealign_S (src_r10, src_r11, offset);
+      s6 = amd_bytealign_S (src_r03, src_r10, offset);
+      s5 = amd_bytealign_S (src_r02, src_r03, offset);
+      s4 = amd_bytealign_S (src_r01, src_r02, offset);
+      s3 = amd_bytealign_S (src_r00, src_r01, offset);
+      s2 = amd_bytealign_S (      0, src_r00, offset);
       s1 = 0;
       s0 = 0;
       break;
 
     case 3:
-      s8 = amd_bytealign (        0, src_r1[0], offset_minus_4);
-      s7 = amd_bytealign (src_r1[0], src_r0[3], offset_minus_4);
-      s6 = amd_bytealign (src_r0[3], src_r0[2], offset_minus_4);
-      s5 = amd_bytealign (src_r0[2], src_r0[1], offset_minus_4);
-      s4 = amd_bytealign (src_r0[1], src_r0[0], offset_minus_4);
-      s3 = amd_bytealign (src_r0[0],         0, offset_minus_4);
+      s7 = amd_bytealign_S (src_r03, src_r10, offset);
+      s6 = amd_bytealign_S (src_r02, src_r03, offset);
+      s5 = amd_bytealign_S (src_r01, src_r02, offset);
+      s4 = amd_bytealign_S (src_r00, src_r01, offset);
+      s3 = amd_bytealign_S (      0, src_r00, offset);
       s2 = 0;
       s1 = 0;
       s0 = 0;
+
       break;
 
     case 4:
-      s8 = amd_bytealign (        0, src_r0[3], offset_minus_4);
-      s7 = amd_bytealign (src_r0[3], src_r0[2], offset_minus_4);
-      s6 = amd_bytealign (src_r0[2], src_r0[1], offset_minus_4);
-      s5 = amd_bytealign (src_r0[1], src_r0[0], offset_minus_4);
-      s4 = amd_bytealign (src_r0[0],         0, offset_minus_4);
+      s7 = amd_bytealign_S (src_r02, src_r03, offset);
+      s6 = amd_bytealign_S (src_r01, src_r02, offset);
+      s5 = amd_bytealign_S (src_r00, src_r01, offset);
+      s4 = amd_bytealign_S (      0, src_r00, offset);
       s3 = 0;
       s2 = 0;
       s1 = 0;
@@ -852,10 +851,9 @@ static void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
       break;
 
     case 5:
-      s8 = amd_bytealign (        0, src_r0[2], offset_minus_4);
-      s7 = amd_bytealign (src_r0[2], src_r0[1], offset_minus_4);
-      s6 = amd_bytealign (src_r0[1], src_r0[0], offset_minus_4);
-      s5 = amd_bytealign (src_r0[0],         0, offset_minus_4);
+      s7 = amd_bytealign_S (src_r01, src_r02, offset);
+      s6 = amd_bytealign_S (src_r00, src_r01, offset);
+      s5 = amd_bytealign_S (      0, src_r00, offset);
       s4 = 0;
       s3 = 0;
       s2 = 0;
@@ -864,9 +862,8 @@ static void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
       break;
 
     case 6:
-      s8 = amd_bytealign (        0, src_r0[1], offset_minus_4);
-      s7 = amd_bytealign (src_r0[1], src_r0[0], offset_minus_4);
-      s6 = amd_bytealign (src_r0[0],         0, offset_minus_4);
+      s7 = amd_bytealign_S (src_r00, src_r01, offset);
+      s6 = amd_bytealign_S (      0, src_r00, offset);
       s5 = 0;
       s4 = 0;
       s3 = 0;
@@ -876,8 +873,7 @@ static void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
       break;
 
     case 7:
-      s8 = amd_bytealign (        0, src_r0[0], offset_minus_4);
-      s7 = amd_bytealign (src_r0[0],         0, offset_minus_4);
+      s7 = amd_bytealign_S (      0, src_r00, offset);
       s6 = 0;
       s5 = 0;
       s4 = 0;
@@ -888,28 +884,23 @@ static void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
       break;
   }
 
-  if (offset_mod_4 == 0)
-  {
-    buf0[0] = src_l0[0] | s1;
-    buf0[1] = src_l0[1] | s2;
-    buf0[2] = src_l0[2] | s3;
-    buf0[3] = src_l0[3] | s4;
-    buf1[0] = src_l1[0] | s5;
-    buf1[1] = src_l1[1] | s6;
-    buf1[2] = src_l1[2] | s7;
-    buf1[3] = src_l1[3] | s8;
-  }
-  else
-  {
-    buf0[0] = src_l0[0] | s0;
-    buf0[1] = src_l0[1] | s1;
-    buf0[2] = src_l0[2] | s2;
-    buf0[3] = src_l0[3] | s3;
-    buf1[0] = src_l1[0] | s4;
-    buf1[1] = src_l1[1] | s5;
-    buf1[2] = src_l1[2] | s6;
-    buf1[3] = src_l1[3] | s7;
-  }
+  s0 = swap32_S (s0);
+  s1 = swap32_S (s1);
+  s2 = swap32_S (s2);
+  s3 = swap32_S (s3);
+  s4 = swap32_S (s4);
+  s5 = swap32_S (s5);
+  s6 = swap32_S (s6);
+  s7 = swap32_S (s7);
+
+  buf0[0] = src_l0[0] | s0;
+  buf0[1] = src_l0[1] | s1;
+  buf0[2] = src_l0[2] | s2;
+  buf0[3] = src_l0[3] | s3;
+  buf1[0] = src_l1[0] | s4;
+  buf1[1] = src_l1[1] | s5;
+  buf1[2] = src_l1[2] | s6;
+  buf1[3] = src_l1[3] | s7;
 }
 
 static void reverse_block (u32 in0[4], u32 in1[4], u32 out0[4], u32 out1[4], const u32 len)
@@ -1032,19 +1023,7 @@ static u32 rule_op_mangle_dupeword (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED cons
 
   u32 out_len = in_len;
 
-  u32 tib40[4];
-  u32 tib41[4];
-
-  tib40[0] = buf0[0];
-  tib40[1] = buf0[1];
-  tib40[2] = buf0[2];
-  tib40[3] = buf0[3];
-  tib41[0] = buf1[0];
-  tib41[1] = buf1[1];
-  tib41[2] = buf1[2];
-  tib41[3] = buf1[3];
-
-  append_block8 (out_len, buf0, buf1, buf0, buf1, tib40, tib41);
+  append_block8 (out_len, buf0, buf1, buf0, buf1, buf0, buf1);
 
   out_len += in_len;
 
@@ -1149,7 +1128,7 @@ static u32 rule_op_mangle_rotate_left (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED c
   return in_len;
 }
 
-static u32 rule_op_mangle_rotate_right (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, u32 buf0[4], u32 buf1[4], const u32 in_len)
+static u32 rule_op_mangle_rotate_right (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
   if (in_len == 0) return (in_len);
 
@@ -1221,7 +1200,7 @@ static u32 rule_op_mangle_delete_at (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED con
 
   lshift_block (buf0, buf1, tib40, tib41);
 
-  const u32 ml = (1u << ((p0 & 3) * 8)) - 1;
+  const u32 ml = (1 << ((p0 & 3) * 8)) - 1;
   const u32 mr = ~ml;
 
   switch (p0 / 4)
@@ -1322,7 +1301,7 @@ static u32 rule_op_mangle_omit (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u3
 
   lshift_block_N (buf0, buf1, tib40, tib41, p1);
 
-  const u32 ml = (1u << ((p0 & 3) * 8)) - 1;
+  const u32 ml = (1 << ((p0 & 3) * 8)) - 1;
   const u32 mr = ~ml;
 
   switch (p0 / 4)
@@ -1401,7 +1380,7 @@ static u32 rule_op_mangle_insert (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const 
 
   const u32 p1n = p1 << ((p0 & 3) * 8);
 
-  const u32 ml = (1u << ((p0 & 3) * 8)) - 1;
+  const u32 ml = (1 << ((p0 & 3) * 8)) - 1;
 
   const u32 mr = 0xffffff00 << ((p0 & 3) * 8);
 
@@ -1538,7 +1517,7 @@ static u32 rule_op_mangle_purgechar (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED con
 {
   u32 out_len = 0;
 
-  u32 buf_in[8] = { 0 };
+  u32 buf_in[8];
 
   buf_in[0] = buf0[0];
   buf_in[1] = buf0[1];
@@ -1574,14 +1553,6 @@ static u32 rule_op_mangle_purgechar (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED con
 
   return out_len;
 }
-
-/*
-static u32 rule_op_mangle_togglecase_rec (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
-{
-  // TODO
-  return in_len;
-}
-*/
 
 static u32 rule_op_mangle_dupechar_first (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
@@ -2568,7 +2539,7 @@ u32 apply_rule_optimized (const u32 name, const u32 p0, const u32 p1, u32 buf0[4
   return out_len;
 }
 
-u32 apply_rules_optimized (u32 *cmds, u32 buf0[4], u32 buf1[4], const u32 len)
+u32 apply_rules_optimized (const u32 *cmds, u32 buf0[4], u32 buf1[4], const u32 len)
 {
   u32 out_len = len;
 
