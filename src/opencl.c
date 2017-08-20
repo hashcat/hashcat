@@ -3955,6 +3955,8 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       const size_t size_pws = kernel_power_max * sizeof (pw_t);
 
+      const size_t size_pws_amp = size_pws;
+
       // size_tmps
 
       const size_t size_tmps = kernel_power_max * hashconfig->tmp_size;
@@ -3980,7 +3982,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         + size_markov_css
         + size_plains
         + size_pws
-        + size_pws // not a bug
+        + size_pws_amp
         + size_results
         + size_root_css
         + size_rules
@@ -4064,9 +4066,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     // find out if we would request too much memory on memory blocks which are based on kernel_accel
 
-    size_t size_pws   = 4;
-    size_t size_tmps  = 4;
-    size_t size_hooks = 4;
+    size_t size_pws     = 4;
+    size_t size_pws_amp = 4;
+    size_t size_tmps    = 4;
+    size_t size_hooks   = 4;
 
     while (kernel_accel_max >= kernel_accel_min)
     {
@@ -4075,6 +4078,8 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       // size_pws
 
       size_pws = kernel_power_max * sizeof (pw_t);
+
+      size_pws_amp = (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL) ? 1 : size_pws;
 
       // size_tmps
 
@@ -4110,7 +4115,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         + size_markov_css
         + size_plains
         + size_pws
-        + size_pws // not a bug
+        + size_pws_amp
         + size_results
         + size_root_css
         + size_rules
@@ -4157,8 +4162,6 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->kernel_accel = kernel_accel_max;
     }
     */
-
-    const size_t size_pws_amp = (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL) ? size_pws : size_pws;
 
     device_param->size_bfs     = size_bfs;
     device_param->size_combs   = size_combs;
