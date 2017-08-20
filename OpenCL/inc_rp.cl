@@ -116,6 +116,7 @@ static void append_block (const u32 *buf_src, const int off_src, u32 *buf_dst, c
 
   switch (left)
   {
+    case 4: append_four_byte  (buf_src, off_src + i, buf_dst, off_dst + i); break;
     case 3: append_three_byte (buf_src, off_src + i, buf_dst, off_dst + i); break;
     case 2: append_two_byte   (buf_src, off_src + i, buf_dst, off_dst + i); break;
     case 1: append_one_byte   (buf_src, off_src + i, buf_dst, off_dst + i); break;
