@@ -152,6 +152,19 @@ bool need_hexify (const u8 *buf, const int len, const char separator, bool alway
     }
   }
 
+  // also test if the password is of the format $HEX[]:
+
+  if (rc == false)
+  {
+    if ((len & 1) == 0)
+    {
+      if (is_hexify (buf, len))
+      {
+        rc = true;
+      }
+    }
+  }
+
   return rc;
 }
 
