@@ -29,6 +29,7 @@ static void append_four_byte (const u32 *buf_src, const int off_src, u32 *buf_ds
   u64 t64 = hl32_to_64 (buf_src[sd + 1], buf_src[sd + 0]);
 
   t64 >>= sm8;
+  t64  &= 0xffffffff;
   t64 <<= dm8;
 
   const u32 t0 = l32_from_64_S (t64);
@@ -107,7 +108,7 @@ static void append_block (const u32 *buf_src, const int off_src, u32 *buf_dst, c
 {
   int i;
 
-  for (i = 0; i < len - 4; i += 4)
+  for (i = 0; i < len - 3; i += 4)
   {
     append_four_byte (buf_src, off_src + i, buf_dst, off_dst + i);
   }
@@ -116,7 +117,6 @@ static void append_block (const u32 *buf_src, const int off_src, u32 *buf_dst, c
 
   switch (left)
   {
-    case 4: append_four_byte  (buf_src, off_src + i, buf_dst, off_dst + i); break;
     case 3: append_three_byte (buf_src, off_src + i, buf_dst, off_dst + i); break;
     case 2: append_two_byte   (buf_src, off_src + i, buf_dst, off_dst + i); break;
     case 1: append_one_byte   (buf_src, off_src + i, buf_dst, off_dst + i); break;
