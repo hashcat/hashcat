@@ -469,6 +469,24 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   event_log_info (hashcat_ctx, NULL);
 
   /**
+   * Optimizer constraints
+   */
+
+  event_log_info (hashcat_ctx, "Password length minimum: %u", hashconfig->pw_min);
+  event_log_info (hashcat_ctx, "Password length maximum: %u", hashconfig->pw_max);
+
+  if (hashconfig->is_salted)
+  {
+    if (hashconfig->opti_type & OPTI_TYPE_RAW_HASH)
+    {
+      event_log_info (hashcat_ctx, "Salt length minimum: %u", hashconfig->salt_min);
+      event_log_info (hashcat_ctx, "Salt length maximum: %u", hashconfig->salt_max);
+    }
+  }
+
+  event_log_info (hashcat_ctx, NULL);
+
+  /**
    * Watchdog and Temperature balance
    */
 

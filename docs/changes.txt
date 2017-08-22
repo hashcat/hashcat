@@ -47,6 +47,7 @@
 - OpenCL Kernels: Updated default scrypt TMTO to be ideal for latest NV and AMD top models
 - OpenCL Kernels: Vectorized tons of slow kernels to improve CPU cracking speed
 - OpenCL Runtime: Updated AMD ROCm driver version check, warn if version < 1.1
+- Startup: Show some attack-specific optimizer constraints on start, eg: minimum and maximum support password- and salt-length
 - WPA cracking: Improved nonce-error-corrections mode to use a both positive and negative corrections
 
 ##
