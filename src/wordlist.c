@@ -240,8 +240,8 @@ void get_next_word (hashcat_ctx_t *hashcat_ctx, FILE *fd, char **out_buf, u32 *o
 
 void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len)
 {
-  //if (device_param->pws_cnt < device_param->kernel_power)
-  //{
+  if (device_param->pws_cnt < device_param->kernel_power)
+  {
     pw_t *pw = (pw_t *) device_param->pws_buf + device_param->pws_cnt;
 
     u8 *ptr = (u8 *) pw->i;
@@ -253,13 +253,13 @@ void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len
     pw->pw_len = pw_len;
 
     device_param->pws_cnt++;
-  //}
-  //else
-  //{
-  //  fprintf (stderr, "BUG pw_add()!!\n");
-  //
-  //  return;
-  //}
+  }
+  else
+  {
+    fprintf (stderr, "BUG pw_add()!!\n");
+
+    return;
+  }
 }
 
 int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64 *result)
@@ -498,11 +498,12 @@ int wl_data_init (hashcat_ctx_t *hashcat_ctx)
 
   wl_data->enabled = false;
 
-  if (user_options->benchmark   == true) return 0;
-  if (user_options->left        == true) return 0;
-  if (user_options->opencl_info == true) return 0;
-  if (user_options->usage       == true) return 0;
-  if (user_options->version     == true) return 0;
+  if (user_options->benchmark      == true) return 0;
+  if (user_options->example_hashes == true) return 0;
+  if (user_options->left           == true) return 0;
+  if (user_options->opencl_info    == true) return 0;
+  if (user_options->usage          == true) return 0;
+  if (user_options->version        == true) return 0;
 
   wl_data->enabled = true;
 

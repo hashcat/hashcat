@@ -415,7 +415,12 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   const int rc_hashconfig = hashconfig_init (hashcat_ctx);
 
-  if (rc_hashconfig == -1) return -1;
+  if (rc_hashconfig == -1)
+  {
+    event_log_error (hashcat_ctx, "Unknown hash-type '%u' selected.", user_options->hash_mode);
+
+    return -1;
+  }
 
   /**
    * load hashes, stage 1

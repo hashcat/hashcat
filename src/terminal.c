@@ -513,6 +513,121 @@ void compress_terminal_line_length (char *out_buf, const size_t keep_from_beginn
   *ptr1 = 0;
 }
 
+void example_hashes (hashcat_ctx_t *hashcat_ctx)
+{
+  user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->hash_mode_chgd == true)
+  {
+    const int rc = hashconfig_init (hashcat_ctx);
+
+    if (rc == 0)
+    {
+      hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
+      event_log_info (hashcat_ctx, "MODE: %u", hashconfig->hash_mode);
+      event_log_info (hashcat_ctx, "TYPE: %s", strhashtype (hashconfig->hash_mode));
+
+      if ((hashconfig->st_hash != NULL) && (hashconfig->st_pass != NULL))
+      {
+        event_log_info (hashcat_ctx, "HASH: %s", hashconfig->st_hash);
+
+        if (need_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), user_options->separator, 0))
+        {
+          char tmp_buf[HCBUFSIZ_LARGE];
+
+          int tmp_len = 0;
+
+          tmp_buf[tmp_len++] = '$';
+          tmp_buf[tmp_len++] = 'H';
+          tmp_buf[tmp_len++] = 'E';
+          tmp_buf[tmp_len++] = 'X';
+          tmp_buf[tmp_len++] = '[';
+
+          exec_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), (u8 *) tmp_buf + tmp_len);
+
+          tmp_len += strlen (hashconfig->st_pass) * 2;
+
+          tmp_buf[tmp_len++] = ']';
+          tmp_buf[tmp_len++] = 0;
+
+          event_log_info (hashcat_ctx, "PASS: %s", tmp_buf);
+        }
+        else
+        {
+          event_log_info (hashcat_ctx, "PASS: %s", hashconfig->st_pass);
+        }
+      }
+      else
+      {
+        event_log_info (hashcat_ctx, "HASH: not stored");
+        event_log_info (hashcat_ctx, "PASS: not stored");
+      }
+
+      event_log_info (hashcat_ctx, NULL);
+    }
+
+    hashconfig_destroy (hashcat_ctx);
+  }
+  else
+  {
+    for (int i = 0; i < 100000; i++)
+    {
+      user_options->hash_mode = i;
+
+      const int rc = hashconfig_init (hashcat_ctx);
+
+      if (rc == 0)
+      {
+        hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
+        event_log_info (hashcat_ctx, "MODE: %u", hashconfig->hash_mode);
+        event_log_info (hashcat_ctx, "TYPE: %s", strhashtype (hashconfig->hash_mode));
+
+        if ((hashconfig->st_hash != NULL) && (hashconfig->st_pass != NULL))
+        {
+          event_log_info (hashcat_ctx, "HASH: %s", hashconfig->st_hash);
+
+          if (need_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), user_options->separator, 0))
+          {
+            char tmp_buf[HCBUFSIZ_LARGE];
+
+            int tmp_len = 0;
+
+            tmp_buf[tmp_len++] = '$';
+            tmp_buf[tmp_len++] = 'H';
+            tmp_buf[tmp_len++] = 'E';
+            tmp_buf[tmp_len++] = 'X';
+            tmp_buf[tmp_len++] = '[';
+
+            exec_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), (u8 *) tmp_buf + tmp_len);
+
+            tmp_len += strlen (hashconfig->st_pass) * 2;
+
+            tmp_buf[tmp_len++] = ']';
+            tmp_buf[tmp_len++] = 0;
+
+            event_log_info (hashcat_ctx, "PASS: %s", tmp_buf);
+          }
+          else
+          {
+            event_log_info (hashcat_ctx, "PASS: %s", hashconfig->st_pass);
+          }
+        }
+        else
+        {
+          event_log_info (hashcat_ctx, "HASH: not stored");
+          event_log_info (hashcat_ctx, "PASS: not stored");
+        }
+
+        event_log_info (hashcat_ctx, NULL);
+      }
+
+      hashconfig_destroy (hashcat_ctx);
+    }
+  }
+}
+
 void opencl_info (hashcat_ctx_t *hashcat_ctx)
 {
   const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;

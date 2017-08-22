@@ -32,6 +32,7 @@ static const struct option long_options[] =
   {"debug-mode",                required_argument, 0, IDX_DEBUG_MODE},
   {"encoding-from",             required_argument, 0, IDX_ENCODING_FROM},
   {"encoding-to",               required_argument, 0, IDX_ENCODING_TO},
+  {"example-hashes",            no_argument,       0, IDX_EXAMPLE_HASHES},
   {"force",                     no_argument,       0, IDX_FORCE},
   {"generate-rules-func-max",   required_argument, 0, IDX_RP_GEN_FUNC_MAX},
   {"generate-rules-func-min",   required_argument, 0, IDX_RP_GEN_FUNC_MIN},
@@ -139,6 +140,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->custom_charset_4          = NULL;
   user_options->debug_file                = NULL;
   user_options->debug_mode                = DEBUG_MODE;
+  user_options->example_hashes            = EXAMPLE_HASHES;
   user_options->encoding_from             = ENCODING_FROM;
   user_options->encoding_to               = ENCODING_TO;
   user_options->force                     = FORCE;
@@ -171,7 +173,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->nvidia_spin_damp          = NVIDIA_SPIN_DAMP;
   user_options->opencl_devices            = NULL;
   user_options->opencl_device_types       = NULL;
-  user_options->opencl_info               = 0;
+  user_options->opencl_info               = OPENCL_INFO;
   user_options->opencl_platforms          = NULL;
   user_options->opencl_vector_width       = OPENCL_VECTOR_WIDTH;
   user_options->optimized_kernel_enable   = OPTIMIZED_KERNEL_ENABLE;
@@ -335,6 +337,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_ENCODING_TO:               user_options->encoding_to               = optarg;         break;
       case IDX_INDUCTION_DIR:             user_options->induction_dir             = optarg;         break;
       case IDX_OUTFILE_CHECK_DIR:         user_options->outfile_check_dir         = optarg;         break;
+      case IDX_EXAMPLE_HASHES:            user_options->example_hashes            = true;           break;
       case IDX_FORCE:                     user_options->force                     = true;           break;
       case IDX_SELF_TEST_DISABLE:         user_options->self_test_disable         = true;           break;
       case IDX_SKIP:                      user_options->skip                      = atoll (optarg); break;
@@ -1028,6 +1031,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       show_error = false;
     }
   }
+  else if (user_options->example_hashes == true)
+  {
+    if (user_options->hc_argc == 0)
+    {
+      show_error = false;
+    }
+  }
   else if (user_options->opencl_info == true)
   {
     if (user_options->hc_argc == 0)
@@ -1177,14 +1187,19 @@ void user_options_session_auto (hashcat_ctx_t *hashcat_ctx)
       user_options->session = "benchmark";
     }
 
+    if (user_options->example_hashes == true)
+    {
+      user_options->session = "example_hashes";
+    }
+
     if (user_options->speed_only == true)
     {
-      user_options->session = "speed-only";
+      user_options->session = "speed_only";
     }
 
     if (user_options->progress_only == true)
     {
-      user_options->session = "progress-only";
+      user_options->session = "progress_only";
     }
 
     if (user_options->keyspace == true)
@@ -1227,11 +1242,12 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
 
   // some options can influence or overwrite other options
 
-  if (user_options->opencl_info   == true
-   || user_options->keyspace      == true
-   || user_options->stdout_flag   == true
-   || user_options->speed_only    == true
-   || user_options->progress_only == true)
+  if (user_options->example_hashes  == true
+   || user_options->opencl_info     == true
+   || user_options->keyspace        == true
+   || user_options->stdout_flag     == true
+   || user_options->speed_only      == true
+   || user_options->progress_only   == true)
   {
     user_options->gpu_temp_disable    = true;
     user_options->left                = false;
@@ -1275,6 +1291,11 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
       user_options->optimized_kernel_enable = true;
       user_options->workload_profile        = 3;
     }
+  }
+
+  if (user_options->example_hashes == true)
+  {
+    user_options->quiet = true;
   }
 
   if (user_options->progress_only == true)
@@ -1373,7 +1394,11 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->attack_mode == ATTACK_MODE_BF)
   {
-    if (user_options->opencl_info == true)
+    if (user_options->example_hashes == true)
+    {
+
+    }
+    else if (user_options->opencl_info == true)
     {
 
     }
@@ -1460,6 +1485,10 @@ void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
   user_options_extra->hc_workc = 0;
 
   if (user_options->benchmark == true)
+  {
+
+  }
+  else if (user_options->example_hashes == true)
   {
 
   }
@@ -2107,6 +2136,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->bitmap_max);
   logfile_top_uint   (user_options->bitmap_min);
   logfile_top_uint   (user_options->debug_mode);
+  logfile_top_uint   (user_options->example_hashes);
   logfile_top_uint   (user_options->force);
   logfile_top_uint   (user_options->gpu_temp_abort);
   logfile_top_uint   (user_options->gpu_temp_disable);

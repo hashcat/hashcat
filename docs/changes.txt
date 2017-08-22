@@ -9,6 +9,7 @@
 - Added self-test functionality to detect broken OpenCL runtimes on startup
 - Added option --self-test-disable to disable self-test functionality on startup
 - Added option --wordlist-autohex-disable to disable the automatical conversion of $HEX[] words from the word list
+- Added option --example-hashes to show an example hash for each hash-mode
 
 ##
 ## Algorithms
@@ -26,6 +27,7 @@
 - Fixed an invalid progress value in status view if words from the base wordlist get rejected because of length
 - Fixed a parser error for mode -m 9820 = MS Office <= 2003 $3, SHA1 + RC4, collider #2
 - Fixed a problem with changed current working directory, for instance by using --restore together with --remove
+- Fixed a problem with the conversion to the $HEX[] format: convert/hexify also all passwords of the format $HEX[]
 - Fixed the calculation of device_name_chksum; should be done for each iteration
 - Fixed the estimated time value whenever the value is very large and overflows
 - Fixed the parsing of command line options. It doesn't show two times the same error about an invalid option anymore
@@ -38,6 +40,7 @@
 ##
 
 - Charset: Add additional DES charsets with corrected parity
+- OpenCL Buffers: Do not allocate memory for amplifiers for fast hashes, it's simply not needed
 - OpenCL Kernels: Improved performance of SHA-3 Kernel (keccak) by hardcoding the 0x80 stopbit
 - OpenCL Kernels: Move from ld.global.v4.u32 to ld.const.v4.u32 in _a3 kernels
 - OpenCL Kernels: Replace bitwise swaps with rotate() versions for AMD
@@ -45,6 +48,7 @@
 - OpenCL Kernels: Updated default scrypt TMTO to be ideal for latest NV and AMD top models
 - OpenCL Kernels: Vectorized tons of slow kernels to improve CPU cracking speed
 - OpenCL Runtime: Updated AMD ROCm driver version check, warn if version < 1.1
+- Startup: Show some attack-specific optimizer constraints on start, eg: minimum and maximum support password- and salt-length
 - WPA cracking: Improved nonce-error-corrections mode to use a both positive and negative corrections
 
 ##
