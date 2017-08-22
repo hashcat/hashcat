@@ -240,8 +240,8 @@ void get_next_word (hashcat_ctx_t *hashcat_ctx, FILE *fd, char **out_buf, u32 *o
 
 void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len)
 {
-  //if (device_param->pws_cnt < device_param->kernel_power)
-  //{
+  if (device_param->pws_cnt < device_param->kernel_power)
+  {
     pw_t *pw = (pw_t *) device_param->pws_buf + device_param->pws_cnt;
 
     u8 *ptr = (u8 *) pw->i;
@@ -253,13 +253,13 @@ void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len
     pw->pw_len = pw_len;
 
     device_param->pws_cnt++;
-  //}
-  //else
-  //{
-  //  fprintf (stderr, "BUG pw_add()!!\n");
-  //
-  //  return;
-  //}
+  }
+  else
+  {
+    fprintf (stderr, "BUG pw_add()!!\n");
+
+    return;
+  }
 }
 
 int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64 *result)
