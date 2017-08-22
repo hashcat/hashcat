@@ -9,6 +9,7 @@
 - Added self-test functionality to detect broken OpenCL runtimes on startup
 - Added option --self-test-disable to disable self-test functionality on startup
 - Added option --wordlist-autohex-disable to disable the automatical conversion of $HEX[] words from the word list
+- Added option --example-hashes to show an example hash for each hash-mode
 
 ##
 ## Algorithms

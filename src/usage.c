@@ -84,6 +84,7 @@ static const char *USAGE_BIG[] =
   "     --bitmap-min               | Num  | Sets minimum bits allowed for bitmaps to X           | --bitmap-min=24",
   "     --bitmap-max               | Num  | Sets maximum bits allowed for bitmaps to X           | --bitmap-max=24",
   "     --cpu-affinity             | Str  | Locks to CPU devices, separated with commas          | --cpu-affinity=1,2,3",
+  "     --example-hashes           |      | Show an example hash for each hash-mode              |",
   " -I, --opencl-info              |      | Show info about detected OpenCL platforms/devices    | -I",
   "     --opencl-platforms         | Str  | OpenCL platforms to use, separated with commas       | --opencl-platforms=2",
   " -d, --opencl-devices           | Str  | OpenCL devices to use, separated with commas         | -d 1",

@@ -187,7 +187,7 @@ static void main_outerloop_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
 
   status_ctx->shutdown_outer = false;
 
-  if ((user_options->keyspace == false) && (user_options->stdout_flag == false) && (user_options->opencl_info == false) && (user_options->speed_only == false))
+  if ((user_options->example_hashes == false) && (user_options->keyspace == false) && (user_options->stdout_flag == false) && (user_options->opencl_info == false) && (user_options->speed_only == false))
   {
     if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
     {
@@ -250,9 +250,10 @@ static void main_cracker_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
-  if (user_options->keyspace    == true) return;
-  if (user_options->opencl_info == true) return;
-  if (user_options->stdout_flag == true) return;
+  if (user_options->example_hashes  == true) return;
+  if (user_options->keyspace        == true) return;
+  if (user_options->opencl_info     == true) return;
+  if (user_options->stdout_flag     == true) return;
 
   // if we had a prompt, clear it
 
@@ -1031,6 +1032,13 @@ int main (int argc, char **argv)
   if (user_options->usage == true)
   {
     usage_big_print (PROGNAME);
+
+    return 0;
+  }
+
+  if (user_options->example_hashes == true)
+  {
+    example_hashes (hashcat_ctx);
 
     return 0;
   }

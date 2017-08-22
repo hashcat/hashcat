@@ -34,7 +34,6 @@ static char ST_PASS_BIN_09710[]     = "\x91\xb2\xe0\x62\xb9";
 static char ST_PASS_BIN_09810[]     = "\xb8\xf6\x36\x19\xca";
 static char ST_PASS_BIN_10410[]     = "\x6a\x8a\xed\xcc\xb7";
 
-
 /**
  * Missing self-test hashes:
  *
@@ -24312,8 +24311,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    default:     event_log_error (hashcat_ctx, "Unknown hash-type '%u' selected.", hashconfig->hash_mode);
-                 return -1;
+    default:     return -1;
   }
 
   if (user_options->hex_salt)
@@ -24338,36 +24336,39 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   // some kernels do not have an optimized kernel, simply because they do not need them
   // or because they are not yet converted, for them we should switch off optimized mode
 
-  if (user_options->optimized_kernel_enable == true)
+  if (user_options->example_hashes == false)
   {
-    char source_file[256] = { 0 };
-
-    generate_source_kernel_filename (hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, true, folder_config->shared_dir, source_file);
-
-    if (hc_path_read (source_file) == false)
+    if (user_options->optimized_kernel_enable == true)
     {
-      if (user_options->quiet == false) event_log_warning (hashcat_ctx, "%s: Optimized kernel not found, falling back to pure kernel", source_file);
+      char source_file[256] = { 0 };
+
+      generate_source_kernel_filename (hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, true, folder_config->shared_dir, source_file);
+
+      if (hc_path_read (source_file) == false)
+      {
+        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "%s: Optimized kernel not found, falling back to pure kernel", source_file);
+      }
+      else
+      {
+        hashconfig->opti_type |= OPTI_TYPE_OPTIMIZED_KERNEL;
+      }
     }
     else
     {
-      hashconfig->opti_type |= OPTI_TYPE_OPTIMIZED_KERNEL;
-    }
-  }
-  else
-  {
-    char source_file[256] = { 0 };
+      char source_file[256] = { 0 };
 
-    generate_source_kernel_filename (hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, false, folder_config->shared_dir, source_file);
+      generate_source_kernel_filename (hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, false, folder_config->shared_dir, source_file);
 
-    if (hc_path_read (source_file) == false)
-    {
-      if (user_options->quiet == false) event_log_warning (hashcat_ctx, "%s: Pure kernel not found, falling back to optimized kernel", source_file);
+      if (hc_path_read (source_file) == false)
+      {
+        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "%s: Pure kernel not found, falling back to optimized kernel", source_file);
 
-      hashconfig->opti_type |= OPTI_TYPE_OPTIMIZED_KERNEL;
-    }
-    else
-    {
-      // nothing to do
+        hashconfig->opti_type |= OPTI_TYPE_OPTIMIZED_KERNEL;
+      }
+      else
+      {
+        // nothing to do
+      }
     }
   }
 
