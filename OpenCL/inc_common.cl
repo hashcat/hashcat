@@ -2968,7 +2968,7 @@ static void switch_buffer_by_offset_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x
 
   const int offset_minus_4 = 4 - offset_mod_4;
 
-  #if defined IS_AMD || defined IS_GENERIC
+  #if defined IS_AMD_LEGACY || defined IS_GENERIC
   w0[0] = swap32 (w0[0]);
   w0[1] = swap32 (w0[1]);
   w0[2] = swap32 (w0[2]);
@@ -3327,8 +3327,15 @@ static void switch_buffer_by_offset_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x
   w3[3] = swap32 (w3[3]);
   #endif
 
-  #ifdef IS_NV
+  #if defined IS_AMD_ROCM || defined IS_NV
+
+  #if defined IS_NV
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
+  #endif
+
+  #if defined IS_AMD_ROCM
+  const int selector = 0x0706050403020100 >> (offset_minus_4 * 8);
+  #endif
 
   switch (offset / 4)
   {
@@ -3652,6 +3659,7 @@ static void switch_buffer_by_offset_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x
 
       break;
   }
+
   #endif
 }
 
@@ -32192,7 +32200,7 @@ static void switch_buffer_by_offset_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
 
   const int offset_minus_4 = 4 - offset_mod_4;
 
-  #if defined IS_AMD || defined IS_GENERIC
+  #if defined IS_AMD_LEGACY || defined IS_GENERIC
   w0[0] = swap32_S (w0[0]);
   w0[1] = swap32_S (w0[1]);
   w0[2] = swap32_S (w0[2]);
@@ -32551,8 +32559,15 @@ static void switch_buffer_by_offset_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w
   w3[3] = swap32_S (w3[3]);
   #endif
 
-  #ifdef IS_NV
+  #if defined IS_AMD_ROCM || defined IS_NV
+
+  #if defined IS_NV
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
+  #endif
+
+  #if defined IS_AMD_ROCM
+  const int selector = 0x0706050403020100 >> (offset_minus_4 * 8);
+  #endif
 
   switch (offset / 4)
   {

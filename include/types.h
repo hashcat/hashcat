@@ -1029,6 +1029,8 @@ typedef struct hc_device_param
   char   *driver_version;
   char   *device_opencl_version;
 
+  bool    is_rocm;
+
   double  nvidia_spin_damp;
 
   cl_platform_id platform;
