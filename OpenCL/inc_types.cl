@@ -1567,10 +1567,6 @@ typedef struct pw
 
   u32 pw_len;
 
-  u32 alignment_placeholder_1;
-  u32 alignment_placeholder_2;
-  u32 alignment_placeholder_3;
-
 } pw_t;
 
 typedef struct bf

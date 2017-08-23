@@ -729,7 +729,7 @@ static int apply_rule (const u32 name, MAYBE_UNUSED const u8 p0, MAYBE_UNUSED co
   return out_len;
 }
 
-static int apply_rules (__global const u32 *cmds, u32 *buf, const int in_len)
+static int apply_rules (__constant const u32 *cmds, u32 *buf, const int in_len)
 {
   int out_len = in_len;
 

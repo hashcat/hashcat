@@ -3796,7 +3796,20 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_accel_max = 1024;
 
     device_param->kernel_loops_min = 1;
-    device_param->kernel_loops_max = 1024;
+    //device_param->kernel_loops_max = 1024;
+
+    if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+    {
+      device_param->kernel_loops_max = KERNEL_RULES;
+    }
+    else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+    {
+      device_param->kernel_loops_max = KERNEL_COMBS;
+    }
+    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
+    {
+      device_param->kernel_loops_max = KERNEL_BFS;
+    }
 
     tuning_db_entry_t *tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->device_type, user_options->attack_mode, hashconfig->hash_mode);
 
