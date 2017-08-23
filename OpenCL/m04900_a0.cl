@@ -30,7 +30,7 @@ __kernel void m04900_mxx (__global pw_t *pws, __constant const kernel_rule_t *ru
    * base
    */
 
-  pw_t pw = pws[gid];
+  COPY_PW (pws[gid]);
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
@@ -53,7 +53,7 @@ __kernel void m04900_mxx (__global pw_t *pws, __constant const kernel_rule_t *ru
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    pw_t tmp = pw;
+    pw_t tmp = PASTE_PW;
 
     tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
@@ -101,7 +101,7 @@ __kernel void m04900_sxx (__global pw_t *pws, __constant const kernel_rule_t *ru
    * base
    */
 
-  pw_t pw = pws[gid];
+  COPY_PW (pws[gid]);
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 
@@ -124,7 +124,7 @@ __kernel void m04900_sxx (__global pw_t *pws, __constant const kernel_rule_t *ru
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
   {
-    pw_t tmp = pw;
+    pw_t tmp = PASTE_PW;
 
     tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
