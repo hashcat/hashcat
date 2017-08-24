@@ -888,7 +888,7 @@ static void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
   #endif
 
-  #if defined IS_ROCM
+  #if defined IS_AMD_ROCM
   const int selector = 0x0706050403020100 >> (offset_minus_4 * 8);
   #endif
 
