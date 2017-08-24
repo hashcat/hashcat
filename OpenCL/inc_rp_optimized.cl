@@ -766,7 +766,7 @@ static void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
   u32 s6 = 0;
   u32 s7 = 0;
 
-  #if defined IS_AMD || defined IS_GENERIC
+  #if defined IS_AMD_LEGACY || defined IS_GENERIC
   const u32 src_r00 = swap32_S (src_r0[0]);
   const u32 src_r01 = swap32_S (src_r0[1]);
   const u32 src_r02 = swap32_S (src_r0[2]);
@@ -878,12 +878,19 @@ static void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
   s7 = swap32_S (s7);
   #endif
 
-  #ifdef IS_NV
+  #if defined IS_AMD_ROCM || defined IS_NV
+
   const int offset_mod_4 = offset & 3;
 
   const int offset_minus_4 = 4 - offset_mod_4;
 
+  #if defined IS_NV
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
+  #endif
+
+  #if defined IS_ROCM
+  const int selector = 0x0706050403020100 >> (offset_minus_4 * 8);
+  #endif
 
   const u32 src_r00 = src_r0[0];
   const u32 src_r01 = src_r0[1];
@@ -1035,62 +1042,86 @@ static void exchange_byte (u32 *buf, const int off_src, const int off_dst)
 
 static u32 rule_op_mangle_lrest (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
-  buf0[0] |= (generate_cmask (buf0[0]));
-  buf0[1] |= (generate_cmask (buf0[1]));
-  buf0[2] |= (generate_cmask (buf0[2]));
-  buf0[3] |= (generate_cmask (buf0[3]));
-  buf1[0] |= (generate_cmask (buf1[0]));
-  buf1[1] |= (generate_cmask (buf1[1]));
-  buf1[2] |= (generate_cmask (buf1[2]));
-  buf1[3] |= (generate_cmask (buf1[3]));
+  u32 t;
 
-  return in_len;
+  t = buf0[0]; buf0[0] = t | generate_cmask (t);
+  t = buf0[1]; buf0[1] = t | generate_cmask (t);
+  t = buf0[2]; buf0[2] = t | generate_cmask (t);
+  t = buf0[3]; buf0[3] = t | generate_cmask (t);
+  t = buf1[0]; buf1[0] = t | generate_cmask (t);
+  t = buf1[1]; buf1[1] = t | generate_cmask (t);
+  t = buf1[2]; buf1[2] = t | generate_cmask (t);
+  t = buf1[3]; buf1[3] = t | generate_cmask (t);
+
+  return (in_len);
 }
 
 static u32 rule_op_mangle_urest (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
-  buf0[0] &= ~(generate_cmask (buf0[0]));
-  buf0[1] &= ~(generate_cmask (buf0[1]));
-  buf0[2] &= ~(generate_cmask (buf0[2]));
-  buf0[3] &= ~(generate_cmask (buf0[3]));
-  buf1[0] &= ~(generate_cmask (buf1[0]));
-  buf1[1] &= ~(generate_cmask (buf1[1]));
-  buf1[2] &= ~(generate_cmask (buf1[2]));
-  buf1[3] &= ~(generate_cmask (buf1[3]));
+  u32 t;
 
-  return in_len;
+  t = buf0[0]; buf0[0] = t & ~(generate_cmask (t));
+  t = buf0[1]; buf0[1] = t & ~(generate_cmask (t));
+  t = buf0[2]; buf0[2] = t & ~(generate_cmask (t));
+  t = buf0[3]; buf0[3] = t & ~(generate_cmask (t));
+  t = buf1[0]; buf1[0] = t & ~(generate_cmask (t));
+  t = buf1[1]; buf1[1] = t & ~(generate_cmask (t));
+  t = buf1[2]; buf1[2] = t & ~(generate_cmask (t));
+  t = buf1[3]; buf1[3] = t & ~(generate_cmask (t));
+
+  return (in_len);
 }
 
 static u32 rule_op_mangle_lrest_ufirst (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
-  rule_op_mangle_lrest (p0, p1, buf0, buf1, in_len);
+  u32 t;
 
-  buf0[0] &= ~(0x00000020 & generate_cmask (buf0[0]));
+  t = buf0[0]; buf0[0] = t | generate_cmask (t);
+  t = buf0[1]; buf0[1] = t | generate_cmask (t);
+  t = buf0[2]; buf0[2] = t | generate_cmask (t);
+  t = buf0[3]; buf0[3] = t | generate_cmask (t);
+  t = buf1[0]; buf1[0] = t | generate_cmask (t);
+  t = buf1[1]; buf1[1] = t | generate_cmask (t);
+  t = buf1[2]; buf1[2] = t | generate_cmask (t);
+  t = buf1[3]; buf1[3] = t | generate_cmask (t);
 
-  return in_len;
+  t = buf0[0]; buf0[0] = t & ~(0x00000020 & generate_cmask (t));
+
+  return (in_len);
 }
 
 static u32 rule_op_mangle_urest_lfirst (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
-  rule_op_mangle_urest (p0, p1, buf0, buf1, in_len);
+  u32 t;
 
-  buf0[0] |= (0x00000020 & generate_cmask (buf0[0]));
+  t = buf0[0]; buf0[0] = t & ~(generate_cmask (t));
+  t = buf0[1]; buf0[1] = t & ~(generate_cmask (t));
+  t = buf0[2]; buf0[2] = t & ~(generate_cmask (t));
+  t = buf0[3]; buf0[3] = t & ~(generate_cmask (t));
+  t = buf1[0]; buf1[0] = t & ~(generate_cmask (t));
+  t = buf1[1]; buf1[1] = t & ~(generate_cmask (t));
+  t = buf1[2]; buf1[2] = t & ~(generate_cmask (t));
+  t = buf1[3]; buf1[3] = t & ~(generate_cmask (t));
 
-  return in_len;
+  t = buf0[0]; buf0[0] = t | (0x00000020 & generate_cmask (t));
+
+  return (in_len);
 }
 
 static u32 rule_op_mangle_trest (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
 {
-  buf0[0] ^= (generate_cmask (buf0[0]));
-  buf0[1] ^= (generate_cmask (buf0[1]));
-  buf0[2] ^= (generate_cmask (buf0[2]));
-  buf0[3] ^= (generate_cmask (buf0[3]));
-  buf1[0] ^= (generate_cmask (buf1[0]));
-  buf1[1] ^= (generate_cmask (buf1[1]));
-  buf1[2] ^= (generate_cmask (buf1[2]));
-  buf1[3] ^= (generate_cmask (buf1[3]));
+  u32 t;
 
-  return in_len;
+  t = buf0[0]; buf0[0] = t ^ generate_cmask (t);
+  t = buf0[1]; buf0[1] = t ^ generate_cmask (t);
+  t = buf0[2]; buf0[2] = t ^ generate_cmask (t);
+  t = buf0[3]; buf0[3] = t ^ generate_cmask (t);
+  t = buf1[0]; buf1[0] = t ^ generate_cmask (t);
+  t = buf1[1]; buf1[1] = t ^ generate_cmask (t);
+  t = buf1[2]; buf1[2] = t ^ generate_cmask (t);
+  t = buf1[3]; buf1[3] = t ^ generate_cmask (t);
+
+  return (in_len);
 }
 
 static u32 rule_op_mangle_toggle_at (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
