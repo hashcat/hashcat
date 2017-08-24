@@ -31506,6 +31506,116 @@ static void switch_buffer_by_offset_1x64_be (u32x w[64], const u32 offset)
  * vector functions as scalar (for outer loop usage)
  */
 
+static void truncate_block_4x4_le_S (u32 w0[4], const u32 len)
+{
+  switch (len)
+  {
+    case  0:
+      w0[0]  = 0;
+      w0[1]  = 0;
+      w0[2]  = 0;
+      w0[3]  = 0;
+
+      break;
+
+    case  1:
+      w0[0] &= 0x000000ff;
+      w0[1]  = 0;
+      w0[2]  = 0;
+      w0[3]  = 0;
+
+      break;
+
+    case  2:
+      w0[0] &= 0x0000ffff;
+      w0[1]  = 0;
+      w0[2]  = 0;
+      w0[3]  = 0;
+
+      break;
+
+    case  3:
+      w0[0] &= 0x00ffffff;
+      w0[1]  = 0;
+      w0[2]  = 0;
+      w0[3]  = 0;
+
+      break;
+
+    case  4:
+      w0[1]  = 0;
+      w0[2]  = 0;
+      w0[3]  = 0;
+
+      break;
+
+    case  5:
+      w0[1] &= 0x000000ff;
+      w0[2]  = 0;
+      w0[3]  = 0;
+
+      break;
+
+    case  6:
+      w0[1] &= 0x0000ffff;
+      w0[2]  = 0;
+      w0[3]  = 0;
+
+      break;
+
+    case  7:
+      w0[1] &= 0x00ffffff;
+      w0[2]  = 0;
+      w0[3]  = 0;
+
+      break;
+
+    case  8:
+      w0[2]  = 0;
+      w0[3]  = 0;
+
+      break;
+
+    case  9:
+      w0[2] &= 0x000000ff;
+      w0[3]  = 0;
+
+      break;
+
+    case 10:
+      w0[2] &= 0x0000ffff;
+      w0[3]  = 0;
+
+      break;
+
+    case 11:
+      w0[2] &= 0x00ffffff;
+      w0[3]  = 0;
+
+      break;
+
+    case 12:
+      w0[3]  = 0;
+
+      break;
+
+    case 13:
+      w0[3] &= 0x000000ff;
+
+      break;
+
+    case 14:
+      w0[3] &= 0x0000ffff;
+
+      break;
+
+    case 15:
+      w0[3] &= 0x00ffffff;
+
+      break;
+  }
+}
+
 static void append_0x01_2x4_S (u32 w0[4], u32 w1[4], const u32 offset)
 {
   const u32 tmp = 0x01 << ((offset & 3) * 8);
