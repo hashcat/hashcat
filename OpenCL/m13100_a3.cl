@@ -232,14 +232,14 @@ int decrypt_and_check (__local RC4_KEY *rc4_key, u32 data[4], __global const u32
   {
     j = rc4_next_16 (rc4_key, i, j, edata2, w0); i += 16; edata2 += 4;
 
-    truncate_block_4x4_le (w0, edata2_left & 0xf);
+    truncate_block_4x4_le_S (w0, edata2_left & 0xf);
   }
   else if (edata2_left < 32)
   {
     j = rc4_next_16 (rc4_key, i, j, edata2, w0); i += 16; edata2 += 4;
     j = rc4_next_16 (rc4_key, i, j, edata2, w1); i += 16; edata2 += 4;
 
-    truncate_block_4x4_le (w1, edata2_left & 0xf);
+    truncate_block_4x4_le_S (w1, edata2_left & 0xf);
   }
   else if (edata2_left < 48)
   {
@@ -247,7 +247,7 @@ int decrypt_and_check (__local RC4_KEY *rc4_key, u32 data[4], __global const u32
     j = rc4_next_16 (rc4_key, i, j, edata2, w1); i += 16; edata2 += 4;
     j = rc4_next_16 (rc4_key, i, j, edata2, w2); i += 16; edata2 += 4;
 
-    truncate_block_4x4_le (w2, edata2_left & 0xf);
+    truncate_block_4x4_le_S (w2, edata2_left & 0xf);
   }
   else
   {
@@ -256,7 +256,7 @@ int decrypt_and_check (__local RC4_KEY *rc4_key, u32 data[4], __global const u32
     j = rc4_next_16 (rc4_key, i, j, edata2, w2); i += 16; edata2 += 4;
     j = rc4_next_16 (rc4_key, i, j, edata2, w3); i += 16; edata2 += 4;
 
-    truncate_block_4x4_le (w3, edata2_left & 0xf);
+    truncate_block_4x4_le_S (w3, edata2_left & 0xf);
   }
 
   md5_hmac_update_64 (&ctx, w0, w1, w2, w3, edata2_left);

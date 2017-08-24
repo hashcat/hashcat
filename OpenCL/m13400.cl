@@ -524,7 +524,7 @@ __kernel void m13400_comp (__global pw_t *pws, __constant const kernel_rule_t *r
 
       // we need to clear the buffer of the padding data
 
-      truncate_block_4x4_be (out, 16 - pad_byte);
+      truncate_block_4x4_be_S (out, 16 - pad_byte);
 
       u32 w0[4] = { 0 };
       u32 w1[4] = { 0 };
@@ -613,7 +613,7 @@ __kernel void m13400_comp (__global pw_t *pws, __constant const kernel_rule_t *r
 
       // we need to clear the buffer of the padding data
 
-      truncate_block_4x4_be (out, 16 - pad_byte);
+      truncate_block_4x4_be_S (out, 16 - pad_byte);
 
       u32 w0[4] = { 0 };
       u32 w1[4] = { 0 };

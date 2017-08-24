@@ -776,7 +776,7 @@ __kernel void m00500_init (__global pw_t *pws, __constant const kernel_rule_t *r
 
   block_len += salt_len;
 
-  truncate_block_4x4_le (digest, pw_len);
+  truncate_block_4x4_le_S (digest, pw_len);
 
   memcat16 (block0, block1, block2, block3, block_len, digest);
 

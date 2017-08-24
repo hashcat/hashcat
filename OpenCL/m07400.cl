@@ -104,7 +104,7 @@ __kernel void m07400_init (__global pw_t *pws, __constant const kernel_rule_t *r
   #endif
   for (int i = 0; i < 8; i++) t_final[i] = final[i];
 
-  truncate_block_16x4_be (t_final + 0, t_final + 4, t_final + 8, t_final + 12, pl);
+  truncate_block_16x4_be_S (t_final + 0, t_final + 4, t_final + 8, t_final + 12, pl);
 
   sha256_update (&ctx, t_final, pl);
 
@@ -175,7 +175,7 @@ __kernel void m07400_init (__global pw_t *pws, __constant const kernel_rule_t *r
     p_final[idx + 7] = final[7];
   }
 
-  truncate_block_16x4_be (final + 0, final + 4, final + 8, final + 12, pl);
+  truncate_block_16x4_be_S (final + 0, final + 4, final + 8, final + 12, pl);
 
   p_final[idx + 0] = final[0];
   p_final[idx + 1] = final[1];
@@ -233,7 +233,7 @@ __kernel void m07400_init (__global pw_t *pws, __constant const kernel_rule_t *r
     s_final[idx + 7] = final[7];
   }
 
-  truncate_block_16x4_be (final + 0, final + 4, final + 8, final + 12, pl);
+  truncate_block_16x4_be_S (final + 0, final + 4, final + 8, final + 12, pl);
 
   s_final[idx + 0] = final[0];
   s_final[idx + 1] = final[1];
