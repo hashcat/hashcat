@@ -689,7 +689,31 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
-    if (user_options->kernel_loops > 1024)
+    if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) && (user_options->kernel_loops > KERNEL_RULES))
+    {
+      event_log_error (hashcat_ctx, "Invalid kernel-loops specified.");
+
+      return -1;
+    }
+    else if ((user_options->attack_mode == ATTACK_MODE_COMBI) && (user_options->kernel_loops > KERNEL_COMBS))
+    {
+      event_log_error (hashcat_ctx, "Invalid kernel-loops specified.");
+
+      return -1;
+    }
+    else if ((user_options->attack_mode == ATTACK_MODE_BF) && (user_options->kernel_loops > KERNEL_BFS))
+    {
+      event_log_error (hashcat_ctx, "Invalid kernel-loops specified.");
+
+      return -1;
+    }
+    else if ((user_options->attack_mode == ATTACK_MODE_HYBRID1) && (user_options->kernel_loops > KERNEL_COMBS))
+    {
+      event_log_error (hashcat_ctx, "Invalid kernel-loops specified.");
+
+      return -1;
+    }
+    else if ((user_options->attack_mode == ATTACK_MODE_HYBRID2) && (user_options->kernel_loops > KERNEL_COMBS))
     {
       event_log_error (hashcat_ctx, "Invalid kernel-loops specified.");
 
@@ -1313,10 +1337,30 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->force               = true;
     user_options->hash_mode           = 2000;
     user_options->kernel_accel        = 1024;
-    user_options->kernel_loops        = 1024;
     user_options->opencl_vector_width = 1;
     user_options->outfile_format      = OUTFILE_FMT_PLAIN;
     user_options->quiet               = true;
+
+    if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+    {
+      user_options->kernel_loops = KERNEL_RULES;
+    }
+    else if (user_options->attack_mode == ATTACK_MODE_COMBI)
+    {
+      user_options->kernel_loops = KERNEL_COMBS;
+    }
+    else if (user_options->attack_mode == ATTACK_MODE_BF)
+    {
+      user_options->kernel_loops = KERNEL_BFS;
+    }
+    else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+    {
+      user_options->kernel_loops = KERNEL_COMBS;
+    }
+    else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+    {
+      user_options->kernel_loops = KERNEL_COMBS;
+    }
   }
 
   if (user_options->opencl_info == true)

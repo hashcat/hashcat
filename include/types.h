@@ -154,7 +154,7 @@ typedef enum amplifier_count
 {
   KERNEL_BFS              = 1024,
   KERNEL_COMBS            = 1024,
-  KERNEL_RULES            = 1024,
+  KERNEL_RULES            = 256,
   KERNEL_THREADS_MAX      = 64,
   KERNEL_THREADS_MAX_CPU  = 1
 
@@ -872,10 +872,6 @@ typedef struct pw
 
   u32 pw_len;
 
-  u32 alignment_placeholder_1;
-  u32 alignment_placeholder_2;
-  u32 alignment_placeholder_3;
-
 } pw_t;
 
 typedef struct bf
@@ -1028,6 +1024,8 @@ typedef struct hc_device_param
   char   *device_version;
   char   *driver_version;
   char   *device_opencl_version;
+
+  bool    is_rocm;
 
   double  nvidia_spin_damp;
 

@@ -40,7 +40,9 @@
 # - The Kernel-Accel is limited to 1024
 # - The Kernel-Loops is limited to 1024
 # - The Kernel-Accel can have 'A', where 'A' stands for autotune
+# - The Kernel-Accel can have 'M', where 'M' stands for maximum possible
 # - The Kernel-Loops can have 'A', where 'A' stands for autotune
+# - The Kernel-Loops can have 'M', where 'M' stands for maximum possible
 
 #############
 ## ALIASES ##
@@ -430,7 +432,7 @@ ALIAS_Apple_Iris                                *       10300   1       8       
 ALIAS_Apple_Iris                                *       10500   1       4       64
 ALIAS_Apple_Iris                                *       10900   1       2       200
 ALIAS_Apple_Iris                                *       11300   1       1       1
-ALIAS_Apple_Iris                                *       11600   1       1       512
+ALIAS_Apple_Iris                                *       11600   1       1       256
 ALIAS_Apple_Iris                                *       11900   1       2       200
 ALIAS_Apple_Iris                                *       12000   1       2       200
 ALIAS_Apple_Iris                                *       12100   1       2       200
@@ -461,8 +463,8 @@ ALIAS_Apple_Iris_Pro                            *       13733   1       1       
 ## EXTREME SLOW ALGOS #
 #######################
 
-DEVICE_TYPE_GPU                                 *       14600   1       2       1024
-DEVICE_TYPE_GPU                                 *       14800   1       2       1000
+DEVICE_TYPE_GPU                                 *       14600   1       2       M
+DEVICE_TYPE_GPU                                 *       14800   1       2       250
 
 ###########
 ## SCRYPT #

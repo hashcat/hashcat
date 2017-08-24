@@ -3349,6 +3349,8 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
               {
                 // Support for ROCm platform
                 if (atof (device_param->driver_version) >= 1.1) amd_warn = false;
+
+                device_param->is_rocm = true;
               }
               #elif defined (_WIN)
               // AMD Radeon Software 14.9 and higher, should be updated to 15.12
@@ -3794,7 +3796,20 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_accel_max = 1024;
 
     device_param->kernel_loops_min = 1;
-    device_param->kernel_loops_max = 1024;
+    //device_param->kernel_loops_max = 1024;
+
+    if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+    {
+      device_param->kernel_loops_max = KERNEL_RULES;
+    }
+    else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+    {
+      device_param->kernel_loops_max = KERNEL_COMBS;
+    }
+    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
+    {
+      device_param->kernel_loops_max = KERNEL_BFS;
+    }
 
     tuning_db_entry_t *tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->device_type, user_options->attack_mode, hashconfig->hash_mode);
 
@@ -4273,9 +4288,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     char build_opts_new[1024] = { 0 };
 
     #if defined (DEBUG)
-    snprintf (build_opts_new, sizeof (build_opts_new) - 1, "%s -D VENDOR_ID=%u -D CUDA_ARCH=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll", build_opts, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, hashconfig->kern_type);
+    snprintf (build_opts_new, sizeof (build_opts_new) - 1, "%s -D VENDOR_ID=%u -D CUDA_ARCH=%u -D AMD_ROCM=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll", build_opts, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->is_rocm, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, hashconfig->kern_type);
     #else
-    snprintf (build_opts_new, sizeof (build_opts_new) - 1, "%s -D VENDOR_ID=%u -D CUDA_ARCH=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -w", build_opts, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, hashconfig->kern_type);
+    snprintf (build_opts_new, sizeof (build_opts_new) - 1, "%s -D VENDOR_ID=%u -D CUDA_ARCH=%u -D AMD_ROCM=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -w", build_opts, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->is_rocm, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, hashconfig->kern_type);
     #endif
 
     if (device_param->device_type & CL_DEVICE_TYPE_CPU)

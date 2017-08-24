@@ -272,6 +272,73 @@ static u32 amd_bytealign_S (const u32 a, const u32 b, const u32 c)
 {
   return amd_bytealign (a, b, c);
 }
+
+#ifdef IS_AMD_ROCM
+static u32x __byte_perm (const u32x a, const u32x b, const u32x c)
+{
+  u32x r;
+
+  #if VECT_SIZE == 1
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r) : "v"(b), "v"(a), "v"(c));
+  #endif
+
+  #if VECT_SIZE >= 2
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c.s0));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c.s1));
+  #endif
+
+  #if VECT_SIZE >= 4
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c.s0));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c.s1));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s2) : "v"(b.s2), "v"(a.s2), "v"(c.s2));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s3) : "v"(b.s3), "v"(a.s3), "v"(c.s3));
+  #endif
+
+  #if VECT_SIZE >= 8
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c.s0));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c.s1));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s2) : "v"(b.s2), "v"(a.s2), "v"(c.s2));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s3) : "v"(b.s3), "v"(a.s3), "v"(c.s3));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s4) : "v"(b.s4), "v"(a.s4), "v"(c.s4));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s5) : "v"(b.s5), "v"(a.s5), "v"(c.s5));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s6) : "v"(b.s6), "v"(a.s6), "v"(c.s6));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s7) : "v"(b.s7), "v"(a.s7), "v"(c.s7));
+  #endif
+
+  #if VECT_SIZE >= 16
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s0) : "v"(b.s0), "v"(a.s0), "v"(c.s0));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s1) : "v"(b.s1), "v"(a.s1), "v"(c.s1));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s2) : "v"(b.s2), "v"(a.s2), "v"(c.s2));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s3) : "v"(b.s3), "v"(a.s3), "v"(c.s3));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s4) : "v"(b.s4), "v"(a.s4), "v"(c.s4));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s5) : "v"(b.s5), "v"(a.s5), "v"(c.s5));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s6) : "v"(b.s6), "v"(a.s6), "v"(c.s6));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s7) : "v"(b.s7), "v"(a.s7), "v"(c.s7));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s8) : "v"(b.s8), "v"(a.s8), "v"(c.s8));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.s9) : "v"(b.s9), "v"(a.s9), "v"(c.s9));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.sa) : "v"(b.sa), "v"(a.sa), "v"(c.sa));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.sb) : "v"(b.sb), "v"(a.sb), "v"(c.sb));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.sc) : "v"(b.sc), "v"(a.sc), "v"(c.sc));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.sd) : "v"(b.sd), "v"(a.sd), "v"(c.sd));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.se) : "v"(b.se), "v"(a.se), "v"(c.se));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r.sf) : "v"(b.sf), "v"(a.sf), "v"(c.sf));
+  #endif
+
+  return r;
+}
+#endif
+
+#ifdef IS_AMD_ROCM
+static u32 __byte_perm_S (const u32 a, const u32 b, const u32 c)
+{
+  u32 r;
+
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(r) : "v"(b), "v"(a), "v"(c));
+
+  return r;
+}
+#endif
+
 #endif
 
 #ifdef IS_NV
@@ -1499,10 +1566,6 @@ typedef struct pw
   u32 i[64];
 
   u32 pw_len;
-
-  u32 alignment_placeholder_1;
-  u32 alignment_placeholder_2;
-  u32 alignment_placeholder_3;
 
 } pw_t;
 

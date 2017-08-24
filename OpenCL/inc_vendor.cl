@@ -30,8 +30,13 @@
  */
 
 #if   VENDOR_ID == (1 << 0)
+#if   AMD_ROCM == 0
 #define IS_AMD
-//#define IS_GENERIC
+#define IS_AMD_LEGACY
+#else
+#define IS_AMD
+#define IS_AMD_ROCM
+#endif
 #elif VENDOR_ID == (1 << 1)
 #define IS_APPLE
 #define IS_GENERIC
@@ -46,7 +51,6 @@
 #define IS_GENERIC
 #elif VENDOR_ID == (1 << 5)
 #define IS_NV
-//#define IS_GENERIC
 #elif VENDOR_ID == (1 << 6)
 #define IS_POCL
 #define IS_GENERIC
