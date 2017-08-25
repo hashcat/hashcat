@@ -947,7 +947,7 @@ static void aes256_ExpandKey (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM
     ks[j + 10] = ks[j + 2] ^ ks[j +  9];
     ks[j + 11] = ks[j + 3] ^ ks[j + 10];
 
-    if (i == 6) continue;
+    if (i == 6) break;
 
     const u32 temp2 = ks[j + 11];
 
