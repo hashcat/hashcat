@@ -734,7 +734,36 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
 
         tmp_buf[0] = 0;
 
-        const int tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, (u8 *) hash->pw_buf, hash->pw_len, 0, username, user_len, (char *) tmp_buf);
+
+        // special case for collider modes: we do not use the $HEX[] format within the hash itself
+        // therefore we need to convert the $HEX[] password into hexadecimal (without "$HEX[" and "]")
+
+        bool is_collider_hex_password = false;
+
+        if ((hashconfig->hash_mode == 9710) || (hashconfig->hash_mode == 9810) || (hashconfig->hash_mode == 10410))
+        {
+          if (is_hexify ((u8 *) hash->pw_buf, hash->pw_len) == true)
+          {
+            is_collider_hex_password = true;
+          }
+        }
+
+        int tmp_len = 0;
+
+        if (is_collider_hex_password == true)
+        {
+          u8 pass_unhexified[HCBUFSIZ_TINY] = { 0 };
+
+          u32 pass_unhexified_len = 0;
+
+          pass_unhexified_len = exec_unhexify ((u8 *) hash->pw_buf, hash->pw_len, pass_unhexified, sizeof (pass_unhexified));
+
+          tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, pass_unhexified, pass_unhexified_len, 0, username, user_len, (char *) tmp_buf);
+        }
+        else
+        {
+          tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, (u8 *) hash->pw_buf, hash->pw_len, 0, username, user_len, (char *) tmp_buf);
+        }
 
         EVENT_DATA (EVENT_POTFILE_HASH_SHOW, tmp_buf, tmp_len);
       }
