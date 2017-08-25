@@ -97,6 +97,12 @@ bool is_hexify (const u8 *buf, const int len)
 {
   if (len < 6) return false; // $HEX[] = 6
 
+  // length of the hex string must be a multiple of 2
+  // and the length of "$HEX[]" is 6 (also an even length)
+  // Therefore the overall length must be an even number:
+
+  if ((len & 1) == 1) return false;
+
   if (buf[0]       != '$') return (false);
   if (buf[1]       != 'H') return (false);
   if (buf[2]       != 'E') return (false);
@@ -156,12 +162,9 @@ bool need_hexify (const u8 *buf, const int len, const char separator, bool alway
 
   if (rc == false)
   {
-    if ((len & 1) == 0)
+    if (is_hexify (buf, len))
     {
-      if (is_hexify (buf, len))
-      {
-        rc = true;
-      }
+      rc = true;
     }
   }
 
