@@ -2009,8 +2009,8 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
     // iteration type
 
-    u32 innerloop_step = 0;
-    u32 innerloop_cnt  = 0;
+    u64 innerloop_step = 0;
+    u64 innerloop_cnt  = 0;
 
     if   (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL) innerloop_step = device_param->kernel_loops;
     else                                                        innerloop_step = 1;
@@ -2021,13 +2021,13 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
     // innerloops
 
-    for (u32 innerloop_pos = 0; innerloop_pos < innerloop_cnt; innerloop_pos += innerloop_step)
+    for (u64 innerloop_pos = 0; innerloop_pos < innerloop_cnt; innerloop_pos += innerloop_step)
     {
       while (status_ctx->devices_status == STATUS_PAUSED) hc_sleep (1);
 
       u32 fast_iteration = 0;
 
-      u32 innerloop_left = innerloop_cnt - innerloop_pos;
+      u64 innerloop_left = innerloop_cnt - innerloop_pos;
 
       if (innerloop_left > innerloop_step)
       {
@@ -2036,10 +2036,12 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
         fast_iteration = 1;
       }
 
+printf ("%u\n", innerloop_left);
+
       device_param->innerloop_pos  = innerloop_pos;
       device_param->innerloop_left = innerloop_left;
 
-      device_param->kernel_params_buf32[30] = innerloop_left;
+      device_param->kernel_params_buf32[30] = (u32) innerloop_left;
 
       // i think we can get rid of this
       if (innerloop_left == false)
@@ -2072,7 +2074,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
           {
             char *line_buf = combinator_ctx->scratch_buf;
 
-            u32 i = 0;
+            u64 i = 0;
 
             while (i < innerloop_left)
             {
@@ -2139,7 +2141,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
               i++;
             }
 
-            for (u32 j = i; j < innerloop_left; j++)
+            for (u64 j = i; j < innerloop_left; j++)
             {
               memset (&device_param->combs_buf[j], 0, sizeof (pw_t));
             }
@@ -2189,7 +2191,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
           {
             char *line_buf = combinator_ctx->scratch_buf;
 
-            u32 i = 0;
+            u64 i = 0;
 
             while (i < innerloop_left)
             {
@@ -2258,7 +2260,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
               i++;
             }
 
-            for (u32 j = i; j < innerloop_left; j++)
+            for (u64 j = i; j < innerloop_left; j++)
             {
               memset (&device_param->combs_buf[j], 0, sizeof (pw_t));
             }
@@ -3571,7 +3573,7 @@ void opencl_ctx_devices_kernel_loops (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->kernel_loops_min < device_param->kernel_loops_max)
     {
-      u32 innerloop_cnt = 0;
+      u64 innerloop_cnt = 0;
 
       if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
       {

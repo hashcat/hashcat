@@ -994,8 +994,8 @@ typedef struct hc_device_param
   u32     outerloop_left;
   double  outerloop_msec;
 
-  u32     innerloop_pos;
-  u32     innerloop_left;
+  u64     innerloop_pos;
+  u64     innerloop_left;
 
   u32     exec_pos;
   double  exec_msec[EXEC_CACHE];

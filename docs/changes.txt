@@ -25,6 +25,7 @@
 - Fixed a missing barrier() call in the RACF OpenCL kernel
 - Fixed a missing salt length value in benchmark mode for SIP
 - Fixed an invalid progress value in status view if words from the base wordlist get rejected because of length
+- Fixed an integer overflow in innerloop_step and innerloop_cnt variables
 - Fixed a parser error for mode -m 9820 = MS Office <= 2003 $3, SHA1 + RC4, collider #2
 - Fixed a problem with changed current working directory, for instance by using --restore together with --remove
 - Fixed a problem with the conversion to the $HEX[] format: convert/hexify also all passwords of the format $HEX[]
