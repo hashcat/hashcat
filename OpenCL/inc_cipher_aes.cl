@@ -726,7 +726,7 @@ static void aes128_ExpandKey (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM
 
 static void aes128_InvertKey (u32 *ks, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
-  for (u32 i = 0, j = 40; i < 20; i += 4, j -= 4)
+  for (u32 i = 0, j = 40; i < j; i += 4, j -= 4)
   {
     u32 temp;
 
@@ -965,7 +965,7 @@ static void aes256_ExpandKey (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM
 
 static void aes256_InvertKey (u32 *ks, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
-  for (u32 i = 0, j = 56; i < 28; i += 4, j -= 4)
+  for (u32 i = 0, j = 56; i < j; i += 4, j -= 4)
   {
     u32 temp;
 
