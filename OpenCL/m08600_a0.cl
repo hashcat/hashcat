@@ -285,9 +285,9 @@ __kernel void m08600_mxx (__global pw_t *pws, __constant const kernel_rule_t *ru
      * padding
      */
 
-    pad (tmp.i, out_len);
+    pad (tmp.i, tmp.pw_len);
 
-    domino_big_md (tmp.i, out_len, state, s_lotus_magic_table);
+    domino_big_md (tmp.i, tmp.pw_len, state, s_lotus_magic_table);
 
     COMPARE_M_SIMD (state[0], state[1], state[2], state[3]);
   }
@@ -361,9 +361,9 @@ __kernel void m08600_sxx (__global pw_t *pws, __constant const kernel_rule_t *ru
      * padding
      */
 
-    pad (tmp.i, out_len);
+    pad (tmp.i, tmp.pw_len);
 
-    domino_big_md (tmp.i, out_len, state, s_lotus_magic_table);
+    domino_big_md (tmp.i, tmp.pw_len, state, s_lotus_magic_table);
 
     COMPARE_S_SIMD (state[0], state[1], state[2], state[3]);
   }

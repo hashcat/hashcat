@@ -551,7 +551,7 @@ __kernel void m03000_mxx (__global pw_t *pws, __constant const kernel_rule_t *ru
 
     u32 key[2];
 
-    transform_netntlmv1_key (tmp.i[0], tmp.i[0], key);
+    transform_netntlmv1_key (tmp.i[0], tmp.i[1], key);
 
     const u32 c = key[0];
     const u32 d = key[1];
@@ -648,7 +648,7 @@ __kernel void m03000_sxx (__global pw_t *pws, __constant const kernel_rule_t *ru
 
     u32 key[2];
 
-    transform_netntlmv1_key (tmp.i[0], tmp.i[0], key);
+    transform_netntlmv1_key (tmp.i[0], tmp.i[1], key);
 
     const u32 c = key[0];
     const u32 d = key[1];
