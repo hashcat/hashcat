@@ -3911,14 +3911,14 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     device_param->size_results = size_results;
 
-    size_t size_rules   = straight_ctx->kernel_rules_cnt * sizeof (kernel_rule_t);
-    size_t size_rules_c = KERNEL_RULES                   * sizeof (kernel_rule_t);
+    size_t size_rules   = (size_t) straight_ctx->kernel_rules_cnt * sizeof (kernel_rule_t);
+    size_t size_rules_c = (size_t) KERNEL_RULES                   * sizeof (kernel_rule_t);
 
-    size_t size_plains  = hashes->digests_cnt * sizeof (plain_t);
-    size_t size_salts   = hashes->salts_cnt   * sizeof (salt_t);
-    size_t size_esalts  = hashes->digests_cnt * hashconfig->esalt_size;
-    size_t size_shown   = hashes->digests_cnt * sizeof (u32);
-    size_t size_digests = hashes->digests_cnt * hashconfig->dgst_size;
+    size_t size_plains  = (size_t) hashes->digests_cnt * sizeof (plain_t);
+    size_t size_salts   = (size_t) hashes->salts_cnt   * sizeof (salt_t);
+    size_t size_esalts  = (size_t) hashes->digests_cnt * (size_t) hashconfig->esalt_size;
+    size_t size_shown   = (size_t) hashes->digests_cnt * sizeof (u32);
+    size_t size_digests = (size_t) hashes->digests_cnt * (size_t) hashconfig->dgst_size;
 
     device_param->size_plains   = size_plains;
     device_param->size_digests  = size_digests;
@@ -4009,17 +4009,17 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       // size_pws
 
-      const size_t size_pws = kernel_power_max * sizeof (pw_t);
+      const size_t size_pws = (size_t) kernel_power_max * sizeof (pw_t);
 
       const size_t size_pws_amp = size_pws;
 
       // size_tmps
 
-      const size_t size_tmps = kernel_power_max * hashconfig->tmp_size;
+      const size_t size_tmps = (size_t) kernel_power_max * hashconfig->tmp_size;
 
       // size_hooks
 
-      const size_t size_hooks = kernel_power_max * hashconfig->hook_size;
+      const size_t size_hooks = (size_t) kernel_power_max * hashconfig->hook_size;
 
       const u64 scrypt_extra_space
         = bitmap_ctx->bitmap_size
@@ -4061,7 +4061,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         size_scrypt /= 1u << tmto;
 
-        size_scrypt *= device_param->hardware_power * device_param->kernel_accel_max;
+        size_scrypt *= (size_t) device_param->hardware_power * device_param->kernel_accel_max;
 
         if ((size_scrypt / 4) > device_param->device_maxmem_alloc)
         {
@@ -4133,17 +4133,17 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       // size_pws
 
-      size_pws = kernel_power_max * sizeof (pw_t);
+      size_pws = (size_t) kernel_power_max * sizeof (pw_t);
 
       size_pws_amp = (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL) ? 1 : size_pws;
 
       // size_tmps
 
-      size_tmps = kernel_power_max * hashconfig->tmp_size;
+      size_tmps = (size_t) kernel_power_max * hashconfig->tmp_size;
 
       // size_hooks
 
-      size_hooks = kernel_power_max * hashconfig->hook_size;
+      size_hooks = (size_t) kernel_power_max * hashconfig->hook_size;
 
       // now check if all device-memory sizes which depend on the kernel_accel_max amplifier are within its boundaries
       // if not, decrease amplifier and try again
@@ -4154,7 +4154,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (size_tmps  > device_param->device_maxmem_alloc) memory_limit_hit = 1;
       if (size_hooks > device_param->device_maxmem_alloc) memory_limit_hit = 1;
 
-      const u64 size_total
+      const size_t size_total
         = bitmap_ctx->bitmap_size
         + bitmap_ctx->bitmap_size
         + bitmap_ctx->bitmap_size
