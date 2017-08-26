@@ -345,18 +345,18 @@ __constant u32a c_skb[8][64] =
 #define BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3], (S)[(n)][(i).s4], (S)[(n)][(i).s5], (S)[(n)][(i).s6], (S)[(n)][(i).s7], (S)[(n)][(i).s8], (S)[(n)][(i).s9], (S)[(n)][(i).sa], (S)[(n)][(i).sb], (S)[(n)][(i).sc], (S)[(n)][(i).sd], (S)[(n)][(i).se], (S)[(n)][(i).sf])
 #endif
 
-void _des_crypt_encrypt (u32x iv[2], u32x data[2], u32x Kc[16], u32x Kd[16], __local u32 (*s_SPtrans)[64])
+void _des_crypt_encrypt (u32 iv[2], u32x data[2], u32x Kc[16], u32x Kd[16], __local u32 (*s_SPtrans)[64])
 {
-  u32x r = data[0];
-  u32x l = data[1];
+  u32 r = data[0];
+  u32 l = data[1];
 
   #ifdef _unroll
   #pragma unroll
   #endif
   for (u32 i = 0; i < 16; i += 2)
   {
-    u32x u;
-    u32x t;
+    u32 u;
+    u32 t;
 
     u = Kc[i + 0] ^ rotl32 (r, 30u);
     t = Kd[i + 0] ^ rotl32 (r, 26u);
@@ -387,9 +387,9 @@ void _des_crypt_encrypt (u32x iv[2], u32x data[2], u32x Kc[16], u32x Kd[16], __l
   iv[1] = rotl32 (r, 29);
 }
 
-void _des_crypt_keysetup (u32x c, u32x d, u32x Kc[16], u32x Kd[16], __local u32 (*s_skb)[64])
+void _des_crypt_keysetup (u32 c, u32x d, u32x Kc[16], u32x Kd[16], __local u32 (*s_skb)[64])
 {
-  u32x tt;
+  u32 tt;
 
   PERM_OP  (d, c, tt, 4, 0x0f0f0f0f);
   HPERM_OP (c,    tt, 2, 0xcccc0000);
@@ -424,41 +424,41 @@ void _des_crypt_keysetup (u32x c, u32x d, u32x Kc[16], u32x Kd[16], __local u32 
     c = c & 0x0fffffff;
     d = d & 0x0fffffff;
 
-    const u32x c00 = (c >>  0) & 0x0000003f;
-    const u32x c06 = (c >>  6) & 0x00383003;
-    const u32x c07 = (c >>  7) & 0x0000003c;
-    const u32x c13 = (c >> 13) & 0x0000060f;
-    const u32x c20 = (c >> 20) & 0x00000001;
+    const u32 c00 = (c >>  0) & 0x0000003f;
+    const u32 c06 = (c >>  6) & 0x00383003;
+    const u32 c07 = (c >>  7) & 0x0000003c;
+    const u32 c13 = (c >> 13) & 0x0000060f;
+    const u32 c20 = (c >> 20) & 0x00000001;
 
-    u32x s = BOX (((c00 >>  0) & 0xff), 0, s_skb)
-           | BOX (((c06 >>  0) & 0xff)
-                 |((c07 >>  0) & 0xff), 1, s_skb)
-           | BOX (((c13 >>  0) & 0xff)
-                 |((c06 >>  8) & 0xff), 2, s_skb)
-           | BOX (((c20 >>  0) & 0xff)
-                 |((c13 >>  8) & 0xff)
-                 |((c06 >> 16) & 0xff), 3, s_skb);
+    u32 s = BOX (((c00 >>  0) & 0xff), 0, s_skb)
+          | BOX (((c06 >>  0) & 0xff)
+                |((c07 >>  0) & 0xff), 1, s_skb)
+          | BOX (((c13 >>  0) & 0xff)
+                |((c06 >>  8) & 0xff), 2, s_skb)
+          | BOX (((c20 >>  0) & 0xff)
+                |((c13 >>  8) & 0xff)
+                |((c06 >> 16) & 0xff), 3, s_skb);
 
-    const u32x d00 = (d >>  0) & 0x00003c3f;
-    const u32x d07 = (d >>  7) & 0x00003f03;
-    const u32x d21 = (d >> 21) & 0x0000000f;
-    const u32x d22 = (d >> 22) & 0x00000030;
+    const u32 d00 = (d >>  0) & 0x00003c3f;
+    const u32 d07 = (d >>  7) & 0x00003f03;
+    const u32 d21 = (d >> 21) & 0x0000000f;
+    const u32 d22 = (d >> 22) & 0x00000030;
 
-    u32x t = BOX (((d00 >>  0) & 0xff), 4, s_skb)
-           | BOX (((d07 >>  0) & 0xff)
-                 |((d00 >>  8) & 0xff), 5, s_skb)
-           | BOX (((d07 >>  8) & 0xff), 6, s_skb)
-           | BOX (((d21 >>  0) & 0xff)
-                 |((d22 >>  0) & 0xff), 7, s_skb);
+    u32 t = BOX (((d00 >>  0) & 0xff), 4, s_skb)
+          | BOX (((d07 >>  0) & 0xff)
+                |((d00 >>  8) & 0xff), 5, s_skb)
+          | BOX (((d07 >>  8) & 0xff), 6, s_skb)
+          | BOX (((d21 >>  0) & 0xff)
+                |((d22 >>  0) & 0xff), 7, s_skb);
 
     Kc[i] = ((t << 16) | (s & 0x0000ffff));
     Kd[i] = ((s >> 16) | (t & 0xffff0000));
   }
 }
 
-void transform_netntlmv1_key (const u32x w0, const u32x w1, u32x out[2])
+void transform_netntlmv1_key (const u32 w0, const u32x w1, u32x out[2])
 {
-  u32x t[8];
+  u32 t[8];
 
   t[0] = (w0 >>  0) & 0xff;
   t[1] = (w0 >>  8) & 0xff;
@@ -469,7 +469,7 @@ void transform_netntlmv1_key (const u32x w0, const u32x w1, u32x out[2])
   t[6] = (w1 >> 16) & 0xff;
   t[7] = (w1 >> 24) & 0xff;
 
-  u32x k[8];
+  u32 k[8];
 
   k[0] =               (t[0] >> 0);
   k[1] = (t[0] << 7) | (t[1] >> 1);
@@ -537,19 +537,7 @@ __kernel void m03000_mxx (__global pw_t *pws, __constant const kernel_rule_t *ru
    * base
    */
 
-  u32 pw_buf0[4];
-  u32 pw_buf1[4];
-
-  pw_buf0[0] = pws[gid].i[0];
-  pw_buf0[1] = pws[gid].i[1];
-  pw_buf0[2] = pws[gid].i[2];
-  pw_buf0[3] = pws[gid].i[3];
-  pw_buf1[0] = pws[gid].i[4];
-  pw_buf1[1] = pws[gid].i[5];
-  pw_buf1[2] = pws[gid].i[6];
-  pw_buf1[3] = pws[gid].i[7];
-
-  const u32 pw_len = pws[gid].pw_len;
+  COPY_PW (pws[gid]);
 
   /**
    * main
@@ -557,35 +545,32 @@ __kernel void m03000_mxx (__global pw_t *pws, __constant const kernel_rule_t *ru
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    u32x w0[4] = { 0 };
-    u32x w1[4] = { 0 };
-    u32x w2[4] = { 0 };
-    u32x w3[4] = { 0 };
+    pw_t tmp = PASTE_PW;
 
-    const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
-    u32x key[2];
+    u32 key[2];
 
-    transform_netntlmv1_key (w0[0], w0[1], key);
+    transform_netntlmv1_key (tmp.i[0], tmp.i[0], key);
 
-    const u32x c = key[0];
-    const u32x d = key[1];
+    const u32 c = key[0];
+    const u32 d = key[1];
 
-    u32x Kc[16];
-    u32x Kd[16];
+    u32 Kc[16];
+    u32 Kd[16];
 
     _des_crypt_keysetup (c, d, Kc, Kd, s_skb);
 
-    u32x data[2];
+    u32 data[2];
 
     data[0] = LM_IV_0_IP_RR3;
     data[1] = LM_IV_1_IP_RR3;
 
-    u32x iv[2];
+    u32 iv[2];
 
     _des_crypt_encrypt (iv, data, Kc, Kd, s_SPtrans);
 
-    u32x z = 0;
+    u32 z = 0;
 
     COMPARE_M_SIMD (iv[0], iv[1], z, z);
   }
@@ -637,19 +622,7 @@ __kernel void m03000_sxx (__global pw_t *pws, __constant const kernel_rule_t *ru
    * base
    */
 
-  u32 pw_buf0[4];
-  u32 pw_buf1[4];
-
-  pw_buf0[0] = pws[gid].i[0];
-  pw_buf0[1] = pws[gid].i[1];
-  pw_buf0[2] = pws[gid].i[2];
-  pw_buf0[3] = pws[gid].i[3];
-  pw_buf1[0] = pws[gid].i[4];
-  pw_buf1[1] = pws[gid].i[5];
-  pw_buf1[2] = pws[gid].i[6];
-  pw_buf1[3] = pws[gid].i[7];
-
-  const u32 pw_len = pws[gid].pw_len;
+  COPY_PW (pws[gid]);
 
   /**
    * digest
@@ -669,35 +642,32 @@ __kernel void m03000_sxx (__global pw_t *pws, __constant const kernel_rule_t *ru
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    u32x w0[4] = { 0 };
-    u32x w1[4] = { 0 };
-    u32x w2[4] = { 0 };
-    u32x w3[4] = { 0 };
+    pw_t tmp = PASTE_PW;
 
-    const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
-    u32x key[2];
+    u32 key[2];
 
-    transform_netntlmv1_key (w0[0], w0[1], key);
+    transform_netntlmv1_key (tmp.i[0], tmp.i[0], key);
 
-    const u32x c = key[0];
-    const u32x d = key[1];
+    const u32 c = key[0];
+    const u32 d = key[1];
 
-    u32x Kc[16];
-    u32x Kd[16];
+    u32 Kc[16];
+    u32 Kd[16];
 
     _des_crypt_keysetup (c, d, Kc, Kd, s_skb);
 
-    u32x data[2];
+    u32 data[2];
 
     data[0] = LM_IV_0_IP_RR3;
     data[1] = LM_IV_1_IP_RR3;
 
-    u32x iv[2];
+    u32 iv[2];
 
     _des_crypt_encrypt (iv, data, Kc, Kd, s_SPtrans);
 
-    u32x z = 0;
+    u32 z = 0;
 
     COMPARE_S_SIMD (iv[0], iv[1], z, z);
   }

@@ -63,9 +63,9 @@ __constant u32a lotus_magic_table[256] =
 #define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7], (S)[(i).s8], (S)[(i).s9], (S)[(i).sa], (S)[(i).sb], (S)[(i).sc], (S)[(i).sd], (S)[(i).se], (S)[(i).sf])
 #endif
 
-void lotus_mix (u32x *in, __local u32 *s_lotus_magic_table)
+void lotus_mix (u32 *in, __local u32 *s_lotus_magic_table)
 {
-  u32x p = 0;
+  u32 p = 0;
 
   for (int i = 0; i < 18; i++)
   {
@@ -73,8 +73,8 @@ void lotus_mix (u32x *in, __local u32 *s_lotus_magic_table)
 
     for (int j = 0; j < 12; j++)
     {
-      u32x tmp_in = in[j];
-      u32x tmp_out = 0;
+      u32 tmp_in = in[j];
+      u32 tmp_out = 0;
 
       p = (p + s--) & 0xff; p = ((tmp_in >>  0) & 0xff) ^ BOX1 (s_lotus_magic_table, p); tmp_out |= p <<  0;
       p = (p + s--) & 0xff; p = ((tmp_in >>  8) & 0xff) ^ BOX1 (s_lotus_magic_table, p); tmp_out |= p <<  8;
@@ -86,11 +86,11 @@ void lotus_mix (u32x *in, __local u32 *s_lotus_magic_table)
   }
 }
 
-void lotus_transform_password (const u32x in[4], u32x out[4], __local u32 *s_lotus_magic_table)
+void lotus_transform_password (const u32 in[4], u32x out[4], __local u32 *s_lotus_magic_table)
 {
-  u32x t = out[3] >> 24;
+  u32 t = out[3] >> 24;
 
-  u32x c;
+  u32 c;
 
   #ifdef _unroll
   #pragma unroll
@@ -183,9 +183,9 @@ void pad (u32 w[4], const u32 len)
   }
 }
 
-void mdtransform_norecalc (u32x state[4], const u32x block[4], __local u32 *s_lotus_magic_table)
+void mdtransform_norecalc (u32 state[4], const u32x block[4], __local u32 *s_lotus_magic_table)
 {
-  u32x x[12];
+  u32 x[12];
 
   x[ 0] = state[0];
   x[ 1] = state[1];
@@ -208,16 +208,16 @@ void mdtransform_norecalc (u32x state[4], const u32x block[4], __local u32 *s_lo
   state[3] = x[3];
 }
 
-void mdtransform (u32x state[4], u32x checksum[4], const u32x block[4], __local u32 *s_lotus_magic_table)
+void mdtransform (u32 state[4], u32x checksum[4], const u32x block[4], __local u32 *s_lotus_magic_table)
 {
   mdtransform_norecalc (state, block, s_lotus_magic_table);
 
   lotus_transform_password (block, checksum, s_lotus_magic_table);
 }
 
-void domino_big_md (const u32x saved_key[4], const u32 size, u32x state[4], __local u32 *s_lotus_magic_table)
+void domino_big_md (const u32 saved_key[4], const u32 size, u32x state[4], __local u32 *s_lotus_magic_table)
 {
-  u32x checksum[4];
+  u32 checksum[4];
 
   checksum[0] = 0;
   checksum[1] = 0;
@@ -258,19 +258,7 @@ __kernel void m08600_mxx (__global pw_t *pws, __constant const kernel_rule_t *ru
    * base
    */
 
-  u32 pw_buf0[4];
-  u32 pw_buf1[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
-  pw_buf1[0] = pws[gid].i[ 4];
-  pw_buf1[1] = pws[gid].i[ 5];
-  pw_buf1[2] = pws[gid].i[ 6];
-  pw_buf1[3] = pws[gid].i[ 7];
-
-  const u32 pw_len = pws[gid].pw_len;
+  COPY_PW (pws[gid]);
 
   /**
    * loop
@@ -278,18 +266,15 @@ __kernel void m08600_mxx (__global pw_t *pws, __constant const kernel_rule_t *ru
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    u32x w0[4] = { 0 };
-    u32x w1[4] = { 0 };
-    u32x w2[4] = { 0 };
-    u32x w3[4] = { 0 };
+    pw_t tmp = PASTE_PW;
 
-    const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
     /**
      * domino
      */
 
-    u32x state[4];
+    u32 state[4];
 
     state[0] = 0;
     state[1] = 0;
@@ -300,9 +285,9 @@ __kernel void m08600_mxx (__global pw_t *pws, __constant const kernel_rule_t *ru
      * padding
      */
 
-    pad (w0, out_len);
+    pad (tmp.i, out_len);
 
-    domino_big_md (w0, out_len, state, s_lotus_magic_table);
+    domino_big_md (tmp.i, out_len, state, s_lotus_magic_table);
 
     COMPARE_M_SIMD (state[0], state[1], state[2], state[3]);
   }
@@ -337,19 +322,7 @@ __kernel void m08600_sxx (__global pw_t *pws, __constant const kernel_rule_t *ru
    * base
    */
 
-  u32 pw_buf0[4];
-  u32 pw_buf1[4];
-
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
-  pw_buf1[0] = pws[gid].i[ 4];
-  pw_buf1[1] = pws[gid].i[ 5];
-  pw_buf1[2] = pws[gid].i[ 6];
-  pw_buf1[3] = pws[gid].i[ 7];
-
-  const u32 pw_len = pws[gid].pw_len;
+  COPY_PW (pws[gid]);
 
   /**
    * digest
@@ -369,18 +342,15 @@ __kernel void m08600_sxx (__global pw_t *pws, __constant const kernel_rule_t *ru
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    u32x w0[4] = { 0 };
-    u32x w1[4] = { 0 };
-    u32x w2[4] = { 0 };
-    u32x w3[4] = { 0 };
+    pw_t tmp = PASTE_PW;
 
-    const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
+    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
     /**
      * domino
      */
 
-    u32x state[4];
+    u32 state[4];
 
     state[0] = 0;
     state[1] = 0;
@@ -391,9 +361,9 @@ __kernel void m08600_sxx (__global pw_t *pws, __constant const kernel_rule_t *ru
      * padding
      */
 
-    pad (w0, out_len);
+    pad (tmp.i, out_len);
 
-    domino_big_md (w0, out_len, state, s_lotus_magic_table);
+    domino_big_md (tmp.i, out_len, state, s_lotus_magic_table);
 
     COMPARE_S_SIMD (state[0], state[1], state[2], state[3]);
   }
