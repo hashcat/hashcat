@@ -61,14 +61,7 @@ __kernel void m06100_mxx (__global pw_t *pws, __constant const kernel_rule_t *ru
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
-
-  u32 w[64] = { 0 };
-
-  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
-  {
-    w[idx] = swap32_S (pws[gid].i[idx]);
-  }
+  COPY_PW (pws[gid]);
 
   /**
    * loop
@@ -84,7 +77,7 @@ __kernel void m06100_mxx (__global pw_t *pws, __constant const kernel_rule_t *ru
 
     whirlpool_init (&ctx, s_Ch, s_Cl);
 
-    whirlpool_update (&ctx, tmp.i, tmp.pw_len);
+    whirlpool_update_swap (&ctx, tmp.i, tmp.pw_len);
 
     whirlpool_final (&ctx);
 
@@ -155,14 +148,7 @@ __kernel void m06100_sxx (__global pw_t *pws, __constant const kernel_rule_t *ru
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
-
-  u32 w[64] = { 0 };
-
-  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
-  {
-    w[idx] = swap32_S (pws[gid].i[idx]);
-  }
+  COPY_PW (pws[gid]);
 
   /**
    * loop
@@ -178,7 +164,7 @@ __kernel void m06100_sxx (__global pw_t *pws, __constant const kernel_rule_t *ru
 
     whirlpool_init (&ctx, s_Ch, s_Cl);
 
-    whirlpool_update (&ctx, tmp.i, tmp.pw_len);
+    whirlpool_update_swap (&ctx, tmp.i, tmp.pw_len);
 
     whirlpool_final (&ctx);
 
