@@ -36,6 +36,9 @@
 #else
 #define IS_AMD
 #define IS_AMD_ROCM
+#if defined __gfx900__ || defined __gfx901__ || defined __gfx902__ || defined __gfx903__
+#define IS_AMD_ROCM_VEGA
+#endif
 #endif
 #elif VENDOR_ID == (1 << 1)
 #define IS_APPLE
