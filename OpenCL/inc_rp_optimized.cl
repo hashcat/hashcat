@@ -741,18 +741,19 @@ static void append_block1 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
   // this version works with 1 byte append only
   const u32 value = src_r0 & 0xff;
 
-  const u32 shift = (offset & 3) * 8;
+  const u32 tmp = value <<  0
+                | value <<  8
+                | value << 16
+                | value << 24;
 
-  const u32 tmp = value << shift;
-
-  buf0[0] |=                    (offset <  4)  ? tmp : 0;
-  buf0[1] |= ((offset >=  4) && (offset <  8)) ? tmp : 0;
-  buf0[2] |= ((offset >=  8) && (offset < 12)) ? tmp : 0;
-  buf0[3] |= ((offset >= 12) && (offset < 16)) ? tmp : 0;
-  buf1[0] |= ((offset >= 16) && (offset < 20)) ? tmp : 0;
-  buf1[1] |= ((offset >= 20) && (offset < 24)) ? tmp : 0;
-  buf1[2] |= ((offset >= 24) && (offset < 28)) ? tmp : 0;
-  buf1[3] |=  (offset >= 28)                   ? tmp : 0;
+  buf0[0] |= tmp & c_append_helper[offset][0];
+  buf0[1] |= tmp & c_append_helper[offset][1];
+  buf0[2] |= tmp & c_append_helper[offset][2];
+  buf0[3] |= tmp & c_append_helper[offset][3];
+  buf1[0] |= tmp & c_append_helper[offset][4];
+  buf1[1] |= tmp & c_append_helper[offset][5];
+  buf1[2] |= tmp & c_append_helper[offset][6];
+  buf1[3] |= tmp & c_append_helper[offset][7];
 }
 
 static void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32 src_l0[4], const u32 src_l1[4], const u32 src_r0[4], const u32 src_r1[4])
@@ -1255,20 +1256,11 @@ static u32 rule_op_mangle_rotate_left (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED c
 
   const u32 in_len1 = in_len - 1;
 
-  const u32 sh = (in_len1 & 3) * 8;
-
-  const u32 tmp = (buf0[0] & 0xff) << sh;
+  const u32 tmp = buf0[0];
 
   lshift_block (buf0, buf1, buf0, buf1);
 
-  buf0[0] |=                     (in_len1 <  4)  ? tmp : 0;
-  buf0[1] |= ((in_len1 >=  4) && (in_len1 <  8)) ? tmp : 0;
-  buf0[2] |= ((in_len1 >=  8) && (in_len1 < 12)) ? tmp : 0;
-  buf0[3] |= ((in_len1 >= 12) && (in_len1 < 16)) ? tmp : 0;
-  buf1[0] |= ((in_len1 >= 16) && (in_len1 < 20)) ? tmp : 0;
-  buf1[1] |= ((in_len1 >= 20) && (in_len1 < 24)) ? tmp : 0;
-  buf1[2] |= ((in_len1 >= 24) && (in_len1 < 28)) ? tmp : 0;
-  buf1[3] |=  (in_len1 >= 28)                    ? tmp : 0;
+  append_block1 (in_len1, buf0, buf1, tmp);
 
   return in_len;
 }
@@ -1283,14 +1275,14 @@ static u32 rule_op_mangle_rotate_right (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED 
 
   u32 tmp = 0;
 
-  tmp |=                     (in_len1 <  4)  ? buf0[0] : 0;
-  tmp |= ((in_len1 >=  4) && (in_len1 <  8)) ? buf0[1] : 0;
-  tmp |= ((in_len1 >=  8) && (in_len1 < 12)) ? buf0[2] : 0;
-  tmp |= ((in_len1 >= 12) && (in_len1 < 16)) ? buf0[3] : 0;
-  tmp |= ((in_len1 >= 16) && (in_len1 < 20)) ? buf1[0] : 0;
-  tmp |= ((in_len1 >= 20) && (in_len1 < 24)) ? buf1[1] : 0;
-  tmp |= ((in_len1 >= 24) && (in_len1 < 28)) ? buf1[2] : 0;
-  tmp |=  (in_len1 >= 28)                    ? buf1[3] : 0;
+  tmp |= buf0[0] & c_append_helper[in_len1][0];
+  tmp |= buf0[1] & c_append_helper[in_len1][1];
+  tmp |= buf0[2] & c_append_helper[in_len1][2];
+  tmp |= buf0[3] & c_append_helper[in_len1][3];
+  tmp |= buf1[0] & c_append_helper[in_len1][4];
+  tmp |= buf1[1] & c_append_helper[in_len1][5];
+  tmp |= buf1[2] & c_append_helper[in_len1][6];
+  tmp |= buf1[3] & c_append_helper[in_len1][7];
 
   tmp = (tmp >> sh) & 0xff;
 
@@ -1777,14 +1769,14 @@ static u32 rule_op_mangle_dupechar_last (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED
 
   u32 tmp = 0;
 
-  tmp |=                     (in_len1 <  4)  ? buf0[0] : 0;
-  tmp |= ((in_len1 >=  4) && (in_len1 <  8)) ? buf0[1] : 0;
-  tmp |= ((in_len1 >=  8) && (in_len1 < 12)) ? buf0[2] : 0;
-  tmp |= ((in_len1 >= 12) && (in_len1 < 16)) ? buf0[3] : 0;
-  tmp |= ((in_len1 >= 16) && (in_len1 < 20)) ? buf1[0] : 0;
-  tmp |= ((in_len1 >= 20) && (in_len1 < 24)) ? buf1[1] : 0;
-  tmp |= ((in_len1 >= 24) && (in_len1 < 28)) ? buf1[2] : 0;
-  tmp |=  (in_len1 >= 28)                    ? buf1[3] : 0;
+  tmp |= buf0[0] & c_append_helper[in_len1][0];
+  tmp |= buf0[1] & c_append_helper[in_len1][1];
+  tmp |= buf0[2] & c_append_helper[in_len1][2];
+  tmp |= buf0[3] & c_append_helper[in_len1][3];
+  tmp |= buf1[0] & c_append_helper[in_len1][4];
+  tmp |= buf1[1] & c_append_helper[in_len1][5];
+  tmp |= buf1[2] & c_append_helper[in_len1][6];
+  tmp |= buf1[3] & c_append_helper[in_len1][7];
 
   tmp = (tmp >> sh) & 0xff;
 
