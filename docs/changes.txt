@@ -45,11 +45,12 @@
 
 - Charset: Add additional DES charsets with corrected parity
 - OpenCL Buffers: Do not allocate memory for amplifiers for fast hashes, it's simply not needed
+- OpenCL Kernels: Improved rule engine performance by 6% on for NVidia
 - OpenCL Kernels: Improved performance of SHA-3 Kernel (keccak) by hardcoding the 0x80 stopbit
 - OpenCL Kernels: Move from ld.global.v4.u32 to ld.const.v4.u32 in _a3 kernels
 - OpenCL Kernels: Replace bitwise swaps with rotate() versions for AMD
 - OpenCL Kernels: Rewritten SIP kernel from scratch
-- OpenCL Kernels: Updated default scrypt TMTO to be ideal for latest NV and AMD top models
+- OpenCL Kernels: Updated default scrypt TMTO to be ideal for latest NVidia and AMD top models
 - OpenCL Kernels: Vectorized tons of slow kernels to improve CPU cracking speed
 - OpenCL Runtime: Updated AMD ROCm driver version check, warn if version < 1.1
 - Startup: Show some attack-specific optimizer constraints on start, eg: minimum and maximum support password- and salt-length
