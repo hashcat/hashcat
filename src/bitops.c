@@ -7,6 +7,16 @@
 #include "types.h"
 #include "bitops.h"
 
+u32 __add3_S (const u32 a, const u32 b, const u32 c)
+{
+  return a + b + c;
+}
+
+u32 __add3 (const u32 a, const u32 b, const u32 c)
+{
+  return a + b + c;
+}
+
 u32 rotl32 (const u32 a, const u32 n)
 {
   #if defined (_MSC_VER)
