@@ -410,7 +410,7 @@ void m00130s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global const ke
    * reverse
    */
 
-  const u32 e_rev = rotl32_S (search[1], 2u) - SHA1C03;
+  const u32 e_rev = rotl32_S (search[1], 2u);
 
  /**
    * loop
@@ -547,12 +547,9 @@ void m00130s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global const ke
     SHA1_STEP (SHA1_F1 , d, e, a, b, c, (c_72s ^ w0s05 ^ w0s11 ^ w0s12 ^ w0s13 ^ w0s16 ^ w0s18));
     SHA1_STEP (SHA1_F1 , c, d, e, a, b, (c_73s ^ w0s20));
     SHA1_STEP (SHA1_F1 , b, c, d, e, a, (c_74s ^ w0s08 ^ w0s16));
-
-    SHA1_STEP_PE (SHA1_F1, a, b, c, d, e, (c_75s ^ w0s06 ^ w0s12 ^ w0s14));
+    SHA1_STEP (SHA1_F1 , a, b, c, d, e, (c_75s ^ w0s06 ^ w0s12 ^ w0s14));
 
     if (MATCHES_NONE_VS (e, e_rev)) continue;
-
-    SHA1_STEP_PB (SHA1_F1, a, b, c, d, e, 0);
 
     const u32x c_76s = rotl32 ((c_73s ^ c_68s ^ c_62s ^ c_60s), 1u);
     const u32x c_77s = rotl32 ((c_74s ^ c_69s ^ c_63s ^ c_61s), 1u);

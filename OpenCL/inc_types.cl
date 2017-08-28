@@ -176,16 +176,43 @@ static u64x hl32_to_64 (const u32x a, const u32x b)
 #ifdef IS_AMD
 static u32 swap32_S (const u32 v)
 {
-  return bitselect (rotate (v, 24u), rotate (v, 8u), 0x00ff00ffu);
+  #ifdef IS_AMD_ROCM
+
+  u32 t;
+
+  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t) : "v"(v), "v"(0x00010203));
+
+  return t;
+
+  #else
+
+  return as_uint (as_uchar4 (v).s3210);
+
+  #endif
 }
 
 static u64 swap64_S (const u64 v)
 {
-  return bitselect (bitselect (rotate (v, 24ul),
-                               rotate (v,  8ul), 0x000000ff000000fful),
-                    bitselect (rotate (v, 56ul),
-                               rotate (v, 40ul), 0x00ff000000ff0000ul),
-                                                 0xffff0000ffff0000ul);
+  #ifdef IS_AMD_ROCM
+
+  const u32 v0 = h32_from_64_S (v);
+  const u32 v1 = l32_from_64_S (v);
+
+  u32 t0;
+  u32 t1;
+
+  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t0) : "v"(v0), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t1) : "v"(v1), "v"(0x00010203));
+
+  const u64 r = hl32_to_64_S (t1, t0);
+
+  return r;
+
+  #else
+
+  return (as_ulong (as_uchar8 (v).s76543210));
+
+  #endif
 }
 
 static u32 rotr32_S (const u32 a, const u32 n)
@@ -218,16 +245,122 @@ static u64 rotl64_S (const u64 a, const u32 n)
 
 static u32x swap32 (const u32x v)
 {
+  #ifdef IS_AMD_ROCM
+
+  u32x t;
+
+  #if VECT_SIZE == 1
+  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t) : "v"(v), "v"(0x00010203));
+  #endif
+
+  #if VECT_SIZE >= 2
+  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t.s0) : "v"(v.s0), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t.s1) : "v"(v.s1), "v"(0x00010203));
+  #endif
+
+  #if VECT_SIZE >= 4
+  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t.s2) : "v"(v.s2), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t.s3) : "v"(v.s3), "v"(0x00010203));
+  #endif
+
+  #if VECT_SIZE >= 8
+  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t.s4) : "v"(v.s4), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t.s5) : "v"(v.s5), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t.s6) : "v"(v.s6), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t.s7) : "v"(v.s7), "v"(0x00010203));
+  #endif
+
+  #if VECT_SIZE >= 16
+  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t.s8) : "v"(v.s8), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t.s9) : "v"(v.s9), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t.sa) : "v"(v.sa), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t.sb) : "v"(v.sb), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t.sc) : "v"(v.sc), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t.sd) : "v"(v.sd), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t.se) : "v"(v.se), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t.sf) : "v"(v.sf), "v"(0x00010203));
+  #endif
+
+  return t;
+
+  #else
+
   return bitselect (rotate (v, 24u), rotate (v, 8u), 0x00ff00ffu);
+
+  #endif
 }
 
 static u64x swap64 (const u64x v)
 {
+  #ifdef IS_AMD_ROCM
+
+  const u32x a0 = h32_from_64 (v);
+  const u32x a1 = l32_from_64 (v);
+
+  u32x t0;
+  u32x t1;
+
+  #if VECT_SIZE == 1
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0) : "v"(0), "v"(a0), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1) : "v"(0), "v"(a1), "v"(0x00010203));
+  #endif
+
+  #if VECT_SIZE >= 2
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s0) : "v"(0), "v"(a0.s0), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s0) : "v"(0), "v"(a1.s0), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s1) : "v"(0), "v"(a0.s1), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s1) : "v"(0), "v"(a1.s1), "v"(0x00010203));
+  #endif
+
+  #if VECT_SIZE >= 4
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s2) : "v"(0), "v"(a0.s2), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s2) : "v"(0), "v"(a1.s2), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s3) : "v"(0), "v"(a0.s3), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s3) : "v"(0), "v"(a1.s3), "v"(0x00010203));
+  #endif
+
+  #if VECT_SIZE >= 8
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s4) : "v"(0), "v"(a0.s4), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s4) : "v"(0), "v"(a1.s4), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s5) : "v"(0), "v"(a0.s5), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s5) : "v"(0), "v"(a1.s5), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s6) : "v"(0), "v"(a0.s6), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s6) : "v"(0), "v"(a1.s6), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s7) : "v"(0), "v"(a0.s7), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s7) : "v"(0), "v"(a1.s7), "v"(0x00010203));
+  #endif
+
+  #if VECT_SIZE >= 16
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s8) : "v"(0), "v"(a0.s8), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s8) : "v"(0), "v"(a1.s8), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.s9) : "v"(0), "v"(a0.s9), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.s9) : "v"(0), "v"(a1.s9), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.sa) : "v"(0), "v"(a0.sa), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.sa) : "v"(0), "v"(a1.sa), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.sb) : "v"(0), "v"(a0.sb), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.sb) : "v"(0), "v"(a1.sb), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.sc) : "v"(0), "v"(a0.sc), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.sc) : "v"(0), "v"(a1.sc), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.sd) : "v"(0), "v"(a0.sd), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.sd) : "v"(0), "v"(a1.sd), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.se) : "v"(0), "v"(a0.se), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.se) : "v"(0), "v"(a1.se), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t0.sf) : "v"(0), "v"(a0.sf), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, %1, %2, %3;" : "=v"(t1.sf) : "v"(0), "v"(a1.sf), "v"(0x00010203));
+  #endif
+
+  const u64x r = hl32_to_64 (t1, t0);
+
+  return r;
+
+  #else
+
   return bitselect (bitselect (rotate (v, 24ul),
                                rotate (v,  8ul), 0x000000ff000000fful),
                     bitselect (rotate (v, 56ul),
                                rotate (v, 40ul), 0x00ff000000ff0000ul),
                                                  0xffff0000ffff0000ul);
+  #endif
 }
 
 static u32x rotr32 (const u32x a, const u32 n)
