@@ -116,14 +116,12 @@ __kernel void m05400_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
    * s_msg
    */
 
-  __local u32 w_s[16];
+  __local u32 s_nr_buf[16];
 
   for (u32 i = lid; i < 16; i += lsz)
   {
-    w_s[i] = swap32_S (ikepsk_bufs[digests_offset].nr_buf[i]);
+    s_nr_buf[i] = swap32_S (ikepsk_bufs[digests_offset].nr_buf[i]);
   }
-
-  barrier (CLK_LOCAL_MEM_FENCE);
 
   __local u32 s_msg_buf[128];
 
@@ -260,20 +258,20 @@ __kernel void m05400_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     hmac_sha1_pad (w0, w1, w2, w3, ipad, opad);
 
-    w0[0] = w_s[ 0];
-    w0[1] = w_s[ 1];
-    w0[2] = w_s[ 2];
-    w0[3] = w_s[ 3];
-    w1[0] = w_s[ 4];
-    w1[1] = w_s[ 5];
-    w1[2] = w_s[ 6];
-    w1[3] = w_s[ 7];
-    w2[0] = w_s[ 8];
-    w2[1] = w_s[ 9];
-    w2[2] = w_s[10];
-    w2[3] = w_s[11];
-    w3[0] = w_s[12];
-    w3[1] = w_s[13];
+    w0[0] = s_nr_buf[ 0];
+    w0[1] = s_nr_buf[ 1];
+    w0[2] = s_nr_buf[ 2];
+    w0[3] = s_nr_buf[ 3];
+    w1[0] = s_nr_buf[ 4];
+    w1[1] = s_nr_buf[ 5];
+    w1[2] = s_nr_buf[ 6];
+    w1[3] = s_nr_buf[ 7];
+    w2[0] = s_nr_buf[ 8];
+    w2[1] = s_nr_buf[ 9];
+    w2[2] = s_nr_buf[10];
+    w2[3] = s_nr_buf[11];
+    w3[0] = s_nr_buf[12];
+    w3[1] = s_nr_buf[13];
     w3[2] = 0;
     w3[3] = (64 + nr_len) * 8;
 
@@ -370,14 +368,12 @@ __kernel void m05400_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
    * s_msg
    */
 
-  __local u32 w_s[16];
+  __local u32 s_nr_buf[16];
 
   for (u32 i = lid; i < 16; i += lsz)
   {
-    w_s[i] = swap32_S (ikepsk_bufs[digests_offset].nr_buf[i]);
+    s_nr_buf[i] = swap32_S (ikepsk_bufs[digests_offset].nr_buf[i]);
   }
-
-  barrier (CLK_LOCAL_MEM_FENCE);
 
   __local u32 s_msg_buf[128];
 
@@ -526,20 +522,20 @@ __kernel void m05400_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     hmac_sha1_pad (w0, w1, w2, w3, ipad, opad);
 
-    w0[0] = w_s[ 0];
-    w0[1] = w_s[ 1];
-    w0[2] = w_s[ 2];
-    w0[3] = w_s[ 3];
-    w1[0] = w_s[ 4];
-    w1[1] = w_s[ 5];
-    w1[2] = w_s[ 6];
-    w1[3] = w_s[ 7];
-    w2[0] = w_s[ 8];
-    w2[1] = w_s[ 9];
-    w2[2] = w_s[10];
-    w2[3] = w_s[11];
-    w3[0] = w_s[12];
-    w3[1] = w_s[13];
+    w0[0] = s_nr_buf[ 0];
+    w0[1] = s_nr_buf[ 1];
+    w0[2] = s_nr_buf[ 2];
+    w0[3] = s_nr_buf[ 3];
+    w1[0] = s_nr_buf[ 4];
+    w1[1] = s_nr_buf[ 5];
+    w1[2] = s_nr_buf[ 6];
+    w1[3] = s_nr_buf[ 7];
+    w2[0] = s_nr_buf[ 8];
+    w2[1] = s_nr_buf[ 9];
+    w2[2] = s_nr_buf[10];
+    w2[3] = s_nr_buf[11];
+    w3[0] = s_nr_buf[12];
+    w3[1] = s_nr_buf[13];
     w3[2] = 0;
     w3[3] = (64 + nr_len) * 8;
 

@@ -555,12 +555,6 @@ __kernel void m05600_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   if (gid >= gid_max) return;
 
-  const u32 userdomain_len = netntlm_bufs[digests_offset].user_len
-                           + netntlm_bufs[digests_offset].domain_len;
-
-  const u32 chall_len = netntlm_bufs[digests_offset].srvchall_len
-                      + netntlm_bufs[digests_offset].clichall_len;
-
   /**
    * base
    */
@@ -633,12 +627,6 @@ __kernel void m05600_m08 (__global pw_t *pws, __global const kernel_rule_t *rule
   barrier (CLK_LOCAL_MEM_FENCE);
 
   if (gid >= gid_max) return;
-
-  const u32 userdomain_len = netntlm_bufs[digests_offset].user_len
-                           + netntlm_bufs[digests_offset].domain_len;
-
-  const u32 chall_len = netntlm_bufs[digests_offset].srvchall_len
-                      + netntlm_bufs[digests_offset].clichall_len;
 
   /**
    * base
@@ -717,12 +705,6 @@ __kernel void m05600_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   if (gid >= gid_max) return;
 
-  const u32 userdomain_len = netntlm_bufs[digests_offset].user_len
-                           + netntlm_bufs[digests_offset].domain_len;
-
-  const u32 chall_len = netntlm_bufs[digests_offset].srvchall_len
-                      + netntlm_bufs[digests_offset].clichall_len;
-
   /**
    * base
    */
@@ -795,12 +777,6 @@ __kernel void m05600_s08 (__global pw_t *pws, __global const kernel_rule_t *rule
   barrier (CLK_LOCAL_MEM_FENCE);
 
   if (gid >= gid_max) return;
-
-  const u32 userdomain_len = netntlm_bufs[digests_offset].user_len
-                           + netntlm_bufs[digests_offset].domain_len;
-
-  const u32 chall_len = netntlm_bufs[digests_offset].srvchall_len
-                      + netntlm_bufs[digests_offset].clichall_len;
 
   /**
    * base
