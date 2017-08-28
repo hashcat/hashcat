@@ -250,7 +250,7 @@ static u32x swap32 (const u32x v)
   u32x r;
 
   #if VECT_SIZE == 1
-  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(t) : "v"(v), "v"(0x00010203));
+  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r) : "v"(v), "v"(0x00010203));
   #endif
 
   #if VECT_SIZE >= 2
