@@ -24935,11 +24935,11 @@ u32 hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_p
 
     if (scrypt_l)
     {
-      kernel_threads = 64 / scrypt_l;
+      kernel_threads = 256 / scrypt_l;
     }
     else
     {
-      kernel_threads = 64;
+      kernel_threads = 256;
     }
   }
 
