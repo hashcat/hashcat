@@ -3976,41 +3976,13 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       hashconfig->tmp_size = scrypt_tmp_size;
 
-      u32 tmto_start = 0;
+      u32 tmto_start = 1;
       u32 tmto_stop  = 6;
 
       if (user_options->scrypt_tmto)
       {
         tmto_start = user_options->scrypt_tmto;
         tmto_stop  = user_options->scrypt_tmto;
-      }
-      else
-      {
-        // in case the user did not specify the tmto manually
-        // use some values known to run best (tested on 290x for AMD and GTX1080 for NV)
-
-        if (hashconfig->hash_mode == 8900)
-        {
-          if (device_param->device_vendor_id == VENDOR_ID_AMD)
-          {
-            tmto_start = 4;
-          }
-          else if (device_param->device_vendor_id == VENDOR_ID_NV)
-          {
-            tmto_start = 3;
-          }
-        }
-        else if (hashconfig->hash_mode == 9300)
-        {
-          if (device_param->device_vendor_id == VENDOR_ID_AMD)
-          {
-            tmto_start = 5;
-          }
-          else if (device_param->device_vendor_id == VENDOR_ID_NV)
-          {
-            tmto_start = 3;
-          }
-        }
       }
 
       const u32 kernel_power_max = device_param->hardware_power * device_param->kernel_accel_max;

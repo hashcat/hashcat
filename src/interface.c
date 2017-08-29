@@ -24899,7 +24899,9 @@ u32 hashconfig_forced_kernel_threads (hashcat_ctx_t *hashcat_ctx)
   if (hashconfig->hash_mode ==  3200) kernel_threads = 8;  // Blowfish
   if (hashconfig->hash_mode ==  7500) kernel_threads = 64; // RC4
   if (hashconfig->hash_mode ==  8500) kernel_threads = 64; // DES
+  if (hashconfig->hash_mode ==  8900) kernel_threads = 16; // SCRYPT
   if (hashconfig->hash_mode ==  9000) kernel_threads = 8;  // Blowfish
+  if (hashconfig->hash_mode ==  9300) kernel_threads = 8;  // SCRYPT
   if (hashconfig->hash_mode ==  9700) kernel_threads = 64; // RC4
   if (hashconfig->hash_mode ==  9710) kernel_threads = 64; // RC4
   if (hashconfig->hash_mode ==  9800) kernel_threads = 64; // RC4
@@ -24910,43 +24912,36 @@ u32 hashconfig_forced_kernel_threads (hashcat_ctx_t *hashcat_ctx)
   if (hashconfig->hash_mode == 13100) kernel_threads = 64; // RC4
   if (hashconfig->hash_mode == 14000) kernel_threads = 64; // DES
   if (hashconfig->hash_mode == 14100) kernel_threads = 64; // DES
+  if (hashconfig->hash_mode == 15700) kernel_threads = 1;  // SCRYPT
 
   return kernel_threads;
 }
 
 u32 hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param)
 {
-  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+  // kernel_threads is 256 at this point
 
-  u32 kernel_threads = MIN (KERNEL_THREADS_MAX, device_param->device_maxworkgroup_size);
+  u32 kernel_threads = KERNEL_THREADS_MAX;
 
-  if (device_param->device_vendor_id == VENDOR_ID_AMD)
-  {
-    kernel_threads = 64;
-  }
-
-  if ((hashconfig->hash_mode == 8900) || (hashconfig->hash_mode == 9300) || (hashconfig->hash_mode == 15700))
-  {
-    const hashes_t *hashes = hashcat_ctx->hashes;
-
-    const u32 scrypt_r = hashes->salts_buf[0].scrypt_r;
-    const u32 scrypt_p = hashes->salts_buf[0].scrypt_p;
-    const u32 scrypt_l = scrypt_r * scrypt_p;
-
-    if (scrypt_l)
-    {
-      kernel_threads = 256 / scrypt_l;
-    }
-    else
-    {
-      kernel_threads = 256;
-    }
-  }
+  // a CPU doesn't have "opencl threads", this sets it to 1
 
   if (device_param->device_type & CL_DEVICE_TYPE_CPU)
   {
     kernel_threads = KERNEL_THREADS_MAX_CPU;
   }
+
+  // but 64 for AMD GPU, they prefer it
+
+  if (device_param->device_vendor_id == VENDOR_ID_AMD)
+  {
+    kernel_threads = MIN (kernel_threads, 64);
+  }
+
+  // a kernel can force an even lower value
+
+  kernel_threads = MIN (kernel_threads, device_param->device_maxworkgroup_size);
+
+  // a kernel can also force a fixed value
 
   const u32 forced_kernel_threads = hashconfig_forced_kernel_threads (hashcat_ctx);
 
