@@ -159,6 +159,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
    * limit kernel loops by the amplification count we have from:
    * - straight_ctx, combinator_ctx or mask_ctx for fast hashes
    * - hash iteration count for slow hashes
+   * this is required for autotune
    */
 
   opencl_ctx_devices_kernel_loops (hashcat_ctx);

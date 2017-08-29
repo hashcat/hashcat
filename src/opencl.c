@@ -3575,9 +3575,9 @@ void opencl_ctx_devices_kernel_loops (hashcat_ctx_t *hashcat_ctx)
 
       if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
       {
-        if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)  innerloop_cnt = straight_ctx->kernel_rules_cnt;
-        else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)     innerloop_cnt = combinator_ctx->combs_cnt;
-        else if (user_options_extra->attack_kern == ATTACK_KERN_BF)        innerloop_cnt = mask_ctx->bfs_cnt;
+        if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)  innerloop_cnt = MIN (KERNEL_RULES, straight_ctx->kernel_rules_cnt);
+        else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)     innerloop_cnt = MIN (KERNEL_COMBS, combinator_ctx->combs_cnt);
+        else if (user_options_extra->attack_kern == ATTACK_KERN_BF)        innerloop_cnt = MIN (KERNEL_BFS,   mask_ctx->bfs_cnt);
       }
       else
       {
@@ -3796,20 +3796,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_accel_max = 1024;
 
     device_param->kernel_loops_min = 1;
-    //device_param->kernel_loops_max = 1024;
-
-    if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
-    {
-      device_param->kernel_loops_max = KERNEL_RULES;
-    }
-    else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
-    {
-      device_param->kernel_loops_max = KERNEL_COMBS;
-    }
-    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
-    {
-      device_param->kernel_loops_max = KERNEL_BFS;
-    }
+    device_param->kernel_loops_max = 1024;
 
     tuning_db_entry_t *tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->device_type, user_options->attack_mode, hashconfig->hash_mode);
 
@@ -3852,6 +3839,27 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     {
       device_param->kernel_loops_min = user_options->kernel_loops;
       device_param->kernel_loops_max = user_options->kernel_loops;
+    }
+
+    // we have some absolute limits for fast hashes (because of limit constant memory), make sure not to overstep
+
+    if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+    {
+      if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+      {
+        device_param->kernel_loops_min = MIN (device_param->kernel_loops_min, KERNEL_RULES);
+        device_param->kernel_loops_max = MIN (device_param->kernel_loops_max, KERNEL_RULES);
+      }
+      else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+      {
+        device_param->kernel_loops_min = MIN (device_param->kernel_loops_min, KERNEL_COMBS);
+        device_param->kernel_loops_max = MIN (device_param->kernel_loops_max, KERNEL_COMBS);
+      }
+      else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
+      {
+        device_param->kernel_loops_min = MIN (device_param->kernel_loops_min, KERNEL_BFS);
+        device_param->kernel_loops_max = MIN (device_param->kernel_loops_max, KERNEL_BFS);
+      }
     }
 
     /**
