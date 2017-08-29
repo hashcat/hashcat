@@ -155,7 +155,7 @@ typedef enum amplifier_count
   KERNEL_BFS              = 1024,
   KERNEL_COMBS            = 1024,
   KERNEL_RULES            = 256,
-  KERNEL_THREADS_MAX      = 64,
+  KERNEL_THREADS_MAX      = 256,
   KERNEL_THREADS_MAX_CPU  = 1
 
 } amplifier_count_t;

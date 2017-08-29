@@ -24920,6 +24920,11 @@ u32 hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_p
 
   u32 kernel_threads = MIN (KERNEL_THREADS_MAX, device_param->device_maxworkgroup_size);
 
+  if (device_param->device_vendor_id == VENDOR_ID_AMD)
+  {
+    kernel_threads = 64;
+  }
+
   if ((hashconfig->hash_mode == 8900) || (hashconfig->hash_mode == 9300) || (hashconfig->hash_mode == 15700))
   {
     const hashes_t *hashes = hashcat_ctx->hashes;
@@ -24930,11 +24935,11 @@ u32 hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_p
 
     if (scrypt_l)
     {
-      kernel_threads = KERNEL_THREADS_MAX / scrypt_l;
+      kernel_threads = 64 / scrypt_l;
     }
     else
     {
-      kernel_threads = KERNEL_THREADS_MAX;
+      kernel_threads = 64;
     }
   }
 
