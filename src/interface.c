@@ -21745,8 +21745,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
                                             | OPTI_TYPE_USES_BITS_64
                                             | OPTI_TYPE_RAW_HASH;
-                 hashconfig->dgst_pos0      = 2;
-                 hashconfig->dgst_pos1      = 3;
+                 hashconfig->dgst_pos0      = 6;
+                 hashconfig->dgst_pos1      = 7;
                  hashconfig->dgst_pos2      = 4;
                  hashconfig->dgst_pos3      = 5;
                  hashconfig->st_hash        = ST_HASH_05000;
