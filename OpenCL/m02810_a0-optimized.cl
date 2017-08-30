@@ -264,8 +264,6 @@ __kernel void m02810_m04 (__global pw_t *pws, __constant const kernel_rule_t *ru
     MD5_STEP (MD5_Go, c, d, a, b, w1[3], MD5C1e, MD5S12);
     MD5_STEP (MD5_Go, b, c, d, a, w3[0], MD5C1f, MD5S13);
 
-    u32x t;
-
     MD5_STEP (MD5_H1, a, b, c, d, w1[1], MD5C20, MD5S20);
     MD5_STEP (MD5_H2, d, a, b, c, w2[0], MD5C21, MD5S21);
     MD5_STEP (MD5_H1, c, d, a, b, w2[3], MD5C22, MD5S22);
@@ -346,8 +344,6 @@ __kernel void m02810_m04 (__global pw_t *pws, __constant const kernel_rule_t *ru
     MD5_STEP0(MD5_Go, d, a, b, c,       MD5C1d, MD5S11);
     MD5_STEP0(MD5_Go, c, d, a, b,       MD5C1e, MD5S12);
     MD5_STEP0(MD5_Go, b, c, d, a,       MD5C1f, MD5S13);
-
-    u32x t;
 
     MD5_STEP0(MD5_H1, a, b, c, d,       MD5C20, MD5S20);
     MD5_STEP0(MD5_H2, d, a, b, c,       MD5C21, MD5S21);
@@ -650,8 +646,6 @@ __kernel void m02810_s04 (__global pw_t *pws, __constant const kernel_rule_t *ru
     MD5_STEP (MD5_Go, c, d, a, b, w1[3], MD5C1e, MD5S12);
     MD5_STEP (MD5_Go, b, c, d, a, w3[0], MD5C1f, MD5S13);
 
-    u32x t;
-
     MD5_STEP (MD5_H1, a, b, c, d, w1[1], MD5C20, MD5S20);
     MD5_STEP (MD5_H2, d, a, b, c, w2[0], MD5C21, MD5S21);
     MD5_STEP (MD5_H1, c, d, a, b, w2[3], MD5C22, MD5S22);
@@ -732,8 +726,6 @@ __kernel void m02810_s04 (__global pw_t *pws, __constant const kernel_rule_t *ru
     MD5_STEP0(MD5_Go, d, a, b, c,       MD5C1d, MD5S11);
     MD5_STEP0(MD5_Go, c, d, a, b,       MD5C1e, MD5S12);
     MD5_STEP0(MD5_Go, b, c, d, a,       MD5C1f, MD5S13);
-
-    u32x t;
 
     MD5_STEP0(MD5_H1, a, b, c, d,       MD5C20, MD5S20);
     MD5_STEP0(MD5_H2, d, a, b, c,       MD5C21, MD5S21);

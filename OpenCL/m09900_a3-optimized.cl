@@ -250,8 +250,6 @@ void m09900m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global const ke
     MD5_STEP (MD5_Go, c, d, a, b, t1[3], MD5C1e, MD5S12);
     MD5_STEP (MD5_Go, b, c, d, a, t3[0], MD5C1f, MD5S13);
 
-    u32x t;
-
     MD5_STEP (MD5_H1, a, b, c, d, t1[1], MD5C20, MD5S20);
     MD5_STEP (MD5_H2, d, a, b, c, t2[0], MD5C21, MD5S21);
     MD5_STEP (MD5_H1, c, d, a, b, t2[3], MD5C22, MD5S22);
@@ -544,8 +542,6 @@ void m09900s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global const ke
     MD5_STEP (MD5_Go, d, a, b, c, t0[2], MD5C1d, MD5S11);
     MD5_STEP (MD5_Go, c, d, a, b, t1[3], MD5C1e, MD5S12);
     MD5_STEP (MD5_Go, b, c, d, a, t3[0], MD5C1f, MD5S13);
-
-    u32x t;
 
     MD5_STEP (MD5_H1, a, b, c, d, t1[1], MD5C20, MD5S20);
     MD5_STEP (MD5_H2, d, a, b, c, t2[0], MD5C21, MD5S21);
