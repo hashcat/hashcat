@@ -334,6 +334,10 @@ void setup_environment_variables ()
       putenv ((char *) "DISPLAY=:0");
   }
 
+  //We need to force this
+  //if (getenv ("AMD_OCL_BUILD_OPTIONS_APPEND") == NULL)
+    putenv ((char *) "AMD_OCL_BUILD_OPTIONS_APPEND=-O2");
+
   if (getenv ("OCL_CODE_CACHE_ENABLE") == NULL)
     putenv ((char *) "OCL_CODE_CACHE_ENABLE=0");
 

@@ -71,6 +71,7 @@
 - OpenCL Kernels: Removed some include functions that are no longer needed to reduce compile time
 - OpenCL Runtime: Fall back to 64 threads default (from 256) on AMD GPU to prevent creating too many workitems
 - OpenCL Runtime: Forcing OpenCL 1.2 no longer needed. Option removed from build options
+- OpenCL Runtime: Set OpenCL build option -O2 fixed for ROCm and AMDGPU-PRO using AMD_OCL_BUILD_OPTIONS_APPEND
 - Restore: Fixed the version number used in the restore file header
 - Time: added new type for time measurements hc_time_t and related functions to force the use of 64 bit times
 
