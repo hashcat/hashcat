@@ -66,7 +66,7 @@ __kernel void m08300_mxx (__global pw_t *pws, __constant const kernel_rule_t *ru
 
     sha1_init (&ctx1);
 
-    ctx1.w0[0] = (pw_len & 0xff) << 24;
+    ctx1.w0[0] = (tmp.pw_len & 0xff) << 24;
 
     ctx1.len = 1;
 
@@ -185,7 +185,7 @@ __kernel void m08300_sxx (__global pw_t *pws, __constant const kernel_rule_t *ru
 
     sha1_init (&ctx1);
 
-    ctx1.w0[0] = (pw_len & 0xff) << 24;
+    ctx1.w0[0] = (tmp.pw_len & 0xff) << 24;
 
     ctx1.len = 1;
 
