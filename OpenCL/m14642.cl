@@ -73,7 +73,7 @@ __kernel void m14642_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   ripemd160_hmac_ctx_t ripemd160_hmac_ctx;
 
-  ripemd160_hmac_init_global (&sha1_hmac_ctx, pws[gid].i, pws[gid].pw_len);
+  ripemd160_hmac_init_global (&ripemd160_hmac_ctx, pws[gid].i, pws[gid].pw_len);
 
   tmps[gid].ipad32[0] = ripemd160_hmac_ctx.ipad.h[0];
   tmps[gid].ipad32[1] = ripemd160_hmac_ctx.ipad.h[1];
