@@ -25,6 +25,7 @@
 - Fixed a missing barrier() call in the RACF OpenCL kernel
 - Fixed a missing salt length value in benchmark mode for SIP
 - Fixed an invalid progress value in status view if words from the base wordlist get rejected because of length
+- Fixed an invalid optimization code in kernel 7700 depending on the input hash, causing the kernel to loop forever
 - Fixed an integer overflow in innerloop_step and innerloop_cnt variables
 - Fixed an integer overflow in masks not skipped when loaded from file
 - Fixed an integer overflow in hash buffer size calculation

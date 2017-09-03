@@ -17,15 +17,6 @@
 #define GETCHAR(a,p)  (((a)[(p) / 4] >> (((p) & 3) * 8)) & 0xff)
 #define PUTCHAR(a,p,c) ((a)[(p) / 4] = (((a)[(p) / 4] & ~(0xff << (((p) & 3) * 8))) | ((c) << (((p) & 3) * 8))))
 
-#define SETSHIFTEDINT(a,n,v)        \
-{                                   \
-  const u32 s = ((n) & 3) * 8;     \
-  const u64 x = (u64) (v) << s; \
-  (a)[((n)/4)+0] &= ~(0xff << ((n & 3) * 8)); \
-  (a)[((n)/4)+0] |= x;              \
-  (a)[((n)/4)+1]  = x >> 32;        \
-}
-
 __constant u32a sapb_trans_tbl[256] =
 {
   // first value hack for 0 byte as part of an optimization
@@ -103,104 +94,39 @@ u32 walld0rf_magic (const u32 w0[4], const u32 pw_len, const u32 salt_buf0[4], c
   u32 i2 = 0;
   u32 i3 = 0;
 
-  // we can assume this because the password must be at least 3
-  // and the username must be at least 1 so we can save the if ()
-
-  u32 t0 = 0;
-
-  if ((d >> 24) & 1)
+  while (i2 < sum20)
   {
-    t0 |= bcodeArray[47] <<  0;
-    t0 |= (w[0] & 0xff)  <<  8;
-    t0 |= (s[0] & 0xff)  << 16;
-    t0 |= bcodeArray[ 1] << 24;
-
-    i1 = 1;
-    i2 = 5;
-    i3 = 1;
-  }
-  else
-  {
-    t0 |= (w[0] & 0xff)  <<  0;
-    t0 |= (s[0] & 0xff)  <<  8;
-    t0 |= bcodeArray[ 0] << 16;
-
-    i1 = 1;
-    i2 = 4;
-    i3 = 1;
-  }
-
-  t[0] = t0;
-
-  // because the following code can increase i2 by a maximum of 5,
-  // there is an overflow potential of 4 before it comes to the next test for i2 >= sum20
-  // we need to truncate in that case
-
-  while ((i1 < pw_len) && (i3 < salt_len))
-  {
-    u32 x0 = 0;
-
-    u32 i2_sav = i2;
-
-    if (GETCHAR (saved_key, 15 - i1) & 1)
-    {
-      x0 |= bcodeArray[48 - 1 - i1]  <<  0; i2++;
-      x0 |= GETCHAR (w, i1)          <<  8; i2++; i1++;
-      x0 |= GETCHAR (s, i3)          << 16; i2++; i3++;
-      x0 |= bcodeArray[i2 - i1 - i3] << 24; i2++; i2++;
-    }
-    else
-    {
-      x0 |= GETCHAR (w, i1)          <<  0; i2++; i1++;
-      x0 |= GETCHAR (s, i3)          <<  8; i2++; i3++;
-      x0 |= bcodeArray[i2 - i1 - i3] << 16; i2++; i2++;
-    }
-
-    SETSHIFTEDINT (t, i2_sav, x0);
-
-    if (i2 >= sum20)
-    {
-      return sum20;
-    }
-  }
-
-  while ((i1 < pw_len) || (i3 < salt_len))
-  {
-    if (i1 < pw_len) // max 8
+    if (i1 < pw_len)
     {
       if (GETCHAR (saved_key, 15 - i1) & 1)
       {
         PUTCHAR (t, i2, bcodeArray[48 - 1 - i1]);
 
         i2++;
+
+        if (i2 == sum20) break;
       }
 
       PUTCHAR (t, i2, GETCHAR (w, i1));
 
-      i1++;
       i2++;
+
+      if (i2 == sum20) break;
+
+      i1++;
     }
-    else
+
+    if (i3 < salt_len)
     {
       PUTCHAR (t, i2, GETCHAR (s, i3));
 
       i2++;
+
+      if (i2 == sum20) break;
+
       i3++;
     }
 
-    PUTCHAR (t, i2, bcodeArray[i2 - i1 - i3]);
-
-    i2++;
-    i2++;
-
-    if (i2 >= sum20)
-    {
-      return sum20;
-    }
-  }
-
-  while (i2 < sum20)
-  {
     PUTCHAR (t, i2, bcodeArray[i2 - i1 - i3]);
 
     i2++;

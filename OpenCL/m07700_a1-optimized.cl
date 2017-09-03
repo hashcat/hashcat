@@ -86,10 +86,10 @@ u32 walld0rf_magic (const u32 w0[4], const u32 pw_len, const u32 salt_buf0[4], c
   t[15] = 0;
 
   u32 sum20 = ((a >> 24) & 3)
-             + ((a >> 16) & 3)
-             + ((a >>  8) & 3)
-             + ((a >>  0) & 3)
-             + ((b >>  8) & 3);
+            + ((a >> 16) & 3)
+            + ((a >>  8) & 3)
+            + ((a >>  0) & 3)
+            + ((b >>  8) & 3);
 
   sum20 |= 0x20;
 
@@ -103,104 +103,39 @@ u32 walld0rf_magic (const u32 w0[4], const u32 pw_len, const u32 salt_buf0[4], c
   u32 i2 = 0;
   u32 i3 = 0;
 
-  // we can assume this because the password must be at least 3
-  // and the username must be at least 1 so we can save the if ()
-
-  u32 t0 = 0;
-
-  if ((d >> 24) & 1)
+  while (i2 < sum20)
   {
-    t0 |= bcodeArray[47] <<  0;
-    t0 |= (w[0] & 0xff)  <<  8;
-    t0 |= (s[0] & 0xff)  << 16;
-    t0 |= bcodeArray[ 1] << 24;
-
-    i1 = 1;
-    i2 = 5;
-    i3 = 1;
-  }
-  else
-  {
-    t0 |= (w[0] & 0xff)  <<  0;
-    t0 |= (s[0] & 0xff)  <<  8;
-    t0 |= bcodeArray[ 0] << 16;
-
-    i1 = 1;
-    i2 = 4;
-    i3 = 1;
-  }
-
-  t[0] = t0;
-
-  // because the following code can increase i2 by a maximum of 5,
-  // there is an overflow potential of 4 before it comes to the next test for i2 >= sum20
-  // we need to truncate in that case
-
-  while ((i1 < pw_len) && (i3 < salt_len))
-  {
-    u32 x0 = 0;
-
-    u32 i2_sav = i2;
-
-    if (GETCHAR (saved_key, 15 - i1) & 1)
-    {
-      x0 |= bcodeArray[48 - 1 - i1]  <<  0; i2++;
-      x0 |= GETCHAR (w, i1)          <<  8; i2++; i1++;
-      x0 |= GETCHAR (s, i3)          << 16; i2++; i3++;
-      x0 |= bcodeArray[i2 - i1 - i3] << 24; i2++; i2++;
-    }
-    else
-    {
-      x0 |= GETCHAR (w, i1)          <<  0; i2++; i1++;
-      x0 |= GETCHAR (s, i3)          <<  8; i2++; i3++;
-      x0 |= bcodeArray[i2 - i1 - i3] << 16; i2++; i2++;
-    }
-
-    SETSHIFTEDINT (t, i2_sav, x0);
-
-    if (i2 >= sum20)
-    {
-      return sum20;
-    }
-  }
-
-  while ((i1 < pw_len) || (i3 < salt_len))
-  {
-    if (i1 < pw_len) // max 8
+    if (i1 < pw_len)
     {
       if (GETCHAR (saved_key, 15 - i1) & 1)
       {
         PUTCHAR (t, i2, bcodeArray[48 - 1 - i1]);
 
         i2++;
+
+        if (i2 == sum20) break;
       }
 
       PUTCHAR (t, i2, GETCHAR (w, i1));
 
-      i1++;
       i2++;
+
+      if (i2 == sum20) break;
+
+      i1++;
     }
-    else
+
+    if (i3 < salt_len)
     {
       PUTCHAR (t, i2, GETCHAR (s, i3));
 
       i2++;
+
+      if (i2 == sum20) break;
+
       i3++;
     }
 
-    PUTCHAR (t, i2, bcodeArray[i2 - i1 - i3]);
-
-    i2++;
-    i2++;
-
-    if (i2 >= sum20)
-    {
-      return sum20;
-    }
-  }
-
-  while (i2 < sum20)
-  {
     PUTCHAR (t, i2, bcodeArray[i2 - i1 - i3]);
 
     i2++;
