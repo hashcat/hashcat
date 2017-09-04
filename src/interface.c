@@ -2975,6 +2975,8 @@ int netscreen_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   salt_len = parse_and_store_salt (salt_buf_ptr, salt_buf, salt_len, hashconfig);
 
+  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
+
   // max. salt length: 55 (max for MD5) - 22 (":Administration Tools:") - 1 (0x80) = 32
   // 32 - 4 bytes (to fit w0lr for all attack modes) = 28
 
@@ -3913,6 +3915,8 @@ int md5s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   salt_len = parse_and_store_salt (salt_buf_ptr, salt_buf, salt_len, hashconfig);
 
+  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
+
   if (salt_len > 64) return (PARSER_SALT_LENGTH);
 
   salt->salt_len = salt_len;
@@ -4704,6 +4708,8 @@ int ipb2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   salt_len = parse_and_store_salt (salt_buf_ptr, salt_buf, salt_len, hashconfig);
 
+  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
+
   if (salt_len > 64) return (PARSER_SALT_LENGTH);
 
   salt->salt_len = salt_len;
@@ -4867,6 +4873,8 @@ int sha1sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
 
   salt_len = parse_and_store_salt (salt_buf_ptr, salt_buf, salt_len, hashconfig);
+
+  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
 
   salt->salt_len = salt_len;
 
@@ -8101,7 +8109,9 @@ int opencart_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   salt_len = parse_and_store_salt (salt_buf_ptr, salt_buf, salt_len, hashconfig);
 
-  if ((salt_len != 9) || (salt_len == UINT_MAX)) return (PARSER_SALT_LENGTH);
+  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
+
+  if (salt_len != 9) return (PARSER_SALT_LENGTH);
 
   salt->salt_len = salt_len;
 
@@ -10296,6 +10306,8 @@ int redmine_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   salt_len = parse_and_store_salt (salt_buf_ptr, salt_buf, salt_len, hashconfig);
 
+  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
+
   if (salt_len != 32) return (PARSER_SALT_LENGTH);
 
   salt->salt_len = salt_len;
@@ -10334,6 +10346,8 @@ int punbb_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUS
   u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
 
   salt_len = parse_and_store_salt (salt_buf_ptr, salt_buf, salt_len, hashconfig);
+
+  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
 
   if (salt_len != 12) return (PARSER_SALT_LENGTH);
 
@@ -11247,6 +11261,8 @@ int pbkdf2_sha256_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MA
 
   salt_len = parse_and_store_salt (salt_buf_ptr, salt_pos, salt_len, hashconfig);
 
+  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
+
   if (salt_len > (64 - 8)) return (PARSER_SALT_LENGTH);
 
   salt_buf_ptr[salt_len + 3] = 0x01;
@@ -11385,6 +11401,8 @@ int postgresql_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, 
 
   user_len = parse_and_store_salt (salt_buf_ptr + 4, user_pos, user_len, hashconfig);
 
+  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
+
   salt->salt_len = 4 + user_len;
 
   return (PARSER_OK);
@@ -11441,6 +11459,8 @@ int mysql_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
 
   salt_len = parse_and_store_salt (salt_buf_ptr, salt_pos, salt_len, hashconfig);
+
+  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
 
   salt->salt_len = salt_len;
 
@@ -11588,6 +11608,8 @@ int bitcoin_wallet_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
   u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
 
   const u32 salt_len = parse_and_store_salt (salt_buf_ptr, cry_salt_buf_pos, cry_salt_buf_len, hashconfig);
+
+  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
 
   salt->salt_len = salt_len;
 
@@ -12386,6 +12408,8 @@ int pbkdf2_md5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   salt_len = parse_and_store_salt (salt_buf_ptr, salt_pos, salt_len, hashconfig);
 
+  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
+
   if (salt_len > (64 - 8)) return (PARSER_SALT_LENGTH);
 
   salt_buf_ptr[salt_len + 3] = 0x01;
@@ -12467,6 +12491,8 @@ int pbkdf2_sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
   u8 *salt_buf_ptr = (u8 *) pbkdf2_sha1->salt_buf;
 
   salt_len = parse_and_store_salt (salt_buf_ptr, salt_pos, salt_len, hashconfig);
+
+  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
 
   if (salt_len > (64 - 8)) return (PARSER_SALT_LENGTH);
 
@@ -12554,6 +12580,8 @@ int pbkdf2_sha512_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MA
   u8 *salt_buf_ptr = (u8 *) pbkdf2_sha512->salt_buf;
 
   salt_len = parse_and_store_salt (salt_buf_ptr, salt_pos, salt_len, hashconfig);
+
+  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
 
   if (salt_len > (128 - 16)) return (PARSER_SALT_LENGTH);
 
@@ -14796,6 +14824,8 @@ int itunes_backup_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MA
 
   salt_len = parse_and_store_salt (salt_buf_ptr, salt_pos, salt_len, hashconfig);
 
+  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
+
   salt->salt_len = salt_len;
 
   // dpsl
@@ -15161,6 +15191,8 @@ int atlassian_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   u32 salt_len = parse_and_store_salt (salt_buf_ptr, tmp_buf, 16, hashconfig);
 
+  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
+
   if (salt_len != 16) return (PARSER_SALT_LENGTH);
 
   salt_buf_ptr[salt_len + 3] = 0x01;
@@ -15428,6 +15460,8 @@ int ethereum_pbkdf2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, 
 
   salt_len = parse_and_store_salt (salt_buf_ptr, salt_pos, salt_len, hashconfig);
 
+  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
+
   salt_buf_ptr[salt_len + 3] = 0x01;
   salt_buf_ptr[salt_len + 4] = 0x80;
 
@@ -15565,6 +15599,8 @@ int ethereum_scrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, 
   u8 *salt_buf_ptr = (u8 *) ethereum_scrypt->salt_buf;
 
   salt_len = parse_and_store_salt (salt_buf_ptr, salt_pos, salt_len, hashconfig);
+
+  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
 
   // salt
 
@@ -16438,7 +16474,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
       memcpy (ptr, tmp, salt_len);
     }
 
-    u32 memset_size = ((48 - (int) salt_len) > 0) ? (48 - salt_len) : 0;
+    u32 memset_size = ((SALT_MAX - (int) salt_len) > 0) ? (SALT_MAX - salt_len) : 0;
 
     memset (ptr + salt_len, 0, memset_size);
 
@@ -16459,7 +16495,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   char tmp_buf[1024] = { 0 };
 
   char *ptr_plain = (char *) out_buf_plain;
-  u8 *ptr_salt  = (u8 *) out_buf_salt;
+  u8   *ptr_salt  = (u8 *)   out_buf_salt;
 
   if (hash_mode == 22)
   {

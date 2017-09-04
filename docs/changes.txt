@@ -30,6 +30,7 @@
 - Fixed an integer overflow in masks not skipped when loaded from file
 - Fixed an integer overflow in hash buffer size calculation
 - Fixed a parser error for mode -m 9820 = MS Office <= 2003 $3, SHA1 + RC4, collider #2
+- Fixed a parser error in multiple modes not checking for return code, resulting in negative memory index writes
 - Fixed a problem with changed current working directory, for instance by using --restore together with --remove
 - Fixed a problem with the conversion to the $HEX[] format: convert/hexify also all passwords of the format $HEX[]
 - Fixed the calculation of device_name_chksum; should be done for each iteration
