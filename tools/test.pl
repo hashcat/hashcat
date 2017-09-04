@@ -3406,7 +3406,7 @@ sub passthrough
     }
     elsif ($mode == 4520)
     {
-      my $salt_len = get_random_num (1, 64);
+      my $salt_len = get_random_num (1, 50);
 
       $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, $salt_len));
     }
@@ -4066,7 +4066,7 @@ sub single
     }
     elsif ($mode == 4520)
     {
-      my $salt_len = get_random_num (1, 64);
+      my $salt_len = get_random_num (1, 50);
 
       for (my $i = 1; $i < 32; $i++)
       {
