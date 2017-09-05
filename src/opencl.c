@@ -1794,17 +1794,7 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
 
   if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
   {
-    int CL_rc;
-
-    CL_rc = hc_clEnqueueUnmapMemObject (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, device_param->pws_buf, 0, NULL, NULL);
-
-    if (CL_rc == -1) return -1;
-
-    CL_rc = hc_clFinish (hashcat_ctx, device_param->command_queue);
-
-    if (CL_rc == -1) return -1;
-
-    CL_rc = hc_clEnqueueMapBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, CL_MAP_WRITE, 0, device_param->size_pws, 0, NULL, NULL, (void **) &device_param->pws_buf);
+    const int CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, pws_cnt * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
 
     if (CL_rc == -1) return -1;
   }
@@ -1866,17 +1856,7 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
         }
       }
 
-      int CL_rc;
-
-      CL_rc = hc_clEnqueueUnmapMemObject (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, device_param->pws_buf, 0, NULL, NULL);
-
-      if (CL_rc == -1) return -1;
-
-      CL_rc = hc_clFinish (hashcat_ctx, device_param->command_queue);
-
-      if (CL_rc == -1) return -1;
-
-      CL_rc = hc_clEnqueueMapBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, CL_MAP_WRITE, 0, device_param->size_pws, 0, NULL, NULL, (void **) &device_param->pws_buf);
+      const int CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, pws_cnt * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
 
       if (CL_rc == -1) return -1;
     }
@@ -1884,33 +1864,13 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
     {
       if (user_options->attack_mode == ATTACK_MODE_COMBI)
       {
-        int CL_rc;
-
-        CL_rc = hc_clEnqueueUnmapMemObject (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, device_param->pws_buf, 0, NULL, NULL);
-
-        if (CL_rc == -1) return -1;
-
-        CL_rc = hc_clFinish (hashcat_ctx, device_param->command_queue);
-
-        if (CL_rc == -1) return -1;
-
-        CL_rc = hc_clEnqueueMapBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, CL_MAP_WRITE, 0, device_param->size_pws, 0, NULL, NULL, (void **) &device_param->pws_buf);
+        const int CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, pws_cnt * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
 
         if (CL_rc == -1) return -1;
       }
       else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
       {
-        int CL_rc;
-
-        CL_rc = hc_clEnqueueUnmapMemObject (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, device_param->pws_buf, 0, NULL, NULL);
-
-        if (CL_rc == -1) return -1;
-
-        CL_rc = hc_clFinish (hashcat_ctx, device_param->command_queue);
-
-        if (CL_rc == -1) return -1;
-
-        CL_rc = hc_clEnqueueMapBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, CL_MAP_WRITE, 0, device_param->size_pws, 0, NULL, NULL, (void **) &device_param->pws_buf);
+        const int CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, pws_cnt * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
 
         if (CL_rc == -1) return -1;
       }
@@ -4826,8 +4786,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
      * global buffers
      */
 
-    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
-                                                                                       size_pws,                NULL, &device_param->d_pws_buf);        if (CL_rc == -1) return -1;
+    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_ONLY,   size_pws,                NULL, &device_param->d_pws_buf);        if (CL_rc == -1) return -1;
     CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_ONLY,   size_pws_amp,            NULL, &device_param->d_pws_amp_buf);    if (CL_rc == -1) return -1;
     CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_WRITE,  size_tmps,               NULL, &device_param->d_tmps);           if (CL_rc == -1) return -1;
     CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_WRITE,  size_hooks,              NULL, &device_param->d_hooks);          if (CL_rc == -1) return -1;
@@ -4921,9 +4880,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
      * main host data
      */
 
-    CL_rc = hc_clEnqueueMapBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, CL_MAP_WRITE, 0, device_param->size_pws, 0, NULL, NULL, (void **) &device_param->pws_buf);
+    pw_t *pws_buf = (pw_t *) hcmalloc (size_pws);
 
-    if (CL_rc == -1) return -1;
+    device_param->pws_buf = pws_buf;
 
     pw_t *combs_buf = (pw_t *) hccalloc (KERNEL_COMBS, sizeof (pw_t));
 
@@ -5535,8 +5494,7 @@ void opencl_session_destroy (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->skipped == true) continue;
 
-    hc_clEnqueueUnmapMemObject (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, device_param->pws_buf, 0, NULL, NULL);
-
+    hcfree (device_param->pws_buf);
     hcfree (device_param->combs_buf);
     hcfree (device_param->hooks_buf);
 
