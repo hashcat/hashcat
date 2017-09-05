@@ -24,7 +24,7 @@ typedef struct
 
 } RC4_KEY;
 
-void swap (__local RC4_KEY *rc4_key, const u8 i, const u8 j)
+void swap (SCR_TYPE RC4_KEY *rc4_key, const u8 i, const u8 j)
 {
   u8 tmp;
 
@@ -33,12 +33,12 @@ void swap (__local RC4_KEY *rc4_key, const u8 i, const u8 j)
   rc4_key->S[j] = tmp;
 }
 
-void rc4_init_16 (__local RC4_KEY *rc4_key, const u32 data[4])
+void rc4_init_16 (SCR_TYPE RC4_KEY *rc4_key, const u32 data[4])
 {
   u32 v = 0x03020100;
   u32 a = 0x04040404;
 
-  __local u32 *ptr = (__local u32 *) rc4_key->S;
+  SCR_TYPE u32 *ptr = (SCR_TYPE u32 *) rc4_key->S;
 
   #ifdef _unroll
   #pragma unroll
@@ -86,7 +86,7 @@ void rc4_init_16 (__local RC4_KEY *rc4_key, const u32 data[4])
   }
 }
 
-u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, const u32 in[4], u32 out[4])
+u8 rc4_next_16 (SCR_TYPE RC4_KEY *rc4_key, u8 i, u8 j, const u32 in[4], u32 out[4])
 {
   #ifdef _unroll
   #pragma unroll
@@ -139,7 +139,7 @@ u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, const u32 in[4], u32 out[4
   return j;
 }
 
-int decrypt_and_check (__local RC4_KEY *rc4_key, u32 data[4], u32 timestamp_ct[8])
+int decrypt_and_check (SCR_TYPE RC4_KEY *rc4_key, u32 data[4], u32 timestamp_ct[8])
 {
   rc4_init_16 (rc4_key, data);
 
@@ -285,7 +285,19 @@ __kernel void m07500_mxx (__global pw_t *pws, __constant const kernel_rule_t *ru
 
   COPY_PW (pws[gid]);
 
+  #ifdef REAL_SHM
+
   __local RC4_KEY rc4_keys[64];
+
+  __local RC4_KEY *rc4_key = &rc4_keys[lid];
+
+  #else
+
+  RC4_KEY rc4_keys[1];
+
+  RC4_KEY *rc4_key = &rc4_keys[0];
+
+  #endif
 
   u32 checksum[4];
 
@@ -327,7 +339,7 @@ __kernel void m07500_mxx (__global pw_t *pws, __constant const kernel_rule_t *ru
 
     kerb_prepare (ctx.h, checksum, digest);
 
-    if (decrypt_and_check (&rc4_keys[lid], digest, timestamp_ct) == 1)
+    if (decrypt_and_check (rc4_key, digest, timestamp_ct) == 1)
     {
       if (atomic_inc (&hashes_shown[digests_offset]) == 0)
       {
@@ -354,7 +366,19 @@ __kernel void m07500_sxx (__global pw_t *pws, __constant const kernel_rule_t *ru
 
   COPY_PW (pws[gid]);
 
+  #ifdef REAL_SHM
+
   __local RC4_KEY rc4_keys[64];
+
+  __local RC4_KEY *rc4_key = &rc4_keys[lid];
+
+  #else
+
+  RC4_KEY rc4_keys[1];
+
+  RC4_KEY *rc4_key = &rc4_keys[0];
+
+  #endif
 
   u32 checksum[4];
 
@@ -396,7 +420,7 @@ __kernel void m07500_sxx (__global pw_t *pws, __constant const kernel_rule_t *ru
 
     kerb_prepare (ctx.h, checksum, digest);
 
-    if (decrypt_and_check (&rc4_keys[lid], digest, timestamp_ct) == 1)
+    if (decrypt_and_check (rc4_key, digest, timestamp_ct) == 1)
     {
       if (atomic_inc (&hashes_shown[digests_offset]) == 0)
       {
