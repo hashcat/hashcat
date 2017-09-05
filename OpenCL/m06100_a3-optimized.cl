@@ -13,12 +13,12 @@
 #include "inc_simd.cl"
 #include "inc_hash_whirlpool.cl"
 
-void whirlpool_transform_transport_vector (const u32x w[16], u32x digest[16], __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
+void whirlpool_transform_transport_vector (const u32x w[16], u32x digest[16], SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   whirlpool_transform_vector (w + 0, w + 4, w + 8, w + 12, digest, s_Ch, s_Cl);
 }
 
-void m06100m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, __local u32 (*s_Cl)[256], __local u32 (*s_Ch)[256])
+void m06100m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, SHM_TYPE u32 (*s_Cl)[256], SHM_TYPE u32 (*s_Ch)[256])
 {
   /**
    * modifier
@@ -87,7 +87,7 @@ void m06100m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
   }
 }
 
-void m06100s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, __local u32 (*s_Cl)[256], __local u32 (*s_Ch)[256])
+void m06100s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, SHM_TYPE u32 (*s_Cl)[256], SHM_TYPE u32 (*s_Ch)[256])
 {
   /**
    * modifier
@@ -182,6 +182,8 @@ __kernel void m06100_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
    * shared
    */
 
+  #ifdef REAL_SHM
+
   __local u32 s_Ch[8][256];
   __local u32 s_Cl[8][256];
 
@@ -207,6 +209,13 @@ __kernel void m06100_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
+
+  #else
+
+  __constant u32 (*s_Ch)[256] = Ch;
+  __constant u32 (*s_Cl)[256] = Cl;
+
+  #endif
 
   if (gid >= gid_max) return;
 
@@ -265,6 +274,8 @@ __kernel void m06100_m08 (__global pw_t *pws, __global const kernel_rule_t *rule
    * shared
    */
 
+  #ifdef REAL_SHM
+
   __local u32 s_Ch[8][256];
   __local u32 s_Cl[8][256];
 
@@ -290,6 +301,13 @@ __kernel void m06100_m08 (__global pw_t *pws, __global const kernel_rule_t *rule
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
+
+  #else
+
+  __constant u32 (*s_Ch)[256] = Ch;
+  __constant u32 (*s_Cl)[256] = Cl;
+
+  #endif
 
   if (gid >= gid_max) return;
 
@@ -348,6 +366,8 @@ __kernel void m06100_m16 (__global pw_t *pws, __global const kernel_rule_t *rule
    * shared
    */
 
+  #ifdef REAL_SHM
+
   __local u32 s_Ch[8][256];
   __local u32 s_Cl[8][256];
 
@@ -373,6 +393,13 @@ __kernel void m06100_m16 (__global pw_t *pws, __global const kernel_rule_t *rule
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
+
+  #else
+
+  __constant u32 (*s_Ch)[256] = Ch;
+  __constant u32 (*s_Cl)[256] = Cl;
+
+  #endif
 
   if (gid >= gid_max) return;
 
@@ -431,6 +458,8 @@ __kernel void m06100_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
    * shared
    */
 
+  #ifdef REAL_SHM
+
   __local u32 s_Ch[8][256];
   __local u32 s_Cl[8][256];
 
@@ -456,6 +485,13 @@ __kernel void m06100_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
+
+  #else
+
+  __constant u32 (*s_Ch)[256] = Ch;
+  __constant u32 (*s_Cl)[256] = Cl;
+
+  #endif
 
   if (gid >= gid_max) return;
 
@@ -514,6 +550,8 @@ __kernel void m06100_s08 (__global pw_t *pws, __global const kernel_rule_t *rule
    * shared
    */
 
+  #ifdef REAL_SHM
+
   __local u32 s_Ch[8][256];
   __local u32 s_Cl[8][256];
 
@@ -539,6 +577,13 @@ __kernel void m06100_s08 (__global pw_t *pws, __global const kernel_rule_t *rule
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
+
+  #else
+
+  __constant u32 (*s_Ch)[256] = Ch;
+  __constant u32 (*s_Cl)[256] = Cl;
+
+  #endif
 
   if (gid >= gid_max) return;
 
@@ -597,6 +642,8 @@ __kernel void m06100_s16 (__global pw_t *pws, __global const kernel_rule_t *rule
    * shared
    */
 
+  #ifdef REAL_SHM
+
   __local u32 s_Ch[8][256];
   __local u32 s_Cl[8][256];
 
@@ -622,6 +669,13 @@ __kernel void m06100_s16 (__global pw_t *pws, __global const kernel_rule_t *rule
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
+
+  #else
+
+  __constant u32 (*s_Ch)[256] = Ch;
+  __constant u32 (*s_Cl)[256] = Cl;
+
+  #endif
 
   if (gid >= gid_max) return;
 

@@ -25,6 +25,12 @@
 #elif DEVICE_TYPE == DEVICE_TYPE_ACCEL
 #endif
 
+#ifdef REAL_SHM
+#define SHM_TYPE __local
+#else
+#define SHM_TYPE __constant
+#endif
+
 /**
  * vendor specific
  */

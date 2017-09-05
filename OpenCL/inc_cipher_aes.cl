@@ -690,12 +690,6 @@ __constant u32a rcon[] =
   0x1b000000, 0x36000000,
 };
 
-#ifdef REAL_SHM
-#define SHM_TYPE __local
-#else
-#define SHM_TYPE __constant
-#endif
-
 // 128 bit key
 
 static void aes128_ExpandKey (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)

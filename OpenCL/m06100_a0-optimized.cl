@@ -15,7 +15,7 @@
 #include "inc_simd.cl"
 #include "inc_hash_whirlpool.cl"
 
-void whirlpool_transform_transport_vector (const u32x w[16], u32x digest[16], __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
+void whirlpool_transform_transport_vector (const u32x w[16], u32x digest[16], SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   whirlpool_transform_vector (w + 0, w + 4, w + 8, w + 12, digest, s_Ch, s_Cl);
 }
@@ -33,6 +33,8 @@ __kernel void m06100_m04 (__global pw_t *pws, __constant const kernel_rule_t *ru
   /**
    * shared
    */
+
+  #ifdef REAL_SHM
 
   __local u32 s_Ch[8][256];
   __local u32 s_Cl[8][256];
@@ -59,6 +61,13 @@ __kernel void m06100_m04 (__global pw_t *pws, __constant const kernel_rule_t *ru
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
+
+  #else
+
+  __constant u32 (*s_Ch)[256] = Ch;
+  __constant u32 (*s_Cl)[256] = Cl;
+
+  #endif
 
   if (gid >= gid_max) return;
 
@@ -165,6 +174,8 @@ __kernel void m06100_s04 (__global pw_t *pws, __constant const kernel_rule_t *ru
    * shared
    */
 
+  #ifdef REAL_SHM
+
   __local u32 s_Ch[8][256];
   __local u32 s_Cl[8][256];
 
@@ -190,6 +201,13 @@ __kernel void m06100_s04 (__global pw_t *pws, __constant const kernel_rule_t *ru
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
+
+  #else
+
+  __constant u32 (*s_Ch)[256] = Ch;
+  __constant u32 (*s_Cl)[256] = Cl;
+
+  #endif
 
   if (gid >= gid_max) return;
 
