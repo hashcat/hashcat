@@ -1523,6 +1523,7 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
   folder_config_t *folder_config = hashcat_ctx->folder_config;
   hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
   hashes_t        *hashes        = hashcat_ctx->hashes;
+  user_options_t  *user_options  = hashcat_ctx->user_options;
 
   if (hashconfig->st_hash == NULL) return 0;
 
@@ -1606,7 +1607,25 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    parser_status = hashconfig->parse_func ((u8 *) hashconfig->st_hash, strlen (hashconfig->st_hash), &hash, hashconfig);
+    hashconfig_t *hashconfig_st = (hashconfig_t *) hcmalloc (sizeof (hashconfig_t));
+
+    memcpy (hashconfig_st, hashconfig, sizeof (hashconfig_t));
+
+    hashconfig_st->separator = SEPARATOR;
+
+    if (user_options->hex_salt)
+    {
+      if (hashconfig->salt_type == SALT_TYPE_GENERIC)
+      {
+        // this is save as there's no hash mode that has both SALT_TYPE_GENERIC and OPTS_TYPE_ST_HEX by default
+
+        hashconfig_st->opts_type &= ~OPTS_TYPE_ST_HEX;
+      }
+    }
+
+    parser_status = hashconfig->parse_func ((u8 *) hashconfig->st_hash, strlen (hashconfig->st_hash), &hash, hashconfig_st);
+
+    hcfree (hashconfig_st);
   }
 
   if (parser_status == PARSER_OK)

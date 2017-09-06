@@ -16590,6 +16590,16 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     snprintf (out_buf, out_len - 1, "{SSHA}%s", ptr_plain);
   }
+  else if (hash_mode == 112)
+  {
+    snprintf (out_buf, out_len - 1, "%08x%08x%08x%08x%08x:%s",
+      digest_buf[0],
+      digest_buf[1],
+      digest_buf[2],
+      digest_buf[3],
+      digest_buf[4],
+      (char *) salt.salt_buf);
+  }
   else if ((hash_mode == 122) || (hash_mode == 125))
   {
     snprintf (out_buf, out_len - 1, "%s%08x%08x%08x%08x%08x",
@@ -18434,6 +18444,10 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     snprintf (out_buf, out_len - 1, "%s", hash_buf);
   }
+  else if (hash_mode == 11500)
+  {
+    snprintf (out_buf, out_len - 1, "%08x:%s", byte_swap_32 (digest_buf[0]), (char *) salt.salt_buf);
+  }
   else if (hash_mode == 11600)
   {
     seven_zip_hook_salt_t *seven_zips = (seven_zip_hook_salt_t *) hashes->hook_salts_buf;
@@ -19660,10 +19674,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
       snprintf (out_buf, out_len - 1, "(H%s)", tmp_buf);
     }
-    else if (hash_type == HASH_TYPE_CRC32)
-    {
-      snprintf (out_buf, out_len - 1, "%08x", byte_swap_32 (digest_buf[0]));
-    }
   }
 
   if (salt_type == SALT_TYPE_GENERIC)
@@ -20095,7 +20105,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case   112:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
                                             | OPTS_TYPE_ST_ADD80
@@ -23243,7 +23253,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  break;
 
     case 11500:  hashconfig->hash_type      = HASH_TYPE_CRC32;
-                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_ST_GENERATE_LE
