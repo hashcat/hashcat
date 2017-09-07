@@ -40,12 +40,20 @@
 #if   VENDOR_ID == (1 << 0)
 #if   AMD_ROCM == 0
 #define IS_AMD
-#define IS_AMD_LEGACY
+#define AMD_GCN 0
 #else
 #define IS_AMD
-#define IS_AMD_ROCM
-#if defined __gfx900__ || defined __gfx901__ || defined __gfx902__ || defined __gfx903__
-#define IS_AMD_ROCM_VEGA
+#if   defined __gfx600__ || defined __gfx601__
+#define AMD_GCN 1
+#elif defined __gfx700__ || defined __gfx701__ || defined __gfx702__ || defined __gfx703__
+#define AMD_GCN 2
+#elif defined __gfx800__ || defined __gfx801__ || defined __gfx802__ || defined __gfx803__ || defined __gfx804__ || defined __gfx810__
+#define AMD_GCN 3
+#define AMD_GCN 4
+#elif defined __gfx900__ || defined __gfx901__ || defined __gfx902__ || defined __gfx903__
+#define AMD_GCN 5
+#else
+#define AMD_GCN 0
 #endif
 #endif
 #elif VENDOR_ID == (1 << 1)

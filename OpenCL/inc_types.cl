@@ -174,27 +174,19 @@ static u64x hl32_to_64 (const u32x a, const u32x b)
 }
 
 #ifdef IS_AMD
+
+#if AMD_GCN >= 3
 static u32 swap32_S (const u32 v)
 {
-  #ifdef IS_AMD_ROCM
-
   u32 r;
 
   __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r) : "v"(v), "v"(0x00010203));
 
   return r;
-
-  #else
-
-  return as_uint (as_uchar4 (v).s3210);
-
-  #endif
 }
 
 static u64 swap64_S (const u64 v)
 {
-  #ifdef IS_AMD_ROCM
-
   const u32 v0 = h32_from_64_S (v);
   const u32 v1 = l32_from_64_S (v);
 
@@ -207,13 +199,18 @@ static u64 swap64_S (const u64 v)
   const u64 r = hl32_to_64_S (t1, t0);
 
   return r;
-
-  #else
-
-  return (as_ulong (as_uchar8 (v).s76543210));
-
-  #endif
 }
+#else
+static u32 swap32_S (const u32 v)
+{
+  return as_uint (as_uchar4 (v).s3210);
+}
+
+static u64 swap64_S (const u64 v)
+{
+  return (as_ulong (as_uchar8 (v).s76543210));
+}
+#endif
 
 static u32 rotr32_S (const u32 a, const u32 n)
 {
@@ -243,57 +240,14 @@ static u64 rotl64_S (const u64 a, const u32 n)
   return rotr64_S (a, 64 - n);
 }
 
+#if AMD_GCN >= 3
 static u32x swap32 (const u32x v)
 {
-  #ifdef IS_AMD_ROCM
-
-  u32x r;
-
-  #if VECT_SIZE == 1
-  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r) : "v"(v), "v"(0x00010203));
-  #endif
-
-  #if VECT_SIZE >= 2
-  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.s0) : "v"(v.s0), "v"(0x00010203));
-  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.s1) : "v"(v.s1), "v"(0x00010203));
-  #endif
-
-  #if VECT_SIZE >= 4
-  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.s2) : "v"(v.s2), "v"(0x00010203));
-  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.s3) : "v"(v.s3), "v"(0x00010203));
-  #endif
-
-  #if VECT_SIZE >= 8
-  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.s4) : "v"(v.s4), "v"(0x00010203));
-  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.s5) : "v"(v.s5), "v"(0x00010203));
-  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.s6) : "v"(v.s6), "v"(0x00010203));
-  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.s7) : "v"(v.s7), "v"(0x00010203));
-  #endif
-
-  #if VECT_SIZE >= 16
-  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.s8) : "v"(v.s8), "v"(0x00010203));
-  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.s9) : "v"(v.s9), "v"(0x00010203));
-  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.sa) : "v"(v.sa), "v"(0x00010203));
-  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.sb) : "v"(v.sb), "v"(0x00010203));
-  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.sc) : "v"(v.sc), "v"(0x00010203));
-  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.sd) : "v"(v.sd), "v"(0x00010203));
-  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.se) : "v"(v.se), "v"(0x00010203));
-  __asm__ volatile ("V_PERM_B32 %0, 0, %1, %2;" : "=v"(r.sf) : "v"(v.sf), "v"(0x00010203));
-  #endif
-
-  return r;
-
-  #else
-
   return bitselect (rotate (v, 24u), rotate (v, 8u), 0x00ff00ffu);
-
-  #endif
 }
 
 static u64x swap64 (const u64x v)
 {
-  #ifdef IS_AMD_ROCM
-
   const u32x a0 = h32_from_64 (v);
   const u32x a1 = l32_from_64 (v);
 
@@ -352,16 +306,22 @@ static u64x swap64 (const u64x v)
   const u64x r = hl32_to_64 (t1, t0);
 
   return r;
+}
+#else
+static u32x swap32 (const u32x v)
+{
+  return bitselect (rotate (v, 24u), rotate (v, 8u), 0x00ff00ffu);
+}
 
-  #else
-
+static u64x swap64 (const u64x v)
+{
   return bitselect (bitselect (rotate (v, 24ul),
                                rotate (v,  8ul), 0x000000ff000000fful),
                     bitselect (rotate (v, 56ul),
                                rotate (v, 40ul), 0x00ff000000ff0000ul),
                                                  0xffff0000ffff0000ul);
-  #endif
 }
+#endif
 
 static u32x rotr32 (const u32x a, const u32 n)
 {
@@ -406,7 +366,7 @@ static u32 amd_bytealign_S (const u32 a, const u32 b, const u32 c)
   return amd_bytealign (a, b, c);
 }
 
-#ifdef IS_AMD_ROCM
+#if AMD_GCN >= 3
 static u32x __byte_perm (const u32x a, const u32x b, const u32x c)
 {
   u32x r;
@@ -459,9 +419,7 @@ static u32x __byte_perm (const u32x a, const u32x b, const u32x c)
 
   return r;
 }
-#endif
 
-#ifdef IS_AMD_ROCM
 static u32 __byte_perm_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
@@ -472,7 +430,7 @@ static u32 __byte_perm_S (const u32 a, const u32 b, const u32 c)
 }
 #endif
 
-#ifdef IS_AMD_ROCM_VEGA
+#if AMD_GCN >= 5
 static u32x __add3 (const u32x a, const u32x b, const u32x c)
 {
   u32x r;
@@ -525,14 +483,7 @@ static u32x __add3 (const u32x a, const u32x b, const u32x c)
 
   return r;
 }
-#else
-static u32x __add3 (const u32x a, const u32x b, const u32x c)
-{
-  return a + b + c;
-}
-#endif
 
-#ifdef IS_AMD_ROCM_VEGA
 static u32 __add3_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
@@ -542,6 +493,11 @@ static u32 __add3_S (const u32 a, const u32 b, const u32 c)
   return r;
 }
 #else
+static u32x __add3 (const u32x a, const u32x b, const u32x c)
+{
+  return a + b + c;
+}
+
 static u32 __add3_S (const u32 a, const u32 b, const u32 c)
 {
   return a + b + c;

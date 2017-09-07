@@ -767,7 +767,7 @@ static void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
   u32 s6 = 0;
   u32 s7 = 0;
 
-  #if defined IS_AMD_LEGACY || defined IS_GENERIC
+  #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
   const u32 src_r00 = swap32_S (src_r0[0]);
   const u32 src_r01 = swap32_S (src_r0[1]);
   const u32 src_r02 = swap32_S (src_r0[2]);
@@ -879,7 +879,7 @@ static void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
   s7 = swap32_S (s7);
   #endif
 
-  #if defined IS_AMD_ROCM || defined IS_NV
+  #if (defined IS_AMD && AMD_GCN >= 3) || defined IS_NV
 
   const int offset_mod_4 = offset & 3;
 
@@ -889,7 +889,7 @@ static void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
   const int selector = (0x76543210 >> (offset_minus_4 * 4)) & 0xffff;
   #endif
 
-  #if defined IS_AMD_ROCM
+  #if defined IS_AMD
   const int selector = 0x0706050403020100 >> (offset_minus_4 * 8);
   #endif
 
