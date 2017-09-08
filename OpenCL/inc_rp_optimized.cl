@@ -1172,6 +1172,8 @@ static u32 rule_op_mangle_toggle_at (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED con
   buf1[1] = t[5];
   buf1[2] = t[6];
   buf1[3] = t[7];
+
+  return (in_len);
 }
 
 static u32 rule_op_mangle_reverse (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED u32 buf0[4], MAYBE_UNUSED u32 buf1[4], const u32 in_len)
