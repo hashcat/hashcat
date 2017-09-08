@@ -185,7 +185,11 @@ static void sha512_init (sha512_ctx_t *ctx)
 
 static void sha512_update_128 (sha512_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const int len)
 {
+  #ifdef IS_AMD
+  volatile const int pos = ctx->len & 127;
+  #else
   const int pos = ctx->len & 127;
+  #endif
 
   ctx->len += len;
 
@@ -2012,7 +2016,11 @@ static void sha512_init_vector_from_scalar (sha512_ctx_vector_t *ctx, sha512_ctx
 
 static void sha512_update_vector_128 (sha512_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const int len)
 {
+  #ifdef IS_AMD
+  volatile const int pos = ctx->len & 127;
+  #else
   const int pos = ctx->len & 127;
+  #endif
 
   ctx->len += len;
 
