@@ -3176,6 +3176,24 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           device_param->pcie_bus      = amdtopo.pcie.bus;
           device_param->pcie_device   = amdtopo.pcie.device;
           device_param->pcie_function = amdtopo.pcie.function;
+
+          // check for AMD ROCm driver
+
+          const char *t1 = strstr (device_param->driver_version, "(HSA,LC)");
+          const char *t2 = strstr (device_param->driver_version, "(PAL,LC)");
+          const char *t3 = strstr (device_param->driver_version, "(PAL,HSAIL)");
+          const char *t4 = strstr (device_param->driver_version, "(HSA, LC)");
+          const char *t5 = strstr (device_param->driver_version, "(PAL, LC)");
+          const char *t6 = strstr (device_param->driver_version, "(PAL, HSAIL)");
+
+          if ((t1 == NULL) && (t2 == NULL) && (t3 == NULL) && (t4 == NULL) && (t5 == NULL) && (t6 == NULL))
+          {
+            device_param->is_rocm = false;
+          }
+          else
+          {
+            device_param->is_rocm = true;
+          }
         }
 
         if ((device_param->platform_vendor_id == VENDOR_ID_NV) && (device_param->device_vendor_id == VENDOR_ID_NV))
@@ -3286,14 +3304,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
               bool amd_warn = true;
 
               #if defined (__linux__)
-              const char *t1 = strstr (device_param->driver_version, "(HSA,LC)");
-              const char *t2 = strstr (device_param->driver_version, "(PAL,LC)");
-              const char *t3 = strstr (device_param->driver_version, "(PAL,HSAIL)");
-              const char *t4 = strstr (device_param->driver_version, "(HSA, LC)");
-              const char *t5 = strstr (device_param->driver_version, "(PAL, LC)");
-              const char *t6 = strstr (device_param->driver_version, "(PAL, HSAIL)");
-
-              if ((t1 == NULL) && (t2 == NULL) && (t3 == NULL) && (t4 == NULL) && (t5 == NULL) && (t6 == NULL))
+              if (device_param->is_rocm == false)
               {
                 // AMDGPU-PRO Driver 16.40 and higher
                 if (atoi (device_param->driver_version) >= 2117) amd_warn = false;
@@ -3309,8 +3320,6 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
               {
                 // Support for ROCm platform
                 if (atof (device_param->driver_version) >= 1.1) amd_warn = false;
-
-                device_param->is_rocm = true;
               }
               #elif defined (_WIN)
               // AMD Radeon Software 14.9 and higher, should be updated to 15.12
