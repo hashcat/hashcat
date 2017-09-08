@@ -20,7 +20,13 @@ static void truncate_right (u32 buf0[4], u32 buf1[4], const u32 offset)
 {
   const u32 tmp = (1u << ((offset & 3u) * 8u)) - 1u;
 
-  switch (offset / 4)
+  #ifdef IS_AMD
+  volatile const int offset_switch = offset / 4;
+  #else
+  const int offset_switch = offset / 4;
+  #endif
+
+  switch (offset_switch)
   {
     case  0:  buf0[0] &= tmp;
               buf0[1]  = 0;
@@ -73,7 +79,13 @@ static void truncate_left (u32 buf0[4], u32 buf1[4], const u32 offset)
 {
   const u32 tmp = ~((1u << ((offset & 3u) * 8u)) - 1u);
 
-  switch (offset / 4)
+  #ifdef IS_AMD
+  volatile const int offset_switch = offset / 4;
+  #else
+  const int offset_switch = offset / 4;
+  #endif
+
+  switch (offset_switch)
   {
     case  0:  buf0[0] &= tmp;
               break;
@@ -767,6 +779,12 @@ static void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
   u32 s6 = 0;
   u32 s7 = 0;
 
+  #ifdef IS_AMD
+  volatile const int offset_switch = offset / 4;
+  #else
+  const int offset_switch = offset / 4;
+  #endif
+
   #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
   const u32 src_r00 = swap32_S (src_r0[0]);
   const u32 src_r01 = swap32_S (src_r0[1]);
@@ -777,7 +795,7 @@ static void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
   const u32 src_r12 = swap32_S (src_r1[2]);
   const u32 src_r13 = swap32_S (src_r1[3]);
 
-  switch (offset / 4)
+  switch (offset_switch)
   {
     case 0:
       s7 = amd_bytealign_S (src_r12, src_r13, offset);
@@ -902,7 +920,7 @@ static void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32
   const u32 src_r12 = src_r1[2];
   const u32 src_r13 = src_r1[3];
 
-  switch (offset / 4)
+  switch (offset_switch)
   {
     case 0:
       s7 = __byte_perm_S (src_r12, src_r13, selector);
@@ -1340,7 +1358,13 @@ static u32 rule_op_mangle_delete_at (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED con
   const u32 ml = (1 << ((p0 & 3) * 8)) - 1;
   const u32 mr = ~ml;
 
-  switch (p0 / 4)
+  #ifdef IS_AMD
+  volatile const int p0_switch = p0 / 4;
+  #else
+  const int p0_switch = p0 / 4;
+  #endif
+
+  switch (p0_switch)
   {
     case  0:  buf0[0] =  (buf0[0] & ml)
                       | (tib40[0] & mr);
@@ -1441,7 +1465,13 @@ static u32 rule_op_mangle_omit (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u3
   const u32 ml = (1 << ((p0 & 3) * 8)) - 1;
   const u32 mr = ~ml;
 
-  switch (p0 / 4)
+  #ifdef IS_AMD
+  volatile const int p0_switch = p0 / 4;
+  #else
+  const int p0_switch = p0 / 4;
+  #endif
+
+  switch (p0_switch)
   {
     case  0:  buf0[0] =  (buf0[0] & ml)
                       | (tib40[0] & mr);
@@ -1521,7 +1551,13 @@ static u32 rule_op_mangle_insert (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const 
 
   const u32 mr = 0xffffff00 << ((p0 & 3) * 8);
 
-  switch (p0 / 4)
+  #ifdef IS_AMD
+  volatile const int p0_switch = p0 / 4;
+  #else
+  const int p0_switch = p0 / 4;
+  #endif
+
+  switch (p0_switch)
   {
     case  0:  buf0[0] =  (buf0[0] & ml) | p1n | (tib40[0] & mr);
               buf0[1] =  tib40[1];

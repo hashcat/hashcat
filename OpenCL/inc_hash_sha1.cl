@@ -176,11 +176,7 @@ static void sha1_init (sha1_ctx_t *ctx)
 
 static void sha1_update_64 (sha1_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len)
 {
-  #ifdef IS_AMD
-  volatile const int pos = ctx->len & 63;
-  #else
   const int pos = ctx->len & 63;
-  #endif
 
   ctx->len += len;
 
@@ -1603,11 +1599,7 @@ static void sha1_init_vector_from_scalar (sha1_ctx_vector_t *ctx, sha1_ctx_t *ct
 
 static void sha1_update_vector_64 (sha1_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const int len)
 {
-  #ifdef IS_AMD
-  volatile const int pos = ctx->len & 63;
-  #else
   const int pos = ctx->len & 63;
-  #endif
 
   ctx->len += len;
 
