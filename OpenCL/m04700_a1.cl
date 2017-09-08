@@ -81,7 +81,6 @@ __kernel void m04700_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
     const u32 b = ctx1.h[1];
     const u32 c = ctx1.h[2];
     const u32 d = ctx1.h[3];
-    const u32 e = ctx1.h[4];
 
     sha1_ctx_t ctx;
 
@@ -184,7 +183,6 @@ __kernel void m04700_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
     const u32 b = ctx1.h[1];
     const u32 c = ctx1.h[2];
     const u32 d = ctx1.h[3];
-    const u32 e = ctx1.h[4];
 
     sha1_ctx_t ctx;
 
