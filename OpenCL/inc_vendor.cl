@@ -49,7 +49,7 @@
 #define AMD_GCN 2
 #elif defined __gfx800__ || defined __gfx801__ || defined __gfx802__ || defined __gfx803__ || defined __gfx804__ || defined __gfx810__
 #define AMD_GCN 3
-#define AMD_GCN 4
+// According to AMD docs, GCN 3 and 4 are the same
 #elif defined __gfx900__ || defined __gfx901__ || defined __gfx902__ || defined __gfx903__
 #define AMD_GCN 5
 #else
