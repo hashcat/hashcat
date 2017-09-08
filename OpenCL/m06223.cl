@@ -475,11 +475,7 @@ __kernel void m06223_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   if (gid >= gid_max) return;
 
-  #if defined (IS_APPLE) && defined (IS_GPU)
-  volatile u32 ukey1[8];
-  #else
   u32 ukey1[8];
-  #endif
 
   ukey1[0] = swap32_S (h32_from_64_S (tmps[gid].out[0]));
   ukey1[1] = swap32_S (l32_from_64_S (tmps[gid].out[0]));
@@ -490,11 +486,7 @@ __kernel void m06223_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   ukey1[6] = swap32_S (h32_from_64_S (tmps[gid].out[3]));
   ukey1[7] = swap32_S (l32_from_64_S (tmps[gid].out[3]));
 
-  #if defined (IS_APPLE) && defined (IS_GPU)
-  volatile u32 ukey2[8];
-  #else
   u32 ukey2[8];
-  #endif
 
   ukey2[0] = swap32_S (h32_from_64_S (tmps[gid].out[4]));
   ukey2[1] = swap32_S (l32_from_64_S (tmps[gid].out[4]));
@@ -529,11 +521,7 @@ __kernel void m06223_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     }
   }
 
-  #if defined (IS_APPLE) && defined (IS_GPU)
-  volatile u32 ukey3[8];
-  #else
   u32 ukey3[8];
-  #endif
 
   ukey3[0] = swap32_S (h32_from_64_S (tmps[gid].out[ 8]));
   ukey3[1] = swap32_S (l32_from_64_S (tmps[gid].out[ 8]));
@@ -544,11 +532,7 @@ __kernel void m06223_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   ukey3[6] = swap32_S (h32_from_64_S (tmps[gid].out[11]));
   ukey3[7] = swap32_S (l32_from_64_S (tmps[gid].out[11]));
 
-  #if defined (IS_APPLE) && defined (IS_GPU)
-  volatile u32 ukey4[8];
-  #else
   u32 ukey4[8];
-  #endif
 
   ukey4[0] = swap32_S (h32_from_64_S (tmps[gid].out[12]));
   ukey4[1] = swap32_S (l32_from_64_S (tmps[gid].out[12]));
@@ -583,11 +567,7 @@ __kernel void m06223_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     }
   }
 
-  #if defined (IS_APPLE) && defined (IS_GPU)
-  volatile u32 ukey5[8];
-  #else
-  volatile u32 ukey5[8];
-  #endif
+  u32 ukey5[8];
 
   ukey5[0] = swap32_S (h32_from_64_S (tmps[gid].out[16]));
   ukey5[1] = swap32_S (l32_from_64_S (tmps[gid].out[16]));
@@ -598,11 +578,7 @@ __kernel void m06223_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   ukey5[6] = swap32_S (h32_from_64_S (tmps[gid].out[19]));
   ukey5[7] = swap32_S (l32_from_64_S (tmps[gid].out[19]));
 
-  #if defined (IS_APPLE) && defined (IS_GPU)
-  volatile u32 ukey6[8];
-  #else
-  volatile u32 ukey6[8];
-  #endif
+  u32 ukey6[8];
 
   ukey6[0] = swap32_S (h32_from_64_S (tmps[gid].out[20]));
   ukey6[1] = swap32_S (l32_from_64_S (tmps[gid].out[20]));

@@ -331,11 +331,7 @@ __kernel void m06212_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   if (gid >= gid_max) return;
 
-  #if defined (IS_APPLE) && defined (IS_GPU)
-  volatile u32 ukey1[8];
-  #else
   u32 ukey1[8];
-  #endif
 
   ukey1[0] = tmps[gid].out[ 0];
   ukey1[1] = tmps[gid].out[ 1];
@@ -346,11 +342,7 @@ __kernel void m06212_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   ukey1[6] = tmps[gid].out[ 6];
   ukey1[7] = tmps[gid].out[ 7];
 
-  #if defined (IS_APPLE) && defined (IS_GPU)
-  volatile u32 ukey2[8];
-  #else
   u32 ukey2[8];
-  #endif
 
   ukey2[0] = tmps[gid].out[ 8];
   ukey2[1] = tmps[gid].out[ 9];
@@ -385,11 +377,7 @@ __kernel void m06212_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     }
   }
 
-  #if defined (IS_APPLE) && defined (IS_GPU)
-  volatile u32 ukey3[8];
-  #else
   u32 ukey3[8];
-  #endif
 
   ukey3[0] = tmps[gid].out[16];
   ukey3[1] = tmps[gid].out[17];
@@ -400,11 +388,7 @@ __kernel void m06212_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   ukey3[6] = tmps[gid].out[22];
   ukey3[7] = tmps[gid].out[23];
 
-  #if defined (IS_APPLE) && defined (IS_GPU)
-  volatile u32 ukey4[8];
-  #else
   u32 ukey4[8];
-  #endif
 
   ukey4[0] = tmps[gid].out[24];
   ukey4[1] = tmps[gid].out[25];

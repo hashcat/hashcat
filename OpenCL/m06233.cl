@@ -615,11 +615,7 @@ __kernel void m06233_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   if (gid >= gid_max) return;
 
-  #if defined (IS_APPLE) && defined (IS_GPU)
-  volatile u32 ukey1[8];
-  #else
   u32 ukey1[8];
-  #endif
 
   ukey1[0] = swap32_S (tmps[gid].out[ 0]);
   ukey1[1] = swap32_S (tmps[gid].out[ 1]);
@@ -630,11 +626,7 @@ __kernel void m06233_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   ukey1[6] = swap32_S (tmps[gid].out[ 6]);
   ukey1[7] = swap32_S (tmps[gid].out[ 7]);
 
-  #if defined (IS_APPLE) && defined (IS_GPU)
-  volatile u32 ukey2[8];
-  #else
   u32 ukey2[8];
-  #endif
 
   ukey2[0] = swap32_S (tmps[gid].out[ 8]);
   ukey2[1] = swap32_S (tmps[gid].out[ 9]);
@@ -669,11 +661,7 @@ __kernel void m06233_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     }
   }
 
-  #if defined (IS_APPLE) && defined (IS_GPU)
-  volatile u32 ukey3[8];
-  #else
   u32 ukey3[8];
-  #endif
 
   ukey3[0] = swap32_S (tmps[gid].out[16]);
   ukey3[1] = swap32_S (tmps[gid].out[17]);
@@ -684,11 +672,7 @@ __kernel void m06233_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   ukey3[6] = swap32_S (tmps[gid].out[22]);
   ukey3[7] = swap32_S (tmps[gid].out[23]);
 
-  #if defined (IS_APPLE) && defined (IS_GPU)
-  volatile u32 ukey4[8];
-  #else
   u32 ukey4[8];
-  #endif
 
   ukey4[0] = swap32_S (tmps[gid].out[24]);
   ukey4[1] = swap32_S (tmps[gid].out[25]);
@@ -723,11 +707,7 @@ __kernel void m06233_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     }
   }
 
-  #if defined (IS_APPLE) && defined (IS_GPU)
-  volatile u32 ukey5[8];
-  #else
   u32 ukey5[8];
-  #endif
 
   ukey5[0] = swap32_S (tmps[gid].out[32]);
   ukey5[1] = swap32_S (tmps[gid].out[33]);
@@ -738,11 +718,7 @@ __kernel void m06233_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   ukey5[6] = swap32_S (tmps[gid].out[38]);
   ukey5[7] = swap32_S (tmps[gid].out[39]);
 
-  #if defined (IS_APPLE) && defined (IS_GPU)
-  volatile u32 ukey6[8];
-  #else
   u32 ukey6[8];
-  #endif
 
   ukey6[0] = swap32_S (tmps[gid].out[40]);
   ukey6[1] = swap32_S (tmps[gid].out[41]);
