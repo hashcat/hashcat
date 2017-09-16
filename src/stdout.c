@@ -273,16 +273,14 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
         plain_len = pw.pw_len;
 
-        u64 off = device_param->kernel_params_mp_buf64[3] + il_pos;
+        char *comb_buf = (char *) device_param->combs_buf[il_pos].i;
+        u32   comb_len =          device_param->combs_buf[il_pos].pw_len;
 
-        u32 start = 0;
-        u32 stop  = device_param->kernel_params_mp_buf32[4];
+        memcpy (plain_ptr + plain_len, comb_buf, comb_len);
 
-        memmove (plain_ptr + stop, plain_ptr, plain_len);
+        plain_len += comb_len;
 
-        sp_exec (off, (char *) plain_ptr, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, start, start + stop);
-
-        plain_len += start + stop;
+        if (plain_len > hashconfig->pw_max) plain_len = hashconfig->pw_max;
 
         out_push (&out, plain_ptr, plain_len);
       }
