@@ -476,7 +476,7 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   event_log_info (hashcat_ctx, "Password length minimum: %u", hashconfig->pw_min);
   event_log_info (hashcat_ctx, "Password length maximum: %u", hashconfig->pw_max);
 
-  if (hashconfig->is_salted)
+  if (hashconfig->is_salted == true)
   {
     if (hashconfig->opti_type & OPTI_TYPE_RAW_HASH)
     {
@@ -489,10 +489,13 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
   if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
   {
-    event_log_advice (hashcat_ctx, "ATTENTION! Pure (unoptimized) OpenCL kernels selected.");
-    event_log_advice (hashcat_ctx, "This enables cracking passwords and salts > length 32 but for the price of drastical reduced performance.");
-    event_log_advice (hashcat_ctx, "If you want to switch to optimized OpenCL kernels, append -O to your commandline.");
-    event_log_advice (hashcat_ctx, NULL);
+    if (hashconfig->has_optimized_kernel == true)
+    {
+      event_log_advice (hashcat_ctx, "ATTENTION! Pure (unoptimized) OpenCL kernels selected.");
+      event_log_advice (hashcat_ctx, "This enables cracking passwords and salts > length 32 but for the price of drastical reduced performance.");
+      event_log_advice (hashcat_ctx, "If you want to switch to optimized OpenCL kernels, append -O to your commandline.");
+      event_log_advice (hashcat_ctx, NULL);
+    }
   }
 
   /**
@@ -692,9 +695,12 @@ static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
 
   if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
   {
-    event_log_advice (hashcat_ctx, "* Append -O to the commandline.");
-    event_log_advice (hashcat_ctx, "  This lowers the maximum supported password- and salt-length (typically down to 32).");
-    event_log_advice (hashcat_ctx, NULL);
+    if (hashconfig->has_optimized_kernel == true)
+    {
+      event_log_advice (hashcat_ctx, "* Append -O to the commandline.");
+      event_log_advice (hashcat_ctx, "  This lowers the maximum supported password- and salt-length (typically down to 32).");
+      event_log_advice (hashcat_ctx, NULL);
+    }
   }
 
   if (user_options->workload_profile < 3)

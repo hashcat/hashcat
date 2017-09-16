@@ -85,7 +85,7 @@ int sort_by_hash (const void *v1, const void *v2, void *v3)
 
   hashconfig_t *hashconfig = (hashconfig_t *) v3;
 
-  if (hashconfig->is_salted)
+  if (hashconfig->is_salted == true)
   {
     const salt_t *s1 = h1->salt;
     const salt_t *s2 = h2->salt;
@@ -609,16 +609,16 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if (hashconfig->is_salted)
+  if (hashconfig->is_salted == true)
   {
     salts_buf = (salt_t *) hccalloc (hashes_avail, sizeof (salt_t));
 
-    if (hashconfig->esalt_size)
+    if (hashconfig->esalt_size > 0)
     {
       esalts_buf = (void *) hccalloc (hashes_avail, hashconfig->esalt_size);
     }
 
-    if (hashconfig->hook_salt_size)
+    if (hashconfig->hook_salt_size > 0)
     {
       hook_salts_buf = (seven_zip_hook_salt_t *) hccalloc (hashes_avail, hashconfig->hook_salt_size);
     }
@@ -632,16 +632,16 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
   {
     hashes_buf[hash_pos].digest = ((char *) digests_buf) + (hash_pos * hashconfig->dgst_size);
 
-    if (hashconfig->is_salted)
+    if (hashconfig->is_salted == true)
     {
       hashes_buf[hash_pos].salt = &salts_buf[hash_pos];
 
-      if (hashconfig->esalt_size)
+      if (hashconfig->esalt_size > 0)
       {
         hashes_buf[hash_pos].esalt = ((char *) esalts_buf) + (hash_pos * hashconfig->esalt_size);
       }
 
-      if (hashconfig->hook_salt_size)
+      if (hashconfig->hook_salt_size > 0)
       {
         hashes_buf[hash_pos].hook_salt = ((char *) hook_salts_buf) + (hash_pos * hashconfig->hook_salt_size);
       }
@@ -719,17 +719,17 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           hash_info_tmp->orighash = hcstrdup (hash_buf);
         }
 
-        if (hashconfig->is_salted)
+        if (hashconfig->is_salted == true)
         {
           memset (hashes_buf[0].salt, 0, sizeof (salt_t));
         }
 
-        if (hashconfig->esalt_size)
+        if (hashconfig->esalt_size > 0)
         {
           memset (hashes_buf[0].esalt, 0, hashconfig->esalt_size);
         }
 
-        if (hashconfig->hook_salt_size)
+        if (hashconfig->hook_salt_size > 0)
         {
           memset (hashes_buf[0].hook_salt, 0, hashconfig->hook_salt_size);
         }
@@ -766,12 +766,12 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
               break;
             }
 
-            if (hashconfig->is_salted)
+            if (hashconfig->is_salted == true)
             {
               memset (hashes_buf[hashes_cnt].salt, 0, sizeof (salt_t));
             }
 
-            if (hashconfig->esalt_size)
+            if (hashconfig->esalt_size > 0)
             {
               memset (hashes_buf[hashes_cnt].esalt, 0, hashconfig->esalt_size);
 
@@ -789,7 +789,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
               }
             }
 
-            if (hashconfig->hook_salt_size)
+            if (hashconfig->hook_salt_size > 0)
             {
               memset (hashes_buf[hashes_cnt].hook_salt, 0, hashconfig->hook_salt_size);
             }
@@ -997,17 +997,17 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           hash_info_tmp->orighash = hcstrdup (hash_buf);
         }
 
-        if (hashconfig->is_salted)
+        if (hashconfig->is_salted == true)
         {
           memset (hashes_buf[hashes_cnt].salt, 0, sizeof (salt_t));
         }
 
-        if (hashconfig->esalt_size)
+        if (hashconfig->esalt_size > 0)
         {
           memset (hashes_buf[hashes_cnt].esalt, 0, hashconfig->esalt_size);
         }
 
-        if (hashconfig->hook_salt_size)
+        if (hashconfig->hook_salt_size > 0)
         {
           memset (hashes_buf[hashes_cnt].hook_salt, 0, hashconfig->hook_salt_size);
         }
@@ -1108,7 +1108,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
   {
     EVENT (EVENT_HASHLIST_SORT_HASH_PRE);
 
-    if (hashconfig->is_salted)
+    if (hashconfig->is_salted == true)
     {
       hc_qsort_r (hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash, (void *) hashconfig);
     }
@@ -1174,7 +1174,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
     {
       // do not sort, because we need to keep all hashes in this particular case
     }
-    else if (hashconfig->is_salted)
+    else if (hashconfig->is_salted == true)
     {
       if (sort_by_salt (hashes_buf[hashes_pos].salt, hashes_buf[hashes_pos - 1].salt) == 0)
       {
@@ -1215,7 +1215,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
   void   *esalts_buf_new     = NULL;
   void   *hook_salts_buf_new = NULL;
 
-  if (hashconfig->is_salted)
+  if (hashconfig->is_salted == true)
   {
     salts_buf_new = (salt_t *) hccalloc (hashes_cnt, sizeof (salt_t));
   }
@@ -1224,12 +1224,12 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
     salts_buf_new = (salt_t *) hccalloc (1, sizeof (salt_t));
   }
 
-  if (hashconfig->esalt_size)
+  if (hashconfig->esalt_size > 0)
   {
     esalts_buf_new = (void *) hccalloc (hashes_cnt, hashconfig->esalt_size);
   }
 
-  if (hashconfig->hook_salt_size)
+  if (hashconfig->hook_salt_size > 0)
   {
     hook_salts_buf_new = (void *) hccalloc (hashes_cnt, hashconfig->hook_salt_size);
   }
@@ -1265,7 +1265,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
     hashes_buf[0].salt = salt_buf;
 
-    if (hashconfig->hook_salt_size)
+    if (hashconfig->hook_salt_size > 0)
     {
       char *hook_salts_buf_new_ptr = ((char *) hook_salts_buf_new) + (salts_cnt * hashconfig->hook_salt_size);
 
@@ -1289,7 +1289,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
   hashes_buf[0].digest = digests_buf_new_ptr;
 
-  if (hashconfig->esalt_size)
+  if (hashconfig->esalt_size > 0)
   {
     char *esalts_buf_new_ptr = ((char *) esalts_buf_new) + (0 * hashconfig->esalt_size);
 
@@ -1307,7 +1307,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
   for (u32 hashes_pos = 1; hashes_pos < hashes_cnt; hashes_pos++)
   {
-    if (hashconfig->is_salted)
+    if (hashconfig->is_salted == true)
     {
       if (sort_by_salt (hashes_buf[hashes_pos].salt, hashes_buf[hashes_pos - 1].salt) != 0)
       {
@@ -1317,7 +1317,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
         hashes_buf[hashes_pos].salt = salt_buf;
 
-        if (hashconfig->hook_salt_size)
+        if (hashconfig->hook_salt_size > 0)
         {
           char *hook_salts_buf_new_ptr = ((char *) hook_salts_buf_new) + (salts_cnt * hashconfig->hook_salt_size);
 
@@ -1335,7 +1335,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
       hashes_buf[hashes_pos].salt = salt_buf;
 
-      if (hashconfig->hook_salt_size)
+      if (hashconfig->hook_salt_size > 0)
       {
         char *hook_salts_buf_new_ptr = ((char *) hook_salts_buf_new) + (salts_cnt * hashconfig->hook_salt_size);
 
@@ -1351,7 +1351,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
     hashes_buf[hashes_pos].digest = digests_buf_new_ptr;
 
-    if (hashconfig->esalt_size)
+    if (hashconfig->esalt_size > 0)
     {
       char *esalts_buf_new_ptr = ((char *) esalts_buf_new) + (hashes_pos * hashconfig->esalt_size);
 
@@ -1536,12 +1536,12 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
 
   st_salts_buf = (salt_t *) hccalloc (1, sizeof (salt_t));
 
-  if (hashconfig->esalt_size)
+  if (hashconfig->esalt_size > 0)
   {
     st_esalts_buf = (void *) hccalloc (1, hashconfig->esalt_size);
   }
 
-  if (hashconfig->hook_salt_size)
+  if (hashconfig->hook_salt_size > 0)
   {
     st_hook_salts_buf = (void *) hccalloc (1, hashconfig->hook_salt_size);
   }

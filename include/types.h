@@ -839,7 +839,10 @@ struct hashconfig
   u32   dgst_pos2;
   u32   dgst_pos3;
 
-  u32   is_salted;
+  bool  is_salted;
+
+  bool  has_pure_kernel;
+  bool  has_optimized_kernel;
 
   // sizes have to be size_t
 

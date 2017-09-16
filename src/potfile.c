@@ -353,17 +353,17 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
   hash_buf.hash_info = NULL;
   hash_buf.cracked   = 0;
 
-  if (hashconfig->is_salted)
+  if (hashconfig->is_salted == true)
   {
     hash_buf.salt = (salt_t *) hcmalloc (sizeof (salt_t));
   }
 
-  if (hashconfig->esalt_size)
+  if (hashconfig->esalt_size > 0)
   {
     hash_buf.esalt = hcmalloc (hashconfig->esalt_size);
   }
 
-  if (hashconfig->hook_salt_size)
+  if (hashconfig->hook_salt_size > 0)
   {
     hash_buf.hook_salt = hcmalloc (hashconfig->hook_salt_size);
   }
@@ -421,17 +421,17 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
     // we should allow length 0 passwords (detected by weak hash check)
     //if (line_pw_len == 0) continue;
 
-    if (hashconfig->is_salted)
+    if (hashconfig->is_salted == true)
     {
       memset (hash_buf.salt, 0, sizeof (salt_t));
     }
 
-    if (hashconfig->esalt_size)
+    if (hashconfig->esalt_size > 0)
     {
       memset (hash_buf.esalt, 0, hashconfig->esalt_size);
     }
 
-    if (hashconfig->hook_salt_size)
+    if (hashconfig->hook_salt_size > 0)
     {
       memset (hash_buf.hook_salt, 0, hashconfig->hook_salt_size);
     }
@@ -477,7 +477,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
       if (essid_len > 32) continue;
 
-      if (hashconfig->is_salted)
+      if (hashconfig->is_salted == true)
       {
         // this should be always true, but we need it to make scan-build happy
 
@@ -514,7 +514,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
       if (parser_status == PARSER_OK)
       {
-        if (hashconfig->is_salted)
+        if (hashconfig->is_salted == true)
         {
           if (potfile_ctx->keep_all_hashes == true)
           {
@@ -546,17 +546,17 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
   potfile_read_close (hashcat_ctx);
 
-  if (hashconfig->esalt_size)
+  if (hashconfig->esalt_size > 0)
   {
     hcfree (hash_buf.esalt);
   }
 
-  if (hashconfig->hook_salt_size)
+  if (hashconfig->hook_salt_size > 0)
   {
     hcfree (hash_buf.hook_salt);
   }
 
-  if (hashconfig->is_salted)
+  if (hashconfig->is_salted == true)
   {
     hcfree (hash_buf.salt);
   }

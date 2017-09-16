@@ -19699,27 +19699,29 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
-  hashconfig->hash_mode       = user_options->hash_mode;
-  hashconfig->hash_type       = 0;
-  hashconfig->salt_type       = 0;
-  hashconfig->attack_exec     = 0;
-  hashconfig->opts_type       = 0;
-  hashconfig->kern_type       = 0;
-  hashconfig->dgst_size       = 0;
-  hashconfig->esalt_size      = 0;
-  hashconfig->hook_salt_size  = 0;
-  hashconfig->tmp_size        = 0;
-  hashconfig->hook_size       = 0;
-  hashconfig->opti_type       = 0;
-  hashconfig->is_salted       = 0;
-  hashconfig->dgst_pos0       = 0;
-  hashconfig->dgst_pos1       = 0;
-  hashconfig->dgst_pos2       = 0;
-  hashconfig->dgst_pos3       = 0;
-  hashconfig->parse_func      = NULL;
-  hashconfig->separator       = user_options->separator;
-  hashconfig->st_hash         = NULL;
-  hashconfig->st_pass         = NULL;
+  hashconfig->hash_mode             = user_options->hash_mode;
+  hashconfig->hash_type             = 0;
+  hashconfig->salt_type             = 0;
+  hashconfig->attack_exec           = 0;
+  hashconfig->opts_type             = 0;
+  hashconfig->kern_type             = 0;
+  hashconfig->dgst_size             = 0;
+  hashconfig->esalt_size            = 0;
+  hashconfig->hook_salt_size        = 0;
+  hashconfig->tmp_size              = 0;
+  hashconfig->hook_size             = 0;
+  hashconfig->opti_type             = 0;
+  hashconfig->is_salted             = false;
+  hashconfig->has_pure_kernel       = false;
+  hashconfig->has_optimized_kernel  = false;
+  hashconfig->dgst_pos0             = 0;
+  hashconfig->dgst_pos1             = 0;
+  hashconfig->dgst_pos2             = 0;
+  hashconfig->dgst_pos3             = 0;
+  hashconfig->parse_func            = NULL;
+  hashconfig->separator             = user_options->separator;
+  hashconfig->st_hash               = NULL;
+  hashconfig->st_pass               = NULL;
 
   switch (hashconfig->hash_mode)
   {
@@ -24382,17 +24384,23 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   // some kernels do not have an optimized kernel, simply because they do not need them
   // or because they are not yet converted, for them we should switch off optimized mode
 
+  char source_file[256] = { 0 };
+
+  generate_source_kernel_filename (hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, false, folder_config->shared_dir, source_file);
+
+  hashconfig->has_pure_kernel = hc_path_read (source_file);
+
+  generate_source_kernel_filename (hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, true, folder_config->shared_dir, source_file);
+
+  hashconfig->has_optimized_kernel = hc_path_read (source_file);
+
   if (user_options->example_hashes == false)
   {
     if (user_options->optimized_kernel_enable == true)
     {
-      char source_file[256] = { 0 };
-
-      generate_source_kernel_filename (hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, true, folder_config->shared_dir, source_file);
-
-      if (hc_path_read (source_file) == false)
+      if (hashconfig->has_optimized_kernel == false)
       {
-        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "%s: Optimized OpenCL kernel not support, falling back to pure kernel", source_file);
+        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "%s: Optimized OpenCL kernel not found, falling back to pure OpenCL kernel", source_file);
       }
       else
       {
@@ -24401,13 +24409,9 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      char source_file[256] = { 0 };
-
-      generate_source_kernel_filename (hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, false, folder_config->shared_dir, source_file);
-
-      if (hc_path_read (source_file) == false)
+      if (hashconfig->has_pure_kernel == false)
       {
-        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "%s: Pure kernel not found, falling back to optimized kernel", source_file);
+        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "%s: Pure OpenCL kernel not found, falling back to optimized OpenCL kernel", source_file);
 
         hashconfig->opti_type |= OPTI_TYPE_OPTIMIZED_KERNEL;
       }
@@ -24442,9 +24446,9 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     hashconfig->opti_type &= ~OPTI_TYPE_APPENDED_SALT;
   }
 
-  const u32 is_salted = ((hashconfig->salt_type == SALT_TYPE_GENERIC)
-                      |  (hashconfig->salt_type == SALT_TYPE_EMBEDDED)
-                      |  (hashconfig->salt_type == SALT_TYPE_VIRTUAL));
+  const bool is_salted = ((hashconfig->salt_type == SALT_TYPE_GENERIC)
+                       |  (hashconfig->salt_type == SALT_TYPE_EMBEDDED)
+                       |  (hashconfig->salt_type == SALT_TYPE_VIRTUAL));
 
   hashconfig->is_salted = is_salted;
 
@@ -25155,7 +25159,7 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
 {
   hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
-  if (hashconfig->is_salted)
+  if (hashconfig->is_salted == true)
   {
     salt->salt_len = 8;
 
