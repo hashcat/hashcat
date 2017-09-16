@@ -487,6 +487,14 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
   event_log_info (hashcat_ctx, NULL);
 
+  if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
+  {
+    event_log_advice (hashcat_ctx, "ATTENTION! Pure (unoptimized) OpenCL kernels selected.");
+    event_log_advice (hashcat_ctx, "This enables cracking passwords and salts > length 32 but for the price of drastical reduced performance.");
+    event_log_advice (hashcat_ctx, "If you want to switch to optimized OpenCL kernels, append -O to your commandline.");
+    event_log_advice (hashcat_ctx, NULL);
+  }
+
   /**
    * Watchdog and Temperature balance
    */
@@ -668,6 +676,7 @@ static void main_monitor_throttle3 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
 static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
+  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
@@ -678,22 +687,30 @@ static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
     clear_prompt ();
   }
 
+  event_log_advice (hashcat_ctx, "Cracking performance lower than expected?");
+  event_log_advice (hashcat_ctx, NULL);
+
+  if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
+  {
+    event_log_advice (hashcat_ctx, "* Append -O to the commandline.");
+    event_log_advice (hashcat_ctx, "  This lowers the maximum supported password- and salt-length (typically down to 32).");
+    event_log_advice (hashcat_ctx, NULL);
+  }
+
   if (user_options->workload_profile < 3)
   {
-    event_log_advice (hashcat_ctx, "Cracking performance lower than expected? Append -w 3 to the commandline.");
+    event_log_advice (hashcat_ctx, "* Append -w 3 to the commandline.");
+    event_log_advice (hashcat_ctx, "  This can cause your screen to lag.");
     event_log_advice (hashcat_ctx, NULL);
   }
-  else
-  {
-    event_log_advice (hashcat_ctx, "Cracking performance lower than expected?");
-    event_log_advice (hashcat_ctx, NULL);
-    event_log_advice (hashcat_ctx, "* Update your OpenCL runtime / driver the right way:");
-    event_log_advice (hashcat_ctx, "  https://hashcat.net/faq/wrongdriver");
-    event_log_advice (hashcat_ctx, NULL);
-    event_log_advice (hashcat_ctx, "* Create more work items to make use of your parallelization power:");
-    event_log_advice (hashcat_ctx, "  https://hashcat.net/faq/morework");
-    event_log_advice (hashcat_ctx, NULL);
-  }
+
+  event_log_advice (hashcat_ctx, "* Update your OpenCL runtime / driver the right way:");
+  event_log_advice (hashcat_ctx, "  https://hashcat.net/faq/wrongdriver");
+  event_log_advice (hashcat_ctx, NULL);
+  event_log_advice (hashcat_ctx, "* Create more work items to make use of your parallelization power:");
+  event_log_advice (hashcat_ctx, "  https://hashcat.net/faq/morework");
+  event_log_advice (hashcat_ctx, NULL);
+
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {

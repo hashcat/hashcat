@@ -24392,7 +24392,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_read (source_file) == false)
       {
-        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "%s: Optimized kernel not found, falling back to pure kernel", source_file);
+        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "%s: Optimized OpenCL kernel not support for this hash-mode, falling back to pure kernel", source_file);
       }
       else
       {
