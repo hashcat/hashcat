@@ -24392,7 +24392,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_read (source_file) == false)
       {
-        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "%s: Optimized OpenCL kernel not support for this hash-mode, falling back to pure kernel", source_file);
+        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "%s: Optimized OpenCL kernel not support, falling back to pure kernel", source_file);
       }
       else
       {
@@ -25048,6 +25048,7 @@ u32 hashconfig_get_kernel_loops (hashcat_ctx_t *hashcat_ctx)
 
 int hashconfig_general_defaults (hashcat_ctx_t *hashcat_ctx)
 {
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   char *optional_param1 = NULL;
@@ -25094,6 +25095,57 @@ int hashconfig_general_defaults (hashcat_ctx_t *hashcat_ctx)
     } while ((keyfile = strtok_r (NULL, ",", &saveptr)) != NULL);
 
     free (keyfiles);
+  }
+
+  if (user_options->veracrypt_pim)
+  {
+    // we can access salt directly here because in VC it's always just one salt not many
+
+    const hashes_t *hashes = hashcat_ctx->hashes;
+
+    salt_t *salts_buf = hashes->salts_buf;
+
+    salt_t *salt = &salts_buf[0];
+
+    switch (hashconfig->hash_mode)
+    {
+      case 13711:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                   break;
+      case 13712:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                   break;
+      case 13713:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                   break;
+      case 13721:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                   break;
+      case 13722:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                   break;
+      case 13723:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                   break;
+      case 13731:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                   break;
+      case 13732:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                   break;
+      case 13733:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                   break;
+      case 13741:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
+                   break;
+      case 13742:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
+                   break;
+      case 13743:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
+                   break;
+      case 13751:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                   break;
+      case 13752:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                   break;
+      case 13753:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                   break;
+      case 13761:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
+                   break;
+      case 13762:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
+                   break;
+      case 13763:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
+                   break;
+    }
   }
 
   return 0;

@@ -39,6 +39,7 @@
 - Fixed the parsing of DCC2 hashes by allowing the "#" character within the user name
 - Fixed the parsing of descrypt hashes if the hashes do have non-standard characters within the salt
 - Fixed the output of --show when used together with the collider modes -m 9710, 9810 or 10410
+- Fixed the use of --veracrypt-pim option. It was completely ignored without showing an error
 - Fixed the version number used in the restore file header
 
 ##
