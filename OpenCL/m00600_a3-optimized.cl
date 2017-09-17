@@ -132,19 +132,19 @@ __kernel void m00600_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
   u64 tmp_t[2];
   u64 tmp_f[2];
 
-  tmp_h[0] = esalt_bufs->h[0];
-  tmp_h[1] = esalt_bufs->h[1];
-  tmp_h[2] = esalt_bufs->h[2];
-  tmp_h[3] = esalt_bufs->h[3];
-  tmp_h[4] = esalt_bufs->h[4];
-  tmp_h[5] = esalt_bufs->h[5];
-  tmp_h[6] = esalt_bufs->h[6];
-  tmp_h[7] = esalt_bufs->h[7];
+  tmp_h[0] = esalt_bufs[digests_offset].h[0];
+  tmp_h[1] = esalt_bufs[digests_offset].h[1];
+  tmp_h[2] = esalt_bufs[digests_offset].h[2];
+  tmp_h[3] = esalt_bufs[digests_offset].h[3];
+  tmp_h[4] = esalt_bufs[digests_offset].h[4];
+  tmp_h[5] = esalt_bufs[digests_offset].h[5];
+  tmp_h[6] = esalt_bufs[digests_offset].h[6];
+  tmp_h[7] = esalt_bufs[digests_offset].h[7];
 
-  tmp_t[0] = esalt_bufs->t[0];
-  tmp_t[1] = esalt_bufs->t[1];
-  tmp_f[0] = esalt_bufs->f[0];
-  tmp_f[1] = esalt_bufs->f[1];
+  tmp_t[0] = esalt_bufs[digests_offset].t[0];
+  tmp_t[1] = esalt_bufs[digests_offset].t[1];
+  tmp_f[0] = esalt_bufs[digests_offset].f[0];
+  tmp_f[1] = esalt_bufs[digests_offset].f[1];
 
   /**
    * loop
@@ -244,19 +244,19 @@ __kernel void m00600_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
   u64 tmp_t[2];
   u64 tmp_f[2];
 
-  tmp_h[0] = esalt_bufs->h[0];
-  tmp_h[1] = esalt_bufs->h[1];
-  tmp_h[2] = esalt_bufs->h[2];
-  tmp_h[3] = esalt_bufs->h[3];
-  tmp_h[4] = esalt_bufs->h[4];
-  tmp_h[5] = esalt_bufs->h[5];
-  tmp_h[6] = esalt_bufs->h[6];
-  tmp_h[7] = esalt_bufs->h[7];
+  tmp_h[0] = esalt_bufs[digests_offset].h[0];
+  tmp_h[1] = esalt_bufs[digests_offset].h[1];
+  tmp_h[2] = esalt_bufs[digests_offset].h[2];
+  tmp_h[3] = esalt_bufs[digests_offset].h[3];
+  tmp_h[4] = esalt_bufs[digests_offset].h[4];
+  tmp_h[5] = esalt_bufs[digests_offset].h[5];
+  tmp_h[6] = esalt_bufs[digests_offset].h[6];
+  tmp_h[7] = esalt_bufs[digests_offset].h[7];
 
-  tmp_t[0] = esalt_bufs->t[0];
-  tmp_t[1] = esalt_bufs->t[1];
-  tmp_f[0] = esalt_bufs->f[0];
-  tmp_f[1] = esalt_bufs->f[1];
+  tmp_t[0] = esalt_bufs[digests_offset].t[0];
+  tmp_t[1] = esalt_bufs[digests_offset].t[1];
+  tmp_f[0] = esalt_bufs[digests_offset].f[0];
+  tmp_f[1] = esalt_bufs[digests_offset].f[1];
 
   /**
    * digest
