@@ -689,6 +689,7 @@ It combines all features of all hashcat projects in one project.
 - Fixed a bug in implementation of DCC2: forced default iteration count for hashes to 10240
 - Fixed a bug in implementation of WPA/WPA2: MAC and nonce stay one their original position as in the hccap file
 - Fixed a bug in implementation of GOST R 34.11-94: zero length passwords were not cracked
+- Fixed a bug in implementation of BLAKE2-512 kernels: incorrect access of the esalt buffer
 
 ##
 ## Technical
