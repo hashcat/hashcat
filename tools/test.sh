@@ -9,20 +9,20 @@ TDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # missing hash types: 5200,6251,6261,6271,6281
 
-HASH_TYPES="0 10 11 12 20 21 22 23 30 40 50 60 100 101 110 111 112 120 121 122 125 130 131 132 133 140 141 150 160 200 300 400 500 600 900 1000 1100 1300 1400 1410 1411 1420 1430 1440 1441 1450 1460 1500 1600 1700 1710 1711 1720 1722 1730 1731 1740 1750 1760 1800 2100 2400 2410 2500 2600 2611 2612 2711 2811 3000 3100 3200 3710 3711 3800 3910 4010 4110 4300 4400 4500 4520 4521 4522 4700 4800 4900 5000 5100 5300 5400 5500 5600 5700 5800 6000 6100 6211 6212 6213 6221 6222 6223 6231 6232 6233 6241 6242 6243 6300 6400 6500 6600 6700 6800 6900 7000 7100 7200 7300 7400 7500 7700 7800 7900 8000 8100 8200 8300 8400 8500 8600 8700 8900 9100 9200 9300 9400 9500 9600 9700 9800 9900 10000 10100 10200 10300 10400 10500 10600 10700 10800 10900 11000 11100 11200 11300 11400 11500 11600 11900 12000 12001 12100 12200 12300 12400 12600 12700 12800 12900 13000 13100 13200 13300 13400 13500 13600 13800 13900 14000 14100 14400 14600 14700 14800 14900 15000 15100 15200 15300 15400 15500 15600 15700 15800 99999"
+HASH_TYPES="0 10 11 12 20 21 22 23 30 40 50 60 100 101 110 111 112 120 121 122 125 130 131 132 133 140 141 150 160 200 300 400 500 600 900 1000 1100 1300 1400 1410 1411 1420 1430 1440 1441 1450 1460 1500 1600 1700 1710 1711 1720 1722 1730 1731 1740 1750 1760 1800 2100 2400 2410 2500 2600 2611 2612 2711 2811 3000 3100 3200 3710 3711 3800 3910 4010 4110 4300 4400 4500 4520 4521 4522 4700 4800 4900 5000 5100 5300 5400 5500 5600 5700 5800 6000 6100 6211 6212 6213 6221 6222 6223 6231 6232 6233 6241 6242 6243 6300 6400 6500 6600 6700 6800 6900 7000 7100 7200 7300 7400 7500 7700 7800 7900 8000 8100 8200 8300 8400 8500 8600 8700 8900 9100 9200 9300 9400 9500 9600 9700 9800 9900 10000 10100 10200 10300 10400 10500 10600 10700 10800 10900 11000 11100 11200 11300 11400 11500 11600 11900 12000 12001 12100 12200 12300 12400 12600 12700 12800 12900 13000 13100 13200 13300 13400 13500 13600 13800 13900 14000 14100 14400 14600 14700 14800 14900 15000 15100 15200 15300 15400 15500 15600 15700 99999"
 
 #ATTACK_MODES="0 1 3 6 7"
 ATTACK_MODES="0 1 3 7"
 
 VECTOR_WIDTHS="1 2 4 8 16"
 
-MATCH_PASS_ONLY="2500 5300 5400 6600 6800 8200 15800"
+MATCH_PASS_ONLY="2500 5300 5400 6600 6800 8200"
 
-HASHFILE_ONLY="2500 15800"
+HASHFILE_ONLY="2500"
 
 NEVER_CRACK="11600 14900"
 
-SLOW_ALGOS="400 500 501 1600 1800 2100 2500 3200 5200 5800 6211 6212 6213 6221 6222 6223 6231 6232 6233 6241 6242 6243 6251 6261 6271 6281 6300 6400 6500 6600 6700 6800 7100 7200 7400 7900 8200 8800 8900 9000 9100 9200 9300 9400 9500 9600 10000 10300 10500 10700 10900 11300 11600 11900 12000 12001 12100 12200 12300 12400 12500 12700 12800 12900 13000 13200 13400 13600 14600 14700 14800 15100 15200 15300 15600 15700 15800"
+SLOW_ALGOS="400 500 501 1600 1800 2100 2500 3200 5200 5800 6211 6212 6213 6221 6222 6223 6231 6232 6233 6241 6242 6243 6251 6261 6271 6281 6300 6400 6500 6600 6700 6800 7100 7200 7400 7900 8200 8800 8900 9000 9100 9200 9300 9400 9500 9600 10000 10300 10500 10700 10900 11300 11600 11900 12000 12001 12100 12200 12300 12400 12500 12700 12800 12900 13000 13200 13400 13600 14600 14700 14800 15100 15200 15300 15600 15700"
 
 OPTS="--quiet --force --potfile-disable --runtime 400 --gpu-temp-disable --weak-hash-threshold=0"
 
@@ -256,8 +256,6 @@ function init()
   elif [ "${hash_type}" -eq 15400 ]; then
     min=0
     min_offset=3
-  elif [ "${hash_type}" -eq 15800 ]; then
-    min_len=7
   fi
 
   # foreach password entry split password in 2 (skip first entry, is len 1)
@@ -312,8 +310,6 @@ function init()
     min_len=9
   elif [ "${hash_type}" -eq 15400 ]; then
     min_len=31
-  elif [ "${hash_type}" -eq 15800 ]; then
-    min_len=7
   fi
 
   # generate multiple pass/hash foreach len (2 to 8)
@@ -728,8 +724,6 @@ function attack_1()
       offset=7
     elif [ ${hash_type} -eq  8500 ]; then
       offset=7
-    elif [ ${hash_type} -eq 15800 ]; then
-      offset=7
     fi
 
     hash_file=${OUTD}/${hash_type}_multihash_combi.txt
@@ -859,9 +853,6 @@ function attack_3()
     elif [ "${hash_type}" -eq 15400 ]; then
       mask_offset=3
       max=1
-    elif [ "${hash_type}" -eq 15800 ]; then
-      mask_offset=7
-      max=7
     fi
 
     # special case: we need to split the first line
@@ -921,7 +912,7 @@ function attack_3()
 
       # modify "default" mask if needed (and set custom charset to reduce keyspace)
 
-      if [ "${hash_type}" -eq 2500 ] || [ "${hash_type}" -eq 15800 ]; then
+      if [ "${hash_type}" -eq 2500 ]; then
 
         pass=$(sed -n ${i}p ${dict})
 
@@ -1034,9 +1025,6 @@ function attack_3()
     if   [ "${hash_type}" -eq  2500 ]; then
       increment_min=8
       increment_max=9
-    elif [ "${hash_type}" -eq 15800 ]; then
-      increment_min=8
-      increment_max=9
     fi
 
     hash_file=${OUTD}/${hash_type}_multihash_bruteforce.txt
@@ -1071,7 +1059,7 @@ function attack_3()
 
     # modify "default" mask if needed (and set custom charset to reduce keyspace)
 
-    if [ "${hash_type}" -eq 2500 ] || [ "${hash_type}" -eq 15800 ]; then
+    if [ "${hash_type}" -eq 2500 ]; then
 
       mask="?d?d?d?d?d?1?2?3?4"
 
@@ -1257,8 +1245,6 @@ function attack_6()
       min=0
       max=1
       mask_offset=29
-    elif [ "${hash_type}" -eq 15800 ]; then
-      max=6
     fi
 
     # special case: we need to split the first line
@@ -1430,8 +1416,6 @@ function attack_6()
       max=8
     elif [ ${hash_type} -eq  8500 ]; then
       max=8
-    elif [ ${hash_type} -eq 15800 ]; then
-      max=5
     fi
 
     if ! contains ${hash_type} ${TIMEOUT_ALGOS}; then
@@ -1574,8 +1558,6 @@ function attack_7()
       mask_offset=3
       min=0
       max=1
-    elif [ "${hash_type}" -eq 15800 ]; then
-      max=5
     fi
 
     # special case: we need to split the first line
@@ -1632,7 +1614,7 @@ function attack_7()
 
         # adjust mask if needed
 
-        if [ "${hash_type}" -eq 2500 ] || [ "${hash_type}" -eq 15800 ]; then
+        if [ "${hash_type}" -eq 2500 ]; then
 
           line_nr=1
 
@@ -1771,8 +1753,6 @@ function attack_7()
     elif [ ${hash_type} -eq 14900 ]; then
       max=5
     elif [ ${hash_type} -eq 15400 ]; then
-      max=5
-    elif [ ${hash_type} -eq 15800 ]; then
       max=5
     fi
 

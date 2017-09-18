@@ -509,7 +509,6 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if  ((user_options->hash_mode ==  2500)
      ||  (user_options->hash_mode ==  2501)
-     ||  (user_options->hash_mode == 15800)
      ||  (user_options->hash_mode ==  5200)
      || ((user_options->hash_mode >=  6200) && (user_options->hash_mode <=  6299))
      || ((user_options->hash_mode >= 13700) && (user_options->hash_mode <= 13799))

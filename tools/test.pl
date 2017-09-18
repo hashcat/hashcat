@@ -49,11 +49,11 @@ my $hashcat = "./hashcat";
 
 my $MAX_LEN = 55;
 
-my @modes = (0, 10, 11, 12, 20, 21, 22, 23, 30, 40, 50, 60, 100, 101, 110, 111, 112, 120, 121, 122, 125, 130, 131, 132, 133, 140, 141, 150, 160, 200, 300, 400, 500, 600, 900, 1000, 1100, 1300, 1400, 1410, 1411, 1420, 1430, 1440, 1441, 1450, 1460, 1500, 1600, 1700, 1710, 1711, 1720, 1730, 1740, 1722, 1731, 1750, 1760, 1800, 2100, 2400, 2410, 2500, 2600, 2611, 2612, 2711, 2811, 3000, 3100, 3200, 3710, 3711, 3300, 3500, 3610, 3720, 3800, 3910, 4010, 4110, 4210, 4300, 4400, 4500, 4520, 4521, 4522, 4600, 4700, 4800, 4900, 5000, 5100, 5300, 5400, 5500, 5600, 5700, 5800, 6000, 6100, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7000, 7100, 7200, 7300, 7400, 7500, 7700, 7800, 7900, 8000, 8100, 8200, 8300, 8400, 8500, 8600, 8700, 8900, 9100, 9200, 9300, 9400, 9500, 9600, 9700, 9800, 9900, 10000, 10100, 10200, 10300, 10400, 10500, 10600, 10700, 10800, 10900, 11000, 11100, 11200, 11300, 11400, 11500, 11600, 11900, 12000, 12001, 12100, 12200, 12300, 12400, 12600, 12700, 12800, 12900, 13000, 13100, 13200, 13300, 13400, 13500, 13600, 13800, 13900, 14000, 14100, 14400, 14700, 14800, 14900, 15000, 15100, 15200, 15300, 15400, 15500, 15600, 15700, 15800, 99999);
+my @modes = (0, 10, 11, 12, 20, 21, 22, 23, 30, 40, 50, 60, 100, 101, 110, 111, 112, 120, 121, 122, 125, 130, 131, 132, 133, 140, 141, 150, 160, 200, 300, 400, 500, 600, 900, 1000, 1100, 1300, 1400, 1410, 1411, 1420, 1430, 1440, 1441, 1450, 1460, 1500, 1600, 1700, 1710, 1711, 1720, 1730, 1740, 1722, 1731, 1750, 1760, 1800, 2100, 2400, 2410, 2500, 2600, 2611, 2612, 2711, 2811, 3000, 3100, 3200, 3710, 3711, 3300, 3500, 3610, 3720, 3800, 3910, 4010, 4110, 4210, 4300, 4400, 4500, 4520, 4521, 4522, 4600, 4700, 4800, 4900, 5000, 5100, 5300, 5400, 5500, 5600, 5700, 5800, 6000, 6100, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7000, 7100, 7200, 7300, 7400, 7500, 7700, 7800, 7900, 8000, 8100, 8200, 8300, 8400, 8500, 8600, 8700, 8900, 9100, 9200, 9300, 9400, 9500, 9600, 9700, 9800, 9900, 10000, 10100, 10200, 10300, 10400, 10500, 10600, 10700, 10800, 10900, 11000, 11100, 11200, 11300, 11400, 11500, 11600, 11900, 12000, 12001, 12100, 12200, 12300, 12400, 12600, 12700, 12800, 12900, 13000, 13100, 13200, 13300, 13400, 13500, 13600, 13800, 13900, 14000, 14100, 14400, 14700, 14800, 14900, 15000, 15100, 15200, 15300, 15400, 15500, 15600, 15700, 99999);
 
 my %is_utf16le      = map { $_ => 1 } qw (30 40 130 131 132 133 140 141 1000 1100 1430 1440 1441 1730 1740 1731 5500 5600 8000 9400 9500 9600 9700 9800 11600 13500 13800);
 my %less_fifteen    = map { $_ => 1 } qw (500 1600 1800 3200 6300 7400 10500 10700);
-my %allow_long_salt = map { $_ => 1 } qw (2500 4520 4521 5500 5600 7100 7200 7300 9400 9500 9600 9700 9800 10400 10500 10600 10700 1100 11000 11200 11300 11400 11600 12600 13500 13800 15000 15800);
+my %allow_long_salt = map { $_ => 1 } qw (2500 4520 4521 5500 5600 7100 7200 7300 9400 9500 9600 9700 9800 10400 10500 10600 10700 1100 11000 11200 11300 11400 11600 12600 13500 13800 15000);
 
 my @lotus_magic_table =
 (
@@ -1668,7 +1668,7 @@ sub verify
       next unless (exists ($db->{$hash_in}) and (! defined ($db->{$hash_in})));
     }
     # WPA/WPA2
-    elsif (($mode == 2500) || ($mode == 15800))
+    elsif ($mode == 2500)
     {
       print "ERROR: verify currently not supported for WPA/WPA2 (because of hashcat's output format)\n";
 
@@ -3356,7 +3356,7 @@ sub passthrough
 
       $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, $salt_len));
     }
-    elsif (($mode == 2500) || ($mode == 15800))
+    elsif ($mode == 2500)
     {
       next if length ($word_buf) < 8;
 
@@ -3941,7 +3941,7 @@ sub single
         }
       }
     }
-    elsif (($mode == 2500) || ($mode == 15800))
+    elsif ($mode == 2500)
     {
       my $salt_len = get_random_num (0, 32);
 
@@ -5338,7 +5338,7 @@ sub gen_hash
       $snonce = randbytes (32);
       $anonce = randbytes (32);
 
-      $keyver = get_random_num (1, 3); # 1 or 2
+      $keyver = get_random_num (1, 4); # 1, 2 or 3
 
       # eapol:
       # should be "validly" generated, but in theory could be anything for us also:
@@ -5379,7 +5379,7 @@ sub gen_hash
 
     # Pairwise Transient Key (PTK) transformation
 
-    my $ptk = wpa_prf_512 ($pmk, $stmac, $bssid, $snonce, $anonce);
+    my $ptk = wpa_prf_512 ($keyver, $pmk, $stmac, $bssid, $snonce, $anonce);
 
     # generate the Message Integrity Code (MIC)
 
@@ -5392,6 +5392,14 @@ sub gen_hash
     elsif ($keyver == 2) # WPA2 => SHA1
     {
       $mic = hmac ($eapol, $ptk, \&sha1);
+    }
+    elsif ($keyver == 3) # WPA2 => SHA256 + AES-CMAC
+    {
+      my $omac1 = Digest::CMAC->new ($ptk, 'Crypt::Rijndael');
+
+      $omac1->add ($eapol);
+
+      $mic = $omac1->digest;
     }
 
     $mic = substr ($mic, 0, 16);
@@ -8884,130 +8892,6 @@ END_CODE
 
     $tmp_hash = sprintf ("\$ethereum\$s*%i*%i*%i*%s*%s*%s", $scrypt_N, $scrypt_r, $scrypt_p, unpack ("H*", $salt_buf), unpack ("H*", $ciphertext), $hash_buf);
   }
-  elsif ($mode == 15800)
-  {
-    my ($bssid, $stmac, $snonce, $anonce, $eapol, $keyver, $eapol_len, $essid_len);
-
-    if (! defined ($additional_param))
-    {
-      # random stuff
-
-      $bssid  = randbytes (6);
-      $stmac  = randbytes (6);
-      $snonce = randbytes (32);
-      $anonce = randbytes (32);
-
-      $keyver = 3;
-
-      # eapol:
-      # should be "validly" generated, but in theory could be anything for us also:
-      # $eapol = "\x00" x 121; # works too, but let's generate it correctly
-
-      $eapol = gen_random_wpa_eapol ($keyver, $snonce);
-    }
-    else
-    {
-      $bssid  = $additional_param;
-      $stmac  = $additional_param2;
-      $snonce = $additional_param3;
-      $anonce = $additional_param4;
-      $keyver = $additional_param5;
-      $eapol  = $additional_param6;
-    }
-
-    $eapol_len = length ($eapol);
-
-    # constants
-
-    my $iterations = 4096;
-
-    #
-    # START
-    #
-
-    # generate the Pairwise Master Key (PMK)
-
-    my $pbkdf2 = Crypt::PBKDF2->new
-    (
-      hasher     => Crypt::PBKDF2->hasher_from_algorithm ('HMACSHA2', 256),
-      iterations => $iterations,
-      output_len => 32
-    );
-
-    my $pmk = $pbkdf2->PBKDF2 ($salt_buf, $word_buf);
-
-    # Pairwise Transient Key (PTK) transformation
-
-    my $ptk = wpa_prf_512 ($pmk, $stmac, $bssid, $snonce, $anonce);
-
-    # generate the Message Integrity Code (MIC)
-
-    my $mic = "";
-
-    if ($keyver == 3)
-    {
-      ## untested
-
-      my $omac1 = Digest::CMAC->new ($ptk, 'Crypt::Rijndael');
-
-      $omac1->add ($eapol);
-
-      $mic = $omac1->digest;
-    }
-
-    $mic = substr ($mic, 0, 16);
-
-    #
-    # format the binary output
-    #
-
-    my $HCCAPX_VERSION = 4;
-
-    # signature
-    $hash_buf = "HCPX";
-
-    # format version
-    $hash_buf .= pack ("L<", $HCCAPX_VERSION);
-
-    # authenticated
-    $hash_buf .= pack ("C", 0);
-
-    # essid length
-    $essid_len = length ($salt_buf);
-    $hash_buf .= pack ("C", $essid_len);
-
-    # essid (NULL-padded up to the first 32 bytes)
-    $hash_buf .= $salt_buf;
-    $hash_buf .= "\x00" x (32 - $essid_len);
-
-    # key version
-    $hash_buf .= pack ("C", $keyver);
-
-    # key mic
-    $hash_buf .= $mic;
-
-    # access point MAC
-    $hash_buf .= $bssid;
-
-    # access point nonce
-    $hash_buf .= $snonce;
-
-    # client MAC
-    $hash_buf .= $stmac;
-
-    # client nonce
-    $hash_buf .= $anonce;
-
-    # eapol length
-    $hash_buf .= pack ("S<", $eapol_len);
-
-    # eapol
-    $hash_buf .= $eapol;
-    $hash_buf .= "\x00" x (256 - $eapol_len);
-
-    # base64 encode the output
-    $tmp_hash = encode_base64 ($hash_buf, "");
-  }
   elsif ($mode == 99999)
   {
     $tmp_hash = sprintf ("%s", $word_buf);
@@ -11313,6 +11197,7 @@ sub gen_random_wpa_eapol
 
 sub wpa_prf_512
 {
+  my $keyver = shift;
   my $pmk    = shift;
   my $stmac  = shift;
   my $bssid  = shift;
@@ -11321,7 +11206,10 @@ sub wpa_prf_512
 
   my $data = "Pairwise key expansion";
 
-  $data .= "\x00";
+  if (($keyver == 1) || ($keyver == 2))
+  {
+    $data .= "\x00";
+  }
 
   #
   # Min(AA, SPA) || Max(AA, SPA)
@@ -11357,9 +11245,20 @@ sub wpa_prf_512
     $data .= $snonce;
   }
 
-  $data .= "\x00";
+  my $prf_buf;
 
-  my $prf_buf = hmac ($data, $pmk, \&sha1);
+  if (($keyver == 1) || ($keyver == 2))
+  {
+    $data .= "\x00";
+
+    $prf_buf = hmac ($data, $pmk, \&sha1);
+  }
+  else
+  {
+    my $data3 = "\x01\x00" . $data . "\x80\x01";
+
+    $prf_buf = hmac ($data3, $pmk, \&sha256);
+  }
 
   $prf_buf = substr ($prf_buf, 0, 16);
 

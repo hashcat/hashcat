@@ -262,13 +262,13 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   pke[22] = wpa->pke[22];
   pke[23] = wpa->pke[23];
   pke[24] = wpa->pke[24];
-  pke[25] = 0;
-  pke[26] = 0;
-  pke[27] = 0;
-  pke[28] = 0;
-  pke[29] = 0;
-  pke[30] = 0;
-  pke[31] = 0;
+  pke[25] = wpa->pke[25];
+  pke[26] = wpa->pke[26];
+  pke[27] = wpa->pke[27];
+  pke[28] = wpa->pke[28];
+  pke[29] = wpa->pke[29];
+  pke[30] = wpa->pke[30];
+  pke[31] = wpa->pke[31];
 
   u32 to;
 

@@ -178,7 +178,7 @@ typedef struct pdf
 
 typedef struct wpa
 {
-  u32  pke[25];
+  u32  pke[32];
   u32  eapol[64 + 16];
   u16  eapol_len;
   u8   message_pair;
@@ -557,16 +557,6 @@ typedef struct wpapmk_tmp
   u32 out[8];
 
 } wpapmk_tmp_t;
-
-typedef struct wpaaes_tmp
-{
-  u32 ipad[8];
-  u32 opad[8];
-
-  u32 dgst[8];
-  u32 out[8];
-
-} wpaaes_tmp_t;
 
 typedef struct bitcoin_wallet_tmp
 {
@@ -1609,7 +1599,6 @@ typedef enum kern_type
   KERN_TYPE_JKS_SHA1                = 15500,
   KERN_TYPE_ETHEREUM_PBKDF2         = 15600,
   KERN_TYPE_ETHEREUM_SCRYPT         = 15700,
-  KERN_TYPE_WPAAES                  = 15800,
   KERN_TYPE_PLAINTEXT               = 99999,
 
 } kern_type_t;
