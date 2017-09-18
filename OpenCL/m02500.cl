@@ -13,6 +13,7 @@
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
 #include "inc_hash_sha1.cl"
+#include "inc_hash_sha256.cl"
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
@@ -329,23 +330,25 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     w3[2] = 0;
     w3[3] = 0;
 
-    sha1_hmac_ctx_t ctx1;
-
-    sha1_hmac_init_64 (&ctx1, w0, w1, w2, w3);
-
-    sha1_hmac_update (&ctx1, pke, 100);
-
-    sha1_hmac_final (&ctx1);
-
-    u32 digest[4];
-
-    digest[0] = ctx1.opad.h[0];
-    digest[1] = ctx1.opad.h[1];
-    digest[2] = ctx1.opad.h[2];
-    digest[3] = ctx1.opad.h[3];
+    u32 keymic[4];
 
     if (wpa->keyver == 1)
     {
+      sha1_hmac_ctx_t ctx1;
+
+      sha1_hmac_init_64 (&ctx1, w0, w1, w2, w3);
+
+      sha1_hmac_update (&ctx1, pke, 100);
+
+      sha1_hmac_final (&ctx1);
+
+      u32 digest[4];
+
+      digest[0] = ctx1.opad.h[0];
+      digest[1] = ctx1.opad.h[1];
+      digest[2] = ctx1.opad.h[2];
+      digest[3] = ctx1.opad.h[3];
+
       u32 t0[4];
       u32 t1[4];
       u32 t2[4];
@@ -376,13 +379,28 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
       md5_hmac_final (&ctx2);
 
-      digest[0] = ctx2.opad.h[0];
-      digest[1] = ctx2.opad.h[1];
-      digest[2] = ctx2.opad.h[2];
-      digest[3] = ctx2.opad.h[3];
+      keymic[0] = ctx2.opad.h[0];
+      keymic[1] = ctx2.opad.h[1];
+      keymic[2] = ctx2.opad.h[2];
+      keymic[3] = ctx2.opad.h[3];
     }
-    else
+    else if (wpa->keyver == 2)
     {
+      sha1_hmac_ctx_t ctx1;
+
+      sha1_hmac_init_64 (&ctx1, w0, w1, w2, w3);
+
+      sha1_hmac_update (&ctx1, pke, 100);
+
+      sha1_hmac_final (&ctx1);
+
+      u32 digest[4];
+
+      digest[0] = ctx1.opad.h[0];
+      digest[1] = ctx1.opad.h[1];
+      digest[2] = ctx1.opad.h[2];
+      digest[3] = ctx1.opad.h[3];
+
       u32 t0[4];
       u32 t1[4];
       u32 t2[4];
@@ -413,20 +431,61 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
       sha1_hmac_final (&ctx2);
 
-      digest[0] = ctx2.opad.h[0];
-      digest[1] = ctx2.opad.h[1];
-      digest[2] = ctx2.opad.h[2];
-      digest[3] = ctx2.opad.h[3];
+      keymic[0] = ctx2.opad.h[0];
+      keymic[1] = ctx2.opad.h[1];
+      keymic[2] = ctx2.opad.h[2];
+      keymic[3] = ctx2.opad.h[3];
+    }
+    else if (wpa->keyver == 3)
+    {
+      sha256_hmac_ctx_t ctx1;
+
+      sha256_hmac_init_64 (&ctx1, w0, w1, w2, w3);
+
+      sha256_hmac_update (&ctx1, pke, 102);
+
+      sha256_hmac_final (&ctx1);
+
+      u32 digest[4];
+
+      digest[0] = ctx1.opad.h[0];
+      digest[1] = ctx1.opad.h[1];
+      digest[2] = ctx1.opad.h[2];
+      digest[3] = ctx1.opad.h[3];
+
+      u32 t0[4];
+      u32 t1[4];
+      u32 t2[4];
+      u32 t3[4];
+
+      t0[0] = digest[0];
+      t0[1] = digest[1];
+      t0[2] = digest[2];
+      t0[3] = digest[3];
+      t1[0] = 0;
+      t1[1] = 0;
+      t1[2] = 0;
+      t1[3] = 0;
+      t2[0] = 0;
+      t2[1] = 0;
+      t2[2] = 0;
+      t2[3] = 0;
+      t3[0] = 0;
+      t3[1] = 0;
+      t3[2] = 0;
+      t3[3] = 0;
+
+printf ("%08x\n", digest[0]);
     }
 
     /**
      * final compare
      */
 
-    if ((digest[0] == wpa->keymic[0])
-     && (digest[1] == wpa->keymic[1])
-     && (digest[2] == wpa->keymic[2])
-     && (digest[3] == wpa->keymic[3]))
+    if ((keymic[0] == wpa->keymic[0])
+     && (keymic[1] == wpa->keymic[1])
+     && (keymic[2] == wpa->keymic[2])
+     && (keymic[3] == wpa->keymic[3]))
     {
       if (atomic_inc (&hashes_shown[digest_cur]) == 0)
       {
@@ -479,23 +538,25 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     w3[2] = 0;
     w3[3] = 0;
 
-    sha1_hmac_ctx_t ctx1;
-
-    sha1_hmac_init_64 (&ctx1, w0, w1, w2, w3);
-
-    sha1_hmac_update (&ctx1, pke, 100);
-
-    sha1_hmac_final (&ctx1);
-
-    u32 digest[4];
-
-    digest[0] = ctx1.opad.h[0];
-    digest[1] = ctx1.opad.h[1];
-    digest[2] = ctx1.opad.h[2];
-    digest[3] = ctx1.opad.h[3];
+    u32 keymic[4];
 
     if (wpa->keyver == 1)
     {
+      sha1_hmac_ctx_t ctx1;
+
+      sha1_hmac_init_64 (&ctx1, w0, w1, w2, w3);
+
+      sha1_hmac_update (&ctx1, pke, 100);
+
+      sha1_hmac_final (&ctx1);
+
+      u32 digest[4];
+
+      digest[0] = ctx1.opad.h[0];
+      digest[1] = ctx1.opad.h[1];
+      digest[2] = ctx1.opad.h[2];
+      digest[3] = ctx1.opad.h[3];
+
       u32 t0[4];
       u32 t1[4];
       u32 t2[4];
@@ -526,13 +587,28 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
       md5_hmac_final (&ctx2);
 
-      digest[0] = ctx2.opad.h[0];
-      digest[1] = ctx2.opad.h[1];
-      digest[2] = ctx2.opad.h[2];
-      digest[3] = ctx2.opad.h[3];
+      keymic[0] = ctx2.opad.h[0];
+      keymic[1] = ctx2.opad.h[1];
+      keymic[2] = ctx2.opad.h[2];
+      keymic[3] = ctx2.opad.h[3];
     }
-    else
+    else if (wpa->keyver == 2)
     {
+      sha1_hmac_ctx_t ctx1;
+
+      sha1_hmac_init_64 (&ctx1, w0, w1, w2, w3);
+
+      sha1_hmac_update (&ctx1, pke, 100);
+
+      sha1_hmac_final (&ctx1);
+
+      u32 digest[4];
+
+      digest[0] = ctx1.opad.h[0];
+      digest[1] = ctx1.opad.h[1];
+      digest[2] = ctx1.opad.h[2];
+      digest[3] = ctx1.opad.h[3];
+
       u32 t0[4];
       u32 t1[4];
       u32 t2[4];
@@ -563,20 +639,20 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
       sha1_hmac_final (&ctx2);
 
-      digest[0] = ctx2.opad.h[0];
-      digest[1] = ctx2.opad.h[1];
-      digest[2] = ctx2.opad.h[2];
-      digest[3] = ctx2.opad.h[3];
+      keymic[0] = ctx2.opad.h[0];
+      keymic[1] = ctx2.opad.h[1];
+      keymic[2] = ctx2.opad.h[2];
+      keymic[3] = ctx2.opad.h[3];
     }
 
     /**
      * final compare
      */
 
-    if ((digest[0] == wpa->keymic[0])
-     && (digest[1] == wpa->keymic[1])
-     && (digest[2] == wpa->keymic[2])
-     && (digest[3] == wpa->keymic[3]))
+    if ((keymic[0] == wpa->keymic[0])
+     && (keymic[1] == wpa->keymic[1])
+     && (keymic[2] == wpa->keymic[2])
+     && (keymic[3] == wpa->keymic[3]))
     {
       if (atomic_inc (&hashes_shown[digest_cur]) == 0)
       {
