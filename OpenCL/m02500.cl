@@ -535,14 +535,7 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
         m[2] = wpa->eapol[eapol_idx + 2] ^ iv[2];
         m[3] = wpa->eapol[eapol_idx + 3] ^ iv[3];
 
-        u32 out[4];
-
-        aes128_encrypt (ks, m, out, s_te0, s_te1, s_te2, s_te3, s_te4);
-
-        iv[0] = out[0];
-        iv[1] = out[1];
-        iv[2] = out[2];
-        iv[3] = out[3];
+        aes128_encrypt (ks, m, iv, s_te0, s_te1, s_te2, s_te3, s_te4);
       }
 
       m[0] = wpa->eapol[eapol_idx + 0];
@@ -816,14 +809,7 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
         m[2] = wpa->eapol[eapol_idx + 2] ^ iv[2];
         m[3] = wpa->eapol[eapol_idx + 3] ^ iv[3];
 
-        u32 out[4];
-
-        aes128_encrypt (ks, m, out, s_te0, s_te1, s_te2, s_te3, s_te4);
-
-        iv[0] = out[0];
-        iv[1] = out[1];
-        iv[2] = out[2];
-        iv[3] = out[3];
+        aes128_encrypt (ks, m, iv, s_te0, s_te1, s_te2, s_te3, s_te4);
       }
 
       m[0] = wpa->eapol[eapol_idx + 0];
