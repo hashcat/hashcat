@@ -258,6 +258,11 @@ __kernel void m02501_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
     u32 keymic[4];
 
+    keymic[0] = 0;
+    keymic[1] = 0;
+    keymic[2] = 0;
+    keymic[3] = 0;
+
     if (wpa->keyver == 1)
     {
       sha1_hmac_ctx_t ctx1;
@@ -531,6 +536,11 @@ __kernel void m02501_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     w3[3] = 0;
 
     u32 keymic[4];
+
+    keymic[0] = 0;
+    keymic[1] = 0;
+    keymic[2] = 0;
+    keymic[3] = 0;
 
     if (wpa->keyver == 1)
     {
