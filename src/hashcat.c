@@ -49,7 +49,6 @@
 #include "tuningdb.h"
 #include "usage.h"
 #include "user_options.h"
-#include "weak_hash.h"
 #include "wordlist.h"
 
 // inner2_loop iterates through wordlists, then calls kernel execution
@@ -701,69 +700,13 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   EVENT (EVENT_SELFTEST_FINISHED);
 
   /**
-   * weak hash check is the first to write to potfile, so open it for writing from here
+   * (old) weak hash check is the first to write to potfile, so open it for writing from here
+   * the weak hash check was removed maybe we can move this more to the bottom now
    */
 
   const int rc_potfile_write = potfile_write_open (hashcat_ctx);
 
   if (rc_potfile_write == -1) return -1;
-
-  /**
-   * weak hash check
-   */
-
-  if (user_options->weak_hash_threshold >= hashes->salts_cnt)
-  {
-    hc_device_param_t *device_param = NULL;
-
-    for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-    {
-      device_param = &opencl_ctx->devices_param[device_id];
-
-      if (device_param->skipped == true) continue;
-
-      break;
-    }
-
-    if (device_param == NULL)
-    {
-      event_log_error (hashcat_ctx, "No device found for weak-hash check.");
-
-      return -1;
-    }
-
-    EVENT (EVENT_WEAK_HASH_PRE);
-
-    for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
-    {
-      const int CL_rc = weak_hash_check (hashcat_ctx, device_param, salt_pos);
-
-      if (CL_rc == -1) return -1;
-    }
-
-    EVENT (EVENT_WEAK_HASH_POST);
-  }
-
-  /**
-   * maybe all hashes were cracked now (as after potfile checks), we can exit here
-   */
-
-  if (status_ctx->devices_status == STATUS_CRACKED)
-  {
-    if ((user_options->remove == true) && (hashes->hashlist_mode == HL_MODE_FILE))
-    {
-      if (hashes->digests_saved != hashes->digests_done)
-      {
-        const int rc = save_hash (hashcat_ctx);
-
-        if (rc == -1) return -1;
-      }
-    }
-
-    EVENT (EVENT_WEAK_HASH_ALL_CRACKED);
-
-    return 0;
-  }
 
   /**
    * status and monitor threads

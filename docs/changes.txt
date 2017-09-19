@@ -10,6 +10,7 @@
 - Added option --self-test-disable to disable self-test functionality on startup
 - Added option --wordlist-autohex-disable to disable the automatical conversion of $HEX[] words from the word list
 - Added option --example-hashes to show an example hash for each hash-mode
+- Removed option --weak-hash-check (zero-length password check) to increase startup time, it also causes many Trap 6 error on OSX
 
 ##
 ## Algorithms

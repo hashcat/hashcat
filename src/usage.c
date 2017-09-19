@@ -41,7 +41,6 @@ static const char *USAGE_BIG[] =
   "     --keep-guessing            |      | Keep guessing the hash after it has been cracked     |",
   "     --self-test-disable        |      | Disable self-test functionality on startup           |",
   "     --loopback                 |      | Add new plains to induct directory                   |",
-  "     --weak-hash-threshold      | Num  | Threshold X when to stop checking for weak hashes    | --weak=0",
   "     --markov-hcstat            | File | Specify hcstat file to use                           | --markov-hc=my.hcstat",
   "     --markov-disable           |      | Disables markov-chains, emulates classic brute-force |",
   "     --markov-classic           |      | Enables classic markov-chains, no per-position       |",

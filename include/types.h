@@ -140,11 +140,8 @@ typedef enum event_identifier
   EVENT_SELFTEST_FINISHED         = 0x000000c0,
   EVENT_SELFTEST_STARTING         = 0x000000c1,
   EVENT_SET_KERNEL_POWER_FINAL    = 0x000000d0,
-  EVENT_WEAK_HASH_POST            = 0x000000e0,
-  EVENT_WEAK_HASH_PRE             = 0x000000e1,
-  EVENT_WEAK_HASH_ALL_CRACKED     = 0x000000e2,
-  EVENT_WORDLIST_CACHE_GENERATE   = 0x000000f0,
-  EVENT_WORDLIST_CACHE_HIT        = 0x000000f1,
+  EVENT_WORDLIST_CACHE_GENERATE   = 0x000000e0,
+  EVENT_WORDLIST_CACHE_HIT        = 0x000000e1,
 
   // there will be much more event types soon
 
@@ -584,7 +581,6 @@ typedef enum user_options_defaults
   USAGE                    = false,
   USERNAME                 = false,
   VERSION                  = false,
-  WEAK_HASH_THRESHOLD      = 100,
   WORKLOAD_PROFILE         = 2,
 
 } user_options_defaults_t;
@@ -682,7 +678,6 @@ typedef enum user_options_map
   IDX_VERACRYPT_PIM            = 0xff3f,
   IDX_VERSION_LOWER            = 'v',
   IDX_VERSION                  = 'V',
-  IDX_WEAK_HASH_THRESHOLD      = 0xff40,
   IDX_WORKLOAD_PROFILE         = 'w'
 
 } user_options_map_t;
@@ -1563,7 +1558,6 @@ typedef struct user_options
   u32          segment_size;
   u32          status_timer;
   u32          veracrypt_pim;
-  u32          weak_hash_threshold;
   u32          workload_profile;
   u64          limit;
   u64          skip;

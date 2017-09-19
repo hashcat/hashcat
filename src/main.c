@@ -550,34 +550,6 @@ static void main_opencl_session_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, M
   event_log_info_nn (hashcat_ctx, "Initialized device kernels and memory...");
 }
 
-static void main_weak_hash_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
-{
-  const user_options_t *user_options = hashcat_ctx->user_options;
-
-  if (user_options->quiet == true) return;
-
-  event_log_info_nn (hashcat_ctx, "Checking for weak hashes...");
-}
-
-static void main_weak_hash_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
-{
-  const user_options_t *user_options = hashcat_ctx->user_options;
-
-  if (user_options->quiet == true) return;
-
-  event_log_info_nn (hashcat_ctx, "Checked for weak hashes...");
-}
-
-static void main_weak_hash_all_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
-{
-  const user_options_t *user_options = hashcat_ctx->user_options;
-
-  if (user_options->quiet == true) return;
-
-  event_log_info (hashcat_ctx, "INFO: All hashes found during weak hashes check! Use --show to display them.");
-  event_log_info (hashcat_ctx, NULL);
-}
-
 static void main_bitmap_init_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -988,9 +960,6 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
     case EVENT_POTFILE_REMOVE_PARSE_POST: main_potfile_remove_parse_post (hashcat_ctx, buf, len); break;
     case EVENT_POTFILE_REMOVE_PARSE_PRE:  main_potfile_remove_parse_pre  (hashcat_ctx, buf, len); break;
     case EVENT_SET_KERNEL_POWER_FINAL:    main_set_kernel_power_final    (hashcat_ctx, buf, len); break;
-    case EVENT_WEAK_HASH_POST:            main_weak_hash_post            (hashcat_ctx, buf, len); break;
-    case EVENT_WEAK_HASH_PRE:             main_weak_hash_pre             (hashcat_ctx, buf, len); break;
-    case EVENT_WEAK_HASH_ALL_CRACKED:     main_weak_hash_all_cracked     (hashcat_ctx, buf, len); break;
     case EVENT_WORDLIST_CACHE_GENERATE:   main_wordlist_cache_generate   (hashcat_ctx, buf, len); break;
     case EVENT_WORDLIST_CACHE_HIT:        main_wordlist_cache_hit        (hashcat_ctx, buf, len); break;
   }

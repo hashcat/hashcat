@@ -368,12 +368,11 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
     hash_buf.hook_salt = hcmalloc (hashconfig->hook_salt_size);
   }
 
-  // this is usually detected by weak-hash-check
-  // but not if bitslice
+  // special case for a split hash
 
   if (hashconfig->hash_mode == 3000)
   {
-    int parser_status = hashconfig->parse_func ((u8 *) LM_WEAK_HASH, 16, &hash_buf, hashconfig);
+    int parser_status = hashconfig->parse_func ((u8 *) LM_ZERO_HASH, 16, &hash_buf, hashconfig);
 
     if (parser_status == PARSER_OK)
     {
@@ -417,9 +416,6 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
     line_hash_buf[line_hash_len] = 0;
 
     if (line_hash_len == 0) continue;
-
-    // we should allow length 0 passwords (detected by weak hash check)
-    //if (line_pw_len == 0) continue;
 
     if (hashconfig->is_salted == true)
     {

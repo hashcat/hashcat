@@ -109,7 +109,6 @@ static const struct option long_options[] =
   {"veracrypt-keyfiles",        required_argument, 0, IDX_VERACRYPT_KEYFILES},
   {"veracrypt-pim",             required_argument, 0, IDX_VERACRYPT_PIM},
   {"version",                   no_argument,       0, IDX_VERSION},
-  {"weak-hash-threshold",       required_argument, 0, IDX_WEAK_HASH_THRESHOLD},
   {"workload-profile",          required_argument, 0, IDX_WORKLOAD_PROFILE},
   {0, 0, 0, 0}
 };
@@ -218,7 +217,6 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->veracrypt_keyfiles        = NULL;
   user_options->veracrypt_pim             = 0;
   user_options->version                   = VERSION;
-  user_options->weak_hash_threshold       = WEAK_HASH_THRESHOLD;
   user_options->workload_profile          = WORKLOAD_PROFILE;
   user_options->rp_files_cnt              = 0;
   user_options->rp_files                  = (char **) hccalloc (256, sizeof (char *));
@@ -261,7 +259,6 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_SKIP:
       case IDX_LIMIT:
       case IDX_STATUS_TIMER:
-      case IDX_WEAK_HASH_THRESHOLD:
       case IDX_HASH_MODE:
       case IDX_RUNTIME:
       case IDX_ATTACK_MODE:
@@ -354,7 +351,6 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_STATUS_TIMER:              user_options->status_timer              = atoi (optarg);  break;
       case IDX_MACHINE_READABLE:          user_options->machine_readable          = true;           break;
       case IDX_LOOPBACK:                  user_options->loopback                  = true;           break;
-      case IDX_WEAK_HASH_THRESHOLD:       user_options->weak_hash_threshold       = atoi (optarg);  break;
       case IDX_SESSION:                   user_options->session                   = optarg;         break;
       case IDX_HASH_MODE:                 user_options->hash_mode                 = atoi (optarg);
                                           user_options->hash_mode_chgd            = true;           break;
@@ -836,16 +832,6 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if (user_options->attack_mode != ATTACK_MODE_STRAIGHT)
-  {
-    if ((user_options->weak_hash_threshold != WEAK_HASH_THRESHOLD) && (user_options->weak_hash_threshold != 0))
-    {
-      event_log_error (hashcat_ctx, "Use of --weak-hash-threshold is only allowed in attack mode 0 (straight).");
-
-      return -1;
-    }
-  }
-
   if (user_options->nvidia_spin_damp > 100)
   {
     event_log_error (hashcat_ctx, "Values of --nvidia-spin-damp must be between 0 and 100 (inclusive).");
@@ -1261,7 +1247,6 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->show                = false;
     user_options->status              = false;
     user_options->status_timer        = 0;
-    user_options->weak_hash_threshold = 0;
   }
 
   if (user_options->benchmark == true)
@@ -1283,7 +1268,6 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->speed_only          = true;
     user_options->status              = false;
     user_options->status_timer        = 0;
-    user_options->weak_hash_threshold = 0;
 
     if (user_options->workload_profile_chgd == false)
     {
@@ -1368,11 +1352,6 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   if (user_options->skip != 0 && user_options->limit != 0)
   {
     user_options->limit += user_options->skip;
-  }
-
-  if (user_options->attack_mode != ATTACK_MODE_STRAIGHT)
-  {
-    user_options->weak_hash_threshold = 0;
   }
 
   if (user_options->hash_mode == 9710)
@@ -2213,6 +2192,5 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->username);
   logfile_top_uint   (user_options->veracrypt_pim);
   logfile_top_uint   (user_options->version);
-  logfile_top_uint   (user_options->weak_hash_threshold);
   logfile_top_uint   (user_options->workload_profile);
 }
