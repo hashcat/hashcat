@@ -13,6 +13,7 @@
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
 #include "inc_hash_sha1.cl"
+#include "inc_cipher_aes.cl"
 
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
@@ -88,6 +89,59 @@ __kernel void m02501_loop (__global pw_t *pws, __global const kernel_rule_t *rul
 __kernel void m02501_comp (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global wpapmk_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const wpa_t *wpa_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
 {
   const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+
+  /**
+   * aes shared
+   */
+
+  #ifdef REAL_SHM
+
+  __local u32 s_td0[256];
+  __local u32 s_td1[256];
+  __local u32 s_td2[256];
+  __local u32 s_td3[256];
+  __local u32 s_td4[256];
+
+  __local u32 s_te0[256];
+  __local u32 s_te1[256];
+  __local u32 s_te2[256];
+  __local u32 s_te3[256];
+  __local u32 s_te4[256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    s_td0[i] = td0[i];
+    s_td1[i] = td1[i];
+    s_td2[i] = td2[i];
+    s_td3[i] = td3[i];
+    s_td4[i] = td4[i];
+
+    s_te0[i] = te0[i];
+    s_te1[i] = te1[i];
+    s_te2[i] = te2[i];
+    s_te3[i] = te3[i];
+    s_te4[i] = te4[i];
+  }
+
+  barrier (CLK_LOCAL_MEM_FENCE);
+
+  #else
+
+  __constant u32a *s_td0 = td0;
+  __constant u32a *s_td1 = td1;
+  __constant u32a *s_td2 = td2;
+  __constant u32a *s_td3 = td3;
+  __constant u32a *s_td4 = td4;
+
+  __constant u32a *s_te0 = te0;
+  __constant u32a *s_te1 = te1;
+  __constant u32a *s_te2 = te2;
+  __constant u32a *s_te3 = te3;
+  __constant u32a *s_te4 = te4;
+
+  #endif
 
   if (gid >= gid_max) return;
 
@@ -101,8 +155,6 @@ __kernel void m02501_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   out[5] = tmps[gid].out[5];
   out[6] = tmps[gid].out[6];
   out[7] = tmps[gid].out[7];
-
-  const u64 lid = get_local_id (0);
 
   const u32 digest_pos = loop_pos;
 
@@ -137,13 +189,13 @@ __kernel void m02501_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   pke[22] = wpa->pke[22];
   pke[23] = wpa->pke[23];
   pke[24] = wpa->pke[24];
-  pke[25] = 0;
-  pke[26] = 0;
-  pke[27] = 0;
-  pke[28] = 0;
-  pke[29] = 0;
-  pke[30] = 0;
-  pke[31] = 0;
+  pke[25] = wpa->pke[25];
+  pke[26] = wpa->pke[26];
+  pke[27] = wpa->pke[27];
+  pke[28] = wpa->pke[28];
+  pke[29] = wpa->pke[29];
+  pke[30] = wpa->pke[30];
+  pke[31] = wpa->pke[31];
 
   u32 to;
 
@@ -204,23 +256,25 @@ __kernel void m02501_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     w3[2] = 0;
     w3[3] = 0;
 
-    sha1_hmac_ctx_t ctx1;
-
-    sha1_hmac_init_64 (&ctx1, w0, w1, w2, w3);
-
-    sha1_hmac_update (&ctx1, pke, 100);
-
-    sha1_hmac_final (&ctx1);
-
-    u32 digest[4];
-
-    digest[0] = ctx1.opad.h[0];
-    digest[1] = ctx1.opad.h[1];
-    digest[2] = ctx1.opad.h[2];
-    digest[3] = ctx1.opad.h[3];
+    u32 keymic[4];
 
     if (wpa->keyver == 1)
     {
+      sha1_hmac_ctx_t ctx1;
+
+      sha1_hmac_init_64 (&ctx1, w0, w1, w2, w3);
+
+      sha1_hmac_update (&ctx1, pke, 100);
+
+      sha1_hmac_final (&ctx1);
+
+      u32 digest[4];
+
+      digest[0] = ctx1.opad.h[0];
+      digest[1] = ctx1.opad.h[1];
+      digest[2] = ctx1.opad.h[2];
+      digest[3] = ctx1.opad.h[3];
+
       u32 t0[4];
       u32 t1[4];
       u32 t2[4];
@@ -251,13 +305,28 @@ __kernel void m02501_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
       md5_hmac_final (&ctx2);
 
-      digest[0] = ctx2.opad.h[0];
-      digest[1] = ctx2.opad.h[1];
-      digest[2] = ctx2.opad.h[2];
-      digest[3] = ctx2.opad.h[3];
+      keymic[0] = ctx2.opad.h[0];
+      keymic[1] = ctx2.opad.h[1];
+      keymic[2] = ctx2.opad.h[2];
+      keymic[3] = ctx2.opad.h[3];
     }
-    else
+    else if (wpa->keyver == 2)
     {
+      sha1_hmac_ctx_t ctx1;
+
+      sha1_hmac_init_64 (&ctx1, w0, w1, w2, w3);
+
+      sha1_hmac_update (&ctx1, pke, 100);
+
+      sha1_hmac_final (&ctx1);
+
+      u32 digest[4];
+
+      digest[0] = ctx1.opad.h[0];
+      digest[1] = ctx1.opad.h[1];
+      digest[2] = ctx1.opad.h[2];
+      digest[3] = ctx1.opad.h[3];
+
       u32 t0[4];
       u32 t1[4];
       u32 t2[4];
@@ -288,20 +357,127 @@ __kernel void m02501_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
       sha1_hmac_final (&ctx2);
 
-      digest[0] = ctx2.opad.h[0];
-      digest[1] = ctx2.opad.h[1];
-      digest[2] = ctx2.opad.h[2];
-      digest[3] = ctx2.opad.h[3];
+      keymic[0] = ctx2.opad.h[0];
+      keymic[1] = ctx2.opad.h[1];
+      keymic[2] = ctx2.opad.h[2];
+      keymic[3] = ctx2.opad.h[3];
+    }
+    else if (wpa->keyver == 3)
+    {
+      sha256_hmac_ctx_t ctx1;
+
+      sha256_hmac_init_64 (&ctx1, w0, w1, w2, w3);
+
+      sha256_hmac_update (&ctx1, pke, 102);
+
+      sha256_hmac_final (&ctx1);
+
+      u32 digest[4];
+
+      digest[0] = swap32_S (ctx1.opad.h[0]);
+      digest[1] = swap32_S (ctx1.opad.h[1]);
+      digest[2] = swap32_S (ctx1.opad.h[2]);
+      digest[3] = swap32_S (ctx1.opad.h[3]);
+
+      // AES CMAC
+
+      u32 ks[44];
+
+      aes128_set_encrypt_key (ks, digest, s_te0, s_te1, s_te2, s_te3, s_te4);
+
+      u32 m[4];
+
+      m[0] = 0;
+      m[1] = 0;
+      m[2] = 0;
+      m[3] = 0;
+
+      u32 iv[4];
+
+      iv[0] = 0;
+      iv[1] = 0;
+      iv[2] = 0;
+      iv[3] = 0;
+
+      int eapol_left;
+      int eapol_idx;
+
+      for (eapol_left = wpa->eapol_len, eapol_idx = 0; eapol_left > 16; eapol_left -= 16, eapol_idx += 4)
+      {
+        m[0] = wpa->eapol[eapol_idx + 0] ^ iv[0];
+        m[1] = wpa->eapol[eapol_idx + 1] ^ iv[1];
+        m[2] = wpa->eapol[eapol_idx + 2] ^ iv[2];
+        m[3] = wpa->eapol[eapol_idx + 3] ^ iv[3];
+
+        aes128_encrypt (ks, m, iv, s_te0, s_te1, s_te2, s_te3, s_te4);
+      }
+
+      m[0] = wpa->eapol[eapol_idx + 0];
+      m[1] = wpa->eapol[eapol_idx + 1];
+      m[2] = wpa->eapol[eapol_idx + 2];
+      m[3] = wpa->eapol[eapol_idx + 3];
+
+      u32 k[4];
+
+      k[0] = 0;
+      k[1] = 0;
+      k[2] = 0;
+      k[3] = 0;
+
+      aes128_encrypt (ks, k, k, s_te0, s_te1, s_te2, s_te3, s_te4);
+
+      k[0] = swap32_S (k[0]);
+      k[1] = swap32_S (k[1]);
+      k[2] = swap32_S (k[2]);
+      k[3] = swap32_S (k[3]);
+
+      const u32 c1 = k[3] >> 31;
+
+      k[3] = (k[3] << 1) | (k[2] >> 31);
+      k[2] = (k[2] << 1) | (k[1] >> 31);
+      k[1] = (k[1] << 1) | (k[0] >> 31);
+      k[0] = (k[0] << 1);
+
+      k[0] ^= c1 * 0x87;
+
+      if (eapol_left < 16)
+      {
+        const u32 c2 = k[3] >> 31;
+
+        k[3] = (k[3] << 1) | (k[2] >> 31);
+        k[2] = (k[2] << 1) | (k[1] >> 31);
+        k[1] = (k[1] << 1) | (k[0] >> 31);
+        k[0] = (k[0] << 1);
+
+        k[0] ^= c2 * 0x87;
+      }
+
+      k[0] = swap32_S (k[0]);
+      k[1] = swap32_S (k[1]);
+      k[2] = swap32_S (k[2]);
+      k[3] = swap32_S (k[3]);
+
+      m[0] ^= k[0];
+      m[1] ^= k[1];
+      m[2] ^= k[2];
+      m[3] ^= k[3];
+
+      m[0] ^= iv[0];
+      m[1] ^= iv[1];
+      m[2] ^= iv[2];
+      m[3] ^= iv[3];
+
+      aes128_encrypt (ks, m, keymic, s_te0, s_te1, s_te2, s_te3, s_te4);
     }
 
     /**
      * final compare
      */
 
-    if ((digest[0] == wpa->keymic[0])
-     && (digest[1] == wpa->keymic[1])
-     && (digest[2] == wpa->keymic[2])
-     && (digest[3] == wpa->keymic[3]))
+    if ((keymic[0] == wpa->keymic[0])
+     && (keymic[1] == wpa->keymic[1])
+     && (keymic[2] == wpa->keymic[2])
+     && (keymic[3] == wpa->keymic[3]))
     {
       if (atomic_inc (&hashes_shown[digest_cur]) == 0)
       {
@@ -354,23 +530,25 @@ __kernel void m02501_comp (__global pw_t *pws, __global const kernel_rule_t *rul
     w3[2] = 0;
     w3[3] = 0;
 
-    sha1_hmac_ctx_t ctx1;
-
-    sha1_hmac_init_64 (&ctx1, w0, w1, w2, w3);
-
-    sha1_hmac_update (&ctx1, pke, 100);
-
-    sha1_hmac_final (&ctx1);
-
-    u32 digest[4];
-
-    digest[0] = ctx1.opad.h[0];
-    digest[1] = ctx1.opad.h[1];
-    digest[2] = ctx1.opad.h[2];
-    digest[3] = ctx1.opad.h[3];
+    u32 keymic[4];
 
     if (wpa->keyver == 1)
     {
+      sha1_hmac_ctx_t ctx1;
+
+      sha1_hmac_init_64 (&ctx1, w0, w1, w2, w3);
+
+      sha1_hmac_update (&ctx1, pke, 100);
+
+      sha1_hmac_final (&ctx1);
+
+      u32 digest[4];
+
+      digest[0] = ctx1.opad.h[0];
+      digest[1] = ctx1.opad.h[1];
+      digest[2] = ctx1.opad.h[2];
+      digest[3] = ctx1.opad.h[3];
+
       u32 t0[4];
       u32 t1[4];
       u32 t2[4];
@@ -401,13 +579,28 @@ __kernel void m02501_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
       md5_hmac_final (&ctx2);
 
-      digest[0] = ctx2.opad.h[0];
-      digest[1] = ctx2.opad.h[1];
-      digest[2] = ctx2.opad.h[2];
-      digest[3] = ctx2.opad.h[3];
+      keymic[0] = ctx2.opad.h[0];
+      keymic[1] = ctx2.opad.h[1];
+      keymic[2] = ctx2.opad.h[2];
+      keymic[3] = ctx2.opad.h[3];
     }
-    else
+    else if (wpa->keyver == 2)
     {
+      sha1_hmac_ctx_t ctx1;
+
+      sha1_hmac_init_64 (&ctx1, w0, w1, w2, w3);
+
+      sha1_hmac_update (&ctx1, pke, 100);
+
+      sha1_hmac_final (&ctx1);
+
+      u32 digest[4];
+
+      digest[0] = ctx1.opad.h[0];
+      digest[1] = ctx1.opad.h[1];
+      digest[2] = ctx1.opad.h[2];
+      digest[3] = ctx1.opad.h[3];
+
       u32 t0[4];
       u32 t1[4];
       u32 t2[4];
@@ -438,20 +631,127 @@ __kernel void m02501_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
       sha1_hmac_final (&ctx2);
 
-      digest[0] = ctx2.opad.h[0];
-      digest[1] = ctx2.opad.h[1];
-      digest[2] = ctx2.opad.h[2];
-      digest[3] = ctx2.opad.h[3];
+      keymic[0] = ctx2.opad.h[0];
+      keymic[1] = ctx2.opad.h[1];
+      keymic[2] = ctx2.opad.h[2];
+      keymic[3] = ctx2.opad.h[3];
+    }
+    else if (wpa->keyver == 3)
+    {
+      sha256_hmac_ctx_t ctx1;
+
+      sha256_hmac_init_64 (&ctx1, w0, w1, w2, w3);
+
+      sha256_hmac_update (&ctx1, pke, 102);
+
+      sha256_hmac_final (&ctx1);
+
+      u32 digest[4];
+
+      digest[0] = swap32_S (ctx1.opad.h[0]);
+      digest[1] = swap32_S (ctx1.opad.h[1]);
+      digest[2] = swap32_S (ctx1.opad.h[2]);
+      digest[3] = swap32_S (ctx1.opad.h[3]);
+
+      // AES CMAC
+
+      u32 ks[44];
+
+      aes128_set_encrypt_key (ks, digest, s_te0, s_te1, s_te2, s_te3, s_te4);
+
+      u32 m[4];
+
+      m[0] = 0;
+      m[1] = 0;
+      m[2] = 0;
+      m[3] = 0;
+
+      u32 iv[4];
+
+      iv[0] = 0;
+      iv[1] = 0;
+      iv[2] = 0;
+      iv[3] = 0;
+
+      int eapol_left;
+      int eapol_idx;
+
+      for (eapol_left = wpa->eapol_len, eapol_idx = 0; eapol_left > 16; eapol_left -= 16, eapol_idx += 4)
+      {
+        m[0] = wpa->eapol[eapol_idx + 0] ^ iv[0];
+        m[1] = wpa->eapol[eapol_idx + 1] ^ iv[1];
+        m[2] = wpa->eapol[eapol_idx + 2] ^ iv[2];
+        m[3] = wpa->eapol[eapol_idx + 3] ^ iv[3];
+
+        aes128_encrypt (ks, m, iv, s_te0, s_te1, s_te2, s_te3, s_te4);
+      }
+
+      m[0] = wpa->eapol[eapol_idx + 0];
+      m[1] = wpa->eapol[eapol_idx + 1];
+      m[2] = wpa->eapol[eapol_idx + 2];
+      m[3] = wpa->eapol[eapol_idx + 3];
+
+      u32 k[4];
+
+      k[0] = 0;
+      k[1] = 0;
+      k[2] = 0;
+      k[3] = 0;
+
+      aes128_encrypt (ks, k, k, s_te0, s_te1, s_te2, s_te3, s_te4);
+
+      k[0] = swap32_S (k[0]);
+      k[1] = swap32_S (k[1]);
+      k[2] = swap32_S (k[2]);
+      k[3] = swap32_S (k[3]);
+
+      const u32 c1 = k[3] >> 31;
+
+      k[3] = (k[3] << 1) | (k[2] >> 31);
+      k[2] = (k[2] << 1) | (k[1] >> 31);
+      k[1] = (k[1] << 1) | (k[0] >> 31);
+      k[0] = (k[0] << 1);
+
+      k[0] ^= c1 * 0x87;
+
+      if (eapol_left < 16)
+      {
+        const u32 c2 = k[3] >> 31;
+
+        k[3] = (k[3] << 1) | (k[2] >> 31);
+        k[2] = (k[2] << 1) | (k[1] >> 31);
+        k[1] = (k[1] << 1) | (k[0] >> 31);
+        k[0] = (k[0] << 1);
+
+        k[0] ^= c2 * 0x87;
+      }
+
+      k[0] = swap32_S (k[0]);
+      k[1] = swap32_S (k[1]);
+      k[2] = swap32_S (k[2]);
+      k[3] = swap32_S (k[3]);
+
+      m[0] ^= k[0];
+      m[1] ^= k[1];
+      m[2] ^= k[2];
+      m[3] ^= k[3];
+
+      m[0] ^= iv[0];
+      m[1] ^= iv[1];
+      m[2] ^= iv[2];
+      m[3] ^= iv[3];
+
+      aes128_encrypt (ks, m, keymic, s_te0, s_te1, s_te2, s_te3, s_te4);
     }
 
     /**
      * final compare
      */
 
-    if ((digest[0] == wpa->keymic[0])
-     && (digest[1] == wpa->keymic[1])
-     && (digest[2] == wpa->keymic[2])
-     && (digest[3] == wpa->keymic[3]))
+    if ((keymic[0] == wpa->keymic[0])
+     && (keymic[1] == wpa->keymic[1])
+     && (keymic[2] == wpa->keymic[2])
+     && (keymic[3] == wpa->keymic[3]))
     {
       if (atomic_inc (&hashes_shown[digest_cur]) == 0)
       {
