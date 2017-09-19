@@ -13,6 +13,7 @@
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
 #include "inc_hash_sha1.cl"
+#include "inc_hash_sha256.cl"
 #include "inc_cipher_aes.cl"
 
 #define COMPARE_S "inc_comp_single.cl"
