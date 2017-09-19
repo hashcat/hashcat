@@ -3268,7 +3268,7 @@ int wpa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
 
   wpa_t *wpa = (wpa_t *) hash_buf->esalt;
 
-  memset (wpa, 0, sizeof (wpa_t));
+  // the *wpa was partially initialized beforehand, we can not simply memset it to zero
 
   hccapx_t in;
 
@@ -3307,7 +3307,11 @@ int wpa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
 
   wpa->keyver = in.keyver;
 
+  if ((wpa->keyver != 1) && (wpa->keyver != 2) && (wpa->keyver != 3)) return (PARSER_SALT_VALUE);
+
   u8 *pke_ptr = (u8 *) wpa->pke;
+
+  memset (pke_ptr, 0, 128);
 
   if ((wpa->keyver == 1) || (wpa->keyver == 2))
   {
@@ -3393,13 +3397,13 @@ int wpa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
 
   wpa->message_pair = message_pair_orig;
 
-  if ((wpa->keyver != 1) && (wpa->keyver != 2) && (wpa->keyver != 3)) return (PARSER_SALT_VALUE);
-
   wpa->eapol_len = in.eapol_len;
 
   u8 *eapol_ptr = (u8 *) wpa->eapol;
 
   memcpy (eapol_ptr, in.eapol, wpa->eapol_len);
+
+  memset (eapol_ptr + wpa->eapol_len, 0, (256 + 64) - wpa->eapol_len);
 
   eapol_ptr[wpa->eapol_len] = 0x80;
 
