@@ -34,6 +34,36 @@ u8 hex_to_u8 (const u8 hex[2])
   return (v);
 }
 
+void make_kn (u32 *k)
+{
+  u32 kl[4];
+  u32 kr[4];
+
+  kl[0] = (k[0] << 1) & 0xfefefefe;
+  kl[1] = (k[1] << 1) & 0xfefefefe;
+  kl[2] = (k[2] << 1) & 0xfefefefe;
+  kl[3] = (k[3] << 1) & 0xfefefefe;
+
+  kr[0] = (k[0] >> 7) & 0x01010101;
+  kr[1] = (k[1] >> 7) & 0x01010101;
+  kr[2] = (k[2] >> 7) & 0x01010101;
+  kr[3] = (k[3] >> 7) & 0x01010101;
+
+  const u32 c = kr[0] & 1;
+
+  kr[0] = kr[0] >> 8 | kr[1] << 24;
+  kr[1] = kr[1] >> 8 | kr[2] << 24;
+  kr[2] = kr[2] >> 8 | kr[3] << 24;
+  kr[3] = kr[3] >> 8;
+
+  kr[3] ^= c * 0x87000000;
+
+  k[0] = kl[0] | kr[0];
+  k[1] = kl[1] | kr[1];
+  k[2] = kl[2] | kr[2];
+  k[3] = kl[3] | kr[3];
+}
+
 __kernel void m02501_init (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global wpapmk_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const wpa_t *wpa_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
 {
   const u64 gid = get_global_id (0);
@@ -432,36 +462,12 @@ __kernel void m02501_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
       aes128_encrypt (ks, k, k, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-      k[0] = swap32_S (k[0]);
-      k[1] = swap32_S (k[1]);
-      k[2] = swap32_S (k[2]);
-      k[3] = swap32_S (k[3]);
-
-      const u32 c1 = k[3] >> 31;
-
-      k[3] = (k[3] << 1) | (k[2] >> 31);
-      k[2] = (k[2] << 1) | (k[1] >> 31);
-      k[1] = (k[1] << 1) | (k[0] >> 31);
-      k[0] = (k[0] << 1);
-
-      k[0] ^= c1 * 0x87;
+      make_kn (k);
 
       if (eapol_left < 16)
       {
-        const u32 c2 = k[3] >> 31;
-
-        k[3] = (k[3] << 1) | (k[2] >> 31);
-        k[2] = (k[2] << 1) | (k[1] >> 31);
-        k[1] = (k[1] << 1) | (k[0] >> 31);
-        k[0] = (k[0] << 1);
-
-        k[0] ^= c2 * 0x87;
+        make_kn (k);
       }
-
-      k[0] = swap32_S (k[0]);
-      k[1] = swap32_S (k[1]);
-      k[2] = swap32_S (k[2]);
-      k[3] = swap32_S (k[3]);
 
       m[0] ^= k[0];
       m[1] ^= k[1];
@@ -711,36 +717,12 @@ __kernel void m02501_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
       aes128_encrypt (ks, k, k, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-      k[0] = swap32_S (k[0]);
-      k[1] = swap32_S (k[1]);
-      k[2] = swap32_S (k[2]);
-      k[3] = swap32_S (k[3]);
-
-      const u32 c1 = k[3] >> 31;
-
-      k[3] = (k[3] << 1) | (k[2] >> 31);
-      k[2] = (k[2] << 1) | (k[1] >> 31);
-      k[1] = (k[1] << 1) | (k[0] >> 31);
-      k[0] = (k[0] << 1);
-
-      k[0] ^= c1 * 0x87;
+      make_kn (k);
 
       if (eapol_left < 16)
       {
-        const u32 c2 = k[3] >> 31;
-
-        k[3] = (k[3] << 1) | (k[2] >> 31);
-        k[2] = (k[2] << 1) | (k[1] >> 31);
-        k[1] = (k[1] << 1) | (k[0] >> 31);
-        k[0] = (k[0] << 1);
-
-        k[0] ^= c2 * 0x87;
+        make_kn (k);
       }
-
-      k[0] = swap32_S (k[0]);
-      k[1] = swap32_S (k[1]);
-      k[2] = swap32_S (k[2]);
-      k[3] = swap32_S (k[3]);
 
       m[0] ^= k[0];
       m[1] ^= k[1];

@@ -19,6 +19,36 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
+void make_kn (u32 *k)
+{
+  u32 kl[4];
+  u32 kr[4];
+
+  kl[0] = (k[0] << 1) & 0xfefefefe;
+  kl[1] = (k[1] << 1) & 0xfefefefe;
+  kl[2] = (k[2] << 1) & 0xfefefefe;
+  kl[3] = (k[3] << 1) & 0xfefefefe;
+
+  kr[0] = (k[0] >> 7) & 0x01010101;
+  kr[1] = (k[1] >> 7) & 0x01010101;
+  kr[2] = (k[2] >> 7) & 0x01010101;
+  kr[3] = (k[3] >> 7) & 0x01010101;
+
+  const u32 c = kr[0] & 1;
+
+  kr[0] = kr[0] >> 8 | kr[1] << 24;
+  kr[1] = kr[1] >> 8 | kr[2] << 24;
+  kr[2] = kr[2] >> 8 | kr[3] << 24;
+  kr[3] = kr[3] >> 8;
+
+  kr[3] ^= c * 0x87000000;
+
+  k[0] = kl[0] | kr[0];
+  k[1] = kl[1] | kr[1];
+  k[2] = kl[2] | kr[2];
+  k[3] = kl[3] | kr[3];
+}
+
 void hmac_sha1_run_V (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[5], u32x opad[5], u32x digest[5])
 {
   digest[0] = ipad[0];
@@ -557,36 +587,12 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
       aes128_encrypt (ks, k, k, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-      k[0] = swap32_S (k[0]);
-      k[1] = swap32_S (k[1]);
-      k[2] = swap32_S (k[2]);
-      k[3] = swap32_S (k[3]);
-
-      const u32 c1 = k[3] >> 31;
-
-      k[3] = (k[3] << 1) | (k[2] >> 31);
-      k[2] = (k[2] << 1) | (k[1] >> 31);
-      k[1] = (k[1] << 1) | (k[0] >> 31);
-      k[0] = (k[0] << 1);
-
-      k[0] ^= c1 * 0x87;
+      make_kn (k);
 
       if (eapol_left < 16)
       {
-        const u32 c2 = k[3] >> 31;
-
-        k[3] = (k[3] << 1) | (k[2] >> 31);
-        k[2] = (k[2] << 1) | (k[1] >> 31);
-        k[1] = (k[1] << 1) | (k[0] >> 31);
-        k[0] = (k[0] << 1);
-
-        k[0] ^= c2 * 0x87;
+        make_kn (k);
       }
-
-      k[0] = swap32_S (k[0]);
-      k[1] = swap32_S (k[1]);
-      k[2] = swap32_S (k[2]);
-      k[3] = swap32_S (k[3]);
 
       m[0] ^= k[0];
       m[1] ^= k[1];
@@ -836,36 +842,12 @@ __kernel void m02500_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
       aes128_encrypt (ks, k, k, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-      k[0] = swap32_S (k[0]);
-      k[1] = swap32_S (k[1]);
-      k[2] = swap32_S (k[2]);
-      k[3] = swap32_S (k[3]);
-
-      const u32 c1 = k[3] >> 31;
-
-      k[3] = (k[3] << 1) | (k[2] >> 31);
-      k[2] = (k[2] << 1) | (k[1] >> 31);
-      k[1] = (k[1] << 1) | (k[0] >> 31);
-      k[0] = (k[0] << 1);
-
-      k[0] ^= c1 * 0x87;
+      make_kn (k);
 
       if (eapol_left < 16)
       {
-        const u32 c2 = k[3] >> 31;
-
-        k[3] = (k[3] << 1) | (k[2] >> 31);
-        k[2] = (k[2] << 1) | (k[1] >> 31);
-        k[1] = (k[1] << 1) | (k[0] >> 31);
-        k[0] = (k[0] << 1);
-
-        k[0] ^= c2 * 0x87;
+        make_kn (k);
       }
-
-      k[0] = swap32_S (k[0]);
-      k[1] = swap32_S (k[1]);
-      k[2] = swap32_S (k[2]);
-      k[3] = swap32_S (k[3]);
 
       m[0] ^= k[0];
       m[1] ^= k[1];
