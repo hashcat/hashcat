@@ -16,7 +16,8 @@
 ## Algorithms
 ##
 
-- Added hash-mode  2501 = WPA/WPA2 PMK
+- Added hash-mode 2500 = WPA/WPA2 (SHA256-AES-CMAC)
+- Added hash-mode 2501 = WPA/WPA2 PMK
 
 ##
 ## Bugs
