@@ -25162,6 +25162,8 @@ int hashconfig_general_defaults (hashcat_ctx_t *hashcat_ctx)
       case 13763:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
                    break;
     }
+
+    salt->salt_iter -= 1;
   }
 
   return 0;
