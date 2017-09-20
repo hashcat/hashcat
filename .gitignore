@@ -7,7 +7,7 @@ libhashcat.so
 hashcat.dll
 *.potfile
 *.restore
-*.dictstat
+*.dictstat2
 *.pot
 *.pid
 *.log
