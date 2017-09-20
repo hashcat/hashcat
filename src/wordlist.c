@@ -248,7 +248,8 @@ void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len
 
     memcpy (ptr, pw_buf, pw_len);
 
-    memset (ptr + pw_len, 0, sizeof (pw->i) - pw_len);
+    //memset zero to entire buffer done in outer loop
+    //memset (ptr + pw_len, 0, sizeof (pw->i) - pw_len);
 
     pw->pw_len = pw_len;
 

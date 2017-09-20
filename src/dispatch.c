@@ -154,6 +154,8 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
     u32 words_extra_total = 0;
 
+    memset (device_param->pws_buf, 0, device_param->size_pws);
+
     while (device_param->pws_cnt < device_param->kernel_power)
     {
       char *line_buf = fgets (buf, HCBUFSIZ_LARGE - 1, stdin);
@@ -482,6 +484,8 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       u32 words_extra = -1u;
 
       u32 words_extra_total = 0;
+
+      memset (device_param->pws_buf, 0, device_param->size_pws);
 
       while (words_extra)
       {
