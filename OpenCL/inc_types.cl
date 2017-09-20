@@ -1424,7 +1424,6 @@ typedef struct keepass
 
 typedef struct dpapimk
 {
-  u32 version;
   u32 context;
 
   u32 SID[32];
@@ -1834,9 +1833,8 @@ typedef struct keepass_tmp
 
 } keepass_tmp_t;
 
-typedef struct dpapimk_tmp
+typedef struct dpapimk_tmp_v1
 {
-  /* dedicated to hmac-sha1 */
   u32 ipad[5];
   u32 opad[5];
   u32 dgst[10];
@@ -1844,13 +1842,18 @@ typedef struct dpapimk_tmp
 
   u32 userKey[5];
 
-  /* dedicated to hmac-sha512 */
+} dpapimk_tmp_t_v1;
+
+typedef struct dpapimk_tmp_v2
+{
   u64 ipad64[8];
   u64 opad64[8];
   u64 dgst64[16];
   u64 out64[16];
+  
+  u32 userKey[5];
 
-} dpapimk_tmp_t;
+} dpapimk_tmp_t_v2;
 
 typedef struct bsdicrypt_tmp
 {

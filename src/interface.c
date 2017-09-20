@@ -259,11 +259,12 @@ static char ST_HASH_14900[] = "7090b6b9:04223875";
 static char ST_HASH_15000[] = "bfa9fe5a404faff8b0d200385e26b783a163e475869336029d3ebaccaf02b5f16e4949279e8a33b942ab647f8f19a83dbe89a6d39dd6d8f84812de7d2e556767:6422386434050716105781561510557063652302782465168686858312232148";
 static char ST_HASH_15100[] = "$sha1$20000$75552156$HhYMDdaEHiK3eMIzTldOFPnw.s2Q";
 static char ST_HASH_15200[] = "$blockchain$v2$5000$288$324724252428471806184866704068819419467b2b32fd9593fd1a274e0b68bf2c72e5a1f5e748fd319056d1e47ca7b40767136a2d97d7133d14faaeca50986f66cdbc0faec0a3fabbd0ba5d08d5322b6b53da021aacfc439c45bec0e9fe02ad81db82f94e9bd36a7d4d76b505c2339fcd46565d3abab958fbeb1de8bfc53beb96cde8fe44128965477c9ef0762c62bbb1d66532b4888e174ea949db54374a2ed9686a63eb0b5b17ae293f7410bb4ae5106f108314a259c5fd097d558515d79350713412159103a8a174cd384a14f3da45efe18044e1146036000231f6042577d0add98fc959d265368e398dc1550b0bc693e9023cd9d51b40e701bd786e19c3a281a90465aa6ea3f9e756d430164ab2eb43be5b6796d7ac15b2fe99217410f2";
-static char ST_HASH_15300[] = "$DPAPImk$2*1*S-15-21-439882973-489230393-482956683-1522*aes256*sha512*12900*79f7ca399f2626e21aad108c3922af7c*288*c47bc8a985ca6aa708b01c97b004bff20cc52379dc2635b4acf59ce17970a2cb47ace98c7e8de977f265243c5c03d0a97e4b954b494d9e38d9158d0c1e729d16a28ba69e2e7c6c3bc0e3afc9c9b6306b83372ccb35d89b98925728fd36315b8ee95b4d4eccdcb31564769f9a4b9ee10828184e16d4af336675d5e31d987dd87233d34fbbb98880c5e1f64cbb9b043ad8";
+static char ST_HASH_15300[] = "$DPAPImk$1*1*S-15-21-466364039-425773974-453930460-1925*des3*sha1*24000*b038489dee5ad04e3e3cab4d957258b5*208*cb9b5b7d96a0d2a00305ca403d3fd9c47c561e35b4b2cf3aebfd1d3199a6481d56972be7ebd6c291b199e6f1c2ffaee91978706737e9b1209e6c7d3aa3d8c3c3e38ad1ccfa39400d62c2415961c17fd0bd6b0f7bbd49cc1de1a394e64b7237f56244238da8d37d78";
 static char ST_HASH_15400[] = "$chacha20$*0400000000000003*35*0200000000000001*3961626364656667*8a152c57a7a856a8";
 static char ST_HASH_15500[] = "$jksprivk$*338BD2FBEBA7B3EF198A4CBFC6E18AFF1E229367*5225850113575146134463704406336350011656*D5253EB151EB92DC73E542D8C0A4D7A848A5B0C0E370E625E6547D4E6F23416FC85A27BC295731B8021CDFBD003551C66C434FFBC87DACAD1FDF39022320034A2F86E779F2B1B3325428A666518FA89507AD63E15FD9C57B9E36EF5B642A2F448A9A3F09B79AD93D65F46B8692CD07539FD140146F8F219DC262971AF019E18EDC16C3C240569E1673F4D98BC818CCF28298D5A7BFF038A663DD10FE5E48643C3217C237D342164E2D41EF15075431FBD5B34800E5AE7EB80FAA5AE9982A55F35379AA7B31217E7F1C5F1964A15024A305AE4B3981FE1C80C163BC38ECA5581F11867E5C34C5D124D0367B3737E5E5BB14D2CAB26A698C8DAAB755C82BA6B823BCAECDD4A89C831651ACE5A6029FD0D3515C5D1D53AD8B9062CE8C445373862035CBBF60D490CA2E4975EE6E0358EC32E871FAB15347E3032E21F30F543BAAB01D779BA833CA0B8C7591B42C7C59A8FDD46D7DECEC0E91ADBF331177605E7830ABED62FAD7D5D806D8EFD01C38765940B7F97168FC72C39BF4C98F944FFC310CA8F4EB1D0F960F352CC5E2BB23A1EB221072A5471EDA2CE81C04595B8D37088CFB5C14F6A4A881AD12125DEFBB8154EB4C130AB7FD9933FD36DF1A6A26B51AB169866788678FCED988C8E017CA84354F487A5508210181AFB8B3AD0753E3E28BE674DFBD4E4FBDFD1E30D592F4EA3A77A2F0F5CF9A175DBC590EF5D42971A39918F12B92DCD8BFD56BE9A3459856B5587603C7B53062663A4C8894BBC9894FB1663BF30F32D907664328138B7A50EAC7F8E3183D74562A5C90FE1889AC4C5FE43EBEB8974563B6682F92591ECA4FA0DA72236C3851DA102DB6BA0CC07BFD32F7E962AB0EDCF4A8DEA6525174F5BB5C021E2A9A3F7F761E9CA90B6E27FB7E55CD91DA184FAC5E534E8AD25314C56CE5796506A0CA70881782F9C5147D87705065D68BD67D2B0344205BA6445D562273690004CA5A303274FB283A75F49BA968D7947943AA98F2AF9CB8253B425B86225E7395A331AC4CB1B1700C64D4F458D5D642C54148AE6DA41D9E26657D331B157D76042C2CF3057B83997C23D8BF68FB3C7337CAFB8B324AD0DF7A80B554B4D7F9AD6ED527E7932F1741A573C152A41610F6517E3F4A3BC6B66685871A7CE3795C559BD47CDB8E34CB2C1DFE980518D79E2078C258C54F312EB38609F640E7DC013E0F2A16A25BB5971882B4308D27930CA99FEC231AE927B62215A1B56098C362B7F20593953B29428681875070E84BF5B60BEA3948127151634123DA77C814AAD54CE10905763C8C19BC191C0C40458C809402E1957C4C05C4EAE27576B2D30593F7FDCC9A248DB5DB23CF2FA22A92C016090F611690BF0AB5B8B2866ED25F345EFE85DF3311C9E91C37CEE709CF16E7CB09D01BECD2961D094C02D42EC85BF47FAB1B67A13B9A1741C15F7156D57A71BFFABB03B71E69707913A5C136B3D69CE3F71ABFE376F0A21D723FFA2E60AC180689D3E8AF4348C9F555CD897387327FC8BA2B9C51A7298547E556A11A60441EF5331A1BFB847A3D23DD9F7C50E636A2C6309BC82E1A8852F5A8569B6D93*14*78D6A2424484CF5149932B7EA8BF*test";
 static char ST_HASH_15600[] = "$ethereum$p*1024*38353131353831333338313138363430*a8b4dfe92687dbc0afeb5dae7863f18964241e96b264f09959903c8c924583fc*0a9252861d1e235994ce33dbca91c98231764d8ecb4950015a8ae20d6415b986";
 static char ST_HASH_15700[] = "$ethereum$s*1024*1*1*3033363133373132373638333437323331383637383437333631373038323434*69eaf081695cf971ef7ee5a49997c1a3922e7efef59068109e83853755ee31c3*64a1adec1750ee4416b22b81111dd2a3c2fede820d6da8bf788dca2641d5b181";
+static char ST_HASH_15900[] = "$DPAPImk$2*1*S-15-21-439882973-489230393-482956683-1522*aes256*sha512*12900*79f7ca399f2626e21aad108c3922af7c*288*c47bc8a985ca6aa708b01c97b004bff20cc52379dc2635b4acf59ce17970a2cb47ace98c7e8de977f265243c5c03d0a97e4b954b494d9e38d9158d0c1e729d16a28ba69e2e7c6c3bc0e3afc9c9b6306b83372ccb35d89b98925728fd36315b8ee95b4d4eccdcb31564769f9a4b9ee10828184e16d4af336675d5e31d987dd87233d34fbbb98880c5e1f64cbb9b043ad8";
 static char ST_HASH_99999[] = "hashcat";
 
 static const char OPTI_STR_OPTIMIZED_KERNEL[]     = "Optimized-Kernel";
@@ -490,11 +491,12 @@ static const char HT_14900[] = "Skip32 (PT = $salt, key = $pass)";
 static const char HT_15000[] = "FileZilla Server >= 0.9.55";
 static const char HT_15100[] = "Juniper/NetBSD sha1crypt";
 static const char HT_15200[] = "Blockchain, My Wallet, V2";
-static const char HT_15300[] = "DPAPI masterkey file v1 and v2";
+static const char HT_15300[] = "DPAPI masterkey file v1";
 static const char HT_15400[] = "ChaCha20";
 static const char HT_15500[] = "JKS Java Key Store Private Keys (SHA1)";
 static const char HT_15600[] = "Ethereum Wallet, PBKDF2-HMAC-SHA256";
 static const char HT_15700[] = "Ethereum Wallet, SCRYPT";
+static const char HT_15900[] = "DPAPI masterkey file v2";
 static const char HT_99999[] = "Plaintext";
 
 static const char HT_00011[] = "Joomla < 2.5.18";
@@ -3098,6 +3100,7 @@ int dcc2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
 int dpapimk_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
+  /* 15300 and 15900 share the same input format */
   if ((input_len < DISPLAY_LEN_MIN_15300) || (input_len > DISPLAY_LEN_MAX_15300)) return (PARSER_GLOBAL_LENGTH);
 
   if (memcmp (SIGNATURE_DPAPIMK, input_buf, 9)) return (PARSER_SIGNATURE_UNMATCHED);
@@ -3194,8 +3197,6 @@ int dpapimk_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   effective_contents_len = (u32) (end_line - contents_pos);
 
   if (effective_contents_len != contents_len) return (PARSER_SALT_LENGTH);
-
-  dpapimk->version = version;
 
   dpapimk->context = atoll ((const char *) context_pos);
 
@@ -16109,6 +16110,7 @@ char *strhashtype (const u32 hash_mode)
     case 15500: return ((char *) HT_15500);
     case 15600: return ((char *) HT_15600);
     case 15700: return ((char *) HT_15700);
+    case 15900: return ((char *) HT_15900);
     case 99999: return ((char *) HT_99999);
   }
 
@@ -19229,7 +19231,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     dpapimk_t *dpapimk  = &dpapimks[digest_cur];
 
-    u32 version      = (u32) dpapimk->version;
+    u32 version      = 1;
     u32 context      = (u32) dpapimk->context;
     u32 rounds       = salt.salt_iter + 1;
     u32 contents_len = (u32) dpapimk->contents_len;
@@ -19288,21 +19290,9 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
       u32_to_hex_lower (u32_contents[i], contents +  i * 8);
     }
 
-    if (version == 1)
-    {
-      contents[208] = 0;
-    }
-    else
-    {
-      contents[288] = 0;
-    }
+    contents[208] = 0;
 
-    if (contents_len == 288 && version == 2)
-    {
-      memcpy(cipher_algorithm, "aes256", strlen("aes256"));
-      memcpy(hash_algorithm,   "sha512", strlen("sha512"));
-    }
-    else if (contents_len == 208 && version == 1)
+    if (contents_len == 208)
     {
       memcpy(cipher_algorithm, "des3", strlen("des3"));
       memcpy(hash_algorithm,   "sha1", strlen("sha1"));
@@ -19423,6 +19413,91 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
       digest_buf[6],
       digest_buf[7]
     );
+  }
+  else if (hash_mode == 15900)
+  {
+    dpapimk_t *dpapimks = (dpapimk_t *) esalts_buf;
+
+    dpapimk_t *dpapimk  = &dpapimks[digest_cur];
+
+    u32 version      = 2;
+    u32 context      = (u32) dpapimk->context;
+    u32 rounds       = salt.salt_iter + 1;
+    u32 contents_len = (u32) dpapimk->contents_len;
+    u32 SID_len      = (u32) dpapimk->SID_len;
+    u32 iv_len       = 32;
+
+    u8 cipher_algorithm[8] = { 0 };
+    u8 hash_algorithm[8]   = { 0 };
+    u8 SID[512]            = { 0 };
+    u8* SID_tmp;
+
+    u32  *ptr_SID          = (u32 *)  dpapimk->SID;
+    u32  *ptr_iv           = (u32 *)  dpapimk->iv;
+    u32  *ptr_contents     = (u32 *)  dpapimk->contents;
+
+    u32 u32_iv[4];
+    u8 iv[32 + 1];
+
+    /* convert back SID */
+
+    SID_tmp = (u8 *) hcmalloc ((SID_len + 1) * sizeof(u8));
+
+    for (u32 i = 0; i < (SID_len / 4) + 1; i++)
+    {
+      u8 hex[8] = { 0 };
+      u32_to_hex_lower (byte_swap_32 (ptr_SID[i]), hex);
+
+      for (u32 j = 0, k = 0; j < 8; j += 2, k++)
+      {
+        SID_tmp[i * 4 + k] = hex_to_u8 (&hex[j]);
+      }
+    }
+    /* overwrite trailing 0x80 */
+    SID_tmp[SID_len] = 0;
+
+    for (u32 i = 0, j = 0 ; j < SID_len ; i++, j += 2)
+    {
+      SID[i] = SID_tmp[j];
+    }
+
+    hcfree(SID_tmp);
+
+    for (u32 i = 0; i < iv_len / 8; i++)
+    {
+      u32_iv[i] = byte_swap_32 (ptr_iv[i]);
+      u32_to_hex_lower (u32_iv[i], iv +  i * 8);
+    }
+    iv[32] = 0;
+
+    u32 u32_contents[36];
+    u8  contents[288 + 1];
+
+    for (u32 i = 0; i < contents_len / 8; i++)
+    {
+      u32_contents[i] = byte_swap_32 (ptr_contents[i]);
+      u32_to_hex_lower (u32_contents[i], contents +  i * 8);
+    }
+
+    contents[288] = 0;
+
+    if (contents_len == 288)
+    {
+      memcpy(cipher_algorithm, "aes256", strlen("aes256"));
+      memcpy(hash_algorithm,   "sha512", strlen("sha512"));
+    }
+
+    snprintf (out_buf, out_len - 1, "%s%d*%d*%s*%s*%s*%d*%s*%d*%s",
+      SIGNATURE_DPAPIMK,
+      version,
+      context,
+      SID,
+      cipher_algorithm,
+      hash_algorithm,
+      rounds,
+      iv,
+      contents_len,
+      contents);
   }
   else if (hash_mode == 99999)
   {
@@ -24262,7 +24337,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_DPAPIMK;
+                 hashconfig->kern_type      = KERN_TYPE_DPAPIMK_V1;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = dpapimk_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
@@ -24347,6 +24422,23 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 3;
                  hashconfig->st_hash        = ST_HASH_15700;
+                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
+                 break;
+
+    case 15900:  hashconfig->hash_type      = HASH_TYPE_DPAPIMK;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
+                 hashconfig->kern_type      = KERN_TYPE_DPAPIMK_V2;
+                 hashconfig->dgst_size      = DGST_SIZE_4_4;
+                 hashconfig->parse_func     = dpapimk_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
+                 hashconfig->dgst_pos0      = 0;
+                 hashconfig->dgst_pos1      = 1;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 3;
+                 hashconfig->st_hash        = ST_HASH_15900;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
@@ -24557,6 +24649,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 15500: hashconfig->esalt_size = sizeof (jks_sha1_t);        break;
     case 15600: hashconfig->esalt_size = sizeof (ethereum_pbkdf2_t); break;
     case 15700: hashconfig->esalt_size = sizeof (ethereum_scrypt_t); break;
+    case 15900: hashconfig->esalt_size = sizeof (dpapimk_t);         break;
   }
 
   // hook_salt_size
@@ -24661,8 +24754,9 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 14800: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);   break;
     case 15100: hashconfig->tmp_size = sizeof (pbkdf1_sha1_tmp_t);     break;
     case 15200: hashconfig->tmp_size = sizeof (mywallet_tmp_t);        break;
-    case 15300: hashconfig->tmp_size = sizeof (dpapimk_tmp_t);         break;
+    case 15300: hashconfig->tmp_size = sizeof (dpapimk_tmp_t_v1);      break;
     case 15600: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);   break;
+    case 15900: hashconfig->tmp_size = sizeof (dpapimk_tmp_t_v2);      break;
   };
 
   // hook_size
@@ -24900,6 +24994,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 15400: hashconfig->pw_max = 32;      break; // Underlaying ChaCha20 fixed
     case 15600: hashconfig->pw_max = PW_MAX;  break;
     case 15700: hashconfig->pw_max = PW_MAX;  break;
+    case 15900: hashconfig->pw_max = PW_MAX;  break;
   }
 
   // salt_min and salt_max : this limit is only interessting for generic hash types that support a salt
@@ -25338,8 +25433,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                   ((luks_t *)          esalt)->cipher_type   = HC_LUKS_CIPHER_TYPE_AES;
                   ((luks_t *)          esalt)->cipher_mode   = HC_LUKS_CIPHER_MODE_XTS_PLAIN;
                   break;
-      case 15300: ((dpapimk_t *)       esalt)->version       = 1;
-                  break;
     }
 
     // special hook salt handling
@@ -25536,11 +25629,13 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                  break;
     case 15200:  salt->salt_iter  = ROUNDS_MYWALLETV2;
                  break;
-    case 15300:  salt->salt_iter  = ROUNDS_DPAPIMK;
+    case 15300:  salt->salt_iter  = ROUNDS_DPAPIMK_V1;
                  break;
     case 15600:  salt->salt_iter  = ROUNDS_ETHEREUM_PBKDF2;
                  break;
     case 15700:  salt->salt_iter  = 1;
+                 break;
+    case 15900:  salt->salt_iter  = ROUNDS_DPAPIMK_V2;
                  break;
   }
 }
