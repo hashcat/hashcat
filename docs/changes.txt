@@ -69,6 +69,8 @@
 
 - General: Update C standard from c99 to gnu99
 - Hash Parser: Improved salt-length checks for generic hash modes
+- HCdict File: Renamed file from hashcat.hcdict to hashcat.hcdict2 and add header because versions are incompatible
+- HCstat File: Renamed file from hashcat.hcstat to hashcat.hcstat2 and add header because versions are incompatible
 - HCstat File: Add code to read LZMA compressed hashcat.hcstat2
 - HCstat File: Add hcstat2 support to enable masks of length up to 256, also adds a filetype header
 - OpenCL Kernels: Added code generator for most of the switch_* functions and replaced existing code

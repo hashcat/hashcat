@@ -15,7 +15,10 @@
 #include <errno.h>
 #include <search.h>
 
-#define MAX_DICTSTAT 10000
+#define MAX_DICTSTAT 100000
+
+#define DICTSTAT_FILENAME "hashcat.dictstat2"
+#define DICTSTAT_VERSION  (0x6863646963740000 | 0x0002)
 
 int sort_by_dictstat (const void *s1, const void *s2);
 

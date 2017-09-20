@@ -6,6 +6,7 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
+#include "bitops.h"
 #include "event.h"
 #include "dictstat.h"
 #include "locking.h"
@@ -54,7 +55,7 @@ int dictstat_init (hashcat_ctx_t *hashcat_ctx)
   dictstat_ctx->base     = (dictstat_t *) hccalloc (MAX_DICTSTAT, sizeof (dictstat_t));
   dictstat_ctx->cnt      = 0;
 
-  hc_asprintf (&dictstat_ctx->filename, "%s/hashcat.dictstat", folder_config->profile_dir);
+  hc_asprintf (&dictstat_ctx->filename, "%s/%s", folder_config->profile_dir, DICTSTAT_FILENAME);
 
   return 0;
 }
@@ -85,6 +86,40 @@ void dictstat_read (hashcat_ctx_t *hashcat_ctx)
 
     return;
   }
+
+  // parse header
+
+  u64 v;
+  u64 z;
+
+  const size_t nread1 = hc_fread (&v, sizeof (u64), 1, fp);
+  const size_t nread2 = hc_fread (&z, sizeof (u64), 1, fp);
+
+  if ((nread1 != 1) || (nread2 != 1))
+  {
+    event_log_error (hashcat_ctx, "%s: Invalid header", dictstat_ctx->filename);
+
+    return;
+  }
+
+  v = byte_swap_64 (v);
+  z = byte_swap_64 (z);
+
+  if (v != DICTSTAT_VERSION)
+  {
+    event_log_error (hashcat_ctx, "%s: Invalid header", dictstat_ctx->filename);
+
+    return;
+  }
+
+  if (z != 0)
+  {
+    event_log_error (hashcat_ctx, "%s: Invalid header", dictstat_ctx->filename);
+
+    return;
+  }
+
+  // parse data
 
   while (!feof (fp))
   {
@@ -130,6 +165,19 @@ int dictstat_write (hashcat_ctx_t *hashcat_ctx)
 
     return -1;
   }
+
+  // header
+
+  u64 v = DICTSTAT_VERSION;
+  u64 z = 0;
+
+  v = byte_swap_64 (v);
+  z = byte_swap_64 (z);
+
+  hc_fwrite (&v, sizeof (u64), 1, fp);
+  hc_fwrite (&z, sizeof (u64), 1, fp);
+
+  // data
 
   hc_fwrite (dictstat_ctx->base, sizeof (dictstat_t), dictstat_ctx->cnt, fp);
 
