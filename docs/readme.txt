@@ -1,4 +1,4 @@
-hashcat v3.6.0
+hashcat v4.0.0
 ==============
 
 AMD GPUs on Windows require "AMD Radeon Software Crimson Edition" (15.12 or later)
