@@ -1,4 +1,4 @@
-* changes v3.6.0 -> xxx:
+* changes v3.6.0 -> v4.0.0:
 
 ##
 ## Features

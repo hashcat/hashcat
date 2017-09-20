@@ -16,7 +16,7 @@
 #endif // _WIN
 
 #define RESTORE_VERSION_MIN 340
-#define RESTORE_VERSION_CUR 360
+#define RESTORE_VERSION_CUR 400
 
 int cycle_restore (hashcat_ctx_t *hashcat_ctx);
 
