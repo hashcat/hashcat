@@ -41,12 +41,12 @@ void make_kn (u32 *k)
   kr[2] = kr[2] >> 8 | kr[3] << 24;
   kr[3] = kr[3] >> 8;
 
-  kr[3] ^= c * 0x87000000;
-
   k[0] = kl[0] | kr[0];
   k[1] = kl[1] | kr[1];
   k[2] = kl[2] | kr[2];
   k[3] = kl[3] | kr[3];
+
+  k[3] ^= c * 0x87000000;
 }
 
 void hmac_sha1_run_V (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[5], u32x opad[5], u32x digest[5])
