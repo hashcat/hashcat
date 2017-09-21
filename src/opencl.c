@@ -456,7 +456,7 @@ int ocl_init (hashcat_ctx_t *hashcat_ctx)
 
     #if defined (__linux__)
     event_log_warning (hashcat_ctx, "* AMD GPUs on Linux require this runtime and/or driver:");
-    event_log_warning (hashcat_ctx, "  \"AMDGPU-PRO Driver\" (16.40 or later)");
+    event_log_warning (hashcat_ctx, "  \"RadeonOpenCompute (ROCm)\" Software Platform (1.6.0 or later)");
     #elif defined (_WIN)
     event_log_warning (hashcat_ctx, "* AMD GPUs on Windows require this runtime and/or driver:");
     event_log_warning (hashcat_ctx, "  \"AMD Radeon Software Crimson Edition\" (15.12 or later)");
@@ -3306,6 +3306,10 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
               #if defined (__linux__)
               if (device_param->is_rocm == false)
               {
+                // ROCm is so much better, give the user some hint.
+                // They can still use --force to use AMDGPU-Pro.
+
+                /*
                 // AMDGPU-PRO Driver 16.40 and higher
                 if (atoi (device_param->driver_version) >= 2117) amd_warn = false;
                 // AMDGPU-PRO Driver 16.50 is known to be broken
@@ -3315,6 +3319,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
                 // AMDGPU-PRO Driver 17.10 is known to be broken
                 if (atoi (device_param->driver_version) == 2348) amd_warn = true;
                 // AMDGPU-PRO Driver 17.20 (2416) is fine, doesn't need check will match >= 2117
+                */
               }
               else
               {

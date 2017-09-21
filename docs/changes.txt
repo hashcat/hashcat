@@ -77,6 +77,7 @@
 - OpenCL Kernels: Declared all include functions as static to reduce binary kernel cache size
 - OpenCL Kernels: On AMD GPU, optimized kernels for use with AMD ROCm driver
 - OpenCL Kernels: Removed some include functions that are no longer needed to reduce compile time
+- OpenCL Runtime: On AMD GPU, recommend AMD ROCm driver for Linux
 - OpenCL Runtime: Fall back to 64 threads default (from 256) on AMD GPU to prevent creating too many workitems
 - OpenCL Runtime: Forcing OpenCL 1.2 no longer needed. Option removed from build options
 - Restore: Fixed the version number used in the restore file header
