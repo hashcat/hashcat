@@ -1842,7 +1842,7 @@ typedef struct dpapimk_tmp_v1
 
   u32 userKey[5];
 
-} dpapimk_tmp_t_v1;
+} dpapimk_tmp_v1_t;
 
 typedef struct dpapimk_tmp_v2
 {
@@ -1850,10 +1850,10 @@ typedef struct dpapimk_tmp_v2
   u64 opad64[8];
   u64 dgst64[16];
   u64 out64[16];
-  
+
   u32 userKey[5];
 
-} dpapimk_tmp_t_v2;
+} dpapimk_tmp_v2_t;
 
 typedef struct bsdicrypt_tmp
 {

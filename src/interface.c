@@ -24754,9 +24754,9 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 14800: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);   break;
     case 15100: hashconfig->tmp_size = sizeof (pbkdf1_sha1_tmp_t);     break;
     case 15200: hashconfig->tmp_size = sizeof (mywallet_tmp_t);        break;
-    case 15300: hashconfig->tmp_size = sizeof (dpapimk_tmp_t_v1);      break;
+    case 15300: hashconfig->tmp_size = sizeof (dpapimk_tmp_v1_t);      break;
     case 15600: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);   break;
-    case 15900: hashconfig->tmp_size = sizeof (dpapimk_tmp_t_v2);      break;
+    case 15900: hashconfig->tmp_size = sizeof (dpapimk_tmp_v2_t);      break;
   };
 
   // hook_size
