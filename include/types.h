@@ -75,10 +75,10 @@ typedef pthread_mutex_t   hc_thread_mutex_t;
 
 // stat
 
-#if defined (_WIN)
-typedef struct _stat64 hc_stat_t;
+#if defined (__CYGWIN__)
+typedef struct stat   hc_stat_t;
 #else
-typedef struct stat hc_stat_t;
+typedef struct stat64 hc_stat_t;
 #endif
 
 // enums
