@@ -166,7 +166,7 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
   user_options_t *user_options = hashcat_ctx->user_options;
 
   // this is required, because some of the variables down there are not initialized at that point
-  while (status_ctx->devices_status == STATUS_INIT) hc_sleep_msec (100);
+  while (status_ctx->devices_status == STATUS_INIT) usleep (100000);
 
   const bool quiet = user_options->quiet;
 

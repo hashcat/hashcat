@@ -59,7 +59,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
   while (status_ctx->shutdown_inner == false)
   {
-    hc_sleep (1);
+    sleep (1);
 
     if (status_ctx->devices_status != STATUS_RUNNING) continue;
 

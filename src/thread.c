@@ -30,7 +30,7 @@ BOOL WINAPI sigHandler_default (DWORD sig)
 
       SetConsoleCtrlHandler (NULL, TRUE);
 
-      hc_sleep (10);
+      sleep (10);
 
       return TRUE;
 
@@ -58,7 +58,7 @@ BOOL WINAPI sigHandler_benchmark (DWORD sig)
 
       SetConsoleCtrlHandler (NULL, TRUE);
 
-      hc_sleep (10);
+      sleep (10);
 
       return TRUE;
 
