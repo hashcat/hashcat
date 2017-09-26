@@ -438,8 +438,7 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
     {
       char *hash_type = strhashtype (hashconfig->hash_mode); // not a bug
 
-      event_log_info (hashcat_ctx, "Hashtype: %s", hash_type);
-      event_log_info (hashcat_ctx, "Hashmode: %d", hashconfig->hash_mode);
+      event_log_info (hashcat_ctx, "Hashtype: %s, -m %d", hash_type, hashconfig->hash_mode);
       event_log_info (hashcat_ctx, NULL);
     }
   }
