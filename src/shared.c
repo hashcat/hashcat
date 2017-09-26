@@ -173,24 +173,6 @@ int hc_fstat (int fd, hc_stat_t *buf)
 }
 #endif
 
-void hc_sleep_msec (const u32 msec)
-{
-  #if defined (_WIN)
-  Sleep (msec);
-  #else
-  usleep (msec * 1000);
-  #endif
-}
-
-void hc_sleep (const u32 sec)
-{
-  #if defined (_WIN)
-  Sleep (sec * 1000);
-  #else
-  sleep (sec);
-  #endif
-}
-
 #if defined (_WIN)
 #define __WINDOWS__
 #endif

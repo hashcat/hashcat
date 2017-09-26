@@ -129,7 +129,7 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
   while (status_ctx->shutdown_inner == false)
   {
-    hc_sleep (sleep_time);
+    sleep (sleep_time);
 
     if (status_ctx->devices_status == STATUS_INIT) continue;
 

@@ -1952,7 +1952,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
   for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
   {
-    while (status_ctx->devices_status == STATUS_PAUSED) hc_sleep (1);
+    while (status_ctx->devices_status == STATUS_PAUSED) sleep (1);
 
     salt_t *salt_buf = &hashes->salts_buf[salt_pos];
 
@@ -1983,7 +1983,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
     for (u64 innerloop_pos = 0; innerloop_pos < innerloop_cnt; innerloop_pos += innerloop_step)
     {
-      while (status_ctx->devices_status == STATUS_PAUSED) hc_sleep (1);
+      while (status_ctx->devices_status == STATUS_PAUSED) sleep (1);
 
       u32 fast_iteration = 0;
 
