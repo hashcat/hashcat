@@ -151,17 +151,7 @@ void hc_asprintf (char **strp, const char *fmt, ...)
   va_end (args);
 }
 
-#if defined (_WIN)
-int hc_stat (const char *pathname, hc_stat_t *buf)
-{
-  return stat64 (pathname, buf);
-}
-
-int hc_fstat (int fd, hc_stat_t *buf)
-{
-  return fstat64 (fd, buf);
-}
-#else
+#if defined (__CYGWIN__)
 int hc_stat (const char *pathname, hc_stat_t *buf)
 {
   return stat (pathname, buf);
@@ -170,6 +160,16 @@ int hc_stat (const char *pathname, hc_stat_t *buf)
 int hc_fstat (int fd, hc_stat_t *buf)
 {
   return fstat (fd, buf);
+}
+#else
+int hc_stat (const char *pathname, hc_stat_t *buf)
+{
+  return stat64 (pathname, buf);
+}
+
+int hc_fstat (int fd, hc_stat_t *buf)
+{
+  return fstat64 (fd, buf);
 }
 #endif
 
