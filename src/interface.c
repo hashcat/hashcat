@@ -18433,7 +18433,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
       cost++;
     }
 
-    snprintf (out_buf, out_len - 1, "%s%d$%u$%d$%s$%u$%08x%08x%08x%08x$%u$%u$%u$%s",
+    snprintf (out_buf, out_len - 1, "%s%u$%u$%u$%s$%u$%08x%08x%08x%08x$%u$%u$%u$%s",
       SIGNATURE_SEVEN_ZIP,
       salt.salt_sign[0],
       cost,
@@ -18453,7 +18453,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     {
       u32 bytes_written = strlen (out_buf);
 
-      snprintf (out_buf + bytes_written, out_len - bytes_written - 1, "$%i$", seven_zip->crc_len);
+      snprintf (out_buf + bytes_written, out_len - bytes_written - 1, "$%u$", seven_zip->crc_len);
 
       bytes_written = strlen (out_buf);
 
@@ -19044,7 +19044,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     wpky[80] = 0;
 
-    snprintf (out_buf, out_len - 1, "%s*%i*%s*%i*%s**",
+    snprintf (out_buf, out_len - 1, "%s*%u*%s*%u*%s**",
       SIGNATURE_ITUNES_BACKUP,
       salt.salt_sign[0],
       wpky,
@@ -19106,7 +19106,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     dpsl[40] = 0;
 
-    snprintf (out_buf, out_len - 1, "%s*%i*%s*%i*%s*%i*%s",
+    snprintf (out_buf, out_len - 1, "%s*%u*%s*%u*%s*%u*%s",
       SIGNATURE_ITUNES_BACKUP,
       salt.salt_sign[0],
       wpky,
@@ -19127,7 +19127,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     // output:
 
-    snprintf (out_buf, out_len - 1, "$sha1$%i$%s$%s",
+    snprintf (out_buf, out_len - 1, "$sha1$%u$%s$%s",
       salt.salt_iter + 1,
       (char *) salt.salt_buf,
       ptr_plain);
@@ -19224,7 +19224,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
       memcpy(hash_algorithm,   "sha1", strlen("sha1"));
     }
 
-    snprintf (out_buf, out_len - 1, "%s%d*%d*%s*%s*%s*%d*%s*%d*%s",
+    snprintf (out_buf, out_len - 1, "%s%u*%u*%s*%s*%s*%u*%s*%u*%s",
       SIGNATURE_DPAPIMK,
       version,
       context,
@@ -19289,7 +19289,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     ethereum_pbkdf2_t *ethereum_pbkdf2s = (ethereum_pbkdf2_t *) esalts_buf;
     ethereum_pbkdf2_t *ethereum_pbkdf2  = &ethereum_pbkdf2s[digest_cur];
 
-    snprintf (out_buf, out_len - 1, "%s*%d*%s*%08x%08x%08x%08x%08x%08x%08x%08x*%08x%08x%08x%08x%08x%08x%08x%08x",
+    snprintf (out_buf, out_len - 1, "%s*%u*%s*%08x%08x%08x%08x%08x%08x%08x%08x*%08x%08x%08x%08x%08x%08x%08x%08x",
       SIGNATURE_ETHEREUM_PBKDF2,
       salt.salt_iter + 1,
       (char *) salt.salt_buf,
@@ -19316,7 +19316,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     ethereum_scrypt_t *ethereum_scrypts = (ethereum_scrypt_t *) esalts_buf;
     ethereum_scrypt_t *ethereum_scrypt  = &ethereum_scrypts[digest_cur];
 
-    snprintf (out_buf, out_len - 1, "%s*%d*%d*%d*%s*%08x%08x%08x%08x%08x%08x%08x%08x*%08x%08x%08x%08x%08x%08x%08x%08x",
+    snprintf (out_buf, out_len - 1, "%s*%u*%u*%u*%s*%08x%08x%08x%08x%08x%08x%08x%08x*%08x%08x%08x%08x%08x%08x%08x%08x",
       SIGNATURE_ETHEREUM_SCRYPT,
       salt.scrypt_N,
       salt.scrypt_r,
@@ -19507,7 +19507,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
       const chacha20_t *chacha20_tmp = (const chacha20_t *) esalts_buf;
       const chacha20_t *chacha20     = &chacha20_tmp[digest_cur];
 
-      snprintf (out_buf, out_len - 1, "%s*%08x%08x*%d*%08x%08x*%08x%08x*%08x%08x",
+      snprintf (out_buf, out_len - 1, "%s*%08x%08x*%u*%08x%08x*%08x%08x*%08x%08x",
         SIGNATURE_CHACHA20,
         byte_swap_32(chacha20->position[0]),
         byte_swap_32(chacha20->position[1]),
