@@ -152,11 +152,14 @@ CFLAGS                  += -Wwrite-strings
 
 # the following compiler options produce warnings that should be fixed at some time
 
-#CFLAGS                  += -Wsizeof-pointer-memaccess
-#CFLAGS                  += -Wcast-align
-#CFLAGS                  += -Wcast-qual
-#CFLAGS                  += -Wsign-conversion
-#CFLAGS                  += -pedantic
+CFLAGS                  += -Wno-cast-align
+CFLAGS                  += -Wno-cast-qual
+CFLAGS                  += -Wno-conversion
+CFLAGS                  += -Wno-padded
+CFLAGS                  += -Wno-pedantic
+CFLAGS                  += -Wno-sizeof-pointer-memaccess
+#CFLAGS                  += -Wno-reserved-id-macro      //clang specific
+#CFLAGS                  += -Wno-used-but-marked-unused //    ^^
 endif
 
 # default linux and freebsd thread stack size is 2MB
