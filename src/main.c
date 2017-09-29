@@ -438,7 +438,7 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
     {
       char *hash_type = strhashtype (hashconfig->hash_mode); // not a bug
 
-      event_log_info (hashcat_ctx, "Hashtype: %s", hash_type);
+      event_log_info (hashcat_ctx, "Hashmode: %d - %s", hashconfig->hash_mode, hash_type);
       event_log_info (hashcat_ctx, NULL);
     }
   }
@@ -527,9 +527,6 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
   event_log_info (hashcat_ctx, NULL);
 
-  #if defined (DEBUG)
-  if (user_options->benchmark == true) event_log_info (hashcat_ctx, "Hashmode: %d", hashconfig->hash_mode);
-  #endif
 }
 
 static void main_opencl_session_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
