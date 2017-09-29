@@ -75,6 +75,20 @@ but this is nededed for VS compiler which doesn't have inline keyword but has __
 
 #define MAYBE_UNUSED __attribute__((unused))
 
+/* Check if we also need to use/set the nanoseconds for the file stats:
+The linux manual says that the only valid way to check for nanosecond resolution is to follow this rule:
+"The nanosecond components of each timestamp are available via names of the form st_atim.tv_nsec
+if the _BSD_SOURCE or _SVID_SOURCE feature test macro is defined"
+*/
+
+#if defined (_BSD_SOURCE)
+#define WITH_NANOSECONDS_IN_STAT 1
+#endif
+
+#if defined (_SVID_SOURCE)
+#define WITH_NANOSECONDS_IN_STAT 1
+#endif
+
 // config section
 // do not try to simply change this, it will not work
 

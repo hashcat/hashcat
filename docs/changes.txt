@@ -35,6 +35,7 @@
 - Fixed a parser error in multiple modes not checking for return code, resulting in negative memory index writes
 - Fixed a problem with changed current working directory, for instance by using --restore together with --remove
 - Fixed a problem with the conversion to the $HEX[] format: convert/hexify also all passwords of the format $HEX[]
+- Fixed the dictstat lookup if nanoseconds are used in timestamps for the cached files
 - Fixed the calculation of device_name_chksum; should be done for each iteration
 - Fixed the estimated time value whenever the value is very large and overflows
 - Fixed the parsing of command line options. It doesn't show two times the same error about an invalid option anymore

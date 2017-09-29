@@ -293,6 +293,10 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
   d.stat.st_rdev    = 0;
   d.stat.st_atime   = 0;
 
+  #if defined (WITH_NANOSECONDS_IN_STAT)
+  d.stat.st_atim.tv_nsec = 0;
+  #endif
+
   #if defined (_POSIX)
   d.stat.st_blksize = 0;
   d.stat.st_blocks  = 0;
