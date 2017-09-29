@@ -19,6 +19,10 @@ int sort_by_dictstat (const void *s1, const void *s2)
 
   d2->stat.st_atime = d1->stat.st_atime;
 
+  #if defined (WITH_NANOSECONDS_IN_STAT)
+  d2->stat.st_atim.tv_nsec = d1->stat.st_atim.tv_nsec;
+  #endif
+
   const int rc_from = strcmp (d1->encoding_from, d2->encoding_from);
 
   if (rc_from != 0) return rc_from;
