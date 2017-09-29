@@ -126,7 +126,7 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
   bool iconv_enabled = false;
 
-  iconv_t iconv_ctx;
+  iconv_t iconv_ctx = NULL;
 
   char *iconv_tmp = NULL;
 

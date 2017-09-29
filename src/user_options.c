@@ -110,7 +110,7 @@ static const struct option long_options[] =
   {"veracrypt-pim",             required_argument, 0, IDX_VERACRYPT_PIM},
   {"version",                   no_argument,       0, IDX_VERSION},
   {"workload-profile",          required_argument, 0, IDX_WORKLOAD_PROFILE},
-  {0, 0, 0, 0}
+  {}
 };
 
 static char ENCODING_FROM[] = "utf-8";
@@ -301,8 +301,6 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
         return -1;
       }
-
-      break;
     }
   }
 
