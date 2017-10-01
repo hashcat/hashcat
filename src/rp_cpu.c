@@ -483,7 +483,7 @@ int _old_apply_rule (char *rule, int rule_len, char in[RP_PASSWORD_SIZE], int in
 
   if (out == NULL) return (RULE_RC_REJECT_ERROR);
 
-  if (in_len < 1 || in_len > RP_PASSWORD_SIZE) return (RULE_RC_REJECT_ERROR);
+  if (in_len < 0 || in_len > RP_PASSWORD_SIZE) return (RULE_RC_REJECT_ERROR);
 
   if (rule_len < 1) return (RULE_RC_REJECT_ERROR);
 
