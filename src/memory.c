@@ -23,16 +23,8 @@ void *hccalloc (const size_t nmemb, const size_t sz)
 
 void *hcmalloc (const size_t sz)
 {
-  void *p = malloc (sz);
-
-  if (p == NULL)
-  {
-    fprintf (stderr, "%s\n", MSG_ENOMEM);
-
-    return (NULL);
-  }
-
-  memset (p, 0, sz);
+  //calloc is faster than malloc with big allocations, so just use that.
+  void *p = hccalloc (sz, 1);
 
   return (p);
 }
