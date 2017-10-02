@@ -103,22 +103,37 @@ void dictstat_read (hashcat_ctx_t *hashcat_ctx)
   {
     event_log_error (hashcat_ctx, "%s: Invalid header", dictstat_ctx->filename);
 
+    fclose (fp);
+
     return;
   }
 
   v = byte_swap_64 (v);
   z = byte_swap_64 (z);
 
-  if (v != DICTSTAT_VERSION)
+  if ((v & 0xffffffffffffff00) != (DICTSTAT_VERSION & 0xffffffffffffff00))
   {
-    event_log_error (hashcat_ctx, "%s: Invalid header", dictstat_ctx->filename);
+    event_log_error (hashcat_ctx, "%s: Invalid header, ignoring content", dictstat_ctx->filename);
+
+    fclose (fp);
 
     return;
   }
 
   if (z != 0)
   {
-    event_log_error (hashcat_ctx, "%s: Invalid header", dictstat_ctx->filename);
+    event_log_error (hashcat_ctx, "%s: Invalid header, ignoring content", dictstat_ctx->filename);
+
+    fclose (fp);
+
+    return;
+  }
+
+  if ((v & 0xff) < (DICTSTAT_VERSION & 0xff))
+  {
+    event_log_warning (hashcat_ctx, "%s: Outdated header version, ignoring content", dictstat_ctx->filename);
+
+    fclose (fp);
 
     return;
   }
