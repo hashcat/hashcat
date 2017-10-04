@@ -22,9 +22,9 @@ static bool sysfs_init (hashcat_ctx_t *hashcat_ctx)
 
   memset (sysfs, 0, sizeof (SYSFS_PTR));
 
-  char *path = hcmalloc (HCBUFSIZ_TINY);
+  char *path;
 
-  snprintf (path, HCBUFSIZ_TINY - 1, "%s", SYS_BUS_PCI_DEVICES);
+  hc_asprintf (&path, "%s", SYS_BUS_PCI_DEVICES);
 
   const bool r = hc_path_read (path);
 
@@ -104,11 +104,11 @@ static int hm_SYSFS_get_fan_speed_current (hashcat_ctx_t *hashcat_ctx, const int
 
   if (syspath == NULL) return -1;
 
-  char *path_cur = hcmalloc (HCBUFSIZ_TINY);
-  char *path_max = hcmalloc (HCBUFSIZ_TINY);
+  char *path_cur;
+  char *path_max;
 
-  snprintf (path_cur, HCBUFSIZ_TINY - 1, "%s/pwm1",     syspath);
-  snprintf (path_max, HCBUFSIZ_TINY - 1, "%s/pwm1_max", syspath);
+  hc_asprintf (&path_cur, "%s/pwm1",     syspath);
+  hc_asprintf (&path_max, "%s/pwm1_max", syspath);
 
   hcfree (syspath);
 
@@ -196,9 +196,9 @@ static int hm_SYSFS_set_fan_control (hashcat_ctx_t *hashcat_ctx, const int devic
 
   if (syspath == NULL) return -1;
 
-  char *path = hcmalloc (HCBUFSIZ_TINY);
+  char *path;
 
-  snprintf (path, HCBUFSIZ_TINY - 1, "%s/pwm1_enable", syspath);
+  hc_asprintf (&path, "%s/pwm1_enable", syspath);
 
   hcfree (syspath);
 
@@ -228,11 +228,11 @@ static int hm_SYSFS_set_fan_speed_target (hashcat_ctx_t *hashcat_ctx, const int 
 
   if (syspath == NULL) return -1;
 
-  char *path     = hcmalloc (HCBUFSIZ_TINY);
-  char *path_max = hcmalloc (HCBUFSIZ_TINY);
+  char *path;
+  char *path_max;
 
-  snprintf (path,     HCBUFSIZ_TINY - 1, "%s/pwm1",     syspath);
-  snprintf (path_max, HCBUFSIZ_TINY - 1, "%s/pwm1_max", syspath);
+  hc_asprintf (&path,     "%s/pwm1",     syspath);
+  hc_asprintf (&path_max, "%s/pwm1_max", syspath);
 
   hcfree (syspath);
 
@@ -304,9 +304,9 @@ static int hm_SYSFS_get_temperature_current (hashcat_ctx_t *hashcat_ctx, const i
 
   if (syspath == NULL) return -1;
 
-  char *path = hcmalloc (HCBUFSIZ_TINY);
+  char *path;
 
-  snprintf (path, HCBUFSIZ_TINY - 1, "%s/temp1_input", syspath);
+  hc_asprintf (&path, "%s/temp1_input", syspath);
 
   hcfree (syspath);
 
@@ -349,9 +349,9 @@ static int hm_SYSFS_get_pp_dpm_sclk (hashcat_ctx_t *hashcat_ctx, const int devic
 
   if (syspath == NULL) return -1;
 
-  char *path = hcmalloc (HCBUFSIZ_TINY);
+  char *path;
 
-  snprintf (path, HCBUFSIZ_TINY - 1, "%s/pp_dpm_sclk", syspath);
+  hc_asprintf (&path, "%s/pp_dpm_sclk", syspath);
 
   hcfree (syspath);
 
@@ -404,9 +404,9 @@ static int hm_SYSFS_get_pp_dpm_mclk (hashcat_ctx_t *hashcat_ctx, const int devic
 
   if (syspath == NULL) return -1;
 
-  char *path = hcmalloc (HCBUFSIZ_TINY);
+  char *path;
 
-  snprintf (path, HCBUFSIZ_TINY - 1, "%s/pp_dpm_mclk", syspath);
+  hc_asprintf (&path, "%s/pp_dpm_mclk", syspath);
 
   hcfree (syspath);
 
@@ -459,9 +459,9 @@ static int hm_SYSFS_get_pp_dpm_pcie (hashcat_ctx_t *hashcat_ctx, const int devic
 
   if (syspath == NULL) return -1;
 
-  char *path = hcmalloc (HCBUFSIZ_TINY);
+  char *path;
 
-  snprintf (path, HCBUFSIZ_TINY - 1, "%s/pp_dpm_pcie", syspath);
+  hc_asprintf (&path, "%s/pp_dpm_pcie", syspath);
 
   hcfree (syspath);
 
@@ -515,9 +515,9 @@ static int hm_SYSFS_set_power_dpm_force_performance_level (hashcat_ctx_t *hashca
 
   if (syspath == NULL) return -1;
 
-  char *path = hcmalloc (HCBUFSIZ_TINY);
+  char *path;
 
-  snprintf (path, HCBUFSIZ_TINY - 1, "%s/power_dpm_force_performance_level", syspath);
+  hc_asprintf (&path, "%s/power_dpm_force_performance_level", syspath);
 
   hcfree (syspath);
 

@@ -255,11 +255,11 @@ const char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
   {
     if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
     {
-      char *tmp_buf = (char *) malloc (HCBUFSIZ_TINY);
+      char *tmp_buf;
 
       wpa_t *wpa = (wpa_t *) hashes->esalts_buf;
 
-      snprintf (tmp_buf, HCBUFSIZ_TINY - 1, "%s (AP:%02x:%02x:%02x:%02x:%02x:%02x STA:%02x:%02x:%02x:%02x:%02x:%02x)",
+      hc_asprintf (&tmp_buf, "%s (AP:%02x:%02x:%02x:%02x:%02x:%02x STA:%02x:%02x:%02x:%02x:%02x:%02x)",
         (char *) hashes->salts_buf[0].salt_buf,
         wpa->orig_mac_ap[0],
         wpa->orig_mac_ap[1],
@@ -313,7 +313,7 @@ const char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
   {
     if (hashconfig->hash_mode == 3000)
     {
-      char *tmp_buf = (char *) malloc (HCBUFSIZ_TINY);
+      char *tmp_buf;
 
       char out_buf1[64] = { 0 };
       char out_buf2[64] = { 0 };
@@ -321,7 +321,7 @@ const char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
       ascii_digest ((hashcat_ctx_t *) hashcat_ctx, out_buf1, sizeof (out_buf1), 0, 0);
       ascii_digest ((hashcat_ctx_t *) hashcat_ctx, out_buf2, sizeof (out_buf2), 0, 1);
 
-      snprintf (tmp_buf, HCBUFSIZ_TINY - 1, "%s, %s", out_buf1, out_buf2);
+      hc_asprintf (&tmp_buf, "%s, %s", out_buf1, out_buf2);
 
       return tmp_buf;
     }
@@ -754,14 +754,14 @@ char *status_get_guess_charset (const hashcat_ctx_t *hashcat_ctx)
 
   if ((custom_charset_1 != NULL) || (custom_charset_2 != NULL) || (custom_charset_3 != NULL) || (custom_charset_4 != NULL))
   {
-    char *tmp_buf = (char *) malloc (HCBUFSIZ_TINY);
+    char *tmp_buf;
 
     if (custom_charset_1 == NULL) custom_charset_1 = "Undefined";
     if (custom_charset_2 == NULL) custom_charset_2 = "Undefined";
     if (custom_charset_3 == NULL) custom_charset_3 = "Undefined";
     if (custom_charset_4 == NULL) custom_charset_4 = "Undefined";
 
-    snprintf (tmp_buf, HCBUFSIZ_TINY - 1, "-1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
+    hc_asprintf (&tmp_buf, "-1 %s, -2 %s, -3 %s, -4 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4);
 
     return tmp_buf;
   }
@@ -1574,7 +1574,7 @@ char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
 
   const hc_time_t now = hc_time (NULL);
 
-  char *cpt = (char *) malloc (HCBUFSIZ_TINY);
+  char *cpt;
 
   const int cpt_cur_min  = status_get_cpt_cur_min  (hashcat_ctx);
   const int cpt_cur_hour = status_get_cpt_cur_hour (hashcat_ctx);
@@ -1586,7 +1586,7 @@ char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
 
   if ((cpt_ctx->cpt_start + 86400) < now)
   {
-    snprintf (cpt, HCBUFSIZ_TINY - 1, "CUR:%d,%d,%d AVG:%d,%d,%d (Min,Hour,Day)",
+    hc_asprintf (&cpt, "CUR:%d,%d,%d AVG:%d,%d,%d (Min,Hour,Day)",
       cpt_cur_min,
       cpt_cur_hour,
       cpt_cur_day,
@@ -1596,7 +1596,7 @@ char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
   }
   else if ((cpt_ctx->cpt_start + 3600) < now)
   {
-    snprintf (cpt, HCBUFSIZ_TINY - 1, "CUR:%d,%d,N/A AVG:%d,%d,%d (Min,Hour,Day)",
+    hc_asprintf (&cpt, "CUR:%d,%d,N/A AVG:%d,%d,%d (Min,Hour,Day)",
       cpt_cur_min,
       cpt_cur_hour,
       cpt_avg_min,
@@ -1605,7 +1605,7 @@ char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
   }
   else if ((cpt_ctx->cpt_start + 60) < now)
   {
-    snprintf (cpt, HCBUFSIZ_TINY - 1, "CUR:%d,N/A,N/A AVG:%d,%d,%d (Min,Hour,Day)",
+    hc_asprintf (&cpt, "CUR:%d,N/A,N/A AVG:%d,%d,%d (Min,Hour,Day)",
       cpt_cur_min,
       cpt_avg_min,
       cpt_avg_hour,
@@ -1613,7 +1613,7 @@ char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    snprintf (cpt, HCBUFSIZ_TINY - 1, "CUR:N/A,N/A,N/A AVG:%d,%d,%d (Min,Hour,Day)",
+    hc_asprintf (&cpt, "CUR:N/A,N/A,N/A AVG:%d,%d,%d (Min,Hour,Day)",
       cpt_avg_min,
       cpt_avg_hour,
       cpt_avg_day);

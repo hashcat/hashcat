@@ -120,11 +120,11 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 
   const char *hashfile = hashes->hashfile;
 
-  char new_hashfile[256] = { 0 };
-  char old_hashfile[256] = { 0 };
+  char *new_hashfile;
+  char *old_hashfile;
 
-  snprintf (new_hashfile, 255, "%s.new", hashfile);
-  snprintf (old_hashfile, 255, "%s.old", hashfile);
+  hc_asprintf (&new_hashfile, "%s.new", hashfile);
+  hc_asprintf (&old_hashfile, "%s.old", hashfile);
 
   unlink (new_hashfile);
 
@@ -1582,9 +1582,9 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
   }
   else if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
   {
-    char *tmpfile_bin = (char *) hcmalloc (HCBUFSIZ_TINY);
+    char *tmpfile_bin;
 
-    snprintf (tmpfile_bin, HCBUFSIZ_TINY - 1, "%s/selftest.hash", folder_config->session_dir);
+    hc_asprintf (&tmpfile_bin, "%s/selftest.hash", folder_config->session_dir);
 
     FILE *fp = fopen (tmpfile_bin, "wb");
 

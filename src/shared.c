@@ -304,9 +304,9 @@ void setup_environment_variables ()
 
   if (compute)
   {
-    static char display[100];
+    static char *display;
 
-    snprintf (display, sizeof (display) - 1, "DISPLAY=%s", compute);
+    hc_asprintf (&display, "DISPLAY=%s", compute);
 
     putenv (display);
   }
