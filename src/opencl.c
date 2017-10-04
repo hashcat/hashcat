@@ -4458,6 +4458,8 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program, 1, &device_param->device, build_opts_update, NULL, NULL);
 
+        free (build_opts_update);
+
         //if (CL_rc == -1) return -1;
 
         size_t build_log_size = 0;

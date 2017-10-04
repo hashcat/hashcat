@@ -304,11 +304,13 @@ void setup_environment_variables ()
 
   if (compute)
   {
-    static char *display;
+    char *display;
 
     hc_asprintf (&display, "DISPLAY=%s", compute);
 
     putenv (display);
+
+    free (display);
   }
   else
   {

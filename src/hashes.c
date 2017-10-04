@@ -136,6 +136,9 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
   {
     event_log_error (hashcat_ctx, "%s: %s", new_hashfile, strerror (errno));
 
+    free (new_hashfile);
+    free (old_hashfile);
+
     return -1;
   }
 
@@ -144,6 +147,9 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
     fclose (fp);
 
     event_log_error (hashcat_ctx, "%s: %s", new_hashfile, strerror (errno));
+
+    free (new_hashfile);
+    free (old_hashfile);
 
     return -1;
   }
@@ -211,6 +217,9 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
   {
     event_log_error (hashcat_ctx, "Rename file '%s' to '%s': %s", hashfile, old_hashfile, strerror (errno));
 
+    free (new_hashfile);
+    free (old_hashfile);
+
     return -1;
   }
 
@@ -220,10 +229,16 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
   {
     event_log_error (hashcat_ctx, "Rename file '%s' to '%s': %s", new_hashfile, hashfile, strerror (errno));
 
+    free (new_hashfile);
+    free (old_hashfile);
+
     return -1;
   }
 
   unlink (old_hashfile);
+
+  free (new_hashfile);
+  free (old_hashfile);
 
   return 0;
 }
