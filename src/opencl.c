@@ -4049,7 +4049,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
 
       #if defined (DEBUG)
-      if (user_options->quiet == false) event_log_warning (hashcat_ctx, "SCRYPT tmto optimizer value set to: %u, mem: %" PRIu64, scrypt_tmto_final, (u64) size_scrypt);
+      if (user_options->quiet == false) event_log_warning (hashcat_ctx, "SCRYPT tmto optimizer value set to: %lu, mem: %lu", scrypt_tmto_final, size_scrypt);
       if (user_options->quiet == false) event_log_warning (hashcat_ctx, NULL);
       #endif
     }
