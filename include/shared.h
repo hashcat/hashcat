@@ -63,4 +63,6 @@ hc_time_t  hc_time   (hc_time_t *t);
 struct tm *hc_gmtime (const hc_time_t *t, MAYBE_UNUSED struct tm *result);
 char      *hc_ctime  (const hc_time_t *t, char *buf, MAYBE_UNUSED const size_t buf_size);
 
+bool hc_same_files (char *file1, char *file2);
+
 #endif // _SHARED_H

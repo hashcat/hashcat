@@ -462,3 +462,90 @@ char *hc_ctime (const hc_time_t *t, char *buf, MAYBE_UNUSED const size_t buf_siz
 
   return etc;
 }
+
+bool hc_same_files (char *file1, char *file2)
+{
+  if ((file1 != NULL) && (file2 != NULL))
+  {
+    hc_stat_t tmpstat_file1;
+    hc_stat_t tmpstat_file2;
+
+    int do_check = 0;
+
+    FILE *fp;
+
+    fp = fopen (file1, "r");
+
+    if (fp)
+    {
+      if (hc_fstat (fileno (fp), &tmpstat_file1))
+      {
+        fclose (fp);
+
+        return false;
+      }
+
+      fclose (fp);
+
+      do_check++;
+    }
+
+    fp = fopen (file2, "r");
+
+    if (fp)
+    {
+      if (hc_fstat (fileno (fp), &tmpstat_file2))
+      {
+        fclose (fp);
+
+        return false;
+      }
+
+      fclose (fp);
+
+      do_check++;
+    }
+
+    if (do_check == 2)
+    {
+      tmpstat_file1.st_mode     = 0;
+      tmpstat_file1.st_nlink    = 0;
+      tmpstat_file1.st_uid      = 0;
+      tmpstat_file1.st_gid      = 0;
+      tmpstat_file1.st_rdev     = 0;
+      tmpstat_file1.st_atime    = 0;
+
+      #if defined (STAT_NANOSECONDS_ACCESS_TIME)
+      tmpstat_file1.STAT_NANOSECONDS_ACCESS_TIME = 0;
+      #endif
+
+      #if defined (_POSIX)
+      tmpstat_file1.st_blksize  = 0;
+      tmpstat_file1.st_blocks   = 0;
+      #endif
+
+      tmpstat_file2.st_mode     = 0;
+      tmpstat_file2.st_nlink    = 0;
+      tmpstat_file2.st_uid      = 0;
+      tmpstat_file2.st_gid      = 0;
+      tmpstat_file2.st_rdev     = 0;
+      tmpstat_file2.st_atime    = 0;
+
+      #if defined (STAT_NANOSECONDS_ACCESS_TIME)
+      tmpstat_file2.STAT_NANOSECONDS_ACCESS_TIME = 0;
+      #endif
+
+      #if defined (_POSIX)
+      tmpstat_file2.st_blksize  = 0;
+      tmpstat_file2.st_blocks   = 0;
+      #endif
+
+      if (memcmp (&tmpstat_file1, &tmpstat_file2, sizeof (hc_stat_t)) == 0)
+      {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}

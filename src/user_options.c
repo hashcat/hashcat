@@ -1916,81 +1916,76 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  // check for hashfile vs outfile (should not point to the same physical file)
+  // check for outfile vs. hashfile
 
-  if ((user_options_extra->hc_hash != NULL) && (outfile_ctx->filename != NULL))
+  if (hc_same_files (outfile_ctx->filename, user_options_extra->hc_hash) == true)
   {
-    char *hashfile = user_options_extra->hc_hash;
+    event_log_error (hashcat_ctx, "Outfile and hashfile cannot point to the same file.");
 
-    char *outfile = outfile_ctx->filename;
+    return -1;
+  }
 
-    hc_stat_t tmpstat_outfile;
-    hc_stat_t tmpstat_hashfile;
+  // check for outfile vs. cached wordlists
 
-    memset (&tmpstat_outfile,  0, sizeof (tmpstat_outfile));
-    memset (&tmpstat_hashfile, 0, sizeof (tmpstat_hashfile));
-
-    int do_check = 0;
-
-    FILE *tmp_outfile_fp = fopen (outfile, "r");
-
-    if (tmp_outfile_fp)
+  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  {
+    for (int i = 0; i < user_options_extra->hc_workc; i++)
     {
-      if (hc_fstat (fileno (tmp_outfile_fp), &tmpstat_outfile))
+      char *wlfile = user_options_extra->hc_workv[i];
+
+      if (hc_same_files (outfile_ctx->filename, wlfile) == true)
       {
-        fclose (tmp_outfile_fp);
+        event_log_error (hashcat_ctx, "Outfile and wordlist cannot point to the same file.");
+
+        return -1;
+      }
+    }
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_COMBI)
+  {
+    if (user_options_extra->hc_workc == 2)
+    {
+      char *dictfile1 = user_options_extra->hc_workv[0];
+      char *dictfile2 = user_options_extra->hc_workv[1];
+
+      if (hc_same_files (outfile_ctx->filename, dictfile1) == true)
+      {
+        event_log_error (hashcat_ctx, "Outfile and wordlist cannot point to the same file.");
 
         return -1;
       }
 
-      fclose (tmp_outfile_fp);
-
-      do_check++;
-    }
-
-    FILE *tmp_hashfile_fp = fopen (hashfile, "r");
-
-    if (tmp_hashfile_fp)
-    {
-      if (hc_fstat (fileno (tmp_hashfile_fp), &tmpstat_hashfile))
+      if (hc_same_files (outfile_ctx->filename, dictfile2) == true)
       {
-        fclose (tmp_hashfile_fp);
+        event_log_error (hashcat_ctx, "Outfile and wordlist cannot point to the same file.");
 
         return -1;
       }
-
-      fclose (tmp_hashfile_fp);
-
-      do_check++;
     }
-
-    if (do_check == 2)
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+  {
+    if (user_options_extra->hc_workc == 2)
     {
-      tmpstat_outfile.st_mode     = 0;
-      tmpstat_outfile.st_nlink    = 0;
-      tmpstat_outfile.st_uid      = 0;
-      tmpstat_outfile.st_gid      = 0;
-      tmpstat_outfile.st_rdev     = 0;
-      tmpstat_outfile.st_atime    = 0;
+      char *wlfile = user_options_extra->hc_workv[0];
 
-      tmpstat_hashfile.st_mode    = 0;
-      tmpstat_hashfile.st_nlink   = 0;
-      tmpstat_hashfile.st_uid     = 0;
-      tmpstat_hashfile.st_gid     = 0;
-      tmpstat_hashfile.st_rdev    = 0;
-      tmpstat_hashfile.st_atime   = 0;
-
-      #if defined (_POSIX)
-      tmpstat_outfile.st_blksize  = 0;
-      tmpstat_outfile.st_blocks   = 0;
-
-      tmpstat_hashfile.st_blksize = 0;
-      tmpstat_hashfile.st_blocks  = 0;
-      #endif
-
-      if (memcmp (&tmpstat_outfile, &tmpstat_hashfile, sizeof (hc_stat_t)) == 0)
+      if (hc_same_files (outfile_ctx->filename, wlfile) == true)
       {
-        event_log_error (hashcat_ctx, "Hashfile and outfile cannot point to the same file.");
+        event_log_error (hashcat_ctx, "Outfile and wordlist cannot point to the same file.");
+
+        return -1;
+      }
+    }
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+  {
+    if (user_options_extra->hc_workc == 2)
+    {
+      char *wlfile = user_options_extra->hc_workv[1];
+
+      if (hc_same_files (outfile_ctx->filename, wlfile) == true)
+      {
+        event_log_error (hashcat_ctx, "Outfile and wordlist cannot point to the same file.");
 
         return -1;
       }
