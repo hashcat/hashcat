@@ -69,7 +69,11 @@ static u32 get_power (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param)
 
     const u64 work = MAX (words_left_device, device_param->hardware_power);
 
-    return work;
+    // we need to make sure the value is not larger than the regular kernel_power
+
+    const u64 work_final = MIN (work, device_param->kernel_power);
+
+    return work_final;
   }
 
   return device_param->kernel_power;
