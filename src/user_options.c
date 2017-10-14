@@ -837,6 +837,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
+  if ((user_options->nvidia_spin_damp_chgd == true) && (user_options->benchmark == true))
+  {
+    event_log_error (hashcat_ctx, "Values of --nvidia-spin-damp cannot be used in combination with --benchmark.");
+
+    return -1;
+  }
+
   if ((user_options->gpu_temp_abort != 0) && (user_options->gpu_temp_retain != 0))
   {
     if (user_options->gpu_temp_abort < user_options->gpu_temp_retain)
@@ -1457,6 +1464,8 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->quiet == true) return;
 
+  if (user_options->benchmark == false) return;
+
   if (user_options->machine_readable == false)
   {
     event_log_info (hashcat_ctx, "Benchmark relevant options:");
@@ -1490,11 +1499,6 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
     if (user_options->opencl_vector_width_chgd == true)
     {
       event_log_info (hashcat_ctx, "* --opencl-vector-width=%u", user_options->opencl_vector_width);
-    }
-
-    if (user_options->nvidia_spin_damp_chgd == true)
-    {
-      event_log_info (hashcat_ctx, "* --nvidia-spin-damp=%u", user_options->nvidia_spin_damp);
     }
 
     if ((user_options->kernel_accel_chgd == true) || (user_options->kernel_loops_chgd == true))
@@ -1542,11 +1546,6 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
     if (user_options->opencl_vector_width_chgd == true)
     {
       event_log_info (hashcat_ctx, "# option: --opencl-vector-width=%u", user_options->opencl_vector_width);
-    }
-
-    if (user_options->nvidia_spin_damp_chgd == true)
-    {
-      event_log_info (hashcat_ctx, "* option: --nvidia-spin-damp=%u", user_options->nvidia_spin_damp);
     }
 
     if ((user_options->kernel_accel_chgd == true) || (user_options->kernel_loops_chgd == true))
