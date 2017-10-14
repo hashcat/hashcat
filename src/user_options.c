@@ -1451,6 +1451,119 @@ void user_options_postprocess (hashcat_ctx_t *hashcat_ctx)
   }
 }
 
+void user_options_info (hashcat_ctx_t *hashcat_ctx)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  if (user_options->machine_readable == false)
+  {
+    event_log_info (hashcat_ctx, "Benchmark relevant options:");
+    event_log_info (hashcat_ctx, "===========================");
+
+    if (user_options->force == true)
+    {
+      event_log_info (hashcat_ctx, "* --force");
+    }
+
+    if (user_options->opencl_devices)
+    {
+      event_log_info (hashcat_ctx, "* --opencl-devices=%s", user_options->opencl_devices);
+    }
+
+    if (user_options->opencl_device_types)
+    {
+      event_log_info (hashcat_ctx, "* --opencl-device-types=%s", user_options->opencl_device_types);
+    }
+
+    if (user_options->opencl_platforms)
+    {
+      event_log_info (hashcat_ctx, "* --opencl-platforms=%s", user_options->opencl_platforms);
+    }
+
+    if (user_options->optimized_kernel_enable == true)
+    {
+      event_log_info (hashcat_ctx, "* --optimized-kernel-enable");
+    }
+
+    if (user_options->opencl_vector_width_chgd == true)
+    {
+      event_log_info (hashcat_ctx, "* --opencl-vector-width=%u", user_options->opencl_vector_width);
+    }
+
+    if (user_options->nvidia_spin_damp_chgd == true)
+    {
+      event_log_info (hashcat_ctx, "* --nvidia-spin-damp=%u", user_options->nvidia_spin_damp);
+    }
+
+    if ((user_options->kernel_accel_chgd == true) || (user_options->kernel_loops_chgd == true))
+    {
+      event_log_info (hashcat_ctx, "* --kernel-accel=%u", user_options->kernel_accel);
+      event_log_info (hashcat_ctx, "* --kernel-loops=%u", user_options->kernel_loops);
+    }
+    else
+    {
+      if (user_options->workload_profile_chgd == true)
+      {
+        event_log_info (hashcat_ctx, "* --workload-profile=%u", user_options->workload_profile);
+      }
+    }
+
+    event_log_info (hashcat_ctx, NULL);
+  }
+  else
+  {
+    if (user_options->force == true)
+    {
+      event_log_info (hashcat_ctx, "# option: --force");
+    }
+
+    if (user_options->opencl_devices)
+    {
+      event_log_info (hashcat_ctx, "# option: --opencl-devices=%s", user_options->opencl_devices);
+    }
+
+    if (user_options->opencl_device_types)
+    {
+      event_log_info (hashcat_ctx, "# option: --opencl-device-types=%s", user_options->opencl_device_types);
+    }
+
+    if (user_options->opencl_platforms)
+    {
+      event_log_info (hashcat_ctx, "* option: --opencl-platforms=%s", user_options->opencl_platforms);
+    }
+
+    if (user_options->optimized_kernel_enable == true)
+    {
+      event_log_info (hashcat_ctx, "# option: --optimized-kernel-enable");
+    }
+
+    if (user_options->opencl_vector_width_chgd == true)
+    {
+      event_log_info (hashcat_ctx, "# option: --opencl-vector-width=%u", user_options->opencl_vector_width);
+    }
+
+    if (user_options->nvidia_spin_damp_chgd == true)
+    {
+      event_log_info (hashcat_ctx, "* option: --nvidia-spin-damp=%u", user_options->nvidia_spin_damp);
+    }
+
+    if ((user_options->kernel_accel_chgd == true) || (user_options->kernel_loops_chgd == true))
+    {
+      event_log_info (hashcat_ctx, "# option: --kernel-accel=%u", user_options->kernel_accel);
+      event_log_info (hashcat_ctx, "# option: --kernel-loops=%u", user_options->kernel_loops);
+    }
+    else
+    {
+      if (user_options->workload_profile_chgd == true)
+      {
+        event_log_info (hashcat_ctx, "# option: --workload-profile=%u", user_options->workload_profile);
+      }
+    }
+  }
+}
+
 void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
 {
   user_options_t       *user_options       = hashcat_ctx->user_options;

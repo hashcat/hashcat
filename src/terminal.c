@@ -38,14 +38,7 @@ void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
     if (user_options->machine_readable == false)
     {
       event_log_info (hashcat_ctx, "%s (%s) starting in benchmark mode...", PROGNAME, version_tag);
-      if (user_options->optimized_kernel_enable == true)
-      {
-        event_log_info (hashcat_ctx, "Active options: -O, -w %u", user_options->workload_profile);
-      }
-      else
-      {
-        event_log_info (hashcat_ctx, "Active options: -w %u", user_options->workload_profile);
-      }
+
       event_log_info (hashcat_ctx, NULL);
 
       if (user_options->workload_profile_chgd == false)
@@ -59,15 +52,7 @@ void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
     }
     else
     {
-      event_log_info (hashcat_ctx, "# %s (%s)", PROGNAME, version_tag);
-      if (user_options->optimized_kernel_enable == true)
-      {
-        event_log_info (hashcat_ctx, "# Active options: -O, -w %u", user_options->workload_profile);
-      }
-      else
-      {
-        event_log_info (hashcat_ctx, "# Active options: -w %u", user_options->workload_profile);
-      }
+      event_log_info (hashcat_ctx, "# version: %s", version_tag);
     }
   }
   else if (user_options->restore == true)
