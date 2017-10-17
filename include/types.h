@@ -1335,6 +1335,39 @@ typedef struct potfile_ctx
 
 } potfile_ctx_t;
 
+// this is a linked list structure of all the hashes with the same "key" (hash or hash + salt)
+
+typedef struct pot_hash_node
+{
+  hash_t *hash_buf;
+
+  struct pot_hash_node *next;
+
+} pot_hash_node_t;
+
+// Attention: this is only used when --show and --username are used together
+// there could be multiple entries for each identical hash+salt combination
+// (e.g. same hashes, but different user names... we want to print all of them!)
+// that is why we use a linked list here
+
+typedef struct pot_tree_entry
+{
+  hash_t *key;
+
+  // the hashconfig is required to distinguish between salted and non-salted hashes and to make sure
+  // we compare the correct dgst_pos0...dgst_pos3
+  hashconfig_t *hashconfig;
+
+  pot_hash_node_t *nodes; // linked list
+
+  // the following field is just an extra optimization for this structure:
+
+  pot_hash_node_t *last_node; // this is just one special node (the last one) within the root node called "nodes"
+
+  // the extra field "last_node" makes it possible to insert new nodes even faster
+
+} pot_tree_entry_t;
+
 typedef struct restore_data
 {
   int  version;
