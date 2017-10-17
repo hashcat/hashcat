@@ -67,6 +67,7 @@
 - Startup: Show some attack-specific optimizer constraints on start, eg: minimum and maximum support password- and salt-length
 - Startup: Check and abort session if outfile and wordlist point to the same file
 - WPA cracking: Improved nonce-error-corrections mode to use a both positive and negative corrections
+- Show cracks: Improved the performance of --show/--left if used together with --username
 
 ##
 ## Technical

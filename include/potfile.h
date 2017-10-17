@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <errno.h>
+#include <search.h>
 
 #define INCR_POT 1000
 
@@ -23,7 +24,7 @@ void potfile_destroy          (hashcat_ctx_t *hashcat_ctx);
 int  potfile_handle_show      (hashcat_ctx_t *hashcat_ctx);
 int  potfile_handle_left      (hashcat_ctx_t *hashcat_ctx);
 
-void potfile_update_hash      (hashcat_ctx_t *hashcat_ctx, hash_t *found, char *line_pw_buf, int line_pw_len);
-void potfile_update_hashes    (hashcat_ctx_t *hashcat_ctx, hash_t *found, hash_t *hashes_buf, u32 hashes_cnt, int (*compar) (const void *, const void *, void *), char *line_pw_buf, int line_pw_len);
+void potfile_update_hash      (hashcat_ctx_t *hashcat_ctx, hash_t *found,  char *line_pw_buf, int line_pw_len);
+void potfile_update_hashes    (hashcat_ctx_t *hashcat_ctx, hash_t *search, char *line_pw_buf, int line_pw_len, pot_tree_entry_t *tree);
 
 #endif // _POTFILE_H

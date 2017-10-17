@@ -55,6 +55,61 @@ static int sort_by_hash_t_salt (const void *v1, const void *v2)
   return 0;
 }
 
+// this function is special and only used whenever --username and --show are used together:
+// it will sort all tree entries according to the settings stored in hashconfig
+
+int sort_pot_tree_by_hash (const void *v1, const void *v2)
+{
+  const pot_tree_entry_t *t1 = (const pot_tree_entry_t *) v1;
+  const pot_tree_entry_t *t2 = (const pot_tree_entry_t *) v2;
+
+  const hash_t *h1 = (const hash_t *) t1->key;
+  const hash_t *h2 = (const hash_t *) t2->key;
+
+  hashconfig_t *hc = (hashconfig_t *) t1->hashconfig; // is same as t2->hashconfig
+
+  return sort_by_hash (h1, h2, hc);
+}
+
+// the problem with the GNU tdestroy () function is that it doesn't work with mingw etc
+// there are 2 alternatives:
+// 1. recursively delete the entries with entry->left and entry->right
+// 2. use tdelete () <- this is what we currently use, but this could be slower!
+
+void pot_tree_destroy (pot_tree_entry_t *tree)
+{
+  pot_tree_entry_t *entry = tree;
+
+  while (tree != NULL)
+  {
+    entry = *(pot_tree_entry_t **) tree;
+
+    pot_hash_node_t *node = entry->nodes;
+
+    while (node)
+    {
+      // get next node:
+
+      pot_hash_node_t *next_node = node->next;
+
+      // free current node:
+
+      node->hash_buf = NULL;
+      hcfree (node); // very important
+
+      // update node:
+
+      node = next_node;
+    }
+
+    tdelete (entry, (void **) &tree, sort_pot_tree_by_hash);
+
+    entry->key = NULL;
+    entry->hashconfig = NULL;
+    entry->last_node  = NULL;
+  }
+}
+
 int potfile_init (hashcat_ctx_t *hashcat_ctx)
 {
   folder_config_t *folder_config = hashcat_ctx->folder_config;
@@ -304,19 +359,34 @@ void potfile_update_hash (hashcat_ctx_t *hashcat_ctx, hash_t *found, char *line_
   }
 }
 
-void potfile_update_hashes (hashcat_ctx_t *hashcat_ctx, hash_t *hash_buf, hash_t *hashes_buf, u32 hashes_cnt, int (*compar) (const void *, const void *, void *), char *line_pw_buf, int line_pw_len)
+void potfile_update_hashes (hashcat_ctx_t *hashcat_ctx, hash_t *hash_buf, char *line_pw_buf, int line_pw_len, pot_tree_entry_t *tree)
 {
-  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+  hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
-  // linear search
+  pot_tree_entry_t *search_entry = hcmalloc (sizeof (pot_tree_entry_t));
 
-  for (u32 hash_pos = 0; hash_pos < hashes_cnt; hash_pos++)
+  search_entry->key        = hash_buf;
+  search_entry->nodes      = NULL;
+  search_entry->last_node  = NULL;
+  search_entry->hashconfig = hashconfig;
+
+  void **found = tfind (search_entry, (void **) &tree, sort_pot_tree_by_hash);
+
+  if (found)
   {
-    if (compar ((void *) &hashes_buf[hash_pos], (void *) hash_buf, (void *) hashconfig) == 0)
+    pot_tree_entry_t *found_entry = (pot_tree_entry_t *) *found;
+
+    pot_hash_node_t *node = found_entry->nodes;
+
+    while (node)
     {
-      potfile_update_hash (hashcat_ctx, &hashes_buf[hash_pos], line_pw_buf, line_pw_len);
+      potfile_update_hash (hashcat_ctx, node->hash_buf, line_pw_buf, line_pw_len);
+
+      node = node->next;
     }
   }
+
+  hcfree (search_entry);
 }
 
 int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
@@ -368,6 +438,81 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
     hash_buf.hook_salt = hcmalloc (hashconfig->hook_salt_size);
   }
 
+  // we only need this variable in a very specific situation:
+  // whenever we use --username and --show together we want to keep all hashes sorted within a nice structure
+
+  pot_tree_entry_t *all_hashes_tree  = NULL;
+  pot_tree_entry_t *tree_entry_cache = NULL;
+
+  if (potfile_ctx->keep_all_hashes == true)
+  {
+    pot_tree_entry_t *tree_entry_cache = (pot_tree_entry_t *) hccalloc (hashes_cnt, sizeof (pot_tree_entry_t));
+
+    for (u32 hash_pos = 0; hash_pos < hashes_cnt; hash_pos++)
+    {
+      pot_tree_entry_t *new_entry = &tree_entry_cache[hash_pos];
+
+      // initialize this entry:
+
+      // the "key" field can be seen as a dummy entry (i.e. just one "example" of a hash (hash_t) with these
+      // particular characteristics - same hash buffer and same salt if salted -)
+
+      new_entry->key        = &hashes_buf[hash_pos];
+      new_entry->nodes      = NULL;
+      new_entry->last_node  = NULL;
+      // the hashconfig is needed here because we need to be able to check within the sort function if we also need
+      // to sort by salt and we also need to have the correct order of dgst_pos0...dgst_pos3:
+      new_entry->hashconfig = (hashconfig_t *) hashconfig; // "const hashconfig_t" gives a warning
+
+      void **found = tsearch (new_entry, (void **) &all_hashes_tree, sort_pot_tree_by_hash);
+
+      pot_tree_entry_t *found_entry = (pot_tree_entry_t *) *found;
+
+      // we now need to check these cases; tsearch () could return:
+      // 1. NULL : if we have a memory allocation problem (not enough memory for the tree structure)
+      // 2. found_entry == new_entry: if we successfully insert a new key (which was not present yet)
+      // 3. found_entry != new_entry: if the key was already present
+
+      // case 1: memory allocation error
+
+      if (found_entry == NULL)
+      {
+        fprintf (stderr, "Error while allocating memory for the potfile search: %s\n", MSG_ENOMEM);
+
+        return -1;
+      }
+
+      // the linked list node (we always need to create a new one and add it, because we want to insert all hashes):
+
+      pot_hash_node_t *new_node = hcmalloc (sizeof (pot_hash_node_t));
+
+      new_node->hash_buf = new_entry->key;
+      new_node->next     = NULL; // just to be sure it is initialized
+
+
+      // case 2: this means it was a new insert (and the insert was successful)
+
+      if (found_entry == new_entry)
+      {
+        found_entry->nodes = new_node;
+      }
+      // case 3: if we have found an already existing entry
+      else
+      {
+        // we take for granted that "last_node" is not NULL
+        // (this is *only* guaranteed because we always set it e.g. whenever found_entry == new_entry)
+
+        found_entry->last_node->next = new_node; // we just add the "link" to the new node (i.e. update the old "last" node)
+      }
+
+      // we always insert the new node at the very end
+      // (or in other words: the last node always points to *this* new inserted node)
+
+      found_entry->last_node = new_node;
+    }
+  }
+
+
   // special case for a split hash
 
   if (hashconfig->hash_mode == 3000)
@@ -378,7 +523,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
     {
       if (potfile_ctx->keep_all_hashes == true)
       {
-        potfile_update_hashes (hashcat_ctx, &hash_buf, hashes_buf, hashes_cnt, sort_by_hash_no_salt, NULL, 0);
+        potfile_update_hashes (hashcat_ctx, &hash_buf, NULL, 0, all_hashes_tree);
       }
       else
       {
@@ -508,31 +653,16 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
     {
       int parser_status = hashconfig->parse_func ((u8 *) line_hash_buf, line_hash_len, &hash_buf, hashconfig);
 
-      if (parser_status == PARSER_OK)
+      if (parser_status != PARSER_OK) continue;
+
+      if (potfile_ctx->keep_all_hashes == true)
       {
-        if (hashconfig->is_salted == true)
-        {
-          if (potfile_ctx->keep_all_hashes == true)
-          {
-            potfile_update_hashes (hashcat_ctx, &hash_buf, hashes_buf, hashes_cnt, sort_by_hash, line_pw_buf, line_pw_len);
+        potfile_update_hashes (hashcat_ctx, &hash_buf, line_pw_buf, line_pw_len, all_hashes_tree);
 
-            continue;
-          }
-
-          found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash, (void *) hashconfig);
-        }
-        else
-        {
-          if (potfile_ctx->keep_all_hashes == true)
-          {
-            potfile_update_hashes (hashcat_ctx, &hash_buf, hashes_buf, hashes_cnt, sort_by_hash_no_salt, line_pw_buf, line_pw_len);
-
-            continue;
-          }
-
-          found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_no_salt, (void *) hashconfig);
-        }
+        continue;
       }
+
+      found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash, (void *) hashconfig);
     }
 
     potfile_update_hash (hashcat_ctx, found, line_pw_buf, line_pw_len);
@@ -541,6 +671,14 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
   hcfree (line_buf);
 
   potfile_read_close (hashcat_ctx);
+
+
+  if (potfile_ctx->keep_all_hashes == true)
+  {
+    pot_tree_destroy (all_hashes_tree); // this could be slow (should we just skip it?)
+
+    hcfree (tree_entry_cache);
+  }
 
   if (hashconfig->esalt_size > 0)
   {
