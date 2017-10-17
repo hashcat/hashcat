@@ -243,10 +243,6 @@ GeForce_GTX_980M                                ALIAS_nv_sm52_or_higher
 
 Tegra_X1                                        ALIAS_nv_sm52_or_higher
 
-Intel(R)_Iris(TM)_Graphics_540                  ALIAS_Apple_Iris
-Iris                                            ALIAS_Apple_Iris
-Iris_Pro                                        ALIAS_Apple_Iris_Pro
-
 #############
 ## ENTRIES ##
 #############
@@ -383,81 +379,6 @@ GeForce_GTX_TITAN                               3       9900    2       A       
 GeForce_GTX_TITAN                               3       10100   2       A       A
 GeForce_GTX_TITAN                               3       11000   2       A       A
 GeForce_GTX_TITAN                               3       11100   2       A       A
-
-ALIAS_Apple_Iris                                *       *       1       A       2
-ALIAS_Apple_Iris                                *       400     1       A       256
-ALIAS_Apple_Iris                                *       500     1       8       256
-ALIAS_Apple_Iris                                *       501     1       8       256
-ALIAS_Apple_Iris                                *       1500    1       A       256
-ALIAS_Apple_Iris                                *       1600    1       8       256
-ALIAS_Apple_Iris                                *       1800    1       1       16
-ALIAS_Apple_Iris                                *       2100    1       8       256
-ALIAS_Apple_Iris                                *       2500    1       2       256
-ALIAS_Apple_Iris                                *       3000    1       A       256
-ALIAS_Apple_Iris                                *       5200    1       8       256
-ALIAS_Apple_Iris                                *       5800    1       8       256
-ALIAS_Apple_Iris                                *       6211    1       8       128
-ALIAS_Apple_Iris                                *       6212    1       4       128
-ALIAS_Apple_Iris                                *       6213    1       4       128
-ALIAS_Apple_Iris                                *       6221    1       8       128
-ALIAS_Apple_Iris                                *       6222    1       4       128
-ALIAS_Apple_Iris                                *       6223    1       2       128
-ALIAS_Apple_Iris                                *       6231    1       2       16
-ALIAS_Apple_Iris                                *       6232    1       1       16
-ALIAS_Apple_Iris                                *       6233    1       1       8
-ALIAS_Apple_Iris                                *       6241    1       8       128
-ALIAS_Apple_Iris                                *       6242    1       4       128
-ALIAS_Apple_Iris                                *       6243    1       2       128
-ALIAS_Apple_Iris                                *       6300    1       8       256
-ALIAS_Apple_Iris                                *       6400    1       8       256
-ALIAS_Apple_Iris                                *       6500    1       8       256
-ALIAS_Apple_Iris                                *       6600    1       8       200
-ALIAS_Apple_Iris                                *       6700    1       8       256
-ALIAS_Apple_Iris                                *       6800    1       2       200
-ALIAS_Apple_Iris                                *       7100    1       1       256
-ALIAS_Apple_Iris                                *       7200    1       1       200
-ALIAS_Apple_Iris                                *       7400    1       2       200
-ALIAS_Apple_Iris                                *       7900    1       1       256
-ALIAS_Apple_Iris                                *       8800    1       8       256
-ALIAS_Apple_Iris                                *       8900    1       1       1
-ALIAS_Apple_Iris                                *       9000    1       2       16
-ALIAS_Apple_Iris                                *       9100    1       4       256
-ALIAS_Apple_Iris                                *       9200    1       1       200
-ALIAS_Apple_Iris                                *       9300    1       1       1
-ALIAS_Apple_Iris                                *       9400    1       1       200
-ALIAS_Apple_Iris                                *       9500    1       1       200
-ALIAS_Apple_Iris                                *       9600    1       1       200
-ALIAS_Apple_Iris                                *       10000   1       1       200
-ALIAS_Apple_Iris                                *       10300   1       8       128
-ALIAS_Apple_Iris                                *       10500   1       4       64
-ALIAS_Apple_Iris                                *       10900   1       2       200
-ALIAS_Apple_Iris                                *       11300   1       1       1
-ALIAS_Apple_Iris                                *       11600   1       1       256
-ALIAS_Apple_Iris                                *       11900   1       2       200
-ALIAS_Apple_Iris                                *       12000   1       2       200
-ALIAS_Apple_Iris                                *       12100   1       2       200
-ALIAS_Apple_Iris                                *       12200   1       1       256
-ALIAS_Apple_Iris                                *       12300   1       2       256
-ALIAS_Apple_Iris                                *       12400   1       1       256
-ALIAS_Apple_Iris                                *       12500   1       1       256
-ALIAS_Apple_Iris                                *       12700   1       64      10
-ALIAS_Apple_Iris                                *       12800   1       64      100
-ALIAS_Apple_Iris                                *       12900   1       8       64
-ALIAS_Apple_Iris                                *       13000   1       1       64
-ALIAS_Apple_Iris                                *       13200   1       1       1
-ALIAS_Apple_Iris                                *       14700   1       1       1
-ALIAS_Apple_Iris                                *       14800   1       1       1
-ALIAS_Apple_Iris                                *       15200   1       1       10
-
-ALIAS_Apple_Iris_Pro                            *       5000    1       8       8
-ALIAS_Apple_Iris_Pro                            *       6100    1       4       16
-ALIAS_Apple_Iris_Pro                            *       6231    1       1       64
-ALIAS_Apple_Iris_Pro                            *       6232    1       1       32
-ALIAS_Apple_Iris_Pro                            *       6233    1       1       16
-ALIAS_Apple_Iris_Pro                            *       8700    1       1       256
-ALIAS_Apple_Iris_Pro                            *       13731   1       1       64
-ALIAS_Apple_Iris_Pro                            *       13732   1       1       32
-ALIAS_Apple_Iris_Pro                            *       13733   1       1       16
 
 #######################
 ## EXTREME SLOW ALGOS #

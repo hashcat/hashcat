@@ -140,6 +140,31 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     if (CL_rc == -1) return -1;
   }
 
+  // Do a pre-autotune test run to find out if kernel runtime is above some TDR limit
+
+  u32 kernel_loops_max_reduced = kernel_loops_max;
+
+  if (1)
+  {
+    const double exec_msec = try_run (hashcat_ctx, device_param, kernel_accel_min, kernel_loops_min);
+
+    if (exec_msec > 2000)
+    {
+      event_log_error (hashcat_ctx, "OpenCL kernel minimum runtime larger than default TDR");
+
+      return -1;
+    }
+
+    const u32 mm = kernel_loops_max / kernel_loops_min;
+
+    if ((exec_msec * mm) > target_msec)
+    {
+      const u32 loops_valid = target_msec / exec_msec;
+
+      kernel_loops_max_reduced = kernel_loops_min * loops_valid;
+    }
+  }
+
   #define VERIFIER_CNT 1
 
   // first find out highest kernel-loops that stays below target_msec
@@ -148,6 +173,8 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   {
     for (kernel_loops = kernel_loops_max; kernel_loops > kernel_loops_min; kernel_loops >>= 1)
     {
+      if (kernel_loops > kernel_loops_max_reduced) continue;
+
       double exec_msec = try_run (hashcat_ctx, device_param, kernel_accel_min, kernel_loops);
 
       for (int i = 0; i < VERIFIER_CNT; i++)

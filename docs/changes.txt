@@ -51,6 +51,7 @@
 ## Improvements
 ##
 
+- Autotune: Do a pre-autotune test run to find out if kernel runtime is above some TDR limit
 - Charset: Add additional DES charsets with corrected parity
 - OpenCL Buffers: Do not allocate memory for amplifiers for fast hashes, it's simply not needed
 - OpenCL Kernels: Improved rule engine performance by 6% on for NVidia
@@ -77,6 +78,7 @@
 - HCstat File: Renamed file from hashcat.hcstat to hashcat.hcstat2 and add header because versions are incompatible
 - HCstat File: Add code to read LZMA compressed hashcat.hcstat2
 - HCstat File: Add hcstat2 support to enable masks of length up to 256, also adds a filetype header
+- HCtune File: Remove apple related GPU entries to workaround Trap 6 error
 - OpenCL Kernels: Added code generator for most of the switch_* functions and replaced existing code
 - OpenCL Kernels: Declared all include functions as static to reduce binary kernel cache size
 - OpenCL Kernels: On AMD GPU, optimized kernels for use with AMD ROCm driver
