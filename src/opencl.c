@@ -3650,55 +3650,40 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->skipped == true) continue;
 
+    bool skipped_temp = false;
+
     #if defined (__APPLE__)
 
     /**
      * If '--force' is not set, we proceed to excluding unstable hash-modes,
-     * because some of them cause segfault or inconclusive attack.
+     * too high kernel runtime, even on -u1 -n1, therefore likely to run into trap 6
      */
 
-    bool skipped_temp = false;
-
-    if (hashconfig->opts_type & OPTS_TYPE_PT_BITSLICE)
+    if ((user_options->hash_mode ==  1500)
+     || (user_options->hash_mode ==  3000)
+     || (user_options->hash_mode ==  3200)
+     || (user_options->hash_mode ==  8900)
+     || (user_options->hash_mode ==  9300)
+     || (user_options->hash_mode ==  9800)
+     || (user_options->hash_mode == 12500)
+     || (user_options->hash_mode == 14000)
+     || (user_options->hash_mode == 14100)
+     || (user_options->hash_mode == 15700))
     {
-      // bitsliced des, uses 2 dimensional work items
-
       skipped_temp = true;
     }
 
-    if (device_param->device_type & CL_DEVICE_TYPE_GPU)
-    {
-      if (user_options->hash_mode == 14100)
-      {
-        // 3des not bitsliced, largely depend on local memory, maybe to large code size?
-
-        skipped_temp = true;
-      }
-    }
-
-    if (device_param->device_type & CL_DEVICE_TYPE_CPU)
-    {
-      if ((user_options->hash_mode == 3200) || (user_options->hash_mode == 9000))
-      {
-        // both blowfish, largely depend on local memory, kernel threads to fixed 8
-
-        skipped_temp = true;
-      }
-    }
+    #endif // __APPLE__
 
     if ((skipped_temp == true) && (user_options->force == false))
     {
       event_log_warning (hashcat_ctx, "* Device #%u: Skipping unstable hash-mode %u for this device.", device_id + 1, user_options->hash_mode);
       event_log_warning (hashcat_ctx, "             You can use --force to override, but do not report related errors.");
 
-      device_param->skipped_temp = true;
-
       device_param->skipped = true;
 
       continue;
     }
-
-    #endif // __APPLE__
 
     // vector_width
 
