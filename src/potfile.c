@@ -63,8 +63,8 @@ int sort_pot_tree_by_hash (const void *v1, const void *v2)
   const pot_tree_entry_t *t1 = (const pot_tree_entry_t *) v1;
   const pot_tree_entry_t *t2 = (const pot_tree_entry_t *) v2;
 
-  const hash_t *h1 = (const hash_t *) t1->key;
-  const hash_t *h2 = (const hash_t *) t2->key;
+  const hash_t *h1 = (const hash_t *) t1->nodes->hash_buf;
+  const hash_t *h2 = (const hash_t *) t2->nodes->hash_buf;
 
   hashconfig_t *hc = (hashconfig_t *) t1->hashconfig; // is same as t2->hashconfig
 
@@ -84,29 +84,7 @@ void pot_tree_destroy (pot_tree_entry_t *tree)
   {
     entry = *(pot_tree_entry_t **) tree;
 
-    pot_hash_node_t *node = entry->nodes;
-
-    while (node)
-    {
-      // get next node:
-
-      pot_hash_node_t *next_node = node->next;
-
-      // free current node:
-
-      node->hash_buf = NULL;
-      hcfree (node); // very important
-
-      // update node:
-
-      node = next_node;
-    }
-
     tdelete (entry, (void **) &tree, sort_pot_tree_by_hash);
-
-    entry->key        = NULL;
-    entry->nodes      = NULL;
-    entry->hashconfig = NULL;
   }
 }
 
@@ -363,13 +341,24 @@ void potfile_update_hashes (hashcat_ctx_t *hashcat_ctx, hash_t *hash_buf, char *
 {
   hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
-  pot_tree_entry_t *search_entry = hcmalloc (sizeof (pot_tree_entry_t));
+  // the linked list node:
 
-  search_entry->key        = hash_buf;
-  search_entry->nodes      = NULL;
-  search_entry->hashconfig = hashconfig;
+  pot_hash_node_t search_node;
 
-  void **found = tfind (search_entry, (void **) &tree, sort_pot_tree_by_hash);
+  search_node.hash_buf = hash_buf;
+  search_node.next     = NULL;
+
+  // the search entry:
+
+  pot_tree_entry_t search_entry;
+
+  search_entry.nodes      = &search_node;
+  search_entry.hashconfig = hashconfig;
+
+
+  // the main search function is this:
+
+  void **found = tfind (&search_entry, (void **) &tree, sort_pot_tree_by_hash);
 
   if (found)
   {
@@ -384,8 +373,6 @@ void potfile_update_hashes (hashcat_ctx_t *hashcat_ctx, hash_t *hash_buf, char *
       node = node->next;
     }
   }
-
-  hcfree (search_entry);
 }
 
 int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
@@ -442,25 +429,40 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
   pot_tree_entry_t *all_hashes_tree  = NULL;
   pot_tree_entry_t *tree_entry_cache = NULL;
+  pot_hash_node_t  *tree_nodes_cache = NULL;
 
   if (potfile_ctx->keep_all_hashes == true)
   {
+    // we need *at most* one entry for every hash
+    // (if there are no hashes with the same keys (hash + salt), a counter example would be: same hash but different user name)
     pot_tree_entry_t *tree_entry_cache = (pot_tree_entry_t *) hccalloc (hashes_cnt, sizeof (pot_tree_entry_t));
+
+    // we need *always exactly* one linked list for every hash
+    pot_hash_node_t  *tree_nodes_cache = (pot_hash_node_t  *) hccalloc (hashes_cnt, sizeof (pot_hash_node_t));
 
     for (u32 hash_pos = 0; hash_pos < hashes_cnt; hash_pos++)
     {
+      // initialize the linked list node:
+      // we always need to create a new one and add it, because we want to keep and later update all hashes:
+
+      pot_hash_node_t *new_node = &tree_nodes_cache[hash_pos];
+
+      new_node->hash_buf = &hashes_buf[hash_pos];
+      new_node->next     = NULL;
+
+      // initialize the entry:
+
       pot_tree_entry_t *new_entry = &tree_entry_cache[hash_pos];
 
-      // initialize this entry:
+      // note: the "key" (hash + salt) is indirectly accessible via the first nodes "hash_buf"
 
-      // the "key" field can be seen as a dummy entry (i.e. just one "example" of a hash (hash_t) with these
-      // particular characteristics - same hash buffer and same salt if salted -)
-
-      new_entry->key        = &hashes_buf[hash_pos];
-      new_entry->nodes      = NULL;
+      new_entry->nodes      = new_node;
       // the hashconfig is needed here because we need to be able to check within the sort function if we also need
       // to sort by salt and we also need to have the correct order of dgst_pos0...dgst_pos3:
       new_entry->hashconfig = (hashconfig_t *) hashconfig; // "const hashconfig_t" gives a warning
+
+
+      // the following function searches if the "key" is already present and if not inserts the new entry:
 
       void **found = tsearch (new_entry, (void **) &all_hashes_tree, sort_pot_tree_by_hash);
 
@@ -479,14 +481,6 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
         return -1;
       }
-
-      // the linked list node (we always need to create a new one and add it, because we want to insert all hashes):
-
-      pot_hash_node_t *new_node = hcmalloc (sizeof (pot_hash_node_t));
-
-      new_node->hash_buf = new_entry->key;
-      new_node->next     = NULL; // just to be sure it is initialized
-
 
       // case 2: this means it was a new insert (and the insert was successful)
 
@@ -672,6 +666,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
   {
     pot_tree_destroy (all_hashes_tree); // this could be slow (should we just skip it?)
 
+    hcfree (tree_nodes_cache);
     hcfree (tree_entry_cache);
   }
 

@@ -1352,9 +1352,7 @@ typedef struct pot_hash_node
 
 typedef struct pot_tree_entry
 {
-  hash_t *key;
-
-  pot_hash_node_t *nodes; // head of the linked list
+  pot_hash_node_t *nodes; // head of the linked list (under the field "hash_buf" it contains the sorting keys)
 
   // the hashconfig is required to distinguish between salted and non-salted hashes and to make sure
   // we compare the correct dgst_pos0...dgst_pos3
