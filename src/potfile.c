@@ -435,10 +435,10 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
   {
     // we need *at most* one entry for every hash
     // (if there are no hashes with the same keys (hash + salt), a counter example would be: same hash but different user name)
-    pot_tree_entry_t *tree_entry_cache = (pot_tree_entry_t *) hccalloc (hashes_cnt, sizeof (pot_tree_entry_t));
+    tree_entry_cache = (pot_tree_entry_t *) hccalloc (hashes_cnt, sizeof (pot_tree_entry_t));
 
     // we need *always exactly* one linked list for every hash
-    pot_hash_node_t  *tree_nodes_cache = (pot_hash_node_t  *) hccalloc (hashes_cnt, sizeof (pot_hash_node_t));
+    tree_nodes_cache = (pot_hash_node_t  *) hccalloc (hashes_cnt, sizeof (pot_hash_node_t));
 
     for (u32 hash_pos = 0; hash_pos < hashes_cnt; hash_pos++)
     {
