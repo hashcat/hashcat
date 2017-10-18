@@ -25094,6 +25094,13 @@ u32 hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_p
     kernel_threads = MIN (kernel_threads, 64);
   }
 
+  // internal Intel GPU run at full speed 8
+
+  if ((strstr (device_param->device_vendor, "Intel")) && (device_param->device_type & CL_DEVICE_TYPE_GPU))
+  {
+    kernel_threads = MIN (kernel_threads, 8);
+  }
+
   // a kernel can force an even lower value
 
   kernel_threads = MIN (kernel_threads, device_param->device_maxworkgroup_size);
