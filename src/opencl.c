@@ -3652,6 +3652,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     bool skipped_temp = false;
 
+    #if defined (__APPLE__)
 
     /**
      * If '--force' is not set, we proceed to excluding unstable hash-modes,
@@ -3672,6 +3673,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       skipped_temp = true;
     }
 
+    #endif // __APPLE__
 
     if ((skipped_temp == true) && (user_options->force == false))
     {
