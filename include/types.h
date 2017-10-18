@@ -1354,17 +1354,12 @@ typedef struct pot_tree_entry
 {
   hash_t *key;
 
+  pot_hash_node_t *nodes; // head of the linked list
+
   // the hashconfig is required to distinguish between salted and non-salted hashes and to make sure
   // we compare the correct dgst_pos0...dgst_pos3
+
   hashconfig_t *hashconfig;
-
-  pot_hash_node_t *nodes; // linked list
-
-  // the following field is just an extra optimization for this structure:
-
-  pot_hash_node_t *last_node; // this is just one special node (the last one) within the root node called "nodes"
-
-  // the extra field "last_node" makes it possible to insert new nodes even faster
 
 } pot_tree_entry_t;
 

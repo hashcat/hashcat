@@ -104,9 +104,9 @@ void pot_tree_destroy (pot_tree_entry_t *tree)
 
     tdelete (entry, (void **) &tree, sort_pot_tree_by_hash);
 
-    entry->key = NULL;
+    entry->key        = NULL;
+    entry->nodes      = NULL;
     entry->hashconfig = NULL;
-    entry->last_node  = NULL;
   }
 }
 
@@ -367,7 +367,6 @@ void potfile_update_hashes (hashcat_ctx_t *hashcat_ctx, hash_t *hash_buf, char *
 
   search_entry->key        = hash_buf;
   search_entry->nodes      = NULL;
-  search_entry->last_node  = NULL;
   search_entry->hashconfig = hashconfig;
 
   void **found = tfind (search_entry, (void **) &tree, sort_pot_tree_by_hash);
@@ -459,7 +458,6 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
       new_entry->key        = &hashes_buf[hash_pos];
       new_entry->nodes      = NULL;
-      new_entry->last_node  = NULL;
       // the hashconfig is needed here because we need to be able to check within the sort function if we also need
       // to sort by salt and we also need to have the correct order of dgst_pos0...dgst_pos3:
       new_entry->hashconfig = (hashconfig_t *) hashconfig; // "const hashconfig_t" gives a warning
@@ -494,21 +492,18 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
       if (found_entry == new_entry)
       {
-        found_entry->nodes = new_node;
+        // no updates to the linked list required (since it is the first one!)
       }
       // case 3: if we have found an already existing entry
       else
       {
-        // we take for granted that "last_node" is not NULL
-        // (this is *only* guaranteed because we always set it e.g. whenever found_entry == new_entry)
-
-        found_entry->last_node->next = new_node; // we just add the "link" to the new node (i.e. update the old "last" node)
+        new_node->next = found_entry->nodes;
       }
 
-      // we always insert the new node at the very end
-      // (or in other words: the last node always points to *this* new inserted node)
+      // we always insert the new node at the very beginning
+      // (or in other words: the head of the linked list always points to *this* new inserted node)
 
-      found_entry->last_node = new_node;
+      found_entry->nodes = new_node;
     }
   }
 
