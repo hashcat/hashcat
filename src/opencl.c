@@ -3682,6 +3682,8 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       device_param->skipped = true;
 
+      device_param->skipped_temp == true;
+
       continue;
     }
 
