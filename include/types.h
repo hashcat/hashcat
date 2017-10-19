@@ -149,11 +149,14 @@ typedef enum event_identifier
 
 typedef enum amplifier_count
 {
-  KERNEL_BFS              = 1024,
-  KERNEL_COMBS            = 1024,
-  KERNEL_RULES            = 256,
-  KERNEL_THREADS_MAX      = 256,
-  KERNEL_THREADS_MAX_CPU  = 1
+  KERNEL_BFS                        = 1024,
+  KERNEL_COMBS                      = 1024,
+  KERNEL_RULES                      = 256,
+  KERNEL_THREADS_MAX_CPU            = 1,
+  KERNEL_THREADS_MAX_GPU            = 8,  // ex: intel integrated
+  KERNEL_THREADS_MAX_GPU_NV         = 32, // optimized NV  size: warps
+  KERNEL_THREADS_MAX_GPU_AMD        = 64, // optimized AMD size: wavefronts
+  KERNEL_THREADS_MAX_OTHER          = 8,  // ex: intel MIC
 
 } amplifier_count_t;
 
