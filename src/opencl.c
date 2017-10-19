@@ -456,7 +456,7 @@ int ocl_init (hashcat_ctx_t *hashcat_ctx)
 
     #if defined (__linux__)
     event_log_warning (hashcat_ctx, "* AMD GPUs on Linux require this runtime and/or driver:");
-    event_log_warning (hashcat_ctx, "  \"RadeonOpenCompute (ROCm)\" Software Platform (1.6.0 or later)");
+    event_log_warning (hashcat_ctx, "  \"RadeonOpenCompute (ROCm)\" Software Platform (1.6.180 or later)");
     #elif defined (_WIN)
     event_log_warning (hashcat_ctx, "* AMD GPUs on Windows require this runtime and/or driver:");
     event_log_warning (hashcat_ctx, "  \"AMD Radeon Software Crimson Edition\" (15.12 or later)");

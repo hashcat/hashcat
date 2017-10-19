@@ -1,7 +1,7 @@
 hashcat v4.0.0
 ==============
 
-AMD GPUs on Linux require "RadeonOpenCompute (ROCm)" Software Platform (1.6.0 or later)
+AMD GPUs on Linux require "RadeonOpenCompute (ROCm)" Software Platform (1.6.180 or later)
 AMD GPUs on Windows require "AMD Radeon Software Crimson Edition" (15.12 or later)
 Intel CPUs require "OpenCL Runtime for Intel Core and Intel Xeon Processors" (16.1.1 or later)
 Intel GPUs on Linux require "OpenCL 2.0 GPU Driver Package for Linux" (2.0 or later)
