@@ -344,7 +344,7 @@ static void main_calculated_words_base (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx,
 
   if (user_options->keyspace == false) return;
 
-  event_log_info (hashcat_ctx, "%ju", status_ctx->words_base);
+  event_log_info (hashcat_ctx, "%" PRIu64 "", status_ctx->words_base);
 }
 
 static void main_potfile_remove_parse_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -775,9 +775,9 @@ static void main_wordlist_cache_hit (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
 
   event_log_info (hashcat_ctx, "Dictionary cache hit:");
   event_log_info (hashcat_ctx, "* Filename..: %s", cache_hit->dictfile);
-  event_log_info (hashcat_ctx, "* Passwords.: %ju", cache_hit->cached_cnt);
-  event_log_info (hashcat_ctx, "* Bytes.....: %ju", cache_hit->stat.st_size);
-  event_log_info (hashcat_ctx, "* Keyspace..: %ju", cache_hit->keyspace);
+  event_log_info (hashcat_ctx, "* Passwords.: %" PRIu64, cache_hit->cached_cnt);
+  event_log_info (hashcat_ctx, "* Bytes.....: %" PRId64, cache_hit->stat.st_size);
+  event_log_info (hashcat_ctx, "* Keyspace..: %" PRIu64, cache_hit->keyspace);
   event_log_info (hashcat_ctx, NULL);
 }
 
@@ -791,7 +791,7 @@ static void main_wordlist_cache_generate (MAYBE_UNUSED hashcat_ctx_t *hashcat_ct
 
   if (cache_generate->percent < 100)
   {
-    event_log_info_nn (hashcat_ctx, "Dictionary cache building %s: %ju bytes (%.2f%%)", cache_generate->dictfile, cache_generate->comp, cache_generate->percent);
+    event_log_info_nn (hashcat_ctx, "Dictionary cache building %s: %" PRIu64 " bytes (%.2f%%)", cache_generate->dictfile, cache_generate->comp, cache_generate->percent);
   }
   else
   {
@@ -808,9 +808,9 @@ static void main_wordlist_cache_generate (MAYBE_UNUSED hashcat_ctx_t *hashcat_ct
 
     event_log_info (hashcat_ctx, "Dictionary cache built:");
     event_log_info (hashcat_ctx, "* Filename..: %s", cache_generate->dictfile);
-    event_log_info (hashcat_ctx, "* Passwords.: %ju", cache_generate->cnt2);
-    event_log_info (hashcat_ctx, "* Bytes.....: %ju", cache_generate->comp);
-    event_log_info (hashcat_ctx, "* Keyspace..: %ju", cache_generate->cnt);
+    event_log_info (hashcat_ctx, "* Passwords.: %" PRIu64, cache_generate->cnt2);
+    event_log_info (hashcat_ctx, "* Bytes.....: %" PRId64, cache_generate->comp);
+    event_log_info (hashcat_ctx, "* Keyspace..: %" PRIu64, cache_generate->cnt);
     event_log_info (hashcat_ctx, "* Runtime...: %s", runtime);
     event_log_info (hashcat_ctx, NULL);
 
