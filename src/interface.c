@@ -408,7 +408,7 @@ static const char HT_06700[] = "AIX {ssha1}";
 static const char HT_06800[] = "LastPass + LastPass sniffed";
 static const char HT_06900[] = "GOST R 34.11-94";
 static const char HT_07000[] = "FortiGate (FortiOS)";
-static const char HT_07100[] = "OSX v10.8+ (PBKDF2-SHA512)";
+static const char HT_07100[] = "MacOS v10.8+ (PBKDF2-SHA512)";
 static const char HT_07200[] = "GRUB 2";
 static const char HT_07300[] = "IPMI2 RAKP HMAC-SHA1";
 static const char HT_07400[] = "sha256crypt $5$, SHA256 (Unix)";
@@ -508,7 +508,7 @@ static const char HT_00101[] = "nsldap, SHA-1(Base64), Netscape LDAP SHA";
 static const char HT_00111[] = "nsldaps, SSHA-1(Base64), Netscape LDAP SSHA";
 static const char HT_00112[] = "Oracle S: Type (Oracle 11+)";
 static const char HT_00121[] = "SMF (Simple Machines Forum) > v1.1";
-static const char HT_00122[] = "OSX v10.4, OSX v10.5, OSX v10.6";
+static const char HT_00122[] = "MacOS v10.4, MacOS v10.5, MacOS v10.6";
 static const char HT_00124[] = "Django (SHA-1)";
 static const char HT_00125[] = "ArubaOS";
 static const char HT_00131[] = "MSSQL (2000)";
@@ -519,7 +519,7 @@ static const char HT_01411[] = "SSHA-256(Base64), LDAP {SSHA256}";
 static const char HT_01421[] = "hMailServer";
 static const char HT_01441[] = "Episerver 6.x >= .NET 4";
 static const char HT_01711[] = "SSHA-512(Base64), LDAP {SSHA512}";
-static const char HT_01722[] = "OSX v10.7";
+static const char HT_01722[] = "MacOS v10.7";
 static const char HT_01731[] = "MSSQL (2012, 2014)";
 static const char HT_02611[] = "vBulletin < v3.8.5";
 static const char HT_02612[] = "PHPS";
@@ -625,7 +625,7 @@ static const char SIGNATURE_SHA512AIX[]        = "{ssha512}";
 static const char SIGNATURE_SHA512B64S[]       = "{SSHA512}";
 static const char SIGNATURE_SHA512CRYPT[]      = "$6$";
 static const char SIGNATURE_SHA512GRUB[]       = "grub.pbkdf2.sha512.";
-static const char SIGNATURE_SHA512OSX[]        = "$ml$";
+static const char SIGNATURE_SHA512MACOS[]      = "$ml$";
 static const char SIGNATURE_SIP_AUTH[]         = "$sip$*";
 static const char SIGNATURE_SSHA1B64_lower[]   = "{ssha}";
 static const char SIGNATURE_SSHA1B64_upper[]   = "{SSHA}";
@@ -2735,7 +2735,7 @@ int arubaos_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   return (PARSER_OK);
 }
 
-int osx1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
+int macos1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_122) || (input_len > DISPLAY_LEN_MAX_122)) return (PARSER_GLOBAL_LENGTH);
 
@@ -2781,7 +2781,7 @@ int osx1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   return (PARSER_OK);
 }
 
-int osx512_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
+int macos512_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_1722) || (input_len > DISPLAY_LEN_MAX_1722)) return (PARSER_GLOBAL_LENGTH);
 
@@ -6832,13 +6832,13 @@ int sha256crypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
   return (PARSER_OK);
 }
 
-int sha512osx_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
+int sha512macos_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   u32 max_len = DISPLAY_LEN_MAX_7100 + (2 * 128);
 
   if ((input_len < DISPLAY_LEN_MIN_7100) || (input_len > max_len)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_SHA512OSX, input_buf, 4)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_SHA512MACOS, input_buf, 4)) return (PARSER_SIGNATURE_UNMATCHED);
 
   u64 *digest = (u64 *) hash_buf->digest;
 
@@ -17456,7 +17456,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     esalt[7] = byte_swap_32 (pbkdf2_sha512->salt_buf[7]);
 
     snprintf (out_buf, out_len - 1, "%s%u$%08x%08x%08x%08x%08x%08x%08x%08x$%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
-      SIGNATURE_SHA512OSX,
+      SIGNATURE_SHA512MACOS,
       salt.salt_iter + 1,
       esalt[ 0], esalt[ 1],
       esalt[ 2], esalt[ 3],
@@ -20298,7 +20298,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                                             | OPTS_TYPE_ST_HEX;
                  hashconfig->kern_type      = KERN_TYPE_SHA1_SLTPW;
                  hashconfig->dgst_size      = DGST_SIZE_4_5;
-                 hashconfig->parse_func     = osx1_parse_hash;
+                 hashconfig->parse_func     = macos1_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
                                             | OPTI_TYPE_PRECOMPUTE_INIT
                                             | OPTI_TYPE_PRECOMPUTE_MERKLE
@@ -21139,7 +21139,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                                             | OPTS_TYPE_ST_HEX;
                  hashconfig->kern_type      = KERN_TYPE_SHA512_SLTPW;
                  hashconfig->dgst_size      = DGST_SIZE_8_8;
-                 hashconfig->parse_func     = osx512_parse_hash;
+                 hashconfig->parse_func     = macos512_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
                                             | OPTI_TYPE_PRECOMPUTE_INIT
                                             | OPTI_TYPE_PRECOMPUTE_MERKLE
@@ -22458,7 +22458,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
                  hashconfig->kern_type      = KERN_TYPE_PBKDF2_SHA512;
                  hashconfig->dgst_size      = DGST_SIZE_8_16;
-                 hashconfig->parse_func     = sha512osx_parse_hash;
+                 hashconfig->parse_func     = sha512macos_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
                                             | OPTI_TYPE_USES_BITS_64
                                             | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
@@ -25535,7 +25535,7 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                  break;
     case  6800:  salt->salt_iter  = ROUNDS_LASTPASS;
                  break;
-    case  7100:  salt->salt_iter  = ROUNDS_SHA512OSX;
+    case  7100:  salt->salt_iter  = ROUNDS_SHA512MACOS;
                  break;
     case  7200:  salt->salt_iter  = ROUNDS_GRUB;
                  break;

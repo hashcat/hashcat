@@ -16,7 +16,7 @@ NVIDIA GPUs require "NVIDIA Driver" (367.x or later)
 - World's first and only in-kernel rule engine
 - Free
 - Open-Source (MIT License)
-- Multi-OS (Linux, Windows and OSX)
+- Multi-OS (Linux, Windows and MacOS)
 - Multi-Platform (CPU, GPU, DSP, FPGA, etc., everything that comes with an OpenCL runtime)
 - Multi-Hash (Cracking multiple hashes at the same time)
 - Multi-Devices (Utilizing multiple devices in same system)
@@ -155,13 +155,13 @@ NVIDIA GPUs require "NVIDIA Driver" (367.x or later)
 - sha512crypt
 - bcrypt
 - scrypt
-- OSX v10.4
-- OSX v10.5
-- OSX v10.6
-- OSX v10.7
-- OSX v10.8
-- OSX v10.9
-- OSX v10.10
+- MacOS v10.4
+- MacOS v10.5
+- MacOS v10.6
+- MacOS v10.7
+- MacOS v10.8
+- MacOS v10.9
+- MacOS v10.10
 - iTunes backup < 10.0
 - iTunes backup >= 10.0
 - AIX {smd5}

@@ -422,7 +422,7 @@ sub verify
 
       $salt = substr ($decoded, 64);
     }
-    # OSX (first 8 hex chars is salt)
+    # MacOS (first 8 hex chars is salt)
     # ArubaOS (the signature gets added in gen_hash)
     elsif ($mode == 122 || $mode == 1722 || $mode == 125)
     {
@@ -873,7 +873,7 @@ sub verify
       $salt = substr ($decoded, 0, 12);
       $salt = unpack ("H*", $salt);
     }
-    # OSX 10.* : $something$iter$salt$
+    # MacOS 10.* : $something$iter$salt$
     elsif ($mode == 7100)
     {
       my $index1 = index ($line, ":");

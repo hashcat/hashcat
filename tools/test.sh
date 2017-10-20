@@ -2230,9 +2230,9 @@ OPTIONS:
         '64'     => 64 bit architecture (default)
 
   -o    Select operating system :
-        'win'    => windows operating system (use .exe file extension etc)
-        'linux'  => *nix based operating systems (.bin for binaries)
-        'osx'    => mac osx operating systems (.app for binaries)
+        'win'    => Windows operating system (use .exe file extension)
+        'linux'  => Linux operating system (use .bin file extension)
+        'macos'  => MacOS operating system (use .app file extension)
 
   -c    Disables markov-chains
 
@@ -2359,7 +2359,7 @@ while getopts "V:T:t:m:a:b:hcpd:x:o:" opt; do
         EXTENSION="exe"
       elif [ ${OPTARG} == "linux" ]; then
         EXTENSION="bin"
-      elif [ ${OPTARG} == "osx" ]; then
+      elif [ ${OPTARG} == "macos" ]; then
         EXTENSION="app"
       else
         usage
@@ -2608,7 +2608,7 @@ if [ "${PACKAGE}" -eq 1 ]; then
 
   UNAME=$(uname -s)
 
-  # of course OSX requires us to implement a special case (sed -i "" for the backup file)
+  # of course MacOS requires us to implement a special case (sed -i "" for the backup file)
   if [ "${UNAME}" == "Darwin" ] ; then
     SED_IN_PLACE='-i ""'
   fi
