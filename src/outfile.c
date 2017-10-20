@@ -491,7 +491,7 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsign
 
   if (outfile_ctx->outfile_format & OUTFILE_FMT_CRACKPOS)
   {
-    tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_LARGE - tmp_len, "%" PRIu64, crackpos);
+    tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_LARGE - tmp_len, "%ju", crackpos);
   }
 
   tmp_buf[tmp_len] = 0;

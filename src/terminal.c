@@ -666,7 +666,7 @@ void opencl_info (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "    Version        : %s", device_version);
       event_log_info (hashcat_ctx, "    Processor(s)   : %u", device_processors);
       event_log_info (hashcat_ctx, "    Clock          : %u", device_maxclock_frequency);
-      event_log_info (hashcat_ctx, "    Memory         : %" PRIu64 "/%" PRIu64 " MB allocatable", device_maxmem_alloc / 1024 / 1024, device_global_mem / 1024 / 1024);
+      event_log_info (hashcat_ctx, "    Memory         : %ju/%ju MB allocatable", device_maxmem_alloc / 1024 / 1024, device_global_mem / 1024 / 1024);
       event_log_info (hashcat_ctx, "    OpenCL Version : %s", device_opencl_version);
       event_log_info (hashcat_ctx, "    Driver Version : %s", driver_version);
       event_log_info (hashcat_ctx, NULL);
@@ -724,7 +724,7 @@ void opencl_info_compact (hashcat_ctx_t *hashcat_ctx)
 
       if (device_param->skipped == false)
       {
-        event_log_info (hashcat_ctx, "* Device #%u: %s, %" PRIu64 "/%" PRIu64 " MB allocatable, %uMCU",
+        event_log_info (hashcat_ctx, "* Device #%u: %s, %ju/%ju MB allocatable, %uMCU",
                   devices_idx + 1,
                   device_name,
                   device_maxmem_alloc / 1024 / 1024,
@@ -768,7 +768,7 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 
     if (device_info->skipped_dev == true) continue;
 
-    printf ("%" PRIu64 "\t", (u64) (device_info->hashes_msec_dev * 1000));
+    printf ("%ju\t", (u64) (device_info->hashes_msec_dev * 1000));
 
     // that 1\t is for backward compatibility
     printf ("1000\t");
@@ -785,9 +785,9 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
     printf ("%f\t", device_info->exec_msec_dev);
   }
 
-  printf ("CURKU\t%" PRIu64 "\t", hashcat_status->restore_point);
+  printf ("CURKU\t%ju\t", hashcat_status->restore_point);
 
-  printf ("PROGRESS\t%" PRIu64 "\t%" PRIu64 "\t", hashcat_status->progress_cur_relative_skip, hashcat_status->progress_end_relative_skip);
+  printf ("PROGRESS\t%ju\t%ju\t", hashcat_status->progress_cur_relative_skip, hashcat_status->progress_end_relative_skip);
 
   printf ("RECHASH\t%d\t%d\t", hashcat_status->digests_done, hashcat_status->digests_cnt);
 
@@ -811,7 +811,7 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  printf ("REJECTED\t%" PRIu64 "\t", hashcat_status->progress_rejected);
+  printf ("REJECTED\t%ju\t", hashcat_status->progress_rejected);
 
   hc_fwrite (EOL, strlen (EOL), 1, stdout);
 
@@ -1200,19 +1200,19 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     case PROGRESS_MODE_KEYSPACE_KNOWN:
 
       event_log_info (hashcat_ctx,
-        "Progress.........: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
+        "Progress.........: %ju/%ju (%.02f%%)",
         hashcat_status->progress_cur_relative_skip,
         hashcat_status->progress_end_relative_skip,
         hashcat_status->progress_finished_percent);
 
       event_log_info (hashcat_ctx,
-        "Rejected.........: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
+        "Rejected.........: %ju/%ju (%.02f%%)",
         hashcat_status->progress_rejected,
         hashcat_status->progress_cur_relative_skip,
         hashcat_status->progress_rejected_percent);
 
       event_log_info (hashcat_ctx,
-        "Restore.Point....: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
+        "Restore.Point....: %ju/%ju (%.02f%%)",
         hashcat_status->restore_point,
         hashcat_status->restore_total,
         hashcat_status->restore_percent);
@@ -1222,15 +1222,15 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     case PROGRESS_MODE_KEYSPACE_UNKNOWN:
 
       event_log_info (hashcat_ctx,
-        "Progress.........: %" PRIu64,
+        "Progress.........: %ju",
         hashcat_status->progress_cur_relative_skip);
 
       event_log_info (hashcat_ctx,
-        "Rejected.........: %" PRIu64,
+        "Rejected.........: %ju",
         hashcat_status->progress_rejected);
 
       event_log_info (hashcat_ctx,
-        "Restore.Point....: %" PRIu64,
+        "Restore.Point....: %ju",
         hashcat_status->restore_point);
 
       break;
@@ -1293,7 +1293,7 @@ void status_benchmark_machine_readable (hashcat_ctx_t *hashcat_ctx)
 
     if (device_info->skipped_dev == true) continue;
 
-    event_log_info (hashcat_ctx, "%d:%u:%d:%d:%.2f:%" PRIu64, device_id + 1, hash_mode, device_info->corespeed_dev, device_info->memoryspeed_dev, device_info->exec_msec_dev, (u64) (device_info->hashes_msec_dev_benchmark * 1000));
+    event_log_info (hashcat_ctx, "%d:%u:%d:%d:%.2f:%ju", device_id + 1, hash_mode, device_info->corespeed_dev, device_info->memoryspeed_dev, device_info->exec_msec_dev, (u64) (device_info->hashes_msec_dev_benchmark * 1000));
   }
 
   status_status_destroy (hashcat_ctx, hashcat_status);
@@ -1366,7 +1366,7 @@ void status_speed_machine_readable (hashcat_ctx_t *hashcat_ctx)
 
     if (device_info->skipped_dev == true) continue;
 
-    event_log_info (hashcat_ctx, "%d:%" PRIu64, device_id + 1, (u64) (device_info->hashes_msec_dev_benchmark * 1000));
+    event_log_info (hashcat_ctx, "%d:%ju", device_id + 1, (u64) (device_info->hashes_msec_dev_benchmark * 1000));
   }
 
   status_status_destroy (hashcat_ctx, hashcat_status);
