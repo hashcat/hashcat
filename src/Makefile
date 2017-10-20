@@ -89,7 +89,7 @@ SED_IN_PLACE            := -i
 
 ifeq ($(UNAME),Darwin)
 CC                      := clang
-# the sed -i option of MacOS requires a parameter for the backup file (we just use "")
+# the sed -i option of macOS requires a parameter for the backup file (we just use "")
 SED_IN_PLACE            := -i ""
 endif
 
@@ -165,7 +165,7 @@ endif
 
 # default Linux and freebsd thread stack size is 2MB
 # default Windows thread stack size is 1MB
-# default MacOS thread stack size is 512kB
+# default macOS thread stack size is 512kB
 # unfortunately, this option isn't supported by older GCC and clang versions
 
 #CFLAGS                  += -Wstack-usage=524288

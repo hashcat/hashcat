@@ -2232,7 +2232,7 @@ OPTIONS:
   -o    Select operating system :
         'win'    => Windows operating system (use .exe file extension)
         'linux'  => Linux operating system (use .bin file extension)
-        'macos'  => MacOS operating system (use .app file extension)
+        'macos'  => macOS operating system (use .app file extension)
 
   -c    Disables markov-chains
 
@@ -2608,7 +2608,7 @@ if [ "${PACKAGE}" -eq 1 ]; then
 
   UNAME=$(uname -s)
 
-  # of course MacOS requires us to implement a special case (sed -i "" for the backup file)
+  # of course macOS requires us to implement a special case (sed -i "" for the backup file)
   if [ "${UNAME}" == "Darwin" ] ; then
     SED_IN_PLACE='-i ""'
   fi

@@ -4214,7 +4214,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     #endif
 
     // include check
-    // this test needs to be done manually because of MacOS opencl runtime
+    // this test needs to be done manually because of macOS opencl runtime
     // if there's a problem with permission, its not reporting back and erroring out silently
 
     #define files_cnt 16
@@ -5483,7 +5483,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     hardware_power_all += device_param->hardware_power;
   }
 
-  // Prevent exit from benchmark mode if all devices are skipped due to unstable hash-modes (MacOS)
+  // Prevent exit from benchmark mode if all devices are skipped due to unstable hash-modes (macOS)
 
   bool has_skipped_temp = false;
 

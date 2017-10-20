@@ -10,7 +10,7 @@
 - Added option --self-test-disable to disable self-test functionality on startup
 - Added option --wordlist-autohex-disable to disable the automatical conversion of $HEX[] words from the word list
 - Added option --example-hashes to show an example hash for each hash-mode
-- Removed option --weak-hash-check (zero-length password check) to increase startup time, it also causes many Trap 6 error on MacOS
+- Removed option --weak-hash-check (zero-length password check) to increase startup time, it also causes many Trap 6 error on macOS
 
 ##
 ## Algorithms
@@ -63,7 +63,7 @@
 - OpenCL Kernels: Updated default scrypt TMTO to be ideal for latest NVidia and AMD top models
 - OpenCL Kernels: Vectorized tons of slow kernels to improve CPU cracking speed
 - OpenCL Runtime: Updated AMD ROCm driver version check, warn if version < 1.1
-- OpenCL Runtime: Improved detection for AMD and NV devices on MacOS
+- OpenCL Runtime: Improved detection for AMD and NV devices on macOS
 - OpenCL Runtime: Improved performance on Intel MIC devices (Xeon PHI) on runtime level (300MH/s to 2000MH/s)
 - Show cracks: Improved the performance of --show/--left if used together with --username
 - Startup: Add visual indicator of active options when benchmarking
@@ -375,7 +375,7 @@
 - Hardware management: Removed *throttled* message from NVML as this created more confusion than it helped
 - Hash Parser: Improved error detection of invalid hex characters where hex character are expected
 - OpenCL Runtime: Updated AMDGPU-Pro driver version check, do warn if version 16.50 is detected which is known to be broken
-- OpenCL Runtime: Updated hashcat.hctune for Iris Pro GPU on MacOS
+- OpenCL Runtime: Updated hashcat.hctune for Iris Pro GPU on macOS
 - Potfile: In v3.10 already, the default potfile suffix changed but the note about was missing. The "hashcat.pot" became "hashcat.potfile"
 - Potfile: Added old potfile detection, show warning message
 - Returncode: Added dedicated returncode (see docs/status_codes.txt) for shutdowns caused by --runtime and checkpoint keypress
@@ -449,9 +449,9 @@ The CLI (hashcat.bin or hashcat.exe) works as before but from a technical perspe
 - Workaround added for AMDGPU-Pro OpenCL runtime: Failed to compile hash-mode 1800 = sha512crypt
 - Workaround added for NVidia OpenCL runtime: Failed to compile hash-mode 6400 = AIX {ssha256}
 - Workaround added for NVidia OpenCL runtime: Failed to compile hash-mode 6800 = Lastpass + Lastpass sniffed
-- Workaround added for MacOS OpenCL runtime: Failed to compile hash-mode 10420 = PDF 1.1 - 1.3 (Acrobat 2 - 4)
-- Workaround added for MacOS OpenCL runtime: Failed to compile hash-mode 1100 = Domain Cached Credentials (DCC), MS Cache
-- Workaround added for MacOS OpenCL runtime: Failed to compile hash-mode 13800 = Windows 8+ phone PIN/Password
+- Workaround added for macOS OpenCL runtime: Failed to compile hash-mode 10420 = PDF 1.1 - 1.3 (Acrobat 2 - 4)
+- Workaround added for macOS OpenCL runtime: Failed to compile hash-mode 1100 = Domain Cached Credentials (DCC), MS Cache
+- Workaround added for macOS OpenCL runtime: Failed to compile hash-mode 13800 = Windows 8+ phone PIN/Password
 - Workaround added for pocl OpenCL runtime: Failed to compile hash-mode 5800 = Android PIN
 
 ##
@@ -475,7 +475,7 @@ The CLI (hashcat.bin or hashcat.exe) works as before but from a technical perspe
 - Autotune: Do not run any caching rounds in autotune in DEBUG mode if -n and -u are specified
 - Bash completion: Removed some v2.01 leftovers in the bash completion configuration
 - Benchmark: Do not control fan speed in benchmark mode
-- Benchmark: On MacOS, some hash-modes can't compile because of MacOS OpenCL runtime. Skip them and move on to the next
+- Benchmark: On macOS, some hash-modes can't compile because of macOS OpenCL runtime. Skip them and move on to the next
 - Building: Added Makefile target "main_shared", a small how-to-use libhashcat example
 - Building: Added many additional compiler warning flags in Makefile to improve static code error detection
 - Building: Added missing includes for FreeBSD
@@ -484,8 +484,8 @@ The CLI (hashcat.bin or hashcat.exe) works as before but from a technical perspe
 - Building: Defined NOMINMAX macro to prevent definition min and max macros in stdlib header files
 - Building: Enabled ASLR and DEP for Windows builds
 - Building: Fixed almost all errors reported by cppcheck and scan-build
-- Building: On MacOS, move '-framework OpenCL' from CFLAGS to LDFLAGS
-- Building: On MacOS, use clang as default compiler
+- Building: On macOS, move '-framework OpenCL' from CFLAGS to LDFLAGS
+- Building: On macOS, use clang as default compiler
 - Building: Support building on Msys2 environment
 - Building: Use .gitmodules to simplify the OpenCL header dependency handling process
 - Charsets: Added DES_full.charset
@@ -522,7 +522,7 @@ The CLI (hashcat.bin or hashcat.exe) works as before but from a technical perspe
 - Memory management: Fixed some memory leaks on shutdown
 - Memory management: Got rid of all global variables
 - Memory management: Got rid of local_free() and global_free(), no longer required
-- Memory management: Refactored all variables with HCBUFSIZ_LARGE size from stack to heap, MacOS doesn't like that
+- Memory management: Refactored all variables with HCBUFSIZ_LARGE size from stack to heap, macOS doesn't like that
 - OpenCL Headers: Select OpenCL headers tagged for OpenCL 1.2, since we use -cl-std=CL1.2
 - OpenCL Kernels: Added const qualifier to variable declaration of matching global memory objects
 - OpenCL Kernels: Got rid of one global kernel_threads variable
