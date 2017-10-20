@@ -63,6 +63,7 @@
 - OpenCL Kernels: Updated default scrypt TMTO to be ideal for latest NVidia and AMD top models
 - OpenCL Kernels: Vectorized tons of slow kernels to improve CPU cracking speed
 - OpenCL Runtime: Updated AMD ROCm driver version check, warn if version < 1.1
+- OpenCL Runtime: Improved detection for AMD and NV devices on OSX
 - OpenCL Runtime: Improved performance on Intel MIC devices (Xeon PHI) on runtime level (300MH/s to 2000MH/s)
 - Show cracks: Improved the performance of --show/--left if used together with --username
 - Startup: Add visual indicator of active options when benchmarking

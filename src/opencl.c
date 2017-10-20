@@ -2842,6 +2842,10 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       {
         device_vendor_id = VENDOR_ID_APPLE;
       }
+      else if (strcmp (device_vendor, CL_VENDOR_APPLE_USE_AMD) == 0)
+      {
+        device_vendor_id = VENDOR_ID_AMD;
+      }
       else if (strcmp (device_vendor, CL_VENDOR_APPLE_USE_NV) == 0)
       {
         device_vendor_id = VENDOR_ID_NV;
