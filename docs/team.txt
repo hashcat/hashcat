@@ -26,6 +26,10 @@ We're a group of people participating in the yearly repeating password cracking 
 | Hashkiller          | -                          | 2012 | 1st    |
 | Hashkiller          | -                          | 2016 | 2nd    |
 
+| Competition         | Conference                 | Year | Placed |
+|---------------------|----------------------------|------|--------|
+| PCrack              | SAINTCON, Utah             | 2017 | 1st    |
+
 * Special recognition for team hashcat goes to:
 
 Christoph "dropdead" Heuwieser (@dropdeadfu): Lead and organizing
