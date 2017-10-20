@@ -17,7 +17,7 @@ typedef struct ripemd160_ctx
 
 } ripemd160_ctx_t;
 
-static void ripemd160_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
+void ripemd160_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
 {
   u32 a1 = digest[0];
   u32 b1 = digest[1];
@@ -214,7 +214,7 @@ static void ripemd160_transform (const u32 w0[4], const u32 w1[4], const u32 w2[
   digest[4] = e;
 }
 
-static void ripemd160_init (ripemd160_ctx_t *ctx)
+void ripemd160_init (ripemd160_ctx_t *ctx)
 {
   ctx->h[0] = RIPEMD160M_A;
   ctx->h[1] = RIPEMD160M_B;
@@ -242,7 +242,7 @@ static void ripemd160_init (ripemd160_ctx_t *ctx)
   ctx->len = 0;
 }
 
-static void ripemd160_update_64 (ripemd160_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len)
+void ripemd160_update_64 (ripemd160_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len)
 {
   #ifdef IS_AMD
   volatile const int pos = ctx->len & 63;
@@ -320,7 +320,7 @@ static void ripemd160_update_64 (ripemd160_ctx_t *ctx, u32 w0[4], u32 w1[4], u32
   }
 }
 
-static void ripemd160_update (ripemd160_ctx_t *ctx, const u32 *w, const int len)
+void ripemd160_update (ripemd160_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -372,263 +372,7 @@ static void ripemd160_update (ripemd160_ctx_t *ctx, const u32 *w, const int len)
   ripemd160_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-static void ripemd160_update_swap (ripemd160_ctx_t *ctx, const u32 *w, const int len)
-{
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
-
-  int pos1;
-  int pos4;
-
-  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
-  {
-    w0[0] = w[pos4 +  0];
-    w0[1] = w[pos4 +  1];
-    w0[2] = w[pos4 +  2];
-    w0[3] = w[pos4 +  3];
-    w1[0] = w[pos4 +  4];
-    w1[1] = w[pos4 +  5];
-    w1[2] = w[pos4 +  6];
-    w1[3] = w[pos4 +  7];
-    w2[0] = w[pos4 +  8];
-    w2[1] = w[pos4 +  9];
-    w2[2] = w[pos4 + 10];
-    w2[3] = w[pos4 + 11];
-    w3[0] = w[pos4 + 12];
-    w3[1] = w[pos4 + 13];
-    w3[2] = w[pos4 + 14];
-    w3[3] = w[pos4 + 15];
-
-    w0[0] = swap32_S (w0[0]);
-    w0[1] = swap32_S (w0[1]);
-    w0[2] = swap32_S (w0[2]);
-    w0[3] = swap32_S (w0[3]);
-    w1[0] = swap32_S (w1[0]);
-    w1[1] = swap32_S (w1[1]);
-    w1[2] = swap32_S (w1[2]);
-    w1[3] = swap32_S (w1[3]);
-    w2[0] = swap32_S (w2[0]);
-    w2[1] = swap32_S (w2[1]);
-    w2[2] = swap32_S (w2[2]);
-    w2[3] = swap32_S (w2[3]);
-    w3[0] = swap32_S (w3[0]);
-    w3[1] = swap32_S (w3[1]);
-    w3[2] = swap32_S (w3[2]);
-    w3[3] = swap32_S (w3[3]);
-
-    ripemd160_update_64 (ctx, w0, w1, w2, w3, 64);
-  }
-
-  w0[0] = w[pos4 +  0];
-  w0[1] = w[pos4 +  1];
-  w0[2] = w[pos4 +  2];
-  w0[3] = w[pos4 +  3];
-  w1[0] = w[pos4 +  4];
-  w1[1] = w[pos4 +  5];
-  w1[2] = w[pos4 +  6];
-  w1[3] = w[pos4 +  7];
-  w2[0] = w[pos4 +  8];
-  w2[1] = w[pos4 +  9];
-  w2[2] = w[pos4 + 10];
-  w2[3] = w[pos4 + 11];
-  w3[0] = w[pos4 + 12];
-  w3[1] = w[pos4 + 13];
-  w3[2] = w[pos4 + 14];
-  w3[3] = w[pos4 + 15];
-
-  w0[0] = swap32_S (w0[0]);
-  w0[1] = swap32_S (w0[1]);
-  w0[2] = swap32_S (w0[2]);
-  w0[3] = swap32_S (w0[3]);
-  w1[0] = swap32_S (w1[0]);
-  w1[1] = swap32_S (w1[1]);
-  w1[2] = swap32_S (w1[2]);
-  w1[3] = swap32_S (w1[3]);
-  w2[0] = swap32_S (w2[0]);
-  w2[1] = swap32_S (w2[1]);
-  w2[2] = swap32_S (w2[2]);
-  w2[3] = swap32_S (w2[3]);
-  w3[0] = swap32_S (w3[0]);
-  w3[1] = swap32_S (w3[1]);
-  w3[2] = swap32_S (w3[2]);
-  w3[3] = swap32_S (w3[3]);
-
-  ripemd160_update_64 (ctx, w0, w1, w2, w3, len - pos1);
-}
-
-static void ripemd160_update_utf16le (ripemd160_ctx_t *ctx, const u32 *w, const int len)
-{
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
-
-  int pos1;
-  int pos4;
-
-  for (pos1 = 0, pos4 = 0; pos1 < len - 32; pos1 += 32, pos4 += 8)
-  {
-    w0[0] = w[pos4 + 0];
-    w0[1] = w[pos4 + 1];
-    w0[2] = w[pos4 + 2];
-    w0[3] = w[pos4 + 3];
-    w1[0] = w[pos4 + 4];
-    w1[1] = w[pos4 + 5];
-    w1[2] = w[pos4 + 6];
-    w1[3] = w[pos4 + 7];
-
-    make_utf16le_S (w1, w2, w3);
-    make_utf16le_S (w0, w0, w1);
-
-    ripemd160_update_64 (ctx, w0, w1, w2, w3, 32 * 2);
-  }
-
-  w0[0] = w[pos4 + 0];
-  w0[1] = w[pos4 + 1];
-  w0[2] = w[pos4 + 2];
-  w0[3] = w[pos4 + 3];
-  w1[0] = w[pos4 + 4];
-  w1[1] = w[pos4 + 5];
-  w1[2] = w[pos4 + 6];
-  w1[3] = w[pos4 + 7];
-
-  make_utf16le_S (w1, w2, w3);
-  make_utf16le_S (w0, w0, w1);
-
-  ripemd160_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
-}
-
-static void ripemd160_update_utf16le_swap (ripemd160_ctx_t *ctx, const u32 *w, const int len)
-{
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
-
-  int pos1;
-  int pos4;
-
-  for (pos1 = 0, pos4 = 0; pos1 < len - 32; pos1 += 32, pos4 += 8)
-  {
-    w0[0] = w[pos4 + 0];
-    w0[1] = w[pos4 + 1];
-    w0[2] = w[pos4 + 2];
-    w0[3] = w[pos4 + 3];
-    w1[0] = w[pos4 + 4];
-    w1[1] = w[pos4 + 5];
-    w1[2] = w[pos4 + 6];
-    w1[3] = w[pos4 + 7];
-
-    make_utf16le_S (w1, w2, w3);
-    make_utf16le_S (w0, w0, w1);
-
-    w0[0] = swap32_S (w0[0]);
-    w0[1] = swap32_S (w0[1]);
-    w0[2] = swap32_S (w0[2]);
-    w0[3] = swap32_S (w0[3]);
-    w1[0] = swap32_S (w1[0]);
-    w1[1] = swap32_S (w1[1]);
-    w1[2] = swap32_S (w1[2]);
-    w1[3] = swap32_S (w1[3]);
-    w2[0] = swap32_S (w2[0]);
-    w2[1] = swap32_S (w2[1]);
-    w2[2] = swap32_S (w2[2]);
-    w2[3] = swap32_S (w2[3]);
-    w3[0] = swap32_S (w3[0]);
-    w3[1] = swap32_S (w3[1]);
-    w3[2] = swap32_S (w3[2]);
-    w3[3] = swap32_S (w3[3]);
-
-    ripemd160_update_64 (ctx, w0, w1, w2, w3, 32 * 2);
-  }
-
-  w0[0] = w[pos4 + 0];
-  w0[1] = w[pos4 + 1];
-  w0[2] = w[pos4 + 2];
-  w0[3] = w[pos4 + 3];
-  w1[0] = w[pos4 + 4];
-  w1[1] = w[pos4 + 5];
-  w1[2] = w[pos4 + 6];
-  w1[3] = w[pos4 + 7];
-
-  make_utf16le_S (w1, w2, w3);
-  make_utf16le_S (w0, w0, w1);
-
-  w0[0] = swap32_S (w0[0]);
-  w0[1] = swap32_S (w0[1]);
-  w0[2] = swap32_S (w0[2]);
-  w0[3] = swap32_S (w0[3]);
-  w1[0] = swap32_S (w1[0]);
-  w1[1] = swap32_S (w1[1]);
-  w1[2] = swap32_S (w1[2]);
-  w1[3] = swap32_S (w1[3]);
-  w2[0] = swap32_S (w2[0]);
-  w2[1] = swap32_S (w2[1]);
-  w2[2] = swap32_S (w2[2]);
-  w2[3] = swap32_S (w2[3]);
-  w3[0] = swap32_S (w3[0]);
-  w3[1] = swap32_S (w3[1]);
-  w3[2] = swap32_S (w3[2]);
-  w3[3] = swap32_S (w3[3]);
-
-  ripemd160_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
-}
-
-static void ripemd160_update_global (ripemd160_ctx_t *ctx, const __global u32 *w, const int len)
-{
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
-
-  int pos1;
-  int pos4;
-
-  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
-  {
-    w0[0] = w[pos4 +  0];
-    w0[1] = w[pos4 +  1];
-    w0[2] = w[pos4 +  2];
-    w0[3] = w[pos4 +  3];
-    w1[0] = w[pos4 +  4];
-    w1[1] = w[pos4 +  5];
-    w1[2] = w[pos4 +  6];
-    w1[3] = w[pos4 +  7];
-    w2[0] = w[pos4 +  8];
-    w2[1] = w[pos4 +  9];
-    w2[2] = w[pos4 + 10];
-    w2[3] = w[pos4 + 11];
-    w3[0] = w[pos4 + 12];
-    w3[1] = w[pos4 + 13];
-    w3[2] = w[pos4 + 14];
-    w3[3] = w[pos4 + 15];
-
-    ripemd160_update_64 (ctx, w0, w1, w2, w3, 64);
-  }
-
-  w0[0] = w[pos4 +  0];
-  w0[1] = w[pos4 +  1];
-  w0[2] = w[pos4 +  2];
-  w0[3] = w[pos4 +  3];
-  w1[0] = w[pos4 +  4];
-  w1[1] = w[pos4 +  5];
-  w1[2] = w[pos4 +  6];
-  w1[3] = w[pos4 +  7];
-  w2[0] = w[pos4 +  8];
-  w2[1] = w[pos4 +  9];
-  w2[2] = w[pos4 + 10];
-  w2[3] = w[pos4 + 11];
-  w3[0] = w[pos4 + 12];
-  w3[1] = w[pos4 + 13];
-  w3[2] = w[pos4 + 14];
-  w3[3] = w[pos4 + 15];
-
-  ripemd160_update_64 (ctx, w0, w1, w2, w3, len - pos1);
-}
-
-static void ripemd160_update_global_swap (ripemd160_ctx_t *ctx, const __global u32 *w, const int len)
+void ripemd160_update_swap (ripemd160_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -714,7 +458,7 @@ static void ripemd160_update_global_swap (ripemd160_ctx_t *ctx, const __global u
   ripemd160_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-static void ripemd160_update_global_utf16le (ripemd160_ctx_t *ctx, const __global u32 *w, const int len)
+void ripemd160_update_utf16le (ripemd160_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -756,7 +500,7 @@ static void ripemd160_update_global_utf16le (ripemd160_ctx_t *ctx, const __globa
   ripemd160_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-static void ripemd160_update_global_utf16le_swap (ripemd160_ctx_t *ctx, const __global u32 *w, const int len)
+void ripemd160_update_utf16le_swap (ripemd160_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -832,7 +576,263 @@ static void ripemd160_update_global_utf16le_swap (ripemd160_ctx_t *ctx, const __
   ripemd160_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-static void ripemd160_final (ripemd160_ctx_t *ctx)
+void ripemd160_update_global (ripemd160_ctx_t *ctx, const __global u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  int pos1;
+  int pos4;
+
+  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
+  {
+    w0[0] = w[pos4 +  0];
+    w0[1] = w[pos4 +  1];
+    w0[2] = w[pos4 +  2];
+    w0[3] = w[pos4 +  3];
+    w1[0] = w[pos4 +  4];
+    w1[1] = w[pos4 +  5];
+    w1[2] = w[pos4 +  6];
+    w1[3] = w[pos4 +  7];
+    w2[0] = w[pos4 +  8];
+    w2[1] = w[pos4 +  9];
+    w2[2] = w[pos4 + 10];
+    w2[3] = w[pos4 + 11];
+    w3[0] = w[pos4 + 12];
+    w3[1] = w[pos4 + 13];
+    w3[2] = w[pos4 + 14];
+    w3[3] = w[pos4 + 15];
+
+    ripemd160_update_64 (ctx, w0, w1, w2, w3, 64);
+  }
+
+  w0[0] = w[pos4 +  0];
+  w0[1] = w[pos4 +  1];
+  w0[2] = w[pos4 +  2];
+  w0[3] = w[pos4 +  3];
+  w1[0] = w[pos4 +  4];
+  w1[1] = w[pos4 +  5];
+  w1[2] = w[pos4 +  6];
+  w1[3] = w[pos4 +  7];
+  w2[0] = w[pos4 +  8];
+  w2[1] = w[pos4 +  9];
+  w2[2] = w[pos4 + 10];
+  w2[3] = w[pos4 + 11];
+  w3[0] = w[pos4 + 12];
+  w3[1] = w[pos4 + 13];
+  w3[2] = w[pos4 + 14];
+  w3[3] = w[pos4 + 15];
+
+  ripemd160_update_64 (ctx, w0, w1, w2, w3, len - pos1);
+}
+
+void ripemd160_update_global_swap (ripemd160_ctx_t *ctx, const __global u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  int pos1;
+  int pos4;
+
+  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
+  {
+    w0[0] = w[pos4 +  0];
+    w0[1] = w[pos4 +  1];
+    w0[2] = w[pos4 +  2];
+    w0[3] = w[pos4 +  3];
+    w1[0] = w[pos4 +  4];
+    w1[1] = w[pos4 +  5];
+    w1[2] = w[pos4 +  6];
+    w1[3] = w[pos4 +  7];
+    w2[0] = w[pos4 +  8];
+    w2[1] = w[pos4 +  9];
+    w2[2] = w[pos4 + 10];
+    w2[3] = w[pos4 + 11];
+    w3[0] = w[pos4 + 12];
+    w3[1] = w[pos4 + 13];
+    w3[2] = w[pos4 + 14];
+    w3[3] = w[pos4 + 15];
+
+    w0[0] = swap32_S (w0[0]);
+    w0[1] = swap32_S (w0[1]);
+    w0[2] = swap32_S (w0[2]);
+    w0[3] = swap32_S (w0[3]);
+    w1[0] = swap32_S (w1[0]);
+    w1[1] = swap32_S (w1[1]);
+    w1[2] = swap32_S (w1[2]);
+    w1[3] = swap32_S (w1[3]);
+    w2[0] = swap32_S (w2[0]);
+    w2[1] = swap32_S (w2[1]);
+    w2[2] = swap32_S (w2[2]);
+    w2[3] = swap32_S (w2[3]);
+    w3[0] = swap32_S (w3[0]);
+    w3[1] = swap32_S (w3[1]);
+    w3[2] = swap32_S (w3[2]);
+    w3[3] = swap32_S (w3[3]);
+
+    ripemd160_update_64 (ctx, w0, w1, w2, w3, 64);
+  }
+
+  w0[0] = w[pos4 +  0];
+  w0[1] = w[pos4 +  1];
+  w0[2] = w[pos4 +  2];
+  w0[3] = w[pos4 +  3];
+  w1[0] = w[pos4 +  4];
+  w1[1] = w[pos4 +  5];
+  w1[2] = w[pos4 +  6];
+  w1[3] = w[pos4 +  7];
+  w2[0] = w[pos4 +  8];
+  w2[1] = w[pos4 +  9];
+  w2[2] = w[pos4 + 10];
+  w2[3] = w[pos4 + 11];
+  w3[0] = w[pos4 + 12];
+  w3[1] = w[pos4 + 13];
+  w3[2] = w[pos4 + 14];
+  w3[3] = w[pos4 + 15];
+
+  w0[0] = swap32_S (w0[0]);
+  w0[1] = swap32_S (w0[1]);
+  w0[2] = swap32_S (w0[2]);
+  w0[3] = swap32_S (w0[3]);
+  w1[0] = swap32_S (w1[0]);
+  w1[1] = swap32_S (w1[1]);
+  w1[2] = swap32_S (w1[2]);
+  w1[3] = swap32_S (w1[3]);
+  w2[0] = swap32_S (w2[0]);
+  w2[1] = swap32_S (w2[1]);
+  w2[2] = swap32_S (w2[2]);
+  w2[3] = swap32_S (w2[3]);
+  w3[0] = swap32_S (w3[0]);
+  w3[1] = swap32_S (w3[1]);
+  w3[2] = swap32_S (w3[2]);
+  w3[3] = swap32_S (w3[3]);
+
+  ripemd160_update_64 (ctx, w0, w1, w2, w3, len - pos1);
+}
+
+void ripemd160_update_global_utf16le (ripemd160_ctx_t *ctx, const __global u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  int pos1;
+  int pos4;
+
+  for (pos1 = 0, pos4 = 0; pos1 < len - 32; pos1 += 32, pos4 += 8)
+  {
+    w0[0] = w[pos4 + 0];
+    w0[1] = w[pos4 + 1];
+    w0[2] = w[pos4 + 2];
+    w0[3] = w[pos4 + 3];
+    w1[0] = w[pos4 + 4];
+    w1[1] = w[pos4 + 5];
+    w1[2] = w[pos4 + 6];
+    w1[3] = w[pos4 + 7];
+
+    make_utf16le_S (w1, w2, w3);
+    make_utf16le_S (w0, w0, w1);
+
+    ripemd160_update_64 (ctx, w0, w1, w2, w3, 32 * 2);
+  }
+
+  w0[0] = w[pos4 + 0];
+  w0[1] = w[pos4 + 1];
+  w0[2] = w[pos4 + 2];
+  w0[3] = w[pos4 + 3];
+  w1[0] = w[pos4 + 4];
+  w1[1] = w[pos4 + 5];
+  w1[2] = w[pos4 + 6];
+  w1[3] = w[pos4 + 7];
+
+  make_utf16le_S (w1, w2, w3);
+  make_utf16le_S (w0, w0, w1);
+
+  ripemd160_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
+}
+
+void ripemd160_update_global_utf16le_swap (ripemd160_ctx_t *ctx, const __global u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  int pos1;
+  int pos4;
+
+  for (pos1 = 0, pos4 = 0; pos1 < len - 32; pos1 += 32, pos4 += 8)
+  {
+    w0[0] = w[pos4 + 0];
+    w0[1] = w[pos4 + 1];
+    w0[2] = w[pos4 + 2];
+    w0[3] = w[pos4 + 3];
+    w1[0] = w[pos4 + 4];
+    w1[1] = w[pos4 + 5];
+    w1[2] = w[pos4 + 6];
+    w1[3] = w[pos4 + 7];
+
+    make_utf16le_S (w1, w2, w3);
+    make_utf16le_S (w0, w0, w1);
+
+    w0[0] = swap32_S (w0[0]);
+    w0[1] = swap32_S (w0[1]);
+    w0[2] = swap32_S (w0[2]);
+    w0[3] = swap32_S (w0[3]);
+    w1[0] = swap32_S (w1[0]);
+    w1[1] = swap32_S (w1[1]);
+    w1[2] = swap32_S (w1[2]);
+    w1[3] = swap32_S (w1[3]);
+    w2[0] = swap32_S (w2[0]);
+    w2[1] = swap32_S (w2[1]);
+    w2[2] = swap32_S (w2[2]);
+    w2[3] = swap32_S (w2[3]);
+    w3[0] = swap32_S (w3[0]);
+    w3[1] = swap32_S (w3[1]);
+    w3[2] = swap32_S (w3[2]);
+    w3[3] = swap32_S (w3[3]);
+
+    ripemd160_update_64 (ctx, w0, w1, w2, w3, 32 * 2);
+  }
+
+  w0[0] = w[pos4 + 0];
+  w0[1] = w[pos4 + 1];
+  w0[2] = w[pos4 + 2];
+  w0[3] = w[pos4 + 3];
+  w1[0] = w[pos4 + 4];
+  w1[1] = w[pos4 + 5];
+  w1[2] = w[pos4 + 6];
+  w1[3] = w[pos4 + 7];
+
+  make_utf16le_S (w1, w2, w3);
+  make_utf16le_S (w0, w0, w1);
+
+  w0[0] = swap32_S (w0[0]);
+  w0[1] = swap32_S (w0[1]);
+  w0[2] = swap32_S (w0[2]);
+  w0[3] = swap32_S (w0[3]);
+  w1[0] = swap32_S (w1[0]);
+  w1[1] = swap32_S (w1[1]);
+  w1[2] = swap32_S (w1[2]);
+  w1[3] = swap32_S (w1[3]);
+  w2[0] = swap32_S (w2[0]);
+  w2[1] = swap32_S (w2[1]);
+  w2[2] = swap32_S (w2[2]);
+  w2[3] = swap32_S (w2[3]);
+  w3[0] = swap32_S (w3[0]);
+  w3[1] = swap32_S (w3[1]);
+  w3[2] = swap32_S (w3[2]);
+  w3[3] = swap32_S (w3[3]);
+
+  ripemd160_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
+}
+
+void ripemd160_final (ripemd160_ctx_t *ctx)
 {
   const int pos = ctx->len & 63;
 
@@ -875,7 +875,7 @@ typedef struct ripemd160_hmac_ctx
 
 } ripemd160_hmac_ctx_t;
 
-static void ripemd160_hmac_init_64 (ripemd160_hmac_ctx_t *ctx, const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4])
+void ripemd160_hmac_init_64 (ripemd160_hmac_ctx_t *ctx, const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4])
 {
   u32 t0[4];
   u32 t1[4];
@@ -929,7 +929,7 @@ static void ripemd160_hmac_init_64 (ripemd160_hmac_ctx_t *ctx, const u32 w0[4], 
   ripemd160_update_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
-static void ripemd160_hmac_init (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len)
+void ripemd160_hmac_init (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -986,7 +986,7 @@ static void ripemd160_hmac_init (ripemd160_hmac_ctx_t *ctx, const u32 *w, const 
   ripemd160_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
-static void ripemd160_hmac_init_swap (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len)
+void ripemd160_hmac_init_swap (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1043,7 +1043,7 @@ static void ripemd160_hmac_init_swap (ripemd160_hmac_ctx_t *ctx, const u32 *w, c
   ripemd160_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
-static void ripemd160_hmac_init_global (ripemd160_hmac_ctx_t *ctx, __global const u32 *w, const int len)
+void ripemd160_hmac_init_global (ripemd160_hmac_ctx_t *ctx, __global const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1100,7 +1100,7 @@ static void ripemd160_hmac_init_global (ripemd160_hmac_ctx_t *ctx, __global cons
   ripemd160_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
-static void ripemd160_hmac_init_global_swap (ripemd160_hmac_ctx_t *ctx, __global const u32 *w, const int len)
+void ripemd160_hmac_init_global_swap (ripemd160_hmac_ctx_t *ctx, __global const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1157,52 +1157,52 @@ static void ripemd160_hmac_init_global_swap (ripemd160_hmac_ctx_t *ctx, __global
   ripemd160_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
-static void ripemd160_hmac_update_64 (ripemd160_hmac_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len)
+void ripemd160_hmac_update_64 (ripemd160_hmac_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len)
 {
   ripemd160_update_64 (&ctx->ipad, w0, w1, w2, w3, len);
 }
 
-static void ripemd160_hmac_update (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len)
+void ripemd160_hmac_update (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   ripemd160_update (&ctx->ipad, w, len);
 }
 
-static void ripemd160_hmac_update_swap (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len)
+void ripemd160_hmac_update_swap (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   ripemd160_update_swap (&ctx->ipad, w, len);
 }
 
-static void ripemd160_hmac_update_utf16le (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len)
+void ripemd160_hmac_update_utf16le (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   ripemd160_update_utf16le (&ctx->ipad, w, len);
 }
 
-static void ripemd160_hmac_update_utf16le_swap (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len)
+void ripemd160_hmac_update_utf16le_swap (ripemd160_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   ripemd160_update_utf16le_swap (&ctx->ipad, w, len);
 }
 
-static void ripemd160_hmac_update_global (ripemd160_hmac_ctx_t *ctx, const __global u32 *w, const int len)
+void ripemd160_hmac_update_global (ripemd160_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   ripemd160_update_global (&ctx->ipad, w, len);
 }
 
-static void ripemd160_hmac_update_global_swap (ripemd160_hmac_ctx_t *ctx, const __global u32 *w, const int len)
+void ripemd160_hmac_update_global_swap (ripemd160_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   ripemd160_update_global_swap (&ctx->ipad, w, len);
 }
 
-static void ripemd160_hmac_update_global_utf16le (ripemd160_hmac_ctx_t *ctx, const __global u32 *w, const int len)
+void ripemd160_hmac_update_global_utf16le (ripemd160_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   ripemd160_update_global_utf16le (&ctx->ipad, w, len);
 }
 
-static void ripemd160_hmac_update_global_utf16le_swap (ripemd160_hmac_ctx_t *ctx, const __global u32 *w, const int len)
+void ripemd160_hmac_update_global_utf16le_swap (ripemd160_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   ripemd160_update_global_utf16le_swap (&ctx->ipad, w, len);
 }
 
-static void ripemd160_hmac_final (ripemd160_hmac_ctx_t *ctx)
+void ripemd160_hmac_final (ripemd160_hmac_ctx_t *ctx)
 {
   ripemd160_final (&ctx->ipad);
 
@@ -1248,7 +1248,7 @@ typedef struct ripemd160_ctx_vector
 
 } ripemd160_ctx_vector_t;
 
-static void ripemd160_transform_vector (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[5])
+void ripemd160_transform_vector (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[5])
 {
   u32x a1 = digest[0];
   u32x b1 = digest[1];
@@ -1445,7 +1445,7 @@ static void ripemd160_transform_vector (const u32x w0[4], const u32x w1[4], cons
   digest[4] = e;
 }
 
-static void ripemd160_init_vector (ripemd160_ctx_vector_t *ctx)
+void ripemd160_init_vector (ripemd160_ctx_vector_t *ctx)
 {
   ctx->h[0] = RIPEMD160M_A;
   ctx->h[1] = RIPEMD160M_B;
@@ -1473,7 +1473,7 @@ static void ripemd160_init_vector (ripemd160_ctx_vector_t *ctx)
   ctx->len = 0;
 }
 
-static void ripemd160_init_vector_from_scalar (ripemd160_ctx_vector_t *ctx, ripemd160_ctx_t *ctx0)
+void ripemd160_init_vector_from_scalar (ripemd160_ctx_vector_t *ctx, ripemd160_ctx_t *ctx0)
 {
   ctx->h[0] = ctx0->h[0];
   ctx->h[1] = ctx0->h[1];
@@ -1501,7 +1501,7 @@ static void ripemd160_init_vector_from_scalar (ripemd160_ctx_vector_t *ctx, ripe
   ctx->len = ctx0->len;
 }
 
-static void ripemd160_update_vector_64 (ripemd160_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const int len)
+void ripemd160_update_vector_64 (ripemd160_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const int len)
 {
   #ifdef IS_AMD
   volatile const int pos = ctx->len & 63;
@@ -1579,7 +1579,7 @@ static void ripemd160_update_vector_64 (ripemd160_ctx_vector_t *ctx, u32x w0[4],
   }
 }
 
-static void ripemd160_update_vector (ripemd160_ctx_vector_t *ctx, const u32x *w, const int len)
+void ripemd160_update_vector (ripemd160_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -1631,7 +1631,7 @@ static void ripemd160_update_vector (ripemd160_ctx_vector_t *ctx, const u32x *w,
   ripemd160_update_vector_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-static void ripemd160_update_vector_swap (ripemd160_ctx_vector_t *ctx, const u32x *w, const int len)
+void ripemd160_update_vector_swap (ripemd160_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -1717,7 +1717,7 @@ static void ripemd160_update_vector_swap (ripemd160_ctx_vector_t *ctx, const u32
   ripemd160_update_vector_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-static void ripemd160_update_vector_utf16le (ripemd160_ctx_vector_t *ctx, const u32x *w, const int len)
+void ripemd160_update_vector_utf16le (ripemd160_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -1759,7 +1759,7 @@ static void ripemd160_update_vector_utf16le (ripemd160_ctx_vector_t *ctx, const 
   ripemd160_update_vector_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-static void ripemd160_update_vector_utf16le_swap (ripemd160_ctx_vector_t *ctx, const u32x *w, const int len)
+void ripemd160_update_vector_utf16le_swap (ripemd160_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -1835,7 +1835,7 @@ static void ripemd160_update_vector_utf16le_swap (ripemd160_ctx_vector_t *ctx, c
   ripemd160_update_vector_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-static void ripemd160_final_vector (ripemd160_ctx_vector_t *ctx)
+void ripemd160_final_vector (ripemd160_ctx_vector_t *ctx)
 {
   const int pos = ctx->len & 63;
 
@@ -1878,7 +1878,7 @@ typedef struct ripemd160_hmac_ctx_vector
 
 } ripemd160_hmac_ctx_vector_t;
 
-static void ripemd160_hmac_init_vector_64 (ripemd160_hmac_ctx_vector_t *ctx, const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4])
+void ripemd160_hmac_init_vector_64 (ripemd160_hmac_ctx_vector_t *ctx, const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4])
 {
   u32x t0[4];
   u32x t1[4];
@@ -1932,7 +1932,7 @@ static void ripemd160_hmac_init_vector_64 (ripemd160_hmac_ctx_vector_t *ctx, con
   ripemd160_update_vector_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
-static void ripemd160_hmac_init_vector (ripemd160_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
+void ripemd160_hmac_init_vector (ripemd160_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -1989,17 +1989,17 @@ static void ripemd160_hmac_init_vector (ripemd160_hmac_ctx_vector_t *ctx, const 
   ripemd160_hmac_init_vector_64 (ctx, w0, w1, w2, w3);
 }
 
-static void ripemd160_hmac_update_vector_64 (ripemd160_hmac_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const int len)
+void ripemd160_hmac_update_vector_64 (ripemd160_hmac_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const int len)
 {
   ripemd160_update_vector_64 (&ctx->ipad, w0, w1, w2, w3, len);
 }
 
-static void ripemd160_hmac_update_vector (ripemd160_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
+void ripemd160_hmac_update_vector (ripemd160_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   ripemd160_update_vector (&ctx->ipad, w, len);
 }
 
-static void ripemd160_hmac_final_vector (ripemd160_hmac_ctx_vector_t *ctx)
+void ripemd160_hmac_final_vector (ripemd160_hmac_ctx_vector_t *ctx)
 {
   ripemd160_final_vector (&ctx->ipad);
 
