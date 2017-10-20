@@ -16,8 +16,8 @@
 
 #define logfile_top_msg(msg)                               logfile_append (hashcat_ctx, "%s\t%s",                  logfile_ctx->topid,                     (msg));
 #define logfile_sub_msg(msg)                               logfile_append (hashcat_ctx, "%s\t%s\t%s",              logfile_ctx->topid, logfile_ctx->subid, (msg));
-#define logfile_top_var_uint64(var,val)                    logfile_append (hashcat_ctx, "%s\t%s\t%ju",     logfile_ctx->topid,                     (var), (u64)   (val));
-#define logfile_sub_var_uint64(var,val)                    logfile_append (hashcat_ctx, "%s\t%s\t%s\t%ju", logfile_ctx->topid, logfile_ctx->subid, (var), (u64)   (val));
+#define logfile_top_var_uint64(var,val)                    logfile_append (hashcat_ctx, "%s\t%s\t%" PRIu64 "",     logfile_ctx->topid,                     (var), (u64)   (val));
+#define logfile_sub_var_uint64(var,val)                    logfile_append (hashcat_ctx, "%s\t%s\t%s\t%" PRIu64 "", logfile_ctx->topid, logfile_ctx->subid, (var), (u64)   (val));
 #define logfile_top_var_uint(var,val)                      logfile_append (hashcat_ctx, "%s\t%s\t%u",              logfile_ctx->topid,                     (var), (u32)   (val));
 #define logfile_sub_var_uint(var,val)                      logfile_append (hashcat_ctx, "%s\t%s\t%s\t%u",          logfile_ctx->topid, logfile_ctx->subid, (var), (u32)   (val));
 #define logfile_top_var_char(var,val)                      logfile_append (hashcat_ctx, "%s\t%s\t%c",              logfile_ctx->topid,                     (var), (char)  (val));
