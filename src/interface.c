@@ -25076,7 +25076,6 @@ u32 hashconfig_forced_kernel_threads (hashcat_ctx_t *hashcat_ctx)
 
 u32 hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param)
 {
-  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   // a kernel can force a fixed value
@@ -25097,21 +25096,7 @@ u32 hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_p
   {
     if (device_param->device_vendor_id == VENDOR_ID_NV)
     {
-      if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
-      {
-        if (user_options->workload_profile < 4)
-        {
-          kernel_threads = KERNEL_THREADS_MAX_GPU_NV;
-        }
-        else
-        {
-          kernel_threads = device_param->device_maxworkgroup_size;
-        }
-      }
-      else
-      {
-        kernel_threads = device_param->device_maxworkgroup_size;
-      }
+      kernel_threads = KERNEL_THREADS_MAX_GPU_NV;
     }
     else if (device_param->device_vendor_id == VENDOR_ID_AMD)
     {
@@ -25125,6 +25110,11 @@ u32 hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_p
   else
   {
     kernel_threads = KERNEL_THREADS_MAX_OTHER;
+  }
+
+  if (user_options->workload_profile == 4)
+  {
+    kernel_threads = device_param->device_maxworkgroup_size;
   }
 
   // and (2) an opencl device can force an lower value (limited resources on device)

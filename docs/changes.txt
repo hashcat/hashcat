@@ -60,6 +60,7 @@
 - OpenCL Kernels: Replace bitwise swaps with rotate() versions for AMD
 - OpenCL Kernels: Rewritten Keccak kernel to run fully on registers and partially reversed last round
 - OpenCL Kernels: Rewritten SIP kernel from scratch
+- OpenCL Kernels: Thread-count is set to hardware native count except if -w 4 is used then OpenCL maximum is used
 - OpenCL Kernels: Updated default scrypt TMTO to be ideal for latest NVidia and AMD top models
 - OpenCL Kernels: Vectorized tons of slow kernels to improve CPU cracking speed
 - OpenCL Runtime: Improved detection for AMD and NV devices on macOS
