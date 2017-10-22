@@ -54,21 +54,21 @@
 - Autotune: Do a pre-autotune test run to find out if kernel runtime is above some TDR limit
 - Charset: Add additional DES charsets with corrected parity
 - OpenCL Buffers: Do not allocate memory for amplifiers for fast hashes, it's simply not needed
-- OpenCL Kernels: Improved rule engine performance by 6% on for NVidia
 - OpenCL Kernels: Improved performance of SHA-3 Kernel (keccak) by hardcoding the 0x80 stopbit
+- OpenCL Kernels: Improved rule engine performance by 6% on for NVidia
 - OpenCL Kernels: Move from ld.global.v4.u32 to ld.const.v4.u32 in _a3 kernels
 - OpenCL Kernels: Replace bitwise swaps with rotate() versions for AMD
-- OpenCL Kernels: Rewritten SIP kernel from scratch
 - OpenCL Kernels: Rewritten Keccak kernel to run fully on registers and partially reversed last round
+- OpenCL Kernels: Rewritten SIP kernel from scratch
 - OpenCL Kernels: Updated default scrypt TMTO to be ideal for latest NVidia and AMD top models
 - OpenCL Kernels: Vectorized tons of slow kernels to improve CPU cracking speed
-- OpenCL Runtime: Updated AMD ROCm driver version check, warn if version < 1.1
 - OpenCL Runtime: Improved detection for AMD and NV devices on macOS
 - OpenCL Runtime: Improved performance on Intel MIC devices (Xeon PHI) on runtime level (300MH/s to 2000MH/s)
+- OpenCL Runtime: Updated AMD ROCm driver version check, warn if version < 1.1
 - Show cracks: Improved the performance of --show/--left if used together with --username
 - Startup: Add visual indicator of active options when benchmarking
-- Startup: Show some attack-specific optimizer constraints on start, eg: minimum and maximum support password- and salt-length
 - Startup: Check and abort session if outfile and wordlist point to the same file
+- Startup: Show some attack-specific optimizer constraints on start, eg: minimum and maximum support password- and salt-length
 - WPA cracking: Improved nonce-error-corrections mode to use a both positive and negative corrections
 
 ##
@@ -78,17 +78,17 @@
 - General: Update C standard from c99 to gnu99
 - Hash Parser: Improved salt-length checks for generic hash modes
 - HCdict File: Renamed file from hashcat.hcdict to hashcat.hcdict2 and add header because versions are incompatible
-- HCstat File: Renamed file from hashcat.hcstat to hashcat.hcstat2 and add header because versions are incompatible
 - HCstat File: Add code to read LZMA compressed hashcat.hcstat2
 - HCstat File: Add hcstat2 support to enable masks of length up to 256, also adds a filetype header
+- HCstat File: Renamed file from hashcat.hcstat to hashcat.hcstat2 and add header because versions are incompatible
 - HCtune File: Remove apple related GPU entries to workaround Trap 6 error
 - OpenCL Kernels: Added code generator for most of the switch_* functions and replaced existing code
 - OpenCL Kernels: Declared all include functions as static to reduce binary kernel cache size
 - OpenCL Kernels: On AMD GPU, optimized kernels for use with AMD ROCm driver
 - OpenCL Kernels: Removed some include functions that are no longer needed to reduce compile time
-- OpenCL Runtime: On AMD GPU, recommend AMD ROCm driver for Linux
 - OpenCL Runtime: Fall back to 64 threads default (from 256) on AMD GPU to prevent creating too many workitems
 - OpenCL Runtime: Forcing OpenCL 1.2 no longer needed. Option removed from build options
+- OpenCL Runtime: On AMD GPU, recommend AMD ROCm driver for Linux
 - Restore: Fixed the version number used in the restore file header
 - Time: added new type for time measurements hc_time_t and related functions to force the use of 64 bit times
 
