@@ -46,6 +46,7 @@
 - Fixed the parsing of descrypt hashes if the hashes do have non-standard characters within the salt
 - Fixed the use of --veracrypt-pim option. It was completely ignored without showing an error
 - Fixed the version number used in the restore file header
+- Fixed the version number extraction for github releases which do not including the .git directory
 
 ##
 ## Improvements

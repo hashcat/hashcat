@@ -122,8 +122,12 @@ WIN_ICONV_64             := /opt/win-iconv-64
 
 COMPTIME                := $(shell date +%s)
 
+# the following variable value will be automatically replaced by the "git archive" command
+# (which is automatically run for every github release)
+# the value will be something like this: "tag: vX.Y.Z, refs/pull/Y/head"
+
 VERSION_EXPORT          := $Format:%D$
-#VERSION_TAG             := $(shell test -d .git && git describe --tags --dirty=+ || echo "$(VERSION_EXPORT)"|cut -d, -f2|$(SED) -r 's|.* (\w+/)?([^ ]+)|\2|')
+#VERSION_TAG             := $(shell test -d .git && git describe --tags --dirty=+ || echo "$(VERSION_EXPORT)" | $(SED) 's/.*: v\([\.0-9]*\),.*/v\1/')
 VERSION_TAG             := 4.0.0-rc6
 
 ##
