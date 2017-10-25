@@ -411,6 +411,32 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       if (CL_rc == -1) return -1;
     }
 
+    if (hashconfig->opts_type & OPTS_TYPE_INIT2)
+    {
+      CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_INIT2, 1, false, 0);
+
+      if (CL_rc == -1) return -1;
+    }
+
+    if (hashconfig->opts_type & OPTS_TYPE_LOOP2)
+    {
+      const u32 iter2 = salt_buf->salt_iter2;
+
+      for (u32 loop_pos = 0; loop_pos < iter2; loop_pos += loop_step)
+      {
+        u32 loop_left = iter2 - loop_pos;
+
+        loop_left = MIN (loop_left, loop_step);
+
+        device_param->kernel_params_buf32[28] = loop_pos;
+        device_param->kernel_params_buf32[29] = loop_left;
+
+        CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP2, 1, false, 0);
+
+        if (CL_rc == -1) return -1;
+      }
+    }
+
     if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
     {
       device_param->kernel_params_buf32[28] = 0;
