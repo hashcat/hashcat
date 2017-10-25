@@ -27,4 +27,8 @@ int  potfile_handle_left      (hashcat_ctx_t *hashcat_ctx);
 void potfile_update_hash      (hashcat_ctx_t *hashcat_ctx, hash_t *found,  char *line_pw_buf, int line_pw_len);
 void potfile_update_hashes    (hashcat_ctx_t *hashcat_ctx, hash_t *search, char *line_pw_buf, int line_pw_len, pot_tree_entry_t *tree);
 
+void pot_tree_destroy      (pot_tree_entry_t *tree);
+
+int  sort_pot_tree_by_hash (const void *v1, const void *v2);
+
 #endif // _POTFILE_H
