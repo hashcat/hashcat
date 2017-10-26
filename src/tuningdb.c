@@ -342,7 +342,7 @@ tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *dev
 
   char *alias_name = NULL;
 
-  for (int i = device_name_length - 1; i >= 1; i--)
+  for (i = device_name_length - 1; i >= 1; i--)
   {
     device_name_nospace[i] = 0;
 
