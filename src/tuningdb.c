@@ -340,9 +340,20 @@ tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *dev
 
   a.device_name = device_name_nospace;
 
-  tuning_db_alias_t *alias = bsearch (&a, tuning_db->alias_buf, tuning_db->alias_cnt, sizeof (tuning_db_alias_t), sort_by_tuning_db_alias);
+  char *alias_name = NULL;
 
-  char *alias_name = (alias == NULL) ? NULL : alias->alias_name;
+  for (int i = device_name_length - 1; i >= 1; i--)
+  {
+    device_name_nospace[i] = 0;
+
+    tuning_db_alias_t *alias = bsearch (&a, tuning_db->alias_buf, tuning_db->alias_cnt, sizeof (tuning_db_alias_t), sort_by_tuning_db_alias);
+
+    if (alias == NULL) continue;
+
+    alias_name = alias->alias_name;
+
+    break;
+  }
 
   // attack-mode 6 and 7 are attack-mode 1 basically
 
