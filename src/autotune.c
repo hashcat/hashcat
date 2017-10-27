@@ -104,25 +104,16 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   int CL_rc;
 
-  if (user_options_extra->attack_kern == ATTACK_KERN_BF)
+  for (u32 i = 0; i < kernel_power_max; i++)
   {
-    CL_rc = run_kernel_memset (hashcat_ctx, device_param, device_param->d_pws_buf, 7, kernel_power_max * sizeof (pw_t));
-
-    if (CL_rc == -1) return -1;
+    device_param->pws_buf[i].i[0]   = i;
+    device_param->pws_buf[i].i[1]   = 0x01234567;
+    device_param->pws_buf[i].pw_len = 7 + (i & 7);
   }
-  else
-  {
-    for (u32 i = 0; i < kernel_power_max; i++)
-    {
-      device_param->pws_buf[i].i[0]   = i;
-      device_param->pws_buf[i].i[1]   = 0x01234567;
-      device_param->pws_buf[i].pw_len = 7 + (i & 7);
-    }
 
-    CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, kernel_power_max * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+  CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, kernel_power_max * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
 
-    if (CL_rc == -1) return -1;
-  }
+  if (CL_rc == -1) return -1;
 
   if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
