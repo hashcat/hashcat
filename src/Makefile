@@ -180,10 +180,10 @@ CFLAGS                  += -O2
 LFLAGS                  += -s
 else
 ifeq ($(DEBUG),1)
-CFLAGS                  += -DDEBUG -g -ggdb
+CFLAGS                  += -DDEBUG -Og -ggdb
 else
 ifeq ($(DEBUG),2)
-CFLAGS                  += -DDEBUG -g -ggdb
+CFLAGS                  += -DDEBUG -Og -ggdb
 CFLAGS                  += -fsanitize=address -fno-omit-frame-pointer
 endif
 endif
