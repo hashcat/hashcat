@@ -135,6 +135,10 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   }
   else
   {
+    CL_rc = hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, device_param->d_pws_amp_buf, 0, 0, kernel_power_max * sizeof (pw_t), 0, NULL, NULL);
+
+    if (CL_rc == -1) return -1;
+
     CL_rc = run_kernel_amp (hashcat_ctx, device_param, kernel_power_max);
 
     if (CL_rc == -1) return -1;
