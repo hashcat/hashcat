@@ -2266,12 +2266,14 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
       if (user_options->speed_only == true)
       {
+        /* do we really need this warmup?
         for (int i = 0; i < 16; i++)
         {
           const int rc = choose_kernel (hashcat_ctx, device_param, highest_pw_len, pws_cnt, fast_iteration, salt_pos);
 
           if (rc == -1) return -1;
         }
+        */
 
         hc_timer_set (&device_param->timer_speed);
       }
