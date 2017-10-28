@@ -48,10 +48,9 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
 static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
-  hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
-  opencl_ctx_t         *opencl_ctx         = hashcat_ctx->opencl_ctx;
-  straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
-  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+  const hashconfig_t    *hashconfig   = hashcat_ctx->hashconfig;
+  const opencl_ctx_t    *opencl_ctx   = hashcat_ctx->opencl_ctx;
+  const straight_ctx_t  *straight_ctx = hashcat_ctx->straight_ctx;
 
   const double target_msec = opencl_ctx->target_msec;
 
