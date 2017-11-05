@@ -10,7 +10,7 @@
 
 #if defined (__unix__) || defined (__APPLE__)
 #define _POSIX
-#elif defined (__WINNT__)
+#elif defined (_WIN32)
 #define _WIN 1
 #else
 #error Your Operating System is not supported or detected
