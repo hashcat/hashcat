@@ -71,7 +71,7 @@ int set_cpu_affinity (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
   do
   {
-    int cpu_id = atoi (next);
+    int cpu_id = strtol (next, NULL, 10);
 
     if (cpu_id == 0)
     {
