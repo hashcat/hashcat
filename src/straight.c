@@ -76,14 +76,14 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       const int rc = count_words (hashcat_ctx, fd, straight_ctx->dict, &status_ctx->words_cnt);
 
+      fclose (fd);
+
       if (rc == -1)
       {
         event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of wordlist: %s", straight_ctx->dict);
 
         return -1;
       }
-
-      fclose (fd);
 
       if (status_ctx->words_cnt == 0)
       {
@@ -111,14 +111,14 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       const int rc = count_words (hashcat_ctx, fd, combinator_ctx->dict1, &status_ctx->words_cnt);
 
+      fclose (fd);
+
       if (rc == -1)
       {
         event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of wordlist: %s", combinator_ctx->dict1);
 
         return -1;
       }
-
-      fclose (fd);
     }
     else if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_RIGHT)
     {
@@ -133,14 +133,14 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
       const int rc = count_words (hashcat_ctx, fd, combinator_ctx->dict2, &status_ctx->words_cnt);
 
+      fclose (fd);
+
       if (rc == -1)
       {
         event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of wordlist: %s", combinator_ctx->dict2);
 
         return -1;
       }
-
-      fclose (fd);
     }
 
     if (status_ctx->words_cnt == 0)
@@ -179,14 +179,14 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
     const int rc = count_words (hashcat_ctx, fd, straight_ctx->dict, &status_ctx->words_cnt);
 
+    fclose (fd);
+
     if (rc == -1)
     {
       event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of wordlist: %s", straight_ctx->dict);
 
       return -1;
     }
-
-    fclose (fd);
 
     if (status_ctx->words_cnt == 0)
     {

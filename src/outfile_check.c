@@ -42,8 +42,8 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
   hash_buf.digest = hcmalloc (dgst_size);
 
   if (is_salted == true)  hash_buf.salt      = (salt_t *) hcmalloc (sizeof (salt_t));
-  if (esalt_size > 0)     hash_buf.esalt     = (void   *) hcmalloc (esalt_size);
-  if (hook_salt_size > 0) hash_buf.hook_salt = (void   *) hcmalloc (hook_salt_size);
+  if (esalt_size > 0)     hash_buf.esalt     = hcmalloc (esalt_size);
+  if (hook_salt_size > 0) hash_buf.hook_salt = hcmalloc (hook_salt_size);
 
   u32 digest_buf[64] = { 0 };
 

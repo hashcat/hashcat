@@ -44,7 +44,7 @@
   PERM_OP (l, r, tt,  4, 0x0f0f0f0f);  \
 }
 
-void _des_keysetup (u32 data[2], u32 Kc[16], u32 Kd[16]);
-void _des_encrypt (u32 data[2], u32 Kc[16], u32 Kd[16]);
+void _des_keysetup (const u32 data[2], u32 Kc[16], u32 Kd[16]);
+void _des_encrypt (u32 data[2], const u32 Kc[16], const u32 Kd[16]);
 
 #endif // _CPU_DES_H

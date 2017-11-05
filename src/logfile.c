@@ -17,11 +17,11 @@ void logfile_generate_topid (hashcat_ctx_t *hashcat_ctx)
 
   if (logfile_ctx->enabled == false) return;
 
-  u32 v[4];
+  struct timeval v;
 
-  gettimeofday ((struct timeval *) v, NULL);
+  gettimeofday (&v, NULL);
 
-  snprintf (logfile_ctx->topid, 40, "TOP.%08x.%08x", v[0], v[2]);
+  snprintf (logfile_ctx->topid, 40, "TOP.%08x.%08x", (u32) v.tv_sec, (u32) v.tv_usec);
 }
 
 void logfile_generate_subid (hashcat_ctx_t *hashcat_ctx)
@@ -30,11 +30,11 @@ void logfile_generate_subid (hashcat_ctx_t *hashcat_ctx)
 
   if (logfile_ctx->enabled == false) return;
 
-  u32 v[4];
+  struct timeval v;
 
-  gettimeofday ((struct timeval *) v, NULL);
+  gettimeofday (&v, NULL);
 
-  snprintf (logfile_ctx->subid, 40, "SUB.%08x.%08x", v[0], v[2]);
+  snprintf (logfile_ctx->subid, 40, "SUB.%08x.%08x", (u32) v.tv_sec, (u32) v.tv_usec);
 }
 
 void logfile_append (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)

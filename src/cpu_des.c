@@ -326,7 +326,7 @@ static const u32 c_skb[8][64] =
   }
 };
 
-void _des_keysetup (u32 data[2], u32 Kc[16], u32 Kd[16])
+void _des_keysetup (const u32 data[2], u32 Kc[16], u32 Kd[16])
 {
   u32 c = data[0];
   u32 d = data[1];
@@ -384,7 +384,7 @@ void _des_keysetup (u32 data[2], u32 Kc[16], u32 Kd[16])
   }
 }
 
-void _des_encrypt (u32 data[2], u32 Kc[16], u32 Kd[16])
+void _des_encrypt (u32 data[2], const u32 Kc[16], const u32 Kd[16])
 {
   u32 r = data[0];
   u32 l = data[1];

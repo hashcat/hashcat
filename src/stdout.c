@@ -133,7 +133,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
             plain_buf[i] = pw.i[i];
           }
 
-          plain_len = (int) apply_rules (straight_ctx->kernel_rules_buf[off].cmds, plain_buf, pw.pw_len);
+          plain_len = apply_rules (straight_ctx->kernel_rules_buf[off].cmds, plain_buf, pw.pw_len);
         }
 
         if (plain_len > hashconfig->pw_max) plain_len = hashconfig->pw_max;

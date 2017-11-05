@@ -283,7 +283,7 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, u8 *
       tmp_buf[tmp_len++] = 'X';
       tmp_buf[tmp_len++] = '[';
 
-      exec_hexify ((const u8 *) plain_ptr, plain_len, (u8 *) tmp_buf + tmp_len);
+      exec_hexify ((const u8 *) plain_ptr, plain_len, tmp_buf + tmp_len);
 
       tmp_len += plain_len * 2;
 
@@ -602,7 +602,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
       if (is_hexify ((const u8 *) essid_pos, (const int) essid_len) == true)
       {
-        essid_len = exec_unhexify ((const u8 *) essid_pos, (int) essid_len, (u8 *) essid_pos, (int) essid_len);
+        essid_len = exec_unhexify ((const u8 *) essid_pos, essid_len, (u8 *) essid_pos, essid_len);
       }
 
       if (essid_len > 32) continue;

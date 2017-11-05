@@ -742,7 +742,8 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
       return -1;
     }
-    else if (user_options->left == true)
+
+   if (user_options->left == true)
     {
       event_log_error (hashcat_ctx, "Combining --left with --keyspace is not allowed.");
 
@@ -970,7 +971,8 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
       return -1;
     }
-    else if (user_options->attack_mode == ATTACK_MODE_COMBI)
+
+    if (user_options->attack_mode == ATTACK_MODE_COMBI)
     {
       event_log_error (hashcat_ctx, "Custom charsets re not supported in attack mode 1 (combination).");
 

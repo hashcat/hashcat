@@ -111,28 +111,16 @@ bool class_alpha (const u8 c)
 
 int conv_ctoi (const u8 c)
 {
-  if (class_num (c))
-  {
-    return c - '0';
-  }
-  else if (class_upper (c))
-  {
-    return c - 'A' + 10;
-  }
+  if (class_num (c)) return c - '0';
+  if (class_upper (c)) return c - 'A' + 10;
 
   return -1;
 }
 
 int conv_itoc (const u8 c)
 {
-  if (c < 10)
-  {
-    return c + '0';
-  }
-  else if (c < 37)
-  {
-    return c + 'A' - 10;
-  }
+  if (c < 10) return c + '0';
+  if (c < 37) return c + 'A' - 10;
 
   return -1;
 }
@@ -878,7 +866,7 @@ int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, 
   {
     memset (rule_buf, 0, RP_RULE_SIZE);
 
-    int rule_len = (int) generate_random_rule (rule_buf, user_options->rp_gen_func_min, user_options->rp_gen_func_max);
+    int rule_len = generate_random_rule (rule_buf, user_options->rp_gen_func_min, user_options->rp_gen_func_max);
 
     if (cpu_rule_to_kernel_rule (rule_buf, rule_len, &kernel_rules_buf[kernel_rules_cnt]) == -1) continue;
   }

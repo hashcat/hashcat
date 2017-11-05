@@ -12,7 +12,7 @@
 #include "inc_hash_functions.cl"
 #include "cpu_md4.h"
 
-void md4_64 (u32 block[16], u32 digest[4])
+void md4_64 (const u32 block[16], u32 digest[4])
 {
   u32 w0[4];
   u32 w1[4];

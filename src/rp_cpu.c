@@ -17,10 +17,8 @@ static int conv_pos (const u8 c, const int pos_mem)
   {
     return pos_mem;
   }
-  else
-  {
-    return conv_ctoi (c);
-  }
+
+  return conv_ctoi (c);
 }
 
 static void MANGLE_TOGGLE_AT (char *arr, const int pos)
@@ -253,11 +251,11 @@ static int mangle_insert_multi (char arr[RP_PASSWORD_SIZE], int arr_len, int arr
 
   if (arr2_cpy < 1) return (RULE_RC_SYNTAX_ERROR);
 
-  memcpy (arr2, arr2 + arr2_pos, arr2_len - arr2_pos);
+  memmove (arr2, arr2 + arr2_pos, arr2_len - arr2_pos);
 
-  memcpy (arr2 + arr2_cpy, arr + arr_pos, arr_len - arr_pos);
+  memcpy  (arr2 + arr2_cpy, arr + arr_pos, arr_len - arr_pos);
 
-  memcpy (arr + arr_pos, arr2, arr_len - arr_pos + arr2_cpy);
+  memcpy  (arr + arr_pos, arr2, arr_len - arr_pos + arr2_cpy);
 
   return (arr_len + arr2_cpy);
 }
@@ -844,14 +842,10 @@ int _old_apply_rule (char *rule, int rule_len, char in[RP_PASSWORD_SIZE], int in
 
 int run_rule_engine (const int rule_len, const char *rule_buf)
 {
-  if (rule_len == 0)
-  {
-    return 0;
-  }
-  else if (rule_len == 1)
-  {
+  if (rule_len == 0) return 0;
+
+  if (rule_len == 1)
     if (rule_buf[0] == RULE_OP_MANGLE_NOOP) return 0;
-  }
 
   return 1;
 }

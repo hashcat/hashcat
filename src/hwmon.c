@@ -2563,7 +2563,8 @@ int hm_get_temperature_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 dev
 
         return Temperature.iTemperature / 1000;
       }
-      else if (hwmon_ctx->hm_device[device_id].od_version == 6)
+
+      if (hwmon_ctx->hm_device[device_id].od_version == 6)
       {
         int Temperature = 0;
 
@@ -2649,7 +2650,8 @@ int hm_get_fanpolicy_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 devic
 
         return (lpFanSpeedValue.iFanSpeed & ADL_DL_FANCTRL_FLAG_USER_DEFINED_SPEED) ? 0 : 1;
       }
-      else // od_version == 6
+
+      if (hwmon_ctx->hm_device[device_id].od_version == 6)
       {
         return 1;
       }
@@ -2706,7 +2708,8 @@ int hm_get_fanspeed_with_device_id (hashcat_ctx_t *hashcat_ctx, const u32 device
 
         return lpFanSpeedValue.iFanSpeed;
       }
-      else // od_version == 6
+
+      if (hwmon_ctx->hm_device[device_id].od_version == 6)
       {
         ADLOD6FanSpeedInfo faninfo;
 
@@ -3108,7 +3111,8 @@ int hm_set_fanspeed_with_device_id_adl (hashcat_ctx_t *hashcat_ctx, const u32 de
 
         return 0;
       }
-      else // od_version == 6
+
+      if (hwmon_ctx->hm_device[device_id].od_version == 6)
       {
         ADLOD6FanSpeedValue fan_speed_value;
 
@@ -3140,7 +3144,8 @@ int hm_set_fanspeed_with_device_id_adl (hashcat_ctx_t *hashcat_ctx, const u32 de
 
         return 0;
       }
-      else // od_version == 6
+
+      if (hwmon_ctx->hm_device[device_id].od_version == 6)
       {
         if (hm_ADL_Overdrive6_FanSpeed_Reset (hashcat_ctx, hwmon_ctx->hm_device[device_id].adl) == -1)
         {
@@ -3189,7 +3194,8 @@ int hm_set_fanspeed_with_device_id_nvapi (hashcat_ctx_t *hashcat_ctx, const u32 
 
       return 0;
     }
-    else
+
+    if (fanpolicy != 1)
     {
       NV_GPU_COOLER_LEVELS CoolerLevels;
 

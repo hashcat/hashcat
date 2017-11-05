@@ -125,7 +125,7 @@ int count_dictionaries (char **dictionary_files)
 
 char *first_file_in_directory (const char *path)
 {
-  DIR *d = NULL;
+  DIR *d;
 
   if ((d = opendir (path)) != NULL)
   {
@@ -164,10 +164,6 @@ char *first_file_in_directory (const char *path)
     closedir (d);
 
     return first_file;
-  }
-  else if (errno == ENOTDIR)
-  {
-    return NULL;
   }
 
   return NULL;

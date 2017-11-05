@@ -134,7 +134,7 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
   char *iconv_tmp = NULL;
 
-  if (strcmp (user_options->encoding_from, user_options->encoding_to))
+  if (strcmp (user_options->encoding_from, user_options->encoding_to) != 0)
   {
     iconv_enabled = true;
 
@@ -277,8 +277,6 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
   if (iconv_enabled == true)
   {
     iconv_close (iconv_ctx);
-
-    iconv_enabled = false;
 
     hcfree (iconv_tmp);
   }
