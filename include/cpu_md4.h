@@ -8,6 +8,6 @@
 
 #include <string.h>
 
-void md4_64 (u32 block[16], u32 digest[4]);
+void md4_64 (const u32 block[16], u32 digest[4]);
 
 #endif // _CPU_MD4_H

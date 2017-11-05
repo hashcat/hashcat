@@ -86,7 +86,7 @@ static void hlfmt_user_hashcat (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, char *l
 
 // hlfmt pwdump
 
-static int hlfmt_detect_pwdump (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, char *line_buf, int line_len)
+static int hlfmt_detect_pwdump (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, const char *line_buf, int line_len)
 {
   int sep_cnt = 0;
 
@@ -183,7 +183,7 @@ static void hlfmt_user_pwdump (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, char *li
 
 // hlfmt passwd
 
-static int hlfmt_detect_passwd (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, char *line_buf, int line_len)
+static int hlfmt_detect_passwd (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, const char *line_buf, int line_len)
 {
   int sep_cnt = 0;
 
@@ -266,7 +266,7 @@ static void hlfmt_user_passwd (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, char *li
 
 // hlfmt shadow
 
-static int hlfmt_detect_shadow (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, char *line_buf, int line_len)
+static int hlfmt_detect_shadow (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, const char *line_buf, int line_len)
 {
   int sep_cnt = 0;
 

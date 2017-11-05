@@ -12,7 +12,7 @@
 #include "inc_hash_functions.cl"
 #include "cpu_sha1.h"
 
-void sha1_64 (u32 block[16], u32 digest[5])
+void sha1_64 (const u32 block[16], u32 digest[5])
 {
   u32 a = digest[0];
   u32 b = digest[1];

@@ -6,6 +6,6 @@
 #ifndef _CPU_SHA1_H
 #define _CPU_SHA1_H
 
-void sha1_64 (u32 block[16], u32 digest[5]);
+void sha1_64 (const u32 block[16], u32 digest[5]);
 
 #endif // _CPU_SHA1_H

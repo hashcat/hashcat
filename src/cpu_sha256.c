@@ -12,7 +12,7 @@
 #include "inc_hash_functions.cl"
 #include "cpu_sha256.h"
 
-void sha256_64 (u32 block[16], u32 digest[8])
+void sha256_64 (const u32 block[16], u32 digest[8])
 {
   u32 w0_t = block[ 0];
   u32 w1_t = block[ 1];
