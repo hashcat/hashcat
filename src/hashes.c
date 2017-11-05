@@ -589,7 +589,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
    */
 
   hash_t *hashes_buf     = (hash_t *) hccalloc (hashes_avail, sizeof (hash_t));
-  void   *digests_buf    = (void *)   hccalloc (hashes_avail, hashconfig->dgst_size);
+  void   *digests_buf    =            hccalloc (hashes_avail, hashconfig->dgst_size);
   salt_t *salts_buf      = NULL;
   void   *esalts_buf     = NULL;
   void   *hook_salts_buf = NULL;
@@ -630,7 +630,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
     if (hashconfig->esalt_size > 0)
     {
-      esalts_buf = (void *) hccalloc (hashes_avail, hashconfig->esalt_size);
+      esalts_buf = hccalloc (hashes_avail, hashconfig->esalt_size);
     }
 
     if (hashconfig->hook_salt_size > 0)
@@ -1225,7 +1225,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
    * Now generate all the buffers required for later
    */
 
-  void   *digests_buf_new    = (void *) hccalloc (hashes_cnt, hashconfig->dgst_size);
+  void   *digests_buf_new    = hccalloc (hashes_cnt, hashconfig->dgst_size);
   salt_t *salts_buf_new      = NULL;
   void   *esalts_buf_new     = NULL;
   void   *hook_salts_buf_new = NULL;
@@ -1241,12 +1241,12 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
   if (hashconfig->esalt_size > 0)
   {
-    esalts_buf_new = (void *) hccalloc (hashes_cnt, hashconfig->esalt_size);
+    esalts_buf_new = hccalloc (hashes_cnt, hashconfig->esalt_size);
   }
 
   if (hashconfig->hook_salt_size > 0)
   {
-    hook_salts_buf_new = (void *) hccalloc (hashes_cnt, hashconfig->hook_salt_size);
+    hook_salts_buf_new = hccalloc (hashes_cnt, hashconfig->hook_salt_size);
   }
 
   EVENT (EVENT_HASHLIST_SORT_SALT_PRE);
@@ -1547,18 +1547,18 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
   void   *st_esalts_buf     = NULL;
   void   *st_hook_salts_buf = NULL;
 
-  st_digests_buf = (void *) hccalloc (1, hashconfig->dgst_size);
+  st_digests_buf =          hccalloc (1, hashconfig->dgst_size);
 
   st_salts_buf = (salt_t *) hccalloc (1, sizeof (salt_t));
 
   if (hashconfig->esalt_size > 0)
   {
-    st_esalts_buf = (void *) hccalloc (1, hashconfig->esalt_size);
+    st_esalts_buf = hccalloc (1, hashconfig->esalt_size);
   }
 
   if (hashconfig->hook_salt_size > 0)
   {
-    st_hook_salts_buf = (void *) hccalloc (1, hashconfig->hook_salt_size);
+    st_hook_salts_buf = hccalloc (1, hashconfig->hook_salt_size);
   }
 
   hash_t hash;

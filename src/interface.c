@@ -734,7 +734,7 @@ static void phpass_decode (u8 digest[16], u8 buf[22])
   digest[15] = (l >>  0) & 0xff;
 }
 
-static void phpass_encode (u8 digest[16], u8 buf[22])
+static void phpass_encode (const u8 digest[16], u8 buf[22])
 {
   int l;
 
@@ -834,7 +834,7 @@ static void md5crypt_decode (u8 digest[16], u8 buf[22])
   digest[11] = (l >>  0) & 0xff;
 }
 
-static void md5crypt_encode (u8 digest[16], u8 buf[22])
+static void md5crypt_encode (const u8 digest[16], u8 buf[22])
 {
   int l;
 
@@ -1078,7 +1078,7 @@ static void sha512crypt_decode (u8 digest[64], u8 buf[86])
   digest[63] = (l >>  0) & 0xff;
 }
 
-static void sha512crypt_encode (u8 digest[64], u8 buf[86])
+static void sha512crypt_encode (const u8 digest[64], u8 buf[86])
 {
   int l;
 
@@ -1301,7 +1301,7 @@ static void sha1aix_decode (u8 digest[20], u8 buf[27])
   digest[18] = (l >> 16) & 0xff;
 }
 
-static void sha1aix_encode (u8 digest[20], u8 buf[27])
+static void sha1aix_encode (const u8 digest[20], u8 buf[27])
 {
   int l;
 
@@ -1457,7 +1457,7 @@ static void sha256aix_decode (u8 digest[32], u8 buf[43])
   digest[30] = (l >> 16) & 0xff;
 }
 
-static void sha256aix_encode (u8 digest[32], u8 buf[43])
+static void sha256aix_encode (const u8 digest[32], u8 buf[43])
 {
   int l;
 
@@ -1737,7 +1737,7 @@ static void sha512aix_decode (u8 digest[64], u8 buf[86])
   digest[63] = (l >> 16) & 0xff;
 }
 
-static void sha512aix_encode (u8 digest[64], u8 buf[86])
+static void sha512aix_encode (const u8 digest[64], u8 buf[86])
 {
   int l;
 
@@ -1962,7 +1962,7 @@ static void netbsd_sha1crypt_decode (u8 digest[20], u8 buf[28], u8 *additional_b
   digest[18] = (l >> 16) & 0xff;
 }
 
-static void netbsd_sha1crypt_encode (u8 digest[20], u8 additional_byte, u8 buf[30])
+static void netbsd_sha1crypt_encode (const u8 digest[20], u8 additional_byte, u8 buf[30])
 {
   int l;
 
@@ -2119,7 +2119,7 @@ static void sha256crypt_decode (u8 digest[32], u8 buf[43])
   digest[30] = (l >>  0) & 0xff;
 }
 
-static void sha256crypt_encode (u8 digest[32], u8 buf[43])
+static void sha256crypt_encode (const u8 digest[32], u8 buf[43])
 {
   int l;
 
@@ -2336,7 +2336,7 @@ static void drupal7_decode (u8 digest[64], u8 buf[44])
   digest[63] = 0;
 }
 
-static void drupal7_encode (u8 digest[64], u8 buf[43])
+static void drupal7_encode (const u8 digest[64], u8 buf[43])
 {
   int l;
 
@@ -2472,7 +2472,7 @@ static u32 parse_and_store_salt (u8 *out, u8 *in, u32 salt_len, MAYBE_UNUSED con
   }
   else if (hashconfig->opts_type & OPTS_TYPE_ST_BASE64)
   {
-    salt_len = base64_decode (base64_to_int, (const u8 *) in, salt_len, (u8 *) tmp);
+    salt_len = base64_decode (base64_to_int, (const u8 *) in, salt_len, tmp);
   }
 
   if (hashconfig->opts_type & OPTS_TYPE_ST_UTF16LE)
@@ -2575,7 +2575,7 @@ int bcrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 {
   if ((input_len < DISPLAY_LEN_MIN_3200) || (input_len > DISPLAY_LEN_MAX_3200)) return (PARSER_GLOBAL_LENGTH);
 
-  if ((memcmp (SIGNATURE_BCRYPT1, input_buf, 4)) && (memcmp (SIGNATURE_BCRYPT2, input_buf, 4)) && (memcmp (SIGNATURE_BCRYPT3, input_buf, 4)) && (memcmp (SIGNATURE_BCRYPT4, input_buf, 4))) return (PARSER_SIGNATURE_UNMATCHED);
+  if ((memcmp (SIGNATURE_BCRYPT1, input_buf, 4) != 0) && (memcmp (SIGNATURE_BCRYPT2, input_buf, 4) != 0) && (memcmp (SIGNATURE_BCRYPT3, input_buf, 4) != 0) && (memcmp (SIGNATURE_BCRYPT4, input_buf, 4) != 0)) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -3042,7 +3042,7 @@ int dcc2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 {
   if ((input_len < DISPLAY_LEN_MIN_2100) || (input_len > DISPLAY_LEN_MAX_2100)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_DCC2, input_buf, 6)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_DCC2, input_buf, 6) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u8 *iter_pos = input_buf + 6;
 
@@ -3103,7 +3103,7 @@ int dpapimk_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   /* 15300 and 15900 share the same input format */
   if ((input_len < DISPLAY_LEN_MIN_15300) || (input_len > DISPLAY_LEN_MAX_15300)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_DPAPIMK, input_buf, 9)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_DPAPIMK, input_buf, 9) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest        = (u32 *) hash_buf->digest;
 
@@ -3565,7 +3565,7 @@ int psafe3_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
   if (n != 1) return (PARSER_PSAFE3_FILE_SIZE);
 
-  if (memcmp (SIGNATURE_PSAFE3, in.signature, 4)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_PSAFE3, in.signature, 4) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   salt->salt_iter = in.iterations + 1;
 
@@ -3605,7 +3605,7 @@ int phpass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 {
   if ((input_len < DISPLAY_LEN_MIN_400) || (input_len > DISPLAY_LEN_MAX_400)) return (PARSER_GLOBAL_LENGTH);
 
-  if ((memcmp (SIGNATURE_PHPASS1, input_buf, 3)) && (memcmp (SIGNATURE_PHPASS2, input_buf, 3))) return (PARSER_SIGNATURE_UNMATCHED);
+  if ((memcmp (SIGNATURE_PHPASS1, input_buf, 3) != 0) && (memcmp (SIGNATURE_PHPASS2, input_buf, 3) != 0)) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -3631,7 +3631,7 @@ int phpass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
   u8 *hash_pos = salt_pos + salt_len;
 
-  phpass_decode ((u8 *) digest, (u8 *) hash_pos);
+  phpass_decode ((u8 *) digest, hash_pos);
 
   return (PARSER_OK);
 }
@@ -3640,7 +3640,7 @@ int md5crypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 {
   if (input_len < DISPLAY_LEN_MIN_500) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_MD5CRYPT, input_buf, 3)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_MD5CRYPT, input_buf, 3) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -3692,14 +3692,14 @@ int md5crypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   if (hash_len != 22) return (PARSER_HASH_LENGTH);
 
-  md5crypt_decode ((u8 *) digest, (u8 *) hash_pos);
+  md5crypt_decode ((u8 *) digest, hash_pos);
 
   return (PARSER_OK);
 }
 
 int md5apr1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
-  if (memcmp (SIGNATURE_MD5APR1, input_buf, 6)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_MD5APR1, input_buf, 6) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -3747,7 +3747,7 @@ int md5apr1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   hash_pos++;
 
-  md5crypt_decode ((u8 *) digest, (u8 *) hash_pos);
+  md5crypt_decode ((u8 *) digest, hash_pos);
 
   return (PARSER_OK);
 }
@@ -3756,7 +3756,7 @@ int episerver_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 {
   if ((input_len < DISPLAY_LEN_MIN_141) || (input_len > DISPLAY_LEN_MAX_141)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_EPISERVER, input_buf, 14)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_EPISERVER, input_buf, 14) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -4793,7 +4793,7 @@ int sha1axcrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
 {
   if ((input_len < DISPLAY_LEN_MIN_13300) || (input_len > DISPLAY_LEN_MAX_13300)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_AXCRYPT_SHA1, input_buf, 13)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_AXCRYPT_SHA1, input_buf, 13) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -5017,7 +5017,7 @@ int sha1b64_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 {
   if ((input_len < DISPLAY_LEN_MIN_101) || (input_len > DISPLAY_LEN_MAX_101)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_SHA1B64, input_buf, 5)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_SHA1B64, input_buf, 5) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -5049,7 +5049,7 @@ int sha1b64s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 {
   if ((input_len < DISPLAY_LEN_MIN_111) || (input_len > DISPLAY_LEN_MAX_111)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_SSHA1B64_lower, input_buf, 6) && memcmp (SIGNATURE_SSHA1B64_upper, input_buf, 6)) return (PARSER_SIGNATURE_UNMATCHED);
+  if ((memcmp (SIGNATURE_SSHA1B64_lower, input_buf, 6) != 0) && (memcmp (SIGNATURE_SSHA1B64_upper, input_buf, 6) != 0)) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -5098,7 +5098,7 @@ int mssql2000_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 {
   if ((input_len < DISPLAY_LEN_MIN_131) || (input_len > DISPLAY_LEN_MAX_131)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_MSSQL, input_buf, 6)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_MSSQL, input_buf, 6) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -5148,7 +5148,7 @@ int mssql2005_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 {
   if ((input_len < DISPLAY_LEN_MIN_132) || (input_len > DISPLAY_LEN_MAX_132)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_MSSQL, input_buf, 6)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_MSSQL, input_buf, 6) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -5198,7 +5198,7 @@ int mssql2012_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 {
   if ((input_len < DISPLAY_LEN_MIN_1731) || (input_len > DISPLAY_LEN_MAX_1731)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_MSSQL2012, input_buf, 6)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_MSSQL2012, input_buf, 6) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u64 *digest = (u64 *) hash_buf->digest;
 
@@ -5690,7 +5690,7 @@ int sha512s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
 int sha512crypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
-  if (memcmp (SIGNATURE_SHA512CRYPT, input_buf, 3)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_SHA512CRYPT, input_buf, 3) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u64 *digest = (u64 *) hash_buf->digest;
 
@@ -5738,7 +5738,7 @@ int sha512crypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
 
   hash_pos++;
 
-  sha512crypt_decode ((u8 *) digest, (u8 *) hash_pos);
+  sha512crypt_decode ((u8 *) digest, hash_pos);
 
   return (PARSER_OK);
 }
@@ -5771,7 +5771,7 @@ int blake2b_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 {
   if ((input_len < DISPLAY_LEN_MIN_600) || (input_len > DISPLAY_LEN_MAX_600)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_BLAKE2B, input_buf, 8)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_BLAKE2B, input_buf, 8) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   if (is_valid_hex_string (input_buf + 8, 128) == false) return (PARSER_HASH_ENCODING);
 
@@ -5815,13 +5815,13 @@ int chacha20_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 {
   if ((input_len < DISPLAY_LEN_MIN_15400) || (input_len > DISPLAY_LEN_MAX_15400)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_CHACHA20, input_buf, 10)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_CHACHA20, input_buf, 10) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
   chacha20_t *chacha20 = (chacha20_t *) hash_buf->esalt;
 
-  salt_t *salt = (salt_t *) hash_buf->salt;
+  salt_t *salt = hash_buf->salt;
 
   u8 *position_marker = (u8 *) strchr ((const char *) input_buf, '*');
   if (position_marker == NULL) return (PARSER_SEPARATOR_UNMATCHED);
@@ -6404,7 +6404,7 @@ int md5aix_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 {
   if ((input_len < DISPLAY_LEN_MIN_6300) || (input_len > DISPLAY_LEN_MAX_6300)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_MD5AIX, input_buf, 6)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_MD5AIX, input_buf, 6) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -6428,7 +6428,7 @@ int md5aix_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
   hash_pos++;
 
-  md5crypt_decode ((u8 *) digest, (u8 *) hash_pos);
+  md5crypt_decode ((u8 *) digest, hash_pos);
 
   return (PARSER_OK);
 }
@@ -6437,7 +6437,7 @@ int sha1aix_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 {
   if ((input_len < DISPLAY_LEN_MIN_6700) || (input_len > DISPLAY_LEN_MAX_6700)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_SHA1AIX, input_buf, 7)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_SHA1AIX, input_buf, 7) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -6471,7 +6471,7 @@ int sha1aix_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   hash_pos++;
 
-  sha1aix_decode ((u8 *) digest, (u8 *) hash_pos);
+  sha1aix_decode ((u8 *) digest, hash_pos);
 
   digest[0] = byte_swap_32 (digest[0]);
   digest[1] = byte_swap_32 (digest[1]);
@@ -6486,7 +6486,7 @@ int sha256aix_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 {
   if ((input_len < DISPLAY_LEN_MIN_6400) || (input_len > DISPLAY_LEN_MAX_6400)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_SHA256AIX, input_buf, 9)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_SHA256AIX, input_buf, 9) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -6520,7 +6520,7 @@ int sha256aix_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   hash_pos++;
 
-  sha256aix_decode ((u8 *) digest, (u8 *) hash_pos);
+  sha256aix_decode ((u8 *) digest, hash_pos);
 
   digest[0] = byte_swap_32 (digest[0]);
   digest[1] = byte_swap_32 (digest[1]);
@@ -6538,7 +6538,7 @@ int sha512aix_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 {
   if ((input_len < DISPLAY_LEN_MIN_6500) || (input_len > DISPLAY_LEN_MAX_6500)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_SHA512AIX, input_buf, 9)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_SHA512AIX, input_buf, 9) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u64 *digest = (u64 *) hash_buf->digest;
 
@@ -6572,7 +6572,7 @@ int sha512aix_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   hash_pos++;
 
-  sha512aix_decode ((u8 *) digest, (u8 *) hash_pos);
+  sha512aix_decode ((u8 *) digest, hash_pos);
 
   digest[0] = byte_swap_64 (digest[0]);
   digest[1] = byte_swap_64 (digest[1]);
@@ -6779,7 +6779,7 @@ int gost_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
 int sha256crypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
-  if (memcmp (SIGNATURE_SHA256CRYPT, input_buf, 3)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_SHA256CRYPT, input_buf, 3) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -6827,7 +6827,7 @@ int sha256crypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
 
   hash_pos++;
 
-  sha256crypt_decode ((u8 *) digest, (u8 *) hash_pos);
+  sha256crypt_decode ((u8 *) digest, hash_pos);
 
   return (PARSER_OK);
 }
@@ -6838,7 +6838,7 @@ int sha512macos_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
 
   if ((input_len < DISPLAY_LEN_MIN_7100) || (input_len > max_len)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_SHA512MACOS, input_buf, 4)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_SHA512MACOS, input_buf, 4) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u64 *digest = (u64 *) hash_buf->digest;
 
@@ -6912,7 +6912,7 @@ int episerver4_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 {
   if ((input_len < DISPLAY_LEN_MIN_1441) || (input_len > DISPLAY_LEN_MAX_1441)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_EPISERVER4, input_buf, 14)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_EPISERVER4, input_buf, 14) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -6972,7 +6972,7 @@ int sha512grub_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   if ((input_len < DISPLAY_LEN_MIN_7200) || (input_len > max_len)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_SHA512GRUB, input_buf, 19)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_SHA512GRUB, input_buf, 19) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u64 *digest = (u64 *) hash_buf->digest;
 
@@ -7047,7 +7047,7 @@ int sha512b64s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 {
   if ((input_len < DISPLAY_LEN_MIN_1711) || (input_len > DISPLAY_LEN_MAX_1711)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_SHA512B64S, input_buf, 9)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_SHA512B64S, input_buf, 9) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u64 *digest = (u64 *) hash_buf->digest;
 
@@ -7291,7 +7291,7 @@ int krb5pa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 {
   if ((input_len < DISPLAY_LEN_MIN_7500) || (input_len > DISPLAY_LEN_MAX_7500)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_KRB5PA, input_buf, 10)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_KRB5PA, input_buf, 10) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -7546,7 +7546,7 @@ int drupal7_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 {
   if ((input_len < DISPLAY_LEN_MIN_7900) || (input_len > DISPLAY_LEN_MAX_7900)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_DRUPAL7, input_buf, 3)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_DRUPAL7, input_buf, 3) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u64 *digest = (u64 *) hash_buf->digest;
 
@@ -7572,7 +7572,7 @@ int drupal7_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   u8 *hash_pos = salt_pos + salt_len;
 
-  drupal7_decode ((u8 *) digest, (u8 *) hash_pos);
+  drupal7_decode ((u8 *) digest, hash_pos);
 
   // ugly hack start
 
@@ -7598,7 +7598,7 @@ int sybasease_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 {
   if ((input_len < DISPLAY_LEN_MIN_8000) || (input_len > DISPLAY_LEN_MAX_8000)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_SYBASEASE, input_buf, 6)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_SYBASEASE, input_buf, 6) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -7691,7 +7691,7 @@ int rakp_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   if (hashbuf_len != 40) return (PARSER_HASH_LENGTH);
 
-  u8 *salt_ptr = (u8 *) saltbuf_pos;
+  u8 *salt_ptr =        saltbuf_pos;
   u8 *rakp_ptr = (u8 *) rakp->salt_buf;
 
   if (is_valid_hex_string (salt_ptr, saltbuf_len) == false) return (PARSER_SALT_ENCODING);
@@ -7749,7 +7749,7 @@ int netscaler_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   salt_t *salt = hash_buf->salt;
 
-  if (memcmp (SIGNATURE_NETSCALER, input_buf, 1)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_NETSCALER, input_buf, 1) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u8 *salt_pos = input_buf + 1;
 
@@ -8178,7 +8178,7 @@ int racf_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   if ((input_len < DISPLAY_LEN_MIN_8500) || (input_len > DISPLAY_LEN_MAX_8500)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_RACF, input_buf, 6)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_RACF, input_buf, 6) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -8455,7 +8455,7 @@ int phps_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   u32 *digest = (u32 *) hash_buf->digest;
 
-  if (memcmp (SIGNATURE_PHPS, input_buf, 6)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_PHPS, input_buf, 6) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   salt_t *salt = hash_buf->salt;
 
@@ -8499,7 +8499,7 @@ int mediawiki_b_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
 {
   if ((input_len < DISPLAY_LEN_MIN_3711) || (input_len > DISPLAY_LEN_MAX_3711)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_MEDIAWIKI_B, input_buf, 3)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_MEDIAWIKI_B, input_buf, 3) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -8631,7 +8631,7 @@ int androidfde_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 {
   if ((input_len < DISPLAY_LEN_MIN_8800) || (input_len > DISPLAY_LEN_MAX_8800)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_ANDROIDFDE, input_buf, 5)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_ANDROIDFDE, input_buf, 5) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -8732,7 +8732,7 @@ int scrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 {
   if ((input_len < DISPLAY_LEN_MIN_8900) || (input_len > DISPLAY_LEN_MAX_8900)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_SCRYPT, input_buf, 6)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_SCRYPT, input_buf, 6) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -8836,7 +8836,7 @@ int juniper_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   u8 *md5crypt_hash = decrypted + 12;
 
-  if (memcmp ((const char *) md5crypt_hash, "$1$danastre$", 12)) return (PARSER_SALT_VALUE);
+  if (memcmp ((const char *) md5crypt_hash, "$1$danastre$", 12) != 0) return (PARSER_SALT_VALUE);
 
   salt->salt_iter = ROUNDS_MD5CRYPT;
 
@@ -8852,7 +8852,7 @@ int juniper_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   hash_pos++;
 
-  md5crypt_decode ((u8 *) digest, (u8 *) hash_pos);
+  md5crypt_decode ((u8 *) digest, hash_pos);
 
   return (PARSER_OK);
 }
@@ -8861,7 +8861,7 @@ int cisco8_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 {
   if ((input_len < DISPLAY_LEN_MIN_9200) || (input_len > DISPLAY_LEN_MAX_9200)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_CISCO8, input_buf, 3)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_CISCO8, input_buf, 3) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -8932,7 +8932,7 @@ int cisco9_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 {
   if ((input_len < DISPLAY_LEN_MIN_9300) || (input_len > DISPLAY_LEN_MAX_9300)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_CISCO9, input_buf, 3)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_CISCO9, input_buf, 3) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -8987,7 +8987,7 @@ int office2007_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 {
   if ((input_len < DISPLAY_LEN_MIN_9400) || (input_len > DISPLAY_LEN_MAX_9400)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_OFFICE2007, input_buf, 8)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_OFFICE2007, input_buf, 8) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -9137,7 +9137,7 @@ int office2010_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 {
   if ((input_len < DISPLAY_LEN_MIN_9500) || (input_len > DISPLAY_LEN_MAX_9500)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_OFFICE2010, input_buf, 8)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_OFFICE2010, input_buf, 8) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -9291,7 +9291,7 @@ int office2013_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 {
   if ((input_len < DISPLAY_LEN_MIN_9600) || (input_len > DISPLAY_LEN_MAX_9600)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_OFFICE2013, input_buf, 8)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_OFFICE2013, input_buf, 8) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -9445,7 +9445,7 @@ int oldoffice01_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
 {
   if ((input_len < DISPLAY_LEN_MIN_9700) || (input_len > DISPLAY_LEN_MAX_9700)) return (PARSER_GLOBAL_LENGTH);
 
-  if ((memcmp (SIGNATURE_OLDOFFICE0, input_buf, 12)) && (memcmp (SIGNATURE_OLDOFFICE1, input_buf, 12))) return (PARSER_SIGNATURE_UNMATCHED);
+  if ((memcmp (SIGNATURE_OLDOFFICE0, input_buf, 12) != 0) && (memcmp (SIGNATURE_OLDOFFICE1, input_buf, 12) != 0)) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -9564,7 +9564,7 @@ int oldoffice01cm2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
 {
   if ((input_len < DISPLAY_LEN_MIN_9720) || (input_len > DISPLAY_LEN_MAX_9720)) return (PARSER_GLOBAL_LENGTH);
 
-  if ((memcmp (SIGNATURE_OLDOFFICE0, input_buf, 12)) && (memcmp (SIGNATURE_OLDOFFICE1, input_buf, 12))) return (PARSER_SIGNATURE_UNMATCHED);
+  if ((memcmp (SIGNATURE_OLDOFFICE0, input_buf, 12) != 0) && (memcmp (SIGNATURE_OLDOFFICE1, input_buf, 12) != 0)) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -9702,7 +9702,7 @@ int oldoffice34_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
 {
   if ((input_len < DISPLAY_LEN_MIN_9800) || (input_len > DISPLAY_LEN_MAX_9800)) return (PARSER_GLOBAL_LENGTH);
 
-  if ((memcmp (SIGNATURE_OLDOFFICE3, input_buf, 12)) && (memcmp (SIGNATURE_OLDOFFICE4, input_buf, 12))) return (PARSER_SIGNATURE_UNMATCHED);
+  if ((memcmp (SIGNATURE_OLDOFFICE3, input_buf, 12) != 0) && (memcmp (SIGNATURE_OLDOFFICE4, input_buf, 12) != 0)) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -9820,7 +9820,7 @@ int oldoffice34_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
 
 int oldoffice34cm1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
-  if (memcmp (SIGNATURE_OLDOFFICE3, input_buf, 12)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_OLDOFFICE3, input_buf, 12) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   return oldoffice34_parse_hash (input_buf, input_len, hash_buf, hashconfig);
 }
@@ -9829,7 +9829,7 @@ int oldoffice34cm2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
 {
   if ((input_len < DISPLAY_LEN_MIN_9820) || (input_len > DISPLAY_LEN_MAX_9820)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_OLDOFFICE3, input_buf, 12)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_OLDOFFICE3, input_buf, 12) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -9988,7 +9988,7 @@ int djangosha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 {
   if ((input_len < DISPLAY_LEN_MIN_124) || (input_len > DISPLAY_LEN_MAX_124)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_DJANGOSHA1, input_buf, 5)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_DJANGOSHA1, input_buf, 5) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -10056,7 +10056,7 @@ int djangopbkdf2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAY
 {
   if ((input_len < DISPLAY_LEN_MIN_10000) || (input_len > DISPLAY_LEN_MAX_10000)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_DJANGOPBKDF2, input_buf, 14)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_DJANGOPBKDF2, input_buf, 14) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -10175,7 +10175,7 @@ int crammd5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 {
   if ((input_len < DISPLAY_LEN_MIN_10200) || (input_len > DISPLAY_LEN_MAX_10200)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_CRAM_MD5, input_buf, 10)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_CRAM_MD5, input_buf, 10) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -10246,7 +10246,7 @@ int saph_sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 {
   if ((input_len < DISPLAY_LEN_MIN_10300) || (input_len > DISPLAY_LEN_MAX_10300)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_SAPH_SHA1, input_buf, 10)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_SAPH_SHA1, input_buf, 10) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -10396,7 +10396,7 @@ int pdf11_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUS
 {
   if ((input_len < DISPLAY_LEN_MIN_10400) || (input_len > DISPLAY_LEN_MAX_10400)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_PDF, input_buf, 5)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_PDF, input_buf, 5) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -10588,7 +10588,7 @@ int pdf11cm2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 {
   if ((input_len < DISPLAY_LEN_MIN_10420) || (input_len > DISPLAY_LEN_MAX_10420)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_PDF, input_buf, 5)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_PDF, input_buf, 5) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -10806,7 +10806,7 @@ int pdf14_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUS
 {
   if ((input_len < DISPLAY_LEN_MIN_10500) || (input_len > DISPLAY_LEN_MAX_10500)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_PDF, input_buf, 5)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_PDF, input_buf, 5) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -11078,7 +11078,7 @@ int pdf17l8_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 {
   if ((input_len < DISPLAY_LEN_MIN_10600) || (input_len > DISPLAY_LEN_MAX_10600)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_PDF, input_buf, 5)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_PDF, input_buf, 5) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -11248,7 +11248,7 @@ int pbkdf2_sha256_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MA
 {
   if ((input_len < DISPLAY_LEN_MIN_10900) || (input_len > DISPLAY_LEN_MAX_10900)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_PBKDF2_SHA256, input_buf, 7)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_PBKDF2_SHA256, input_buf, 7) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -11369,7 +11369,7 @@ int postgresql_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, 
 {
   if ((input_len < DISPLAY_LEN_MIN_11100) || (input_len > DISPLAY_LEN_MAX_11100)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_POSTGRESQL_AUTH, input_buf, 10)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_POSTGRESQL_AUTH, input_buf, 10) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -11448,7 +11448,7 @@ int mysql_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 {
   if ((input_len < DISPLAY_LEN_MIN_11200) || (input_len > DISPLAY_LEN_MAX_11200)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_MYSQL_AUTH, input_buf, 9)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_MYSQL_AUTH, input_buf, 9) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -11507,7 +11507,7 @@ int bitcoin_wallet_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
 {
   if ((input_len < DISPLAY_LEN_MIN_11300) || (input_len > DISPLAY_LEN_MAX_11300)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_BITCOIN_WALLET, input_buf, 9)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_BITCOIN_WALLET, input_buf, 9) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -11656,7 +11656,7 @@ int sip_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 {
   if ((input_len < DISPLAY_LEN_MIN_11400) || (input_len > DISPLAY_LEN_MAX_11400)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_SIP_AUTH, input_buf, 6)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_SIP_AUTH, input_buf, 6) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -11840,7 +11840,7 @@ int sip_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   if (directive_len != 3) return (PARSER_SALT_LENGTH);
 
-  if (memcmp (directive_pos, "MD5", 3)) return (PARSER_SIP_AUTH_DIRECTIVE);
+  if (memcmp (directive_pos, "MD5", 3) != 0) return (PARSER_SIP_AUTH_DIRECTIVE);
 
   /*
    * first (pre-)compute: HA2 = md5 ($method . ":" . $uri)
@@ -12067,7 +12067,7 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 {
   if ((input_len < DISPLAY_LEN_MIN_11600) || (input_len > DISPLAY_LEN_MAX_11600)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_SEVEN_ZIP, input_buf, 4)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_SEVEN_ZIP, input_buf, 4) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -12395,7 +12395,7 @@ int pbkdf2_md5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 {
   if ((input_len < DISPLAY_LEN_MIN_11900) || (input_len > DISPLAY_LEN_MAX_11900)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_PBKDF2_MD5, input_buf, 4)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_PBKDF2_MD5, input_buf, 4) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -12479,7 +12479,7 @@ int pbkdf2_sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
 {
   if ((input_len < DISPLAY_LEN_MIN_12000) || (input_len > DISPLAY_LEN_MAX_12000)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_PBKDF2_SHA1, input_buf, 5)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_PBKDF2_SHA1, input_buf, 5) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -12568,7 +12568,7 @@ int pbkdf2_sha512_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MA
 {
   if ((input_len < DISPLAY_LEN_MIN_12100) || (input_len > DISPLAY_LEN_MAX_12100)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_PBKDF2_SHA512, input_buf, 7)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_PBKDF2_SHA512, input_buf, 7) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u64 *digest = (u64 *) hash_buf->digest;
 
@@ -12661,7 +12661,7 @@ int ecryptfs_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 {
   if ((input_len < DISPLAY_LEN_MIN_12200) || (input_len > DISPLAY_LEN_MAX_12200)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_ECRYPTFS, input_buf, 10)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_ECRYPTFS, input_buf, 10) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -12730,7 +12730,7 @@ int bsdicrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 {
   if ((input_len < DISPLAY_LEN_MIN_12400) || (input_len > DISPLAY_LEN_MAX_12400)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_BSDICRYPT, input_buf, 1)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_BSDICRYPT, input_buf, 1) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   unsigned char c19 = itoa64_to_int (input_buf[19]);
 
@@ -12778,7 +12778,7 @@ int rar3hp_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 {
   if ((input_len < DISPLAY_LEN_MIN_12500) || (input_len > DISPLAY_LEN_MAX_12500)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_RAR3, input_buf, 6)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_RAR3, input_buf, 6) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -12851,7 +12851,7 @@ int rar5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 {
   if ((input_len < DISPLAY_LEN_MIN_13000) || (input_len > DISPLAY_LEN_MAX_13000)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_RAR5, input_buf, 1 + 4 + 1)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_RAR5, input_buf, 1 + 4 + 1) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -12984,7 +12984,7 @@ int krb5tgs_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 {
   if ((input_len < DISPLAY_LEN_MIN_13100) || (input_len > DISPLAY_LEN_MAX_13100)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_KRB5TGS, input_buf, 11)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_KRB5TGS, input_buf, 11) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -13084,7 +13084,7 @@ int axcrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 {
   if ((input_len < DISPLAY_LEN_MIN_13200) || (input_len > DISPLAY_LEN_MAX_13200)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_AXCRYPT, input_buf, 11)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_AXCRYPT, input_buf, 11) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -13172,7 +13172,7 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 {
   if ((input_len < DISPLAY_LEN_MIN_13400) || (input_len > DISPLAY_LEN_MAX_13400)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_KEEPASS, input_buf, 9)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_KEEPASS, input_buf, 9) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -13658,7 +13658,7 @@ int mywallet_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 {
   if ((input_len < DISPLAY_LEN_MIN_12700) || (input_len > DISPLAY_LEN_MAX_12700)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_MYWALLET, input_buf, 12)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_MYWALLET, input_buf, 12) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -13741,7 +13741,7 @@ int mywalletv2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 {
   if ((input_len < DISPLAY_LEN_MIN_15200) || (input_len > DISPLAY_LEN_MAX_15200)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_MYWALLETV2, input_buf, 15)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_MYWALLETV2, input_buf, 15) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -13837,7 +13837,7 @@ int ms_drsr_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 {
   if ((input_len < DISPLAY_LEN_MIN_12800) || (input_len > DISPLAY_LEN_MAX_12800)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_MS_DRSR, input_buf, 11)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_MS_DRSR, input_buf, 11) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -13999,8 +13999,8 @@ int zip2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 {
   if ((input_len < DISPLAY_LEN_MIN_13600) || (input_len > DISPLAY_LEN_MAX_13600)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_ZIP2_START, input_buf                , 6)) return (PARSER_SIGNATURE_UNMATCHED);
-  if (memcmp (SIGNATURE_ZIP2_STOP , input_buf + input_len - 7, 7)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_ZIP2_START, input_buf                , 6) != 0) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_ZIP2_STOP , input_buf + input_len - 7, 7) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -14416,7 +14416,7 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   char luks_magic[6] = LUKS_MAGIC;
 
-  if (memcmp (hdr.magic, luks_magic, LUKS_MAGIC_L))
+  if (memcmp (hdr.magic, luks_magic, LUKS_MAGIC_L) != 0)
   {
     fclose (fp);
 
@@ -14686,7 +14686,7 @@ int itunes_backup_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MA
 {
   if ((input_len < DISPLAY_LEN_MIN_14700) || (input_len > DISPLAY_LEN_MAX_14700)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_ITUNES_BACKUP, input_buf, 15)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_ITUNES_BACKUP, input_buf, 15) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 hash_mode = hashconfig->hash_mode;
 
@@ -14939,7 +14939,7 @@ int fortigate_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 {
   if (input_len != DISPLAY_LEN_MIN_7000) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_FORTIGATE, input_buf, 3)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_FORTIGATE, input_buf, 3) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32    *digest = (u32 *) hash_buf->digest;
   salt_t *salt   = hash_buf->salt;
@@ -15000,7 +15000,7 @@ int sha256b64s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 {
   if ((input_len < DISPLAY_LEN_MIN_1411) || (input_len > DISPLAY_LEN_MAX_1411)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_SHA256B64S, input_buf, 9)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_SHA256B64S, input_buf, 9) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -15112,7 +15112,7 @@ int netbsd_sha1crypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 {
   if ((input_len < DISPLAY_LEN_MIN_15100) || (input_len > DISPLAY_LEN_MAX_15100)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_NETBSD_SHA1CRYPT, input_buf, 6)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_NETBSD_SHA1CRYPT, input_buf, 6) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -15170,7 +15170,7 @@ int netbsd_sha1crypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   // digest:
 
-  netbsd_sha1crypt_decode ((u8 *) digest, (u8 *) hash_pos, (u8 *) salt->salt_sign);
+  netbsd_sha1crypt_decode ((u8 *) digest, hash_pos, (u8 *) salt->salt_sign);
 
   digest[0] = byte_swap_32 (digest[0]);
   digest[1] = byte_swap_32 (digest[1]);
@@ -15195,7 +15195,7 @@ int atlassian_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 {
   if ((input_len < DISPLAY_LEN_MIN_12001) || (input_len > DISPLAY_LEN_MAX_12001)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_ATLASSIAN, input_buf, 9)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_ATLASSIAN, input_buf, 9) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -15261,7 +15261,7 @@ int jks_sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 {
   if ((input_len < DISPLAY_LEN_MIN_15500) || (input_len > DISPLAY_LEN_MAX_15500)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_JKS_SHA1, input_buf, 10)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_JKS_SHA1, input_buf, 10) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -15424,7 +15424,7 @@ int ethereum_pbkdf2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, 
 {
   if ((input_len < DISPLAY_LEN_MIN_15600) || (input_len > DISPLAY_LEN_MAX_15600)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_ETHEREUM_PBKDF2, input_buf, 11)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_ETHEREUM_PBKDF2, input_buf, 11) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -15544,7 +15544,7 @@ int ethereum_scrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, 
 {
   if ((input_len < DISPLAY_LEN_MIN_15700) || (input_len > DISPLAY_LEN_MAX_15700)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_ETHEREUM_SCRYPT, input_buf, 11)) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_ETHEREUM_SCRYPT, input_buf, 11) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -16697,7 +16697,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     memcpy (tmp_buf, salt.salt_buf, salt.salt_len);
 
-    base64_encode (int_to_base64, (const u8 *) tmp_buf, salt.salt_len, (u8 *) ptr_salt);
+    base64_encode (int_to_base64, (const u8 *) tmp_buf, salt.salt_len, ptr_salt);
 
     // the encoder is a bit too intelligent, it expects the input data in the wrong BOM
 
@@ -16728,7 +16728,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     phpass_encode ((unsigned char *) digest_buf, (unsigned char *) ptr_plain);
 
-    snprintf (out_buf, out_len - 1, "%s%s%s", (char *) salt.salt_sign, (char *) salt.salt_buf, (char *) ptr_plain);
+    snprintf (out_buf, out_len - 1, "%s%s%s", (char *) salt.salt_sign, (char *) salt.salt_buf, ptr_plain);
   }
   else if (hash_mode == 500)
   {
@@ -16743,11 +16743,11 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     if (salt.salt_iter == ROUNDS_MD5CRYPT)
     {
-      snprintf (out_buf, out_len - 1, "$1$%s$%s", (char *) salt.salt_buf, (char *) ptr_plain);
+      snprintf (out_buf, out_len - 1, "$1$%s$%s", (char *) salt.salt_buf, ptr_plain);
     }
     else
     {
-      snprintf (out_buf, out_len - 1, "$1$rounds=%u$%s$%s", salt.salt_iter, (char *) salt.salt_buf, (char *) ptr_plain);
+      snprintf (out_buf, out_len - 1, "$1$rounds=%u$%s$%s", salt.salt_iter, (char *) salt.salt_buf, ptr_plain);
     }
   }
   else if (hash_mode == 501)
@@ -16801,7 +16801,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     memcpy (tmp_buf, salt.salt_buf, salt.salt_len);
 
-    base64_encode (int_to_base64, (const u8 *) tmp_buf, salt.salt_len, (u8 *) ptr_salt);
+    base64_encode (int_to_base64, (const u8 *) tmp_buf, salt.salt_len, ptr_salt);
 
     // the encoder is a bit too intelligent, it expects the input data in the wrong BOM
 
@@ -16860,11 +16860,11 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     if (salt.salt_iter == ROUNDS_MD5CRYPT)
     {
-      snprintf (out_buf, out_len - 1, "$apr1$%s$%s", (char *) salt.salt_buf, (char *) ptr_plain);
+      snprintf (out_buf, out_len - 1, "$apr1$%s$%s", (char *) salt.salt_buf, ptr_plain);
     }
     else
     {
-      snprintf (out_buf, out_len - 1, "$apr1$rounds=%u$%s$%s", salt.salt_iter, (char *) salt.salt_buf, (char *) ptr_plain);
+      snprintf (out_buf, out_len - 1, "$apr1$rounds=%u$%s$%s", salt.salt_iter, (char *) salt.salt_buf, ptr_plain);
     }
   }
   else if (hash_mode == 1711)
@@ -16934,11 +16934,11 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     if (salt.salt_iter == ROUNDS_SHA512CRYPT)
     {
-      snprintf (out_buf, out_len - 1, "$6$%s$%s", (char *) salt.salt_buf, (char *) ptr_plain);
+      snprintf (out_buf, out_len - 1, "$6$%s$%s", (char *) salt.salt_buf, ptr_plain);
     }
     else
     {
-      snprintf (out_buf, out_len - 1, "$6$rounds=%u$%s$%s", salt.salt_iter, (char *) salt.salt_buf, (char *) ptr_plain);
+      snprintf (out_buf, out_len - 1, "$6$rounds=%u$%s$%s", salt.salt_iter, (char *) salt.salt_buf, ptr_plain);
     }
   }
   else if (hash_mode == 2100)
@@ -17376,19 +17376,19 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     md5crypt_encode ((unsigned char *) digest_buf, (unsigned char *) ptr_plain);
 
-    snprintf (out_buf, out_len - 1, "{smd5}%s$%s", (char *) salt.salt_buf, (char *) ptr_plain);
+    snprintf (out_buf, out_len - 1, "{smd5}%s$%s", (char *) salt.salt_buf, ptr_plain);
   }
   else if (hash_mode == 6400)
   {
     sha256aix_encode ((unsigned char *) digest_buf, (unsigned char *) ptr_plain);
 
-    snprintf (out_buf, out_len - 1, "{ssha256}%02u$%s$%s", salt.salt_sign[0], (char *) salt.salt_buf, (char *) ptr_plain);
+    snprintf (out_buf, out_len - 1, "{ssha256}%02u$%s$%s", salt.salt_sign[0], (char *) salt.salt_buf, ptr_plain);
   }
   else if (hash_mode == 6500)
   {
     sha512aix_encode ((unsigned char *) digest_buf64, (unsigned char *) ptr_plain);
 
-    snprintf (out_buf, out_len - 1, "{ssha512}%02u$%s$%s", salt.salt_sign[0], (char *) salt.salt_buf, (char *) ptr_plain);
+    snprintf (out_buf, out_len - 1, "{ssha512}%02u$%s$%s", salt.salt_sign[0], (char *) salt.salt_buf, ptr_plain);
   }
   else if (hash_mode == 6600)
   {
@@ -17410,7 +17410,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   {
     sha1aix_encode ((unsigned char *) digest_buf, (unsigned char *) ptr_plain);
 
-    snprintf (out_buf, out_len - 1, "{ssha1}%02u$%s$%s", salt.salt_sign[0], (char *) salt.salt_buf, (char *) ptr_plain);
+    snprintf (out_buf, out_len - 1, "{ssha1}%02u$%s$%s", salt.salt_sign[0], (char *) salt.salt_buf, ptr_plain);
   }
   else if (hash_mode == 6800)
   {
@@ -17542,11 +17542,11 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     if (salt.salt_iter == ROUNDS_SHA256CRYPT)
     {
-      snprintf (out_buf, out_len - 1, "$5$%s$%s", (char *) salt.salt_buf, (char *) ptr_plain);
+      snprintf (out_buf, out_len - 1, "$5$%s$%s", (char *) salt.salt_buf, ptr_plain);
     }
     else
     {
-      snprintf (out_buf, out_len - 1, "$5$rounds=%u$%s$%s", salt.salt_iter, (char *) salt.salt_buf, (char *) ptr_plain);
+      snprintf (out_buf, out_len - 1, "$5$rounds=%u$%s$%s", salt.salt_iter, (char *) salt.salt_buf, ptr_plain);
     }
   }
   else if (hash_mode == 7500)
@@ -17612,7 +17612,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     ptr_plain[43] = 0;
 
-    snprintf (out_buf, out_len - 1, "%s%s%s", (char *) salt.salt_sign, (char *) salt.salt_buf, (char *) ptr_plain);
+    snprintf (out_buf, out_len - 1, "%s%s%s", (char *) salt.salt_sign, (char *) salt.salt_buf, ptr_plain);
   }
   else if (hash_mode == 8000)
   {
@@ -18842,10 +18842,10 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     keepass_t *keepass = &keepasss[digest_cur];
 
-    u32 version     = (u32) keepass->version;
+    u32 version     = keepass->version;
     u32 rounds      = salt.salt_iter;
-    u32 algorithm   = (u32) keepass->algorithm;
-    u32 keyfile_len = (u32) keepass->keyfile_len;
+    u32 algorithm   = keepass->algorithm;
+    u32 keyfile_len = keepass->keyfile_len;
 
     u32 *ptr_final_random_seed  = (u32 *) keepass->final_random_seed;
     u32 *ptr_transf_random_seed = (u32 *) keepass->transf_random_seed;
@@ -18903,7 +18903,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     if (version == 1)
     {
-      u32  contents_len = (u32)   keepass->contents_len;
+      u32  contents_len =         keepass->contents_len;
       u32 *ptr_contents = (u32 *) keepass->contents;
 
       for (u32 i = 0; i < contents_hash_len; i++, ptr_data += 8)
@@ -19232,10 +19232,10 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     dpapimk_t *dpapimk  = &dpapimks[digest_cur];
 
     u32 version      = 1;
-    u32 context      = (u32) dpapimk->context;
+    u32 context      = dpapimk->context;
     u32 rounds       = salt.salt_iter + 1;
-    u32 contents_len = (u32) dpapimk->contents_len;
-    u32 SID_len      = (u32) dpapimk->SID_len;
+    u32 contents_len = dpapimk->contents_len;
+    u32 SID_len      = dpapimk->SID_len;
     u32 iv_len       = 32;
 
     u8 cipher_algorithm[8] = { 0 };
@@ -19421,10 +19421,10 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     dpapimk_t *dpapimk  = &dpapimks[digest_cur];
 
     u32 version      = 2;
-    u32 context      = (u32) dpapimk->context;
+    u32 context      = dpapimk->context;
     u32 rounds       = salt.salt_iter + 1;
-    u32 contents_len = (u32) dpapimk->contents_len;
-    u32 SID_len      = (u32) dpapimk->SID_len;
+    u32 contents_len = dpapimk->contents_len;
+    u32 SID_len      = dpapimk->SID_len;
     u32 iv_len       = 32;
 
     u8 cipher_algorithm[8] = { 0 };
@@ -25190,7 +25190,7 @@ int hashconfig_general_defaults (hashcat_ctx_t *hashcat_ctx)
 
     void *esalts_buf = hashes->esalts_buf;
 
-    char *tcvc_keyfiles = (char *) optional_param1;
+    char *tcvc_keyfiles = optional_param1;
 
     u32 *keyfile_buf = ((tc_t *) esalts_buf)->keyfile_buf;
 

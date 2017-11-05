@@ -52,7 +52,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
         plain_buf[i] = pw.i[i];
       }
 
-      plain_len = (int) apply_rules_optimized (straight_ctx->kernel_rules_buf[off].cmds, &plain_buf[0], &plain_buf[4], (u32) pw.pw_len);
+      plain_len = apply_rules_optimized (straight_ctx->kernel_rules_buf[off].cmds, &plain_buf[0], &plain_buf[4], pw.pw_len);
     }
     else
     {
@@ -61,7 +61,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
         plain_buf[i] = pw.i[i];
       }
 
-      plain_len = (int) apply_rules (straight_ctx->kernel_rules_buf[off].cmds, plain_buf, pw.pw_len);
+      plain_len = apply_rules (straight_ctx->kernel_rules_buf[off].cmds, plain_buf, pw.pw_len);
     }
 
     if (plain_len > (int) hashconfig->pw_max) plain_len = (int) hashconfig->pw_max;

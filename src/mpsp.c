@@ -101,7 +101,7 @@ static int mp_css_append_salt (hashcat_ctx_t *hashcat_ctx, salt_t *salt_buf)
 {
   mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
-  u32  salt_len     = (u32)  salt_buf->salt_len;
+  u32  salt_len     =        salt_buf->salt_len;
   u8  *salt_buf_ptr = (u8 *) salt_buf->salt_buf;
 
   u32 css_cnt_salt = mask_ctx->css_cnt + salt_len;
@@ -201,7 +201,7 @@ static int mp_css_to_uniq_tbl (hashcat_ctx_t *hashcat_ctx, u32 css_cnt, cs_t *cs
   return 0;
 }
 
-static int mp_add_cs_buf (hashcat_ctx_t *hashcat_ctx, u32 *in_buf, size_t in_len, cs_t *css, u32 css_cnt)
+static int mp_add_cs_buf (hashcat_ctx_t *hashcat_ctx, const u32 *in_buf, size_t in_len, cs_t *css, u32 css_cnt)
 {
   const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
@@ -569,7 +569,7 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
   }
   else
   {
-    char mp_file[1024] = { 0 };
+    char mp_file[1024];
 
     const size_t nread = hc_fread (mp_file, 1, sizeof (mp_file) - 1, fp);
 
@@ -581,10 +581,8 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
 
       return -1;
     }
-    else
-    {
-      fclose (fp);
-    }
+
+    fclose (fp);
 
     if (nread == 0)
     {
@@ -749,7 +747,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
   u64 z = *ptr++;
 
   memcpy (root_stats_buf,   ptr, sizeof (u64) * SP_ROOT_CNT);   ptr += SP_ROOT_CNT;
-  memcpy (markov_stats_buf, ptr, sizeof (u64) * SP_MARKOV_CNT); ptr += SP_MARKOV_CNT;
+  memcpy (markov_stats_buf, ptr, sizeof (u64) * SP_MARKOV_CNT); // ptr += SP_MARKOV_CNT;
 
   hcfree (inbuf);
   hcfree (outbuf);

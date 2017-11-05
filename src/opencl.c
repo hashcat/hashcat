@@ -67,10 +67,8 @@ static int ocl_check_dri (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
     return 0;
   }
-  else
-  {
-    fclose (fd_drm);
-  }
+
+  fclose (fd_drm);
 
   if (vendor != 4098) return 0;
 
@@ -2011,7 +2009,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
       if (hashes->salts_shown[salt_pos] == 1)
       {
-        status_ctx->words_progress_done[salt_pos] += (u64) pws_cnt * (u64) innerloop_left;
+        status_ctx->words_progress_done[salt_pos] += (u64) pws_cnt * innerloop_left;
 
         continue;
       }
@@ -2293,7 +2291,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
        * speed
        */
 
-      const u64 perf_sum_all = (u64) pws_cnt * (u64) innerloop_left;
+      const u64 perf_sum_all = (u64) pws_cnt * innerloop_left;
 
       const double speed_msec = hc_timer_get (device_param->timer_speed);
 
@@ -5459,7 +5457,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         device_param->kernel_params_mp_buf32[7] = 0;
       }
 
-      for (u32 i = 0; i < 3; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp, i, sizeof (cl_mem), (void *) device_param->kernel_params_mp[i]); if (CL_rc == -1) return -1; }
+      for (u32 i = 0; i < 3; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp, i, sizeof (cl_mem), device_param->kernel_params_mp[i]); if (CL_rc == -1) return -1; }
     }
     else if (user_options->attack_mode == ATTACK_MODE_BF)
     {
@@ -5476,8 +5474,8 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS14) device_param->kernel_params_mp_l_buf32[7] = 1;
       if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS15) device_param->kernel_params_mp_l_buf32[8] = 1;
 
-      for (u32 i = 0; i < 3; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp_l, i, sizeof (cl_mem), (void *) device_param->kernel_params_mp_l[i]); if (CL_rc == -1) return -1; }
-      for (u32 i = 0; i < 3; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp_r, i, sizeof (cl_mem), (void *) device_param->kernel_params_mp_r[i]); if (CL_rc == -1) return -1; }
+      for (u32 i = 0; i < 3; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp_l, i, sizeof (cl_mem), device_param->kernel_params_mp_l[i]); if (CL_rc == -1) return -1; }
+      for (u32 i = 0; i < 3; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp_r, i, sizeof (cl_mem), device_param->kernel_params_mp_r[i]); if (CL_rc == -1) return -1; }
     }
 
     hardware_power_all += device_param->hardware_power;
@@ -5751,8 +5749,8 @@ int opencl_session_update_mp (hashcat_ctx_t *hashcat_ctx)
 
     int CL_rc = CL_SUCCESS;
 
-    for (u32 i = 3; i < 4; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp[i]); if (CL_rc == -1) return -1; }
-    for (u32 i = 4; i < 8; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp[i]); if (CL_rc == -1) return -1; }
+    for (u32 i = 3; i < 4; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp, i, sizeof (cl_ulong), device_param->kernel_params_mp[i]); if (CL_rc == -1) return -1; }
+    for (u32 i = 4; i < 8; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp, i, sizeof (cl_uint), device_param->kernel_params_mp[i]); if (CL_rc == -1) return -1; }
 
     CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_root_css_buf,   CL_TRUE, 0, device_param->size_root_css,   mask_ctx->root_css_buf,   0, NULL, NULL); if (CL_rc == -1) return -1;
     CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_markov_css_buf, CL_TRUE, 0, device_param->size_markov_css, mask_ctx->markov_css_buf, 0, NULL, NULL); if (CL_rc == -1) return -1;
@@ -5783,13 +5781,13 @@ int opencl_session_update_mp_rl (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_l
 
     int CL_rc = CL_SUCCESS;
 
-    for (u32 i = 3; i < 4; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp_l, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_l[i]); if (CL_rc == -1) return -1; }
-    for (u32 i = 4; i < 8; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp_l, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_l[i]); if (CL_rc == -1) return -1; }
-    for (u32 i = 9; i < 9; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp_l, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_l[i]); if (CL_rc == -1) return -1; }
+    for (u32 i = 3; i < 4; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp_l, i, sizeof (cl_ulong), device_param->kernel_params_mp_l[i]); if (CL_rc == -1) return -1; }
+    for (u32 i = 4; i < 8; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp_l, i, sizeof (cl_uint),  device_param->kernel_params_mp_l[i]); if (CL_rc == -1) return -1; }
+    for (u32 i = 9; i < 9; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp_l, i, sizeof (cl_ulong), device_param->kernel_params_mp_l[i]); if (CL_rc == -1) return -1; }
 
-    for (u32 i = 3; i < 4; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp_r, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_r[i]); if (CL_rc == -1) return -1; }
-    for (u32 i = 4; i < 7; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp_r, i, sizeof (cl_uint),  (void *) device_param->kernel_params_mp_r[i]); if (CL_rc == -1) return -1; }
-    for (u32 i = 8; i < 8; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp_r, i, sizeof (cl_ulong), (void *) device_param->kernel_params_mp_r[i]); if (CL_rc == -1) return -1; }
+    for (u32 i = 3; i < 4; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp_r, i, sizeof (cl_ulong), device_param->kernel_params_mp_r[i]); if (CL_rc == -1) return -1; }
+    for (u32 i = 4; i < 7; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp_r, i, sizeof (cl_uint),  device_param->kernel_params_mp_r[i]); if (CL_rc == -1) return -1; }
+    for (u32 i = 8; i < 8; i++) { CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp_r, i, sizeof (cl_ulong), device_param->kernel_params_mp_r[i]); if (CL_rc == -1) return -1; }
 
     CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_root_css_buf,   CL_TRUE, 0, device_param->size_root_css,   mask_ctx->root_css_buf,   0, NULL, NULL); if (CL_rc == -1) return -1;
     CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_markov_css_buf, CL_TRUE, 0, device_param->size_markov_css, mask_ctx->markov_css_buf, 0, NULL, NULL); if (CL_rc == -1) return -1;

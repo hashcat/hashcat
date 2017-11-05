@@ -242,7 +242,7 @@ void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len
 {
   if (device_param->pws_cnt < device_param->kernel_power)
   {
-    pw_t *pw = (pw_t *) device_param->pws_buf + device_param->pws_cnt;
+    pw_t *pw = device_param->pws_buf + device_param->pws_cnt;
 
     u8 *ptr = (u8 *) pw->i;
 
@@ -538,7 +538,7 @@ int wl_data_init (hashcat_ctx_t *hashcat_ctx)
    * iconv
    */
 
-  if (strcmp (user_options->encoding_from, user_options->encoding_to))
+  if (strcmp (user_options->encoding_from, user_options->encoding_to) != 0)
   {
     wl_data->iconv_enabled = true;
 

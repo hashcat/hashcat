@@ -17,10 +17,8 @@ static int conv_pos (const u8 c, const int pos_mem)
   {
     return pos_mem;
   }
-  else
-  {
-    return conv_ctoi (c);
-  }
+
+  return conv_ctoi (c);
 }
 
 static void MANGLE_TOGGLE_AT (char *arr, const int pos)
