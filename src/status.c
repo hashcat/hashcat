@@ -607,7 +607,8 @@ char *status_get_guess_mod (const hashcat_ctx_t *hashcat_ctx)
   {
     return status_get_rules_file (hashcat_ctx);
   }
-  else if (user_options->attack_mode == ATTACK_MODE_COMBI)
+
+  if (user_options->attack_mode == ATTACK_MODE_COMBI)
   {
     const combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
 
@@ -620,17 +621,20 @@ char *status_get_guess_mod (const hashcat_ctx_t *hashcat_ctx)
       return strdup (combinator_ctx->dict1);
     }
   }
-  else if (user_options->attack_mode == ATTACK_MODE_BF)
+
+  if (user_options->attack_mode == ATTACK_MODE_BF)
   {
 
   }
-  else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+
+  if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
   {
     const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
     return strdup (mask_ctx->mask);
   }
-  else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+
+  if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
     if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
     {

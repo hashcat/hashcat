@@ -501,7 +501,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
     return 0;
   }
-  else if (user_options->left == true)
+
+  if (user_options->left == true)
   {
     outfile_write_open (hashcat_ctx);
 
