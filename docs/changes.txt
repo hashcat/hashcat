@@ -8,6 +8,7 @@
 - Fixed compile of kernels on AMD systems on windows due to invalid detection of ROCm
 - Fixed compile of sources using clang under MSYS2
 - Fixed overlapping memory segment copy in CPU rule engine if using a specific rule function
+- Fixed a parallel build problem when using the "install" Makefile target
 
 * changes v3.6.0 -> v4.0.0:
 
