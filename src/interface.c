@@ -24508,7 +24508,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     {
       if (hashconfig->has_optimized_kernel == false)
       {
-        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "%s: Optimized OpenCL kernel not found, falling back to pure OpenCL kernel", source_file);
+        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "%s: Optimized OpenCL kernel requested but not needed - falling back to pure OpenCL kernel", source_file);
       }
       else
       {
