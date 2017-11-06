@@ -48,8 +48,9 @@ PREFIX                  ?= /usr/local
 
 INSTALL_FOLDER          ?= $(PREFIX)/bin
 LIBRARY_FOLDER          ?= $(PREFIX)/lib
-SHARED_FOLDER           ?= $(PREFIX)/share/hashcat
-DOCUMENT_FOLDER         ?= $(PREFIX)/share/doc/hashcat
+SHARED_ROOT_FOLDER      ?= $(PREFIX)/share
+SHARED_FOLDER           ?= $(SHARED_ROOT_FOLDER)/hashcat
+DOCUMENT_FOLDER         ?= $(SHARED_ROOT_FOLDER)/doc/hashcat
 
 ##
 ## Filenames for library and frontend
@@ -330,7 +331,13 @@ else
 install: install_docs install_shared                 install_hashcat
 endif
 
-install_docs:
+# we need this extra target to make sure that for parallel builds (i.e. 2+ Makefile targets could possible run at the same time)
+# the root folder of the shared directory is created first (and is a dependency for the targets that depend on it)
+
+install_make_share_root:
+	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(SHARED_ROOT_FOLDER)
+
+install_docs: install_make_share_root
 	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(DOCUMENT_FOLDER)
 	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(DOCUMENT_FOLDER)/docs
 	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(DOCUMENT_FOLDER)/charsets
@@ -360,7 +367,7 @@ install_docs:
 	$(SED) $(SED_IN_PLACE) 's/\.\/hashcat/hashcat/'         $(DESTDIR)$(DOCUMENT_FOLDER)/example400.sh
 	$(SED) $(SED_IN_PLACE) 's/\.\/hashcat/hashcat/'         $(DESTDIR)$(DOCUMENT_FOLDER)/example500.sh
 
-install_shared:
+install_shared: install_make_share_root
 	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(SHARED_FOLDER)
 	$(INSTALL) -m 755 -d                                    $(DESTDIR)$(SHARED_FOLDER)/OpenCL
 	$(INSTALL) -m 644 hashcat.hctune                        $(DESTDIR)$(SHARED_FOLDER)/
