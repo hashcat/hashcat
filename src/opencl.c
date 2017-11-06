@@ -3190,7 +3190,9 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           device_param->pcie_device   = amdtopo.pcie.device;
           device_param->pcie_function = amdtopo.pcie.function;
 
-          // check for AMD ROCm driver
+          #if defined (__linux__)
+
+          // check for AMD ROCm driver (only available on linux)
 
           const char *t1 = strstr (device_param->driver_version, "(HSA,LC)");
           const char *t2 = strstr (device_param->driver_version, "(PAL,LC)");
@@ -3207,6 +3209,12 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           {
             device_param->is_rocm = true;
           }
+
+          #else
+
+          device_param->is_rocm = false;
+
+          #endif
         }
 
         if ((device_param->platform_vendor_id == VENDOR_ID_NV) && (device_param->device_vendor_id == VENDOR_ID_NV))

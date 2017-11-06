@@ -1,3 +1,14 @@
+* changes v4.0.0 -> xxx:
+
+##
+## Bugs
+##
+
+- Fixed a memory leak while parsing a wordlist
+- Fixed compile of kernels on AMD systems on windows due to invalid detection of ROCm
+- Fixed compile of sources using clang under MSYS2
+- Fixed overlapping memory segment copy in CPU rule engine if using a specific rule function
+
 * changes v3.6.0 -> v4.0.0:
 
 ##
