@@ -1,5 +1,5 @@
 /* Alloc.h -- Memory allocation functions
-2015-02-21 : Igor Pavlov : Public domain */
+2017-04-03 : Igor Pavlov : Public domain */
 
 #ifndef __COMMON_ALLOC_H
 #define __COMMON_ALLOC_H
@@ -29,8 +29,8 @@ void BigFree(void *address);
 
 #endif
 
-extern ISzAlloc g_Alloc;
-extern ISzAlloc g_BigAlloc;
+extern const ISzAlloc g_Alloc;
+extern const ISzAlloc g_BigAlloc;
 
 EXTERN_C_END
 

@@ -1,5 +1,5 @@
 /* Compiler.h
-2015-08-02 : Igor Pavlov : Public domain */
+2017-04-03 : Igor Pavlov : Public domain */
 
 #ifndef __7Z_COMPILER_H
 #define __7Z_COMPILER_H
@@ -21,6 +21,7 @@
     #pragma warning(disable : 4514) // unreferenced inline function has been removed
     #pragma warning(disable : 4702) // unreachable code
     #pragma warning(disable : 4710) // not inlined
+    #pragma warning(disable : 4714) // function marked as __forceinline not inlined
     #pragma warning(disable : 4786) // identifier was truncated to '255' characters in the debug information
   #endif
 

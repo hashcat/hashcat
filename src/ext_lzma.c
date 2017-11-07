@@ -9,18 +9,18 @@
 #include "event.h"
 #include "ext_lzma.h"
 
-void *hc_lzma_alloc (MAYBE_UNUSED void *p, size_t size)
+void *hc_lzma_alloc (MAYBE_UNUSED ISzAllocPtr p, size_t size)
 {
   return hcmalloc (size);
 }
 
-void hc_lzma_free (MAYBE_UNUSED void *p, void *address)
+void hc_lzma_free (MAYBE_UNUSED ISzAllocPtr p, void *address)
 {
   hcfree (address);
 }
 
 int hc_lzma1_decompress (const unsigned char *in, SizeT *in_len, unsigned char *out, SizeT *out_len, const char *props)
-{ 
+{
   ISzAlloc hc_lzma_mem_alloc = {hc_lzma_alloc, hc_lzma_free};
 
   ELzmaStatus status;
@@ -32,7 +32,7 @@ int hc_lzma1_decompress (const unsigned char *in, SizeT *in_len, unsigned char *
 }
 
 int hc_lzma2_decompress (const unsigned char *in, SizeT *in_len, unsigned char *out, SizeT *out_len, const char *props)
-{ 
+{
   ISzAlloc hc_lzma_mem_alloc = {hc_lzma_alloc, hc_lzma_free};
 
   ELzmaStatus status;

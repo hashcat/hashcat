@@ -1,5 +1,5 @@
 /* Alloc.c -- Memory allocation functions
-2015-02-21 : Igor Pavlov : Public domain */
+2017-06-15 : Igor Pavlov : Public domain */
 
 #include "Precomp.h"
 
@@ -23,11 +23,11 @@ int g_allocCountBig = 0;
 void *MyAlloc(size_t size)
 {
   if (size == 0)
-    return 0;
+    return NULL;
   #ifdef _SZ_ALLOC_DEBUG
   {
     void *p = malloc(size);
-    fprintf(stderr, "\nAlloc %10d bytes, count = %10d,  addr = %8X", size, g_allocCount++, (unsigned)p);
+    fprintf(stderr, "\nAlloc %10u bytes, count = %10d,  addr = %8X", size, g_allocCount++, (unsigned)p);
     return p;
   }
   #else
@@ -38,7 +38,7 @@ void *MyAlloc(size_t size)
 void MyFree(void *address)
 {
   #ifdef _SZ_ALLOC_DEBUG
-  if (address != 0)
+  if (address)
     fprintf(stderr, "\nFree; count = %10d,  addr = %8X", --g_allocCount, (unsigned)address);
   #endif
   free(address);
@@ -49,20 +49,20 @@ void MyFree(void *address)
 void *MidAlloc(size_t size)
 {
   if (size == 0)
-    return 0;
+    return NULL;
   #ifdef _SZ_ALLOC_DEBUG
   fprintf(stderr, "\nAlloc_Mid %10d bytes;  count = %10d", size, g_allocCountMid++);
   #endif
-  return VirtualAlloc(0, size, MEM_COMMIT, PAGE_READWRITE);
+  return VirtualAlloc(NULL, size, MEM_COMMIT, PAGE_READWRITE);
 }
 
 void MidFree(void *address)
 {
   #ifdef _SZ_ALLOC_DEBUG
-  if (address != 0)
+  if (address)
     fprintf(stderr, "\nFree_Mid; count = %10d", --g_allocCountMid);
   #endif
-  if (address == 0)
+  if (!address)
     return;
   VirtualFree(address, 0, MEM_RELEASE);
 }
@@ -76,13 +76,13 @@ SIZE_T g_LargePageSize = 0;
 typedef SIZE_T (WINAPI *GetLargePageMinimumP)();
 #endif
 
-void SetLargePageSize()
+void SetLargePageSize(void)
 {
   #ifdef _7ZIP_LARGE_PAGES
-  SIZE_T size = 0;
+  SIZE_T size;
   GetLargePageMinimumP largePageMinimum = (GetLargePageMinimumP)
         GetProcAddress(GetModuleHandle(TEXT("kernel32.dll")), "GetLargePageMinimum");
-  if (largePageMinimum == 0)
+  if (!largePageMinimum)
     return;
   size = largePageMinimum();
   if (size == 0 || (size & (size - 1)) != 0)
@@ -91,44 +91,55 @@ void SetLargePageSize()
   #endif
 }
 
+
 void *BigAlloc(size_t size)
 {
   if (size == 0)
-    return 0;
+    return NULL;
   #ifdef _SZ_ALLOC_DEBUG
-  fprintf(stderr, "\nAlloc_Big %10d bytes;  count = %10d", size, g_allocCountBig++);
+  fprintf(stderr, "\nAlloc_Big %10u bytes;  count = %10d", size, g_allocCountBig++);
   #endif
   
   #ifdef _7ZIP_LARGE_PAGES
-  if (g_LargePageSize != 0 && g_LargePageSize <= (1 << 30) && size >= (1 << 18))
   {
-    void *res = VirtualAlloc(0, (size + g_LargePageSize - 1) & (~(g_LargePageSize - 1)),
-        MEM_COMMIT | MEM_LARGE_PAGES, PAGE_READWRITE);
-    if (res != 0)
-      return res;
+    SIZE_T ps = g_LargePageSize;
+    if (ps != 0 && ps <= (1 << 30) && size > (ps / 2))
+    {
+      size_t size2;
+      ps--;
+      size2 = (size + ps) & ~ps;
+      if (size2 >= size)
+      {
+        void *res = VirtualAlloc(NULL, size2, MEM_COMMIT | MEM_LARGE_PAGES, PAGE_READWRITE);
+        if (res)
+          return res;
+      }
+    }
   }
   #endif
-  return VirtualAlloc(0, size, MEM_COMMIT, PAGE_READWRITE);
+
+  return VirtualAlloc(NULL, size, MEM_COMMIT, PAGE_READWRITE);
 }
 
 void BigFree(void *address)
 {
   #ifdef _SZ_ALLOC_DEBUG
-  if (address != 0)
+  if (address)
     fprintf(stderr, "\nFree_Big; count = %10d", --g_allocCountBig);
   #endif
   
-  if (address == 0)
+  if (!address)
     return;
   VirtualFree(address, 0, MEM_RELEASE);
 }
 
 #endif
 
-static void *SzAlloc(void *p, size_t size) { UNUSED_VAR(p); return MyAlloc(size); }
-static void SzFree(void *p, void *address) { UNUSED_VAR(p); MyFree(address); }
-ISzAlloc g_Alloc = { SzAlloc, SzFree };
 
-static void *SzBigAlloc(void *p, size_t size) { UNUSED_VAR(p); return BigAlloc(size); }
-static void SzBigFree(void *p, void *address) { UNUSED_VAR(p); BigFree(address); }
-ISzAlloc g_BigAlloc = { SzBigAlloc, SzBigFree };
+static void *SzAlloc(ISzAllocPtr p, size_t size) { UNUSED_VAR(p); return MyAlloc(size); }
+static void SzFree(ISzAllocPtr p, void *address) { UNUSED_VAR(p); MyFree(address); }
+ISzAlloc const g_Alloc = { SzAlloc, SzFree };
+
+static void *SzBigAlloc(ISzAllocPtr p, size_t size) { UNUSED_VAR(p); return BigAlloc(size); }
+static void SzBigFree(ISzAllocPtr p, void *address) { UNUSED_VAR(p); BigFree(address); }
+ISzAlloc const g_BigAlloc = { SzBigAlloc, SzBigFree };

@@ -1,5 +1,5 @@
 /* 7zTypes.h -- Basic types
-2013-11-12 : Igor Pavlov : Public domain */
+2017-07-17 : Igor Pavlov : Public domain */
 
 #ifndef __7Z_TYPES_H
 #define __7Z_TYPES_H
@@ -42,12 +42,22 @@ EXTERN_C_BEGIN
 
 typedef int SRes;
 
+
 #ifdef _WIN32
+
 /* typedef DWORD WRes; */
 typedef unsigned WRes;
+#define MY_SRes_HRESULT_FROM_WRes(x) HRESULT_FROM_WIN32(x)
+
 #else
+
 typedef int WRes;
+#define MY__FACILITY_WIN32 7
+#define MY__FACILITY__WRes MY__FACILITY_WIN32
+#define MY_SRes_HRESULT_FROM_WRes(x) ((HRESULT)(x) <= 0 ? ((HRESULT)(x)) : ((HRESULT) (((x) & 0x0000FFFF) | (MY__FACILITY__WRes << 16) | 0x80000000)))
+
 #endif
+
 
 #ifndef RINOK
 #define RINOK(x) { int __result__ = (x); if (__result__ != 0) return __result__; }
@@ -97,6 +107,7 @@ typedef int Bool;
 #define True 1
 #define False 0
 
+
 #ifdef _WIN32
 #define MY_STD_CALL __stdcall
 #else
@@ -111,47 +122,72 @@ typedef int Bool;
 #define MY_NO_INLINE
 #endif
 
+#define MY_FORCE_INLINE __forceinline
+
 #define MY_CDECL __cdecl
 #define MY_FAST_CALL __fastcall
 
 #else
 
 #define MY_NO_INLINE
+#define MY_FORCE_INLINE
 #define MY_CDECL
 #define MY_FAST_CALL
 
+/* inline keyword : for C++ / C99 */
+
+/* GCC, clang: */
+/*
+#if defined (__GNUC__) && (__GNUC__ >= 4)
+#define MY_FORCE_INLINE __attribute__((always_inline))
+#define MY_NO_INLINE __attribute__((noinline))
 #endif
+*/
+
+#endif
+
 
 /* The following interfaces use first parameter as pointer to structure */
 
-typedef struct
+typedef struct IByteIn IByteIn;
+struct IByteIn
 {
-  Byte (*Read)(void *p); /* reads one byte, returns 0 in case of EOF or error */
-} IByteIn;
+  Byte (*Read)(const IByteIn *p); /* reads one byte, returns 0 in case of EOF or error */
+};
+#define IByteIn_Read(p) (p)->Read(p)
 
-typedef struct
-{
-  void (*Write)(void *p, Byte b);
-} IByteOut;
 
-typedef struct
+typedef struct IByteOut IByteOut;
+struct IByteOut
 {
-  SRes (*Read)(void *p, void *buf, size_t *size);
+  void (*Write)(const IByteOut *p, Byte b);
+};
+#define IByteOut_Write(p, b) (p)->Write(p, b)
+
+
+typedef struct ISeqInStream ISeqInStream;
+struct ISeqInStream
+{
+  SRes (*Read)(const ISeqInStream *p, void *buf, size_t *size);
     /* if (input(*size) != 0 && output(*size) == 0) means end_of_stream.
        (output(*size) < input(*size)) is allowed */
-} ISeqInStream;
+};
+#define ISeqInStream_Read(p, buf, size) (p)->Read(p, buf, size)
 
 /* it can return SZ_ERROR_INPUT_EOF */
-SRes SeqInStream_Read(ISeqInStream *stream, void *buf, size_t size);
-SRes SeqInStream_Read2(ISeqInStream *stream, void *buf, size_t size, SRes errorType);
-SRes SeqInStream_ReadByte(ISeqInStream *stream, Byte *buf);
+SRes SeqInStream_Read(const ISeqInStream *stream, void *buf, size_t size);
+SRes SeqInStream_Read2(const ISeqInStream *stream, void *buf, size_t size, SRes errorType);
+SRes SeqInStream_ReadByte(const ISeqInStream *stream, Byte *buf);
 
-typedef struct
+
+typedef struct ISeqOutStream ISeqOutStream;
+struct ISeqOutStream
 {
-  size_t (*Write)(void *p, const void *buf, size_t size);
+  size_t (*Write)(const ISeqOutStream *p, const void *buf, size_t size);
     /* Returns: result - the number of actually written bytes.
        (result < size) means error */
-} ISeqOutStream;
+};
+#define ISeqOutStream_Write(p, buf, size) (p)->Write(p, buf, size)
 
 typedef enum
 {
@@ -160,78 +196,162 @@ typedef enum
   SZ_SEEK_END = 2
 } ESzSeek;
 
-typedef struct
-{
-  SRes (*Read)(void *p, void *buf, size_t *size);  /* same as ISeqInStream::Read */
-  SRes (*Seek)(void *p, Int64 *pos, ESzSeek origin);
-} ISeekInStream;
 
-typedef struct
+typedef struct ISeekInStream ISeekInStream;
+struct ISeekInStream
 {
-  SRes (*Look)(void *p, const void **buf, size_t *size);
+  SRes (*Read)(const ISeekInStream *p, void *buf, size_t *size);  /* same as ISeqInStream::Read */
+  SRes (*Seek)(const ISeekInStream *p, Int64 *pos, ESzSeek origin);
+};
+#define ISeekInStream_Read(p, buf, size)   (p)->Read(p, buf, size)
+#define ISeekInStream_Seek(p, pos, origin) (p)->Seek(p, pos, origin)
+
+
+typedef struct ILookInStream ILookInStream;
+struct ILookInStream
+{
+  SRes (*Look)(const ILookInStream *p, const void **buf, size_t *size);
     /* if (input(*size) != 0 && output(*size) == 0) means end_of_stream.
        (output(*size) > input(*size)) is not allowed
        (output(*size) < input(*size)) is allowed */
-  SRes (*Skip)(void *p, size_t offset);
+  SRes (*Skip)(const ILookInStream *p, size_t offset);
     /* offset must be <= output(*size) of Look */
 
-  SRes (*Read)(void *p, void *buf, size_t *size);
+  SRes (*Read)(const ILookInStream *p, void *buf, size_t *size);
     /* reads directly (without buffer). It's same as ISeqInStream::Read */
-  SRes (*Seek)(void *p, Int64 *pos, ESzSeek origin);
-} ILookInStream;
+  SRes (*Seek)(const ILookInStream *p, Int64 *pos, ESzSeek origin);
+};
 
-SRes LookInStream_LookRead(ILookInStream *stream, void *buf, size_t *size);
-SRes LookInStream_SeekTo(ILookInStream *stream, UInt64 offset);
+#define ILookInStream_Look(p, buf, size)   (p)->Look(p, buf, size)
+#define ILookInStream_Skip(p, offset)      (p)->Skip(p, offset)
+#define ILookInStream_Read(p, buf, size)   (p)->Read(p, buf, size)
+#define ILookInStream_Seek(p, pos, origin) (p)->Seek(p, pos, origin)
+
+
+SRes LookInStream_LookRead(const ILookInStream *stream, void *buf, size_t *size);
+SRes LookInStream_SeekTo(const ILookInStream *stream, UInt64 offset);
 
 /* reads via ILookInStream::Read */
-SRes LookInStream_Read2(ILookInStream *stream, void *buf, size_t size, SRes errorType);
-SRes LookInStream_Read(ILookInStream *stream, void *buf, size_t size);
+SRes LookInStream_Read2(const ILookInStream *stream, void *buf, size_t size, SRes errorType);
+SRes LookInStream_Read(const ILookInStream *stream, void *buf, size_t size);
 
-#define LookToRead_BUF_SIZE (1 << 14)
+
 
 typedef struct
 {
-  ILookInStream s;
-  ISeekInStream *realStream;
+  ILookInStream vt;
+  const ISeekInStream *realStream;
+ 
   size_t pos;
-  size_t size;
-  Byte buf[LookToRead_BUF_SIZE];
-} CLookToRead;
+  size_t size; /* it's data size */
+  
+  /* the following variables must be set outside */
+  Byte *buf;
+  size_t bufSize;
+} CLookToRead2;
 
-void LookToRead_CreateVTable(CLookToRead *p, int lookahead);
-void LookToRead_Init(CLookToRead *p);
+void LookToRead2_CreateVTable(CLookToRead2 *p, int lookahead);
+
+#define LookToRead2_Init(p) { (p)->pos = (p)->size = 0; }
+
 
 typedef struct
 {
-  ISeqInStream s;
-  ILookInStream *realStream;
+  ISeqInStream vt;
+  const ILookInStream *realStream;
 } CSecToLook;
 
 void SecToLook_CreateVTable(CSecToLook *p);
 
+
+
 typedef struct
 {
-  ISeqInStream s;
-  ILookInStream *realStream;
+  ISeqInStream vt;
+  const ILookInStream *realStream;
 } CSecToRead;
 
 void SecToRead_CreateVTable(CSecToRead *p);
 
-typedef struct
+
+typedef struct ICompressProgress ICompressProgress;
+
+struct ICompressProgress
 {
-  SRes (*Progress)(void *p, UInt64 inSize, UInt64 outSize);
+  SRes (*Progress)(const ICompressProgress *p, UInt64 inSize, UInt64 outSize);
     /* Returns: result. (result != SZ_OK) means break.
        Value (UInt64)(Int64)-1 for size means unknown value. */
-} ICompressProgress;
+};
+#define ICompressProgress_Progress(p, inSize, outSize) (p)->Progress(p, inSize, outSize)
 
-typedef struct
+
+
+typedef struct ISzAlloc ISzAlloc;
+typedef const ISzAlloc * ISzAllocPtr;
+
+struct ISzAlloc
 {
-  void *(*Alloc)(void *p, size_t size);
-  void (*Free)(void *p, void *address); /* address can be 0 */
-} ISzAlloc;
+  void *(*Alloc)(ISzAllocPtr p, size_t size);
+  void (*Free)(ISzAllocPtr p, void *address); /* address can be 0 */
+};
 
-#define IAlloc_Alloc(p, size) (p)->Alloc((p), size)
-#define IAlloc_Free(p, a) (p)->Free((p), a)
+#define ISzAlloc_Alloc(p, size) (p)->Alloc(p, size)
+#define ISzAlloc_Free(p, a) (p)->Free(p, a)
+
+/* deprecated */
+#define IAlloc_Alloc(p, size) ISzAlloc_Alloc(p, size)
+#define IAlloc_Free(p, a) ISzAlloc_Free(p, a)
+
+
+
+
+
+#ifndef MY_offsetof
+  #ifdef offsetof
+    #define MY_offsetof(type, m) offsetof(type, m)
+    /*
+    #define MY_offsetof(type, m) FIELD_OFFSET(type, m)
+    */
+  #else
+    #define MY_offsetof(type, m) ((size_t)&(((type *)0)->m))
+  #endif
+#endif
+
+
+
+#ifndef MY_container_of
+
+/*
+#define MY_container_of(ptr, type, m) container_of(ptr, type, m)
+#define MY_container_of(ptr, type, m) CONTAINING_RECORD(ptr, type, m)
+#define MY_container_of(ptr, type, m) ((type *)((char *)(ptr) - offsetof(type, m)))
+#define MY_container_of(ptr, type, m) (&((type *)0)->m == (ptr), ((type *)(((char *)(ptr)) - MY_offsetof(type, m))))
+*/
+
+/*
+  GCC shows warning: "perhaps the 'offsetof' macro was used incorrectly"
+    GCC 3.4.4 : classes with constructor
+    GCC 4.8.1 : classes with non-public variable members"
+*/
+
+#define MY_container_of(ptr, type, m) ((type *)((char *)(1 ? (ptr) : &((type *)0)->m) - MY_offsetof(type, m)))
+
+
+#endif
+
+#define CONTAINER_FROM_VTBL_SIMPLE(ptr, type, m) ((type *)(ptr))
+
+/*
+#define CONTAINER_FROM_VTBL(ptr, type, m) CONTAINER_FROM_VTBL_SIMPLE(ptr, type, m)
+*/
+#define CONTAINER_FROM_VTBL(ptr, type, m) MY_container_of(ptr, type, m)
+
+#define CONTAINER_FROM_VTBL_CLS(ptr, type, m) CONTAINER_FROM_VTBL_SIMPLE(ptr, type, m)
+/*
+#define CONTAINER_FROM_VTBL_CLS(ptr, type, m) CONTAINER_FROM_VTBL(ptr, type, m)
+*/
+
+
 
 #ifdef _WIN32
 
