@@ -5,7 +5,7 @@
 
 SHARED                  := 0
 DEBUG                   := 0
-PRODUCTION              := 0
+PRODUCTION              := 1
 
 ##
 ## Detect Operating System
