@@ -9,6 +9,7 @@
 - Fixed compile of sources using clang under MSYS2
 - Fixed overlapping memory segment copy in CPU rule engine if using a specific rule function
 - Fixed a parallel build problem when using the "install" Makefile target
+- Fixed the version number extraction for github releases which do not including the .git directory
 
 * changes v3.6.0 -> v4.0.0:
 
@@ -58,7 +59,6 @@
 - Fixed the parsing of descrypt hashes if the hashes do have non-standard characters within the salt
 - Fixed the use of --veracrypt-pim option. It was completely ignored without showing an error
 - Fixed the version number used in the restore file header
-- Fixed the version number extraction for github releases which do not including the .git directory
 
 ##
 ## Improvements
