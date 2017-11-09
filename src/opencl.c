@@ -329,6 +329,8 @@ void generate_source_kernel_filename (const u32 attack_exec, const u32 attack_ke
         snprintf (source_file, 255, "%s/OpenCL/m%05d_a1-optimized.cl", shared_dir, (int) kern_type);
       else if (attack_kern == ATTACK_KERN_BF)
         snprintf (source_file, 255, "%s/OpenCL/m%05d_a3-optimized.cl", shared_dir, (int) kern_type);
+      else if (attack_kern == ATTACK_KERN_NONE)
+        snprintf (source_file, 255, "%s/OpenCL/m%05d_a0-optimized.cl", shared_dir, (int) kern_type);
     }
     else
     {
@@ -345,6 +347,8 @@ void generate_source_kernel_filename (const u32 attack_exec, const u32 attack_ke
         snprintf (source_file, 255, "%s/OpenCL/m%05d_a1.cl", shared_dir, (int) kern_type);
       else if (attack_kern == ATTACK_KERN_BF)
         snprintf (source_file, 255, "%s/OpenCL/m%05d_a3.cl", shared_dir, (int) kern_type);
+      else if (attack_kern == ATTACK_KERN_NONE)
+        snprintf (source_file, 255, "%s/OpenCL/m%05d_a0.cl", shared_dir, (int) kern_type);
     }
     else
     {
@@ -365,6 +369,8 @@ void generate_cached_kernel_filename (const u32 attack_exec, const u32 attack_ke
         snprintf (cached_file, 255, "%s/kernels/m%05d_a1-optimized.%s.kernel", profile_dir, (int) kern_type, device_name_chksum);
       else if (attack_kern == ATTACK_KERN_BF)
         snprintf (cached_file, 255, "%s/kernels/m%05d_a3-optimized.%s.kernel", profile_dir, (int) kern_type, device_name_chksum);
+      else if (attack_kern == ATTACK_KERN_NONE)
+        snprintf (cached_file, 255, "%s/kernels/m%05d_a0-optimized.%s.kernel", profile_dir, (int) kern_type, device_name_chksum);
     }
     else
     {
@@ -381,6 +387,8 @@ void generate_cached_kernel_filename (const u32 attack_exec, const u32 attack_ke
         snprintf (cached_file, 255, "%s/kernels/m%05d_a1.%s.kernel", profile_dir, (int) kern_type, device_name_chksum);
       else if (attack_kern == ATTACK_KERN_BF)
         snprintf (cached_file, 255, "%s/kernels/m%05d_a3.%s.kernel", profile_dir, (int) kern_type, device_name_chksum);
+      else if (attack_kern == ATTACK_KERN_NONE)
+        snprintf (cached_file, 255, "%s/kernels/m%05d_a0.%s.kernel", profile_dir, (int) kern_type, device_name_chksum);
     }
     else
     {
