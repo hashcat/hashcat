@@ -1,6 +1,12 @@
 * changes v4.0.1 -> xxx:
 
 ##
+## Algorithms
+##
+
+- Added hash-mode 16000 = Tripcode
+
+##
 ## Bugs
 ##
 

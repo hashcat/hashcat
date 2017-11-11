@@ -265,6 +265,7 @@ static char ST_HASH_15500[] = "$jksprivk$*338BD2FBEBA7B3EF198A4CBFC6E18AFF1E2293
 static char ST_HASH_15600[] = "$ethereum$p*1024*38353131353831333338313138363430*a8b4dfe92687dbc0afeb5dae7863f18964241e96b264f09959903c8c924583fc*0a9252861d1e235994ce33dbca91c98231764d8ecb4950015a8ae20d6415b986";
 static char ST_HASH_15700[] = "$ethereum$s*1024*1*1*3033363133373132373638333437323331383637383437333631373038323434*69eaf081695cf971ef7ee5a49997c1a3922e7efef59068109e83853755ee31c3*64a1adec1750ee4416b22b81111dd2a3c2fede820d6da8bf788dca2641d5b181";
 static char ST_HASH_15900[] = "$DPAPImk$2*1*S-15-21-439882973-489230393-482956683-1522*aes256*sha512*12900*79f7ca399f2626e21aad108c3922af7c*288*c47bc8a985ca6aa708b01c97b004bff20cc52379dc2635b4acf59ce17970a2cb47ace98c7e8de977f265243c5c03d0a97e4b954b494d9e38d9158d0c1e729d16a28ba69e2e7c6c3bc0e3afc9c9b6306b83372ccb35d89b98925728fd36315b8ee95b4d4eccdcb31564769f9a4b9ee10828184e16d4af336675d5e31d987dd87233d34fbbb98880c5e1f64cbb9b043ad8";
+static char ST_HASH_16000[] = "pfaRCwDe0U";
 static char ST_HASH_99999[] = "hashcat";
 
 static const char OPTI_STR_OPTIMIZED_KERNEL[]     = "Optimized-Kernel";
@@ -497,6 +498,7 @@ static const char HT_15500[] = "JKS Java Key Store Private Keys (SHA1)";
 static const char HT_15600[] = "Ethereum Wallet, PBKDF2-HMAC-SHA256";
 static const char HT_15700[] = "Ethereum Wallet, SCRYPT";
 static const char HT_15900[] = "DPAPI masterkey file v2";
+static const char HT_16000[] = "Tripcode";
 static const char HT_99999[] = "Plaintext";
 
 static const char HT_00011[] = "Joomla < 2.5.18";
@@ -15681,6 +15683,38 @@ int ethereum_scrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, 
   return (PARSER_OK);
 }
 
+int tripcode_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
+{
+  if ((input_len < DISPLAY_LEN_MIN_16000) || (input_len > DISPLAY_LEN_MAX_16000)) return (PARSER_GLOBAL_LENGTH);
+
+  unsigned char c9 = itoa64_to_int (input_buf[9]);
+
+  if (c9 & 3) return (PARSER_HASH_VALUE);
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  u8 add_leading_zero[12];
+
+  add_leading_zero[0] = '.';
+
+  memcpy (add_leading_zero + 1, input_buf, 10);
+
+  u8 tmp_buf[100] = { 0 };
+
+  base64_decode (itoa64_to_int, (const u8 *) add_leading_zero, 11, tmp_buf);
+
+  memcpy (digest, tmp_buf, 8);
+
+  u32 tt;
+
+  IP (digest[0], digest[1], tt);
+
+  digest[2] = 0;
+  digest[3] = 0;
+
+  return (PARSER_OK);
+}
+
 /**
  * hook functions
  */
@@ -16111,6 +16145,7 @@ char *strhashtype (const u32 hash_mode)
     case 15600: return ((char *) HT_15600);
     case 15700: return ((char *) HT_15700);
     case 15900: return ((char *) HT_15900);
+    case 16000: return ((char *) HT_16000);
     case 99999: return ((char *) HT_99999);
   }
 
@@ -19498,6 +19533,23 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
       iv,
       contents_len,
       contents);
+  }
+  else if (hash_mode == 16000)
+  {
+    memset (tmp_buf, 0, sizeof (tmp_buf));
+
+    // the encoder is a bit too intelligent, it expects the input data in the wrong BOM
+
+    digest_buf[0] = byte_swap_32 (digest_buf[0]);
+    digest_buf[1] = byte_swap_32 (digest_buf[1]);
+
+    memcpy (tmp_buf, digest_buf, 8);
+
+    base64_encode (int_to_itoa64, (const u8 *) tmp_buf, 8, (u8 *) ptr_plain);
+
+    snprintf (out_buf, out_len - 1, "%s", ptr_plain + 1);
+
+    out_buf[10] = 0;
   }
   else if (hash_mode == 99999)
   {
@@ -24442,6 +24494,23 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
+    case 16000:  hashconfig->hash_type      = HASH_TYPE_DESCRYPT;
+                 hashconfig->salt_type      = SALT_TYPE_NONE;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
+                 hashconfig->kern_type      = KERN_TYPE_TRIPCODE;
+                 hashconfig->dgst_size      = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
+                 hashconfig->parse_func     = tripcode_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_PRECOMPUTE_PERMUT;
+                 hashconfig->dgst_pos0      = 0;
+                 hashconfig->dgst_pos1      = 1;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 3;
+                 hashconfig->st_hash        = ST_HASH_16000;
+                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
+                 break;
+
     case 99999:  hashconfig->hash_type      = HASH_TYPE_PLAINTEXT;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -24995,6 +25064,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 15600: hashconfig->pw_max = PW_MAX;  break;
     case 15700: hashconfig->pw_max = PW_MAX;  break;
     case 15900: hashconfig->pw_max = PW_MAX;  break;
+    case 16000: hashconfig->pw_max = 8;       break; // Underlaying DES max
   }
 
   // salt_min and salt_max : this limit is only interessting for generic hash types that support a salt
@@ -25070,6 +25140,7 @@ u32 hashconfig_forced_kernel_threads (hashcat_ctx_t *hashcat_ctx)
   if (hashconfig->hash_mode == 14000) kernel_threads = 64; // DES
   if (hashconfig->hash_mode == 14100) kernel_threads = 64; // DES
   if (hashconfig->hash_mode == 15700) kernel_threads = 1;  // SCRYPT
+  if (hashconfig->hash_mode == 16000) kernel_threads = 64; // DES
 
   return kernel_threads;
 }

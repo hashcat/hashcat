@@ -218,6 +218,7 @@ static const char *USAGE_BIG[] =
   "  11000 | PrestaShop                                       | Forums, CMS, E-Commerce, Frameworks",
   "    124 | Django (SHA-1)                                   | Forums, CMS, E-Commerce, Frameworks",
   "  10000 | Django (PBKDF2-SHA256)                           | Forums, CMS, E-Commerce, Frameworks",
+  "  16000 | Tripcode                                         | Forums, CMS, E-Commerce, Frameworks",
   "   3711 | MediaWiki B type                                 | Forums, CMS, E-Commerce, Frameworks",
   "  13900 | OpenCart                                         | Forums, CMS, E-Commerce, Frameworks",
   "   4521 | Redmine                                          | Forums, CMS, E-Commerce, Frameworks",

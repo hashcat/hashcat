@@ -114,6 +114,7 @@ NVIDIA GPUs require "NVIDIA Driver" (367.x or later)
 - PHPS
 - Django (SHA-1)
 - Django (PBKDF2-SHA256)
+- Tripcode
 - Episerver
 - ColdFusion 10+
 - Apache MD5-APR
