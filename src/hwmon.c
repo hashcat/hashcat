@@ -43,8 +43,6 @@ static void sysfs_close (hashcat_ctx_t *hashcat_ctx)
   {
     hcfree (sysfs);
   }
-
-  return;
 }
 
 static char *hm_SYSFS_get_syspath_device (hashcat_ctx_t *hashcat_ctx, const int device_id)

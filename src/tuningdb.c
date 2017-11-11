@@ -193,7 +193,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        kernel_accel = atoi (token_ptr[4]);
+        kernel_accel = strtol (token_ptr[4], NULL, 10);
 
         if ((kernel_accel < 1) || (kernel_accel > 1024))
         {
