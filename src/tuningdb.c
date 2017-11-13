@@ -179,9 +179,9 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
       int kernel_accel     = -1;
       int kernel_loops     = -1;
 
-      if (token_ptr[1][0] != '*') attack_mode      = atoi (token_ptr[1]);
-      if (token_ptr[2][0] != '*') hash_type        = atoi (token_ptr[2]);
-      if (token_ptr[3][0] != 'N') vector_width     = atoi (token_ptr[3]);
+      if (token_ptr[1][0] != '*') attack_mode   = strtol (token_ptr[1], NULL, 10);
+      if (token_ptr[2][0] != '*') hash_type     = strtol (token_ptr[2], NULL, 10);
+      if (token_ptr[3][0] != 'N') vector_width  = strtol (token_ptr[3], NULL, 10);
 
       if (token_ptr[4][0] == 'A')
       {
@@ -193,7 +193,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        kernel_accel = atoi (token_ptr[4]);
+        kernel_accel = strtol (token_ptr[4], NULL, 10);
 
         if ((kernel_accel < 1) || (kernel_accel > 1024))
         {
@@ -224,7 +224,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        kernel_loops = atoi (token_ptr[5]);
+        kernel_loops = strtol (token_ptr[5], NULL, 10);
 
         if (kernel_loops < 1)
         {
