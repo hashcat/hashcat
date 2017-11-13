@@ -186,9 +186,14 @@ static _SORT_R_INLINE void sort_r_simple(void *base, size_t nel, size_t w,
         /* no qsort_r in glibc before 2.8, need to use nested qsort */
         sort_r_simple(base, nel, width, compar, arg);
 
-      #else
+      #elif defined __GLIBC__
 
         qsort_r(base, nel, width, compar, arg);
+
+      #else
+
+        /* Fall back to our own quicksort implementation */
+        sort_r_simple(base, nel, width, compar, arg);
 
       #endif
 
