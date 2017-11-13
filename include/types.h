@@ -861,8 +861,8 @@ struct hashconfig
 
   int (*parse_func) (u8 *, u32, hash_t *, const struct hashconfig *);
 
-  char *st_hash;
-  char *st_pass;
+  const char *st_hash;
+  const char *st_pass;
 };
 
 typedef struct hashconfig hashconfig_t;
@@ -1534,13 +1534,13 @@ typedef struct user_options
   bool         username;
   bool         version;
   char        *cpu_affinity;
-  char        *custom_charset_1;
-  char        *custom_charset_2;
-  char        *custom_charset_3;
+  const char  *custom_charset_1;
+  const char  *custom_charset_2;
+  const char  *custom_charset_3;
   char        *custom_charset_4;
   char        *debug_file;
-  char        *encoding_from;
-  char        *encoding_to;
+  const char  *encoding_from;
+  const char  *encoding_to;
   char        *induction_dir;
   char        *markov_hcstat;
   char        *opencl_devices;
@@ -1551,8 +1551,8 @@ typedef struct user_options
   char        *potfile_path;
   char        *restore_file_path;
   char       **rp_files;
-  char        *rule_buf_l;
-  char        *rule_buf_r;
+  const char  *rule_buf_l;
+  const char  *rule_buf_r;
   char         separator;
   const char  *session;
   char        *truecrypt_keyfiles;

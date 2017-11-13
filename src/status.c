@@ -20,25 +20,25 @@
 #include "status.h"
 #include "shared.h"
 
-static const char ST_0000[] = "Initializing";
-static const char ST_0001[] = "Autotuning";
-static const char ST_0002[] = "Selftest";
-static const char ST_0003[] = "Running";
-static const char ST_0004[] = "Paused";
-static const char ST_0005[] = "Exhausted";
-static const char ST_0006[] = "Cracked";
-static const char ST_0007[] = "Aborted";
-static const char ST_0008[] = "Quit";
-static const char ST_0009[] = "Bypass";
-static const char ST_0010[] = "Aborted (Checkpoint)";
-static const char ST_0011[] = "Aborted (Runtime)";
-static const char ST_0012[] = "Running (Checkpoint Quit requested)";
-static const char ST_9999[] = "Unknown! Bug!";
+static const char *ST_0000 = "Initializing";
+static const char *ST_0001 = "Autotuning";
+static const char *ST_0002 = "Selftest";
+static const char *ST_0003 = "Running";
+static const char *ST_0004 = "Paused";
+static const char *ST_0005 = "Exhausted";
+static const char *ST_0006 = "Cracked";
+static const char *ST_0007 = "Aborted";
+static const char *ST_0008 = "Quit";
+static const char *ST_0009 = "Bypass";
+static const char *ST_0010 = "Aborted (Checkpoint)";
+static const char *ST_0011 = "Aborted (Runtime)";
+static const char *ST_0012 = "Running (Checkpoint Quit requested)";
+static const char *ST_9999 = "Unknown! Bug!";
 
 static const char UNITS[7] = { ' ', 'k', 'M', 'G', 'T', 'P', 'E' };
 
-static const char ETA_ABSOLUTE_MAX_EXCEEDED[] = "Next Big Bang"; // in honor of ighashgpu
-static const char ETA_RELATIVE_MAX_EXCEEDED[] = "> 10 years";
+static const char *ETA_ABSOLUTE_MAX_EXCEEDED = "Next Big Bang"; // in honor of ighashgpu
+static const char *ETA_RELATIVE_MAX_EXCEEDED = "> 10 years";
 
 static char *status_get_rules_file (const hashcat_ctx_t *hashcat_ctx)
 {
