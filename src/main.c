@@ -492,7 +492,7 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
     if (hashconfig->has_optimized_kernel == true)
     {
       event_log_advice (hashcat_ctx, "ATTENTION! Pure (unoptimized) OpenCL kernels selected.");
-      event_log_advice (hashcat_ctx, "This enables cracking passwords and salts > length 32 but for the price of drastical reduced performance.");
+      event_log_advice (hashcat_ctx, "This enables cracking passwords and salts > length 32 but for the price of drastically reduced performance.");
       event_log_advice (hashcat_ctx, "If you want to switch to optimized OpenCL kernels, append -O to your commandline.");
       event_log_advice (hashcat_ctx, NULL);
     }
