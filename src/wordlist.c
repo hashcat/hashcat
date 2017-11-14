@@ -347,7 +347,7 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
 
       cache_hit_t cache_hit;
 
-      cache_hit.dictfile      = (char *) dictfile;
+      cache_hit.dictfile      = dictfile;
       cache_hit.stat.st_size  = d.stat.st_size;
       cache_hit.cached_cnt    = cached_cnt;
       cache_hit.keyspace      = keyspace;
@@ -461,7 +461,7 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
     {
       cache_generate_t cache_generate;
 
-      cache_generate.dictfile    = (char *) dictfile;
+      cache_generate.dictfile    = dictfile;
       cache_generate.comp        = comp;
       cache_generate.percent     = percent;
       cache_generate.cnt         = cnt;
@@ -477,7 +477,7 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
 
   cache_generate_t cache_generate;
 
-  cache_generate.dictfile    = (char *) dictfile;
+  cache_generate.dictfile    = dictfile;
   cache_generate.comp        = comp;
   cache_generate.percent     = 100;
   cache_generate.cnt         = cnt;

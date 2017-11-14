@@ -74,35 +74,35 @@ void format_timer_display (struct tm *tm, char *buf, size_t len)
 
   if (tm->tm_year - 70)
   {
-    char *time_entity1 = ((tm->tm_year - 70) == 1) ? (char *) time_entities_s[0] : (char *) time_entities_m[0];
-    char *time_entity2 = ( tm->tm_yday       == 1) ? (char *) time_entities_s[1] : (char *) time_entities_m[1];
+    const char *time_entity1 = ((tm->tm_year - 70) == 1) ? time_entities_s[0] : time_entities_m[0];
+    const char *time_entity2 = ( tm->tm_yday       == 1) ? time_entities_s[1] : time_entities_m[1];
 
     snprintf (buf, len - 1, "%d %s, %d %s", tm->tm_year - 70, time_entity1, tm->tm_yday, time_entity2);
   }
   else if (tm->tm_yday)
   {
-    char *time_entity1 = (tm->tm_yday == 1) ? (char *) time_entities_s[1] : (char *) time_entities_m[1];
-    char *time_entity2 = (tm->tm_hour == 1) ? (char *) time_entities_s[2] : (char *) time_entities_m[2];
+    const char *time_entity1 = (tm->tm_yday == 1) ? time_entities_s[1] : time_entities_m[1];
+    const char *time_entity2 = (tm->tm_hour == 1) ? time_entities_s[2] : time_entities_m[2];
 
     snprintf (buf, len - 1, "%d %s, %d %s", tm->tm_yday, time_entity1, tm->tm_hour, time_entity2);
   }
   else if (tm->tm_hour)
   {
-    char *time_entity1 = (tm->tm_hour == 1) ? (char *) time_entities_s[2] : (char *) time_entities_m[2];
-    char *time_entity2 = (tm->tm_min  == 1) ? (char *) time_entities_s[3] : (char *) time_entities_m[3];
+    const char *time_entity1 = (tm->tm_hour == 1) ? time_entities_s[2] : time_entities_m[2];
+    const char *time_entity2 = (tm->tm_min  == 1) ? time_entities_s[3] : time_entities_m[3];
 
     snprintf (buf, len - 1, "%d %s, %d %s", tm->tm_hour, time_entity1, tm->tm_min, time_entity2);
   }
   else if (tm->tm_min)
   {
-    char *time_entity1 = (tm->tm_min == 1) ? (char *) time_entities_s[3] : (char *) time_entities_m[3];
-    char *time_entity2 = (tm->tm_sec == 1) ? (char *) time_entities_s[4] : (char *) time_entities_m[4];
+    const char *time_entity1 = (tm->tm_min == 1) ? time_entities_s[3] : time_entities_m[3];
+    const char *time_entity2 = (tm->tm_sec == 1) ? time_entities_s[4] : time_entities_m[4];
 
     snprintf (buf, len - 1, "%d %s, %d %s", tm->tm_min, time_entity1, tm->tm_sec, time_entity2);
   }
   else
   {
-    char *time_entity1 = (tm->tm_sec == 1) ? (char *) time_entities_s[4] : (char *) time_entities_m[4];
+    const char *time_entity1 = (tm->tm_sec == 1) ? time_entities_s[4] : time_entities_m[4];
 
     snprintf (buf, len - 1, "%d %s", tm->tm_sec, time_entity1);
   }
@@ -197,7 +197,7 @@ char *status_get_session (const hashcat_ctx_t *hashcat_ctx)
   return strdup (user_options->session);
 }
 
-char *status_get_status_string (const hashcat_ctx_t *hashcat_ctx)
+const char *status_get_status_string (const hashcat_ctx_t *hashcat_ctx)
 {
   const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
@@ -209,27 +209,27 @@ char *status_get_status_string (const hashcat_ctx_t *hashcat_ctx)
   {
     if (status_ctx->checkpoint_shutdown == true)
     {
-      return ((char *) ST_0012);
+      return ST_0012;
     }
   }
 
   switch (devices_status)
   {
-    case STATUS_INIT:               return ((char *) ST_0000);
-    case STATUS_AUTOTUNE:           return ((char *) ST_0001);
-    case STATUS_SELFTEST:           return ((char *) ST_0002);
-    case STATUS_RUNNING:            return ((char *) ST_0003);
-    case STATUS_PAUSED:             return ((char *) ST_0004);
-    case STATUS_EXHAUSTED:          return ((char *) ST_0005);
-    case STATUS_CRACKED:            return ((char *) ST_0006);
-    case STATUS_ABORTED:            return ((char *) ST_0007);
-    case STATUS_QUIT:               return ((char *) ST_0008);
-    case STATUS_BYPASS:             return ((char *) ST_0009);
-    case STATUS_ABORTED_CHECKPOINT: return ((char *) ST_0010);
-    case STATUS_ABORTED_RUNTIME:    return ((char *) ST_0011);
+    case STATUS_INIT:               return ST_0000;
+    case STATUS_AUTOTUNE:           return ST_0001;
+    case STATUS_SELFTEST:           return ST_0002;
+    case STATUS_RUNNING:            return ST_0003;
+    case STATUS_PAUSED:             return ST_0004;
+    case STATUS_EXHAUSTED:          return ST_0005;
+    case STATUS_CRACKED:            return ST_0006;
+    case STATUS_ABORTED:            return ST_0007;
+    case STATUS_QUIT:               return ST_0008;
+    case STATUS_BYPASS:             return ST_0009;
+    case STATUS_ABORTED_CHECKPOINT: return ST_0010;
+    case STATUS_ABORTED_RUNTIME:    return ST_0011;
   }
 
-  return ((char *) ST_9999);
+  return ST_9999;
 }
 
 int status_get_status_number (const hashcat_ctx_t *hashcat_ctx)
@@ -239,7 +239,7 @@ int status_get_status_number (const hashcat_ctx_t *hashcat_ctx)
   return status_ctx->devices_status;
 }
 
-char *status_get_hash_type (const hashcat_ctx_t *hashcat_ctx)
+const char *status_get_hash_type (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 

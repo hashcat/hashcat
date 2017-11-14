@@ -23,8 +23,8 @@ static const char *DEF_MASK = "?1?2?2?2?2?2?2?3?3?3?3?d?d?d?d";
 
 static int sp_comp_val (const void *p1, const void *p2)
 {
-  hcstat_table_t *b1 = (hcstat_table_t *) p1;
-  hcstat_table_t *b2 = (hcstat_table_t *) p2;
+  const hcstat_table_t *b1 = (const hcstat_table_t *) p1;
+  const hcstat_table_t *b2 = (const hcstat_table_t *) p2;
 
   return b2->val - b1->val;
 }
