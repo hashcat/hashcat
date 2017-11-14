@@ -14,7 +14,7 @@
 #include "outfile.h"
 #include "user_options.h"
 
-static const char short_options[] = "hVvm:a:r:j:k:g:o:t:d:D:n:u:c:p:s:l:1:2:3:4:iIbw:O";
+static const char *short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:c:p:s:l:1:2:3:4:iIbw:O";
 
 static const struct option long_options[] =
 {
@@ -113,15 +113,15 @@ static const struct option long_options[] =
   {}
 };
 
-static char ENCODING_FROM[] = "utf-8";
-static char ENCODING_TO[]   = "utf-8";
+static const char *ENCODING_FROM = "utf-8";
+static const char *ENCODING_TO   = "utf-8";
 
-static char RULE_BUF_R[] = ":";
-static char RULE_BUF_L[] = ":";
+static const char *RULE_BUF_R = ":";
+static const char *RULE_BUF_L = ":";
 
-static char DEF_MASK_CS_1[] = "?l?d?u";
-static char DEF_MASK_CS_2[] = "?l?d";
-static char DEF_MASK_CS_3[] = "?l?d*!$@_";
+static const char *DEF_MASK_CS_1 = "?l?d?u";
+static const char *DEF_MASK_CS_2 = "?l?d";
+static const char *DEF_MASK_CS_3 = "?l?d*!$@_";
 
 int user_options_init (hashcat_ctx_t *hashcat_ctx)
 {

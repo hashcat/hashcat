@@ -150,7 +150,7 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         // we also have to switch wordlist related rules!
 
-        char *tmpc = user_options->rule_buf_l;
+        const char *tmpc = user_options->rule_buf_l;
 
         user_options->rule_buf_l = user_options->rule_buf_r;
         user_options->rule_buf_r = tmpc;
