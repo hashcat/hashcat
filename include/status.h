@@ -20,7 +20,7 @@ int         status_get_device_info_cnt            (const hashcat_ctx_t *hashcat_
 int         status_get_device_info_active         (const hashcat_ctx_t *hashcat_ctx);
 bool        status_get_skipped_dev                (const hashcat_ctx_t *hashcat_ctx, const int device_id);
 char       *status_get_session                    (const hashcat_ctx_t *hashcat_ctx);
-char       *status_get_status_string              (const hashcat_ctx_t *hashcat_ctx);
+const char *status_get_status_string              (const hashcat_ctx_t *hashcat_ctx);
 int         status_get_status_number              (const hashcat_ctx_t *hashcat_ctx);
 int         status_get_guess_mode                 (const hashcat_ctx_t *hashcat_ctx);
 char       *status_get_guess_base                 (const hashcat_ctx_t *hashcat_ctx);
@@ -34,7 +34,7 @@ double      status_get_guess_mod_percent          (const hashcat_ctx_t *hashcat_
 char       *status_get_guess_charset              (const hashcat_ctx_t *hashcat_ctx);
 int         status_get_guess_mask_length          (const hashcat_ctx_t *hashcat_ctx);
 char       *status_get_guess_candidates_dev       (const hashcat_ctx_t *hashcat_ctx, const int device_id);
-char       *status_get_hash_type                  (const hashcat_ctx_t *hashcat_ctx);
+const char *status_get_hash_type                  (const hashcat_ctx_t *hashcat_ctx);
 const char *status_get_hash_target                (const hashcat_ctx_t *hashcat_ctx);
 int         status_get_digests_done               (const hashcat_ctx_t *hashcat_ctx);
 int         status_get_digests_cnt                (const hashcat_ctx_t *hashcat_ctx);

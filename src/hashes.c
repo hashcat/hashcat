@@ -1582,7 +1582,7 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
 
     for (int i = 0, j = 0; j < st_hash_len; i += 1, j += 2)
     {
-      const u8 c = hex_to_u8 ((u8 *) hashconfig->st_hash + j);
+      const u8 c = hex_to_u8 ((const u8 *) hashconfig->st_hash + j);
 
       tmpdata[i] = c;
     }
@@ -1607,7 +1607,7 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
 
     for (int i = 0; i < st_hash_len; i += 2)
     {
-      const u8 c = hex_to_u8 ((u8 *) hashconfig->st_hash + i);
+      const u8 c = hex_to_u8 ((const u8 *) hashconfig->st_hash + i);
 
       fputc (c, fp);
     }

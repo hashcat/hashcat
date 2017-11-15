@@ -1753,7 +1753,7 @@ typedef struct device_info
 typedef struct hashcat_status
 {
   const char *hash_target;
-  char       *hash_type;
+  const char *hash_type;
   int         guess_mode;
   char       *guess_base;
   int         guess_base_offset;
@@ -1766,7 +1766,7 @@ typedef struct hashcat_status
   char       *guess_charset;
   int         guess_mask_length;
   char       *session;
-  char       *status_string;
+  const char *status_string;
   int         status_number;
   char       *time_estimated_absolute;
   char       *time_estimated_relative;
@@ -1894,7 +1894,7 @@ typedef struct hashcat_user
 
 typedef struct cache_hit
 {
-  char *dictfile;
+  const char *dictfile;
 
   hc_stat_t stat;
 
@@ -1905,7 +1905,7 @@ typedef struct cache_hit
 
 typedef struct cache_generate
 {
-  char *dictfile;
+  const char *dictfile;
 
   double percent;
 

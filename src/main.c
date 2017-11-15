@@ -436,7 +436,7 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   {
     if (user_options->machine_readable == false)
     {
-      char *hash_type = strhashtype (hashconfig->hash_mode); // not a bug
+      const char *hash_type = strhashtype (hashconfig->hash_mode); // not a bug
 
       event_log_info (hashcat_ctx, "Hashmode: %d - %s", hashconfig->hash_mode, hash_type);
       event_log_info (hashcat_ctx, NULL);
@@ -591,7 +591,7 @@ static void main_monitor_throttle1 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
     clear_prompt ();
   }
 
-  u32 *device_id = (u32 *) buf;
+  const u32 *device_id = (const u32 *) buf;
 
   event_log_warning (hashcat_ctx, "Driver temperature threshold met on GPU #%u. Expect reduced performance.", *device_id + 1);
 
@@ -613,7 +613,7 @@ static void main_monitor_throttle2 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
     clear_prompt ();
   }
 
-  u32 *device_id = (u32 *) buf;
+  const u32 *device_id = (const u32 *) buf;
 
   event_log_warning (hashcat_ctx, "Driver temperature threshold met on GPU #%u. Expect reduced performance.", *device_id + 1);
 
@@ -635,7 +635,7 @@ static void main_monitor_throttle3 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
     clear_prompt ();
   }
 
-  u32 *device_id = (u32 *) buf;
+  const u32 *device_id = (const u32 *) buf;
 
   event_log_warning (hashcat_ctx, "Driver temperature threshold met on GPU #%u. Expect reduced performance.", *device_id + 1);
   event_log_warning (hashcat_ctx, NULL);
@@ -705,7 +705,7 @@ static void main_monitor_temp_abort (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
     clear_prompt ();
   }
 
-  u32 *device_id = (u32 *) buf;
+  const u32 *device_id = (const u32 *) buf;
 
   event_log_error (hashcat_ctx, "Temperature limit on GPU #%u reached, aborting...", *device_id + 1);
 }
@@ -771,7 +771,7 @@ static void main_wordlist_cache_hit (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
 
   if (user_options->quiet == true) return;
 
-  cache_hit_t *cache_hit = (cache_hit_t *) buf;
+  const cache_hit_t *cache_hit = (const cache_hit_t *) buf;
 
   event_log_info (hashcat_ctx, "Dictionary cache hit:");
   event_log_info (hashcat_ctx, "* Filename..: %s", cache_hit->dictfile);
@@ -787,7 +787,7 @@ static void main_wordlist_cache_generate (MAYBE_UNUSED hashcat_ctx_t *hashcat_ct
 
   if (user_options->quiet == true) return;
 
-  cache_generate_t *cache_generate = (cache_generate_t *) buf;
+  const cache_generate_t *cache_generate = (const cache_generate_t *) buf;
 
   if (cache_generate->percent < 100)
   {
@@ -824,7 +824,7 @@ static void main_hashlist_count_lines_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
 
   if (user_options->quiet == true) return;
 
-  char *hashfile = (char *) buf;
+  const char *hashfile = (const char *) buf;
 
   event_log_info_nn (hashcat_ctx, "Counting lines in %s...", hashfile);
 }
@@ -835,7 +835,7 @@ static void main_hashlist_count_lines_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_
 
   if (user_options->quiet == true) return;
 
-  char *hashfile = (char *) buf;
+  const char *hashfile = (const char *) buf;
 
   event_log_info_nn (hashcat_ctx, "Counted lines in %s...", hashfile);
 }
@@ -846,7 +846,7 @@ static void main_hashlist_parse_hash (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, M
 
   if (user_options->quiet == true) return;
 
-  hashlist_parse_t *hashlist_parse = (hashlist_parse_t *) buf;
+  const hashlist_parse_t *hashlist_parse = (const hashlist_parse_t *) buf;
 
   const u32 hashes_cnt   = hashlist_parse->hashes_cnt;
   const u32 hashes_avail = hashlist_parse->hashes_avail;
