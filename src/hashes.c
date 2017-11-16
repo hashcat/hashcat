@@ -14,6 +14,7 @@
 #include "filehandling.h"
 #include "hlfmt.h"
 #include "interface.h"
+#include "terminal.h"
 #include "logfile.h"
 #include "loopback.h"
 #include "mpsp.h"
@@ -1035,7 +1036,15 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             if (parser_status < PARSER_GLOBAL_ZERO)
             {
-              event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, line_buf, strparser (parser_status));
+              char *tmp_line_buf = (char *) malloc (HCBUFSIZ_LARGE);
+
+              snprintf (tmp_line_buf, HCBUFSIZ_LARGE, "%s", line_buf);
+
+              compress_terminal_line_length (tmp_line_buf, 38, 32);
+
+              event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+
+              hcfree (tmp_line_buf);
 
               continue;
             }
@@ -1049,7 +1058,15 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             if (parser_status < PARSER_GLOBAL_ZERO)
             {
-              event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, line_buf, strparser (parser_status));
+              char *tmp_line_buf = (char *) malloc (HCBUFSIZ_LARGE);
+
+              snprintf (tmp_line_buf, HCBUFSIZ_LARGE, "%s", line_buf);
+
+              compress_terminal_line_length (tmp_line_buf, 38, 32);
+
+              event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+
+              hcfree (tmp_line_buf);
 
               continue;
             }
@@ -1065,7 +1082,15 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             if (parser_status < PARSER_GLOBAL_ZERO)
             {
-              event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, line_buf, strparser (parser_status));
+              char *tmp_line_buf = (char *) malloc (HCBUFSIZ_LARGE);
+
+              snprintf (tmp_line_buf, HCBUFSIZ_LARGE, "%s", line_buf);
+
+              compress_terminal_line_length (tmp_line_buf, 38, 32);
+
+              event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+
+              hcfree (tmp_line_buf);
 
               continue;
             }
@@ -1082,7 +1107,15 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
           if (parser_status < PARSER_GLOBAL_ZERO)
           {
-            event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, line_buf, strparser (parser_status));
+            char *tmp_line_buf = (char *) malloc (HCBUFSIZ_LARGE);
+
+            snprintf (tmp_line_buf, HCBUFSIZ_LARGE, "%s", line_buf);
+
+            compress_terminal_line_length (tmp_line_buf, 38, 32);
+
+            event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+
+            hcfree (tmp_line_buf);
 
             continue;
           }

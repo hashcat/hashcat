@@ -15,6 +15,12 @@
 * changes v4.0.0 -> v4.0.1:
 
 ##
+## Improvements
+##
+
+- Changed the maximum length of the substring of a hash shown whenever the parser found a problem while parsing the hash
+
+##
 ## Bugs
 ##
 
