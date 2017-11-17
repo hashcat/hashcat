@@ -11,6 +11,7 @@
 ##
 
 - Fixed a hash parsing problem when using --show/--left together with hashes with long salts that require pure kernels
+- Fixed the output of --show if $HEX[] passwords are present within the potfile
 
 * changes v4.0.0 -> v4.0.1:
 

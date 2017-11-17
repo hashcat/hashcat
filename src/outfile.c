@@ -444,9 +444,19 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsign
 
   if (outfile_ctx->outfile_format & OUTFILE_FMT_PLAIN)
   {
-    const bool always_ascii = (hashconfig->hash_type & OPTS_TYPE_PT_ALWAYS_ASCII) ? true : false;
+    bool convert_to_hex = false;
 
-    if ((user_options->outfile_autohex == true) && (need_hexify (plain_ptr, plain_len, hashconfig->separator, always_ascii) == true))
+    if (user_options->show == false)
+    {
+      if (user_options->outfile_autohex == true)
+      {
+        const bool always_ascii = (hashconfig->hash_type & OPTS_TYPE_PT_ALWAYS_ASCII) ? true : false;
+
+        convert_to_hex = need_hexify (plain_ptr, plain_len, hashconfig->separator, always_ascii);
+      }
+    }
+
+    if (convert_to_hex)
     {
       tmp_buf[tmp_len++] = '$';
       tmp_buf[tmp_len++] = 'H';
