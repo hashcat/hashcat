@@ -1036,9 +1036,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             if (parser_status < PARSER_GLOBAL_ZERO)
             {
-              char *tmp_line_buf = (char *) malloc (HCBUFSIZ_LARGE);
+              char *tmp_line_buf;
 
-              snprintf (tmp_line_buf, HCBUFSIZ_LARGE, "%s", line_buf);
+              hc_asprintf (&tmp_line_buf, "%s", line_buf);
 
               compress_terminal_line_length (tmp_line_buf, 38, 32);
 
@@ -1058,9 +1058,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             if (parser_status < PARSER_GLOBAL_ZERO)
             {
-              char *tmp_line_buf = (char *) malloc (HCBUFSIZ_LARGE);
+              char *tmp_line_buf;
 
-              snprintf (tmp_line_buf, HCBUFSIZ_LARGE, "%s", line_buf);
+              hc_asprintf (&tmp_line_buf, "%s", line_buf);
 
               compress_terminal_line_length (tmp_line_buf, 38, 32);
 
@@ -1082,9 +1082,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             if (parser_status < PARSER_GLOBAL_ZERO)
             {
-              char *tmp_line_buf = (char *) malloc (HCBUFSIZ_LARGE);
+              char *tmp_line_buf;
 
-              snprintf (tmp_line_buf, HCBUFSIZ_LARGE, "%s", line_buf);
+              hc_asprintf (&tmp_line_buf, "%s", line_buf);
 
               compress_terminal_line_length (tmp_line_buf, 38, 32);
 
@@ -1107,9 +1107,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
           if (parser_status < PARSER_GLOBAL_ZERO)
           {
-            char *tmp_line_buf = (char *) malloc (HCBUFSIZ_LARGE);
+            char *tmp_line_buf;
 
-            snprintf (tmp_line_buf, HCBUFSIZ_LARGE, "%s", line_buf);
+            hc_asprintf (&tmp_line_buf, "%s", line_buf);
 
             compress_terminal_line_length (tmp_line_buf, 38, 32);
 
