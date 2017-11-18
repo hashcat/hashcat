@@ -12226,7 +12226,7 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   if (is_compressed == true)
   {
-    if (crc_len_len > 5) return (PARSER_SALT_VALUE);
+    if (crc_len_len > 6) return (PARSER_SALT_VALUE);
 
     if (coder_attributes_len > 10) return (PARSER_SALT_VALUE);
 
