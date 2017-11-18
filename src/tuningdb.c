@@ -121,7 +121,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
     int token_cnt = 0;
 
-    char *saveptr;
+    char *saveptr = NULL;
 
     char *next = strtok_r (line_buf, "\t ", &saveptr);
 
@@ -129,7 +129,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
     token_cnt++;
 
-    while ((next = strtok_r (NULL, "\t ", &saveptr)) != NULL)
+    while ((next = strtok_r ((char *) NULL, "\t ", &saveptr)) != NULL)
     {
       token_ptr[token_cnt] = next;
 

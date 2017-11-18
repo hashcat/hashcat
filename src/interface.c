@@ -5902,9 +5902,13 @@ int ikepsk_md5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   if (input_buf == NULL) return (PARSER_HASH_VALUE);
 
-  char *saveptr;
+  char tmp_buf[HCBUFSIZ_TINY] = { 0 };
 
-  in_off[0] = (u8 *) strtok_r ((char *) input_buf, ":", &saveptr);
+  memcpy (tmp_buf, input_buf, input_len);
+
+  char *saveptr = NULL;
+
+  in_off[0] = (u8 *) strtok_r (tmp_buf, ":", &saveptr);
 
   if (in_off[0] == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -5990,9 +5994,13 @@ int ikepsk_sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
 
   if (input_buf == NULL) return (PARSER_HASH_VALUE);
 
-  char *saveptr;
+  char tmp_buf[HCBUFSIZ_TINY] = { 0 };
 
-  in_off[0] = (u8 *) strtok_r ((char *) input_buf, ":", &saveptr);
+  memcpy (tmp_buf, input_buf, input_len);
+
+  char *saveptr = NULL;
+
+  in_off[0] = (u8 *) strtok_r (tmp_buf, ":", &saveptr);
 
   if (in_off[0] == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -25269,7 +25277,7 @@ int hashconfig_general_defaults (hashcat_ctx_t *hashcat_ctx)
 
     if (keyfiles == NULL) return -1;
 
-    char *saveptr;
+    char *saveptr = NULL;
 
     char *keyfile = strtok_r (keyfiles, ",", &saveptr);
 
@@ -25291,7 +25299,7 @@ int hashconfig_general_defaults (hashcat_ctx_t *hashcat_ctx)
         return -1;
       }
 
-    } while ((keyfile = strtok_r (NULL, ",", &saveptr)) != NULL);
+    } while ((keyfile = strtok_r ((char *) NULL, ",", &saveptr)) != NULL);
 
     free (keyfiles);
   }

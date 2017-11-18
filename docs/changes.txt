@@ -19,6 +19,7 @@
 ##
 
 - Changed the way large strings are handled/truncated within the event buffer if they are too large to fit
+- Fixed our use of strtok_r () calls
 
 * changes v4.0.0 -> v4.0.1:
 
