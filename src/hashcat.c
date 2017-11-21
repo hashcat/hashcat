@@ -811,16 +811,22 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
+
+static void event_stub (MAYBE_UNUSED const u32 id, MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+
+}
+
 int hashcat_init (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct hashcat_ctx *, const void *, const size_t))
 {
   if (event == NULL)
   {
-    fprintf (stderr, "Event callback function is mandatory\n");
-
-    return -1;
+    hashcat_ctx->event = event_stub;
   }
-
-  hashcat_ctx->event = event;
+  else
+  {
+    hashcat_ctx->event = event;
+  }
 
   hashcat_ctx->bitmap_ctx         = (bitmap_ctx_t *)          hcmalloc (sizeof (bitmap_ctx_t));
   hashcat_ctx->combinator_ctx     = (combinator_ctx_t *)      hcmalloc (sizeof (combinator_ctx_t));
