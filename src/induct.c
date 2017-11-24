@@ -13,8 +13,8 @@
 
 static int sort_by_mtime (const void *p1, const void *p2)
 {
-  const char **f1 = (const char **) p1;
-  const char **f2 = (const char **) p2;
+  const char* const *f1 = (const char* const *) p1;
+  const char* const *f2 = (const char* const *) p2;
 
   hc_stat_t s1;
   hc_stat_t s2;
