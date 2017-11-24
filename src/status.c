@@ -69,8 +69,8 @@ static char *status_get_rules_file (const hashcat_ctx_t *hashcat_ctx)
 
 void format_timer_display (struct tm *tm, char *buf, size_t len)
 {
-  const char *time_entities_s[] = { "year",  "day",  "hour",  "min",  "sec"  };
-  const char *time_entities_m[] = { "years", "days", "hours", "mins", "secs" };
+  const char *const time_entities_s[] = { "year",  "day",  "hour",  "min",  "sec"  };
+  const char *const time_entities_m[] = { "years", "days", "hours", "mins", "secs" };
 
   if (tm->tm_year - 70)
   {
