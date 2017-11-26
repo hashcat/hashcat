@@ -21,7 +21,8 @@
 
 static const size_t TERMINAL_LINE_LENGTH = 79;
 
-static const char *PROMPT = "[s]tatus [p]ause [r]esume [b]ypass [c]heckpoint [q]uit => ";
+static const char *PROMPT_ACTIVE = "[s]tatus [p]ause [b]ypass [c]heckpoint [q]uit => ";
+static const char *PROMPT_PAUSED = "[s]tatus [r]esume [b]ypass [c]heckpoint [q]uit => ";
 
 void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
 {
@@ -124,18 +125,40 @@ int setup_console ()
   return 0;
 }
 
-void send_prompt ()
+void send_prompt (hashcat_ctx_t *hashcat_ctx)
 {
-  fprintf (stdout, "%s", PROMPT);
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  if (status_ctx->devices_status == STATUS_PAUSED)
+  {
+    fprintf (stdout, "%s", PROMPT_PAUSED);
+  }
+  else
+  {
+    fprintf (stdout, "%s", PROMPT_ACTIVE);
+  }
 
   fflush (stdout);
 }
 
-void clear_prompt ()
+void clear_prompt (hashcat_ctx_t *hashcat_ctx)
 {
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  size_t prompt_sz = 0;
+
+  if (status_ctx->devices_status == STATUS_PAUSED)
+  {
+    prompt_sz = strlen (PROMPT_PAUSED);
+  }
+  else
+  {
+    prompt_sz = strlen (PROMPT_ACTIVE);
+  }
+
   fputc ('\r', stdout);
 
-  for (size_t i = 0; i < strlen (PROMPT); i++)
+  for (size_t i = 0; i < prompt_sz; i++)
   {
     fputc (' ', stdout);
   }
@@ -186,7 +209,7 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
 
         event_log_info (hashcat_ctx, NULL);
 
-        if (quiet == false) send_prompt ();
+        if (quiet == false) send_prompt (hashcat_ctx);
 
         break;
 
@@ -200,41 +223,47 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
 
         event_log_info (hashcat_ctx, NULL);
 
-        if (quiet == false) send_prompt ();
+        if (quiet == false) send_prompt (hashcat_ctx);
 
         break;
 
       case 'p':
 
-        event_log_info (hashcat_ctx, NULL);
-
-        SuspendThreads (hashcat_ctx);
-
-        if (status_ctx->devices_status == STATUS_PAUSED)
+        if (status_ctx->devices_status != STATUS_PAUSED)
         {
-          event_log_info (hashcat_ctx, "Paused");
+          event_log_info (hashcat_ctx, NULL);
+
+          SuspendThreads (hashcat_ctx);
+
+          if (status_ctx->devices_status == STATUS_PAUSED)
+          {
+            event_log_info (hashcat_ctx, "Paused");
+          }
+
+          event_log_info (hashcat_ctx, NULL);
         }
 
-        event_log_info (hashcat_ctx, NULL);
-
-        if (quiet == false) send_prompt ();
+        if (quiet == false) send_prompt (hashcat_ctx);
 
         break;
 
       case 'r':
 
-        event_log_info (hashcat_ctx, NULL);
-
-        ResumeThreads (hashcat_ctx);
-
-        if (status_ctx->devices_status == STATUS_RUNNING)
+        if (status_ctx->devices_status == STATUS_PAUSED)
         {
-          event_log_info (hashcat_ctx, "Resumed");
+          event_log_info (hashcat_ctx, NULL);
+
+          ResumeThreads (hashcat_ctx);
+
+          if (status_ctx->devices_status != STATUS_PAUSED)
+          {
+            event_log_info (hashcat_ctx, "Resumed");
+          }
+
+          event_log_info (hashcat_ctx, NULL);
         }
 
-        event_log_info (hashcat_ctx, NULL);
-
-        if (quiet == false) send_prompt ();
+        if (quiet == false) send_prompt (hashcat_ctx);
 
         break;
 
@@ -255,7 +284,7 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
 
         event_log_info (hashcat_ctx, NULL);
 
-        if (quiet == false) send_prompt ();
+        if (quiet == false) send_prompt (hashcat_ctx);
 
         break;
 
@@ -264,6 +293,12 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
         event_log_info (hashcat_ctx, NULL);
 
         myquit (hashcat_ctx);
+
+        break;
+
+      default:
+
+        if (quiet == false) send_prompt (hashcat_ctx);
 
         break;
     }

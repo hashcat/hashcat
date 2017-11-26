@@ -340,7 +340,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   if (user_options->quiet == false)
   {
-    clear_prompt ();
+    clear_prompt (hashcat_ctx);
 
     printf
     (
@@ -350,7 +350,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       device_param->device_id + 1, kernel_loops
     );
 
-    send_prompt ();
+    send_prompt (hashcat_ctx);
   }
 
   #endif

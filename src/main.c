@@ -234,7 +234,7 @@ static void main_cracker_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
     {
       event_log_info_nn (hashcat_ctx, NULL);
 
-      send_prompt ();
+      send_prompt (hashcat_ctx);
     }
   }
   else if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
@@ -261,7 +261,7 @@ static void main_cracker_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
   {
     if ((user_options->speed_only == false) && (user_options->quiet == false))
     {
-      clear_prompt ();
+      clear_prompt (hashcat_ctx);
     }
   }
 
@@ -322,7 +322,7 @@ static void main_cracker_hash_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    if (outfile_ctx->filename == NULL) if (user_options->quiet == false) clear_prompt ();
+    if (outfile_ctx->filename == NULL) if (user_options->quiet == false) clear_prompt (hashcat_ctx);
   }
 
   hc_fwrite (buf, len,          1, stdout);
@@ -332,7 +332,7 @@ static void main_cracker_hash_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   {
     if (status_ctx->devices_status != STATUS_CRACKED)
     {
-      if (outfile_ctx->filename == NULL) if (user_options->quiet == false) send_prompt ();
+      if (outfile_ctx->filename == NULL) if (user_options->quiet == false) send_prompt (hashcat_ctx);
     }
   }
 }
@@ -571,12 +571,12 @@ static void main_set_kernel_power_final (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx
 
   if (user_options->quiet == true) return;
 
-  clear_prompt ();
+  clear_prompt (hashcat_ctx);
 
   event_log_advice (hashcat_ctx, "Approaching final keyspace - workload adjusted.");
   event_log_advice (hashcat_ctx, NULL);
 
-  send_prompt ();
+  send_prompt (hashcat_ctx);
 }
 
 static void main_monitor_throttle1 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -588,7 +588,7 @@ static void main_monitor_throttle1 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    clear_prompt ();
+    clear_prompt (hashcat_ctx);
   }
 
   const u32 *device_id = (const u32 *) buf;
@@ -597,7 +597,7 @@ static void main_monitor_throttle1 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    send_prompt ();
+    send_prompt (hashcat_ctx);
   }
 }
 
@@ -610,7 +610,7 @@ static void main_monitor_throttle2 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    clear_prompt ();
+    clear_prompt (hashcat_ctx);
   }
 
   const u32 *device_id = (const u32 *) buf;
@@ -619,7 +619,7 @@ static void main_monitor_throttle2 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    send_prompt ();
+    send_prompt (hashcat_ctx);
   }
 }
 
@@ -632,7 +632,7 @@ static void main_monitor_throttle3 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    clear_prompt ();
+    clear_prompt (hashcat_ctx);
   }
 
   const u32 *device_id = (const u32 *) buf;
@@ -642,7 +642,7 @@ static void main_monitor_throttle3 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    send_prompt ();
+    send_prompt (hashcat_ctx);
   }
 }
 
@@ -656,7 +656,7 @@ static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    clear_prompt ();
+    clear_prompt (hashcat_ctx);
   }
 
   event_log_advice (hashcat_ctx, "Cracking performance lower than expected?");
@@ -689,7 +689,7 @@ static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    send_prompt ();
+    send_prompt (hashcat_ctx);
   }
 }
 
@@ -702,7 +702,7 @@ static void main_monitor_temp_abort (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    clear_prompt ();
+    clear_prompt (hashcat_ctx);
   }
 
   const u32 *device_id = (const u32 *) buf;
@@ -719,7 +719,7 @@ static void main_monitor_runtime_limit (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx,
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    clear_prompt ();
+    clear_prompt (hashcat_ctx);
   }
 
   event_log_warning (hashcat_ctx, "Runtime limit reached, aborting...");
@@ -737,7 +737,7 @@ static void main_monitor_status_refresh (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx
   {
     if (user_options->quiet == false)
     {
-      //clear_prompt ();
+      //clear_prompt (hashcat_ctx);
 
       event_log_info (hashcat_ctx, NULL);
       event_log_info (hashcat_ctx, NULL);
@@ -752,7 +752,7 @@ static void main_monitor_status_refresh (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx
     {
       event_log_info (hashcat_ctx, NULL);
 
-      send_prompt ();
+      send_prompt (hashcat_ctx);
     }
   }
 

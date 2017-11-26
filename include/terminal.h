@@ -26,8 +26,8 @@ void goodbye_screen (hashcat_ctx_t *hashcat_ctx, const hc_time_t proc_start, con
 
 int setup_console (void);
 
-void send_prompt (void);
-void clear_prompt (void);
+void send_prompt  (hashcat_ctx_t *hashcat_ctx);
+void clear_prompt (hashcat_ctx_t *hashcat_ctx);
 
 void *thread_keypress (void *p);
 

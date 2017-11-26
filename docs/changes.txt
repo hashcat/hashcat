@@ -15,6 +15,12 @@
 - Fixed the output of --show if $HEX[] passwords are present within the potfile
 
 ##
+## Improvements
+##
+
+- Show [r]esume in prompt in pause mode only and show [p]ause in prompt in resume mode only
+
+##
 ## Technical
 ##
 
