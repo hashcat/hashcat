@@ -377,7 +377,10 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
       if (status_ctx->run_main_level3 == false) break;
     }
 
-    if (straight_ctx->dicts_pos + 1 == straight_ctx->dicts_cnt) straight_ctx->dicts_pos = 0;
+    if (status_ctx->run_main_level3 == true)
+    {
+      if (straight_ctx->dicts_pos + 1 == straight_ctx->dicts_cnt) straight_ctx->dicts_pos = 0;
+    }
   }
   else
   {
@@ -766,7 +769,10 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
       if (status_ctx->run_main_level2 == false) break;
     }
 
-    if (mask_ctx->masks_pos + 1 == mask_ctx->masks_cnt) mask_ctx->masks_pos = 0;
+    if (status_ctx->run_main_level2 == true)
+    {
+      if (mask_ctx->masks_pos + 1 == mask_ctx->masks_cnt) mask_ctx->masks_pos = 0;
+    }
   }
   else
   {
