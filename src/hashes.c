@@ -1671,7 +1671,14 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
-    parser_status = hashconfig->parse_func ((u8 *) hashconfig->st_hash, strlen (hashconfig->st_hash), &hash, hashconfig_st);
+    // Make sure that we do not modify constant data. Make a copy of the constant self-test hash
+    // Note: sometimes parse_func () modifies the data internally. We always need to use a copy of the original data
+
+    char *tmpdata = hcstrdup (hashconfig->st_hash);
+
+    parser_status = hashconfig->parse_func ((u8 *) tmpdata, strlen (hashconfig->st_hash), &hash, hashconfig_st);
+
+    hcfree (tmpdata);
 
     hcfree (hashconfig_st);
   }
