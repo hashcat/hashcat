@@ -141,6 +141,7 @@ NVIDIA GPUs require "NVIDIA Driver" (367.x or later)
 - NetNTLMv2
 - Kerberos 5 AS-REQ Pre-Auth etype 23
 - Kerberos 5 TGS-REP etype 23
+- TACACS+
 - Netscape LDAP SHA/SSHA
 - FileZilla Server
 - LM

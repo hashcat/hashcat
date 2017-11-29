@@ -5,6 +5,7 @@
 ##
 
 - Added hash-mode 16000 = Tripcode
+- Added hash-mode 16100 = TACACS+
 
 ##
 ## Bugs
