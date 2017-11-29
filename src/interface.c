@@ -266,6 +266,7 @@ static const char *ST_HASH_15600 = "$ethereum$p*1024*383531313538313333383131383
 static const char *ST_HASH_15700 = "$ethereum$s*1024*1*1*3033363133373132373638333437323331383637383437333631373038323434*69eaf081695cf971ef7ee5a49997c1a3922e7efef59068109e83853755ee31c3*64a1adec1750ee4416b22b81111dd2a3c2fede820d6da8bf788dca2641d5b181";
 static const char *ST_HASH_15900 = "$DPAPImk$2*1*S-15-21-439882973-489230393-482956683-1522*aes256*sha512*12900*79f7ca399f2626e21aad108c3922af7c*288*c47bc8a985ca6aa708b01c97b004bff20cc52379dc2635b4acf59ce17970a2cb47ace98c7e8de977f265243c5c03d0a97e4b954b494d9e38d9158d0c1e729d16a28ba69e2e7c6c3bc0e3afc9c9b6306b83372ccb35d89b98925728fd36315b8ee95b4d4eccdcb31564769f9a4b9ee10828184e16d4af336675d5e31d987dd87233d34fbbb98880c5e1f64cbb9b043ad8";
 static const char *ST_HASH_16000 = "pfaRCwDe0U";
+static const char *ST_HASH_16100 = "$tacacs-plus$0$5fde8e68$4e13e8fb33df$c006";
 static const char *ST_HASH_99999 = "hashcat";
 
 static const char *OPTI_STR_OPTIMIZED_KERNEL     = "Optimized-Kernel";
@@ -499,6 +500,7 @@ static const char *HT_15600 = "Ethereum Wallet, PBKDF2-HMAC-SHA256";
 static const char *HT_15700 = "Ethereum Wallet, SCRYPT";
 static const char *HT_15900 = "DPAPI masterkey file v2";
 static const char *HT_16000 = "Tripcode";
+static const char *HT_16100 = "TACACS+";
 static const char *HT_99999 = "Plaintext";
 
 static const char *HT_00011 = "Joomla < 2.5.18";
@@ -643,6 +645,7 @@ static const char *SIGNATURE_CHACHA20         = "$chacha20$";
 static const char *SIGNATURE_JKS_SHA1         = "$jksprivk$";
 static const char *SIGNATURE_ETHEREUM_PBKDF2  = "$ethereum$p";
 static const char *SIGNATURE_ETHEREUM_SCRYPT  = "$ethereum$s";
+static const char *SIGNATURE_TACACS_PLUS      = "$tacacs-plus$0$";
 
 /**
  * decoder / encoder
@@ -15723,6 +15726,106 @@ int tripcode_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   return (PARSER_OK);
 }
 
+int tacacs_plus_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
+{
+  if ((input_len < DISPLAY_LEN_MIN_16100) || (input_len > DISPLAY_LEN_MAX_16100)) return (PARSER_GLOBAL_LENGTH);
+
+  if (memcmp (SIGNATURE_TACACS_PLUS, input_buf, 15) != 0) return (PARSER_SIGNATURE_UNMATCHED);
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  tacacs_plus_t *tacacs_plus = (tacacs_plus_t *) hash_buf->esalt;
+
+  /**
+   * parse line
+   */
+
+  // session
+
+  u8 *session_pos = input_buf + 15;
+
+  // ct_buf
+
+  u8 *ct_buf_pos = (u8 *) strchr ((const char *) session_pos, '$');
+
+  if (ct_buf_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 session_len = ct_buf_pos - session_pos;
+
+  ct_buf_pos++;
+
+  // sequence
+
+  u8 *sequence_pos = (u8 *) strchr ((const char *) ct_buf_pos, '$');
+
+  if (sequence_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 ct_buf_len = sequence_pos - ct_buf_pos;
+
+  sequence_pos++;
+
+  u32 sequence_len = input_len - 15 - session_len - 1 - ct_buf_len - 1;
+
+  /**
+   * verify some data
+   */
+
+  if (session_len  !=   8) return (PARSER_SALT_LENGTH);
+  if (ct_buf_len   >= 256) return (PARSER_SALT_LENGTH);
+  if (sequence_len !=   4) return (PARSER_SALT_LENGTH);
+
+  if (is_valid_hex_string (session_pos,  session_len)  == false) return (PARSER_SALT_ENCODING);
+  if (is_valid_hex_string (ct_buf_pos,   ct_buf_len)   == false) return (PARSER_HASH_ENCODING);
+  if (is_valid_hex_string (sequence_pos, sequence_len) == false) return (PARSER_HASH_ENCODING);
+
+  /**
+   * store data
+   */
+
+  // ciphtertext
+
+  u8 *session_ptr = (u8 *) tacacs_plus->session_buf;
+
+  session_ptr[0] = hex_to_u8 ((const u8 *) session_pos + 0);
+  session_ptr[1] = hex_to_u8 ((const u8 *) session_pos + 2);
+  session_ptr[2] = hex_to_u8 ((const u8 *) session_pos + 4);
+  session_ptr[3] = hex_to_u8 ((const u8 *) session_pos + 6);
+
+  u8 *sequence_ptr = (u8 *) tacacs_plus->sequence_buf;
+
+  sequence_ptr[0] = hex_to_u8 ((const u8 *) sequence_pos + 0);
+  sequence_ptr[1] = hex_to_u8 ((const u8 *) sequence_pos + 2);
+
+  u8 *ct_data_ptr = (u8 *) tacacs_plus->ct_data_buf;
+
+  for (u32 i = 0, j = 0; j < ct_buf_len; i += 1, j += 2)
+  {
+    ct_data_ptr[i] = hex_to_u8 ((const u8 *) &ct_buf_pos[j]);
+
+    tacacs_plus->ct_data_len++;
+  }
+
+  // fake salt
+
+  salt->salt_buf[0] = tacacs_plus->session_buf[0];
+  salt->salt_buf[1] = tacacs_plus->sequence_buf[0];
+  salt->salt_buf[2] = tacacs_plus->ct_data_buf[0];
+  salt->salt_buf[3] = tacacs_plus->ct_data_buf[1];
+
+  salt->salt_len = 16;
+
+  // fake hash
+
+  digest[0] = tacacs_plus->ct_data_buf[2];
+  digest[1] = tacacs_plus->ct_data_buf[3];
+  digest[2] = tacacs_plus->ct_data_buf[4];
+  digest[3] = tacacs_plus->ct_data_buf[5];
+
+  return (PARSER_OK);
+}
+
 /**
  * hook functions
  */
@@ -16154,6 +16257,7 @@ const char *strhashtype (const u32 hash_mode)
     case 15700: return HT_15700;
     case 15900: return HT_15900;
     case 16000: return HT_16000;
+    case 16100: return HT_16100;
     case 99999: return HT_99999;
   }
 
@@ -19558,6 +19662,34 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     snprintf (out_buf, out_len - 1, "%s", ptr_plain + 1);
 
     out_buf[10] = 0;
+  }
+  else if (hash_mode == 16100)
+  {
+    tacacs_plus_t *tacacs_pluss = (tacacs_plus_t *) esalts_buf;
+
+    tacacs_plus_t *tacacs_plus = &tacacs_pluss[digest_cur];
+
+    char ct_data[256 + 1] = { 0 };
+
+    u8 *ct_data_ptr = (u8 *) tacacs_plus->ct_data_buf;
+
+    for (u32 i = 0, j = 0; i < tacacs_plus->ct_data_len; i += 1, j += 2)
+    {
+      sprintf (ct_data + j, "%02x", ct_data_ptr[i]);
+    }
+
+    u8 *session_ptr  = (u8 *) tacacs_plus->session_buf;
+    u8 *sequence_ptr = (u8 *) tacacs_plus->sequence_buf;
+
+    snprintf (out_buf, out_len - 1, "%s%02x%02x%02x%02x$%s$%02x%02x",
+      SIGNATURE_TACACS_PLUS,
+      session_ptr[0],
+      session_ptr[1],
+      session_ptr[2],
+      session_ptr[3],
+      ct_data,
+      sequence_ptr[0],
+      sequence_ptr[1]);
   }
   else if (hash_mode == 99999)
   {
@@ -24519,6 +24651,22 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
+    case 16100:  hashconfig->hash_type      = HASH_TYPE_TACACS_PLUS;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
+                 hashconfig->kern_type      = KERN_TYPE_TACACS_PLUS;
+                 hashconfig->dgst_size      = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
+                 hashconfig->parse_func     = tacacs_plus_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
+                 hashconfig->dgst_pos0      = 0;
+                 hashconfig->dgst_pos1      = 1;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 3;
+                 hashconfig->st_hash        = ST_HASH_16100;
+                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
+                 break;
+
     case 99999:  hashconfig->hash_type      = HASH_TYPE_PLAINTEXT;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -24727,6 +24875,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 15600: hashconfig->esalt_size = sizeof (ethereum_pbkdf2_t); break;
     case 15700: hashconfig->esalt_size = sizeof (ethereum_scrypt_t); break;
     case 15900: hashconfig->esalt_size = sizeof (dpapimk_t);         break;
+    case 16100: hashconfig->esalt_size = sizeof (tacacs_plus_t);     break;
   }
 
   // hook_salt_size

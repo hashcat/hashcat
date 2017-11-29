@@ -469,6 +469,17 @@ typedef struct ethereum_scrypt
 
 } ethereum_scrypt_t;
 
+typedef struct tacacs_plus
+{
+  u32 session_buf[16];
+
+  u32 ct_data_buf[64];
+  u32 ct_data_len;
+
+  u32 sequence_buf[16];
+
+} tacacs_plus_t;
+
 typedef struct luks_tmp
 {
   u32 ipad32[8];
@@ -1283,6 +1294,8 @@ typedef enum display_len
   DISPLAY_LEN_MAX_15900 =  1 + 7 + 1 + 1 + 1 + 1 + 1 + 100 + 1 + 6 + 1 + 6 + 1 + 10 + 1 + 32 + 1 + 4 + 1 + 512,
   DISPLAY_LEN_MIN_16000 = 10,
   DISPLAY_LEN_MAX_16000 = 10,
+  DISPLAY_LEN_MIN_16100 = 1 + 11 + 1 + 1 + 1 + 8 +  12 + 1 + 4,
+  DISPLAY_LEN_MAX_16100 = 1 + 11 + 1 + 1 + 1 + 8 + 256 + 1 + 4,
   DISPLAY_LEN_MIN_99999 = 1,
   DISPLAY_LEN_MAX_99999 = 55,
 
@@ -1411,6 +1424,7 @@ typedef enum hash_type
   HASH_TYPE_CHACHA20            = 60,
   HASH_TYPE_DPAPIMK             = 61,
   HASH_TYPE_JKS_SHA1            = 62,
+  HASH_TYPE_TACACS_PLUS         = 63,
 
 } hash_type_t;
 
@@ -1608,6 +1622,7 @@ typedef enum kern_type
   KERN_TYPE_ETHEREUM_SCRYPT         = 15700,
   KERN_TYPE_DPAPIMK_V2              = 15900,
   KERN_TYPE_TRIPCODE                = 16000,
+  KERN_TYPE_TACACS_PLUS             = 16100,
   KERN_TYPE_PLAINTEXT               = 99999,
 
 } kern_type_t;
@@ -1866,6 +1881,8 @@ int jks_sha1_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int ethereum_pbkdf2_parse_hash    (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int ethereum_scrypt_parse_hash    (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int tripcode_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
+int tacacs_plus_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
+
 /**
  * hook functions
  */

@@ -1467,6 +1467,17 @@ typedef struct ethereum_scrypt
 
 } ethereum_scrypt_t;
 
+typedef struct tacacs_plus
+{
+  u32 session_buf[16];
+
+  u32 ct_data_buf[64];
+  u32 ct_data_len;
+
+  u32 sequence_buf[16];
+
+} tacacs_plus_t;
+
 typedef struct pdf14_tmp
 {
   u32 digest[4];
