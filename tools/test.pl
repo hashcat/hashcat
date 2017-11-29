@@ -9035,7 +9035,7 @@ END_CODE
 
       my $plain_data = substr ($encrypted_data, 0, 6) ^ substr ($key, 0, 6);
 
-      my ($status, $flags, $server_msg_len, $data_len) = unpack ("CCSS", $plain_data);
+      my ($status, $flags, $server_msg_len, $data_len) = unpack ("CCnn", $plain_data);
 
       if ((($status >= 0x01 && $status <= 0x07) || $status == 0x21)
        &&  ($flags  == 0x01 || $flags  == 0x00)
@@ -9045,12 +9045,8 @@ END_CODE
       }
       else
       {
-        $plain_data = "\xff\xff\xff\xff\xff\xff"; # some invalid data
+        $encrypted_data = ""; # some invalid data
       }
-
-      my $plain_data_filtered = substr ($plain_data, 0, 6) ^ substr ($key, 0, 6);
-
-      $encrypted_data = $plain_data_filtered . substr ($encrypted_data, 6);
     }
     else
     {
