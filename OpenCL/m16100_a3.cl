@@ -10,12 +10,9 @@
 #include "inc_hash_functions.cl"
 #include "inc_types.cl"
 #include "inc_common.cl"
-#include "inc_rp.h"
-#include "inc_rp.cl"
-#include "inc_scalar.cl"
 #include "inc_hash_md5.cl"
 
-__kernel void m16100_mxx (__global pw_t *pws, __constant const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const tacacs_plus_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m16100_mxx (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __constant const u32x *words_buf_r, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const tacacs_plus_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
 {
   /**
    * modifier
@@ -30,7 +27,14 @@ __kernel void m16100_mxx (__global pw_t *pws, __constant const kernel_rule_t *ru
    * base
    */
 
-  COPY_PW (pws[gid]);
+  const u32 pw_len = pws[gid].pw_len;
+
+  u32x w[64] = { 0 };
+
+  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  {
+    w[idx] = pws[gid].i[idx];
+  }
 
   md5_ctx_t ctx0;
 
@@ -71,20 +75,26 @@ __kernel void m16100_mxx (__global pw_t *pws, __constant const kernel_rule_t *ru
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  u32x w0l = w[0];
+
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    pw_t tmp = PASTE_PW;
+    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
-    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
+    const u32x w0 = w0l | w0r;
 
-    md5_ctx_t ctx = ctx0;
+    w[0] = w0;
 
-    md5_update (&ctx, tmp.i, tmp.pw_len);
+    md5_ctx_vector_t ctx;
 
-    u32 sequence0[4];
-    u32 sequence1[4];
-    u32 sequence2[4];
-    u32 sequence3[4];
+    md5_init_vector_from_scalar (&ctx, &ctx0);
+
+    md5_update_vector (&ctx, w, pw_len);
+
+    u32x sequence0[4];
+    u32x sequence1[4];
+    u32x sequence2[4];
+    u32x sequence3[4];
 
     sequence0[0] = esalt_bufs[digests_offset].sequence_buf[0];
     sequence0[1] = 0;
@@ -103,9 +113,9 @@ __kernel void m16100_mxx (__global pw_t *pws, __constant const kernel_rule_t *ru
     sequence3[2] = 0;
     sequence3[3] = 0;
 
-    md5_update_64 (&ctx, sequence0, sequence1, sequence2, sequence3, 2);
+    md5_update_vector_64 (&ctx, sequence0, sequence1, sequence2, sequence3, 2);
 
-    md5_final (&ctx);
+    md5_final_vector (&ctx);
 
     u32 test[2];
 
@@ -131,7 +141,7 @@ __kernel void m16100_mxx (__global pw_t *pws, __constant const kernel_rule_t *ru
   }
 }
 
-__kernel void m16100_sxx (__global pw_t *pws, __constant const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const tacacs_plus_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m16100_sxx (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __constant const u32x *words_buf_r, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const tacacs_plus_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
 {
   /**
    * modifier
@@ -146,7 +156,14 @@ __kernel void m16100_sxx (__global pw_t *pws, __constant const kernel_rule_t *ru
    * base
    */
 
-  COPY_PW (pws[gid]);
+  const u32 pw_len = pws[gid].pw_len;
+
+  u32x w[64] = { 0 };
+
+  for (int i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  {
+    w[idx] = pws[gid].i[idx];
+  }
 
   md5_ctx_t ctx0;
 
@@ -187,20 +204,26 @@ __kernel void m16100_sxx (__global pw_t *pws, __constant const kernel_rule_t *ru
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+  u32x w0l = w[0];
+
+  for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    pw_t tmp = PASTE_PW;
+    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
-    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
+    const u32x w0 = w0l | w0r;
 
-    md5_ctx_t ctx = ctx0;
+    w[0] = w0;
 
-    md5_update (&ctx, tmp.i, tmp.pw_len);
+    md5_ctx_vector_t ctx;
 
-    u32 sequence0[4];
-    u32 sequence1[4];
-    u32 sequence2[4];
-    u32 sequence3[4];
+    md5_init_vector_from_scalar (&ctx, &ctx0);
+
+    md5_update_vector (&ctx, w, pw_len);
+
+    u32x sequence0[4];
+    u32x sequence1[4];
+    u32x sequence2[4];
+    u32x sequence3[4];
 
     sequence0[0] = esalt_bufs[digests_offset].sequence_buf[0];
     sequence0[1] = 0;
@@ -219,9 +242,9 @@ __kernel void m16100_sxx (__global pw_t *pws, __constant const kernel_rule_t *ru
     sequence3[2] = 0;
     sequence3[3] = 0;
 
-    md5_update_64 (&ctx, sequence0, sequence1, sequence2, sequence3, 2);
+    md5_update_vector_64 (&ctx, sequence0, sequence1, sequence2, sequence3, 2);
 
-    md5_final (&ctx);
+    md5_final_vector (&ctx);
 
     u32 test[2];
 
