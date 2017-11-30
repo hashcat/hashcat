@@ -24654,8 +24654,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 16100:  hashconfig->hash_type      = HASH_TYPE_TACACS_PLUS;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PT_NEVERCRACK;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
                  hashconfig->kern_type      = KERN_TYPE_TACACS_PLUS;
                  hashconfig->dgst_size      = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
                  hashconfig->parse_func     = tacacs_plus_parse_hash;
