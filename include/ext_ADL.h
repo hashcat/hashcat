@@ -23,14 +23,8 @@
 
 #define ADL_MAX_PATH                            256
 
-#define ADL_DL_FANCTRL_SUPPORTS_PERCENT_READ    1
-#define ADL_DL_FANCTRL_SUPPORTS_PERCENT_WRITE   2
 #define ADL_DL_FANCTRL_SPEED_TYPE_PERCENT       1
 #define ADL_DL_FANCTRL_FLAG_USER_DEFINED_SPEED  1
-
-#define ADL_OD6_SETSTATE_PERFORMANCE            0x00000001
-#define ADL_OD6_GETSTATEINFO_CUSTOM_PERFORMANCE 0x00000004
-#define ADL_OD6_FANSPEED_TYPE_PERCENT           0x00000001
 
 typedef struct AdapterInfo
 {
@@ -241,15 +235,6 @@ typedef struct ADLOD6StateInfo
   ADLOD6PerformanceLevel aLevels [2];
 } ADLOD6StateInfo;
 
-typedef struct ADLOD6PowerControlInfo
-{
-  int iMinValue;
-  int iMaxValue;
-  int iStepValue;
-  int iExtValue;
-  int iExtMask;
-} ADLOD6PowerControlInfo;
-
 #if defined (__MSC_VER)
 #define ADL_API_CALL __cdecl
 #elif defined (_WIN32) || defined (__WIN32__)
@@ -287,26 +272,15 @@ typedef int (ADL_API_CALL *ADL_ADAPTER_VIDEOBIOSINFO_GET) (int, ADLBiosInfo *);
 typedef int (ADL_API_CALL *ADL_OVERDRIVE5_FANSPEEDINFO_GET) (int, int, ADLFanSpeedInfo *);
 typedef int (ADL_API_CALL *ADL_OVERDRIVE5_FANSPEED_GET) (int, int, ADLFanSpeedValue *);
 typedef int (ADL_API_CALL *ADL_OVERDRIVE6_FANSPEED_GET) (int, ADLOD6FanSpeedInfo *);
-typedef int (ADL_API_CALL *ADL_OVERDRIVE5_FANSPEED_SET) (int, int, ADLFanSpeedValue *);
-typedef int (ADL_API_CALL *ADL_OVERDRIVE6_FANSPEED_SET) (int, ADLOD6FanSpeedValue *);
-typedef int (ADL_API_CALL *ADL_OVERDRIVE5_FANSPEEDTODEFAULT_SET) (int, int);
 typedef int (ADL_API_CALL *ADL_OVERDRIVE5_ODPARAMETERS_GET) (int, ADLODParameters *);
 typedef int (ADL_API_CALL *ADL_OVERDRIVE5_ODPERFORMANCELEVELS_GET) (int, int, ADLODPerformanceLevels *);
-typedef int (ADL_API_CALL *ADL_OVERDRIVE5_ODPERFORMANCELEVELS_SET) (int, ADLODPerformanceLevels *);
-typedef int (ADL_API_CALL *ADL_OVERDRIVE6_POWERCONTROL_SET) (int, int);
-typedef int (ADL_API_CALL *ADL_OVERDRIVE6_POWERCONTROL_GET) (int, int *, int *);
-typedef int (ADL_API_CALL *ADL_OVERDRIVE6_POWERCONTROLINFO_GET) (int, ADLOD6PowerControlInfo *);
 typedef int (ADL_API_CALL *ADL_ADAPTER_ACTIVE_GET) (int, int *);
-typedef int (ADL_API_CALL *ADL_DISPLAYENABLE_SET) (int, int *, int, int);
 typedef int (ADL_API_CALL *ADL_OVERDRIVE_CAPS) (int, int *, int *, int *);
 typedef int (ADL_API_CALL *ADL_OVERDRIVE6_CURRENTSTATUS_GET) (int, ADLOD6CurrentStatus *);
 typedef int (ADL_API_CALL *ADL_OVERDRIVE6_STATEINFO_GET) (int, int, ADLOD6MemClockState *);
 typedef int (ADL_API_CALL *ADL_OVERDRIVE6_CAPABILITIES_GET) (int, ADLOD6Capabilities *);
-typedef int (ADL_API_CALL *ADL_OVERDRIVE6_STATE_SET) (int, int, ADLOD6StateInfo *);
-typedef int (ADL_API_CALL *ADL_OVERDRIVE6_POWERCONTROL_CAPS) (int, int *);
 typedef int (ADL_API_CALL *ADL_OVERDRIVE6_TARGETTEMPERATUREDATA_GET) (int, int *, int *);
 typedef int (ADL_API_CALL *ADL_OVERDRIVE6_TARGETTEMPERATURERANGEINFO_GET) (int, ADLOD6ParameterRange *);
-typedef int (ADL_API_CALL *ADL_OVERDRIVE6_FANSPEED_RESET) (int);
 
 #if defined (_POSIX)
 typedef void *ADL_LIB;
@@ -332,26 +306,13 @@ typedef struct hm_adl_lib
   ADL_OVERDRIVE5_FANSPEEDINFO_GET ADL_Overdrive5_FanSpeedInfo_Get;
   ADL_OVERDRIVE5_FANSPEED_GET ADL_Overdrive5_FanSpeed_Get;
   ADL_OVERDRIVE6_FANSPEED_GET ADL_Overdrive6_FanSpeed_Get;
-  ADL_OVERDRIVE5_FANSPEED_SET ADL_Overdrive5_FanSpeed_Set;
-  ADL_OVERDRIVE6_FANSPEED_SET ADL_Overdrive6_FanSpeed_Set;
-  ADL_OVERDRIVE5_FANSPEEDTODEFAULT_SET ADL_Overdrive5_FanSpeedToDefault_Set;
-  ADL_OVERDRIVE5_ODPARAMETERS_GET ADL_Overdrive5_ODParameters_Get;
-  ADL_OVERDRIVE5_ODPERFORMANCELEVELS_GET ADL_Overdrive5_ODPerformanceLevels_Get;
-  ADL_OVERDRIVE5_ODPERFORMANCELEVELS_SET ADL_Overdrive5_ODPerformanceLevels_Set;
-  ADL_OVERDRIVE6_POWERCONTROLINFO_GET ADL_Overdrive6_PowerControlInfo_Get;
-  ADL_OVERDRIVE6_POWERCONTROL_GET ADL_Overdrive6_PowerControl_Get;
-  ADL_OVERDRIVE6_POWERCONTROL_SET ADL_Overdrive6_PowerControl_Set;
   ADL_ADAPTER_ACTIVE_GET ADL_Adapter_Active_Get;
-  ADL_DISPLAYENABLE_SET ADL_DisplayEnable_Set;
   ADL_OVERDRIVE_CAPS ADL_Overdrive_Caps;
-  ADL_OVERDRIVE6_POWERCONTROL_CAPS ADL_Overdrive6_PowerControl_Caps;
   ADL_OVERDRIVE6_CAPABILITIES_GET ADL_Overdrive6_Capabilities_Get;
   ADL_OVERDRIVE6_STATEINFO_GET  ADL_Overdrive6_StateInfo_Get;
   ADL_OVERDRIVE6_CURRENTSTATUS_GET ADL_Overdrive6_CurrentStatus_Get;
-  ADL_OVERDRIVE6_STATE_SET ADL_Overdrive6_State_Set;
   ADL_OVERDRIVE6_TARGETTEMPERATUREDATA_GET ADL_Overdrive6_TargetTemperatureData_Get;
   ADL_OVERDRIVE6_TARGETTEMPERATURERANGEINFO_GET ADL_Overdrive6_TargetTemperatureRangeInfo_Get;
-  ADL_OVERDRIVE6_FANSPEED_RESET ADL_Overdrive6_FanSpeed_Reset;
 
 } hm_adl_lib_t;
 

@@ -1,6 +1,13 @@
 * changes v4.0.1 -> xxx:
 
 ##
+## Features
+##
+
+- Removed option --gpu-temp-retain that tried to retain GPU temperature at X degrees celsius, please use driver specific tools
+- Removed option --powertune-enable to enable power tuning, please use driver specific tools
+
+##
 ## Algorithms
 ##
 

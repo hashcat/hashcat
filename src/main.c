@@ -516,15 +516,6 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
     event_log_info (hashcat_ctx, "Watchdog: Temperature abort trigger disabled.");
   }
 
-  if (hwmon_ctx->enabled == true && user_options->gpu_temp_retain > 0)
-  {
-    event_log_info (hashcat_ctx, "Watchdog: Temperature retain trigger set to %uc", user_options->gpu_temp_retain);
-  }
-  else
-  {
-    event_log_info (hashcat_ctx, "Watchdog: Temperature retain trigger disabled.");
-  }
-
   event_log_info (hashcat_ctx, NULL);
 
 }

@@ -527,7 +527,6 @@ typedef enum user_options_defaults
   FORCE                    = false,
   GPU_TEMP_ABORT           = 90,
   GPU_TEMP_DISABLE         = false,
-  GPU_TEMP_RETAIN          = 75,
   HASH_MODE                = 0,
   HCCAPX_MESSAGE_PAIR      = 0,
   HEX_CHARSET              = false,
@@ -558,7 +557,6 @@ typedef enum user_options_defaults
   OUTFILE_FORMAT           = 3,
   WORDLIST_AUTOHEX_DISABLE = false,
   POTFILE_DISABLE          = false,
-  POWERTUNE_ENABLE         = false,
   QUIET                    = false,
   REMOVE                   = false,
   REMOVE_TIMER             = 60,
@@ -608,77 +606,75 @@ typedef enum user_options_map
   IDX_FORCE                    = 0xff09,
   IDX_GPU_TEMP_ABORT           = 0xff0a,
   IDX_GPU_TEMP_DISABLE         = 0xff0b,
-  IDX_GPU_TEMP_RETAIN          = 0xff0c,
   IDX_HASH_MODE                = 'm',
-  IDX_HCCAPX_MESSAGE_PAIR      = 0xff0d,
+  IDX_HCCAPX_MESSAGE_PAIR      = 0xff0c,
   IDX_HELP                     = 'h',
-  IDX_HEX_CHARSET              = 0xff0e,
-  IDX_HEX_SALT                 = 0xff0f,
-  IDX_HEX_WORDLIST             = 0xff10,
+  IDX_HEX_CHARSET              = 0xff0d,
+  IDX_HEX_SALT                 = 0xff0e,
+  IDX_HEX_WORDLIST             = 0xff0f,
   IDX_INCREMENT                = 'i',
-  IDX_INCREMENT_MAX            = 0xff11,
-  IDX_INCREMENT_MIN            = 0xff12,
-  IDX_INDUCTION_DIR            = 0xff13,
-  IDX_KEEP_GUESSING            = 0xff14,
+  IDX_INCREMENT_MAX            = 0xff10,
+  IDX_INCREMENT_MIN            = 0xff11,
+  IDX_INDUCTION_DIR            = 0xff12,
+  IDX_KEEP_GUESSING            = 0xff13,
   IDX_KERNEL_ACCEL             = 'n',
   IDX_KERNEL_LOOPS             = 'u',
-  IDX_KEYSPACE                 = 0xff15,
-  IDX_LEFT                     = 0xff16,
+  IDX_KEYSPACE                 = 0xff14,
+  IDX_LEFT                     = 0xff15,
   IDX_LIMIT                    = 'l',
-  IDX_LOGFILE_DISABLE          = 0xff17,
-  IDX_LOOPBACK                 = 0xff18,
-  IDX_MACHINE_READABLE         = 0xff19,
-  IDX_MARKOV_CLASSIC           = 0xff1a,
-  IDX_MARKOV_DISABLE           = 0xff1b,
-  IDX_MARKOV_HCSTAT            = 0xff1c,
+  IDX_LOGFILE_DISABLE          = 0xff16,
+  IDX_LOOPBACK                 = 0xff17,
+  IDX_MACHINE_READABLE         = 0xff18,
+  IDX_MARKOV_CLASSIC           = 0xff19,
+  IDX_MARKOV_DISABLE           = 0xff1a,
+  IDX_MARKOV_HCSTAT            = 0xff1b,
   IDX_MARKOV_THRESHOLD         = 't',
-  IDX_NONCE_ERROR_CORRECTIONS  = 0xff1d,
-  IDX_NVIDIA_SPIN_DAMP         = 0xff1e,
+  IDX_NONCE_ERROR_CORRECTIONS  = 0xff1c,
+  IDX_NVIDIA_SPIN_DAMP         = 0xff1d,
   IDX_OPENCL_DEVICES           = 'd',
   IDX_OPENCL_DEVICE_TYPES      = 'D',
   IDX_OPENCL_INFO              = 'I',
-  IDX_OPENCL_PLATFORMS         = 0xff1f,
-  IDX_OPENCL_VECTOR_WIDTH      = 0xff20,
+  IDX_OPENCL_PLATFORMS         = 0xff1e,
+  IDX_OPENCL_VECTOR_WIDTH      = 0xff1f,
   IDX_OPTIMIZED_KERNEL_ENABLE  = 'O',
-  IDX_OUTFILE_AUTOHEX_DISABLE  = 0xff21,
-  IDX_OUTFILE_CHECK_DIR        = 0xff22,
-  IDX_OUTFILE_CHECK_TIMER      = 0xff23,
-  IDX_OUTFILE_FORMAT           = 0xff24,
+  IDX_OUTFILE_AUTOHEX_DISABLE  = 0xff20,
+  IDX_OUTFILE_CHECK_DIR        = 0xff21,
+  IDX_OUTFILE_CHECK_TIMER      = 0xff22,
+  IDX_OUTFILE_FORMAT           = 0xff23,
   IDX_OUTFILE                  = 'o',
-  IDX_WORDLIST_AUTOHEX_DISABLE = 0xff25,
-  IDX_POTFILE_DISABLE          = 0xff26,
-  IDX_POTFILE_PATH             = 0xff27,
-  IDX_POWERTUNE_ENABLE         = 0xff28,
-  IDX_QUIET                    = 0xff29,
-  IDX_REMOVE                   = 0xff2a,
-  IDX_REMOVE_TIMER             = 0xff2b,
-  IDX_RESTORE                  = 0xff2c,
-  IDX_RESTORE_DISABLE          = 0xff2d,
-  IDX_RESTORE_FILE_PATH        = 0xff2e,
+  IDX_WORDLIST_AUTOHEX_DISABLE = 0xff24,
+  IDX_POTFILE_DISABLE          = 0xff25,
+  IDX_POTFILE_PATH             = 0xff26,
+  IDX_QUIET                    = 0xff27,
+  IDX_REMOVE                   = 0xff28,
+  IDX_REMOVE_TIMER             = 0xff29,
+  IDX_RESTORE                  = 0xff2a,
+  IDX_RESTORE_DISABLE          = 0xff2b,
+  IDX_RESTORE_FILE_PATH        = 0xff2c,
   IDX_RP_FILE                  = 'r',
-  IDX_RP_GEN_FUNC_MAX          = 0xff2f,
-  IDX_RP_GEN_FUNC_MIN          = 0xff30,
+  IDX_RP_GEN_FUNC_MAX          = 0xff2d,
+  IDX_RP_GEN_FUNC_MIN          = 0xff2e,
   IDX_RP_GEN                   = 'g',
-  IDX_RP_GEN_SEED              = 0xff31,
+  IDX_RP_GEN_SEED              = 0xff2f,
   IDX_RULE_BUF_L               = 'j',
   IDX_RULE_BUF_R               = 'k',
-  IDX_RUNTIME                  = 0xff32,
-  IDX_SCRYPT_TMTO              = 0xff33,
-  IDX_SELF_TEST_DISABLE        = 0xff34,
+  IDX_RUNTIME                  = 0xff30,
+  IDX_SCRYPT_TMTO              = 0xff31,
+  IDX_SELF_TEST_DISABLE        = 0xff32,
   IDX_SEGMENT_SIZE             = 'c',
   IDX_SEPARATOR                = 'p',
-  IDX_SESSION                  = 0xff35,
-  IDX_SHOW                     = 0xff36,
+  IDX_SESSION                  = 0xff33,
+  IDX_SHOW                     = 0xff34,
   IDX_SKIP                     = 's',
-  IDX_STATUS                   = 0xff37,
-  IDX_STATUS_TIMER             = 0xff38,
-  IDX_STDOUT_FLAG              = 0xff39,
-  IDX_SPEED_ONLY               = 0xff3a,
-  IDX_PROGRESS_ONLY            = 0xff3b,
-  IDX_TRUECRYPT_KEYFILES       = 0xff3c,
-  IDX_USERNAME                 = 0xff3d,
-  IDX_VERACRYPT_KEYFILES       = 0xff3e,
-  IDX_VERACRYPT_PIM            = 0xff3f,
+  IDX_STATUS                   = 0xff35,
+  IDX_STATUS_TIMER             = 0xff36,
+  IDX_STDOUT_FLAG              = 0xff37,
+  IDX_SPEED_ONLY               = 0xff38,
+  IDX_PROGRESS_ONLY            = 0xff39,
+  IDX_TRUECRYPT_KEYFILES       = 0xff3a,
+  IDX_USERNAME                 = 0xff3b,
+  IDX_VERACRYPT_KEYFILES       = 0xff3c,
+  IDX_VERACRYPT_PIM            = 0xff3d,
   IDX_VERSION_LOWER            = 'v',
   IDX_VERSION                  = 'V',
   IDX_WORKLOAD_PROFILE         = 'w'
@@ -1158,7 +1154,6 @@ typedef struct opencl_ctx
   bool                need_adl;
   bool                need_nvml;
   bool                need_nvapi;
-  bool                need_xnvctrl;
   bool                need_sysfs;
 
   int                 comptime;
@@ -1170,7 +1165,6 @@ typedef struct opencl_ctx
 #include "ext_ADL.h"
 #include "ext_nvapi.h"
 #include "ext_nvml.h"
-#include "ext_xnvctrl.h"
 #include "ext_sysfs.h"
 
 typedef struct hm_attrs
@@ -1178,7 +1172,6 @@ typedef struct hm_attrs
   HM_ADAPTER_ADL     adl;
   HM_ADAPTER_NVML    nvml;
   HM_ADAPTER_NVAPI   nvapi;
-  HM_ADAPTER_XNVCTRL xnvctrl;
   HM_ADAPTER_SYSFS   sysfs;
 
   int od_version;
@@ -1186,9 +1179,7 @@ typedef struct hm_attrs
   bool buslanes_get_supported;
   bool corespeed_get_supported;
   bool fanspeed_get_supported;
-  bool fanspeed_set_supported;
   bool fanpolicy_get_supported;
-  bool fanpolicy_set_supported;
   bool memoryspeed_get_supported;
   bool temperature_get_supported;
   bool threshold_shutdown_get_supported;
@@ -1205,14 +1196,11 @@ typedef struct hwmon_ctx
   void *hm_adl;
   void *hm_nvml;
   void *hm_nvapi;
-  void *hm_xnvctrl;
   void *hm_sysfs;
 
   hm_attrs_t *hm_device;
 
   ADLOD6MemClockState *od_clock_mem_status;
-  int                 *od_power_control_status;
-  unsigned int        *nvml_power_limit;
 
 } hwmon_ctx_t;
 
@@ -1519,7 +1507,6 @@ typedef struct user_options
   bool         outfile_autohex;
   bool         wordlist_autohex_disable;
   bool         potfile_disable;
-  bool         powertune_enable;
   bool         quiet;
   bool         remove;
   bool         restore;
@@ -1562,7 +1549,6 @@ typedef struct user_options
   u32          bitmap_min;
   u32          debug_mode;
   u32          gpu_temp_abort;
-  u32          gpu_temp_retain;
   u32          hash_mode;
   u32          hccapx_message_pair;
   u32          increment_max;

@@ -40,7 +40,6 @@ static const struct option long_options[] =
   {"generate-rules-seed",       required_argument, 0, IDX_RP_GEN_SEED},
   {"gpu-temp-abort",            required_argument, 0, IDX_GPU_TEMP_ABORT},
   {"gpu-temp-disable",          no_argument,       0, IDX_GPU_TEMP_DISABLE},
-  {"gpu-temp-retain",           required_argument, 0, IDX_GPU_TEMP_RETAIN},
   {"hash-type",                 required_argument, 0, IDX_HASH_MODE},
   {"hccapx-message-pair",       required_argument, 0, IDX_HCCAPX_MESSAGE_PAIR},
   {"help",                      no_argument,       0, IDX_HELP},
@@ -80,7 +79,6 @@ static const struct option long_options[] =
   {"wordlist-autohex-disable",  no_argument,       0, IDX_WORDLIST_AUTOHEX_DISABLE},
   {"potfile-disable",           no_argument,       0, IDX_POTFILE_DISABLE},
   {"potfile-path",              required_argument, 0, IDX_POTFILE_PATH},
-  {"powertune-enable",          no_argument,       0, IDX_POWERTUNE_ENABLE},
   {"quiet",                     no_argument,       0, IDX_QUIET},
   {"remove",                    no_argument,       0, IDX_REMOVE},
   {"remove-timer",              required_argument, 0, IDX_REMOVE_TIMER},
@@ -145,7 +143,6 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->force                     = FORCE;
   user_options->gpu_temp_abort            = GPU_TEMP_ABORT;
   user_options->gpu_temp_disable          = GPU_TEMP_DISABLE;
-  user_options->gpu_temp_retain           = GPU_TEMP_RETAIN;
   user_options->hash_mode                 = HASH_MODE;
   user_options->hccapx_message_pair       = HCCAPX_MESSAGE_PAIR;
   user_options->hex_charset               = HEX_CHARSET;
@@ -184,7 +181,6 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->outfile                   = NULL;
   user_options->potfile_disable           = POTFILE_DISABLE;
   user_options->potfile_path              = NULL;
-  user_options->powertune_enable          = POWERTUNE_ENABLE;
   user_options->quiet                     = QUIET;
   user_options->remove                    = REMOVE;
   user_options->remove_timer              = REMOVE_TIMER;
@@ -275,7 +271,6 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_KERNEL_LOOPS:
       case IDX_NVIDIA_SPIN_DAMP:
       case IDX_GPU_TEMP_ABORT:
-      case IDX_GPU_TEMP_RETAIN:
       case IDX_HCCAPX_MESSAGE_PAIR:
       case IDX_NONCE_ERROR_CORRECTIONS:
       case IDX_VERACRYPT_PIM:
@@ -395,8 +390,6 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
                                          user_options->nvidia_spin_damp_chgd     = true;                        break;
       case IDX_GPU_TEMP_DISABLE:         user_options->gpu_temp_disable          = true;                        break;
       case IDX_GPU_TEMP_ABORT:           user_options->gpu_temp_abort            = strtoul (optarg, NULL, 10);  break;
-      case IDX_GPU_TEMP_RETAIN:          user_options->gpu_temp_retain           = strtoul (optarg, NULL, 10);  break;
-      case IDX_POWERTUNE_ENABLE:         user_options->powertune_enable          = true;                        break;
       case IDX_LOGFILE_DISABLE:          user_options->logfile_disable           = true;                        break;
       case IDX_HCCAPX_MESSAGE_PAIR:      user_options->hccapx_message_pair       = strtoul (optarg, NULL, 10);
                                          user_options->hccapx_message_pair_chgd  = true;                        break;
@@ -844,16 +837,6 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if ((user_options->gpu_temp_abort != 0) && (user_options->gpu_temp_retain != 0))
-  {
-    if (user_options->gpu_temp_abort < user_options->gpu_temp_retain)
-    {
-      event_log_error (hashcat_ctx, "Value for --gpu-temp-abort must not be less than --gpu-temp-retain value.");
-
-      return -1;
-    }
-  }
-
   if (user_options->benchmark == true)
   {
     if (user_options->attack_mode_chgd == true)
@@ -1225,10 +1208,8 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   user_options_t *user_options = hashcat_ctx->user_options;
 
   #if !defined (WITH_HWMON)
-  user_options->powertune_enable = false;
   user_options->gpu_temp_disable = true;
   user_options->gpu_temp_abort   = 0;
-  user_options->gpu_temp_retain  = 0;
   #endif // WITH_HWMON
 
   // some options can influence or overwrite other options
@@ -1246,7 +1227,6 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->nvidia_spin_damp    = 0;
     user_options->outfile_check_timer = 0;
     user_options->potfile_disable     = true;
-    user_options->powertune_enable    = false;
     user_options->restore_disable     = true;
     user_options->restore             = false;
     user_options->restore_timer       = 0;
@@ -1259,13 +1239,11 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   {
     user_options->attack_mode         = ATTACK_MODE_BF;
     user_options->gpu_temp_disable    = false;
-    user_options->gpu_temp_retain     = 0;
     user_options->increment           = false;
     user_options->left                = false;
     user_options->logfile_disable     = true;
     user_options->nvidia_spin_damp    = 0;
     user_options->potfile_disable     = true;
-    user_options->powertune_enable    = true;
     user_options->progress_only       = false;
     user_options->restore_disable     = true;
     user_options->restore             = false;
@@ -1391,7 +1369,6 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   if (user_options->gpu_temp_disable == true)
   {
     user_options->gpu_temp_abort  = 0;
-    user_options->gpu_temp_retain = 0;
   }
 
   // default mask
@@ -2244,7 +2221,6 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->force);
   logfile_top_uint   (user_options->gpu_temp_abort);
   logfile_top_uint   (user_options->gpu_temp_disable);
-  logfile_top_uint   (user_options->gpu_temp_retain);
   logfile_top_uint   (user_options->hash_mode);
   logfile_top_uint   (user_options->hex_charset);
   logfile_top_uint   (user_options->hex_salt);
@@ -2272,7 +2248,6 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->outfile_format);
   logfile_top_uint   (user_options->wordlist_autohex_disable);
   logfile_top_uint   (user_options->potfile_disable);
-  logfile_top_uint   (user_options->powertune_enable);
   logfile_top_uint   (user_options->progress_only);
   logfile_top_uint   (user_options->quiet);
   logfile_top_uint   (user_options->remove);

@@ -96,8 +96,6 @@ static const char *const USAGE_BIG[] =
   "     --nvidia-spin-damp         | Num  | Workaround NVIDIAs CPU burning loop bug, in percent  | --nvidia-spin-damp=50",
   "     --gpu-temp-disable         |      | Disable temperature and fanspeed reads and triggers  |",
   "     --gpu-temp-abort           | Num  | Abort if GPU temperature reaches X degrees Celsius   | --gpu-temp-abort=100",
-  "     --gpu-temp-retain          | Num  | Try to retain GPU temperature at X degrees Celsius   | --gpu-temp-retain=95",
-  "     --powertune-enable         |      | Enable power tuning. Restores settings when finished |",
   "     --scrypt-tmto              | Num  | Manually override TMTO value for scrypt to X         | --scrypt-tmto=3",
   " -s, --skip                     | Num  | Skip X words from the start                          | -s 1000000",
   " -l, --limit                    | Num  | Limit X words from the start + skipped words         | -l 1000000",
