@@ -21,6 +21,7 @@
 ##
 
 - Show [r]esume in prompt in pause mode only and show [p]ause in prompt in resume mode only
+- Reset PID controller history data for GPU fan speed in case user resumes from a paused session
 
 ##
 ## Technical

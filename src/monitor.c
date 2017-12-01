@@ -127,11 +127,23 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
   u32 remove_left   = user_options->remove_timer;
   u32 status_left   = user_options->status_timer;
 
+  u32 devices_status_old = status_ctx->devices_status;
+
   while (status_ctx->shutdown_inner == false)
   {
     sleep (sleep_time);
 
     if (status_ctx->devices_status == STATUS_INIT) continue;
+
+    if ((devices_status_old == STATUS_PAUSED) && (status_ctx->devices_status == STATUS_RUNNING))
+    {
+      memset (fan_speed_chgd, 0, sizeof (fan_speed_chgd));
+
+      memset (temp_diff_old, 0, sizeof (temp_diff_old));
+      memset (temp_diff_sum, 0, sizeof (temp_diff_sum));
+    }
+
+    devices_status_old = status_ctx->devices_status;
 
     if (hwmon_check == true)
     {
