@@ -1670,12 +1670,21 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
   // common folders
 
+  #if defined (_WIN)
+  if (hc_path_read (".") == false)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", ".", strerror (errno));
+
+    return -1;
+  }
+  #else
   if (hc_path_read (folder_config->cwd) == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", folder_config->cwd, strerror (errno));
 
     return -1;
   }
+  #endif
 
   if (hc_path_read (folder_config->install_dir) == false)
   {

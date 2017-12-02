@@ -4256,6 +4256,24 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
+    // return back to the folder we came from initially (workaround)
+
+    #if defined (_WIN)
+    if (chdir ("..") == -1)
+    {
+      event_log_error (hashcat_ctx, "%s: %s", "..", strerror (errno));
+
+      return -1;
+    }
+    #else
+    if (chdir (folder_config->cwd) == -1)
+    {
+      event_log_error (hashcat_ctx, "%s: %s", folder_config->cwd, strerror (errno));
+
+      return -1;
+    }
+    #endif
+
     // we don't have sm_* on vendors not NV but it doesn't matter
 
     char build_opts_new[1024] = { 0 };
@@ -4797,15 +4815,6 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     hcfree (device_name_chksum);
     hcfree (device_name_chksum_amp_mp);
-
-    // return back to the folder we came from initially (workaround)
-
-    if (chdir (folder_config->cwd) == -1)
-    {
-      event_log_error (hashcat_ctx, "%s: %s", folder_config->cwd, strerror (errno));
-
-      return -1;
-    }
 
     // some algorithm collide too fast, make that impossible
 
