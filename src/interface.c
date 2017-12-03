@@ -24658,7 +24658,10 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->kern_type      = KERN_TYPE_TACACS_PLUS;
                  hashconfig->dgst_size      = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
                  hashconfig->parse_func     = tacacs_plus_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_PRECOMPUTE_INIT
+                                            | OPTI_TYPE_NOT_ITERATED
+                                            | OPTI_TYPE_RAW_HASH;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
