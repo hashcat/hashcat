@@ -40,7 +40,7 @@ static void main_log_clear_line (MAYBE_UNUSED const int prev_len, MAYBE_UNUSED F
 
   #else
 
-  printf ("\033[2K\r");
+  fputs ("\033[2K\r", fp);
 
   #endif
 }
@@ -97,7 +97,7 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
   #else
   switch (loglevel)
   {
-    case LOGLEVEL_INFO:                                   break;
+    case LOGLEVEL_INFO:                                      break;
     case LOGLEVEL_WARNING: hc_fwrite ("\033[33m", 5, 1, fp); break;
     case LOGLEVEL_ERROR:   hc_fwrite ("\033[31m", 5, 1, fp); break;
     case LOGLEVEL_ADVICE:  hc_fwrite ("\033[33m", 5, 1, fp); break;
@@ -121,7 +121,7 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
   #else
   switch (loglevel)
   {
-    case LOGLEVEL_INFO:                                  break;
+    case LOGLEVEL_INFO:                                     break;
     case LOGLEVEL_WARNING: hc_fwrite ("\033[0m", 4, 1, fp); break;
     case LOGLEVEL_ERROR:   hc_fwrite ("\033[0m", 4, 1, fp); break;
     case LOGLEVEL_ADVICE:  hc_fwrite ("\033[0m", 4, 1, fp); break;

@@ -40,6 +40,7 @@
 - Hash Parser: Fixed our use of strtok_r () calls
 - Self Test: Skip self-test for mode 8900 user-configurable scrypt settings are incompatible to fixed settings in the self-test hash
 - Self Test: Skip self-test for mode 15700 because settings are too high and create a too long startup time
+- Terminal: Send clear line code to the same output stream as the next message following
 
 * changes v4.0.0 -> v4.0.1:
 
