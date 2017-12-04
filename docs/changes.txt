@@ -34,8 +34,10 @@
 ## Technical
 ##
 
-- Changed the way large strings are handled/truncated within the event buffer if they are too large to fit
-- Fixed our use of strtok_r () calls
+- Documents: Added docs/limits.txt
+- Files: Switched back to relative current working directory on windows to workaround problems with unicode characters
+- Hash Parser: Changed the way large strings are handled/truncated within the event buffer if they are too large to fit
+- Hash Parser: Fixed our use of strtok_r () calls
 
 * changes v4.0.0 -> v4.0.1:
 
