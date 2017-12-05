@@ -4212,14 +4212,6 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
-    char build_opts[1024] = { 0 };
-
-    #if defined (_WIN)
-    snprintf (build_opts, sizeof (build_opts) - 1, "-I \"%s\"", folder_config->cpath_real);
-    #else
-    snprintf (build_opts, sizeof (build_opts) - 1, "-I %s", folder_config->cpath_real);
-    #endif
-
     // include check
     // this test needs to be done manually because of macOS opencl runtime
     // if there's a problem with permission, its not reporting back and erroring out silently
@@ -4272,6 +4264,14 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       return -1;
     }
+    #endif
+
+    char build_opts[1024] = { 0 };
+
+    #if defined (_WIN)
+    snprintf (build_opts, sizeof (build_opts) - 1, "-I OpenCL -I \"%s\"", folder_config->cpath_real);
+    #else
+    snprintf (build_opts, sizeof (build_opts) - 1, "-I OpenCL -I %s", folder_config->cpath_real);
     #endif
 
     // we don't have sm_* on vendors not NV but it doesn't matter
