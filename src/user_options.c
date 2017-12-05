@@ -21,6 +21,7 @@ static const struct option long_options[] =
   {"advice-disable",            no_argument,       0, IDX_ADVICE_DISABLE},
   {"attack-mode",               required_argument, 0, IDX_ATTACK_MODE},
   {"benchmark",                 no_argument,       0, IDX_BENCHMARK},
+  {"benchmark-all",             no_argument,       0, IDX_BENCHMARK_ALL},
   {"bitmap-max",                required_argument, 0, IDX_BITMAP_MAX},
   {"bitmap-min",                required_argument, 0, IDX_BITMAP_MIN},
   {"cpu-affinity",              required_argument, 0, IDX_CPU_AFFINITY},
@@ -128,6 +129,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->advice_disable            = ADVICE_DISABLE;
   user_options->attack_mode               = ATTACK_MODE;
   user_options->benchmark                 = BENCHMARK;
+  user_options->benchmark_all             = BENCHMARK_ALL;
   user_options->bitmap_max                = BITMAP_MAX;
   user_options->bitmap_min                = BITMAP_MIN;
   user_options->cpu_affinity              = NULL;
@@ -335,6 +337,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_KEEP_GUESSING:            user_options->keep_guessing             = true;                        break;
       case IDX_KEYSPACE:                 user_options->keyspace                  = true;                        break;
       case IDX_BENCHMARK:                user_options->benchmark                 = true;                        break;
+      case IDX_BENCHMARK_ALL:            user_options->benchmark_all             = true;                        break;
       case IDX_STDOUT_FLAG:              user_options->stdout_flag               = true;                        break;
       case IDX_SPEED_ONLY:               user_options->speed_only                = true;                        break;
       case IDX_PROGRESS_ONLY:            user_options->progress_only             = true;                        break;
@@ -1449,6 +1452,11 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
     event_log_info (hashcat_ctx, "Benchmark relevant options:");
     event_log_info (hashcat_ctx, "===========================");
 
+    if (user_options->benchmark_all == true)
+    {
+      event_log_info (hashcat_ctx, "* --benchmark-all");
+    }
+
     if (user_options->force == true)
     {
       event_log_info (hashcat_ctx, "* --force");
@@ -1496,6 +1504,11 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
+    if (user_options->benchmark_all == true)
+    {
+      event_log_info (hashcat_ctx, "# option: --benchmark-all");
+    }
+
     if (user_options->force == true)
     {
       event_log_info (hashcat_ctx, "# option: --force");
@@ -2223,6 +2236,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint64 (user_options->skip);
   logfile_top_uint   (user_options->attack_mode);
   logfile_top_uint   (user_options->benchmark);
+  logfile_top_uint   (user_options->benchmark_all);
   logfile_top_uint   (user_options->bitmap_max);
   logfile_top_uint   (user_options->bitmap_min);
   logfile_top_uint   (user_options->debug_mode);

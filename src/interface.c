@@ -16263,7 +16263,7 @@ const char *strhashtype (const u32 hash_mode)
     case 99999: return HT_99999;
   }
 
-  return "Unknown";
+  return NULL;
 }
 
 const char *strparser (const u32 parser_status)

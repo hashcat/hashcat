@@ -4,6 +4,7 @@
 ## Features
 ##
 
+- Added option --benchmark-all to benchmark all hash-modes not just the default selection
 - Removed option --gpu-temp-retain that tried to retain GPU temperature at X degrees celsius, please use driver specific tools
 - Removed option --powertune-enable to enable power tuning, please use driver specific tools
 

@@ -1132,9 +1132,11 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      for (u32 algorithm_pos = 0; algorithm_pos < DEFAULT_BENCHMARK_ALGORITHMS_CNT; algorithm_pos++)
+      int hash_mode;
+
+      while ((hash_mode = benchmark_next (hashcat_ctx)) != -1)
       {
-        user_options->hash_mode = DEFAULT_BENCHMARK_ALGORITHMS_BUF[algorithm_pos];
+        user_options->hash_mode = hash_mode;
 
         rc_final = outer_loop (hashcat_ctx);
 
