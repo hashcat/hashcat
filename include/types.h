@@ -778,6 +778,7 @@ typedef struct logfile_ctx
 typedef struct hashes
 {
   const char  *hashfile;
+  char        *hashfile_hcdmp;
 
   u32          hashlist_mode;
   u32          hashlist_format;

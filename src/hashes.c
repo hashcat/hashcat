@@ -449,7 +449,7 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
   return 0;
 }
 
-int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
+void hashes_init_filename (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
   hashes_t             *hashes             = hashcat_ctx->hashes;
@@ -462,24 +462,54 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
    * load hashes, part I: find input mode, count hashes
    */
 
-  u32 hashlist_mode   = 0;
+  if ((user_options->benchmark == false) && (user_options->stdout_flag == false) && (user_options->keyspace == false))
+  {
+    if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
+    {
+      hashes->hashlist_mode = HL_MODE_ARG;
+
+      hashes->hashfile = hash_or_file;
+
+      hc_asprintf (&hashes->hashfile_hcdmp, "%s.hcdmp", hashes->hashfile);
+    }
+    else
+    {
+      hashes->hashlist_mode = (hc_path_exist (hash_or_file) == true) ? HL_MODE_FILE : HL_MODE_ARG;
+
+      if (hashes->hashlist_mode == HL_MODE_FILE)
+      {
+        hashes->hashfile = hash_or_file;
+
+        hc_asprintf (&hashes->hashfile_hcdmp, "%s.hcdmp", hashes->hashfile);
+      }
+    }
+  }
+  else
+  {
+    hashes->hashlist_mode = HL_MODE_ARG;
+  }
+}
+
+int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
+{
+  hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
+  hashes_t              *hashes             = hashcat_ctx->hashes;
+  user_options_t        *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
+
+  /**
+   * load hashes, part I: find input mode, count hashes
+   */
+
+  const char *hashfile      = hashes->hashfile;
+  const u32   hashlist_mode = hashes->hashlist_mode;
+
   u32 hashlist_format = HLFMT_HASHCAT;
 
   u32 hashes_avail = 0;
 
   if ((user_options->benchmark == false) && (user_options->stdout_flag == false) && (user_options->keyspace == false))
   {
-    hashlist_mode = (hc_path_exist (hash_or_file) == true) ? HL_MODE_FILE : HL_MODE_ARG;
-
-    if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
-    {
-      hashlist_mode = HL_MODE_ARG;
-
-      char *hashfile = hash_or_file;
-
-      hashes->hashfile = hashfile;
-    }
-
     if (hashlist_mode == HL_MODE_ARG)
     {
       if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
@@ -529,10 +559,6 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     }
     else if (hashlist_mode == HL_MODE_FILE)
     {
-      char *hashfile = hash_or_file;
-
-      hashes->hashfile = hashfile;
-
       FILE *fp = NULL;
 
       if ((fp = fopen (hashfile, "rb")) == NULL)
@@ -575,14 +601,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    hashlist_mode = HL_MODE_ARG;
-
     hashes_avail = 1;
   }
 
   if (hashconfig->hash_mode == 3000) hashes_avail *= 2;
 
-  hashes->hashlist_mode   = hashlist_mode;
   hashes->hashlist_format = hashlist_format;
 
   /**
@@ -708,7 +731,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     }
     else if (hashlist_mode == HL_MODE_ARG)
     {
-      char *input_buf = hash_or_file;
+      char *input_buf = user_options_extra->hc_hash;
 
       u32 input_len = strlen (input_buf);
 
@@ -754,9 +777,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
         if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
         {
-          hashlist_mode = HL_MODE_FILE;
-
-          hashes->hashlist_mode = hashlist_mode;
+          hashes->hashlist_mode = HL_MODE_FILE;
 
           FILE *fp = fopen (hash_buf, "rb");
 
@@ -877,9 +898,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         }
         else if (hashconfig->hash_mode == 14600)
         {
-          hashlist_mode = HL_MODE_FILE;
-
-          hashes->hashlist_mode = hashlist_mode;
+          hashes->hashlist_mode = HL_MODE_FILE;
 
           for (int keyslot_idx = 0; keyslot_idx < LUKS_NUMKEYS; keyslot_idx++)
           {
@@ -915,8 +934,6 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     }
     else if (hashlist_mode == HL_MODE_FILE)
     {
-      const char *hashfile = hashes->hashfile;
-
       FILE *fp;
 
       if ((fp = fopen (hashfile, "rb")) == NULL)
@@ -1748,6 +1765,8 @@ void hashes_destroy (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashes->st_salts_buf);
   hcfree (hashes->st_esalts_buf);
   hcfree (hashes->st_hook_salts_buf);
+
+  hcfree (hashes->hashfile_hcdmp);
 
   memset (hashes, 0, sizeof (hashes_t));
 }

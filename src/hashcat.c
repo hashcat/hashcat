@@ -430,6 +430,12 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   }
 
   /**
+   * generate hashlist filename for later use
+   */
+
+  hashes_init_filename (hashcat_ctx);
+
+  /**
    * load hashes, stage 1
    */
 
@@ -816,7 +822,6 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   return 0;
 }
-
 
 static void event_stub (MAYBE_UNUSED const u32 id, MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
