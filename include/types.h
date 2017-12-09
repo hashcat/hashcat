@@ -1248,6 +1248,14 @@ typedef struct dictstat
 
 } dictstat_t;
 
+typedef struct hashdump
+{
+  int version;
+
+  hashes_t hashes;
+
+} hashdump_t;
+
 typedef struct dictstat_ctx
 {
   bool enabled;
