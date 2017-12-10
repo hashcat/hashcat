@@ -678,9 +678,9 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
     hcstat = hcstat_tmp;
   }
 
-  hc_stat_t s;
+  struct stat s;
 
-  if (hc_stat (hcstat, &s) == -1)
+  if (stat (hcstat, &s) == -1)
   {
     event_log_error (hashcat_ctx, "%s: %s", hcstat, strerror (errno));
 

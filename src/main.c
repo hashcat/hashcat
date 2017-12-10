@@ -788,12 +788,12 @@ static void main_wordlist_cache_generate (MAYBE_UNUSED hashcat_ctx_t *hashcat_ct
   {
     char *runtime = (char *) malloc (HCBUFSIZ_TINY);
 
-    const hc_time_t runtime_sec = cache_generate->runtime;
+    const time_t runtime_sec = cache_generate->runtime;
 
     struct tm *tmp;
     struct tm  tm;
 
-    tmp = hc_gmtime (&runtime_sec, &tm);
+    tmp = gmtime_r (&runtime_sec, &tm);
 
     format_timer_display (tmp, runtime, HCBUFSIZ_TINY);
 
@@ -959,7 +959,7 @@ int main (int argc, char **argv)
 
   setup_console ();
 
-  const hc_time_t proc_start = hc_time (NULL);
+  const time_t proc_start = time (NULL);
 
   // hashcat main context
 
@@ -1059,7 +1059,7 @@ int main (int argc, char **argv)
 
   // finished with hashcat, clean up
 
-  const hc_time_t proc_stop = hc_time (NULL);
+  const time_t proc_stop = time (NULL);
 
   goodbye_screen (hashcat_ctx, proc_start, proc_stop);
 

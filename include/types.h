@@ -43,14 +43,6 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
 
-// time
-
-#if defined (_WIN)
-typedef __time64_t        hc_time_t;
-#else
-typedef time_t            hc_time_t;
-#endif
-
 // timer
 
 #if defined (_WIN)
@@ -71,14 +63,6 @@ typedef CRITICAL_SECTION  hc_thread_mutex_t;
 #else
 typedef pthread_t         hc_thread_t;
 typedef pthread_mutex_t   hc_thread_mutex_t;
-#endif
-
-// stat
-
-#if defined (_WIN)
-typedef struct _stat64 hc_stat_t;
-#else
-typedef struct stat hc_stat_t;
 #endif
 
 // enums
@@ -761,7 +745,7 @@ typedef struct outfile_data
 {
   char      *file_name;
   off_t      seek;
-  hc_time_t  ctime;
+  time_t     ctime;
 
 } outfile_data_t;
 
@@ -889,7 +873,7 @@ typedef struct bs_word
 typedef struct cpt
 {
   u32       cracked;
-  hc_time_t timestamp;
+  time_t    timestamp;
 
 } cpt_t;
 
@@ -1241,7 +1225,7 @@ typedef struct dictstat
 {
   u64 cnt;
 
-  hc_stat_t stat;
+  struct stat stat;
 
   char encoding_from[64];
   char encoding_to[64];
@@ -1727,7 +1711,7 @@ typedef struct cpt_ctx
 
   cpt_t     *cpt_buf;
   int        cpt_pos;
-  hc_time_t  cpt_start;
+  time_t     cpt_start;
   u64        cpt_total;
 
 } cpt_ctx_t;
@@ -1870,8 +1854,8 @@ typedef struct status_ctx
    * timer
    */
 
-  hc_time_t runtime_start;
-  hc_time_t runtime_stop;
+  time_t runtime_start;
+  time_t runtime_stop;
 
   hc_timer_t timer_running;     // timer on current dict
   hc_timer_t timer_paused;      // timer on current dict
@@ -1894,7 +1878,7 @@ typedef struct cache_hit
 {
   const char *dictfile;
 
-  hc_stat_t stat;
+  struct stat stat;
 
   u64 cached_cnt;
   u64 keyspace;
@@ -1911,7 +1895,7 @@ typedef struct cache_generate
   u64 cnt;
   u64 cnt2;
 
-  hc_time_t runtime;
+  time_t runtime;
 
 } cache_generate_t;
 

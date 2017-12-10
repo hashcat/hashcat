@@ -78,7 +78,7 @@ void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
   }
 }
 
-void goodbye_screen (hashcat_ctx_t *hashcat_ctx, const hc_time_t proc_start, const hc_time_t proc_stop)
+void goodbye_screen (hashcat_ctx_t *hashcat_ctx, const time_t proc_start, const time_t proc_stop)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 

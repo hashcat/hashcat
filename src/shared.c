@@ -152,28 +152,6 @@ void hc_asprintf (char **strp, const char *fmt, ...)
 }
 
 #if defined (_WIN)
-int hc_stat (const char *pathname, hc_stat_t *buf)
-{
-  return stat64 (pathname, buf);
-}
-
-int hc_fstat (int fd, hc_stat_t *buf)
-{
-  return fstat64 (fd, buf);
-}
-#else
-int hc_stat (const char *pathname, hc_stat_t *buf)
-{
-  return stat (pathname, buf);
-}
-
-int hc_fstat (int fd, hc_stat_t *buf)
-{
-  return fstat (fd, buf);
-}
-#endif
-
-#if defined (_WIN)
 #define __WINDOWS__
 #endif
 #include "sort_r.h"
@@ -213,9 +191,9 @@ void *hc_bsearch_r (const void *key, const void *base, size_t nmemb, size_t size
 
 bool hc_path_is_file (const char *path)
 {
-  hc_stat_t s;
+  struct stat s;
 
-  if (hc_stat (path, &s) == -1) return false;
+  if (stat (path, &s) == -1) return false;
 
   if (S_ISREG (s.st_mode)) return true;
 
@@ -224,9 +202,9 @@ bool hc_path_is_file (const char *path)
 
 bool hc_path_is_directory (const char *path)
 {
-  hc_stat_t s;
+  struct stat s;
 
-  if (hc_stat (path, &s) == -1) return false;
+  if (stat (path, &s) == -1) return false;
 
   if (S_ISDIR (s.st_mode)) return true;
 
@@ -235,9 +213,9 @@ bool hc_path_is_directory (const char *path)
 
 bool hc_path_is_empty (const char *path)
 {
-  hc_stat_t s;
+  struct stat s;
 
-  if (hc_stat (path, &s) == -1) return false;
+  if (stat (path, &s) == -1) return false;
 
   if (s.st_size == 0) return true;
 
@@ -341,9 +319,9 @@ void setup_seeding (const bool rp_gen_seed_chgd, const u32 rp_gen_seed)
   }
   else
   {
-    hc_time_t ts;
+    time_t ts;
 
-    hc_time (&ts);
+    time (&ts);
 
     srand (ts);
   }
@@ -426,39 +404,11 @@ void hc_fwrite (const void *ptr, size_t size, size_t nmemb, FILE *stream)
   if (rc == 0) rc = 0;
 }
 
-
-hc_time_t hc_time (hc_time_t *t)
-{
-  #if defined (_WIN)
-  return _time64 (t);
-  #else
-  return time (t);
-  #endif
-}
-
-struct tm *hc_gmtime (const hc_time_t *t, MAYBE_UNUSED struct tm *result)
-{
-  #if defined (_WIN)
-  return _gmtime64 (t);
-  #else
-  return gmtime_r (t, result);
-  #endif
-}
-
-char *hc_ctime (const hc_time_t *t, char *buf, MAYBE_UNUSED const size_t buf_size)
+char *hc_ctime (const time_t *t, char *buf, MAYBE_UNUSED const size_t buf_size)
 {
   char *etc = NULL;
 
-  #if defined (_WIN)
-  etc = _ctime64 (t);
-
-  if (etc != NULL)
-  {
-    snprintf (buf, buf_size, "%s", etc);
-  }
-  #else
   etc = ctime_r (t, buf); // buf should have room for at least 26 bytes
-  #endif
 
   return etc;
 }
@@ -467,8 +417,8 @@ bool hc_same_files (char *file1, char *file2)
 {
   if ((file1 != NULL) && (file2 != NULL))
   {
-    hc_stat_t tmpstat_file1;
-    hc_stat_t tmpstat_file2;
+    struct stat tmpstat_file1;
+    struct stat tmpstat_file2;
 
     int do_check = 0;
 
@@ -478,7 +428,7 @@ bool hc_same_files (char *file1, char *file2)
 
     if (fp)
     {
-      if (hc_fstat (fileno (fp), &tmpstat_file1))
+      if (fstat (fileno (fp), &tmpstat_file1))
       {
         fclose (fp);
 
@@ -494,7 +444,7 @@ bool hc_same_files (char *file1, char *file2)
 
     if (fp)
     {
-      if (hc_fstat (fileno (fp), &tmpstat_file2))
+      if (fstat (fileno (fp), &tmpstat_file2))
       {
         fclose (fp);
 
@@ -540,7 +490,7 @@ bool hc_same_files (char *file1, char *file2)
       tmpstat_file2.st_blocks   = 0;
       #endif
 
-      if (memcmp (&tmpstat_file1, &tmpstat_file2, sizeof (hc_stat_t)) == 0)
+      if (memcmp (&tmpstat_file1, &tmpstat_file2, sizeof (struct stat)) == 0)
       {
         return true;
       }

@@ -30,7 +30,7 @@ int cpt_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   cpt_ctx->cpt_total = 0;
   cpt_ctx->cpt_pos   = 0;
-  cpt_ctx->cpt_start = hc_time (NULL);
+  cpt_ctx->cpt_start = time (NULL);
 
   return 0;
 }
@@ -56,5 +56,5 @@ void cpt_ctx_reset (hashcat_ctx_t *hashcat_ctx)
 
   cpt_ctx->cpt_total = 0;
   cpt_ctx->cpt_pos   = 0;
-  cpt_ctx->cpt_start = hc_time (NULL);
+  cpt_ctx->cpt_start = time (NULL);
 }
