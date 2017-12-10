@@ -56,7 +56,7 @@ typedef time_t            hc_time_t;
 #if defined (_WIN)
 typedef LARGE_INTEGER     hc_timer_t;
 #else
-typedef struct timeval    hc_timer_t;
+typedef struct timespec   hc_timer_t;
 #endif
 
 // thread
