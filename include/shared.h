@@ -56,8 +56,6 @@ void hc_string_trim_leading (char *s);
 size_t hc_fread (void *ptr, size_t size, size_t nmemb, FILE *stream);
 void   hc_fwrite (const void *ptr, size_t size, size_t nmemb, FILE *stream);
 
-char *hc_ctime (const time_t *t, char *buf, MAYBE_UNUSED const size_t buf_size);
-
 bool hc_same_files (char *file1, char *file2);
 
 #endif // _SHARED_H
