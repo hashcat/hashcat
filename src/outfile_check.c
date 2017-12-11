@@ -51,7 +51,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
   char **out_files = NULL;
 
-  hc_time_t folder_mtime = 0;
+  time_t folder_mtime = 0;
 
   int out_cnt = 0;
 
@@ -73,9 +73,9 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
         if (is_dir == true)
         {
-          hc_stat_t outfile_check_stat;
+          struct stat outfile_check_stat;
 
-          if (hc_stat (root_directory, &outfile_check_stat) == -1)
+          if (stat (root_directory, &outfile_check_stat) == -1)
           {
             event_log_error (hashcat_ctx, "%s: %s", root_directory, strerror (errno));
 
@@ -107,9 +107,9 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
                 {
                   if (strcmp (out_info[j].file_name, out_info_new[i].file_name) == 0)
                   {
-                    hc_stat_t outfile_stat;
+                    struct stat outfile_stat;
 
-                    if (hc_stat (out_info_new[i].file_name, &outfile_stat) == 0)
+                    if (stat (out_info_new[i].file_name, &outfile_stat) == 0)
                     {
                       if (outfile_stat.st_ctime == out_info[j].ctime)
                       {
@@ -140,9 +140,9 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
             {
               //hc_thread_mutex_lock (status_ctx->mux_display);
 
-              hc_stat_t outfile_stat;
+              struct stat outfile_stat;
 
-              if (hc_fstat (fileno (fp), &outfile_stat))
+              if (fstat (fileno (fp), &outfile_stat))
               {
                 fclose (fp);
 

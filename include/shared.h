@@ -37,9 +37,6 @@ void setup_environment_variables (void);
 void setup_umask (void);
 void setup_seeding (const bool rp_gen_seed_chgd, const u32 rp_gen_seed);
 
-int hc_stat (const char *pathname, hc_stat_t *buf);
-int hc_fstat (int fd, hc_stat_t *buf);
-
 void  hc_qsort_r (void *base, size_t nmemb, size_t size, int (*compar) (const void *, const void *, void *), void *arg);
 void *hc_bsearch_r (const void *key, const void *base, size_t nmemb, size_t size, int (*compar) (const void *, const void *, void *), void *arg);
 
@@ -59,9 +56,7 @@ void hc_string_trim_leading (char *s);
 size_t hc_fread (void *ptr, size_t size, size_t nmemb, FILE *stream);
 void   hc_fwrite (const void *ptr, size_t size, size_t nmemb, FILE *stream);
 
-hc_time_t  hc_time   (hc_time_t *t);
-struct tm *hc_gmtime (const hc_time_t *t, MAYBE_UNUSED struct tm *result);
-char      *hc_ctime  (const hc_time_t *t, char *buf, MAYBE_UNUSED const size_t buf_size);
+char *hc_ctime (const time_t *t, char *buf, MAYBE_UNUSED const size_t buf_size);
 
 bool hc_same_files (char *file1, char *file2);
 

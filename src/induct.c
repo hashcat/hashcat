@@ -16,11 +16,11 @@ static int sort_by_mtime (const void *p1, const void *p2)
   const char* const *f1 = (const char* const *) p1;
   const char* const *f2 = (const char* const *) p2;
 
-  hc_stat_t s1;
-  hc_stat_t s2;
+  struct stat s1;
+  struct stat s2;
 
-  const int rc1 = hc_stat (*f1, &s1);
-  const int rc2 = hc_stat (*f2, &s2);
+  const int rc1 = stat (*f1, &s1);
+  const int rc2 = stat (*f2, &s2);
 
   if (rc1 < rc2) return  1;
   if (rc1 > rc2) return -1;
@@ -69,7 +69,7 @@ int induct_ctx_init (hashcat_ctx_t *hashcat_ctx)
       {
         char *root_directory_mv;
 
-        hc_asprintf (&root_directory_mv, "%s/%s.induct.%d", folder_config->session_dir, user_options->session, (int) hc_time (NULL));
+        hc_asprintf (&root_directory_mv, "%s/%s.induct.%d", folder_config->session_dir, user_options->session, (int) time (NULL));
 
         if (rename (root_directory, root_directory_mv) != 0)
         {

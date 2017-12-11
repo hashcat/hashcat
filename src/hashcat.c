@@ -214,9 +214,9 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   hc_timer_set (&status_ctx->timer_running);
 
-  hc_time_t runtime_start;
+  time_t runtime_start;
 
-  hc_time (&runtime_start);
+  time (&runtime_start);
 
   status_ctx->runtime_start = runtime_start;
 
@@ -270,9 +270,9 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   // update some timer
 
-  hc_time_t runtime_stop;
+  time_t runtime_stop;
 
-  hc_time (&runtime_stop);
+  time (&runtime_stop);
 
   status_ctx->runtime_stop = runtime_stop;
 
@@ -1103,7 +1103,7 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
   // start logfile entry
 
-  const hc_time_t proc_start = hc_time (NULL);
+  const time_t proc_start = time (NULL);
 
   logfile_generate_topid (hashcat_ctx);
 
@@ -1176,7 +1176,7 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
   // final logfile entry
 
-  const hc_time_t proc_stop = hc_time (NULL);
+  const time_t proc_stop = time (NULL);
 
   logfile_top_uint (proc_start);
   logfile_top_uint (proc_stop);

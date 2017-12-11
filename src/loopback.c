@@ -97,9 +97,9 @@ int loopback_write_open (hashcat_ctx_t *hashcat_ctx)
 
   if (induct_ctx->enabled == false) return 0;
 
-  hc_time_t now;
+  time_t now;
 
-  hc_time (&now);
+  time (&now);
 
   const u32 random_num = get_random_num (0, 9999);
 

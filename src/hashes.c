@@ -404,7 +404,7 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
     {
       hc_thread_mutex_lock (status_ctx->mux_display);
 
-      cpt_ctx->cpt_buf[cpt_ctx->cpt_pos].timestamp = hc_time (NULL);
+      cpt_ctx->cpt_buf[cpt_ctx->cpt_pos].timestamp = time (NULL);
       cpt_ctx->cpt_buf[cpt_ctx->cpt_pos].cracked   = cpt_cracked;
 
       cpt_ctx->cpt_pos++;
@@ -514,9 +514,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     {
       if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
       {
-        hc_stat_t st;
+        struct stat st;
 
-        if (hc_stat (hashes->hashfile, &st) == -1)
+        if (stat (hashes->hashfile, &st) == -1)
         {
           event_log_error (hashcat_ctx, "%s: %s", hashes->hashfile, strerror (errno));
 
@@ -541,9 +541,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       }
       else if (hashconfig->hash_mode == 14600)
       {
-        hc_stat_t st;
+        struct stat st;
 
-        if (hc_stat (hashes->hashfile, &st) == -1)
+        if (stat (hashes->hashfile, &st) == -1)
         {
           event_log_error (hashcat_ctx, "%s: %s", hashes->hashfile, strerror (errno));
 
@@ -947,8 +947,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-      hc_time_t prev = 0;
-      hc_time_t now  = 0;
+      time_t prev = 0;
+      time_t now  = 0;
 
       while (!feof (fp))
       {
@@ -1140,11 +1140,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           hashes_cnt++;
         }
 
-        hc_time (&now);
+        time (&now);
 
         if ((now - prev) == 0) continue;
 
-        hc_time (&prev);
+        time (&prev);
 
         hashlist_parse_t hashlist_parse;
 
