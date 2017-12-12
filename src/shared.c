@@ -404,15 +404,6 @@ void hc_fwrite (const void *ptr, size_t size, size_t nmemb, FILE *stream)
   if (rc == 0) rc = 0;
 }
 
-char *hc_ctime (const time_t *t, char *buf, MAYBE_UNUSED const size_t buf_size)
-{
-  char *etc = NULL;
-
-  etc = ctime_r (t, buf); // buf should have room for at least 26 bytes
-
-  return etc;
-}
-
 bool hc_same_files (char *file1, char *file2)
 {
   if ((file1 != NULL) && (file2 != NULL))

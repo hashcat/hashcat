@@ -970,7 +970,7 @@ char *status_get_time_started_absolute (const hashcat_ctx_t *hashcat_ctx)
 
   char buf[32] = { 0 };
 
-  char *start = hc_ctime (&time_start, buf, 32);
+  char *start = ctime_r (&time_start, buf);
 
   const size_t start_len = strlen (start);
 
@@ -1056,7 +1056,7 @@ char *status_get_time_estimated_absolute (const hashcat_ctx_t *hashcat_ctx)
   {
     time_t end = now + sec_etc;
 
-    etc = hc_ctime (&end, buf, sizeof (buf));
+    etc = ctime_r (&end, buf);
 
     if (etc == NULL) etc = (char *) ETA_ABSOLUTE_MAX_EXCEEDED;
   }
