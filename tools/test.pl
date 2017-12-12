@@ -3835,7 +3835,7 @@ sub passthrough
     }
     elsif ($mode == 16200)
     {
-      $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, 16));
+      $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, 32));
     }
     else
     {
@@ -4898,11 +4898,11 @@ sub single
       {
         if ($len != 0)
         {
-          rnd ($mode, $len, 16);
+          rnd ($mode, $len, 32);
         }
         else
         {
-          rnd ($mode, $i, 16);
+          rnd ($mode, $i, 32);
         }
       }
     }
