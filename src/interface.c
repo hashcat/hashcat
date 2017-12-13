@@ -15849,7 +15849,7 @@ int apple_secure_notes_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_bu
 
   // Z_PK
 
-  u8 *Z_PK_pos = input_buf + 4 + 1;
+  u8 *Z_PK_pos = input_buf + 5 + 1;
 
   // ZCRYPTOITERATIONCOUNT
 
@@ -15881,7 +15881,7 @@ int apple_secure_notes_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_bu
 
   ZCRYPTOWRAPPEDKEY_pos++;
 
-  u32 ZCRYPTOWRAPPEDKEY_len = input_len - 4 - 1 - Z_PK_len - 1 - ZCRYPTOITERATIONCOUNT_len - 1 - ZCRYPTOSALT_len - 1;
+  u32 ZCRYPTOWRAPPEDKEY_len = input_len - 5 - 1 - Z_PK_len - 1 - ZCRYPTOITERATIONCOUNT_len - 1 - ZCRYPTOSALT_len - 1;
 
   /**
    * verify some data
