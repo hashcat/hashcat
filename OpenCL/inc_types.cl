@@ -1478,6 +1478,15 @@ typedef struct tacacs_plus
 
 } tacacs_plus_t;
 
+typedef struct apple_secure_notes
+{
+  u32 Z_PK;
+  u32 ZCRYPTOITERATIONCOUNT;
+  u32 ZCRYPTOSALT[16];
+  u32 ZCRYPTOWRAPPEDKEY[16];
+
+} apple_secure_notes_t;
+
 typedef struct pdf14_tmp
 {
   u32 digest[4];
@@ -1865,6 +1874,16 @@ typedef struct dpapimk_tmp_v2
   u32 userKey[5];
 
 } dpapimk_tmp_v2_t;
+
+typedef struct apple_secure_notes_tmp
+{
+  u32 ipad[8];
+  u32 opad[8];
+
+  u32 dgst[8];
+  u32 out[8];
+
+} apple_secure_notes_tmp_t;
 
 typedef struct bsdicrypt_tmp
 {
