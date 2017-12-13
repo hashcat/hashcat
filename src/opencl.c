@@ -3169,7 +3169,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         {
           need_nvml = true;
 
-          #if defined (_WIN) || (__CYGWIN__)
+          #if defined (_WIN) || defined (__CYGWIN__)
           need_nvapi = true;
           #endif
         }
