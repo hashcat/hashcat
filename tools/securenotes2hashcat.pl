@@ -25,7 +25,7 @@ $sth->execute () or die $DBI::errstr;
 
 while (my $row = $sth->fetchrow_arrayref ())
 {
-  printf ("\$SN\$*%d*%d*%s*%s\n", $row->[0], $row->[1], unpack ("H*", $row->[2]), unpack ("H*", $row->[3]));
+  printf ("\$ASN\$*%d*%d*%s*%s\n", $row->[0], $row->[1], unpack ("H*", $row->[2]), unpack ("H*", $row->[3]));
 }
 
 $sth->finish;
