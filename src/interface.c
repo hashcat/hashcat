@@ -269,7 +269,7 @@ static const char *ST_HASH_15600 = "$ethereum$p*1024*383531313538313333383131383
 static const char *ST_HASH_15900 = "$DPAPImk$2*1*S-15-21-439882973-489230393-482956683-1522*aes256*sha512*12900*79f7ca399f2626e21aad108c3922af7c*288*c47bc8a985ca6aa708b01c97b004bff20cc52379dc2635b4acf59ce17970a2cb47ace98c7e8de977f265243c5c03d0a97e4b954b494d9e38d9158d0c1e729d16a28ba69e2e7c6c3bc0e3afc9c9b6306b83372ccb35d89b98925728fd36315b8ee95b4d4eccdcb31564769f9a4b9ee10828184e16d4af336675d5e31d987dd87233d34fbbb98880c5e1f64cbb9b043ad8";
 static const char *ST_HASH_16000 = "pfaRCwDe0U";
 static const char *ST_HASH_16100 = "$tacacs-plus$0$5fde8e68$4e13e8fb33df$c006";
-static const char *ST_HASH_16200 = "$SN$*1*20000*80771171105233481004850004085037*d04b17af7f6b184346aad3efefe8bec0987ee73418291a41";
+static const char *ST_HASH_16200 = "$ASN$*1*20000*80771171105233481004850004085037*d04b17af7f6b184346aad3efefe8bec0987ee73418291a41";
 static const char *ST_HASH_99999 = "hashcat";
 
 static const char *OPTI_STR_OPTIMIZED_KERNEL     = "Optimized-Kernel";
@@ -650,7 +650,7 @@ static const char *SIGNATURE_JKS_SHA1           = "$jksprivk$";
 static const char *SIGNATURE_ETHEREUM_PBKDF2    = "$ethereum$p";
 static const char *SIGNATURE_ETHEREUM_SCRYPT    = "$ethereum$s";
 static const char *SIGNATURE_TACACS_PLUS        = "$tacacs-plus$0$";
-static const char *SIGNATURE_APPLE_SECURE_NOTES = "$SN$";
+static const char *SIGNATURE_APPLE_SECURE_NOTES = "$ASN$";
 
 /**
  * decoder / encoder
@@ -15835,7 +15835,7 @@ int apple_secure_notes_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_bu
 {
   if ((input_len < DISPLAY_LEN_MIN_16200) || (input_len > DISPLAY_LEN_MAX_16200)) return (PARSER_GLOBAL_LENGTH);
 
-  if (memcmp (SIGNATURE_APPLE_SECURE_NOTES, input_buf, 4) != 0) return (PARSER_SIGNATURE_UNMATCHED);
+  if (memcmp (SIGNATURE_APPLE_SECURE_NOTES, input_buf, 5) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
   u32 *digest = (u32 *) hash_buf->digest;
 

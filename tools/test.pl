@@ -2831,7 +2831,7 @@ sub verify
 
       my $signature = shift @data;
 
-      next unless ($signature eq '$SN$');
+      next unless ($signature eq '$ASN$');
 
       my ($Z_PK, $ZCRYPTOITERATIONCOUNT, $ZCRYPTOSALT, $ZCRYPTOWRAPPEDKEY) = @data;
 
@@ -9238,7 +9238,7 @@ END_CODE
       $blob_bin = $A . $P1 . $P2;
     }
 
-    $tmp_hash = sprintf ('$SN$*%d*%d*%s*%s', $Z_PK, $iterations, unpack ("H*", $salt_bin), unpack ("H*", $blob_bin));
+    $tmp_hash = sprintf ('$ASN$*%d*%d*%s*%s', $Z_PK, $iterations, unpack ("H*", $salt_bin), unpack ("H*", $blob_bin));
   }
   elsif ($mode == 99999)
   {

@@ -1315,8 +1315,8 @@ typedef enum display_len
   DISPLAY_LEN_MAX_16000 = 10,
   DISPLAY_LEN_MIN_16100 = 1 + 11 + 1 + 1 + 1 + 8 +  12 + 1 + 4,
   DISPLAY_LEN_MAX_16100 = 1 + 11 + 1 + 1 + 1 + 8 + 256 + 1 + 4,
-  DISPLAY_LEN_MIN_16200 = 4 + 1 + 1 + 1 + 5 + 1 + 32 + 1 + 48,
-  DISPLAY_LEN_MAX_16200 = 4 + 1 + 5 + 1 + 5 + 1 + 32 + 1 + 48,
+  DISPLAY_LEN_MIN_16200 = 5 + 1 + 1 + 1 + 5 + 1 + 32 + 1 + 48,
+  DISPLAY_LEN_MAX_16200 = 5 + 1 + 5 + 1 + 5 + 1 + 32 + 1 + 48,
   DISPLAY_LEN_MIN_99999 = 1,
   DISPLAY_LEN_MAX_99999 = 55,
 
