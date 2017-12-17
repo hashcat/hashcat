@@ -15896,7 +15896,7 @@ int apple_secure_notes_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_bu
   if (is_valid_hex_string (ZCRYPTOSALT_pos,       ZCRYPTOSALT_len)        == false) return (PARSER_SALT_ENCODING);
   if (is_valid_hex_string (ZCRYPTOWRAPPEDKEY_pos, ZCRYPTOWRAPPEDKEY_len)  == false) return (PARSER_SALT_ENCODING);
 
-  if (ZCRYPTOITERATIONCOUNT != 20000) return (PARSER_SALT_ENCODING);
+  //if (ZCRYPTOITERATIONCOUNT != 20000) return (PARSER_SALT_ENCODING);
 
   /**
    * store data
