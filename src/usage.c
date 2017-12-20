@@ -362,6 +362,7 @@ static const char *const USAGE_BIG[] =
   "  15500 | JKS Java Key Store Private Keys (SHA1)           | Password Managers",
   "  15600 | Ethereum Wallet, PBKDF2-HMAC-SHA256              | Password Managers",
   "  15700 | Ethereum Wallet, SCRYPT                          | Password Managers",
+  "  16300 | Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256     | Password Managers",
   "  99999 | Plaintext                                        | Plaintext",
   "",
   "- [ Outfile Formats ] -",

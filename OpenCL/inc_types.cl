@@ -1467,6 +1467,14 @@ typedef struct ethereum_scrypt
 
 } ethereum_scrypt_t;
 
+typedef struct ethereum_presale
+{
+  u32 iv[4];
+  u32 enc_seed[152];
+  u32 enc_seed_len;
+
+} ethereum_presale_t;
+
 typedef struct tacacs_plus
 {
   u32 session_buf[16];

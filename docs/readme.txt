@@ -226,6 +226,7 @@ NVIDIA GPUs require "NVIDIA Driver" (367.x or later)
 - Password Safe v3
 - KeePass 1 (AES/Twofish) and KeePass 2 (AES)
 - JKS Java Key Store Private Keys (SHA1)
+- Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256
 - Ethereum Wallet, PBKDF2-HMAC-SHA256
 - Ethereum Wallet, SCRYPT
 - eCryptfs

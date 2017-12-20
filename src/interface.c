@@ -270,6 +270,7 @@ static const char *ST_HASH_15900 = "$DPAPImk$2*1*S-15-21-439882973-489230393-482
 static const char *ST_HASH_16000 = "pfaRCwDe0U";
 static const char *ST_HASH_16100 = "$tacacs-plus$0$5fde8e68$4e13e8fb33df$c006";
 static const char *ST_HASH_16200 = "$ASN$*1*20000*80771171105233481004850004085037*d04b17af7f6b184346aad3efefe8bec0987ee73418291a41";
+static const char *ST_HASH_16300 = "$ethereum$w*e94a8e49deac2d62206bf9bfb7d2aaea7eb06c1a378cfc1ac056cc599a569793c0ecc40e6a0c242dee2812f06b644d70f43331b1fa2ce4bd6cbb9f62dd25b443235bdb4c1ffb222084c9ded8c719624b338f17e0fd827b34d79801298ac75f74ed97ae16f72fccecf862d09a03498b1b8bd1d984fc43dd507ede5d4b6223a582352386407266b66c671077eefc1e07b5f42508bf926ab5616658c984968d8eec25c9d5197a4a30eed54c161595c3b4d558b17ab8a75ccca72b3d949919d197158ea5cfbc43ac7dd73cf77807dc2c8fe4ef1e942ccd11ec24fe8a410d48ef4b8a35c93ecf1a21c51a51a08f3225fbdcc338b1e7fdafd7d94b82a81d88c2e9a429acc3f8a5974eafb7af8c912597eb6fdcd80578bd12efddd99de47b44e7c8f6c38f2af3116b08796172eda89422e9ea9b99c7f98a7e331aeb4bb1b06f611e95082b629332c31dbcfd878aed77d300c9ed5c74af9cd6f5a8c4a261dd124317fb790a04481d93aec160af4ad8ec84c04d943a869f65f07f5ccf8295dc1c876f30408eac77f62192cbb25842470b4a5bdb4c8096f56da7e9ed05c21f61b94c54ef1c2e9e417cce627521a40a99e357dd9b7a7149041d589cbacbe0302db57ddc983b9a6d79ce3f2e9ae8ad45fa40b934ed6b36379b780549ae7553dbb1cab238138c05743d0103335325bd90e27d8ae1ea219eb8905503c5ad54fa12d22e9a7d296eee07c8a7b5041b8d56b8af290274d01eb0e4ad174eb26b23b5e9fb46ff7f88398e6266052292acb36554ccb9c2c03139fe72d3f5d30bd5d10bd79d7cb48d2ab24187d8efc3750d5a24980fb12122591455d14e75421a2074599f1cc9fdfc8f498c92ad8b904d3c4307f80c46921d8128*f3abede76ac15228f1b161dd9660bb9094e81b1b*d201ccd492c284484c7824c4d37b1593";
 static const char *ST_HASH_99999 = "hashcat";
 
 static const char *OPTI_STR_OPTIMIZED_KERNEL     = "Optimized-Kernel";
@@ -505,6 +506,7 @@ static const char *HT_15900 = "DPAPI masterkey file v2";
 static const char *HT_16000 = "Tripcode";
 static const char *HT_16100 = "TACACS+";
 static const char *HT_16200 = "Apple Secure Notes";
+static const char *HT_16300 = "Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256";
 static const char *HT_99999 = "Plaintext";
 
 static const char *HT_00011 = "Joomla < 2.5.18";
@@ -651,6 +653,7 @@ static const char *SIGNATURE_ETHEREUM_PBKDF2    = "$ethereum$p";
 static const char *SIGNATURE_ETHEREUM_SCRYPT    = "$ethereum$s";
 static const char *SIGNATURE_TACACS_PLUS        = "$tacacs-plus$0$";
 static const char *SIGNATURE_APPLE_SECURE_NOTES = "$ASN$";
+static const char *SIGNATURE_ETHEREUM_PRESALE   = "$ethereum$w";
 
 /**
  * decoder / encoder
@@ -15951,6 +15954,113 @@ int apple_secure_notes_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_bu
   return (PARSER_OK);
 }
 
+int ethereum_presale_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
+{
+  if ((input_len < DISPLAY_LEN_MIN_16300) || (input_len > DISPLAY_LEN_MAX_16300)) return (PARSER_GLOBAL_LENGTH);
+
+  if (memcmp (SIGNATURE_ETHEREUM_PRESALE, input_buf, 11) != 0) return (PARSER_SIGNATURE_UNMATCHED);
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  ethereum_presale_t *ethereum_presale = (ethereum_presale_t *) hash_buf->esalt;
+
+  /**
+   * parse line
+   */
+
+  // encseed
+
+  u8 *encseed_pos = input_buf + 11 + 1;
+
+  // address
+
+  u8 *ethaddr_pos = (u8 *) strchr ((const char *) encseed_pos, '*');
+
+  if (ethaddr_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 encseed_len = ethaddr_pos - encseed_pos;
+
+  ethaddr_pos++;
+
+  // hash (bkp)
+
+  u8 *bkp_pos = (u8 *) strchr ((const char *) ethaddr_pos, '*');
+
+  if (bkp_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+  u32 ethaddr_len = bkp_pos - ethaddr_pos;
+
+  bkp_pos++;
+
+  u32 bkp_len = input_len - 11 - 1 - encseed_len - 1 - ethaddr_len - 1;
+
+  /**
+   * verify some data
+   */
+
+  if (encseed_len  <   64) return (PARSER_SALT_LENGTH);
+  if (encseed_len  > 1248) return (PARSER_SALT_LENGTH);
+  if (ethaddr_len !=   40) return (PARSER_SALT_LENGTH);
+  if (bkp_len     !=   32) return (PARSER_SALT_LENGTH);
+
+  if ((encseed_len % 16) != 0) return (PARSER_SALT_LENGTH);
+
+  if (is_valid_hex_string (encseed_pos, encseed_len) == false) return (PARSER_SALT_ENCODING);
+  if (is_valid_hex_string (ethaddr_pos, ethaddr_len) == false) return (PARSER_HASH_ENCODING);
+  if (is_valid_hex_string (bkp_pos    , bkp_len    ) == false) return (PARSER_HASH_ENCODING);
+
+  /**
+   * store data
+   */
+
+  // iv (16 bytes)
+
+  ethereum_presale->iv[0] = hex_to_u32 ((const u8 *) &encseed_pos[ 0]);
+  ethereum_presale->iv[1] = hex_to_u32 ((const u8 *) &encseed_pos[ 8]);
+  ethereum_presale->iv[2] = hex_to_u32 ((const u8 *) &encseed_pos[16]);
+  ethereum_presale->iv[3] = hex_to_u32 ((const u8 *) &encseed_pos[24]);
+
+  ethereum_presale->iv[0] = byte_swap_32 (ethereum_presale->iv[0]);
+  ethereum_presale->iv[1] = byte_swap_32 (ethereum_presale->iv[1]);
+  ethereum_presale->iv[2] = byte_swap_32 (ethereum_presale->iv[2]);
+  ethereum_presale->iv[3] = byte_swap_32 (ethereum_presale->iv[3]);
+
+  // encseed
+
+  u32 *esalt_buf_ptr = ethereum_presale->enc_seed;
+
+  for (u32 i = 32, j = 0; i < encseed_len; i += 8, j++)
+  {
+    esalt_buf_ptr[j] = hex_to_u32 ((const u8 *) &encseed_pos [i]);
+
+    esalt_buf_ptr[j] = byte_swap_32 (esalt_buf_ptr[j]);
+  }
+
+  ethereum_presale->enc_seed_len = (encseed_len - 32) / 2; // encseed length without IV (raw bytes, not hex)
+
+  // salt
+
+  u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
+
+  u32 salt_len = parse_and_store_salt (salt_buf_ptr, ethaddr_pos, 40, hashconfig);
+
+  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
+
+  salt->salt_len  = salt_len;
+  salt->salt_iter = ROUNDS_ETHEREUM_PRESALE;
+
+  // hash
+
+  digest[0] = hex_to_u32 ((const u8 *) &bkp_pos[ 0]);
+  digest[1] = hex_to_u32 ((const u8 *) &bkp_pos[ 8]);
+  digest[2] = hex_to_u32 ((const u8 *) &bkp_pos[16]);
+  digest[3] = hex_to_u32 ((const u8 *) &bkp_pos[24]);
+
+  return (PARSER_OK);
+}
+
 /**
  * hook functions
  */
@@ -16384,6 +16494,7 @@ const char *strhashtype (const u32 hash_mode)
     case 16000: return HT_16000;
     case 16100: return HT_16100;
     case 16200: return HT_16200;
+    case 16300: return HT_16300;
     case 99999: return HT_99999;
   }
 
@@ -19837,6 +19948,58 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
       byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[3]),
       byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[4]),
       byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[5]));
+  }
+  else if (hash_mode == 16300)
+  {
+    ethereum_presale_t *ethereum_presales = (ethereum_presale_t *) esalts_buf;
+    ethereum_presale_t *ethereum_presale  = &ethereum_presales[digest_cur];
+
+    // get the initialization vector:
+
+    u8 encseed[1248 + 1] = { 0 };
+
+    u32 iv[4];
+
+    iv[0] = byte_swap_32 (ethereum_presale->iv[0]);
+    iv[1] = byte_swap_32 (ethereum_presale->iv[1]);
+    iv[2] = byte_swap_32 (ethereum_presale->iv[2]);
+    iv[3] = byte_swap_32 (ethereum_presale->iv[3]);
+
+    u32_to_hex_lower (iv[0], encseed +  0);
+    u32_to_hex_lower (iv[1], encseed +  8);
+    u32_to_hex_lower (iv[2], encseed + 16);
+    u32_to_hex_lower (iv[3], encseed + 24);
+
+    // get the raw enc_seed (without iv):
+
+    u32 *enc_seed_ptr = ethereum_presale->enc_seed;
+
+    for (u32 i = 0, j = 32; i < ethereum_presale->enc_seed_len / 4; i++, j += 8)
+    {
+      u32 tmp = enc_seed_ptr[i];
+
+      tmp = byte_swap_32 (tmp);
+
+      u32_to_hex_lower (tmp, encseed + j);
+    }
+
+    const u32 max_hex_len = (16 + ethereum_presale->enc_seed_len) * 2; // 16 bytes IV + encrypted seed (in hex)
+
+    const u32 max_pos = MIN (sizeof (encseed) - 1, max_hex_len);
+
+    encseed[max_pos] = 0;
+
+    // output:
+
+    snprintf (out_buf, out_len - 1, "%s*%s*%s*%08x%08x%08x%08x",
+      SIGNATURE_ETHEREUM_PRESALE,
+      encseed,
+      (char *) salt.salt_buf,
+      digest_buf[0],
+      digest_buf[1],
+      digest_buf[2],
+      digest_buf[3]
+    );
   }
   else if (hash_mode == 99999)
   {
@@ -24833,6 +24996,24 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
+    case 16300:  hashconfig->hash_type      = HASH_TYPE_PBKDF2_SHA256;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_ST_HEX;
+                 hashconfig->kern_type      = KERN_TYPE_ETHEREUM_PRESALE;
+                 hashconfig->dgst_size      = DGST_SIZE_4_8;
+                 hashconfig->parse_func     = ethereum_presale_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
+                 hashconfig->dgst_pos0      = 0;
+                 hashconfig->dgst_pos1      = 1;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 3;
+                 hashconfig->st_hash        = ST_HASH_16300;
+                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
+                 break;
+
     case 99999:  hashconfig->hash_type      = HASH_TYPE_PLAINTEXT;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -25043,6 +25224,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 15900: hashconfig->esalt_size = sizeof (dpapimk_t);            break;
     case 16100: hashconfig->esalt_size = sizeof (tacacs_plus_t);        break;
     case 16200: hashconfig->esalt_size = sizeof (apple_secure_notes_t); break;
+    case 16300: hashconfig->esalt_size = sizeof (ethereum_presale_t);   break;
   }
 
   // hook_salt_size
@@ -25151,6 +25333,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 15600: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
     case 15900: hashconfig->tmp_size = sizeof (dpapimk_tmp_v2_t);         break;
     case 16200: hashconfig->tmp_size = sizeof (apple_secure_notes_tmp_t); break;
+    case 16300: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
   };
 
   // hook_size
@@ -25781,72 +25964,76 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                   break;
       case 16200: salt->salt_len = 16;
                   break;
+      case 16300: salt->salt_len = 20;
+                  break;
     }
 
     // special esalt handling
 
     switch (hashconfig->hash_mode)
     {
-      case  2500: ((wpa_t *)           esalt)->eapol_len    = 128;
+      case  2500: ((wpa_t *)              esalt)->eapol_len    = 128;
                   break;
-      case  2501: ((wpa_t *)           esalt)->eapol_len    = 128;
+      case  2501: ((wpa_t *)              esalt)->eapol_len    = 128;
                   break;
-      case  5300: ((ikepsk_t *)        esalt)->nr_len        = 1;
-                  ((ikepsk_t *)        esalt)->msg_len       = 1;
+      case  5300: ((ikepsk_t *)           esalt)->nr_len        = 1;
+                  ((ikepsk_t *)           esalt)->msg_len       = 1;
                   break;
-      case  5400: ((ikepsk_t *)        esalt)->nr_len        = 1;
-                  ((ikepsk_t *)        esalt)->msg_len       = 1;
+      case  5400: ((ikepsk_t *)           esalt)->nr_len        = 1;
+                  ((ikepsk_t *)           esalt)->msg_len       = 1;
                   break;
-      case  5500: ((netntlm_t *)       esalt)->user_len      = 1;
-                  ((netntlm_t *)       esalt)->domain_len    = 1;
-                  ((netntlm_t *)       esalt)->srvchall_len  = 1;
-                  ((netntlm_t *)       esalt)->clichall_len  = 1;
+      case  5500: ((netntlm_t *)          esalt)->user_len      = 1;
+                  ((netntlm_t *)          esalt)->domain_len    = 1;
+                  ((netntlm_t *)          esalt)->srvchall_len  = 1;
+                  ((netntlm_t *)          esalt)->clichall_len  = 1;
                   break;
-      case  5600: ((netntlm_t *)       esalt)->user_len      = 1;
-                  ((netntlm_t *)       esalt)->domain_len    = 1;
-                  ((netntlm_t *)       esalt)->srvchall_len  = 1;
-                  ((netntlm_t *)       esalt)->clichall_len  = 1;
+      case  5600: ((netntlm_t *)          esalt)->user_len      = 1;
+                  ((netntlm_t *)          esalt)->domain_len    = 1;
+                  ((netntlm_t *)          esalt)->srvchall_len  = 1;
+                  ((netntlm_t *)          esalt)->clichall_len  = 1;
                   break;
-      case  7300: ((rakp_t *)          esalt)->salt_len      = 32;
+      case  7300: ((rakp_t *)             esalt)->salt_len      = 32;
                   break;
-      case 10400: ((pdf_t *)           esalt)->id_len        = 16;
-                  ((pdf_t *)           esalt)->o_len         = 32;
-                  ((pdf_t *)           esalt)->u_len         = 32;
+      case 10400: ((pdf_t *)              esalt)->id_len        = 16;
+                  ((pdf_t *)              esalt)->o_len         = 32;
+                  ((pdf_t *)              esalt)->u_len         = 32;
                   break;
-      case 10410: ((pdf_t *)           esalt)->id_len        = 16;
-                  ((pdf_t *)           esalt)->o_len         = 32;
-                  ((pdf_t *)           esalt)->u_len         = 32;
+      case 10410: ((pdf_t *)              esalt)->id_len        = 16;
+                  ((pdf_t *)              esalt)->o_len         = 32;
+                  ((pdf_t *)              esalt)->u_len         = 32;
                   break;
-      case 10420: ((pdf_t *)           esalt)->id_len        = 16;
-                  ((pdf_t *)           esalt)->o_len         = 32;
-                  ((pdf_t *)           esalt)->u_len         = 32;
+      case 10420: ((pdf_t *)              esalt)->id_len        = 16;
+                  ((pdf_t *)              esalt)->o_len         = 32;
+                  ((pdf_t *)              esalt)->u_len         = 32;
                   break;
-      case 10500: ((pdf_t *)           esalt)->id_len        = 16;
-                  ((pdf_t *)           esalt)->o_len         = 32;
-                  ((pdf_t *)           esalt)->u_len         = 32;
+      case 10500: ((pdf_t *)              esalt)->id_len        = 16;
+                  ((pdf_t *)              esalt)->o_len         = 32;
+                  ((pdf_t *)              esalt)->u_len         = 32;
                   break;
-      case 10600: ((pdf_t *)           esalt)->id_len        = 16;
-                  ((pdf_t *)           esalt)->o_len         = 127;
-                  ((pdf_t *)           esalt)->u_len         = 127;
+      case 10600: ((pdf_t *)              esalt)->id_len        = 16;
+                  ((pdf_t *)              esalt)->o_len         = 127;
+                  ((pdf_t *)              esalt)->u_len         = 127;
                   break;
-      case 10700: ((pdf_t *)           esalt)->id_len        = 16;
-                  ((pdf_t *)           esalt)->o_len         = 127;
-                  ((pdf_t *)           esalt)->u_len         = 127;
+      case 10700: ((pdf_t *)              esalt)->id_len        = 16;
+                  ((pdf_t *)              esalt)->o_len         = 127;
+                  ((pdf_t *)              esalt)->u_len         = 127;
                   break;
-      case 11400: ((sip_t *)           esalt)->salt_len      = 2;
-                  ((sip_t *)           esalt)->esalt_len     = 39;
+      case 11400: ((sip_t *)              esalt)->salt_len      = 2;
+                  ((sip_t *)              esalt)->esalt_len     = 39;
                   break;
-      case 13400: ((keepass_t *)       esalt)->version       = 2;
+      case 13400: ((keepass_t *)          esalt)->version       = 2;
                   break;
-      case 13500: ((pstoken_t *)       esalt)->salt_len      = 113;
+      case 13500: ((pstoken_t *)          esalt)->salt_len      = 113;
                   break;
-      case 13600: ((zip2_t *)          esalt)->salt_len      = 16;
-                  ((zip2_t *)          esalt)->data_len      = 32;
-                  ((zip2_t *)          esalt)->mode          = 3;
+      case 13600: ((zip2_t *)             esalt)->salt_len      = 16;
+                  ((zip2_t *)             esalt)->data_len      = 32;
+                  ((zip2_t *)             esalt)->mode          = 3;
                   break;
-      case 14600: ((luks_t *)          esalt)->key_size      = HC_LUKS_KEY_SIZE_256;
-                  ((luks_t *)          esalt)->cipher_type   = HC_LUKS_CIPHER_TYPE_AES;
-                  ((luks_t *)          esalt)->cipher_mode   = HC_LUKS_CIPHER_MODE_XTS_PLAIN;
+      case 14600: ((luks_t *)             esalt)->key_size      = HC_LUKS_KEY_SIZE_256;
+                  ((luks_t *)             esalt)->cipher_type   = HC_LUKS_CIPHER_TYPE_AES;
+                  ((luks_t *)             esalt)->cipher_mode   = HC_LUKS_CIPHER_MODE_XTS_PLAIN;
+                  break;
+      case 16300: ((ethereum_presale_t *) esalt)->enc_seed_len = 608;
                   break;
     }
 
@@ -26053,6 +26240,8 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
     case 15900:  salt->salt_iter  = ROUNDS_DPAPIMK_V2;
                  break;
     case 16200:  salt->salt_iter  = ROUNDS_APPLE_SECURE_NOTES - 1;
+                 break;
+    case 16300:  salt->salt_iter  = ROUNDS_ETHEREUM_PRESALE;
                  break;
   }
 }
