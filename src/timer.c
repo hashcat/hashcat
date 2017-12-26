@@ -33,7 +33,25 @@ inline double hc_timer_get (hc_timer_t a)
 
 inline void hc_timer_set (hc_timer_t* a)
 {
+  #if defined (__APPLE__)
+  // taken from proxmark3/client/util_posix
+  static uint64_t clock_start_time = 0;
+  static mach_timebase_info_data_t timebase_info = {0, 0};
+  uint64_t now = mach_absolute_time();
+
+  if (clock_start_time == 0)
+  {
+    mach_timebase_info(&timebase_info);
+    clock_start_time = now;
+  }
+
+  now = (uint64_t)((double)(now - clock_start_time) * (double)timebase_info.numer / (double)timebase_info.denom);
+
+  a->tv_sec = now / 1000000000;
+  a->tv_nsec = now % 1000000000;
+  #else
   clock_gettime (CLOCK_MONOTONIC, a);
+  #endif
 }
 
 inline double hc_timer_get (hc_timer_t a)
