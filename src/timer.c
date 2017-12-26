@@ -33,7 +33,7 @@ inline double hc_timer_get (hc_timer_t a)
 
 inline void hc_timer_set (hc_timer_t* a)
 {
-  #if defined (__APPLE__)
+  #if defined(__APPLE__) && defined(MISSING_CLOCK_GETTIME)
   // taken from proxmark3/client/util_posix
   static uint64_t clock_start_time = 0;
   static mach_timebase_info_data_t timebase_info = {0, 0};

@@ -92,6 +92,7 @@ ifeq ($(UNAME),Darwin)
 CC                      := clang
 # the sed -i option of macOS requires a parameter for the backup file (we just use "")
 SED_IN_PLACE            := -i ""
+PROD_VERS               := $(shell sw_vers -productVersion | cut -d. -f2)
 endif
 
 ifeq ($(UNAME),FreeBSD)
@@ -215,6 +216,11 @@ endif # FreeBSD
 ifeq ($(UNAME),Darwin)
 export MACOSX_DEPLOYMENT_TARGET=10.9
 CFLAGS_NATIVE           := $(CFLAGS)
+
+ifeq ($(shell test $(PROD_VERS) -le 11; echo $$?), 0)
+CFLAGS_NATIVE           += -DMISSING_CLOCK_GETTIME
+endif
+
 LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -framework OpenCL
 LFLAGS_NATIVE           += -lpthread

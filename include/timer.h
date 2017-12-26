@@ -6,7 +6,7 @@
 #ifndef _TIMER_H
 #define _TIMER_H
 
-#if defined(__APPLE__)
+#if defined(__APPLE__) && defined(MISSING_CLOCK_GETTIME)
 #include <sys/time.h>
 #include <mach/clock.h>
 #include <mach/mach.h>
