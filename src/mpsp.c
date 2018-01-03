@@ -1284,18 +1284,20 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
         if (mask_ctx->css_cnt < mask_min)
         {
           event_log_warning (hashcat_ctx, "Skipping mask '%s' because it is smaller than the minimum password length.", mask_ctx->mask);
+          event_log_warning (hashcat_ctx, NULL);
         }
 
         if (mask_ctx->css_cnt > mask_max)
         {
           event_log_warning (hashcat_ctx, "Skipping mask '%s' because it is larger than the maximum password length.", mask_ctx->mask);
+          event_log_warning (hashcat_ctx, NULL);
         }
 
         // skip to next mask
 
         logfile_sub_msg ("STOP");
 
-        return 0;
+        return -1;
       }
 
       if (hashconfig->opts_type & OPTS_TYPE_PT_UTF16LE)
