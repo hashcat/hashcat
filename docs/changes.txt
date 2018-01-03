@@ -25,6 +25,7 @@
 - Fixed a hash parsing problem for 7-Zip hashes: allow a longer crc32 data length field within the hash format
 - Fixed the output of --show if $HEX[] passwords are present within the potfile
 - Fixed a restore issue leading to "Restore value is greater than keyspace" in case mask-files or wordlist-folders were used
+- Fixed a mask-length check issue: Return -1 in case the mask-length is not within the password-length range
 
 ##
 ## Improvements
