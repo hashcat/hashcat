@@ -1215,6 +1215,8 @@ typedef enum display_len
   DISPLAY_LEN_MAX_10100 = 16 + 1 + 1 + 1 + 1 + 1 + 32,
   DISPLAY_LEN_MIN_10200 = 10 + 12 + 1 + 44,
   DISPLAY_LEN_MAX_10200 = 10 + 76 + 1 + 132,
+  DISPLAY_LEN_MIN_10201 = 10 + 32 + 32,
+  DISPLAY_LEN_MAX_10201 = 10 + 32 + 32,
   DISPLAY_LEN_MIN_10300 = 10 + 1 + 1 + 33,
   DISPLAY_LEN_MAX_10300 = 10 + 5 + 1 + 49,
   DISPLAY_LEN_MIN_10400 = 5 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 32 + 1 + 2 + 1 +  64 + 1 + 2 + 1 +  64,
@@ -1457,6 +1459,7 @@ typedef enum hash_type
   HASH_TYPE_JKS_SHA1            = 62,
   HASH_TYPE_TACACS_PLUS         = 63,
   HASH_TYPE_APPLE_SECURE_NOTES  = 64,
+  HASH_TYPE_CRAM_MD5_DOVECOT    = 65,
 
 } hash_type_t;
 
@@ -1588,6 +1591,7 @@ typedef enum kern_type
   KERN_TYPE_OLDOFFICE34CM2          = 9820,
   KERN_TYPE_RADMIN2                 = 9900,
   KERN_TYPE_SIPHASH                 = 10100,
+  KERN_TYPE_CRAM_MD5_DOVECOT        = 10201,
   KERN_TYPE_SAPH_SHA1               = 10300,
   KERN_TYPE_PDF11                   = 10400,
   KERN_TYPE_PDF11CM1                = 10410,
@@ -1860,6 +1864,7 @@ int djangosha1_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int djangopbkdf2_parse_hash       (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int siphash_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int crammd5_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
+int crammd5_dovecot_parse_hash    (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int saph_sha1_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int redmine_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int punbb_parse_hash              (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);

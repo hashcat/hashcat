@@ -12,6 +12,7 @@
 ## Algorithms
 ##
 
+- Added hash-mode 10201 = CRAM-MD5 Dovecot
 - Added hash-mode 16000 = Tripcode
 - Added hash-mode 16100 = TACACS+
 - Added hash-mode 16200 = Apple Secure Notes

@@ -201,6 +201,7 @@ static const char *ST_HASH_09900 = "22527bee5c29ce95373c4e0f359f079b";
 static const char *ST_HASH_10000 = "pbkdf2_sha256$10000$1135411628$bFYX62rfJobJ07VwrUMXfuffLfj2RDM2G6/BrTrUWkE=";
 static const char *ST_HASH_10100 = "583e6f51e52ba296:2:4:47356410265714355482333327356688";
 static const char *ST_HASH_10200 = "$cram_md5$MTI=$dXNlciBiOGYwNjk5MTE0YjA1Nzg4OTIyM2RmMDg0ZjgyMjQ2Zg==";
+static const char *ST_HASH_10201 = "{CRAM-MD5}5389b33b9725e5657cb631dc50017ff100000000000000000000000000000000";
 static const char *ST_HASH_10300 = "{x-issha, 1024}BnjXMqcNTwa3BzdnUOf1iAu6dw02NzU4MzE2MTA=";
 static const char *ST_HASH_10400 = "$pdf$1*2*40*-1*0*16*01221086741440841668371056103222*32*27c3fecef6d46a78eb61b8b4dbc690f5f8a2912bbb9afc842c12d79481568b74*32*0000000000000000000000000000000000000000000000000000000000000000";
 static const char *ST_HASH_10410 = "$pdf$1*2*40*-1*0*16*01221086741440841668371056103222*32*27c3fecef6d46a78eb61b8b4dbc690f5f8a2912bbb9afc842c12d79481568b74*32*0000000000000000000000000000000000000000000000000000000000000000";
@@ -449,6 +450,7 @@ static const char *HT_09900 = "Radmin2";
 static const char *HT_10000 = "Django (PBKDF2-SHA256)";
 static const char *HT_10100 = "SipHash";
 static const char *HT_10200 = "CRAM-MD5";
+static const char *HT_10201 = "CRAM-MD5 Dovecot";
 static const char *HT_10300 = "SAP CODVN H (PWDSALTEDHASH) iSSHA-1";
 static const char *HT_10400 = "PDF 1.1 - 1.3 (Acrobat 2 - 4)";
 static const char *HT_10410 = "PDF 1.1 - 1.3 (Acrobat 2 - 4), collider #1";
@@ -581,6 +583,7 @@ static const char *SIGNATURE_BSDICRYPT          = "_";
 static const char *SIGNATURE_CISCO8             = "$8$";
 static const char *SIGNATURE_CISCO9             = "$9$";
 static const char *SIGNATURE_CRAM_MD5           = "$cram_md5$";
+static const char *SIGNATURE_CRAM_MD5_DOVECOT   = "{CRAM-MD5}";
 static const char *SIGNATURE_DCC2               = "$DCC2$";
 static const char *SIGNATURE_DJANGOPBKDF2       = "pbkdf2_sha256$";
 static const char *SIGNATURE_DJANGOSHA1         = "sha1$";
@@ -10263,6 +10266,34 @@ int crammd5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   return (PARSER_OK);
 }
 
+int crammd5_dovecot_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
+{
+  if ((input_len < DISPLAY_LEN_MIN_10201) || (input_len > DISPLAY_LEN_MAX_10201)) return (PARSER_GLOBAL_LENGTH);
+
+  if (memcmp (SIGNATURE_CRAM_MD5_DOVECOT, input_buf, 10) != 0) return (PARSER_SIGNATURE_UNMATCHED);
+
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  u8 *iter_pos = input_buf + 10;
+
+  if (is_valid_hex_string (iter_pos, 64) == false) return (PARSER_HASH_ENCODING);
+
+  digest[0] = hex_to_u32 ((const u8 *) &iter_pos[ 0]);
+  digest[1] = hex_to_u32 ((const u8 *) &iter_pos[ 8]);
+  digest[2] = hex_to_u32 ((const u8 *) &iter_pos[16]);
+  digest[3] = hex_to_u32 ((const u8 *) &iter_pos[24]);
+
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= MD5M_A;
+    digest[1] -= MD5M_B;
+    digest[2] -= MD5M_C;
+    digest[3] -= MD5M_D;
+  }
+
+  return (PARSER_OK);
+}
+
 int saph_sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
   if ((input_len < DISPLAY_LEN_MIN_10300) || (input_len > DISPLAY_LEN_MAX_10300)) return (PARSER_GLOBAL_LENGTH);
@@ -16418,6 +16449,7 @@ const char *strhashtype (const u32 hash_mode)
     case 10000: return HT_10000;
     case 10100: return HT_10100;
     case 10200: return HT_10200;
+    case 10201: return HT_10201;
     case 10300: return HT_10300;
     case 10400: return HT_10400;
     case 10410: return HT_10410;
@@ -18540,6 +18572,13 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     base64_encode (int_to_base64, (const u8 *) tmp_buf, tmp_len, (u8 *) response);
 
     snprintf (out_buf, out_len - 1, "%s%s$%s", SIGNATURE_CRAM_MD5, challenge, response);
+  }
+  else if (hash_mode == 10201)
+  {
+    hashinfo_t **hashinfo_ptr = hash_info;
+    char        *hash_buf     = hashinfo_ptr[digest_cur]->orighash;
+
+    snprintf (out_buf, out_len - 1, "%s", hash_buf);
   }
   else if (hash_mode == 10300)
   {
@@ -23599,6 +23638,29 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
+    case 10201:  hashconfig->hash_type      = HASH_TYPE_CRAM_MD5_DOVECOT;
+                 hashconfig->salt_type      = SALT_TYPE_NONE;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_HASH_COPY;
+                 hashconfig->kern_type      = KERN_TYPE_CRAM_MD5_DOVECOT;
+                 hashconfig->dgst_size      = DGST_SIZE_4_4;
+                 hashconfig->parse_func     = crammd5_dovecot_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_PRECOMPUTE_INIT
+                                            | OPTI_TYPE_PRECOMPUTE_MERKLE
+                                            | OPTI_TYPE_MEET_IN_MIDDLE
+                                            | OPTI_TYPE_EARLY_SKIP
+                                            | OPTI_TYPE_NOT_ITERATED
+                                            | OPTI_TYPE_RAW_HASH;
+                 hashconfig->dgst_pos0      = 0;
+                 hashconfig->dgst_pos1      = 3;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 1;
+                 hashconfig->st_hash        = ST_HASH_10201;
+                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
+                 break;
+
     case 10300:  hashconfig->hash_type      = HASH_TYPE_SHA1;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -25442,6 +25504,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     switch (hashconfig->hash_mode)
     {
       case 10700: hashconfig->pw_max = 127; // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
+                  break;
+      case 10201: hashconfig->pw_max = 64; // HMAC-MD5 and `doveadm pw` are different for password more than 64 bytes
                   break;
     }
   }

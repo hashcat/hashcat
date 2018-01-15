@@ -131,6 +131,7 @@ NVIDIA GPUs require "NVIDIA Driver" (367.x or later)
 - IPMI2 RAKP
 - iSCSI CHAP
 - CRAM-MD5
+- CRAM-MD5 Dovecot
 - MySQL CRAM (SHA1)
 - PostgreSQL CRAM (MD5)
 - SIP digest authentication (MD5)
