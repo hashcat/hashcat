@@ -47,6 +47,8 @@ typedef uint64_t u64;
 
 #if defined (_WIN)
 typedef LARGE_INTEGER     hc_timer_t;
+#elif defined(__APPLE__) && defined(MISSING_CLOCK_GETTIME)
+typedef struct timeval    hc_timer_t;
 #else
 typedef struct timespec   hc_timer_t;
 #endif
