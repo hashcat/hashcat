@@ -201,7 +201,6 @@ static const char *ST_HASH_09900 = "22527bee5c29ce95373c4e0f359f079b";
 static const char *ST_HASH_10000 = "pbkdf2_sha256$10000$1135411628$bFYX62rfJobJ07VwrUMXfuffLfj2RDM2G6/BrTrUWkE=";
 static const char *ST_HASH_10100 = "583e6f51e52ba296:2:4:47356410265714355482333327356688";
 static const char *ST_HASH_10200 = "$cram_md5$MTI=$dXNlciBiOGYwNjk5MTE0YjA1Nzg4OTIyM2RmMDg0ZjgyMjQ2Zg==";
-static const char *ST_HASH_10201 = "{CRAM-MD5}5389b33b9725e5657cb631dc50017ff100000000000000000000000000000000";
 static const char *ST_HASH_10300 = "{x-issha, 1024}BnjXMqcNTwa3BzdnUOf1iAu6dw02NzU4MzE2MTA=";
 static const char *ST_HASH_10400 = "$pdf$1*2*40*-1*0*16*01221086741440841668371056103222*32*27c3fecef6d46a78eb61b8b4dbc690f5f8a2912bbb9afc842c12d79481568b74*32*0000000000000000000000000000000000000000000000000000000000000000";
 static const char *ST_HASH_10410 = "$pdf$1*2*40*-1*0*16*01221086741440841668371056103222*32*27c3fecef6d46a78eb61b8b4dbc690f5f8a2912bbb9afc842c12d79481568b74*32*0000000000000000000000000000000000000000000000000000000000000000";
@@ -272,6 +271,7 @@ static const char *ST_HASH_16000 = "pfaRCwDe0U";
 static const char *ST_HASH_16100 = "$tacacs-plus$0$5fde8e68$4e13e8fb33df$c006";
 static const char *ST_HASH_16200 = "$ASN$*1*20000*80771171105233481004850004085037*d04b17af7f6b184346aad3efefe8bec0987ee73418291a41";
 static const char *ST_HASH_16300 = "$ethereum$w*e94a8e49deac2d62206bf9bfb7d2aaea7eb06c1a378cfc1ac056cc599a569793c0ecc40e6a0c242dee2812f06b644d70f43331b1fa2ce4bd6cbb9f62dd25b443235bdb4c1ffb222084c9ded8c719624b338f17e0fd827b34d79801298ac75f74ed97ae16f72fccecf862d09a03498b1b8bd1d984fc43dd507ede5d4b6223a582352386407266b66c671077eefc1e07b5f42508bf926ab5616658c984968d8eec25c9d5197a4a30eed54c161595c3b4d558b17ab8a75ccca72b3d949919d197158ea5cfbc43ac7dd73cf77807dc2c8fe4ef1e942ccd11ec24fe8a410d48ef4b8a35c93ecf1a21c51a51a08f3225fbdcc338b1e7fdafd7d94b82a81d88c2e9a429acc3f8a5974eafb7af8c912597eb6fdcd80578bd12efddd99de47b44e7c8f6c38f2af3116b08796172eda89422e9ea9b99c7f98a7e331aeb4bb1b06f611e95082b629332c31dbcfd878aed77d300c9ed5c74af9cd6f5a8c4a261dd124317fb790a04481d93aec160af4ad8ec84c04d943a869f65f07f5ccf8295dc1c876f30408eac77f62192cbb25842470b4a5bdb4c8096f56da7e9ed05c21f61b94c54ef1c2e9e417cce627521a40a99e357dd9b7a7149041d589cbacbe0302db57ddc983b9a6d79ce3f2e9ae8ad45fa40b934ed6b36379b780549ae7553dbb1cab238138c05743d0103335325bd90e27d8ae1ea219eb8905503c5ad54fa12d22e9a7d296eee07c8a7b5041b8d56b8af290274d01eb0e4ad174eb26b23b5e9fb46ff7f88398e6266052292acb36554ccb9c2c03139fe72d3f5d30bd5d10bd79d7cb48d2ab24187d8efc3750d5a24980fb12122591455d14e75421a2074599f1cc9fdfc8f498c92ad8b904d3c4307f80c46921d8128*f3abede76ac15228f1b161dd9660bb9094e81b1b*d201ccd492c284484c7824c4d37b1593";
+static const char *ST_HASH_16400 = "{CRAM-MD5}5389b33b9725e5657cb631dc50017ff100000000000000000000000000000000";
 static const char *ST_HASH_99999 = "hashcat";
 
 static const char *OPTI_STR_OPTIMIZED_KERNEL     = "Optimized-Kernel";
@@ -450,7 +450,6 @@ static const char *HT_09900 = "Radmin2";
 static const char *HT_10000 = "Django (PBKDF2-SHA256)";
 static const char *HT_10100 = "SipHash";
 static const char *HT_10200 = "CRAM-MD5";
-static const char *HT_10201 = "CRAM-MD5 Dovecot";
 static const char *HT_10300 = "SAP CODVN H (PWDSALTEDHASH) iSSHA-1";
 static const char *HT_10400 = "PDF 1.1 - 1.3 (Acrobat 2 - 4)";
 static const char *HT_10410 = "PDF 1.1 - 1.3 (Acrobat 2 - 4), collider #1";
@@ -509,6 +508,7 @@ static const char *HT_16000 = "Tripcode";
 static const char *HT_16100 = "TACACS+";
 static const char *HT_16200 = "Apple Secure Notes";
 static const char *HT_16300 = "Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256";
+static const char *HT_16400 = "CRAM-MD5 Dovecot";
 static const char *HT_99999 = "Plaintext";
 
 static const char *HT_00011 = "Joomla < 2.5.18";
@@ -10268,7 +10268,7 @@ int crammd5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
 int crammd5_dovecot_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_10201) || (input_len > DISPLAY_LEN_MAX_10201)) return (PARSER_GLOBAL_LENGTH);
+  if ((input_len < DISPLAY_LEN_MIN_16400) || (input_len > DISPLAY_LEN_MAX_16400)) return (PARSER_GLOBAL_LENGTH);
 
   if (memcmp (SIGNATURE_CRAM_MD5_DOVECOT, input_buf, 10) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
@@ -16449,7 +16449,6 @@ const char *strhashtype (const u32 hash_mode)
     case 10000: return HT_10000;
     case 10100: return HT_10100;
     case 10200: return HT_10200;
-    case 10201: return HT_10201;
     case 10300: return HT_10300;
     case 10400: return HT_10400;
     case 10410: return HT_10410;
@@ -16527,6 +16526,7 @@ const char *strhashtype (const u32 hash_mode)
     case 16100: return HT_16100;
     case 16200: return HT_16200;
     case 16300: return HT_16300;
+    case 16400: return HT_16400;
     case 99999: return HT_99999;
   }
 
@@ -18573,13 +18573,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     snprintf (out_buf, out_len - 1, "%s%s$%s", SIGNATURE_CRAM_MD5, challenge, response);
   }
-  else if (hash_mode == 10201)
-  {
-    hashinfo_t **hashinfo_ptr = hash_info;
-    char        *hash_buf     = hashinfo_ptr[digest_cur]->orighash;
-
-    snprintf (out_buf, out_len - 1, "%s", hash_buf);
-  }
   else if (hash_mode == 10300)
   {
     memcpy (tmp_buf +  0, digest_buf, 20);
@@ -20039,6 +20032,13 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
       digest_buf[2],
       digest_buf[3]
     );
+  }
+  else if (hash_mode == 16400)
+  {
+    hashinfo_t **hashinfo_ptr = hash_info;
+    char        *hash_buf     = hashinfo_ptr[digest_cur]->orighash;
+
+    snprintf (out_buf, out_len - 1, "%s", hash_buf);
   }
   else if (hash_mode == 99999)
   {
@@ -23638,29 +23638,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 10201:  hashconfig->hash_type      = HASH_TYPE_CRAM_MD5_DOVECOT;
-                 hashconfig->salt_type      = SALT_TYPE_NONE;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_HASH_COPY;
-                 hashconfig->kern_type      = KERN_TYPE_CRAM_MD5_DOVECOT;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = crammd5_dovecot_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_PRECOMPUTE_MERKLE
-                                            | OPTI_TYPE_MEET_IN_MIDDLE
-                                            | OPTI_TYPE_EARLY_SKIP
-                                            | OPTI_TYPE_NOT_ITERATED
-                                            | OPTI_TYPE_RAW_HASH;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 3;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 1;
-                 hashconfig->st_hash        = ST_HASH_10201;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case 10300:  hashconfig->hash_type      = HASH_TYPE_SHA1;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -25076,6 +25053,29 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
+    case 16400:  hashconfig->hash_type      = HASH_TYPE_CRAM_MD5_DOVECOT;
+                 hashconfig->salt_type      = SALT_TYPE_NONE;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_HASH_COPY;
+                 hashconfig->kern_type      = KERN_TYPE_CRAM_MD5_DOVECOT;
+                 hashconfig->dgst_size      = DGST_SIZE_4_4;
+                 hashconfig->parse_func     = crammd5_dovecot_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_PRECOMPUTE_INIT
+                                            | OPTI_TYPE_PRECOMPUTE_MERKLE
+                                            | OPTI_TYPE_MEET_IN_MIDDLE
+                                            | OPTI_TYPE_EARLY_SKIP
+                                            | OPTI_TYPE_NOT_ITERATED
+                                            | OPTI_TYPE_RAW_HASH;
+                 hashconfig->dgst_pos0      = 0;
+                 hashconfig->dgst_pos1      = 3;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 1;
+                 hashconfig->st_hash        = ST_HASH_16400;
+                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
+                 break;
+
     case 99999:  hashconfig->hash_type      = HASH_TYPE_PLAINTEXT;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -25505,7 +25505,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     {
       case 10700: hashconfig->pw_max = 127; // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
                   break;
-      case 10201: hashconfig->pw_max = 64; // HMAC-MD5 and `doveadm pw` are different for password more than 64 bytes
+      case 16400: hashconfig->pw_max = 64; // HMAC-MD5 and `doveadm pw` are different for password more than 64 bytes
                   break;
     }
   }

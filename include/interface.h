@@ -1215,8 +1215,6 @@ typedef enum display_len
   DISPLAY_LEN_MAX_10100 = 16 + 1 + 1 + 1 + 1 + 1 + 32,
   DISPLAY_LEN_MIN_10200 = 10 + 12 + 1 + 44,
   DISPLAY_LEN_MAX_10200 = 10 + 76 + 1 + 132,
-  DISPLAY_LEN_MIN_10201 = 10 + 32 + 32,
-  DISPLAY_LEN_MAX_10201 = 10 + 32 + 32,
   DISPLAY_LEN_MIN_10300 = 10 + 1 + 1 + 33,
   DISPLAY_LEN_MAX_10300 = 10 + 5 + 1 + 49,
   DISPLAY_LEN_MIN_10400 = 5 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 32 + 1 + 2 + 1 +  64 + 1 + 2 + 1 +  64,
@@ -1329,6 +1327,8 @@ typedef enum display_len
   DISPLAY_LEN_MAX_16200 = 5 + 1 + 6 + 1 + 5 + 1 + 32 + 1 + 48,
   DISPLAY_LEN_MIN_16300 = 11 + 1 +   64 + 1 + 40 + 1 + 32,
   DISPLAY_LEN_MAX_16300 = 11 + 1 + 1248 + 1 + 40 + 1 + 32,
+  DISPLAY_LEN_MIN_16400 = 10 + 32 + 32,
+  DISPLAY_LEN_MAX_16400 = 10 + 32 + 32,
   DISPLAY_LEN_MIN_99999 = 1,
   DISPLAY_LEN_MAX_99999 = 55,
 
@@ -1591,7 +1591,6 @@ typedef enum kern_type
   KERN_TYPE_OLDOFFICE34CM2          = 9820,
   KERN_TYPE_RADMIN2                 = 9900,
   KERN_TYPE_SIPHASH                 = 10100,
-  KERN_TYPE_CRAM_MD5_DOVECOT        = 10201,
   KERN_TYPE_SAPH_SHA1               = 10300,
   KERN_TYPE_PDF11                   = 10400,
   KERN_TYPE_PDF11CM1                = 10410,
@@ -1661,6 +1660,7 @@ typedef enum kern_type
   KERN_TYPE_TACACS_PLUS             = 16100,
   KERN_TYPE_APPLE_SECURE_NOTES      = 16200,
   KERN_TYPE_ETHEREUM_PRESALE        = 16300,
+  KERN_TYPE_CRAM_MD5_DOVECOT        = 16400,
   KERN_TYPE_PLAINTEXT               = 99999,
 
 } kern_type_t;

@@ -243,7 +243,7 @@ static const char *const USAGE_BIG[] =
   "    111 | nsldaps, SSHA-1(Base64), Netscape LDAP SSHA      | HTTP, SMTP, LDAP Server",
   "   1411 | SSHA-256(Base64), LDAP {SSHA256}                 | HTTP, SMTP, LDAP Server",
   "   1711 | SSHA-512(Base64), LDAP {SSHA512}                 | HTTP, SMTP, LDAP Server",
-  "  10201 | CRAM-MD5 Dovecot                                 | HTTP, SMTP, LDAP Server",
+  "  16400 | CRAM-MD5 Dovecot                                 | HTTP, SMTP, LDAP Server",
   "  15000 | FileZilla Server >= 0.9.55                       | FTP Server",
   "  11500 | CRC32                                            | Checksums",
   "   3000 | LM                                               | Operating Systems",

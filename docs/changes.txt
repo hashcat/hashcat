@@ -12,11 +12,11 @@
 ## Algorithms
 ##
 
-- Added hash-mode 10201 = CRAM-MD5 Dovecot
 - Added hash-mode 16000 = Tripcode
 - Added hash-mode 16100 = TACACS+
 - Added hash-mode 16200 = Apple Secure Notes
 - Added hash-mode 16300 = Ethereum Pre-Sale Wallet, PBKDF2-SHA256
+- Added hash-mode 16400 = CRAM-MD5 Dovecot
 
 ##
 ## Bugs
