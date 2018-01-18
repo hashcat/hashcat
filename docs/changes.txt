@@ -42,6 +42,8 @@
 - Files: Copy include/ folder and its content to case SHARED is set to 1 in Makefile
 - Hash Parser: Changed the way large strings are handled/truncated within the event buffer if they are too large to fit
 - Hash Parser: Fixed our use of strtok_r () calls
+- OpenCL Kernels: Replace variables from uXX to uXXa if used in __constant space
+- OpenCL Kernels: Use static declaraction for uXXa variables used in __constant space
 - Self Test: Skip self-test for mode 8900 user-configurable scrypt settings are incompatible to fixed settings in the self-test hash
 - Self Test: Skip self-test for mode 15700 because settings are too high and create a too long startup time
 - Terminal: Send clear line code to the same output stream as the next message following

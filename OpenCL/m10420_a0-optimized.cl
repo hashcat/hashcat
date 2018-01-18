@@ -15,7 +15,7 @@
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
 
-__constant u32a padding[8] =
+__constant static u32a padding[8] =
 {
   0x5e4ebf28,
   0x418a754e,

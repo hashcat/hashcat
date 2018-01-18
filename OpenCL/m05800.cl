@@ -13,7 +13,7 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
-__constant u32a c_pc_dec[1024] =
+__constant static u32a c_pc_dec[1024] =
 {
   0x00000030,
   0x00000031,
@@ -1041,7 +1041,7 @@ __constant u32a c_pc_dec[1024] =
   0x33323031,
 };
 
-__constant u32a c_pc_len[1024] =
+__constant static u32a c_pc_len[1024] =
 {
   1,
   1,

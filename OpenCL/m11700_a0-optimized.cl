@@ -41,7 +41,7 @@
 
 // constants
 
-__constant u64a sbob_sl64[8][256] =
+__constant static u64a sbob_sl64[8][256] =
 {
   {
     0xd031c397ce553fe6,
@@ -2109,7 +2109,7 @@ __constant u64a sbob_sl64[8][256] =
   },
 };
 
-__constant u64a sbob_rc64[12][8] =
+__constant static u64a sbob_rc64[12][8] =
 {
   {
     0xe9daca1eda5b08b1,

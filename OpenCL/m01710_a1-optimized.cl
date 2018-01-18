@@ -12,7 +12,7 @@
 #include "inc_common.cl"
 #include "inc_simd.cl"
 
-__constant u64a k_sha512[80] =
+__constant static u64a k_sha512[80] =
 {
   SHA512C00, SHA512C01, SHA512C02, SHA512C03,
   SHA512C04, SHA512C05, SHA512C06, SHA512C07,
