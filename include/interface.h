@@ -1327,6 +1327,8 @@ typedef enum display_len
   DISPLAY_LEN_MAX_16200 = 5 + 1 + 6 + 1 + 5 + 1 + 32 + 1 + 48,
   DISPLAY_LEN_MIN_16300 = 11 + 1 +   64 + 1 + 40 + 1 + 32,
   DISPLAY_LEN_MAX_16300 = 11 + 1 + 1248 + 1 + 40 + 1 + 32,
+  DISPLAY_LEN_MIN_16400 = 10 + 32 + 32,
+  DISPLAY_LEN_MAX_16400 = 10 + 32 + 32,
   DISPLAY_LEN_MIN_99999 = 1,
   DISPLAY_LEN_MAX_99999 = 55,
 
@@ -1457,6 +1459,7 @@ typedef enum hash_type
   HASH_TYPE_JKS_SHA1            = 62,
   HASH_TYPE_TACACS_PLUS         = 63,
   HASH_TYPE_APPLE_SECURE_NOTES  = 64,
+  HASH_TYPE_CRAM_MD5_DOVECOT    = 65,
 
 } hash_type_t;
 
@@ -1657,6 +1660,7 @@ typedef enum kern_type
   KERN_TYPE_TACACS_PLUS             = 16100,
   KERN_TYPE_APPLE_SECURE_NOTES      = 16200,
   KERN_TYPE_ETHEREUM_PRESALE        = 16300,
+  KERN_TYPE_CRAM_MD5_DOVECOT        = 16400,
   KERN_TYPE_PLAINTEXT               = 99999,
 
 } kern_type_t;
@@ -1860,6 +1864,7 @@ int djangosha1_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int djangopbkdf2_parse_hash       (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int siphash_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int crammd5_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
+int crammd5_dovecot_parse_hash    (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int saph_sha1_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int redmine_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
 int punbb_parse_hash              (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED const hashconfig_t *hashconfig);
