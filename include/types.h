@@ -844,7 +844,7 @@ struct hashconfig
   u32   salt_min;
   u32   salt_max;
 
-  int (*parse_func) (u8 *, u32, hash_t *, const struct hashconfig *);
+  int (*parse_func) (u8 *, u32, hash_t *, struct hashconfig *);
 
   const char *st_hash;
   const char *st_pass;
