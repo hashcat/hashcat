@@ -34,7 +34,7 @@ use Crypt::UnixCrypt_XS qw (crypt_rounds fold_password base64_to_int24 block_to_
 use Crypt::Skip32;
 use Crypt::OpenSSH::ChachaPoly;
 use JSON;
-use MIME::Base64;
+use MIME::Base64 qw (encode_base64url decode_base64url);
 use Authen::Passphrase::NTHash;
 use Authen::Passphrase::MySQL323;
 use Authen::Passphrase::PHPass;
@@ -9376,7 +9376,7 @@ END_CODE
   {
     my ($header_base64) = split (/\./, $salt_buf);
 
-    my $header_jwt = decode_base64 ($header_base64);
+    my $header_jwt = decode_base64url ($header_base64);
 
     my $header = decode_json ($header_jwt);
 
@@ -9384,22 +9384,22 @@ END_CODE
 
     if ($alg eq "HS256")
     {
-      $hash_buf = hmac_hex ($salt_buf, $word_buf, \&sha256, 64);
+      $hash_buf = hmac ($salt_buf, $word_buf, \&sha256, 64);
     }
     elsif ($alg eq "HS384")
     {
-      $hash_buf = hmac_hex ($salt_buf, $word_buf, \&sha384, 128);
+      $hash_buf = hmac ($salt_buf, $word_buf, \&sha384, 128);
     }
     elsif ($alg eq "HS512")
     {
-      $hash_buf = hmac_hex ($salt_buf, $word_buf, \&sha512, 128);
+      $hash_buf = hmac ($salt_buf, $word_buf, \&sha512, 128);
     }
     else
     {
       die "not supported hash\n";
     }
 
-    $tmp_hash = sprintf ("%s.%s", $salt_buf, $hash_buf);
+    $tmp_hash = sprintf ("%s.%s", $salt_buf, encode_base64url ($hash_buf, ""));
   }
   elsif ($mode == 99999)
   {
@@ -11092,8 +11092,8 @@ sub get_random_jwt_salt
   my $header_json    = encode_json ($header);
   my $payload_json   = encode_json ($payload);
 
-  my $header_base64  = encode_base64 ($header_json, "");
-  my $payload_base64 = encode_base64 ($payload_json, "");
+  my $header_base64  = encode_base64url ($header_json, "");
+  my $payload_base64 = encode_base64url ($payload_json, "");
 
   return $header_base64 . "." . $payload_base64;
 }

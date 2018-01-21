@@ -16216,17 +16216,17 @@ int jwt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
 
   if (hashconfig->kern_type == (u32) -1)
   {
-    if (signature_len == 64)
-    {
       // it would be more accurate to base64 decode the header_pos buffer and then to string match HS256 - same goes for the other algorithms
 
+    if (signature_len == 43)
+    {
       hashconfig->kern_type = KERN_TYPE_JWT_HS256;
     }
-    else if (signature_len == 96)
+    else if (signature_len == 64)
     {
       hashconfig->kern_type = KERN_TYPE_JWT_HS384;
     }
-    else if (signature_len == 128)
+    else if (signature_len == 86)
     {
       hashconfig->kern_type = KERN_TYPE_JWT_HS512;
     }
@@ -16237,15 +16237,15 @@ int jwt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
   }
   else
   {
-    if ((hashconfig->kern_type == KERN_TYPE_JWT_HS256) && (signature_len == 64))
+    if ((hashconfig->kern_type == KERN_TYPE_JWT_HS256) && (signature_len == 43))
     {
       // OK
     }
-    else if ((hashconfig->kern_type == KERN_TYPE_JWT_HS384) && (signature_len == 96))
+    else if ((hashconfig->kern_type == KERN_TYPE_JWT_HS384) && (signature_len == 64))
     {
       // OK
     }
-    else if ((hashconfig->kern_type == KERN_TYPE_JWT_HS512) && (signature_len == 128))
+    else if ((hashconfig->kern_type == KERN_TYPE_JWT_HS512) && (signature_len == 86))
     {
       // OK
     }
@@ -16256,8 +16256,6 @@ int jwt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
   }
 
   if (esalt_len > 4096) return (PARSER_SALT_LENGTH);
-
-  if (is_valid_hex_string (signature_pos, signature_len) == false) return (PARSER_SALT_ENCODING);
 
   /**
    * store data
@@ -16304,26 +16302,15 @@ int jwt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
 
   // hash
 
-  if (signature_len == 64)
-  {
-    u32 *digest = (u32 *) hash_buf->digest;
+  u8 tmp_buf[100] = { 0 };
 
-    digest[ 0] = hex_to_u32 ((const u8 *) &signature_pos[ 0]);
-    digest[ 1] = hex_to_u32 ((const u8 *) &signature_pos[ 8]);
-    digest[ 2] = hex_to_u32 ((const u8 *) &signature_pos[16]);
-    digest[ 3] = hex_to_u32 ((const u8 *) &signature_pos[24]);
-    digest[ 4] = hex_to_u32 ((const u8 *) &signature_pos[32]);
-    digest[ 5] = hex_to_u32 ((const u8 *) &signature_pos[40]);
-    digest[ 6] = hex_to_u32 ((const u8 *) &signature_pos[48]);
-    digest[ 7] = hex_to_u32 ((const u8 *) &signature_pos[56]);
-    digest[ 8] = 0;
-    digest[ 9] = 0;
-    digest[10] = 0;
-    digest[11] = 0;
-    digest[12] = 0;
-    digest[13] = 0;
-    digest[14] = 0;
-    digest[15] = 0;
+  base64_decode (base64url_to_int, signature_pos, signature_len, tmp_buf);
+
+  if (signature_len == 43)
+  {
+    memcpy (hash_buf->digest, tmp_buf, 32);
+
+    u32 *digest = (u32 *) hash_buf->digest;
 
     digest[0] = byte_swap_32 (digest[0]);
     digest[1] = byte_swap_32 (digest[1]);
@@ -16334,18 +16321,11 @@ int jwt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
     digest[6] = byte_swap_32 (digest[6]);
     digest[7] = byte_swap_32 (digest[7]);
   }
-  else if (signature_len == 96)
+  else if (signature_len == 64)
   {
-    u64 *digest = (u64 *) hash_buf->digest;
+    memcpy (hash_buf->digest, tmp_buf, 48);
 
-    digest[0] = hex_to_u64 ((const u8 *) &signature_pos[  0]);
-    digest[1] = hex_to_u64 ((const u8 *) &signature_pos[ 16]);
-    digest[2] = hex_to_u64 ((const u8 *) &signature_pos[ 32]);
-    digest[3] = hex_to_u64 ((const u8 *) &signature_pos[ 48]);
-    digest[4] = hex_to_u64 ((const u8 *) &signature_pos[ 64]);
-    digest[5] = hex_to_u64 ((const u8 *) &signature_pos[ 80]);
-    digest[6] = 0;
-    digest[7] = 0;
+    u64 *digest = (u64 *) hash_buf->digest;
 
     digest[0] = byte_swap_64 (digest[0]);
     digest[1] = byte_swap_64 (digest[1]);
@@ -16353,21 +16333,12 @@ int jwt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
     digest[3] = byte_swap_64 (digest[3]);
     digest[4] = byte_swap_64 (digest[4]);
     digest[5] = byte_swap_64 (digest[5]);
-    digest[6] = byte_swap_64 (digest[6]);
-    digest[7] = byte_swap_64 (digest[7]);
   }
-  else if (signature_len == 128)
+  else if (signature_len == 86)
   {
-    u64 *digest = (u64 *) hash_buf->digest;
+    memcpy (hash_buf->digest, tmp_buf, 64);
 
-    digest[0] = hex_to_u64 ((const u8 *) &signature_pos[  0]);
-    digest[1] = hex_to_u64 ((const u8 *) &signature_pos[ 16]);
-    digest[2] = hex_to_u64 ((const u8 *) &signature_pos[ 32]);
-    digest[3] = hex_to_u64 ((const u8 *) &signature_pos[ 48]);
-    digest[4] = hex_to_u64 ((const u8 *) &signature_pos[ 64]);
-    digest[5] = hex_to_u64 ((const u8 *) &signature_pos[ 80]);
-    digest[6] = hex_to_u64 ((const u8 *) &signature_pos[ 96]);
-    digest[7] = hex_to_u64 ((const u8 *) &signature_pos[112]);
+    u64 *digest = (u64 *) hash_buf->digest;
 
     digest[0] = byte_swap_64 (digest[0]);
     digest[1] = byte_swap_64 (digest[1]);
@@ -20339,45 +20310,63 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     if (hashconfig->kern_type == KERN_TYPE_JWT_HS256)
     {
-      snprintf (out_buf, out_len - 1, "%s.%08x%08x%08x%08x%08x%08x%08x%08x",
-        (char *) jwt->salt_buf,
-        digest_buf[0],
-        digest_buf[1],
-        digest_buf[2],
-        digest_buf[3],
-        digest_buf[4],
-        digest_buf[5],
-        digest_buf[6],
-        digest_buf[7]);
+      digest_buf[0] = byte_swap_32 (digest_buf[0]);
+      digest_buf[1] = byte_swap_32 (digest_buf[1]);
+      digest_buf[2] = byte_swap_32 (digest_buf[2]);
+      digest_buf[3] = byte_swap_32 (digest_buf[3]);
+      digest_buf[4] = byte_swap_32 (digest_buf[4]);
+      digest_buf[5] = byte_swap_32 (digest_buf[5]);
+      digest_buf[6] = byte_swap_32 (digest_buf[6]);
+      digest_buf[7] = byte_swap_32 (digest_buf[7]);
+
+      memset (tmp_buf, 0, sizeof (tmp_buf));
+
+      memcpy (tmp_buf, digest_buf, 32);
+
+      base64_encode (int_to_base64url, (const u8 *) tmp_buf, 32, (u8 *) ptr_plain);
+
+      ptr_plain[43] = 0;
     }
     else if (hashconfig->kern_type == KERN_TYPE_JWT_HS384)
     {
-      u32 *ptr = digest_buf;
+      digest_buf64[0] = byte_swap_64 (digest_buf64[0]);
+      digest_buf64[1] = byte_swap_64 (digest_buf64[1]);
+      digest_buf64[2] = byte_swap_64 (digest_buf64[2]);
+      digest_buf64[3] = byte_swap_64 (digest_buf64[3]);
+      digest_buf64[4] = byte_swap_64 (digest_buf64[4]);
+      digest_buf64[5] = byte_swap_64 (digest_buf64[5]);
 
-      snprintf (out_buf, out_len - 1, "%s.%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
-        (char *) jwt->salt_buf,
-        ptr[ 1], ptr[ 0],
-        ptr[ 3], ptr[ 2],
-        ptr[ 5], ptr[ 4],
-        ptr[ 7], ptr[ 6],
-        ptr[ 9], ptr[ 8],
-        ptr[11], ptr[10]);
+      memset (tmp_buf, 0, sizeof (tmp_buf));
+
+      memcpy (tmp_buf, digest_buf64, 48);
+
+      base64_encode (int_to_base64url, (const u8 *) tmp_buf, 48, (u8 *) ptr_plain);
+
+      ptr_plain[64] = 0;
     }
     else if (hashconfig->kern_type == KERN_TYPE_JWT_HS512)
     {
-      u32 *ptr = digest_buf;
+      digest_buf64[0] = byte_swap_64 (digest_buf64[0]);
+      digest_buf64[1] = byte_swap_64 (digest_buf64[1]);
+      digest_buf64[2] = byte_swap_64 (digest_buf64[2]);
+      digest_buf64[3] = byte_swap_64 (digest_buf64[3]);
+      digest_buf64[4] = byte_swap_64 (digest_buf64[4]);
+      digest_buf64[5] = byte_swap_64 (digest_buf64[5]);
+      digest_buf64[6] = byte_swap_64 (digest_buf64[6]);
+      digest_buf64[7] = byte_swap_64 (digest_buf64[7]);
 
-      snprintf (out_buf, out_len - 1, "%s.%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
-        (char *) jwt->salt_buf,
-        ptr[ 1], ptr[ 0],
-        ptr[ 3], ptr[ 2],
-        ptr[ 5], ptr[ 4],
-        ptr[ 7], ptr[ 6],
-        ptr[ 9], ptr[ 8],
-        ptr[11], ptr[10],
-        ptr[13], ptr[12],
-        ptr[15], ptr[14]);
+      memset (tmp_buf, 0, sizeof (tmp_buf));
+
+      memcpy (tmp_buf, digest_buf64, 64);
+
+      base64_encode (int_to_base64url, (const u8 *) tmp_buf, 64, (u8 *) ptr_plain);
+
+      ptr_plain[86] = 0;
     }
+
+    snprintf (out_buf, out_len - 1, "%s.%s",
+      (char *) jwt->salt_buf,
+      (char *) ptr_plain);
   }
   else if (hash_mode == 99999)
   {
