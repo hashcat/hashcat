@@ -497,6 +497,13 @@ typedef struct apple_secure_notes
 
 } apple_secure_notes_t;
 
+typedef struct jwt
+{
+  u32 salt_buf[1024];
+  u32 salt_len;
+
+} jwt_t;
+
 typedef struct luks_tmp
 {
   u32 ipad32[8];

@@ -1495,6 +1495,13 @@ typedef struct apple_secure_notes
 
 } apple_secure_notes_t;
 
+typedef struct jwt
+{
+  u32 salt_buf[1024];
+  u32 salt_len;
+
+} jwt_t;
+
 typedef struct pdf14_tmp
 {
   u32 digest[4];
