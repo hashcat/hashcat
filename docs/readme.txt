@@ -143,6 +143,7 @@ NVIDIA GPUs require "NVIDIA Driver" (367.x or later)
 - Kerberos 5 AS-REQ Pre-Auth etype 23
 - Kerberos 5 TGS-REP etype 23
 - TACACS+
+- JWT (JSON Web Token)
 - Netscape LDAP SHA/SSHA
 - FileZilla Server
 - LM
