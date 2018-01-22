@@ -63,8 +63,6 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
       plain_len = apply_rules (straight_ctx->kernel_rules_buf[off].cmds, plain_buf, pw.pw_len);
     }
-
-    if (plain_len > (int) hashconfig->pw_max) plain_len = (int) hashconfig->pw_max;
   }
   else if (user_options->attack_mode == ATTACK_MODE_COMBI)
   {
@@ -96,28 +94,6 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
     }
 
     plain_len += comb_len;
-
-    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
-    {
-      int pw_max_combi;
-
-      #define PW_DICTMAX 32
-
-      if (hashconfig->pw_max < PW_DICTMAX)
-      {
-        pw_max_combi = hashconfig->pw_max;
-      }
-      else
-      {
-        pw_max_combi = PW_MAX_OLD;
-      }
-
-      plain_len = MIN ((int) plain_len, (int) pw_max_combi);
-    }
-    else
-    {
-      plain_len = MIN ((int) plain_len, (int) hashconfig->pw_max);
-    }
   }
   else if (user_options->attack_mode == ATTACK_MODE_BF)
   {
@@ -158,8 +134,6 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
     sp_exec (off, (char *) plain_ptr + plain_len, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, start, start + stop);
 
     plain_len += start + stop;
-
-    if (plain_len > (int) hashconfig->pw_max) plain_len = (int) hashconfig->pw_max;
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
@@ -188,8 +162,6 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
       sp_exec (off, (char *) plain_ptr, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, start, start + stop);
 
       plain_len += start + stop;
-
-      if (plain_len > (int) hashconfig->pw_max) plain_len = (int) hashconfig->pw_max;
     }
     else
     {
@@ -214,8 +186,6 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
       memcpy (plain_ptr + plain_len, comb_buf, comb_len);
 
       plain_len += comb_len;
-
-      if (plain_len > (int) hashconfig->pw_max) plain_len = (int) hashconfig->pw_max;
     }
   }
 
@@ -251,6 +221,10 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
       }
     }
   }
+
+  const u32 pw_max = hashconfig_get_pw_max (hashcat_ctx, false);
+
+  if (plain_len > (int) hashconfig->pw_max) plain_len = MIN (plain_len, (int) pw_max);
 
   plain_ptr[plain_len] = 0;
 

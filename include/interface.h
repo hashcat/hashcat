@@ -1965,6 +1965,10 @@ u32         hashconfig_forced_kernel_threads  (hashcat_ctx_t *hashcat_ctx);
 u32         hashconfig_get_kernel_threads     (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param);
 u32         hashconfig_get_kernel_loops       (hashcat_ctx_t *hashcat_ctx);
 int         hashconfig_general_defaults       (hashcat_ctx_t *hashcat_ctx);
+int         hashconfig_get_pw_min             (hashcat_ctx_t *hashcat_ctx, const bool optimized_kernel);
+int         hashconfig_get_pw_max             (hashcat_ctx_t *hashcat_ctx, const bool optimized_kernel);
+int         hashconfig_get_salt_min           (hashcat_ctx_t *hashcat_ctx, const bool optimized_kernel);
+int         hashconfig_get_salt_max           (hashcat_ctx_t *hashcat_ctx, const bool optimized_kernel);
 void        hashconfig_benchmark_defaults     (hashcat_ctx_t *hashcat_ctx, salt_t *salt, void *esalt, void *hook_salt);
 const char *hashconfig_benchmark_mask         (hashcat_ctx_t *hashcat_ctx);
 
