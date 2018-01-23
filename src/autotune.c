@@ -103,14 +103,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   int CL_rc;
 
-  for (u32 i = 0; i < kernel_power_max; i++)
-  {
-    device_param->pws_buf[i].i[0]   = i;
-    device_param->pws_buf[i].i[1]   = 0x01234567;
-    device_param->pws_buf[i].pw_len = 7 + (i & 7);
-  }
-
-  CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, kernel_power_max * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
+  CL_rc = run_kernel_atinit (hashcat_ctx, device_param, device_param->d_pws_buf, kernel_power_max);
 
   if (CL_rc == -1) return -1;
 

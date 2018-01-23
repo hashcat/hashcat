@@ -1727,6 +1727,44 @@ int run_kernel_amp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
   return 0;
 }
 
+int run_kernel_atinit (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u64 num)
+{
+  u64 num_elements = num;
+
+  device_param->kernel_params_atinit_buf64[1] = num_elements;
+
+  const u64 kernel_threads = device_param->kernel_threads_by_wgs_kernel_atinit;
+
+  cl_kernel kernel = device_param->kernel_atinit;
+
+  const size_t global_work_size[3] = { num_elements,    1, 1 };
+  const size_t local_work_size[3]  = { kernel_threads,  1, 1 };
+
+  int CL_rc;
+
+  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 0, sizeof (cl_mem), (void *) &buf);
+
+  if (CL_rc == -1) return -1;
+
+  CL_rc = hc_clSetKernelArg (hashcat_ctx, kernel, 1, sizeof (cl_ulong), device_param->kernel_params_atinit[1]);
+
+  if (CL_rc == -1) return -1;
+
+  CL_rc = hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->command_queue, kernel, 1, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+
+  if (CL_rc == -1) return -1;
+
+  CL_rc = hc_clFlush (hashcat_ctx, device_param->command_queue);
+
+  if (CL_rc == -1) return -1;
+
+  CL_rc = hc_clFinish (hashcat_ctx, device_param->command_queue);
+
+  if (CL_rc == -1) return -1;
+
+  return 0;
+}
+
 int run_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u32 value, const u64 size)
 {
   const u64 num16d = size / 16;
@@ -5075,6 +5113,11 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_params_memset[1] = &device_param->kernel_params_memset_buf32[1];
     device_param->kernel_params_memset[2] = &device_param->kernel_params_memset_buf64[2];
 
+    device_param->kernel_params_atinit_buf64[1] = 0; // gid_max
+
+    device_param->kernel_params_atinit[0] = NULL;
+    device_param->kernel_params_atinit[1] = &device_param->kernel_params_atinit_buf64[1];
+
     /**
      * kernel name
      */
@@ -5318,6 +5361,19 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_memset, 0, sizeof (cl_mem),   device_param->kernel_params_memset[0]); if (CL_rc == -1) return -1;
     CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_memset, 1, sizeof (cl_uint),  device_param->kernel_params_memset[1]); if (CL_rc == -1) return -1;
     CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_memset, 2, sizeof (cl_ulong), device_param->kernel_params_memset[2]); if (CL_rc == -1) return -1;
+
+    // GPU autotune init
+
+    CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, "gpu_atinit", &device_param->kernel_atinit);
+
+    if (CL_rc == -1) return -1;
+
+    CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel_atinit, &device_param->kernel_threads_by_wgs_kernel_atinit);
+
+    if (CL_rc == -1) return -1;
+
+    CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_atinit, 0, sizeof (cl_mem),   device_param->kernel_params_atinit[0]); if (CL_rc == -1) return -1;
+    CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_atinit, 1, sizeof (cl_ulong), device_param->kernel_params_atinit[1]); if (CL_rc == -1) return -1;
 
     // MP start
 
@@ -5587,6 +5643,7 @@ void opencl_session_destroy (hashcat_ctx_t *hashcat_ctx)
     if (device_param->kernel_tm)        hc_clReleaseKernel (hashcat_ctx, device_param->kernel_tm);
     if (device_param->kernel_amp)       hc_clReleaseKernel (hashcat_ctx, device_param->kernel_amp);
     if (device_param->kernel_memset)    hc_clReleaseKernel (hashcat_ctx, device_param->kernel_memset);
+    if (device_param->kernel_atinit)    hc_clReleaseKernel (hashcat_ctx, device_param->kernel_atinit);
 
     if (device_param->program)          hc_clReleaseProgram (hashcat_ctx, device_param->program);
     if (device_param->program_mp)       hc_clReleaseProgram (hashcat_ctx, device_param->program_mp);
@@ -5648,6 +5705,7 @@ void opencl_session_destroy (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_tm         = NULL;
     device_param->kernel_amp        = NULL;
     device_param->kernel_memset     = NULL;
+    device_param->kernel_atinit     = NULL;
     device_param->program           = NULL;
     device_param->program_mp        = NULL;
     device_param->program_amp       = NULL;

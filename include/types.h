@@ -934,6 +934,7 @@ typedef struct hc_device_param
   u32     kernel_threads_by_wgs_kernel_amp;
   u32     kernel_threads_by_wgs_kernel_tm;
   u32     kernel_threads_by_wgs_kernel_memset;
+  u32     kernel_threads_by_wgs_kernel_atinit;
 
   u32     kernel_loops;
   u32     kernel_accel;
@@ -1034,6 +1035,7 @@ typedef struct hc_device_param
   cl_kernel  kernel_amp;
   cl_kernel  kernel_tm;
   cl_kernel  kernel_memset;
+  cl_kernel  kernel_atinit;
 
   cl_context context;
 
@@ -1087,6 +1089,7 @@ typedef struct hc_device_param
   void   *kernel_params_amp[PARAMCNT];
   void   *kernel_params_tm[PARAMCNT];
   void   *kernel_params_memset[PARAMCNT];
+  void   *kernel_params_atinit[PARAMCNT];
 
   u32     kernel_params_buf32[PARAMCNT];
   u64     kernel_params_buf64[PARAMCNT];
@@ -1105,6 +1108,9 @@ typedef struct hc_device_param
 
   u32     kernel_params_memset_buf32[PARAMCNT];
   u64     kernel_params_memset_buf64[PARAMCNT];
+
+  u32     kernel_params_atinit_buf32[PARAMCNT];
+  u64     kernel_params_atinit_buf64[PARAMCNT];
 
 } hc_device_param_t;
 

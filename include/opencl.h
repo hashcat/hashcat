@@ -63,6 +63,7 @@ int run_kernel        (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 int run_kernel_mp     (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u64 num);
 int run_kernel_tm     (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param);
 int run_kernel_amp    (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 num);
+int run_kernel_atinit (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u64 num);
 int run_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u32 value, const u64 size);
 int run_kernel_bzero  (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u64 size);
 int run_copy          (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 pws_cnt);
