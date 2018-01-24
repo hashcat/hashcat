@@ -8,6 +8,55 @@ DEBUG                   := 0
 PRODUCTION              := 0
 
 ##
+## Native compiler paths
+##
+
+CC                      := gcc
+FIND                    := find
+INSTALL                 := install
+RM                      := rm
+SED                     := sed
+SED_IN_PLACE            := -i
+
+ifeq ($(UNAME),Darwin)
+CC                      := clang
+# the sed -i option of macOS requires a parameter for the backup file (we just use "")
+SED_IN_PLACE            := -i ""
+PROD_VERS               := $(shell sw_vers -productVersion | cut -d. -f2)
+endif
+
+ifeq ($(UNAME),FreeBSD)
+CC                      := cc
+SED                     := gsed
+endif
+
+##
+## Cross compiler paths
+##
+
+CC_LINUX_32             := gcc
+CC_LINUX_64             := gcc
+
+CC_WIN_32               := i686-w64-mingw32-gcc
+CC_WIN_64               := x86_64-w64-mingw32-gcc
+
+##
+## Misc stuff
+##
+
+COMPTIME                := $(shell date +%s)
+
+# the following variable value will be automatically replaced by the "git archive" command
+# (which is automatically run for every github release)
+# the value will be something like this: "tag: vX.Y.Z, refs/pull/K/head" or "HEAD -> master, tag: vX.Y.Z"
+
+VERSION_EXPORT          := $Format:%D$
+VERSION_TAG             := $(shell test -d .git && git describe --tags --dirty=+ || echo "$(VERSION_EXPORT)" | $(SED) 's/.*: v\([\.0-9]*\).*/v\1/')
+
+SONAME_VERSION          := $(shell echo "$(VERSION_TAG)" | $(SED) 's/^v\([\.0-9]\+\)-.*/\1/')
+SONAME_VERSION_MAJOR    := $(shell echo "$(SONAME_VERSION)" | $(SED) 's/^\([0-9]\+\)\..*/\1/')
+
+##
 ## Detect Operating System
 ##
 
@@ -59,7 +108,9 @@ DOCUMENT_FOLDER         ?= $(SHARED_ROOT_FOLDER)/doc/hashcat
 ##
 
 HASHCAT_FRONTEND        := hashcat
-HASHCAT_LIBRARY         := libhashcat.so
+HASHCAT_LIBNAME         := libhashcat.so
+HASHCAT_LIBRARY         := $(HASHCAT_LIBNAME).$(SONAME_VERSION)
+HASHCAT_SONAME          := $(HASHCAT_LIBNAME).$(SONAME_VERSION_MAJOR)
 
 ifeq ($(UNAME),CYGWIN)
 HASHCAT_FRONTEND        := hashcat.exe
@@ -79,39 +130,6 @@ endif # MSYS2
 
 OPENCL_HEADERS_KHRONOS  := deps/OpenCL-Headers
 
-##
-## Native compiler paths
-##
-
-CC                      := gcc
-FIND                    := find
-INSTALL                 := install
-RM                      := rm
-SED                     := sed
-SED_IN_PLACE            := -i
-
-ifeq ($(UNAME),Darwin)
-CC                      := clang
-# the sed -i option of macOS requires a parameter for the backup file (we just use "")
-SED_IN_PLACE            := -i ""
-PROD_VERS               := $(shell sw_vers -productVersion | cut -d. -f2)
-endif
-
-ifeq ($(UNAME),FreeBSD)
-CC                      := cc
-SED                     := gsed
-endif
-
-##
-## Cross compiler paths
-##
-
-CC_LINUX_32             := gcc
-CC_LINUX_64             := gcc
-
-CC_WIN_32               := i686-w64-mingw32-gcc
-CC_WIN_64               := x86_64-w64-mingw32-gcc
-
 ## To compile win-iconv with mingw clone from here: https://github.com/win-iconv/win-iconv
 ##
 ## Then patch the makefile withe the patches from tools/win-iconv-*.diff and run make install
@@ -119,19 +137,6 @@ CC_WIN_64               := x86_64-w64-mingw32-gcc
 
 WIN_ICONV_32             := /opt/win-iconv-32
 WIN_ICONV_64             := /opt/win-iconv-64
-
-##
-## Misc stuff
-##
-
-COMPTIME                := $(shell date +%s)
-
-# the following variable value will be automatically replaced by the "git archive" command
-# (which is automatically run for every github release)
-# the value will be something like this: "tag: vX.Y.Z, refs/pull/K/head" or "HEAD -> master, tag: vX.Y.Z"
-
-VERSION_EXPORT          := $Format:%D$
-VERSION_TAG             := $(shell test -d .git && git describe --tags --dirty=+ || echo "$(VERSION_EXPORT)" | $(SED) 's/.*: v\([\.0-9]*\).*/v\1/')
 
 ##
 ## General compiler and linker options
@@ -308,7 +313,7 @@ WIN_64_OBJS             := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.64.o)
 default: $(HASHCAT_FRONTEND)
 
 clean:
-	$(RM) -f obj/*.o obj/lzma_sdk/*.o *.bin *.exe *.so *.dll *.pid hashcat core
+	$(RM) -f obj/*.o obj/lzma_sdk/*.o *.bin *.exe *.so.* *.dll *.pid hashcat core
 	$(RM) -rf *.induct
 	$(RM) -rf *.outfiles
 	$(RM) -rf *.dSYM
@@ -431,11 +436,11 @@ obj/%.NATIVE.SHARED.o: src/%.c
 	$(CC) -c $(CFLAGS_NATIVE) $< -o $@ -fpic
 
 $(HASHCAT_LIBRARY): $(NATIVE_SHARED_OBJS)
-	$(CC)                                $^            $(LFLAGS_NATIVE) -o $@ -shared
+	$(CC)                                $^            $(LFLAGS_NATIVE) -o $@ -shared -Wl,-soname,$(HASHCAT_SONAME)
 
 ifeq ($(SHARED),1)
 $(HASHCAT_FRONTEND): src/main.c $(HASHCAT_LIBRARY)
-	$(CC)    $(CFLAGS_NATIVE) $^ -L. -lhashcat $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\" -o $@
+	$(CC)    $(CFLAGS_NATIVE) $^ $(HASHCAT_LIBRARY) $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\" -o $@
 else
 $(HASHCAT_FRONTEND): src/main.c $(NATIVE_STATIC_OBJS)
 	$(CC)    $(CFLAGS_NATIVE) $^               $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\" -o $@
