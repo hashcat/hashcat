@@ -5,6 +5,11 @@
 ## License.....: MIT
 ##
 
+## install help:
+##
+## cpan install Authen::Passphrase::LANManager Authen::Passphrase::MySQL323 Authen::Passphrase::NTHash Authen::Passphrase::PHPass Crypt::CBC Crypt::DES Crypt::Digest::RIPEMD160 Crypt::Digest::Whirlpool Crypt::ECB Crypt::Eksblowfish::Bcrypt Crypt::Mode::ECB Crypt::MySQL Crypt::OpenSSH::ChachaPoly Crypt::PBKDF2 Crypt::RC4 Crypt::Rijndael Crypt::ScryptKDF Crypt::Skip32 Crypt::Twofish Crypt::UnixCrypt_XS Digest::BLAKE2 Digest::CMAC Digest::CRC Digest::GOST Digest::HMAC Digest::HMAC_MD5 Digest::Keccak Digest::MD4 Digest::MD5 Digest::Perl::MD5 Digest::SHA Digest::SipHash JSON Net::DNS::RR::NSEC3 Net::DNS::SEC Convert::EBCDIC
+##
+
 use strict;
 use warnings;
 use Digest::MD4       qw (md4 md4_hex);
