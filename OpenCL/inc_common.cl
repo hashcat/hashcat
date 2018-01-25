@@ -208,6 +208,26 @@ float get_entropy (const u32 *buf, const int elems)
   return entropy;
 }
 
+int is_valid_hex_8 (const u8 v)
+{
+  // direct lookup table is slower thanks to CMOV
+
+  if ((v >= '0') && (v <= '9')) return 1;
+  if ((v >= 'a') && (v <= 'f')) return 1;
+
+  return 0;
+}
+
+int is_valid_hex_32 (const u32 v)
+{
+  if (is_valid_hex_8 ((u8) (v >>  0)) == 0) return 0;
+  if (is_valid_hex_8 ((u8) (v >>  8)) == 0) return 0;
+  if (is_valid_hex_8 ((u8) (v >> 16)) == 0) return 0;
+  if (is_valid_hex_8 ((u8) (v >> 24)) == 0) return 0;
+
+  return 1;
+}
+
 /**
  * vector functions
  */

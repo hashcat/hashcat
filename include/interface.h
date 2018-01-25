@@ -504,6 +504,14 @@ typedef struct jwt
 
 } jwt_t;
 
+typedef struct electrum_wallet
+{
+  u32 salt_type;
+  u32 iv[4];
+  u32 encrypted[4];
+
+} electrum_wallet_t;
+
 typedef struct luks_tmp
 {
   u32 ipad32[8];
@@ -1338,6 +1346,8 @@ typedef enum display_len
   DISPLAY_LEN_MAX_16400 = 10 + 32 + 32,
   DISPLAY_LEN_MIN_16500 =    1 + 1 +    1 + 1 + 43,
   DISPLAY_LEN_MAX_16500 = 2047 + 1 + 2047 + 1 + 86,
+  DISPLAY_LEN_MIN_16600 = 10 + 1 + 1 + 32 + 1 + 32,
+  DISPLAY_LEN_MAX_16600 = 10 + 1 + 1 + 32 + 1 + 32,
   DISPLAY_LEN_MIN_99999 = 1,
   DISPLAY_LEN_MAX_99999 = 55,
 
@@ -1470,6 +1480,7 @@ typedef enum hash_type
   HASH_TYPE_APPLE_SECURE_NOTES  = 64,
   HASH_TYPE_CRAM_MD5_DOVECOT    = 65,
   HASH_TYPE_JWT                 = 66,
+  HASH_TYPE_ELECTRUM_WALLET     = 67,
 
 } hash_type_t;
 
@@ -1674,6 +1685,7 @@ typedef enum kern_type
   KERN_TYPE_JWT_HS256               = 16511,
   KERN_TYPE_JWT_HS384               = 16512,
   KERN_TYPE_JWT_HS512               = 16513,
+  KERN_TYPE_ELECTRUM_WALLET13       = 16600,
   KERN_TYPE_PLAINTEXT               = 99999,
 
 } kern_type_t;
@@ -1939,6 +1951,7 @@ int tacacs_plus_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int apple_secure_notes_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int ethereum_presale_parse_hash   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int jwt_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
+int electrum_wallet13_parse_hash  (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 
 /**
  * hook functions

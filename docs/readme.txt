@@ -221,6 +221,7 @@ NVIDIA GPUs require "NVIDIA Driver" (367.x or later)
 - Bitcoin/Litecoin wallet.dat
 - Blockchain, My Wallet
 - Blockchain, My Wallet, V2
+- Electrum Wallet (Salt-Type 1-3)
 - 1Password, agilekeychain
 - 1Password, cloudkeychain
 - LastPass

@@ -1502,6 +1502,14 @@ typedef struct jwt
 
 } jwt_t;
 
+typedef struct electrum_wallet
+{
+  u32 salt_type;
+  u32 iv[4];
+  u32 encrypted[4];
+
+} electrum_wallet_t;
+
 typedef struct pdf14_tmp
 {
   u32 digest[4];
