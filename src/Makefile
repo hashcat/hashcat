@@ -8,55 +8,6 @@ DEBUG                   := 0
 PRODUCTION              := 0
 
 ##
-## Native compiler paths
-##
-
-CC                      := gcc
-FIND                    := find
-INSTALL                 := install
-RM                      := rm
-SED                     := sed
-SED_IN_PLACE            := -i
-
-ifeq ($(UNAME),Darwin)
-CC                      := clang
-# the sed -i option of macOS requires a parameter for the backup file (we just use "")
-SED_IN_PLACE            := -i ""
-PROD_VERS               := $(shell sw_vers -productVersion | cut -d. -f2)
-endif
-
-ifeq ($(UNAME),FreeBSD)
-CC                      := cc
-SED                     := gsed
-endif
-
-##
-## Cross compiler paths
-##
-
-CC_LINUX_32             := gcc
-CC_LINUX_64             := gcc
-
-CC_WIN_32               := i686-w64-mingw32-gcc
-CC_WIN_64               := x86_64-w64-mingw32-gcc
-
-##
-## Misc stuff
-##
-
-COMPTIME                := $(shell date +%s)
-
-# the following variable value will be automatically replaced by the "git archive" command
-# (which is automatically run for every github release)
-# the value will be something like this: "tag: vX.Y.Z, refs/pull/K/head" or "HEAD -> master, tag: vX.Y.Z"
-
-VERSION_EXPORT          := $Format:%D$
-VERSION_TAG             := $(shell test -d .git && git describe --tags --dirty=+ || echo "$(VERSION_EXPORT)" | $(SED) 's/.*: v\([\.0-9]*\).*/v\1/')
-
-SONAME_VERSION          := $(shell echo "$(VERSION_TAG)" | $(SED) 's/^v\([\.0-9]\+\)-.*/\1/')
-SONAME_VERSION_MAJOR    := $(shell echo "$(SONAME_VERSION)" | $(SED) 's/^\([0-9]\+\)\..*/\1/')
-
-##
 ## Detect Operating System
 ##
 
@@ -89,6 +40,37 @@ MAKEFLAGS               += -j 1
 endif
 
 ##
+## Native compiler paths
+##
+
+CC                      := gcc
+FIND                    := find
+INSTALL                 := install
+RM                      := rm
+SED                     := sed
+SED_IN_PLACE            := -i
+
+ifeq ($(UNAME),Darwin)
+CC                      := clang
+# the sed -i option of macOS requires a parameter for the backup file (we just use "")
+SED_IN_PLACE            := -i ""
+PROD_VERS               := $(shell sw_vers -productVersion | cut -d. -f2)
+endif
+
+ifeq ($(UNAME),FreeBSD)
+CC                      := cc
+SED                     := gsed
+endif
+
+# the following variable value will be automatically replaced by the "git archive" command
+# (which is automatically run for every github release)
+# the value will be something like this: "tag: vX.Y.Z, refs/pull/K/head" or "HEAD -> master, tag: vX.Y.Z"
+
+VERSION_EXPORT          := $Format:%D$
+VERSION_TAG             := $(shell test -d .git && git describe --tags --dirty=+ || echo "$(VERSION_EXPORT)" | $(SED) 's/.*: v\([\.0-9]*\).*/v\1/')
+VERSION_PURE            := $(shell echo "$(VERSION_TAG)" | $(SED) 's/.*v\([\.0-9]*\).*/\1/')
+
+##
 ## Installation paths (Linux only)
 ##
 
@@ -96,21 +78,19 @@ DESTDIR                 ?=
 PREFIX                  ?= /usr/local
 
 INSTALL_FOLDER          ?= $(PREFIX)/bin
-INCLUDE_ROOT_FOLDER     ?= $(PREFIX)/include
-INCLUDE_FOLDER          ?= $(INCLUDE_ROOT_FOLDER)/hashcat
-LIBRARY_FOLDER          ?= $(PREFIX)/lib
 SHARED_ROOT_FOLDER      ?= $(PREFIX)/share
 SHARED_FOLDER           ?= $(SHARED_ROOT_FOLDER)/hashcat
 DOCUMENT_FOLDER         ?= $(SHARED_ROOT_FOLDER)/doc/hashcat
+LIBRARY_FOLDER          ?= $(PREFIX)/lib
+LIBRARY_DEV_ROOT_FOLDER ?= $(PREFIX)/include
+LIBRARY_DEV_FOLDER      ?= $(LIBRARY_DEV_ROOT_FOLDER)/hashcat
 
 ##
 ## Filenames for library and frontend
 ##
 
 HASHCAT_FRONTEND        := hashcat
-HASHCAT_LIBNAME         := libhashcat.so
-HASHCAT_LIBRARY         := $(HASHCAT_LIBNAME).$(SONAME_VERSION)
-HASHCAT_SONAME          := $(HASHCAT_LIBNAME).$(SONAME_VERSION_MAJOR)
+HASHCAT_LIBRARY         := libhashcat.so.$(VERSION_PURE)
 
 ifeq ($(UNAME),CYGWIN)
 HASHCAT_FRONTEND        := hashcat.exe
@@ -130,6 +110,16 @@ endif # MSYS2
 
 OPENCL_HEADERS_KHRONOS  := deps/OpenCL-Headers
 
+##
+## Cross compiler paths
+##
+
+CC_LINUX_32             := gcc
+CC_LINUX_64             := gcc
+
+CC_WIN_32               := i686-w64-mingw32-gcc
+CC_WIN_64               := x86_64-w64-mingw32-gcc
+
 ## To compile win-iconv with mingw clone from here: https://github.com/win-iconv/win-iconv
 ##
 ## Then patch the makefile withe the patches from tools/win-iconv-*.diff and run make install
@@ -137,6 +127,12 @@ OPENCL_HEADERS_KHRONOS  := deps/OpenCL-Headers
 
 WIN_ICONV_32             := /opt/win-iconv-32
 WIN_ICONV_64             := /opt/win-iconv-64
+
+##
+## Misc stuff
+##
+
+COMPTIME                := $(shell date +%s)
 
 ##
 ## General compiler and linker options
@@ -313,7 +309,15 @@ WIN_64_OBJS             := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.64.o)
 default: $(HASHCAT_FRONTEND)
 
 clean:
-	$(RM) -f obj/*.o obj/lzma_sdk/*.o *.bin *.exe *.so.* *.dll *.pid hashcat core
+	$(RM) -f $(HASHCAT_FRONTEND)
+	$(RM) -f $(HASHCAT_LIBRARY)
+	$(RM) -f obj/lzma_sdk/*.o
+	$(RM) -f obj/*.o
+	$(RM) -f *.bin *.exe
+	$(RM) -f *.pid
+	$(RM) -f *.restore
+	$(RM) -f *.log
+	$(RM) -f core
 	$(RM) -rf *.induct
 	$(RM) -rf *.outfiles
 	$(RM) -rf *.dSYM
@@ -336,7 +340,6 @@ win64: hashcat64.exe
 
 ##
 ## Targets: Linux install
-## How to make /usr/bin/install doing recursive??
 ##
 
 # allow (whitelist) "make install" only on unix-based systems (also disallow cygwin/msys)
@@ -353,21 +356,21 @@ Only Linux, FreeBSD and Darwin can use the 'install' target
 endif
 
 ifeq ($(SHARED),1)
-install: install_docs install_shared install_include install_library install_hashcat
+install: install_docs install_shared install_library install_library_dev install_hashcat
 else
-install: install_docs install_shared                                 install_hashcat
+install: install_docs install_shared                                     install_hashcat
 endif
 
 # we need this extra target to make sure that for parallel builds (i.e. 2+ Makefile targets could possible run at the same time)
 # the root folder of the shared directory is created first (and is a dependency for the targets that depend on it)
 
-install_make_include_root:
-	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(INCLUDE_ROOT_FOLDER)
+install_make_library_dev_root:
+	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(LIBRARY_DEV_ROOT_FOLDER)
 
-install_make_share_root:
+install_make_shared_root:
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(SHARED_ROOT_FOLDER)
 
-install_docs: install_make_share_root
+install_docs: install_make_shared_root
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)/docs
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)/charsets
@@ -397,22 +400,22 @@ install_docs: install_make_share_root
 	$(SED) $(SED_IN_PLACE) 's/\.\/hashcat/hashcat/'                         $(DESTDIR)$(DOCUMENT_FOLDER)/example400.sh
 	$(SED) $(SED_IN_PLACE) 's/\.\/hashcat/hashcat/'                         $(DESTDIR)$(DOCUMENT_FOLDER)/example500.sh
 
-install_shared: install_make_share_root
+install_shared: install_make_shared_root
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(SHARED_FOLDER)
 	$(INSTALL) -m 644 hashcat.hctune                                        $(DESTDIR)$(SHARED_FOLDER)/
 	$(INSTALL) -m 644 hashcat.hcstat2                                       $(DESTDIR)$(SHARED_FOLDER)/
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(SHARED_FOLDER)/OpenCL
-	$(FIND) OpenCL/   -type d -mindepth 1 -execdir $(INSTALL) -m 755 -d     $(DESTDIR)$(SHARED_FOLDER)/OpenCL/{} \;
-	$(FIND) OpenCL/   -type f -mindepth 1 -execdir $(INSTALL) -m 644 {}     $(DESTDIR)$(SHARED_FOLDER)/OpenCL/{} \;
-
-install_include: install_make_include_root
-	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(INCLUDE_FOLDER)
-	$(FIND) include/  -type d -mindepth 1 -execdir $(INSTALL) -m 755 -d     $(DESTDIR)$(INCLUDE_FOLDER)/{} \;
-	$(FIND) include/  -type f -mindepth 1 -execdir $(INSTALL) -m 644 {}     $(DESTDIR)$(INCLUDE_FOLDER)/{} \;
+	$(FIND) OpenCL/   -mindepth 1 -type d -execdir $(INSTALL) -m 755 -d     $(DESTDIR)$(SHARED_FOLDER)/OpenCL/{} \;
+	$(FIND) OpenCL/   -mindepth 1 -type f -execdir $(INSTALL) -m 644 {}     $(DESTDIR)$(SHARED_FOLDER)/OpenCL/{} \;
 
 install_library: $(HASHCAT_LIBRARY)
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(LIBRARY_FOLDER)
 	$(INSTALL) -m 755 $(HASHCAT_LIBRARY)                                    $(DESTDIR)$(LIBRARY_FOLDER)/
+
+install_library_dev: install_make_library_dev_root
+	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(LIBRARY_DEV_FOLDER)
+	$(FIND) include/  -mindepth 1 -type d -execdir $(INSTALL) -m 755 -d     $(DESTDIR)$(LIBRARY_DEV_FOLDER)/{} \;
+	$(FIND) include/  -mindepth 1 -type f -execdir $(INSTALL) -m 644 {}     $(DESTDIR)$(LIBRARY_DEV_FOLDER)/{} \;
 
 install_hashcat: $(HASHCAT_FRONTEND)
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(INSTALL_FOLDER)
@@ -421,7 +424,7 @@ install_hashcat: $(HASHCAT_FRONTEND)
 uninstall:
 	$(RM) -f  $(DESTDIR)$(INSTALL_FOLDER)/$(HASHCAT_FRONTEND)
 	$(RM) -f  $(DESTDIR)$(LIBRARY_FOLDER)/$(HASHCAT_LIBRARY)
-	$(RM) -rf $(DESTDIR)$(INCLUDE_FOLDER)
+	$(RM) -rf $(DESTDIR)$(LIBRARY_DEV_FOLDER)
 	$(RM) -rf $(DESTDIR)$(SHARED_FOLDER)
 	$(RM) -rf $(DESTDIR)$(DOCUMENT_FOLDER)
 
@@ -436,14 +439,14 @@ obj/%.NATIVE.SHARED.o: src/%.c
 	$(CC) -c $(CFLAGS_NATIVE) $< -o $@ -fpic
 
 $(HASHCAT_LIBRARY): $(NATIVE_SHARED_OBJS)
-	$(CC)                                $^            $(LFLAGS_NATIVE) -o $@ -shared -Wl,-soname,$(HASHCAT_SONAME)
+	$(CC)                     $^ -o $@                    $(LFLAGS_NATIVE) -shared -Wl,-soname,$(HASHCAT_LIBRARY)
 
 ifeq ($(SHARED),1)
 $(HASHCAT_FRONTEND): src/main.c $(HASHCAT_LIBRARY)
-	$(CC)    $(CFLAGS_NATIVE) $^ $(HASHCAT_LIBRARY) $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\" -o $@
+	$(CC)    $(CFLAGS_NATIVE) $^ -o $@ $(HASHCAT_LIBRARY) $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 else
 $(HASHCAT_FRONTEND): src/main.c $(NATIVE_STATIC_OBJS)
-	$(CC)    $(CFLAGS_NATIVE) $^               $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\" -o $@
+	$(CC)    $(CFLAGS_NATIVE) $^ -o $@                    $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 endif
 
 ##
