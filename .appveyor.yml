@@ -46,13 +46,11 @@ test_script:
   #  1. hash file should not exist and therefore hashcat should complain (if it does not there might be a problem)
   #  2. hash file should expand to example0.hash and succeed
   - ps: >-
-      cd $env:APPVEYOR_BUILD_FOLDER
-
-      & $env:BASH -c "./hashcat.exe -m 0 --show *file_not_found.hash" 2>&1 | out-null
+      & $env:BASH -lc "cd '$env:APPVEYOR_BUILD_FOLDER' && ./hashcat.exe -m 0 --show *file_not_found.hash" 2>&1 | out-null
 
       if ($LastExitCode -eq 0)
       {
         throw "test failed"
       }
 
-      & $env:BASH -c "./hashcat.exe -m 0 --show *ple0.hash"
+      & $env:BASH -lc "cd '$env:APPVEYOR_BUILD_FOLDER' && ./hashcat.exe -m 0 --show *ple0.hash"
