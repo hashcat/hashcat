@@ -334,6 +334,19 @@ win64: hashcat64.exe
 ## How to make /usr/bin/install doing recursive??
 ##
 
+# allow (whitelist) "make install" only on unix-based systems (also disallow cygwin/msys)
+
+ifneq ($(findstring install,$(MAKECMDGOALS)),)
+  ifeq (,$(filter $(UNAME),Linux FreeBSD Darwin))
+    define ERROR_INSTALL_DISALLOWED
+! The 'install' target is not allowed on this operating system ($(UNAME)). \
+Only Linux, FreeBSD and Darwin can use the 'install' target
+    endef
+
+    $(error $(ERROR_INSTALL_DISALLOWED))
+  endif
+endif
+
 ifeq ($(SHARED),1)
 install: install_docs install_shared install_include install_library install_hashcat
 else
