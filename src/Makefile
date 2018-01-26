@@ -6,6 +6,7 @@
 SHARED                  := 0
 DEBUG                   := 0
 PRODUCTION              := 0
+PRODUCTION_VERSION      := v4.0.1
 
 ##
 ## Detect Operating System
@@ -62,12 +63,16 @@ CC                      := cc
 SED                     := gsed
 endif
 
-# the following variable value will be automatically replaced by the "git archive" command
-# (which is automatically run for every github release)
-# the value will be something like this: "tag: vX.Y.Z, refs/pull/K/head" or "HEAD -> master, tag: vX.Y.Z"
+##
+## Version
+##
 
-VERSION_EXPORT          := $Format:%D$
-VERSION_TAG             := $(shell test -d .git && git describe --tags --dirty=+ || echo "$(VERSION_EXPORT)" | $(SED) 's/.*: v\([\.0-9]*\).*/v\1/')
+ifeq ($(PRODUCTION),1)
+VERSION_TAG             := $(PRODUCTION_VERSION)
+else
+VERSION_TAG             := $(shell git describe --tags --dirty=+ || echo $(PRODUCTION_VERSION))
+endif # PRODUCTION
+
 VERSION_PURE            := $(shell echo "$(VERSION_TAG)" | $(SED) 's/.*v\([\.0-9]*\).*/\1/')
 
 ##
@@ -125,8 +130,8 @@ CC_WIN_64               := x86_64-w64-mingw32-gcc
 ## Then patch the makefile withe the patches from tools/win-iconv-*.diff and run make install
 ##
 
-WIN_ICONV_32             := /opt/win-iconv-32
-WIN_ICONV_64             := /opt/win-iconv-64
+WIN_ICONV_32            := /opt/win-iconv-32
+WIN_ICONV_64            := /opt/win-iconv-64
 
 ##
 ## Misc stuff
