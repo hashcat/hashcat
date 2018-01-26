@@ -210,6 +210,7 @@ CFLAGS_NATIVE           += -DWITH_HWMON
 LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -ldl
+LFLAGS_NATIVE           += -lrt
 endif # Linux
 
 ifeq ($(UNAME),FreeBSD)
