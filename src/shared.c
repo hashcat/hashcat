@@ -7,6 +7,10 @@
 #include "types.h"
 #include "shared.h"
 
+#if defined (__CYGWIN__)
+#include <sys/cygwin.h>
+#endif
+
 static inline int get_msb32 (const u32 v)
 {
   int i;
@@ -304,6 +308,10 @@ void setup_environment_variables ()
 
   if (getenv ("POCL_KERNEL_CACHE") == NULL)
     putenv ((char *) "POCL_KERNEL_CACHE=0");
+
+  #if defined (__CYGWIN__)
+  cygwin_internal (CW_SYNC_WINENV);
+  #endif
 }
 
 void setup_umask ()
