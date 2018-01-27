@@ -3,7 +3,7 @@
  * License.....: MIT
  */
 
-#define NEW_SIMD_CODE
+//#define NEW_SIMD_CODE
 
 #include "inc_vendor.cl"
 #include "inc_hash_constants.h"
@@ -70,6 +70,8 @@ __kernel void m02410_m04 (__global pw_t *pws, __constant const kernel_rule_t *ru
   salt_buf3[2] = 0;
   salt_buf3[3] = 0;
 
+  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+
   /**
    * loop
    */
@@ -132,18 +134,41 @@ __kernel void m02410_m04 (__global pw_t *pws, __constant const kernel_rule_t *ru
      * md5
      */
 
-    w1[0] = 0x80;
-    w1[1] = 0;
-    w1[2] = 0;
-    w1[3] = 0;
-    w2[0] = 0;
-    w2[1] = 0;
-    w2[2] = 0;
-    w2[3] = 0;
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 16 * 8;
-    w3[3] = 0;
+    const u32x out_salt_len = out_len + salt_len;
+
+    if (out_salt_len <= 16)
+    {
+      w1[0] = 0x80;
+      w1[1] = 0;
+      w1[2] = 0;
+      w1[3] = 0;
+      w2[0] = 0;
+      w2[1] = 0;
+      w2[2] = 0;
+      w2[3] = 0;
+      w3[0] = 0;
+      w3[1] = 0;
+      w3[2] = 16 * 8;
+      w3[3] = 0;
+    }
+    else if (out_salt_len <= 32)
+    {
+      w2[0] = 0x80;
+      w2[1] = 0;
+      w2[2] = 0;
+      w2[3] = 0;
+      w3[0] = 0;
+      w3[1] = 0;
+      w3[2] = 32 * 8;
+      w3[3] = 0;
+    }
+    else if (out_salt_len <= 48)
+    {
+      w3[0] = 0x80;
+      w3[1] = 0;
+      w3[2] = 48 * 8;
+      w3[3] = 0;
+    }
 
     u32x a = MD5M_A;
     u32x b = MD5M_B;
@@ -293,6 +318,8 @@ __kernel void m02410_s04 (__global pw_t *pws, __constant const kernel_rule_t *ru
   salt_buf3[2] = 0;
   salt_buf3[3] = 0;
 
+  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+
   /**
    * digest
    */
@@ -367,18 +394,41 @@ __kernel void m02410_s04 (__global pw_t *pws, __constant const kernel_rule_t *ru
      * md5
      */
 
-    w1[0] = 0x80;
-    w1[1] = 0;
-    w1[2] = 0;
-    w1[3] = 0;
-    w2[0] = 0;
-    w2[1] = 0;
-    w2[2] = 0;
-    w2[3] = 0;
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 16 * 8;
-    w3[3] = 0;
+    const u32x out_salt_len = out_len + salt_len;
+
+    if (out_salt_len <= 16)
+    {
+      w1[0] = 0x80;
+      w1[1] = 0;
+      w1[2] = 0;
+      w1[3] = 0;
+      w2[0] = 0;
+      w2[1] = 0;
+      w2[2] = 0;
+      w2[3] = 0;
+      w3[0] = 0;
+      w3[1] = 0;
+      w3[2] = 16 * 8;
+      w3[3] = 0;
+    }
+    else if (out_salt_len <= 32)
+    {
+      w2[0] = 0x80;
+      w2[1] = 0;
+      w2[2] = 0;
+      w2[3] = 0;
+      w3[0] = 0;
+      w3[1] = 0;
+      w3[2] = 32 * 8;
+      w3[3] = 0;
+    }
+    else if (out_salt_len <= 48)
+    {
+      w3[0] = 0x80;
+      w3[1] = 0;
+      w3[2] = 48 * 8;
+      w3[3] = 0;
+    }
 
     u32x a = MD5M_A;
     u32x b = MD5M_B;

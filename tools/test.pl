@@ -45,7 +45,7 @@ use Authen::Passphrase::MySQL323;
 use Authen::Passphrase::PHPass;
 use Authen::Passphrase::LANManager;
 use Encode;
-use POSIX qw (strftime);
+use POSIX qw (strftime ceil);
 use Net::DNS::SEC;
 use Net::DNS::RR::NSEC3;
 use Convert::EBCDIC qw (ascii2ebcdic);
@@ -3516,8 +3516,6 @@ sub passthrough
     }
     elsif ($mode == 2410)
     {
-      next if length ($word_buf) > 12;
-
       my $salt_len = get_random_num (1, 4);
 
       $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, $salt_len));
@@ -4110,7 +4108,7 @@ sub single
     }
     elsif ($mode == 2400)
     {
-      for (my $i = 1; $i < 16; $i++)
+      for (my $i = 1; $i < 32; $i++)
       {
         if ($len != 0)
         {
@@ -4124,9 +4122,9 @@ sub single
     }
     elsif ($mode == 2410)
     {
-      my $salt_len = get_random_num (1, 4);
+      my $salt_len = get_random_num (3, 4);
 
-      for (my $i = 1; $i < 13; $i++)
+      for (my $i = 1; $i < 32; $i++)
       {
         if ($len != 0)
         {
@@ -5568,13 +5566,23 @@ sub gen_hash
   }
   elsif ($mode == 2400)
   {
-    my $hash_buf = Digest::MD5::md5 ($word_buf . "\0" x (16 - length ($word_buf)));
+    my $word_len = length ($word_buf);
+
+    my $pad_len = ceil ($word_len / 16) * 16;
+
+    my $hash_buf = Digest::MD5::md5 ($word_buf . "\0" x ($pad_len - $word_len));
 
     $tmp_hash = sprintf ("%s", pseudo_base64 ($hash_buf));
   }
   elsif ($mode == 2410)
   {
-    my $hash_buf = Digest::MD5::md5 ($word_buf . $salt_buf . "\0" x (16 - length ($word_buf) - length ($salt_buf)));
+    my $word_salt_buf = $word_buf . $salt_buf;
+
+    my $word_salt_len = length ($word_salt_buf);
+
+    my $pad_len = ceil ($word_salt_len / 16) * 16;
+
+    my $hash_buf = Digest::MD5::md5 ($word_buf . $salt_buf . "\0" x ($pad_len - $word_salt_len));
 
     $tmp_hash = sprintf ("%s:%s", pseudo_base64 ($hash_buf), $salt_buf);
   }
@@ -9569,13 +9577,8 @@ sub rnd
 
   my $max = $MAX_LEN;
 
-  if ($mode == 2400)
+  if ($mode == 2410)
   {
-    $word_len = min ($word_len, 16);
-  }
-  elsif ($mode == 2410)
-  {
-    $word_len = min ($word_len, 12);
     $salt_len = min ($salt_len, 4);
   }
 

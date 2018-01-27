@@ -26200,8 +26200,6 @@ int hashconfig_get_pw_max (hashcat_ctx_t *hashcat_ctx, const bool optimized_kern
     case   112: pw_max = 30;      break; // https://www.toadworld.com/platforms/oracle/b/weblog/archive/2013/11/12/oracle-12c-passwords
     case  1500: pw_max = 8;       break; // Underlaying DES max
     case  2100: pw_max = PW_MAX;  break;
-    case  2400: pw_max = 16;      break; // Cisco-PIX MD5 sets w[4] = 0x80
-    case  2410: pw_max = 12;      break; // Cisco-ASA MD5 sets w[4] = 0x80 plus has a 4 byte fixed salt
     case  2500: pw_max = 63;      break; // WPA/WPA2 limits itself to 63 by RFC
     case  2501: pw_max = 64;      break; // WPA/WPA2 PMK fixed length
     case  3000: pw_max = 7;       break; // LM max

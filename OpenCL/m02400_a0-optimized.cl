@@ -3,7 +3,7 @@
  * License.....: MIT
  */
 
-#define NEW_SIMD_CODE
+//#define NEW_SIMD_CODE
 
 #include "inc_vendor.cl"
 #include "inc_hash_constants.h"
@@ -57,18 +57,39 @@ __kernel void m02400_m04 (__global pw_t *pws, __constant const kernel_rule_t *ru
 
     const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
-    w1[0] = 0x80;
-    w1[1] = 0;
-    w1[2] = 0;
-    w1[3] = 0;
-    w2[0] = 0;
-    w2[1] = 0;
-    w2[2] = 0;
-    w2[3] = 0;
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 16 * 8;
-    w3[3] = 0;
+    if (out_len <= 16)
+    {
+      w1[0] = 0x80;
+      w1[1] = 0;
+      w1[2] = 0;
+      w1[3] = 0;
+      w2[0] = 0;
+      w2[1] = 0;
+      w2[2] = 0;
+      w2[3] = 0;
+      w3[0] = 0;
+      w3[1] = 0;
+      w3[2] = 16 * 8;
+      w3[3] = 0;
+    }
+    else if (out_len <= 32)
+    {
+      w2[0] = 0x80;
+      w2[1] = 0;
+      w2[2] = 0;
+      w2[3] = 0;
+      w3[0] = 0;
+      w3[1] = 0;
+      w3[2] = 32 * 8;
+      w3[3] = 0;
+    }
+    else if (out_len <= 48)
+    {
+      w3[0] = 0x80;
+      w3[1] = 0;
+      w3[2] = 48 * 8;
+      w3[3] = 0;
+    }
 
     u32x a = MD5M_A;
     u32x b = MD5M_B;
@@ -217,18 +238,39 @@ __kernel void m02400_s04 (__global pw_t *pws, __constant const kernel_rule_t *ru
 
     const u32x out_len = apply_rules_vect (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
-    w1[0] = 0x80;
-    w1[1] = 0;
-    w1[2] = 0;
-    w1[3] = 0;
-    w2[0] = 0;
-    w2[1] = 0;
-    w2[2] = 0;
-    w2[3] = 0;
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 16 * 8;
-    w3[3] = 0;
+    if (out_len <= 16)
+    {
+      w1[0] = 0x80;
+      w1[1] = 0;
+      w1[2] = 0;
+      w1[3] = 0;
+      w2[0] = 0;
+      w2[1] = 0;
+      w2[2] = 0;
+      w2[3] = 0;
+      w3[0] = 0;
+      w3[1] = 0;
+      w3[2] = 16 * 8;
+      w3[3] = 0;
+    }
+    else if (out_len <= 32)
+    {
+      w2[0] = 0x80;
+      w2[1] = 0;
+      w2[2] = 0;
+      w2[3] = 0;
+      w3[0] = 0;
+      w3[1] = 0;
+      w3[2] = 32 * 8;
+      w3[3] = 0;
+    }
+    else if (out_len <= 48)
+    {
+      w3[0] = 0x80;
+      w3[1] = 0;
+      w3[2] = 48 * 8;
+      w3[3] = 0;
+    }
 
     u32x a = MD5M_A;
     u32x b = MD5M_B;
