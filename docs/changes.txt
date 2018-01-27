@@ -1,12 +1,12 @@
-* changes v4.0.1 -> xxx:
+* changes v4.0.1 -> 4.1.0
 
 ##
 ## Features
 ##
 
-- Added option --benchmark-all to benchmark all hash-modes not just the default selection
-- Removed option --gpu-temp-retain that tried to retain GPU temperature at X degrees celsius, please use driver specific tools
-- Removed option --powertune-enable to enable power tuning, please use driver specific tools
+- Added option --benchmark-all to benchmark all hash-modes (not just the default selection)
+- Removed option --gpu-temp-retain that tried to retain GPU temperature at X degrees celsius - please use driver-specific tools
+- Removed option --powertune-enable to enable power tuning - please use driver specific tools
 
 ##
 ## Algorithms
@@ -24,35 +24,35 @@
 ## Bugs
 ##
 
-- Fixed a hash parsing problem when using --show/--left together with hashes with long salts that require pure kernels
+- Fixed a hash parsing problem when using --show/--left with hashes with long salts that required pure kernels
 - Fixed a hash parsing problem for 7-Zip hashes: allow a longer crc32 data length field within the hash format
-- Fixed the output of --show if $HEX[] passwords are present within the potfile
-- Fixed a restore issue leading to "Restore value is greater than keyspace" in case mask-files or wordlist-folders were used
+- Fixed the output of --show if $HEX[] passwords were present within the potfile
+- Fixed a restore issue leading to "Restore value is greater than keyspace" when mask-files or wordlist-folders were used
 - Fixed a mask-length check issue: Return -1 in case the mask-length is not within the password-length range
-- Fixed the maximum password length check in password reassembling function
+- Fixed the maximum password length check in password-reassembling function
 
 ##
 ## Improvements
 ##
 
-- Show [r]esume in prompt in pause mode only and show [p]ause in prompt in resume mode only
+- Show [r]esume in prompt only in pause mode, and show [p]ause in prompt only in resume mode
 
 ##
 ## Technical
 ##
 
 - Documents: Added docs/limits.txt
-- Files: Switched back to relative current working directory on windows to workaround problems with unicode characters
-- Files: Copy include/ folder and its content to case SHARED is set to 1 in Makefile
+- Files: Switched back to relative current working directory on windows to work around problems with unicode characters
+- Files: Copy include/ folder and its content when SHARED is set to 1 in Makefile
 - Hash Parser: Changed the way large strings are handled/truncated within the event buffer if they are too large to fit
-- Hash Parser: Fixed our use of strtok_r () calls
-- OpenCL Kernels: Use a special kernel to initialize the password buffer used during autotune measurements to reduce startup time
+- Hash Parser: Fixed the use of strtok_r () calls
+- OpenCL Kernels: Use a special kernel to initialize the password buffer used during autotune measurements, to reduce startup time
 - OpenCL Kernels: Replace variables from uXX to uXXa if used in __constant space
 - OpenCL Kernels: Use static declaraction for uXXa variables used in __constant space
-- Self Test: Skip self-test for mode 8900 user-configurable scrypt settings are incompatible to fixed settings in the self-test hash
-- Self Test: Skip self-test for mode 15700 because settings are too high and create a too long startup time
-- Terminal: Send clear line code to the same output stream as the next message following
-- Timer: Switch from gettimeofday() to clock_gettime() to workaround problems on cygwin
+- Self Test: Skip self-test for mode 8900 - user-configurable scrypt settings are incompatible with fixed settings in the self-test hash
+- Self Test: Skip self-test for mode 15700 because the settings are too high and cause startup times that are too long
+- Terminal: Send clear line code to the same output stream as the message immediately following
+- Timer: Switch from gettimeofday() to clock_gettime() to work around problems on cygwin
 
 * changes v4.0.0 -> v4.0.1:
 
