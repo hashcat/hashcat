@@ -48,6 +48,7 @@
 - Files: Switched back to relative current working directory on windows to work around problems with unicode characters
 - Hash Parser: Changed the way large strings are handled/truncated within the event buffer if they are too large to fit
 - Hash Parser: Fixed the use of strtok_r () calls
+- OpenCL Runtime: Updated rocm detection
 - OpenCL Kernels: Replace variables from uXX to uXXa if used in __constant space
 - OpenCL Kernels: Use a special kernel to initialize the password buffer used during autotune measurements, to reduce startup time
 - OpenCL Kernels: Use static declaraction for uXXa variables used in __constant space

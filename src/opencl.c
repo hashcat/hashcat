@@ -3231,14 +3231,11 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
           // check for AMD ROCm driver (only available on linux)
 
-          const char *t1 = strstr (device_param->driver_version, "(HSA,LC)");
-          const char *t2 = strstr (device_param->driver_version, "(PAL,LC)");
-          const char *t3 = strstr (device_param->driver_version, "(PAL,HSAIL)");
-          const char *t4 = strstr (device_param->driver_version, "(HSA, LC)");
-          const char *t5 = strstr (device_param->driver_version, "(PAL, LC)");
-          const char *t6 = strstr (device_param->driver_version, "(PAL, HSAIL)");
+          const char *t1 = strstr (device_param->driver_version, "HSA");
+          const char *t2 = strstr (device_param->driver_version, "LC");
+          const char *t3 = strstr (device_param->driver_version, "PAL");
 
-          if ((t1 == NULL) && (t2 == NULL) && (t3 == NULL) && (t4 == NULL) && (t5 == NULL) && (t6 == NULL))
+          if ((t1 == NULL) && (t2 == NULL) && (t3 == NULL))
           {
             device_param->is_rocm = false;
           }
@@ -3252,6 +3249,8 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           device_param->is_rocm = false;
 
           #endif
+
+printf ("%d\n", device_param->is_rocm);
         }
 
         if ((device_param->platform_vendor_id == VENDOR_ID_NV) && (device_param->device_vendor_id == VENDOR_ID_NV))
