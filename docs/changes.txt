@@ -24,33 +24,35 @@
 ## Bugs
 ##
 
-- Fixed a hash parsing problem when using --show/--left with hashes with long salts that required pure kernels
 - Fixed a hash parsing problem for 7-Zip hashes: allow a longer crc32 data length field within the hash format
-- Fixed the output of --show if $HEX[] passwords were present within the potfile
-- Fixed a restore issue leading to "Restore value is greater than keyspace" when mask-files or wordlist-folders were used
+- Fixed a hash parsing problem when using --show/--left with hashes with long salts that required pure kernels
 - Fixed a mask-length check issue: Return -1 in case the mask-length is not within the password-length range
+- Fixed a restore issue leading to "Restore value is greater than keyspace" when mask-files or wordlist-folders were used
 - Fixed the maximum password length check in password-reassembling function
+- Fixed the output of --show if $HEX[] passwords were present within the potfile
 
 ##
 ## Improvements
 ##
 
-- Show [r]esume in prompt only in pause mode, and show [p]ause in prompt only in resume mode
+- OpenCL Kernels: Remove password length restriction to 16 for Cisco-PIX and Cisco-ASA hashes
+- Terminal: Display Set Cost/Rounds During Benchmarking
+- Terminal: Show [r]esume in prompt only in pause mode, and show [p]ause in prompt only in resume mode
 
 ##
 ## Technical
 ##
 
 - Documents: Added docs/limits.txt
-- Files: Switched back to relative current working directory on windows to work around problems with unicode characters
 - Files: Copy include/ folder and its content when SHARED is set to 1 in Makefile
+- Files: Switched back to relative current working directory on windows to work around problems with unicode characters
 - Hash Parser: Changed the way large strings are handled/truncated within the event buffer if they are too large to fit
 - Hash Parser: Fixed the use of strtok_r () calls
-- OpenCL Kernels: Use a special kernel to initialize the password buffer used during autotune measurements, to reduce startup time
 - OpenCL Kernels: Replace variables from uXX to uXXa if used in __constant space
+- OpenCL Kernels: Use a special kernel to initialize the password buffer used during autotune measurements, to reduce startup time
 - OpenCL Kernels: Use static declaraction for uXXa variables used in __constant space
-- Self Test: Skip self-test for mode 8900 - user-configurable scrypt settings are incompatible with fixed settings in the self-test hash
 - Self Test: Skip self-test for mode 15700 because the settings are too high and cause startup times that are too long
+- Self Test: Skip self-test for mode 8900 - user-configurable scrypt settings are incompatible with fixed settings in the self-test hash
 - Terminal: Send clear line code to the same output stream as the message immediately following
 - Timer: Switch from gettimeofday() to clock_gettime() to work around problems on cygwin
 

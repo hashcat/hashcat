@@ -438,7 +438,15 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
     {
       const char *hash_type = strhashtype (hashconfig->hash_mode); // not a bug
 
-      event_log_info (hashcat_ctx, "Hashmode: %d - %s", hashconfig->hash_mode, hash_type);
+      if ((hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL) && (hashconfig->is_salted == true))
+      {
+        event_log_info (hashcat_ctx, "Hashmode: %d - %s (Iterations: %d)", hashconfig->hash_mode, hash_type, hashes[0].salts_buf[0].salt_iter);
+      }
+      else
+      {
+        event_log_info (hashcat_ctx, "Hashmode: %d - %s", hashconfig->hash_mode, hash_type);
+      }
+
       event_log_info (hashcat_ctx, NULL);
     }
   }
