@@ -3249,8 +3249,6 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           device_param->is_rocm = false;
 
           #endif
-
-printf ("%d\n", device_param->is_rocm);
         }
 
         if ((device_param->platform_vendor_id == VENDOR_ID_NV) && (device_param->device_vendor_id == VENDOR_ID_NV))
