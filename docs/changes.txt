@@ -56,6 +56,7 @@
 - Self Test: Skip self-test for mode 8900 - user-configurable scrypt settings are incompatible with fixed settings in the self-test hash
 - Terminal: Send clear line code to the same output stream as the message immediately following
 - Timer: Switch from gettimeofday() to clock_gettime() to work around problems on cygwin
+- User Options: According to getopts manpage the last element of the option array has to be filled with zeros
 
 * changes v4.0.0 -> v4.0.1:
 
