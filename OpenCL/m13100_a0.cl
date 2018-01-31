@@ -86,7 +86,7 @@ void rc4_init_16 (SCR_TYPE RC4_KEY *rc4_key, const u32 data[4])
   }
 }
 
-u8 rc4_next_16 (SCR_TYPE RC4_KEY *rc4_key, u8 i, u8 j, __global const u32 in[4], u32 out[4])
+u8 rc4_next_16 (SCR_TYPE RC4_KEY *rc4_key, u8 i, u8 j, __global u32 *in, u32 out[4])
 {
   #ifdef _unroll
   #pragma unroll
