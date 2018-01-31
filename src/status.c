@@ -46,7 +46,7 @@ static char *status_get_rules_file (const hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->rp_files_cnt > 0)
   {
-    char *tmp_buf = (char *) malloc (HCBUFSIZ_TINY);
+    char *tmp_buf = (char *) hcmalloc (HCBUFSIZ_TINY);
 
     int tmp_len = 0;
 
@@ -294,7 +294,7 @@ const char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      char *tmp_buf = (char *) malloc (HCBUFSIZ_LARGE);
+      char *tmp_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
       tmp_buf[0] = 0;
 
@@ -819,7 +819,7 @@ char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
 
   hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
-  char *display = (char *) malloc (HCBUFSIZ_TINY);
+  char *display = (char *) hcmalloc (HCBUFSIZ_TINY);
 
   if (user_options_extra->attack_kern == ATTACK_KERN_BF)
   {
@@ -997,7 +997,7 @@ char *status_get_time_started_relative (const hashcat_ctx_t *hashcat_ctx)
 
   tmp = gmtime_r (&sec_run, &tm);
 
-  char *display_run = (char *) malloc (HCBUFSIZ_TINY);
+  char *display_run = (char *) hcmalloc (HCBUFSIZ_TINY);
 
   format_timer_display (tmp, display_run, HCBUFSIZ_TINY);
 
@@ -1073,7 +1073,7 @@ char *status_get_time_estimated_relative (const hashcat_ctx_t *hashcat_ctx)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  char *display = (char *) malloc (HCBUFSIZ_TINY);
+  char *display = (char *) hcmalloc (HCBUFSIZ_TINY);
 
   time_t sec_etc = status_get_sec_etc (hashcat_ctx);
 
@@ -1106,7 +1106,7 @@ char *status_get_time_estimated_relative (const hashcat_ctx_t *hashcat_ctx)
 
       tmp_left = gmtime_r (&sec_left, &tm_left);
 
-      char *display_left = (char *) malloc (HCBUFSIZ_TINY);
+      char *display_left = (char *) hcmalloc (HCBUFSIZ_TINY);
 
       format_timer_display (tmp_left, display_left, HCBUFSIZ_TINY);
 
@@ -1470,7 +1470,7 @@ char *status_get_speed_sec_all (const hashcat_ctx_t *hashcat_ctx)
 {
   const double hashes_msec_all = status_get_hashes_msec_all (hashcat_ctx);
 
-  char *display = (char *) malloc (HCBUFSIZ_TINY);
+  char *display = (char *) hcmalloc (HCBUFSIZ_TINY);
 
   format_speed_display (hashes_msec_all * 1000, display, HCBUFSIZ_TINY);
 
@@ -1481,7 +1481,7 @@ char *status_get_speed_sec_dev (const hashcat_ctx_t *hashcat_ctx, const int devi
 {
   const double hashes_msec_dev = status_get_hashes_msec_dev (hashcat_ctx, device_id);
 
-  char *display = (char *) malloc (HCBUFSIZ_TINY);
+  char *display = (char *) hcmalloc (HCBUFSIZ_TINY);
 
   format_speed_display (hashes_msec_dev * 1000, display, HCBUFSIZ_TINY);
 
@@ -1656,7 +1656,7 @@ char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int device_i
 
   hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
-  char *output_buf = (char *) malloc (HCBUFSIZ_TINY);
+  char *output_buf = (char *) hcmalloc (HCBUFSIZ_TINY);
 
   snprintf (output_buf, HCBUFSIZ_TINY - 1, "N/A");
 
