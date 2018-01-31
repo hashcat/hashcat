@@ -1750,6 +1750,8 @@ void hashes_destroy (hashcat_ctx_t *hashcat_ctx)
       {
         hcfree (hashes->hash_info[hash_pos]->split);
       }
+
+      hcfree (hashes->hash_info[hash_pos]);
     }
   }
 
