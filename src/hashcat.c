@@ -879,6 +879,7 @@ void hashcat_destroy (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashcat_ctx->dictstat_ctx);
   hcfree (hashcat_ctx->event_ctx);
   hcfree (hashcat_ctx->folder_config);
+  hcfree (hashcat_ctx->hashcat_user);
   hcfree (hashcat_ctx->hashconfig);
   hcfree (hashcat_ctx->hashes);
   hcfree (hashcat_ctx->hwmon_ctx);

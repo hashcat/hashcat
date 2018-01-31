@@ -46,6 +46,7 @@
 - Documents: Added docs/limits.txt
 - Files: Copy include/ folder and its content when SHARED is set to 1 in Makefile
 - Files: Switched back to relative current working directory on windows to work around problems with unicode characters
+- Hashcat Context: Fixed a memory leak in shutdown phase
 - Hash Parser: Changed the way large strings are handled/truncated within the event buffer if they are too large to fit
 - Hash Parser: Fixed a memory leak in shutdown phase
 - Hash Parser: Fixed the use of strtok_r () calls
