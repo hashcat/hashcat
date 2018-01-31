@@ -534,6 +534,8 @@ void ocl_close (hashcat_ctx_t *hashcat_ctx)
     {
       hc_dlclose (ocl->lib);
     }
+
+    hcfree (opencl_ctx->ocl);
   }
 }
 
@@ -2644,8 +2646,11 @@ void opencl_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
   hcfree (opencl_ctx->devices_param);
 
   hcfree (opencl_ctx->platforms);
-
   hcfree (opencl_ctx->platform_devices);
+  hcfree (opencl_ctx->platforms_vendor);
+  hcfree (opencl_ctx->platforms_name);
+  hcfree (opencl_ctx->platforms_version);
+  hcfree (opencl_ctx->platforms_skipped);
 
   memset (opencl_ctx, 0, sizeof (opencl_ctx_t));
 }
@@ -3521,6 +3526,7 @@ void opencl_ctx_devices_destroy (hashcat_ctx_t *hashcat_ctx)
     hcfree (device_param->device_version);
     hcfree (device_param->driver_version);
     hcfree (device_param->device_opencl_version);
+    hcfree (device_param->device_vendor);
   }
 
   opencl_ctx->devices_cnt    = 0;
