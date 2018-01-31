@@ -794,7 +794,7 @@ static void main_wordlist_cache_generate (MAYBE_UNUSED hashcat_ctx_t *hashcat_ct
   }
   else
   {
-    char *runtime = (char *) malloc (HCBUFSIZ_TINY);
+    char *runtime = (char *) hcmalloc (HCBUFSIZ_TINY);
 
     const time_t runtime_sec = cache_generate->runtime;
 
@@ -971,7 +971,7 @@ int main (int argc, char **argv)
 
   // hashcat main context
 
-  hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) malloc (sizeof (hashcat_ctx_t));
+  hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) hcmalloc (sizeof (hashcat_ctx_t));
 
   const int rc_hashcat_init = hashcat_init (hashcat_ctx, event);
 
