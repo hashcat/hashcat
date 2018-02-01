@@ -268,6 +268,22 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     status_ctx->devices_status = STATUS_EXHAUSTED;
   }
 
+  if (status_ctx->devices_status == STATUS_EXHAUSTED)
+  {
+    // the options speed-only and progress-only cause hashcat to abort quickly.
+    // therefore, they will end up (if no other error occured) as STATUS_EXHAUSTED.
+    // however, that can create confusion in hashcats RC, because exhausted translates to RC = 1.
+    // but then having RC = 1 does not match our expection if we use for speed-only and progress-only.
+    // to get hashcat to return RC = 0 we have to set it to CRACKED or BYPASS
+    // note: other options like --show, --left, --benchmark, --keyspace, --opencl-info, etc.
+    // not not reach this section of the code, they've returned already with rc 0.
+
+    if ((user_options->speed_only == true) || (user_options->progress_only == true))
+    {
+      status_ctx->devices_status = STATUS_BYPASS;
+    }
+  }
+
   // update some timer
 
   time_t runtime_stop;

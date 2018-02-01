@@ -56,6 +56,7 @@
 - OpenCL Kernels: Replace variables from uXX to uXXa if used in __constant space
 - OpenCL Kernels: Use a special kernel to initialize the password buffer used during autotune measurements, to reduce startup time
 - OpenCL Kernels: Use static declaraction for uXXa variables used in __constant space
+- Returncode: Enforce returncode 0 in case the user selected --speed-only or --progress-only and no other error occured
 - Self Test: Skip self-test for mode 15700 because the settings are too high and cause startup times that are too long
 - Self Test: Skip self-test for mode 8900 - user-configurable scrypt settings are incompatible with fixed settings in the self-test hash
 - Terminal: Send clear line code to the same output stream as the message immediately following
