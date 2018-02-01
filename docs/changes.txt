@@ -52,6 +52,7 @@
 - Hash Parser: Fixed the use of strtok_r () calls
 - OpenCL Devices: Fixed several memory leaks in shutdown phase
 - OpenCL Runtime: Updated rocm detection
+- OpenCL Runtime: Enforce to use OpenCL version 1.2 to restrain OpenCL runtimes to make use of the __generic address space qualifier
 - OpenCL Kernels: Replace variables from uXX to uXXa if used in __constant space
 - OpenCL Kernels: Use a special kernel to initialize the password buffer used during autotune measurements, to reduce startup time
 - OpenCL Kernels: Use static declaraction for uXXa variables used in __constant space

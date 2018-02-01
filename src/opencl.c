@@ -4306,9 +4306,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     char build_opts[1024] = { 0 };
 
     #if defined (_WIN)
-    snprintf (build_opts, sizeof (build_opts) - 1, "-I OpenCL -I \"%s\"", folder_config->cpath_real);
+    snprintf (build_opts, sizeof (build_opts) - 1, "-cl-std=CL1.2 -I OpenCL -I \"%s\"", folder_config->cpath_real);
     #else
-    snprintf (build_opts, sizeof (build_opts) - 1, "-I OpenCL -I %s", folder_config->cpath_real);
+    snprintf (build_opts, sizeof (build_opts) - 1, "-cl-std=CL1.2 -I OpenCL -I %s", folder_config->cpath_real);
     #endif
 
     // we don't have sm_* on vendors not NV but it doesn't matter
