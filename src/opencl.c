@@ -239,7 +239,7 @@ static int setup_device_types_filter (hashcat_ctx_t *hashcat_ctx, const char *op
   return 0;
 }
 
-static int read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, size_t *kernel_lengths, char **kernel_sources)
+static int read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, size_t *kernel_lengths, char **kernel_sources, const bool force_recompile)
 {
   FILE *fp = fopen (kernel_file, "rb");
 
@@ -254,7 +254,9 @@ static int read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_fi
       return -1;
     }
 
-    char *buf = (char *) hcmalloc (st.st_size + 1);
+    #define EXTRASZ 100
+
+    char *buf = (char *) hcmalloc (st.st_size + 1 + EXTRASZ);
 
     size_t num_read = hc_fread (buf, sizeof (char), st.st_size, fp);
 
@@ -270,6 +272,19 @@ static int read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_fi
     }
 
     buf[st.st_size] = 0;
+
+    if (force_recompile == true)
+    {
+      // this adds some hopefully unique data to the opencl kernel source
+      // the effect should be that opencl kernel compiler caching see this as new "uncached" source
+      // we have to do this since they do not check for the changes only in the #include source
+
+      time_t tlog = time (NULL);
+
+      const int extra_len = snprintf (buf + st.st_size, EXTRASZ, "\n//%lu\n", tlog);
+
+      st.st_size += extra_len;
+    }
 
     kernel_lengths[0] = (size_t) st.st_size;
 
@@ -4428,7 +4443,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
           if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
           #endif
 
-          const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources);
+          const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources, true);
 
           if (rc_read_kernel == -1) return -1;
 
@@ -4492,7 +4507,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
-          const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, kernel_lengths, kernel_sources);
+          const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, kernel_lengths, kernel_sources, false);
 
           if (rc_read_kernel == -1) return -1;
 
@@ -4507,7 +4522,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources);
+        const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources, true);
 
         if (rc_read_kernel == -1) return -1;
 
@@ -4631,7 +4646,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
         #endif
 
-        const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources);
+        const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources, true);
 
         if (rc_read_kernel == -1) return -1;
 
@@ -4693,7 +4708,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, kernel_lengths, kernel_sources);
+        const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, kernel_lengths, kernel_sources, false);
 
         if (rc_read_kernel == -1) return -1;
 
@@ -4772,7 +4787,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
         #endif
 
-        const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources);
+        const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources, true);
 
         if (rc_read_kernel == -1) return -1;
 
@@ -4834,7 +4849,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, kernel_lengths, kernel_sources);
+        const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, kernel_lengths, kernel_sources, false);
 
         if (rc_read_kernel == -1) return -1;
 
