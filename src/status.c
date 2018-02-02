@@ -1781,6 +1781,54 @@ double status_get_runtime_msec_dev (const hashcat_ctx_t *hashcat_ctx, const int 
   return device_param->outerloop_msec;
 }
 
+int status_get_kernel_accel_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
+{
+  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+  if (device_param->skipped == true) return 0;
+
+  if (device_param->kernel_accel_prev) return device_param->kernel_accel_prev;
+
+  return device_param->kernel_accel;
+}
+
+int status_get_kernel_loops_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
+{
+  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+  if (device_param->skipped == true) return 0;
+
+  if (device_param->kernel_loops_prev) return device_param->kernel_loops_prev;
+
+  return device_param->kernel_loops;
+}
+
+int status_get_kernel_threads_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
+{
+  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+  if (device_param->skipped == true) return 0;
+
+  return device_param->kernel_threads_by_user;
+}
+
+int status_get_vector_width_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
+{
+  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+  if (device_param->skipped == true) return 0;
+
+  return device_param->vector_width;
+}
+
 int status_progress_init (hashcat_ctx_t *hashcat_ctx)
 {
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
@@ -1856,7 +1904,6 @@ void status_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
   memset (status_ctx, 0, sizeof (status_ctx_t));
 }
-
 
 void status_status_destroy (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_status)
 {

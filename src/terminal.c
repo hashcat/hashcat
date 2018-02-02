@@ -1202,9 +1202,13 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     if (device_info->skipped_dev == true) continue;
 
     event_log_info (hashcat_ctx,
-      "Speed.Dev.#%d.....: %9sH/s (%0.2fms)", device_id + 1,
+      "Speed.Dev.#%d.....: %9sH/s (%0.2fms) @ Accel:%3d Loops:%3d Thr:%2d Width:%d", device_id + 1,
       device_info->speed_sec_dev,
-      device_info->exec_msec_dev);
+      device_info->exec_msec_dev,
+      device_info->kernel_accel_dev,
+      device_info->kernel_loops_dev,
+      device_info->kernel_threads_dev,
+      device_info->vector_width_dev);
   }
 
   if (hashcat_status->device_info_active > 1)
@@ -1365,9 +1369,13 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
     if (device_info->skipped_dev == true) continue;
 
     event_log_info (hashcat_ctx,
-      "Speed.Dev.#%d.....: %9sH/s (%0.2fms)", device_id + 1,
+      "Speed.Dev.#%d.....: %9sH/s (%0.2fms) @ Accel:%3d Loops:%3d Thr:%2d Width:%d", device_id + 1,
       device_info->speed_sec_dev,
-      device_info->exec_msec_dev);
+      device_info->exec_msec_dev,
+      device_info->kernel_accel_dev,
+      device_info->kernel_loops_dev,
+      device_info->kernel_threads_dev,
+      device_info->vector_width_dev);
   }
 
   if (hashcat_status->device_info_active > 1)

@@ -938,6 +938,8 @@ typedef struct hc_device_param
 
   u32     kernel_loops;
   u32     kernel_accel;
+  u32     kernel_loops_prev;
+  u32     kernel_accel_prev;
   u32     kernel_loops_min;
   u32     kernel_loops_max;
   u32     kernel_loops_min_sav; // the _sav are required because each -i iteration
@@ -1737,6 +1739,10 @@ typedef struct device_info
   int     memoryspeed_dev;
   double  runtime_msec_dev;
   int     progress_dev;
+  int     kernel_accel_dev;
+  int     kernel_loops_dev;
+  int     kernel_threads_dev;
+  int     vector_width_dev;
 
 } device_info_t;
 
