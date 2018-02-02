@@ -28,6 +28,7 @@
 - Fixed a hash parsing problem when using --show/--left with hashes with long salts that required pure kernels
 - Fixed a mask-length check issue: Return -1 in case the mask-length is not within the password-length range
 - Fixed a restore issue leading to "Restore value is greater than keyspace" when mask-files or wordlist-folders were used
+- Fixed a uninitialized value in OpenCL kernels 9720, 9820 and 10420 leading to absurd benchmark performance
 - Fixed the maximum password length check in password-reassembling function
 - Fixed the output of --show if $HEX[] passwords were present within the potfile
 
