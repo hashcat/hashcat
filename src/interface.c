@@ -26017,6 +26017,16 @@ u32 hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_p
 
   kernel_threads = MIN (kernel_threads, device_param->device_maxworkgroup_size);
 
+  // and (3) if an OpenCL device allows a very high thread count (for example 1024 on nvidia),
+  // the host memory required is 32 times as high with 32 (It jumps from 128MB to 4GB device memory requirement).
+  // since there's no device with that much device memory (because of 1/4 memory rule) it has to limit the
+  // kernel_accel_max to be a very low number because the pws buffer will be so large otherwise.
+  // therefore autotune will be unable to calculate a good kernel_accel multiplier.
+  // currently there's no OpenCL device known that needs result in a better performance with 1024 threads compared to 256.
+  // as a result, we limit the number of threads to 256, which turns out to be a general good value.
+
+  kernel_threads = MIN (kernel_threads, 256);
+
   return kernel_threads;
 }
 
