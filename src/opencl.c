@@ -3553,6 +3553,62 @@ void opencl_ctx_devices_destroy (hashcat_ctx_t *hashcat_ctx)
   opencl_ctx->need_sysfs  = false;
 }
 
+static bool is_same_device_type (const hc_device_param_t *src, const hc_device_param_t *dst)
+{
+  if (strcmp (src->device_name,    dst->device_name)    != 0) return false;
+  if (strcmp (src->device_vendor,  dst->device_vendor)  != 0) return false;
+  if (strcmp (src->device_version, dst->device_version) != 0) return false;
+  if (strcmp (src->driver_version, dst->driver_version) != 0) return false;
+
+  if (src->device_processors         != dst->device_processors)         return false;
+  if (src->device_maxclock_frequency != dst->device_maxclock_frequency) return false;
+  if (src->device_maxworkgroup_size  != dst->device_maxworkgroup_size)  return false;
+
+  // memory size can be different, depending on which gpu has a monitor connected
+  // if (src->device_maxmem_alloc       != dst->device_maxmem_alloc)       return false;
+  // if (src->device_global_mem         != dst->device_global_mem)         return false;
+
+  if (src->sm_major != dst->sm_major) return false;
+  if (src->sm_minor != dst->sm_minor) return false;
+
+  if (src->kernel_exec_timeout != dst->kernel_exec_timeout) return false;
+
+  return true;
+}
+
+void opencl_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
+{
+  opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
+  status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
+  user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
+  user_options_t       *user_options        = hashcat_ctx->user_options;
+
+  if (opencl_ctx->enabled == false) return;
+
+  for (u32 device_id_src = 0; device_id_src < opencl_ctx->devices_cnt; device_id_src++)
+  {
+    hc_device_param_t *device_param_src = &opencl_ctx->devices_param[device_id_src];
+
+    if (device_param_src->skipped == true) continue;
+
+    for (u32 device_id_dst = device_id_src; device_id_dst < opencl_ctx->devices_cnt; device_id_dst++)
+    {
+      hc_device_param_t *device_param_dst = &opencl_ctx->devices_param[device_id_dst];
+
+      if (device_param_dst->skipped == true) continue;
+
+      if (is_same_device_type (device_param_src, device_param_dst) == false) continue;
+
+      device_param_dst->kernel_accel = device_param_src->kernel_accel;
+      device_param_dst->kernel_loops = device_param_src->kernel_loops;
+
+      const u32 kernel_power = device_param_dst->device_processors * device_param_dst->kernel_threads_by_user * device_param_dst->kernel_accel;
+
+      device_param_dst->kernel_power = kernel_power;
+    }
+  }
+}
+
 void opencl_ctx_devices_update_power (hashcat_ctx_t *hashcat_ctx)
 {
   opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
@@ -3567,6 +3623,8 @@ void opencl_ctx_devices_update_power (hashcat_ctx_t *hashcat_ctx)
   for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+    if (device_param->skipped == true) continue;
 
     kernel_power_all += device_param->kernel_power;
   }

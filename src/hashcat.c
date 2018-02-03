@@ -194,6 +194,12 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   EVENT (EVENT_AUTOTUNE_FINISHED);
 
   /**
+   * find same opencl devices and equal results
+   */
+
+  opencl_ctx_devices_sync_tuning (hashcat_ctx);
+
+  /**
    * autotune modified kernel_accel, which modifies opencl_ctx->kernel_power_all
    */
 

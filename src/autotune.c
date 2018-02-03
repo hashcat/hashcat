@@ -152,8 +152,6 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     }
   }
 
-  #define VERIFIER_CNT 1
-
   // first find out highest kernel-loops that stays below target_msec
 
   if (kernel_loops_min < kernel_loops_max)
@@ -164,20 +162,13 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       double exec_msec = try_run (hashcat_ctx, device_param, kernel_accel_min, kernel_loops);
 
-      for (int i = 0; i < VERIFIER_CNT; i++)
-      {
-        double exec_msec_v = try_run (hashcat_ctx, device_param, kernel_accel_min, kernel_loops);
-
-        exec_msec = MIN (exec_msec, exec_msec_v);
-      }
-
       if (exec_msec < target_msec) break;
     }
   }
 
   // now the same for kernel-accel but with the new kernel-loops from previous loop set
 
-  #define STEPS_CNT 10
+  #define STEPS_CNT 16
 
   if (kernel_accel_min < kernel_accel_max)
   {
@@ -189,13 +180,6 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       if (kernel_accel_try > kernel_accel_max) break;
 
       double exec_msec = try_run (hashcat_ctx, device_param, kernel_accel_try, kernel_loops);
-
-      for (int verifier_idx = 0; verifier_idx < VERIFIER_CNT; verifier_idx++)
-      {
-        double exec_msec_v = try_run (hashcat_ctx, device_param, kernel_accel_try, kernel_loops);
-
-        exec_msec = MIN (exec_msec, exec_msec_v);
-      }
 
       if (exec_msec > target_msec) break;
 
@@ -213,13 +197,6 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   double exec_msec_pre_final = try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
 
-  for (int verifier_idx = 0; verifier_idx < VERIFIER_CNT; verifier_idx++)
-  {
-    double exec_msec_pre_final_v = try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
-
-    exec_msec_pre_final = MIN (exec_msec_pre_final, exec_msec_pre_final_v);
-  }
-
   u32 diff = kernel_loops - kernel_accel;
 
   if ((kernel_loops_min < kernel_loops_max) && (kernel_accel_min < kernel_accel_max))
@@ -235,26 +212,25 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       if (kernel_accel_try > kernel_accel_max) break;
       if (kernel_loops_try < kernel_loops_min) break;
 
-      u32 diff_new = kernel_loops_try - kernel_accel_try;
+      u32 diff_new = 0;
+
+      if (kernel_accel_try > kernel_loops_try)
+      {
+        diff_new = kernel_accel_try - kernel_loops_try;
+      }
+      else
+      {
+        diff_new = kernel_loops_try - kernel_accel_try;
+      }
 
       if (diff_new > diff) break;
 
       double exec_msec = try_run (hashcat_ctx, device_param, kernel_accel_try, kernel_loops_try);
 
-      for (int verifier_idx = 0; verifier_idx < VERIFIER_CNT; verifier_idx++)
-      {
-        double exec_msec_v = try_run (hashcat_ctx, device_param, kernel_accel_try, kernel_loops_try);
+      exec_msec_pre_final = exec_msec;
 
-        exec_msec = MIN (exec_msec, exec_msec_v);
-      }
-
-      for (int verifier_idx = 0; verifier_idx < VERIFIER_CNT; verifier_idx++)
-      {
-        exec_msec_pre_final = exec_msec;
-
-        kernel_accel = kernel_accel_try;
-        kernel_loops = kernel_loops_try;
-      }
+      kernel_accel = kernel_accel_try;
+      kernel_loops = kernel_loops_try;
     }
   }
 
@@ -326,27 +302,6 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   const u32 kernel_power = device_param->device_processors * device_param->kernel_threads_by_user * device_param->kernel_accel;
 
   device_param->kernel_power = kernel_power;
-
-  #if defined (DEBUG)
-
-  user_options_t *user_options = hashcat_ctx->user_options;
-
-  if (user_options->quiet == false)
-  {
-    clear_prompt (hashcat_ctx);
-
-    printf
-    (
-      "- Device #%u: autotuned kernel-accel to %u" EOL
-      "- Device #%u: autotuned kernel-loops to %u" EOL,
-      device_param->device_id + 1, kernel_accel,
-      device_param->device_id + 1, kernel_loops
-    );
-
-    send_prompt (hashcat_ctx);
-  }
-
-  #endif
 
   return 0;
 }
