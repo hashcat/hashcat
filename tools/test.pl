@@ -39,7 +39,7 @@ use Crypt::UnixCrypt_XS qw (crypt_rounds fold_password base64_to_int24 block_to_
 use Crypt::Skip32;
 use Crypt::OpenSSH::ChachaPoly;
 use JSON;
-use MIME::Base64 qw (encode_base64url decode_base64url);
+use MIME::Base64 qw (encode_base64 decode_base64 encode_base64url decode_base64url);
 use Authen::Passphrase::NTHash;
 use Authen::Passphrase::MySQL323;
 use Authen::Passphrase::PHPass;
