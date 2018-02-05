@@ -860,6 +860,14 @@ typedef struct pw
 
 } pw_t;
 
+typedef struct pw_idx
+{
+  u32 off;
+  u32 cnt;
+  u32 len;
+
+} pw_idx_t;
+
 typedef struct bf
 {
   u32  i;
@@ -935,6 +943,7 @@ typedef struct hc_device_param
   u32     kernel_threads_by_wgs_kernel_tm;
   u32     kernel_threads_by_wgs_kernel_memset;
   u32     kernel_threads_by_wgs_kernel_atinit;
+  u32     kernel_threads_by_wgs_kernel_decompress;
 
   u32     kernel_loops;
   u32     kernel_accel;
@@ -951,6 +960,8 @@ typedef struct hc_device_param
 
   size_t  size_pws;
   size_t  size_pws_amp;
+  size_t  size_pws_comp;
+  size_t  size_pws_idx;
   size_t  size_tmps;
   size_t  size_hooks;
   size_t  size_bfs;
@@ -973,8 +984,9 @@ typedef struct hc_device_param
 
   void   *hooks_buf;
 
-  pw_t   *pws_buf;
-  u32     pws_cnt;
+  pw_idx_t *pws_idx;
+  u32      *pws_comp;
+  u32       pws_cnt;
 
   u64     words_off;
   u64     words_done;
@@ -1038,6 +1050,7 @@ typedef struct hc_device_param
   cl_kernel  kernel_tm;
   cl_kernel  kernel_memset;
   cl_kernel  kernel_atinit;
+  cl_kernel  kernel_decompress;
 
   cl_context context;
 
@@ -1049,6 +1062,8 @@ typedef struct hc_device_param
 
   cl_mem  d_pws_buf;
   cl_mem  d_pws_amp_buf;
+  cl_mem  d_pws_comp_buf;
+  cl_mem  d_pws_idx;
   cl_mem  d_words_buf_l;
   cl_mem  d_words_buf_r;
   cl_mem  d_rules;
@@ -1092,6 +1107,7 @@ typedef struct hc_device_param
   void   *kernel_params_tm[PARAMCNT];
   void   *kernel_params_memset[PARAMCNT];
   void   *kernel_params_atinit[PARAMCNT];
+  void   *kernel_params_decompress[PARAMCNT];
 
   u32     kernel_params_buf32[PARAMCNT];
   u64     kernel_params_buf64[PARAMCNT];
@@ -1113,6 +1129,9 @@ typedef struct hc_device_param
 
   u32     kernel_params_atinit_buf32[PARAMCNT];
   u64     kernel_params_atinit_buf64[PARAMCNT];
+
+  u32     kernel_params_decompress_buf32[PARAMCNT];
+  u64     kernel_params_decompress_buf64[PARAMCNT];
 
 } hc_device_param_t;
 
