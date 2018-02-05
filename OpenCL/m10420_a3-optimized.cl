@@ -13,7 +13,7 @@
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
 
-__constant u32a padding[8] =
+__constant static u32a padding[8] =
 {
   0x5e4ebf28,
   0x418a754e,
@@ -260,8 +260,8 @@ void m10420s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
   {
     digests_buf[digests_offset].digest_buf[DGST_R0],
     digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    0,
+    0
   };
 
   /**

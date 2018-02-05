@@ -194,6 +194,12 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   EVENT (EVENT_AUTOTUNE_FINISHED);
 
   /**
+   * find same opencl devices and equal results
+   */
+
+  opencl_ctx_devices_sync_tuning (hashcat_ctx);
+
+  /**
    * autotune modified kernel_accel, which modifies opencl_ctx->kernel_power_all
    */
 
@@ -214,9 +220,9 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   hc_timer_set (&status_ctx->timer_running);
 
-  hc_time_t runtime_start;
+  time_t runtime_start;
 
-  hc_time (&runtime_start);
+  time (&runtime_start);
 
   status_ctx->runtime_start = runtime_start;
 
@@ -268,11 +274,27 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     status_ctx->devices_status = STATUS_EXHAUSTED;
   }
 
+  if (status_ctx->devices_status == STATUS_EXHAUSTED)
+  {
+    // the options speed-only and progress-only cause hashcat to abort quickly.
+    // therefore, they will end up (if no other error occured) as STATUS_EXHAUSTED.
+    // however, that can create confusion in hashcats RC, because exhausted translates to RC = 1.
+    // but then having RC = 1 does not match our expection if we use for speed-only and progress-only.
+    // to get hashcat to return RC = 0 we have to set it to CRACKED or BYPASS
+    // note: other options like --show, --left, --benchmark, --keyspace, --opencl-info, etc.
+    // not not reach this section of the code, they've returned already with rc 0.
+
+    if ((user_options->speed_only == true) || (user_options->progress_only == true))
+    {
+      status_ctx->devices_status = STATUS_BYPASS;
+    }
+  }
+
   // update some timer
 
-  hc_time_t runtime_stop;
+  time_t runtime_stop;
 
-  hc_time (&runtime_stop);
+  time (&runtime_stop);
 
   status_ctx->runtime_stop = runtime_stop;
 
@@ -377,7 +399,10 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
       if (status_ctx->run_main_level3 == false) break;
     }
 
-    if (straight_ctx->dicts_pos + 1 == straight_ctx->dicts_cnt) straight_ctx->dicts_pos = 0;
+    if (status_ctx->run_main_level3 == true)
+    {
+      if (straight_ctx->dicts_pos + 1 == straight_ctx->dicts_cnt) straight_ctx->dicts_pos = 0;
+    }
   }
   else
   {
@@ -425,6 +450,12 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
     return -1;
   }
+
+  /**
+   * generate hashlist filename for later use
+   */
+
+  hashes_init_filename (hashcat_ctx);
 
   /**
    * load hashes, stage 1
@@ -766,7 +797,10 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
       if (status_ctx->run_main_level2 == false) break;
     }
 
-    if (mask_ctx->masks_pos + 1 == mask_ctx->masks_cnt) mask_ctx->masks_pos = 0;
+    if (status_ctx->run_main_level2 == true)
+    {
+      if (mask_ctx->masks_pos + 1 == mask_ctx->masks_cnt) mask_ctx->masks_pos = 0;
+    }
   }
   else
   {
@@ -811,16 +845,21 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
+static void event_stub (MAYBE_UNUSED const u32 id, MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+
+}
+
 int hashcat_init (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct hashcat_ctx *, const void *, const size_t))
 {
   if (event == NULL)
   {
-    fprintf (stderr, "Event callback function is mandatory\n");
-
-    return -1;
+    hashcat_ctx->event = event_stub;
   }
-
-  hashcat_ctx->event = event;
+  else
+  {
+    hashcat_ctx->event = event;
+  }
 
   hashcat_ctx->bitmap_ctx         = (bitmap_ctx_t *)          hcmalloc (sizeof (bitmap_ctx_t));
   hashcat_ctx->combinator_ctx     = (combinator_ctx_t *)      hcmalloc (sizeof (combinator_ctx_t));
@@ -862,6 +901,7 @@ void hashcat_destroy (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashcat_ctx->dictstat_ctx);
   hcfree (hashcat_ctx->event_ctx);
   hcfree (hashcat_ctx->folder_config);
+  hcfree (hashcat_ctx->hashcat_user);
   hcfree (hashcat_ctx->hashconfig);
   hcfree (hashcat_ctx->hashes);
   hcfree (hashcat_ctx->hwmon_ctx);
@@ -1086,7 +1126,7 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
   // start logfile entry
 
-  const hc_time_t proc_start = hc_time (NULL);
+  const time_t proc_start = time (NULL);
 
   logfile_generate_topid (hashcat_ctx);
 
@@ -1120,9 +1160,11 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      for (u32 algorithm_pos = 0; algorithm_pos < DEFAULT_BENCHMARK_ALGORITHMS_CNT; algorithm_pos++)
+      int hash_mode;
+
+      while ((hash_mode = benchmark_next (hashcat_ctx)) != -1)
       {
-        user_options->hash_mode = DEFAULT_BENCHMARK_ALGORITHMS_BUF[algorithm_pos];
+        user_options->hash_mode = hash_mode;
 
         rc_final = outer_loop (hashcat_ctx);
 
@@ -1157,7 +1199,7 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
   // final logfile entry
 
-  const hc_time_t proc_stop = hc_time (NULL);
+  const time_t proc_stop = time (NULL);
 
   logfile_top_uint (proc_start);
   logfile_top_uint (proc_stop);
@@ -1330,6 +1372,10 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
     device_info->memoryspeed_dev            = status_get_memoryspeed_dev            (hashcat_ctx, device_id);
     device_info->progress_dev               = status_get_progress_dev               (hashcat_ctx, device_id);
     device_info->runtime_msec_dev           = status_get_runtime_msec_dev           (hashcat_ctx, device_id);
+    device_info->kernel_accel_dev           = status_get_kernel_accel_dev           (hashcat_ctx, device_id);
+    device_info->kernel_loops_dev           = status_get_kernel_loops_dev           (hashcat_ctx, device_id);
+    device_info->kernel_threads_dev         = status_get_kernel_threads_dev         (hashcat_ctx, device_id);
+    device_info->vector_width_dev           = status_get_vector_width_dev           (hashcat_ctx, device_id);
   }
 
   hashcat_status->hashes_msec_all = status_get_hashes_msec_all (hashcat_ctx);

@@ -10,7 +10,7 @@
 
 #define HLFMTS_CNT 11
 
-char *strhlfmt (const u32 hashfile_format);
+const char *strhlfmt (const u32 hashfile_format);
 
 void hlfmt_hash (hashcat_ctx_t *hashcat_ctx, u32 hashfile_format, char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len);
 void hlfmt_user (hashcat_ctx_t *hashcat_ctx, u32 hashfile_format, char *line_buf, int line_len, char **userbuf_pos, int *userbuf_len);

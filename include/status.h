@@ -20,7 +20,7 @@ int         status_get_device_info_cnt            (const hashcat_ctx_t *hashcat_
 int         status_get_device_info_active         (const hashcat_ctx_t *hashcat_ctx);
 bool        status_get_skipped_dev                (const hashcat_ctx_t *hashcat_ctx, const int device_id);
 char       *status_get_session                    (const hashcat_ctx_t *hashcat_ctx);
-char       *status_get_status_string              (const hashcat_ctx_t *hashcat_ctx);
+const char *status_get_status_string              (const hashcat_ctx_t *hashcat_ctx);
 int         status_get_status_number              (const hashcat_ctx_t *hashcat_ctx);
 int         status_get_guess_mode                 (const hashcat_ctx_t *hashcat_ctx);
 char       *status_get_guess_base                 (const hashcat_ctx_t *hashcat_ctx);
@@ -34,7 +34,7 @@ double      status_get_guess_mod_percent          (const hashcat_ctx_t *hashcat_
 char       *status_get_guess_charset              (const hashcat_ctx_t *hashcat_ctx);
 int         status_get_guess_mask_length          (const hashcat_ctx_t *hashcat_ctx);
 char       *status_get_guess_candidates_dev       (const hashcat_ctx_t *hashcat_ctx, const int device_id);
-char       *status_get_hash_type                  (const hashcat_ctx_t *hashcat_ctx);
+const char *status_get_hash_type                  (const hashcat_ctx_t *hashcat_ctx);
 const char *status_get_hash_target                (const hashcat_ctx_t *hashcat_ctx);
 int         status_get_digests_done               (const hashcat_ctx_t *hashcat_ctx);
 int         status_get_digests_cnt                (const hashcat_ctx_t *hashcat_ctx);
@@ -47,7 +47,7 @@ double      status_get_msec_paused                (const hashcat_ctx_t *hashcat_
 double      status_get_msec_real                  (const hashcat_ctx_t *hashcat_ctx);
 char       *status_get_time_started_absolute      (const hashcat_ctx_t *hashcat_ctx);
 char       *status_get_time_started_relative      (const hashcat_ctx_t *hashcat_ctx);
-hc_time_t   status_get_sec_etc                    (const hashcat_ctx_t *hashcat_ctx);
+time_t      status_get_sec_etc                    (const hashcat_ctx_t *hashcat_ctx);
 char       *status_get_time_estimated_absolute    (const hashcat_ctx_t *hashcat_ctx);
 char       *status_get_time_estimated_relative    (const hashcat_ctx_t *hashcat_ctx);
 u64         status_get_restore_point              (const hashcat_ctx_t *hashcat_ctx);
@@ -84,6 +84,10 @@ int         status_get_corespeed_dev              (const hashcat_ctx_t *hashcat_
 int         status_get_memoryspeed_dev            (const hashcat_ctx_t *hashcat_ctx, const int device_id);
 int         status_get_progress_dev               (const hashcat_ctx_t *hashcat_ctx, const int device_id);
 double      status_get_runtime_msec_dev           (const hashcat_ctx_t *hashcat_ctx, const int device_id);
+int         status_get_kernel_accel_dev           (const hashcat_ctx_t *hashcat_ctx, const int device_id);
+int         status_get_kernel_loops_dev           (const hashcat_ctx_t *hashcat_ctx, const int device_id);
+int         status_get_kernel_threads_dev         (const hashcat_ctx_t *hashcat_ctx, const int device_id);
+int         status_get_vector_width_dev           (const hashcat_ctx_t *hashcat_ctx, const int device_id);
 
 int         status_progress_init                  (hashcat_ctx_t *hashcat_ctx);
 void        status_progress_destroy               (hashcat_ctx_t *hashcat_ctx);

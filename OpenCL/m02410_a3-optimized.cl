@@ -47,6 +47,8 @@ void m02410m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global const ke
   salt_buf3[2] = 0;
   salt_buf3[3] = 0;
 
+  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+
   switch_buffer_by_offset_le_S (salt_buf0, salt_buf1, salt_buf2, salt_buf3, pw_len);
 
   w[ 0] |= salt_buf0[0];
@@ -70,18 +72,41 @@ void m02410m (u32 w[16], const u32 pw_len, __global pw_t *pws, __global const ke
    * algorithm specific
    */
 
-  w[ 4] = 0x80;
-  w[ 5] = 0;
-  w[ 6] = 0;
-  w[ 7] = 0;
-  w[ 8] = 0;
-  w[ 9] = 0;
-  w[10] = 0;
-  w[11] = 0;
-  w[12] = 0;
-  w[13] = 0;
-  w[14] = 16 * 8;
-  w[15] = 0;
+  const u32 pw_salt_len = pw_len + salt_len;
+
+  if (pw_salt_len <= 16)
+  {
+    w[ 4] = 0x80;
+    w[ 5] = 0;
+    w[ 6] = 0;
+    w[ 7] = 0;
+    w[ 8] = 0;
+    w[ 9] = 0;
+    w[10] = 0;
+    w[11] = 0;
+    w[12] = 0;
+    w[13] = 0;
+    w[14] = 16 * 8;
+    w[15] = 0;
+  }
+  else if (pw_salt_len <= 32)
+  {
+    w[ 8] = 0x80;
+    w[ 9] = 0;
+    w[10] = 0;
+    w[11] = 0;
+    w[12] = 0;
+    w[13] = 0;
+    w[14] = 32 * 8;
+    w[15] = 0;
+  }
+  else if (pw_salt_len <= 48)
+  {
+    w[12] = 0x80;
+    w[13] = 0;
+    w[14] = 48 * 8;
+    w[15] = 0;
+  }
 
   /**
    * base
@@ -286,6 +311,8 @@ void m02410s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global const ke
   salt_buf3[2] = 0;
   salt_buf3[3] = 0;
 
+  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+
   switch_buffer_by_offset_le_S (salt_buf0, salt_buf1, salt_buf2, salt_buf3, pw_len);
 
   w[ 0] |= salt_buf0[0];
@@ -309,18 +336,41 @@ void m02410s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global const ke
    * algorithm specific
    */
 
-  w[ 4] = 0x80;
-  w[ 5] = 0;
-  w[ 6] = 0;
-  w[ 7] = 0;
-  w[ 8] = 0;
-  w[ 9] = 0;
-  w[10] = 0;
-  w[11] = 0;
-  w[12] = 0;
-  w[13] = 0;
-  w[14] = 16 * 8;
-  w[15] = 0;
+  const u32 pw_salt_len = pw_len + salt_len;
+
+  if (pw_salt_len <= 16)
+  {
+    w[ 4] = 0x80;
+    w[ 5] = 0;
+    w[ 6] = 0;
+    w[ 7] = 0;
+    w[ 8] = 0;
+    w[ 9] = 0;
+    w[10] = 0;
+    w[11] = 0;
+    w[12] = 0;
+    w[13] = 0;
+    w[14] = 16 * 8;
+    w[15] = 0;
+  }
+  else if (pw_salt_len <= 32)
+  {
+    w[ 8] = 0x80;
+    w[ 9] = 0;
+    w[10] = 0;
+    w[11] = 0;
+    w[12] = 0;
+    w[13] = 0;
+    w[14] = 32 * 8;
+    w[15] = 0;
+  }
+  else if (pw_salt_len <= 48)
+  {
+    w[12] = 0x80;
+    w[13] = 0;
+    w[14] = 48 * 8;
+    w[15] = 0;
+  }
 
   /**
    * base

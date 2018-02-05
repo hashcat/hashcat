@@ -279,7 +279,7 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
 
   d.cnt = 0;
 
-  if (hc_fstat (fileno (fd), &d.stat))
+  if (fstat (fileno (fd), &d.stat))
   {
     *result = 0;
 
@@ -347,7 +347,7 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
 
       cache_hit_t cache_hit;
 
-      cache_hit.dictfile      = (char *) dictfile;
+      cache_hit.dictfile      = dictfile;
       cache_hit.stat.st_size  = d.stat.st_size;
       cache_hit.cached_cnt    = cached_cnt;
       cache_hit.keyspace      = keyspace;
@@ -360,12 +360,12 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
     }
   }
 
-  hc_time_t rt_start;
+  time_t rt_start;
 
-  hc_time (&rt_start);
+  time (&rt_start);
 
-  hc_time_t now  = 0;
-  hc_time_t prev = 0;
+  time_t now  = 0;
+  time_t prev = 0;
 
   u64 comp = 0;
   u64 cnt  = 0;
@@ -449,11 +449,11 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
       }
     }
 
-    hc_time (&now);
+    time (&now);
 
     if ((now - prev) == 0) continue;
 
-    hc_time (&prev);
+    time (&prev);
 
     double percent = ((double) comp / (double) d.stat.st_size) * 100;
 
@@ -461,7 +461,7 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
     {
       cache_generate_t cache_generate;
 
-      cache_generate.dictfile    = (char *) dictfile;
+      cache_generate.dictfile    = dictfile;
       cache_generate.comp        = comp;
       cache_generate.percent     = percent;
       cache_generate.cnt         = cnt;
@@ -471,13 +471,13 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
     }
   }
 
-  hc_time_t rt_stop;
+  time_t rt_stop;
 
-  hc_time (&rt_stop);
+  time (&rt_stop);
 
   cache_generate_t cache_generate;
 
-  cache_generate.dictfile    = (char *) dictfile;
+  cache_generate.dictfile    = dictfile;
   cache_generate.comp        = comp;
   cache_generate.percent     = 100;
   cache_generate.cnt         = cnt;

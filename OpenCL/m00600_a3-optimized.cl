@@ -10,7 +10,7 @@
 #include "inc_hash_functions.cl"
 #include "inc_types.cl"
 #include "inc_common.cl"
-#include "inc_simd.cl",
+#include "inc_simd.cl"
 
 #define BLAKE2B_FINAL   1
 #define BLAKE2B_UPDATE  0

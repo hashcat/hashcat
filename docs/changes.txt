@@ -1,18 +1,79 @@
-* changes v4.0.1 -> xxx:
+* changes v4.0.1 -> v4.1.0
+
+##
+## Features
+##
+
+- Added option --benchmark-all to benchmark all hash-modes (not just the default selection)
+- Removed option --gpu-temp-retain that tried to retain GPU temperature at X degrees celsius - please use driver-specific tools
+- Removed option --powertune-enable to enable power tuning - please use driver specific tools
 
 ##
 ## Algorithms
 ##
 
 - Added hash-mode 16000 = Tripcode
+- Added hash-mode 16100 = TACACS+
+- Added hash-mode 16200 = Apple Secure Notes
+- Added hash-mode 16300 = Ethereum Pre-Sale Wallet, PBKDF2-SHA256
+- Added hash-mode 16400 = CRAM-MD5 Dovecot
+- Added hash-mode 16500 = JWT (JSON Web Token)
+- Added hash-mode 16600 = Electrum Wallet (Salt-Type 1-3)
 
 ##
 ## Bugs
 ##
 
-- Fixed a hash parsing problem when using --show/--left together with hashes with long salts that require pure kernels
+- Fixed a hash parsing problem for 7-Zip hashes: allow a longer crc32 data length field within the hash format
+- Fixed a hash parsing problem when using --show/--left with hashes with long salts that required pure kernels
+- Fixed a mask-length check issue: Return -1 in case the mask-length is not within the password-length range
+- Fixed a restore issue leading to "Restore value is greater than keyspace" when mask-files or wordlist-folders were used
+- Fixed a uninitialized value in OpenCL kernels 9720, 9820 and 10420 leading to absurd benchmark performance
+- Fixed invalid support for SIMD in -m 400
+- Fixed the maximum password length check in password-reassembling function
+- Fixed the output of --show if $HEX[] passwords were present within the potfile
+
+##
+## Improvements
+##
+
+- OpenCL Kernels: Remove password length restriction to 16 for Cisco-PIX and Cisco-ASA hashes
+- Terminal: Display Set Cost/Rounds During Benchmarking
+- Terminal: Show [r]esume in prompt only in pause mode, and show [p]ause in prompt only in resume mode
+
+##
+## Technical
+##
+
+- Documents: Added docs/limits.txt
+- Files: Copy include/ folder and its content when SHARED is set to 1 in Makefile
+- Files: Switched back to relative current working directory on windows to work around problems with unicode characters
+- Hashcat Context: Fixed a memory leak in shutdown phase
+- Hash Parser: Changed the way large strings are handled/truncated within the event buffer if they are too large to fit
+- Hash Parser: Fixed a memory leak in shutdown phase
+- Hash Parser: Fixed the use of strtok_r () calls
+- OpenCL Devices: Fixed several memory leaks in shutdown phase
+- OpenCL Runtime: Updated rocm detection
+- OpenCL Runtime: Enforce to use OpenCL version 1.2 to restrain OpenCL runtimes to make use of the __generic address space qualifier
+- OpenCL Runtime: Add current timestamp to OpenCL kernel source in order to force OpenCL JiT compiler to recompile and not use the cache
+- OpenCL Kernels: Replace variables from uXX to uXXa if used in __constant space
+- OpenCL Kernels: Use a special kernel to initialize the password buffer used during autotune measurements, to reduce startup time
+- OpenCL Kernels: Use static declaraction for uXXa variables used in __constant space
+- Returncode: Enforce returncode 0 in case the user selected --speed-only or --progress-only and no other error occured
+- Self Test: Skip self-test for mode 15700 because the settings are too high and cause startup times that are too long
+- Self Test: Skip self-test for mode 8900 - user-configurable scrypt settings are incompatible with fixed settings in the self-test hash
+- Terminal: Send clear line code to the same output stream as the message immediately following
+- Terminal: Add workitem settings to status display (can be handy for debugging)
+- Timer: Switch from gettimeofday() to clock_gettime() to work around problems on cygwin
+- User Options: According to getopts manpage the last element of the option array has to be filled with zeros
 
 * changes v4.0.0 -> v4.0.1:
+
+##
+## Improvements
+##
+
+- Changed the maximum length of the substring of a hash shown whenever the parser found a problem while parsing the hash
 
 ##
 ## Bugs

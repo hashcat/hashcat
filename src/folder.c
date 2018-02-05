@@ -16,8 +16,8 @@
 
 int sort_by_stringptr (const void *p1, const void *p2)
 {
-  const char **s1 = (const char **) p1;
-  const char **s2 = (const char **) p2;
+  const char* const *s1 = (const char* const *) p1;
+  const char* const *s2 = (const char* const *) p2;
 
   return strcmp (*s1, *s2);
 }
@@ -38,9 +38,9 @@ static int get_exec_path (char *exec_path, const size_t exec_path_sz)
 
   #elif defined (_WIN)
 
-  const DWORD len = GetModuleFileName (NULL, exec_path, exec_path_sz - 1);
+  memset (exec_path, 0, exec_path_sz);
 
-  if (len == 0) return -1;
+  const int len = 0;
 
   #elif defined (__APPLE__)
 
@@ -407,16 +407,9 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   hc_asprintf (&cpath, "%s\\OpenCL\\", shared_dir);
 
-  char *cpath_real = (char *) hcmalloc (HCBUFSIZ_TINY);
+  char *cpath_real;
 
-  if (GetFullPathName (cpath, HCBUFSIZ_TINY - 1, cpath_real, NULL) == 0)
-  {
-    event_log_error (hashcat_ctx, "%s: %s", cpath, "GetFullPathName().");
-
-    hcfree (cwd);
-
-    return -1;
-  }
+  hc_asprintf (&cpath_real, "%s\\OpenCL\\", shared_dir);
 
   #else
 

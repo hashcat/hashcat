@@ -5,6 +5,11 @@
 ## License.....: MIT
 ##
 
+## install help:
+##
+## cpan install Authen::Passphrase::LANManager Authen::Passphrase::MySQL323 Authen::Passphrase::NTHash Authen::Passphrase::PHPass Crypt::CBC Crypt::DES Crypt::Digest::RIPEMD160 Crypt::Digest::Whirlpool Crypt::ECB Crypt::Eksblowfish::Bcrypt Crypt::Mode::ECB Crypt::MySQL Crypt::OpenSSH::ChachaPoly Crypt::PBKDF2 Crypt::RC4 Crypt::Rijndael Crypt::ScryptKDF Crypt::Skip32 Crypt::Twofish Crypt::UnixCrypt_XS Digest::BLAKE2 Digest::CMAC Digest::CRC Digest::GOST Digest::HMAC Digest::HMAC_MD5 Digest::Keccak Digest::MD4 Digest::MD5 Digest::Perl::MD5 Digest::SHA Digest::SipHash JSON Net::DNS::RR::NSEC3 Net::DNS::SEC Convert::EBCDIC
+##
+
 use strict;
 use warnings;
 use Digest::MD4       qw (md4 md4_hex);
@@ -33,24 +38,26 @@ use Crypt::Mode::ECB;
 use Crypt::UnixCrypt_XS qw (crypt_rounds fold_password base64_to_int24 block_to_base64 int24_to_base64);
 use Crypt::Skip32;
 use Crypt::OpenSSH::ChachaPoly;
-use MIME::Base64;
+use JSON;
+use MIME::Base64 qw (encode_base64 decode_base64 encode_base64url decode_base64url);
 use Authen::Passphrase::NTHash;
 use Authen::Passphrase::MySQL323;
 use Authen::Passphrase::PHPass;
 use Authen::Passphrase::LANManager;
 use Encode;
-use POSIX qw (strftime);
+use POSIX qw (strftime ceil);
 use Net::DNS::SEC;
 use Net::DNS::RR::NSEC3;
 use Convert::EBCDIC qw (ascii2ebcdic);
 use Digest::SipHash qw/siphash/;
 use Text::Iconv;
+use Digest::Perl::MD5;
 
 my $hashcat = "./hashcat";
 
 my $MAX_LEN = 55;
 
-my @modes = (0, 10, 11, 12, 20, 21, 22, 23, 30, 40, 50, 60, 100, 101, 110, 111, 112, 120, 121, 122, 125, 130, 131, 132, 133, 140, 141, 150, 160, 200, 300, 400, 500, 600, 900, 1000, 1100, 1300, 1400, 1410, 1411, 1420, 1430, 1440, 1441, 1450, 1460, 1500, 1600, 1700, 1710, 1711, 1720, 1730, 1740, 1722, 1731, 1750, 1760, 1800, 2100, 2400, 2410, 2500, 2600, 2611, 2612, 2711, 2811, 3000, 3100, 3200, 3710, 3711, 3300, 3500, 3610, 3720, 3800, 3910, 4010, 4110, 4210, 4300, 4400, 4500, 4520, 4521, 4522, 4600, 4700, 4800, 4900, 5000, 5100, 5300, 5400, 5500, 5600, 5700, 5800, 6000, 6100, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7000, 7100, 7200, 7300, 7400, 7500, 7700, 7800, 7900, 8000, 8100, 8200, 8300, 8400, 8500, 8600, 8700, 8900, 9100, 9200, 9300, 9400, 9500, 9600, 9700, 9800, 9900, 10000, 10100, 10200, 10300, 10400, 10500, 10600, 10700, 10800, 10900, 11000, 11100, 11200, 11300, 11400, 11500, 11600, 11900, 12000, 12001, 12100, 12200, 12300, 12400, 12600, 12700, 12800, 12900, 13000, 13100, 13200, 13300, 13400, 13500, 13600, 13800, 13900, 14000, 14100, 14400, 14700, 14800, 14900, 15000, 15100, 15200, 15300, 15400, 15500, 15600, 15700, 15900, 16000, 99999);
+my @modes = (0, 10, 11, 12, 20, 21, 22, 23, 30, 40, 50, 60, 100, 101, 110, 111, 112, 120, 121, 122, 125, 130, 131, 132, 133, 140, 141, 150, 160, 200, 300, 400, 500, 600, 900, 1000, 1100, 1300, 1400, 1410, 1411, 1420, 1430, 1440, 1441, 1450, 1460, 1500, 1600, 1700, 1710, 1711, 1720, 1730, 1740, 1722, 1731, 1750, 1760, 1800, 2100, 2400, 2410, 2500, 2600, 2611, 2612, 2711, 2811, 3000, 3100, 3200, 3710, 3711, 3300, 3500, 3610, 3720, 3800, 3910, 4010, 4110, 4210, 4300, 4400, 4500, 4520, 4521, 4522, 4600, 4700, 4800, 4900, 5000, 5100, 5300, 5400, 5500, 5600, 5700, 5800, 6000, 6100, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7000, 7100, 7200, 7300, 7400, 7500, 7700, 7800, 7900, 8000, 8100, 8200, 8300, 8400, 8500, 8600, 8700, 8900, 9100, 9200, 9300, 9400, 9500, 9600, 9700, 9800, 9900, 10000, 10100, 10200, 10300, 10400, 10500, 10600, 10700, 10800, 10900, 11000, 11100, 11200, 11300, 11400, 11500, 11600, 11900, 12000, 12001, 12100, 12200, 12300, 12400, 12600, 12700, 12800, 12900, 13000, 13100, 13200, 13300, 13400, 13500, 13600, 13800, 13900, 14000, 14100, 14400, 14700, 14800, 14900, 15000, 15100, 15200, 15300, 15400, 15500, 15600, 15700, 15900, 16000, 16100, 16200, 16300, 16400, 16500, 16600, 99999);
 
 my %is_utf16le      = map { $_ => 1 } qw (30 40 130 131 132 133 140 141 1000 1100 1430 1440 1441 1730 1740 1731 5500 5600 8000 9400 9500 9600 9700 9800 11600 13500 13800);
 my %less_fifteen    = map { $_ => 1 } qw (500 1600 1800 3200 6300 7400 10500 10700);
@@ -218,7 +225,7 @@ sub verify
     # remember always do "exists ($db->{$hash_in})" checks as soon as possible and don't forget it
 
     # unsalted
-    if ($mode == 0 || $mode == 100 || $mode == 101 || $mode == 133 || $mode == 200 || $mode == 300 || $mode == 600 || $mode == 900 || $mode == 1000 || $mode == 1300 || $mode == 1400 || $mode == 1700 || $mode == 2400 || $mode == 2600 || $mode == 3000 || $mode == 3500 || $mode == 4300 || $mode == 4400 || $mode == 4500 || $mode == 4600 || $mode == 4700 || $mode == 5000 || $mode == 5100 || $mode == 5700 || $mode == 6000 || $mode == 6100 || $mode == 6900 || $mode == 8600 || $mode == 9900 || $mode == 10800 || $mode == 11500 || $mode == 16000 || $mode == 99999)
+    if ($mode == 0 || $mode == 100 || $mode == 101 || $mode == 133 || $mode == 200 || $mode == 300 || $mode == 600 || $mode == 900 || $mode == 1000 || $mode == 1300 || $mode == 1400 || $mode == 1700 || $mode == 2400 || $mode == 2600 || $mode == 3000 || $mode == 3500 || $mode == 4300 || $mode == 4400 || $mode == 4500 || $mode == 4600 || $mode == 4700 || $mode == 5000 || $mode == 5100 || $mode == 5700 || $mode == 6000 || $mode == 6100 || $mode == 6900 || $mode == 8600 || $mode == 9900 || $mode == 10800 || $mode == 11500 || $mode == 16000 || $mode == 16400 || $mode == 99999)
     {
       my $index = index ($line, ":");
 
@@ -2785,6 +2792,132 @@ sub verify
 
       next unless (exists ($db->{$hash_in}) and (! defined ($db->{$hash_in})));
     }
+    # tacacs-plus
+    elsif ($mode == 16100)
+    {
+      ($hash_in, $word) = split ":", $line;
+
+      next unless defined $hash_in;
+      next unless defined $word;
+
+      my @data = split ('\$', $hash_in);
+
+      next unless scalar @data == 6;
+
+      shift @data;
+
+      my $signature = shift @data;
+
+      next unless ($signature eq "tacacs-plus");
+
+      my $auth_version = shift @data;
+
+      next unless ($auth_version eq "0");
+
+      my $session_id      = shift @data;
+      my $encrypted_data  = shift @data;
+      my $sequence        = shift @data;
+
+      $param  = $session_id;
+      $param2 = $encrypted_data;
+      $param3 = $sequence;
+
+      next unless (exists ($db->{$hash_in}) and (! defined ($db->{$hash_in})));
+    }
+    # apple secure notes
+    elsif ($mode == 16200)
+    {
+      ($hash_in, $word) = split ":", $line;
+
+      next unless defined $hash_in;
+      next unless defined $word;
+
+      my @data = split ('\*', $hash_in);
+
+      next unless scalar @data == 5;
+
+      my $signature = shift @data;
+
+      next unless ($signature eq '$ASN$');
+
+      my ($Z_PK, $ZCRYPTOITERATIONCOUNT, $ZCRYPTOSALT, $ZCRYPTOWRAPPEDKEY) = @data;
+
+      $salt = $ZCRYPTOSALT;
+      $iter = $ZCRYPTOITERATIONCOUNT;
+
+      $param  = $Z_PK;
+      $param2 = $ZCRYPTOWRAPPEDKEY;
+
+      next unless (exists ($db->{$hash_in}) and (! defined ($db->{$hash_in})));
+    }
+    # Ethereum Pre-Sale - PBKDF2
+    elsif ($mode == 16300)
+    {
+      my $index1 = index ($line, ':');
+
+      next if ($index1 < 0);
+
+      $hash_in = substr ($line, 0, $index1);
+      $word    = substr ($line, $index1 + 1);
+
+      next if (length ($hash_in) < 12);
+
+      next unless (substr ($hash_in, 0, 12) eq "\$ethereum\$w\*");
+
+      my @data = split ('\*', $hash_in);
+
+      next unless (scalar (@data) == 4);
+
+      $param  = pack ("H*", $data[1]); # encseed
+
+      $salt = $data[2];                # ethaddr
+
+      $param2 = pack ("H*", $data[3]); # bpk (the iv + keccak digest)
+
+      next unless (exists ($db->{$hash_in}) and (! defined ($db->{$hash_in})));
+    }
+    # JWT
+    elsif ($mode == 16500)
+    {
+      ($hash_in, $word) = split ":", $line;
+
+      next unless defined $hash_in;
+      next unless defined $word;
+
+      my @data = split (/\./, $hash_in);
+
+      next unless scalar @data == 3;
+
+      my ($header, $payload, $signature) = @data;
+
+      $salt = $header . "." . $payload;
+
+      next unless (exists ($db->{$hash_in}) and (! defined ($db->{$hash_in})));
+    }
+    # Electrum Wallet (Salt-Type 1-3)
+    elsif ($mode == 16600)
+    {
+      ($hash_in, $word) = split ":", $line;
+
+      next unless defined $hash_in;
+      next unless defined $word;
+
+      my @data = split (/\*/, $hash_in);
+
+      next unless scalar @data == 3;
+
+      my ($mode, $iv, $encrypted) = @data;
+
+      my (undef, $signature, $salt_type) = split ('\$', $mode);
+
+      next unless ($signature eq "electrum");
+
+      $param  = $salt_type;
+      $param2 = $iv;
+      $param3 = $encrypted;
+
+      next unless (exists ($db->{$hash_in}) and (! defined ($db->{$hash_in})));
+    }
     else
     {
       print "ERROR: hash mode is not supported\n";
@@ -3200,6 +3333,38 @@ sub verify
 
       return unless (substr ($line, 0, $len) eq $hash_out);
     }
+    elsif ($mode == 16100)
+    {
+      $hash_out = gen_hash ($mode, $word, undef, 0, $param, $param2, $param3);
+
+      $len = length $hash_out;
+
+      return unless (substr ($line, 0, $len) eq $hash_out);
+    }
+    elsif ($mode == 16200)
+    {
+      $hash_out = gen_hash ($mode, $word, $salt, $iter, $param, $param2);
+
+      $len = length $hash_out;
+
+      return unless (substr ($line, 0, $len) eq $hash_out);
+    }
+    elsif ($mode == 16300)
+    {
+      $hash_out = gen_hash ($mode, $word, $salt, 0, $param, $param2);
+
+      $len = length $hash_out;
+
+      return unless (substr ($line, 0, $len) eq $hash_out);
+    }
+    elsif ($mode == 16600)
+    {
+      $hash_out = gen_hash ($mode, $word, undef, 0, $param, $param2, $param3);
+
+      $len = length $hash_out;
+
+      return unless (substr ($line, 0, $len) eq $hash_out);
+    }
     else
     {
       $hash_out = gen_hash ($mode, $word, $salt, $iter);
@@ -3279,7 +3444,7 @@ sub passthrough
 
     my $tmp_hash;
 
-    if ($mode == 0 || $mode == 100 || $mode == 101 || $mode == 133 || $mode == 200 || $mode == 300 || $mode == 600 || $mode == 900 || $mode == 1000 || $mode == 1300 || $mode == 1400 || $mode == 1700 || $mode == 2400 || $mode == 2600 || $mode == 3500 || $mode == 4300 || $mode == 4400 || $mode == 4500 || $mode == 4600 || $mode == 4700 || $mode == 5000 || $mode == 5100 || $mode == 6000 || $mode == 6100 || $mode == 6900 || $mode == 5700 || $mode == 9900 || $mode == 10800 || $mode == 11500 || $mode == 13300 || $mode == 99999)
+    if ($mode == 0 || $mode == 100 || $mode == 101 || $mode == 133 || $mode == 200 || $mode == 300 || $mode == 600 || $mode == 900 || $mode == 1000 || $mode == 1300 || $mode == 1400 || $mode == 1700 || $mode == 2400 || $mode == 2600 || $mode == 3500 || $mode == 4300 || $mode == 4400 || $mode == 4500 || $mode == 4600 || $mode == 4700 || $mode == 5000 || $mode == 5100 || $mode == 6000 || $mode == 6100 || $mode == 6900 || $mode == 5700 || $mode == 9900 || $mode == 10800 || $mode == 11500 || $mode == 13300 || $mode == 16400 || $mode == 99999)
     {
       $tmp_hash = gen_hash ($mode, $word_buf, "");
     }
@@ -3351,8 +3516,6 @@ sub passthrough
     }
     elsif ($mode == 2410)
     {
-      next if length ($word_buf) > 12;
-
       my $salt_len = get_random_num (1, 4);
 
       $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, $salt_len));
@@ -3518,7 +3681,7 @@ sub passthrough
 
       $tmp_hash = gen_hash ($mode, $word_buf, $salt_buf);
     }
-    elsif ($mode == 8400 || $mode == 11200)
+    elsif ($mode == 8400 || $mode == 11200 || $mode == 16300)
     {
       $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, 40));
     }
@@ -3755,6 +3918,24 @@ sub passthrough
 
       $tmp_hash = gen_hash ($mode, $word_buf, "");
     }
+    elsif ($mode == 16100)
+    {
+      $tmp_hash = gen_hash ($mode, $word_buf, undef);
+    }
+    elsif ($mode == 16200)
+    {
+      $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, 32));
+    }
+    elsif ($mode == 16500)
+    {
+      $salt_buf = get_random_jwt_salt ();
+
+      $tmp_hash = gen_hash ($mode, $word_buf, $salt_buf);
+    }
+    elsif ($mode == 16600)
+    {
+      $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, 32));
+    }
     else
     {
       print "ERROR: Unsupported hash type\n";
@@ -3779,7 +3960,7 @@ sub single
   {
     my $mode = $modes[$j];
 
-    if ($mode == 0 || $mode == 100 || $mode == 101 || $mode == 133 || $mode == 200 || $mode == 300 || $mode == 600 || $mode == 900 || $mode == 1000 || $mode == 1300 || $mode == 1400 || $mode == 1700 || $mode == 2600 || $mode == 3500 || $mode == 4300 || $mode == 4400 || $mode == 4500 || $mode == 4600 || $mode == 4700 || $mode == 5000 || $mode == 5100 || $mode == 5300 || $mode == 5400 || $mode == 6000 || $mode == 6100 || $mode == 6600 || $mode == 6900 || $mode == 5700 || $mode == 8200 || $mode == 8300 || $mode == 9900 || $mode == 10800 || $mode == 11500 || $mode == 13300 || $mode == 99999)
+    if ($mode == 0 || $mode == 100 || $mode == 101 || $mode == 133 || $mode == 200 || $mode == 300 || $mode == 600 || $mode == 900 || $mode == 1000 || $mode == 1300 || $mode == 1400 || $mode == 1700 || $mode == 2600 || $mode == 3500 || $mode == 4300 || $mode == 4400 || $mode == 4500 || $mode == 4600 || $mode == 4700 || $mode == 5000 || $mode == 5100 || $mode == 5300 || $mode == 5400 || $mode == 6000 || $mode == 6100 || $mode == 6600 || $mode == 6900 || $mode == 5700 || $mode == 8200 || $mode == 8300 || $mode == 9900 || $mode == 10800 || $mode == 11500 || $mode == 13300 || $mode == 16400 || $mode == 99999)
     {
       for (my $i = 1; $i < 32; $i++)
       {
@@ -3793,7 +3974,7 @@ sub single
         }
       }
     }
-    elsif ($mode == 10 || $mode == 20 || $mode == 23 || $mode == 30 || $mode == 40 || $mode == 50 || $mode == 60 || $mode == 110 || $mode == 120 || $mode == 121 || $mode == 130 || $mode == 140 || $mode == 150 || $mode == 160 || $mode == 1410 || $mode == 1411 || $mode == 1420 || $mode == 1430 || $mode == 1440 || $mode == 1450 || $mode == 1460 || $mode == 1710 || $mode == 1711 || $mode == 1720 || $mode == 1730 || $mode == 1740 || $mode == 1750 || $mode == 1760 || $mode == 3610 || $mode == 3710 || $mode == 3711 || $mode == 3720 || $mode == 3910 || $mode == 4010 || $mode == 4110 || $mode == 4210 || $mode == 8900 || $mode == 10000 || $mode == 10200 || $mode == 10900 || $mode == 11900 || $mode == 12000 || $mode == 12100)
+    elsif ($mode == 10 || $mode == 20 || $mode == 23 || $mode == 30 || $mode == 40 || $mode == 50 || $mode == 60 || $mode == 110 || $mode == 120 || $mode == 121 || $mode == 130 || $mode == 140 || $mode == 150 || $mode == 160 || $mode == 1410 || $mode == 1411 || $mode == 1420 || $mode == 1430 || $mode == 1440 || $mode == 1450 || $mode == 1460 || $mode == 1710 || $mode == 1711 || $mode == 1720 || $mode == 1730 || $mode == 1740 || $mode == 1750 || $mode == 1760 || $mode == 3610 || $mode == 3710 || $mode == 3711 || $mode == 3720 || $mode == 3910 || $mode == 4010 || $mode == 4110 || $mode == 4210 || $mode == 8900 || $mode == 10000 || $mode == 10200 || $mode == 10900 || $mode == 11900 || $mode == 12000 || $mode == 12100 || $mode == 16500)
     {
       my $salt_len = get_random_num (1, 15);
 
@@ -3927,7 +4108,7 @@ sub single
     }
     elsif ($mode == 2400)
     {
-      for (my $i = 1; $i < 16; $i++)
+      for (my $i = 1; $i < 32; $i++)
       {
         if ($len != 0)
         {
@@ -3941,9 +4122,9 @@ sub single
     }
     elsif ($mode == 2410)
     {
-      my $salt_len = get_random_num (1, 4);
+      my $salt_len = get_random_num (3, 4);
 
-      for (my $i = 1; $i < 13; $i++)
+      for (my $i = 1; $i < 32; $i++)
       {
         if ($len != 0)
         {
@@ -4274,7 +4455,7 @@ sub single
         }
       }
     }
-    elsif ($mode == 8400 || $mode == 11200 || $mode == 14700 || $mode == 14800)
+    elsif ($mode == 8400 || $mode == 11200 || $mode == 14700 || $mode == 14800 || $mode == 16300)
     {
       for (my $i = 1; $i < 32; $i++)
       {
@@ -4793,6 +4974,48 @@ sub single
         else
         {
           rnd ($mode, $i, 0);
+        }
+      }
+    }
+    elsif ($mode == 16100)
+    {
+      for (my $i = 1; $i < 32; $i++)
+      {
+        if ($len != 0)
+        {
+          rnd ($mode, $len, 0);
+        }
+        else
+        {
+          rnd ($mode, $i, 0);
+        }
+      }
+    }
+    elsif ($mode == 16200)
+    {
+      for (my $i = 1; $i < 32; $i++)
+      {
+        if ($len != 0)
+        {
+          rnd ($mode, $len, 32);
+        }
+        else
+        {
+          rnd ($mode, $i, 32);
+        }
+      }
+    }
+    elsif ($mode == 16600)
+    {
+      for (my $i = 1; $i < 32; $i++)
+      {
+        if ($len != 0)
+        {
+          rnd ($mode, $len, 32);
+        }
+        else
+        {
+          rnd ($mode, $i, 32);
         }
       }
     }
@@ -5343,13 +5566,23 @@ sub gen_hash
   }
   elsif ($mode == 2400)
   {
-    my $hash_buf = Digest::MD5::md5 ($word_buf . "\0" x (16 - length ($word_buf)));
+    my $word_len = length ($word_buf);
+
+    my $pad_len = ceil ($word_len / 16) * 16;
+
+    my $hash_buf = Digest::MD5::md5 ($word_buf . "\0" x ($pad_len - $word_len));
 
     $tmp_hash = sprintf ("%s", pseudo_base64 ($hash_buf));
   }
   elsif ($mode == 2410)
   {
-    my $hash_buf = Digest::MD5::md5 ($word_buf . $salt_buf . "\0" x (16 - length ($word_buf) - length ($salt_buf)));
+    my $word_salt_buf = $word_buf . $salt_buf;
+
+    my $word_salt_len = length ($word_salt_buf);
+
+    my $pad_len = ceil ($word_salt_len / 16) * 16;
+
+    my $hash_buf = Digest::MD5::md5 ($word_buf . $salt_buf . "\0" x ($pad_len - $word_salt_len));
 
     $tmp_hash = sprintf ("%s:%s", pseudo_base64 ($hash_buf), $salt_buf);
   }
@@ -8938,6 +9171,371 @@ END_CODE
 
     $tmp_hash = sprintf ("%s", $hash_buf);
   }
+  elsif ($mode == 16100)
+  {
+    my $session_id;
+    my $encrypted_data;
+    my $sequence;
+
+    if (defined $additional_param)
+    {
+      $session_id = pack ("H*", $additional_param);
+    }
+    else
+    {
+      $session_id = pack ("H*", randbytes (8));
+    }
+
+    if (defined $additional_param2)
+    {
+      $encrypted_data = pack ("H*", $additional_param2);
+    }
+
+    if (defined $additional_param3)
+    {
+      $sequence = pack ("H*", $additional_param3);
+    }
+    else
+    {
+      $sequence = pack ("H*", "c006");
+    }
+
+    my $key = md5 ($session_id . $word_buf . $sequence);
+
+    if (defined $encrypted_data)
+    {
+      ## verify case
+
+      my $encrypted_data_len = length $encrypted_data;
+
+      my $plain_data = substr ($encrypted_data, 0, 6) ^ substr ($key, 0, 6);
+
+      my ($status, $flags, $server_msg_len, $data_len) = unpack ("CCnn", $plain_data);
+
+      if ((($status >= 0x01 && $status <= 0x07) || $status == 0x21)
+       &&  ($flags  == 0x01 || $flags  == 0x00)
+       &&  (6 + $server_msg_len + $data_len == $encrypted_data_len))
+      {
+        ## ok
+      }
+      else
+      {
+        $encrypted_data = ""; # some invalid data
+      }
+    }
+    else
+    {
+      my $plain_data = "\x01\x00\x00\x00\x00\x00";
+
+      my $plain_data_len = length $plain_data;
+
+      my $shortest = ($plain_data_len > 16) ? 16 : $plain_data_len;
+
+      $encrypted_data = substr ($plain_data, 0, $shortest) ^ substr ($key, 0, $shortest);
+    }
+
+    $tmp_hash = sprintf ('$tacacs-plus$0$%s$%s$%s', unpack ("H*", $session_id), unpack ("H*", $encrypted_data), unpack ("H*", $sequence));
+  }
+  elsif ($mode == 16200)
+  {
+    my $salt_bin = pack ("H*", $salt_buf);
+
+    my $iterations = 20000;
+
+    if (defined ($iter))
+    {
+      $iterations = $iter;
+    }
+
+    my $Z_PK = 1;
+
+    if (defined $additional_param)
+    {
+      $Z_PK = $additional_param;
+    }
+
+    my $pbkdf2 = Crypt::PBKDF2->new
+    (
+      hasher     => Crypt::PBKDF2->hasher_from_algorithm ('HMACSHA2', 256),
+      iterations => $iterations,
+      output_len => 16,
+    );
+
+    my $KEK = $pbkdf2->PBKDF2 ($salt_bin, $word_buf);
+
+    my $aes = Crypt::Mode::ECB->new ('AES', 0);
+
+    my $blob_bin;
+
+    my $A;
+    my $B;
+    my $P1;
+    my $P2;
+
+    if (defined $additional_param2)
+    {
+      $blob_bin = pack ("H*", $additional_param2);
+
+      $A  = substr ($blob_bin,  0, 8);
+      $P1 = substr ($blob_bin,  8, 8);
+      $P2 = substr ($blob_bin, 16, 8);
+
+      for (my $j = 5; $j >= 0; $j--)
+      {
+        # N = 2
+
+        $B  = $A;
+        $B ^= pack ("Q>", (2 * $j + 2));
+        $B .= $P2;
+        $B  = $aes->decrypt ($B, $KEK);
+        $A  = substr ($B, 0, 8);
+        $P2 = substr ($B, 8, 8);
+
+        # N = 1
+
+        $B  = $A;
+        $B ^= pack ("Q>", (2 * $j + 1));
+        $B .= $P1;
+        $B  = $aes->decrypt ($B, $KEK);
+        $A  = substr ($B, 0, 8);
+        $P1 = substr ($B, 8, 8);
+      }
+
+      if ($A eq "\xa6" x 8)
+      {
+        for (my $j = 0; $j <= 5; $j++)
+        {
+          # N = 1
+
+          $B  = $A;
+          $B .= $P1;
+          $B  = $aes->encrypt ($B, $KEK);
+          $A  = substr ($B, 0, 8);
+          $A ^= pack ("Q>", (2 * $j + 1));
+          $P1 = substr ($B, 8, 8);
+
+          # N = 2
+
+          $B  = $A;
+          $B .= $P2;
+          $B  = $aes->encrypt ($B, $KEK);
+          $A  = substr ($B, 0, 8);
+          $A ^= pack ("Q>", (2 * $j + 2));
+          $P2 = substr ($B, 8, 8);
+        }
+
+        $blob_bin = $A . $P1 . $P2;
+      }
+      else
+      {
+        $blob_bin = "\xff" x 24;
+      }
+    }
+    else
+    {
+      $A  = "\xa6" x 8;
+      $P1 = "\xff" x 8;
+      $P2 = "\xff" x 8;
+
+      for (my $j = 0; $j <= 5; $j++)
+      {
+        # N = 1
+
+        $B  = $A;
+        $B .= $P1;
+        $B  = $aes->encrypt ($B, $KEK);
+        $A  = substr ($B, 0, 8);
+        $A ^= pack ("Q>", (2 * $j + 1));
+        $P1 = substr ($B, 8, 8);
+
+        # N = 2
+
+        $B  = $A;
+        $B .= $P2;
+        $B  = $aes->encrypt ($B, $KEK);
+        $A  = substr ($B, 0, 8);
+        $A ^= pack ("Q>", (2 * $j + 2));
+        $P2 = substr ($B, 8, 8);
+      }
+
+      $blob_bin = $A . $P1 . $P2;
+    }
+
+    $tmp_hash = sprintf ('$ASN$*%d*%d*%s*%s', $Z_PK, $iterations, unpack ("H*", $salt_bin), unpack ("H*", $blob_bin));
+  }
+  elsif ($mode == 16300)
+  {
+    my $ethaddr = $salt_buf;
+
+    my $iv      = "";
+    my $seed    = "";
+    my $encseed = "";
+
+    # setup pbkdf2 params:
+
+    my $pbkdf2 = Crypt::PBKDF2->new
+    (
+      hasher     => Crypt::PBKDF2->hasher_from_algorithm ('HMACSHA2', 256),
+      iterations => 2000,
+      output_len => 16
+    );
+
+    my $key = $pbkdf2->PBKDF2 ($word_buf, $word_buf);
+
+    if (defined $additional_param)
+    {
+      $iv      = substr ($additional_param, 0, 16);
+      $encseed = substr ($additional_param, 16);
+
+      # AES-128-CBC decrypt:
+
+      my $aes_cbc = Crypt::CBC->new ({
+        key         => $key,
+        cipher      => "Crypt::Rijndael",
+        iv          => $iv,
+        literal_key => 1,
+        header      => "none",
+        keysize     => 16
+      });
+
+      $seed = $aes_cbc->decrypt ($encseed);
+    }
+    else
+    {
+      $iv   = randbytes (16);
+      $seed = randbytes (592);
+
+      # AES-128-CBC encrypt:
+
+      my $aes_cbc = Crypt::CBC->new ({
+        key         => $key,
+        cipher      => "Crypt::Rijndael",
+        iv          => $iv,
+        literal_key => 1,
+        header      => "none",
+        keysize     => 16
+      });
+
+      $encseed = $aes_cbc->encrypt ($seed);
+    }
+
+    $hash_buf = keccak_256_hex ($seed . "\x02");
+
+    $tmp_hash = sprintf ("\$ethereum\$w*%s*%s*%s", unpack ("H*", $iv . $encseed), $ethaddr, substr ($hash_buf, 0, 32));
+  }
+  elsif ($mode == 16400)
+  {
+    my $md5 = Digest::Perl::MD5->new;
+    my $length = length($word_buf);
+
+    $md5->{_data} = $word_buf ^ ("\x5c" x $length);
+    $md5->{_data} .= "\x5c" x (64 - $length);
+    $md5->add();
+
+    $hash_buf = unpack("H*", pack('V4', @{$md5->{_state}}));
+    $tmp_hash = sprintf ("{CRAM-MD5}%s00000000000000000000000000000000", $hash_buf);
+  }
+  elsif ($mode == 16500)
+  {
+    my ($header_base64) = split (/\./, $salt_buf);
+
+    my $header_jwt = decode_base64url ($header_base64);
+
+    my $header = decode_json ($header_jwt);
+
+    my $alg = $header->{"alg"};
+
+    if ($alg eq "HS256")
+    {
+      $hash_buf = hmac ($salt_buf, $word_buf, \&sha256, 64);
+    }
+    elsif ($alg eq "HS384")
+    {
+      $hash_buf = hmac ($salt_buf, $word_buf, \&sha384, 128);
+    }
+    elsif ($alg eq "HS512")
+    {
+      $hash_buf = hmac ($salt_buf, $word_buf, \&sha512, 128);
+    }
+    else
+    {
+      die "not supported hash\n";
+    }
+
+    $tmp_hash = sprintf ("%s.%s", $salt_buf, encode_base64url ($hash_buf, ""));
+  }
+  elsif ($mode == 16600)
+  {
+    my $key_bin = sha256 (sha256 ($word_buf));
+
+    my $salt_type;
+
+    if (defined $additional_param)
+    {
+      $salt_type = $additional_param;
+
+      if ($salt_type ne "1") { die "currently only salt_type 1 supported\n"; }
+    }
+    else
+    {
+      $salt_type = 1;
+    }
+
+    my $iv;
+
+    if (defined $additional_param2)
+    {
+      $iv = $additional_param2;
+    }
+    else
+    {
+      $iv = substr ($salt_buf, 0, 32);
+    }
+
+    my $iv_bin = pack ("H*", $iv);
+
+    my $cipher = Crypt::CBC->new ({
+      key         => $key_bin,
+      cipher      => "Crypt::Rijndael",
+      iv          => $iv_bin,
+      literal_key => 1,
+      header      => "none",
+      keysize     => 32,
+      padding     => "null",
+    });
+
+    my $plain_bin;
+
+    if (defined $additional_param3)
+    {
+      my $encrypted_bin = pack ("H*", $additional_param3);
+
+      my $test_bin = $cipher->decrypt ($encrypted_bin);
+
+      my $test = unpack ("H*", $test_bin);
+
+      if ($test =~ /^[0-9a-f]+$/)
+      {
+        $plain_bin = $test_bin;
+      }
+      else
+      {
+        $plain_bin = "\xff" x 16;
+      }
+    }
+    else
+    {
+      my $plain = "30313233343536373839616263646566";
+
+      $plain_bin = pack ("H*", $plain);
+    }
+
+    my $encrypted_bin = $cipher->encrypt ($plain_bin);
+
+    my $encrypted = unpack ("H*", $encrypted_bin);
+
+    $tmp_hash = sprintf ("\$electrum\$%d*%s*%s", $salt_type, $iv, $encrypted);
+  }
   elsif ($mode == 99999)
   {
     $tmp_hash = sprintf ("%s", $word_buf);
@@ -8979,13 +9577,8 @@ sub rnd
 
   my $max = $MAX_LEN;
 
-  if ($mode == 2400)
+  if ($mode == 2410)
   {
-    $word_len = min ($word_len, 16);
-  }
-  elsif ($mode == 2410)
-  {
-    $word_len = min ($word_len, 12);
     $salt_len = min ($salt_len, 4);
   }
 
@@ -9088,6 +9681,10 @@ sub rnd
     }
 
     $salt_buf = get_random_dpapimk_salt ($version);
+  }
+  elsif ($mode == 16500)
+  {
+    $salt_buf = get_random_jwt_salt ();
   }
   else
   {
@@ -10585,6 +11182,50 @@ sub get_random_dpapimk_salt
               $cipher_len . '*';
 
   return $salt_buf;
+}
+
+sub get_random_jwt_salt
+{
+  my @hashes =
+  (
+    "HS256",
+    #"HS384", #this is support in hashcat, but commented out here to prevent mixed hash output files in single mode
+    #"HS512", #this is support in hashcat, but commented out here to prevent mixed hash output files in single mode
+    #"RS256", #not supported by hashcat
+    #"RS384",
+    #"RS512",
+    #"PS256",
+    #"PS384",
+    #"PS512",
+    #"ES256",
+    #"ES384",
+    #"ES512",
+  );
+
+  my $rnd = get_random_num (0, scalar @hashes);
+
+  my $hash = $hashes[$rnd];
+
+  my $header =
+  {
+    "alg" => $hash
+  };
+
+  my $random_key = get_random_num (1, 100000000);
+  my $random_val = get_random_num (1, 100000000);
+
+  my $payload =
+  {
+    $random_key => $random_val
+  };
+
+  my $header_json    = encode_json ($header);
+  my $payload_json   = encode_json ($payload);
+
+  my $header_base64  = encode_base64url ($header_json, "");
+  my $payload_base64 = encode_base64url ($payload_json, "");
+
+  return $header_base64 . "." . $payload_base64;
 }
 
 sub md5bit

@@ -40,7 +40,7 @@ static void main_log_clear_line (MAYBE_UNUSED const int prev_len, MAYBE_UNUSED F
 
   #else
 
-  printf ("\033[2K\r");
+  fputs ("\033[2K\r", fp);
 
   #endif
 }
@@ -97,7 +97,7 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
   #else
   switch (loglevel)
   {
-    case LOGLEVEL_INFO:                                   break;
+    case LOGLEVEL_INFO:                                      break;
     case LOGLEVEL_WARNING: hc_fwrite ("\033[33m", 5, 1, fp); break;
     case LOGLEVEL_ERROR:   hc_fwrite ("\033[31m", 5, 1, fp); break;
     case LOGLEVEL_ADVICE:  hc_fwrite ("\033[33m", 5, 1, fp); break;
@@ -121,7 +121,7 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
   #else
   switch (loglevel)
   {
-    case LOGLEVEL_INFO:                                  break;
+    case LOGLEVEL_INFO:                                     break;
     case LOGLEVEL_WARNING: hc_fwrite ("\033[0m", 4, 1, fp); break;
     case LOGLEVEL_ERROR:   hc_fwrite ("\033[0m", 4, 1, fp); break;
     case LOGLEVEL_ADVICE:  hc_fwrite ("\033[0m", 4, 1, fp); break;
@@ -234,7 +234,7 @@ static void main_cracker_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
     {
       event_log_info_nn (hashcat_ctx, NULL);
 
-      send_prompt ();
+      send_prompt (hashcat_ctx);
     }
   }
   else if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
@@ -261,7 +261,7 @@ static void main_cracker_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
   {
     if ((user_options->speed_only == false) && (user_options->quiet == false))
     {
-      clear_prompt ();
+      clear_prompt (hashcat_ctx);
     }
   }
 
@@ -322,7 +322,7 @@ static void main_cracker_hash_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    if (outfile_ctx->filename == NULL) if (user_options->quiet == false) clear_prompt ();
+    if (outfile_ctx->filename == NULL) if (user_options->quiet == false) clear_prompt (hashcat_ctx);
   }
 
   hc_fwrite (buf, len,          1, stdout);
@@ -332,7 +332,7 @@ static void main_cracker_hash_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   {
     if (status_ctx->devices_status != STATUS_CRACKED)
     {
-      if (outfile_ctx->filename == NULL) if (user_options->quiet == false) send_prompt ();
+      if (outfile_ctx->filename == NULL) if (user_options->quiet == false) send_prompt (hashcat_ctx);
     }
   }
 }
@@ -436,9 +436,17 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   {
     if (user_options->machine_readable == false)
     {
-      char *hash_type = strhashtype (hashconfig->hash_mode); // not a bug
+      const char *hash_type = strhashtype (hashconfig->hash_mode); // not a bug
 
-      event_log_info (hashcat_ctx, "Hashmode: %d - %s", hashconfig->hash_mode, hash_type);
+      if ((hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL) && (hashconfig->is_salted == true))
+      {
+        event_log_info (hashcat_ctx, "Hashmode: %d - %s (Iterations: %d)", hashconfig->hash_mode, hash_type, hashes[0].salts_buf[0].salt_iter);
+      }
+      else
+      {
+        event_log_info (hashcat_ctx, "Hashmode: %d - %s", hashconfig->hash_mode, hash_type);
+      }
+
       event_log_info (hashcat_ctx, NULL);
     }
   }
@@ -516,15 +524,6 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
     event_log_info (hashcat_ctx, "Watchdog: Temperature abort trigger disabled.");
   }
 
-  if (hwmon_ctx->enabled == true && user_options->gpu_temp_retain > 0)
-  {
-    event_log_info (hashcat_ctx, "Watchdog: Temperature retain trigger set to %uc", user_options->gpu_temp_retain);
-  }
-  else
-  {
-    event_log_info (hashcat_ctx, "Watchdog: Temperature retain trigger disabled.");
-  }
-
   event_log_info (hashcat_ctx, NULL);
 
 }
@@ -571,12 +570,12 @@ static void main_set_kernel_power_final (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx
 
   if (user_options->quiet == true) return;
 
-  clear_prompt ();
+  clear_prompt (hashcat_ctx);
 
   event_log_advice (hashcat_ctx, "Approaching final keyspace - workload adjusted.");
   event_log_advice (hashcat_ctx, NULL);
 
-  send_prompt ();
+  send_prompt (hashcat_ctx);
 }
 
 static void main_monitor_throttle1 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -588,16 +587,16 @@ static void main_monitor_throttle1 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    clear_prompt ();
+    clear_prompt (hashcat_ctx);
   }
 
-  u32 *device_id = (u32 *) buf;
+  const u32 *device_id = (const u32 *) buf;
 
   event_log_warning (hashcat_ctx, "Driver temperature threshold met on GPU #%u. Expect reduced performance.", *device_id + 1);
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    send_prompt ();
+    send_prompt (hashcat_ctx);
   }
 }
 
@@ -610,16 +609,16 @@ static void main_monitor_throttle2 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    clear_prompt ();
+    clear_prompt (hashcat_ctx);
   }
 
-  u32 *device_id = (u32 *) buf;
+  const u32 *device_id = (const u32 *) buf;
 
   event_log_warning (hashcat_ctx, "Driver temperature threshold met on GPU #%u. Expect reduced performance.", *device_id + 1);
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    send_prompt ();
+    send_prompt (hashcat_ctx);
   }
 }
 
@@ -632,17 +631,17 @@ static void main_monitor_throttle3 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    clear_prompt ();
+    clear_prompt (hashcat_ctx);
   }
 
-  u32 *device_id = (u32 *) buf;
+  const u32 *device_id = (const u32 *) buf;
 
   event_log_warning (hashcat_ctx, "Driver temperature threshold met on GPU #%u. Expect reduced performance.", *device_id + 1);
   event_log_warning (hashcat_ctx, NULL);
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    send_prompt ();
+    send_prompt (hashcat_ctx);
   }
 }
 
@@ -656,7 +655,7 @@ static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    clear_prompt ();
+    clear_prompt (hashcat_ctx);
   }
 
   event_log_advice (hashcat_ctx, "Cracking performance lower than expected?");
@@ -689,7 +688,7 @@ static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    send_prompt ();
+    send_prompt (hashcat_ctx);
   }
 }
 
@@ -702,10 +701,10 @@ static void main_monitor_temp_abort (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    clear_prompt ();
+    clear_prompt (hashcat_ctx);
   }
 
-  u32 *device_id = (u32 *) buf;
+  const u32 *device_id = (const u32 *) buf;
 
   event_log_error (hashcat_ctx, "Temperature limit on GPU #%u reached, aborting...", *device_id + 1);
 }
@@ -719,7 +718,7 @@ static void main_monitor_runtime_limit (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx,
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
-    clear_prompt ();
+    clear_prompt (hashcat_ctx);
   }
 
   event_log_warning (hashcat_ctx, "Runtime limit reached, aborting...");
@@ -737,7 +736,7 @@ static void main_monitor_status_refresh (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx
   {
     if (user_options->quiet == false)
     {
-      //clear_prompt ();
+      //clear_prompt (hashcat_ctx);
 
       event_log_info (hashcat_ctx, NULL);
       event_log_info (hashcat_ctx, NULL);
@@ -752,7 +751,7 @@ static void main_monitor_status_refresh (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx
     {
       event_log_info (hashcat_ctx, NULL);
 
-      send_prompt ();
+      send_prompt (hashcat_ctx);
     }
   }
 
@@ -771,7 +770,7 @@ static void main_wordlist_cache_hit (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
 
   if (user_options->quiet == true) return;
 
-  cache_hit_t *cache_hit = (cache_hit_t *) buf;
+  const cache_hit_t *cache_hit = (const cache_hit_t *) buf;
 
   event_log_info (hashcat_ctx, "Dictionary cache hit:");
   event_log_info (hashcat_ctx, "* Filename..: %s", cache_hit->dictfile);
@@ -787,7 +786,7 @@ static void main_wordlist_cache_generate (MAYBE_UNUSED hashcat_ctx_t *hashcat_ct
 
   if (user_options->quiet == true) return;
 
-  cache_generate_t *cache_generate = (cache_generate_t *) buf;
+  const cache_generate_t *cache_generate = (const cache_generate_t *) buf;
 
   if (cache_generate->percent < 100)
   {
@@ -795,14 +794,14 @@ static void main_wordlist_cache_generate (MAYBE_UNUSED hashcat_ctx_t *hashcat_ct
   }
   else
   {
-    char *runtime = (char *) malloc (HCBUFSIZ_TINY);
+    char *runtime = (char *) hcmalloc (HCBUFSIZ_TINY);
 
-    const hc_time_t runtime_sec = cache_generate->runtime;
+    const time_t runtime_sec = cache_generate->runtime;
 
     struct tm *tmp;
     struct tm  tm;
 
-    tmp = hc_gmtime (&runtime_sec, &tm);
+    tmp = gmtime_r (&runtime_sec, &tm);
 
     format_timer_display (tmp, runtime, HCBUFSIZ_TINY);
 
@@ -824,7 +823,7 @@ static void main_hashlist_count_lines_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
 
   if (user_options->quiet == true) return;
 
-  char *hashfile = (char *) buf;
+  const char *hashfile = (const char *) buf;
 
   event_log_info_nn (hashcat_ctx, "Counting lines in %s...", hashfile);
 }
@@ -835,7 +834,7 @@ static void main_hashlist_count_lines_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_
 
   if (user_options->quiet == true) return;
 
-  char *hashfile = (char *) buf;
+  const char *hashfile = (const char *) buf;
 
   event_log_info_nn (hashcat_ctx, "Counted lines in %s...", hashfile);
 }
@@ -846,7 +845,7 @@ static void main_hashlist_parse_hash (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, M
 
   if (user_options->quiet == true) return;
 
-  hashlist_parse_t *hashlist_parse = (hashlist_parse_t *) buf;
+  const hashlist_parse_t *hashlist_parse = (const hashlist_parse_t *) buf;
 
   const u32 hashes_cnt   = hashlist_parse->hashes_cnt;
   const u32 hashes_avail = hashlist_parse->hashes_avail;
@@ -968,11 +967,11 @@ int main (int argc, char **argv)
 
   setup_console ();
 
-  const hc_time_t proc_start = hc_time (NULL);
+  const time_t proc_start = time (NULL);
 
   // hashcat main context
 
-  hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) malloc (sizeof (hashcat_ctx_t));
+  hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) hcmalloc (sizeof (hashcat_ctx_t));
 
   const int rc_hashcat_init = hashcat_init (hashcat_ctx, event);
 
@@ -1068,7 +1067,7 @@ int main (int argc, char **argv)
 
   // finished with hashcat, clean up
 
-  const hc_time_t proc_stop = hc_time (NULL);
+  const time_t proc_stop = time (NULL);
 
   goodbye_screen (hashcat_ctx, proc_start, proc_stop);
 

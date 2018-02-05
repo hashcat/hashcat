@@ -8,7 +8,7 @@
 #include "shared.h"
 #include "usage.h"
 
-static const char *USAGE_MINI[] =
+static const char *const USAGE_MINI[] =
 {
   "Usage: %s [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]...",
   "",
@@ -16,7 +16,7 @@ static const char *USAGE_MINI[] =
   NULL
 };
 
-static const char *USAGE_BIG[] =
+static const char *const USAGE_BIG[] =
 {
   "%s - advanced password recovery",
   "",
@@ -76,7 +76,8 @@ static const char *USAGE_BIG[] =
   "     --truecrypt-keyfiles       | File | Keyfiles to use, separated with commas               | --truecrypt-key=x.png",
   "     --veracrypt-keyfiles       | File | Keyfiles to use, separated with commas               | --veracrypt-key=x.txt",
   "     --veracrypt-pim            | Num  | VeraCrypt personal iterations multiplier             | --veracrypt-pim=1000",
-  " -b, --benchmark                |      | Run benchmark                                        |",
+  " -b, --benchmark                |      | Run benchmark of selected hash-modes                 |",
+  "     --benchmark-all            |      | Run benchmark of all hash-modes (requires -b)        |",
   "     --speed-only               |      | Return expected speed of the attack, then quit       |",
   "     --progress-only            |      | Return ideal progress step size and time to process  |",
   " -c, --segment-size             | Num  | Sets size in MB to cache from the wordfile to X      | -c 32",
@@ -96,8 +97,6 @@ static const char *USAGE_BIG[] =
   "     --nvidia-spin-damp         | Num  | Workaround NVIDIAs CPU burning loop bug, in percent  | --nvidia-spin-damp=50",
   "     --gpu-temp-disable         |      | Disable temperature and fanspeed reads and triggers  |",
   "     --gpu-temp-abort           | Num  | Abort if GPU temperature reaches X degrees Celsius   | --gpu-temp-abort=100",
-  "     --gpu-temp-retain          | Num  | Try to retain GPU temperature at X degrees Celsius   | --gpu-temp-retain=95",
-  "     --powertune-enable         |      | Enable power tuning. Restores settings when finished |",
   "     --scrypt-tmto              | Num  | Manually override TMTO value for scrypt to X         | --scrypt-tmto=3",
   " -s, --skip                     | Num  | Skip X words from the start                          | -s 1000000",
   " -l, --limit                    | Num  | Limit X words from the start + skipped words         | -l 1000000",
@@ -201,6 +200,8 @@ static const char *USAGE_BIG[] =
   "  11200 | MySQL CRAM (SHA1)                                | Network Protocols",
   "  11400 | SIP digest authentication (MD5)                  | Network Protocols",
   "  13100 | Kerberos 5 TGS-REP etype 23                      | Network Protocols",
+  "  16100 | TACACS+                                          | Network Protocols",
+  "  16500 | JWT (JSON Web Token)                             | Network Protocols",
   "    121 | SMF (Simple Machines Forum) > v1.1               | Forums, CMS, E-Commerce, Frameworks",
   "    400 | phpBB3 (MD5)                                     | Forums, CMS, E-Commerce, Frameworks",
   "   2611 | vBulletin < v3.8.5                               | Forums, CMS, E-Commerce, Frameworks",
@@ -243,6 +244,7 @@ static const char *USAGE_BIG[] =
   "    111 | nsldaps, SSHA-1(Base64), Netscape LDAP SSHA      | HTTP, SMTP, LDAP Server",
   "   1411 | SSHA-256(Base64), LDAP {SSHA256}                 | HTTP, SMTP, LDAP Server",
   "   1711 | SSHA-512(Base64), LDAP {SSHA512}                 | HTTP, SMTP, LDAP Server",
+  "  16400 | CRAM-MD5 Dovecot                                 | HTTP, SMTP, LDAP Server",
   "  15000 | FileZilla Server >= 0.9.55                       | FTP Server",
   "  11500 | CRC32                                            | Checksums",
   "   3000 | LM                                               | Operating Systems",
@@ -349,6 +351,7 @@ static const char *USAGE_BIG[] =
   "  10500 | PDF 1.4 - 1.6 (Acrobat 5 - 8)                    | Documents",
   "  10600 | PDF 1.7 Level 3 (Acrobat 9)                      | Documents",
   "  10700 | PDF 1.7 Level 8 (Acrobat 10 - 11)                | Documents",
+  "  16200 | Apple Secure Notes                               | Documents",
   "   9000 | Password Safe v2                                 | Password Managers",
   "   5200 | Password Safe v3                                 | Password Managers",
   "   6800 | LastPass + LastPass sniffed                      | Password Managers",
@@ -357,10 +360,12 @@ static const char *USAGE_BIG[] =
   "  11300 | Bitcoin/Litecoin wallet.dat                      | Password Managers",
   "  12700 | Blockchain, My Wallet                            | Password Managers",
   "  15200 | Blockchain, My Wallet, V2                        | Password Managers",
+  "  16600 | Electrum Wallet (Salt-Type 1-3)                  | Password Managers",
   "  13400 | KeePass 1 (AES/Twofish) and KeePass 2 (AES)      | Password Managers",
   "  15500 | JKS Java Key Store Private Keys (SHA1)           | Password Managers",
   "  15600 | Ethereum Wallet, PBKDF2-HMAC-SHA256              | Password Managers",
   "  15700 | Ethereum Wallet, SCRYPT                          | Password Managers",
+  "  16300 | Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256     | Password Managers",
   "  99999 | Plaintext                                        | Plaintext",
   "",
   "- [ Outfile Formats ] -",

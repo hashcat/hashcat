@@ -4,7 +4,7 @@
 // input buf needs to be in algorithm native byte order (md5 = LE, sha1 = BE, etc)
 // input buf needs to be 128 byte aligned when using sha512_update()
 
-__constant u64a k_sha384[80] =
+__constant static u64a k_sha384[80] =
 {
   SHA512C00, SHA512C01, SHA512C02, SHA512C03,
   SHA512C04, SHA512C05, SHA512C06, SHA512C07,

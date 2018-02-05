@@ -471,7 +471,7 @@ static int mangle_title_sep (char arr[RP_PASSWORD_SIZE], int arr_len, char c)
   return (arr_len);
 }
 
-int _old_apply_rule (char *rule, int rule_len, char in[RP_PASSWORD_SIZE], int in_len, char out[RP_PASSWORD_SIZE])
+int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], int in_len, char out[RP_PASSWORD_SIZE])
 {
   char mem[RP_PASSWORD_SIZE] = { 0 };
 

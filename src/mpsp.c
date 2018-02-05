@@ -17,14 +17,14 @@
 #include "ext_lzma.h"
 #include "mpsp.h"
 
-static const char DEF_MASK[] = "?1?2?2?2?2?2?2?3?3?3?3?d?d?d?d";
+static const char *DEF_MASK = "?1?2?2?2?2?2?2?3?3?3?3?d?d?d?d";
 
 #define MAX_MFS 5 // 4*charset, 1*mask
 
 static int sp_comp_val (const void *p1, const void *p2)
 {
-  hcstat_table_t *b1 = (hcstat_table_t *) p1;
-  hcstat_table_t *b2 = (hcstat_table_t *) p2;
+  const hcstat_table_t *b1 = (const hcstat_table_t *) p1;
+  const hcstat_table_t *b2 = (const hcstat_table_t *) p2;
 
   return b2->val - b1->val;
 }
@@ -240,7 +240,7 @@ static int mp_add_cs_buf (hashcat_ctx_t *hashcat_ctx, const u32 *in_buf, size_t 
   return 0;
 }
 
-static int mp_expand (hashcat_ctx_t *hashcat_ctx, char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, u32 mp_usr_offset, int interpret)
+static int mp_expand (hashcat_ctx_t *hashcat_ctx, const char *in_buf, size_t in_len, cs_t *mp_sys, cs_t *mp_usr, u32 mp_usr_offset, int interpret)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -557,7 +557,7 @@ static void mp_setup_sys (cs_t *mp_sys)
                                                    mp_sys[7].cs_len = pos; }
 }
 
-static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr, char *buf, const u32 userindex)
+static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr, const char *buf, const u32 userindex)
 {
   FILE *fp = fopen (buf, "rb");
 
@@ -678,9 +678,9 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
     hcstat = hcstat_tmp;
   }
 
-  hc_stat_t s;
+  struct stat s;
 
-  if (hc_stat (hcstat, &s) == -1)
+  if (stat (hcstat, &s) == -1)
   {
     event_log_error (hashcat_ctx, "%s: %s", hcstat, strerror (errno));
 
@@ -1284,18 +1284,20 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
         if (mask_ctx->css_cnt < mask_min)
         {
           event_log_warning (hashcat_ctx, "Skipping mask '%s' because it is smaller than the minimum password length.", mask_ctx->mask);
+          event_log_warning (hashcat_ctx, NULL);
         }
 
         if (mask_ctx->css_cnt > mask_max)
         {
           event_log_warning (hashcat_ctx, "Skipping mask '%s' because it is larger than the maximum password length.", mask_ctx->mask);
+          event_log_warning (hashcat_ctx, NULL);
         }
 
         // skip to next mask
 
         logfile_sub_msg ("STOP");
 
-        return 0;
+        return -1;
       }
 
       if (hashconfig->opts_type & OPTS_TYPE_PT_UTF16LE)

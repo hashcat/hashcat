@@ -9,16 +9,16 @@
 #include "filehandling.h"
 #include "hlfmt.h"
 
-static const char HLFMT_TEXT_HASHCAT[]  = "native hashcat";
-static const char HLFMT_TEXT_PWDUMP[]   = "pwdump";
-static const char HLFMT_TEXT_PASSWD[]   = "passwd";
-static const char HLFMT_TEXT_SHADOW[]   = "shadow";
-static const char HLFMT_TEXT_DCC[]      = "DCC";
-static const char HLFMT_TEXT_DCC2[]     = "DCC 2";
-static const char HLFMT_TEXT_NETNTLM1[] = "NetNTLMv1";
-static const char HLFMT_TEXT_NETNTLM2[] = "NetNTLMv2";
-static const char HLFMT_TEXT_NSLDAP[]   = "nsldap";
-static const char HLFMT_TEXT_NSLDAPS[]  = "nsldaps";
+static const char *HLFMT_TEXT_HASHCAT  = "native hashcat";
+static const char *HLFMT_TEXT_PWDUMP   = "pwdump";
+static const char *HLFMT_TEXT_PASSWD   = "passwd";
+static const char *HLFMT_TEXT_SHADOW   = "shadow";
+static const char *HLFMT_TEXT_DCC      = "DCC";
+static const char *HLFMT_TEXT_DCC2     = "DCC 2";
+static const char *HLFMT_TEXT_NETNTLM1 = "NetNTLMv1";
+static const char *HLFMT_TEXT_NETNTLM2 = "NetNTLMv2";
+static const char *HLFMT_TEXT_NSLDAP   = "nsldap";
+static const char *HLFMT_TEXT_NSLDAPS  = "nsldaps";
 
 // hlfmt hashcat
 
@@ -292,23 +292,23 @@ static void hlfmt_user_shadow (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, char *li
 
 // hlfmt main
 
-char *strhlfmt (const u32 hashfile_format)
+const char *strhlfmt (const u32 hashfile_format)
 {
   switch (hashfile_format)
   {
-    case HLFMT_HASHCAT:  return ((char *) HLFMT_TEXT_HASHCAT);
-    case HLFMT_PWDUMP:   return ((char *) HLFMT_TEXT_PWDUMP);
-    case HLFMT_PASSWD:   return ((char *) HLFMT_TEXT_PASSWD);
-    case HLFMT_SHADOW:   return ((char *) HLFMT_TEXT_SHADOW);
-    case HLFMT_DCC:      return ((char *) HLFMT_TEXT_DCC);
-    case HLFMT_DCC2:     return ((char *) HLFMT_TEXT_DCC2);
-    case HLFMT_NETNTLM1: return ((char *) HLFMT_TEXT_NETNTLM1);
-    case HLFMT_NETNTLM2: return ((char *) HLFMT_TEXT_NETNTLM2);
-    case HLFMT_NSLDAP:   return ((char *) HLFMT_TEXT_NSLDAP);
-    case HLFMT_NSLDAPS:  return ((char *) HLFMT_TEXT_NSLDAPS);
+    case HLFMT_HASHCAT:  return HLFMT_TEXT_HASHCAT;
+    case HLFMT_PWDUMP:   return HLFMT_TEXT_PWDUMP;
+    case HLFMT_PASSWD:   return HLFMT_TEXT_PASSWD;
+    case HLFMT_SHADOW:   return HLFMT_TEXT_SHADOW;
+    case HLFMT_DCC:      return HLFMT_TEXT_DCC;
+    case HLFMT_DCC2:     return HLFMT_TEXT_DCC2;
+    case HLFMT_NETNTLM1: return HLFMT_TEXT_NETNTLM1;
+    case HLFMT_NETNTLM2: return HLFMT_TEXT_NETNTLM2;
+    case HLFMT_NSLDAP:   return HLFMT_TEXT_NSLDAP;
+    case HLFMT_NSLDAPS:  return HLFMT_TEXT_NSLDAPS;
   }
 
-  return ((char *) "Unknown");
+  return "Unknown";
 }
 
 void hlfmt_hash (hashcat_ctx_t *hashcat_ctx, u32 hashfile_format, char *line_buf, int line_len, char **hashbuf_pos, int *hashbuf_len)

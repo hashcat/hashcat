@@ -30,9 +30,9 @@ int get_runtime_left (const hashcat_ctx_t *hashcat_ctx)
     msec_paused += msec_paused_tmp;
   }
 
-  hc_time_t runtime_cur;
+  time_t runtime_cur;
 
-  hc_time (&runtime_cur);
+  time (&runtime_cur);
 
   const int runtime_left = (int) (status_ctx->runtime_start
                                 + user_options->runtime
@@ -58,12 +58,9 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
   bool hwmon_check        = false;
   bool performance_check  = false;
 
-  const int    sleep_time      = 1;
-  const int    temp_threshold  = 1;      // degrees celcius
-  const int    fan_speed_min   = 33;     // in percentage
-  const int    fan_speed_max   = 100;
-  const double exec_low        = 50.0;  // in ms
-  const double util_low        = 90.0;  // in percent
+  const int    sleep_time = 1;
+  const double exec_low   = 50.0;  // in ms
+  const double util_low   = 90.0;  // in percent
 
   if (user_options->runtime)
   {
@@ -100,25 +97,11 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
     return 0;
   }
 
-  // these variables are mainly used for fan control
-
-  int fan_speed_chgd[DEVICES_MAX];
-
-  memset (fan_speed_chgd, 0, sizeof (fan_speed_chgd));
-
-  // temperature controller "loopback" values
-
-  int temp_diff_old[DEVICES_MAX];
-  int temp_diff_sum[DEVICES_MAX];
-
-  memset (temp_diff_old, 0, sizeof (temp_diff_old));
-  memset (temp_diff_sum, 0, sizeof (temp_diff_sum));
-
   // timer
 
-  hc_time_t last_temp_check_time;
+  time_t last_temp_check_time;
 
-  hc_time (&last_temp_check_time);
+  time (&last_temp_check_time);
 
   u32 slowdown_warnings    = 0;
   u32 performance_warnings = 0;
@@ -168,9 +151,9 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
     {
       hc_thread_mutex_lock (status_ctx->mux_hwmon);
 
-      hc_time_t temp_check_time;
+      time_t temp_check_time;
 
-      hc_time (&temp_check_time);
+      time (&temp_check_time);
 
       u32 Ta = temp_check_time - last_temp_check_time; // set Ta = sleep_time; is not good enough (see --remove etc)
 
@@ -191,84 +174,6 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
           EVENT_DATA (EVENT_MONITOR_TEMP_ABORT, &device_id, sizeof (u32));
 
           myabort (hashcat_ctx);
-        }
-
-        if (hwmon_ctx->hm_device[device_id].fanspeed_get_supported == false) continue;
-        if (hwmon_ctx->hm_device[device_id].fanspeed_set_supported == false) continue;
-
-        const u32 gpu_temp_retain = user_options->gpu_temp_retain;
-
-        if (gpu_temp_retain > 0)
-        {
-          int temp_cur = temperature;
-
-          int temp_diff_new = (int) gpu_temp_retain - temp_cur;
-
-          temp_diff_sum[device_id] = temp_diff_sum[device_id] + temp_diff_new;
-
-          // calculate Ta value (time difference in seconds between the last check and this check)
-
-          last_temp_check_time = temp_check_time;
-
-          float Kp = 1.6f;
-          float Ki = 0.001f;
-          float Kd = 10.0f;
-
-          // PID controller (3-term controller: proportional - Kp, integral - Ki, derivative - Kd)
-
-          int fan_diff_required = (int) (Kp * (float)temp_diff_new + Ki * Ta * (float)temp_diff_sum[device_id] + Kd * ((float)(temp_diff_new - temp_diff_old[device_id])) / Ta);
-
-          if (abs (fan_diff_required) >= temp_threshold)
-          {
-            const int fan_speed_cur = hm_get_fanspeed_with_device_id (hashcat_ctx, device_id);
-
-            int fan_speed_level = fan_speed_cur;
-
-            if (fan_speed_chgd[device_id] == 0) fan_speed_level = temp_cur;
-
-            int fan_speed_new = fan_speed_level - fan_diff_required;
-
-            if (fan_speed_new > fan_speed_max) fan_speed_new = fan_speed_max;
-            if (fan_speed_new < fan_speed_min) fan_speed_new = fan_speed_min;
-
-            if (fan_speed_new != fan_speed_cur)
-            {
-              int freely_change_fan_speed = (fan_speed_chgd[device_id] == 1);
-              int fan_speed_must_change = (fan_speed_new > fan_speed_cur);
-
-              if ((freely_change_fan_speed == 1) || (fan_speed_must_change == 1))
-              {
-                if (device_param->device_vendor_id == VENDOR_ID_AMD)
-                {
-                  if (hwmon_ctx->hm_adl)
-                  {
-                    hm_set_fanspeed_with_device_id_adl (hashcat_ctx, device_id, fan_speed_new, 1);
-                  }
-
-                  if (hwmon_ctx->hm_sysfs)
-                  {
-                    hm_set_fanspeed_with_device_id_sysfs (hashcat_ctx, device_id, fan_speed_new);
-                  }
-                }
-                else if (device_param->device_vendor_id == VENDOR_ID_NV)
-                {
-                  if (hwmon_ctx->hm_nvapi)
-                  {
-                    hm_set_fanspeed_with_device_id_nvapi (hashcat_ctx, device_id, fan_speed_new, 1);
-                  }
-
-                  if (hwmon_ctx->hm_xnvctrl)
-                  {
-                    hm_set_fanspeed_with_device_id_xnvctrl (hashcat_ctx, device_id, fan_speed_new);
-                  }
-                }
-
-                fan_speed_chgd[device_id] = 1;
-              }
-
-              temp_diff_old[device_id] = temp_diff_new;
-            }
-          }
         }
       }
 

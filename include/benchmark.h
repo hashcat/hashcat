@@ -6,7 +6,6 @@
 #ifndef _BENCHMARK_H
 #define _BENCHMARK_H
 
-extern const unsigned int DEFAULT_BENCHMARK_ALGORITHMS_CNT;
-extern const unsigned int DEFAULT_BENCHMARK_ALGORITHMS_BUF[];
+int benchmark_next (hashcat_ctx_t *hashcat_ctx);
 
 #endif // _BENCHMARK_H

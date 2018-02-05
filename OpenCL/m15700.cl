@@ -243,7 +243,7 @@ void scrypt_smix (uint4 *X, uint4 *T, __global uint4 *V0, __global uint4 *V1, __
   st[4 + s] ^= ~bc0 & bc1;      \
 }
 
-__constant u64a keccakf_rndc[24] =
+__constant static u64a keccakf_rndc[24] =
 {
   0x0000000000000001, 0x0000000000008082, 0x800000000000808a,
   0x8000000080008000, 0x000000000000808b, 0x0000000080000001,

@@ -271,6 +271,9 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
     if (user_options->speed_only == true) break;
   }
 
+  device_param->kernel_accel_prev = device_param->kernel_accel;
+  device_param->kernel_loops_prev = device_param->kernel_loops;
+
   device_param->kernel_accel = 0;
   device_param->kernel_loops = 0;
 
@@ -687,6 +690,9 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
     hcfree (hashcat_ctx_tmp);
   }
+
+  device_param->kernel_accel_prev = device_param->kernel_accel;
+  device_param->kernel_loops_prev = device_param->kernel_loops;
 
   device_param->kernel_accel = 0;
   device_param->kernel_loops = 0;

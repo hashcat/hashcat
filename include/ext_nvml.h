@@ -181,7 +181,6 @@ typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_NAME) (nvmlDevice_t, char *
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_HANDLE_BY_INDEX) (unsigned int, nvmlDevice_t *);
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_TEMPERATURE) (nvmlDevice_t, nvmlTemperatureSensors_t, unsigned int *);
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_FAN_SPEED) (nvmlDevice_t, unsigned int *);
-typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_POWER_USAGE) (nvmlDevice_t, unsigned int *);
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_UTILIZATION_RATES) (nvmlDevice_t, nvmlUtilization_t *);
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_CLOCKINFO) (nvmlDevice_t, nvmlClockType_t, unsigned int *);
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_THRESHOLD) (nvmlDevice_t, nvmlTemperatureThresholds_t, unsigned int *);
@@ -191,9 +190,6 @@ typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_CURRENTCLOCKSTHROTTLEREASON
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_SUPPORTEDCLOCKSTHROTTLEREASONS) (nvmlDevice_t, unsigned long long *);
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_SET_COMPUTEMODE) (nvmlDevice_t, nvmlComputeMode_t);
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_SET_OPERATIONMODE) (nvmlDevice_t, nvmlGpuOperationMode_t);
-typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_POWERMANAGEMENTLIMITCONSTRAINTS) (nvmlDevice_t, unsigned int *, unsigned int *);
-typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_SET_POWERMANAGEMENTLIMIT) (nvmlDevice_t, unsigned int);
-typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_POWERMANAGEMENTLIMIT) (nvmlDevice_t, unsigned int *);
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_PCIINFO) (nvmlDevice_t, nvmlPciInfo_t *);
 
 #if defined (_POSIX)
@@ -214,7 +210,6 @@ typedef struct hm_nvml_lib
   NVML_DEVICE_GET_HANDLE_BY_INDEX nvmlDeviceGetHandleByIndex;
   NVML_DEVICE_GET_TEMPERATURE nvmlDeviceGetTemperature;
   NVML_DEVICE_GET_FAN_SPEED nvmlDeviceGetFanSpeed;
-  NVML_DEVICE_GET_POWER_USAGE nvmlDeviceGetPowerUsage;
   NVML_DEVICE_GET_UTILIZATION_RATES nvmlDeviceGetUtilizationRates;
   NVML_DEVICE_GET_CLOCKINFO nvmlDeviceGetClockInfo;
   NVML_DEVICE_GET_THRESHOLD nvmlDeviceGetTemperatureThreshold;
@@ -222,11 +217,6 @@ typedef struct hm_nvml_lib
   NVML_DEVICE_GET_CURRPCIELINKWIDTH nvmlDeviceGetCurrPcieLinkWidth;
   NVML_DEVICE_GET_CURRENTCLOCKSTHROTTLEREASONS nvmlDeviceGetCurrentClocksThrottleReasons;
   NVML_DEVICE_GET_SUPPORTEDCLOCKSTHROTTLEREASONS nvmlDeviceGetSupportedClocksThrottleReasons;
-  NVML_DEVICE_SET_COMPUTEMODE nvmlDeviceSetComputeMode;
-  NVML_DEVICE_SET_OPERATIONMODE nvmlDeviceSetGpuOperationMode;
-  NVML_DEVICE_GET_POWERMANAGEMENTLIMITCONSTRAINTS nvmlDeviceGetPowerManagementLimitConstraints;
-  NVML_DEVICE_SET_POWERMANAGEMENTLIMIT nvmlDeviceSetPowerManagementLimit;
-  NVML_DEVICE_GET_POWERMANAGEMENTLIMIT nvmlDeviceGetPowerManagementLimit;
   NVML_DEVICE_GET_PCIINFO nvmlDeviceGetPciInfo;
 
 } hm_nvml_lib_t;

@@ -17,6 +17,8 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
 int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 salt_pos);
 
+void hashes_init_filename (hashcat_ctx_t *hashcat_ctx);
+
 int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx);
 int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx);
 int hashes_init_stage3 (hashcat_ctx_t *hashcat_ctx);

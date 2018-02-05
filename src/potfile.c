@@ -377,7 +377,7 @@ void potfile_update_hashes (hashcat_ctx_t *hashcat_ctx, hash_t *hash_buf, char *
 
 int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 {
-  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+        hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const hashes_t       *hashes       = hashcat_ctx->hashes;
   const potfile_ctx_t  *potfile_ctx  = hashcat_ctx->potfile_ctx;
 
