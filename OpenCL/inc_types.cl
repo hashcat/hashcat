@@ -1965,6 +1965,14 @@ typedef struct pw
 
 } pw_t;
 
+typedef struct pw_idx
+{
+  u32 off;
+  u32 cnt;
+  u32 len;
+
+} pw_idx_t;
+
 typedef struct bf
 {
   u32  i;

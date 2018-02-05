@@ -17,9 +17,9 @@ __kernel void amp (__global pw_t *pws, __global pw_t *pws_amp, __constant const 
 
   if (rules_buf[0].cmds[0] == RULE_OP_MANGLE_NOOP && rules_buf[0].cmds[1] == 0) return;
 
-  pw_t pw = pws[gid];
+  pw_t pw = pws_amp[gid];
 
   pw.pw_len = apply_rules (rules_buf[0].cmds, pw.i, pw.pw_len);
 
-  pws_amp[gid] = pw;
+  pws[gid] = pw;
 }

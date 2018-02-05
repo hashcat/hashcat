@@ -15,5 +15,5 @@ __kernel void amp (__global pw_t *pws, __global pw_t *pws_amp, __global const ke
 
   const u32 w0r = bfs_buf[0].i;
 
-  pws_amp[gid].i[0] |= w0r;
+  pws[gid].i[0] |= w0r;
 }

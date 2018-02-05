@@ -61606,6 +61606,39 @@ void append_0x80_4x4_VV (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u
   #endif
 }
 
+static void gpu_decompress_entry (__global pw_idx_t *pws_idx, __global u32 *pws_comp, pw_t *pw, const u64 gid)
+{
+  const u32 off = pws_idx[gid].off;
+  const u32 cnt = pws_idx[gid].cnt;
+  const u32 len = pws_idx[gid].len;
+
+  #pragma unroll
+  for (u32 i = 0; i < 64; i++)
+  {
+    pw->i[i] = 0;
+  }
+
+  for (u32 i = 0, j = off; i < cnt; i++, j++)
+  {
+    pw->i[i] = pws_comp[j];
+  }
+
+  pw->pw_len = len;
+}
+
+__kernel void gpu_decompress (__global pw_idx_t *pws_idx, __global u32 *pws_comp, __global pw_t *pws_buf, const u64 gid_max)
+{
+  const u64 gid = get_global_id (0);
+
+  if (gid >= gid_max) return;
+
+  pw_t pw;
+
+  gpu_decompress_entry (pws_idx, pws_comp, &pw, gid);
+
+  pws_buf[gid] = pw;
+}
+
 __kernel void gpu_memset (__global uint4 *buf, const u32 value, const u64 gid_max)
 {
   const u64 gid = get_global_id (0);
