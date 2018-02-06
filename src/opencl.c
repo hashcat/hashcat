@@ -1415,6 +1415,57 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
   return 0;
 }
 
+void rebuild_pws_compressed_append (hc_device_param_t *device_param, const u32 pws_cnt, const u8 chr)
+{
+  // this function is used if we have to modify the compressed pws buffer in order to
+  // append some data to each password candidate
+
+  u32      *tmp_pws_comp = (u32 *)      hcmalloc (device_param->size_pws_comp);
+  pw_idx_t *tmp_pws_idx  = (pw_idx_t *) hcmalloc (device_param->size_pws_idx);
+
+  for (u32 i = 0; i < pws_cnt; i++)
+  {
+    pw_idx_t *pw_idx_src = device_param->pws_idx + i;
+    pw_idx_t *pw_idx_dst = tmp_pws_idx + i;
+
+    const u32 src_off = pw_idx_src->off;
+    const u32 src_len = pw_idx_src->len;
+
+    u8 buf[256];
+
+    memcpy (buf, device_param->pws_comp + src_off, src_len);
+
+    buf[src_len] = chr;
+
+    const u32 dst_len = src_len + 1;
+
+    const u32 dst_pw_len4 = (dst_len + 3) & ~3; // round up to multiple of 4
+
+    const u32 dst_pw_len4_cnt = dst_pw_len4 / 4;
+
+    pw_idx_dst->cnt = dst_pw_len4_cnt;
+    pw_idx_dst->len = src_len; // this is intenionally! src_len can not be dst_len, we dont want the kernel to think 0x80 is part of the password
+
+    u8 *dst = (u8 *) (tmp_pws_comp + pw_idx_dst->off);
+
+    memcpy (dst, buf, dst_len);
+
+    memset (dst + dst_len, 0, dst_pw_len4 - dst_len);
+
+    // prepare next element
+
+    pw_idx_t *pw_idx_dst_next = pw_idx_dst + 1;
+
+    pw_idx_dst_next->off = pw_idx_dst->off + pw_idx_dst->cnt;
+  }
+
+  memcpy (device_param->pws_comp, tmp_pws_comp, device_param->size_pws_comp);
+  memcpy (device_param->pws_idx,  tmp_pws_idx,  device_param->size_pws_idx);
+
+  hcfree (tmp_pws_comp);
+  hcfree (tmp_pws_idx);
+}
+
 int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u64 num, const u32 event_update, const u32 iteration)
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
@@ -1899,58 +1950,6 @@ int run_kernel_decompress (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
 int run_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u64 size)
 {
   return run_kernel_memset (hashcat_ctx, device_param, buf, 0, size);
-}
-
-void rebuild_pws_compressed_append (hc_device_param_t *device_param, const u32 pws_cnt, const u8 chr)
-{
-  // this function is used if we have to modify the compressed pws buffer in order to
-  // append some data to each password candidate
-
-  u32      *tmp_pws_comp = (u32 *)      hcmalloc (device_param->size_pws_comp);
-  pw_idx_t *tmp_pws_idx  = (pw_idx_t *) hcmalloc (device_param->size_pws_idx);
-
-  for (u32 i = 0; i < pws_cnt; i++)
-  {
-    pw_idx_t *pw_idx_src = device_param->pws_idx + i;
-    pw_idx_t *pw_idx_dst = tmp_pws_idx + i;
-
-    const u32 src_off = pw_idx_src->off;
-    const u32 src_cnt = pw_idx_src->cnt;
-    const u32 src_len = pw_idx_src->len;
-
-    u8 buf[256];
-
-    memcpy (buf, device_param->pws_comp + src_off, src_len);
-
-    buf[src_len] = chr;
-
-    const u32 dst_len = src_len + 1;
-
-    const u32 dst_pw_len4 = (dst_len + 3) & ~3; // round up to multiple of 4
-
-    const u32 dst_pw_len4_cnt = dst_pw_len4 / 4;
-
-    pw_idx_dst->cnt = dst_pw_len4_cnt;
-    pw_idx_dst->len = src_len; // this is intenionally! src_len can not be dst_len, we dont want the kernel to think 0x80 is part of the password
-
-    u8 *dst = (u8 *) (tmp_pws_comp + pw_idx_dst->off);
-
-    memcpy (dst, buf, dst_len);
-
-    memset (dst + dst_len, 0, dst_pw_len4 - dst_len);
-
-    // prepare next element
-
-    pw_idx_t *pw_idx_dst_next = pw_idx_dst + 1;
-
-    pw_idx_dst_next->off = pw_idx_dst->off + pw_idx_dst->cnt;
-  }
-
-  memcpy (device_param->pws_comp, tmp_pws_comp, device_param->size_pws_comp);
-  memcpy (device_param->pws_idx,  tmp_pws_idx,  device_param->size_pws_idx);
-
-  hcfree (tmp_pws_comp);
-  hcfree (tmp_pws_idx);
 }
 
 int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 pws_cnt)
@@ -3713,10 +3712,7 @@ static bool is_same_device_type (const hc_device_param_t *src, const hc_device_p
 
 void opencl_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
 {
-  opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
-  status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
-  user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
-  user_options_t       *user_options        = hashcat_ctx->user_options;
+  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
 
   if (opencl_ctx->enabled == false) return;
 
