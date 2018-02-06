@@ -13,7 +13,7 @@
 #include "inc_simd.cl"
 #include "inc_hash_whirlpool.cl"
 
-void whirlpool_transform_transport_vector (const u32x w[16], u32x digest[16], SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
+DECLSPEC void whirlpool_transform_transport_vector (const u32x w[16], u32x digest[16], SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   whirlpool_transform_vector (w + 0, w + 4, w + 8, w + 12, digest, s_Ch, s_Cl);
 }

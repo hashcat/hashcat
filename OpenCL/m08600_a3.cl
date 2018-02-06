@@ -60,7 +60,7 @@ __constant static u32a lotus_magic_table[256] =
 #define BOX1(S,i) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7], (S)[(i).s8], (S)[(i).s9], (S)[(i).sa], (S)[(i).sb], (S)[(i).sc], (S)[(i).sd], (S)[(i).se], (S)[(i).sf])
 #endif
 
-void lotus_mix (u32x *in, __local u32 *s_lotus_magic_table)
+DECLSPEC void lotus_mix (u32x *in, __local u32 *s_lotus_magic_table)
 {
   u32x p = 0;
 
@@ -83,7 +83,7 @@ void lotus_mix (u32x *in, __local u32 *s_lotus_magic_table)
   }
 }
 
-void lotus_transform_password (const u32x in[4], u32x out[4], __local u32 *s_lotus_magic_table)
+DECLSPEC void lotus_transform_password (const u32x in[4], u32x out[4], __local u32 *s_lotus_magic_table)
 {
   u32x t = out[3] >> 24;
 
@@ -101,7 +101,7 @@ void lotus_transform_password (const u32x in[4], u32x out[4], __local u32 *s_lot
   }
 }
 
-void pad (u32 w[4], const u32 len)
+DECLSPEC void pad (u32 w[4], const u32 len)
 {
   const u32 val = 16 - len;
 
@@ -180,7 +180,7 @@ void pad (u32 w[4], const u32 len)
   }
 }
 
-void mdtransform_norecalc (u32x state[4], const u32x block[4], __local u32 *s_lotus_magic_table)
+DECLSPEC void mdtransform_norecalc (u32x state[4], const u32x block[4], __local u32 *s_lotus_magic_table)
 {
   u32x x[12];
 
@@ -205,14 +205,14 @@ void mdtransform_norecalc (u32x state[4], const u32x block[4], __local u32 *s_lo
   state[3] = x[3];
 }
 
-void mdtransform (u32x state[4], u32x checksum[4], const u32x block[4], __local u32 *s_lotus_magic_table)
+DECLSPEC void mdtransform (u32x state[4], u32x checksum[4], const u32x block[4], __local u32 *s_lotus_magic_table)
 {
   mdtransform_norecalc (state, block, s_lotus_magic_table);
 
   lotus_transform_password (block, checksum, s_lotus_magic_table);
 }
 
-void domino_big_md (const u32x saved_key[4], const u32 size, u32x state[4], __local u32 *s_lotus_magic_table)
+DECLSPEC void domino_big_md (const u32x saved_key[4], const u32 size, u32x state[4], __local u32 *s_lotus_magic_table)
 {
   u32x checksum[4];
 
@@ -226,7 +226,7 @@ void domino_big_md (const u32x saved_key[4], const u32 size, u32x state[4], __lo
   mdtransform_norecalc (state, checksum, s_lotus_magic_table);
 }
 
-void m08600m (__local u32 *s_lotus_magic_table, u32 w[16], const u32 pw_len, __global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __constant const u32x *words_buf_r, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
+DECLSPEC void m08600m (__local u32 *s_lotus_magic_table, u32 w[16], const u32 pw_len, __global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __constant const u32x *words_buf_r, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
 {
   /**
    * modifier
@@ -273,7 +273,7 @@ void m08600m (__local u32 *s_lotus_magic_table, u32 w[16], const u32 pw_len, __g
   }
 }
 
-void m08600s (__local u32 *s_lotus_magic_table, u32 w[16], const u32 pw_len, __global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __constant const u32x *words_buf_r, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
+DECLSPEC void m08600s (__local u32 *s_lotus_magic_table, u32 w[16], const u32 pw_len, __global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __constant const u32x *words_buf_r, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
 {
   /**
    * modifier

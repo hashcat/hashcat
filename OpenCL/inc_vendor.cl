@@ -78,6 +78,12 @@
 #endif
 
 /**
+ * function declarations can have a large influence depending on the opencl runtime
+ */
+
+#define DECLSPEC static inline
+
+/**
  * AMD specific
  */
 

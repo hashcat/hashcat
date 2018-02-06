@@ -13,7 +13,7 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
-void memcat16 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 offset, const u32 append[4])
+DECLSPEC void memcat16 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 offset, const u32 append[4])
 {
   u32 tmp0;
   u32 tmp1;
@@ -126,7 +126,7 @@ void memcat16 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const
   }
 }
 
-void memcat16_x80 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 offset, const u32 append[4])
+DECLSPEC void memcat16_x80 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 offset, const u32 append[4])
 {
   u32 tmp0;
   u32 tmp1;
@@ -241,7 +241,7 @@ void memcat16_x80 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], c
   }
 }
 
-void memcat8 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 offset, const u32 append[2])
+DECLSPEC void memcat8 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 offset, const u32 append[2])
 {
   u32 tmp0;
   u32 tmp1;
@@ -330,7 +330,7 @@ void memcat8 (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const 
   }
 }
 
-void append_1st (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append)
+DECLSPEC void append_1st (u32 block0[4], u32 block1[4], u32 block2[4], u32 block3[4], const u32 block_len, const u32 append)
 {
   switch (block_len)
   {

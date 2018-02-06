@@ -362,7 +362,7 @@ __constant static u32a c_skb[8][64] =
 #define BOX(i,n,S) (S)[(n)][(i)]
 #define BOX1(i,S) (S)[(i)]
 
-void _des_crypt_encrypt (u32 iv[2], u32 data[2], u32 Kc[16], u32 Kd[16], __local u32 (*s_SPtrans)[64])
+DECLSPEC void _des_crypt_encrypt (u32 iv[2], u32 data[2], u32 Kc[16], u32 Kd[16], __local u32 (*s_SPtrans)[64])
 {
   u32 tt;
 
@@ -416,7 +416,7 @@ void _des_crypt_encrypt (u32 iv[2], u32 data[2], u32 Kc[16], u32 Kd[16], __local
   iv[1] = r;
 }
 
-void _des_crypt_decrypt (u32 iv[2], u32 data[2], u32 Kc[16], u32 Kd[16], __local u32 (*s_SPtrans)[64])
+DECLSPEC void _des_crypt_decrypt (u32 iv[2], u32 data[2], u32 Kc[16], u32 Kd[16], __local u32 (*s_SPtrans)[64])
 {
   u32 tt;
 
@@ -470,7 +470,7 @@ void _des_crypt_decrypt (u32 iv[2], u32 data[2], u32 Kc[16], u32 Kd[16], __local
   iv[1] = r;
 }
 
-void _des_crypt_keysetup (u32 c, u32 d, u32 Kc[16], u32 Kd[16], __local u32 (*s_skb)[64])
+DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, u32 Kc[16], u32 Kd[16], __local u32 (*s_skb)[64])
 {
   u32 tt;
 
@@ -542,7 +542,7 @@ void _des_crypt_keysetup (u32 c, u32 d, u32 Kc[16], u32 Kd[16], __local u32 (*s_
   }
 }
 
-void hmac_sha1_run_V (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[5], u32x opad[5], u32x digest[5])
+DECLSPEC void hmac_sha1_run_V (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[5], u32x opad[5], u32x digest[5])
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];

@@ -13,7 +13,7 @@
 #include "inc_simd.cl"
 #include "inc_hash_sha1.cl"
 
-void hmac_sha1_pad (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[5], u32x opad[5])
+DECLSPEC void hmac_sha1_pad (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[5], u32x opad[5])
 {
   w0[0] = w0[0] ^ 0x36363636;
   w0[1] = w0[1] ^ 0x36363636;
@@ -66,7 +66,7 @@ void hmac_sha1_pad (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[5]
   sha1_transform_vector (w0, w1, w2, w3, opad);
 }
 
-void hmac_sha1_run (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[5], u32x opad[5], u32x digest[5])
+DECLSPEC void hmac_sha1_run (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[5], u32x opad[5], u32x digest[5])
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];

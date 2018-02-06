@@ -41,7 +41,7 @@
     BLAKE2B_G (r,7,v[ 3],v[ 4],v[ 9],v[14]); \
 } while(0)
 
-void blake2b_transform (u64x h[8], u64x t[2], u64x f[2], u64x m[16], u64x v[16], const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], const u32x out_len, const u8 isFinal)
+DECLSPEC void blake2b_transform (u64x h[8], u64x t[2], u64x f[2], u64x m[16], u64x v[16], const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], const u32x out_len, const u8 isFinal)
 {
   if (isFinal)
     f[0] = -1;

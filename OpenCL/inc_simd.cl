@@ -1048,7 +1048,7 @@
 
 // attack-mode 0
 
-u32x ix_create_bft (__global const bf_t *bfs_buf, const u32 il_pos)
+DECLSPEC u32x ix_create_bft (__global const bf_t *bfs_buf, const u32 il_pos)
 {
   #if   VECT_SIZE == 1
   const u32x ix = (u32x) (bfs_buf[il_pos + 0].i);
@@ -1067,7 +1067,7 @@ u32x ix_create_bft (__global const bf_t *bfs_buf, const u32 il_pos)
 
 // attack-mode 1
 
-u32x pwlenx_create_combt (__global const pw_t *combs_buf, const u32 il_pos)
+DECLSPEC u32x pwlenx_create_combt (__global const pw_t *combs_buf, const u32 il_pos)
 {
   #if   VECT_SIZE == 1
   const u32x pw_lenx = (u32x) (combs_buf[il_pos + 0].pw_len);
@@ -1084,7 +1084,7 @@ u32x pwlenx_create_combt (__global const pw_t *combs_buf, const u32 il_pos)
   return pw_lenx;
 }
 
-u32x ix_create_combt (__global const pw_t *combs_buf, const u32 il_pos, const int idx)
+DECLSPEC u32x ix_create_combt (__global const pw_t *combs_buf, const u32 il_pos, const int idx)
 {
   #if   VECT_SIZE == 1
   const u32x ix = (u32x) (combs_buf[il_pos + 0].i[idx]);

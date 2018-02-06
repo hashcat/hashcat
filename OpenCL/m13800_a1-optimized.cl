@@ -14,12 +14,12 @@
 #include "inc_simd.cl"
 #include "inc_hash_sha256.cl"
 
-void sha256_transform_transport_vector (const u32x w[16], u32x digest[8])
+DECLSPEC void sha256_transform_transport_vector (const u32x w[16], u32x digest[8])
 {
   sha256_transform_vector (w + 0, w + 4, w + 8, w + 12, digest);
 }
 
-void memcat64c_be (u32x block[16], const u32 offset, u32x carry[16])
+DECLSPEC void memcat64c_be (u32x block[16], const u32 offset, u32x carry[16])
 {
   const u32 mod = offset & 3;
   const u32 div = offset / 4;

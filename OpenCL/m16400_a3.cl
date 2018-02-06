@@ -13,7 +13,7 @@
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
 
-void cram_md5_transform_vector (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[4])
+DECLSPEC void cram_md5_transform_vector (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[4])
 {
   u32x a = digest[0];
   u32x b = digest[1];
@@ -113,7 +113,7 @@ void cram_md5_transform_vector (const u32x w0[4], const u32x w1[4], const u32x w
   digest[3] += d;
 }
 
-void cram_md5_update_vector_64 (md5_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const int len)
+DECLSPEC void cram_md5_update_vector_64 (md5_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const int len)
 {
   #ifdef IS_AMD
   volatile const int pos = ctx->len & 63;
@@ -143,7 +143,7 @@ void cram_md5_update_vector_64 (md5_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u
   ctx->w3[3] |= w3[3];
 }
 
-void cram_md5_update_vector (md5_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void cram_md5_update_vector (md5_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -171,7 +171,7 @@ void cram_md5_update_vector (md5_ctx_vector_t *ctx, const u32x *w, const int len
 }
 
 
-void cram_md5_final_vector (md5_ctx_vector_t *ctx)
+DECLSPEC void cram_md5_final_vector (md5_ctx_vector_t *ctx)
 {
   cram_md5_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
 }

@@ -19,7 +19,7 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
-void hmac_sha512_run_V (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], u64x ipad[8], u64x opad[8], u64x digest[8])
+DECLSPEC void hmac_sha512_run_V (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], u64x ipad[8], u64x opad[8], u64x digest[8])
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];

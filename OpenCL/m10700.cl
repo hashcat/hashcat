@@ -22,7 +22,7 @@
 #define PUTCHAR_BE(a,p,c) ((u8 *)(a))[(p) ^ 3] = (u8) (c)
 #define GETCHAR_BE(a,p)   ((u8 *)(a))[(p) ^ 3]
 
-void aes128_encrypt_cbc (const u32 *aes_ks, u32 *aes_iv, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void aes128_encrypt_cbc (const u32 *aes_ks, u32 *aes_iv, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 data[4];
 
@@ -49,7 +49,7 @@ void aes128_encrypt_cbc (const u32 *aes_ks, u32 *aes_iv, const u32 *in, u32 *out
   out[3] = swap32_S (out[3]);
 }
 
-u32 sha256_update_aes_64 (sha256_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC u32 sha256_update_aes_64 (sha256_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 ex = 0;
 
@@ -134,7 +134,7 @@ u32 sha256_update_aes_64 (sha256_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u3
   return ex;
 }
 
-void sha256_update_aes (sha256_ctx_t *ctx, const u32 *w, const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void sha256_update_aes (sha256_ctx_t *ctx, const u32 *w, const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 w0[4];
   u32 w1[4];
@@ -186,7 +186,7 @@ void sha256_update_aes (sha256_ctx_t *ctx, const u32 *w, const int len, const u3
   sha256_update_aes_64 (ctx, w0, w1, w2, w3, len - pos1, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
 }
 
-void sha256_final_aes (sha256_ctx_t *ctx, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void sha256_final_aes (sha256_ctx_t *ctx, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   int pos = ctx->len & 63;
 
@@ -222,7 +222,7 @@ void sha256_final_aes (sha256_ctx_t *ctx, const u32 *aes_ks, u32 *aes_iv, SHM_TY
   sha256_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
 }
 
-void sha384_update_aes_128 (sha384_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void sha384_update_aes_128 (sha384_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   const int pos = ctx->len & 127;
 
@@ -357,7 +357,7 @@ void sha384_update_aes_128 (sha384_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], 
   }
 }
 
-void sha384_update_aes (sha384_ctx_t *ctx, const u32 *w, const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void sha384_update_aes (sha384_ctx_t *ctx, const u32 *w, const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 w0[4];
   u32 w1[4];
@@ -445,7 +445,7 @@ void sha384_update_aes (sha384_ctx_t *ctx, const u32 *w, const int len, const u3
   sha384_update_aes_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - pos1, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
 }
 
-void sha384_final_aes (sha384_ctx_t *ctx, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void sha384_final_aes (sha384_ctx_t *ctx, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   int pos = ctx->len & 127;
 
@@ -500,7 +500,7 @@ void sha384_final_aes (sha384_ctx_t *ctx, const u32 *aes_ks, u32 *aes_iv, SHM_TY
   sha384_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->w4, ctx->w5, ctx->w6, ctx->w7, ctx->h);
 }
 
-void sha512_update_aes_128 (sha512_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void sha512_update_aes_128 (sha512_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   const int pos = ctx->len & 127;
 
@@ -635,7 +635,7 @@ void sha512_update_aes_128 (sha512_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], 
   }
 }
 
-void sha512_update_aes (sha512_ctx_t *ctx, const u32 *w, const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void sha512_update_aes (sha512_ctx_t *ctx, const u32 *w, const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 w0[4];
   u32 w1[4];
@@ -723,7 +723,7 @@ void sha512_update_aes (sha512_ctx_t *ctx, const u32 *w, const int len, const u3
   sha512_update_aes_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - pos1, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
 }
 
-void sha512_final_aes (sha512_ctx_t *ctx, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void sha512_final_aes (sha512_ctx_t *ctx, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   int pos = ctx->len & 127;
 
@@ -778,7 +778,7 @@ void sha512_final_aes (sha512_ctx_t *ctx, const u32 *aes_ks, u32 *aes_iv, SHM_TY
   sha512_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->w4, ctx->w5, ctx->w6, ctx->w7, ctx->h);
 }
 
-int find_sum (const u32 *w, const u32 pw_len, u32 *bb, const u32 *aes_ks, const u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC int find_sum (const u32 *w, const u32 pw_len, u32 *bb, const u32 *aes_ks, const u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 data[4];
 
@@ -819,7 +819,7 @@ int find_sum (const u32 *w, const u32 pw_len, u32 *bb, const u32 *aes_ks, const 
   return sum;
 }
 
-u32 do_round (const u32 *w, const u32 pw_len, pdf17l8_tmp_t *tmp, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC u32 do_round (const u32 *w, const u32 pw_len, pdf17l8_tmp_t *tmp, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   // get previous hash (already padded)
 

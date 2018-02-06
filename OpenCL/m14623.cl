@@ -25,7 +25,7 @@
 
 #define MAX_ENTROPY 7.0
 
-void hmac_sha256_run_V (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[8], u32x opad[8], u32x digest[8])
+DECLSPEC void hmac_sha256_run_V (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[8], u32x opad[8], u32x digest[8])
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];

@@ -15,7 +15,7 @@
 #include "inc_scalar.cl"
 #include "inc_hash_md5.cl"
 
-void cram_md5_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[4])
+DECLSPEC void cram_md5_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[4])
 {
   u32 a = digest[0];
   u32 b = digest[1];
@@ -115,7 +115,7 @@ void cram_md5_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], cons
   digest[3] += d;
 }
 
-void cram_md5_update_64 (md5_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len)
+DECLSPEC void cram_md5_update_64 (md5_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len)
 {
   #ifdef IS_AMD
   volatile const int pos = ctx->len & 63;
@@ -145,7 +145,7 @@ void cram_md5_update_64 (md5_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3
   ctx->w3[3] |= w3[3];
 }
 
-void cram_md5_update (md5_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void cram_md5_update (md5_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -172,7 +172,7 @@ void cram_md5_update (md5_ctx_t *ctx, const u32 *w, const int len)
   cram_md5_update_64 (ctx, w0, w1, w2, w3, len);
 }
 
-void cram_md5_final (md5_ctx_t *ctx)
+DECLSPEC void cram_md5_final (md5_ctx_t *ctx)
 {
   cram_md5_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
 }
