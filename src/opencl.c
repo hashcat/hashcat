@@ -4357,6 +4357,11 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     size_t size_tmps     = 4;
     size_t size_hooks    = 4;
 
+    // sometimes device_global_mem and device_maxmem_alloc reported back from the opencl runtime are a bit inaccurate.
+    // let's add some extra space just to be sure.
+
+    #define EXTRA_SPACE (64 * 1024 * 1024)
+
     while (kernel_accel_max >= kernel_accel_min)
     {
       const u32 kernel_power_max = device_param->hardware_power * kernel_accel_max;
@@ -4388,9 +4393,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       int memory_limit_hit = 0;
 
-      if (size_pws   > device_param->device_maxmem_alloc) memory_limit_hit = 1;
-      if (size_tmps  > device_param->device_maxmem_alloc) memory_limit_hit = 1;
-      if (size_hooks > device_param->device_maxmem_alloc) memory_limit_hit = 1;
+      if ((size_pws   + EXTRA_SPACE) > device_param->device_maxmem_alloc) memory_limit_hit = 1;
+      if ((size_tmps  + EXTRA_SPACE) > device_param->device_maxmem_alloc) memory_limit_hit = 1;
+      if ((size_hooks + EXTRA_SPACE) > device_param->device_maxmem_alloc) memory_limit_hit = 1;
 
       const size_t size_total
         = bitmap_ctx->bitmap_size
@@ -4428,7 +4433,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         + size_st_salts
         + size_st_esalts;
 
-      if (size_total > device_param->device_global_mem) memory_limit_hit = 1;
+      if ((size_total + EXTRA_SPACE) > device_param->device_global_mem) memory_limit_hit = 1;
 
       if (memory_limit_hit == 1)
       {
