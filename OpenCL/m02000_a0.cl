@@ -3,32 +3,8 @@
  * License.....: MIT
  */
 
-typedef uint  u32;
-typedef ulong u64;
-
-typedef struct pw
-{
-  u32 i[64];
-
-  u32 pw_len;
-
-} pw_t;
-
-static u32 l32_from_64_S (u64 a)
-{
-  const u32 r = (u32) (a);
-
-  return r;
-}
-
-static u32 h32_from_64_S (u64 a)
-{
-  a >>= 32;
-
-  const u32 r = (u32) (a);
-
-  return r;
-}
+#include "inc_vendor.cl"
+#include "inc_types.cl"
 
 __kernel void gpu_memset (__global uint4 *buf, const u32 value, const u64 gid_max)
 {

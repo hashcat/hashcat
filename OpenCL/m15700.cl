@@ -13,7 +13,7 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
-uint4 swap32_4 (uint4 v)
+DECLSPEC uint4 swap32_4 (uint4 v)
 {
   return (rotate ((v & 0x00FF00FF), 24u) | rotate ((v & 0xFF00FF00),  8u));
 }
@@ -73,7 +73,7 @@ uint4 swap32_4 (uint4 v)
   R3 = R3 + X3;         \
 }
 
-void salsa_r (uint4 *TI)
+DECLSPEC void salsa_r (uint4 *TI)
 {
   uint4 R0 = TI[STATE_CNT4 - 4];
   uint4 R1 = TI[STATE_CNT4 - 3];
@@ -125,7 +125,7 @@ void salsa_r (uint4 *TI)
   }
 }
 
-void scrypt_smix (uint4 *X, uint4 *T, __global uint4 *V0, __global uint4 *V1, __global uint4 *V2, __global uint4 *V3)
+DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, __global uint4 *V0, __global uint4 *V1, __global uint4 *V2, __global uint4 *V3)
 {
   #define Coord(xd4,y,z) (((xd4) * ySIZE * zSIZE) + ((y) * zSIZE) + (z))
   #define CO Coord(xd4,y,z)
@@ -255,7 +255,7 @@ __constant static u64a keccakf_rndc[24] =
   0x8000000000008080, 0x0000000080000001, 0x8000000080008008
 };
 
-void keccak_transform_S (u64 st[25])
+DECLSPEC void keccak_transform_S (u64 st[25])
 {
   const u8 keccakf_rotc[24] =
   {

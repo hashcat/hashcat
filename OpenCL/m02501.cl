@@ -19,12 +19,12 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
-u8 hex_convert (const u8 c)
+DECLSPEC u8 hex_convert (const u8 c)
 {
   return (c & 15) + (c >> 6) * 9;
 }
 
-u8 hex_to_u8 (const u8 hex[2])
+DECLSPEC u8 hex_to_u8 (const u8 hex[2])
 {
   u8 v = 0;
 
@@ -34,7 +34,7 @@ u8 hex_to_u8 (const u8 hex[2])
   return (v);
 }
 
-void make_kn (u32 *k)
+DECLSPEC void make_kn (u32 *k)
 {
   u32 kl[4];
   u32 kr[4];

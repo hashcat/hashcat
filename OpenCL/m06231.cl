@@ -20,7 +20,7 @@
 #include "inc_truecrypt_crc32.cl"
 #include "inc_truecrypt_xts.cl"
 
-u32 u8add (const u32 a, const u32 b)
+DECLSPEC u32 u8add (const u32 a, const u32 b)
 {
   const u32 a1 = (a >>  0) & 0xff;
   const u32 a2 = (a >>  8) & 0xff;
@@ -45,7 +45,7 @@ u32 u8add (const u32 a, const u32 b)
   return r;
 }
 
-void hmac_whirlpool_run_V (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[16], u32x opad[16], u32x digest[16], SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
+DECLSPEC void hmac_whirlpool_run_V (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[16], u32x opad[16], u32x digest[16], SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   digest[ 0] = ipad[ 0];
   digest[ 1] = ipad[ 1];

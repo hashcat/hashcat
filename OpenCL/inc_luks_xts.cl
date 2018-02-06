@@ -1,4 +1,4 @@
-void xts_mul2 (u32 *in, u32 *out)
+DECLSPEC void xts_mul2 (u32 *in, u32 *out)
 {
   const u32 c = in[3] >> 31;
 

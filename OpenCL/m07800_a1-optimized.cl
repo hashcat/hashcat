@@ -26,7 +26,7 @@ __constant static u32a theMagicArray[64] =
   0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
 };
 
-u32 GETSHIFTEDINT_CONST (__constant u32 *a, const int n)
+DECLSPEC u32 GETSHIFTEDINT_CONST (__constant u32 *a, const int n)
 {
   const int d = n / 4;
   const int m = n & 3;
@@ -38,7 +38,7 @@ u32 GETSHIFTEDINT_CONST (__constant u32 *a, const int n)
   return h32_from_64_S (tmp);
 }
 
-void SETSHIFTEDINT (u32 *a, const int n, const u32 v)
+DECLSPEC void SETSHIFTEDINT (u32 *a, const int n, const u32 v)
 {
   const int d = n / 4;
   const int m = n & 3;
