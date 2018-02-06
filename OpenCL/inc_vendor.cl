@@ -81,7 +81,12 @@
  * function declarations can have a large influence depending on the opencl runtime
  */
 
+
+#ifdef IS_NV
+#define DECLSPEC
+#else
 #define DECLSPEC static inline
+#endif
 
 /**
  * AMD specific
