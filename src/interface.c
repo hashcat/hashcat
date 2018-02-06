@@ -26023,9 +26023,10 @@ u32 hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_p
   // kernel_accel_max to be a very low number because the pws buffer will be so large otherwise.
   // therefore autotune will be unable to calculate a good kernel_accel multiplier.
   // currently there's no OpenCL device known that needs result in a better performance with 1024 threads compared to 256.
-  // as a result, we limit the number of threads to 256, which turns out to be a general good value.
+  // as a result, we limit the number of threads to 64, which turns out to be a general good value.
+  // there's a 1.00% - 2.75% performance drop at NV caused by this, and 0.00% - 1.02% at AMD.
 
-  kernel_threads = MIN (kernel_threads, 256);
+  kernel_threads = MIN (kernel_threads, 64);
 
   return kernel_threads;
 }
