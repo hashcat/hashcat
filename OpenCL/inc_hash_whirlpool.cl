@@ -6,7 +6,7 @@
 
 #define R 10
 
-__constant static u32a Ch[8][256] =
+__constant u32a Ch[8][256] =
 {
   {
     0x18186018, 0x23238c23, 0xc6c63fc6, 0xe8e887e8,
@@ -538,7 +538,7 @@ __constant static u32a Ch[8][256] =
   }
 };
 
-__constant static u32a Cl[8][256] =
+__constant u32a Cl[8][256] =
 {
   {
     0xc07830d8, 0x05af4626, 0x7ef991b8, 0x136fcdfb,
@@ -1070,7 +1070,7 @@ __constant static u32a Cl[8][256] =
   },
 };
 
-__constant static u32a rch[R + 1] =
+__constant u32a rch[R + 1] =
 {
   0x00000000,
   0x1823c6e8,
@@ -1085,7 +1085,7 @@ __constant static u32a rch[R + 1] =
   0xca2dbf07,
 };
 
-__constant static u32a rcl[R + 1] =
+__constant u32a rcl[R + 1] =
 {
   0x00000000,
   0x87b8014f,

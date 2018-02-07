@@ -85,7 +85,7 @@
 #ifdef IS_NV
 #define DECLSPEC
 #else
-#define DECLSPEC static inline
+#define DECLSPEC inline
 #endif
 
 /**
