@@ -12,7 +12,7 @@
 #include "inc_common.cl"
 #include "inc_simd.cl"
 
-__constant static u32a c_tables[4][256] =
+__constant u32a c_tables[4][256] =
 {
   {
     0x00072000, 0x00075000, 0x00074800, 0x00071000,
