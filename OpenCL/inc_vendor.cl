@@ -81,10 +81,10 @@
  * function declarations can have a large influence depending on the opencl runtime
  */
 
-#ifdef IS_CPU
+#if defined IS_CPU
 #define DECLSPEC static
-#elif IS_GPU
-#ifdef IS_AMD
+#elif defined IS_GPU
+#if defined IS_AMD
 #define DECLSPEC inline
 #else
 #define DECLSPEC
