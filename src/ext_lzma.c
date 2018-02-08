@@ -28,7 +28,7 @@ int hc_lzma1_decompress (const unsigned char *in, SizeT *in_len, unsigned char *
   // parameters to LzmaDecode (): unsigned char *dest, size_t *destLen, const unsigned char *src,
   // size_t *srcLen, const unsigned char *props, size_t propsSize, ELzmaFinishMode finishMode, ELzmaStatus status, ISzAlloc *alloc
 
-  return LzmaDecode (out, out_len, in, in_len, (Byte *) props, LZMA_PROPS_SIZE, LZMA_FINISH_ANY, &status, &hc_lzma_mem_alloc);
+  return LzmaDecode (out, out_len, in, in_len, (const Byte *) props, LZMA_PROPS_SIZE, LZMA_FINISH_ANY, &status, &hc_lzma_mem_alloc);
 }
 
 int hc_lzma2_decompress (const unsigned char *in, SizeT *in_len, unsigned char *out, SizeT *out_len, const char *props)

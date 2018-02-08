@@ -26,7 +26,13 @@ static int sp_comp_val (const void *p1, const void *p2)
   const hcstat_table_t *b1 = (const hcstat_table_t *) p1;
   const hcstat_table_t *b2 = (const hcstat_table_t *) p2;
 
-  return b2->val - b1->val;
+  const u64 v1 = b1->val;
+  const u64 v2 = b2->val;
+
+  if (v1 < v2) return  1;
+  if (v1 > v2) return -1;
+
+  return 0;
 }
 
 static void mp_css_split_cnt (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_orig, u32 css_cnt_lr[2])
@@ -1113,9 +1119,9 @@ u32 mp_get_length (const char *mask)
 {
   u32 len = 0;
 
-  u32 mask_len = strlen (mask);
+  const size_t mask_len = strlen (mask);
 
-  for (u32 i = 0; i < mask_len; i++)
+  for (size_t i = 0; i < mask_len; i++)
   {
     if (mask[i] == '?') i++;
 
@@ -1125,13 +1131,13 @@ u32 mp_get_length (const char *mask)
   return len;
 }
 
-static char *mask_ctx_parse_maskfile_find_mask (char *line_buf, int line_len)
+static char *mask_ctx_parse_maskfile_find_mask (char *line_buf, const size_t line_len)
 {
   char *mask_buf = line_buf;
 
   bool escaped = false;
 
-  for (int i = 0; i < line_len; i++)
+  for (size_t i = 0; i < line_len; i++)
   {
     if (escaped == true)
     {
@@ -1449,7 +1455,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
               while (!feof (mask_fp))
               {
-                const int line_len = fgetl (mask_fp, line_buf);
+                const size_t line_len = fgetl (mask_fp, line_buf);
 
                 if (line_len == 0) continue;
 
@@ -1542,7 +1548,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         while (!feof (mask_fp))
         {
-          const int line_len = fgetl (mask_fp, line_buf);
+          const size_t line_len = fgetl (mask_fp, line_buf);
 
           if (line_len == 0) continue;
 
@@ -1616,7 +1622,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         while (!feof (mask_fp))
         {
-          const int line_len = fgetl (mask_fp, line_buf);
+          const size_t line_len = fgetl (mask_fp, line_buf);
 
           if (line_len == 0) continue;
 
@@ -1713,15 +1719,15 @@ int mask_ctx_parse_maskfile (hashcat_ctx_t *hashcat_ctx)
   mfs_buf[3].mf_len = 0;
   mfs_buf[4].mf_len = 0;
 
-  int mfs_cnt = 0;
+  size_t mfs_cnt = 0;
 
   char *mask_buf = mask_ctx->mask;
 
-  const int mask_len = strlen (mask_buf);
+  const size_t mask_len = strlen (mask_buf);
 
   bool escaped = false;
 
-  for (int i = 0; i < mask_len; i++)
+  for (size_t i = 0; i < mask_len; i++)
   {
     mf_t *mf = mfs_buf + mfs_cnt;
 
@@ -1775,7 +1781,7 @@ int mask_ctx_parse_maskfile (hashcat_ctx_t *hashcat_ctx)
   mp_reset_usr (mask_ctx->mp_usr, 2);
   mp_reset_usr (mask_ctx->mp_usr, 3);
 
-  for (int i = 0; i < mfs_cnt; i++)
+  for (size_t i = 0; i < mfs_cnt; i++)
   {
     switch (i)
     {

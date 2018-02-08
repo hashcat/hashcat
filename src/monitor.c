@@ -99,10 +99,6 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
   // timer
 
-  time_t last_temp_check_time;
-
-  time (&last_temp_check_time);
-
   u32 slowdown_warnings    = 0;
   u32 performance_warnings = 0;
 
@@ -150,14 +146,6 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
     if (hwmon_check == true)
     {
       hc_thread_mutex_lock (status_ctx->mux_hwmon);
-
-      time_t temp_check_time;
-
-      time (&temp_check_time);
-
-      u32 Ta = temp_check_time - last_temp_check_time; // set Ta = sleep_time; is not good enough (see --remove etc)
-
-      if (Ta == 0) Ta = 1;
 
       for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
       {

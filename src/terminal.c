@@ -731,7 +731,7 @@ void opencl_info_compact (hashcat_ctx_t *hashcat_ctx)
 
     if (platform_skipped == false)
     {
-      const int len = event_log_info (hashcat_ctx, "OpenCL Platform #%u: %s", platforms_idx + 1, platform_vendor);
+      const size_t len = event_log_info (hashcat_ctx, "OpenCL Platform #%u: %s", platforms_idx + 1, platform_vendor);
 
       char line[HCBUFSIZ_TINY];
 
@@ -1482,7 +1482,7 @@ void status_progress_machine_readable (hashcat_ctx_t *hashcat_ctx)
 
     if (device_info->skipped_dev == true) continue;
 
-    event_log_info (hashcat_ctx, "%d:%d:%0.2f", device_id + 1, device_info->progress_dev, device_info->runtime_msec_dev);
+    event_log_info (hashcat_ctx, "%d:%" PRIu64 ":%0.2f", device_id + 1, device_info->progress_dev, device_info->runtime_msec_dev);
   }
 
   status_status_destroy (hashcat_ctx, hashcat_status);
@@ -1519,7 +1519,7 @@ void status_progress (hashcat_ctx_t *hashcat_ctx)
     if (device_info->skipped_dev == true) continue;
 
     event_log_info (hashcat_ctx,
-      "Progress.Dev.#%d..: %d", device_id + 1,
+      "Progress.Dev.#%d..: %" PRIu64, device_id + 1,
       device_info->progress_dev);
   }
 

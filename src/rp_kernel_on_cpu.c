@@ -395,7 +395,7 @@ static int mangle_delete_last (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p
 {
   if (len == 0) return 0;
 
-  return mangle_delete_at (len - 1, p1, buf, len);
+  return mangle_delete_at ((u8) len - 1, p1, buf, len);
 }
 
 static int mangle_extract (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, u8 *buf, const int len)
@@ -651,7 +651,7 @@ static int mangle_dupeblock_first (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const 
 
   if (out_len >= RP_PASSWORD_SIZE) return (len);
 
-  for (int i = 0; i < p0; i++)
+  for (u8 i = 0; i < p0; i++)
   {
     const u8 c = buf[i * 2];
 

@@ -25,13 +25,13 @@
 int _dowildcard = -1;
 #endif
 
-static void main_log_clear_line (MAYBE_UNUSED const int prev_len, MAYBE_UNUSED FILE *fp)
+static void main_log_clear_line (MAYBE_UNUSED const size_t prev_len, MAYBE_UNUSED FILE *fp)
 {
   #if defined (_WIN)
 
   fputc ('\r', fp);
 
-  for (int i = 0; i < prev_len; i++)
+  for (size_t i = 0; i < prev_len; i++)
   {
     fputc (' ', fp);
   }
@@ -49,13 +49,13 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
 {
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
 
-  const char *msg_buf     = event_ctx->msg_buf;
-  const int   msg_len     = event_ctx->msg_len;
-  const bool  msg_newline = event_ctx->msg_newline;
+  const char  *msg_buf     = event_ctx->msg_buf;
+  const size_t msg_len     = event_ctx->msg_len;
+  const bool   msg_newline = event_ctx->msg_newline;
 
   // handle last_len
 
-  const int prev_len = event_ctx->prev_len;
+  const size_t prev_len = event_ctx->prev_len;
 
   if (prev_len)
   {
@@ -847,16 +847,16 @@ static void main_hashlist_parse_hash (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, M
 
   const hashlist_parse_t *hashlist_parse = (const hashlist_parse_t *) buf;
 
-  const u32 hashes_cnt   = hashlist_parse->hashes_cnt;
-  const u32 hashes_avail = hashlist_parse->hashes_avail;
+  const u64 hashes_cnt   = hashlist_parse->hashes_cnt;
+  const u64 hashes_avail = hashlist_parse->hashes_avail;
 
   if (hashes_cnt < hashes_avail)
   {
-    event_log_info_nn (hashcat_ctx, "Parsing Hashes: %u/%u (%0.2f%%)...", hashes_cnt, hashes_avail, ((double) hashes_cnt / hashes_avail) * 100.0);
+    event_log_info_nn (hashcat_ctx, "Parsing Hashes: %" PRIu64 "/%" PRIu64 " (%0.2f%%)...", hashes_cnt, hashes_avail, ((double) hashes_cnt / hashes_avail) * 100.0);
   }
   else
   {
-    event_log_info_nn (hashcat_ctx, "Parsed Hashes: %u/%u (%0.2f%%)", hashes_cnt, hashes_avail, 100.0);
+    event_log_info_nn (hashcat_ctx, "Parsed Hashes: %" PRIu64 "/%" PRIu64 " (%0.2f%%)", hashes_cnt, hashes_avail, 100.0);
   }
 }
 

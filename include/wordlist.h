@@ -9,7 +9,7 @@
 #include <time.h>
 #include <inttypes.h>
 
-u32 convert_from_hex (hashcat_ctx_t *hashcat_ctx, char *line_buf, const u32 line_len);
+size_t convert_from_hex (hashcat_ctx_t *hashcat_ctx, char *line_buf, const size_t line_len);
 
 void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len);
 

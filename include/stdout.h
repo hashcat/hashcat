@@ -20,6 +20,6 @@
 #include <pwd.h>
 #endif // _POSIX
 
-int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 pws_cnt);
+int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_cnt);
 
 #endif // _STDOUT_H

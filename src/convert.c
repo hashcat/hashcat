@@ -13,7 +13,7 @@
 #define FALLTHROUGH
 #endif
 
-static bool printable_utf8 (const u8 *buf, const int len)
+static bool printable_utf8 (const u8 *buf, const size_t len)
 {
   u8 a;
   int length;
@@ -68,9 +68,9 @@ static bool printable_utf8 (const u8 *buf, const int len)
   return true;
 }
 
-static bool printable_ascii (const u8 *buf, const int len)
+static bool printable_ascii (const u8 *buf, const size_t len)
 {
-  for (int i = 0; i < len; i++)
+  for (size_t i = 0; i < len; i++)
   {
     const u8 c = buf[i];
 
@@ -81,9 +81,9 @@ static bool printable_ascii (const u8 *buf, const int len)
   return true;
 }
 
-static bool matches_separator (const u8 *buf, const int len, const char separator)
+static bool matches_separator (const u8 *buf, const size_t len, const char separator)
 {
-  for (int i = 0; i < len; i++)
+  for (size_t i = 0; i < len; i++)
   {
     const char c = (char) buf[i];
 
@@ -93,7 +93,7 @@ static bool matches_separator (const u8 *buf, const int len, const char separato
   return false;
 }
 
-bool is_hexify (const u8 *buf, const int len)
+bool is_hexify (const u8 *buf, const size_t len)
 {
   if (len < 6) return false; // $HEX[] = 6
 
@@ -115,9 +115,9 @@ bool is_hexify (const u8 *buf, const int len)
   return true;
 }
 
-int exec_unhexify (const u8 *in_buf, const int in_len, u8 *out_buf, const int out_sz)
+size_t exec_unhexify (const u8 *in_buf, const size_t in_len, u8 *out_buf, const size_t out_sz)
 {
-  int i, j;
+  size_t i, j;
 
   for (i = 0, j = 5; j < in_len - 1; i += 1, j += 2)
   {
@@ -131,7 +131,7 @@ int exec_unhexify (const u8 *in_buf, const int in_len, u8 *out_buf, const int ou
   return (i);
 }
 
-bool need_hexify (const u8 *buf, const int len, const char separator, bool always_ascii)
+bool need_hexify (const u8 *buf, const size_t len, const char separator, bool always_ascii)
 {
   bool rc = false;
 
@@ -171,11 +171,11 @@ bool need_hexify (const u8 *buf, const int len, const char separator, bool alway
   return rc;
 }
 
-void exec_hexify (const u8 *buf, const int len, u8 *out)
+void exec_hexify (const u8 *buf, const size_t len, u8 *out)
 {
-  const int max_len = (len >= PW_MAX) ? PW_MAX : len;
+  const size_t max_len = (len >= PW_MAX) ? PW_MAX : len;
 
-  for (int i = max_len - 1, j = i * 2; i >= 0; i -= 1, j -= 2)
+  for (int i = (int) max_len - 1, j = i * 2; i >= 0; i -= 1, j -= 2)
   {
     u8_to_hex_lower (buf[i], out + j);
   }
@@ -183,9 +183,9 @@ void exec_hexify (const u8 *buf, const int len, u8 *out)
   out[max_len * 2] = 0;
 }
 
-bool is_valid_hex_string (const u8 *s, const int len)
+bool is_valid_hex_string (const u8 *s, const size_t len)
 {
-  for (int i = 0; i < len; i++)
+  for (size_t i = 0; i < len; i++)
   {
     const u8 c = s[i];
 
@@ -527,13 +527,13 @@ u8 lotus64_to_int (const u8 c)
   return 0;
 }
 
-int base32_decode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf)
+size_t base32_decode (u8 (*f) (const u8), const u8 *in_buf, const size_t in_len, u8 *out_buf)
 {
   const u8 *in_ptr = in_buf;
 
   u8 *out_ptr = out_buf;
 
-  for (int i = 0; i < in_len; i += 8)
+  for (size_t i = 0; i < in_len; i += 8)
   {
     const u8 out_val0 = f (in_ptr[0] & 0x7f);
     const u8 out_val1 = f (in_ptr[1] & 0x7f);
@@ -554,25 +554,27 @@ int base32_decode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf
     out_ptr += 5;
   }
 
-  for (int i = 0; i < in_len; i++)
+  size_t tmp_len = 0;
+
+  for (size_t i = 0; i < in_len; i++, tmp_len++)
   {
     if (in_buf[i] != '=') continue;
 
-    in_len = i;
+    break;
   }
 
-  int out_len = (in_len * 5) / 8;
+  size_t out_len = (tmp_len * 5) / 8;
 
   return out_len;
 }
 
-int base32_encode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf)
+size_t base32_encode (u8 (*f) (const u8), const u8 *in_buf, const size_t in_len, u8 *out_buf)
 {
   const u8 *in_ptr = in_buf;
 
   u8 *out_ptr = out_buf;
 
-  for (int i = 0; i < in_len; i += 5)
+  for (size_t i = 0; i < in_len; i += 5)
   {
     const u8 out_val0 = f (                            ((in_ptr[0] >> 3) & 0x1f));
     const u8 out_val1 = f (((in_ptr[0] << 2) & 0x1c) | ((in_ptr[1] >> 6) & 0x03));
@@ -608,13 +610,13 @@ int base32_encode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf
   return out_len;
 }
 
-int base64_decode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf)
+size_t base64_decode (u8 (*f) (const u8), const u8 *in_buf, const size_t in_len, u8 *out_buf)
 {
   const u8 *in_ptr = in_buf;
 
   u8 *out_ptr = out_buf;
 
-  for (int i = 0; i < in_len; i += 4)
+  for (size_t i = 0; i < in_len; i += 4)
   {
     const u8 out_val0 = f (in_ptr[0] & 0x7f);
     const u8 out_val1 = f (in_ptr[1] & 0x7f);
@@ -629,25 +631,27 @@ int base64_decode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf
     out_ptr += 3;
   }
 
-  for (int i = 0; i < in_len; i++)
+  size_t tmp_len = 0;
+
+  for (size_t i = 0; i < in_len; i++, tmp_len++)
   {
     if (in_buf[i] != '=') continue;
 
-    in_len = i;
+    break;
   }
 
-  int out_len = (in_len * 6) / 8;
+  size_t out_len = (tmp_len * 6) / 8;
 
   return out_len;
 }
 
-int base64_encode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf)
+size_t base64_encode (u8 (*f) (const u8), const u8 *in_buf, const size_t in_len, u8 *out_buf)
 {
   const u8 *in_ptr = in_buf;
 
   u8 *out_ptr = out_buf;
 
-  for (int i = 0; i < in_len; i += 3)
+  for (size_t i = 0; i < in_len; i += 3)
   {
     const u8 out_val0 = f (                            ((in_ptr[0] >> 2) & 0x3f));
     const u8 out_val1 = f (((in_ptr[0] << 4) & 0x30) | ((in_ptr[1] >> 4) & 0x0f));
@@ -675,12 +679,12 @@ int base64_encode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf
   return out_len;
 }
 
-void lowercase (u8 *buf, int len)
+void lowercase (u8 *buf, const size_t len)
 {
-  for (int i = 0; i < len; i++) buf[i] = tolower (buf[i]);
+  for (size_t i = 0; i < len; i++) buf[i] = (u8) tolower ((int) buf[i]);
 }
 
-void uppercase (u8 *buf, int len)
+void uppercase (u8 *buf, const size_t len)
 {
-  for (int i = 0; i < len; i++) buf[i] = toupper (buf[i]);
+  for (size_t i = 0; i < len; i++) buf[i] = (u8) toupper ((int) buf[i]);
 }

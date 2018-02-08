@@ -25,7 +25,10 @@ static int sort_by_mtime (const void *p1, const void *p2)
   if (rc1 < rc2) return  1;
   if (rc1 > rc2) return -1;
 
-  return s2.st_mtime - s1.st_mtime;
+  if (s1.st_mtime < s2.st_mtime) return  1;
+  if (s1.st_mtime > s2.st_mtime) return -1;
+
+  return 0;
 }
 
 int induct_ctx_init (hashcat_ctx_t *hashcat_ctx)

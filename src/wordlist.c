@@ -15,7 +15,7 @@
 #include "shared.h"
 #include "wordlist.h"
 
-u32 convert_from_hex (hashcat_ctx_t *hashcat_ctx, char *line_buf, const u32 line_len)
+size_t convert_from_hex (hashcat_ctx_t *hashcat_ctx, char *line_buf, const size_t line_len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -37,11 +37,11 @@ u32 convert_from_hex (hashcat_ctx_t *hashcat_ctx, char *line_buf, const u32 line
 
   if (user_options->wordlist_autohex_disable == false)
   {
-    if (is_hexify ((const u8 *) line_buf, (const int) line_len) == true)
+    if (is_hexify ((const u8 *) line_buf, line_len) == true)
     {
-      const int new_len = exec_unhexify ((const u8 *) line_buf, (const int) line_len, (u8 *) line_buf, (const int) line_len);
+      const size_t new_len = exec_unhexify ((const u8 *) line_buf, line_len, (u8 *) line_buf, line_len);
 
-      return (u32) new_len;
+      return new_len;
     }
   }
 
@@ -213,7 +213,7 @@ void get_next_word (hashcat_ctx_t *hashcat_ctx, FILE *fd, char **out_buf, u32 *o
 
       memset (rule_buf_out, 0, sizeof (rule_buf_out));
 
-      const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, user_options_extra->rule_len_l, ptr, len, rule_buf_out);
+      const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, user_options_extra->rule_len_l, ptr, (u32) len, rule_buf_out);
 
       if (rule_len_out < 0) continue;
     }
@@ -221,7 +221,7 @@ void get_next_word (hashcat_ctx_t *hashcat_ctx, FILE *fd, char **out_buf, u32 *o
     if (len >= PW_MAX) continue;
 
     *out_buf = ptr;
-    *out_len = len;
+    *out_len = (u32) len;
 
     return;
   }
@@ -425,7 +425,7 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
 
         memset (rule_buf_out, 0, sizeof (rule_buf_out));
 
-        const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, user_options_extra->rule_len_l, ptr, len, rule_buf_out);
+        const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, user_options_extra->rule_len_l, ptr, (u32) len, rule_buf_out);
 
         if (rule_len_out < 0) continue;
       }

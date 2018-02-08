@@ -892,7 +892,7 @@ typedef struct plain
   u32  salt_pos;
   u32  digest_pos;
   u32  hash_pos;
-  u32  gidvid;
+  u64  gidvid;
   u32  il_pos;
 
 } plain_t;
@@ -945,18 +945,19 @@ typedef struct hc_device_param
   u32     kernel_threads_by_wgs_kernel_atinit;
   u32     kernel_threads_by_wgs_kernel_decompress;
 
-  u32     kernel_loops;
   u32     kernel_accel;
-  u32     kernel_loops_prev;
   u32     kernel_accel_prev;
+  u32     kernel_accel_min;
+  u32     kernel_accel_max;
+  u32     kernel_loops;
+  u32     kernel_loops_prev;
   u32     kernel_loops_min;
   u32     kernel_loops_max;
   u32     kernel_loops_min_sav; // the _sav are required because each -i iteration
   u32     kernel_loops_max_sav; // needs to recalculate the kernel_loops_min/max based on the current amplifier count
-  u32     kernel_accel_min;
-  u32     kernel_accel_max;
-  u32     kernel_power;
-  u32     hardware_power;
+
+  u64     kernel_power;
+  u64     hardware_power;
 
   size_t  size_pws;
   size_t  size_pws_amp;
@@ -986,17 +987,17 @@ typedef struct hc_device_param
 
   pw_idx_t *pws_idx;
   u32      *pws_comp;
-  u32       pws_cnt;
+  u64       pws_cnt;
 
   u64     words_off;
   u64     words_done;
 
-  u32     outerloop_pos;
-  u32     outerloop_left;
+  u64     outerloop_pos;
+  u64     outerloop_left;
   double  outerloop_msec;
 
-  u64     innerloop_pos;
-  u64     innerloop_left;
+  u32     innerloop_pos;
+  u32     innerloop_left;
 
   u32     exec_pos;
   double  exec_msec[EXEC_CACHE];
@@ -1158,7 +1159,7 @@ typedef struct opencl_ctx
 
   u32                 hardware_power_all;
 
-  u32                 kernel_power_all;
+  u64                 kernel_power_all;
   u64                 kernel_power_final; // we save that so that all divisions are done from the same base
 
   u32                 opencl_platforms_filter;
@@ -1757,7 +1758,7 @@ typedef struct device_info
   int     corespeed_dev;
   int     memoryspeed_dev;
   double  runtime_msec_dev;
-  int     progress_dev;
+  u64     progress_dev;
   int     kernel_accel_dev;
   int     kernel_loops_dev;
   int     kernel_threads_dev;
@@ -1934,8 +1935,8 @@ typedef struct cache_generate
 
 typedef struct hashlist_parse
 {
-  u32 hashes_cnt;
-  u32 hashes_avail;
+  u64 hashes_cnt;
+  u64 hashes_avail;
 
 } hashlist_parse_t;
 
@@ -1943,15 +1944,15 @@ typedef struct hashlist_parse
 
 typedef struct event_ctx
 {
-  char old_buf[MAX_OLD_EVENTS][HCBUFSIZ_TINY];
-  int  old_len[MAX_OLD_EVENTS];
-  int  old_cnt;
+  char   old_buf[MAX_OLD_EVENTS][HCBUFSIZ_TINY];
+  size_t old_len[MAX_OLD_EVENTS];
+  int    old_cnt;
 
-  char msg_buf[HCBUFSIZ_TINY];
-  int  msg_len;
-  bool msg_newline;
+  char   msg_buf[HCBUFSIZ_TINY];
+  size_t msg_len;
+  bool   msg_newline;
 
-  int  prev_len;
+  size_t prev_len;
 
   hc_thread_mutex_t mux_event;
 

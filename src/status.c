@@ -834,8 +834,8 @@ char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
 
   if ((device_param->outerloop_left == 0) || (device_param->innerloop_left == 0)) return display;
 
-  const u32 outerloop_first = 0;
-  const u32 outerloop_last  = device_param->outerloop_left - 1;
+  const u64 outerloop_first = 0;
+  const u64 outerloop_last  = device_param->outerloop_left - 1;
 
   const u32 innerloop_first = 0;
   const u32 innerloop_last  = device_param->innerloop_left - 1;
@@ -1759,7 +1759,7 @@ int status_get_memoryspeed_dev (const hashcat_ctx_t *hashcat_ctx, const int devi
   return num_memoryspeed;
 }
 
-int status_get_progress_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
+u64 status_get_progress_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
   const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
 

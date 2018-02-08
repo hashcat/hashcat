@@ -8,7 +8,7 @@
 #include "interface.h"
 #include "benchmark.h"
 
-const unsigned int DEFAULT_BENCHMARK_ALGORITHMS_BUF[] =
+static const int DEFAULT_BENCHMARK_ALGORITHMS_BUF[] =
 {
   0,
   100,

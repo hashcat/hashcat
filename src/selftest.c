@@ -78,11 +78,11 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       char *pw_ptr = (char *) &pw.i;
 
-      int pw_len = strlen (hashconfig->st_pass);
+      const size_t pw_len = strlen (hashconfig->st_pass);
 
       memcpy (pw_ptr, hashconfig->st_pass, pw_len);
 
-      pw.pw_len = pw_len;
+      pw.pw_len = (u32) pw_len;
 
       CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL);
 
@@ -97,11 +97,11 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       char *pw_ptr = (char *) &pw.i;
 
-      int pw_len = strlen (hashconfig->st_pass);
+      const size_t pw_len = strlen (hashconfig->st_pass);
 
       memcpy (pw_ptr, hashconfig->st_pass, pw_len - 1);
 
-      pw.pw_len = pw_len - 1;
+      pw.pw_len = (u32) pw_len - 1;
 
       pw_t comb; memset (&comb, 0, sizeof (comb));
 
@@ -139,7 +139,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
         char *pw_ptr = (char *) &pw.i;
 
-        int pw_len = strlen (hashconfig->st_pass);
+        const size_t pw_len = strlen (hashconfig->st_pass);
 
         memcpy (pw_ptr, hashconfig->st_pass, pw_len);
 
@@ -148,7 +148,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
           uppercase ((u8 *) pw_ptr, pw_len);
         }
 
-        pw.pw_len = pw_len;
+        pw.pw_len = (u32) pw_len;
 
         CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL);
 
@@ -201,17 +201,17 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
         char *pw_ptr = (char *) &pw.i;
 
-        int pw_len = strlen (hashconfig->st_pass);
+        const size_t pw_len = strlen (hashconfig->st_pass);
 
         memcpy (pw_ptr + 1, hashconfig->st_pass + 1, pw_len - 1);
 
-        int new_pass_len = pw_len;
+        size_t new_pass_len = pw_len;
 
         if (hashconfig->opts_type & OPTS_TYPE_PT_UTF16LE)
         {
           memset (pw_ptr, 0, pw_len);
 
-          for (int i = 1, j = 2; i < new_pass_len; i += 1, j += 2)
+          for (size_t i = 1, j = 2; i < new_pass_len; i += 1, j += 2)
           {
             pw_ptr[j + 0] = hashconfig->st_pass[i];
             pw_ptr[j + 1] = 0;
@@ -223,7 +223,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
         {
           memset (pw_ptr, 0, pw_len);
 
-          for (int i = 1, j = 2; i < new_pass_len; i += 1, j += 2)
+          for (size_t i = 1, j = 2; i < new_pass_len; i += 1, j += 2)
           {
             pw_ptr[j + 0] = 0;
             pw_ptr[j + 1] = hashconfig->st_pass[i];
@@ -247,7 +247,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
           }
         }
 
-        pw.pw_len = new_pass_len;
+        pw.pw_len = (u32) new_pass_len;
 
         if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)
         {
@@ -261,14 +261,14 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
         if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS14)
         {
-          pw.i[14] = new_pass_len * 8;
+          pw.i[14] = (u32) new_pass_len * 8;
           pw.i[15] = 0;
         }
 
         if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS15)
         {
           pw.i[14] = 0;
-          pw.i[15] = new_pass_len * 8;
+          pw.i[15] = (u32) new_pass_len * 8;
         }
 
         if (hashconfig->opts_type & OPTS_TYPE_PT_GENERATE_BE)
@@ -290,11 +290,11 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     char *pw_ptr = (char *) &pw.i;
 
-    int pw_len = strlen (hashconfig->st_pass);
+    const size_t pw_len = strlen (hashconfig->st_pass);
 
     memcpy (pw_ptr, hashconfig->st_pass, pw_len);
 
-    pw.pw_len = pw_len;
+    pw.pw_len = (u32) pw_len;
 
     CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL);
 

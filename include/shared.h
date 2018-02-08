@@ -58,4 +58,7 @@ void   hc_fwrite (const void *ptr, size_t size, size_t nmemb, FILE *stream);
 
 bool hc_same_files (char *file1, char *file2);
 
+u32 hc_strtoul  (const char *nptr, char **endptr, int base);
+u64 hc_strtoull (const char *nptr, char **endptr, int base);
+
 #endif // _SHARED_H

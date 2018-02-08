@@ -44,7 +44,7 @@ static u64 get_lowest_words_done (const hashcat_ctx_t *hashcat_ctx)
   return words_cur;
 }
 
-static int set_kernel_power_final (hashcat_ctx_t *hashcat_ctx, const u32 kernel_power_final)
+static int set_kernel_power_final (hashcat_ctx_t *hashcat_ctx, const u64 kernel_power_final)
 {
   EVENT (EVENT_SET_KERNEL_POWER_FINAL);
 
@@ -55,7 +55,7 @@ static int set_kernel_power_final (hashcat_ctx_t *hashcat_ctx, const u32 kernel_
   return 0;
 }
 
-static u32 get_power (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param)
+static u64 get_power (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param)
 {
   const u64 kernel_power_final = opencl_ctx->kernel_power_final;
 
@@ -79,7 +79,7 @@ static u32 get_power (opencl_ctx_t *opencl_ctx, hc_device_param_t *device_param)
   return device_param->kernel_power;
 }
 
-static u32 get_work (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 max)
+static u64 get_work (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 max)
 {
   opencl_ctx_t   *opencl_ctx   = hashcat_ctx->opencl_ctx;
   status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
@@ -104,9 +104,9 @@ static u32 get_work (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     }
   }
 
-  const u32 kernel_power = get_power (opencl_ctx, device_param);
+  const u64 kernel_power = get_power (opencl_ctx, device_param);
 
-  u32 work = MIN (words_left, kernel_power);
+  u64 work = MIN (words_left, kernel_power);
 
   work = MIN (work, max);
 
@@ -156,7 +156,7 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
       break;
     }
 
-    u32 words_extra_total = 0;
+    u64 words_extra_total = 0;
 
     memset (device_param->pws_comp, 0, device_param->size_pws_comp);
     memset (device_param->pws_idx,  0, device_param->size_pws_idx);
@@ -169,7 +169,7 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
       size_t line_len = in_superchop (line_buf);
 
-      line_len = convert_from_hex (hashcat_ctx, line_buf, line_len);
+      line_len = convert_from_hex (hashcat_ctx, line_buf, (u32) line_len);
 
       // do the on-the-fly encoding
 
@@ -342,7 +342,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
     while (status_ctx->run_thread_level1 == true)
     {
-      const u32 work = get_work (hashcat_ctx, device_param, -1u);
+      const u64 work = get_work (hashcat_ctx, device_param, -1);
 
       if (work == 0) break;
 
@@ -487,16 +487,16 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       u64 words_off = 0;
       u64 words_fin = 0;
 
-      u32 words_extra = -1u;
+      u64 words_extra = -1u;
 
-      u32 words_extra_total = 0;
+      u64 words_extra_total = 0;
 
       memset (device_param->pws_comp, 0, device_param->size_pws_comp);
       memset (device_param->pws_idx,  0, device_param->size_pws_idx);
 
       while (words_extra)
       {
-        const u32 work = get_work (hashcat_ctx, device_param, words_extra);
+        const u64 work = get_work (hashcat_ctx, device_param, words_extra);
 
         if (work == 0) break;
 
@@ -516,7 +516,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         {
           get_next_word (hashcat_ctx_tmp, fd, &line_buf, &line_len);
 
-          line_len = convert_from_hex (hashcat_ctx, line_buf, line_len);
+          line_len = (u32) convert_from_hex (hashcat_ctx, line_buf, line_len);
 
           // post-process rule engine
 
@@ -591,7 +591,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       // flush
       //
 
-      const u32 pws_cnt = device_param->pws_cnt;
+      const u64 pws_cnt = device_param->pws_cnt;
 
       if (pws_cnt)
       {

@@ -82,7 +82,7 @@ char       *status_get_cpt                        (const hashcat_ctx_t *hashcat_
 char       *status_get_hwmon_dev                  (const hashcat_ctx_t *hashcat_ctx, const int device_id);
 int         status_get_corespeed_dev              (const hashcat_ctx_t *hashcat_ctx, const int device_id);
 int         status_get_memoryspeed_dev            (const hashcat_ctx_t *hashcat_ctx, const int device_id);
-int         status_get_progress_dev               (const hashcat_ctx_t *hashcat_ctx, const int device_id);
+u64         status_get_progress_dev               (const hashcat_ctx_t *hashcat_ctx, const int device_id);
 double      status_get_runtime_msec_dev           (const hashcat_ctx_t *hashcat_ctx, const int device_id);
 int         status_get_kernel_accel_dev           (const hashcat_ctx_t *hashcat_ctx, const int device_id);
 int         status_get_kernel_loops_dev           (const hashcat_ctx_t *hashcat_ctx, const int device_id);

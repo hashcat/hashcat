@@ -136,7 +136,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     if ((exec_msec * mm) > target_msec)
     {
-      const u32 loops_valid = target_msec / exec_msec;
+      const u32 loops_valid = (const u32) (target_msec / exec_msec);
 
       kernel_loops_max_reduced = kernel_loops_min * loops_valid;
     }
@@ -207,7 +207,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   double exec_msec_pre_final = try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
 
-  const u32 exec_left = target_msec / exec_msec_pre_final;
+  const u32 exec_left = (const u32) (target_msec / exec_msec_pre_final);
 
   const u32 accel_left = kernel_accel_max / kernel_accel;
 

@@ -1957,7 +1957,7 @@ int electrum_wallet13_parse_hash  (u8 *input_buf, u32 input_len, hash_t *hash_bu
  * hook functions
  */
 
-void seven_zip_hook_func (hc_device_param_t *device_param, void *hook_salts_buf, const u32 salt_pos, const u32 pws_cnt);
+void seven_zip_hook_func (hc_device_param_t *device_param, void *hook_salts_buf, const u32 salt_pos, const u64 pws_cnt);
 
 /**
  * output functions

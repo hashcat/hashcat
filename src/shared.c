@@ -327,11 +327,9 @@ void setup_seeding (const bool rp_gen_seed_chgd, const u32 rp_gen_seed)
   }
   else
   {
-    time_t ts;
+    const time_t ts = time (NULL); // don't tell me that this is an insecure seed
 
-    time (&ts);
-
-    srand (ts);
+    srand ((unsigned int) ts);
   }
 }
 
@@ -497,4 +495,14 @@ bool hc_same_files (char *file1, char *file2)
   }
 
   return false;
+}
+
+u32 hc_strtoul (const char *nptr, char **endptr, int base)
+{
+  return (u32) strtoul (nptr, endptr, base);
+}
+
+u64 hc_strtoull (const char *nptr, char **endptr, int base)
+{
+  return (u64) strtoull (nptr, endptr, base);
 }

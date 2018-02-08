@@ -45,13 +45,13 @@ void event_call (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, cons
       event_ctx->old_len[i] = event_ctx->old_len[i - 1];
     }
 
-    u32 copy_len = 0;
+    size_t copy_len = 0;
 
     if (buf)
     {
       // truncate the whole buffer if needed (such that it fits into the old_buf):
 
-      const u32 max_buf_len = sizeof (event_ctx->old_buf[0]);
+      const size_t max_buf_len = sizeof (event_ctx->old_buf[0]);
 
       copy_len = MIN (len, max_buf_len - 1);
 
