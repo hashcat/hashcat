@@ -24,6 +24,7 @@
 ## Bugs
 ##
 
+- Fixed a configuration setting for -m 400 which said it's capable of doing SIMD while it is not
 - Fixed a hash parsing problem for 7-Zip hashes: allow a longer crc32 data length field within the hash format
 - Fixed a hash parsing problem when using --show/--left with hashes with long salts that required pure kernels
 - Fixed a mask-length check issue: Return -1 in case the mask-length is not within the password-length range
@@ -47,6 +48,7 @@
 ## Technical
 ##
 
+- Autotune: Improve autotune engine logic and synchronize results on same OpenCL devices
 - Documents: Added docs/limits.txt
 - Files: Copy include/ folder and its content when SHARED is set to 1 in Makefile
 - Files: Switched back to relative current working directory on windows to work around problems with unicode characters
@@ -55,18 +57,18 @@
 - Hash Parser: Fixed a memory leak in shutdown phase
 - Hash Parser: Fixed the use of strtok_r () calls
 - OpenCL Devices: Fixed several memory leaks in shutdown phase
-- OpenCL Runtime: Updated rocm detection
-- OpenCL Runtime: Enforce to use OpenCL version 1.2 to restrain OpenCL runtimes to make use of the __generic address space qualifier
-- OpenCL Runtime: Add current timestamp to OpenCL kernel source in order to force OpenCL JiT compiler to recompile and not use the cache
-- OpenCL Kernels: Add general function declaration keyword (static inline)
+- OpenCL Kernels: Add general function declaration keyword (inline) and some OpenCL runtime specific exceptions for NV and CPU devices
 - OpenCL Kernels: Replace variables from uXX to uXXa if used in __constant space
 - OpenCL Kernels: Use a special kernel to initialize the password buffer used during autotune measurements, to reduce startup time
-- OpenCL Kernels: Use static declaraction for uXXa variables used in __constant space
+- OpenCL Runtime: Add current timestamp to OpenCL kernel source in order to force OpenCL JiT compiler to recompile and not use the cache
+- OpenCL Runtime: Enforce to use OpenCL version 1.2 to restrain OpenCL runtimes to make use of the __generic address space qualifier
+- OpenCL Runtime: Updated rocm detection
 - Returncode: Enforce returncode 0 in case the user selected --speed-only or --progress-only and no other error occured
+- Rules: Fixed some default rule-files after changing rule meaning of 'x' to 'O'
 - Self Test: Skip self-test for mode 15700 because the settings are too high and cause startup times that are too long
 - Self Test: Skip self-test for mode 8900 - user-configurable scrypt settings are incompatible with fixed settings in the self-test hash
-- Terminal: Send clear line code to the same output stream as the message immediately following
 - Terminal: Add workitem settings to status display (can be handy for debugging)
+- Terminal: Send clear line code to the same output stream as the message immediately following
 - Timer: Switch from gettimeofday() to clock_gettime() to work around problems on cygwin
 - User Options: According to getopts manpage the last element of the option array has to be filled with zeros
 
