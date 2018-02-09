@@ -27,6 +27,7 @@
 - Fixed a configuration setting for -m 400 which said it's capable of doing SIMD while it is not
 - Fixed a hash parsing problem for 7-Zip hashes: allow a longer crc32 data length field within the hash format
 - Fixed a hash parsing problem when using --show/--left with hashes with long salts that required pure kernels
+- Fixed a logic error in storing temporary progress for slow hashes,leading to invalid speeds in status view
 - Fixed a mask-length check issue: Return -1 in case the mask-length is not within the password-length range
 - Fixed a missing check for returncode in case hashcat.hcstat2 was not found
 - Fixed a race condition in combinator- and hybrid-mode where the same scratch buffer was used by multiple threads

@@ -2111,8 +2111,6 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
   // init speed timer
 
-  u32 speed_pos = device_param->speed_pos;
-
   #if defined (_WIN)
   if (device_param->timer_speed.QuadPart == 0)
   {
@@ -2491,32 +2489,39 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
        * speed
        */
 
-      const u64 perf_sum_all = (u64) pws_cnt * innerloop_left;
-
-      const double speed_msec = hc_timer_get (device_param->timer_speed);
-
-      hc_timer_set (&device_param->timer_speed);
-
-      device_param->speed_cnt[speed_pos] = perf_sum_all;
-
-      device_param->speed_msec[speed_pos] = speed_msec;
-
-      speed_pos++;
-
-      if (speed_pos == SPEED_CACHE)
+      if (status_ctx->run_thread_level2 == true)
       {
-        speed_pos = 0;
+        const u64 perf_sum_all = (u64) pws_cnt * innerloop_left;
+
+        const double speed_msec = hc_timer_get (device_param->timer_speed);
+
+        hc_timer_set (&device_param->timer_speed);
+
+        u32 speed_pos = device_param->speed_pos;
+
+        device_param->speed_cnt[speed_pos] = perf_sum_all;
+
+        device_param->speed_msec[speed_pos] = speed_msec;
+
+        speed_pos++;
+
+        if (speed_pos == SPEED_CACHE)
+        {
+          speed_pos = 0;
+        }
+
+        device_param->speed_pos = speed_pos;
+
+        /**
+         * progress
+         */
+
+        hc_thread_mutex_lock (status_ctx->mux_counter);
+
+        status_ctx->words_progress_done[salt_pos] += perf_sum_all;
+
+        hc_thread_mutex_unlock (status_ctx->mux_counter);
       }
-
-      /**
-       * progress
-       */
-
-      hc_thread_mutex_lock (status_ctx->mux_counter);
-
-      status_ctx->words_progress_done[salt_pos] += perf_sum_all;
-
-      hc_thread_mutex_unlock (status_ctx->mux_counter);
 
       /**
        * benchmark, part2
@@ -2552,8 +2557,6 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
   //status screen makes use of this, can't reset here
   //device_param->outerloop_pos  = 0;
   //device_param->outerloop_left = 0;
-
-  device_param->speed_pos = speed_pos;
 
   return 0;
 }
