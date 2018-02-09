@@ -61,6 +61,7 @@
 - OpenCL Kernels: Add general function declaration keyword (inline) and some OpenCL runtime specific exceptions for NV and CPU devices
 - OpenCL Kernels: Replace variables from uXX to uXXa if used in __constant space
 - OpenCL Kernels: Use a special kernel to initialize the password buffer used during autotune measurements, to reduce startup time
+- OpenCL Kernels: Thread-count is switched from native to maximum - as a consequence we assume host memory pool of 2GB per GPU
 - OpenCL Runtime: Add current timestamp to OpenCL kernel source in order to force OpenCL JiT compiler to recompile and not use the cache
 - OpenCL Runtime: Enforce to use OpenCL version 1.2 to restrain OpenCL runtimes to make use of the __generic address space qualifier
 - OpenCL Runtime: Updated rocm detection

@@ -4078,6 +4078,15 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->kernel_loops_max = user_options->kernel_loops;
     }
 
+    // limit scrypt accel otherwise we hurt ourself when calculating the scrypt tmto
+
+    if ((hashconfig->hash_mode == 8900) || (hashconfig->hash_mode == 9300) || (hashconfig->hash_mode == 15700))
+    {
+      // 16 is actually a bit low, we may need to change this depending on user response
+
+      device_param->kernel_accel_max = MIN (device_param->kernel_accel_max, 16);
+    }
+
     // we have some absolute limits for fast hashes (because of limit constant memory), make sure not to overstep
 
     if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
@@ -4356,6 +4365,12 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     size_t size_tmps     = 4;
     size_t size_hooks    = 4;
 
+    // instead of adding a thread limit we can also use a memory limit.
+    // this value should represent a reasonable amount of memory a host system has per GPU.
+    // note we're allocating 3 blocks of that size.
+
+    #define PWS_SPACE (512 * 1024 * 1024)
+
     // sometimes device_global_mem and device_maxmem_alloc reported back from the opencl runtime are a bit inaccurate.
     // let's add some extra space just to be sure.
 
@@ -4391,6 +4406,11 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       // if not, decrease amplifier and try again
 
       int memory_limit_hit = 0;
+
+      if (user_options->workload_profile < 4)
+      {
+        if (size_pws > PWS_SPACE) memory_limit_hit = 1;
+      }
 
       if ((size_pws   + EXTRA_SPACE) > device_param->device_maxmem_alloc) memory_limit_hit = 1;
       if ((size_tmps  + EXTRA_SPACE) > device_param->device_maxmem_alloc) memory_limit_hit = 1;

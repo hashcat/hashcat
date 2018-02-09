@@ -25980,53 +25980,9 @@ u32 hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_p
 
   if (forced_kernel_threads) return forced_kernel_threads;
 
-  // otherwise it depends on (1) the opencl device type
+  // otherwise it depends on the opencl device type
 
-  u32 kernel_threads = 0;
-
-  if (device_param->device_type & CL_DEVICE_TYPE_CPU)
-  {
-    kernel_threads = KERNEL_THREADS_MAX_CPU;
-  }
-  else if (device_param->device_type & CL_DEVICE_TYPE_GPU)
-  {
-    if (device_param->device_vendor_id == VENDOR_ID_NV)
-    {
-      kernel_threads = KERNEL_THREADS_MAX_GPU_NV;
-    }
-    else if (device_param->device_vendor_id == VENDOR_ID_AMD)
-    {
-      kernel_threads = KERNEL_THREADS_MAX_GPU_AMD;
-    }
-    else
-    {
-      kernel_threads = KERNEL_THREADS_MAX_GPU;
-    }
-  }
-  else
-  {
-    kernel_threads = KERNEL_THREADS_MAX_OTHER;
-  }
-
-  if (user_options->workload_profile == 4)
-  {
-    kernel_threads = (u32) device_param->device_maxworkgroup_size;
-  }
-
-  // and (2) an opencl device can force an lower value (limited resources on device)
-
-  kernel_threads = MIN (kernel_threads, (u32) device_param->device_maxworkgroup_size);
-
-  // and (3) if an OpenCL device allows a very high thread count (for example 1024 on nvidia),
-  // the host memory required is 32 times as high with 32 (It jumps from 128MB to 4GB device memory requirement).
-  // since there's no device with that much device memory (because of 1/4 memory rule) it has to limit the
-  // kernel_accel_max to be a very low number because the pws buffer will be so large otherwise.
-  // therefore autotune will be unable to calculate a good kernel_accel multiplier.
-  // currently there's no OpenCL device known that needs result in a better performance with 1024 threads compared to 256.
-  // as a result, we limit the number of threads to 64, which turns out to be a general good value.
-  // there's a 1.00% - 2.75% performance drop at NV caused by this, and 0.00% - 1.02% at AMD.
-
-  kernel_threads = MIN (kernel_threads, 64);
+  const u32 kernel_threads = (const u32) device_param->device_maxworkgroup_size;
 
   return kernel_threads;
 }
