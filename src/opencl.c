@@ -2228,7 +2228,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
         {
           if (user_options->attack_mode == ATTACK_MODE_COMBI)
           {
-            char *line_buf = combinator_ctx->scratch_buf;
+            char *line_buf = device_param->scratch_buf;
 
             u32 i = 0;
 
@@ -2345,7 +2345,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
         {
           if ((user_options->attack_mode == ATTACK_MODE_COMBI) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
           {
-            char *line_buf = combinator_ctx->scratch_buf;
+            char *line_buf = device_param->scratch_buf;
 
             u32 i = 0;
 
@@ -5215,6 +5215,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     device_param->hooks_buf = hooks_buf;
 
+    char *scratch_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
+
+    device_param->scratch_buf = scratch_buf;
+
     /**
      * kernel args
      */
@@ -5867,6 +5871,7 @@ void opencl_session_destroy (hashcat_ctx_t *hashcat_ctx)
     hcfree (device_param->pws_idx);
     hcfree (device_param->combs_buf);
     hcfree (device_param->hooks_buf);
+    hcfree (device_param->scratch_buf);
 
     if (device_param->d_pws_buf)        hc_clReleaseMemObject (hashcat_ctx, device_param->d_pws_buf);
     if (device_param->d_pws_amp_buf)    hc_clReleaseMemObject (hashcat_ctx, device_param->d_pws_amp_buf);

@@ -980,6 +980,8 @@ typedef struct hc_device_param
   size_t  size_st_salts;
   size_t  size_st_esalts;
 
+  char   *scratch_buf;
+
   FILE   *combs_fp;
   pw_t   *combs_buf;
 
@@ -1693,8 +1695,6 @@ typedef struct straight_ctx
 typedef struct combinator_ctx
 {
   bool enabled;
-
-  char *scratch_buf;
 
   char *dict1;
   char *dict2;

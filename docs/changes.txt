@@ -29,6 +29,7 @@
 - Fixed a hash parsing problem when using --show/--left with hashes with long salts that required pure kernels
 - Fixed a mask-length check issue: Return -1 in case the mask-length is not within the password-length range
 - Fixed a missing check for returncode in case hashcat.hcstat2 was not found
+- Fixed a race condition in combinator- and hybrid-mode where the same scratch buffer was used by multiple threads
 - Fixed a restore issue leading to "Restore value is greater than keyspace" when mask-files or wordlist-folders were used
 - Fixed a uninitialized value in OpenCL kernels 9720, 9820 and 10420 leading to absurd benchmark performance
 - Fixed invalid support for SIMD in -m 400
