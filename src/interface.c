@@ -25982,7 +25982,12 @@ u32 hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_p
 
   // otherwise it depends on the opencl device type
 
-  const u32 kernel_threads = (const u32) device_param->device_maxworkgroup_size;
+  u32 kernel_threads = (const u32) device_param->device_maxworkgroup_size;
+
+  if (device_param->device_type & CL_DEVICE_TYPE_CPU)
+  {
+    kernel_threads = MIN (kernel_threads, KERNEL_THREADS_MAX_CPU);
+  }
 
   return kernel_threads;
 }
