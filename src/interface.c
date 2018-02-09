@@ -5815,14 +5815,14 @@ int blake2b_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   memset(S,  0, sizeof (blake2_t));
 
-  S->h[0] = blake2b_IV[0];
-  S->h[1] = blake2b_IV[1];
-  S->h[2] = blake2b_IV[2];
-  S->h[3] = blake2b_IV[3];
-  S->h[4] = blake2b_IV[4];
-  S->h[5] = blake2b_IV[5];
-  S->h[6] = blake2b_IV[6];
-  S->h[7] = blake2b_IV[7];
+  S->h[0] = BLAKE2B_IV_00;
+  S->h[1] = BLAKE2B_IV_01;
+  S->h[2] = BLAKE2B_IV_02;
+  S->h[3] = BLAKE2B_IV_03;
+  S->h[4] = BLAKE2B_IV_04;
+  S->h[5] = BLAKE2B_IV_05;
+  S->h[6] = BLAKE2B_IV_06;
+  S->h[7] = BLAKE2B_IV_07;
 
   // S->h[0] ^= 0x0000000001010040; // digest_lenght = 0x40, depth = 0x01, fanout = 0x01
   S->h[0] ^= 0x40 <<  0;
