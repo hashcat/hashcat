@@ -2460,6 +2460,8 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
         if (CL_rc == -1) return -1;
       }
 
+      /*
+      // this writes speed cache, we dont want it
       if (user_options->speed_only == true)
       {
         for (int i = 0; i < 16; i++)
@@ -2471,6 +2473,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
         hc_timer_set (&device_param->timer_speed);
       }
+      */
 
       const int rc = choose_kernel (hashcat_ctx, device_param, highest_pw_len, pws_cnt, fast_iteration, salt_pos);
 
@@ -4002,25 +4005,14 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     }
 
     // We can't have SIMD in kernels where we have an unknown final password length
+    // It also turns out that pure kernels (that have a higher register pressure)
+    // actually run faster on scalar GPU (like 1080) without SIMD
 
     if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
     {
-      if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+      if (device_param->device_type & CL_DEVICE_TYPE_GPU)
       {
-        if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
-        {
-          vector_width = 1;
-        }
-        else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
-        {
-          vector_width = 1;
-        }
-      }
-      else
-      {
-        // there's currently no slow kernel that supports NEW_SIMD_CODE which
-        // has unknown final password length in _loop kernel
-        // vector_width = 1;
+        vector_width = 1;
       }
     }
 
@@ -4372,7 +4364,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     // this value should represent a reasonable amount of memory a host system has per GPU.
     // note we're allocating 3 blocks of that size.
 
-    #define PWS_SPACE (512 * 1024 * 1024)
+    #define PWS_SPACE (64 * 1024 * 1024)
 
     // sometimes device_global_mem and device_maxmem_alloc reported back from the opencl runtime are a bit inaccurate.
     // let's add some extra space just to be sure.
