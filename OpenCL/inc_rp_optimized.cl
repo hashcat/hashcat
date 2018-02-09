@@ -21,7 +21,7 @@ void truncate_right (u32 buf0[4], u32 buf1[4], const u32 offset)
   const u32 tmp = (1u << ((offset & 3u) * 8u)) - 1u;
 
   #ifdef IS_AMD
-  volatile const int offset_switch = offset / 4;
+  const int offset_switch = offset / 4;
   #else
   const int offset_switch = offset / 4;
   #endif
@@ -80,7 +80,7 @@ void truncate_left (u32 buf0[4], u32 buf1[4], const u32 offset)
   const u32 tmp = ~((1u << ((offset & 3u) * 8u)) - 1u);
 
   #ifdef IS_AMD
-  volatile const int offset_switch = offset / 4;
+  const int offset_switch = offset / 4;
   #else
   const int offset_switch = offset / 4;
   #endif
@@ -780,7 +780,7 @@ void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32 src_l0
   u32 s7 = 0;
 
   #ifdef IS_AMD
-  volatile const int offset_switch = offset / 4;
+  const int offset_switch = offset / 4;
   #else
   const int offset_switch = offset / 4;
   #endif
@@ -1361,7 +1361,7 @@ u32 rule_op_mangle_delete_at (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 
   const u32 mr = ~ml;
 
   #ifdef IS_AMD
-  volatile const int p0_switch = p0 / 4;
+  const int p0_switch = p0 / 4;
   #else
   const int p0_switch = p0 / 4;
   #endif
@@ -1468,7 +1468,7 @@ u32 rule_op_mangle_omit (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, M
   const u32 mr = ~ml;
 
   #ifdef IS_AMD
-  volatile const int p0_switch = p0 / 4;
+  const int p0_switch = p0 / 4;
   #else
   const int p0_switch = p0 / 4;
   #endif
@@ -1554,7 +1554,7 @@ u32 rule_op_mangle_insert (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1,
   const u32 mr = 0xffffff00 << ((p0 & 3) * 8);
 
   #ifdef IS_AMD
-  volatile const int p0_switch = p0 / 4;
+  const int p0_switch = p0 / 4;
   #else
   const int p0_switch = p0 / 4;
   #endif

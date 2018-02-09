@@ -116,7 +116,7 @@ DECLSPEC void cram_md5_transform (const u32 w0[4], const u32 w1[4], const u32 w2
 DECLSPEC void cram_md5_update_64 (md5_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len)
 {
   #ifdef IS_AMD
-  volatile const int pos = ctx->len & 63;
+  const int pos = ctx->len & 63;
   #else
   const int pos = ctx->len & 63;
   #endif

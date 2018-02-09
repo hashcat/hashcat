@@ -250,7 +250,7 @@ __kernel void m12500_loop (__global pw_t *pws, __global const kernel_rule_t *rul
         iter++;
       }
 
-      for (volatile u32 j = 0; j < p3; j++)
+      for (u32 j = 0; j < p3; j++)
       {
         const u32 j16 = j * 16;
 

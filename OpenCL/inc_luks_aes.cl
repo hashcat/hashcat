@@ -2758,7 +2758,7 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (__global const luks_t *luks_bufs, _
     if (key_size == HC_LUKS_KEY_SIZE_128)
     {
       #if defined (IS_APPLE) && defined (IS_GPU)
-      volatile u32 ukey[4];
+      u32 ukey[4];
       #else
       u32 ukey[4];
       #endif
@@ -2783,7 +2783,7 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (__global const luks_t *luks_bufs, _
     else if (key_size == HC_LUKS_KEY_SIZE_256)
     {
       #if defined (IS_APPLE) && defined (IS_GPU)
-      volatile u32 ukey[8];
+      u32 ukey[8];
       #else
       u32 ukey[8];
       #endif
@@ -2815,7 +2815,7 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (__global const luks_t *luks_bufs, _
     if (key_size == HC_LUKS_KEY_SIZE_128)
     {
       #if defined (IS_APPLE) && defined (IS_GPU)
-      volatile u32 ukey[4];
+      u32 ukey[4];
       #else
       u32 ukey[4];
       #endif
@@ -2834,7 +2834,7 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (__global const luks_t *luks_bufs, _
     else if (key_size == HC_LUKS_KEY_SIZE_256)
     {
       #if defined (IS_APPLE) && defined (IS_GPU)
-      volatile u32 ukey[8];
+      u32 ukey[8];
       #else
       u32 ukey[8];
       #endif
@@ -2860,7 +2860,7 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (__global const luks_t *luks_bufs, _
     if (key_size == HC_LUKS_KEY_SIZE_256)
     {
       #if defined (IS_APPLE) && defined (IS_GPU)
-      volatile u32 ukey1[4];
+      u32 ukey1[4];
       #else
       u32 ukey1[4];
       #endif
@@ -2871,7 +2871,7 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (__global const luks_t *luks_bufs, _
       ukey1[3] = mk[3];
 
       #if defined (IS_APPLE) && defined (IS_GPU)
-      volatile u32 ukey2[4];
+      u32 ukey2[4];
       #else
       u32 ukey2[4];
       #endif
@@ -2892,7 +2892,7 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (__global const luks_t *luks_bufs, _
     else if (key_size == HC_LUKS_KEY_SIZE_512)
     {
       #if defined (IS_APPLE) && defined (IS_GPU)
-      volatile u32 ukey1[8];
+      u32 ukey1[8];
       #else
       u32 ukey1[8];
       #endif
@@ -2907,7 +2907,7 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (__global const luks_t *luks_bufs, _
       ukey1[7] = mk[ 7];
 
       #if defined (IS_APPLE) && defined (IS_GPU)
-      volatile u32 ukey2[8];
+      u32 ukey2[8];
       #else
       u32 ukey2[8];
       #endif

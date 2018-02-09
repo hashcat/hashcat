@@ -335,7 +335,7 @@ __constant u32a c_sbox3[256] =
 // temporary hack for Apple Iris GPUs (with as little performance drop as possible)
 
 #if defined (IS_APPLE) && defined (IS_GPU)
-#define TMP_TYPE volatile u32
+#define TMP_TYPE u32
 #else
 #define TMP_TYPE u32
 #endif
