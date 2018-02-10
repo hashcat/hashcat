@@ -1318,7 +1318,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
         if (user_options->speed_only == true)
         {
-          if (speed_msec > 4096) return -2; // special RC
+          if (speed_msec > 4000) return -2; // special RC
         }
       }
 
@@ -2460,27 +2460,12 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
         if (CL_rc == -1) return -1;
       }
 
-      /*
-      // this writes speed cache, we dont want it
-      if (user_options->speed_only == true)
-      {
-        for (int i = 0; i < 16; i++)
-        {
-          const int rc = choose_kernel (hashcat_ctx, device_param, highest_pw_len, pws_cnt, fast_iteration, salt_pos);
-
-          if (rc == -1) return -1;
-        }
-
-        hc_timer_set (&device_param->timer_speed);
-      }
-      */
-
       const int rc = choose_kernel (hashcat_ctx, device_param, highest_pw_len, pws_cnt, fast_iteration, salt_pos);
 
       if (rc == -1) return -1;
 
       /**
-       * benchmark, part1
+       * benchmark was aborted because too long kernel runtime (slow hashes only)
        */
 
       if (user_options->speed_only == true)
@@ -2530,7 +2515,43 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
        * benchmark, part2
        */
 
-      if (user_options->speed_only == true) break;
+      if (user_options->speed_only == true)
+      {
+        double total = device_param->speed_msec[0];
+
+        for (u32 speed_pos = 1; speed_pos < device_param->speed_pos; speed_pos++)
+        {
+          total += device_param->speed_msec[speed_pos];
+        }
+
+        // it's unclear if 4s is enough to turn on boost mode for all opencl device
+
+        if ((total > 4000) || (device_param->speed_pos == SPEED_CACHE - 1))
+        {
+          u32 q = device_param->speed_pos / 10; // only use the last 10% of the recording
+
+          if (q == 0) q = 1;
+
+          u64    cnt  = 0;
+          double msec = 0;
+
+          for (u32 speed_pos = device_param->speed_pos - q; speed_pos < device_param->speed_pos; speed_pos++)
+          {
+            cnt  += device_param->speed_cnt[speed_pos];
+            msec += device_param->speed_msec[speed_pos];
+          }
+
+          memset (device_param->speed_cnt,  0, SPEED_CACHE * sizeof (u64));
+          memset (device_param->speed_msec, 0, SPEED_CACHE * sizeof (double));
+
+          device_param->speed_cnt[0]  = cnt  / q;
+          device_param->speed_msec[0] = msec / q;
+
+          device_param->speed_pos = 1;
+
+          break;
+        }
+      }
 
       /**
        * result
@@ -6050,6 +6071,12 @@ void opencl_session_reset (hashcat_ctx_t *hashcat_ctx)
 
     device_param->words_off  = 0;
     device_param->words_done = 0;
+
+    #if defined (_WIN)
+    device_param->timer_speed.QuadPart = 0;
+    #else
+    device_param->timer_speed.tv_sec = 0;
+    #endif
   }
 
   opencl_ctx->kernel_power_all   = 0;

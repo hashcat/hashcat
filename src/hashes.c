@@ -330,10 +330,11 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
 int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 salt_pos)
 {
-  cpt_ctx_t    *cpt_ctx    = hashcat_ctx->cpt_ctx;
-  hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
-  hashes_t     *hashes     = hashcat_ctx->hashes;
-  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+  cpt_ctx_t      *cpt_ctx      = hashcat_ctx->cpt_ctx;
+  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  hashes_t       *hashes       = hashcat_ctx->hashes;
+  status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  user_options_t *user_options = hashcat_ctx->user_options;
 
   salt_t *salt_buf = &hashes->salts_buf[salt_pos];
 
@@ -348,6 +349,14 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
     event_log_error (hashcat_ctx, "clEnqueueReadBuffer(): %s", val2cstr_cl (CL_err));
 
     return -1;
+  }
+
+  // we want the hc_clEnqueueReadBuffer to run in benchmark mode because it has an influence in performance
+  // but sometimes, when a benchmark kernel run cracks a kernel, we don't want to see that!
+
+  if (user_options->speed_only == true)
+  {
+    return 0;
   }
 
   if (num_cracked)

@@ -42,6 +42,7 @@
 ##
 
 - OpenCL Kernels: Add a decompressing kernel and a compressing host code in order to reduce PCIe transfer time
+- OpenCL Kernels: Improve performance preview accuracy in --benchmark, --speed-only and --progress-only mode
 - OpenCL Kernels: Remove password length restriction to 16 for Cisco-PIX and Cisco-ASA hashes
 - Terminal: Display Set Cost/Rounds During Benchmarking
 - Terminal: Show [r]esume in prompt only in pause mode, and show [p]ause in prompt only in resume mode
