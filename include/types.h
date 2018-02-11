@@ -951,6 +951,23 @@ typedef struct hc_device_param
   u32     kernel_threads_by_wgs_kernel_atinit;
   u32     kernel_threads_by_wgs_kernel_decompress;
 
+  u64     kernel_local_mem_size1;
+  u64     kernel_local_mem_size12;
+  u64     kernel_local_mem_size2;
+  u64     kernel_local_mem_size23;
+  u64     kernel_local_mem_size3;
+  u64     kernel_local_mem_size4;
+  u64     kernel_local_mem_size_init2;
+  u64     kernel_local_mem_size_loop2;
+  u64     kernel_local_mem_size_mp;
+  u64     kernel_local_mem_size_mp_l;
+  u64     kernel_local_mem_size_mp_r;
+  u64     kernel_local_mem_size_amp;
+  u64     kernel_local_mem_size_tm;
+  u64     kernel_local_mem_size_memset;
+  u64     kernel_local_mem_size_atinit;
+  u64     kernel_local_mem_size_decompress;
+
   u32     kernel_accel;
   u32     kernel_accel_prev;
   u32     kernel_accel_min;

@@ -3864,6 +3864,23 @@ void opencl_ctx_devices_kernel_loops (hashcat_ctx_t *hashcat_ctx)
   }
 }
 
+static int get_kernel_local_mem_size (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_kernel kernel, u64 *result)
+{
+  int CL_rc;
+
+  cl_ulong local_mem_size;
+
+  CL_rc = hc_clGetKernelWorkGroupInfo (hashcat_ctx, kernel, device_param->device, CL_KERNEL_LOCAL_MEM_SIZE, sizeof (local_mem_size), &local_mem_size, NULL);
+
+  if (CL_rc == -1) return -1;
+
+printf ("%zu\n", local_mem_size);
+
+  *result = local_mem_size;
+
+  return 0;
+}
+
 static int get_kernel_threads (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_kernel kernel, u32 *result)
 {
   int CL_rc;
@@ -5445,6 +5462,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (CL_rc == -1) return -1;
 
+          CL_rc = get_kernel_local_mem_size (hashcat_ctx, device_param, device_param->kernel1, &device_param->kernel_local_mem_size1);
+
+          if (CL_rc == -1) return -1;
+
           // kernel2
 
           snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_s%02d", hashconfig->kern_type, 8);
@@ -5454,6 +5475,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
           if (CL_rc == -1) return -1;
 
           CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel2, &device_param->kernel_threads_by_wgs_kernel2);
+
+          if (CL_rc == -1) return -1;
+
+          CL_rc = get_kernel_local_mem_size (hashcat_ctx, device_param, device_param->kernel2, &device_param->kernel_local_mem_size2);
 
           if (CL_rc == -1) return -1;
 
@@ -5468,6 +5493,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
           CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel3, &device_param->kernel_threads_by_wgs_kernel3);
 
           if (CL_rc == -1) return -1;
+
+          CL_rc = get_kernel_local_mem_size (hashcat_ctx, device_param, device_param->kernel3, &device_param->kernel_local_mem_size3);
+
+          if (CL_rc == -1) return -1;
         }
         else
         {
@@ -5478,6 +5507,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
           if (CL_rc == -1) return -1;
 
           CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel4, &device_param->kernel_threads_by_wgs_kernel4);
+
+          if (CL_rc == -1) return -1;
+
+          CL_rc = get_kernel_local_mem_size (hashcat_ctx, device_param, device_param->kernel4, &device_param->kernel_local_mem_size4);
 
           if (CL_rc == -1) return -1;
         }
@@ -5498,6 +5531,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (CL_rc == -1) return -1;
 
+          CL_rc = get_kernel_local_mem_size (hashcat_ctx, device_param, device_param->kernel1, &device_param->kernel_local_mem_size1);
+
+          if (CL_rc == -1) return -1;
+
           // kernel2
 
           snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_m%02d", hashconfig->kern_type, 8);
@@ -5507,6 +5544,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
           if (CL_rc == -1) return -1;
 
           CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel2, &device_param->kernel_threads_by_wgs_kernel2);
+
+          if (CL_rc == -1) return -1;
+
+          CL_rc = get_kernel_local_mem_size (hashcat_ctx, device_param, device_param->kernel2, &device_param->kernel_local_mem_size2);
 
           if (CL_rc == -1) return -1;
 
@@ -5521,6 +5562,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
           CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel3, &device_param->kernel_threads_by_wgs_kernel3);
 
           if (CL_rc == -1) return -1;
+
+          CL_rc = get_kernel_local_mem_size (hashcat_ctx, device_param, device_param->kernel3, &device_param->kernel_local_mem_size3);
+
+          if (CL_rc == -1) return -1;
         }
         else
         {
@@ -5531,6 +5576,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
           if (CL_rc == -1) return -1;
 
           CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel4, &device_param->kernel_threads_by_wgs_kernel4);
+
+          if (CL_rc == -1) return -1;
+
+          CL_rc = get_kernel_local_mem_size (hashcat_ctx, device_param, device_param->kernel4, &device_param->kernel_local_mem_size4);
 
           if (CL_rc == -1) return -1;
         }
@@ -5547,6 +5596,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
           if (CL_rc == -1) return -1;
 
           CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel_tm, &device_param->kernel_threads_by_wgs_kernel_tm);
+
+          if (CL_rc == -1) return -1;
+
+          CL_rc = get_kernel_local_mem_size (hashcat_ctx, device_param, device_param->kernel_tm, &device_param->kernel_local_mem_size_tm);
 
           if (CL_rc == -1) return -1;
         }
@@ -5566,6 +5619,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (CL_rc == -1) return -1;
 
+      CL_rc = get_kernel_local_mem_size (hashcat_ctx, device_param, device_param->kernel1, &device_param->kernel_local_mem_size1);
+
+      if (CL_rc == -1) return -1;
+
       // kernel2
 
       snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_loop", hashconfig->kern_type);
@@ -5575,6 +5632,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (CL_rc == -1) return -1;
 
       CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel2, &device_param->kernel_threads_by_wgs_kernel2);
+
+      if (CL_rc == -1) return -1;
+
+      CL_rc = get_kernel_local_mem_size (hashcat_ctx, device_param, device_param->kernel2, &device_param->kernel_local_mem_size2);
 
       if (CL_rc == -1) return -1;
 
@@ -5590,6 +5651,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (CL_rc == -1) return -1;
 
+      CL_rc = get_kernel_local_mem_size (hashcat_ctx, device_param, device_param->kernel3, &device_param->kernel_local_mem_size3);
+
+      if (CL_rc == -1) return -1;
+
       // kernel12
 
       if (hashconfig->opts_type & OPTS_TYPE_HOOK12)
@@ -5601,6 +5666,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (CL_rc == -1) return -1;
 
         CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel12, &device_param->kernel_threads_by_wgs_kernel12);
+
+        if (CL_rc == -1) return -1;
+
+        CL_rc = get_kernel_local_mem_size (hashcat_ctx, device_param, device_param->kernel12, &device_param->kernel_local_mem_size12);
 
         if (CL_rc == -1) return -1;
       }
@@ -5618,6 +5687,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel23, &device_param->kernel_threads_by_wgs_kernel23);
 
         if (CL_rc == -1) return -1;
+
+        CL_rc = get_kernel_local_mem_size (hashcat_ctx, device_param, device_param->kernel23, &device_param->kernel_local_mem_size23);
+
+        if (CL_rc == -1) return -1;
       }
 
       // init2
@@ -5631,6 +5704,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (CL_rc == -1) return -1;
 
         CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel_init2, &device_param->kernel_threads_by_wgs_kernel_init2);
+
+        if (CL_rc == -1) return -1;
+
+        CL_rc = get_kernel_local_mem_size (hashcat_ctx, device_param, device_param->kernel_init2, &device_param->kernel_local_mem_size_init2);
 
         if (CL_rc == -1) return -1;
       }
@@ -5648,6 +5725,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel_loop2, &device_param->kernel_threads_by_wgs_kernel_loop2);
 
         if (CL_rc == -1) return -1;
+
+        CL_rc = get_kernel_local_mem_size (hashcat_ctx, device_param, device_param->kernel_loop2, &device_param->kernel_local_mem_size_loop2);
+
+        if (CL_rc == -1) return -1;
       }
     }
 
@@ -5658,6 +5739,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     if (CL_rc == -1) return -1;
 
     CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel_memset, &device_param->kernel_threads_by_wgs_kernel_memset);
+
+    if (CL_rc == -1) return -1;
+
+    CL_rc = get_kernel_local_mem_size (hashcat_ctx, device_param, device_param->kernel_memset, &device_param->kernel_local_mem_size_memset);
 
     if (CL_rc == -1) return -1;
 
@@ -5675,6 +5760,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (CL_rc == -1) return -1;
 
+    CL_rc = get_kernel_local_mem_size (hashcat_ctx, device_param, device_param->kernel_atinit, &device_param->kernel_local_mem_size_atinit);
+
+    if (CL_rc == -1) return -1;
+
     CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_atinit, 0, sizeof (cl_mem),   device_param->kernel_params_atinit[0]); if (CL_rc == -1) return -1;
     CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_atinit, 1, sizeof (cl_ulong), device_param->kernel_params_atinit[1]); if (CL_rc == -1) return -1;
 
@@ -5685,6 +5774,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     if (CL_rc == -1) return -1;
 
     CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel_decompress, &device_param->kernel_threads_by_wgs_kernel_decompress);
+
+    if (CL_rc == -1) return -1;
+
+    CL_rc = get_kernel_local_mem_size (hashcat_ctx, device_param, device_param->kernel_decompress, &device_param->kernel_local_mem_size_decompress);
 
     if (CL_rc == -1) return -1;
 
@@ -5707,6 +5800,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (CL_rc == -1) return -1;
 
+      CL_rc = get_kernel_local_mem_size (hashcat_ctx, device_param, device_param->kernel_mp_l, &device_param->kernel_local_mem_size_mp_l);
+
+      if (CL_rc == -1) return -1;
+
       // mp_r
 
       CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program_mp, "r_markov", &device_param->kernel_mp_r);
@@ -5714,6 +5811,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (CL_rc == -1) return -1;
 
       CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel_mp_r, &device_param->kernel_threads_by_wgs_kernel_mp_r);
+
+      if (CL_rc == -1) return -1;
+
+      CL_rc = get_kernel_local_mem_size (hashcat_ctx, device_param, device_param->kernel_mp_r, &device_param->kernel_local_mem_size_mp_r);
 
       if (CL_rc == -1) return -1;
 
@@ -5732,6 +5833,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel_mp, &device_param->kernel_threads_by_wgs_kernel_mp);
 
       if (CL_rc == -1) return -1;
+
+      CL_rc = get_kernel_local_mem_size (hashcat_ctx, device_param, device_param->kernel_mp, &device_param->kernel_local_mem_size_mp);
+
+      if (CL_rc == -1) return -1;
     }
     else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
     {
@@ -5740,6 +5845,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (CL_rc == -1) return -1;
 
       CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel_mp, &device_param->kernel_threads_by_wgs_kernel_mp);
+
+      if (CL_rc == -1) return -1;
+
+      CL_rc = get_kernel_local_mem_size (hashcat_ctx, device_param, device_param->kernel_mp, &device_param->kernel_local_mem_size_mp);
 
       if (CL_rc == -1) return -1;
     }
@@ -5755,6 +5864,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (CL_rc == -1) return -1;
 
       CL_rc = get_kernel_threads (hashcat_ctx, device_param, device_param->kernel_amp, &device_param->kernel_threads_by_wgs_kernel_amp);
+
+      if (CL_rc == -1) return -1;
+
+      CL_rc = get_kernel_local_mem_size (hashcat_ctx, device_param, device_param->kernel_amp, &device_param->kernel_local_mem_size_amp);
 
       if (CL_rc == -1) return -1;
     }
