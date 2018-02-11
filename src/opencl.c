@@ -1962,6 +1962,20 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
   user_options_t       *user_options        = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
 
+  // init speed timer
+
+  #if defined (_WIN)
+  if (device_param->timer_speed.QuadPart == 0)
+  {
+    hc_timer_set (&device_param->timer_speed);
+  }
+  #else
+  if (device_param->timer_speed.tv_sec == 0)
+  {
+    hc_timer_set (&device_param->timer_speed);
+  }
+  #endif
+
   if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
   {
     int CL_rc;
@@ -2108,20 +2122,6 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
   straight_ctx_t        *straight_ctx       = hashcat_ctx->straight_ctx;
   user_options_t        *user_options       = hashcat_ctx->user_options;
   user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
-
-  // init speed timer
-
-  #if defined (_WIN)
-  if (device_param->timer_speed.QuadPart == 0)
-  {
-    hc_timer_set (&device_param->timer_speed);
-  }
-  #else
-  if (device_param->timer_speed.tv_sec == 0)
-  {
-    hc_timer_set (&device_param->timer_speed);
-  }
-  #endif
 
   // find higest password length, this is for optimization stuff
 
