@@ -951,6 +951,23 @@ typedef struct hc_device_param
   u32     kernel_threads_by_wgs_kernel_atinit;
   u32     kernel_threads_by_wgs_kernel_decompress;
 
+  u32     kernel_preferred_wgs_multiple1;
+  u32     kernel_preferred_wgs_multiple12;
+  u32     kernel_preferred_wgs_multiple2;
+  u32     kernel_preferred_wgs_multiple23;
+  u32     kernel_preferred_wgs_multiple3;
+  u32     kernel_preferred_wgs_multiple4;
+  u32     kernel_preferred_wgs_multiple_init2;
+  u32     kernel_preferred_wgs_multiple_loop2;
+  u32     kernel_preferred_wgs_multiple_mp;
+  u32     kernel_preferred_wgs_multiple_mp_l;
+  u32     kernel_preferred_wgs_multiple_mp_r;
+  u32     kernel_preferred_wgs_multiple_amp;
+  u32     kernel_preferred_wgs_multiple_tm;
+  u32     kernel_preferred_wgs_multiple_memset;
+  u32     kernel_preferred_wgs_multiple_atinit;
+  u32     kernel_preferred_wgs_multiple_decompress;
+
   u64     kernel_local_mem_size1;
   u64     kernel_local_mem_size12;
   u64     kernel_local_mem_size2;
