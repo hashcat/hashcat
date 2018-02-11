@@ -1391,7 +1391,7 @@ double status_get_hashes_msec_dev (const hashcat_ctx_t *hashcat_ctx, const int d
   {
     const u32 speed_pos = device_param->speed_pos;
 
-    for (int i = 0; i < speed_pos; i++)
+    for (u32 i = 0; i < speed_pos; i++)
     {
       speed_cnt  += device_param->speed_cnt[i];
       speed_msec += device_param->speed_msec[i];

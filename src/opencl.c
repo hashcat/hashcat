@@ -1318,7 +1318,12 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
         if (user_options->speed_only == true)
         {
-          if (speed_msec > 4000) return -2; // special RC
+          if (speed_msec > 4000)
+          {
+            device_param->speed_pos = 1;
+
+            return -2; // special RC
+          }
         }
       }
 
