@@ -61,4 +61,7 @@ bool hc_same_files (char *file1, char *file2);
 u32 hc_strtoul  (const char *nptr, char **endptr, int base);
 u64 hc_strtoull (const char *nptr, char **endptr, int base);
 
+u32 power_of_two_ceil_32  (const u32 v);
+u32 power_of_two_floor_32 (const u32 v);
+
 #endif // _SHARED_H

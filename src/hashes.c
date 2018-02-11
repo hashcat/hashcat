@@ -351,11 +351,11 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
     return -1;
   }
 
-  // we want the hc_clEnqueueReadBuffer to run in benchmark mode because it has an influence in performance
-  // but sometimes, when a benchmark kernel run cracks a kernel, we don't want to see that!
-
   if (user_options->speed_only == true)
   {
+    // we want the hc_clEnqueueReadBuffer to run in benchmark mode because it has an influence in performance
+    // however if the benchmark cracks the artificial hash used for benchmarks we don't want to see that!
+
     return 0;
   }
 

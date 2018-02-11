@@ -506,3 +506,32 @@ u64 hc_strtoull (const char *nptr, char **endptr, int base)
 {
   return (u64) strtoull (nptr, endptr, base);
 }
+
+u32 power_of_two_ceil_32 (const u32 v)
+{
+  u32 r = v;
+
+  r--;
+
+  r |= r >> 1;
+  r |= r >> 2;
+  r |= r >> 4;
+  r |= r >> 8;
+  r |= r >> 16;
+
+  r++;
+
+  return r;
+}
+
+u32 power_of_two_floor_32 (const u32 v)
+{
+  u32 r = power_of_two_ceil_32 (v);
+
+  if (r > v)
+  {
+    r >>= 1;
+  }
+
+  return r;
+}

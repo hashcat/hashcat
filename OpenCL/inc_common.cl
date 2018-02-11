@@ -61724,7 +61724,8 @@ __kernel void gpu_atinit (__global pw_t *buf, const u64 gid_max)
   pw.i[62] = 0;
   pw.i[63] = 0; // yep that's faster
 
-  pw.pw_len = 1 + (l32 & 15);
+  //pw.pw_len = 1 + (l32 & 15);
+  pw.pw_len = 7; // some algorithms are very sensible on this (example: 12500)
 
   buf[gid] = pw;
 }

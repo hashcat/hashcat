@@ -3306,6 +3306,8 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         device_param->skipped = true;
       }
 
+      device_param->device_local_mem_size = device_local_mem_size;
+
       // If there's both an Intel CPU and an AMD OpenCL runtime it's a tricky situation
       // Both platforms support CPU device types and therefore both will try to use 100% of the physical resources
       // This results in both utilizing it for 50%
