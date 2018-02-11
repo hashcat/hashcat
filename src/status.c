@@ -1389,7 +1389,7 @@ double status_get_hashes_msec_dev (const hashcat_ctx_t *hashcat_ctx, const int d
 
   if (device_param->skipped == false)
   {
-    const u32 speed_pos = device_param->speed_pos;
+    const u32 speed_pos = MAX (device_param->speed_pos, 1);
 
     for (u32 i = 0; i < speed_pos; i++)
     {
@@ -1817,7 +1817,7 @@ int status_get_kernel_threads_dev (const hashcat_ctx_t *hashcat_ctx, const int d
 
   if (device_param->skipped == true) return 0;
 
-  return device_param->kernel_threads_by_user;
+  return device_param->kernel_threads;
 }
 
 int status_get_vector_width_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)

@@ -141,16 +141,6 @@ typedef enum amplifier_count
 
 } amplifier_count_t;
 
-typedef enum native_threads
-{
-  KERNEL_THREADS_NATIVE_CPU         = 1,
-  KERNEL_THREADS_NATIVE_GPU         = 8,  // ex: intel integrated
-  KERNEL_THREADS_NATIVE_GPU_NV      = 32, // optimized NV  size: warps
-  KERNEL_THREADS_NATIVE_GPU_AMD     = 64, // optimized AMD size: wavefronts
-  KERNEL_THREADS_NATIVE_OTHER       = 8,  // ex: intel MIC
-
-} native_threads_t;
-
 typedef enum vendor_id
 {
   VENDOR_ID_AMD           = (1 << 0),
@@ -932,24 +922,22 @@ typedef struct hc_device_param
 
   u32     vector_width;
 
-  u32     kernel_threads_by_user;
-
-  u32     kernel_threads_by_wgs_kernel1;
-  u32     kernel_threads_by_wgs_kernel12;
-  u32     kernel_threads_by_wgs_kernel2;
-  u32     kernel_threads_by_wgs_kernel23;
-  u32     kernel_threads_by_wgs_kernel3;
-  u32     kernel_threads_by_wgs_kernel4;
-  u32     kernel_threads_by_wgs_kernel_init2;
-  u32     kernel_threads_by_wgs_kernel_loop2;
-  u32     kernel_threads_by_wgs_kernel_mp;
-  u32     kernel_threads_by_wgs_kernel_mp_l;
-  u32     kernel_threads_by_wgs_kernel_mp_r;
-  u32     kernel_threads_by_wgs_kernel_amp;
-  u32     kernel_threads_by_wgs_kernel_tm;
-  u32     kernel_threads_by_wgs_kernel_memset;
-  u32     kernel_threads_by_wgs_kernel_atinit;
-  u32     kernel_threads_by_wgs_kernel_decompress;
+  u32     kernel_wgs1;
+  u32     kernel_wgs12;
+  u32     kernel_wgs2;
+  u32     kernel_wgs23;
+  u32     kernel_wgs3;
+  u32     kernel_wgs4;
+  u32     kernel_wgs_init2;
+  u32     kernel_wgs_loop2;
+  u32     kernel_wgs_mp;
+  u32     kernel_wgs_mp_l;
+  u32     kernel_wgs_mp_r;
+  u32     kernel_wgs_amp;
+  u32     kernel_wgs_tm;
+  u32     kernel_wgs_memset;
+  u32     kernel_wgs_atinit;
+  u32     kernel_wgs_decompress;
 
   u32     kernel_preferred_wgs_multiple1;
   u32     kernel_preferred_wgs_multiple12;
@@ -984,6 +972,8 @@ typedef struct hc_device_param
   u64     kernel_local_mem_size_memset;
   u64     kernel_local_mem_size_atinit;
   u64     kernel_local_mem_size_decompress;
+
+  u32     kernel_threads;
 
   u32     kernel_accel;
   u32     kernel_accel_prev;

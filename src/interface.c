@@ -25970,68 +25970,10 @@ u32 hashconfig_forced_kernel_threads (hashcat_ctx_t *hashcat_ctx)
   return kernel_threads;
 }
 
-u32 hashconfig_limited_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param)
-{
-  hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
-
-  u32 kernel_threads = 0;
-
-  // sometimes there's a high kernel requirement for local memory (which is multiplied with threads)
-
-  u32 local_mem_per_thread = 0;
-
-  // basically the sum of all .local space of the _loop kernel
-  // see .ptx
-
-  if (hashconfig->hash_mode ==  1800) local_mem_per_thread = 1024;
-  if (hashconfig->hash_mode == 12500) local_mem_per_thread = 3296;
-  if (hashconfig->hash_mode == 13400) local_mem_per_thread = 5360;
-
-  if (local_mem_per_thread)
-  {
-    const u32 device_local_mem_size = (const u32) device_param->device_local_mem_size;
-
-    kernel_threads = device_local_mem_size / local_mem_per_thread;
-
-    // there can be some very unaligned results from this, therefore round it down to next power of two
-
-    kernel_threads = power_of_two_floor_32 (kernel_threads);
-  }
-
-  // make sure to not underpower
-
-  if (kernel_threads)
-  {
-    if (device_param->device_type & CL_DEVICE_TYPE_CPU)
-    {
-      kernel_threads = MAX (kernel_threads, KERNEL_THREADS_NATIVE_CPU);
-    }
-    else if (device_param->device_type & CL_DEVICE_TYPE_GPU)
-    {
-      if (device_param->device_vendor_id == VENDOR_ID_NV)
-      {
-        kernel_threads = MAX (kernel_threads, KERNEL_THREADS_NATIVE_GPU_NV);
-      }
-      else if (device_param->device_vendor_id == VENDOR_ID_AMD)
-      {
-        kernel_threads = MAX (kernel_threads, KERNEL_THREADS_NATIVE_GPU_AMD);
-      }
-      else
-      {
-        kernel_threads = MAX (kernel_threads, KERNEL_THREADS_NATIVE_GPU);
-      }
-    }
-    else
-    {
-      kernel_threads = MAX (kernel_threads, KERNEL_THREADS_NATIVE_OTHER);
-    }
-  }
-
-  return kernel_threads;
-}
-
 u32 hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param)
 {
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
   // a kernel can force a fixed value
 
   const u32 forced_kernel_threads = hashconfig_forced_kernel_threads (hashcat_ctx);
@@ -26042,19 +25984,32 @@ u32 hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_p
 
   u32 kernel_threads = (u32) device_param->device_maxworkgroup_size;
 
+  // for CPU we use a special path
+
   if (device_param->device_type & CL_DEVICE_TYPE_CPU)
   {
-    kernel_threads = MIN (kernel_threads, KERNEL_THREADS_NATIVE_CPU);
+    if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+    {
+      if (device_param->kernel_preferred_wgs_multiple1)       kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple1);
+      if (device_param->kernel_preferred_wgs_multiple2)       kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple2);
+      if (device_param->kernel_preferred_wgs_multiple3)       kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple3);
+      if (device_param->kernel_preferred_wgs_multiple4)       kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple4);
+      if (device_param->kernel_preferred_wgs_multiple_tm)     kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple_tm);
+    }
+    else
+    {
+      if (device_param->kernel_preferred_wgs_multiple1)       kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple1);
+      if (device_param->kernel_preferred_wgs_multiple2)       kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple2);
+      if (device_param->kernel_preferred_wgs_multiple3)       kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple3);
+      if (device_param->kernel_preferred_wgs_multiple12)      kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple12);
+      if (device_param->kernel_preferred_wgs_multiple23)      kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple23);
+      if (device_param->kernel_preferred_wgs_multiple_init2)  kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple_init2);
+      if (device_param->kernel_preferred_wgs_multiple_loop2)  kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple_loop2);
+    }
   }
 
-  // or if it requires for example a lot of local memory
-
-  const u32 limited_kernel_threads = hashconfig_limited_kernel_threads (hashcat_ctx, device_param);
-
-  if (limited_kernel_threads)
-  {
-    kernel_threads = MIN (kernel_threads, limited_kernel_threads);
-  }
+  // we'll return a number power of two, makes future processing much more easy
+  // kernel_threads = power_of_two_floor_32 (kernel_threads);
 
   return kernel_threads;
 }

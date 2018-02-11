@@ -1975,7 +1975,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 int         hashconfig_init                   (hashcat_ctx_t *hashcat_ctx);
 void        hashconfig_destroy                (hashcat_ctx_t *hashcat_ctx);
 u32         hashconfig_forced_kernel_threads  (hashcat_ctx_t *hashcat_ctx);
-u32         hashconfig_limited_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param);
 u32         hashconfig_get_kernel_threads     (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param);
 u32         hashconfig_get_kernel_loops       (hashcat_ctx_t *hashcat_ctx);
 int         hashconfig_general_defaults       (hashcat_ctx_t *hashcat_ctx);
