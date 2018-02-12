@@ -323,15 +323,9 @@ DECLSPEC void m01000s (u32 w[16], const u32 pw_len, __global pw_t *pws, __global
     MD4_STEP0(MD4_Go, b, c, d, a,     G_wdc01, MD4S13);
     MD4_STEP0(MD4_Go, a, b, c, d,     G_w2c01, MD4S10);
     MD4_STEP0(MD4_Go, d, a, b, c,     G_w6c01, MD4S11);
-    MD4_STEP0(MD4_Go, c, d, a, b,     G_wac01, MD4S12);
-
-    if (MATCHES_NONE_VV (c, pre_c)) continue;
-
-    MD4_STEP0(MD4_Go, b, c, d, a,     G_wec01, MD4S13);
-    MD4_STEP0(MD4_Go, a, b, c, d,     G_w3c01, MD4S10);
-
-    if (MATCHES_NONE_VV (a, pre_a)) continue;
-
+    MD4_STEP0(MD4_Go, c, d, a, b,     G_wac01, MD4S12); if (MATCHES_NONE_VV (c, pre_c)) continue;
+    MD4_STEP0(MD4_Go, b, c, d, a,     G_wec01, MD4S13); if (MATCHES_NONE_VV (b, pre_b)) continue;
+    MD4_STEP0(MD4_Go, a, b, c, d,     G_w3c01, MD4S10); if (MATCHES_NONE_VV (a, pre_a)) continue;
     MD4_STEP0(MD4_Go, d, a, b, c,     G_w7c01, MD4S11);
     MD4_STEP0(MD4_Go, c, d, a, b,     G_wbc01, MD4S12);
     MD4_STEP0(MD4_Go, b, c, d, a,     G_wfc01, MD4S13);
