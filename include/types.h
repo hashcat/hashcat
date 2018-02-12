@@ -1048,6 +1048,7 @@ typedef struct hc_device_param
   u32     speed_pos;
   u64     speed_cnt[SPEED_CACHE];
   double  speed_msec[SPEED_CACHE];
+  bool    speed_only_finish;
 
   hc_timer_t timer_speed;
 

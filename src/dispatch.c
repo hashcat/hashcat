@@ -269,7 +269,7 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
     if (status_ctx->run_thread_level1 == false) break;
 
-    if (user_options->speed_only == true) break;
+    if (device_param->speed_only_finish == true) break;
   }
 
   device_param->kernel_accel_prev = device_param->kernel_accel;
@@ -363,7 +363,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       device_param->pws_cnt = 0;
 
-      if (user_options->speed_only == true) break;
+      if (device_param->speed_only_finish == true) break;
 
       if (status_ctx->run_thread_level2 == true)
       {
@@ -668,7 +668,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         */
       }
 
-      if (user_options->speed_only == true) break;
+      if (device_param->speed_only_finish == true) break;
 
       if (status_ctx->run_thread_level2 == true)
       {

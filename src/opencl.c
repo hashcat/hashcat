@@ -1322,7 +1322,9 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
           {
             device_param->speed_pos = 1;
 
-            return -2; // special RC
+            device_param->speed_only_finish = true;
+
+            return 0;
           }
         }
       }
@@ -1528,7 +1530,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
   kernel_threads = MIN (kernel_threads, device_param->kernel_threads);
 
-  kernel_threads = power_of_two_floor_32 (kernel_threads);
+  // kernel_threads = power_of_two_floor_32 (kernel_threads);
 
   while (num_elements % kernel_threads) num_elements++;
 
@@ -2468,10 +2470,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
        * benchmark was aborted because too long kernel runtime (slow hashes only)
        */
 
-      if (user_options->speed_only == true)
-      {
-        if (rc == -2) break;
-      }
+      if (device_param->speed_only_finish == true) break;
 
       /**
        * speed
@@ -2549,6 +2548,8 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
           device_param->speed_pos = 1;
 
+          device_param->speed_only_finish = true;
+
           break;
         }
       }
@@ -2569,7 +2570,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
       device_param->outerloop_msec += device_param->speed_msec[0] * m * hashes->salts_cnt;
     }
 
-    if (user_options->speed_only == true) break;
+    if (device_param->speed_only_finish == true) break;
 
     //status screen makes use of this, can't reset here
     //device_param->innerloop_pos  = 0;
@@ -6316,6 +6317,8 @@ void opencl_session_reset (hashcat_ctx_t *hashcat_ctx)
 
     memset (device_param->speed_cnt,  0, SPEED_CACHE * sizeof (u64));
     memset (device_param->speed_msec, 0, SPEED_CACHE * sizeof (double));
+
+    device_param->speed_only_finish = false;
 
     device_param->exec_pos = 0;
 

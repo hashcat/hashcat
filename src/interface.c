@@ -26007,6 +26007,24 @@ u32 hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_p
       if (device_param->kernel_preferred_wgs_multiple_loop2)  kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple_loop2);
     }
   }
+  else
+  {
+    if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+    {
+      if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+      {
+        if (device_param->kernel_wgs1) kernel_threads = MIN (kernel_threads, device_param->kernel_wgs1);
+      }
+      else
+      {
+        if (device_param->kernel_wgs4) kernel_threads = MIN (kernel_threads, device_param->kernel_wgs4);
+      }
+    }
+    else
+    {
+      if (device_param->kernel_wgs2) kernel_threads = MIN (kernel_threads, device_param->kernel_wgs2);
+    }
+  }
 
   // we'll return a number power of two, makes future processing much more easy
   // kernel_threads = power_of_two_floor_32 (kernel_threads);
