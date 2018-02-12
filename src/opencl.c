@@ -5923,11 +5923,11 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     size_t size_tmps     = 4;
     size_t size_hooks    = 4;
 
-    // instead of adding a thread limit we can also use a memory limit.
+    // instead of a thread limit we can also use a memory limit.
     // this value should represent a reasonable amount of memory a host system has per GPU.
     // note we're allocating 3 blocks of that size.
 
-    #define PWS_SPACE (64 * 1024 * 1024)
+    #define PWS_SPACE (512 * 1024 * 1024)
 
     // sometimes device_global_mem and device_maxmem_alloc reported back from the opencl runtime are a bit inaccurate.
     // let's add some extra space just to be sure.
@@ -5965,10 +5965,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       int memory_limit_hit = 0;
 
-      if (user_options->workload_profile < 4)
-      {
-        if (size_pws > PWS_SPACE) memory_limit_hit = 1;
-      }
+      if (size_pws > PWS_SPACE) memory_limit_hit = 1;
 
       if ((size_pws   + EXTRA_SPACE) > device_param->device_maxmem_alloc) memory_limit_hit = 1;
       if ((size_tmps  + EXTRA_SPACE) > device_param->device_maxmem_alloc) memory_limit_hit = 1;
