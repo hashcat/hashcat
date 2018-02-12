@@ -39,7 +39,9 @@ int sort_by_dictstat (const void *s1, const void *s2)
   stat2.STAT_NANOSECONDS_ACCESS_TIME = 0;
   #endif
 
-  return memcmp (&s1, &s2, sizeof (struct stat));
+  const int rc_memcmp = memcmp (&stat1, &stat2, sizeof (struct stat));
+
+  return rc_memcmp;
 }
 
 int dictstat_init (hashcat_ctx_t *hashcat_ctx)
