@@ -6443,6 +6443,10 @@ void opencl_session_destroy (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_memset     = NULL;
     device_param->kernel_atinit     = NULL;
     device_param->kernel_decompress = NULL;
+    device_param->kernel_aux1       = NULL;
+    device_param->kernel_aux2       = NULL;
+    device_param->kernel_aux3       = NULL;
+    device_param->kernel_aux4       = NULL;
     device_param->program           = NULL;
     device_param->program_mp        = NULL;
     device_param->program_amp       = NULL;
