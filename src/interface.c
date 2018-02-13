@@ -21633,6 +21633,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_PREFERED_THREAD
                                             | OPTS_TYPE_HASH_COPY;
                  hashconfig->kern_type      = KERN_TYPE_MD5CRYPT;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
@@ -22019,7 +22020,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case  1600:  hashconfig->hash_type      = HASH_TYPE_MD5;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_PREFERED_THREAD;
                  hashconfig->kern_type      = KERN_TYPE_APR1CRYPT;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = md5apr1_parse_hash;
@@ -23327,7 +23329,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case  6300:  hashconfig->hash_type      = HASH_TYPE_MD5;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_PREFERED_THREAD;
                  hashconfig->kern_type      = KERN_TYPE_MD5AIX;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = md5aix_parse_hash;
