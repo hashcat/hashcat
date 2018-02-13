@@ -64,6 +64,7 @@
 - OpenCL Kernels: Replace variables from uXX to uXXa if used in __constant space
 - OpenCL Kernels: Use a special kernel to initialize the password buffer used during autotune measurements, to reduce startup time
 - OpenCL Kernels: Refactored kernel thread management from native to maximum per kernel
+- OpenCL Kernels: Use three separate comparison kernels (depending on keyver) for WPA instead of one
 - OpenCL Runtime: Add current timestamp to OpenCL kernel source in order to force OpenCL JiT compiler to recompile and not use the cache
 - OpenCL Runtime: Enforce to use OpenCL version 1.2 to restrain OpenCL runtimes to make use of the __generic address space qualifier
 - OpenCL Runtime: Updated rocm detection

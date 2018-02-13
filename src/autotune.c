@@ -248,6 +248,10 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   memset (device_param->exec_us_prev4,      0, EXPECTED_ITERATIONS * sizeof (double));
   memset (device_param->exec_us_prev_init2, 0, EXPECTED_ITERATIONS * sizeof (double));
   memset (device_param->exec_us_prev_loop2, 0, EXPECTED_ITERATIONS * sizeof (double));
+  memset (device_param->exec_us_prev_aux1,  0, EXPECTED_ITERATIONS * sizeof (double));
+  memset (device_param->exec_us_prev_aux2,  0, EXPECTED_ITERATIONS * sizeof (double));
+  memset (device_param->exec_us_prev_aux3,  0, EXPECTED_ITERATIONS * sizeof (double));
+  memset (device_param->exec_us_prev_aux4,  0, EXPECTED_ITERATIONS * sizeof (double));
 
   // store
 

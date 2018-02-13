@@ -220,14 +220,18 @@ typedef enum combinator_mode
 
 typedef enum kern_run
 {
-  KERN_RUN_1     = 1000,
-  KERN_RUN_12    = 1500,
-  KERN_RUN_2     = 2000,
-  KERN_RUN_23    = 2500,
-  KERN_RUN_3     = 3000,
-  KERN_RUN_4     = 4000,
-  KERN_RUN_INIT2 = 5000,
-  KERN_RUN_LOOP2 = 6000
+  KERN_RUN_1      = 1000,
+  KERN_RUN_12     = 1500,
+  KERN_RUN_2      = 2000,
+  KERN_RUN_23     = 2500,
+  KERN_RUN_3      = 3000,
+  KERN_RUN_4      = 4000,
+  KERN_RUN_INIT2  = 5000,
+  KERN_RUN_LOOP2  = 6000,
+  KERN_RUN_AUX1   = 7001,
+  KERN_RUN_AUX2   = 7002,
+  KERN_RUN_AUX3   = 7003,
+  KERN_RUN_AUX4   = 7004,
 
 } kern_run_t;
 
@@ -376,7 +380,11 @@ typedef enum opts_type
   OPTS_TYPE_HOOK23            = (1ULL << 31),
   OPTS_TYPE_INIT2             = (1ULL << 32),
   OPTS_TYPE_LOOP2             = (1ULL << 33),
-  OPTS_TYPE_BINARY_HASHFILE   = (1ULL << 34),
+  OPTS_TYPE_AUX1              = (1ULL << 34),
+  OPTS_TYPE_AUX2              = (1ULL << 35),
+  OPTS_TYPE_AUX3              = (1ULL << 36),
+  OPTS_TYPE_AUX4              = (1ULL << 37),
+  OPTS_TYPE_BINARY_HASHFILE   = (1ULL << 38),
 
 } opts_type_t;
 
@@ -938,6 +946,10 @@ typedef struct hc_device_param
   u32     kernel_wgs_memset;
   u32     kernel_wgs_atinit;
   u32     kernel_wgs_decompress;
+  u32     kernel_wgs_aux1;
+  u32     kernel_wgs_aux2;
+  u32     kernel_wgs_aux3;
+  u32     kernel_wgs_aux4;
 
   u32     kernel_preferred_wgs_multiple1;
   u32     kernel_preferred_wgs_multiple12;
@@ -955,6 +967,10 @@ typedef struct hc_device_param
   u32     kernel_preferred_wgs_multiple_memset;
   u32     kernel_preferred_wgs_multiple_atinit;
   u32     kernel_preferred_wgs_multiple_decompress;
+  u32     kernel_preferred_wgs_multiple_aux1;
+  u32     kernel_preferred_wgs_multiple_aux2;
+  u32     kernel_preferred_wgs_multiple_aux3;
+  u32     kernel_preferred_wgs_multiple_aux4;
 
   u64     kernel_local_mem_size1;
   u64     kernel_local_mem_size12;
@@ -972,6 +988,10 @@ typedef struct hc_device_param
   u64     kernel_local_mem_size_memset;
   u64     kernel_local_mem_size_atinit;
   u64     kernel_local_mem_size_decompress;
+  u64     kernel_local_mem_size_aux1;
+  u64     kernel_local_mem_size_aux2;
+  u64     kernel_local_mem_size_aux3;
+  u64     kernel_local_mem_size_aux4;
 
   u32     kernel_threads;
 
@@ -1042,6 +1062,10 @@ typedef struct hc_device_param
   double  exec_us_prev4[EXPECTED_ITERATIONS];
   double  exec_us_prev_init2[EXPECTED_ITERATIONS];
   double  exec_us_prev_loop2[EXPECTED_ITERATIONS];
+  double  exec_us_prev_aux1[EXPECTED_ITERATIONS];
+  double  exec_us_prev_aux2[EXPECTED_ITERATIONS];
+  double  exec_us_prev_aux3[EXPECTED_ITERATIONS];
+  double  exec_us_prev_aux4[EXPECTED_ITERATIONS];
 
   // this is "current" speed
 
@@ -1085,6 +1109,10 @@ typedef struct hc_device_param
   cl_kernel  kernel_memset;
   cl_kernel  kernel_atinit;
   cl_kernel  kernel_decompress;
+  cl_kernel  kernel_aux1;
+  cl_kernel  kernel_aux2;
+  cl_kernel  kernel_aux3;
+  cl_kernel  kernel_aux4;
 
   cl_context context;
 

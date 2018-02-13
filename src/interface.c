@@ -22371,6 +22371,9 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_AUX1
+                                            | OPTS_TYPE_AUX2
+                                            | OPTS_TYPE_AUX3
                                             | OPTS_TYPE_BINARY_HASHFILE;
                  hashconfig->kern_type      = KERN_TYPE_WPA;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
@@ -22389,6 +22392,9 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_AUX1
+                                            | OPTS_TYPE_AUX2
+                                            | OPTS_TYPE_AUX3
                                             | OPTS_TYPE_BINARY_HASHFILE;
                  hashconfig->kern_type      = KERN_TYPE_WPAPMK;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;

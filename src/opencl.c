@@ -1401,23 +1401,50 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
     if (run_comp == true)
     {
-      u32 loops_cnt = 1;
-
       if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
       {
-        loops_cnt = hashes->salts_buf[salt_pos].digests_cnt;
+        const u32 loops_cnt = hashes->salts_buf[salt_pos].digests_cnt;
+
+        for (u32 loops_pos = 0; loops_pos < loops_cnt; loops_pos++)
+        {
+          device_param->kernel_params_buf32[28] = loops_pos;
+          device_param->kernel_params_buf32[29] = loops_cnt;
+
+          const u32 digests_offset = hashes->salts_buf[salt_pos].digests_offset;
+
+          wpa_t *wpas = (wpa_t *) hashes->esalts_buf;
+
+          wpa_t *wpa = &wpas[digests_offset + loops_pos];
+
+printf ("%u\n", wpa->keyver);
+
+          if (wpa->keyver == 1)
+          {
+            CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX1, pws_cnt, false, 0);
+
+            if (CL_rc == -1) return -1;
+          }
+          else if (wpa->keyver == 2)
+          {
+            CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX2, pws_cnt, false, 0);
+
+            if (CL_rc == -1) return -1;
+          }
+          else if (wpa->keyver == 3)
+          {
+            CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX3, pws_cnt, false, 0);
+
+            if (CL_rc == -1) return -1;
+          }
+
+          if (status_ctx->run_thread_level2 == false) break;
+        }
       }
-
-      for (u32 loops_pos = 0; loops_pos < loops_cnt; loops_pos++)
+      else
       {
-        device_param->kernel_params_buf32[28] = loops_pos;
-        device_param->kernel_params_buf32[29] = loops_cnt;
-
         CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_3, pws_cnt, false, 0);
 
         if (CL_rc == -1) return -1;
-
-        if (status_ctx->run_thread_level2 == false) break;
       }
     }
   }
@@ -1523,6 +1550,22 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
       kernel          = device_param->kernel_loop2;
       kernel_threads  = device_param->kernel_wgs_loop2;
       break;
+    case KERN_RUN_AUX1:
+      kernel          = device_param->kernel_aux1;
+      kernel_threads  = device_param->kernel_wgs_aux1;
+      break;
+    case KERN_RUN_AUX2:
+      kernel          = device_param->kernel_aux2;
+      kernel_threads  = device_param->kernel_wgs_aux2;
+      break;
+    case KERN_RUN_AUX3:
+      kernel          = device_param->kernel_aux3;
+      kernel_threads  = device_param->kernel_wgs_aux3;
+      break;
+    case KERN_RUN_AUX4:
+      kernel          = device_param->kernel_aux4;
+      kernel_threads  = device_param->kernel_wgs_aux4;
+      break;
     default:
       event_log_error (hashcat_ctx, "Invalid kernel specified.");
       return -1;
@@ -1614,12 +1657,16 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
       {
         switch (kern_run)
         {
-          case KERN_RUN_1:     if (device_param->exec_us_prev1[iteration]      > 0) usleep ((useconds_t)(device_param->exec_us_prev1[iteration]      * device_param->nvidia_spin_damp)); break;
-          case KERN_RUN_2:     if (device_param->exec_us_prev2[iteration]      > 0) usleep ((useconds_t)(device_param->exec_us_prev2[iteration]      * device_param->nvidia_spin_damp)); break;
-          case KERN_RUN_3:     if (device_param->exec_us_prev3[iteration]      > 0) usleep ((useconds_t)(device_param->exec_us_prev3[iteration]      * device_param->nvidia_spin_damp)); break;
-          case KERN_RUN_4:     if (device_param->exec_us_prev4[iteration]      > 0) usleep ((useconds_t)(device_param->exec_us_prev4[iteration]      * device_param->nvidia_spin_damp)); break;
-          case KERN_RUN_INIT2: if (device_param->exec_us_prev_init2[iteration] > 0) usleep ((useconds_t)(device_param->exec_us_prev_init2[iteration] * device_param->nvidia_spin_damp)); break;
-          case KERN_RUN_LOOP2: if (device_param->exec_us_prev_loop2[iteration] > 0) usleep ((useconds_t)(device_param->exec_us_prev_loop2[iteration] * device_param->nvidia_spin_damp)); break;
+          case KERN_RUN_1:      if (device_param->exec_us_prev1[iteration]      > 0) usleep ((useconds_t)(device_param->exec_us_prev1[iteration]      * device_param->nvidia_spin_damp)); break;
+          case KERN_RUN_2:      if (device_param->exec_us_prev2[iteration]      > 0) usleep ((useconds_t)(device_param->exec_us_prev2[iteration]      * device_param->nvidia_spin_damp)); break;
+          case KERN_RUN_3:      if (device_param->exec_us_prev3[iteration]      > 0) usleep ((useconds_t)(device_param->exec_us_prev3[iteration]      * device_param->nvidia_spin_damp)); break;
+          case KERN_RUN_4:      if (device_param->exec_us_prev4[iteration]      > 0) usleep ((useconds_t)(device_param->exec_us_prev4[iteration]      * device_param->nvidia_spin_damp)); break;
+          case KERN_RUN_INIT2:  if (device_param->exec_us_prev_init2[iteration] > 0) usleep ((useconds_t)(device_param->exec_us_prev_init2[iteration] * device_param->nvidia_spin_damp)); break;
+          case KERN_RUN_LOOP2:  if (device_param->exec_us_prev_loop2[iteration] > 0) usleep ((useconds_t)(device_param->exec_us_prev_loop2[iteration] * device_param->nvidia_spin_damp)); break;
+          case KERN_RUN_AUX1:   if (device_param->exec_us_prev_aux1[iteration]  > 0) usleep ((useconds_t)(device_param->exec_us_prev_aux1[iteration]  * device_param->nvidia_spin_damp)); break;
+          case KERN_RUN_AUX2:   if (device_param->exec_us_prev_aux2[iteration]  > 0) usleep ((useconds_t)(device_param->exec_us_prev_aux2[iteration]  * device_param->nvidia_spin_damp)); break;
+          case KERN_RUN_AUX3:   if (device_param->exec_us_prev_aux3[iteration]  > 0) usleep ((useconds_t)(device_param->exec_us_prev_aux3[iteration]  * device_param->nvidia_spin_damp)); break;
+          case KERN_RUN_AUX4:   if (device_param->exec_us_prev_aux4[iteration]  > 0) usleep ((useconds_t)(device_param->exec_us_prev_aux4[iteration]  * device_param->nvidia_spin_damp)); break;
         }
       }
     }
@@ -1643,12 +1690,16 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
     {
       switch (kern_run)
       {
-        case KERN_RUN_1:     device_param->exec_us_prev1[iteration]      = exec_us; break;
-        case KERN_RUN_2:     device_param->exec_us_prev2[iteration]      = exec_us; break;
-        case KERN_RUN_3:     device_param->exec_us_prev3[iteration]      = exec_us; break;
-        case KERN_RUN_4:     device_param->exec_us_prev4[iteration]      = exec_us; break;
-        case KERN_RUN_INIT2: device_param->exec_us_prev_init2[iteration] = exec_us; break;
-        case KERN_RUN_LOOP2: device_param->exec_us_prev_loop2[iteration] = exec_us; break;
+        case KERN_RUN_1:      device_param->exec_us_prev1[iteration]      = exec_us; break;
+        case KERN_RUN_2:      device_param->exec_us_prev2[iteration]      = exec_us; break;
+        case KERN_RUN_3:      device_param->exec_us_prev3[iteration]      = exec_us; break;
+        case KERN_RUN_4:      device_param->exec_us_prev4[iteration]      = exec_us; break;
+        case KERN_RUN_INIT2:  device_param->exec_us_prev_init2[iteration] = exec_us; break;
+        case KERN_RUN_LOOP2:  device_param->exec_us_prev_loop2[iteration] = exec_us; break;
+        case KERN_RUN_AUX1:   device_param->exec_us_prev_aux1[iteration]  = exec_us; break;
+        case KERN_RUN_AUX2:   device_param->exec_us_prev_aux2[iteration]  = exec_us; break;
+        case KERN_RUN_AUX3:   device_param->exec_us_prev_aux3[iteration]  = exec_us; break;
+        case KERN_RUN_AUX4:   device_param->exec_us_prev_aux4[iteration]  = exec_us; break;
       }
     }
   }
@@ -5624,6 +5675,98 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (CL_rc == -1) return -1;
       }
+
+      // aux1
+
+      if (hashconfig->opts_type & OPTS_TYPE_AUX1)
+      {
+        snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_aux1", hashconfig->kern_type);
+
+        CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel_aux1);
+
+        if (CL_rc == -1) return -1;
+
+        CL_rc = get_kernel_wgs (hashcat_ctx, device_param, device_param->kernel_aux1, &device_param->kernel_wgs_aux1);
+
+        if (CL_rc == -1) return -1;
+
+        CL_rc = get_kernel_local_mem_size (hashcat_ctx, device_param, device_param->kernel_aux1, &device_param->kernel_local_mem_size_aux1);
+
+        if (CL_rc == -1) return -1;
+
+        CL_rc = get_kernel_preferred_wgs_multiple (hashcat_ctx, device_param, device_param->kernel_aux1, &device_param->kernel_preferred_wgs_multiple_aux1);
+
+        if (CL_rc == -1) return -1;
+      }
+
+      // aux2
+
+      if (hashconfig->opts_type & OPTS_TYPE_AUX2)
+      {
+        snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_aux2", hashconfig->kern_type);
+
+        CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel_aux2);
+
+        if (CL_rc == -1) return -1;
+
+        CL_rc = get_kernel_wgs (hashcat_ctx, device_param, device_param->kernel_aux2, &device_param->kernel_wgs_aux2);
+
+        if (CL_rc == -1) return -1;
+
+        CL_rc = get_kernel_local_mem_size (hashcat_ctx, device_param, device_param->kernel_aux2, &device_param->kernel_local_mem_size_aux2);
+
+        if (CL_rc == -1) return -1;
+
+        CL_rc = get_kernel_preferred_wgs_multiple (hashcat_ctx, device_param, device_param->kernel_aux2, &device_param->kernel_preferred_wgs_multiple_aux2);
+
+        if (CL_rc == -1) return -1;
+      }
+
+      // aux3
+
+      if (hashconfig->opts_type & OPTS_TYPE_AUX3)
+      {
+        snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_aux3", hashconfig->kern_type);
+
+        CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel_aux3);
+
+        if (CL_rc == -1) return -1;
+
+        CL_rc = get_kernel_wgs (hashcat_ctx, device_param, device_param->kernel_aux3, &device_param->kernel_wgs_aux3);
+
+        if (CL_rc == -1) return -1;
+
+        CL_rc = get_kernel_local_mem_size (hashcat_ctx, device_param, device_param->kernel_aux3, &device_param->kernel_local_mem_size_aux3);
+
+        if (CL_rc == -1) return -1;
+
+        CL_rc = get_kernel_preferred_wgs_multiple (hashcat_ctx, device_param, device_param->kernel_aux3, &device_param->kernel_preferred_wgs_multiple_aux3);
+
+        if (CL_rc == -1) return -1;
+      }
+
+      // aux4
+
+      if (hashconfig->opts_type & OPTS_TYPE_AUX4)
+      {
+        snprintf (kernel_name, sizeof (kernel_name) - 1, "m%05u_aux4", hashconfig->kern_type);
+
+        CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel_aux4);
+
+        if (CL_rc == -1) return -1;
+
+        CL_rc = get_kernel_wgs (hashcat_ctx, device_param, device_param->kernel_aux4, &device_param->kernel_wgs_aux4);
+
+        if (CL_rc == -1) return -1;
+
+        CL_rc = get_kernel_local_mem_size (hashcat_ctx, device_param, device_param->kernel_aux4, &device_param->kernel_local_mem_size_aux4);
+
+        if (CL_rc == -1) return -1;
+
+        CL_rc = get_kernel_preferred_wgs_multiple (hashcat_ctx, device_param, device_param->kernel_aux4, &device_param->kernel_preferred_wgs_multiple_aux4);
+
+        if (CL_rc == -1) return -1;
+      }
     }
 
     // GPU memset
@@ -6224,6 +6367,10 @@ void opencl_session_destroy (hashcat_ctx_t *hashcat_ctx)
     if (device_param->kernel_memset)    hc_clReleaseKernel (hashcat_ctx, device_param->kernel_memset);
     if (device_param->kernel_atinit)    hc_clReleaseKernel (hashcat_ctx, device_param->kernel_atinit);
     if (device_param->kernel_decompress)hc_clReleaseKernel (hashcat_ctx, device_param->kernel_decompress);
+    if (device_param->kernel_aux1)      hc_clReleaseKernel (hashcat_ctx, device_param->kernel_aux1);
+    if (device_param->kernel_aux2)      hc_clReleaseKernel (hashcat_ctx, device_param->kernel_aux2);
+    if (device_param->kernel_aux3)      hc_clReleaseKernel (hashcat_ctx, device_param->kernel_aux3);
+    if (device_param->kernel_aux4)      hc_clReleaseKernel (hashcat_ctx, device_param->kernel_aux4);
 
     if (device_param->program)          hc_clReleaseProgram (hashcat_ctx, device_param->program);
     if (device_param->program_mp)       hc_clReleaseProgram (hashcat_ctx, device_param->program_mp);
