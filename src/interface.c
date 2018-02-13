@@ -21615,7 +21615,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case   500:  hashconfig->hash_type      = HASH_TYPE_MD5;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_PREFERED_THREAD;
                  hashconfig->kern_type      = KERN_TYPE_MD5CRYPT;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = md5crypt_parse_hash;
