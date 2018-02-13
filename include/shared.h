@@ -64,4 +64,7 @@ u64 hc_strtoull (const char *nptr, char **endptr, int base);
 u32 power_of_two_ceil_32  (const u32 v);
 u32 power_of_two_floor_32 (const u32 v);
 
+u32 round_up_multiple_32 (const u32 v, const u32 m);
+u64 round_up_multiple_64 (const u64 v, const u64 m);
+
 #endif // _SHARED_H

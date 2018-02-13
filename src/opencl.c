@@ -1573,7 +1573,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
   // kernel_threads = power_of_two_floor_32 (kernel_threads);
 
-  while (num_elements % kernel_threads) num_elements++;
+  num_elements = round_up_multiple_64 (num_elements, kernel_threads);
 
   int CL_rc;
 
@@ -1762,7 +1762,7 @@ int run_kernel_mp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
       return -1;
   }
 
-  while (num_elements % kernel_threads) num_elements++;
+  num_elements = round_up_multiple_64 (num_elements, kernel_threads);
 
   int CL_rc;
 
@@ -1846,7 +1846,7 @@ int run_kernel_amp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
   const u64 kernel_threads = device_param->kernel_wgs_amp;
 
-  while (num_elements % kernel_threads) num_elements++;
+  num_elements = round_up_multiple_64 (num_elements, kernel_threads);
 
   cl_kernel kernel = device_param->kernel_amp;
 
@@ -1882,7 +1882,7 @@ int run_kernel_atinit (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
   const u64 kernel_threads = device_param->kernel_wgs_atinit;
 
-  while (num_elements % kernel_threads) num_elements++;
+  num_elements = round_up_multiple_64 (num_elements, kernel_threads);
 
   cl_kernel kernel = device_param->kernel_atinit;
 
@@ -1928,7 +1928,7 @@ int run_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
     u64 num_elements = num16d;
 
-    while (num_elements % kernel_threads) num_elements++;
+    num_elements = round_up_multiple_64 (num_elements, kernel_threads);
 
     cl_kernel kernel = device_param->kernel_memset;
 
@@ -1981,7 +1981,7 @@ int run_kernel_decompress (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
 
   const u64 kernel_threads = device_param->kernel_wgs_decompress;
 
-  while (num_elements % kernel_threads) num_elements++;
+  num_elements = round_up_multiple_64 (num_elements, kernel_threads);
 
   cl_kernel kernel = device_param->kernel_decompress;
 

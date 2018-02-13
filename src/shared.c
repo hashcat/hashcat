@@ -535,3 +535,25 @@ u32 power_of_two_floor_32 (const u32 v)
 
   return r;
 }
+
+u32 round_up_multiple_32 (const u32 v, const u32 m)
+{
+  if (m == 0) return v;
+
+  const u32 r = v % m;
+
+  if (r == 0) return v;
+
+  return v + m - r;
+}
+
+u64 round_up_multiple_64 (const u64 v, const u64 m)
+{
+  if (m == 0) return v;
+
+  const u64 r = v % m;
+
+  if (r == 0) return v;
+
+  return v + m - r;
+}
