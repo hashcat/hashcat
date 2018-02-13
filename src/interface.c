@@ -22278,7 +22278,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case  1800:  hashconfig->hash_type      = HASH_TYPE_SHA512;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_PREFERED_THREAD;
                  hashconfig->kern_type      = KERN_TYPE_SHA512CRYPT;
                  hashconfig->dgst_size      = DGST_SIZE_8_8;
                  hashconfig->parse_func     = sha512crypt_parse_hash;
@@ -24731,7 +24732,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 13400:  hashconfig->hash_type      = HASH_TYPE_AES;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_PREFERED_THREAD;
                  hashconfig->kern_type      = KERN_TYPE_KEEPASS;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = keepass_parse_hash;
@@ -25435,7 +25437,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 15900:  hashconfig->hash_type      = HASH_TYPE_DPAPIMK;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_PREFERED_THREAD;
                  hashconfig->kern_type      = KERN_TYPE_DPAPIMK_V2;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = dpapimk_parse_hash;
@@ -25990,7 +25993,32 @@ u32 hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_p
 
   u32 kernel_threads = (u32) device_param->device_maxworkgroup_size;
 
-  // for CPU we use a special path
+  // complicated kernel tend to confuse OpenCL runtime suggestions for maximum thread size
+  // let's workaround that by sticking to their preferred thread size
+
+  if (hashconfig->opts_type & OPTS_TYPE_PREFERED_THREAD)
+  {
+    if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+    {
+      if (device_param->kernel_preferred_wgs_multiple1)       kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple1);
+      if (device_param->kernel_preferred_wgs_multiple2)       kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple2);
+      if (device_param->kernel_preferred_wgs_multiple3)       kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple3);
+      if (device_param->kernel_preferred_wgs_multiple4)       kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple4);
+      if (device_param->kernel_preferred_wgs_multiple_tm)     kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple_tm);
+    }
+    else
+    {
+      if (device_param->kernel_preferred_wgs_multiple1)       kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple1);
+      if (device_param->kernel_preferred_wgs_multiple2)       kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple2);
+      if (device_param->kernel_preferred_wgs_multiple3)       kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple3);
+      if (device_param->kernel_preferred_wgs_multiple12)      kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple12);
+      if (device_param->kernel_preferred_wgs_multiple23)      kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple23);
+      if (device_param->kernel_preferred_wgs_multiple_init2)  kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple_init2);
+      if (device_param->kernel_preferred_wgs_multiple_loop2)  kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple_loop2);
+    }
+  }
+
+  // for CPU we do the same, because some allow up to 8192 thread which seem to be a bit excessive
 
   if (device_param->device_type & CL_DEVICE_TYPE_CPU)
   {

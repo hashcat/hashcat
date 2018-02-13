@@ -385,6 +385,7 @@ typedef enum opts_type
   OPTS_TYPE_AUX3              = (1ULL << 36),
   OPTS_TYPE_AUX4              = (1ULL << 37),
   OPTS_TYPE_BINARY_HASHFILE   = (1ULL << 38),
+  OPTS_TYPE_PREFERED_THREAD   = (1ULL << 39), // some algorithms (complicated ones with many branches) benefit from this
 
 } opts_type_t;
 
