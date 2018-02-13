@@ -33,7 +33,6 @@
 - Fixed a race condition in combinator- and hybrid-mode where the same scratch buffer was used by multiple threads
 - Fixed a restore issue leading to "Restore value is greater than keyspace" when mask files or wordlist folders were used
 - Fixed a uninitialized value in OpenCL kernels 9720, 9820 and 10420 leading to absurd benchmark performance
-- Fixed invalid support for SIMD in -m 400
 - Fixed the maximum password length check in password-reassembling function
 - Fixed the output of --show when $HEX[] passwords were present within the potfile
 
@@ -70,8 +69,8 @@
 - OpenCL Runtime: Updated rocm detection
 - Returncode: Enforce return code 0 when the user selects --speed-only or --progress-only and no other error occurs
 - Rules: Fixed some default rule-files after changing rule meaning of 'x' to 'O'
-- Self Test: Skip self-test for mode 15700 because the settings are too high and cause startup times that are too long
 - Self Test: Skip self-test for mode 8900 - user-configurable scrypt settings are incompatible with fixed settings in the self-test hash
+- Self Test: Skip self-test for mode 15700 because the settings are too high and cause startup times that are too long
 - Terminal: Add workitem settings to status display (can be handy for debugging)
 - Terminal: Send clear-line code to the same output stream as the message immediately following
 - Timer: Switch from gettimeofday() to clock_gettime() to work around problems on cygwin
