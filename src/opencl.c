@@ -1416,8 +1416,6 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
           wpa_t *wpa = &wpas[digests_offset + loops_pos];
 
-printf ("%u\n", wpa->keyver);
-
           if (wpa->keyver == 1)
           {
             CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX1, pws_cnt, false, 0);
@@ -1742,19 +1740,27 @@ int run_kernel_mp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
     case KERN_RUN_MP_L: device_param->kernel_params_mp_l_buf64[9] = num; break;
   }
 
+  u64       kernel_threads = 0;
   cl_kernel kernel = NULL;
 
   switch (kern_run)
   {
-    case KERN_RUN_MP:   kernel = device_param->kernel_mp;   break;
-    case KERN_RUN_MP_R: kernel = device_param->kernel_mp_r; break;
-    case KERN_RUN_MP_L: kernel = device_param->kernel_mp_l; break;
+    case KERN_RUN_MP:
+      kernel          = device_param->kernel_mp;
+      kernel_threads  = device_param->kernel_wgs_mp;
+      break;
+    case KERN_RUN_MP_R:
+      kernel          = device_param->kernel_mp_r;
+      kernel_threads  = device_param->kernel_wgs_mp_r;
+      break;
+    case KERN_RUN_MP_L:
+      kernel          = device_param->kernel_mp_l;
+      kernel_threads  = device_param->kernel_wgs_mp_l;
+      break;
     default:
       event_log_error (hashcat_ctx, "Invalid kernel specified.");
       return -1;
   }
-
-  const u64 kernel_threads = device_param->device_maxworkgroup_size;
 
   while (num_elements % kernel_threads) num_elements++;
 
@@ -1808,7 +1814,7 @@ int run_kernel_tm (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
   const u64 num_elements = 1024; // fixed
 
-  const u64 kernel_threads = device_param->device_maxworkgroup_size;
+  const u64 kernel_threads = device_param->kernel_wgs_tm;
 
   cl_kernel kernel = device_param->kernel_tm;
 
@@ -1838,7 +1844,7 @@ int run_kernel_amp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
   device_param->kernel_params_amp_buf64[6] = num_elements;
 
-  const u64 kernel_threads = device_param->device_maxworkgroup_size;
+  const u64 kernel_threads = device_param->kernel_wgs_amp;
 
   while (num_elements % kernel_threads) num_elements++;
 
@@ -1874,7 +1880,7 @@ int run_kernel_atinit (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
   device_param->kernel_params_atinit_buf64[1] = num_elements;
 
-  const u64 kernel_threads = device_param->device_maxworkgroup_size;
+  const u64 kernel_threads = device_param->kernel_wgs_atinit;
 
   while (num_elements % kernel_threads) num_elements++;
 
@@ -1918,7 +1924,7 @@ int run_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
     device_param->kernel_params_memset_buf32[1] = value;
     device_param->kernel_params_memset_buf64[2] = num16d;
 
-    const u64 kernel_threads = device_param->device_maxworkgroup_size;
+    const u64 kernel_threads = device_param->kernel_wgs_memset;
 
     u64 num_elements = num16d;
 
@@ -1973,7 +1979,7 @@ int run_kernel_decompress (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
 
   device_param->kernel_params_decompress_buf64[3] = num_elements;
 
-  const u64 kernel_threads = device_param->device_maxworkgroup_size;
+  const u64 kernel_threads = device_param->kernel_wgs_decompress;
 
   while (num_elements % kernel_threads) num_elements++;
 
