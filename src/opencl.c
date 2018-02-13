@@ -1633,7 +1633,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
       }
     }
 
-    while (num_elements % kernel_threads) num_elements++;
+    num_elements = round_up_multiple_64 (num_elements, kernel_threads);
 
     const size_t global_work_size[3] = { num_elements,   1, 1 };
     const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
