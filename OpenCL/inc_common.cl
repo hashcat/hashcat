@@ -1282,6 +1282,8 @@ DECLSPEC void append_0x80_1x16 (u32x w[16], const u32 offset)
 
 DECLSPEC void switch_buffer_by_offset_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 offset)
 {
+  if (offset == 0) return;
+
   const int offset_mod_4 = offset & 3;
 
   const int offset_minus_4 = 4 - offset_mod_4;
@@ -1989,6 +1991,8 @@ DECLSPEC void switch_buffer_by_offset_le (u32x w0[4], u32x w1[4], u32x w2[4], u3
 
 DECLSPEC void switch_buffer_by_offset_carry_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x c0[4], u32x c1[4], u32x c2[4], u32x c3[4], const u32 offset)
 {
+  if (offset == 0) return;
+
   const int offset_mod_4 = offset & 3;
 
   const int offset_minus_4 = 4 - offset_mod_4;
@@ -3311,6 +3315,8 @@ DECLSPEC void switch_buffer_by_offset_carry_le (u32x w0[4], u32x w1[4], u32x w2[
 
 DECLSPEC void switch_buffer_by_offset_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 offset)
 {
+  if (offset == 0) return;
+
   #ifdef IS_AMD
   const int offset_switch = offset / 4;
   #else
@@ -3982,6 +3988,8 @@ DECLSPEC void switch_buffer_by_offset_be (u32x w0[4], u32x w1[4], u32x w2[4], u3
 
 DECLSPEC void switch_buffer_by_offset_carry_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x c0[4], u32x c1[4], u32x c2[4], u32x c3[4], const u32 offset)
 {
+  if (offset == 0) return;
+
   #ifdef IS_AMD
   const int offset_switch = offset / 4;
   #else
@@ -4922,6 +4930,8 @@ DECLSPEC void switch_buffer_by_offset_carry_be (u32x w0[4], u32x w1[4], u32x w2[
 
 DECLSPEC void switch_buffer_by_offset_8x4_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32 offset)
 {
+  if (offset == 0) return;
+
   const int offset_mod_4 = offset & 3;
 
   const int offset_minus_4 = 4 - offset_mod_4;
@@ -6732,6 +6742,8 @@ DECLSPEC void switch_buffer_by_offset_8x4_le (u32x w0[4], u32x w1[4], u32x w2[4]
 
 DECLSPEC void switch_buffer_by_offset_8x4_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32 offset)
 {
+  if (offset == 0) return;
+
   #ifdef IS_AMD
   const int offset_switch = offset / 4;
   #else
@@ -9064,6 +9076,8 @@ DECLSPEC void switch_buffer_by_offset_8x4_be (u32x w0[4], u32x w1[4], u32x w2[4]
 
 DECLSPEC void switch_buffer_by_offset_8x4_carry_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], u32x c0[4], u32x c1[4], u32x c2[4], u32x c3[4], u32x c4[4], u32x c5[4], u32x c6[4], u32x c7[4], const u32 offset)
 {
+  if (offset == 0) return;
+
   #ifdef IS_AMD
   const int offset_switch = offset / 4;
   #else
@@ -12452,6 +12466,8 @@ DECLSPEC void switch_buffer_by_offset_8x4_carry_be (u32x w0[4], u32x w1[4], u32x
 
 DECLSPEC void switch_buffer_by_offset_1x64_le (u32x w[64], const u32 offset)
 {
+  if (offset == 0) return;
+
   const int offset_mod_4 = offset & 3;
 
   const int offset_minus_4 = 4 - offset_mod_4;
@@ -21196,6 +21212,8 @@ DECLSPEC void switch_buffer_by_offset_1x64_le (u32x w[64], const u32 offset)
 
 DECLSPEC void switch_buffer_by_offset_1x64_be (u32x w[64], const u32 offset)
 {
+  if (offset == 0) return;
+
   #ifdef IS_AMD
   const int offset_switch = offset / 4;
   #else
@@ -32486,6 +32504,8 @@ DECLSPEC void undo_utf16le_S (const u32 in1[4], const u32 in2[4], u32 out[4])
 
 DECLSPEC void switch_buffer_by_offset_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
 {
+  if (offset == 0) return;
+
   const int offset_mod_4 = offset & 3;
 
   const int offset_minus_4 = 4 - offset_mod_4;
@@ -33192,6 +33212,8 @@ DECLSPEC void switch_buffer_by_offset_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32
 
 DECLSPEC void switch_buffer_by_offset_carry_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 c0[4], u32 c1[4], u32 c2[4], u32 c3[4], const u32 offset)
 {
+  if (offset == 0) return;
+
   const int offset_mod_4 = offset & 3;
 
   const int offset_minus_4 = 4 - offset_mod_4;
@@ -34514,6 +34536,8 @@ DECLSPEC void switch_buffer_by_offset_carry_le_S (u32 w0[4], u32 w1[4], u32 w2[4
 
 DECLSPEC void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
 {
+  if (offset == 0) return;
+
   #ifdef IS_AMD
   const int offset_switch = offset / 4;
   #else
@@ -35182,6 +35206,8 @@ DECLSPEC void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32
 
 DECLSPEC void switch_buffer_by_offset_carry_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 c0[4], u32 c1[4], u32 c2[4], u32 c3[4], const u32 offset)
 {
+  if (offset == 0) return;
+
   #ifdef IS_AMD
   const int offset_switch = offset / 4;
   #else
@@ -36122,6 +36148,8 @@ DECLSPEC void switch_buffer_by_offset_carry_be_S (u32 w0[4], u32 w1[4], u32 w2[4
 
 DECLSPEC void switch_buffer_by_offset_8x4_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const u32 offset)
 {
+  if (offset == 0) return;
+
   const int offset_mod_4 = offset & 3;
 
   const int offset_minus_4 = 4 - offset_mod_4;
@@ -37932,6 +37960,8 @@ DECLSPEC void switch_buffer_by_offset_8x4_le_S (u32 w0[4], u32 w1[4], u32 w2[4],
 
 DECLSPEC void switch_buffer_by_offset_8x4_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const u32 offset)
 {
+  if (offset == 0) return;
+
   #ifdef IS_AMD
   const int offset_switch = offset / 4;
   #else
@@ -40264,6 +40294,8 @@ DECLSPEC void switch_buffer_by_offset_8x4_be_S (u32 w0[4], u32 w1[4], u32 w2[4],
 
 DECLSPEC void switch_buffer_by_offset_8x4_carry_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], u32 c0[4], u32 c1[4], u32 c2[4], u32 c3[4], u32 c4[4], u32 c5[4], u32 c6[4], u32 c7[4], const u32 offset)
 {
+  if (offset == 0) return;
+
   #ifdef IS_AMD
   const int offset_switch = offset / 4;
   #else
@@ -43652,6 +43684,8 @@ DECLSPEC void switch_buffer_by_offset_8x4_carry_be_S (u32 w0[4], u32 w1[4], u32 
 
 DECLSPEC void switch_buffer_by_offset_1x64_le_S (u32 w[64], const u32 offset)
 {
+  if (offset == 0) return;
+
   const int offset_mod_4 = offset & 3;
 
   const int offset_minus_4 = 4 - offset_mod_4;
@@ -52396,6 +52430,8 @@ DECLSPEC void switch_buffer_by_offset_1x64_le_S (u32 w[64], const u32 offset)
 
 DECLSPEC void switch_buffer_by_offset_1x64_be_S (u32 w[64], const u32 offset)
 {
+  if (offset == 0) return;
+
   #ifdef IS_AMD
   const int offset_switch = offset / 4;
   #else
