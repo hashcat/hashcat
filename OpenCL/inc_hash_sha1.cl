@@ -212,7 +212,7 @@ DECLSPEC void sha1_update_64 (sha1_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], 
     u32 c2[4] = { 0 };
     u32 c3[4] = { 0 };
 
-    //switch_buffer_by_offset_carry_be_S (w0, w1, w2, w3, c0, c1, c2, c3, pos);
+    switch_buffer_by_offset_carry_be_S (w0, w1, w2, w3, c0, c1, c2, c3, pos);
 
     ctx->w0[0] |= w0[0];
     ctx->w0[1] |= w0[1];
