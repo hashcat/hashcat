@@ -151,7 +151,7 @@ __kernel void m06300_loop (__global pw_t *pws, __global const kernel_rule_t *rul
    * digest
    */
 
-  u32 digest[16] = { 0 };
+  u32 digest[16] = { 0 }; // has to be 16 because of update()
 
   digest[0] = tmps[gid].digest_buf[0];
   digest[1] = tmps[gid].digest_buf[1];
@@ -164,36 +164,87 @@ __kernel void m06300_loop (__global pw_t *pws, __global const kernel_rule_t *rul
 
   for (u32 i = 0, j = loop_pos; i < loop_cnt; i++, j++)
   {
+    const u32 j1 = (j & 1) ? 1 : 0;
+    const u32 j3 = (j % 3) ? 2 : 0;
+    const u32 j7 = (j % 7) ? 4 : 0;
+
+    const u32 pc = j1 + j3 + j7;
+
     md5_ctx_t md5_ctx;
 
     md5_init (&md5_ctx);
 
-    if (j & 1)
+    if (pc == 0)
     {
+      md5_ctx.w0[0] = digest[0];
+      md5_ctx.w0[1] = digest[1];
+      md5_ctx.w0[2] = digest[2];
+      md5_ctx.w0[3] = digest[3];
+
+      md5_ctx.len = 16;
+
       md5_update (&md5_ctx, w, pw_len);
     }
-    else
+    else if (pc == 1)
     {
+      md5_update (&md5_ctx, w, pw_len);
       md5_update (&md5_ctx, digest, 16);
     }
-
-    if (j % 3)
+    else if (pc == 2)
     {
+      md5_ctx.w0[0] = digest[0];
+      md5_ctx.w0[1] = digest[1];
+      md5_ctx.w0[2] = digest[2];
+      md5_ctx.w0[3] = digest[3];
+
+      md5_ctx.len = 16;
+
       md5_update (&md5_ctx, s, salt_len);
-    }
-
-    if (j % 7)
-    {
       md5_update (&md5_ctx, w, pw_len);
     }
-
-    if (j & 1)
+    else if (pc == 3)
     {
+      md5_update (&md5_ctx, w, pw_len);
+      md5_update (&md5_ctx, s, salt_len);
       md5_update (&md5_ctx, digest, 16);
     }
-    else
+    else if (pc == 4)
+    {
+      md5_ctx.w0[0] = digest[0];
+      md5_ctx.w0[1] = digest[1];
+      md5_ctx.w0[2] = digest[2];
+      md5_ctx.w0[3] = digest[3];
+
+      md5_ctx.len = 16;
+
+      md5_update (&md5_ctx, w, pw_len);
+      md5_update (&md5_ctx, w, pw_len);
+    }
+    else if (pc == 5)
     {
       md5_update (&md5_ctx, w, pw_len);
+      md5_update (&md5_ctx, w, pw_len);
+      md5_update (&md5_ctx, digest, 16);
+    }
+    else if (pc == 6)
+    {
+      md5_ctx.w0[0] = digest[0];
+      md5_ctx.w0[1] = digest[1];
+      md5_ctx.w0[2] = digest[2];
+      md5_ctx.w0[3] = digest[3];
+
+      md5_ctx.len = 16;
+
+      md5_update (&md5_ctx, s, salt_len);
+      md5_update (&md5_ctx, w, pw_len);
+      md5_update (&md5_ctx, w, pw_len);
+    }
+    else if (pc == 7)
+    {
+      md5_update (&md5_ctx, w, pw_len);
+      md5_update (&md5_ctx, s, salt_len);
+      md5_update (&md5_ctx, w, pw_len);
+      md5_update (&md5_ctx, digest, 16);
     }
 
     md5_final (&md5_ctx);
