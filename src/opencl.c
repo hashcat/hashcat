@@ -6231,15 +6231,23 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_params[ 4] = &device_param->d_tmps;
     device_param->kernel_params[ 5] = &device_param->d_hooks;
 
-    if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
     {
-      device_param->kernel_params_mp[0] = (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
-                                        ? &device_param->d_pws_buf
-                                        : &device_param->d_pws_amp_buf;
-
-      CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp, 0, sizeof (cl_mem), device_param->kernel_params_mp[0]); if (CL_rc == -1) return -1;
+      // nothing to do
     }
-    else if (user_options->attack_mode == ATTACK_MODE_BF)
+    else
+    {
+      if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+      {
+        device_param->kernel_params_mp[0] = (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+                                          ? &device_param->d_pws_buf
+                                          : &device_param->d_pws_amp_buf;
+
+        CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_mp, 0, sizeof (cl_mem), device_param->kernel_params_mp[0]); if (CL_rc == -1) return -1;
+      }
+    }
+
+    if (user_options->attack_mode == ATTACK_MODE_BF)
     {
       device_param->kernel_params_mp_l[0] = (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
                                           ? &device_param->d_pws_buf
