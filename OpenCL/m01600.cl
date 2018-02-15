@@ -18,6 +18,33 @@
 #define md5apr1_magic0 0x72706124u
 #define md5apr1_magic1 0x00002431u
 
+DECLSPEC void md5_transform_transport (const u32 *w, u32 *digest)
+{
+  u32 t0[4];
+  u32 t1[4];
+  u32 t2[4];
+  u32 t3[4];
+
+  t0[0] = w[ 0];
+  t0[1] = w[ 1];
+  t0[2] = w[ 2];
+  t0[3] = w[ 3];
+  t1[0] = w[ 4];
+  t1[1] = w[ 5];
+  t1[2] = w[ 6];
+  t1[3] = w[ 7];
+  t2[0] = w[ 8];
+  t2[1] = w[ 9];
+  t2[2] = w[10];
+  t2[3] = w[11];
+  t3[0] = w[12];
+  t3[1] = w[13];
+  t3[2] = w[14];
+  t3[3] = w[15];
+
+  md5_transform (t0, t1, t2, t3, digest);
+}
+
 __kernel void m01600_init (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global md5crypt_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
 {
   /**
@@ -161,12 +188,88 @@ __kernel void m01600_loop (__global pw_t *pws, __global const kernel_rule_t *rul
    * digest
    */
 
-  u32 digest[16] = { 0 }; // has to be 16 because of update()
+  u32 digest[4];
 
   digest[0] = tmps[gid].digest_buf[0];
   digest[1] = tmps[gid].digest_buf[1];
   digest[2] = tmps[gid].digest_buf[2];
   digest[3] = tmps[gid].digest_buf[3];
+
+  u32 wpc_len[8];
+
+  wpc_len[0] = 16     +        0 +      0 + pw_len;
+  wpc_len[1] = pw_len +        0 +      0 + 16;
+  wpc_len[2] = 16     + salt_len +      0 + pw_len;
+  wpc_len[3] = pw_len + salt_len +      0 + 16;
+  wpc_len[4] = 16     +        0 + pw_len + pw_len;
+  wpc_len[5] = pw_len +        0 + pw_len + 16;
+  wpc_len[6] = 16     + salt_len + pw_len + pw_len;
+  wpc_len[7] = pw_len + salt_len + pw_len + 16;
+
+  // largest possible wpc_len[7] is not enough because of zero buffer loop
+
+  u32 wpc[8][64 + 64 + 64 + 64];
+
+  #define PUTCHAR_LE(a,p,c) ((u8 *)(a))[(p)] = (u8) (c)
+  #define GETCHAR_LE(a,p)   ((u8 *)(a))[(p)]
+
+  #ifdef _unroll
+  #pragma unroll
+  #endif
+  for (u32 i = 0; i < 8; i++)
+  {
+    u32 block_len = 0;
+
+    if (i & 1)
+    {
+      for (u32 j = 0; j < pw_len; j++)
+      {
+        PUTCHAR_LE (wpc[i], block_len++, GETCHAR_LE (w, j));
+      }
+    }
+    else
+    {
+      block_len += 16;
+    }
+
+    if (i & 2)
+    {
+      for (u32 j = 0; j < salt_len; j++)
+      {
+        PUTCHAR_LE (wpc[i], block_len++, GETCHAR_LE (s, j));
+      }
+    }
+
+    if (i & 4)
+    {
+      for (u32 j = 0; j < pw_len; j++)
+      {
+        PUTCHAR_LE (wpc[i], block_len++, GETCHAR_LE (w, j));
+      }
+    }
+
+    if (i & 1)
+    {
+      block_len += 16;
+    }
+    else
+    {
+      for (u32 j = 0; j < pw_len; j++)
+      {
+        PUTCHAR_LE (wpc[i], block_len++, GETCHAR_LE (w, j));
+      }
+    }
+  }
+
+  #ifdef _unroll
+  #pragma unroll
+  #endif
+  for (u32 i = 0; i < 8; i++)
+  {
+    u32 *z = wpc[i] + ((wpc_len[i] / 64) * 16);
+
+    truncate_block_16x4_le_S (z + 0, z + 4, z + 8, z + 12, wpc_len[i] & 63);
+  }
 
   /**
    * loop
@@ -180,82 +283,29 @@ __kernel void m01600_loop (__global pw_t *pws, __global const kernel_rule_t *rul
 
     const u32 pc = j1 + j3 + j7;
 
+    if (j1)
+    {
+      #ifdef _unroll
+      #pragma unroll
+      #endif
+      for (u32 k = 0, p = wpc_len[pc] - 16; k < 16; k++, p++)
+      {
+        PUTCHAR_LE (wpc[pc], p, GETCHAR_LE (digest, k));
+      }
+    }
+    else
+    {
+      wpc[pc][0] = digest[0];
+      wpc[pc][1] = digest[1];
+      wpc[pc][2] = digest[2];
+      wpc[pc][3] = digest[3];
+    }
+
     md5_ctx_t md5_ctx;
 
     md5_init (&md5_ctx);
 
-    if (pc == 0)
-    {
-      md5_ctx.w0[0] = digest[0];
-      md5_ctx.w0[1] = digest[1];
-      md5_ctx.w0[2] = digest[2];
-      md5_ctx.w0[3] = digest[3];
-
-      md5_ctx.len = 16;
-
-      md5_update (&md5_ctx, w, pw_len);
-    }
-    else if (pc == 1)
-    {
-      md5_update (&md5_ctx, w, pw_len);
-      md5_update (&md5_ctx, digest, 16);
-    }
-    else if (pc == 2)
-    {
-      md5_ctx.w0[0] = digest[0];
-      md5_ctx.w0[1] = digest[1];
-      md5_ctx.w0[2] = digest[2];
-      md5_ctx.w0[3] = digest[3];
-
-      md5_ctx.len = 16;
-
-      md5_update (&md5_ctx, s, salt_len);
-      md5_update (&md5_ctx, w, pw_len);
-    }
-    else if (pc == 3)
-    {
-      md5_update (&md5_ctx, w, pw_len);
-      md5_update (&md5_ctx, s, salt_len);
-      md5_update (&md5_ctx, digest, 16);
-    }
-    else if (pc == 4)
-    {
-      md5_ctx.w0[0] = digest[0];
-      md5_ctx.w0[1] = digest[1];
-      md5_ctx.w0[2] = digest[2];
-      md5_ctx.w0[3] = digest[3];
-
-      md5_ctx.len = 16;
-
-      md5_update (&md5_ctx, w, pw_len);
-      md5_update (&md5_ctx, w, pw_len);
-    }
-    else if (pc == 5)
-    {
-      md5_update (&md5_ctx, w, pw_len);
-      md5_update (&md5_ctx, w, pw_len);
-      md5_update (&md5_ctx, digest, 16);
-    }
-    else if (pc == 6)
-    {
-      md5_ctx.w0[0] = digest[0];
-      md5_ctx.w0[1] = digest[1];
-      md5_ctx.w0[2] = digest[2];
-      md5_ctx.w0[3] = digest[3];
-
-      md5_ctx.len = 16;
-
-      md5_update (&md5_ctx, s, salt_len);
-      md5_update (&md5_ctx, w, pw_len);
-      md5_update (&md5_ctx, w, pw_len);
-    }
-    else if (pc == 7)
-    {
-      md5_update (&md5_ctx, w, pw_len);
-      md5_update (&md5_ctx, s, salt_len);
-      md5_update (&md5_ctx, w, pw_len);
-      md5_update (&md5_ctx, digest, 16);
-    }
+    md5_update (&md5_ctx, wpc[pc], wpc_len[pc]);
 
     md5_final (&md5_ctx);
 
