@@ -376,7 +376,43 @@ __kernel void m02500_aux1 (__global pw_t *pws, __global const kernel_rule_t *rul
 
     sha1_hmac_init_64 (&ctx1, w0, w1, w2, w3);
 
-    sha1_hmac_update (&ctx1, pke, 100);
+    ctx1.ipad.w0[0] = pke[ 0];
+    ctx1.ipad.w0[1] = pke[ 1];
+    ctx1.ipad.w0[2] = pke[ 2];
+    ctx1.ipad.w0[3] = pke[ 3];
+    ctx1.ipad.w1[0] = pke[ 4];
+    ctx1.ipad.w1[1] = pke[ 5];
+    ctx1.ipad.w1[2] = pke[ 6];
+    ctx1.ipad.w1[3] = pke[ 7];
+    ctx1.ipad.w2[0] = pke[ 8];
+    ctx1.ipad.w2[1] = pke[ 9];
+    ctx1.ipad.w2[2] = pke[10];
+    ctx1.ipad.w2[3] = pke[11];
+    ctx1.ipad.w3[0] = pke[12];
+    ctx1.ipad.w3[1] = pke[13];
+    ctx1.ipad.w3[2] = pke[14];
+    ctx1.ipad.w3[3] = pke[15];
+
+    sha1_transform (ctx1.ipad.w0, ctx1.ipad.w1, ctx1.ipad.w2, ctx1.ipad.w3, ctx1.ipad.h);
+
+    ctx1.ipad.w0[0] = pke[16];
+    ctx1.ipad.w0[1] = pke[17];
+    ctx1.ipad.w0[2] = pke[18];
+    ctx1.ipad.w0[3] = pke[19];
+    ctx1.ipad.w1[0] = pke[20];
+    ctx1.ipad.w1[1] = pke[21];
+    ctx1.ipad.w1[2] = pke[22];
+    ctx1.ipad.w1[3] = pke[23];
+    ctx1.ipad.w2[0] = pke[24];
+    ctx1.ipad.w2[1] = pke[25];
+    ctx1.ipad.w2[2] = pke[26];
+    ctx1.ipad.w2[3] = pke[27];
+    ctx1.ipad.w3[0] = pke[28];
+    ctx1.ipad.w3[1] = pke[29];
+    ctx1.ipad.w3[2] = pke[30];
+    ctx1.ipad.w3[3] = pke[31];
+
+    ctx1.ipad.len += 100;
 
     sha1_hmac_final (&ctx1);
 
@@ -568,7 +604,43 @@ __kernel void m02500_aux2 (__global pw_t *pws, __global const kernel_rule_t *rul
 
     sha1_hmac_init_64 (&ctx1, w0, w1, w2, w3);
 
-    sha1_hmac_update (&ctx1, pke, 100);
+    ctx1.ipad.w0[0] = pke[ 0];
+    ctx1.ipad.w0[1] = pke[ 1];
+    ctx1.ipad.w0[2] = pke[ 2];
+    ctx1.ipad.w0[3] = pke[ 3];
+    ctx1.ipad.w1[0] = pke[ 4];
+    ctx1.ipad.w1[1] = pke[ 5];
+    ctx1.ipad.w1[2] = pke[ 6];
+    ctx1.ipad.w1[3] = pke[ 7];
+    ctx1.ipad.w2[0] = pke[ 8];
+    ctx1.ipad.w2[1] = pke[ 9];
+    ctx1.ipad.w2[2] = pke[10];
+    ctx1.ipad.w2[3] = pke[11];
+    ctx1.ipad.w3[0] = pke[12];
+    ctx1.ipad.w3[1] = pke[13];
+    ctx1.ipad.w3[2] = pke[14];
+    ctx1.ipad.w3[3] = pke[15];
+
+    sha1_transform (ctx1.ipad.w0, ctx1.ipad.w1, ctx1.ipad.w2, ctx1.ipad.w3, ctx1.ipad.h);
+
+    ctx1.ipad.w0[0] = pke[16];
+    ctx1.ipad.w0[1] = pke[17];
+    ctx1.ipad.w0[2] = pke[18];
+    ctx1.ipad.w0[3] = pke[19];
+    ctx1.ipad.w1[0] = pke[20];
+    ctx1.ipad.w1[1] = pke[21];
+    ctx1.ipad.w1[2] = pke[22];
+    ctx1.ipad.w1[3] = pke[23];
+    ctx1.ipad.w2[0] = pke[24];
+    ctx1.ipad.w2[1] = pke[25];
+    ctx1.ipad.w2[2] = pke[26];
+    ctx1.ipad.w2[3] = pke[27];
+    ctx1.ipad.w3[0] = pke[28];
+    ctx1.ipad.w3[1] = pke[29];
+    ctx1.ipad.w3[2] = pke[30];
+    ctx1.ipad.w3[3] = pke[31];
+
+    ctx1.ipad.len += 100;
 
     sha1_hmac_final (&ctx1);
 
@@ -812,7 +884,43 @@ __kernel void m02500_aux3 (__global pw_t *pws, __global const kernel_rule_t *rul
 
     sha256_hmac_init_64 (&ctx1, w0, w1, w2, w3);
 
-    sha256_hmac_update (&ctx1, pke, 102);
+    ctx1.ipad.w0[0] = pke[ 0];
+    ctx1.ipad.w0[1] = pke[ 1];
+    ctx1.ipad.w0[2] = pke[ 2];
+    ctx1.ipad.w0[3] = pke[ 3];
+    ctx1.ipad.w1[0] = pke[ 4];
+    ctx1.ipad.w1[1] = pke[ 5];
+    ctx1.ipad.w1[2] = pke[ 6];
+    ctx1.ipad.w1[3] = pke[ 7];
+    ctx1.ipad.w2[0] = pke[ 8];
+    ctx1.ipad.w2[1] = pke[ 9];
+    ctx1.ipad.w2[2] = pke[10];
+    ctx1.ipad.w2[3] = pke[11];
+    ctx1.ipad.w3[0] = pke[12];
+    ctx1.ipad.w3[1] = pke[13];
+    ctx1.ipad.w3[2] = pke[14];
+    ctx1.ipad.w3[3] = pke[15];
+
+    sha1_transform (ctx1.ipad.w0, ctx1.ipad.w1, ctx1.ipad.w2, ctx1.ipad.w3, ctx1.ipad.h);
+
+    ctx1.ipad.w0[0] = pke[16];
+    ctx1.ipad.w0[1] = pke[17];
+    ctx1.ipad.w0[2] = pke[18];
+    ctx1.ipad.w0[3] = pke[19];
+    ctx1.ipad.w1[0] = pke[20];
+    ctx1.ipad.w1[1] = pke[21];
+    ctx1.ipad.w1[2] = pke[22];
+    ctx1.ipad.w1[3] = pke[23];
+    ctx1.ipad.w2[0] = pke[24];
+    ctx1.ipad.w2[1] = pke[25];
+    ctx1.ipad.w2[2] = pke[26];
+    ctx1.ipad.w2[3] = pke[27];
+    ctx1.ipad.w3[0] = pke[28];
+    ctx1.ipad.w3[1] = pke[29];
+    ctx1.ipad.w3[2] = pke[30];
+    ctx1.ipad.w3[3] = pke[31];
+
+    ctx1.ipad.len += 102;
 
     sha256_hmac_final (&ctx1);
 
