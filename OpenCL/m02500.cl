@@ -901,7 +901,7 @@ __kernel void m02500_aux3 (__global pw_t *pws, __global const kernel_rule_t *rul
     ctx1.ipad.w3[2] = pke[14];
     ctx1.ipad.w3[3] = pke[15];
 
-    sha1_transform (ctx1.ipad.w0, ctx1.ipad.w1, ctx1.ipad.w2, ctx1.ipad.w3, ctx1.ipad.h);
+    sha256_transform (ctx1.ipad.w0, ctx1.ipad.w1, ctx1.ipad.w2, ctx1.ipad.w3, ctx1.ipad.h);
 
     ctx1.ipad.w0[0] = pke[16];
     ctx1.ipad.w0[1] = pke[17];
