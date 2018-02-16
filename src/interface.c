@@ -24348,6 +24348,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = bitcoin_wallet_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_USES_BITS_64
                                             | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
@@ -25447,6 +25448,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = dpapimk_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_USES_BITS_64
                                             | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
