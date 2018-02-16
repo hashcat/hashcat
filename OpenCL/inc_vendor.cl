@@ -82,7 +82,7 @@
  */
 
 #if defined IS_CPU
-#define DECLSPEC static
+#define DECLSPEC inline
 #elif defined IS_GPU
 #if defined IS_AMD
 #define DECLSPEC inline

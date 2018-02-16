@@ -4546,6 +4546,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     snprintf (build_opts_new, sizeof (build_opts_new) - 1, "%s -D VENDOR_ID=%u -D CUDA_ARCH=%u -D AMD_ROCM=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -w", build_opts, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->is_rocm, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, hashconfig->kern_type);
     #endif
 
+    /*
     if (device_param->device_type & CL_DEVICE_TYPE_CPU)
     {
       if (device_param->platform_vendor_id == VENDOR_ID_INTEL_SDK)
@@ -4553,6 +4554,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         strncat (build_opts_new, " -cl-opt-disable", 16);
       }
     }
+    */
 
     strncpy (build_opts, build_opts_new, sizeof (build_opts) - 1);
 

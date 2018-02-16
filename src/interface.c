@@ -25993,56 +25993,33 @@ u32 hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_p
 
   if (forced_kernel_threads) return forced_kernel_threads;
 
-  // it can also depends on the opencl device type
+  // for CPU we just do 1
+
+  if (device_param->device_type & CL_DEVICE_TYPE_CPU) return 1;
+
+  // this is an upper limit, a good start, since our strategy is to reduce thread counts only
 
   u32 kernel_threads = (u32) device_param->device_maxworkgroup_size;
 
   // complicated kernel tend to confuse OpenCL runtime suggestions for maximum thread size
-  // let's workaround that by sticking to their preferred thread size
+  // let's workaround that by sticking to their device specific preferred thread size
 
   if (hashconfig->opts_type & OPTS_TYPE_PREFERED_THREAD)
   {
     if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
     {
-      if (device_param->kernel_preferred_wgs_multiple1)       kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple1);
-      if (device_param->kernel_preferred_wgs_multiple2)       kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple2);
-      if (device_param->kernel_preferred_wgs_multiple3)       kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple3);
-      if (device_param->kernel_preferred_wgs_multiple4)       kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple4);
-      if (device_param->kernel_preferred_wgs_multiple_tm)     kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple_tm);
+      if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+      {
+        if (device_param->kernel_preferred_wgs_multiple1) kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple1);
+      }
+      else
+      {
+        if (device_param->kernel_preferred_wgs_multiple4) kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple4);
+      }
     }
     else
     {
-      if (device_param->kernel_preferred_wgs_multiple1)       kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple1);
-      if (device_param->kernel_preferred_wgs_multiple2)       kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple2);
-      if (device_param->kernel_preferred_wgs_multiple3)       kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple3);
-      if (device_param->kernel_preferred_wgs_multiple12)      kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple12);
-      if (device_param->kernel_preferred_wgs_multiple23)      kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple23);
-      if (device_param->kernel_preferred_wgs_multiple_init2)  kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple_init2);
-      if (device_param->kernel_preferred_wgs_multiple_loop2)  kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple_loop2);
-    }
-  }
-
-  // for CPU we do the same, because some allow up to 8192 thread which seem to be a bit excessive
-
-  if (device_param->device_type & CL_DEVICE_TYPE_CPU)
-  {
-    if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
-    {
-      if (device_param->kernel_preferred_wgs_multiple1)       kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple1);
-      if (device_param->kernel_preferred_wgs_multiple2)       kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple2);
-      if (device_param->kernel_preferred_wgs_multiple3)       kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple3);
-      if (device_param->kernel_preferred_wgs_multiple4)       kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple4);
-      if (device_param->kernel_preferred_wgs_multiple_tm)     kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple_tm);
-    }
-    else
-    {
-      if (device_param->kernel_preferred_wgs_multiple1)       kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple1);
-      if (device_param->kernel_preferred_wgs_multiple2)       kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple2);
-      if (device_param->kernel_preferred_wgs_multiple3)       kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple3);
-      if (device_param->kernel_preferred_wgs_multiple12)      kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple12);
-      if (device_param->kernel_preferred_wgs_multiple23)      kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple23);
-      if (device_param->kernel_preferred_wgs_multiple_init2)  kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple_init2);
-      if (device_param->kernel_preferred_wgs_multiple_loop2)  kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple_loop2);
+      if (device_param->kernel_preferred_wgs_multiple2) kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple2);
     }
   }
   else
@@ -26063,9 +26040,6 @@ u32 hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_p
       if (device_param->kernel_wgs2) kernel_threads = MIN (kernel_threads, device_param->kernel_wgs2);
     }
   }
-
-  // we'll return a number power of two, makes future processing much more easy
-  // kernel_threads = power_of_two_floor_32 (kernel_threads);
 
   return kernel_threads;
 }
