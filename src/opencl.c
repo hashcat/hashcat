@@ -1814,7 +1814,7 @@ int run_kernel_tm (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
   const u64 num_elements = 1024; // fixed
 
-  const u64 kernel_threads = device_param->kernel_wgs_tm;
+  const u64 kernel_threads = MIN (num_elements, device_param->kernel_wgs_tm);
 
   cl_kernel kernel = device_param->kernel_tm;
 
