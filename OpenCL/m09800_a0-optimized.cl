@@ -277,10 +277,10 @@ __kernel void m09800_m04 (__global pw_t *pws, __constant const kernel_rule_t *ru
 
     sha1_transform (w0, w1, w2, w3, digest);
 
-    digest[0] = swap32 (digest[0]);
-    digest[1] = swap32 (digest[1]);
-    digest[2] = swap32 (digest[2]);
-    digest[3] = swap32 (digest[3]);
+    digest[0] = swap32_S (digest[0]);
+    digest[1] = swap32_S (digest[1]);
+    digest[2] = swap32_S (digest[2]);
+    digest[3] = swap32_S (digest[3]);
 
     if (version == 3)
     {
@@ -320,10 +320,10 @@ __kernel void m09800_m04 (__global pw_t *pws, __constant const kernel_rule_t *ru
 
     sha1_transform (w0, w1, w2, w3, digest);
 
-    digest[0] = swap32 (digest[0]);
-    digest[1] = swap32 (digest[1]);
-    digest[2] = swap32 (digest[2]);
-    digest[3] = swap32 (digest[3]);
+    digest[0] = swap32_S (digest[0]);
+    digest[1] = swap32_S (digest[1]);
+    digest[2] = swap32_S (digest[2]);
+    digest[3] = swap32_S (digest[3]);
 
     rc4_next_16 (rc4_key, 16, j, digest, out);
 
@@ -489,10 +489,10 @@ __kernel void m09800_s04 (__global pw_t *pws, __constant const kernel_rule_t *ru
 
     sha1_transform (w0, w1, w2, w3, digest);
 
-    digest[0] = swap32 (digest[0]);
-    digest[1] = swap32 (digest[1]);
-    digest[2] = swap32 (digest[2]);
-    digest[3] = swap32 (digest[3]);
+    digest[0] = swap32_S (digest[0]);
+    digest[1] = swap32_S (digest[1]);
+    digest[2] = swap32_S (digest[2]);
+    digest[3] = swap32_S (digest[3]);
 
     if (version == 3)
     {
@@ -532,10 +532,10 @@ __kernel void m09800_s04 (__global pw_t *pws, __constant const kernel_rule_t *ru
 
     sha1_transform (w0, w1, w2, w3, digest);
 
-    digest[0] = swap32 (digest[0]);
-    digest[1] = swap32 (digest[1]);
-    digest[2] = swap32 (digest[2]);
-    digest[3] = swap32 (digest[3]);
+    digest[0] = swap32_S (digest[0]);
+    digest[1] = swap32_S (digest[1]);
+    digest[2] = swap32_S (digest[2]);
+    digest[3] = swap32_S (digest[3]);
 
     rc4_next_16 (rc4_key, 16, j, digest, out);
 

@@ -171,20 +171,20 @@ __kernel void m16600_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
      * sha256
      */
 
-    u32x w0_t = swap32_S (w0[0]);
-    u32x w1_t = swap32_S (w0[1]);
-    u32x w2_t = swap32_S (w0[2]);
-    u32x w3_t = swap32_S (w0[3]);
-    u32x w4_t = swap32_S (w1[0]);
-    u32x w5_t = swap32_S (w1[1]);
-    u32x w6_t = swap32_S (w1[2]);
-    u32x w7_t = swap32_S (w1[3]);
-    u32x w8_t = swap32_S (w2[0]);
-    u32x w9_t = swap32_S (w2[1]);
-    u32x wa_t = swap32_S (w2[2]);
-    u32x wb_t = swap32_S (w2[3]);
-    u32x wc_t = swap32_S (w3[0]);
-    u32x wd_t = swap32_S (w3[1]);
+    u32x w0_t = swap32 (w0[0]);
+    u32x w1_t = swap32 (w0[1]);
+    u32x w2_t = swap32 (w0[2]);
+    u32x w3_t = swap32 (w0[3]);
+    u32x w4_t = swap32 (w1[0]);
+    u32x w5_t = swap32 (w1[1]);
+    u32x w6_t = swap32 (w1[2]);
+    u32x w7_t = swap32 (w1[3]);
+    u32x w8_t = swap32 (w2[0]);
+    u32x w9_t = swap32 (w2[1]);
+    u32x wa_t = swap32 (w2[2]);
+    u32x wb_t = swap32 (w2[3]);
+    u32x wc_t = swap32 (w3[0]);
+    u32x wd_t = swap32 (w3[1]);
     u32x we_t = 0;
     u32x wf_t = pw_len * 8;
 
@@ -598,20 +598,20 @@ __kernel void m16600_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
      * sha256
      */
 
-    u32x w0_t = swap32_S (w0[0]);
-    u32x w1_t = swap32_S (w0[1]);
-    u32x w2_t = swap32_S (w0[2]);
-    u32x w3_t = swap32_S (w0[3]);
-    u32x w4_t = swap32_S (w1[0]);
-    u32x w5_t = swap32_S (w1[1]);
-    u32x w6_t = swap32_S (w1[2]);
-    u32x w7_t = swap32_S (w1[3]);
-    u32x w8_t = swap32_S (w2[0]);
-    u32x w9_t = swap32_S (w2[1]);
-    u32x wa_t = swap32_S (w2[2]);
-    u32x wb_t = swap32_S (w2[3]);
-    u32x wc_t = swap32_S (w3[0]);
-    u32x wd_t = swap32_S (w3[1]);
+    u32x w0_t = swap32 (w0[0]);
+    u32x w1_t = swap32 (w0[1]);
+    u32x w2_t = swap32 (w0[2]);
+    u32x w3_t = swap32 (w0[3]);
+    u32x w4_t = swap32 (w1[0]);
+    u32x w5_t = swap32 (w1[1]);
+    u32x w6_t = swap32 (w1[2]);
+    u32x w7_t = swap32 (w1[3]);
+    u32x w8_t = swap32 (w2[0]);
+    u32x w9_t = swap32 (w2[1]);
+    u32x wa_t = swap32 (w2[2]);
+    u32x wb_t = swap32 (w2[3]);
+    u32x wc_t = swap32 (w3[0]);
+    u32x wd_t = swap32 (w3[1]);
     u32x we_t = 0;
     u32x wf_t = pw_len * 8;
 

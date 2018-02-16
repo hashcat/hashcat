@@ -194,13 +194,13 @@ __kernel void m01800_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   u64 pw[2];
 
-  pw[0] = swap64 (hl32_to_64 (w0[1], w0[0]));
-  pw[1] = swap64 (hl32_to_64 (w0[3], w0[2]));
+  pw[0] = swap64_S (hl32_to_64 (w0[1], w0[0]));
+  pw[1] = swap64_S (hl32_to_64 (w0[3], w0[2]));
 
   u64 salt[2];
 
-  salt[0] = swap64 (hl32_to_64 (salt_buf[1], salt_buf[0]));
-  salt[1] = swap64 (hl32_to_64 (salt_buf[3], salt_buf[2]));
+  salt[0] = swap64_S (hl32_to_64 (salt_buf[1], salt_buf[0]));
+  salt[1] = swap64_S (hl32_to_64 (salt_buf[3], salt_buf[2]));
 
   /**
    * begin
@@ -474,8 +474,8 @@ __kernel void m01800_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   const u64 lid = get_local_id (0);
 
-  const u64 a = swap64 (tmps[gid].l_alt_result[0]);
-  const u64 b = swap64 (tmps[gid].l_alt_result[1]);
+  const u64 a = swap64_S (tmps[gid].l_alt_result[0]);
+  const u64 b = swap64_S (tmps[gid].l_alt_result[1]);
 
   const u32 r0 = l32_from_64_S (a);
   const u32 r1 = h32_from_64_S (a);

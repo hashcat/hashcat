@@ -145,7 +145,7 @@ __kernel void m09820_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
     w0[1] = salt_buf[1];
     w0[0] = salt_buf[0];
 
-    u32 digest[5];
+    u32x digest[5];
 
     digest[0] = SHA1M_A;
     digest[1] = SHA1M_B;
@@ -341,7 +341,7 @@ __kernel void m09820_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
     w0[1] = salt_buf[1];
     w0[0] = salt_buf[0];
 
-    u32 digest[5];
+    u32x digest[5];
 
     digest[0] = SHA1M_A;
     digest[1] = SHA1M_B;

@@ -159,22 +159,22 @@ DECLSPEC void m14400m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_
   salt_buf0[0] |= dashes >> 16;
   salt_buf1[1] |= dashes << 16;
 
-  salt_buf0[0] = swap32 (salt_buf0[0]);
-  salt_buf0[1] = swap32 (salt_buf0[1]);
-  salt_buf0[2] = swap32 (salt_buf0[2]);
-  salt_buf0[3] = swap32 (salt_buf0[3]);
-  salt_buf1[0] = swap32 (salt_buf1[0]);
-  salt_buf1[1] = swap32 (salt_buf1[1]);
-  salt_buf1[2] = swap32 (salt_buf1[2]);
-  salt_buf1[3] = swap32 (salt_buf1[3]);
-  salt_buf2[0] = swap32 (salt_buf2[0]);
-  salt_buf2[1] = swap32 (salt_buf2[1]);
-  salt_buf2[2] = swap32 (salt_buf2[2]);
-  salt_buf2[3] = swap32 (salt_buf2[3]);
-  salt_buf3[0] = swap32 (salt_buf3[0]);
-  salt_buf3[1] = swap32 (salt_buf3[1]);
-  salt_buf3[2] = swap32 (salt_buf3[2]);
-  salt_buf3[3] = swap32 (salt_buf3[3]);
+  salt_buf0[0] = swap32_S (salt_buf0[0]);
+  salt_buf0[1] = swap32_S (salt_buf0[1]);
+  salt_buf0[2] = swap32_S (salt_buf0[2]);
+  salt_buf0[3] = swap32_S (salt_buf0[3]);
+  salt_buf1[0] = swap32_S (salt_buf1[0]);
+  salt_buf1[1] = swap32_S (salt_buf1[1]);
+  salt_buf1[2] = swap32_S (salt_buf1[2]);
+  salt_buf1[3] = swap32_S (salt_buf1[3]);
+  salt_buf2[0] = swap32_S (salt_buf2[0]);
+  salt_buf2[1] = swap32_S (salt_buf2[1]);
+  salt_buf2[2] = swap32_S (salt_buf2[2]);
+  salt_buf2[3] = swap32_S (salt_buf2[3]);
+  salt_buf3[0] = swap32_S (salt_buf3[0]);
+  salt_buf3[1] = swap32_S (salt_buf3[1]);
+  salt_buf3[2] = swap32_S (salt_buf3[2]);
+  salt_buf3[3] = swap32_S (salt_buf3[3]);
 
   const u32 salt_len_orig = salt_bufs[salt_pos].salt_len;
 
@@ -225,14 +225,14 @@ DECLSPEC void m14400m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_
 
   append_0x80_2x4_VV (w0_t, w1_t, pw_len_new);
 
-  w0_t[0] = swap32 (w0_t[0]);
-  w0_t[1] = swap32 (w0_t[1]);
-  w0_t[2] = swap32 (w0_t[2]);
-  w0_t[3] = swap32 (w0_t[3]);
-  w1_t[0] = swap32 (w1_t[0]);
-  w1_t[1] = swap32 (w1_t[1]);
-  w1_t[2] = swap32 (w1_t[2]);
-  w1_t[3] = swap32 (w1_t[3]);
+  w0_t[0] = swap32_S (w0_t[0]);
+  w0_t[1] = swap32_S (w0_t[1]);
+  w0_t[2] = swap32_S (w0_t[2]);
+  w0_t[3] = swap32_S (w0_t[3]);
+  w1_t[0] = swap32_S (w1_t[0]);
+  w1_t[1] = swap32_S (w1_t[1]);
+  w1_t[2] = swap32_S (w1_t[2]);
+  w1_t[3] = swap32_S (w1_t[3]);
 
   /**
    * loop
@@ -420,22 +420,22 @@ DECLSPEC void m14400s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_
   salt_buf0[0] |= dashes >> 16;
   salt_buf1[1] |= dashes << 16;
 
-  salt_buf0[0] = swap32 (salt_buf0[0]);
-  salt_buf0[1] = swap32 (salt_buf0[1]);
-  salt_buf0[2] = swap32 (salt_buf0[2]);
-  salt_buf0[3] = swap32 (salt_buf0[3]);
-  salt_buf1[0] = swap32 (salt_buf1[0]);
-  salt_buf1[1] = swap32 (salt_buf1[1]);
-  salt_buf1[2] = swap32 (salt_buf1[2]);
-  salt_buf1[3] = swap32 (salt_buf1[3]);
-  salt_buf2[0] = swap32 (salt_buf2[0]);
-  salt_buf2[1] = swap32 (salt_buf2[1]);
-  salt_buf2[2] = swap32 (salt_buf2[2]);
-  salt_buf2[3] = swap32 (salt_buf2[3]);
-  salt_buf3[0] = swap32 (salt_buf3[0]);
-  salt_buf3[1] = swap32 (salt_buf3[1]);
-  salt_buf3[2] = swap32 (salt_buf3[2]);
-  salt_buf3[3] = swap32 (salt_buf3[3]);
+  salt_buf0[0] = swap32_S (salt_buf0[0]);
+  salt_buf0[1] = swap32_S (salt_buf0[1]);
+  salt_buf0[2] = swap32_S (salt_buf0[2]);
+  salt_buf0[3] = swap32_S (salt_buf0[3]);
+  salt_buf1[0] = swap32_S (salt_buf1[0]);
+  salt_buf1[1] = swap32_S (salt_buf1[1]);
+  salt_buf1[2] = swap32_S (salt_buf1[2]);
+  salt_buf1[3] = swap32_S (salt_buf1[3]);
+  salt_buf2[0] = swap32_S (salt_buf2[0]);
+  salt_buf2[1] = swap32_S (salt_buf2[1]);
+  salt_buf2[2] = swap32_S (salt_buf2[2]);
+  salt_buf2[3] = swap32_S (salt_buf2[3]);
+  salt_buf3[0] = swap32_S (salt_buf3[0]);
+  salt_buf3[1] = swap32_S (salt_buf3[1]);
+  salt_buf3[2] = swap32_S (salt_buf3[2]);
+  salt_buf3[3] = swap32_S (salt_buf3[3]);
 
   const u32 salt_len_orig = salt_bufs[salt_pos].salt_len;
 
@@ -486,14 +486,14 @@ DECLSPEC void m14400s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_
 
   append_0x80_2x4_VV (w0_t, w1_t, pw_len_new);
 
-  w0_t[0] = swap32 (w0_t[0]);
-  w0_t[1] = swap32 (w0_t[1]);
-  w0_t[2] = swap32 (w0_t[2]);
-  w0_t[3] = swap32 (w0_t[3]);
-  w1_t[0] = swap32 (w1_t[0]);
-  w1_t[1] = swap32 (w1_t[1]);
-  w1_t[2] = swap32 (w1_t[2]);
-  w1_t[3] = swap32 (w1_t[3]);
+  w0_t[0] = swap32_S (w0_t[0]);
+  w0_t[1] = swap32_S (w0_t[1]);
+  w0_t[2] = swap32_S (w0_t[2]);
+  w0_t[3] = swap32_S (w0_t[3]);
+  w1_t[0] = swap32_S (w1_t[0]);
+  w1_t[1] = swap32_S (w1_t[1]);
+  w1_t[2] = swap32_S (w1_t[2]);
+  w1_t[3] = swap32_S (w1_t[3]);
 
   /**
    * loop

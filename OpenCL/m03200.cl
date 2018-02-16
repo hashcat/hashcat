@@ -429,24 +429,24 @@ __kernel void m03200_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   expand_key (E, w, pw_len);
 
-  E[ 0] = swap32 (E[ 0]);
-  E[ 1] = swap32 (E[ 1]);
-  E[ 2] = swap32 (E[ 2]);
-  E[ 3] = swap32 (E[ 3]);
-  E[ 4] = swap32 (E[ 4]);
-  E[ 5] = swap32 (E[ 5]);
-  E[ 6] = swap32 (E[ 6]);
-  E[ 7] = swap32 (E[ 7]);
-  E[ 8] = swap32 (E[ 8]);
-  E[ 9] = swap32 (E[ 9]);
-  E[10] = swap32 (E[10]);
-  E[11] = swap32 (E[11]);
-  E[12] = swap32 (E[12]);
-  E[13] = swap32 (E[13]);
-  E[14] = swap32 (E[14]);
-  E[15] = swap32 (E[15]);
-  E[16] = swap32 (E[16]);
-  E[17] = swap32 (E[17]);
+  E[ 0] = swap32_S (E[ 0]);
+  E[ 1] = swap32_S (E[ 1]);
+  E[ 2] = swap32_S (E[ 2]);
+  E[ 3] = swap32_S (E[ 3]);
+  E[ 4] = swap32_S (E[ 4]);
+  E[ 5] = swap32_S (E[ 5]);
+  E[ 6] = swap32_S (E[ 6]);
+  E[ 7] = swap32_S (E[ 7]);
+  E[ 8] = swap32_S (E[ 8]);
+  E[ 9] = swap32_S (E[ 9]);
+  E[10] = swap32_S (E[10]);
+  E[11] = swap32_S (E[11]);
+  E[12] = swap32_S (E[12]);
+  E[13] = swap32_S (E[13]);
+  E[14] = swap32_S (E[14]);
+  E[15] = swap32_S (E[15]);
+  E[16] = swap32_S (E[16]);
+  E[17] = swap32_S (E[17]);
 
   for (u32 i = 0; i < 18; i++)
   {

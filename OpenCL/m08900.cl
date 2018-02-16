@@ -383,10 +383,10 @@ __kernel void m08900_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   sha256_hmac_final (&ctx);
 
-  const u32 r0 = swap32 (ctx.opad.h[DGST_R0]);
-  const u32 r1 = swap32 (ctx.opad.h[DGST_R1]);
-  const u32 r2 = swap32 (ctx.opad.h[DGST_R2]);
-  const u32 r3 = swap32 (ctx.opad.h[DGST_R3]);
+  const u32 r0 = swap32_S (ctx.opad.h[DGST_R0]);
+  const u32 r1 = swap32_S (ctx.opad.h[DGST_R1]);
+  const u32 r2 = swap32_S (ctx.opad.h[DGST_R2]);
+  const u32 r3 = swap32_S (ctx.opad.h[DGST_R3]);
 
   #define il_pos 0
 

@@ -393,7 +393,7 @@ DECLSPEC u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, SHM_TYPE u32
                     ctx->W64[12] = 0;
                     ctx->W64[13] = 0;
                     ctx->W64[14] = 0;
-                    ctx->W64[15] = swap64 ((u64) (final_len * 8));
+                    ctx->W64[15] = swap64_S ((u64) (final_len * 8));
                     ex = ctx->W64[7] >> 56;
                     break;
       case BLSZ512: make_w_with_offset (ctx, 64, offset, sc, pwbl_len, iv, ks, s_te0, s_te1, s_te2, s_te3, s_te4);
@@ -404,7 +404,7 @@ DECLSPEC u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, SHM_TYPE u32
                     ctx->W64[12] = 0;
                     ctx->W64[13] = 0;
                     ctx->W64[14] = 0;
-                    ctx->W64[15] = swap64 ((u64) (final_len * 8));
+                    ctx->W64[15] = swap64_S ((u64) (final_len * 8));
                     ex = ctx->W64[7] >> 56;
                     break;
     }
@@ -429,7 +429,7 @@ DECLSPEC u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, SHM_TYPE u32
                     ctx->W32[12] = 0;
                     ctx->W32[13] = 0;
                     ctx->W32[14] = 0;
-                    ctx->W32[15] = swap32 (final_len * 8);
+                    ctx->W32[15] = swap32_S (final_len * 8);
                     break;
       case BLSZ384: ex = ctx->W64[15] >> 56;
                     ctx->W64[ 0] = 0x80;
@@ -447,7 +447,7 @@ DECLSPEC u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, SHM_TYPE u32
                     ctx->W64[12] = 0;
                     ctx->W64[13] = 0;
                     ctx->W64[14] = 0;
-                    ctx->W64[15] = swap64 ((u64) (final_len * 8));
+                    ctx->W64[15] = swap64_S ((u64) (final_len * 8));
                     break;
       case BLSZ512: ex = ctx->W64[15] >> 56;
                     ctx->W64[ 0] = 0x80;
@@ -465,7 +465,7 @@ DECLSPEC u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, SHM_TYPE u32
                     ctx->W64[12] = 0;
                     ctx->W64[13] = 0;
                     ctx->W64[14] = 0;
-                    ctx->W64[15] = swap64 ((u64) (final_len * 8));
+                    ctx->W64[15] = swap64_S ((u64) (final_len * 8));
                     break;
     }
   }
@@ -473,14 +473,14 @@ DECLSPEC u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, SHM_TYPE u32
   switch (ctx->dgst_len)
   {
     case BLSZ256: orig_sha256_transform (&ctx->W32[ 0], &ctx->W32[ 4], &ctx->W32[ 8], &ctx->W32[12], ctx->dgst32);
-                  ctx->dgst32[ 0] = swap32 (ctx->dgst32[0]);
-                  ctx->dgst32[ 1] = swap32 (ctx->dgst32[1]);
-                  ctx->dgst32[ 2] = swap32 (ctx->dgst32[2]);
-                  ctx->dgst32[ 3] = swap32 (ctx->dgst32[3]);
-                  ctx->dgst32[ 4] = swap32 (ctx->dgst32[4]);
-                  ctx->dgst32[ 5] = swap32 (ctx->dgst32[5]);
-                  ctx->dgst32[ 6] = swap32 (ctx->dgst32[6]);
-                  ctx->dgst32[ 7] = swap32 (ctx->dgst32[7]);
+                  ctx->dgst32[ 0] = swap32_S (ctx->dgst32[0]);
+                  ctx->dgst32[ 1] = swap32_S (ctx->dgst32[1]);
+                  ctx->dgst32[ 2] = swap32_S (ctx->dgst32[2]);
+                  ctx->dgst32[ 3] = swap32_S (ctx->dgst32[3]);
+                  ctx->dgst32[ 4] = swap32_S (ctx->dgst32[4]);
+                  ctx->dgst32[ 5] = swap32_S (ctx->dgst32[5]);
+                  ctx->dgst32[ 6] = swap32_S (ctx->dgst32[6]);
+                  ctx->dgst32[ 7] = swap32_S (ctx->dgst32[7]);
                   ctx->dgst32[ 8] = 0;
                   ctx->dgst32[ 9] = 0;
                   ctx->dgst32[10] = 0;
@@ -491,24 +491,24 @@ DECLSPEC u32 do_round (const u32 *pw, const u32 pw_len, ctx_t *ctx, SHM_TYPE u32
                   ctx->dgst32[15] = 0;
                   break;
     case BLSZ384: orig_sha384_transform (&ctx->W64[ 0], &ctx->W64[ 4], &ctx->W64[ 8], &ctx->W64[12], ctx->dgst64);
-                  ctx->dgst64[0] = swap64 (ctx->dgst64[0]);
-                  ctx->dgst64[1] = swap64 (ctx->dgst64[1]);
-                  ctx->dgst64[2] = swap64 (ctx->dgst64[2]);
-                  ctx->dgst64[3] = swap64 (ctx->dgst64[3]);
-                  ctx->dgst64[4] = swap64 (ctx->dgst64[4]);
-                  ctx->dgst64[5] = swap64 (ctx->dgst64[5]);
+                  ctx->dgst64[0] = swap64_S (ctx->dgst64[0]);
+                  ctx->dgst64[1] = swap64_S (ctx->dgst64[1]);
+                  ctx->dgst64[2] = swap64_S (ctx->dgst64[2]);
+                  ctx->dgst64[3] = swap64_S (ctx->dgst64[3]);
+                  ctx->dgst64[4] = swap64_S (ctx->dgst64[4]);
+                  ctx->dgst64[5] = swap64_S (ctx->dgst64[5]);
                   ctx->dgst64[6] = 0;
                   ctx->dgst64[7] = 0;
                   break;
     case BLSZ512: orig_sha512_transform (&ctx->W64[ 0], &ctx->W64[ 4], &ctx->W64[ 8], &ctx->W64[12], ctx->dgst64);
-                  ctx->dgst64[0] = swap64 (ctx->dgst64[0]);
-                  ctx->dgst64[1] = swap64 (ctx->dgst64[1]);
-                  ctx->dgst64[2] = swap64 (ctx->dgst64[2]);
-                  ctx->dgst64[3] = swap64 (ctx->dgst64[3]);
-                  ctx->dgst64[4] = swap64 (ctx->dgst64[4]);
-                  ctx->dgst64[5] = swap64 (ctx->dgst64[5]);
-                  ctx->dgst64[6] = swap64 (ctx->dgst64[6]);
-                  ctx->dgst64[7] = swap64 (ctx->dgst64[7]);
+                  ctx->dgst64[0] = swap64_S (ctx->dgst64[0]);
+                  ctx->dgst64[1] = swap64_S (ctx->dgst64[1]);
+                  ctx->dgst64[2] = swap64_S (ctx->dgst64[2]);
+                  ctx->dgst64[3] = swap64_S (ctx->dgst64[3]);
+                  ctx->dgst64[4] = swap64_S (ctx->dgst64[4]);
+                  ctx->dgst64[5] = swap64_S (ctx->dgst64[5]);
+                  ctx->dgst64[6] = swap64_S (ctx->dgst64[6]);
+                  ctx->dgst64[7] = swap64_S (ctx->dgst64[7]);
                   break;
   }
 

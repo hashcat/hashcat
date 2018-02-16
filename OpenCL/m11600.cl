@@ -301,14 +301,14 @@ __kernel void m11600_hook23 (__global pw_t *pws, __global const kernel_rule_t *r
 
   sha256_final (&ctx);
 
-  seven_zip_hook[gid].ukey[0] = swap32 (ctx.h[0]);
-  seven_zip_hook[gid].ukey[1] = swap32 (ctx.h[1]);
-  seven_zip_hook[gid].ukey[2] = swap32 (ctx.h[2]);
-  seven_zip_hook[gid].ukey[3] = swap32 (ctx.h[3]);
-  seven_zip_hook[gid].ukey[4] = swap32 (ctx.h[4]);
-  seven_zip_hook[gid].ukey[5] = swap32 (ctx.h[5]);
-  seven_zip_hook[gid].ukey[6] = swap32 (ctx.h[6]);
-  seven_zip_hook[gid].ukey[7] = swap32 (ctx.h[7]);
+  seven_zip_hook[gid].ukey[0] = swap32_S (ctx.h[0]);
+  seven_zip_hook[gid].ukey[1] = swap32_S (ctx.h[1]);
+  seven_zip_hook[gid].ukey[2] = swap32_S (ctx.h[2]);
+  seven_zip_hook[gid].ukey[3] = swap32_S (ctx.h[3]);
+  seven_zip_hook[gid].ukey[4] = swap32_S (ctx.h[4]);
+  seven_zip_hook[gid].ukey[5] = swap32_S (ctx.h[5]);
+  seven_zip_hook[gid].ukey[6] = swap32_S (ctx.h[6]);
+  seven_zip_hook[gid].ukey[7] = swap32_S (ctx.h[7]);
 }
 
 __kernel void m11600_comp (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global seven_zip_tmp_t *tmps, __global seven_zip_hook_t *seven_zip_hook, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
