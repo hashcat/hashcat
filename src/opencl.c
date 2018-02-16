@@ -2047,9 +2047,12 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
 
     const u32 off = pw_idx->off;
 
-    CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_comp_buf, CL_TRUE, 0, off * sizeof (u32), device_param->pws_comp, 0, NULL, NULL);
+    if (off)
+    {
+      CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_comp_buf, CL_TRUE, 0, off * sizeof (u32), device_param->pws_comp, 0, NULL, NULL);
 
-    if (CL_rc == -1) return -1;
+      if (CL_rc == -1) return -1;
+    }
 
     CL_rc = run_kernel_decompress (hashcat_ctx, device_param, pws_cnt);
 
@@ -2095,9 +2098,12 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
 
       const u32 off = pw_idx->off;
 
-      CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_comp_buf, CL_TRUE, 0, off * sizeof (u32), device_param->pws_comp, 0, NULL, NULL);
+      if (off)
+      {
+        CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_comp_buf, CL_TRUE, 0, off * sizeof (u32), device_param->pws_comp, 0, NULL, NULL);
 
-      if (CL_rc == -1) return -1;
+        if (CL_rc == -1) return -1;
+      }
 
       CL_rc = run_kernel_decompress (hashcat_ctx, device_param, pws_cnt);
 
@@ -2117,9 +2123,12 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
 
         const u32 off = pw_idx->off;
 
-        CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_comp_buf, CL_TRUE, 0, off * sizeof (u32), device_param->pws_comp, 0, NULL, NULL);
+        if (off)
+        {
+          CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_comp_buf, CL_TRUE, 0, off * sizeof (u32), device_param->pws_comp, 0, NULL, NULL);
 
-        if (CL_rc == -1) return -1;
+          if (CL_rc == -1) return -1;
+        }
 
         CL_rc = run_kernel_decompress (hashcat_ctx, device_param, pws_cnt);
 
@@ -2137,9 +2146,12 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
 
         const u32 off = pw_idx->off;
 
-        CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_comp_buf, CL_TRUE, 0, off * sizeof (u32), device_param->pws_comp, 0, NULL, NULL);
+        if (off)
+        {
+          CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_comp_buf, CL_TRUE, 0, off * sizeof (u32), device_param->pws_comp, 0, NULL, NULL);
 
-        if (CL_rc == -1) return -1;
+          if (CL_rc == -1) return -1;
+        }
 
         CL_rc = run_kernel_decompress (hashcat_ctx, device_param, pws_cnt);
 
