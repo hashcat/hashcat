@@ -758,14 +758,19 @@ void append_block1 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32 src_r0
                 | value << 16
                 | value << 24;
 
-  buf0[0] |= tmp & c_append_helper[offset][0];
-  buf0[1] |= tmp & c_append_helper[offset][1];
-  buf0[2] |= tmp & c_append_helper[offset][2];
-  buf0[3] |= tmp & c_append_helper[offset][3];
-  buf1[0] |= tmp & c_append_helper[offset][4];
-  buf1[1] |= tmp & c_append_helper[offset][5];
-  buf1[2] |= tmp & c_append_helper[offset][6];
-  buf1[3] |= tmp & c_append_helper[offset][7];
+  const u32 v[4] =
+  {
+    c_append_helper_mini[offset & 0xf][0],
+    c_append_helper_mini[offset & 0xf][1],
+    c_append_helper_mini[offset & 0xf][2],
+    c_append_helper_mini[offset & 0xf][3]
+  };
+
+  switch (offset / 16)
+  {
+    case 0: append_helper_1x4 (buf0, tmp, v); break;
+    case 1: append_helper_1x4 (buf1, tmp, v); break;
+  }
 }
 
 void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32 src_l0[4], const u32 src_l1[4], const u32 src_r0[4], const u32 src_r1[4])
@@ -1295,14 +1300,30 @@ u32 rule_op_mangle_rotate_right (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u
 
   u32 tmp = 0;
 
-  tmp |= buf0[0] & c_append_helper[in_len1][0];
-  tmp |= buf0[1] & c_append_helper[in_len1][1];
-  tmp |= buf0[2] & c_append_helper[in_len1][2];
-  tmp |= buf0[3] & c_append_helper[in_len1][3];
-  tmp |= buf1[0] & c_append_helper[in_len1][4];
-  tmp |= buf1[1] & c_append_helper[in_len1][5];
-  tmp |= buf1[2] & c_append_helper[in_len1][6];
-  tmp |= buf1[3] & c_append_helper[in_len1][7];
+  const u32 v[4] =
+  {
+    c_append_helper_mini[in_len1 & 0xf][0],
+    c_append_helper_mini[in_len1 & 0xf][1],
+    c_append_helper_mini[in_len1 & 0xf][2],
+    c_append_helper_mini[in_len1 & 0xf][3]
+  };
+
+  switch (in_len1 / 16)
+  {
+    case 0:
+      tmp |= buf0[0] & v[0];
+      tmp |= buf0[1] & v[1];
+      tmp |= buf0[2] & v[2];
+      tmp |= buf0[3] & v[3];
+      break;
+
+    case 1:
+      tmp |= buf1[0] & v[0];
+      tmp |= buf1[1] & v[1];
+      tmp |= buf1[2] & v[2];
+      tmp |= buf1[3] & v[3];
+      break;
+  }
 
   tmp = (tmp >> sh) & 0xff;
 
@@ -1807,14 +1828,30 @@ u32 rule_op_mangle_dupechar_last (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const 
 
   u32 tmp = 0;
 
-  tmp |= buf0[0] & c_append_helper[in_len1][0];
-  tmp |= buf0[1] & c_append_helper[in_len1][1];
-  tmp |= buf0[2] & c_append_helper[in_len1][2];
-  tmp |= buf0[3] & c_append_helper[in_len1][3];
-  tmp |= buf1[0] & c_append_helper[in_len1][4];
-  tmp |= buf1[1] & c_append_helper[in_len1][5];
-  tmp |= buf1[2] & c_append_helper[in_len1][6];
-  tmp |= buf1[3] & c_append_helper[in_len1][7];
+  const u32 v[4] =
+  {
+    c_append_helper_mini[in_len1 & 0xf][0],
+    c_append_helper_mini[in_len1 & 0xf][1],
+    c_append_helper_mini[in_len1 & 0xf][2],
+    c_append_helper_mini[in_len1 & 0xf][3]
+  };
+
+  switch (in_len1 / 16)
+  {
+    case 0:
+      tmp |= buf0[0] & v[0];
+      tmp |= buf0[1] & v[1];
+      tmp |= buf0[2] & v[2];
+      tmp |= buf0[3] & v[3];
+      break;
+
+    case 1:
+      tmp |= buf1[0] & v[0];
+      tmp |= buf1[1] & v[1];
+      tmp |= buf1[2] & v[2];
+      tmp |= buf1[3] & v[3];
+      break;
+  }
 
   tmp = (tmp >> sh) & 0xff;
 
