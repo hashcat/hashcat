@@ -427,11 +427,10 @@ DECLSPEC void append_0x80_2x4 (u32x w0[4], u32x w1[4], const u32 offset)
     c_append_helper_mini[offset & 0xf][3]
   };
 
-  switch (offset / 16)
-  {
-    case 0: append_helper_1x4 (w0, 0x80808080, v); break;
-    case 1: append_helper_1x4 (w1, 0x80808080, v); break;
-  }
+  const u32 offset16 = offset / 16;
+
+  append_helper_1x4 (w0, ((offset16 == 0) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w1, ((offset16 == 1) ? 0x80808080 : 0), v);
 }
 
 DECLSPEC void append_0x80_3x4 (u32x w0[4], u32x w1[4], u32x w2[4], const u32 offset)
@@ -444,12 +443,11 @@ DECLSPEC void append_0x80_3x4 (u32x w0[4], u32x w1[4], u32x w2[4], const u32 off
     c_append_helper_mini[offset & 0xf][3]
   };
 
-  switch (offset / 16)
-  {
-    case 0: append_helper_1x4 (w0, 0x80808080, v); break;
-    case 1: append_helper_1x4 (w1, 0x80808080, v); break;
-    case 2: append_helper_1x4 (w2, 0x80808080, v); break;
-  }
+  const u32 offset16 = offset / 16;
+
+  append_helper_1x4 (w0, ((offset16 == 0) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w1, ((offset16 == 1) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w2, ((offset16 == 2) ? 0x80808080 : 0), v);
 }
 
 DECLSPEC void append_0x80_4x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 offset)
@@ -462,13 +460,12 @@ DECLSPEC void append_0x80_4x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], c
     c_append_helper_mini[offset & 0xf][3]
   };
 
-  switch (offset / 16)
-  {
-    case 0: append_helper_1x4 (w0, 0x80808080, v); break;
-    case 1: append_helper_1x4 (w1, 0x80808080, v); break;
-    case 2: append_helper_1x4 (w2, 0x80808080, v); break;
-    case 3: append_helper_1x4 (w3, 0x80808080, v); break;
-  }
+  const u32 offset16 = offset / 16;
+
+  append_helper_1x4 (w0, ((offset16 == 0) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w1, ((offset16 == 1) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w2, ((offset16 == 2) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w3, ((offset16 == 3) ? 0x80808080 : 0), v);
 }
 
 DECLSPEC void append_0x80_8x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32 offset)
@@ -481,17 +478,16 @@ DECLSPEC void append_0x80_8x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u
     c_append_helper_mini[offset & 0xf][3]
   };
 
-  switch (offset / 16)
-  {
-    case 0: append_helper_1x4 (w0, 0x80808080, v); break;
-    case 1: append_helper_1x4 (w1, 0x80808080, v); break;
-    case 2: append_helper_1x4 (w2, 0x80808080, v); break;
-    case 3: append_helper_1x4 (w3, 0x80808080, v); break;
-    case 4: append_helper_1x4 (w4, 0x80808080, v); break;
-    case 5: append_helper_1x4 (w5, 0x80808080, v); break;
-    case 6: append_helper_1x4 (w6, 0x80808080, v); break;
-    case 7: append_helper_1x4 (w7, 0x80808080, v); break;
-  }
+  const u32 offset16 = offset / 16;
+
+  append_helper_1x4 (w0, ((offset16 == 0) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w1, ((offset16 == 1) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w2, ((offset16 == 2) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w3, ((offset16 == 3) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w4, ((offset16 == 4) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w5, ((offset16 == 5) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w6, ((offset16 == 6) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w7, ((offset16 == 7) ? 0x80808080 : 0), v);
 }
 
 DECLSPEC void append_0x80_1x16 (u32x w[16], const u32 offset)
@@ -504,17 +500,12 @@ DECLSPEC void append_0x80_1x16 (u32x w[16], const u32 offset)
     c_append_helper_mini[offset & 0xf][3]
   };
 
-  switch (offset / 16)
-  {
-    case 0: append_helper_1x4 (w +  0, 0x80808080, v); break;
-    case 1: append_helper_1x4 (w +  4, 0x80808080, v); break;
-    case 2: append_helper_1x4 (w +  8, 0x80808080, v); break;
-    case 3: append_helper_1x4 (w + 12, 0x80808080, v); break;
-    case 4: append_helper_1x4 (w + 16, 0x80808080, v); break;
-    case 5: append_helper_1x4 (w + 20, 0x80808080, v); break;
-    case 6: append_helper_1x4 (w + 24, 0x80808080, v); break;
-    case 7: append_helper_1x4 (w + 28, 0x80808080, v); break;
-  }
+  const u32 offset16 = offset / 16;
+
+  append_helper_1x4 (w +  0, ((offset16 == 0) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w +  4, ((offset16 == 1) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w +  8, ((offset16 == 2) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w + 12, ((offset16 == 3) ? 0x80808080 : 0), v);
 }
 
 DECLSPEC void switch_buffer_by_offset_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 offset)
@@ -30981,11 +30972,10 @@ DECLSPEC void append_0x01_2x4_S (u32 w0[4], u32 w1[4], const u32 offset)
     c_append_helper_mini[offset & 0xf][3]
   };
 
-  switch (offset / 16)
-  {
-    case 0: append_helper_1x4_S (w0, 0x01010101, v); break;
-    case 1: append_helper_1x4_S (w1, 0x01010101, v); break;
-  }
+  const u32 offset16 = offset / 16;
+
+  append_helper_1x4_S (w0, ((offset16 == 0) ? 0x01010101 : 0), v);
+  append_helper_1x4_S (w1, ((offset16 == 1) ? 0x01010101 : 0), v);
 }
 
 DECLSPEC void append_0x80_1x4_S (u32 w0[4], const u32 offset)
@@ -31011,11 +31001,10 @@ DECLSPEC void append_0x80_2x4_S (u32 w0[4], u32 w1[4], const u32 offset)
     c_append_helper_mini[offset & 0xf][3]
   };
 
-  switch (offset / 16)
-  {
-    case 0: append_helper_1x4_S (w0, 0x80808080, v); break;
-    case 1: append_helper_1x4_S (w1, 0x80808080, v); break;
-  }
+  const u32 offset16 = offset / 16;
+
+  append_helper_1x4_S (w0, ((offset16 == 0) ? 0x80808080 : 0), v);
+  append_helper_1x4_S (w1, ((offset16 == 1) ? 0x80808080 : 0), v);
 }
 
 DECLSPEC void append_0x80_3x4_S (u32 w0[4], u32 w1[4], u32 w2[4], const u32 offset)
@@ -31028,12 +31017,11 @@ DECLSPEC void append_0x80_3x4_S (u32 w0[4], u32 w1[4], u32 w2[4], const u32 offs
     c_append_helper_mini[offset & 0xf][3]
   };
 
-  switch (offset / 16)
-  {
-    case 0: append_helper_1x4_S (w0, 0x80808080, v); break;
-    case 1: append_helper_1x4_S (w1, 0x80808080, v); break;
-    case 2: append_helper_1x4_S (w2, 0x80808080, v); break;
-  }
+  const u32 offset16 = offset / 16;
+
+  append_helper_1x4_S (w0, ((offset16 == 0) ? 0x80808080 : 0), v);
+  append_helper_1x4_S (w1, ((offset16 == 1) ? 0x80808080 : 0), v);
+  append_helper_1x4_S (w2, ((offset16 == 2) ? 0x80808080 : 0), v);
 }
 
 DECLSPEC void append_0x80_4x4_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
@@ -31046,13 +31034,12 @@ DECLSPEC void append_0x80_4x4_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], con
     c_append_helper_mini[offset & 0xf][3]
   };
 
-  switch (offset / 16)
-  {
-    case 0: append_helper_1x4_S (w0, 0x80808080, v); break;
-    case 1: append_helper_1x4_S (w1, 0x80808080, v); break;
-    case 2: append_helper_1x4_S (w2, 0x80808080, v); break;
-    case 3: append_helper_1x4_S (w3, 0x80808080, v); break;
-  }
+  const u32 offset16 = offset / 16;
+
+  append_helper_1x4_S (w0, ((offset16 == 0) ? 0x80808080 : 0), v);
+  append_helper_1x4_S (w1, ((offset16 == 1) ? 0x80808080 : 0), v);
+  append_helper_1x4_S (w2, ((offset16 == 2) ? 0x80808080 : 0), v);
+  append_helper_1x4_S (w3, ((offset16 == 3) ? 0x80808080 : 0), v);
 }
 
 DECLSPEC void append_0x80_8x4_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const u32 offset)
@@ -31065,17 +31052,16 @@ DECLSPEC void append_0x80_8x4_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32
     c_append_helper_mini[offset & 0xf][3]
   };
 
-  switch (offset / 16)
-  {
-    case 0: append_helper_1x4_S (w0, 0x80808080, v); break;
-    case 1: append_helper_1x4_S (w1, 0x80808080, v); break;
-    case 2: append_helper_1x4_S (w2, 0x80808080, v); break;
-    case 3: append_helper_1x4_S (w3, 0x80808080, v); break;
-    case 4: append_helper_1x4_S (w4, 0x80808080, v); break;
-    case 5: append_helper_1x4_S (w5, 0x80808080, v); break;
-    case 6: append_helper_1x4_S (w6, 0x80808080, v); break;
-    case 7: append_helper_1x4_S (w7, 0x80808080, v); break;
-  }
+  const u32 offset16 = offset / 16;
+
+  append_helper_1x4_S (w0, ((offset16 == 0) ? 0x80808080 : 0), v);
+  append_helper_1x4_S (w1, ((offset16 == 1) ? 0x80808080 : 0), v);
+  append_helper_1x4_S (w2, ((offset16 == 2) ? 0x80808080 : 0), v);
+  append_helper_1x4_S (w3, ((offset16 == 3) ? 0x80808080 : 0), v);
+  append_helper_1x4_S (w4, ((offset16 == 4) ? 0x80808080 : 0), v);
+  append_helper_1x4_S (w5, ((offset16 == 5) ? 0x80808080 : 0), v);
+  append_helper_1x4_S (w6, ((offset16 == 6) ? 0x80808080 : 0), v);
+  append_helper_1x4_S (w7, ((offset16 == 7) ? 0x80808080 : 0), v);
 }
 
 DECLSPEC void make_utf16be_S (const u32 in[4], u32 out1[4], u32 out2[4])

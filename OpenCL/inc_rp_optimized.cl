@@ -766,11 +766,11 @@ void append_block1 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32 src_r0
     c_append_helper_mini[offset & 0xf][3]
   };
 
-  switch (offset / 16)
-  {
-    case 0: append_helper_1x4 (buf0, tmp, v); break;
-    case 1: append_helper_1x4 (buf1, tmp, v); break;
-  }
+  const u32 offset16 = offset / 16;
+
+  append_helper_1x4_S (buf0, ((offset16 == 0) ? tmp : 0), v);
+  append_helper_1x4_S (buf1, ((offset16 == 1) ? tmp : 0), v);
+
 }
 
 void append_block8 (const u32 offset, u32 buf0[4], u32 buf1[4], const u32 src_l0[4], const u32 src_l1[4], const u32 src_r0[4], const u32 src_r1[4])
