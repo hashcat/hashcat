@@ -3947,9 +3947,11 @@ static int get_kernel_wgs (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
 
   if (CL_rc == -1) return -1;
 
-  if (compile_work_group_size[0] > 0)
+  const size_t cwgs_total = compile_work_group_size[0] * compile_work_group_size[1] * compile_work_group_size[2];
+
+  if (cwgs_total > 0)
   {
-    kernel_threads = MIN (kernel_threads, (u32) compile_work_group_size[0]);
+    kernel_threads = MIN (kernel_threads, (u32) cwgs_total);
   }
 
   *result = kernel_threads;

@@ -25957,17 +25957,6 @@ u32 hashconfig_forced_kernel_threads (hashcat_ctx_t *hashcat_ctx)
 
   u32 kernel_threads = 0;
 
-  // DES kernels needs to have a minimum thread count only
-  // because of the bitsliced kernel and the workgroup division done on it
-
-  if (hashconfig->hash_mode ==  1500) kernel_threads = 64; // DES
-  if (hashconfig->hash_mode ==  3000) kernel_threads = 64; // DES
-  if (hashconfig->hash_mode ==  3100) kernel_threads = 64; // DES
-  if (hashconfig->hash_mode ==  8500) kernel_threads = 64; // DES
-  if (hashconfig->hash_mode == 14000) kernel_threads = 64; // DES
-  if (hashconfig->hash_mode == 14100) kernel_threads = 64; // DES
-  if (hashconfig->hash_mode == 16000) kernel_threads = 64; // DES
-
   // this should have a kernel hint attribute in the kernel files
   // __attribute__((reqd_work_group_size(X, 1, 1)))
 
@@ -25991,7 +25980,8 @@ u32 hashconfig_forced_kernel_threads (hashcat_ctx_t *hashcat_ctx)
 
 u32 hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param)
 {
-  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  const user_options_t *user_options = hashcat_ctx->user_options;
 
   // a kernel can force a fixed value
 
@@ -25999,9 +25989,19 @@ u32 hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_p
 
   if (forced_kernel_threads) return forced_kernel_threads;
 
-  // for CPU we just do 1
+  // for CPU we just do 1 ...
 
-  if (device_param->device_type & CL_DEVICE_TYPE_CPU) return 1;
+  if (device_param->device_type & CL_DEVICE_TYPE_CPU)
+  {
+    // ... as long as it is not a bitsliced kernel, as they have a fixed 2nd dimension size of 32 in run_kernel
+
+    if ((hashconfig->opts_type & OPTS_TYPE_PT_BITSLICE) && (user_options->attack_mode == ATTACK_MODE_BF))
+    {
+      return 32;
+    }
+
+    return 1;
+  }
 
   // this is an upper limit, a good start, since our strategy is to reduce thread counts only
 
