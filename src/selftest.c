@@ -55,6 +55,11 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       pw.pw_len = (u32) pw_len;
 
+      if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
+      {
+        uppercase (pw_ptr, pw.pw_len);
+      }
+
       CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL);
 
       if (CL_err != CL_SUCCESS) return -1;
