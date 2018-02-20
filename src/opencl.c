@@ -1602,8 +1602,8 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
   if ((hashconfig->opts_type & OPTS_TYPE_PT_BITSLICE) && (user_options->attack_mode == ATTACK_MODE_BF))
   {
-    const size_t global_work_size[3] = { num_elements,        32, 1 };
-    const size_t local_work_size[3]  = { kernel_threads / 32, 32, 1 };
+    const size_t global_work_size[3] = { num_elements,  32, 1 };
+    const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
 
     CL_rc = hc_clEnqueueNDRangeKernel (hashcat_ctx, device_param->command_queue, kernel, 2, NULL, global_work_size, local_work_size, 0, NULL, &event);
 

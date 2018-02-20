@@ -25991,17 +25991,7 @@ u32 hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_p
 
   // for CPU we just do 1 ...
 
-  if (device_param->device_type & CL_DEVICE_TYPE_CPU)
-  {
-    // ... as long as it is not a bitsliced kernel, as they have a fixed 2nd dimension size of 32 in run_kernel
-
-    if ((hashconfig->opts_type & OPTS_TYPE_PT_BITSLICE) && (user_options->attack_mode == ATTACK_MODE_BF))
-    {
-      return 32;
-    }
-
-    return 1;
-  }
+  if (device_param->device_type & CL_DEVICE_TYPE_CPU) return 1;
 
   // this is an upper limit, a good start, since our strategy is to reduce thread counts only
 

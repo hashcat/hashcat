@@ -1803,7 +1803,7 @@ DECLSPEC void m03000m (__global pw_t *pws, __global const kernel_rule_t *rules_b
    * inner loop
    */
 
-  const u32 pc_pos = get_local_id (1);
+  const u32 pc_pos = get_global_id (1);
 
   const u32 il_pos = pc_pos * 32;
 
@@ -2247,7 +2247,7 @@ DECLSPEC void m03000s (__global pw_t *pws, __global const kernel_rule_t *rules_b
    * inner loop
    */
 
-  const u32 pc_pos = get_local_id (1);
+  const u32 pc_pos = get_global_id (1);
 
   const u32 il_pos = pc_pos * 32;
 
