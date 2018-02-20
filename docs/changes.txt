@@ -24,7 +24,7 @@
 ## Bugs
 ##
 
-- Fixed a configuration setting for -m 400 which said it was capable of doing SIMD when it is not
+- Fixed a configuration setting for -m 400 in pure kernel mode which said it was capable of doing SIMD when it is not
 - Fixed a hash parsing problem for 7-Zip hashes: allow a longer CRC32 data length field within the hash format
 - Fixed a hash parsing problem when using --show/--left with hashes with long salts that required pure kernels
 - Fixed a logic error in storing temporary progress for slow hashes, leading to invalid speeds in status view
