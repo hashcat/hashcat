@@ -1881,7 +1881,37 @@ DECLSPEC void transpose32c (u32 data[32])
   swap (data[30], data[31],  1, 0x55555555);
 }
 
-DECLSPEC void m01500m (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bs_word_t *words_buf_r, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
+//
+// transpose bitslice mod : attention race conditions, need different buffers for *in and *out
+//
+
+__kernel void m01500_tm (__global u32 *mod, __global bs_word_t *words_buf_r)
+{
+  const u64 gid = get_global_id (0);
+
+  const u32 block = gid / 32;
+  const u32 slice = gid % 32;
+
+  const u32 w0 = mod[gid];
+
+  const u32 w0s = (w0 << 1) & 0xfefefefe;
+
+  #ifdef _unroll
+  #pragma unroll
+  #endif
+  for (int i = 0, j = 0; i < 32; i += 8, j += 7)
+  {
+    atomic_or (&words_buf_r[block].b[j + 0], (((w0s >> (i + 7)) & 1) << slice));
+    atomic_or (&words_buf_r[block].b[j + 1], (((w0s >> (i + 6)) & 1) << slice));
+    atomic_or (&words_buf_r[block].b[j + 2], (((w0s >> (i + 5)) & 1) << slice));
+    atomic_or (&words_buf_r[block].b[j + 3], (((w0s >> (i + 4)) & 1) << slice));
+    atomic_or (&words_buf_r[block].b[j + 4], (((w0s >> (i + 3)) & 1) << slice));
+    atomic_or (&words_buf_r[block].b[j + 5], (((w0s >> (i + 2)) & 1) << slice));
+    atomic_or (&words_buf_r[block].b[j + 6], (((w0s >> (i + 1)) & 1) << slice));
+  }
+}
+
+__kernel void m01500_mxx (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __constant const bs_word_t *words_buf_r, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
 {
   /**
    * base
@@ -2253,7 +2283,7 @@ DECLSPEC void m01500m (__global pw_t *pws, __global const kernel_rule_t *rules_b
   }
 }
 
-DECLSPEC void m01500s (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bs_word_t *words_buf_r, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
+__kernel void m01500_sxx (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __constant const bs_word_t *words_buf_r, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
 {
   /**
    * base
@@ -2640,70 +2670,4 @@ DECLSPEC void m01500s (__global pw_t *pws, __global const kernel_rule_t *rules_b
   const u32 slice = ffz (tmpResult);
 
   #include COMPARE_S
-}
-
-//
-// transpose bitslice mod : attention race conditions, need different buffers for *in and *out
-//
-
-__kernel void m01500_tm (__global u32 *mod, __global bs_word_t *words_buf_r)
-{
-  const u64 gid = get_global_id (0);
-
-  const u32 block = gid / 32;
-  const u32 slice = gid % 32;
-
-  const u32 w0 = mod[gid];
-
-  const u32 w0s = (w0 << 1) & 0xfefefefe;
-
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (int i = 0, j = 0; i < 32; i += 8, j += 7)
-  {
-    atomic_or (&words_buf_r[block].b[j + 0], (((w0s >> (i + 7)) & 1) << slice));
-    atomic_or (&words_buf_r[block].b[j + 1], (((w0s >> (i + 6)) & 1) << slice));
-    atomic_or (&words_buf_r[block].b[j + 2], (((w0s >> (i + 5)) & 1) << slice));
-    atomic_or (&words_buf_r[block].b[j + 3], (((w0s >> (i + 4)) & 1) << slice));
-    atomic_or (&words_buf_r[block].b[j + 4], (((w0s >> (i + 3)) & 1) << slice));
-    atomic_or (&words_buf_r[block].b[j + 5], (((w0s >> (i + 2)) & 1) << slice));
-    atomic_or (&words_buf_r[block].b[j + 6], (((w0s >> (i + 1)) & 1) << slice));
-  }
-}
-
-__kernel void m01500_mxx (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bs_word_t *words_buf_r, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
-{
-  /**
-   * base
-   */
-
-  const u64 gid = get_global_id (0);
-  const u64 lid = get_local_id (0);
-
-  if (gid >= gid_max) return;
-
-  /**
-   * main
-   */
-
-  m01500m (pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
-}
-
-__kernel void m01500_sxx (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bs_word_t *words_buf_r, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
-{
-  /**
-   * base
-   */
-
-  const u64 gid = get_global_id (0);
-  const u64 lid = get_local_id (0);
-
-  if (gid >= gid_max) return;
-
-  /**
-   * main
-   */
-
-  m01500s (pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
 }
