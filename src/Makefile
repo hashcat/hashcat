@@ -138,12 +138,15 @@ WIN_ICONV_64            := /opt/win-iconv-64
 ##
 
 COMPTIME                := $(shell date +%s)
+SYSTEM_LZMA_SDK         := 0
+
+LZMA_SDK_INCLUDE        := $(LIBRARY_DEV_ROOT_FOLDER)/lzma-sdk/C
 
 ##
 ## General compiler and linker options
 ##
 
-CFLAGS                  += -pipe -std=gnu99 -Iinclude/ -Iinclude/lzma_sdk/ -IOpenCL/
+CFLAGS                  += -pipe -std=gnu99 -Iinclude/ -IOpenCL/
 
 ifeq ($(PRODUCTION),0)
 CFLAGS                  += -W
@@ -182,6 +185,13 @@ endif
 # unfortunately, this option isn't supported by older GCC and clang versions
 
 #CFLAGS                  += -Wstack-usage=524288
+
+ifeq ($(SYSTEM_LZMA_SDK),1)
+CFLAGS                  += $(LZMA_SDK_INCLUDE)
+LDFLAGS                 += -llzmasdk
+else
+CFLAGS                  +=-Iinclude/lzma_sdk/
+endif
 
 LFLAGS                  := $(LDFLAGS)
 
@@ -297,7 +307,11 @@ LFLAGS_CROSS_WIN64      += -lpsapi
 ## Objects
 ##
 
-OBJS_ALL                := affinity autotune benchmark bitmap bitops combinator common convert cpt cpu_aes cpu_crc32 cpu_des cpu_md4 cpu_md5 cpu_sha1 cpu_sha256 debugfile dictstat dispatch dynloader event ext_ADL ext_nvapi ext_nvml ext_OpenCL ext_sysfs ext_lzma lzma_sdk/Alloc lzma_sdk/Lzma2Dec lzma_sdk/LzmaDec filehandling folder hashcat hashes hlfmt hwmon induct interface locking logfile loopback memory monitor mpsp opencl outfile_check outfile pidfile potfile restore rp rp_cpu rp_kernel_on_cpu rp_kernel_on_cpu_optimized selftest shared status stdout straight terminal thread timer tuningdb usage user_options wordlist
+OBJS_ALL                := affinity autotune benchmark bitmap bitops combinator common convert cpt cpu_aes cpu_crc32 cpu_des cpu_md4 cpu_md5 cpu_sha1 cpu_sha256 debugfile dictstat dispatch dynloader event ext_ADL ext_nvapi ext_nvml ext_OpenCL ext_sysfs ext_lzma filehandling folder hashcat hashes hlfmt hwmon induct interface locking logfile loopback memory monitor mpsp opencl outfile_check outfile pidfile potfile restore rp rp_cpu rp_kernel_on_cpu rp_kernel_on_cpu_optimized selftest shared status stdout straight terminal thread timer tuningdb usage user_options wordlist
+
+ifeq ($(SYSTEM_LZMA_SDK),0)
+OBJS_ALL += lzma_sdk/Alloc lzma_sdk/Lzma2Dec lzma_sdk/LzmaDec
+endif
 
 NATIVE_STATIC_OBJS      := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).NATIVE.STATIC.o)
 NATIVE_SHARED_OBJS      := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).NATIVE.SHARED.o)
