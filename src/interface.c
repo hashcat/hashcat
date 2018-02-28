@@ -25980,8 +25980,7 @@ u32 hashconfig_forced_kernel_threads (hashcat_ctx_t *hashcat_ctx)
 
 u32 hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param)
 {
-  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
-  const user_options_t *user_options = hashcat_ctx->user_options;
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
   // a kernel can force a fixed value
 
