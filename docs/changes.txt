@@ -1,5 +1,11 @@
 * changes v4.1.0 -> v4.1.1
 
+##
+## Bugs
+##
+
+- Fixed a missing kernel in -m 5600 in combination with -a 3 and -O if mask is >= 16 characters
+
 * changes v4.0.1 -> v4.1.0
 
 ##
