@@ -54,6 +54,7 @@ SED_IN_PLACE            := -i
 ifeq ($(UNAME),Darwin)
 CC                      := clang
 # the sed -i option of macOS requires a parameter for the backup file (we just use "")
+SED                     := /usr/bin/sed
 SED_IN_PLACE            := -i ""
 PROD_VERS               := $(shell sw_vers -productVersion | cut -d. -f2)
 endif
@@ -187,7 +188,9 @@ LFLAGS                  := $(LDFLAGS)
 
 ifeq ($(DEBUG),0)
 CFLAGS                  += -O2
+ifneq ($(UNAME),Darwin)
 LFLAGS                  += -s
+endif
 else
 ifeq ($(DEBUG),1)
 CFLAGS                  += -DDEBUG -Og -ggdb
