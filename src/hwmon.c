@@ -1980,15 +1980,7 @@ int hm_get_throttle_with_device_id (hashcat_ctx_t * hashcat_ctx, const u32 devic
   {
     if (hwmon_ctx->hm_nvml)
     {
-      /* this is triggered by mask generator, too. therefore useless unsigned long long clocksThrottleReasons = 0; unsigned long long supportedThrottleReasons = 0;
-       * 
-       * if (hm_NVML_nvmlDeviceGetCurrentClocksThrottleReasons (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvml, &clocksThrottleReasons) == -1) return -1; if (hm_NVML_nvmlDeviceGetSupportedClocksThrottleReasons (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvml, &supportedThrottleReasons) == -1) return -1;
-       * 
-       * clocksThrottleReasons &= supportedThrottleReasons; clocksThrottleReasons &= ~nvmlClocksThrottleReasonGpuIdle; clocksThrottleReasons &= ~nvmlClocksThrottleReasonApplicationsClocksSetting; clocksThrottleReasons &= ~nvmlClocksThrottleReasonUnknown;
-       * 
-       * if (opencl_ctx->kernel_power_final) { clocksThrottleReasons &= ~nvmlClocksThrottleReasonHwSlowdown; }
-       * 
-       * return (clocksThrottleReasons != nvmlClocksThrottleReasonNone); */
+      /* this is triggered by mask generator, too. therefore useless unsigned long long clocksThrottleReasons = 0; unsigned long long supportedThrottleReasons = 0; if (hm_NVML_nvmlDeviceGetCurrentClocksThrottleReasons (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvml, &clocksThrottleReasons) == -1) return -1; if (hm_NVML_nvmlDeviceGetSupportedClocksThrottleReasons (hashcat_ctx, hwmon_ctx->hm_device[device_id].nvml, &supportedThrottleReasons) == -1) return -1; clocksThrottleReasons &= supportedThrottleReasons; clocksThrottleReasons &= ~nvmlClocksThrottleReasonGpuIdle; clocksThrottleReasons &= ~nvmlClocksThrottleReasonApplicationsClocksSetting; clocksThrottleReasons &= ~nvmlClocksThrottleReasonUnknown; if (opencl_ctx->kernel_power_final) { clocksThrottleReasons &= ~nvmlClocksThrottleReasonHwSlowdown; } return (clocksThrottleReasons != nvmlClocksThrottleReasonNone); */
     }
 
     if (hwmon_ctx->hm_nvapi)

@@ -89,13 +89,7 @@ static void mp_css_split_cnt (hashcat_ctx_t * hashcat_ctx, const u32 css_cnt_ori
   {
     css_cnt_r = 1;
 
-    /* unfinished code? int sum = css_buf[css_cnt_r - 1].cs_len;
-     * 
-     * for (u32 i = 1; i < 4 && i < css_cnt; i++) { if (sum > 1) break; // we really don't need alot of amplifier them for slow hashes
-     * 
-     * css_cnt_r++;
-     * 
-     * sum *= css_buf[css_cnt_r - 1].cs_len; } */
+    /* unfinished code? int sum = css_buf[css_cnt_r - 1].cs_len; for (u32 i = 1; i < 4 && i < css_cnt; i++) { if (sum > 1) break; // we really don't need alot of amplifier them for slow hashes css_cnt_r++; sum *= css_buf[css_cnt_r - 1].cs_len; } */
   }
 
   css_cnt_l -= css_cnt_r;
