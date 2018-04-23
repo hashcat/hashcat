@@ -1,1 +1,1 @@
-brew 'indent'
+brew 'gnu-indent'
