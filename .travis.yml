@@ -5,6 +5,11 @@ language: c
 compiler:
   - clang
   - gcc
+addons:
+  apt:
+    packages:
+      - indent
+install: if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew bundle; fi
 script:
   - make indent && git diff --exit-code
   - make
