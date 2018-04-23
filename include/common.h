@@ -64,9 +64,7 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
-/* The C++ standard denies redefinition of keywords,
-but this is nededed for VS compiler which doesn't have inline keyword but has __inline
-*/
+/* The C++ standard denies redefinition of keywords, but this is nededed for VS compiler which doesn't have inline keyword but has __inline */
 #ifndef __cplusplus
 #if defined (_MSC_VER)
 #define inline __inline
@@ -75,7 +73,7 @@ but this is nededed for VS compiler which doesn't have inline keyword but has __
 
 #define MAYBE_UNUSED __attribute__((unused))
 
-/*
+/* 
  * Check if the system uses nanoseconds for file timestamps.
  * In case the system uses nanoseconds we set some custom macros here,
  * e.g. the (nanosecond) access time macros for dictstat

@@ -8,7 +8,8 @@
 
 #include <string.h>
 
-int  bitmap_ctx_init    (hashcat_ctx_t *hashcat_ctx);
-void bitmap_ctx_destroy (hashcat_ctx_t *hashcat_ctx);
+int bitmap_ctx_init (hashcat_ctx_t * hashcat_ctx);
+
+void bitmap_ctx_destroy (hashcat_ctx_t * hashcat_ctx);
 
 #endif // _BITMAP_H

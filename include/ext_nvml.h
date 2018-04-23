@@ -10,51 +10,55 @@
  * Declarations from nvml.h
  */
 
-typedef struct nvmlDevice_st* nvmlDevice_t;
+typedef struct nvmlDevice_st *nvmlDevice_t;
 
 typedef struct nvmlPciInfo_st
 {
-    char busId[16];                  //!< The tuple domain:bus:device.function PCI identifier (&amp; NULL terminator)
-    unsigned int domain;             //!< The PCI domain on which the device's bus resides, 0 to 0xffff
-    unsigned int bus;                //!< The bus on which the device resides, 0 to 0xff
-    unsigned int device;             //!< The device's id on the bus, 0 to 31
-    unsigned int pciDeviceId;        //!< The combined 16-bit device id and 16-bit vendor id
+  char busId[16];               // !< The tuple domain:bus:device.function PCI identifier (&amp; NULL terminator)
+  unsigned int domain;          // !< The PCI domain on which the device's bus resides, 0 to 0xffff
+  unsigned int bus;             // !< The bus on which the device resides, 0 to 0xff
+  unsigned int device;          // !< The device's id on the bus, 0 to 31
+  unsigned int pciDeviceId;     // !< The combined 16-bit device id and 16-bit vendor id
 
-    // Added in NVML 2.285 API
-    unsigned int pciSubSystemId;     //!< The 32-bit Sub System Device ID
+  // Added in NVML 2.285 API
+  unsigned int pciSubSystemId;  // !< The 32-bit Sub System Device ID
 
-    // NVIDIA reserved for internal use only
-    unsigned int reserved0;
-    unsigned int reserved1;
-    unsigned int reserved2;
-    unsigned int reserved3;
+  // NVIDIA reserved for internal use only
+  unsigned int reserved0;
+  unsigned int reserved1;
+  unsigned int reserved2;
+  unsigned int reserved3;
 } nvmlPciInfo_t;
 
-typedef struct nvmlUtilization_st {
-  unsigned int gpu;    // GPU kernel execution last second, percent
-  unsigned int memory; // GPU memory read/write last second, percent
+typedef struct nvmlUtilization_st
+{
+  unsigned int gpu;             // GPU kernel execution last second, percent
+  unsigned int memory;          // GPU memory read/write last second, percent
 } nvmlUtilization_t;
 
-typedef enum nvmlTemperatureSensors_enum {
-  NVML_TEMPERATURE_GPU = 0     // Temperature sensor for the GPU die
+typedef enum nvmlTemperatureSensors_enum
+{
+  NVML_TEMPERATURE_GPU = 0      // Temperature sensor for the GPU die
 } nvmlTemperatureSensors_t;
 
-typedef enum nvmlReturn_enum {
-  NVML_SUCCESS = 0,                   // The operation was successful
-  NVML_ERROR_UNINITIALIZED = 1,       // NVML was not first initialized with nvmlInit()
-  NVML_ERROR_INVALID_ARGUMENT = 2,    // A supplied argument is invalid
-  NVML_ERROR_NOT_SUPPORTED = 3,       // The requested operation is not available on target device
-  NVML_ERROR_NO_PERMISSION = 4,       // The current user does not have permission for operation
+typedef enum nvmlReturn_enum
+{
+  NVML_SUCCESS = 0,             // The operation was successful
+  NVML_ERROR_UNINITIALIZED = 1, // NVML was not first initialized with nvmlInit()
+  NVML_ERROR_INVALID_ARGUMENT = 2,  // A supplied argument is invalid
+  NVML_ERROR_NOT_SUPPORTED = 3, // The requested operation is not available on target device
+  NVML_ERROR_NO_PERMISSION = 4, // The current user does not have permission for operation
   NVML_ERROR_ALREADY_INITIALIZED = 5, // Deprecated: Multiple initializations are now allowed through ref counting
-  NVML_ERROR_NOT_FOUND = 6,           // A query to find an object was unsuccessful
-  NVML_ERROR_INSUFFICIENT_SIZE = 7,   // An input argument is not large enough
+  NVML_ERROR_NOT_FOUND = 6,     // A query to find an object was unsuccessful
+  NVML_ERROR_INSUFFICIENT_SIZE = 7, // An input argument is not large enough
   NVML_ERROR_INSUFFICIENT_POWER = 8,  // A device's external power cables are not properly attached
-  NVML_ERROR_DRIVER_NOT_LOADED = 9,   // NVIDIA driver is not loaded
-  NVML_ERROR_TIMEOUT = 10,            // User provided timeout passed
-  NVML_ERROR_UNKNOWN = 999            // An internal driver error occurred
+  NVML_ERROR_DRIVER_NOT_LOADED = 9, // NVIDIA driver is not loaded
+  NVML_ERROR_TIMEOUT = 10,      // User provided timeout passed
+  NVML_ERROR_UNKNOWN = 999      // An internal driver error occurred
 } nvmlReturn_t;
 
-typedef enum nvmlClockType_enum {
+typedef enum nvmlClockType_enum
+{
   NVML_CLOCK_GRAPHICS = 0,
   NVML_CLOCK_SM = 1,
   NVML_CLOCK_MEM = 2
@@ -62,11 +66,11 @@ typedef enum nvmlClockType_enum {
 
 typedef enum nvmlTemperatureThresholds_enum
 {
-    NVML_TEMPERATURE_THRESHOLD_SHUTDOWN = 0,    // Temperature at which the GPU will shut down
-                                                // for HW protection
-    NVML_TEMPERATURE_THRESHOLD_SLOWDOWN = 1,    // Temperature at which the GPU will begin slowdown
-    // Keep this last
-    NVML_TEMPERATURE_THRESHOLD_COUNT
+  NVML_TEMPERATURE_THRESHOLD_SHUTDOWN = 0,  // Temperature at which the GPU will shut down
+  // for HW protection
+  NVML_TEMPERATURE_THRESHOLD_SLOWDOWN = 1,  // Temperature at which the GPU will begin slowdown
+  // Keep this last
+  NVML_TEMPERATURE_THRESHOLD_COUNT
 } nvmlTemperatureThresholds_t;
 
 /**
@@ -78,13 +82,13 @@ typedef enum nvmlTemperatureThresholds_enum
  */
 typedef enum nvmlComputeMode_enum
 {
-    NVML_COMPUTEMODE_DEFAULT           = 0,  //!< Default compute mode -- multiple contexts per device
-    NVML_COMPUTEMODE_EXCLUSIVE_THREAD  = 1,  //!< Compute-exclusive-thread mode -- only one context per device, usable from one thread at a time
-    NVML_COMPUTEMODE_PROHIBITED        = 2,  //!< Compute-prohibited mode -- no contexts per device
-    NVML_COMPUTEMODE_EXCLUSIVE_PROCESS = 3,  //!< Compute-exclusive-process mode -- only one context per device, usable from multiple threads at a time
+  NVML_COMPUTEMODE_DEFAULT = 0, // !< Default compute mode -- multiple contexts per device
+  NVML_COMPUTEMODE_EXCLUSIVE_THREAD = 1,  // !< Compute-exclusive-thread mode -- only one context per device, usable from one thread at a time
+  NVML_COMPUTEMODE_PROHIBITED = 2,  // !< Compute-prohibited mode -- no contexts per device
+  NVML_COMPUTEMODE_EXCLUSIVE_PROCESS = 3, // !< Compute-exclusive-process mode -- only one context per device, usable from multiple threads at a time
 
-    // Keep this last
-    NVML_COMPUTEMODE_COUNT
+  // Keep this last
+  NVML_COMPUTEMODE_COUNT
 } nvmlComputeMode_t;
 
 /**
@@ -96,13 +100,13 @@ typedef enum nvmlComputeMode_enum
  */
 typedef enum nvmlGom_enum
 {
-    NVML_GOM_ALL_ON                    = 0, //!< Everything is enabled and running at full speed
+  NVML_GOM_ALL_ON = 0,          // !< Everything is enabled and running at full speed
 
-    NVML_GOM_COMPUTE                   = 1, //!< Designed for running only compute tasks. Graphics operations
-                                            //!< are not allowed
+  NVML_GOM_COMPUTE = 1,         // !< Designed for running only compute tasks. Graphics operations
+  // !< are not allowed
 
-    NVML_GOM_LOW_DP                    = 2  //!< Designed for running graphics applications that don't require
-                                            //!< high bandwidth double precision
+  NVML_GOM_LOW_DP = 2           // !< Designed for running graphics applications that don't require
+    // !< high bandwidth double precision
 } nvmlGpuOperationMode_t;
 
 /***************************************************************************************************/
@@ -161,7 +165,7 @@ typedef enum nvmlGom_enum
  * */
 #define nvmlClocksThrottleReasonNone                      0x0000000000000000LL
 
-/*
+/* 
  * End of declarations from nvml.h
  **/
 
@@ -173,23 +177,40 @@ typedef nvmlDevice_t HM_ADAPTER_NVML;
 #define NVML_API_CALL
 #endif
 
-typedef const char * (*NVML_API_CALL NVML_ERROR_STRING) (nvmlReturn_t);
+typedef const char *(*NVML_API_CALL NVML_ERROR_STRING) (nvmlReturn_t);
+
 typedef int (*NVML_API_CALL NVML_INIT) (void);
+
 typedef int (*NVML_API_CALL NVML_SHUTDOWN) (void);
+
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_COUNT) (unsigned int *);
+
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_NAME) (nvmlDevice_t, char *, unsigned int);
+
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_HANDLE_BY_INDEX) (unsigned int, nvmlDevice_t *);
+
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_TEMPERATURE) (nvmlDevice_t, nvmlTemperatureSensors_t, unsigned int *);
+
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_FAN_SPEED) (nvmlDevice_t, unsigned int *);
+
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_UTILIZATION_RATES) (nvmlDevice_t, nvmlUtilization_t *);
+
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_CLOCKINFO) (nvmlDevice_t, nvmlClockType_t, unsigned int *);
+
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_THRESHOLD) (nvmlDevice_t, nvmlTemperatureThresholds_t, unsigned int *);
+
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_CURRPCIELINKGENERATION) (nvmlDevice_t, unsigned int *);
+
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_CURRPCIELINKWIDTH) (nvmlDevice_t, unsigned int *);
+
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_CURRENTCLOCKSTHROTTLEREASONS) (nvmlDevice_t, unsigned long long *);
+
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_SUPPORTEDCLOCKSTHROTTLEREASONS) (nvmlDevice_t, unsigned long long *);
+
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_SET_COMPUTEMODE) (nvmlDevice_t, nvmlComputeMode_t);
+
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_SET_OPERATIONMODE) (nvmlDevice_t, nvmlGpuOperationMode_t);
+
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_PCIINFO) (nvmlDevice_t, nvmlPciInfo_t *);
 
 #if defined (_POSIX)

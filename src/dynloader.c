@@ -30,7 +30,7 @@ void *hc_dlopen (const char *fileName, int flag)
   return dlopen (fileName, flag);
 }
 
-int hc_dlclose (void * handle)
+int hc_dlclose (void *handle)
 {
   return dlclose (handle);
 }

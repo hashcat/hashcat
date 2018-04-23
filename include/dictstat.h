@@ -22,11 +22,16 @@
 
 int sort_by_dictstat (const void *s1, const void *s2);
 
-int  dictstat_init    (hashcat_ctx_t *hashcat_ctx);
-void dictstat_destroy (hashcat_ctx_t *hashcat_ctx);
-void dictstat_read    (hashcat_ctx_t *hashcat_ctx);
-int  dictstat_write   (hashcat_ctx_t *hashcat_ctx);
-u64  dictstat_find    (hashcat_ctx_t *hashcat_ctx, dictstat_t *d);
-void dictstat_append  (hashcat_ctx_t *hashcat_ctx, dictstat_t *d);
+int dictstat_init (hashcat_ctx_t * hashcat_ctx);
+
+void dictstat_destroy (hashcat_ctx_t * hashcat_ctx);
+
+void dictstat_read (hashcat_ctx_t * hashcat_ctx);
+
+int dictstat_write (hashcat_ctx_t * hashcat_ctx);
+
+u64 dictstat_find (hashcat_ctx_t * hashcat_ctx, dictstat_t * d);
+
+void dictstat_append (hashcat_ctx_t * hashcat_ctx, dictstat_t * d);
 
 #endif // _DICTSTAT_H

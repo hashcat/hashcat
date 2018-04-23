@@ -15,8 +15,8 @@
 #include <psapi.h>
 #endif // _WIN
 
-int pidfile_ctx_init (hashcat_ctx_t *hashcat_ctx);
+int pidfile_ctx_init (hashcat_ctx_t * hashcat_ctx);
 
-void pidfile_ctx_destroy (hashcat_ctx_t *hashcat_ctx);
+void pidfile_ctx_destroy (hashcat_ctx_t * hashcat_ctx);
 
 #endif // _PIDFILE_H

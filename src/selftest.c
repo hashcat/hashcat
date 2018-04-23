@@ -13,18 +13,22 @@
 #include "thread.h"
 #include "selftest.h"
 
-static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
+static int selftest (hashcat_ctx_t * hashcat_ctx, hc_device_param_t * device_param)
 {
-  hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
-  hashes_t             *hashes             = hashcat_ctx->hashes;
-  status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
+  hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
+  hashes_t *hashes = hashcat_ctx->hashes;
+
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   cl_int CL_err;
 
   int CL_rc;
 
-  if (hashconfig->st_hash == NULL) return 0;
+  if (hashconfig->st_hash == NULL)
+    return 0;
 
   // init : replace hashes with selftest hash
 
@@ -45,7 +49,9 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     {
       device_param->kernel_params_buf32[30] = 1;
 
-      pw_t pw; memset (&pw, 0, sizeof (pw));
+      pw_t pw;
+
+      memset (&pw, 0, sizeof (pw));
 
       char *pw_ptr = (char *) &pw.i;
 
@@ -62,14 +68,17 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL);
 
-      if (CL_err != CL_SUCCESS) return -1;
+      if (CL_err != CL_SUCCESS)
+        return -1;
     }
     else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
     {
       device_param->kernel_params_buf32[30] = 1;
       device_param->kernel_params_buf32[33] = COMBINATOR_MODE_BASE_LEFT;
 
-      pw_t pw; memset (&pw, 0, sizeof (pw));
+      pw_t pw;
+
+      memset (&pw, 0, sizeof (pw));
 
       char *pw_ptr = (char *) &pw.i;
 
@@ -79,7 +88,9 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       pw.pw_len = (u32) pw_len - 1;
 
-      pw_t comb; memset (&comb, 0, sizeof (comb));
+      pw_t comb;
+
+      memset (&comb, 0, sizeof (comb));
 
       char *comb_ptr = (char *) &comb.i;
 
@@ -99,11 +110,13 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_combs_c, CL_TRUE, 0, 1 * sizeof (pw_t), &comb, 0, NULL, NULL);
 
-      if (CL_err != CL_SUCCESS) return -1;
+      if (CL_err != CL_SUCCESS)
+        return -1;
 
       CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL);
 
-      if (CL_err != CL_SUCCESS) return -1;
+      if (CL_err != CL_SUCCESS)
+        return -1;
     }
     else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
     {
@@ -111,7 +124,9 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       if (hashconfig->opts_type & OPTS_TYPE_PT_BITSLICE)
       {
-        pw_t pw; memset (&pw, 0, sizeof (pw));
+        pw_t pw;
+
+        memset (&pw, 0, sizeof (pw));
 
         char *pw_ptr = (char *) &pw.i;
 
@@ -128,11 +143,14 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
         CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL);
 
-        if (CL_err != CL_SUCCESS) return -1;
+        if (CL_err != CL_SUCCESS)
+          return -1;
       }
       else
       {
-        bf_t bf; memset (&bf, 0, sizeof (bf));
+        bf_t bf;
+
+        memset (&bf, 0, sizeof (bf));
 
         char *bf_ptr = (char *) &bf.i;
 
@@ -171,9 +189,12 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
         CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_bfs_c, CL_TRUE, 0, 1 * sizeof (bf_t), &bf, 0, NULL, NULL);
 
-        if (CL_err != CL_SUCCESS) return -1;
+        if (CL_err != CL_SUCCESS)
+          return -1;
 
-        pw_t pw; memset (&pw, 0, sizeof (pw));
+        pw_t pw;
+
+        memset (&pw, 0, sizeof (pw));
 
         char *pw_ptr = (char *) &pw.i;
 
@@ -237,24 +258,27 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
         if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS14)
         {
-          pw.i[14] = (u32) new_pass_len * 8;
+          pw.i[14] = (u32) new_pass_len *8;
+
           pw.i[15] = 0;
         }
 
         if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS15)
         {
           pw.i[14] = 0;
-          pw.i[15] = (u32) new_pass_len * 8;
+          pw.i[15] = (u32) new_pass_len *8;
         }
 
         if (hashconfig->opts_type & OPTS_TYPE_PT_GENERATE_BE)
         {
-          for (int i = 0; i < 14; i++) pw.i[i] = byte_swap_32 (pw.i[i]);
+          for (int i = 0; i < 14; i++)
+            pw.i[i] = byte_swap_32 (pw.i[i]);
         }
 
         CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL);
 
-        if (CL_err != CL_SUCCESS) return -1;
+        if (CL_err != CL_SUCCESS)
+          return -1;
 
         highest_pw_len = pw.pw_len;
       }
@@ -262,7 +286,9 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   }
   else
   {
-    pw_t pw; memset (&pw, 0, sizeof (pw));
+    pw_t pw;
+
+    memset (&pw, 0, sizeof (pw));
 
     char *pw_ptr = (char *) &pw.i;
 
@@ -274,7 +300,8 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL);
 
-    if (CL_err != CL_SUCCESS) return -1;
+    if (CL_err != CL_SUCCESS)
+      return -1;
   }
 
   // main : run the kernel
@@ -287,26 +314,30 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       {
         CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_1, 1, false, 0);
 
-        if (CL_rc == -1) return -1;
+        if (CL_rc == -1)
+          return -1;
       }
       else if (highest_pw_len < 32)
       {
         CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_2, 1, false, 0);
 
-        if (CL_rc == -1) return -1;
+        if (CL_rc == -1)
+          return -1;
       }
       else
       {
         CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_3, 1, false, 0);
 
-        if (CL_rc == -1) return -1;
+        if (CL_rc == -1)
+          return -1;
       }
     }
     else
     {
       CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_4, 1, false, 0);
 
-      if (CL_rc == -1) return -1;
+      if (CL_rc == -1)
+        return -1;
     }
   }
   else
@@ -315,23 +346,27 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_1, 1, false, 0);
 
-    if (CL_rc == -1) return -1;
+    if (CL_rc == -1)
+      return -1;
 
     if (hashconfig->opts_type & OPTS_TYPE_HOOK12)
     {
       CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_12, 1, false, 0);
 
-      if (CL_rc == -1) return -1;
+      if (CL_rc == -1)
+        return -1;
 
       CL_rc = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
 
-      if (CL_rc == -1) return -1;
+      if (CL_rc == -1)
+        return -1;
 
       // do something with data
 
       CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
 
-      if (CL_rc == -1) return -1;
+      if (CL_rc == -1)
+        return -1;
     }
 
     const u32 salt_pos = 0;
@@ -355,43 +390,50 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_2, 1, false, 0);
 
-      if (CL_rc == -1) return -1;
+      if (CL_rc == -1)
+        return -1;
     }
 
     if (hashconfig->opts_type & OPTS_TYPE_HOOK23)
     {
       CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_23, 1, false, 0);
 
-      if (CL_rc == -1) return -1;
+      if (CL_rc == -1)
+        return -1;
 
       CL_rc = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
 
-      if (CL_rc == -1) return -1;
+      if (CL_rc == -1)
+        return -1;
 
-      /*
+      /* 
        * The following section depends on the hash mode
        */
 
       switch (hashconfig->hash_mode)
       {
         // for 7z we only need device_param->hooks_buf, but other hooks could use any info from device_param. All of them should/must update hooks_buf
-        case 11600: seven_zip_hook_func (device_param, hashes->st_hook_salts_buf, 0, 1); break;
+      case 11600:
+        seven_zip_hook_func (device_param, hashes->st_hook_salts_buf, 0, 1);
+        break;
       }
 
-      /*
+      /* 
        * END of hash mode specific hook operations
        */
 
       CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
 
-      if (CL_rc == -1) return -1;
+      if (CL_rc == -1)
+        return -1;
     }
 
     if (hashconfig->opts_type & OPTS_TYPE_INIT2)
     {
       CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_INIT2, 1, false, 0);
 
-      if (CL_rc == -1) return -1;
+      if (CL_rc == -1)
+        return -1;
     }
 
     if (hashconfig->opts_type & OPTS_TYPE_LOOP2)
@@ -409,7 +451,8 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
         CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP2, 1, false, 0);
 
-        if (CL_rc == -1) return -1;
+        if (CL_rc == -1)
+          return -1;
       }
     }
 
@@ -420,13 +463,15 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX1, 1, false, 0);
 
-      if (CL_rc == -1) return -1;
+      if (CL_rc == -1)
+        return -1;
     }
     else
     {
       CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_3, 1, false, 0);
 
-      if (CL_rc == -1) return -1;
+      if (CL_rc == -1)
+        return -1;
     }
   }
 
@@ -436,7 +481,8 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   CL_err = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->command_queue, device_param->d_result, CL_TRUE, 0, sizeof (u32), &num_cracked, 0, NULL, NULL);
 
-  if (CL_err != CL_SUCCESS) return -1;
+  if (CL_err != CL_SUCCESS)
+    return -1;
 
   // finish : cleanup and restore
 
@@ -453,30 +499,45 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   device_param->kernel_params[17] = &device_param->d_salt_bufs;
   device_param->kernel_params[18] = &device_param->d_esalt_bufs;
 
-  CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_pws_buf,       device_param->size_pws);      if (CL_rc == -1) return -1;
-  CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_tmps,          device_param->size_tmps);     if (CL_rc == -1) return -1;
-  CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_hooks,         device_param->size_hooks);    if (CL_rc == -1) return -1;
-  CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_plain_bufs,    device_param->size_plains);   if (CL_rc == -1) return -1;
-  CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_digests_shown, device_param->size_shown);    if (CL_rc == -1) return -1;
-  CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_result,        device_param->size_results);  if (CL_rc == -1) return -1;
+  CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_pws_buf, device_param->size_pws);
+  if (CL_rc == -1)
+    return -1;
+  CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_tmps, device_param->size_tmps);
+  if (CL_rc == -1)
+    return -1;
+  CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_hooks, device_param->size_hooks);
+  if (CL_rc == -1)
+    return -1;
+  CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_plain_bufs, device_param->size_plains);
+  if (CL_rc == -1)
+    return -1;
+  CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_digests_shown, device_param->size_shown);
+  if (CL_rc == -1)
+    return -1;
+  CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_result, device_param->size_results);
+  if (CL_rc == -1)
+    return -1;
 
   if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
   {
     CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_rules_c, device_param->size_rules_c);
 
-    if (CL_rc == -1) return -1;
+    if (CL_rc == -1)
+      return -1;
   }
   else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
   {
     CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_combs_c, device_param->size_combs);
 
-    if (CL_rc == -1) return -1;
+    if (CL_rc == -1)
+      return -1;
   }
   else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
   {
     CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_bfs_c, device_param->size_bfs);
 
-    if (CL_rc == -1) return -1;
+    if (CL_rc == -1)
+      return -1;
   }
 
   // check return
@@ -507,15 +568,18 @@ void *thread_selftest (void *p)
 
   opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
 
-  if (opencl_ctx->enabled == false) return NULL;
+  if (opencl_ctx->enabled == false)
+    return NULL;
 
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (user_options->self_test_disable == true) return NULL;
+  if (user_options->self_test_disable == true)
+    return NULL;
 
   hc_device_param_t *device_param = opencl_ctx->devices_param + thread_param->tid;
 
-  if (device_param->skipped == true) return NULL;
+  if (device_param->skipped == true)
+    return NULL;
 
   const int rc_selftest = selftest (hashcat_ctx, device_param);
 

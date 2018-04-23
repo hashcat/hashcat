@@ -15,20 +15,23 @@
 void md4_64 (const u32 block[16], u32 digest[4])
 {
   u32 w0[4];
+
   u32 w1[4];
+
   u32 w2[4];
+
   u32 w3[4];
 
-  w0[0] = block[ 0];
-  w0[1] = block[ 1];
-  w0[2] = block[ 2];
-  w0[3] = block[ 3];
-  w1[0] = block[ 4];
-  w1[1] = block[ 5];
-  w1[2] = block[ 6];
-  w1[3] = block[ 7];
-  w2[0] = block[ 8];
-  w2[1] = block[ 9];
+  w0[0] = block[0];
+  w0[1] = block[1];
+  w0[2] = block[2];
+  w0[3] = block[3];
+  w1[0] = block[4];
+  w1[1] = block[5];
+  w1[2] = block[6];
+  w1[3] = block[7];
+  w2[0] = block[8];
+  w2[1] = block[9];
   w2[2] = block[10];
   w2[3] = block[11];
   w3[0] = block[12];
@@ -37,8 +40,11 @@ void md4_64 (const u32 block[16], u32 digest[4])
   w3[3] = block[15];
 
   u32 a = digest[0];
+
   u32 b = digest[1];
+
   u32 c = digest[2];
+
   u32 d = digest[3];
 
   MD4_STEP (MD4_Fo, a, b, c, d, w0[0], MD4C00, MD4S00);
@@ -75,22 +81,22 @@ void md4_64 (const u32 block[16], u32 digest[4])
   MD4_STEP (MD4_Go, c, d, a, b, w2[3], MD4C01, MD4S12);
   MD4_STEP (MD4_Go, b, c, d, a, w3[3], MD4C01, MD4S13);
 
-  MD4_STEP (MD4_H , a, b, c, d, w0[0], MD4C02, MD4S20);
-  MD4_STEP (MD4_H , d, a, b, c, w2[0], MD4C02, MD4S21);
-  MD4_STEP (MD4_H , c, d, a, b, w1[0], MD4C02, MD4S22);
-  MD4_STEP (MD4_H , b, c, d, a, w3[0], MD4C02, MD4S23);
-  MD4_STEP (MD4_H , a, b, c, d, w0[2], MD4C02, MD4S20);
-  MD4_STEP (MD4_H , d, a, b, c, w2[2], MD4C02, MD4S21);
-  MD4_STEP (MD4_H , c, d, a, b, w1[2], MD4C02, MD4S22);
-  MD4_STEP (MD4_H , b, c, d, a, w3[2], MD4C02, MD4S23);
-  MD4_STEP (MD4_H , a, b, c, d, w0[1], MD4C02, MD4S20);
-  MD4_STEP (MD4_H , d, a, b, c, w2[1], MD4C02, MD4S21);
-  MD4_STEP (MD4_H , c, d, a, b, w1[1], MD4C02, MD4S22);
-  MD4_STEP (MD4_H , b, c, d, a, w3[1], MD4C02, MD4S23);
-  MD4_STEP (MD4_H , a, b, c, d, w0[3], MD4C02, MD4S20);
-  MD4_STEP (MD4_H , d, a, b, c, w2[3], MD4C02, MD4S21);
-  MD4_STEP (MD4_H , c, d, a, b, w1[3], MD4C02, MD4S22);
-  MD4_STEP (MD4_H , b, c, d, a, w3[3], MD4C02, MD4S23);
+  MD4_STEP (MD4_H, a, b, c, d, w0[0], MD4C02, MD4S20);
+  MD4_STEP (MD4_H, d, a, b, c, w2[0], MD4C02, MD4S21);
+  MD4_STEP (MD4_H, c, d, a, b, w1[0], MD4C02, MD4S22);
+  MD4_STEP (MD4_H, b, c, d, a, w3[0], MD4C02, MD4S23);
+  MD4_STEP (MD4_H, a, b, c, d, w0[2], MD4C02, MD4S20);
+  MD4_STEP (MD4_H, d, a, b, c, w2[2], MD4C02, MD4S21);
+  MD4_STEP (MD4_H, c, d, a, b, w1[2], MD4C02, MD4S22);
+  MD4_STEP (MD4_H, b, c, d, a, w3[2], MD4C02, MD4S23);
+  MD4_STEP (MD4_H, a, b, c, d, w0[1], MD4C02, MD4S20);
+  MD4_STEP (MD4_H, d, a, b, c, w2[1], MD4C02, MD4S21);
+  MD4_STEP (MD4_H, c, d, a, b, w1[1], MD4C02, MD4S22);
+  MD4_STEP (MD4_H, b, c, d, a, w3[1], MD4C02, MD4S23);
+  MD4_STEP (MD4_H, a, b, c, d, w0[3], MD4C02, MD4S20);
+  MD4_STEP (MD4_H, d, a, b, c, w2[3], MD4C02, MD4S21);
+  MD4_STEP (MD4_H, c, d, a, b, w1[3], MD4C02, MD4S22);
+  MD4_STEP (MD4_H, b, c, d, a, w3[3], MD4C02, MD4S23);
 
   digest[0] += a;
   digest[1] += b;

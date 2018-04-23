@@ -8,8 +8,7 @@
 #include "interface.h"
 #include "benchmark.h"
 
-static const int DEFAULT_BENCHMARK_ALGORITHMS_BUF[] =
-{
+static const int DEFAULT_BENCHMARK_ALGORITHMS_BUF[] = {
   0,
   100,
   1400,
@@ -38,7 +37,7 @@ static const int DEFAULT_BENCHMARK_ALGORITHMS_BUF[] =
   -1,
 };
 
-int benchmark_next (hashcat_ctx_t *hashcat_ctx)
+int benchmark_next (hashcat_ctx_t * hashcat_ctx)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -48,7 +47,8 @@ int benchmark_next (hashcat_ctx_t *hashcat_ctx)
   {
     const int hash_mode = DEFAULT_BENCHMARK_ALGORITHMS_BUF[cur];
 
-    if (hash_mode == -1) return -1;
+    if (hash_mode == -1)
+      return -1;
 
     cur++;
 

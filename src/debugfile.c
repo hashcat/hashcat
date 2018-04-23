@@ -11,11 +11,12 @@
 #include "shared.h"
 #include "locking.h"
 
-static void debugfile_format_plain (hashcat_ctx_t *hashcat_ctx, const u8 *plain_ptr, const u32 plain_len)
+static void debugfile_format_plain (hashcat_ctx_t * hashcat_ctx, const u8 * plain_ptr, const u32 plain_len)
 {
   debugfile_ctx_t *debugfile_ctx = hashcat_ctx->debugfile_ctx;
 
-  if (debugfile_ctx->enabled == false) return;
+  if (debugfile_ctx->enabled == false)
+    return;
 
   int needs_hexify = 0;
 
@@ -53,11 +54,12 @@ static void debugfile_format_plain (hashcat_ctx_t *hashcat_ctx, const u8 *plain_
   }
 }
 
-void debugfile_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *rule_buf, const u32 rule_len, const u8 *mod_plain_ptr, const u32 mod_plain_len, const u8 *orig_plain_ptr, const u32 orig_plain_len)
+void debugfile_write_append (hashcat_ctx_t * hashcat_ctx, const u8 * rule_buf, const u32 rule_len, const u8 * mod_plain_ptr, const u32 mod_plain_len, const u8 * orig_plain_ptr, const u32 orig_plain_len)
 {
   debugfile_ctx_t *debugfile_ctx = hashcat_ctx->debugfile_ctx;
 
-  if (debugfile_ctx->enabled == false) return;
+  if (debugfile_ctx->enabled == false)
+    return;
 
   const u32 debug_mode = debugfile_ctx->mode;
 
@@ -65,7 +67,8 @@ void debugfile_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *rule_buf, con
   {
     debugfile_format_plain (hashcat_ctx, orig_plain_ptr, orig_plain_len);
 
-    if ((debug_mode == 3) || (debug_mode == 4)) fputc (':', debugfile_ctx->fp);
+    if ((debug_mode == 3) || (debug_mode == 4))
+      fputc (':', debugfile_ctx->fp);
   }
 
   hc_fwrite (rule_buf, rule_len, 1, debugfile_ctx->fp);
@@ -80,25 +83,38 @@ void debugfile_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *rule_buf, con
   hc_fwrite (EOL, strlen (EOL), 1, debugfile_ctx->fp);
 }
 
-int debugfile_init (hashcat_ctx_t *hashcat_ctx)
+int debugfile_init (hashcat_ctx_t * hashcat_ctx)
 {
   debugfile_ctx_t *debugfile_ctx = hashcat_ctx->debugfile_ctx;
-  user_options_t  *user_options  = hashcat_ctx->user_options;
+
+  user_options_t *user_options = hashcat_ctx->user_options;
 
   debugfile_ctx->enabled = false;
 
-  if (user_options->benchmark      == true) return 0;
-  if (user_options->example_hashes == true) return 0;
-  if (user_options->keyspace       == true) return 0;
-  if (user_options->left           == true) return 0;
-  if (user_options->opencl_info    == true) return 0;
-  if (user_options->show           == true) return 0;
-  if (user_options->stdout_flag    == true) return 0;
-  if (user_options->speed_only     == true) return 0;
-  if (user_options->progress_only  == true) return 0;
-  if (user_options->usage          == true) return 0;
-  if (user_options->version        == true) return 0;
-  if (user_options->debug_mode     == 0)    return 0;
+  if (user_options->benchmark == true)
+    return 0;
+  if (user_options->example_hashes == true)
+    return 0;
+  if (user_options->keyspace == true)
+    return 0;
+  if (user_options->left == true)
+    return 0;
+  if (user_options->opencl_info == true)
+    return 0;
+  if (user_options->show == true)
+    return 0;
+  if (user_options->stdout_flag == true)
+    return 0;
+  if (user_options->speed_only == true)
+    return 0;
+  if (user_options->progress_only == true)
+    return 0;
+  if (user_options->usage == true)
+    return 0;
+  if (user_options->version == true)
+    return 0;
+  if (user_options->debug_mode == 0)
+    return 0;
 
   debugfile_ctx->enabled = true;
 
@@ -136,11 +152,12 @@ int debugfile_init (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-void debugfile_destroy (hashcat_ctx_t *hashcat_ctx)
+void debugfile_destroy (hashcat_ctx_t * hashcat_ctx)
 {
   debugfile_ctx_t *debugfile_ctx = hashcat_ctx->debugfile_ctx;
 
-  if (debugfile_ctx->enabled == false) return;
+  if (debugfile_ctx->enabled == false)
+    return;
 
   if (debugfile_ctx->filename)
   {

@@ -10,7 +10,7 @@
 
 #if defined (F_SETLKW)
 
-int lock_file (FILE *fp)
+int lock_file (FILE * fp)
 {
   struct flock lock;
 
@@ -21,13 +21,14 @@ int lock_file (FILE *fp)
   /* Needs this loop because a signal may interrupt a wait for lock */
   while (fcntl (fileno (fp), F_SETLKW, &lock))
   {
-    if (errno != EINTR) return -1;
+    if (errno != EINTR)
+      return -1;
   }
 
   return 0;
 }
 
-int unlock_file (FILE *fp)
+int unlock_file (FILE * fp)
 {
   struct flock lock;
 
@@ -45,14 +46,14 @@ int unlock_file (FILE *fp)
 
 #else
 
-int lock_file (MAYBE_UNUSED FILE *fp)
+int lock_file (MAYBE_UNUSED FILE * fp)
 {
   // we should put windows specific code here
 
   return 0;
 }
 
-int unlock_file (MAYBE_UNUSED FILE *fp)
+int unlock_file (MAYBE_UNUSED FILE * fp)
 {
   // we should put windows specific code here
 

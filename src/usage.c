@@ -8,16 +8,14 @@
 #include "shared.h"
 #include "usage.h"
 
-static const char *const USAGE_MINI[] =
-{
+static const char *const USAGE_MINI[] = {
   "Usage: %s [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]...",
   "",
   "Try --help for more help.",
   NULL
 };
 
-static const char *const USAGE_BIG[] =
-{
+static const char *const USAGE_BIG[] = {
   "%s - advanced password recovery",
   "",
   "Usage: %s [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]...",
