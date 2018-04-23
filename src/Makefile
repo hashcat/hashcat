@@ -47,12 +47,14 @@ endif
 CC                      := gcc
 FIND                    := find
 INSTALL                 := install
+INDENT                  := indent
 RM                      := rm
 SED                     := sed
 SED_IN_PLACE            := -i
 
 ifeq ($(UNAME),Darwin)
 CC                      := clang
+INDENT                  := gindent
 # the sed -i option of macOS requires a parameter for the backup file (we just use "")
 SED                     := /usr/bin/sed
 SED_IN_PLACE            := -i ""
@@ -450,6 +452,9 @@ uninstall:
 	$(RM) -rf $(DESTDIR)$(LIBRARY_DEV_FOLDER)
 	$(RM) -rf $(DESTDIR)$(SHARED_FOLDER)
 	$(RM) -rf $(DESTDIR)$(DOCUMENT_FOLDER)
+
+indent:
+	$(INDENT) src/*.c include/*.h
 
 ##
 ## native compiled hashcat library and frontend

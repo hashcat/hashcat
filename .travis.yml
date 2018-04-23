@@ -6,4 +6,5 @@ compiler:
   - clang
   - gcc
 script:
+  - make indent && git diff --exit-code
   - make
