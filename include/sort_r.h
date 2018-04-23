@@ -19,20 +19,20 @@
 
 #if (defined __APPLE__ || defined __MACH__ || defined __DARWIN__ || \
      defined __FreeBSD__ || defined __DragonFly__)
-#  define _SORT_R_BSD
-#  define _SORT_R_INLINE inline
+#define _SORT_R_BSD
+#define _SORT_R_INLINE inline
 #elif (defined __linux__) || defined (__CYGWIN__)
-#  define _SORT_R_LINUX
-#  define _SORT_R_INLINE inline
+#define _SORT_R_LINUX
+#define _SORT_R_INLINE inline
 #elif (defined _WIN32 || defined _WIN64 || defined __WINDOWS__)
-#  define _SORT_R_WINDOWS
-#  define _SORT_R_INLINE __inline
+#define _SORT_R_WINDOWS
+#define _SORT_R_INLINE __inline
 #else
   /* Using our own recursive quicksort sort_r_simple() */
 #endif
 
 #if (defined NESTED_QSORT && NESTED_QSORT == 0)
-#  undef NESTED_QSORT
+#undef NESTED_QSORT
 #endif
 
 /* swap a, b iff a>b */
