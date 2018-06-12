@@ -6350,11 +6350,14 @@ sub gen_hash
 
     $a ^= $c;
     $b ^= $d;
-    if ($mode == 7700) {
-	$tmp_hash = sprintf ("%s\$%08X%08X", $salt_buf, $a, $b);
+
+    if ($mode == 7700)
+    {
+      $tmp_hash = sprintf ("%s\$%08X%08X", $salt_buf, $a, $b);
     }
-    else {
-	$tmp_hash = sprintf ("%s\$%08X%08X", $salt_buf, $a, 0);
+    else
+    {
+      $tmp_hash = sprintf ("%s\$%08X%08X", $salt_buf, $a, 0);
     }
   }
   elsif ($mode == 7800 || $mode == 7801)
@@ -6402,13 +6405,16 @@ sub gen_hash
     $offsetMagicArray += (($e >> 24) & 0xff) % 8;
 
     my $hash_buf = sha1_hex ($word_buf . substr ($theMagicArray_s, $offsetMagicArray, $lengthMagicArray) . $salt_buf);
-    if ($mode == 7800) {
-	$tmp_hash = sprintf ("%s\$%s", $salt_buf, uc $hash_buf);
+
+    if ($mode == 7800)
+    {
+      $tmp_hash = sprintf ("%s\$%s", $salt_buf, uc $hash_buf);
     }
-    else {
-	$tmp_hash = sprintf("%s\$%.20s%020X", $salt_buf, uc $hash_buf, 0);
+    else
+    {
+      $tmp_hash = sprintf("%s\$%.20s%020X", $salt_buf, uc $hash_buf, 0);
     }
-}
+  }
   elsif ($mode == 7900)
   {
     my $cost = 14;
