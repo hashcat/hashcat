@@ -173,7 +173,9 @@ static const char *ST_HASH_07300 = "34373437353333363838313532323234333833333032
 static const char *ST_HASH_07400 = "$5$7777657035274252$XftMj84MW.New1/ViLY5V4CM4Y7EBvfETaZsCW9vcJ8";
 static const char *ST_HASH_07500 = "$krb5pa$23$user$realm$salt$5cbb0c882a2b26956e81644edbdb746326f4f5f0e947144fb3095dffe4b4b03e854fc1d631323632303636373330383333353630";
 static const char *ST_HASH_07700 = "027642760180$77EC38630C08DF8D";
+static const char *ST_HASH_07701 = "027642760180$77EC386300000000";
 static const char *ST_HASH_07800 = "604020408266$32837BA7B97672BA4E5AC74767A4E6E1AE802651";
+static const char *ST_HASH_07801 = "604020408266$32837BA7B97672BA4E5A00000000000000000000";
 static const char *ST_HASH_07900 = "$S$C20340258nzjDWpoQthrdNTR02f0pmev0K/5/Nx80WSkOQcPEQRh";
 static const char *ST_HASH_08000 = "0xc0071808773188715731b69bd4e310b4129913aaf657356c5bdf3c46f249ed42477b5c74af6eaac4d15a";
 static const char *ST_HASH_08100 = "1130725275da09ca13254957f2314a639818d44c37ef6d558";
@@ -423,7 +425,9 @@ static const char *HT_07300 = "IPMI2 RAKP HMAC-SHA1";
 static const char *HT_07400 = "sha256crypt $5$, SHA256 (Unix)";
 static const char *HT_07500 = "Kerberos 5 AS-REQ Pre-Auth etype 23";
 static const char *HT_07700 = "SAP CODVN B (BCODE)";
+static const char *HT_07701 = "SAP CODVN B (BCODE) mangled from RFC_READ_TABLE";
 static const char *HT_07800 = "SAP CODVN F/G (PASSCODE)";
+static const char *HT_07801 = "SAP CODVN F/G (PASSCODE) mangled from RFC_READ_TABLE";
 static const char *HT_07900 = "Drupal7";
 static const char *HT_08000 = "Sybase ASE";
 static const char *HT_08100 = "Citrix NetScaler";
@@ -16795,7 +16799,9 @@ const char *strhashtype (const u32 hash_mode)
     case  7400: return HT_07400;
     case  7500: return HT_07500;
     case  7700: return HT_07700;
+    case  7701: return HT_07701;
     case  7800: return HT_07800;
+    case  7801: return HT_07801;
     case  7900: return HT_07900;
     case  8000: return HT_08000;
     case  8100: return HT_08100;
@@ -18374,14 +18380,14 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
       (char *) krb5pa->salt,
       data);
   }
-  else if (hash_mode == 7700)
+  else if ((hash_mode == 7700) || (hash_mode == 7701))
   {
     snprintf (out_buf, out_len - 1, "%s$%08X%08X",
       (char *) salt.salt_buf,
       digest_buf[0],
       digest_buf[1]);
   }
-  else if (hash_mode == 7800)
+  else if ((hash_mode == 7800) || (hash_mode == 7801))
   {
     snprintf (out_buf, out_len - 1, "%s$%08X%08X%08X%08X%08X",
       (char *) salt.salt_buf,
@@ -23572,6 +23578,26 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
+    case  7701:  hashconfig->hash_type      = HASH_TYPE_SAPB;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_PT_UPPER
+                                            | OPTS_TYPE_ST_UPPER;
+                 hashconfig->kern_type      = KERN_TYPE_SAPB_MANGLED;
+                 hashconfig->dgst_size      = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
+                 hashconfig->parse_func     = sapb_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_PRECOMPUTE_INIT
+                                            | OPTI_TYPE_NOT_ITERATED;
+                 hashconfig->dgst_pos0      = 0;
+                 hashconfig->dgst_pos1      = 1;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 3;
+                 hashconfig->st_hash        = ST_HASH_07701;
+                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
+                 break;
+
     case  7800:  hashconfig->hash_type      = HASH_TYPE_SAPG;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -23589,6 +23615,26 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 1;
                  hashconfig->st_hash        = ST_HASH_07800;
+                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
+                 break;
+
+    case  7801:  hashconfig->hash_type      = HASH_TYPE_SAPG;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
+                                            | OPTS_TYPE_ST_ADD80
+                                            | OPTS_TYPE_ST_UPPER;
+                 hashconfig->kern_type      = KERN_TYPE_SAPG_MANGLED;
+                 hashconfig->dgst_size      = DGST_SIZE_4_5;
+                 hashconfig->parse_func     = sapg_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_PRECOMPUTE_INIT
+                                            | OPTI_TYPE_NOT_ITERATED;
+                 hashconfig->dgst_pos0      = 3;
+                 hashconfig->dgst_pos1      = 4;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 1;
+                 hashconfig->st_hash        = ST_HASH_07801;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
