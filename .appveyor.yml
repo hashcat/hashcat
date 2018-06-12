@@ -30,10 +30,8 @@ init:
   - git config --global core.autocrlf input
 
 install:
-  - ps: if (Test-Path Env:\CYG_ROOT) { Start-FileDownload "http://cygwin.com/$env:CYG_SETUP" -FileName "$env:CYG_SETUP" }
+  - ps: if (Test-Path Env:\CYG_ROOT) { Start-FileDownload "https://cygwin.com/$env:CYG_SETUP" -FileName "$env:CYG_SETUP" }
   - if defined CYG_ROOT (%CYG_SETUP% --quiet-mode --no-shortcuts --only-site --root "%CYG_ROOT%" --site "%CYG_MIRROR%" --local-package-dir "%CYG_CACHE%" --packages "%CYG_PACKAGES%" --upgrade-also)
-  # remove the conflicting package "catgets" (it conflicts with msys2-runtime)
-  - if defined MSYSTEM (%BASH% -lc "pacman -Rns catgets --noconfirm")
   - if defined MSYSTEM (%BASH% -lc "pacman -Suuy --noconfirm")
   # the following line is not a duplicate line:
   # it is necessary to upgrade the MSYS base files and after that all the packages
