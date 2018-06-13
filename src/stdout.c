@@ -14,35 +14,36 @@
 #include "shared.h"
 #include "stdout.h"
 
-static void out_flush (out_t *out)
+static void out_flush (out_t * out)
 {
-  if (out->len == 0) return;
+  if (out->len == 0)
+    return;
 
   hc_fwrite (out->buf, 1, out->len, out->fp);
 
   out->len = 0;
 }
 
-static void out_push (out_t *out, const u8 *pw_buf, const int pw_len)
+static void out_push (out_t * out, const u8 * pw_buf, const int pw_len)
 {
   char *ptr = out->buf + out->len;
 
   memcpy (ptr, pw_buf, pw_len);
 
-  #if defined (_WIN)
+#if defined (_WIN)
 
   ptr[pw_len + 0] = '\r';
   ptr[pw_len + 1] = '\n';
 
   out->len += pw_len + 2;
 
-  #else
+#else
 
   ptr[pw_len] = '\n';
 
   out->len += pw_len + 1;
 
-  #endif
+#endif
 
   if (out->len >= HCBUFSIZ_TINY - 300)
   {
@@ -50,14 +51,19 @@ static void out_push (out_t *out, const u8 *pw_buf, const int pw_len)
   }
 }
 
-int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_cnt)
+int process_stdout (hashcat_ctx_t * hashcat_ctx, hc_device_param_t * device_param, const u64 pws_cnt)
 {
   combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
-  hashconfig_t     *hashconfig     = hashcat_ctx->hashconfig;
-  mask_ctx_t       *mask_ctx       = hashcat_ctx->mask_ctx;
-  outfile_ctx_t    *outfile_ctx    = hashcat_ctx->outfile_ctx;
-  straight_ctx_t   *straight_ctx   = hashcat_ctx->straight_ctx;
-  user_options_t   *user_options   = hashcat_ctx->user_options;
+
+  hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
+  mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+  outfile_ctx_t *outfile_ctx = hashcat_ctx->outfile_ctx;
+
+  straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+
+  user_options_t *user_options = hashcat_ctx->user_options;
 
   out_t out;
 
@@ -108,7 +114,8 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
       if (rc == -1)
       {
-        if (filename) fclose (out.fp);
+        if (filename)
+          fclose (out.fp);
 
         return -1;
       }
@@ -136,7 +143,8 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
           plain_len = apply_rules (straight_ctx->kernel_rules_buf[off].cmds, plain_buf, pw.pw_len);
         }
 
-        if (plain_len > hashconfig->pw_max) plain_len = hashconfig->pw_max;
+        if (plain_len > hashconfig->pw_max)
+          plain_len = hashconfig->pw_max;
 
         out_push (&out, plain_ptr, plain_len);
       }
@@ -152,7 +160,8 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
       if (rc == -1)
       {
-        if (filename) fclose (out.fp);
+        if (filename)
+          fclose (out.fp);
 
         return -1;
       }
@@ -167,7 +176,8 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
         plain_len = pw.pw_len;
 
         char *comb_buf = (char *) device_param->combs_buf[il_pos].i;
-        u32   comb_len =          device_param->combs_buf[il_pos].pw_len;
+
+        u32 comb_len = device_param->combs_buf[il_pos].pw_len;
 
         if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
         {
@@ -182,7 +192,8 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
         plain_len += comb_len;
 
-        if (plain_len > hashconfig->pw_max) plain_len = hashconfig->pw_max;
+        if (plain_len > hashconfig->pw_max)
+          plain_len = hashconfig->pw_max;
 
         out_push (&out, plain_ptr, plain_len);
       }
@@ -195,12 +206,15 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
       for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
       {
         u64 l_off = device_param->kernel_params_mp_l_buf64[3] + gidvid;
+
         u64 r_off = device_param->kernel_params_mp_r_buf64[3] + il_pos;
 
         u32 l_start = device_param->kernel_params_mp_l_buf32[5];
+
         u32 r_start = device_param->kernel_params_mp_r_buf32[5];
 
         u32 l_stop = device_param->kernel_params_mp_l_buf32[4];
+
         u32 r_stop = device_param->kernel_params_mp_r_buf32[4];
 
         sp_exec (l_off, (char *) plain_ptr + l_start, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, l_start, l_start + l_stop);
@@ -222,7 +236,8 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
       if (rc == -1)
       {
-        if (filename) fclose (out.fp);
+        if (filename)
+          fclose (out.fp);
 
         return -1;
       }
@@ -239,7 +254,8 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
         u64 off = device_param->kernel_params_mp_buf64[3] + il_pos;
 
         u32 start = 0;
-        u32 stop  = device_param->kernel_params_mp_buf32[4];
+
+        u32 stop = device_param->kernel_params_mp_buf32[4];
 
         sp_exec (off, (char *) plain_ptr + plain_len, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, start, start + stop);
 
@@ -259,7 +275,8 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
       if (rc == -1)
       {
-        if (filename) fclose (out.fp);
+        if (filename)
+          fclose (out.fp);
 
         return -1;
       }
@@ -274,13 +291,15 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
         plain_len = pw.pw_len;
 
         char *comb_buf = (char *) device_param->combs_buf[il_pos].i;
-        u32   comb_len =          device_param->combs_buf[il_pos].pw_len;
+
+        u32 comb_len = device_param->combs_buf[il_pos].pw_len;
 
         memcpy (plain_ptr + plain_len, comb_buf, comb_len);
 
         plain_len += comb_len;
 
-        if (plain_len > hashconfig->pw_max) plain_len = hashconfig->pw_max;
+        if (plain_len > hashconfig->pw_max)
+          plain_len = hashconfig->pw_max;
 
         out_push (&out, plain_ptr, plain_len);
       }
@@ -289,7 +308,8 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
   out_flush (&out);
 
-  if (filename) fclose (out.fp);
+  if (filename)
+    fclose (out.fp);
 
   return 0;
 }

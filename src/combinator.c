@@ -11,25 +11,33 @@
 #include "shared.h"
 #include "wordlist.h"
 
-int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
+int combinator_ctx_init (hashcat_ctx_t * hashcat_ctx)
 {
-  combinator_ctx_t     *combinator_ctx      = hashcat_ctx->combinator_ctx;
-  hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
-  user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
-  user_options_t       *user_options        = hashcat_ctx->user_options;
+  combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
+
+  hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  user_options_t *user_options = hashcat_ctx->user_options;
 
   combinator_ctx->enabled = false;
 
-  if (user_options->example_hashes == true) return 0;
-  if (user_options->left           == true) return 0;
-  if (user_options->opencl_info    == true) return 0;
-  if (user_options->show           == true) return 0;
-  if (user_options->usage          == true) return 0;
-  if (user_options->version        == true) return 0;
+  if (user_options->example_hashes == true)
+    return 0;
+  if (user_options->left == true)
+    return 0;
+  if (user_options->opencl_info == true)
+    return 0;
+  if (user_options->show == true)
+    return 0;
+  if (user_options->usage == true)
+    return 0;
+  if (user_options->version == true)
+    return 0;
 
-  if ((user_options->attack_mode != ATTACK_MODE_COMBI)
-   && (user_options->attack_mode != ATTACK_MODE_HYBRID1)
-   && (user_options->attack_mode != ATTACK_MODE_HYBRID2)) return 0;
+  if ((user_options->attack_mode != ATTACK_MODE_COMBI) && (user_options->attack_mode != ATTACK_MODE_HYBRID1) && (user_options->attack_mode != ATTACK_MODE_HYBRID2))
+    return 0;
 
   combinator_ctx->enabled = true;
 
@@ -40,6 +48,7 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
       // display
 
       char *dictfile1 = user_options_extra->hc_workv[0];
+
       char *dictfile2 = user_options_extra->hc_workv[1];
 
       // at this point we know the file actually exist
@@ -60,6 +69,7 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
       }
 
       FILE *fp1 = NULL;
+
       FILE *fp2 = NULL;
 
       if ((fp1 = fopen (dictfile1, "rb")) == NULL)
@@ -139,12 +149,12 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
       if (words1_cnt >= words2_cnt)
       {
         combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_LEFT;
-        combinator_ctx->combs_cnt  = words2_cnt;
+        combinator_ctx->combs_cnt = words2_cnt;
       }
       else
       {
         combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_RIGHT;
-        combinator_ctx->combs_cnt  = words1_cnt;
+        combinator_ctx->combs_cnt = words1_cnt;
 
         // we also have to switch wordlist related rules!
 
@@ -177,6 +187,7 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
       // display
 
       char *dictfile1 = user_options_extra->hc_workv[0];
+
       char *dictfile2 = user_options_extra->hc_workv[1];
 
       // at this point we know the file actually exist
@@ -197,6 +208,7 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
       }
 
       FILE *fp1 = NULL;
+
       FILE *fp2 = NULL;
 
       if ((fp1 = fopen (dictfile1, "rb")) == NULL)
@@ -274,7 +286,7 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
       combinator_ctx->dict2 = dictfile2;
 
       combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_LEFT;
-      combinator_ctx->combs_cnt  = words2_cnt;
+      combinator_ctx->combs_cnt = words2_cnt;
     }
     else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
     {
@@ -321,7 +333,7 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       fclose (fp);
 
-      combinator_ctx->combs_cnt  = words_cnt;
+      combinator_ctx->combs_cnt = words_cnt;
       combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_LEFT;
     }
   }
@@ -329,11 +341,12 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-void combinator_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
+void combinator_ctx_destroy (hashcat_ctx_t * hashcat_ctx)
 {
   combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
 
-  if (combinator_ctx->enabled == false) return;
+  if (combinator_ctx->enabled == false)
+    return;
 
   memset (combinator_ctx, 0, sizeof (combinator_ctx_t));
 }

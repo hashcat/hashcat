@@ -53,20 +53,27 @@
 
 // inner2_loop iterates through wordlists, then calls kernel execution
 
-static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
+static int inner2_loop (hashcat_ctx_t * hashcat_ctx)
 {
-  hashes_t             *hashes              = hashcat_ctx->hashes;
-  induct_ctx_t         *induct_ctx          = hashcat_ctx->induct_ctx;
-  logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
-  opencl_ctx_t         *opencl_ctx          = hashcat_ctx->opencl_ctx;
-  restore_ctx_t        *restore_ctx         = hashcat_ctx->restore_ctx;
-  status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
-  user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
-  user_options_t       *user_options        = hashcat_ctx->user_options;
+  hashes_t *hashes = hashcat_ctx->hashes;
 
-  //status_ctx->run_main_level1   = true;
-  //status_ctx->run_main_level2   = true;
-  //status_ctx->run_main_level3   = true;
+  induct_ctx_t *induct_ctx = hashcat_ctx->induct_ctx;
+
+  logfile_ctx_t *logfile_ctx = hashcat_ctx->logfile_ctx;
+
+  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
+
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  user_options_t *user_options = hashcat_ctx->user_options;
+
+  // status_ctx->run_main_level1 = true;
+  // status_ctx->run_main_level2 = true;
+  // status_ctx->run_main_level3 = true;
   status_ctx->run_thread_level1 = true;
   status_ctx->run_thread_level2 = true;
 
@@ -118,7 +125,8 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   const int rc_mask_ctx_update_loop = mask_ctx_update_loop (hashcat_ctx);
 
-  if (rc_mask_ctx_update_loop == -1) return 0;
+  if (rc_mask_ctx_update_loop == -1)
+    return 0;
 
   /**
    * Update attack-mode specific stuff based on wordlist
@@ -126,7 +134,8 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   const int rc_straight_ctx_update_loop = straight_ctx_update_loop (hashcat_ctx);
 
-  if (rc_straight_ctx_update_loop == -1) return 0;
+  if (rc_straight_ctx_update_loop == -1)
+    return 0;
 
   // words base
 
@@ -136,7 +145,8 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   EVENT (EVENT_CALCULATED_WORDS_BASE);
 
-  if (user_options->keyspace == true) return 0;
+  if (user_options->keyspace == true)
+    return 0;
 
   // restore stuff
 
@@ -184,7 +194,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     thread_param_t *thread_param = threads_param + device_id;
 
     thread_param->hashcat_ctx = hashcat_ctx;
-    thread_param->tid         = device_id;
+    thread_param->tid = device_id;
 
     hc_thread_create (c_threads[device_id], thread_autotune, thread_param);
   }
@@ -241,7 +251,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     thread_param_t *thread_param = threads_param + device_id;
 
     thread_param->hashcat_ctx = hashcat_ctx;
-    thread_param->tid         = device_id;
+    thread_param->tid = device_id;
 
     if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
     {
@@ -264,12 +274,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     myabort_checkpoint (hashcat_ctx);
   }
 
-  if ((status_ctx->devices_status != STATUS_CRACKED)
-   && (status_ctx->devices_status != STATUS_ABORTED)
-   && (status_ctx->devices_status != STATUS_ABORTED_CHECKPOINT)
-   && (status_ctx->devices_status != STATUS_ABORTED_RUNTIME)
-   && (status_ctx->devices_status != STATUS_QUIT)
-   && (status_ctx->devices_status != STATUS_BYPASS))
+  if ((status_ctx->devices_status != STATUS_CRACKED) && (status_ctx->devices_status != STATUS_ABORTED) && (status_ctx->devices_status != STATUS_ABORTED_CHECKPOINT) && (status_ctx->devices_status != STATUS_ABORTED_RUNTIME) && (status_ctx->devices_status != STATUS_QUIT) && (status_ctx->devices_status != STATUS_BYPASS))
   {
     status_ctx->devices_status = STATUS_EXHAUSTED;
   }
@@ -337,9 +342,11 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
         {
           const int rc_inner2_loop = inner2_loop (hashcat_ctx);
 
-          if (rc_inner2_loop == -1) myabort (hashcat_ctx);
+          if (rc_inner2_loop == -1)
+            myabort (hashcat_ctx);
 
-          if (status_ctx->run_main_level3 == false) break;
+          if (status_ctx->run_main_level3 == false)
+            break;
         }
 
         unlink (induct_ctx->induction_dictionaries[induct_ctx->induction_dictionaries_pos]);
@@ -356,15 +363,17 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
 // inner1_loop iterates through masks, then calls inner2_loop
 
-static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
+static int inner1_loop (hashcat_ctx_t * hashcat_ctx)
 {
-  restore_ctx_t  *restore_ctx   = hashcat_ctx->restore_ctx;
-  status_ctx_t   *status_ctx    = hashcat_ctx->status_ctx;
-  straight_ctx_t *straight_ctx  = hashcat_ctx->straight_ctx;
+  restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
 
-  //status_ctx->run_main_level1   = true;
-  //status_ctx->run_main_level2   = true;
-  status_ctx->run_main_level3   = true;
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+
+  // status_ctx->run_main_level1 = true;
+  // status_ctx->run_main_level2 = true;
+  status_ctx->run_main_level3 = true;
   status_ctx->run_thread_level1 = true;
   status_ctx->run_thread_level2 = true;
 
@@ -394,21 +403,25 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 
       const int rc_inner2_loop = inner2_loop (hashcat_ctx);
 
-      if (rc_inner2_loop == -1) myabort (hashcat_ctx);
+      if (rc_inner2_loop == -1)
+        myabort (hashcat_ctx);
 
-      if (status_ctx->run_main_level3 == false) break;
+      if (status_ctx->run_main_level3 == false)
+        break;
     }
 
     if (status_ctx->run_main_level3 == true)
     {
-      if (straight_ctx->dicts_pos + 1 == straight_ctx->dicts_cnt) straight_ctx->dicts_pos = 0;
+      if (straight_ctx->dicts_pos + 1 == straight_ctx->dicts_cnt)
+        straight_ctx->dicts_pos = 0;
     }
   }
   else
   {
     const int rc_inner2_loop = inner2_loop (hashcat_ctx);
 
-    if (rc_inner2_loop == -1) myabort (hashcat_ctx);
+    if (rc_inner2_loop == -1)
+      myabort (hashcat_ctx);
   }
 
   EVENT (EVENT_INNERLOOP2_FINISHED);
@@ -419,22 +432,29 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 // outer_loop iterates through hash_modes (in benchmark mode)
 // also initializes stuff that depend on hash mode
 
-static int outer_loop (hashcat_ctx_t *hashcat_ctx)
+static int outer_loop (hashcat_ctx_t * hashcat_ctx)
 {
-  hashes_t       *hashes        = hashcat_ctx->hashes;
-  mask_ctx_t     *mask_ctx      = hashcat_ctx->mask_ctx;
-  opencl_ctx_t   *opencl_ctx    = hashcat_ctx->opencl_ctx;
-  outcheck_ctx_t *outcheck_ctx  = hashcat_ctx->outcheck_ctx;
-  restore_ctx_t  *restore_ctx   = hashcat_ctx->restore_ctx;
-  status_ctx_t   *status_ctx    = hashcat_ctx->status_ctx;
-  straight_ctx_t *straight_ctx  = hashcat_ctx->straight_ctx;
-  user_options_t *user_options  = hashcat_ctx->user_options;
+  hashes_t *hashes = hashcat_ctx->hashes;
+
+  mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  outcheck_ctx_t *outcheck_ctx = hashcat_ctx->outcheck_ctx;
+
+  restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
+
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+
+  user_options_t *user_options = hashcat_ctx->user_options;
 
   status_ctx->devices_status = STATUS_INIT;
 
-  //status_ctx->run_main_level1   = true;
-  status_ctx->run_main_level2   = true;
-  status_ctx->run_main_level3   = true;
+  // status_ctx->run_main_level1 = true;
+  status_ctx->run_main_level2 = true;
+  status_ctx->run_main_level3 = true;
   status_ctx->run_thread_level1 = true;
   status_ctx->run_thread_level2 = true;
 
@@ -463,7 +483,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   const int rc_hashes_init_stage1 = hashes_init_stage1 (hashcat_ctx);
 
-  if (rc_hashes_init_stage1 == -1) return -1;
+  if (rc_hashes_init_stage1 == -1)
+    return -1;
 
   if ((user_options->keyspace == false) && (user_options->stdout_flag == false))
   {
@@ -483,7 +504,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   const int rc_hashes_init_stage2 = hashes_init_stage2 (hashcat_ctx);
 
-  if (rc_hashes_init_stage2 == -1) return -1;
+  if (rc_hashes_init_stage2 == -1)
+    return -1;
 
   /**
    * potfile removes
@@ -514,7 +536,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   const int rc_hashes_init_stage3 = hashes_init_stage3 (hashcat_ctx);
 
-  if (rc_hashes_init_stage3 == -1) return -1;
+  if (rc_hashes_init_stage3 == -1)
+    return -1;
 
   /**
    * potfile show/left handling
@@ -526,7 +549,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
     const int rc = potfile_handle_show (hashcat_ctx);
 
-    if (rc == -1) return -1;
+    if (rc == -1)
+      return -1;
 
     outfile_write_close (hashcat_ctx);
 
@@ -539,7 +563,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
     const int rc = potfile_handle_left (hashcat_ctx);
 
-    if (rc == -1) return -1;
+    if (rc == -1)
+      return -1;
 
     outfile_write_close (hashcat_ctx);
 
@@ -558,7 +583,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
       {
         const int rc = save_hash (hashcat_ctx);
 
-        if (rc == -1) return -1;
+        if (rc == -1)
+          return -1;
       }
     }
 
@@ -573,7 +599,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   const int rc_hashes_init_stage4 = hashes_init_stage4 (hashcat_ctx);
 
-  if (rc_hashes_init_stage4 == -1) return -1;
+  if (rc_hashes_init_stage4 == -1)
+    return -1;
 
   /**
    * load hashes, selftest
@@ -581,7 +608,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   const int rc_hashes_init_selftest = hashes_init_selftest (hashcat_ctx);
 
-  if (rc_hashes_init_selftest == -1) return -1;
+  if (rc_hashes_init_selftest == -1)
+    return -1;
 
   /**
    * Done loading hashes, log results
@@ -597,7 +625,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   const int rc_bitmap_init = bitmap_ctx_init (hashcat_ctx);
 
-  if (rc_bitmap_init == -1) return -1;
+  if (rc_bitmap_init == -1)
+    return -1;
 
   EVENT (EVENT_BITMAP_INIT_POST);
 
@@ -613,7 +642,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   const int rc_wl_data_init = wl_data_init (hashcat_ctx);
 
-  if (rc_wl_data_init == -1) return -1;
+  if (rc_wl_data_init == -1)
+    return -1;
 
   /**
    * straight mode init
@@ -621,7 +651,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   const int rc_straight_init = straight_ctx_init (hashcat_ctx);
 
-  if (rc_straight_init == -1) return -1;
+  if (rc_straight_init == -1)
+    return -1;
 
   /**
    * straight mode init
@@ -629,7 +660,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   const int rc_combinator_init = combinator_ctx_init (hashcat_ctx);
 
-  if (rc_combinator_init == -1) return -1;
+  if (rc_combinator_init == -1)
+    return -1;
 
   /**
    * charsets : keep them together for more easy maintainnce
@@ -637,7 +669,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   const int rc_mask_init = mask_ctx_init (hashcat_ctx);
 
-  if (rc_mask_init == -1) return -1;
+  if (rc_mask_init == -1)
+    return -1;
 
   /**
    * prevent the user from using --skip/--limit together with maskfile and/or multiple word lists
@@ -673,7 +706,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   const int rc_status_init = status_progress_init (hashcat_ctx);
 
-  if (rc_status_init == -1) return -1;
+  if (rc_status_init == -1)
+    return -1;
 
   /**
    * main screen
@@ -695,7 +729,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   const int rc_session_begin = opencl_session_begin (hashcat_ctx);
 
-  if (rc_session_begin == -1) return -1;
+  if (rc_session_begin == -1)
+    return -1;
 
   EVENT (EVENT_OPENCL_SESSION_POST);
 
@@ -716,7 +751,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
     thread_param_t *thread_param = threads_param + device_id;
 
     thread_param->hashcat_ctx = hashcat_ctx;
-    thread_param->tid         = device_id;
+    thread_param->tid = device_id;
 
     hc_thread_create (selftest_threads[device_id], thread_selftest, thread_param);
   }
@@ -761,7 +796,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   const int rc_potfile_write = potfile_write_open (hashcat_ctx);
 
-  if (rc_potfile_write == -1) return -1;
+  if (rc_potfile_write == -1)
+    return -1;
 
   /**
    * status and monitor threads
@@ -815,21 +851,25 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
       const int rc_inner1_loop = inner1_loop (hashcat_ctx);
 
-      if (rc_inner1_loop == -1) myabort (hashcat_ctx);
+      if (rc_inner1_loop == -1)
+        myabort (hashcat_ctx);
 
-      if (status_ctx->run_main_level2 == false) break;
+      if (status_ctx->run_main_level2 == false)
+        break;
     }
 
     if (status_ctx->run_main_level2 == true)
     {
-      if (mask_ctx->masks_pos + 1 == mask_ctx->masks_cnt) mask_ctx->masks_pos = 0;
+      if (mask_ctx->masks_pos + 1 == mask_ctx->masks_cnt)
+        mask_ctx->masks_pos = 0;
     }
   }
   else
   {
     const int rc_inner1_loop = inner1_loop (hashcat_ctx);
 
-    if (rc_inner1_loop == -1) myabort (hashcat_ctx);
+    if (rc_inner1_loop == -1)
+      myabort (hashcat_ctx);
   }
 
   // wait for inner threads
@@ -855,25 +895,25 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   // clean up
 
-  bitmap_ctx_destroy      (hashcat_ctx);
-  combinator_ctx_destroy  (hashcat_ctx);
-  cpt_ctx_destroy         (hashcat_ctx);
-  hashconfig_destroy      (hashcat_ctx);
-  hashes_destroy          (hashcat_ctx);
-  mask_ctx_destroy        (hashcat_ctx);
+  bitmap_ctx_destroy (hashcat_ctx);
+  combinator_ctx_destroy (hashcat_ctx);
+  cpt_ctx_destroy (hashcat_ctx);
+  hashconfig_destroy (hashcat_ctx);
+  hashes_destroy (hashcat_ctx);
+  mask_ctx_destroy (hashcat_ctx);
   status_progress_destroy (hashcat_ctx);
-  straight_ctx_destroy    (hashcat_ctx);
-  wl_data_destroy         (hashcat_ctx);
+  straight_ctx_destroy (hashcat_ctx);
+  wl_data_destroy (hashcat_ctx);
 
   return 0;
 }
 
-static void event_stub (MAYBE_UNUSED const u32 id, MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+static void event_stub (MAYBE_UNUSED const u32 id, MAYBE_UNUSED hashcat_ctx_t * hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
 
 }
 
-int hashcat_init (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct hashcat_ctx *, const void *, const size_t))
+int hashcat_init (hashcat_ctx_t * hashcat_ctx, void (*event) (const u32, struct hashcat_ctx *, const void *, const size_t))
 {
   if (event == NULL)
   {
@@ -884,38 +924,38 @@ int hashcat_init (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct h
     hashcat_ctx->event = event;
   }
 
-  hashcat_ctx->bitmap_ctx         = (bitmap_ctx_t *)          hcmalloc (sizeof (bitmap_ctx_t));
-  hashcat_ctx->combinator_ctx     = (combinator_ctx_t *)      hcmalloc (sizeof (combinator_ctx_t));
-  hashcat_ctx->cpt_ctx            = (cpt_ctx_t *)             hcmalloc (sizeof (cpt_ctx_t));
-  hashcat_ctx->debugfile_ctx      = (debugfile_ctx_t *)       hcmalloc (sizeof (debugfile_ctx_t));
-  hashcat_ctx->dictstat_ctx       = (dictstat_ctx_t *)        hcmalloc (sizeof (dictstat_ctx_t));
-  hashcat_ctx->event_ctx          = (event_ctx_t *)           hcmalloc (sizeof (event_ctx_t));
-  hashcat_ctx->folder_config      = (folder_config_t *)       hcmalloc (sizeof (folder_config_t));
-  hashcat_ctx->hashcat_user       = (hashcat_user_t *)        hcmalloc (sizeof (hashcat_user_t));
-  hashcat_ctx->hashconfig         = (hashconfig_t *)          hcmalloc (sizeof (hashconfig_t));
-  hashcat_ctx->hashes             = (hashes_t *)              hcmalloc (sizeof (hashes_t));
-  hashcat_ctx->hwmon_ctx          = (hwmon_ctx_t *)           hcmalloc (sizeof (hwmon_ctx_t));
-  hashcat_ctx->induct_ctx         = (induct_ctx_t *)          hcmalloc (sizeof (induct_ctx_t));
-  hashcat_ctx->logfile_ctx        = (logfile_ctx_t *)         hcmalloc (sizeof (logfile_ctx_t));
-  hashcat_ctx->loopback_ctx       = (loopback_ctx_t *)        hcmalloc (sizeof (loopback_ctx_t));
-  hashcat_ctx->mask_ctx           = (mask_ctx_t *)            hcmalloc (sizeof (mask_ctx_t));
-  hashcat_ctx->opencl_ctx         = (opencl_ctx_t *)          hcmalloc (sizeof (opencl_ctx_t));
-  hashcat_ctx->outcheck_ctx       = (outcheck_ctx_t *)        hcmalloc (sizeof (outcheck_ctx_t));
-  hashcat_ctx->outfile_ctx        = (outfile_ctx_t *)         hcmalloc (sizeof (outfile_ctx_t));
-  hashcat_ctx->pidfile_ctx        = (pidfile_ctx_t *)         hcmalloc (sizeof (pidfile_ctx_t));
-  hashcat_ctx->potfile_ctx        = (potfile_ctx_t *)         hcmalloc (sizeof (potfile_ctx_t));
-  hashcat_ctx->restore_ctx        = (restore_ctx_t *)         hcmalloc (sizeof (restore_ctx_t));
-  hashcat_ctx->status_ctx         = (status_ctx_t *)          hcmalloc (sizeof (status_ctx_t));
-  hashcat_ctx->straight_ctx       = (straight_ctx_t *)        hcmalloc (sizeof (straight_ctx_t));
-  hashcat_ctx->tuning_db          = (tuning_db_t *)           hcmalloc (sizeof (tuning_db_t));
-  hashcat_ctx->user_options_extra = (user_options_extra_t *)  hcmalloc (sizeof (user_options_extra_t));
-  hashcat_ctx->user_options       = (user_options_t *)        hcmalloc (sizeof (user_options_t));
-  hashcat_ctx->wl_data            = (wl_data_t *)             hcmalloc (sizeof (wl_data_t));
+  hashcat_ctx->bitmap_ctx = (bitmap_ctx_t *) hcmalloc (sizeof (bitmap_ctx_t));
+  hashcat_ctx->combinator_ctx = (combinator_ctx_t *) hcmalloc (sizeof (combinator_ctx_t));
+  hashcat_ctx->cpt_ctx = (cpt_ctx_t *) hcmalloc (sizeof (cpt_ctx_t));
+  hashcat_ctx->debugfile_ctx = (debugfile_ctx_t *) hcmalloc (sizeof (debugfile_ctx_t));
+  hashcat_ctx->dictstat_ctx = (dictstat_ctx_t *) hcmalloc (sizeof (dictstat_ctx_t));
+  hashcat_ctx->event_ctx = (event_ctx_t *) hcmalloc (sizeof (event_ctx_t));
+  hashcat_ctx->folder_config = (folder_config_t *) hcmalloc (sizeof (folder_config_t));
+  hashcat_ctx->hashcat_user = (hashcat_user_t *) hcmalloc (sizeof (hashcat_user_t));
+  hashcat_ctx->hashconfig = (hashconfig_t *) hcmalloc (sizeof (hashconfig_t));
+  hashcat_ctx->hashes = (hashes_t *) hcmalloc (sizeof (hashes_t));
+  hashcat_ctx->hwmon_ctx = (hwmon_ctx_t *) hcmalloc (sizeof (hwmon_ctx_t));
+  hashcat_ctx->induct_ctx = (induct_ctx_t *) hcmalloc (sizeof (induct_ctx_t));
+  hashcat_ctx->logfile_ctx = (logfile_ctx_t *) hcmalloc (sizeof (logfile_ctx_t));
+  hashcat_ctx->loopback_ctx = (loopback_ctx_t *) hcmalloc (sizeof (loopback_ctx_t));
+  hashcat_ctx->mask_ctx = (mask_ctx_t *) hcmalloc (sizeof (mask_ctx_t));
+  hashcat_ctx->opencl_ctx = (opencl_ctx_t *) hcmalloc (sizeof (opencl_ctx_t));
+  hashcat_ctx->outcheck_ctx = (outcheck_ctx_t *) hcmalloc (sizeof (outcheck_ctx_t));
+  hashcat_ctx->outfile_ctx = (outfile_ctx_t *) hcmalloc (sizeof (outfile_ctx_t));
+  hashcat_ctx->pidfile_ctx = (pidfile_ctx_t *) hcmalloc (sizeof (pidfile_ctx_t));
+  hashcat_ctx->potfile_ctx = (potfile_ctx_t *) hcmalloc (sizeof (potfile_ctx_t));
+  hashcat_ctx->restore_ctx = (restore_ctx_t *) hcmalloc (sizeof (restore_ctx_t));
+  hashcat_ctx->status_ctx = (status_ctx_t *) hcmalloc (sizeof (status_ctx_t));
+  hashcat_ctx->straight_ctx = (straight_ctx_t *) hcmalloc (sizeof (straight_ctx_t));
+  hashcat_ctx->tuning_db = (tuning_db_t *) hcmalloc (sizeof (tuning_db_t));
+  hashcat_ctx->user_options_extra = (user_options_extra_t *) hcmalloc (sizeof (user_options_extra_t));
+  hashcat_ctx->user_options = (user_options_t *) hcmalloc (sizeof (user_options_t));
+  hashcat_ctx->wl_data = (wl_data_t *) hcmalloc (sizeof (wl_data_t));
 
   return 0;
 }
 
-void hashcat_destroy (hashcat_ctx_t *hashcat_ctx)
+void hashcat_destroy (hashcat_ctx_t * hashcat_ctx)
 {
   hcfree (hashcat_ctx->bitmap_ctx);
   hcfree (hashcat_ctx->combinator_ctx);
@@ -948,7 +988,7 @@ void hashcat_destroy (hashcat_ctx_t *hashcat_ctx)
   memset (hashcat_ctx, 0, sizeof (hashcat_ctx_t));
 }
 
-int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder, const char *shared_folder, int argc, char **argv, const int comptime)
+int hashcat_session_init (hashcat_ctx_t * hashcat_ctx, const char *install_folder, const char *shared_folder, int argc, char **argv, const int comptime)
 {
   user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -964,7 +1004,8 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
 
   const int rc_event_init = event_ctx_init (hashcat_ctx);
 
-  if (rc_event_init == -1) return -1;
+  if (rc_event_init == -1)
+    return -1;
 
   /**
    * status init
@@ -972,7 +1013,8 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
 
   const int rc_status_init = status_ctx_init (hashcat_ctx);
 
-  if (rc_status_init == -1) return -1;
+  if (rc_status_init == -1)
+    return -1;
 
   /**
    * folder
@@ -980,7 +1022,8 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
 
   const int rc_folder_config_init = folder_config_init (hashcat_ctx, install_folder, shared_folder);
 
-  if (rc_folder_config_init == -1) return -1;
+  if (rc_folder_config_init == -1)
+    return -1;
 
   /**
    * pidfile
@@ -988,7 +1031,8 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
 
   const int rc_pidfile_init = pidfile_ctx_init (hashcat_ctx);
 
-  if (rc_pidfile_init == -1) return -1;
+  if (rc_pidfile_init == -1)
+    return -1;
 
   /**
    * restore
@@ -996,7 +1040,8 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
 
   const int rc_restore_init = restore_ctx_init (hashcat_ctx, argc, argv);
 
-  if (rc_restore_init == -1) return -1;
+  if (rc_restore_init == -1)
+    return -1;
 
   /**
    * process user input
@@ -1014,7 +1059,8 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
 
   const int rc_logfile_init = logfile_init (hashcat_ctx);
 
-  if (rc_logfile_init == -1) return -1;
+  if (rc_logfile_init == -1)
+    return -1;
 
   /**
    * cpu affinity
@@ -1022,7 +1068,8 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
 
   const int rc_affinity = set_cpu_affinity (hashcat_ctx);
 
-  if (rc_affinity == -1) return -1;
+  if (rc_affinity == -1)
+    return -1;
 
   /**
    * prepare seeding for random number generator, required by logfile and rules generator
@@ -1044,7 +1091,8 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
 
   const int rc_tuning_db = tuning_db_init (hashcat_ctx);
 
-  if (rc_tuning_db == -1) return -1;
+  if (rc_tuning_db == -1)
+    return -1;
 
   /**
    * induction directory
@@ -1052,7 +1100,8 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
 
   const int rc_induct_ctx_init = induct_ctx_init (hashcat_ctx);
 
-  if (rc_induct_ctx_init == -1) return -1;
+  if (rc_induct_ctx_init == -1)
+    return -1;
 
   /**
    * outfile-check directory
@@ -1060,7 +1109,8 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
 
   const int rc_outcheck_ctx_init = outcheck_ctx_init (hashcat_ctx);
 
-  if (rc_outcheck_ctx_init == -1) return -1;
+  if (rc_outcheck_ctx_init == -1)
+    return -1;
 
   /**
    * outfile itself
@@ -1068,7 +1118,8 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
 
   const int rc_outfile_init = outfile_init (hashcat_ctx);
 
-  if (rc_outfile_init == -1) return -1;
+  if (rc_outfile_init == -1)
+    return -1;
 
   /**
    * potfile init
@@ -1078,7 +1129,8 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
 
   const int rc_potfile_init = potfile_init (hashcat_ctx);
 
-  if (rc_potfile_init == -1) return -1;
+  if (rc_potfile_init == -1)
+    return -1;
 
   /**
    * dictstat init
@@ -1086,7 +1138,8 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
 
   const int rc_dictstat_init = dictstat_init (hashcat_ctx);
 
-  if (rc_dictstat_init == -1) return -1;
+  if (rc_dictstat_init == -1)
+    return -1;
 
   /**
    * loopback init
@@ -1094,7 +1147,8 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
 
   const int rc_loopback_init = loopback_init (hashcat_ctx);
 
-  if (rc_loopback_init == -1) return -1;
+  if (rc_loopback_init == -1)
+    return -1;
 
   /**
    * debugfile init
@@ -1102,7 +1156,8 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
 
   const int rc_debugfile_init = debugfile_init (hashcat_ctx);
 
-  if (rc_debugfile_init == -1) return -1;
+  if (rc_debugfile_init == -1)
+    return -1;
 
   /**
    * Try to detect if all the files we're going to use are accessible in the mode we want them
@@ -1110,7 +1165,8 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
 
   const int rc_user_options_check_files = user_options_check_files (hashcat_ctx);
 
-  if (rc_user_options_check_files == -1) return -1;
+  if (rc_user_options_check_files == -1)
+    return -1;
 
   /**
    * Init OpenCL library loader
@@ -1118,7 +1174,8 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
 
   const int rc_opencl_init = opencl_ctx_init (hashcat_ctx);
 
-  if (rc_opencl_init == -1) return -1;
+  if (rc_opencl_init == -1)
+    return -1;
 
   /**
    * Init OpenCL devices
@@ -1126,7 +1183,8 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
 
   const int rc_devices_init = opencl_ctx_devices_init (hashcat_ctx, comptime);
 
-  if (rc_devices_init == -1) return -1;
+  if (rc_devices_init == -1)
+    return -1;
 
   /**
    * HM devices: init
@@ -1134,17 +1192,20 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
 
   const int rc_hwmon_init = hwmon_ctx_init (hashcat_ctx);
 
-  if (rc_hwmon_init == -1) return -1;
+  if (rc_hwmon_init == -1)
+    return -1;
 
   // done
 
   return 0;
 }
 
-int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
+int hashcat_session_execute (hashcat_ctx_t * hashcat_ctx)
 {
-  logfile_ctx_t  *logfile_ctx  = hashcat_ctx->logfile_ctx;
-  status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  logfile_ctx_t *logfile_ctx = hashcat_ctx->logfile_ctx;
+
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
   user_options_t *user_options = hashcat_ctx->user_options;
 
   // start logfile entry
@@ -1179,7 +1240,8 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
     {
       rc_final = outer_loop (hashcat_ctx);
 
-      if (rc_final == -1) myabort (hashcat_ctx);
+      if (rc_final == -1)
+        myabort (hashcat_ctx);
     }
     else
     {
@@ -1191,9 +1253,11 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
         rc_final = outer_loop (hashcat_ctx);
 
-        if (rc_final == -1) myabort (hashcat_ctx);
+        if (rc_final == -1)
+          myabort (hashcat_ctx);
 
-        if (status_ctx->run_main_level1 == false) break;
+        if (status_ctx->run_main_level1 == false)
+          break;
       }
     }
 
@@ -1201,13 +1265,16 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    if (user_options->speed_only == true) user_options->quiet = true;
+    if (user_options->speed_only == true)
+      user_options->quiet = true;
 
     rc_final = outer_loop (hashcat_ctx);
 
-    if (rc_final == -1) myabort (hashcat_ctx);
+    if (rc_final == -1)
+      myabort (hashcat_ctx);
 
-    if (user_options->speed_only == true) user_options->quiet = false;
+    if (user_options->speed_only == true)
+      user_options->quiet = false;
   }
 
   EVENT (EVENT_OUTERLOOP_FINISHED);
@@ -1233,12 +1300,18 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
   if (rc_final == 0)
   {
-    if (status_ctx->devices_status == STATUS_ABORTED_RUNTIME)     rc_final = 4;
-    if (status_ctx->devices_status == STATUS_ABORTED_CHECKPOINT)  rc_final = 3;
-    if (status_ctx->devices_status == STATUS_ABORTED)             rc_final = 2;
-    if (status_ctx->devices_status == STATUS_QUIT)                rc_final = 2;
-    if (status_ctx->devices_status == STATUS_EXHAUSTED)           rc_final = 1;
-    if (status_ctx->devices_status == STATUS_CRACKED)             rc_final = 0;
+    if (status_ctx->devices_status == STATUS_ABORTED_RUNTIME)
+      rc_final = 4;
+    if (status_ctx->devices_status == STATUS_ABORTED_CHECKPOINT)
+      rc_final = 3;
+    if (status_ctx->devices_status == STATUS_ABORTED)
+      rc_final = 2;
+    if (status_ctx->devices_status == STATUS_QUIT)
+      rc_final = 2;
+    if (status_ctx->devices_status == STATUS_EXHAUSTED)
+      rc_final = 1;
+    if (status_ctx->devices_status == STATUS_CRACKED)
+      rc_final = 0;
   }
 
   // done
@@ -1246,70 +1319,71 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
   return rc_final;
 }
 
-int hashcat_session_pause (hashcat_ctx_t *hashcat_ctx)
+int hashcat_session_pause (hashcat_ctx_t * hashcat_ctx)
 {
   return SuspendThreads (hashcat_ctx);
 }
 
-int hashcat_session_resume (hashcat_ctx_t *hashcat_ctx)
+int hashcat_session_resume (hashcat_ctx_t * hashcat_ctx)
 {
   return ResumeThreads (hashcat_ctx);
 }
 
-int hashcat_session_bypass (hashcat_ctx_t *hashcat_ctx)
+int hashcat_session_bypass (hashcat_ctx_t * hashcat_ctx)
 {
   return bypass (hashcat_ctx);
 }
 
-int hashcat_session_checkpoint (hashcat_ctx_t *hashcat_ctx)
+int hashcat_session_checkpoint (hashcat_ctx_t * hashcat_ctx)
 {
   return stop_at_checkpoint (hashcat_ctx);
 }
 
-int hashcat_session_quit (hashcat_ctx_t *hashcat_ctx)
+int hashcat_session_quit (hashcat_ctx_t * hashcat_ctx)
 {
   return myabort (hashcat_ctx);
 }
 
-int hashcat_session_destroy (hashcat_ctx_t *hashcat_ctx)
+int hashcat_session_destroy (hashcat_ctx_t * hashcat_ctx)
 {
-  debugfile_destroy          (hashcat_ctx);
-  dictstat_destroy           (hashcat_ctx);
-  folder_config_destroy      (hashcat_ctx);
-  hwmon_ctx_destroy          (hashcat_ctx);
-  induct_ctx_destroy         (hashcat_ctx);
-  logfile_destroy            (hashcat_ctx);
-  loopback_destroy           (hashcat_ctx);
+  debugfile_destroy (hashcat_ctx);
+  dictstat_destroy (hashcat_ctx);
+  folder_config_destroy (hashcat_ctx);
+  hwmon_ctx_destroy (hashcat_ctx);
+  induct_ctx_destroy (hashcat_ctx);
+  logfile_destroy (hashcat_ctx);
+  loopback_destroy (hashcat_ctx);
   opencl_ctx_devices_destroy (hashcat_ctx);
-  opencl_ctx_destroy         (hashcat_ctx);
-  outcheck_ctx_destroy       (hashcat_ctx);
-  outfile_destroy            (hashcat_ctx);
-  pidfile_ctx_destroy        (hashcat_ctx);
-  potfile_destroy            (hashcat_ctx);
-  restore_ctx_destroy        (hashcat_ctx);
-  tuning_db_destroy          (hashcat_ctx);
-  user_options_destroy       (hashcat_ctx);
+  opencl_ctx_destroy (hashcat_ctx);
+  outcheck_ctx_destroy (hashcat_ctx);
+  outfile_destroy (hashcat_ctx);
+  pidfile_ctx_destroy (hashcat_ctx);
+  potfile_destroy (hashcat_ctx);
+  restore_ctx_destroy (hashcat_ctx);
+  tuning_db_destroy (hashcat_ctx);
+  user_options_destroy (hashcat_ctx);
   user_options_extra_destroy (hashcat_ctx);
-  status_ctx_destroy         (hashcat_ctx);
-  event_ctx_destroy          (hashcat_ctx);
+  status_ctx_destroy (hashcat_ctx);
+  event_ctx_destroy (hashcat_ctx);
 
   return 0;
 }
 
-char *hashcat_get_log (hashcat_ctx_t *hashcat_ctx)
+char *hashcat_get_log (hashcat_ctx_t * hashcat_ctx)
 {
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
 
   return event_ctx->msg_buf;
 }
 
-int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_status)
+int hashcat_get_status (hashcat_ctx_t * hashcat_ctx, hashcat_status_t * hashcat_status)
 {
   const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
   memset (hashcat_status, 0, sizeof (hashcat_status_t));
 
-  if (status_ctx == NULL) return -1; // way too early
+  if (status_ctx == NULL)
+    return -1;                  // way too early
 
   if (status_ctx->accessible == false)
   {
@@ -1320,90 +1394,90 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
       return 0;
     }
 
-    return -1; // still too early
+    return -1;                  // still too early
   }
 
-  hashcat_status->digests_cnt                 = status_get_digests_cnt                (hashcat_ctx);
-  hashcat_status->digests_done                = status_get_digests_done               (hashcat_ctx);
-  hashcat_status->digests_percent             = status_get_digests_percent            (hashcat_ctx);
-  hashcat_status->hash_target                 = status_get_hash_target                (hashcat_ctx);
-  hashcat_status->hash_type                   = status_get_hash_type                  (hashcat_ctx);
-  hashcat_status->guess_base                  = status_get_guess_base                 (hashcat_ctx);
-  hashcat_status->guess_base_offset           = status_get_guess_base_offset          (hashcat_ctx);
-  hashcat_status->guess_base_count            = status_get_guess_base_count           (hashcat_ctx);
-  hashcat_status->guess_base_percent          = status_get_guess_base_percent         (hashcat_ctx);
-  hashcat_status->guess_mod                   = status_get_guess_mod                  (hashcat_ctx);
-  hashcat_status->guess_mod_offset            = status_get_guess_mod_offset           (hashcat_ctx);
-  hashcat_status->guess_mod_count             = status_get_guess_mod_count            (hashcat_ctx);
-  hashcat_status->guess_mod_percent           = status_get_guess_mod_percent          (hashcat_ctx);
-  hashcat_status->guess_charset               = status_get_guess_charset              (hashcat_ctx);
-  hashcat_status->guess_mask_length           = status_get_guess_mask_length          (hashcat_ctx);
-  hashcat_status->guess_mode                  = status_get_guess_mode                 (hashcat_ctx);
-  hashcat_status->msec_paused                 = status_get_msec_paused                (hashcat_ctx);
-  hashcat_status->msec_running                = status_get_msec_running               (hashcat_ctx);
-  hashcat_status->msec_real                   = status_get_msec_real                  (hashcat_ctx);
-  hashcat_status->progress_mode               = status_get_progress_mode              (hashcat_ctx);
-  hashcat_status->progress_finished_percent   = status_get_progress_finished_percent  (hashcat_ctx);
-  hashcat_status->progress_cur_relative_skip  = status_get_progress_cur_relative_skip (hashcat_ctx);
-  hashcat_status->progress_cur                = status_get_progress_cur               (hashcat_ctx);
-  hashcat_status->progress_done               = status_get_progress_done              (hashcat_ctx);
-  hashcat_status->progress_end_relative_skip  = status_get_progress_end_relative_skip (hashcat_ctx);
-  hashcat_status->progress_end                = status_get_progress_end               (hashcat_ctx);
-  hashcat_status->progress_ignore             = status_get_progress_ignore            (hashcat_ctx);
-  hashcat_status->progress_rejected           = status_get_progress_rejected          (hashcat_ctx);
-  hashcat_status->progress_rejected_percent   = status_get_progress_rejected_percent  (hashcat_ctx);
-  hashcat_status->progress_restored           = status_get_progress_restored          (hashcat_ctx);
-  hashcat_status->progress_skip               = status_get_progress_skip              (hashcat_ctx);
-  hashcat_status->restore_point               = status_get_restore_point              (hashcat_ctx);
-  hashcat_status->restore_total               = status_get_restore_total              (hashcat_ctx);
-  hashcat_status->restore_percent             = status_get_restore_percent            (hashcat_ctx);
-  hashcat_status->salts_cnt                   = status_get_salts_cnt                  (hashcat_ctx);
-  hashcat_status->salts_done                  = status_get_salts_done                 (hashcat_ctx);
-  hashcat_status->salts_percent               = status_get_salts_percent              (hashcat_ctx);
-  hashcat_status->session                     = status_get_session                    (hashcat_ctx);
-  hashcat_status->status_string               = status_get_status_string              (hashcat_ctx);
-  hashcat_status->status_number               = status_get_status_number              (hashcat_ctx);
-  hashcat_status->time_estimated_absolute     = status_get_time_estimated_absolute    (hashcat_ctx);
-  hashcat_status->time_estimated_relative     = status_get_time_estimated_relative    (hashcat_ctx);
-  hashcat_status->time_started_absolute       = status_get_time_started_absolute      (hashcat_ctx);
-  hashcat_status->time_started_relative       = status_get_time_started_relative      (hashcat_ctx);
-  hashcat_status->cpt_cur_min                 = status_get_cpt_cur_min                (hashcat_ctx);
-  hashcat_status->cpt_cur_hour                = status_get_cpt_cur_hour               (hashcat_ctx);
-  hashcat_status->cpt_cur_day                 = status_get_cpt_cur_day                (hashcat_ctx);
-  hashcat_status->cpt_avg_min                 = status_get_cpt_avg_min                (hashcat_ctx);
-  hashcat_status->cpt_avg_hour                = status_get_cpt_avg_hour               (hashcat_ctx);
-  hashcat_status->cpt_avg_day                 = status_get_cpt_avg_day                (hashcat_ctx);
-  hashcat_status->cpt                         = status_get_cpt                        (hashcat_ctx);
+  hashcat_status->digests_cnt = status_get_digests_cnt (hashcat_ctx);
+  hashcat_status->digests_done = status_get_digests_done (hashcat_ctx);
+  hashcat_status->digests_percent = status_get_digests_percent (hashcat_ctx);
+  hashcat_status->hash_target = status_get_hash_target (hashcat_ctx);
+  hashcat_status->hash_type = status_get_hash_type (hashcat_ctx);
+  hashcat_status->guess_base = status_get_guess_base (hashcat_ctx);
+  hashcat_status->guess_base_offset = status_get_guess_base_offset (hashcat_ctx);
+  hashcat_status->guess_base_count = status_get_guess_base_count (hashcat_ctx);
+  hashcat_status->guess_base_percent = status_get_guess_base_percent (hashcat_ctx);
+  hashcat_status->guess_mod = status_get_guess_mod (hashcat_ctx);
+  hashcat_status->guess_mod_offset = status_get_guess_mod_offset (hashcat_ctx);
+  hashcat_status->guess_mod_count = status_get_guess_mod_count (hashcat_ctx);
+  hashcat_status->guess_mod_percent = status_get_guess_mod_percent (hashcat_ctx);
+  hashcat_status->guess_charset = status_get_guess_charset (hashcat_ctx);
+  hashcat_status->guess_mask_length = status_get_guess_mask_length (hashcat_ctx);
+  hashcat_status->guess_mode = status_get_guess_mode (hashcat_ctx);
+  hashcat_status->msec_paused = status_get_msec_paused (hashcat_ctx);
+  hashcat_status->msec_running = status_get_msec_running (hashcat_ctx);
+  hashcat_status->msec_real = status_get_msec_real (hashcat_ctx);
+  hashcat_status->progress_mode = status_get_progress_mode (hashcat_ctx);
+  hashcat_status->progress_finished_percent = status_get_progress_finished_percent (hashcat_ctx);
+  hashcat_status->progress_cur_relative_skip = status_get_progress_cur_relative_skip (hashcat_ctx);
+  hashcat_status->progress_cur = status_get_progress_cur (hashcat_ctx);
+  hashcat_status->progress_done = status_get_progress_done (hashcat_ctx);
+  hashcat_status->progress_end_relative_skip = status_get_progress_end_relative_skip (hashcat_ctx);
+  hashcat_status->progress_end = status_get_progress_end (hashcat_ctx);
+  hashcat_status->progress_ignore = status_get_progress_ignore (hashcat_ctx);
+  hashcat_status->progress_rejected = status_get_progress_rejected (hashcat_ctx);
+  hashcat_status->progress_rejected_percent = status_get_progress_rejected_percent (hashcat_ctx);
+  hashcat_status->progress_restored = status_get_progress_restored (hashcat_ctx);
+  hashcat_status->progress_skip = status_get_progress_skip (hashcat_ctx);
+  hashcat_status->restore_point = status_get_restore_point (hashcat_ctx);
+  hashcat_status->restore_total = status_get_restore_total (hashcat_ctx);
+  hashcat_status->restore_percent = status_get_restore_percent (hashcat_ctx);
+  hashcat_status->salts_cnt = status_get_salts_cnt (hashcat_ctx);
+  hashcat_status->salts_done = status_get_salts_done (hashcat_ctx);
+  hashcat_status->salts_percent = status_get_salts_percent (hashcat_ctx);
+  hashcat_status->session = status_get_session (hashcat_ctx);
+  hashcat_status->status_string = status_get_status_string (hashcat_ctx);
+  hashcat_status->status_number = status_get_status_number (hashcat_ctx);
+  hashcat_status->time_estimated_absolute = status_get_time_estimated_absolute (hashcat_ctx);
+  hashcat_status->time_estimated_relative = status_get_time_estimated_relative (hashcat_ctx);
+  hashcat_status->time_started_absolute = status_get_time_started_absolute (hashcat_ctx);
+  hashcat_status->time_started_relative = status_get_time_started_relative (hashcat_ctx);
+  hashcat_status->cpt_cur_min = status_get_cpt_cur_min (hashcat_ctx);
+  hashcat_status->cpt_cur_hour = status_get_cpt_cur_hour (hashcat_ctx);
+  hashcat_status->cpt_cur_day = status_get_cpt_cur_day (hashcat_ctx);
+  hashcat_status->cpt_avg_min = status_get_cpt_avg_min (hashcat_ctx);
+  hashcat_status->cpt_avg_hour = status_get_cpt_avg_hour (hashcat_ctx);
+  hashcat_status->cpt_avg_day = status_get_cpt_avg_day (hashcat_ctx);
+  hashcat_status->cpt = status_get_cpt (hashcat_ctx);
 
   // multiple devices
 
-  hashcat_status->device_info_cnt    = status_get_device_info_cnt    (hashcat_ctx);
+  hashcat_status->device_info_cnt = status_get_device_info_cnt (hashcat_ctx);
   hashcat_status->device_info_active = status_get_device_info_active (hashcat_ctx);
 
   for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
   {
     device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
-    device_info->skipped_dev                = status_get_skipped_dev                (hashcat_ctx, device_id);
-    device_info->hashes_msec_dev            = status_get_hashes_msec_dev            (hashcat_ctx, device_id);
-    device_info->hashes_msec_dev_benchmark  = status_get_hashes_msec_dev_benchmark  (hashcat_ctx, device_id);
-    device_info->exec_msec_dev              = status_get_exec_msec_dev              (hashcat_ctx, device_id);
-    device_info->speed_sec_dev              = status_get_speed_sec_dev              (hashcat_ctx, device_id);
-    device_info->guess_candidates_dev       = status_get_guess_candidates_dev       (hashcat_ctx, device_id);
-    device_info->hwmon_dev                  = status_get_hwmon_dev                  (hashcat_ctx, device_id);
-    device_info->corespeed_dev              = status_get_corespeed_dev              (hashcat_ctx, device_id);
-    device_info->memoryspeed_dev            = status_get_memoryspeed_dev            (hashcat_ctx, device_id);
-    device_info->progress_dev               = status_get_progress_dev               (hashcat_ctx, device_id);
-    device_info->runtime_msec_dev           = status_get_runtime_msec_dev           (hashcat_ctx, device_id);
-    device_info->kernel_accel_dev           = status_get_kernel_accel_dev           (hashcat_ctx, device_id);
-    device_info->kernel_loops_dev           = status_get_kernel_loops_dev           (hashcat_ctx, device_id);
-    device_info->kernel_threads_dev         = status_get_kernel_threads_dev         (hashcat_ctx, device_id);
-    device_info->vector_width_dev           = status_get_vector_width_dev           (hashcat_ctx, device_id);
+    device_info->skipped_dev = status_get_skipped_dev (hashcat_ctx, device_id);
+    device_info->hashes_msec_dev = status_get_hashes_msec_dev (hashcat_ctx, device_id);
+    device_info->hashes_msec_dev_benchmark = status_get_hashes_msec_dev_benchmark (hashcat_ctx, device_id);
+    device_info->exec_msec_dev = status_get_exec_msec_dev (hashcat_ctx, device_id);
+    device_info->speed_sec_dev = status_get_speed_sec_dev (hashcat_ctx, device_id);
+    device_info->guess_candidates_dev = status_get_guess_candidates_dev (hashcat_ctx, device_id);
+    device_info->hwmon_dev = status_get_hwmon_dev (hashcat_ctx, device_id);
+    device_info->corespeed_dev = status_get_corespeed_dev (hashcat_ctx, device_id);
+    device_info->memoryspeed_dev = status_get_memoryspeed_dev (hashcat_ctx, device_id);
+    device_info->progress_dev = status_get_progress_dev (hashcat_ctx, device_id);
+    device_info->runtime_msec_dev = status_get_runtime_msec_dev (hashcat_ctx, device_id);
+    device_info->kernel_accel_dev = status_get_kernel_accel_dev (hashcat_ctx, device_id);
+    device_info->kernel_loops_dev = status_get_kernel_loops_dev (hashcat_ctx, device_id);
+    device_info->kernel_threads_dev = status_get_kernel_threads_dev (hashcat_ctx, device_id);
+    device_info->vector_width_dev = status_get_vector_width_dev (hashcat_ctx, device_id);
   }
 
   hashcat_status->hashes_msec_all = status_get_hashes_msec_all (hashcat_ctx);
-  hashcat_status->exec_msec_all   = status_get_exec_msec_all   (hashcat_ctx);
-  hashcat_status->speed_sec_all   = status_get_speed_sec_all   (hashcat_ctx);
+  hashcat_status->exec_msec_all = status_get_exec_msec_all (hashcat_ctx);
+  hashcat_status->speed_sec_all = status_get_speed_sec_all (hashcat_ctx);
 
   return 0;
 }

@@ -22,13 +22,16 @@
 
 #define INCR_MASKS    1000
 
-u32   mp_get_length (const char *mask);
+u32 mp_get_length (const char *mask);
 
-void  sp_exec (u64 ctx, char *pw_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 start, u32 stop);
+void sp_exec (u64 ctx, char *pw_buf, cs_t * root_css_buf, cs_t * markov_css_buf, u32 start, u32 stop);
 
-int   mask_ctx_update_loop    (hashcat_ctx_t *hashcat_ctx);
-int   mask_ctx_init           (hashcat_ctx_t *hashcat_ctx);
-void  mask_ctx_destroy        (hashcat_ctx_t *hashcat_ctx);
-int   mask_ctx_parse_maskfile (hashcat_ctx_t *hashcat_ctx);
+int mask_ctx_update_loop (hashcat_ctx_t * hashcat_ctx);
+
+int mask_ctx_init (hashcat_ctx_t * hashcat_ctx);
+
+void mask_ctx_destroy (hashcat_ctx_t * hashcat_ctx);
+
+int mask_ctx_parse_maskfile (hashcat_ctx_t * hashcat_ctx);
 
 #endif // _MPSP_H

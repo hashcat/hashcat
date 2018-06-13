@@ -16,7 +16,7 @@
 #include "straight.h"
 #include "wordlist.h"
 
-static int straight_ctx_add_wl (hashcat_ctx_t *hashcat_ctx, const char *dict)
+static int straight_ctx_add_wl (hashcat_ctx_t * hashcat_ctx, const char *dict)
 {
   straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
@@ -34,16 +34,23 @@ static int straight_ctx_add_wl (hashcat_ctx_t *hashcat_ctx, const char *dict)
   return 0;
 }
 
-int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
+int straight_ctx_update_loop (hashcat_ctx_t * hashcat_ctx)
 {
-  combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
-  induct_ctx_t         *induct_ctx         = hashcat_ctx->induct_ctx;
-  logfile_ctx_t        *logfile_ctx        = hashcat_ctx->logfile_ctx;
-  mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
-  status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
-  straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
+  combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
+
+  induct_ctx_t *induct_ctx = hashcat_ctx->induct_ctx;
+
+  logfile_ctx_t *logfile_ctx = hashcat_ctx->logfile_ctx;
+
+  mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
-  user_options_t       *user_options       = hashcat_ctx->user_options;
+
+  user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
   {
@@ -199,22 +206,31 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
+int straight_ctx_init (hashcat_ctx_t * hashcat_ctx)
 {
-  straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
-  user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
-  user_options_t       *user_options        = hashcat_ctx->user_options;
+  straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  user_options_t *user_options = hashcat_ctx->user_options;
 
   straight_ctx->enabled = false;
 
-  if (user_options->example_hashes == true) return 0;
-  if (user_options->left           == true) return 0;
-  if (user_options->opencl_info    == true) return 0;
-  if (user_options->show           == true) return 0;
-  if (user_options->usage          == true) return 0;
-  if (user_options->version        == true) return 0;
+  if (user_options->example_hashes == true)
+    return 0;
+  if (user_options->left == true)
+    return 0;
+  if (user_options->opencl_info == true)
+    return 0;
+  if (user_options->show == true)
+    return 0;
+  if (user_options->usage == true)
+    return 0;
+  if (user_options->version == true)
+    return 0;
 
-  if (user_options->attack_mode == ATTACK_MODE_BF) return 0;
+  if (user_options->attack_mode == ATTACK_MODE_BF)
+    return 0;
 
   straight_ctx->enabled = true;
 
@@ -236,13 +252,15 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
     {
       const int rc_kernel_load = kernel_rules_load (hashcat_ctx, &straight_ctx->kernel_rules_buf, &straight_ctx->kernel_rules_cnt);
 
-      if (rc_kernel_load == -1) return -1;
+      if (rc_kernel_load == -1)
+        return -1;
     }
     else if (user_options->rp_gen)
     {
       const int rc_kernel_generate = kernel_rules_generate (hashcat_ctx, &straight_ctx->kernel_rules_buf, &straight_ctx->kernel_rules_cnt);
 
-      if (rc_kernel_generate == -1) return -1;
+      if (rc_kernel_generate == -1)
+        return -1;
     }
   }
 
@@ -303,7 +321,8 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
         {
           const int rc = straight_ctx_add_wl (hashcat_ctx, l0_filename);
 
-          if (rc == -1) return -1;
+          if (rc == -1)
+            return -1;
         }
       }
 
@@ -374,7 +393,8 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
       {
         const int rc = straight_ctx_add_wl (hashcat_ctx, l0_filename);
 
-        if (rc == -1) return -1;
+        if (rc == -1)
+          return -1;
       }
     }
 
@@ -436,7 +456,8 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
       {
         const int rc = straight_ctx_add_wl (hashcat_ctx, l0_filename);
 
-        if (rc == -1) return -1;
+        if (rc == -1)
+          return -1;
       }
     }
 
@@ -451,11 +472,12 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-void straight_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
+void straight_ctx_destroy (hashcat_ctx_t * hashcat_ctx)
 {
   straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
-  if (straight_ctx->enabled == false) return;
+  if (straight_ctx->enabled == false)
+    return;
 
   for (u32 dict_pos = 0; dict_pos < straight_ctx->dicts_cnt; dict_pos++)
   {

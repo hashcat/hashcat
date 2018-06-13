@@ -10,8 +10,7 @@
 #include "shared.h"
 #include "cpu_crc32.h"
 
-static const u32 crc32tab[256] =
-{
+static const u32 crc32tab[256] = {
   0x00000000, 0x77073096, 0xee0e612c, 0x990951ba,
   0x076dc419, 0x706af48f, 0xe963a535, 0x9e6495a3,
   0x0edb8832, 0x79dcb8a4, 0xe0d5e91e, 0x97d2d988,
@@ -78,7 +77,7 @@ static const u32 crc32tab[256] =
   0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
 };
 
-u32 cpu_crc32_buffer (const u8 *buf, const size_t length)
+u32 cpu_crc32_buffer (const u8 * buf, const size_t length)
 {
   u32 crc = ~0u;
 
@@ -90,7 +89,7 @@ u32 cpu_crc32_buffer (const u8 *buf, const size_t length)
   return crc ^ 0xffffffff;;
 }
 
-int cpu_crc32 (hashcat_ctx_t *hashcat_ctx, const char *filename, u8 keytab[64])
+int cpu_crc32 (hashcat_ctx_t * hashcat_ctx, const char *filename, u8 keytab[64])
 {
   u32 crc = ~0u;
 
@@ -103,7 +102,7 @@ int cpu_crc32 (hashcat_ctx_t *hashcat_ctx, const char *filename, u8 keytab[64])
     return -1;
   }
 
-  #define MAX_KEY_SIZE (1024 * 1024)
+#define MAX_KEY_SIZE (1024 * 1024)
 
   u8 *buf = (u8 *) hcmalloc (MAX_KEY_SIZE + 1);
 
@@ -117,10 +116,18 @@ int cpu_crc32 (hashcat_ctx_t *hashcat_ctx, const char *filename, u8 keytab[64])
   {
     crc = crc32tab[(crc ^ buf[fpos]) & 0xff] ^ (crc >> 8);
 
-    keytab[kpos++] += (crc >> 24) & 0xff; if (kpos >= 64) kpos = 0;
-    keytab[kpos++] += (crc >> 16) & 0xff; if (kpos >= 64) kpos = 0;
-    keytab[kpos++] += (crc >>  8) & 0xff; if (kpos >= 64) kpos = 0;
-    keytab[kpos++] += (crc >>  0) & 0xff; if (kpos >= 64) kpos = 0;
+    keytab[kpos++] += (crc >> 24) & 0xff;
+    if (kpos >= 64)
+      kpos = 0;
+    keytab[kpos++] += (crc >> 16) & 0xff;
+    if (kpos >= 64)
+      kpos = 0;
+    keytab[kpos++] += (crc >> 8) & 0xff;
+    if (kpos >= 64)
+      kpos = 0;
+    keytab[kpos++] += (crc >> 0) & 0xff;
+    if (kpos >= 64)
+      kpos = 0;
   }
 
   hcfree (buf);

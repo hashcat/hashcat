@@ -23,7 +23,7 @@ void *hccalloc (const size_t nmemb, const size_t sz)
 
 void *hcmalloc (const size_t sz)
 {
-  //calloc is faster than malloc with big allocations, so just use that.
+  // calloc is faster than malloc with big allocations, so just use that.
   void *p = hccalloc (sz, 1);
 
   return (p);
@@ -51,7 +51,8 @@ char *hcstrdup (const char *s)
 
   char *b = (char *) hcmalloc (len + 1);
 
-  if (b == NULL) return (NULL);
+  if (b == NULL)
+    return (NULL);
 
   memcpy (b, s, len);
 
@@ -62,7 +63,8 @@ char *hcstrdup (const char *s)
 
 void hcfree (void *ptr)
 {
-  if (ptr == NULL) return;
+  if (ptr == NULL)
+    return;
 
   free (ptr);
 }

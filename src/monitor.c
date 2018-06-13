@@ -16,9 +16,10 @@
 #include "status.h"
 #include "monitor.h"
 
-int get_runtime_left (const hashcat_ctx_t *hashcat_ctx)
+int get_runtime_left (const hashcat_ctx_t * hashcat_ctx)
 {
-  const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   double msec_paused = status_ctx->msec_paused;
@@ -34,33 +35,42 @@ int get_runtime_left (const hashcat_ctx_t *hashcat_ctx)
 
   time (&runtime_cur);
 
-  const int runtime_left = (int) (status_ctx->runtime_start
-                                + user_options->runtime
-                                + (msec_paused / 1000)
-                                - runtime_cur);
+  const int runtime_left = (int) (status_ctx->runtime_start + user_options->runtime + (msec_paused / 1000) - runtime_cur);
 
   return runtime_left;
 }
 
-static int monitor (hashcat_ctx_t *hashcat_ctx)
+static int monitor (hashcat_ctx_t * hashcat_ctx)
 {
-  hashes_t       *hashes        = hashcat_ctx->hashes;
-  hwmon_ctx_t    *hwmon_ctx     = hashcat_ctx->hwmon_ctx;
-  opencl_ctx_t   *opencl_ctx    = hashcat_ctx->opencl_ctx;
-  restore_ctx_t  *restore_ctx   = hashcat_ctx->restore_ctx;
-  status_ctx_t   *status_ctx    = hashcat_ctx->status_ctx;
-  user_options_t *user_options  = hashcat_ctx->user_options;
+  hashes_t *hashes = hashcat_ctx->hashes;
 
-  bool runtime_check      = false;
-  bool remove_check       = false;
-  bool status_check       = false;
-  bool restore_check      = false;
-  bool hwmon_check        = false;
-  bool performance_check  = false;
+  hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
-  const int    sleep_time = 1;
-  const double exec_low   = 50.0;  // in ms
-  const double util_low   = 90.0;  // in percent
+  opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
+
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  user_options_t *user_options = hashcat_ctx->user_options;
+
+  bool runtime_check = false;
+
+  bool remove_check = false;
+
+  bool status_check = false;
+
+  bool restore_check = false;
+
+  bool hwmon_check = false;
+
+  bool performance_check = false;
+
+  const int sleep_time = 1;
+
+  const double exec_low = 50.0; // in ms
+
+  const double util_low = 90.0; // in percent
 
   if (user_options->runtime)
   {
@@ -89,7 +99,7 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
   if (hwmon_ctx->enabled == true)
   {
-    performance_check = true; // this check simply requires hwmon to work
+    performance_check = true;   // this check simply requires hwmon to work
   }
 
   if ((runtime_check == false) && (remove_check == false) && (status_check == false) && (restore_check == false) && (hwmon_check == false) && (performance_check == false))
@@ -99,18 +109,22 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
   // timer
 
-  u32 slowdown_warnings    = 0;
+  u32 slowdown_warnings = 0;
+
   u32 performance_warnings = 0;
 
-  u32 restore_left  = user_options->restore_timer;
-  u32 remove_left   = user_options->remove_timer;
-  u32 status_left   = user_options->status_timer;
+  u32 restore_left = user_options->restore_timer;
+
+  u32 remove_left = user_options->remove_timer;
+
+  u32 status_left = user_options->status_timer;
 
   while (status_ctx->shutdown_inner == false)
   {
     sleep (sleep_time);
 
-    if (status_ctx->devices_status == STATUS_INIT) continue;
+    if (status_ctx->devices_status == STATUS_INIT)
+      continue;
 
     if (hwmon_check == true)
     {
@@ -120,19 +134,24 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
       {
         hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
-        if (device_param->skipped == true) continue;
+        if (device_param->skipped == true)
+          continue;
 
         const int rc_throttle = hm_get_throttle_with_device_id (hashcat_ctx, device_id);
 
-        if (rc_throttle == -1) continue;
+        if (rc_throttle == -1)
+          continue;
 
         if (rc_throttle > 0)
         {
           slowdown_warnings++;
 
-          if (slowdown_warnings == 1) EVENT_DATA (EVENT_MONITOR_THROTTLE1, &device_id, sizeof (u32));
-          if (slowdown_warnings == 2) EVENT_DATA (EVENT_MONITOR_THROTTLE2, &device_id, sizeof (u32));
-          if (slowdown_warnings == 3) EVENT_DATA (EVENT_MONITOR_THROTTLE3, &device_id, sizeof (u32));
+          if (slowdown_warnings == 1)
+            EVENT_DATA (EVENT_MONITOR_THROTTLE1, &device_id, sizeof (u32));
+          if (slowdown_warnings == 2)
+            EVENT_DATA (EVENT_MONITOR_THROTTLE2, &device_id, sizeof (u32));
+          if (slowdown_warnings == 3)
+            EVENT_DATA (EVENT_MONITOR_THROTTLE3, &device_id, sizeof (u32));
         }
         else
         {
@@ -151,9 +170,11 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
       {
         hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
-        if (device_param->skipped == true) continue;
+        if (device_param->skipped == true)
+          continue;
 
-        if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
+        if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0)
+          continue;
 
         const int temperature = hm_get_temperature_with_device_id (hashcat_ctx, device_id);
 
@@ -176,7 +197,8 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
       {
         const int rc = cycle_restore (hashcat_ctx);
 
-        if (rc == -1) return -1;
+        if (rc == -1)
+          return -1;
 
         restore_left = user_options->restore_timer;
       }
@@ -206,7 +228,8 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
           const int rc = save_hash (hashcat_ctx);
 
-          if (rc == -1) return -1;
+          if (rc == -1)
+            return -1;
         }
 
         remove_left = user_options->remove_timer;
@@ -232,9 +255,11 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
     if (performance_check == true)
     {
       int exec_cnt = 0;
+
       int util_cnt = 0;
 
       double exec_total = 0;
+
       double util_total = 0;
 
       hc_thread_mutex_lock (status_ctx->mux_hwmon);
@@ -243,7 +268,8 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
       {
         hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
-        if (device_param->skipped == true) continue;
+        if (device_param->skipped == true)
+          continue;
 
         exec_cnt++;
 
@@ -253,7 +279,8 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
         const int util = hm_get_utilization_with_device_id (hashcat_ctx, device_id);
 
-        if (util == -1) continue;
+        if (util == -1)
+          continue;
 
         util_total += (double) util;
 
@@ -263,23 +290,28 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
       hc_thread_mutex_unlock (status_ctx->mux_hwmon);
 
       double exec_avg = 0;
+
       double util_avg = 0;
 
-      if (exec_cnt > 0) exec_avg = exec_total / exec_cnt;
-      if (util_cnt > 0) util_avg = util_total / util_cnt;
+      if (exec_cnt > 0)
+        exec_avg = exec_total / exec_cnt;
+      if (util_cnt > 0)
+        util_avg = util_total / util_cnt;
 
       if ((exec_avg > 0) && (exec_avg < exec_low))
       {
         performance_warnings++;
 
-        if (performance_warnings == 10) EVENT_DATA (EVENT_MONITOR_PERFORMANCE_HINT, NULL, 0);
+        if (performance_warnings == 10)
+          EVENT_DATA (EVENT_MONITOR_PERFORMANCE_HINT, NULL, 0);
       }
 
       if ((util_avg > 0) && (util_avg < util_low))
       {
         performance_warnings++;
 
-        if (performance_warnings == 10) EVENT_DATA (EVENT_MONITOR_PERFORMANCE_HINT, NULL, 0);
+        if (performance_warnings == 10)
+          EVENT_DATA (EVENT_MONITOR_PERFORMANCE_HINT, NULL, 0);
       }
     }
   }
@@ -292,7 +324,8 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
     {
       const int rc = save_hash (hashcat_ctx);
 
-      if (rc == -1) return -1;
+      if (rc == -1)
+        return -1;
     }
   }
 
@@ -302,7 +335,8 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
   {
     const int rc = cycle_restore (hashcat_ctx);
 
-    if (rc == -1) return -1;
+    if (rc == -1)
+      return -1;
   }
 
   return 0;
@@ -312,7 +346,7 @@ void *thread_monitor (void *p)
 {
   hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) p;
 
-  monitor (hashcat_ctx); // we should give back some useful returncode
+  monitor (hashcat_ctx);        // we should give back some useful returncode
 
   return NULL;
 }

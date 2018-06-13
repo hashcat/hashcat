@@ -16,15 +16,16 @@
 
 int sort_by_stringptr (const void *p1, const void *p2)
 {
-  const char* const *s1 = (const char* const *) p1;
-  const char* const *s2 = (const char* const *) p2;
+  const char *const *s1 = (const char *const *) p1;
+
+  const char *const *s2 = (const char *const *) p2;
 
   return strcmp (*s1, *s2);
 }
 
 static int get_exec_path (char *exec_path, const size_t exec_path_sz)
 {
-  #if defined (__linux__) || defined (__CYGWIN__)
+#if defined (__linux__) || defined (__CYGWIN__)
 
   char *tmp;
 
@@ -34,25 +35,27 @@ static int get_exec_path (char *exec_path, const size_t exec_path_sz)
 
   hcfree (tmp);
 
-  if (len == -1) return -1;
+  if (len == -1)
+    return -1;
 
-  #elif defined (_WIN)
+#elif defined (_WIN)
 
   memset (exec_path, 0, exec_path_sz);
 
   const int len = 0;
 
-  #elif defined (__APPLE__)
+#elif defined (__APPLE__)
 
   u32 size = (u32) exec_path_sz;
 
-  if (_NSGetExecutablePath (exec_path, &size) != 0) return -1;
+  if (_NSGetExecutablePath (exec_path, &size) != 0)
+    return -1;
 
   const size_t len = strlen (exec_path);
 
-  #elif defined (__FreeBSD__)
+#elif defined (__FreeBSD__)
 
-  #include <sys/sysctl.h>
+#include <sys/sysctl.h>
 
   int mib[4];
 
@@ -67,9 +70,9 @@ static int get_exec_path (char *exec_path, const size_t exec_path_sz)
 
   const size_t len = strlen (exec_path);
 
-  #else
-  #error Your Operating System is not supported or detected
-  #endif
+#else
+#error Your Operating System is not supported or detected
+#endif
 
   exec_path[len] = 0;
 
@@ -111,7 +114,8 @@ static void get_session_dir (char *session_dir, const char *profile_dir)
 
 int count_dictionaries (char **dictionary_files)
 {
-  if (dictionary_files == NULL) return 0;
+  if (dictionary_files == NULL)
+    return 0;
 
   int cnt = 0;
 
@@ -131,7 +135,7 @@ char *first_file_in_directory (const char *path)
   {
     char *first_file = NULL;
 
-    #if 0
+#if 0
 
     struct dirent e;
 
@@ -141,20 +145,23 @@ char *first_file_in_directory (const char *path)
 
       struct dirent *de = NULL;
 
-      if (readdir_r (d, &e, &de) != 0) break;
+      if (readdir_r (d, &e, &de) != 0)
+        break;
 
-      if (de == NULL) break;
+      if (de == NULL)
+        break;
 
-    #else
+#else
 
     struct dirent *de;
 
     while ((de = readdir (d)) != NULL)
     {
 
-    #endif
+#endif
 
-      if (de->d_name[0] == '.') continue;
+      if (de->d_name[0] == '.')
+        continue;
 
       first_file = strdup (de->d_name);
 
@@ -190,7 +197,7 @@ char **scan_directory (const char *path)
 
   if ((d = opendir (tmp_path)) != NULL)
   {
-    #if 0
+#if 0
 
     struct dirent e;
 
@@ -200,20 +207,23 @@ char **scan_directory (const char *path)
 
       struct dirent *de = NULL;
 
-      if (readdir_r (d, &e, &de) != 0) break;
+      if (readdir_r (d, &e, &de) != 0)
+        break;
 
-      if (de == NULL) break;
+      if (de == NULL)
+        break;
 
-    #else
+#else
 
     struct dirent *de;
 
     while ((de = readdir (d)) != NULL)
     {
 
-    #endif
+#endif
 
-      if (de->d_name[0] == '.') continue;
+      if (de->d_name[0] == '.')
+        continue;
 
       char *path_file;
 
@@ -257,7 +267,7 @@ char **scan_directory (const char *path)
   return (files);
 }
 
-int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *install_folder, MAYBE_UNUSED const char *shared_folder)
+int folder_config_init (hashcat_ctx_t * hashcat_ctx, MAYBE_UNUSED const char *install_folder, MAYBE_UNUSED const char *shared_folder)
 {
   folder_config_t *folder_config = hashcat_ctx->folder_config;
 
@@ -300,32 +310,30 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
     return -1;
   }
 
-  #if defined (_POSIX)
+#if defined (_POSIX)
 
   static const char SLASH[] = "/";
 
-  if (install_folder == NULL) install_folder = SLASH; // makes library use easier
+  if (install_folder == NULL)
+    install_folder = SLASH;     // makes library use easier
 
   char *resolved_install_folder = realpath (install_folder, NULL);
-  char *resolved_exec_path      = realpath (exec_path, NULL);
 
-  if (resolved_install_folder == NULL) resolved_install_folder = hcstrdup (SLASH);
+  char *resolved_exec_path = realpath (exec_path, NULL);
 
-  /*
-  This causes invalid error out if install_folder (/usr/local/bin) does not exist
   if (resolved_install_folder == NULL)
-  {
-    event_log_error (hashcat_ctx, "%s: %s", resolved_install_folder, strerror (errno));
+    resolved_install_folder = hcstrdup (SLASH);
 
-    hcfree (cwd);
-
-    hcfree (exec_path);
-
-    hcfree (resolved_install_folder);
-
-    return -1;
-  }
-  */
+  /* 
+   * This causes invalid error out if install_folder (/usr/local/bin) does not exist if (resolved_install_folder == NULL) { event_log_error (hashcat_ctx, "%s: %s", resolved_install_folder, strerror (errno));
+   * 
+   * hcfree (cwd);
+   * 
+   * hcfree (exec_path);
+   * 
+   * hcfree (resolved_install_folder);
+   * 
+   * return -1; } */
 
   if (resolved_exec_path == NULL)
   {
@@ -345,12 +353,15 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   get_install_dir (install_dir, resolved_exec_path);
 
   char *profile_dir = NULL;
+
   char *session_dir = NULL;
-  char *shared_dir  = NULL;
+
+  char *shared_dir = NULL;
 
   if (strcmp (install_dir, resolved_install_folder) == 0)
   {
     struct passwd pw;
+
     struct passwd *pwp;
 
     char buf[HCBUFSIZ_TINY];
@@ -374,23 +385,25 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   {
     profile_dir = install_dir;
     session_dir = install_dir;
-    shared_dir  = install_dir;
+    shared_dir = install_dir;
   }
 
   hcfree (resolved_install_folder);
   hcfree (resolved_exec_path);
 
-  #else
+#else
 
   char *install_dir = hcmalloc (HCBUFSIZ_TINY);
 
   get_install_dir (install_dir, exec_path);
 
   char *profile_dir = install_dir;
-  char *session_dir = install_dir;
-  char *shared_dir  = install_dir;
 
-  #endif
+  char *session_dir = install_dir;
+
+  char *shared_dir = install_dir;
+
+#endif
 
   hcfree (exec_path);
 
@@ -403,7 +416,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   char *cpath;
 
-  #if defined (_WIN)
+#if defined (_WIN)
 
   hc_asprintf (&cpath, "%s\\OpenCL\\", shared_dir);
 
@@ -411,7 +424,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   hc_asprintf (&cpath_real, "%s\\OpenCL\\", shared_dir);
 
-  #else
+#else
 
   hc_asprintf (&cpath, "%s/OpenCL/", shared_dir);
 
@@ -428,15 +441,18 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
     // Attention: since hcfree () doesn't set the pointer to NULL, we need to do it externally such that
     // we prevent double-freeing the same memory address (this happens if e.g. profile_dir == session_dir)
 
-    if (profile_dir == shared_dir) profile_dir = NULL;
-    if (session_dir == shared_dir) session_dir = NULL;
+    if (profile_dir == shared_dir)
+      profile_dir = NULL;
+    if (session_dir == shared_dir)
+      session_dir = NULL;
 
     shared_dir = NULL;
 
 
     hcfree (profile_dir);
 
-    if (session_dir == profile_dir) session_dir = NULL;
+    if (session_dir == profile_dir)
+      session_dir = NULL;
 
     profile_dir = NULL;
 
@@ -453,11 +469,11 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
     return -1;
   }
 
-  #endif
+#endif
 
   hcfree (cpath);
 
-  //if (getenv ("TMP") == NULL)
+  // if (getenv ("TMP") == NULL)
   if (1)
   {
     char *tmp;
@@ -467,18 +483,18 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
     putenv (tmp);
   }
 
-  #if defined (_WIN)
+#if defined (_WIN)
 
   naive_replace (cpath_real, '\\', '/');
 
   // not escaping here, windows using quotes later
-  // naive_escape (cpath_real, PATH_MAX,  ' ', '\\');
+  // naive_escape (cpath_real, PATH_MAX, ' ', '\\');
 
-  #else
+#else
 
-  naive_escape (cpath_real, PATH_MAX,  ' ', '\\');
+  naive_escape (cpath_real, PATH_MAX, ' ', '\\');
 
-  #endif
+#endif
 
   /**
    * kernel cache, we need to make sure folder exist
@@ -496,17 +512,17 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
    * store for later use
    */
 
-  folder_config->cwd          = cwd;
-  folder_config->install_dir  = install_dir;
-  folder_config->profile_dir  = profile_dir;
-  folder_config->session_dir  = session_dir;
-  folder_config->shared_dir   = shared_dir;
-  folder_config->cpath_real   = cpath_real;
+  folder_config->cwd = cwd;
+  folder_config->install_dir = install_dir;
+  folder_config->profile_dir = profile_dir;
+  folder_config->session_dir = session_dir;
+  folder_config->shared_dir = shared_dir;
+  folder_config->cpath_real = cpath_real;
 
   return 0;
 }
 
-void folder_config_destroy (hashcat_ctx_t *hashcat_ctx)
+void folder_config_destroy (hashcat_ctx_t * hashcat_ctx)
 {
   folder_config_t *folder_config = hashcat_ctx->folder_config;
 
@@ -519,9 +535,9 @@ void folder_config_destroy (hashcat_ctx_t *hashcat_ctx)
 
 int hc_mkdir (const char *name, MAYBE_UNUSED const int mode)
 {
-  #if defined (_WIN)
+#if defined (_WIN)
   return _mkdir (name);
-  #else
+#else
   return mkdir (name, mode);
-  #endif
+#endif
 }

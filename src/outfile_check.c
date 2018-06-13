@@ -16,34 +16,47 @@
 #include "shared.h"
 #include "thread.h"
 
-static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
+static int outfile_remove (hashcat_ctx_t * hashcat_ctx)
 {
   // some hash-dependent constants
 
-  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
-  hashes_t       *hashes       = hashcat_ctx->hashes;
+  hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
+  hashes_t *hashes = hashcat_ctx->hashes;
+
   outcheck_ctx_t *outcheck_ctx = hashcat_ctx->outcheck_ctx;
-  status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  size_t dgst_size      = hashconfig->dgst_size;
-  bool   is_salted      = hashconfig->is_salted;
-  size_t esalt_size     = hashconfig->esalt_size;
-  size_t hook_salt_size = hashconfig->hook_salt_size;
-  u32    hash_mode      = hashconfig->hash_mode;
-  char   separator      = hashconfig->separator;
+  size_t dgst_size = hashconfig->dgst_size;
 
-  char *root_directory      = outcheck_ctx->root_directory;
-  u32   outfile_check_timer = user_options->outfile_check_timer;
+  bool is_salted = hashconfig->is_salted;
+
+  size_t esalt_size = hashconfig->esalt_size;
+
+  size_t hook_salt_size = hashconfig->hook_salt_size;
+
+  u32 hash_mode = hashconfig->hash_mode;
+
+  char separator = hashconfig->separator;
+
+  char *root_directory = outcheck_ctx->root_directory;
+
+  u32 outfile_check_timer = user_options->outfile_check_timer;
 
   // buffers
   hash_t hash_buf = { 0, 0, 0, 0, 0, 0, NULL, 0 };
 
   hash_buf.digest = hcmalloc (dgst_size);
 
-  if (is_salted == true)  hash_buf.salt      = (salt_t *) hcmalloc (sizeof (salt_t));
-  if (esalt_size > 0)     hash_buf.esalt     = hcmalloc (esalt_size);
-  if (hook_salt_size > 0) hash_buf.hook_salt = hcmalloc (hook_salt_size);
+  if (is_salted == true)
+    hash_buf.salt = (salt_t *) hcmalloc (sizeof (salt_t));
+  if (esalt_size > 0)
+    hash_buf.esalt = hcmalloc (esalt_size);
+  if (hook_salt_size > 0)
+    hash_buf.hook_salt = hcmalloc (hook_salt_size);
 
   u32 digest_buf[64] = { 0 };
 
@@ -61,7 +74,8 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
   {
     sleep (1);
 
-    if (status_ctx->devices_status != STATUS_RUNNING) continue;
+    if (status_ctx->devices_status != STATUS_RUNNING)
+      continue;
 
     check_left--;
 
@@ -114,7 +128,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
                       if (outfile_stat.st_ctime == out_info[j].ctime)
                       {
                         out_info_new[i].ctime = out_info[j].ctime;
-                        out_info_new[i].seek  = out_info[j].seek;
+                        out_info_new[i].seek = out_info[j].seek;
                       }
                     }
                   }
@@ -126,8 +140,8 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
             hcfree (out_files);
 
             out_files = out_files_new;
-            out_cnt   = out_cnt_new;
-            out_info  = out_info_new;
+            out_cnt = out_cnt_new;
+            out_info = out_info_new;
 
             folder_mtime = outfile_check_stat.st_mtime;
           }
@@ -138,7 +152,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
             if (fp != NULL)
             {
-              //hc_thread_mutex_lock (status_ctx->mux_display);
+              // hc_thread_mutex_lock (status_ctx->mux_display);
 
               struct stat outfile_stat;
 
@@ -152,7 +166,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
               if (outfile_stat.st_ctime > out_info[j].ctime)
               {
                 out_info[j].ctime = outfile_stat.st_ctime;
-                out_info[j].seek  = 0;
+                out_info[j].seek = 0;
               }
 
               fseeko (fp, out_info[j].seek, SEEK_SET);
@@ -163,17 +177,20 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
               {
                 char *ptr = fgets (line_buf, HCBUFSIZ_LARGE - 1, fp);
 
-                if (ptr == NULL) break;
+                if (ptr == NULL)
+                  break;
 
                 size_t line_len = strlen (line_buf);
 
-                if (line_len == 0) continue;
+                if (line_len == 0)
+                  continue;
 
                 size_t iter = 1;
 
                 for (size_t i = line_len - 1; i && iter; i--, line_len--)
                 {
-                  if (line_buf[i] != separator) continue;
+                  if (line_buf[i] != separator)
+                    continue;
 
                   iter--;
 
@@ -190,7 +207,8 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
                   {
                     for (u32 salt_pos = 0; (found == 0) && (salt_pos < hashes->salts_cnt); salt_pos++)
                     {
-                      if (hashes->salts_shown[salt_pos] == 1) continue;
+                      if (hashes->salts_shown[salt_pos] == 1)
+                        continue;
 
                       salt_t *salt_buf = &hashes->salts_buf[salt_pos];
 
@@ -198,7 +216,8 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
                       {
                         u32 idx = salt_buf->digests_offset + digest_pos;
 
-                        if (hashes->digests_shown[idx] == 1) continue;
+                        if (hashes->digests_shown[idx] == 1)
+                          continue;
 
                         u32 cracked = 0;
 
@@ -245,28 +264,33 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
                             hashes->salts_done++;
 
-                            if (hashes->salts_done == hashes->salts_cnt) mycracked (hashcat_ctx);
+                            if (hashes->salts_done == hashes->salts_cnt)
+                              mycracked (hashcat_ctx);
                           }
                         }
                       }
 
-                      if (status_ctx->devices_status == STATUS_CRACKED) break;
+                      if (status_ctx->devices_status == STATUS_CRACKED)
+                        break;
                     }
                   }
 
-                  if (found) break;
+                  if (found)
+                    break;
 
-                  if (status_ctx->devices_status == STATUS_CRACKED) break;
+                  if (status_ctx->devices_status == STATUS_CRACKED)
+                    break;
                 }
 
-                if (status_ctx->devices_status == STATUS_CRACKED) break;
+                if (status_ctx->devices_status == STATUS_CRACKED)
+                  break;
               }
 
               hcfree (line_buf);
 
               out_info[j].seek = ftello (fp);
 
-              //hc_thread_mutex_unlock (status_ctx->mux_display);
+              // hc_thread_mutex_unlock (status_ctx->mux_display);
 
               fclose (fp);
             }
@@ -298,32 +322,40 @@ void *thread_outfile_remove (void *p)
 
   const int rc = outfile_remove (hashcat_ctx);
 
-  if (rc == -1) return NULL;
+  if (rc == -1)
+    return NULL;
 
   return NULL;
 }
 
-int outcheck_ctx_init (hashcat_ctx_t *hashcat_ctx)
+int outcheck_ctx_init (hashcat_ctx_t * hashcat_ctx)
 {
   folder_config_t *folder_config = hashcat_ctx->folder_config;
-  outcheck_ctx_t  *outcheck_ctx  = hashcat_ctx->outcheck_ctx;
-  user_options_t  *user_options  = hashcat_ctx->user_options;
+
+  outcheck_ctx_t *outcheck_ctx = hashcat_ctx->outcheck_ctx;
+
+  user_options_t *user_options = hashcat_ctx->user_options;
 
   outcheck_ctx->enabled = false;
 
-  if (user_options->keyspace       == true) return 0;
-  if (user_options->benchmark      == true) return 0;
-  if (user_options->example_hashes == true) return 0;
-  if (user_options->speed_only     == true) return 0;
-  if (user_options->progress_only  == true) return 0;
-  if (user_options->opencl_info    == true) return 0;
+  if (user_options->keyspace == true)
+    return 0;
+  if (user_options->benchmark == true)
+    return 0;
+  if (user_options->example_hashes == true)
+    return 0;
+  if (user_options->speed_only == true)
+    return 0;
+  if (user_options->progress_only == true)
+    return 0;
+  if (user_options->opencl_info == true)
+    return 0;
 
-  if (user_options->outfile_check_timer == 0) return 0;
+  if (user_options->outfile_check_timer == 0)
+    return 0;
 
-  if ((user_options->hash_mode ==  5200) ||
-     ((user_options->hash_mode >=  6200) && (user_options->hash_mode <=  6299)) ||
-     ((user_options->hash_mode >= 13700) && (user_options->hash_mode <= 13799)) ||
-      (user_options->hash_mode ==  9000)) return 0;
+  if ((user_options->hash_mode == 5200) || ((user_options->hash_mode >= 6200) && (user_options->hash_mode <= 6299)) || ((user_options->hash_mode >= 13700) && (user_options->hash_mode <= 13799)) || (user_options->hash_mode == 9000))
+    return 0;
 
   if (user_options->outfile_check_dir == NULL)
   {
@@ -349,12 +381,14 @@ int outcheck_ctx_init (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-void outcheck_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
+void outcheck_ctx_destroy (hashcat_ctx_t * hashcat_ctx)
 {
   outcheck_ctx_t *outcheck_ctx = hashcat_ctx->outcheck_ctx;
+
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (outcheck_ctx->enabled == false) return;
+  if (outcheck_ctx->enabled == false)
+    return;
 
   if (rmdir (outcheck_ctx->root_directory) == -1)
   {
@@ -370,7 +404,7 @@ void outcheck_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
     {
       event_log_error (hashcat_ctx, "%s: %s", outcheck_ctx->root_directory, strerror (errno));
 
-      //return -1;
+      // return -1;
     }
   }
 

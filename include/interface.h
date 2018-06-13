@@ -16,7 +16,8 @@
  * zero hashes shutcut
  */
 
-static const char LM_ZERO_HASH[]    = "aad3b435b51404ee";
+static const char LM_ZERO_HASH[] = "aad3b435b51404ee";
+
 static const char LM_MASKED_PLAIN[] = "[notfound]";
 
 /**
@@ -28,7 +29,7 @@ static const char LM_MASKED_PLAIN[] = "[notfound]";
 #define LUKS_CIPHERNAME_L 32
 #define LUKS_CIPHERMODE_L 32
 #define LUKS_HASHSPEC_L 32
-#define LUKS_DIGESTSIZE 20 // since SHA1
+#define LUKS_DIGESTSIZE 20      // since SHA1
 #define LUKS_HMACSIZE 32
 #define LUKS_SALTSIZE 32
 #define LUKS_NUMKEYS 8
@@ -48,38 +49,40 @@ static const char LM_MASKED_PLAIN[] = "[notfound]";
 /* Offset to keyslot area [in bytes] */
 #define LUKS_ALIGN_KEYSLOTS 4096
 
-struct luks_phdr {
-  char      magic[LUKS_MAGIC_L];
-  uint16_t  version;
-  char      cipherName[LUKS_CIPHERNAME_L];
-  char      cipherMode[LUKS_CIPHERMODE_L];
-  char      hashSpec[LUKS_HASHSPEC_L];
-  uint32_t  payloadOffset;
-  uint32_t  keyBytes;
-  char      mkDigest[LUKS_DIGESTSIZE];
-  char      mkDigestSalt[LUKS_SALTSIZE];
-  uint32_t  mkDigestIterations;
-  char      uuid[UUID_STRING_L];
-  struct {
+struct luks_phdr
+{
+  char magic[LUKS_MAGIC_L];
+  uint16_t version;
+  char cipherName[LUKS_CIPHERNAME_L];
+  char cipherMode[LUKS_CIPHERMODE_L];
+  char hashSpec[LUKS_HASHSPEC_L];
+  uint32_t payloadOffset;
+  uint32_t keyBytes;
+  char mkDigest[LUKS_DIGESTSIZE];
+  char mkDigestSalt[LUKS_SALTSIZE];
+  uint32_t mkDigestIterations;
+  char uuid[UUID_STRING_L];
+  struct
+  {
     uint32_t active;
     /* parameters used for password processing */
     uint32_t passwordIterations;
-    char     passwordSalt[LUKS_SALTSIZE];
+    char passwordSalt[LUKS_SALTSIZE];
     /* parameters used for AF store/load */
     uint32_t keyMaterialOffset;
     uint32_t stripes;
   } keyblock[LUKS_NUMKEYS];
   /* Align it to 512 sector size */
-  char       _padding[432];
+  char _padding[432];
 };
 
 // not from original headers start with hc_
 
 typedef enum hc_luks_hash_type
 {
-  HC_LUKS_HASH_TYPE_SHA1      = 1,
-  HC_LUKS_HASH_TYPE_SHA256    = 2,
-  HC_LUKS_HASH_TYPE_SHA512    = 3,
+  HC_LUKS_HASH_TYPE_SHA1 = 1,
+  HC_LUKS_HASH_TYPE_SHA256 = 2,
+  HC_LUKS_HASH_TYPE_SHA512 = 3,
   HC_LUKS_HASH_TYPE_RIPEMD160 = 4,
   HC_LUKS_HASH_TYPE_WHIRLPOOL = 5,
 
@@ -95,7 +98,7 @@ typedef enum hc_luks_key_size
 
 typedef enum hc_luks_cipher_type
 {
-  HC_LUKS_CIPHER_TYPE_AES     = 1,
+  HC_LUKS_CIPHER_TYPE_AES = 1,
   HC_LUKS_CIPHER_TYPE_SERPENT = 2,
   HC_LUKS_CIPHER_TYPE_TWOFISH = 3,
 
@@ -111,10 +114,10 @@ typedef enum hc_luks_cipher_mode
 
 typedef struct luks
 {
-  int hash_type;    // hc_luks_hash_type_t
-  int key_size;     // hc_luks_key_size_t
-  int cipher_type;  // hc_luks_cipher_type_t
-  int cipher_mode;  // hc_luks_cipher_mode_t
+  int hash_type;                // hc_luks_hash_type_t
+  int key_size;                 // hc_luks_key_size_t
+  int cipher_type;              // hc_luks_cipher_type_t
+  int cipher_mode;              // hc_luks_cipher_mode_t
 
   u32 ct_buf[128];
 
@@ -136,7 +139,7 @@ typedef struct blake2
   u64 f[2];
   u32 buflen;
   u32 outlen;
-  u8  last_node;
+  u8 last_node;
 
 } blake2_t;
 
@@ -157,43 +160,43 @@ typedef struct rar5
 
 typedef struct pdf
 {
-  int  V;
-  int  R;
-  int  P;
+  int V;
+  int R;
+  int P;
 
-  int  enc_md;
+  int enc_md;
 
-  u32  id_buf[8];
-  u32  u_buf[32];
-  u32  o_buf[32];
+  u32 id_buf[8];
+  u32 u_buf[32];
+  u32 o_buf[32];
 
-  int  id_len;
-  int  o_len;
-  int  u_len;
+  int id_len;
+  int o_len;
+  int u_len;
 
-  u32  rc4key[2];
-  u32  rc4data[2];
+  u32 rc4key[2];
+  u32 rc4data[2];
 
 } pdf_t;
 
 typedef struct wpa
 {
-  u32  pke[32];
-  u32  eapol[64 + 16];
-  u16  eapol_len;
-  u8   message_pair;
-  int  message_pair_chgd;
-  u8   keyver;
-  u8   orig_mac_ap[6];
-  u8   orig_mac_sta[6];
-  u8   orig_nonce_ap[32];
-  u8   orig_nonce_sta[32];
-  u8   essid_len;
-  u8   essid[32];
-  u32  keymic[4];
-  u32  hash[4];
-  int  nonce_compare;
-  int  nonce_error_corrections;
+  u32 pke[32];
+  u32 eapol[64 + 16];
+  u16 eapol_len;
+  u8 message_pair;
+  int message_pair_chgd;
+  u8 keyver;
+  u8 orig_mac_ap[6];
+  u8 orig_mac_sta[6];
+  u8 orig_nonce_ap[32];
+  u8 orig_nonce_sta[32];
+  u8 essid_len;
+  u8 essid[32];
+  u32 keymic[4];
+  u32 hash[4];
+  int nonce_compare;
+  int nonce_error_corrections;
 
 } wpa_t;
 
@@ -324,7 +327,7 @@ typedef struct pbkdf2_sha512
 
 typedef struct agilekey
 {
-  u8   cipher[1040];
+  u8 cipher[1040];
 
 } agilekey_t;
 
@@ -418,9 +421,9 @@ typedef struct win8phone
 typedef struct psafe3
 {
   char signature[4];
-  u32  salt_buf[8];
-  u32  iterations;
-  u32  hash_buf[8];
+  u32 salt_buf[8];
+  u32 iterations;
+  u32 hash_buf[8];
 
 } psafe3_t;
 
@@ -432,9 +435,7 @@ typedef struct dpapimk
   u32 SID_len;
   u32 SID_offset;
 
-  /* here only for possible
-     forward compatibiliy
-  */
+  /* here only for possible forward compatibiliy */
   // u8 cipher_algo[16];
   // u8 hash_algo[16];
 
@@ -540,7 +541,7 @@ typedef struct pdf17l8_tmp
   union
   {
     u32 dgst32[16];
-    u64  dgst64[8];
+    u64 dgst64[8];
   } d;
 
   u32 dgst_len;
@@ -602,7 +603,7 @@ typedef struct wpapmk_tmp
 
 typedef struct bitcoin_wallet_tmp
 {
-  u64  dgst[8];
+  u64 dgst[8];
 
 } bitcoin_wallet_tmp_t;
 
@@ -676,11 +677,11 @@ typedef struct tc_tmp
 
 typedef struct tc64_tmp
 {
-  u64  ipad[8];
-  u64  opad[8];
+  u64 ipad[8];
+  u64 opad[8];
 
-  u64  dgst[32];
-  u64  out[32];
+  u64 dgst[32];
+  u64 out[32];
 
 } tc64_tmp_t;
 
@@ -726,11 +727,11 @@ typedef struct sha256aix_tmp
 
 typedef struct sha512aix_tmp
 {
-  u64  ipad[8];
-  u64  opad[8];
+  u64 ipad[8];
+  u64 opad[8];
 
-  u64  dgst[8];
-  u64  out[8];
+  u64 dgst[8];
+  u64 out[8];
 
 } sha512aix_tmp_t;
 
@@ -746,7 +747,7 @@ typedef struct lastpass_tmp
 
 typedef struct drupal7_tmp
 {
-  u64  digest_buf[8];
+  u64 digest_buf[8];
 
 } drupal7_tmp_t;
 
@@ -774,7 +775,7 @@ typedef struct office2010_tmp
 
 typedef struct office2013_tmp
 {
-  u64  out[8];
+  u64 out[8];
 
 } office2013_tmp_t;
 
@@ -788,66 +789,66 @@ typedef struct pbkdf1_sha1_tmp
 {
   // pbkdf1-sha1 is limited to 160 bits
 
-  u32  ipad[5];
-  u32  opad[5];
+  u32 ipad[5];
+  u32 opad[5];
 
-  u32  out[5];
+  u32 out[5];
 
 } pbkdf1_sha1_tmp_t;
 
 typedef struct pbkdf2_md5_tmp
 {
-  u32  ipad[4];
-  u32  opad[4];
+  u32 ipad[4];
+  u32 opad[4];
 
-  u32  dgst[32];
-  u32  out[32];
+  u32 dgst[32];
+  u32 out[32];
 
 } pbkdf2_md5_tmp_t;
 
 typedef struct pbkdf2_sha1_tmp
 {
-  u32  ipad[5];
-  u32  opad[5];
+  u32 ipad[5];
+  u32 opad[5];
 
-  u32  dgst[32];
-  u32  out[32];
+  u32 dgst[32];
+  u32 out[32];
 
 } pbkdf2_sha1_tmp_t;
 
 typedef struct pbkdf2_sha256_tmp
 {
-  u32  ipad[8];
-  u32  opad[8];
+  u32 ipad[8];
+  u32 opad[8];
 
-  u32  dgst[32];
-  u32  out[32];
+  u32 dgst[32];
+  u32 out[32];
 
 } pbkdf2_sha256_tmp_t;
 
 typedef struct pbkdf2_sha512_tmp
 {
-  u64  ipad[8];
-  u64  opad[8];
+  u64 ipad[8];
+  u64 opad[8];
 
-  u64  dgst[16];
-  u64  out[16];
+  u64 dgst[16];
+  u64 out[16];
 
 } pbkdf2_sha512_tmp_t;
 
 typedef struct ecryptfs_tmp
 {
-  u64  out[8];
+  u64 out[8];
 
 } ecryptfs_tmp_t;
 
 typedef struct oraclet_tmp
 {
-  u64  ipad[8];
-  u64  opad[8];
+  u64 ipad[8];
+  u64 opad[8];
 
-  u64  dgst[16];
-  u64  out[16];
+  u64 dgst[16];
+  u64 out[16];
 
 } oraclet_tmp_t;
 
@@ -896,7 +897,7 @@ typedef struct seven_zip_hook_salt
   u32 crc;
   u32 crc_len;
 
-  u8  data_type;
+  u8 data_type;
 
   u32 data_buf[81882];
   u32 data_len;
@@ -904,9 +905,9 @@ typedef struct seven_zip_hook_salt
   u32 unpack_size;
 
   char coder_attributes[5 + 1];
-  u8   coder_attributes_len;
+  u8 coder_attributes_len;
 
-  int aes_len; // pre-computed length of the maximal (subset of) data we need for AES-CBC
+  int aes_len;                  // pre-computed length of the maximal (subset of) data we need for AES-CBC
 
 } seven_zip_hook_salt_t;
 
@@ -966,10 +967,10 @@ typedef struct seven_zip_hook
 
 typedef struct struct_psafe2_hdr
 {
-  u32  random[2];
-  u32  hash[5];
-  u32  salt[5];   // unused, but makes better valid check
-  u32  iv[2];     // unused, but makes better valid check
+  u32 random[2];
+  u32 hash[5];
+  u32 salt[5];                  // unused, but makes better valid check
+  u32 iv[2];                    // unused, but makes better valid check
 
 } psafe2_hdr;
 
@@ -994,19 +995,19 @@ struct hccapx
 {
   u32 signature;
   u32 version;
-  u8  message_pair;
-  u8  essid_len;
-  u8  essid[32];
-  u8  keyver;
-  u8  keymic[16];
-  u8  mac_ap[6];
-  u8  nonce_ap[32];
-  u8  mac_sta[6];
-  u8  nonce_sta[32];
+  u8 message_pair;
+  u8 essid_len;
+  u8 essid[32];
+  u8 keyver;
+  u8 keymic[16];
+  u8 mac_ap[6];
+  u8 nonce_ap[32];
+  u8 mac_sta[6];
+  u8 nonce_sta[32];
   u16 eapol_len;
-  u8  eapol[256];
+  u8 eapol[256];
 
-} __attribute__((packed));
+} __attribute__ ((packed));
 
 typedef struct hccapx hccapx_t;
 
@@ -1018,213 +1019,213 @@ typedef struct hccapx hccapx_t;
 
 typedef enum display_len
 {
-  DISPLAY_LEN_MIN_0     = 32,
-  DISPLAY_LEN_MAX_0     = 32,
-  DISPLAY_LEN_MIN_10    = 32 + 1 + 0,
-  DISPLAY_LEN_MAX_10    = 32 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_10H   = 32 + 1 + 0,
-  DISPLAY_LEN_MAX_10H   = 32 + 1 + (SALT_MAX * 2),
-  DISPLAY_LEN_MIN_20    = 32 + 1 + 0,
-  DISPLAY_LEN_MAX_20    = 32 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_20H   = 32 + 1 + 0,
-  DISPLAY_LEN_MAX_20H   = 32 + 1 + (SALT_MAX * 2),
-  DISPLAY_LEN_MIN_50    = 32 + 1 + 0,
-  DISPLAY_LEN_MAX_50    = 32 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_50H   = 32 + 1 + 0,
-  DISPLAY_LEN_MAX_50H   = 32 + 1 + (SALT_MAX * 2),
-  DISPLAY_LEN_MIN_100   = 40,
-  DISPLAY_LEN_MAX_100   = 40,
-  DISPLAY_LEN_MIN_110   = 40 + 1 + 0,
-  DISPLAY_LEN_MAX_110   = 40 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_110H  = 40 + 1 + 0,
-  DISPLAY_LEN_MAX_110H  = 40 + 1 + (SALT_MAX * 2),
-  DISPLAY_LEN_MIN_120   = 40 + 1 + 0,
-  DISPLAY_LEN_MAX_120   = 40 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_120H  = 40 + 1 + 0,
-  DISPLAY_LEN_MAX_120H  = 40 + 1 + (SALT_MAX * 2),
-  DISPLAY_LEN_MIN_150   = 40 + 1 + 0,
-  DISPLAY_LEN_MAX_150   = 40 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_150H  = 40 + 1 + 0,
-  DISPLAY_LEN_MAX_150H  = 40 + 1 + (SALT_MAX * 2),
-  DISPLAY_LEN_MIN_200   = 16,
-  DISPLAY_LEN_MAX_200   = 16,
-  DISPLAY_LEN_MIN_300   = 40,
-  DISPLAY_LEN_MAX_300   = 40,
-  DISPLAY_LEN_MIN_400   = 34,
-  DISPLAY_LEN_MAX_400   = 34,
-  DISPLAY_LEN_MIN_500   = 3 + 1 + 0 + 22,
-  DISPLAY_LEN_MIN_501   = 104,
-  DISPLAY_LEN_MAX_500   = 3 + 1 + 8 + 22,
-  DISPLAY_LEN_MAX_501   = 104,
-  DISPLAY_LEN_MIN_600   = 8 + 128,
-  DISPLAY_LEN_MAX_600   = 8 + 128,
-  DISPLAY_LEN_MIN_900   = 32,
-  DISPLAY_LEN_MAX_900   = 32,
-  DISPLAY_LEN_MIN_1000  = 32,
-  DISPLAY_LEN_MAX_1000  = 32,
-  DISPLAY_LEN_MIN_1100  = 32 + 1 + 0,
-  DISPLAY_LEN_MAX_1100  = 32 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_1300  = 56,
-  DISPLAY_LEN_MAX_1300  = 56,
-  DISPLAY_LEN_MIN_1400  = 64,
-  DISPLAY_LEN_MAX_1400  = 64,
-  DISPLAY_LEN_MIN_1410  = 64 + 1 + 0,
-  DISPLAY_LEN_MAX_1410  = 64 + 1 + SALT_MAX,
+  DISPLAY_LEN_MIN_0 = 32,
+  DISPLAY_LEN_MAX_0 = 32,
+  DISPLAY_LEN_MIN_10 = 32 + 1 + 0,
+  DISPLAY_LEN_MAX_10 = 32 + 1 + SALT_MAX,
+  DISPLAY_LEN_MIN_10H = 32 + 1 + 0,
+  DISPLAY_LEN_MAX_10H = 32 + 1 + (SALT_MAX * 2),
+  DISPLAY_LEN_MIN_20 = 32 + 1 + 0,
+  DISPLAY_LEN_MAX_20 = 32 + 1 + SALT_MAX,
+  DISPLAY_LEN_MIN_20H = 32 + 1 + 0,
+  DISPLAY_LEN_MAX_20H = 32 + 1 + (SALT_MAX * 2),
+  DISPLAY_LEN_MIN_50 = 32 + 1 + 0,
+  DISPLAY_LEN_MAX_50 = 32 + 1 + SALT_MAX,
+  DISPLAY_LEN_MIN_50H = 32 + 1 + 0,
+  DISPLAY_LEN_MAX_50H = 32 + 1 + (SALT_MAX * 2),
+  DISPLAY_LEN_MIN_100 = 40,
+  DISPLAY_LEN_MAX_100 = 40,
+  DISPLAY_LEN_MIN_110 = 40 + 1 + 0,
+  DISPLAY_LEN_MAX_110 = 40 + 1 + SALT_MAX,
+  DISPLAY_LEN_MIN_110H = 40 + 1 + 0,
+  DISPLAY_LEN_MAX_110H = 40 + 1 + (SALT_MAX * 2),
+  DISPLAY_LEN_MIN_120 = 40 + 1 + 0,
+  DISPLAY_LEN_MAX_120 = 40 + 1 + SALT_MAX,
+  DISPLAY_LEN_MIN_120H = 40 + 1 + 0,
+  DISPLAY_LEN_MAX_120H = 40 + 1 + (SALT_MAX * 2),
+  DISPLAY_LEN_MIN_150 = 40 + 1 + 0,
+  DISPLAY_LEN_MAX_150 = 40 + 1 + SALT_MAX,
+  DISPLAY_LEN_MIN_150H = 40 + 1 + 0,
+  DISPLAY_LEN_MAX_150H = 40 + 1 + (SALT_MAX * 2),
+  DISPLAY_LEN_MIN_200 = 16,
+  DISPLAY_LEN_MAX_200 = 16,
+  DISPLAY_LEN_MIN_300 = 40,
+  DISPLAY_LEN_MAX_300 = 40,
+  DISPLAY_LEN_MIN_400 = 34,
+  DISPLAY_LEN_MAX_400 = 34,
+  DISPLAY_LEN_MIN_500 = 3 + 1 + 0 + 22,
+  DISPLAY_LEN_MIN_501 = 104,
+  DISPLAY_LEN_MAX_500 = 3 + 1 + 8 + 22,
+  DISPLAY_LEN_MAX_501 = 104,
+  DISPLAY_LEN_MIN_600 = 8 + 128,
+  DISPLAY_LEN_MAX_600 = 8 + 128,
+  DISPLAY_LEN_MIN_900 = 32,
+  DISPLAY_LEN_MAX_900 = 32,
+  DISPLAY_LEN_MIN_1000 = 32,
+  DISPLAY_LEN_MAX_1000 = 32,
+  DISPLAY_LEN_MIN_1100 = 32 + 1 + 0,
+  DISPLAY_LEN_MAX_1100 = 32 + 1 + SALT_MAX,
+  DISPLAY_LEN_MIN_1300 = 56,
+  DISPLAY_LEN_MAX_1300 = 56,
+  DISPLAY_LEN_MIN_1400 = 64,
+  DISPLAY_LEN_MAX_1400 = 64,
+  DISPLAY_LEN_MIN_1410 = 64 + 1 + 0,
+  DISPLAY_LEN_MAX_1410 = 64 + 1 + SALT_MAX,
   DISPLAY_LEN_MIN_1410H = 64 + 1 + 0,
   DISPLAY_LEN_MAX_1410H = 64 + 1 + (SALT_MAX * 2),
-  DISPLAY_LEN_MIN_1420  = 64 + 1 + 0,
-  DISPLAY_LEN_MAX_1420  = 64 + 1 + SALT_MAX,
+  DISPLAY_LEN_MIN_1420 = 64 + 1 + 0,
+  DISPLAY_LEN_MAX_1420 = 64 + 1 + SALT_MAX,
   DISPLAY_LEN_MIN_1420H = 64 + 1 + 0,
   DISPLAY_LEN_MAX_1420H = 64 + 1 + (SALT_MAX * 2),
-  DISPLAY_LEN_MIN_1421  = 70,
-  DISPLAY_LEN_MAX_1421  = 70,
-  DISPLAY_LEN_MIN_1450  = 64 + 1 + 0,
-  DISPLAY_LEN_MAX_1450  = 64 + 1 + SALT_MAX,
+  DISPLAY_LEN_MIN_1421 = 70,
+  DISPLAY_LEN_MAX_1421 = 70,
+  DISPLAY_LEN_MIN_1450 = 64 + 1 + 0,
+  DISPLAY_LEN_MAX_1450 = 64 + 1 + SALT_MAX,
   DISPLAY_LEN_MIN_1450H = 64 + 1 + 0,
   DISPLAY_LEN_MAX_1450H = 64 + 1 + (SALT_MAX * 2),
-  DISPLAY_LEN_MIN_1500  = 13,
-  DISPLAY_LEN_MAX_1500  = 13,
-  DISPLAY_LEN_MIN_1600  = 29 + 0,
-  DISPLAY_LEN_MAX_1600  = 29 + 8,
-  DISPLAY_LEN_MIN_1700  = 128,
-  DISPLAY_LEN_MAX_1700  = 128,
-  DISPLAY_LEN_MIN_1710  = 128 + 1 + 0,
-  DISPLAY_LEN_MAX_1710  = 128 + 1 + SALT_MAX,
+  DISPLAY_LEN_MIN_1500 = 13,
+  DISPLAY_LEN_MAX_1500 = 13,
+  DISPLAY_LEN_MIN_1600 = 29 + 0,
+  DISPLAY_LEN_MAX_1600 = 29 + 8,
+  DISPLAY_LEN_MIN_1700 = 128,
+  DISPLAY_LEN_MAX_1700 = 128,
+  DISPLAY_LEN_MIN_1710 = 128 + 1 + 0,
+  DISPLAY_LEN_MAX_1710 = 128 + 1 + SALT_MAX,
   DISPLAY_LEN_MIN_1710H = 128 + 1 + 0,
   DISPLAY_LEN_MAX_1710H = 128 + 1 + (SALT_MAX * 2),
-  DISPLAY_LEN_MIN_1720  = 128 + 1 + 0,
-  DISPLAY_LEN_MAX_1720  = 128 + 1 + SALT_MAX,
+  DISPLAY_LEN_MIN_1720 = 128 + 1 + 0,
+  DISPLAY_LEN_MAX_1720 = 128 + 1 + SALT_MAX,
   DISPLAY_LEN_MIN_1720H = 128 + 1 + 0,
   DISPLAY_LEN_MAX_1720H = 128 + 1 + (SALT_MAX * 2),
-  DISPLAY_LEN_MIN_1730  = 128 + 1 + 0,
-  DISPLAY_LEN_MAX_1730  = 128 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_1740  = 128 + 1 + 0,
-  DISPLAY_LEN_MAX_1740  = 128 + 1 + (SALT_MAX * 2),
-  DISPLAY_LEN_MIN_1750  = 128 + 1 + 0,
-  DISPLAY_LEN_MAX_1750  = 128 + 1 + SALT_MAX,
+  DISPLAY_LEN_MIN_1730 = 128 + 1 + 0,
+  DISPLAY_LEN_MAX_1730 = 128 + 1 + SALT_MAX,
+  DISPLAY_LEN_MIN_1740 = 128 + 1 + 0,
+  DISPLAY_LEN_MAX_1740 = 128 + 1 + (SALT_MAX * 2),
+  DISPLAY_LEN_MIN_1750 = 128 + 1 + 0,
+  DISPLAY_LEN_MAX_1750 = 128 + 1 + SALT_MAX,
   DISPLAY_LEN_MIN_1750H = 128 + 1 + 0,
   DISPLAY_LEN_MAX_1750H = 128 + 1 + (SALT_MAX * 2),
-  DISPLAY_LEN_MIN_1800  = 90 + 0,
-  DISPLAY_LEN_MAX_1800  = 90 + 16,
-  DISPLAY_LEN_MIN_2100  = 6 + 1 + 1 +        0 + 1 + 32,
-  DISPLAY_LEN_MAX_2100  = 6 + 5 + 1 + SALT_MAX + 1 + 32,
-  DISPLAY_LEN_MIN_2400  = 16,
-  DISPLAY_LEN_MAX_2400  = 16,
-  DISPLAY_LEN_MIN_2410  = 16 + 1 + 1,
-  DISPLAY_LEN_MAX_2410  = 16 + 1 + 4,
-  DISPLAY_LEN_MIN_2600  = 32,
-  DISPLAY_LEN_MAX_2600  = 32,
-  DISPLAY_LEN_MIN_3000  = 16,
-  DISPLAY_LEN_MAX_3000  = 16,
-  DISPLAY_LEN_MIN_3100  = 16 + 1 + 0,
-  DISPLAY_LEN_MAX_3100  = 16 + 1 + 30,
-  DISPLAY_LEN_MIN_3200  = 60,
-  DISPLAY_LEN_MAX_3200  = 60,
-  DISPLAY_LEN_MIN_4300  = 32,
-  DISPLAY_LEN_MAX_4300  = 32,
-  DISPLAY_LEN_MIN_4500  = 40,
-  DISPLAY_LEN_MAX_4500  = 40,
-  DISPLAY_LEN_MIN_4520  = 40 + 1 + 0,
-  DISPLAY_LEN_MAX_4520  = 40 + 1 + SALT_MAX,
+  DISPLAY_LEN_MIN_1800 = 90 + 0,
+  DISPLAY_LEN_MAX_1800 = 90 + 16,
+  DISPLAY_LEN_MIN_2100 = 6 + 1 + 1 + 0 + 1 + 32,
+  DISPLAY_LEN_MAX_2100 = 6 + 5 + 1 + SALT_MAX + 1 + 32,
+  DISPLAY_LEN_MIN_2400 = 16,
+  DISPLAY_LEN_MAX_2400 = 16,
+  DISPLAY_LEN_MIN_2410 = 16 + 1 + 1,
+  DISPLAY_LEN_MAX_2410 = 16 + 1 + 4,
+  DISPLAY_LEN_MIN_2600 = 32,
+  DISPLAY_LEN_MAX_2600 = 32,
+  DISPLAY_LEN_MIN_3000 = 16,
+  DISPLAY_LEN_MAX_3000 = 16,
+  DISPLAY_LEN_MIN_3100 = 16 + 1 + 0,
+  DISPLAY_LEN_MAX_3100 = 16 + 1 + 30,
+  DISPLAY_LEN_MIN_3200 = 60,
+  DISPLAY_LEN_MAX_3200 = 60,
+  DISPLAY_LEN_MIN_4300 = 32,
+  DISPLAY_LEN_MAX_4300 = 32,
+  DISPLAY_LEN_MIN_4500 = 40,
+  DISPLAY_LEN_MAX_4500 = 40,
+  DISPLAY_LEN_MIN_4520 = 40 + 1 + 0,
+  DISPLAY_LEN_MAX_4520 = 40 + 1 + SALT_MAX,
   DISPLAY_LEN_MIN_4520H = 40 + 1 + 0,
   DISPLAY_LEN_MAX_4520H = 40 + 1 + (SALT_MAX * 2),
-  DISPLAY_LEN_MIN_4800  = 32 + 1 + 32 + 1 + 2,
-  DISPLAY_LEN_MAX_4800  = 32 + 1 + 32 + 1 + 2,
-  DISPLAY_LEN_MIN_5000  = 16,
-  DISPLAY_LEN_MAX_5000  = 400,
-  DISPLAY_LEN_MIN_5100  = 16,
-  DISPLAY_LEN_MAX_5100  = 16,
-  DISPLAY_LEN_MIN_5300  = 48,
-  DISPLAY_LEN_MAX_5300  = 1024,
-  DISPLAY_LEN_MIN_5400  = 56,
-  DISPLAY_LEN_MAX_5400  = 1024,
-  DISPLAY_LEN_MIN_5500  =  1 + 1 + 0 +  1 +  1 +  1 +  0 +  1 + 48 + 1 + 16,
-  DISPLAY_LEN_MAX_5500  = 60 + 1 + 0 +  1 + 45 +  1 + 48 +  1 + 48 + 1 + 16,
-  DISPLAY_LEN_MIN_5600  =  1 + 1 + 0 +  1 +  1 +  1 + 16 +  1 + 32 + 1 + 1,
-  DISPLAY_LEN_MAX_5600  = 60 + 1 + 0 +  1 + 45 +  1 + 16 +  1 + 32 + 1 + 1024,
-  DISPLAY_LEN_MIN_5700  = 43,
-  DISPLAY_LEN_MAX_5700  = 43,
-  DISPLAY_LEN_MIN_5800  = 40 + 1 + 1,
-  DISPLAY_LEN_MAX_5800  = 40 + 1 + 16,
-  DISPLAY_LEN_MIN_6000  = 40,
-  DISPLAY_LEN_MAX_6000  = 40,
-  DISPLAY_LEN_MIN_6100  = 128,
-  DISPLAY_LEN_MAX_6100  = 128,
-  DISPLAY_LEN_MIN_6300  =  6 + 1 + 8 + 22,
-  DISPLAY_LEN_MAX_6300  =  6 + 1 + 48 + 22,
-  DISPLAY_LEN_MIN_6400  =  9 + 2 + 1 + 16 + 1 + 43,
-  DISPLAY_LEN_MAX_6400  =  9 + 2 + 1 + 48 + 1 + 43,
-  DISPLAY_LEN_MIN_6500  =  9 + 2 + 1 + 16 + 1 + 86,
-  DISPLAY_LEN_MAX_6500  =  9 + 2 + 1 + 48 + 1 + 86,
-  DISPLAY_LEN_MIN_6600  =  1 + 1 + 16 + 1 + 2080,
-  DISPLAY_LEN_MAX_6600  =  6 + 1 + 16 + 1 + 2080,
-  DISPLAY_LEN_MIN_6700  =  7 + 2 + 1 + 16 + 1 + 27,
-  DISPLAY_LEN_MAX_6700  =  7 + 2 + 1 + 48 + 1 + 27,
-  DISPLAY_LEN_MIN_6800  = 32 + 1 + 1 + 1 + 0,
-  DISPLAY_LEN_MAX_6800  = 32 + 1 + 5 + 1 + 32,
-  DISPLAY_LEN_MIN_6900  = 64,
-  DISPLAY_LEN_MAX_6900  = 64,
-  DISPLAY_LEN_MIN_7000  = 3 + 44,
-  DISPLAY_LEN_MAX_7000  = 3 + 44,
-  DISPLAY_LEN_MIN_7100  =  4 + 2 + 1 + 64 + 1 + 128,
-  DISPLAY_LEN_MAX_7100  =  4 + 5 + 1 + 64 + 1 + 128,
-  DISPLAY_LEN_MIN_7200  = 19 + 1 + 1 +   1 + 128,
-  DISPLAY_LEN_MAX_7200  = 19 + 5 + 1 + 224 + 128,
-  DISPLAY_LEN_MIN_7300  =  64 + 1 + 40,
-  DISPLAY_LEN_MAX_7300  = 512 + 1 + 40,
-  DISPLAY_LEN_MIN_7400  = 47 + 0,
-  DISPLAY_LEN_MAX_7400  = 47 + 16,
-  DISPLAY_LEN_MIN_7500  =  1 + 6 + 1 + 2 + 1 +  0 + 1 +  0 + 1 +   0 + 1 + 72 + 32,
-  DISPLAY_LEN_MAX_7500  =  1 + 6 + 1 + 2 + 1 + 64 + 1 + 64 + 1 + 128 + 1 + 72 + 32,
-  DISPLAY_LEN_MIN_7700  =  1 + 1 + 16,
-  DISPLAY_LEN_MAX_7700  = 40 + 1 + 16,
-  DISPLAY_LEN_MIN_7800  =  1 + 1 + 40,
-  DISPLAY_LEN_MAX_7800  = 40 + 1 + 40,
-  DISPLAY_LEN_MIN_7900  =  3 + 1 + 8 + 43,
-  DISPLAY_LEN_MAX_7900  =  3 + 1 + 8 + 43,
-  DISPLAY_LEN_MIN_8000  =  2 + 4 + 16 + 64,
-  DISPLAY_LEN_MAX_8000  =  2 + 4 + 16 + 64,
-  DISPLAY_LEN_MIN_8100  =  1 + 8 + 40,
-  DISPLAY_LEN_MAX_8100  =  1 + 8 + 40,
-  DISPLAY_LEN_MIN_8200  = 64 + 1 + 32 + 1 + 1 + 1 +    1,
-  DISPLAY_LEN_MAX_8200  = 64 + 1 + 32 + 1 + 8 + 1 + 2048,
-  DISPLAY_LEN_MIN_8300  = 32 + 1 +  1 + 1 +  1 + 1 + 1,
-  DISPLAY_LEN_MAX_8300  = 32 + 1 + 32 + 1 + 32 + 1 + 5,
-  DISPLAY_LEN_MIN_8400  = 40 + 1 + 40,
-  DISPLAY_LEN_MAX_8400  = 40 + 1 + 40,
-  DISPLAY_LEN_MIN_8500  =  6 + 1 + 1 + 1 +  1,
-  DISPLAY_LEN_MAX_8500  =  6 + 1 + 8 + 1 + 16,
-  DISPLAY_LEN_MIN_8600  = 32,
-  DISPLAY_LEN_MAX_8600  = 32,
-  DISPLAY_LEN_MIN_8700  = 22,
-  DISPLAY_LEN_MAX_8700  = 22,
-  DISPLAY_LEN_MIN_8800  = 1 + 3 + 1 + 2 + 1 + 32 + 1 + 2 + 1 + 32 + 1 + 3072,
-  DISPLAY_LEN_MAX_8800  = 1 + 3 + 1 + 2 + 1 + 32 + 1 + 2 + 1 + 32 + 1 + 3072,
-  DISPLAY_LEN_MIN_8900  = 6 + 1 + 1 + 1 + 1 + 1 + 1 + 1 +  0 + 1 + 44,
-  DISPLAY_LEN_MAX_8900  = 6 + 1 + 6 + 1 + 2 + 1 + 2 + 1 + 45 + 1 + 44,
-  DISPLAY_LEN_MIN_9100  = 51,
-  DISPLAY_LEN_MAX_9100  = 51,
-  DISPLAY_LEN_MIN_9200  = 3 + 14 + 1 + 43,
-  DISPLAY_LEN_MAX_9200  = 3 + 14 + 1 + 43,
-  DISPLAY_LEN_MIN_9300  = 3 + 14 + 1 + 43,
-  DISPLAY_LEN_MAX_9300  = 3 + 14 + 1 + 43,
-  DISPLAY_LEN_MIN_9400  = 8 + 1 + 4 + 1 + 2 + 1 + 3 + 1 + 2 + 1 + 32 + 1 + 32 + 1 + 40,
-  DISPLAY_LEN_MAX_9400  = 8 + 1 + 4 + 1 + 2 + 1 + 3 + 1 + 2 + 1 + 32 + 1 + 32 + 1 + 40,
-  DISPLAY_LEN_MIN_9500  = 8 + 1 + 4 + 1 + 6 + 1 + 3 + 1 + 2 + 1 + 32 + 1 + 32 + 1 + 64,
-  DISPLAY_LEN_MAX_9500  = 8 + 1 + 4 + 1 + 6 + 1 + 3 + 1 + 2 + 1 + 32 + 1 + 32 + 1 + 64,
-  DISPLAY_LEN_MIN_9600  = 8 + 1 + 4 + 1 + 6 + 1 + 3 + 1 + 2 + 1 + 32 + 1 + 32 + 1 + 64,
-  DISPLAY_LEN_MAX_9600  = 8 + 1 + 4 + 1 + 6 + 1 + 3 + 1 + 2 + 1 + 32 + 1 + 32 + 1 + 64,
-  DISPLAY_LEN_MIN_9700  = 12 + 1 + 32 + 1 + 32 + 1 + 32,
-  DISPLAY_LEN_MAX_9700  = 12 + 1 + 32 + 1 + 32 + 1 + 32,
-  DISPLAY_LEN_MIN_9720  = 12 + 1 + 32 + 1 + 32 + 1 + 32 + 1 + 10,
-  DISPLAY_LEN_MAX_9720  = 12 + 1 + 32 + 1 + 32 + 1 + 32 + 1 + 10,
-  DISPLAY_LEN_MIN_9800  = 12 + 1 + 32 + 1 + 32 + 1 + 40,
-  DISPLAY_LEN_MAX_9800  = 12 + 1 + 32 + 1 + 32 + 1 + 40,
-  DISPLAY_LEN_MIN_9820  = 12 + 1 + 32 + 1 + 32 + 1 + 40 + 1 + 10,
-  DISPLAY_LEN_MAX_9820  = 12 + 1 + 32 + 1 + 32 + 1 + 40 + 1 + 10,
-  DISPLAY_LEN_MIN_9900  = 32,
-  DISPLAY_LEN_MAX_9900  = 32,
-  DISPLAY_LEN_MIN_10000 = 13 + 1 + 1 + 1 +  0 + 44,
+  DISPLAY_LEN_MIN_4800 = 32 + 1 + 32 + 1 + 2,
+  DISPLAY_LEN_MAX_4800 = 32 + 1 + 32 + 1 + 2,
+  DISPLAY_LEN_MIN_5000 = 16,
+  DISPLAY_LEN_MAX_5000 = 400,
+  DISPLAY_LEN_MIN_5100 = 16,
+  DISPLAY_LEN_MAX_5100 = 16,
+  DISPLAY_LEN_MIN_5300 = 48,
+  DISPLAY_LEN_MAX_5300 = 1024,
+  DISPLAY_LEN_MIN_5400 = 56,
+  DISPLAY_LEN_MAX_5400 = 1024,
+  DISPLAY_LEN_MIN_5500 = 1 + 1 + 0 + 1 + 1 + 1 + 0 + 1 + 48 + 1 + 16,
+  DISPLAY_LEN_MAX_5500 = 60 + 1 + 0 + 1 + 45 + 1 + 48 + 1 + 48 + 1 + 16,
+  DISPLAY_LEN_MIN_5600 = 1 + 1 + 0 + 1 + 1 + 1 + 16 + 1 + 32 + 1 + 1,
+  DISPLAY_LEN_MAX_5600 = 60 + 1 + 0 + 1 + 45 + 1 + 16 + 1 + 32 + 1 + 1024,
+  DISPLAY_LEN_MIN_5700 = 43,
+  DISPLAY_LEN_MAX_5700 = 43,
+  DISPLAY_LEN_MIN_5800 = 40 + 1 + 1,
+  DISPLAY_LEN_MAX_5800 = 40 + 1 + 16,
+  DISPLAY_LEN_MIN_6000 = 40,
+  DISPLAY_LEN_MAX_6000 = 40,
+  DISPLAY_LEN_MIN_6100 = 128,
+  DISPLAY_LEN_MAX_6100 = 128,
+  DISPLAY_LEN_MIN_6300 = 6 + 1 + 8 + 22,
+  DISPLAY_LEN_MAX_6300 = 6 + 1 + 48 + 22,
+  DISPLAY_LEN_MIN_6400 = 9 + 2 + 1 + 16 + 1 + 43,
+  DISPLAY_LEN_MAX_6400 = 9 + 2 + 1 + 48 + 1 + 43,
+  DISPLAY_LEN_MIN_6500 = 9 + 2 + 1 + 16 + 1 + 86,
+  DISPLAY_LEN_MAX_6500 = 9 + 2 + 1 + 48 + 1 + 86,
+  DISPLAY_LEN_MIN_6600 = 1 + 1 + 16 + 1 + 2080,
+  DISPLAY_LEN_MAX_6600 = 6 + 1 + 16 + 1 + 2080,
+  DISPLAY_LEN_MIN_6700 = 7 + 2 + 1 + 16 + 1 + 27,
+  DISPLAY_LEN_MAX_6700 = 7 + 2 + 1 + 48 + 1 + 27,
+  DISPLAY_LEN_MIN_6800 = 32 + 1 + 1 + 1 + 0,
+  DISPLAY_LEN_MAX_6800 = 32 + 1 + 5 + 1 + 32,
+  DISPLAY_LEN_MIN_6900 = 64,
+  DISPLAY_LEN_MAX_6900 = 64,
+  DISPLAY_LEN_MIN_7000 = 3 + 44,
+  DISPLAY_LEN_MAX_7000 = 3 + 44,
+  DISPLAY_LEN_MIN_7100 = 4 + 2 + 1 + 64 + 1 + 128,
+  DISPLAY_LEN_MAX_7100 = 4 + 5 + 1 + 64 + 1 + 128,
+  DISPLAY_LEN_MIN_7200 = 19 + 1 + 1 + 1 + 128,
+  DISPLAY_LEN_MAX_7200 = 19 + 5 + 1 + 224 + 128,
+  DISPLAY_LEN_MIN_7300 = 64 + 1 + 40,
+  DISPLAY_LEN_MAX_7300 = 512 + 1 + 40,
+  DISPLAY_LEN_MIN_7400 = 47 + 0,
+  DISPLAY_LEN_MAX_7400 = 47 + 16,
+  DISPLAY_LEN_MIN_7500 = 1 + 6 + 1 + 2 + 1 + 0 + 1 + 0 + 1 + 0 + 1 + 72 + 32,
+  DISPLAY_LEN_MAX_7500 = 1 + 6 + 1 + 2 + 1 + 64 + 1 + 64 + 1 + 128 + 1 + 72 + 32,
+  DISPLAY_LEN_MIN_7700 = 1 + 1 + 16,
+  DISPLAY_LEN_MAX_7700 = 40 + 1 + 16,
+  DISPLAY_LEN_MIN_7800 = 1 + 1 + 40,
+  DISPLAY_LEN_MAX_7800 = 40 + 1 + 40,
+  DISPLAY_LEN_MIN_7900 = 3 + 1 + 8 + 43,
+  DISPLAY_LEN_MAX_7900 = 3 + 1 + 8 + 43,
+  DISPLAY_LEN_MIN_8000 = 2 + 4 + 16 + 64,
+  DISPLAY_LEN_MAX_8000 = 2 + 4 + 16 + 64,
+  DISPLAY_LEN_MIN_8100 = 1 + 8 + 40,
+  DISPLAY_LEN_MAX_8100 = 1 + 8 + 40,
+  DISPLAY_LEN_MIN_8200 = 64 + 1 + 32 + 1 + 1 + 1 + 1,
+  DISPLAY_LEN_MAX_8200 = 64 + 1 + 32 + 1 + 8 + 1 + 2048,
+  DISPLAY_LEN_MIN_8300 = 32 + 1 + 1 + 1 + 1 + 1 + 1,
+  DISPLAY_LEN_MAX_8300 = 32 + 1 + 32 + 1 + 32 + 1 + 5,
+  DISPLAY_LEN_MIN_8400 = 40 + 1 + 40,
+  DISPLAY_LEN_MAX_8400 = 40 + 1 + 40,
+  DISPLAY_LEN_MIN_8500 = 6 + 1 + 1 + 1 + 1,
+  DISPLAY_LEN_MAX_8500 = 6 + 1 + 8 + 1 + 16,
+  DISPLAY_LEN_MIN_8600 = 32,
+  DISPLAY_LEN_MAX_8600 = 32,
+  DISPLAY_LEN_MIN_8700 = 22,
+  DISPLAY_LEN_MAX_8700 = 22,
+  DISPLAY_LEN_MIN_8800 = 1 + 3 + 1 + 2 + 1 + 32 + 1 + 2 + 1 + 32 + 1 + 3072,
+  DISPLAY_LEN_MAX_8800 = 1 + 3 + 1 + 2 + 1 + 32 + 1 + 2 + 1 + 32 + 1 + 3072,
+  DISPLAY_LEN_MIN_8900 = 6 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 0 + 1 + 44,
+  DISPLAY_LEN_MAX_8900 = 6 + 1 + 6 + 1 + 2 + 1 + 2 + 1 + 45 + 1 + 44,
+  DISPLAY_LEN_MIN_9100 = 51,
+  DISPLAY_LEN_MAX_9100 = 51,
+  DISPLAY_LEN_MIN_9200 = 3 + 14 + 1 + 43,
+  DISPLAY_LEN_MAX_9200 = 3 + 14 + 1 + 43,
+  DISPLAY_LEN_MIN_9300 = 3 + 14 + 1 + 43,
+  DISPLAY_LEN_MAX_9300 = 3 + 14 + 1 + 43,
+  DISPLAY_LEN_MIN_9400 = 8 + 1 + 4 + 1 + 2 + 1 + 3 + 1 + 2 + 1 + 32 + 1 + 32 + 1 + 40,
+  DISPLAY_LEN_MAX_9400 = 8 + 1 + 4 + 1 + 2 + 1 + 3 + 1 + 2 + 1 + 32 + 1 + 32 + 1 + 40,
+  DISPLAY_LEN_MIN_9500 = 8 + 1 + 4 + 1 + 6 + 1 + 3 + 1 + 2 + 1 + 32 + 1 + 32 + 1 + 64,
+  DISPLAY_LEN_MAX_9500 = 8 + 1 + 4 + 1 + 6 + 1 + 3 + 1 + 2 + 1 + 32 + 1 + 32 + 1 + 64,
+  DISPLAY_LEN_MIN_9600 = 8 + 1 + 4 + 1 + 6 + 1 + 3 + 1 + 2 + 1 + 32 + 1 + 32 + 1 + 64,
+  DISPLAY_LEN_MAX_9600 = 8 + 1 + 4 + 1 + 6 + 1 + 3 + 1 + 2 + 1 + 32 + 1 + 32 + 1 + 64,
+  DISPLAY_LEN_MIN_9700 = 12 + 1 + 32 + 1 + 32 + 1 + 32,
+  DISPLAY_LEN_MAX_9700 = 12 + 1 + 32 + 1 + 32 + 1 + 32,
+  DISPLAY_LEN_MIN_9720 = 12 + 1 + 32 + 1 + 32 + 1 + 32 + 1 + 10,
+  DISPLAY_LEN_MAX_9720 = 12 + 1 + 32 + 1 + 32 + 1 + 32 + 1 + 10,
+  DISPLAY_LEN_MIN_9800 = 12 + 1 + 32 + 1 + 32 + 1 + 40,
+  DISPLAY_LEN_MAX_9800 = 12 + 1 + 32 + 1 + 32 + 1 + 40,
+  DISPLAY_LEN_MIN_9820 = 12 + 1 + 32 + 1 + 32 + 1 + 40 + 1 + 10,
+  DISPLAY_LEN_MAX_9820 = 12 + 1 + 32 + 1 + 32 + 1 + 40 + 1 + 10,
+  DISPLAY_LEN_MIN_9900 = 32,
+  DISPLAY_LEN_MAX_9900 = 32,
+  DISPLAY_LEN_MIN_10000 = 13 + 1 + 1 + 1 + 0 + 44,
   DISPLAY_LEN_MAX_10000 = 13 + 1 + 6 + 1 + 15 + 44,
   DISPLAY_LEN_MIN_10100 = 16 + 1 + 1 + 1 + 1 + 1 + 32,
   DISPLAY_LEN_MAX_10100 = 16 + 1 + 1 + 1 + 1 + 1 + 32,
@@ -1232,45 +1233,45 @@ typedef enum display_len
   DISPLAY_LEN_MAX_10200 = 10 + 76 + 1 + 132,
   DISPLAY_LEN_MIN_10300 = 10 + 1 + 1 + 33,
   DISPLAY_LEN_MAX_10300 = 10 + 5 + 1 + 49,
-  DISPLAY_LEN_MIN_10400 = 5 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 32 + 1 + 2 + 1 +  64 + 1 + 2 + 1 +  64,
-  DISPLAY_LEN_MAX_10400 = 5 + 1 + 1 + 1 + 1 + 2 + 1 + 5 + 1 + 1 + 1 + 2 + 1 + 32 + 1 + 2 + 1 +  64 + 1 + 2 + 1 +  64,
-  DISPLAY_LEN_MIN_10410 = 5 + 1 + 1 + 1 + 1 + 3 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 32 + 1 + 2 + 1 +  64 + 1 + 2 + 1 +  64,
-  DISPLAY_LEN_MAX_10410 = 5 + 1 + 1 + 1 + 1 + 3 + 1 + 5 + 1 + 1 + 1 + 2 + 1 + 32 + 1 + 2 + 1 +  64 + 1 + 2 + 1 +  64,
-  DISPLAY_LEN_MIN_10420 = 5 + 1 + 1 + 1 + 1 + 3 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 32 + 1 + 2 + 1 +  64 + 1 + 2 + 1 +  64 + 1 + 10,
-  DISPLAY_LEN_MAX_10420 = 5 + 1 + 1 + 1 + 1 + 3 + 1 + 5 + 1 + 1 + 1 + 2 + 1 + 32 + 1 + 2 + 1 +  64 + 1 + 2 + 1 +  64 + 1 + 10,
-  DISPLAY_LEN_MIN_10500 = 5 + 1 + 1 + 1 + 1 + 3 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 32 + 1 + 2 + 1 +  64 + 1 + 2 + 1 +  64,
-  DISPLAY_LEN_MAX_10500 = 5 + 1 + 1 + 1 + 1 + 3 + 1 + 5 + 1 + 1 + 1 + 2 + 1 + 64 + 1 + 2 + 1 +  64 + 1 + 2 + 1 +  64,
+  DISPLAY_LEN_MIN_10400 = 5 + 1 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 32 + 1 + 2 + 1 + 64 + 1 + 2 + 1 + 64,
+  DISPLAY_LEN_MAX_10400 = 5 + 1 + 1 + 1 + 1 + 2 + 1 + 5 + 1 + 1 + 1 + 2 + 1 + 32 + 1 + 2 + 1 + 64 + 1 + 2 + 1 + 64,
+  DISPLAY_LEN_MIN_10410 = 5 + 1 + 1 + 1 + 1 + 3 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 32 + 1 + 2 + 1 + 64 + 1 + 2 + 1 + 64,
+  DISPLAY_LEN_MAX_10410 = 5 + 1 + 1 + 1 + 1 + 3 + 1 + 5 + 1 + 1 + 1 + 2 + 1 + 32 + 1 + 2 + 1 + 64 + 1 + 2 + 1 + 64,
+  DISPLAY_LEN_MIN_10420 = 5 + 1 + 1 + 1 + 1 + 3 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 32 + 1 + 2 + 1 + 64 + 1 + 2 + 1 + 64 + 1 + 10,
+  DISPLAY_LEN_MAX_10420 = 5 + 1 + 1 + 1 + 1 + 3 + 1 + 5 + 1 + 1 + 1 + 2 + 1 + 32 + 1 + 2 + 1 + 64 + 1 + 2 + 1 + 64 + 1 + 10,
+  DISPLAY_LEN_MIN_10500 = 5 + 1 + 1 + 1 + 1 + 3 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 32 + 1 + 2 + 1 + 64 + 1 + 2 + 1 + 64,
+  DISPLAY_LEN_MAX_10500 = 5 + 1 + 1 + 1 + 1 + 3 + 1 + 5 + 1 + 1 + 1 + 2 + 1 + 64 + 1 + 2 + 1 + 64 + 1 + 2 + 1 + 64,
   DISPLAY_LEN_MIN_10600 = 5 + 1 + 1 + 1 + 1 + 3 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 32 + 1 + 1,
   DISPLAY_LEN_MAX_10600 = 5 + 1 + 1 + 1 + 1 + 3 + 1 + 5 + 1 + 1 + 1 + 2 + 1 + 32 + 1 + 1000,
   DISPLAY_LEN_MIN_10700 = 5 + 1 + 1 + 1 + 1 + 3 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 32 + 1 + 1,
   DISPLAY_LEN_MAX_10700 = 5 + 1 + 1 + 1 + 1 + 3 + 1 + 5 + 1 + 1 + 1 + 2 + 1 + 32 + 1 + 1000,
   DISPLAY_LEN_MIN_10800 = 96,
   DISPLAY_LEN_MAX_10800 = 96,
-  DISPLAY_LEN_MIN_10900 = 7 + 1 + 1 +  0 + 1 + 24,
+  DISPLAY_LEN_MIN_10900 = 7 + 1 + 1 + 0 + 1 + 24,
   DISPLAY_LEN_MAX_10900 = 7 + 6 + 1 + 64 + 1 + 88,
   DISPLAY_LEN_MIN_11000 = 32 + 1 + 56,
   DISPLAY_LEN_MAX_11000 = 32 + 1 + 56,
-  DISPLAY_LEN_MIN_11100 = 10 +  0 + 1 + 8 + 1 + 32,
+  DISPLAY_LEN_MIN_11100 = 10 + 0 + 1 + 8 + 1 + 32,
   DISPLAY_LEN_MAX_11100 = 10 + 32 + 1 + 8 + 1 + 32,
   DISPLAY_LEN_MIN_11200 = 9 + 40 + 1 + 40,
   DISPLAY_LEN_MAX_11200 = 9 + 40 + 1 + 40,
   DISPLAY_LEN_MIN_11300 = 1 + 7 + 1 + 2 + 1 + 96 + 1 + 2 + 1 + 16 + 1 + 1 + 1 + 2 + 1 + 96 + 1 + 1 + 1 + 2,
   DISPLAY_LEN_MAX_11300 = 1 + 7 + 1 + 2 + 1 + 96 + 1 + 2 + 1 + 16 + 1 + 6 + 1 + 2 + 1 + 96 + 1 + 3 + 1 + 512,
-  DISPLAY_LEN_MIN_11400 = 6 +   0 + 1 +   0 + 1 +   0 + 1 +   0 + 1 +   0 + 1 +   0 + 1 +   1 + 1 +   0 + 1 +  1 + 1 +  0 + 1 +  0 + 1 +  0 + 1 + 3 + 1 + 32,
+  DISPLAY_LEN_MIN_11400 = 6 + 0 + 1 + 0 + 1 + 0 + 1 + 0 + 1 + 0 + 1 + 0 + 1 + 1 + 1 + 0 + 1 + 1 + 1 + 0 + 1 + 0 + 1 + 0 + 1 + 3 + 1 + 32,
   DISPLAY_LEN_MAX_11400 = 6 + 512 + 1 + 512 + 1 + 116 + 1 + 116 + 1 + 246 + 1 + 245 + 1 + 246 + 1 + 245 + 1 + 50 + 1 + 50 + 1 + 50 + 1 + 50 + 1 + 3 + 1 + 32,
   DISPLAY_LEN_MIN_11500 = 8 + 1 + 8,
   DISPLAY_LEN_MAX_11500 = 8 + 1 + 8,
-  DISPLAY_LEN_MIN_11600 = 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 +  0 + 1 + 1 + 1 + 32 + 1 +  1 + 1 + 1 + 1 + 1 + 1 +      2 + 0 + 0 + 0 +  0,
+  DISPLAY_LEN_MIN_11600 = 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 0 + 1 + 1 + 1 + 32 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2 + 0 + 0 + 0 + 0,
   DISPLAY_LEN_MAX_11600 = 1 + 2 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 64 + 1 + 1 + 1 + 32 + 1 + 10 + 1 + 4 + 1 + 4 + 1 + 655056 + 1 + 4 + 1 + 10,
   DISPLAY_LEN_MIN_11700 = 64,
   DISPLAY_LEN_MAX_11700 = 64,
   DISPLAY_LEN_MIN_11800 = 128,
   DISPLAY_LEN_MAX_11800 = 128,
-  DISPLAY_LEN_MIN_11900 = 3 + 1 + 1 +  0 + 1 + 12,
+  DISPLAY_LEN_MIN_11900 = 3 + 1 + 1 + 0 + 1 + 12,
   DISPLAY_LEN_MAX_11900 = 3 + 6 + 1 + 64 + 1 + 88,
-  DISPLAY_LEN_MIN_12000 = 4 + 1 + 1 +  0 + 1 + 16,
+  DISPLAY_LEN_MIN_12000 = 4 + 1 + 1 + 0 + 1 + 16,
   DISPLAY_LEN_MAX_12000 = 4 + 6 + 1 + 64 + 1 + 88,
-  DISPLAY_LEN_MIN_12100 = 6 + 1 + 1 +  0 + 1 + 16,
+  DISPLAY_LEN_MIN_12100 = 6 + 1 + 1 + 0 + 1 + 16,
   DISPLAY_LEN_MAX_12100 = 6 + 6 + 1 + 64 + 1 + 88,
   DISPLAY_LEN_MIN_12200 = 1 + 8 + 1 + 1 + 1 + 1 + 1 + 16 + 1 + 16,
   DISPLAY_LEN_MAX_12200 = 1 + 8 + 1 + 1 + 1 + 1 + 1 + 16 + 1 + 16,
@@ -1282,28 +1283,28 @@ typedef enum display_len
   DISPLAY_LEN_MAX_12500 = 6 + 1 + 1 + 1 + 16 + 1 + 32,
   DISPLAY_LEN_MIN_12600 = 64 + 1 + 64,
   DISPLAY_LEN_MAX_12600 = 64 + 1 + 64,
-  DISPLAY_LEN_MIN_12700 =  1 + 10 + 1 + 1 + 1 + 64,
-  DISPLAY_LEN_MAX_12700 =  1 + 10 + 1 + 5 + 1 + 20000,
+  DISPLAY_LEN_MIN_12700 = 1 + 10 + 1 + 1 + 1 + 64,
+  DISPLAY_LEN_MAX_12700 = 1 + 10 + 1 + 5 + 1 + 20000,
   DISPLAY_LEN_MIN_12800 = 11 + 1 + 20 + 1 + 1 + 1 + 64,
   DISPLAY_LEN_MAX_12800 = 11 + 1 + 20 + 1 + 5 + 1 + 64,
   DISPLAY_LEN_MIN_12900 = 64 + 64 + 32,
   DISPLAY_LEN_MAX_12900 = 64 + 64 + 32,
   DISPLAY_LEN_MIN_13000 = 1 + 4 + 1 + 2 + 1 + 32 + 1 + 2 + 1 + 32 + 1 + 1 + 1 + 16,
   DISPLAY_LEN_MAX_13000 = 1 + 4 + 1 + 2 + 1 + 32 + 1 + 2 + 1 + 32 + 1 + 1 + 1 + 16,
-  DISPLAY_LEN_MIN_13100 =  1 + 7 + 1 + 2 + 1 + 0 + 0 + 32 + 1 + 64,
-  DISPLAY_LEN_MAX_13100 =  1 + 7 + 1 + 2 + 1 + 2 + 512 + 1 + 32 + 1 + 20480,
-  DISPLAY_LEN_MIN_13200 =  1 + 7 + 1 + 1 + 1 + 1 + 1 + 1 + 32 + 1 + 48,
-  DISPLAY_LEN_MAX_13200 =  1 + 7 + 1 + 1 + 1 + 1 + 50 + 1 + 32 + 1 + 48 + 1 + 20480,
-  DISPLAY_LEN_MIN_13300 =  1 + 12 + 1 + 32,
-  DISPLAY_LEN_MAX_13300 =  1 + 12 + 1 + 40,
-  DISPLAY_LEN_MIN_13400 =  1 + 7 + 1 + 1 + 1 + 1 + 1 + 1 + 32 + 1 + 64 + 1 + 32 + 1 + 64 + 1 + 1 + 1 + 1,
-  DISPLAY_LEN_MAX_13400 =  1 + 7 + 1 + 1 + 10 + 1 + 3 + 1 + 64 + 1 + 64 + 1 + 32 + 1 + 64 + 1 + 4 + 1 + 600000 + 1 + 2 + 1 + 64,
+  DISPLAY_LEN_MIN_13100 = 1 + 7 + 1 + 2 + 1 + 0 + 0 + 32 + 1 + 64,
+  DISPLAY_LEN_MAX_13100 = 1 + 7 + 1 + 2 + 1 + 2 + 512 + 1 + 32 + 1 + 20480,
+  DISPLAY_LEN_MIN_13200 = 1 + 7 + 1 + 1 + 1 + 1 + 1 + 1 + 32 + 1 + 48,
+  DISPLAY_LEN_MAX_13200 = 1 + 7 + 1 + 1 + 1 + 1 + 50 + 1 + 32 + 1 + 48 + 1 + 20480,
+  DISPLAY_LEN_MIN_13300 = 1 + 12 + 1 + 32,
+  DISPLAY_LEN_MAX_13300 = 1 + 12 + 1 + 40,
+  DISPLAY_LEN_MIN_13400 = 1 + 7 + 1 + 1 + 1 + 1 + 1 + 1 + 32 + 1 + 64 + 1 + 32 + 1 + 64 + 1 + 1 + 1 + 1,
+  DISPLAY_LEN_MAX_13400 = 1 + 7 + 1 + 1 + 10 + 1 + 3 + 1 + 64 + 1 + 64 + 1 + 32 + 1 + 64 + 1 + 4 + 1 + 600000 + 1 + 2 + 1 + 64,
   DISPLAY_LEN_MIN_13500 = 40 + 1 + 32,
   DISPLAY_LEN_MAX_13500 = 40 + 1 + 1024,
-  DISPLAY_LEN_MIN_13600 = 6 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 16 + 1 + 1 + 1 + 1 + 1 +    0 + 1 + 20 + 1 + 7,
+  DISPLAY_LEN_MIN_13600 = 6 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 16 + 1 + 1 + 1 + 1 + 1 + 0 + 1 + 20 + 1 + 7,
   DISPLAY_LEN_MAX_13600 = 6 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 32 + 1 + 4 + 1 + 4 + 1 + 8192 + 1 + 20 + 1 + 7,
-  DISPLAY_LEN_MIN_13800 =  64 + 1 + 256,
-  DISPLAY_LEN_MAX_13800 =  64 + 1 + 256,
+  DISPLAY_LEN_MIN_13800 = 64 + 1 + 256,
+  DISPLAY_LEN_MAX_13800 = 64 + 1 + 256,
   DISPLAY_LEN_MIN_13900 = 40 + 1 + 9,
   DISPLAY_LEN_MAX_13900 = 40 + 1 + 9,
   DISPLAY_LEN_MIN_14000 = 16 + 1 + 16,
@@ -1320,93 +1321,93 @@ typedef enum display_len
   DISPLAY_LEN_MAX_15000 = 128 + 1 + 64,
   DISPLAY_LEN_MIN_15100 = 6 + 3 + 1 + 8 + 1 + 28,
   DISPLAY_LEN_MAX_15100 = 6 + 6 + 1 + 8 + 1 + 28,
-  DISPLAY_LEN_MIN_15200 =  1 + 10 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 64,
-  DISPLAY_LEN_MAX_15200 =  1 + 10 + 1 + 2 + 1 + 8 + 1 + 5 + 1 + 20000,
-  DISPLAY_LEN_MIN_15300 =  1 + 7 + 1 + 1 + 1 + 1 + 1 +  10 + 1 + 4 + 1 + 4 + 1 +  1 + 1 + 32 + 1 + 3 + 1 + 128,
-  DISPLAY_LEN_MAX_15300 =  1 + 7 + 1 + 1 + 1 + 1 + 1 + 100 + 1 + 6 + 1 + 6 + 1 + 10 + 1 + 32 + 1 + 4 + 1 + 512,
+  DISPLAY_LEN_MIN_15200 = 1 + 10 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 64,
+  DISPLAY_LEN_MAX_15200 = 1 + 10 + 1 + 2 + 1 + 8 + 1 + 5 + 1 + 20000,
+  DISPLAY_LEN_MIN_15300 = 1 + 7 + 1 + 1 + 1 + 1 + 1 + 10 + 1 + 4 + 1 + 4 + 1 + 1 + 1 + 32 + 1 + 3 + 1 + 128,
+  DISPLAY_LEN_MAX_15300 = 1 + 7 + 1 + 1 + 1 + 1 + 1 + 100 + 1 + 6 + 1 + 6 + 1 + 10 + 1 + 32 + 1 + 4 + 1 + 512,
   DISPLAY_LEN_MIN_15400 = 10 + 1 + 16 + 1 + 1 + 1 + 16 + 1 + 16 + 1 + 16,
   DISPLAY_LEN_MAX_15400 = 10 + 1 + 16 + 1 + 2 + 1 + 16 + 1 + 16 + 1 + 16,
-  DISPLAY_LEN_MIN_15500 = 10 + 1 + 40 + 1 + 40 + 1 +     1 + 1 + 2 + 1 + 28 + 1 +  1,
+  DISPLAY_LEN_MIN_15500 = 10 + 1 + 40 + 1 + 40 + 1 + 1 + 1 + 2 + 1 + 28 + 1 + 1,
   DISPLAY_LEN_MAX_15500 = 10 + 1 + 40 + 1 + 40 + 1 + 16384 + 1 + 2 + 1 + 28 + 1 + 64,
   DISPLAY_LEN_MIN_15600 = 11 + 1 + 1 + 1 + 32 + 1 + 64 + 1 + 64,
   DISPLAY_LEN_MAX_15600 = 11 + 1 + 6 + 1 + 64 + 1 + 64 + 1 + 64,
   DISPLAY_LEN_MIN_15700 = 11 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 64 + 1 + 64 + 1 + 64,
   DISPLAY_LEN_MAX_15700 = 11 + 1 + 6 + 1 + 1 + 1 + 1 + 1 + 64 + 1 + 64 + 1 + 64,
-  DISPLAY_LEN_MIN_15900 =  1 + 7 + 1 + 1 + 1 + 1 + 1 +  10 + 1 + 4 + 1 + 4 + 1 +  1 + 1 + 32 + 1 + 3 + 1 + 128,
-  DISPLAY_LEN_MAX_15900 =  1 + 7 + 1 + 1 + 1 + 1 + 1 + 100 + 1 + 6 + 1 + 6 + 1 + 10 + 1 + 32 + 1 + 4 + 1 + 512,
+  DISPLAY_LEN_MIN_15900 = 1 + 7 + 1 + 1 + 1 + 1 + 1 + 10 + 1 + 4 + 1 + 4 + 1 + 1 + 1 + 32 + 1 + 3 + 1 + 128,
+  DISPLAY_LEN_MAX_15900 = 1 + 7 + 1 + 1 + 1 + 1 + 1 + 100 + 1 + 6 + 1 + 6 + 1 + 10 + 1 + 32 + 1 + 4 + 1 + 512,
   DISPLAY_LEN_MIN_16000 = 10,
   DISPLAY_LEN_MAX_16000 = 10,
-  DISPLAY_LEN_MIN_16100 = 1 + 11 + 1 + 1 + 1 + 8 +  12 + 1 + 4,
+  DISPLAY_LEN_MIN_16100 = 1 + 11 + 1 + 1 + 1 + 8 + 12 + 1 + 4,
   DISPLAY_LEN_MAX_16100 = 1 + 11 + 1 + 1 + 1 + 8 + 256 + 1 + 4,
   DISPLAY_LEN_MIN_16200 = 5 + 1 + 1 + 1 + 5 + 1 + 32 + 1 + 48,
   DISPLAY_LEN_MAX_16200 = 5 + 1 + 6 + 1 + 5 + 1 + 32 + 1 + 48,
-  DISPLAY_LEN_MIN_16300 = 11 + 1 +   64 + 1 + 40 + 1 + 32,
+  DISPLAY_LEN_MIN_16300 = 11 + 1 + 64 + 1 + 40 + 1 + 32,
   DISPLAY_LEN_MAX_16300 = 11 + 1 + 1248 + 1 + 40 + 1 + 32,
   DISPLAY_LEN_MIN_16400 = 10 + 32 + 32,
   DISPLAY_LEN_MAX_16400 = 10 + 32 + 32,
-  DISPLAY_LEN_MIN_16500 =    1 + 1 +    1 + 1 + 43,
+  DISPLAY_LEN_MIN_16500 = 1 + 1 + 1 + 1 + 43,
   DISPLAY_LEN_MAX_16500 = 2047 + 1 + 2047 + 1 + 86,
   DISPLAY_LEN_MIN_16600 = 10 + 1 + 1 + 32 + 1 + 32,
   DISPLAY_LEN_MAX_16600 = 10 + 1 + 1 + 32 + 1 + 32,
   DISPLAY_LEN_MIN_99999 = 1,
   DISPLAY_LEN_MAX_99999 = 55,
 
-  DISPLAY_LEN_MIN_11    = 32 + 1 + 0,
-  DISPLAY_LEN_MAX_11    = 32 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_12    = 32 + 1 + 0,
-  DISPLAY_LEN_MAX_12    = 32 + 1 + 32,
-  DISPLAY_LEN_MIN_21    = 32 + 1 + 2,
-  DISPLAY_LEN_MAX_21    = 32 + 1 + 2,
-  DISPLAY_LEN_MIN_22    = 30 + 1 + 1,
-  DISPLAY_LEN_MAX_22    = 30 + 1 + 32,
-  DISPLAY_LEN_MIN_23    = 32 + 1 + 0,
-  DISPLAY_LEN_MAX_23    = 32 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_101   =  5 + 28,
-  DISPLAY_LEN_MAX_101   =  5 + 28,
-  DISPLAY_LEN_MIN_111   =  6 + 28 + 1,
-  DISPLAY_LEN_MAX_111   =  6 + 28 + SALT_MAX,
-  DISPLAY_LEN_MIN_112   = 40 + 1 + 20,
-  DISPLAY_LEN_MAX_112   = 40 + 1 + 20,
-  DISPLAY_LEN_MIN_121   = 40 + 1 + 1,
-  DISPLAY_LEN_MAX_121   = 40 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_122   =  8 + 40,
-  DISPLAY_LEN_MAX_122   =  8 + 40,
-  DISPLAY_LEN_MIN_124   = 4 + 1 +  0 + 1 + 40,
-  DISPLAY_LEN_MAX_124   = 4 + 1 + 32 + 1 + 40,
-  DISPLAY_LEN_MIN_125   = 10 + 40,
-  DISPLAY_LEN_MAX_125   = 10 + 40,
-  DISPLAY_LEN_MIN_131   =  6 +  8 + 80,
-  DISPLAY_LEN_MAX_131   =  6 +  8 + 80,
-  DISPLAY_LEN_MIN_132   =  6 +  8 + 40,
-  DISPLAY_LEN_MAX_132   =  6 +  8 + 40,
-  DISPLAY_LEN_MIN_133   = 28,
-  DISPLAY_LEN_MAX_133   = 28,
-  DISPLAY_LEN_MIN_141   = 14 +  0 +  1 + 28,
-  DISPLAY_LEN_MAX_141   = 14 + 44 +  1 + 28,
-  DISPLAY_LEN_MIN_1411  =  9 + 44 +  0,
-  DISPLAY_LEN_MAX_1411  =  9 + 44 + 68,
-  DISPLAY_LEN_MIN_1441  = 14 +  0 +  1 + 43,
-  DISPLAY_LEN_MAX_1441  = 14 + 24 +  1 + 43,
-  DISPLAY_LEN_MIN_1711  =  9 + 86 +  0,
-  DISPLAY_LEN_MAX_1711  =  9 + 86 + 68,
-  DISPLAY_LEN_MIN_1722  =  8 + 128,
-  DISPLAY_LEN_MAX_1722  =  8 + 128,
-  DISPLAY_LEN_MIN_1731  = 128 + 6 + 0,
-  DISPLAY_LEN_MAX_1731  = 128 + 6 + 16,
-  DISPLAY_LEN_MIN_2611  = 32 + 1 + 0,
-  DISPLAY_LEN_MAX_2611  = 32 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_2612  = 6 +        0 + 1 + 32,
-  DISPLAY_LEN_MAX_2612  = 6 + SALT_MAX + 1 + 32,
-  DISPLAY_LEN_MIN_2711  = 32 + 1 + 23,
-  DISPLAY_LEN_MAX_2711  = 32 + 1 + 31,
-  DISPLAY_LEN_MIN_2811  = 32 + 1 + 0,
-  DISPLAY_LEN_MAX_2811  = 32 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_3711  = 3 +  0 + 1 + 32,
-  DISPLAY_LEN_MAX_3711  = 3 + 31 + 1 + 32,
-  DISPLAY_LEN_MIN_4521  = 40 + 1 + 32,
-  DISPLAY_LEN_MAX_4521  = 40 + 1 + 32,
-  DISPLAY_LEN_MIN_4522  = 40 + 1 + 12,
-  DISPLAY_LEN_MAX_4522  = 40 + 1 + 12,
+  DISPLAY_LEN_MIN_11 = 32 + 1 + 0,
+  DISPLAY_LEN_MAX_11 = 32 + 1 + SALT_MAX,
+  DISPLAY_LEN_MIN_12 = 32 + 1 + 0,
+  DISPLAY_LEN_MAX_12 = 32 + 1 + 32,
+  DISPLAY_LEN_MIN_21 = 32 + 1 + 2,
+  DISPLAY_LEN_MAX_21 = 32 + 1 + 2,
+  DISPLAY_LEN_MIN_22 = 30 + 1 + 1,
+  DISPLAY_LEN_MAX_22 = 30 + 1 + 32,
+  DISPLAY_LEN_MIN_23 = 32 + 1 + 0,
+  DISPLAY_LEN_MAX_23 = 32 + 1 + SALT_MAX,
+  DISPLAY_LEN_MIN_101 = 5 + 28,
+  DISPLAY_LEN_MAX_101 = 5 + 28,
+  DISPLAY_LEN_MIN_111 = 6 + 28 + 1,
+  DISPLAY_LEN_MAX_111 = 6 + 28 + SALT_MAX,
+  DISPLAY_LEN_MIN_112 = 40 + 1 + 20,
+  DISPLAY_LEN_MAX_112 = 40 + 1 + 20,
+  DISPLAY_LEN_MIN_121 = 40 + 1 + 1,
+  DISPLAY_LEN_MAX_121 = 40 + 1 + SALT_MAX,
+  DISPLAY_LEN_MIN_122 = 8 + 40,
+  DISPLAY_LEN_MAX_122 = 8 + 40,
+  DISPLAY_LEN_MIN_124 = 4 + 1 + 0 + 1 + 40,
+  DISPLAY_LEN_MAX_124 = 4 + 1 + 32 + 1 + 40,
+  DISPLAY_LEN_MIN_125 = 10 + 40,
+  DISPLAY_LEN_MAX_125 = 10 + 40,
+  DISPLAY_LEN_MIN_131 = 6 + 8 + 80,
+  DISPLAY_LEN_MAX_131 = 6 + 8 + 80,
+  DISPLAY_LEN_MIN_132 = 6 + 8 + 40,
+  DISPLAY_LEN_MAX_132 = 6 + 8 + 40,
+  DISPLAY_LEN_MIN_133 = 28,
+  DISPLAY_LEN_MAX_133 = 28,
+  DISPLAY_LEN_MIN_141 = 14 + 0 + 1 + 28,
+  DISPLAY_LEN_MAX_141 = 14 + 44 + 1 + 28,
+  DISPLAY_LEN_MIN_1411 = 9 + 44 + 0,
+  DISPLAY_LEN_MAX_1411 = 9 + 44 + 68,
+  DISPLAY_LEN_MIN_1441 = 14 + 0 + 1 + 43,
+  DISPLAY_LEN_MAX_1441 = 14 + 24 + 1 + 43,
+  DISPLAY_LEN_MIN_1711 = 9 + 86 + 0,
+  DISPLAY_LEN_MAX_1711 = 9 + 86 + 68,
+  DISPLAY_LEN_MIN_1722 = 8 + 128,
+  DISPLAY_LEN_MAX_1722 = 8 + 128,
+  DISPLAY_LEN_MIN_1731 = 128 + 6 + 0,
+  DISPLAY_LEN_MAX_1731 = 128 + 6 + 16,
+  DISPLAY_LEN_MIN_2611 = 32 + 1 + 0,
+  DISPLAY_LEN_MAX_2611 = 32 + 1 + SALT_MAX,
+  DISPLAY_LEN_MIN_2612 = 6 + 0 + 1 + 32,
+  DISPLAY_LEN_MAX_2612 = 6 + SALT_MAX + 1 + 32,
+  DISPLAY_LEN_MIN_2711 = 32 + 1 + 23,
+  DISPLAY_LEN_MAX_2711 = 32 + 1 + 31,
+  DISPLAY_LEN_MIN_2811 = 32 + 1 + 0,
+  DISPLAY_LEN_MAX_2811 = 32 + 1 + SALT_MAX,
+  DISPLAY_LEN_MIN_3711 = 3 + 0 + 1 + 32,
+  DISPLAY_LEN_MAX_3711 = 3 + 31 + 1 + 32,
+  DISPLAY_LEN_MIN_4521 = 40 + 1 + 32,
+  DISPLAY_LEN_MAX_4521 = 40 + 1 + 32,
+  DISPLAY_LEN_MIN_4522 = 40 + 1 + 12,
+  DISPLAY_LEN_MAX_4522 = 40 + 1 + 12,
   DISPLAY_LEN_MIN_12001 = 9 + 64,
   DISPLAY_LEN_MAX_12001 = 9 + 64,
 
@@ -1414,281 +1415,279 @@ typedef enum display_len
 
 typedef enum hash_type
 {
-  HASH_TYPE_MD4                 = 1,
-  HASH_TYPE_MD5                 = 2,
-  HASH_TYPE_MD5H                = 3,
-  HASH_TYPE_SHA1                = 4,
-  HASH_TYPE_SHA224              = 5,
-  HASH_TYPE_SHA256              = 6,
-  HASH_TYPE_SHA384              = 7,
-  HASH_TYPE_SHA512              = 8,
-  HASH_TYPE_DCC2                = 9,
-  HASH_TYPE_WPA                 = 10,
-  HASH_TYPE_LM                  = 11,
-  HASH_TYPE_DESCRYPT            = 12,
-  HASH_TYPE_ORACLEH             = 13,
-  HASH_TYPE_DESRACF             = 14,
-  HASH_TYPE_BCRYPT              = 15,
-  HASH_TYPE_KECCAK              = 16,
-  HASH_TYPE_NETNTLM             = 17,
-  HASH_TYPE_RIPEMD160           = 18,
-  HASH_TYPE_WHIRLPOOL           = 19,
-  HASH_TYPE_AES                 = 20,
-  HASH_TYPE_GOST                = 21,
-  HASH_TYPE_KRB5PA              = 22,
-  HASH_TYPE_SAPB                = 23,
-  HASH_TYPE_SAPG                = 24,
-  HASH_TYPE_MYSQL               = 25,
-  HASH_TYPE_LOTUS5              = 26,
-  HASH_TYPE_LOTUS6              = 27,
-  HASH_TYPE_ANDROIDFDE          = 28,
-  HASH_TYPE_SCRYPT              = 29,
-  HASH_TYPE_LOTUS8              = 30,
-  HASH_TYPE_OFFICE2007          = 31,
-  HASH_TYPE_OFFICE2010          = 32,
-  HASH_TYPE_OFFICE2013          = 33,
-  HASH_TYPE_OLDOFFICE01         = 34,
-  HASH_TYPE_OLDOFFICE34         = 35,
-  HASH_TYPE_SIPHASH             = 36,
-  HASH_TYPE_PDFU16              = 37,
-  HASH_TYPE_PDFU32              = 38,
-  HASH_TYPE_PBKDF2_SHA256       = 39,
-  HASH_TYPE_BITCOIN_WALLET      = 40,
-  HASH_TYPE_CRC32               = 41,
-  HASH_TYPE_GOST_2012SBOG_256   = 42,
-  HASH_TYPE_GOST_2012SBOG_512   = 43,
-  HASH_TYPE_PBKDF2_MD5          = 44,
-  HASH_TYPE_PBKDF2_SHA1         = 45,
-  HASH_TYPE_PBKDF2_SHA512       = 46,
-  HASH_TYPE_ECRYPTFS            = 47,
-  HASH_TYPE_ORACLET             = 48,
-  HASH_TYPE_BSDICRYPT           = 49,
-  HASH_TYPE_RAR3HP              = 50,
-  HASH_TYPE_KRB5TGS             = 51,
-  HASH_TYPE_STDOUT              = 52,
-  HASH_TYPE_DES                 = 53,
-  HASH_TYPE_PLAINTEXT           = 54,
-  HASH_TYPE_LUKS                = 55,
-  HASH_TYPE_ITUNES_BACKUP_9     = 56,
-  HASH_TYPE_ITUNES_BACKUP_10    = 57,
-  HASH_TYPE_SKIP32              = 58,
-  HASH_TYPE_BLAKE2B             = 59,
-  HASH_TYPE_CHACHA20            = 60,
-  HASH_TYPE_DPAPIMK             = 61,
-  HASH_TYPE_JKS_SHA1            = 62,
-  HASH_TYPE_TACACS_PLUS         = 63,
-  HASH_TYPE_APPLE_SECURE_NOTES  = 64,
-  HASH_TYPE_CRAM_MD5_DOVECOT    = 65,
-  HASH_TYPE_JWT                 = 66,
-  HASH_TYPE_ELECTRUM_WALLET     = 67,
+  HASH_TYPE_MD4 = 1,
+  HASH_TYPE_MD5 = 2,
+  HASH_TYPE_MD5H = 3,
+  HASH_TYPE_SHA1 = 4,
+  HASH_TYPE_SHA224 = 5,
+  HASH_TYPE_SHA256 = 6,
+  HASH_TYPE_SHA384 = 7,
+  HASH_TYPE_SHA512 = 8,
+  HASH_TYPE_DCC2 = 9,
+  HASH_TYPE_WPA = 10,
+  HASH_TYPE_LM = 11,
+  HASH_TYPE_DESCRYPT = 12,
+  HASH_TYPE_ORACLEH = 13,
+  HASH_TYPE_DESRACF = 14,
+  HASH_TYPE_BCRYPT = 15,
+  HASH_TYPE_KECCAK = 16,
+  HASH_TYPE_NETNTLM = 17,
+  HASH_TYPE_RIPEMD160 = 18,
+  HASH_TYPE_WHIRLPOOL = 19,
+  HASH_TYPE_AES = 20,
+  HASH_TYPE_GOST = 21,
+  HASH_TYPE_KRB5PA = 22,
+  HASH_TYPE_SAPB = 23,
+  HASH_TYPE_SAPG = 24,
+  HASH_TYPE_MYSQL = 25,
+  HASH_TYPE_LOTUS5 = 26,
+  HASH_TYPE_LOTUS6 = 27,
+  HASH_TYPE_ANDROIDFDE = 28,
+  HASH_TYPE_SCRYPT = 29,
+  HASH_TYPE_LOTUS8 = 30,
+  HASH_TYPE_OFFICE2007 = 31,
+  HASH_TYPE_OFFICE2010 = 32,
+  HASH_TYPE_OFFICE2013 = 33,
+  HASH_TYPE_OLDOFFICE01 = 34,
+  HASH_TYPE_OLDOFFICE34 = 35,
+  HASH_TYPE_SIPHASH = 36,
+  HASH_TYPE_PDFU16 = 37,
+  HASH_TYPE_PDFU32 = 38,
+  HASH_TYPE_PBKDF2_SHA256 = 39,
+  HASH_TYPE_BITCOIN_WALLET = 40,
+  HASH_TYPE_CRC32 = 41,
+  HASH_TYPE_GOST_2012SBOG_256 = 42,
+  HASH_TYPE_GOST_2012SBOG_512 = 43,
+  HASH_TYPE_PBKDF2_MD5 = 44,
+  HASH_TYPE_PBKDF2_SHA1 = 45,
+  HASH_TYPE_PBKDF2_SHA512 = 46,
+  HASH_TYPE_ECRYPTFS = 47,
+  HASH_TYPE_ORACLET = 48,
+  HASH_TYPE_BSDICRYPT = 49,
+  HASH_TYPE_RAR3HP = 50,
+  HASH_TYPE_KRB5TGS = 51,
+  HASH_TYPE_STDOUT = 52,
+  HASH_TYPE_DES = 53,
+  HASH_TYPE_PLAINTEXT = 54,
+  HASH_TYPE_LUKS = 55,
+  HASH_TYPE_ITUNES_BACKUP_9 = 56,
+  HASH_TYPE_ITUNES_BACKUP_10 = 57,
+  HASH_TYPE_SKIP32 = 58,
+  HASH_TYPE_BLAKE2B = 59,
+  HASH_TYPE_CHACHA20 = 60,
+  HASH_TYPE_DPAPIMK = 61,
+  HASH_TYPE_JKS_SHA1 = 62,
+  HASH_TYPE_TACACS_PLUS = 63,
+  HASH_TYPE_APPLE_SECURE_NOTES = 64,
+  HASH_TYPE_CRAM_MD5_DOVECOT = 65,
+  HASH_TYPE_JWT = 66,
+  HASH_TYPE_ELECTRUM_WALLET = 67,
 
 } hash_type_t;
 
 typedef enum kern_type
 {
-  KERN_TYPE_MD5                     = 0,
-  KERN_TYPE_MD5_PWSLT               = 10,
-  KERN_TYPE_MD5_SLTPW               = 20,
-  KERN_TYPE_MD5_PWUSLT              = 30,
-  KERN_TYPE_MD5_SLTPWU              = 40,
-  KERN_TYPE_HMACMD5_PW              = 50,
-  KERN_TYPE_HMACMD5_SLT             = 60,
-  KERN_TYPE_SHA1                    = 100,
-  KERN_TYPE_SHA1_PWSLT              = 110,
-  KERN_TYPE_SHA1_SLTPW              = 120,
-  KERN_TYPE_SHA1_PWUSLT             = 130,
-  KERN_TYPE_SHA1_SLTPWU             = 140,
-  KERN_TYPE_HMACSHA1_PW             = 150,
-  KERN_TYPE_HMACSHA1_SLT            = 160,
-  KERN_TYPE_MYSQL                   = 200,
-  KERN_TYPE_MYSQL41                 = 300,
-  KERN_TYPE_PHPASS                  = 400,
-  KERN_TYPE_MD5CRYPT                = 500,
-  KERN_TYPE_BLAKE2B                 = 600,
-  KERN_TYPE_MD4                     = 900,
-  KERN_TYPE_MD4_PWU                 = 1000,
-  KERN_TYPE_MD44_PWUSLT             = 1100,
-  KERN_TYPE_SHA224                  = 1300,
-  KERN_TYPE_SHA256                  = 1400,
-  KERN_TYPE_SHA256_PWSLT            = 1410,
-  KERN_TYPE_SHA256_SLTPW            = 1420,
-  KERN_TYPE_SHA256_PWUSLT           = 1430,
-  KERN_TYPE_SHA256_SLTPWU           = 1440,
-  KERN_TYPE_HMACSHA256_PW           = 1450,
-  KERN_TYPE_HMACSHA256_SLT          = 1460,
-  KERN_TYPE_DESCRYPT                = 1500,
-  KERN_TYPE_APR1CRYPT               = 1600,
-  KERN_TYPE_SHA512                  = 1700,
-  KERN_TYPE_SHA512_PWSLT            = 1710,
-  KERN_TYPE_SHA512_SLTPW            = 1720,
-  KERN_TYPE_SHA512_PWSLTU           = 1730,
-  KERN_TYPE_SHA512_SLTPWU           = 1740,
-  KERN_TYPE_HMACSHA512_PW           = 1750,
-  KERN_TYPE_HMACSHA512_SLT          = 1760,
-  KERN_TYPE_SHA512CRYPT             = 1800,
-  KERN_TYPE_STDOUT                  = 2000,
-  KERN_TYPE_DCC2                    = 2100,
-  KERN_TYPE_MD5PIX                  = 2400,
-  KERN_TYPE_MD5ASA                  = 2410,
-  KERN_TYPE_WPA                     = 2500,
-  KERN_TYPE_WPAPMK                  = 2501,
-  KERN_TYPE_MD55                    = 2600,
-  KERN_TYPE_MD55_PWSLT1             = 2610,
-  KERN_TYPE_MD55_PWSLT2             = 2710,
-  KERN_TYPE_MD55_SLTPW              = 2810,
-  KERN_TYPE_LM                      = 3000,
-  KERN_TYPE_ORACLEH                 = 3100,
-  KERN_TYPE_BCRYPT                  = 3200,
-  KERN_TYPE_MD5_SLT_MD5_PW          = 3710,
-  KERN_TYPE_MD5_SLT_PW_SLT          = 3800,
-  KERN_TYPE_MD55_PWSLT              = 3910,
-  KERN_TYPE_MD5_SLT_MD5_SLT_PW      = 4010,
-  KERN_TYPE_MD5_SLT_MD5_PW_SLT      = 4110,
-  KERN_TYPE_MD5U5                   = 4300,
-  KERN_TYPE_MD5U5_PWSLT1            = 4310,
-  KERN_TYPE_MD5_SHA1                = 4400,
-  KERN_TYPE_SHA11                   = 4500,
-  KERN_TYPE_SHA1_SLT_SHA1_PW        = 4520,
-  KERN_TYPE_SHA1_MD5                = 4700,
-  KERN_TYPE_MD5_CHAP                = 4800,
-  KERN_TYPE_SHA1_SLT_PW_SLT         = 4900,
-  KERN_TYPE_KECCAK                  = 5000,
-  KERN_TYPE_MD5H                    = 5100,
-  KERN_TYPE_PSAFE3                  = 5200,
-  KERN_TYPE_IKEPSK_MD5              = 5300,
-  KERN_TYPE_IKEPSK_SHA1             = 5400,
-  KERN_TYPE_NETNTLMv1               = 5500,
-  KERN_TYPE_NETNTLMv2               = 5600,
-  KERN_TYPE_ANDROIDPIN              = 5800,
-  KERN_TYPE_RIPEMD160               = 6000,
-  KERN_TYPE_WHIRLPOOL               = 6100,
-  KERN_TYPE_TCRIPEMD160_XTS512      = 6211,
-  KERN_TYPE_TCRIPEMD160_XTS1024     = 6212,
-  KERN_TYPE_TCRIPEMD160_XTS1536     = 6213,
-  KERN_TYPE_TCSHA512_XTS512         = 6221,
-  KERN_TYPE_TCSHA512_XTS1024        = 6222,
-  KERN_TYPE_TCSHA512_XTS1536        = 6223,
-  KERN_TYPE_TCWHIRLPOOL_XTS512      = 6231,
-  KERN_TYPE_TCWHIRLPOOL_XTS1024     = 6232,
-  KERN_TYPE_TCWHIRLPOOL_XTS1536     = 6233,
-  KERN_TYPE_VCSHA256_XTS512         = 13751,
-  KERN_TYPE_VCSHA256_XTS1024        = 13752,
-  KERN_TYPE_VCSHA256_XTS1536        = 13753,
-  KERN_TYPE_MD5AIX                  = 6300,
-  KERN_TYPE_SHA256AIX               = 6400,
-  KERN_TYPE_SHA512AIX               = 6500,
-  KERN_TYPE_AGILEKEY                = 6600,
-  KERN_TYPE_SHA1AIX                 = 6700,
-  KERN_TYPE_LASTPASS                = 6800,
-  KERN_TYPE_GOST                    = 6900,
-  KERN_TYPE_FORTIGATE               = 7000,
-  KERN_TYPE_PBKDF2_SHA512           = 7100,
-  KERN_TYPE_RAKP                    = 7300,
-  KERN_TYPE_SHA256CRYPT             = 7400,
-  KERN_TYPE_KRB5PA                  = 7500,
-  KERN_TYPE_SAPB                    = 7700,
-  KERN_TYPE_SAPB_MANGLED            = 7701,
-  KERN_TYPE_SAPG                    = 7800,
-  KERN_TYPE_SAPG_MANGLED            = 7801,
-  KERN_TYPE_DRUPAL7                 = 7900,
-  KERN_TYPE_SYBASEASE               = 8000,
-  KERN_TYPE_NETSCALER               = 8100,
-  KERN_TYPE_CLOUDKEY                = 8200,
-  KERN_TYPE_NSEC3                   = 8300,
-  KERN_TYPE_WBB3                    = 8400,
-  KERN_TYPE_RACF                    = 8500,
-  KERN_TYPE_LOTUS5                  = 8600,
-  KERN_TYPE_LOTUS6                  = 8700,
-  KERN_TYPE_ANDROIDFDE              = 8800,
-  KERN_TYPE_SCRYPT                  = 8900,
-  KERN_TYPE_PSAFE2                  = 9000,
-  KERN_TYPE_LOTUS8                  = 9100,
-  KERN_TYPE_OFFICE2007              = 9400,
-  KERN_TYPE_OFFICE2010              = 9500,
-  KERN_TYPE_OFFICE2013              = 9600,
-  KERN_TYPE_OLDOFFICE01             = 9700,
-  KERN_TYPE_OLDOFFICE01CM1          = 9710,
-  KERN_TYPE_OLDOFFICE01CM2          = 9720,
-  KERN_TYPE_OLDOFFICE34             = 9800,
-  KERN_TYPE_OLDOFFICE34CM1          = 9810,
-  KERN_TYPE_OLDOFFICE34CM2          = 9820,
-  KERN_TYPE_RADMIN2                 = 9900,
-  KERN_TYPE_SIPHASH                 = 10100,
-  KERN_TYPE_SAPH_SHA1               = 10300,
-  KERN_TYPE_PDF11                   = 10400,
-  KERN_TYPE_PDF11CM1                = 10410,
-  KERN_TYPE_PDF11CM2                = 10420,
-  KERN_TYPE_PDF14                   = 10500,
-  KERN_TYPE_PDF17L8                 = 10700,
-  KERN_TYPE_SHA384                  = 10800,
-  KERN_TYPE_PBKDF2_SHA256           = 10900,
-  KERN_TYPE_PRESTASHOP              = 11000,
-  KERN_TYPE_POSTGRESQL_AUTH         = 11100,
-  KERN_TYPE_MYSQL_AUTH              = 11200,
-  KERN_TYPE_BITCOIN_WALLET          = 11300,
-  KERN_TYPE_SIP_AUTH                = 11400,
-  KERN_TYPE_CRC32                   = 11500,
-  KERN_TYPE_SEVEN_ZIP               = 11600,
-  KERN_TYPE_GOST_2012SBOG_256       = 11700,
-  KERN_TYPE_GOST_2012SBOG_512       = 11800,
-  KERN_TYPE_PBKDF2_MD5              = 11900,
-  KERN_TYPE_PBKDF2_SHA1             = 12000,
-  KERN_TYPE_ECRYPTFS                = 12200,
-  KERN_TYPE_ORACLET                 = 12300,
-  KERN_TYPE_BSDICRYPT               = 12400,
-  KERN_TYPE_RAR3                    = 12500,
-  KERN_TYPE_CF10                    = 12600,
-  KERN_TYPE_MYWALLET                = 12700,
-  KERN_TYPE_MS_DRSR                 = 12800,
-  KERN_TYPE_ANDROIDFDE_SAMSUNG      = 12900,
-  KERN_TYPE_RAR5                    = 13000,
-  KERN_TYPE_KRB5TGS                 = 13100,
-  KERN_TYPE_AXCRYPT                 = 13200,
-  KERN_TYPE_SHA1_AXCRYPT            = 13300,
-  KERN_TYPE_KEEPASS                 = 13400,
-  KERN_TYPE_PSTOKEN                 = 13500,
-  KERN_TYPE_ZIP2                    = 13600,
-  KERN_TYPE_WIN8PHONE               = 13800,
-  KERN_TYPE_OPENCART                = 13900,
-  KERN_TYPE_DES                     = 14000,
-  KERN_TYPE_3DES                    = 14100,
-  KERN_TYPE_SHA1CX                  = 14400,
-  KERN_TYPE_LUKS_SHA1_AES           = 14611,
-  KERN_TYPE_LUKS_SHA1_SERPENT       = 14612,
-  KERN_TYPE_LUKS_SHA1_TWOFISH       = 14613,
-  KERN_TYPE_LUKS_SHA256_AES         = 14621,
-  KERN_TYPE_LUKS_SHA256_SERPENT     = 14622,
-  KERN_TYPE_LUKS_SHA256_TWOFISH     = 14623,
-  KERN_TYPE_LUKS_SHA512_AES         = 14631,
-  KERN_TYPE_LUKS_SHA512_SERPENT     = 14632,
-  KERN_TYPE_LUKS_SHA512_TWOFISH     = 14633,
-  KERN_TYPE_LUKS_RIPEMD160_AES      = 14641,
-  KERN_TYPE_LUKS_RIPEMD160_SERPENT  = 14642,
-  KERN_TYPE_LUKS_RIPEMD160_TWOFISH  = 14643,
-  KERN_TYPE_LUKS_WHIRLPOOL_AES      = 14651,
-  KERN_TYPE_LUKS_WHIRLPOOL_SERPENT  = 14652,
-  KERN_TYPE_LUKS_WHIRLPOOL_TWOFISH  = 14653,
-  KERN_TYPE_ITUNES_BACKUP_9         = 14700,
-  KERN_TYPE_ITUNES_BACKUP_10        = 14800,
-  KERN_TYPE_SKIP32                  = 14900,
-  KERN_TYPE_FILEZILLA_SERVER        = 15000,
-  KERN_TYPE_NETBSD_SHA1CRYPT        = 15100,
-  KERN_TYPE_DPAPIMK_V1              = 15300,
-  KERN_TYPE_CHACHA20                = 15400,
-  KERN_TYPE_JKS_SHA1                = 15500,
-  KERN_TYPE_ETHEREUM_PBKDF2         = 15600,
-  KERN_TYPE_ETHEREUM_SCRYPT         = 15700,
-  KERN_TYPE_DPAPIMK_V2              = 15900,
-  KERN_TYPE_TRIPCODE                = 16000,
-  KERN_TYPE_TACACS_PLUS             = 16100,
-  KERN_TYPE_APPLE_SECURE_NOTES      = 16200,
-  KERN_TYPE_ETHEREUM_PRESALE        = 16300,
-  KERN_TYPE_CRAM_MD5_DOVECOT        = 16400,
-  KERN_TYPE_JWT_HS256               = 16511,
-  KERN_TYPE_JWT_HS384               = 16512,
-  KERN_TYPE_JWT_HS512               = 16513,
-  KERN_TYPE_ELECTRUM_WALLET13       = 16600,
-  KERN_TYPE_PLAINTEXT               = 99999,
+  KERN_TYPE_MD5 = 0,
+  KERN_TYPE_MD5_PWSLT = 10,
+  KERN_TYPE_MD5_SLTPW = 20,
+  KERN_TYPE_MD5_PWUSLT = 30,
+  KERN_TYPE_MD5_SLTPWU = 40,
+  KERN_TYPE_HMACMD5_PW = 50,
+  KERN_TYPE_HMACMD5_SLT = 60,
+  KERN_TYPE_SHA1 = 100,
+  KERN_TYPE_SHA1_PWSLT = 110,
+  KERN_TYPE_SHA1_SLTPW = 120,
+  KERN_TYPE_SHA1_PWUSLT = 130,
+  KERN_TYPE_SHA1_SLTPWU = 140,
+  KERN_TYPE_HMACSHA1_PW = 150,
+  KERN_TYPE_HMACSHA1_SLT = 160,
+  KERN_TYPE_MYSQL = 200,
+  KERN_TYPE_MYSQL41 = 300,
+  KERN_TYPE_PHPASS = 400,
+  KERN_TYPE_MD5CRYPT = 500,
+  KERN_TYPE_BLAKE2B = 600,
+  KERN_TYPE_MD4 = 900,
+  KERN_TYPE_MD4_PWU = 1000,
+  KERN_TYPE_MD44_PWUSLT = 1100,
+  KERN_TYPE_SHA224 = 1300,
+  KERN_TYPE_SHA256 = 1400,
+  KERN_TYPE_SHA256_PWSLT = 1410,
+  KERN_TYPE_SHA256_SLTPW = 1420,
+  KERN_TYPE_SHA256_PWUSLT = 1430,
+  KERN_TYPE_SHA256_SLTPWU = 1440,
+  KERN_TYPE_HMACSHA256_PW = 1450,
+  KERN_TYPE_HMACSHA256_SLT = 1460,
+  KERN_TYPE_DESCRYPT = 1500,
+  KERN_TYPE_APR1CRYPT = 1600,
+  KERN_TYPE_SHA512 = 1700,
+  KERN_TYPE_SHA512_PWSLT = 1710,
+  KERN_TYPE_SHA512_SLTPW = 1720,
+  KERN_TYPE_SHA512_PWSLTU = 1730,
+  KERN_TYPE_SHA512_SLTPWU = 1740,
+  KERN_TYPE_HMACSHA512_PW = 1750,
+  KERN_TYPE_HMACSHA512_SLT = 1760,
+  KERN_TYPE_SHA512CRYPT = 1800,
+  KERN_TYPE_STDOUT = 2000,
+  KERN_TYPE_DCC2 = 2100,
+  KERN_TYPE_MD5PIX = 2400,
+  KERN_TYPE_MD5ASA = 2410,
+  KERN_TYPE_WPA = 2500,
+  KERN_TYPE_WPAPMK = 2501,
+  KERN_TYPE_MD55 = 2600,
+  KERN_TYPE_MD55_PWSLT1 = 2610,
+  KERN_TYPE_MD55_PWSLT2 = 2710,
+  KERN_TYPE_MD55_SLTPW = 2810,
+  KERN_TYPE_LM = 3000,
+  KERN_TYPE_ORACLEH = 3100,
+  KERN_TYPE_BCRYPT = 3200,
+  KERN_TYPE_MD5_SLT_MD5_PW = 3710,
+  KERN_TYPE_MD5_SLT_PW_SLT = 3800,
+  KERN_TYPE_MD55_PWSLT = 3910,
+  KERN_TYPE_MD5_SLT_MD5_SLT_PW = 4010,
+  KERN_TYPE_MD5_SLT_MD5_PW_SLT = 4110,
+  KERN_TYPE_MD5U5 = 4300,
+  KERN_TYPE_MD5U5_PWSLT1 = 4310,
+  KERN_TYPE_MD5_SHA1 = 4400,
+  KERN_TYPE_SHA11 = 4500,
+  KERN_TYPE_SHA1_SLT_SHA1_PW = 4520,
+  KERN_TYPE_SHA1_MD5 = 4700,
+  KERN_TYPE_MD5_CHAP = 4800,
+  KERN_TYPE_SHA1_SLT_PW_SLT = 4900,
+  KERN_TYPE_KECCAK = 5000,
+  KERN_TYPE_MD5H = 5100,
+  KERN_TYPE_PSAFE3 = 5200,
+  KERN_TYPE_IKEPSK_MD5 = 5300,
+  KERN_TYPE_IKEPSK_SHA1 = 5400,
+  KERN_TYPE_NETNTLMv1 = 5500,
+  KERN_TYPE_NETNTLMv2 = 5600,
+  KERN_TYPE_ANDROIDPIN = 5800,
+  KERN_TYPE_RIPEMD160 = 6000,
+  KERN_TYPE_WHIRLPOOL = 6100,
+  KERN_TYPE_TCRIPEMD160_XTS512 = 6211,
+  KERN_TYPE_TCRIPEMD160_XTS1024 = 6212,
+  KERN_TYPE_TCRIPEMD160_XTS1536 = 6213,
+  KERN_TYPE_TCSHA512_XTS512 = 6221,
+  KERN_TYPE_TCSHA512_XTS1024 = 6222,
+  KERN_TYPE_TCSHA512_XTS1536 = 6223,
+  KERN_TYPE_TCWHIRLPOOL_XTS512 = 6231,
+  KERN_TYPE_TCWHIRLPOOL_XTS1024 = 6232,
+  KERN_TYPE_TCWHIRLPOOL_XTS1536 = 6233,
+  KERN_TYPE_VCSHA256_XTS512 = 13751,
+  KERN_TYPE_VCSHA256_XTS1024 = 13752,
+  KERN_TYPE_VCSHA256_XTS1536 = 13753,
+  KERN_TYPE_MD5AIX = 6300,
+  KERN_TYPE_SHA256AIX = 6400,
+  KERN_TYPE_SHA512AIX = 6500,
+  KERN_TYPE_AGILEKEY = 6600,
+  KERN_TYPE_SHA1AIX = 6700,
+  KERN_TYPE_LASTPASS = 6800,
+  KERN_TYPE_GOST = 6900,
+  KERN_TYPE_FORTIGATE = 7000,
+  KERN_TYPE_PBKDF2_SHA512 = 7100,
+  KERN_TYPE_RAKP = 7300,
+  KERN_TYPE_SHA256CRYPT = 7400,
+  KERN_TYPE_KRB5PA = 7500,
+  KERN_TYPE_SAPB = 7700,
+  KERN_TYPE_SAPG = 7800,
+  KERN_TYPE_DRUPAL7 = 7900,
+  KERN_TYPE_SYBASEASE = 8000,
+  KERN_TYPE_NETSCALER = 8100,
+  KERN_TYPE_CLOUDKEY = 8200,
+  KERN_TYPE_NSEC3 = 8300,
+  KERN_TYPE_WBB3 = 8400,
+  KERN_TYPE_RACF = 8500,
+  KERN_TYPE_LOTUS5 = 8600,
+  KERN_TYPE_LOTUS6 = 8700,
+  KERN_TYPE_ANDROIDFDE = 8800,
+  KERN_TYPE_SCRYPT = 8900,
+  KERN_TYPE_PSAFE2 = 9000,
+  KERN_TYPE_LOTUS8 = 9100,
+  KERN_TYPE_OFFICE2007 = 9400,
+  KERN_TYPE_OFFICE2010 = 9500,
+  KERN_TYPE_OFFICE2013 = 9600,
+  KERN_TYPE_OLDOFFICE01 = 9700,
+  KERN_TYPE_OLDOFFICE01CM1 = 9710,
+  KERN_TYPE_OLDOFFICE01CM2 = 9720,
+  KERN_TYPE_OLDOFFICE34 = 9800,
+  KERN_TYPE_OLDOFFICE34CM1 = 9810,
+  KERN_TYPE_OLDOFFICE34CM2 = 9820,
+  KERN_TYPE_RADMIN2 = 9900,
+  KERN_TYPE_SIPHASH = 10100,
+  KERN_TYPE_SAPH_SHA1 = 10300,
+  KERN_TYPE_PDF11 = 10400,
+  KERN_TYPE_PDF11CM1 = 10410,
+  KERN_TYPE_PDF11CM2 = 10420,
+  KERN_TYPE_PDF14 = 10500,
+  KERN_TYPE_PDF17L8 = 10700,
+  KERN_TYPE_SHA384 = 10800,
+  KERN_TYPE_PBKDF2_SHA256 = 10900,
+  KERN_TYPE_PRESTASHOP = 11000,
+  KERN_TYPE_POSTGRESQL_AUTH = 11100,
+  KERN_TYPE_MYSQL_AUTH = 11200,
+  KERN_TYPE_BITCOIN_WALLET = 11300,
+  KERN_TYPE_SIP_AUTH = 11400,
+  KERN_TYPE_CRC32 = 11500,
+  KERN_TYPE_SEVEN_ZIP = 11600,
+  KERN_TYPE_GOST_2012SBOG_256 = 11700,
+  KERN_TYPE_GOST_2012SBOG_512 = 11800,
+  KERN_TYPE_PBKDF2_MD5 = 11900,
+  KERN_TYPE_PBKDF2_SHA1 = 12000,
+  KERN_TYPE_ECRYPTFS = 12200,
+  KERN_TYPE_ORACLET = 12300,
+  KERN_TYPE_BSDICRYPT = 12400,
+  KERN_TYPE_RAR3 = 12500,
+  KERN_TYPE_CF10 = 12600,
+  KERN_TYPE_MYWALLET = 12700,
+  KERN_TYPE_MS_DRSR = 12800,
+  KERN_TYPE_ANDROIDFDE_SAMSUNG = 12900,
+  KERN_TYPE_RAR5 = 13000,
+  KERN_TYPE_KRB5TGS = 13100,
+  KERN_TYPE_AXCRYPT = 13200,
+  KERN_TYPE_SHA1_AXCRYPT = 13300,
+  KERN_TYPE_KEEPASS = 13400,
+  KERN_TYPE_PSTOKEN = 13500,
+  KERN_TYPE_ZIP2 = 13600,
+  KERN_TYPE_WIN8PHONE = 13800,
+  KERN_TYPE_OPENCART = 13900,
+  KERN_TYPE_DES = 14000,
+  KERN_TYPE_3DES = 14100,
+  KERN_TYPE_SHA1CX = 14400,
+  KERN_TYPE_LUKS_SHA1_AES = 14611,
+  KERN_TYPE_LUKS_SHA1_SERPENT = 14612,
+  KERN_TYPE_LUKS_SHA1_TWOFISH = 14613,
+  KERN_TYPE_LUKS_SHA256_AES = 14621,
+  KERN_TYPE_LUKS_SHA256_SERPENT = 14622,
+  KERN_TYPE_LUKS_SHA256_TWOFISH = 14623,
+  KERN_TYPE_LUKS_SHA512_AES = 14631,
+  KERN_TYPE_LUKS_SHA512_SERPENT = 14632,
+  KERN_TYPE_LUKS_SHA512_TWOFISH = 14633,
+  KERN_TYPE_LUKS_RIPEMD160_AES = 14641,
+  KERN_TYPE_LUKS_RIPEMD160_SERPENT = 14642,
+  KERN_TYPE_LUKS_RIPEMD160_TWOFISH = 14643,
+  KERN_TYPE_LUKS_WHIRLPOOL_AES = 14651,
+  KERN_TYPE_LUKS_WHIRLPOOL_SERPENT = 14652,
+  KERN_TYPE_LUKS_WHIRLPOOL_TWOFISH = 14653,
+  KERN_TYPE_ITUNES_BACKUP_9 = 14700,
+  KERN_TYPE_ITUNES_BACKUP_10 = 14800,
+  KERN_TYPE_SKIP32 = 14900,
+  KERN_TYPE_FILEZILLA_SERVER = 15000,
+  KERN_TYPE_NETBSD_SHA1CRYPT = 15100,
+  KERN_TYPE_DPAPIMK_V1 = 15300,
+  KERN_TYPE_CHACHA20 = 15400,
+  KERN_TYPE_JKS_SHA1 = 15500,
+  KERN_TYPE_ETHEREUM_PBKDF2 = 15600,
+  KERN_TYPE_ETHEREUM_SCRYPT = 15700,
+  KERN_TYPE_DPAPIMK_V2 = 15900,
+  KERN_TYPE_TRIPCODE = 16000,
+  KERN_TYPE_TACACS_PLUS = 16100,
+  KERN_TYPE_APPLE_SECURE_NOTES = 16200,
+  KERN_TYPE_ETHEREUM_PRESALE = 16300,
+  KERN_TYPE_CRAM_MD5_DOVECOT = 16400,
+  KERN_TYPE_JWT_HS256 = 16511,
+  KERN_TYPE_JWT_HS384 = 16512,
+  KERN_TYPE_JWT_HS512 = 16513,
+  KERN_TYPE_ELECTRUM_WALLET13 = 16600,
+  KERN_TYPE_PLAINTEXT = 99999,
 
 } kern_type_t;
 
@@ -1698,293 +1697,487 @@ typedef enum kern_type
 
 typedef enum rounds_count
 {
-   ROUNDS_PHPASS             = (1 << 11), // $P$B
-   ROUNDS_DCC2               = 10240,
-   ROUNDS_WPA                = 4096,
-   ROUNDS_WPAPMK             = 1,
-   ROUNDS_BCRYPT             = (1 << 5),
-   ROUNDS_PSAFE3             = 2048,
-   ROUNDS_ANDROIDPIN         = 1024,
-   ROUNDS_TRUECRYPT_1K       = 1000,
-   ROUNDS_TRUECRYPT_2K       = 2000,
-   ROUNDS_VERACRYPT_200000   = 200000,
-   ROUNDS_VERACRYPT_500000   = 500000,
-   ROUNDS_VERACRYPT_327661   = 327661,
-   ROUNDS_VERACRYPT_655331   = 655331,
-   ROUNDS_SHA1AIX            = (1 << 6),
-   ROUNDS_SHA256AIX          = (1 << 6),
-   ROUNDS_SHA512AIX          = (1 << 6),
-   ROUNDS_MD5CRYPT           = 1000,
-   ROUNDS_SHA256CRYPT        = 5000,
-   ROUNDS_SHA512CRYPT        = 5000,
-   ROUNDS_GRUB               = 10000,
-   ROUNDS_SHA512MACOS        = 35000,
-   ROUNDS_AGILEKEY           = 1000,
-   ROUNDS_LASTPASS           = 500,
-   ROUNDS_DRUPAL7            = (1 << 14), // $S$C
-   ROUNDS_CLOUDKEY           = 40000,
-   ROUNDS_NSEC3              = 1,
-   ROUNDS_ANDROIDFDE         = 2000,
-   ROUNDS_PSAFE2             = 1000,
-   ROUNDS_LOTUS8             = 5000,
-   ROUNDS_CISCO8             = 20000,
-   ROUNDS_OFFICE2007         = 50000,
-   ROUNDS_OFFICE2010         = 100000,
-   ROUNDS_OFFICE2013         = 100000,
-   ROUNDS_DJANGOPBKDF2       = 20000,
-   ROUNDS_SAPH_SHA1          = 1024,
-   ROUNDS_PDF14              = (50 + 20),
-   ROUNDS_PDF17L8            = 64,
-   ROUNDS_PBKDF2_SHA256      = 1000,
-   ROUNDS_BITCOIN_WALLET     = 200000,
-   ROUNDS_SEVEN_ZIP          = (1 << 19),
-   ROUNDS_PBKDF2_MD5         = 1000,
-   ROUNDS_PBKDF2_SHA1        = 1000,
-   ROUNDS_PBKDF2_SHA512      = 1000,
-   ROUNDS_ECRYPTFS           = 65536,
-   ROUNDS_ORACLET            = 4096,
-   ROUNDS_BSDICRYPT          = 2900,
-   ROUNDS_RAR3               = 262144,
-   ROUNDS_MYWALLET           = 10,
-   ROUNDS_MYWALLETV2         = 5000,
-   ROUNDS_MS_DRSR            = 100,
-   ROUNDS_ANDROIDFDE_SAMSUNG = 4096,
-   ROUNDS_RAR5               = (1 << 15),
-   ROUNDS_AXCRYPT            = 10000,
-   ROUNDS_KEEPASS            = 6000,
-   ROUNDS_ZIP2               = 1000,
-   ROUNDS_LUKS               = 163044, // this equal to jtr -test
-   ROUNDS_ITUNES9_BACKUP     = 10000,
-   ROUNDS_ITUNES101_BACKUP   = 10000000, // wtf, i mean, really?
-   ROUNDS_ITUNES102_BACKUP   = 10000,
-   ROUNDS_ATLASSIAN          = 10000,
-   ROUNDS_NETBSD_SHA1CRYPT   = 20000,
-   ROUNDS_DPAPIMK_V1         = 24000 - 1, // from 4000 to 24000 (possibly more)
-   ROUNDS_DPAPIMK_V2         = 8000  - 1, // from 4000 to 24000 (possibly more)
-   ROUNDS_ETHEREUM_PBKDF2    = 262144 - 1,
-   ROUNDS_APPLE_SECURE_NOTES = 20000,
-   ROUNDS_ETHEREUM_PRESALE   = 2000 - 1,
-   ROUNDS_STDOUT             = 0
-
+  ROUNDS_PHPASS = (1 << 11),    // $P$B
+  ROUNDS_DCC2 = 10240,
+  ROUNDS_WPA = 4096,
+  ROUNDS_WPAPMK = 1,
+  ROUNDS_BCRYPT = (1 << 5),
+  ROUNDS_PSAFE3 = 2048,
+  ROUNDS_ANDROIDPIN = 1024,
+  ROUNDS_TRUECRYPT_1K = 1000,
+  ROUNDS_TRUECRYPT_2K = 2000,
+  ROUNDS_VERACRYPT_200000 = 200000,
+  ROUNDS_VERACRYPT_500000 = 500000,
+  ROUNDS_VERACRYPT_327661 = 327661,
+  ROUNDS_VERACRYPT_655331 = 655331,
+  ROUNDS_SHA1AIX = (1 << 6),
+  ROUNDS_SHA256AIX = (1 << 6),
+  ROUNDS_SHA512AIX = (1 << 6),
+  ROUNDS_MD5CRYPT = 1000,
+  ROUNDS_SHA256CRYPT = 5000,
+  ROUNDS_SHA512CRYPT = 5000,
+  ROUNDS_GRUB = 10000,
+  ROUNDS_SHA512MACOS = 35000,
+  ROUNDS_AGILEKEY = 1000,
+  ROUNDS_LASTPASS = 500,
+  ROUNDS_DRUPAL7 = (1 << 14),   // $S$C
+  ROUNDS_CLOUDKEY = 40000,
+  ROUNDS_NSEC3 = 1,
+  ROUNDS_ANDROIDFDE = 2000,
+  ROUNDS_PSAFE2 = 1000,
+  ROUNDS_LOTUS8 = 5000,
+  ROUNDS_CISCO8 = 20000,
+  ROUNDS_OFFICE2007 = 50000,
+  ROUNDS_OFFICE2010 = 100000,
+  ROUNDS_OFFICE2013 = 100000,
+  ROUNDS_DJANGOPBKDF2 = 20000,
+  ROUNDS_SAPH_SHA1 = 1024,
+  ROUNDS_PDF14 = (50 + 20),
+  ROUNDS_PDF17L8 = 64,
+  ROUNDS_PBKDF2_SHA256 = 1000,
+  ROUNDS_BITCOIN_WALLET = 200000,
+  ROUNDS_SEVEN_ZIP = (1 << 19),
+  ROUNDS_PBKDF2_MD5 = 1000,
+  ROUNDS_PBKDF2_SHA1 = 1000,
+  ROUNDS_PBKDF2_SHA512 = 1000,
+  ROUNDS_ECRYPTFS = 65536,
+  ROUNDS_ORACLET = 4096,
+  ROUNDS_BSDICRYPT = 2900,
+  ROUNDS_RAR3 = 262144,
+  ROUNDS_MYWALLET = 10,
+  ROUNDS_MYWALLETV2 = 5000,
+  ROUNDS_MS_DRSR = 100,
+  ROUNDS_ANDROIDFDE_SAMSUNG = 4096,
+  ROUNDS_RAR5 = (1 << 15),
+  ROUNDS_AXCRYPT = 10000,
+  ROUNDS_KEEPASS = 6000,
+  ROUNDS_ZIP2 = 1000,
+  ROUNDS_LUKS = 163044,         // this equal to jtr -test
+  ROUNDS_ITUNES9_BACKUP = 10000,
+  ROUNDS_ITUNES101_BACKUP = 10000000, // wtf, i mean, really?
+  ROUNDS_ITUNES102_BACKUP = 10000,
+  ROUNDS_ATLASSIAN = 10000,
+  ROUNDS_NETBSD_SHA1CRYPT = 20000,
+  ROUNDS_DPAPIMK_V1 = 24000 - 1,  // from 4000 to 24000 (possibly more)
+  ROUNDS_DPAPIMK_V2 = 8000 - 1, // from 4000 to 24000 (possibly more)
+  ROUNDS_ETHEREUM_PBKDF2 = 262144 - 1,
+  ROUNDS_APPLE_SECURE_NOTES = 20000,
+  ROUNDS_ETHEREUM_PRESALE = 2000 - 1,
+  ROUNDS_STDOUT = 0
 } rounds_count_t;
 
 /**
  * input functions
  */
 
-int bcrypt_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int cisco4_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int dcc_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int dcc2_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int descrypt_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int des_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int episerver_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int ipb2_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int joomla_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int postgresql_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int netscreen_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int keccak_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int blake2b_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int chacha20_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int lm_parse_hash                 (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int md4_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int md5_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int md5s_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int md5half_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int md5md5_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int md5pix_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int md5asa_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int md5apr1_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int md5crypt_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int mssql2000_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int mssql2005_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int netntlmv1_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int netntlmv2_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int oracleh_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int oracles_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int oraclet_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int osc_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int arubaos_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int macos1_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int macos512_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int phpass_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha1_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha1b64_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha1b64s_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha1s_parse_hash              (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha1sha1_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha224_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha256_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha256s_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha384_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha512_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha512s_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha512crypt_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int smf_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int vb3_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int vb30_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int wpa_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int psafe2_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int psafe3_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int ikepsk_md5_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int ikepsk_sha1_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int androidpin_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int ripemd160_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int whirlpool_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int truecrypt_parse_hash_1k       (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int truecrypt_parse_hash_2k       (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int md5aix_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha256aix_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha512aix_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int agilekey_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha1aix_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int lastpass_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int gost_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha256crypt_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int mssql2012_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha512macos_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int episerver4_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha512grub_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha512b64s_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int hmacsha1_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int hmacsha256_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int hmacsha512_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int hmacmd5_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int krb5pa_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int krb5tgs_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sapb_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sapg_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int drupal7_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sybasease_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int mysql323_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int rakp_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int netscaler_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int chap_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int cloudkey_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int nsec3_parse_hash              (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int wbb3_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int racf_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int lotus5_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int lotus6_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int lotus8_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int hmailserver_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int phps_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int mediawiki_b_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int peoplesoft_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int skype_parse_hash              (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int androidfde_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int scrypt_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int juniper_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int cisco8_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int cisco9_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int office2007_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int office2010_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int office2013_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int oldoffice01_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int oldoffice01cm1_parse_hash     (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int oldoffice01cm2_parse_hash     (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int oldoffice34_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int oldoffice34cm1_parse_hash     (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int oldoffice34cm2_parse_hash     (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int radmin2_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int djangosha1_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int djangopbkdf2_parse_hash       (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int siphash_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int crammd5_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int crammd5_dovecot_parse_hash    (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int saph_sha1_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int redmine_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int punbb_parse_hash              (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int pdf11_parse_hash              (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int pdf11cm1_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int pdf11cm2_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int pdf14_parse_hash              (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int pdf17l3_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int pdf17l8_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int pbkdf2_sha256_parse_hash      (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int prestashop_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int postgresql_auth_parse_hash    (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int mysql_auth_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int bitcoin_wallet_parse_hash     (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sip_auth_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int crc32_parse_hash              (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int seven_zip_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int gost2012sbog_256_parse_hash   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int gost2012sbog_512_parse_hash   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int pbkdf2_md5_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int pbkdf2_sha1_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int pbkdf2_sha512_parse_hash      (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int ecryptfs_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int bsdicrypt_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int rar3hp_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int rar5_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int cf10_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int mywallet_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int mywalletv2_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int ms_drsr_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int androidfde_samsung_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int axcrypt_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha1axcrypt_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int keepass_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int pstoken_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int zip2_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int veracrypt_parse_hash_200000   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int veracrypt_parse_hash_500000   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int veracrypt_parse_hash_327661   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int veracrypt_parse_hash_655331   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int win8phone_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int opencart_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int plaintext_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha1cx_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int luks_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig, const int keyslot_idx);
-int itunes_backup_parse_hash      (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int skip32_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int fortigate_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha256b64s_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int filezilla_server_parse_hash   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int netbsd_sha1crypt_parse_hash   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int atlassian_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int dpapimk_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int jks_sha1_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int ethereum_pbkdf2_parse_hash    (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int ethereum_scrypt_parse_hash    (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int tripcode_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int tacacs_plus_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int apple_secure_notes_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int ethereum_presale_parse_hash   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int jwt_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int electrum_wallet13_parse_hash  (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
+int bcrypt_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int cisco4_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int dcc_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int dcc2_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int descrypt_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int des_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int episerver_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int ipb2_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int joomla_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int postgresql_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int netscreen_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int keccak_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int blake2b_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int chacha20_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int lm_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int md4_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int md5_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int md5s_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int md5half_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int md5md5_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int md5pix_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int md5asa_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int md5apr1_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int md5crypt_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int mssql2000_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int mssql2005_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int netntlmv1_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int netntlmv2_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int oracleh_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int oracles_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int oraclet_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int osc_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int arubaos_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int macos1_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int macos512_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int phpass_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int sha1_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int sha1b64_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int sha1b64s_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int sha1s_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int sha1sha1_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int sha224_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int sha256_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int sha256s_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int sha384_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int sha512_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int sha512s_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int sha512crypt_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int smf_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int vb3_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int vb30_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int wpa_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int psafe2_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int psafe3_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int ikepsk_md5_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int ikepsk_sha1_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int androidpin_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int ripemd160_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int whirlpool_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int truecrypt_parse_hash_1k (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int truecrypt_parse_hash_2k (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int md5aix_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int sha256aix_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int sha512aix_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int agilekey_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int sha1aix_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int lastpass_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int gost_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int sha256crypt_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int mssql2012_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int sha512macos_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int episerver4_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int sha512grub_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int sha512b64s_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int hmacsha1_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int hmacsha256_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int hmacsha512_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int hmacmd5_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int krb5pa_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int krb5tgs_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int sapb_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int sapg_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int drupal7_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int sybasease_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int mysql323_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int rakp_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int netscaler_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int chap_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int cloudkey_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int nsec3_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int wbb3_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int racf_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int lotus5_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int lotus6_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int lotus8_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int hmailserver_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int phps_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int mediawiki_b_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int peoplesoft_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int skype_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int androidfde_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int scrypt_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int juniper_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int cisco8_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int cisco9_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int office2007_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int office2010_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int office2013_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int oldoffice01_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int oldoffice01cm1_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int oldoffice01cm2_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int oldoffice34_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int oldoffice34cm1_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int oldoffice34cm2_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int radmin2_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int djangosha1_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int djangopbkdf2_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int siphash_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int crammd5_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int crammd5_dovecot_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int saph_sha1_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int redmine_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int punbb_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int pdf11_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int pdf11cm1_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int pdf11cm2_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int pdf14_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int pdf17l3_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int pdf17l8_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int pbkdf2_sha256_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int prestashop_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int postgresql_auth_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int mysql_auth_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int bitcoin_wallet_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int sip_auth_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int crc32_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int seven_zip_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int gost2012sbog_256_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int gost2012sbog_512_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int pbkdf2_md5_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int pbkdf2_sha1_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int pbkdf2_sha512_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int ecryptfs_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int bsdicrypt_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int rar3hp_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int rar5_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int cf10_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int mywallet_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int mywalletv2_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int ms_drsr_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int androidfde_samsung_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int axcrypt_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int sha1axcrypt_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int keepass_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int pstoken_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int zip2_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int veracrypt_parse_hash_200000 (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int veracrypt_parse_hash_500000 (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int veracrypt_parse_hash_327661 (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int veracrypt_parse_hash_655331 (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int win8phone_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int opencart_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int plaintext_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int sha1cx_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int luks_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig, const int keyslot_idx);
+
+int itunes_backup_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int skip32_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int fortigate_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int sha256b64s_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int filezilla_server_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int netbsd_sha1crypt_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int atlassian_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int dpapimk_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int jks_sha1_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int ethereum_pbkdf2_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int ethereum_scrypt_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int tripcode_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int tacacs_plus_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int apple_secure_notes_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int ethereum_presale_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int jwt_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
+
+int electrum_wallet13_parse_hash (u8 * input_buf, u32 input_len, hash_t * hash_buf, MAYBE_UNUSED hashconfig_t * hashconfig);
 
 /**
  * hook functions
  */
 
-void seven_zip_hook_func (hc_device_param_t *device_param, void *hook_salts_buf, const u32 salt_pos, const u64 pws_cnt);
+void seven_zip_hook_func (hc_device_param_t * device_param, void *hook_salts_buf, const u32 salt_pos, const u64 pws_cnt);
 
 /**
  * output functions
  */
 
 const char *stroptitype (const u32 opti_type);
+
 const char *strhashtype (const u32 hash_mode);
-const char *strparser   (const u32 parser_status);
+
+const char *strparser (const u32 parser_status);
 
 int check_old_hccap (const char *hashfile);
-void to_hccapx_t (hashcat_ctx_t *hashcat_ctx, hccapx_t *hccapx, const u32 salt_pos, const u32 digest_pos);
 
-int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_len, const u32 salt_pos, const u32 digest_pos);
+void to_hccapx_t (hashcat_ctx_t * hashcat_ctx, hccapx_t * hccapx, const u32 salt_pos, const u32 digest_pos);
 
-int         hashconfig_init                   (hashcat_ctx_t *hashcat_ctx);
-void        hashconfig_destroy                (hashcat_ctx_t *hashcat_ctx);
-u32         hashconfig_forced_kernel_threads  (hashcat_ctx_t *hashcat_ctx);
-u32         hashconfig_get_kernel_threads     (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param);
-u32         hashconfig_get_kernel_loops       (hashcat_ctx_t *hashcat_ctx);
-int         hashconfig_general_defaults       (hashcat_ctx_t *hashcat_ctx);
-int         hashconfig_get_pw_min             (hashcat_ctx_t *hashcat_ctx, const bool optimized_kernel);
-int         hashconfig_get_pw_max             (hashcat_ctx_t *hashcat_ctx, const bool optimized_kernel);
-int         hashconfig_get_salt_min           (hashcat_ctx_t *hashcat_ctx, const bool optimized_kernel);
-int         hashconfig_get_salt_max           (hashcat_ctx_t *hashcat_ctx, const bool optimized_kernel);
-void        hashconfig_benchmark_defaults     (hashcat_ctx_t *hashcat_ctx, salt_t *salt, void *esalt, void *hook_salt);
-const char *hashconfig_benchmark_mask         (hashcat_ctx_t *hashcat_ctx);
+int ascii_digest (hashcat_ctx_t * hashcat_ctx, char *out_buf, const size_t out_len, const u32 salt_pos, const u32 digest_pos);
+
+int hashconfig_init (hashcat_ctx_t * hashcat_ctx);
+
+void hashconfig_destroy (hashcat_ctx_t * hashcat_ctx);
+
+u32 hashconfig_forced_kernel_threads (hashcat_ctx_t * hashcat_ctx);
+
+u32 hashconfig_get_kernel_threads (hashcat_ctx_t * hashcat_ctx, const hc_device_param_t * device_param);
+
+u32 hashconfig_get_kernel_loops (hashcat_ctx_t * hashcat_ctx);
+
+int hashconfig_general_defaults (hashcat_ctx_t * hashcat_ctx);
+
+int hashconfig_get_pw_min (hashcat_ctx_t * hashcat_ctx, const bool optimized_kernel);
+
+int hashconfig_get_pw_max (hashcat_ctx_t * hashcat_ctx, const bool optimized_kernel);
+
+int hashconfig_get_salt_min (hashcat_ctx_t * hashcat_ctx, const bool optimized_kernel);
+
+int hashconfig_get_salt_max (hashcat_ctx_t * hashcat_ctx, const bool optimized_kernel);
+
+void hashconfig_benchmark_defaults (hashcat_ctx_t * hashcat_ctx, salt_t * salt, void *esalt, void *hook_salt);
+
+const char *hashconfig_benchmark_mask (hashcat_ctx_t * hashcat_ctx);
 
 #endif // _INTERFACE_H

@@ -23,6 +23,6 @@
 #include <windows.h>
 #endif // _WIN
 
-int set_cpu_affinity (hashcat_ctx_t *hashcat_ctx);
+int set_cpu_affinity (hashcat_ctx_t * hashcat_ctx);
 
 #endif // _AFFINITY_H

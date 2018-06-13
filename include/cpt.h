@@ -10,8 +10,10 @@
 #include <errno.h>
 #include <time.h>
 
-int  cpt_ctx_init    (hashcat_ctx_t *hashcat_ctx);
-void cpt_ctx_destroy (hashcat_ctx_t *hashcat_ctx);
-void cpt_ctx_reset   (hashcat_ctx_t *hashcat_ctx);
+int cpt_ctx_init (hashcat_ctx_t * hashcat_ctx);
+
+void cpt_ctx_destroy (hashcat_ctx_t * hashcat_ctx);
+
+void cpt_ctx_reset (hashcat_ctx_t * hashcat_ctx);
 
 #endif // _CPT_H

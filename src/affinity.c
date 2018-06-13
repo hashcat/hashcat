@@ -10,33 +10,34 @@
 #include "affinity.h"
 
 #if defined (__APPLE__)
-static void CPU_ZERO (cpu_set_t *cs)
+static void CPU_ZERO (cpu_set_t * cs)
 {
   cs->count = 0;
 }
 
-static void CPU_SET (int num, cpu_set_t *cs)
+static void CPU_SET (int num, cpu_set_t * cs)
 {
   cs->count |= (1 << num);
 }
 
-static int CPU_ISSET (int num, cpu_set_t *cs)
+static int CPU_ISSET (int num, cpu_set_t * cs)
 {
   return (cs->count & (1 << num));
 }
 
-static int pthread_setaffinity_np (pthread_t thread, size_t cpu_size, cpu_set_t *cpu_set)
+static int pthread_setaffinity_np (pthread_t thread, size_t cpu_size, cpu_set_t * cpu_set)
 {
   int core;
 
   for (core = 0; core < (8 * (int) cpu_size); core++)
   {
-    if (CPU_ISSET (core, cpu_set)) break;
+    if (CPU_ISSET (core, cpu_set))
+      break;
   }
 
   thread_affinity_policy_data_t policy = { core };
 
-  return thread_policy_set (pthread_mach_thread_np (thread), THREAD_AFFINITY_POLICY, (thread_policy_t) &policy, 1);
+  return thread_policy_set (pthread_mach_thread_np (thread), THREAD_AFFINITY_POLICY, (thread_policy_t) & policy, 1);
 }
 #endif
 
@@ -45,25 +46,28 @@ static int pthread_setaffinity_np (pthread_t thread, size_t cpu_size, cpu_set_t 
 typedef cpuset_t cpu_set_t;
 #endif
 
-int set_cpu_affinity (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
+int set_cpu_affinity (MAYBE_UNUSED hashcat_ctx_t * hashcat_ctx)
 {
 #if defined (__CYGWIN__)
   return 0;
 #else
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (user_options->cpu_affinity == NULL) return 0;
+  if (user_options->cpu_affinity == NULL)
+    return 0;
 
-  #if defined (_WIN)
+#if defined (_WIN)
   DWORD_PTR aff_mask = 0;
-  #else
+#else
   cpu_set_t cpuset;
+
   CPU_ZERO (&cpuset);
-  #endif
+#endif
 
   char *devices = hcstrdup (user_options->cpu_affinity);
 
-  if (devices == NULL) return -1;
+  if (devices == NULL)
+    return -1;
 
   char *saveptr = NULL;
 
@@ -75,11 +79,11 @@ int set_cpu_affinity (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
     if (cpu_id == 0)
     {
-      #if defined (_WIN)
+#if defined (_WIN)
       aff_mask = 0;
-      #else
+#else
       CPU_ZERO (&cpuset);
-      #endif
+#endif
 
       break;
     }
@@ -93,17 +97,18 @@ int set_cpu_affinity (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
-    #if defined (_WIN)
+#if defined (_WIN)
     aff_mask |= 1u << (cpu_id - 1);
-    #else
+#else
     CPU_SET ((cpu_id - 1), &cpuset);
-    #endif
+#endif
 
-  } while ((next = strtok_r ((char *) NULL, ",", &saveptr)) != NULL);
+  }
+  while ((next = strtok_r ((char *) NULL, ",", &saveptr)) != NULL);
 
   hcfree (devices);
 
-  #if defined (_WIN)
+#if defined (_WIN)
 
   SetProcessAffinityMask (GetCurrentProcess (), aff_mask);
 
@@ -114,7 +119,7 @@ int set_cpu_affinity (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  #else
+#else
 
   pthread_t thread = pthread_self ();
 
@@ -125,7 +130,7 @@ int set_cpu_affinity (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  #endif
+#endif
 
   return 0;
 #endif

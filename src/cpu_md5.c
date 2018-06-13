@@ -15,20 +15,23 @@
 void md5_64 (const u32 block[16], u32 digest[4])
 {
   u32 w0[4];
+
   u32 w1[4];
+
   u32 w2[4];
+
   u32 w3[4];
 
-  w0[0] = block[ 0];
-  w0[1] = block[ 1];
-  w0[2] = block[ 2];
-  w0[3] = block[ 3];
-  w1[0] = block[ 4];
-  w1[1] = block[ 5];
-  w1[2] = block[ 6];
-  w1[3] = block[ 7];
-  w2[0] = block[ 8];
-  w2[1] = block[ 9];
+  w0[0] = block[0];
+  w0[1] = block[1];
+  w0[2] = block[2];
+  w0[3] = block[3];
+  w1[0] = block[4];
+  w1[1] = block[5];
+  w1[2] = block[6];
+  w1[3] = block[7];
+  w2[0] = block[8];
+  w2[1] = block[9];
   w2[2] = block[10];
   w2[3] = block[11];
   w3[0] = block[12];
@@ -37,8 +40,11 @@ void md5_64 (const u32 block[16], u32 digest[4])
   w3[3] = block[15];
 
   u32 a = digest[0];
+
   u32 b = digest[1];
+
   u32 c = digest[2];
+
   u32 d = digest[3];
 
   MD5_STEP (MD5_Fo, a, b, c, d, w0[0], MD5C00, MD5S00);
@@ -75,39 +81,39 @@ void md5_64 (const u32 block[16], u32 digest[4])
   MD5_STEP (MD5_Go, c, d, a, b, w1[3], MD5C1e, MD5S12);
   MD5_STEP (MD5_Go, b, c, d, a, w3[0], MD5C1f, MD5S13);
 
-  MD5_STEP (MD5_H , a, b, c, d, w1[1], MD5C20, MD5S20);
-  MD5_STEP (MD5_H , d, a, b, c, w2[0], MD5C21, MD5S21);
-  MD5_STEP (MD5_H , c, d, a, b, w2[3], MD5C22, MD5S22);
-  MD5_STEP (MD5_H , b, c, d, a, w3[2], MD5C23, MD5S23);
-  MD5_STEP (MD5_H , a, b, c, d, w0[1], MD5C24, MD5S20);
-  MD5_STEP (MD5_H , d, a, b, c, w1[0], MD5C25, MD5S21);
-  MD5_STEP (MD5_H , c, d, a, b, w1[3], MD5C26, MD5S22);
-  MD5_STEP (MD5_H , b, c, d, a, w2[2], MD5C27, MD5S23);
-  MD5_STEP (MD5_H , a, b, c, d, w3[1], MD5C28, MD5S20);
-  MD5_STEP (MD5_H , d, a, b, c, w0[0], MD5C29, MD5S21);
-  MD5_STEP (MD5_H , c, d, a, b, w0[3], MD5C2a, MD5S22);
-  MD5_STEP (MD5_H , b, c, d, a, w1[2], MD5C2b, MD5S23);
-  MD5_STEP (MD5_H , a, b, c, d, w2[1], MD5C2c, MD5S20);
-  MD5_STEP (MD5_H , d, a, b, c, w3[0], MD5C2d, MD5S21);
-  MD5_STEP (MD5_H , c, d, a, b, w3[3], MD5C2e, MD5S22);
-  MD5_STEP (MD5_H , b, c, d, a, w0[2], MD5C2f, MD5S23);
+  MD5_STEP (MD5_H, a, b, c, d, w1[1], MD5C20, MD5S20);
+  MD5_STEP (MD5_H, d, a, b, c, w2[0], MD5C21, MD5S21);
+  MD5_STEP (MD5_H, c, d, a, b, w2[3], MD5C22, MD5S22);
+  MD5_STEP (MD5_H, b, c, d, a, w3[2], MD5C23, MD5S23);
+  MD5_STEP (MD5_H, a, b, c, d, w0[1], MD5C24, MD5S20);
+  MD5_STEP (MD5_H, d, a, b, c, w1[0], MD5C25, MD5S21);
+  MD5_STEP (MD5_H, c, d, a, b, w1[3], MD5C26, MD5S22);
+  MD5_STEP (MD5_H, b, c, d, a, w2[2], MD5C27, MD5S23);
+  MD5_STEP (MD5_H, a, b, c, d, w3[1], MD5C28, MD5S20);
+  MD5_STEP (MD5_H, d, a, b, c, w0[0], MD5C29, MD5S21);
+  MD5_STEP (MD5_H, c, d, a, b, w0[3], MD5C2a, MD5S22);
+  MD5_STEP (MD5_H, b, c, d, a, w1[2], MD5C2b, MD5S23);
+  MD5_STEP (MD5_H, a, b, c, d, w2[1], MD5C2c, MD5S20);
+  MD5_STEP (MD5_H, d, a, b, c, w3[0], MD5C2d, MD5S21);
+  MD5_STEP (MD5_H, c, d, a, b, w3[3], MD5C2e, MD5S22);
+  MD5_STEP (MD5_H, b, c, d, a, w0[2], MD5C2f, MD5S23);
 
-  MD5_STEP (MD5_I , a, b, c, d, w0[0], MD5C30, MD5S30);
-  MD5_STEP (MD5_I , d, a, b, c, w1[3], MD5C31, MD5S31);
-  MD5_STEP (MD5_I , c, d, a, b, w3[2], MD5C32, MD5S32);
-  MD5_STEP (MD5_I , b, c, d, a, w1[1], MD5C33, MD5S33);
-  MD5_STEP (MD5_I , a, b, c, d, w3[0], MD5C34, MD5S30);
-  MD5_STEP (MD5_I , d, a, b, c, w0[3], MD5C35, MD5S31);
-  MD5_STEP (MD5_I , c, d, a, b, w2[2], MD5C36, MD5S32);
-  MD5_STEP (MD5_I , b, c, d, a, w0[1], MD5C37, MD5S33);
-  MD5_STEP (MD5_I , a, b, c, d, w2[0], MD5C38, MD5S30);
-  MD5_STEP (MD5_I , d, a, b, c, w3[3], MD5C39, MD5S31);
-  MD5_STEP (MD5_I , c, d, a, b, w1[2], MD5C3a, MD5S32);
-  MD5_STEP (MD5_I , b, c, d, a, w3[1], MD5C3b, MD5S33);
-  MD5_STEP (MD5_I , a, b, c, d, w1[0], MD5C3c, MD5S30);
-  MD5_STEP (MD5_I , d, a, b, c, w2[3], MD5C3d, MD5S31);
-  MD5_STEP (MD5_I , c, d, a, b, w0[2], MD5C3e, MD5S32);
-  MD5_STEP (MD5_I , b, c, d, a, w2[1], MD5C3f, MD5S33);
+  MD5_STEP (MD5_I, a, b, c, d, w0[0], MD5C30, MD5S30);
+  MD5_STEP (MD5_I, d, a, b, c, w1[3], MD5C31, MD5S31);
+  MD5_STEP (MD5_I, c, d, a, b, w3[2], MD5C32, MD5S32);
+  MD5_STEP (MD5_I, b, c, d, a, w1[1], MD5C33, MD5S33);
+  MD5_STEP (MD5_I, a, b, c, d, w3[0], MD5C34, MD5S30);
+  MD5_STEP (MD5_I, d, a, b, c, w0[3], MD5C35, MD5S31);
+  MD5_STEP (MD5_I, c, d, a, b, w2[2], MD5C36, MD5S32);
+  MD5_STEP (MD5_I, b, c, d, a, w0[1], MD5C37, MD5S33);
+  MD5_STEP (MD5_I, a, b, c, d, w2[0], MD5C38, MD5S30);
+  MD5_STEP (MD5_I, d, a, b, c, w3[3], MD5C39, MD5S31);
+  MD5_STEP (MD5_I, c, d, a, b, w1[2], MD5C3a, MD5S32);
+  MD5_STEP (MD5_I, b, c, d, a, w3[1], MD5C3b, MD5S33);
+  MD5_STEP (MD5_I, a, b, c, d, w1[0], MD5C3c, MD5S30);
+  MD5_STEP (MD5_I, d, a, b, c, w2[3], MD5C3d, MD5S31);
+  MD5_STEP (MD5_I, c, d, a, b, w0[2], MD5C3e, MD5S32);
+  MD5_STEP (MD5_I, b, c, d, a, w2[1], MD5C3f, MD5S33);
 
   digest[0] += a;
   digest[1] += b;
@@ -117,11 +123,14 @@ void md5_64 (const u32 block[16], u32 digest[4])
 
 // only use this when really, really needed, SLOW
 
-void md5_complete_no_limit (u32 digest[4], u32 *plain, u32 plain_len)
+void md5_complete_no_limit (u32 digest[4], u32 * plain, u32 plain_len)
 {
   u32 a = MD5M_A;
+
   u32 b = MD5M_B;
+
   u32 c = MD5M_C;
+
   u32 d = MD5M_D;
 
   digest[0] = a;
@@ -130,14 +139,19 @@ void md5_complete_no_limit (u32 digest[4], u32 *plain, u32 plain_len)
   digest[3] = d;
 
   u32 r_a = digest[0];
+
   u32 r_b = digest[1];
+
   u32 r_c = digest[2];
+
   u32 r_d = digest[3];
 
   u32 block[16];
-  int  block_total_len = 16 * 4; // sizeof (block)
+
+  int block_total_len = 16 * 4; // sizeof (block)
 
   char *block_ptr = (char *) block;
+
   char *plain_ptr = (char *) plain;
 
   // init
@@ -152,7 +166,8 @@ void md5_complete_no_limit (u32 digest[4], u32 *plain, u32 plain_len)
   {
     loop = (remaining_len > 55);
 
-    int cur_len  = MIN (block_total_len, remaining_len);
+    int cur_len = MIN (block_total_len, remaining_len);
+
     int copy_len = MAX (cur_len, 0);  // should never be negative of course
 
     // initialize the block
@@ -163,7 +178,7 @@ void md5_complete_no_limit (u32 digest[4], u32 *plain, u32 plain_len)
 
     memcpy (block_ptr, plain_ptr, (size_t) copy_len);
 
-    /*
+    /* 
      * final block
      */
 
@@ -179,27 +194,31 @@ void md5_complete_no_limit (u32 digest[4], u32 *plain, u32 plain_len)
 
     // set block[14] set to total_len
 
-    if (! loop) block[14] = plain_len * 8;
+    if (!loop)
+      block[14] = plain_len * 8;
 
-    /*
+    /* 
      * md5 ()
      */
 
     u32 w0[4];
+
     u32 w1[4];
+
     u32 w2[4];
+
     u32 w3[4];
 
-    w0[0] = block[ 0];
-    w0[1] = block[ 1];
-    w0[2] = block[ 2];
-    w0[3] = block[ 3];
-    w1[0] = block[ 4];
-    w1[1] = block[ 5];
-    w1[2] = block[ 6];
-    w1[3] = block[ 7];
-    w2[0] = block[ 8];
-    w2[1] = block[ 9];
+    w0[0] = block[0];
+    w0[1] = block[1];
+    w0[2] = block[2];
+    w0[3] = block[3];
+    w1[0] = block[4];
+    w1[1] = block[5];
+    w1[2] = block[6];
+    w1[3] = block[7];
+    w2[0] = block[8];
+    w2[1] = block[9];
     w2[2] = block[10];
     w2[3] = block[11];
     w3[0] = block[12];
@@ -241,39 +260,39 @@ void md5_complete_no_limit (u32 digest[4], u32 *plain, u32 plain_len)
     MD5_STEP (MD5_Go, c, d, a, b, w1[3], MD5C1e, MD5S12);
     MD5_STEP (MD5_Go, b, c, d, a, w3[0], MD5C1f, MD5S13);
 
-    MD5_STEP (MD5_H , a, b, c, d, w1[1], MD5C20, MD5S20);
-    MD5_STEP (MD5_H , d, a, b, c, w2[0], MD5C21, MD5S21);
-    MD5_STEP (MD5_H , c, d, a, b, w2[3], MD5C22, MD5S22);
-    MD5_STEP (MD5_H , b, c, d, a, w3[2], MD5C23, MD5S23);
-    MD5_STEP (MD5_H , a, b, c, d, w0[1], MD5C24, MD5S20);
-    MD5_STEP (MD5_H , d, a, b, c, w1[0], MD5C25, MD5S21);
-    MD5_STEP (MD5_H , c, d, a, b, w1[3], MD5C26, MD5S22);
-    MD5_STEP (MD5_H , b, c, d, a, w2[2], MD5C27, MD5S23);
-    MD5_STEP (MD5_H , a, b, c, d, w3[1], MD5C28, MD5S20);
-    MD5_STEP (MD5_H , d, a, b, c, w0[0], MD5C29, MD5S21);
-    MD5_STEP (MD5_H , c, d, a, b, w0[3], MD5C2a, MD5S22);
-    MD5_STEP (MD5_H , b, c, d, a, w1[2], MD5C2b, MD5S23);
-    MD5_STEP (MD5_H , a, b, c, d, w2[1], MD5C2c, MD5S20);
-    MD5_STEP (MD5_H , d, a, b, c, w3[0], MD5C2d, MD5S21);
-    MD5_STEP (MD5_H , c, d, a, b, w3[3], MD5C2e, MD5S22);
-    MD5_STEP (MD5_H , b, c, d, a, w0[2], MD5C2f, MD5S23);
+    MD5_STEP (MD5_H, a, b, c, d, w1[1], MD5C20, MD5S20);
+    MD5_STEP (MD5_H, d, a, b, c, w2[0], MD5C21, MD5S21);
+    MD5_STEP (MD5_H, c, d, a, b, w2[3], MD5C22, MD5S22);
+    MD5_STEP (MD5_H, b, c, d, a, w3[2], MD5C23, MD5S23);
+    MD5_STEP (MD5_H, a, b, c, d, w0[1], MD5C24, MD5S20);
+    MD5_STEP (MD5_H, d, a, b, c, w1[0], MD5C25, MD5S21);
+    MD5_STEP (MD5_H, c, d, a, b, w1[3], MD5C26, MD5S22);
+    MD5_STEP (MD5_H, b, c, d, a, w2[2], MD5C27, MD5S23);
+    MD5_STEP (MD5_H, a, b, c, d, w3[1], MD5C28, MD5S20);
+    MD5_STEP (MD5_H, d, a, b, c, w0[0], MD5C29, MD5S21);
+    MD5_STEP (MD5_H, c, d, a, b, w0[3], MD5C2a, MD5S22);
+    MD5_STEP (MD5_H, b, c, d, a, w1[2], MD5C2b, MD5S23);
+    MD5_STEP (MD5_H, a, b, c, d, w2[1], MD5C2c, MD5S20);
+    MD5_STEP (MD5_H, d, a, b, c, w3[0], MD5C2d, MD5S21);
+    MD5_STEP (MD5_H, c, d, a, b, w3[3], MD5C2e, MD5S22);
+    MD5_STEP (MD5_H, b, c, d, a, w0[2], MD5C2f, MD5S23);
 
-    MD5_STEP (MD5_I , a, b, c, d, w0[0], MD5C30, MD5S30);
-    MD5_STEP (MD5_I , d, a, b, c, w1[3], MD5C31, MD5S31);
-    MD5_STEP (MD5_I , c, d, a, b, w3[2], MD5C32, MD5S32);
-    MD5_STEP (MD5_I , b, c, d, a, w1[1], MD5C33, MD5S33);
-    MD5_STEP (MD5_I , a, b, c, d, w3[0], MD5C34, MD5S30);
-    MD5_STEP (MD5_I , d, a, b, c, w0[3], MD5C35, MD5S31);
-    MD5_STEP (MD5_I , c, d, a, b, w2[2], MD5C36, MD5S32);
-    MD5_STEP (MD5_I , b, c, d, a, w0[1], MD5C37, MD5S33);
-    MD5_STEP (MD5_I , a, b, c, d, w2[0], MD5C38, MD5S30);
-    MD5_STEP (MD5_I , d, a, b, c, w3[3], MD5C39, MD5S31);
-    MD5_STEP (MD5_I , c, d, a, b, w1[2], MD5C3a, MD5S32);
-    MD5_STEP (MD5_I , b, c, d, a, w3[1], MD5C3b, MD5S33);
-    MD5_STEP (MD5_I , a, b, c, d, w1[0], MD5C3c, MD5S30);
-    MD5_STEP (MD5_I , d, a, b, c, w2[3], MD5C3d, MD5S31);
-    MD5_STEP (MD5_I , c, d, a, b, w0[2], MD5C3e, MD5S32);
-    MD5_STEP (MD5_I , b, c, d, a, w2[1], MD5C3f, MD5S33);
+    MD5_STEP (MD5_I, a, b, c, d, w0[0], MD5C30, MD5S30);
+    MD5_STEP (MD5_I, d, a, b, c, w1[3], MD5C31, MD5S31);
+    MD5_STEP (MD5_I, c, d, a, b, w3[2], MD5C32, MD5S32);
+    MD5_STEP (MD5_I, b, c, d, a, w1[1], MD5C33, MD5S33);
+    MD5_STEP (MD5_I, a, b, c, d, w3[0], MD5C34, MD5S30);
+    MD5_STEP (MD5_I, d, a, b, c, w0[3], MD5C35, MD5S31);
+    MD5_STEP (MD5_I, c, d, a, b, w2[2], MD5C36, MD5S32);
+    MD5_STEP (MD5_I, b, c, d, a, w0[1], MD5C37, MD5S33);
+    MD5_STEP (MD5_I, a, b, c, d, w2[0], MD5C38, MD5S30);
+    MD5_STEP (MD5_I, d, a, b, c, w3[3], MD5C39, MD5S31);
+    MD5_STEP (MD5_I, c, d, a, b, w1[2], MD5C3a, MD5S32);
+    MD5_STEP (MD5_I, b, c, d, a, w3[1], MD5C3b, MD5S33);
+    MD5_STEP (MD5_I, a, b, c, d, w1[0], MD5C3c, MD5S30);
+    MD5_STEP (MD5_I, d, a, b, c, w2[3], MD5C3d, MD5S31);
+    MD5_STEP (MD5_I, c, d, a, b, w0[2], MD5C3e, MD5S32);
+    MD5_STEP (MD5_I, b, c, d, a, w2[1], MD5C3f, MD5S33);
 
     remaining_len -= block_total_len;
 

@@ -8,7 +8,7 @@
 #include "thread.h"
 #include "event.h"
 
-void event_call (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
+void event_call (const u32 id, hashcat_ctx_t * hashcat_ctx, const void *buf, const size_t len)
 {
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
 
@@ -16,10 +16,18 @@ void event_call (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, cons
 
   switch (id)
   {
-    case EVENT_LOG_INFO:    is_log = true; break;
-    case EVENT_LOG_WARNING: is_log = true; break;
-    case EVENT_LOG_ERROR:   is_log = true; break;
-    case EVENT_LOG_ADVICE:  is_log = true; break;
+  case EVENT_LOG_INFO:
+    is_log = true;
+    break;
+  case EVENT_LOG_WARNING:
+    is_log = true;
+    break;
+  case EVENT_LOG_ERROR:
+    is_log = true;
+    break;
+  case EVENT_LOG_ADVICE:
+    is_log = true;
+    break;
   }
 
   if (is_log == false)
@@ -63,7 +71,7 @@ void event_call (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, cons
 }
 
 __attribute__ ((format (printf, 1, 0)))
-static int event_log (const char *fmt, va_list ap, char *s, const size_t sz)
+     static int event_log (const char *fmt, va_list ap, char *s, const size_t sz)
 {
   size_t length;
 
@@ -75,7 +83,7 @@ static int event_log (const char *fmt, va_list ap, char *s, const size_t sz)
   return (int) length;
 }
 
-size_t event_log_advice_nn (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
+size_t event_log_advice_nn (hashcat_ctx_t * hashcat_ctx, const char *fmt, ...)
 {
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
 
@@ -103,7 +111,7 @@ size_t event_log_advice_nn (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
   return event_ctx->msg_len;
 }
 
-size_t event_log_info_nn (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
+size_t event_log_info_nn (hashcat_ctx_t * hashcat_ctx, const char *fmt, ...)
 {
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
 
@@ -131,7 +139,7 @@ size_t event_log_info_nn (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
   return event_ctx->msg_len;
 }
 
-size_t event_log_warning_nn (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
+size_t event_log_warning_nn (hashcat_ctx_t * hashcat_ctx, const char *fmt, ...)
 {
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
 
@@ -159,7 +167,7 @@ size_t event_log_warning_nn (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
   return event_ctx->msg_len;
 }
 
-size_t event_log_error_nn (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
+size_t event_log_error_nn (hashcat_ctx_t * hashcat_ctx, const char *fmt, ...)
 {
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
 
@@ -187,7 +195,7 @@ size_t event_log_error_nn (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
   return event_ctx->msg_len;
 }
 
-size_t event_log_advice (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
+size_t event_log_advice (hashcat_ctx_t * hashcat_ctx, const char *fmt, ...)
 {
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
 
@@ -215,7 +223,7 @@ size_t event_log_advice (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
   return event_ctx->msg_len;
 }
 
-size_t event_log_info (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
+size_t event_log_info (hashcat_ctx_t * hashcat_ctx, const char *fmt, ...)
 {
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
 
@@ -243,7 +251,7 @@ size_t event_log_info (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
   return event_ctx->msg_len;
 }
 
-size_t event_log_warning (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
+size_t event_log_warning (hashcat_ctx_t * hashcat_ctx, const char *fmt, ...)
 {
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
 
@@ -271,7 +279,7 @@ size_t event_log_warning (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
   return event_ctx->msg_len;
 }
 
-size_t event_log_error (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
+size_t event_log_error (hashcat_ctx_t * hashcat_ctx, const char *fmt, ...)
 {
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
 
@@ -299,7 +307,7 @@ size_t event_log_error (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
   return event_ctx->msg_len;
 }
 
-int event_ctx_init (hashcat_ctx_t *hashcat_ctx)
+int event_ctx_init (hashcat_ctx_t * hashcat_ctx)
 {
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
 
@@ -310,7 +318,7 @@ int event_ctx_init (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-void event_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
+void event_ctx_destroy (hashcat_ctx_t * hashcat_ctx)
 {
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
 

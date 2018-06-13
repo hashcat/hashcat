@@ -10,6 +10,7 @@
 #include <string.h>
 
 void usage_mini_print (const char *progname);
-void usage_big_print  (const char *progname);
+
+void usage_big_print (const char *progname);
 
 #endif // _USAGE_H

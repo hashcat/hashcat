@@ -15,7 +15,9 @@ static inline int get_msb32 (const u32 v)
 {
   int i;
 
-  for (i = 32; i > 0; i--) if ((v >> (i - 1)) & 1) break;
+  for (i = 32; i > 0; i--)
+    if ((v >> (i - 1)) & 1)
+      break;
 
   return i;
 }
@@ -24,7 +26,9 @@ static inline int get_msb64 (const u64 v)
 {
   int i;
 
-  for (i = 64; i > 0; i--) if ((v >> (i - 1)) & 1) break;
+  for (i = 64; i > 0; i--)
+    if ((v >> (i - 1)) & 1)
+      break;
 
   return i;
 }
@@ -32,6 +36,7 @@ static inline int get_msb64 (const u64 v)
 bool overflow_check_u32_add (const u32 a, const u32 b)
 {
   const int a_msb = get_msb32 (a);
+
   const int b_msb = get_msb32 (b);
 
   return ((a_msb < 32) && (b_msb < 32));
@@ -40,6 +45,7 @@ bool overflow_check_u32_add (const u32 a, const u32 b)
 bool overflow_check_u32_mul (const u32 a, const u32 b)
 {
   const int a_msb = get_msb32 (a);
+
   const int b_msb = get_msb32 (b);
 
   return ((a_msb + b_msb) < 32);
@@ -48,6 +54,7 @@ bool overflow_check_u32_mul (const u32 a, const u32 b)
 bool overflow_check_u64_add (const u64 a, const u64 b)
 {
   const int a_msb = get_msb64 (a);
+
   const int b_msb = get_msb64 (b);
 
   return ((a_msb < 64) && (b_msb < 64));
@@ -56,6 +63,7 @@ bool overflow_check_u64_add (const u64 a, const u64 b)
 bool overflow_check_u64_mul (const u64 a, const u64 b)
 {
   const int a_msb = get_msb64 (a);
+
   const int b_msb = get_msb64 (b);
 
   return ((a_msb + b_msb) < 64);
@@ -70,7 +78,8 @@ u32 mydivc32 (const u32 dividend, const u32 divisor)
 {
   u32 quotient = dividend / divisor;
 
-  if (dividend % divisor) quotient++;
+  if (dividend % divisor)
+    quotient++;
 
   return quotient;
 }
@@ -79,7 +88,8 @@ u64 mydivc64 (const u64 dividend, const u64 divisor)
 {
   u64 quotient = dividend / divisor;
 
-  if (dividend % divisor) quotient++;
+  if (dividend % divisor)
+    quotient++;
 
   return quotient;
 }
@@ -138,7 +148,8 @@ void naive_escape (char *s, size_t s_max, const char key_char, const char escape
       out++;
     }
 
-    if (out == s_escaped_max - 2) break;
+    if (out == s_escaped_max - 2)
+      break;
 
     s_escaped[out] = c;
   }
@@ -149,8 +160,10 @@ void naive_escape (char *s, size_t s_max, const char key_char, const char escape
 void hc_asprintf (char **strp, const char *fmt, ...)
 {
   va_list args;
+
   va_start (args, fmt);
-  int rc __attribute__((unused));
+  int rc __attribute__ ((unused));
+
   rc = vasprintf (strp, fmt, args);
   va_end (args);
 }
@@ -187,7 +200,8 @@ void *hc_bsearch_r (const void *key, const void *base, size_t nmemb, size_t size
       r--;
     }
 
-    if (cmp == 0) return ((void *) next);
+    if (cmp == 0)
+      return ((void *) next);
   }
 
   return (NULL);
@@ -197,9 +211,11 @@ bool hc_path_is_file (const char *path)
 {
   struct stat s;
 
-  if (stat (path, &s) == -1) return false;
+  if (stat (path, &s) == -1)
+    return false;
 
-  if (S_ISREG (s.st_mode)) return true;
+  if (S_ISREG (s.st_mode))
+    return true;
 
   return false;
 }
@@ -208,9 +224,11 @@ bool hc_path_is_directory (const char *path)
 {
   struct stat s;
 
-  if (stat (path, &s) == -1) return false;
+  if (stat (path, &s) == -1)
+    return false;
 
-  if (S_ISDIR (s.st_mode)) return true;
+  if (S_ISDIR (s.st_mode))
+    return true;
 
   return false;
 }
@@ -219,41 +237,48 @@ bool hc_path_is_empty (const char *path)
 {
   struct stat s;
 
-  if (stat (path, &s) == -1) return false;
+  if (stat (path, &s) == -1)
+    return false;
 
-  if (s.st_size == 0) return true;
+  if (s.st_size == 0)
+    return true;
 
   return false;
 }
 
 bool hc_path_exist (const char *path)
 {
-  if (access (path, F_OK) == -1) return false;
+  if (access (path, F_OK) == -1)
+    return false;
 
   return true;
 }
 
 bool hc_path_read (const char *path)
 {
-  if (access (path, R_OK) == -1) return false;
+  if (access (path, R_OK) == -1)
+    return false;
 
   return true;
 }
 
 bool hc_path_write (const char *path)
 {
-  if (access (path, W_OK) == -1) return false;
+  if (access (path, W_OK) == -1)
+    return false;
 
   return true;
 }
 
 bool hc_path_create (const char *path)
 {
-  if (hc_path_exist (path) == true) return false;
+  if (hc_path_exist (path) == true)
+    return false;
 
   const int fd = creat (path, S_IRUSR | S_IWUSR);
 
-  if (fd == -1) return false;
+  if (fd == -1)
+    return false;
 
   close (fd);
 
@@ -264,17 +289,20 @@ bool hc_path_create (const char *path)
 
 bool hc_string_is_digit (const char *s)
 {
-  if (s == NULL) return false;
+  if (s == NULL)
+    return false;
 
   const size_t len = strlen (s);
 
-  if (len == 0) return false;
+  if (len == 0)
+    return false;
 
   for (size_t i = 0; i < len; i++)
   {
     const int c = (const int) s[i];
 
-    if (isdigit (c) == 0) return false;
+    if (isdigit (c) == 0)
+      return false;
   }
 
   return true;
@@ -309,9 +337,9 @@ void setup_environment_variables ()
   if (getenv ("POCL_KERNEL_CACHE") == NULL)
     putenv ((char *) "POCL_KERNEL_CACHE=0");
 
-  #if defined (__CYGWIN__)
+#if defined (__CYGWIN__)
   cygwin_internal (CW_SYNC_WINENV);
-  #endif
+#endif
 }
 
 void setup_umask ()
@@ -327,7 +355,7 @@ void setup_seeding (const bool rp_gen_seed_chgd, const u32 rp_gen_seed)
   }
   else
   {
-    const time_t ts = time (NULL); // don't tell me that this is an insecure seed
+    const time_t ts = time (NULL);  // don't tell me that this is an insecure seed
 
     srand ((unsigned int) ts);
   }
@@ -335,21 +363,23 @@ void setup_seeding (const bool rp_gen_seed_chgd, const u32 rp_gen_seed)
 
 u32 get_random_num (const u32 min, const u32 max)
 {
-  if (min == max) return (min);
+  if (min == max)
+    return (min);
 
   const u32 low = max - min;
 
-  if (low == 0) return (0);
+  if (low == 0)
+    return (0);
 
-  #if defined (_WIN)
+#if defined (_WIN)
 
   return (((u32) rand () % (max - min)) + min);
 
-  #else
+#else
 
   return (((u32) random () % (max - min)) + min);
 
-  #endif
+#endif
 }
 
 void hc_string_trim_leading (char *s)
@@ -362,12 +392,14 @@ void hc_string_trim_leading (char *s)
   {
     const int c = (const int) s[i];
 
-    if (isspace (c) == 0) break;
+    if (isspace (c) == 0)
+      break;
 
     skip++;
   }
 
-  if (skip == 0) return;
+  if (skip == 0)
+    return;
 
   const int new_len = len - skip;
 
@@ -386,28 +418,31 @@ void hc_string_trim_trailing (char *s)
   {
     const int c = (const int) s[i];
 
-    if (isspace (c) == 0) break;
+    if (isspace (c) == 0)
+      break;
 
     skip++;
   }
 
-  if (skip == 0) return;
+  if (skip == 0)
+    return;
 
   const size_t new_len = len - skip;
 
   s[new_len] = 0;
 }
 
-size_t hc_fread (void *ptr, size_t size, size_t nmemb, FILE *stream)
+size_t hc_fread (void *ptr, size_t size, size_t nmemb, FILE * stream)
 {
   return fread (ptr, size, nmemb, stream);
 }
 
-void hc_fwrite (const void *ptr, size_t size, size_t nmemb, FILE *stream)
+void hc_fwrite (const void *ptr, size_t size, size_t nmemb, FILE * stream)
 {
   size_t rc = fwrite (ptr, size, nmemb, stream);
 
-  if (rc == 0) rc = 0;
+  if (rc == 0)
+    rc = 0;
 }
 
 bool hc_same_files (char *file1, char *file2)
@@ -415,6 +450,7 @@ bool hc_same_files (char *file1, char *file2)
   if ((file1 != NULL) && (file2 != NULL))
   {
     struct stat tmpstat_file1;
+
     struct stat tmpstat_file2;
 
     int do_check = 0;
@@ -455,37 +491,37 @@ bool hc_same_files (char *file1, char *file2)
 
     if (do_check == 2)
     {
-      tmpstat_file1.st_mode     = 0;
-      tmpstat_file1.st_nlink    = 0;
-      tmpstat_file1.st_uid      = 0;
-      tmpstat_file1.st_gid      = 0;
-      tmpstat_file1.st_rdev     = 0;
-      tmpstat_file1.st_atime    = 0;
+      tmpstat_file1.st_mode = 0;
+      tmpstat_file1.st_nlink = 0;
+      tmpstat_file1.st_uid = 0;
+      tmpstat_file1.st_gid = 0;
+      tmpstat_file1.st_rdev = 0;
+      tmpstat_file1.st_atime = 0;
 
-      #if defined (STAT_NANOSECONDS_ACCESS_TIME)
+#if defined (STAT_NANOSECONDS_ACCESS_TIME)
       tmpstat_file1.STAT_NANOSECONDS_ACCESS_TIME = 0;
-      #endif
+#endif
 
-      #if defined (_POSIX)
-      tmpstat_file1.st_blksize  = 0;
-      tmpstat_file1.st_blocks   = 0;
-      #endif
+#if defined (_POSIX)
+      tmpstat_file1.st_blksize = 0;
+      tmpstat_file1.st_blocks = 0;
+#endif
 
-      tmpstat_file2.st_mode     = 0;
-      tmpstat_file2.st_nlink    = 0;
-      tmpstat_file2.st_uid      = 0;
-      tmpstat_file2.st_gid      = 0;
-      tmpstat_file2.st_rdev     = 0;
-      tmpstat_file2.st_atime    = 0;
+      tmpstat_file2.st_mode = 0;
+      tmpstat_file2.st_nlink = 0;
+      tmpstat_file2.st_uid = 0;
+      tmpstat_file2.st_gid = 0;
+      tmpstat_file2.st_rdev = 0;
+      tmpstat_file2.st_atime = 0;
 
-      #if defined (STAT_NANOSECONDS_ACCESS_TIME)
+#if defined (STAT_NANOSECONDS_ACCESS_TIME)
       tmpstat_file2.STAT_NANOSECONDS_ACCESS_TIME = 0;
-      #endif
+#endif
 
-      #if defined (_POSIX)
-      tmpstat_file2.st_blksize  = 0;
-      tmpstat_file2.st_blocks   = 0;
-      #endif
+#if defined (_POSIX)
+      tmpstat_file2.st_blksize = 0;
+      tmpstat_file2.st_blocks = 0;
+#endif
 
       if (memcmp (&tmpstat_file1, &tmpstat_file2, sizeof (struct stat)) == 0)
       {
@@ -538,22 +574,26 @@ u32 power_of_two_floor_32 (const u32 v)
 
 u32 round_up_multiple_32 (const u32 v, const u32 m)
 {
-  if (m == 0) return v;
+  if (m == 0)
+    return v;
 
   const u32 r = v % m;
 
-  if (r == 0) return v;
+  if (r == 0)
+    return v;
 
   return v + m - r;
 }
 
 u64 round_up_multiple_64 (const u64 v, const u64 m)
 {
-  if (m == 0) return v;
+  if (m == 0)
+    return v;
 
   const u64 r = v % m;
 
-  if (r == 0) return v;
+  if (r == 0)
+    return v;
 
   return v + m - r;
 }

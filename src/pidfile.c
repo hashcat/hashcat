@@ -11,7 +11,7 @@
 #include "shared.h"
 #include "pidfile.h"
 
-static int check_running_process (hashcat_ctx_t *hashcat_ctx)
+static int check_running_process (hashcat_ctx_t * hashcat_ctx)
 {
   pidfile_ctx_t *pidfile_ctx = hashcat_ctx->pidfile_ctx;
 
@@ -19,7 +19,8 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
 
   FILE *fp = fopen (pidfile_filename, "rb");
 
-  if (fp == NULL) return 0;
+  if (fp == NULL)
+    return 0;
 
   pidfile_data_t *pd = (pidfile_data_t *) hcmalloc (sizeof (pidfile_data_t));
 
@@ -38,17 +39,19 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
 
   if (pd->pid)
   {
-    #if defined (_WIN)
+#if defined (_WIN)
 
     HANDLE hProcess = OpenProcess (PROCESS_ALL_ACCESS, FALSE, pd->pid);
 
-    char *pidbin  = (char *) hcmalloc (HCBUFSIZ_LARGE);
+    char *pidbin = (char *) hcmalloc (HCBUFSIZ_LARGE);
+
     char *pidbin2 = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-    int pidbin_len  = GetModuleFileName (NULL, pidbin, HCBUFSIZ_LARGE);
+    int pidbin_len = GetModuleFileName (NULL, pidbin, HCBUFSIZ_LARGE);
+
     int pidbin2_len = GetModuleFileNameEx (hProcess, NULL, pidbin2, HCBUFSIZ_LARGE);
 
-    pidbin[pidbin_len]   = 0;
+    pidbin[pidbin_len] = 0;
     pidbin2[pidbin2_len] = 0;
 
     if (pidbin2_len)
@@ -69,7 +72,7 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
     hcfree (pidbin);
     hcfree (pidbin2);
 
-    #else
+#else
 
     char *pidbin;
 
@@ -88,7 +91,7 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
 
     hcfree (pidbin);
 
-    #endif
+#endif
   }
 
   hcfree (pd);
@@ -96,7 +99,7 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-static int init_pidfile (hashcat_ctx_t *hashcat_ctx)
+static int init_pidfile (hashcat_ctx_t * hashcat_ctx)
 {
   pidfile_ctx_t *pidfile_ctx = hashcat_ctx->pidfile_ctx;
 
@@ -106,18 +109,19 @@ static int init_pidfile (hashcat_ctx_t *hashcat_ctx)
 
   const int rc = check_running_process (hashcat_ctx);
 
-  if (rc == -1) return -1;
+  if (rc == -1)
+    return -1;
 
-  #if defined (_WIN)
+#if defined (_WIN)
   pd->pid = GetCurrentProcessId ();
-  #else
+#else
   pd->pid = getpid ();
-  #endif
+#endif
 
   return 0;
 }
 
-static int write_pidfile (hashcat_ctx_t *hashcat_ctx)
+static int write_pidfile (hashcat_ctx_t * hashcat_ctx)
 {
   const pidfile_ctx_t *pidfile_ctx = hashcat_ctx->pidfile_ctx;
 
@@ -143,11 +147,13 @@ static int write_pidfile (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-int pidfile_ctx_init (hashcat_ctx_t *hashcat_ctx)
+int pidfile_ctx_init (hashcat_ctx_t * hashcat_ctx)
 {
   folder_config_t *folder_config = hashcat_ctx->folder_config;
-  pidfile_ctx_t   *pidfile_ctx   = hashcat_ctx->pidfile_ctx;
-  user_options_t  *user_options  = hashcat_ctx->user_options;
+
+  pidfile_ctx_t *pidfile_ctx = hashcat_ctx->pidfile_ctx;
+
+  user_options_t *user_options = hashcat_ctx->user_options;
 
   hc_asprintf (&pidfile_ctx->filename, "%s/%s.pid", folder_config->session_dir, user_options->session);
 
@@ -155,16 +161,18 @@ int pidfile_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   const int rc_init_pidfile = init_pidfile (hashcat_ctx);
 
-  if (rc_init_pidfile == -1) return -1;
+  if (rc_init_pidfile == -1)
+    return -1;
 
   const int rc = write_pidfile (hashcat_ctx);
 
-  if (rc == 0) pidfile_ctx->pidfile_written = true;
+  if (rc == 0)
+    pidfile_ctx->pidfile_written = true;
 
   return 0;
 }
 
-void pidfile_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
+void pidfile_ctx_destroy (hashcat_ctx_t * hashcat_ctx)
 {
   pidfile_ctx_t *pidfile_ctx = hashcat_ctx->pidfile_ctx;
 
