@@ -1,6 +1,12 @@
 * changes v4.1.0 -> v4.1.1
 
 ##
+## Improvements
+##
+
+- OpenCL Kernels: Abort session if kernel self-test failed
+
+##
 ## Bugs
 ##
 

@@ -727,6 +727,29 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   hcfree (selftest_threads);
 
+  // check for any selftest failures
+
+  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  {
+    if (opencl_ctx->enabled == false) continue;
+
+    if (user_options->self_test_disable == true) continue;
+
+    hc_device_param_t *device_param = opencl_ctx->devices_param + device_id;
+
+    if (device_param->skipped == true) continue;
+
+    if (device_param->st_status == ST_STATUS_FAILED)
+    {
+      event_log_error (hashcat_ctx, "Aborting session due to kernel self-test failure.");
+
+      event_log_warning (hashcat_ctx, "You can use --self-test-disable to override this, but do not report related errors.");
+      event_log_warning (hashcat_ctx, NULL);
+
+      return -1;
+    }
+  }
+
   status_ctx->devices_status = STATUS_INIT;
 
   EVENT (EVENT_SELFTEST_FINISHED);

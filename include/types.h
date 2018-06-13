@@ -155,6 +155,14 @@ typedef enum vendor_id
 
 } vendor_id_t;
 
+typedef enum st_status_rc
+{
+  ST_STATUS_PASSED        = 0,
+  ST_STATUS_FAILED        = 1,
+  ST_STATUS_IGNORED       = 2,
+
+} st_status_t;
+
 typedef enum status_rc
 {
   STATUS_INIT               = 0,
@@ -913,6 +921,8 @@ typedef struct hc_device_param
 
   bool    skipped;
   bool    skipped_temp;
+
+  st_status_t st_status;
 
   u32     sm_major;
   u32     sm_minor;

@@ -519,9 +519,20 @@ void *thread_selftest (void *p)
 
   const int rc_selftest = selftest (hashcat_ctx, device_param);
 
-  if (rc_selftest == -1)
+  if (user_options->benchmark == true)
   {
-    // we should do something here, tell hashcat main that selftest failed to abort
+    device_param->st_status = ST_STATUS_IGNORED;
+  }
+  else
+  {
+    if (rc_selftest == 0)
+    {
+      device_param->st_status = ST_STATUS_PASSED;
+    }
+    else
+    {
+      device_param->st_status = ST_STATUS_FAILED;
+    }
   }
 
   return NULL;
