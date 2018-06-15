@@ -4,7 +4,8 @@
 ## Improvements
 ##
 
-- OpenCL Kernels: Abort session if kernel self-test failed
+- OpenCL kernels: Abort session if kernel self-test failed
+- Added JtR-compatible support for hex notation in rules engine
 
 ##
 ## Bugs
