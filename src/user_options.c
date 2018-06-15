@@ -396,7 +396,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_LOGFILE_DISABLE:          user_options->logfile_disable           = true;                            break;
       case IDX_HCCAPX_MESSAGE_PAIR:      user_options->hccapx_message_pair       = hc_strtoul (optarg, NULL, 10);
                                          user_options->hccapx_message_pair_chgd  = true;                            break;
-      case IDX_NONCE_ERROR_CORRECTIONS:  user_options->nonce_error_corrections   = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_NONCE_ERROR_CORRECTIONS:  user_options->nonce_error_corrections   = hc_strtoul (optarg, NULL, 10);
+                                         user_options->nonce_error_corrections_chgd = true;                         break;
       case IDX_TRUECRYPT_KEYFILES:       user_options->truecrypt_keyfiles        = optarg;                          break;
       case IDX_VERACRYPT_KEYFILES:       user_options->veracrypt_keyfiles        = optarg;                          break;
       case IDX_VERACRYPT_PIM:            user_options->veracrypt_pim             = hc_strtoul (optarg, NULL, 10);   break;

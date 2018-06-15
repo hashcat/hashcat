@@ -194,6 +194,8 @@ typedef struct wpa
   u32  hash[4];
   int  nonce_compare;
   int  nonce_error_corrections;
+  int  detected_le;
+  int  detected_be;
 
 } wpa_t;
 

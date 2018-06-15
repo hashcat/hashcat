@@ -831,7 +831,54 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
                   wpa->message_pair      = (u8)  user_options->hccapx_message_pair;
                 }
 
-                wpa->nonce_error_corrections = user_options->nonce_error_corrections;
+                if (wpa->message_pair & (1 << 4))
+                {
+                  // ap-less attack detected, nc not needed
+
+                  wpa->nonce_error_corrections = 0;
+                }
+                else
+                {
+                  if (wpa->message_pair & (1 << 7))
+                  {
+                    // replaycount not checked, nc needed
+
+                    wpa->nonce_error_corrections = user_options->nonce_error_corrections;
+                  }
+                  else
+                  {
+                    // replaycount checked, nc not needed, but we allow user overwrites
+
+                    if (user_options->nonce_error_corrections_chgd == true)
+                    {
+                      wpa->nonce_error_corrections = user_options->nonce_error_corrections;
+                    }
+                    else
+                    {
+                      wpa->nonce_error_corrections = 0;
+                    }
+                  }
+                }
+
+                // now some optimization related to replay counter endianess
+                // hcxtools has techniques to detect them
+                // since we can not guarantee to get our handshakes from hcxtools we enable both by default
+                // this means that we check both even if both are not set!
+                // however if one of them is set, we can assume that the endianess has been checked and the other one is not needed
+
+                wpa->detected_le = 1;
+                wpa->detected_be = 1;
+
+                if (wpa->message_pair & (1 << 5))
+                {
+                  wpa->detected_le = 1;
+                  wpa->detected_be = 0;
+                }
+                else if (wpa->message_pair & (1 << 6))
+                {
+                  wpa->detected_le = 0;
+                  wpa->detected_be = 1;
+                }
               }
             }
 
@@ -1651,6 +1698,9 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
     hcfree (tmpdata);
 
     wpa_t *wpa = (wpa_t *) st_esalts_buf;
+
+    wpa->detected_le = 1;
+    wpa->detected_be = 0;
 
     wpa->nonce_error_corrections = 3;
   }

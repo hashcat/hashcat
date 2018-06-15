@@ -1581,6 +1581,7 @@ typedef struct user_options
   bool         workload_profile_chgd;
   bool         segment_size_chgd;
   bool         hccapx_message_pair_chgd;
+  bool         nonce_error_corrections_chgd;
 
   bool         advice_disable;
   bool         benchmark;

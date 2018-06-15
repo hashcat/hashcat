@@ -4,6 +4,7 @@
 ## Improvements
 ##
 
+- HCCAPX management: Use advanced hints in message_pair stored by hcxtools about endian bitness of replay counter
 - OpenCL kernels: Abort session if kernel self-test failed
 - Added JtR-compatible support for hex notation in rules engine
 
@@ -12,6 +13,7 @@
 ##
 
 - Fixed a missing kernel in -m 5600 in combination with -a 3 and -O if mask is >= 16 characters
+- Fixed missing code section in -m 2500 and -m 2501 to crack corrupted handshakes with a LE endian bitness base
 
 * changes v4.0.1 -> v4.1.0
 
