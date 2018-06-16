@@ -303,8 +303,10 @@ void setup_environment_variables ()
   if (getenv ("OCL_CODE_CACHE_ENABLE") == NULL)
     putenv ((char *) "OCL_CODE_CACHE_ENABLE=0");
 
+  /*
   if (getenv ("CUDA_CACHE_DISABLE") == NULL)
     putenv ((char *) "CUDA_CACHE_DISABLE=1");
+  */
 
   if (getenv ("POCL_KERNEL_CACHE") == NULL)
     putenv ((char *) "POCL_KERNEL_CACHE=0");
