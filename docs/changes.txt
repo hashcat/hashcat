@@ -1,6 +1,12 @@
 * changes v4.1.0 -> v4.1.1
 
 ##
+## Algorithms
+##
+
+- Added hash-mode 16700 = FileVault 2
+
+##
 ## Improvements
 ##
 

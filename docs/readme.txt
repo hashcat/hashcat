@@ -223,6 +223,7 @@ NVIDIA GPUs require "NVIDIA Driver" (367.x or later)
 - eCryptfs
 - VeraCrypt
 - LUKS
+- FileVault 2
 - MS Office <= 2003
 - MS Office 2007
 - MS Office 2010

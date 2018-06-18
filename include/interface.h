@@ -1350,6 +1350,8 @@ typedef enum display_len
   DISPLAY_LEN_MAX_16500 = 2047 + 1 + 2047 + 1 + 86,
   DISPLAY_LEN_MIN_16600 = 10 + 1 + 1 + 32 + 1 + 32,
   DISPLAY_LEN_MAX_16600 = 10 + 1 + 1 + 32 + 1 + 32,
+  DISPLAY_LEN_MIN_16700 = 1 + 4 + 1 + 1 + 1 + 2 + 1 + 32 + 1 + 1 + 1 + 48,
+  DISPLAY_LEN_MAX_16700 = 1 + 4 + 1 + 1 + 1 + 2 + 1 + 32 + 1 + 6 + 1 + 48,
   DISPLAY_LEN_MIN_99999 = 1,
   DISPLAY_LEN_MAX_99999 = 55,
 
@@ -1956,6 +1958,7 @@ int apple_secure_notes_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int ethereum_presale_parse_hash   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int jwt_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int electrum_wallet13_parse_hash  (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
+int filevault2_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 
 /**
  * hook functions
