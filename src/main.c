@@ -963,7 +963,7 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
 
 int main (int argc, char **argv)
 {
-  // this increases the size on windows dox boxes
+  // this increases the size on windows dos boxes
 
   setup_console ();
 
