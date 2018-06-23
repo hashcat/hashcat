@@ -215,6 +215,18 @@ void exec_hexify (const u8 *buf, const size_t len, u8 *out)
   out[max_len * 2] = 0;
 }
 
+bool is_valid_bf64_string (const u8 *s, const size_t len)
+{
+  for (size_t i = 0; i < len; i++)
+  {
+    const u8 c = s[i];
+
+    if (is_valid_bf64_char (c) == false) return false;
+  }
+
+  return true;
+}
+
 bool is_valid_hex_string (const u8 *s, const size_t len)
 {
   for (size_t i = 0; i < len; i++)
@@ -225,6 +237,18 @@ bool is_valid_hex_string (const u8 *s, const size_t len)
   }
 
   return true;
+}
+
+bool is_valid_bf64_char (const u8 c)
+{
+  if ((c >= '0') && (c <= '9')) return true;
+  if ((c >= 'A') && (c <= 'Z')) return true;
+  if ((c >= 'a') && (c <= 'z')) return true;
+
+  if (c == '.') return true;
+  if (c == '/') return true;
+
+  return false;
 }
 
 bool is_valid_hex_char (const u8 c)

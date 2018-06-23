@@ -685,9 +685,11 @@ typedef enum user_options_map
 
 typedef enum token_attr
 {
-  TOKEN_ATTR_VERIFY_LENGTH  = 1 << 0,
-  TOKEN_ATTR_HEX_ENCODED    = 1 << 1,
-  TOKEN_ATTR_SIGNATURE      = 1 << 2,
+  TOKEN_ATTR_SIGNATURE      = 1 << 0,
+  TOKEN_ATTR_FIXED_LENGTH   = 1 << 1,
+  TOKEN_ATTR_ENCODED_HEX    = 1 << 2,
+  TOKEN_ATTR_ENCODED_BF64   = 1 << 3,
+  TOKEN_ATTR_VERIFY_LENGTH  = 1 << 4,
 
 } token_attr_t;
 
@@ -2087,13 +2089,15 @@ typedef struct token
 {
   int token_cnt;
 
+  u8 *signature;
+
   int sep[MAX_TOKENS];
 
   u8 *buf[MAX_TOKENS];
   int len[MAX_TOKENS];
 
-  int verify_len_min[MAX_TOKENS];
-  int verify_len_max[MAX_TOKENS];
+  int len_min[MAX_TOKENS];
+  int len_max[MAX_TOKENS];
 
   int attr[MAX_TOKENS];
 
