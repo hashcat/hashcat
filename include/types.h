@@ -481,6 +481,8 @@ typedef enum parser_rc
   PARSER_HCCAPX_SIGNATURE    = -31,
   PARSER_HCCAPX_VERSION      = -32,
   PARSER_HCCAPX_MESSAGE_PAIR = -33,
+  PARSER_TOKEN_ENCODING      = -34,
+  PARSER_TOKEN_LENGTH        = -35,
   PARSER_UNKNOWN_ERROR       = -255
 
 } parser_rc_t;
@@ -680,6 +682,14 @@ typedef enum user_options_map
   IDX_WORKLOAD_PROFILE         = 'w'
 
 } user_options_map_t;
+
+typedef enum token_attr
+{
+  TOKEN_ATTR_VERIFY_LENGTH  = 1 << 0,
+  TOKEN_ATTR_HEX_ENCODED    = 1 << 1,
+  TOKEN_ATTR_SIGNATURE      = 1 << 2,
+
+} token_attr_t;
 
 /**
  * structs
@@ -2070,5 +2080,23 @@ typedef struct thread_param
   hashcat_ctx_t *hashcat_ctx;
 
 } thread_param_t;
+
+#define MAX_TOKENS 128
+
+typedef struct token
+{
+  int token_cnt;
+
+  int sep[MAX_TOKENS];
+
+  u8 *buf[MAX_TOKENS];
+  int len[MAX_TOKENS];
+
+  int verify_len_min[MAX_TOKENS];
+  int verify_len_max[MAX_TOKENS];
+
+  int attr[MAX_TOKENS];
+
+} token_t;
 
 #endif // _TYPES_H

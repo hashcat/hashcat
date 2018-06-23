@@ -336,6 +336,8 @@ static const char *PA_030 = "Invalid combination of LUKS hash type and cipher ty
 static const char *PA_031 = "Invalid hccapx signature";
 static const char *PA_032 = "Invalid hccapx version";
 static const char *PA_033 = "Invalid hccapx message pair";
+static const char *PA_034 = "Token encoding exception";
+static const char *PA_035 = "Token length exception";
 static const char *PA_255 = "Unknown error";
 
 static const char *HT_00000 = "MD5";
@@ -2450,6 +2452,48 @@ static void drupal7_encode (const u8 digest[64], u8 buf[43])
  * parser
  */
 
+static int input_tokenizer (u8 *input_buf, int input_len, token_t *token)
+{
+  int len_left = input_len;
+
+  token->buf[0] = input_buf;
+
+  int token_idx;
+
+  for (token_idx = 0; token_idx < token->token_cnt - 1; token_idx++)
+  {
+    u8 *next_pos = (u8 *) strchr ((const char *) token->buf[token_idx], token->sep[token_idx]);
+
+    if (next_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+    u32 len = next_pos - token->buf[token_idx];
+
+    token->len[token_idx] = len;
+
+    token->buf[token_idx + 1] = next_pos + 1; // +1 = seperator
+
+    len_left -= len + 1; // +1 = seperator
+  }
+
+  token->len[token_idx] = len_left;
+
+  for (token_idx = 0; token_idx < token->token_cnt; token_idx++)
+  {
+    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_LENGTH)
+    {
+      if (token->len[token_idx] < token->verify_len_min[token_idx]) return (PARSER_TOKEN_LENGTH);
+      if (token->len[token_idx] > token->verify_len_max[token_idx]) return (PARSER_TOKEN_LENGTH);
+    }
+
+    if (token->attr[token_idx] & TOKEN_ATTR_HEX_ENCODED)
+    {
+      if (is_valid_hex_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
+    }
+  }
+
+  return PARSER_OK;
+}
+
 static u32 parse_and_store_salt (u8 *out, u8 *in, u32 salt_len, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
@@ -3877,16 +3921,27 @@ int descrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
 int md4_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_900) || (input_len > DISPLAY_LEN_MAX_900)) return (PARSER_GLOBAL_LENGTH);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
-  if (is_valid_hex_string (input_buf, 32) == false) return (PARSER_HASH_ENCODING);
+  token_t token;
 
-  digest[0] = hex_to_u32 ((const u8 *) &input_buf[ 0]);
-  digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
-  digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
-  digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
+  token.token_cnt = 1;
+
+  token.verify_len_min[0] = 32;
+  token.verify_len_max[0] = 32;
+  token.attr[0]           = TOKEN_ATTR_VERIFY_LENGTH
+                          | TOKEN_ATTR_HEX_ENCODED;
+
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
+
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+  u8 *hash_pos = token.buf[0];
+
+  digest[0] = hex_to_u32 (hash_pos +  0);
+  digest[1] = hex_to_u32 (hash_pos +  8);
+  digest[2] = hex_to_u32 (hash_pos + 16);
+  digest[3] = hex_to_u32 (hash_pos + 24);
 
   if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
   {
@@ -3901,16 +3956,27 @@ int md4_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED
 
 int md5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_0) || (input_len > DISPLAY_LEN_MAX_0)) return (PARSER_GLOBAL_LENGTH);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
-  if (is_valid_hex_string (input_buf, 32) == false) return (PARSER_HASH_ENCODING);
+  token_t token;
 
-  digest[0] = hex_to_u32 ((const u8 *) &input_buf[ 0]);
-  digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
-  digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
-  digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
+  token.token_cnt = 1;
+
+  token.verify_len_min[0] = 32;
+  token.verify_len_max[0] = 32;
+  token.attr[0]           = TOKEN_ATTR_VERIFY_LENGTH
+                          | TOKEN_ATTR_HEX_ENCODED;
+
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
+
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+  u8 *hash_pos = token.buf[0];
+
+  digest[0] = hex_to_u32 (hash_pos +  0);
+  digest[1] = hex_to_u32 (hash_pos +  8);
+  digest[2] = hex_to_u32 (hash_pos + 16);
+  digest[3] = hex_to_u32 (hash_pos + 24);
 
   if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
   {
@@ -3941,25 +4007,43 @@ int md5half_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
 int md5s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
-  {
-    if ((input_len < DISPLAY_LEN_MIN_10H) || (input_len > DISPLAY_LEN_MAX_10H)) return (PARSER_GLOBAL_LENGTH);
-  }
-  else
-  {
-    if ((input_len < DISPLAY_LEN_MIN_10) || (input_len > DISPLAY_LEN_MAX_10)) return (PARSER_GLOBAL_LENGTH);
-  }
-
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
-  if (is_valid_hex_string (input_buf, 32) == false) return (PARSER_HASH_ENCODING);
+  token_t token;
 
-  digest[0] = hex_to_u32 ((const u8 *) &input_buf[ 0]);
-  digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
-  digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
-  digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
+  token.token_cnt = 2;
+
+  token.sep[0]            = hashconfig->separator;
+  token.verify_len_min[0] = 32;
+  token.verify_len_max[0] = 32;
+  token.attr[0]           = TOKEN_ATTR_VERIFY_LENGTH
+                          | TOKEN_ATTR_HEX_ENCODED;
+  token.sep[1]            = 0;
+  token.verify_len_min[1] = 0;
+  token.verify_len_max[1] = 256;
+  token.attr[1]           = TOKEN_ATTR_VERIFY_LENGTH;
+
+  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
+  {
+    token.verify_len_min[1] = 0;
+    token.verify_len_max[1] = 512;
+
+    token.attr[1] |= TOKEN_ATTR_HEX_ENCODED;
+  }
+
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
+
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+  u8 *hash_pos = token.buf[0];
+  u8 *salt_pos = token.buf[1];
+
+  digest[0] = hex_to_u32 (hash_pos +  0);
+  digest[1] = hex_to_u32 (hash_pos +  8);
+  digest[2] = hex_to_u32 (hash_pos + 16);
+  digest[3] = hex_to_u32 (hash_pos + 24);
 
   if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
   {
@@ -3969,15 +4053,7 @@ int md5s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
     digest[3] -= MD5M_D;
   }
 
-  if (input_buf[32] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
-
-  u32 salt_len = input_len - 32 - 1;
-
-  u8 *salt_buf = input_buf + 32 + 1;
-
-  u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
-
-  salt_len = parse_and_store_salt (salt_buf_ptr, salt_buf, salt_len, hashconfig);
+  u32 salt_len = parse_and_store_salt ((u8 *) salt->salt_buf, salt_pos, token.len[1], hashconfig);
 
   if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
 
@@ -3989,7 +4065,7 @@ int md5s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   {
     // precompute md5 of the salt
 
-    precompute_salt_md5 (salt_buf_ptr, salt_len, (u8 *) salt->salt_buf_pc);
+    precompute_salt_md5 ((u8 *) salt->salt_buf, salt_len, (u8 *) salt->salt_buf_pc);
   }
 
   return (PARSER_OK);
@@ -17088,6 +17164,8 @@ const char *strparser (const u32 parser_status)
     case PARSER_HCCAPX_SIGNATURE:     return PA_031;
     case PARSER_HCCAPX_VERSION:       return PA_032;
     case PARSER_HCCAPX_MESSAGE_PAIR:  return PA_033;
+    case PARSER_TOKEN_ENCODING:       return PA_034;
+    case PARSER_TOKEN_LENGTH:         return PA_035;
   }
 
   return PA_255;
