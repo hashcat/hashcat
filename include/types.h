@@ -688,7 +688,7 @@ typedef enum token_attr
   TOKEN_ATTR_SIGNATURE      = 1 << 0,
   TOKEN_ATTR_FIXED_LENGTH   = 1 << 1,
   TOKEN_ATTR_ENCODED_HEX    = 1 << 2,
-  TOKEN_ATTR_ENCODED_BF64   = 1 << 3,
+  TOKEN_ATTR_ENCODED_BASE64 = 1 << 3,
   TOKEN_ATTR_VERIFY_LENGTH  = 1 << 4,
 
 } token_attr_t;

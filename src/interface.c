@@ -2503,9 +2503,9 @@ static int input_tokenizer (u8 *input_buf, int input_len, token_t *token)
       if (token->len[token_idx] > token->len_max[token_idx]) return (PARSER_TOKEN_LENGTH);
     }
 
-    if (token->attr[token_idx] & TOKEN_ATTR_ENCODED_BF64)
+    if (token->attr[token_idx] & TOKEN_ATTR_ENCODED_BASE64)
     {
-      if (is_valid_bf64_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
+      if (is_valid_base64_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
     }
 
     if (token->attr[token_idx] & TOKEN_ATTR_ENCODED_HEX)
@@ -2686,11 +2686,11 @@ int bcrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
   token.len[2]      = 22;
   token.attr[2]     = TOKEN_ATTR_FIXED_LENGTH
-                    | TOKEN_ATTR_ENCODED_BF64;
+                    | TOKEN_ATTR_ENCODED_BASE64;
 
   token.len[3]      = 31;
   token.attr[3]     = TOKEN_ATTR_FIXED_LENGTH
-                    | TOKEN_ATTR_ENCODED_BF64;
+                    | TOKEN_ATTR_ENCODED_BASE64;
 
   const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
@@ -2741,13 +2741,27 @@ int bcrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
 int cisco4_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_5700) || (input_len > DISPLAY_LEN_MAX_5700)) return (PARSER_GLOBAL_LENGTH);
-
   u32 *digest = (u32 *) hash_buf->digest;
+
+  token_t token;
+
+  token.token_cnt   = 1;
+
+  token.len_min[0]  = 43;
+  token.len_max[0]  = 43;
+  token.attr[0]     = TOKEN_ATTR_VERIFY_LENGTH
+                    | TOKEN_ATTR_ENCODED_BASE64;
+
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
+
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+  u8 *hash_pos = token.buf[0];
+  int hash_len = token.len[0];
 
   u8 tmp_buf[100] = { 0 };
 
-  base64_decode (itoa64_to_int, (const u8 *) input_buf, 43, tmp_buf);
+  base64_decode (itoa64_to_int, (const u8 *) hash_pos, hash_len, tmp_buf);
 
   memcpy (digest, tmp_buf, 32);
 
@@ -2777,21 +2791,31 @@ int cisco4_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
 int lm_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_3000) || (input_len > DISPLAY_LEN_MAX_3000)) return (PARSER_GLOBAL_LENGTH);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
-  if (is_valid_hex_string (input_buf, 16) == false) return (PARSER_HASH_ENCODING);
+  token_t token;
 
-  digest[0] = hex_to_u32 ((const u8 *) &input_buf[ 0]);
-  digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
+  token.token_cnt   = 1;
+
+  token.len_min[0]  = 16;
+  token.len_max[0]  = 16;
+  token.attr[0]     = TOKEN_ATTR_VERIFY_LENGTH
+                    | TOKEN_ATTR_ENCODED_HEX;
+
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
+
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+  u8 *hash_pos = token.buf[0];
+
+  digest[0] = hex_to_u32 (hash_pos + 0);
+  digest[1] = hex_to_u32 (hash_pos + 8);
+  digest[2] = 0;
+  digest[3] = 0;
 
   u32 tt;
 
   IP (digest[0], digest[1], tt);
-
-  digest[2] = 0;
-  digest[3] = 0;
 
   return (PARSER_OK);
 }
