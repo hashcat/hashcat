@@ -18,6 +18,8 @@ bool is_valid_base64_string (const u8 *s, const size_t len);
 bool is_valid_base64_char   (const u8 c);
 bool is_valid_hex_string    (const u8 *s, const size_t len);
 bool is_valid_hex_char      (const u8 c);
+bool is_valid_digit_string  (const u8 *s, const size_t len);
+bool is_valid_digit_char    (const u8 c);
 
 u8 hex_convert (const u8 c);
 
