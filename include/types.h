@@ -2090,7 +2090,7 @@ typedef struct token
 {
   int token_cnt;
 
-  u8 *signature;
+  const char *signature;
 
   int sep[MAX_TOKENS];
 
