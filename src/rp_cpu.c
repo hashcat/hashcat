@@ -500,7 +500,7 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
   {
     if (is_hex_notation (rule_new, rule_len, rule_pos))
     {
-      const u8 c = hex_to_u8 (rule_new + rule_pos + 2);
+      const u8 c = hex_to_u8 ((u8 *)rule_new + rule_pos + 2);
 
       rule_new[rule_pos + 0] = c;
       rule_new[rule_pos + 1] = ' ';
