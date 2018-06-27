@@ -14,12 +14,14 @@ size_t exec_unhexify (const u8 *in_buf, const size_t in_len, u8 *out_buf, const 
 bool need_hexify (const u8 *buf, const size_t len, const char separator, bool always_ascii);
 void exec_hexify (const u8 *buf, const size_t len, u8 *out);
 
-bool is_valid_base64_string (const u8 *s, const size_t len);
-bool is_valid_base64_char   (const u8 c);
-bool is_valid_hex_string    (const u8 *s, const size_t len);
-bool is_valid_hex_char      (const u8 c);
-bool is_valid_digit_string  (const u8 *s, const size_t len);
-bool is_valid_digit_char    (const u8 c);
+bool is_valid_base64a_string  (const u8 *s, const size_t len);
+bool is_valid_base64a_char    (const u8 c);
+bool is_valid_base64b_string  (const u8 *s, const size_t len);
+bool is_valid_base64b_char    (const u8 c);
+bool is_valid_hex_string      (const u8 *s, const size_t len);
+bool is_valid_hex_char        (const u8 c);
+bool is_valid_digit_string    (const u8 *s, const size_t len);
+bool is_valid_digit_char      (const u8 c);
 
 u8 hex_convert (const u8 c);
 
