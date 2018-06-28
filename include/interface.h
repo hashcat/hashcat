@@ -1072,8 +1072,6 @@ typedef enum display_len
   DISPLAY_LEN_MAX_1450  = 64 + 1 + SALT_MAX,
   DISPLAY_LEN_MIN_1450H = 64 + 1 + 0,
   DISPLAY_LEN_MAX_1450H = 64 + 1 + (SALT_MAX * 2),
-  DISPLAY_LEN_MIN_1500  = 13,
-  DISPLAY_LEN_MAX_1500  = 13,
   DISPLAY_LEN_MIN_1700  = 128,
   DISPLAY_LEN_MAX_1700  = 128,
   DISPLAY_LEN_MIN_1710  = 128 + 1 + 0,
@@ -1094,10 +1092,6 @@ typedef enum display_len
   DISPLAY_LEN_MAX_1750H = 128 + 1 + (SALT_MAX * 2),
   DISPLAY_LEN_MIN_1800  = 90 + 0,
   DISPLAY_LEN_MAX_1800  = 90 + 16,
-  DISPLAY_LEN_MIN_2400  = 16,
-  DISPLAY_LEN_MAX_2400  = 16,
-  DISPLAY_LEN_MIN_2410  = 16 + 1 + 1,
-  DISPLAY_LEN_MAX_2410  = 16 + 1 + 4,
   DISPLAY_LEN_MIN_2600  = 32,
   DISPLAY_LEN_MAX_2600  = 32,
   DISPLAY_LEN_MIN_3000  = 16,
@@ -1122,10 +1116,6 @@ typedef enum display_len
   DISPLAY_LEN_MAX_5300  = 1024,
   DISPLAY_LEN_MIN_5400  = 56,
   DISPLAY_LEN_MAX_5400  = 1024,
-  DISPLAY_LEN_MIN_5500  =  1 + 1 + 0 +  1 +  1 +  1 +  0 +  1 + 48 + 1 + 16,
-  DISPLAY_LEN_MAX_5500  = 60 + 1 + 0 +  1 + 45 +  1 + 48 +  1 + 48 + 1 + 16,
-  DISPLAY_LEN_MIN_5600  =  1 + 1 + 0 +  1 +  1 +  1 + 16 +  1 + 32 + 1 + 1,
-  DISPLAY_LEN_MAX_5600  = 60 + 1 + 0 +  1 + 45 +  1 + 16 +  1 + 32 + 1 + 1024,
   DISPLAY_LEN_MIN_5700  = 43,
   DISPLAY_LEN_MAX_5700  = 43,
   DISPLAY_LEN_MIN_5800  = 40 + 1 + 1,
@@ -1333,8 +1323,6 @@ typedef enum display_len
   DISPLAY_LEN_MIN_99999 = 1,
   DISPLAY_LEN_MAX_99999 = 55,
 
-  DISPLAY_LEN_MIN_11    = 32 + 1 + 0,
-  DISPLAY_LEN_MAX_11    = 32 + 1 + SALT_MAX,
   DISPLAY_LEN_MIN_12    = 32 + 1 + 0,
   DISPLAY_LEN_MAX_12    = 32 + 1 + 32,
   DISPLAY_LEN_MIN_23    = 32 + 1 + 0,
@@ -1750,7 +1738,6 @@ int descrypt_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int des_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int episerver_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int ipb2_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int joomla_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int postgresql_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int netscreen_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int keccak_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
