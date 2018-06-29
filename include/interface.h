@@ -1028,12 +1028,6 @@ typedef enum display_len
   DISPLAY_LEN_MAX_50    = 32 + 1 + SALT_MAX,
   DISPLAY_LEN_MIN_50H   = 32 + 1 + 0,
   DISPLAY_LEN_MAX_50H   = 32 + 1 + (SALT_MAX * 2),
-  DISPLAY_LEN_MIN_100   = 40,
-  DISPLAY_LEN_MAX_100   = 40,
-  DISPLAY_LEN_MIN_110   = 40 + 1 + 0,
-  DISPLAY_LEN_MAX_110   = 40 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_110H  = 40 + 1 + 0,
-  DISPLAY_LEN_MAX_110H  = 40 + 1 + (SALT_MAX * 2),
   DISPLAY_LEN_MIN_120   = 40 + 1 + 0,
   DISPLAY_LEN_MAX_120   = 40 + 1 + SALT_MAX,
   DISPLAY_LEN_MIN_120H  = 40 + 1 + 0,
@@ -1052,8 +1046,6 @@ typedef enum display_len
   DISPLAY_LEN_MAX_600   = 8 + 128,
   DISPLAY_LEN_MIN_1000  = 32,
   DISPLAY_LEN_MAX_1000  = 32,
-  DISPLAY_LEN_MIN_1100  = 32 + 1 + 0,
-  DISPLAY_LEN_MAX_1100  = 32 + 1 + SALT_MAX,
   DISPLAY_LEN_MIN_1300  = 56,
   DISPLAY_LEN_MAX_1300  = 56,
   DISPLAY_LEN_MIN_1400  = 64,
@@ -1102,10 +1094,6 @@ typedef enum display_len
   DISPLAY_LEN_MAX_4300  = 32,
   DISPLAY_LEN_MIN_4500  = 40,
   DISPLAY_LEN_MAX_4500  = 40,
-  DISPLAY_LEN_MIN_4520  = 40 + 1 + 0,
-  DISPLAY_LEN_MAX_4520  = 40 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_4520H = 40 + 1 + 0,
-  DISPLAY_LEN_MAX_4520H = 40 + 1 + (SALT_MAX * 2),
   DISPLAY_LEN_MIN_4800  = 32 + 1 + 32 + 1 + 2,
   DISPLAY_LEN_MAX_4800  = 32 + 1 + 32 + 1 + 2,
   DISPLAY_LEN_MIN_5000  = 16,
@@ -1268,8 +1256,6 @@ typedef enum display_len
   DISPLAY_LEN_MAX_13100 =  1 + 7 + 1 + 2 + 1 + 2 + 512 + 1 + 32 + 1 + 20480,
   DISPLAY_LEN_MIN_13200 =  1 + 7 + 1 + 1 + 1 + 1 + 1 + 1 + 32 + 1 + 48,
   DISPLAY_LEN_MAX_13200 =  1 + 7 + 1 + 1 + 1 + 1 + 50 + 1 + 32 + 1 + 48 + 1 + 20480,
-  DISPLAY_LEN_MIN_13300 =  1 + 12 + 1 + 32,
-  DISPLAY_LEN_MAX_13300 =  1 + 12 + 1 + 40,
   DISPLAY_LEN_MIN_13400 =  1 + 7 + 1 + 1 + 1 + 1 + 1 + 1 + 32 + 1 + 64 + 1 + 32 + 1 + 64 + 1 + 1 + 1 + 1,
   DISPLAY_LEN_MAX_13400 =  1 + 7 + 1 + 1 + 10 + 1 + 3 + 1 + 64 + 1 + 64 + 1 + 32 + 1 + 64 + 1 + 4 + 1 + 600000 + 1 + 2 + 1 + 64,
   DISPLAY_LEN_MIN_13500 = 40 + 1 + 32,
@@ -1351,12 +1337,8 @@ typedef enum display_len
   DISPLAY_LEN_MAX_1711  =  9 + 86 + 68,
   DISPLAY_LEN_MIN_1731  = 128 + 6 + 0,
   DISPLAY_LEN_MAX_1731  = 128 + 6 + 16,
-  DISPLAY_LEN_MIN_2611  = 32 + 1 + 0,
-  DISPLAY_LEN_MAX_2611  = 32 + 1 + SALT_MAX,
   DISPLAY_LEN_MIN_2612  = 6 +        0 + 1 + 32,
   DISPLAY_LEN_MAX_2612  = 6 + SALT_MAX + 1 + 32,
-  DISPLAY_LEN_MIN_2711  = 32 + 1 + 23,
-  DISPLAY_LEN_MAX_2711  = 32 + 1 + 31,
   DISPLAY_LEN_MIN_2811  = 32 + 1 + 0,
   DISPLAY_LEN_MAX_2811  = 32 + 1 + SALT_MAX,
   DISPLAY_LEN_MIN_3711  = 3 +  0 + 1 + 32,
@@ -1732,12 +1714,10 @@ typedef enum rounds_count
 
 int bcrypt_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int cisco4_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int dcc_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int dcc2_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int descrypt_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int des_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int episerver_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int ipb2_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int postgresql_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int netscreen_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int keccak_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
@@ -1745,6 +1725,7 @@ int blake2b_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int chacha20_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int lm_parse_hash                 (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int md4_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
+int md4s_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int md5_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int md5s_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int md5half_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
@@ -1769,7 +1750,6 @@ int sha1_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int sha1b64_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha1b64s_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha1s_parse_hash              (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha1sha1_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha224_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha256_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha256s_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
@@ -1777,8 +1757,6 @@ int sha384_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int sha512_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha512s_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha512crypt_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int smf_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int vb3_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int vb30_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int wpa_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int psafe2_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
