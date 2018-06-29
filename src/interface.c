@@ -2602,7 +2602,7 @@ static bool parse_and_store_generic_salt (u8 *out_buf, int *out_len, const u8 *i
   }
   else
   {
-    memcpy (tmp_buf, in_buf, in_len);
+    if (in_len) memcpy (tmp_buf, in_buf, in_len);
 
     tmp_len = in_len;
   }
@@ -2632,25 +2632,27 @@ static bool parse_and_store_generic_salt (u8 *out_buf, int *out_len, const u8 *i
     uppercase (tmp_buf, tmp_len);
   }
 
+  int tmp2_len = tmp_len;
+
   if (hashconfig->opts_type & OPTS_TYPE_ST_ADD80)
   {
-    if (tmp_len >= 256) return false;
+    if (tmp2_len >= 256) return false;
 
-    tmp_buf[tmp_len++] = 0x80;
+    tmp_buf[tmp2_len++] = 0x80;
   }
 
   if (hashconfig->opts_type & OPTS_TYPE_ST_ADD01)
   {
-    if (tmp_len >= 256) return false;
+    if (tmp2_len >= 256) return false;
 
-    tmp_buf[tmp_len++] = 0x01;
+    tmp_buf[tmp2_len++] = 0x01;
   }
 
   if (hashconfig->opts_type & OPTS_TYPE_ST_GENERATE_LE)
   {
-    u32 max = tmp_len / 4;
+    u32 max = tmp2_len / 4;
 
-    if (tmp_len % 4) max++;
+    if (tmp2_len % 4) max++;
 
     for (u32 i = 0; i < max; i++)
     {
@@ -2664,10 +2666,10 @@ static bool parse_and_store_generic_salt (u8 *out_buf, int *out_len, const u8 *i
     // we swapped them, some important bytes could be in positions
     // we normally skip with the original len
 
-    if (tmp_len % 4) tmp_len += 4 - (tmp_len % 4);
+    if (tmp2_len % 4) tmp2_len += 4 - (tmp2_len % 4);
   }
 
-  memcpy (out_buf, tmp_buf, tmp_len);
+  memcpy (out_buf, tmp_buf, tmp2_len);
 
   *out_len = tmp_len;
 
@@ -4995,18 +4997,29 @@ int postgresql_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
 int md5md5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_2600) || (input_len > DISPLAY_LEN_MAX_2600)) return (PARSER_GLOBAL_LENGTH);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
-  if (is_valid_hex_string (input_buf, 32) == false) return (PARSER_HASH_ENCODING);
+  token_t token;
 
-  digest[0] = hex_to_u32 ((const u8 *) &input_buf[ 0]);
-  digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
-  digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
-  digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
+  token.token_cnt  = 1;
+
+  token.len_min[0] = 32;
+  token.len_max[0] = 32;
+  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
+
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
+
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+  u8 *hash_pos = token.buf[0];
+
+  digest[0] = hex_to_u32 (hash_pos +  0);
+  digest[1] = hex_to_u32 (hash_pos +  8);
+  digest[2] = hex_to_u32 (hash_pos + 16);
+  digest[3] = hex_to_u32 (hash_pos + 24);
 
   if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
   {
@@ -5022,13 +5035,11 @@ int md5md5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
    * This way we can save a special md5md5 kernel and reuse the one from vbull.
    */
 
-  u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
+  static const u8 *zero = "";
 
-  u32 salt_len = parse_and_store_salt_legacy (salt_buf_ptr, (u8 *) "", 0, hashconfig);
+  const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, zero, 0, hashconfig);
 
-  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
-
-  salt->salt_len = salt_len;
+  if (parse_rc == false) return (PARSER_SALT_LENGTH);
 
   return (PARSER_OK);
 }
