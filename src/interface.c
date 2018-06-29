@@ -2496,7 +2496,7 @@ static int input_tokenizer (u8 *input_buf, int input_len, token_t *token)
     {
       if (token->attr[token_idx] & TOKEN_ATTR_OPTIONAL_ROUNDS)
       {
-        const int len = rounds_count_length (token->buf[token_idx], len_left);
+        const int len = rounds_count_length ((char *)token->buf[token_idx], len_left);
 
         token->opt_buf = token->buf[token_idx];
 
