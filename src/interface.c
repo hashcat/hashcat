@@ -5432,34 +5432,43 @@ int sha1b64_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
 int sha1b64s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_111) || (input_len > DISPLAY_LEN_MAX_111)) return (PARSER_GLOBAL_LENGTH);
-
-  if ((memcmp (SIGNATURE_SSHA1B64_lower, input_buf, 6) != 0) && (memcmp (SIGNATURE_SSHA1B64_upper, input_buf, 6) != 0)) return (PARSER_SIGNATURE_UNMATCHED);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
-  u8 tmp_buf[100] = { 0 };
+  token_t token;
 
-  const int tmp_len = base64_decode (base64_to_int, (const u8 *) input_buf + 6, input_len - 6, tmp_buf);
+  token.token_cnt  = 2;
+
+  token.signatures_cnt    = 2;
+  token.signatures_buf[0] = SIGNATURE_SSHA1B64_lower;
+  token.signatures_buf[0] = SIGNATURE_SSHA1B64_upper;
+
+  token.len[0]     = 6;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
+
+  token.len_min[1] = 28;
+  token.len_max[1] = 368; // 368 = 20 + 256 where 20 is digest length and 256 is SALT_MAX
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_BASE64A;
+
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
+
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+  u8 *hashsalt_pos = token.buf[1];
+  int hashsalt_len = token.len[1];
+
+  u8 tmp_buf[512] = { 0 };
+
+  const int tmp_len = base64_decode (base64_to_int, hashsalt_pos, hashsalt_len, tmp_buf);
 
   if (tmp_len < 20) return (PARSER_HASH_LENGTH);
 
-  memcpy (digest, tmp_buf, 20);
+  u8 *hash_pos = tmp_buf;
 
-  const int salt_len = tmp_len - 20;
-
-  salt->salt_len = salt_len;
-
-  memcpy (salt->salt_buf, tmp_buf + 20, salt->salt_len);
-
-  if (hashconfig->opts_type & OPTS_TYPE_ST_ADD80)
-  {
-    u8 *ptr = (u8 *) salt->salt_buf;
-
-    ptr[salt->salt_len] = 0x80;
-  }
+  memcpy (digest, hash_pos, 20);
 
   digest[0] = byte_swap_32 (digest[0]);
   digest[1] = byte_swap_32 (digest[1]);
@@ -5474,6 +5483,22 @@ int sha1b64s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
     digest[2] -= SHA1M_C;
     digest[3] -= SHA1M_D;
     digest[4] -= SHA1M_E;
+  }
+
+  // salt
+
+  u8 *salt_pos = tmp_buf + 20;
+  int salt_len = tmp_len - 20;
+
+  salt->salt_len = salt_len;
+
+  memcpy (salt->salt_buf, salt_pos, salt_len);
+
+  if (hashconfig->opts_type & OPTS_TYPE_ST_ADD80)
+  {
+    u8 *ptr = (u8 *) salt->salt_buf;
+
+    ptr[salt_len] = 0x80;
   }
 
   return (PARSER_OK);
