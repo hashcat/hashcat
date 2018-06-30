@@ -5348,15 +5348,32 @@ int pstoken_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
 int sha1b64_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_101) || (input_len > DISPLAY_LEN_MAX_101)) return (PARSER_GLOBAL_LENGTH);
-
-  if (memcmp (SIGNATURE_SHA1B64, input_buf, 5) != 0) return (PARSER_SIGNATURE_UNMATCHED);
-
   u32 *digest = (u32 *) hash_buf->digest;
+
+  token_t token;
+
+  token.token_cnt  = 2;
+  token.signature  = SIGNATURE_SHA1B64;
+
+  token.len[0]     = 5;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
+
+  token.len_min[1] = 28;
+  token.len_max[1] = 28;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_BASE64A;
+
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
+
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+  u8 *hash_pos = token.buf[1];
+  int hash_len = token.len[1];
 
   u8 tmp_buf[100] = { 0 };
 
-  base64_decode (base64_to_int, (const u8 *) input_buf + 5, input_len - 5, tmp_buf);
+  base64_decode (base64_to_int, hash_pos, hash_len, tmp_buf);
 
   memcpy (digest, tmp_buf, 20);
 
