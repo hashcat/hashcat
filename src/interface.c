@@ -586,10 +586,10 @@ static const char *HT_12001 = "Atlassian (PBKDF2-HMAC-SHA1)";
 static const char *SIGNATURE_ANDROIDFDE         = "$fde$";
 static const char *SIGNATURE_AXCRYPT            = "$axcrypt$*1";
 static const char *SIGNATURE_AXCRYPT_SHA1       = "$axcrypt_sha1$";
-//static const char *SIGNATURE_BCRYPT1            = "$2a$";
-//static const char *SIGNATURE_BCRYPT2            = "$2b$";
-//static const char *SIGNATURE_BCRYPT3            = "$2x$";
-//static const char *SIGNATURE_BCRYPT4            = "$2y$";
+static const char *SIGNATURE_BCRYPT1            = "$2a$";
+static const char *SIGNATURE_BCRYPT2            = "$2b$";
+static const char *SIGNATURE_BCRYPT3            = "$2x$";
+static const char *SIGNATURE_BCRYPT4            = "$2y$";
 static const char *SIGNATURE_BITCOIN_WALLET     = "$bitcoin$";
 static const char *SIGNATURE_BSDICRYPT          = "_";
 static const char *SIGNATURE_CISCO8             = "$8$";
@@ -631,6 +631,8 @@ static const char *SIGNATURE_PBKDF2_SHA1        = "sha1:";
 static const char *SIGNATURE_PBKDF2_SHA256      = "sha256:";
 static const char *SIGNATURE_PBKDF2_SHA512      = "sha512:";
 static const char *SIGNATURE_PDF                = "$pdf$";
+static const char *SIGNATURE_PHPASS1            = "$P$";
+static const char *SIGNATURE_PHPASS2            = "$H$";
 static const char *SIGNATURE_PHPS               = "$PHPS$";
 static const char *SIGNATURE_POSTGRESQL_AUTH    = "$postgres$";
 static const char *SIGNATURE_PSAFE3             = "PWS3";
@@ -2532,7 +2534,14 @@ static int input_tokenizer (u8 *input_buf, int input_len, token_t *token)
   {
     if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_SIGNATURE)
     {
-      if (memcmp (token->buf[token_idx], token->signature, token->len[token_idx])) return (PARSER_SIGNATURE_UNMATCHED);
+      bool matched = false;
+
+      for (int signature_idx = 0; signature_idx < token->signatures_cnt; signature_idx++)
+      {
+        if (memcmp (token->buf[token_idx], token->signatures_buf[signature_idx], token->len[token_idx]) == 0) matched = true;
+      }
+
+      if (matched == false) return (PARSER_SIGNATURE_UNMATCHED);
     }
 
     if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_LENGTH)
@@ -2834,6 +2843,12 @@ int bcrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   token_t token;
 
   token.token_cnt  = 4;
+
+  token.signatures_cnt    = 4;
+  token.signatures_buf[0] = SIGNATURE_BCRYPT1;
+  token.signatures_buf[1] = SIGNATURE_BCRYPT2;
+  token.signatures_buf[2] = SIGNATURE_BCRYPT3;
+  token.signatures_buf[3] = SIGNATURE_BCRYPT4;
 
   token.len[0]     = 4;
   token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH;
@@ -3341,7 +3356,9 @@ int dcc2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   token_t token;
 
   token.token_cnt  = 4;
-  token.signature  = SIGNATURE_DCC2;
+
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_DCC2;
 
   token.len[0]     = 6;
   token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
@@ -3406,7 +3423,9 @@ int dpapimk_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   token_t token;
 
   token.token_cnt  = 10;
-  token.signature  = SIGNATURE_DPAPIMK;
+
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_DPAPIMK;
 
   // signature
   token.len[0]     = 9;
@@ -3924,6 +3943,10 @@ int phpass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
   token.token_cnt = 4;
 
+  token.signatures_cnt    = 2;
+  token.signatures_buf[0] = SIGNATURE_PHPASS1;
+  token.signatures_buf[1] = SIGNATURE_PHPASS2;
+
   token.len[0]  = 3;
   token.attr[0] = TOKEN_ATTR_FIXED_LENGTH;
 
@@ -3974,7 +3997,9 @@ int md5crypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   token_t token;
 
   token.token_cnt  = 3;
-  token.signature  = SIGNATURE_MD5CRYPT;
+
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_MD5CRYPT;
 
   token.len[0]     = 3;
   token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
@@ -4024,7 +4049,9 @@ int md5apr1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   token_t token;
 
   token.token_cnt  = 3;
-  token.signature  = SIGNATURE_MD5APR1;
+
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_MD5APR1;
 
   token.len[0]     = 6;
   token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
@@ -4074,7 +4101,9 @@ int episerver_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   token_t token;
 
   token.token_cnt  = 4;
-  token.signature  = SIGNATURE_EPISERVER;
+
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_EPISERVER;
 
   token.len_min[0] = 11;
   token.len_max[0] = 11;
@@ -4146,7 +4175,9 @@ int descrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   token_t token;
 
   token.token_cnt  = 2;
-  token.signature  = SIGNATURE_EPISERVER;
+
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_EPISERVER;
 
   token.len[0]     = 2;
   token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
@@ -5143,7 +5174,9 @@ int sha1axcrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
   token_t token;
 
   token.token_cnt  = 2;
-  token.signature  = SIGNATURE_AXCRYPT_SHA1;
+
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_AXCRYPT_SHA1;
 
   token.len[0]     = 14;
   token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
@@ -5353,7 +5386,9 @@ int sha1b64_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   token_t token;
 
   token.token_cnt  = 2;
-  token.signature  = SIGNATURE_SHA1B64;
+
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_SHA1B64;
 
   token.len[0]     = 5;
   token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH

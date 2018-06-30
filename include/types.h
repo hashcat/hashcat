@@ -2086,13 +2086,15 @@ typedef struct thread_param
 
 } thread_param_t;
 
-#define MAX_TOKENS 128
+#define MAX_TOKENS     128
+#define MAX_SIGNATURES 16
 
 typedef struct token
 {
   int token_cnt;
 
-  const char *signature;
+  int signatures_cnt;
+  const char *signatures_buf[MAX_SIGNATURES];
 
   int sep[MAX_TOKENS];
 
