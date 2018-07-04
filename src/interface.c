@@ -6424,81 +6424,105 @@ int chacha20_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
 int ikepsk_md5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_5300) || (input_len > DISPLAY_LEN_MAX_5300)) return (PARSER_GLOBAL_LENGTH);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
   ikepsk_t *ikepsk = (ikepsk_t *) hash_buf->esalt;
 
-  /**
-   * Parse that strange long line
-   */
+  token_t token;
 
-  u8 *in_off[9];
+  token.token_cnt = 9;
 
-  size_t in_len[9] = { 0 };
+  token.sep[0]     = hashconfig->separator;
+  token.len_min[0] = 0;
+  token.len_max[0] = 1024;
+  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  if (input_buf == NULL) return (PARSER_HASH_VALUE);
+  token.sep[1]     = hashconfig->separator;
+  token.len_min[1] = 0;
+  token.len_max[1] = 1024;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  char tmp_buf[HCBUFSIZ_TINY] = { 0 };
+  token.sep[2]     = hashconfig->separator;
+  token.len_min[2] = 0;
+  token.len_max[2] = 1024;
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  memcpy (tmp_buf, input_buf, input_len);
+  token.sep[3]     = hashconfig->separator;
+  token.len_min[3] = 0;
+  token.len_max[3] = 1024;
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  char *saveptr = NULL;
+  token.sep[4]     = hashconfig->separator;
+  token.len_min[4] = 0;
+  token.len_max[4] = 1024;
+  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  in_off[0] = (u8 *) strtok_r (tmp_buf, ":", &saveptr);
+  token.sep[5]     = hashconfig->separator;
+  token.len_min[5] = 0;
+  token.len_max[5] = 1024;
+  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  if (in_off[0] == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.sep[6]     = hashconfig->separator;
+  token.len_min[6] = 0;
+  token.len_max[6] = 128;
+  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  in_len[0] = strlen ((const char *) in_off[0]);
+  token.sep[7]     = hashconfig->separator;
+  token.len_min[7] = 0;
+  token.len_max[7] = 128;
+  token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  size_t i;
+  token.sep[8]     = hashconfig->separator;
+  token.len_min[8] = 32;
+  token.len_max[8] = 32;
+  token.attr[8]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  for (i = 1; i < 9; i++)
-  {
-    in_off[i] = (u8 *) strtok_r ((char *) NULL, ":", &saveptr);
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
-    if (in_off[i] == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-    in_len[i] = strlen ((const char *) in_off[i]);
-  }
+  ikepsk->msg_len = (token.len[0] + token.len[1] + token.len[2] + token.len[3] + token.len[4] + token.len[5]) / 2;
+  ikepsk->nr_len  = (token.len[6] + token.len[7]) / 2;
 
-  u8 *ptr = (u8 *) ikepsk->msg_buf;
+  if (ikepsk->msg_len > 512) return (PARSER_SALT_LENGTH);
+  if (ikepsk->nr_len  > 64)  return (PARSER_SALT_LENGTH);
 
-  for (i = 0; i < in_len[0]; i += 2) *ptr++ = hex_to_u8 ((const u8 *) in_off[0] + i);
-  for (i = 0; i < in_len[1]; i += 2) *ptr++ = hex_to_u8 ((const u8 *) in_off[1] + i);
-  for (i = 0; i < in_len[2]; i += 2) *ptr++ = hex_to_u8 ((const u8 *) in_off[2] + i);
-  for (i = 0; i < in_len[3]; i += 2) *ptr++ = hex_to_u8 ((const u8 *) in_off[3] + i);
-  for (i = 0; i < in_len[4]; i += 2) *ptr++ = hex_to_u8 ((const u8 *) in_off[4] + i);
-  for (i = 0; i < in_len[5]; i += 2) *ptr++ = hex_to_u8 ((const u8 *) in_off[5] + i);
+  u8 *ptr1 = (u8 *) ikepsk->msg_buf;
+  u8 *ptr2 = (u8 *) ikepsk->nr_buf;
 
-  *ptr = 0x80;
+  for (int i = 0; i < token.len[0]; i += 2) *ptr1++ = hex_to_u8 (token.buf[0] + i);
+  for (int i = 0; i < token.len[1]; i += 2) *ptr1++ = hex_to_u8 (token.buf[1] + i);
+  for (int i = 0; i < token.len[2]; i += 2) *ptr1++ = hex_to_u8 (token.buf[2] + i);
+  for (int i = 0; i < token.len[3]; i += 2) *ptr1++ = hex_to_u8 (token.buf[3] + i);
+  for (int i = 0; i < token.len[4]; i += 2) *ptr1++ = hex_to_u8 (token.buf[4] + i);
+  for (int i = 0; i < token.len[5]; i += 2) *ptr1++ = hex_to_u8 (token.buf[5] + i);
+  for (int i = 0; i < token.len[6]; i += 2) *ptr2++ = hex_to_u8 (token.buf[6] + i);
+  for (int i = 0; i < token.len[7]; i += 2) *ptr2++ = hex_to_u8 (token.buf[7] + i);
 
-  ikepsk->msg_len = (in_len[0] + in_len[1] + in_len[2] + in_len[3] + in_len[4] + in_len[5]) / 2;
-
-  ptr = (u8 *) ikepsk->nr_buf;
-
-  for (i = 0; i < in_len[6]; i += 2) *ptr++ = hex_to_u8 ((const u8 *) in_off[6] + i);
-  for (i = 0; i < in_len[7]; i += 2) *ptr++ = hex_to_u8 ((const u8 *) in_off[7] + i);
-
-  *ptr = 0x80;
-
-  ikepsk->nr_len = (in_len[6] + in_len[7]) / 2;
+  *ptr1++ = 0x80;
+  *ptr2++ = 0x80;
 
   /**
    * Store to database
    */
 
-  ptr = in_off[8];
+  u8 *hash_pos = token.buf[8];
 
-  if (is_valid_hex_string (ptr, 32) == false) return (PARSER_HASH_ENCODING);
-
-  digest[0] = hex_to_u32 ((const u8 *) &ptr[ 0]);
-  digest[1] = hex_to_u32 ((const u8 *) &ptr[ 8]);
-  digest[2] = hex_to_u32 ((const u8 *) &ptr[16]);
-  digest[3] = hex_to_u32 ((const u8 *) &ptr[24]);
+  digest[0] = hex_to_u32 (hash_pos +  0);
+  digest[1] = hex_to_u32 (hash_pos +  8);
+  digest[2] = hex_to_u32 (hash_pos + 16);
+  digest[3] = hex_to_u32 (hash_pos + 24);
 
   salt->salt_len = 32;
 
@@ -6516,82 +6540,106 @@ int ikepsk_md5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
 int ikepsk_sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_5400) || (input_len > DISPLAY_LEN_MAX_5400)) return (PARSER_GLOBAL_LENGTH);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
   ikepsk_t *ikepsk = (ikepsk_t *) hash_buf->esalt;
 
-  /**
-   * Parse that strange long line
-   */
+  token_t token;
 
-  u8 *in_off[9];
+  token.token_cnt = 9;
 
-  size_t in_len[9] = { 0 };
+  token.sep[0]     = hashconfig->separator;
+  token.len_min[0] = 0;
+  token.len_max[0] = 1024;
+  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  if (input_buf == NULL) return (PARSER_HASH_VALUE);
+  token.sep[1]     = hashconfig->separator;
+  token.len_min[1] = 0;
+  token.len_max[1] = 1024;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  char tmp_buf[HCBUFSIZ_TINY] = { 0 };
+  token.sep[2]     = hashconfig->separator;
+  token.len_min[2] = 0;
+  token.len_max[2] = 1024;
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  memcpy (tmp_buf, input_buf, input_len);
+  token.sep[3]     = hashconfig->separator;
+  token.len_min[3] = 0;
+  token.len_max[3] = 1024;
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  char *saveptr = NULL;
+  token.sep[4]     = hashconfig->separator;
+  token.len_min[4] = 0;
+  token.len_max[4] = 1024;
+  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  in_off[0] = (u8 *) strtok_r (tmp_buf, ":", &saveptr);
+  token.sep[5]     = hashconfig->separator;
+  token.len_min[5] = 0;
+  token.len_max[5] = 1024;
+  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  if (in_off[0] == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.sep[6]     = hashconfig->separator;
+  token.len_min[6] = 0;
+  token.len_max[6] = 128;
+  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  in_len[0] = strlen ((const char *) in_off[0]);
+  token.sep[7]     = hashconfig->separator;
+  token.len_min[7] = 0;
+  token.len_max[7] = 128;
+  token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  size_t i;
+  token.sep[8]     = hashconfig->separator;
+  token.len_min[8] = 40;
+  token.len_max[8] = 40;
+  token.attr[8]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  for (i = 1; i < 9; i++)
-  {
-    in_off[i] = (u8 *) strtok_r ((char *) NULL, ":", &saveptr);
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
-    if (in_off[i] == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-    in_len[i] = strlen ((const char *) in_off[i]);
-  }
+  ikepsk->msg_len = (token.len[0] + token.len[1] + token.len[2] + token.len[3] + token.len[4] + token.len[5]) / 2;
+  ikepsk->nr_len  = (token.len[6] + token.len[7]) / 2;
 
-  u8 *ptr = (u8 *) ikepsk->msg_buf;
+  if (ikepsk->msg_len > 512) return (PARSER_SALT_LENGTH);
+  if (ikepsk->nr_len  > 64)  return (PARSER_SALT_LENGTH);
 
-  for (i = 0; i < in_len[0]; i += 2) *ptr++ = hex_to_u8 ((const u8 *) in_off[0] + i);
-  for (i = 0; i < in_len[1]; i += 2) *ptr++ = hex_to_u8 ((const u8 *) in_off[1] + i);
-  for (i = 0; i < in_len[2]; i += 2) *ptr++ = hex_to_u8 ((const u8 *) in_off[2] + i);
-  for (i = 0; i < in_len[3]; i += 2) *ptr++ = hex_to_u8 ((const u8 *) in_off[3] + i);
-  for (i = 0; i < in_len[4]; i += 2) *ptr++ = hex_to_u8 ((const u8 *) in_off[4] + i);
-  for (i = 0; i < in_len[5]; i += 2) *ptr++ = hex_to_u8 ((const u8 *) in_off[5] + i);
+  u8 *ptr1 = (u8 *) ikepsk->msg_buf;
+  u8 *ptr2 = (u8 *) ikepsk->nr_buf;
 
-  *ptr = 0x80;
+  for (int i = 0; i < token.len[0]; i += 2) *ptr1++ = hex_to_u8 (token.buf[0] + i);
+  for (int i = 0; i < token.len[1]; i += 2) *ptr1++ = hex_to_u8 (token.buf[1] + i);
+  for (int i = 0; i < token.len[2]; i += 2) *ptr1++ = hex_to_u8 (token.buf[2] + i);
+  for (int i = 0; i < token.len[3]; i += 2) *ptr1++ = hex_to_u8 (token.buf[3] + i);
+  for (int i = 0; i < token.len[4]; i += 2) *ptr1++ = hex_to_u8 (token.buf[4] + i);
+  for (int i = 0; i < token.len[5]; i += 2) *ptr1++ = hex_to_u8 (token.buf[5] + i);
+  for (int i = 0; i < token.len[6]; i += 2) *ptr2++ = hex_to_u8 (token.buf[6] + i);
+  for (int i = 0; i < token.len[7]; i += 2) *ptr2++ = hex_to_u8 (token.buf[7] + i);
 
-  ikepsk->msg_len = (in_len[0] + in_len[1] + in_len[2] + in_len[3] + in_len[4] + in_len[5]) / 2;
-
-  ptr = (u8 *) ikepsk->nr_buf;
-
-  for (i = 0; i < in_len[6]; i += 2) *ptr++ = hex_to_u8 ((const u8 *) in_off[6] + i);
-  for (i = 0; i < in_len[7]; i += 2) *ptr++ = hex_to_u8 ((const u8 *) in_off[7] + i);
-
-  *ptr = 0x80;
-
-  ikepsk->nr_len = (in_len[6] + in_len[7]) / 2;
+  *ptr1++ = 0x80;
+  *ptr2++ = 0x80;
 
   /**
    * Store to database
    */
 
-  ptr = in_off[8];
+  u8 *hash_pos = token.buf[8];
 
-  if (is_valid_hex_string (ptr, 40) == false) return (PARSER_HASH_ENCODING);
-
-  digest[0] = hex_to_u32 ((const u8 *) &ptr[ 0]);
-  digest[1] = hex_to_u32 ((const u8 *) &ptr[ 8]);
-  digest[2] = hex_to_u32 ((const u8 *) &ptr[16]);
-  digest[3] = hex_to_u32 ((const u8 *) &ptr[24]);
-  digest[4] = hex_to_u32 ((const u8 *) &ptr[32]);
+  digest[0] = hex_to_u32 (hash_pos +  0);
+  digest[1] = hex_to_u32 (hash_pos +  8);
+  digest[2] = hex_to_u32 (hash_pos + 16);
+  digest[3] = hex_to_u32 (hash_pos + 24);
+  digest[4] = hex_to_u32 (hash_pos + 32);
 
   digest[0] = byte_swap_32 (digest[0]);
   digest[1] = byte_swap_32 (digest[1]);
