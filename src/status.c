@@ -1780,7 +1780,14 @@ double status_get_runtime_msec_dev (const hashcat_ctx_t *hashcat_ctx, const int 
 
   if (device_param->skipped == true) return 0;
 
-  return device_param->outerloop_msec;
+  float q = 1;
+
+  if (device_param->speed_only_finish == true)
+  {
+    q = (float) device_param->outerloop_left / (float) device_param->speed_cnt[0];
+  }
+
+  return device_param->outerloop_msec * q;
 }
 
 int status_get_kernel_accel_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)

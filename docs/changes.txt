@@ -21,6 +21,7 @@
 
 - Fixed a function declaration attribute in -m 8900 kernel leading to unuseable -m 9300 which shares kernel code with -m 8900
 - Fixed a missing kernel in -m 5600 in combination with -a 3 and -O if mask is >= 16 characters
+- Fixed a miscalculation in --progress-only mode output for extreme slow kernels like -m 14800
 - Fixed missing code section in -m 2500 and -m 2501 to crack corrupted handshakes with a LE endian bitness base
 
 * changes v4.0.1 -> v4.1.0
