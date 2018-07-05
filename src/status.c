@@ -1782,7 +1782,7 @@ double status_get_runtime_msec_dev (const hashcat_ctx_t *hashcat_ctx, const int 
 
   float q = 1;
 
-  if (device_param->speed_only_finish == true)
+  if ((device_param->speed_only_finish == true) && (device_param->speed_msec[0] > 4000))
   {
     q = (float) device_param->outerloop_left / (float) device_param->speed_cnt[0];
   }
