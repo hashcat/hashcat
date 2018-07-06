@@ -2849,7 +2849,8 @@ int bcrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   token.signatures_buf[3] = SIGNATURE_BCRYPT4;
 
   token.len[0]     = 4;
-  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   token.len_min[1] = 2;
   token.len_max[1] = 2;
@@ -7083,41 +7084,55 @@ int md5aix_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
 int sha1aix_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_6700) || (input_len > DISPLAY_LEN_MAX_6700)) return (PARSER_GLOBAL_LENGTH);
-
-  if (memcmp (SIGNATURE_SHA1AIX, input_buf, 7) != 0) return (PARSER_SIGNATURE_UNMATCHED);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
-  u8 *iter_pos = input_buf + 7;
+  token_t token;
 
-  u8 *salt_pos = (u8 *) strchr ((const char *) iter_pos, '$');
+  token.token_cnt  = 4;
 
-  if (salt_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_SHA1AIX;
 
-  salt_pos++;
+  token.len[0]     = 7;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  u8 *hash_pos = (u8 *) strchr ((const char *) salt_pos, '$');
+  token.len_min[1] = 2;
+  token.len_max[1] = 2;
+  token.sep[1]     = '$';
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  if (hash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.len_min[2] = 16;
+  token.len_max[2] = 48;
+  token.sep[2]     = '$';
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  u32 salt_len = hash_pos - salt_pos;
+  token.len[3]     = 43;
+  token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_BASE64B;
 
-  if (salt_len < 16) return (PARSER_SALT_LENGTH);
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
-  memcpy ((u8 *) salt->salt_buf, salt_pos, salt_len);
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  salt->salt_len = salt_len;
+  u8 *iter_pos = token.buf[1];
 
-  u8 salt_iter[3] = { iter_pos[0], iter_pos[1], 0 };
+  char salt_iter[3] = { iter_pos[0], iter_pos[1], 0 };
 
   salt->salt_sign[0] = hc_strtoul ((const char *) salt_iter, NULL, 10);
 
   salt->salt_iter = (1u << hc_strtoul ((const char *) salt_iter, NULL, 10)) - 1;
 
-  hash_pos++;
+  u8 *salt_pos = token.buf[2];
+  int salt_len = token.len[2];
+
+  const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
+
+  if (parse_rc == false) return (PARSER_SALT_LENGTH);
+
+  u8 *hash_pos = token.buf[3];
 
   sha1aix_decode ((u8 *) digest, hash_pos);
 
@@ -7264,79 +7279,80 @@ int sha512aix_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
 int agilekey_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_6600) || (input_len > DISPLAY_LEN_MAX_6600)) return (PARSER_GLOBAL_LENGTH);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
   agilekey_t *agilekey = (agilekey_t *) hash_buf->esalt;
 
-  /**
-   * parse line
-   */
+  token_t token;
 
-  u8 *iterations_pos = input_buf;
+  token.token_cnt  = 3;
 
-  u8 *saltbuf_pos = (u8 *) strchr ((const char *) iterations_pos, ':');
+  token.len_min[0] = 1;
+  token.len_max[0] = 6;
+  token.sep[0]     = hashconfig->separator;
+  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  if (saltbuf_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.len_min[1] = 16;
+  token.len_max[1] = 16;
+  token.sep[1]     = hashconfig->separator;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  u32 iterations_len = saltbuf_pos - iterations_pos;
+  token.len_min[2] = 2080;
+  token.len_max[2] = 2080;
+  token.sep[2]     = hashconfig->separator;
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  if (iterations_len > 6) return (PARSER_SALT_LENGTH);
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
-  saltbuf_pos++;
-
-  u8 *cipherbuf_pos = (u8 *) strchr ((const char *) saltbuf_pos, ':');
-
-  if (cipherbuf_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  u32 saltbuf_len = cipherbuf_pos - saltbuf_pos;
-
-  if (saltbuf_len != 16) return (PARSER_SALT_LENGTH);
-
-  u32 cipherbuf_len = input_len - iterations_len - 1 - saltbuf_len - 1;
-
-  if (cipherbuf_len != 2080) return (PARSER_HASH_LENGTH);
-
-  cipherbuf_pos++;
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
   /**
    * pbkdf2 iterations
    */
 
-  salt->salt_iter = hc_strtoul ((const char *) iterations_pos, NULL, 10) - 1;
+  u8 *iter_pos = token.buf[0];
+
+  salt->salt_iter = hc_strtoul ((const char *) iter_pos, NULL, 10) - 1;
 
   /**
    * handle salt encoding
    */
 
+  u8 *salt_pos = token.buf[1];
+  int salt_len = token.len[1];
+
   u8 *saltbuf_ptr = (u8 *) salt->salt_buf;
 
-  for (u32 i = 0; i < saltbuf_len; i += 2)
+  for (int i = 0; i < salt_len; i += 2)
   {
-    const u8 p0 = saltbuf_pos[i + 0];
-    const u8 p1 = saltbuf_pos[i + 1];
+    const u8 p0 = salt_pos[i + 0];
+    const u8 p1 = salt_pos[i + 1];
 
     *saltbuf_ptr++ = hex_convert (p1) << 0
                    | hex_convert (p0) << 4;
   }
 
-  salt->salt_len = saltbuf_len / 2;
+  salt->salt_len = salt_len / 2;
 
   /**
    * handle cipher encoding
    */
 
-  u32 tmp[32];
+  u8 *cipher_pos = token.buf[2];
+  int cipher_len = token.len[2];
+
+  u32 tmp[32] = { 0 };
 
   u8 *cipherbuf_ptr = (u8 *) tmp;
 
-  for (u32 i = 2016; i < cipherbuf_len; i += 2)
+  for (int i = 2016; i < cipher_len; i += 2)
   {
-    const u8 p0 = cipherbuf_pos[i + 0];
-    const u8 p1 = cipherbuf_pos[i + 1];
+    const u8 p0 = cipher_pos[i + 0];
+    const u8 p1 = cipher_pos[i + 1];
 
     *cipherbuf_ptr++ = hex_convert (p1) << 0
                      | hex_convert (p0) << 4;
@@ -7355,10 +7371,10 @@ int agilekey_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   salt->salt_buf[10] = byte_swap_32 (tmp[6]);
   salt->salt_buf[11] = byte_swap_32 (tmp[7]);
 
-  for (u32 i = 0, j = 0; i < 1040; i += 1, j += 2)
+  for (int i = 0, j = 0; i < 1040; i += 1, j += 2)
   {
-    const u8 p0 = cipherbuf_pos[j + 0];
-    const u8 p1 = cipherbuf_pos[j + 1];
+    const u8 p0 = cipher_pos[j + 0];
+    const u8 p1 = cipher_pos[j + 1];
 
     agilekey->cipher[i] = hex_convert (p1) << 0
                         | hex_convert (p0) << 4;
@@ -7378,57 +7394,56 @@ int agilekey_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
 int lastpass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_6800) || (input_len > DISPLAY_LEN_MAX_6800)) return (PARSER_GLOBAL_LENGTH);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
-  u8 *hashbuf_pos = input_buf;
+  token_t token;
 
-  u8 *iterations_pos = (u8 *) strchr ((const char *) hashbuf_pos, ':');
+  token.token_cnt  = 3;
 
-  if (iterations_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.len_min[0] = 32;
+  token.len_max[0] = 64;
+  token.sep[0]     = hashconfig->separator;
+  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  u32 hash_len = iterations_pos - hashbuf_pos;
+  token.len_min[1] = 1;
+  token.len_max[1] = 6;
+  token.sep[1]     = hashconfig->separator;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  if ((hash_len != 32) && (hash_len != 64)) return (PARSER_HASH_LENGTH);
+  token.len_min[2] = 0;
+  token.len_max[2] = 32;
+  token.sep[2]     = hashconfig->separator;
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  iterations_pos++;
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
-  u8 *saltbuf_pos = (u8 *) strchr ((const char *) iterations_pos, ':');
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  if (saltbuf_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  u8 *hash_pos = token.buf[0];
 
-  u32 iterations_len = saltbuf_pos - iterations_pos;
-
-  saltbuf_pos++;
-
-  u32 salt_len = input_len - hash_len - 1 - iterations_len - 1;
-
-  if (salt_len > 32) return (PARSER_SALT_LENGTH);
-
-  u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
-
-  salt_len = parse_and_store_salt_legacy (salt_buf_ptr, saltbuf_pos, salt_len, hashconfig);
-
-  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
-
-  salt->salt_len = salt_len;
-
-  salt->salt_iter = hc_strtoul ((const char *) iterations_pos, NULL, 10) - 1;
-
-  if (is_valid_hex_string (hashbuf_pos, 32) == false) return (PARSER_HASH_ENCODING);
-
-  digest[0] = hex_to_u32 ((const u8 *) &hashbuf_pos[ 0]);
-  digest[1] = hex_to_u32 ((const u8 *) &hashbuf_pos[ 8]);
-  digest[2] = hex_to_u32 ((const u8 *) &hashbuf_pos[16]);
-  digest[3] = hex_to_u32 ((const u8 *) &hashbuf_pos[24]);
+  digest[0] = hex_to_u32 (hash_pos +  0);
+  digest[1] = hex_to_u32 (hash_pos +  8);
+  digest[2] = hex_to_u32 (hash_pos + 16);
+  digest[3] = hex_to_u32 (hash_pos + 24);
 
   digest[0] = byte_swap_32 (digest[0]);
   digest[1] = byte_swap_32 (digest[1]);
   digest[2] = byte_swap_32 (digest[2]);
   digest[3] = byte_swap_32 (digest[3]);
+
+  u8 *iter_pos = token.buf[1];
+
+  salt->salt_iter = hc_strtoul ((const char *) iter_pos, NULL, 10) - 1;
+
+  u8 *salt_pos = token.buf[2];
+  int salt_len = token.len[2];
+
+  const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
+
+  if (parse_rc == false) return (PARSER_SALT_LENGTH);
 
   return (PARSER_OK);
 }
@@ -15789,28 +15804,41 @@ int skip32_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
 int fortigate_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if (input_len != DISPLAY_LEN_MIN_7000) return (PARSER_GLOBAL_LENGTH);
+  u32 *digest = (u32 *) hash_buf->digest;
 
-  if (memcmp (SIGNATURE_FORTIGATE, input_buf, 3) != 0) return (PARSER_SIGNATURE_UNMATCHED);
+  salt_t *salt = hash_buf->salt;
 
-  u32    *digest = (u32 *) hash_buf->digest;
-  salt_t *salt   = hash_buf->salt;
+  token_t token;
 
-  /**
-   * parse line
-   */
+  token.token_cnt  = 2;
 
-  u8 *hash_pos = input_buf + 3;
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_FORTIGATE;
+
+  token.len[0]  = 3;
+  token.attr[0] = TOKEN_ATTR_FIXED_LENGTH
+                | TOKEN_ATTR_VERIFY_SIGNATURE;
+
+  token.len[1]  = 44;
+  token.attr[1] = TOKEN_ATTR_FIXED_LENGTH
+                | TOKEN_ATTR_VERIFY_BASE64A;
+
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
+
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
   /**
    * verify data
    */
 
+  u8 *hash_pos = token.buf[1];
+  int hash_len = token.len[1];
+
   // decode salt + SHA1 hash (12 + 20 = 32)
 
   u8 tmp_buf[100] = { 0 };
 
-  int decoded_len = base64_decode (base64_to_int, (const u8 *) hash_pos, DISPLAY_LEN_MAX_7000 - 3, tmp_buf);
+  const int decoded_len = base64_decode (base64_to_int, hash_pos, hash_len, tmp_buf);
 
   if (decoded_len != 32) return (PARSER_HASH_LENGTH);
 
