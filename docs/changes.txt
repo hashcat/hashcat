@@ -23,6 +23,7 @@
 - Fixed a missing kernel in -m 5600 in combination with -a 3 and -O if mask is >= 16 characters
 - Fixed a miscalculation in --progress-only mode output for extreme slow kernels like -m 14800
 - Fixed missing code section in -m 2500 and -m 2501 to crack corrupted handshakes with a LE endian bitness base
+- Fixed a missing check for errors on OpenCL device leading to invalid removal of restore file
 
 * changes v4.0.1 -> v4.1.0
 

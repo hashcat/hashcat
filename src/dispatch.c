@@ -304,7 +304,14 @@ void *thread_calc_stdin (void *p)
 
   if (device_param->skipped) return NULL;
 
-  calc_stdin (hashcat_ctx, device_param); // we should check the RC here
+  const int rc_calc = calc_stdin (hashcat_ctx, device_param);
+
+  if (rc_calc == -1)
+  {
+    status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+    status_ctx->devices_status = STATUS_ERROR;
+  }
 
   return NULL;
 }
@@ -716,7 +723,14 @@ void *thread_calc (void *p)
 
   if (device_param->skipped) return NULL;
 
-  calc (hashcat_ctx, device_param); // we should check the RC here
+  const int rc_calc = calc (hashcat_ctx, device_param);
+
+  if (rc_calc == -1)
+  {
+    status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+    status_ctx->devices_status = STATUS_ERROR;
+  }
 
   return NULL;
 }

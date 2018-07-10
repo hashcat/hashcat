@@ -177,6 +177,7 @@ typedef enum status_rc
   STATUS_BYPASS             = 9,
   STATUS_ABORTED_CHECKPOINT = 10,
   STATUS_ABORTED_RUNTIME    = 11,
+  STATUS_ERROR              = 13,
 
 } status_rc_t;
 
