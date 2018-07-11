@@ -1020,19 +1020,6 @@ typedef struct hccapx hccapx_t;
 
 typedef enum display_len
 {
-
-  DISPLAY_LEN_MIN_9100  = 51,
-  DISPLAY_LEN_MAX_9100  = 51,
-  DISPLAY_LEN_MIN_9200  = 3 + 14 + 1 + 43,
-  DISPLAY_LEN_MAX_9200  = 3 + 14 + 1 + 43,
-  DISPLAY_LEN_MIN_9300  = 3 + 14 + 1 + 43,
-  DISPLAY_LEN_MAX_9300  = 3 + 14 + 1 + 43,
-  DISPLAY_LEN_MIN_9400  = 8 + 1 + 4 + 1 + 2 + 1 + 3 + 1 + 2 + 1 + 32 + 1 + 32 + 1 + 40,
-  DISPLAY_LEN_MAX_9400  = 8 + 1 + 4 + 1 + 2 + 1 + 3 + 1 + 2 + 1 + 32 + 1 + 32 + 1 + 40,
-  DISPLAY_LEN_MIN_9500  = 8 + 1 + 4 + 1 + 6 + 1 + 3 + 1 + 2 + 1 + 32 + 1 + 32 + 1 + 64,
-  DISPLAY_LEN_MAX_9500  = 8 + 1 + 4 + 1 + 6 + 1 + 3 + 1 + 2 + 1 + 32 + 1 + 32 + 1 + 64,
-  DISPLAY_LEN_MIN_9600  = 8 + 1 + 4 + 1 + 6 + 1 + 3 + 1 + 2 + 1 + 32 + 1 + 32 + 1 + 64,
-  DISPLAY_LEN_MAX_9600  = 8 + 1 + 4 + 1 + 6 + 1 + 3 + 1 + 2 + 1 + 32 + 1 + 32 + 1 + 64,
   DISPLAY_LEN_MIN_9700  = 12 + 1 + 32 + 1 + 32 + 1 + 32,
   DISPLAY_LEN_MAX_9700  = 12 + 1 + 32 + 1 + 32 + 1 + 32,
   DISPLAY_LEN_MIN_9720  = 12 + 1 + 32 + 1 + 32 + 1 + 32 + 1 + 10,

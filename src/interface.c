@@ -8999,7 +8999,7 @@ int lotus6_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
   token_t token;
 
-  token.token_cnt  = 4;
+  token.token_cnt = 4;
 
   token.len[0]  = 1;
   token.attr[0] = TOKEN_ATTR_FIXED_LENGTH;
@@ -9031,6 +9031,8 @@ int lotus6_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
   tmp_buf[3] += -4; // dont ask!
 
+  // salt
+
   memcpy (salt->salt_buf, tmp_buf, 5);
 
   salt->salt_len = 5;
@@ -9046,17 +9048,43 @@ int lotus6_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
 int lotus8_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_9100) || (input_len > DISPLAY_LEN_MAX_9100)) return (PARSER_GLOBAL_LENGTH);
-
-  if ((input_buf[0] != '(') || (input_buf[1] != 'H') || (input_buf[DISPLAY_LEN_MAX_9100 - 1] != ')')) return (PARSER_SIGNATURE_UNMATCHED);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
+  token_t token;
+
+  token.token_cnt = 4;
+
+  token.len[0]  = 1;
+  token.attr[0] = TOKEN_ATTR_FIXED_LENGTH;
+
+  token.len[1]  = 1;
+  token.attr[1] = TOKEN_ATTR_FIXED_LENGTH;
+
+  token.len[2]  = 48;
+  token.attr[2] = TOKEN_ATTR_FIXED_LENGTH
+                | TOKEN_ATTR_VERIFY_BASE64A;
+
+  token.len[3]  = 1;
+  token.attr[3] = TOKEN_ATTR_FIXED_LENGTH;
+
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
+
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+  if (token.buf[0][0] != '(') return (PARSER_SIGNATURE_UNMATCHED);
+  if (token.buf[1][0] != 'H') return (PARSER_SIGNATURE_UNMATCHED);
+  if (token.buf[3][0] != ')') return (PARSER_SIGNATURE_UNMATCHED);
+
+  // decode
+
+  u8 *hash_pos = token.buf[2];
+  int hash_len = token.len[2];
+
   u8 tmp_buf[120] = { 0 };
 
-  base64_decode (lotus64_to_int, (const u8 *) input_buf + 2, input_len - 3, tmp_buf);
+  base64_decode (lotus64_to_int, hash_pos, hash_len, tmp_buf);
 
   tmp_buf[3] += -4; // dont ask!
 
@@ -9645,37 +9673,44 @@ int juniper_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
 int cisco8_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_9200) || (input_len > DISPLAY_LEN_MAX_9200)) return (PARSER_GLOBAL_LENGTH);
-
-  if (memcmp (SIGNATURE_CISCO8, input_buf, 3) != 0) return (PARSER_SIGNATURE_UNMATCHED);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
   pbkdf2_sha256_t *pbkdf2_sha256 = (pbkdf2_sha256_t *) hash_buf->esalt;
 
-  /**
-   * parse line
-   */
+  token_t token;
 
-  // first is *raw* salt
+  token.token_cnt  = 3;
 
-  u8 *salt_pos = input_buf + 3;
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_CISCO8;
 
-  u8 *hash_pos = (u8 *) strchr ((const char *) salt_pos, '$');
+  token.len[0]     = 3;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  if (hash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.len_min[1] = 14;
+  token.len_max[1] = 14;
+  token.sep[1]     = '$';
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  u32 salt_len = hash_pos - salt_pos;
+  token.len[2]     = 43;
+  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_BASE64B;
 
-  if (salt_len != 14) return (PARSER_SALT_LENGTH);
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
-  hash_pos++;
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+  // salt is not encoded
+
+  u8 *salt_pos = token.buf[1];
+  int salt_len = token.len[1];
 
   u8 *salt_buf_ptr = (u8 *) pbkdf2_sha256->salt_buf;
 
-  memcpy (salt_buf_ptr, salt_pos, 14);
+  memcpy (salt_buf_ptr, salt_pos, salt_len);
 
   salt_buf_ptr[17] = 0x01;
   salt_buf_ptr[18] = 0x80;
@@ -9692,11 +9727,12 @@ int cisco8_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
   // base64 decode hash
 
+  u8 *hash_pos = token.buf[2];
+  int hash_len = token.len[2];
+
   u8 tmp_buf[100] = { 0 };
 
-  u32 hash_len = input_len - 3 - salt_len - 1;
-
-  int tmp_len = base64_decode (itoa64_to_int, (const u8 *) hash_pos, hash_len, tmp_buf);
+  const int tmp_len = base64_decode (itoa64_to_int, hash_pos, hash_len, tmp_buf);
 
   if (tmp_len != 32) return (PARSER_HASH_LENGTH);
 
@@ -9716,135 +9752,140 @@ int cisco8_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
 int cisco9_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_9300) || (input_len > DISPLAY_LEN_MAX_9300)) return (PARSER_GLOBAL_LENGTH);
-
-  if (memcmp (SIGNATURE_CISCO9, input_buf, 3) != 0) return (PARSER_SIGNATURE_UNMATCHED);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
-  /**
-   * parse line
-   */
+  token_t token;
 
-  // first is *raw* salt
+  token.token_cnt  = 3;
 
-  u8 *salt_pos = input_buf + 3;
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_CISCO9;
 
-  u8 *hash_pos = (u8 *) strchr ((const char *) salt_pos, '$');
+  token.len[0]     = 3;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  if (hash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.len_min[1] = 14;
+  token.len_max[1] = 14;
+  token.sep[1]     = '$';
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  u32 salt_len = hash_pos - salt_pos;
+  token.len[2]     = 43;
+  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_BASE64B;
 
-  if (salt_len != 14) return (PARSER_SALT_LENGTH);
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
-  salt->salt_len = salt_len;
-  hash_pos++;
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+  // salt is not encoded
+
+  u8 *salt_pos = token.buf[1];
+  int salt_len = token.len[1];
 
   u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
 
   memcpy (salt_buf_ptr, salt_pos, salt_len);
-  salt_buf_ptr[salt_len] = 0;
+
+  salt->salt_len  = salt_len;
+  salt->salt_iter = 1;
+
+  salt->scrypt_N  = 16384;
+  salt->scrypt_r  = 1;
+  salt->scrypt_p  = 1;
 
   // base64 decode hash
 
+  u8 *hash_pos = token.buf[2];
+  int hash_len = token.len[2];
+
   u8 tmp_buf[100] = { 0 };
 
-  u32 hash_len = input_len - 3 - salt_len - 1;
-
-  int tmp_len = base64_decode (itoa64_to_int, (const u8 *) hash_pos, hash_len, tmp_buf);
+  const int tmp_len = base64_decode (itoa64_to_int, hash_pos, hash_len, tmp_buf);
 
   if (tmp_len != 32) return (PARSER_HASH_LENGTH);
 
   memcpy (digest, tmp_buf, 32);
-
-  // fixed:
-  salt->scrypt_N  = 16384;
-  salt->scrypt_r  = 1;
-  salt->scrypt_p  = 1;
-  salt->salt_iter = 1;
 
   return (PARSER_OK);
 }
 
 int office2007_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_9400) || (input_len > DISPLAY_LEN_MAX_9400)) return (PARSER_GLOBAL_LENGTH);
-
-  if (memcmp (SIGNATURE_OFFICE2007, input_buf, 8) != 0) return (PARSER_SIGNATURE_UNMATCHED);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
   office2007_t *office2007 = (office2007_t *) hash_buf->esalt;
 
-  /**
-   * parse line
-   */
+  token_t token;
 
-  u8 *version_pos = input_buf + 8 + 1;
+  token.token_cnt  = 8;
 
-  u8 *verifierHashSize_pos = (u8 *) strchr ((const char *) version_pos, '*');
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_OFFICE2007;
 
-  if (verifierHashSize_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.len_min[0] = 8;
+  token.len_max[0] = 8;
+  token.sep[0]     = '*';
+  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  u32 version_len = verifierHashSize_pos - version_pos;
+  token.len_min[1] = 4;
+  token.len_max[1] = 4;
+  token.sep[1]     = '*';
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  verifierHashSize_pos++;
+  token.len_min[2] = 2;
+  token.len_max[2] = 2;
+  token.sep[2]     = '*';
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  u8 *keySize_pos = (u8 *) strchr ((const char *) verifierHashSize_pos, '*');
+  token.len_min[3] = 3;
+  token.len_max[3] = 3;
+  token.sep[3]     = '*';
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  if (keySize_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.len_min[4] = 2;
+  token.len_max[4] = 2;
+  token.sep[4]     = '*';
+  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  u32 verifierHashSize_len = keySize_pos - verifierHashSize_pos;
+  token.len_min[5] = 32;
+  token.len_max[5] = 32;
+  token.sep[5]     = '*';
+  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  keySize_pos++;
+  token.len_min[6] = 32;
+  token.len_max[6] = 32;
+  token.sep[6]     = '*';
+  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  u8 *saltSize_pos = (u8 *) strchr ((const char *) keySize_pos, '*');
+  token.len_min[7] = 40;
+  token.len_max[7] = 40;
+  token.sep[7]     = '*';
+  token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  if (saltSize_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
-  u32 keySize_len = saltSize_pos - keySize_pos;
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  saltSize_pos++;
-
-  u8 *osalt_pos = (u8 *) strchr ((const char *) saltSize_pos, '*');
-
-  if (osalt_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  u32 saltSize_len = osalt_pos - saltSize_pos;
-
-  osalt_pos++;
-
-  u8 *encryptedVerifier_pos = (u8 *) strchr ((const char *) osalt_pos, '*');
-
-  if (encryptedVerifier_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  u32 osalt_len = encryptedVerifier_pos - osalt_pos;
-
-  encryptedVerifier_pos++;
-
-  u8 *encryptedVerifierHash_pos = (u8 *) strchr ((const char *) encryptedVerifier_pos, '*');
-
-  if (encryptedVerifierHash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  u32 encryptedVerifier_len = encryptedVerifierHash_pos - encryptedVerifier_pos;
-
-  encryptedVerifierHash_pos++;
-
-  u32 encryptedVerifierHash_len = input_len - 8 - 1 - version_len - 1 - verifierHashSize_len - 1 - keySize_len - 1 - saltSize_len - 1 - osalt_len - 1 - encryptedVerifier_len - 1;
-
-  if (encryptedVerifierHash_len != 40) return (PARSER_SALT_LENGTH);
-
-  if (version_len           !=  4) return (PARSER_SALT_LENGTH);
-  if (verifierHashSize_len  !=  2) return (PARSER_SALT_LENGTH);
-  if (keySize_len           !=  3) return (PARSER_SALT_LENGTH);
-  if (saltSize_len          !=  2) return (PARSER_SALT_LENGTH);
-  if (osalt_len             != 32) return (PARSER_SALT_LENGTH);
-  if (encryptedVerifier_len != 32) return (PARSER_SALT_LENGTH);
+  u8 *version_pos               = token.buf[1];
+  u8 *verifierHashSize_pos      = token.buf[2];
+  u8 *keySize_pos               = token.buf[3];
+  u8 *saltSize_pos              = token.buf[4];
+  u8 *osalt_pos                 = token.buf[5];
+  u8 *encryptedVerifier_pos     = token.buf[6];
+  u8 *encryptedVerifierHash_pos = token.buf[7];
 
   const u32 version           = hc_strtoul ((const char *) version_pos, NULL, 10);
   const u32 verifierHashSize  = hc_strtoul ((const char *) verifierHashSize_pos, NULL, 10);
@@ -9865,12 +9906,10 @@ int office2007_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   salt->salt_len  = 16;
   salt->salt_iter = ROUNDS_OFFICE2007;
 
-  if (is_valid_hex_string (osalt_pos, 32) == false) return (PARSER_SALT_ENCODING);
-
-  salt->salt_buf[0] = hex_to_u32 ((const u8 *) &osalt_pos[ 0]);
-  salt->salt_buf[1] = hex_to_u32 ((const u8 *) &osalt_pos[ 8]);
-  salt->salt_buf[2] = hex_to_u32 ((const u8 *) &osalt_pos[16]);
-  salt->salt_buf[3] = hex_to_u32 ((const u8 *) &osalt_pos[24]);
+  salt->salt_buf[0] = hex_to_u32 (osalt_pos +  0);
+  salt->salt_buf[1] = hex_to_u32 (osalt_pos +  8);
+  salt->salt_buf[2] = hex_to_u32 (osalt_pos + 16);
+  salt->salt_buf[3] = hex_to_u32 (osalt_pos + 24);
 
   salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
   salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
@@ -9881,25 +9920,21 @@ int office2007_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
    * esalt
    */
 
-  if (is_valid_hex_string (encryptedVerifier_pos, 32) == false) return (PARSER_HASH_ENCODING);
-
-  office2007->encryptedVerifier[0] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[ 0]);
-  office2007->encryptedVerifier[1] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[ 8]);
-  office2007->encryptedVerifier[2] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[16]);
-  office2007->encryptedVerifier[3] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[24]);
+  office2007->encryptedVerifier[0] = hex_to_u32 (encryptedVerifier_pos +  0);
+  office2007->encryptedVerifier[1] = hex_to_u32 (encryptedVerifier_pos +  8);
+  office2007->encryptedVerifier[2] = hex_to_u32 (encryptedVerifier_pos + 16);
+  office2007->encryptedVerifier[3] = hex_to_u32 (encryptedVerifier_pos + 24);
 
   office2007->encryptedVerifier[0] = byte_swap_32 (office2007->encryptedVerifier[0]);
   office2007->encryptedVerifier[1] = byte_swap_32 (office2007->encryptedVerifier[1]);
   office2007->encryptedVerifier[2] = byte_swap_32 (office2007->encryptedVerifier[2]);
   office2007->encryptedVerifier[3] = byte_swap_32 (office2007->encryptedVerifier[3]);
 
-  if (is_valid_hex_string (encryptedVerifierHash_pos, 40) == false) return (PARSER_HASH_ENCODING);
-
-  office2007->encryptedVerifierHash[0] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[ 0]);
-  office2007->encryptedVerifierHash[1] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[ 8]);
-  office2007->encryptedVerifierHash[2] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[16]);
-  office2007->encryptedVerifierHash[3] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[24]);
-  office2007->encryptedVerifierHash[4] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[32]);
+  office2007->encryptedVerifierHash[0] = hex_to_u32 (encryptedVerifierHash_pos +  0);
+  office2007->encryptedVerifierHash[1] = hex_to_u32 (encryptedVerifierHash_pos +  8);
+  office2007->encryptedVerifierHash[2] = hex_to_u32 (encryptedVerifierHash_pos + 16);
+  office2007->encryptedVerifierHash[3] = hex_to_u32 (encryptedVerifierHash_pos + 24);
+  office2007->encryptedVerifierHash[4] = hex_to_u32 (encryptedVerifierHash_pos + 32);
 
   office2007->encryptedVerifierHash[0] = byte_swap_32 (office2007->encryptedVerifierHash[0]);
   office2007->encryptedVerifierHash[1] = byte_swap_32 (office2007->encryptedVerifierHash[1]);
@@ -9921,80 +9956,78 @@ int office2007_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
 int office2010_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_9500) || (input_len > DISPLAY_LEN_MAX_9500)) return (PARSER_GLOBAL_LENGTH);
-
-  if (memcmp (SIGNATURE_OFFICE2010, input_buf, 8) != 0) return (PARSER_SIGNATURE_UNMATCHED);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
   office2010_t *office2010 = (office2010_t *) hash_buf->esalt;
 
-  /**
-   * parse line
-   */
+  token_t token;
 
-  u8 *version_pos = input_buf + 8 + 1;
+  token.token_cnt  = 8;
 
-  u8 *spinCount_pos = (u8 *) strchr ((const char *) version_pos, '*');
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_OFFICE2010;
 
-  if (spinCount_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.len_min[0] = 8;
+  token.len_max[0] = 8;
+  token.sep[0]     = '*';
+  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  u32 version_len = spinCount_pos - version_pos;
+  token.len_min[1] = 4;
+  token.len_max[1] = 4;
+  token.sep[1]     = '*';
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  spinCount_pos++;
+  token.len_min[2] = 6;
+  token.len_max[2] = 6;
+  token.sep[2]     = '*';
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  u8 *keySize_pos = (u8 *) strchr ((const char *) spinCount_pos, '*');
+  token.len_min[3] = 3;
+  token.len_max[3] = 3;
+  token.sep[3]     = '*';
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  if (keySize_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.len_min[4] = 2;
+  token.len_max[4] = 2;
+  token.sep[4]     = '*';
+  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  u32 spinCount_len = keySize_pos - spinCount_pos;
+  token.len_min[5] = 32;
+  token.len_max[5] = 32;
+  token.sep[5]     = '*';
+  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  keySize_pos++;
+  token.len_min[6] = 32;
+  token.len_max[6] = 32;
+  token.sep[6]     = '*';
+  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  u8 *saltSize_pos = (u8 *) strchr ((const char *) keySize_pos, '*');
+  token.len_min[7] = 64;
+  token.len_max[7] = 64;
+  token.sep[7]     = '*';
+  token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  if (saltSize_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
-  u32 keySize_len = saltSize_pos - keySize_pos;
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  saltSize_pos++;
-
-  u8 *osalt_pos = (u8 *) strchr ((const char *) saltSize_pos, '*');
-
-  if (osalt_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  u32 saltSize_len = osalt_pos - saltSize_pos;
-
-  osalt_pos++;
-
-  u8 *encryptedVerifier_pos = (u8 *) strchr ((const char *) osalt_pos, '*');
-
-  if (encryptedVerifier_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  u32 osalt_len = encryptedVerifier_pos - osalt_pos;
-
-  encryptedVerifier_pos++;
-
-  u8 *encryptedVerifierHash_pos = (u8 *) strchr ((const char *) encryptedVerifier_pos, '*');
-
-  if (encryptedVerifierHash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  u32 encryptedVerifier_len = encryptedVerifierHash_pos - encryptedVerifier_pos;
-
-  encryptedVerifierHash_pos++;
-
-  u32 encryptedVerifierHash_len = input_len - 8 - 1 - version_len - 1 - spinCount_len - 1 - keySize_len - 1 - saltSize_len - 1 - osalt_len - 1 - encryptedVerifier_len - 1;
-
-  if (encryptedVerifierHash_len != 64) return (PARSER_SALT_LENGTH);
-
-  if (version_len           !=  4) return (PARSER_SALT_LENGTH);
-  if (spinCount_len         !=  6) return (PARSER_SALT_LENGTH);
-  if (keySize_len           !=  3) return (PARSER_SALT_LENGTH);
-  if (saltSize_len          !=  2) return (PARSER_SALT_LENGTH);
-  if (osalt_len             != 32) return (PARSER_SALT_LENGTH);
-  if (encryptedVerifier_len != 32) return (PARSER_SALT_LENGTH);
+  u8 *version_pos               = token.buf[1];
+  u8 *spinCount_pos             = token.buf[2];
+  u8 *keySize_pos               = token.buf[3];
+  u8 *saltSize_pos              = token.buf[4];
+  u8 *osalt_pos                 = token.buf[5];
+  u8 *encryptedVerifier_pos     = token.buf[6];
+  u8 *encryptedVerifierHash_pos = token.buf[7];
 
   const u32 version   = hc_strtoul ((const char *) version_pos, NULL, 10);
   const u32 spinCount = hc_strtoul ((const char *) spinCount_pos, NULL, 10);
@@ -10013,12 +10046,10 @@ int office2010_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   salt->salt_len  = 16;
   salt->salt_iter = spinCount;
 
-  if (is_valid_hex_string (osalt_pos, 32) == false) return (PARSER_SALT_ENCODING);
-
-  salt->salt_buf[0] = hex_to_u32 ((const u8 *) &osalt_pos[ 0]);
-  salt->salt_buf[1] = hex_to_u32 ((const u8 *) &osalt_pos[ 8]);
-  salt->salt_buf[2] = hex_to_u32 ((const u8 *) &osalt_pos[16]);
-  salt->salt_buf[3] = hex_to_u32 ((const u8 *) &osalt_pos[24]);
+  salt->salt_buf[0] = hex_to_u32 (osalt_pos +  0);
+  salt->salt_buf[1] = hex_to_u32 (osalt_pos +  8);
+  salt->salt_buf[2] = hex_to_u32 (osalt_pos + 16);
+  salt->salt_buf[3] = hex_to_u32 (osalt_pos + 24);
 
   salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
   salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
@@ -10029,28 +10060,24 @@ int office2010_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
    * esalt
    */
 
-  if (is_valid_hex_string (encryptedVerifier_pos, 32) == false) return (PARSER_HASH_ENCODING);
-
-  office2010->encryptedVerifier[0] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[ 0]);
-  office2010->encryptedVerifier[1] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[ 8]);
-  office2010->encryptedVerifier[2] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[16]);
-  office2010->encryptedVerifier[3] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[24]);
+  office2010->encryptedVerifier[0] = hex_to_u32 (encryptedVerifier_pos +  0);
+  office2010->encryptedVerifier[1] = hex_to_u32 (encryptedVerifier_pos +  8);
+  office2010->encryptedVerifier[2] = hex_to_u32 (encryptedVerifier_pos + 16);
+  office2010->encryptedVerifier[3] = hex_to_u32 (encryptedVerifier_pos + 24);
 
   office2010->encryptedVerifier[0] = byte_swap_32 (office2010->encryptedVerifier[0]);
   office2010->encryptedVerifier[1] = byte_swap_32 (office2010->encryptedVerifier[1]);
   office2010->encryptedVerifier[2] = byte_swap_32 (office2010->encryptedVerifier[2]);
   office2010->encryptedVerifier[3] = byte_swap_32 (office2010->encryptedVerifier[3]);
 
-  if (is_valid_hex_string (encryptedVerifierHash_pos, 64) == false) return (PARSER_HASH_ENCODING);
-
-  office2010->encryptedVerifierHash[0] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[ 0]);
-  office2010->encryptedVerifierHash[1] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[ 8]);
-  office2010->encryptedVerifierHash[2] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[16]);
-  office2010->encryptedVerifierHash[3] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[24]);
-  office2010->encryptedVerifierHash[4] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[32]);
-  office2010->encryptedVerifierHash[5] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[40]);
-  office2010->encryptedVerifierHash[6] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[48]);
-  office2010->encryptedVerifierHash[7] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[56]);
+  office2010->encryptedVerifierHash[0] = hex_to_u32 (encryptedVerifierHash_pos +  0);
+  office2010->encryptedVerifierHash[1] = hex_to_u32 (encryptedVerifierHash_pos +  8);
+  office2010->encryptedVerifierHash[2] = hex_to_u32 (encryptedVerifierHash_pos + 16);
+  office2010->encryptedVerifierHash[3] = hex_to_u32 (encryptedVerifierHash_pos + 24);
+  office2010->encryptedVerifierHash[4] = hex_to_u32 (encryptedVerifierHash_pos + 32);
+  office2010->encryptedVerifierHash[5] = hex_to_u32 (encryptedVerifierHash_pos + 40);
+  office2010->encryptedVerifierHash[6] = hex_to_u32 (encryptedVerifierHash_pos + 48);
+  office2010->encryptedVerifierHash[7] = hex_to_u32 (encryptedVerifierHash_pos + 56);
 
   office2010->encryptedVerifierHash[0] = byte_swap_32 (office2010->encryptedVerifierHash[0]);
   office2010->encryptedVerifierHash[1] = byte_swap_32 (office2010->encryptedVerifierHash[1]);
@@ -10075,80 +10102,78 @@ int office2010_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
 int office2013_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_9600) || (input_len > DISPLAY_LEN_MAX_9600)) return (PARSER_GLOBAL_LENGTH);
-
-  if (memcmp (SIGNATURE_OFFICE2013, input_buf, 8) != 0) return (PARSER_SIGNATURE_UNMATCHED);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
   office2013_t *office2013 = (office2013_t *) hash_buf->esalt;
 
-  /**
-   * parse line
-   */
+  token_t token;
 
-  u8 *version_pos = input_buf + 8 + 1;
+  token.token_cnt  = 8;
 
-  u8 *spinCount_pos = (u8 *) strchr ((const char *) version_pos, '*');
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_OFFICE2013;
 
-  if (spinCount_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.len_min[0] = 8;
+  token.len_max[0] = 8;
+  token.sep[0]     = '*';
+  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  u32 version_len = spinCount_pos - version_pos;
+  token.len_min[1] = 4;
+  token.len_max[1] = 4;
+  token.sep[1]     = '*';
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  spinCount_pos++;
+  token.len_min[2] = 6;
+  token.len_max[2] = 6;
+  token.sep[2]     = '*';
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  u8 *keySize_pos = (u8 *) strchr ((const char *) spinCount_pos, '*');
+  token.len_min[3] = 3;
+  token.len_max[3] = 3;
+  token.sep[3]     = '*';
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  if (keySize_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.len_min[4] = 2;
+  token.len_max[4] = 2;
+  token.sep[4]     = '*';
+  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  u32 spinCount_len = keySize_pos - spinCount_pos;
+  token.len_min[5] = 32;
+  token.len_max[5] = 32;
+  token.sep[5]     = '*';
+  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  keySize_pos++;
+  token.len_min[6] = 32;
+  token.len_max[6] = 32;
+  token.sep[6]     = '*';
+  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  u8 *saltSize_pos = (u8 *) strchr ((const char *) keySize_pos, '*');
+  token.len_min[7] = 64;
+  token.len_max[7] = 64;
+  token.sep[7]     = '*';
+  token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  if (saltSize_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
-  u32 keySize_len = saltSize_pos - keySize_pos;
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  saltSize_pos++;
-
-  u8 *osalt_pos = (u8 *) strchr ((const char *) saltSize_pos, '*');
-
-  if (osalt_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  u32 saltSize_len = osalt_pos - saltSize_pos;
-
-  osalt_pos++;
-
-  u8 *encryptedVerifier_pos = (u8 *) strchr ((const char *) osalt_pos, '*');
-
-  if (encryptedVerifier_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  u32 osalt_len = encryptedVerifier_pos - osalt_pos;
-
-  encryptedVerifier_pos++;
-
-  u8 *encryptedVerifierHash_pos = (u8 *) strchr ((const char *) encryptedVerifier_pos, '*');
-
-  if (encryptedVerifierHash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  u32 encryptedVerifier_len = encryptedVerifierHash_pos - encryptedVerifier_pos;
-
-  encryptedVerifierHash_pos++;
-
-  u32 encryptedVerifierHash_len = input_len - 8 - 1 - version_len - 1 - spinCount_len - 1 - keySize_len - 1 - saltSize_len - 1 - osalt_len - 1 - encryptedVerifier_len - 1;
-
-  if (encryptedVerifierHash_len != 64) return (PARSER_SALT_LENGTH);
-
-  if (version_len           !=  4) return (PARSER_SALT_LENGTH);
-  if (spinCount_len         !=  6) return (PARSER_SALT_LENGTH);
-  if (keySize_len           !=  3) return (PARSER_SALT_LENGTH);
-  if (saltSize_len          !=  2) return (PARSER_SALT_LENGTH);
-  if (osalt_len             != 32) return (PARSER_SALT_LENGTH);
-  if (encryptedVerifier_len != 32) return (PARSER_SALT_LENGTH);
+  u8 *version_pos               = token.buf[1];
+  u8 *spinCount_pos             = token.buf[2];
+  u8 *keySize_pos               = token.buf[3];
+  u8 *saltSize_pos              = token.buf[4];
+  u8 *osalt_pos                 = token.buf[5];
+  u8 *encryptedVerifier_pos     = token.buf[6];
+  u8 *encryptedVerifierHash_pos = token.buf[7];
 
   const u32 version   =  hc_strtoul ((const char *) version_pos, NULL, 10);
   const u32 spinCount =  hc_strtoul ((const char *) spinCount_pos, NULL, 10);
@@ -10167,12 +10192,10 @@ int office2013_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   salt->salt_len  = 16;
   salt->salt_iter = spinCount;
 
-  if (is_valid_hex_string (osalt_pos, 32) == false) return (PARSER_SALT_ENCODING);
-
-  salt->salt_buf[0] = hex_to_u32 ((const u8 *) &osalt_pos[ 0]);
-  salt->salt_buf[1] = hex_to_u32 ((const u8 *) &osalt_pos[ 8]);
-  salt->salt_buf[2] = hex_to_u32 ((const u8 *) &osalt_pos[16]);
-  salt->salt_buf[3] = hex_to_u32 ((const u8 *) &osalt_pos[24]);
+  salt->salt_buf[0] = hex_to_u32 (osalt_pos +  0);
+  salt->salt_buf[1] = hex_to_u32 (osalt_pos +  8);
+  salt->salt_buf[2] = hex_to_u32 (osalt_pos + 16);
+  salt->salt_buf[3] = hex_to_u32 (osalt_pos + 24);
 
   salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
   salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
@@ -10183,28 +10206,24 @@ int office2013_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
    * esalt
    */
 
-  if (is_valid_hex_string (encryptedVerifier_pos, 32) == false) return (PARSER_HASH_ENCODING);
-
-  office2013->encryptedVerifier[0] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[ 0]);
-  office2013->encryptedVerifier[1] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[ 8]);
-  office2013->encryptedVerifier[2] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[16]);
-  office2013->encryptedVerifier[3] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[24]);
+  office2013->encryptedVerifier[0] = hex_to_u32 (encryptedVerifier_pos +  0);
+  office2013->encryptedVerifier[1] = hex_to_u32 (encryptedVerifier_pos +  8);
+  office2013->encryptedVerifier[2] = hex_to_u32 (encryptedVerifier_pos + 16);
+  office2013->encryptedVerifier[3] = hex_to_u32 (encryptedVerifier_pos + 24);
 
   office2013->encryptedVerifier[0] = byte_swap_32 (office2013->encryptedVerifier[0]);
   office2013->encryptedVerifier[1] = byte_swap_32 (office2013->encryptedVerifier[1]);
   office2013->encryptedVerifier[2] = byte_swap_32 (office2013->encryptedVerifier[2]);
   office2013->encryptedVerifier[3] = byte_swap_32 (office2013->encryptedVerifier[3]);
 
-  if (is_valid_hex_string (encryptedVerifierHash_pos, 64) == false) return (PARSER_HASH_ENCODING);
-
-  office2013->encryptedVerifierHash[0] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[ 0]);
-  office2013->encryptedVerifierHash[1] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[ 8]);
-  office2013->encryptedVerifierHash[2] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[16]);
-  office2013->encryptedVerifierHash[3] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[24]);
-  office2013->encryptedVerifierHash[4] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[32]);
-  office2013->encryptedVerifierHash[5] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[40]);
-  office2013->encryptedVerifierHash[6] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[48]);
-  office2013->encryptedVerifierHash[7] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[56]);
+  office2013->encryptedVerifierHash[0] = hex_to_u32 (encryptedVerifierHash_pos +  0);
+  office2013->encryptedVerifierHash[1] = hex_to_u32 (encryptedVerifierHash_pos +  8);
+  office2013->encryptedVerifierHash[2] = hex_to_u32 (encryptedVerifierHash_pos + 16);
+  office2013->encryptedVerifierHash[3] = hex_to_u32 (encryptedVerifierHash_pos + 24);
+  office2013->encryptedVerifierHash[4] = hex_to_u32 (encryptedVerifierHash_pos + 32);
+  office2013->encryptedVerifierHash[5] = hex_to_u32 (encryptedVerifierHash_pos + 40);
+  office2013->encryptedVerifierHash[6] = hex_to_u32 (encryptedVerifierHash_pos + 48);
+  office2013->encryptedVerifierHash[7] = hex_to_u32 (encryptedVerifierHash_pos + 56);
 
   office2013->encryptedVerifierHash[0] = byte_swap_32 (office2013->encryptedVerifierHash[0]);
   office2013->encryptedVerifierHash[1] = byte_swap_32 (office2013->encryptedVerifierHash[1]);
