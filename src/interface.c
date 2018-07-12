@@ -620,6 +620,7 @@ static const char *SIGNATURE_NETSCALER          = "1";
 static const char *SIGNATURE_OFFICE2007         = "$office$";
 static const char *SIGNATURE_OFFICE2010         = "$office$";
 static const char *SIGNATURE_OFFICE2013         = "$office$";
+static const char *SIGNATURE_OLDOFFICE          = "$oldoffice$";
 static const char *SIGNATURE_OLDOFFICE0         = "$oldoffice$0";
 static const char *SIGNATURE_OLDOFFICE1         = "$oldoffice$1";
 static const char *SIGNATURE_OLDOFFICE3         = "$oldoffice$3";
@@ -10248,96 +10249,84 @@ int office2013_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
 int oldoffice01_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_9700) || (input_len > DISPLAY_LEN_MAX_9700)) return (PARSER_GLOBAL_LENGTH);
-
-  if ((memcmp (SIGNATURE_OLDOFFICE0, input_buf, 12) != 0) && (memcmp (SIGNATURE_OLDOFFICE1, input_buf, 12) != 0)) return (PARSER_SIGNATURE_UNMATCHED);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
   oldoffice01_t *oldoffice01 = (oldoffice01_t *) hash_buf->esalt;
 
-  /**
-   * parse line
-   */
+  token_t token;
 
-  u8 *version_pos = input_buf + 11;
+  token.token_cnt  = 5;
 
-  u8 *osalt_pos = (u8 *) strchr ((const char *) version_pos, '*');
+  token.signatures_cnt    = 2;
+  token.signatures_buf[0] = SIGNATURE_OLDOFFICE0;
+  token.signatures_buf[1] = SIGNATURE_OLDOFFICE1;
 
-  if (osalt_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.len[0]     = 11;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  u32 version_len = osalt_pos - version_pos;
+  token.len_min[1] = 1;
+  token.len_max[1] = 1;
+  token.sep[1]     = '*';
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  if (version_len != 1) return (PARSER_SALT_LENGTH);
+  token.len_min[2] = 32;
+  token.len_max[2] = 32;
+  token.sep[2]     = '*';
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  osalt_pos++;
+  token.len_min[3] = 32;
+  token.len_max[3] = 32;
+  token.sep[3]     = '*';
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  u8 *encryptedVerifier_pos = (u8 *) strchr ((const char *) osalt_pos, '*');
+  token.len_min[4] = 32;
+  token.len_max[4] = 32;
+  token.sep[4]     = '*';
+  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  if (encryptedVerifier_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
-  u32 osalt_len = encryptedVerifier_pos - osalt_pos;
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  if (osalt_len != 32) return (PARSER_SALT_LENGTH);
+  u8 *version_pos               = token.buf[1];
+  u8 *osalt_pos                 = token.buf[2];
+  u8 *encryptedVerifier_pos     = token.buf[3];
+  u8 *encryptedVerifierHash_pos = token.buf[4];
 
-  encryptedVerifier_pos++;
-
-  u8 *encryptedVerifierHash_pos = (u8 *) strchr ((const char *) encryptedVerifier_pos, '*');
-
-  if (encryptedVerifierHash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  u32 encryptedVerifier_len = encryptedVerifierHash_pos - encryptedVerifier_pos;
-
-  if (encryptedVerifier_len != 32) return (PARSER_SALT_LENGTH);
-
-  encryptedVerifierHash_pos++;
-
-  // The following check is implied (and therefore not needed aka dead code):
-  // u32 encryptedVerifierHash_len = input_len - 11 - version_len - 1 - osalt_len - 1 - encryptedVerifier_len - 1;
-  // if (encryptedVerifierHash_len != 32) return (PARSER_SALT_LENGTH);
+  // esalt
 
   const u32 version = *version_pos - 0x30;
 
   if (version != 0 && version != 1) return (PARSER_SALT_VALUE);
 
-  /**
-   * esalt
-   */
-
   oldoffice01->version = version;
 
-  if (is_valid_hex_string (encryptedVerifier_pos, 32) == false) return (PARSER_HASH_ENCODING);
+  oldoffice01->encryptedVerifier[0] = hex_to_u32 (encryptedVerifier_pos +  0);
+  oldoffice01->encryptedVerifier[1] = hex_to_u32 (encryptedVerifier_pos +  8);
+  oldoffice01->encryptedVerifier[2] = hex_to_u32 (encryptedVerifier_pos + 16);
+  oldoffice01->encryptedVerifier[3] = hex_to_u32 (encryptedVerifier_pos + 24);
 
-  oldoffice01->encryptedVerifier[0] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[ 0]);
-  oldoffice01->encryptedVerifier[1] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[ 8]);
-  oldoffice01->encryptedVerifier[2] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[16]);
-  oldoffice01->encryptedVerifier[3] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[24]);
+  oldoffice01->encryptedVerifierHash[0] = hex_to_u32 (encryptedVerifierHash_pos +  0);
+  oldoffice01->encryptedVerifierHash[1] = hex_to_u32 (encryptedVerifierHash_pos +  8);
+  oldoffice01->encryptedVerifierHash[2] = hex_to_u32 (encryptedVerifierHash_pos + 16);
+  oldoffice01->encryptedVerifierHash[3] = hex_to_u32 (encryptedVerifierHash_pos + 24);
 
-  if (is_valid_hex_string (encryptedVerifierHash_pos, 32) == false) return (PARSER_HASH_ENCODING);
-
-  oldoffice01->encryptedVerifierHash[0] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[ 0]);
-  oldoffice01->encryptedVerifierHash[1] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[ 8]);
-  oldoffice01->encryptedVerifierHash[2] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[16]);
-  oldoffice01->encryptedVerifierHash[3] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[24]);
-
-  /**
-   * salt
-   */
+  // salt
 
   salt->salt_len = 16;
 
-  if (is_valid_hex_string (osalt_pos, 32) == false) return (PARSER_SALT_ENCODING);
-
-  salt->salt_buf[0] = hex_to_u32 ((const u8 *) &osalt_pos[ 0]);
-  salt->salt_buf[1] = hex_to_u32 ((const u8 *) &osalt_pos[ 8]);
-  salt->salt_buf[2] = hex_to_u32 ((const u8 *) &osalt_pos[16]);
-  salt->salt_buf[3] = hex_to_u32 ((const u8 *) &osalt_pos[24]);
+  salt->salt_buf[ 0] = hex_to_u32 (osalt_pos +  0);
+  salt->salt_buf[ 1] = hex_to_u32 (osalt_pos +  8);
+  salt->salt_buf[ 2] = hex_to_u32 (osalt_pos + 16);
+  salt->salt_buf[ 3] = hex_to_u32 (osalt_pos + 24);
 
   // this is a workaround as office produces multiple documents with the same salt
-
-  salt->salt_len += 32;
 
   salt->salt_buf[ 4] = oldoffice01->encryptedVerifier[0];
   salt->salt_buf[ 5] = oldoffice01->encryptedVerifier[1];
@@ -10347,6 +10336,8 @@ int oldoffice01_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
   salt->salt_buf[ 9] = oldoffice01->encryptedVerifierHash[1];
   salt->salt_buf[10] = oldoffice01->encryptedVerifierHash[2];
   salt->salt_buf[11] = oldoffice01->encryptedVerifierHash[3];
+
+  salt->salt_len += 32;
 
   /**
    * digest
@@ -10367,86 +10358,80 @@ int oldoffice01cm1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
 
 int oldoffice01cm2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_9720) || (input_len > DISPLAY_LEN_MAX_9720)) return (PARSER_GLOBAL_LENGTH);
-
-  if ((memcmp (SIGNATURE_OLDOFFICE0, input_buf, 12) != 0) && (memcmp (SIGNATURE_OLDOFFICE1, input_buf, 12) != 0)) return (PARSER_SIGNATURE_UNMATCHED);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
   oldoffice01_t *oldoffice01 = (oldoffice01_t *) hash_buf->esalt;
 
-  /**
-   * parse line
-   */
+  token_t token;
 
-  u8 *version_pos = input_buf + 11;
+  token.token_cnt  = 6;
 
-  u8 *osalt_pos = (u8 *) strchr ((const char *) version_pos, '*');
+  token.signatures_cnt    = 2;
+  token.signatures_buf[0] = SIGNATURE_OLDOFFICE0;
+  token.signatures_buf[1] = SIGNATURE_OLDOFFICE1;
 
-  if (osalt_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.len[0]     = 11;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  u32 version_len = osalt_pos - version_pos;
+  token.len_min[1] = 1;
+  token.len_max[1] = 1;
+  token.sep[1]     = '*';
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  osalt_pos++;
+  token.len_min[2] = 32;
+  token.len_max[2] = 32;
+  token.sep[2]     = '*';
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  u8 *encryptedVerifier_pos = (u8 *) strchr ((const char *) osalt_pos, '*');
+  token.len_min[3] = 32;
+  token.len_max[3] = 32;
+  token.sep[3]     = '*';
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  if (encryptedVerifier_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.len_min[4] = 32;
+  token.len_max[4] = 32;
+  token.sep[4]     = ':';
+  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  u32 osalt_len = encryptedVerifier_pos - osalt_pos;
+  token.len_min[5] = 10;
+  token.len_max[5] = 10;
+  token.sep[5]     = ':';
+  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  encryptedVerifier_pos++;
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
-  u8 *encryptedVerifierHash_pos = (u8 *) strchr ((const char *) encryptedVerifier_pos, '*');
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  if (encryptedVerifierHash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  u8 *version_pos               = token.buf[1];
+  u8 *osalt_pos                 = token.buf[2];
+  u8 *encryptedVerifier_pos     = token.buf[3];
+  u8 *encryptedVerifierHash_pos = token.buf[4];
+  u8 *rc4key_pos                = token.buf[5];
 
-  u32 encryptedVerifier_len = encryptedVerifierHash_pos - encryptedVerifier_pos;
-
-  encryptedVerifierHash_pos++;
-
-  u8 *rc4key_pos = (u8 *) strchr ((const char *) encryptedVerifierHash_pos, ':');
-
-  if (rc4key_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  u32 encryptedVerifierHash_len = rc4key_pos - encryptedVerifierHash_pos;
-
-  rc4key_pos++;
-
-  u32 rc4key_len = input_len - 11 - version_len - 1 - osalt_len - 1 - encryptedVerifier_len - 1 - encryptedVerifierHash_len - 1;
-
-  if (rc4key_len != 10) return (PARSER_SALT_LENGTH);
-
-  if (version_len               !=  1) return (PARSER_SALT_LENGTH);
-  if (osalt_len                 != 32) return (PARSER_SALT_LENGTH);
-  if (encryptedVerifier_len     != 32) return (PARSER_SALT_LENGTH);
-  if (encryptedVerifierHash_len != 32) return (PARSER_SALT_LENGTH);
+  // esalt
 
   const u32 version = *version_pos - 0x30;
 
   if (version != 0 && version != 1) return (PARSER_SALT_VALUE);
 
-  /**
-   * esalt
-   */
-
   oldoffice01->version = version;
 
-  if (is_valid_hex_string (encryptedVerifier_pos, 32) == false) return (PARSER_HASH_ENCODING);
+  oldoffice01->encryptedVerifier[0] = hex_to_u32 (encryptedVerifier_pos +  0);
+  oldoffice01->encryptedVerifier[1] = hex_to_u32 (encryptedVerifier_pos +  8);
+  oldoffice01->encryptedVerifier[2] = hex_to_u32 (encryptedVerifier_pos + 16);
+  oldoffice01->encryptedVerifier[3] = hex_to_u32 (encryptedVerifier_pos + 24);
 
-  oldoffice01->encryptedVerifier[0] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[ 0]);
-  oldoffice01->encryptedVerifier[1] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[ 8]);
-  oldoffice01->encryptedVerifier[2] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[16]);
-  oldoffice01->encryptedVerifier[3] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[24]);
-
-  if (is_valid_hex_string (encryptedVerifierHash_pos, 32) == false) return (PARSER_HASH_ENCODING);
-
-  oldoffice01->encryptedVerifierHash[0] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[ 0]);
-  oldoffice01->encryptedVerifierHash[1] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[ 8]);
-  oldoffice01->encryptedVerifierHash[2] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[16]);
-  oldoffice01->encryptedVerifierHash[3] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[24]);
+  oldoffice01->encryptedVerifierHash[0] = hex_to_u32 (encryptedVerifierHash_pos +  0);
+  oldoffice01->encryptedVerifierHash[1] = hex_to_u32 (encryptedVerifierHash_pos +  8);
+  oldoffice01->encryptedVerifierHash[2] = hex_to_u32 (encryptedVerifierHash_pos + 16);
+  oldoffice01->encryptedVerifierHash[3] = hex_to_u32 (encryptedVerifierHash_pos + 24);
 
   oldoffice01->rc4key[1] = 0;
   oldoffice01->rc4key[0] = 0;
@@ -10465,22 +10450,16 @@ int oldoffice01cm2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
   oldoffice01->rc4key[0] = byte_swap_32 (oldoffice01->rc4key[0]);
   oldoffice01->rc4key[1] = byte_swap_32 (oldoffice01->rc4key[1]);
 
-  /**
-   * salt
-   */
+  // salt
 
   salt->salt_len = 16;
 
-  if (is_valid_hex_string (osalt_pos, 32) == false) return (PARSER_SALT_ENCODING);
-
-  salt->salt_buf[0] = hex_to_u32 ((const u8 *) &osalt_pos[ 0]);
-  salt->salt_buf[1] = hex_to_u32 ((const u8 *) &osalt_pos[ 8]);
-  salt->salt_buf[2] = hex_to_u32 ((const u8 *) &osalt_pos[16]);
-  salt->salt_buf[3] = hex_to_u32 ((const u8 *) &osalt_pos[24]);
+  salt->salt_buf[ 0] = hex_to_u32 (osalt_pos +  0);
+  salt->salt_buf[ 1] = hex_to_u32 (osalt_pos +  8);
+  salt->salt_buf[ 2] = hex_to_u32 (osalt_pos + 16);
+  salt->salt_buf[ 3] = hex_to_u32 (osalt_pos + 24);
 
   // this is a workaround as office produces multiple documents with the same salt
-
-  salt->salt_len += 32;
 
   salt->salt_buf[ 4] = oldoffice01->encryptedVerifier[0];
   salt->salt_buf[ 5] = oldoffice01->encryptedVerifier[1];
@@ -10490,6 +10469,8 @@ int oldoffice01cm2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
   salt->salt_buf[ 9] = oldoffice01->encryptedVerifierHash[1];
   salt->salt_buf[10] = oldoffice01->encryptedVerifierHash[2];
   salt->salt_buf[11] = oldoffice01->encryptedVerifierHash[3];
+
+  salt->salt_len += 32;
 
   /**
    * digest
@@ -10505,102 +10486,90 @@ int oldoffice01cm2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
 
 int oldoffice34_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_9800) || (input_len > DISPLAY_LEN_MAX_9800)) return (PARSER_GLOBAL_LENGTH);
-
-  if ((memcmp (SIGNATURE_OLDOFFICE3, input_buf, 12) != 0) && (memcmp (SIGNATURE_OLDOFFICE4, input_buf, 12) != 0)) return (PARSER_SIGNATURE_UNMATCHED);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
   oldoffice34_t *oldoffice34 = (oldoffice34_t *) hash_buf->esalt;
 
-  /**
-   * parse line
-   */
+  token_t token;
 
-  u8 *version_pos = input_buf + 11;
+  token.token_cnt  = 5;
 
-  u8 *osalt_pos = (u8 *) strchr ((const char *) version_pos, '*');
+  token.signatures_cnt    = 2;
+  token.signatures_buf[0] = SIGNATURE_OLDOFFICE3;
+  token.signatures_buf[1] = SIGNATURE_OLDOFFICE4;
 
-  if (osalt_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.len[0]     = 11;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  u32 version_len = osalt_pos - version_pos;
+  token.len_min[1] = 1;
+  token.len_max[1] = 1;
+  token.sep[1]     = '*';
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  if (version_len != 1) return (PARSER_SALT_LENGTH);
+  token.len_min[2] = 32;
+  token.len_max[2] = 32;
+  token.sep[2]     = '*';
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  osalt_pos++;
+  token.len_min[3] = 32;
+  token.len_max[3] = 32;
+  token.sep[3]     = '*';
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  u8 *encryptedVerifier_pos = (u8 *) strchr ((const char *) osalt_pos, '*');
+  token.len_min[4] = 40;
+  token.len_max[4] = 40;
+  token.sep[4]     = '*';
+  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  if (encryptedVerifier_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
-  u32 osalt_len = encryptedVerifier_pos - osalt_pos;
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  if (osalt_len != 32) return (PARSER_SALT_LENGTH);
+  u8 *version_pos               = token.buf[1];
+  u8 *osalt_pos                 = token.buf[2];
+  u8 *encryptedVerifier_pos     = token.buf[3];
+  u8 *encryptedVerifierHash_pos = token.buf[4];
 
-  encryptedVerifier_pos++;
-
-  u8 *encryptedVerifierHash_pos = (u8 *) strchr ((const char *) encryptedVerifier_pos, '*');
-
-  if (encryptedVerifierHash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  u32 encryptedVerifier_len = encryptedVerifierHash_pos - encryptedVerifier_pos;
-
-  if (encryptedVerifier_len != 32) return (PARSER_SALT_LENGTH);
-
-  encryptedVerifierHash_pos++;
-
-  // The following check is implied (and therefore not needed aka dead code):
-  // u32 encryptedVerifierHash_len = input_len - 11 - version_len - 1 - osalt_len - 1 - encryptedVerifier_len - 1;
-  // if (encryptedVerifierHash_len != 40) return (PARSER_SALT_LENGTH);
+  // esalt
 
   const u32 version = *version_pos - 0x30;
 
   if (version != 3 && version != 4) return (PARSER_SALT_VALUE);
 
-  /**
-   * esalt
-   */
-
   oldoffice34->version = version;
 
-  if (is_valid_hex_string (encryptedVerifier_pos, 32) == false) return (PARSER_HASH_ENCODING);
+  oldoffice34->encryptedVerifier[0] = hex_to_u32 (encryptedVerifier_pos +  0);
+  oldoffice34->encryptedVerifier[1] = hex_to_u32 (encryptedVerifier_pos +  8);
+  oldoffice34->encryptedVerifier[2] = hex_to_u32 (encryptedVerifier_pos + 16);
+  oldoffice34->encryptedVerifier[3] = hex_to_u32 (encryptedVerifier_pos + 24);
 
-  oldoffice34->encryptedVerifier[0] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[ 0]);
-  oldoffice34->encryptedVerifier[1] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[ 8]);
-  oldoffice34->encryptedVerifier[2] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[16]);
-  oldoffice34->encryptedVerifier[3] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[24]);
+  oldoffice34->encryptedVerifierHash[0] = hex_to_u32 (encryptedVerifierHash_pos +  0);
+  oldoffice34->encryptedVerifierHash[1] = hex_to_u32 (encryptedVerifierHash_pos +  8);
+  oldoffice34->encryptedVerifierHash[2] = hex_to_u32 (encryptedVerifierHash_pos + 16);
+  oldoffice34->encryptedVerifierHash[3] = hex_to_u32 (encryptedVerifierHash_pos + 24);
+  oldoffice34->encryptedVerifierHash[4] = hex_to_u32 (encryptedVerifierHash_pos + 32);
 
-  if (is_valid_hex_string (encryptedVerifierHash_pos, 40) == false) return (PARSER_HASH_ENCODING);
-
-  oldoffice34->encryptedVerifierHash[0] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[ 0]);
-  oldoffice34->encryptedVerifierHash[1] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[ 8]);
-  oldoffice34->encryptedVerifierHash[2] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[16]);
-  oldoffice34->encryptedVerifierHash[3] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[24]);
-  oldoffice34->encryptedVerifierHash[4] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[32]);
-
-  /**
-   * salt
-   */
+  // salt
 
   salt->salt_len = 16;
 
-  if (is_valid_hex_string (osalt_pos, 32) == false) return (PARSER_SALT_ENCODING);
+  salt->salt_buf[ 0] = hex_to_u32 (osalt_pos +  0);
+  salt->salt_buf[ 1] = hex_to_u32 (osalt_pos +  8);
+  salt->salt_buf[ 2] = hex_to_u32 (osalt_pos + 16);
+  salt->salt_buf[ 3] = hex_to_u32 (osalt_pos + 24);
 
-  salt->salt_buf[0] = hex_to_u32 ((const u8 *) &osalt_pos[ 0]);
-  salt->salt_buf[1] = hex_to_u32 ((const u8 *) &osalt_pos[ 8]);
-  salt->salt_buf[2] = hex_to_u32 ((const u8 *) &osalt_pos[16]);
-  salt->salt_buf[3] = hex_to_u32 ((const u8 *) &osalt_pos[24]);
-
-  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
-  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
-  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
-  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
+  salt->salt_buf[ 0] = byte_swap_32 (salt->salt_buf[0]);
+  salt->salt_buf[ 1] = byte_swap_32 (salt->salt_buf[1]);
+  salt->salt_buf[ 2] = byte_swap_32 (salt->salt_buf[2]);
+  salt->salt_buf[ 3] = byte_swap_32 (salt->salt_buf[3]);
 
   // this is a workaround as office produces multiple documents with the same salt
-
-  salt->salt_len += 32;
 
   salt->salt_buf[ 4] = oldoffice34->encryptedVerifier[0];
   salt->salt_buf[ 5] = oldoffice34->encryptedVerifier[1];
@@ -10610,6 +10579,8 @@ int oldoffice34_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
   salt->salt_buf[ 9] = oldoffice34->encryptedVerifierHash[1];
   salt->salt_buf[10] = oldoffice34->encryptedVerifierHash[2];
   salt->salt_buf[11] = oldoffice34->encryptedVerifierHash[3];
+
+  salt->salt_len += 32;
 
   /**
    * digest
@@ -10632,86 +10603,79 @@ int oldoffice34cm1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
 
 int oldoffice34cm2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_9820) || (input_len > DISPLAY_LEN_MAX_9820)) return (PARSER_GLOBAL_LENGTH);
-
-  if (memcmp (SIGNATURE_OLDOFFICE3, input_buf, 12) != 0) return (PARSER_SIGNATURE_UNMATCHED);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
   oldoffice34_t *oldoffice34 = (oldoffice34_t *) hash_buf->esalt;
 
-  /**
-   * parse line
-   */
+  token_t token;
 
-  u8 *version_pos = input_buf + 11;
+  token.token_cnt  = 6;
 
-  u8 *osalt_pos = (u8 *) strchr ((const char *) version_pos, '*');
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_OLDOFFICE3;
 
-  if (osalt_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.len[0]     = 11;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  u32 version_len = osalt_pos - version_pos;
+  token.len_min[1] = 1;
+  token.len_max[1] = 1;
+  token.sep[1]     = '*';
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  osalt_pos++;
+  token.len_min[2] = 32;
+  token.len_max[2] = 32;
+  token.sep[2]     = '*';
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  u8 *encryptedVerifier_pos = (u8 *) strchr ((const char *) osalt_pos, '*');
+  token.len_min[3] = 32;
+  token.len_max[3] = 32;
+  token.sep[3]     = '*';
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  if (encryptedVerifier_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.len_min[4] = 40;
+  token.len_max[4] = 40;
+  token.sep[4]     = ':';
+  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  u32 osalt_len = encryptedVerifier_pos - osalt_pos;
+  token.len_min[5] = 10;
+  token.len_max[5] = 10;
+  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  encryptedVerifier_pos++;
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
-  u8 *encryptedVerifierHash_pos = (u8 *) strchr ((const char *) encryptedVerifier_pos, '*');
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  if (encryptedVerifierHash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  u8 *version_pos               = token.buf[1];
+  u8 *osalt_pos                 = token.buf[2];
+  u8 *encryptedVerifier_pos     = token.buf[3];
+  u8 *encryptedVerifierHash_pos = token.buf[4];
+  u8 *rc4key_pos                = token.buf[5];
 
-  u32 encryptedVerifier_len = encryptedVerifierHash_pos - encryptedVerifier_pos;
-
-  encryptedVerifierHash_pos++;
-
-  u8 *rc4key_pos = (u8 *) strchr ((const char *) encryptedVerifierHash_pos, ':');
-
-  if (rc4key_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  u32 encryptedVerifierHash_len = rc4key_pos - encryptedVerifierHash_pos;
-
-  rc4key_pos++;
-
-  u32 rc4key_len = input_len - 11 - version_len - 1 - osalt_len - 1 - encryptedVerifier_len - 1 - encryptedVerifierHash_len - 1;
-
-  if (version_len               !=  1) return (PARSER_SALT_LENGTH);
-  if (osalt_len                 != 32) return (PARSER_SALT_LENGTH);
-  if (encryptedVerifier_len     != 32) return (PARSER_SALT_LENGTH);
-  if (encryptedVerifierHash_len != 40) return (PARSER_SALT_LENGTH);
-  if (rc4key_len                != 10) return (PARSER_SALT_LENGTH);
+  // esalt
 
   const u32 version = *version_pos - 0x30;
 
   if (version != 3 && version != 4) return (PARSER_SALT_VALUE);
 
-  /**
-   * esalt
-   */
-
   oldoffice34->version = version;
 
-  if (is_valid_hex_string (encryptedVerifier_pos, 32) == false) return (PARSER_HASH_ENCODING);
+  oldoffice34->encryptedVerifier[0] = hex_to_u32 (encryptedVerifier_pos +  0);
+  oldoffice34->encryptedVerifier[1] = hex_to_u32 (encryptedVerifier_pos +  8);
+  oldoffice34->encryptedVerifier[2] = hex_to_u32 (encryptedVerifier_pos + 16);
+  oldoffice34->encryptedVerifier[3] = hex_to_u32 (encryptedVerifier_pos + 24);
 
-  oldoffice34->encryptedVerifier[0] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[ 0]);
-  oldoffice34->encryptedVerifier[1] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[ 8]);
-  oldoffice34->encryptedVerifier[2] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[16]);
-  oldoffice34->encryptedVerifier[3] = hex_to_u32 ((const u8 *) &encryptedVerifier_pos[24]);
-
-  if (is_valid_hex_string (encryptedVerifierHash_pos, 40) == false) return (PARSER_HASH_ENCODING);
-
-  oldoffice34->encryptedVerifierHash[0] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[ 0]);
-  oldoffice34->encryptedVerifierHash[1] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[ 8]);
-  oldoffice34->encryptedVerifierHash[2] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[16]);
-  oldoffice34->encryptedVerifierHash[3] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[24]);
-  oldoffice34->encryptedVerifierHash[4] = hex_to_u32 ((const u8 *) &encryptedVerifierHash_pos[32]);
+  oldoffice34->encryptedVerifierHash[0] = hex_to_u32 (encryptedVerifierHash_pos +  0);
+  oldoffice34->encryptedVerifierHash[1] = hex_to_u32 (encryptedVerifierHash_pos +  8);
+  oldoffice34->encryptedVerifierHash[2] = hex_to_u32 (encryptedVerifierHash_pos + 16);
+  oldoffice34->encryptedVerifierHash[3] = hex_to_u32 (encryptedVerifierHash_pos + 24);
+  oldoffice34->encryptedVerifierHash[4] = hex_to_u32 (encryptedVerifierHash_pos + 32);
 
   oldoffice34->rc4key[1] = 0;
   oldoffice34->rc4key[0] = 0;
@@ -10730,27 +10694,21 @@ int oldoffice34cm2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
   oldoffice34->rc4key[0] = byte_swap_32 (oldoffice34->rc4key[0]);
   oldoffice34->rc4key[1] = byte_swap_32 (oldoffice34->rc4key[1]);
 
-  /**
-   * salt
-   */
+  // salt
 
   salt->salt_len = 16;
 
-  if (is_valid_hex_string (osalt_pos, 32) == false) return (PARSER_SALT_ENCODING);
+  salt->salt_buf[ 0] = hex_to_u32 (osalt_pos +  0);
+  salt->salt_buf[ 1] = hex_to_u32 (osalt_pos +  8);
+  salt->salt_buf[ 2] = hex_to_u32 (osalt_pos + 16);
+  salt->salt_buf[ 3] = hex_to_u32 (osalt_pos + 24);
 
-  salt->salt_buf[0] = hex_to_u32 ((const u8 *) &osalt_pos[ 0]);
-  salt->salt_buf[1] = hex_to_u32 ((const u8 *) &osalt_pos[ 8]);
-  salt->salt_buf[2] = hex_to_u32 ((const u8 *) &osalt_pos[16]);
-  salt->salt_buf[3] = hex_to_u32 ((const u8 *) &osalt_pos[24]);
-
-  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
-  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
-  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
-  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
+  salt->salt_buf[ 0] = byte_swap_32 (salt->salt_buf[0]);
+  salt->salt_buf[ 1] = byte_swap_32 (salt->salt_buf[1]);
+  salt->salt_buf[ 2] = byte_swap_32 (salt->salt_buf[2]);
+  salt->salt_buf[ 3] = byte_swap_32 (salt->salt_buf[3]);
 
   // this is a workaround as office produces multiple documents with the same salt
-
-  salt->salt_len += 32;
 
   salt->salt_buf[ 4] = oldoffice34->encryptedVerifier[0];
   salt->salt_buf[ 5] = oldoffice34->encryptedVerifier[1];
@@ -10760,6 +10718,8 @@ int oldoffice34cm2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
   salt->salt_buf[ 9] = oldoffice34->encryptedVerifierHash[1];
   salt->salt_buf[10] = oldoffice34->encryptedVerifierHash[2];
   salt->salt_buf[11] = oldoffice34->encryptedVerifierHash[3];
+
+  salt->salt_len += 32;
 
   /**
    * digest
@@ -19749,8 +19709,9 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     oldoffice01_t *oldoffice01 = &oldoffice01s[digest_cur];
 
-    snprintf (out_buf, out_len - 1, "%s*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x",
-      (oldoffice01->version == 0) ? SIGNATURE_OLDOFFICE0 : SIGNATURE_OLDOFFICE1,
+    snprintf (out_buf, out_len - 1, "%s%d*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x",
+      SIGNATURE_OLDOFFICE,
+      oldoffice01->version,
       byte_swap_32 (salt.salt_buf[0]),
       byte_swap_32 (salt.salt_buf[1]),
       byte_swap_32 (salt.salt_buf[2]),
@@ -19770,8 +19731,9 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     oldoffice01_t *oldoffice01 = &oldoffice01s[digest_cur];
 
-    snprintf (out_buf, out_len - 1, "%s*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x",
-      (oldoffice01->version == 0) ? SIGNATURE_OLDOFFICE0 : SIGNATURE_OLDOFFICE1,
+    snprintf (out_buf, out_len - 1, "%s%d*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x",
+      SIGNATURE_OLDOFFICE,
+      oldoffice01->version,
       byte_swap_32 (salt.salt_buf[0]),
       byte_swap_32 (salt.salt_buf[1]),
       byte_swap_32 (salt.salt_buf[2]),
@@ -19793,8 +19755,9 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     u8 *rc4key = (u8 *) oldoffice01->rc4key;
 
-    snprintf (out_buf, out_len - 1, "%s*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x:%02x%02x%02x%02x%02x",
-      (oldoffice01->version == 0) ? SIGNATURE_OLDOFFICE0 : SIGNATURE_OLDOFFICE1,
+    snprintf (out_buf, out_len - 1, "%s%d*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x:%02x%02x%02x%02x%02x",
+      SIGNATURE_OLDOFFICE,
+      oldoffice01->version,
       byte_swap_32 (salt.salt_buf[0]),
       byte_swap_32 (salt.salt_buf[1]),
       byte_swap_32 (salt.salt_buf[2]),
@@ -19819,8 +19782,9 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     oldoffice34_t *oldoffice34 = &oldoffice34s[digest_cur];
 
-    snprintf (out_buf, out_len - 1, "%s*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x%08x",
-      (oldoffice34->version == 3) ? SIGNATURE_OLDOFFICE3 : SIGNATURE_OLDOFFICE4,
+    snprintf (out_buf, out_len - 1, "%s%d*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x%08x",
+      SIGNATURE_OLDOFFICE,
+      oldoffice34->version,
       salt.salt_buf[0],
       salt.salt_buf[1],
       salt.salt_buf[2],
@@ -19841,8 +19805,9 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     oldoffice34_t *oldoffice34 = &oldoffice34s[digest_cur];
 
-    snprintf (out_buf, out_len - 1, "%s*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x%08x",
-      (oldoffice34->version == 3) ? SIGNATURE_OLDOFFICE3 : SIGNATURE_OLDOFFICE4,
+    snprintf (out_buf, out_len - 1, "%s%d*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x%08x",
+      SIGNATURE_OLDOFFICE,
+      oldoffice34->version,
       salt.salt_buf[0],
       salt.salt_buf[1],
       salt.salt_buf[2],
@@ -19865,8 +19830,9 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     u8 *rc4key = (u8 *) oldoffice34->rc4key;
 
-    snprintf (out_buf, out_len - 1, "%s*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x%08x:%02x%02x%02x%02x%02x",
-      (oldoffice34->version == 3) ? SIGNATURE_OLDOFFICE3 : SIGNATURE_OLDOFFICE4,
+    snprintf (out_buf, out_len - 1, "%s%d*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x%08x:%02x%02x%02x%02x%02x",
+      SIGNATURE_OLDOFFICE,
+      oldoffice34->version,
       salt.salt_buf[0],
       salt.salt_buf[1],
       salt.salt_buf[2],
