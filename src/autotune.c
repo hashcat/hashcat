@@ -19,25 +19,21 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
   device_param->kernel_params_buf32[29] = kernel_loops; // not a bug, both need to be set
   device_param->kernel_params_buf32[30] = kernel_loops; // because there's two variables for inner iters for slow and fast hashes
 
+  const u32 kernel_power_try = device_param->hardware_power * kernel_accel;
+
   if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
     if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
     {
-      const u32 kernel_power_try = device_param->device_processors * device_param->kernel_threads_by_wgs_kernel1 * kernel_accel;
-
       run_kernel (hashcat_ctx, device_param, KERN_RUN_1, kernel_power_try, true, 0);
     }
     else
     {
-      const u32 kernel_power_try = device_param->device_processors * device_param->kernel_threads_by_wgs_kernel4 * kernel_accel;
-
       run_kernel (hashcat_ctx, device_param, KERN_RUN_4, kernel_power_try, true, 0);
     }
   }
   else
   {
-    const u32 kernel_power_try = device_param->device_processors * device_param->kernel_threads_by_wgs_kernel2 * kernel_accel;
-
     run_kernel (hashcat_ctx, device_param, KERN_RUN_2, kernel_power_try, true, 0);
   }
 
@@ -89,7 +85,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     device_param->kernel_accel = kernel_accel;
     device_param->kernel_loops = kernel_loops;
 
-    const u32 kernel_power = device_param->device_processors * device_param->kernel_threads_by_user * device_param->kernel_accel;
+    const u32 kernel_power = device_param->hardware_power * device_param->kernel_accel;
 
     device_param->kernel_power = kernel_power;
 
@@ -99,7 +95,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   // from here it's clear we are allowed to autotune
   // so let's init some fake words
 
-  const u32 kernel_power_max = device_param->device_processors * device_param->kernel_threads_by_user * kernel_accel_max;
+  const u32 kernel_power_max = device_param->hardware_power * kernel_accel_max;
 
   int CL_rc;
 
@@ -115,16 +111,6 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       if (CL_rc == -1) return -1;
     }
-  }
-  else
-  {
-    CL_rc = hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, device_param->d_pws_amp_buf, 0, 0, kernel_power_max * sizeof (pw_t), 0, NULL, NULL);
-
-    if (CL_rc == -1) return -1;
-
-    CL_rc = run_kernel_amp (hashcat_ctx, device_param, kernel_power_max);
-
-    if (CL_rc == -1) return -1;
   }
 
   // Do a pre-autotune test run to find out if kernel runtime is above some TDR limit
@@ -146,13 +132,11 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     if ((exec_msec * mm) > target_msec)
     {
-      const u32 loops_valid = target_msec / exec_msec;
+      const u32 loops_valid = (const u32) (target_msec / exec_msec);
 
       kernel_loops_max_reduced = kernel_loops_min * loops_valid;
     }
   }
-
-  #define VERIFIER_CNT 1
 
   // first find out highest kernel-loops that stays below target_msec
 
@@ -164,20 +148,13 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       double exec_msec = try_run (hashcat_ctx, device_param, kernel_accel_min, kernel_loops);
 
-      for (int i = 0; i < VERIFIER_CNT; i++)
-      {
-        double exec_msec_v = try_run (hashcat_ctx, device_param, kernel_accel_min, kernel_loops);
-
-        exec_msec = MIN (exec_msec, exec_msec_v);
-      }
-
       if (exec_msec < target_msec) break;
     }
   }
 
   // now the same for kernel-accel but with the new kernel-loops from previous loop set
 
-  #define STEPS_CNT 10
+  #define STEPS_CNT 16
 
   if (kernel_accel_min < kernel_accel_max)
   {
@@ -190,75 +167,43 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       double exec_msec = try_run (hashcat_ctx, device_param, kernel_accel_try, kernel_loops);
 
-      for (int verifier_idx = 0; verifier_idx < VERIFIER_CNT; verifier_idx++)
-      {
-        double exec_msec_v = try_run (hashcat_ctx, device_param, kernel_accel_try, kernel_loops);
-
-        exec_msec = MIN (exec_msec, exec_msec_v);
-      }
-
       if (exec_msec > target_msec) break;
 
       kernel_accel = kernel_accel_try;
     }
   }
 
-  // at this point we want to know the actual runtime for the following reason:
-  // we need a reference for the balancing loop following up, and this
-  // the balancing loop can have an effect that the creates a new opportunity, for example:
-  //   if the target is 95 ms and the current runtime is 48ms the above loop
-  //   stopped the execution because the previous exec_msec was > 95ms
-  //   due to the rebalance it's possible that the runtime reduces from 48ms to 47ms
-  //   and this creates the possibility to double the workload -> 47 * 2 = 95ms, which is < 96ms
+  // now find the middle balance between kernel_accel and kernel_loops
+  // while respecting allowed ranges at the same time
 
-  double exec_msec_pre_final = try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
-
-  for (int verifier_idx = 0; verifier_idx < VERIFIER_CNT; verifier_idx++)
+  if (kernel_accel < kernel_loops)
   {
-    double exec_msec_pre_final_v = try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
+    const u32 kernel_accel_orig = kernel_accel;
+    const u32 kernel_loops_orig = kernel_loops;
 
-    exec_msec_pre_final = MIN (exec_msec_pre_final, exec_msec_pre_final_v);
-  }
-
-  u32 diff = kernel_loops - kernel_accel;
-
-  if ((kernel_loops_min < kernel_loops_max) && (kernel_accel_min < kernel_accel_max))
-  {
-    u32 kernel_accel_orig = kernel_accel;
-    u32 kernel_loops_orig = kernel_loops;
-
-    for (u32 f = 1; f < 1024; f++)
+    for (int i = 1; i < STEPS_CNT; i++)
     {
-      const u32 kernel_accel_try = kernel_accel_orig * f;
-      const u32 kernel_loops_try = kernel_loops_orig / f;
+      const u32 kernel_accel_try = kernel_accel_orig * (1u << i);
+      const u32 kernel_loops_try = kernel_loops_orig / (1u << i);
 
+      if (kernel_accel_try < kernel_accel_min) continue;
       if (kernel_accel_try > kernel_accel_max) break;
+
+      if (kernel_loops_try > kernel_loops_max) continue;
       if (kernel_loops_try < kernel_loops_min) break;
 
-      u32 diff_new = kernel_loops_try - kernel_accel_try;
+      kernel_accel = kernel_accel_try;
+      kernel_loops = kernel_loops_try;
 
-      if (diff_new > diff) break;
+      // too much if the next test is true
 
-      double exec_msec = try_run (hashcat_ctx, device_param, kernel_accel_try, kernel_loops_try);
-
-      for (int verifier_idx = 0; verifier_idx < VERIFIER_CNT; verifier_idx++)
-      {
-        double exec_msec_v = try_run (hashcat_ctx, device_param, kernel_accel_try, kernel_loops_try);
-
-        exec_msec = MIN (exec_msec, exec_msec_v);
-      }
-
-      for (int verifier_idx = 0; verifier_idx < VERIFIER_CNT; verifier_idx++)
-      {
-        exec_msec_pre_final = exec_msec;
-
-        kernel_accel = kernel_accel_try;
-        kernel_loops = kernel_loops_try;
-      }
+      if (kernel_loops_try < kernel_accel_try) break;
     }
   }
 
-  const u32 exec_left = target_msec / exec_msec_pre_final;
+  double exec_msec_pre_final = try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
+
+  const u32 exec_left = (const u32) (target_msec / exec_msec_pre_final);
 
   const u32 accel_left = kernel_accel_max / kernel_accel;
 
@@ -273,23 +218,9 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   // reset them fake words
 
-  /*
-  memset (device_param->pws_buf, 0, kernel_power_max * sizeof (pw_t));
-
-  hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf,     CL_TRUE, 0, kernel_power_max * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
-  hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_amp_buf, CL_TRUE, 0, kernel_power_max * sizeof (pw_t), device_param->pws_buf, 0, NULL, NULL);
-  */
-
   CL_rc = run_kernel_memset (hashcat_ctx, device_param, device_param->d_pws_buf, 0, device_param->size_pws);
 
   if (CL_rc == -1) return -1;
-
-  if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
-  {
-    CL_rc = run_kernel_memset (hashcat_ctx, device_param, device_param->d_pws_amp_buf, 0, device_param->size_pws_amp);
-
-    if (CL_rc == -1) return -1;
-  }
 
   // reset other buffers in case autotune cracked something
 
@@ -317,36 +248,19 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   memset (device_param->exec_us_prev4,      0, EXPECTED_ITERATIONS * sizeof (double));
   memset (device_param->exec_us_prev_init2, 0, EXPECTED_ITERATIONS * sizeof (double));
   memset (device_param->exec_us_prev_loop2, 0, EXPECTED_ITERATIONS * sizeof (double));
+  memset (device_param->exec_us_prev_aux1,  0, EXPECTED_ITERATIONS * sizeof (double));
+  memset (device_param->exec_us_prev_aux2,  0, EXPECTED_ITERATIONS * sizeof (double));
+  memset (device_param->exec_us_prev_aux3,  0, EXPECTED_ITERATIONS * sizeof (double));
+  memset (device_param->exec_us_prev_aux4,  0, EXPECTED_ITERATIONS * sizeof (double));
 
   // store
 
   device_param->kernel_accel = kernel_accel;
   device_param->kernel_loops = kernel_loops;
 
-  const u32 kernel_power = device_param->device_processors * device_param->kernel_threads_by_user * device_param->kernel_accel;
+  const u32 kernel_power = device_param->hardware_power * device_param->kernel_accel;
 
   device_param->kernel_power = kernel_power;
-
-  #if defined (DEBUG)
-
-  user_options_t *user_options = hashcat_ctx->user_options;
-
-  if (user_options->quiet == false)
-  {
-    clear_prompt (hashcat_ctx);
-
-    printf
-    (
-      "- Device #%u: autotuned kernel-accel to %u" EOL
-      "- Device #%u: autotuned kernel-loops to %u" EOL,
-      device_param->device_id + 1, kernel_accel,
-      device_param->device_id + 1, kernel_loops
-    );
-
-    send_prompt (hashcat_ctx);
-  }
-
-  #endif
 
   return 0;
 }

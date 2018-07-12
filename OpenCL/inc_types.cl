@@ -33,14 +33,14 @@ typedef VTYPE(uint,   VECT_SIZE) u32x;
 typedef VTYPE(ulong,  VECT_SIZE) u64x;
 #endif
 
-u32 l32_from_64_S (u64 a)
+DECLSPEC u32 l32_from_64_S (u64 a)
 {
   const u32 r = (u32) (a);
 
   return r;
 }
 
-u32 h32_from_64_S (u64 a)
+DECLSPEC u32 h32_from_64_S (u64 a)
 {
   a >>= 32;
 
@@ -49,12 +49,12 @@ u32 h32_from_64_S (u64 a)
   return r;
 }
 
-u64 hl32_to_64_S (const u32 a, const u32 b)
+DECLSPEC u64 hl32_to_64_S (const u32 a, const u32 b)
 {
   return as_ulong ((uint2) (b, a));
 }
 
-u32x l32_from_64 (u64x a)
+DECLSPEC u32x l32_from_64 (u64x a)
 {
   u32x r;
 
@@ -93,7 +93,7 @@ u32x l32_from_64 (u64x a)
   return r;
 }
 
-u32x h32_from_64 (u64x a)
+DECLSPEC u32x h32_from_64 (u64x a)
 {
   a >>= 32;
 
@@ -134,7 +134,7 @@ u32x h32_from_64 (u64x a)
   return r;
 }
 
-u64x hl32_to_64 (const u32x a, const u32x b)
+DECLSPEC u64x hl32_to_64 (const u32x a, const u32x b)
 {
   u64x r;
 
@@ -176,7 +176,7 @@ u64x hl32_to_64 (const u32x a, const u32x b)
 #ifdef IS_AMD
 
 #if AMD_GCN >= 3
-u32 swap32_S (const u32 v)
+DECLSPEC u32 swap32_S (const u32 v)
 {
   u32 r;
 
@@ -185,7 +185,7 @@ u32 swap32_S (const u32 v)
   return r;
 }
 
-u64 swap64_S (const u64 v)
+DECLSPEC u64 swap64_S (const u64 v)
 {
   const u32 v0 = h32_from_64_S (v);
   const u32 v1 = l32_from_64_S (v);
@@ -201,28 +201,28 @@ u64 swap64_S (const u64 v)
   return r;
 }
 #else
-u32 swap32_S (const u32 v)
+DECLSPEC u32 swap32_S (const u32 v)
 {
   return as_uint (as_uchar4 (v).s3210);
 }
 
-u64 swap64_S (const u64 v)
+DECLSPEC u64 swap64_S (const u64 v)
 {
   return (as_ulong (as_uchar8 (v).s76543210));
 }
 #endif
 
-u32 rotr32_S (const u32 a, const u32 n)
+DECLSPEC u32 rotr32_S (const u32 a, const u32 n)
 {
   return rotate (a, (32 - n));
 }
 
-u32 rotl32_S (const u32 a, const u32 n)
+DECLSPEC u32 rotl32_S (const u32 a, const u32 n)
 {
   return rotate (a, n);
 }
 
-u64 rotr64_S (const u64 a, const u32 n)
+DECLSPEC u64 rotr64_S (const u64 a, const u32 n)
 {
   const u32 a0 = h32_from_64_S (a);
   const u32 a1 = l32_from_64_S (a);
@@ -235,18 +235,18 @@ u64 rotr64_S (const u64 a, const u32 n)
   return r;
 }
 
-u64 rotl64_S (const u64 a, const u32 n)
+DECLSPEC u64 rotl64_S (const u64 a, const u32 n)
 {
   return rotr64_S (a, 64 - n);
 }
 
 #if AMD_GCN >= 3
-u32x swap32 (const u32x v)
+DECLSPEC u32x swap32 (const u32x v)
 {
   return bitselect (rotate (v, 24u), rotate (v, 8u), 0x00ff00ffu);
 }
 
-u64x swap64 (const u64x v)
+DECLSPEC u64x swap64 (const u64x v)
 {
   const u32x a0 = h32_from_64 (v);
   const u32x a1 = l32_from_64 (v);
@@ -308,12 +308,12 @@ u64x swap64 (const u64x v)
   return r;
 }
 #else
-u32x swap32 (const u32x v)
+DECLSPEC u32x swap32 (const u32x v)
 {
   return bitselect (rotate (v, 24u), rotate (v, 8u), 0x00ff00ffu);
 }
 
-u64x swap64 (const u64x v)
+DECLSPEC u64x swap64 (const u64x v)
 {
   return bitselect (bitselect (rotate (v, 24ul),
                                rotate (v,  8ul), 0x000000ff000000fful),
@@ -323,17 +323,17 @@ u64x swap64 (const u64x v)
 }
 #endif
 
-u32x rotr32 (const u32x a, const u32 n)
+DECLSPEC u32x rotr32 (const u32x a, const u32 n)
 {
   return rotate (a, (32 - n));
 }
 
-u32x rotl32 (const u32x a, const u32 n)
+DECLSPEC u32x rotl32 (const u32x a, const u32 n)
 {
   return rotate (a, n);
 }
 
-u64x rotr64 (const u64x a, const u32 n)
+DECLSPEC u64x rotr64 (const u64x a, const u32 n)
 {
   const u32x a0 = h32_from_64 (a);
   const u32x a1 = l32_from_64 (a);
@@ -346,28 +346,28 @@ u64x rotr64 (const u64x a, const u32 n)
   return r;
 }
 
-u64x rotl64 (const u64x a, const u32 n)
+DECLSPEC u64x rotl64 (const u64x a, const u32 n)
 {
   return rotr64 (a, 64 - n);
 }
 
-u32x __bfe (const u32x a, const u32x b, const u32x c)
+DECLSPEC u32x __bfe (const u32x a, const u32x b, const u32x c)
 {
   return amd_bfe (a, b, c);
 }
 
-u32 __bfe_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 __bfe_S (const u32 a, const u32 b, const u32 c)
 {
   return amd_bfe (a, b, c);
 }
 
-u32 amd_bytealign_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 amd_bytealign_S (const u32 a, const u32 b, const u32 c)
 {
   return amd_bytealign (a, b, c);
 }
 
 #if AMD_GCN >= 3
-u32x __byte_perm (const u32x a, const u32x b, const u32x c)
+DECLSPEC u32x __byte_perm (const u32x a, const u32x b, const u32x c)
 {
   u32x r;
 
@@ -420,7 +420,7 @@ u32x __byte_perm (const u32x a, const u32x b, const u32x c)
   return r;
 }
 
-u32 __byte_perm_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 __byte_perm_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
 
@@ -431,7 +431,7 @@ u32 __byte_perm_S (const u32 a, const u32 b, const u32 c)
 #endif
 
 #if AMD_GCN >= 5
-u32x __add3 (const u32x a, const u32x b, const u32x c)
+DECLSPEC u32x __add3 (const u32x a, const u32x b, const u32x c)
 {
   u32x r;
 
@@ -484,7 +484,7 @@ u32x __add3 (const u32x a, const u32x b, const u32x c)
   return r;
 }
 
-u32 __add3_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 __add3_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
 
@@ -493,12 +493,12 @@ u32 __add3_S (const u32 a, const u32 b, const u32 c)
   return r;
 }
 #else
-u32x __add3 (const u32x a, const u32x b, const u32x c)
+DECLSPEC u32x __add3 (const u32x a, const u32x b, const u32x c)
 {
   return a + b + c;
 }
 
-u32 __add3_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 __add3_S (const u32 a, const u32 b, const u32 c)
 {
   return a + b + c;
 }
@@ -507,7 +507,7 @@ u32 __add3_S (const u32 a, const u32 b, const u32 c)
 #endif
 
 #ifdef IS_NV
-u32 swap32_S (const u32 v)
+DECLSPEC u32 swap32_S (const u32 v)
 {
   u32 r;
 
@@ -516,7 +516,7 @@ u32 swap32_S (const u32 v)
   return r;
 }
 
-u64 swap64_S (const u64 v)
+DECLSPEC u64 swap64_S (const u64 v)
 {
   u32 il;
   u32 ir;
@@ -536,27 +536,27 @@ u64 swap64_S (const u64 v)
   return r;
 }
 
-u32 rotr32_S (const u32 a, const u32 n)
+DECLSPEC u32 rotr32_S (const u32 a, const u32 n)
 {
   return rotate (a, (32 - n));
 }
 
-u32 rotl32_S (const u32 a, const u32 n)
+DECLSPEC u32 rotl32_S (const u32 a, const u32 n)
 {
   return rotate (a, n);
 }
 
-u64 rotr64_S (const u64 a, const u32 n)
+DECLSPEC u64 rotr64_S (const u64 a, const u32 n)
 {
   return rotate (a, (u64) (64 - n));
 }
 
-u64 rotl64_S (const u64 a, const u32 n)
+DECLSPEC u64 rotl64_S (const u64 a, const u32 n)
 {
   return rotate (a, (u64) n);
 }
 
-u32x swap32 (const u32x v)
+DECLSPEC u32x swap32 (const u32x v)
 {
   u32x r;
 
@@ -595,7 +595,7 @@ u32x swap32 (const u32x v)
   return r;
 }
 
-u64x swap64 (const u64x v)
+DECLSPEC u64x swap64 (const u64x v)
 {
   u32x il;
   u32x ir;
@@ -721,27 +721,27 @@ u64x swap64 (const u64x v)
   return r;
 }
 
-u32x rotr32 (const u32x a, const u32 n)
+DECLSPEC u32x rotr32 (const u32x a, const u32 n)
 {
   return rotate (a, (32 - n));
 }
 
-u32x rotl32 (const u32x a, const u32 n)
+DECLSPEC u32x rotl32 (const u32x a, const u32 n)
 {
   return rotate (a, n);
 }
 
-u64x rotr64 (const u64x a, const u32 n)
+DECLSPEC u64x rotr64 (const u64x a, const u32 n)
 {
   return rotate (a, (u64x) (64 - n));
 }
 
-u64x rotl64 (const u64x a, const u32 n)
+DECLSPEC u64x rotl64 (const u64x a, const u32 n)
 {
   return rotate (a, (u64x) n);
 }
 
-u32x __byte_perm (const u32x a, const u32x b, const u32x c)
+DECLSPEC u32x __byte_perm (const u32x a, const u32x b, const u32x c)
 {
   u32x r;
 
@@ -780,7 +780,7 @@ u32x __byte_perm (const u32x a, const u32x b, const u32x c)
   return r;
 }
 
-u32 __byte_perm_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 __byte_perm_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
 
@@ -789,7 +789,7 @@ u32 __byte_perm_S (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
-u32x __bfe (const u32x a, const u32x b, const u32x c)
+DECLSPEC u32x __bfe (const u32x a, const u32x b, const u32x c)
 {
   u32x r;
 
@@ -828,7 +828,7 @@ u32x __bfe (const u32x a, const u32x b, const u32x c)
   return r;
 }
 
-u32 __bfe_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 __bfe_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
 
@@ -837,7 +837,7 @@ u32 __bfe_S (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
-u32x amd_bytealign (const u32x a, const u32x b, const u32x c)
+DECLSPEC u32x amd_bytealign (const u32x a, const u32x b, const u32x c)
 {
   u32x r;
 
@@ -884,7 +884,7 @@ u32x amd_bytealign (const u32x a, const u32x b, const u32x c)
   return r;
 }
 
-u32 amd_bytealign_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 amd_bytealign_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
 
@@ -901,12 +901,12 @@ u32 amd_bytealign_S (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
-u32x __add3 (const u32x a, const u32x b, const u32x c)
+DECLSPEC u32x __add3 (const u32x a, const u32x b, const u32x c)
 {
   return a + b + c;
 }
 
-u32 __add3_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 __add3_S (const u32 a, const u32 b, const u32 c)
 {
   return a + b + c;
 }
@@ -914,37 +914,37 @@ u32 __add3_S (const u32 a, const u32 b, const u32 c)
 #endif
 
 #ifdef IS_GENERIC
-u32 swap32_S (const u32 v)
+DECLSPEC u32 swap32_S (const u32 v)
 {
   return (as_uint (as_uchar4 (v).s3210));
 }
 
-u64 swap64_S (const u64 v)
+DECLSPEC u64 swap64_S (const u64 v)
 {
   return (as_ulong (as_uchar8 (v).s76543210));
 }
 
-u32 rotr32_S (const u32 a, const u32 n)
+DECLSPEC u32 rotr32_S (const u32 a, const u32 n)
 {
   return rotate (a, (32 - n));
 }
 
-u32 rotl32_S (const u32 a, const u32 n)
+DECLSPEC u32 rotl32_S (const u32 a, const u32 n)
 {
   return rotate (a, n);
 }
 
-u64 rotr64_S (const u64 a, const u32 n)
+DECLSPEC u64 rotr64_S (const u64 a, const u32 n)
 {
   return rotate (a, (u64) (64 - n));
 }
 
-u64 rotl64_S (const u64 a, const u32 n)
+DECLSPEC u64 rotl64_S (const u64 a, const u32 n)
 {
   return rotate (a, (u64) n);
 }
 
-u32x swap32 (const u32x v)
+DECLSPEC u32x swap32 (const u32x v)
 {
   return ((v >> 24) & 0x000000ff)
        | ((v >>  8) & 0x0000ff00)
@@ -952,7 +952,7 @@ u32x swap32 (const u32x v)
        | ((v << 24) & 0xff000000);
 }
 
-u64x swap64 (const u64x v)
+DECLSPEC u64x swap64 (const u64x v)
 {
   return ((v >> 56) & 0x00000000000000ff)
        | ((v >> 40) & 0x000000000000ff00)
@@ -964,27 +964,27 @@ u64x swap64 (const u64x v)
        | ((v << 56) & 0xff00000000000000);
 }
 
-u32x rotr32 (const u32x a, const u32 n)
+DECLSPEC u32x rotr32 (const u32x a, const u32 n)
 {
   return rotate (a, (32 - n));
 }
 
-u32x rotl32 (const u32x a, const u32 n)
+DECLSPEC u32x rotl32 (const u32x a, const u32 n)
 {
   return rotate (a, n);
 }
 
-u64x rotr64 (const u64x a, const u32 n)
+DECLSPEC u64x rotr64 (const u64x a, const u32 n)
 {
   return rotate (a, (u64x) (64 - n));
 }
 
-u64x rotl64 (const u64x a, const u32 n)
+DECLSPEC u64x rotl64 (const u64x a, const u32 n)
 {
   return rotate (a, (u64x) n);
 }
 
-u32x __bfe (const u32x a, const u32x b, const u32x c)
+DECLSPEC u32x __bfe (const u32x a, const u32x b, const u32x c)
 {
   #define BIT(x)      ((u32x) (1u) << (x))
   #define BIT_MASK(x) (BIT (x) - 1)
@@ -997,7 +997,7 @@ u32x __bfe (const u32x a, const u32x b, const u32x c)
   #undef BFE
 }
 
-u32 __bfe_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 __bfe_S (const u32 a, const u32 b, const u32 c)
 {
   #define BIT(x)      (1u << (x))
   #define BIT_MASK(x) (BIT (x) - 1)
@@ -1010,7 +1010,7 @@ u32 __bfe_S (const u32 a, const u32 b, const u32 c)
   #undef BFE
 }
 
-u32x amd_bytealign (const u32x a, const u32x b, const u32 c)
+DECLSPEC u32x amd_bytealign (const u32x a, const u32x b, const u32 c)
 {
   #if VECT_SIZE == 1
   const u64x tmp = ((((u64x) (a)) << 32) | ((u64x) (b))) >> ((c & 3) * 8);
@@ -1043,19 +1043,19 @@ u32x amd_bytealign (const u32x a, const u32x b, const u32 c)
   #endif
 }
 
-u32 amd_bytealign_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 amd_bytealign_S (const u32 a, const u32 b, const u32 c)
 {
   const u64 tmp = ((((u64) a) << 32) | ((u64) b)) >> ((c & 3) * 8);
 
   return (u32) (tmp);
 }
 
-u32x __add3 (const u32x a, const u32x b, const u32x c)
+DECLSPEC u32x __add3 (const u32x a, const u32x b, const u32x c)
 {
   return a + b + c;
 }
 
-u32 __add3_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 __add3_S (const u32 a, const u32 b, const u32 c)
 {
   return a + b + c;
 }
@@ -1207,6 +1207,8 @@ typedef struct wpa
   u32  hash[4];
   int  nonce_compare;
   int  nonce_error_corrections;
+  int  detected_le;
+  int  detected_be;
 
 } wpa_t;
 
@@ -1965,6 +1967,14 @@ typedef struct pw
 
 } pw_t;
 
+typedef struct pw_idx
+{
+  u32 off;
+  u32 cnt;
+  u32 len;
+
+} pw_idx_t;
+
 typedef struct bf
 {
   u32  i;
@@ -1982,7 +1992,7 @@ typedef struct
   u32 salt_pos;
   u32 digest_pos;
   u32 hash_pos;
-  u32 gidvid;
+  u64 gidvid;
   u32 il_pos;
 
 } plain_t;

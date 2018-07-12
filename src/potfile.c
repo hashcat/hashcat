@@ -531,7 +531,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
   while (!feof (potfile_ctx->fp))
   {
-    int line_len = fgetl (potfile_ctx->fp, line_buf);
+    size_t line_len = fgetl (potfile_ctx->fp, line_buf);
 
     if (line_len == 0) continue;
 
@@ -541,11 +541,11 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
     char *line_pw_buf = last_separator + 1;
 
-    int line_pw_len = line_buf + line_len - line_pw_buf;
+    size_t line_pw_len = line_buf + line_len - line_pw_buf;
 
     char *line_hash_buf = line_buf;
 
-    int line_hash_len = last_separator - line_buf;
+    size_t line_hash_len = last_separator - line_buf;
 
     line_hash_buf[line_hash_len] = 0;
 
@@ -575,7 +575,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
         // manipulate salt_buf
         memcpy (hash_buf.salt->salt_buf, line_hash_buf, line_hash_len);
 
-        hash_buf.salt->salt_len = line_hash_len;
+        hash_buf.salt->salt_len = (u32) line_hash_len;
 
         found = (hash_t *) bsearch (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_t_salt);
       }
@@ -598,9 +598,9 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
       char *essid_pos = sep_pos + 1;
 
-      int essid_len = (int) strlen (essid_pos);
+      size_t essid_len = strlen (essid_pos);
 
-      if (is_hexify ((const u8 *) essid_pos, (const int) essid_len) == true)
+      if (is_hexify ((const u8 *) essid_pos, essid_len) == true)
       {
         essid_len = exec_unhexify ((const u8 *) essid_pos, essid_len, (u8 *) essid_pos, essid_len);
       }
@@ -613,7 +613,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
         memcpy (hash_buf.salt->salt_buf, essid_pos, essid_len);
 
-        hash_buf.salt->salt_len  = essid_len;
+        hash_buf.salt->salt_len  = (u32) essid_len;
         hash_buf.salt->salt_iter = ROUNDS_WPA - 1;
 
         u32 hash[4];
@@ -640,13 +640,13 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      int parser_status = hashconfig->parse_func ((u8 *) line_hash_buf, line_hash_len, &hash_buf, hashconfig);
+      int parser_status = hashconfig->parse_func ((u8 *) line_hash_buf, (u32) line_hash_len, &hash_buf, hashconfig);
 
       if (parser_status != PARSER_OK) continue;
 
       if (potfile_ctx->keep_all_hashes == true)
       {
-        potfile_update_hashes (hashcat_ctx, &hash_buf, line_pw_buf, line_pw_len, all_hashes_tree);
+        potfile_update_hashes (hashcat_ctx, &hash_buf, line_pw_buf, (u32) line_pw_len, all_hashes_tree);
 
         continue;
       }
@@ -654,7 +654,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
       found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash, (void *) hashconfig);
     }
 
-    potfile_update_hash (hashcat_ctx, found, line_pw_buf, line_pw_len);
+    potfile_update_hash (hashcat_ctx, found, line_pw_buf, (u32) line_pw_len);
   }
 
   hcfree (line_buf);
@@ -878,11 +878,9 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
         {
           u8 pass_unhexified[HCBUFSIZ_TINY] = { 0 };
 
-          u32 pass_unhexified_len = 0;
+          const size_t pass_unhexified_len = exec_unhexify ((u8 *) hash->pw_buf, hash->pw_len, pass_unhexified, sizeof (pass_unhexified));
 
-          pass_unhexified_len = exec_unhexify ((u8 *) hash->pw_buf, hash->pw_len, pass_unhexified, sizeof (pass_unhexified));
-
-          tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, pass_unhexified, pass_unhexified_len, 0, username, user_len, (char *) tmp_buf);
+          tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, pass_unhexified, (u32) pass_unhexified_len, 0, username, user_len, (char *) tmp_buf);
         }
         else
         {

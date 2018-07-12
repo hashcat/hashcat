@@ -28,7 +28,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
   const straight_ctx_t   *straight_ctx   = hashcat_ctx->straight_ctx;
   const user_options_t   *user_options   = hashcat_ctx->user_options;
 
-  const u32 gidvid = plain->gidvid;
+  const u64 gidvid = plain->gidvid;
   const u32 il_pos = plain->il_pos;
 
   int plain_len = 0;
@@ -43,7 +43,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
     if (rc == -1) return -1;
 
-    const u32 off = device_param->innerloop_pos + il_pos;
+    const u64 off = device_param->innerloop_pos + il_pos;
 
     if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
     {
@@ -240,7 +240,7 @@ int build_crackpos (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
   const straight_ctx_t        *straight_ctx       = hashcat_ctx->straight_ctx;
   const user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
 
-  const u32 gidvid = plain->gidvid;
+  const u64 gidvid = plain->gidvid;
   const u32 il_pos = plain->il_pos;
 
   u64 crackpos = device_param->words_off;
@@ -275,7 +275,7 @@ int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   const straight_ctx_t  *straight_ctx  = hashcat_ctx->straight_ctx;
   const user_options_t  *user_options  = hashcat_ctx->user_options;
 
-  const u32 gidvid = plain->gidvid;
+  const u64 gidvid = plain->gidvid;
   const u32 il_pos = plain->il_pos;
 
   if (user_options->attack_mode != ATTACK_MODE_STRAIGHT) return 0;
@@ -292,7 +292,7 @@ int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   int plain_len = (int) pw.pw_len;
 
-  const u32 off = device_param->innerloop_pos + il_pos;
+  const u64 off = device_param->innerloop_pos + il_pos;
 
   // save rule
   if ((debug_mode == 1) || (debug_mode == 3) || (debug_mode == 4))

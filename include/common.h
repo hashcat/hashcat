@@ -110,7 +110,7 @@ but this is nededed for VS compiler which doesn't have inline keyword but has __
 #define PARAMCNT            64
 #define DEVICES_MAX         128
 #define EXEC_CACHE          128
-#define SPEED_CACHE         128
+#define SPEED_CACHE         4096
 #define SPEED_MAXAGE        4096
 #define EXPECTED_ITERATIONS 10000
 

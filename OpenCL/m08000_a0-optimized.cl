@@ -14,7 +14,7 @@
 #include "inc_rp_optimized.cl"
 #include "inc_simd.cl"
 
-__constant static u32a k_sha256[64] =
+__constant u32a k_sha256[64] =
 {
   SHA256C00, SHA256C01, SHA256C02, SHA256C03,
   SHA256C04, SHA256C05, SHA256C06, SHA256C07,
@@ -39,7 +39,7 @@ __constant static u32a k_sha256[64] =
 
 #define SHA256_EXPAND_S(x,y,z,w) (SHA256_S1_S (x) + y + SHA256_S0_S (z) + w)
 
-void sha256_transform (u32x digest[8], const u32x w[16])
+DECLSPEC void sha256_transform (u32x digest[8], const u32x w[16])
 {
   u32x a = digest[0];
   u32x b = digest[1];
@@ -127,7 +127,7 @@ void sha256_transform (u32x digest[8], const u32x w[16])
   digest[7] += h;
 }
 
-void sha256_transform_z (u32x digest[8])
+DECLSPEC void sha256_transform_z (u32x digest[8])
 {
   u32x a = digest[0];
   u32x b = digest[1];
@@ -178,7 +178,7 @@ void sha256_transform_z (u32x digest[8])
   digest[7] += h;
 }
 
-void sha256_transform_s (u32x digest[8], __local u32 *w)
+DECLSPEC void sha256_transform_s (u32x digest[8], __local u32 *w)
 {
   u32x a = digest[0];
   u32x b = digest[1];

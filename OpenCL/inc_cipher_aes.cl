@@ -3,7 +3,7 @@
  * License.....: MIT
  */
 
-__constant static u32a te0[256] =
+__constant u32a te0[256] =
 {
   0xc66363a5, 0xf87c7c84, 0xee777799, 0xf67b7b8d,
   0xfff2f20d, 0xd66b6bbd, 0xde6f6fb1, 0x91c5c554,
@@ -71,7 +71,7 @@ __constant static u32a te0[256] =
   0x7bb0b0cb, 0xa85454fc, 0x6dbbbbd6, 0x2c16163a,
 };
 
-__constant static u32a te1[256] =
+__constant u32a te1[256] =
 {
   0xa5c66363, 0x84f87c7c, 0x99ee7777, 0x8df67b7b,
   0x0dfff2f2, 0xbdd66b6b, 0xb1de6f6f, 0x5491c5c5,
@@ -139,7 +139,7 @@ __constant static u32a te1[256] =
   0xcb7bb0b0, 0xfca85454, 0xd66dbbbb, 0x3a2c1616,
 };
 
-__constant static u32a te2[256] =
+__constant u32a te2[256] =
 {
   0x63a5c663, 0x7c84f87c, 0x7799ee77, 0x7b8df67b,
   0xf20dfff2, 0x6bbdd66b, 0x6fb1de6f, 0xc55491c5,
@@ -207,7 +207,7 @@ __constant static u32a te2[256] =
   0xb0cb7bb0, 0x54fca854, 0xbbd66dbb, 0x163a2c16,
 };
 
-__constant static u32a te3[256] =
+__constant u32a te3[256] =
 {
   0x6363a5c6, 0x7c7c84f8, 0x777799ee, 0x7b7b8df6,
   0xf2f20dff, 0x6b6bbdd6, 0x6f6fb1de, 0xc5c55491,
@@ -275,7 +275,7 @@ __constant static u32a te3[256] =
   0xb0b0cb7b, 0x5454fca8, 0xbbbbd66d, 0x16163a2c,
 };
 
-__constant static u32a te4[256] =
+__constant u32a te4[256] =
 {
   0x63636363, 0x7c7c7c7c, 0x77777777, 0x7b7b7b7b,
   0xf2f2f2f2, 0x6b6b6b6b, 0x6f6f6f6f, 0xc5c5c5c5,
@@ -343,7 +343,7 @@ __constant static u32a te4[256] =
   0xb0b0b0b0, 0x54545454, 0xbbbbbbbb, 0x16161616,
 };
 
-__constant static u32a td0[256] =
+__constant u32a td0[256] =
 {
   0x51f4a750, 0x7e416553, 0x1a17a4c3, 0x3a275e96,
   0x3bab6bcb, 0x1f9d45f1, 0xacfa58ab, 0x4be30393,
@@ -411,7 +411,7 @@ __constant static u32a td0[256] =
   0x7bcb8461, 0xd532b670, 0x486c5c74, 0xd0b85742,
 };
 
-__constant static u32a td1[256] =
+__constant u32a td1[256] =
 {
   0x5051f4a7, 0x537e4165, 0xc31a17a4, 0x963a275e,
   0xcb3bab6b, 0xf11f9d45, 0xabacfa58, 0x934be303,
@@ -479,7 +479,7 @@ __constant static u32a td1[256] =
   0x617bcb84, 0x70d532b6, 0x74486c5c, 0x42d0b857,
 };
 
-__constant static u32a td2[256] =
+__constant u32a td2[256] =
 {
   0xa75051f4, 0x65537e41, 0xa4c31a17, 0x5e963a27,
   0x6bcb3bab, 0x45f11f9d, 0x58abacfa, 0x03934be3,
@@ -547,7 +547,7 @@ __constant static u32a td2[256] =
   0x84617bcb, 0xb670d532, 0x5c74486c, 0x5742d0b8,
 };
 
-__constant static u32a td3[256] =
+__constant u32a td3[256] =
 {
   0xf4a75051, 0x4165537e, 0x17a4c31a, 0x275e963a,
   0xab6bcb3b, 0x9d45f11f, 0xfa58abac, 0xe303934b,
@@ -615,7 +615,7 @@ __constant static u32a td3[256] =
   0xcb84617b, 0x32b670d5, 0x6c5c7448, 0xb85742d0,
 };
 
-__constant static u32a td4[256] =
+__constant u32a td4[256] =
 {
   0x52525252, 0x09090909, 0x6a6a6a6a, 0xd5d5d5d5,
   0x30303030, 0x36363636, 0xa5a5a5a5, 0x38383838,
@@ -683,7 +683,7 @@ __constant static u32a td4[256] =
   0x55555555, 0x21212121, 0x0c0c0c0c, 0x7d7d7d7d,
 };
 
-__constant static u32a rcon[] =
+__constant u32a rcon[] =
 {
   0x01000000, 0x02000000, 0x04000000, 0x08000000,
   0x10000000, 0x20000000, 0x40000000, 0x80000000,
@@ -692,7 +692,7 @@ __constant static u32a rcon[] =
 
 // 128 bit key
 
-void aes128_ExpandKey (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void aes128_ExpandKey (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   ks[0] = ukey[0];
   ks[1] = ukey[1];
@@ -718,7 +718,7 @@ void aes128_ExpandKey (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u
   }
 }
 
-void aes128_InvertKey (u32 *ks, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void aes128_InvertKey (u32 *ks, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   for (u32 i = 0, j = 40; i < j; i += 4, j -= 4)
   {
@@ -758,7 +758,7 @@ void aes128_InvertKey (u32 *ks, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TY
   }
 }
 
-void aes128_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void aes128_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 ukey_s[4];
 
@@ -770,7 +770,7 @@ void aes128_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_
   aes128_ExpandKey (ks, ukey_s, s_te0, s_te1, s_te2, s_te3, s_te4);
 }
 
-void aes128_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void aes128_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 ukey_s[4];
 
@@ -784,7 +784,7 @@ void aes128_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_
   aes128_InvertKey (ks, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
 }
 
-void aes128_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void aes128_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   const u32 in_s0 = swap32_S (in[0]);
   const u32 in_s1 = swap32_S (in[1]);
@@ -847,7 +847,7 @@ void aes128_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0
   out[3] = swap32_S (out[3]);
 }
 
-void aes128_decrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void aes128_decrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   const u32 in_s0 = swap32_S (in[0]);
   const u32 in_s1 = swap32_S (in[1]);
@@ -912,7 +912,7 @@ void aes128_decrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_td0
 
 // 256 bit key
 
-void aes256_ExpandKey (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void aes256_ExpandKey (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   ks[0] = ukey[0];
   ks[1] = ukey[1];
@@ -957,7 +957,7 @@ void aes256_ExpandKey (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u
   }
 }
 
-void aes256_InvertKey (u32 *ks, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void aes256_InvertKey (u32 *ks, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   for (u32 i = 0, j = 56; i < j; i += 4, j -= 4)
   {
@@ -997,7 +997,7 @@ void aes256_InvertKey (u32 *ks, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TY
   }
 }
 
-void aes256_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void aes256_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 ukey_s[8];
 
@@ -1013,7 +1013,7 @@ void aes256_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_
   aes256_ExpandKey (ks, ukey_s, s_te0, s_te1, s_te2, s_te3, s_te4);
 }
 
-void aes256_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void aes256_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 ukey_s[8];
 
@@ -1031,7 +1031,7 @@ void aes256_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_
   aes256_InvertKey (ks, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
 }
 
-void aes256_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void aes256_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   const u32 in_s0 = swap32_S (in[0]);
   const u32 in_s1 = swap32_S (in[1]);
@@ -1094,7 +1094,7 @@ void aes256_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0
   out[3] = swap32_S (out[3]);
 }
 
-void aes256_decrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void aes256_decrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   const u32 in_s0 = swap32_S (in[0]);
   const u32 in_s1 = swap32_S (in[1]);
@@ -1159,7 +1159,7 @@ void aes256_decrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_td0
 
 // wrapper to avoid swap32_S() confusion in the kernel code
 
-void AES128_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void AES128_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 ukey_s[4];
 
@@ -1171,7 +1171,7 @@ void AES128_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_
   aes128_set_encrypt_key (ks, ukey_s, s_te0, s_te1, s_te2, s_te3, s_te4);
 }
 
-void AES128_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void AES128_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 ukey_s[4];
 
@@ -1183,7 +1183,7 @@ void AES128_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_
   aes128_set_decrypt_key (ks, ukey_s, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
 }
 
-void AES128_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void AES128_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 in_s[4];
 
@@ -1202,7 +1202,7 @@ void AES128_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0
   out[3] = swap32_S (out_s[3]);
 }
 
-void AES128_decrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void AES128_decrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 in_s[4];
 
@@ -1221,7 +1221,7 @@ void AES128_decrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_td0
   out[3] = swap32_S (out_s[3]);
 }
 
-void AES256_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void AES256_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 ukey_s[8];
 
@@ -1237,7 +1237,7 @@ void AES256_set_encrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_
   aes256_set_encrypt_key (ks, ukey_s, s_te0, s_te1, s_te2, s_te3, s_te4);
 }
 
-void AES256_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void AES256_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 ukey_s[8];
 
@@ -1253,7 +1253,7 @@ void AES256_set_decrypt_key (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, SHM_
   aes256_set_decrypt_key (ks, ukey_s, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
 }
 
-void AES256_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void AES256_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 in_s[4];
 
@@ -1272,7 +1272,7 @@ void AES256_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0
   out[3] = swap32_S (out_s[3]);
 }
 
-void AES256_decrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void AES256_decrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 in_s[4];
 

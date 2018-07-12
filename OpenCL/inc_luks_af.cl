@@ -1,7 +1,7 @@
 
 // basically normal XXX_transform() but with a different name to avoid collisions with function nameing
 
-__constant static u32a AF_k_sha256[64] =
+__constant u32a AF_k_sha256[64] =
 {
   SHA256C00, SHA256C01, SHA256C02, SHA256C03,
   SHA256C04, SHA256C05, SHA256C06, SHA256C07,
@@ -21,7 +21,7 @@ __constant static u32a AF_k_sha256[64] =
   SHA256C3c, SHA256C3d, SHA256C3e, SHA256C3f,
 };
 
-__constant static u64a AF_k_sha512[80] =
+__constant u64a AF_k_sha512[80] =
 {
   SHA512C00, SHA512C01, SHA512C02, SHA512C03,
   SHA512C04, SHA512C05, SHA512C06, SHA512C07,
@@ -45,7 +45,7 @@ __constant static u64a AF_k_sha512[80] =
   SHA512C4c, SHA512C4d, SHA512C4e, SHA512C4f,
 };
 
-void AF_sha1_transform_S (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
+DECLSPEC void AF_sha1_transform_S (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
 {
   u32 A = digest[0];
   u32 B = digest[1];
@@ -173,7 +173,7 @@ void AF_sha1_transform_S (const u32 w0[4], const u32 w1[4], const u32 w2[4], con
   digest[4] += E;
 }
 
-void AF_sha256_transform_S (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[8])
+DECLSPEC void AF_sha256_transform_S (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[8])
 {
   u32 a = digest[0];
   u32 b = digest[1];
@@ -261,7 +261,7 @@ void AF_sha256_transform_S (const u32 w0[4], const u32 w1[4], const u32 w2[4], c
   digest[7] += h;
 }
 
-void AF_sha512_transform_S (const u64 w0[4], const u64 w1[4], const u64 w2[4], const u64 w3[4], u64 digest[8])
+DECLSPEC void AF_sha512_transform_S (const u64 w0[4], const u64 w1[4], const u64 w2[4], const u64 w3[4], u64 digest[8])
 {
   u64 a = digest[0];
   u64 b = digest[1];
@@ -349,7 +349,7 @@ void AF_sha512_transform_S (const u64 w0[4], const u64 w1[4], const u64 w2[4], c
   digest[7] += h;
 }
 
-void AF_ripemd160_transform_S (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
+DECLSPEC void AF_ripemd160_transform_S (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
 {
   u32 w0_t = w0[0];
   u32 w1_t = w0[1];
@@ -565,7 +565,7 @@ void AF_ripemd160_transform_S (const u32 w0[4], const u32 w1[4], const u32 w2[4]
 
 // diffuse functions
 
-void AF_sha1_diffuse16 (u32 *out)
+DECLSPEC void AF_sha1_diffuse16 (u32 *out)
 {
   u32 w0[4];
   u32 w1[4];
@@ -607,7 +607,7 @@ void AF_sha1_diffuse16 (u32 *out)
   out[3] = swap32_S (digest[3]);
 }
 
-void AF_sha1_diffuse32 (u32 *out)
+DECLSPEC void AF_sha1_diffuse32 (u32 *out)
 {
   u32 w0[4];
   u32 w1[4];
@@ -681,7 +681,7 @@ void AF_sha1_diffuse32 (u32 *out)
   out[7] = swap32_S (digest[2]);
 }
 
-void AF_sha1_diffuse64 (u32 *out)
+DECLSPEC void AF_sha1_diffuse64 (u32 *out)
 {
   u32 w0[4];
   u32 w1[4];
@@ -819,7 +819,7 @@ void AF_sha1_diffuse64 (u32 *out)
   out[15] = swap32_S (digest[0]);
 }
 
-void AF_sha256_diffuse16 (u32 *out)
+DECLSPEC void AF_sha256_diffuse16 (u32 *out)
 {
   u32 w0[4];
   u32 w1[4];
@@ -864,7 +864,7 @@ void AF_sha256_diffuse16 (u32 *out)
   out[3] = swap32_S (digest[3]);
 }
 
-void AF_sha256_diffuse32 (u32 *out)
+DECLSPEC void AF_sha256_diffuse32 (u32 *out)
 {
   u32 w0[4];
   u32 w1[4];
@@ -913,7 +913,7 @@ void AF_sha256_diffuse32 (u32 *out)
   out[7] = swap32_S (digest[7]);
 }
 
-void AF_sha256_diffuse64 (u32 *out)
+DECLSPEC void AF_sha256_diffuse64 (u32 *out)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1001,7 +1001,7 @@ void AF_sha256_diffuse64 (u32 *out)
   out[15] = swap32_S (digest[7]);
 }
 
-void AF_sha512_diffuse16 (u32 *out)
+DECLSPEC void AF_sha512_diffuse16 (u32 *out)
 {
   u64 w0[4];
   u64 w1[4];
@@ -1046,7 +1046,7 @@ void AF_sha512_diffuse16 (u32 *out)
   out[3] = swap32_S (l32_from_64_S (digest[1]));
 }
 
-void AF_sha512_diffuse32 (u32 *out)
+DECLSPEC void AF_sha512_diffuse32 (u32 *out)
 {
   u64 w0[4];
   u64 w1[4];
@@ -1095,7 +1095,7 @@ void AF_sha512_diffuse32 (u32 *out)
   out[7] = swap32_S (l32_from_64_S (digest[3]));
 }
 
-void AF_sha512_diffuse64 (u32 *out)
+DECLSPEC void AF_sha512_diffuse64 (u32 *out)
 {
   u64 w0[4];
   u64 w1[4];
@@ -1152,7 +1152,7 @@ void AF_sha512_diffuse64 (u32 *out)
   out[15] = swap32_S (l32_from_64_S (digest[7]));
 }
 
-void AF_ripemd160_diffuse16 (u32 *out)
+DECLSPEC void AF_ripemd160_diffuse16 (u32 *out)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1194,7 +1194,7 @@ void AF_ripemd160_diffuse16 (u32 *out)
   out[3] = digest[3];
 }
 
-void AF_ripemd160_diffuse32 (u32 *out)
+DECLSPEC void AF_ripemd160_diffuse32 (u32 *out)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1268,7 +1268,7 @@ void AF_ripemd160_diffuse32 (u32 *out)
   out[7] = digest[2];
 }
 
-void AF_ripemd160_diffuse64 (u32 *out)
+DECLSPEC void AF_ripemd160_diffuse64 (u32 *out)
 {
   u32 w0[4];
   u32 w1[4];

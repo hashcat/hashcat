@@ -1,7 +1,7 @@
 
 // cbc-essiv
 
-void aes128_decrypt_cbc (const u32 *ks1, const u32 *in, u32 *out, u32 *essiv, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void aes128_decrypt_cbc (const u32 *ks1, const u32 *in, u32 *out, u32 *essiv, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   aes128_decrypt (ks1, in, out, s_td0, s_td1, s_td2, s_td3, s_td4);
 
@@ -16,7 +16,7 @@ void aes128_decrypt_cbc (const u32 *ks1, const u32 *in, u32 *out, u32 *essiv, SH
   essiv[3] = in[3];
 }
 
-void aes256_decrypt_cbc (const u32 *ks1, const u32 *in, u32 *out, u32 *essiv, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void aes256_decrypt_cbc (const u32 *ks1, const u32 *in, u32 *out, u32 *essiv, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   aes256_decrypt (ks1, in, out, s_td0, s_td1, s_td2, s_td3, s_td4);
 
@@ -31,7 +31,7 @@ void aes256_decrypt_cbc (const u32 *ks1, const u32 *in, u32 *out, u32 *essiv, SH
   essiv[3] = in[3];
 }
 
-void luks_decrypt_sector_aes_cbc_essiv128 (__global const u32 *in, u32 *out, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_essiv128 (__global const u32 *in, u32 *out, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -65,7 +65,7 @@ void luks_decrypt_sector_aes_cbc_essiv128 (__global const u32 *in, u32 *out, con
   }
 }
 
-void luks_decrypt_sector_aes_cbc_essiv128_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_essiv128_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -102,7 +102,7 @@ void luks_decrypt_sector_aes_cbc_essiv128_mk_sha1 (__global const u32 *in, u32 *
   }
 }
 
-void luks_decrypt_sector_aes_cbc_essiv128_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_essiv128_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -162,7 +162,7 @@ void luks_decrypt_sector_aes_cbc_essiv128_mk_sha1_final (__global const u32 *in,
   }
 }
 
-void luks_decrypt_sector_aes_cbc_essiv128_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_essiv128_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -199,7 +199,7 @@ void luks_decrypt_sector_aes_cbc_essiv128_mk_sha256 (__global const u32 *in, u32
   }
 }
 
-void luks_decrypt_sector_aes_cbc_essiv128_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_essiv128_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -259,7 +259,7 @@ void luks_decrypt_sector_aes_cbc_essiv128_mk_sha256_final (__global const u32 *i
   }
 }
 
-void luks_decrypt_sector_aes_cbc_essiv128_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_essiv128_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -296,7 +296,7 @@ void luks_decrypt_sector_aes_cbc_essiv128_mk_sha512 (__global const u32 *in, u32
   }
 }
 
-void luks_decrypt_sector_aes_cbc_essiv128_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_essiv128_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -356,7 +356,7 @@ void luks_decrypt_sector_aes_cbc_essiv128_mk_sha512_final (__global const u32 *i
   }
 }
 
-void luks_decrypt_sector_aes_cbc_essiv128_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_essiv128_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -393,7 +393,7 @@ void luks_decrypt_sector_aes_cbc_essiv128_mk_ripemd160 (__global const u32 *in, 
   }
 }
 
-void luks_decrypt_sector_aes_cbc_essiv128_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_essiv128_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -453,7 +453,7 @@ void luks_decrypt_sector_aes_cbc_essiv128_mk_ripemd160_final (__global const u32
   }
 }
 
-void luks_decrypt_sector_aes_cbc_essiv256 (__global const u32 *in, u32 *out, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_essiv256 (__global const u32 *in, u32 *out, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -487,7 +487,7 @@ void luks_decrypt_sector_aes_cbc_essiv256 (__global const u32 *in, u32 *out, con
   }
 }
 
-void luks_decrypt_sector_aes_cbc_essiv256_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_essiv256_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -524,7 +524,7 @@ void luks_decrypt_sector_aes_cbc_essiv256_mk_sha1 (__global const u32 *in, u32 *
   }
 }
 
-void luks_decrypt_sector_aes_cbc_essiv256_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_essiv256_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -584,7 +584,7 @@ void luks_decrypt_sector_aes_cbc_essiv256_mk_sha1_final (__global const u32 *in,
   }
 }
 
-void luks_decrypt_sector_aes_cbc_essiv256_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_essiv256_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -621,7 +621,7 @@ void luks_decrypt_sector_aes_cbc_essiv256_mk_sha256 (__global const u32 *in, u32
   }
 }
 
-void luks_decrypt_sector_aes_cbc_essiv256_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_essiv256_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -681,7 +681,7 @@ void luks_decrypt_sector_aes_cbc_essiv256_mk_sha256_final (__global const u32 *i
   }
 }
 
-void luks_decrypt_sector_aes_cbc_essiv256_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_essiv256_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -718,7 +718,7 @@ void luks_decrypt_sector_aes_cbc_essiv256_mk_sha512 (__global const u32 *in, u32
   }
 }
 
-void luks_decrypt_sector_aes_cbc_essiv256_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_essiv256_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -778,7 +778,7 @@ void luks_decrypt_sector_aes_cbc_essiv256_mk_sha512_final (__global const u32 *i
   }
 }
 
-void luks_decrypt_sector_aes_cbc_essiv256_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_essiv256_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -815,7 +815,7 @@ void luks_decrypt_sector_aes_cbc_essiv256_mk_ripemd160 (__global const u32 *in, 
   }
 }
 
-void luks_decrypt_sector_aes_cbc_essiv256_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_essiv256_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -877,7 +877,7 @@ void luks_decrypt_sector_aes_cbc_essiv256_mk_ripemd160_final (__global const u32
 
 // cbc-plain
 
-void luks_decrypt_sector_aes_cbc_plain128 (__global const u32 *in, u32 *out, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_plain128 (__global const u32 *in, u32 *out, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -907,7 +907,7 @@ void luks_decrypt_sector_aes_cbc_plain128 (__global const u32 *in, u32 *out, con
   }
 }
 
-void luks_decrypt_sector_aes_cbc_plain128_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_plain128_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -940,7 +940,7 @@ void luks_decrypt_sector_aes_cbc_plain128_mk_sha1 (__global const u32 *in, u32 *
   }
 }
 
-void luks_decrypt_sector_aes_cbc_plain128_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_plain128_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -996,7 +996,7 @@ void luks_decrypt_sector_aes_cbc_plain128_mk_sha1_final (__global const u32 *in,
   }
 }
 
-void luks_decrypt_sector_aes_cbc_plain128_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_plain128_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1029,7 +1029,7 @@ void luks_decrypt_sector_aes_cbc_plain128_mk_sha256 (__global const u32 *in, u32
   }
 }
 
-void luks_decrypt_sector_aes_cbc_plain128_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_plain128_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1085,7 +1085,7 @@ void luks_decrypt_sector_aes_cbc_plain128_mk_sha256_final (__global const u32 *i
   }
 }
 
-void luks_decrypt_sector_aes_cbc_plain128_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_plain128_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1118,7 +1118,7 @@ void luks_decrypt_sector_aes_cbc_plain128_mk_sha512 (__global const u32 *in, u32
   }
 }
 
-void luks_decrypt_sector_aes_cbc_plain128_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_plain128_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1174,7 +1174,7 @@ void luks_decrypt_sector_aes_cbc_plain128_mk_sha512_final (__global const u32 *i
   }
 }
 
-void luks_decrypt_sector_aes_cbc_plain128_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_plain128_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1207,7 +1207,7 @@ void luks_decrypt_sector_aes_cbc_plain128_mk_ripemd160 (__global const u32 *in, 
   }
 }
 
-void luks_decrypt_sector_aes_cbc_plain128_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_plain128_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1263,7 +1263,7 @@ void luks_decrypt_sector_aes_cbc_plain128_mk_ripemd160_final (__global const u32
   }
 }
 
-void luks_decrypt_sector_aes_cbc_plain256 (__global const u32 *in, u32 *out, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_plain256 (__global const u32 *in, u32 *out, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1293,7 +1293,7 @@ void luks_decrypt_sector_aes_cbc_plain256 (__global const u32 *in, u32 *out, con
   }
 }
 
-void luks_decrypt_sector_aes_cbc_plain256_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_plain256_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1326,7 +1326,7 @@ void luks_decrypt_sector_aes_cbc_plain256_mk_sha1 (__global const u32 *in, u32 *
   }
 }
 
-void luks_decrypt_sector_aes_cbc_plain256_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_plain256_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1382,7 +1382,7 @@ void luks_decrypt_sector_aes_cbc_plain256_mk_sha1_final (__global const u32 *in,
   }
 }
 
-void luks_decrypt_sector_aes_cbc_plain256_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_plain256_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1415,7 +1415,7 @@ void luks_decrypt_sector_aes_cbc_plain256_mk_sha256 (__global const u32 *in, u32
   }
 }
 
-void luks_decrypt_sector_aes_cbc_plain256_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_plain256_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1471,7 +1471,7 @@ void luks_decrypt_sector_aes_cbc_plain256_mk_sha256_final (__global const u32 *i
   }
 }
 
-void luks_decrypt_sector_aes_cbc_plain256_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_plain256_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1504,7 +1504,7 @@ void luks_decrypt_sector_aes_cbc_plain256_mk_sha512 (__global const u32 *in, u32
   }
 }
 
-void luks_decrypt_sector_aes_cbc_plain256_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_plain256_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1560,7 +1560,7 @@ void luks_decrypt_sector_aes_cbc_plain256_mk_sha512_final (__global const u32 *i
   }
 }
 
-void luks_decrypt_sector_aes_cbc_plain256_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_plain256_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1593,7 +1593,7 @@ void luks_decrypt_sector_aes_cbc_plain256_mk_ripemd160 (__global const u32 *in, 
   }
 }
 
-void luks_decrypt_sector_aes_cbc_plain256_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_cbc_plain256_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1651,7 +1651,7 @@ void luks_decrypt_sector_aes_cbc_plain256_mk_ripemd160_final (__global const u32
 
 // xts-plain
 
-void aes128_decrypt_xts (const u32 *ks1, const u32 *in, u32 *out, u32 *T, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void aes128_decrypt_xts (const u32 *ks1, const u32 *in, u32 *out, u32 *T, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   out[0] = in[0];
   out[1] = in[1];
@@ -1673,7 +1673,7 @@ void aes128_decrypt_xts (const u32 *ks1, const u32 *in, u32 *out, u32 *T, SHM_TY
   xts_mul2 (T, T);
 }
 
-void aes256_decrypt_xts (const u32 *ks1, const u32 *in, u32 *out, u32 *T, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void aes256_decrypt_xts (const u32 *ks1, const u32 *in, u32 *out, u32 *T, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   out[0] = in[0];
   out[1] = in[1];
@@ -1695,7 +1695,7 @@ void aes256_decrypt_xts (const u32 *ks1, const u32 *in, u32 *out, u32 *T, SHM_TY
   xts_mul2 (T, T);
 }
 
-void luks_decrypt_sector_aes_xts_plain256 (__global const u32 *in, u32 *out, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_xts_plain256 (__global const u32 *in, u32 *out, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1729,7 +1729,7 @@ void luks_decrypt_sector_aes_xts_plain256 (__global const u32 *in, u32 *out, con
   }
 }
 
-void luks_decrypt_sector_aes_xts_plain256_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_xts_plain256_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1766,7 +1766,7 @@ void luks_decrypt_sector_aes_xts_plain256_mk_sha1 (__global const u32 *in, u32 *
   }
 }
 
-void luks_decrypt_sector_aes_xts_plain256_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_xts_plain256_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1826,7 +1826,7 @@ void luks_decrypt_sector_aes_xts_plain256_mk_sha1_final (__global const u32 *in,
   }
 }
 
-void luks_decrypt_sector_aes_xts_plain256_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_xts_plain256_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1863,7 +1863,7 @@ void luks_decrypt_sector_aes_xts_plain256_mk_sha256 (__global const u32 *in, u32
   }
 }
 
-void luks_decrypt_sector_aes_xts_plain256_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_xts_plain256_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1923,7 +1923,7 @@ void luks_decrypt_sector_aes_xts_plain256_mk_sha256_final (__global const u32 *i
   }
 }
 
-void luks_decrypt_sector_aes_xts_plain256_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_xts_plain256_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -1960,7 +1960,7 @@ void luks_decrypt_sector_aes_xts_plain256_mk_sha512 (__global const u32 *in, u32
   }
 }
 
-void luks_decrypt_sector_aes_xts_plain256_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_xts_plain256_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -2020,7 +2020,7 @@ void luks_decrypt_sector_aes_xts_plain256_mk_sha512_final (__global const u32 *i
   }
 }
 
-void luks_decrypt_sector_aes_xts_plain256_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_xts_plain256_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -2057,7 +2057,7 @@ void luks_decrypt_sector_aes_xts_plain256_mk_ripemd160 (__global const u32 *in, 
   }
 }
 
-void luks_decrypt_sector_aes_xts_plain256_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_xts_plain256_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -2117,7 +2117,7 @@ void luks_decrypt_sector_aes_xts_plain256_mk_ripemd160_final (__global const u32
   }
 }
 
-void luks_decrypt_sector_aes_xts_plain512 (__global const u32 *in, u32 *out, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_xts_plain512 (__global const u32 *in, u32 *out, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -2151,7 +2151,7 @@ void luks_decrypt_sector_aes_xts_plain512 (__global const u32 *in, u32 *out, con
   }
 }
 
-void luks_decrypt_sector_aes_xts_plain512_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_xts_plain512_mk_sha1 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -2188,7 +2188,7 @@ void luks_decrypt_sector_aes_xts_plain512_mk_sha1 (__global const u32 *in, u32 *
   }
 }
 
-void luks_decrypt_sector_aes_xts_plain512_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_xts_plain512_mk_sha1_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -2248,7 +2248,7 @@ void luks_decrypt_sector_aes_xts_plain512_mk_sha1_final (__global const u32 *in,
   }
 }
 
-void luks_decrypt_sector_aes_xts_plain512_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_xts_plain512_mk_sha256 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -2285,7 +2285,7 @@ void luks_decrypt_sector_aes_xts_plain512_mk_sha256 (__global const u32 *in, u32
   }
 }
 
-void luks_decrypt_sector_aes_xts_plain512_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_xts_plain512_mk_sha256_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -2345,7 +2345,7 @@ void luks_decrypt_sector_aes_xts_plain512_mk_sha256_final (__global const u32 *i
   }
 }
 
-void luks_decrypt_sector_aes_xts_plain512_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_xts_plain512_mk_sha512 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -2382,7 +2382,7 @@ void luks_decrypt_sector_aes_xts_plain512_mk_sha512 (__global const u32 *in, u32
   }
 }
 
-void luks_decrypt_sector_aes_xts_plain512_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_xts_plain512_mk_sha512_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -2442,7 +2442,7 @@ void luks_decrypt_sector_aes_xts_plain512_mk_sha512_final (__global const u32 *i
   }
 }
 
-void luks_decrypt_sector_aes_xts_plain512_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_xts_plain512_mk_ripemd160 (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -2479,7 +2479,7 @@ void luks_decrypt_sector_aes_xts_plain512_mk_ripemd160 (__global const u32 *in, 
   }
 }
 
-void luks_decrypt_sector_aes_xts_plain512_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_decrypt_sector_aes_xts_plain512_mk_ripemd160_final (__global const u32 *in, u32 *mk, const u32 *ks1, const u32 *ks2, const u32 sector, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 S[4] = { sector, 0, 0, 0 };
 
@@ -2541,7 +2541,7 @@ void luks_decrypt_sector_aes_xts_plain512_mk_ripemd160_final (__global const u32
 
 // luks helper
 
-void luks_af_sha1_then_aes_decrypt (__global const luks_t *luks_bufs, __global luks_tmp_t *tmps, u32 *pt_buf, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_af_sha1_then_aes_decrypt (__global const luks_t *luks_bufs, __global luks_tmp_t *tmps, u32 *pt_buf, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   const u32 key_size    = luks_bufs->key_size;
   const u32 cipher_mode = luks_bufs->cipher_mode;
@@ -2758,7 +2758,7 @@ void luks_af_sha1_then_aes_decrypt (__global const luks_t *luks_bufs, __global l
     if (key_size == HC_LUKS_KEY_SIZE_128)
     {
       #if defined (IS_APPLE) && defined (IS_GPU)
-      volatile u32 ukey[4];
+      u32 ukey[4];
       #else
       u32 ukey[4];
       #endif
@@ -2783,7 +2783,7 @@ void luks_af_sha1_then_aes_decrypt (__global const luks_t *luks_bufs, __global l
     else if (key_size == HC_LUKS_KEY_SIZE_256)
     {
       #if defined (IS_APPLE) && defined (IS_GPU)
-      volatile u32 ukey[8];
+      u32 ukey[8];
       #else
       u32 ukey[8];
       #endif
@@ -2815,7 +2815,7 @@ void luks_af_sha1_then_aes_decrypt (__global const luks_t *luks_bufs, __global l
     if (key_size == HC_LUKS_KEY_SIZE_128)
     {
       #if defined (IS_APPLE) && defined (IS_GPU)
-      volatile u32 ukey[4];
+      u32 ukey[4];
       #else
       u32 ukey[4];
       #endif
@@ -2834,7 +2834,7 @@ void luks_af_sha1_then_aes_decrypt (__global const luks_t *luks_bufs, __global l
     else if (key_size == HC_LUKS_KEY_SIZE_256)
     {
       #if defined (IS_APPLE) && defined (IS_GPU)
-      volatile u32 ukey[8];
+      u32 ukey[8];
       #else
       u32 ukey[8];
       #endif
@@ -2860,7 +2860,7 @@ void luks_af_sha1_then_aes_decrypt (__global const luks_t *luks_bufs, __global l
     if (key_size == HC_LUKS_KEY_SIZE_256)
     {
       #if defined (IS_APPLE) && defined (IS_GPU)
-      volatile u32 ukey1[4];
+      u32 ukey1[4];
       #else
       u32 ukey1[4];
       #endif
@@ -2871,7 +2871,7 @@ void luks_af_sha1_then_aes_decrypt (__global const luks_t *luks_bufs, __global l
       ukey1[3] = mk[3];
 
       #if defined (IS_APPLE) && defined (IS_GPU)
-      volatile u32 ukey2[4];
+      u32 ukey2[4];
       #else
       u32 ukey2[4];
       #endif
@@ -2892,7 +2892,7 @@ void luks_af_sha1_then_aes_decrypt (__global const luks_t *luks_bufs, __global l
     else if (key_size == HC_LUKS_KEY_SIZE_512)
     {
       #if defined (IS_APPLE) && defined (IS_GPU)
-      volatile u32 ukey1[8];
+      u32 ukey1[8];
       #else
       u32 ukey1[8];
       #endif
@@ -2907,7 +2907,7 @@ void luks_af_sha1_then_aes_decrypt (__global const luks_t *luks_bufs, __global l
       ukey1[7] = mk[ 7];
 
       #if defined (IS_APPLE) && defined (IS_GPU)
-      volatile u32 ukey2[8];
+      u32 ukey2[8];
       #else
       u32 ukey2[8];
       #endif
@@ -2932,7 +2932,7 @@ void luks_af_sha1_then_aes_decrypt (__global const luks_t *luks_bufs, __global l
   }
 }
 
-void luks_af_sha256_then_aes_decrypt (__global const luks_t *luks_bufs, __global luks_tmp_t *tmps, u32 *pt_buf, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_af_sha256_then_aes_decrypt (__global const luks_t *luks_bufs, __global luks_tmp_t *tmps, u32 *pt_buf, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   const u32 key_size    = luks_bufs->key_size;
   const u32 cipher_mode = luks_bufs->cipher_mode;
@@ -3291,7 +3291,7 @@ void luks_af_sha256_then_aes_decrypt (__global const luks_t *luks_bufs, __global
   }
 }
 
-void luks_af_sha512_then_aes_decrypt (__global const luks_t *luks_bufs, __global luks_tmp_t *tmps, u32 *pt_buf, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_af_sha512_then_aes_decrypt (__global const luks_t *luks_bufs, __global luks_tmp_t *tmps, u32 *pt_buf, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   const u32 key_size    = luks_bufs->key_size;
   const u32 cipher_mode = luks_bufs->cipher_mode;
@@ -3669,7 +3669,7 @@ void luks_af_sha512_then_aes_decrypt (__global const luks_t *luks_bufs, __global
   }
 }
 
-void luks_af_ripemd160_then_aes_decrypt (__global const luks_t *luks_bufs, __global luks_tmp_t *tmps, u32 *pt_buf, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void luks_af_ripemd160_then_aes_decrypt (__global const luks_t *luks_bufs, __global luks_tmp_t *tmps, u32 *pt_buf, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   const u32 key_size    = luks_bufs->key_size;
   const u32 cipher_mode = luks_bufs->cipher_mode;

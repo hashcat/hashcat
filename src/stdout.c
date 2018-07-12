@@ -50,7 +50,7 @@ static void out_push (out_t *out, const u8 *pw_buf, const int pw_len)
   }
 }
 
-int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 pws_cnt)
+int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_cnt)
 {
   combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
   hashconfig_t     *hashconfig     = hashcat_ctx->hashconfig;
@@ -102,7 +102,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
   {
     pw_t pw;
 
-    for (u32 gidvid = 0; gidvid < pws_cnt; gidvid++)
+    for (u64 gidvid = 0; gidvid < pws_cnt; gidvid++)
     {
       const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
 
@@ -146,7 +146,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
   {
     pw_t pw;
 
-    for (u32 gidvid = 0; gidvid < pws_cnt; gidvid++)
+    for (u64 gidvid = 0; gidvid < pws_cnt; gidvid++)
     {
       const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
 
@@ -190,7 +190,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
   }
   else if (user_options->attack_mode == ATTACK_MODE_BF)
   {
-    for (u32 gidvid = 0; gidvid < pws_cnt; gidvid++)
+    for (u64 gidvid = 0; gidvid < pws_cnt; gidvid++)
     {
       for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
       {
@@ -216,7 +216,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
   {
     pw_t pw;
 
-    for (u32 gidvid = 0; gidvid < pws_cnt; gidvid++)
+    for (u64 gidvid = 0; gidvid < pws_cnt; gidvid++)
     {
       const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
 
@@ -253,7 +253,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
   {
     pw_t pw;
 
-    for (u32 gidvid = 0; gidvid < pws_cnt; gidvid++)
+    for (u64 gidvid = 0; gidvid < pws_cnt; gidvid++)
     {
       const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
 

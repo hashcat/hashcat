@@ -24,7 +24,7 @@ typedef struct
 
 } orig_sha512_ctx_t;
 
-void sha512_transform_transport (const u64 *w, u64 *digest)
+DECLSPEC void sha512_transform_transport (const u64 *w, u64 *digest)
 {
   u32 t0[4];
   u32 t1[4];
@@ -71,7 +71,7 @@ void sha512_transform_transport (const u64 *w, u64 *digest)
   sha512_transform (t0, t1, t2, t3, t4, t5, t6, t7, digest);
 }
 
-void orig_sha512_init (orig_sha512_ctx_t *sha512_ctx)
+DECLSPEC void orig_sha512_init (orig_sha512_ctx_t *sha512_ctx)
 {
   sha512_ctx->state[0] = SHA512M_A;
   sha512_ctx->state[1] = SHA512M_B;
@@ -85,7 +85,7 @@ void orig_sha512_init (orig_sha512_ctx_t *sha512_ctx)
   sha512_ctx->len = 0;
 }
 
-void orig_sha512_update (orig_sha512_ctx_t *sha512_ctx, const u64 *buf, int len)
+DECLSPEC void orig_sha512_update (orig_sha512_ctx_t *sha512_ctx, const u64 *buf, int len)
 {
   int pos = sha512_ctx->len & 0x7f;
 
@@ -118,7 +118,7 @@ void orig_sha512_update (orig_sha512_ctx_t *sha512_ctx, const u64 *buf, int len)
   }
 }
 
-void orig_sha512_final (orig_sha512_ctx_t *sha512_ctx)
+DECLSPEC void orig_sha512_final (orig_sha512_ctx_t *sha512_ctx)
 {
   int pos = sha512_ctx->len & 0x7f;
 
@@ -194,13 +194,13 @@ __kernel void m01800_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   u64 pw[2];
 
-  pw[0] = swap64 (hl32_to_64 (w0[1], w0[0]));
-  pw[1] = swap64 (hl32_to_64 (w0[3], w0[2]));
+  pw[0] = swap64_S (hl32_to_64 (w0[1], w0[0]));
+  pw[1] = swap64_S (hl32_to_64 (w0[3], w0[2]));
 
   u64 salt[2];
 
-  salt[0] = swap64 (hl32_to_64 (salt_buf[1], salt_buf[0]));
-  salt[1] = swap64 (hl32_to_64 (salt_buf[3], salt_buf[2]));
+  salt[0] = swap64_S (hl32_to_64 (salt_buf[1], salt_buf[0]));
+  salt[1] = swap64_S (hl32_to_64 (salt_buf[3], salt_buf[2]));
 
   /**
    * begin
@@ -474,8 +474,8 @@ __kernel void m01800_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   const u64 lid = get_local_id (0);
 
-  const u64 a = swap64 (tmps[gid].l_alt_result[0]);
-  const u64 b = swap64 (tmps[gid].l_alt_result[1]);
+  const u64 a = swap64_S (tmps[gid].l_alt_result[0]);
+  const u64 b = swap64_S (tmps[gid].l_alt_result[1]);
 
   const u32 r0 = l32_from_64_S (a);
   const u32 r1 = h32_from_64_S (a);

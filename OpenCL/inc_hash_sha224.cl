@@ -4,7 +4,7 @@
 // input buf needs to be in algorithm native byte order (md5 = LE, sha256 = BE, etc)
 // input buf needs to be 64 byte aligned when using md5_update()
 
-__constant static u32a k_sha256[64] =
+__constant u32a k_sha256[64] =
 {
   SHA256C00, SHA256C01, SHA256C02, SHA256C03,
   SHA256C04, SHA256C05, SHA256C06, SHA256C07,
@@ -37,7 +37,7 @@ typedef struct sha224_ctx
 
 } sha224_ctx_t;
 
-void sha224_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[8])
+DECLSPEC void sha224_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[8])
 {
   u32 a = digest[0];
   u32 b = digest[1];
@@ -128,7 +128,7 @@ void sha224_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const 
   digest[7] += h;
 }
 
-void sha224_init (sha224_ctx_t *ctx)
+DECLSPEC void sha224_init (sha224_ctx_t *ctx)
 {
   ctx->h[0] = SHA224M_A;
   ctx->h[1] = SHA224M_B;
@@ -159,13 +159,9 @@ void sha224_init (sha224_ctx_t *ctx)
   ctx->len = 0;
 }
 
-void sha224_update_64 (sha224_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len)
+DECLSPEC void sha224_update_64 (sha224_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len)
 {
-  #ifdef IS_AMD
-  volatile const int pos = ctx->len & 63;
-  #else
   const int pos = ctx->len & 63;
-  #endif
 
   ctx->len += len;
 
@@ -237,7 +233,7 @@ void sha224_update_64 (sha224_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w
   }
 }
 
-void sha224_update (sha224_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void sha224_update (sha224_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -289,263 +285,7 @@ void sha224_update (sha224_ctx_t *ctx, const u32 *w, const int len)
   sha224_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-void sha224_update_swap (sha224_ctx_t *ctx, const u32 *w, const int len)
-{
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
-
-  int pos1;
-  int pos4;
-
-  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
-  {
-    w0[0] = w[pos4 +  0];
-    w0[1] = w[pos4 +  1];
-    w0[2] = w[pos4 +  2];
-    w0[3] = w[pos4 +  3];
-    w1[0] = w[pos4 +  4];
-    w1[1] = w[pos4 +  5];
-    w1[2] = w[pos4 +  6];
-    w1[3] = w[pos4 +  7];
-    w2[0] = w[pos4 +  8];
-    w2[1] = w[pos4 +  9];
-    w2[2] = w[pos4 + 10];
-    w2[3] = w[pos4 + 11];
-    w3[0] = w[pos4 + 12];
-    w3[1] = w[pos4 + 13];
-    w3[2] = w[pos4 + 14];
-    w3[3] = w[pos4 + 15];
-
-    w0[0] = swap32_S (w0[0]);
-    w0[1] = swap32_S (w0[1]);
-    w0[2] = swap32_S (w0[2]);
-    w0[3] = swap32_S (w0[3]);
-    w1[0] = swap32_S (w1[0]);
-    w1[1] = swap32_S (w1[1]);
-    w1[2] = swap32_S (w1[2]);
-    w1[3] = swap32_S (w1[3]);
-    w2[0] = swap32_S (w2[0]);
-    w2[1] = swap32_S (w2[1]);
-    w2[2] = swap32_S (w2[2]);
-    w2[3] = swap32_S (w2[3]);
-    w3[0] = swap32_S (w3[0]);
-    w3[1] = swap32_S (w3[1]);
-    w3[2] = swap32_S (w3[2]);
-    w3[3] = swap32_S (w3[3]);
-
-    sha224_update_64 (ctx, w0, w1, w2, w3, 64);
-  }
-
-  w0[0] = w[pos4 +  0];
-  w0[1] = w[pos4 +  1];
-  w0[2] = w[pos4 +  2];
-  w0[3] = w[pos4 +  3];
-  w1[0] = w[pos4 +  4];
-  w1[1] = w[pos4 +  5];
-  w1[2] = w[pos4 +  6];
-  w1[3] = w[pos4 +  7];
-  w2[0] = w[pos4 +  8];
-  w2[1] = w[pos4 +  9];
-  w2[2] = w[pos4 + 10];
-  w2[3] = w[pos4 + 11];
-  w3[0] = w[pos4 + 12];
-  w3[1] = w[pos4 + 13];
-  w3[2] = w[pos4 + 14];
-  w3[3] = w[pos4 + 15];
-
-  w0[0] = swap32_S (w0[0]);
-  w0[1] = swap32_S (w0[1]);
-  w0[2] = swap32_S (w0[2]);
-  w0[3] = swap32_S (w0[3]);
-  w1[0] = swap32_S (w1[0]);
-  w1[1] = swap32_S (w1[1]);
-  w1[2] = swap32_S (w1[2]);
-  w1[3] = swap32_S (w1[3]);
-  w2[0] = swap32_S (w2[0]);
-  w2[1] = swap32_S (w2[1]);
-  w2[2] = swap32_S (w2[2]);
-  w2[3] = swap32_S (w2[3]);
-  w3[0] = swap32_S (w3[0]);
-  w3[1] = swap32_S (w3[1]);
-  w3[2] = swap32_S (w3[2]);
-  w3[3] = swap32_S (w3[3]);
-
-  sha224_update_64 (ctx, w0, w1, w2, w3, len - pos1);
-}
-
-void sha224_update_utf16le (sha224_ctx_t *ctx, const u32 *w, const int len)
-{
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
-
-  int pos1;
-  int pos4;
-
-  for (pos1 = 0, pos4 = 0; pos1 < len - 32; pos1 += 32, pos4 += 8)
-  {
-    w0[0] = w[pos4 + 0];
-    w0[1] = w[pos4 + 1];
-    w0[2] = w[pos4 + 2];
-    w0[3] = w[pos4 + 3];
-    w1[0] = w[pos4 + 4];
-    w1[1] = w[pos4 + 5];
-    w1[2] = w[pos4 + 6];
-    w1[3] = w[pos4 + 7];
-
-    make_utf16le_S (w1, w2, w3);
-    make_utf16le_S (w0, w0, w1);
-
-    sha224_update_64 (ctx, w0, w1, w2, w3, 32 * 2);
-  }
-
-  w0[0] = w[pos4 + 0];
-  w0[1] = w[pos4 + 1];
-  w0[2] = w[pos4 + 2];
-  w0[3] = w[pos4 + 3];
-  w1[0] = w[pos4 + 4];
-  w1[1] = w[pos4 + 5];
-  w1[2] = w[pos4 + 6];
-  w1[3] = w[pos4 + 7];
-
-  make_utf16le_S (w1, w2, w3);
-  make_utf16le_S (w0, w0, w1);
-
-  sha224_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
-}
-
-void sha224_update_utf16le_swap (sha224_ctx_t *ctx, const u32 *w, const int len)
-{
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
-
-  int pos1;
-  int pos4;
-
-  for (pos1 = 0, pos4 = 0; pos1 < len - 32; pos1 += 32, pos4 += 8)
-  {
-    w0[0] = w[pos4 + 0];
-    w0[1] = w[pos4 + 1];
-    w0[2] = w[pos4 + 2];
-    w0[3] = w[pos4 + 3];
-    w1[0] = w[pos4 + 4];
-    w1[1] = w[pos4 + 5];
-    w1[2] = w[pos4 + 6];
-    w1[3] = w[pos4 + 7];
-
-    make_utf16le_S (w1, w2, w3);
-    make_utf16le_S (w0, w0, w1);
-
-    w0[0] = swap32_S (w0[0]);
-    w0[1] = swap32_S (w0[1]);
-    w0[2] = swap32_S (w0[2]);
-    w0[3] = swap32_S (w0[3]);
-    w1[0] = swap32_S (w1[0]);
-    w1[1] = swap32_S (w1[1]);
-    w1[2] = swap32_S (w1[2]);
-    w1[3] = swap32_S (w1[3]);
-    w2[0] = swap32_S (w2[0]);
-    w2[1] = swap32_S (w2[1]);
-    w2[2] = swap32_S (w2[2]);
-    w2[3] = swap32_S (w2[3]);
-    w3[0] = swap32_S (w3[0]);
-    w3[1] = swap32_S (w3[1]);
-    w3[2] = swap32_S (w3[2]);
-    w3[3] = swap32_S (w3[3]);
-
-    sha224_update_64 (ctx, w0, w1, w2, w3, 32 * 2);
-  }
-
-  w0[0] = w[pos4 + 0];
-  w0[1] = w[pos4 + 1];
-  w0[2] = w[pos4 + 2];
-  w0[3] = w[pos4 + 3];
-  w1[0] = w[pos4 + 4];
-  w1[1] = w[pos4 + 5];
-  w1[2] = w[pos4 + 6];
-  w1[3] = w[pos4 + 7];
-
-  make_utf16le_S (w1, w2, w3);
-  make_utf16le_S (w0, w0, w1);
-
-  w0[0] = swap32_S (w0[0]);
-  w0[1] = swap32_S (w0[1]);
-  w0[2] = swap32_S (w0[2]);
-  w0[3] = swap32_S (w0[3]);
-  w1[0] = swap32_S (w1[0]);
-  w1[1] = swap32_S (w1[1]);
-  w1[2] = swap32_S (w1[2]);
-  w1[3] = swap32_S (w1[3]);
-  w2[0] = swap32_S (w2[0]);
-  w2[1] = swap32_S (w2[1]);
-  w2[2] = swap32_S (w2[2]);
-  w2[3] = swap32_S (w2[3]);
-  w3[0] = swap32_S (w3[0]);
-  w3[1] = swap32_S (w3[1]);
-  w3[2] = swap32_S (w3[2]);
-  w3[3] = swap32_S (w3[3]);
-
-  sha224_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
-}
-
-void sha224_update_global (sha224_ctx_t *ctx, const __global u32 *w, const int len)
-{
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
-
-  int pos1;
-  int pos4;
-
-  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
-  {
-    w0[0] = w[pos4 +  0];
-    w0[1] = w[pos4 +  1];
-    w0[2] = w[pos4 +  2];
-    w0[3] = w[pos4 +  3];
-    w1[0] = w[pos4 +  4];
-    w1[1] = w[pos4 +  5];
-    w1[2] = w[pos4 +  6];
-    w1[3] = w[pos4 +  7];
-    w2[0] = w[pos4 +  8];
-    w2[1] = w[pos4 +  9];
-    w2[2] = w[pos4 + 10];
-    w2[3] = w[pos4 + 11];
-    w3[0] = w[pos4 + 12];
-    w3[1] = w[pos4 + 13];
-    w3[2] = w[pos4 + 14];
-    w3[3] = w[pos4 + 15];
-
-    sha224_update_64 (ctx, w0, w1, w2, w3, 64);
-  }
-
-  w0[0] = w[pos4 +  0];
-  w0[1] = w[pos4 +  1];
-  w0[2] = w[pos4 +  2];
-  w0[3] = w[pos4 +  3];
-  w1[0] = w[pos4 +  4];
-  w1[1] = w[pos4 +  5];
-  w1[2] = w[pos4 +  6];
-  w1[3] = w[pos4 +  7];
-  w2[0] = w[pos4 +  8];
-  w2[1] = w[pos4 +  9];
-  w2[2] = w[pos4 + 10];
-  w2[3] = w[pos4 + 11];
-  w3[0] = w[pos4 + 12];
-  w3[1] = w[pos4 + 13];
-  w3[2] = w[pos4 + 14];
-  w3[3] = w[pos4 + 15];
-
-  sha224_update_64 (ctx, w0, w1, w2, w3, len - pos1);
-}
-
-void sha224_update_global_swap (sha224_ctx_t *ctx, const __global u32 *w, const int len)
+DECLSPEC void sha224_update_swap (sha224_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -631,7 +371,7 @@ void sha224_update_global_swap (sha224_ctx_t *ctx, const __global u32 *w, const 
   sha224_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-void sha224_update_global_utf16le (sha224_ctx_t *ctx, const __global u32 *w, const int len)
+DECLSPEC void sha224_update_utf16le (sha224_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -673,7 +413,7 @@ void sha224_update_global_utf16le (sha224_ctx_t *ctx, const __global u32 *w, con
   sha224_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-void sha224_update_global_utf16le_swap (sha224_ctx_t *ctx, const __global u32 *w, const int len)
+DECLSPEC void sha224_update_utf16le_swap (sha224_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -749,7 +489,263 @@ void sha224_update_global_utf16le_swap (sha224_ctx_t *ctx, const __global u32 *w
   sha224_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-void sha224_final (sha224_ctx_t *ctx)
+DECLSPEC void sha224_update_global (sha224_ctx_t *ctx, const __global u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  int pos1;
+  int pos4;
+
+  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
+  {
+    w0[0] = w[pos4 +  0];
+    w0[1] = w[pos4 +  1];
+    w0[2] = w[pos4 +  2];
+    w0[3] = w[pos4 +  3];
+    w1[0] = w[pos4 +  4];
+    w1[1] = w[pos4 +  5];
+    w1[2] = w[pos4 +  6];
+    w1[3] = w[pos4 +  7];
+    w2[0] = w[pos4 +  8];
+    w2[1] = w[pos4 +  9];
+    w2[2] = w[pos4 + 10];
+    w2[3] = w[pos4 + 11];
+    w3[0] = w[pos4 + 12];
+    w3[1] = w[pos4 + 13];
+    w3[2] = w[pos4 + 14];
+    w3[3] = w[pos4 + 15];
+
+    sha224_update_64 (ctx, w0, w1, w2, w3, 64);
+  }
+
+  w0[0] = w[pos4 +  0];
+  w0[1] = w[pos4 +  1];
+  w0[2] = w[pos4 +  2];
+  w0[3] = w[pos4 +  3];
+  w1[0] = w[pos4 +  4];
+  w1[1] = w[pos4 +  5];
+  w1[2] = w[pos4 +  6];
+  w1[3] = w[pos4 +  7];
+  w2[0] = w[pos4 +  8];
+  w2[1] = w[pos4 +  9];
+  w2[2] = w[pos4 + 10];
+  w2[3] = w[pos4 + 11];
+  w3[0] = w[pos4 + 12];
+  w3[1] = w[pos4 + 13];
+  w3[2] = w[pos4 + 14];
+  w3[3] = w[pos4 + 15];
+
+  sha224_update_64 (ctx, w0, w1, w2, w3, len - pos1);
+}
+
+DECLSPEC void sha224_update_global_swap (sha224_ctx_t *ctx, const __global u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  int pos1;
+  int pos4;
+
+  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
+  {
+    w0[0] = w[pos4 +  0];
+    w0[1] = w[pos4 +  1];
+    w0[2] = w[pos4 +  2];
+    w0[3] = w[pos4 +  3];
+    w1[0] = w[pos4 +  4];
+    w1[1] = w[pos4 +  5];
+    w1[2] = w[pos4 +  6];
+    w1[3] = w[pos4 +  7];
+    w2[0] = w[pos4 +  8];
+    w2[1] = w[pos4 +  9];
+    w2[2] = w[pos4 + 10];
+    w2[3] = w[pos4 + 11];
+    w3[0] = w[pos4 + 12];
+    w3[1] = w[pos4 + 13];
+    w3[2] = w[pos4 + 14];
+    w3[3] = w[pos4 + 15];
+
+    w0[0] = swap32_S (w0[0]);
+    w0[1] = swap32_S (w0[1]);
+    w0[2] = swap32_S (w0[2]);
+    w0[3] = swap32_S (w0[3]);
+    w1[0] = swap32_S (w1[0]);
+    w1[1] = swap32_S (w1[1]);
+    w1[2] = swap32_S (w1[2]);
+    w1[3] = swap32_S (w1[3]);
+    w2[0] = swap32_S (w2[0]);
+    w2[1] = swap32_S (w2[1]);
+    w2[2] = swap32_S (w2[2]);
+    w2[3] = swap32_S (w2[3]);
+    w3[0] = swap32_S (w3[0]);
+    w3[1] = swap32_S (w3[1]);
+    w3[2] = swap32_S (w3[2]);
+    w3[3] = swap32_S (w3[3]);
+
+    sha224_update_64 (ctx, w0, w1, w2, w3, 64);
+  }
+
+  w0[0] = w[pos4 +  0];
+  w0[1] = w[pos4 +  1];
+  w0[2] = w[pos4 +  2];
+  w0[3] = w[pos4 +  3];
+  w1[0] = w[pos4 +  4];
+  w1[1] = w[pos4 +  5];
+  w1[2] = w[pos4 +  6];
+  w1[3] = w[pos4 +  7];
+  w2[0] = w[pos4 +  8];
+  w2[1] = w[pos4 +  9];
+  w2[2] = w[pos4 + 10];
+  w2[3] = w[pos4 + 11];
+  w3[0] = w[pos4 + 12];
+  w3[1] = w[pos4 + 13];
+  w3[2] = w[pos4 + 14];
+  w3[3] = w[pos4 + 15];
+
+  w0[0] = swap32_S (w0[0]);
+  w0[1] = swap32_S (w0[1]);
+  w0[2] = swap32_S (w0[2]);
+  w0[3] = swap32_S (w0[3]);
+  w1[0] = swap32_S (w1[0]);
+  w1[1] = swap32_S (w1[1]);
+  w1[2] = swap32_S (w1[2]);
+  w1[3] = swap32_S (w1[3]);
+  w2[0] = swap32_S (w2[0]);
+  w2[1] = swap32_S (w2[1]);
+  w2[2] = swap32_S (w2[2]);
+  w2[3] = swap32_S (w2[3]);
+  w3[0] = swap32_S (w3[0]);
+  w3[1] = swap32_S (w3[1]);
+  w3[2] = swap32_S (w3[2]);
+  w3[3] = swap32_S (w3[3]);
+
+  sha224_update_64 (ctx, w0, w1, w2, w3, len - pos1);
+}
+
+DECLSPEC void sha224_update_global_utf16le (sha224_ctx_t *ctx, const __global u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  int pos1;
+  int pos4;
+
+  for (pos1 = 0, pos4 = 0; pos1 < len - 32; pos1 += 32, pos4 += 8)
+  {
+    w0[0] = w[pos4 + 0];
+    w0[1] = w[pos4 + 1];
+    w0[2] = w[pos4 + 2];
+    w0[3] = w[pos4 + 3];
+    w1[0] = w[pos4 + 4];
+    w1[1] = w[pos4 + 5];
+    w1[2] = w[pos4 + 6];
+    w1[3] = w[pos4 + 7];
+
+    make_utf16le_S (w1, w2, w3);
+    make_utf16le_S (w0, w0, w1);
+
+    sha224_update_64 (ctx, w0, w1, w2, w3, 32 * 2);
+  }
+
+  w0[0] = w[pos4 + 0];
+  w0[1] = w[pos4 + 1];
+  w0[2] = w[pos4 + 2];
+  w0[3] = w[pos4 + 3];
+  w1[0] = w[pos4 + 4];
+  w1[1] = w[pos4 + 5];
+  w1[2] = w[pos4 + 6];
+  w1[3] = w[pos4 + 7];
+
+  make_utf16le_S (w1, w2, w3);
+  make_utf16le_S (w0, w0, w1);
+
+  sha224_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
+}
+
+DECLSPEC void sha224_update_global_utf16le_swap (sha224_ctx_t *ctx, const __global u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  int pos1;
+  int pos4;
+
+  for (pos1 = 0, pos4 = 0; pos1 < len - 32; pos1 += 32, pos4 += 8)
+  {
+    w0[0] = w[pos4 + 0];
+    w0[1] = w[pos4 + 1];
+    w0[2] = w[pos4 + 2];
+    w0[3] = w[pos4 + 3];
+    w1[0] = w[pos4 + 4];
+    w1[1] = w[pos4 + 5];
+    w1[2] = w[pos4 + 6];
+    w1[3] = w[pos4 + 7];
+
+    make_utf16le_S (w1, w2, w3);
+    make_utf16le_S (w0, w0, w1);
+
+    w0[0] = swap32_S (w0[0]);
+    w0[1] = swap32_S (w0[1]);
+    w0[2] = swap32_S (w0[2]);
+    w0[3] = swap32_S (w0[3]);
+    w1[0] = swap32_S (w1[0]);
+    w1[1] = swap32_S (w1[1]);
+    w1[2] = swap32_S (w1[2]);
+    w1[3] = swap32_S (w1[3]);
+    w2[0] = swap32_S (w2[0]);
+    w2[1] = swap32_S (w2[1]);
+    w2[2] = swap32_S (w2[2]);
+    w2[3] = swap32_S (w2[3]);
+    w3[0] = swap32_S (w3[0]);
+    w3[1] = swap32_S (w3[1]);
+    w3[2] = swap32_S (w3[2]);
+    w3[3] = swap32_S (w3[3]);
+
+    sha224_update_64 (ctx, w0, w1, w2, w3, 32 * 2);
+  }
+
+  w0[0] = w[pos4 + 0];
+  w0[1] = w[pos4 + 1];
+  w0[2] = w[pos4 + 2];
+  w0[3] = w[pos4 + 3];
+  w1[0] = w[pos4 + 4];
+  w1[1] = w[pos4 + 5];
+  w1[2] = w[pos4 + 6];
+  w1[3] = w[pos4 + 7];
+
+  make_utf16le_S (w1, w2, w3);
+  make_utf16le_S (w0, w0, w1);
+
+  w0[0] = swap32_S (w0[0]);
+  w0[1] = swap32_S (w0[1]);
+  w0[2] = swap32_S (w0[2]);
+  w0[3] = swap32_S (w0[3]);
+  w1[0] = swap32_S (w1[0]);
+  w1[1] = swap32_S (w1[1]);
+  w1[2] = swap32_S (w1[2]);
+  w1[3] = swap32_S (w1[3]);
+  w2[0] = swap32_S (w2[0]);
+  w2[1] = swap32_S (w2[1]);
+  w2[2] = swap32_S (w2[2]);
+  w2[3] = swap32_S (w2[3]);
+  w3[0] = swap32_S (w3[0]);
+  w3[1] = swap32_S (w3[1]);
+  w3[2] = swap32_S (w3[2]);
+  w3[3] = swap32_S (w3[3]);
+
+  sha224_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
+}
+
+DECLSPEC void sha224_final (sha224_ctx_t *ctx)
 {
   const int pos = ctx->len & 63;
 
@@ -792,7 +788,7 @@ typedef struct sha224_hmac_ctx
 
 } sha224_hmac_ctx_t;
 
-void sha224_hmac_init_64 (sha224_hmac_ctx_t *ctx, const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4])
+DECLSPEC void sha224_hmac_init_64 (sha224_hmac_ctx_t *ctx, const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4])
 {
   u32 t0[4];
   u32 t1[4];
@@ -846,7 +842,7 @@ void sha224_hmac_init_64 (sha224_hmac_ctx_t *ctx, const u32 w0[4], const u32 w1[
   sha224_update_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
-void sha224_hmac_init (sha224_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void sha224_hmac_init (sha224_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -903,7 +899,7 @@ void sha224_hmac_init (sha224_hmac_ctx_t *ctx, const u32 *w, const int len)
   sha224_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
-void sha224_hmac_init_swap (sha224_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void sha224_hmac_init_swap (sha224_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -960,7 +956,7 @@ void sha224_hmac_init_swap (sha224_hmac_ctx_t *ctx, const u32 *w, const int len)
   sha224_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
-void sha224_hmac_init_global (sha224_hmac_ctx_t *ctx, __global const u32 *w, const int len)
+DECLSPEC void sha224_hmac_init_global (sha224_hmac_ctx_t *ctx, __global const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1017,7 +1013,7 @@ void sha224_hmac_init_global (sha224_hmac_ctx_t *ctx, __global const u32 *w, con
   sha224_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
-void sha224_hmac_init_global_swap (sha224_hmac_ctx_t *ctx, __global const u32 *w, const int len)
+DECLSPEC void sha224_hmac_init_global_swap (sha224_hmac_ctx_t *ctx, __global const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1074,52 +1070,52 @@ void sha224_hmac_init_global_swap (sha224_hmac_ctx_t *ctx, __global const u32 *w
   sha224_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
-void sha224_hmac_update_64 (sha224_hmac_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len)
+DECLSPEC void sha224_hmac_update_64 (sha224_hmac_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len)
 {
   sha224_update_64 (&ctx->ipad, w0, w1, w2, w3, len);
 }
 
-void sha224_hmac_update (sha224_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void sha224_hmac_update (sha224_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   sha224_update (&ctx->ipad, w, len);
 }
 
-void sha224_hmac_update_swap (sha224_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void sha224_hmac_update_swap (sha224_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   sha224_update_swap (&ctx->ipad, w, len);
 }
 
-void sha224_hmac_update_utf16le (sha224_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void sha224_hmac_update_utf16le (sha224_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   sha224_update_utf16le (&ctx->ipad, w, len);
 }
 
-void sha224_hmac_update_utf16le_swap (sha224_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void sha224_hmac_update_utf16le_swap (sha224_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   sha224_update_utf16le_swap (&ctx->ipad, w, len);
 }
 
-void sha224_hmac_update_global (sha224_hmac_ctx_t *ctx, const __global u32 *w, const int len)
+DECLSPEC void sha224_hmac_update_global (sha224_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   sha224_update_global (&ctx->ipad, w, len);
 }
 
-void sha224_hmac_update_global_swap (sha224_hmac_ctx_t *ctx, const __global u32 *w, const int len)
+DECLSPEC void sha224_hmac_update_global_swap (sha224_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   sha224_update_global_swap (&ctx->ipad, w, len);
 }
 
-void sha224_hmac_update_global_utf16le (sha224_hmac_ctx_t *ctx, const __global u32 *w, const int len)
+DECLSPEC void sha224_hmac_update_global_utf16le (sha224_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   sha224_update_global_utf16le (&ctx->ipad, w, len);
 }
 
-void sha224_hmac_update_global_utf16le_swap (sha224_hmac_ctx_t *ctx, const __global u32 *w, const int len)
+DECLSPEC void sha224_hmac_update_global_utf16le_swap (sha224_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   sha224_update_global_utf16le_swap (&ctx->ipad, w, len);
 }
 
-void sha224_hmac_final (sha224_hmac_ctx_t *ctx)
+DECLSPEC void sha224_hmac_final (sha224_hmac_ctx_t *ctx)
 {
   sha224_final (&ctx->ipad);
 
@@ -1165,7 +1161,7 @@ typedef struct sha224_ctx_vector
 
 } sha224_ctx_vector_t;
 
-void sha224_transform_vector (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[8])
+DECLSPEC void sha224_transform_vector (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[8])
 {
   u32x a = digest[0];
   u32x b = digest[1];
@@ -1256,7 +1252,7 @@ void sha224_transform_vector (const u32x w0[4], const u32x w1[4], const u32x w2[
   digest[7] += h;
 }
 
-void sha224_init_vector (sha224_ctx_vector_t *ctx)
+DECLSPEC void sha224_init_vector (sha224_ctx_vector_t *ctx)
 {
   ctx->h[0] = SHA224M_A;
   ctx->h[1] = SHA224M_B;
@@ -1287,7 +1283,7 @@ void sha224_init_vector (sha224_ctx_vector_t *ctx)
   ctx->len = 0;
 }
 
-void sha224_init_vector_from_scalar (sha224_ctx_vector_t *ctx, sha224_ctx_t *ctx0)
+DECLSPEC void sha224_init_vector_from_scalar (sha224_ctx_vector_t *ctx, sha224_ctx_t *ctx0)
 {
   ctx->h[0] = ctx0->h[0];
   ctx->h[1] = ctx0->h[1];
@@ -1318,13 +1314,9 @@ void sha224_init_vector_from_scalar (sha224_ctx_vector_t *ctx, sha224_ctx_t *ctx
   ctx->len = ctx0->len;
 }
 
-void sha224_update_vector_64 (sha224_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const int len)
+DECLSPEC void sha224_update_vector_64 (sha224_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const int len)
 {
-  #ifdef IS_AMD
-  volatile const int pos = ctx->len & 63;
-  #else
   const int pos = ctx->len & 63;
-  #endif
 
   ctx->len += len;
 
@@ -1396,7 +1388,7 @@ void sha224_update_vector_64 (sha224_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], 
   }
 }
 
-void sha224_update_vector (sha224_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void sha224_update_vector (sha224_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -1448,7 +1440,7 @@ void sha224_update_vector (sha224_ctx_vector_t *ctx, const u32x *w, const int le
   sha224_update_vector_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-void sha224_update_vector_swap (sha224_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void sha224_update_vector_swap (sha224_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -1534,7 +1526,7 @@ void sha224_update_vector_swap (sha224_ctx_vector_t *ctx, const u32x *w, const i
   sha224_update_vector_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-void sha224_update_vector_utf16le (sha224_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void sha224_update_vector_utf16le (sha224_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -1576,7 +1568,7 @@ void sha224_update_vector_utf16le (sha224_ctx_vector_t *ctx, const u32x *w, cons
   sha224_update_vector_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-void sha224_update_vector_utf16le_swap (sha224_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void sha224_update_vector_utf16le_swap (sha224_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -1652,7 +1644,7 @@ void sha224_update_vector_utf16le_swap (sha224_ctx_vector_t *ctx, const u32x *w,
   sha224_update_vector_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-void sha224_update_vector_utf16beN (sha224_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void sha224_update_vector_utf16beN (sha224_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -1694,7 +1686,7 @@ void sha224_update_vector_utf16beN (sha224_ctx_vector_t *ctx, const u32x *w, con
   sha224_update_vector_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-void sha224_final_vector (sha224_ctx_vector_t *ctx)
+DECLSPEC void sha224_final_vector (sha224_ctx_vector_t *ctx)
 {
   const int pos = ctx->len & 63;
 
@@ -1737,7 +1729,7 @@ typedef struct sha224_hmac_ctx_vector
 
 } sha224_hmac_ctx_vector_t;
 
-void sha224_hmac_init_vector_64 (sha224_hmac_ctx_vector_t *ctx, const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4])
+DECLSPEC void sha224_hmac_init_vector_64 (sha224_hmac_ctx_vector_t *ctx, const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4])
 {
   u32x t0[4];
   u32x t1[4];
@@ -1791,7 +1783,7 @@ void sha224_hmac_init_vector_64 (sha224_hmac_ctx_vector_t *ctx, const u32x w0[4]
   sha224_update_vector_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
-void sha224_hmac_init_vector (sha224_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void sha224_hmac_init_vector (sha224_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -1848,17 +1840,17 @@ void sha224_hmac_init_vector (sha224_hmac_ctx_vector_t *ctx, const u32x *w, cons
   sha224_hmac_init_vector_64 (ctx, w0, w1, w2, w3);
 }
 
-void sha224_hmac_update_vector_64 (sha224_hmac_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const int len)
+DECLSPEC void sha224_hmac_update_vector_64 (sha224_hmac_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const int len)
 {
   sha224_update_vector_64 (&ctx->ipad, w0, w1, w2, w3, len);
 }
 
-void sha224_hmac_update_vector (sha224_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void sha224_hmac_update_vector (sha224_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   sha224_update_vector (&ctx->ipad, w, len);
 }
 
-void sha224_hmac_final_vector (sha224_hmac_ctx_vector_t *ctx)
+DECLSPEC void sha224_hmac_final_vector (sha224_hmac_ctx_vector_t *ctx)
 {
   sha224_final_vector (&ctx->ipad);
 

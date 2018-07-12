@@ -25,7 +25,7 @@
 #define uint_to_hex_lower8_le(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7], l_bin2asc[(i).s8], l_bin2asc[(i).s9], l_bin2asc[(i).sa], l_bin2asc[(i).sb], l_bin2asc[(i).sc], l_bin2asc[(i).sd], l_bin2asc[(i).se], l_bin2asc[(i).sf])
 #endif
 
-void append_4 (const u32 offset, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 src_r0)
+DECLSPEC void append_4 (const u32 offset, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 src_r0)
 {
   u32 tmp[2];
 
@@ -97,7 +97,7 @@ void append_4 (const u32 offset, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], con
   }
 }
 
-void shift_2 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4])
+DECLSPEC void shift_2 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4])
 {
   w3[3] = w3[2] >> 16 | w3[3] << 16;
   w3[2] = w3[1] >> 16 | w3[2] << 16;
@@ -117,7 +117,7 @@ void shift_2 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4])
   w0[0] =           0 | w0[0] << 16;
 }
 
-void m14400m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, __local u32 *l_bin2asc)
+DECLSPEC void m14400m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, __local u32 *l_bin2asc)
 {
   /**
    * modifier
@@ -159,22 +159,22 @@ void m14400m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
   salt_buf0[0] |= dashes >> 16;
   salt_buf1[1] |= dashes << 16;
 
-  salt_buf0[0] = swap32 (salt_buf0[0]);
-  salt_buf0[1] = swap32 (salt_buf0[1]);
-  salt_buf0[2] = swap32 (salt_buf0[2]);
-  salt_buf0[3] = swap32 (salt_buf0[3]);
-  salt_buf1[0] = swap32 (salt_buf1[0]);
-  salt_buf1[1] = swap32 (salt_buf1[1]);
-  salt_buf1[2] = swap32 (salt_buf1[2]);
-  salt_buf1[3] = swap32 (salt_buf1[3]);
-  salt_buf2[0] = swap32 (salt_buf2[0]);
-  salt_buf2[1] = swap32 (salt_buf2[1]);
-  salt_buf2[2] = swap32 (salt_buf2[2]);
-  salt_buf2[3] = swap32 (salt_buf2[3]);
-  salt_buf3[0] = swap32 (salt_buf3[0]);
-  salt_buf3[1] = swap32 (salt_buf3[1]);
-  salt_buf3[2] = swap32 (salt_buf3[2]);
-  salt_buf3[3] = swap32 (salt_buf3[3]);
+  salt_buf0[0] = swap32_S (salt_buf0[0]);
+  salt_buf0[1] = swap32_S (salt_buf0[1]);
+  salt_buf0[2] = swap32_S (salt_buf0[2]);
+  salt_buf0[3] = swap32_S (salt_buf0[3]);
+  salt_buf1[0] = swap32_S (salt_buf1[0]);
+  salt_buf1[1] = swap32_S (salt_buf1[1]);
+  salt_buf1[2] = swap32_S (salt_buf1[2]);
+  salt_buf1[3] = swap32_S (salt_buf1[3]);
+  salt_buf2[0] = swap32_S (salt_buf2[0]);
+  salt_buf2[1] = swap32_S (salt_buf2[1]);
+  salt_buf2[2] = swap32_S (salt_buf2[2]);
+  salt_buf2[3] = swap32_S (salt_buf2[3]);
+  salt_buf3[0] = swap32_S (salt_buf3[0]);
+  salt_buf3[1] = swap32_S (salt_buf3[1]);
+  salt_buf3[2] = swap32_S (salt_buf3[2]);
+  salt_buf3[3] = swap32_S (salt_buf3[3]);
 
   const u32 salt_len_orig = salt_bufs[salt_pos].salt_len;
 
@@ -225,14 +225,14 @@ void m14400m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
 
   append_0x80_2x4_VV (w0_t, w1_t, pw_len_new);
 
-  w0_t[0] = swap32 (w0_t[0]);
-  w0_t[1] = swap32 (w0_t[1]);
-  w0_t[2] = swap32 (w0_t[2]);
-  w0_t[3] = swap32 (w0_t[3]);
-  w1_t[0] = swap32 (w1_t[0]);
-  w1_t[1] = swap32 (w1_t[1]);
-  w1_t[2] = swap32 (w1_t[2]);
-  w1_t[3] = swap32 (w1_t[3]);
+  w0_t[0] = swap32_S (w0_t[0]);
+  w0_t[1] = swap32_S (w0_t[1]);
+  w0_t[2] = swap32_S (w0_t[2]);
+  w0_t[3] = swap32_S (w0_t[3]);
+  w1_t[0] = swap32_S (w1_t[0]);
+  w1_t[1] = swap32_S (w1_t[1]);
+  w1_t[2] = swap32_S (w1_t[2]);
+  w1_t[3] = swap32_S (w1_t[3]);
 
   /**
    * loop
@@ -366,7 +366,7 @@ void m14400m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
   }
 }
 
-void m14400s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, __local u32 *l_bin2asc)
+DECLSPEC void m14400s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, __local u32 *l_bin2asc)
 {
   /**
    * modifier
@@ -420,22 +420,22 @@ void m14400s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
   salt_buf0[0] |= dashes >> 16;
   salt_buf1[1] |= dashes << 16;
 
-  salt_buf0[0] = swap32 (salt_buf0[0]);
-  salt_buf0[1] = swap32 (salt_buf0[1]);
-  salt_buf0[2] = swap32 (salt_buf0[2]);
-  salt_buf0[3] = swap32 (salt_buf0[3]);
-  salt_buf1[0] = swap32 (salt_buf1[0]);
-  salt_buf1[1] = swap32 (salt_buf1[1]);
-  salt_buf1[2] = swap32 (salt_buf1[2]);
-  salt_buf1[3] = swap32 (salt_buf1[3]);
-  salt_buf2[0] = swap32 (salt_buf2[0]);
-  salt_buf2[1] = swap32 (salt_buf2[1]);
-  salt_buf2[2] = swap32 (salt_buf2[2]);
-  salt_buf2[3] = swap32 (salt_buf2[3]);
-  salt_buf3[0] = swap32 (salt_buf3[0]);
-  salt_buf3[1] = swap32 (salt_buf3[1]);
-  salt_buf3[2] = swap32 (salt_buf3[2]);
-  salt_buf3[3] = swap32 (salt_buf3[3]);
+  salt_buf0[0] = swap32_S (salt_buf0[0]);
+  salt_buf0[1] = swap32_S (salt_buf0[1]);
+  salt_buf0[2] = swap32_S (salt_buf0[2]);
+  salt_buf0[3] = swap32_S (salt_buf0[3]);
+  salt_buf1[0] = swap32_S (salt_buf1[0]);
+  salt_buf1[1] = swap32_S (salt_buf1[1]);
+  salt_buf1[2] = swap32_S (salt_buf1[2]);
+  salt_buf1[3] = swap32_S (salt_buf1[3]);
+  salt_buf2[0] = swap32_S (salt_buf2[0]);
+  salt_buf2[1] = swap32_S (salt_buf2[1]);
+  salt_buf2[2] = swap32_S (salt_buf2[2]);
+  salt_buf2[3] = swap32_S (salt_buf2[3]);
+  salt_buf3[0] = swap32_S (salt_buf3[0]);
+  salt_buf3[1] = swap32_S (salt_buf3[1]);
+  salt_buf3[2] = swap32_S (salt_buf3[2]);
+  salt_buf3[3] = swap32_S (salt_buf3[3]);
 
   const u32 salt_len_orig = salt_bufs[salt_pos].salt_len;
 
@@ -486,14 +486,14 @@ void m14400s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
 
   append_0x80_2x4_VV (w0_t, w1_t, pw_len_new);
 
-  w0_t[0] = swap32 (w0_t[0]);
-  w0_t[1] = swap32 (w0_t[1]);
-  w0_t[2] = swap32 (w0_t[2]);
-  w0_t[3] = swap32 (w0_t[3]);
-  w1_t[0] = swap32 (w1_t[0]);
-  w1_t[1] = swap32 (w1_t[1]);
-  w1_t[2] = swap32 (w1_t[2]);
-  w1_t[3] = swap32 (w1_t[3]);
+  w0_t[0] = swap32_S (w0_t[0]);
+  w0_t[1] = swap32_S (w0_t[1]);
+  w0_t[2] = swap32_S (w0_t[2]);
+  w0_t[3] = swap32_S (w0_t[3]);
+  w1_t[0] = swap32_S (w1_t[0]);
+  w1_t[1] = swap32_S (w1_t[1]);
+  w1_t[2] = swap32_S (w1_t[2]);
+  w1_t[3] = swap32_S (w1_t[3]);
 
   /**
    * loop

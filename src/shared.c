@@ -327,11 +327,9 @@ void setup_seeding (const bool rp_gen_seed_chgd, const u32 rp_gen_seed)
   }
   else
   {
-    time_t ts;
+    const time_t ts = time (NULL); // don't tell me that this is an insecure seed
 
-    time (&ts);
-
-    srand (ts);
+    srand ((unsigned int) ts);
   }
 }
 
@@ -497,4 +495,65 @@ bool hc_same_files (char *file1, char *file2)
   }
 
   return false;
+}
+
+u32 hc_strtoul (const char *nptr, char **endptr, int base)
+{
+  return (u32) strtoul (nptr, endptr, base);
+}
+
+u64 hc_strtoull (const char *nptr, char **endptr, int base)
+{
+  return (u64) strtoull (nptr, endptr, base);
+}
+
+u32 power_of_two_ceil_32 (const u32 v)
+{
+  u32 r = v;
+
+  r--;
+
+  r |= r >> 1;
+  r |= r >> 2;
+  r |= r >> 4;
+  r |= r >> 8;
+  r |= r >> 16;
+
+  r++;
+
+  return r;
+}
+
+u32 power_of_two_floor_32 (const u32 v)
+{
+  u32 r = power_of_two_ceil_32 (v);
+
+  if (r > v)
+  {
+    r >>= 1;
+  }
+
+  return r;
+}
+
+u32 round_up_multiple_32 (const u32 v, const u32 m)
+{
+  if (m == 0) return v;
+
+  const u32 r = v % m;
+
+  if (r == 0) return v;
+
+  return v + m - r;
+}
+
+u64 round_up_multiple_64 (const u64 v, const u64 m)
+{
+  if (m == 0) return v;
+
+  const u64 r = v % m;
+
+  if (r == 0) return v;
+
+  return v + m - r;
 }

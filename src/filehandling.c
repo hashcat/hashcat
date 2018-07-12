@@ -38,9 +38,9 @@ u64 count_lines (FILE *fd)
   return cnt;
 }
 
-int fgetl (FILE *fp, char *line_buf)
+size_t fgetl (FILE *fp, char *line_buf)
 {
-  int line_len = 0;
+  size_t line_len = 0;
 
   while (!feof (fp))
   {
@@ -113,7 +113,7 @@ size_t superchop_with_length (char *buf, const size_t len)
   return new_len;
 }
 
-int in_superchop (char *buf)
+size_t in_superchop (char *buf)
 {
   size_t len = strlen (buf);
 

@@ -13,7 +13,7 @@ __kernel void amp (__global pw_t *pws, __global pw_t *pws_amp, __global const ke
 
   if (gid >= gid_max) return;
 
-  pw_t pw = pws[gid];
+  pw_t pw = pws_amp[gid];
 
   pw_t comb = combs_buf[0];
 
@@ -39,5 +39,5 @@ __kernel void amp (__global pw_t *pws, __global pw_t *pws_amp, __global const ke
 
   pw.pw_len = pw_len + comb_len;
 
-  pws_amp[gid] = pw;
+  pws[gid] = pw;
 }

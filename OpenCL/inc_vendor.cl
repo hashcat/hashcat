@@ -78,6 +78,22 @@
 #endif
 
 /**
+ * function declarations can have a large influence depending on the opencl runtime
+ */
+
+#if defined IS_CPU
+#define DECLSPEC inline
+#elif defined IS_GPU
+#if defined IS_AMD
+#define DECLSPEC inline
+#else
+#define DECLSPEC
+#endif
+#else
+#define DECLSPEC
+#endif
+
+/**
  * AMD specific
  */
 
@@ -131,9 +147,6 @@
 #if KERN_TYPE == 6500
 #undef _unroll
 #endif
-#if KERN_TYPE == 6800
-#undef _unroll
-#endif
 #if KERN_TYPE == 7100
 #undef _unroll
 #endif
@@ -178,16 +191,6 @@
 
 #ifdef IS_NV
 #ifdef IS_GPU
-
-#if KERN_TYPE == 1500
-#undef _unroll
-#endif
-#if KERN_TYPE == 3000
-#undef _unroll
-#endif
-#if KERN_TYPE == 14000
-#undef _unroll
-#endif
 
 #endif
 #endif

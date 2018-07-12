@@ -194,6 +194,8 @@ typedef struct wpa
   u32  hash[4];
   int  nonce_compare;
   int  nonce_error_corrections;
+  int  detected_le;
+  int  detected_be;
 
 } wpa_t;
 
@@ -1018,202 +1020,6 @@ typedef struct hccapx hccapx_t;
 
 typedef enum display_len
 {
-  DISPLAY_LEN_MIN_0     = 32,
-  DISPLAY_LEN_MAX_0     = 32,
-  DISPLAY_LEN_MIN_10    = 32 + 1 + 0,
-  DISPLAY_LEN_MAX_10    = 32 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_10H   = 32 + 1 + 0,
-  DISPLAY_LEN_MAX_10H   = 32 + 1 + (SALT_MAX * 2),
-  DISPLAY_LEN_MIN_20    = 32 + 1 + 0,
-  DISPLAY_LEN_MAX_20    = 32 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_20H   = 32 + 1 + 0,
-  DISPLAY_LEN_MAX_20H   = 32 + 1 + (SALT_MAX * 2),
-  DISPLAY_LEN_MIN_50    = 32 + 1 + 0,
-  DISPLAY_LEN_MAX_50    = 32 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_50H   = 32 + 1 + 0,
-  DISPLAY_LEN_MAX_50H   = 32 + 1 + (SALT_MAX * 2),
-  DISPLAY_LEN_MIN_100   = 40,
-  DISPLAY_LEN_MAX_100   = 40,
-  DISPLAY_LEN_MIN_110   = 40 + 1 + 0,
-  DISPLAY_LEN_MAX_110   = 40 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_110H  = 40 + 1 + 0,
-  DISPLAY_LEN_MAX_110H  = 40 + 1 + (SALT_MAX * 2),
-  DISPLAY_LEN_MIN_120   = 40 + 1 + 0,
-  DISPLAY_LEN_MAX_120   = 40 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_120H  = 40 + 1 + 0,
-  DISPLAY_LEN_MAX_120H  = 40 + 1 + (SALT_MAX * 2),
-  DISPLAY_LEN_MIN_150   = 40 + 1 + 0,
-  DISPLAY_LEN_MAX_150   = 40 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_150H  = 40 + 1 + 0,
-  DISPLAY_LEN_MAX_150H  = 40 + 1 + (SALT_MAX * 2),
-  DISPLAY_LEN_MIN_200   = 16,
-  DISPLAY_LEN_MAX_200   = 16,
-  DISPLAY_LEN_MIN_300   = 40,
-  DISPLAY_LEN_MAX_300   = 40,
-  DISPLAY_LEN_MIN_400   = 34,
-  DISPLAY_LEN_MAX_400   = 34,
-  DISPLAY_LEN_MIN_500   = 3 + 1 + 0 + 22,
-  DISPLAY_LEN_MIN_501   = 104,
-  DISPLAY_LEN_MAX_500   = 3 + 1 + 8 + 22,
-  DISPLAY_LEN_MAX_501   = 104,
-  DISPLAY_LEN_MIN_600   = 8 + 128,
-  DISPLAY_LEN_MAX_600   = 8 + 128,
-  DISPLAY_LEN_MIN_900   = 32,
-  DISPLAY_LEN_MAX_900   = 32,
-  DISPLAY_LEN_MIN_1000  = 32,
-  DISPLAY_LEN_MAX_1000  = 32,
-  DISPLAY_LEN_MIN_1100  = 32 + 1 + 0,
-  DISPLAY_LEN_MAX_1100  = 32 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_1300  = 56,
-  DISPLAY_LEN_MAX_1300  = 56,
-  DISPLAY_LEN_MIN_1400  = 64,
-  DISPLAY_LEN_MAX_1400  = 64,
-  DISPLAY_LEN_MIN_1410  = 64 + 1 + 0,
-  DISPLAY_LEN_MAX_1410  = 64 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_1410H = 64 + 1 + 0,
-  DISPLAY_LEN_MAX_1410H = 64 + 1 + (SALT_MAX * 2),
-  DISPLAY_LEN_MIN_1420  = 64 + 1 + 0,
-  DISPLAY_LEN_MAX_1420  = 64 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_1420H = 64 + 1 + 0,
-  DISPLAY_LEN_MAX_1420H = 64 + 1 + (SALT_MAX * 2),
-  DISPLAY_LEN_MIN_1421  = 70,
-  DISPLAY_LEN_MAX_1421  = 70,
-  DISPLAY_LEN_MIN_1450  = 64 + 1 + 0,
-  DISPLAY_LEN_MAX_1450  = 64 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_1450H = 64 + 1 + 0,
-  DISPLAY_LEN_MAX_1450H = 64 + 1 + (SALT_MAX * 2),
-  DISPLAY_LEN_MIN_1500  = 13,
-  DISPLAY_LEN_MAX_1500  = 13,
-  DISPLAY_LEN_MIN_1600  = 29 + 0,
-  DISPLAY_LEN_MAX_1600  = 29 + 8,
-  DISPLAY_LEN_MIN_1700  = 128,
-  DISPLAY_LEN_MAX_1700  = 128,
-  DISPLAY_LEN_MIN_1710  = 128 + 1 + 0,
-  DISPLAY_LEN_MAX_1710  = 128 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_1710H = 128 + 1 + 0,
-  DISPLAY_LEN_MAX_1710H = 128 + 1 + (SALT_MAX * 2),
-  DISPLAY_LEN_MIN_1720  = 128 + 1 + 0,
-  DISPLAY_LEN_MAX_1720  = 128 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_1720H = 128 + 1 + 0,
-  DISPLAY_LEN_MAX_1720H = 128 + 1 + (SALT_MAX * 2),
-  DISPLAY_LEN_MIN_1730  = 128 + 1 + 0,
-  DISPLAY_LEN_MAX_1730  = 128 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_1740  = 128 + 1 + 0,
-  DISPLAY_LEN_MAX_1740  = 128 + 1 + (SALT_MAX * 2),
-  DISPLAY_LEN_MIN_1750  = 128 + 1 + 0,
-  DISPLAY_LEN_MAX_1750  = 128 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_1750H = 128 + 1 + 0,
-  DISPLAY_LEN_MAX_1750H = 128 + 1 + (SALT_MAX * 2),
-  DISPLAY_LEN_MIN_1800  = 90 + 0,
-  DISPLAY_LEN_MAX_1800  = 90 + 16,
-  DISPLAY_LEN_MIN_2100  = 6 + 1 + 1 +        0 + 1 + 32,
-  DISPLAY_LEN_MAX_2100  = 6 + 5 + 1 + SALT_MAX + 1 + 32,
-  DISPLAY_LEN_MIN_2400  = 16,
-  DISPLAY_LEN_MAX_2400  = 16,
-  DISPLAY_LEN_MIN_2410  = 16 + 1 + 1,
-  DISPLAY_LEN_MAX_2410  = 16 + 1 + 4,
-  DISPLAY_LEN_MIN_2600  = 32,
-  DISPLAY_LEN_MAX_2600  = 32,
-  DISPLAY_LEN_MIN_3000  = 16,
-  DISPLAY_LEN_MAX_3000  = 16,
-  DISPLAY_LEN_MIN_3100  = 16 + 1 + 0,
-  DISPLAY_LEN_MAX_3100  = 16 + 1 + 30,
-  DISPLAY_LEN_MIN_3200  = 60,
-  DISPLAY_LEN_MAX_3200  = 60,
-  DISPLAY_LEN_MIN_4300  = 32,
-  DISPLAY_LEN_MAX_4300  = 32,
-  DISPLAY_LEN_MIN_4500  = 40,
-  DISPLAY_LEN_MAX_4500  = 40,
-  DISPLAY_LEN_MIN_4520  = 40 + 1 + 0,
-  DISPLAY_LEN_MAX_4520  = 40 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_4520H = 40 + 1 + 0,
-  DISPLAY_LEN_MAX_4520H = 40 + 1 + (SALT_MAX * 2),
-  DISPLAY_LEN_MIN_4800  = 32 + 1 + 32 + 1 + 2,
-  DISPLAY_LEN_MAX_4800  = 32 + 1 + 32 + 1 + 2,
-  DISPLAY_LEN_MIN_5000  = 16,
-  DISPLAY_LEN_MAX_5000  = 400,
-  DISPLAY_LEN_MIN_5100  = 16,
-  DISPLAY_LEN_MAX_5100  = 16,
-  DISPLAY_LEN_MIN_5300  = 48,
-  DISPLAY_LEN_MAX_5300  = 1024,
-  DISPLAY_LEN_MIN_5400  = 56,
-  DISPLAY_LEN_MAX_5400  = 1024,
-  DISPLAY_LEN_MIN_5500  =  1 + 1 + 0 +  1 +  1 +  1 +  0 +  1 + 48 + 1 + 16,
-  DISPLAY_LEN_MAX_5500  = 60 + 1 + 0 +  1 + 45 +  1 + 48 +  1 + 48 + 1 + 16,
-  DISPLAY_LEN_MIN_5600  =  1 + 1 + 0 +  1 +  1 +  1 + 16 +  1 + 32 + 1 + 1,
-  DISPLAY_LEN_MAX_5600  = 60 + 1 + 0 +  1 + 45 +  1 + 16 +  1 + 32 + 1 + 1024,
-  DISPLAY_LEN_MIN_5700  = 43,
-  DISPLAY_LEN_MAX_5700  = 43,
-  DISPLAY_LEN_MIN_5800  = 40 + 1 + 1,
-  DISPLAY_LEN_MAX_5800  = 40 + 1 + 16,
-  DISPLAY_LEN_MIN_6000  = 40,
-  DISPLAY_LEN_MAX_6000  = 40,
-  DISPLAY_LEN_MIN_6100  = 128,
-  DISPLAY_LEN_MAX_6100  = 128,
-  DISPLAY_LEN_MIN_6300  =  6 + 1 + 8 + 22,
-  DISPLAY_LEN_MAX_6300  =  6 + 1 + 48 + 22,
-  DISPLAY_LEN_MIN_6400  =  9 + 2 + 1 + 16 + 1 + 43,
-  DISPLAY_LEN_MAX_6400  =  9 + 2 + 1 + 48 + 1 + 43,
-  DISPLAY_LEN_MIN_6500  =  9 + 2 + 1 + 16 + 1 + 86,
-  DISPLAY_LEN_MAX_6500  =  9 + 2 + 1 + 48 + 1 + 86,
-  DISPLAY_LEN_MIN_6600  =  1 + 1 + 16 + 1 + 2080,
-  DISPLAY_LEN_MAX_6600  =  6 + 1 + 16 + 1 + 2080,
-  DISPLAY_LEN_MIN_6700  =  7 + 2 + 1 + 16 + 1 + 27,
-  DISPLAY_LEN_MAX_6700  =  7 + 2 + 1 + 48 + 1 + 27,
-  DISPLAY_LEN_MIN_6800  = 32 + 1 + 1 + 1 + 0,
-  DISPLAY_LEN_MAX_6800  = 32 + 1 + 5 + 1 + 32,
-  DISPLAY_LEN_MIN_6900  = 64,
-  DISPLAY_LEN_MAX_6900  = 64,
-  DISPLAY_LEN_MIN_7000  = 3 + 44,
-  DISPLAY_LEN_MAX_7000  = 3 + 44,
-  DISPLAY_LEN_MIN_7100  =  4 + 2 + 1 + 64 + 1 + 128,
-  DISPLAY_LEN_MAX_7100  =  4 + 5 + 1 + 64 + 1 + 128,
-  DISPLAY_LEN_MIN_7200  = 19 + 1 + 1 +   1 + 128,
-  DISPLAY_LEN_MAX_7200  = 19 + 5 + 1 + 224 + 128,
-  DISPLAY_LEN_MIN_7300  =  64 + 1 + 40,
-  DISPLAY_LEN_MAX_7300  = 512 + 1 + 40,
-  DISPLAY_LEN_MIN_7400  = 47 + 0,
-  DISPLAY_LEN_MAX_7400  = 47 + 16,
-  DISPLAY_LEN_MIN_7500  =  1 + 6 + 1 + 2 + 1 +  0 + 1 +  0 + 1 +   0 + 1 + 72 + 32,
-  DISPLAY_LEN_MAX_7500  =  1 + 6 + 1 + 2 + 1 + 64 + 1 + 64 + 1 + 128 + 1 + 72 + 32,
-  DISPLAY_LEN_MIN_7700  =  1 + 1 + 16,
-  DISPLAY_LEN_MAX_7700  = 40 + 1 + 16,
-  DISPLAY_LEN_MIN_7800  =  1 + 1 + 40,
-  DISPLAY_LEN_MAX_7800  = 40 + 1 + 40,
-  DISPLAY_LEN_MIN_7900  =  3 + 1 + 8 + 43,
-  DISPLAY_LEN_MAX_7900  =  3 + 1 + 8 + 43,
-  DISPLAY_LEN_MIN_8000  =  2 + 4 + 16 + 64,
-  DISPLAY_LEN_MAX_8000  =  2 + 4 + 16 + 64,
-  DISPLAY_LEN_MIN_8100  =  1 + 8 + 40,
-  DISPLAY_LEN_MAX_8100  =  1 + 8 + 40,
-  DISPLAY_LEN_MIN_8200  = 64 + 1 + 32 + 1 + 1 + 1 +    1,
-  DISPLAY_LEN_MAX_8200  = 64 + 1 + 32 + 1 + 8 + 1 + 2048,
-  DISPLAY_LEN_MIN_8300  = 32 + 1 +  1 + 1 +  1 + 1 + 1,
-  DISPLAY_LEN_MAX_8300  = 32 + 1 + 32 + 1 + 32 + 1 + 5,
-  DISPLAY_LEN_MIN_8400  = 40 + 1 + 40,
-  DISPLAY_LEN_MAX_8400  = 40 + 1 + 40,
-  DISPLAY_LEN_MIN_8500  =  6 + 1 + 1 + 1 +  1,
-  DISPLAY_LEN_MAX_8500  =  6 + 1 + 8 + 1 + 16,
-  DISPLAY_LEN_MIN_8600  = 32,
-  DISPLAY_LEN_MAX_8600  = 32,
-  DISPLAY_LEN_MIN_8700  = 22,
-  DISPLAY_LEN_MAX_8700  = 22,
-  DISPLAY_LEN_MIN_8800  = 1 + 3 + 1 + 2 + 1 + 32 + 1 + 2 + 1 + 32 + 1 + 3072,
-  DISPLAY_LEN_MAX_8800  = 1 + 3 + 1 + 2 + 1 + 32 + 1 + 2 + 1 + 32 + 1 + 3072,
-  DISPLAY_LEN_MIN_8900  = 6 + 1 + 1 + 1 + 1 + 1 + 1 + 1 +  0 + 1 + 44,
-  DISPLAY_LEN_MAX_8900  = 6 + 1 + 6 + 1 + 2 + 1 + 2 + 1 + 45 + 1 + 44,
-  DISPLAY_LEN_MIN_9100  = 51,
-  DISPLAY_LEN_MAX_9100  = 51,
-  DISPLAY_LEN_MIN_9200  = 3 + 14 + 1 + 43,
-  DISPLAY_LEN_MAX_9200  = 3 + 14 + 1 + 43,
-  DISPLAY_LEN_MIN_9300  = 3 + 14 + 1 + 43,
-  DISPLAY_LEN_MAX_9300  = 3 + 14 + 1 + 43,
-  DISPLAY_LEN_MIN_9400  = 8 + 1 + 4 + 1 + 2 + 1 + 3 + 1 + 2 + 1 + 32 + 1 + 32 + 1 + 40,
-  DISPLAY_LEN_MAX_9400  = 8 + 1 + 4 + 1 + 2 + 1 + 3 + 1 + 2 + 1 + 32 + 1 + 32 + 1 + 40,
-  DISPLAY_LEN_MIN_9500  = 8 + 1 + 4 + 1 + 6 + 1 + 3 + 1 + 2 + 1 + 32 + 1 + 32 + 1 + 64,
-  DISPLAY_LEN_MAX_9500  = 8 + 1 + 4 + 1 + 6 + 1 + 3 + 1 + 2 + 1 + 32 + 1 + 32 + 1 + 64,
-  DISPLAY_LEN_MIN_9600  = 8 + 1 + 4 + 1 + 6 + 1 + 3 + 1 + 2 + 1 + 32 + 1 + 32 + 1 + 64,
-  DISPLAY_LEN_MAX_9600  = 8 + 1 + 4 + 1 + 6 + 1 + 3 + 1 + 2 + 1 + 32 + 1 + 32 + 1 + 64,
   DISPLAY_LEN_MIN_9700  = 12 + 1 + 32 + 1 + 32 + 1 + 32,
   DISPLAY_LEN_MAX_9700  = 12 + 1 + 32 + 1 + 32 + 1 + 32,
   DISPLAY_LEN_MIN_9720  = 12 + 1 + 32 + 1 + 32 + 1 + 32 + 1 + 10,
@@ -1222,8 +1028,6 @@ typedef enum display_len
   DISPLAY_LEN_MAX_9800  = 12 + 1 + 32 + 1 + 32 + 1 + 40,
   DISPLAY_LEN_MIN_9820  = 12 + 1 + 32 + 1 + 32 + 1 + 40 + 1 + 10,
   DISPLAY_LEN_MAX_9820  = 12 + 1 + 32 + 1 + 32 + 1 + 40 + 1 + 10,
-  DISPLAY_LEN_MIN_9900  = 32,
-  DISPLAY_LEN_MAX_9900  = 32,
   DISPLAY_LEN_MIN_10000 = 13 + 1 + 1 + 1 +  0 + 44,
   DISPLAY_LEN_MAX_10000 = 13 + 1 + 6 + 1 + 15 + 44,
   DISPLAY_LEN_MIN_10100 = 16 + 1 + 1 + 1 + 1 + 1 + 32,
@@ -1244,8 +1048,6 @@ typedef enum display_len
   DISPLAY_LEN_MAX_10600 = 5 + 1 + 1 + 1 + 1 + 3 + 1 + 5 + 1 + 1 + 1 + 2 + 1 + 32 + 1 + 1000,
   DISPLAY_LEN_MIN_10700 = 5 + 1 + 1 + 1 + 1 + 3 + 1 + 1 + 1 + 1 + 1 + 2 + 1 + 32 + 1 + 1,
   DISPLAY_LEN_MAX_10700 = 5 + 1 + 1 + 1 + 1 + 3 + 1 + 5 + 1 + 1 + 1 + 2 + 1 + 32 + 1 + 1000,
-  DISPLAY_LEN_MIN_10800 = 96,
-  DISPLAY_LEN_MAX_10800 = 96,
   DISPLAY_LEN_MIN_10900 = 7 + 1 + 1 +  0 + 1 + 24,
   DISPLAY_LEN_MAX_10900 = 7 + 6 + 1 + 64 + 1 + 88,
   DISPLAY_LEN_MIN_11000 = 32 + 1 + 56,
@@ -1262,10 +1064,6 @@ typedef enum display_len
   DISPLAY_LEN_MAX_11500 = 8 + 1 + 8,
   DISPLAY_LEN_MIN_11600 = 1 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 +  0 + 1 + 1 + 1 + 32 + 1 +  1 + 1 + 1 + 1 + 1 + 1 +      2 + 0 + 0 + 0 +  0,
   DISPLAY_LEN_MAX_11600 = 1 + 2 + 1 + 1 + 1 + 2 + 1 + 1 + 1 + 64 + 1 + 1 + 1 + 32 + 1 + 10 + 1 + 4 + 1 + 4 + 1 + 655056 + 1 + 4 + 1 + 10,
-  DISPLAY_LEN_MIN_11700 = 64,
-  DISPLAY_LEN_MAX_11700 = 64,
-  DISPLAY_LEN_MIN_11800 = 128,
-  DISPLAY_LEN_MAX_11800 = 128,
   DISPLAY_LEN_MIN_11900 = 3 + 1 + 1 +  0 + 1 + 12,
   DISPLAY_LEN_MAX_11900 = 3 + 6 + 1 + 64 + 1 + 88,
   DISPLAY_LEN_MIN_12000 = 4 + 1 + 1 +  0 + 1 + 16,
@@ -1294,12 +1092,8 @@ typedef enum display_len
   DISPLAY_LEN_MAX_13100 =  1 + 7 + 1 + 2 + 1 + 2 + 512 + 1 + 32 + 1 + 20480,
   DISPLAY_LEN_MIN_13200 =  1 + 7 + 1 + 1 + 1 + 1 + 1 + 1 + 32 + 1 + 48,
   DISPLAY_LEN_MAX_13200 =  1 + 7 + 1 + 1 + 1 + 1 + 50 + 1 + 32 + 1 + 48 + 1 + 20480,
-  DISPLAY_LEN_MIN_13300 =  1 + 12 + 1 + 32,
-  DISPLAY_LEN_MAX_13300 =  1 + 12 + 1 + 40,
   DISPLAY_LEN_MIN_13400 =  1 + 7 + 1 + 1 + 1 + 1 + 1 + 1 + 32 + 1 + 64 + 1 + 32 + 1 + 64 + 1 + 1 + 1 + 1,
   DISPLAY_LEN_MAX_13400 =  1 + 7 + 1 + 1 + 10 + 1 + 3 + 1 + 64 + 1 + 64 + 1 + 32 + 1 + 64 + 1 + 4 + 1 + 600000 + 1 + 2 + 1 + 64,
-  DISPLAY_LEN_MIN_13500 = 40 + 1 + 32,
-  DISPLAY_LEN_MAX_13500 = 40 + 1 + 1024,
   DISPLAY_LEN_MIN_13600 = 6 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 16 + 1 + 1 + 1 + 1 + 1 +    0 + 1 + 20 + 1 + 7,
   DISPLAY_LEN_MAX_13600 = 6 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 32 + 1 + 4 + 1 + 4 + 1 + 8192 + 1 + 20 + 1 + 7,
   DISPLAY_LEN_MIN_13800 =  64 + 1 + 256,
@@ -1322,8 +1116,6 @@ typedef enum display_len
   DISPLAY_LEN_MAX_15100 = 6 + 6 + 1 + 8 + 1 + 28,
   DISPLAY_LEN_MIN_15200 =  1 + 10 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 64,
   DISPLAY_LEN_MAX_15200 =  1 + 10 + 1 + 2 + 1 + 8 + 1 + 5 + 1 + 20000,
-  DISPLAY_LEN_MIN_15300 =  1 + 7 + 1 + 1 + 1 + 1 + 1 +  10 + 1 + 4 + 1 + 4 + 1 +  1 + 1 + 32 + 1 + 3 + 1 + 128,
-  DISPLAY_LEN_MAX_15300 =  1 + 7 + 1 + 1 + 1 + 1 + 1 + 100 + 1 + 6 + 1 + 6 + 1 + 10 + 1 + 32 + 1 + 4 + 1 + 512,
   DISPLAY_LEN_MIN_15400 = 10 + 1 + 16 + 1 + 1 + 1 + 16 + 1 + 16 + 1 + 16,
   DISPLAY_LEN_MAX_15400 = 10 + 1 + 16 + 1 + 2 + 1 + 16 + 1 + 16 + 1 + 16,
   DISPLAY_LEN_MIN_15500 = 10 + 1 + 40 + 1 + 40 + 1 +     1 + 1 + 2 + 1 + 28 + 1 +  1,
@@ -1332,8 +1124,6 @@ typedef enum display_len
   DISPLAY_LEN_MAX_15600 = 11 + 1 + 6 + 1 + 64 + 1 + 64 + 1 + 64,
   DISPLAY_LEN_MIN_15700 = 11 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 64 + 1 + 64 + 1 + 64,
   DISPLAY_LEN_MAX_15700 = 11 + 1 + 6 + 1 + 1 + 1 + 1 + 1 + 64 + 1 + 64 + 1 + 64,
-  DISPLAY_LEN_MIN_15900 =  1 + 7 + 1 + 1 + 1 + 1 + 1 +  10 + 1 + 4 + 1 + 4 + 1 +  1 + 1 + 32 + 1 + 3 + 1 + 128,
-  DISPLAY_LEN_MAX_15900 =  1 + 7 + 1 + 1 + 1 + 1 + 1 + 100 + 1 + 6 + 1 + 6 + 1 + 10 + 1 + 32 + 1 + 4 + 1 + 512,
   DISPLAY_LEN_MIN_16000 = 10,
   DISPLAY_LEN_MAX_16000 = 10,
   DISPLAY_LEN_MIN_16100 = 1 + 11 + 1 + 1 + 1 + 8 +  12 + 1 + 4,
@@ -1348,67 +1138,10 @@ typedef enum display_len
   DISPLAY_LEN_MAX_16500 = 2047 + 1 + 2047 + 1 + 86,
   DISPLAY_LEN_MIN_16600 = 10 + 1 + 1 + 32 + 1 + 32,
   DISPLAY_LEN_MAX_16600 = 10 + 1 + 1 + 32 + 1 + 32,
+  DISPLAY_LEN_MIN_16700 = 1 + 4 + 1 + 1 + 1 + 2 + 1 + 32 + 1 + 1 + 1 + 48,
+  DISPLAY_LEN_MAX_16700 = 1 + 4 + 1 + 1 + 1 + 2 + 1 + 32 + 1 + 6 + 1 + 48,
   DISPLAY_LEN_MIN_99999 = 1,
   DISPLAY_LEN_MAX_99999 = 55,
-
-  DISPLAY_LEN_MIN_11    = 32 + 1 + 0,
-  DISPLAY_LEN_MAX_11    = 32 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_12    = 32 + 1 + 0,
-  DISPLAY_LEN_MAX_12    = 32 + 1 + 32,
-  DISPLAY_LEN_MIN_21    = 32 + 1 + 2,
-  DISPLAY_LEN_MAX_21    = 32 + 1 + 2,
-  DISPLAY_LEN_MIN_22    = 30 + 1 + 1,
-  DISPLAY_LEN_MAX_22    = 30 + 1 + 32,
-  DISPLAY_LEN_MIN_23    = 32 + 1 + 0,
-  DISPLAY_LEN_MAX_23    = 32 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_101   =  5 + 28,
-  DISPLAY_LEN_MAX_101   =  5 + 28,
-  DISPLAY_LEN_MIN_111   =  6 + 28 + 1,
-  DISPLAY_LEN_MAX_111   =  6 + 28 + SALT_MAX,
-  DISPLAY_LEN_MIN_112   = 40 + 1 + 20,
-  DISPLAY_LEN_MAX_112   = 40 + 1 + 20,
-  DISPLAY_LEN_MIN_121   = 40 + 1 + 1,
-  DISPLAY_LEN_MAX_121   = 40 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_122   =  8 + 40,
-  DISPLAY_LEN_MAX_122   =  8 + 40,
-  DISPLAY_LEN_MIN_124   = 4 + 1 +  0 + 1 + 40,
-  DISPLAY_LEN_MAX_124   = 4 + 1 + 32 + 1 + 40,
-  DISPLAY_LEN_MIN_125   = 10 + 40,
-  DISPLAY_LEN_MAX_125   = 10 + 40,
-  DISPLAY_LEN_MIN_131   =  6 +  8 + 80,
-  DISPLAY_LEN_MAX_131   =  6 +  8 + 80,
-  DISPLAY_LEN_MIN_132   =  6 +  8 + 40,
-  DISPLAY_LEN_MAX_132   =  6 +  8 + 40,
-  DISPLAY_LEN_MIN_133   = 28,
-  DISPLAY_LEN_MAX_133   = 28,
-  DISPLAY_LEN_MIN_141   = 14 +  0 +  1 + 28,
-  DISPLAY_LEN_MAX_141   = 14 + 44 +  1 + 28,
-  DISPLAY_LEN_MIN_1411  =  9 + 44 +  0,
-  DISPLAY_LEN_MAX_1411  =  9 + 44 + 68,
-  DISPLAY_LEN_MIN_1441  = 14 +  0 +  1 + 43,
-  DISPLAY_LEN_MAX_1441  = 14 + 24 +  1 + 43,
-  DISPLAY_LEN_MIN_1711  =  9 + 86 +  0,
-  DISPLAY_LEN_MAX_1711  =  9 + 86 + 68,
-  DISPLAY_LEN_MIN_1722  =  8 + 128,
-  DISPLAY_LEN_MAX_1722  =  8 + 128,
-  DISPLAY_LEN_MIN_1731  = 128 + 6 + 0,
-  DISPLAY_LEN_MAX_1731  = 128 + 6 + 16,
-  DISPLAY_LEN_MIN_2611  = 32 + 1 + 0,
-  DISPLAY_LEN_MAX_2611  = 32 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_2612  = 6 +        0 + 1 + 32,
-  DISPLAY_LEN_MAX_2612  = 6 + SALT_MAX + 1 + 32,
-  DISPLAY_LEN_MIN_2711  = 32 + 1 + 23,
-  DISPLAY_LEN_MAX_2711  = 32 + 1 + 31,
-  DISPLAY_LEN_MIN_2811  = 32 + 1 + 0,
-  DISPLAY_LEN_MAX_2811  = 32 + 1 + SALT_MAX,
-  DISPLAY_LEN_MIN_3711  = 3 +  0 + 1 + 32,
-  DISPLAY_LEN_MAX_3711  = 3 + 31 + 1 + 32,
-  DISPLAY_LEN_MIN_4521  = 40 + 1 + 32,
-  DISPLAY_LEN_MAX_4521  = 40 + 1 + 32,
-  DISPLAY_LEN_MIN_4522  = 40 + 1 + 12,
-  DISPLAY_LEN_MAX_4522  = 40 + 1 + 12,
-  DISPLAY_LEN_MIN_12001 = 9 + 64,
-  DISPLAY_LEN_MAX_12001 = 9 + 64,
 
 } display_len_t;
 
@@ -1587,7 +1320,9 @@ typedef enum kern_type
   KERN_TYPE_SHA256CRYPT             = 7400,
   KERN_TYPE_KRB5PA                  = 7500,
   KERN_TYPE_SAPB                    = 7700,
+  KERN_TYPE_SAPB_MANGLED            = 7701,
   KERN_TYPE_SAPG                    = 7800,
+  KERN_TYPE_SAPG_MANGLED            = 7801,
   KERN_TYPE_DRUPAL7                 = 7900,
   KERN_TYPE_SYBASEASE               = 8000,
   KERN_TYPE_NETSCALER               = 8100,
@@ -1772,13 +1507,10 @@ typedef enum rounds_count
 
 int bcrypt_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int cisco4_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int dcc_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int dcc2_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int descrypt_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int des_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int episerver_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int ipb2_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int joomla_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int postgresql_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int netscreen_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int keccak_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
@@ -1786,6 +1518,7 @@ int blake2b_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int chacha20_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int lm_parse_hash                 (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int md4_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
+int md4s_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int md5_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int md5s_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int md5half_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
@@ -1810,7 +1543,6 @@ int sha1_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int sha1b64_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha1b64s_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha1s_parse_hash              (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha1sha1_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha224_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha256_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha256s_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
@@ -1818,8 +1550,6 @@ int sha384_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int sha512_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha512s_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha512crypt_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int smf_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int vb3_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int vb30_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int wpa_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int psafe2_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
@@ -1844,10 +1574,6 @@ int sha512macos_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int episerver4_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha512grub_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha512b64s_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int hmacsha1_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int hmacsha256_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int hmacsha512_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int hmacmd5_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int krb5pa_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int krb5tgs_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sapb_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
@@ -1952,12 +1678,13 @@ int apple_secure_notes_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int ethereum_presale_parse_hash   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int jwt_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int electrum_wallet13_parse_hash  (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
+int filevault2_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 
 /**
  * hook functions
  */
 
-void seven_zip_hook_func (hc_device_param_t *device_param, void *hook_salts_buf, const u32 salt_pos, const u32 pws_cnt);
+void seven_zip_hook_func (hc_device_param_t *device_param, void *hook_salts_buf, const u32 salt_pos, const u64 pws_cnt);
 
 /**
  * output functions

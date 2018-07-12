@@ -25,13 +25,13 @@
 int _dowildcard = -1;
 #endif
 
-static void main_log_clear_line (MAYBE_UNUSED const int prev_len, MAYBE_UNUSED FILE *fp)
+static void main_log_clear_line (MAYBE_UNUSED const size_t prev_len, MAYBE_UNUSED FILE *fp)
 {
   #if defined (_WIN)
 
   fputc ('\r', fp);
 
-  for (int i = 0; i < prev_len; i++)
+  for (size_t i = 0; i < prev_len; i++)
   {
     fputc (' ', fp);
   }
@@ -49,13 +49,13 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
 {
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
 
-  const char *msg_buf     = event_ctx->msg_buf;
-  const int   msg_len     = event_ctx->msg_len;
-  const bool  msg_newline = event_ctx->msg_newline;
+  const char  *msg_buf     = event_ctx->msg_buf;
+  const size_t msg_len     = event_ctx->msg_len;
+  const bool   msg_newline = event_ctx->msg_newline;
 
   // handle last_len
 
-  const int prev_len = event_ctx->prev_len;
+  const size_t prev_len = event_ctx->prev_len;
 
   if (prev_len)
   {
@@ -481,15 +481,15 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
    * Optimizer constraints
    */
 
-  event_log_info (hashcat_ctx, "Password length minimum: %u", hashconfig->pw_min);
-  event_log_info (hashcat_ctx, "Password length maximum: %u", hashconfig->pw_max);
+  event_log_info (hashcat_ctx, "Minimum password length supported by kernel: %u", hashconfig->pw_min);
+  event_log_info (hashcat_ctx, "Maximum password length supported by kernel: %u", hashconfig->pw_max);
 
   if (hashconfig->is_salted == true)
   {
     if (hashconfig->opti_type & OPTI_TYPE_RAW_HASH)
     {
-      event_log_info (hashcat_ctx, "Salt length minimum: %u", hashconfig->salt_min);
-      event_log_info (hashcat_ctx, "Salt length maximum: %u", hashconfig->salt_max);
+      event_log_info (hashcat_ctx, "Minimim salt length supported by kernel: %u", hashconfig->salt_min);
+      event_log_info (hashcat_ctx, "Maximum salt length supported by kernel: %u", hashconfig->salt_max);
     }
   }
 
@@ -794,7 +794,7 @@ static void main_wordlist_cache_generate (MAYBE_UNUSED hashcat_ctx_t *hashcat_ct
   }
   else
   {
-    char *runtime = (char *) malloc (HCBUFSIZ_TINY);
+    char *runtime = (char *) hcmalloc (HCBUFSIZ_TINY);
 
     const time_t runtime_sec = cache_generate->runtime;
 
@@ -847,16 +847,16 @@ static void main_hashlist_parse_hash (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, M
 
   const hashlist_parse_t *hashlist_parse = (const hashlist_parse_t *) buf;
 
-  const u32 hashes_cnt   = hashlist_parse->hashes_cnt;
-  const u32 hashes_avail = hashlist_parse->hashes_avail;
+  const u64 hashes_cnt   = hashlist_parse->hashes_cnt;
+  const u64 hashes_avail = hashlist_parse->hashes_avail;
 
   if (hashes_cnt < hashes_avail)
   {
-    event_log_info_nn (hashcat_ctx, "Parsing Hashes: %u/%u (%0.2f%%)...", hashes_cnt, hashes_avail, ((double) hashes_cnt / hashes_avail) * 100.0);
+    event_log_info_nn (hashcat_ctx, "Parsing Hashes: %" PRIu64 "/%" PRIu64 " (%0.2f%%)...", hashes_cnt, hashes_avail, ((double) hashes_cnt / hashes_avail) * 100.0);
   }
   else
   {
-    event_log_info_nn (hashcat_ctx, "Parsed Hashes: %u/%u (%0.2f%%)", hashes_cnt, hashes_avail, 100.0);
+    event_log_info_nn (hashcat_ctx, "Parsed Hashes: %" PRIu64 "/%" PRIu64 " (%0.2f%%)", hashes_cnt, hashes_avail, 100.0);
   }
 }
 
@@ -963,7 +963,7 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
 
 int main (int argc, char **argv)
 {
-  // this increases the size on windows dox boxes
+  // this increases the size on windows dos boxes
 
   setup_console ();
 
@@ -971,7 +971,7 @@ int main (int argc, char **argv)
 
   // hashcat main context
 
-  hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) malloc (sizeof (hashcat_ctx_t));
+  hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) hcmalloc (sizeof (hashcat_ctx_t));
 
   const int rc_hashcat_init = hashcat_init (hashcat_ctx, event);
 

@@ -13,7 +13,7 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
-__constant static u32a c_pc_dec[1024] =
+__constant u32a c_pc_dec[1024] =
 {
   0x00000030,
   0x00000031,
@@ -1041,7 +1041,7 @@ __constant static u32a c_pc_dec[1024] =
   0x33323031,
 };
 
-__constant static u32a c_pc_len[1024] =
+__constant u32a c_pc_len[1024] =
 {
   1,
   1,
@@ -2069,7 +2069,7 @@ __constant static u32a c_pc_len[1024] =
   4
 };
 
-void append_word (u32 w0[4], u32 w1[4], const u32 append[4], const u32 offset)
+DECLSPEC void append_word (u32 w0[4], u32 w1[4], const u32 append[4], const u32 offset)
 {
   switch (offset)
   {
@@ -2103,7 +2103,7 @@ void append_word (u32 w0[4], u32 w1[4], const u32 append[4], const u32 offset)
   }
 }
 
-void append_salt (u32 w0[4], u32 w1[4], u32 w2[4], const u32 append[5], const u32 offset)
+DECLSPEC void append_salt (u32 w0[4], u32 w1[4], u32 w2[4], const u32 append[5], const u32 offset)
 {
   u32 tmp0;
   u32 tmp1;
@@ -2252,16 +2252,16 @@ __kernel void m05800_init (__global pw_t *pws, __global const kernel_rule_t *rul
   u32 w2[4];
   u32 w3[4];
 
-  w0[0] = swap32 (data0[0]);
-  w0[1] = swap32 (data0[1]);
-  w0[2] = swap32 (data0[2]);
-  w0[3] = swap32 (data0[3]);
-  w1[0] = swap32 (data1[0]);
-  w1[1] = swap32 (data1[1]);
-  w1[2] = swap32 (data1[2]);
-  w1[3] = swap32 (data1[3]);
-  w2[0] = swap32 (data2[0]);
-  w2[1] = swap32 (data2[1]);
+  w0[0] = swap32_S (data0[0]);
+  w0[1] = swap32_S (data0[1]);
+  w0[2] = swap32_S (data0[2]);
+  w0[3] = swap32_S (data0[3]);
+  w1[0] = swap32_S (data1[0]);
+  w1[1] = swap32_S (data1[1]);
+  w1[2] = swap32_S (data1[2]);
+  w1[3] = swap32_S (data1[3]);
+  w2[0] = swap32_S (data2[0]);
+  w2[1] = swap32_S (data2[1]);
   w2[2] = 0;
   w2[3] = 0;
   w3[0] = 0;
@@ -2377,15 +2377,15 @@ __kernel void m05800_loop (__global pw_t *pws, __global const kernel_rule_t *rul
     w0[2] = digest[2];
     w0[3] = digest[3];
     w1[0] = digest[4];
-    w1[1] = swap32 (data0[0]);
-    w1[2] = swap32 (data0[1]);
-    w1[3] = swap32 (data0[2]);
-    w2[0] = swap32 (data0[3]);
-    w2[1] = swap32 (data1[0]);
-    w2[2] = swap32 (data1[1]);
-    w2[3] = swap32 (data1[2]);
-    w3[0] = swap32 (data1[3]);
-    w3[1] = swap32 (data2[0]);
+    w1[1] = swap32_S (data0[0]);
+    w1[2] = swap32_S (data0[1]);
+    w1[3] = swap32_S (data0[2]);
+    w2[0] = swap32_S (data0[3]);
+    w2[1] = swap32_S (data1[0]);
+    w2[2] = swap32_S (data1[1]);
+    w2[3] = swap32_S (data1[2]);
+    w3[0] = swap32_S (data1[3]);
+    w3[1] = swap32_S (data2[0]);
     w3[2] = 0;
     w3[3] = (20 + pc_len + pw_len + salt_len) * 8;
 

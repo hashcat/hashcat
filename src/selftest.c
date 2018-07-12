@@ -35,35 +35,6 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   device_param->kernel_params_buf32[31] = 1;
   device_param->kernel_params_buf32[32] = 0;
 
-  const u32 kernel_threads_by_wgs_kernel1_sav      = device_param->kernel_threads_by_wgs_kernel1;
-  const u32 kernel_threads_by_wgs_kernel12_sav     = device_param->kernel_threads_by_wgs_kernel12;
-  const u32 kernel_threads_by_wgs_kernel2_sav      = device_param->kernel_threads_by_wgs_kernel2;
-  const u32 kernel_threads_by_wgs_kernel23_sav     = device_param->kernel_threads_by_wgs_kernel23;
-  const u32 kernel_threads_by_wgs_kernel3_sav      = device_param->kernel_threads_by_wgs_kernel3;
-  const u32 kernel_threads_by_wgs_kernel4_sav      = device_param->kernel_threads_by_wgs_kernel4;
-  const u32 kernel_threads_by_wgs_kernel_init2_sav = device_param->kernel_threads_by_wgs_kernel_init2;
-  const u32 kernel_threads_by_wgs_kernel_loop2_sav = device_param->kernel_threads_by_wgs_kernel_loop2;
-
-  if ((hashconfig->opts_type & OPTS_TYPE_PT_BITSLICE) && (user_options_extra->attack_kern == ATTACK_KERN_BF))
-  {
-    // do nothing
-  }
-  else
-  {
-    // there's a few algorithm that force a fixed thread size but are not listed in hashconfig_forced_kernel_threads()
-    // because it's not a global fixed thread, just a single one on a single kernel
-    // if it wants to run at 8 and we set it to 1 it will return CL_INVALID_WORK_GROUP_SIZE
-
-    if (device_param->kernel_threads_by_user == device_param->kernel_threads_by_wgs_kernel1)      device_param->kernel_threads_by_wgs_kernel1      = 1;
-    if (device_param->kernel_threads_by_user == device_param->kernel_threads_by_wgs_kernel12)     device_param->kernel_threads_by_wgs_kernel12     = 1;
-    if (device_param->kernel_threads_by_user == device_param->kernel_threads_by_wgs_kernel2)      device_param->kernel_threads_by_wgs_kernel2      = 1;
-    if (device_param->kernel_threads_by_user == device_param->kernel_threads_by_wgs_kernel23)     device_param->kernel_threads_by_wgs_kernel23     = 1;
-    if (device_param->kernel_threads_by_user == device_param->kernel_threads_by_wgs_kernel3)      device_param->kernel_threads_by_wgs_kernel3      = 1;
-    if (device_param->kernel_threads_by_user == device_param->kernel_threads_by_wgs_kernel4)      device_param->kernel_threads_by_wgs_kernel4      = 1;
-    if (device_param->kernel_threads_by_user == device_param->kernel_threads_by_wgs_kernel_init2) device_param->kernel_threads_by_wgs_kernel_init2 = 1;
-    if (device_param->kernel_threads_by_user == device_param->kernel_threads_by_wgs_kernel_loop2) device_param->kernel_threads_by_wgs_kernel_loop2 = 1;
-  }
-
   // password : move the known password into a fake buffer
 
   u32 highest_pw_len = 0;
@@ -78,11 +49,16 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       char *pw_ptr = (char *) &pw.i;
 
-      int pw_len = strlen (hashconfig->st_pass);
+      const size_t pw_len = strlen (hashconfig->st_pass);
 
       memcpy (pw_ptr, hashconfig->st_pass, pw_len);
 
-      pw.pw_len = pw_len;
+      pw.pw_len = (u32) pw_len;
+
+      if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
+      {
+        uppercase ((u8 *) pw_ptr, pw.pw_len);
+      }
 
       CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL);
 
@@ -97,11 +73,11 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       char *pw_ptr = (char *) &pw.i;
 
-      int pw_len = strlen (hashconfig->st_pass);
+      const size_t pw_len = strlen (hashconfig->st_pass);
 
       memcpy (pw_ptr, hashconfig->st_pass, pw_len - 1);
 
-      pw.pw_len = pw_len - 1;
+      pw.pw_len = (u32) pw_len - 1;
 
       pw_t comb; memset (&comb, 0, sizeof (comb));
 
@@ -139,7 +115,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
         char *pw_ptr = (char *) &pw.i;
 
-        int pw_len = strlen (hashconfig->st_pass);
+        const size_t pw_len = strlen (hashconfig->st_pass);
 
         memcpy (pw_ptr, hashconfig->st_pass, pw_len);
 
@@ -148,7 +124,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
           uppercase ((u8 *) pw_ptr, pw_len);
         }
 
-        pw.pw_len = pw_len;
+        pw.pw_len = (u32) pw_len;
 
         CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL);
 
@@ -201,17 +177,17 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
         char *pw_ptr = (char *) &pw.i;
 
-        int pw_len = strlen (hashconfig->st_pass);
+        const size_t pw_len = strlen (hashconfig->st_pass);
 
         memcpy (pw_ptr + 1, hashconfig->st_pass + 1, pw_len - 1);
 
-        int new_pass_len = pw_len;
+        size_t new_pass_len = pw_len;
 
         if (hashconfig->opts_type & OPTS_TYPE_PT_UTF16LE)
         {
           memset (pw_ptr, 0, pw_len);
 
-          for (int i = 1, j = 2; i < new_pass_len; i += 1, j += 2)
+          for (size_t i = 1, j = 2; i < new_pass_len; i += 1, j += 2)
           {
             pw_ptr[j + 0] = hashconfig->st_pass[i];
             pw_ptr[j + 1] = 0;
@@ -223,7 +199,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
         {
           memset (pw_ptr, 0, pw_len);
 
-          for (int i = 1, j = 2; i < new_pass_len; i += 1, j += 2)
+          for (size_t i = 1, j = 2; i < new_pass_len; i += 1, j += 2)
           {
             pw_ptr[j + 0] = 0;
             pw_ptr[j + 1] = hashconfig->st_pass[i];
@@ -247,7 +223,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
           }
         }
 
-        pw.pw_len = new_pass_len;
+        pw.pw_len = (u32) new_pass_len;
 
         if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)
         {
@@ -261,14 +237,14 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
         if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS14)
         {
-          pw.i[14] = new_pass_len * 8;
+          pw.i[14] = (u32) new_pass_len * 8;
           pw.i[15] = 0;
         }
 
         if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS15)
         {
           pw.i[14] = 0;
-          pw.i[15] = new_pass_len * 8;
+          pw.i[15] = (u32) new_pass_len * 8;
         }
 
         if (hashconfig->opts_type & OPTS_TYPE_PT_GENERATE_BE)
@@ -290,13 +266,13 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     char *pw_ptr = (char *) &pw.i;
 
-    int pw_len = strlen (hashconfig->st_pass);
+    const size_t pw_len = strlen (hashconfig->st_pass);
 
     memcpy (pw_ptr, hashconfig->st_pass, pw_len);
 
-    pw.pw_len = pw_len;
+    pw.pw_len = (u32) pw_len;
 
-    CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_amp_buf, CL_TRUE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL);
+    CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL);
 
     if (CL_err != CL_SUCCESS) return -1;
   }
@@ -441,11 +417,17 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     {
       device_param->kernel_params_buf32[28] = 0;
       device_param->kernel_params_buf32[29] = 1;
+
+      CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX1, 1, false, 0);
+
+      if (CL_rc == -1) return -1;
     }
+    else
+    {
+      CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_3, 1, false, 0);
 
-    CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_3, 1, false, 0);
-
-    if (CL_rc == -1) return -1;
+      if (CL_rc == -1) return -1;
+    }
   }
 
   // check : check if cracked
@@ -457,15 +439,6 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   if (CL_err != CL_SUCCESS) return -1;
 
   // finish : cleanup and restore
-
-  device_param->kernel_threads_by_wgs_kernel1      = kernel_threads_by_wgs_kernel1_sav;
-  device_param->kernel_threads_by_wgs_kernel12     = kernel_threads_by_wgs_kernel12_sav;
-  device_param->kernel_threads_by_wgs_kernel2      = kernel_threads_by_wgs_kernel2_sav;
-  device_param->kernel_threads_by_wgs_kernel23     = kernel_threads_by_wgs_kernel23_sav;
-  device_param->kernel_threads_by_wgs_kernel3      = kernel_threads_by_wgs_kernel3_sav;
-  device_param->kernel_threads_by_wgs_kernel4      = kernel_threads_by_wgs_kernel4_sav;
-  device_param->kernel_threads_by_wgs_kernel_init2 = kernel_threads_by_wgs_kernel_init2_sav;
-  device_param->kernel_threads_by_wgs_kernel_loop2 = kernel_threads_by_wgs_kernel_loop2_sav;
 
   device_param->kernel_params_buf32[27] = 0;
   device_param->kernel_params_buf32[28] = 0;
@@ -481,7 +454,6 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   device_param->kernel_params[18] = &device_param->d_esalt_bufs;
 
   CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_pws_buf,       device_param->size_pws);      if (CL_rc == -1) return -1;
-  CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_pws_amp_buf,   device_param->size_pws_amp);  if (CL_rc == -1) return -1;
   CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_tmps,          device_param->size_tmps);     if (CL_rc == -1) return -1;
   CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_hooks,         device_param->size_hooks);    if (CL_rc == -1) return -1;
   CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_plain_bufs,    device_param->size_plains);   if (CL_rc == -1) return -1;
@@ -547,9 +519,20 @@ void *thread_selftest (void *p)
 
   const int rc_selftest = selftest (hashcat_ctx, device_param);
 
-  if (rc_selftest == -1)
+  if (user_options->benchmark == true)
   {
-    // we should do something here, tell hashcat main that selftest failed to abort
+    device_param->st_status = ST_STATUS_IGNORED;
+  }
+  else
+  {
+    if (rc_selftest == 0)
+    {
+      device_param->st_status = ST_STATUS_PASSED;
+    }
+    else
+    {
+      device_param->st_status = ST_STATUS_FAILED;
+    }
   }
 
   return NULL;

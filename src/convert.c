@@ -7,70 +7,102 @@
 #include "types.h"
 #include "convert.h"
 
-#if (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__) >= 70101
-#define FALLTHROUGH __attribute__ ((fallthrough))
-#else
-#define FALLTHROUGH
-#endif
+/*
+  Source:
+   http://www.unicode.org/versions/Unicode7.0.0/UnicodeStandard-7.0.pdf
+   page 124, 3.9 "Unicode Encoding Forms", "UTF-8"
 
-static bool printable_utf8 (const u8 *buf, const int len)
+  Table 3-7. Well-Formed UTF-8 Byte Sequences
+  -----------------------------------------------------------------------------
+  |  Code Points        | First Byte | Second Byte | Third Byte | Fourth Byte |
+  |  U+0000..U+007F     |     00..7F |             |            |             |
+  |  U+0080..U+07FF     |     C2..DF |      80..BF |            |             |
+  |  U+0800..U+0FFF     |         E0 |      A0..BF |     80..BF |             |
+  |  U+1000..U+CFFF     |     E1..EC |      80..BF |     80..BF |             |
+  |  U+D000..U+D7FF     |         ED |      80..9F |     80..BF |             |
+  |  U+E000..U+FFFF     |     EE..EF |      80..BF |     80..BF |             |
+  |  U+10000..U+3FFFF   |         F0 |      90..BF |     80..BF |      80..BF |
+  |  U+40000..U+FFFFF   |     F1..F3 |      80..BF |     80..BF |      80..BF |
+  |  U+100000..U+10FFFF |         F4 |      80..8F |     80..BF |      80..BF |
+  -----------------------------------------------------------------------------
+*/
+
+static bool printable_utf8 (const u8 *buf, const size_t len)
 {
-  u8 a;
-  int length;
-  const u8 *buf_end = buf + len;
-  const u8 *srcptr;
-  const char trailingBytesUTF8[64] = {
-    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-    2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2, 3,3,3,3,3,3,3,3,4,4,4,4,5,5,5,5
+  // there's 9 different code point types for utf8 and ...
+
+  const int cp_types[256] =
+  {
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+     1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+     2,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  4,  5,  5,
+     6,  7,  7,  7,  8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
   };
 
-  while (buf < buf_end) {
+  // ... they can be directly translated into a fixed length sequence of bytes
 
-    // This line rejects unprintables. The rest of the function
-    // reliably rejects invalid UTF-8 sequences.
-    if (*buf < 0x20 || *buf == 0x7f) return false;
+  const size_t cp_lens[9] = { 1, 2, 3, 3, 3, 3, 4, 4, 4 };
 
-    if (*buf < 0x80) {
-      buf++;
-      continue;
-    }
+  for (size_t pos = 0; pos < len; pos++)
+  {
+    const u8 c0 = buf[pos];
 
-    length = trailingBytesUTF8[*buf & 0x3f] + 1;
-    srcptr = buf + length;
+    const int cp_type = cp_types[c0];
 
-    if (srcptr > buf_end) return false;
+    if (cp_type == -1) return false;
 
-    switch (length) {
-    default:
-      return false;
-    case 4:
-      if ((a = (*--srcptr)) < 0x80 || a > 0xbf) return false; FALLTHROUGH;
-    case 3:
-      if ((a = (*--srcptr)) < 0x80 || a > 0xbf) return false; FALLTHROUGH;
-    case 2:
-      if ((a = (*--srcptr)) < 0x80 || a > 0xbf) return false;
+    // make sure to not read outside the buffer
 
-      switch (*buf) {
-      case 0xE0: if (a < 0xa0) return false; break;
-      case 0xED: if (a > 0x9f) return false; break;
-      case 0xF0: if (a < 0x90) return false; break;
-      case 0xF4: if (a > 0x8f) return false; FALLTHROUGH;
+    const size_t cp_len = cp_lens[cp_type];
+
+    if ((pos + cp_len) > len) return false;
+
+    // multibyte from here
+
+    if (cp_len >= 2)
+    {
+      pos++;
+
+      const u8 c1 = buf[pos];
+
+      switch (cp_type)
+      {
+        case 2:   if ((c1 < 0xa0) || (c1 > 0xbf)) return false; break;
+        case 4:   if ((c1 < 0x80) || (c1 > 0x9f)) return false; break;
+        case 6:   if ((c1 < 0x90) || (c1 > 0xbf)) return false; break;
+        case 8:   if ((c1 < 0x80) || (c1 > 0x8f)) return false; break;
+        default:  if ((c1 < 0x80) || (c1 > 0xbf)) return false; break;
       }
 
-    case 1:
-      if (*buf >= 0x80 && *buf < 0xc2) return false;
-    }
-    if (*buf > 0xf4)
-      return false;
+      for (size_t j = 2; j < cp_len; j++)
+      {
+        pos++;
 
-    buf += length;
+        const u8 cx = buf[pos];
+
+        if ((cx < 0x80) || (cx > 0xbf)) return false;
+      }
+    }
   }
+
   return true;
 }
 
-static bool printable_ascii (const u8 *buf, const int len)
+static bool printable_ascii (const u8 *buf, const size_t len)
 {
-  for (int i = 0; i < len; i++)
+  for (size_t i = 0; i < len; i++)
   {
     const u8 c = buf[i];
 
@@ -81,9 +113,9 @@ static bool printable_ascii (const u8 *buf, const int len)
   return true;
 }
 
-static bool matches_separator (const u8 *buf, const int len, const char separator)
+static bool matches_separator (const u8 *buf, const size_t len, const char separator)
 {
-  for (int i = 0; i < len; i++)
+  for (size_t i = 0; i < len; i++)
   {
     const char c = (char) buf[i];
 
@@ -93,7 +125,7 @@ static bool matches_separator (const u8 *buf, const int len, const char separato
   return false;
 }
 
-bool is_hexify (const u8 *buf, const int len)
+bool is_hexify (const u8 *buf, const size_t len)
 {
   if (len < 6) return false; // $HEX[] = 6
 
@@ -115,9 +147,9 @@ bool is_hexify (const u8 *buf, const int len)
   return true;
 }
 
-int exec_unhexify (const u8 *in_buf, const int in_len, u8 *out_buf, const int out_sz)
+size_t exec_unhexify (const u8 *in_buf, const size_t in_len, u8 *out_buf, const size_t out_sz)
 {
-  int i, j;
+  size_t i, j;
 
   for (i = 0, j = 5; j < in_len - 1; i += 1, j += 2)
   {
@@ -131,7 +163,7 @@ int exec_unhexify (const u8 *in_buf, const int in_len, u8 *out_buf, const int ou
   return (i);
 }
 
-bool need_hexify (const u8 *buf, const int len, const char separator, bool always_ascii)
+bool need_hexify (const u8 *buf, const size_t len, const char separator, bool always_ascii)
 {
   bool rc = false;
 
@@ -171,11 +203,11 @@ bool need_hexify (const u8 *buf, const int len, const char separator, bool alway
   return rc;
 }
 
-void exec_hexify (const u8 *buf, const int len, u8 *out)
+void exec_hexify (const u8 *buf, const size_t len, u8 *out)
 {
-  const int max_len = (len >= PW_MAX) ? PW_MAX : len;
+  const size_t max_len = (len >= PW_MAX) ? PW_MAX : len;
 
-  for (int i = max_len - 1, j = i * 2; i >= 0; i -= 1, j -= 2)
+  for (int i = (int) max_len - 1, j = i * 2; i >= 0; i -= 1, j -= 2)
   {
     u8_to_hex_lower (buf[i], out + j);
   }
@@ -183,9 +215,59 @@ void exec_hexify (const u8 *buf, const int len, u8 *out)
   out[max_len * 2] = 0;
 }
 
-bool is_valid_hex_string (const u8 *s, const int len)
+bool is_valid_base64a_string (const u8 *s, const size_t len)
 {
-  for (int i = 0; i < len; i++)
+  for (size_t i = 0; i < len; i++)
+  {
+    const u8 c = s[i];
+
+    if (is_valid_base64a_char (c) == false) return false;
+  }
+
+  return true;
+}
+
+bool is_valid_base64a_char (const u8 c)
+{
+  if ((c >= '0') && (c <= '9')) return true;
+  if ((c >= 'A') && (c <= 'Z')) return true;
+  if ((c >= 'a') && (c <= 'z')) return true;
+
+  if (c == '+') return true;
+  if (c == '/') return true;
+  if (c == '=') return true;
+
+  return false;
+}
+
+bool is_valid_base64b_string (const u8 *s, const size_t len)
+{
+  for (size_t i = 0; i < len; i++)
+  {
+    const u8 c = s[i];
+
+    if (is_valid_base64b_char (c) == false) return false;
+  }
+
+  return true;
+}
+
+bool is_valid_base64b_char (const u8 c)
+{
+  if ((c >= '0') && (c <= '9')) return true;
+  if ((c >= 'A') && (c <= 'Z')) return true;
+  if ((c >= 'a') && (c <= 'z')) return true;
+
+  if (c == '.') return true;
+  if (c == '/') return true;
+  if (c == '=') return true;
+
+  return false;
+}
+
+bool is_valid_hex_string (const u8 *s, const size_t len)
+{
+  for (size_t i = 0; i < len; i++)
   {
     const u8 c = s[i];
 
@@ -200,6 +282,25 @@ bool is_valid_hex_char (const u8 c)
   if ((c >= '0') && (c <= '9')) return true;
   if ((c >= 'A') && (c <= 'F')) return true;
   if ((c >= 'a') && (c <= 'f')) return true;
+
+  return false;
+}
+
+bool is_valid_digit_string (const u8 *s, const size_t len)
+{
+  for (size_t i = 0; i < len; i++)
+  {
+    const u8 c = s[i];
+
+    if (is_valid_digit_char (c) == false) return false;
+  }
+
+  return true;
+}
+
+bool is_valid_digit_char (const u8 c)
+{
+  if ((c >= '0') && (c <= '9')) return true;
 
   return false;
 }
@@ -527,13 +628,13 @@ u8 lotus64_to_int (const u8 c)
   return 0;
 }
 
-int base32_decode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf)
+size_t base32_decode (u8 (*f) (const u8), const u8 *in_buf, const size_t in_len, u8 *out_buf)
 {
   const u8 *in_ptr = in_buf;
 
   u8 *out_ptr = out_buf;
 
-  for (int i = 0; i < in_len; i += 8)
+  for (size_t i = 0; i < in_len; i += 8)
   {
     const u8 out_val0 = f (in_ptr[0] & 0x7f);
     const u8 out_val1 = f (in_ptr[1] & 0x7f);
@@ -554,25 +655,27 @@ int base32_decode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf
     out_ptr += 5;
   }
 
-  for (int i = 0; i < in_len; i++)
+  size_t tmp_len = 0;
+
+  for (size_t i = 0; i < in_len; i++, tmp_len++)
   {
     if (in_buf[i] != '=') continue;
 
-    in_len = i;
+    break;
   }
 
-  int out_len = (in_len * 5) / 8;
+  size_t out_len = (tmp_len * 5) / 8;
 
   return out_len;
 }
 
-int base32_encode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf)
+size_t base32_encode (u8 (*f) (const u8), const u8 *in_buf, const size_t in_len, u8 *out_buf)
 {
   const u8 *in_ptr = in_buf;
 
   u8 *out_ptr = out_buf;
 
-  for (int i = 0; i < in_len; i += 5)
+  for (size_t i = 0; i < in_len; i += 5)
   {
     const u8 out_val0 = f (                            ((in_ptr[0] >> 3) & 0x1f));
     const u8 out_val1 = f (((in_ptr[0] << 2) & 0x1c) | ((in_ptr[1] >> 6) & 0x03));
@@ -608,13 +711,13 @@ int base32_encode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf
   return out_len;
 }
 
-int base64_decode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf)
+size_t base64_decode (u8 (*f) (const u8), const u8 *in_buf, const size_t in_len, u8 *out_buf)
 {
   const u8 *in_ptr = in_buf;
 
   u8 *out_ptr = out_buf;
 
-  for (int i = 0; i < in_len; i += 4)
+  for (size_t i = 0; i < in_len; i += 4)
   {
     const u8 out_val0 = f (in_ptr[0] & 0x7f);
     const u8 out_val1 = f (in_ptr[1] & 0x7f);
@@ -629,25 +732,27 @@ int base64_decode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf
     out_ptr += 3;
   }
 
-  for (int i = 0; i < in_len; i++)
+  size_t tmp_len = 0;
+
+  for (size_t i = 0; i < in_len; i++, tmp_len++)
   {
     if (in_buf[i] != '=') continue;
 
-    in_len = i;
+    break;
   }
 
-  int out_len = (in_len * 6) / 8;
+  size_t out_len = (tmp_len * 6) / 8;
 
   return out_len;
 }
 
-int base64_encode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf)
+size_t base64_encode (u8 (*f) (const u8), const u8 *in_buf, const size_t in_len, u8 *out_buf)
 {
   const u8 *in_ptr = in_buf;
 
   u8 *out_ptr = out_buf;
 
-  for (int i = 0; i < in_len; i += 3)
+  for (size_t i = 0; i < in_len; i += 3)
   {
     const u8 out_val0 = f (                            ((in_ptr[0] >> 2) & 0x3f));
     const u8 out_val1 = f (((in_ptr[0] << 4) & 0x30) | ((in_ptr[1] >> 4) & 0x0f));
@@ -675,12 +780,12 @@ int base64_encode (u8 (*f) (const u8), const u8 *in_buf, int in_len, u8 *out_buf
   return out_len;
 }
 
-void lowercase (u8 *buf, int len)
+void lowercase (u8 *buf, const size_t len)
 {
-  for (int i = 0; i < len; i++) buf[i] = tolower (buf[i]);
+  for (size_t i = 0; i < len; i++) buf[i] = (u8) tolower ((int) buf[i]);
 }
 
-void uppercase (u8 *buf, int len)
+void uppercase (u8 *buf, const size_t len)
 {
-  for (int i = 0; i < len; i++) buf[i] = toupper (buf[i]);
+  for (size_t i = 0; i < len; i++) buf[i] = (u8) toupper ((int) buf[i]);
 }

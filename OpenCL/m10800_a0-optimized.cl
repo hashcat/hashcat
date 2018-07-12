@@ -14,7 +14,7 @@
 #include "inc_rp_optimized.cl"
 #include "inc_simd.cl"
 
-__constant static u64a k_sha384[80] =
+__constant u64a k_sha384[80] =
 {
   SHA512C00, SHA512C01, SHA512C02, SHA512C03,
   SHA512C04, SHA512C05, SHA512C06, SHA512C07,
@@ -38,7 +38,7 @@ __constant static u64a k_sha384[80] =
   SHA512C4c, SHA512C4d, SHA512C4e, SHA512C4f,
 };
 
-void sha384_transform (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u64x digest[8])
+DECLSPEC void sha384_transform (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u64x digest[8])
 {
   u64x w0_t = hl32_to_64 (w0[0], w0[1]);
   u64x w1_t = hl32_to_64 (w0[2], w0[3]);

@@ -55,8 +55,7 @@ u64 rotr64 (const u64 a, const u64 n)
 
 u16 byte_swap_16 (const u16 n)
 {
-  return (n & 0xff00) >> 8
-       | (n & 0x00ff) << 8;
+  return (u16) ((n >> 8) | (n << 8));
 }
 
 u32 byte_swap_32 (const u32 n)

@@ -13,7 +13,7 @@
 #include "inc_common.cl"
 #include "inc_simd.cl"
 
-__constant static u8a c_ftable[256] =
+__constant u8a c_ftable[256] =
 {
   0xa3, 0xd7, 0x09, 0x83, 0xf8, 0x48, 0xf6, 0xf4,
   0xb3, 0x21, 0x15, 0x78, 0x99, 0xb1, 0xaf, 0xf9,
@@ -49,7 +49,7 @@ __constant static u8a c_ftable[256] =
   0xbd, 0xa8, 0x3a, 0x01, 0x05, 0x59, 0x2a, 0x46
 };
 
-void g (__local u8 *s_ftable, const u32 *key, const int k, const u32 *wx, u32 *out)
+DECLSPEC void g (__local u8 *s_ftable, const u32 *key, const int k, const u32 *wx, u32 *out)
 {
   const u32 g1 = wx[1];
   const u32 g2 = wx[0];
@@ -62,7 +62,7 @@ void g (__local u8 *s_ftable, const u32 *key, const int k, const u32 *wx, u32 *o
   out[1] = g5;
 }
 
-u32 skip32 (__local u8 *s_ftable, const u32 KP, const u32 *key)
+DECLSPEC u32 skip32 (__local u8 *s_ftable, const u32 KP, const u32 *key)
 {
   u32 wl[2];
   u32 wr[2];

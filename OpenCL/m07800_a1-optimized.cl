@@ -14,7 +14,7 @@
 #include "inc_simd.cl"
 #include "inc_hash_sha1.cl"
 
-__constant static u32a theMagicArray[64] =
+__constant u32a theMagicArray[64] =
 {
   0x91ac5114, 0x9f675443, 0x24e73be0, 0x28747bc2, 0x863313eb, 0x5a4fcb5c, 0x080a7337, 0x0e5d1c2f,
   0x338fe6e5, 0xf89baedd, 0x16f24b8d, 0x2ce1d4dc, 0xb0cbdf9d, 0xd4706d17, 0xf94d423f, 0x9b1b1194,
@@ -26,7 +26,7 @@ __constant static u32a theMagicArray[64] =
   0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
 };
 
-u32 GETSHIFTEDINT_CONST (__constant u32 *a, const int n)
+DECLSPEC u32 GETSHIFTEDINT_CONST (__constant u32 *a, const int n)
 {
   const int d = n / 4;
   const int m = n & 3;
@@ -38,7 +38,7 @@ u32 GETSHIFTEDINT_CONST (__constant u32 *a, const int n)
   return h32_from_64_S (tmp);
 }
 
-void SETSHIFTEDINT (u32 *a, const int n, const u32 v)
+DECLSPEC void SETSHIFTEDINT (u32 *a, const int n, const u32 v)
 {
   const int d = n / 4;
   const int m = n & 3;
@@ -207,20 +207,20 @@ __kernel void m07800_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     u32 final[32];
 
-    final[ 0] = swap32 (w0[0] | s0[0]);
-    final[ 1] = swap32 (w0[1] | s0[1]);
-    final[ 2] = swap32 (w0[2] | s0[2]);
-    final[ 3] = swap32 (w0[3] | s0[3]);
-    final[ 4] = swap32 (w1[0] | s1[0]);
-    final[ 5] = swap32 (w1[1] | s1[1]);
-    final[ 6] = swap32 (w1[2] | s1[2]);
-    final[ 7] = swap32 (w1[3] | s1[3]);
-    final[ 8] = swap32 (w2[0] | s2[0]);
-    final[ 9] = swap32 (w2[1] | s2[1]);
-    final[10] = swap32 (w2[2] | s2[2]);
-    final[11] = swap32 (w2[3] | s2[3]);
-    final[12] = swap32 (w3[0] | s3[0]);
-    final[13] = swap32 (w3[1] | s3[1]);
+    final[ 0] = swap32_S (w0[0] | s0[0]);
+    final[ 1] = swap32_S (w0[1] | s0[1]);
+    final[ 2] = swap32_S (w0[2] | s0[2]);
+    final[ 3] = swap32_S (w0[3] | s0[3]);
+    final[ 4] = swap32_S (w1[0] | s1[0]);
+    final[ 5] = swap32_S (w1[1] | s1[1]);
+    final[ 6] = swap32_S (w1[2] | s1[2]);
+    final[ 7] = swap32_S (w1[3] | s1[3]);
+    final[ 8] = swap32_S (w2[0] | s2[0]);
+    final[ 9] = swap32_S (w2[1] | s2[1]);
+    final[10] = swap32_S (w2[2] | s2[2]);
+    final[11] = swap32_S (w2[3] | s2[3]);
+    final[12] = swap32_S (w3[0] | s3[0]);
+    final[13] = swap32_S (w3[1] | s3[1]);
     final[14] = 0;
     final[15] = pw_salt_len * 8;
     final[16] = 0;
@@ -527,20 +527,20 @@ __kernel void m07800_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
     u32 final[32];
 
-    final[ 0] = swap32 (w0[0] | s0[0]);
-    final[ 1] = swap32 (w0[1] | s0[1]);
-    final[ 2] = swap32 (w0[2] | s0[2]);
-    final[ 3] = swap32 (w0[3] | s0[3]);
-    final[ 4] = swap32 (w1[0] | s1[0]);
-    final[ 5] = swap32 (w1[1] | s1[1]);
-    final[ 6] = swap32 (w1[2] | s1[2]);
-    final[ 7] = swap32 (w1[3] | s1[3]);
-    final[ 8] = swap32 (w2[0] | s2[0]);
-    final[ 9] = swap32 (w2[1] | s2[1]);
-    final[10] = swap32 (w2[2] | s2[2]);
-    final[11] = swap32 (w2[3] | s2[3]);
-    final[12] = swap32 (w3[0] | s3[0]);
-    final[13] = swap32 (w3[1] | s3[1]);
+    final[ 0] = swap32_S (w0[0] | s0[0]);
+    final[ 1] = swap32_S (w0[1] | s0[1]);
+    final[ 2] = swap32_S (w0[2] | s0[2]);
+    final[ 3] = swap32_S (w0[3] | s0[3]);
+    final[ 4] = swap32_S (w1[0] | s1[0]);
+    final[ 5] = swap32_S (w1[1] | s1[1]);
+    final[ 6] = swap32_S (w1[2] | s1[2]);
+    final[ 7] = swap32_S (w1[3] | s1[3]);
+    final[ 8] = swap32_S (w2[0] | s2[0]);
+    final[ 9] = swap32_S (w2[1] | s2[1]);
+    final[10] = swap32_S (w2[2] | s2[2]);
+    final[11] = swap32_S (w2[3] | s2[3]);
+    final[12] = swap32_S (w3[0] | s3[0]);
+    final[13] = swap32_S (w3[1] | s3[1]);
     final[14] = 0;
     final[15] = pw_salt_len * 8;
     final[16] = 0;

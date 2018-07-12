@@ -25,7 +25,7 @@
 #define uint_to_hex_lower8_le(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7], l_bin2asc[(i).s8], l_bin2asc[(i).s9], l_bin2asc[(i).sa], l_bin2asc[(i).sb], l_bin2asc[(i).sc], l_bin2asc[(i).sd], l_bin2asc[(i).se], l_bin2asc[(i).sf])
 #endif
 
-void append_4 (const u32 offset, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 src_r0)
+DECLSPEC void append_4 (const u32 offset, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 src_r0)
 {
   u32 tmp[2];
 
@@ -97,7 +97,7 @@ void append_4 (const u32 offset, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], con
   }
 }
 
-void shift_2 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4])
+DECLSPEC void shift_2 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4])
 {
   w3[3] = w3[2] >> 16 | w3[3] << 16;
   w3[2] = w3[1] >> 16 | w3[2] << 16;
@@ -197,22 +197,22 @@ __kernel void m14400_m04 (__global pw_t *pws, __constant const kernel_rule_t *ru
   salt_buf0[0] |= dashes >> 16;
   salt_buf1[1] |= dashes << 16;
 
-  salt_buf0[0] = swap32 (salt_buf0[0]);
-  salt_buf0[1] = swap32 (salt_buf0[1]);
-  salt_buf0[2] = swap32 (salt_buf0[2]);
-  salt_buf0[3] = swap32 (salt_buf0[3]);
-  salt_buf1[0] = swap32 (salt_buf1[0]);
-  salt_buf1[1] = swap32 (salt_buf1[1]);
-  salt_buf1[2] = swap32 (salt_buf1[2]);
-  salt_buf1[3] = swap32 (salt_buf1[3]);
-  salt_buf2[0] = swap32 (salt_buf2[0]);
-  salt_buf2[1] = swap32 (salt_buf2[1]);
-  salt_buf2[2] = swap32 (salt_buf2[2]);
-  salt_buf2[3] = swap32 (salt_buf2[3]);
-  salt_buf3[0] = swap32 (salt_buf3[0]);
-  salt_buf3[1] = swap32 (salt_buf3[1]);
-  salt_buf3[2] = swap32 (salt_buf3[2]);
-  salt_buf3[3] = swap32 (salt_buf3[3]);
+  salt_buf0[0] = swap32_S (salt_buf0[0]);
+  salt_buf0[1] = swap32_S (salt_buf0[1]);
+  salt_buf0[2] = swap32_S (salt_buf0[2]);
+  salt_buf0[3] = swap32_S (salt_buf0[3]);
+  salt_buf1[0] = swap32_S (salt_buf1[0]);
+  salt_buf1[1] = swap32_S (salt_buf1[1]);
+  salt_buf1[2] = swap32_S (salt_buf1[2]);
+  salt_buf1[3] = swap32_S (salt_buf1[3]);
+  salt_buf2[0] = swap32_S (salt_buf2[0]);
+  salt_buf2[1] = swap32_S (salt_buf2[1]);
+  salt_buf2[2] = swap32_S (salt_buf2[2]);
+  salt_buf2[3] = swap32_S (salt_buf2[3]);
+  salt_buf3[0] = swap32_S (salt_buf3[0]);
+  salt_buf3[1] = swap32_S (salt_buf3[1]);
+  salt_buf3[2] = swap32_S (salt_buf3[2]);
+  salt_buf3[3] = swap32_S (salt_buf3[3]);
 
   const u32 salt_len_orig = salt_bufs[salt_pos].salt_len;
 
@@ -468,22 +468,22 @@ __kernel void m14400_s04 (__global pw_t *pws, __constant const kernel_rule_t *ru
   salt_buf0[0] |= dashes >> 16;
   salt_buf1[1] |= dashes << 16;
 
-  salt_buf0[0] = swap32 (salt_buf0[0]);
-  salt_buf0[1] = swap32 (salt_buf0[1]);
-  salt_buf0[2] = swap32 (salt_buf0[2]);
-  salt_buf0[3] = swap32 (salt_buf0[3]);
-  salt_buf1[0] = swap32 (salt_buf1[0]);
-  salt_buf1[1] = swap32 (salt_buf1[1]);
-  salt_buf1[2] = swap32 (salt_buf1[2]);
-  salt_buf1[3] = swap32 (salt_buf1[3]);
-  salt_buf2[0] = swap32 (salt_buf2[0]);
-  salt_buf2[1] = swap32 (salt_buf2[1]);
-  salt_buf2[2] = swap32 (salt_buf2[2]);
-  salt_buf2[3] = swap32 (salt_buf2[3]);
-  salt_buf3[0] = swap32 (salt_buf3[0]);
-  salt_buf3[1] = swap32 (salt_buf3[1]);
-  salt_buf3[2] = swap32 (salt_buf3[2]);
-  salt_buf3[3] = swap32 (salt_buf3[3]);
+  salt_buf0[0] = swap32_S (salt_buf0[0]);
+  salt_buf0[1] = swap32_S (salt_buf0[1]);
+  salt_buf0[2] = swap32_S (salt_buf0[2]);
+  salt_buf0[3] = swap32_S (salt_buf0[3]);
+  salt_buf1[0] = swap32_S (salt_buf1[0]);
+  salt_buf1[1] = swap32_S (salt_buf1[1]);
+  salt_buf1[2] = swap32_S (salt_buf1[2]);
+  salt_buf1[3] = swap32_S (salt_buf1[3]);
+  salt_buf2[0] = swap32_S (salt_buf2[0]);
+  salt_buf2[1] = swap32_S (salt_buf2[1]);
+  salt_buf2[2] = swap32_S (salt_buf2[2]);
+  salt_buf2[3] = swap32_S (salt_buf2[3]);
+  salt_buf3[0] = swap32_S (salt_buf3[0]);
+  salt_buf3[1] = swap32_S (salt_buf3[1]);
+  salt_buf3[2] = swap32_S (salt_buf3[2]);
+  salt_buf3[3] = swap32_S (salt_buf3[3]);
 
   const u32 salt_len_orig = salt_bufs[salt_pos].salt_len;
 

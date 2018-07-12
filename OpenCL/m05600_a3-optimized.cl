@@ -14,7 +14,7 @@
 #include "inc_hash_md4.cl"
 #include "inc_hash_md5.cl"
 
-void hmac_md5_pad (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[4], u32x opad[4])
+DECLSPEC void hmac_md5_pad (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[4], u32x opad[4])
 {
   w0[0] = w0[0] ^ 0x36363636;
   w0[1] = w0[1] ^ 0x36363636;
@@ -65,7 +65,7 @@ void hmac_md5_pad (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[4],
   md5_transform_vector (w0, w1, w2, w3, opad);
 }
 
-void hmac_md5_run (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[4], u32x opad[4], u32x digest[4])
+DECLSPEC void hmac_md5_run (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[4], u32x opad[4], u32x digest[4])
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];
@@ -99,7 +99,7 @@ void hmac_md5_run (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[4],
   md5_transform_vector (w0, w1, w2, w3, digest);
 }
 
-void m05600m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global netntlm_t *netntlm_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, __local u32 *s_userdomain_buf, __local u32 *s_chall_buf)
+DECLSPEC void m05600m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global netntlm_t *netntlm_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, __local u32 *s_userdomain_buf, __local u32 *s_chall_buf)
 {
   /**
    * modifier
@@ -305,7 +305,7 @@ void m05600m (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __gl
   }
 }
 
-void m05600s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global netntlm_t *netntlm_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, __local u32 *s_userdomain_buf, __local u32 *s_chall_buf)
+DECLSPEC void m05600s (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 pw_len, __global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global netntlm_t *netntlm_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, __local u32 *s_userdomain_buf, __local u32 *s_chall_buf)
 {
   /**
    * modifier
@@ -671,6 +671,75 @@ __kernel void m05600_m08 (__global pw_t *pws, __global const kernel_rule_t *rule
 
 __kernel void m05600_m16 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global netntlm_t *netntlm_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
 {
+  /**
+   * modifier
+   */
+
+  const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+
+  /**
+   * salt
+   */
+
+  __local u32 s_userdomain_buf[64];
+
+  for (u32 i = lid; i < 64; i += lsz)
+  {
+    s_userdomain_buf[i] = netntlm_bufs[digests_offset].userdomain_buf[i];
+  }
+
+  __local u32 s_chall_buf[256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    s_chall_buf[i] = netntlm_bufs[digests_offset].chall_buf[i];
+  }
+
+  barrier (CLK_LOCAL_MEM_FENCE);
+
+  if (gid >= gid_max) return;
+
+  /**
+   * base
+   */
+
+  u32 w0[4];
+
+  w0[0] = pws[gid].i[ 0];
+  w0[1] = pws[gid].i[ 1];
+  w0[2] = pws[gid].i[ 2];
+  w0[3] = pws[gid].i[ 3];
+
+  u32 w1[4];
+
+  w1[0] = pws[gid].i[ 4];
+  w1[1] = pws[gid].i[ 5];
+  w1[2] = pws[gid].i[ 6];
+  w1[3] = pws[gid].i[ 7];
+
+  u32 w2[4];
+
+  w2[0] = pws[gid].i[ 8];
+  w2[1] = pws[gid].i[ 9];
+  w2[2] = pws[gid].i[10];
+  w2[3] = pws[gid].i[11];
+
+  u32 w3[4];
+
+  w3[0] = pws[gid].i[12];
+  w3[1] = pws[gid].i[13];
+  w3[2] = pws[gid].i[14];
+  w3[3] = 0;
+
+  const u32 pw_len = pws[gid].pw_len;
+
+  /**
+   * main
+   */
+
+  m05600m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, netntlm_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, s_userdomain_buf, s_chall_buf);
 }
 
 __kernel void m05600_s04 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global netntlm_t *netntlm_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
@@ -821,4 +890,73 @@ __kernel void m05600_s08 (__global pw_t *pws, __global const kernel_rule_t *rule
 
 __kernel void m05600_s16 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global netntlm_t *netntlm_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
 {
+  /**
+   * modifier
+   */
+
+  const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+
+  /**
+   * salt
+   */
+
+  __local u32 s_userdomain_buf[64];
+
+  for (u32 i = lid; i < 64; i += lsz)
+  {
+    s_userdomain_buf[i] = netntlm_bufs[digests_offset].userdomain_buf[i];
+  }
+
+  __local u32 s_chall_buf[256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    s_chall_buf[i] = netntlm_bufs[digests_offset].chall_buf[i];
+  }
+
+  barrier (CLK_LOCAL_MEM_FENCE);
+
+  if (gid >= gid_max) return;
+
+  /**
+   * base
+   */
+
+  u32 w0[4];
+
+  w0[0] = pws[gid].i[ 0];
+  w0[1] = pws[gid].i[ 1];
+  w0[2] = pws[gid].i[ 2];
+  w0[3] = pws[gid].i[ 3];
+
+  u32 w1[4];
+
+  w1[0] = pws[gid].i[ 4];
+  w1[1] = pws[gid].i[ 5];
+  w1[2] = pws[gid].i[ 6];
+  w1[3] = pws[gid].i[ 7];
+
+  u32 w2[4];
+
+  w2[0] = pws[gid].i[ 8];
+  w2[1] = pws[gid].i[ 9];
+  w2[2] = pws[gid].i[10];
+  w2[3] = pws[gid].i[11];
+
+  u32 w3[4];
+
+  w3[0] = pws[gid].i[12];
+  w3[1] = pws[gid].i[13];
+  w3[2] = pws[gid].i[14];
+  w3[3] = 0;
+
+  const u32 pw_len = pws[gid].pw_len;
+
+  /**
+   * main
+   */
+
+  m05600s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, netntlm_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, s_userdomain_buf, s_chall_buf);
 }

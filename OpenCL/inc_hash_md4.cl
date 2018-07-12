@@ -1,8 +1,8 @@
 
 // important notes on this:
 // input buf unused bytes needs to be set to zero
-// input buf needs to be in algorithm native byte order (md5 = LE, sha1 = BE, etc)
-// input buf needs to be 64 byte aligned when using md5_update()
+// input buf needs to be in algorithm native byte order (md4 = LE, sha1 = BE, etc)
+// input buf needs to be 64 byte aligned when using md4_update()
 
 typedef struct md4_ctx
 {
@@ -17,7 +17,7 @@ typedef struct md4_ctx
 
 } md4_ctx_t;
 
-void md4_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[4])
+DECLSPEC void md4_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[4])
 {
   u32 a = digest[0];
   u32 b = digest[1];
@@ -81,7 +81,7 @@ void md4_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32
   digest[3] += d;
 }
 
-void md4_init (md4_ctx_t *ctx)
+DECLSPEC void md4_init (md4_ctx_t *ctx)
 {
   ctx->h[0] = MD4M_A;
   ctx->h[1] = MD4M_B;
@@ -108,13 +108,9 @@ void md4_init (md4_ctx_t *ctx)
   ctx->len = 0;
 }
 
-void md4_update_64 (md4_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len)
+DECLSPEC void md4_update_64 (md4_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len)
 {
-  #ifdef IS_AMD
-  volatile const int pos = ctx->len & 63;
-  #else
   const int pos = ctx->len & 63;
-  #endif
 
   ctx->len += len;
 
@@ -186,7 +182,7 @@ void md4_update_64 (md4_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], 
   }
 }
 
-void md4_update (md4_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void md4_update (md4_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -238,263 +234,7 @@ void md4_update (md4_ctx_t *ctx, const u32 *w, const int len)
   md4_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-void md4_update_swap (md4_ctx_t *ctx, const u32 *w, const int len)
-{
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
-
-  int pos1;
-  int pos4;
-
-  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
-  {
-    w0[0] = w[pos4 +  0];
-    w0[1] = w[pos4 +  1];
-    w0[2] = w[pos4 +  2];
-    w0[3] = w[pos4 +  3];
-    w1[0] = w[pos4 +  4];
-    w1[1] = w[pos4 +  5];
-    w1[2] = w[pos4 +  6];
-    w1[3] = w[pos4 +  7];
-    w2[0] = w[pos4 +  8];
-    w2[1] = w[pos4 +  9];
-    w2[2] = w[pos4 + 10];
-    w2[3] = w[pos4 + 11];
-    w3[0] = w[pos4 + 12];
-    w3[1] = w[pos4 + 13];
-    w3[2] = w[pos4 + 14];
-    w3[3] = w[pos4 + 15];
-
-    w0[0] = swap32_S (w0[0]);
-    w0[1] = swap32_S (w0[1]);
-    w0[2] = swap32_S (w0[2]);
-    w0[3] = swap32_S (w0[3]);
-    w1[0] = swap32_S (w1[0]);
-    w1[1] = swap32_S (w1[1]);
-    w1[2] = swap32_S (w1[2]);
-    w1[3] = swap32_S (w1[3]);
-    w2[0] = swap32_S (w2[0]);
-    w2[1] = swap32_S (w2[1]);
-    w2[2] = swap32_S (w2[2]);
-    w2[3] = swap32_S (w2[3]);
-    w3[0] = swap32_S (w3[0]);
-    w3[1] = swap32_S (w3[1]);
-    w3[2] = swap32_S (w3[2]);
-    w3[3] = swap32_S (w3[3]);
-
-    md4_update_64 (ctx, w0, w1, w2, w3, 64);
-  }
-
-  w0[0] = w[pos4 +  0];
-  w0[1] = w[pos4 +  1];
-  w0[2] = w[pos4 +  2];
-  w0[3] = w[pos4 +  3];
-  w1[0] = w[pos4 +  4];
-  w1[1] = w[pos4 +  5];
-  w1[2] = w[pos4 +  6];
-  w1[3] = w[pos4 +  7];
-  w2[0] = w[pos4 +  8];
-  w2[1] = w[pos4 +  9];
-  w2[2] = w[pos4 + 10];
-  w2[3] = w[pos4 + 11];
-  w3[0] = w[pos4 + 12];
-  w3[1] = w[pos4 + 13];
-  w3[2] = w[pos4 + 14];
-  w3[3] = w[pos4 + 15];
-
-  w0[0] = swap32_S (w0[0]);
-  w0[1] = swap32_S (w0[1]);
-  w0[2] = swap32_S (w0[2]);
-  w0[3] = swap32_S (w0[3]);
-  w1[0] = swap32_S (w1[0]);
-  w1[1] = swap32_S (w1[1]);
-  w1[2] = swap32_S (w1[2]);
-  w1[3] = swap32_S (w1[3]);
-  w2[0] = swap32_S (w2[0]);
-  w2[1] = swap32_S (w2[1]);
-  w2[2] = swap32_S (w2[2]);
-  w2[3] = swap32_S (w2[3]);
-  w3[0] = swap32_S (w3[0]);
-  w3[1] = swap32_S (w3[1]);
-  w3[2] = swap32_S (w3[2]);
-  w3[3] = swap32_S (w3[3]);
-
-  md4_update_64 (ctx, w0, w1, w2, w3, len - pos1);
-}
-
-void md4_update_utf16le (md4_ctx_t *ctx, const u32 *w, const int len)
-{
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
-
-  int pos1;
-  int pos4;
-
-  for (pos1 = 0, pos4 = 0; pos1 < len - 32; pos1 += 32, pos4 += 8)
-  {
-    w0[0] = w[pos4 + 0];
-    w0[1] = w[pos4 + 1];
-    w0[2] = w[pos4 + 2];
-    w0[3] = w[pos4 + 3];
-    w1[0] = w[pos4 + 4];
-    w1[1] = w[pos4 + 5];
-    w1[2] = w[pos4 + 6];
-    w1[3] = w[pos4 + 7];
-
-    make_utf16le_S (w1, w2, w3);
-    make_utf16le_S (w0, w0, w1);
-
-    md4_update_64 (ctx, w0, w1, w2, w3, 32 * 2);
-  }
-
-  w0[0] = w[pos4 + 0];
-  w0[1] = w[pos4 + 1];
-  w0[2] = w[pos4 + 2];
-  w0[3] = w[pos4 + 3];
-  w1[0] = w[pos4 + 4];
-  w1[1] = w[pos4 + 5];
-  w1[2] = w[pos4 + 6];
-  w1[3] = w[pos4 + 7];
-
-  make_utf16le_S (w1, w2, w3);
-  make_utf16le_S (w0, w0, w1);
-
-  md4_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
-}
-
-void md4_update_utf16le_swap (md4_ctx_t *ctx, const u32 *w, const int len)
-{
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
-
-  int pos1;
-  int pos4;
-
-  for (pos1 = 0, pos4 = 0; pos1 < len - 32; pos1 += 32, pos4 += 8)
-  {
-    w0[0] = w[pos4 + 0];
-    w0[1] = w[pos4 + 1];
-    w0[2] = w[pos4 + 2];
-    w0[3] = w[pos4 + 3];
-    w1[0] = w[pos4 + 4];
-    w1[1] = w[pos4 + 5];
-    w1[2] = w[pos4 + 6];
-    w1[3] = w[pos4 + 7];
-
-    make_utf16le_S (w1, w2, w3);
-    make_utf16le_S (w0, w0, w1);
-
-    w0[0] = swap32_S (w0[0]);
-    w0[1] = swap32_S (w0[1]);
-    w0[2] = swap32_S (w0[2]);
-    w0[3] = swap32_S (w0[3]);
-    w1[0] = swap32_S (w1[0]);
-    w1[1] = swap32_S (w1[1]);
-    w1[2] = swap32_S (w1[2]);
-    w1[3] = swap32_S (w1[3]);
-    w2[0] = swap32_S (w2[0]);
-    w2[1] = swap32_S (w2[1]);
-    w2[2] = swap32_S (w2[2]);
-    w2[3] = swap32_S (w2[3]);
-    w3[0] = swap32_S (w3[0]);
-    w3[1] = swap32_S (w3[1]);
-    w3[2] = swap32_S (w3[2]);
-    w3[3] = swap32_S (w3[3]);
-
-    md4_update_64 (ctx, w0, w1, w2, w3, 32 * 2);
-  }
-
-  w0[0] = w[pos4 + 0];
-  w0[1] = w[pos4 + 1];
-  w0[2] = w[pos4 + 2];
-  w0[3] = w[pos4 + 3];
-  w1[0] = w[pos4 + 4];
-  w1[1] = w[pos4 + 5];
-  w1[2] = w[pos4 + 6];
-  w1[3] = w[pos4 + 7];
-
-  make_utf16le_S (w1, w2, w3);
-  make_utf16le_S (w0, w0, w1);
-
-  w0[0] = swap32_S (w0[0]);
-  w0[1] = swap32_S (w0[1]);
-  w0[2] = swap32_S (w0[2]);
-  w0[3] = swap32_S (w0[3]);
-  w1[0] = swap32_S (w1[0]);
-  w1[1] = swap32_S (w1[1]);
-  w1[2] = swap32_S (w1[2]);
-  w1[3] = swap32_S (w1[3]);
-  w2[0] = swap32_S (w2[0]);
-  w2[1] = swap32_S (w2[1]);
-  w2[2] = swap32_S (w2[2]);
-  w2[3] = swap32_S (w2[3]);
-  w3[0] = swap32_S (w3[0]);
-  w3[1] = swap32_S (w3[1]);
-  w3[2] = swap32_S (w3[2]);
-  w3[3] = swap32_S (w3[3]);
-
-  md4_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
-}
-
-void md4_update_global (md4_ctx_t *ctx, const __global u32 *w, const int len)
-{
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
-
-  int pos1;
-  int pos4;
-
-  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
-  {
-    w0[0] = w[pos4 +  0];
-    w0[1] = w[pos4 +  1];
-    w0[2] = w[pos4 +  2];
-    w0[3] = w[pos4 +  3];
-    w1[0] = w[pos4 +  4];
-    w1[1] = w[pos4 +  5];
-    w1[2] = w[pos4 +  6];
-    w1[3] = w[pos4 +  7];
-    w2[0] = w[pos4 +  8];
-    w2[1] = w[pos4 +  9];
-    w2[2] = w[pos4 + 10];
-    w2[3] = w[pos4 + 11];
-    w3[0] = w[pos4 + 12];
-    w3[1] = w[pos4 + 13];
-    w3[2] = w[pos4 + 14];
-    w3[3] = w[pos4 + 15];
-
-    md4_update_64 (ctx, w0, w1, w2, w3, 64);
-  }
-
-  w0[0] = w[pos4 +  0];
-  w0[1] = w[pos4 +  1];
-  w0[2] = w[pos4 +  2];
-  w0[3] = w[pos4 +  3];
-  w1[0] = w[pos4 +  4];
-  w1[1] = w[pos4 +  5];
-  w1[2] = w[pos4 +  6];
-  w1[3] = w[pos4 +  7];
-  w2[0] = w[pos4 +  8];
-  w2[1] = w[pos4 +  9];
-  w2[2] = w[pos4 + 10];
-  w2[3] = w[pos4 + 11];
-  w3[0] = w[pos4 + 12];
-  w3[1] = w[pos4 + 13];
-  w3[2] = w[pos4 + 14];
-  w3[3] = w[pos4 + 15];
-
-  md4_update_64 (ctx, w0, w1, w2, w3, len - pos1);
-}
-
-void md4_update_global_swap (md4_ctx_t *ctx, const __global u32 *w, const int len)
+DECLSPEC void md4_update_swap (md4_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -580,7 +320,7 @@ void md4_update_global_swap (md4_ctx_t *ctx, const __global u32 *w, const int le
   md4_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-void md4_update_global_utf16le (md4_ctx_t *ctx, const __global u32 *w, const int len)
+DECLSPEC void md4_update_utf16le (md4_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -622,7 +362,7 @@ void md4_update_global_utf16le (md4_ctx_t *ctx, const __global u32 *w, const int
   md4_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-void md4_update_global_utf16le_swap (md4_ctx_t *ctx, const __global u32 *w, const int len)
+DECLSPEC void md4_update_utf16le_swap (md4_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -698,7 +438,263 @@ void md4_update_global_utf16le_swap (md4_ctx_t *ctx, const __global u32 *w, cons
   md4_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-void md4_final (md4_ctx_t *ctx)
+DECLSPEC void md4_update_global (md4_ctx_t *ctx, const __global u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  int pos1;
+  int pos4;
+
+  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
+  {
+    w0[0] = w[pos4 +  0];
+    w0[1] = w[pos4 +  1];
+    w0[2] = w[pos4 +  2];
+    w0[3] = w[pos4 +  3];
+    w1[0] = w[pos4 +  4];
+    w1[1] = w[pos4 +  5];
+    w1[2] = w[pos4 +  6];
+    w1[3] = w[pos4 +  7];
+    w2[0] = w[pos4 +  8];
+    w2[1] = w[pos4 +  9];
+    w2[2] = w[pos4 + 10];
+    w2[3] = w[pos4 + 11];
+    w3[0] = w[pos4 + 12];
+    w3[1] = w[pos4 + 13];
+    w3[2] = w[pos4 + 14];
+    w3[3] = w[pos4 + 15];
+
+    md4_update_64 (ctx, w0, w1, w2, w3, 64);
+  }
+
+  w0[0] = w[pos4 +  0];
+  w0[1] = w[pos4 +  1];
+  w0[2] = w[pos4 +  2];
+  w0[3] = w[pos4 +  3];
+  w1[0] = w[pos4 +  4];
+  w1[1] = w[pos4 +  5];
+  w1[2] = w[pos4 +  6];
+  w1[3] = w[pos4 +  7];
+  w2[0] = w[pos4 +  8];
+  w2[1] = w[pos4 +  9];
+  w2[2] = w[pos4 + 10];
+  w2[3] = w[pos4 + 11];
+  w3[0] = w[pos4 + 12];
+  w3[1] = w[pos4 + 13];
+  w3[2] = w[pos4 + 14];
+  w3[3] = w[pos4 + 15];
+
+  md4_update_64 (ctx, w0, w1, w2, w3, len - pos1);
+}
+
+DECLSPEC void md4_update_global_swap (md4_ctx_t *ctx, const __global u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  int pos1;
+  int pos4;
+
+  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
+  {
+    w0[0] = w[pos4 +  0];
+    w0[1] = w[pos4 +  1];
+    w0[2] = w[pos4 +  2];
+    w0[3] = w[pos4 +  3];
+    w1[0] = w[pos4 +  4];
+    w1[1] = w[pos4 +  5];
+    w1[2] = w[pos4 +  6];
+    w1[3] = w[pos4 +  7];
+    w2[0] = w[pos4 +  8];
+    w2[1] = w[pos4 +  9];
+    w2[2] = w[pos4 + 10];
+    w2[3] = w[pos4 + 11];
+    w3[0] = w[pos4 + 12];
+    w3[1] = w[pos4 + 13];
+    w3[2] = w[pos4 + 14];
+    w3[3] = w[pos4 + 15];
+
+    w0[0] = swap32_S (w0[0]);
+    w0[1] = swap32_S (w0[1]);
+    w0[2] = swap32_S (w0[2]);
+    w0[3] = swap32_S (w0[3]);
+    w1[0] = swap32_S (w1[0]);
+    w1[1] = swap32_S (w1[1]);
+    w1[2] = swap32_S (w1[2]);
+    w1[3] = swap32_S (w1[3]);
+    w2[0] = swap32_S (w2[0]);
+    w2[1] = swap32_S (w2[1]);
+    w2[2] = swap32_S (w2[2]);
+    w2[3] = swap32_S (w2[3]);
+    w3[0] = swap32_S (w3[0]);
+    w3[1] = swap32_S (w3[1]);
+    w3[2] = swap32_S (w3[2]);
+    w3[3] = swap32_S (w3[3]);
+
+    md4_update_64 (ctx, w0, w1, w2, w3, 64);
+  }
+
+  w0[0] = w[pos4 +  0];
+  w0[1] = w[pos4 +  1];
+  w0[2] = w[pos4 +  2];
+  w0[3] = w[pos4 +  3];
+  w1[0] = w[pos4 +  4];
+  w1[1] = w[pos4 +  5];
+  w1[2] = w[pos4 +  6];
+  w1[3] = w[pos4 +  7];
+  w2[0] = w[pos4 +  8];
+  w2[1] = w[pos4 +  9];
+  w2[2] = w[pos4 + 10];
+  w2[3] = w[pos4 + 11];
+  w3[0] = w[pos4 + 12];
+  w3[1] = w[pos4 + 13];
+  w3[2] = w[pos4 + 14];
+  w3[3] = w[pos4 + 15];
+
+  w0[0] = swap32_S (w0[0]);
+  w0[1] = swap32_S (w0[1]);
+  w0[2] = swap32_S (w0[2]);
+  w0[3] = swap32_S (w0[3]);
+  w1[0] = swap32_S (w1[0]);
+  w1[1] = swap32_S (w1[1]);
+  w1[2] = swap32_S (w1[2]);
+  w1[3] = swap32_S (w1[3]);
+  w2[0] = swap32_S (w2[0]);
+  w2[1] = swap32_S (w2[1]);
+  w2[2] = swap32_S (w2[2]);
+  w2[3] = swap32_S (w2[3]);
+  w3[0] = swap32_S (w3[0]);
+  w3[1] = swap32_S (w3[1]);
+  w3[2] = swap32_S (w3[2]);
+  w3[3] = swap32_S (w3[3]);
+
+  md4_update_64 (ctx, w0, w1, w2, w3, len - pos1);
+}
+
+DECLSPEC void md4_update_global_utf16le (md4_ctx_t *ctx, const __global u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  int pos1;
+  int pos4;
+
+  for (pos1 = 0, pos4 = 0; pos1 < len - 32; pos1 += 32, pos4 += 8)
+  {
+    w0[0] = w[pos4 + 0];
+    w0[1] = w[pos4 + 1];
+    w0[2] = w[pos4 + 2];
+    w0[3] = w[pos4 + 3];
+    w1[0] = w[pos4 + 4];
+    w1[1] = w[pos4 + 5];
+    w1[2] = w[pos4 + 6];
+    w1[3] = w[pos4 + 7];
+
+    make_utf16le_S (w1, w2, w3);
+    make_utf16le_S (w0, w0, w1);
+
+    md4_update_64 (ctx, w0, w1, w2, w3, 32 * 2);
+  }
+
+  w0[0] = w[pos4 + 0];
+  w0[1] = w[pos4 + 1];
+  w0[2] = w[pos4 + 2];
+  w0[3] = w[pos4 + 3];
+  w1[0] = w[pos4 + 4];
+  w1[1] = w[pos4 + 5];
+  w1[2] = w[pos4 + 6];
+  w1[3] = w[pos4 + 7];
+
+  make_utf16le_S (w1, w2, w3);
+  make_utf16le_S (w0, w0, w1);
+
+  md4_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
+}
+
+DECLSPEC void md4_update_global_utf16le_swap (md4_ctx_t *ctx, const __global u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  int pos1;
+  int pos4;
+
+  for (pos1 = 0, pos4 = 0; pos1 < len - 32; pos1 += 32, pos4 += 8)
+  {
+    w0[0] = w[pos4 + 0];
+    w0[1] = w[pos4 + 1];
+    w0[2] = w[pos4 + 2];
+    w0[3] = w[pos4 + 3];
+    w1[0] = w[pos4 + 4];
+    w1[1] = w[pos4 + 5];
+    w1[2] = w[pos4 + 6];
+    w1[3] = w[pos4 + 7];
+
+    make_utf16le_S (w1, w2, w3);
+    make_utf16le_S (w0, w0, w1);
+
+    w0[0] = swap32_S (w0[0]);
+    w0[1] = swap32_S (w0[1]);
+    w0[2] = swap32_S (w0[2]);
+    w0[3] = swap32_S (w0[3]);
+    w1[0] = swap32_S (w1[0]);
+    w1[1] = swap32_S (w1[1]);
+    w1[2] = swap32_S (w1[2]);
+    w1[3] = swap32_S (w1[3]);
+    w2[0] = swap32_S (w2[0]);
+    w2[1] = swap32_S (w2[1]);
+    w2[2] = swap32_S (w2[2]);
+    w2[3] = swap32_S (w2[3]);
+    w3[0] = swap32_S (w3[0]);
+    w3[1] = swap32_S (w3[1]);
+    w3[2] = swap32_S (w3[2]);
+    w3[3] = swap32_S (w3[3]);
+
+    md4_update_64 (ctx, w0, w1, w2, w3, 32 * 2);
+  }
+
+  w0[0] = w[pos4 + 0];
+  w0[1] = w[pos4 + 1];
+  w0[2] = w[pos4 + 2];
+  w0[3] = w[pos4 + 3];
+  w1[0] = w[pos4 + 4];
+  w1[1] = w[pos4 + 5];
+  w1[2] = w[pos4 + 6];
+  w1[3] = w[pos4 + 7];
+
+  make_utf16le_S (w1, w2, w3);
+  make_utf16le_S (w0, w0, w1);
+
+  w0[0] = swap32_S (w0[0]);
+  w0[1] = swap32_S (w0[1]);
+  w0[2] = swap32_S (w0[2]);
+  w0[3] = swap32_S (w0[3]);
+  w1[0] = swap32_S (w1[0]);
+  w1[1] = swap32_S (w1[1]);
+  w1[2] = swap32_S (w1[2]);
+  w1[3] = swap32_S (w1[3]);
+  w2[0] = swap32_S (w2[0]);
+  w2[1] = swap32_S (w2[1]);
+  w2[2] = swap32_S (w2[2]);
+  w2[3] = swap32_S (w2[3]);
+  w3[0] = swap32_S (w3[0]);
+  w3[1] = swap32_S (w3[1]);
+  w3[2] = swap32_S (w3[2]);
+  w3[3] = swap32_S (w3[3]);
+
+  md4_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
+}
+
+DECLSPEC void md4_final (md4_ctx_t *ctx)
 {
   const int pos = ctx->len & 63;
 
@@ -741,7 +737,7 @@ typedef struct md4_hmac_ctx
 
 } md4_hmac_ctx_t;
 
-void md4_hmac_init_64 (md4_hmac_ctx_t *ctx, const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4])
+DECLSPEC void md4_hmac_init_64 (md4_hmac_ctx_t *ctx, const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4])
 {
   u32 t0[4];
   u32 t1[4];
@@ -795,7 +791,7 @@ void md4_hmac_init_64 (md4_hmac_ctx_t *ctx, const u32 w0[4], const u32 w1[4], co
   md4_update_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
-void md4_hmac_init (md4_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void md4_hmac_init (md4_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -852,7 +848,7 @@ void md4_hmac_init (md4_hmac_ctx_t *ctx, const u32 *w, const int len)
   md4_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
-void md4_hmac_init_swap (md4_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void md4_hmac_init_swap (md4_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -909,7 +905,7 @@ void md4_hmac_init_swap (md4_hmac_ctx_t *ctx, const u32 *w, const int len)
   md4_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
-void md4_hmac_init_global (md4_hmac_ctx_t *ctx, __global const u32 *w, const int len)
+DECLSPEC void md4_hmac_init_global (md4_hmac_ctx_t *ctx, __global const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -966,7 +962,7 @@ void md4_hmac_init_global (md4_hmac_ctx_t *ctx, __global const u32 *w, const int
   md4_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
-void md4_hmac_init_global_swap (md4_hmac_ctx_t *ctx, __global const u32 *w, const int len)
+DECLSPEC void md4_hmac_init_global_swap (md4_hmac_ctx_t *ctx, __global const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1023,52 +1019,52 @@ void md4_hmac_init_global_swap (md4_hmac_ctx_t *ctx, __global const u32 *w, cons
   md4_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
-void md4_hmac_update_64 (md4_hmac_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len)
+DECLSPEC void md4_hmac_update_64 (md4_hmac_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len)
 {
   md4_update_64 (&ctx->ipad, w0, w1, w2, w3, len);
 }
 
-void md4_hmac_update (md4_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void md4_hmac_update (md4_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   md4_update (&ctx->ipad, w, len);
 }
 
-void md4_hmac_update_swap (md4_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void md4_hmac_update_swap (md4_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   md4_update_swap (&ctx->ipad, w, len);
 }
 
-void md4_hmac_update_utf16le (md4_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void md4_hmac_update_utf16le (md4_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   md4_update_utf16le (&ctx->ipad, w, len);
 }
 
-void md4_hmac_update_utf16le_swap (md4_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void md4_hmac_update_utf16le_swap (md4_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   md4_update_utf16le_swap (&ctx->ipad, w, len);
 }
 
-void md4_hmac_update_global (md4_hmac_ctx_t *ctx, const __global u32 *w, const int len)
+DECLSPEC void md4_hmac_update_global (md4_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   md4_update_global (&ctx->ipad, w, len);
 }
 
-void md4_hmac_update_global_swap (md4_hmac_ctx_t *ctx, const __global u32 *w, const int len)
+DECLSPEC void md4_hmac_update_global_swap (md4_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   md4_update_global_swap (&ctx->ipad, w, len);
 }
 
-void md4_hmac_update_global_utf16le (md4_hmac_ctx_t *ctx, const __global u32 *w, const int len)
+DECLSPEC void md4_hmac_update_global_utf16le (md4_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   md4_update_global_utf16le (&ctx->ipad, w, len);
 }
 
-void md4_hmac_update_global_utf16le_swap (md4_hmac_ctx_t *ctx, const __global u32 *w, const int len)
+DECLSPEC void md4_hmac_update_global_utf16le_swap (md4_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   md4_update_global_utf16le_swap (&ctx->ipad, w, len);
 }
 
-void md4_hmac_final (md4_hmac_ctx_t *ctx)
+DECLSPEC void md4_hmac_final (md4_hmac_ctx_t *ctx)
 {
   md4_final (&ctx->ipad);
 
@@ -1114,7 +1110,7 @@ typedef struct md4_ctx_vector
 
 } md4_ctx_vector_t;
 
-void md4_transform_vector (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[4])
+DECLSPEC void md4_transform_vector (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[4])
 {
   u32x a = digest[0];
   u32x b = digest[1];
@@ -1178,7 +1174,7 @@ void md4_transform_vector (const u32x w0[4], const u32x w1[4], const u32x w2[4],
   digest[3] += d;
 }
 
-void md4_init_vector (md4_ctx_vector_t *ctx)
+DECLSPEC void md4_init_vector (md4_ctx_vector_t *ctx)
 {
   ctx->h[0] = MD4M_A;
   ctx->h[1] = MD4M_B;
@@ -1205,7 +1201,7 @@ void md4_init_vector (md4_ctx_vector_t *ctx)
   ctx->len = 0;
 }
 
-void md4_init_vector_from_scalar (md4_ctx_vector_t *ctx, md4_ctx_t *ctx0)
+DECLSPEC void md4_init_vector_from_scalar (md4_ctx_vector_t *ctx, md4_ctx_t *ctx0)
 {
   ctx->h[0] = ctx0->h[0];
   ctx->h[1] = ctx0->h[1];
@@ -1232,13 +1228,9 @@ void md4_init_vector_from_scalar (md4_ctx_vector_t *ctx, md4_ctx_t *ctx0)
   ctx->len = ctx0->len;
 }
 
-void md4_update_vector_64 (md4_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const int len)
+DECLSPEC void md4_update_vector_64 (md4_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const int len)
 {
-  #ifdef IS_AMD
-  volatile const int pos = ctx->len & 63;
-  #else
   const int pos = ctx->len & 63;
-  #endif
 
   ctx->len += len;
 
@@ -1310,7 +1302,7 @@ void md4_update_vector_64 (md4_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w
   }
 }
 
-void md4_update_vector (md4_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void md4_update_vector (md4_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -1362,7 +1354,7 @@ void md4_update_vector (md4_ctx_vector_t *ctx, const u32x *w, const int len)
   md4_update_vector_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-void md4_update_vector_swap (md4_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void md4_update_vector_swap (md4_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -1448,7 +1440,7 @@ void md4_update_vector_swap (md4_ctx_vector_t *ctx, const u32x *w, const int len
   md4_update_vector_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-void md4_update_vector_utf16le (md4_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void md4_update_vector_utf16le (md4_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -1490,7 +1482,7 @@ void md4_update_vector_utf16le (md4_ctx_vector_t *ctx, const u32x *w, const int 
   md4_update_vector_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-void md4_update_vector_utf16le_swap (md4_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void md4_update_vector_utf16le_swap (md4_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -1566,7 +1558,7 @@ void md4_update_vector_utf16le_swap (md4_ctx_vector_t *ctx, const u32x *w, const
   md4_update_vector_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-void md4_final_vector (md4_ctx_vector_t *ctx)
+DECLSPEC void md4_final_vector (md4_ctx_vector_t *ctx)
 {
   const int pos = ctx->len & 63;
 
@@ -1609,7 +1601,7 @@ typedef struct md4_hmac_ctx_vector
 
 } md4_hmac_ctx_vector_t;
 
-void md4_hmac_init_vector_64 (md4_hmac_ctx_vector_t *ctx, const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4])
+DECLSPEC void md4_hmac_init_vector_64 (md4_hmac_ctx_vector_t *ctx, const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4])
 {
   u32x t0[4];
   u32x t1[4];
@@ -1663,7 +1655,7 @@ void md4_hmac_init_vector_64 (md4_hmac_ctx_vector_t *ctx, const u32x w0[4], cons
   md4_update_vector_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
-void md4_hmac_init_vector (md4_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void md4_hmac_init_vector (md4_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -1720,17 +1712,17 @@ void md4_hmac_init_vector (md4_hmac_ctx_vector_t *ctx, const u32x *w, const int 
   md4_hmac_init_vector_64 (ctx, w0, w1, w2, w3);
 }
 
-void md4_hmac_update_vector_64 (md4_hmac_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const int len)
+DECLSPEC void md4_hmac_update_vector_64 (md4_hmac_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const int len)
 {
   md4_update_vector_64 (&ctx->ipad, w0, w1, w2, w3, len);
 }
 
-void md4_hmac_update_vector (md4_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void md4_hmac_update_vector (md4_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   md4_update_vector (&ctx->ipad, w, len);
 }
 
-void md4_hmac_final_vector (md4_hmac_ctx_vector_t *ctx)
+DECLSPEC void md4_hmac_final_vector (md4_hmac_ctx_vector_t *ctx)
 {
   md4_final_vector (&ctx->ipad);
 

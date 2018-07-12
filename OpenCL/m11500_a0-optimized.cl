@@ -15,7 +15,7 @@
 #include "inc_rp_optimized.cl"
 #include "inc_simd.cl"
 
-__constant static u32a crc32tab[0x100] =
+__constant u32a crc32tab[0x100] =
 {
   0x00000000, 0x77073096, 0xee0e612c, 0x990951ba,
   0x076dc419, 0x706af48f, 0xe963a535, 0x9e6495a3,
@@ -83,7 +83,7 @@ __constant static u32a crc32tab[0x100] =
   0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
 };
 
-u32x round_crc32 (u32x a, const u32x v)
+DECLSPEC u32x round_crc32 (u32x a, const u32x v)
 {
   const u32x k = (a ^ v) & 0xff;
 
@@ -106,7 +106,7 @@ u32x round_crc32 (u32x a, const u32x v)
   return a;
 }
 
-u32x crc32 (const u32x w[16], const u32 pw_len, const u32 iv)
+DECLSPEC u32x crc32 (const u32x w[16], const u32 pw_len, const u32 iv)
 {
   u32x a = iv ^ ~0;
 

@@ -31,7 +31,7 @@
     x[b] = rotl32(x[b] ^ x[c], 7);    \
   } while (0);
 
-void chacha20_transform (const u32x w0[4], const u32x w1[4], const u32 position[2], const u32 offset, const u32 iv[2], const u32 plain[4], u32x digest[4])
+DECLSPEC void chacha20_transform (const u32x w0[4], const u32x w1[4], const u32 position[2], const u32 offset, const u32 iv[2], const u32 plain[4], u32x digest[4])
 {
   /**
    * Key expansion

@@ -29,8 +29,8 @@ int hc_clCreateBuffer            (hashcat_ctx_t *hashcat_ctx, cl_context context
 int hc_clCreateCommandQueue      (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_device_id device, cl_command_queue_properties properties, cl_command_queue *command_queue);
 int hc_clCreateContext           (hashcat_ctx_t *hashcat_ctx, cl_context_properties *properties, cl_uint num_devices, const cl_device_id *devices, void (CL_CALLBACK *pfn_notify) (const char *, const void *, size_t, void *), void *user_data, cl_context *context);
 int hc_clCreateKernel            (hashcat_ctx_t *hashcat_ctx, cl_program program, const char *kernel_name, cl_kernel *kernel);
-int hc_clCreateProgramWithBinary (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_uint num_devices, const cl_device_id *device_list, const size_t *lengths, const unsigned char **binaries, cl_int *binary_status, cl_program *program);
-int hc_clCreateProgramWithSource (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_uint count, const char **strings, const size_t *lengths, cl_program *program);
+int hc_clCreateProgramWithBinary (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_uint num_devices, const cl_device_id *device_list, const size_t *lengths, unsigned char **binaries, cl_int *binary_status, cl_program *program);
+int hc_clCreateProgramWithSource (hashcat_ctx_t *hashcat_ctx, cl_context context, cl_uint count, char **strings, const size_t *lengths, cl_program *program);
 int hc_clEnqueueCopyBuffer       (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_mem src_buffer, cl_mem dst_buffer, size_t src_offset, size_t dst_offset, size_t cb, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event);
 int hc_clEnqueueMapBuffer        (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_map, cl_map_flags map_flags, size_t offset, size_t cb, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event, void **buf);
 int hc_clEnqueueNDRangeKernel    (hashcat_ctx_t *hashcat_ctx, cl_command_queue command_queue, cl_kernel kernel, cl_uint work_dim, const size_t *global_work_offset, const size_t *global_work_size, const size_t *local_work_size, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event);
@@ -57,17 +57,22 @@ int hc_clReleaseProgram          (hashcat_ctx_t *hashcat_ctx, cl_program program
 int hc_clSetKernelArg            (hashcat_ctx_t *hashcat_ctx, cl_kernel kernel, cl_uint arg_index, size_t arg_size, const void *arg_value);
 int hc_clWaitForEvents           (hashcat_ctx_t *hashcat_ctx, cl_uint num_events, const cl_event *event_list);
 
-int gidd_to_pw_t      (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 gidd, pw_t *pw);
-int choose_kernel     (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 highest_pw_len, const u32 pws_cnt, const u32 fast_iteration, const u32 salt_pos);
-int run_kernel        (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u64 num, const u32 event_update, const u32 iteration);
-int run_kernel_mp     (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u64 num);
-int run_kernel_tm     (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param);
-int run_kernel_amp    (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 num);
-int run_kernel_atinit (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u64 num);
-int run_kernel_memset (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u32 value, const u64 size);
-int run_kernel_bzero  (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u64 size);
-int run_copy          (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 pws_cnt);
-int run_cracker       (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 pws_cnt);
+int gidd_to_pw_t (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 gidd, pw_t *pw);
+
+int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 highest_pw_len, const u64 pws_cnt, const u32 fast_iteration, const u32 salt_pos);
+
+void rebuild_pws_compressed_append (hc_device_param_t *device_param, const u64 pws_cnt, const u8 chr);
+
+int run_kernel            (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u64 num, const u32 event_update, const u32 iteration);
+int run_kernel_mp         (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u64 num);
+int run_kernel_tm         (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param);
+int run_kernel_amp        (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 num);
+int run_kernel_atinit     (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u64 num);
+int run_kernel_memset     (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u32 value, const u64 size);
+int run_kernel_bzero      (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u64 size);
+int run_kernel_decompress (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 num);
+int run_copy              (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_cnt);
+int run_cracker           (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_cnt);
 
 void generate_source_kernel_filename     (const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const u32 opti_type, char *shared_dir, char *source_file);
 void generate_cached_kernel_filename     (const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const u32 opti_type, char *profile_dir, const char *device_name_chksum, char *cached_file);
@@ -81,6 +86,7 @@ void opencl_ctx_destroy               (hashcat_ctx_t *hashcat_ctx);
 
 int  opencl_ctx_devices_init          (hashcat_ctx_t *hashcat_ctx, const int comptime);
 void opencl_ctx_devices_destroy       (hashcat_ctx_t *hashcat_ctx);
+void opencl_ctx_devices_sync_tuning   (hashcat_ctx_t *hashcat_ctx);
 void opencl_ctx_devices_update_power  (hashcat_ctx_t *hashcat_ctx);
 void opencl_ctx_devices_kernel_loops  (hashcat_ctx_t *hashcat_ctx);
 

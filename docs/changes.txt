@@ -1,4 +1,31 @@
-* changes v4.0.1 -> 4.1.0
+* changes v4.1.0 -> v4.1.1
+
+##
+## Algorithms
+##
+
+- Added hash-mode 16700 = FileVault 2
+
+##
+## Improvements
+##
+
+- HCCAPX management: Use advanced hints in message_pair stored by hcxtools about endian bitness of replay counter
+- OpenCL kernels: Abort session if kernel self-test failed
+- OpenCL kernels: Add '-pure' prefix to kernel filenames to avoid problems caused by reusing existing hashcat installation folder
+- Added JtR-compatible support for hex notation in rules engine
+
+##
+## Bugs
+##
+
+- Fixed a function declaration attribute in -m 8900 kernel leading to unuseable -m 9300 which shares kernel code with -m 8900
+- Fixed a missing kernel in -m 5600 in combination with -a 3 and -O if mask is >= 16 characters
+- Fixed a miscalculation in --progress-only mode output for extreme slow kernels like -m 14800
+- Fixed missing code section in -m 2500 and -m 2501 to crack corrupted handshakes with a LE endian bitness base
+- Fixed a missing check for errors on OpenCL device leading to invalid removal of restore file
+
+* changes v4.0.1 -> v4.1.0
 
 ##
 ## Features
@@ -24,38 +51,57 @@
 ## Bugs
 ##
 
-- Fixed a hash parsing problem for 7-Zip hashes: allow a longer crc32 data length field within the hash format
+- Fixed a configuration setting for -m 400 in pure kernel mode which said it was capable of doing SIMD when it is not
+- Fixed a hash parsing problem for 7-Zip hashes: allow a longer CRC32 data length field within the hash format
 - Fixed a hash parsing problem when using --show/--left with hashes with long salts that required pure kernels
-- Fixed a mask-length check issue: Return -1 in case the mask-length is not within the password-length range
-- Fixed a restore issue leading to "Restore value is greater than keyspace" when mask-files or wordlist-folders were used
+- Fixed a logic error in storing temporary progress for slow hashes, leading to invalid speeds in status view
+- Fixed a mask-length check issue: return -1 in case the mask length is not within the password-length range
+- Fixed a missing check for return code in case hashcat.hcstat2 was not found
+- Fixed a race condition in combinator- and hybrid-mode where the same scratch buffer was used by multiple threads
+- Fixed a restore issue leading to "Restore value is greater than keyspace" when mask files or wordlist folders were used
+- Fixed a uninitialized value in OpenCL kernels 9720, 9820 and 10420 leading to absurd benchmark performance
 - Fixed the maximum password length check in password-reassembling function
-- Fixed the output of --show if $HEX[] passwords were present within the potfile
+- Fixed the output of --show when $HEX[] passwords were present within the potfile
 
 ##
 ## Improvements
 ##
 
-- OpenCL Kernels: Remove password length restriction to 16 for Cisco-PIX and Cisco-ASA hashes
-- Terminal: Display Set Cost/Rounds During Benchmarking
+- OpenCL Kernels: Add a decompressing kernel and a compressing host code in order to reduce PCIe transfer time
+- OpenCL Kernels: Improve performance preview accuracy in --benchmark, --speed-only and --progress-only mode
+- OpenCL Kernels: Remove password length restriction of 16 for Cisco-PIX and Cisco-ASA hashes
+- Terminal: Display set cost/rounds during benchmarking
 - Terminal: Show [r]esume in prompt only in pause mode, and show [p]ause in prompt only in resume mode
 
 ##
 ## Technical
 ##
 
+- Autotune: Improve autotune engine logic and synchronize results on same OpenCL devices
 - Documents: Added docs/limits.txt
 - Files: Copy include/ folder and its content when SHARED is set to 1 in Makefile
-- Files: Switched back to relative current working directory on windows to work around problems with unicode characters
+- Files: Switched back to relative current working directory on windows to work around problems with Unicode characters
+- Hashcat Context: Fixed a memory leak in shutdown phase
 - Hash Parser: Changed the way large strings are handled/truncated within the event buffer if they are too large to fit
+- Hash Parser: Fixed a memory leak in shutdown phase
 - Hash Parser: Fixed the use of strtok_r () calls
-- OpenCL Runtime: Updated rocm detection
+- OpenCL Devices: Fixed several memory leaks in shutdown phase
+- OpenCL Kernels: Add general function declaration keyword (inline) and some OpenCL runtime specific exceptions for NV and CPU devices
 - OpenCL Kernels: Replace variables from uXX to uXXa if used in __constant space
 - OpenCL Kernels: Use a special kernel to initialize the password buffer used during autotune measurements, to reduce startup time
-- OpenCL Kernels: Use static declaraction for uXXa variables used in __constant space
-- Self Test: Skip self-test for mode 15700 because the settings are too high and cause startup times that are too long
+- OpenCL Kernels: Refactored kernel thread management from native to maximum per kernel
+- OpenCL Kernels: Use three separate comparison kernels (depending on keyver) for WPA instead of one
+- OpenCL Runtime: Add current timestamp to OpenCL kernel source in order to force OpenCL JiT compiler to recompile and not use the cache
+- OpenCL Runtime: Enforce use of OpenCL version 1.2 to restrain OpenCL runtimes to make use of the __generic address space qualifier
+- OpenCL Runtime: Updated rocm detection
+- Returncode: Enforce return code 0 when the user selects --speed-only or --progress-only and no other error occurs
+- Rules: Fixed some default rule-files after changing rule meaning of 'x' to 'O'
 - Self Test: Skip self-test for mode 8900 - user-configurable scrypt settings are incompatible with fixed settings in the self-test hash
-- Terminal: Send clear line code to the same output stream as the message immediately following
+- Self Test: Skip self-test for mode 15700 because the settings are too high and cause startup times that are too long
+- Terminal: Add workitem settings to status display (can be handy for debugging)
+- Terminal: Send clear-line code to the same output stream as the message immediately following
 - Timer: Switch from gettimeofday() to clock_gettime() to work around problems on cygwin
+- User Options: According to getopts manpage, the last element of the option array has to be filled with zeros
 
 * changes v4.0.0 -> v4.0.1:
 

@@ -26,12 +26,12 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
   status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  u32  dgst_size      = hashconfig->dgst_size;
-  bool is_salted      = hashconfig->is_salted;
-  u32  esalt_size     = hashconfig->esalt_size;
-  u32  hook_salt_size = hashconfig->hook_salt_size;
-  u32  hash_mode      = hashconfig->hash_mode;
-  char separator      = hashconfig->separator;
+  size_t dgst_size      = hashconfig->dgst_size;
+  bool   is_salted      = hashconfig->is_salted;
+  size_t esalt_size     = hashconfig->esalt_size;
+  size_t hook_salt_size = hashconfig->hook_salt_size;
+  u32    hash_mode      = hashconfig->hash_mode;
+  char   separator      = hashconfig->separator;
 
   char *root_directory      = outcheck_ctx->root_directory;
   u32   outfile_check_timer = user_options->outfile_check_timer;
@@ -181,7 +181,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
                   if ((hash_mode != 2500) && (hash_mode != 2501) && (hash_mode != 6800))
                   {
-                    parser_status = hashconfig->parse_func ((u8 *) line_buf, line_len - 1, &hash_buf, hashconfig);
+                    parser_status = hashconfig->parse_func ((u8 *) line_buf, (u32) line_len - 1, &hash_buf, hashconfig);
                   }
 
                   u32 found = 0;

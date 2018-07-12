@@ -3,79 +3,31 @@
  * License.....: MIT
  */
 
-__constant static u32a c_append_helper[64][16] =
+__constant u32a c_append_helper_mini[16][4] =
 {
-  { 0x000000ff, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x0000ff00, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00ff0000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x000000ff, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x0000ff00, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00ff0000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x000000ff, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x0000ff00, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00ff0000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x000000ff, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x0000ff00, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00ff0000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x000000ff, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x0000ff00, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00ff0000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x000000ff, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x0000ff00, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00ff0000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x000000ff, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x0000ff00, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00ff0000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x000000ff, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x0000ff00, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00ff0000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x000000ff, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x0000ff00, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00ff0000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x000000ff, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x0000ff00, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00ff0000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x000000ff, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x0000ff00, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00ff0000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x000000ff, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x0000ff00, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00ff0000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x000000ff, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x0000ff00, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00ff0000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x000000ff, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x0000ff00, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00ff0000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x000000ff, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x0000ff00, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00ff0000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x000000ff },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x0000ff00 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00ff0000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000 },
+  { 0x000000ff, 0x00000000, 0x00000000, 0x00000000 },
+  { 0x0000ff00, 0x00000000, 0x00000000, 0x00000000 },
+  { 0x00ff0000, 0x00000000, 0x00000000, 0x00000000 },
+  { 0xff000000, 0x00000000, 0x00000000, 0x00000000 },
+  { 0x00000000, 0x000000ff, 0x00000000, 0x00000000 },
+  { 0x00000000, 0x0000ff00, 0x00000000, 0x00000000 },
+  { 0x00000000, 0x00ff0000, 0x00000000, 0x00000000 },
+  { 0x00000000, 0xff000000, 0x00000000, 0x00000000 },
+  { 0x00000000, 0x00000000, 0x000000ff, 0x00000000 },
+  { 0x00000000, 0x00000000, 0x0000ff00, 0x00000000 },
+  { 0x00000000, 0x00000000, 0x00ff0000, 0x00000000 },
+  { 0x00000000, 0x00000000, 0xff000000, 0x00000000 },
+  { 0x00000000, 0x00000000, 0x00000000, 0x000000ff },
+  { 0x00000000, 0x00000000, 0x00000000, 0x0000ff00 },
+  { 0x00000000, 0x00000000, 0x00000000, 0x00ff0000 },
+  { 0x00000000, 0x00000000, 0x00000000, 0xff000000 },
 };
 
 /**
  * pure scalar functions
  */
 
-int ffz (const u32 v)
+DECLSPEC int ffz (const u32 v)
 {
   #ifdef _unroll
   #pragma unroll
@@ -90,7 +42,7 @@ int ffz (const u32 v)
   return -1;
 }
 
-int hash_comp (const u32 d1[4], __global const u32 *d2)
+DECLSPEC int hash_comp (const u32 d1[4], __global const u32 *d2)
 {
   if (d1[3] > d2[DGST_R3]) return ( 1);
   if (d1[3] < d2[DGST_R3]) return (-1);
@@ -104,7 +56,7 @@ int hash_comp (const u32 d1[4], __global const u32 *d2)
   return (0);
 }
 
-int find_hash (const u32 digest[4], const u32 digests_cnt, __global const digest_t *digests_buf)
+DECLSPEC int find_hash (const u32 digest[4], const u32 digests_cnt, __global const digest_t *digests_buf)
 {
   for (u32 l = 0, r = digests_cnt; r; r >>= 1)
   {
@@ -127,12 +79,12 @@ int find_hash (const u32 digest[4], const u32 digests_cnt, __global const digest
   return (-1);
 }
 
-u32 check_bitmap (__global const u32 *bitmap, const u32 bitmap_mask, const u32 bitmap_shift, const u32 digest)
+DECLSPEC u32 check_bitmap (__global const u32 *bitmap, const u32 bitmap_mask, const u32 bitmap_shift, const u32 digest)
 {
   return (bitmap[(digest >> bitmap_shift) & bitmap_mask] & (1 << (digest & 0x1f)));
 }
 
-u32 check (const u32 digest[4], __global const u32 *bitmap_s1_a, __global const u32 *bitmap_s1_b, __global const u32 *bitmap_s1_c, __global const u32 *bitmap_s1_d, __global const u32 *bitmap_s2_a, __global const u32 *bitmap_s2_b, __global const u32 *bitmap_s2_c, __global const u32 *bitmap_s2_d, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2)
+DECLSPEC u32 check (const u32 digest[4], __global const u32 *bitmap_s1_a, __global const u32 *bitmap_s1_b, __global const u32 *bitmap_s1_c, __global const u32 *bitmap_s1_d, __global const u32 *bitmap_s2_a, __global const u32 *bitmap_s2_b, __global const u32 *bitmap_s2_c, __global const u32 *bitmap_s2_d, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2)
 {
   if (check_bitmap (bitmap_s1_a, bitmap_mask, bitmap_shift1, digest[0]) == 0) return (0);
   if (check_bitmap (bitmap_s1_b, bitmap_mask, bitmap_shift1, digest[1]) == 0) return (0);
@@ -147,7 +99,7 @@ u32 check (const u32 digest[4], __global const u32 *bitmap_s1_a, __global const 
   return (1);
 }
 
-void mark_hash (__global plain_t *plains_buf, __global u32 *d_result, const u32 salt_pos, const u32 digests_cnt, const u32 digest_pos, const u32 hash_pos, const u32 gid, const u32 il_pos)
+DECLSPEC void mark_hash (__global plain_t *plains_buf, __global u32 *d_result, const u32 salt_pos, const u32 digests_cnt, const u32 digest_pos, const u32 hash_pos, const u32 gid, const u32 il_pos)
 {
   const u32 idx = atomic_inc (d_result);
 
@@ -168,7 +120,7 @@ void mark_hash (__global plain_t *plains_buf, __global u32 *d_result, const u32 
   plains_buf[idx].il_pos      = il_pos;
 }
 
-int count_char (const u32 *buf, const int elems, const u32 c)
+DECLSPEC int count_char (const u32 *buf, const int elems, const u32 c)
 {
   int r = 0;
 
@@ -185,7 +137,7 @@ int count_char (const u32 *buf, const int elems, const u32 c)
   return r;
 }
 
-float get_entropy (const u32 *buf, const int elems)
+DECLSPEC float get_entropy (const u32 *buf, const int elems)
 {
   const int length = elems * 4;
 
@@ -208,7 +160,7 @@ float get_entropy (const u32 *buf, const int elems)
   return entropy;
 }
 
-int is_valid_hex_8 (const u8 v)
+DECLSPEC int is_valid_hex_8 (const u8 v)
 {
   // direct lookup table is slower thanks to CMOV
 
@@ -218,7 +170,7 @@ int is_valid_hex_8 (const u8 v)
   return 0;
 }
 
-int is_valid_hex_32 (const u32 v)
+DECLSPEC int is_valid_hex_32 (const u32 v)
 {
   if (is_valid_hex_8 ((u8) (v >>  0)) == 0) return 0;
   if (is_valid_hex_8 ((u8) (v >>  8)) == 0) return 0;
@@ -232,7 +184,7 @@ int is_valid_hex_32 (const u32 v)
  * vector functions
  */
 
-void make_utf16be (const u32x in[4], u32x out1[4], u32x out2[4])
+DECLSPEC void make_utf16be (const u32x in[4], u32x out1[4], u32x out2[4])
 {
   #if defined IS_NV
 
@@ -270,7 +222,7 @@ void make_utf16be (const u32x in[4], u32x out1[4], u32x out2[4])
   #endif
 }
 
-void make_utf16beN (const u32x in[4], u32x out1[4], u32x out2[4])
+DECLSPEC void make_utf16beN (const u32x in[4], u32x out1[4], u32x out2[4])
 {
   #if defined IS_NV
 
@@ -308,7 +260,7 @@ void make_utf16beN (const u32x in[4], u32x out1[4], u32x out2[4])
   #endif
 }
 
-void make_utf16le (const u32x in[4], u32x out1[4], u32x out2[4])
+DECLSPEC void make_utf16le (const u32x in[4], u32x out1[4], u32x out2[4])
 {
   #if defined IS_NV
 
@@ -346,7 +298,7 @@ void make_utf16le (const u32x in[4], u32x out1[4], u32x out2[4])
   #endif
 }
 
-void make_utf16leN (const u32x in[4], u32x out1[4], u32x out2[4])
+DECLSPEC void make_utf16leN (const u32x in[4], u32x out1[4], u32x out2[4])
 {
   #if defined IS_NV
 
@@ -384,7 +336,7 @@ void make_utf16leN (const u32x in[4], u32x out1[4], u32x out2[4])
   #endif
 }
 
-void undo_utf16be (const u32x in1[4], const u32x in2[4], u32x out[4])
+DECLSPEC void undo_utf16be (const u32x in1[4], const u32x in2[4], u32x out[4])
 {
   #if defined IS_NV
 
@@ -414,7 +366,7 @@ void undo_utf16be (const u32x in1[4], const u32x in2[4], u32x out[4])
   #endif
 }
 
-void undo_utf16le (const u32x in1[4], const u32x in2[4], u32x out[4])
+DECLSPEC void undo_utf16le (const u32x in1[4], const u32x in2[4], u32x out[4])
 {
   #if defined IS_NV
 
@@ -444,853 +396,125 @@ void undo_utf16le (const u32x in1[4], const u32x in2[4], u32x out[4])
   #endif
 }
 
-void append_0x80_1x4 (u32x w0[4], const u32 offset)
+DECLSPEC void append_helper_1x4 (u32x r[4], const u32 v, const u32 m[4])
 {
-  w0[0] |= 0x80808080 & c_append_helper[offset][0];
-  w0[1] |= 0x80808080 & c_append_helper[offset][1];
-  w0[2] |= 0x80808080 & c_append_helper[offset][2];
-  w0[3] |= 0x80808080 & c_append_helper[offset][3];
+  r[0] |= v & m[0];
+  r[1] |= v & m[1];
+  r[2] |= v & m[2];
+  r[3] |= v & m[3];
 }
 
-void append_0x80_2x4 (u32x w0[4], u32x w1[4], const u32 offset)
+DECLSPEC void append_0x80_1x4 (u32x w0[4], const u32 offset)
 {
-  w0[0] |= 0x80808080 & c_append_helper[offset][0];
-  w0[1] |= 0x80808080 & c_append_helper[offset][1];
-  w0[2] |= 0x80808080 & c_append_helper[offset][2];
-  w0[3] |= 0x80808080 & c_append_helper[offset][3];
-  w1[0] |= 0x80808080 & c_append_helper[offset][4];
-  w1[1] |= 0x80808080 & c_append_helper[offset][5];
-  w1[2] |= 0x80808080 & c_append_helper[offset][6];
-  w1[3] |= 0x80808080 & c_append_helper[offset][7];
-}
-
-void append_0x80_3x4 (u32x w0[4], u32x w1[4], u32x w2[4], const u32 offset)
-{
-  w0[0] |= 0x80808080 & c_append_helper[offset][ 0];
-  w0[1] |= 0x80808080 & c_append_helper[offset][ 1];
-  w0[2] |= 0x80808080 & c_append_helper[offset][ 2];
-  w0[3] |= 0x80808080 & c_append_helper[offset][ 3];
-  w1[0] |= 0x80808080 & c_append_helper[offset][ 4];
-  w1[1] |= 0x80808080 & c_append_helper[offset][ 5];
-  w1[2] |= 0x80808080 & c_append_helper[offset][ 6];
-  w1[3] |= 0x80808080 & c_append_helper[offset][ 7];
-  w2[0] |= 0x80808080 & c_append_helper[offset][ 8];
-  w2[1] |= 0x80808080 & c_append_helper[offset][ 9];
-  w2[2] |= 0x80808080 & c_append_helper[offset][10];
-  w2[3] |= 0x80808080 & c_append_helper[offset][11];
-}
-
-void append_0x80_4x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 offset)
-{
-  w0[0] |= 0x80808080 & c_append_helper[offset][ 0];
-  w0[1] |= 0x80808080 & c_append_helper[offset][ 1];
-  w0[2] |= 0x80808080 & c_append_helper[offset][ 2];
-  w0[3] |= 0x80808080 & c_append_helper[offset][ 3];
-  w1[0] |= 0x80808080 & c_append_helper[offset][ 4];
-  w1[1] |= 0x80808080 & c_append_helper[offset][ 5];
-  w1[2] |= 0x80808080 & c_append_helper[offset][ 6];
-  w1[3] |= 0x80808080 & c_append_helper[offset][ 7];
-  w2[0] |= 0x80808080 & c_append_helper[offset][ 8];
-  w2[1] |= 0x80808080 & c_append_helper[offset][ 9];
-  w2[2] |= 0x80808080 & c_append_helper[offset][10];
-  w2[3] |= 0x80808080 & c_append_helper[offset][11];
-  w3[0] |= 0x80808080 & c_append_helper[offset][12];
-  w3[1] |= 0x80808080 & c_append_helper[offset][13];
-  w3[2] |= 0x80808080 & c_append_helper[offset][14];
-  w3[3] |= 0x80808080 & c_append_helper[offset][15];
-}
-
-void append_0x80_8x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32 offset)
-{
-  switch (offset)
+  const u32 v[4] =
   {
-    case 0:
-      w0[0] = w0[0] | 0x80;
-      break;
-
-    case 1:
-      w0[0] = w0[0] | 0x8000;
-      break;
-
-    case 2:
-      w0[0] = w0[0] | 0x800000;
-      break;
-
-    case 3:
-      w0[0] = w0[0] | 0x80000000;
-      break;
-
-    case 4:
-      w0[1] = w0[1] | 0x80;
-      break;
-
-    case 5:
-      w0[1] = w0[1] | 0x8000;
-      break;
-
-    case 6:
-      w0[1] = w0[1] | 0x800000;
-      break;
-
-    case 7:
-      w0[1] = w0[1] | 0x80000000;
-      break;
-
-    case 8:
-      w0[2] = w0[2] | 0x80;
-      break;
-
-    case 9:
-      w0[2] = w0[2] | 0x8000;
-      break;
-
-    case 10:
-      w0[2] = w0[2] | 0x800000;
-      break;
-
-    case 11:
-      w0[2] = w0[2] | 0x80000000;
-      break;
-
-    case 12:
-      w0[3] = w0[3] | 0x80;
-      break;
-
-    case 13:
-      w0[3] = w0[3] | 0x8000;
-      break;
-
-    case 14:
-      w0[3] = w0[3] | 0x800000;
-      break;
-
-    case 15:
-      w0[3] = w0[3] | 0x80000000;
-      break;
-
-    case 16:
-      w1[0] = w1[0] | 0x80;
-      break;
-
-    case 17:
-      w1[0] = w1[0] | 0x8000;
-      break;
-
-    case 18:
-      w1[0] = w1[0] | 0x800000;
-      break;
-
-    case 19:
-      w1[0] = w1[0] | 0x80000000;
-      break;
-
-    case 20:
-      w1[1] = w1[1] | 0x80;
-      break;
-
-    case 21:
-      w1[1] = w1[1] | 0x8000;
-      break;
-
-    case 22:
-      w1[1] = w1[1] | 0x800000;
-      break;
-
-    case 23:
-      w1[1] = w1[1] | 0x80000000;
-      break;
-
-    case 24:
-      w1[2] = w1[2] | 0x80;
-      break;
-
-    case 25:
-      w1[2] = w1[2] | 0x8000;
-      break;
-
-    case 26:
-      w1[2] = w1[2] | 0x800000;
-      break;
-
-    case 27:
-      w1[2] = w1[2] | 0x80000000;
-      break;
-
-    case 28:
-      w1[3] = w1[3] | 0x80;
-      break;
-
-    case 29:
-      w1[3] = w1[3] | 0x8000;
-      break;
-
-    case 30:
-      w1[3] = w1[3] | 0x800000;
-      break;
-
-    case 31:
-      w1[3] = w1[3] | 0x80000000;
-      break;
-
-    case 32:
-      w2[0] = w2[0] | 0x80;
-      break;
-
-    case 33:
-      w2[0] = w2[0] | 0x8000;
-      break;
-
-    case 34:
-      w2[0] = w2[0] | 0x800000;
-      break;
-
-    case 35:
-      w2[0] = w2[0] | 0x80000000;
-      break;
-
-    case 36:
-      w2[1] = w2[1] | 0x80;
-      break;
-
-    case 37:
-      w2[1] = w2[1] | 0x8000;
-      break;
-
-    case 38:
-      w2[1] = w2[1] | 0x800000;
-      break;
-
-    case 39:
-      w2[1] = w2[1] | 0x80000000;
-      break;
-
-    case 40:
-      w2[2] = w2[2] | 0x80;
-      break;
-
-    case 41:
-      w2[2] = w2[2] | 0x8000;
-      break;
-
-    case 42:
-      w2[2] = w2[2] | 0x800000;
-      break;
-
-    case 43:
-      w2[2] = w2[2] | 0x80000000;
-      break;
-
-    case 44:
-      w2[3] = w2[3] | 0x80;
-      break;
-
-    case 45:
-      w2[3] = w2[3] | 0x8000;
-      break;
-
-    case 46:
-      w2[3] = w2[3] | 0x800000;
-      break;
-
-    case 47:
-      w2[3] = w2[3] | 0x80000000;
-      break;
-
-    case 48:
-      w3[0] = w3[0] | 0x80;
-      break;
-
-    case 49:
-      w3[0] = w3[0] | 0x8000;
-      break;
-
-    case 50:
-      w3[0] = w3[0] | 0x800000;
-      break;
-
-    case 51:
-      w3[0] = w3[0] | 0x80000000;
-      break;
-
-    case 52:
-      w3[1] = w3[1] | 0x80;
-      break;
-
-    case 53:
-      w3[1] = w3[1] | 0x8000;
-      break;
-
-    case 54:
-      w3[1] = w3[1] | 0x800000;
-      break;
-
-    case 55:
-      w3[1] = w3[1] | 0x80000000;
-      break;
-
-    case 56:
-      w3[2] = w3[2] | 0x80;
-      break;
-
-    case 57:
-      w3[2] = w3[2] | 0x8000;
-      break;
-
-    case 58:
-      w3[2] = w3[2] | 0x800000;
-      break;
-
-    case 59:
-      w3[2] = w3[2] | 0x80000000;
-      break;
-
-    case 60:
-      w3[3] = w3[3] | 0x80;
-      break;
-
-    case 61:
-      w3[3] = w3[3] | 0x8000;
-      break;
-
-    case 62:
-      w3[3] = w3[3] | 0x800000;
-      break;
-
-    case 63:
-      w3[3] = w3[3] | 0x80000000;
-      break;
-
-    case 64:
-      w4[0] = w4[0] | 0x80;
-      break;
-
-    case 65:
-      w4[0] = w4[0] | 0x8000;
-      break;
-
-    case 66:
-      w4[0] = w4[0] | 0x800000;
-      break;
-
-    case 67:
-      w4[0] = w4[0] | 0x80000000;
-      break;
-
-    case 68:
-      w4[1] = w4[1] | 0x80;
-      break;
-
-    case 69:
-      w4[1] = w4[1] | 0x8000;
-      break;
-
-    case 70:
-      w4[1] = w4[1] | 0x800000;
-      break;
-
-    case 71:
-      w4[1] = w4[1] | 0x80000000;
-      break;
-
-    case 72:
-      w4[2] = w4[2] | 0x80;
-      break;
-
-    case 73:
-      w4[2] = w4[2] | 0x8000;
-      break;
-
-    case 74:
-      w4[2] = w4[2] | 0x800000;
-      break;
-
-    case 75:
-      w4[2] = w4[2] | 0x80000000;
-      break;
-
-    case 76:
-      w4[3] = w4[3] | 0x80;
-      break;
-
-    case 77:
-      w4[3] = w4[3] | 0x8000;
-      break;
-
-    case 78:
-      w4[3] = w4[3] | 0x800000;
-      break;
-
-    case 79:
-      w4[3] = w4[3] | 0x80000000;
-      break;
-
-    case 80:
-      w5[0] = w5[0] | 0x80;
-      break;
-
-    case 81:
-      w5[0] = w5[0] | 0x8000;
-      break;
-
-    case 82:
-      w5[0] = w5[0] | 0x800000;
-      break;
-
-    case 83:
-      w5[0] = w5[0] | 0x80000000;
-      break;
-
-    case 84:
-      w5[1] = w5[1] | 0x80;
-      break;
-
-    case 85:
-      w5[1] = w5[1] | 0x8000;
-      break;
-
-    case 86:
-      w5[1] = w5[1] | 0x800000;
-      break;
-
-    case 87:
-      w5[1] = w5[1] | 0x80000000;
-      break;
-
-    case 88:
-      w5[2] = w5[2] | 0x80;
-      break;
-
-    case 89:
-      w5[2] = w5[2] | 0x8000;
-      break;
-
-    case 90:
-      w5[2] = w5[2] | 0x800000;
-      break;
-
-    case 91:
-      w5[2] = w5[2] | 0x80000000;
-      break;
-
-    case 92:
-      w5[3] = w5[3] | 0x80;
-      break;
-
-    case 93:
-      w5[3] = w5[3] | 0x8000;
-      break;
-
-    case 94:
-      w5[3] = w5[3] | 0x800000;
-      break;
-
-    case 95:
-      w5[3] = w5[3] | 0x80000000;
-      break;
-
-    case 96:
-      w6[0] = w6[0] | 0x80;
-      break;
-
-    case 97:
-      w6[0] = w6[0] | 0x8000;
-      break;
-
-    case 98:
-      w6[0] = w6[0] | 0x800000;
-      break;
-
-    case 99:
-      w6[0] = w6[0] | 0x80000000;
-      break;
-
-    case 100:
-      w6[1] = w6[1] | 0x80;
-      break;
-
-    case 101:
-      w6[1] = w6[1] | 0x8000;
-      break;
-
-    case 102:
-      w6[1] = w6[1] | 0x800000;
-      break;
-
-    case 103:
-      w6[1] = w6[1] | 0x80000000;
-      break;
-
-    case 104:
-      w6[2] = w6[2] | 0x80;
-      break;
-
-    case 105:
-      w6[2] = w6[2] | 0x8000;
-      break;
-
-    case 106:
-      w6[2] = w6[2] | 0x800000;
-      break;
-
-    case 107:
-      w6[2] = w6[2] | 0x80000000;
-      break;
-
-    case 108:
-      w6[3] = w6[3] | 0x80;
-      break;
-
-    case 109:
-      w6[3] = w6[3] | 0x8000;
-      break;
-
-    case 110:
-      w6[3] = w6[3] | 0x800000;
-      break;
-
-    case 111:
-      w6[3] = w6[3] | 0x80000000;
-      break;
-
-    case 112:
-      w7[0] = w7[0] | 0x80;
-      break;
-
-    case 113:
-      w7[0] = w7[0] | 0x8000;
-      break;
-
-    case 114:
-      w7[0] = w7[0] | 0x800000;
-      break;
-
-    case 115:
-      w7[0] = w7[0] | 0x80000000;
-      break;
-
-    case 116:
-      w7[1] = w7[1] | 0x80;
-      break;
-
-    case 117:
-      w7[1] = w7[1] | 0x8000;
-      break;
-
-    case 118:
-      w7[1] = w7[1] | 0x800000;
-      break;
-
-    case 119:
-      w7[1] = w7[1] | 0x80000000;
-      break;
-
-    case 120:
-      w7[2] = w7[2] | 0x80;
-      break;
-
-    case 121:
-      w7[2] = w7[2] | 0x8000;
-      break;
-
-    case 122:
-      w7[2] = w7[2] | 0x800000;
-      break;
-
-    case 123:
-      w7[2] = w7[2] | 0x80000000;
-      break;
-
-    case 124:
-      w7[3] = w7[3] | 0x80;
-      break;
-
-    case 125:
-      w7[3] = w7[3] | 0x8000;
-      break;
-
-    case 126:
-      w7[3] = w7[3] | 0x800000;
-      break;
-
-    case 127:
-      w7[3] = w7[3] | 0x80000000;
-      break;
-  }
+    c_append_helper_mini[offset & 0xf][0],
+    c_append_helper_mini[offset & 0xf][1],
+    c_append_helper_mini[offset & 0xf][2],
+    c_append_helper_mini[offset & 0xf][3]
+  };
+
+  append_helper_1x4 (w0, 0x80808080, v);
 }
 
-void append_0x80_1x16 (u32x w[16], const u32 offset)
+DECLSPEC void append_0x80_2x4 (u32x w0[4], u32x w1[4], const u32 offset)
 {
-  switch (offset)
+  const u32 v[4] =
   {
-    case 0:
-      w[ 0] = 0x80;
-      break;
+    c_append_helper_mini[offset & 0xf][0],
+    c_append_helper_mini[offset & 0xf][1],
+    c_append_helper_mini[offset & 0xf][2],
+    c_append_helper_mini[offset & 0xf][3]
+  };
 
-    case 1:
-      w[ 0] = w[ 0] | 0x8000;
-      break;
+  const u32 offset16 = offset / 16;
 
-    case 2:
-      w[ 0] = w[ 0] | 0x800000;
-      break;
-
-    case 3:
-      w[ 0] = w[ 0] | 0x80000000;
-      break;
-
-    case 4:
-      w[ 1] = 0x80;
-      break;
-
-    case 5:
-      w[ 1] = w[ 1] | 0x8000;
-      break;
-
-    case 6:
-      w[ 1] = w[ 1] | 0x800000;
-      break;
-
-    case 7:
-      w[ 1] = w[ 1] | 0x80000000;
-      break;
-
-    case 8:
-      w[ 2] = 0x80;
-      break;
-
-    case 9:
-      w[ 2] = w[ 2] | 0x8000;
-      break;
-
-    case 10:
-      w[ 2] = w[ 2] | 0x800000;
-      break;
-
-    case 11:
-      w[ 2] = w[ 2] | 0x80000000;
-      break;
-
-    case 12:
-      w[ 3] = 0x80;
-      break;
-
-    case 13:
-      w[ 3] = w[ 3] | 0x8000;
-      break;
-
-    case 14:
-      w[ 3] = w[ 3] | 0x800000;
-      break;
-
-    case 15:
-      w[ 3] = w[ 3] | 0x80000000;
-      break;
-
-    case 16:
-      w[ 4] = 0x80;
-      break;
-
-    case 17:
-      w[ 4] = w[ 4] | 0x8000;
-      break;
-
-    case 18:
-      w[ 4] = w[ 4] | 0x800000;
-      break;
-
-    case 19:
-      w[ 4] = w[ 4] | 0x80000000;
-      break;
-
-    case 20:
-      w[ 5] = 0x80;
-      break;
-
-    case 21:
-      w[ 5] = w[ 5] | 0x8000;
-      break;
-
-    case 22:
-      w[ 5] = w[ 5] | 0x800000;
-      break;
-
-    case 23:
-      w[ 5] = w[ 5] | 0x80000000;
-      break;
-
-    case 24:
-      w[ 6] = 0x80;
-      break;
-
-    case 25:
-      w[ 6] = w[ 6] | 0x8000;
-      break;
-
-    case 26:
-      w[ 6] = w[ 6] | 0x800000;
-      break;
-
-    case 27:
-      w[ 6] = w[ 6] | 0x80000000;
-      break;
-
-    case 28:
-      w[ 7] = 0x80;
-      break;
-
-    case 29:
-      w[ 7] = w[ 7] | 0x8000;
-      break;
-
-    case 30:
-      w[ 7] = w[ 7] | 0x800000;
-      break;
-
-    case 31:
-      w[ 7] = w[ 7] | 0x80000000;
-      break;
-
-    case 32:
-      w[ 8] = 0x80;
-      break;
-
-    case 33:
-      w[ 8] = w[ 8] | 0x8000;
-      break;
-
-    case 34:
-      w[ 8] = w[ 8] | 0x800000;
-      break;
-
-    case 35:
-      w[ 8] = w[ 8] | 0x80000000;
-      break;
-
-    case 36:
-      w[ 9] = 0x80;
-      break;
-
-    case 37:
-      w[ 9] = w[ 9] | 0x8000;
-      break;
-
-    case 38:
-      w[ 9] = w[ 9] | 0x800000;
-      break;
-
-    case 39:
-      w[ 9] = w[ 9] | 0x80000000;
-      break;
-
-    case 40:
-      w[10] = 0x80;
-      break;
-
-    case 41:
-      w[10] = w[10] | 0x8000;
-      break;
-
-    case 42:
-      w[10] = w[10] | 0x800000;
-      break;
-
-    case 43:
-      w[10] = w[10] | 0x80000000;
-      break;
-
-    case 44:
-      w[11] = 0x80;
-      break;
-
-    case 45:
-      w[11] = w[11] | 0x8000;
-      break;
-
-    case 46:
-      w[11] = w[11] | 0x800000;
-      break;
-
-    case 47:
-      w[11] = w[11] | 0x80000000;
-      break;
-
-    case 48:
-      w[12] = 0x80;
-      break;
-
-    case 49:
-      w[12] = w[12] | 0x8000;
-      break;
-
-    case 50:
-      w[12] = w[12] | 0x800000;
-      break;
-
-    case 51:
-      w[12] = w[12] | 0x80000000;
-      break;
-
-    case 52:
-      w[13] = 0x80;
-      break;
-
-    case 53:
-      w[13] = w[13] | 0x8000;
-      break;
-
-    case 54:
-      w[13] = w[13] | 0x800000;
-      break;
-
-    case 55:
-      w[13] = w[13] | 0x80000000;
-      break;
-
-    case 56:
-      w[14] = 0x80;
-      break;
-
-    case 57:
-      w[14] = w[14] | 0x8000;
-      break;
-
-    case 58:
-      w[14] = w[14] | 0x800000;
-      break;
-
-    case 59:
-      w[14] = w[14] | 0x80000000;
-      break;
-
-    case 60:
-      w[15] = 0x80;
-      break;
-
-    case 61:
-      w[15] = w[15] | 0x8000;
-      break;
-
-    case 62:
-      w[15] = w[15] | 0x800000;
-      break;
-
-    case 63:
-      w[15] = w[15] | 0x80000000;
-      break;
-  }
+  append_helper_1x4 (w0, ((offset16 == 0) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w1, ((offset16 == 1) ? 0x80808080 : 0), v);
 }
 
-void switch_buffer_by_offset_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 offset)
+DECLSPEC void append_0x80_3x4 (u32x w0[4], u32x w1[4], u32x w2[4], const u32 offset)
+{
+  const u32 v[4] =
+  {
+    c_append_helper_mini[offset & 0xf][0],
+    c_append_helper_mini[offset & 0xf][1],
+    c_append_helper_mini[offset & 0xf][2],
+    c_append_helper_mini[offset & 0xf][3]
+  };
+
+  const u32 offset16 = offset / 16;
+
+  append_helper_1x4 (w0, ((offset16 == 0) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w1, ((offset16 == 1) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w2, ((offset16 == 2) ? 0x80808080 : 0), v);
+}
+
+DECLSPEC void append_0x80_4x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 offset)
+{
+  const u32 v[4] =
+  {
+    c_append_helper_mini[offset & 0xf][0],
+    c_append_helper_mini[offset & 0xf][1],
+    c_append_helper_mini[offset & 0xf][2],
+    c_append_helper_mini[offset & 0xf][3]
+  };
+
+  const u32 offset16 = offset / 16;
+
+  append_helper_1x4 (w0, ((offset16 == 0) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w1, ((offset16 == 1) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w2, ((offset16 == 2) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w3, ((offset16 == 3) ? 0x80808080 : 0), v);
+}
+
+DECLSPEC void append_0x80_8x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32 offset)
+{
+  const u32 v[4] =
+  {
+    c_append_helper_mini[offset & 0xf][0],
+    c_append_helper_mini[offset & 0xf][1],
+    c_append_helper_mini[offset & 0xf][2],
+    c_append_helper_mini[offset & 0xf][3]
+  };
+
+  const u32 offset16 = offset / 16;
+
+  append_helper_1x4 (w0, ((offset16 == 0) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w1, ((offset16 == 1) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w2, ((offset16 == 2) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w3, ((offset16 == 3) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w4, ((offset16 == 4) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w5, ((offset16 == 5) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w6, ((offset16 == 6) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w7, ((offset16 == 7) ? 0x80808080 : 0), v);
+}
+
+DECLSPEC void append_0x80_1x16 (u32x w[16], const u32 offset)
+{
+  const u32 v[4] =
+  {
+    c_append_helper_mini[offset & 0xf][0],
+    c_append_helper_mini[offset & 0xf][1],
+    c_append_helper_mini[offset & 0xf][2],
+    c_append_helper_mini[offset & 0xf][3]
+  };
+
+  const u32 offset16 = offset / 16;
+
+  append_helper_1x4 (w +  0, ((offset16 == 0) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w +  4, ((offset16 == 1) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w +  8, ((offset16 == 2) ? 0x80808080 : 0), v);
+  append_helper_1x4 (w + 12, ((offset16 == 3) ? 0x80808080 : 0), v);
+}
+
+DECLSPEC void switch_buffer_by_offset_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 offset)
 {
   const int offset_mod_4 = offset & 3;
 
   const int offset_minus_4 = 4 - offset_mod_4;
 
-  #ifdef IS_AMD
-  volatile const int offset_switch = offset / 4;
-  #else
   const int offset_switch = offset / 4;
-  #endif
 
   #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
   w0[0] = swap32 (w0[0]);
@@ -1987,17 +1211,13 @@ void switch_buffer_by_offset_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4],
   #endif
 }
 
-void switch_buffer_by_offset_carry_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x c0[4], u32x c1[4], u32x c2[4], u32x c3[4], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_carry_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x c0[4], u32x c1[4], u32x c2[4], u32x c3[4], const u32 offset)
 {
   const int offset_mod_4 = offset & 3;
 
   const int offset_minus_4 = 4 - offset_mod_4;
 
-  #ifdef IS_AMD
-  volatile const int offset_switch = offset / 4;
-  #else
   const int offset_switch = offset / 4;
-  #endif
 
   #if defined IS_AMD || defined IS_GENERIC
   w0[0] = swap32 (w0[0]);
@@ -3309,13 +2529,9 @@ void switch_buffer_by_offset_carry_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x 
   #endif
 }
 
-void switch_buffer_by_offset_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 offset)
 {
-  #ifdef IS_AMD
-  volatile const int offset_switch = offset / 4;
-  #else
   const int offset_switch = offset / 4;
-  #endif
 
   #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
 
@@ -3980,13 +3196,9 @@ void switch_buffer_by_offset_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4],
   #endif
 }
 
-void switch_buffer_by_offset_carry_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x c0[4], u32x c1[4], u32x c2[4], u32x c3[4], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_carry_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x c0[4], u32x c1[4], u32x c2[4], u32x c3[4], const u32 offset)
 {
-  #ifdef IS_AMD
-  volatile const int offset_switch = offset / 4;
-  #else
   const int offset_switch = offset / 4;
-  #endif
 
   #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
   switch (offset_switch)
@@ -4920,17 +4132,13 @@ void switch_buffer_by_offset_carry_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x 
   #endif
 }
 
-void switch_buffer_by_offset_8x4_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_8x4_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32 offset)
 {
   const int offset_mod_4 = offset & 3;
 
   const int offset_minus_4 = 4 - offset_mod_4;
 
-  #ifdef IS_AMD
-  volatile const int offset_switch = offset / 4;
-  #else
   const int offset_switch = offset / 4;
-  #endif
 
   #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
   w0[0] = swap32 (w0[0]);
@@ -6730,13 +5938,9 @@ void switch_buffer_by_offset_8x4_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3
   #endif
 }
 
-void switch_buffer_by_offset_8x4_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_8x4_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32 offset)
 {
-  #ifdef IS_AMD
-  volatile const int offset_switch = offset / 4;
-  #else
   const int offset_switch = offset / 4;
-  #endif
 
   #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
   switch (offset_switch)
@@ -9062,13 +8266,9 @@ void switch_buffer_by_offset_8x4_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3
   #endif
 }
 
-void switch_buffer_by_offset_8x4_carry_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], u32x c0[4], u32x c1[4], u32x c2[4], u32x c3[4], u32x c4[4], u32x c5[4], u32x c6[4], u32x c7[4], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_8x4_carry_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], u32x c0[4], u32x c1[4], u32x c2[4], u32x c3[4], u32x c4[4], u32x c5[4], u32x c6[4], u32x c7[4], const u32 offset)
 {
-  #ifdef IS_AMD
-  volatile const int offset_switch = offset / 4;
-  #else
   const int offset_switch = offset / 4;
-  #endif
 
   #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
   switch (offset_switch)
@@ -12450,17 +11650,13 @@ void switch_buffer_by_offset_8x4_carry_be (u32x w0[4], u32x w1[4], u32x w2[4], u
   #endif
 }
 
-void switch_buffer_by_offset_1x64_le (u32x w[64], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_1x64_le (u32x w[64], const u32 offset)
 {
   const int offset_mod_4 = offset & 3;
 
   const int offset_minus_4 = 4 - offset_mod_4;
 
-  #ifdef IS_AMD
-  volatile const int offset_switch = offset / 4;
-  #else
   const int offset_switch = offset / 4;
-  #endif
 
   #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
 
@@ -21194,13 +20390,9 @@ void switch_buffer_by_offset_1x64_le (u32x w[64], const u32 offset)
   #endif
 }
 
-void switch_buffer_by_offset_1x64_be (u32x w[64], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_1x64_be (u32x w[64], const u32 offset)
 {
-  #ifdef IS_AMD
-  volatile const int offset_switch = offset / 4;
-  #else
   const int offset_switch = offset / 4;
-  #endif
 
   #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
   switch (offset_switch)
@@ -29930,7 +29122,7 @@ void switch_buffer_by_offset_1x64_be (u32x w[64], const u32 offset)
  * vector functions as scalar (for outer loop usage)
  */
 
-void truncate_block_4x4_le_S (u32 w0[4], const u32 len)
+DECLSPEC void truncate_block_4x4_le_S (u32 w0[4], const u32 len)
 {
   switch (len)
   {
@@ -30040,7 +29232,7 @@ void truncate_block_4x4_le_S (u32 w0[4], const u32 len)
   }
 }
 
-void truncate_block_4x4_be_S (u32 w0[4], const u32 len)
+DECLSPEC void truncate_block_4x4_be_S (u32 w0[4], const u32 len)
 {
   switch (len)
   {
@@ -30150,7 +29342,7 @@ void truncate_block_4x4_be_S (u32 w0[4], const u32 len)
   }
 }
 
-void truncate_block_16x4_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 len)
+DECLSPEC void truncate_block_16x4_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 len)
 {
   switch (len)
   {
@@ -30956,7 +30148,7 @@ void truncate_block_16x4_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const
   }
 }
 
-void truncate_block_16x4_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 len)
+DECLSPEC void truncate_block_16x4_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 len)
 {
   switch (len)
   {
@@ -31762,593 +30954,117 @@ void truncate_block_16x4_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const
   }
 }
 
-void append_0x01_2x4_S (u32 w0[4], u32 w1[4], const u32 offset)
+DECLSPEC void append_helper_1x4_S (u32 r[4], const u32 v, const u32 m[4])
 {
-  w0[0] |= 0x01010101 & c_append_helper[offset][0];
-  w0[1] |= 0x01010101 & c_append_helper[offset][1];
-  w0[2] |= 0x01010101 & c_append_helper[offset][2];
-  w0[3] |= 0x01010101 & c_append_helper[offset][3];
-  w1[0] |= 0x01010101 & c_append_helper[offset][4];
-  w1[1] |= 0x01010101 & c_append_helper[offset][5];
-  w1[2] |= 0x01010101 & c_append_helper[offset][6];
-  w1[3] |= 0x01010101 & c_append_helper[offset][7];
+  r[0] |= v & m[0];
+  r[1] |= v & m[1];
+  r[2] |= v & m[2];
+  r[3] |= v & m[3];
 }
 
-void append_0x80_1x4_S (u32 w0[4], const u32 offset)
+DECLSPEC void append_0x01_2x4_S (u32 w0[4], u32 w1[4], const u32 offset)
 {
-  w0[0] |= 0x80808080 & c_append_helper[offset][0];
-  w0[1] |= 0x80808080 & c_append_helper[offset][1];
-  w0[2] |= 0x80808080 & c_append_helper[offset][2];
-  w0[3] |= 0x80808080 & c_append_helper[offset][3];
-}
-
-void append_0x80_2x4_S (u32 w0[4], u32 w1[4], const u32 offset)
-{
-  w0[0] |= 0x80808080 & c_append_helper[offset][0];
-  w0[1] |= 0x80808080 & c_append_helper[offset][1];
-  w0[2] |= 0x80808080 & c_append_helper[offset][2];
-  w0[3] |= 0x80808080 & c_append_helper[offset][3];
-  w1[0] |= 0x80808080 & c_append_helper[offset][4];
-  w1[1] |= 0x80808080 & c_append_helper[offset][5];
-  w1[2] |= 0x80808080 & c_append_helper[offset][6];
-  w1[3] |= 0x80808080 & c_append_helper[offset][7];
-}
-
-void append_0x80_3x4_S (u32 w0[4], u32 w1[4], u32 w2[4], const u32 offset)
-{
-  w0[0] |= 0x80808080 & c_append_helper[offset][ 0];
-  w0[1] |= 0x80808080 & c_append_helper[offset][ 1];
-  w0[2] |= 0x80808080 & c_append_helper[offset][ 2];
-  w0[3] |= 0x80808080 & c_append_helper[offset][ 3];
-  w1[0] |= 0x80808080 & c_append_helper[offset][ 4];
-  w1[1] |= 0x80808080 & c_append_helper[offset][ 5];
-  w1[2] |= 0x80808080 & c_append_helper[offset][ 6];
-  w1[3] |= 0x80808080 & c_append_helper[offset][ 7];
-  w2[0] |= 0x80808080 & c_append_helper[offset][ 8];
-  w2[1] |= 0x80808080 & c_append_helper[offset][ 9];
-  w2[2] |= 0x80808080 & c_append_helper[offset][10];
-  w2[3] |= 0x80808080 & c_append_helper[offset][11];
-}
-
-void append_0x80_4x4_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
-{
-  w0[0] |= 0x80808080 & c_append_helper[offset][ 0];
-  w0[1] |= 0x80808080 & c_append_helper[offset][ 1];
-  w0[2] |= 0x80808080 & c_append_helper[offset][ 2];
-  w0[3] |= 0x80808080 & c_append_helper[offset][ 3];
-  w1[0] |= 0x80808080 & c_append_helper[offset][ 4];
-  w1[1] |= 0x80808080 & c_append_helper[offset][ 5];
-  w1[2] |= 0x80808080 & c_append_helper[offset][ 6];
-  w1[3] |= 0x80808080 & c_append_helper[offset][ 7];
-  w2[0] |= 0x80808080 & c_append_helper[offset][ 8];
-  w2[1] |= 0x80808080 & c_append_helper[offset][ 9];
-  w2[2] |= 0x80808080 & c_append_helper[offset][10];
-  w2[3] |= 0x80808080 & c_append_helper[offset][11];
-  w3[0] |= 0x80808080 & c_append_helper[offset][12];
-  w3[1] |= 0x80808080 & c_append_helper[offset][13];
-  w3[2] |= 0x80808080 & c_append_helper[offset][14];
-  w3[3] |= 0x80808080 & c_append_helper[offset][15];
-}
-
-void append_0x80_8x4_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const u32 offset)
-{
-  switch (offset)
+  const u32 v[4] =
   {
-    case 0:
-      w0[0] = w0[0] | 0x80;
-      break;
-
-    case 1:
-      w0[0] = w0[0] | 0x8000;
-      break;
-
-    case 2:
-      w0[0] = w0[0] | 0x800000;
-      break;
-
-    case 3:
-      w0[0] = w0[0] | 0x80000000;
-      break;
-
-    case 4:
-      w0[1] = w0[1] | 0x80;
-      break;
-
-    case 5:
-      w0[1] = w0[1] | 0x8000;
-      break;
-
-    case 6:
-      w0[1] = w0[1] | 0x800000;
-      break;
-
-    case 7:
-      w0[1] = w0[1] | 0x80000000;
-      break;
-
-    case 8:
-      w0[2] = w0[2] | 0x80;
-      break;
-
-    case 9:
-      w0[2] = w0[2] | 0x8000;
-      break;
-
-    case 10:
-      w0[2] = w0[2] | 0x800000;
-      break;
-
-    case 11:
-      w0[2] = w0[2] | 0x80000000;
-      break;
-
-    case 12:
-      w0[3] = w0[3] | 0x80;
-      break;
-
-    case 13:
-      w0[3] = w0[3] | 0x8000;
-      break;
-
-    case 14:
-      w0[3] = w0[3] | 0x800000;
-      break;
-
-    case 15:
-      w0[3] = w0[3] | 0x80000000;
-      break;
-
-    case 16:
-      w1[0] = w1[0] | 0x80;
-      break;
-
-    case 17:
-      w1[0] = w1[0] | 0x8000;
-      break;
-
-    case 18:
-      w1[0] = w1[0] | 0x800000;
-      break;
-
-    case 19:
-      w1[0] = w1[0] | 0x80000000;
-      break;
-
-    case 20:
-      w1[1] = w1[1] | 0x80;
-      break;
-
-    case 21:
-      w1[1] = w1[1] | 0x8000;
-      break;
-
-    case 22:
-      w1[1] = w1[1] | 0x800000;
-      break;
-
-    case 23:
-      w1[1] = w1[1] | 0x80000000;
-      break;
-
-    case 24:
-      w1[2] = w1[2] | 0x80;
-      break;
-
-    case 25:
-      w1[2] = w1[2] | 0x8000;
-      break;
-
-    case 26:
-      w1[2] = w1[2] | 0x800000;
-      break;
-
-    case 27:
-      w1[2] = w1[2] | 0x80000000;
-      break;
-
-    case 28:
-      w1[3] = w1[3] | 0x80;
-      break;
-
-    case 29:
-      w1[3] = w1[3] | 0x8000;
-      break;
-
-    case 30:
-      w1[3] = w1[3] | 0x800000;
-      break;
-
-    case 31:
-      w1[3] = w1[3] | 0x80000000;
-      break;
-
-    case 32:
-      w2[0] = w2[0] | 0x80;
-      break;
-
-    case 33:
-      w2[0] = w2[0] | 0x8000;
-      break;
-
-    case 34:
-      w2[0] = w2[0] | 0x800000;
-      break;
-
-    case 35:
-      w2[0] = w2[0] | 0x80000000;
-      break;
-
-    case 36:
-      w2[1] = w2[1] | 0x80;
-      break;
-
-    case 37:
-      w2[1] = w2[1] | 0x8000;
-      break;
-
-    case 38:
-      w2[1] = w2[1] | 0x800000;
-      break;
-
-    case 39:
-      w2[1] = w2[1] | 0x80000000;
-      break;
-
-    case 40:
-      w2[2] = w2[2] | 0x80;
-      break;
-
-    case 41:
-      w2[2] = w2[2] | 0x8000;
-      break;
-
-    case 42:
-      w2[2] = w2[2] | 0x800000;
-      break;
-
-    case 43:
-      w2[2] = w2[2] | 0x80000000;
-      break;
-
-    case 44:
-      w2[3] = w2[3] | 0x80;
-      break;
-
-    case 45:
-      w2[3] = w2[3] | 0x8000;
-      break;
-
-    case 46:
-      w2[3] = w2[3] | 0x800000;
-      break;
-
-    case 47:
-      w2[3] = w2[3] | 0x80000000;
-      break;
-
-    case 48:
-      w3[0] = w3[0] | 0x80;
-      break;
-
-    case 49:
-      w3[0] = w3[0] | 0x8000;
-      break;
-
-    case 50:
-      w3[0] = w3[0] | 0x800000;
-      break;
-
-    case 51:
-      w3[0] = w3[0] | 0x80000000;
-      break;
-
-    case 52:
-      w3[1] = w3[1] | 0x80;
-      break;
-
-    case 53:
-      w3[1] = w3[1] | 0x8000;
-      break;
-
-    case 54:
-      w3[1] = w3[1] | 0x800000;
-      break;
-
-    case 55:
-      w3[1] = w3[1] | 0x80000000;
-      break;
-
-    case 56:
-      w3[2] = w3[2] | 0x80;
-      break;
-
-    case 57:
-      w3[2] = w3[2] | 0x8000;
-      break;
-
-    case 58:
-      w3[2] = w3[2] | 0x800000;
-      break;
-
-    case 59:
-      w3[2] = w3[2] | 0x80000000;
-      break;
-
-    case 60:
-      w3[3] = w3[3] | 0x80;
-      break;
-
-    case 61:
-      w3[3] = w3[3] | 0x8000;
-      break;
-
-    case 62:
-      w3[3] = w3[3] | 0x800000;
-      break;
-
-    case 63:
-      w3[3] = w3[3] | 0x80000000;
-      break;
-
-    case 64:
-      w4[0] = w4[0] | 0x80;
-      break;
-
-    case 65:
-      w4[0] = w4[0] | 0x8000;
-      break;
-
-    case 66:
-      w4[0] = w4[0] | 0x800000;
-      break;
-
-    case 67:
-      w4[0] = w4[0] | 0x80000000;
-      break;
-
-    case 68:
-      w4[1] = w4[1] | 0x80;
-      break;
-
-    case 69:
-      w4[1] = w4[1] | 0x8000;
-      break;
-
-    case 70:
-      w4[1] = w4[1] | 0x800000;
-      break;
-
-    case 71:
-      w4[1] = w4[1] | 0x80000000;
-      break;
-
-    case 72:
-      w4[2] = w4[2] | 0x80;
-      break;
-
-    case 73:
-      w4[2] = w4[2] | 0x8000;
-      break;
-
-    case 74:
-      w4[2] = w4[2] | 0x800000;
-      break;
-
-    case 75:
-      w4[2] = w4[2] | 0x80000000;
-      break;
-
-    case 76:
-      w4[3] = w4[3] | 0x80;
-      break;
-
-    case 77:
-      w4[3] = w4[3] | 0x8000;
-      break;
-
-    case 78:
-      w4[3] = w4[3] | 0x800000;
-      break;
-
-    case 79:
-      w4[3] = w4[3] | 0x80000000;
-      break;
-
-    case 80:
-      w5[0] = w5[0] | 0x80;
-      break;
-
-    case 81:
-      w5[0] = w5[0] | 0x8000;
-      break;
-
-    case 82:
-      w5[0] = w5[0] | 0x800000;
-      break;
-
-    case 83:
-      w5[0] = w5[0] | 0x80000000;
-      break;
-
-    case 84:
-      w5[1] = w5[1] | 0x80;
-      break;
-
-    case 85:
-      w5[1] = w5[1] | 0x8000;
-      break;
-
-    case 86:
-      w5[1] = w5[1] | 0x800000;
-      break;
-
-    case 87:
-      w5[1] = w5[1] | 0x80000000;
-      break;
-
-    case 88:
-      w5[2] = w5[2] | 0x80;
-      break;
-
-    case 89:
-      w5[2] = w5[2] | 0x8000;
-      break;
-
-    case 90:
-      w5[2] = w5[2] | 0x800000;
-      break;
-
-    case 91:
-      w5[2] = w5[2] | 0x80000000;
-      break;
-
-    case 92:
-      w5[3] = w5[3] | 0x80;
-      break;
-
-    case 93:
-      w5[3] = w5[3] | 0x8000;
-      break;
-
-    case 94:
-      w5[3] = w5[3] | 0x800000;
-      break;
-
-    case 95:
-      w5[3] = w5[3] | 0x80000000;
-      break;
-
-    case 96:
-      w6[0] = w6[0] | 0x80;
-      break;
-
-    case 97:
-      w6[0] = w6[0] | 0x8000;
-      break;
-
-    case 98:
-      w6[0] = w6[0] | 0x800000;
-      break;
-
-    case 99:
-      w6[0] = w6[0] | 0x80000000;
-      break;
-
-    case 100:
-      w6[1] = w6[1] | 0x80;
-      break;
-
-    case 101:
-      w6[1] = w6[1] | 0x8000;
-      break;
-
-    case 102:
-      w6[1] = w6[1] | 0x800000;
-      break;
-
-    case 103:
-      w6[1] = w6[1] | 0x80000000;
-      break;
-
-    case 104:
-      w6[2] = w6[2] | 0x80;
-      break;
-
-    case 105:
-      w6[2] = w6[2] | 0x8000;
-      break;
-
-    case 106:
-      w6[2] = w6[2] | 0x800000;
-      break;
-
-    case 107:
-      w6[2] = w6[2] | 0x80000000;
-      break;
-
-    case 108:
-      w6[3] = w6[3] | 0x80;
-      break;
-
-    case 109:
-      w6[3] = w6[3] | 0x8000;
-      break;
-
-    case 110:
-      w6[3] = w6[3] | 0x800000;
-      break;
-
-    case 111:
-      w6[3] = w6[3] | 0x80000000;
-      break;
-
-    case 112:
-      w7[0] = w7[0] | 0x80;
-      break;
-
-    case 113:
-      w7[0] = w7[0] | 0x8000;
-      break;
-
-    case 114:
-      w7[0] = w7[0] | 0x800000;
-      break;
-
-    case 115:
-      w7[0] = w7[0] | 0x80000000;
-      break;
-
-    case 116:
-      w7[1] = w7[1] | 0x80;
-      break;
-
-    case 117:
-      w7[1] = w7[1] | 0x8000;
-      break;
-
-    case 118:
-      w7[1] = w7[1] | 0x800000;
-      break;
-
-    case 119:
-      w7[1] = w7[1] | 0x80000000;
-      break;
-
-    case 120:
-      w7[2] = w7[2] | 0x80;
-      break;
-
-    case 121:
-      w7[2] = w7[2] | 0x8000;
-      break;
-
-    case 122:
-      w7[2] = w7[2] | 0x800000;
-      break;
-
-    case 123:
-      w7[2] = w7[2] | 0x80000000;
-      break;
-
-    case 124:
-      w7[3] = w7[3] | 0x80;
-      break;
-
-    case 125:
-      w7[3] = w7[3] | 0x8000;
-      break;
-
-    case 126:
-      w7[3] = w7[3] | 0x800000;
-      break;
-
-    case 127:
-      w7[3] = w7[3] | 0x80000000;
-      break;
-  }
+    c_append_helper_mini[offset & 0xf][0],
+    c_append_helper_mini[offset & 0xf][1],
+    c_append_helper_mini[offset & 0xf][2],
+    c_append_helper_mini[offset & 0xf][3]
+  };
+
+  const u32 offset16 = offset / 16;
+
+  append_helper_1x4_S (w0, ((offset16 == 0) ? 0x01010101 : 0), v);
+  append_helper_1x4_S (w1, ((offset16 == 1) ? 0x01010101 : 0), v);
 }
 
-void make_utf16be_S (const u32 in[4], u32 out1[4], u32 out2[4])
+DECLSPEC void append_0x80_1x4_S (u32 w0[4], const u32 offset)
+{
+  const u32 v[4] =
+  {
+    c_append_helper_mini[offset & 0xf][0],
+    c_append_helper_mini[offset & 0xf][1],
+    c_append_helper_mini[offset & 0xf][2],
+    c_append_helper_mini[offset & 0xf][3]
+  };
+
+  append_helper_1x4_S (w0, 0x80808080, v);
+}
+
+DECLSPEC void append_0x80_2x4_S (u32 w0[4], u32 w1[4], const u32 offset)
+{
+  const u32 v[4] =
+  {
+    c_append_helper_mini[offset & 0xf][0],
+    c_append_helper_mini[offset & 0xf][1],
+    c_append_helper_mini[offset & 0xf][2],
+    c_append_helper_mini[offset & 0xf][3]
+  };
+
+  const u32 offset16 = offset / 16;
+
+  append_helper_1x4_S (w0, ((offset16 == 0) ? 0x80808080 : 0), v);
+  append_helper_1x4_S (w1, ((offset16 == 1) ? 0x80808080 : 0), v);
+}
+
+DECLSPEC void append_0x80_3x4_S (u32 w0[4], u32 w1[4], u32 w2[4], const u32 offset)
+{
+  const u32 v[4] =
+  {
+    c_append_helper_mini[offset & 0xf][0],
+    c_append_helper_mini[offset & 0xf][1],
+    c_append_helper_mini[offset & 0xf][2],
+    c_append_helper_mini[offset & 0xf][3]
+  };
+
+  const u32 offset16 = offset / 16;
+
+  append_helper_1x4_S (w0, ((offset16 == 0) ? 0x80808080 : 0), v);
+  append_helper_1x4_S (w1, ((offset16 == 1) ? 0x80808080 : 0), v);
+  append_helper_1x4_S (w2, ((offset16 == 2) ? 0x80808080 : 0), v);
+}
+
+DECLSPEC void append_0x80_4x4_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
+{
+  const u32 v[4] =
+  {
+    c_append_helper_mini[offset & 0xf][0],
+    c_append_helper_mini[offset & 0xf][1],
+    c_append_helper_mini[offset & 0xf][2],
+    c_append_helper_mini[offset & 0xf][3]
+  };
+
+  const u32 offset16 = offset / 16;
+
+  append_helper_1x4_S (w0, ((offset16 == 0) ? 0x80808080 : 0), v);
+  append_helper_1x4_S (w1, ((offset16 == 1) ? 0x80808080 : 0), v);
+  append_helper_1x4_S (w2, ((offset16 == 2) ? 0x80808080 : 0), v);
+  append_helper_1x4_S (w3, ((offset16 == 3) ? 0x80808080 : 0), v);
+}
+
+DECLSPEC void append_0x80_8x4_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const u32 offset)
+{
+  const u32 v[4] =
+  {
+    c_append_helper_mini[offset & 0xf][0],
+    c_append_helper_mini[offset & 0xf][1],
+    c_append_helper_mini[offset & 0xf][2],
+    c_append_helper_mini[offset & 0xf][3]
+  };
+
+  const u32 offset16 = offset / 16;
+
+  append_helper_1x4_S (w0, ((offset16 == 0) ? 0x80808080 : 0), v);
+  append_helper_1x4_S (w1, ((offset16 == 1) ? 0x80808080 : 0), v);
+  append_helper_1x4_S (w2, ((offset16 == 2) ? 0x80808080 : 0), v);
+  append_helper_1x4_S (w3, ((offset16 == 3) ? 0x80808080 : 0), v);
+  append_helper_1x4_S (w4, ((offset16 == 4) ? 0x80808080 : 0), v);
+  append_helper_1x4_S (w5, ((offset16 == 5) ? 0x80808080 : 0), v);
+  append_helper_1x4_S (w6, ((offset16 == 6) ? 0x80808080 : 0), v);
+  append_helper_1x4_S (w7, ((offset16 == 7) ? 0x80808080 : 0), v);
+}
+
+DECLSPEC void make_utf16be_S (const u32 in[4], u32 out1[4], u32 out2[4])
 {
   #if defined IS_NV
 
@@ -32386,7 +31102,7 @@ void make_utf16be_S (const u32 in[4], u32 out1[4], u32 out2[4])
   #endif
 }
 
-void make_utf16le_S (const u32 in[4], u32 out1[4], u32 out2[4])
+DECLSPEC void make_utf16le_S (const u32 in[4], u32 out1[4], u32 out2[4])
 {
   #if defined IS_NV
 
@@ -32424,7 +31140,7 @@ void make_utf16le_S (const u32 in[4], u32 out1[4], u32 out2[4])
   #endif
 }
 
-void undo_utf16be_S (const u32 in1[4], const u32 in2[4], u32 out[4])
+DECLSPEC void undo_utf16be_S (const u32 in1[4], const u32 in2[4], u32 out[4])
 {
   #if defined IS_NV
 
@@ -32454,7 +31170,7 @@ void undo_utf16be_S (const u32 in1[4], const u32 in2[4], u32 out[4])
   #endif
 }
 
-void undo_utf16le_S (const u32 in1[4], const u32 in2[4], u32 out[4])
+DECLSPEC void undo_utf16le_S (const u32 in1[4], const u32 in2[4], u32 out[4])
 {
   #if defined IS_NV
 
@@ -32484,17 +31200,13 @@ void undo_utf16le_S (const u32 in1[4], const u32 in2[4], u32 out[4])
   #endif
 }
 
-void switch_buffer_by_offset_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
 {
   const int offset_mod_4 = offset & 3;
 
   const int offset_minus_4 = 4 - offset_mod_4;
 
-  #ifdef IS_AMD
-  volatile const int offset_switch = offset / 4;
-  #else
   const int offset_switch = offset / 4;
-  #endif
 
   #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
   w0[0] = swap32_S (w0[0]);
@@ -33190,17 +31902,13 @@ void switch_buffer_by_offset_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], c
   #endif
 }
 
-void switch_buffer_by_offset_carry_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 c0[4], u32 c1[4], u32 c2[4], u32 c3[4], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_carry_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 c0[4], u32 c1[4], u32 c2[4], u32 c3[4], const u32 offset)
 {
   const int offset_mod_4 = offset & 3;
 
   const int offset_minus_4 = 4 - offset_mod_4;
 
-  #ifdef IS_AMD
-  volatile const int offset_switch = offset / 4;
-  #else
   const int offset_switch = offset / 4;
-  #endif
 
   #if defined IS_AMD || defined IS_GENERIC
   w0[0] = swap32_S (w0[0]);
@@ -34512,13 +33220,9 @@ void switch_buffer_by_offset_carry_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3
   #endif
 }
 
-void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
 {
-  #ifdef IS_AMD
-  volatile const int offset_switch = offset / 4;
-  #else
   const int offset_switch = offset / 4;
-  #endif
 
   #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
   switch (offset_switch)
@@ -35180,13 +33884,9 @@ void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], c
   #endif
 }
 
-void switch_buffer_by_offset_carry_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 c0[4], u32 c1[4], u32 c2[4], u32 c3[4], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_carry_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 c0[4], u32 c1[4], u32 c2[4], u32 c3[4], const u32 offset)
 {
-  #ifdef IS_AMD
-  volatile const int offset_switch = offset / 4;
-  #else
   const int offset_switch = offset / 4;
-  #endif
 
   #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
   switch (offset_switch)
@@ -36120,17 +34820,13 @@ void switch_buffer_by_offset_carry_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3
   #endif
 }
 
-void switch_buffer_by_offset_8x4_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_8x4_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const u32 offset)
 {
   const int offset_mod_4 = offset & 3;
 
   const int offset_minus_4 = 4 - offset_mod_4;
 
-  #ifdef IS_AMD
-  volatile const int offset_switch = offset / 4;
-  #else
   const int offset_switch = offset / 4;
-  #endif
 
   #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
   w0[0] = swap32_S (w0[0]);
@@ -37930,13 +36626,9 @@ void switch_buffer_by_offset_8x4_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4
   #endif
 }
 
-void switch_buffer_by_offset_8x4_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_8x4_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const u32 offset)
 {
-  #ifdef IS_AMD
-  volatile const int offset_switch = offset / 4;
-  #else
   const int offset_switch = offset / 4;
-  #endif
 
   #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
   switch (offset_switch)
@@ -40262,13 +38954,9 @@ void switch_buffer_by_offset_8x4_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4
   #endif
 }
 
-void switch_buffer_by_offset_8x4_carry_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], u32 c0[4], u32 c1[4], u32 c2[4], u32 c3[4], u32 c4[4], u32 c5[4], u32 c6[4], u32 c7[4], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_8x4_carry_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], u32 c0[4], u32 c1[4], u32 c2[4], u32 c3[4], u32 c4[4], u32 c5[4], u32 c6[4], u32 c7[4], const u32 offset)
 {
-  #ifdef IS_AMD
-  volatile const int offset_switch = offset / 4;
-  #else
   const int offset_switch = offset / 4;
-  #endif
 
   #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
   switch (offset_switch)
@@ -43650,17 +42338,13 @@ void switch_buffer_by_offset_8x4_carry_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u3
   #endif
 }
 
-void switch_buffer_by_offset_1x64_le_S (u32 w[64], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_1x64_le_S (u32 w[64], const u32 offset)
 {
   const int offset_mod_4 = offset & 3;
 
   const int offset_minus_4 = 4 - offset_mod_4;
 
-  #ifdef IS_AMD
-  volatile const int offset_switch = offset / 4;
-  #else
   const int offset_switch = offset / 4;
-  #endif
 
   #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
 
@@ -52394,13 +51078,9 @@ void switch_buffer_by_offset_1x64_le_S (u32 w[64], const u32 offset)
   #endif
 }
 
-void switch_buffer_by_offset_1x64_be_S (u32 w[64], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_1x64_be_S (u32 w[64], const u32 offset)
 {
-  #ifdef IS_AMD
-  volatile const int offset_switch = offset / 4;
-  #else
   const int offset_switch = offset / 4;
-  #endif
 
   #if (defined IS_AMD && AMD_GCN < 3) || defined IS_GENERIC
   switch (offset_switch)
@@ -61190,7 +59870,7 @@ void switch_buffer_by_offset_1x64_be_S (u32 w[64], const u32 offset)
   PACKSV4 (s6, v6, e);                                              \
   PACKSV4 (s7, v7, e);
 
-void switch_buffer_by_offset_le_VV (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32x offset)
+DECLSPEC void switch_buffer_by_offset_le_VV (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32x offset)
 {
   #if VECT_SIZE == 1
 
@@ -61250,7 +59930,7 @@ void switch_buffer_by_offset_le_VV (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[
   #endif
 }
 
-void switch_buffer_by_offset_8x4_le_VV (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32x offset)
+DECLSPEC void switch_buffer_by_offset_8x4_le_VV (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32x offset)
 {
   #if VECT_SIZE == 1
 
@@ -61430,7 +60110,7 @@ void switch_buffer_by_offset_8x4_le_VV (u32x w0[4], u32x w1[4], u32x w2[4], u32x
   #endif
 }
 
-void append_0x01_2x4_VV (u32x w0[4], u32x w1[4], const u32x offset)
+DECLSPEC void append_0x01_2x4_VV (u32x w0[4], u32x w1[4], const u32x offset)
 {
   #if VECT_SIZE == 1
 
@@ -61488,7 +60168,7 @@ void append_0x01_2x4_VV (u32x w0[4], u32x w1[4], const u32x offset)
   #endif
 }
 
-void append_0x80_2x4_VV (u32x w0[4], u32x w1[4], const u32x offset)
+DECLSPEC void append_0x80_2x4_VV (u32x w0[4], u32x w1[4], const u32x offset)
 {
   #if VECT_SIZE == 1
 
@@ -61546,7 +60226,7 @@ void append_0x80_2x4_VV (u32x w0[4], u32x w1[4], const u32x offset)
   #endif
 }
 
-void append_0x80_4x4_VV (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32x offset)
+DECLSPEC void append_0x80_4x4_VV (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32x offset)
 {
   #if VECT_SIZE == 1
 
@@ -61604,6 +60284,39 @@ void append_0x80_4x4_VV (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u
   PACKVS44 (t0, t1, t2, t3, w0, w1, w2, w3, f); append_0x80_4x4_S (t0, t1, t2, t3, offset.sf); PACKSV44 (t0, t1, t2, t3, w0, w1, w2, w3, f);
 
   #endif
+}
+
+DECLSPEC void gpu_decompress_entry (__global pw_idx_t *pws_idx, __global u32 *pws_comp, pw_t *pw, const u64 gid)
+{
+  const u32 off = pws_idx[gid].off;
+  const u32 cnt = pws_idx[gid].cnt;
+  const u32 len = pws_idx[gid].len;
+
+  #pragma unroll
+  for (u32 i = 0; i < 64; i++)
+  {
+    pw->i[i] = 0;
+  }
+
+  for (u32 i = 0, j = off; i < cnt; i++, j++)
+  {
+    pw->i[i] = pws_comp[j];
+  }
+
+  pw->pw_len = len;
+}
+
+__kernel void gpu_decompress (__global pw_idx_t *pws_idx, __global u32 *pws_comp, __global pw_t *pws_buf, const u64 gid_max)
+{
+  const u64 gid = get_global_id (0);
+
+  if (gid >= gid_max) return;
+
+  pw_t pw;
+
+  gpu_decompress_entry (pws_idx, pws_comp, &pw, gid);
+
+  pws_buf[gid] = pw;
 }
 
 __kernel void gpu_memset (__global uint4 *buf, const u32 value, const u64 gid_max)
@@ -61691,7 +60404,8 @@ __kernel void gpu_atinit (__global pw_t *buf, const u64 gid_max)
   pw.i[62] = 0;
   pw.i[63] = 0; // yep that's faster
 
-  pw.pw_len = 1 + (l32 & 15);
+  //pw.pw_len = 1 + (l32 & 15);
+  pw.pw_len = 7; // some algorithms are very sensible on this (example: 12500)
 
   buf[gid] = pw;
 }

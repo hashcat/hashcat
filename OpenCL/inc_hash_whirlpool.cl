@@ -6,7 +6,7 @@
 
 #define R 10
 
-__constant static u32a Ch[8][256] =
+__constant u32a Ch[8][256] =
 {
   {
     0x18186018, 0x23238c23, 0xc6c63fc6, 0xe8e887e8,
@@ -538,7 +538,7 @@ __constant static u32a Ch[8][256] =
   }
 };
 
-__constant static u32a Cl[8][256] =
+__constant u32a Cl[8][256] =
 {
   {
     0xc07830d8, 0x05af4626, 0x7ef991b8, 0x136fcdfb,
@@ -1070,7 +1070,7 @@ __constant static u32a Cl[8][256] =
   },
 };
 
-__constant static u32a rch[R + 1] =
+__constant u32a rch[R + 1] =
 {
   0x00000000,
   0x1823c6e8,
@@ -1085,7 +1085,7 @@ __constant static u32a rch[R + 1] =
   0xca2dbf07,
 };
 
-__constant static u32a rcl[R + 1] =
+__constant u32a rcl[R + 1] =
 {
   0x00000000,
   0x87b8014f,
@@ -1130,7 +1130,7 @@ typedef struct whirlpool_ctx
 
 } whirlpool_ctx_t;
 
-void whirlpool_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[16], SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
+DECLSPEC void whirlpool_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[16], SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   u32 Kh[8];
   u32 Kl[8];
@@ -1300,7 +1300,7 @@ void whirlpool_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], con
   digest[15] ^= statel[7] ^ w3[3];
 }
 
-void whirlpool_init (whirlpool_ctx_t *ctx, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
+DECLSPEC void whirlpool_init (whirlpool_ctx_t *ctx, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   ctx->h[ 0] = 0;
   ctx->h[ 1] = 0;
@@ -1342,13 +1342,9 @@ void whirlpool_init (whirlpool_ctx_t *ctx, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u
   ctx->s_Cl = s_Cl;
 }
 
-void whirlpool_update_64 (whirlpool_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len)
+DECLSPEC void whirlpool_update_64 (whirlpool_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len)
 {
-  #ifdef IS_AMD
-  volatile const int pos = ctx->len & 63;
-  #else
   const int pos = ctx->len & 63;
-  #endif
 
   ctx->len += len;
 
@@ -1420,7 +1416,7 @@ void whirlpool_update_64 (whirlpool_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4],
   }
 }
 
-void whirlpool_update (whirlpool_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void whirlpool_update (whirlpool_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1472,263 +1468,7 @@ void whirlpool_update (whirlpool_ctx_t *ctx, const u32 *w, const int len)
   whirlpool_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-void whirlpool_update_swap (whirlpool_ctx_t *ctx, const u32 *w, const int len)
-{
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
-
-  int pos1;
-  int pos4;
-
-  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
-  {
-    w0[0] = w[pos4 +  0];
-    w0[1] = w[pos4 +  1];
-    w0[2] = w[pos4 +  2];
-    w0[3] = w[pos4 +  3];
-    w1[0] = w[pos4 +  4];
-    w1[1] = w[pos4 +  5];
-    w1[2] = w[pos4 +  6];
-    w1[3] = w[pos4 +  7];
-    w2[0] = w[pos4 +  8];
-    w2[1] = w[pos4 +  9];
-    w2[2] = w[pos4 + 10];
-    w2[3] = w[pos4 + 11];
-    w3[0] = w[pos4 + 12];
-    w3[1] = w[pos4 + 13];
-    w3[2] = w[pos4 + 14];
-    w3[3] = w[pos4 + 15];
-
-    w0[0] = swap32_S (w0[0]);
-    w0[1] = swap32_S (w0[1]);
-    w0[2] = swap32_S (w0[2]);
-    w0[3] = swap32_S (w0[3]);
-    w1[0] = swap32_S (w1[0]);
-    w1[1] = swap32_S (w1[1]);
-    w1[2] = swap32_S (w1[2]);
-    w1[3] = swap32_S (w1[3]);
-    w2[0] = swap32_S (w2[0]);
-    w2[1] = swap32_S (w2[1]);
-    w2[2] = swap32_S (w2[2]);
-    w2[3] = swap32_S (w2[3]);
-    w3[0] = swap32_S (w3[0]);
-    w3[1] = swap32_S (w3[1]);
-    w3[2] = swap32_S (w3[2]);
-    w3[3] = swap32_S (w3[3]);
-
-    whirlpool_update_64 (ctx, w0, w1, w2, w3, 64);
-  }
-
-  w0[0] = w[pos4 +  0];
-  w0[1] = w[pos4 +  1];
-  w0[2] = w[pos4 +  2];
-  w0[3] = w[pos4 +  3];
-  w1[0] = w[pos4 +  4];
-  w1[1] = w[pos4 +  5];
-  w1[2] = w[pos4 +  6];
-  w1[3] = w[pos4 +  7];
-  w2[0] = w[pos4 +  8];
-  w2[1] = w[pos4 +  9];
-  w2[2] = w[pos4 + 10];
-  w2[3] = w[pos4 + 11];
-  w3[0] = w[pos4 + 12];
-  w3[1] = w[pos4 + 13];
-  w3[2] = w[pos4 + 14];
-  w3[3] = w[pos4 + 15];
-
-  w0[0] = swap32_S (w0[0]);
-  w0[1] = swap32_S (w0[1]);
-  w0[2] = swap32_S (w0[2]);
-  w0[3] = swap32_S (w0[3]);
-  w1[0] = swap32_S (w1[0]);
-  w1[1] = swap32_S (w1[1]);
-  w1[2] = swap32_S (w1[2]);
-  w1[3] = swap32_S (w1[3]);
-  w2[0] = swap32_S (w2[0]);
-  w2[1] = swap32_S (w2[1]);
-  w2[2] = swap32_S (w2[2]);
-  w2[3] = swap32_S (w2[3]);
-  w3[0] = swap32_S (w3[0]);
-  w3[1] = swap32_S (w3[1]);
-  w3[2] = swap32_S (w3[2]);
-  w3[3] = swap32_S (w3[3]);
-
-  whirlpool_update_64 (ctx, w0, w1, w2, w3, len - pos1);
-}
-
-void whirlpool_update_utf16le (whirlpool_ctx_t *ctx, const u32 *w, const int len)
-{
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
-
-  int pos1;
-  int pos4;
-
-  for (pos1 = 0, pos4 = 0; pos1 < len - 32; pos1 += 32, pos4 += 8)
-  {
-    w0[0] = w[pos4 + 0];
-    w0[1] = w[pos4 + 1];
-    w0[2] = w[pos4 + 2];
-    w0[3] = w[pos4 + 3];
-    w1[0] = w[pos4 + 4];
-    w1[1] = w[pos4 + 5];
-    w1[2] = w[pos4 + 6];
-    w1[3] = w[pos4 + 7];
-
-    make_utf16le_S (w1, w2, w3);
-    make_utf16le_S (w0, w0, w1);
-
-    whirlpool_update_64 (ctx, w0, w1, w2, w3, 32 * 2);
-  }
-
-  w0[0] = w[pos4 + 0];
-  w0[1] = w[pos4 + 1];
-  w0[2] = w[pos4 + 2];
-  w0[3] = w[pos4 + 3];
-  w1[0] = w[pos4 + 4];
-  w1[1] = w[pos4 + 5];
-  w1[2] = w[pos4 + 6];
-  w1[3] = w[pos4 + 7];
-
-  make_utf16le_S (w1, w2, w3);
-  make_utf16le_S (w0, w0, w1);
-
-  whirlpool_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
-}
-
-void whirlpool_update_utf16le_swap (whirlpool_ctx_t *ctx, const u32 *w, const int len)
-{
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
-
-  int pos1;
-  int pos4;
-
-  for (pos1 = 0, pos4 = 0; pos1 < len - 32; pos1 += 32, pos4 += 8)
-  {
-    w0[0] = w[pos4 + 0];
-    w0[1] = w[pos4 + 1];
-    w0[2] = w[pos4 + 2];
-    w0[3] = w[pos4 + 3];
-    w1[0] = w[pos4 + 4];
-    w1[1] = w[pos4 + 5];
-    w1[2] = w[pos4 + 6];
-    w1[3] = w[pos4 + 7];
-
-    make_utf16le_S (w1, w2, w3);
-    make_utf16le_S (w0, w0, w1);
-
-    w0[0] = swap32_S (w0[0]);
-    w0[1] = swap32_S (w0[1]);
-    w0[2] = swap32_S (w0[2]);
-    w0[3] = swap32_S (w0[3]);
-    w1[0] = swap32_S (w1[0]);
-    w1[1] = swap32_S (w1[1]);
-    w1[2] = swap32_S (w1[2]);
-    w1[3] = swap32_S (w1[3]);
-    w2[0] = swap32_S (w2[0]);
-    w2[1] = swap32_S (w2[1]);
-    w2[2] = swap32_S (w2[2]);
-    w2[3] = swap32_S (w2[3]);
-    w3[0] = swap32_S (w3[0]);
-    w3[1] = swap32_S (w3[1]);
-    w3[2] = swap32_S (w3[2]);
-    w3[3] = swap32_S (w3[3]);
-
-    whirlpool_update_64 (ctx, w0, w1, w2, w3, 32 * 2);
-  }
-
-  w0[0] = w[pos4 + 0];
-  w0[1] = w[pos4 + 1];
-  w0[2] = w[pos4 + 2];
-  w0[3] = w[pos4 + 3];
-  w1[0] = w[pos4 + 4];
-  w1[1] = w[pos4 + 5];
-  w1[2] = w[pos4 + 6];
-  w1[3] = w[pos4 + 7];
-
-  make_utf16le_S (w1, w2, w3);
-  make_utf16le_S (w0, w0, w1);
-
-  w0[0] = swap32_S (w0[0]);
-  w0[1] = swap32_S (w0[1]);
-  w0[2] = swap32_S (w0[2]);
-  w0[3] = swap32_S (w0[3]);
-  w1[0] = swap32_S (w1[0]);
-  w1[1] = swap32_S (w1[1]);
-  w1[2] = swap32_S (w1[2]);
-  w1[3] = swap32_S (w1[3]);
-  w2[0] = swap32_S (w2[0]);
-  w2[1] = swap32_S (w2[1]);
-  w2[2] = swap32_S (w2[2]);
-  w2[3] = swap32_S (w2[3]);
-  w3[0] = swap32_S (w3[0]);
-  w3[1] = swap32_S (w3[1]);
-  w3[2] = swap32_S (w3[2]);
-  w3[3] = swap32_S (w3[3]);
-
-  whirlpool_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
-}
-
-void whirlpool_update_global (whirlpool_ctx_t *ctx, const __global u32 *w, const int len)
-{
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
-
-  int pos1;
-  int pos4;
-
-  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
-  {
-    w0[0] = w[pos4 +  0];
-    w0[1] = w[pos4 +  1];
-    w0[2] = w[pos4 +  2];
-    w0[3] = w[pos4 +  3];
-    w1[0] = w[pos4 +  4];
-    w1[1] = w[pos4 +  5];
-    w1[2] = w[pos4 +  6];
-    w1[3] = w[pos4 +  7];
-    w2[0] = w[pos4 +  8];
-    w2[1] = w[pos4 +  9];
-    w2[2] = w[pos4 + 10];
-    w2[3] = w[pos4 + 11];
-    w3[0] = w[pos4 + 12];
-    w3[1] = w[pos4 + 13];
-    w3[2] = w[pos4 + 14];
-    w3[3] = w[pos4 + 15];
-
-    whirlpool_update_64 (ctx, w0, w1, w2, w3, 64);
-  }
-
-  w0[0] = w[pos4 +  0];
-  w0[1] = w[pos4 +  1];
-  w0[2] = w[pos4 +  2];
-  w0[3] = w[pos4 +  3];
-  w1[0] = w[pos4 +  4];
-  w1[1] = w[pos4 +  5];
-  w1[2] = w[pos4 +  6];
-  w1[3] = w[pos4 +  7];
-  w2[0] = w[pos4 +  8];
-  w2[1] = w[pos4 +  9];
-  w2[2] = w[pos4 + 10];
-  w2[3] = w[pos4 + 11];
-  w3[0] = w[pos4 + 12];
-  w3[1] = w[pos4 + 13];
-  w3[2] = w[pos4 + 14];
-  w3[3] = w[pos4 + 15];
-
-  whirlpool_update_64 (ctx, w0, w1, w2, w3, len - pos1);
-}
-
-void whirlpool_update_global_swap (whirlpool_ctx_t *ctx, const __global u32 *w, const int len)
+DECLSPEC void whirlpool_update_swap (whirlpool_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1814,7 +1554,7 @@ void whirlpool_update_global_swap (whirlpool_ctx_t *ctx, const __global u32 *w, 
   whirlpool_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-void whirlpool_update_global_utf16le (whirlpool_ctx_t *ctx, const __global u32 *w, const int len)
+DECLSPEC void whirlpool_update_utf16le (whirlpool_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1856,7 +1596,7 @@ void whirlpool_update_global_utf16le (whirlpool_ctx_t *ctx, const __global u32 *
   whirlpool_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-void whirlpool_update_global_utf16le_swap (whirlpool_ctx_t *ctx, const __global u32 *w, const int len)
+DECLSPEC void whirlpool_update_utf16le_swap (whirlpool_ctx_t *ctx, const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1932,7 +1672,263 @@ void whirlpool_update_global_utf16le_swap (whirlpool_ctx_t *ctx, const __global 
   whirlpool_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-void whirlpool_final (whirlpool_ctx_t *ctx)
+DECLSPEC void whirlpool_update_global (whirlpool_ctx_t *ctx, const __global u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  int pos1;
+  int pos4;
+
+  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
+  {
+    w0[0] = w[pos4 +  0];
+    w0[1] = w[pos4 +  1];
+    w0[2] = w[pos4 +  2];
+    w0[3] = w[pos4 +  3];
+    w1[0] = w[pos4 +  4];
+    w1[1] = w[pos4 +  5];
+    w1[2] = w[pos4 +  6];
+    w1[3] = w[pos4 +  7];
+    w2[0] = w[pos4 +  8];
+    w2[1] = w[pos4 +  9];
+    w2[2] = w[pos4 + 10];
+    w2[3] = w[pos4 + 11];
+    w3[0] = w[pos4 + 12];
+    w3[1] = w[pos4 + 13];
+    w3[2] = w[pos4 + 14];
+    w3[3] = w[pos4 + 15];
+
+    whirlpool_update_64 (ctx, w0, w1, w2, w3, 64);
+  }
+
+  w0[0] = w[pos4 +  0];
+  w0[1] = w[pos4 +  1];
+  w0[2] = w[pos4 +  2];
+  w0[3] = w[pos4 +  3];
+  w1[0] = w[pos4 +  4];
+  w1[1] = w[pos4 +  5];
+  w1[2] = w[pos4 +  6];
+  w1[3] = w[pos4 +  7];
+  w2[0] = w[pos4 +  8];
+  w2[1] = w[pos4 +  9];
+  w2[2] = w[pos4 + 10];
+  w2[3] = w[pos4 + 11];
+  w3[0] = w[pos4 + 12];
+  w3[1] = w[pos4 + 13];
+  w3[2] = w[pos4 + 14];
+  w3[3] = w[pos4 + 15];
+
+  whirlpool_update_64 (ctx, w0, w1, w2, w3, len - pos1);
+}
+
+DECLSPEC void whirlpool_update_global_swap (whirlpool_ctx_t *ctx, const __global u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  int pos1;
+  int pos4;
+
+  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
+  {
+    w0[0] = w[pos4 +  0];
+    w0[1] = w[pos4 +  1];
+    w0[2] = w[pos4 +  2];
+    w0[3] = w[pos4 +  3];
+    w1[0] = w[pos4 +  4];
+    w1[1] = w[pos4 +  5];
+    w1[2] = w[pos4 +  6];
+    w1[3] = w[pos4 +  7];
+    w2[0] = w[pos4 +  8];
+    w2[1] = w[pos4 +  9];
+    w2[2] = w[pos4 + 10];
+    w2[3] = w[pos4 + 11];
+    w3[0] = w[pos4 + 12];
+    w3[1] = w[pos4 + 13];
+    w3[2] = w[pos4 + 14];
+    w3[3] = w[pos4 + 15];
+
+    w0[0] = swap32_S (w0[0]);
+    w0[1] = swap32_S (w0[1]);
+    w0[2] = swap32_S (w0[2]);
+    w0[3] = swap32_S (w0[3]);
+    w1[0] = swap32_S (w1[0]);
+    w1[1] = swap32_S (w1[1]);
+    w1[2] = swap32_S (w1[2]);
+    w1[3] = swap32_S (w1[3]);
+    w2[0] = swap32_S (w2[0]);
+    w2[1] = swap32_S (w2[1]);
+    w2[2] = swap32_S (w2[2]);
+    w2[3] = swap32_S (w2[3]);
+    w3[0] = swap32_S (w3[0]);
+    w3[1] = swap32_S (w3[1]);
+    w3[2] = swap32_S (w3[2]);
+    w3[3] = swap32_S (w3[3]);
+
+    whirlpool_update_64 (ctx, w0, w1, w2, w3, 64);
+  }
+
+  w0[0] = w[pos4 +  0];
+  w0[1] = w[pos4 +  1];
+  w0[2] = w[pos4 +  2];
+  w0[3] = w[pos4 +  3];
+  w1[0] = w[pos4 +  4];
+  w1[1] = w[pos4 +  5];
+  w1[2] = w[pos4 +  6];
+  w1[3] = w[pos4 +  7];
+  w2[0] = w[pos4 +  8];
+  w2[1] = w[pos4 +  9];
+  w2[2] = w[pos4 + 10];
+  w2[3] = w[pos4 + 11];
+  w3[0] = w[pos4 + 12];
+  w3[1] = w[pos4 + 13];
+  w3[2] = w[pos4 + 14];
+  w3[3] = w[pos4 + 15];
+
+  w0[0] = swap32_S (w0[0]);
+  w0[1] = swap32_S (w0[1]);
+  w0[2] = swap32_S (w0[2]);
+  w0[3] = swap32_S (w0[3]);
+  w1[0] = swap32_S (w1[0]);
+  w1[1] = swap32_S (w1[1]);
+  w1[2] = swap32_S (w1[2]);
+  w1[3] = swap32_S (w1[3]);
+  w2[0] = swap32_S (w2[0]);
+  w2[1] = swap32_S (w2[1]);
+  w2[2] = swap32_S (w2[2]);
+  w2[3] = swap32_S (w2[3]);
+  w3[0] = swap32_S (w3[0]);
+  w3[1] = swap32_S (w3[1]);
+  w3[2] = swap32_S (w3[2]);
+  w3[3] = swap32_S (w3[3]);
+
+  whirlpool_update_64 (ctx, w0, w1, w2, w3, len - pos1);
+}
+
+DECLSPEC void whirlpool_update_global_utf16le (whirlpool_ctx_t *ctx, const __global u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  int pos1;
+  int pos4;
+
+  for (pos1 = 0, pos4 = 0; pos1 < len - 32; pos1 += 32, pos4 += 8)
+  {
+    w0[0] = w[pos4 + 0];
+    w0[1] = w[pos4 + 1];
+    w0[2] = w[pos4 + 2];
+    w0[3] = w[pos4 + 3];
+    w1[0] = w[pos4 + 4];
+    w1[1] = w[pos4 + 5];
+    w1[2] = w[pos4 + 6];
+    w1[3] = w[pos4 + 7];
+
+    make_utf16le_S (w1, w2, w3);
+    make_utf16le_S (w0, w0, w1);
+
+    whirlpool_update_64 (ctx, w0, w1, w2, w3, 32 * 2);
+  }
+
+  w0[0] = w[pos4 + 0];
+  w0[1] = w[pos4 + 1];
+  w0[2] = w[pos4 + 2];
+  w0[3] = w[pos4 + 3];
+  w1[0] = w[pos4 + 4];
+  w1[1] = w[pos4 + 5];
+  w1[2] = w[pos4 + 6];
+  w1[3] = w[pos4 + 7];
+
+  make_utf16le_S (w1, w2, w3);
+  make_utf16le_S (w0, w0, w1);
+
+  whirlpool_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
+}
+
+DECLSPEC void whirlpool_update_global_utf16le_swap (whirlpool_ctx_t *ctx, const __global u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  int pos1;
+  int pos4;
+
+  for (pos1 = 0, pos4 = 0; pos1 < len - 32; pos1 += 32, pos4 += 8)
+  {
+    w0[0] = w[pos4 + 0];
+    w0[1] = w[pos4 + 1];
+    w0[2] = w[pos4 + 2];
+    w0[3] = w[pos4 + 3];
+    w1[0] = w[pos4 + 4];
+    w1[1] = w[pos4 + 5];
+    w1[2] = w[pos4 + 6];
+    w1[3] = w[pos4 + 7];
+
+    make_utf16le_S (w1, w2, w3);
+    make_utf16le_S (w0, w0, w1);
+
+    w0[0] = swap32_S (w0[0]);
+    w0[1] = swap32_S (w0[1]);
+    w0[2] = swap32_S (w0[2]);
+    w0[3] = swap32_S (w0[3]);
+    w1[0] = swap32_S (w1[0]);
+    w1[1] = swap32_S (w1[1]);
+    w1[2] = swap32_S (w1[2]);
+    w1[3] = swap32_S (w1[3]);
+    w2[0] = swap32_S (w2[0]);
+    w2[1] = swap32_S (w2[1]);
+    w2[2] = swap32_S (w2[2]);
+    w2[3] = swap32_S (w2[3]);
+    w3[0] = swap32_S (w3[0]);
+    w3[1] = swap32_S (w3[1]);
+    w3[2] = swap32_S (w3[2]);
+    w3[3] = swap32_S (w3[3]);
+
+    whirlpool_update_64 (ctx, w0, w1, w2, w3, 32 * 2);
+  }
+
+  w0[0] = w[pos4 + 0];
+  w0[1] = w[pos4 + 1];
+  w0[2] = w[pos4 + 2];
+  w0[3] = w[pos4 + 3];
+  w1[0] = w[pos4 + 4];
+  w1[1] = w[pos4 + 5];
+  w1[2] = w[pos4 + 6];
+  w1[3] = w[pos4 + 7];
+
+  make_utf16le_S (w1, w2, w3);
+  make_utf16le_S (w0, w0, w1);
+
+  w0[0] = swap32_S (w0[0]);
+  w0[1] = swap32_S (w0[1]);
+  w0[2] = swap32_S (w0[2]);
+  w0[3] = swap32_S (w0[3]);
+  w1[0] = swap32_S (w1[0]);
+  w1[1] = swap32_S (w1[1]);
+  w1[2] = swap32_S (w1[2]);
+  w1[3] = swap32_S (w1[3]);
+  w2[0] = swap32_S (w2[0]);
+  w2[1] = swap32_S (w2[1]);
+  w2[2] = swap32_S (w2[2]);
+  w2[3] = swap32_S (w2[3]);
+  w3[0] = swap32_S (w3[0]);
+  w3[1] = swap32_S (w3[1]);
+  w3[2] = swap32_S (w3[2]);
+  w3[3] = swap32_S (w3[3]);
+
+  whirlpool_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
+}
+
+DECLSPEC void whirlpool_final (whirlpool_ctx_t *ctx)
 {
   const int pos = ctx->len & 63;
 
@@ -1975,7 +1971,7 @@ typedef struct whirlpool_hmac_ctx
 
 } whirlpool_hmac_ctx_t;
 
-void whirlpool_hmac_init_64 (whirlpool_hmac_ctx_t *ctx, const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
+DECLSPEC void whirlpool_hmac_init_64 (whirlpool_hmac_ctx_t *ctx, const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   u32 t0[4];
   u32 t1[4];
@@ -2029,7 +2025,7 @@ void whirlpool_hmac_init_64 (whirlpool_hmac_ctx_t *ctx, const u32 w0[4], const u
   whirlpool_update_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
-void whirlpool_hmac_init (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
+DECLSPEC void whirlpool_hmac_init (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   u32 w0[4];
   u32 w1[4];
@@ -2086,7 +2082,7 @@ void whirlpool_hmac_init (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len
   whirlpool_hmac_init_64 (ctx, w0, w1, w2, w3, s_Ch, s_Cl);
 }
 
-void whirlpool_hmac_init_swap (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
+DECLSPEC void whirlpool_hmac_init_swap (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   u32 w0[4];
   u32 w1[4];
@@ -2143,7 +2139,7 @@ void whirlpool_hmac_init_swap (whirlpool_hmac_ctx_t *ctx, const u32 *w, const in
   whirlpool_hmac_init_64 (ctx, w0, w1, w2, w3, s_Ch, s_Cl);
 }
 
-void whirlpool_hmac_init_global (whirlpool_hmac_ctx_t *ctx, __global const u32 *w, const int len, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
+DECLSPEC void whirlpool_hmac_init_global (whirlpool_hmac_ctx_t *ctx, __global const u32 *w, const int len, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   u32 w0[4];
   u32 w1[4];
@@ -2200,7 +2196,7 @@ void whirlpool_hmac_init_global (whirlpool_hmac_ctx_t *ctx, __global const u32 *
   whirlpool_hmac_init_64 (ctx, w0, w1, w2, w3, s_Ch, s_Cl);
 }
 
-void whirlpool_hmac_init_global_swap (whirlpool_hmac_ctx_t *ctx, __global const u32 *w, const int len, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
+DECLSPEC void whirlpool_hmac_init_global_swap (whirlpool_hmac_ctx_t *ctx, __global const u32 *w, const int len, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   u32 w0[4];
   u32 w1[4];
@@ -2257,52 +2253,52 @@ void whirlpool_hmac_init_global_swap (whirlpool_hmac_ctx_t *ctx, __global const 
   whirlpool_hmac_init_64 (ctx, w0, w1, w2, w3, s_Ch, s_Cl);
 }
 
-void whirlpool_hmac_update_64 (whirlpool_hmac_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len)
+DECLSPEC void whirlpool_hmac_update_64 (whirlpool_hmac_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len)
 {
   whirlpool_update_64 (&ctx->ipad, w0, w1, w2, w3, len);
 }
 
-void whirlpool_hmac_update (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void whirlpool_hmac_update (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   whirlpool_update (&ctx->ipad, w, len);
 }
 
-void whirlpool_hmac_update_swap (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void whirlpool_hmac_update_swap (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   whirlpool_update_swap (&ctx->ipad, w, len);
 }
 
-void whirlpool_hmac_update_utf16le (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void whirlpool_hmac_update_utf16le (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   whirlpool_update_utf16le (&ctx->ipad, w, len);
 }
 
-void whirlpool_hmac_update_utf16le_swap (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void whirlpool_hmac_update_utf16le_swap (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   whirlpool_update_utf16le_swap (&ctx->ipad, w, len);
 }
 
-void whirlpool_hmac_update_global (whirlpool_hmac_ctx_t *ctx, const __global u32 *w, const int len)
+DECLSPEC void whirlpool_hmac_update_global (whirlpool_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   whirlpool_update_global (&ctx->ipad, w, len);
 }
 
-void whirlpool_hmac_update_global_swap (whirlpool_hmac_ctx_t *ctx, const __global u32 *w, const int len)
+DECLSPEC void whirlpool_hmac_update_global_swap (whirlpool_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   whirlpool_update_global_swap (&ctx->ipad, w, len);
 }
 
-void whirlpool_hmac_update_global_utf16le (whirlpool_hmac_ctx_t *ctx, const __global u32 *w, const int len)
+DECLSPEC void whirlpool_hmac_update_global_utf16le (whirlpool_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   whirlpool_update_global_utf16le (&ctx->ipad, w, len);
 }
 
-void whirlpool_hmac_update_global_utf16le_swap (whirlpool_hmac_ctx_t *ctx, const __global u32 *w, const int len)
+DECLSPEC void whirlpool_hmac_update_global_utf16le_swap (whirlpool_hmac_ctx_t *ctx, const __global u32 *w, const int len)
 {
   whirlpool_update_global_utf16le_swap (&ctx->ipad, w, len);
 }
 
-void whirlpool_hmac_final (whirlpool_hmac_ctx_t *ctx)
+DECLSPEC void whirlpool_hmac_final (whirlpool_hmac_ctx_t *ctx)
 {
   whirlpool_final (&ctx->ipad);
 
@@ -2351,7 +2347,7 @@ typedef struct whirlpool_ctx_vector
 
 } whirlpool_ctx_vector_t;
 
-void whirlpool_transform_vector (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[16], SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
+DECLSPEC void whirlpool_transform_vector (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[16], SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   u32x Kh[8];
   u32x Kl[8];
@@ -2521,7 +2517,7 @@ void whirlpool_transform_vector (const u32x w0[4], const u32x w1[4], const u32x 
   digest[15] ^= statel[7] ^ w3[3];
 }
 
-void whirlpool_init_vector (whirlpool_ctx_vector_t *ctx, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
+DECLSPEC void whirlpool_init_vector (whirlpool_ctx_vector_t *ctx, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   ctx->h[ 0] = 0;
   ctx->h[ 1] = 0;
@@ -2563,7 +2559,7 @@ void whirlpool_init_vector (whirlpool_ctx_vector_t *ctx, SHM_TYPE u32 (*s_Ch)[25
   ctx->s_Cl = s_Cl;
 }
 
-void whirlpool_init_vector_from_scalar (whirlpool_ctx_vector_t *ctx, whirlpool_ctx_t *ctx0)
+DECLSPEC void whirlpool_init_vector_from_scalar (whirlpool_ctx_vector_t *ctx, whirlpool_ctx_t *ctx0)
 {
   ctx->h[ 0] = ctx0->h[ 0];
   ctx->h[ 1] = ctx0->h[ 1];
@@ -2605,13 +2601,9 @@ void whirlpool_init_vector_from_scalar (whirlpool_ctx_vector_t *ctx, whirlpool_c
   ctx->s_Cl = ctx0->s_Cl;
 }
 
-void whirlpool_update_vector_64 (whirlpool_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const int len)
+DECLSPEC void whirlpool_update_vector_64 (whirlpool_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const int len)
 {
-  #ifdef IS_AMD
-  volatile const int pos = ctx->len & 63;
-  #else
   const int pos = ctx->len & 63;
-  #endif
 
   ctx->len += len;
 
@@ -2683,7 +2675,7 @@ void whirlpool_update_vector_64 (whirlpool_ctx_vector_t *ctx, u32x w0[4], u32x w
   }
 }
 
-void whirlpool_update_vector (whirlpool_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void whirlpool_update_vector (whirlpool_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -2735,7 +2727,7 @@ void whirlpool_update_vector (whirlpool_ctx_vector_t *ctx, const u32x *w, const 
   whirlpool_update_vector_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-void whirlpool_update_vector_swap (whirlpool_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void whirlpool_update_vector_swap (whirlpool_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -2821,7 +2813,7 @@ void whirlpool_update_vector_swap (whirlpool_ctx_vector_t *ctx, const u32x *w, c
   whirlpool_update_vector_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-void whirlpool_update_vector_utf16le (whirlpool_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void whirlpool_update_vector_utf16le (whirlpool_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -2863,7 +2855,7 @@ void whirlpool_update_vector_utf16le (whirlpool_ctx_vector_t *ctx, const u32x *w
   whirlpool_update_vector_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-void whirlpool_update_vector_utf16le_swap (whirlpool_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void whirlpool_update_vector_utf16le_swap (whirlpool_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -2939,7 +2931,7 @@ void whirlpool_update_vector_utf16le_swap (whirlpool_ctx_vector_t *ctx, const u3
   whirlpool_update_vector_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-void whirlpool_final_vector (whirlpool_ctx_vector_t *ctx)
+DECLSPEC void whirlpool_final_vector (whirlpool_ctx_vector_t *ctx)
 {
   const int pos = ctx->len & 63;
 
@@ -2982,7 +2974,7 @@ typedef struct whirlpool_hmac_ctx_vector
 
 } whirlpool_hmac_ctx_vector_t;
 
-void whirlpool_hmac_init_vector_64 (whirlpool_hmac_ctx_vector_t *ctx, const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
+DECLSPEC void whirlpool_hmac_init_vector_64 (whirlpool_hmac_ctx_vector_t *ctx, const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   u32x t0[4];
   u32x t1[4];
@@ -3036,7 +3028,7 @@ void whirlpool_hmac_init_vector_64 (whirlpool_hmac_ctx_vector_t *ctx, const u32x
   whirlpool_update_vector_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
-void whirlpool_hmac_init_vector (whirlpool_hmac_ctx_vector_t *ctx, const u32x *w, const int len, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
+DECLSPEC void whirlpool_hmac_init_vector (whirlpool_hmac_ctx_vector_t *ctx, const u32x *w, const int len, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   u32x w0[4];
   u32x w1[4];
@@ -3093,17 +3085,17 @@ void whirlpool_hmac_init_vector (whirlpool_hmac_ctx_vector_t *ctx, const u32x *w
   whirlpool_hmac_init_vector_64 (ctx, w0, w1, w2, w3, s_Ch, s_Cl);
 }
 
-void whirlpool_hmac_update_vector_64 (whirlpool_hmac_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const int len)
+DECLSPEC void whirlpool_hmac_update_vector_64 (whirlpool_hmac_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const int len)
 {
   whirlpool_update_vector_64 (&ctx->ipad, w0, w1, w2, w3, len);
 }
 
-void whirlpool_hmac_update_vector (whirlpool_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void whirlpool_hmac_update_vector (whirlpool_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   whirlpool_update_vector (&ctx->ipad, w, len);
 }
 
-void whirlpool_hmac_final_vector (whirlpool_hmac_ctx_vector_t *ctx)
+DECLSPEC void whirlpool_hmac_final_vector (whirlpool_hmac_ctx_vector_t *ctx)
 {
   whirlpool_final_vector (&ctx->ipad);
 

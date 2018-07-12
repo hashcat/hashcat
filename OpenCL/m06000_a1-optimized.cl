@@ -13,7 +13,7 @@
 #include "inc_simd.cl"
 #include "inc_hash_ripemd160.cl"
 
-void ripemd160_transform_transport_vector (const u32x w[16], u32x dgst[5])
+DECLSPEC void ripemd160_transform_transport_vector (const u32x w[16], u32x dgst[5])
 {
   ripemd160_transform_vector (w + 0, w + 4, w + 8, w + 12, dgst);
 }

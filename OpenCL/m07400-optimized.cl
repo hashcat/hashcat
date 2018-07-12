@@ -13,7 +13,7 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
-void sha256_transform_transport (const u32 w[16], u32 digest[8])
+DECLSPEC void sha256_transform_transport (const u32 w[16], u32 digest[8])
 {
   u32 w0[4];
   u32 w1[4];
@@ -40,7 +40,7 @@ void sha256_transform_transport (const u32 w[16], u32 digest[8])
   sha256_transform (w0, w1, w2, w3, digest);
 }
 
-void init_ctx (u32 digest[8])
+DECLSPEC void init_ctx (u32 digest[8])
 {
   digest[0] = SHA256M_A;
   digest[1] = SHA256M_B;
@@ -52,7 +52,7 @@ void init_ctx (u32 digest[8])
   digest[7] = SHA256M_H;
 }
 
-void bzero16 (u32 block[16])
+DECLSPEC void bzero16 (u32 block[16])
 {
   block[ 0] = 0;
   block[ 1] = 0;
@@ -72,19 +72,19 @@ void bzero16 (u32 block[16])
   block[15] = 0;
 }
 
-void bswap8 (u32 block[16])
+DECLSPEC void bswap8 (u32 block[16])
 {
-  block[ 0] = swap32 (block[ 0]);
-  block[ 1] = swap32 (block[ 1]);
-  block[ 2] = swap32 (block[ 2]);
-  block[ 3] = swap32 (block[ 3]);
-  block[ 4] = swap32 (block[ 4]);
-  block[ 5] = swap32 (block[ 5]);
-  block[ 6] = swap32 (block[ 6]);
-  block[ 7] = swap32 (block[ 7]);
+  block[ 0] = swap32_S (block[ 0]);
+  block[ 1] = swap32_S (block[ 1]);
+  block[ 2] = swap32_S (block[ 2]);
+  block[ 3] = swap32_S (block[ 3]);
+  block[ 4] = swap32_S (block[ 4]);
+  block[ 5] = swap32_S (block[ 5]);
+  block[ 6] = swap32_S (block[ 6]);
+  block[ 7] = swap32_S (block[ 7]);
 }
 
-u32 memcat16 (u32 block[16], const u32 offset, const u32 append[4], const u32 append_len)
+DECLSPEC u32 memcat16 (u32 block[16], const u32 offset, const u32 append[4], const u32 append_len)
 {
   u32 tmp0;
   u32 tmp1;
@@ -225,7 +225,7 @@ u32 memcat16 (u32 block[16], const u32 offset, const u32 append[4], const u32 ap
   return new_len;
 }
 
-u32 memcat16c (u32 block[16], const u32 offset, const u32 append[4], const u32 append_len, u32 digest[8])
+DECLSPEC u32 memcat16c (u32 block[16], const u32 offset, const u32 append[4], const u32 append_len, u32 digest[8])
 {
   u32 tmp0;
   u32 tmp1;
@@ -392,7 +392,7 @@ u32 memcat16c (u32 block[16], const u32 offset, const u32 append[4], const u32 a
   return new_len;
 }
 
-u32 memcat20 (u32 block[32], const u32 offset, const u32 append[4], const u32 append_len)
+DECLSPEC u32 memcat20 (u32 block[32], const u32 offset, const u32 append[4], const u32 append_len)
 {
   u32 tmp0;
   u32 tmp1;
@@ -541,7 +541,7 @@ u32 memcat20 (u32 block[32], const u32 offset, const u32 append[4], const u32 ap
   return offset + append_len;
 }
 
-u32 memcat20_x80 (u32 block[32], const u32 offset, const u32 append[4], const u32 append_len)
+DECLSPEC u32 memcat20_x80 (u32 block[32], const u32 offset, const u32 append[4], const u32 append_len)
 {
   u32 tmp0;
   u32 tmp1;
@@ -757,7 +757,7 @@ __kernel void m07400_init (__global pw_t *pws, __global const kernel_rule_t *rul
 
   append_0x80_1x16 (block, block_len);
 
-  block[15] = swap32 (block_len * 8);
+  block[15] = swap32_S (block_len * 8);
 
   init_ctx (alt_result);
 
@@ -839,7 +839,7 @@ __kernel void m07400_init (__global pw_t *pws, __global const kernel_rule_t *rul
     bzero16 (block);
   }
 
-  block[15] = swap32 (transform_len * 8);
+  block[15] = swap32_S (transform_len * 8);
 
   sha256_transform_transport (block, alt_result);
 
@@ -884,7 +884,7 @@ __kernel void m07400_init (__global pw_t *pws, __global const kernel_rule_t *rul
     bzero16 (block);
   }
 
-  block[15] = swap32 (transform_len * 8);
+  block[15] = swap32_S (transform_len * 8);
 
   sha256_transform_transport (block, p_bytes);
 
@@ -927,7 +927,7 @@ __kernel void m07400_init (__global pw_t *pws, __global const kernel_rule_t *rul
     bzero16 (block);
   }
 
-  block[15] = swap32 (transform_len * 8);
+  block[15] = swap32_S (transform_len * 8);
 
   sha256_transform_transport (block, s_bytes);
 
@@ -1078,7 +1078,7 @@ __kernel void m07400_loop (__global pw_t *pws, __global const kernel_rule_t *rul
       block[15] = 0;
     }
 
-    block[15] = swap32 (block_len * 8);
+    block[15] = swap32_S (block_len * 8);
 
     sha256_transform_transport (block, tmp);
 

@@ -14,14 +14,8 @@
 
 int sort_by_dictstat (const void *s1, const void *s2)
 {
-  dictstat_t *d1 = (dictstat_t *) s1;
-  dictstat_t *d2 = (dictstat_t *) s2;
-
-  d2->stat.st_atime = d1->stat.st_atime;
-
-  #if defined (STAT_NANOSECONDS_ACCESS_TIME)
-  d2->stat.STAT_NANOSECONDS_ACCESS_TIME = d1->stat.STAT_NANOSECONDS_ACCESS_TIME;
-  #endif
+  const dictstat_t *d1 = (const dictstat_t *) s1;
+  const dictstat_t *d2 = (const dictstat_t *) s2;
 
   const int rc_from = strcmp (d1->encoding_from, d2->encoding_from);
 
@@ -31,7 +25,23 @@ int sort_by_dictstat (const void *s1, const void *s2)
 
   if (rc_to != 0) return rc_to;
 
-  return memcmp (&d1->stat, &d2->stat, sizeof (struct stat));
+  struct stat stat1;
+  struct stat stat2;
+
+  memcpy (&stat1, &d1->stat, sizeof (struct stat));
+  memcpy (&stat2, &d2->stat, sizeof (struct stat));
+
+  stat1.st_atime = 0;
+  stat2.st_atime = 0;
+
+  #if defined (STAT_NANOSECONDS_ACCESS_TIME)
+  stat1.STAT_NANOSECONDS_ACCESS_TIME = 0;
+  stat2.STAT_NANOSECONDS_ACCESS_TIME = 0;
+  #endif
+
+  const int rc_memcmp = memcmp (&stat1, &stat2, sizeof (struct stat));
+
+  return rc_memcmp;
 }
 
 int dictstat_init (hashcat_ctx_t *hashcat_ctx)

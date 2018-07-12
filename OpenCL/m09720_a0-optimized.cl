@@ -15,7 +15,7 @@
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
 
-void gen336 (u32x digest_pre[4], u32 salt_buf[4], u32x digest[4])
+DECLSPEC void gen336 (u32x digest_pre[4], u32 salt_buf[4], u32x digest[4])
 {
   u32x digest_t0[2];
   u32x digest_t1[2];
@@ -514,8 +514,8 @@ __kernel void m09720_s04 (__global pw_t *pws, __constant const kernel_rule_t *ru
   {
     digests_buf[digests_offset].digest_buf[DGST_R0],
     digests_buf[digests_offset].digest_buf[DGST_R1],
-    digests_buf[digests_offset].digest_buf[DGST_R2],
-    digests_buf[digests_offset].digest_buf[DGST_R3]
+    0,
+    0
   };
 
   /**

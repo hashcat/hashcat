@@ -1,4 +1,4 @@
-__constant static u32a ESSIV_k_sha256[64] =
+__constant u32a ESSIV_k_sha256[64] =
 {
   SHA256C00, SHA256C01, SHA256C02, SHA256C03,
   SHA256C04, SHA256C05, SHA256C06, SHA256C07,
@@ -19,7 +19,7 @@ __constant static u32a ESSIV_k_sha256[64] =
 };
 
 // basically a normal sha256_transform() but with a different name to avoid collisions with function nameing
-void ESSIV_sha256_transform_S (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[8])
+DECLSPEC void ESSIV_sha256_transform_S (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[8])
 {
   u32 a = digest[0];
   u32 b = digest[1];
@@ -107,7 +107,7 @@ void ESSIV_sha256_transform_S (const u32 w0[4], const u32 w1[4], const u32 w2[4]
   digest[7] += h;
 }
 
-void ESSIV_sha256_init128 (u32 *key, u32 *essivhash)
+DECLSPEC void ESSIV_sha256_init128 (u32 *key, u32 *essivhash)
 {
   essivhash[0] = SHA256M_A;
   essivhash[1] = SHA256M_B;
@@ -152,7 +152,7 @@ void ESSIV_sha256_init128 (u32 *key, u32 *essivhash)
   essivhash[7] = swap32_S (essivhash[7]);
 }
 
-void ESSIV_sha256_init256 (u32 *key, u32 *essivhash)
+DECLSPEC void ESSIV_sha256_init256 (u32 *key, u32 *essivhash)
 {
   essivhash[0] = SHA256M_A;
   essivhash[1] = SHA256M_B;
