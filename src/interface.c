@@ -597,7 +597,7 @@ static const char *SIGNATURE_CISCO9             = "$9$";
 static const char *SIGNATURE_CRAM_MD5           = "$cram_md5$";
 static const char *SIGNATURE_CRAM_MD5_DOVECOT   = "{CRAM-MD5}";
 static const char *SIGNATURE_DCC2               = "$DCC2$";
-static const char *SIGNATURE_DJANGOPBKDF2       = "pbkdf2_sha256$";
+static const char *SIGNATURE_DJANGOPBKDF2       = "pbkdf2_sha256";
 static const char *SIGNATURE_DJANGOSHA1         = "sha1$";
 static const char *SIGNATURE_DPAPIMK            = "$DPAPImk$";
 static const char *SIGNATURE_DRUPAL7            = "$S$";
@@ -10825,21 +10825,49 @@ int djangosha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
 int djangopbkdf2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_10000) || (input_len > DISPLAY_LEN_MAX_10000)) return (PARSER_GLOBAL_LENGTH);
-
-  if (memcmp (SIGNATURE_DJANGOPBKDF2, input_buf, 14) != 0) return (PARSER_SIGNATURE_UNMATCHED);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
   pbkdf2_sha256_t *pbkdf2_sha256 = (pbkdf2_sha256_t *) hash_buf->esalt;
 
-  /**
-   * parse line
-   */
+  token_t token;
 
-  u8 *iter_pos = input_buf + 14;
+  token.token_cnt  = 4;
+
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_DJANGOPBKDF2;
+
+  token.sep[0]     = '$';
+  token.len_min[0] = 13;
+  token.len_max[0] = 13;
+  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
+
+  token.sep[1]     = '$';
+  token.len_min[1] = 1;
+  token.len_max[1] = 6;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
+
+  token.sep[2]     = '$';
+  token.len_min[2] = SALT_MIN;
+  token.len_max[2] = SALT_MAX;
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+  token.sep[3]     = '$';
+  token.len_min[3] = 44;
+  token.len_max[3] = 44;
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_BASE64A;
+
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
+
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+  // iter
+
+  u8 *iter_pos = token.buf[1];
 
   const int iter = strtol ((const char *) iter_pos, NULL, 10);
 
@@ -10847,19 +10875,10 @@ int djangopbkdf2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAY
 
   salt->salt_iter = iter - 1;
 
-  u8 *salt_pos = (u8 *) strchr ((const char *) iter_pos, '$');
+  // salt
 
-  if (salt_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  salt_pos++;
-
-  u8 *hash_pos = (u8 *) strchr ((const char *) salt_pos, '$');
-
-  if (hash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  const u32 salt_len = hash_pos - salt_pos;
-
-  hash_pos++;
+  u8 *salt_pos = token.buf[2];
+  int salt_len = token.len[2];
 
   u8 *salt_buf_ptr = (u8 *) pbkdf2_sha256->salt_buf;
 
@@ -10880,11 +10899,10 @@ int djangopbkdf2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAY
 
   // base64 decode hash
 
+  u8 *hash_pos = token.buf[3];
+  int hash_len = token.len[3];
+
   u8 tmp_buf[100] = { 0 };
-
-  u32 hash_len = input_len - (hash_pos - input_buf);
-
-  if (hash_len != 44) return (PARSER_HASH_LENGTH);
 
   base64_decode (base64_to_int, (const u8 *) hash_pos, hash_len, tmp_buf);
 
@@ -10904,38 +10922,67 @@ int djangopbkdf2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAY
 
 int siphash_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_10100) || (input_len > DISPLAY_LEN_MAX_10100)) return (PARSER_GLOBAL_LENGTH);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
-  if (is_valid_hex_string (input_buf, 16) == false) return (PARSER_HASH_ENCODING);
+  token_t token;
 
-  digest[0] = hex_to_u32 ((const u8 *) &input_buf[ 0]);
-  digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
-  digest[2] = 0;
-  digest[3] = 0;
+  token.token_cnt  = 4;
 
-  if (input_buf[16] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
-  if (input_buf[18] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
-  if (input_buf[20] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
+  token.sep[0]     = hashconfig->separator;
+  token.len_min[0] = 16;
+  token.len_max[0] = 16;
+  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  char iter_c = input_buf[17];
-  char iter_d = input_buf[19];
+  token.sep[1]     = hashconfig->separator;
+  token.len_min[1] = 1;
+  token.len_max[1] = 1;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
+
+  token.sep[2]     = hashconfig->separator;
+  token.len_min[2] = 1;
+  token.len_max[2] = 1;
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
+
+  token.sep[3]     = '$';
+  token.len_min[3] = 32;
+  token.len_max[3] = 32;
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
+
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+  // iter
+
+  const u8 iter_c = token.buf[1][0];
+  const u8 iter_d = token.buf[2][0];
 
   // atm only defaults, let's see if there's more request
   if (iter_c != '2') return (PARSER_SALT_ITERATION);
   if (iter_d != '4') return (PARSER_SALT_ITERATION);
 
-  u8 *salt_buf = input_buf + 16 + 1 + 1 + 1 + 1 + 1;
+  // hash
 
-  if (is_valid_hex_string (salt_buf, 32) == false) return (PARSER_SALT_ENCODING);
+  u8 *hash_pos = token.buf[0];
 
-  salt->salt_buf[0] = hex_to_u32 ((const u8 *) &salt_buf[ 0]);
-  salt->salt_buf[1] = hex_to_u32 ((const u8 *) &salt_buf[ 8]);
-  salt->salt_buf[2] = hex_to_u32 ((const u8 *) &salt_buf[16]);
-  salt->salt_buf[3] = hex_to_u32 ((const u8 *) &salt_buf[24]);
+  digest[0] = hex_to_u32 (hash_pos + 0);
+  digest[1] = hex_to_u32 (hash_pos + 8);
+  digest[2] = 0;
+  digest[3] = 0;
+
+  // salt
+
+  u8 *salt_pos = token.buf[3];
+
+  salt->salt_buf[0] = hex_to_u32 (salt_pos +  0);
+  salt->salt_buf[1] = hex_to_u32 (salt_pos +  8);
+  salt->salt_buf[2] = hex_to_u32 (salt_pos + 16);
+  salt->salt_buf[3] = hex_to_u32 (salt_pos + 24);
 
   salt->salt_len = 16;
 
@@ -10944,55 +10991,71 @@ int siphash_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
 int crammd5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_10200) || (input_len > DISPLAY_LEN_MAX_10200)) return (PARSER_GLOBAL_LENGTH);
-
-  if (memcmp (SIGNATURE_CRAM_MD5, input_buf, 10) != 0) return (PARSER_SIGNATURE_UNMATCHED);
-
   u32 *digest = (u32 *) hash_buf->digest;
-
-  cram_md5_t *cram_md5 = (cram_md5_t *) hash_buf->esalt;
 
   salt_t *salt = hash_buf->salt;
 
-  u8 *salt_pos = input_buf + 10;
+  cram_md5_t *cram_md5 = (cram_md5_t *) hash_buf->esalt;
 
-  u8 *hash_pos = (u8 *) strchr ((const char *) salt_pos, '$');
+  token_t token;
 
-  if (hash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.token_cnt  = 3;
 
-  u32 salt_len = hash_pos - salt_pos;
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_CRAM_MD5;
 
-  hash_pos++;
+  token.len[0]     = 10;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  u32 hash_len = input_len - 10 - salt_len - 1;
+  token.sep[1]     = '$';
+  token.len_min[1] = 0;
+  token.len_max[1] = 76;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_BASE64A;
 
-  // base64 decode salt
+  token.sep[2]     = '$';
+  token.len_min[2] = 44;
+  token.len_max[2] = 132;
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_BASE64A;
 
-  if (salt_len > 133) return (PARSER_SALT_LENGTH);
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
-  u8 tmp_buf[100] = { 0 };
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  salt_len = base64_decode (base64_to_int, (const u8 *) salt_pos, salt_len, tmp_buf);
+  // salt
 
-  if (salt_len > 55) return (PARSER_SALT_LENGTH);
+  u8 *salt_pos = token.buf[1];
+  int salt_len = token.len[1];
 
-  tmp_buf[salt_len] = 0x80;
-
-  memcpy (&salt->salt_buf, tmp_buf, salt_len + 1);
-
-  salt->salt_len = salt_len;
-
-  // base64 decode hash
-
-  if (hash_len > 133) return (PARSER_HASH_LENGTH);
+  u8  tmp_buf[100];
+  int tmp_len;
 
   memset (tmp_buf, 0, sizeof (tmp_buf));
 
-  hash_len = base64_decode (base64_to_int, (const u8 *) hash_pos, hash_len, tmp_buf);
+  tmp_len = base64_decode (base64_to_int, (const u8 *) salt_pos, salt_len, tmp_buf);
 
-  if (hash_len < 32 + 1) return (PARSER_HASH_LENGTH);
+  if (tmp_len > 55) return (PARSER_SALT_LENGTH);
 
-  u32 user_len = hash_len - 32;
+  tmp_buf[tmp_len] = 0x80;
+
+  memcpy (salt->salt_buf, tmp_buf, tmp_len + 1);
+
+  salt->salt_len = tmp_len;
+
+  // hash
+
+  u8 *hash_pos = token.buf[2];
+  int hash_len = token.len[2];
+
+  memset (tmp_buf, 0, sizeof (tmp_buf));
+
+  tmp_len = base64_decode (base64_to_int, (const u8 *) hash_pos, hash_len, tmp_buf);
+
+  if (tmp_len < 32 + 1) return (PARSER_HASH_LENGTH);
+
+  u32 user_len = tmp_len - 32;
 
   const u8 *tmp_hash = tmp_buf + user_len;
 
@@ -11000,10 +11063,10 @@ int crammd5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   if (is_valid_hex_string (tmp_hash, 32) == false) return (PARSER_HASH_ENCODING);
 
-  digest[0] = hex_to_u32 (&tmp_hash[ 0]);
-  digest[1] = hex_to_u32 (&tmp_hash[ 8]);
-  digest[2] = hex_to_u32 (&tmp_hash[16]);
-  digest[3] = hex_to_u32 (&tmp_hash[24]);
+  digest[0] = hex_to_u32 (tmp_hash +  0);
+  digest[1] = hex_to_u32 (tmp_hash +  8);
+  digest[2] = hex_to_u32 (tmp_hash + 16);
+  digest[3] = hex_to_u32 (tmp_hash + 24);
 
   // store username for host only (output hash if cracked)
 
@@ -11043,15 +11106,39 @@ int crammd5_dovecot_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, 
 
 int saph_sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_10300) || (input_len > DISPLAY_LEN_MAX_10300)) return (PARSER_GLOBAL_LENGTH);
-
-  if (memcmp (SIGNATURE_SAPH_SHA1, input_buf, 10) != 0) return (PARSER_SIGNATURE_UNMATCHED);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
-  u8 *iter_pos = input_buf + 10;
+  token_t token;
+
+  token.token_cnt  = 3;
+
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_SAPH_SHA1;
+
+  token.len[0]     = 10;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
+
+  token.sep[1]     = '}';
+  token.len_min[1] = 1;
+  token.len_max[1] = 6;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
+
+  token.len_min[2] = 33;
+  token.len_max[2] = 49;
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_BASE64A;
+
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
+
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+  // iter
+
+  u8 *iter_pos = token.buf[1];
 
   u32 iter = hc_strtoul ((const char *) iter_pos, NULL, 10);
 
@@ -11064,27 +11151,16 @@ int saph_sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   salt->salt_iter = iter;
 
-  u8 *base64_pos = (u8 *) strchr ((const char *) iter_pos, '}');
+  // decode
 
-  if (base64_pos == NULL)
-  {
-    return (PARSER_SIGNATURE_UNMATCHED);
-  }
-
-  base64_pos++;
-
-  // base64 decode salt
-
-  const u32 base64_len = input_len - (base64_pos - input_buf);
+  u8 *base64_pos = token.buf[2];
+  int base64_len = token.len[2];
 
   u8 tmp_buf[100] = { 0 };
 
   const u32 decoded_len = base64_decode (base64_to_int, (const u8 *) base64_pos, base64_len, tmp_buf);
 
-  if (decoded_len < 24)
-  {
-    return (PARSER_SALT_LENGTH);
-  }
+  if (decoded_len < 24) return (PARSER_SALT_LENGTH);
 
   // copy the salt
 
@@ -11092,13 +11168,13 @@ int saph_sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   if (salt_len > 16) return (PARSER_SALT_LENGTH);
 
-  memcpy (&salt->salt_buf, tmp_buf + 20, salt_len);
+  memcpy (salt->salt_buf, tmp_buf + 20, salt_len);
 
   salt->salt_len = salt_len;
 
   // set digest
 
-  u32 *digest_ptr = (u32*) tmp_buf;
+  u32 *digest_ptr = (u32 *) tmp_buf;
 
   digest[0] = byte_swap_32 (digest_ptr[0]);
   digest[1] = byte_swap_32 (digest_ptr[1]);
@@ -11225,109 +11301,103 @@ int punbb_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUS
 
 int pdf11_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_10400) || (input_len > DISPLAY_LEN_MAX_10400)) return (PARSER_GLOBAL_LENGTH);
-
-  if (memcmp (SIGNATURE_PDF, input_buf, 5) != 0) return (PARSER_SIGNATURE_UNMATCHED);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
   pdf_t *pdf = (pdf_t *) hash_buf->esalt;
 
-  /**
-   * parse line
-   */
+  token_t token;
 
-  u8 *V_pos = input_buf + 5;
+  token.token_cnt  = 12;
 
-  u8 *R_pos = (u8 *) strchr ((const char *) V_pos, '*');
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_PDF;
 
-  if (R_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.len[0]     = 5;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  u32 V_len = R_pos - V_pos;
+  token.len_min[1] = 1;
+  token.len_max[1] = 1;
+  token.sep[1]     = '*';
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  R_pos++;
+  token.len_min[2] = 1;
+  token.len_max[2] = 1;
+  token.sep[2]     = '*';
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  u8 *bits_pos = (u8 *) strchr ((const char *) R_pos, '*');
+  token.len_min[3] = 2;
+  token.len_max[3] = 2;
+  token.sep[3]     = '*';
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  if (bits_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.len_min[4] = 1;
+  token.len_max[4] = 6;
+  token.sep[4]     = '*';
+  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  u32 R_len = bits_pos - R_pos;
+  token.len_min[5] = 1;
+  token.len_max[5] = 1;
+  token.sep[5]     = '*';
+  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  bits_pos++;
+  token.len_min[6] = 2;
+  token.len_max[6] = 2;
+  token.sep[6]     = '*';
+  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  u8 *P_pos = (u8 *) strchr ((const char *) bits_pos, '*');
+  token.len_min[7] = 32;
+  token.len_max[7] = 32;
+  token.sep[7]     = '*';
+  token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  if (P_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.len_min[8] = 2;
+  token.len_max[8] = 2;
+  token.sep[8]     = '*';
+  token.attr[8]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  u32 bits_len = P_pos - bits_pos;
+  token.len_min[9] = 64;
+  token.len_max[9] = 64;
+  token.sep[9]     = '*';
+  token.attr[9]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  P_pos++;
+  token.len_min[10] = 2;
+  token.len_max[10] = 2;
+  token.sep[10]     = '*';
+  token.attr[10]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  u8 *enc_md_pos = (u8 *) strchr ((const char *) P_pos, '*');
+  token.len_min[11] = 64;
+  token.len_max[11] = 64;
+  token.sep[11]     = '*';
+  token.attr[11]    = TOKEN_ATTR_VERIFY_LENGTH
+                    | TOKEN_ATTR_VERIFY_HEX;
 
-  if (enc_md_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
-  u32 P_len = enc_md_pos - P_pos;
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  enc_md_pos++;
-
-  u8 *id_len_pos = (u8 *) strchr ((const char *) enc_md_pos, '*');
-
-  if (id_len_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  u32 enc_md_len = id_len_pos - enc_md_pos;
-
-  id_len_pos++;
-
-  u8 *id_buf_pos = (u8 *) strchr ((const char *) id_len_pos, '*');
-
-  if (id_buf_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  u32 id_len_len = id_buf_pos - id_len_pos;
-
-  id_buf_pos++;
-
-  u8 *u_len_pos = (u8 *) strchr ((const char *) id_buf_pos, '*');
-
-  if (u_len_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  u32 id_buf_len = u_len_pos - id_buf_pos;
-
-  if (id_buf_len != 32) return (PARSER_SALT_LENGTH);
-
-  u_len_pos++;
-
-  u8 *u_buf_pos = (u8 *) strchr ((const char *) u_len_pos, '*');
-
-  if (u_buf_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  u32 u_len_len = u_buf_pos - u_len_pos;
-
-  u_buf_pos++;
-
-  u8 *o_len_pos = (u8 *) strchr ((const char *) u_buf_pos, '*');
-
-  if (o_len_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  u32 u_buf_len = o_len_pos - u_buf_pos;
-
-  if (u_buf_len != 64) return (PARSER_SALT_LENGTH);
-
-  o_len_pos++;
-
-  u8 *o_buf_pos = (u8 *) strchr ((const char *) o_len_pos, '*');
-
-  if (o_buf_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  u32 o_len_len = o_buf_pos - o_len_pos;
-
-  o_buf_pos++;
-
-  u32 o_buf_len = input_len - 5 - V_len - 1 - R_len - 1 - bits_len - 1 - P_len - 1 - enc_md_len - 1 - id_len_len - 1 - id_buf_len - 1 - u_len_len - 1 - u_buf_len - 1 - o_len_len - 1;
-
-  if (o_buf_len != 64) return (PARSER_SALT_LENGTH);
+  u8 *V_pos      = token.buf[1];
+  u8 *R_pos      = token.buf[2];
+  u8 *bits_pos   = token.buf[3];
+  u8 *P_pos      = token.buf[4];
+  u8 *enc_md_pos = token.buf[5];
+  u8 *id_len_pos = token.buf[6];
+  u8 *id_buf_pos = token.buf[7];
+  u8 *u_len_pos  = token.buf[8];
+  u8 *u_buf_pos  = token.buf[9];
+  u8 *o_len_pos  = token.buf[10];
+  u8 *o_buf_pos  = token.buf[11];
 
   // validate data
 
@@ -11343,8 +11413,8 @@ int pdf11_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUS
   if ((enc_md != 0) && (enc_md != 1)) return (PARSER_SALT_VALUE);
 
   const int id_len = strtol ((const char *) id_len_pos, NULL, 10);
-  const int u_len  = strtol ((const char *) u_len_pos, NULL, 10);
-  const int o_len  = strtol ((const char *) o_len_pos, NULL, 10);
+  const int u_len  = strtol ((const char *) u_len_pos,  NULL, 10);
+  const int o_len  = strtol ((const char *) o_len_pos,  NULL, 10);
 
   if (id_len != 16) return (PARSER_SALT_VALUE);
   if (u_len  != 32) return (PARSER_SALT_VALUE);
@@ -11362,36 +11432,30 @@ int pdf11_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUS
 
   pdf->enc_md = enc_md;
 
-  if (is_valid_hex_string (id_buf_pos, 32) == false) return (PARSER_SALT_ENCODING);
-
-  pdf->id_buf[0] = hex_to_u32 ((const u8 *) &id_buf_pos[ 0]);
-  pdf->id_buf[1] = hex_to_u32 ((const u8 *) &id_buf_pos[ 8]);
-  pdf->id_buf[2] = hex_to_u32 ((const u8 *) &id_buf_pos[16]);
-  pdf->id_buf[3] = hex_to_u32 ((const u8 *) &id_buf_pos[24]);
+  pdf->id_buf[0] = hex_to_u32 (id_buf_pos +  0);
+  pdf->id_buf[1] = hex_to_u32 (id_buf_pos +  8);
+  pdf->id_buf[2] = hex_to_u32 (id_buf_pos + 16);
+  pdf->id_buf[3] = hex_to_u32 (id_buf_pos + 24);
   pdf->id_len    = id_len;
 
-  if (is_valid_hex_string (u_buf_pos, 64) == false) return (PARSER_SALT_ENCODING);
-
-  pdf->u_buf[0]  = hex_to_u32 ((const u8 *) &u_buf_pos[ 0]);
-  pdf->u_buf[1]  = hex_to_u32 ((const u8 *) &u_buf_pos[ 8]);
-  pdf->u_buf[2]  = hex_to_u32 ((const u8 *) &u_buf_pos[16]);
-  pdf->u_buf[3]  = hex_to_u32 ((const u8 *) &u_buf_pos[24]);
-  pdf->u_buf[4]  = hex_to_u32 ((const u8 *) &u_buf_pos[32]);
-  pdf->u_buf[5]  = hex_to_u32 ((const u8 *) &u_buf_pos[40]);
-  pdf->u_buf[6]  = hex_to_u32 ((const u8 *) &u_buf_pos[48]);
-  pdf->u_buf[7]  = hex_to_u32 ((const u8 *) &u_buf_pos[56]);
+  pdf->u_buf[0]  = hex_to_u32 (u_buf_pos +  0);
+  pdf->u_buf[1]  = hex_to_u32 (u_buf_pos +  8);
+  pdf->u_buf[2]  = hex_to_u32 (u_buf_pos + 16);
+  pdf->u_buf[3]  = hex_to_u32 (u_buf_pos + 24);
+  pdf->u_buf[4]  = hex_to_u32 (u_buf_pos + 32);
+  pdf->u_buf[5]  = hex_to_u32 (u_buf_pos + 40);
+  pdf->u_buf[6]  = hex_to_u32 (u_buf_pos + 48);
+  pdf->u_buf[7]  = hex_to_u32 (u_buf_pos + 56);
   pdf->u_len     = u_len;
 
-  if (is_valid_hex_string (o_buf_pos, 64) == false) return (PARSER_SALT_ENCODING);
-
-  pdf->o_buf[0]  = hex_to_u32 ((const u8 *) &o_buf_pos[ 0]);
-  pdf->o_buf[1]  = hex_to_u32 ((const u8 *) &o_buf_pos[ 8]);
-  pdf->o_buf[2]  = hex_to_u32 ((const u8 *) &o_buf_pos[16]);
-  pdf->o_buf[3]  = hex_to_u32 ((const u8 *) &o_buf_pos[24]);
-  pdf->o_buf[4]  = hex_to_u32 ((const u8 *) &o_buf_pos[32]);
-  pdf->o_buf[5]  = hex_to_u32 ((const u8 *) &o_buf_pos[40]);
-  pdf->o_buf[6]  = hex_to_u32 ((const u8 *) &o_buf_pos[48]);
-  pdf->o_buf[7]  = hex_to_u32 ((const u8 *) &o_buf_pos[56]);
+  pdf->o_buf[0]  = hex_to_u32 (o_buf_pos +  0);
+  pdf->o_buf[1]  = hex_to_u32 (o_buf_pos +  8);
+  pdf->o_buf[2]  = hex_to_u32 (o_buf_pos + 16);
+  pdf->o_buf[3]  = hex_to_u32 (o_buf_pos + 24);
+  pdf->o_buf[4]  = hex_to_u32 (o_buf_pos + 32);
+  pdf->o_buf[5]  = hex_to_u32 (o_buf_pos + 40);
+  pdf->o_buf[6]  = hex_to_u32 (o_buf_pos + 48);
+  pdf->o_buf[7]  = hex_to_u32 (o_buf_pos + 56);
   pdf->o_len     = o_len;
 
   // we use ID for salt, maybe needs to change, we will see...
@@ -11417,119 +11481,110 @@ int pdf11cm1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
 int pdf11cm2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_10420) || (input_len > DISPLAY_LEN_MAX_10420)) return (PARSER_GLOBAL_LENGTH);
-
-  if (memcmp (SIGNATURE_PDF, input_buf, 5) != 0) return (PARSER_SIGNATURE_UNMATCHED);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
   pdf_t *pdf = (pdf_t *) hash_buf->esalt;
 
-  /**
-   * parse line
-   */
+  token_t token;
 
-  u8 *V_pos = input_buf + 5;
+  token.token_cnt  = 13;
 
-  u8 *R_pos = (u8 *) strchr ((const char *) V_pos, '*');
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_PDF;
 
-  if (R_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.len[0]     = 5;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  u32 V_len = R_pos - V_pos;
+  token.len_min[1] = 1;
+  token.len_max[1] = 1;
+  token.sep[1]     = '*';
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  R_pos++;
+  token.len_min[2] = 1;
+  token.len_max[2] = 1;
+  token.sep[2]     = '*';
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  u8 *bits_pos = (u8 *) strchr ((const char *) R_pos, '*');
+  token.len_min[3] = 2;
+  token.len_max[3] = 2;
+  token.sep[3]     = '*';
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  if (bits_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.len_min[4] = 1;
+  token.len_max[4] = 6;
+  token.sep[4]     = '*';
+  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  u32 R_len = bits_pos - R_pos;
+  token.len_min[5] = 1;
+  token.len_max[5] = 1;
+  token.sep[5]     = '*';
+  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  bits_pos++;
+  token.len_min[6] = 2;
+  token.len_max[6] = 2;
+  token.sep[6]     = '*';
+  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  u8 *P_pos = (u8 *) strchr ((const char *) bits_pos, '*');
+  token.len_min[7] = 32;
+  token.len_max[7] = 32;
+  token.sep[7]     = '*';
+  token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  if (P_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.len_min[8] = 2;
+  token.len_max[8] = 2;
+  token.sep[8]     = '*';
+  token.attr[8]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  u32 bits_len = P_pos - bits_pos;
+  token.len_min[9] = 64;
+  token.len_max[9] = 64;
+  token.sep[9]     = '*';
+  token.attr[9]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  P_pos++;
+  token.len_min[10] = 2;
+  token.len_max[10] = 2;
+  token.sep[10]     = '*';
+  token.attr[10]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  u8 *enc_md_pos = (u8 *) strchr ((const char *) P_pos, '*');
+  token.len_min[11] = 64;
+  token.len_max[11] = 64;
+  token.sep[11]     = ':';
+  token.attr[11]    = TOKEN_ATTR_VERIFY_LENGTH
+                    | TOKEN_ATTR_VERIFY_HEX;
 
-  if (enc_md_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.len_min[12] = 10;
+  token.len_max[12] = 10;
+  token.sep[12]     = '*';
+  token.attr[12]    = TOKEN_ATTR_VERIFY_LENGTH
+                    | TOKEN_ATTR_VERIFY_HEX;
 
-  u32 P_len = enc_md_pos - P_pos;
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
-  enc_md_pos++;
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  u8 *id_len_pos = (u8 *) strchr ((const char *) enc_md_pos, '*');
-
-  if (id_len_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  u32 enc_md_len = id_len_pos - enc_md_pos;
-
-  id_len_pos++;
-
-  u8 *id_buf_pos = (u8 *) strchr ((const char *) id_len_pos, '*');
-
-  if (id_buf_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  u32 id_len_len = id_buf_pos - id_len_pos;
-
-  id_buf_pos++;
-
-  u8 *u_len_pos = (u8 *) strchr ((const char *) id_buf_pos, '*');
-
-  if (u_len_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  u32 id_buf_len = u_len_pos - id_buf_pos;
-
-  if (id_buf_len != 32) return (PARSER_SALT_LENGTH);
-
-  u_len_pos++;
-
-  u8 *u_buf_pos = (u8 *) strchr ((const char *) u_len_pos, '*');
-
-  if (u_buf_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  u32 u_len_len = u_buf_pos - u_len_pos;
-
-  u_buf_pos++;
-
-  u8 *o_len_pos = (u8 *) strchr ((const char *) u_buf_pos, '*');
-
-  if (o_len_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  u32 u_buf_len = o_len_pos - u_buf_pos;
-
-  if (u_buf_len != 64) return (PARSER_SALT_LENGTH);
-
-  o_len_pos++;
-
-  u8 *o_buf_pos = (u8 *) strchr ((const char *) o_len_pos, '*');
-
-  if (o_buf_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  u32 o_len_len = o_buf_pos - o_len_pos;
-
-  o_buf_pos++;
-
-  u8 *rc4key_pos = (u8 *) strchr ((const char *) o_buf_pos, ':');
-
-  if (rc4key_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  u32 o_buf_len = rc4key_pos - o_buf_pos;
-
-  if (o_buf_len != 64) return (PARSER_SALT_LENGTH);
-
-  rc4key_pos++;
-
-  u32 rc4key_len = input_len - 5 - V_len - 1 - R_len - 1 - bits_len - 1 - P_len - 1 - enc_md_len - 1 - id_len_len - 1 - id_buf_len - 1 - u_len_len - 1 - u_buf_len - 1 - o_len_len - 1 - o_buf_len - 1;
-
-  if (rc4key_len != 10) return (PARSER_SALT_LENGTH);
+  u8 *V_pos      = token.buf[1];
+  u8 *R_pos      = token.buf[2];
+  u8 *bits_pos   = token.buf[3];
+  u8 *P_pos      = token.buf[4];
+  u8 *enc_md_pos = token.buf[5];
+  u8 *id_len_pos = token.buf[6];
+  u8 *id_buf_pos = token.buf[7];
+  u8 *u_len_pos  = token.buf[8];
+  u8 *u_buf_pos  = token.buf[9];
+  u8 *o_len_pos  = token.buf[10];
+  u8 *o_buf_pos  = token.buf[11];
+  u8 *rc4key_pos = token.buf[12];
 
   // validate data
 
@@ -11545,8 +11600,8 @@ int pdf11cm2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   if ((enc_md != 0) && (enc_md != 1)) return (PARSER_SALT_VALUE);
 
   const int id_len = strtol ((const char *) id_len_pos, NULL, 10);
-  const int u_len  = strtol ((const char *) u_len_pos, NULL, 10);
-  const int o_len  = strtol ((const char *) o_len_pos, NULL, 10);
+  const int u_len  = strtol ((const char *) u_len_pos,  NULL, 10);
+  const int o_len  = strtol ((const char *) o_len_pos,  NULL, 10);
 
   if (id_len != 16) return (PARSER_SALT_VALUE);
   if (u_len  != 32) return (PARSER_SALT_VALUE);
@@ -11564,36 +11619,30 @@ int pdf11cm2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   pdf->enc_md = enc_md;
 
-  if (is_valid_hex_string (id_buf_pos, 32) == false) return (PARSER_SALT_ENCODING);
-
-  pdf->id_buf[0] = hex_to_u32 ((const u8 *) &id_buf_pos[ 0]);
-  pdf->id_buf[1] = hex_to_u32 ((const u8 *) &id_buf_pos[ 8]);
-  pdf->id_buf[2] = hex_to_u32 ((const u8 *) &id_buf_pos[16]);
-  pdf->id_buf[3] = hex_to_u32 ((const u8 *) &id_buf_pos[24]);
+  pdf->id_buf[0] = hex_to_u32 (id_buf_pos +  0);
+  pdf->id_buf[1] = hex_to_u32 (id_buf_pos +  8);
+  pdf->id_buf[2] = hex_to_u32 (id_buf_pos + 16);
+  pdf->id_buf[3] = hex_to_u32 (id_buf_pos + 24);
   pdf->id_len    = id_len;
 
-  if (is_valid_hex_string (u_buf_pos, 64) == false) return (PARSER_SALT_ENCODING);
-
-  pdf->u_buf[0]  = hex_to_u32 ((const u8 *) &u_buf_pos[ 0]);
-  pdf->u_buf[1]  = hex_to_u32 ((const u8 *) &u_buf_pos[ 8]);
-  pdf->u_buf[2]  = hex_to_u32 ((const u8 *) &u_buf_pos[16]);
-  pdf->u_buf[3]  = hex_to_u32 ((const u8 *) &u_buf_pos[24]);
-  pdf->u_buf[4]  = hex_to_u32 ((const u8 *) &u_buf_pos[32]);
-  pdf->u_buf[5]  = hex_to_u32 ((const u8 *) &u_buf_pos[40]);
-  pdf->u_buf[6]  = hex_to_u32 ((const u8 *) &u_buf_pos[48]);
-  pdf->u_buf[7]  = hex_to_u32 ((const u8 *) &u_buf_pos[56]);
+  pdf->u_buf[0]  = hex_to_u32 (u_buf_pos +  0);
+  pdf->u_buf[1]  = hex_to_u32 (u_buf_pos +  8);
+  pdf->u_buf[2]  = hex_to_u32 (u_buf_pos + 16);
+  pdf->u_buf[3]  = hex_to_u32 (u_buf_pos + 24);
+  pdf->u_buf[4]  = hex_to_u32 (u_buf_pos + 32);
+  pdf->u_buf[5]  = hex_to_u32 (u_buf_pos + 40);
+  pdf->u_buf[6]  = hex_to_u32 (u_buf_pos + 48);
+  pdf->u_buf[7]  = hex_to_u32 (u_buf_pos + 56);
   pdf->u_len     = u_len;
 
-  if (is_valid_hex_string (o_buf_pos, 64) == false) return (PARSER_SALT_ENCODING);
-
-  pdf->o_buf[0]  = hex_to_u32 ((const u8 *) &o_buf_pos[ 0]);
-  pdf->o_buf[1]  = hex_to_u32 ((const u8 *) &o_buf_pos[ 8]);
-  pdf->o_buf[2]  = hex_to_u32 ((const u8 *) &o_buf_pos[16]);
-  pdf->o_buf[3]  = hex_to_u32 ((const u8 *) &o_buf_pos[24]);
-  pdf->o_buf[4]  = hex_to_u32 ((const u8 *) &o_buf_pos[32]);
-  pdf->o_buf[5]  = hex_to_u32 ((const u8 *) &o_buf_pos[40]);
-  pdf->o_buf[6]  = hex_to_u32 ((const u8 *) &o_buf_pos[48]);
-  pdf->o_buf[7]  = hex_to_u32 ((const u8 *) &o_buf_pos[56]);
+  pdf->o_buf[0]  = hex_to_u32 (o_buf_pos +  0);
+  pdf->o_buf[1]  = hex_to_u32 (o_buf_pos +  8);
+  pdf->o_buf[2]  = hex_to_u32 (o_buf_pos + 16);
+  pdf->o_buf[3]  = hex_to_u32 (o_buf_pos + 24);
+  pdf->o_buf[4]  = hex_to_u32 (o_buf_pos + 32);
+  pdf->o_buf[5]  = hex_to_u32 (o_buf_pos + 40);
+  pdf->o_buf[6]  = hex_to_u32 (o_buf_pos + 48);
+  pdf->o_buf[7]  = hex_to_u32 (o_buf_pos + 56);
   pdf->o_len     = o_len;
 
   pdf->rc4key[1] = 0;
@@ -19878,7 +19927,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     // output
 
-    snprintf (out_buf, out_len - 1, "%s%u$%s$%s", SIGNATURE_DJANGOPBKDF2, salt.salt_iter + 1, salt_buf_ptr, tmp_buf);
+    snprintf (out_buf, out_len - 1, "%s$%u$%s$%s", SIGNATURE_DJANGOPBKDF2, salt.salt_iter + 1, salt_buf_ptr, tmp_buf);
   }
   else if (hash_mode == 10100)
   {
