@@ -12208,80 +12208,91 @@ int pbkdf2_sha256_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MA
 
 int prestashop_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_11000) || (input_len > DISPLAY_LEN_MAX_11000)) return (PARSER_GLOBAL_LENGTH);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
-  if (is_valid_hex_string (input_buf, 32) == false) return (PARSER_HASH_ENCODING);
+  token_t token;
 
-  digest[0] = hex_to_u32 ((const u8 *) &input_buf[ 0]);
-  digest[1] = hex_to_u32 ((const u8 *) &input_buf[ 8]);
-  digest[2] = hex_to_u32 ((const u8 *) &input_buf[16]);
-  digest[3] = hex_to_u32 ((const u8 *) &input_buf[24]);
+  token.token_cnt  = 2;
 
-  if (input_buf[32] != hashconfig->separator) return (PARSER_SEPARATOR_UNMATCHED);
+  token.sep[0]     = hashconfig->separator;
+  token.len_min[0] = 32;
+  token.len_max[0] = 32;
+  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  u32 salt_len = input_len - 32 - 1;
+  token.len_min[1] = 56;
+  token.len_max[1] = 56;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  u8 *salt_buf = input_buf + 32 + 1;
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
-  u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  salt_len = parse_and_store_salt_legacy (salt_buf_ptr, salt_buf, salt_len, hashconfig);
+  u8 *hash_pos = token.buf[0];
 
-  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
+  digest[0] = hex_to_u32 (hash_pos +  0);
+  digest[1] = hex_to_u32 (hash_pos +  8);
+  digest[2] = hex_to_u32 (hash_pos + 16);
+  digest[3] = hex_to_u32 (hash_pos + 24);
 
-  salt->salt_len = salt_len;
+  u8 *salt_pos = token.buf[1];
+  int salt_len = token.len[1];
+
+  const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
+
+  if (parse_rc == false) return (PARSER_SALT_LENGTH);
 
   return (PARSER_OK);
 }
 
 int postgresql_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_11100) || (input_len > DISPLAY_LEN_MAX_11100)) return (PARSER_GLOBAL_LENGTH);
-
-  if (memcmp (SIGNATURE_POSTGRESQL_AUTH, input_buf, 10) != 0) return (PARSER_SIGNATURE_UNMATCHED);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
-  u8 *user_pos = input_buf + 10;
+  token_t token;
 
-  u8 *salt_pos = (u8 *) strchr ((const char *) user_pos, '*');
+  token.token_cnt  = 4;
 
-  if (salt_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_POSTGRESQL_AUTH;
 
-  salt_pos++;
+  token.len[0]     = 10;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  u8 *hash_pos = (u8 *) strchr ((const char *) salt_pos, '*');
+  token.sep[1]     = '*';
+  token.len_min[1] = 0;
+  token.len_max[1] = 32;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  if (hash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.sep[2]     = '*';
+  token.len_min[2] = 8;
+  token.len_max[2] = 8;
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  hash_pos++;
+  token.sep[3]     = '*';
+  token.len_min[3] = 32;
+  token.len_max[3] = 32;
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  u32 hash_len = input_len - (hash_pos - input_buf);
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
-  if (hash_len != 32) return (PARSER_HASH_LENGTH);
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  u32 user_len = salt_pos - user_pos - 1;
+  // hash
 
-  u32 salt_len = hash_pos - salt_pos - 1;
+  u8 *hash_pos = token.buf[3];
 
-  if (salt_len != 8) return (PARSER_SALT_LENGTH);
-
-  /*
-   * store digest
-   */
-
-  if (is_valid_hex_string (hash_pos, 32) == false) return (PARSER_HASH_ENCODING);
-
-  digest[0] = hex_to_u32 ((const u8 *) &hash_pos[ 0]);
-  digest[1] = hex_to_u32 ((const u8 *) &hash_pos[ 8]);
-  digest[2] = hex_to_u32 ((const u8 *) &hash_pos[16]);
-  digest[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
+  digest[0] = hex_to_u32 (hash_pos +  0);
+  digest[1] = hex_to_u32 (hash_pos +  8);
+  digest[2] = hex_to_u32 (hash_pos + 16);
+  digest[3] = hex_to_u32 (hash_pos + 24);
 
   if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
   {
@@ -12295,65 +12306,73 @@ int postgresql_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, 
    * store salt
    */
 
-  u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
+  u8 *salt_pos = token.buf[2];
 
   // first 4 bytes are the "challenge"
 
-  if (is_valid_hex_string (salt_pos, 8) == false) return (PARSER_SALT_ENCODING);
+  u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
 
-  salt_buf_ptr[0] = hex_to_u8 ((const u8 *) &salt_pos[0]);
-  salt_buf_ptr[1] = hex_to_u8 ((const u8 *) &salt_pos[2]);
-  salt_buf_ptr[2] = hex_to_u8 ((const u8 *) &salt_pos[4]);
-  salt_buf_ptr[3] = hex_to_u8 ((const u8 *) &salt_pos[6]);
+  salt_buf_ptr[0] = hex_to_u8 (salt_pos + 0);
+  salt_buf_ptr[1] = hex_to_u8 (salt_pos + 2);
+  salt_buf_ptr[2] = hex_to_u8 (salt_pos + 4);
+  salt_buf_ptr[3] = hex_to_u8 (salt_pos + 6);
 
   // append the user name
 
-  user_len = parse_and_store_salt_legacy (salt_buf_ptr + 4, user_pos, user_len, hashconfig);
+  u8 *user_pos = token.buf[1];
+  int user_len = token.len[1];
 
-  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
+  const bool parse_rc = parse_and_store_generic_salt (salt_buf_ptr + 4, (int *) &salt->salt_len, user_pos, user_len, hashconfig);
 
-  salt->salt_len = 4 + user_len;
+  if (parse_rc == false) return (PARSER_SALT_LENGTH);
+
+  salt->salt_len += 4;
 
   return (PARSER_OK);
 }
 
 int mysql_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_11200) || (input_len > DISPLAY_LEN_MAX_11200)) return (PARSER_GLOBAL_LENGTH);
-
-  if (memcmp (SIGNATURE_MYSQL_AUTH, input_buf, 9) != 0) return (PARSER_SIGNATURE_UNMATCHED);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
-  u8 *salt_pos = input_buf + 9;
+  token_t token;
 
-  u8 *hash_pos = (u8 *) strchr ((const char *) salt_pos, '*');
+  token.token_cnt  = 3;
 
-  if (hash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_MYSQL_AUTH;
 
-  hash_pos++;
+  token.len[0]     = 9;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  u32 hash_len = input_len - (hash_pos - input_buf);
+  token.sep[1]     = '*';
+  token.len_min[1] = 40;
+  token.len_max[1] = 40;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  if (hash_len != 40) return (PARSER_HASH_LENGTH);
+  token.sep[2]     = '*';
+  token.len_min[2] = 40;
+  token.len_max[2] = 40;
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  u32 salt_len = hash_pos - salt_pos - 1;
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
-  if (salt_len != 40) return (PARSER_SALT_LENGTH);
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  /*
-   * store digest
-   */
+  // hash
 
-  if (is_valid_hex_string (hash_pos, 40) == false) return (PARSER_HASH_ENCODING);
+  u8 *hash_pos = token.buf[2];
 
-  digest[0] = hex_to_u32 ((const u8 *) &hash_pos[ 0]);
-  digest[1] = hex_to_u32 ((const u8 *) &hash_pos[ 8]);
-  digest[2] = hex_to_u32 ((const u8 *) &hash_pos[16]);
-  digest[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
-  digest[4] = hex_to_u32 ((const u8 *) &hash_pos[32]);
+  digest[0] = hex_to_u32 (hash_pos +  0);
+  digest[1] = hex_to_u32 (hash_pos +  8);
+  digest[2] = hex_to_u32 (hash_pos + 16);
+  digest[3] = hex_to_u32 (hash_pos + 24);
+  digest[4] = hex_to_u32 (hash_pos + 32);
 
   digest[0] = byte_swap_32 (digest[0]);
   digest[1] = byte_swap_32 (digest[1]);
@@ -12365,13 +12384,12 @@ int mysql_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
    * store salt
    */
 
-  u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
+  u8 *salt_pos = token.buf[1];
+  int salt_len = token.len[1];
 
-  salt_len = parse_and_store_salt_legacy (salt_buf_ptr, salt_pos, salt_len, hashconfig);
+  const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
 
-  if (salt_len == UINT_MAX) return (PARSER_SALT_LENGTH);
-
-  salt->salt_len = salt_len;
+  if (parse_rc == false) return (PARSER_SALT_LENGTH);
 
   return (PARSER_OK);
 }
@@ -18534,7 +18552,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     ptr_plain[27] = 0;
 
-    snprintf (out_buf, out_len - 1, "%s0*%s*%s", SIGNATURE_EPISERVER, ptr_salt, ptr_plain);
+    snprintf (out_buf, out_len - 1, "%s*0*%s*%s", SIGNATURE_EPISERVER, ptr_salt, ptr_plain);
   }
   else if (hash_mode == 400)
   {
@@ -18641,7 +18659,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     ptr_plain[43] = 0;
 
-    snprintf (out_buf, out_len - 1, "%s1*%s*%s", SIGNATURE_EPISERVER, ptr_salt, ptr_plain);
+    snprintf (out_buf, out_len - 1, "%s*1*%s*%s", SIGNATURE_EPISERVER, ptr_salt, ptr_plain);
   }
   else if (hash_mode == 1500)
   {
@@ -21697,22 +21715,22 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
       snprintf (out_buf, out_len - 1, "%s%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
         SIGNATURE_BLAKE2B,
-        byte_swap_32(ptr[ 0]),
-        byte_swap_32(ptr[ 1]),
-        byte_swap_32(ptr[ 2]),
-        byte_swap_32(ptr[ 3]),
-        byte_swap_32(ptr[ 4]),
-        byte_swap_32(ptr[ 5]),
-        byte_swap_32(ptr[ 6]),
-        byte_swap_32(ptr[ 7]),
-        byte_swap_32(ptr[ 8]),
-        byte_swap_32(ptr[ 9]),
-        byte_swap_32(ptr[10]),
-        byte_swap_32(ptr[11]),
-        byte_swap_32(ptr[12]),
-        byte_swap_32(ptr[13]),
-        byte_swap_32(ptr[14]),
-        byte_swap_32(ptr[15]));
+        ptr[ 1],
+        ptr[ 0],
+        ptr[ 3],
+        ptr[ 2],
+        ptr[ 5],
+        ptr[ 4],
+        ptr[ 7],
+        ptr[ 6],
+        ptr[ 9],
+        ptr[ 8],
+        ptr[11],
+        ptr[10],
+        ptr[13],
+        ptr[12],
+        ptr[15],
+        ptr[14]);
     }
     else if (hash_type == HASH_TYPE_CHACHA20)
     {
