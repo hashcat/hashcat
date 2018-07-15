@@ -12950,7 +12950,7 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   token.sep[3]      = '$';
   token.len_min[3]  = 1;
-  token.len_max[3]  = 2;
+  token.len_max[3]  = 1;
   token.attr[3]     = TOKEN_ATTR_VERIFY_LENGTH
                     | TOKEN_ATTR_VERIFY_DIGIT;
 
@@ -12960,7 +12960,7 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   token.attr[4]     = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[5]      = '$';
-  token.len_min[5]  = 2;
+  token.len_min[5]  = 1;
   token.len_max[5]  = 2;
   token.attr[5]     = TOKEN_ATTR_VERIFY_LENGTH
                     | TOKEN_ATTR_VERIFY_DIGIT;
@@ -12972,7 +12972,7 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
                     | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[7]      = '$';
-  token.len_min[7]  = 10;
+  token.len_min[7]  = 1;
   token.len_max[7]  = 10;
   token.attr[7]     = TOKEN_ATTR_VERIFY_LENGTH
                     | TOKEN_ATTR_VERIFY_DIGIT;
@@ -12992,8 +12992,7 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   token.sep[10]     = '$';
   token.len_min[10] = 2;
   token.len_max[10] = 655056;
-  token.attr[10]    = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_VERIFY_HEX;
+  token.attr[10]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
@@ -13043,6 +13042,8 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
     coder_attributes_pos++;
   }
+
+  if (is_valid_hex_string (data_buf_pos, data_buf_len) == false) return (PARSER_SALT_ENCODING);
 
   const int iter         = hc_strtoul ((const char *) NumCyclesPower_pos, NULL, 10);
   const int crc          = hc_strtoul ((const char *) crc_buf_pos,        NULL, 10);
