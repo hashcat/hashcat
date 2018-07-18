@@ -14150,72 +14150,209 @@ int axcrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
 int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_13400) || (input_len > DISPLAY_LEN_MAX_13400)) return (PARSER_GLOBAL_LENGTH);
-
-  if (memcmp (SIGNATURE_KEEPASS, input_buf, 9) != 0) return (PARSER_SIGNATURE_UNMATCHED);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
   keepass_t *keepass = (keepass_t *) hash_buf->esalt;
 
-  /**
-   * parse line
-   */
-
-  u8  *version_pos;
-  u8  *rounds_pos;
-  u8  *algorithm_pos;
-  u8  *final_random_seed_pos;
-  u32  final_random_seed_len;
-  u8  *transf_random_seed_pos;
-  u32  transf_random_seed_len;
-  u8  *enc_iv_pos;
-  u32  enc_iv_len;
-
-  /* default is no keyfile provided */
   bool is_keyfile_present = false;
-  u8  *keyfile_inline_pos;
-  u8  *keyfile_pos;
 
-  /* specific to version 1 */
-  u8  *contents_pos;
+  if (input_len < 128) return (PARSER_SALT_LENGTH);
 
-  /* specific to version 2 */
-  u8  *expected_bytes_pos;
-  u32  expected_bytes_len;
+  if ((input_buf[input_len - (64 + 1 + 2 + 1 + 2)] == '*')
+   && (input_buf[input_len - (64 + 1 + 2 + 1 + 1)] == '1')
+   && (input_buf[input_len - (64 + 1 + 2 + 1 + 0)] == '*')) is_keyfile_present = true;
 
-  u8  *contents_hash_pos;
-  u32  contents_hash_len;
+  token_t token;
 
-  version_pos = input_buf + 8 + 1 + 1;
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_KEEPASS;
+
+  token.sep[0]     = '*';
+  token.len_min[0] = 9;
+  token.len_max[0] = 9;
+  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
+
+  token.sep[1]     = '*';
+  token.len_min[1] = 1;
+  token.len_max[1] = 1;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
+
+  token.sep[2]     = '*';
+  token.len_min[2] = 1;
+  token.len_max[2] = 6;
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
+
+  token.sep[3]     = '*';
+  token.len_min[3] = 1;
+  token.len_max[3] = 3;
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
+
+  if (input_len < 16) return (PARSER_SALT_LENGTH);
+
+  const u8 version = input_buf[10];
+
+  if (version == '1')
+  {
+    token.token_cnt  = 11;
+
+    token.sep[4]     = '*';
+    token.len_min[4] = 32;
+    token.len_max[4] = 32;
+    token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    token.sep[5]     = '*';
+    token.len_min[5] = 64;
+    token.len_max[5] = 64;
+    token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    token.sep[6]     = '*';
+    token.len_min[6] = 32;
+    token.len_max[6] = 32;
+    token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    token.sep[7]     = '*';
+    token.len_min[7] = 64;
+    token.len_max[7] = 64;
+    token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    token.sep[8]     = '*';
+    token.len_min[8] = 1;
+    token.len_max[8] = 1;
+    token.attr[8]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_DIGIT;
+
+    token.sep[9]     = '*';
+    token.len_min[9] = 1;
+    token.len_max[9] = 6;
+    token.attr[9]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_DIGIT;
+
+    token.sep[10]     = '*';
+    token.len_min[10] = 2;
+    token.len_max[10] = 600000;
+    token.attr[10]    = TOKEN_ATTR_VERIFY_LENGTH
+                      | TOKEN_ATTR_VERIFY_HEX;
+
+    if (is_keyfile_present == true)
+    {
+      token.token_cnt = 14;
+
+      token.sep[11]     = '*';
+      token.len_min[11] = 1;
+      token.len_max[11] = 1;
+      token.attr[11]    = TOKEN_ATTR_VERIFY_LENGTH
+                        | TOKEN_ATTR_VERIFY_DIGIT;
+
+      token.sep[12]     = '*';
+      token.len_min[12] = 2;
+      token.len_max[12] = 2;
+      token.attr[12]    = TOKEN_ATTR_VERIFY_LENGTH
+                        | TOKEN_ATTR_VERIFY_DIGIT;
+
+      token.sep[13]     = '*';
+      token.len_min[13] = 64;
+      token.len_max[13] = 64;
+      token.attr[13]    = TOKEN_ATTR_VERIFY_LENGTH
+                        | TOKEN_ATTR_VERIFY_HEX;
+    }
+  }
+  else if (version == '2')
+  {
+    token.token_cnt  = 9;
+
+    token.sep[4]     = '*';
+    token.len_min[4] = 64;
+    token.len_max[4] = 64;
+    token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    token.sep[5]     = '*';
+    token.len_min[5] = 64;
+    token.len_max[5] = 64;
+    token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    token.sep[6]     = '*';
+    token.len_min[6] = 32;
+    token.len_max[6] = 32;
+    token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    token.sep[7]     = '*';
+    token.len_min[7] = 64;
+    token.len_max[7] = 64;
+    token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    token.sep[8]     = '*';
+    token.len_min[8] = 64;
+    token.len_max[8] = 64;
+    token.attr[8]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    if (is_keyfile_present == true)
+    {
+      token.token_cnt = 12;
+
+      token.sep[9]      = '*';
+      token.len_min[9]  = 1;
+      token.len_max[9]  = 1;
+      token.attr[9]     = TOKEN_ATTR_VERIFY_LENGTH
+                        | TOKEN_ATTR_VERIFY_DIGIT;
+
+      token.sep[10]     = '*';
+      token.len_min[10] = 2;
+      token.len_max[10] = 2;
+      token.attr[10]    = TOKEN_ATTR_VERIFY_LENGTH
+                        | TOKEN_ATTR_VERIFY_DIGIT;
+
+      token.sep[11]     = '*';
+      token.len_min[11] = 64;
+      token.len_max[11] = 64;
+      token.attr[11]    = TOKEN_ATTR_VERIFY_LENGTH
+                        | TOKEN_ATTR_VERIFY_HEX;
+    }
+  }
+  else
+  {
+    return (PARSER_SALT_VALUE);
+  }
+
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
+
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+  // version
+
+  u8 *version_pos = token.buf[1];
 
   keepass->version = hc_strtoul ((const char *) version_pos, NULL, 10);
 
-  rounds_pos = (u8 *) strchr ((const char *) version_pos, '*');
+  // iter
 
-  if (rounds_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  rounds_pos++;
+  u8 *rounds_pos = token.buf[2];
 
   salt->salt_iter = hc_strtoul ((const char *) rounds_pos, NULL, 10);
 
-  algorithm_pos = (u8 *) strchr ((const char *) rounds_pos, '*');
+  // algo
 
-  if (algorithm_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  algorithm_pos++;
+  u8 *algorithm_pos = token.buf[3];
 
   keepass->algorithm = hc_strtoul ((const char *) algorithm_pos, NULL, 10);
 
-  final_random_seed_pos = (u8 *) strchr ((const char *) algorithm_pos, '*');
+  // final_random_seed_pos
 
-  if (final_random_seed_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  final_random_seed_pos++;
-
-  if (is_valid_hex_string (final_random_seed_pos, 32) == false) return (PARSER_SALT_ENCODING);
+  u8 *final_random_seed_pos = token.buf[4];
 
   keepass->final_random_seed[0] = hex_to_u32 ((const u8 *) &final_random_seed_pos[ 0]);
   keepass->final_random_seed[1] = hex_to_u32 ((const u8 *) &final_random_seed_pos[ 8]);
@@ -14229,8 +14366,6 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   if (keepass->version == 2)
   {
-    if (is_valid_hex_string (final_random_seed_pos + 32, 32) == false) return (PARSER_SALT_ENCODING);
-
     keepass->final_random_seed[4] = hex_to_u32 ((const u8 *) &final_random_seed_pos[32]);
     keepass->final_random_seed[5] = hex_to_u32 ((const u8 *) &final_random_seed_pos[40]);
     keepass->final_random_seed[6] = hex_to_u32 ((const u8 *) &final_random_seed_pos[48]);
@@ -14242,18 +14377,9 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
     keepass->final_random_seed[7] = byte_swap_32 (keepass->final_random_seed[7]);
   }
 
-  transf_random_seed_pos = (u8 *) strchr ((const char *) final_random_seed_pos, '*');
+  // transf_random_seed_pos
 
-  if (transf_random_seed_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  final_random_seed_len = transf_random_seed_pos - final_random_seed_pos;
-
-  if (keepass->version == 1 && final_random_seed_len != 32) return (PARSER_SALT_LENGTH);
-  if (keepass->version == 2 && final_random_seed_len != 64) return (PARSER_SALT_LENGTH);
-
-  transf_random_seed_pos++;
-
-  if (is_valid_hex_string (transf_random_seed_pos, 64) == false) return (PARSER_SALT_ENCODING);
+  u8 *transf_random_seed_pos = token.buf[5];
 
   keepass->transf_random_seed[0] = hex_to_u32 ((const u8 *) &transf_random_seed_pos[ 0]);
   keepass->transf_random_seed[1] = hex_to_u32 ((const u8 *) &transf_random_seed_pos[ 8]);
@@ -14273,17 +14399,9 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   keepass->transf_random_seed[6] = byte_swap_32 (keepass->transf_random_seed[6]);
   keepass->transf_random_seed[7] = byte_swap_32 (keepass->transf_random_seed[7]);
 
-  enc_iv_pos = (u8 *) strchr ((const char *) transf_random_seed_pos, '*');
+  // enc_iv_pos
 
-  if (enc_iv_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  transf_random_seed_len = enc_iv_pos - transf_random_seed_pos;
-
-  if (transf_random_seed_len != 64) return (PARSER_SALT_LENGTH);
-
-  enc_iv_pos++;
-
-  if (is_valid_hex_string (enc_iv_pos, 32) == false) return (PARSER_SALT_ENCODING);
+  u8 *enc_iv_pos = token.buf[6];
 
   keepass->enc_iv[0] = hex_to_u32 ((const u8 *) &enc_iv_pos[ 0]);
   keepass->enc_iv[1] = hex_to_u32 ((const u8 *) &enc_iv_pos[ 8]);
@@ -14295,19 +14413,13 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   keepass->enc_iv[2] = byte_swap_32 (keepass->enc_iv[2]);
   keepass->enc_iv[3] = byte_swap_32 (keepass->enc_iv[3]);
 
+  u8 *keyfile_pos = NULL;
+
   if (keepass->version == 1)
   {
-    contents_hash_pos = (u8 *) strchr ((const char *) enc_iv_pos, '*');
+    // contents_hash
 
-    if (contents_hash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-    enc_iv_len = contents_hash_pos - enc_iv_pos;
-
-    if (enc_iv_len != 32) return (PARSER_SALT_LENGTH);
-
-    contents_hash_pos++;
-
-    if (is_valid_hex_string (contents_hash_pos, 64) == false) return (PARSER_SALT_ENCODING);
+    u8 *contents_hash_pos = token.buf[7];
 
     keepass->contents_hash[0] = hex_to_u32 ((const u8 *) &contents_hash_pos[ 0]);
     keepass->contents_hash[1] = hex_to_u32 ((const u8 *) &contents_hash_pos[ 8]);
@@ -14327,82 +14439,30 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
     keepass->contents_hash[6] = byte_swap_32 (keepass->contents_hash[6]);
     keepass->contents_hash[7] = byte_swap_32 (keepass->contents_hash[7]);
 
-    /* get length of contents following */
-    u8 *inline_flag_pos = (u8 *) strchr ((const char *) contents_hash_pos, '*');
+    // contents
 
-    if (inline_flag_pos == NULL) return (PARSER_SALT_LENGTH);
+    u8 *contents_pos = token.buf[10];
+    int contents_len = token.len[10];
 
-    contents_hash_len = inline_flag_pos - contents_hash_pos;
+    keepass->contents_len = contents_len / 2;
 
-    if (contents_hash_len != 64) return (PARSER_SALT_LENGTH);
-
-    inline_flag_pos++;
-
-    u32 inline_flag = hc_strtoul ((const char *) inline_flag_pos, NULL, 10);
-
-    if (inline_flag != 1) return (PARSER_SALT_LENGTH);
-
-    u8 *contents_len_pos = (u8 *) strchr ((const char *) inline_flag_pos, '*');
-
-    if (contents_len_pos == NULL) return (PARSER_SALT_LENGTH);
-
-    contents_len_pos++;
-
-    int contents_len = strtol ((const char *) contents_len_pos, NULL, 10);
-
-    if (contents_len > 50000) return (PARSER_SALT_LENGTH);
-
-    contents_pos = (u8 *) strchr ((const char *) contents_len_pos, '*');
-
-    if (contents_pos == NULL) return (PARSER_SALT_LENGTH);
-
-    contents_pos++;
-
-    keepass->contents_len = contents_len;
-
-    contents_len = contents_len / 4;
-
-    keyfile_inline_pos = (u8 *) strchr ((const char *) contents_pos, '*');
-
-    u32 real_contents_len;
-
-    if (keyfile_inline_pos == NULL)
+    for (int i = 0, j = 0; j < contents_len; i += 1, j += 8)
     {
-      real_contents_len = input_len - (contents_pos - input_buf);
-    }
-    else
-    {
-      real_contents_len = keyfile_inline_pos - contents_pos;
-
-      keyfile_inline_pos++;
-
-      is_keyfile_present = true;
-    }
-
-    if (real_contents_len != keepass->contents_len * 2) return (PARSER_SALT_LENGTH);
-
-    if (is_valid_hex_string (contents_pos, contents_len) == false) return (PARSER_SALT_ENCODING);
-
-    for (int i = 0; i < contents_len; i++)
-    {
-      keepass->contents[i] = hex_to_u32 ((const u8 *) &contents_pos[i * 8]);
+      keepass->contents[i] = hex_to_u32 ((const u8 *) &contents_pos[j]);
 
       keepass->contents[i] = byte_swap_32 (keepass->contents[i]);
+    }
+
+    if (is_keyfile_present == true)
+    {
+      keyfile_pos = token.buf[13];
     }
   }
   else if (keepass->version == 2)
   {
-    expected_bytes_pos = (u8 *) strchr ((const char *) enc_iv_pos, '*');
+    // expected_bytes
 
-    if (expected_bytes_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-    enc_iv_len = expected_bytes_pos - enc_iv_pos;
-
-    if (enc_iv_len != 32) return (PARSER_SALT_LENGTH);
-
-    expected_bytes_pos++;
-
-    if (is_valid_hex_string (expected_bytes_pos, 64) == false) return (PARSER_SALT_ENCODING);
+    u8 *expected_bytes_pos = token.buf[7];
 
     keepass->expected_bytes[0] = hex_to_u32 ((const u8 *) &expected_bytes_pos[ 0]);
     keepass->expected_bytes[1] = hex_to_u32 ((const u8 *) &expected_bytes_pos[ 8]);
@@ -14422,17 +14482,9 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
     keepass->expected_bytes[6] = byte_swap_32 (keepass->expected_bytes[6]);
     keepass->expected_bytes[7] = byte_swap_32 (keepass->expected_bytes[7]);
 
-    contents_hash_pos = (u8 *) strchr ((const char *) expected_bytes_pos, '*');
+    // contents_hash
 
-    if (contents_hash_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-    expected_bytes_len = contents_hash_pos - expected_bytes_pos;
-
-    if (expected_bytes_len != 64) return (PARSER_SALT_LENGTH);
-
-    contents_hash_pos++;
-
-    if (is_valid_hex_string (contents_hash_pos, 64) == false) return (PARSER_SALT_ENCODING);
+    u8 *contents_hash_pos = token.buf[8];
 
     keepass->contents_hash[0] = hex_to_u32 ((const u8 *) &contents_hash_pos[ 0]);
     keepass->contents_hash[1] = hex_to_u32 ((const u8 *) &contents_hash_pos[ 8]);
@@ -14452,49 +14504,15 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
     keepass->contents_hash[6] = byte_swap_32 (keepass->contents_hash[6]);
     keepass->contents_hash[7] = byte_swap_32 (keepass->contents_hash[7]);
 
-    keyfile_inline_pos = (u8 *) strchr ((const char *) contents_hash_pos, '*');
-
-    if (keyfile_inline_pos == NULL)
+    if (is_keyfile_present == true)
     {
-      contents_hash_len = input_len - (int) (contents_hash_pos - input_buf);
+      keyfile_pos = token.buf[11];
     }
-    else
-    {
-      contents_hash_len = keyfile_inline_pos - contents_hash_pos;
-
-      keyfile_inline_pos++;
-
-      is_keyfile_present = true;
-    }
-
-    if (contents_hash_len != 64) return (PARSER_SALT_LENGTH);
   }
 
   if (is_keyfile_present == true)
   {
-    u8 *keyfile_len_pos = (u8 *) strchr ((const char *) keyfile_inline_pos, '*');
-
-    if (keyfile_len_pos == NULL) return (PARSER_SALT_LENGTH);
-
-    keyfile_len_pos++;
-
-    int keyfile_len = strtol ((const char *) keyfile_len_pos, NULL, 10);
-
-    keepass->keyfile_len = keyfile_len;
-
-    if (keyfile_len != 64) return (PARSER_SALT_LENGTH);
-
-    keyfile_pos = (u8 *) strchr ((const char *) keyfile_len_pos, '*');
-
-    if (keyfile_pos == NULL) return (PARSER_SALT_LENGTH);
-
-    keyfile_pos++;
-
-    u32 real_keyfile_len = input_len - (keyfile_pos - input_buf);
-
-    if (real_keyfile_len != 64) return (PARSER_SALT_LENGTH);
-
-    if (is_valid_hex_string (keyfile_pos, 64) == false) return (PARSER_SALT_ENCODING);
+    keepass->keyfile_len = 32;
 
     keepass->keyfile[0] = hex_to_u32 ((const u8 *) &keyfile_pos[ 0]);
     keepass->keyfile[1] = hex_to_u32 ((const u8 *) &keyfile_pos[ 8]);
@@ -14996,147 +15014,146 @@ int androidfde_samsung_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_bu
 
 int zip2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  if ((input_len < DISPLAY_LEN_MIN_13600) || (input_len > DISPLAY_LEN_MAX_13600)) return (PARSER_GLOBAL_LENGTH);
-
-  if (memcmp (SIGNATURE_ZIP2_START, input_buf                , 6) != 0) return (PARSER_SIGNATURE_UNMATCHED);
-  if (memcmp (SIGNATURE_ZIP2_STOP , input_buf + input_len - 7, 7) != 0) return (PARSER_SIGNATURE_UNMATCHED);
-
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
   zip2_t *zip2 = (zip2_t *) hash_buf->esalt;
 
-  /**
-   * parse line
-   */
+  token_t token;
 
-  u8 *param0_pos = input_buf + 6 + 1;
+  token.token_cnt  = 10;
 
-  u8 *param1_pos = (u8 *) strchr ((const char *) param0_pos, '*');
+  token.signatures_cnt    = 2;
+  token.signatures_buf[0] = SIGNATURE_ZIP2_START;
+  token.signatures_buf[1] = SIGNATURE_ZIP2_STOP;
 
-  if (param1_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.len_min[0] = 6;
+  token.len_max[0] = 6;
+  token.sep[0]     = '*';
+  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  u32 param0_len = param1_pos - param0_pos;
+  token.len_min[1] = 1;
+  token.len_max[1] = 1;
+  token.sep[1]     = '*';
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  param1_pos++;
+  token.len_min[2] = 1;
+  token.len_max[2] = 1;
+  token.sep[2]     = '*';
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  u8 *param2_pos = (u8 *) strchr ((const char *) param1_pos, '*');
+  token.len_min[3] = 1;
+  token.len_max[3] = 1;
+  token.sep[3]     = '*';
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  if (param2_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.len_min[4] = 16;
+  token.len_max[4] = 32;
+  token.sep[4]     = '*';
+  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  u32 param1_len = param2_pos - param1_pos;
+  token.len_min[5] = 1;
+  token.len_max[5] = 6;
+  token.sep[5]     = '*';
+  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  param2_pos++;
+  token.len_min[6] = 1;
+  token.len_max[6] = 6;
+  token.sep[6]     = '*';
+  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  u8 *param3_pos = (u8 *) strchr ((const char *) param2_pos, '*');
+  token.len_min[7] = 0;
+  token.len_max[7] = 16384;
+  token.sep[7]     = '*';
+  token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  if (param3_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  token.len_min[8] = 20;
+  token.len_max[8] = 20;
+  token.sep[8]     = '*';
+  token.attr[8]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  u32 param2_len = param3_pos - param2_pos;
+  token.len_min[9] = 7;
+  token.len_max[9] = 7;
+  token.sep[9]     = '*';
+  token.attr[9]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  param3_pos++;
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
-  u8 *param4_pos = (u8 *) strchr ((const char *) param3_pos, '*');
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  if (param4_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  // type
 
-  u32 param3_len = param4_pos - param3_pos;
+  u8 *type_pos = token.buf[1];
 
-  param4_pos++;
+  const u32 type = hc_strtoul ((const char *) type_pos, NULL, 10);
 
-  u8 *param5_pos = (u8 *) strchr ((const char *) param4_pos, '*');
+  if (type != 0) return (PARSER_SALT_VALUE);
 
-  if (param5_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  zip2->type = type;
 
-  u32 param4_len = param5_pos - param4_pos;
+  // mode
 
-  param5_pos++;
+  u8 *mode_pos = token.buf[2];
 
-  u8 *param6_pos = (u8 *) strchr ((const char *) param5_pos, '*');
+  const u32 mode = hc_strtoul ((const char *) mode_pos, NULL, 10);
 
-  if (param6_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  zip2->mode = mode;
 
-  u32 param5_len = param6_pos - param5_pos;
+  // magic
 
-  param6_pos++;
+  u8 *magic_pos = token.buf[3];
 
-  u8 *param7_pos = (u8 *) strchr ((const char *) param6_pos, '*');
+  const u32 magic = hc_strtoul ((const char *) magic_pos, NULL, 10);
 
-  if (param7_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+  if (magic != 0) return (PARSER_SALT_VALUE);
 
-  u32 param6_len = param7_pos - param6_pos;
+  zip2->magic = magic;
 
-  param7_pos++;
+  // verify_bytes
 
-  u8 *param8_pos = (u8 *) strchr ((const char *) param7_pos, '*');
-
-  if (param8_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  u32 param7_len = param8_pos - param7_pos;
-
-  const u32 type  = hc_strtoul ((const char *) param0_pos, NULL, 10);
-  const u32 mode  = hc_strtoul ((const char *) param1_pos, NULL, 10);
-  const u32 magic = hc_strtoul ((const char *) param2_pos, NULL, 10);
-
-  u8 *salt_buf = param3_pos;
+  u8 *verify_bytes_pos = token.buf[5];
 
   u32 verify_bytes;
 
-  if (sscanf ((const char *) param4_pos, "%4x*", &verify_bytes) == EOF)
+  if (sscanf ((const char *) verify_bytes_pos, "%4x*", &verify_bytes) == EOF)
   {
     return (PARSER_SALT_VALUE);
   }
 
-  const u32 compress_length = hc_strtoul ((const char *) param5_pos, NULL, 10);
-
-  u8 *data_buf = param6_pos;
-  u8 *auth     = param7_pos;
-
-  /**
-   * verify some data
-   */
-
-  if (param0_len != 1) return (PARSER_SALT_VALUE);
-
-  if (param1_len != 1) return (PARSER_SALT_VALUE);
-
-  if (param2_len != 1) return (PARSER_SALT_VALUE);
-
-  if ((param3_len != 16) && (param3_len != 24) && (param3_len != 32)) return (PARSER_SALT_VALUE);
-
-  if (param4_len >= 5) return (PARSER_SALT_VALUE);
-
-  if (param5_len >= 5) return (PARSER_SALT_VALUE);
-
-  if (param6_len >= 8192) return (PARSER_SALT_VALUE);
-
-  if (param6_len & 1) return (PARSER_SALT_VALUE);
-
-  if (param7_len != 20) return (PARSER_SALT_VALUE);
-
-  if (type != 0) return (PARSER_SALT_VALUE);
-
-  if ((mode != 1) && (mode != 2) && (mode != 3)) return (PARSER_SALT_VALUE);
-
-  if (magic != 0) return (PARSER_SALT_VALUE);
-
   if (verify_bytes >= 0x10000) return (PARSER_SALT_VALUE);
 
-  /**
-   * store data
-   */
+  zip2->verify_bytes = verify_bytes;
 
-  zip2->type  = type;
-  zip2->mode  = mode;
-  zip2->magic = magic;
+  // compress_length
+
+  u8 *compress_length_pos = token.buf[6];
+
+  const u32 compress_length = hc_strtoul ((const char *) compress_length_pos, NULL, 10);
+
+  zip2->compress_length = compress_length;
+
+  // salt
+
+  u8 *salt_pos = token.buf[4];
+  int salt_len = token.len[4];
 
   if (mode == 1)
   {
-    if (is_valid_hex_string (salt_buf, 16) == false) return (PARSER_SALT_ENCODING);
+    if (salt_len != 16) return (PARSER_SALT_VALUE);
 
-    zip2->salt_buf[0] = hex_to_u32 ((const u8 *) &salt_buf[ 0]);
-    zip2->salt_buf[1] = hex_to_u32 ((const u8 *) &salt_buf[ 8]);
+    zip2->salt_buf[0] = hex_to_u32 ((const u8 *) &salt_pos[ 0]);
+    zip2->salt_buf[1] = hex_to_u32 ((const u8 *) &salt_pos[ 8]);
     zip2->salt_buf[2] = 0;
     zip2->salt_buf[3] = 0;
 
@@ -15144,34 +15161,39 @@ int zip2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   }
   else if (mode == 2)
   {
-    if (is_valid_hex_string (salt_buf, 24) == false) return (PARSER_SALT_ENCODING);
+    if (salt_len != 24) return (PARSER_SALT_VALUE);
 
-    zip2->salt_buf[0] = hex_to_u32 ((const u8 *) &salt_buf[ 0]);
-    zip2->salt_buf[1] = hex_to_u32 ((const u8 *) &salt_buf[ 8]);
-    zip2->salt_buf[2] = hex_to_u32 ((const u8 *) &salt_buf[16]);
+    zip2->salt_buf[0] = hex_to_u32 ((const u8 *) &salt_pos[ 0]);
+    zip2->salt_buf[1] = hex_to_u32 ((const u8 *) &salt_pos[ 8]);
+    zip2->salt_buf[2] = hex_to_u32 ((const u8 *) &salt_pos[16]);
     zip2->salt_buf[3] = 0;
 
     zip2->salt_len = 12;
   }
   else if (mode == 3)
   {
-    if (is_valid_hex_string (salt_buf, 32) == false) return (PARSER_SALT_ENCODING);
+    if (salt_len != 32) return (PARSER_SALT_VALUE);
 
-    zip2->salt_buf[0] = hex_to_u32 ((const u8 *) &salt_buf[ 0]);
-    zip2->salt_buf[1] = hex_to_u32 ((const u8 *) &salt_buf[ 8]);
-    zip2->salt_buf[2] = hex_to_u32 ((const u8 *) &salt_buf[16]);
-    zip2->salt_buf[3] = hex_to_u32 ((const u8 *) &salt_buf[24]);
+    zip2->salt_buf[0] = hex_to_u32 ((const u8 *) &salt_pos[ 0]);
+    zip2->salt_buf[1] = hex_to_u32 ((const u8 *) &salt_pos[ 8]);
+    zip2->salt_buf[2] = hex_to_u32 ((const u8 *) &salt_pos[16]);
+    zip2->salt_buf[3] = hex_to_u32 ((const u8 *) &salt_pos[24]);
 
     zip2->salt_len = 16;
   }
+  else
+  {
+    return (PARSER_SALT_VALUE);
+  }
 
-  zip2->verify_bytes = verify_bytes;
+  // data
 
-  zip2->compress_length = compress_length;
+  u8 *data_buf = token.buf[7];
+  int data_len = token.len[7];
 
   u8 *data_buf_ptr = (u8 *) zip2->data_buf;
 
-  for (u32 i = 0; i < param6_len; i += 2)
+  for (int i = 0; i < data_len; i += 2)
   {
     const u8 p0 = data_buf[i + 0];
     const u8 p1 = data_buf[i + 1];
@@ -15184,12 +15206,17 @@ int zip2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   *data_buf_ptr = 0x80;
 
+  // auth
+
+  u8 *auth_buf = token.buf[8];
+  int auth_len = token.len[8];
+
   u8 *auth_ptr = (u8 *) zip2->auth_buf;
 
-  for (u32 i = 0; i < param7_len; i += 2)
+  for (int i = 0; i < auth_len; i += 2)
   {
-    const u8 p0 = auth[i + 0];
-    const u8 p1 = auth[i + 1];
+    const u8 p0 = auth_buf[i + 0];
+    const u8 p1 = auth_buf[i + 1];
 
     *auth_ptr++ = hex_convert (p1) << 0
                 | hex_convert (p0) << 4;
@@ -20863,7 +20890,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
       *ptr_data = '*';
       ptr_data++;
 
-      sprintf (ptr_data, "%u", keyfile_len);
+      sprintf (ptr_data, "%u", keyfile_len * 2);
 
       ptr_data += 2;
 
