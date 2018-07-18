@@ -14,6 +14,7 @@
 - OpenCL kernels: Abort session if kernel self-test failed
 - OpenCL kernels: Add '-pure' prefix to kernel filenames to avoid problems caused by reusing existing hashcat installation folder
 - Added JtR-compatible support for hex notation in rules engine
+- Added OpenCL device utilization to status information in machine readable output
 
 ##
 ## Bugs

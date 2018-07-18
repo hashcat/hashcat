@@ -848,6 +848,21 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 
   printf ("REJECTED\t%" PRIu64 "\t", hashcat_status->progress_rejected);
 
+  printf ("UTIL\t");
+
+  for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+  {
+    const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+
+    if (device_info->skipped_dev == true) continue;
+
+    // ok, little cheat here again...
+
+    const int util = hm_get_utilization_with_device_id (hashcat_ctx, device_id);
+
+    printf ("%d\t", util);
+  }
+
   hc_fwrite (EOL, strlen (EOL), 1, stdout);
 
   fflush (stdout);
