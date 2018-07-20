@@ -2766,6 +2766,8 @@ int bcrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   salt->salt_len  = 16;
   salt->salt_iter = 1u << hc_strtoul ((const char *) iter_pos, NULL, 10);
 
+  memcpy ((char *) salt->salt_sign, input_buf, 6);
+
   u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
 
   u8 tmp_buf[100];
@@ -3117,7 +3119,7 @@ int netscreen_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   token.len_min[0] = 30;
   token.len_max[0] = 30;
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64B;
+                   | TOKEN_ATTR_VERIFY_BASE64A;
 
   token.len_min[1] = 1;
   token.len_max[1] = SALT_MAX;
@@ -18245,11 +18247,19 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     }
     else if ((dgst_size == DGST_SIZE_4_16) || (dgst_size == DGST_SIZE_8_8)) // same size, same result :)
     {
-      if (hashconfig->opti_type & OPTI_TYPE_USES_BITS_64)
+      if (hash_type == HASH_TYPE_WHIRLPOOL)
+      {
+        for (int i = 0; i < 16; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
+      }
+      else if (hash_type == HASH_TYPE_SHA384)
       {
         for (int i = 0; i < 8; i++) digest_buf64[i] = byte_swap_64 (digest_buf64[i]);
       }
-      else
+      else if (hash_type == HASH_TYPE_SHA512)
+      {
+        for (int i = 0; i < 8; i++) digest_buf64[i] = byte_swap_64 (digest_buf64[i]);
+      }
+      else if (hash_type == HASH_TYPE_GOST)
       {
         for (int i = 0; i < 16; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
       }
@@ -21694,22 +21704,22 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
       snprintf (out_buf, out_len - 1, "%s%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
         SIGNATURE_BLAKE2B,
-        ptr[ 1],
-        ptr[ 0],
-        ptr[ 3],
-        ptr[ 2],
-        ptr[ 5],
-        ptr[ 4],
-        ptr[ 7],
-        ptr[ 6],
-        ptr[ 9],
-        ptr[ 8],
-        ptr[11],
-        ptr[10],
-        ptr[13],
-        ptr[12],
-        ptr[15],
-        ptr[14]);
+        byte_swap_32 (ptr[ 0]),
+        byte_swap_32 (ptr[ 1]),
+        byte_swap_32 (ptr[ 2]),
+        byte_swap_32 (ptr[ 3]),
+        byte_swap_32 (ptr[ 4]),
+        byte_swap_32 (ptr[ 5]),
+        byte_swap_32 (ptr[ 6]),
+        byte_swap_32 (ptr[ 7]),
+        byte_swap_32 (ptr[ 8]),
+        byte_swap_32 (ptr[ 9]),
+        byte_swap_32 (ptr[10]),
+        byte_swap_32 (ptr[11]),
+        byte_swap_32 (ptr[12]),
+        byte_swap_32 (ptr[13]),
+        byte_swap_32 (ptr[14]),
+        byte_swap_32 (ptr[15]));
     }
     else if (hash_type == HASH_TYPE_CHACHA20)
     {
@@ -21720,13 +21730,13 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
       snprintf (out_buf, out_len - 1, "%s*%08x%08x*%u*%08x%08x*%08x%08x*%08x%08x",
         SIGNATURE_CHACHA20,
-        byte_swap_32(chacha20->position[0]),
-        byte_swap_32(chacha20->position[1]),
+        byte_swap_32 (chacha20->position[0]),
+        byte_swap_32 (chacha20->position[1]),
         chacha20->offset,
-        byte_swap_32(chacha20->iv[1]),
-        byte_swap_32(chacha20->iv[0]),
-        byte_swap_32(chacha20->plain[0]),
-        byte_swap_32(chacha20->plain[1]),
+        byte_swap_32 (chacha20->iv[1]),
+        byte_swap_32 (chacha20->iv[0]),
+        byte_swap_32 (chacha20->plain[0]),
+        byte_swap_32 (chacha20->plain[1]),
         ptr[1],
         ptr[0]);
     }
