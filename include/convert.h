@@ -18,6 +18,8 @@ bool is_valid_base64a_string  (const u8 *s, const size_t len);
 bool is_valid_base64a_char    (const u8 c);
 bool is_valid_base64b_string  (const u8 *s, const size_t len);
 bool is_valid_base64b_char    (const u8 c);
+bool is_valid_base64c_string  (const u8 *s, const size_t len);
+bool is_valid_base64c_char    (const u8 c);
 bool is_valid_hex_string      (const u8 *s, const size_t len);
 bool is_valid_hex_char        (const u8 c);
 bool is_valid_digit_string    (const u8 *s, const size_t len);

@@ -265,6 +265,31 @@ bool is_valid_base64b_char (const u8 c)
   return false;
 }
 
+bool is_valid_base64c_string (const u8 *s, const size_t len)
+{
+  for (size_t i = 0; i < len; i++)
+  {
+    const u8 c = s[i];
+
+    if (is_valid_base64c_char (c) == false) return false;
+  }
+
+  return true;
+}
+
+bool is_valid_base64c_char (const u8 c)
+{
+  if ((c >= '0') && (c <= '9')) return true;
+  if ((c >= 'A') && (c <= 'Z')) return true;
+  if ((c >= 'a') && (c <= 'z')) return true;
+
+  if (c == '_') return true;
+  if (c == '-') return true;
+  if (c == '=') return true;
+
+  return false;
+}
+
 bool is_valid_hex_string (const u8 *s, const size_t len)
 {
   for (size_t i = 0; i < len; i++)

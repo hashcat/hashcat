@@ -1018,43 +1018,6 @@ typedef struct hccapx hccapx_t;
  * hashtypes enums
  */
 
-typedef enum display_len
-{
-  DISPLAY_LEN_MIN_15000 = 128 + 1 + 64,
-  DISPLAY_LEN_MAX_15000 = 128 + 1 + 64,
-  DISPLAY_LEN_MIN_15100 = 6 + 3 + 1 + 8 + 1 + 28,
-  DISPLAY_LEN_MAX_15100 = 6 + 6 + 1 + 8 + 1 + 28,
-  DISPLAY_LEN_MIN_15200 =  1 + 10 + 1 + 2 + 1 + 1 + 1 + 1 + 1 + 64,
-  DISPLAY_LEN_MAX_15200 =  1 + 10 + 1 + 2 + 1 + 8 + 1 + 5 + 1 + 20000,
-  DISPLAY_LEN_MIN_15400 = 10 + 1 + 16 + 1 + 1 + 1 + 16 + 1 + 16 + 1 + 16,
-  DISPLAY_LEN_MAX_15400 = 10 + 1 + 16 + 1 + 2 + 1 + 16 + 1 + 16 + 1 + 16,
-  DISPLAY_LEN_MIN_15500 = 10 + 1 + 40 + 1 + 40 + 1 +     1 + 1 + 2 + 1 + 28 + 1 +  1,
-  DISPLAY_LEN_MAX_15500 = 10 + 1 + 40 + 1 + 40 + 1 + 16384 + 1 + 2 + 1 + 28 + 1 + 64,
-  DISPLAY_LEN_MIN_15600 = 11 + 1 + 1 + 1 + 32 + 1 + 64 + 1 + 64,
-  DISPLAY_LEN_MAX_15600 = 11 + 1 + 6 + 1 + 64 + 1 + 64 + 1 + 64,
-  DISPLAY_LEN_MIN_15700 = 11 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 64 + 1 + 64 + 1 + 64,
-  DISPLAY_LEN_MAX_15700 = 11 + 1 + 6 + 1 + 1 + 1 + 1 + 1 + 64 + 1 + 64 + 1 + 64,
-  DISPLAY_LEN_MIN_16000 = 10,
-  DISPLAY_LEN_MAX_16000 = 10,
-  DISPLAY_LEN_MIN_16100 = 1 + 11 + 1 + 1 + 1 + 8 +  12 + 1 + 4,
-  DISPLAY_LEN_MAX_16100 = 1 + 11 + 1 + 1 + 1 + 8 + 256 + 1 + 4,
-  DISPLAY_LEN_MIN_16200 = 5 + 1 + 1 + 1 + 5 + 1 + 32 + 1 + 48,
-  DISPLAY_LEN_MAX_16200 = 5 + 1 + 6 + 1 + 5 + 1 + 32 + 1 + 48,
-  DISPLAY_LEN_MIN_16300 = 11 + 1 +   64 + 1 + 40 + 1 + 32,
-  DISPLAY_LEN_MAX_16300 = 11 + 1 + 1248 + 1 + 40 + 1 + 32,
-  DISPLAY_LEN_MIN_16400 = 10 + 32 + 32,
-  DISPLAY_LEN_MAX_16400 = 10 + 32 + 32,
-  DISPLAY_LEN_MIN_16500 =    1 + 1 +    1 + 1 + 43,
-  DISPLAY_LEN_MAX_16500 = 2047 + 1 + 2047 + 1 + 86,
-  DISPLAY_LEN_MIN_16600 = 10 + 1 + 1 + 32 + 1 + 32,
-  DISPLAY_LEN_MAX_16600 = 10 + 1 + 1 + 32 + 1 + 32,
-  DISPLAY_LEN_MIN_16700 = 1 + 4 + 1 + 1 + 1 + 2 + 1 + 32 + 1 + 1 + 1 + 48,
-  DISPLAY_LEN_MAX_16700 = 1 + 4 + 1 + 1 + 1 + 2 + 1 + 32 + 1 + 6 + 1 + 48,
-  DISPLAY_LEN_MIN_99999 = 1,
-  DISPLAY_LEN_MAX_99999 = 55,
-
-} display_len_t;
-
 typedef enum hash_type
 {
   HASH_TYPE_MD4                 = 1,
