@@ -38,22 +38,25 @@
  */
 
 #if   VENDOR_ID == (1 << 0)
-#if   AMD_ROCM == 0
 #define IS_AMD
 #define AMD_GCN 0
-#else
-#define IS_AMD
-#if   defined __gfx600__ || defined __gfx601__
+#if AMD_ROCM == 1
+#if defined __gfx600__ || defined __gfx601__
+#undef  AMD_GCN
 #define AMD_GCN 1
-#elif defined __gfx700__ || defined __gfx701__ || defined __gfx702__ || defined __gfx703__
+#endif
+#if defined __gfx700__ || defined __gfx701__ || defined __gfx702__ || defined __gfx703__
+#undef  AMD_GCN
 #define AMD_GCN 2
-#elif defined __gfx800__ || defined __gfx801__ || defined __gfx802__ || defined __gfx803__ || defined __gfx804__ || defined __gfx810__
+#endif
+#if defined __gfx800__ || defined __gfx801__ || defined __gfx802__ || defined __gfx803__ || defined __gfx804__ || defined __gfx810__
+#undef  AMD_GCN
 #define AMD_GCN 3
 // According to AMD docs, GCN 3 and 4 are the same
-#elif defined __gfx900__ || defined __gfx901__ || defined __gfx902__ || defined __gfx903__
+#endif
+#if defined __gfx900__ || defined __gfx901__ || defined __gfx902__ || defined __gfx903__
+#undef  AMD_GCN
 #define AMD_GCN 5
-#else
-#define AMD_GCN 0
 #endif
 #endif
 #elif VENDOR_ID == (1 << 1)
