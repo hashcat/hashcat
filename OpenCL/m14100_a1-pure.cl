@@ -370,7 +370,7 @@ __constant u32a c_skb[8][64] =
 #define BOX1(i,S) (u32x) ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7], (S)[(i).s8], (S)[(i).s9], (S)[(i).sa], (S)[(i).sb], (S)[(i).sc], (S)[(i).sd], (S)[(i).se], (S)[(i).sf])
 #endif
 
-DECLSPEC void _des_crypt_encrypt (u32 iv[2], u32 data[2], u32 Kc[16], u32 Kd[16], __local u32 (*s_SPtrans)[64])
+DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, __local u32 (*s_SPtrans)[64])
 {
   u32 r = rotl32_S (data[0], 3u);
   u32 l = rotl32_S (data[1], 3u);
@@ -414,7 +414,7 @@ DECLSPEC void _des_crypt_encrypt (u32 iv[2], u32 data[2], u32 Kc[16], u32 Kd[16]
   iv[1] = rotl32_S (r, 29u);
 }
 
-DECLSPEC void _des_crypt_decrypt (u32 iv[2], u32 data[2], u32 Kc[16], u32 Kd[16], __local u32 (*s_SPtrans)[64])
+DECLSPEC void _des_crypt_decrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, __local u32 (*s_SPtrans)[64])
 {
   u32 r = rotl32_S (data[0], 3u);
   u32 l = rotl32_S (data[1], 3u);
@@ -458,7 +458,7 @@ DECLSPEC void _des_crypt_decrypt (u32 iv[2], u32 data[2], u32 Kc[16], u32 Kd[16]
   iv[1] = rotl32_S (r, 29u);
 }
 
-DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, u32 Kc[16], u32 Kd[16], __local u32 (*s_skb)[64])
+DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, u32 *Kc, u32 *Kd, __local u32 (*s_skb)[64])
 {
   u32 tt;
 

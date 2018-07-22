@@ -93,7 +93,7 @@ DECLSPEC void lotus_mix (u32 *in, const __local u8 *s_lotus_magic_table)
   }
 }
 
-DECLSPEC void lotus_transform_password (const u32 in[4], u32 out[4], const __local u8 *s_lotus_magic_table)
+DECLSPEC void lotus_transform_password (const u32 *in, u32 *out, const __local u8 *s_lotus_magic_table)
 {
   u8 t = (u8) (out[3] >> 24);
 
@@ -111,7 +111,7 @@ DECLSPEC void lotus_transform_password (const u32 in[4], u32 out[4], const __loc
   }
 }
 
-DECLSPEC void pad (u32 w[4], const u32 len)
+DECLSPEC void pad (u32 *w, const u32 len)
 {
   const u32 val = 16 - len;
 
@@ -190,7 +190,7 @@ DECLSPEC void pad (u32 w[4], const u32 len)
   }
 }
 
-DECLSPEC void mdtransform_norecalc (u32 state[4], const u32 block[4], const __local u8 *s_lotus_magic_table)
+DECLSPEC void mdtransform_norecalc (u32 *state, const u32 *block, const __local u8 *s_lotus_magic_table)
 {
   u32 x[12];
 
@@ -215,14 +215,14 @@ DECLSPEC void mdtransform_norecalc (u32 state[4], const u32 block[4], const __lo
   state[3] = x[3];
 }
 
-DECLSPEC void mdtransform (u32 state[4], u32 checksum[4], const u32 block[4], const __local u8 *s_lotus_magic_table)
+DECLSPEC void mdtransform (u32 *state, u32 *checksum, const u32 *block, const __local u8 *s_lotus_magic_table)
 {
   mdtransform_norecalc (state, block, s_lotus_magic_table);
 
   lotus_transform_password (block, checksum, s_lotus_magic_table);
 }
 
-DECLSPEC void domino_big_md (const u32 saved_key[16], const u32 size, u32 state[4], const __local u8 *s_lotus_magic_table)
+DECLSPEC void domino_big_md (const u32 *saved_key, const u32 size, u32 *state, const __local u8 *s_lotus_magic_table)
 {
   u32 checksum[4];
 
@@ -285,7 +285,7 @@ DECLSPEC void base64_encode (u8 *base64_hash, const u32 len, const u8 *base64_pl
   }
 }
 
-DECLSPEC void lotus6_base64_encode (u8 base64_hash[24], const u32 salt0, const u32 salt1, const u32 a, const u32 b, const u32 c)
+DECLSPEC void lotus6_base64_encode (u8 *base64_hash, const u32 salt0, const u32 salt1, const u32 a, const u32 b, const u32 c)
 {
   const uchar4 salt0c = as_uchar4 (salt0);
   const uchar4 salt1c = as_uchar4 (salt1);
@@ -350,7 +350,7 @@ DECLSPEC void lotus6_base64_encode (u8 base64_hash[24], const u32 salt0, const u
   base64_hash[21] = ')';
 }
 
-DECLSPEC void hmac_sha1_run_V (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[5], u32x opad[5], u32x digest[5])
+DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];

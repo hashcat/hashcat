@@ -37,7 +37,7 @@ typedef struct sha224_ctx
 
 } sha224_ctx_t;
 
-DECLSPEC void sha224_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[8])
+DECLSPEC void sha224_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest)
 {
   u32 a = digest[0];
   u32 b = digest[1];
@@ -159,7 +159,7 @@ DECLSPEC void sha224_init (sha224_ctx_t *ctx)
   ctx->len = 0;
 }
 
-DECLSPEC void sha224_update_64 (sha224_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len)
+DECLSPEC void sha224_update_64 (sha224_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
 {
   const int pos = ctx->len & 63;
 
@@ -788,7 +788,7 @@ typedef struct sha224_hmac_ctx
 
 } sha224_hmac_ctx_t;
 
-DECLSPEC void sha224_hmac_init_64 (sha224_hmac_ctx_t *ctx, const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4])
+DECLSPEC void sha224_hmac_init_64 (sha224_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3)
 {
   u32 t0[4];
   u32 t1[4];
@@ -1070,7 +1070,7 @@ DECLSPEC void sha224_hmac_init_global_swap (sha224_hmac_ctx_t *ctx, __global con
   sha224_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
-DECLSPEC void sha224_hmac_update_64 (sha224_hmac_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len)
+DECLSPEC void sha224_hmac_update_64 (sha224_hmac_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
 {
   sha224_update_64 (&ctx->ipad, w0, w1, w2, w3, len);
 }
@@ -1161,7 +1161,7 @@ typedef struct sha224_ctx_vector
 
 } sha224_ctx_vector_t;
 
-DECLSPEC void sha224_transform_vector (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[8])
+DECLSPEC void sha224_transform_vector (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u32x *digest)
 {
   u32x a = digest[0];
   u32x b = digest[1];
@@ -1314,7 +1314,7 @@ DECLSPEC void sha224_init_vector_from_scalar (sha224_ctx_vector_t *ctx, sha224_c
   ctx->len = ctx0->len;
 }
 
-DECLSPEC void sha224_update_vector_64 (sha224_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const int len)
+DECLSPEC void sha224_update_vector_64 (sha224_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len)
 {
   const int pos = ctx->len & 63;
 
@@ -1729,7 +1729,7 @@ typedef struct sha224_hmac_ctx_vector
 
 } sha224_hmac_ctx_vector_t;
 
-DECLSPEC void sha224_hmac_init_vector_64 (sha224_hmac_ctx_vector_t *ctx, const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4])
+DECLSPEC void sha224_hmac_init_vector_64 (sha224_hmac_ctx_vector_t *ctx, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3)
 {
   u32x t0[4];
   u32x t1[4];
@@ -1840,7 +1840,7 @@ DECLSPEC void sha224_hmac_init_vector (sha224_hmac_ctx_vector_t *ctx, const u32x
   sha224_hmac_init_vector_64 (ctx, w0, w1, w2, w3);
 }
 
-DECLSPEC void sha224_hmac_update_vector_64 (sha224_hmac_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const int len)
+DECLSPEC void sha224_hmac_update_vector_64 (sha224_hmac_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len)
 {
   sha224_update_vector_64 (&ctx->ipad, w0, w1, w2, w3, len);
 }

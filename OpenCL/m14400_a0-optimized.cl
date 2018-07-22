@@ -25,7 +25,7 @@
 #define uint_to_hex_lower8_le(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7], l_bin2asc[(i).s8], l_bin2asc[(i).s9], l_bin2asc[(i).sa], l_bin2asc[(i).sb], l_bin2asc[(i).sc], l_bin2asc[(i).sd], l_bin2asc[(i).se], l_bin2asc[(i).sf])
 #endif
 
-DECLSPEC void append_4 (const u32 offset, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 src_r0)
+DECLSPEC void append_4 (const u32 offset, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 src_r0)
 {
   u32 tmp[2];
 
@@ -97,7 +97,7 @@ DECLSPEC void append_4 (const u32 offset, u32 w0[4], u32 w1[4], u32 w2[4], u32 w
   }
 }
 
-DECLSPEC void shift_2 (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4])
+DECLSPEC void shift_2 (u32 *w0, u32 *w1, u32 *w2, u32 *w3)
 {
   w3[3] = w3[2] >> 16 | w3[3] << 16;
   w3[2] = w3[1] >> 16 | w3[2] << 16;

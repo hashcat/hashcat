@@ -19,7 +19,7 @@ __constant u32a ESSIV_k_sha256[64] =
 };
 
 // basically a normal sha256_transform() but with a different name to avoid collisions with function nameing
-DECLSPEC void ESSIV_sha256_transform_S (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[8])
+DECLSPEC void ESSIV_sha256_transform_S (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest)
 {
   u32 a = digest[0];
   u32 b = digest[1];

@@ -31,7 +31,7 @@ DECLSPEC void swap (SCR_TYPE RC4_KEY *rc4_key, const u8 i, const u8 j)
   rc4_key->S[j] = tmp;
 }
 
-DECLSPEC void rc4_init_16 (SCR_TYPE RC4_KEY *rc4_key, const u32 data[4])
+DECLSPEC void rc4_init_16 (SCR_TYPE RC4_KEY *rc4_key, const u32 *data)
 {
   u32 v = 0x03020100;
   u32 a = 0x04040404;
@@ -84,7 +84,7 @@ DECLSPEC void rc4_init_16 (SCR_TYPE RC4_KEY *rc4_key, const u32 data[4])
   }
 }
 
-DECLSPEC u8 rc4_next_16 (SCR_TYPE RC4_KEY *rc4_key, u8 i, u8 j, const __global u32 *in, u32 out[4])
+DECLSPEC u8 rc4_next_16 (SCR_TYPE RC4_KEY *rc4_key, u8 i, u8 j, const __global u32 *in, u32 *out)
 {
   #ifdef _unroll
   #pragma unroll
@@ -137,7 +137,7 @@ DECLSPEC u8 rc4_next_16 (SCR_TYPE RC4_KEY *rc4_key, u8 i, u8 j, const __global u
   return j;
 }
 
-DECLSPEC int decrypt_and_check (SCR_TYPE RC4_KEY *rc4_key, u32 data[4], __global const u32 *edata2, const u32 edata2_len, const u32 K2[4], const u32 checksum[4])
+DECLSPEC int decrypt_and_check (SCR_TYPE RC4_KEY *rc4_key, u32 *data, __global const u32 *edata2, const u32 edata2_len, const u32 *K2, const u32 *checksum)
 {
   rc4_init_16 (rc4_key, data);
 
@@ -271,7 +271,7 @@ DECLSPEC int decrypt_and_check (SCR_TYPE RC4_KEY *rc4_key, u32 data[4], __global
   return 1;
 }
 
-DECLSPEC void kerb_prepare (const u32 K[4], const u32 checksum[4], u32 digest[4], u32 K2[4])
+DECLSPEC void kerb_prepare (const u32 *K, const u32 *checksum, u32 *digest, u32 *K2)
 {
   // K1=MD5_HMAC(K,1); with 1 encoded as little indian on 4 bytes (01000000 in hexa);
 

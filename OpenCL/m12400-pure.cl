@@ -348,7 +348,7 @@ __constant u32a c_skb[8][64] =
 
 #define BOX(i,n,S) (S)[(n)][(i)]
 
-DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, u32 Kc[16], u32 Kd[16], __local u32 (*s_skb)[64])
+DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, u32 *Kc, u32 *Kd, __local u32 (*s_skb)[64])
 {
   u32 tt;
 
@@ -417,7 +417,7 @@ DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, u32 Kc[16], u32 Kd[16], __local
   }
 }
 
-DECLSPEC void _des_crypt_encrypt (u32 iv[2], u32 mask, u32 rounds, u32 Kc[16], u32 Kd[16], __local u32 (*s_SPtrans)[64])
+DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 mask, u32 rounds, u32 *Kc, u32 *Kd, __local u32 (*s_SPtrans)[64])
 {
   u32 tt;
 

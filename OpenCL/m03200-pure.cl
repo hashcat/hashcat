@@ -370,7 +370,7 @@ __constant u32a c_sbox3[256] =
   L ^= P[17];           \
 }
 
-DECLSPEC void expand_key (u32 E[18], const u32 W[18], const u32 len)
+DECLSPEC void expand_key (u32 *E, const u32 *W, const u32 len)
 {
   u8 *E_cur  = (u8 *) E;
   u8 *E_stop = E_cur + 72;

@@ -45,7 +45,7 @@ typedef struct sha512_ctx
 
 } sha512_ctx_t;
 
-DECLSPEC void sha512_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], const u32 w4[4], const u32 w5[4], const u32 w6[4], const u32 w7[4], u64 digest[8])
+DECLSPEC void sha512_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, const u32 *w4, const u32 *w5, const u32 *w6, const u32 *w7, u64 *digest)
 {
   u64 a = digest[0];
   u64 b = digest[1];
@@ -183,7 +183,7 @@ DECLSPEC void sha512_init (sha512_ctx_t *ctx)
   ctx->len = 0;
 }
 
-DECLSPEC void sha512_update_128 (sha512_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const int len)
+DECLSPEC void sha512_update_128 (sha512_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const int len)
 {
   const int pos = ctx->len & 127;
 
@@ -1248,7 +1248,7 @@ typedef struct sha512_hmac_ctx
 
 } sha512_hmac_ctx_t;
 
-DECLSPEC void sha512_hmac_init_128 (sha512_hmac_ctx_t *ctx, const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], const u32 w4[4], const u32 w5[4], const u32 w6[4], const u32 w7[4])
+DECLSPEC void sha512_hmac_init_128 (sha512_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, const u32 *w4, const u32 *w5, const u32 *w6, const u32 *w7)
 {
   u32 t0[4];
   u32 t1[4];
@@ -1710,7 +1710,7 @@ DECLSPEC void sha512_hmac_init_global_swap (sha512_hmac_ctx_t *ctx, __global con
   sha512_hmac_init_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7);
 }
 
-DECLSPEC void sha512_hmac_update_128 (sha512_hmac_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const int len)
+DECLSPEC void sha512_hmac_update_128 (sha512_hmac_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const int len)
 {
   sha512_update_128 (&ctx->ipad, w0, w1, w2, w3, w4, w5, w6, w7, len);
 }
@@ -1825,7 +1825,7 @@ typedef struct sha512_ctx_vector
 
 } sha512_ctx_vector_t;
 
-DECLSPEC void sha512_transform_vector (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], const u32x w4[4], const u32x w5[4], const u32x w6[4], const u32x w7[4], u64x digest[8])
+DECLSPEC void sha512_transform_vector (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, const u32x *w4, const u32x *w5, const u32x *w6, const u32x *w7, u64x *digest)
 {
   u64x a = digest[0];
   u64x b = digest[1];
@@ -2010,7 +2010,7 @@ DECLSPEC void sha512_init_vector_from_scalar (sha512_ctx_vector_t *ctx, sha512_c
   ctx->len = ctx0->len;
 }
 
-DECLSPEC void sha512_update_vector_128 (sha512_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const int len)
+DECLSPEC void sha512_update_vector_128 (sha512_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, const int len)
 {
   const int pos = ctx->len & 127;
 
@@ -2701,7 +2701,7 @@ typedef struct sha512_hmac_ctx_vector
 
 } sha512_hmac_ctx_vector_t;
 
-DECLSPEC void sha512_hmac_init_vector_128 (sha512_hmac_ctx_vector_t *ctx, const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], const u32x w4[4], const u32x w5[4], const u32x w6[4], const u32x w7[4])
+DECLSPEC void sha512_hmac_init_vector_128 (sha512_hmac_ctx_vector_t *ctx, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, const u32x *w4, const u32x *w5, const u32x *w6, const u32x *w7)
 {
   u32x t0[4];
   u32x t1[4];
@@ -2884,7 +2884,7 @@ DECLSPEC void sha512_hmac_init_vector (sha512_hmac_ctx_vector_t *ctx, const u32x
   sha512_hmac_init_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7);
 }
 
-DECLSPEC void sha512_hmac_update_vector_128 (sha512_hmac_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const int len)
+DECLSPEC void sha512_hmac_update_vector_128 (sha512_hmac_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, const int len)
 {
   sha512_update_vector_128 (&ctx->ipad, w0, w1, w2, w3, w4, w5, w6, w7, len);
 }

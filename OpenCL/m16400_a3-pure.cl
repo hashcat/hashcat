@@ -13,7 +13,7 @@
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
 
-DECLSPEC void cram_md5_transform_vector (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], u32x digest[4])
+DECLSPEC void cram_md5_transform_vector (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u32x *digest)
 {
   u32x a = digest[0];
   u32x b = digest[1];
@@ -113,7 +113,7 @@ DECLSPEC void cram_md5_transform_vector (const u32x w0[4], const u32x w1[4], con
   digest[3] += d;
 }
 
-DECLSPEC void cram_md5_update_vector_64 (md5_ctx_vector_t *ctx, u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const int len)
+DECLSPEC void cram_md5_update_vector_64 (md5_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len)
 {
   #ifdef IS_AMD
   const int pos = ctx->len & 63;

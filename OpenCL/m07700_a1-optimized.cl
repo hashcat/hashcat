@@ -66,7 +66,7 @@ DECLSPEC u32 sapb_trans (const u32 in)
   return out;
 }
 
-DECLSPEC u32 walld0rf_magic (const u32 w0[4], const u32 pw_len, const u32 salt_buf0[4], const u32 salt_len, const u32 a, const u32 b, const u32 c, const u32 d, u32 t[16])
+DECLSPEC u32 walld0rf_magic (const u32 *w0, const u32 pw_len, const u32 *salt_buf0, const u32 salt_len, const u32 a, const u32 b, const u32 c, const u32 d, u32 *t)
 {
   t[ 0] = 0;
   t[ 1] = 0;

@@ -25,7 +25,7 @@
 
 #define MAX_ENTROPY 7.0
 
-DECLSPEC void hmac_sha512_run_V (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], u64x ipad[8], u64x opad[8], u64x digest[8])
+DECLSPEC void hmac_sha512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, u64x *ipad, u64x *opad, u64x *digest)
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];

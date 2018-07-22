@@ -371,7 +371,7 @@ __constant u32a c_pbox[18] =
   L ^= P[17];           \
 }
 
-DECLSPEC void sha1_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
+DECLSPEC void sha1_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest)
 {
   u32 A = digest[0];
   u32 B = digest[1];

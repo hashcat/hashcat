@@ -24,7 +24,7 @@ DECLSPEC u8 hex_convert (const u8 c)
   return (c & 15) + (c >> 6) * 9;
 }
 
-DECLSPEC u8 hex_to_u8 (const u8 hex[2])
+DECLSPEC u8 hex_to_u8 (const u8 *hex)
 {
   u8 v = 0;
 

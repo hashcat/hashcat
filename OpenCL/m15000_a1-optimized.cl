@@ -36,7 +36,7 @@ __constant u64a k_sha512[80] =
   SHA512C4c, SHA512C4d, SHA512C4e, SHA512C4f,
 };
 
-DECLSPEC void sha512_transform (const u32x w0[4], const u32x w1[4], const u32x w2[4], const u32x w3[4], const u32x w4[4], const u32x w5[4], const u32x w6[4], const u32x w7[4], u64x digest[8])
+DECLSPEC void sha512_transform (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, const u32x *w4, const u32x *w5, const u32x *w6, const u32x *w7, u64x *digest)
 {
   u64x w0_t = hl32_to_64 (w0[0], w0[1]);
   u64x w1_t = hl32_to_64 (w0[2], w0[3]);

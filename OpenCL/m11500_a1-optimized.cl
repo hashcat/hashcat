@@ -104,7 +104,7 @@ DECLSPEC u32x round_crc32 (u32x a, const u32x v)
   return a;
 }
 
-DECLSPEC u32x crc32 (const u32x w[16], const u32 pw_len, const u32 iv)
+DECLSPEC u32x crc32 (const u32x *w, const u32 pw_len, const u32 iv)
 {
   u32x a = iv ^ ~0;
 

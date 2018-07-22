@@ -45,7 +45,7 @@ DECLSPEC u32 u8add (const u32 a, const u32 b)
   return r;
 }
 
-DECLSPEC void hmac_whirlpool_run_V (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x ipad[16], u32x opad[16], u32x digest[16], SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
+DECLSPEC void hmac_whirlpool_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
 {
   digest[ 0] = ipad[ 0];
   digest[ 1] = ipad[ 1];

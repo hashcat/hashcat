@@ -1635,7 +1635,7 @@ DECLSPEC void DES (const u32 K00, const u32 K01, const u32 K02, const u32 K03, c
   }
 }
 
-DECLSPEC void transpose32c (u32 data[32])
+DECLSPEC void transpose32c (u32 *data)
 {
   #define swap(x,y,j,m)               \
      t  = ((x) ^ ((y) >> (j))) & (m); \

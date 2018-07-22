@@ -86,7 +86,7 @@ DECLSPEC void lotus_mix (u32 *in, __local u32 *s_lotus_magic_table)
   }
 }
 
-DECLSPEC void lotus_transform_password (const u32 in[4], u32x out[4], __local u32 *s_lotus_magic_table)
+DECLSPEC void lotus_transform_password (const u32 *in, u32x *out, __local u32 *s_lotus_magic_table)
 {
   u32 t = out[3] >> 24;
 
@@ -104,7 +104,7 @@ DECLSPEC void lotus_transform_password (const u32 in[4], u32x out[4], __local u3
   }
 }
 
-DECLSPEC void pad (u32 w[4], const u32 len)
+DECLSPEC void pad (u32 *w, const u32 len)
 {
   const u32 val = 16 - len;
 
@@ -183,7 +183,7 @@ DECLSPEC void pad (u32 w[4], const u32 len)
   }
 }
 
-DECLSPEC void mdtransform_norecalc (u32 state[4], const u32x block[4], __local u32 *s_lotus_magic_table)
+DECLSPEC void mdtransform_norecalc (u32 *state, const u32x *block, __local u32 *s_lotus_magic_table)
 {
   u32 x[12];
 
@@ -208,14 +208,14 @@ DECLSPEC void mdtransform_norecalc (u32 state[4], const u32x block[4], __local u
   state[3] = x[3];
 }
 
-DECLSPEC void mdtransform (u32 state[4], u32x checksum[4], const u32x block[4], __local u32 *s_lotus_magic_table)
+DECLSPEC void mdtransform (u32 *state, u32x *checksum, const u32x *block, __local u32 *s_lotus_magic_table)
 {
   mdtransform_norecalc (state, block, s_lotus_magic_table);
 
   lotus_transform_password (block, checksum, s_lotus_magic_table);
 }
 
-DECLSPEC void domino_big_md (const u32 saved_key[4], const u32 size, u32x state[4], __local u32 *s_lotus_magic_table)
+DECLSPEC void domino_big_md (const u32 *saved_key, const u32 size, u32x *state, __local u32 *s_lotus_magic_table)
 {
   u32 checksum[4];
 

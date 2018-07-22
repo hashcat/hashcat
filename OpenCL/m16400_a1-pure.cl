@@ -13,7 +13,7 @@
 #include "inc_scalar.cl"
 #include "inc_hash_md5.cl"
 
-DECLSPEC void cram_md5_transform (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[4])
+DECLSPEC void cram_md5_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest)
 {
   u32 a = digest[0];
   u32 b = digest[1];
@@ -113,7 +113,7 @@ DECLSPEC void cram_md5_transform (const u32 w0[4], const u32 w1[4], const u32 w2
   digest[3] += d;
 }
 
-DECLSPEC void cram_md5_update_64 (md5_ctx_t *ctx, u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int len)
+DECLSPEC void cram_md5_update_64 (md5_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
 {
   #ifdef IS_AMD
   const int pos = ctx->len & 63;

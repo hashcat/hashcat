@@ -352,7 +352,7 @@ __constant u32a c_tripcode_salt[128] =
 #define BOX(i,n,S) (u32x) ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3], (S)[(n)][(i).s4], (S)[(n)][(i).s5], (S)[(n)][(i).s6], (S)[(n)][(i).s7], (S)[(n)][(i).s8], (S)[(n)][(i).s9], (S)[(n)][(i).sa], (S)[(n)][(i).sb], (S)[(n)][(i).sc], (S)[(n)][(i).sd], (S)[(n)][(i).se], (S)[(n)][(i).sf])
 #endif
 
-DECLSPEC void _des_crypt_keysetup (u32 c, u32x d, u32x Kc[16], u32x Kd[16], __local u32 (*s_skb)[64])
+DECLSPEC void _des_crypt_keysetup (u32 c, u32x d, u32x *Kc, u32x *Kd, __local u32 (*s_skb)[64])
 {
   u32 tt;
 
@@ -421,7 +421,7 @@ DECLSPEC void _des_crypt_keysetup (u32 c, u32x d, u32x Kc[16], u32x Kd[16], __lo
   }
 }
 
-DECLSPEC void _des_crypt_encrypt (u32 iv[2], u32 mask, u32x Kc[16], u32x Kd[16], __local u32 (*s_SPtrans)[64])
+DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 mask, u32x *Kc, u32x *Kd, __local u32 (*s_SPtrans)[64])
 {
   const u32 E1 = (mask >> 2) & 0x3f0;
   const u32 E0 = mask & 0x3f;

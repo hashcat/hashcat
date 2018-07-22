@@ -255,7 +255,7 @@ __constant u64a keccakf_rndc[24] =
   0x8000000000008080, 0x0000000080000001, 0x8000000080008008
 };
 
-DECLSPEC void keccak_transform_S (u64 st[25])
+DECLSPEC void keccak_transform_S (u64 *st)
 {
   const u8 keccakf_rotc[24] =
   {

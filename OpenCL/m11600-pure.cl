@@ -10,7 +10,7 @@
 #include "inc_common.cl"
 #include "inc_hash_sha256.cl"
 
-DECLSPEC void memcat8c_be (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 len, const u32 append, u32 digest[8])
+DECLSPEC void memcat8c_be (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 len, const u32 append, u32 *digest)
 {
   const u32 func_len = len & 63;
 

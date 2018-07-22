@@ -31,7 +31,7 @@ DECLSPEC void swap (__local RC4_KEY *rc4_key, const u8 i, const u8 j)
   rc4_key->S[j] = tmp;
 }
 
-DECLSPEC void rc4_init_16 (__local RC4_KEY *rc4_key, const u32 data[4])
+DECLSPEC void rc4_init_16 (__local RC4_KEY *rc4_key, const u32 *data)
 {
   u32 v = 0x03020100;
   u32 a = 0x04040404;
@@ -84,7 +84,7 @@ DECLSPEC void rc4_init_16 (__local RC4_KEY *rc4_key, const u32 data[4])
   }
 }
 
-DECLSPEC u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, const u32 in[4], u32 out[4])
+DECLSPEC u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, const u32 *in, u32 *out)
 {
   #ifdef _unroll
   #pragma unroll
@@ -137,7 +137,7 @@ DECLSPEC u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, const u32 in[4], 
   return j;
 }
 
-DECLSPEC void gen336 (u32 digest_pre[4], u32 salt_buf[4], u32 digest[4])
+DECLSPEC void gen336 (u32 *digest_pre, u32 *salt_buf, u32 *digest)
 {
   u32 digest_t0[2];
   u32 digest_t1[2];

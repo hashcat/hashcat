@@ -15,7 +15,7 @@
 #include "inc_simd.cl"
 #include "inc_hash_md5.cl"
 
-DECLSPEC void gen336 (u32x digest_pre[4], u32 salt_buf[4], u32x digest[4])
+DECLSPEC void gen336 (u32x *digest_pre, u32 *salt_buf, u32x *digest)
 {
   u32x digest_t0[2];
   u32x digest_t1[2];

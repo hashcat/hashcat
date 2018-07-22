@@ -45,7 +45,7 @@ __constant u64a AF_k_sha512[80] =
   SHA512C4c, SHA512C4d, SHA512C4e, SHA512C4f,
 };
 
-DECLSPEC void AF_sha1_transform_S (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
+DECLSPEC void AF_sha1_transform_S (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest)
 {
   u32 A = digest[0];
   u32 B = digest[1];
@@ -173,7 +173,7 @@ DECLSPEC void AF_sha1_transform_S (const u32 w0[4], const u32 w1[4], const u32 w
   digest[4] += E;
 }
 
-DECLSPEC void AF_sha256_transform_S (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[8])
+DECLSPEC void AF_sha256_transform_S (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest)
 {
   u32 a = digest[0];
   u32 b = digest[1];
@@ -261,7 +261,7 @@ DECLSPEC void AF_sha256_transform_S (const u32 w0[4], const u32 w1[4], const u32
   digest[7] += h;
 }
 
-DECLSPEC void AF_sha512_transform_S (const u64 w0[4], const u64 w1[4], const u64 w2[4], const u64 w3[4], u64 digest[8])
+DECLSPEC void AF_sha512_transform_S (const u64 *w0, const u64 *w1, const u64 *w2, const u64 *w3, u64 *digest)
 {
   u64 a = digest[0];
   u64 b = digest[1];
@@ -349,7 +349,7 @@ DECLSPEC void AF_sha512_transform_S (const u64 w0[4], const u64 w1[4], const u64
   digest[7] += h;
 }
 
-DECLSPEC void AF_ripemd160_transform_S (const u32 w0[4], const u32 w1[4], const u32 w2[4], const u32 w3[4], u32 digest[5])
+DECLSPEC void AF_ripemd160_transform_S (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest)
 {
   u32 w0_t = w0[0];
   u32 w1_t = w0[1];

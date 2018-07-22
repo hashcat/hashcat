@@ -23,7 +23,7 @@
 
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 
-DECLSPEC void sha1_transform (const u32 w[16], u32 digest[5])
+DECLSPEC void sha1_transform (const u32 *w, u32 *digest)
 {
   u32 A = digest[0];
   u32 B = digest[1];

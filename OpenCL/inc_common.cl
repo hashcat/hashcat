@@ -42,7 +42,7 @@ DECLSPEC int ffz (const u32 v)
   return -1;
 }
 
-DECLSPEC int hash_comp (const u32 d1[4], __global const u32 *d2)
+DECLSPEC int hash_comp (const u32 *d1, __global const u32 *d2)
 {
   if (d1[3] > d2[DGST_R3]) return ( 1);
   if (d1[3] < d2[DGST_R3]) return (-1);
@@ -56,7 +56,7 @@ DECLSPEC int hash_comp (const u32 d1[4], __global const u32 *d2)
   return (0);
 }
 
-DECLSPEC int find_hash (const u32 digest[4], const u32 digests_cnt, __global const digest_t *digests_buf)
+DECLSPEC int find_hash (const u32 *digest, const u32 digests_cnt, __global const digest_t *digests_buf)
 {
   for (u32 l = 0, r = digests_cnt; r; r >>= 1)
   {
@@ -84,7 +84,7 @@ DECLSPEC u32 check_bitmap (__global const u32 *bitmap, const u32 bitmap_mask, co
   return (bitmap[(digest >> bitmap_shift) & bitmap_mask] & (1 << (digest & 0x1f)));
 }
 
-DECLSPEC u32 check (const u32 digest[4], __global const u32 *bitmap_s1_a, __global const u32 *bitmap_s1_b, __global const u32 *bitmap_s1_c, __global const u32 *bitmap_s1_d, __global const u32 *bitmap_s2_a, __global const u32 *bitmap_s2_b, __global const u32 *bitmap_s2_c, __global const u32 *bitmap_s2_d, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2)
+DECLSPEC u32 check (const u32 *digest, __global const u32 *bitmap_s1_a, __global const u32 *bitmap_s1_b, __global const u32 *bitmap_s1_c, __global const u32 *bitmap_s1_d, __global const u32 *bitmap_s2_a, __global const u32 *bitmap_s2_b, __global const u32 *bitmap_s2_c, __global const u32 *bitmap_s2_d, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2)
 {
   if (check_bitmap (bitmap_s1_a, bitmap_mask, bitmap_shift1, digest[0]) == 0) return (0);
   if (check_bitmap (bitmap_s1_b, bitmap_mask, bitmap_shift1, digest[1]) == 0) return (0);
@@ -184,7 +184,7 @@ DECLSPEC int is_valid_hex_32 (const u32 v)
  * vector functions
  */
 
-DECLSPEC void make_utf16be (const u32x in[4], u32x out1[4], u32x out2[4])
+DECLSPEC void make_utf16be (const u32x *in, u32x *out1, u32x *out2)
 {
   #if defined IS_NV
 
@@ -222,7 +222,7 @@ DECLSPEC void make_utf16be (const u32x in[4], u32x out1[4], u32x out2[4])
   #endif
 }
 
-DECLSPEC void make_utf16beN (const u32x in[4], u32x out1[4], u32x out2[4])
+DECLSPEC void make_utf16beN (const u32x *in, u32x *out1, u32x *out2)
 {
   #if defined IS_NV
 
@@ -260,7 +260,7 @@ DECLSPEC void make_utf16beN (const u32x in[4], u32x out1[4], u32x out2[4])
   #endif
 }
 
-DECLSPEC void make_utf16le (const u32x in[4], u32x out1[4], u32x out2[4])
+DECLSPEC void make_utf16le (const u32x *in, u32x *out1, u32x *out2)
 {
   #if defined IS_NV
 
@@ -298,7 +298,7 @@ DECLSPEC void make_utf16le (const u32x in[4], u32x out1[4], u32x out2[4])
   #endif
 }
 
-DECLSPEC void make_utf16leN (const u32x in[4], u32x out1[4], u32x out2[4])
+DECLSPEC void make_utf16leN (const u32x *in, u32x *out1, u32x *out2)
 {
   #if defined IS_NV
 
@@ -336,7 +336,7 @@ DECLSPEC void make_utf16leN (const u32x in[4], u32x out1[4], u32x out2[4])
   #endif
 }
 
-DECLSPEC void undo_utf16be (const u32x in1[4], const u32x in2[4], u32x out[4])
+DECLSPEC void undo_utf16be (const u32x *in1, const u32x *in2, u32x *out)
 {
   #if defined IS_NV
 
@@ -366,7 +366,7 @@ DECLSPEC void undo_utf16be (const u32x in1[4], const u32x in2[4], u32x out[4])
   #endif
 }
 
-DECLSPEC void undo_utf16le (const u32x in1[4], const u32x in2[4], u32x out[4])
+DECLSPEC void undo_utf16le (const u32x *in1, const u32x *in2, u32x *out)
 {
   #if defined IS_NV
 
@@ -396,7 +396,7 @@ DECLSPEC void undo_utf16le (const u32x in1[4], const u32x in2[4], u32x out[4])
   #endif
 }
 
-DECLSPEC void append_helper_1x4 (u32x r[4], const u32 v, const u32 m[4])
+DECLSPEC void append_helper_1x4 (u32x *r, const u32 v, const u32 *m)
 {
   r[0] |= v & m[0];
   r[1] |= v & m[1];
@@ -404,7 +404,7 @@ DECLSPEC void append_helper_1x4 (u32x r[4], const u32 v, const u32 m[4])
   r[3] |= v & m[3];
 }
 
-DECLSPEC void append_0x80_1x4 (u32x w0[4], const u32 offset)
+DECLSPEC void append_0x80_1x4 (u32x *w0, const u32 offset)
 {
   const u32 v[4] =
   {
@@ -417,7 +417,7 @@ DECLSPEC void append_0x80_1x4 (u32x w0[4], const u32 offset)
   append_helper_1x4 (w0, 0x80808080, v);
 }
 
-DECLSPEC void append_0x80_2x4 (u32x w0[4], u32x w1[4], const u32 offset)
+DECLSPEC void append_0x80_2x4 (u32x *w0, u32x *w1, const u32 offset)
 {
   const u32 v[4] =
   {
@@ -433,7 +433,7 @@ DECLSPEC void append_0x80_2x4 (u32x w0[4], u32x w1[4], const u32 offset)
   append_helper_1x4 (w1, ((offset16 == 1) ? 0x80808080 : 0), v);
 }
 
-DECLSPEC void append_0x80_3x4 (u32x w0[4], u32x w1[4], u32x w2[4], const u32 offset)
+DECLSPEC void append_0x80_3x4 (u32x *w0, u32x *w1, u32x *w2, const u32 offset)
 {
   const u32 v[4] =
   {
@@ -450,7 +450,7 @@ DECLSPEC void append_0x80_3x4 (u32x w0[4], u32x w1[4], u32x w2[4], const u32 off
   append_helper_1x4 (w2, ((offset16 == 2) ? 0x80808080 : 0), v);
 }
 
-DECLSPEC void append_0x80_4x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 offset)
+DECLSPEC void append_0x80_4x4 (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const u32 offset)
 {
   const u32 v[4] =
   {
@@ -468,7 +468,7 @@ DECLSPEC void append_0x80_4x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], c
   append_helper_1x4 (w3, ((offset16 == 3) ? 0x80808080 : 0), v);
 }
 
-DECLSPEC void append_0x80_8x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32 offset)
+DECLSPEC void append_0x80_8x4 (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, const u32 offset)
 {
   const u32 v[4] =
   {
@@ -490,7 +490,7 @@ DECLSPEC void append_0x80_8x4 (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u
   append_helper_1x4 (w7, ((offset16 == 7) ? 0x80808080 : 0), v);
 }
 
-DECLSPEC void append_0x80_1x16 (u32x w[16], const u32 offset)
+DECLSPEC void append_0x80_1x16 (u32x *w, const u32 offset)
 {
   const u32 v[4] =
   {
@@ -508,7 +508,7 @@ DECLSPEC void append_0x80_1x16 (u32x w[16], const u32 offset)
   append_helper_1x4 (w + 12, ((offset16 == 3) ? 0x80808080 : 0), v);
 }
 
-DECLSPEC void switch_buffer_by_offset_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_le (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const u32 offset)
 {
   const int offset_mod_4 = offset & 3;
 
@@ -1211,7 +1211,7 @@ DECLSPEC void switch_buffer_by_offset_le (u32x w0[4], u32x w1[4], u32x w2[4], u3
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_carry_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x c0[4], u32x c1[4], u32x c2[4], u32x c3[4], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_carry_le (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *c0, u32x *c1, u32x *c2, u32x *c3, const u32 offset)
 {
   const int offset_mod_4 = offset & 3;
 
@@ -2529,7 +2529,7 @@ DECLSPEC void switch_buffer_by_offset_carry_le (u32x w0[4], u32x w1[4], u32x w2[
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_be (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const u32 offset)
 {
   const int offset_switch = offset / 4;
 
@@ -3196,7 +3196,7 @@ DECLSPEC void switch_buffer_by_offset_be (u32x w0[4], u32x w1[4], u32x w2[4], u3
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_carry_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x c0[4], u32x c1[4], u32x c2[4], u32x c3[4], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_carry_be (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *c0, u32x *c1, u32x *c2, u32x *c3, const u32 offset)
 {
   const int offset_switch = offset / 4;
 
@@ -4132,7 +4132,7 @@ DECLSPEC void switch_buffer_by_offset_carry_be (u32x w0[4], u32x w1[4], u32x w2[
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_8x4_le (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_8x4_le (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, const u32 offset)
 {
   const int offset_mod_4 = offset & 3;
 
@@ -5938,7 +5938,7 @@ DECLSPEC void switch_buffer_by_offset_8x4_le (u32x w0[4], u32x w1[4], u32x w2[4]
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_8x4_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_8x4_be (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, const u32 offset)
 {
   const int offset_switch = offset / 4;
 
@@ -8266,7 +8266,7 @@ DECLSPEC void switch_buffer_by_offset_8x4_be (u32x w0[4], u32x w1[4], u32x w2[4]
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_8x4_carry_be (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], u32x c0[4], u32x c1[4], u32x c2[4], u32x c3[4], u32x c4[4], u32x c5[4], u32x c6[4], u32x c7[4], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_8x4_carry_be (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, u32x *c0, u32x *c1, u32x *c2, u32x *c3, u32x *c4, u32x *c5, u32x *c6, u32x *c7, const u32 offset)
 {
   const int offset_switch = offset / 4;
 
@@ -11650,7 +11650,7 @@ DECLSPEC void switch_buffer_by_offset_8x4_carry_be (u32x w0[4], u32x w1[4], u32x
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_1x64_le (u32x w[64], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_1x64_le (u32x *w, const u32 offset)
 {
   const int offset_mod_4 = offset & 3;
 
@@ -20390,7 +20390,7 @@ DECLSPEC void switch_buffer_by_offset_1x64_le (u32x w[64], const u32 offset)
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_1x64_be (u32x w[64], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_1x64_be (u32x *w, const u32 offset)
 {
   const int offset_switch = offset / 4;
 
@@ -29122,7 +29122,7 @@ DECLSPEC void switch_buffer_by_offset_1x64_be (u32x w[64], const u32 offset)
  * vector functions as scalar (for outer loop usage)
  */
 
-DECLSPEC void truncate_block_4x4_le_S (u32 w0[4], const u32 len)
+DECLSPEC void truncate_block_4x4_le_S (u32 *w0, const u32 len)
 {
   switch (len)
   {
@@ -29232,7 +29232,7 @@ DECLSPEC void truncate_block_4x4_le_S (u32 w0[4], const u32 len)
   }
 }
 
-DECLSPEC void truncate_block_4x4_be_S (u32 w0[4], const u32 len)
+DECLSPEC void truncate_block_4x4_be_S (u32 *w0, const u32 len)
 {
   switch (len)
   {
@@ -29342,7 +29342,7 @@ DECLSPEC void truncate_block_4x4_be_S (u32 w0[4], const u32 len)
   }
 }
 
-DECLSPEC void truncate_block_16x4_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 len)
+DECLSPEC void truncate_block_16x4_le_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 len)
 {
   switch (len)
   {
@@ -30148,7 +30148,7 @@ DECLSPEC void truncate_block_16x4_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[
   }
 }
 
-DECLSPEC void truncate_block_16x4_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 len)
+DECLSPEC void truncate_block_16x4_be_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 len)
 {
   switch (len)
   {
@@ -30954,7 +30954,7 @@ DECLSPEC void truncate_block_16x4_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[
   }
 }
 
-DECLSPEC void append_helper_1x4_S (u32 r[4], const u32 v, const u32 m[4])
+DECLSPEC void append_helper_1x4_S (u32 *r, const u32 v, const u32 *m)
 {
   r[0] |= v & m[0];
   r[1] |= v & m[1];
@@ -30962,7 +30962,7 @@ DECLSPEC void append_helper_1x4_S (u32 r[4], const u32 v, const u32 m[4])
   r[3] |= v & m[3];
 }
 
-DECLSPEC void append_0x01_2x4_S (u32 w0[4], u32 w1[4], const u32 offset)
+DECLSPEC void append_0x01_2x4_S (u32 *w0, u32 *w1, const u32 offset)
 {
   const u32 v[4] =
   {
@@ -30978,7 +30978,7 @@ DECLSPEC void append_0x01_2x4_S (u32 w0[4], u32 w1[4], const u32 offset)
   append_helper_1x4_S (w1, ((offset16 == 1) ? 0x01010101 : 0), v);
 }
 
-DECLSPEC void append_0x80_1x4_S (u32 w0[4], const u32 offset)
+DECLSPEC void append_0x80_1x4_S (u32 *w0, const u32 offset)
 {
   const u32 v[4] =
   {
@@ -30991,7 +30991,7 @@ DECLSPEC void append_0x80_1x4_S (u32 w0[4], const u32 offset)
   append_helper_1x4_S (w0, 0x80808080, v);
 }
 
-DECLSPEC void append_0x80_2x4_S (u32 w0[4], u32 w1[4], const u32 offset)
+DECLSPEC void append_0x80_2x4_S (u32 *w0, u32 *w1, const u32 offset)
 {
   const u32 v[4] =
   {
@@ -31007,7 +31007,7 @@ DECLSPEC void append_0x80_2x4_S (u32 w0[4], u32 w1[4], const u32 offset)
   append_helper_1x4_S (w1, ((offset16 == 1) ? 0x80808080 : 0), v);
 }
 
-DECLSPEC void append_0x80_3x4_S (u32 w0[4], u32 w1[4], u32 w2[4], const u32 offset)
+DECLSPEC void append_0x80_3x4_S (u32 *w0, u32 *w1, u32 *w2, const u32 offset)
 {
   const u32 v[4] =
   {
@@ -31024,7 +31024,7 @@ DECLSPEC void append_0x80_3x4_S (u32 w0[4], u32 w1[4], u32 w2[4], const u32 offs
   append_helper_1x4_S (w2, ((offset16 == 2) ? 0x80808080 : 0), v);
 }
 
-DECLSPEC void append_0x80_4x4_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
+DECLSPEC void append_0x80_4x4_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 offset)
 {
   const u32 v[4] =
   {
@@ -31042,7 +31042,7 @@ DECLSPEC void append_0x80_4x4_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], con
   append_helper_1x4_S (w3, ((offset16 == 3) ? 0x80808080 : 0), v);
 }
 
-DECLSPEC void append_0x80_8x4_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const u32 offset)
+DECLSPEC void append_0x80_8x4_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const u32 offset)
 {
   const u32 v[4] =
   {
@@ -31064,7 +31064,7 @@ DECLSPEC void append_0x80_8x4_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32
   append_helper_1x4_S (w7, ((offset16 == 7) ? 0x80808080 : 0), v);
 }
 
-DECLSPEC void make_utf16be_S (const u32 in[4], u32 out1[4], u32 out2[4])
+DECLSPEC void make_utf16be_S (const u32 *in, u32 *out1, u32 *out2)
 {
   #if defined IS_NV
 
@@ -31102,7 +31102,7 @@ DECLSPEC void make_utf16be_S (const u32 in[4], u32 out1[4], u32 out2[4])
   #endif
 }
 
-DECLSPEC void make_utf16le_S (const u32 in[4], u32 out1[4], u32 out2[4])
+DECLSPEC void make_utf16le_S (const u32 *in, u32 *out1, u32 *out2)
 {
   #if defined IS_NV
 
@@ -31140,7 +31140,7 @@ DECLSPEC void make_utf16le_S (const u32 in[4], u32 out1[4], u32 out2[4])
   #endif
 }
 
-DECLSPEC void undo_utf16be_S (const u32 in1[4], const u32 in2[4], u32 out[4])
+DECLSPEC void undo_utf16be_S (const u32 *in1, const u32 *in2, u32 *out)
 {
   #if defined IS_NV
 
@@ -31170,7 +31170,7 @@ DECLSPEC void undo_utf16be_S (const u32 in1[4], const u32 in2[4], u32 out[4])
   #endif
 }
 
-DECLSPEC void undo_utf16le_S (const u32 in1[4], const u32 in2[4], u32 out[4])
+DECLSPEC void undo_utf16le_S (const u32 *in1, const u32 *in2, u32 *out)
 {
   #if defined IS_NV
 
@@ -31200,7 +31200,7 @@ DECLSPEC void undo_utf16le_S (const u32 in1[4], const u32 in2[4], u32 out[4])
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_le_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 offset)
 {
   const int offset_mod_4 = offset & 3;
 
@@ -31902,7 +31902,7 @@ DECLSPEC void switch_buffer_by_offset_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_carry_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 c0[4], u32 c1[4], u32 c2[4], u32 c3[4], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_carry_le_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *c0, u32 *c1, u32 *c2, u32 *c3, const u32 offset)
 {
   const int offset_mod_4 = offset & 3;
 
@@ -33220,7 +33220,7 @@ DECLSPEC void switch_buffer_by_offset_carry_le_S (u32 w0[4], u32 w1[4], u32 w2[4
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_be_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 offset)
 {
   const int offset_switch = offset / 4;
 
@@ -33884,7 +33884,7 @@ DECLSPEC void switch_buffer_by_offset_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_carry_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 c0[4], u32 c1[4], u32 c2[4], u32 c3[4], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_carry_be_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *c0, u32 *c1, u32 *c2, u32 *c3, const u32 offset)
 {
   const int offset_switch = offset / 4;
 
@@ -34820,7 +34820,7 @@ DECLSPEC void switch_buffer_by_offset_carry_be_S (u32 w0[4], u32 w1[4], u32 w2[4
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_8x4_le_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_8x4_le_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const u32 offset)
 {
   const int offset_mod_4 = offset & 3;
 
@@ -36626,7 +36626,7 @@ DECLSPEC void switch_buffer_by_offset_8x4_le_S (u32 w0[4], u32 w1[4], u32 w2[4],
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_8x4_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_8x4_be_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const u32 offset)
 {
   const int offset_switch = offset / 4;
 
@@ -38954,7 +38954,7 @@ DECLSPEC void switch_buffer_by_offset_8x4_be_S (u32 w0[4], u32 w1[4], u32 w2[4],
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_8x4_carry_be_S (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], u32 w4[4], u32 w5[4], u32 w6[4], u32 w7[4], u32 c0[4], u32 c1[4], u32 c2[4], u32 c3[4], u32 c4[4], u32 c5[4], u32 c6[4], u32 c7[4], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_8x4_carry_be_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, u32 *c0, u32 *c1, u32 *c2, u32 *c3, u32 *c4, u32 *c5, u32 *c6, u32 *c7, const u32 offset)
 {
   const int offset_switch = offset / 4;
 
@@ -42338,7 +42338,7 @@ DECLSPEC void switch_buffer_by_offset_8x4_carry_be_S (u32 w0[4], u32 w1[4], u32 
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_1x64_le_S (u32 w[64], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_1x64_le_S (u32 *w, const u32 offset)
 {
   const int offset_mod_4 = offset & 3;
 
@@ -51078,7 +51078,7 @@ DECLSPEC void switch_buffer_by_offset_1x64_le_S (u32 w[64], const u32 offset)
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_1x64_be_S (u32 w[64], const u32 offset)
+DECLSPEC void switch_buffer_by_offset_1x64_be_S (u32 *w, const u32 offset)
 {
   const int offset_switch = offset / 4;
 
@@ -59870,7 +59870,7 @@ DECLSPEC void switch_buffer_by_offset_1x64_be_S (u32 w[64], const u32 offset)
   PACKSV4 (s6, v6, e);                                              \
   PACKSV4 (s7, v7, e);
 
-DECLSPEC void switch_buffer_by_offset_le_VV (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32x offset)
+DECLSPEC void switch_buffer_by_offset_le_VV (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const u32x offset)
 {
   #if VECT_SIZE == 1
 
@@ -59930,7 +59930,7 @@ DECLSPEC void switch_buffer_by_offset_le_VV (u32x w0[4], u32x w1[4], u32x w2[4],
   #endif
 }
 
-DECLSPEC void switch_buffer_by_offset_8x4_le_VV (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], u32x w4[4], u32x w5[4], u32x w6[4], u32x w7[4], const u32x offset)
+DECLSPEC void switch_buffer_by_offset_8x4_le_VV (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, const u32x offset)
 {
   #if VECT_SIZE == 1
 
@@ -60110,7 +60110,7 @@ DECLSPEC void switch_buffer_by_offset_8x4_le_VV (u32x w0[4], u32x w1[4], u32x w2
   #endif
 }
 
-DECLSPEC void append_0x01_2x4_VV (u32x w0[4], u32x w1[4], const u32x offset)
+DECLSPEC void append_0x01_2x4_VV (u32x *w0, u32x *w1, const u32x offset)
 {
   #if VECT_SIZE == 1
 
@@ -60168,7 +60168,7 @@ DECLSPEC void append_0x01_2x4_VV (u32x w0[4], u32x w1[4], const u32x offset)
   #endif
 }
 
-DECLSPEC void append_0x80_2x4_VV (u32x w0[4], u32x w1[4], const u32x offset)
+DECLSPEC void append_0x80_2x4_VV (u32x *w0, u32x *w1, const u32x offset)
 {
   #if VECT_SIZE == 1
 
@@ -60226,7 +60226,7 @@ DECLSPEC void append_0x80_2x4_VV (u32x w0[4], u32x w1[4], const u32x offset)
   #endif
 }
 
-DECLSPEC void append_0x80_4x4_VV (u32x w0[4], u32x w1[4], u32x w2[4], u32x w3[4], const u32x offset)
+DECLSPEC void append_0x80_4x4_VV (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const u32x offset)
 {
   #if VECT_SIZE == 1
 

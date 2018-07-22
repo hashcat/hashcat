@@ -83,7 +83,7 @@ DECLSPEC void lotus_mix (u32x *in, __local u32 *s_lotus_magic_table)
   }
 }
 
-DECLSPEC void lotus_transform_password (const u32x in[4], u32x out[4], __local u32 *s_lotus_magic_table)
+DECLSPEC void lotus_transform_password (const u32x *in, u32x *out, __local u32 *s_lotus_magic_table)
 {
   u32x t = out[3] >> 24;
 
@@ -101,7 +101,7 @@ DECLSPEC void lotus_transform_password (const u32x in[4], u32x out[4], __local u
   }
 }
 
-DECLSPEC void pad (u32 w[4], const u32 len)
+DECLSPEC void pad (u32 *w, const u32 len)
 {
   const u32 val = 16 - len;
 
@@ -180,7 +180,7 @@ DECLSPEC void pad (u32 w[4], const u32 len)
   }
 }
 
-DECLSPEC void mdtransform_norecalc (u32x state[4], const u32x block[4], __local u32 *s_lotus_magic_table)
+DECLSPEC void mdtransform_norecalc (u32x *state, const u32x *block, __local u32 *s_lotus_magic_table)
 {
   u32x x[12];
 
@@ -205,14 +205,14 @@ DECLSPEC void mdtransform_norecalc (u32x state[4], const u32x block[4], __local 
   state[3] = x[3];
 }
 
-DECLSPEC void mdtransform (u32x state[4], u32x checksum[4], const u32x block[4], __local u32 *s_lotus_magic_table)
+DECLSPEC void mdtransform (u32x *state, u32x *checksum, const u32x *block, __local u32 *s_lotus_magic_table)
 {
   mdtransform_norecalc (state, block, s_lotus_magic_table);
 
   lotus_transform_password (block, checksum, s_lotus_magic_table);
 }
 
-DECLSPEC void domino_big_md (const u32x saved_key[4], const u32 size, u32x state[4], __local u32 *s_lotus_magic_table)
+DECLSPEC void domino_big_md (const u32x *saved_key, const u32 size, u32x *state, __local u32 *s_lotus_magic_table)
 {
   u32x checksum[4];
 
@@ -226,7 +226,7 @@ DECLSPEC void domino_big_md (const u32x saved_key[4], const u32 size, u32x state
   mdtransform_norecalc (state, checksum, s_lotus_magic_table);
 }
 
-DECLSPEC void m08600m (__local u32 *s_lotus_magic_table, u32 w[16], const u32 pw_len, __global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __constant const u32x *words_buf_r, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
+DECLSPEC void m08600m (__local u32 *s_lotus_magic_table, u32 *w, const u32 pw_len, __global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __constant const u32x *words_buf_r, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
 {
   /**
    * modifier
@@ -273,7 +273,7 @@ DECLSPEC void m08600m (__local u32 *s_lotus_magic_table, u32 w[16], const u32 pw
   }
 }
 
-DECLSPEC void m08600s (__local u32 *s_lotus_magic_table, u32 w[16], const u32 pw_len, __global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __constant const u32x *words_buf_r, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
+DECLSPEC void m08600s (__local u32 *s_lotus_magic_table, u32 *w, const u32 pw_len, __global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __constant const u32x *words_buf_r, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
 {
   /**
    * modifier
