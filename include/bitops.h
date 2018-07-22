@@ -6,8 +6,8 @@
 #ifndef _BITOPS_H
 #define _BITOPS_H
 
-u32 __add3    (const u32 a, const u32 b, const u32 c);
-u32 __add3_S  (const u32 a, const u32 b, const u32 c);
+u32 hc_add3    (const u32 a, const u32 b, const u32 c);
+u32 hc_add3_S  (const u32 a, const u32 b, const u32 c);
 
 u32 rotl32 (const u32 a, const u32 n);
 u32 rotr32 (const u32 a, const u32 n);

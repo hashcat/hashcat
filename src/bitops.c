@@ -7,12 +7,12 @@
 #include "types.h"
 #include "bitops.h"
 
-u32 __add3_S (const u32 a, const u32 b, const u32 c)
+u32 hc_add3_S (const u32 a, const u32 b, const u32 c)
 {
   return a + b + c;
 }
 
-u32 __add3 (const u32 a, const u32 b, const u32 c)
+u32 hc_add3 (const u32 a, const u32 b, const u32 c)
 {
   return a + b + c;
 }
