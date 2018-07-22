@@ -102,11 +102,11 @@ DECLSPEC u32 memcat16 (u32 *block, const u32 offset, const u32 *append, const u3
   u32 in2 = swap32_S (append[2]);
   u32 in3 = swap32_S (append[3]);
 
-  tmp0 = amd_bytealign (  0, in0, offset);
-  tmp1 = amd_bytealign (in0, in1, offset);
-  tmp2 = amd_bytealign (in1, in2, offset);
-  tmp3 = amd_bytealign (in2, in3, offset);
-  tmp4 = amd_bytealign (in3,   0, offset);
+  tmp0 = hc_bytealign (  0, in0, offset);
+  tmp1 = hc_bytealign (in0, in1, offset);
+  tmp2 = hc_bytealign (in1, in2, offset);
+  tmp3 = hc_bytealign (in2, in3, offset);
+  tmp4 = hc_bytealign (in3,   0, offset);
 
   tmp0 = swap32_S (tmp0);
   tmp1 = swap32_S (tmp1);
@@ -123,11 +123,11 @@ DECLSPEC u32 memcat16 (u32 *block, const u32 offset, const u32 *append, const u3
   u32 in2 = append[2];
   u32 in3 = append[3];
 
-  tmp0 = __byte_perm (  0, in0, selector);
-  tmp1 = __byte_perm (in0, in1, selector);
-  tmp2 = __byte_perm (in1, in2, selector);
-  tmp3 = __byte_perm (in2, in3, selector);
-  tmp4 = __byte_perm (in3,   0, selector);
+  tmp0 = hc_byte_perm (  0, in0, selector);
+  tmp1 = hc_byte_perm (in0, in1, selector);
+  tmp2 = hc_byte_perm (in1, in2, selector);
+  tmp3 = hc_byte_perm (in2, in3, selector);
+  tmp4 = hc_byte_perm (in3,   0, selector);
   #endif
 
   switch (offset / 4)
@@ -243,11 +243,11 @@ DECLSPEC u32 memcat16c (u32 *block, const u32 offset, const u32 *append, const u
   u32 in2 = swap32_S (append[2]);
   u32 in3 = swap32_S (append[3]);
 
-  tmp0 = amd_bytealign (  0, in0, offset);
-  tmp1 = amd_bytealign (in0, in1, offset);
-  tmp2 = amd_bytealign (in1, in2, offset);
-  tmp3 = amd_bytealign (in2, in3, offset);
-  tmp4 = amd_bytealign (in3,   0, offset);
+  tmp0 = hc_bytealign (  0, in0, offset);
+  tmp1 = hc_bytealign (in0, in1, offset);
+  tmp2 = hc_bytealign (in1, in2, offset);
+  tmp3 = hc_bytealign (in2, in3, offset);
+  tmp4 = hc_bytealign (in3,   0, offset);
 
   tmp0 = swap32_S (tmp0);
   tmp1 = swap32_S (tmp1);
@@ -264,11 +264,11 @@ DECLSPEC u32 memcat16c (u32 *block, const u32 offset, const u32 *append, const u
   u32 in2 = append[2];
   u32 in3 = append[3];
 
-  tmp0 = __byte_perm (  0, in0, selector);
-  tmp1 = __byte_perm (in0, in1, selector);
-  tmp2 = __byte_perm (in1, in2, selector);
-  tmp3 = __byte_perm (in2, in3, selector);
-  tmp4 = __byte_perm (in3,   0, selector);
+  tmp0 = hc_byte_perm (  0, in0, selector);
+  tmp1 = hc_byte_perm (in0, in1, selector);
+  tmp2 = hc_byte_perm (in1, in2, selector);
+  tmp3 = hc_byte_perm (in2, in3, selector);
+  tmp4 = hc_byte_perm (in3,   0, selector);
   #endif
 
   u32 carry[4] = { 0, 0, 0, 0 };
@@ -410,11 +410,11 @@ DECLSPEC u32 memcat20 (u32 *block, const u32 offset, const u32 *append, const u3
   u32 in2 = swap32_S (append[2]);
   u32 in3 = swap32_S (append[3]);
 
-  tmp0 = amd_bytealign (  0, in0, offset);
-  tmp1 = amd_bytealign (in0, in1, offset);
-  tmp2 = amd_bytealign (in1, in2, offset);
-  tmp3 = amd_bytealign (in2, in3, offset);
-  tmp4 = amd_bytealign (in3,   0, offset);
+  tmp0 = hc_bytealign (  0, in0, offset);
+  tmp1 = hc_bytealign (in0, in1, offset);
+  tmp2 = hc_bytealign (in1, in2, offset);
+  tmp3 = hc_bytealign (in2, in3, offset);
+  tmp4 = hc_bytealign (in3,   0, offset);
 
   tmp0 = swap32_S (tmp0);
   tmp1 = swap32_S (tmp1);
@@ -431,11 +431,11 @@ DECLSPEC u32 memcat20 (u32 *block, const u32 offset, const u32 *append, const u3
   u32 in2 = append[2];
   u32 in3 = append[3];
 
-  tmp0 = __byte_perm (  0, in0, selector);
-  tmp1 = __byte_perm (in0, in1, selector);
-  tmp2 = __byte_perm (in1, in2, selector);
-  tmp3 = __byte_perm (in2, in3, selector);
-  tmp4 = __byte_perm (in3,   0, selector);
+  tmp0 = hc_byte_perm (  0, in0, selector);
+  tmp1 = hc_byte_perm (in0, in1, selector);
+  tmp2 = hc_byte_perm (in1, in2, selector);
+  tmp3 = hc_byte_perm (in2, in3, selector);
+  tmp4 = hc_byte_perm (in3,   0, selector);
   #endif
 
   switch (offset / 4)
@@ -560,11 +560,11 @@ DECLSPEC u32 memcat20_x80 (u32 *block, const u32 offset, const u32 *append, cons
   u32 in3 = swap32_S (append[3]);
   u32 in4 = 0x80000000;
 
-  tmp0 = amd_bytealign (  0, in0, offset);
-  tmp1 = amd_bytealign (in0, in1, offset);
-  tmp2 = amd_bytealign (in1, in2, offset);
-  tmp3 = amd_bytealign (in2, in3, offset);
-  tmp4 = amd_bytealign (in3, in4, offset);
+  tmp0 = hc_bytealign (  0, in0, offset);
+  tmp1 = hc_bytealign (in0, in1, offset);
+  tmp2 = hc_bytealign (in1, in2, offset);
+  tmp3 = hc_bytealign (in2, in3, offset);
+  tmp4 = hc_bytealign (in3, in4, offset);
 
   tmp0 = swap32_S (tmp0);
   tmp1 = swap32_S (tmp1);
@@ -582,11 +582,11 @@ DECLSPEC u32 memcat20_x80 (u32 *block, const u32 offset, const u32 *append, cons
   u32 in3 = append[3];
   u32 in4 = 0x80;
 
-  tmp0 = __byte_perm (  0, in0, selector);
-  tmp1 = __byte_perm (in0, in1, selector);
-  tmp2 = __byte_perm (in1, in2, selector);
-  tmp3 = __byte_perm (in2, in3, selector);
-  tmp4 = __byte_perm (in3, in4, selector);
+  tmp0 = hc_byte_perm (  0, in0, selector);
+  tmp1 = hc_byte_perm (in0, in1, selector);
+  tmp2 = hc_byte_perm (in1, in2, selector);
+  tmp3 = hc_byte_perm (in2, in3, selector);
+  tmp4 = hc_byte_perm (in3, in4, selector);
   #endif
 
   switch (offset / 4)

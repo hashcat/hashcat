@@ -101,8 +101,12 @@
  */
 
 #ifdef IS_AMD
+#if defined(cl_amd_media_ops)
 #pragma OPENCL EXTENSION cl_amd_media_ops  : enable
+#endif
+#if defined(cl_amd_media_ops2)
 #pragma OPENCL EXTENSION cl_amd_media_ops2 : enable
+#endif
 #endif
 
 /**

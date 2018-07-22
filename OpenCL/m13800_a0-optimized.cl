@@ -45,45 +45,45 @@ DECLSPEC void memcat64c_be (u32x *block, const u32 offset, u32x *carry)
   u32x tmp16;
 
   #if defined IS_AMD || defined IS_GENERIC
-  tmp00 = amd_bytealign (        0, carry[ 0], offset);
-  tmp01 = amd_bytealign (carry[ 0], carry[ 1], offset);
-  tmp02 = amd_bytealign (carry[ 1], carry[ 2], offset);
-  tmp03 = amd_bytealign (carry[ 2], carry[ 3], offset);
-  tmp04 = amd_bytealign (carry[ 3], carry[ 4], offset);
-  tmp05 = amd_bytealign (carry[ 4], carry[ 5], offset);
-  tmp06 = amd_bytealign (carry[ 5], carry[ 6], offset);
-  tmp07 = amd_bytealign (carry[ 6], carry[ 7], offset);
-  tmp08 = amd_bytealign (carry[ 7], carry[ 8], offset);
-  tmp09 = amd_bytealign (carry[ 8], carry[ 9], offset);
-  tmp10 = amd_bytealign (carry[ 9], carry[10], offset);
-  tmp11 = amd_bytealign (carry[10], carry[11], offset);
-  tmp12 = amd_bytealign (carry[11], carry[12], offset);
-  tmp13 = amd_bytealign (carry[12], carry[13], offset);
-  tmp14 = amd_bytealign (carry[13], carry[14], offset);
-  tmp15 = amd_bytealign (carry[14], carry[15], offset);
-  tmp16 = amd_bytealign (carry[15],         0, offset);
+  tmp00 = hc_bytealign (        0, carry[ 0], offset);
+  tmp01 = hc_bytealign (carry[ 0], carry[ 1], offset);
+  tmp02 = hc_bytealign (carry[ 1], carry[ 2], offset);
+  tmp03 = hc_bytealign (carry[ 2], carry[ 3], offset);
+  tmp04 = hc_bytealign (carry[ 3], carry[ 4], offset);
+  tmp05 = hc_bytealign (carry[ 4], carry[ 5], offset);
+  tmp06 = hc_bytealign (carry[ 5], carry[ 6], offset);
+  tmp07 = hc_bytealign (carry[ 6], carry[ 7], offset);
+  tmp08 = hc_bytealign (carry[ 7], carry[ 8], offset);
+  tmp09 = hc_bytealign (carry[ 8], carry[ 9], offset);
+  tmp10 = hc_bytealign (carry[ 9], carry[10], offset);
+  tmp11 = hc_bytealign (carry[10], carry[11], offset);
+  tmp12 = hc_bytealign (carry[11], carry[12], offset);
+  tmp13 = hc_bytealign (carry[12], carry[13], offset);
+  tmp14 = hc_bytealign (carry[13], carry[14], offset);
+  tmp15 = hc_bytealign (carry[14], carry[15], offset);
+  tmp16 = hc_bytealign (carry[15],         0, offset);
   #endif
 
   #ifdef IS_NV
   const int selector = (0x76543210 >> ((offset & 3) * 4)) & 0xffff;
 
-  tmp00 = __byte_perm (carry[ 0],         0, selector);
-  tmp01 = __byte_perm (carry[ 1], carry[ 0], selector);
-  tmp02 = __byte_perm (carry[ 2], carry[ 1], selector);
-  tmp03 = __byte_perm (carry[ 3], carry[ 2], selector);
-  tmp04 = __byte_perm (carry[ 4], carry[ 3], selector);
-  tmp05 = __byte_perm (carry[ 5], carry[ 4], selector);
-  tmp06 = __byte_perm (carry[ 6], carry[ 5], selector);
-  tmp07 = __byte_perm (carry[ 7], carry[ 6], selector);
-  tmp08 = __byte_perm (carry[ 8], carry[ 7], selector);
-  tmp09 = __byte_perm (carry[ 9], carry[ 8], selector);
-  tmp10 = __byte_perm (carry[10], carry[ 9], selector);
-  tmp11 = __byte_perm (carry[11], carry[10], selector);
-  tmp12 = __byte_perm (carry[12], carry[11], selector);
-  tmp13 = __byte_perm (carry[13], carry[12], selector);
-  tmp14 = __byte_perm (carry[14], carry[13], selector);
-  tmp15 = __byte_perm (carry[15], carry[14], selector);
-  tmp16 = __byte_perm (        0, carry[15], selector);
+  tmp00 = hc_byte_perm (carry[ 0],         0, selector);
+  tmp01 = hc_byte_perm (carry[ 1], carry[ 0], selector);
+  tmp02 = hc_byte_perm (carry[ 2], carry[ 1], selector);
+  tmp03 = hc_byte_perm (carry[ 3], carry[ 2], selector);
+  tmp04 = hc_byte_perm (carry[ 4], carry[ 3], selector);
+  tmp05 = hc_byte_perm (carry[ 5], carry[ 4], selector);
+  tmp06 = hc_byte_perm (carry[ 6], carry[ 5], selector);
+  tmp07 = hc_byte_perm (carry[ 7], carry[ 6], selector);
+  tmp08 = hc_byte_perm (carry[ 8], carry[ 7], selector);
+  tmp09 = hc_byte_perm (carry[ 9], carry[ 8], selector);
+  tmp10 = hc_byte_perm (carry[10], carry[ 9], selector);
+  tmp11 = hc_byte_perm (carry[11], carry[10], selector);
+  tmp12 = hc_byte_perm (carry[12], carry[11], selector);
+  tmp13 = hc_byte_perm (carry[13], carry[12], selector);
+  tmp14 = hc_byte_perm (carry[14], carry[13], selector);
+  tmp15 = hc_byte_perm (carry[15], carry[14], selector);
+  tmp16 = hc_byte_perm (        0, carry[15], selector);
   #endif
 
   carry[ 0] = 0;

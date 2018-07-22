@@ -307,10 +307,10 @@ __constant u32a c_sbox3[256] =
 {                                 \
   u32 tmp;                        \
                                   \
-  tmp  = S0[__bfe ((L), 24, 8)];  \
-  tmp += S1[__bfe ((L), 16, 8)];  \
-  tmp ^= S2[__bfe ((L),  8, 8)];  \
-  tmp += S3[__bfe ((L),  0, 8)];  \
+  tmp  = S0[hc_bfe ((L), 24, 8)];  \
+  tmp += S1[hc_bfe ((L), 16, 8)];  \
+  tmp ^= S2[hc_bfe ((L),  8, 8)];  \
+  tmp += S3[hc_bfe ((L),  0, 8)];  \
                                   \
   (R) ^= tmp ^ P[(N)];            \
 }

@@ -2123,12 +2123,12 @@ DECLSPEC void append_salt (u32 *w0, u32 *w1, u32 *w2, const u32 *append, const u
   u32 in3 = swap32_S (append[3]);
   u32 in4 = swap32_S (append[4]);
 
-  tmp0 = amd_bytealign (  0, in0, offset);
-  tmp1 = amd_bytealign (in0, in1, offset);
-  tmp2 = amd_bytealign (in1, in2, offset);
-  tmp3 = amd_bytealign (in2, in3, offset);
-  tmp4 = amd_bytealign (in3, in4, offset);
-  tmp5 = amd_bytealign (in4,   0, offset);
+  tmp0 = hc_bytealign (  0, in0, offset);
+  tmp1 = hc_bytealign (in0, in1, offset);
+  tmp2 = hc_bytealign (in1, in2, offset);
+  tmp3 = hc_bytealign (in2, in3, offset);
+  tmp4 = hc_bytealign (in3, in4, offset);
+  tmp5 = hc_bytealign (in4,   0, offset);
 
   tmp0 = swap32_S (tmp0);
   tmp1 = swap32_S (tmp1);
@@ -2147,12 +2147,12 @@ DECLSPEC void append_salt (u32 *w0, u32 *w1, u32 *w2, const u32 *append, const u
   u32 in3 = append[3];
   u32 in4 = append[4];
 
-  tmp0 = __byte_perm (  0, in0, selector);
-  tmp1 = __byte_perm (in0, in1, selector);
-  tmp2 = __byte_perm (in1, in2, selector);
-  tmp3 = __byte_perm (in2, in3, selector);
-  tmp3 = __byte_perm (in3, in4, selector);
-  tmp4 = __byte_perm (in4,   0, selector);
+  tmp0 = hc_byte_perm (  0, in0, selector);
+  tmp1 = hc_byte_perm (in0, in1, selector);
+  tmp2 = hc_byte_perm (in1, in2, selector);
+  tmp3 = hc_byte_perm (in2, in3, selector);
+  tmp3 = hc_byte_perm (in3, in4, selector);
+  tmp4 = hc_byte_perm (in4,   0, selector);
   #endif
 
   const u32 div = offset / 4;

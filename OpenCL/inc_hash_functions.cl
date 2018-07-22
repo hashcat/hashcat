@@ -34,20 +34,20 @@
 #define MD4_STEP_S(f,a,b,c,d,x,K,s)   \
 {                                     \
   a += K;                             \
-  a  = __add3_S (a, x, f (b, c, d));  \
+  a  = hc_add3_S (a, x, f (b, c, d)); \
   a  = rotl32_S (a, s);               \
 }
 
 #define MD4_STEP(f,a,b,c,d,x,K,s)     \
 {                                     \
   a += K;                             \
-  a  = __add3 (a, x, f (b, c, d));    \
+  a  = hc_add3 (a, x, f (b, c, d));   \
   a  = rotl32 (a, s);                 \
 }
 
 #define MD4_STEP0(f,a,b,c,d,K,s)      \
 {                                     \
-  a  = __add3 (a, K, f (b, c, d));    \
+  a  = hc_add3 (a, K, f (b, c, d));   \
   a  = rotl32 (a, s);                 \
 }
 
@@ -92,7 +92,7 @@
 #define MD5_STEP_S(f,a,b,c,d,x,K,s)   \
 {                                     \
   a += K;                             \
-  a  = __add3_S (a, x, f (b, c, d));  \
+  a  = hc_add3_S (a, x, f (b, c, d)); \
   a  = rotl32_S (a, s);               \
   a += b;                             \
 }
@@ -100,14 +100,14 @@
 #define MD5_STEP(f,a,b,c,d,x,K,s)   \
 {                                   \
   a += K;                           \
-  a  = __add3 (a, x, f (b, c, d));  \
+  a  = hc_add3 (a, x, f (b, c, d)); \
   a  = rotl32 (a, s);               \
   a += b;                           \
 }
 
 #define MD5_STEP0(f,a,b,c,d,K,s)    \
 {                                   \
-  a  = __add3 (a, K, f (b, c, d));  \
+  a  = hc_add3 (a, K, f (b, c, d)); \
   a  = rotl32 (a, s);               \
   a += b;                           \
 }
@@ -139,7 +139,7 @@
 #define SHA1_STEP_S(f,a,b,c,d,e,x)    \
 {                                     \
   e += K;                             \
-  e  = __add3_S (e, x, f (b, c, d));  \
+  e  = hc_add3_S (e, x, f (b, c, d)); \
   e += rotl32_S (a,  5u);             \
   b  = rotl32_S (b, 30u);             \
 }
@@ -147,7 +147,7 @@
 #define SHA1_STEP(f,a,b,c,d,e,x)    \
 {                                   \
   e += K;                           \
-  e  = __add3 (e, x, f (b, c, d));  \
+  e  = hc_add3 (e, x, f (b, c, d)); \
   e += rotl32 (a,  5u);             \
   b  = rotl32 (b, 30u);             \
 }
@@ -155,7 +155,7 @@
 /*
 #define SHA1_STEP0(f,a,b,c,d,e,x)   \
 {                                   \
-  e  = __add3 (e, K, f (b, c, d));  \
+  e  = hc_add3 (e, K, f (b, c, d)); \
   e += rotl32 (a,  5u);             \
   b  = rotl32 (b, 30u);             \
 }
@@ -163,7 +163,7 @@
 
 #define SHA1_STEPX(f,a,b,c,d,e,x)   \
 {                                   \
-  e  = __add3 (e, x, f (b, c, d));  \
+  e  = hc_add3 (e, x, f (b, c, d)); \
   e += rotl32 (a,  5u);             \
   b  = rotl32 (b, 30u);             \
 }
@@ -203,20 +203,20 @@
 
 #define SHA256_STEP_S(F0,F1,a,b,c,d,e,f,g,h,x,K)  \
 {                                                 \
-  h = __add3_S (h, K, x);                         \
-  h = __add3_S (h, SHA256_S3_S (e), F1 (e,f,g));  \
+  h = hc_add3_S (h, K, x);                        \
+  h = hc_add3_S (h, SHA256_S3_S (e), F1 (e,f,g)); \
   d += h;                                         \
-  h = __add3_S (h, SHA256_S2_S (a), F0 (a,b,c));  \
+  h = hc_add3_S (h, SHA256_S2_S (a), F0 (a,b,c)); \
 }
 
 #define SHA256_EXPAND_S(x,y,z,w) (SHA256_S1_S (x) + y + SHA256_S0_S (z) + w)
 
 #define SHA256_STEP(F0,F1,a,b,c,d,e,f,g,h,x,K)    \
 {                                                 \
-  h = __add3 (h, K, x);                           \
-  h = __add3 (h, SHA256_S3 (e), F1 (e,f,g));      \
+  h = hc_add3 (h, K, x);                          \
+  h = hc_add3 (h, SHA256_S3 (e), F1 (e,f,g));     \
   d += h;                                         \
-  h = __add3 (h, SHA256_S2 (a), F0 (a,b,c));      \
+  h = hc_add3 (h, SHA256_S2 (a), F0 (a,b,c));     \
 }
 
 #define SHA256_EXPAND(x,y,z,w) (SHA256_S1 (x) + y + SHA256_S0 (z) + w)

@@ -200,11 +200,11 @@ DECLSPEC void make_sc (u32 *sc, const u32 *pw, const u32 pw_len, const u32 *bl, 
     #if defined IS_AMD || defined IS_GENERIC
     for (i = 0; i < pd; i++) sc[idx++] = pw[i];
                              sc[idx++] = pw[i]
-                                       | amd_bytealign (bl[0],         0, pm4);
-    for (i = 1; i < bd; i++) sc[idx++] = amd_bytealign (bl[i], bl[i - 1], pm4);
-                             sc[idx++] = amd_bytealign (sc[0], bl[i - 1], pm4);
-    for (i = 1; i <  4; i++) sc[idx++] = amd_bytealign (sc[i], sc[i - 1], pm4);
-                             sc[idx++] = amd_bytealign (    0, sc[i - 1], pm4);
+                                       | hc_bytealign (bl[0],         0, pm4);
+    for (i = 1; i < bd; i++) sc[idx++] = hc_bytealign (bl[i], bl[i - 1], pm4);
+                             sc[idx++] = hc_bytealign (sc[0], bl[i - 1], pm4);
+    for (i = 1; i <  4; i++) sc[idx++] = hc_bytealign (sc[i], sc[i - 1], pm4);
+                             sc[idx++] = hc_bytealign (    0, sc[i - 1], pm4);
     #endif
 
     #ifdef IS_NV
@@ -212,11 +212,11 @@ DECLSPEC void make_sc (u32 *sc, const u32 *pw, const u32 pw_len, const u32 *bl, 
 
     for (i = 0; i < pd; i++) sc[idx++] = pw[i];
                              sc[idx++] = pw[i]
-                                       | __byte_perm (        0, bl[0], selector);
-    for (i = 1; i < bd; i++) sc[idx++] = __byte_perm (bl[i - 1], bl[i], selector);
-                             sc[idx++] = __byte_perm (bl[i - 1], sc[0], selector);
-    for (i = 1; i <  4; i++) sc[idx++] = __byte_perm (sc[i - 1], sc[i], selector);
-                             sc[idx++] = __byte_perm (sc[i - 1],     0, selector);
+                                       | hc_byte_perm (        0, bl[0], selector);
+    for (i = 1; i < bd; i++) sc[idx++] = hc_byte_perm (bl[i - 1], bl[i], selector);
+                             sc[idx++] = hc_byte_perm (bl[i - 1], sc[0], selector);
+    for (i = 1; i <  4; i++) sc[idx++] = hc_byte_perm (sc[i - 1], sc[i], selector);
+                             sc[idx++] = hc_byte_perm (sc[i - 1],     0, selector);
     #endif
   }
 }
@@ -229,19 +229,19 @@ DECLSPEC void make_pt_with_offset (u32 *pt, const u32 offset, const u32 *sc, con
   const u32 od = m / 4;
 
   #if defined IS_AMD || defined IS_GENERIC
-  pt[0] = amd_bytealign (sc[od + 1], sc[od + 0], om);
-  pt[1] = amd_bytealign (sc[od + 2], sc[od + 1], om);
-  pt[2] = amd_bytealign (sc[od + 3], sc[od + 2], om);
-  pt[3] = amd_bytealign (sc[od + 4], sc[od + 3], om);
+  pt[0] = hc_bytealign (sc[od + 1], sc[od + 0], om);
+  pt[1] = hc_bytealign (sc[od + 2], sc[od + 1], om);
+  pt[2] = hc_bytealign (sc[od + 3], sc[od + 2], om);
+  pt[3] = hc_bytealign (sc[od + 4], sc[od + 3], om);
   #endif
 
   #ifdef IS_NV
   int selector = (0x76543210 >> (om * 4)) & 0xffff;
 
-  pt[0] = __byte_perm (sc[od + 0], sc[od + 1], selector);
-  pt[1] = __byte_perm (sc[od + 1], sc[od + 2], selector);
-  pt[2] = __byte_perm (sc[od + 2], sc[od + 3], selector);
-  pt[3] = __byte_perm (sc[od + 3], sc[od + 4], selector);
+  pt[0] = hc_byte_perm (sc[od + 0], sc[od + 1], selector);
+  pt[1] = hc_byte_perm (sc[od + 1], sc[od + 2], selector);
+  pt[2] = hc_byte_perm (sc[od + 2], sc[od + 3], selector);
+  pt[3] = hc_byte_perm (sc[od + 3], sc[od + 4], selector);
   #endif
 }
 

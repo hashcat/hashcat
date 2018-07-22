@@ -351,23 +351,28 @@ DECLSPEC u64x rotl64 (const u64x a, const u32 n)
   return rotr64 (a, 64 - n);
 }
 
-DECLSPEC u32x __bfe (const u32x a, const u32x b, const u32x c)
+DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c)
 {
   return amd_bfe (a, b, c);
 }
 
-DECLSPEC u32 __bfe_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c)
 {
   return amd_bfe (a, b, c);
 }
 
-DECLSPEC u32 amd_bytealign_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 hc_bytealign (const u32x a, const u32x b, const u32x c)
+{
+  return amd_bytealign (a, b, c);
+}
+
+DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const u32 c)
 {
   return amd_bytealign (a, b, c);
 }
 
 #if AMD_GCN >= 3
-DECLSPEC u32x __byte_perm (const u32x a, const u32x b, const u32x c)
+DECLSPEC u32x hc_byte_perm (const u32x a, const u32x b, const u32x c)
 {
   u32x r;
 
@@ -420,7 +425,7 @@ DECLSPEC u32x __byte_perm (const u32x a, const u32x b, const u32x c)
   return r;
 }
 
-DECLSPEC u32 __byte_perm_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 hc_byte_perm_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
 
@@ -431,7 +436,7 @@ DECLSPEC u32 __byte_perm_S (const u32 a, const u32 b, const u32 c)
 #endif
 
 #if AMD_GCN >= 5
-DECLSPEC u32x __add3 (const u32x a, const u32x b, const u32x c)
+DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c)
 {
   u32x r;
 
@@ -484,7 +489,7 @@ DECLSPEC u32x __add3 (const u32x a, const u32x b, const u32x c)
   return r;
 }
 
-DECLSPEC u32 __add3_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
 
@@ -493,12 +498,12 @@ DECLSPEC u32 __add3_S (const u32 a, const u32 b, const u32 c)
   return r;
 }
 #else
-DECLSPEC u32x __add3 (const u32x a, const u32x b, const u32x c)
+DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c)
 {
   return a + b + c;
 }
 
-DECLSPEC u32 __add3_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c)
 {
   return a + b + c;
 }
@@ -741,7 +746,7 @@ DECLSPEC u64x rotl64 (const u64x a, const u32 n)
   return rotate (a, (u64x) n);
 }
 
-DECLSPEC u32x __byte_perm (const u32x a, const u32x b, const u32x c)
+DECLSPEC u32x hc_byte_perm (const u32x a, const u32x b, const u32x c)
 {
   u32x r;
 
@@ -780,7 +785,7 @@ DECLSPEC u32x __byte_perm (const u32x a, const u32x b, const u32x c)
   return r;
 }
 
-DECLSPEC u32 __byte_perm_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 hc_byte_perm_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
 
@@ -789,7 +794,7 @@ DECLSPEC u32 __byte_perm_S (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
-DECLSPEC u32x __bfe (const u32x a, const u32x b, const u32x c)
+DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c)
 {
   u32x r;
 
@@ -828,7 +833,7 @@ DECLSPEC u32x __bfe (const u32x a, const u32x b, const u32x c)
   return r;
 }
 
-DECLSPEC u32 __bfe_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
 
@@ -837,7 +842,7 @@ DECLSPEC u32 __bfe_S (const u32 a, const u32 b, const u32 c)
   return r;
 }
 
-DECLSPEC u32x amd_bytealign (const u32x a, const u32x b, const u32x c)
+DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32x c)
 {
   u32x r;
 
@@ -877,14 +882,14 @@ DECLSPEC u32x amd_bytealign (const u32x a, const u32x b, const u32x c)
 
   #else
 
-  r = __byte_perm (b, a, ((u32x) (0x76543210) >> ((c & 3) * 4)) & 0xffff);
+  r = hc_byte_perm (b, a, ((u32x) (0x76543210) >> ((c & 3) * 4)) & 0xffff);
 
   #endif
 
   return r;
 }
 
-DECLSPEC u32 amd_bytealign_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const u32 c)
 {
   u32 r;
 
@@ -894,19 +899,19 @@ DECLSPEC u32 amd_bytealign_S (const u32 a, const u32 b, const u32 c)
 
   #else
 
-  r = __byte_perm_S (b, a, (0x76543210 >> ((c & 3) * 4)) & 0xffff);
+  r = hc_byte_perm_S (b, a, (0x76543210 >> ((c & 3) * 4)) & 0xffff);
 
   #endif
 
   return r;
 }
 
-DECLSPEC u32x __add3 (const u32x a, const u32x b, const u32x c)
+DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c)
 {
   return a + b + c;
 }
 
-DECLSPEC u32 __add3_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c)
 {
   return a + b + c;
 }
@@ -984,7 +989,7 @@ DECLSPEC u64x rotl64 (const u64x a, const u32 n)
   return rotate (a, (u64x) n);
 }
 
-DECLSPEC u32x __bfe (const u32x a, const u32x b, const u32x c)
+DECLSPEC u32x hc_bfe (const u32x a, const u32x b, const u32x c)
 {
   #define BIT(x)      ((u32x) (1u) << (x))
   #define BIT_MASK(x) (BIT (x) - 1)
@@ -997,7 +1002,7 @@ DECLSPEC u32x __bfe (const u32x a, const u32x b, const u32x c)
   #undef BFE
 }
 
-DECLSPEC u32 __bfe_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 hc_bfe_S (const u32 a, const u32 b, const u32 c)
 {
   #define BIT(x)      (1u << (x))
   #define BIT_MASK(x) (BIT (x) - 1)
@@ -1010,7 +1015,7 @@ DECLSPEC u32 __bfe_S (const u32 a, const u32 b, const u32 c)
   #undef BFE
 }
 
-DECLSPEC u32x amd_bytealign (const u32x a, const u32x b, const u32 c)
+DECLSPEC u32x hc_bytealign (const u32x a, const u32x b, const u32 c)
 {
   #if VECT_SIZE == 1
   const u64x tmp = ((((u64x) (a)) << 32) | ((u64x) (b))) >> ((c & 3) * 8);
@@ -1043,19 +1048,19 @@ DECLSPEC u32x amd_bytealign (const u32x a, const u32x b, const u32 c)
   #endif
 }
 
-DECLSPEC u32 amd_bytealign_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const u32 c)
 {
   const u64 tmp = ((((u64) a) << 32) | ((u64) b)) >> ((c & 3) * 8);
 
   return (u32) (tmp);
 }
 
-DECLSPEC u32x __add3 (const u32x a, const u32x b, const u32x c)
+DECLSPEC u32x hc_add3 (const u32x a, const u32x b, const u32x c)
 {
   return a + b + c;
 }
 
-DECLSPEC u32 __add3_S (const u32 a, const u32 b, const u32 c)
+DECLSPEC u32 hc_add3_S (const u32 a, const u32 b, const u32 c)
 {
   return a + b + c;
 }
