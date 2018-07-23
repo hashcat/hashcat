@@ -98,6 +98,10 @@ LIBRARY_DEV_FOLDER      ?= $(LIBRARY_DEV_ROOT_FOLDER)/hashcat
 HASHCAT_FRONTEND        := hashcat
 HASHCAT_LIBRARY         := libhashcat.so.$(VERSION_PURE)
 
+ifeq ($(UNAME),Darwin)
+HASHCAT_LIBRARY         := libhashcat.$(VERSION_PURE).dylib
+endif # Darwin
+
 ifeq ($(UNAME),CYGWIN)
 HASHCAT_FRONTEND        := hashcat.exe
 HASHCAT_LIBRARY         := hashcat.dll
@@ -477,8 +481,13 @@ obj/%.NATIVE.SHARED.o: deps/lzma_sdk/%.c
 	$(CC) -c $(CFLAGS_NATIVE) $< -o $@ -fpic
 endif
 
+ifeq ($(UNAME),Darwin)
+$(HASHCAT_LIBRARY): $(NATIVE_SHARED_OBJS)
+	$(CC)                     $^ -o $@                    $(LFLAGS_NATIVE) -shared -current_version $(VERSION_PURE) -compatibility_version $(VERSION_PURE)
+else
 $(HASHCAT_LIBRARY): $(NATIVE_SHARED_OBJS)
 	$(CC)                     $^ -o $@                    $(LFLAGS_NATIVE) -shared -Wl,-soname,$(HASHCAT_LIBRARY)
+endif
 
 ifeq ($(SHARED),1)
 $(HASHCAT_FRONTEND): src/main.c $(HASHCAT_LIBRARY)
