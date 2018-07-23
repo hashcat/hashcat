@@ -12576,25 +12576,25 @@ int sip_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   token.sep[9]      = '*';
   token.len_min[9]  = 1;
-  token.len_max[9]  = 50;
+  token.len_max[9]  = 1024;
   token.attr[9]     = TOKEN_ATTR_VERIFY_LENGTH
                     | TOKEN_ATTR_TERMINATE_STRING;
 
   token.sep[10]     = '*';
   token.len_min[10] = 0;
-  token.len_max[10] = 50;
+  token.len_max[10] = 1024;
   token.attr[10]    = TOKEN_ATTR_VERIFY_LENGTH
                     | TOKEN_ATTR_TERMINATE_STRING;
 
   token.sep[11]     = '*';
   token.len_min[11] = 0;
-  token.len_max[11] = 50;
+  token.len_max[11] = 1024;
   token.attr[11]    = TOKEN_ATTR_VERIFY_LENGTH
                     | TOKEN_ATTR_TERMINATE_STRING;
 
   token.sep[12]     = '*';
   token.len_min[12] = 0;
-  token.len_max[12] = 50;
+  token.len_max[12] = 1024;
   token.attr[12]    = TOKEN_ATTR_VERIFY_LENGTH
                     | TOKEN_ATTR_TERMINATE_STRING;
 
@@ -12711,7 +12711,7 @@ int sip_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   u32 esalt_len = 0;
 
-  u32 max_esalt_len = sizeof (sip->esalt_buf); // 151 = (64 + 64 + 55) - 32, where 32 is the hexadecimal MD5 HA1 hash
+  u32 max_esalt_len = sizeof (sip->esalt_buf);
 
   // there are 2 possibilities for the esalt:
 
@@ -12753,7 +12753,7 @@ int sip_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   {
     esalt_len = 1 + nonce_len + 1 + 32;
 
-    //if (esalt_len > max_esalt_len) return (PARSER_SALT_LENGTH);
+    if (esalt_len > max_esalt_len) return (PARSER_SALT_LENGTH);
 
     snprintf ((char *) esalt_buf_ptr, max_esalt_len, ":%s:%08x%08x%08x%08x",
       nonce_pos,
@@ -12762,8 +12762,6 @@ int sip_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
       tmp_digest[2],
       tmp_digest[3]);
   }
-
-  if (esalt_len >= 152) return (PARSER_SALT_LENGTH);
 
   // add 0x80 to esalt
 
