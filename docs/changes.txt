@@ -17,6 +17,7 @@
 - OpenCL kernels: Add '-pure' prefix to kernel filenames to avoid problems caused by reusing existing hashcat installation folder
 - OpenCL kernels: Removed the use of 'volatile' in inline assembly instructions where it is not needed
 - OpenCL kernels: Switched array pointer types in function declarations in order to be compatible with OpenCL 2.0
+- SIP cracking: Increased the nonce field to allow a salt of 1024 bytes
 
 ##
 ## Bugs

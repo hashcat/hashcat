@@ -69,7 +69,7 @@ __kernel void m11400_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   const u32 esalt_len = esalt_bufs[digests_offset].esalt_len;
 
-  u32x esalt_buf[48] = { 0 };
+  u32x esalt_buf[256] = { 0 };
 
   for (int i = 0, idx = 0; i < esalt_len; i += 4, idx += 1)
   {
@@ -201,7 +201,7 @@ __kernel void m11400_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   const u32 esalt_len = esalt_bufs[digests_offset].esalt_len;
 
-  u32x esalt_buf[48] = { 0 };
+  u32x esalt_buf[256] = { 0 };
 
   for (int i = 0, idx = 0; i < esalt_len; i += 4, idx += 1)
   {

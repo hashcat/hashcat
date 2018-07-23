@@ -1234,7 +1234,7 @@ typedef struct sip
   u32 salt_buf[32];
   u32 salt_len;
 
-  u32 esalt_buf[48];
+  u32 esalt_buf[256];
   u32 esalt_len;
 
 } sip_t;
