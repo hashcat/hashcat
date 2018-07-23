@@ -1,4 +1,4 @@
-hashcat v4.1.1
+hashcat v4.2.0
 ==============
 
 AMD GPUs on Linux require "RadeonOpenCompute (ROCm)" Software Platform (1.6.180 or later)
