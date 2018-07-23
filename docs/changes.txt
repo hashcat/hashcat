@@ -29,6 +29,7 @@
 - Fixed a missing kernel in -m 5600 in combination with -a 3 and -O if mask is >= 16 characters
 - Fixed detection of AMD_GCN version in case the rocm driver is used
 - Fixed missing code section in -m 2500 and -m 2501 to crack corrupted handshakes with a LE endian bitness base
+- Fixed a missing check for hashmodes using OPTS_TYPE_PT_UPPER causing the self-test to fail when using combinator- and hybrid-mode
 
 * changes v4.0.1 -> v4.1.0
 
