@@ -187,11 +187,11 @@ endif
 
 #CFLAGS                  += -Wstack-usage=524288
 
-ifeq ($(SYSTEM_LZMA_SDK),1)
+ifeq ($(SYSTEM_LZMA_SDK),0)
+CFLAGS                  += -Ideps/lzma_sdk/
+else
 CFLAGS                  += $(LZMA_SDK_INCLUDE)
 LDFLAGS                 += -llzmasdk
-else
-CFLAGS                  +=-Iinclude/lzma_sdk/
 endif
 
 LFLAGS                  := $(LDFLAGS)
@@ -312,10 +312,6 @@ LFLAGS_CROSS_WIN64      += -lpsapi
 
 OBJS_ALL                := affinity autotune benchmark bitmap bitops combinator common convert cpt cpu_aes cpu_crc32 cpu_des cpu_md4 cpu_md5 cpu_sha1 cpu_sha256 debugfile dictstat dispatch dynloader event ext_ADL ext_nvapi ext_nvml ext_OpenCL ext_sysfs ext_lzma filehandling folder hashcat hashes hlfmt hwmon induct interface locking logfile loopback memory monitor mpsp opencl outfile_check outfile pidfile potfile restore rp rp_cpu rp_kernel_on_cpu rp_kernel_on_cpu_optimized selftest shared status stdout straight terminal thread timer tuningdb usage user_options wordlist
 
-ifeq ($(SYSTEM_LZMA_SDK),0)
-OBJS_ALL += lzma_sdk/Alloc lzma_sdk/Lzma2Dec lzma_sdk/LzmaDec
-endif
-
 NATIVE_STATIC_OBJS      := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).NATIVE.STATIC.o)
 NATIVE_SHARED_OBJS      := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).NATIVE.SHARED.o)
 
@@ -324,6 +320,19 @@ LINUX_64_OBJS           := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).LINUX.64.o)
 
 WIN_32_OBJS             := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.32.o)
 WIN_64_OBJS             := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.64.o)
+
+ifeq ($(SYSTEM_LZMA_SDK),0)
+OBJS_LZMA               := Alloc Lzma2Dec LzmaDec
+
+NATIVE_STATIC_OBJS      += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).NATIVE.STATIC.o)
+NATIVE_SHARED_OBJS      += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).NATIVE.SHARED.o)
+
+LINUX_32_OBJS           += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).LINUX.32.o)
+LINUX_64_OBJS           += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).LINUX.64.o)
+
+WIN_32_OBJS             += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).WIN.32.o)
+WIN_64_OBJS             += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).WIN.64.o)
+endif
 
 ##
 ## Targets: Native Compilation
@@ -334,7 +343,6 @@ default: $(HASHCAT_FRONTEND)
 clean:
 	$(RM) -f $(HASHCAT_FRONTEND)
 	$(RM) -f $(HASHCAT_LIBRARY)
-	$(RM) -f obj/lzma_sdk/*.o
 	$(RM) -f obj/*.o
 	$(RM) -f *.bin *.exe
 	$(RM) -f *.pid
@@ -461,6 +469,14 @@ obj/%.NATIVE.STATIC.o: src/%.c
 obj/%.NATIVE.SHARED.o: src/%.c
 	$(CC) -c $(CFLAGS_NATIVE) $< -o $@ -fpic
 
+ifeq ($(SYSTEM_LZMA_SDK),0)
+obj/%.NATIVE.STATIC.o: deps/lzma_sdk/%.c
+	$(CC) -c $(CFLAGS_NATIVE) $< -o $@
+
+obj/%.NATIVE.SHARED.o: deps/lzma_sdk/%.c
+	$(CC) -c $(CFLAGS_NATIVE) $< -o $@ -fpic
+endif
+
 $(HASHCAT_LIBRARY): $(NATIVE_SHARED_OBJS)
 	$(CC)                     $^ -o $@                    $(LFLAGS_NATIVE) -shared -Wl,-soname,$(HASHCAT_LIBRARY)
 
@@ -487,6 +503,20 @@ obj/%.WIN.32.o:   src/%.c
 
 obj/%.WIN.64.o:   src/%.c
 	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)   -c -o $@ $<
+
+ifeq ($(SYSTEM_LZMA_SDK),0)
+obj/%.LINUX.32.o: deps/lzma_sdk/%.c
+	$(CC_LINUX_32) $(CFLAGS_CROSS_LINUX32) -c -o $@ $<
+
+obj/%.LINUX.64.o: deps/lzma_sdk/%.c
+	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX64) -c -o $@ $<
+
+obj/%.WIN.32.o:   deps/lzma_sdk/%.c
+	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN32)   -c -o $@ $<
+
+obj/%.WIN.64.o:   deps/lzma_sdk/%.c
+	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)   -c -o $@ $<
+endif
 
 hashcat32.bin: src/main.c $(LINUX_32_OBJS)
 	$(CC_LINUX_32) $(CFLAGS_CROSS_LINUX32)    -o $@ $^ $(LFLAGS_CROSS_LINUX32) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
