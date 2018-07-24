@@ -3,7 +3,7 @@
 *.app
 hashcat
 hashcat.exe
-libhashcat.so
+libhashcat.so.*
 libhashcat*.dylib
 hashcat.dll
 *.potfile
@@ -17,5 +17,4 @@ hashcat.dll
 kernels/**
 lib/*.a
 obj/*.o
-obj/lzma_sdk/*.o
 include/CL
