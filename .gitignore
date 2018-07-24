@@ -4,6 +4,7 @@
 hashcat
 hashcat.exe
 libhashcat.so
+libhashcat*.dylib
 hashcat.dll
 *.potfile
 *.restore
