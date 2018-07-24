@@ -694,8 +694,7 @@ typedef enum token_attr
   TOKEN_ATTR_VERIFY_HEX         = 1 << 5,
   TOKEN_ATTR_VERIFY_BASE64A     = 1 << 6,
   TOKEN_ATTR_VERIFY_BASE64B     = 1 << 7,
-  TOKEN_ATTR_VERIFY_BASE64C     = 1 << 8,
-  TOKEN_ATTR_TERMINATE_STRING   = 1 << 9,
+  TOKEN_ATTR_VERIFY_BASE64C     = 1 << 8
 
 } token_attr_t;
 

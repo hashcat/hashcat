@@ -2568,11 +2568,6 @@ static int input_tokenizer (u8 *input_buf, int input_len, token_t *token)
     {
       if (is_valid_base64c_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
     }
-
-    if (token->attr[token_idx] & TOKEN_ATTR_TERMINATE_STRING)
-    {
-      token->buf[token_idx][token->len[token_idx]] = 0;
-    }
   }
 
   return PARSER_OK;
@@ -12529,80 +12524,67 @@ int sip_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   token.sep[1]      = '*';
   token.len_min[1]  = 0;
   token.len_max[1]  = 512;
-  token.attr[1]     = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_TERMINATE_STRING;
+  token.attr[1]     = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[2]      = '*';
   token.len_min[2]  = 0;
   token.len_max[2]  = 512;
-  token.attr[2]     = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_TERMINATE_STRING;
+  token.attr[2]     = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[3]      = '*';
   token.len_min[3]  = 0;
   token.len_max[3]  = 116;
-  token.attr[3]     = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_TERMINATE_STRING;
+  token.attr[3]     = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[4]      = '*';
   token.len_min[4]  = 0;
   token.len_max[4]  = 116;
-  token.attr[4]     = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_TERMINATE_STRING;
+  token.attr[4]     = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[5]      = '*';
   token.len_min[5]  = 0;
   token.len_max[5]  = 246;
-  token.attr[5]     = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_TERMINATE_STRING;
+  token.attr[5]     = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[6]      = '*';
   token.len_min[6]  = 0;
   token.len_max[6]  = 245;
-  token.attr[6]     = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_TERMINATE_STRING;
+  token.attr[6]     = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[7]      = '*';
   token.len_min[7]  = 1;
   token.len_max[7]  = 246;
-  token.attr[7]     = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_TERMINATE_STRING;
+  token.attr[7]     = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[8]      = '*';
   token.len_min[8]  = 0;
   token.len_max[8]  = 245;
-  token.attr[8]     = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_TERMINATE_STRING;
+  token.attr[8]     = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[9]      = '*';
   token.len_min[9]  = 1;
   token.len_max[9]  = 1024;
-  token.attr[9]     = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_TERMINATE_STRING;
+  token.attr[9]     = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[10]     = '*';
   token.len_min[10] = 0;
   token.len_max[10] = 1024;
-  token.attr[10]    = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_TERMINATE_STRING;
+  token.attr[10]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[11]     = '*';
   token.len_min[11] = 0;
   token.len_max[11] = 1024;
-  token.attr[11]    = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_TERMINATE_STRING;
+  token.attr[11]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[12]     = '*';
   token.len_min[12] = 0;
   token.len_max[12] = 1024;
-  token.attr[12]    = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_TERMINATE_STRING;
+  token.attr[12]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[13]     = '*';
   token.len_min[13] = 3;
   token.len_max[13] = 3;
-  token.attr[13]    = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_TERMINATE_STRING;
+  token.attr[13]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[14]     = '*';
   token.len_min[14] = 32;
@@ -12646,52 +12628,49 @@ int sip_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
    * first (pre-)compute: HA2 = md5 ($method . ":" . $uri)
    */
 
-  u32 md5_len = 0;
+  char *pcsep = (char *) ":";
 
-  u32 md5_max_len = 4 * 64;
+  int md5_len = method_len + 1 + URI_prefix_len + URI_resource_len + URI_suffix_len;
 
-  u32 total_length = method_len + 1 + URI_prefix_len + URI_resource_len + URI_suffix_len;
+  if (URI_prefix_len) md5_len++;
+  if (URI_suffix_len) md5_len++;
 
-  if (URI_prefix_len) total_length++;
-  if (URI_suffix_len) total_length++;
+  const int md5_max_len = 4 * 64;
 
-  if (total_length >= md5_max_len) return (PARSER_SALT_LENGTH);
-
-  u32 md5_remaining_len = md5_max_len;
+  if (md5_len >= md5_max_len) return (PARSER_SALT_LENGTH);
 
   u32 tmp_md5_buf[64] = { 0 };
 
   u8 *tmp_md5_ptr = (u8 *) tmp_md5_buf;
 
-  snprintf ((char *) tmp_md5_ptr, md5_remaining_len, "%s:", method_pos);
+  // method
 
-  md5_len     += method_len + 1;
-  tmp_md5_ptr += method_len + 1;
+  hc_strncat (tmp_md5_ptr, method_pos, method_len);
+
+  hc_strncat (tmp_md5_ptr, pcsep, 1);
+
+  // URI_prefix
 
   if (URI_prefix_len > 0)
   {
-    md5_remaining_len = md5_max_len - md5_len;
+    hc_strncat (tmp_md5_ptr, URI_prefix_pos, URI_prefix_len);
 
-    snprintf ((char *) tmp_md5_ptr, md5_remaining_len + 1, "%s:", URI_prefix_pos);
-
-    md5_len     += URI_prefix_len + 1;
-    tmp_md5_ptr += URI_prefix_len + 1;
+    hc_strncat (tmp_md5_ptr, pcsep, 1);
   }
 
-  md5_remaining_len = md5_max_len - md5_len;
+  // URI_resource
 
-  snprintf ((char *) tmp_md5_ptr, md5_remaining_len + 1, "%s", URI_resource_pos);
+  hc_strncat (tmp_md5_ptr, URI_resource_pos, URI_resource_len);
 
-  md5_len     += URI_resource_len;
-  tmp_md5_ptr += URI_resource_len;
+  hc_strncat (tmp_md5_ptr, pcsep, 1);
+
+  // URI_suffix
 
   if (URI_suffix_len > 0)
   {
-    md5_remaining_len = md5_max_len - md5_len;
+    hc_strncat (tmp_md5_ptr, URI_suffix_pos, URI_suffix_len);
 
-    snprintf ((char *) tmp_md5_ptr, md5_remaining_len + 1, ":%s", URI_suffix_pos);
-
-    md5_len += 1 + URI_suffix_len;
+    hc_strncat (tmp_md5_ptr, pcsep, 1);
   }
 
   u32 tmp_digest[4] = { 0 };
@@ -12709,25 +12688,25 @@ int sip_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   u8 *esalt_buf_ptr = (u8 *) sip->esalt_buf;
 
-  u32 esalt_len = 0;
+  int esalt_len = 0;
 
-  u32 max_esalt_len = sizeof (sip->esalt_buf);
+  const int max_esalt_len = sizeof (sip->esalt_buf);
 
   // there are 2 possibilities for the esalt:
 
   bool with_auth = false;
 
-  if (strlen ((const char *) qop_pos) == 4)
+  if (qop_len == 4)
   {
-    if (strncmp ((const char *) qop_pos, "auth", 4) == 0)
+    if (memcmp ((const char *) qop_pos, "auth", 4) == 0)
     {
       with_auth = true;
     }
   }
 
-  if (strlen ((const char *) qop_pos) == 8)
+  if (qop_len == 8)
   {
-    if (strncmp ((const char *) qop_pos, "auth-int", 8) == 0)
+    if (memcmp ((const char *) qop_pos, "auth-int", 8) == 0)
     {
       with_auth = true;
     }
@@ -12739,15 +12718,33 @@ int sip_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
     if (esalt_len > max_esalt_len) return (PARSER_SALT_LENGTH);
 
-    snprintf ((char *) esalt_buf_ptr, max_esalt_len, ":%s:%s:%s:%s:%08x%08x%08x%08x",
-      nonce_pos,
-      nonce_count_pos,
-      nonce_client_pos,
-      qop_pos,
-      tmp_digest[0],
-      tmp_digest[1],
-      tmp_digest[2],
-      tmp_digest[3]);
+    // init
+
+    hc_strncat (esalt_buf_ptr, pcsep, 1);
+
+    // nonce
+
+    hc_strncat (esalt_buf_ptr, nonce_pos, nonce_len);
+
+    hc_strncat (esalt_buf_ptr, pcsep, 1);
+
+    // nonce_count
+
+    hc_strncat (esalt_buf_ptr, nonce_count_pos, nonce_count_len);
+
+    hc_strncat (esalt_buf_ptr, pcsep, 1);
+
+    // nonce_client
+
+    hc_strncat (esalt_buf_ptr, nonce_client_pos, nonce_client_len);
+
+    hc_strncat (esalt_buf_ptr, pcsep, 1);
+
+    // qop
+
+    hc_strncat (esalt_buf_ptr, qop_pos, qop_len);
+
+    hc_strncat (esalt_buf_ptr, pcsep, 1);
   }
   else
   {
@@ -12755,13 +12752,28 @@ int sip_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
     if (esalt_len > max_esalt_len) return (PARSER_SALT_LENGTH);
 
-    snprintf ((char *) esalt_buf_ptr, max_esalt_len, ":%s:%08x%08x%08x%08x",
-      nonce_pos,
-      tmp_digest[0],
-      tmp_digest[1],
-      tmp_digest[2],
-      tmp_digest[3]);
+    // init
+
+    hc_strncat (esalt_buf_ptr, pcsep, 1);
+
+    // nonce
+
+    hc_strncat (esalt_buf_ptr, nonce_pos, nonce_len);
+
+    hc_strncat (esalt_buf_ptr, pcsep, 1);
   }
+
+  // tmp_digest
+
+  char tmp[64];
+
+  snprintf (tmp, sizeof (tmp) - 1, "%08x%08x%08x%08x",
+    tmp_digest[0],
+    tmp_digest[1],
+    tmp_digest[2],
+    tmp_digest[3]);
+
+  hc_strncat (esalt_buf_ptr, tmp, 32);
 
   // add 0x80 to esalt
 
@@ -12775,13 +12787,23 @@ int sip_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   u8 *sip_salt_ptr = (u8 *) sip->salt_buf;
 
-  u32 salt_len = user_len + 1 + realm_len + 1;
+  int salt_len = user_len + 1 + realm_len + 1;
 
-  u32 max_salt_len = 119;
+  int max_salt_len = 119;
 
   if (salt_len > max_salt_len) return (PARSER_SALT_LENGTH);
 
-  snprintf ((char *) sip_salt_ptr, max_salt_len + 1, "%s:%s:", user_pos, realm_pos);
+  // user_pos
+
+  hc_strncat (sip_salt_ptr, user_pos, user_len);
+
+  hc_strncat (sip_salt_ptr, pcsep, 1);
+
+  // realm_pos
+
+  hc_strncat (sip_salt_ptr, realm_pos, realm_len);
+
+  hc_strncat (sip_salt_ptr, pcsep, 1);
 
   sip->salt_len = salt_len;
 
@@ -12793,14 +12815,14 @@ int sip_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   max_salt_len = 55;
 
-  u32 fake_salt_len = salt_len;
+  int fake_salt_len = salt_len;
 
   if (fake_salt_len > max_salt_len)
   {
     fake_salt_len = max_salt_len;
   }
 
-  snprintf ((char *) salt_buf_ptr, max_salt_len + 1, "%s:%s:", user_pos, realm_pos);
+  memcpy (salt_buf_ptr, sip_salt_ptr, fake_salt_len);
 
   salt->salt_len = fake_salt_len;
 
@@ -13892,7 +13914,7 @@ int krb5tgs_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   if (input_buf[12] == '*')
   {
-    char *account_info_start = (char*) input_buf + 12; // we want the * char included
+    char *account_info_start = (char *) input_buf + 12; // we want the * char included
     char *account_info_stop  = strchr ((const char *) account_info_start + 1, '*');
 
     if (account_info_stop == NULL) return (PARSER_SEPARATOR_UNMATCHED);
