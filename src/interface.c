@@ -4950,7 +4950,7 @@ int md5md5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
    * This way we can save a special md5md5 kernel and reuse the one from vbull.
    */
 
-  static const u8 *zero = "";
+  static const u8 *zero = (const u8*) "";
 
   const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, zero, 0, hashconfig);
 
@@ -13892,7 +13892,7 @@ int krb5tgs_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   if (input_buf[12] == '*')
   {
-    char *account_info_start = input_buf + 12; // we want the * char included
+    char *account_info_start = (char*) input_buf + 12; // we want the * char included
     char *account_info_stop  = strchr ((const char *) account_info_start + 1, '*');
 
     if (account_info_stop == NULL) return (PARSER_SEPARATOR_UNMATCHED);
