@@ -614,7 +614,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
         memcpy (hash_buf.salt->salt_buf, essid_pos, essid_len);
 
         hash_buf.salt->salt_len  = (u32) essid_len;
-        hash_buf.salt->salt_iter = ROUNDS_WPA - 1;
+        hash_buf.salt->salt_iter = ROUNDS_WPA_PBKDF2 - 1;
 
         u32 hash[4];
 

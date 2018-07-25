@@ -64,7 +64,7 @@ DECLSPEC void make_kn (u32 *k)
   k[3] ^= c * 0x87000000;
 }
 
-__kernel void m02501_init (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global wpapmk_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const wpa_t *wpa_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m02501_init (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global wpa_pmk_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const wpa_eapol_t *wpa_eapol_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
 {
   const u64 gid = get_global_id (0);
 
@@ -110,19 +110,19 @@ __kernel void m02501_init (__global pw_t *pws, __global const kernel_rule_t *rul
   tmps[gid].out[7] = swap32_S (out[7]);
 }
 
-__kernel void m02501_loop (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global wpapmk_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const wpa_t *wpa_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m02501_loop (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global wpa_pmk_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const wpa_eapol_t *wpa_eapol_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
 {
   const u64 gid = get_global_id (0);
 
   if (gid >= gid_max) return;
 }
 
-__kernel void m02501_comp (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global wpapmk_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const wpa_t *wpa_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m02501_comp (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global wpa_pmk_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const wpa_eapol_t *wpa_eapol_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
 {
   // not in use here, special case...
 }
 
-__kernel void m02501_aux1 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global wpapmk_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const wpa_t *wpa_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m02501_aux1 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global wpa_pmk_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const wpa_eapol_t *wpa_eapol_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -144,46 +144,46 @@ __kernel void m02501_aux1 (__global pw_t *pws, __global const kernel_rule_t *rul
 
   const u32 digest_cur = digests_offset + digest_pos;
 
-  __global const wpa_t *wpa = &wpa_bufs[digest_cur];
+  __global const wpa_eapol_t *wpa_eapol = &wpa_eapol_bufs[digest_cur];
 
   u32 pke[32];
 
-  pke[ 0] = wpa->pke[ 0];
-  pke[ 1] = wpa->pke[ 1];
-  pke[ 2] = wpa->pke[ 2];
-  pke[ 3] = wpa->pke[ 3];
-  pke[ 4] = wpa->pke[ 4];
-  pke[ 5] = wpa->pke[ 5];
-  pke[ 6] = wpa->pke[ 6];
-  pke[ 7] = wpa->pke[ 7];
-  pke[ 8] = wpa->pke[ 8];
-  pke[ 9] = wpa->pke[ 9];
-  pke[10] = wpa->pke[10];
-  pke[11] = wpa->pke[11];
-  pke[12] = wpa->pke[12];
-  pke[13] = wpa->pke[13];
-  pke[14] = wpa->pke[14];
-  pke[15] = wpa->pke[15];
-  pke[16] = wpa->pke[16];
-  pke[17] = wpa->pke[17];
-  pke[18] = wpa->pke[18];
-  pke[19] = wpa->pke[19];
-  pke[20] = wpa->pke[20];
-  pke[21] = wpa->pke[21];
-  pke[22] = wpa->pke[22];
-  pke[23] = wpa->pke[23];
-  pke[24] = wpa->pke[24];
-  pke[25] = wpa->pke[25];
-  pke[26] = wpa->pke[26];
-  pke[27] = wpa->pke[27];
-  pke[28] = wpa->pke[28];
-  pke[29] = wpa->pke[29];
-  pke[30] = wpa->pke[30];
-  pke[31] = wpa->pke[31];
+  pke[ 0] = wpa_eapol->pke[ 0];
+  pke[ 1] = wpa_eapol->pke[ 1];
+  pke[ 2] = wpa_eapol->pke[ 2];
+  pke[ 3] = wpa_eapol->pke[ 3];
+  pke[ 4] = wpa_eapol->pke[ 4];
+  pke[ 5] = wpa_eapol->pke[ 5];
+  pke[ 6] = wpa_eapol->pke[ 6];
+  pke[ 7] = wpa_eapol->pke[ 7];
+  pke[ 8] = wpa_eapol->pke[ 8];
+  pke[ 9] = wpa_eapol->pke[ 9];
+  pke[10] = wpa_eapol->pke[10];
+  pke[11] = wpa_eapol->pke[11];
+  pke[12] = wpa_eapol->pke[12];
+  pke[13] = wpa_eapol->pke[13];
+  pke[14] = wpa_eapol->pke[14];
+  pke[15] = wpa_eapol->pke[15];
+  pke[16] = wpa_eapol->pke[16];
+  pke[17] = wpa_eapol->pke[17];
+  pke[18] = wpa_eapol->pke[18];
+  pke[19] = wpa_eapol->pke[19];
+  pke[20] = wpa_eapol->pke[20];
+  pke[21] = wpa_eapol->pke[21];
+  pke[22] = wpa_eapol->pke[22];
+  pke[23] = wpa_eapol->pke[23];
+  pke[24] = wpa_eapol->pke[24];
+  pke[25] = wpa_eapol->pke[25];
+  pke[26] = wpa_eapol->pke[26];
+  pke[27] = wpa_eapol->pke[27];
+  pke[28] = wpa_eapol->pke[28];
+  pke[29] = wpa_eapol->pke[29];
+  pke[30] = wpa_eapol->pke[30];
+  pke[31] = wpa_eapol->pke[31];
 
   u32 to;
 
-  if (wpa->nonce_compare < 0)
+  if (wpa_eapol->nonce_compare < 0)
   {
     to = pke[15] << 24
        | pke[16] >>  8;
@@ -194,9 +194,9 @@ __kernel void m02501_aux1 (__global pw_t *pws, __global const kernel_rule_t *rul
        | pke[24] >>  8;
   }
 
-  const u32 nonce_error_corrections = wpa->nonce_error_corrections;
+  const u32 nonce_error_corrections = wpa_eapol->nonce_error_corrections;
 
-  if (wpa->detected_le == 1)
+  if (wpa_eapol->detected_le == 1)
   {
     for (u32 nonce_error_correction = 0; nonce_error_correction <= nonce_error_corrections; nonce_error_correction++)
     {
@@ -205,7 +205,7 @@ __kernel void m02501_aux1 (__global pw_t *pws, __global const kernel_rule_t *rul
       t -= nonce_error_corrections / 2;
       t += nonce_error_correction;
 
-      if (wpa->nonce_compare < 0)
+      if (wpa_eapol->nonce_compare < 0)
       {
         pke[15] = (pke[15] & ~0x000000ff) | (t >> 24);
         pke[16] = (pke[16] & ~0xffffff00) | (t <<  8);
@@ -286,7 +286,7 @@ __kernel void m02501_aux1 (__global pw_t *pws, __global const kernel_rule_t *rul
 
       md5_hmac_init_64 (&ctx2, t0, t1, t2, t3);
 
-      md5_hmac_update_global (&ctx2, wpa->eapol, wpa->eapol_len);
+      md5_hmac_update_global (&ctx2, wpa_eapol->eapol, wpa_eapol->eapol_len);
 
       md5_hmac_final (&ctx2);
 
@@ -299,10 +299,10 @@ __kernel void m02501_aux1 (__global pw_t *pws, __global const kernel_rule_t *rul
        * final compare
        */
 
-      if ((keymic[0] == wpa->keymic[0])
-       && (keymic[1] == wpa->keymic[1])
-       && (keymic[2] == wpa->keymic[2])
-       && (keymic[3] == wpa->keymic[3]))
+      if ((keymic[0] == wpa_eapol->keymic[0])
+       && (keymic[1] == wpa_eapol->keymic[1])
+       && (keymic[2] == wpa_eapol->keymic[2])
+       && (keymic[3] == wpa_eapol->keymic[3]))
       {
         if (atomic_inc (&hashes_shown[digest_cur]) == 0)
         {
@@ -312,7 +312,7 @@ __kernel void m02501_aux1 (__global pw_t *pws, __global const kernel_rule_t *rul
     }
   }
 
-  if (wpa->detected_be == 1)
+  if (wpa_eapol->detected_be == 1)
   {
     for (u32 nonce_error_correction = 0; nonce_error_correction <= nonce_error_corrections; nonce_error_correction++)
     {
@@ -325,7 +325,7 @@ __kernel void m02501_aux1 (__global pw_t *pws, __global const kernel_rule_t *rul
 
       t = swap32_S (t);
 
-      if (wpa->nonce_compare < 0)
+      if (wpa_eapol->nonce_compare < 0)
       {
         pke[15] = (pke[15] & ~0x000000ff) | (t >> 24);
         pke[16] = (pke[16] & ~0xffffff00) | (t <<  8);
@@ -406,7 +406,7 @@ __kernel void m02501_aux1 (__global pw_t *pws, __global const kernel_rule_t *rul
 
       md5_hmac_init_64 (&ctx2, t0, t1, t2, t3);
 
-      md5_hmac_update_global (&ctx2, wpa->eapol, wpa->eapol_len);
+      md5_hmac_update_global (&ctx2, wpa_eapol->eapol, wpa_eapol->eapol_len);
 
       md5_hmac_final (&ctx2);
 
@@ -419,10 +419,10 @@ __kernel void m02501_aux1 (__global pw_t *pws, __global const kernel_rule_t *rul
        * final compare
        */
 
-      if ((keymic[0] == wpa->keymic[0])
-       && (keymic[1] == wpa->keymic[1])
-       && (keymic[2] == wpa->keymic[2])
-       && (keymic[3] == wpa->keymic[3]))
+      if ((keymic[0] == wpa_eapol->keymic[0])
+       && (keymic[1] == wpa_eapol->keymic[1])
+       && (keymic[2] == wpa_eapol->keymic[2])
+       && (keymic[3] == wpa_eapol->keymic[3]))
       {
         if (atomic_inc (&hashes_shown[digest_cur]) == 0)
         {
@@ -433,7 +433,7 @@ __kernel void m02501_aux1 (__global pw_t *pws, __global const kernel_rule_t *rul
   }
 }
 
-__kernel void m02501_aux2 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global wpapmk_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const wpa_t *wpa_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m02501_aux2 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global wpa_pmk_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const wpa_eapol_t *wpa_eapol_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -455,46 +455,46 @@ __kernel void m02501_aux2 (__global pw_t *pws, __global const kernel_rule_t *rul
 
   const u32 digest_cur = digests_offset + digest_pos;
 
-  __global const wpa_t *wpa = &wpa_bufs[digest_cur];
+  __global const wpa_eapol_t *wpa_eapol = &wpa_eapol_bufs[digest_cur];
 
   u32 pke[32];
 
-  pke[ 0] = wpa->pke[ 0];
-  pke[ 1] = wpa->pke[ 1];
-  pke[ 2] = wpa->pke[ 2];
-  pke[ 3] = wpa->pke[ 3];
-  pke[ 4] = wpa->pke[ 4];
-  pke[ 5] = wpa->pke[ 5];
-  pke[ 6] = wpa->pke[ 6];
-  pke[ 7] = wpa->pke[ 7];
-  pke[ 8] = wpa->pke[ 8];
-  pke[ 9] = wpa->pke[ 9];
-  pke[10] = wpa->pke[10];
-  pke[11] = wpa->pke[11];
-  pke[12] = wpa->pke[12];
-  pke[13] = wpa->pke[13];
-  pke[14] = wpa->pke[14];
-  pke[15] = wpa->pke[15];
-  pke[16] = wpa->pke[16];
-  pke[17] = wpa->pke[17];
-  pke[18] = wpa->pke[18];
-  pke[19] = wpa->pke[19];
-  pke[20] = wpa->pke[20];
-  pke[21] = wpa->pke[21];
-  pke[22] = wpa->pke[22];
-  pke[23] = wpa->pke[23];
-  pke[24] = wpa->pke[24];
-  pke[25] = wpa->pke[25];
-  pke[26] = wpa->pke[26];
-  pke[27] = wpa->pke[27];
-  pke[28] = wpa->pke[28];
-  pke[29] = wpa->pke[29];
-  pke[30] = wpa->pke[30];
-  pke[31] = wpa->pke[31];
+  pke[ 0] = wpa_eapol->pke[ 0];
+  pke[ 1] = wpa_eapol->pke[ 1];
+  pke[ 2] = wpa_eapol->pke[ 2];
+  pke[ 3] = wpa_eapol->pke[ 3];
+  pke[ 4] = wpa_eapol->pke[ 4];
+  pke[ 5] = wpa_eapol->pke[ 5];
+  pke[ 6] = wpa_eapol->pke[ 6];
+  pke[ 7] = wpa_eapol->pke[ 7];
+  pke[ 8] = wpa_eapol->pke[ 8];
+  pke[ 9] = wpa_eapol->pke[ 9];
+  pke[10] = wpa_eapol->pke[10];
+  pke[11] = wpa_eapol->pke[11];
+  pke[12] = wpa_eapol->pke[12];
+  pke[13] = wpa_eapol->pke[13];
+  pke[14] = wpa_eapol->pke[14];
+  pke[15] = wpa_eapol->pke[15];
+  pke[16] = wpa_eapol->pke[16];
+  pke[17] = wpa_eapol->pke[17];
+  pke[18] = wpa_eapol->pke[18];
+  pke[19] = wpa_eapol->pke[19];
+  pke[20] = wpa_eapol->pke[20];
+  pke[21] = wpa_eapol->pke[21];
+  pke[22] = wpa_eapol->pke[22];
+  pke[23] = wpa_eapol->pke[23];
+  pke[24] = wpa_eapol->pke[24];
+  pke[25] = wpa_eapol->pke[25];
+  pke[26] = wpa_eapol->pke[26];
+  pke[27] = wpa_eapol->pke[27];
+  pke[28] = wpa_eapol->pke[28];
+  pke[29] = wpa_eapol->pke[29];
+  pke[30] = wpa_eapol->pke[30];
+  pke[31] = wpa_eapol->pke[31];
 
   u32 to;
 
-  if (wpa->nonce_compare < 0)
+  if (wpa_eapol->nonce_compare < 0)
   {
     to = pke[15] << 24
        | pke[16] >>  8;
@@ -505,9 +505,9 @@ __kernel void m02501_aux2 (__global pw_t *pws, __global const kernel_rule_t *rul
        | pke[24] >>  8;
   }
 
-  const u32 nonce_error_corrections = wpa->nonce_error_corrections;
+  const u32 nonce_error_corrections = wpa_eapol->nonce_error_corrections;
 
-  if (wpa->detected_le == 1)
+  if (wpa_eapol->detected_le == 1)
   {
     for (u32 nonce_error_correction = 0; nonce_error_correction <= nonce_error_corrections; nonce_error_correction++)
     {
@@ -516,7 +516,7 @@ __kernel void m02501_aux2 (__global pw_t *pws, __global const kernel_rule_t *rul
       t -= nonce_error_corrections / 2;
       t += nonce_error_correction;
 
-      if (wpa->nonce_compare < 0)
+      if (wpa_eapol->nonce_compare < 0)
       {
         pke[15] = (pke[15] & ~0x000000ff) | (t >> 24);
         pke[16] = (pke[16] & ~0xffffff00) | (t <<  8);
@@ -597,7 +597,7 @@ __kernel void m02501_aux2 (__global pw_t *pws, __global const kernel_rule_t *rul
 
       sha1_hmac_init_64 (&ctx2, t0, t1, t2, t3);
 
-      sha1_hmac_update_global (&ctx2, wpa->eapol, wpa->eapol_len);
+      sha1_hmac_update_global (&ctx2, wpa_eapol->eapol, wpa_eapol->eapol_len);
 
       sha1_hmac_final (&ctx2);
 
@@ -610,10 +610,10 @@ __kernel void m02501_aux2 (__global pw_t *pws, __global const kernel_rule_t *rul
        * final compare
        */
 
-      if ((keymic[0] == wpa->keymic[0])
-       && (keymic[1] == wpa->keymic[1])
-       && (keymic[2] == wpa->keymic[2])
-       && (keymic[3] == wpa->keymic[3]))
+      if ((keymic[0] == wpa_eapol->keymic[0])
+       && (keymic[1] == wpa_eapol->keymic[1])
+       && (keymic[2] == wpa_eapol->keymic[2])
+       && (keymic[3] == wpa_eapol->keymic[3]))
       {
         if (atomic_inc (&hashes_shown[digest_cur]) == 0)
         {
@@ -623,7 +623,7 @@ __kernel void m02501_aux2 (__global pw_t *pws, __global const kernel_rule_t *rul
     }
   }
 
-  if (wpa->detected_be == 1)
+  if (wpa_eapol->detected_be == 1)
   {
     for (u32 nonce_error_correction = 0; nonce_error_correction <= nonce_error_corrections; nonce_error_correction++)
     {
@@ -636,7 +636,7 @@ __kernel void m02501_aux2 (__global pw_t *pws, __global const kernel_rule_t *rul
 
       t = swap32_S (t);
 
-      if (wpa->nonce_compare < 0)
+      if (wpa_eapol->nonce_compare < 0)
       {
         pke[15] = (pke[15] & ~0x000000ff) | (t >> 24);
         pke[16] = (pke[16] & ~0xffffff00) | (t <<  8);
@@ -717,7 +717,7 @@ __kernel void m02501_aux2 (__global pw_t *pws, __global const kernel_rule_t *rul
 
       sha1_hmac_init_64 (&ctx2, t0, t1, t2, t3);
 
-      sha1_hmac_update_global (&ctx2, wpa->eapol, wpa->eapol_len);
+      sha1_hmac_update_global (&ctx2, wpa_eapol->eapol, wpa_eapol->eapol_len);
 
       sha1_hmac_final (&ctx2);
 
@@ -730,10 +730,10 @@ __kernel void m02501_aux2 (__global pw_t *pws, __global const kernel_rule_t *rul
        * final compare
        */
 
-      if ((keymic[0] == wpa->keymic[0])
-       && (keymic[1] == wpa->keymic[1])
-       && (keymic[2] == wpa->keymic[2])
-       && (keymic[3] == wpa->keymic[3]))
+      if ((keymic[0] == wpa_eapol->keymic[0])
+       && (keymic[1] == wpa_eapol->keymic[1])
+       && (keymic[2] == wpa_eapol->keymic[2])
+       && (keymic[3] == wpa_eapol->keymic[3]))
       {
         if (atomic_inc (&hashes_shown[digest_cur]) == 0)
         {
@@ -744,7 +744,7 @@ __kernel void m02501_aux2 (__global pw_t *pws, __global const kernel_rule_t *rul
   }
 }
 
-__kernel void m02501_aux3 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global wpapmk_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const wpa_t *wpa_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m02501_aux3 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global wpa_pmk_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const wpa_eapol_t *wpa_eapol_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -818,46 +818,46 @@ __kernel void m02501_aux3 (__global pw_t *pws, __global const kernel_rule_t *rul
 
   const u32 digest_cur = digests_offset + digest_pos;
 
-  __global const wpa_t *wpa = &wpa_bufs[digest_cur];
+  __global const wpa_eapol_t *wpa_eapol = &wpa_eapol_bufs[digest_cur];
 
   u32 pke[32];
 
-  pke[ 0] = wpa->pke[ 0];
-  pke[ 1] = wpa->pke[ 1];
-  pke[ 2] = wpa->pke[ 2];
-  pke[ 3] = wpa->pke[ 3];
-  pke[ 4] = wpa->pke[ 4];
-  pke[ 5] = wpa->pke[ 5];
-  pke[ 6] = wpa->pke[ 6];
-  pke[ 7] = wpa->pke[ 7];
-  pke[ 8] = wpa->pke[ 8];
-  pke[ 9] = wpa->pke[ 9];
-  pke[10] = wpa->pke[10];
-  pke[11] = wpa->pke[11];
-  pke[12] = wpa->pke[12];
-  pke[13] = wpa->pke[13];
-  pke[14] = wpa->pke[14];
-  pke[15] = wpa->pke[15];
-  pke[16] = wpa->pke[16];
-  pke[17] = wpa->pke[17];
-  pke[18] = wpa->pke[18];
-  pke[19] = wpa->pke[19];
-  pke[20] = wpa->pke[20];
-  pke[21] = wpa->pke[21];
-  pke[22] = wpa->pke[22];
-  pke[23] = wpa->pke[23];
-  pke[24] = wpa->pke[24];
-  pke[25] = wpa->pke[25];
-  pke[26] = wpa->pke[26];
-  pke[27] = wpa->pke[27];
-  pke[28] = wpa->pke[28];
-  pke[29] = wpa->pke[29];
-  pke[30] = wpa->pke[30];
-  pke[31] = wpa->pke[31];
+  pke[ 0] = wpa_eapol->pke[ 0];
+  pke[ 1] = wpa_eapol->pke[ 1];
+  pke[ 2] = wpa_eapol->pke[ 2];
+  pke[ 3] = wpa_eapol->pke[ 3];
+  pke[ 4] = wpa_eapol->pke[ 4];
+  pke[ 5] = wpa_eapol->pke[ 5];
+  pke[ 6] = wpa_eapol->pke[ 6];
+  pke[ 7] = wpa_eapol->pke[ 7];
+  pke[ 8] = wpa_eapol->pke[ 8];
+  pke[ 9] = wpa_eapol->pke[ 9];
+  pke[10] = wpa_eapol->pke[10];
+  pke[11] = wpa_eapol->pke[11];
+  pke[12] = wpa_eapol->pke[12];
+  pke[13] = wpa_eapol->pke[13];
+  pke[14] = wpa_eapol->pke[14];
+  pke[15] = wpa_eapol->pke[15];
+  pke[16] = wpa_eapol->pke[16];
+  pke[17] = wpa_eapol->pke[17];
+  pke[18] = wpa_eapol->pke[18];
+  pke[19] = wpa_eapol->pke[19];
+  pke[20] = wpa_eapol->pke[20];
+  pke[21] = wpa_eapol->pke[21];
+  pke[22] = wpa_eapol->pke[22];
+  pke[23] = wpa_eapol->pke[23];
+  pke[24] = wpa_eapol->pke[24];
+  pke[25] = wpa_eapol->pke[25];
+  pke[26] = wpa_eapol->pke[26];
+  pke[27] = wpa_eapol->pke[27];
+  pke[28] = wpa_eapol->pke[28];
+  pke[29] = wpa_eapol->pke[29];
+  pke[30] = wpa_eapol->pke[30];
+  pke[31] = wpa_eapol->pke[31];
 
   u32 to;
 
-  if (wpa->nonce_compare < 0)
+  if (wpa_eapol->nonce_compare < 0)
   {
     to = pke[15] << 24
        | pke[16] >>  8;
@@ -868,9 +868,9 @@ __kernel void m02501_aux3 (__global pw_t *pws, __global const kernel_rule_t *rul
        | pke[24] >>  8;
   }
 
-  const u32 nonce_error_corrections = wpa->nonce_error_corrections;
+  const u32 nonce_error_corrections = wpa_eapol->nonce_error_corrections;
 
-  if (wpa->detected_le == 1)
+  if (wpa_eapol->detected_le == 1)
   {
     for (u32 nonce_error_correction = 0; nonce_error_correction <= nonce_error_corrections; nonce_error_correction++)
     {
@@ -879,7 +879,7 @@ __kernel void m02501_aux3 (__global pw_t *pws, __global const kernel_rule_t *rul
       t -= nonce_error_corrections / 2;
       t += nonce_error_correction;
 
-      if (wpa->nonce_compare < 0)
+      if (wpa_eapol->nonce_compare < 0)
       {
         pke[15] = (pke[15] & ~0x000000ff) | (t >> 24);
         pke[16] = (pke[16] & ~0xffffff00) | (t <<  8);
@@ -957,20 +957,20 @@ __kernel void m02501_aux3 (__global pw_t *pws, __global const kernel_rule_t *rul
       int eapol_left;
       int eapol_idx;
 
-      for (eapol_left = wpa->eapol_len, eapol_idx = 0; eapol_left > 16; eapol_left -= 16, eapol_idx += 4)
+      for (eapol_left = wpa_eapol->eapol_len, eapol_idx = 0; eapol_left > 16; eapol_left -= 16, eapol_idx += 4)
       {
-        m[0] = wpa->eapol[eapol_idx + 0] ^ iv[0];
-        m[1] = wpa->eapol[eapol_idx + 1] ^ iv[1];
-        m[2] = wpa->eapol[eapol_idx + 2] ^ iv[2];
-        m[3] = wpa->eapol[eapol_idx + 3] ^ iv[3];
+        m[0] = wpa_eapol->eapol[eapol_idx + 0] ^ iv[0];
+        m[1] = wpa_eapol->eapol[eapol_idx + 1] ^ iv[1];
+        m[2] = wpa_eapol->eapol[eapol_idx + 2] ^ iv[2];
+        m[3] = wpa_eapol->eapol[eapol_idx + 3] ^ iv[3];
 
         aes128_encrypt (ks, m, iv, s_te0, s_te1, s_te2, s_te3, s_te4);
       }
 
-      m[0] = wpa->eapol[eapol_idx + 0];
-      m[1] = wpa->eapol[eapol_idx + 1];
-      m[2] = wpa->eapol[eapol_idx + 2];
-      m[3] = wpa->eapol[eapol_idx + 3];
+      m[0] = wpa_eapol->eapol[eapol_idx + 0];
+      m[1] = wpa_eapol->eapol[eapol_idx + 1];
+      m[2] = wpa_eapol->eapol[eapol_idx + 2];
+      m[3] = wpa_eapol->eapol[eapol_idx + 3];
 
       u32 k[4];
 
@@ -1004,10 +1004,10 @@ __kernel void m02501_aux3 (__global pw_t *pws, __global const kernel_rule_t *rul
        * final compare
        */
 
-      if ((keymic[0] == wpa->keymic[0])
-       && (keymic[1] == wpa->keymic[1])
-       && (keymic[2] == wpa->keymic[2])
-       && (keymic[3] == wpa->keymic[3]))
+      if ((keymic[0] == wpa_eapol->keymic[0])
+       && (keymic[1] == wpa_eapol->keymic[1])
+       && (keymic[2] == wpa_eapol->keymic[2])
+       && (keymic[3] == wpa_eapol->keymic[3]))
       {
         if (atomic_inc (&hashes_shown[digest_cur]) == 0)
         {
@@ -1017,7 +1017,7 @@ __kernel void m02501_aux3 (__global pw_t *pws, __global const kernel_rule_t *rul
     }
   }
 
-  if (wpa->detected_be == 1)
+  if (wpa_eapol->detected_be == 1)
   {
     for (u32 nonce_error_correction = 0; nonce_error_correction <= nonce_error_corrections; nonce_error_correction++)
     {
@@ -1030,7 +1030,7 @@ __kernel void m02501_aux3 (__global pw_t *pws, __global const kernel_rule_t *rul
 
       t = swap32_S (t);
 
-      if (wpa->nonce_compare < 0)
+      if (wpa_eapol->nonce_compare < 0)
       {
         pke[15] = (pke[15] & ~0x000000ff) | (t >> 24);
         pke[16] = (pke[16] & ~0xffffff00) | (t <<  8);
@@ -1108,20 +1108,20 @@ __kernel void m02501_aux3 (__global pw_t *pws, __global const kernel_rule_t *rul
       int eapol_left;
       int eapol_idx;
 
-      for (eapol_left = wpa->eapol_len, eapol_idx = 0; eapol_left > 16; eapol_left -= 16, eapol_idx += 4)
+      for (eapol_left = wpa_eapol->eapol_len, eapol_idx = 0; eapol_left > 16; eapol_left -= 16, eapol_idx += 4)
       {
-        m[0] = wpa->eapol[eapol_idx + 0] ^ iv[0];
-        m[1] = wpa->eapol[eapol_idx + 1] ^ iv[1];
-        m[2] = wpa->eapol[eapol_idx + 2] ^ iv[2];
-        m[3] = wpa->eapol[eapol_idx + 3] ^ iv[3];
+        m[0] = wpa_eapol->eapol[eapol_idx + 0] ^ iv[0];
+        m[1] = wpa_eapol->eapol[eapol_idx + 1] ^ iv[1];
+        m[2] = wpa_eapol->eapol[eapol_idx + 2] ^ iv[2];
+        m[3] = wpa_eapol->eapol[eapol_idx + 3] ^ iv[3];
 
         aes128_encrypt (ks, m, iv, s_te0, s_te1, s_te2, s_te3, s_te4);
       }
 
-      m[0] = wpa->eapol[eapol_idx + 0];
-      m[1] = wpa->eapol[eapol_idx + 1];
-      m[2] = wpa->eapol[eapol_idx + 2];
-      m[3] = wpa->eapol[eapol_idx + 3];
+      m[0] = wpa_eapol->eapol[eapol_idx + 0];
+      m[1] = wpa_eapol->eapol[eapol_idx + 1];
+      m[2] = wpa_eapol->eapol[eapol_idx + 2];
+      m[3] = wpa_eapol->eapol[eapol_idx + 3];
 
       u32 k[4];
 
@@ -1155,10 +1155,10 @@ __kernel void m02501_aux3 (__global pw_t *pws, __global const kernel_rule_t *rul
        * final compare
        */
 
-      if ((keymic[0] == wpa->keymic[0])
-       && (keymic[1] == wpa->keymic[1])
-       && (keymic[2] == wpa->keymic[2])
-       && (keymic[3] == wpa->keymic[3]))
+      if ((keymic[0] == wpa_eapol->keymic[0])
+       && (keymic[1] == wpa_eapol->keymic[1])
+       && (keymic[2] == wpa_eapol->keymic[2])
+       && (keymic[3] == wpa_eapol->keymic[3]))
       {
         if (atomic_inc (&hashes_shown[digest_cur]) == 0)
         {

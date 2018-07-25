@@ -259,22 +259,22 @@ const char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
     {
       char *tmp_buf;
 
-      wpa_t *wpa = (wpa_t *) hashes->esalts_buf;
+      wpa_eapol_t *wpa_eapol = (wpa_eapol_t *) hashes->esalts_buf;
 
       hc_asprintf (&tmp_buf, "%s (AP:%02x:%02x:%02x:%02x:%02x:%02x STA:%02x:%02x:%02x:%02x:%02x:%02x)",
         (char *) hashes->salts_buf[0].salt_buf,
-        wpa->orig_mac_ap[0],
-        wpa->orig_mac_ap[1],
-        wpa->orig_mac_ap[2],
-        wpa->orig_mac_ap[3],
-        wpa->orig_mac_ap[4],
-        wpa->orig_mac_ap[5],
-        wpa->orig_mac_sta[0],
-        wpa->orig_mac_sta[1],
-        wpa->orig_mac_sta[2],
-        wpa->orig_mac_sta[3],
-        wpa->orig_mac_sta[4],
-        wpa->orig_mac_sta[5]);
+        wpa_eapol->orig_mac_ap[0],
+        wpa_eapol->orig_mac_ap[1],
+        wpa_eapol->orig_mac_ap[2],
+        wpa_eapol->orig_mac_ap[3],
+        wpa_eapol->orig_mac_ap[4],
+        wpa_eapol->orig_mac_ap[5],
+        wpa_eapol->orig_mac_sta[0],
+        wpa_eapol->orig_mac_sta[1],
+        wpa_eapol->orig_mac_sta[2],
+        wpa_eapol->orig_mac_sta[3],
+        wpa_eapol->orig_mac_sta[4],
+        wpa_eapol->orig_mac_sta[5]);
 
       return tmp_buf;
     }

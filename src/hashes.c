@@ -823,27 +823,27 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
               if ((user_options->hash_mode == 2500) || (user_options->hash_mode == 2501))
               {
-                wpa_t *wpa = (wpa_t *) hashes_buf[hashes_cnt].esalt;
+                wpa_eapol_t *wpa_eapol = (wpa_eapol_t *) hashes_buf[hashes_cnt].esalt;
 
                 if (user_options->hccapx_message_pair_chgd == true)
                 {
-                  wpa->message_pair_chgd = (int) user_options->hccapx_message_pair_chgd;
-                  wpa->message_pair      = (u8)  user_options->hccapx_message_pair;
+                  wpa_eapol->message_pair_chgd = (int) user_options->hccapx_message_pair_chgd;
+                  wpa_eapol->message_pair      = (u8)  user_options->hccapx_message_pair;
                 }
 
-                if (wpa->message_pair & (1 << 4))
+                if (wpa_eapol->message_pair & (1 << 4))
                 {
                   // ap-less attack detected, nc not needed
 
-                  wpa->nonce_error_corrections = 0;
+                  wpa_eapol->nonce_error_corrections = 0;
                 }
                 else
                 {
-                  if (wpa->message_pair & (1 << 7))
+                  if (wpa_eapol->message_pair & (1 << 7))
                   {
                     // replaycount not checked, nc needed
 
-                    wpa->nonce_error_corrections = user_options->nonce_error_corrections;
+                    wpa_eapol->nonce_error_corrections = user_options->nonce_error_corrections;
                   }
                   else
                   {
@@ -851,11 +851,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
                     if (user_options->nonce_error_corrections_chgd == true)
                     {
-                      wpa->nonce_error_corrections = user_options->nonce_error_corrections;
+                      wpa_eapol->nonce_error_corrections = user_options->nonce_error_corrections;
                     }
                     else
                     {
-                      wpa->nonce_error_corrections = 0;
+                      wpa_eapol->nonce_error_corrections = 0;
                     }
                   }
                 }
@@ -866,18 +866,18 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
                 // this means that we check both even if both are not set!
                 // however if one of them is set, we can assume that the endianess has been checked and the other one is not needed
 
-                wpa->detected_le = 1;
-                wpa->detected_be = 1;
+                wpa_eapol->detected_le = 1;
+                wpa_eapol->detected_be = 1;
 
-                if (wpa->message_pair & (1 << 5))
+                if (wpa_eapol->message_pair & (1 << 5))
                 {
-                  wpa->detected_le = 1;
-                  wpa->detected_be = 0;
+                  wpa_eapol->detected_le = 1;
+                  wpa_eapol->detected_be = 0;
                 }
-                else if (wpa->message_pair & (1 << 6))
+                else if (wpa_eapol->message_pair & (1 << 6))
                 {
-                  wpa->detected_le = 0;
-                  wpa->detected_be = 1;
+                  wpa_eapol->detected_le = 0;
+                  wpa_eapol->detected_be = 1;
                 }
               }
             }
@@ -1697,12 +1697,12 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
 
     hcfree (tmpdata);
 
-    wpa_t *wpa = (wpa_t *) st_esalts_buf;
+    wpa_eapol_t *wpa_eapol = (wpa_eapol_t *) st_esalts_buf;
 
-    wpa->detected_le = 1;
-    wpa->detected_be = 0;
+    wpa_eapol->detected_le = 1;
+    wpa_eapol->detected_be = 0;
 
-    wpa->nonce_error_corrections = 3;
+    wpa_eapol->nonce_error_corrections = 3;
   }
   else if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
   {

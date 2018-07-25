@@ -1194,7 +1194,7 @@ typedef struct pdf
 
 } pdf_t;
 
-typedef struct wpa
+typedef struct wpa_eapol
 {
   u32  pke[32];
   u32  eapol[64 + 16];
@@ -1215,7 +1215,18 @@ typedef struct wpa
   int  detected_le;
   int  detected_be;
 
-} wpa_t;
+} wpa_eapol_t;
+
+typedef struct wpa_pmkid
+{
+  u32  pmkid[4];
+  u32  pmkid_data[16];
+  u8   orig_mac_ap[6];
+  u8   orig_mac_sta[6];
+  u8   essid_len;
+  u32  essid_buf[16];
+
+} wpa_pmkid_t;
 
 typedef struct bitcoin_wallet
 {
@@ -1589,7 +1600,7 @@ typedef struct sha512crypt_tmp
 
 } sha512crypt_tmp_t;
 
-typedef struct wpa_tmp
+typedef struct wpa_pbkdf2_tmp
 {
   u32 ipad[5];
   u32 opad[5];
@@ -1597,13 +1608,13 @@ typedef struct wpa_tmp
   u32 dgst[10];
   u32 out[10];
 
-} wpa_tmp_t;
+} wpa_pbkdf2_tmp_t;
 
-typedef struct wpapmk_tmp
+typedef struct wpa_pmk_tmp
 {
   u32 out[8];
 
-} wpapmk_tmp_t;
+} wpa_pmk_tmp_t;
 
 typedef struct bitcoin_wallet_tmp
 {

@@ -1412,23 +1412,23 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
           const u32 digests_offset = hashes->salts_buf[salt_pos].digests_offset;
 
-          wpa_t *wpas = (wpa_t *) hashes->esalts_buf;
+          wpa_eapol_t *wpa_eapols = (wpa_eapol_t *) hashes->esalts_buf;
 
-          wpa_t *wpa = &wpas[digests_offset + loops_pos];
+          wpa_eapol_t *wpa_eapol = &wpa_eapols[digests_offset + loops_pos];
 
-          if (wpa->keyver == 1)
+          if (wpa_eapol->keyver == 1)
           {
             CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX1, pws_cnt, false, 0);
 
             if (CL_rc == -1) return -1;
           }
-          else if (wpa->keyver == 2)
+          else if (wpa_eapol->keyver == 2)
           {
             CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX2, pws_cnt, false, 0);
 
             if (CL_rc == -1) return -1;
           }
-          else if (wpa->keyver == 3)
+          else if (wpa_eapol->keyver == 3)
           {
             CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX3, pws_cnt, false, 0);
 

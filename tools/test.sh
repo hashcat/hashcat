@@ -9,7 +9,7 @@ TDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # missing hash types: 5200,6251,6261,6271,6281
 
-HASH_TYPES="0 10 11 12 20 21 22 23 30 40 50 60 100 101 110 111 112 120 121 122 125 130 131 132 133 140 141 150 160 200 300 400 500 600 900 1000 1100 1300 1400 1410 1411 1420 1430 1440 1441 1450 1460 1500 1600 1700 1710 1711 1720 1722 1730 1731 1740 1750 1760 1800 2100 2400 2410 2500 2600 2611 2612 2711 2811 3000 3100 3200 3710 3711 3800 3910 4010 4110 4300 4400 4500 4520 4521 4522 4700 4800 4900 5000 5100 5300 5400 5500 5600 5700 5800 6000 6100 6211 6212 6213 6221 6222 6223 6231 6232 6233 6241 6242 6243 6300 6400 6500 6600 6700 6800 6900 7000 7100 7200 7300 7400 7500 7700 7701 7800 7801 7900 8000 8100 8200 8300 8400 8500 8600 8700 8900 9100 9200 9300 9400 9500 9600 9700 9800 9900 10000 10100 10200 10300 10400 10500 10600 10700 10800 10900 11000 11100 11200 11300 11400 11500 11600 11900 12000 12001 12100 12200 12300 12400 12600 12700 12800 12900 13000 13100 13200 13300 13400 13500 13600 13800 13900 14000 14100 14400 14600 14700 14800 14900 15000 15100 15200 15300 15400 15500 15600 15700 15900 16000 16100 16200 16300 16400 16500 16600 16700 99999"
+HASH_TYPES="0 10 11 12 20 21 22 23 30 40 50 60 100 101 110 111 112 120 121 122 125 130 131 132 133 140 141 150 160 200 300 400 500 600 900 1000 1100 1300 1400 1410 1411 1420 1430 1440 1441 1450 1460 1500 1600 1700 1710 1711 1720 1722 1730 1731 1740 1750 1760 1800 2100 2400 2410 2500 2600 2611 2612 2711 2811 3000 3100 3200 3710 3711 3800 3910 4010 4110 4300 4400 4500 4520 4521 4522 4700 4800 4900 5000 5100 5300 5400 5500 5600 5700 5800 6000 6100 6211 6212 6213 6221 6222 6223 6231 6232 6233 6241 6242 6243 6300 6400 6500 6600 6700 6800 6900 7000 7100 7200 7300 7400 7500 7700 7701 7800 7801 7900 8000 8100 8200 8300 8400 8500 8600 8700 8900 9100 9200 9300 9400 9500 9600 9700 9800 9900 10000 10100 10200 10300 10400 10500 10600 10700 10800 10900 11000 11100 11200 11300 11400 11500 11600 11900 12000 12001 12100 12200 12300 12400 12600 12700 12800 12900 13000 13100 13200 13300 13400 13500 13600 13800 13900 14000 14100 14400 14600 14700 14800 14900 15000 15100 15200 15300 15400 15500 15600 15700 15900 16000 16100 16200 16300 16400 16500 16600 16700 16800 99999"
 
 #ATTACK_MODES="0 1 3 6 7"
 ATTACK_MODES="0 1 3 7"
@@ -22,7 +22,7 @@ HASHFILE_ONLY="2500"
 
 NEVER_CRACK="11600 14900"
 
-SLOW_ALGOS="400 500 501 1600 1800 2100 2500 3200 5200 5800 6211 6212 6213 6221 6222 6223 6231 6232 6233 6241 6242 6243 6251 6261 6271 6281 6300 6400 6500 6600 6700 6800 7100 7200 7400 7900 8200 8800 8900 9000 9100 9200 9300 9400 9500 9600 10000 10300 10500 10700 10900 11300 11600 11900 12000 12001 12100 12200 12300 12400 12500 12700 12800 12900 13000 13200 13400 13600 14600 14700 14800 15100 15200 15300 15600 15700 15900"
+SLOW_ALGOS="400 500 501 1600 1800 2100 2500 3200 5200 5800 6211 6212 6213 6221 6222 6223 6231 6232 6233 6241 6242 6243 6251 6261 6271 6281 6300 6400 6500 6600 6700 6800 7100 7200 7400 7900 8200 8800 8900 9000 9100 9200 9300 9400 9500 9600 10000 10300 10500 10700 10900 11300 11600 11900 12000 12001 12100 12200 12300 12400 12500 12700 12800 12900 13000 13200 13400 13600 13751 13752 13753 14600 14611 14612 14613 14621 14622 14623 14631 14632 14633 14641 14642 14643 14700 14800 15100 15200 15300 15600 15700 15900 16000 16200 16300 16800"
 
 OPTS="--quiet --force --potfile-disable --runtime 400 --gpu-temp-disable"
 
@@ -256,6 +256,8 @@ function init()
   elif [ "${hash_type}" -eq 15400 ]; then
     min=0
     min_offset=3
+  elif [ "${hash_type}" -eq 16800 ]; then
+    min_offset=7 # means length 8, since we start with 0
   fi
 
   # foreach password entry split password in 2 (skip first entry, is len 1)
@@ -310,6 +312,8 @@ function init()
     min_len=9
   elif [ "${hash_type}" -eq 15400 ]; then
     min_len=31
+  elif [ "${hash_type}" -eq 16800 ]; then
+    min_len=7 # means length 8, since we start with 0
   fi
 
   # generate multiple pass/hash foreach len (2 to 8)
@@ -726,6 +730,8 @@ function attack_1()
       offset=7
     elif [ ${hash_type} -eq 16000 ]; then
       offset=7
+    elif [ ${hash_type} -eq 16800 ]; then
+      offset=7
     fi
 
     hash_file=${OUTD}/${hash_type}_multihash_combi.txt
@@ -855,6 +861,9 @@ function attack_3()
     elif [ "${hash_type}" -eq 15400 ]; then
       mask_offset=3
       max=1
+    elif [ "${hash_type}" -eq 16800 ]; then
+      mask_offset=7
+      max=7
     fi
 
     # special case: we need to split the first line
@@ -915,6 +924,28 @@ function attack_3()
       # modify "default" mask if needed (and set custom charset to reduce keyspace)
 
       if [ "${hash_type}" -eq 2500 ]; then
+
+        pass=$(sed -n ${i}p ${dict})
+
+        mask=${pass}
+
+        # replace the first x positions in the mask with ?d's
+
+        # first: remove first i (== amount) chars
+
+        mask=$(echo ${mask} | cut -b $((i + 1))-)
+
+        # prepend the ?d's
+
+        for i in $(seq 1 ${i}); do
+
+          mask="?d${mask}"
+
+        done
+
+      fi
+
+      if [ "${hash_type}" -eq 16800 ]; then
 
         pass=$(sed -n ${i}p ${dict})
 
@@ -1029,6 +1060,11 @@ function attack_3()
       increment_max=9
     fi
 
+    if   [ "${hash_type}" -eq 16800 ]; then
+      increment_min=8
+      increment_max=9
+    fi
+
     hash_file=${OUTD}/${hash_type}_multihash_bruteforce.txt
 
     head -n $((increment_max - ${increment_min} + 1)) ${OUTD}/${hash_type}_hashes.txt > ${hash_file}
@@ -1062,6 +1098,91 @@ function attack_3()
     # modify "default" mask if needed (and set custom charset to reduce keyspace)
 
     if [ "${hash_type}" -eq 2500 ]; then
+
+      mask="?d?d?d?d?d?1?2?3?4"
+
+      charset_1=""
+      charset_2=""
+      charset_3=""
+      charset_4=""
+
+      # check positions (here we assume that mask is always composed of non literal chars
+      # i.e. something like ?d?l?u?s?1 is possible, but ?d?dsuffix not
+      charset_1_pos=$(expr index "${mask}" 1)
+      charset_2_pos=$(expr index "${mask}" 2)
+      charset_3_pos=$(expr index "${mask}" 3)
+      charset_4_pos=$(expr index "${mask}" 4)
+
+      # divide each charset position by 2 since each of them occupies 2 positions in the mask
+
+      charset_1_pos=$((charset_1_pos / 2))
+      charset_2_pos=$((charset_2_pos / 2))
+      charset_3_pos=$((charset_3_pos / 2))
+      charset_4_pos=$((charset_4_pos / 2))
+
+      i=1
+
+      while read -u 9 hash; do
+
+        pass=$(sed -n ${i}p ${OUTD}/${hash_type}_passwords.txt)
+
+        # charset 1
+        char=$(echo "${pass}" | cut -b ${charset_1_pos})
+        charset_1=$(echo -e "${charset_1}\n${char}")
+
+        # charset 2
+        char=$(echo "${pass}" | cut -b ${charset_2_pos})
+        charset_2=$(echo -e "${charset_2}\n${char}")
+
+        # charset 3
+        char=$(echo "${pass}" | cut -b ${charset_3_pos})
+        charset_3=$(echo -e "${charset_3}\n${char}")
+
+        # charset 4
+        char=$(echo "${pass}" | cut -b ${charset_4_pos})
+        charset_4=$(echo -e "${charset_4}\n${char}")
+
+        i=$((i + 1))
+
+      done 9< ${OUTD}/${hash_type}_multihash_bruteforce.txt
+
+      # just make sure that all custom charset fields are initialized
+
+      if [ -z "${charset_1}" ]; then
+
+        charset_1="1"
+
+      fi
+
+      if [ -z "${charset_2}" ]; then
+
+        charset_2="2"
+
+      fi
+
+      if [ -z "${charset_3}" ]; then
+
+        charset_3="3"
+
+      fi
+
+      if [ -z "${charset_4}" ]; then
+
+        charset_4="4"
+
+      fi
+
+      # unique and remove new lines
+
+      charset_1=$(echo "${charset_1}" | sort -u | tr -d '\n')
+      charset_2=$(echo "${charset_2}" | sort -u | tr -d '\n')
+      charset_3=$(echo "${charset_3}" | sort -u | tr -d '\n')
+      charset_4=$(echo "${charset_4}" | sort -u | tr -d '\n')
+
+      custom_charsets="-1 ${charset_1} -2 ${charset_2} -3 ${charset_3} -4 ${charset_4}"
+    fi
+
+    if [ "${hash_type}" -eq 16800 ]; then
 
       mask="?d?d?d?d?d?1?2?3?4"
 
@@ -1247,6 +1368,8 @@ function attack_6()
       min=0
       max=1
       mask_offset=29
+    elif [ "${hash_type}" -eq 16800 ]; then
+      max=6
     fi
 
     # special case: we need to split the first line
@@ -1418,6 +1541,8 @@ function attack_6()
       max=8
     elif [ ${hash_type} -eq  8500 ]; then
       max=8
+    elif [ ${hash_type} -eq 16800 ]; then
+      max=5
     fi
 
     if ! contains ${hash_type} ${TIMEOUT_ALGOS}; then
@@ -1560,6 +1685,8 @@ function attack_7()
       mask_offset=3
       min=0
       max=1
+    elif [ "${hash_type}" -eq 16800 ]; then
+      max=5
     fi
 
     # special case: we need to split the first line
@@ -1617,6 +1744,32 @@ function attack_7()
         # adjust mask if needed
 
         if [ "${hash_type}" -eq 2500 ]; then
+
+          line_nr=1
+
+          if [ "${i}" -gt 1 ]; then
+            line_nr=$((${i} - 1))
+          fi
+
+          pass_part_1=$(sed -n ${line_nr}p ${OUTD}/${hash_type}_dict1)
+          pass_part_2=$(sed -n ${line_nr}p ${OUTD}/${hash_type}_dict2)
+
+          pass_part_2_len=${#pass_part_2}
+
+          pass=${pass_part_1}${pass_part_2}
+          pass_len=${#pass}
+
+          # add first x chars of password to mask and append the (old) mask
+
+          mask_len=${#mask}
+          mask_len=$((mask_len / 2))
+
+          mask_prefix=$(echo ${pass} | cut -b -$((pass_len - ${mask_len} - ${pass_part_2_len})))
+          mask=${mask_prefix}${mask}
+
+        fi
+
+        if [ "${hash_type}" -eq 16800 ]; then
 
           line_nr=1
 
@@ -1755,6 +1908,8 @@ function attack_7()
     elif [ ${hash_type} -eq 14900 ]; then
       max=5
     elif [ ${hash_type} -eq 15400 ]; then
+      max=5
+    elif [ ${hash_type} -eq 16800 ]; then
       max=5
     fi
 

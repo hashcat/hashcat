@@ -57,7 +57,7 @@ my $hashcat = "./hashcat";
 
 my $MAX_LEN = 55;
 
-my @modes = (0, 10, 11, 12, 20, 21, 22, 23, 30, 40, 50, 60, 100, 101, 110, 111, 112, 120, 121, 122, 125, 130, 131, 132, 133, 140, 141, 150, 160, 200, 300, 400, 500, 600, 900, 1000, 1100, 1300, 1400, 1410, 1411, 1420, 1430, 1440, 1441, 1450, 1460, 1500, 1600, 1700, 1710, 1711, 1720, 1730, 1740, 1722, 1731, 1750, 1760, 1800, 2100, 2400, 2410, 2500, 2600, 2611, 2612, 2711, 2811, 3000, 3100, 3200, 3710, 3711, 3300, 3500, 3610, 3720, 3800, 3910, 4010, 4110, 4210, 4300, 4400, 4500, 4520, 4521, 4522, 4600, 4700, 4800, 4900, 5000, 5100, 5300, 5400, 5500, 5600, 5700, 5800, 6000, 6100, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7000, 7100, 7200, 7300, 7400, 7500, 7700, 7701, 7800, 7801, 7900, 8000, 8100, 8200, 8300, 8400, 8500, 8600, 8700, 8900, 9100, 9200, 9300, 9400, 9500, 9600, 9700, 9800, 9900, 10000, 10100, 10200, 10300, 10400, 10500, 10600, 10700, 10800, 10900, 11000, 11100, 11200, 11300, 11400, 11500, 11600, 11900, 12000, 12001, 12100, 12200, 12300, 12400, 12600, 12700, 12800, 12900, 13000, 13100, 13200, 13300, 13400, 13500, 13600, 13800, 13900, 14000, 14100, 14400, 14700, 14800, 14900, 15000, 15100, 15200, 15300, 15400, 15500, 15600, 15700, 15900, 16000, 16100, 16200, 16300, 16400, 16500, 16600, 16700, 99999);
+my @modes = (0, 10, 11, 12, 20, 21, 22, 23, 30, 40, 50, 60, 100, 101, 110, 111, 112, 120, 121, 122, 125, 130, 131, 132, 133, 140, 141, 150, 160, 200, 300, 400, 500, 600, 900, 1000, 1100, 1300, 1400, 1410, 1411, 1420, 1430, 1440, 1441, 1450, 1460, 1500, 1600, 1700, 1710, 1711, 1720, 1730, 1740, 1722, 1731, 1750, 1760, 1800, 2100, 2400, 2410, 2500, 2600, 2611, 2612, 2711, 2811, 3000, 3100, 3200, 3710, 3711, 3300, 3500, 3610, 3720, 3800, 3910, 4010, 4110, 4210, 4300, 4400, 4500, 4520, 4521, 4522, 4600, 4700, 4800, 4900, 5000, 5100, 5300, 5400, 5500, 5600, 5700, 5800, 6000, 6100, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7000, 7100, 7200, 7300, 7400, 7500, 7700, 7701, 7800, 7801, 7900, 8000, 8100, 8200, 8300, 8400, 8500, 8600, 8700, 8900, 9100, 9200, 9300, 9400, 9500, 9600, 9700, 9800, 9900, 10000, 10100, 10200, 10300, 10400, 10500, 10600, 10700, 10800, 10900, 11000, 11100, 11200, 11300, 11400, 11500, 11600, 11900, 12000, 12001, 12100, 12200, 12300, 12400, 12600, 12700, 12800, 12900, 13000, 13100, 13200, 13300, 13400, 13500, 13600, 13800, 13900, 14000, 14100, 14400, 14700, 14800, 14900, 15000, 15100, 15200, 15300, 15400, 15500, 15600, 15700, 15900, 16000, 16100, 16200, 16300, 16400, 16500, 16600, 16700, 16800, 99999);
 
 my %is_utf16le      = map { $_ => 1 } qw (30 40 130 131 132 133 140 141 1000 1100 1430 1440 1441 1730 1740 1731 5500 5600 8000 9400 9500 9600 9700 9800 11600 13500 13800);
 my %less_fifteen    = map { $_ => 1 } qw (500 1600 1800 3200 6300 7400 10500 10700);
@@ -1675,10 +1675,10 @@ sub verify
 
       next unless (exists ($db->{$hash_in}) and (! defined ($db->{$hash_in})));
     }
-    # WPA/WPA2
+    # WPA-EAPOL-PBKDF2
     elsif ($mode == 2500)
     {
-      print "ERROR: verify currently not supported for WPA/WPA2 (because of hashcat's output format)\n";
+      print "ERROR: verify currently not supported for WPA-EAPOL-PBKDF2 (because of hashcat's output format)\n";
 
       exit (1);
     }
@@ -2954,6 +2954,26 @@ sub verify
 
       next unless (exists ($db->{$hash_in}) and (! defined ($db->{$hash_in})));
     }
+    # WPA-PMKID-PMKDF2
+    elsif ($mode == 16800)
+    {
+      ($hash_in, $word) = split ":", $line;
+
+      next unless defined $hash_in;
+      next unless defined $word;
+
+      my @data = split (/\*/, $hash_in);
+
+      next unless scalar @data == 4;
+
+      my ($pmkid, $macap, $macsta, $essid) = @data;
+
+      $param  = $macap;
+      $param2 = $macsta;
+      $param3 = $essid;
+
+      next unless (exists ($db->{$hash_in}) and (! defined ($db->{$hash_in})));
+    }
     else
     {
       print "ERROR: hash mode is not supported\n";
@@ -3404,6 +3424,14 @@ sub verify
     elsif ($mode == 16700)
     {
       $hash_out = gen_hash ($mode, $word, $salt, $iter, $param, $param2);
+
+      $len = length $hash_out;
+
+      return unless (substr ($line, 0, $len) eq $hash_out);
+    }
+    elsif ($mode == 16800)
+    {
+      $hash_out = gen_hash ($mode, $word, undef, 0, $param, $param2, $param3);
 
       $len = length $hash_out;
 
@@ -3982,6 +4010,12 @@ sub passthrough
     }
     elsif ($mode == 16700)
     {
+      $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, 32));
+    }
+    elsif ($mode == 16800)
+    {
+      next if length ($word_buf) < 8;
+
       $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, 32));
     }
     else
@@ -5078,6 +5112,27 @@ sub single
         else
         {
           rnd ($mode, $i, 32);
+        }
+      }
+    }
+    elsif ($mode == 16800)
+    {
+      my $salt_len = get_random_num (0, 32);
+
+      for (my $i = 8; $i < 16; $i++)
+      {
+        if ($len != 0)
+        {
+          if ($len < 8)
+          {
+            $len += 7;
+          }
+
+          rnd ($mode, $len, $salt_len);
+        }
+        else
+        {
+          rnd ($mode, $i, $salt_len);
         }
       }
     }
@@ -9738,6 +9793,63 @@ END_CODE
     }
 
     $tmp_hash = sprintf ('$fvde$%d$%d$%s$%d$%s', $Z_PK, length ($salt_bin), unpack ("H*", $salt_bin), $iterations, unpack ("H*", $blob_bin));
+  }
+  elsif ($mode == 16800)
+  {
+    my $macap;
+    my $macsta;
+    my $essid;
+
+    if (!defined ($additional_param))
+    {
+      $macap = unpack ("H*", randbytes (6));
+    }
+    else
+    {
+      $macap = $additional_param;
+    }
+
+    if (!defined ($additional_param2))
+    {
+      $macsta = unpack ("H*", randbytes (6));
+    }
+    else
+    {
+      $macsta = $additional_param2;
+    }
+
+    if (!defined ($additional_param3))
+    {
+      $essid = unpack ("H*", randbytes (get_random_num (8, 32) & 0x1e));
+    }
+    else
+    {
+      $essid = $additional_param3;
+    }
+
+    # generate the Pairwise Master Key (PMK)
+
+    my $iterations = 4096;
+
+    my $pbkdf2 = Crypt::PBKDF2->new
+    (
+      hash_class => 'HMACSHA1',
+      iterations => $iterations,
+      output_len => 32,
+    );
+
+    my $essid_bin = pack ("H*", $essid);
+
+    my $pmk = $pbkdf2->PBKDF2 ($essid_bin, $word_buf);
+
+    my $macap_bin  = pack ("H*", $macap);
+    my $macsta_bin = pack ("H*", $macsta);
+
+    my $data = "PMK Name" . $macap_bin . $macsta_bin;
+
+    my $pmkid = hmac_hex ($data, $pmk, \&sha1);
+
+    $tmp_hash = sprintf ("%s*%s*%s*%s", substr ($pmkid, 0, 32), $macap, $macsta, $essid);
   }
   elsif ($mode == 99999)
   {
