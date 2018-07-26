@@ -492,25 +492,33 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
 
   memcpy (out, in, out_len);
 
-  char *rule_new = hcstrdup (rule);
+  char *rule_new = (char *) hcmalloc (rule_len);
+
+  int rule_len_new = 0;
 
   int rule_pos;
 
   for (rule_pos = 0; rule_pos < rule_len; rule_pos++)
   {
-    if (is_hex_notation (rule_new, rule_len, rule_pos))
+    if (is_hex_notation (rule, rule_len, rule_pos))
     {
-      const u8 c = hex_to_u8 ((u8 *)rule_new + rule_pos + 2);
+      const u8 c = hex_to_u8 (&rule[rule_pos + 2]);
 
-      rule_new[rule_pos + 0] = c;
-      rule_new[rule_pos + 1] = ' ';
-      rule_new[rule_pos + 2] = ' ';
-      rule_new[rule_pos + 3] = ' ';
+      rule_pos += 3;
 
+      rule_new[rule_len_new] = c;
+
+      rule_len_new++;
+    }
+    else
+    {
+      rule_new[rule_len_new] = rule[rule_pos];
+
+      rule_len_new++;
     }
   }
 
-  for (rule_pos = 0; rule_pos < rule_len; rule_pos++)
+  for (rule_pos = 0; rule_pos < rule_len_new; rule_pos++)
   {
     int upos, upos2;
     int ulen;

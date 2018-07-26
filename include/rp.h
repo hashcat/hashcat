@@ -26,7 +26,7 @@ int conv_itoc (const u8 c);
 
 int generate_random_rule (char rule_buf[RP_RULE_SIZE], const u32 rp_gen_func_min, const u32 rp_gen_func_max);
 
-bool is_hex_notation (char *rule_buf, u32 rule_len, u32 rule_pos);
+bool is_hex_notation (const char *rule_buf, u32 rule_len, u32 rule_pos);
 
 int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule);
 int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule);
