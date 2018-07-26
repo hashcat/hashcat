@@ -3835,7 +3835,8 @@ int phpass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   token.signatures_buf[1] = SIGNATURE_PHPASS2;
 
   token.len[0]  = 3;
-  token.attr[0] = TOKEN_ATTR_FIXED_LENGTH;
+  token.attr[0] = TOKEN_ATTR_FIXED_LENGTH
+                | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   token.len[1]  = 1;
   token.attr[1] = TOKEN_ATTR_FIXED_LENGTH;
