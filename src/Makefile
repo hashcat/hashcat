@@ -132,7 +132,7 @@ CC_WIN_64               := x86_64-w64-mingw32-gcc
 
 ## To compile win-iconv with mingw clone from here: https://github.com/win-iconv/win-iconv
 ##
-## Then patch the makefile withe the patches from tools/win-iconv-*.diff and run make install
+## Then patch the makefile with the patches from tools/win-iconv-*.diff and run make install
 ##
 
 WIN_ICONV_32            := /opt/win-iconv-32
