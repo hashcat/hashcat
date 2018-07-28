@@ -758,9 +758,9 @@ void append_block1 (const u32 offset, u32 *buf0, u32 *buf1, const u32 src_r0)
                 | value << 16
                 | value << 24;
 
-  u32 v[4] = { 0 };
+  u32 v[4];
 
-  v[(offset & 0xf) >> 2] = 0xff << ((offset & 3) * 8);
+  set_mark_1x4_S (v, offset);
 
   const u32 offset16 = offset / 16;
 
@@ -1296,9 +1296,9 @@ u32 rule_op_mangle_rotate_right (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u
 
   u32 tmp = 0;
 
-  u32 v[4] = { 0 };
+  u32 v[4];
 
-  v[(in_len1 & 0xf) >> 2] = 0xff << ((in_len1 & 3) * 8);
+  set_mark_1x4_S (v, in_len1);
 
   switch (in_len1 / 16)
   {
@@ -1820,9 +1820,9 @@ u32 rule_op_mangle_dupechar_last (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const 
 
   u32 tmp = 0;
 
-  u32 v[4] = { 0 };
+  u32 v[4];
 
-  v[(in_len1 & 0xf) >> 2] = 0xff << ((in_len1 & 3) * 8);
+  set_mark_1x4_S (v, in_len1);
 
   switch (in_len1 / 16)
   {

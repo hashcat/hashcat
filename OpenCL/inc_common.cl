@@ -376,6 +376,17 @@ DECLSPEC void undo_utf16le (const u32x *in1, const u32x *in2, u32x *out)
   #endif
 }
 
+DECLSPEC void set_mark_1x4 (u32 *v, const u32 offset)
+{
+  const u32 c = (offset & 15) / 4;
+  const u32 r = 0xff << ((offset & 3) * 8);
+
+  v[0] = (c == 0) ? r : 0;
+  v[1] = (c == 1) ? r : 0;
+  v[2] = (c == 2) ? r : 0;
+  v[3] = (c == 3) ? r : 0;
+}
+
 DECLSPEC void append_helper_1x4 (u32x *r, const u32 v, const u32 *m)
 {
   r[0] |= v & m[0];
@@ -386,18 +397,18 @@ DECLSPEC void append_helper_1x4 (u32x *r, const u32 v, const u32 *m)
 
 DECLSPEC void append_0x80_1x4 (u32x *w0, const u32 offset)
 {
-  u32 v[4] = { 0 };
+  u32 v[4];
 
-  v[(offset & 0xf) >> 2] = 0xff << ((offset & 3) * 8);
+  set_mark_1x4 (v, offset);
 
   append_helper_1x4 (w0, 0x80808080, v);
 }
 
 DECLSPEC void append_0x80_2x4 (u32x *w0, u32x *w1, const u32 offset)
 {
-  u32 v[4] = { 0 };
+  u32 v[4];
 
-  v[(offset & 0xf) >> 2] = 0xff << ((offset & 3) * 8);
+  set_mark_1x4 (v, offset);
 
   const u32 offset16 = offset / 16;
 
@@ -407,9 +418,9 @@ DECLSPEC void append_0x80_2x4 (u32x *w0, u32x *w1, const u32 offset)
 
 DECLSPEC void append_0x80_3x4 (u32x *w0, u32x *w1, u32x *w2, const u32 offset)
 {
-  u32 v[4] = { 0 };
+  u32 v[4];
 
-  v[(offset & 0xf) >> 2] = 0xff << ((offset & 3) * 8);
+  set_mark_1x4 (v, offset);
 
   const u32 offset16 = offset / 16;
 
@@ -420,9 +431,9 @@ DECLSPEC void append_0x80_3x4 (u32x *w0, u32x *w1, u32x *w2, const u32 offset)
 
 DECLSPEC void append_0x80_4x4 (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const u32 offset)
 {
-  u32 v[4] = { 0 };
+  u32 v[4];
 
-  v[(offset & 0xf) >> 2] = 0xff << ((offset & 3) * 8);
+  set_mark_1x4 (v, offset);
 
   const u32 offset16 = offset / 16;
 
@@ -434,9 +445,9 @@ DECLSPEC void append_0x80_4x4 (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const u32
 
 DECLSPEC void append_0x80_8x4 (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, const u32 offset)
 {
-  u32 v[4] = { 0 };
+  u32 v[4];
 
-  v[(offset & 0xf) >> 2] = 0xff << ((offset & 3) * 8);
+  set_mark_1x4 (v, offset);
 
   const u32 offset16 = offset / 16;
 
@@ -452,9 +463,9 @@ DECLSPEC void append_0x80_8x4 (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4,
 
 DECLSPEC void append_0x80_1x16 (u32x *w, const u32 offset)
 {
-  u32 v[4] = { 0 };
+  u32 v[4];
 
-  v[(offset & 0xf) >> 2] = 0xff << ((offset & 3) * 8);
+  set_mark_1x4 (v, offset);
 
   const u32 offset16 = offset / 16;
 
@@ -30910,6 +30921,17 @@ DECLSPEC void truncate_block_16x4_be_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, cons
   }
 }
 
+DECLSPEC void set_mark_1x4_S (u32 *v, const u32 offset)
+{
+  const u32 c = (offset & 15) / 4;
+  const u32 r = 0xff << ((offset & 3) * 8);
+
+  v[0] = (c == 0) ? r : 0;
+  v[1] = (c == 1) ? r : 0;
+  v[2] = (c == 2) ? r : 0;
+  v[3] = (c == 3) ? r : 0;
+}
+
 DECLSPEC void append_helper_1x4_S (u32 *r, const u32 v, const u32 *m)
 {
   r[0] |= v & m[0];
@@ -30920,9 +30942,9 @@ DECLSPEC void append_helper_1x4_S (u32 *r, const u32 v, const u32 *m)
 
 DECLSPEC void append_0x01_2x4_S (u32 *w0, u32 *w1, const u32 offset)
 {
-  u32 v[4] = { 0 };
+  u32 v[4];
 
-  v[(offset & 0xf) >> 2] = 0xff << ((offset & 3) * 8);
+  set_mark_1x4_S (v, offset);
 
   const u32 offset16 = offset / 16;
 
@@ -30932,18 +30954,18 @@ DECLSPEC void append_0x01_2x4_S (u32 *w0, u32 *w1, const u32 offset)
 
 DECLSPEC void append_0x80_1x4_S (u32 *w0, const u32 offset)
 {
-  u32 v[4] = { 0 };
+  u32 v[4];
 
-  v[(offset & 0xf) >> 2] = 0xff << ((offset & 3) * 8);
+  set_mark_1x4_S (v, offset);
 
   append_helper_1x4_S (w0, 0x80808080, v);
 }
 
 DECLSPEC void append_0x80_2x4_S (u32 *w0, u32 *w1, const u32 offset)
 {
-  u32 v[4] = { 0 };
+  u32 v[4];
 
-  v[(offset & 0xf) >> 2] = 0xff << ((offset & 3) * 8);
+  set_mark_1x4_S (v, offset);
 
   const u32 offset16 = offset / 16;
 
@@ -30953,9 +30975,9 @@ DECLSPEC void append_0x80_2x4_S (u32 *w0, u32 *w1, const u32 offset)
 
 DECLSPEC void append_0x80_3x4_S (u32 *w0, u32 *w1, u32 *w2, const u32 offset)
 {
-  u32 v[4] = { 0 };
+  u32 v[4];
 
-  v[(offset & 0xf) >> 2] = 0xff << ((offset & 3) * 8);
+  set_mark_1x4_S (v, offset);
 
   const u32 offset16 = offset / 16;
 
@@ -30966,9 +30988,9 @@ DECLSPEC void append_0x80_3x4_S (u32 *w0, u32 *w1, u32 *w2, const u32 offset)
 
 DECLSPEC void append_0x80_4x4_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 offset)
 {
-  u32 v[4] = { 0 };
+  u32 v[4];
 
-  v[(offset & 0xf) >> 2] = 0xff << ((offset & 3) * 8);
+  set_mark_1x4_S (v, offset);
 
   const u32 offset16 = offset / 16;
 
@@ -30980,9 +31002,9 @@ DECLSPEC void append_0x80_4x4_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 o
 
 DECLSPEC void append_0x80_8x4_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const u32 offset)
 {
-  u32 v[4] = { 0 };
+  u32 v[4];
 
-  v[(offset & 0xf) >> 2] = 0xff << ((offset & 3) * 8);
+  set_mark_1x4_S (v, offset);
 
   const u32 offset16 = offset / 16;
 
