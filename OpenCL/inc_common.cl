@@ -3,26 +3,6 @@
  * License.....: MIT
  */
 
-__constant u32a c_append_helper_mini[16][4] =
-{
-  { 0x000000ff, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x0000ff00, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00ff0000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0xff000000, 0x00000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x000000ff, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x0000ff00, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00ff0000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0xff000000, 0x00000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x000000ff, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x0000ff00, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00ff0000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0xff000000, 0x00000000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x000000ff },
-  { 0x00000000, 0x00000000, 0x00000000, 0x0000ff00 },
-  { 0x00000000, 0x00000000, 0x00000000, 0x00ff0000 },
-  { 0x00000000, 0x00000000, 0x00000000, 0xff000000 },
-};
-
 /**
  * pure scalar functions
  */
@@ -406,26 +386,18 @@ DECLSPEC void append_helper_1x4 (u32x *r, const u32 v, const u32 *m)
 
 DECLSPEC void append_0x80_1x4 (u32x *w0, const u32 offset)
 {
-  const u32 v[4] =
-  {
-    c_append_helper_mini[offset & 0xf][0],
-    c_append_helper_mini[offset & 0xf][1],
-    c_append_helper_mini[offset & 0xf][2],
-    c_append_helper_mini[offset & 0xf][3]
-  };
+  u32 v[4] = { 0 };
+
+  v[(offset & 0xf) >> 2] = 0xff << ((offset & 3) * 8);
 
   append_helper_1x4 (w0, 0x80808080, v);
 }
 
 DECLSPEC void append_0x80_2x4 (u32x *w0, u32x *w1, const u32 offset)
 {
-  const u32 v[4] =
-  {
-    c_append_helper_mini[offset & 0xf][0],
-    c_append_helper_mini[offset & 0xf][1],
-    c_append_helper_mini[offset & 0xf][2],
-    c_append_helper_mini[offset & 0xf][3]
-  };
+  u32 v[4] = { 0 };
+
+  v[(offset & 0xf) >> 2] = 0xff << ((offset & 3) * 8);
 
   const u32 offset16 = offset / 16;
 
@@ -435,13 +407,9 @@ DECLSPEC void append_0x80_2x4 (u32x *w0, u32x *w1, const u32 offset)
 
 DECLSPEC void append_0x80_3x4 (u32x *w0, u32x *w1, u32x *w2, const u32 offset)
 {
-  const u32 v[4] =
-  {
-    c_append_helper_mini[offset & 0xf][0],
-    c_append_helper_mini[offset & 0xf][1],
-    c_append_helper_mini[offset & 0xf][2],
-    c_append_helper_mini[offset & 0xf][3]
-  };
+  u32 v[4] = { 0 };
+
+  v[(offset & 0xf) >> 2] = 0xff << ((offset & 3) * 8);
 
   const u32 offset16 = offset / 16;
 
@@ -452,13 +420,9 @@ DECLSPEC void append_0x80_3x4 (u32x *w0, u32x *w1, u32x *w2, const u32 offset)
 
 DECLSPEC void append_0x80_4x4 (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const u32 offset)
 {
-  const u32 v[4] =
-  {
-    c_append_helper_mini[offset & 0xf][0],
-    c_append_helper_mini[offset & 0xf][1],
-    c_append_helper_mini[offset & 0xf][2],
-    c_append_helper_mini[offset & 0xf][3]
-  };
+  u32 v[4] = { 0 };
+
+  v[(offset & 0xf) >> 2] = 0xff << ((offset & 3) * 8);
 
   const u32 offset16 = offset / 16;
 
@@ -470,13 +434,9 @@ DECLSPEC void append_0x80_4x4 (u32x *w0, u32x *w1, u32x *w2, u32x *w3, const u32
 
 DECLSPEC void append_0x80_8x4 (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, const u32 offset)
 {
-  const u32 v[4] =
-  {
-    c_append_helper_mini[offset & 0xf][0],
-    c_append_helper_mini[offset & 0xf][1],
-    c_append_helper_mini[offset & 0xf][2],
-    c_append_helper_mini[offset & 0xf][3]
-  };
+  u32 v[4] = { 0 };
+
+  v[(offset & 0xf) >> 2] = 0xff << ((offset & 3) * 8);
 
   const u32 offset16 = offset / 16;
 
@@ -492,13 +452,9 @@ DECLSPEC void append_0x80_8x4 (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4,
 
 DECLSPEC void append_0x80_1x16 (u32x *w, const u32 offset)
 {
-  const u32 v[4] =
-  {
-    c_append_helper_mini[offset & 0xf][0],
-    c_append_helper_mini[offset & 0xf][1],
-    c_append_helper_mini[offset & 0xf][2],
-    c_append_helper_mini[offset & 0xf][3]
-  };
+  u32 v[4] = { 0 };
+
+  v[(offset & 0xf) >> 2] = 0xff << ((offset & 3) * 8);
 
   const u32 offset16 = offset / 16;
 
@@ -30964,13 +30920,9 @@ DECLSPEC void append_helper_1x4_S (u32 *r, const u32 v, const u32 *m)
 
 DECLSPEC void append_0x01_2x4_S (u32 *w0, u32 *w1, const u32 offset)
 {
-  const u32 v[4] =
-  {
-    c_append_helper_mini[offset & 0xf][0],
-    c_append_helper_mini[offset & 0xf][1],
-    c_append_helper_mini[offset & 0xf][2],
-    c_append_helper_mini[offset & 0xf][3]
-  };
+  u32 v[4] = { 0 };
+
+  v[(offset & 0xf) >> 2] = 0xff << ((offset & 3) * 8);
 
   const u32 offset16 = offset / 16;
 
@@ -30980,26 +30932,18 @@ DECLSPEC void append_0x01_2x4_S (u32 *w0, u32 *w1, const u32 offset)
 
 DECLSPEC void append_0x80_1x4_S (u32 *w0, const u32 offset)
 {
-  const u32 v[4] =
-  {
-    c_append_helper_mini[offset & 0xf][0],
-    c_append_helper_mini[offset & 0xf][1],
-    c_append_helper_mini[offset & 0xf][2],
-    c_append_helper_mini[offset & 0xf][3]
-  };
+  u32 v[4] = { 0 };
+
+  v[(offset & 0xf) >> 2] = 0xff << ((offset & 3) * 8);
 
   append_helper_1x4_S (w0, 0x80808080, v);
 }
 
 DECLSPEC void append_0x80_2x4_S (u32 *w0, u32 *w1, const u32 offset)
 {
-  const u32 v[4] =
-  {
-    c_append_helper_mini[offset & 0xf][0],
-    c_append_helper_mini[offset & 0xf][1],
-    c_append_helper_mini[offset & 0xf][2],
-    c_append_helper_mini[offset & 0xf][3]
-  };
+  u32 v[4] = { 0 };
+
+  v[(offset & 0xf) >> 2] = 0xff << ((offset & 3) * 8);
 
   const u32 offset16 = offset / 16;
 
@@ -31009,13 +30953,9 @@ DECLSPEC void append_0x80_2x4_S (u32 *w0, u32 *w1, const u32 offset)
 
 DECLSPEC void append_0x80_3x4_S (u32 *w0, u32 *w1, u32 *w2, const u32 offset)
 {
-  const u32 v[4] =
-  {
-    c_append_helper_mini[offset & 0xf][0],
-    c_append_helper_mini[offset & 0xf][1],
-    c_append_helper_mini[offset & 0xf][2],
-    c_append_helper_mini[offset & 0xf][3]
-  };
+  u32 v[4] = { 0 };
+
+  v[(offset & 0xf) >> 2] = 0xff << ((offset & 3) * 8);
 
   const u32 offset16 = offset / 16;
 
@@ -31026,13 +30966,9 @@ DECLSPEC void append_0x80_3x4_S (u32 *w0, u32 *w1, u32 *w2, const u32 offset)
 
 DECLSPEC void append_0x80_4x4_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 offset)
 {
-  const u32 v[4] =
-  {
-    c_append_helper_mini[offset & 0xf][0],
-    c_append_helper_mini[offset & 0xf][1],
-    c_append_helper_mini[offset & 0xf][2],
-    c_append_helper_mini[offset & 0xf][3]
-  };
+  u32 v[4] = { 0 };
+
+  v[(offset & 0xf) >> 2] = 0xff << ((offset & 3) * 8);
 
   const u32 offset16 = offset / 16;
 
@@ -31044,13 +30980,9 @@ DECLSPEC void append_0x80_4x4_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 o
 
 DECLSPEC void append_0x80_8x4_S (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const u32 offset)
 {
-  const u32 v[4] =
-  {
-    c_append_helper_mini[offset & 0xf][0],
-    c_append_helper_mini[offset & 0xf][1],
-    c_append_helper_mini[offset & 0xf][2],
-    c_append_helper_mini[offset & 0xf][3]
-  };
+  u32 v[4] = { 0 };
+
+  v[(offset & 0xf) >> 2] = 0xff << ((offset & 3) * 8);
 
   const u32 offset16 = offset / 16;
 
