@@ -483,7 +483,7 @@ endif
 
 ifeq ($(UNAME),Darwin)
 $(HASHCAT_LIBRARY): $(NATIVE_SHARED_OBJS)
-	$(CC)                     $^ -o $@                    $(LFLAGS_NATIVE) -shared -current_version $(VERSION_PURE) -compatibility_version $(VERSION_PURE)
+	$(CC)                     $^ -o $@                    $(LFLAGS_NATIVE) -shared -install_name $(DESTDIR)$(LIBRARY_FOLDER)/$(HASHCAT_LIBRARY) -current_version $(VERSION_PURE) -compatibility_version $(VERSION_PURE)
 else
 $(HASHCAT_LIBRARY): $(NATIVE_SHARED_OBJS)
 	$(CC)                     $^ -o $@                    $(LFLAGS_NATIVE) -shared -Wl,-soname,$(HASHCAT_LIBRARY)
