@@ -47,6 +47,7 @@ bool hc_path_exist (const char *path);
 bool hc_path_read (const char *path);
 bool hc_path_write (const char *path);
 bool hc_path_create (const char *path);
+bool hc_path_has_bom (const char *path);
 
 bool hc_string_is_digit (const char *s);
 

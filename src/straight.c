@@ -18,6 +18,13 @@
 
 static int straight_ctx_add_wl (hashcat_ctx_t *hashcat_ctx, const char *dict)
 {
+  if (hc_path_has_bom (dict) == true)
+  {
+    event_log_error (hashcat_ctx, "%s: Byte Order Mark (BOM) was detected", dict);
+
+    return -1;
+  }
+
   straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
   if (straight_ctx->dicts_avail == straight_ctx->dicts_cnt)
