@@ -20,6 +20,12 @@ static const char LM_ZERO_HASH[]    = "aad3b435b51404ee";
 static const char LM_MASKED_PLAIN[] = "[notfound]";
 
 /**
+ * entropy check (truecrypt, veracrypt, ...)
+ */
+
+static const float MIN_SUFFICIENT_ENTROPY_FILE = 7.0f;
+
+/**
  * algo specific
  */
 

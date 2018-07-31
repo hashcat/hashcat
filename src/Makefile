@@ -228,6 +228,7 @@ LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -ldl
 LFLAGS_NATIVE           += -lrt
+LFLAGS_NATIVE           += -lm
 endif # Linux
 
 ifeq ($(UNAME),FreeBSD)
@@ -236,6 +237,7 @@ CFLAGS_NATIVE           := $(CFLAGS)
 CFLAGS_NATIVE           += -I$(OPENCL_HEADERS_KHRONOS)/
 LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -lpthread
+LFLAGS_NATIVE           += -lm
 endif
 endif # FreeBSD
 
@@ -300,9 +302,11 @@ CFLAGS_CROSS_WIN64      += -DWITH_HWMON
 LFLAGS_CROSS_LINUX32    := $(LFLAGS)
 LFLAGS_CROSS_LINUX32    += -lpthread
 LFLAGS_CROSS_LINUX32    += -ldl
+LFLAGS_CROSS_LINUX32    += -lm
 LFLAGS_CROSS_LINUX64    := $(LFLAGS)
 LFLAGS_CROSS_LINUX64    += -lpthread
 LFLAGS_CROSS_LINUX64    += -ldl
+LFLAGS_CROSS_LINUX64    += -lm
 LFLAGS_CROSS_WIN32      := $(LFLAGS)
 LFLAGS_CROSS_WIN32      += -Wl,--dynamicbase -Wl,--nxcompat
 LFLAGS_CROSS_WIN32      += -lpsapi

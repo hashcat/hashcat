@@ -341,6 +341,7 @@ static const char *PA_032 = "Invalid hccapx version";
 static const char *PA_033 = "Invalid hccapx message pair";
 static const char *PA_034 = "Token encoding exception";
 static const char *PA_035 = "Token length exception";
+static const char *PA_036 = "Insufficient entropy exception";
 static const char *PA_255 = "Unknown error";
 
 static const char *HT_00000 = "MD5";
@@ -6755,6 +6756,10 @@ int truecrypt_parse_hash_1k (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAY
 
   if (n != sizeof (buf)) return (PARSER_TC_FILE_SIZE);
 
+  const float entropy = get_entropy (buf, n);
+
+  if (entropy < MIN_SUFFICIENT_ENTROPY_FILE) return (PARSER_INSUFFICIENT_ENTROPY);
+
   memcpy (tc->salt_buf, buf, 64);
 
   memcpy (tc->data_buf, buf + 64, 512 - 64);
@@ -6793,6 +6798,10 @@ int truecrypt_parse_hash_2k (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAY
   fclose (fp);
 
   if (n != sizeof (buf)) return (PARSER_TC_FILE_SIZE);
+
+  const float entropy = get_entropy (buf, n);
+
+  if (entropy < MIN_SUFFICIENT_ENTROPY_FILE) return (PARSER_INSUFFICIENT_ENTROPY);
 
   memcpy (tc->salt_buf, buf, 64);
 
@@ -6833,6 +6842,10 @@ int veracrypt_parse_hash_200000 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   if (n != sizeof (buf)) return (PARSER_VC_FILE_SIZE);
 
+  const float entropy = get_entropy (buf, n);
+
+  if (entropy < MIN_SUFFICIENT_ENTROPY_FILE) return (PARSER_INSUFFICIENT_ENTROPY);
+
   memcpy (tc->salt_buf, buf, 64);
 
   memcpy (tc->data_buf, buf + 64, 512 - 64);
@@ -6871,6 +6884,10 @@ int veracrypt_parse_hash_500000 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
   fclose (fp);
 
   if (n != sizeof (buf)) return (PARSER_VC_FILE_SIZE);
+
+  const float entropy = get_entropy (buf, n);
+
+  if (entropy < MIN_SUFFICIENT_ENTROPY_FILE) return (PARSER_INSUFFICIENT_ENTROPY);
 
   memcpy (tc->salt_buf, buf, 64);
 
@@ -6911,6 +6928,10 @@ int veracrypt_parse_hash_327661 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   if (n != sizeof (buf)) return (PARSER_VC_FILE_SIZE);
 
+  const float entropy = get_entropy (buf, n);
+
+  if (entropy < MIN_SUFFICIENT_ENTROPY_FILE) return (PARSER_INSUFFICIENT_ENTROPY);
+
   memcpy (tc->salt_buf, buf, 64);
 
   memcpy (tc->data_buf, buf + 64, 512 - 64);
@@ -6949,6 +6970,10 @@ int veracrypt_parse_hash_655331 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
   fclose (fp);
 
   if (n != sizeof (buf)) return (PARSER_VC_FILE_SIZE);
+
+  const float entropy = get_entropy (buf, n);
+
+  if (entropy < MIN_SUFFICIENT_ENTROPY_FILE) return (PARSER_INSUFFICIENT_ENTROPY);
 
   memcpy (tc->salt_buf, buf, 64);
 
@@ -18255,6 +18280,7 @@ const char *strparser (const u32 parser_status)
     case PARSER_HCCAPX_MESSAGE_PAIR:  return PA_033;
     case PARSER_TOKEN_ENCODING:       return PA_034;
     case PARSER_TOKEN_LENGTH:         return PA_035;
+    case PARSER_INSUFFICIENT_ENTROPY: return PA_036;
   }
 
   return PA_255;

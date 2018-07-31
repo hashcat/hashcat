@@ -21,6 +21,7 @@
 - OpenCL kernels: Removed the use of 'volatile' in inline assembly instructions where it is not needed
 - OpenCL kernels: Switched array pointer types in function declarations in order to be compatible with OpenCL 2.0
 - SIP cracking: Increased the nonce field to allow a salt of 1024 bytes
+- TrueCrypt/VeraCrypt cracking: Do an entropy check on the TC/VC header on start
 
 ##
 ## Bugs

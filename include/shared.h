@@ -13,6 +13,7 @@
 #include <time.h>
 #include <fcntl.h>
 #include <ctype.h>
+#include <math.h>
 
 bool overflow_check_u32_add (const u32 a, const u32 b);
 bool overflow_check_u32_mul (const u32 a, const u32 b);
@@ -69,5 +70,8 @@ u32 round_up_multiple_32 (const u32 v, const u32 m);
 u64 round_up_multiple_64 (const u64 v, const u64 m);
 
 void hc_strncat (u8 *dst, u8 *src, const size_t n);
+
+int count_char (const u8 *buf, const int len, const u8 c);
+float get_entropy (const u8 *buf, const int len);
 
 #endif // _SHARED_H

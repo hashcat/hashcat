@@ -679,3 +679,33 @@ void hc_strncat (u8 *dst, u8 *src, const size_t n)
 
   *dst_ptr = 0;
 }
+
+int count_char (const u8 *buf, const int len, const u8 c)
+{
+  int r = 0;
+
+  for (int i = 0; i < len; i++)
+  {
+    if (buf[i] == c) r++;
+  }
+
+  return r;
+}
+
+float get_entropy (const u8 *buf, const int len)
+{
+  float entropy = 0.0;
+
+  for (int c = 0; c < 256; c++)
+  {
+    const int r = count_char (buf, len, (const u8) c);
+
+    if (r == 0) continue;
+
+    float w = (float) r / len;
+
+    entropy += -w * log2 (w);
+  }
+
+  return entropy;
+}
