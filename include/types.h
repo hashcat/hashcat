@@ -1075,6 +1075,7 @@ typedef struct hc_device_param
   u64     outerloop_pos;
   u64     outerloop_left;
   double  outerloop_msec;
+  double  outerloop_multi;
 
   u32     innerloop_pos;
   u32     innerloop_left;

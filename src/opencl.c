@@ -1320,6 +1320,8 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
         {
           if (speed_msec > 4000)
           {
+            device_param->outerloop_multi *= (double) iter / (double) (loop_pos + loop_left);
+
             device_param->speed_pos = 1;
 
             device_param->speed_only_finish = true;
@@ -2212,8 +2214,10 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
   // we make use of this in status view
 
-  device_param->outerloop_pos  = 0;
-  device_param->outerloop_left = pws_cnt;
+  device_param->outerloop_multi = 1;
+  device_param->outerloop_msec  = 0;
+  device_param->outerloop_pos   = 0;
+  device_param->outerloop_left  = pws_cnt;
 
   // loop start: most outer loop = salt iteration, then innerloops (if multi)
 
@@ -2268,13 +2272,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
       device_param->kernel_params_buf32[30] = (u32) innerloop_left;
 
-      // i think we can get rid of this
-      if (innerloop_left == false)
-      {
-        puts ("bug, how should this happen????\n");
-
-        continue;
-      }
+      device_param->outerloop_multi = (double) innerloop_cnt / (double) (innerloop_pos + innerloop_left);
 
       if (hashes->salts_shown[salt_pos] == 1)
       {
@@ -2539,44 +2537,49 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
        * benchmark was aborted because too long kernel runtime (slow hashes only)
        */
 
-      if (device_param->speed_only_finish == true) break;
-
-      /**
-       * speed
-       */
-
-      if (status_ctx->run_thread_level2 == true)
+      if ((user_options->speed_only == true) && (device_param->speed_only_finish == true))
       {
-        const u64 perf_sum_all = (u64) pws_cnt * innerloop_left;
-
-        const double speed_msec = hc_timer_get (device_param->timer_speed);
-
-        hc_timer_set (&device_param->timer_speed);
-
-        u32 speed_pos = device_param->speed_pos;
-
-        device_param->speed_cnt[speed_pos] = perf_sum_all;
-
-        device_param->speed_msec[speed_pos] = speed_msec;
-
-        speed_pos++;
-
-        if (speed_pos == SPEED_CACHE)
-        {
-          speed_pos = 0;
-        }
-
-        device_param->speed_pos = speed_pos;
-
+        // nothing to do in that case
+      }
+      else
+      {
         /**
-         * progress
+         * speed
          */
 
-        hc_thread_mutex_lock (status_ctx->mux_counter);
+        if (status_ctx->run_thread_level2 == true)
+        {
+          const u64 perf_sum_all = (u64) pws_cnt * innerloop_left;
 
-        status_ctx->words_progress_done[salt_pos] += perf_sum_all;
+          const double speed_msec = hc_timer_get (device_param->timer_speed);
 
-        hc_thread_mutex_unlock (status_ctx->mux_counter);
+          hc_timer_set (&device_param->timer_speed);
+
+          u32 speed_pos = device_param->speed_pos;
+
+          device_param->speed_cnt[speed_pos] = perf_sum_all;
+
+          device_param->speed_msec[speed_pos] = speed_msec;
+
+          speed_pos++;
+
+          if (speed_pos == SPEED_CACHE)
+          {
+            speed_pos = 0;
+          }
+
+          device_param->speed_pos = speed_pos;
+
+          /**
+           * progress
+           */
+
+          hc_thread_mutex_lock (status_ctx->mux_counter);
+
+          status_ctx->words_progress_done[salt_pos] += perf_sum_all;
+
+          hc_thread_mutex_unlock (status_ctx->mux_counter);
+        }
       }
 
       /**
@@ -2585,43 +2588,36 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
       if (user_options->speed_only == true)
       {
-        double total = device_param->speed_msec[0];
+        // let's abort this so that the user doesn't have to wait too long on the result
+        // for slow hashes it's fine anyway as boost mode should be turned on
 
-        for (u32 speed_pos = 1; speed_pos < device_param->speed_pos; speed_pos++)
+        if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
         {
-          total += device_param->speed_msec[speed_pos];
-        }
-
-        // it's unclear if 4s is enough to turn on boost mode for all opencl device
-
-        if ((total > 4000) || (device_param->speed_pos == SPEED_CACHE - 1))
-        {
-          u32 q = device_param->speed_pos / 10; // only use the last 10% of the recording
-
-          if (q == 0) q = 1;
-
-          u64    cnt  = 0;
-          double msec = 0;
-
-          for (u32 speed_pos = device_param->speed_pos - q; speed_pos < device_param->speed_pos; speed_pos++)
-          {
-            cnt  += device_param->speed_cnt[speed_pos];
-            msec += device_param->speed_msec[speed_pos];
-          }
-
-          memset (device_param->speed_cnt,  0, SPEED_CACHE * sizeof (u64));
-          memset (device_param->speed_msec, 0, SPEED_CACHE * sizeof (double));
-
-          device_param->speed_cnt[0]  = cnt  / q;
-          device_param->speed_msec[0] = msec / q;
-
-          device_param->speed_pos = 1;
-
           device_param->speed_only_finish = true;
 
           break;
         }
+        else
+        {
+          double total = device_param->speed_msec[0];
+
+          for (u32 speed_pos = 1; speed_pos < device_param->speed_pos; speed_pos++)
+          {
+            total += device_param->speed_msec[speed_pos];
+          }
+
+          // it's unclear if 4s is enough to turn on boost mode for all opencl device
+
+          if ((total > 4000) || (device_param->speed_pos == SPEED_CACHE - 1))
+          {
+            device_param->speed_only_finish = true;
+
+            break;
+          }
+        }
       }
+
+      if (device_param->speed_only_finish == true) break;
 
       /**
        * result
@@ -2632,16 +2628,10 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
       if (status_ctx->run_thread_level2 == false) break;
     }
 
-    if (user_options->progress_only == true)
-    {
-      const double m = (double) innerloop_cnt / innerloop_step;
-
-      device_param->outerloop_msec += device_param->speed_msec[0] * m * hashes->salts_cnt;
-    }
-
-    if (device_param->speed_only_finish == true) break;
+    if (user_options->speed_only == true) break;
 
     //status screen makes use of this, can't reset here
+    //device_param->innerloop_msec = 0;
     //device_param->innerloop_pos  = 0;
     //device_param->innerloop_left = 0;
 
@@ -2649,8 +2639,21 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
   }
 
   //status screen makes use of this, can't reset here
+  //device_param->outerloop_msec = 0;
   //device_param->outerloop_pos  = 0;
   //device_param->outerloop_left = 0;
+
+  if (user_options->speed_only == true)
+  {
+    double total = device_param->speed_msec[0];
+
+    for (u32 speed_pos = 1; speed_pos < device_param->speed_pos; speed_pos++)
+    {
+      total += device_param->speed_msec[speed_pos];
+    }
+
+    device_param->outerloop_msec = total * hashes->salts_cnt * device_param->outerloop_multi;
+  }
 
   return 0;
 }
@@ -6500,6 +6503,7 @@ void opencl_session_reset (hashcat_ctx_t *hashcat_ctx)
 
     memset (device_param->exec_msec, 0, EXEC_CACHE * sizeof (double));
 
+    device_param->outerloop_msec = 0;
     device_param->outerloop_pos  = 0;
     device_param->outerloop_left = 0;
     device_param->innerloop_pos  = 0;
