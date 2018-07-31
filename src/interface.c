@@ -280,6 +280,7 @@ static const char *ST_HASH_16600 = "$electrum$1*44358283104603165383613672586868
 static const char *ST_HASH_16700 = "$fvde$1$16$84286044060108438487434858307513$20000$f1620ab93192112f0a23eea89b5d4df065661f974b704191";
 static const char *ST_HASH_16800 = "2582a8281bf9d4308d6f5731d0e61c61*4604ba734d4e*89acf0e761f4*ed487162465a774bfba60eb603a39f3a";
 static const char *ST_HASH_16801 = "2582a8281bf9d4308d6f5731d0e61c61*4604ba734d4e*89acf0e761f4";
+static const char *ST_HASH_16900 = "$ansible$0*0*6b761adc6faeb0cc0bf197d3d4a4a7d3f1682e4b169cae8fa6b459b3214ed41e*426d313c5809d4a80a4b9bc7d4823070*d8bad190c7fbc7c3cb1c60a27abfb0ff59d6fb73178681c7454d94a0f56a4360";
 static const char *ST_HASH_99999 = "hashcat";
 
 static const char *OPTI_STR_OPTIMIZED_KERNEL     = "Optimized-Kernel";
@@ -527,6 +528,7 @@ static const char *HT_16600 = "Electrum Wallet (Salt-Type 1-3)";
 static const char *HT_16700 = "FileVault 2";
 static const char *HT_16800 = "WPA-PMKID-PBKDF2";
 static const char *HT_16801 = "WPA-PMKID-PMK";
+static const char *HT_16900 = "Ansible Vault";
 static const char *HT_99999 = "Plaintext";
 
 static const char *HT_00011 = "Joomla < 2.5.18";
@@ -677,6 +679,7 @@ static const char *SIGNATURE_APPLE_SECURE_NOTES = "$ASN$";
 static const char *SIGNATURE_ETHEREUM_PRESALE   = "$ethereum$w";
 static const char *SIGNATURE_ELECTRUM_WALLET    = "$electrum$";
 static const char *SIGNATURE_FILEVAULT2         = "$fvde$";
+static const char *SIGNATURE_ANSIBLE_VAULT      = "$ansible$";
 
 /**
  * decoder / encoder
@@ -17792,6 +17795,128 @@ int wpa_pmkid_pmk_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MA
   return (PARSER_OK);
 }
 
+int ansible_vault_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
+{
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  ansible_vault_t *ansible_vault = (ansible_vault_t *) hash_buf->esalt;
+
+  token_t token;
+
+  token.token_cnt  = 6;
+
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_ANSIBLE_VAULT;
+
+  token.len[0]     = 9;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
+
+  // version (unused)
+
+  token.sep[1]     = '*';
+  token.len_min[1] = 1;
+  token.len_max[1] = 1;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
+
+  // cipher (unused)
+
+  token.sep[2]     = '*';
+  token.len_min[2] = 1;
+  token.len_max[2] = 1;
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
+
+  token.sep[3]     = '*';
+  token.len_min[3] = 64;
+  token.len_max[3] = 64;
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
+
+  token.sep[4]     = '*';
+  token.len_min[4] = 32;
+  token.len_max[4] = 8192;
+  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
+
+  token.sep[5]     = '*';
+  token.len_min[5] = 64;
+  token.len_max[5] = 64;
+  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
+
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
+
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+  // salt
+
+  u8 *salt_pos = token.buf[3];
+
+  salt->salt_len  = 32;
+  salt->salt_iter = ROUNDS_ANSIBLE_VAULT - 1;
+
+  salt->salt_buf[0] = hex_to_u32 (salt_pos +  0);
+  salt->salt_buf[1] = hex_to_u32 (salt_pos +  8);
+  salt->salt_buf[2] = hex_to_u32 (salt_pos + 16);
+  salt->salt_buf[3] = hex_to_u32 (salt_pos + 24);
+  salt->salt_buf[4] = hex_to_u32 (salt_pos + 32);
+  salt->salt_buf[5] = hex_to_u32 (salt_pos + 40);
+  salt->salt_buf[6] = hex_to_u32 (salt_pos + 48);
+  salt->salt_buf[7] = hex_to_u32 (salt_pos + 56);
+
+  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
+  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
+  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
+  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
+  salt->salt_buf[4] = byte_swap_32 (salt->salt_buf[4]);
+  salt->salt_buf[5] = byte_swap_32 (salt->salt_buf[5]);
+  salt->salt_buf[6] = byte_swap_32 (salt->salt_buf[6]);
+  salt->salt_buf[7] = byte_swap_32 (salt->salt_buf[7]);
+
+  // ciphertext
+
+  u8 *ct_buf_pos = token.buf[4];
+  int ct_buf_len = token.len[4];
+
+  u8 *ct_data_ptr = (u8 *) ansible_vault->ct_data_buf;
+
+  for (int i = 0, j = 0; j < ct_buf_len; i += 1, j += 2)
+  {
+    ct_data_ptr[i] = hex_to_u8 ((const u8 *) &ct_buf_pos[j]);
+
+    ansible_vault->ct_data_len++;
+  }
+
+  // hash
+
+  u8 *hash_pos = token.buf[5];
+
+  digest[0] = hex_to_u32 ((const u8 *) &hash_pos[ 0]);
+  digest[1] = hex_to_u32 ((const u8 *) &hash_pos[ 8]);
+  digest[2] = hex_to_u32 ((const u8 *) &hash_pos[16]);
+  digest[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
+  digest[4] = hex_to_u32 ((const u8 *) &hash_pos[32]);
+  digest[5] = hex_to_u32 ((const u8 *) &hash_pos[40]);
+  digest[6] = hex_to_u32 ((const u8 *) &hash_pos[48]);
+  digest[7] = hex_to_u32 ((const u8 *) &hash_pos[56]);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
+  digest[5] = byte_swap_32 (digest[5]);
+  digest[6] = byte_swap_32 (digest[6]);
+  digest[7] = byte_swap_32 (digest[7]);
+
+  return (PARSER_OK);
+
+}
+
 /**
  * hook functions
  */
@@ -18234,6 +18359,7 @@ const char *strhashtype (const u32 hash_mode)
     case 16700: return HT_16700;
     case 16800: return HT_16800;
     case 16801: return HT_16801;
+    case 16900: return HT_16900;
     case 99999: return HT_99999;
   }
 
@@ -21911,6 +22037,13 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
       wpa_pmkid->orig_mac_sta[3],
       wpa_pmkid->orig_mac_sta[4],
       wpa_pmkid->orig_mac_sta[5]);
+  }
+  else if (hash_mode == 16900)
+  {
+    hashinfo_t **hashinfo_ptr = hash_info;
+    char        *hash_buf     = hashinfo_ptr[digest_cur]->orighash;
+
+    snprintf (out_buf, out_len - 1, "%s", hash_buf);
   }
   else if (hash_mode == 99999)
   {
@@ -27090,6 +27223,24 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HEX_16801;
                  break;
 
+    case 16900:  hashconfig->hash_type      = HASH_TYPE_ANSIBLE_VAULT;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_HASH_COPY;
+                 hashconfig->kern_type      = KERN_TYPE_ANSIBLE_VAULT;
+                 hashconfig->dgst_size      = DGST_SIZE_4_8;
+                 hashconfig->parse_func     = ansible_vault_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
+                 hashconfig->dgst_pos0      = 0;
+                 hashconfig->dgst_pos1      = 1;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 3;
+                 hashconfig->st_hash        = ST_HASH_16900;
+                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
+                 break;
+
     case 99999:  hashconfig->hash_type      = HASH_TYPE_PLAINTEXT;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -27313,6 +27464,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 16700: hashconfig->esalt_size = sizeof (apple_secure_notes_t); break;
     case 16800: hashconfig->esalt_size = sizeof (wpa_pmkid_t);          break;
     case 16801: hashconfig->esalt_size = sizeof (wpa_pmkid_t);          break;
+    case 16900: hashconfig->esalt_size = sizeof (ansible_vault_t);      break;
   }
 
   // hook_salt_size
@@ -27425,6 +27577,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 16700: hashconfig->tmp_size = sizeof (apple_secure_notes_tmp_t); break;
     case 16800: hashconfig->tmp_size = sizeof (wpa_pbkdf2_tmp_t);         break;
     case 16801: hashconfig->tmp_size = sizeof (wpa_pmk_tmp_t);            break;
+    case 16900: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
   };
 
   // hook_size
@@ -27844,6 +27997,7 @@ int hashconfig_get_pw_max (hashcat_ctx_t *hashcat_ctx, const bool optimized_kern
     case 16000: pw_max = 8;       break; // Underlaying DES max
     case 16800: pw_max = 63;      break; // WPA-PMKID-PBKDF2: limits itself to 63 by RFC
     case 16801: pw_max = 64;      break; // WPA-PMKID-PMK: fixed length
+    case 16900: pw_max = PW_MAX;  break;
   }
 
   return pw_max;
@@ -28135,6 +28289,8 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                   break;
       case 16801: memcpy (salt->salt_buf, "hashcat.net", 11);
                   break;
+      case 16900: salt->salt_len = 32;
+                  break;
     }
 
     // special esalt handling
@@ -28421,6 +28577,8 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
     case 16800:  salt->salt_iter  = ROUNDS_WPA_PBKDF2;
                  break;
     case 16801:  salt->salt_iter  = ROUNDS_WPA_PMK;
+                 break;
+    case 16900:  salt->salt_iter  = ROUNDS_ANSIBLE_VAULT - 1;
                  break;
   }
 }

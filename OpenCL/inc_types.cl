@@ -1528,6 +1528,12 @@ typedef struct electrum_wallet
 
 } electrum_wallet_t;
 
+typedef struct ansible_vault
+{
+  u32 ct_data_buf[4096];
+  u32 ct_data_len;
+} ansible_vault_t;
+
 typedef struct pdf14_tmp
 {
   u32 digest[4];

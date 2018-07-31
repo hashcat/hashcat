@@ -7,6 +7,7 @@
 - Added hash-mode 16700 = FileVault 2
 - Added hash-mode 16800 = WPA-PMKID-PBKDF2
 - Added hash-mode 16801 = WPA-PMKID-PMK
+- Added hash-mode 16900 = Ansible Vault
 
 ##
 ## Improvements
