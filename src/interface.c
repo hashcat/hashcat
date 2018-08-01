@@ -4721,7 +4721,7 @@ int netntlmv2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   // domain
-  token.len_min[2] = 1;
+  token.len_min[2] = 0;
   token.len_max[2] = 45;
   token.sep[2]     = ':';
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
