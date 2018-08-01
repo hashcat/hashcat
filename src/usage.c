@@ -371,6 +371,7 @@ static const char *const USAGE_BIG[] =
   "  15600 | Ethereum Wallet, PBKDF2-HMAC-SHA256              | Password Managers",
   "  15700 | Ethereum Wallet, SCRYPT                          | Password Managers",
   "  16300 | Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256     | Password Managers",
+  "  16900 | Ansible Vault                                    | Password Managers",
   "  99999 | Plaintext                                        | Plaintext",
   "",
   "- [ Outfile Formats ] -",
