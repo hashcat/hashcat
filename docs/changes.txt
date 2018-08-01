@@ -15,6 +15,7 @@
 
 - Added JtR-compatible support for hex notation in rules engine
 - Added OpenCL device utilization to the status information in machine-readable output
+- Added NV Tesla V100 and P100 to tuning database
 - General file handling: Abort if a byte order mark (BOM) was detected in a wordlist, hashlist, maskfile or rulefile
 - HCCAPX management: Use advanced hints in message_pair stored by hcxtools about endian bitness of replay counter
 - OpenCL kernels: Abort session if kernel self-test fails

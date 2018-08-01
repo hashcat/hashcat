@@ -220,6 +220,7 @@ GeForce_GTX_960M                                ALIAS_nv_sm50
 Tesla_M40                                       ALIAS_nv_sm52_or_higher
 
 Tesla_V100                                      ALIAS_nv_sm52_or_higher
+Tesla_P100                                      ALIAS_nv_sm52_or_higher
 
 Quadro_M2000                                    ALIAS_nv_sm52_or_higher
 Quadro_M4000                                    ALIAS_nv_sm52_or_higher
