@@ -15,13 +15,14 @@
 
 - Added JtR-compatible support for hex notation in rules engine
 - Added OpenCL device utilization to the status information in machine-readable output
-- Added NV Tesla V100 and P100 to tuning database
+- Added missing NV Tesla and Titan GPU details to tuning database
 - General file handling: Abort if a byte order mark (BOM) was detected in a wordlist, hashlist, maskfile or rulefile
 - HCCAPX management: Use advanced hints in message_pair stored by hcxtools about endian bitness of replay counter
 - OpenCL kernels: Abort session if kernel self-test fails
 - OpenCL kernels: Add '-pure' prefix to kernel filenames to avoid problems caused by reusing existing hashcat installation folder
 - OpenCL kernels: Removed the use of 'volatile' in inline assembly instructions where it is not needed
 - OpenCL kernels: Switched array pointer types in function declarations in order to be compatible with OpenCL 2.0
+- Refactored code for --progress-only and --speed-only calculation
 - SIP cracking: Increased the nonce field to allow a salt of 1024 bytes
 - TrueCrypt/VeraCrypt cracking: Do an entropy check on the TC/VC header on start
 
