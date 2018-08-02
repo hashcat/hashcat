@@ -286,59 +286,17 @@ __constant u32a c_sbox3[256] =
   0xb74e6132, 0xce77e25b, 0x578fdfe3, 0x3ac372e6
 };
 
-#ifdef IS_AMD
-#define BF_ROUND(L,R,N)       \
-{                             \
-  uchar4 c = as_uchar4 ((L)); \
-                              \
-  u32 tmp;                    \
-                              \
-  tmp  = S0[c.s3];            \
-  tmp += S1[c.s2];            \
-  tmp ^= S2[c.s1];            \
-  tmp += S3[c.s0];            \
-                              \
-  (R) ^= tmp ^ P[(N)];        \
-}
-#endif
-
-#ifdef IS_NV
-#define BF_ROUND(L,R,N)           \
-{                                 \
-  u32 tmp;                        \
+#define BF_ROUND(L,R,N)             \
+{                                   \
+  u32 tmp;                          \
                                   \
-  tmp  = S0[hc_bfe ((L), 24, 8)];  \
-  tmp += S1[hc_bfe ((L), 16, 8)];  \
-  tmp ^= S2[hc_bfe ((L),  8, 8)];  \
-  tmp += S3[hc_bfe ((L),  0, 8)];  \
+  tmp  = S0[hc_bfe_S ((L), 24, 8)]; \
+  tmp += S1[hc_bfe_S ((L), 16, 8)]; \
+  tmp ^= S2[hc_bfe_S ((L),  8, 8)]; \
+  tmp += S3[hc_bfe_S ((L),  0, 8)]; \
                                   \
-  (R) ^= tmp ^ P[(N)];            \
+  (R) ^= tmp ^ P[(N)];              \
 }
-#endif
-
-#ifdef IS_GENERIC
-#define BF_ROUND(L,R,N)       \
-{                             \
-  uchar4 c = as_uchar4 ((L)); \
-                              \
-  u32 tmp;                    \
-                              \
-  tmp  = S0[c.s3];            \
-  tmp += S1[c.s2];            \
-  tmp ^= S2[c.s1];            \
-  tmp += S3[c.s0];            \
-                              \
-  (R) ^= tmp ^ P[(N)];        \
-}
-#endif
-
-// temporary hack for Apple Iris GPUs (with as little performance drop as possible)
-
-#if defined (IS_APPLE) && defined (IS_GPU)
-#define TMP_TYPE u32
-#else
-#define TMP_TYPE u32
-#endif
 
 #define BF_ENCRYPT(L,R) \
 {                       \
@@ -361,7 +319,7 @@ __constant u32a c_sbox3[256] =
   BF_ROUND (L, R, 15);  \
   BF_ROUND (R, L, 16);  \
                         \
-  TMP_TYPE tmp;         \
+  u32 tmp;              \
                         \
   tmp = R;              \
   R = L;                \
@@ -370,24 +328,23 @@ __constant u32a c_sbox3[256] =
   L ^= P[17];           \
 }
 
-DECLSPEC void expand_key (u32 *E, const u32 *W, const u32 len)
+DECLSPEC void expand_key (u32 *E, u32 *W, const int len)
 {
-  u8 *E_cur  = (u8 *) E;
-  u8 *E_stop = E_cur + 72;
+  u8 *E_ptr = (u8 *) E;
+  u8 *W_ptr = (u8 *) W;
 
-  while (E_cur < E_stop)
+  for (int pos = 0; pos < 72; pos++) // pos++ is not a bug, we actually want that zero byte here
   {
-    u8 *W_cur  = (u8 *) W;
-    u8 *W_stop = W_cur + len;
+    const int left = 72 - pos;
 
-    while (W_cur < W_stop)
+    const int sz = (len < left) ? len : left; // should be MIN()
+
+    for (int i = 0; i < sz; i++)
     {
-      *E_cur++ = *W_cur++;
-
-      if (E_cur == E_stop) return;
+      E_ptr[pos + i] = W_ptr[i];
     }
 
-    *E_cur++ = 0;
+    pos += sz;
   }
 }
 
@@ -425,7 +382,7 @@ __kernel void __attribute__((reqd_work_group_size(8, 1, 1))) m03200_init (__glob
   w[16] = pws[gid].i[16];
   w[17] = pws[gid].i[17];
 
-  u32 E[18];
+  u32 E[18] = { 0 };
 
   expand_key (E, w, pw_len);
 
