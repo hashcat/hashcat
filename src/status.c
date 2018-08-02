@@ -1426,8 +1426,10 @@ double status_get_hashes_msec_dev_benchmark (const hashcat_ctx_t *hashcat_ctx, c
 
   if (device_param->skipped == false)
   {
-    speed_cnt  += device_param->speed_cnt[0];
-    speed_msec += device_param->speed_msec[0];
+    const u32 speed_pos = MAX (device_param->speed_pos, 1);
+
+    speed_cnt  += device_param->speed_cnt[speed_pos - 1];
+    speed_msec += device_param->speed_msec[speed_pos - 1];
   }
 
   double hashes_dev_msec = 0;
