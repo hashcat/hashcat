@@ -6093,7 +6093,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     // this value should represent a reasonable amount of memory a host system has per GPU.
     // note we're allocating 3 blocks of that size.
 
-    #define PWS_SPACE (512 * 1024 * 1024)
+    #define PWS_SPACE (1024 * 1024 * 1024)
 
     // sometimes device_global_mem and device_maxmem_alloc reported back from the opencl runtime are a bit inaccurate.
     // let's add some extra space just to be sure.
