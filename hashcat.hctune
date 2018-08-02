@@ -217,10 +217,15 @@ GeForce_GTX_960M                                ALIAS_nv_sm50
 ## Maxwell sm_52 cards or higher
 ##
 
+Tesla_M4                                        ALIAS_nv_sm52_or_higher
+Tesla_M6                                        ALIAS_nv_sm52_or_higher
+Tesla_M10                                       ALIAS_nv_sm52_or_higher
 Tesla_M40                                       ALIAS_nv_sm52_or_higher
-
-Tesla_V100                                      ALIAS_nv_sm52_or_higher
+Tesla_M60                                       ALIAS_nv_sm52_or_higher
+Tesla_P4                                        ALIAS_nv_sm52_or_higher
+Tesla_P40                                       ALIAS_nv_sm52_or_higher
 Tesla_P100                                      ALIAS_nv_sm52_or_higher
+Tesla_V100                                      ALIAS_nv_sm52_or_higher
 
 Quadro_M2000                                    ALIAS_nv_sm52_or_higher
 Quadro_M4000                                    ALIAS_nv_sm52_or_higher
@@ -232,10 +237,14 @@ GeForce_GTX_960                                 ALIAS_nv_sm52_or_higher
 GeForce_GTX_970                                 ALIAS_nv_sm52_or_higher
 GeForce_GTX_980                                 ALIAS_nv_sm52_or_higher
 GeForce_GTX_980_Ti                              ALIAS_nv_sm52_or_higher
-GeForce_GTX_TITAN_X                             ALIAS_nv_sm52_or_higher
 GeForce_GTX_1070                                ALIAS_nv_sm52_or_higher
+GeForce_GTX_1070_Ti                             ALIAS_nv_sm52_or_higher
 GeForce_GTX_1080                                ALIAS_nv_sm52_or_higher
 GeForce_GTX_1080_Ti                             ALIAS_nv_sm52_or_higher
+
+GeForce_GTX_TITAN_X                             ALIAS_nv_sm52_or_higher
+GeForce_GTX_TITAN_Xp                            ALIAS_nv_sm52_or_higher
+GeForce_GTX_TITAN_V                             ALIAS_nv_sm52_or_higher
 
 GeForce_910M                                    ALIAS_nv_sm52_or_higher
 GeForce_GTX_910M                                ALIAS_nv_sm52_or_higher
