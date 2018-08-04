@@ -9720,13 +9720,11 @@ END_CODE
     {
       my $encrypted_bin = pack ("H*", $additional_param3);
 
-      my $test_bin = $cipher->decrypt ($encrypted_bin);
-
-      my $test = unpack ("H*", $test_bin);
+      my $test = $cipher->decrypt ($encrypted_bin);
 
       if ($test =~ /^[0-9a-f]+$/)
       {
-        $plain_bin = $test_bin;
+        $plain_bin = $test;
       }
       else
       {
