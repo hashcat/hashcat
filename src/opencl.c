@@ -4274,30 +4274,42 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     // The idea here is to try to evaluate available memory by allocating it till it errors
 
     #define MAX_ALLOC_CHECKS_CNT  8192
-    #define MAX_ALLOC_CHECKS_SIZE (32 * 1024 * 1024)
+    #define MAX_ALLOC_CHECKS_SIZE (64 * 1024 * 1024)
 
     cl_mem *tmp_device = (cl_mem *) hccalloc (MAX_ALLOC_CHECKS_CNT, sizeof (cl_mem));
 
     char *tmp_host = (char *) hcmalloc (MAX_ALLOC_CHECKS_SIZE);
 
-    int c;
+    u64 c;
 
     for (c = 0; c < MAX_ALLOC_CHECKS_CNT; c++)
     {
+      if (((c + 1) * MAX_ALLOC_CHECKS_SIZE) >= device_param->device_global_mem) break;
+
       cl_int CL_err;
 
       OCL_PTR *ocl = opencl_ctx->ocl;
 
       tmp_device[c] = ocl->clCreateBuffer (device_param->context, CL_MEM_READ_ONLY, MAX_ALLOC_CHECKS_SIZE, NULL, &CL_err);
 
-      if (CL_err != CL_SUCCESS) break;
+      if (CL_err != CL_SUCCESS)
+      {
+        c--;
+
+        break;
+      }
 
       CL_err = ocl->clEnqueueReadBuffer (device_param->command_queue, tmp_device[c], CL_TRUE, 0, MAX_ALLOC_CHECKS_SIZE, tmp_host, 0, NULL, NULL);
 
-      if (CL_err != CL_SUCCESS) break;
+      if (CL_err != CL_SUCCESS)
+      {
+        c--;
+
+        break;
+      }
     }
 
-    int r;
+    u64 r;
 
     for (r = 0; r < c; r++)
     {
