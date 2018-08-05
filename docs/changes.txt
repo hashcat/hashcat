@@ -1,5 +1,11 @@
 * changes v4.2.0 -> xxx
 
+##
+## Improvements
+##
+
+- Try to evaluate available OpenCL device memory and use this information instead of total available OpenCL device memory for autotune
+
 * changes v4.1.0 -> v4.2.0
 
 ##
