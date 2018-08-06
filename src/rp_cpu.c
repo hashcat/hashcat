@@ -502,7 +502,7 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
   {
     if (is_hex_notation (rule, rule_len, rule_pos))
     {
-      const u8 c = hex_to_u8 (&rule[rule_pos + 2]);
+      const u8 c = hex_to_u8 ((const u8 *) &rule[rule_pos + 2]);
 
       rule_pos += 3;
 

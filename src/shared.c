@@ -667,7 +667,7 @@ u64 round_up_multiple_64 (const u64 v, const u64 m)
 
 void hc_strncat (u8 *dst, u8 *src, const size_t n)
 {
-  const size_t dst_len = strlen (dst);
+  const size_t dst_len = strlen ((char *) dst);
 
   u8 *src_ptr = src;
   u8 *dst_ptr = dst + dst_len;

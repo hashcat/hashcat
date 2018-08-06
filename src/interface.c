@@ -6739,9 +6739,9 @@ int truecrypt_parse_hash_1k (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAY
 
   if (fp == NULL) return (PARSER_HASH_FILE);
 
-  char buf[512] = { 0 };
+  u8 buf[512];
 
-  const size_t n = hc_fread (buf, 1, sizeof (buf), fp);
+  const size_t n = hc_fread ((char *) buf, 1, sizeof (buf), fp);
 
   fclose (fp);
 
@@ -6782,9 +6782,9 @@ int truecrypt_parse_hash_2k (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAY
 
   if (fp == NULL) return (PARSER_HASH_FILE);
 
-  char buf[512] = { 0 };
+  u8 buf[512];
 
-  const size_t n = hc_fread (buf, 1, sizeof (buf), fp);
+  const size_t n = hc_fread ((char *) buf, 1, sizeof (buf), fp);
 
   fclose (fp);
 
@@ -6825,9 +6825,9 @@ int veracrypt_parse_hash_200000 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   if (fp == NULL) return (PARSER_HASH_FILE);
 
-  char buf[512] = { 0 };
+  u8 buf[512];
 
-  const size_t n = hc_fread (buf, 1, sizeof (buf), fp);
+  const size_t n = hc_fread ((char *) buf, 1, sizeof (buf), fp);
 
   fclose (fp);
 
@@ -6868,9 +6868,9 @@ int veracrypt_parse_hash_500000 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   if (fp == NULL) return (PARSER_HASH_FILE);
 
-  char buf[512] = { 0 };
+  u8 buf[512];
 
-  const size_t n = hc_fread (buf, 1, sizeof (buf), fp);
+  const size_t n = hc_fread ((char *) buf, 1, sizeof (buf), fp);
 
   fclose (fp);
 
@@ -6911,9 +6911,9 @@ int veracrypt_parse_hash_327661 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   if (fp == NULL) return (PARSER_HASH_FILE);
 
-  char buf[512] = { 0 };
+  u8 buf[512];
 
-  const size_t n = hc_fread (buf, 1, sizeof (buf), fp);
+  const size_t n = hc_fread ((char *) buf, 1, sizeof (buf), fp);
 
   fclose (fp);
 
@@ -6954,9 +6954,9 @@ int veracrypt_parse_hash_655331 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   if (fp == NULL) return (PARSER_HASH_FILE);
 
-  char buf[512] = { 0 };
+  u8 buf[512];
 
-  const size_t n = hc_fread (buf, 1, sizeof (buf), fp);
+  const size_t n = hc_fread ((char *) buf, 1, sizeof (buf), fp);
 
   fclose (fp);
 
@@ -12650,7 +12650,7 @@ int sip_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
    * first (pre-)compute: HA2 = md5 ($method . ":" . $uri)
    */
 
-  char *pcsep = (char *) ":";
+  static u8 *pcsep = (u8 *) ":";
 
   int md5_len = method_len + 1 + URI_prefix_len + URI_resource_len + URI_suffix_len;
 
@@ -12787,9 +12787,9 @@ int sip_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   // tmp_digest
 
-  char tmp[64];
+  u8 tmp[64];
 
-  snprintf (tmp, sizeof (tmp) - 1, "%08x%08x%08x%08x",
+  snprintf ((char *) tmp, sizeof (tmp) - 1, "%08x%08x%08x%08x",
     tmp_digest[0],
     tmp_digest[1],
     tmp_digest[2],
