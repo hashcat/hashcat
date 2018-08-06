@@ -303,6 +303,14 @@ LFLAGS_CROSS_WIN64      := $(LFLAGS)
 LFLAGS_CROSS_WIN64      += -Wl,--dynamicbase -Wl,--nxcompat
 LFLAGS_CROSS_WIN64      += -lpsapi
 
+CFLAGS_REMOVE_LZMA        := -Wmissing-declarations -Wmissing-prototypes -Wstrict-prototypes -Wundef
+
+CFLAGS_NATIVE_LZMA        := $(filter-out $(CFLAGS_REMOVE_LZMA),$(CFLAGS_NATIVE))
+CFLAGS_CROSS_LINUX32_LZMA := $(filter-out $(CFLAGS_REMOVE_LZMA),$(CFLAGS_CROSS_LINUX32))
+CFLAGS_CROSS_LINUX64_LZMA := $(filter-out $(CFLAGS_REMOVE_LZMA),$(CFLAGS_CROSS_LINUX64))
+CFLAGS_CROSS_WIN32_LZMA   := $(filter-out $(CFLAGS_REMOVE_LZMA),$(CFLAGS_CROSS_WIN32))
+CFLAGS_CROSS_WIN64_LZMA   := $(filter-out $(CFLAGS_REMOVE_LZMA),$(CFLAGS_CROSS_WIN64))
+
 ##
 ## Objects
 ##
@@ -468,10 +476,10 @@ obj/%.NATIVE.SHARED.o: src/%.c
 
 ifeq ($(SYSTEM_LZMA_SDK),0)
 obj/%.NATIVE.STATIC.o: deps/lzma_sdk/%.c
-	$(CC) -c $(CFLAGS_NATIVE) $< -o $@
+	$(CC) -c $(CFLAGS_NATIVE_LZMA) $< -o $@
 
 obj/%.NATIVE.SHARED.o: deps/lzma_sdk/%.c
-	$(CC) -c $(CFLAGS_NATIVE) $< -o $@ -fpic
+	$(CC) -c $(CFLAGS_NATIVE_LZMA) $< -o $@ -fpic
 endif
 
 ifeq ($(UNAME),Darwin)
@@ -508,16 +516,16 @@ obj/%.WIN.64.o:   src/%.c
 
 ifeq ($(SYSTEM_LZMA_SDK),0)
 obj/%.LINUX.32.o: deps/lzma_sdk/%.c
-	$(CC_LINUX_32) $(CFLAGS_CROSS_LINUX32) -c -o $@ $<
+	$(CC_LINUX_32) $(CFLAGS_CROSS_LINUX32_LZMA) -c -o $@ $<
 
 obj/%.LINUX.64.o: deps/lzma_sdk/%.c
-	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX64) -c -o $@ $<
+	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX64_LZMA) -c -o $@ $<
 
 obj/%.WIN.32.o:   deps/lzma_sdk/%.c
-	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN32)   -c -o $@ $<
+	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN32_LZMA)   -c -o $@ $<
 
 obj/%.WIN.64.o:   deps/lzma_sdk/%.c
-	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)   -c -o $@ $<
+	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64_LZMA)   -c -o $@ $<
 endif
 
 hashcat32.bin: src/main.c $(LINUX_32_OBJS)
