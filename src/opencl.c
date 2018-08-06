@@ -4298,7 +4298,12 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         tmp_device[c] = ocl->clCreateBuffer (device_param->context, CL_MEM_READ_WRITE, MAX_ALLOC_CHECKS_SIZE, NULL, &CL_err);
 
-        if (CL_err != CL_SUCCESS) break;
+        if (CL_err != CL_SUCCESS)
+        {
+          c--;
+
+          break;
+        }
 
         CL_err = ocl->clEnqueueReadBuffer (device_param->command_queue, tmp_device[c], CL_TRUE, 0, MAX_ALLOC_CHECKS_SIZE, tmp_host, 0, NULL, NULL);
 
@@ -4308,8 +4313,6 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (CL_err != CL_SUCCESS) break;
       }
-
-      if (c >= 1) c--;
 
       device_param->device_available_mem = c * MAX_ALLOC_CHECKS_SIZE;
 
