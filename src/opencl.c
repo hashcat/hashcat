@@ -4284,8 +4284,6 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       cl_mem *tmp_device = (cl_mem *) hccalloc (MAX_ALLOC_CHECKS_CNT, sizeof (cl_mem));
 
-      char *tmp_host = (char *) hcmalloc (MAX_ALLOC_CHECKS_SIZE);
-
       u64 c;
 
       for (c = 0; c < MAX_ALLOC_CHECKS_CNT; c++)
@@ -4305,11 +4303,23 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
           break;
         }
 
-        CL_err = ocl->clEnqueueReadBuffer (device_param->command_queue, tmp_device[c], CL_TRUE, 0, MAX_ALLOC_CHECKS_SIZE, tmp_host, 0, NULL, NULL);
+        // transfer only a few byte should be enough to force the runtime to actually allocate the memory
+
+        u8 tmp_host[8];
+
+        CL_err = ocl->clEnqueueReadBuffer  (device_param->command_queue, tmp_device[c], CL_TRUE, 0, sizeof (tmp_host), tmp_host, 0, NULL, NULL);
 
         if (CL_err != CL_SUCCESS) break;
 
-        CL_err = ocl->clEnqueueWriteBuffer (device_param->command_queue, tmp_device[c], CL_TRUE, 0, MAX_ALLOC_CHECKS_SIZE, tmp_host, 0, NULL, NULL);
+        CL_err = ocl->clEnqueueWriteBuffer (device_param->command_queue, tmp_device[c], CL_TRUE, 0, sizeof (tmp_host), tmp_host, 0, NULL, NULL);
+
+        if (CL_err != CL_SUCCESS) break;
+
+        CL_err = ocl->clEnqueueReadBuffer  (device_param->command_queue, tmp_device[c], CL_TRUE, MAX_ALLOC_CHECKS_SIZE - sizeof (tmp_host), sizeof (tmp_host), tmp_host, 0, NULL, NULL);
+
+        if (CL_err != CL_SUCCESS) break;
+
+        CL_err = ocl->clEnqueueWriteBuffer (device_param->command_queue, tmp_device[c], CL_TRUE, MAX_ALLOC_CHECKS_SIZE - sizeof (tmp_host), sizeof (tmp_host), tmp_host, 0, NULL, NULL);
 
         if (CL_err != CL_SUCCESS) break;
       }
@@ -4318,16 +4328,17 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       // clean up
 
-      u64 r;
-
-      for (r = 0; r < c; r++)
+      for (c = 0; c < MAX_ALLOC_CHECKS_CNT; c++)
       {
-        CL_rc = hc_clReleaseMemObject (hashcat_ctx, tmp_device[r]);
+        if (((c + 1 + 1) * MAX_ALLOC_CHECKS_SIZE) >= device_param->device_global_mem) break;
 
-        if (CL_rc == -1) return -1;
+        if (tmp_device[c] != NULL)
+        {
+          CL_rc = hc_clReleaseMemObject (hashcat_ctx, tmp_device[c]);
+
+          if (CL_rc == -1) return -1;
+        }
       }
-
-      hcfree (tmp_host);
 
       hcfree (tmp_device);
     }
