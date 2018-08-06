@@ -2698,28 +2698,16 @@ static bool parse_and_store_generic_salt (u8 *out_buf, int *out_len, const u8 *i
   return true;
 }
 
-static void precompute_salt_md5 (u8 *salt, u32 salt_len, u8 *salt_pc)
+static void precompute_salt_md5 (const u32 *salt_buf, const u32 salt_len, u8 *salt_pc)
 {
-  u32 salt_pc_block[16] = { 0 };
+  u32 digest[4] = { 0 };
 
-  u8 *salt_pc_block_ptr = (u8 *) salt_pc_block;
+  md5_complete_no_limit (digest, salt_buf, salt_len);
 
-  memcpy (salt_pc_block_ptr, salt, salt_len);
-
-  salt_pc_block_ptr[salt_len] = 0x80;
-
-  salt_pc_block[14] = salt_len * 8;
-
-  u32 salt_pc_digest[4] = { MD5M_A, MD5M_B, MD5M_C, MD5M_D };
-
-  md5_64 (salt_pc_block, salt_pc_digest);
-
-  u8 *salt_buf_pc_ptr = salt_pc;
-
-  u32_to_hex_lower (salt_pc_digest[0], salt_buf_pc_ptr +  0);
-  u32_to_hex_lower (salt_pc_digest[1], salt_buf_pc_ptr +  8);
-  u32_to_hex_lower (salt_pc_digest[2], salt_buf_pc_ptr + 16);
-  u32_to_hex_lower (salt_pc_digest[3], salt_buf_pc_ptr + 24);
+  u32_to_hex_lower (digest[0], salt_pc +  0);
+  u32_to_hex_lower (digest[1], salt_pc +  8);
+  u32_to_hex_lower (digest[2], salt_pc + 16);
+  u32_to_hex_lower (digest[3], salt_pc + 24);
 }
 
 int bcrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
@@ -4333,7 +4321,7 @@ int md5s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   {
     // precompute md5 of the salt
 
-    precompute_salt_md5 ((u8 *) salt->salt_buf, salt->salt_len, (u8 *) salt->salt_buf_pc);
+    precompute_salt_md5 (salt->salt_buf, salt->salt_len, (u8 *) salt->salt_buf_pc);
   }
 
   return (PARSER_OK);

@@ -9,6 +9,6 @@
 #include <string.h>
 
 void md5_64 (const u32 block[16], u32 digest[4]);
-void md5_complete_no_limit (u32 digest[4], u32 *plain, u32 plain_len);
+void md5_complete_no_limit (u32 digest[4], const u32 *plain, const u32 plain_len);
 
 #endif // _CPU_MD5_H
