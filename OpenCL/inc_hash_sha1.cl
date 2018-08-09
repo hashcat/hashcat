@@ -176,7 +176,7 @@ DECLSPEC void sha1_init (sha1_ctx_t *ctx)
 
 DECLSPEC void sha1_update_64 (sha1_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
 {
-  MAYBE_VOLATILE MAYBE_VOLATILE const int pos = ctx->len & 63;
+  MAYBE_VOLATILE const int pos = ctx->len & 63;
 
   ctx->len += len;
 
