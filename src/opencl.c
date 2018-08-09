@@ -4268,7 +4268,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     device_param->device_available_mem = device_param->device_global_mem - MAX_ALLOC_CHECKS_SIZE;
 
-    if (device_param->platform_vendor_id == VENDOR_ID_NV)
+    if ((device_param->device_type & CL_DEVICE_TYPE_GPU) && ((device_param->platform_vendor_id == VENDOR_ID_NV) || ((device_param->platform_vendor_id == VENDOR_ID_AMD) && (device_param->is_rocm == false))))
     {
       // OK, so the problem here is the following:
       // There's just CL_DEVICE_GLOBAL_MEM_SIZE to ask OpenCL about the total memory on the device,

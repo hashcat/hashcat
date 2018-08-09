@@ -1344,7 +1344,7 @@ DECLSPEC void whirlpool_init (whirlpool_ctx_t *ctx, SHM_TYPE u32 (*s_Ch)[256], S
 
 DECLSPEC void whirlpool_update_64 (whirlpool_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
 {
-  const int pos = ctx->len & 63;
+  MAYBE_VOLATILE const int pos = ctx->len & 63;
 
   ctx->len += len;
 
@@ -1930,7 +1930,7 @@ DECLSPEC void whirlpool_update_global_utf16le_swap (whirlpool_ctx_t *ctx, const 
 
 DECLSPEC void whirlpool_final (whirlpool_ctx_t *ctx)
 {
-  const int pos = ctx->len & 63;
+  MAYBE_VOLATILE const int pos = ctx->len & 63;
 
   append_0x80_4x4_S (ctx->w0, ctx->w1, ctx->w2, ctx->w3, pos ^ 3);
 
@@ -2603,7 +2603,7 @@ DECLSPEC void whirlpool_init_vector_from_scalar (whirlpool_ctx_vector_t *ctx, wh
 
 DECLSPEC void whirlpool_update_vector_64 (whirlpool_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len)
 {
-  const int pos = ctx->len & 63;
+  MAYBE_VOLATILE const int pos = ctx->len & 63;
 
   ctx->len += len;
 
@@ -2933,7 +2933,7 @@ DECLSPEC void whirlpool_update_vector_utf16le_swap (whirlpool_ctx_vector_t *ctx,
 
 DECLSPEC void whirlpool_final_vector (whirlpool_ctx_vector_t *ctx)
 {
-  const int pos = ctx->len & 63;
+  MAYBE_VOLATILE const int pos = ctx->len & 63;
 
   append_0x80_4x4 (ctx->w0, ctx->w1, ctx->w2, ctx->w3, pos ^ 3);
 

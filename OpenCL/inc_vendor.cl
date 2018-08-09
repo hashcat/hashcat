@@ -96,6 +96,12 @@
 #define DECLSPEC
 #endif
 
+#if (defined IS_AMD && AMD_GCN < 3)
+#define MAYBE_VOLATILE volatile
+#else
+#define MAYBE_VOLATILE
+#endif
+
 /**
  * AMD specific
  */

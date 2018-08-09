@@ -1,6 +1,12 @@
 * changes v4.2.1 -> xxx
 
 ##
+## Improvements
+##
+
+- Workaround some AMD OpenCL runtime segmentation faults
+
+##
 ## Bugs
 ##
 

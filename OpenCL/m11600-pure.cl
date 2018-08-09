@@ -12,10 +12,10 @@
 
 DECLSPEC void memcat8c_be (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 len, const u32 append, u32 *digest)
 {
-  const u32 func_len = len & 63;
+  MAYBE_VOLATILE const u32 func_len = len & 63;
 
-  const u32 mod = func_len & 3;
-  const u32 div = func_len / 4;
+  MAYBE_VOLATILE const u32 mod = func_len & 3;
+  MAYBE_VOLATILE const u32 div = func_len / 4;
 
   u32 tmp0;
   u32 tmp1;

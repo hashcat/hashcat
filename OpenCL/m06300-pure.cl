@@ -248,8 +248,8 @@ __kernel void m06300_loop (__global pw_t *pws, __global const kernel_rule_t *rul
 
     if (j1)
     {
-      const u32 off = wpc_len[pc] / 4;
-      const u32 mod = wpc_len[pc] % 4;
+      MAYBE_VOLATILE const u32 off = wpc_len[pc] / 4;
+      MAYBE_VOLATILE const u32 mod = wpc_len[pc] % 4;
 
       u32 *ptr = wpc[pc] + off - 4;
 
