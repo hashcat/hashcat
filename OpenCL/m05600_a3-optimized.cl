@@ -539,14 +539,14 @@ __kernel void m05600_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   __local u32 s_userdomain_buf[64];
 
-  for (u32 i = lid; i < 64; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 64; i += lsz)
   {
     s_userdomain_buf[i] = netntlm_bufs[digests_offset].userdomain_buf[i];
   }
 
   __local u32 s_chall_buf[256];
 
-  for (u32 i = lid; i < 256; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
   {
     s_chall_buf[i] = netntlm_bufs[digests_offset].chall_buf[i];
   }
@@ -612,14 +612,14 @@ __kernel void m05600_m08 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   __local u32 s_userdomain_buf[64];
 
-  for (u32 i = lid; i < 64; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 64; i += lsz)
   {
     s_userdomain_buf[i] = netntlm_bufs[digests_offset].userdomain_buf[i];
   }
 
   __local u32 s_chall_buf[256];
 
-  for (u32 i = lid; i < 256; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
   {
     s_chall_buf[i] = netntlm_bufs[digests_offset].chall_buf[i];
   }
@@ -685,14 +685,14 @@ __kernel void m05600_m16 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   __local u32 s_userdomain_buf[64];
 
-  for (u32 i = lid; i < 64; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 64; i += lsz)
   {
     s_userdomain_buf[i] = netntlm_bufs[digests_offset].userdomain_buf[i];
   }
 
   __local u32 s_chall_buf[256];
 
-  for (u32 i = lid; i < 256; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
   {
     s_chall_buf[i] = netntlm_bufs[digests_offset].chall_buf[i];
   }
@@ -758,14 +758,14 @@ __kernel void m05600_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   __local u32 s_userdomain_buf[64];
 
-  for (u32 i = lid; i < 64; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 64; i += lsz)
   {
     s_userdomain_buf[i] = netntlm_bufs[digests_offset].userdomain_buf[i];
   }
 
   __local u32 s_chall_buf[256];
 
-  for (u32 i = lid; i < 256; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
   {
     s_chall_buf[i] = netntlm_bufs[digests_offset].chall_buf[i];
   }
@@ -831,14 +831,14 @@ __kernel void m05600_s08 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   __local u32 s_userdomain_buf[64];
 
-  for (u32 i = lid; i < 64; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 64; i += lsz)
   {
     s_userdomain_buf[i] = netntlm_bufs[digests_offset].userdomain_buf[i];
   }
 
   __local u32 s_chall_buf[256];
 
-  for (u32 i = lid; i < 256; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
   {
     s_chall_buf[i] = netntlm_bufs[digests_offset].chall_buf[i];
   }
@@ -904,14 +904,14 @@ __kernel void m05600_s16 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   __local u32 s_userdomain_buf[64];
 
-  for (u32 i = lid; i < 64; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 64; i += lsz)
   {
     s_userdomain_buf[i] = netntlm_bufs[digests_offset].userdomain_buf[i];
   }
 
   __local u32 s_chall_buf[256];
 
-  for (u32 i = lid; i < 256; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
   {
     s_chall_buf[i] = netntlm_bufs[digests_offset].chall_buf[i];
   }

@@ -160,7 +160,7 @@ __kernel void m06232_init (__global pw_t *pws, __global const kernel_rule_t *rul
   __local u32 s_Ch[8][256];
   __local u32 s_Cl[8][256];
 
-  for (u32 i = lid; i < 256; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
   {
     s_Ch[0][i] = Ch[0][i];
     s_Ch[1][i] = Ch[1][i];
@@ -368,7 +368,7 @@ __kernel void m06232_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   __local u32 s_Ch[8][256];
   __local u32 s_Cl[8][256];
 
-  for (u32 i = lid; i < 256; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
   {
     s_Ch[0][i] = Ch[0][i];
     s_Ch[1][i] = Ch[1][i];
@@ -580,7 +580,7 @@ __kernel void m06232_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   SHM_TYPE u32 s_te3[256];
   SHM_TYPE u32 s_te4[256];
 
-  for (u32 i = lid; i < 256; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
   {
     s_td0[i] = td0[i];
     s_td1[i] = td1[i];

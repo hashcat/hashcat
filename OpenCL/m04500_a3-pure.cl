@@ -41,7 +41,7 @@ __kernel void m04500_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   __local u32 l_bin2asc[256];
 
-  for (u32 i = lid; i < 256; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
   {
     const u32 i0 = (i >> 0) & 15;
     const u32 i1 = (i >> 4) & 15;
@@ -149,7 +149,7 @@ __kernel void m04500_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   __local u32 l_bin2asc[256];
 
-  for (u32 i = lid; i < 256; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
   {
     const u32 i0 = (i >> 0) & 15;
     const u32 i1 = (i >> 4) & 15;

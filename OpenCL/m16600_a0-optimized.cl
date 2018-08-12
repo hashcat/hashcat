@@ -43,7 +43,7 @@ __kernel void m16600_m04 (__global pw_t *pws, __constant const kernel_rule_t *ru
   __local u32 s_te3[256];
   __local u32 s_te4[256];
 
-  for (u32 i = lid; i < 256; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
   {
     s_td0[i] = td0[i];
     s_td1[i] = td1[i];
@@ -412,7 +412,7 @@ __kernel void m16600_s04 (__global pw_t *pws, __constant const kernel_rule_t *ru
   __local u32 s_te3[256];
   __local u32 s_te4[256];
 
-  for (u32 i = lid; i < 256; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
   {
     s_td0[i] = td0[i];
     s_td1[i] = td1[i];

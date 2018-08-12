@@ -243,7 +243,7 @@ __kernel void m08600_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   __local u32 s_lotus_magic_table[256];
 
-  for (u32 i = lid; i < 256; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
   {
     s_lotus_magic_table[i] = lotus_magic_table[i];
   }
@@ -367,7 +367,7 @@ __kernel void m08600_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   __local u32 s_lotus_magic_table[256];
 
-  for (u32 i = lid; i < 256; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
   {
     s_lotus_magic_table[i] = lotus_magic_table[i];
   }

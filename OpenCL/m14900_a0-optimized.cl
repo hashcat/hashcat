@@ -120,7 +120,7 @@ __kernel void m14900_m04 (__global pw_t *pws, __constant const kernel_rule_t *ru
 
   __local u8 s_ftable[256];
 
-  for (u32 i = lid; i < 256; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
   {
     s_ftable[i] = c_ftable[i];
   }
@@ -211,7 +211,7 @@ __kernel void m14900_s04 (__global pw_t *pws, __constant const kernel_rule_t *ru
 
   __local u8 s_ftable[256];
 
-  for (u32 i = lid; i < 256; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
   {
     s_ftable[i] = c_ftable[i];
   }

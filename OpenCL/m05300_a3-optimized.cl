@@ -420,14 +420,14 @@ __kernel void m05300_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   __local u32 s_nr_buf[16];
 
-  for (u32 i = lid; i < 16; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 16; i += lsz)
   {
     s_nr_buf[i] = ikepsk_bufs[digests_offset].nr_buf[i];
   }
 
   __local u32 s_msg_buf[128];
 
-  for (u32 i = lid; i < 128; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 128; i += lsz)
   {
     s_msg_buf[i] = ikepsk_bufs[digests_offset].msg_buf[i];
   }
@@ -493,14 +493,14 @@ __kernel void m05300_m08 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   __local u32 s_nr_buf[16];
 
-  for (u32 i = lid; i < 16; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 16; i += lsz)
   {
     s_nr_buf[i] = ikepsk_bufs[digests_offset].nr_buf[i];
   }
 
   __local u32 s_msg_buf[128];
 
-  for (u32 i = lid; i < 128; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 128; i += lsz)
   {
     s_msg_buf[i] = ikepsk_bufs[digests_offset].msg_buf[i];
   }
@@ -566,14 +566,14 @@ __kernel void m05300_m16 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   __local u32 s_nr_buf[16];
 
-  for (u32 i = lid; i < 16; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 16; i += lsz)
   {
     s_nr_buf[i] = ikepsk_bufs[digests_offset].nr_buf[i];
   }
 
   __local u32 s_msg_buf[128];
 
-  for (u32 i = lid; i < 128; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 128; i += lsz)
   {
     s_msg_buf[i] = ikepsk_bufs[digests_offset].msg_buf[i];
   }
@@ -639,14 +639,14 @@ __kernel void m05300_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   __local u32 s_nr_buf[16];
 
-  for (u32 i = lid; i < 16; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 16; i += lsz)
   {
     s_nr_buf[i] = ikepsk_bufs[digests_offset].nr_buf[i];
   }
 
   __local u32 s_msg_buf[128];
 
-  for (u32 i = lid; i < 128; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 128; i += lsz)
   {
     s_msg_buf[i] = ikepsk_bufs[digests_offset].msg_buf[i];
   }
@@ -712,14 +712,14 @@ __kernel void m05300_s08 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   __local u32 s_nr_buf[16];
 
-  for (u32 i = lid; i < 16; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 16; i += lsz)
   {
     s_nr_buf[i] = ikepsk_bufs[digests_offset].nr_buf[i];
   }
 
   __local u32 s_msg_buf[128];
 
-  for (u32 i = lid; i < 128; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 128; i += lsz)
   {
     s_msg_buf[i] = ikepsk_bufs[digests_offset].msg_buf[i];
   }
@@ -785,14 +785,14 @@ __kernel void m05300_s16 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   __local u32 s_nr_buf[16];
 
-  for (u32 i = lid; i < 16; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 16; i += lsz)
   {
     s_nr_buf[i] = ikepsk_bufs[digests_offset].nr_buf[i];
   }
 
   __local u32 s_msg_buf[128];
 
-  for (u32 i = lid; i < 128; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 128; i += lsz)
   {
     s_msg_buf[i] = ikepsk_bufs[digests_offset].msg_buf[i];
   }

@@ -508,7 +508,7 @@ __kernel void m16000_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
   __local u32 s_SPtrans[8][64];
   __local u32 s_skb[8][64];
 
-  for (u32 i = lid; i < 64; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 64; i += lsz)
   {
     s_SPtrans[0][i] = c_SPtrans[0][i];
     s_SPtrans[1][i] = c_SPtrans[1][i];
@@ -531,7 +531,7 @@ __kernel void m16000_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   __local u32 s_tripcode_salt[128];
 
-  for (u32 i = lid; i < 128; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 128; i += lsz)
   {
     s_tripcode_salt[i] = c_tripcode_salt[i];
   }
@@ -629,7 +629,7 @@ __kernel void m16000_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
   __local u32 s_SPtrans[8][64];
   __local u32 s_skb[8][64];
 
-  for (u32 i = lid; i < 64; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 64; i += lsz)
   {
     s_SPtrans[0][i] = c_SPtrans[0][i];
     s_SPtrans[1][i] = c_SPtrans[1][i];
@@ -652,7 +652,7 @@ __kernel void m16000_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
   __local u32 s_tripcode_salt[128];
 
-  for (u32 i = lid; i < 128; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 128; i += lsz)
   {
     s_tripcode_salt[i] = c_tripcode_salt[i];
   }

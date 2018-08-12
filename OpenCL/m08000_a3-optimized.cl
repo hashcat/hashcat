@@ -249,7 +249,7 @@ DECLSPEC void m08000m (__local u32 *w_s1, __local u32 *w_s2, u32 *w, const u32 p
    * precompute final msg blocks
    */
 
-  for (u32 i = lid; i < 64; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 64; i += lsz)
   {
     w_s1[i] = 0;
     w_s2[i] = 0;
@@ -371,7 +371,7 @@ DECLSPEC void m08000s (__local u32 *w_s1, __local u32 *w_s2, u32 *w, const u32 p
    * precompute final msg blocks
    */
 
-  for (u32 i = lid; i < 64; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 64; i += lsz)
   {
     w_s1[i] = 0;
     w_s2[i] = 0;

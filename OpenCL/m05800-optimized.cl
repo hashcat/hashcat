@@ -2303,7 +2303,7 @@ __kernel void m05800_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   __local u32 s_pc_dec[1024];
   __local u32 s_pc_len[1024];
 
-  for (u32 i = lid; i < 1024; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 1024; i += lsz)
   {
     s_pc_dec[i] = c_pc_dec[i];
     s_pc_len[i] = c_pc_len[i];

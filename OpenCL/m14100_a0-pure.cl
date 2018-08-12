@@ -557,7 +557,7 @@ __kernel void m14100_mxx (__global pw_t *pws, __constant const kernel_rule_t *ru
   __local u32 s_SPtrans[8][64];
   __local u32 s_skb[8][64];
 
-  for (u32 i = lid; i < 64; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 64; i += lsz)
   {
     s_SPtrans[0][i] = c_SPtrans[0][i];
     s_SPtrans[1][i] = c_SPtrans[1][i];
@@ -692,7 +692,7 @@ __kernel void m14100_sxx (__global pw_t *pws, __constant const kernel_rule_t *ru
   __local u32 s_SPtrans[8][64];
   __local u32 s_skb[8][64];
 
-  for (u32 i = lid; i < 64; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 64; i += lsz)
   {
     s_SPtrans[0][i] = c_SPtrans[0][i];
     s_SPtrans[1][i] = c_SPtrans[1][i];

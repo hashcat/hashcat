@@ -2315,7 +2315,7 @@ __kernel void m11800_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   __local u64 s_sbob_sl64[8][256];
 
-  for (u32 i = lid; i < 256; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
   {
     s_sbob_sl64[0][i] = sbob_sl64[0][i];
     s_sbob_sl64[1][i] = sbob_sl64[1][i];
@@ -2531,7 +2531,7 @@ __kernel void m11800_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   __local u64 s_sbob_sl64[8][256];
 
-  for (u32 i = lid; i < 256; i += lsz)
+  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
   {
     s_sbob_sl64[0][i] = sbob_sl64[0][i];
     s_sbob_sl64[1][i] = sbob_sl64[1][i];
