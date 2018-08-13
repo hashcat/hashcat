@@ -27,8 +27,6 @@ __kernel void m06100_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
    * shared
    */
 
-  #ifdef REAL_SHM
-
   __local u32 s_Ch[8][256];
   __local u32 s_Cl[8][256];
 
@@ -54,13 +52,6 @@ __kernel void m06100_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
-
-  #else
-
-  __constant u32 (*s_Ch)[256] = Ch;
-  __constant u32 (*s_Cl)[256] = Cl;
-
-  #endif
 
   if (gid >= gid_max) return;
 
@@ -109,8 +100,6 @@ __kernel void m06100_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
    * shared
    */
 
-  #ifdef REAL_SHM
-
   __local u32 s_Ch[8][256];
   __local u32 s_Cl[8][256];
 
@@ -136,13 +125,6 @@ __kernel void m06100_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
-
-  #else
-
-  __constant u32 (*s_Ch)[256] = Ch;
-  __constant u32 (*s_Cl)[256] = Cl;
-
-  #endif
 
   if (gid >= gid_max) return;
 

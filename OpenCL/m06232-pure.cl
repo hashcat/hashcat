@@ -45,7 +45,7 @@ DECLSPEC u32 u8add (const u32 a, const u32 b)
   return r;
 }
 
-DECLSPEC void hmac_whirlpool_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest, SHM_TYPE u32 (*s_Ch)[256], SHM_TYPE u32 (*s_Cl)[256])
+DECLSPEC void hmac_whirlpool_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest, __local u32 (*s_Ch)[256], __local u32 (*s_Cl)[256])
 {
   digest[ 0] = ipad[ 0];
   digest[ 1] = ipad[ 1];
@@ -155,8 +155,6 @@ __kernel void m06232_init (__global pw_t *pws, __global const kernel_rule_t *rul
    * shared
    */
 
-  #ifdef REAL_SHM
-
   __local u32 s_Ch[8][256];
   __local u32 s_Cl[8][256];
 
@@ -182,13 +180,6 @@ __kernel void m06232_init (__global pw_t *pws, __global const kernel_rule_t *rul
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
-
-  #else
-
-  __constant u32 (*s_Ch)[256] = Ch;
-  __constant u32 (*s_Cl)[256] = Cl;
-
-  #endif
 
   if (gid >= gid_max) return;
 
@@ -363,8 +354,6 @@ __kernel void m06232_loop (__global pw_t *pws, __global const kernel_rule_t *rul
    * shared
    */
 
-  #ifdef REAL_SHM
-
   __local u32 s_Ch[8][256];
   __local u32 s_Cl[8][256];
 
@@ -390,13 +379,6 @@ __kernel void m06232_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
-
-  #else
-
-  __constant u32 (*s_Ch)[256] = Ch;
-  __constant u32 (*s_Cl)[256] = Cl;
-
-  #endif
 
   if ((gid * VECT_SIZE) >= gid_max) return;
 
@@ -568,17 +550,17 @@ __kernel void m06232_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   #ifdef REAL_SHM
 
-  SHM_TYPE u32 s_td0[256];
-  SHM_TYPE u32 s_td1[256];
-  SHM_TYPE u32 s_td2[256];
-  SHM_TYPE u32 s_td3[256];
-  SHM_TYPE u32 s_td4[256];
+  __local u32 s_td0[256];
+  __local u32 s_td1[256];
+  __local u32 s_td2[256];
+  __local u32 s_td3[256];
+  __local u32 s_td4[256];
 
-  SHM_TYPE u32 s_te0[256];
-  SHM_TYPE u32 s_te1[256];
-  SHM_TYPE u32 s_te2[256];
-  SHM_TYPE u32 s_te3[256];
-  SHM_TYPE u32 s_te4[256];
+  __local u32 s_te0[256];
+  __local u32 s_te1[256];
+  __local u32 s_te2[256];
+  __local u32 s_te3[256];
+  __local u32 s_te4[256];
 
   for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
   {

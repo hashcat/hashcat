@@ -23,7 +23,7 @@ typedef struct
 
 } RC4_KEY;
 
-DECLSPEC void swap (SCR_TYPE RC4_KEY *rc4_key, const u8 i, const u8 j)
+DECLSPEC void swap (__local RC4_KEY *rc4_key, const u8 i, const u8 j)
 {
   u8 tmp;
 
@@ -32,12 +32,12 @@ DECLSPEC void swap (SCR_TYPE RC4_KEY *rc4_key, const u8 i, const u8 j)
   rc4_key->S[j] = tmp;
 }
 
-DECLSPEC void rc4_init_16 (SCR_TYPE RC4_KEY *rc4_key, const u32 *data)
+DECLSPEC void rc4_init_16 (__local RC4_KEY *rc4_key, const u32 *data)
 {
   u32 v = 0x03020100;
   u32 a = 0x04040404;
 
-  SCR_TYPE u32 *ptr = (SCR_TYPE u32 *) rc4_key->S;
+  __local u32 *ptr = (__local u32 *) rc4_key->S;
 
   #ifdef _unroll
   #pragma unroll
@@ -85,7 +85,7 @@ DECLSPEC void rc4_init_16 (SCR_TYPE RC4_KEY *rc4_key, const u32 *data)
   }
 }
 
-DECLSPEC u8 rc4_next_16 (SCR_TYPE RC4_KEY *rc4_key, u8 i, u8 j, const u32 *in, u32 *out)
+DECLSPEC u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, const u32 *in, u32 *out)
 {
   #ifdef _unroll
   #pragma unroll
@@ -138,7 +138,7 @@ DECLSPEC u8 rc4_next_16 (SCR_TYPE RC4_KEY *rc4_key, u8 i, u8 j, const u32 *in, u
   return j;
 }
 
-DECLSPEC int decrypt_and_check (SCR_TYPE RC4_KEY *rc4_key, u32 *data, u32 *timestamp_ct)
+DECLSPEC int decrypt_and_check (__local RC4_KEY *rc4_key, u32 *data, u32 *timestamp_ct)
 {
   rc4_init_16 (rc4_key, data);
 
@@ -382,7 +382,7 @@ DECLSPEC void kerb_prepare (const u32 *w0, const u32 *w1, const u32 pw_len, cons
   hmac_md5_run (w0_t, w1_t, w2_t, w3_t, ipad, opad, digest);
 }
 
-DECLSPEC void m07500 (SCR_TYPE RC4_KEY *rc4_key, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, __global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global krb5pa_t *krb5pa_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
+DECLSPEC void m07500 (__local RC4_KEY *rc4_key, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, __global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global krb5pa_t *krb5pa_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
 {
   /**
    * modifier
@@ -517,19 +517,9 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m07500_m04 (__glob
    * main
    */
 
-  #ifdef REAL_SHM
-
   __local RC4_KEY rc4_keys[64];
 
   __local RC4_KEY *rc4_key = &rc4_keys[lid];
-
-  #else
-
-  RC4_KEY rc4_keys[1];
-
-  RC4_KEY *rc4_key = &rc4_keys[0];
-
-  #endif
 
   m07500 (rc4_key, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, krb5pa_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
 }
@@ -579,19 +569,9 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m07500_m08 (__glob
    * main
    */
 
-  #ifdef REAL_SHM
-
   __local RC4_KEY rc4_keys[64];
 
   __local RC4_KEY *rc4_key = &rc4_keys[lid];
-
-  #else
-
-  RC4_KEY rc4_keys[1];
-
-  RC4_KEY *rc4_key = &rc4_keys[0];
-
-  #endif
 
   m07500 (rc4_key, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, krb5pa_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
 }
@@ -645,19 +625,9 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m07500_s04 (__glob
    * main
    */
 
-  #ifdef REAL_SHM
-
   __local RC4_KEY rc4_keys[64];
 
   __local RC4_KEY *rc4_key = &rc4_keys[lid];
-
-  #else
-
-  RC4_KEY rc4_keys[1];
-
-  RC4_KEY *rc4_key = &rc4_keys[0];
-
-  #endif
 
   m07500 (rc4_key, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, krb5pa_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
 }
@@ -707,19 +677,9 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m07500_s08 (__glob
    * main
    */
 
-  #ifdef REAL_SHM
-
   __local RC4_KEY rc4_keys[64];
 
   __local RC4_KEY *rc4_key = &rc4_keys[lid];
-
-  #else
-
-  RC4_KEY rc4_keys[1];
-
-  RC4_KEY *rc4_key = &rc4_keys[0];
-
-  #endif
 
   m07500 (rc4_key, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, krb5pa_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
 }

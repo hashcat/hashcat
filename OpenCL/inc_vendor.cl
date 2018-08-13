@@ -19,20 +19,6 @@
 #define IS_ACCEL
 #endif
 
-#if   DEVICE_TYPE == DEVICE_TYPE_CPU
-#elif DEVICE_TYPE == DEVICE_TYPE_GPU
-#define REAL_SHM
-#elif DEVICE_TYPE == DEVICE_TYPE_ACCEL
-#endif
-
-#ifdef REAL_SHM
-#define SHM_TYPE __local
-#define SCR_TYPE __local
-#else
-#define SHM_TYPE __constant
-#define SCR_TYPE
-#endif
-
 /**
  * vendor specific
  */
@@ -78,6 +64,21 @@
 #define IS_GENERIC
 #else
 #define IS_GENERIC
+#endif
+
+#if   DEVICE_TYPE == DEVICE_TYPE_CPU
+#elif DEVICE_TYPE == DEVICE_TYPE_GPU
+// AMD fails with mode 6211
+#ifdef IS_NV
+#define REAL_SHM
+#endif
+#elif DEVICE_TYPE == DEVICE_TYPE_ACCEL
+#endif
+
+#ifdef REAL_SHM
+#define SHM_TYPE __local
+#else
+#define SHM_TYPE __constant
 #endif
 
 /**
