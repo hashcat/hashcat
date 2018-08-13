@@ -270,7 +270,7 @@ DECLSPEC u32 mds_rem (u32 p0, u32 p1)
 {
   #define G_MOD 0x14d
 
-  for (int i = 0; i < 8; i++)
+  for (volatile int i = 0; i < 8; i++)
   {
     u32 t = p1 >> 24;
 
@@ -364,7 +364,7 @@ DECLSPEC void twofish128_set_key (u32 *sk, u32 *lk, const u32 *ukey)
   sk[1] = mds_rem (me_key[0], mo_key[0]);
   sk[0] = mds_rem (me_key[1], mo_key[1]);
 
-  for (int i = 0; i < 40; i += 2)
+  for (volatile int i = 0; i < 40; i += 2)
   {
     u32 a = 0x01010101 * i;
     u32 b = 0x01010101 + a;
@@ -513,7 +513,7 @@ DECLSPEC void twofish256_set_key (u32 *sk, u32 *lk, const u32 *ukey)
   sk[1] = mds_rem (me_key[2], mo_key[2]);
   sk[0] = mds_rem (me_key[3], mo_key[3]);
 
-  for (int i = 0; i < 40; i += 2)
+  for (volatile int i = 0; i < 40; i += 2)
   {
     u32 a = 0x01010101 * i;
     u32 b = 0x01010101 + a;
