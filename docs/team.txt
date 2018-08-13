@@ -13,6 +13,7 @@ We're a group of people participating in the yearly repeating password cracking 
 | Crack Me If You Can | DEF CON, Las Vegas         | 2014 | 1st    |
 | Crack Me If You Can | DEF CON, Las Vegas         | 2015 | 1st    |
 | Crack Me If You Can | DerbyCon, Louisville       | 2017 | 1st    |
+| Crack Me If You Can | DEF CON, Las Vegas         | 2018 | 2nd    |
 
 | Competition         | Conference                 | Year | Placed |
 |---------------------|----------------------------|------|--------|
