@@ -683,7 +683,7 @@ __constant u32a td4[256] =
   0x55555555, 0x21212121, 0x0c0c0c0c, 0x7d7d7d7d,
 };
 
-__constant u32a rcon[] =
+__constant u32a rcon[10] =
 {
   0x01000000, 0x02000000, 0x04000000, 0x08000000,
   0x10000000, 0x20000000, 0x40000000, 0x80000000,
@@ -699,7 +699,7 @@ DECLSPEC void aes128_ExpandKey (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, S
   ks[2] = ukey[2];
   ks[3] = ukey[3];
 
-  for (u32 i = 0, j = 0; i < 10; i += 1, j += 4)
+  for (volatile int i = 0, j = 0; i < 10; i += 1, j += 4)
   {
     u32 temp = ks[j + 3];
 
@@ -720,7 +720,7 @@ DECLSPEC void aes128_ExpandKey (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, S
 
 DECLSPEC void aes128_InvertKey (u32 *ks, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
-  for (u32 i = 0, j = 40; i < j; i += 4, j -= 4)
+  for (volatile int i = 0, j = 40; i < j; i += 4, j -= 4)
   {
     u32 temp;
 
@@ -730,7 +730,7 @@ DECLSPEC void aes128_InvertKey (u32 *ks, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te
     temp = ks[i + 3]; ks[i + 3] = ks[j + 3]; ks[j + 3] = temp;
   }
 
-  for (u32 i = 1, j = 4; i < 10; i += 1, j += 4)
+  for (volatile int i = 1, j = 4; i < 10; i += 1, j += 4)
   {
     ks[j + 0] =
       s_td0[s_te1[(ks[j + 0] >> 24) & 0xff] & 0xff] ^
@@ -799,7 +799,7 @@ DECLSPEC void aes128_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (int i = 4; i < 40; i += 4)
+  for (volatile int i = 4; i < 40; i += 4)
   {
     const uchar4 x0 = as_uchar4 (t0);
     const uchar4 x1 = as_uchar4 (t1);
@@ -862,7 +862,7 @@ DECLSPEC void aes128_decrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (int i = 4; i < 40; i += 4)
+  for (volatile int i = 4; i < 40; i += 4)
   {
     const uchar4 x0 = as_uchar4 (t0);
     const uchar4 x1 = as_uchar4 (t1);
@@ -926,7 +926,7 @@ DECLSPEC void aes256_ExpandKey (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, S
   int i;
   int j;
 
-  for (int i = 0, j = 0; i < 7; i += 1, j += 8)
+  for (volatile int i = 0, j = 0; i < 7; i += 1, j += 8)
   {
     const u32 temp1 = ks[j + 7];
 
@@ -959,7 +959,7 @@ DECLSPEC void aes256_ExpandKey (u32 *ks, const u32 *ukey, SHM_TYPE u32 *s_te0, S
 
 DECLSPEC void aes256_InvertKey (u32 *ks, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
-  for (u32 i = 0, j = 56; i < j; i += 4, j -= 4)
+  for (volatile int i = 0, j = 56; i < j; i += 4, j -= 4)
   {
     u32 temp;
 
@@ -969,7 +969,7 @@ DECLSPEC void aes256_InvertKey (u32 *ks, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te
     temp = ks[i + 3]; ks[i + 3] = ks[j + 3]; ks[j + 3] = temp;
   }
 
-  for (u32 i = 1, j = 4; i < 14; i += 1, j += 4)
+  for (volatile int i = 1, j = 4; i < 14; i += 1, j += 4)
   {
     ks[j + 0] =
       s_td0[s_te1[(ks[j + 0] >> 24) & 0xff] & 0xff] ^
@@ -1046,7 +1046,7 @@ DECLSPEC void aes256_encrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (int i = 4; i < 56; i += 4)
+  for (volatile int i = 4; i < 56; i += 4)
   {
     const uchar4 x0 = as_uchar4 (t0);
     const uchar4 x1 = as_uchar4 (t1);
@@ -1109,7 +1109,7 @@ DECLSPEC void aes256_decrypt (const u32 *ks, const u32 *in, u32 *out, SHM_TYPE u
   #ifdef _unroll
   #pragma unroll
   #endif
-  for (int i = 4; i < 56; i += 4)
+  for (volatile int i = 4; i < 56; i += 4)
   {
     const uchar4 x0 = as_uchar4 (t0);
     const uchar4 x1 = as_uchar4 (t1);

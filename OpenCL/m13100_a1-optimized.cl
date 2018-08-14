@@ -23,7 +23,7 @@ typedef struct
 
 } RC4_KEY;
 
-DECLSPEC void swap (SCR_TYPE RC4_KEY *rc4_key, const u8 i, const u8 j)
+DECLSPEC void swap (__local RC4_KEY *rc4_key, const u8 i, const u8 j)
 {
   u8 tmp;
 
@@ -32,12 +32,12 @@ DECLSPEC void swap (SCR_TYPE RC4_KEY *rc4_key, const u8 i, const u8 j)
   rc4_key->S[j] = tmp;
 }
 
-DECLSPEC void rc4_init_16 (SCR_TYPE RC4_KEY *rc4_key, const u32 *data)
+DECLSPEC void rc4_init_16 (__local RC4_KEY *rc4_key, const u32 *data)
 {
   u32 v = 0x03020100;
   u32 a = 0x04040404;
 
-  SCR_TYPE u32 *ptr = (SCR_TYPE u32 *) rc4_key->S;
+  __local u32 *ptr = (__local u32 *) rc4_key->S;
 
   #ifdef _unroll
   #pragma unroll
@@ -85,7 +85,7 @@ DECLSPEC void rc4_init_16 (SCR_TYPE RC4_KEY *rc4_key, const u32 *data)
   }
 }
 
-DECLSPEC u8 rc4_next_16 (SCR_TYPE RC4_KEY *rc4_key, u8 i, u8 j, const __global u32 *in, u32 *out)
+DECLSPEC u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, const __global u32 *in, u32 *out)
 {
   #ifdef _unroll
   #pragma unroll
@@ -223,7 +223,7 @@ DECLSPEC void hmac_md5_run (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *ipad, u32 *
   md5_transform (w0, w1, w2, w3, digest);
 }
 
-DECLSPEC int decrypt_and_check (SCR_TYPE RC4_KEY *rc4_key, u32 *data, __global const u32 *edata2, const u32 edata2_len, const u32 *K2, const u32 *checksum)
+DECLSPEC int decrypt_and_check (__local RC4_KEY *rc4_key, u32 *data, __global const u32 *edata2, const u32 edata2_len, const u32 *K2, const u32 *checksum)
 {
   rc4_init_16 (rc4_key, data);
 
@@ -597,19 +597,9 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_m04 (__glob
    * shared
    */
 
-  #ifdef REAL_SHM
-
   __local RC4_KEY rc4_keys[64];
 
   __local RC4_KEY *rc4_key = &rc4_keys[lid];
-
-  #else
-
-  RC4_KEY rc4_keys[1];
-
-  RC4_KEY *rc4_key = &rc4_keys[0];
-
-  #endif
 
   /**
    * salt
@@ -754,19 +744,9 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_s04 (__glob
    * shared
    */
 
-  #ifdef REAL_SHM
-
   __local RC4_KEY rc4_keys[64];
 
   __local RC4_KEY *rc4_key = &rc4_keys[lid];
-
-  #else
-
-  RC4_KEY rc4_keys[1];
-
-  RC4_KEY *rc4_key = &rc4_keys[0];
-
-  #endif
 
   /**
    * salt

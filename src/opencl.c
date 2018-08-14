@@ -4069,19 +4069,6 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     #endif // __APPLE__
 
-    if (device_param->platform_vendor_id == VENDOR_ID_AMD)
-    {
-      if (device_param->is_rocm == false)
-      {
-        if ((user_options->hash_mode ==  7900)
-         || (user_options->hash_mode == 10700)
-         || (user_options->hash_mode == 13731))
-        {
-          skipped_temp = true;
-        }
-      }
-    }
-
     if ((skipped_temp == true) && (user_options->force == false))
     {
       event_log_warning (hashcat_ctx, "* Device #%u: Skipping unstable hash-mode %u for this device.", device_id + 1, user_options->hash_mode);
