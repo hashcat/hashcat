@@ -5,6 +5,7 @@
 ##
 
 - Workaround some AMD OpenCL runtime segmentation faults
+- Allow bitcoin master key length not be exactly 96 byte a multiple of 16
 
 ##
 ## Bugs

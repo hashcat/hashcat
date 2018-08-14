@@ -12401,8 +12401,8 @@ int bitcoin_wallet_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[2]     = '$';
-  token.len_min[2] = 96;
-  token.len_max[2] = 96;
+  token.len_min[2] = 16;
+  token.len_max[2] = 256;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
@@ -12478,6 +12478,8 @@ int bitcoin_wallet_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
   if (cry_salt_buf_len   != cry_salt_len)   return (PARSER_SALT_VALUE);
   if (ckey_buf_len       != ckey_len)       return (PARSER_SALT_VALUE);
   if (public_key_buf_len != public_key_len) return (PARSER_SALT_VALUE);
+
+  if (cry_master_len % 16) return (PARSER_SALT_VALUE);
 
   // esalt
 
