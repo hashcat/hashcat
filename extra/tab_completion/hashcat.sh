@@ -363,7 +363,7 @@ _hashcat ()
       --status-timer|--markov-threshold|--runtime|--session|--separator|--segment-size|--rule-left|--rule-right| \
       --nvidia-spin-damp|--gpu-temp-abort|--generate-rules|--generate-rules-func-min|--generate-rules-func-max| \
       --increment-min|--increment-max|--remove-timer|--bitmap-min|--bitmap-max|--skip|--limit|--generate-rules-seed| \
-      --outfile-check-timer|--outfile-check-dir|--induction-dir|--scrypt-tmto|--encoding-from|--encoding-to|--optimized-kernel-enable|--self-test-disable)
+      --outfile-check-timer|--outfile-check-dir|--induction-dir|--scrypt-tmto|--encoding-from|--encoding-to|--optimized-kernel-enable)
       return 0
       ;;
 
