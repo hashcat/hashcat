@@ -533,6 +533,8 @@ typedef struct electrum_wallet
 
 typedef struct ansible_vault
 {
+  u32 cipher;
+  u32 version;
   u32 ct_data_buf[4096];
   u32 ct_data_len;
 } ansible_vault_t;

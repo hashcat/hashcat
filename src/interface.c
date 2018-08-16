@@ -17804,15 +17804,11 @@ int ansible_vault_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MA
   token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  // version (unused)
-
   token.sep[1]     = '*';
   token.len_min[1] = 1;
   token.len_max[1] = 1;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
-
-  // cipher (unused)
 
   token.sep[2]     = '*';
   token.len_min[2] = 1;
@@ -17841,6 +17837,18 @@ int ansible_vault_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MA
   const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+  // cipher (unused)
+
+  u8 *cipher_pos = token.buf[1];
+
+  ansible_vault->cipher = hc_strtoul ((const char *) cipher_pos, NULL, 10);
+
+  // version (unused)
+
+  u8 *version_pos = token.buf[2];
+
+  ansible_vault->version = hc_strtoul ((const char *) version_pos, NULL, 10);
 
   // salt
 
@@ -22030,10 +22038,40 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   }
   else if (hash_mode == 16900)
   {
-    hashinfo_t **hashinfo_ptr = hash_info;
-    char        *hash_buf     = hashinfo_ptr[digest_cur]->orighash;
+    ansible_vault_t *ansible_vaults = (ansible_vault_t *) esalts_buf;
 
-    snprintf (out_buf, out_len - 1, "%s", hash_buf);
+    ansible_vault_t *ansible_vault = &ansible_vaults[digest_cur];
+
+    u8 ct_data[16384 + 1] = { 0 };
+
+    u32 *ct_data_ptr = ansible_vault->ct_data_buf;
+
+    for (u32 i = 0, j = 0; i < ansible_vault->ct_data_len / 4; i++, j += 8)
+    {
+      u32_to_hex_lower (ct_data_ptr[i], ct_data + j);
+    }
+
+    snprintf (out_buf, out_len - 1, "%s%u*%u*%08x%08x%08x%08x%08x%08x%08x%08x*%s*%08x%08x%08x%08x%08x%08x%08x%08x",
+      SIGNATURE_ANSIBLE_VAULT,
+      ansible_vault->cipher,
+      ansible_vault->version,
+      salt.salt_buf[0],
+      salt.salt_buf[1],
+      salt.salt_buf[2],
+      salt.salt_buf[3],
+      salt.salt_buf[4],
+      salt.salt_buf[5],
+      salt.salt_buf[6],
+      salt.salt_buf[7],
+      ct_data,
+      byte_swap_32 (digest_buf[0]),
+      byte_swap_32 (digest_buf[1]),
+      byte_swap_32 (digest_buf[2]),
+      byte_swap_32 (digest_buf[3]),
+      byte_swap_32 (digest_buf[4]),
+      byte_swap_32 (digest_buf[5]),
+      byte_swap_32 (digest_buf[6]),
+      byte_swap_32 (digest_buf[7]));
   }
   else if (hash_mode == 99999)
   {
@@ -27216,8 +27254,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 16900:  hashconfig->hash_type      = HASH_TYPE_ANSIBLE_VAULT;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_HASH_COPY;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
                  hashconfig->kern_type      = KERN_TYPE_ANSIBLE_VAULT;
                  hashconfig->dgst_size      = DGST_SIZE_4_8;
                  hashconfig->parse_func     = ansible_vault_parse_hash;
