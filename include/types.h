@@ -57,14 +57,17 @@ typedef struct timespec   hc_timer_t;
 
 #if defined (_POSIX)
 #include <pthread.h>
+#include <semaphore.h>
 #endif
 
 #if defined (_WIN)
-typedef HANDLE            hc_thread_t;
-typedef CRITICAL_SECTION  hc_thread_mutex_t;
+typedef HANDLE              hc_thread_t;
+typedef HANDLE              hc_thread_mutex_t;
+typedef HANDLE              hc_thread_semaphore_t;
 #else
-typedef pthread_t         hc_thread_t;
-typedef pthread_mutex_t   hc_thread_mutex_t;
+typedef pthread_t           hc_thread_t;
+typedef pthread_mutex_t     hc_thread_mutex_t;
+typedef sem_t               hc_thread_semaphore_t;
 #endif
 
 // enums
