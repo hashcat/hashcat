@@ -17824,7 +17824,7 @@ int ansible_vault_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MA
 
   token.sep[4]     = '*';
   token.len_min[4] = 32;
-  token.len_max[4] = 8192;
+  token.len_max[4] = 32768;
   token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
