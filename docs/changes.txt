@@ -15,6 +15,7 @@
 - Fixed a invalid scalar datatype return value in hc_bytealign() where it should be a vector datatype return value
 - Fixed a problem with attack mode -a 7 together with stdout mode where the mask bytes were missing in the output
 - Fixed a problem with tab completion where --self-test-disable did incorrecly expect a further parameter/value
+- Fixed the ciphertext max length in Ansible Vault parser
 
 * changes v4.2.0 -> v4.2.1
 
