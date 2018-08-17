@@ -1401,6 +1401,9 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
     device_info->kernel_loops_dev           = status_get_kernel_loops_dev           (hashcat_ctx, device_id);
     device_info->kernel_threads_dev         = status_get_kernel_threads_dev         (hashcat_ctx, device_id);
     device_info->vector_width_dev           = status_get_vector_width_dev           (hashcat_ctx, device_id);
+    device_info->salt_pos_dev               = status_get_salt_pos_dev               (hashcat_ctx, device_id);
+    device_info->innerloop_pos_dev          = status_get_innerloop_pos_dev          (hashcat_ctx, device_id);
+    device_info->iteration_pos_dev          = status_get_iteration_pos_dev          (hashcat_ctx, device_id);
   }
 
   hashcat_status->hashes_msec_all = status_get_hashes_msec_all (hashcat_ctx);

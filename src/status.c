@@ -1656,6 +1656,54 @@ char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
   return cpt;
 }
 
+int status_get_salt_pos_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
+{
+  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+  int salt_pos = 0;
+
+  if (device_param->skipped == false)
+  {
+    salt_pos = (int) device_param->kernel_params_buf32[27];
+  }
+
+  return salt_pos;
+}
+
+int status_get_innerloop_pos_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
+{
+  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+  int innerloop_pos = 0;
+
+  if (device_param->skipped == false)
+  {
+    innerloop_pos = (int) device_param->innerloop_pos;
+  }
+
+  return innerloop_pos;
+}
+
+int status_get_iteration_pos_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
+{
+  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+  int iteration_pos = 0;
+
+  if (device_param->skipped == false)
+  {
+    iteration_pos = (int) device_param->kernel_params_buf32[28];
+  }
+
+  return iteration_pos;
+}
+
 char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
   const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;

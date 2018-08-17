@@ -1296,6 +1296,19 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
     if (device_info->skipped_dev == true) continue;
 
+    event_log_info (hashcat_ctx,
+      "Restore.Sub.#%d...: Salt:%d Amplifier:%d Iteration:%d", device_id + 1,
+      device_info->salt_pos_dev,
+      device_info->innerloop_pos_dev,
+      device_info->iteration_pos_dev);
+  }
+
+  for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+  {
+    const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+
+    if (device_info->skipped_dev == true) continue;
+
     if (device_info->guess_candidates_dev == NULL) continue;
 
     event_log_info (hashcat_ctx,
