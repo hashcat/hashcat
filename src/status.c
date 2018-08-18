@@ -1688,6 +1688,22 @@ int status_get_innerloop_pos_dev (const hashcat_ctx_t *hashcat_ctx, const int de
   return innerloop_pos;
 }
 
+int status_get_innerloop_left_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
+{
+  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+  int innerloop_left = 0;
+
+  if (device_param->skipped == false)
+  {
+    innerloop_left = (int) device_param->innerloop_left;
+  }
+
+  return innerloop_left;
+}
+
 int status_get_iteration_pos_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
   const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
@@ -1702,6 +1718,22 @@ int status_get_iteration_pos_dev (const hashcat_ctx_t *hashcat_ctx, const int de
   }
 
   return iteration_pos;
+}
+
+int status_get_iteration_left_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
+{
+  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+  int iteration_left = 0;
+
+  if (device_param->skipped == false)
+  {
+    iteration_left = (int) device_param->kernel_params_buf32[29];
+  }
+
+  return iteration_left;
 }
 
 char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)

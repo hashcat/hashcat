@@ -81,7 +81,9 @@ int         status_get_cpt_avg_day                (const hashcat_ctx_t *hashcat_
 char       *status_get_cpt                        (const hashcat_ctx_t *hashcat_ctx);
 int         status_get_salt_pos_dev               (const hashcat_ctx_t *hashcat_ctx, const int device_id);
 int         status_get_innerloop_pos_dev          (const hashcat_ctx_t *hashcat_ctx, const int device_id);
+int         status_get_innerloop_left_dev         (const hashcat_ctx_t *hashcat_ctx, const int device_id);
 int         status_get_iteration_pos_dev          (const hashcat_ctx_t *hashcat_ctx, const int device_id);
+int         status_get_iteration_left_dev         (const hashcat_ctx_t *hashcat_ctx, const int device_id);
 char       *status_get_hwmon_dev                  (const hashcat_ctx_t *hashcat_ctx, const int device_id);
 int         status_get_corespeed_dev              (const hashcat_ctx_t *hashcat_ctx, const int device_id);
 int         status_get_memoryspeed_dev            (const hashcat_ctx_t *hashcat_ctx, const int device_id);

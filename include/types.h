@@ -689,7 +689,7 @@ typedef enum user_options_map
   IDX_VERACRYPT_PIM             = 0xff3e,
   IDX_VERSION_LOWER             = 'v',
   IDX_VERSION                   = 'V',
-  IDX_WORKLOAD_PROFILE          = 'w'
+  IDX_WORKLOAD_PROFILE          = 'w',
 
 } user_options_map_t;
 
@@ -1864,7 +1864,9 @@ typedef struct device_info
   int     vector_width_dev;
   int     salt_pos_dev;
   int     innerloop_pos_dev;
+  int     innerloop_left_dev;
   int     iteration_pos_dev;
+  int     iteration_left_dev;
 
 } device_info_t;
 
