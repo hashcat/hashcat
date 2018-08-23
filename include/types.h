@@ -639,7 +639,7 @@ typedef enum user_options_map
   IDX_MACHINE_READABLE          = 0xff19,
   IDX_MARKOV_CLASSIC            = 0xff1a,
   IDX_MARKOV_DISABLE            = 0xff1b,
-  IDX_MARKOV_HCSTAT             = 0xff1c,
+  IDX_MARKOV_HCSTAT2            = 0xff1c,
   IDX_MARKOV_THRESHOLD          = 't',
   IDX_NONCE_ERROR_CORRECTIONS   = 0xff1d,
   IDX_NVIDIA_SPIN_DAMP          = 0xff1e,
@@ -1656,7 +1656,7 @@ typedef struct user_options
   const char  *encoding_from;
   const char  *encoding_to;
   char        *induction_dir;
-  char        *markov_hcstat;
+  char        *markov_hcstat2;
   char        *opencl_devices;
   char        *opencl_device_types;
   char        *opencl_platforms;

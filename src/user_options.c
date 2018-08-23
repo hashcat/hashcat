@@ -62,7 +62,7 @@ static const struct option long_options[] =
   {"machine-readable",          no_argument,       NULL, IDX_MACHINE_READABLE},
   {"markov-classic",            no_argument,       NULL, IDX_MARKOV_CLASSIC},
   {"markov-disable",            no_argument,       NULL, IDX_MARKOV_DISABLE},
-  {"markov-hcstat",             required_argument, NULL, IDX_MARKOV_HCSTAT},
+  {"markov-hcstat2",            required_argument, NULL, IDX_MARKOV_HCSTAT2},
   {"markov-threshold",          required_argument, NULL, IDX_MARKOV_THRESHOLD},
   {"nonce-error-corrections",   required_argument, NULL, IDX_NONCE_ERROR_CORRECTIONS},
   {"nvidia-spin-damp",          required_argument, NULL, IDX_NVIDIA_SPIN_DAMP},
@@ -165,7 +165,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->machine_readable          = MACHINE_READABLE;
   user_options->markov_classic            = MARKOV_CLASSIC;
   user_options->markov_disable            = MARKOV_DISABLE;
-  user_options->markov_hcstat             = NULL;
+  user_options->markov_hcstat2            = NULL;
   user_options->markov_threshold          = MARKOV_THRESHOLD;
   user_options->nonce_error_corrections   = NONCE_ERROR_CORRECTIONS;
   user_options->nvidia_spin_damp          = NVIDIA_SPIN_DAMP;
@@ -365,7 +365,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_MARKOV_DISABLE:           user_options->markov_disable            = true;                            break;
       case IDX_MARKOV_CLASSIC:           user_options->markov_classic            = true;                            break;
       case IDX_MARKOV_THRESHOLD:         user_options->markov_threshold          = hc_strtoul (optarg, NULL, 10);   break;
-      case IDX_MARKOV_HCSTAT:            user_options->markov_hcstat             = optarg;                          break;
+      case IDX_MARKOV_HCSTAT2:           user_options->markov_hcstat2            = optarg;                          break;
       case IDX_OUTFILE:                  user_options->outfile                   = optarg;                          break;
       case IDX_OUTFILE_FORMAT:           user_options->outfile_format            = hc_strtoul (optarg, NULL, 10);
                                          user_options->outfile_format_chgd       = true;                            break;
@@ -854,11 +854,11 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if (user_options->markov_hcstat != NULL)
+  if (user_options->markov_hcstat2 != NULL)
   {
-    if (strlen (user_options->markov_hcstat) == 0)
+    if (strlen (user_options->markov_hcstat2) == 0)
     {
-      event_log_error (hashcat_ctx, "Invalid --markov-hcstat value - must not be empty.");
+      event_log_error (hashcat_ctx, "Invalid --markov-hcstat2 value - must not be empty.");
 
       return -1;
     }
@@ -2268,7 +2268,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_string (user_options->encoding_from);
   logfile_top_string (user_options->encoding_to);
   logfile_top_string (user_options->induction_dir);
-  logfile_top_string (user_options->markov_hcstat);
+  logfile_top_string (user_options->markov_hcstat2);
   logfile_top_string (user_options->opencl_devices);
   logfile_top_string (user_options->opencl_device_types);
   logfile_top_string (user_options->opencl_platforms);

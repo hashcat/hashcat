@@ -8,6 +8,7 @@
 - Allow bitcoin master key length not be exactly 96 byte a multiple of 16
 - Getting rid of OPTS_TYPE_HASH_COPY for Ansible Vault
 - Add a tracker for salts, amplifier and iterations to status screen
+- Add option --markov-hcstat2 to make it clear that the new hcstat2 format (compressed hcstat2gen output) must be used
 
 ##
 ## Bugs

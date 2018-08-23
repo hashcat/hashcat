@@ -631,7 +631,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
 
   char *shared_dir = folder_config->shared_dir;
 
-  char *hcstat  = user_options->markov_hcstat;
+  char *hcstat  = user_options->markov_hcstat2;
   u32   disable = user_options->markov_disable;
   u32   classic = user_options->markov_classic;
 
