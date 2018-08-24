@@ -9,6 +9,7 @@
 - Getting rid of OPTS_TYPE_HASH_COPY for Ansible Vault
 - Add a tracker for salts, amplifier and iterations to status screen
 - Add option --markov-hcstat2 to make it clear that the new hcstat2 format (compressed hcstat2gen output) must be used
+- Do not allocate memory segments for bitmap tables if we dont need it, for example in benchmark mode
 
 ##
 ## Bugs
