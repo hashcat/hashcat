@@ -63,7 +63,7 @@ static const char *const USAGE_BIG[] =
   "     --remove                   |      | Enable removal of hashes once they are cracked       |",
   "     --remove-timer             | Num  | Update input hash file each X seconds                | --remove-timer=30",
   "     --potfile-disable          |      | Do not write potfile                                 |",
-  "     --potfile-path             | Dir  | Specific path to potfile                             | --potfile-path=my.pot",
+  "     --potfile-path             | File | Specific path to potfile                             | --potfile-path=my.pot",
   "     --encoding-from            | Code | Force internal wordlist encoding from X              | --encoding-from=iso-8859-15",
   "     --encoding-to              | Code | Force internal wordlist encoding to X                | --encoding-to=utf-32le",
   "     --debug-mode               | Num  | Defines the debug mode (hybrid only by using rules)  | --debug-mode=4",
