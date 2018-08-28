@@ -780,7 +780,7 @@ void opencl_info_compact (hashcat_ctx_t *hashcat_ctx)
 
 void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 {
-  const user_options_t *user_options = hashcat_ctx->user_options;
+  const hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
 
   hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
 
@@ -828,7 +828,7 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 
   printf ("RECSALT\t%d\t%d\t", hashcat_status->salts_done, hashcat_status->salts_cnt);
 
-  if (user_options->gpu_temp_disable == false)
+  if (hwmon_ctx->enabled == true)
   {
     printf ("TEMP\t");
 
@@ -837,8 +837,6 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
       const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
       if (device_info->skipped_dev == true) continue;
-
-      // ok, little cheat here...
 
       const int temp = hm_get_temperature_with_device_id (hashcat_ctx, device_id);
 
@@ -875,6 +873,7 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 void status_display (hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  const hwmon_ctx_t    *hwmon_ctx    = hashcat_ctx->hwmon_ctx;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->machine_readable == true)
@@ -1318,7 +1317,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       device_info->guess_candidates_dev);
   }
 
-  if (user_options->gpu_temp_disable == false)
+  if (hwmon_ctx->enabled == true)
   {
     for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
     {

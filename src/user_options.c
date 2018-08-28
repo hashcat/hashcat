@@ -1211,11 +1211,6 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
 {
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  #if !defined (WITH_HWMON)
-  user_options->gpu_temp_disable = true;
-  user_options->gpu_temp_abort   = 0;
-  #endif // WITH_HWMON
-
   // some options can influence or overwrite other options
 
   if (user_options->example_hashes  == true
@@ -1373,6 +1368,10 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   {
     user_options->segment_size *= (1024 * 1024);
   }
+
+  #if !defined (WITH_HWMON)
+  user_options->gpu_temp_disable = true;
+  #endif // WITH_HWMON
 
   if (user_options->gpu_temp_disable == true)
   {

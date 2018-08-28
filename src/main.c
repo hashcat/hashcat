@@ -510,7 +510,7 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
    * Watchdog and Temperature balance
    */
 
-  if (hwmon_ctx->enabled == false && user_options->gpu_temp_disable == false)
+  if (hwmon_ctx->enabled == false)
   {
     event_log_info (hashcat_ctx, "Watchdog: Hardware monitoring interface not found on your system.");
   }

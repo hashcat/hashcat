@@ -143,7 +143,7 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
       hc_thread_mutex_unlock (status_ctx->mux_hwmon);
     }
 
-    if (hwmon_check == true)
+    if (hwmon_check == true && user_options->gpu_temp_disable == false)
     {
       hc_thread_mutex_lock (status_ctx->mux_hwmon);
 
