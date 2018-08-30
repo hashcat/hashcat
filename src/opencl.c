@@ -2267,12 +2267,16 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
         fast_iteration = 1;
       }
 
+      hc_thread_mutex_lock (status_ctx->mux_display);
+
       device_param->innerloop_pos  = innerloop_pos;
       device_param->innerloop_left = innerloop_left;
 
       device_param->kernel_params_buf32[30] = (u32) innerloop_left;
 
       device_param->outerloop_multi = (double) innerloop_cnt / (double) (innerloop_pos + innerloop_left);
+
+      hc_thread_mutex_unlock (status_ctx->mux_display);
 
       if (hashes->salts_shown[salt_pos] == 1)
       {
