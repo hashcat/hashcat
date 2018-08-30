@@ -248,18 +248,20 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
                             if (hashes->salts_done == hashes->salts_cnt) mycracked (hashcat_ctx);
                           }
                         }
+
+                        if (status_ctx->shutdown_inner == true) break;
                       }
 
-                      if (status_ctx->devices_status == STATUS_CRACKED) break;
+                      if (status_ctx->shutdown_inner == true) break;
                     }
                   }
 
                   if (found) break;
 
-                  if (status_ctx->devices_status == STATUS_CRACKED) break;
+                  if (status_ctx->shutdown_inner == true) break;
                 }
 
-                if (status_ctx->devices_status == STATUS_CRACKED) break;
+                if (status_ctx->shutdown_inner == true) break;
               }
 
               hcfree (line_buf);
@@ -270,6 +272,8 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
               fclose (fp);
             }
+
+            if (status_ctx->shutdown_inner == true) break;
           }
         }
       }
