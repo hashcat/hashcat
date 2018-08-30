@@ -17647,16 +17647,10 @@ int wpa_pmkid_pbkdf2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   // salt
 
-  salt->salt_buf[0] = wpa_pmkid->pmkid_data[0];
-  salt->salt_buf[1] = wpa_pmkid->pmkid_data[1];
-  salt->salt_buf[2] = wpa_pmkid->pmkid_data[2];
-  salt->salt_buf[3] = wpa_pmkid->pmkid_data[3];
-  salt->salt_buf[4] = wpa_pmkid->pmkid_data[4];
-  salt->salt_buf[5] = wpa_pmkid->pmkid_data[5];
-  salt->salt_buf[6] = wpa_pmkid->pmkid_data[6];
-  salt->salt_buf[7] = wpa_pmkid->pmkid_data[7];
+  memcpy (salt->salt_buf, wpa_pmkid->essid_buf, wpa_pmkid->essid_len);
 
-  salt->salt_len  = 32;
+  salt->salt_len = wpa_pmkid->essid_len;
+
   salt->salt_iter = ROUNDS_WPA_PBKDF2 - 1;
 
   // hash

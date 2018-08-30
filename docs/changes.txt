@@ -10,6 +10,7 @@
 - Add a tracker for salts, amplifier and iterations to status screen
 - Add option --markov-hcstat2 to make it clear that the new hcstat2 format (compressed hcstat2gen output) must be used
 - Do not allocate memory segments for bitmap tables if we dont need it, for example in benchmark mode
+- Removed duplicate words in the dictionary file example.dict
 
 ##
 ## Bugs
@@ -19,8 +20,8 @@
 - Fixed a problem with attack mode -a 7 together with stdout mode where the mask bytes were missing in the output
 - Fixed a problem with tab completion where --self-test-disable did incorrecly expect a further parameter/value
 - Fixed the ciphertext max length in Ansible Vault parser
+- Fixed detection of unique ESSID in WPA-PMKID-* parser
 - Fixed speed/delay problem when quitting while the outfile folder is being scanned
-- Removed duplicate words in the dictionary file example.dict
 
 * changes v4.2.0 -> v4.2.1
 
