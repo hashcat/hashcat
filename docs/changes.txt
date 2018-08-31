@@ -11,6 +11,7 @@
 - Add option --markov-hcstat2 to make it clear that the new hcstat2 format (compressed hcstat2gen output) must be used
 - Do not allocate memory segments for bitmap tables if we dont need it, for example in benchmark mode
 - Removed duplicate words in the dictionary file example.dict
+- Improved the speed of the outfile folder scan when cracking hashes with many salts
 
 ##
 ## Bugs
