@@ -110,11 +110,17 @@ __kernel void m16801_comp (__global pw_t *pws, __global const kernel_rule_t *rul
   w[14] = 0;
   w[15] = 0;
 
+  const u32 digest_pos = loop_pos;
+
+  const u32 digest_cur = digests_offset + digest_pos;
+
+  __global const wpa_pmkid_t *wpa_pmkid = &wpa_pmkid_bufs[digest_cur];
+
   sha1_hmac_ctx_t sha1_hmac_ctx;
 
   sha1_hmac_init (&sha1_hmac_ctx, w, 32);
 
-  sha1_hmac_update_global_swap (&sha1_hmac_ctx, wpa_pmkid_bufs[digests_offset].pmkid_data, 20);
+  sha1_hmac_update_global_swap (&sha1_hmac_ctx, wpa_pmkid->pmkid_data, 20);
 
   sha1_hmac_final (&sha1_hmac_ctx);
 

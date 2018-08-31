@@ -27214,7 +27214,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 16800:  hashconfig->hash_type      = HASH_TYPE_WPA_PMKID_PBKDF2;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_AUX1;
                  hashconfig->kern_type      = KERN_TYPE_WPA_PMKID_PBKDF2;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = wpa_pmkid_pbkdf2_parse_hash;
@@ -27231,7 +27232,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 16801:  hashconfig->hash_type      = HASH_TYPE_WPA_PMKID_PMK;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_AUX1;
                  hashconfig->kern_type      = KERN_TYPE_WPA_PMKID_PMK;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = wpa_pmkid_pmk_parse_hash;
