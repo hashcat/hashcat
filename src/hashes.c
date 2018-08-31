@@ -79,6 +79,11 @@ int sort_by_salt (const void *v1, const void *v2)
   return 0;
 }
 
+int sort_by_salt_buf (const void *v1, const void *v2, MAYBE_UNUSED void * v3)
+{
+  return sort_by_salt (v1, v2);
+}
+
 int sort_by_hash (const void *v1, const void *v2, void *v3)
 {
   const hash_t *h1 = (const hash_t *) v1;
