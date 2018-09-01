@@ -654,19 +654,49 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         if (words_fin == 0) break;
       }
     }
-
-    else if (attack_mode == ATTACK_MODE_STRAIGHT)
+    else if (attack_mode == ATTACK_MODE_COMBI)
     {
-      char *dictfile = straight_ctx->dict;
+      const u32 combs_mode = combinator_ctx->combs_mode;
 
-      FILE *fd = fopen (dictfile, "rb");
+      char *base_file;
+      char *combs_file;
 
-      if (fd == NULL)
+      if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
       {
-        event_log_error (hashcat_ctx, "%s: %s", dictfile, strerror (errno));
+        base_file  = combinator_ctx->dict1;
+        combs_file = combinator_ctx->dict2;
+      }
+      else
+      {
+        base_file  = combinator_ctx->dict2;
+        combs_file = combinator_ctx->dict1;
+      }
+
+      FILE *base_fp = fopen (base_file, "rb");
+
+      if (base_fp == NULL)
+      {
+        event_log_error (hashcat_ctx, "%s: %s", base_file, strerror (errno));
 
         return -1;
       }
+
+      FILE *combs_fp = fopen (combs_file, "rb");
+
+      if (combs_fp == NULL)
+      {
+        event_log_error (hashcat_ctx, "%s: %s", combs_file, strerror (errno));
+
+        return -1;
+      }
+
+      extra_info_combi_t extra_info_combi;
+
+      memset (&extra_info_combi, 0, sizeof (extra_info_combi));
+
+      extra_info_combi.base_fp     = base_fp;
+      extra_info_combi.combs_fp    = combs_fp;
+      extra_info_combi.scratch_buf = device_param->scratch_buf;
 
       hashcat_ctx_t *hashcat_ctx_tmp = (hashcat_ctx_t *) hcmalloc (sizeof (hashcat_ctx_t));
 
@@ -678,7 +708,9 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       if (rc_wl_data_init == -1)
       {
-        fclose (fd);
+        fclose (combs_fp);
+
+        fclose (base_fp);
 
         hcfree (hashcat_ctx_tmp->wl_data);
 
@@ -687,11 +719,209 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         return -1;
       }
 
+      u64 words_cur = 0;
+
+      while (status_ctx->run_thread_level1 == true)
+      {
+        u64 words_fin = 0;
+
+        memset (device_param->pws_comp,     0, device_param->size_pws_comp);
+        memset (device_param->pws_idx,      0, device_param->size_pws_idx);
+        memset (device_param->pws_base_buf, 0, device_param->size_pws_base);
+
+        u64 pre_rejects = -1u;
+
+        while (pre_rejects)
+        {
+          u64 words_extra_total = 0;
+
+          u64 words_extra = pre_rejects;
+
+          pre_rejects = 0;
+
+          memset (device_param->pws_pre_buf, 0, device_param->size_pws_pre);
+
+          device_param->pws_pre_cnt = 0;
+
+          while (words_extra)
+          {
+            const u64 work = get_work (hashcat_ctx, device_param, words_extra);
+
+            if (work == 0) break;
+
+            words_extra = 0;
+
+            u64 words_off = device_param->words_off;
+
+            words_fin = words_off + work;
+
+            slow_candidates_seek (hashcat_ctx_tmp, &extra_info_combi, words_cur, words_off);
+
+            words_cur = words_off;
+
+            for (u64 i = words_cur; i < words_fin; i++)
+            {
+              slow_candidates_next (hashcat_ctx_tmp, &extra_info_combi);
+
+              if ((extra_info_combi.out_len < hashconfig->pw_min) || (extra_info_combi.out_len > hashconfig->pw_max))
+              {
+                words_extra++;
+
+                continue;
+              }
+
+              pw_pre_add (device_param, extra_info_combi.out_buf, extra_info_combi.out_len, NULL, 0, 0);
+
+              if (status_ctx->run_thread_level1 == false) break;
+            }
+
+            words_cur = words_fin;
+
+            words_extra_total += words_extra;
+
+            if (status_ctx->run_thread_level1 == false) break;
+          }
+
+          if (0)
+          {
+          }
+          else
+          {
+            u64 pws_pre_cnt = device_param->pws_pre_cnt;
+
+            for (u64 pws_pre_idx = 0; pws_pre_idx < pws_pre_cnt; pws_pre_idx++)
+            {
+              pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
+
+              pw_base_add (device_param, pw_pre);
+
+              pw_add (device_param, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
+            }
+          }
+
+          words_extra_total += pre_rejects;
+
+          if (status_ctx->run_thread_level1 == false) break;
+
+          if (words_extra_total > 0)
+          {
+            hc_thread_mutex_lock (status_ctx->mux_counter);
+
+            for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+            {
+              status_ctx->words_progress_rejected[salt_pos] += words_extra_total;
+            }
+
+            hc_thread_mutex_unlock (status_ctx->mux_counter);
+          }
+        }
+
+        //
+        // flush
+        //
+
+        const u64 pws_cnt = device_param->pws_cnt;
+
+        if (pws_cnt)
+        {
+          int CL_rc;
+
+          CL_rc = run_copy (hashcat_ctx, device_param, pws_cnt);
+
+          if (CL_rc == -1)
+          {
+            fclose (combs_fp);
+
+            fclose (base_fp);
+
+            hcfree (hashcat_ctx_tmp->wl_data);
+
+            hcfree (hashcat_ctx_tmp);
+
+            return -1;
+          }
+
+          CL_rc = run_cracker (hashcat_ctx, device_param, pws_cnt);
+
+          if (CL_rc == -1)
+          {
+            fclose (combs_fp);
+
+            fclose (base_fp);
+
+            hcfree (hashcat_ctx_tmp->wl_data);
+
+            hcfree (hashcat_ctx_tmp);
+
+            return -1;
+          }
+
+          device_param->pws_cnt = 0;
+
+          device_param->pws_base_cnt = 0;
+        }
+
+        if (device_param->speed_only_finish == true) break;
+
+        if (status_ctx->run_thread_level2 == true)
+        {
+          device_param->words_done = words_fin;
+
+          status_ctx->words_cur = get_lowest_words_done (hashcat_ctx);
+        }
+
+        if (status_ctx->run_thread_level1 == false) break;
+
+        if (words_fin == 0) break;
+      }
+
+      fclose (combs_fp);
+
+      fclose (base_fp);
+
+      wl_data_destroy (hashcat_ctx_tmp);
+
+      hcfree (hashcat_ctx_tmp->wl_data);
+
+      hcfree (hashcat_ctx_tmp);
+    }
+    else if (attack_mode == ATTACK_MODE_STRAIGHT)
+    {
+      char *dictfile = straight_ctx->dict;
+
+      FILE *fp = fopen (dictfile, "rb");
+
+      if (fp == NULL)
+      {
+        event_log_error (hashcat_ctx, "%s: %s", dictfile, strerror (errno));
+
+        return -1;
+      }
+
       extra_info_straight_t extra_info_straight;
 
       memset (&extra_info_straight, 0, sizeof (extra_info_straight));
 
-      extra_info_straight.fd = fd;
+      extra_info_straight.fp = fp;
+
+      hashcat_ctx_t *hashcat_ctx_tmp = (hashcat_ctx_t *) hcmalloc (sizeof (hashcat_ctx_t));
+
+      memcpy (hashcat_ctx_tmp, hashcat_ctx, sizeof (hashcat_ctx_t)); // yes we actually want to copy these pointers
+
+      hashcat_ctx_tmp->wl_data = (wl_data_t *) hcmalloc (sizeof (wl_data_t));
+
+      const int rc_wl_data_init = wl_data_init (hashcat_ctx_tmp);
+
+      if (rc_wl_data_init == -1)
+      {
+        fclose (fp);
+
+        hcfree (hashcat_ctx_tmp->wl_data);
+
+        hcfree (hashcat_ctx_tmp);
+
+        return -1;
+      }
 
       u64 words_cur = 0;
 
@@ -737,23 +967,11 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
             {
               slow_candidates_next (hashcat_ctx_tmp, &extra_info_straight);
 
-              if (attack_kern == ATTACK_KERN_STRAIGHT)
+              if ((extra_info_straight.out_len < hashconfig->pw_min) || (extra_info_straight.out_len > hashconfig->pw_max))
               {
-                if ((extra_info_straight.out_len < hashconfig->pw_min) || (extra_info_straight.out_len > hashconfig->pw_max))
-                {
-                  words_extra++;
+                words_extra++;
 
-                  continue;
-                }
-              }
-              else if (attack_kern == ATTACK_KERN_COMBI)
-              {
-                if ((extra_info_straight.out_len < hashconfig->pw_min) || (extra_info_straight.out_len > hashconfig->pw_max))
-                {
-                  words_extra++;
-
-                  continue;
-                }
+                continue;
               }
 
               pw_pre_add (device_param, extra_info_straight.out_buf, extra_info_straight.out_len, extra_info_straight.base_buf, extra_info_straight.base_len, extra_info_straight.rule_pos_prev);
@@ -816,7 +1034,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
           if (CL_rc == -1)
           {
-            fclose (fd);
+            fclose (fp);
 
             hcfree (hashcat_ctx_tmp->wl_data);
 
@@ -829,7 +1047,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
           if (CL_rc == -1)
           {
-            fclose (fd);
+            fclose (fp);
 
             hcfree (hashcat_ctx_tmp->wl_data);
 
@@ -857,7 +1075,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         if (words_fin == 0) break;
       }
 
-      fclose (fd);
+      fclose (fp);
 
       wl_data_destroy (hashcat_ctx_tmp);
 

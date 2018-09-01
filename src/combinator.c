@@ -35,6 +35,112 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->slow_candidates == true)
   {
+    // this is always need to be COMBINATOR_MODE_BASE_LEFT
+
+    if (user_options->attack_mode == ATTACK_MODE_COMBI)
+    {
+      // display
+
+      char *dictfile1 = user_options_extra->hc_workv[0];
+      char *dictfile2 = user_options_extra->hc_workv[1];
+
+      // at this point we know the file actually exist
+      // find the bigger dictionary and use as base
+
+      if (hc_path_is_file (dictfile1) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: Not a regular file.", dictfile1);
+
+        return -1;
+      }
+
+      if (hc_path_is_file (dictfile2) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: Not a regular file.", dictfile2);
+
+        return -1;
+      }
+
+      FILE *fp1 = NULL;
+      FILE *fp2 = NULL;
+
+      if ((fp1 = fopen (dictfile1, "rb")) == NULL)
+      {
+        event_log_error (hashcat_ctx, "%s: %s", dictfile1, strerror (errno));
+
+        return -1;
+      }
+
+      if ((fp2 = fopen (dictfile2, "rb")) == NULL)
+      {
+        event_log_error (hashcat_ctx, "%s: %s", dictfile2, strerror (errno));
+
+        fclose (fp1);
+
+        return -1;
+      }
+
+      combinator_ctx->combs_cnt = 1;
+
+      u64 words1_cnt = 0;
+
+      const int rc1 = count_words (hashcat_ctx, fp1, dictfile1, &words1_cnt);
+
+      if (rc1 == -1)
+      {
+        event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of wordlist: %s", dictfile1);
+
+        fclose (fp1);
+        fclose (fp2);
+
+        return -1;
+      }
+
+      if (words1_cnt == 0)
+      {
+        event_log_error (hashcat_ctx, "%s: empty file.", dictfile1);
+
+        fclose (fp1);
+        fclose (fp2);
+
+        return -1;
+      }
+
+      combinator_ctx->combs_cnt = 1;
+
+      u64 words2_cnt = 0;
+
+      const int rc2 = count_words (hashcat_ctx, fp2, dictfile2, &words2_cnt);
+
+      if (rc2 == -1)
+      {
+        event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of wordlist: %s", dictfile2);
+
+        fclose (fp1);
+        fclose (fp2);
+
+        return -1;
+      }
+
+      if (words2_cnt == 0)
+      {
+        event_log_error (hashcat_ctx, "%s: empty file.", dictfile2);
+
+        fclose (fp1);
+        fclose (fp2);
+
+        return -1;
+      }
+
+      fclose (fp1);
+      fclose (fp2);
+
+      combinator_ctx->dict1 = dictfile1;
+      combinator_ctx->dict2 = dictfile2;
+
+      combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_LEFT;
+      combinator_ctx->combs_cnt  = words2_cnt;
+    }
   }
   else
   {

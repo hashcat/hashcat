@@ -8,7 +8,7 @@
 
 typedef struct extra_info_straight
 {
-  FILE *fd;
+  FILE *fp;
 
   u64 rule_pos_prev;
   u64 rule_pos;
@@ -20,6 +20,24 @@ typedef struct extra_info_straight
   u32 out_len;
 
 } extra_info_straight_t;
+
+typedef struct extra_info_combi
+{
+  FILE *base_fp;
+  FILE *combs_fp;
+
+  u64 comb_pos_prev;
+  u64 comb_pos;
+
+  char *scratch_buf;
+
+  u8  base_buf[256];
+  u32 base_len;
+
+  u8  out_buf[256];
+  u32 out_len;
+
+} extra_info_combi_t;
 
 typedef struct extra_info_mask
 {

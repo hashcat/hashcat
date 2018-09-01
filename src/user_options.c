@@ -451,6 +451,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   if (user_options->slow_candidates == true)
   {
     if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT)
+     && (user_options->attack_mode != ATTACK_MODE_COMBI)
      && (user_options->attack_mode != ATTACK_MODE_BF))
     {
       event_log_error (hashcat_ctx, "Invalid attack mode (-a) value specified in slow-candidates mode.");
