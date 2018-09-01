@@ -238,6 +238,51 @@ void get_next_word (hashcat_ctx_t *hashcat_ctx, FILE *fd, char **out_buf, u32 *o
   get_next_word (hashcat_ctx, fd, out_buf, out_len);
 }
 
+void pw_pre_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len, const u8 *base_buf, const int base_len, const int rule_idx)
+{
+  if (device_param->pws_pre_cnt < device_param->kernel_power)
+  {
+    pw_pre_t *pw_pre = device_param->pws_pre_buf + device_param->pws_pre_cnt;
+
+    memcpy (pw_pre->pw_buf, pw_buf, pw_len);
+
+    pw_pre->pw_len = pw_len;
+
+    if (base_buf != NULL)
+    {
+      memcpy (pw_pre->base_buf, base_buf, base_len);
+
+      pw_pre->base_len = base_len;
+    }
+
+    pw_pre->rule_idx = rule_idx;
+
+    device_param->pws_pre_cnt++;
+  }
+  else
+  {
+    fprintf (stdout, "BUG pw_pre_add()!!\n");
+
+    return;
+  }
+}
+
+void pw_base_add (hc_device_param_t *device_param, pw_pre_t *pw_pre)
+{
+  if (device_param->pws_base_cnt < device_param->kernel_power)
+  {
+    memcpy (device_param->pws_base_buf + device_param->pws_base_cnt, pw_pre, sizeof (pw_pre_t));
+
+    device_param->pws_base_cnt++;
+  }
+  else
+  {
+    fprintf (stderr, "BUG pw_base_add()!!\n");
+
+    return;
+  }
+}
+
 void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len)
 {
   if (device_param->pws_cnt < device_param->kernel_power)

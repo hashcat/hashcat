@@ -529,8 +529,8 @@ typedef enum user_options_defaults
 {
   ADVICE_DISABLE           = false,
   ATTACK_MODE              = ATTACK_MODE_STRAIGHT,
-  BENCHMARK                = false,
   BENCHMARK_ALL            = false,
+  BENCHMARK                = false,
   BITMAP_MAX               = 24,
   BITMAP_MIN               = 16,
   DEBUG_MODE               = 0,
@@ -566,13 +566,13 @@ typedef enum user_options_defaults
   OUTFILE_AUTOHEX          = true,
   OUTFILE_CHECK_TIMER      = 5,
   OUTFILE_FORMAT           = 3,
-  WORDLIST_AUTOHEX_DISABLE = false,
   POTFILE_DISABLE          = false,
+  PROGRESS_ONLY            = false,
   QUIET                    = false,
   REMOVE                   = false,
   REMOVE_TIMER             = 60,
-  RESTORE                  = false,
   RESTORE_DISABLE          = false,
+  RESTORE                  = false,
   RESTORE_TIMER            = 60,
   RP_GEN                   = 0,
   RP_GEN_FUNC_MAX          = 4,
@@ -580,19 +580,20 @@ typedef enum user_options_defaults
   RP_GEN_SEED              = 0,
   RUNTIME                  = 0,
   SCRYPT_TMTO              = 0,
-  SELF_TEST_DISABLE        = false,
   SEGMENT_SIZE             = 33554432,
+  SELF_TEST_DISABLE        = false,
   SEPARATOR                = ':',
   SHOW                     = false,
   SKIP                     = 0,
+  SLOW_CANDIDATES          = false,
+  SPEED_ONLY               = false,
   STATUS                   = false,
   STATUS_TIMER             = 10,
   STDOUT_FLAG              = false,
-  SPEED_ONLY               = false,
-  PROGRESS_ONLY            = false,
   USAGE                    = false,
   USERNAME                 = false,
   VERSION                  = false,
+  WORDLIST_AUTOHEX_DISABLE = false,
   WORKLOAD_PROFILE         = 2,
 
 } user_options_defaults_t;
@@ -601,94 +602,95 @@ typedef enum user_options_map
 {
   IDX_ADVICE_DISABLE            = 0xff00,
   IDX_ATTACK_MODE               = 'a',
-  IDX_BENCHMARK                 = 'b',
   IDX_BENCHMARK_ALL             = 0xff01,
+  IDX_BENCHMARK                 = 'b',
   IDX_BITMAP_MAX                = 0xff02,
   IDX_BITMAP_MIN                = 0xff03,
-  IDX_CPU_AFFINITY              = 0xff04,
+  IDX_CPU_AFFINITY              = 0xff0a,
   IDX_CUSTOM_CHARSET_1          = '1',
   IDX_CUSTOM_CHARSET_2          = '2',
   IDX_CUSTOM_CHARSET_3          = '3',
   IDX_CUSTOM_CHARSET_4          = '4',
-  IDX_DEBUG_FILE                = 0xff05,
-  IDX_DEBUG_MODE                = 0xff06,
-  IDX_ENCODING_FROM             = 0xff07,
-  IDX_ENCODING_TO               = 0xff08,
-  IDX_EXAMPLE_HASHES            = 0xff09,
-  IDX_FORCE                     = 0xff0a,
-  IDX_GPU_TEMP_ABORT            = 0xff0b,
-  IDX_GPU_TEMP_DISABLE          = 0xff0c,
+  IDX_DEBUG_FILE                = 0xff0b,
+  IDX_DEBUG_MODE                = 0xff0c,
+  IDX_ENCODING_FROM             = 0xff0d,
+  IDX_ENCODING_TO               = 0xff0e,
+  IDX_EXAMPLE_HASHES            = 0xff0f,
+  IDX_FORCE                     = 0xff10,
+  IDX_GPU_TEMP_ABORT            = 0xff11,
+  IDX_GPU_TEMP_DISABLE          = 0xff12,
   IDX_HASH_MODE                 = 'm',
-  IDX_HCCAPX_MESSAGE_PAIR       = 0xff0d,
+  IDX_HCCAPX_MESSAGE_PAIR       = 0xff13,
   IDX_HELP                      = 'h',
-  IDX_HEX_CHARSET               = 0xff0e,
-  IDX_HEX_SALT                  = 0xff0f,
-  IDX_HEX_WORDLIST              = 0xff10,
+  IDX_HEX_CHARSET               = 0xff14,
+  IDX_HEX_SALT                  = 0xff15,
+  IDX_HEX_WORDLIST              = 0xff16,
   IDX_INCREMENT                 = 'i',
-  IDX_INCREMENT_MAX             = 0xff11,
-  IDX_INCREMENT_MIN             = 0xff12,
-  IDX_INDUCTION_DIR             = 0xff13,
-  IDX_KEEP_GUESSING             = 0xff14,
+  IDX_INCREMENT_MAX             = 0xff17,
+  IDX_INCREMENT_MIN             = 0xff18,
+  IDX_INDUCTION_DIR             = 0xff19,
+  IDX_KEEP_GUESSING             = 0xff1a,
   IDX_KERNEL_ACCEL              = 'n',
   IDX_KERNEL_LOOPS              = 'u',
-  IDX_KEYSPACE                  = 0xff15,
-  IDX_LEFT                      = 0xff16,
+  IDX_KEYSPACE                  = 0xff1b,
+  IDX_LEFT                      = 0xff1c,
   IDX_LIMIT                     = 'l',
-  IDX_LOGFILE_DISABLE           = 0xff17,
-  IDX_LOOPBACK                  = 0xff18,
-  IDX_MACHINE_READABLE          = 0xff19,
-  IDX_MARKOV_CLASSIC            = 0xff1a,
-  IDX_MARKOV_DISABLE            = 0xff1b,
-  IDX_MARKOV_HCSTAT2            = 0xff1c,
+  IDX_LOGFILE_DISABLE           = 0xff1d,
+  IDX_LOOPBACK                  = 0xff1e,
+  IDX_MACHINE_READABLE          = 0xff1f,
+  IDX_MARKOV_CLASSIC            = 0xff20,
+  IDX_MARKOV_DISABLE            = 0xff21,
+  IDX_MARKOV_HCSTAT2            = 0xff22,
   IDX_MARKOV_THRESHOLD          = 't',
-  IDX_NONCE_ERROR_CORRECTIONS   = 0xff1d,
-  IDX_NVIDIA_SPIN_DAMP          = 0xff1e,
+  IDX_NONCE_ERROR_CORRECTIONS   = 0xff23,
+  IDX_NVIDIA_SPIN_DAMP          = 0xff24,
   IDX_OPENCL_DEVICES            = 'd',
   IDX_OPENCL_DEVICE_TYPES       = 'D',
   IDX_OPENCL_INFO               = 'I',
-  IDX_OPENCL_PLATFORMS          = 0xff1f,
-  IDX_OPENCL_VECTOR_WIDTH       = 0xff20,
+  IDX_OPENCL_PLATFORMS          = 0xff25,
+  IDX_OPENCL_VECTOR_WIDTH       = 0xff26,
   IDX_OPTIMIZED_KERNEL_ENABLE   = 'O',
-  IDX_OUTFILE_AUTOHEX_DISABLE   = 0xff21,
-  IDX_OUTFILE_CHECK_DIR         = 0xff22,
-  IDX_OUTFILE_CHECK_TIMER       = 0xff23,
-  IDX_OUTFILE_FORMAT            = 0xff24,
+  IDX_OUTFILE_AUTOHEX_DISABLE   = 0xff27,
+  IDX_OUTFILE_CHECK_DIR         = 0xff28,
+  IDX_OUTFILE_CHECK_TIMER       = 0xff29,
+  IDX_OUTFILE_FORMAT            = 0xff2a,
   IDX_OUTFILE                   = 'o',
-  IDX_WORDLIST_AUTOHEX_DISABLE  = 0xff25,
-  IDX_POTFILE_DISABLE           = 0xff26,
-  IDX_POTFILE_PATH              = 0xff27,
-  IDX_QUIET                     = 0xff28,
-  IDX_REMOVE                    = 0xff29,
-  IDX_REMOVE_TIMER              = 0xff2a,
-  IDX_RESTORE                   = 0xff2b,
-  IDX_RESTORE_DISABLE           = 0xff2c,
-  IDX_RESTORE_FILE_PATH         = 0xff2d,
+  IDX_POTFILE_DISABLE           = 0xff2b,
+  IDX_POTFILE_PATH              = 0xff2c,
+  IDX_PROGRESS_ONLY             = 0xff2d,
+  IDX_QUIET                     = 0xff2e,
+  IDX_REMOVE                    = 0xff2f,
+  IDX_REMOVE_TIMER              = 0xff30,
+  IDX_RESTORE                   = 0xff31,
+  IDX_RESTORE_DISABLE           = 0xff32,
+  IDX_RESTORE_FILE_PATH         = 0xff33,
   IDX_RP_FILE                   = 'r',
-  IDX_RP_GEN_FUNC_MAX           = 0xff2e,
-  IDX_RP_GEN_FUNC_MIN           = 0xff2f,
+  IDX_RP_GEN_FUNC_MAX           = 0xff34,
+  IDX_RP_GEN_FUNC_MIN           = 0xff35,
   IDX_RP_GEN                    = 'g',
-  IDX_RP_GEN_SEED               = 0xff30,
+  IDX_RP_GEN_SEED               = 0xff36,
   IDX_RULE_BUF_L                = 'j',
   IDX_RULE_BUF_R                = 'k',
-  IDX_RUNTIME                   = 0xff31,
-  IDX_SCRYPT_TMTO               = 0xff32,
-  IDX_SELF_TEST_DISABLE         = 0xff33,
+  IDX_RUNTIME                   = 0xff37,
+  IDX_SCRYPT_TMTO               = 0xff38,
   IDX_SEGMENT_SIZE              = 'c',
+  IDX_SELF_TEST_DISABLE         = 0xff39,
   IDX_SEPARATOR                 = 'p',
-  IDX_SESSION                   = 0xff34,
-  IDX_SHOW                      = 0xff35,
+  IDX_SESSION                   = 0xff3a,
+  IDX_SHOW                      = 0xff3b,
   IDX_SKIP                      = 's',
-  IDX_STATUS                    = 0xff36,
-  IDX_STATUS_TIMER              = 0xff37,
-  IDX_STDOUT_FLAG               = 0xff38,
-  IDX_SPEED_ONLY                = 0xff39,
-  IDX_PROGRESS_ONLY             = 0xff3a,
-  IDX_TRUECRYPT_KEYFILES        = 0xff3b,
-  IDX_USERNAME                  = 0xff3c,
-  IDX_VERACRYPT_KEYFILES        = 0xff3d,
-  IDX_VERACRYPT_PIM             = 0xff3e,
+  IDX_SLOW_CANDIDATES           = 'S',
+  IDX_SPEED_ONLY                = 0xff3c,
+  IDX_STATUS                    = 0xff3d,
+  IDX_STATUS_TIMER              = 0xff3e,
+  IDX_STDOUT_FLAG               = 0xff3f,
+  IDX_TRUECRYPT_KEYFILES        = 0xff40,
+  IDX_USERNAME                  = 0xff41,
+  IDX_VERACRYPT_KEYFILES        = 0xff42,
+  IDX_VERACRYPT_PIM             = 0xff43,
   IDX_VERSION_LOWER             = 'v',
   IDX_VERSION                   = 'V',
+  IDX_WORDLIST_AUTOHEX_DISABLE  = 0xff44,
   IDX_WORKLOAD_PROFILE          = 'w',
 
 } user_options_map_t;
@@ -898,6 +900,18 @@ typedef struct pw
 
 } pw_t;
 
+typedef struct pw_pre
+{
+  u32 pw_buf[64];
+  u32 pw_len;
+
+  u32 base_buf[64];
+  u32 base_len;
+
+  u32 rule_idx;
+
+} pw_pre_t;
+
 typedef struct pw_idx
 {
   u32 off;
@@ -1051,6 +1065,8 @@ typedef struct hc_device_param
   size_t  size_pws_amp;
   size_t  size_pws_comp;
   size_t  size_pws_idx;
+  size_t  size_pws_pre;
+  size_t  size_pws_base;
   size_t  size_tmps;
   size_t  size_hooks;
   size_t  size_bfs;
@@ -1078,6 +1094,12 @@ typedef struct hc_device_param
   pw_idx_t *pws_idx;
   u32      *pws_comp;
   u64       pws_cnt;
+
+  pw_pre_t *pws_pre_buf;
+  u64       pws_pre_cnt;
+
+  pw_pre_t *pws_base_buf; // for debug mode
+  u64       pws_base_cnt;
 
   u64     words_off;
   u64     words_done;
@@ -1596,20 +1618,20 @@ typedef struct user_options
 
   bool         attack_mode_chgd;
   bool         hash_mode_chgd;
+  bool         hccapx_message_pair_chgd;
   bool         increment_max_chgd;
   bool         increment_min_chgd;
   bool         kernel_accel_chgd;
   bool         kernel_loops_chgd;
+  bool         nonce_error_corrections_chgd;
   bool         nvidia_spin_damp_chgd;
   bool         opencl_vector_width_chgd;
   bool         outfile_format_chgd;
   bool         remove_timer_chgd;
   bool         rp_gen_seed_chgd;
   bool         runtime_chgd;
-  bool         workload_profile_chgd;
   bool         segment_size_chgd;
-  bool         hccapx_message_pair_chgd;
-  bool         nonce_error_corrections_chgd;
+  bool         workload_profile_chgd;
 
   bool         advice_disable;
   bool         benchmark;
@@ -1632,29 +1654,25 @@ typedef struct user_options
   bool         opencl_info;
   bool         optimized_kernel_enable;
   bool         outfile_autohex;
-  bool         wordlist_autohex_disable;
   bool         potfile_disable;
+  bool         progress_only;
   bool         quiet;
   bool         remove;
   bool         restore;
   bool         restore_disable;
   bool         self_test_disable;
   bool         show;
+  bool         slow_candidates;
+  bool         speed_only;
   bool         status;
   bool         stdout_flag;
-  bool         speed_only;
-  bool         progress_only;
   bool         usage;
   bool         username;
   bool         version;
+  bool         wordlist_autohex_disable;
   char        *cpu_affinity;
-  const char  *custom_charset_1;
-  const char  *custom_charset_2;
-  const char  *custom_charset_3;
   char        *custom_charset_4;
   char        *debug_file;
-  const char  *encoding_from;
-  const char  *encoding_to;
   char        *induction_dir;
   char        *markov_hcstat2;
   char        *opencl_devices;
@@ -1665,12 +1683,17 @@ typedef struct user_options
   char        *potfile_path;
   char        *restore_file_path;
   char       **rp_files;
-  const char  *rule_buf_l;
-  const char  *rule_buf_r;
   char         separator;
-  const char  *session;
   char        *truecrypt_keyfiles;
   char        *veracrypt_keyfiles;
+  const char  *custom_charset_1;
+  const char  *custom_charset_2;
+  const char  *custom_charset_3;
+  const char  *encoding_from;
+  const char  *encoding_to;
+  const char  *rule_buf_l;
+  const char  *rule_buf_r;
+  const char  *session;
   u32          attack_mode;
   u32          bitmap_max;
   u32          bitmap_min;

@@ -115,6 +115,7 @@ static const char *const USAGE_BIG[] =
   " -i, --increment                |      | Enable mask increment mode                           |",
   "     --increment-min            | Num  | Start mask incrementing at X                         | --increment-min=4",
   "     --increment-max            | Num  | Stop mask incrementing at X                          | --increment-max=8",
+  " -S, --slow-candidates          |      | Enable slower (but advanced) candidate generators    |",
   "",
   "- [ Hash modes ] -",
   "",

@@ -15,6 +15,7 @@
 #include "filehandling.h"
 #include "rp.h"
 #include "rp_cpu.h"
+#include "slow_candidates.h"
 #include "dispatch.h"
 
 static u64 get_lowest_words_done (const hashcat_ctx_t *hashcat_ctx)
@@ -145,131 +146,298 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
     iconv_tmp = (char *) hcmalloc (HCBUFSIZ_TINY);
   }
 
-  while (status_ctx->run_thread_level1 == true)
+  if (user_options->slow_candidates == true)
   {
-    hc_thread_mutex_lock (status_ctx->mux_dispatcher);
-
-    if (feof (stdin) != 0)
+    while (status_ctx->run_thread_level1 == true)
     {
+      hc_thread_mutex_lock (status_ctx->mux_dispatcher);
+
+      if (feof (stdin) != 0)
+      {
+        hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
+
+        break;
+      }
+
+      u64 words_extra_total = 0;
+
+      memset (device_param->pws_comp,     0, device_param->size_pws_comp);
+      memset (device_param->pws_idx,      0, device_param->size_pws_idx);
+      memset (device_param->pws_pre_buf,  0, device_param->size_pws_pre);
+      memset (device_param->pws_base_buf, 0, device_param->size_pws_base);
+
+      device_param->pws_pre_cnt  = 0;
+      device_param->pws_base_cnt = 0;
+
+      while (device_param->pws_pre_cnt < device_param->kernel_power)
+      {
+        char *line_buf = fgets (buf, HCBUFSIZ_LARGE - 1, stdin);
+
+        if (line_buf == NULL) break;
+
+        size_t line_len = in_superchop (line_buf);
+
+        line_len = convert_from_hex (hashcat_ctx, line_buf, (u32) line_len);
+
+        // do the on-the-fly encoding
+
+        if (iconv_enabled == true)
+        {
+          char  *iconv_ptr = iconv_tmp;
+          size_t iconv_sz  = HCBUFSIZ_TINY;
+
+          const size_t iconv_rc = iconv (iconv_ctx, &line_buf, &line_len, &iconv_ptr, &iconv_sz);
+
+          if (iconv_rc == (size_t) -1) continue;
+
+          line_buf = iconv_tmp;
+          line_len = HCBUFSIZ_TINY - iconv_sz;
+        }
+
+        // post-process rule engine
+
+        char rule_buf_out[RP_PASSWORD_SIZE];
+
+        if (run_rule_engine ((int) user_options_extra->rule_len_l, user_options->rule_buf_l))
+        {
+          if (line_len >= RP_PASSWORD_SIZE) continue;
+
+          memset (rule_buf_out, 0, sizeof (rule_buf_out));
+
+          const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, (int) user_options_extra->rule_len_l, line_buf, (int) line_len, rule_buf_out);
+
+          if (rule_len_out < 0) continue;
+
+          line_buf = rule_buf_out;
+          line_len = (size_t) rule_len_out;
+        }
+
+        if (line_len >= PW_MAX) continue;
+
+        // hmm that's always the case, or?
+
+        const u32 attack_kern = user_options_extra->attack_kern;
+
+        if (attack_kern == ATTACK_KERN_STRAIGHT)
+        {
+          if ((line_len < hashconfig->pw_min) || (line_len > hashconfig->pw_max))
+          {
+            words_extra_total++;
+
+            continue;
+          }
+        }
+
+        pw_pre_add (device_param, (u8 *) line_buf, (int) line_len, NULL, 0, 0);
+
+        while (status_ctx->run_thread_level1 == false) break;
+      }
+
       hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
 
-      break;
-    }
+      u64 pre_rejects = 0;
 
-    u64 words_extra_total = 0;
-
-    memset (device_param->pws_comp, 0, device_param->size_pws_comp);
-    memset (device_param->pws_idx,  0, device_param->size_pws_idx);
-
-    while (device_param->pws_cnt < device_param->kernel_power)
-    {
-      char *line_buf = fgets (buf, HCBUFSIZ_LARGE - 1, stdin);
-
-      if (line_buf == NULL) break;
-
-      size_t line_len = in_superchop (line_buf);
-
-      line_len = convert_from_hex (hashcat_ctx, line_buf, (u32) line_len);
-
-      // do the on-the-fly encoding
-
-      if (iconv_enabled == true)
+      if (0)
       {
-        char  *iconv_ptr = iconv_tmp;
-        size_t iconv_sz  = HCBUFSIZ_TINY;
-
-        const size_t iconv_rc = iconv (iconv_ctx, &line_buf, &line_len, &iconv_ptr, &iconv_sz);
-
-        if (iconv_rc == (size_t) -1) continue;
-
-        line_buf = iconv_tmp;
-        line_len = HCBUFSIZ_TINY - iconv_sz;
       }
-
-      // post-process rule engine
-
-      char rule_buf_out[RP_PASSWORD_SIZE];
-
-      if (run_rule_engine ((int) user_options_extra->rule_len_l, user_options->rule_buf_l))
+      else
       {
-        if (line_len >= RP_PASSWORD_SIZE) continue;
+        u64 pws_pre_cnt = device_param->pws_pre_cnt;
 
-        memset (rule_buf_out, 0, sizeof (rule_buf_out));
-
-        const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, (int) user_options_extra->rule_len_l, line_buf, (int) line_len, rule_buf_out);
-
-        if (rule_len_out < 0) continue;
-
-        line_buf = rule_buf_out;
-        line_len = (size_t) rule_len_out;
-      }
-
-      if (line_len >= PW_MAX) continue;
-
-      // hmm that's always the case, or?
-
-      const u32 attack_kern = user_options_extra->attack_kern;
-
-      if (attack_kern == ATTACK_KERN_STRAIGHT)
-      {
-        if ((line_len < hashconfig->pw_min) || (line_len > hashconfig->pw_max))
+        for (u64 pws_pre_idx = 0; pws_pre_idx < pws_pre_cnt; pws_pre_idx++)
         {
-          words_extra_total++;
+          pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
 
-          continue;
+          pw_base_add (device_param, pw_pre);
+
+          pw_add (device_param, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
         }
       }
 
-      pw_add (device_param, (u8 *) line_buf, (int) line_len);
+      words_extra_total += pre_rejects;
 
-      while (status_ctx->run_thread_level1 == false) break;
-    }
-
-    hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
-
-    if (words_extra_total > 0)
-    {
-      hc_thread_mutex_lock (status_ctx->mux_counter);
-
-      for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+      if (words_extra_total > 0)
       {
-        status_ctx->words_progress_rejected[salt_pos] += words_extra_total * straight_ctx->kernel_rules_cnt;
+        hc_thread_mutex_lock (status_ctx->mux_counter);
+
+        for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+        {
+          status_ctx->words_progress_rejected[salt_pos] += words_extra_total * straight_ctx->kernel_rules_cnt;
+        }
+
+        hc_thread_mutex_unlock (status_ctx->mux_counter);
       }
 
-      hc_thread_mutex_unlock (status_ctx->mux_counter);
+      if (status_ctx->run_thread_level1 == false) break;
+
+      if (device_param->pws_cnt)
+      {
+        // flush
+
+        int CL_rc;
+
+        CL_rc = run_copy (hashcat_ctx, device_param, device_param->pws_cnt);
+
+        if (CL_rc == -1)
+        {
+          hcfree (buf);
+
+          return -1;
+        }
+
+        CL_rc = run_cracker (hashcat_ctx, device_param, device_param->pws_cnt);
+
+        if (CL_rc == -1)
+        {
+          hcfree (buf);
+
+          return -1;
+        }
+
+        device_param->pws_cnt = 0;
+
+        device_param->pws_base_cnt = 0;
+      }
+
+      if (status_ctx->run_thread_level1 == false) break;
+
+      if (device_param->speed_only_finish == true) break;
     }
-
-    if (status_ctx->run_thread_level1 == false) break;
-
-    if (device_param->pws_cnt == 0) break;
-
-    // flush
-
-    int CL_rc;
-
-    CL_rc = run_copy (hashcat_ctx, device_param, device_param->pws_cnt);
-
-    if (CL_rc == -1)
+  }
+  else
+  {
+    while (status_ctx->run_thread_level1 == true)
     {
-      hcfree (buf);
+      hc_thread_mutex_lock (status_ctx->mux_dispatcher);
 
-      return -1;
+      if (feof (stdin) != 0)
+      {
+        hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
+
+        break;
+      }
+
+      u64 words_extra_total = 0;
+
+      memset (device_param->pws_comp, 0, device_param->size_pws_comp);
+      memset (device_param->pws_idx,  0, device_param->size_pws_idx);
+
+      while (device_param->pws_cnt < device_param->kernel_power)
+      {
+        char *line_buf = fgets (buf, HCBUFSIZ_LARGE - 1, stdin);
+
+        if (line_buf == NULL) break;
+
+        size_t line_len = in_superchop (line_buf);
+
+        line_len = convert_from_hex (hashcat_ctx, line_buf, (u32) line_len);
+
+        // do the on-the-fly encoding
+
+        if (iconv_enabled == true)
+        {
+          char  *iconv_ptr = iconv_tmp;
+          size_t iconv_sz  = HCBUFSIZ_TINY;
+
+          const size_t iconv_rc = iconv (iconv_ctx, &line_buf, &line_len, &iconv_ptr, &iconv_sz);
+
+          if (iconv_rc == (size_t) -1) continue;
+
+          line_buf = iconv_tmp;
+          line_len = HCBUFSIZ_TINY - iconv_sz;
+        }
+
+        // post-process rule engine
+
+        char rule_buf_out[RP_PASSWORD_SIZE];
+
+        if (run_rule_engine ((int) user_options_extra->rule_len_l, user_options->rule_buf_l))
+        {
+          if (line_len >= RP_PASSWORD_SIZE) continue;
+
+          memset (rule_buf_out, 0, sizeof (rule_buf_out));
+
+          const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, (int) user_options_extra->rule_len_l, line_buf, (int) line_len, rule_buf_out);
+
+          if (rule_len_out < 0) continue;
+
+          line_buf = rule_buf_out;
+          line_len = (size_t) rule_len_out;
+        }
+
+        if (line_len >= PW_MAX) continue;
+
+        // hmm that's always the case, or?
+
+        const u32 attack_kern = user_options_extra->attack_kern;
+
+        if (attack_kern == ATTACK_KERN_STRAIGHT)
+        {
+          if ((line_len < hashconfig->pw_min) || (line_len > hashconfig->pw_max))
+          {
+            words_extra_total++;
+
+            continue;
+          }
+        }
+
+        pw_add (device_param, (const u8 *) line_buf, (const int) line_len);
+
+        while (status_ctx->run_thread_level1 == false) break;
+      }
+
+      hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
+
+      if (words_extra_total > 0)
+      {
+        hc_thread_mutex_lock (status_ctx->mux_counter);
+
+        for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+        {
+          status_ctx->words_progress_rejected[salt_pos] += words_extra_total * straight_ctx->kernel_rules_cnt;
+        }
+
+        hc_thread_mutex_unlock (status_ctx->mux_counter);
+      }
+
+      if (status_ctx->run_thread_level1 == false) break;
+
+      if (device_param->pws_cnt == 0) break;
+
+      // flush
+
+      int CL_rc;
+
+      CL_rc = run_copy (hashcat_ctx, device_param, device_param->pws_cnt);
+
+      if (CL_rc == -1)
+      {
+        hcfree (buf);
+
+        return -1;
+      }
+
+      CL_rc = run_cracker (hashcat_ctx, device_param, device_param->pws_cnt);
+
+      if (CL_rc == -1)
+      {
+        hcfree (buf);
+
+        return -1;
+      }
+
+      device_param->pws_cnt = 0;
+
+      if (status_ctx->run_thread_level1 == false) break;
+
+      if (device_param->speed_only_finish == true) break;
     }
 
-    CL_rc = run_cracker (hashcat_ctx, device_param, device_param->pws_cnt);
+    device_param->kernel_accel_prev = device_param->kernel_accel;
+    device_param->kernel_loops_prev = device_param->kernel_loops;
 
-    if (CL_rc == -1)
-    {
-      hcfree (buf);
-
-      return -1;
-    }
-
-    device_param->pws_cnt = 0;
-
-    if (status_ctx->run_thread_level1 == false) break;
-
-    if (device_param->speed_only_finish == true) break;
+    device_param->kernel_accel = 0;
+    device_param->kernel_loops = 0;
   }
 
   device_param->kernel_accel_prev = device_param->kernel_accel;
@@ -322,6 +490,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
   hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
   hashes_t             *hashes             = hashcat_ctx->hashes;
+  mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
   straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
   combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
   status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
@@ -329,375 +498,692 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   const u32 attack_mode = user_options->attack_mode;
   const u32 attack_kern = user_options_extra->attack_kern;
 
-  if ((attack_mode == ATTACK_MODE_BF) || (((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0) && (attack_mode == ATTACK_MODE_HYBRID2)))
+  if (user_options->slow_candidates == true)
   {
-    if (((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0) && (attack_mode == ATTACK_MODE_HYBRID2))
+    // attack modes from here
+
+    if (attack_mode == ATTACK_MODE_BF)
+    {
+      extra_info_mask_t extra_info_mask;
+
+      memset (&extra_info_mask, 0, sizeof (extra_info_mask));
+
+      extra_info_mask.out_len = mask_ctx->css_cnt;
+
+      u64 words_cur = 0;
+
+      while (status_ctx->run_thread_level1 == true)
+      {
+        u64 words_fin = 0;
+
+        memset (device_param->pws_comp, 0, device_param->size_pws_comp);
+        memset (device_param->pws_idx,  0, device_param->size_pws_idx);
+
+        u64 pre_rejects = -1u;
+
+        while (pre_rejects)
+        {
+          u64 words_extra_total = 0;
+
+          u64 words_extra = pre_rejects;
+
+          pre_rejects = 0;
+
+          memset (device_param->pws_pre_buf, 0, device_param->size_pws_pre);
+
+          device_param->pws_pre_cnt = 0;
+
+          while (words_extra)
+          {
+            const u64 work = get_work (hashcat_ctx, device_param, words_extra);
+
+            if (work == 0) break;
+
+            words_extra = 0;
+
+            u64 words_off = device_param->words_off;
+
+            words_fin = words_off + work;
+
+            words_cur = words_off;
+
+            for (u64 i = words_cur; i < words_fin; i++)
+            {
+              extra_info_mask.pos = i;
+
+              slow_candidates_next (hashcat_ctx, &extra_info_mask);
+
+              pw_pre_add (device_param, extra_info_mask.out_buf, extra_info_mask.out_len, NULL, 0, 0);
+
+              if (status_ctx->run_thread_level1 == false) break;
+            }
+
+            words_cur = words_fin;
+
+            words_extra_total += words_extra;
+
+            if (status_ctx->run_thread_level1 == false) break;
+          }
+
+          if (0)
+          {
+          }
+          else
+          {
+            u64 pws_pre_cnt = device_param->pws_pre_cnt;
+
+            for (u64 pws_pre_idx = 0; pws_pre_idx < pws_pre_cnt; pws_pre_idx++)
+            {
+              pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
+
+              pw_add (device_param, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
+            }
+          }
+
+          words_extra_total += pre_rejects;
+
+          if (status_ctx->run_thread_level1 == false) break;
+
+          if (words_extra_total > 0)
+          {
+            hc_thread_mutex_lock (status_ctx->mux_counter);
+
+            for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+            {
+              status_ctx->words_progress_rejected[salt_pos] += words_extra_total;
+            }
+
+            hc_thread_mutex_unlock (status_ctx->mux_counter);
+          }
+        }
+
+        //
+        // flush
+        //
+
+        const u64 pws_cnt = device_param->pws_cnt;
+
+        if (pws_cnt)
+        {
+          int CL_rc;
+
+          CL_rc = run_copy (hashcat_ctx, device_param, pws_cnt);
+
+          if (CL_rc == -1)
+          {
+            return -1;
+          }
+
+          CL_rc = run_cracker (hashcat_ctx, device_param, pws_cnt);
+
+          if (CL_rc == -1)
+          {
+            return -1;
+          }
+
+          device_param->pws_cnt = 0;
+        }
+
+        if (device_param->speed_only_finish == true) break;
+
+        if (status_ctx->run_thread_level2 == true)
+        {
+          device_param->words_done = words_fin;
+
+          status_ctx->words_cur = get_lowest_words_done (hashcat_ctx);
+        }
+
+        if (status_ctx->run_thread_level1 == false) break;
+
+        if (words_fin == 0) break;
+      }
+    }
+
+    else if (attack_mode == ATTACK_MODE_STRAIGHT)
     {
       char *dictfile = straight_ctx->dict;
 
-      FILE *combs_fp = fopen (dictfile, "rb");
+      FILE *fd = fopen (dictfile, "rb");
 
-      if (combs_fp == NULL)
+      if (fd == NULL)
       {
         event_log_error (hashcat_ctx, "%s: %s", dictfile, strerror (errno));
 
         return -1;
       }
 
-      device_param->combs_fp = combs_fp;
-    }
+      hashcat_ctx_t *hashcat_ctx_tmp = (hashcat_ctx_t *) hcmalloc (sizeof (hashcat_ctx_t));
 
-    while (status_ctx->run_thread_level1 == true)
-    {
-      const u64 work = get_work (hashcat_ctx, device_param, -1);
+      memcpy (hashcat_ctx_tmp, hashcat_ctx, sizeof (hashcat_ctx_t)); // yes we actually want to copy these pointers
 
-      if (work == 0) break;
+      hashcat_ctx_tmp->wl_data = (wl_data_t *) hcmalloc (sizeof (wl_data_t));
 
-      const u64 words_off = device_param->words_off;
-      const u64 words_fin = words_off + work;
+      const int rc_wl_data_init = wl_data_init (hashcat_ctx_tmp);
 
-      device_param->pws_cnt = work;
-
-      int CL_rc;
-
-      CL_rc = run_copy (hashcat_ctx, device_param, device_param->pws_cnt);
-
-      if (CL_rc == -1) return -1;
-
-      CL_rc = run_cracker (hashcat_ctx, device_param, device_param->pws_cnt);
-
-      if (CL_rc == -1) return -1;
-
-      device_param->pws_cnt = 0;
-
-      if (device_param->speed_only_finish == true) break;
-
-      if (status_ctx->run_thread_level2 == true)
+      if (rc_wl_data_init == -1)
       {
-        device_param->words_done = words_fin;
+        fclose (fd);
 
-        status_ctx->words_cur = get_lowest_words_done (hashcat_ctx);
+        hcfree (hashcat_ctx_tmp->wl_data);
+
+        hcfree (hashcat_ctx_tmp);
+
+        return -1;
       }
 
-      if (status_ctx->run_thread_level1 == false) break;
-    }
-  }
-  else
-  {
-    char *dictfile = straight_ctx->dict;
+      extra_info_straight_t extra_info_straight;
 
-    if (attack_mode == ATTACK_MODE_COMBI)
-    {
-      if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
+      memset (&extra_info_straight, 0, sizeof (extra_info_straight));
+
+      extra_info_straight.fd = fd;
+
+      u64 words_cur = 0;
+
+      while (status_ctx->run_thread_level1 == true)
       {
-        dictfile = combinator_ctx->dict1;
-      }
-      else
-      {
-        dictfile = combinator_ctx->dict2;
-      }
+        u64 words_fin = 0;
 
-      const u32 combs_mode = combinator_ctx->combs_mode;
+        memset (device_param->pws_comp,     0, device_param->size_pws_comp);
+        memset (device_param->pws_idx,      0, device_param->size_pws_idx);
+        memset (device_param->pws_base_buf, 0, device_param->size_pws_base);
 
-      if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
-      {
-        const char *dictfilec = combinator_ctx->dict2;
+        u64 pre_rejects = -1u;
 
-        FILE *combs_fp = fopen (dictfilec, "rb");
-
-        if (combs_fp == NULL)
+        while (pre_rejects)
         {
-          event_log_error (hashcat_ctx, "%s: %s", combinator_ctx->dict2, strerror (errno));
+          u64 words_extra_total = 0;
 
-          return -1;
+          u64 words_extra = pre_rejects;
+
+          pre_rejects = 0;
+
+          memset (device_param->pws_pre_buf, 0, device_param->size_pws_pre);
+
+          device_param->pws_pre_cnt = 0;
+
+          while (words_extra)
+          {
+            const u64 work = get_work (hashcat_ctx, device_param, words_extra);
+
+            if (work == 0) break;
+
+            words_extra = 0;
+
+            u64 words_off = device_param->words_off;
+
+            words_fin = words_off + work;
+
+            slow_candidates_seek (hashcat_ctx_tmp, &extra_info_straight, words_cur, words_off);
+
+            words_cur = words_off;
+
+            for (u64 i = words_cur; i < words_fin; i++)
+            {
+              slow_candidates_next (hashcat_ctx_tmp, &extra_info_straight);
+
+              if (attack_kern == ATTACK_KERN_STRAIGHT)
+              {
+                if ((extra_info_straight.out_len < hashconfig->pw_min) || (extra_info_straight.out_len > hashconfig->pw_max))
+                {
+                  words_extra++;
+
+                  continue;
+                }
+              }
+              else if (attack_kern == ATTACK_KERN_COMBI)
+              {
+                if ((extra_info_straight.out_len < hashconfig->pw_min) || (extra_info_straight.out_len > hashconfig->pw_max))
+                {
+                  words_extra++;
+
+                  continue;
+                }
+              }
+
+              pw_pre_add (device_param, extra_info_straight.out_buf, extra_info_straight.out_len, extra_info_straight.base_buf, extra_info_straight.base_len, extra_info_straight.rule_pos_prev);
+
+              if (status_ctx->run_thread_level1 == false) break;
+            }
+
+            words_cur = words_fin;
+
+            words_extra_total += words_extra;
+
+            if (status_ctx->run_thread_level1 == false) break;
+          }
+
+          if (0)
+          {
+          }
+          else
+          {
+            u64 pws_pre_cnt = device_param->pws_pre_cnt;
+
+            for (u64 pws_pre_idx = 0; pws_pre_idx < pws_pre_cnt; pws_pre_idx++)
+            {
+              pw_pre_t *pw_pre = device_param->pws_pre_buf + pws_pre_idx;
+
+              pw_base_add (device_param, pw_pre);
+
+              pw_add (device_param, (const u8 *) pw_pre->pw_buf, (const int) pw_pre->pw_len);
+            }
+          }
+
+          words_extra_total += pre_rejects;
+
+          if (status_ctx->run_thread_level1 == false) break;
+
+          if (words_extra_total > 0)
+          {
+            hc_thread_mutex_lock (status_ctx->mux_counter);
+
+            for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+            {
+              status_ctx->words_progress_rejected[salt_pos] += words_extra_total;
+            }
+
+            hc_thread_mutex_unlock (status_ctx->mux_counter);
+          }
         }
 
-        device_param->combs_fp = combs_fp;
-      }
-      else if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
-      {
-        const char *dictfilec = combinator_ctx->dict1;
+        //
+        // flush
+        //
 
-        FILE *combs_fp = fopen (dictfilec, "rb");
+        const u64 pws_cnt = device_param->pws_cnt;
 
-        if (combs_fp == NULL)
+        if (pws_cnt)
         {
-          event_log_error (hashcat_ctx, "%s: %s", dictfilec, strerror (errno));
+          int CL_rc;
 
-          return -1;
+          CL_rc = run_copy (hashcat_ctx, device_param, pws_cnt);
+
+          if (CL_rc == -1)
+          {
+            fclose (fd);
+
+            hcfree (hashcat_ctx_tmp->wl_data);
+
+            hcfree (hashcat_ctx_tmp);
+
+            return -1;
+          }
+
+          CL_rc = run_cracker (hashcat_ctx, device_param, pws_cnt);
+
+          if (CL_rc == -1)
+          {
+            fclose (fd);
+
+            hcfree (hashcat_ctx_tmp->wl_data);
+
+            hcfree (hashcat_ctx_tmp);
+
+            return -1;
+          }
+
+          device_param->pws_cnt = 0;
+
+          device_param->pws_base_cnt = 0;
         }
 
-        device_param->combs_fp = combs_fp;
+        if (device_param->speed_only_finish == true) break;
+
+        if (status_ctx->run_thread_level2 == true)
+        {
+          device_param->words_done = words_fin;
+
+          status_ctx->words_cur = get_lowest_words_done (hashcat_ctx);
+        }
+
+        if (status_ctx->run_thread_level1 == false) break;
+
+        if (words_fin == 0) break;
       }
-    }
-
-    FILE *fd = fopen (dictfile, "rb");
-
-    if (fd == NULL)
-    {
-      event_log_error (hashcat_ctx, "%s: %s", dictfile, strerror (errno));
-
-      return -1;
-    }
-
-    hashcat_ctx_t *hashcat_ctx_tmp = (hashcat_ctx_t *) hcmalloc (sizeof (hashcat_ctx_t));
-
-    /*
-    hashcat_ctx_tmp->bitmap_ctx         = hashcat_ctx->bitmap_ctx;
-    hashcat_ctx_tmp->combinator_ctx     = hashcat_ctx->combinator_ctx;
-    hashcat_ctx_tmp->cpt_ctx            = hashcat_ctx->cpt_ctx;
-    hashcat_ctx_tmp->debugfile_ctx      = hashcat_ctx->debugfile_ctx;
-    hashcat_ctx_tmp->dictstat_ctx       = hashcat_ctx->dictstat_ctx;
-    hashcat_ctx_tmp->folder_config      = hashcat_ctx->folder_config;
-    hashcat_ctx_tmp->hashconfig         = hashcat_ctx->hashconfig;
-    hashcat_ctx_tmp->hashes             = hashcat_ctx->hashes;
-    hashcat_ctx_tmp->hwmon_ctx          = hashcat_ctx->hwmon_ctx;
-    hashcat_ctx_tmp->induct_ctx         = hashcat_ctx->induct_ctx;
-    hashcat_ctx_tmp->logfile_ctx        = hashcat_ctx->logfile_ctx;
-    hashcat_ctx_tmp->loopback_ctx       = hashcat_ctx->loopback_ctx;
-    hashcat_ctx_tmp->mask_ctx           = hashcat_ctx->mask_ctx;
-    hashcat_ctx_tmp->opencl_ctx         = hashcat_ctx->opencl_ctx;
-    hashcat_ctx_tmp->outcheck_ctx       = hashcat_ctx->outcheck_ctx;
-    hashcat_ctx_tmp->outfile_ctx        = hashcat_ctx->outfile_ctx;
-    hashcat_ctx_tmp->potfile_ctx        = hashcat_ctx->potfile_ctx;
-    hashcat_ctx_tmp->restore_ctx        = hashcat_ctx->restore_ctx;
-    hashcat_ctx_tmp->status_ctx         = hashcat_ctx->status_ctx;
-    hashcat_ctx_tmp->straight_ctx       = hashcat_ctx->straight_ctx;
-    hashcat_ctx_tmp->tuning_db          = hashcat_ctx->tuning_db;
-    hashcat_ctx_tmp->user_options_extra = hashcat_ctx->user_options_extra;
-    hashcat_ctx_tmp->user_options       = hashcat_ctx->user_options;
-    */
-
-    memcpy (hashcat_ctx_tmp, hashcat_ctx, sizeof (hashcat_ctx_t)); // yes we actually want to copy these pointers
-
-    hashcat_ctx_tmp->wl_data = (wl_data_t *) hcmalloc (sizeof (wl_data_t));
-
-    const int rc_wl_data_init = wl_data_init (hashcat_ctx_tmp);
-
-    if (rc_wl_data_init == -1)
-    {
-      if (attack_mode == ATTACK_MODE_COMBI) fclose (device_param->combs_fp);
 
       fclose (fd);
+
+      wl_data_destroy (hashcat_ctx_tmp);
 
       hcfree (hashcat_ctx_tmp->wl_data);
 
       hcfree (hashcat_ctx_tmp);
-
-      return -1;
     }
-
-    u64 words_cur = 0;
-
-    while (status_ctx->run_thread_level1 == true)
+  }
+  else
+  {
+    if ((attack_mode == ATTACK_MODE_BF) || (((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0) && (attack_mode == ATTACK_MODE_HYBRID2)))
     {
-      u64 words_off = 0;
-      u64 words_fin = 0;
-
-      u64 words_extra = -1u;
-
-      u64 words_extra_total = 0;
-
-      memset (device_param->pws_comp, 0, device_param->size_pws_comp);
-      memset (device_param->pws_idx,  0, device_param->size_pws_idx);
-
-      while (words_extra)
+      if (((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0) && (attack_mode == ATTACK_MODE_HYBRID2))
       {
-        const u64 work = get_work (hashcat_ctx, device_param, words_extra);
+        char *dictfile = straight_ctx->dict;
+
+        FILE *combs_fp = fopen (dictfile, "rb");
+
+        if (combs_fp == NULL)
+        {
+          event_log_error (hashcat_ctx, "%s: %s", dictfile, strerror (errno));
+
+          return -1;
+        }
+
+        device_param->combs_fp = combs_fp;
+      }
+
+      while (status_ctx->run_thread_level1 == true)
+      {
+        const u64 work = get_work (hashcat_ctx, device_param, -1);
 
         if (work == 0) break;
 
-        words_extra = 0;
+        const u64 words_off = device_param->words_off;
+        const u64 words_fin = words_off + work;
 
-        words_off = device_param->words_off;
-        words_fin = words_off + work;
+        device_param->pws_cnt = work;
 
-        char *line_buf;
-        u32   line_len;
+        int CL_rc;
 
-        char rule_buf_out[RP_PASSWORD_SIZE];
+        CL_rc = run_copy (hashcat_ctx, device_param, device_param->pws_cnt);
 
-        for ( ; words_cur < words_off; words_cur++) get_next_word (hashcat_ctx_tmp, fd, &line_buf, &line_len);
+        if (CL_rc == -1) return -1;
 
-        for ( ; words_cur < words_fin; words_cur++)
+        CL_rc = run_cracker (hashcat_ctx, device_param, device_param->pws_cnt);
+
+        if (CL_rc == -1) return -1;
+
+        device_param->pws_cnt = 0;
+
+        if (device_param->speed_only_finish == true) break;
+
+        if (status_ctx->run_thread_level2 == true)
         {
-          get_next_word (hashcat_ctx_tmp, fd, &line_buf, &line_len);
+          device_param->words_done = words_fin;
 
-          line_len = (u32) convert_from_hex (hashcat_ctx, line_buf, line_len);
+          status_ctx->words_cur = get_lowest_words_done (hashcat_ctx);
+        }
+      }
+    }
+    else
+    {
+      char *dictfile = straight_ctx->dict;
 
-          // post-process rule engine
+      if (attack_mode == ATTACK_MODE_COMBI)
+      {
+        if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
+        {
+          dictfile = combinator_ctx->dict1;
+        }
+        else
+        {
+          dictfile = combinator_ctx->dict2;
+        }
 
-          if (run_rule_engine ((int) user_options_extra->rule_len_l, user_options->rule_buf_l))
+        const u32 combs_mode = combinator_ctx->combs_mode;
+
+        if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
+        {
+          const char *dictfilec = combinator_ctx->dict2;
+
+          FILE *combs_fp = fopen (dictfilec, "rb");
+
+          if (combs_fp == NULL)
           {
-            if (line_len >= RP_PASSWORD_SIZE) continue;
+            event_log_error (hashcat_ctx, "%s: %s", combinator_ctx->dict2, strerror (errno));
 
-            memset (rule_buf_out, 0, sizeof (rule_buf_out));
-
-            const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, (int) user_options_extra->rule_len_l, line_buf, (int) line_len, rule_buf_out);
-
-            if (rule_len_out < 0) continue;
-
-            line_buf = rule_buf_out;
-            line_len = (u32) rule_len_out;
+            return -1;
           }
 
-          if (attack_kern == ATTACK_KERN_STRAIGHT)
+          device_param->combs_fp = combs_fp;
+        }
+        else if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
+        {
+          const char *dictfilec = combinator_ctx->dict1;
+
+          FILE *combs_fp = fopen (dictfilec, "rb");
+
+          if (combs_fp == NULL)
           {
-            if ((line_len < hashconfig->pw_min) || (line_len > hashconfig->pw_max))
+            event_log_error (hashcat_ctx, "%s: %s", dictfilec, strerror (errno));
+
+            return -1;
+          }
+
+          device_param->combs_fp = combs_fp;
+        }
+      }
+
+      FILE *fd = fopen (dictfile, "rb");
+
+      if (fd == NULL)
+      {
+        event_log_error (hashcat_ctx, "%s: %s", dictfile, strerror (errno));
+
+        return -1;
+      }
+
+      hashcat_ctx_t *hashcat_ctx_tmp = (hashcat_ctx_t *) hcmalloc (sizeof (hashcat_ctx_t));
+
+      memcpy (hashcat_ctx_tmp, hashcat_ctx, sizeof (hashcat_ctx_t)); // yes we actually want to copy these pointers
+
+      hashcat_ctx_tmp->wl_data = (wl_data_t *) hcmalloc (sizeof (wl_data_t));
+
+      const int rc_wl_data_init = wl_data_init (hashcat_ctx_tmp);
+
+      if (rc_wl_data_init == -1)
+      {
+        if (attack_mode == ATTACK_MODE_COMBI) fclose (device_param->combs_fp);
+
+        fclose (fd);
+
+        hcfree (hashcat_ctx_tmp->wl_data);
+
+        hcfree (hashcat_ctx_tmp);
+
+        return -1;
+      }
+
+      u64 words_cur = 0;
+
+      while (status_ctx->run_thread_level1 == true)
+      {
+        u64 words_off = 0;
+        u64 words_fin = 0;
+
+        u64 words_extra = -1u;
+
+        u64 words_extra_total = 0;
+
+        memset (device_param->pws_comp, 0, device_param->size_pws_comp);
+        memset (device_param->pws_idx,  0, device_param->size_pws_idx);
+
+        while (words_extra)
+        {
+          const u64 work = get_work (hashcat_ctx, device_param, words_extra);
+
+          if (work == 0) break;
+
+          words_extra = 0;
+
+          words_off = device_param->words_off;
+          words_fin = words_off + work;
+
+          char *line_buf;
+          u32   line_len;
+
+          char rule_buf_out[RP_PASSWORD_SIZE];
+
+          for ( ; words_cur < words_off; words_cur++) get_next_word (hashcat_ctx_tmp, fd, &line_buf, &line_len);
+
+          for ( ; words_cur < words_fin; words_cur++)
+          {
+            get_next_word (hashcat_ctx_tmp, fd, &line_buf, &line_len);
+
+            line_len = (u32) convert_from_hex (hashcat_ctx, line_buf, line_len);
+
+            // post-process rule engine
+
+            if (run_rule_engine ((int) user_options_extra->rule_len_l, user_options->rule_buf_l))
             {
-              words_extra++;
+              if (line_len >= RP_PASSWORD_SIZE) continue;
 
-              continue;
+              memset (rule_buf_out, 0, sizeof (rule_buf_out));
+
+              const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, (int) user_options_extra->rule_len_l, line_buf, (int) line_len, rule_buf_out);
+
+              if (rule_len_out < 0) continue;
+
+              line_buf = rule_buf_out;
+              line_len = (u32) rule_len_out;
             }
-          }
-          else if (attack_kern == ATTACK_KERN_COMBI)
-          {
-            // do not check if minimum restriction is satisfied (line_len >= hashconfig->pw_min) here
-            // since we still need to combine the plains
 
-            if (line_len > hashconfig->pw_max)
+            if (attack_kern == ATTACK_KERN_STRAIGHT)
             {
-              words_extra++;
+              if ((line_len < hashconfig->pw_min) || (line_len > hashconfig->pw_max))
+              {
+                words_extra++;
 
-              continue;
+                continue;
+              }
             }
+            else if (attack_kern == ATTACK_KERN_COMBI)
+            {
+              // do not check if minimum restriction is satisfied (line_len >= hashconfig->pw_min) here
+              // since we still need to combine the plains
+
+              if (line_len > hashconfig->pw_max)
+              {
+                words_extra++;
+
+                continue;
+              }
+            }
+
+            pw_add (device_param, (const u8 *) line_buf, (const int) line_len);
+
+            if (status_ctx->run_thread_level1 == false) break;
           }
 
-          pw_add (device_param, (u8 *) line_buf, (int) line_len);
+          words_extra_total += words_extra;
 
           if (status_ctx->run_thread_level1 == false) break;
         }
 
-        words_extra_total += words_extra;
-
         if (status_ctx->run_thread_level1 == false) break;
-      }
 
-      if (status_ctx->run_thread_level1 == false) break;
-
-      if (words_extra_total > 0)
-      {
-        hc_thread_mutex_lock (status_ctx->mux_counter);
-
-        for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+        if (words_extra_total > 0)
         {
+          hc_thread_mutex_lock (status_ctx->mux_counter);
+
+          for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+          {
+            if (attack_kern == ATTACK_KERN_STRAIGHT)
+            {
+              status_ctx->words_progress_rejected[salt_pos] += words_extra_total * straight_ctx->kernel_rules_cnt;
+            }
+            else if (attack_kern == ATTACK_KERN_COMBI)
+            {
+              status_ctx->words_progress_rejected[salt_pos] += words_extra_total * combinator_ctx->combs_cnt;
+            }
+          }
+
+          hc_thread_mutex_unlock (status_ctx->mux_counter);
+        }
+
+        //
+        // flush
+        //
+
+        const u64 pws_cnt = device_param->pws_cnt;
+
+        if (pws_cnt)
+        {
+          int CL_rc;
+
+          CL_rc = run_copy (hashcat_ctx, device_param, pws_cnt);
+
+          if (CL_rc == -1)
+          {
+            if (attack_mode == ATTACK_MODE_COMBI) fclose (device_param->combs_fp);
+
+            fclose (fd);
+
+            hcfree (hashcat_ctx_tmp->wl_data);
+
+            hcfree (hashcat_ctx_tmp);
+
+            return -1;
+          }
+
+          CL_rc = run_cracker (hashcat_ctx, device_param, pws_cnt);
+
+          if (CL_rc == -1)
+          {
+            if (attack_mode == ATTACK_MODE_COMBI) fclose (device_param->combs_fp);
+
+            fclose (fd);
+
+            hcfree (hashcat_ctx_tmp->wl_data);
+
+            hcfree (hashcat_ctx_tmp);
+
+            return -1;
+          }
+
+          device_param->pws_cnt = 0;
+
+          /*
+          still required?
           if (attack_kern == ATTACK_KERN_STRAIGHT)
           {
-            status_ctx->words_progress_rejected[salt_pos] += words_extra_total * straight_ctx->kernel_rules_cnt;
+            CL_rc = run_kernel_bzero (device_param, device_param->d_rules_c, device_param->size_rules_c);
+            if (CL_rc == -1)
+            {
+              if (attack_mode == ATTACK_MODE_COMBI) fclose (device_param->combs_fp);
+              fclose (fd);
+              hcfree (hashcat_ctx_tmp->wl_data);
+              hcfree (hashcat_ctx_tmp);
+              return -1;
+            }
           }
           else if (attack_kern == ATTACK_KERN_COMBI)
           {
-            status_ctx->words_progress_rejected[salt_pos] += words_extra_total * combinator_ctx->combs_cnt;
+            CL_rc = run_kernel_bzero (device_param, device_param->d_combs_c, device_param->size_combs);
+            if (CL_rc == -1)
+            {
+              if (attack_mode == ATTACK_MODE_COMBI) fclose (device_param->combs_fp);
+              fclose (fd);
+              hcfree (hashcat_ctx_tmp->wl_data);
+              hcfree (hashcat_ctx_tmp);
+              return -1;
+            }
           }
+          */
         }
 
-        hc_thread_mutex_unlock (status_ctx->mux_counter);
+        if (device_param->speed_only_finish == true) break;
+
+        if (status_ctx->run_thread_level2 == true)
+        {
+          device_param->words_done = words_fin;
+
+          status_ctx->words_cur = get_lowest_words_done (hashcat_ctx);
+        }
+
+        if (status_ctx->run_thread_level1 == false) break;
+
+        if (words_fin == 0) break;
       }
 
-      //
-      // flush
-      //
+      if (attack_mode == ATTACK_MODE_COMBI) fclose (device_param->combs_fp);
 
-      const u64 pws_cnt = device_param->pws_cnt;
+      fclose (fd);
 
-      if (pws_cnt)
-      {
-        int CL_rc;
+      wl_data_destroy (hashcat_ctx_tmp);
 
-        CL_rc = run_copy (hashcat_ctx, device_param, pws_cnt);
+      hcfree (hashcat_ctx_tmp->wl_data);
 
-        if (CL_rc == -1)
-        {
-          if (attack_mode == ATTACK_MODE_COMBI) fclose (device_param->combs_fp);
-
-          fclose (fd);
-
-          hcfree (hashcat_ctx_tmp->wl_data);
-
-          hcfree (hashcat_ctx_tmp);
-
-          return -1;
-        }
-
-        CL_rc = run_cracker (hashcat_ctx, device_param, pws_cnt);
-
-        if (CL_rc == -1)
-        {
-          if (attack_mode == ATTACK_MODE_COMBI) fclose (device_param->combs_fp);
-
-          fclose (fd);
-
-          hcfree (hashcat_ctx_tmp->wl_data);
-
-          hcfree (hashcat_ctx_tmp);
-
-          return -1;
-        }
-
-        device_param->pws_cnt = 0;
-
-        /*
-        still required?
-        if (attack_kern == ATTACK_KERN_STRAIGHT)
-        {
-          CL_rc = run_kernel_bzero (device_param, device_param->d_rules_c, device_param->size_rules_c);
-
-          if (CL_rc == -1)
-          {
-            if (attack_mode == ATTACK_MODE_COMBI) fclose (device_param->combs_fp);
-
-            fclose (fd);
-
-            hcfree (hashcat_ctx_tmp->wl_data);
-
-            hcfree (hashcat_ctx_tmp);
-
-            return -1;
-          }
-        }
-        else if (attack_kern == ATTACK_KERN_COMBI)
-        {
-          CL_rc = run_kernel_bzero (device_param, device_param->d_combs_c, device_param->size_combs);
-
-          if (CL_rc == -1)
-          {
-            if (attack_mode == ATTACK_MODE_COMBI) fclose (device_param->combs_fp);
-
-            fclose (fd);
-
-            hcfree (hashcat_ctx_tmp->wl_data);
-
-            hcfree (hashcat_ctx_tmp);
-
-            return -1;
-          }
-        }
-        */
-      }
-
-      if (device_param->speed_only_finish == true) break;
-
-      if (status_ctx->run_thread_level2 == true)
-      {
-        device_param->words_done = words_fin;
-
-        status_ctx->words_cur = get_lowest_words_done (hashcat_ctx);
-      }
-
-      if (status_ctx->run_thread_level1 == false) break;
-
-      if (words_fin == 0) break;
+      hcfree (hashcat_ctx_tmp);
     }
-
-    if (attack_mode == ATTACK_MODE_COMBI) fclose (device_param->combs_fp);
-
-    fclose (fd);
-
-    wl_data_destroy (hashcat_ctx_tmp);
-
-    hcfree (hashcat_ctx_tmp->wl_data);
-
-    hcfree (hashcat_ctx_tmp);
   }
 
   device_param->kernel_accel_prev = device_param->kernel_accel;

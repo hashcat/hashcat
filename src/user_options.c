@@ -14,14 +14,14 @@
 #include "outfile.h"
 #include "user_options.h"
 
-static const char *short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:c:p:s:l:1:2:3:4:iIbw:O";
+static const char *short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:c:p:s:l:1:2:3:4:iIbw:OS";
 
 static const struct option long_options[] =
 {
   {"advice-disable",            no_argument,       NULL, IDX_ADVICE_DISABLE},
   {"attack-mode",               required_argument, NULL, IDX_ATTACK_MODE},
-  {"benchmark",                 no_argument,       NULL, IDX_BENCHMARK},
   {"benchmark-all",             no_argument,       NULL, IDX_BENCHMARK_ALL},
+  {"benchmark",                 no_argument,       NULL, IDX_BENCHMARK},
   {"bitmap-max",                required_argument, NULL, IDX_BITMAP_MAX},
   {"bitmap-min",                required_argument, NULL, IDX_BITMAP_MIN},
   {"cpu-affinity",              required_argument, NULL, IDX_CPU_AFFINITY},
@@ -77,9 +77,9 @@ static const struct option long_options[] =
   {"outfile-check-timer",       required_argument, NULL, IDX_OUTFILE_CHECK_TIMER},
   {"outfile-format",            required_argument, NULL, IDX_OUTFILE_FORMAT},
   {"outfile",                   required_argument, NULL, IDX_OUTFILE},
-  {"wordlist-autohex-disable",  no_argument,       NULL, IDX_WORDLIST_AUTOHEX_DISABLE},
   {"potfile-disable",           no_argument,       NULL, IDX_POTFILE_DISABLE},
   {"potfile-path",              required_argument, NULL, IDX_POTFILE_PATH},
+  {"progress-only",             no_argument,       NULL, IDX_PROGRESS_ONLY},
   {"quiet",                     no_argument,       NULL, IDX_QUIET},
   {"remove",                    no_argument,       NULL, IDX_REMOVE},
   {"remove-timer",              required_argument, NULL, IDX_REMOVE_TIMER},
@@ -91,23 +91,24 @@ static const struct option long_options[] =
   {"rules-file",                required_argument, NULL, IDX_RP_FILE},
   {"runtime",                   required_argument, NULL, IDX_RUNTIME},
   {"scrypt-tmto",               required_argument, NULL, IDX_SCRYPT_TMTO},
-  {"self-test-disable",         no_argument,       NULL, IDX_SELF_TEST_DISABLE},
   {"segment-size",              required_argument, NULL, IDX_SEGMENT_SIZE},
+  {"self-test-disable",         no_argument,       NULL, IDX_SELF_TEST_DISABLE},
   {"separator",                 required_argument, NULL, IDX_SEPARATOR},
   {"seperator",                 required_argument, NULL, IDX_SEPARATOR},
   {"session",                   required_argument, NULL, IDX_SESSION},
   {"show",                      no_argument,       NULL, IDX_SHOW},
   {"skip",                      required_argument, NULL, IDX_SKIP},
+  {"slow-candidates",           no_argument,       NULL, IDX_SLOW_CANDIDATES},
+  {"speed-only",                no_argument,       NULL, IDX_SPEED_ONLY},
   {"status",                    no_argument,       NULL, IDX_STATUS},
   {"status-timer",              required_argument, NULL, IDX_STATUS_TIMER},
   {"stdout",                    no_argument,       NULL, IDX_STDOUT_FLAG},
-  {"speed-only",                no_argument,       NULL, IDX_SPEED_ONLY},
-  {"progress-only",             no_argument,       NULL, IDX_PROGRESS_ONLY},
   {"truecrypt-keyfiles",        required_argument, NULL, IDX_TRUECRYPT_KEYFILES},
   {"username",                  no_argument,       NULL, IDX_USERNAME},
   {"veracrypt-keyfiles",        required_argument, NULL, IDX_VERACRYPT_KEYFILES},
   {"veracrypt-pim",             required_argument, NULL, IDX_VERACRYPT_PIM},
   {"version",                   no_argument,       NULL, IDX_VERSION},
+  {"wordlist-autohex-disable",  no_argument,       NULL, IDX_WORDLIST_AUTOHEX_DISABLE},
   {"workload-profile",          required_argument, NULL, IDX_WORKLOAD_PROFILE},
   {NULL,                        0,                 NULL, 0 }
 };
@@ -128,8 +129,8 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
 
   user_options->advice_disable            = ADVICE_DISABLE;
   user_options->attack_mode               = ATTACK_MODE;
-  user_options->benchmark                 = BENCHMARK;
   user_options->benchmark_all             = BENCHMARK_ALL;
+  user_options->benchmark                 = BENCHMARK;
   user_options->bitmap_max                = BITMAP_MAX;
   user_options->bitmap_min                = BITMAP_MIN;
   user_options->cpu_affinity              = NULL;
@@ -139,9 +140,9 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->custom_charset_4          = NULL;
   user_options->debug_file                = NULL;
   user_options->debug_mode                = DEBUG_MODE;
-  user_options->example_hashes            = EXAMPLE_HASHES;
   user_options->encoding_from             = ENCODING_FROM;
   user_options->encoding_to               = ENCODING_TO;
+  user_options->example_hashes            = EXAMPLE_HASHES;
   user_options->force                     = FORCE;
   user_options->gpu_temp_abort            = GPU_TEMP_ABORT;
   user_options->gpu_temp_disable          = GPU_TEMP_DISABLE;
@@ -154,9 +155,9 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->increment_max             = INCREMENT_MAX;
   user_options->increment_min             = INCREMENT_MIN;
   user_options->induction_dir             = NULL;
+  user_options->keep_guessing             = KEEP_GUESSING;
   user_options->kernel_accel              = KERNEL_ACCEL;
   user_options->kernel_loops              = KERNEL_LOOPS;
-  user_options->keep_guessing             = KEEP_GUESSING;
   user_options->keyspace                  = KEYSPACE;
   user_options->left                      = LEFT;
   user_options->limit                     = LIMIT;
@@ -175,7 +176,6 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->opencl_platforms          = NULL;
   user_options->opencl_vector_width       = OPENCL_VECTOR_WIDTH;
   user_options->optimized_kernel_enable   = OPTIMIZED_KERNEL_ENABLE;
-  user_options->wordlist_autohex_disable  = WORDLIST_AUTOHEX_DISABLE;
   user_options->outfile_autohex           = OUTFILE_AUTOHEX;
   user_options->outfile_check_dir         = NULL;
   user_options->outfile_check_timer       = OUTFILE_CHECK_TIMER;
@@ -183,6 +183,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->outfile                   = NULL;
   user_options->potfile_disable           = POTFILE_DISABLE;
   user_options->potfile_path              = NULL;
+  user_options->progress_only             = PROGRESS_ONLY;
   user_options->quiet                     = QUIET;
   user_options->remove                    = REMOVE;
   user_options->remove_timer              = REMOVE_TIMER;
@@ -198,23 +199,24 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->rule_buf_r                = RULE_BUF_R;
   user_options->runtime                   = RUNTIME;
   user_options->scrypt_tmto               = SCRYPT_TMTO;
-  user_options->self_test_disable         = SELF_TEST_DISABLE;
   user_options->segment_size              = SEGMENT_SIZE;
+  user_options->self_test_disable         = SELF_TEST_DISABLE;
   user_options->separator                 = SEPARATOR;
   user_options->session                   = PROGNAME;
   user_options->show                      = SHOW;
   user_options->skip                      = SKIP;
+  user_options->slow_candidates           = SLOW_CANDIDATES;
+  user_options->speed_only                = SPEED_ONLY;
   user_options->status                    = STATUS;
   user_options->status_timer              = STATUS_TIMER;
   user_options->stdout_flag               = STDOUT_FLAG;
-  user_options->speed_only                = SPEED_ONLY;
-  user_options->progress_only             = PROGRESS_ONLY;
   user_options->truecrypt_keyfiles        = NULL;
   user_options->usage                     = USAGE;
   user_options->username                  = USERNAME;
   user_options->veracrypt_keyfiles        = NULL;
   user_options->veracrypt_pim             = 0;
   user_options->version                   = VERSION;
+  user_options->wordlist_autohex_disable  = WORDLIST_AUTOHEX_DISABLE;
   user_options->workload_profile          = WORKLOAD_PROFILE;
   user_options->rp_files_cnt              = 0;
   user_options->rp_files                  = (char **) hccalloc (256, sizeof (char *));
@@ -416,6 +418,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_CUSTOM_CHARSET_2:         user_options->custom_charset_2          = optarg;                          break;
       case IDX_CUSTOM_CHARSET_3:         user_options->custom_charset_3          = optarg;                          break;
       case IDX_CUSTOM_CHARSET_4:         user_options->custom_charset_4          = optarg;                          break;
+      case IDX_SLOW_CANDIDATES:          user_options->slow_candidates           = true;                            break;
     }
   }
 
@@ -445,16 +448,29 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT)
-   && (user_options->attack_mode != ATTACK_MODE_COMBI)
-   && (user_options->attack_mode != ATTACK_MODE_BF)
-   && (user_options->attack_mode != ATTACK_MODE_HYBRID1)
-   && (user_options->attack_mode != ATTACK_MODE_HYBRID2)
-   && (user_options->attack_mode != ATTACK_MODE_NONE))
+  if (user_options->slow_candidates == true)
   {
-    event_log_error (hashcat_ctx, "Invalid attack mode (-a) value specified.");
+    if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT)
+     && (user_options->attack_mode != ATTACK_MODE_BF))
+    {
+      event_log_error (hashcat_ctx, "Invalid attack mode (-a) value specified in slow-candidates mode.");
 
-    return -1;
+      return -1;
+    }
+  }
+  else
+  {
+    if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT)
+     && (user_options->attack_mode != ATTACK_MODE_COMBI)
+     && (user_options->attack_mode != ATTACK_MODE_BF)
+     && (user_options->attack_mode != ATTACK_MODE_HYBRID1)
+     && (user_options->attack_mode != ATTACK_MODE_HYBRID2)
+     && (user_options->attack_mode != ATTACK_MODE_NONE))
+    {
+      event_log_error (hashcat_ctx, "Invalid attack mode (-a) value specified.");
+
+      return -1;
+    }
   }
 
   if (user_options->hccapx_message_pair_chgd == true)
@@ -1278,6 +1294,11 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->quiet = true;
   }
 
+  if (user_options->slow_candidates == true)
+  {
+    user_options->opencl_vector_width = 1;
+  }
+
   if (user_options->stdout_flag == true)
   {
     user_options->force               = true;
@@ -1646,27 +1667,35 @@ u64 user_options_extra_amplifier (hashcat_ctx_t *hashcat_ctx)
   const combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
   const mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
   const straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
-  if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+  if (user_options->slow_candidates == true)
   {
-    if (straight_ctx->kernel_rules_cnt)
-    {
-      return straight_ctx->kernel_rules_cnt;
-    }
+    return 1;
   }
-  else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+  else
   {
-    if (combinator_ctx->combs_cnt)
+    if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
     {
-      return combinator_ctx->combs_cnt;
+      if (straight_ctx->kernel_rules_cnt)
+      {
+        return straight_ctx->kernel_rules_cnt;
+      }
     }
-  }
-  else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
-  {
-    if (mask_ctx->bfs_cnt)
+    else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
     {
-      return mask_ctx->bfs_cnt;
+      if (combinator_ctx->combs_cnt)
+      {
+        return combinator_ctx->combs_cnt;
+      }
+    }
+    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
+    {
+      if (mask_ctx->bfs_cnt)
+      {
+        return mask_ctx->bfs_cnt;
+      }
     }
   }
 
@@ -2340,6 +2369,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->scrypt_tmto);
   logfile_top_uint   (user_options->segment_size);
   logfile_top_uint   (user_options->self_test_disable);
+  logfile_top_uint   (user_options->slow_candidates);
   logfile_top_uint   (user_options->show);
   logfile_top_uint   (user_options->speed_only);
   logfile_top_uint   (user_options->status);

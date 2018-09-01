@@ -18,6 +18,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
   hashes_t             *hashes             = hashcat_ctx->hashes;
   status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
+  user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   cl_int CL_err;
@@ -39,239 +40,13 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   u32 highest_pw_len = 0;
 
-  if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+  if (user_options->slow_candidates == true)
   {
-    if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+    if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
     {
       device_param->kernel_params_buf32[30] = 1;
-
-      pw_t pw; memset (&pw, 0, sizeof (pw));
-
-      char *pw_ptr = (char *) &pw.i;
-
-      const size_t pw_len = strlen (hashconfig->st_pass);
-
-      memcpy (pw_ptr, hashconfig->st_pass, pw_len);
-
-      pw.pw_len = (u32) pw_len;
-
-      if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
-      {
-        uppercase ((u8 *) pw_ptr, pw.pw_len);
-      }
-
-      CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL);
-
-      if (CL_err != CL_SUCCESS) return -1;
     }
-    else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
-    {
-      device_param->kernel_params_buf32[30] = 1;
-      device_param->kernel_params_buf32[33] = COMBINATOR_MODE_BASE_LEFT;
 
-      pw_t pw; memset (&pw, 0, sizeof (pw));
-
-      char *pw_ptr = (char *) &pw.i;
-
-      const size_t pw_len = strlen (hashconfig->st_pass);
-
-      memcpy (pw_ptr, hashconfig->st_pass, pw_len - 1);
-
-      pw.pw_len = (u32) pw_len - 1;
-
-      if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
-      {
-        uppercase ((u8 *) pw_ptr, pw.pw_len);
-      }
-
-      pw_t comb; memset (&comb, 0, sizeof (comb));
-
-      char *comb_ptr = (char *) &comb.i;
-
-      memcpy (comb_ptr, hashconfig->st_pass + pw_len - 1, 1);
-
-      comb.pw_len = 1;
-
-      if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
-      {
-        uppercase ((u8 *) comb_ptr, comb.pw_len);
-      }
-
-      if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)
-      {
-        comb_ptr[comb.pw_len] = 0x01;
-      }
-
-      if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)
-      {
-        comb_ptr[comb.pw_len] = 0x80;
-      }
-
-      CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_combs_c, CL_TRUE, 0, 1 * sizeof (pw_t), &comb, 0, NULL, NULL);
-
-      if (CL_err != CL_SUCCESS) return -1;
-
-      CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL);
-
-      if (CL_err != CL_SUCCESS) return -1;
-    }
-    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
-    {
-      device_param->kernel_params_buf32[30] = 1;
-
-      if (hashconfig->opts_type & OPTS_TYPE_PT_BITSLICE)
-      {
-        pw_t pw; memset (&pw, 0, sizeof (pw));
-
-        char *pw_ptr = (char *) &pw.i;
-
-        const size_t pw_len = strlen (hashconfig->st_pass);
-
-        memcpy (pw_ptr, hashconfig->st_pass, pw_len);
-
-        if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
-        {
-          uppercase ((u8 *) pw_ptr, pw_len);
-        }
-
-        pw.pw_len = (u32) pw_len;
-
-        CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL);
-
-        if (CL_err != CL_SUCCESS) return -1;
-      }
-      else
-      {
-        bf_t bf; memset (&bf, 0, sizeof (bf));
-
-        char *bf_ptr = (char *) &bf.i;
-
-        memcpy (bf_ptr, hashconfig->st_pass, 1);
-
-        if (hashconfig->opts_type & OPTS_TYPE_PT_UTF16LE)
-        {
-          memset (bf_ptr, 0, 4);
-
-          for (int i = 0, j = 0; i < 1; i += 1, j += 2)
-          {
-            bf_ptr[j + 0] = hashconfig->st_pass[i];
-            bf_ptr[j + 1] = 0;
-          }
-        }
-        else if (hashconfig->opts_type & OPTS_TYPE_PT_UTF16BE)
-        {
-          memset (bf_ptr, 0, 4);
-
-          for (int i = 0, j = 0; i < 1; i += 1, j += 2)
-          {
-            bf_ptr[j + 0] = 0;
-            bf_ptr[j + 1] = hashconfig->st_pass[i];
-          }
-        }
-
-        if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
-        {
-          uppercase ((u8 *) bf_ptr, 4);
-        }
-
-        if (hashconfig->opts_type & OPTS_TYPE_PT_GENERATE_BE)
-        {
-          bf.i = byte_swap_32 (bf.i);
-        }
-
-        CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_bfs_c, CL_TRUE, 0, 1 * sizeof (bf_t), &bf, 0, NULL, NULL);
-
-        if (CL_err != CL_SUCCESS) return -1;
-
-        pw_t pw; memset (&pw, 0, sizeof (pw));
-
-        char *pw_ptr = (char *) &pw.i;
-
-        const size_t pw_len = strlen (hashconfig->st_pass);
-
-        memcpy (pw_ptr + 1, hashconfig->st_pass + 1, pw_len - 1);
-
-        size_t new_pass_len = pw_len;
-
-        if (hashconfig->opts_type & OPTS_TYPE_PT_UTF16LE)
-        {
-          memset (pw_ptr, 0, pw_len);
-
-          for (size_t i = 1, j = 2; i < new_pass_len; i += 1, j += 2)
-          {
-            pw_ptr[j + 0] = hashconfig->st_pass[i];
-            pw_ptr[j + 1] = 0;
-          }
-
-          new_pass_len *= 2;
-        }
-        else if (hashconfig->opts_type & OPTS_TYPE_PT_UTF16BE)
-        {
-          memset (pw_ptr, 0, pw_len);
-
-          for (size_t i = 1, j = 2; i < new_pass_len; i += 1, j += 2)
-          {
-            pw_ptr[j + 0] = 0;
-            pw_ptr[j + 1] = hashconfig->st_pass[i];
-          }
-
-          new_pass_len *= 2;
-        }
-
-        if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
-        {
-          uppercase ((u8 *) pw_ptr, new_pass_len);
-        }
-
-        if (hashconfig->opti_type & OPTI_TYPE_SINGLE_HASH)
-        {
-          if (hashconfig->opti_type & OPTI_TYPE_APPENDED_SALT)
-          {
-            memcpy (pw_ptr + new_pass_len, (char *) hashes->st_salts_buf[0].salt_buf, 64 - new_pass_len);
-
-            new_pass_len += hashes->st_salts_buf[0].salt_len;
-          }
-        }
-
-        pw.pw_len = (u32) new_pass_len;
-
-        if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)
-        {
-          pw_ptr[new_pass_len] = 0x01;
-        }
-
-        if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)
-        {
-          pw_ptr[new_pass_len] = 0x80;
-        }
-
-        if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS14)
-        {
-          pw.i[14] = (u32) new_pass_len * 8;
-          pw.i[15] = 0;
-        }
-
-        if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS15)
-        {
-          pw.i[14] = 0;
-          pw.i[15] = (u32) new_pass_len * 8;
-        }
-
-        if (hashconfig->opts_type & OPTS_TYPE_PT_GENERATE_BE)
-        {
-          for (int i = 0; i < 14; i++) pw.i[i] = byte_swap_32 (pw.i[i]);
-        }
-
-        CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL);
-
-        if (CL_err != CL_SUCCESS) return -1;
-
-        highest_pw_len = pw.pw_len;
-      }
-    }
-  }
-  else
-  {
     pw_t pw; memset (&pw, 0, sizeof (pw));
 
     char *pw_ptr = (char *) &pw.i;
@@ -285,6 +60,256 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL);
 
     if (CL_err != CL_SUCCESS) return -1;
+  }
+  else
+  {
+    if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+    {
+      if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+      {
+        device_param->kernel_params_buf32[30] = 1;
+
+        pw_t pw; memset (&pw, 0, sizeof (pw));
+
+        char *pw_ptr = (char *) &pw.i;
+
+        const size_t pw_len = strlen (hashconfig->st_pass);
+
+        memcpy (pw_ptr, hashconfig->st_pass, pw_len);
+
+        pw.pw_len = (u32) pw_len;
+
+        if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
+        {
+          uppercase ((u8 *) pw_ptr, pw.pw_len);
+        }
+
+        CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL);
+
+        if (CL_err != CL_SUCCESS) return -1;
+      }
+      else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+      {
+        device_param->kernel_params_buf32[30] = 1;
+        device_param->kernel_params_buf32[33] = COMBINATOR_MODE_BASE_LEFT;
+
+        pw_t pw; memset (&pw, 0, sizeof (pw));
+
+        char *pw_ptr = (char *) &pw.i;
+
+        const size_t pw_len = strlen (hashconfig->st_pass);
+
+        memcpy (pw_ptr, hashconfig->st_pass, pw_len - 1);
+
+        pw.pw_len = (u32) pw_len - 1;
+
+        if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
+        {
+          uppercase ((u8 *) pw_ptr, pw.pw_len);
+        }
+
+        pw_t comb; memset (&comb, 0, sizeof (comb));
+
+        char *comb_ptr = (char *) &comb.i;
+
+        memcpy (comb_ptr, hashconfig->st_pass + pw_len - 1, 1);
+
+        comb.pw_len = 1;
+
+        if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
+        {
+          uppercase ((u8 *) comb_ptr, comb.pw_len);
+        }
+
+        if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)
+        {
+          comb_ptr[comb.pw_len] = 0x01;
+        }
+
+        if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)
+        {
+          comb_ptr[comb.pw_len] = 0x80;
+        }
+
+        CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_combs_c, CL_TRUE, 0, 1 * sizeof (pw_t), &comb, 0, NULL, NULL);
+
+        if (CL_err != CL_SUCCESS) return -1;
+
+        CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL);
+
+        if (CL_err != CL_SUCCESS) return -1;
+      }
+      else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
+      {
+        device_param->kernel_params_buf32[30] = 1;
+
+        if (hashconfig->opts_type & OPTS_TYPE_PT_BITSLICE)
+        {
+          pw_t pw; memset (&pw, 0, sizeof (pw));
+
+          char *pw_ptr = (char *) &pw.i;
+
+          const size_t pw_len = strlen (hashconfig->st_pass);
+
+          memcpy (pw_ptr, hashconfig->st_pass, pw_len);
+
+          if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
+          {
+            uppercase ((u8 *) pw_ptr, pw_len);
+          }
+
+          pw.pw_len = (u32) pw_len;
+
+          CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL);
+
+          if (CL_err != CL_SUCCESS) return -1;
+        }
+        else
+        {
+          bf_t bf; memset (&bf, 0, sizeof (bf));
+
+          char *bf_ptr = (char *) &bf.i;
+
+          memcpy (bf_ptr, hashconfig->st_pass, 1);
+
+          if (hashconfig->opts_type & OPTS_TYPE_PT_UTF16LE)
+          {
+            memset (bf_ptr, 0, 4);
+
+            for (int i = 0, j = 0; i < 1; i += 1, j += 2)
+            {
+              bf_ptr[j + 0] = hashconfig->st_pass[i];
+              bf_ptr[j + 1] = 0;
+            }
+          }
+          else if (hashconfig->opts_type & OPTS_TYPE_PT_UTF16BE)
+          {
+            memset (bf_ptr, 0, 4);
+
+            for (int i = 0, j = 0; i < 1; i += 1, j += 2)
+            {
+              bf_ptr[j + 0] = 0;
+              bf_ptr[j + 1] = hashconfig->st_pass[i];
+            }
+          }
+
+          if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
+          {
+            uppercase ((u8 *) bf_ptr, 4);
+          }
+
+          if (hashconfig->opts_type & OPTS_TYPE_PT_GENERATE_BE)
+          {
+            bf.i = byte_swap_32 (bf.i);
+          }
+
+          CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_bfs_c, CL_TRUE, 0, 1 * sizeof (bf_t), &bf, 0, NULL, NULL);
+
+          if (CL_err != CL_SUCCESS) return -1;
+
+          pw_t pw; memset (&pw, 0, sizeof (pw));
+
+          char *pw_ptr = (char *) &pw.i;
+
+          const size_t pw_len = strlen (hashconfig->st_pass);
+
+          memcpy (pw_ptr + 1, hashconfig->st_pass + 1, pw_len - 1);
+
+          size_t new_pass_len = pw_len;
+
+          if (hashconfig->opts_type & OPTS_TYPE_PT_UTF16LE)
+          {
+            memset (pw_ptr, 0, pw_len);
+
+            for (size_t i = 1, j = 2; i < new_pass_len; i += 1, j += 2)
+            {
+              pw_ptr[j + 0] = hashconfig->st_pass[i];
+              pw_ptr[j + 1] = 0;
+            }
+
+            new_pass_len *= 2;
+          }
+          else if (hashconfig->opts_type & OPTS_TYPE_PT_UTF16BE)
+          {
+            memset (pw_ptr, 0, pw_len);
+
+            for (size_t i = 1, j = 2; i < new_pass_len; i += 1, j += 2)
+            {
+              pw_ptr[j + 0] = 0;
+              pw_ptr[j + 1] = hashconfig->st_pass[i];
+            }
+
+            new_pass_len *= 2;
+          }
+
+          if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
+          {
+            uppercase ((u8 *) pw_ptr, new_pass_len);
+          }
+
+          if (hashconfig->opti_type & OPTI_TYPE_SINGLE_HASH)
+          {
+            if (hashconfig->opti_type & OPTI_TYPE_APPENDED_SALT)
+            {
+              memcpy (pw_ptr + new_pass_len, (char *) hashes->st_salts_buf[0].salt_buf, 64 - new_pass_len);
+
+              new_pass_len += hashes->st_salts_buf[0].salt_len;
+            }
+          }
+
+          pw.pw_len = (u32) new_pass_len;
+
+          if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)
+          {
+            pw_ptr[new_pass_len] = 0x01;
+          }
+
+          if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)
+          {
+            pw_ptr[new_pass_len] = 0x80;
+          }
+
+          if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS14)
+          {
+            pw.i[14] = (u32) new_pass_len * 8;
+            pw.i[15] = 0;
+          }
+
+          if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS15)
+          {
+            pw.i[14] = 0;
+            pw.i[15] = (u32) new_pass_len * 8;
+          }
+
+          if (hashconfig->opts_type & OPTS_TYPE_PT_GENERATE_BE)
+          {
+            for (int i = 0; i < 14; i++) pw.i[i] = byte_swap_32 (pw.i[i]);
+          }
+
+          CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL);
+
+          if (CL_err != CL_SUCCESS) return -1;
+
+          highest_pw_len = pw.pw_len;
+        }
+      }
+    }
+    else
+    {
+      pw_t pw; memset (&pw, 0, sizeof (pw));
+
+      char *pw_ptr = (char *) &pw.i;
+
+      const size_t pw_len = strlen (hashconfig->st_pass);
+
+      memcpy (pw_ptr, hashconfig->st_pass, pw_len);
+
+      pw.pw_len = (u32) pw_len;
+
+      CL_err = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_pws_buf, CL_TRUE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL);
+
+      if (CL_err != CL_SUCCESS) return -1;
+    }
   }
 
   // main : run the kernel
@@ -479,23 +504,32 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_digests_shown, device_param->size_shown);    if (CL_rc == -1) return -1;
   CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_result,        device_param->size_results);  if (CL_rc == -1) return -1;
 
-  if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+  if (user_options->slow_candidates == true)
   {
     CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_rules_c, device_param->size_rules_c);
 
     if (CL_rc == -1) return -1;
   }
-  else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+  else
   {
-    CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_combs_c, device_param->size_combs);
+    if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+    {
+      CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_rules_c, device_param->size_rules_c);
 
-    if (CL_rc == -1) return -1;
-  }
-  else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
-  {
-    CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_bfs_c, device_param->size_bfs);
+      if (CL_rc == -1) return -1;
+    }
+    else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+    {
+      CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_combs_c, device_param->size_combs);
 
-    if (CL_rc == -1) return -1;
+      if (CL_rc == -1) return -1;
+    }
+    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
+    {
+      CL_rc = run_kernel_bzero (hashcat_ctx, device_param, device_param->d_bfs_c, device_param->size_bfs);
+
+      if (CL_rc == -1) return -1;
+    }
   }
 
   // check return

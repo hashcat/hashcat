@@ -1216,7 +1216,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     if (device_info->skipped_dev == true) continue;
 
     event_log_info (hashcat_ctx,
-      "Speed.Dev.#%d.....: %9sH/s (%0.2fms) @ Accel:%d Loops:%d Thr:%d Vec:%d", device_id + 1,
+      "Speed.#%d.........: %9sH/s (%0.2fms) @ Accel:%d Loops:%d Thr:%d Vec:%d", device_id + 1,
       device_info->speed_sec_dev,
       device_info->exec_msec_dev,
       device_info->kernel_accel_dev,
@@ -1228,7 +1228,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   if (hashcat_status->device_info_active > 1)
   {
     event_log_info (hashcat_ctx,
-      "Speed.Dev.#*.....: %9sH/s",
+      "Speed.#*.........: %9sH/s",
       hashcat_status->speed_sec_all);
   }
 
@@ -1264,12 +1264,6 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         hashcat_status->progress_cur_relative_skip,
         hashcat_status->progress_rejected_percent);
 
-      event_log_info (hashcat_ctx,
-        "Restore.Point....: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
-        hashcat_status->restore_point,
-        hashcat_status->restore_total,
-        hashcat_status->restore_percent);
-
       break;
 
     case PROGRESS_MODE_KEYSPACE_UNKNOWN:
@@ -1281,6 +1275,23 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx,
         "Rejected.........: %" PRIu64,
         hashcat_status->progress_rejected);
+
+      break;
+  }
+
+  switch (hashcat_status->progress_mode)
+  {
+    case PROGRESS_MODE_KEYSPACE_KNOWN:
+
+      event_log_info (hashcat_ctx,
+        "Restore.Point....: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
+        hashcat_status->restore_point,
+        hashcat_status->restore_total,
+        hashcat_status->restore_percent);
+
+      break;
+
+    case PROGRESS_MODE_KEYSPACE_UNKNOWN:
 
       event_log_info (hashcat_ctx,
         "Restore.Point....: %" PRIu64,
@@ -1328,7 +1339,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       if (device_info->hwmon_dev == NULL) continue;
 
       event_log_info (hashcat_ctx,
-        "HWMon.Dev.#%d.....: %s", device_id + 1,
+        "Hardware.Mon.#%d..: %s", device_id + 1,
         device_info->hwmon_dev);
     }
   }
@@ -1398,7 +1409,7 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
     if (device_info->skipped_dev == true) continue;
 
     event_log_info (hashcat_ctx,
-      "Speed.Dev.#%d.....: %9sH/s (%0.2fms) @ Accel:%d Loops:%d Thr:%d Vec:%d", device_id + 1,
+      "Speed.#%d.........: %9sH/s (%0.2fms) @ Accel:%d Loops:%d Thr:%d Vec:%d", device_id + 1,
       device_info->speed_sec_dev,
       device_info->exec_msec_dev,
       device_info->kernel_accel_dev,
@@ -1410,7 +1421,7 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
   if (hashcat_status->device_info_active > 1)
   {
     event_log_info (hashcat_ctx,
-      "Speed.Dev.#*.....: %9sH/s",
+      "Speed.#*.........: %9sH/s",
       hashcat_status->speed_sec_all);
   }
 
@@ -1475,7 +1486,7 @@ void status_speed (hashcat_ctx_t *hashcat_ctx)
     if (device_info->skipped_dev == true) continue;
 
     event_log_info (hashcat_ctx,
-      "Speed.Dev.#%d.....: %9sH/s (%0.2fms)", device_id + 1,
+      "Speed.#%d.........: %9sH/s (%0.2fms)", device_id + 1,
       device_info->speed_sec_dev,
       device_info->exec_msec_dev);
   }
@@ -1483,7 +1494,7 @@ void status_speed (hashcat_ctx_t *hashcat_ctx)
   if (hashcat_status->device_info_active > 1)
   {
     event_log_info (hashcat_ctx,
-      "Speed.Dev.#*.....: %9sH/s",
+      "Speed.#*.........: %9sH/s",
       hashcat_status->speed_sec_all);
   }
 
@@ -1548,7 +1559,7 @@ void status_progress (hashcat_ctx_t *hashcat_ctx)
     if (device_info->skipped_dev == true) continue;
 
     event_log_info (hashcat_ctx,
-      "Progress.Dev.#%d..: %" PRIu64, device_id + 1,
+      "Progress.#%d......: %" PRIu64, device_id + 1,
       device_info->progress_dev);
   }
 
@@ -1559,7 +1570,7 @@ void status_progress (hashcat_ctx_t *hashcat_ctx)
     if (device_info->skipped_dev == true) continue;
 
     event_log_info (hashcat_ctx,
-      "Runtime.Dev.#%d...: %0.2fms", device_id + 1,
+      "Runtime.#%d.......: %0.2fms", device_id + 1,
       device_info->runtime_msec_dev);
   }
 

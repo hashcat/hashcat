@@ -1,6 +1,12 @@
 * changes v4.2.1 -> xxx
 
 ##
+## Features
+##
+
+- Add new option --slow-candidates which allows hashcat to generate passwords on-host
+
+##
 ## Improvements
 ##
 

@@ -141,6 +141,38 @@ void format_speed_display (double val, char *buf, size_t len)
   }
 }
 
+void format_speed_display_1k (double val, char *buf, size_t len)
+{
+  if (val <= 0)
+  {
+    buf[0] = '0';
+    buf[1] = ' ';
+    buf[2] = 0;
+
+    return;
+  }
+
+  u32 level = 0;
+
+  while (val > 999)
+  {
+    val /= 1000;
+
+    level++;
+  }
+
+  /* generate output */
+
+  if (level == 0)
+  {
+    snprintf (buf, len - 1, "%.0f ", val);
+  }
+  else
+  {
+    snprintf (buf, len - 1, "%.1f %c", val, UNITS[level]);
+  }
+}
+
 double get_avg_exec_time (hc_device_param_t *device_param, const int last_num_entries)
 {
   int exec_pos = (int) device_param->exec_pos - last_num_entries;
@@ -2029,8 +2061,8 @@ void status_status_destroy (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashca
     hcfree (device_info->guess_candidates_dev);
     hcfree (device_info->hwmon_dev);
 
-    device_info->speed_sec_dev        = NULL;
-    device_info->guess_candidates_dev = NULL;
-    device_info->hwmon_dev            = NULL;
+    device_info->speed_sec_dev                  = NULL;
+    device_info->guess_candidates_dev           = NULL;
+    device_info->hwmon_dev                      = NULL;
   }
 }

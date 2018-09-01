@@ -47,6 +47,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   const hashconfig_t    *hashconfig   = hashcat_ctx->hashconfig;
   const opencl_ctx_t    *opencl_ctx   = hashcat_ctx->opencl_ctx;
   const straight_ctx_t  *straight_ctx = hashcat_ctx->straight_ctx;
+  const user_options_t  *user_options = hashcat_ctx->user_options;
 
   const double target_msec = opencl_ctx->target_msec;
 
@@ -103,13 +104,19 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   if (CL_rc == -1) return -1;
 
-  if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+  if (user_options->slow_candidates == true)
   {
-    if (straight_ctx->kernel_rules_cnt > 1)
+  }
+  else
+  {
+    if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
     {
-      CL_rc = hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->command_queue, device_param->d_rules, device_param->d_rules_c, 0, 0, MIN (kernel_loops_max, KERNEL_RULES) * sizeof (kernel_rule_t), 0, NULL, NULL);
+      if (straight_ctx->kernel_rules_cnt > 1)
+      {
+        CL_rc = hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->command_queue, device_param->d_rules, device_param->d_rules_c, 0, 0, MIN (kernel_loops_max, KERNEL_RULES) * sizeof (kernel_rule_t), 0, NULL, NULL);
 
-      if (CL_rc == -1) return -1;
+        if (CL_rc == -1) return -1;
+      }
     }
   }
 

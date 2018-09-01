@@ -74,8 +74,8 @@ int run_kernel_decompress (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
 int run_copy              (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_cnt);
 int run_cracker           (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_cnt);
 
-void generate_source_kernel_filename     (const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const u32 opti_type, char *shared_dir, char *source_file);
-void generate_cached_kernel_filename     (const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const u32 opti_type, char *profile_dir, const char *device_name_chksum, char *cached_file);
+void generate_source_kernel_filename     (const bool slow_candidates, const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const u32 opti_type, char *shared_dir, char *source_file);
+void generate_cached_kernel_filename     (const bool slow_candidates, const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const u32 opti_type, char *profile_dir, const char *device_name_chksum, char *cached_file);
 void generate_source_kernel_mp_filename  (const u32 opti_type, const u64 opts_type, char *shared_dir, char *source_file);
 void generate_cached_kernel_mp_filename  (const u32 opti_type, const u64 opts_type, char *profile_dir, const char *device_name_chksum, char *cached_file);
 void generate_source_kernel_amp_filename (const u32 attack_kern, char *shared_dir, char *source_file);
