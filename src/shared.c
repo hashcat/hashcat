@@ -709,3 +709,33 @@ float get_entropy (const u8 *buf, const int len)
 
   return entropy;
 }
+
+int select_read_timeout (int sockfd, const int sec)
+{
+  struct timeval tv;
+
+  tv.tv_sec  = sec;
+  tv.tv_usec = 0;
+
+  fd_set fds;
+
+  FD_ZERO (&fds);
+  FD_SET (sockfd, &fds);
+
+  return select (sockfd + 1, &fds, NULL, NULL, &tv);
+}
+
+int select_write_timeout (int sockfd, const int sec)
+{
+  struct timeval tv;
+
+  tv.tv_sec  = sec;
+  tv.tv_usec = 0;
+
+  fd_set fds;
+
+  FD_ZERO (&fds);
+  FD_SET (sockfd, &fds);
+
+  return select (sockfd + 1, NULL, &fds, NULL, &tv);
+}

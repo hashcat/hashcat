@@ -74,4 +74,7 @@ void hc_strncat (u8 *dst, u8 *src, const size_t n);
 int count_char (const u8 *buf, const int len, const u8 c);
 float get_entropy (const u8 *buf, const int len);
 
+int select_read_timeout  (int sockfd, const int sec);
+int select_write_timeout (int sockfd, const int sec);
+
 #endif // _SHARED_H
