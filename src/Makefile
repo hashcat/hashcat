@@ -262,6 +262,7 @@ LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -Wl,--dynamicbase -Wl,--nxcompat
 LFLAGS_NATIVE           += -lpsapi
 LFLAGS_NATIVE           += -liconv
+LFLAGS_NATIVE           += -lws2_32
 endif # MSYS2
 
 ##
@@ -299,9 +300,11 @@ LFLAGS_CROSS_LINUX64    += -lm
 LFLAGS_CROSS_WIN32      := $(LFLAGS)
 LFLAGS_CROSS_WIN32      += -Wl,--dynamicbase -Wl,--nxcompat
 LFLAGS_CROSS_WIN32      += -lpsapi
+LFLAGS_CROSS_WIN32      += -lws2_32
 LFLAGS_CROSS_WIN64      := $(LFLAGS)
 LFLAGS_CROSS_WIN64      += -Wl,--dynamicbase -Wl,--nxcompat
 LFLAGS_CROSS_WIN64      += -lpsapi
+LFLAGS_CROSS_WIN64      += -lws2_32
 
 CFLAGS_REMOVE_LZMA        := -Wmissing-declarations -Wmissing-prototypes -Wstrict-prototypes -Wundef
 
