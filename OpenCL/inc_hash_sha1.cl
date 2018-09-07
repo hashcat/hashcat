@@ -258,7 +258,7 @@ DECLSPEC void sha1_update (sha1_ctx_t *ctx, const u32 *w, const int len)
   int pos1;
   int pos4;
 
-  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
+  for (pos1 = 0, pos4 = 0; ; pos1 += 64, pos4 += 16)
   {
     w0[0] = w[pos4 +  0];
     w0[1] = w[pos4 +  1];
@@ -277,25 +277,10 @@ DECLSPEC void sha1_update (sha1_ctx_t *ctx, const u32 *w, const int len)
     w3[2] = w[pos4 + 14];
     w3[3] = w[pos4 + 15];
 
+    if (pos1 >= len - 64) break;
+
     sha1_update_64 (ctx, w0, w1, w2, w3, 64);
   }
-
-  w0[0] = w[pos4 +  0];
-  w0[1] = w[pos4 +  1];
-  w0[2] = w[pos4 +  2];
-  w0[3] = w[pos4 +  3];
-  w1[0] = w[pos4 +  4];
-  w1[1] = w[pos4 +  5];
-  w1[2] = w[pos4 +  6];
-  w1[3] = w[pos4 +  7];
-  w2[0] = w[pos4 +  8];
-  w2[1] = w[pos4 +  9];
-  w2[2] = w[pos4 + 10];
-  w2[3] = w[pos4 + 11];
-  w3[0] = w[pos4 + 12];
-  w3[1] = w[pos4 + 13];
-  w3[2] = w[pos4 + 14];
-  w3[3] = w[pos4 + 15];
 
   sha1_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
@@ -310,7 +295,7 @@ DECLSPEC void sha1_update_swap (sha1_ctx_t *ctx, const u32 *w, const int len)
   int pos1;
   int pos4;
 
-  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
+  for (pos1 = 0, pos4 = 0; ; pos1 += 64, pos4 += 16)
   {
     w0[0] = w[pos4 +  0];
     w0[1] = w[pos4 +  1];
@@ -346,42 +331,10 @@ DECLSPEC void sha1_update_swap (sha1_ctx_t *ctx, const u32 *w, const int len)
     w3[2] = swap32_S (w3[2]);
     w3[3] = swap32_S (w3[3]);
 
+    if (pos1 >= len - 64) break;
+
     sha1_update_64 (ctx, w0, w1, w2, w3, 64);
   }
-
-  w0[0] = w[pos4 +  0];
-  w0[1] = w[pos4 +  1];
-  w0[2] = w[pos4 +  2];
-  w0[3] = w[pos4 +  3];
-  w1[0] = w[pos4 +  4];
-  w1[1] = w[pos4 +  5];
-  w1[2] = w[pos4 +  6];
-  w1[3] = w[pos4 +  7];
-  w2[0] = w[pos4 +  8];
-  w2[1] = w[pos4 +  9];
-  w2[2] = w[pos4 + 10];
-  w2[3] = w[pos4 + 11];
-  w3[0] = w[pos4 + 12];
-  w3[1] = w[pos4 + 13];
-  w3[2] = w[pos4 + 14];
-  w3[3] = w[pos4 + 15];
-
-  w0[0] = swap32_S (w0[0]);
-  w0[1] = swap32_S (w0[1]);
-  w0[2] = swap32_S (w0[2]);
-  w0[3] = swap32_S (w0[3]);
-  w1[0] = swap32_S (w1[0]);
-  w1[1] = swap32_S (w1[1]);
-  w1[2] = swap32_S (w1[2]);
-  w1[3] = swap32_S (w1[3]);
-  w2[0] = swap32_S (w2[0]);
-  w2[1] = swap32_S (w2[1]);
-  w2[2] = swap32_S (w2[2]);
-  w2[3] = swap32_S (w2[3]);
-  w3[0] = swap32_S (w3[0]);
-  w3[1] = swap32_S (w3[1]);
-  w3[2] = swap32_S (w3[2]);
-  w3[3] = swap32_S (w3[3]);
 
   sha1_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
@@ -396,7 +349,7 @@ DECLSPEC void sha1_update_utf16le (sha1_ctx_t *ctx, const u32 *w, const int len)
   int pos1;
   int pos4;
 
-  for (pos1 = 0, pos4 = 0; pos1 < len - 32; pos1 += 32, pos4 += 8)
+  for (pos1 = 0, pos4 = 0; ; pos1 += 32, pos4 += 8)
   {
     w0[0] = w[pos4 + 0];
     w0[1] = w[pos4 + 1];
@@ -410,20 +363,10 @@ DECLSPEC void sha1_update_utf16le (sha1_ctx_t *ctx, const u32 *w, const int len)
     make_utf16le_S (w1, w2, w3);
     make_utf16le_S (w0, w0, w1);
 
+    if (pos1 >= len - 32) break;
+
     sha1_update_64 (ctx, w0, w1, w2, w3, 32 * 2);
   }
-
-  w0[0] = w[pos4 + 0];
-  w0[1] = w[pos4 + 1];
-  w0[2] = w[pos4 + 2];
-  w0[3] = w[pos4 + 3];
-  w1[0] = w[pos4 + 4];
-  w1[1] = w[pos4 + 5];
-  w1[2] = w[pos4 + 6];
-  w1[3] = w[pos4 + 7];
-
-  make_utf16le_S (w1, w2, w3);
-  make_utf16le_S (w0, w0, w1);
 
   sha1_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
@@ -438,7 +381,7 @@ DECLSPEC void sha1_update_utf16le_swap (sha1_ctx_t *ctx, const u32 *w, const int
   int pos1;
   int pos4;
 
-  for (pos1 = 0, pos4 = 0; pos1 < len - 32; pos1 += 32, pos4 += 8)
+  for (pos1 = 0, pos4 = 0; ; pos1 += 32, pos4 += 8)
   {
     w0[0] = w[pos4 + 0];
     w0[1] = w[pos4 + 1];
@@ -469,37 +412,10 @@ DECLSPEC void sha1_update_utf16le_swap (sha1_ctx_t *ctx, const u32 *w, const int
     w3[2] = swap32_S (w3[2]);
     w3[3] = swap32_S (w3[3]);
 
+    if (pos1 >= len - 32) break;
+
     sha1_update_64 (ctx, w0, w1, w2, w3, 32 * 2);
   }
-
-  w0[0] = w[pos4 + 0];
-  w0[1] = w[pos4 + 1];
-  w0[2] = w[pos4 + 2];
-  w0[3] = w[pos4 + 3];
-  w1[0] = w[pos4 + 4];
-  w1[1] = w[pos4 + 5];
-  w1[2] = w[pos4 + 6];
-  w1[3] = w[pos4 + 7];
-
-  make_utf16le_S (w1, w2, w3);
-  make_utf16le_S (w0, w0, w1);
-
-  w0[0] = swap32_S (w0[0]);
-  w0[1] = swap32_S (w0[1]);
-  w0[2] = swap32_S (w0[2]);
-  w0[3] = swap32_S (w0[3]);
-  w1[0] = swap32_S (w1[0]);
-  w1[1] = swap32_S (w1[1]);
-  w1[2] = swap32_S (w1[2]);
-  w1[3] = swap32_S (w1[3]);
-  w2[0] = swap32_S (w2[0]);
-  w2[1] = swap32_S (w2[1]);
-  w2[2] = swap32_S (w2[2]);
-  w2[3] = swap32_S (w2[3]);
-  w3[0] = swap32_S (w3[0]);
-  w3[1] = swap32_S (w3[1]);
-  w3[2] = swap32_S (w3[2]);
-  w3[3] = swap32_S (w3[3]);
 
   sha1_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
@@ -514,7 +430,7 @@ DECLSPEC void sha1_update_utf16be (sha1_ctx_t *ctx, const u32 *w, const int len)
   int pos1;
   int pos4;
 
-  for (pos1 = 0, pos4 = 0; pos1 < len - 32; pos1 += 32, pos4 += 8)
+  for (pos1 = 0, pos4 = 0; ; pos1 += 32, pos4 += 8)
   {
     w0[0] = w[pos4 + 0];
     w0[1] = w[pos4 + 1];
@@ -528,20 +444,10 @@ DECLSPEC void sha1_update_utf16be (sha1_ctx_t *ctx, const u32 *w, const int len)
     make_utf16be_S (w1, w2, w3);
     make_utf16be_S (w0, w0, w1);
 
+    if (pos1 >= len - 32) break;
+
     sha1_update_64 (ctx, w0, w1, w2, w3, 32 * 2);
   }
-
-  w0[0] = w[pos4 + 0];
-  w0[1] = w[pos4 + 1];
-  w0[2] = w[pos4 + 2];
-  w0[3] = w[pos4 + 3];
-  w1[0] = w[pos4 + 4];
-  w1[1] = w[pos4 + 5];
-  w1[2] = w[pos4 + 6];
-  w1[3] = w[pos4 + 7];
-
-  make_utf16be_S (w1, w2, w3);
-  make_utf16be_S (w0, w0, w1);
 
   sha1_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
@@ -556,7 +462,7 @@ DECLSPEC void sha1_update_utf16be_swap (sha1_ctx_t *ctx, const u32 *w, const int
   int pos1;
   int pos4;
 
-  for (pos1 = 0, pos4 = 0; pos1 < len - 32; pos1 += 32, pos4 += 8)
+  for (pos1 = 0, pos4 = 0; ; pos1 += 32, pos4 += 8)
   {
     w0[0] = w[pos4 + 0];
     w0[1] = w[pos4 + 1];
@@ -587,37 +493,10 @@ DECLSPEC void sha1_update_utf16be_swap (sha1_ctx_t *ctx, const u32 *w, const int
     w3[2] = swap32_S (w3[2]);
     w3[3] = swap32_S (w3[3]);
 
+    if (pos1 >= len - 32) break;
+
     sha1_update_64 (ctx, w0, w1, w2, w3, 32 * 2);
   }
-
-  w0[0] = w[pos4 + 0];
-  w0[1] = w[pos4 + 1];
-  w0[2] = w[pos4 + 2];
-  w0[3] = w[pos4 + 3];
-  w1[0] = w[pos4 + 4];
-  w1[1] = w[pos4 + 5];
-  w1[2] = w[pos4 + 6];
-  w1[3] = w[pos4 + 7];
-
-  make_utf16be_S (w1, w2, w3);
-  make_utf16be_S (w0, w0, w1);
-
-  w0[0] = swap32_S (w0[0]);
-  w0[1] = swap32_S (w0[1]);
-  w0[2] = swap32_S (w0[2]);
-  w0[3] = swap32_S (w0[3]);
-  w1[0] = swap32_S (w1[0]);
-  w1[1] = swap32_S (w1[1]);
-  w1[2] = swap32_S (w1[2]);
-  w1[3] = swap32_S (w1[3]);
-  w2[0] = swap32_S (w2[0]);
-  w2[1] = swap32_S (w2[1]);
-  w2[2] = swap32_S (w2[2]);
-  w2[3] = swap32_S (w2[3]);
-  w3[0] = swap32_S (w3[0]);
-  w3[1] = swap32_S (w3[1]);
-  w3[2] = swap32_S (w3[2]);
-  w3[3] = swap32_S (w3[3]);
 
   sha1_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
@@ -632,7 +511,7 @@ DECLSPEC void sha1_update_global (sha1_ctx_t *ctx, const __global u32 *w, const 
   int pos1;
   int pos4;
 
-  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
+  for (pos1 = 0, pos4 = 0; ; pos1 += 64, pos4 += 16)
   {
     w0[0] = w[pos4 +  0];
     w0[1] = w[pos4 +  1];
@@ -651,25 +530,10 @@ DECLSPEC void sha1_update_global (sha1_ctx_t *ctx, const __global u32 *w, const 
     w3[2] = w[pos4 + 14];
     w3[3] = w[pos4 + 15];
 
+    if (pos1 >= len - 64) break;
+
     sha1_update_64 (ctx, w0, w1, w2, w3, 64);
   }
-
-  w0[0] = w[pos4 +  0];
-  w0[1] = w[pos4 +  1];
-  w0[2] = w[pos4 +  2];
-  w0[3] = w[pos4 +  3];
-  w1[0] = w[pos4 +  4];
-  w1[1] = w[pos4 +  5];
-  w1[2] = w[pos4 +  6];
-  w1[3] = w[pos4 +  7];
-  w2[0] = w[pos4 +  8];
-  w2[1] = w[pos4 +  9];
-  w2[2] = w[pos4 + 10];
-  w2[3] = w[pos4 + 11];
-  w3[0] = w[pos4 + 12];
-  w3[1] = w[pos4 + 13];
-  w3[2] = w[pos4 + 14];
-  w3[3] = w[pos4 + 15];
 
   sha1_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
@@ -684,7 +548,7 @@ DECLSPEC void sha1_update_global_swap (sha1_ctx_t *ctx, const __global u32 *w, c
   int pos1;
   int pos4;
 
-  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
+  for (pos1 = 0, pos4 = 0; ; pos1 += 64, pos4 += 16)
   {
     w0[0] = w[pos4 +  0];
     w0[1] = w[pos4 +  1];
@@ -720,42 +584,10 @@ DECLSPEC void sha1_update_global_swap (sha1_ctx_t *ctx, const __global u32 *w, c
     w3[2] = swap32_S (w3[2]);
     w3[3] = swap32_S (w3[3]);
 
+    if (pos1 >= len - 64) break;
+
     sha1_update_64 (ctx, w0, w1, w2, w3, 64);
   }
-
-  w0[0] = w[pos4 +  0];
-  w0[1] = w[pos4 +  1];
-  w0[2] = w[pos4 +  2];
-  w0[3] = w[pos4 +  3];
-  w1[0] = w[pos4 +  4];
-  w1[1] = w[pos4 +  5];
-  w1[2] = w[pos4 +  6];
-  w1[3] = w[pos4 +  7];
-  w2[0] = w[pos4 +  8];
-  w2[1] = w[pos4 +  9];
-  w2[2] = w[pos4 + 10];
-  w2[3] = w[pos4 + 11];
-  w3[0] = w[pos4 + 12];
-  w3[1] = w[pos4 + 13];
-  w3[2] = w[pos4 + 14];
-  w3[3] = w[pos4 + 15];
-
-  w0[0] = swap32_S (w0[0]);
-  w0[1] = swap32_S (w0[1]);
-  w0[2] = swap32_S (w0[2]);
-  w0[3] = swap32_S (w0[3]);
-  w1[0] = swap32_S (w1[0]);
-  w1[1] = swap32_S (w1[1]);
-  w1[2] = swap32_S (w1[2]);
-  w1[3] = swap32_S (w1[3]);
-  w2[0] = swap32_S (w2[0]);
-  w2[1] = swap32_S (w2[1]);
-  w2[2] = swap32_S (w2[2]);
-  w2[3] = swap32_S (w2[3]);
-  w3[0] = swap32_S (w3[0]);
-  w3[1] = swap32_S (w3[1]);
-  w3[2] = swap32_S (w3[2]);
-  w3[3] = swap32_S (w3[3]);
 
   sha1_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
@@ -770,7 +602,7 @@ DECLSPEC void sha1_update_global_utf16le (sha1_ctx_t *ctx, const __global u32 *w
   int pos1;
   int pos4;
 
-  for (pos1 = 0, pos4 = 0; pos1 < len - 32; pos1 += 32, pos4 += 8)
+  for (pos1 = 0, pos4 = 0; ; pos1 += 32, pos4 += 8)
   {
     w0[0] = w[pos4 + 0];
     w0[1] = w[pos4 + 1];
@@ -784,20 +616,10 @@ DECLSPEC void sha1_update_global_utf16le (sha1_ctx_t *ctx, const __global u32 *w
     make_utf16le_S (w1, w2, w3);
     make_utf16le_S (w0, w0, w1);
 
+    if (pos1 >= len - 32) break;
+
     sha1_update_64 (ctx, w0, w1, w2, w3, 32 * 2);
   }
-
-  w0[0] = w[pos4 + 0];
-  w0[1] = w[pos4 + 1];
-  w0[2] = w[pos4 + 2];
-  w0[3] = w[pos4 + 3];
-  w1[0] = w[pos4 + 4];
-  w1[1] = w[pos4 + 5];
-  w1[2] = w[pos4 + 6];
-  w1[3] = w[pos4 + 7];
-
-  make_utf16le_S (w1, w2, w3);
-  make_utf16le_S (w0, w0, w1);
 
   sha1_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
@@ -812,7 +634,7 @@ DECLSPEC void sha1_update_global_utf16le_swap (sha1_ctx_t *ctx, const __global u
   int pos1;
   int pos4;
 
-  for (pos1 = 0, pos4 = 0; pos1 < len - 32; pos1 += 32, pos4 += 8)
+  for (pos1 = 0, pos4 = 0; ; pos1 += 32, pos4 += 8)
   {
     w0[0] = w[pos4 + 0];
     w0[1] = w[pos4 + 1];
@@ -843,37 +665,10 @@ DECLSPEC void sha1_update_global_utf16le_swap (sha1_ctx_t *ctx, const __global u
     w3[2] = swap32_S (w3[2]);
     w3[3] = swap32_S (w3[3]);
 
+    if (pos1 >= len - 32) break;
+
     sha1_update_64 (ctx, w0, w1, w2, w3, 32 * 2);
   }
-
-  w0[0] = w[pos4 + 0];
-  w0[1] = w[pos4 + 1];
-  w0[2] = w[pos4 + 2];
-  w0[3] = w[pos4 + 3];
-  w1[0] = w[pos4 + 4];
-  w1[1] = w[pos4 + 5];
-  w1[2] = w[pos4 + 6];
-  w1[3] = w[pos4 + 7];
-
-  make_utf16le_S (w1, w2, w3);
-  make_utf16le_S (w0, w0, w1);
-
-  w0[0] = swap32_S (w0[0]);
-  w0[1] = swap32_S (w0[1]);
-  w0[2] = swap32_S (w0[2]);
-  w0[3] = swap32_S (w0[3]);
-  w1[0] = swap32_S (w1[0]);
-  w1[1] = swap32_S (w1[1]);
-  w1[2] = swap32_S (w1[2]);
-  w1[3] = swap32_S (w1[3]);
-  w2[0] = swap32_S (w2[0]);
-  w2[1] = swap32_S (w2[1]);
-  w2[2] = swap32_S (w2[2]);
-  w2[3] = swap32_S (w2[3]);
-  w3[0] = swap32_S (w3[0]);
-  w3[1] = swap32_S (w3[1]);
-  w3[2] = swap32_S (w3[2]);
-  w3[3] = swap32_S (w3[3]);
 
   sha1_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
@@ -888,7 +683,7 @@ DECLSPEC void sha1_update_global_utf16be (sha1_ctx_t *ctx, const __global u32 *w
   int pos1;
   int pos4;
 
-  for (pos1 = 0, pos4 = 0; pos1 < len - 32; pos1 += 32, pos4 += 8)
+  for (pos1 = 0, pos4 = 0; ; pos1 += 32, pos4 += 8)
   {
     w0[0] = w[pos4 + 0];
     w0[1] = w[pos4 + 1];
@@ -902,20 +697,10 @@ DECLSPEC void sha1_update_global_utf16be (sha1_ctx_t *ctx, const __global u32 *w
     make_utf16be_S (w1, w2, w3);
     make_utf16be_S (w0, w0, w1);
 
+    if (pos1 >= len - 32) break;
+
     sha1_update_64 (ctx, w0, w1, w2, w3, 32 * 2);
   }
-
-  w0[0] = w[pos4 + 0];
-  w0[1] = w[pos4 + 1];
-  w0[2] = w[pos4 + 2];
-  w0[3] = w[pos4 + 3];
-  w1[0] = w[pos4 + 4];
-  w1[1] = w[pos4 + 5];
-  w1[2] = w[pos4 + 6];
-  w1[3] = w[pos4 + 7];
-
-  make_utf16be_S (w1, w2, w3);
-  make_utf16be_S (w0, w0, w1);
 
   sha1_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
@@ -930,7 +715,7 @@ DECLSPEC void sha1_update_global_utf16be_swap (sha1_ctx_t *ctx, const __global u
   int pos1;
   int pos4;
 
-  for (pos1 = 0, pos4 = 0; pos1 < len - 32; pos1 += 32, pos4 += 8)
+  for (pos1 = 0, pos4 = 0; ; pos1 += 32, pos4 += 8)
   {
     w0[0] = w[pos4 + 0];
     w0[1] = w[pos4 + 1];
@@ -961,37 +746,10 @@ DECLSPEC void sha1_update_global_utf16be_swap (sha1_ctx_t *ctx, const __global u
     w3[2] = swap32_S (w3[2]);
     w3[3] = swap32_S (w3[3]);
 
+    if (pos1 >= len - 32) break;
+
     sha1_update_64 (ctx, w0, w1, w2, w3, 32 * 2);
   }
-
-  w0[0] = w[pos4 + 0];
-  w0[1] = w[pos4 + 1];
-  w0[2] = w[pos4 + 2];
-  w0[3] = w[pos4 + 3];
-  w1[0] = w[pos4 + 4];
-  w1[1] = w[pos4 + 5];
-  w1[2] = w[pos4 + 6];
-  w1[3] = w[pos4 + 7];
-
-  make_utf16be_S (w1, w2, w3);
-  make_utf16be_S (w0, w0, w1);
-
-  w0[0] = swap32_S (w0[0]);
-  w0[1] = swap32_S (w0[1]);
-  w0[2] = swap32_S (w0[2]);
-  w0[3] = swap32_S (w0[3]);
-  w1[0] = swap32_S (w1[0]);
-  w1[1] = swap32_S (w1[1]);
-  w1[2] = swap32_S (w1[2]);
-  w1[3] = swap32_S (w1[3]);
-  w2[0] = swap32_S (w2[0]);
-  w2[1] = swap32_S (w2[1]);
-  w2[2] = swap32_S (w2[2]);
-  w2[3] = swap32_S (w2[3]);
-  w3[0] = swap32_S (w3[0]);
-  w3[1] = swap32_S (w3[1]);
-  w3[2] = swap32_S (w3[2]);
-  w3[3] = swap32_S (w3[3]);
 
   sha1_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
@@ -1681,7 +1439,7 @@ DECLSPEC void sha1_update_vector (sha1_ctx_vector_t *ctx, const u32x *w, const i
   int pos1;
   int pos4;
 
-  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
+  for (pos1 = 0, pos4 = 0; ; pos1 += 64, pos4 += 16)
   {
     w0[0] = w[pos4 +  0];
     w0[1] = w[pos4 +  1];
@@ -1700,25 +1458,10 @@ DECLSPEC void sha1_update_vector (sha1_ctx_vector_t *ctx, const u32x *w, const i
     w3[2] = w[pos4 + 14];
     w3[3] = w[pos4 + 15];
 
+    if (pos1 >= len - 64) break;
+
     sha1_update_vector_64 (ctx, w0, w1, w2, w3, 64);
   }
-
-  w0[0] = w[pos4 +  0];
-  w0[1] = w[pos4 +  1];
-  w0[2] = w[pos4 +  2];
-  w0[3] = w[pos4 +  3];
-  w1[0] = w[pos4 +  4];
-  w1[1] = w[pos4 +  5];
-  w1[2] = w[pos4 +  6];
-  w1[3] = w[pos4 +  7];
-  w2[0] = w[pos4 +  8];
-  w2[1] = w[pos4 +  9];
-  w2[2] = w[pos4 + 10];
-  w2[3] = w[pos4 + 11];
-  w3[0] = w[pos4 + 12];
-  w3[1] = w[pos4 + 13];
-  w3[2] = w[pos4 + 14];
-  w3[3] = w[pos4 + 15];
 
   sha1_update_vector_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
@@ -1733,7 +1476,7 @@ DECLSPEC void sha1_update_vector_swap (sha1_ctx_vector_t *ctx, const u32x *w, co
   int pos1;
   int pos4;
 
-  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
+  for (pos1 = 0, pos4 = 0; ; pos1 += 64, pos4 += 16)
   {
     w0[0] = w[pos4 +  0];
     w0[1] = w[pos4 +  1];
@@ -1769,42 +1512,10 @@ DECLSPEC void sha1_update_vector_swap (sha1_ctx_vector_t *ctx, const u32x *w, co
     w3[2] = swap32 (w3[2]);
     w3[3] = swap32 (w3[3]);
 
+    if (pos1 >= len - 64) break;
+
     sha1_update_vector_64 (ctx, w0, w1, w2, w3, 64);
   }
-
-  w0[0] = w[pos4 +  0];
-  w0[1] = w[pos4 +  1];
-  w0[2] = w[pos4 +  2];
-  w0[3] = w[pos4 +  3];
-  w1[0] = w[pos4 +  4];
-  w1[1] = w[pos4 +  5];
-  w1[2] = w[pos4 +  6];
-  w1[3] = w[pos4 +  7];
-  w2[0] = w[pos4 +  8];
-  w2[1] = w[pos4 +  9];
-  w2[2] = w[pos4 + 10];
-  w2[3] = w[pos4 + 11];
-  w3[0] = w[pos4 + 12];
-  w3[1] = w[pos4 + 13];
-  w3[2] = w[pos4 + 14];
-  w3[3] = w[pos4 + 15];
-
-  w0[0] = swap32 (w0[0]);
-  w0[1] = swap32 (w0[1]);
-  w0[2] = swap32 (w0[2]);
-  w0[3] = swap32 (w0[3]);
-  w1[0] = swap32 (w1[0]);
-  w1[1] = swap32 (w1[1]);
-  w1[2] = swap32 (w1[2]);
-  w1[3] = swap32 (w1[3]);
-  w2[0] = swap32 (w2[0]);
-  w2[1] = swap32 (w2[1]);
-  w2[2] = swap32 (w2[2]);
-  w2[3] = swap32 (w2[3]);
-  w3[0] = swap32 (w3[0]);
-  w3[1] = swap32 (w3[1]);
-  w3[2] = swap32 (w3[2]);
-  w3[3] = swap32 (w3[3]);
 
   sha1_update_vector_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
@@ -1819,7 +1530,7 @@ DECLSPEC void sha1_update_vector_utf16le (sha1_ctx_vector_t *ctx, const u32x *w,
   int pos1;
   int pos4;
 
-  for (pos1 = 0, pos4 = 0; pos1 < len - 32; pos1 += 32, pos4 += 8)
+  for (pos1 = 0, pos4 = 0; ; pos1 += 32, pos4 += 8)
   {
     w0[0] = w[pos4 + 0];
     w0[1] = w[pos4 + 1];
@@ -1833,20 +1544,10 @@ DECLSPEC void sha1_update_vector_utf16le (sha1_ctx_vector_t *ctx, const u32x *w,
     make_utf16le (w1, w2, w3);
     make_utf16le (w0, w0, w1);
 
+    if (pos1 >= len - 32) break;
+
     sha1_update_vector_64 (ctx, w0, w1, w2, w3, 32 * 2);
   }
-
-  w0[0] = w[pos4 + 0];
-  w0[1] = w[pos4 + 1];
-  w0[2] = w[pos4 + 2];
-  w0[3] = w[pos4 + 3];
-  w1[0] = w[pos4 + 4];
-  w1[1] = w[pos4 + 5];
-  w1[2] = w[pos4 + 6];
-  w1[3] = w[pos4 + 7];
-
-  make_utf16le (w1, w2, w3);
-  make_utf16le (w0, w0, w1);
 
   sha1_update_vector_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
@@ -1861,7 +1562,7 @@ DECLSPEC void sha1_update_vector_utf16le_swap (sha1_ctx_vector_t *ctx, const u32
   int pos1;
   int pos4;
 
-  for (pos1 = 0, pos4 = 0; pos1 < len - 32; pos1 += 32, pos4 += 8)
+  for (pos1 = 0, pos4 = 0; ; pos1 += 32, pos4 += 8)
   {
     w0[0] = w[pos4 + 0];
     w0[1] = w[pos4 + 1];
@@ -1892,37 +1593,10 @@ DECLSPEC void sha1_update_vector_utf16le_swap (sha1_ctx_vector_t *ctx, const u32
     w3[2] = swap32 (w3[2]);
     w3[3] = swap32 (w3[3]);
 
+    if (pos1 >= len - 32) break;
+
     sha1_update_vector_64 (ctx, w0, w1, w2, w3, 32 * 2);
   }
-
-  w0[0] = w[pos4 + 0];
-  w0[1] = w[pos4 + 1];
-  w0[2] = w[pos4 + 2];
-  w0[3] = w[pos4 + 3];
-  w1[0] = w[pos4 + 4];
-  w1[1] = w[pos4 + 5];
-  w1[2] = w[pos4 + 6];
-  w1[3] = w[pos4 + 7];
-
-  make_utf16le (w1, w2, w3);
-  make_utf16le (w0, w0, w1);
-
-  w0[0] = swap32 (w0[0]);
-  w0[1] = swap32 (w0[1]);
-  w0[2] = swap32 (w0[2]);
-  w0[3] = swap32 (w0[3]);
-  w1[0] = swap32 (w1[0]);
-  w1[1] = swap32 (w1[1]);
-  w1[2] = swap32 (w1[2]);
-  w1[3] = swap32 (w1[3]);
-  w2[0] = swap32 (w2[0]);
-  w2[1] = swap32 (w2[1]);
-  w2[2] = swap32 (w2[2]);
-  w2[3] = swap32 (w2[3]);
-  w3[0] = swap32 (w3[0]);
-  w3[1] = swap32 (w3[1]);
-  w3[2] = swap32 (w3[2]);
-  w3[3] = swap32 (w3[3]);
 
   sha1_update_vector_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
@@ -1937,7 +1611,7 @@ DECLSPEC void sha1_update_vector_utf16leN (sha1_ctx_vector_t *ctx, const u32x *w
   int pos1;
   int pos4;
 
-  for (pos1 = 0, pos4 = 0; pos1 < len - 32; pos1 += 32, pos4 += 8)
+  for (pos1 = 0, pos4 = 0; ; pos1 += 32, pos4 += 8)
   {
     w0[0] = w[pos4 + 0];
     w0[1] = w[pos4 + 1];
@@ -1951,20 +1625,10 @@ DECLSPEC void sha1_update_vector_utf16leN (sha1_ctx_vector_t *ctx, const u32x *w
     make_utf16leN (w1, w2, w3);
     make_utf16leN (w0, w0, w1);
 
+    if (pos1 >= len - 32) break;
+
     sha1_update_vector_64 (ctx, w0, w1, w2, w3, 32 * 2);
   }
-
-  w0[0] = w[pos4 + 0];
-  w0[1] = w[pos4 + 1];
-  w0[2] = w[pos4 + 2];
-  w0[3] = w[pos4 + 3];
-  w1[0] = w[pos4 + 4];
-  w1[1] = w[pos4 + 5];
-  w1[2] = w[pos4 + 6];
-  w1[3] = w[pos4 + 7];
-
-  make_utf16leN (w1, w2, w3);
-  make_utf16leN (w0, w0, w1);
 
   sha1_update_vector_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
@@ -1979,7 +1643,7 @@ DECLSPEC void sha1_update_vector_utf16beN (sha1_ctx_vector_t *ctx, const u32x *w
   int pos1;
   int pos4;
 
-  for (pos1 = 0, pos4 = 0; pos1 < len - 32; pos1 += 32, pos4 += 8)
+  for (pos1 = 0, pos4 = 0; ; pos1 += 32, pos4 += 8)
   {
     w0[0] = w[pos4 + 0];
     w0[1] = w[pos4 + 1];
@@ -1993,20 +1657,10 @@ DECLSPEC void sha1_update_vector_utf16beN (sha1_ctx_vector_t *ctx, const u32x *w
     make_utf16beN (w1, w2, w3);
     make_utf16beN (w0, w0, w1);
 
+    if (pos1 >= len - 32) break;
+
     sha1_update_vector_64 (ctx, w0, w1, w2, w3, 32 * 2);
   }
-
-  w0[0] = w[pos4 + 0];
-  w0[1] = w[pos4 + 1];
-  w0[2] = w[pos4 + 2];
-  w0[3] = w[pos4 + 3];
-  w1[0] = w[pos4 + 4];
-  w1[1] = w[pos4 + 5];
-  w1[2] = w[pos4 + 6];
-  w1[3] = w[pos4 + 7];
-
-  make_utf16beN (w1, w2, w3);
-  make_utf16beN (w0, w0, w1);
 
   sha1_update_vector_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
