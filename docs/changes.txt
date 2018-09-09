@@ -18,6 +18,7 @@
 - Do not allocate memory segments for bitmap tables if we dont need it, for example in benchmark mode
 - Removed duplicate words in the dictionary file example.dict
 - Improved the speed of the outfile folder scan when using lots of hashes/salts
+- Added additional hybrid "passthrough" rules, to enable variable-length append/prepend attacks
 
 ##
 ## Bugs
