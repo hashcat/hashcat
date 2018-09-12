@@ -13961,7 +13961,7 @@ int krb5tgs_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
     token.sep[3]     = '$';
     token.len_min[3] = 64;
-    token.len_max[3] = 20480;
+    token.len_max[3] = 40960;
     token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
   }
@@ -13977,7 +13977,7 @@ int krb5tgs_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
     token.sep[2]     = '$';
     token.len_min[2] = 64;
-    token.len_max[2] = 20480;
+    token.len_max[2] = 40960;
     token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
   }
@@ -21039,7 +21039,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     krb5tgs_t *krb5tgs = &krb5tgss[digest_cur];
 
-    char data[2560 * 4 * 2] = { 0 };
+    char data[5120 * 4 * 2] = { 0 };
 
     for (u32 i = 0, j = 0; i < krb5tgs->edata2_len; i += 1, j += 2)
     {
