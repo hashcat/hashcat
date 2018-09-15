@@ -1292,7 +1292,7 @@ typedef struct krb5tgs
 {
   u32 account_info[512];
   u32 checksum[4];
-  u32 edata2[2560];
+  u32 edata2[5120];
   u32 edata2_len;
 
 } krb5tgs_t;
