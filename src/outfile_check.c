@@ -325,7 +325,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-void *thread_outfile_remove (void *p)
+HC_API_CALL void *thread_outfile_remove (void *p)
 {
   hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) p;
 
