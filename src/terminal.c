@@ -314,7 +314,7 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
   tty_fix ();
 }
 
-void *thread_keypress (void *p)
+HC_API_CALL void *thread_keypress (void *p)
 {
   hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) p;
 

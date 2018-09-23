@@ -474,7 +474,7 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
   return 0;
 }
 
-void *thread_calc_stdin (void *p)
+HC_API_CALL void *thread_calc_stdin (void *p)
 {
   thread_param_t *thread_param = (thread_param_t *) p;
 
@@ -1429,7 +1429,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   return 0;
 }
 
-void *thread_calc (void *p)
+HC_API_CALL void *thread_calc (void *p)
 {
   thread_param_t *thread_param = (thread_param_t *) p;
 

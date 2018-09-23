@@ -6,6 +6,6 @@
 #ifndef _SELFTEST_H
 #define _SELFTEST_H
 
-void *thread_selftest (void *p);
+HC_API_CALL void *thread_selftest (void *p);
 
 #endif // _SELFTEST_H
