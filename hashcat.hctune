@@ -241,6 +241,8 @@ GeForce_GTX_1070                                ALIAS_nv_sm52_or_higher
 GeForce_GTX_1070_Ti                             ALIAS_nv_sm52_or_higher
 GeForce_GTX_1080                                ALIAS_nv_sm52_or_higher
 GeForce_GTX_1080_Ti                             ALIAS_nv_sm52_or_higher
+GeForce_RTX_2080                                ALIAS_nv_sm52_or_higher
+GeForce_RTX_2080_Ti                             ALIAS_nv_sm52_or_higher
 
 TITAN_X                                         ALIAS_nv_sm52_or_higher
 TITAN_Xp                                        ALIAS_nv_sm52_or_higher
