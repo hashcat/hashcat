@@ -2506,7 +2506,7 @@ static int input_tokenizer (u8 *input_buf, int input_len, token_t *token)
     {
       if (token->attr[token_idx] & TOKEN_ATTR_OPTIONAL_ROUNDS)
       {
-        const int len = rounds_count_length ((char *)token->buf[token_idx], len_left);
+        const int len = rounds_count_length ((char *) token->buf[token_idx], len_left);
 
         token->opt_buf = token->buf[token_idx];
 
@@ -17678,6 +17678,8 @@ int wpa_pmkid_pmk_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MA
 
   token_t token;
 
+  // real 16801 pmkid hash-lines
+
   token.token_cnt  = 3;
 
   token.sep[0]     = '*';
@@ -17700,7 +17702,40 @@ int wpa_pmkid_pmk_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MA
 
   const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+  if (rc_tokenizer != PARSER_OK)
+  {
+    // we'll accept normal 16800 pmkid hash-lines, too
+
+    token.token_cnt  = 4;
+
+    token.sep[0]     = '*';
+    token.len_min[0] = 32;
+    token.len_max[0] = 32;
+    token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    token.sep[1]     = '*';
+    token.len_min[1] = 12;
+    token.len_max[1] = 12;
+    token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    token.sep[2]     = '*';
+    token.len_min[2] = 12;
+    token.len_max[2] = 12;
+    token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    token.sep[3]     = '*';
+    token.len_min[3] = 0;
+    token.len_max[3] = 64;
+    token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    const int rc_tokenizer2 = input_tokenizer (input_buf, input_len, &token);
+
+    if (rc_tokenizer2 != PARSER_OK) return (rc_tokenizer);
+  }
 
   // pmkid
 

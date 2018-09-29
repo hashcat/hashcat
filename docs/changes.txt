@@ -20,6 +20,7 @@
 - Improved the speed of the outfile folder scan when using lots of hashes/salts
 - Added additional hybrid "passthrough" rules, to enable variable-length append/prepend attacks
 - Increased the maximum size of edata2 in Kerberos 5 TGS-REP etype 23
+- Allow hashfile for -m 16800 to be used with -m 16801
 
 ##
 ## Bugs
