@@ -275,6 +275,21 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   build_plain (hashcat_ctx, device_param, plain, plain_buf, &plain_len);
 
+  // TOTP should be base32 encoded
+  if (hashcat_ctx->hashconfig->hash_mode == KERN_TYPE_TOTP_HMACSHA1)
+  {
+    // we need a temp buffer for the base32 encoding
+    u32 temp_buf[64] = { 0 };
+    u8 *temp_ptr = (u8 *) temp_buf;
+
+    // encode our plain
+    base32_encode (int_to_base32, (const u8 *) plain_ptr, plain_len, (u8 *) temp_buf);
+    plain_len = strlen((const char *) temp_buf);
+
+    // copy the base32 content into our plain buffer
+    plain_ptr = (u8 *) strdup((const char *) temp_ptr);
+  }
+
   // crackpos
 
   u64 crackpos = 0;
