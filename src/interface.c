@@ -281,6 +281,7 @@ static const char *ST_HASH_16700 = "$fvde$1$16$84286044060108438487434858307513$
 static const char *ST_HASH_16800 = "2582a8281bf9d4308d6f5731d0e61c61*4604ba734d4e*89acf0e761f4*ed487162465a774bfba60eb603a39f3a";
 static const char *ST_HASH_16801 = "2582a8281bf9d4308d6f5731d0e61c61*4604ba734d4e*89acf0e761f4";
 static const char *ST_HASH_16900 = "$ansible$0*0*6b761adc6faeb0cc0bf197d3d4a4a7d3f1682e4b169cae8fa6b459b3214ed41e*426d313c5809d4a80a4b9bc7d4823070*d8bad190c7fbc7c3cb1c60a27abfb0ff59d6fb73178681c7454d94a0f56a4360";
+static const char *ST_HASH_17300 = "597056:3600";
 static const char *ST_HASH_99999 = "hashcat";
 
 static const char *OPTI_STR_OPTIMIZED_KERNEL     = "Optimized-Kernel";
@@ -529,6 +530,7 @@ static const char *HT_16700 = "FileVault 2";
 static const char *HT_16800 = "WPA-PMKID-PBKDF2";
 static const char *HT_16801 = "WPA-PMKID-PMK";
 static const char *HT_16900 = "Ansible Vault";
+static const char *HT_17300 = "TOTP (HMAC-SHA1)";
 static const char *HT_99999 = "Plaintext";
 
 static const char *HT_00011 = "Joomla < 2.5.18";
@@ -5138,6 +5140,74 @@ int sha1s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUS
   const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
+
+  return (PARSER_OK);
+}
+
+int totp_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
+{
+  // this is going to start off like HMAC-SHA1
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  token_t token;
+
+  token.token_cnt  = 2;
+
+  token.sep[0]     = hashconfig->separator;
+  token.len_min[0] = 6;
+  token.len_max[0] = 6;
+  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
+
+  token.len_min[1] = SALT_MIN;
+  token.len_max[1] = SALT_MAX;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
+  {
+    token.len_min[1] *= 2;
+    token.len_max[1] *= 2;
+
+    token.attr[1] |= TOKEN_ATTR_VERIFY_HEX;
+  }
+
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
+
+  // now we need to reduce our hash into a token
+  int otp_code = 0;
+  for (int i = 0; i < 6; i++)
+  {
+    otp_code = otp_code  * 10 + itoa32_to_int(input_buf[i]);
+  }
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+  u8 *hash_pos = token.buf[0];
+
+  digest[1] = otp_code;
+
+  u8 *salt_pos = token.buf[1];
+  int salt_len = token.len[1];
+
+  // convert ascii timestamp to ulong timestamp
+  unsigned long timestamp = 0;
+  for(int i = 0; i<salt_len; i++)
+  {
+    timestamp = timestamp * 10 + ( *(salt_pos + i) - '0');
+  }
+
+  // divide our timestamp by our step. We will use the RFC 6238 default of 30 for now
+  timestamp /= 30;
+
+  // convert counter to 8-byte salt
+  for (int i = 2; i--; timestamp >>= 32)
+  {
+    salt->salt_buf[i] = byte_swap_32(timestamp);
+  }
+
+  // our salt will always be 8 bytes
+  salt->salt_len = 8;
 
   return (PARSER_OK);
 }
@@ -18387,6 +18457,7 @@ const char *strhashtype (const u32 hash_mode)
     case 16800: return HT_16800;
     case 16801: return HT_16801;
     case 16900: return HT_16900;
+    case 17300: return HT_17300;
     case 99999: return HT_99999;
   }
 
@@ -22101,6 +22172,14 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
       byte_swap_32 (digest_buf[5]),
       byte_swap_32 (digest_buf[6]),
       byte_swap_32 (digest_buf[7]));
+  }
+  else if (hash_mode == 17300)
+  {
+      // salt_buf[1] holds our 32 bit value. salt_buf[0] and salt_buf[1] would be 64 bits.
+      // for now, we only need to worry about 32 bit counters.
+      // we also need to multiply salt by our step to see the floor of our original timestamp range.
+      // again, we will use the default RFC 6238 step of 30.
+      snprintf (out_buf, out_len - 1, "%d:%d", digest_buf[1], byte_swap_32(salt.salt_buf[1]) * 30);
   }
   else if (hash_mode == 99999)
   {
@@ -27296,6 +27375,25 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 3;
                  hashconfig->st_hash        = ST_HASH_16900;
+                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
+                 break;
+
+    case 17300:  hashconfig->hash_type      = HASH_TYPE_SHA1;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
+                                            | OPTS_TYPE_PT_ADD80
+                                            | OPTS_TYPE_PT_ADDBITS15;
+                 hashconfig->kern_type      = KERN_TYPE_TOTP_HMACSHA1;
+                 hashconfig->dgst_size      = DGST_SIZE_4_5;
+                 hashconfig->parse_func     = totp_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_NOT_ITERATED;
+                 hashconfig->dgst_pos0      = 1;
+                 hashconfig->dgst_pos1      = 2;
+                 hashconfig->dgst_pos2      = 3;
+                 hashconfig->dgst_pos3      = 4;
+                 hashconfig->st_hash        = ST_HASH_17300;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 

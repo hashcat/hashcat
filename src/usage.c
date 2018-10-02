@@ -170,6 +170,7 @@ static const char *const USAGE_BIG[] =
   "     60 | HMAC-MD5 (key = $salt)                           | Raw Hash, Authenticated",
   "    150 | HMAC-SHA1 (key = $pass)                          | Raw Hash, Authenticated",
   "    160 | HMAC-SHA1 (key = $salt)                          | Raw Hash, Authenticated",
+  "  17300 | TOTP (HMAC-SHA1)                                 | Raw Hash, Authenticated",
   "   1450 | HMAC-SHA256 (key = $pass)                        | Raw Hash, Authenticated",
   "   1460 | HMAC-SHA256 (key = $salt)                        | Raw Hash, Authenticated",
   "   1750 | HMAC-SHA512 (key = $pass)                        | Raw Hash, Authenticated",
