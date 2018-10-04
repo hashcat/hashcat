@@ -977,7 +977,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
     if (user_options->attack_mode == ATTACK_MODE_COMBI)
     {
-      event_log_error (hashcat_ctx, "Custom charsets re not supported in attack mode 1 (combination).");
+      event_log_error (hashcat_ctx, "Custom charsets are not supported in attack mode 1 (combination).");
 
       return -1;
     }
