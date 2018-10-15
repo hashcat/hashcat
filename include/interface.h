@@ -1060,7 +1060,6 @@ typedef enum hash_type
   HASH_TYPE_ORACLEH             = 13,
   HASH_TYPE_DESRACF             = 14,
   HASH_TYPE_BCRYPT              = 15,
-  HASH_TYPE_KECCAK              = 16,
   HASH_TYPE_NETNTLM             = 17,
   HASH_TYPE_RIPEMD160           = 18,
   HASH_TYPE_WHIRLPOOL           = 19,
@@ -1186,7 +1185,6 @@ typedef enum kern_type
   KERN_TYPE_SHA1_MD5                = 4700,
   KERN_TYPE_MD5_CHAP                = 4800,
   KERN_TYPE_SHA1_SLT_PW_SLT         = 4900,
-  KERN_TYPE_KECCAK                  = 5000,
   KERN_TYPE_MD5H                    = 5100,
   KERN_TYPE_PSAFE3                  = 5200,
   KERN_TYPE_IKEPSK_MD5              = 5300,
@@ -1325,6 +1323,14 @@ typedef enum kern_type
   KERN_TYPE_WPA_PMKID_PBKDF2        = 16800,
   KERN_TYPE_WPA_PMKID_PMK           = 16801,
   KERN_TYPE_ANSIBLE_VAULT           = 16900,
+  KERN_TYPE_SHA3_224                = 17300,
+  KERN_TYPE_SHA3_256                = 17400,
+  KERN_TYPE_SHA3_384                = 17500,
+  KERN_TYPE_SHA3_512                = 17600,
+  KERN_TYPE_KECCAK_224              = 17700,
+  KERN_TYPE_KECCAK_256              = 17800,
+  KERN_TYPE_KECCAK_384              = 17900,
+  KERN_TYPE_KECCAK_512              = 18000,
   KERN_TYPE_PLAINTEXT               = 99999,
 
 } kern_type_t;
@@ -1418,7 +1424,10 @@ int des_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int episerver_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int postgresql_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int netscreen_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int keccak_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
+int keccak_224_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
+int keccak_256_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
+int keccak_384_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
+int keccak_512_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int blake2b_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int chacha20_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int lm_parse_hash                 (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);

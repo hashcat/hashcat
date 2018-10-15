@@ -403,6 +403,7 @@ typedef enum opts_type
   OPTS_TYPE_AUX4              = (1ULL << 37),
   OPTS_TYPE_BINARY_HASHFILE   = (1ULL << 38),
   OPTS_TYPE_PREFERED_THREAD   = (1ULL << 39), // some algorithms (complicated ones with many branches) benefit from this
+  OPTS_TYPE_PT_ADD06          = (1ULL << 40),
 
 } opts_type_t;
 
@@ -723,8 +724,6 @@ typedef struct salt
   u32 salt_iter;
   u32 salt_iter2;
   u32 salt_sign[2];
-
-  u32 keccak_mdlen;
 
   u32 digests_cnt;
   u32 digests_done;

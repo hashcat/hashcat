@@ -35,6 +35,7 @@ static const char *drm_card0_driver_path = "/sys/class/drm/card0/device/driver";
 #endif
 
 static const u32 full01 = 0x01010101;
+static const u32 full06 = 0x06060606;
 static const u32 full80 = 0x80808080;
 
 static double TARGET_MSEC_PROFILE[4] = { 2, 12, 96, 480 };
@@ -2153,6 +2154,10 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
             {
               rebuild_pws_compressed_append (device_param, pws_cnt, 0x01);
             }
+            else if (hashconfig->opts_type & OPTS_TYPE_PT_ADD06)
+            {
+              rebuild_pws_compressed_append (device_param, pws_cnt, 0x06);
+            }
             else if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)
             {
               rebuild_pws_compressed_append (device_param, pws_cnt, 0x80);
@@ -2164,6 +2169,10 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
           if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)
           {
             rebuild_pws_compressed_append (device_param, pws_cnt, 0x01);
+          }
+          else if (hashconfig->opts_type & OPTS_TYPE_PT_ADD06)
+          {
+            rebuild_pws_compressed_append (device_param, pws_cnt, 0x06);
           }
           else if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)
           {
@@ -2472,6 +2481,11 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
                     ptr[line_len] = 0x80;
                   }
 
+                  if (hashconfig->opts_type & OPTS_TYPE_PT_ADD06)
+                  {
+                    ptr[line_len] = 0x06;
+                  }
+
                   if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)
                   {
                     ptr[line_len] = 0x01;
@@ -2588,6 +2602,11 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
                   if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)
                   {
                     ptr[line_len] = 0x80;
+                  }
+
+                  if (hashconfig->opts_type & OPTS_TYPE_PT_ADD06)
+                  {
+                    ptr[line_len] = 0x06;
                   }
 
                   if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)
@@ -6313,6 +6332,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
           device_param->kernel_params_mp_buf32[7] = 0;
 
           if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)     device_param->kernel_params_mp_buf32[5] = full01;
+          if (hashconfig->opts_type & OPTS_TYPE_PT_ADD06)     device_param->kernel_params_mp_buf32[5] = full06;
           if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)     device_param->kernel_params_mp_buf32[5] = full80;
           if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS14) device_param->kernel_params_mp_buf32[6] = 1;
           if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS15) device_param->kernel_params_mp_buf32[7] = 1;
@@ -6337,6 +6357,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         device_param->kernel_params_mp_l_buf32[8] = 0;
 
         if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)     device_param->kernel_params_mp_l_buf32[6] = full01;
+        if (hashconfig->opts_type & OPTS_TYPE_PT_ADD06)     device_param->kernel_params_mp_l_buf32[6] = full06;
         if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)     device_param->kernel_params_mp_l_buf32[6] = full80;
         if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS14) device_param->kernel_params_mp_l_buf32[7] = 1;
         if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS15) device_param->kernel_params_mp_l_buf32[8] = 1;
