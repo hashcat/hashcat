@@ -7,6 +7,20 @@
 - Add new option --slow-candidates which allows hashcat to generate passwords on-host
 
 ##
+## Algorithms
+##
+
+- Added hash-mode 17300 = SHA3-224
+- Added hash-mode 17400 = SHA3-256
+- Added hash-mode 17500 = SHA3-384
+- Added hash-mode 17600 = SHA3-512
+- Added hash-mode 17700 = Keccak-224
+- Added hash-mode 17800 = Keccak-256
+- Added hash-mode 17900 = Keccak-384
+- Added hash-mode 18000 = Keccak-512
+- Removed hash-mode 5000 = SHA-3 (Keccak)
+
+##
 ## Improvements
 ##
 
@@ -33,7 +47,6 @@
 - Fixed detection of unique ESSID in WPA-PMKID-* parser
 - Fixed speed/delay problem when quitting while the outfile folder is being scanned
 - Fixed a race condition in status view leading to out-of-bound reads
-- Fixed the tokenizer configuration in postgres hash parser
 
 * changes v4.2.0 -> v4.2.1
 

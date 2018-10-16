@@ -126,6 +126,11 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
           comb_ptr[comb.pw_len] = 0x01;
         }
 
+        if (hashconfig->opts_type & OPTS_TYPE_PT_ADD06)
+        {
+          comb_ptr[comb.pw_len] = 0x06;
+        }
+
         if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)
         {
           comb_ptr[comb.pw_len] = 0x80;
@@ -262,6 +267,11 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
           if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)
           {
             pw_ptr[new_pass_len] = 0x01;
+          }
+
+          if (hashconfig->opts_type & OPTS_TYPE_PT_ADD06)
+          {
+            pw_ptr[new_pass_len] = 0x06;
           }
 
           if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)
