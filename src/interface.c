@@ -5197,7 +5197,7 @@ int totp_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   }
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  u8 *hash_pos = token.buf[0];
+  //u8 *hash_pos = token.buf[0];
 
   digest[1] = otp_code;
 
