@@ -205,6 +205,14 @@ static void main_outerloop_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
   hashcat_user_t *hashcat_user = hashcat_ctx->hashcat_user;
   status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
 
+  // we should never stop hashcat with STATUS_INIT:
+  // keypress thread blocks on STATUS_INIT forever!
+
+  if (status_ctx->devices_status == STATUS_INIT)
+  {
+    status_ctx->devices_status = STATUS_ERROR;
+  }
+
   // wait for outer threads
 
   status_ctx->shutdown_outer = true;
