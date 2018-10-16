@@ -68,7 +68,6 @@ __kernel void m17300_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     sha1_hmac_final_vector (&ctx);
 
-    // ------- PUT TOTP HERE ------- //
     // calculate the offset using the least 4 bits of the last byte of our hash
     const int otp_offset = ctx.opad.h[4] & 0xf;
 
@@ -102,7 +101,6 @@ __kernel void m17300_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
     const u32x r3 = ctx.opad.h[DGST_R3];
 
     COMPARE_M_SIMD (otp_code, 0, 0, 0);
-    //COMPARE_M_SIMD (r0, r1, r2, r3);
   }
 }
 
@@ -172,9 +170,7 @@ __kernel void m17300_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
     sha1_hmac_update_vector (&ctx, s, salt_len);
 
     sha1_hmac_final_vector (&ctx);
-    //printf("%d ", sizeof(ctx.opad.h));
 
-    // ------- PUT TOTP HERE ------- //
     // calculate the offset using the least 4 bits of the last byte of our hash
     const int otp_offset = ctx.opad.h[4] & 0xf;
 
@@ -207,19 +203,6 @@ __kernel void m17300_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
     const u32x r2 = ctx.opad.h[DGST_R2];
     const u32x r3 = ctx.opad.h[DGST_R3];
 
-  if( ctx.opad.h[0] == 0xc085d274)
-  //if( ctx.opad.h[0] == 0x50184678)
-  //if( ctx.opad.h[0] == 0x8e664b2e)
-  {
-    //printf(" [[ %d %d %d %d ]]\n ", ctx.opad.h[otp_offset], ctx.opad.h[otp_offset +1], ctx.opad.h[otp_offset +2], ctx.opad.h[otp_offset +3]);
-    //printf(" MAXX:: %d %d\n", pw_len, salt_len);
-    //printf(" SRCH:: %x\n", search[0]);
-    //printf(" SRCH:: %x\n", search[1]);
-    //printf(" SRCH:: %x\n", search[2]);
-    //printf(" SRCH:: %x\n", search[3]);
-    //printf(" CODE:: %x\n", otp_code);
-  }
     COMPARE_S_SIMD (otp_code, 0, 0, 0);
-    //COMPARE_S_SIMD (r0, r1, r2, r3);
   }
 }
