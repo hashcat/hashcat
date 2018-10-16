@@ -281,7 +281,7 @@ static const char *ST_HASH_16700 = "$fvde$1$16$84286044060108438487434858307513$
 static const char *ST_HASH_16800 = "2582a8281bf9d4308d6f5731d0e61c61*4604ba734d4e*89acf0e761f4*ed487162465a774bfba60eb603a39f3a";
 static const char *ST_HASH_16801 = "2582a8281bf9d4308d6f5731d0e61c61*4604ba734d4e*89acf0e761f4";
 static const char *ST_HASH_16900 = "$ansible$0*0*6b761adc6faeb0cc0bf197d3d4a4a7d3f1682e4b169cae8fa6b459b3214ed41e*426d313c5809d4a80a4b9bc7d4823070*d8bad190c7fbc7c3cb1c60a27abfb0ff59d6fb73178681c7454d94a0f56a4360";
-static const char *ST_HASH_17300 = "597056:3600";
+static const char *ST_HASH_18100 = "597056:3600";
 static const char *ST_HASH_99999 = "hashcat";
 
 static const char *OPTI_STR_OPTIMIZED_KERNEL     = "Optimized-Kernel";
@@ -530,7 +530,7 @@ static const char *HT_16700 = "FileVault 2";
 static const char *HT_16800 = "WPA-PMKID-PBKDF2";
 static const char *HT_16801 = "WPA-PMKID-PMK";
 static const char *HT_16900 = "Ansible Vault";
-static const char *HT_17300 = "TOTP (HMAC-SHA1)";
+static const char *HT_18100 = "TOTP (HMAC-SHA1)";
 static const char *HT_99999 = "Plaintext";
 
 static const char *HT_00011 = "Joomla < 2.5.18";
@@ -18457,7 +18457,7 @@ const char *strhashtype (const u32 hash_mode)
     case 16800: return HT_16800;
     case 16801: return HT_16801;
     case 16900: return HT_16900;
-    case 17300: return HT_17300;
+    case 18100: return HT_18100;
     case 99999: return HT_99999;
   }
 
@@ -22173,7 +22173,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
       byte_swap_32 (digest_buf[6]),
       byte_swap_32 (digest_buf[7]));
   }
-  else if (hash_mode == 17300)
+  else if (hash_mode == 18100)
   {
       // salt_buf[1] holds our 32 bit value. salt_buf[0] and salt_buf[1] would be 64 bits.
       // for now, we only need to worry about 32 bit counters.
@@ -27378,7 +27378,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 17300:  hashconfig->hash_type      = HASH_TYPE_SHA1;
+    case 18100:  hashconfig->hash_type      = HASH_TYPE_SHA1;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
@@ -27393,7 +27393,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos1      = 2;
                  hashconfig->dgst_pos2      = 3;
                  hashconfig->dgst_pos3      = 4;
-                 hashconfig->st_hash        = ST_HASH_17300;
+                 hashconfig->st_hash        = ST_HASH_18100;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 

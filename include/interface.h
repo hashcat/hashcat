@@ -1325,7 +1325,7 @@ typedef enum kern_type
   KERN_TYPE_WPA_PMKID_PBKDF2        = 16800,
   KERN_TYPE_WPA_PMKID_PMK           = 16801,
   KERN_TYPE_ANSIBLE_VAULT           = 16900,
-  KERN_TYPE_TOTP_HMACSHA1           = 17300,
+  KERN_TYPE_TOTP_HMACSHA1           = 18100,
   KERN_TYPE_PLAINTEXT               = 99999,
 
 } kern_type_t;
