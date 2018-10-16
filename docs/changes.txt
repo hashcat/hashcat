@@ -25,7 +25,7 @@
 ##
 
 - Workaround some AMD OpenCL runtime segmentation faults
-- Allow bitcoin master key length not be exactly 96 byte a multiple of 16
+- Allow bitcoin master key lengths different from 96 bytes, but they must be always a multiple of 16
 - Getting rid of OPTS_TYPE_HASH_COPY for Ansible Vault
 - Add a tracker for salts, amplifier and iterations to status screen
 - Add option --markov-hcstat2 to make it clear that the new hcstat2 format (compressed hcstat2gen output) must be used
@@ -35,6 +35,7 @@
 - Added additional hybrid "passthrough" rules, to enable variable-length append/prepend attacks
 - Increased the maximum size of edata2 in Kerberos 5 TGS-REP etype 23
 - Allow hashfile for -m 16800 to be used with -m 16801
+- Make the masks parser more restrictive by rejecting a single '?' at the end of the mask (use ?? instead)
 
 ##
 ## Bugs
