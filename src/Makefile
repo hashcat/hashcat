@@ -118,7 +118,7 @@ endif # MSYS2
 ## You have your own headers somewhere, for example: apt-get install opencl-headers
 ##
 
-OPENCL_HEADERS_KHRONOS  := deps/OpenCL-Headers
+OPENCL_HEADERS_KHRONOS  := deps/git/OpenCL-Headers
 
 ##
 ## Cross compiler paths

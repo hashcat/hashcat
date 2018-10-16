@@ -1,3 +1,3 @@
-[submodule "deps/OpenCL-Headers/CL"]
-	path = deps/OpenCL-Headers/CL
+[submodule "OpenCL-Headers"]
+	path = deps/git/OpenCL-Headers
 	url = https://github.com/KhronosGroup/OpenCL-Headers.git

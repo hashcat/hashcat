@@ -7,11 +7,25 @@
 - Add new option --slow-candidates which allows hashcat to generate passwords on-host
 
 ##
+## Algorithms
+##
+
+- Added hash-mode 17300 = SHA3-224
+- Added hash-mode 17400 = SHA3-256
+- Added hash-mode 17500 = SHA3-384
+- Added hash-mode 17600 = SHA3-512
+- Added hash-mode 17700 = Keccak-224
+- Added hash-mode 17800 = Keccak-256
+- Added hash-mode 17900 = Keccak-384
+- Added hash-mode 18000 = Keccak-512
+- Removed hash-mode 5000 = SHA-3 (Keccak)
+
+##
 ## Improvements
 ##
 
 - Workaround some AMD OpenCL runtime segmentation faults
-- Allow bitcoin master key length not be exactly 96 byte a multiple of 16
+- Allow bitcoin master key lengths different from 96 bytes, but they must be always a multiple of 16
 - Getting rid of OPTS_TYPE_HASH_COPY for Ansible Vault
 - Add a tracker for salts, amplifier and iterations to status screen
 - Add option --markov-hcstat2 to make it clear that the new hcstat2 format (compressed hcstat2gen output) must be used
@@ -21,6 +35,7 @@
 - Added additional hybrid "passthrough" rules, to enable variable-length append/prepend attacks
 - Increased the maximum size of edata2 in Kerberos 5 TGS-REP etype 23
 - Allow hashfile for -m 16800 to be used with -m 16801
+- Make the masks parser more restrictive by rejecting a single '?' at the end of the mask (use ?? instead)
 
 ##
 ## Bugs

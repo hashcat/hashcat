@@ -137,7 +137,6 @@ static const char *ST_HASH_04522 = "9038129c474caa3f0de56f38db84033d0fe1d4b8:365
 static const char *ST_HASH_04700 = "92d85978d884eb1d99a51652b1139c8279fa8663";
 static const char *ST_HASH_04800 = "aa4aaa1d52319525023c06a4873f4c51:35343534373533343633383832343736:dc";
 static const char *ST_HASH_04900 = "75d280ca9a0c2ee18729603104ead576d9ca6285:347070";
-static const char *ST_HASH_05000 = "203f88777f18bb4ee1226627b547808f38d90d3e106262b5de9ca943b57137b6";
 static const char *ST_HASH_05100 = "8743b52063cd8409";
 static const char *ST_HASH_05200 = "50575333e4e2a590a5e5c8269f57ec04a8a1c0c03da55b311c51236dab8c6b96b0afca02000800005eaeee20c6cc10d5caa6522b3ca545c41d9133d630ca08f467b7aae8a2bbef51aa2df968d10b9c4cfb17a182c0add7acb8c153794f51337e12f472f451d10e6dcac664ed760606aabdbb6b794a80d6ce2a330100c76de0ff961a45cca21576b893d826c52f272b97cdf48aca6fbe6c74b039f81c61b7d632fb6fddd9f96162ab1effd69a4598a331e855e38792e5365272d4791bf991d248e1585a9ad20ea3d77b5d2ef9a711ef90a70ec6991cb578f1b8bdaa9efa7b0039e9ea96f777491713047bdd99fa1d78f06f23406a66046b387d3034e46b1f84129bba853cc18fa49f107dc0290547258d30566a4b1b363ff4c1c16cb2f5f400059833d4b651bfa508200cbdc7a75fc57ef90eb1d90b0deea8505753332d454f46505753332d454f466236710e2e2477878e738b60d0aa2834a96b01e97764fe980243a06ad16939d1";
 static const char *ST_HASH_05300 = "50503326cac6e4bd892b8257805b5a59a285f464ad3f63dc01bd0335f8341ef52e00be0b8cb205422a3788f021e4e6e8ccbe34784bc85abe42f62545bac64888426a2f1264fa28cf384ff00b14cfa5eff562dda4fad2a31fd7a6715218cff959916deed856feea5bee2e773241c5fbebf202958f0ce0c432955e0f1f6d1259da:688a7bfa8d5819630a970ed6d27018021a15fbb3e2fdcc36ce9b563d8ff95f510c4b3236c014d1cde9c2f1a999b121bc3ab1bc8049c8ac1e8c167a84f53c867492723eb01ab4b38074b38f4297d6fea8f44e01ea828fce33c433430938b1551f60673ce8088e7d2f41e3b49315344046fefee1e3860064331417562761db3ba4:c66606d691eaade4:8bdc88a2cdb4a1cf:c3b13137fae9f66684d98709939e5c3454ee31a98c80a1c76427d805b5dea866eff045515e8fb42dd259b9448caba9d937f4b3b75ec1b092a92232b4c8c1e70a60a52076e907f887b731d0f66e19e09b535238169c74c04a4b393f9b815c54eef4558cd8a22c9018bb4f24ee6db0e32979f9a353361cdba948f9027551ee40b1c96ba81c28aa3e1a0fac105dc469efa83f6d3ee281b945c6fa8b4677bac26dda:53f757c5b08afad6:aa02d9289e1702e5d7ed1e4ebf35ab31c2688e00:aab8580015cf545ac0b7291d15a4f2c79e06defd:944a0df3939f3bd281c9d05fbc0e3d30";
@@ -281,6 +280,14 @@ static const char *ST_HASH_16700 = "$fvde$1$16$84286044060108438487434858307513$
 static const char *ST_HASH_16800 = "2582a8281bf9d4308d6f5731d0e61c61*4604ba734d4e*89acf0e761f4*ed487162465a774bfba60eb603a39f3a";
 static const char *ST_HASH_16801 = "2582a8281bf9d4308d6f5731d0e61c61*4604ba734d4e*89acf0e761f4";
 static const char *ST_HASH_16900 = "$ansible$0*0*6b761adc6faeb0cc0bf197d3d4a4a7d3f1682e4b169cae8fa6b459b3214ed41e*426d313c5809d4a80a4b9bc7d4823070*d8bad190c7fbc7c3cb1c60a27abfb0ff59d6fb73178681c7454d94a0f56a4360";
+static const char *ST_HASH_17300 = "412ef78534ba6ab0e9b1607d3e9767a25c1ea9d5e83176b4c2817a6c";
+static const char *ST_HASH_17400 = "d60fcf6585da4e17224f58858970f0ed5ab042c3916b76b0b828e62eaf636cbd";
+static const char *ST_HASH_17500 = "983ba28532cc6320d04f20fa485bcedb38bddb666eca5f1e5aa279ff1c6244fe5f83cf4bbf05b95ff378dd2353617221";
+static const char *ST_HASH_17600 = "7c2dc1d743735d4e069f3bda85b1b7e9172033dfdd8cd599ca094ef8570f3930c3f2c0b7afc8d6152ce4eaad6057a2ff22e71934b3a3dd0fb55a7fc84a53144e";
+static const char *ST_HASH_17700 = "e1dfad9bafeae6ef15f5bbb16cf4c26f09f5f1e7870581962fc84636";
+static const char *ST_HASH_17800 = "203f88777f18bb4ee1226627b547808f38d90d3e106262b5de9ca943b57137b6";
+static const char *ST_HASH_17900 = "5804b7ada5806ba79540100e9a7ef493654ff2a21d94d4f2ce4bf69abda5d94bf03701fe9525a15dfdc625bfbd769701";
+static const char *ST_HASH_18000 = "2fbf5c9080f0a704de2e915ba8fdae6ab00bbc026b2c1c8fa07da1239381c6b7f4dfd399bf9652500da723694a4c719587dd0219cb30eabe61210a8ae4dc0b03";
 static const char *ST_HASH_18100 = "597056:3600";
 static const char *ST_HASH_99999 = "hashcat";
 
@@ -369,8 +376,8 @@ static const char *HT_00600 = "BLAKE2b";
 static const char *HT_00900 = "MD4";
 static const char *HT_01000 = "NTLM";
 static const char *HT_01100 = "Domain Cached Credentials (DCC), MS Cache";
-static const char *HT_01300 = "SHA-224";
-static const char *HT_01400 = "SHA-256";
+static const char *HT_01300 = "SHA2-224";
+static const char *HT_01400 = "SHA2-256";
 static const char *HT_01410 = "sha256($pass.$salt)";
 static const char *HT_01420 = "sha256($salt.$pass)";
 static const char *HT_01430 = "sha256(utf16le($pass).$salt)";
@@ -379,7 +386,7 @@ static const char *HT_01450 = "HMAC-SHA256 (key = $pass)";
 static const char *HT_01460 = "HMAC-SHA256 (key = $salt)";
 static const char *HT_01500 = "descrypt, DES (Unix), Traditional DES";
 static const char *HT_01600 = "Apache $apr1$ MD5, md5apr1, MD5 (APR)";
-static const char *HT_01700 = "SHA-512";
+static const char *HT_01700 = "SHA2-512";
 static const char *HT_01710 = "sha512($pass.$salt)";
 static const char *HT_01720 = "sha512($salt.$pass)";
 static const char *HT_01730 = "sha512(utf16le($pass).$salt)";
@@ -409,7 +416,6 @@ static const char *HT_04520 = "sha1($salt.sha1($pass))";
 static const char *HT_04700 = "sha1(md5($pass))";
 static const char *HT_04800 = "iSCSI CHAP authentication, MD5(CHAP)";
 static const char *HT_04900 = "sha1($salt.$pass.$salt)";
-static const char *HT_05000 = "SHA-3 (Keccak)";
 static const char *HT_05100 = "Half MD5";
 static const char *HT_05200 = "Password Safe v3";
 static const char *HT_05300 = "IKE-PSK MD5";
@@ -472,7 +478,7 @@ static const char *HT_10420 = "PDF 1.1 - 1.3 (Acrobat 2 - 4), collider #2";
 static const char *HT_10500 = "PDF 1.4 - 1.6 (Acrobat 5 - 8)";
 static const char *HT_10600 = "PDF 1.7 Level 3 (Acrobat 9)";
 static const char *HT_10700 = "PDF 1.7 Level 8 (Acrobat 10 - 11)";
-static const char *HT_10800 = "SHA-384";
+static const char *HT_10800 = "SHA2-384";
 static const char *HT_10900 = "PBKDF2-HMAC-SHA256";
 static const char *HT_11000 = "PrestaShop";
 static const char *HT_11100 = "PostgreSQL CRAM (MD5)";
@@ -530,6 +536,14 @@ static const char *HT_16700 = "FileVault 2";
 static const char *HT_16800 = "WPA-PMKID-PBKDF2";
 static const char *HT_16801 = "WPA-PMKID-PMK";
 static const char *HT_16900 = "Ansible Vault";
+static const char *HT_17300 = "SHA3-224";
+static const char *HT_17400 = "SHA3-256";
+static const char *HT_17500 = "SHA3-384";
+static const char *HT_17600 = "SHA3-512";
+static const char *HT_17700 = "Keccak-224";
+static const char *HT_17800 = "Keccak-256";
+static const char *HT_17900 = "Keccak-384";
+static const char *HT_18000 = "Keccak-512";
 static const char *HT_18100 = "TOTP (HMAC-SHA1)";
 static const char *HT_99999 = "Plaintext";
 
@@ -6222,18 +6236,16 @@ int sha512crypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
   return (PARSER_OK);
 }
 
-int keccak_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
+int keccak_224_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
-  u64 *digest = (u64 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
+  u32 *digest = (u32 *) hash_buf->digest;
 
   token_t token;
 
   token.token_cnt = 1;
 
-  token.len_min[0]  = 16;
-  token.len_max[0]  = 400;
+  token.len_min[0]  = 56;
+  token.len_max[0]  = 56;
   token.attr[0]     = TOKEN_ATTR_FIXED_LENGTH
                     | TOKEN_ATTR_VERIFY_HEX;
 
@@ -6244,16 +6256,111 @@ int keccak_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   u8 *hash_pos = token.buf[0];
   int hash_len = token.len[0];
 
-  if (hash_len % 16) return (PARSER_GLOBAL_LENGTH);
+  if (hash_len != 56) return (PARSER_GLOBAL_LENGTH);
 
-  u32 keccak_mdlen = hash_len / 2;
+  digest[0] = hex_to_u32 (hash_pos +  0);
+  digest[1] = hex_to_u32 (hash_pos +  8);
+  digest[2] = hex_to_u32 (hash_pos + 16);
+  digest[3] = hex_to_u32 (hash_pos + 24);
+  digest[4] = hex_to_u32 (hash_pos + 32);
+  digest[5] = hex_to_u32 (hash_pos + 40);
+  digest[6] = hex_to_u32 (hash_pos + 48);
 
-  for (u32 i = 0, j = 0; i < keccak_mdlen / 8; i += 1, j += 16)
-  {
-    digest[i] = hex_to_u64 (hash_pos + j);
-  }
+  return (PARSER_OK);
+}
 
-  salt->keccak_mdlen = keccak_mdlen;
+int keccak_256_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
+{
+  u64 *digest = (u64 *) hash_buf->digest;
+
+  token_t token;
+
+  token.token_cnt = 1;
+
+  token.len_min[0]  = 64;
+  token.len_max[0]  = 64;
+  token.attr[0]     = TOKEN_ATTR_FIXED_LENGTH
+                    | TOKEN_ATTR_VERIFY_HEX;
+
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
+
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+  u8 *hash_pos = token.buf[0];
+  int hash_len = token.len[0];
+
+  if (hash_len != 64) return (PARSER_GLOBAL_LENGTH);
+
+  digest[0] = hex_to_u64 (hash_pos +  0);
+  digest[1] = hex_to_u64 (hash_pos + 16);
+  digest[2] = hex_to_u64 (hash_pos + 32);
+  digest[3] = hex_to_u64 (hash_pos + 48);
+
+  return (PARSER_OK);
+}
+
+int keccak_384_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
+{
+  u64 *digest = (u64 *) hash_buf->digest;
+
+  token_t token;
+
+  token.token_cnt = 1;
+
+  token.len_min[0]  = 96;
+  token.len_max[0]  = 96;
+  token.attr[0]     = TOKEN_ATTR_FIXED_LENGTH
+                    | TOKEN_ATTR_VERIFY_HEX;
+
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
+
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+  u8 *hash_pos = token.buf[0];
+  int hash_len = token.len[0];
+
+  if (hash_len != 96) return (PARSER_GLOBAL_LENGTH);
+
+  digest[0] = hex_to_u64 (hash_pos +  0);
+  digest[1] = hex_to_u64 (hash_pos + 16);
+  digest[2] = hex_to_u64 (hash_pos + 32);
+  digest[3] = hex_to_u64 (hash_pos + 48);
+  digest[4] = hex_to_u64 (hash_pos + 64);
+  digest[5] = hex_to_u64 (hash_pos + 80);
+
+  return (PARSER_OK);
+}
+
+int keccak_512_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
+{
+  u64 *digest = (u64 *) hash_buf->digest;
+
+  token_t token;
+
+  token.token_cnt = 1;
+
+  token.len_min[0]  = 128;
+  token.len_max[0]  = 128;
+  token.attr[0]     = TOKEN_ATTR_FIXED_LENGTH
+                    | TOKEN_ATTR_VERIFY_HEX;
+
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
+
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+  u8 *hash_pos = token.buf[0];
+  int hash_len = token.len[0];
+
+  if (hash_len != 128) return (PARSER_GLOBAL_LENGTH);
+
+  digest[0] = hex_to_u64 (hash_pos +   0);
+  digest[1] = hex_to_u64 (hash_pos +  16);
+  digest[2] = hex_to_u64 (hash_pos +  32);
+  digest[3] = hex_to_u64 (hash_pos +  48);
+  digest[4] = hex_to_u64 (hash_pos +  64);
+  digest[5] = hex_to_u64 (hash_pos +  80);
+  digest[6] = hex_to_u64 (hash_pos +  96);
+  digest[7] = hex_to_u64 (hash_pos + 112);
 
   return (PARSER_OK);
 }
@@ -18305,7 +18412,6 @@ const char *strhashtype (const u32 hash_mode)
     case  4700: return HT_04700;
     case  4800: return HT_04800;
     case  4900: return HT_04900;
-    case  5000: return HT_05000;
     case  5100: return HT_05100;
     case  5200: return HT_05200;
     case  5300: return HT_05300;
@@ -18457,6 +18563,14 @@ const char *strhashtype (const u32 hash_mode)
     case 16800: return HT_16800;
     case 16801: return HT_16801;
     case 16900: return HT_16900;
+    case 17300: return HT_17300;
+    case 17400: return HT_17400;
+    case 17500: return HT_17500;
+    case 17600: return HT_17600;
+    case 17700: return HT_17700;
+    case 17800: return HT_17800;
+    case 17900: return HT_17900;
+    case 18000: return HT_18000;
     case 18100: return HT_18100;
     case 99999: return HT_99999;
   }
@@ -22173,6 +22287,56 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
       byte_swap_32 (digest_buf[6]),
       byte_swap_32 (digest_buf[7]));
   }
+  else if (hash_mode == 17300 || hash_mode == 17700)
+  {
+      u32 *ptr = digest_buf;
+
+      snprintf (out_buf, out_len - 1, "%08x%08x%08x%08x%08x%08x%08x",
+        ptr[1], ptr[0],
+        ptr[3], ptr[2],
+        ptr[5], ptr[4],
+        ptr[7]
+      );
+  }
+  else if (hash_mode == 17400 || hash_mode == 17800)
+  {
+      u32 *ptr = digest_buf;
+
+      snprintf (out_buf, out_len - 1, "%08x%08x%08x%08x%08x%08x%08x%08x",
+        ptr[1], ptr[0],
+        ptr[3], ptr[2],
+        ptr[5], ptr[4],
+        ptr[7], ptr[6]
+      );
+  }
+  else if (hash_mode == 17500 || hash_mode == 17900)
+  {
+      u32 *ptr = digest_buf;
+
+      snprintf (out_buf, out_len - 1, "%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
+        ptr[ 1], ptr[ 0],
+        ptr[ 3], ptr[ 2],
+        ptr[ 5], ptr[ 4],
+        ptr[ 7], ptr[ 6],
+        ptr[ 9], ptr[ 8],
+        ptr[11], ptr[10]
+      );
+  }
+  else if (hash_mode == 17600 || hash_mode == 18000)
+  {
+      u32 *ptr = digest_buf;
+
+      snprintf (out_buf, out_len - 1, "%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
+        ptr[ 1], ptr[ 0],
+        ptr[ 3], ptr[ 2],
+        ptr[ 5], ptr[ 4],
+        ptr[ 7], ptr[ 6],
+        ptr[ 9], ptr[ 8],
+        ptr[11], ptr[10],
+        ptr[13], ptr[12],
+        ptr[15], ptr[14]
+      );
+  }
   else if (hash_mode == 18100)
   {
       // salt_buf[1] holds our 32 bit value. salt_buf[0] and salt_buf[1] would be 64 bits.
@@ -22283,40 +22447,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
       tmp_buf[22 + 31] = 0; // base64_encode wants to pad
 
       snprintf (out_buf, out_len - 1, "%s$%s", (char *) salt.salt_sign, tmp_buf);
-    }
-    else if (hash_type == HASH_TYPE_KECCAK)
-    {
-      u32 *ptr = digest_buf;
-
-      snprintf (out_buf, out_len - 1, "%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
-        ptr[ 1], ptr[ 0],
-        ptr[ 3], ptr[ 2],
-        ptr[ 5], ptr[ 4],
-        ptr[ 7], ptr[ 6],
-        ptr[ 9], ptr[ 8],
-        ptr[11], ptr[10],
-        ptr[13], ptr[12],
-        ptr[15], ptr[14],
-        ptr[17], ptr[16],
-        ptr[19], ptr[18],
-        ptr[21], ptr[20],
-        ptr[23], ptr[22],
-        ptr[25], ptr[24],
-        ptr[27], ptr[26],
-        ptr[29], ptr[28],
-        ptr[31], ptr[30],
-        ptr[33], ptr[32],
-        ptr[35], ptr[34],
-        ptr[37], ptr[36],
-        ptr[39], ptr[38],
-        ptr[41], ptr[30],
-        ptr[43], ptr[42],
-        ptr[45], ptr[44],
-        ptr[47], ptr[46],
-        ptr[49], ptr[48]
-      );
-
-      out_buf[salt.keccak_mdlen * 2] = 0;
     }
     else if (hash_type == HASH_TYPE_BLAKE2B)
     {
@@ -24579,25 +24709,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 1;
                  hashconfig->st_hash        = ST_HASH_04900;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case  5000:  hashconfig->hash_type      = HASH_TYPE_KECCAK;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PT_ADD01;
-                 hashconfig->kern_type      = KERN_TYPE_KECCAK;
-                 hashconfig->dgst_size      = DGST_SIZE_8_25;
-                 hashconfig->parse_func     = keccak_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_USES_BITS_64
-                                            | OPTI_TYPE_RAW_HASH;
-                 hashconfig->dgst_pos0      = 6;
-                 hashconfig->dgst_pos1      = 7;
-                 hashconfig->dgst_pos2      = 4;
-                 hashconfig->dgst_pos3      = 5;
-                 hashconfig->st_hash        = ST_HASH_05000;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
@@ -27378,6 +27489,150 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
+    case 17300:  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_PT_ADD06;
+                 hashconfig->kern_type      = KERN_TYPE_SHA3_224;
+                 hashconfig->dgst_size      = DGST_SIZE_8_25;
+                 hashconfig->parse_func     = keccak_224_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_USES_BITS_64
+                                            | OPTI_TYPE_RAW_HASH;
+                 hashconfig->dgst_pos0      = 6;
+                 hashconfig->dgst_pos1      = 7;
+                 hashconfig->dgst_pos2      = 4;
+                 hashconfig->dgst_pos3      = 5;
+                 hashconfig->st_hash        = ST_HASH_17300;
+                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
+                 break;
+
+    case 17400:  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_PT_ADD06;
+                 hashconfig->kern_type      = KERN_TYPE_SHA3_256;
+                 hashconfig->dgst_size      = DGST_SIZE_8_25;
+                 hashconfig->parse_func     = keccak_256_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_USES_BITS_64
+                                            | OPTI_TYPE_RAW_HASH;
+                 hashconfig->dgst_pos0      = 6;
+                 hashconfig->dgst_pos1      = 7;
+                 hashconfig->dgst_pos2      = 4;
+                 hashconfig->dgst_pos3      = 5;
+                 hashconfig->st_hash        = ST_HASH_17400;
+                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
+                 break;
+
+    case 17500:  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_PT_ADD06;
+                 hashconfig->kern_type      = KERN_TYPE_SHA3_384;
+                 hashconfig->dgst_size      = DGST_SIZE_8_25;
+                 hashconfig->parse_func     = keccak_384_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_USES_BITS_64
+                                            | OPTI_TYPE_RAW_HASH;
+                 hashconfig->dgst_pos0      = 6;
+                 hashconfig->dgst_pos1      = 7;
+                 hashconfig->dgst_pos2      = 4;
+                 hashconfig->dgst_pos3      = 5;
+                 hashconfig->st_hash        = ST_HASH_17500;
+                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
+                 break;
+
+    case 17600:  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_PT_ADD06;
+                 hashconfig->kern_type      = KERN_TYPE_SHA3_512;
+                 hashconfig->dgst_size      = DGST_SIZE_8_25;
+                 hashconfig->parse_func     = keccak_512_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_USES_BITS_64
+                                            | OPTI_TYPE_RAW_HASH;
+                 hashconfig->dgst_pos0      = 6;
+                 hashconfig->dgst_pos1      = 7;
+                 hashconfig->dgst_pos2      = 4;
+                 hashconfig->dgst_pos3      = 5;
+                 hashconfig->st_hash        = ST_HASH_17600;
+                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
+                 break;
+
+    case 17700:  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_PT_ADD01;
+                 hashconfig->kern_type      = KERN_TYPE_KECCAK_224;
+                 hashconfig->dgst_size      = DGST_SIZE_8_25;
+                 hashconfig->parse_func     = keccak_224_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_USES_BITS_64
+                                            | OPTI_TYPE_RAW_HASH;
+                 hashconfig->dgst_pos0      = 6;
+                 hashconfig->dgst_pos1      = 7;
+                 hashconfig->dgst_pos2      = 4;
+                 hashconfig->dgst_pos3      = 5;
+                 hashconfig->st_hash        = ST_HASH_17700;
+                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
+                 break;
+
+    case 17800:  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_PT_ADD01;
+                 hashconfig->kern_type      = KERN_TYPE_KECCAK_256;
+                 hashconfig->dgst_size      = DGST_SIZE_8_25;
+                 hashconfig->parse_func     = keccak_256_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_USES_BITS_64
+                                            | OPTI_TYPE_RAW_HASH;
+                 hashconfig->dgst_pos0      = 6;
+                 hashconfig->dgst_pos1      = 7;
+                 hashconfig->dgst_pos2      = 4;
+                 hashconfig->dgst_pos3      = 5;
+                 hashconfig->st_hash        = ST_HASH_17800;
+                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
+                 break;
+
+    case 17900:  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_PT_ADD01;
+                 hashconfig->kern_type      = KERN_TYPE_KECCAK_384;
+                 hashconfig->dgst_size      = DGST_SIZE_8_25;
+                 hashconfig->parse_func     = keccak_384_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_USES_BITS_64
+                                            | OPTI_TYPE_RAW_HASH;
+                 hashconfig->dgst_pos0      = 6;
+                 hashconfig->dgst_pos1      = 7;
+                 hashconfig->dgst_pos2      = 4;
+                 hashconfig->dgst_pos3      = 5;
+                 hashconfig->st_hash        = ST_HASH_17900;
+                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
+                 break;
+
+    case 18000:  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_PT_ADD01;
+                 hashconfig->kern_type      = KERN_TYPE_KECCAK_512;
+                 hashconfig->dgst_size      = DGST_SIZE_8_25;
+                 hashconfig->parse_func     = keccak_512_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_USES_BITS_64
+                                            | OPTI_TYPE_RAW_HASH;
+                 hashconfig->dgst_pos0      = 6;
+                 hashconfig->dgst_pos1      = 7;
+                 hashconfig->dgst_pos2      = 4;
+                 hashconfig->dgst_pos3      = 5;
+                 hashconfig->st_hash        = ST_HASH_18000;
+                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
+                 break;
+
     case 18100:  hashconfig->hash_type      = HASH_TYPE_SHA1;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -27498,6 +27753,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     hashconfig->opts_type &= ~OPTS_TYPE_PT_UTF16BE;
     hashconfig->opts_type &= ~OPTS_TYPE_PT_ADD01;
     hashconfig->opts_type &= ~OPTS_TYPE_PT_ADD02;
+    hashconfig->opts_type &= ~OPTS_TYPE_PT_ADD06;
     hashconfig->opts_type &= ~OPTS_TYPE_PT_ADD80;
     hashconfig->opts_type &= ~OPTS_TYPE_PT_ADDBITS14;
     hashconfig->opts_type &= ~OPTS_TYPE_PT_ADDBITS15;
@@ -28386,8 +28642,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
       case  2501: memcpy (salt->salt_buf, "hashcat.net", 11);
                   break;
       case  3100: salt->salt_len = 1;
-                  break;
-      case  5000: salt->keccak_mdlen = 32;
                   break;
       case  5800: salt->salt_len = 16;
                   break;
