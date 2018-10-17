@@ -5200,14 +5200,10 @@ int totp_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   digest[1] = otp_code;
 
   u8 *salt_pos = token.buf[1];
-  int salt_len = token.len[1];
 
   // convert ascii timestamp to ulong timestamp
   unsigned long timestamp = 0;
-  for(int i = 0; i<salt_len; i++)
-  {
-    timestamp = timestamp * 10 + ( *(salt_pos + i) - '0');
-  }
+  timestamp = hc_strtoul((const char *) salt_pos, NULL, 10);
 
   // divide our timestamp by our step. We will use the RFC 6238 default of 30 for now
   timestamp /= 30;
