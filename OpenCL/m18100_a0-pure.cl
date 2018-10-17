@@ -70,13 +70,13 @@ __kernel void m18100_mxx (__global pw_t *pws, __constant const kernel_rule_t *ru
     switch(otp_offset&3)
     {
     case 1:
-      otp_code = ((ctx.opad.h[otp_offset/4] & 0x00ffffff) <<  8) | ((ctx.opad.h[otp_offset/4+1] & 0xfffffeff) >> 24);
+      otp_code = ((ctx.opad.h[otp_offset/4] & 0x00ffffff) <<  8) | ((ctx.opad.h[otp_offset/4+1] & 0xff000000) >> 24);
       break;
     case 2:
-      otp_code = ((ctx.opad.h[otp_offset/4] & 0x0000ffff) << 16) | ((ctx.opad.h[otp_offset/4+1] & 0xfffeffff) >> 16);
+      otp_code = ((ctx.opad.h[otp_offset/4] & 0x0000ffff) << 16) | ((ctx.opad.h[otp_offset/4+1] & 0xffff0000) >> 16);
       break;
     case 3:
-      otp_code = ((ctx.opad.h[otp_offset/4] & 0x000000ff) << 24) | ((ctx.opad.h[otp_offset/4+1] & 0xfffffeff) >>  8);
+      otp_code = ((ctx.opad.h[otp_offset/4] & 0x000000ff) << 24) | ((ctx.opad.h[otp_offset/4+1] & 0xffffff00) >>  8);
       break;
     default:
       otp_code = ctx.opad.h[otp_offset/4];
@@ -163,13 +163,13 @@ __kernel void m18100_sxx (__global pw_t *pws, __constant const kernel_rule_t *ru
     switch(otp_offset&3)
     {
     case 1:
-      otp_code = ((ctx.opad.h[otp_offset/4] & 0x00ffffff) <<  8) | ((ctx.opad.h[otp_offset/4+1] & 0xfffffeff) >> 24);
+      otp_code = ((ctx.opad.h[otp_offset/4] & 0x00ffffff) <<  8) | ((ctx.opad.h[otp_offset/4+1] & 0xff000000) >> 24);
       break;
     case 2:
-      otp_code = ((ctx.opad.h[otp_offset/4] & 0x0000ffff) << 16) | ((ctx.opad.h[otp_offset/4+1] & 0xfffeffff) >> 16);
+      otp_code = ((ctx.opad.h[otp_offset/4] & 0x0000ffff) << 16) | ((ctx.opad.h[otp_offset/4+1] & 0xffff0000) >> 16);
       break;
     case 3:
-      otp_code = ((ctx.opad.h[otp_offset/4] & 0x000000ff) << 24) | ((ctx.opad.h[otp_offset/4+1] & 0xfffffeff) >>  8);
+      otp_code = ((ctx.opad.h[otp_offset/4] & 0x000000ff) << 24) | ((ctx.opad.h[otp_offset/4+1] & 0xffffff00) >>  8);
       break;
     default:
       otp_code = ctx.opad.h[otp_offset/4];
