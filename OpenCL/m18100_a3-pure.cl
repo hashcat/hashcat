@@ -75,16 +75,17 @@ __kernel void m18100_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
     unsigned int otp_code = 0;
 
     // grab 4 consecutive bytes of the hash, starting at offset
-    switch(otp_offset%4)
+    // on some systems, &3 is faster than %4, so we will use it in our switch()
+    switch(otp_offset&3)
     {
     case 1:
-      otp_code = ((ctx.opad.h[otp_offset/4] & 0xffffff) << 8) | ((ctx.opad.h[otp_offset/4+1] % 0xffffff00) >> 24);
+      otp_code = ((ctx.opad.h[otp_offset/4] & 0x00ffffff) <<  8) | ((ctx.opad.h[otp_offset/4+1] & 0xfffffeff) >> 24);
       break;
     case 2:
-      otp_code = ((ctx.opad.h[otp_offset/4] & 0xffff) << 16) | ((ctx.opad.h[otp_offset/4+1] % 0xffff0000) >> 16);
+      otp_code = ((ctx.opad.h[otp_offset/4] & 0x0000ffff) << 16) | ((ctx.opad.h[otp_offset/4+1] & 0xfffeffff) >> 16);
       break;
     case 3:
-      otp_code = ((ctx.opad.h[otp_offset/4] & 0xff) << 24) | ((ctx.opad.h[otp_offset/4+1] % 0xffffff00) >> 8);
+      otp_code = ((ctx.opad.h[otp_offset/4] & 0x000000ff) << 24) | ((ctx.opad.h[otp_offset/4+1] & 0xfeffffff) >>  8);
       break;
     default:
       otp_code = ctx.opad.h[otp_offset/4];
@@ -178,16 +179,17 @@ __kernel void m18100_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
     unsigned int otp_code = 0;
 
     // grab 4 consecutive bytes of the hash, starting at offset
-    switch(otp_offset%4)
+    // on some systems, &3 is faster than %4, so we will use it in our switch()
+    switch(otp_offset&3)
     {
     case 1:
-      otp_code = ((ctx.opad.h[otp_offset/4] & 0xffffff) << 8) | ((ctx.opad.h[otp_offset/4+1] % 0xffffff00) >> 24);
+      otp_code = ((ctx.opad.h[otp_offset/4] & 0x00ffffff) <<  8) | ((ctx.opad.h[otp_offset/4+1] & 0xfffffeff) >> 24);
       break;
     case 2:
-      otp_code = ((ctx.opad.h[otp_offset/4] & 0xffff) << 16) | ((ctx.opad.h[otp_offset/4+1] % 0xffff0000) >> 16);
+      otp_code = ((ctx.opad.h[otp_offset/4] & 0x0000ffff) << 16) | ((ctx.opad.h[otp_offset/4+1] & 0xfffeffff) >> 16);
       break;
     case 3:
-      otp_code = ((ctx.opad.h[otp_offset/4] & 0xff) << 24) | ((ctx.opad.h[otp_offset/4+1] % 0xffffff00) >> 8);
+      otp_code = ((ctx.opad.h[otp_offset/4] & 0x000000ff) << 24) | ((ctx.opad.h[otp_offset/4+1] & 0xfffffeff) >>  8);
       break;
     default:
       otp_code = ctx.opad.h[otp_offset/4];
