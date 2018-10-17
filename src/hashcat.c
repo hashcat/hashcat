@@ -523,6 +523,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->show == true)
   {
+    status_ctx->devices_status = STATUS_RUNNING;
+
     outfile_write_open (hashcat_ctx);
 
     const int rc = potfile_handle_show (hashcat_ctx);
@@ -536,6 +538,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->left == true)
   {
+    status_ctx->devices_status = STATUS_RUNNING;
+
     outfile_write_open (hashcat_ctx);
 
     const int rc = potfile_handle_left (hashcat_ctx);
