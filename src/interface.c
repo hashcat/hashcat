@@ -5193,7 +5193,7 @@ int totp_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   int otp_code = 0;
   for (int i = 0; i < 6; i++)
   {
-    otp_code = otp_code  * 10 + itoa32_to_int(input_buf[i]);
+    otp_code = otp_code * 10 + itoa32_to_int (input_buf[i]);
   }
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
@@ -5203,16 +5203,14 @@ int totp_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   // convert ascii timestamp to ulong timestamp
   unsigned long timestamp = 0;
-  timestamp = hc_strtoul((const char *) salt_pos, NULL, 10);
+  timestamp = hc_strtoul ((const char *) salt_pos, NULL, 10);
 
   // divide our timestamp by our step. We will use the RFC 6238 default of 30 for now
   timestamp /= 30;
 
   // convert counter to 8-byte salt
-  for (int i = 2; i--; timestamp >>= 32)
-  {
-    salt->salt_buf[i] = byte_swap_32(timestamp);
-  }
+  salt->salt_buf[1] = byte_swap_32 (timestamp);
+  salt->salt_buf[0] = byte_swap_32 (timestamp >> 32);
 
   // our salt will always be 8 bytes
   salt->salt_len = 8;
@@ -22337,7 +22335,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
       // for now, we only need to worry about 32 bit counters.
       // we also need to multiply salt by our step to see the floor of our original timestamp range.
       // again, we will use the default RFC 6238 step of 30.
-      snprintf (out_buf, out_len - 1, "%06d:%d", digest_buf[1], byte_swap_32(salt.salt_buf[1]) * 30);
+      snprintf (out_buf, out_len - 1, "%06d:%d", digest_buf[1], byte_swap_32 (salt.salt_buf[1]) * 30);
   }
   else if (hash_mode == 99999)
   {

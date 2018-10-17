@@ -284,10 +284,10 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
     // encode our plain
     base32_encode (int_to_base32, (const u8 *) plain_ptr, plain_len, (u8 *) temp_buf);
-    plain_len = strlen((const char *) temp_buf);
+    plain_len = strlen ((const char *) temp_buf);
 
     // copy the base32 content into our plain buffer
-    plain_ptr = (u8 *) strdup((const char *) temp_ptr);
+    plain_ptr = (u8 *) strdup ((const char *) temp_ptr);
   }
 
   // crackpos

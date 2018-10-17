@@ -9974,8 +9974,8 @@ END_CODE
   }
   elsif ($mode == 18100)
   {
-    my $paddedTime = sprintf("%016x", int(int($salt_buf) / 30));
-    my $data = pack('H*', $paddedTime);
+    my $paddedTime = sprintf ("%016x", int (int ($salt_buf) / 30));
+    my $data = pack ('H*', $paddedTime);
     my $key = $word_buf;
 
     $hash_buf = hmac_hex ($data, $key, \&sha1, 64);
@@ -9987,7 +9987,7 @@ END_CODE
     $token %= 1000000;
 
     ## token must be leading zero padded, and salt leading zero stripped
-    $tmp_hash = sprintf ("%06d:%d", $token, int($salt_buf));
+    $tmp_hash = sprintf ("%06d:%d", $token, int ($salt_buf));
   }
   elsif ($mode == 99999)
   {

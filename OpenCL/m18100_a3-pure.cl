@@ -76,7 +76,7 @@ __kernel void m18100_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     // grab 4 consecutive bytes of the hash, starting at offset
     // on some systems, &3 is faster than %4, so we will use it in our switch()
-    switch(otp_offset&3)
+    switch(otp_offset & 3)
     {
     case 1:
       otp_code = ((ctx.opad.h[otp_offset/4] & 0x00ffffff) <<  8) | ((ctx.opad.h[otp_offset/4+1] & 0xff000000) >> 24);
@@ -180,7 +180,7 @@ __kernel void m18100_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     // grab 4 consecutive bytes of the hash, starting at offset
     // on some systems, &3 is faster than %4, so we will use it in our switch()
-    switch(otp_offset&3)
+    switch(otp_offset & 3)
     {
 		case 1:
       otp_code = ((ctx.opad.h[otp_offset/4] & 0x00ffffff) <<  8) | ((ctx.opad.h[otp_offset/4+1] & 0xff000000) >> 24);
