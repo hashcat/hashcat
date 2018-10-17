@@ -36,6 +36,7 @@
 - Increased the maximum size of edata2 in Kerberos 5 TGS-REP etype 23
 - Allow hashfile for -m 16800 to be used with -m 16801
 - Make the masks parser more restrictive by rejecting a single '?' at the end of the mask (use ?? instead)
+- Add a periodic check for read timeouts in stdin/pipe mode and abort if no input was provided
 
 ##
 ## Bugs

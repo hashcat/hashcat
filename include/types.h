@@ -120,6 +120,8 @@ typedef enum event_identifier
   EVENT_MONITOR_THROTTLE2         = 0x00000084,
   EVENT_MONITOR_THROTTLE3         = 0x00000085,
   EVENT_MONITOR_PERFORMANCE_HINT  = 0x00000086,
+  EVENT_MONITOR_NOINPUT_HINT      = 0x00000087,
+  EVENT_MONITOR_NOINPUT_ABORT     = 0x00000088,
   EVENT_OPENCL_SESSION_POST       = 0x00000090,
   EVENT_OPENCL_SESSION_PRE        = 0x00000091,
   EVENT_OUTERLOOP_FINISHED        = 0x000000a0,
@@ -2021,6 +2023,12 @@ typedef struct status_ctx
   hc_timer_t timer_paused;      // timer on current dict
 
   double  msec_paused;          // timer on current dict
+
+  /**
+   * read timeouts
+   */
+
+  u32  stdin_read_timeout_cnt;
 
 } status_ctx_t;
 
