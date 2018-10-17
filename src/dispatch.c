@@ -179,8 +179,12 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
         {
           if (status_ctx->run_thread_level1 == false) break;
 
+          status_ctx->stdin_read_timeout_cnt++;
+
           continue;
         }
+
+        status_ctx->stdin_read_timeout_cnt = 0;
 
         char *line_buf = fgets (buf, HCBUFSIZ_LARGE - 1, stdin);
 
@@ -343,8 +347,12 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
         {
           if (status_ctx->run_thread_level1 == false) break;
 
+          status_ctx->stdin_read_timeout_cnt++;
+
           continue;
         }
+
+        status_ctx->stdin_read_timeout_cnt = 0;
 
         char *line_buf = fgets (buf, HCBUFSIZ_LARGE - 1, stdin);
 
