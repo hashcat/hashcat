@@ -22337,7 +22337,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
       // for now, we only need to worry about 32 bit counters.
       // we also need to multiply salt by our step to see the floor of our original timestamp range.
       // again, we will use the default RFC 6238 step of 30.
-      snprintf (out_buf, out_len - 1, "%d:%d", digest_buf[1], byte_swap_32(salt.salt_buf[1]) * 30);
+      snprintf (out_buf, out_len - 1, "%06d:%d", digest_buf[1], byte_swap_32(salt.salt_buf[1]) * 30);
   }
   else if (hash_mode == 99999)
   {
