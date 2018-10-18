@@ -2287,6 +2287,25 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
   user_options_t        *user_options       = hashcat_ctx->user_options;
   user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
 
+  // do the on-the-fly combinator mode encoding
+
+  bool iconv_enabled = false;
+
+  iconv_t iconv_ctx = NULL;
+
+  char *iconv_tmp = NULL;
+
+  if (strcmp (user_options->encoding_from, user_options->encoding_to) != 0)
+  {
+    iconv_enabled = true;
+
+    iconv_ctx = iconv_open (user_options->encoding_to, user_options->encoding_from);
+
+    if (iconv_ctx == (iconv_t) -1) return -1;
+
+    iconv_tmp = (char *) hcmalloc (HCBUFSIZ_TINY);
+  }
+
   // find higest password length, this is for optimization stuff
 
   u32 highest_pw_len = 0;
@@ -2461,6 +2480,21 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
                   line_buf_new = rule_buf_out;
                 }
 
+                // do the on-the-fly encoding
+
+                if (iconv_enabled == true)
+                {
+                  char  *iconv_ptr = iconv_tmp;
+                  size_t iconv_sz  = HCBUFSIZ_TINY;
+
+                  const size_t iconv_rc = iconv (iconv_ctx, &line_buf_new, &line_len, &iconv_ptr, &iconv_sz);
+
+                  if (iconv_rc == (size_t) -1) continue;
+
+                  line_buf_new = iconv_tmp;
+                  line_len     = HCBUFSIZ_TINY - iconv_sz;
+                }
+
                 line_len = MIN (line_len, PW_MAX - 1);
 
                 u8 *ptr = (u8 *) device_param->combs_buf[i].i;
@@ -2581,6 +2615,21 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
                   line_len = rule_len_out;
 
                   line_buf_new = rule_buf_out;
+                }
+
+                // do the on-the-fly encoding
+
+                if (iconv_enabled == true)
+                {
+                  char  *iconv_ptr = iconv_tmp;
+                  size_t iconv_sz  = HCBUFSIZ_TINY;
+
+                  const size_t iconv_rc = iconv (iconv_ctx, &line_buf_new, &line_len, &iconv_ptr, &iconv_sz);
+
+                  if (iconv_rc == (size_t) -1) continue;
+
+                  line_buf_new = iconv_tmp;
+                  line_len     = HCBUFSIZ_TINY - iconv_sz;
                 }
 
                 line_len = MIN (line_len, PW_MAX - 1);
