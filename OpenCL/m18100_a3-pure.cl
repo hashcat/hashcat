@@ -69,7 +69,7 @@ __kernel void m18100_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
     sha1_hmac_final_vector (&ctx);
 
     // calculate the offset using the least 4 bits of the last byte of our hash
-    const int otp_offset = ctx.opad.h[4] & 0xf;
+    const int otp_offset = (int) ctx.opad.h[4] & 0xf;
 
     // initialize a buffer for the otp code
     unsigned int otp_code = 0;
@@ -173,7 +173,7 @@ __kernel void m18100_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
     sha1_hmac_final_vector (&ctx);
 
     // calculate the offset using the least 4 bits of the last byte of our hash
-    const int otp_offset = ctx.opad.h[4] & 0xf;
+    const int otp_offset = (int) ctx.opad.h[4] & 0xf;
 
     // initialize a buffer for the otp code
     unsigned int otp_code = 0;
