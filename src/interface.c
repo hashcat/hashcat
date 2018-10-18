@@ -5184,17 +5184,14 @@ int totp_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
     token.len_min[1] *= 2;
     token.len_max[1] *= 2;
 
-    token.attr[1] |= TOKEN_ATTR_VERIFY_HEX;
+    token.attr[1] |= TOKEN_ATTR_VERIFY_DIGIT;
   }
 
   const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
   // now we need to reduce our hash into a token
-  int otp_code = 0;
-  for (int i = 0; i < 6; i++)
-  {
-    otp_code = otp_code * 10 + itoa32_to_int (input_buf[i]);
-  }
+  int otp_code = hc_strtoul ((const char *) input_buf, NULL, 10);
+
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
   digest[1] = otp_code;
@@ -5202,15 +5199,14 @@ int totp_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   u8 *salt_pos = token.buf[1];
 
   // convert ascii timestamp to ulong timestamp
-  unsigned long timestamp = 0;
-  timestamp = hc_strtoul ((const char *) salt_pos, NULL, 10);
+  u64 timestamp = hc_strtoul ((const char *) salt_pos, NULL, 10);
 
   // divide our timestamp by our step. We will use the RFC 6238 default of 30 for now
   timestamp /= 30;
 
   // convert counter to 8-byte salt
-  salt->salt_buf[1] = byte_swap_32 (timestamp);
-  salt->salt_buf[0] = byte_swap_32 (timestamp >> 32);
+  salt->salt_buf[1] = byte_swap_32 ((u32) (timestamp >>  0));
+  salt->salt_buf[0] = byte_swap_32 ((u32) (timestamp >> 32));
 
   // our salt will always be 8 bytes
   salt->salt_len = 8;
