@@ -739,3 +739,51 @@ int select_write_timeout (int sockfd, const int sec)
 
   return select (sockfd + 1, NULL, &fds, NULL, &tv);
 }
+
+#if defined (_WIN)
+
+int select_read_timeout_console (const int sec)
+{
+  const HANDLE hStdIn = GetStdHandle (STD_INPUT_HANDLE);
+
+  const DWORD rc = WaitForSingleObject (hStdIn, sec * 1000);
+
+  if (rc == WAIT_OBJECT_0)
+  {
+    DWORD dwRead;
+
+    INPUT_RECORD inRecords;
+
+    PeekConsoleInput (hStdIn, &inRecords, 1, &dwRead);
+
+    if (inRecords.EventType == KEY_EVENT)
+    {
+      // those are good ones
+
+      return 1;
+    }
+    else
+    {
+      // but we don't want that stuff like windows focus etc. in our stream
+
+      ReadConsoleInput (hStdIn, &inRecords, 1, &dwRead);
+    }
+
+    return select_read_timeout_console (sec);
+  }
+  else if (rc == WAIT_TIMEOUT)
+  {
+    return 0;
+  }
+
+  return -1;
+}
+
+#else
+
+int select_read_timeout_console (const int sec)
+{
+  return select_read_timeout (fileno (stdin), sec);
+}
+
+#endif

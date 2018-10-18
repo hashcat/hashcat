@@ -171,7 +171,7 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
       while (device_param->pws_pre_cnt < device_param->kernel_power)
       {
-        const int rc_select = select_read_timeout (fileno (stdin), 1);
+        const int rc_select = select_read_timeout_console (1);
 
         if (rc_select == -1) break;
 
@@ -339,7 +339,7 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
       while (device_param->pws_cnt < device_param->kernel_power)
       {
-        const int rc_select = select_read_timeout (fileno (stdin), 1);
+        const int rc_select = select_read_timeout_console (1);
 
         if (rc_select == -1) break;
 

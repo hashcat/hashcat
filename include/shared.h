@@ -83,4 +83,6 @@ float get_entropy (const u8 *buf, const int len);
 int select_read_timeout  (int sockfd, const int sec);
 int select_write_timeout (int sockfd, const int sec);
 
+int select_read_timeout_console (const int sec);
+
 #endif // _SHARED_H
