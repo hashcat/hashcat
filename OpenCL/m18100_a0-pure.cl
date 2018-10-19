@@ -32,7 +32,7 @@ __kernel void m18100_mxx (__global pw_t *pws, __constant const kernel_rule_t *ru
 
   COPY_PW (pws[gid]);
 
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+  const u32 salt_len = 8;
 
   u32 s[64] = { 0 };
 
@@ -125,7 +125,7 @@ __kernel void m18100_sxx (__global pw_t *pws, __constant const kernel_rule_t *ru
 
   COPY_PW (pws[gid]);
 
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+  const u32 salt_len = 8;
 
   u32 s[64] = { 0 };
 

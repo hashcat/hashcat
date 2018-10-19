@@ -37,7 +37,7 @@ __kernel void m18100_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
     w[idx] = swap32_S (pws[gid].i[idx]);
   }
 
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+  const u32 salt_len = 8;
 
   u32 s[64] = { 0 };
 
@@ -155,7 +155,7 @@ __kernel void m18100_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
     w[idx] = swap32_S (pws[gid].i[idx]);
   }
 
-  const u32 salt_len = salt_bufs[salt_pos].salt_len;
+  const u32 salt_len = 8;
 
   u32 s[64] = { 0 };
 

@@ -5201,6 +5201,10 @@ int totp_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   // convert ascii timestamp to ulong timestamp
   u64 timestamp = hc_strtoull ((const char *) salt_pos, NULL, 10);
 
+  // store the original salt value. Step division will destroy granularity for output
+  salt->salt_buf[3] = ((u32) (timestamp >>  0));
+  salt->salt_buf[2] = ((u32) (timestamp >> 32));
+
   // divide our timestamp by our step. We will use the RFC 6238 default of 30 for now
   timestamp /= 30;
 
@@ -5208,8 +5212,8 @@ int totp_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   salt->salt_buf[1] = byte_swap_32 ((u32) (timestamp >>  0));
   salt->salt_buf[0] = byte_swap_32 ((u32) (timestamp >> 32));
 
-  // our salt will always be 8 bytes
-  salt->salt_len = 8;
+  // our salt will always be 8 bytes, but we are going to cheat and store it twice, so...
+  salt->salt_len = 16;
 
   return (PARSER_OK);
 }
@@ -22331,8 +22335,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
       // we also need to multiply salt by our step to see the floor of our original timestamp range.
       // again, we will use the default RFC 6238 step of 30.
 
-      u64 tmp_salt_buf = (((u64) byte_swap_32 (salt.salt_buf[0])) << 32) | ((u64) byte_swap_32 (salt.salt_buf[1]));
-      tmp_salt_buf *= 30;
+      u64 tmp_salt_buf = (((u64) (salt.salt_buf[2])) << 32) | ((u64) (salt.salt_buf[3]));
 
       snprintf (out_buf, out_len - 1, "%06d:%llu", digest_buf[1], tmp_salt_buf);
   }
