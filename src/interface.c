@@ -4884,7 +4884,7 @@ int postgresql_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.len_min[1] = 32;
+  token.len_min[1] = 0;
   token.len_max[1] = 32;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
@@ -17842,6 +17842,20 @@ int wpa_pmkid_pmk_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MA
     const int rc_tokenizer2 = input_tokenizer (input_buf, input_len, &token);
 
     if (rc_tokenizer2 != PARSER_OK) return (rc_tokenizer);
+
+    // essid
+
+    u8 *essid_buf = token.buf[3];
+    int essid_len = token.len[3];
+
+    u8 *essid_ptr = (u8 *) wpa_pmkid->essid_buf;
+
+    for (int i = 0, j = 0; i < essid_len; i += 2, j += 1)
+    {
+      essid_ptr[j] = hex_to_u8 (essid_buf + i);
+    }
+
+    wpa_pmkid->essid_len = essid_len / 2;
   }
 
   // pmkid
@@ -22161,23 +22175,53 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     wpa_pmkid_t *wpa_pmkid = &wpa_pmkids[digest_cur];
 
-    snprintf (out_buf, out_len - 1, "%08x%08x%08x%08x*%02x%02x%02x%02x%02x%02x*%02x%02x%02x%02x%02x%02x",
-      wpa_pmkid->pmkid[0],
-      wpa_pmkid->pmkid[1],
-      wpa_pmkid->pmkid[2],
-      wpa_pmkid->pmkid[3],
-      wpa_pmkid->orig_mac_ap[0],
-      wpa_pmkid->orig_mac_ap[1],
-      wpa_pmkid->orig_mac_ap[2],
-      wpa_pmkid->orig_mac_ap[3],
-      wpa_pmkid->orig_mac_ap[4],
-      wpa_pmkid->orig_mac_ap[5],
-      wpa_pmkid->orig_mac_sta[0],
-      wpa_pmkid->orig_mac_sta[1],
-      wpa_pmkid->orig_mac_sta[2],
-      wpa_pmkid->orig_mac_sta[3],
-      wpa_pmkid->orig_mac_sta[4],
-      wpa_pmkid->orig_mac_sta[5]);
+    if (wpa_pmkid->essid_len)
+    {
+      exec_hexify ((const u8*) wpa_pmkid->essid_buf, wpa_pmkid->essid_len, (u8 *) tmp_buf);
+
+      int tmp_len = wpa_pmkid->essid_len * 2;
+
+      tmp_buf[tmp_len] = 0;
+
+      snprintf (out_buf, out_len - 1, "%08x%08x%08x%08x*%02x%02x%02x%02x%02x%02x*%02x%02x%02x%02x%02x%02x:%s",
+        wpa_pmkid->pmkid[0],
+        wpa_pmkid->pmkid[1],
+        wpa_pmkid->pmkid[2],
+        wpa_pmkid->pmkid[3],
+        wpa_pmkid->orig_mac_ap[0],
+        wpa_pmkid->orig_mac_ap[1],
+        wpa_pmkid->orig_mac_ap[2],
+        wpa_pmkid->orig_mac_ap[3],
+        wpa_pmkid->orig_mac_ap[4],
+        wpa_pmkid->orig_mac_ap[5],
+        wpa_pmkid->orig_mac_sta[0],
+        wpa_pmkid->orig_mac_sta[1],
+        wpa_pmkid->orig_mac_sta[2],
+        wpa_pmkid->orig_mac_sta[3],
+        wpa_pmkid->orig_mac_sta[4],
+        wpa_pmkid->orig_mac_sta[5],
+        tmp_buf);
+    }
+    else
+    {
+      snprintf (out_buf, out_len - 1, "%08x%08x%08x%08x*%02x%02x%02x%02x%02x%02x*%02x%02x%02x%02x%02x%02x",
+        wpa_pmkid->pmkid[0],
+        wpa_pmkid->pmkid[1],
+        wpa_pmkid->pmkid[2],
+        wpa_pmkid->pmkid[3],
+        wpa_pmkid->orig_mac_ap[0],
+        wpa_pmkid->orig_mac_ap[1],
+        wpa_pmkid->orig_mac_ap[2],
+        wpa_pmkid->orig_mac_ap[3],
+        wpa_pmkid->orig_mac_ap[4],
+        wpa_pmkid->orig_mac_ap[5],
+        wpa_pmkid->orig_mac_sta[0],
+        wpa_pmkid->orig_mac_sta[1],
+        wpa_pmkid->orig_mac_sta[2],
+        wpa_pmkid->orig_mac_sta[3],
+        wpa_pmkid->orig_mac_sta[4],
+        wpa_pmkid->orig_mac_sta[5]);
+    }
   }
   else if (hash_mode == 16900)
   {

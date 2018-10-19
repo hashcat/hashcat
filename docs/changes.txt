@@ -49,6 +49,7 @@
 - Fixed detection of unique ESSID in WPA-PMKID-* parser
 - Fixed speed/delay problem when quitting while the outfile folder is being scanned
 - Fixed a race condition in status view leading to out-of-bound reads
+- Fixed the tokenizer configuration in postgres hash parser
 - Fixed missing wordlist encoding in combinator mode
 
 * changes v4.2.0 -> v4.2.1
