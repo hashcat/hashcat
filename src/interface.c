@@ -5199,7 +5199,7 @@ int totp_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   u8 *salt_pos = token.buf[1];
 
   // convert ascii timestamp to ulong timestamp
-  u64 timestamp = hc_strtoul ((const char *) salt_pos, NULL, 10);
+  u64 timestamp = hc_strtoull ((const char *) salt_pos, NULL, 10);
 
   // divide our timestamp by our step. We will use the RFC 6238 default of 30 for now
   timestamp /= 30;
@@ -22328,10 +22328,13 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   else if (hash_mode == 18100)
   {
       // salt_buf[1] holds our 32 bit value. salt_buf[0] and salt_buf[1] would be 64 bits.
-      // for now, we only need to worry about 32 bit counters.
       // we also need to multiply salt by our step to see the floor of our original timestamp range.
       // again, we will use the default RFC 6238 step of 30.
-      snprintf (out_buf, out_len - 1, "%06d:%d", digest_buf[1], byte_swap_32 (salt.salt_buf[1]) * 30);
+
+      u64 tmp_salt_buf = (((u64) byte_swap_32 (salt.salt_buf[0])) << 32) | ((u64) byte_swap_32 (salt.salt_buf[1]));
+      tmp_salt_buf *= 30;
+
+      snprintf (out_buf, out_len - 1, "%06d:%llu", digest_buf[1], tmp_salt_buf);
   }
   else if (hash_mode == 99999)
   {
