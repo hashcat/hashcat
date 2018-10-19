@@ -9980,7 +9980,7 @@ END_CODE
 
     $hash_buf = hmac_hex ($data, $key, \&sha1, 64);
 
-    my $offset =  hex (substr ($hash_buf, -8)) & 0xf;
+    my $offset = hex (substr ($hash_buf, -8)) & 0xf;
     $offset *= 2;
     my $token = hex (substr ($hash_buf, $offset, 8));
     $token &= 0x7fffffff;
