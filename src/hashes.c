@@ -288,7 +288,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
     plain_len = strlen ((const char *) temp_buf);
 
     // copy the base32 content into our plain buffer
-    plain_ptr = (u8 *) strdup ((const char *) temp_ptr);
+    strncpy ((char *) plain_ptr, (char *) temp_ptr, sizeof (plain_buf));
   }
 
   // crackpos
