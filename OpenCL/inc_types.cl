@@ -1084,8 +1084,6 @@ typedef struct salt
   u32 salt_iter2;
   u32 salt_sign[2];
 
-  u32 keccak_mdlen;
-
   u32 digests_cnt;
   u32 digests_done;
 
