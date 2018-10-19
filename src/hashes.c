@@ -254,6 +254,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
   debugfile_ctx_t *debugfile_ctx = hashcat_ctx->debugfile_ctx;
   loopback_ctx_t  *loopback_ctx  = hashcat_ctx->loopback_ctx;
   hashes_t        *hashes        = hashcat_ctx->hashes;
+  hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
 
   const u32 salt_pos    = plain->salt_pos;
   const u32 digest_pos  = plain->digest_pos;  // relative
@@ -276,7 +277,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
   build_plain (hashcat_ctx, device_param, plain, plain_buf, &plain_len);
 
   // TOTP should be base32 encoded
-  if (hashcat_ctx->hashconfig->hash_mode == KERN_TYPE_TOTP_HMACSHA1)
+  if (hashconfig->hash_mode == KERN_TYPE_TOTP_HMACSHA1)
   {
     // we need a temp buffer for the base32 encoding
     u32 temp_buf[64] = { 0 };

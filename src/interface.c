@@ -5189,10 +5189,10 @@ int totp_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
   // now we need to reduce our hash into a token
   int otp_code = hc_strtoul ((const char *) input_buf, NULL, 10);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
   digest[1] = otp_code;
 
