@@ -151,43 +151,13 @@ LZMA_SDK_INCLUDE        := $(LIBRARY_DEV_ROOT_FOLDER)/lzma-sdk/C
 ## General compiler and linker options
 ##
 
-CFLAGS                  += -pipe -std=gnu99 -Iinclude/ -IOpenCL/
+LFLAGS                  := $(LDFLAGS)
 
 ifeq ($(PRODUCTION),0)
 CFLAGS                  += -W
 CFLAGS                  += -Wall
 CFLAGS                  += -Wextra
-CFLAGS                  += -Wfloat-equal
-CFLAGS                  += -Wundef
-CFLAGS                  += -Wshadow
-CFLAGS                  += -Wmissing-declarations
-CFLAGS                  += -Wmissing-prototypes
-CFLAGS                  += -Wpointer-arith
-CFLAGS                  += -Wstrict-prototypes
-CFLAGS                  += -Waggregate-return
-CFLAGS                  += -Wswitch-enum
-CFLAGS                  += -Winit-self
-CFLAGS                  += -Werror-implicit-function-declaration
-CFLAGS                  += -Wformat
-CFLAGS                  += -ftrapv
-CFLAGS                  += -Wwrite-strings
 endif
-
-# default Linux and freebsd thread stack size is 2MB
-# default Windows thread stack size is 1MB
-# default macOS thread stack size is 512kB
-# unfortunately, this option isn't supported by older GCC and clang versions
-
-#CFLAGS                  += -Wstack-usage=524288
-
-ifeq ($(SYSTEM_LZMA_SDK),0)
-CFLAGS                  += -Ideps/lzma_sdk/
-else
-CFLAGS                  += $(LZMA_SDK_INCLUDE)
-LDFLAGS                 += -llzmasdk
-endif
-
-LFLAGS                  := $(LDFLAGS)
 
 ifeq ($(DEBUG),0)
 CFLAGS                  += -O2
@@ -203,6 +173,16 @@ CFLAGS                  += -DDEBUG -Og -ggdb
 CFLAGS                  += -fsanitize=address -fno-omit-frame-pointer
 endif
 endif
+endif
+
+CFLAGS                  += -pipe -std=gnu99 -Iinclude/ -IOpenCL/
+
+# LZMA
+ifeq ($(SYSTEM_LZMA_SDK),0)
+CFLAGS                  += -Ideps/lzma_sdk
+else
+CFLAGS                  += $(LZMA_SDK_INCLUDE)
+LDFLAGS                 += -llzmasdk
 endif
 
 ##
@@ -305,14 +285,6 @@ LFLAGS_CROSS_WIN64      := $(LFLAGS)
 LFLAGS_CROSS_WIN64      += -Wl,--dynamicbase -Wl,--nxcompat
 LFLAGS_CROSS_WIN64      += -lpsapi
 LFLAGS_CROSS_WIN64      += -lws2_32
-
-CFLAGS_REMOVE_LZMA        := -Wmissing-declarations -Wmissing-prototypes -Wstrict-prototypes -Wundef
-
-CFLAGS_NATIVE_LZMA        := $(filter-out $(CFLAGS_REMOVE_LZMA),$(CFLAGS_NATIVE))
-CFLAGS_CROSS_LINUX32_LZMA := $(filter-out $(CFLAGS_REMOVE_LZMA),$(CFLAGS_CROSS_LINUX32))
-CFLAGS_CROSS_LINUX64_LZMA := $(filter-out $(CFLAGS_REMOVE_LZMA),$(CFLAGS_CROSS_LINUX64))
-CFLAGS_CROSS_WIN32_LZMA   := $(filter-out $(CFLAGS_REMOVE_LZMA),$(CFLAGS_CROSS_WIN32))
-CFLAGS_CROSS_WIN64_LZMA   := $(filter-out $(CFLAGS_REMOVE_LZMA),$(CFLAGS_CROSS_WIN64))
 
 ##
 ## Objects
@@ -479,10 +451,10 @@ obj/%.NATIVE.SHARED.o: src/%.c
 
 ifeq ($(SYSTEM_LZMA_SDK),0)
 obj/%.NATIVE.STATIC.o: deps/lzma_sdk/%.c
-	$(CC) -c $(CFLAGS_NATIVE_LZMA) $< -o $@
+	$(CC) -c $(CFLAGS_NATIVE) $< -o $@
 
 obj/%.NATIVE.SHARED.o: deps/lzma_sdk/%.c
-	$(CC) -c $(CFLAGS_NATIVE_LZMA) $< -o $@ -fpic
+	$(CC) -c $(CFLAGS_NATIVE) $< -o $@ -fpic
 endif
 
 ifeq ($(UNAME),Darwin)
@@ -519,16 +491,16 @@ obj/%.WIN.64.o:   src/%.c
 
 ifeq ($(SYSTEM_LZMA_SDK),0)
 obj/%.LINUX.32.o: deps/lzma_sdk/%.c
-	$(CC_LINUX_32) $(CFLAGS_CROSS_LINUX32_LZMA) -c -o $@ $<
+	$(CC_LINUX_32) $(CFLAGS_CROSS_LINUX32) -c -o $@ $<
 
 obj/%.LINUX.64.o: deps/lzma_sdk/%.c
-	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX64_LZMA) -c -o $@ $<
+	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX64) -c -o $@ $<
 
 obj/%.WIN.32.o:   deps/lzma_sdk/%.c
-	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN32_LZMA)   -c -o $@ $<
+	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN32)   -c -o $@ $<
 
 obj/%.WIN.64.o:   deps/lzma_sdk/%.c
-	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64_LZMA)   -c -o $@ $<
+	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)   -c -o $@ $<
 endif
 
 hashcat32.bin: src/main.c $(LINUX_32_OBJS)
