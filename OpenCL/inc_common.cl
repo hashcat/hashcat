@@ -79,7 +79,7 @@ DECLSPEC u32 check (const u32 *digest, __global const u32 *bitmap_s1_a, __global
   return (1);
 }
 
-DECLSPEC void mark_hash (__global plain_t *plains_buf, __global u32 *d_result, const u32 salt_pos, const u32 digests_cnt, const u32 digest_pos, const u32 hash_pos, const u32 gid, const u32 il_pos)
+DECLSPEC void mark_hash (__global plain_t *plains_buf, __global u32 *d_result, const u32 salt_pos, const u32 digests_cnt, const u32 digest_pos, const u32 hash_pos, const u64 gid, const u32 il_pos)
 {
   const u32 idx = atomic_inc (d_result);
 
