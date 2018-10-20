@@ -4,7 +4,7 @@
 ##
 
 SHARED                  := 0
-DEBUG                   := 1
+DEBUG                   := 0
 PRODUCTION              := 0
 PRODUCTION_VERSION      := v4.2.1
 
@@ -44,7 +44,7 @@ endif
 ## Native compiler paths
 ##
 
-CC                      := gcc -m32
+CC                      := gcc
 FIND                    := find
 INSTALL                 := install
 RM                      := rm
