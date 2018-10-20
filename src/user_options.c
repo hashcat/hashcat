@@ -334,8 +334,10 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_EXAMPLE_HASHES:           user_options->example_hashes            = true;                            break;
       case IDX_FORCE:                    user_options->force                     = true;                            break;
       case IDX_SELF_TEST_DISABLE:        user_options->self_test_disable         = true;                            break;
-      case IDX_SKIP:                     user_options->skip                      = hc_strtoull (optarg, NULL, 10);  break;
-      case IDX_LIMIT:                    user_options->limit                     = hc_strtoull (optarg, NULL, 10);  break;
+      case IDX_SKIP:                     user_options->skip                      = hc_strtoull (optarg, NULL, 10);
+                                         user_options->skip_chgd                 = true;                            break;
+      case IDX_LIMIT:                    user_options->limit                     = hc_strtoull (optarg, NULL, 10);
+                                         user_options->limit_chgd                = true;                            break;
       case IDX_KEEP_GUESSING:            user_options->keep_guessing             = true;                            break;
       case IDX_KEYSPACE:                 user_options->keyspace                  = true;                            break;
       case IDX_BENCHMARK:                user_options->benchmark                 = true;                            break;
@@ -489,6 +491,22 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
       return -1;
     }
+  }
+
+  /*
+  if (user_options->skip_chgd == true && user_options->skip == 0)
+  {
+    event_log_error (hashcat_ctx, "Invalid --skip value specified.");
+
+    return -1;
+  }
+  */
+
+  if (user_options->limit_chgd == true && user_options->limit == 0)
+  {
+    event_log_error (hashcat_ctx, "Invalid --limit value specified.");
+
+    return -1;
   }
 
   if (user_options->runtime_chgd == true && user_options->runtime == 0)
@@ -1129,6 +1147,18 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       if (user_options->hc_argc >= 1)
       {
         show_error = false;
+      }
+
+      if (user_options->hc_argc == 1)
+      {
+        // stdin mode
+
+        if (user_options->slow_candidates == true)
+        {
+          event_log_error (hashcat_ctx, "Use of --slow-candidates is not possible in stdin mode.");
+
+          return -1;
+        }
       }
     }
     else if (user_options->attack_mode == ATTACK_MODE_COMBI)
