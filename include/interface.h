@@ -142,7 +142,6 @@ typedef struct blake2
   u64 f[2];
   u32 buflen;
   u32 outlen;
-  u8  last_node;
 
 } blake2_t;
 
@@ -969,7 +968,7 @@ typedef struct dpapimk_tmp_v2
   u64 dgst64[16];
   u64 out64[16];
 
-  u32 userKey[5];
+  u32 userKey[8];
 
 } dpapimk_tmp_v2_t;
 
