@@ -366,6 +366,8 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
   if (num_cracked)
   {
+printf ("%d\n", num_cracked);
+
     plain_t *cracked = (plain_t *) hccalloc (num_cracked, sizeof (plain_t));
 
     CL_err = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->command_queue, device_param->d_plain_bufs, CL_TRUE, 0, num_cracked * sizeof (plain_t), cracked, 0, NULL, NULL);
@@ -376,6 +378,14 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
       return -1;
     }
+
+u8 *ptr = (u8 *) cracked;
+
+for (int i = 0; i < sizeof (plain_t); i++)
+{
+printf ("%d %02x\n", i, ptr[i]);
+}
+
 
     u32 cpt_cracked = 0;
 

@@ -874,8 +874,8 @@ char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
   const u32 innerloop_first = 0;
   const u32 innerloop_last  = device_param->innerloop_left - 1;
 
-  plain_t plain1 = { 0, 0, 0, outerloop_first, innerloop_first };
-  plain_t plain2 = { 0, 0, 0, outerloop_last,  innerloop_last  };
+  plain_t plain1 = { outerloop_first, innerloop_first, 0, 0, 0 };
+  plain_t plain2 = { outerloop_last,  innerloop_last,  0, 0, 0 };
 
   u32 plain_buf1[(64 * 2) + 2] = { 0 };
   u32 plain_buf2[(64 * 2) + 2] = { 0 };

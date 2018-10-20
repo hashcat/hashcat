@@ -942,11 +942,11 @@ typedef struct cpt
 
 typedef struct plain
 {
+  u64  gidvid;
+  u32  il_pos;
   u32  salt_pos;
   u32  digest_pos;
   u32  hash_pos;
-  u64  gidvid;
-  u32  il_pos;
 
 } plain_t;
 

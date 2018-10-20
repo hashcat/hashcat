@@ -31,6 +31,9 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
   const u64 gidvid = plain->gidvid;
   const u32 il_pos = plain->il_pos;
 
+printf ("%" PRIu64 "\n", gidvid);
+printf ("%" PRIu32 "\n", il_pos);
+
   int plain_len = 0;
 
   u8 *plain_ptr = (u8 *) plain_buf;
