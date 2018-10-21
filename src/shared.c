@@ -754,9 +754,11 @@ int select_read_timeout_console (const int sec)
 
     INPUT_RECORD inRecords;
 
+    inRecords.EventType = 0;
+
     PeekConsoleInput (hStdIn, &inRecords, 1, &dwRead);
 
-    if (inRecords.EventType == KEY_EVENT)
+    if (inRecords.EventType == 0)
     {
       // those are good ones
 
