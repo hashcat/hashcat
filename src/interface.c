@@ -3,6 +3,7 @@
  * License.....: MIT
  */
 
+#include <inttypes.h>
 #include "common.h"
 #include "types.h"
 #include "bitops.h"
@@ -22337,7 +22338,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
       u64 tmp_salt_buf = (((u64) (salt.salt_buf[2])) << 32) | ((u64) (salt.salt_buf[3]));
 
-      snprintf (out_buf, out_len - 1, "%06d:%llu", digest_buf[1], tmp_salt_buf);
+      snprintf (out_buf, out_len - 1, "%06d:%" PRIu64, digest_buf[1], tmp_salt_buf);
   }
   else if (hash_mode == 99999)
   {
