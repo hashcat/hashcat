@@ -306,6 +306,10 @@ static void main_cracker_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
   {
     status_display (hashcat_ctx);
   }
+  else if (user_options->status == true)
+  {
+    status_display (hashcat_ctx);
+  }
   else
   {
     if (user_options->quiet == false)
