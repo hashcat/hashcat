@@ -14283,7 +14283,7 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   token.sep[2]     = '*';
   token.len_min[2] = 1;
-  token.len_max[2] = 6;
+  token.len_max[2] = 8;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 

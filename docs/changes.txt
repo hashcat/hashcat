@@ -29,6 +29,7 @@
 - Added a tracker for salts, amplifier and iterations to the status screen
 - Added option --markov-hcstat2 to make it clear that the new hcstat2 format (compressed hcstat2gen output) must be used
 - Allow bitcoin master key lengths other than 96 bytes (but they must be always multiples of 16)
+- Allow keepass iteration count to be larger than 999999
 - Allow hashfile for -m 16800 to be used with -m 16801
 - Do not allocate memory segments for bitmap tables if we don't need it - for example, in benchmark mode
 - Got rid of OPTS_TYPE_HASH_COPY for Ansible Vault
