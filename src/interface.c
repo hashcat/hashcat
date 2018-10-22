@@ -3,6 +3,7 @@
  * License.....: MIT
  */
 
+#include <inttypes.h>
 #include "common.h"
 #include "types.h"
 #include "bitops.h"
@@ -288,6 +289,7 @@ static const char *ST_HASH_17700 = "e1dfad9bafeae6ef15f5bbb16cf4c26f09f5f1e78705
 static const char *ST_HASH_17800 = "203f88777f18bb4ee1226627b547808f38d90d3e106262b5de9ca943b57137b6";
 static const char *ST_HASH_17900 = "5804b7ada5806ba79540100e9a7ef493654ff2a21d94d4f2ce4bf69abda5d94bf03701fe9525a15dfdc625bfbd769701";
 static const char *ST_HASH_18000 = "2fbf5c9080f0a704de2e915ba8fdae6ab00bbc026b2c1c8fa07da1239381c6b7f4dfd399bf9652500da723694a4c719587dd0219cb30eabe61210a8ae4dc0b03";
+static const char *ST_HASH_18100 = "597056:3600";
 static const char *ST_HASH_99999 = "hashcat";
 
 static const char *OPTI_STR_OPTIMIZED_KERNEL     = "Optimized-Kernel";
@@ -543,6 +545,7 @@ static const char *HT_17700 = "Keccak-224";
 static const char *HT_17800 = "Keccak-256";
 static const char *HT_17900 = "Keccak-384";
 static const char *HT_18000 = "Keccak-512";
+static const char *HT_18100 = "TOTP (HMAC-SHA1)";
 static const char *HT_99999 = "Plaintext";
 
 static const char *HT_00011 = "Joomla < 2.5.18";
@@ -5152,6 +5155,66 @@ int sha1s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUS
   const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
+
+  return (PARSER_OK);
+}
+
+int totp_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
+{
+  // this is going to start off like HMAC-SHA1
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  token_t token;
+
+  token.token_cnt  = 2;
+
+  token.sep[0]     = hashconfig->separator;
+  token.len_min[0] = 6;
+  token.len_max[0] = 6;
+  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
+
+  token.len_min[1] = SALT_MIN;
+  token.len_max[1] = SALT_MAX;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
+  {
+    token.len_min[1] *= 2;
+    token.len_max[1] *= 2;
+
+    token.attr[1] |= TOKEN_ATTR_VERIFY_DIGIT;
+  }
+
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
+
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+  // now we need to reduce our hash into a token
+  int otp_code = hc_strtoul ((const char *) input_buf, NULL, 10);
+
+  digest[0] = otp_code;
+
+  u8 *salt_pos = token.buf[1];
+
+  // convert ascii timestamp to ulong timestamp
+  u64 timestamp = hc_strtoull ((const char *) salt_pos, NULL, 10);
+
+  // store the original salt value. Step division will destroy granularity for output
+  salt->salt_buf[3] = ((u32) (timestamp >>  0));
+  salt->salt_buf[2] = ((u32) (timestamp >> 32));
+
+  // divide our timestamp by our step. We will use the RFC 6238 default of 30 for now
+  timestamp /= 30;
+
+  // convert counter to 8-byte salt
+  salt->salt_buf[1] = byte_swap_32 ((u32) (timestamp >>  0));
+  salt->salt_buf[0] = byte_swap_32 ((u32) (timestamp >> 32));
+
+  // our salt will always be 8 bytes, but we are going to cheat and store it twice, so...
+  salt->salt_len = 16;
 
   return (PARSER_OK);
 }
@@ -18515,6 +18578,7 @@ const char *strhashtype (const u32 hash_mode)
     case 17800: return HT_17800;
     case 17900: return HT_17900;
     case 18000: return HT_18000;
+    case 18100: return HT_18100;
     case 99999: return HT_99999;
   }
 
@@ -22309,6 +22373,16 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
         ptr[13], ptr[12],
         ptr[15], ptr[14]
       );
+  }
+  else if (hash_mode == 18100)
+  {
+      // salt_buf[1] holds our 32 bit value. salt_buf[0] and salt_buf[1] would be 64 bits.
+      // we also need to multiply salt by our step to see the floor of our original timestamp range.
+      // again, we will use the default RFC 6238 step of 30.
+
+      u64 tmp_salt_buf = (((u64) (salt.salt_buf[2])) << 32) | ((u64) (salt.salt_buf[3]));
+
+      snprintf (out_buf, out_len - 1, "%06d:%" PRIu64, digest_buf[0], tmp_salt_buf);
   }
   else if (hash_mode == 99999)
   {
@@ -27595,6 +27669,26 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos2      = 4;
                  hashconfig->dgst_pos3      = 5;
                  hashconfig->st_hash        = ST_HASH_18000;
+                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
+                 break;
+
+    case 18100:  hashconfig->hash_type      = HASH_TYPE_SHA1;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
+                                            | OPTS_TYPE_PT_ADD80
+                                            | OPTS_TYPE_PT_ADDBITS15
+                                            | OPTS_TYPE_PT_NEVERCRACK;
+                 hashconfig->kern_type      = KERN_TYPE_TOTP_HMACSHA1;
+                 hashconfig->dgst_size      = DGST_SIZE_4_4;
+                 hashconfig->parse_func     = totp_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_NOT_ITERATED;
+                 hashconfig->dgst_pos0      = 0;
+                 hashconfig->dgst_pos1      = 1;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 3;
+                 hashconfig->st_hash        = ST_HASH_18100;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 

@@ -18,6 +18,7 @@
 - Added hash-mode 17800 = Keccak-256
 - Added hash-mode 17900 = Keccak-384
 - Added hash-mode 18000 = Keccak-512
+- Added hash-mode 18100 = TOTP (HMAC-SHA1)
 - Removed hash-mode 5000 = SHA-3 (Keccak)
 
 ##

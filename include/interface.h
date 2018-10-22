@@ -1330,6 +1330,7 @@ typedef enum kern_type
   KERN_TYPE_KECCAK_256              = 17800,
   KERN_TYPE_KECCAK_384              = 17900,
   KERN_TYPE_KECCAK_512              = 18000,
+  KERN_TYPE_TOTP_HMACSHA1           = 18100,
   KERN_TYPE_PLAINTEXT               = 99999,
 
 } kern_type_t;
@@ -1595,6 +1596,7 @@ int filevault2_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int wpa_pmkid_pbkdf2_parse_hash   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int wpa_pmkid_pmk_parse_hash      (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int ansible_vault_parse_hash      (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
+int totp_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 
 /**
  * hook functions
