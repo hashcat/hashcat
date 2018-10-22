@@ -59,29 +59,30 @@ __kernel void m18100_mxx (__global pw_t *pws, __constant const kernel_rule_t *ru
 
     sha1_hmac_final (&ctx);
 
-    // calculate the offset using the least 4 bits of the last byte of our hash
-    const u32x otp_offset = ctx.opad.h[4] & 0xf;
-
     // initialize a buffer for the otp code
     u32 otp_code = 0;
 
     // grab 4 consecutive bytes of the hash, starting at offset
-    // on some systems, &3 is faster than %4, so we will use it in our switch()
-    switch (otp_offset & 3)
+    switch (ctx.opad.h[4] & 15)
     {
-    case 1:
-      otp_code = ((ctx.opad.h[otp_offset/4] & 0x00ffffff) <<  8) | ((ctx.opad.h[otp_offset/4+1] & 0xff000000) >> 24);
-      break;
-    case 2:
-      otp_code = ((ctx.opad.h[otp_offset/4] & 0x0000ffff) << 16) | ((ctx.opad.h[otp_offset/4+1] & 0xffff0000) >> 16);
-      break;
-    case 3:
-      otp_code = ((ctx.opad.h[otp_offset/4] & 0x000000ff) << 24) | ((ctx.opad.h[otp_offset/4+1] & 0xffffff00) >>  8);
-      break;
-    default:
-      otp_code = ctx.opad.h[otp_offset/4];
-      break;
+      case  0: otp_code = ctx.opad.h[0];                              break;
+      case  1: otp_code = ctx.opad.h[0] <<  8 | ctx.opad.h[1] >> 24;  break;
+      case  2: otp_code = ctx.opad.h[0] << 16 | ctx.opad.h[1] >> 16;  break;
+      case  3: otp_code = ctx.opad.h[0] << 24 | ctx.opad.h[1] >>  8;  break;
+      case  4: otp_code = ctx.opad.h[1];                              break;
+      case  5: otp_code = ctx.opad.h[1] <<  8 | ctx.opad.h[2] >> 24;  break;
+      case  6: otp_code = ctx.opad.h[1] << 16 | ctx.opad.h[2] >> 16;  break;
+      case  7: otp_code = ctx.opad.h[1] << 24 | ctx.opad.h[2] >>  8;  break;
+      case  8: otp_code = ctx.opad.h[2];                              break;
+      case  9: otp_code = ctx.opad.h[2] <<  8 | ctx.opad.h[3] >> 24;  break;
+      case 10: otp_code = ctx.opad.h[2] << 16 | ctx.opad.h[3] >> 16;  break;
+      case 11: otp_code = ctx.opad.h[2] << 24 | ctx.opad.h[3] >>  8;  break;
+      case 12: otp_code = ctx.opad.h[3];                              break;
+      case 13: otp_code = ctx.opad.h[3] <<  8 | ctx.opad.h[4] >> 24;  break;
+      case 14: otp_code = ctx.opad.h[3] << 16 | ctx.opad.h[4] >> 16;  break;
+      case 15: otp_code = ctx.opad.h[3] << 24 | ctx.opad.h[4] >>  8;  break;
     }
+
     // take only the lower 31 bits
     otp_code &= 0x7fffffff;
     // we want to generate only 6 digits of code
@@ -152,29 +153,30 @@ __kernel void m18100_sxx (__global pw_t *pws, __constant const kernel_rule_t *ru
 
     sha1_hmac_final (&ctx);
 
-    // calculate the offset using the least 4 bits of the last byte of our hash
-    const u32x otp_offset = ctx.opad.h[4] & 0xf;
-
     // initialize a buffer for the otp code
     u32 otp_code = 0;
 
     // grab 4 consecutive bytes of the hash, starting at offset
-    // on some systems, &3 is faster than %4, so we will use it in our switch()
-    switch (otp_offset & 3)
+    switch (ctx.opad.h[4] & 15)
     {
-    case 1:
-      otp_code = ((ctx.opad.h[otp_offset/4] & 0x00ffffff) <<  8) | ((ctx.opad.h[otp_offset/4+1] & 0xff000000) >> 24);
-      break;
-    case 2:
-      otp_code = ((ctx.opad.h[otp_offset/4] & 0x0000ffff) << 16) | ((ctx.opad.h[otp_offset/4+1] & 0xffff0000) >> 16);
-      break;
-    case 3:
-      otp_code = ((ctx.opad.h[otp_offset/4] & 0x000000ff) << 24) | ((ctx.opad.h[otp_offset/4+1] & 0xffffff00) >>  8);
-      break;
-    default:
-      otp_code = ctx.opad.h[otp_offset/4];
-      break;
+      case  0: otp_code = ctx.opad.h[0];                              break;
+      case  1: otp_code = ctx.opad.h[0] <<  8 | ctx.opad.h[1] >> 24;  break;
+      case  2: otp_code = ctx.opad.h[0] << 16 | ctx.opad.h[1] >> 16;  break;
+      case  3: otp_code = ctx.opad.h[0] << 24 | ctx.opad.h[1] >>  8;  break;
+      case  4: otp_code = ctx.opad.h[1];                              break;
+      case  5: otp_code = ctx.opad.h[1] <<  8 | ctx.opad.h[2] >> 24;  break;
+      case  6: otp_code = ctx.opad.h[1] << 16 | ctx.opad.h[2] >> 16;  break;
+      case  7: otp_code = ctx.opad.h[1] << 24 | ctx.opad.h[2] >>  8;  break;
+      case  8: otp_code = ctx.opad.h[2];                              break;
+      case  9: otp_code = ctx.opad.h[2] <<  8 | ctx.opad.h[3] >> 24;  break;
+      case 10: otp_code = ctx.opad.h[2] << 16 | ctx.opad.h[3] >> 16;  break;
+      case 11: otp_code = ctx.opad.h[2] << 24 | ctx.opad.h[3] >>  8;  break;
+      case 12: otp_code = ctx.opad.h[3];                              break;
+      case 13: otp_code = ctx.opad.h[3] <<  8 | ctx.opad.h[4] >> 24;  break;
+      case 14: otp_code = ctx.opad.h[3] << 16 | ctx.opad.h[4] >> 16;  break;
+      case 15: otp_code = ctx.opad.h[3] << 24 | ctx.opad.h[4] >>  8;  break;
     }
+
     // take only the lower 31 bits
     otp_code &= 0x7fffffff;
     // we want to generate only 6 digits of code
