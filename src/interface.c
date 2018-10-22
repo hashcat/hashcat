@@ -5195,7 +5195,7 @@ int totp_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   // now we need to reduce our hash into a token
   int otp_code = hc_strtoul ((const char *) input_buf, NULL, 10);
 
-  digest[1] = otp_code;
+  digest[0] = otp_code;
 
   u8 *salt_pos = token.buf[1];
 
@@ -22338,7 +22338,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
       u64 tmp_salt_buf = (((u64) (salt.salt_buf[2])) << 32) | ((u64) (salt.salt_buf[3]));
 
-      snprintf (out_buf, out_len - 1, "%06d:%" PRIu64, digest_buf[1], tmp_salt_buf);
+      snprintf (out_buf, out_len - 1, "%06d:%" PRIu64, digest_buf[0], tmp_salt_buf);
   }
   else if (hash_mode == 99999)
   {
@@ -27636,14 +27636,14 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                                             | OPTS_TYPE_PT_ADDBITS15
                                             | OPTS_TYPE_PT_NEVERCRACK;
                  hashconfig->kern_type      = KERN_TYPE_TOTP_HMACSHA1;
-                 hashconfig->dgst_size      = DGST_SIZE_4_5;
+                 hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = totp_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
                                             | OPTI_TYPE_NOT_ITERATED;
-                 hashconfig->dgst_pos0      = 1;
-                 hashconfig->dgst_pos1      = 2;
-                 hashconfig->dgst_pos2      = 3;
-                 hashconfig->dgst_pos3      = 4;
+                 hashconfig->dgst_pos0      = 0;
+                 hashconfig->dgst_pos1      = 1;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 3;
                  hashconfig->st_hash        = ST_HASH_18100;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
