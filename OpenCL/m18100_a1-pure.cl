@@ -111,11 +111,6 @@ __kernel void m18100_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
     // we want to generate only 6 digits of code
     otp_code %= 1000000;
 
-    const u32 r0 = ctx.opad.h[DGST_R0];
-    const u32 r1 = ctx.opad.h[DGST_R1];
-    const u32 r2 = ctx.opad.h[DGST_R2];
-    const u32 r3 = ctx.opad.h[DGST_R3];
-
     COMPARE_M_SCALAR (otp_code, 0, 0, 0);
   }
 }
@@ -229,11 +224,6 @@ __kernel void m18100_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
     otp_code &= 0x7fffffff;
     // we want to generate only 6 digits of code
     otp_code %= 1000000;
-
-    const u32 r0 = ctx.opad.h[DGST_R0];
-    const u32 r1 = ctx.opad.h[DGST_R1];
-    const u32 r2 = ctx.opad.h[DGST_R2];
-    const u32 r3 = ctx.opad.h[DGST_R3];
 
     COMPARE_S_SCALAR (otp_code, 0, 0, 0);
   }
