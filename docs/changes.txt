@@ -1,3 +1,28 @@
+* changes v5.0.0 -> v5.0.1
+
+##
+## Features
+##
+
+
+##
+## Algorithms
+##
+
+- Added pure kernels for hash-mode 11700 (Streebog-256)
+- Added pure kernels for hash-mode 11800 (Streebog-512)
+
+##
+## Improvements
+##
+
+- Tests: Added hash-modes 11700 (Streebog-256) and 11800 (Streebog-512)
+
+##
+## Bugs
+##
+
+
 * changes v4.2.1 -> v5.0.0
 
 ##
