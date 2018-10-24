@@ -55,6 +55,7 @@
 - Fixed speed/delay problem when quitting while the outfile folder is being scanned
 - Fixed the ciphertext max length in Ansible Vault parser
 - Fixed the tokenizer configuration in Postgres hash parser
+- Fixed the byte order of digest output for hash-mode 11800 (Streebog-512)
 
 * changes v4.2.0 -> v4.2.1
 
