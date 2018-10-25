@@ -41,6 +41,7 @@
 - Override --quiet and show final status screen in case --status is used
 - Work around some AMD OpenCL runtime segmentation faults
 - Work around some padding issues with host compilers and OpenCL JiT on 32 and 64-bit systems
+- Changed algorithms using colon as separators in the hash to not use the hashconfig separator on parsing
 
 ##
 ## Bugs
