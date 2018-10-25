@@ -136,7 +136,12 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   EVENT (EVENT_CALCULATED_WORDS_BASE);
 
-  if (user_options->keyspace == true) return 0;
+  if (user_options->keyspace == true)
+  {
+    status_ctx->devices_status = STATUS_RUNNING;
+
+    return 0;
+  }
 
   // restore stuff
 
