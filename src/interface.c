@@ -21047,22 +21047,22 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
   else if (hash_mode == 11800)
   {
     snprintf (out_buf, out_len - 1, "%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
-      digest_buf[ 0],
-      digest_buf[ 1],
-      digest_buf[ 2],
-      digest_buf[ 3],
-      digest_buf[ 4],
-      digest_buf[ 5],
-      digest_buf[ 6],
-      digest_buf[ 7],
-      digest_buf[ 8],
-      digest_buf[ 9],
-      digest_buf[10],
-      digest_buf[11],
-      digest_buf[12],
-      digest_buf[13],
-      digest_buf[14],
-      digest_buf[15]);
+      byte_swap_32 (digest_buf[ 0]),
+      byte_swap_32 (digest_buf[ 1]),
+      byte_swap_32 (digest_buf[ 2]),
+      byte_swap_32 (digest_buf[ 3]),
+      byte_swap_32 (digest_buf[ 4]),
+      byte_swap_32 (digest_buf[ 5]),
+      byte_swap_32 (digest_buf[ 6]),
+      byte_swap_32 (digest_buf[ 7]),
+      byte_swap_32 (digest_buf[ 8]),
+      byte_swap_32 (digest_buf[ 9]),
+      byte_swap_32 (digest_buf[10]),
+      byte_swap_32 (digest_buf[11]),
+      byte_swap_32 (digest_buf[12]),
+      byte_swap_32 (digest_buf[13]),
+      byte_swap_32 (digest_buf[14]),
+      byte_swap_32 (digest_buf[15]));
   }
   else if (hash_mode == 11900)
   {
