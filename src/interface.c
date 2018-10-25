@@ -7527,18 +7527,18 @@ int lastpass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   token.len_min[0] = 32;
   token.len_max[0] = 64;
-  token.sep[0]     = hashconfig->separator;
+  token.sep[0]     = ':';
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.len_min[1] = 1;
   token.len_max[1] = 6;
-  token.sep[1]     = hashconfig->separator;
+  token.sep[1]     = ':';
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.len_min[2] = 0;
   token.len_max[2] = 32;
-  token.sep[2]     = hashconfig->separator;
+  token.sep[2]     = ':';
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
@@ -8573,13 +8573,13 @@ int chap_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   token.token_cnt  = 3;
 
-  token.sep[0]     = hashconfig->separator;
+  token.sep[0]     = ':';
   token.len_min[0] = 32;
   token.len_max[0] = 32;
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[1]     = hashconfig->separator;
+  token.sep[1]     = ':';
   token.len_min[1] = 32;
   token.len_max[1] = 32;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
@@ -8748,22 +8748,22 @@ int nsec3_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUS
 
   token.token_cnt  = 4;
 
-  token.sep[0]     = hashconfig->separator;
+  token.sep[0]     = ':';
   token.len_min[0] = 32;
   token.len_max[0] = 32;
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  token.sep[1]     = hashconfig->separator;
+  token.sep[1]     = ':';
   token.len_min[1] = 1;
   token.len_max[1] = 32;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  token.sep[2]     = hashconfig->separator;
+  token.sep[2]     = ':';
   token.len_min[2] = 1;
   token.len_max[2] = 32;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  token.sep[3]     = hashconfig->separator;
+  token.sep[3]     = ':';
   token.len_min[3] = 1;
   token.len_max[3] = 6;
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
@@ -9660,34 +9660,34 @@ int scrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
   token.len_min[0] = 6;
   token.len_max[0] = 6;
-  token.sep[0]     = hashconfig->separator;
+  token.sep[0]     = ':';
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   token.len_min[1] = 1;
   token.len_max[1] = 6;
-  token.sep[1]     = hashconfig->separator;
+  token.sep[1]     = ':';
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.len_min[2] = 1;
   token.len_max[2] = 6;
-  token.sep[2]     = hashconfig->separator;
+  token.sep[2]     = ':';
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.len_min[3] = 1;
   token.len_max[3] = 6;
-  token.sep[3]     = hashconfig->separator;
+  token.sep[3]     = ':';
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.len_min[4] = 0;
   token.len_max[4] = 45;
-  token.sep[4]     = hashconfig->separator;
+  token.sep[4]     = ':';
   token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64A;
 
   token.len_min[5] = 44;
   token.len_max[5] = 44;
-  token.sep[5]     = hashconfig->separator;
+  token.sep[5]     = ':';
   token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64A;
 
@@ -11062,19 +11062,19 @@ int siphash_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
 
   token.token_cnt  = 4;
 
-  token.sep[0]     = hashconfig->separator;
+  token.sep[0]     = ':';
   token.len_min[0] = 16;
   token.len_max[0] = 16;
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[1]     = hashconfig->separator;
+  token.sep[1]     = ':';
   token.len_min[1] = 1;
   token.len_max[1] = 1;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
-  token.sep[2]     = hashconfig->separator;
+  token.sep[2]     = ':';
   token.len_min[2] = 1;
   token.len_max[2] = 1;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
@@ -12276,25 +12276,25 @@ int pbkdf2_sha256_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MA
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_PBKDF2_SHA256;
 
-  token.sep[0]     = hashconfig->separator;
+  token.sep[0]     = ':';
   token.len_min[0] = 6;
   token.len_max[0] = 6;
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  token.sep[1]     = hashconfig->separator;
+  token.sep[1]     = ':';
   token.len_min[1] = 1;
   token.len_max[1] = 6;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
-  token.sep[2]     = hashconfig->separator;
+  token.sep[2]     = ':';
   token.len_min[2] = SALT_MIN;
   token.len_max[2] = SALT_MAX;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64A;
 
-  token.sep[3]     = hashconfig->separator;
+  token.sep[3]     = ':';
   token.len_min[3] = 16;
   token.len_max[3] = 256;
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
@@ -13450,25 +13450,25 @@ int pbkdf2_md5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_PBKDF2_MD5;
 
-  token.sep[0]     = hashconfig->separator;
+  token.sep[0]     = ':';
   token.len_min[0] = 3;
   token.len_max[0] = 3;
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  token.sep[1]     = hashconfig->separator;
+  token.sep[1]     = ':';
   token.len_min[1] = 1;
   token.len_max[1] = 6;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
-  token.sep[2]     = hashconfig->separator;
+  token.sep[2]     = ':';
   token.len_min[2] = SALT_MIN;
   token.len_max[2] = SALT_MAX;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64A;
 
-  token.sep[3]     = hashconfig->separator;
+  token.sep[3]     = ':';
   token.len_min[3] = 16;
   token.len_max[3] = 256;
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
@@ -13541,25 +13541,25 @@ int pbkdf2_sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_PBKDF2_SHA1;
 
-  token.sep[0]     = hashconfig->separator;
+  token.sep[0]     = ':';
   token.len_min[0] = 4;
   token.len_max[0] = 4;
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  token.sep[1]     = hashconfig->separator;
+  token.sep[1]     = ':';
   token.len_min[1] = 1;
   token.len_max[1] = 6;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
-  token.sep[2]     = hashconfig->separator;
+  token.sep[2]     = ':';
   token.len_min[2] = SALT_MIN;
   token.len_max[2] = SALT_MAX;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64A;
 
-  token.sep[3]     = hashconfig->separator;
+  token.sep[3]     = ':';
   token.len_min[3] = 16;
   token.len_max[3] = 256;
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
@@ -13637,25 +13637,25 @@ int pbkdf2_sha512_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MA
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_PBKDF2_SHA512;
 
-  token.sep[0]     = hashconfig->separator;
+  token.sep[0]     = ':';
   token.len_min[0] = 6;
   token.len_max[0] = 6;
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  token.sep[1]     = hashconfig->separator;
+  token.sep[1]     = ':';
   token.len_min[1] = 1;
   token.len_max[1] = 6;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
-  token.sep[2]     = hashconfig->separator;
+  token.sep[2]     = ':';
   token.len_min[2] = SALT_MIN;
   token.len_max[2] = SALT_MAX;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64A;
 
-  token.sep[3]     = hashconfig->separator;
+  token.sep[3]     = ':';
   token.len_min[3] = 16;
   token.len_max[3] = 256;
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
