@@ -4,7 +4,7 @@
 ## Features
 ##
 
-- Add new option --slow-candidates which allows hashcat to generate passwords on-host
+- Added new option --slow-candidates which allows hashcat to generate passwords on-host
 
 ##
 ## Algorithms
@@ -25,23 +25,24 @@
 ## Improvements
 ##
 
-- Added a periodic check for read timeouts in stdin/pipe mode, and abort if no input was provided
 - Added additional hybrid "passthrough" rules, to enable variable-length append/prepend attacks
+- Added a periodic check for read timeouts in stdin/pipe mode, and abort if no input was provided
 - Added a tracker for salts, amplifier and iterations to the status screen
 - Added option --markov-hcstat2 to make it clear that the new hcstat2 format (compressed hcstat2gen output) must be used
 - Allow bitcoin master key lengths other than 96 bytes (but they must be always multiples of 16)
-- Allow keepass iteration count to be larger than 999999
 - Allow hashfile for -m 16800 to be used with -m 16801
+- Allow keepass iteration count to be larger than 999999
+- Changed algorithms using colon as separators in the hash to not use the hashconfig separator on parsing
 - Do not allocate memory segments for bitmap tables if we don't need it - for example, in benchmark mode
 - Got rid of OPTS_TYPE_HASH_COPY for Ansible Vault
 - Improved the speed of the outfile folder scan when using many hashes/salts
 - Increased the maximum size of edata2 in Kerberos 5 TGS-REP etype 23
 - Make the masks parser more restrictive by rejecting a single '?' at the end of the mask (use ?? instead)
-- Removed duplicate words in the dictionary file example.dict
 - Override --quiet and show final status screen in case --status is used
+- Removed duplicate words in the dictionary file example.dict
+- Updated Intel OpenCL runtime version check
 - Work around some AMD OpenCL runtime segmentation faults
 - Work around some padding issues with host compilers and OpenCL JiT on 32 and 64-bit systems
-- Changed algorithms using colon as separators in the hash to not use the hashconfig separator on parsing
 
 ##
 ## Bugs

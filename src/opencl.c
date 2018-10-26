@@ -3776,15 +3776,32 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
             {
               bool intel_warn = false;
 
-              float opencl_version = 0;
-              int   opencl_build   = 0;
+              // Intel OpenCL runtime 18
 
-              int res = sscanf (device_param->device_version, "OpenCL %f (Build %d)", &opencl_version, &opencl_build);
+              int opencl_driver1 = 0;
+              int opencl_driver2 = 0;
+              int opencl_driver3 = 0;
+              int opencl_driver4 = 0;
 
-              if (res == 2)
+              const int res18 = sscanf (device_param->driver_version, "%u.%u.%u.%u", &opencl_driver1, &opencl_driver2, &opencl_driver3, &opencl_driver4);
+
+              if (res18 == 4)
               {
-                // Intel OpenCL runtime 16.1.1
-                if (opencl_build < 25) intel_warn = true;
+                // so far all versions 18 are ok
+              }
+              else
+              {
+                // Intel OpenCL runtime 16
+
+                float opencl_version = 0;
+                int   opencl_build   = 0;
+
+                const int res16 = sscanf (device_param->device_version, "OpenCL %f (Build %d)", &opencl_version, &opencl_build);
+
+                if (res16 == 2)
+                {
+                  if (opencl_build < 25) intel_warn = true;
+                }
               }
 
               if (intel_warn == true)
