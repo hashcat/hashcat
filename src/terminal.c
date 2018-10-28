@@ -898,9 +898,26 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
    * show something
    */
 
+  #ifdef WITH_BRAIN
+  if (user_options->brain_client == true)
+  {
+    event_log_info (hashcat_ctx,
+      "Session..........: %s (Brain Session/Attack:0x%08x/0x%08x)",
+      hashcat_status->session,
+      hashcat_status->brain_session,
+      hashcat_status->brain_attack);
+  }
+  else
+  {
+    event_log_info (hashcat_ctx,
+      "Session..........: %s",
+      hashcat_status->session);
+  }
+  #else
   event_log_info (hashcat_ctx,
     "Session..........: %s",
     hashcat_status->session);
+  #endif
 
   event_log_info (hashcat_ctx,
     "Status...........: %s",
@@ -1278,6 +1295,63 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
       break;
   }
+
+  #ifdef WITH_BRAIN
+  if (user_options->brain_client == true)
+  {
+    for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+    {
+      const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+
+      if (device_info->skipped_dev == true) continue;
+
+      if (device_info->brain_link_status_dev == BRAIN_LINK_STATUS_CONNECTED)
+      {
+        event_log_info (hashcat_ctx,
+          "Brain.Link.#%d....: RX: %sB (%sbps), TX: %sB (%sbps), idle", device_id + 1,
+          device_info->brain_link_recv_bytes_dev,
+          device_info->brain_link_recv_bytes_sec_dev,
+          device_info->brain_link_send_bytes_dev,
+          device_info->brain_link_send_bytes_sec_dev);
+      }
+      else if (device_info->brain_link_status_dev == BRAIN_LINK_STATUS_RECEIVING)
+      {
+        event_log_info (hashcat_ctx,
+          "Brain.Link.#%d....: RX: %sB (%sbps), TX: %sB (%sbps), receiving", device_id + 1,
+          device_info->brain_link_recv_bytes_dev,
+          device_info->brain_link_recv_bytes_sec_dev,
+          device_info->brain_link_send_bytes_dev,
+          device_info->brain_link_send_bytes_sec_dev);
+      }
+      else if (device_info->brain_link_status_dev == BRAIN_LINK_STATUS_SENDING)
+      {
+        event_log_info (hashcat_ctx,
+          "Brain.Link.#%d....: RX: %sB (%sbps), TX: %sB (%sbps), sending", device_id + 1,
+          device_info->brain_link_recv_bytes_dev,
+          device_info->brain_link_recv_bytes_sec_dev,
+          device_info->brain_link_send_bytes_dev,
+          device_info->brain_link_send_bytes_sec_dev);
+      }
+      else
+      {
+        if ((device_info->brain_link_time_recv_dev > 0) && (device_info->brain_link_time_send_dev > 0))
+        {
+          event_log_info (hashcat_ctx,
+            "Brain.Link.#%d....: RX: %sB (%sbps), TX: %sB (%sbps)", device_id + 1,
+            device_info->brain_link_recv_bytes_dev,
+            device_info->brain_link_recv_bytes_sec_dev,
+            device_info->brain_link_send_bytes_dev,
+            device_info->brain_link_send_bytes_sec_dev);
+        }
+        else
+        {
+          event_log_info (hashcat_ctx,
+            "Brain.Link.#%d....: N/A", device_id + 1);
+        }
+      }
+    }
+  }
+  #endif
 
   switch (hashcat_status->progress_mode)
   {

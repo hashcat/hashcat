@@ -85,6 +85,16 @@ int         status_get_innerloop_pos_dev              (const hashcat_ctx_t *hash
 int         status_get_innerloop_left_dev             (const hashcat_ctx_t *hashcat_ctx, const int device_id);
 int         status_get_iteration_pos_dev              (const hashcat_ctx_t *hashcat_ctx, const int device_id);
 int         status_get_iteration_left_dev             (const hashcat_ctx_t *hashcat_ctx, const int device_id);
+#ifdef WITH_BRAIN
+int         status_get_brain_session                  (const hashcat_ctx_t *hashcat_ctx);
+int         status_get_brain_attack                   (const hashcat_ctx_t *hashcat_ctx);
+int         status_get_brain_link_client_id_dev       (const hashcat_ctx_t *hashcat_ctx, const int device_id);
+int         status_get_brain_link_status_dev          (const hashcat_ctx_t *hashcat_ctx, const int device_id);
+char       *status_get_brain_link_recv_bytes_dev      (const hashcat_ctx_t *hashcat_ctx, const int device_id);
+char       *status_get_brain_link_send_bytes_dev      (const hashcat_ctx_t *hashcat_ctx, const int device_id);
+char       *status_get_brain_link_recv_bytes_sec_dev  (const hashcat_ctx_t *hashcat_ctx, const int device_id);
+char       *status_get_brain_link_send_bytes_sec_dev  (const hashcat_ctx_t *hashcat_ctx, const int device_id);
+#endif
 char       *status_get_hwmon_dev                      (const hashcat_ctx_t *hashcat_ctx, const int device_id);
 int         status_get_corespeed_dev                  (const hashcat_ctx_t *hashcat_ctx, const int device_id);
 int         status_get_memoryspeed_dev                (const hashcat_ctx_t *hashcat_ctx, const int device_id);

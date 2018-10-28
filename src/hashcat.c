@@ -51,6 +51,10 @@
 #include "user_options.h"
 #include "wordlist.h"
 
+#ifdef WITH_BRAIN
+#include "brain.h"
+#endif
+
 // inner2_loop iterates through wordlists, then calls kernel execution
 
 static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
@@ -158,6 +162,10 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   {
     status_ctx->words_progress_restored[i] = progress_restored;
   }
+
+  #ifdef WITH_BRAIN
+  user_options->brain_attack = brain_compute_attack (hashcat_ctx);
+  #endif
 
   /**
    * limit kernel loops by the amplification count we have from:
@@ -1372,6 +1380,10 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
   hashcat_status->salts_done                  = status_get_salts_done                 (hashcat_ctx);
   hashcat_status->salts_percent               = status_get_salts_percent              (hashcat_ctx);
   hashcat_status->session                     = status_get_session                    (hashcat_ctx);
+  #ifdef WITH_BRAIN
+  hashcat_status->brain_session               = status_get_brain_session              (hashcat_ctx);
+  hashcat_status->brain_attack                = status_get_brain_attack               (hashcat_ctx);
+  #endif
   hashcat_status->status_string               = status_get_status_string              (hashcat_ctx);
   hashcat_status->status_number               = status_get_status_number              (hashcat_ctx);
   hashcat_status->time_estimated_absolute     = status_get_time_estimated_absolute    (hashcat_ctx);
@@ -1415,6 +1427,14 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
     device_info->innerloop_left_dev             = status_get_innerloop_left_dev             (hashcat_ctx, device_id);
     device_info->iteration_pos_dev              = status_get_iteration_pos_dev              (hashcat_ctx, device_id);
     device_info->iteration_left_dev             = status_get_iteration_left_dev             (hashcat_ctx, device_id);
+    #ifdef WITH_BRAIN
+    device_info->brain_link_client_id_dev       = status_get_brain_link_client_id_dev       (hashcat_ctx, device_id);
+    device_info->brain_link_status_dev          = status_get_brain_link_status_dev          (hashcat_ctx, device_id);
+    device_info->brain_link_recv_bytes_dev      = status_get_brain_link_recv_bytes_dev      (hashcat_ctx, device_id);
+    device_info->brain_link_send_bytes_dev      = status_get_brain_link_send_bytes_dev      (hashcat_ctx, device_id);
+    device_info->brain_link_recv_bytes_sec_dev  = status_get_brain_link_recv_bytes_sec_dev  (hashcat_ctx, device_id);
+    device_info->brain_link_send_bytes_sec_dev  = status_get_brain_link_send_bytes_sec_dev  (hashcat_ctx, device_id);
+    #endif
   }
 
   hashcat_status->hashes_msec_all = status_get_hashes_msec_all (hashcat_ctx);

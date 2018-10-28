@@ -21,6 +21,7 @@ NVIDIA GPUs require "NVIDIA Driver" (367.x or later)
 - Multi-Hash (Cracking multiple hashes at the same time)
 - Multi-Devices (Utilizing multiple devices in same system)
 - Multi-Device-Types (Utilizing mixed device types in same system)
+- Supports password candidate brain functionality
 - Supports distributed cracking networks (using overlay)
 - Supports interactive pause / resume
 - Supports sessions

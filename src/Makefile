@@ -7,6 +7,7 @@ SHARED                  := 0
 DEBUG                   := 0
 PRODUCTION              := 0
 PRODUCTION_VERSION      := v4.2.1
+ENABLE_BRAIN            := 1
 
 ##
 ## Detect Operating System
@@ -185,6 +186,12 @@ CFLAGS                  += $(LZMA_SDK_INCLUDE)
 LDFLAGS                 += -llzmasdk
 endif
 
+# brain and xxHash
+ifeq ($(ENABLE_BRAIN),1)
+CFLAGS                  += -DWITH_BRAIN
+CFLAGS                  += -Ideps/git/xxHash
+endif
+
 ##
 ## Native compilation target
 ##
@@ -292,6 +299,10 @@ LFLAGS_CROSS_WIN64      += -lws2_32
 
 OBJS_ALL                := affinity autotune benchmark bitmap bitops combinator common convert cpt cpu_aes cpu_crc32 cpu_des cpu_md4 cpu_md5 cpu_sha1 cpu_sha256 debugfile dictstat dispatch dynloader event ext_ADL ext_nvapi ext_nvml ext_OpenCL ext_sysfs ext_lzma filehandling folder hashcat hashes hlfmt hwmon induct interface locking logfile loopback memory monitor mpsp opencl outfile_check outfile pidfile potfile restore rp rp_cpu rp_kernel_on_cpu rp_kernel_on_cpu_optimized selftest slow_candidates shared status stdout straight terminal thread timer tuningdb usage user_options wordlist
 
+ifeq ($(ENABLE_BRAIN),1)
+OBJS_ALL                += brain
+endif
+
 NATIVE_STATIC_OBJS      := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).NATIVE.STATIC.o)
 NATIVE_SHARED_OBJS      := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).NATIVE.SHARED.o)
 
@@ -300,6 +311,19 @@ LINUX_64_OBJS           := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).LINUX.64.o)
 
 WIN_32_OBJS             := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.32.o)
 WIN_64_OBJS             := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.64.o)
+
+ifeq ($(ENABLE_BRAIN),1)
+OBJS_XXHASH             := xxhash
+
+NATIVE_STATIC_OBJS      += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).NATIVE.STATIC.o)
+NATIVE_SHARED_OBJS      += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).NATIVE.SHARED.o)
+
+LINUX_32_OBJS           += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).LINUX.32.o)
+LINUX_64_OBJS           += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).LINUX.64.o)
+
+WIN_32_OBJS             += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).WIN.32.o)
+WIN_64_OBJS             += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).WIN.64.o)
+endif
 
 ifeq ($(SYSTEM_LZMA_SDK),0)
 OBJS_LZMA               := Alloc Lzma2Dec LzmaDec
@@ -449,6 +473,14 @@ obj/%.NATIVE.STATIC.o: src/%.c
 obj/%.NATIVE.SHARED.o: src/%.c
 	$(CC) -c $(CFLAGS_NATIVE) $< -o $@ -fpic
 
+ifeq ($(ENABLE_BRAIN),1)
+obj/%.NATIVE.STATIC.o: deps/git/xxHash/%.c
+	$(CC) -c $(CFLAGS_NATIVE) $< -o $@
+
+obj/%.NATIVE.SHARED.o: deps/git/xxHash/%.c
+	$(CC) -c $(CFLAGS_NATIVE) $< -o $@ -fpic
+endif
+
 ifeq ($(SYSTEM_LZMA_SDK),0)
 obj/%.NATIVE.STATIC.o: deps/lzma_sdk/%.c
 	$(CC) -c $(CFLAGS_NATIVE) $< -o $@
@@ -488,6 +520,20 @@ obj/%.WIN.32.o:   src/%.c
 
 obj/%.WIN.64.o:   src/%.c
 	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)   -c -o $@ $<
+
+ifeq ($(ENABLE_BRAIN),1)
+obj/%.LINUX.32.o: deps/git/xxHash/%.c
+	$(CC_LINUX_32) $(CFLAGS_CROSS_LINUX32) -c -o $@ $<
+
+obj/%.LINUX.64.o: deps/git/xxHash/%.c
+	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX64) -c -o $@ $<
+
+obj/%.WIN.32.o:   deps/git/xxHash/%.c
+	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN32)   -c -o $@ $<
+
+obj/%.WIN.64.o:   deps/git/xxHash/%.c
+	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)   -c -o $@ $<
+endif
 
 ifeq ($(SYSTEM_LZMA_SDK),0)
 obj/%.LINUX.32.o: deps/lzma_sdk/%.c

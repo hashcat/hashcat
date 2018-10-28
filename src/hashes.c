@@ -27,6 +27,10 @@
 #include "timer.h"
 #include "locking.h"
 
+#ifdef WITH_BRAIN
+#include "brain.h"
+#endif
+
 int sort_by_string (const void *p1, const void *p2)
 {
   const char *s1 = (const char *) p1;
@@ -1663,6 +1667,14 @@ int hashes_init_stage4 (hashcat_ctx_t *hashcat_ctx)
   u8 *tmp_buf = (u8 *) hcmalloc (HCBUFSIZ_LARGE);
 
   hashes->tmp_buf = tmp_buf;
+
+  // brain session
+
+  #ifdef WITH_BRAIN
+  const u32 brain_session = brain_compute_session (hashcat_ctx);
+
+  user_options->brain_session = brain_session;
+  #endif
 
   return 0;
 }

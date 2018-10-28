@@ -5,6 +5,13 @@
 ##
 
 - Added new option --slow-candidates which allows hashcat to generate passwords on-host
+- Added new option --brain-server to start a hashcat brain server
+- Added new option --brain-client to start a hashcat brain client, automatically activates --slow-candidates
+- Added new option --brain-host and --brain-port to specify ip and port of brain server, both listening and connecting
+- Added new option --brain-session to override automatically calculated brain session ID
+- Added new option --brain-session-whitelist to allow only explicit written session ID on brain server
+- Added new option --brain-password to specify the brain server authentication password
+- Added new option --brain-client-features which allows enable and disable certain features of the hashcat brain
 
 ##
 ## Algorithms

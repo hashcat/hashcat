@@ -116,6 +116,16 @@ static const char *const USAGE_BIG[] =
   "     --increment-min            | Num  | Start mask incrementing at X                         | --increment-min=4",
   "     --increment-max            | Num  | Stop mask incrementing at X                          | --increment-max=8",
   " -S, --slow-candidates          |      | Enable slower (but advanced) candidate generators    |",
+  #ifdef WITH_BRAIN
+  "     --brain-server             |      | Enable brain server                                  |",
+  " -z, --brain-client             |      | Enable brain client, activates -S                    |",
+  "     --brain-client-features    | Num  | Define brain client features, see below              | --brain-client-features=3",
+  "     --brain-host               | Str  | Brain server host (IP or domain)                     | --brain-host=127.0.0.1",
+  "     --brain-port               | Port | Brain server port                                    | --brain-port=13743",
+  "     --brain-password           | Str  | Brain server authentication password                 | --brain-password=bZfhCvGUSjRq",
+  "     --brain-session            | Hex  | Overrides automatically calculated brain session     | --brain-session=0x2ae611db",
+  "     --brain-session-whitelist  | Hex  | Allow given sessions only, separated with commas     | --brain-session-whitelist=0x2ae611db",
+  #endif
   "",
   "- [ Hash modes ] -",
   "",
@@ -383,6 +393,16 @@ static const char *const USAGE_BIG[] =
   "  18100 | TOTP (HMAC-SHA1)                                 | One-Time Passwords",
   "  99999 | Plaintext                                        | Plaintext",
   "",
+  #ifdef WITH_BRAIN
+  "- [ Brain Client Features ] -",
+  "",
+  "  # | Features",
+  " ===+========",
+  "  1 | Send hashed passwords",
+  "  2 | Send attack positions",
+  "  3 | Send hashed passwords and attack positions",
+  "",
+  #endif
   "- [ Outfile Formats ] -",
   "",
   "  # | Format",

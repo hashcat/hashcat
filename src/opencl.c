@@ -6456,6 +6456,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     size_t size_pws_base = 4;
     size_t size_tmps     = 4;
     size_t size_hooks    = 4;
+    #ifdef WITH_BRAIN
+    size_t size_brain_link_in  = 4;
+    size_t size_brain_link_out = 4;
+    #endif
 
     // instead of a thread limit we can also use a memory limit.
     // this value should represent a reasonable amount of memory a host system has per GPU.
@@ -6493,6 +6497,13 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       // size_hooks
 
       size_hooks = (size_t) kernel_power_max * hashconfig->hook_size;
+
+      #ifdef WITH_BRAIN
+      // size_brains
+
+      size_brain_link_in  = (size_t) kernel_power_max * 1;
+      size_brain_link_out = (size_t) kernel_power_max * 8;
+      #endif
 
       if (user_options->slow_candidates == true)
       {
@@ -6558,6 +6569,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         = size_pws_comp
         + size_pws_idx
         + size_hooks
+        #ifdef WITH_BRAIN
+        + size_brain_link_in
+        + size_brain_link_out
+        #endif
         + size_pws_pre
         + size_pws_base;
 
@@ -6591,6 +6606,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->size_pws_base = size_pws_base;
     device_param->size_tmps     = size_tmps;
     device_param->size_hooks    = size_hooks;
+    #ifdef WITH_BRAIN
+    device_param->size_brain_link_in  = size_brain_link_in;
+    device_param->size_brain_link_out = size_brain_link_out;
+    #endif
 
     CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_WRITE,  size_pws,      NULL, &device_param->d_pws_buf);      if (CL_rc == -1) return -1;
     CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_WRITE,  size_pws_amp,  NULL, &device_param->d_pws_amp_buf);  if (CL_rc == -1) return -1;
@@ -6629,6 +6648,16 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     char *scratch_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
     device_param->scratch_buf = scratch_buf;
+
+    #ifdef WITH_BRAIN
+    u8 *brain_link_in_buf = (u8 *) hcmalloc (size_brain_link_in);
+
+    device_param->brain_link_in_buf = brain_link_in_buf;
+
+    u32 *brain_link_out_buf = (u32 *) hcmalloc (size_brain_link_out);
+
+    device_param->brain_link_out_buf = brain_link_out_buf;
+    #endif
 
     pw_pre_t *pws_pre_buf = (pw_pre_t *) hcmalloc (size_pws_pre);
 
@@ -6749,6 +6778,10 @@ void opencl_session_destroy (hashcat_ctx_t *hashcat_ctx)
     hcfree (device_param->combs_buf);
     hcfree (device_param->hooks_buf);
     hcfree (device_param->scratch_buf);
+    #ifdef WITH_BRAIN
+    hcfree (device_param->brain_link_in_buf);
+    hcfree (device_param->brain_link_out_buf);
+    #endif
 
     if (device_param->d_pws_buf)        hc_clReleaseMemObject (hashcat_ctx, device_param->d_pws_buf);
     if (device_param->d_pws_amp_buf)    hc_clReleaseMemObject (hashcat_ctx, device_param->d_pws_amp_buf);

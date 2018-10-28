@@ -230,6 +230,22 @@ char *status_get_session (const hashcat_ctx_t *hashcat_ctx)
   return strdup (user_options->session);
 }
 
+#ifdef WITH_BRAIN
+int status_get_brain_session (const hashcat_ctx_t *hashcat_ctx)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  return user_options->brain_session;
+}
+
+int status_get_brain_attack (const hashcat_ctx_t *hashcat_ctx)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  return user_options->brain_attack;
+}
+#endif
+
 const char *status_get_status_string (const hashcat_ctx_t *hashcat_ctx)
 {
   const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
@@ -1768,6 +1784,136 @@ int status_get_iteration_left_dev (const hashcat_ctx_t *hashcat_ctx, const int d
   return iteration_left;
 }
 
+#ifdef WITH_BRAIN
+int status_get_brain_link_client_id_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
+{
+  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+  int brain_client_id = -1;
+
+  if (device_param->skipped == false)
+  {
+    brain_client_id = device_param->brain_link_client_fd;
+  }
+
+  return brain_client_id;
+}
+
+int status_get_brain_link_status_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
+{
+  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+  int brain_link_status_dev = 0;
+
+  if (device_param->skipped == false)
+  {
+    if (device_param->brain_link_client_fd   != -1)   brain_link_status_dev = BRAIN_LINK_STATUS_CONNECTED;
+    if (device_param->brain_link_recv_active == true) brain_link_status_dev = BRAIN_LINK_STATUS_RECEIVING;
+    if (device_param->brain_link_send_active == true) brain_link_status_dev = BRAIN_LINK_STATUS_SENDING;
+  }
+
+  return brain_link_status_dev;
+}
+
+char *status_get_brain_link_recv_bytes_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
+{
+  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+  u64 brain_link_recv_bytes = 0;
+
+  if (device_param->skipped == false)
+  {
+    brain_link_recv_bytes = device_param->brain_link_recv_bytes;
+  }
+
+  char *display = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+  format_speed_display_1k (brain_link_recv_bytes, display, HCBUFSIZ_TINY);
+
+  return display;
+}
+
+char *status_get_brain_link_send_bytes_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
+{
+  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+  u64 brain_link_send_bytes = 0;
+
+  if (device_param->skipped == false)
+  {
+    brain_link_send_bytes = device_param->brain_link_send_bytes;
+  }
+
+  char *display = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+  format_speed_display_1k (brain_link_send_bytes, display, HCBUFSIZ_TINY);
+
+  return display;
+}
+
+char *status_get_brain_link_recv_bytes_sec_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
+{
+  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+  u64 brain_link_recv_bytes = 0;
+
+  if (device_param->skipped == false)
+  {
+    for (int idx = 0; idx < LINK_SPEED_COUNT; idx++)
+    {
+      double ms = hc_timer_get (device_param->brain_link_recv_speed.timer[idx]);
+
+      if (ms >= 1000) continue;
+
+      brain_link_recv_bytes += device_param->brain_link_recv_speed.bytes[idx];
+    }
+  }
+
+  char *display = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+  snprintf (display, HCBUFSIZ_TINY - 1, "%.2f M", (double) (brain_link_recv_bytes * 8) / 1024 / 1024);
+
+  return display;
+}
+
+char *status_get_brain_link_send_bytes_sec_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
+{
+  const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
+
+  hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+  u64 brain_link_send_bytes = 0;
+
+  if (device_param->skipped == false)
+  {
+    for (int idx = 0; idx < LINK_SPEED_COUNT; idx++)
+    {
+      double ms = hc_timer_get (device_param->brain_link_send_speed.timer[idx]);
+
+      if (ms >= 1000) continue;
+
+      brain_link_send_bytes += device_param->brain_link_send_speed.bytes[idx];
+    }
+  }
+
+  char *display = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+ snprintf (display, HCBUFSIZ_TINY - 1, "%.2f M", (double) (brain_link_send_bytes * 8) / 1024 / 1024);
+
+  return display;
+}
+#endif
+
 char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int device_id)
 {
   const opencl_ctx_t *opencl_ctx = hashcat_ctx->opencl_ctx;
@@ -2060,9 +2206,21 @@ void status_status_destroy (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashca
     hcfree (device_info->speed_sec_dev);
     hcfree (device_info->guess_candidates_dev);
     hcfree (device_info->hwmon_dev);
+    #ifdef WITH_BRAIN
+    hcfree (device_info->brain_link_recv_bytes_dev);
+    hcfree (device_info->brain_link_send_bytes_dev);
+    hcfree (device_info->brain_link_recv_bytes_sec_dev);
+    hcfree (device_info->brain_link_send_bytes_sec_dev);
+    #endif
 
     device_info->speed_sec_dev                  = NULL;
     device_info->guess_candidates_dev           = NULL;
     device_info->hwmon_dev                      = NULL;
+    #ifdef WITH_BRAIN
+    device_info->brain_link_recv_bytes_dev      = NULL;
+    device_info->brain_link_send_bytes_dev      = NULL;
+    device_info->brain_link_recv_bytes_sec_dev  = NULL;
+    device_info->brain_link_send_bytes_sec_dev  = NULL;
+    #endif
   }
 }

@@ -189,8 +189,8 @@ _hashcat ()
   local BUILD_IN_CHARSETS='?l ?u ?d ?a ?b ?s ?h ?H'
 
   local SHORT_OPTS="-m -a -V -v -h -b -t -o -p -c -d -w -n -u -j -k -r -g -1 -2 -3 -4 -i -I -s -l -O -S -z"
-  local LONG_OPTS="--hash-type --attack-mode --version --help --quiet --benchmark --benchmark-all --hex-salt --hex-wordlist --hex-charset --force --status --status-timer --machine-readable --loopback --markov-hcstat2 --markov-disable --markov-classic --markov-threshold --runtime --session --speed-only --progress-only --restore --restore-file-path --restore-disable --outfile --outfile-format --outfile-autohex-disable --outfile-check-timer --outfile-check-dir --wordlist-autohex-disable --separator --show --left --username --remove --remove-timer --potfile-disable --potfile-path --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --example-hashes --opencl-info --opencl-devices --opencl-platforms --opencl-device-types --opencl-vector-width --workload-profile --kernel-accel --kernel-loops --nvidia-spin-damp --gpu-temp-disable --gpu-temp-abort --skip --limit --keyspace --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-seed --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --increment --increment-min --increment-max --logfile-disable --scrypt-tmto --truecrypt-keyfiles --veracrypt-keyfiles --veracrypt-pim --stdout --keep-guessing --hccapx-message-pair --nonce-error-corrections --encoding-from --encoding-to --optimized-kernel-enable --self-test-disable --slow-candidates"
-  local OPTIONS="-m -a -t -o -p -c -d -w -n -u -j -k -r -g -1 -2 -3 -4 -s -l --hash-type --attack-mode --status-timer --markov-hcstat2 --markov-threshold --runtime --session --timer --outfile --outfile-format --outfile-check-timer --outfile-check-dir --separator --remove-timer --potfile-path --restore-file-path --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --opencl-devices --opencl-platforms --opencl-device-types --opencl-vector-width --workload-profile --kernel-accel --kernel-loops --nvidia-spin-damp --gpu-temp-abort --skip --limit --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-seed --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --increment-min --increment-max --scrypt-tmto --truecrypt-keyfiles --veracrypt-keyfiles --veracrypt-pim --hccapx-message-pair --nonce-error-corrections --encoding-from --encoding-to"
+  local LONG_OPTS="--hash-type --attack-mode --version --help --quiet --benchmark --benchmark-all --hex-salt --hex-wordlist --hex-charset --force --status --status-timer --machine-readable --loopback --markov-hcstat2 --markov-disable --markov-classic --markov-threshold --runtime --session --speed-only --progress-only --restore --restore-file-path --restore-disable --outfile --outfile-format --outfile-autohex-disable --outfile-check-timer --outfile-check-dir --wordlist-autohex-disable --separator --show --left --username --remove --remove-timer --potfile-disable --potfile-path --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --example-hashes --opencl-info --opencl-devices --opencl-platforms --opencl-device-types --opencl-vector-width --workload-profile --kernel-accel --kernel-loops --nvidia-spin-damp --gpu-temp-disable --gpu-temp-abort --skip --limit --keyspace --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-seed --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --increment --increment-min --increment-max --logfile-disable --scrypt-tmto --truecrypt-keyfiles --veracrypt-keyfiles --veracrypt-pim --stdout --keep-guessing --hccapx-message-pair --nonce-error-corrections --encoding-from --encoding-to --optimized-kernel-enable --self-test-disable  --slow-candidates --brain-server --brain-client --brain-client-features --brain-host --brain-port --brain-session --brain-session-whitelist --brain-password"
+  local OPTIONS="-m -a -t -o -p -c -d -w -n -u -j -k -r -g -1 -2 -3 -4 -s -l --hash-type --attack-mode --status-timer --markov-hcstat2 --markov-threshold --runtime --session --timer --outfile --outfile-format --outfile-check-timer --outfile-check-dir --separator --remove-timer --potfile-path --restore-file-path --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --opencl-devices --opencl-platforms --opencl-device-types --opencl-vector-width --workload-profile --kernel-accel --kernel-loops --nvidia-spin-damp --gpu-temp-abort --skip --limit --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-seed --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --increment-min --increment-max --scrypt-tmto --truecrypt-keyfiles --veracrypt-keyfiles --veracrypt-pim --hccapx-message-pair --nonce-error-corrections --encoding-from --encoding-to  --brain-host --brain-password --brain-port --brain-session --brain-whitelist-session"
 
   COMPREPLY=()
   local cur="${COMP_WORDS[COMP_CWORD]}"
@@ -363,7 +363,51 @@ _hashcat ()
       --status-timer|--markov-threshold|--runtime|--session|--separator|--segment-size|--rule-left|--rule-right| \
       --nvidia-spin-damp|--gpu-temp-abort|--generate-rules|--generate-rules-func-min|--generate-rules-func-max| \
       --increment-min|--increment-max|--remove-timer|--bitmap-min|--bitmap-max|--skip|--limit|--generate-rules-seed| \
-      --outfile-check-timer|--outfile-check-dir|--induction-dir|--scrypt-tmto|--encoding-from|--encoding-to|--optimized-kernel-enable)
+      --outfile-check-timer|--outfile-check-dir|--induction-dir|--scrypt-tmto|--encoding-from|--encoding-to|--optimized-kernel-enable|--brain-host|--brain-port|--brain-password)
+      return 0
+      ;;
+
+    --brain-session)
+      local cur_session=$(echo "${cur}" | grep -Eo '^0x[0-9a-fA-F]*' | sed 's/^0x//')
+
+      local session_var="0x${cur_session}"
+
+      if [ "${#cur_session}" -lt 8 ]
+      then
+        session_var="${session_var}0 ${session_var}1 ${session_var}2 ${session_var}3 ${session_var}4
+                     ${session_var}5 ${session_var}6 ${session_var}7 ${session_var}8 ${session_var}9
+                     ${session_var}a ${session_var}b ${session_var}c ${session_var}d ${session_var}e
+                     ${session_var}f"
+      fi
+
+      COMPREPLY=($(compgen -W "${session_var}" -- ${cur}))
+
+      return 0
+      ;;
+
+    --brain-session-whitelist)
+      local session_list=$(echo "${cur}" | grep -Eo '^0x[0-9a-fA-F,x]*' | sed 's/^0x//')
+
+      local cur_session=$(echo "${session_list}" | sed 's/^.*0x//')
+
+      local session_var="0x${session_list}"
+
+      if [ "${#cur_session}" -eq 8 ]
+      then
+        cur_session=""
+        session_var="${session_var},0x"
+      fi
+
+      if [ "${#cur_session}" -lt 8 ]
+      then
+        session_var="${session_var}0 ${session_var}1 ${session_var}2 ${session_var}3 ${session_var}4
+                     ${session_var}5 ${session_var}6 ${session_var}7 ${session_var}8 ${session_var}9
+                     ${session_var}a ${session_var}b ${session_var}c ${session_var}d ${session_var}e
+                     ${session_var}f"
+      fi
+
+      COMPREPLY=($(compgen -W "${session_var}" -- ${cur}))
+
       return 0
       ;;
 

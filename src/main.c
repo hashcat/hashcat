@@ -21,6 +21,10 @@
 #include "shared.h"
 #include "event.h"
 
+#ifdef WITH_BRAIN
+#include "brain.h"
+#endif
+
 #if defined (__MINGW64__) || defined (__MINGW32__)
 int _dowildcard = -1;
 #endif
@@ -1041,6 +1045,15 @@ int main (int argc, char **argv)
   // some early exits
 
   user_options_t *user_options = hashcat_ctx->user_options;
+
+  #ifdef WITH_BRAIN
+  if (user_options->brain_server == true)
+  {
+    const int rc = brain_server (user_options->brain_host, user_options->brain_port, user_options->brain_password, user_options->brain_session_whitelist);
+
+    return rc;
+  }
+  #endif
 
   if (user_options->version == true)
   {

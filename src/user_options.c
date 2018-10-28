@@ -14,7 +14,15 @@
 #include "outfile.h"
 #include "user_options.h"
 
+#ifdef WITH_BRAIN
+#include "brain.h"
+#endif
+
+#ifdef WITH_BRAIN
+static const char *short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:c:p:s:l:1:2:3:4:iIbw:OSz";
+#else
 static const char *short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:c:p:s:l:1:2:3:4:iIbw:OS";
+#endif
 
 static const struct option long_options[] =
 {
@@ -110,6 +118,16 @@ static const struct option long_options[] =
   {"version",                   no_argument,       NULL, IDX_VERSION},
   {"wordlist-autohex-disable",  no_argument,       NULL, IDX_WORDLIST_AUTOHEX_DISABLE},
   {"workload-profile",          required_argument, NULL, IDX_WORKLOAD_PROFILE},
+  #ifdef WITH_BRAIN
+  {"brain-client",              no_argument,       NULL, IDX_BRAIN_CLIENT},
+  {"brain-client-features",     required_argument, NULL, IDX_BRAIN_CLIENT_FEATURES},
+  {"brain-server",              no_argument,       NULL, IDX_BRAIN_SERVER},
+  {"brain-host",                required_argument, NULL, IDX_BRAIN_HOST},
+  {"brain-port",                required_argument, NULL, IDX_BRAIN_PORT},
+  {"brain-password",            required_argument, NULL, IDX_BRAIN_PASSWORD},
+  {"brain-session",             required_argument, NULL, IDX_BRAIN_SESSION},
+  {"brain-session-whitelist",   required_argument, NULL, IDX_BRAIN_SESSION_WHITELIST},
+  #endif
   {NULL,                        0,                 NULL, 0 }
 };
 
@@ -133,6 +151,15 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->benchmark                 = BENCHMARK;
   user_options->bitmap_max                = BITMAP_MAX;
   user_options->bitmap_min                = BITMAP_MIN;
+  #ifdef WITH_BRAIN
+  user_options->brain_client              = BRAIN_CLIENT;
+  user_options->brain_client_features     = BRAIN_CLIENT_FEATURES;
+  user_options->brain_host                = NULL;
+  user_options->brain_port                = BRAIN_PORT;
+  user_options->brain_server              = BRAIN_SERVER;
+  user_options->brain_session             = BRAIN_SESSION;
+  user_options->brain_session_whitelist   = NULL;
+  #endif
   user_options->cpu_affinity              = NULL;
   user_options->custom_charset_1          = NULL;
   user_options->custom_charset_2          = NULL;
@@ -284,6 +311,9 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_BITMAP_MAX:
       case IDX_INCREMENT_MIN:
       case IDX_INCREMENT_MAX:
+      #ifdef WITH_BRAIN
+      case IDX_BRAIN_PORT:
+      #endif
 
       if (hc_string_is_digit (optarg) == false)
       {
@@ -421,6 +451,19 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_CUSTOM_CHARSET_3:         user_options->custom_charset_3          = optarg;                          break;
       case IDX_CUSTOM_CHARSET_4:         user_options->custom_charset_4          = optarg;                          break;
       case IDX_SLOW_CANDIDATES:          user_options->slow_candidates           = true;                            break;
+      #ifdef WITH_BRAIN
+      case IDX_BRAIN_CLIENT:             user_options->brain_client              = true;                            break;
+      case IDX_BRAIN_CLIENT_FEATURES:    user_options->brain_client_features     = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_BRAIN_SERVER:             user_options->brain_server              = true;                            break;
+      case IDX_BRAIN_PASSWORD:           user_options->brain_password            = optarg;
+                                         user_options->brain_password_chgd       = true;                            break;
+      case IDX_BRAIN_HOST:               user_options->brain_host                = optarg;
+                                         user_options->brain_host_chgd           = true;                            break;
+      case IDX_BRAIN_PORT:               user_options->brain_port                = hc_strtoul (optarg, NULL, 10);
+                                         user_options->brain_port_chgd           = true;                            break;
+      case IDX_BRAIN_SESSION:            user_options->brain_session             = hc_strtoul (optarg, NULL, 16);   break;
+      case IDX_BRAIN_SESSION_WHITELIST:  user_options->brain_session_whitelist   = optarg;                          break;
+      #endif
     }
   }
 
@@ -450,6 +493,29 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
+  #ifdef WITH_BRAIN
+  if ((user_options->brain_client == true) && (user_options->brain_server == true))
+  {
+    event_log_error (hashcat_ctx, "Can not have --brain-client and --brain-server at the same time");
+
+    return -1;
+  }
+
+  if ((user_options->brain_client_features < 1) && (user_options->brain_client_features > 3))
+  {
+    event_log_error (hashcat_ctx, "Invalid --brain-client-feature argument");
+
+    return -1;
+  }
+
+  if ((user_options->brain_client == true) && (user_options->brain_password_chgd == false))
+  {
+    event_log_error (hashcat_ctx, "Brain clients need to set --brain-password");
+
+    return -1;
+  }
+  #endif
+
   if (user_options->slow_candidates == true)
   {
     if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT)
@@ -461,6 +527,19 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
   }
+  #ifdef WITH_BRAIN
+  else if (user_options->brain_client == true)
+  {
+    if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT)
+     && (user_options->attack_mode != ATTACK_MODE_COMBI)
+     && (user_options->attack_mode != ATTACK_MODE_BF))
+    {
+      event_log_error (hashcat_ctx, "Invalid attack mode (-a) value specified in brain-client mode.");
+
+      return -1;
+    }
+  }
+  #endif
   else
   {
     if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT)
@@ -979,6 +1058,22 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  #ifdef WITH_BRAIN
+  if ((user_options->brain_client == true) && (user_options->remove == true))
+  {
+    event_log_error (hashcat_ctx, "Using --remove is not allowed if --brain-client is used.");
+
+    return -1;
+  }
+
+  if ((user_options->brain_client == true) && (user_options->potfile_disable == true))
+  {
+    event_log_error (hashcat_ctx, "Using --potfile-disable is not allowed if --brain-client is used.");
+
+    return -1;
+  }
+  #endif
+
   // custom charset checks
 
   if ((user_options->custom_charset_1 != NULL)
@@ -1037,6 +1132,12 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     show_error = false;
   }
+  #ifdef WITH_BRAIN
+  else if (user_options->brain_server == true)
+  {
+    show_error = false;
+  }
+  #endif
   else if (user_options->benchmark == true)
   {
     if (user_options->hc_argc == 0)
@@ -1153,6 +1254,15 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       {
         // stdin mode
 
+        #ifdef WITH_BRAIN
+        if (user_options->brain_client == true)
+        {
+          event_log_error (hashcat_ctx, "Use of --brain-client is not possible in stdin mode.");
+
+          return -1;
+        }
+        #endif
+
         if (user_options->slow_candidates == true)
         {
           event_log_error (hashcat_ctx, "Use of --slow-candidates is not possible in stdin mode.");
@@ -1260,6 +1370,13 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
 
   // some options can influence or overwrite other options
 
+  #ifdef WITH_BRAIN
+  if (user_options->brain_client == true)
+  {
+    user_options->slow_candidates = true;
+  }
+  #endif
+
   if (user_options->example_hashes  == true
    || user_options->opencl_info     == true
    || user_options->keyspace        == true
@@ -1281,6 +1398,9 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->status_timer        = 0;
     user_options->bitmap_min          = 1;
     user_options->bitmap_max          = 1;
+    #ifdef WITH_BRAIN
+    user_options->brain_client        = false;
+    #endif
   }
 
   if (user_options->benchmark == true)
@@ -1302,6 +1422,9 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->status_timer        = 0;
     user_options->bitmap_min          = 1;
     user_options->bitmap_max          = 1;
+    #ifdef WITH_BRAIN
+    user_options->brain_client        = false;
+    #endif
 
     if (user_options->workload_profile_chgd == false)
     {
@@ -1744,6 +1867,51 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   potfile_ctx_t        *potfile_ctx        = hashcat_ctx->potfile_ctx;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
   user_options_t       *user_options       = hashcat_ctx->user_options;
+
+  // brain
+
+  #ifdef WITH_BRAIN
+  #if defined (_WIN)
+  if ((user_options->brain_client == true) || (user_options->brain_server == true))
+  {
+    WSADATA wsaData;
+
+    WORD wVersionRequested = MAKEWORD (2,2);
+
+    const int iResult = WSAStartup (wVersionRequested, &wsaData);
+
+    if (iResult != NO_ERROR)
+    {
+      fprintf (stderr, "WSAStartup: %s\n", strerror (errno));
+
+      return -1;
+    }
+  }
+  #endif
+
+  if (user_options->brain_host)
+  {
+    struct addrinfo hints;
+
+    memset (&hints, 0, sizeof (hints));
+
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+
+    struct addrinfo *address_info = NULL;
+
+    const int rc_getaddrinfo = getaddrinfo (user_options->brain_host, NULL, &hints, &address_info);
+
+    if (rc_getaddrinfo != 0)
+    {
+      fprintf (stderr, "%s: %s\n", user_options->brain_host, gai_strerror (rc_getaddrinfo));
+
+      return -1;
+    }
+
+    freeaddrinfo (address_info);
+  }
+  #endif
 
   // common folders
 
@@ -2322,6 +2490,9 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_ctx_t  *logfile_ctx  = hashcat_ctx->logfile_ctx;
 
   logfile_top_char   (user_options->separator);
+  #ifdef WITH_BRAIN
+  logfile_top_string (user_options->brain_session_whitelist);
+  #endif
   logfile_top_string (user_options->cpu_affinity);
   logfile_top_string (user_options->custom_charset_1);
   logfile_top_string (user_options->custom_charset_2);
@@ -2345,6 +2516,9 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_string (user_options->session);
   logfile_top_string (user_options->truecrypt_keyfiles);
   logfile_top_string (user_options->veracrypt_keyfiles);
+  #ifdef WITH_BRAIN
+  logfile_top_string (user_options->brain_host);
+  #endif
   logfile_top_uint64 (user_options->limit);
   logfile_top_uint64 (user_options->skip);
   logfile_top_uint   (user_options->attack_mode);
@@ -2411,4 +2585,11 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->veracrypt_pim);
   logfile_top_uint   (user_options->version);
   logfile_top_uint   (user_options->workload_profile);
+  #ifdef WITH_BRAIN
+  logfile_top_uint   (user_options->brain_client);
+  logfile_top_uint   (user_options->brain_client_features);
+  logfile_top_uint   (user_options->brain_server);
+  logfile_top_uint   (user_options->brain_port);
+  logfile_top_uint   (user_options->brain_session);
+  #endif
 }
