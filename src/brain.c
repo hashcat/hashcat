@@ -901,9 +901,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
     return false;
   }
 
-  #if defined (_WIN)
-
-  #else
+  #if defined (__linux__)
   const int one = 1;
 
   if (setsockopt (brain_link_client_fd, SOL_TCP, TCP_NODELAY, &one, sizeof (one)) == -1)
@@ -914,6 +912,8 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
     return false;
   }
+  #else
+
   #endif
 
   struct addrinfo hints;
@@ -1990,9 +1990,7 @@ void *brain_server_handle_client (void *p)
 
   // client configuration
 
-  #if defined (_WIN)
-
-  #else
+  #if defined (__linux__)
   const int one = 1;
 
   if (setsockopt (client_fd, SOL_TCP, TCP_NODELAY, &one, sizeof (one)) == -1)
@@ -2003,6 +2001,8 @@ void *brain_server_handle_client (void *p)
 
     return NULL;
   }
+  #else
+
   #endif
 
   u32 brain_link_version;
@@ -2919,9 +2919,7 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
     return -1;
   }
 
-  #if defined (_WIN)
-
-  #else
+  #if defined (__linux__)
   const int one = 1;
 
   if (setsockopt (server_fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof (one)) == -1)
@@ -2937,6 +2935,8 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
 
     return -1;
   }
+  #else
+
   #endif
 
   struct sockaddr_in sa;

@@ -31,7 +31,11 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <signal.h>
+#if defined (__linux__)
 #define SEND_FLAGS MSG_NOSIGNAL
+#else
+#define SEND_FLAGS 0
+#endif
 #endif
 
 #include "xxhash.h"
