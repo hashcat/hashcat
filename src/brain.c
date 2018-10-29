@@ -124,7 +124,7 @@ u32 brain_compute_session (hashcat_ctx_t *hashcat_ctx)
 
     qsort (out_bufs, out_idx, sizeof (char *), sort_by_string);
 
-    for (int i = 0; i < out_idx; i++)
+    for (int i = 0; i <= out_idx; i++)
     {
       const size_t out_len = strlen (out_bufs[out_idx]);
 
