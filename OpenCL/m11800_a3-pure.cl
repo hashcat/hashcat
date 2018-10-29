@@ -55,7 +55,7 @@ __kernel void m11800_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     streebog512_init_vector (&ctx);
 
-    streebog512_update_vector (&ctx, w, pw_len);
+    streebog512_update_vector_swap (&ctx, w, pw_len);
 
     streebog512_final_vector (&ctx);
 
@@ -122,7 +122,7 @@ __kernel void m11800_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     streebog512_init_vector (&ctx);
 
-    streebog512_update_vector (&ctx, w, pw_len);
+    streebog512_update_vector_swap (&ctx, w, pw_len);
 
     streebog512_final_vector (&ctx);
 

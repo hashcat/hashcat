@@ -55,7 +55,7 @@ __kernel void m11700_mxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     streebog256_init_vector (&ctx);
 
-    streebog256_update_vector (&ctx, w, pw_len);
+    streebog256_update_vector_swap (&ctx, w, pw_len);
 
     streebog256_final_vector (&ctx);
 
@@ -122,7 +122,7 @@ __kernel void m11700_sxx (__global pw_t *pws, __global const kernel_rule_t *rule
 
     streebog256_init_vector (&ctx);
 
-    streebog256_update_vector (&ctx, w, pw_len);
+    streebog256_update_vector_swap (&ctx, w, pw_len);
 
     streebog256_final_vector (&ctx);
 

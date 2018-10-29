@@ -192,6 +192,7 @@ static const char *const USAGE_BIG[] =
   "   1460 | HMAC-SHA256 (key = $salt)                        | Raw Hash, Authenticated",
   "   1750 | HMAC-SHA512 (key = $pass)                        | Raw Hash, Authenticated",
   "   1760 | HMAC-SHA512 (key = $salt)                        | Raw Hash, Authenticated",
+  "  11850 | HMAC-Streebog-512 (key = $pass), big-endian      | Raw Hash, Authenticated",
   "  14000 | DES (PT = $salt, key = $pass)                    | Raw Cipher, Known-Plaintext attack",
   "  14100 | 3DES (PT = $salt, key = $pass)                   | Raw Cipher, Known-Plaintext attack",
   "  14900 | Skip32 (PT = $salt, key = $pass)                 | Raw Cipher, Known-Plaintext attack",

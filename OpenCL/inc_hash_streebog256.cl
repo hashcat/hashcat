@@ -991,14 +991,14 @@ DECLSPEC void streebog256_final (streebog256_ctx_t *ctx)
 
   u64 m[8];
 
-  m[0] = hl32_to_64 (ctx->w3[2], ctx->w3[3]);
-  m[1] = hl32_to_64 (ctx->w3[0], ctx->w3[1]);
-  m[2] = hl32_to_64 (ctx->w2[2], ctx->w2[3]);
-  m[3] = hl32_to_64 (ctx->w2[0], ctx->w2[1]);
-  m[4] = hl32_to_64 (ctx->w1[2], ctx->w1[3]);
-  m[5] = hl32_to_64 (ctx->w1[0], ctx->w1[1]);
-  m[6] = hl32_to_64 (ctx->w0[2], ctx->w0[3]);
-  m[7] = hl32_to_64 (ctx->w0[0], ctx->w0[1]);
+  m[0] = hl32_to_64_S (ctx->w3[2], ctx->w3[3]);
+  m[1] = hl32_to_64_S (ctx->w3[0], ctx->w3[1]);
+  m[2] = hl32_to_64_S (ctx->w2[2], ctx->w2[3]);
+  m[3] = hl32_to_64_S (ctx->w2[0], ctx->w2[1]);
+  m[4] = hl32_to_64_S (ctx->w1[2], ctx->w1[3]);
+  m[5] = hl32_to_64_S (ctx->w1[0], ctx->w1[1]);
+  m[6] = hl32_to_64_S (ctx->w0[2], ctx->w0[3]);
+  m[7] = hl32_to_64_S (ctx->w0[0], ctx->w0[1]);
 
   streebog256_g (ctx->h, ctx->n, m);
 
