@@ -1294,6 +1294,15 @@ typedef struct krb5tgs
 
 } krb5tgs_t;
 
+typedef struct krb5asrep
+{
+  u32 account_info[512];
+  u32 checksum[4];
+  u32 edata2[5120];
+  u32 edata2_len;
+
+} krb5asrep_t;
+
 typedef struct tc
 {
   u32 salt_buf[32];

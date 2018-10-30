@@ -11,6 +11,7 @@
 
 - Added pure kernels for hash-mode 11700 (Streebog-256)
 - Added pure kernels for hash-mode 11800 (Streebog-512)
+- Added hash-modes 18200 (Kerberos 5 AS-REP etype 23)
 
 ##
 ## Improvements

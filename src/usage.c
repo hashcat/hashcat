@@ -222,6 +222,7 @@ static const char *const USAGE_BIG[] =
   "  13100 | Kerberos 5 TGS-REP etype 23                      | Network Protocols",
   "  16100 | TACACS+                                          | Network Protocols",
   "  16500 | JWT (JSON Web Token)                             | Network Protocols",
+  "  18200 | Kerberos 5 AS-REP etype 23                       | Network Protocols",
   "    121 | SMF (Simple Machines Forum) > v1.1               | Forums, CMS, E-Commerce, Frameworks",
   "    400 | phpBB3 (MD5)                                     | Forums, CMS, E-Commerce, Frameworks",
   "   2611 | vBulletin < v3.8.5                               | Forums, CMS, E-Commerce, Frameworks",
