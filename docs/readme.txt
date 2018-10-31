@@ -258,6 +258,7 @@ NVIDIA GPUs require "NVIDIA Driver" (367.x or later)
 - Ethereum Wallet, SCRYPT
 - Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256
 - Ansible Vault
+- Kerberos 5 AS-REP etype 23
 - Plaintext
 
 ##
