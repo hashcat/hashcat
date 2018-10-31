@@ -223,6 +223,7 @@ static const char *ST_HASH_11500 = "c762de4a:00000000";
 static const char *ST_HASH_11600 = "$7z$0$14$0$$11$33363437353138333138300000000000$2365089182$16$12$d00321533b483f54a523f624a5f63269";
 static const char *ST_HASH_11700 = "57e9e50caec93d72e9498c211d6dc4f4d328248b48ecf46ba7abfa874f666e36";
 static const char *ST_HASH_11800 = "5d5bdba48c8f89ee6c0a0e11023540424283e84902de08013aeeb626e819950bb32842903593a1d2e8f71897ff7fe72e17ac9ba8ce1d1d2f7e9c4359ea63bdc3";
+static const char *ST_HASH_11850 = "ddf70f583b785137a5aa272549278d5f8830b8344e16ce8058e1605bc49c83063eb3b5d65af9223bfbef097de1f4ff7bd80609c2277f8b033ad72dab89e9d1f9:11112222";
 static const char *ST_HASH_11900 = "md5:1000:NjAxMDY4MQ==:a00DtIW9hP9voC85fmEA5uVhgdDx67nSPSm9yADHjkI=";
 static const char *ST_HASH_12000 = "sha1:1000:MTYwNTM4MDU4Mzc4MzA=:aGghFQBtQ8+WVlMk5GEaMw==";
 static const char *ST_HASH_12001 = "{PKCS5S2}NTczNTY0NDY2NjQyNzU1Mx8gGiRGobaZYwumctGHbn2ZOHB8LkwzH+Z1gkWfy1zD";
@@ -491,6 +492,7 @@ static const char *HT_11500 = "CRC32";
 static const char *HT_11600 = "7-Zip";
 static const char *HT_11700 = "GOST R 34.11-2012 (Streebog) 256-bit, big-endian";
 static const char *HT_11800 = "GOST R 34.11-2012 (Streebog) 512-bit, big-endian";
+static const char *HT_11850 = "HMAC-Streebog-512 (key = $pass), big-endian";
 static const char *HT_11900 = "PBKDF2-HMAC-MD5";
 static const char *HT_12000 = "PBKDF2-HMAC-SHA1";
 static const char *HT_12100 = "PBKDF2-HMAC-SHA512";
@@ -13368,7 +13370,7 @@ int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   return (PARSER_OK);
 }
 
-int gost2012sbog_256_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
+int streebog_256_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -13399,7 +13401,7 @@ int gost2012sbog_256_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf,
   return (PARSER_OK);
 }
 
-int gost2012sbog_512_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
+int streebog_512_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
 
@@ -13434,6 +13436,67 @@ int gost2012sbog_512_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf,
   digest[13] = hex_to_u32 (hash_pos + 104);
   digest[14] = hex_to_u32 (hash_pos + 112);
   digest[15] = hex_to_u32 (hash_pos + 120);
+
+  return (PARSER_OK);
+}
+
+int streebog_512s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
+{
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  token_t token;
+
+  token.token_cnt  = 2;
+
+  token.sep[0]     = hashconfig->separator;
+  token.len_min[0] = 128;
+  token.len_max[0] = 128;
+  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
+
+  token.len_min[1] = SALT_MIN;
+  token.len_max[1] = SALT_MAX;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
+  {
+    token.len_min[1] *= 2;
+    token.len_max[1] *= 2;
+
+    token.attr[1] |= TOKEN_ATTR_VERIFY_HEX;
+  }
+
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
+
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+  u8 *hash_pos = token.buf[0];
+
+  digest[ 0] = hex_to_u32 (hash_pos +   0);
+  digest[ 1] = hex_to_u32 (hash_pos +   8);
+  digest[ 2] = hex_to_u32 (hash_pos +  16);
+  digest[ 3] = hex_to_u32 (hash_pos +  24);
+  digest[ 4] = hex_to_u32 (hash_pos +  32);
+  digest[ 5] = hex_to_u32 (hash_pos +  40);
+  digest[ 6] = hex_to_u32 (hash_pos +  48);
+  digest[ 7] = hex_to_u32 (hash_pos +  56);
+  digest[ 8] = hex_to_u32 (hash_pos +  64);
+  digest[ 9] = hex_to_u32 (hash_pos +  72);
+  digest[10] = hex_to_u32 (hash_pos +  80);
+  digest[11] = hex_to_u32 (hash_pos +  88);
+  digest[12] = hex_to_u32 (hash_pos +  96);
+  digest[13] = hex_to_u32 (hash_pos + 104);
+  digest[14] = hex_to_u32 (hash_pos + 112);
+  digest[15] = hex_to_u32 (hash_pos + 120);
+
+  u8 *salt_pos = token.buf[1];
+  int salt_len = token.len[1];
+
+  const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
+
+  if (parse_rc == false) return (PARSER_SALT_LENGTH);
 
   return (PARSER_OK);
 }
@@ -18608,6 +18671,7 @@ const char *strhashtype (const u32 hash_mode)
     case 11600: return HT_11600;
     case 11700: return HT_11700;
     case 11800: return HT_11800;
+    case 11850: return HT_11850;
     case 11900: return HT_11900;
     case 12000: return HT_12000;
     case 12001: return HT_12001;
@@ -21149,7 +21213,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
       digest_buf[6],
       digest_buf[7]);
   }
-  else if (hash_mode == 11800)
+  else if (hash_mode == 11800 || hash_mode == 11850)
   {
     snprintf (out_buf, out_len - 1, "%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
       byte_swap_32 (digest_buf[ 0]),
@@ -26410,14 +26474,14 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 11700:  hashconfig->hash_type      = HASH_TYPE_GOST_2012SBOG_256;
+    case 11700:  hashconfig->hash_type      = HASH_TYPE_STREEBOG_256;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_PT_ADD01;
-                 hashconfig->kern_type      = KERN_TYPE_GOST_2012SBOG_256;
+                 hashconfig->kern_type      = KERN_TYPE_STREEBOG_256;
                  hashconfig->dgst_size      = DGST_SIZE_4_8;
-                 hashconfig->parse_func     = gost2012sbog_256_parse_hash;
+                 hashconfig->parse_func     = streebog_256_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
@@ -26427,20 +26491,37 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 11800:  hashconfig->hash_type      = HASH_TYPE_GOST_2012SBOG_512;
+    case 11800:  hashconfig->hash_type      = HASH_TYPE_STREEBOG_512;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
                                             | OPTS_TYPE_PT_ADD01;
-                 hashconfig->kern_type      = KERN_TYPE_GOST_2012SBOG_512;
+                 hashconfig->kern_type      = KERN_TYPE_STREEBOG_512;
                  hashconfig->dgst_size      = DGST_SIZE_4_16;
-                 hashconfig->parse_func     = gost2012sbog_512_parse_hash;
+                 hashconfig->parse_func     = streebog_512_parse_hash;
                  hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
                  hashconfig->dgst_pos0      = 0;
                  hashconfig->dgst_pos1      = 1;
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 3;
                  hashconfig->st_hash        = ST_HASH_11800;
+                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
+                 break;
+
+    case 11850:  hashconfig->hash_type      = HASH_TYPE_STREEBOG_512;
+                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
+                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_PT_ADD01;
+                 hashconfig->kern_type      = KERN_TYPE_HMAC_STREEBOG_512_PW;
+                 hashconfig->dgst_size      = DGST_SIZE_4_16;
+                 hashconfig->parse_func     = streebog_512s_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
+                 hashconfig->dgst_pos0      = 0;
+                 hashconfig->dgst_pos1      = 1;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 3;
+                 hashconfig->st_hash        = ST_HASH_11850;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 

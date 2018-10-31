@@ -869,6 +869,63 @@ DECLSPEC void streebog512_update_64 (streebog512_ctx_t *ctx, u32 *w0, u32 *w1, u
   }
 }
 
+DECLSPEC void streebog512_update (streebog512_ctx_t *ctx, const u32 *w, int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  int off = 0;
+
+  while (len > 63)
+  {
+    w0[0] = w[off +  0];
+    w0[1] = w[off +  1];
+    w0[2] = w[off +  2];
+    w0[3] = w[off +  3];
+    w1[0] = w[off +  4];
+    w1[1] = w[off +  5];
+    w1[2] = w[off +  6];
+    w1[3] = w[off +  7];
+    w2[0] = w[off +  8];
+    w2[1] = w[off +  9];
+    w2[2] = w[off + 10];
+    w2[3] = w[off + 11];
+    w3[0] = w[off + 12];
+    w3[1] = w[off + 13];
+    w3[2] = w[off + 14];
+    w3[3] = w[off + 15];
+
+    off += 16;
+    len -= 64;
+
+    streebog512_update_64 (ctx, w0, w1, w2, w3, 64);
+  }
+
+  if (len > 0)
+  {
+    w0[0] = w[off +  0];
+    w0[1] = w[off +  1];
+    w0[2] = w[off +  2];
+    w0[3] = w[off +  3];
+    w1[0] = w[off +  4];
+    w1[1] = w[off +  5];
+    w1[2] = w[off +  6];
+    w1[3] = w[off +  7];
+    w2[0] = w[off +  8];
+    w2[1] = w[off +  9];
+    w2[2] = w[off + 10];
+    w2[3] = w[off + 11];
+    w3[0] = w[off + 12];
+    w3[1] = w[off + 13];
+    w3[2] = w[off + 14];
+    w3[3] = w[off + 15];
+
+    streebog512_update_64 (ctx, w0, w1, w2, w3, len);
+  }
+}
+
 DECLSPEC void streebog512_update_swap (streebog512_ctx_t *ctx, const u32 *w, int len)
 {
   u32 w0[4];
@@ -991,14 +1048,14 @@ DECLSPEC void streebog512_final (streebog512_ctx_t *ctx)
 
   u64 m[8];
 
-  m[0] = hl32_to_64 (ctx->w3[2], ctx->w3[3]);
-  m[1] = hl32_to_64 (ctx->w3[0], ctx->w3[1]);
-  m[2] = hl32_to_64 (ctx->w2[2], ctx->w2[3]);
-  m[3] = hl32_to_64 (ctx->w2[0], ctx->w2[1]);
-  m[4] = hl32_to_64 (ctx->w1[2], ctx->w1[3]);
-  m[5] = hl32_to_64 (ctx->w1[0], ctx->w1[1]);
-  m[6] = hl32_to_64 (ctx->w0[2], ctx->w0[3]);
-  m[7] = hl32_to_64 (ctx->w0[0], ctx->w0[1]);
+  m[0] = hl32_to_64_S (ctx->w3[2], ctx->w3[3]);
+  m[1] = hl32_to_64_S (ctx->w3[0], ctx->w3[1]);
+  m[2] = hl32_to_64_S (ctx->w2[2], ctx->w2[3]);
+  m[3] = hl32_to_64_S (ctx->w2[0], ctx->w2[1]);
+  m[4] = hl32_to_64_S (ctx->w1[2], ctx->w1[3]);
+  m[5] = hl32_to_64_S (ctx->w1[0], ctx->w1[1]);
+  m[6] = hl32_to_64_S (ctx->w0[2], ctx->w0[3]);
+  m[7] = hl32_to_64_S (ctx->w0[0], ctx->w0[1]);
 
   streebog512_g (ctx->h, ctx->n, m);
 
@@ -1014,6 +1071,217 @@ DECLSPEC void streebog512_final (streebog512_ctx_t *ctx)
   streebog512_g (ctx->h, nullbuf, ctx->n);
 
   streebog512_g (ctx->h, nullbuf, ctx->s);
+}
+
+typedef struct streebog512_hmac_ctx
+{
+  streebog512_ctx_t ipad;
+  streebog512_ctx_t opad;
+
+} streebog512_hmac_ctx_t;
+
+DECLSPEC void streebog512_hmac_init_64 (streebog512_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3)
+{
+  u32 t0[4];
+  u32 t1[4];
+  u32 t2[4];
+  u32 t3[4];
+
+  // ipad
+
+  t0[0] = w0[0] ^ 0x36363636;
+  t0[1] = w0[1] ^ 0x36363636;
+  t0[2] = w0[2] ^ 0x36363636;
+  t0[3] = w0[3] ^ 0x36363636;
+  t1[0] = w1[0] ^ 0x36363636;
+  t1[1] = w1[1] ^ 0x36363636;
+  t1[2] = w1[2] ^ 0x36363636;
+  t1[3] = w1[3] ^ 0x36363636;
+  t2[0] = w2[0] ^ 0x36363636;
+  t2[1] = w2[1] ^ 0x36363636;
+  t2[2] = w2[2] ^ 0x36363636;
+  t2[3] = w2[3] ^ 0x36363636;
+  t3[0] = w3[0] ^ 0x36363636;
+  t3[1] = w3[1] ^ 0x36363636;
+  t3[2] = w3[2] ^ 0x36363636;
+  t3[3] = w3[3] ^ 0x36363636;
+
+  streebog512_init (&ctx->ipad);
+
+  streebog512_update_64 (&ctx->ipad, t0, t1, t2, t3, 64);
+
+  // opad
+
+  t0[0] = w0[0] ^ 0x5c5c5c5c;
+  t0[1] = w0[1] ^ 0x5c5c5c5c;
+  t0[2] = w0[2] ^ 0x5c5c5c5c;
+  t0[3] = w0[3] ^ 0x5c5c5c5c;
+  t1[0] = w1[0] ^ 0x5c5c5c5c;
+  t1[1] = w1[1] ^ 0x5c5c5c5c;
+  t1[2] = w1[2] ^ 0x5c5c5c5c;
+  t1[3] = w1[3] ^ 0x5c5c5c5c;
+  t2[0] = w2[0] ^ 0x5c5c5c5c;
+  t2[1] = w2[1] ^ 0x5c5c5c5c;
+  t2[2] = w2[2] ^ 0x5c5c5c5c;
+  t2[3] = w2[3] ^ 0x5c5c5c5c;
+  t3[0] = w3[0] ^ 0x5c5c5c5c;
+  t3[1] = w3[1] ^ 0x5c5c5c5c;
+  t3[2] = w3[2] ^ 0x5c5c5c5c;
+  t3[3] = w3[3] ^ 0x5c5c5c5c;
+
+  streebog512_init (&ctx->opad);
+
+  streebog512_update_64 (&ctx->opad, t0, t1, t2, t3, 64);
+}
+
+DECLSPEC void streebog512_hmac_init (streebog512_hmac_ctx_t *ctx, const u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  if (len > 64)
+  {
+    streebog512_ctx_t tmp;
+
+    streebog512_init (&tmp);
+
+    streebog512_update (&tmp, w, len);
+
+    streebog512_final (&tmp);
+
+    w0[0] = h32_from_64_S (tmp.h[0]);
+    w0[1] = l32_from_64_S (tmp.h[0]);
+    w0[2] = h32_from_64_S (tmp.h[1]);
+    w0[3] = l32_from_64_S (tmp.h[1]);
+    w1[0] = h32_from_64_S (tmp.h[2]);
+    w1[1] = l32_from_64_S (tmp.h[2]);
+    w1[2] = h32_from_64_S (tmp.h[3]);
+    w1[3] = l32_from_64_S (tmp.h[3]);
+    w2[0] = h32_from_64_S (tmp.h[4]);
+    w2[1] = l32_from_64_S (tmp.h[4]);
+    w2[2] = h32_from_64_S (tmp.h[5]);
+    w2[3] = l32_from_64_S (tmp.h[5]);
+    w3[0] = h32_from_64_S (tmp.h[6]);
+    w3[1] = l32_from_64_S (tmp.h[6]);
+    w3[2] = h32_from_64_S (tmp.h[7]);
+    w3[3] = l32_from_64_S (tmp.h[7]);
+  }
+  else
+  {
+    w0[0] = w[ 0];
+    w0[1] = w[ 1];
+    w0[2] = w[ 2];
+    w0[3] = w[ 3];
+    w1[0] = w[ 4];
+    w1[1] = w[ 5];
+    w1[2] = w[ 6];
+    w1[3] = w[ 7];
+    w2[0] = w[ 8];
+    w2[1] = w[ 9];
+    w2[2] = w[10];
+    w2[3] = w[11];
+    w3[0] = w[12];
+    w3[1] = w[13];
+    w3[2] = w[14];
+    w3[3] = w[15];
+  }
+
+  streebog512_hmac_init_64 (ctx, w0, w1, w2, w3);
+}
+
+DECLSPEC void streebog512_hmac_init_swap (streebog512_hmac_ctx_t *ctx, const u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  if (len > 64)
+  {
+    streebog512_ctx_t tmp;
+
+    streebog512_init (&tmp);
+
+    streebog512_update_swap (&tmp, w, len);
+
+    streebog512_final (&tmp);
+
+    w0[0] = h32_from_64_S (tmp.h[0]);
+    w0[1] = l32_from_64_S (tmp.h[0]);
+    w0[2] = h32_from_64_S (tmp.h[1]);
+    w0[3] = l32_from_64_S (tmp.h[1]);
+    w1[0] = h32_from_64_S (tmp.h[2]);
+    w1[1] = l32_from_64_S (tmp.h[2]);
+    w1[2] = h32_from_64_S (tmp.h[3]);
+    w1[3] = l32_from_64_S (tmp.h[3]);
+    w2[0] = h32_from_64_S (tmp.h[4]);
+    w2[1] = l32_from_64_S (tmp.h[4]);
+    w2[2] = h32_from_64_S (tmp.h[5]);
+    w2[3] = l32_from_64_S (tmp.h[5]);
+    w3[0] = h32_from_64_S (tmp.h[6]);
+    w3[1] = l32_from_64_S (tmp.h[6]);
+    w3[2] = h32_from_64_S (tmp.h[7]);
+    w3[3] = l32_from_64_S (tmp.h[7]);
+  }
+  else
+  {
+    w0[0] = swap32_S (w[ 0]);
+    w0[1] = swap32_S (w[ 1]);
+    w0[2] = swap32_S (w[ 2]);
+    w0[3] = swap32_S (w[ 3]);
+    w1[0] = swap32_S (w[ 4]);
+    w1[1] = swap32_S (w[ 5]);
+    w1[2] = swap32_S (w[ 6]);
+    w1[3] = swap32_S (w[ 7]);
+    w2[0] = swap32_S (w[ 8]);
+    w2[1] = swap32_S (w[ 9]);
+    w2[2] = swap32_S (w[10]);
+    w2[3] = swap32_S (w[11]);
+    w3[0] = swap32_S (w[12]);
+    w3[1] = swap32_S (w[13]);
+    w3[2] = swap32_S (w[14]);
+    w3[3] = swap32_S (w[15]);
+  }
+
+  streebog512_hmac_init_64 (ctx, w0, w1, w2, w3);
+}
+
+DECLSPEC void streebog512_hmac_update (streebog512_hmac_ctx_t *ctx, const u32 *w, const int len)
+{
+  streebog512_update (&ctx->ipad, w, len);
+}
+
+DECLSPEC void streebog512_hmac_final (streebog512_hmac_ctx_t *ctx)
+{
+  streebog512_final (&ctx->ipad);
+
+  u32 t0[4];
+  u32 t1[4];
+  u32 t2[4];
+  u32 t3[4];
+
+  t0[0] = h32_from_64_S (ctx->ipad.h[7]);
+  t0[1] = l32_from_64_S (ctx->ipad.h[7]);
+  t0[2] = h32_from_64_S (ctx->ipad.h[6]);
+  t0[3] = l32_from_64_S (ctx->ipad.h[6]);
+  t1[0] = h32_from_64_S (ctx->ipad.h[5]);
+  t1[1] = l32_from_64_S (ctx->ipad.h[5]);
+  t1[2] = h32_from_64_S (ctx->ipad.h[4]);
+  t1[3] = l32_from_64_S (ctx->ipad.h[4]);
+  t2[0] = h32_from_64_S (ctx->ipad.h[3]);
+  t2[1] = l32_from_64_S (ctx->ipad.h[3]);
+  t2[2] = h32_from_64_S (ctx->ipad.h[2]);
+  t2[3] = l32_from_64_S (ctx->ipad.h[2]);
+  t3[0] = h32_from_64_S (ctx->ipad.h[1]);
+  t3[1] = l32_from_64_S (ctx->ipad.h[1]);
+  t3[2] = h32_from_64_S (ctx->ipad.h[0]);
+  t3[3] = l32_from_64_S (ctx->ipad.h[0]);
+
+  streebog512_update_64 (&ctx->opad, t0, t1, t2, t3, 64);
+
+  streebog512_final (&ctx->opad);
 }
 
 typedef struct streebog512_ctx_vector
@@ -1270,6 +1538,63 @@ DECLSPEC void streebog512_update_vector_64 (streebog512_ctx_vector_t *ctx, u32x 
   }
 }
 
+DECLSPEC void streebog512_update_vector (streebog512_ctx_vector_t *ctx, const u32x *w, int len)
+{
+  u32x w0[4];
+  u32x w1[4];
+  u32x w2[4];
+  u32x w3[4];
+
+  int off = 0;
+
+  while (len > 63)
+  {
+    w0[0] = w[off +  0];
+    w0[1] = w[off +  1];
+    w0[2] = w[off +  2];
+    w0[3] = w[off +  3];
+    w1[0] = w[off +  4];
+    w1[1] = w[off +  5];
+    w1[2] = w[off +  6];
+    w1[3] = w[off +  7];
+    w2[0] = w[off +  8];
+    w2[1] = w[off +  9];
+    w2[2] = w[off + 10];
+    w2[3] = w[off + 11];
+    w3[0] = w[off + 12];
+    w3[1] = w[off + 13];
+    w3[2] = w[off + 14];
+    w3[3] = w[off + 15];
+
+    off += 16;
+    len -= 64;
+
+    streebog512_update_vector_64 (ctx, w0, w1, w2, w3, 64);
+  }
+
+  if (len > 0)
+  {
+    w0[0] = w[off +  0];
+    w0[1] = w[off +  1];
+    w0[2] = w[off +  2];
+    w0[3] = w[off +  3];
+    w1[0] = w[off +  4];
+    w1[1] = w[off +  5];
+    w1[2] = w[off +  6];
+    w1[3] = w[off +  7];
+    w2[0] = w[off +  8];
+    w2[1] = w[off +  9];
+    w2[2] = w[off + 10];
+    w2[3] = w[off + 11];
+    w3[0] = w[off + 12];
+    w3[1] = w[off + 13];
+    w3[2] = w[off + 14];
+    w3[3] = w[off + 15];
+
+    streebog512_update_vector_64 (ctx, w0, w1, w2, w3, len);
+  }
+}
+
 DECLSPEC void streebog512_update_vector_swap (streebog512_ctx_vector_t *ctx, const u32x *w, int len)
 {
   u32x w0[4];
@@ -1358,4 +1683,158 @@ DECLSPEC void streebog512_final_vector (streebog512_ctx_vector_t *ctx)
   streebog512_g_vector (ctx->h, nullbuf, ctx->n);
 
   streebog512_g_vector (ctx->h, nullbuf, ctx->s);
+}
+
+typedef struct streebog512_hmac_ctx_vector
+{
+  streebog512_ctx_vector_t ipad;
+  streebog512_ctx_vector_t opad;
+
+} streebog512_hmac_ctx_vector_t;
+
+DECLSPEC void streebog512_hmac_init_vector_64 (streebog512_hmac_ctx_vector_t *ctx, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3)
+{
+  u32x t0[4];
+  u32x t1[4];
+  u32x t2[4];
+  u32x t3[4];
+
+  // ipad
+
+  t0[0] = w0[0] ^ 0x36363636;
+  t0[1] = w0[1] ^ 0x36363636;
+  t0[2] = w0[2] ^ 0x36363636;
+  t0[3] = w0[3] ^ 0x36363636;
+  t1[0] = w1[0] ^ 0x36363636;
+  t1[1] = w1[1] ^ 0x36363636;
+  t1[2] = w1[2] ^ 0x36363636;
+  t1[3] = w1[3] ^ 0x36363636;
+  t2[0] = w2[0] ^ 0x36363636;
+  t2[1] = w2[1] ^ 0x36363636;
+  t2[2] = w2[2] ^ 0x36363636;
+  t2[3] = w2[3] ^ 0x36363636;
+  t3[0] = w3[0] ^ 0x36363636;
+  t3[1] = w3[1] ^ 0x36363636;
+  t3[2] = w3[2] ^ 0x36363636;
+  t3[3] = w3[3] ^ 0x36363636;
+
+  streebog512_init_vector (&ctx->ipad);
+
+  streebog512_update_vector_64 (&ctx->ipad, t0, t1, t2, t3, 64);
+
+  // opad
+
+  t0[0] = w0[0] ^ 0x5c5c5c5c;
+  t0[1] = w0[1] ^ 0x5c5c5c5c;
+  t0[2] = w0[2] ^ 0x5c5c5c5c;
+  t0[3] = w0[3] ^ 0x5c5c5c5c;
+  t1[0] = w1[0] ^ 0x5c5c5c5c;
+  t1[1] = w1[1] ^ 0x5c5c5c5c;
+  t1[2] = w1[2] ^ 0x5c5c5c5c;
+  t1[3] = w1[3] ^ 0x5c5c5c5c;
+  t2[0] = w2[0] ^ 0x5c5c5c5c;
+  t2[1] = w2[1] ^ 0x5c5c5c5c;
+  t2[2] = w2[2] ^ 0x5c5c5c5c;
+  t2[3] = w2[3] ^ 0x5c5c5c5c;
+  t3[0] = w3[0] ^ 0x5c5c5c5c;
+  t3[1] = w3[1] ^ 0x5c5c5c5c;
+  t3[2] = w3[2] ^ 0x5c5c5c5c;
+  t3[3] = w3[3] ^ 0x5c5c5c5c;
+
+  streebog512_init_vector (&ctx->opad);
+
+  streebog512_update_vector_64 (&ctx->opad, t0, t1, t2, t3, 64);
+}
+
+DECLSPEC void streebog512_hmac_init_vector_swap (streebog512_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
+{
+  u32x w0[4];
+  u32x w1[4];
+  u32x w2[4];
+  u32x w3[4];
+
+  if (len > 64)
+  {
+    streebog512_ctx_vector_t tmp;
+
+    streebog512_init_vector (&tmp);
+
+    streebog512_update_vector (&tmp, w, len);
+
+    streebog512_final_vector (&tmp);
+
+    w0[0] = h32_from_64 (tmp.h[0]);
+    w0[1] = l32_from_64 (tmp.h[0]);
+    w0[2] = h32_from_64 (tmp.h[1]);
+    w0[3] = l32_from_64 (tmp.h[1]);
+    w1[0] = h32_from_64 (tmp.h[2]);
+    w1[1] = l32_from_64 (tmp.h[2]);
+    w1[2] = h32_from_64 (tmp.h[3]);
+    w1[3] = l32_from_64 (tmp.h[3]);
+    w2[0] = h32_from_64 (tmp.h[4]);
+    w2[1] = l32_from_64 (tmp.h[4]);
+    w2[2] = h32_from_64 (tmp.h[5]);
+    w2[3] = l32_from_64 (tmp.h[5]);
+    w3[0] = h32_from_64 (tmp.h[6]);
+    w3[1] = l32_from_64 (tmp.h[6]);
+    w3[2] = h32_from_64 (tmp.h[7]);
+    w3[3] = l32_from_64 (tmp.h[7]);
+  }
+  else
+  {
+    w0[0] = swap32 (w[ 0]);
+    w0[1] = swap32 (w[ 1]);
+    w0[2] = swap32 (w[ 2]);
+    w0[3] = swap32 (w[ 3]);
+    w1[0] = swap32 (w[ 4]);
+    w1[1] = swap32 (w[ 5]);
+    w1[2] = swap32 (w[ 6]);
+    w1[3] = swap32 (w[ 7]);
+    w2[0] = swap32 (w[ 8]);
+    w2[1] = swap32 (w[ 9]);
+    w2[2] = swap32 (w[10]);
+    w2[3] = swap32 (w[11]);
+    w3[0] = swap32 (w[12]);
+    w3[1] = swap32 (w[13]);
+    w3[2] = swap32 (w[14]);
+    w3[3] = swap32 (w[15]);
+  }
+
+  streebog512_hmac_init_vector_64 (ctx, w0, w1, w2, w3);
+}
+
+DECLSPEC void streebog512_hmac_update_vector (streebog512_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
+{
+  streebog512_update_vector (&ctx->ipad, w, len);
+}
+
+DECLSPEC void streebog512_hmac_final_vector (streebog512_hmac_ctx_vector_t *ctx)
+{
+  streebog512_final_vector (&ctx->ipad);
+
+  u32x t0[4];
+  u32x t1[4];
+  u32x t2[4];
+  u32x t3[4];
+
+  t0[0] = h32_from_64 (ctx->ipad.h[7]);
+  t0[1] = l32_from_64 (ctx->ipad.h[7]);
+  t0[2] = h32_from_64 (ctx->ipad.h[6]);
+  t0[3] = l32_from_64 (ctx->ipad.h[6]);
+  t1[0] = h32_from_64 (ctx->ipad.h[5]);
+  t1[1] = l32_from_64 (ctx->ipad.h[5]);
+  t1[2] = h32_from_64 (ctx->ipad.h[4]);
+  t1[3] = l32_from_64 (ctx->ipad.h[4]);
+  t2[0] = h32_from_64 (ctx->ipad.h[3]);
+  t2[1] = l32_from_64 (ctx->ipad.h[3]);
+  t2[2] = h32_from_64 (ctx->ipad.h[2]);
+  t2[3] = l32_from_64 (ctx->ipad.h[2]);
+  t3[0] = h32_from_64 (ctx->ipad.h[1]);
+  t3[1] = l32_from_64 (ctx->ipad.h[1]);
+  t3[2] = h32_from_64 (ctx->ipad.h[0]);
+  t3[3] = l32_from_64 (ctx->ipad.h[0]);
+
+  streebog512_update_vector_64 (&ctx->opad, t0, t1, t2, t3, 64);
+
+  streebog512_final_vector (&ctx->opad);
 }

@@ -1093,8 +1093,8 @@ typedef enum hash_type
   HASH_TYPE_PBKDF2_SHA256       = 39,
   HASH_TYPE_BITCOIN_WALLET      = 40,
   HASH_TYPE_CRC32               = 41,
-  HASH_TYPE_GOST_2012SBOG_256   = 42,
-  HASH_TYPE_GOST_2012SBOG_512   = 43,
+  HASH_TYPE_STREEBOG_256        = 42,
+  HASH_TYPE_STREEBOG_512        = 43,
   HASH_TYPE_PBKDF2_MD5          = 44,
   HASH_TYPE_PBKDF2_SHA1         = 45,
   HASH_TYPE_PBKDF2_SHA512       = 46,
@@ -1270,8 +1270,9 @@ typedef enum kern_type
   KERN_TYPE_SIP_AUTH                = 11400,
   KERN_TYPE_CRC32                   = 11500,
   KERN_TYPE_SEVEN_ZIP               = 11600,
-  KERN_TYPE_GOST_2012SBOG_256       = 11700,
-  KERN_TYPE_GOST_2012SBOG_512       = 11800,
+  KERN_TYPE_STREEBOG_256            = 11700,
+  KERN_TYPE_STREEBOG_512            = 11800,
+  KERN_TYPE_HMAC_STREEBOG_512_PW    = 11850,
   KERN_TYPE_PBKDF2_MD5              = 11900,
   KERN_TYPE_PBKDF2_SHA1             = 12000,
   KERN_TYPE_ECRYPTFS                = 12200,
@@ -1559,8 +1560,8 @@ int bitcoin_wallet_parse_hash     (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int sip_auth_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int crc32_parse_hash              (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int seven_zip_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int gost2012sbog_256_parse_hash   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int gost2012sbog_512_parse_hash   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
+int streebog_256_parse_hash       (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
+int streebog_512_parse_hash       (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int pbkdf2_md5_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int pbkdf2_sha1_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int pbkdf2_sha512_parse_hash      (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);

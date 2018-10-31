@@ -13,12 +13,14 @@
 - Added pure kernels for hash-mode 11700 (Streebog-256)
 - Added pure kernels for hash-mode 11800 (Streebog-512)
 - Added hash-modes 18200 (Kerberos 5 AS-REP etype 23)
+- Added hash-mode 11850 (HMAC-Streebog-512 (key = $pass), big-endian)
 
 ##
 ## Improvements
 ##
 
 - Tests: Added hash-modes 11700 (Streebog-256) and 11800 (Streebog-512)
+- Tests: Added hash-mode 11850 (HMAC-Streebog-512 (key = $pass), big-endian)
 
 ##
 ## Bugs
