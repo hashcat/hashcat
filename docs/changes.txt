@@ -23,6 +23,7 @@
 ## Bugs
 ##
 
+- Fix endianness and invalid separator character in outfile format of hash-mode 16801 (WPA-PMKID-PMK)
 
 * changes v4.2.1 -> v5.0.0
 

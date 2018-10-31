@@ -22352,11 +22352,11 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
       tmp_buf[tmp_len] = 0;
 
-      snprintf (out_buf, out_len - 1, "%08x%08x%08x%08x*%02x%02x%02x%02x%02x%02x*%02x%02x%02x%02x%02x%02x:%s",
-        wpa_pmkid->pmkid[0],
-        wpa_pmkid->pmkid[1],
-        wpa_pmkid->pmkid[2],
-        wpa_pmkid->pmkid[3],
+      snprintf (out_buf, out_len - 1, "%08x%08x%08x%08x*%02x%02x%02x%02x%02x%02x*%02x%02x%02x%02x%02x%02x*%s",
+        byte_swap_32 (wpa_pmkid->pmkid[0]),
+        byte_swap_32 (wpa_pmkid->pmkid[1]),
+        byte_swap_32 (wpa_pmkid->pmkid[2]),
+        byte_swap_32 (wpa_pmkid->pmkid[3]),
         wpa_pmkid->orig_mac_ap[0],
         wpa_pmkid->orig_mac_ap[1],
         wpa_pmkid->orig_mac_ap[2],
@@ -22374,10 +22374,10 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
     else
     {
       snprintf (out_buf, out_len - 1, "%08x%08x%08x%08x*%02x%02x%02x%02x%02x%02x*%02x%02x%02x%02x%02x%02x",
-        wpa_pmkid->pmkid[0],
-        wpa_pmkid->pmkid[1],
-        wpa_pmkid->pmkid[2],
-        wpa_pmkid->pmkid[3],
+        byte_swap_32 (wpa_pmkid->pmkid[0]),
+        byte_swap_32 (wpa_pmkid->pmkid[1]),
+        byte_swap_32 (wpa_pmkid->pmkid[2]),
+        byte_swap_32 (wpa_pmkid->pmkid[3]),
         wpa_pmkid->orig_mac_ap[0],
         wpa_pmkid->orig_mac_ap[1],
         wpa_pmkid->orig_mac_ap[2],
