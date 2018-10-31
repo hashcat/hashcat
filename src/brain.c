@@ -3170,7 +3170,6 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
     brain_server_client_options[client_idx].brain_server_dbs      = brain_server_dbs;
     brain_server_client_options[client_idx].auth_password         = auth_password;
     brain_server_client_options[client_idx].client_idx            = client_idx;
-    brain_server_client_options[client_idx].client_fd             = -1;
     brain_server_client_options[client_idx].session_whitelist_buf = session_whitelist_buf;
     brain_server_client_options[client_idx].session_whitelist_cnt = session_whitelist_cnt;
   }
