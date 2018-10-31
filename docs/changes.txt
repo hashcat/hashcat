@@ -4,6 +4,7 @@
 ## Features
 ##
 
+- Added new option --stdin-timeout-abort which allows to set the time hashcat should wait for input in stdin mode before aborting
 
 ##
 ## Algorithms

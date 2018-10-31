@@ -599,6 +599,7 @@ typedef enum user_options_defaults
   SPEED_ONLY               = false,
   STATUS                   = false,
   STATUS_TIMER             = 10,
+  STDIN_TIMEOUT_ABORT      = 120,
   STDOUT_FLAG              = false,
   USAGE                    = false,
   USERNAME                 = false,
@@ -704,13 +705,14 @@ typedef enum user_options_map
   IDX_STATUS                    = 0xff3e,
   IDX_STATUS_TIMER              = 0xff3f,
   IDX_STDOUT_FLAG               = 0xff40,
-  IDX_TRUECRYPT_KEYFILES        = 0xff41,
-  IDX_USERNAME                  = 0xff42,
-  IDX_VERACRYPT_KEYFILES        = 0xff43,
-  IDX_VERACRYPT_PIM             = 0xff44,
+  IDX_STDIN_TIMEOUT_ABORT       = 0xff41,
+  IDX_TRUECRYPT_KEYFILES        = 0xff42,
+  IDX_USERNAME                  = 0xff43,
+  IDX_VERACRYPT_KEYFILES        = 0xff44,
+  IDX_VERACRYPT_PIM             = 0xff45,
   IDX_VERSION_LOWER             = 'v',
   IDX_VERSION                   = 'V',
-  IDX_WORDLIST_AUTOHEX_DISABLE  = 0xff45,
+  IDX_WORDLIST_AUTOHEX_DISABLE  = 0xff46,
   IDX_WORKLOAD_PROFILE          = 'w',
 
 } user_options_map_t;
@@ -1730,6 +1732,7 @@ typedef struct user_options
   bool         speed_only;
   bool         status;
   bool         stdout_flag;
+  bool         stdin_timeout_abort_chgd;
   bool         usage;
   bool         username;
   bool         version;
@@ -1797,6 +1800,7 @@ typedef struct user_options
   u32          scrypt_tmto;
   u32          segment_size;
   u32          status_timer;
+  u32          stdin_timeout_abort;
   u32          veracrypt_pim;
   u32          workload_profile;
   u64          limit;
