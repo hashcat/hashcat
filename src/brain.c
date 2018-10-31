@@ -892,21 +892,6 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
   memset (&device_param->brain_link_recv_speed, 0, sizeof (link_speed_t));
   memset (&device_param->brain_link_send_speed, 0, sizeof (link_speed_t));
 
-  #if defined (_WIN)
-  WSADATA wsaData;
-
-  WORD wVersionRequested = MAKEWORD (2,2);
-
-  const int iResult = WSAStartup (wVersionRequested, &wsaData);
-
-  if (iResult != NO_ERROR)
-  {
-    fprintf (stderr, "WSAStartup: %s\n", strerror (errno));
-
-    return -1;
-  }
-  #endif
-
   const int brain_link_client_fd = socket (AF_INET, SOCK_STREAM, 0);
 
   if (brain_link_client_fd == -1)
