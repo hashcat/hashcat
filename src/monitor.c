@@ -284,25 +284,29 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
     }
 
     // stdin read timeout check
+    // note: we skip the stdin timeout check if it was disabled with stdin_timeout_abort set to 0
 
-    if (status_get_progress_done (hashcat_ctx) == 0)
+    if (user_options->stdin_timeout_abort != 0)
     {
-      if (status_ctx->stdin_read_timeout_cnt >= STDIN_TIMEOUT_MIN)
+      if (status_get_progress_done (hashcat_ctx) == 0)
       {
-        if (status_ctx->stdin_read_timeout_cnt >= STDIN_TIMEOUT_MAX)
+        if (status_ctx->stdin_read_timeout_cnt > 0)
         {
-          EVENT_DATA (EVENT_MONITOR_NOINPUT_ABORT, NULL, 0);
+          if (status_ctx->stdin_read_timeout_cnt >= user_options->stdin_timeout_abort)
+          {
+            EVENT_DATA (EVENT_MONITOR_NOINPUT_ABORT, NULL, 0);
 
-          myabort (hashcat_ctx);
+            myabort (hashcat_ctx);
 
-          status_ctx->shutdown_inner = true;
+            status_ctx->shutdown_inner = true;
 
-          break;
-        }
+            break;
+          }
 
-        if ((status_ctx->stdin_read_timeout_cnt % STDIN_TIMEOUT_MIN) == 0)
-        {
-          EVENT_DATA (EVENT_MONITOR_NOINPUT_HINT, NULL, 0);
+          if ((status_ctx->stdin_read_timeout_cnt % STDIN_TIMEOUT_WARN) == 0)
+          {
+            EVENT_DATA (EVENT_MONITOR_NOINPUT_HINT, NULL, 0);
+          }
         }
       }
     }

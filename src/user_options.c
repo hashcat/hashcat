@@ -111,6 +111,7 @@ static const struct option long_options[] =
   {"status",                    no_argument,       NULL, IDX_STATUS},
   {"status-timer",              required_argument, NULL, IDX_STATUS_TIMER},
   {"stdout",                    no_argument,       NULL, IDX_STDOUT_FLAG},
+  {"stdin-timeout-abort",       required_argument, NULL, IDX_STDIN_TIMEOUT_ABORT},
   {"truecrypt-keyfiles",        required_argument, NULL, IDX_TRUECRYPT_KEYFILES},
   {"username",                  no_argument,       NULL, IDX_USERNAME},
   {"veracrypt-keyfiles",        required_argument, NULL, IDX_VERACRYPT_KEYFILES},
@@ -236,6 +237,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->speed_only                = SPEED_ONLY;
   user_options->status                    = STATUS;
   user_options->status_timer              = STATUS_TIMER;
+  user_options->stdin_timeout_abort       = STDIN_TIMEOUT_ABORT;
   user_options->stdout_flag               = STDOUT_FLAG;
   user_options->truecrypt_keyfiles        = NULL;
   user_options->usage                     = USAGE;
@@ -373,6 +375,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_BENCHMARK:                user_options->benchmark                 = true;                            break;
       case IDX_BENCHMARK_ALL:            user_options->benchmark_all             = true;                            break;
       case IDX_STDOUT_FLAG:              user_options->stdout_flag               = true;                            break;
+      case IDX_STDIN_TIMEOUT_ABORT:      user_options->stdin_timeout_abort       = hc_strtoul (optarg, NULL, 10);
+                                         user_options->stdin_timeout_abort_chgd  = true;                            break;
       case IDX_SPEED_ONLY:               user_options->speed_only                = true;                            break;
       case IDX_PROGRESS_ONLY:            user_options->progress_only             = true;                            break;
       case IDX_RESTORE_DISABLE:          user_options->restore_disable           = true;                            break;
@@ -1053,6 +1057,25 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     if (strlen (user_options->opencl_device_types) == 0)
     {
       event_log_error (hashcat_ctx, "Invalid --opencl-device-types value - must not be empty.");
+
+      return -1;
+    }
+  }
+
+  if (user_options->stdin_timeout_abort_chgd == true)
+  {
+    if (user_options->attack_mode != ATTACK_MODE_STRAIGHT)
+    {
+      event_log_error (hashcat_ctx, "Use of --stdin-timeout-abort is only allowed in attack mode 0 (straight).");
+
+      return -1;
+    }
+
+    // --stdin-timeout-abort can only be used in stdin mode
+
+    if (user_options->hc_argc != 1)
+    {
+      event_log_error (hashcat_ctx, "Use of --stdin-timeout-abort is only allowed in stdin mode (pipe).");
 
       return -1;
     }
