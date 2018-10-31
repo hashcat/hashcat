@@ -1650,7 +1650,7 @@ bool brain_server_read_hash_dump (brain_server_db_hash_t *brain_server_db_hash, 
 
   const double ms = hc_timer_get (timer_dump);
 
-  brain_logging (stdout, 0, "Read %" PRIu64 " bytes from session 0x%08x in %.2f ms\n", (u64) sb.st_size, brain_server_db_hash->brain_session, ms);
+  brain_logging (stdout, -1, "Read %" PRIu64 " bytes from session 0x%08x in %.2f ms\n", (u64) sb.st_size, brain_server_db_hash->brain_session, ms);
 
   return true;
 }
@@ -1704,7 +1704,7 @@ bool brain_server_write_hash_dump (brain_server_db_hash_t *brain_server_db_hash,
     return false;
   }
 
-  brain_logging (stdout, 0, "Wrote %" PRIu64 " bytes from session 0x%08x in %.2f ms\n", (u64) sb.st_size, brain_server_db_hash->brain_session, ms);
+  brain_logging (stdout, -1, "Wrote %" PRIu64 " bytes from session 0x%08x in %.2f ms\n", (u64) sb.st_size, brain_server_db_hash->brain_session, ms);
 
   return true;
 }
@@ -1849,7 +1849,7 @@ bool brain_server_read_attack_dump (brain_server_db_attack_t *brain_server_db_at
 
   const double ms = hc_timer_get (timer_dump);
 
-  brain_logging (stdout, 0, "Read %" PRIu64 " bytes from attack 0x%08x in %.2f ms\n", (u64) sb.st_size, brain_server_db_attack->brain_attack, ms);
+  brain_logging (stdout, -1, "Read %" PRIu64 " bytes from attack 0x%08x in %.2f ms\n", (u64) sb.st_size, brain_server_db_attack->brain_attack, ms);
 
   return true;
 }
@@ -1905,7 +1905,7 @@ bool brain_server_write_attack_dump (brain_server_db_attack_t *brain_server_db_a
     return false;
   }
 
-  brain_logging (stdout, 0, "Wrote %" PRIu64 " bytes from attack 0x%08x in %.2f ms\n", (u64) sb.st_size, brain_server_db_attack->brain_attack, ms);
+  brain_logging (stdout, -1, "Wrote %" PRIu64 " bytes from attack 0x%08x in %.2f ms\n", (u64) sb.st_size, brain_server_db_attack->brain_attack, ms);
 
   return true;
 }
@@ -2993,7 +2993,7 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
 
     snprintf (auth_password, BRAIN_PASSWORD_SZ - 1, "%08x%08x", brain_auth_challenge (), brain_auth_challenge ());
 
-    brain_logging (stdout, 0, "Generated authentication password: %s\n", auth_password);
+    brain_logging (stdout, -1, "Generated authentication password: %s\n", auth_password);
   }
   else
   {
@@ -3192,7 +3192,7 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
 
   // ready to serve
 
-  brain_logging (stdout, 0, "Brain server started\n");
+  brain_logging (stdout, -1, "Brain server started\n");
 
   if (signal (SIGINT, brain_server_handle_signal) == SIG_ERR)
   {
@@ -3265,7 +3265,7 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
     hc_thread_detach (client_thr);
   }
 
-  brain_logging (stdout, 0, "Brain server stopping\n");
+  brain_logging (stdout, -1, "Brain server stopping\n");
 
   hc_thread_wait (1, &dump_thr);
 
