@@ -37,6 +37,7 @@ static const char *const USAGE_BIG[] =
   "     --force                    |      | Ignore warnings                                      |",
   "     --status                   |      | Enable automatic update of the status screen         |",
   "     --status-timer             | Num  | Sets seconds between status screen updates to X      | --status-timer=1",
+  "     --stdin-timeout-abort      | Num  | Abort if there is no input from stdin for X seconds  | --stdin-timeout-abort=300",
   "     --machine-readable         |      | Display the status view in a machine-readable format |",
   "     --keep-guessing            |      | Keep guessing the hash after it has been cracked     |",
   "     --self-test-disable        |      | Disable self-test functionality on startup           |",
