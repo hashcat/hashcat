@@ -80,7 +80,7 @@ typedef struct brain_server_attack_short
   u64 offset;
   u64 length;
 
-  int client_fd;
+  int client_idx;
 
 } brain_server_attack_short_t;
 
@@ -165,6 +165,8 @@ typedef struct brain_server_dbs
   int hash_cnt;
   int attack_cnt;
 
+  int *client_slots;
+
 } brain_server_dbs_t;
 
 typedef struct brain_server_dumper_options
@@ -177,6 +179,7 @@ typedef struct brain_server_client_options
 {
   brain_server_dbs_t *brain_server_dbs;
 
+  int client_idx;
   int client_fd;
 
   char *auth_password;
@@ -186,7 +189,7 @@ typedef struct brain_server_client_options
 
 } brain_server_client_options_t;
 
-int   brain_logging                     (FILE *stream, const int client_fd, const char *format, ...);
+int   brain_logging                     (FILE *stream, const int client_idx, const char *format, ...);
 
 u32   brain_compute_session             (hashcat_ctx_t *hashcat_ctx);
 u32   brain_compute_attack              (hashcat_ctx_t *hashcat_ctx);
@@ -217,6 +220,7 @@ bool  brain_server_read_attack_dumps    (brain_server_dbs_t *brain_server_dbs, c
 bool  brain_server_write_attack_dumps   (brain_server_dbs_t *brain_server_dbs, const char *path);
 bool  brain_server_read_attack_dump     (brain_server_db_attack_t *brain_server_db_attack, const char *file);
 bool  brain_server_write_attack_dump    (brain_server_db_attack_t *brain_server_db_attack, const char *file);
+int   brain_server_get_client_idx       (brain_server_dbs_t *brain_server_dbs);
 
 u64   brain_server_highest_attack       (const brain_server_db_attack_t *buf);
 u64   brain_server_highest_attack_long  (const brain_server_attack_long_t  *buf, const i64 cnt, const u64 start);

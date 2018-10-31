@@ -1871,24 +1871,6 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   // brain
 
   #ifdef WITH_BRAIN
-  #if defined (_WIN)
-  if ((user_options->brain_client == true) || (user_options->brain_server == true))
-  {
-    WSADATA wsaData;
-
-    WORD wVersionRequested = MAKEWORD (2,2);
-
-    const int iResult = WSAStartup (wVersionRequested, &wsaData);
-
-    if (iResult != NO_ERROR)
-    {
-      fprintf (stderr, "WSAStartup: %s\n", strerror (errno));
-
-      return -1;
-    }
-  }
-  #endif
-
   if (user_options->brain_host)
   {
     struct addrinfo hints;
