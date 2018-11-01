@@ -4,7 +4,7 @@
 
 ### License ###
 
-**hashcat** is licensed under the MIT license. Refer to [docs/license.txt](docs/license.txt) for more information. 
+**hashcat** is licensed under the MIT license. Refer to [docs/license.txt](docs/license.txt) for more information.
 
 ### Installation ###
 
@@ -12,13 +12,13 @@ Download the [latest release](https://hashcat.net/hashcat/) and unpack it in the
 
 ### Usage/Help ###
 
-Please refer to the [Hashcat Wiki](https://hashcat.net/wiki/) and the output of `--help` for usage information and general help. A list of frequently asked questions may also be found [here](https://hashcat.net/wiki/doku.php?id=frequently_asked_questions). The [Hashcat Forums](https://hashcat.net/forum/) also contains a plethora of information. 
+Please refer to the [Hashcat Wiki](https://hashcat.net/wiki/) and the output of `--help` for usage information and general help. A list of frequently asked questions may also be found [here](https://hashcat.net/wiki/doku.php?id=frequently_asked_questions). The [Hashcat Forum](https://hashcat.net/forum/) also contains a plethora of information.
 
 ### Building ###
 
 Refer to [BUILD.md](BUILD.md) for instructions on how to build **hashcat** from source.
 
-Tests:  
+Tests:
 
 Travis | Appveyor | Coverity
 ------ | -------- | --------
@@ -31,9 +31,9 @@ Contributions are welcome and encouraged, provided your code is of sufficient qu
 1. Licensed under MIT license, or dedicated to the public domain (BSD, GPL, etc. code is incompatible)
 2. Adheres to gnu99 standard
 3. Compiles cleanly with no warnings when compiled with `-W -Wall -std=gnu99`
-4. Uses [Allman-style](https://en.wikipedia.org/wiki/Indent_style#Allman_style) code blocks & indentation 
+4. Uses [Allman-style](https://en.wikipedia.org/wiki/Indent_style#Allman_style) code blocks & indentation
 5. Uses 2-spaces as the indentation or a tab if it's required (for example: Makefiles)
-6. Uses lower-case function and variable names 
+6. Uses lower-case function and variable names
 7. Avoids the use of `!` and uses positive conditionals wherever possible (e.g., `if (foo == 0)` instead of `if (!foo)`, and `if (foo)` instead of `if (foo != 0)`)
 8. Use code like array[index + 0] if you also need to do array[index + 1], to keep it aligned
 
