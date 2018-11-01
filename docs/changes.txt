@@ -26,6 +26,7 @@
 ## Bugs
 ##
 
+- Fixed ignoring --brain-client-features configuration in case brain-server has attack positions informations from a previous run
 - Fixed missing call to WSAStartup() and client indexing in order to start the brain server on windows
 - Fixed missing call to WSACleanup() to cleanly shutdown windows sockets system
 - Fixed endianness and invalid separator character in outfile format of hash-mode 16801 (WPA-PMKID-PMK)

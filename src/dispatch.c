@@ -391,19 +391,22 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         brain_client_disconnect (device_param);
       }
 
-      hc_thread_mutex_lock (status_ctx->mux_dispatcher);
-
-      if (status_ctx->words_off == 0)
+      if (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_ATTACKS)
       {
-        status_ctx->words_off = highest;
+        hc_thread_mutex_lock (status_ctx->mux_dispatcher);
 
-        for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+        if (status_ctx->words_off == 0)
         {
-          status_ctx->words_progress_rejected[salt_pos] = status_ctx->words_off;
-        }
-      }
+          status_ctx->words_off = highest;
 
-      hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
+          for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+          {
+            status_ctx->words_progress_rejected[salt_pos] = status_ctx->words_off;
+          }
+        }
+
+        hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
+      }
     }
     #endif
 
