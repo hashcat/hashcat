@@ -5,7 +5,7 @@
 ##
 
 - Added support to use --stdout in brain-client mode
-- Added new option --stdin-timeout-abort which allows to set the time hashcat should wait for input in stdin mode before aborting
+- Added new option --stdin-timeout-abort, to set how long hashcat should wait for stdin input before aborting
 
 ##
 ## Algorithms
@@ -27,11 +27,11 @@
 ## Bugs
 ##
 
-- Fixed automated calculatation of brain-session caused by not using all hashes in the hashlist
-- Fixed endianness and invalid separator character in outfile format of hash-mode 16801 (WPA-PMKID-PMK)
-- Fixed ignoring --brain-client-features configuration in case brain-server has attack positions informations from a previous run
+- Fixed automated calculation of brain-session when not using all hashes in the hashlist
+- Fixed endianness and invalid separator character in outfile format for hash-mode 16801 (WPA-PMKID-PMK)
+- Fixed ignoring --brain-client-features configuration when brain-server has attack positions information from a previous run
 - Fixed missing call to WSACleanup() to cleanly shutdown windows sockets system
-- Fixed missing call to WSAStartup() and client indexing in order to start the brain server on windows
+- Fixed missing call to WSAStartup() and client indexing in order to start the brain server on Windows
 - Fixed out-of-bounds write in short-term memory of the brain-server
 
 * changes v4.2.1 -> v5.0.0
