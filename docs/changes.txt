@@ -29,6 +29,7 @@
 - Fixed missing call to WSAStartup() and client indexing in order to start the brain server on windows
 - Fixed missing call to WSACleanup() to cleanly shutdown windows sockets system
 - Fixed endianness and invalid separator character in outfile format of hash-mode 16801 (WPA-PMKID-PMK)
+- Fixed out-of-bounds write in short-term memory of the brain-server
 
 * changes v4.2.1 -> v5.0.0
 
