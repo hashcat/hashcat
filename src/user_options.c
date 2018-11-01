@@ -1400,10 +1400,27 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   }
   #endif
 
+  if (user_options->stdout_flag)
+  {
+    user_options->gpu_temp_disable    = true;
+    user_options->left                = false;
+    user_options->logfile_disable     = true;
+    user_options->nvidia_spin_damp    = 0;
+    user_options->outfile_check_timer = 0;
+    user_options->potfile_disable     = true;
+    user_options->restore_disable     = true;
+    user_options->restore             = false;
+    user_options->restore_timer       = 0;
+    user_options->show                = false;
+    user_options->status              = false;
+    user_options->status_timer        = 0;
+    user_options->bitmap_min          = 1;
+    user_options->bitmap_max          = 1;
+  }
+
   if (user_options->example_hashes  == true
    || user_options->opencl_info     == true
    || user_options->keyspace        == true
-   || user_options->stdout_flag     == true
    || user_options->speed_only      == true
    || user_options->progress_only   == true)
   {
