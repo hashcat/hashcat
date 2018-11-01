@@ -18,7 +18,7 @@ Dedicated hash modes allow unlimited salt length support.
 
 UTF-16 is mostly seen on Windows. UTF-8 (as mostly used on Linux and macOS) are fine.
 
-Important: That does not mean UTF-16 file content, which is fully supported. 
+Important: That does not mean UTF-16 file content, which is fully supported.
 
 It only means the filename itself.
 
@@ -44,9 +44,9 @@ For example, on a Vega64: 64 * 512 * 1024 * 1024 * 20 = 687,194,767,360 bytes
 ## Hashcat GPU memory usage may be limited by maximum allocation sizes of OpenCL drivers
 ##
 
-Most hashcat hash modes only use a single OpenCL allocation. 
+Most hashcat hash modes only use a single OpenCL allocation.
 
-The size of this allocation is limited by GPU drivers / OpenCL runtimes. 
+The size of this allocation is limited by GPU drivers / OpenCL runtimes.
 
 Only a few modes (like scrypt) make more than one allocation.
 
@@ -54,13 +54,13 @@ Only a few modes (like scrypt) make more than one allocation.
 ## The maximum number of functions per rule is limited to 31
 ##
 
-This makes the size of one rule 128 byte. 
+This makes the size of one rule 128 byte.
 
 On the other hand, there is a 25% OpenCL single allocation memory limit.
 
 A typical GPU of today has 8GB = 2GB/128 = 16M rules max
 
-If hashcat supported more functions per rule, it would be limited to fewer rules. 
+If hashcat supported more functions per rule, it would be limited to fewer rules.
 
 This is a trade-off game.
 
