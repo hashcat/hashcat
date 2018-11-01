@@ -1027,6 +1027,28 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
   user_options_postprocess (hashcat_ctx);
 
   /**
+   * windows and sockets...
+   */
+
+  #if defined (_WIN)
+  if (user_options->brain_client == true)
+  {
+    WSADATA wsaData;
+
+    WORD wVersionRequested = MAKEWORD (2,2);
+
+    const int iResult = WSAStartup (wVersionRequested, &wsaData);
+
+    if (iResult != NO_ERROR)
+    {
+      fprintf (stderr, "WSAStartup: %s\n", strerror (errno));
+
+      return -1;
+    }
+  }
+  #endif
+
+  /**
    * logfile
    */
 
@@ -1292,6 +1314,15 @@ int hashcat_session_quit (hashcat_ctx_t *hashcat_ctx)
 
 int hashcat_session_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  #if defined (_WIN)
+  user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->brain_client == true)
+  {
+    WSACleanup();
+  }
+  #endif
+
   debugfile_destroy          (hashcat_ctx);
   dictstat_destroy           (hashcat_ctx);
   folder_config_destroy      (hashcat_ctx);
