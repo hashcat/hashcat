@@ -12,7 +12,7 @@
 
 - Added pure kernels for hash-mode 11700 (Streebog-256)
 - Added pure kernels for hash-mode 11800 (Streebog-512)
-- Added hash-modes 18200 (Kerberos 5 AS-REP etype 23)
+- Added hash-mode 18200 (Kerberos 5 AS-REP etype 23)
 - Added hash-mode 11850 (HMAC-Streebog-512 (key = $pass), big-endian)
 
 ##
@@ -26,10 +26,11 @@
 ## Bugs
 ##
 
-- Fixed ignoring --brain-client-features configuration in case brain-server has attack positions informations from a previous run
-- Fixed missing call to WSAStartup() and client indexing in order to start the brain server on windows
-- Fixed missing call to WSACleanup() to cleanly shutdown windows sockets system
+- Fixed automated calculatation of brain-session caused by not using all hashes in the hashlist
 - Fixed endianness and invalid separator character in outfile format of hash-mode 16801 (WPA-PMKID-PMK)
+- Fixed ignoring --brain-client-features configuration in case brain-server has attack positions informations from a previous run
+- Fixed missing call to WSACleanup() to cleanly shutdown windows sockets system
+- Fixed missing call to WSAStartup() and client indexing in order to start the brain server on windows
 - Fixed out-of-bounds write in short-term memory of the brain-server
 
 * changes v4.2.1 -> v5.0.0
