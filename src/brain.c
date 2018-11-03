@@ -536,15 +536,11 @@ u64 brain_compute_attack_wordlist (const char *filename)
 
   FILE *fd = fopen (filename, "rb");
 
-  size_t nread = fread (buf, sizeof (u8), FBUFSZ, fd);
-
-  XXH64_update (state, buf, nread);
-
-  while (nread <= 0)
+  while (!feof (fd))
   {
-    XXH64_update (state, buf, nread);
+    const size_t nread = fread (buf, 1, FBUFSZ, fd);
 
-    nread = fread (buf, sizeof (u8), FBUFSZ, fd);
+    XXH64_update (state, buf, nread);
   }
 
   fclose (fd);

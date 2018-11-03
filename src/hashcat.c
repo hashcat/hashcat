@@ -164,7 +164,10 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   }
 
   #ifdef WITH_BRAIN
-  user_options->brain_attack = brain_compute_attack (hashcat_ctx);
+  if (user_options->brain_client == true)
+  {
+    user_options->brain_attack = brain_compute_attack (hashcat_ctx);
+  }
   #endif
 
   /**
