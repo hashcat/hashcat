@@ -1671,9 +1671,12 @@ int hashes_init_stage4 (hashcat_ctx_t *hashcat_ctx)
   // brain session
 
   #ifdef WITH_BRAIN
-  const u32 brain_session = brain_compute_session (hashcat_ctx);
+  if (user_options->brain_client == true)
+  {
+    const u32 brain_session = brain_compute_session (hashcat_ctx);
 
-  user_options->brain_session = brain_session;
+    user_options->brain_session = brain_session;
+  }
   #endif
 
   return 0;
