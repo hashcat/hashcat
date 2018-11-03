@@ -4571,37 +4571,37 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
      * create input buffers on device : calculate size of fixed memory buffers
      */
 
-    size_t size_root_css   = SP_PW_MAX *           sizeof (cs_t);
-    size_t size_markov_css = SP_PW_MAX * CHARSIZ * sizeof (cs_t);
+    u64 size_root_css   = SP_PW_MAX *           sizeof (cs_t);
+    u64 size_markov_css = SP_PW_MAX * CHARSIZ * sizeof (cs_t);
 
     device_param->size_root_css   = size_root_css;
     device_param->size_markov_css = size_markov_css;
 
-    size_t size_results = sizeof (u32);
+    u64 size_results = sizeof (u32);
 
     device_param->size_results = size_results;
 
-    size_t size_rules   = (size_t) straight_ctx->kernel_rules_cnt * sizeof (kernel_rule_t);
-    size_t size_rules_c = (size_t) KERNEL_RULES                   * sizeof (kernel_rule_t);
+    u64 size_rules   = (u64) straight_ctx->kernel_rules_cnt * sizeof (kernel_rule_t);
+    u64 size_rules_c = (u64) KERNEL_RULES                   * sizeof (kernel_rule_t);
 
-    size_t size_plains  = (size_t) hashes->digests_cnt * sizeof (plain_t);
-    size_t size_salts   = (size_t) hashes->salts_cnt   * sizeof (salt_t);
-    size_t size_esalts  = (size_t) hashes->digests_cnt * (size_t) hashconfig->esalt_size;
-    size_t size_shown   = (size_t) hashes->digests_cnt * sizeof (u32);
-    size_t size_digests = (size_t) hashes->digests_cnt * (size_t) hashconfig->dgst_size;
+    u64 size_plains  = (u64) hashes->digests_cnt * sizeof (plain_t);
+    u64 size_salts   = (u64) hashes->salts_cnt   * sizeof (salt_t);
+    u64 size_esalts  = (u64) hashes->digests_cnt * (u64) hashconfig->esalt_size;
+    u64 size_shown   = (u64) hashes->digests_cnt * sizeof (u32);
+    u64 size_digests = (u64) hashes->digests_cnt * (u64) hashconfig->dgst_size;
 
     device_param->size_plains   = size_plains;
     device_param->size_digests  = size_digests;
     device_param->size_shown    = size_shown;
     device_param->size_salts    = size_salts;
 
-    size_t size_combs = KERNEL_COMBS * sizeof (pw_t);
-    size_t size_bfs   = KERNEL_BFS   * sizeof (bf_t);
-    size_t size_tm    = 32           * sizeof (bs_word_t);
+    u64 size_combs = KERNEL_COMBS * sizeof (pw_t);
+    u64 size_bfs   = KERNEL_BFS   * sizeof (bf_t);
+    u64 size_tm    = 32           * sizeof (bs_word_t);
 
-    size_t size_st_digests = 1 * hashconfig->dgst_size;
-    size_t size_st_salts   = 1 * sizeof (salt_t);
-    size_t size_st_esalts  = 1 * hashconfig->esalt_size;
+    u64 size_st_digests = 1 * hashconfig->dgst_size;
+    u64 size_st_salts   = 1 * sizeof (salt_t);
+    u64 size_st_esalts  = 1 * hashconfig->esalt_size;
 
     device_param->size_st_digests = size_st_digests;
     device_param->size_st_salts   = size_st_salts;
@@ -4629,10 +4629,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     // scryptV stuff
 
-    size_t scrypt_tmp_size   = 0;
-    size_t scrypt_tmto_final = 0;
+    u64 scrypt_tmp_size   = 0;
+    u64 scrypt_tmto_final = 0;
 
-    size_t size_scrypt = 4;
+    u64 size_scrypt = 4;
 
     if ((hashconfig->hash_mode == 8900) || (hashconfig->hash_mode == 9300) || (hashconfig->hash_mode == 15700))
     {
@@ -4669,29 +4669,29 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       const u32 scrypt_threads = hashconfig_forced_kernel_threads (hashcat_ctx);
 
-      const size_t kernel_power_max = SCRYPT_MAX_ACCEL * device_processors * scrypt_threads;
+      const u64 kernel_power_max = SCRYPT_MAX_ACCEL * device_processors * scrypt_threads;
 
       // size_pws
 
-      const size_t size_pws = kernel_power_max * sizeof (pw_t);
+      const u64 size_pws = kernel_power_max * sizeof (pw_t);
 
-      const size_t size_pws_amp = size_pws;
+      const u64 size_pws_amp = size_pws;
 
       // size_pws_comp
 
-      const size_t size_pws_comp = kernel_power_max * (sizeof (u32) * 64);
+      const u64 size_pws_comp = kernel_power_max * (sizeof (u32) * 64);
 
       // size_pws_idx
 
-      const size_t size_pws_idx = (kernel_power_max + 1) * sizeof (pw_idx_t);
+      const u64 size_pws_idx = (kernel_power_max + 1) * sizeof (pw_idx_t);
 
       // size_tmps
 
-      const size_t size_tmps = kernel_power_max * hashconfig->tmp_size;
+      const u64 size_tmps = kernel_power_max * hashconfig->tmp_size;
 
       // size_hooks
 
-      const size_t size_hooks = kernel_power_max * hashconfig->hook_size;
+      const u64 size_hooks = kernel_power_max * hashconfig->hook_size;
 
       const u64 scrypt_extra_space
         = bitmap_ctx->bitmap_size
@@ -6448,17 +6448,17 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     // find out if we would request too much memory on memory blocks which are based on kernel_accel
 
-    size_t size_pws      = 4;
-    size_t size_pws_amp  = 4;
-    size_t size_pws_comp = 4;
-    size_t size_pws_idx  = 4;
-    size_t size_pws_pre  = 4;
-    size_t size_pws_base = 4;
-    size_t size_tmps     = 4;
-    size_t size_hooks    = 4;
+    u64 size_pws      = 4;
+    u64 size_pws_amp  = 4;
+    u64 size_pws_comp = 4;
+    u64 size_pws_idx  = 4;
+    u64 size_pws_pre  = 4;
+    u64 size_pws_base = 4;
+    u64 size_tmps     = 4;
+    u64 size_hooks    = 4;
     #ifdef WITH_BRAIN
-    size_t size_brain_link_in  = 4;
-    size_t size_brain_link_out = 4;
+    u64 size_brain_link_in  = 4;
+    u64 size_brain_link_out = 4;
     #endif
 
     // instead of a thread limit we can also use a memory limit.
@@ -6478,42 +6478,42 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       // size_pws
 
-      size_pws = (size_t) kernel_power_max * sizeof (pw_t);
+      size_pws = (u64) kernel_power_max * sizeof (pw_t);
 
       size_pws_amp = (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL) ? 1 : size_pws;
 
       // size_pws_comp
 
-      size_pws_comp = (size_t) kernel_power_max * (sizeof (u32) * 64);
+      size_pws_comp = (u64) kernel_power_max * (sizeof (u32) * 64);
 
       // size_pws_idx
 
-      size_pws_idx = (size_t) (kernel_power_max + 1) * sizeof (pw_idx_t);
+      size_pws_idx = (u64) (kernel_power_max + 1) * sizeof (pw_idx_t);
 
       // size_tmps
 
-      size_tmps = (size_t) kernel_power_max * hashconfig->tmp_size;
+      size_tmps = (u64) kernel_power_max * hashconfig->tmp_size;
 
       // size_hooks
 
-      size_hooks = (size_t) kernel_power_max * hashconfig->hook_size;
+      size_hooks = (u64) kernel_power_max * hashconfig->hook_size;
 
       #ifdef WITH_BRAIN
       // size_brains
 
-      size_brain_link_in  = (size_t) kernel_power_max * 1;
-      size_brain_link_out = (size_t) kernel_power_max * 8;
+      size_brain_link_in  = (u64) kernel_power_max * 1;
+      size_brain_link_out = (u64) kernel_power_max * 8;
       #endif
 
       if (user_options->slow_candidates == true)
       {
         // size_pws_pre
 
-        size_pws_pre = (size_t) kernel_power_max * sizeof (pw_pre_t);
+        size_pws_pre = (u64) kernel_power_max * sizeof (pw_pre_t);
 
         // size_pws_base
 
-        size_pws_base = (size_t) kernel_power_max * sizeof (pw_pre_t);
+        size_pws_base = (u64) kernel_power_max * sizeof (pw_pre_t);
       }
 
       // now check if all device-memory sizes which depend on the kernel_accel_max amplifier are within its boundaries
@@ -6527,7 +6527,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       if ((size_tmps  + EXTRA_SPACE) > device_param->device_maxmem_alloc) memory_limit_hit = 1;
       if ((size_hooks + EXTRA_SPACE) > device_param->device_maxmem_alloc) memory_limit_hit = 1;
 
-      const size_t size_total
+      const u64 size_total
         = bitmap_ctx->bitmap_size
         + bitmap_ctx->bitmap_size
         + bitmap_ctx->bitmap_size
@@ -6565,7 +6565,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if ((size_total + EXTRA_SPACE) > device_param->device_available_mem) memory_limit_hit = 1;
 
-      const size_t size_total_host
+      const u64 size_total_host
         = size_pws_comp
         + size_pws_idx
         + size_hooks
@@ -6577,6 +6577,15 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         + size_pws_base;
 
       if ((size_total_host + EXTRA_SPACE) > device_param->device_maxmem_alloc) memory_limit_hit = 1;
+
+      #if defined (__x86_x64__)
+      const u64 MAX_HOST_MEMORY = 16ull * 1024ull * 1024ull * 1024ull; // don't be too memory hungry
+      #else
+      const u64 MAX_HOST_MEMORY =  2ull * 1024ull * 1024ull * 1024ull; // windows 7 starter limits to 2gb instead of 4gb
+      #endif
+
+      // we assume all devices have the same specs here, which is wrong, it's a start
+      if ((size_total_host * opencl_ctx->devices_cnt) > MAX_HOST_MEMORY) memory_limit_hit = 1;
 
       if (memory_limit_hit == 1)
       {
@@ -6650,6 +6659,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->scratch_buf = scratch_buf;
 
     #ifdef WITH_BRAIN
+
     u8 *brain_link_in_buf = (u8 *) hcmalloc (size_brain_link_in);
 
     device_param->brain_link_in_buf = brain_link_in_buf;

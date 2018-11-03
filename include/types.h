@@ -899,10 +899,10 @@ struct hashconfig
 
   // sizes have to be size_t
 
-  size_t  esalt_size;
-  size_t  hook_salt_size;
-  size_t  tmp_size;
-  size_t  hook_size;
+  u64  esalt_size;
+  u64  hook_salt_size;
+  u64  tmp_size;
+  u64  hook_size;
 
   // password length limit
 
@@ -1101,32 +1101,32 @@ typedef struct hc_device_param
   u64     kernel_power;
   u64     hardware_power;
 
-  size_t  size_pws;
-  size_t  size_pws_amp;
-  size_t  size_pws_comp;
-  size_t  size_pws_idx;
-  size_t  size_pws_pre;
-  size_t  size_pws_base;
-  size_t  size_tmps;
-  size_t  size_hooks;
-  size_t  size_bfs;
-  size_t  size_combs;
-  size_t  size_rules;
-  size_t  size_rules_c;
-  size_t  size_root_css;
-  size_t  size_markov_css;
-  size_t  size_digests;
-  size_t  size_salts;
-  size_t  size_shown;
-  size_t  size_results;
-  size_t  size_plains;
-  size_t  size_st_digests;
-  size_t  size_st_salts;
-  size_t  size_st_esalts;
+  u64  size_pws;
+  u64  size_pws_amp;
+  u64  size_pws_comp;
+  u64  size_pws_idx;
+  u64  size_pws_pre;
+  u64  size_pws_base;
+  u64  size_tmps;
+  u64  size_hooks;
+  u64  size_bfs;
+  u64  size_combs;
+  u64  size_rules;
+  u64  size_rules_c;
+  u64  size_root_css;
+  u64  size_markov_css;
+  u64  size_digests;
+  u64  size_salts;
+  u64  size_shown;
+  u64  size_results;
+  u64  size_plains;
+  u64  size_st_digests;
+  u64  size_st_salts;
+  u64  size_st_esalts;
 
   #ifdef WITH_BRAIN
-  size_t  size_brain_link_in;
-  size_t  size_brain_link_out;
+  u64  size_brain_link_in;
+  u64  size_brain_link_out;
 
   int           brain_link_client_fd;
   link_speed_t  brain_link_recv_speed;
