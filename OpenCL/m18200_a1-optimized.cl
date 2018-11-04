@@ -242,7 +242,7 @@ DECLSPEC int decrypt_and_check (__local RC4_KEY *rc4_key, u32 *data, __global co
     else if length > 256:
         length is on 3 bytes, the first byte is 0x82, and the fourth byte is 0x30 (class=SEQUENCE)
   */
-  
+
   rc4_next_16 (rc4_key, 0, 0, edata2 + 0, out0);
 
   if (((out0[2] & 0x00ff80ff) != 0x00300079) &&

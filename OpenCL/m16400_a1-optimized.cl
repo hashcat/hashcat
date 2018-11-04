@@ -322,7 +322,7 @@ __kernel void m16400_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
     w3[1] = (wordl3[1] | wordr3[1]) ^ 0x5c5c5c5c;
     w3[2] = 0x5c5c5c5c;
     w3[3] = 0x5c5c5c5c;
-    
+
     /**
      * md5
      */

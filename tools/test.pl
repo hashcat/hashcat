@@ -10319,7 +10319,7 @@ sub rnd
   elsif ($mode == 18200)
   {
     $salt_buf = get_random_kerberos5_as_rep_salt ();
-  }  
+  }
   else
   {
     my @salt_arr;
