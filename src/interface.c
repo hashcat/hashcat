@@ -2556,7 +2556,16 @@ static int input_tokenizer (u8 *input_buf, int input_len, token_t *token)
     }
   }
 
-  token->len[token_idx] = len_left;
+  if (token->attr[token_idx] & TOKEN_ATTR_FIXED_LENGTH)
+  {
+    int len = token->len[token_idx];
+
+    if (len_left != len) return (PARSER_TOKEN_LENGTH);
+  }
+  else
+  {
+    token->len[token_idx] = len_left;
+  }
 
   // verify data
 

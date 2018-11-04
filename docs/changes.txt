@@ -20,6 +20,7 @@
 ## Improvements
 ##
 
+- Memory: Limit maximum host memory to allocate depending on bitness
 - Tests: Added hash-modes 11700 (Streebog-256) and 11800 (Streebog-512)
 - Tests: Added hash-mode 11850 (HMAC-Streebog-512 (key = $pass), big-endian)
 
@@ -33,6 +34,7 @@
 - Fixed ignoring --brain-client-features configuration when brain-server has attack positions information from a previous run
 - Fixed missing call to WSACleanup() to cleanly shutdown windows sockets system
 - Fixed missing call to WSAStartup() and client indexing in order to start the brain server on Windows
+- Fixed checking the length of the last token in a hash if it was given the attribute TOKEN_ATTR_FIXED_LENGTH
 - Fixed out-of-bounds write in short-term memory of the brain-server
 
 * changes v4.2.1 -> v5.0.0
