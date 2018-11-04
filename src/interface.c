@@ -7246,7 +7246,7 @@ int sha1aix_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   token.sep[2]     = '$';
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  token.len[3]     = 43;
+  token.len[3]     = 27;
   token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64B;
 
