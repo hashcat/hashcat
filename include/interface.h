@@ -11,6 +11,7 @@
 #include <string.h>
 #include <errno.h>
 #include <limits.h>
+#include <inttypes.h>
 
 /**
  * zero hashes shutcut

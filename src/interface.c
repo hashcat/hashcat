@@ -3,7 +3,6 @@
  * License.....: MIT
  */
 
-#include <inttypes.h>
 #include "common.h"
 #include "types.h"
 #include "bitops.h"
