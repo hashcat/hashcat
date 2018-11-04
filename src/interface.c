@@ -4087,14 +4087,13 @@ int descrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   token.token_cnt  = 2;
 
-  token.len[0]     = 2;
-  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64B;
+  token.len[0]  = 2;
+  token.attr[0] = TOKEN_ATTR_FIXED_LENGTH
+                | TOKEN_ATTR_VERIFY_BASE64B;
 
-  token.len_min[1] = 11;
-  token.len_max[1] = 11;
-  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64B;
+  token.len[1]  = 11;
+  token.attr[1] = TOKEN_ATTR_FIXED_LENGTH
+                | TOKEN_ATTR_VERIFY_BASE64B;
 
   const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
@@ -6251,10 +6250,9 @@ int keccak_224_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   token.token_cnt = 1;
 
-  token.len_min[0]  = 56;
-  token.len_max[0]  = 56;
-  token.attr[0]     = TOKEN_ATTR_FIXED_LENGTH
-                    | TOKEN_ATTR_VERIFY_HEX;
+  token.len[0]  = 56;
+  token.attr[0] = TOKEN_ATTR_FIXED_LENGTH
+                | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
@@ -6284,10 +6282,9 @@ int keccak_256_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   token.token_cnt = 1;
 
-  token.len_min[0]  = 64;
-  token.len_max[0]  = 64;
-  token.attr[0]     = TOKEN_ATTR_FIXED_LENGTH
-                    | TOKEN_ATTR_VERIFY_HEX;
+  token.len[0]  = 64;
+  token.attr[0] = TOKEN_ATTR_FIXED_LENGTH
+                | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
@@ -6314,10 +6311,9 @@ int keccak_384_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   token.token_cnt = 1;
 
-  token.len_min[0]  = 96;
-  token.len_max[0]  = 96;
-  token.attr[0]     = TOKEN_ATTR_FIXED_LENGTH
-                    | TOKEN_ATTR_VERIFY_HEX;
+  token.len[0]  = 96;
+  token.attr[0] = TOKEN_ATTR_FIXED_LENGTH
+                | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
@@ -6346,10 +6342,9 @@ int keccak_512_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   token.token_cnt = 1;
 
-  token.len_min[0]  = 128;
-  token.len_max[0]  = 128;
-  token.attr[0]     = TOKEN_ATTR_FIXED_LENGTH
-                    | TOKEN_ATTR_VERIFY_HEX;
+  token.len[0]  = 128;
+  token.attr[0] = TOKEN_ATTR_FIXED_LENGTH
+                | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
 
@@ -7639,7 +7634,7 @@ int sha256crypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_OPTIONAL_ROUNDS;
 
-  token.len[2]     = 22;
+  token.len[2]     = 43;
   token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64B;
 
@@ -8281,8 +8276,7 @@ int drupal7_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   token.len[2]     = 8;
   token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH;
 
-  token.len_min[3] = 43;
-  token.len_max[3] = 43;
+  token.len[3]     = 43;
   token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64B;
 
