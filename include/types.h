@@ -92,6 +92,7 @@ typedef enum event_identifier
   EVENT_AUTOTUNE_STARTING         = 0x00000001,
   EVENT_BITMAP_INIT_POST          = 0x00000010,
   EVENT_BITMAP_INIT_PRE           = 0x00000011,
+  EVENT_BITMAP_FINAL_OVERFLOW     = 0x00000012,
   EVENT_CALCULATED_WORDS_BASE     = 0x00000020,
   EVENT_CRACKER_FINISHED          = 0x00000030,
   EVENT_CRACKER_HASH_CRACKED      = 0x00000031,
@@ -534,7 +535,7 @@ typedef enum user_options_defaults
   ATTACK_MODE              = ATTACK_MODE_STRAIGHT,
   BENCHMARK_ALL            = false,
   BENCHMARK                = false,
-  BITMAP_MAX               = 24,
+  BITMAP_MAX               = 18,
   BITMAP_MIN               = 16,
   #ifdef WITH_BRAIN
   BRAIN_CLIENT             = false,

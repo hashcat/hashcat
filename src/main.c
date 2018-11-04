@@ -580,6 +580,20 @@ static void main_bitmap_init_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
   event_log_info_nn (hashcat_ctx, "Generated bitmap tables...");
 }
 
+static void main_bitmap_final_overflow (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  event_log_advice (hashcat_ctx, "Bitmap table overflowed at %d bits.", user_options->bitmap_max);
+  event_log_advice (hashcat_ctx, "This typically happens with too many hashes and reduces your performance.");
+  event_log_advice (hashcat_ctx, "You can increase the bitmap table size with --bitmap-max, but");
+  event_log_advice (hashcat_ctx, "this creates a trade-off between L2-cache and bitmap efficiency.");
+  event_log_advice (hashcat_ctx, "It is therefore not guaranteed to restore full performance.");
+  event_log_advice (hashcat_ctx, NULL);
+}
+
 static void main_set_kernel_power_final (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -954,6 +968,7 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
   {
     case EVENT_BITMAP_INIT_POST:          main_bitmap_init_post          (hashcat_ctx, buf, len); break;
     case EVENT_BITMAP_INIT_PRE:           main_bitmap_init_pre           (hashcat_ctx, buf, len); break;
+    case EVENT_BITMAP_FINAL_OVERFLOW:     main_bitmap_final_overflow     (hashcat_ctx, buf, len); break;
     case EVENT_CALCULATED_WORDS_BASE:     main_calculated_words_base     (hashcat_ctx, buf, len); break;
     case EVENT_CRACKER_FINISHED:          main_cracker_finished          (hashcat_ctx, buf, len); break;
     case EVENT_CRACKER_HASH_CRACKED:      main_cracker_hash_cracked      (hashcat_ctx, buf, len); break;
