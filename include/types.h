@@ -560,6 +560,7 @@ typedef enum user_options_defaults
   KEEP_GUESSING            = false,
   KERNEL_ACCEL             = 0,
   KERNEL_LOOPS             = 0,
+  KERNEL_THREADS           = 0,
   KEYSPACE                 = false,
   LEFT                     = false,
   LIMIT                    = 0,
@@ -654,6 +655,7 @@ typedef enum user_options_map
   IDX_KEEP_GUESSING             = 0xff1b,
   IDX_KERNEL_ACCEL              = 'n',
   IDX_KERNEL_LOOPS              = 'u',
+  IDX_KERNEL_THREADS            = 'T',
   IDX_KEYSPACE                  = 0xff1c,
   IDX_LEFT                      = 0xff1d,
   IDX_LIMIT                     = 'l',
@@ -1086,8 +1088,6 @@ typedef struct hc_device_param
   u64     kernel_local_mem_size_aux3;
   u64     kernel_local_mem_size_aux4;
 
-  u32     kernel_threads;
-
   u32     kernel_accel;
   u32     kernel_accel_prev;
   u32     kernel_accel_min;
@@ -1098,6 +1098,7 @@ typedef struct hc_device_param
   u32     kernel_loops_max;
   u32     kernel_loops_min_sav; // the _sav are required because each -i iteration
   u32     kernel_loops_max_sav; // needs to recalculate the kernel_loops_min/max based on the current amplifier count
+  u32     kernel_threads;
 
   u64     kernel_power;
   u64     hardware_power;
@@ -1684,6 +1685,7 @@ typedef struct user_options
   bool         increment_min_chgd;
   bool         kernel_accel_chgd;
   bool         kernel_loops_chgd;
+  bool         kernel_threads_chgd;
   bool         nonce_error_corrections_chgd;
   bool         nvidia_spin_damp_chgd;
   bool         opencl_vector_width_chgd;
@@ -1784,6 +1786,7 @@ typedef struct user_options
   u32          increment_min;
   u32          kernel_accel;
   u32          kernel_loops;
+  u32          kernel_threads;
   u32          markov_threshold;
   u32          nonce_error_corrections;
   u32          nvidia_spin_damp;

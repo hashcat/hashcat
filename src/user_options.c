@@ -19,9 +19,9 @@
 #endif
 
 #ifdef WITH_BRAIN
-static const char *short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:c:p:s:l:1:2:3:4:iIbw:OSz";
+static const char *short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OSz";
 #else
-static const char *short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:c:p:s:l:1:2:3:4:iIbw:OS";
+static const char *short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OS";
 #endif
 
 static const struct option long_options[] =
@@ -62,6 +62,7 @@ static const struct option long_options[] =
   {"keep-guessing",             no_argument,       NULL, IDX_KEEP_GUESSING},
   {"kernel-accel",              required_argument, NULL, IDX_KERNEL_ACCEL},
   {"kernel-loops",              required_argument, NULL, IDX_KERNEL_LOOPS},
+  {"kernel-threads",            required_argument, NULL, IDX_KERNEL_THREADS},
   {"keyspace",                  no_argument,       NULL, IDX_KEYSPACE},
   {"left",                      no_argument,       NULL, IDX_LEFT},
   {"limit",                     required_argument, NULL, IDX_LIMIT},
@@ -186,6 +187,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->keep_guessing             = KEEP_GUESSING;
   user_options->kernel_accel              = KERNEL_ACCEL;
   user_options->kernel_loops              = KERNEL_LOOPS;
+  user_options->kernel_threads            = KERNEL_THREADS;
   user_options->keyspace                  = KEYSPACE;
   user_options->left                      = LEFT;
   user_options->limit                     = LIMIT;
@@ -302,6 +304,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_WORKLOAD_PROFILE:
       case IDX_KERNEL_ACCEL:
       case IDX_KERNEL_LOOPS:
+      case IDX_KERNEL_THREADS:
       case IDX_NVIDIA_SPIN_DAMP:
       case IDX_GPU_TEMP_ABORT:
       case IDX_HCCAPX_MESSAGE_PAIR:
@@ -427,6 +430,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
                                          user_options->kernel_accel_chgd         = true;                            break;
       case IDX_KERNEL_LOOPS:             user_options->kernel_loops              = hc_strtoul (optarg, NULL, 10);
                                          user_options->kernel_loops_chgd         = true;                            break;
+      case IDX_KERNEL_THREADS:           user_options->kernel_threads            = hc_strtoul (optarg, NULL, 10);
+                                         user_options->kernel_threads_chgd       = true;                            break;
       case IDX_NVIDIA_SPIN_DAMP:         user_options->nvidia_spin_damp          = hc_strtoul (optarg, NULL, 10);
                                          user_options->nvidia_spin_damp_chgd     = true;                            break;
       case IDX_GPU_TEMP_DISABLE:         user_options->gpu_temp_disable          = true;                            break;
@@ -799,6 +804,33 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     if (user_options->kernel_loops > 1024)
     {
       event_log_error (hashcat_ctx, "Invalid kernel-loops specified.");
+
+      return -1;
+    }
+  }
+
+  if (user_options->kernel_threads_chgd == true)
+  {
+    if (user_options->force == false)
+    {
+      event_log_error (hashcat_ctx, "The manual use of the -T option (or --kernel-threads) is outdated.");
+
+      event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
+      event_log_warning (hashcat_ctx, NULL);
+
+      return -1;
+    }
+
+    if (user_options->kernel_threads < 1)
+    {
+      event_log_error (hashcat_ctx, "Invalid kernel-threads specified.");
+
+      return -1;
+    }
+
+    if (user_options->kernel_threads > 1024)
+    {
+      event_log_error (hashcat_ctx, "Invalid kernel-threads specified.");
 
       return -1;
     }
@@ -1706,10 +1738,17 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "* --opencl-vector-width=%u", user_options->opencl_vector_width);
     }
 
-    if ((user_options->kernel_accel_chgd == true) || (user_options->kernel_loops_chgd == true))
+    if (user_options->kernel_accel_chgd == true)
     {
       event_log_info (hashcat_ctx, "* --kernel-accel=%u", user_options->kernel_accel);
+    }
+    else if (user_options->kernel_loops_chgd == true)
+    {
       event_log_info (hashcat_ctx, "* --kernel-loops=%u", user_options->kernel_loops);
+    }
+    else if (user_options->kernel_threads_chgd == true)
+    {
+      event_log_info (hashcat_ctx, "* --kernel-threads=%u", user_options->kernel_threads);
     }
     else
     {
@@ -1758,10 +1797,17 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "# option: --opencl-vector-width=%u", user_options->opencl_vector_width);
     }
 
-    if ((user_options->kernel_accel_chgd == true) || (user_options->kernel_loops_chgd == true))
+    if (user_options->kernel_accel_chgd == true)
     {
       event_log_info (hashcat_ctx, "# option: --kernel-accel=%u", user_options->kernel_accel);
+    }
+    else if (user_options->kernel_loops_chgd == true)
+    {
       event_log_info (hashcat_ctx, "# option: --kernel-loops=%u", user_options->kernel_loops);
+    }
+    else if (user_options->kernel_threads_chgd == true)
+    {
+      event_log_info (hashcat_ctx, "# option: --kernel-threads=%u", user_options->kernel_threads);
     }
     else
     {
@@ -2563,6 +2609,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->keep_guessing);
   logfile_top_uint   (user_options->kernel_accel);
   logfile_top_uint   (user_options->kernel_loops);
+  logfile_top_uint   (user_options->kernel_threads);
   logfile_top_uint   (user_options->keyspace);
   logfile_top_uint   (user_options->left);
   logfile_top_uint   (user_options->logfile_disable);

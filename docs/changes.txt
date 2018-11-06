@@ -6,6 +6,7 @@
 
 - Added support to use --stdout in brain-client mode
 - Added new option --stdin-timeout-abort, to set how long hashcat should wait for stdin input before aborting
+- Added new option --kernel-threads to manually override the automatically calculated number of threads
 
 ##
 ## Algorithms

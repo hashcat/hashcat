@@ -28296,9 +28296,10 @@ void hashconfig_destroy (hashcat_ctx_t *hashcat_ctx)
 
 u32 hashconfig_forced_kernel_threads (hashcat_ctx_t *hashcat_ctx)
 {
-  hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  const user_options_t *user_options = hashcat_ctx->user_options;
 
-  u32 kernel_threads = 0;
+  u32 kernel_threads = user_options->kernel_threads;
 
   // this should have a kernel hint attribute in the kernel files
   // __attribute__((reqd_work_group_size(X, 1, 1)))
