@@ -95,7 +95,7 @@ static const char *const USAGE_BIG[] =
   " -w, --workload-profile         | Num  | Enable a specific workload profile, see pool below   | -w 3",
   " -n, --kernel-accel             | Num  | Manual workload tuning, set outerloop step size to X | -n 64",
   " -u, --kernel-loops             | Num  | Manual workload tuning, set innerloop step size to X | -u 256",
-  " -T, --kernel-thread            | Num  | Manual workload tuning, set thread count to X        | -T 64",
+  " -T, --kernel-threads           | Num  | Manual workload tuning, set thread count to X        | -T 64",
   "     --nvidia-spin-damp         | Num  | Workaround NVIDIAs CPU burning loop bug, in percent  | --nvidia-spin-damp=50",
   "     --gpu-temp-disable         |      | Disable temperature and fanspeed reads and triggers  |",
   "     --gpu-temp-abort           | Num  | Abort if GPU temperature reaches X degrees Celsius   | --gpu-temp-abort=100",
