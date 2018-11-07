@@ -145,6 +145,7 @@ WIN_ICONV_64            := /opt/win-iconv-64
 
 COMPTIME                := $(shell date +%s)
 SYSTEM_LZMA_SDK         := 0
+SYSTEM_XXHASH           := 0
 
 LZMA_SDK_INCLUDE        := $(LIBRARY_DEV_ROOT_FOLDER)/lzma-sdk/C
 
@@ -189,7 +190,11 @@ endif
 # brain and xxHash
 ifeq ($(ENABLE_BRAIN),1)
 CFLAGS                  += -DWITH_BRAIN
+ifeq ($(SYSTEM_XXHASH),0)
 CFLAGS                  += -Ideps/git/xxHash
+else
+LFLAGS                  += -lxxhash
+endif
 endif
 
 ##
@@ -313,6 +318,7 @@ WIN_32_OBJS             := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.32.o)
 WIN_64_OBJS             := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.64.o)
 
 ifeq ($(ENABLE_BRAIN),1)
+ifeq ($(SYSTEM_XXHASH),0)
 OBJS_XXHASH             := xxhash
 
 NATIVE_STATIC_OBJS      += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).NATIVE.STATIC.o)
@@ -323,6 +329,7 @@ LINUX_64_OBJS           += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).LINUX.64.o)
 
 WIN_32_OBJS             += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).WIN.32.o)
 WIN_64_OBJS             += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).WIN.64.o)
+endif
 endif
 
 ifeq ($(SYSTEM_LZMA_SDK),0)
@@ -474,11 +481,13 @@ obj/%.NATIVE.SHARED.o: src/%.c
 	$(CC) -c $(CFLAGS_NATIVE) $< -o $@ -fpic
 
 ifeq ($(ENABLE_BRAIN),1)
+ifeq ($(SYSTEM_XXHASH),0)
 obj/%.NATIVE.STATIC.o: deps/git/xxHash/%.c
 	$(CC) -c $(CFLAGS_NATIVE) $< -o $@
 
 obj/%.NATIVE.SHARED.o: deps/git/xxHash/%.c
 	$(CC) -c $(CFLAGS_NATIVE) $< -o $@ -fpic
+endif
 endif
 
 ifeq ($(SYSTEM_LZMA_SDK),0)
@@ -522,6 +531,7 @@ obj/%.WIN.64.o:   src/%.c
 	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)   -c -o $@ $<
 
 ifeq ($(ENABLE_BRAIN),1)
+ifeq ($(SYSTEM_XXHASH),0)
 obj/%.LINUX.32.o: deps/git/xxHash/%.c
 	$(CC_LINUX_32) $(CFLAGS_CROSS_LINUX32) -c -o $@ $<
 
@@ -533,6 +543,7 @@ obj/%.WIN.32.o:   deps/git/xxHash/%.c
 
 obj/%.WIN.64.o:   deps/git/xxHash/%.c
 	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)   -c -o $@ $<
+endif
 endif
 
 ifeq ($(SYSTEM_LZMA_SDK),0)
