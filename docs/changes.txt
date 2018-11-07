@@ -31,6 +31,7 @@
 ## Bugs
 ##
 
+- Fixed status output of progress value in case -S and -l used in combination
 - Fixed calculation of brain-attack if a given wordlist has the size zero
 - Fixed automated calculation of brain-session when not using all hashes in the hashlist
 - Fixed endianness and invalid separator character in outfile format for hash-mode 16801 (WPA-PMKID-PMK)
