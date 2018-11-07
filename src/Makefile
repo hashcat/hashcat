@@ -183,7 +183,7 @@ ifeq ($(SYSTEM_LZMA_SDK),0)
 CFLAGS                  += -Ideps/lzma_sdk
 else
 CFLAGS                  += $(LZMA_SDK_INCLUDE)
-LDFLAGS                 += -llzmasdk
+LFLAGS                  += -llzmasdk
 endif
 
 # brain and xxHash
