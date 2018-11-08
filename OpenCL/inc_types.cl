@@ -1714,6 +1714,19 @@ typedef struct tc64_tmp
 
 } tc64_tmp_t;
 
+typedef struct vc64_sbog_tmp
+{
+  u64  ipad_raw[8];
+  u64  opad_raw[8];
+
+  u64  ipad_hash[8];
+  u64  opad_hash[8];
+
+  u64  dgst[32];
+  u64  out[32];
+
+} vc64_sbog_tmp_t;
+
 typedef struct pbkdf1_sha1_tmp
 {
   // pbkdf1-sha1 is limited to 160 bits
