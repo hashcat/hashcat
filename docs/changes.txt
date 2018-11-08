@@ -37,6 +37,18 @@
 - Tests: Added hash-mode 11800 (Streebog-512)
 - Tests: Added hash-mode 11850 (HMAC-Streebog-512 (key = $pass), big-endian)
 - Tests: Added hash-mode 11860 (HMAC-Streebog-512 (key = $salt), big-endian)
+- Tests: Added hash-mode 13721 (VeraCrypt PBKDF2-HMAC-SHA512 + XTS 512 bit)
+- Tests: Added hash-mode 13722 (VeraCrypt PBKDF2-HMAC-SHA512 + XTS 1024 bit)
+- Tests: Added hash-mode 13723 (VeraCrypt PBKDF2-HMAC-SHA512 + XTS 1536 bit)
+- Tests: Added hash-mode 13731 (VeraCrypt PBKDF2-HMAC-Whirlpool + XTS 512 bit)
+- Tests: Added hash-mode 13732 (VeraCrypt PBKDF2-HMAC-Whirlpool + XTS 1024 bit)
+- Tests: Added hash-mode 13733 (VeraCrypt PBKDF2-HMAC-Whirlpool + XTS 1536 bit)
+- Tests: Added hash-mode 13751 (VeraCrypt PBKDF2-HMAC-SHA256 + XTS 512 bit)
+- Tests: Added hash-mode 13752 (VeraCrypt PBKDF2-HMAC-SHA256 + XTS 1024 bit)
+- Tests: Added hash-mode 13753 (VeraCrypt PBKDF2-HMAC-SHA256 + XTS 1536 bit)
+- Tests: Added hash-mode 13771 (VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 512 bit)
+- Tests: Added hash-mode 13772 (VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 1024 bit)
+- Tests: Added hash-mode 13773 (VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 1536 bit)
 - xxHash: Added support for using system-wide installation
 
 ##
