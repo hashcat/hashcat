@@ -6542,55 +6542,55 @@ int ikepsk_md5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   token.token_cnt = 9;
 
-  token.sep[0]     = hashconfig->separator;
+  token.sep[0]     = ':';
   token.len_min[0] = 0;
   token.len_max[0] = 1024;
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[1]     = hashconfig->separator;
+  token.sep[1]     = ':';
   token.len_min[1] = 0;
   token.len_max[1] = 1024;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[2]     = hashconfig->separator;
+  token.sep[2]     = ':';
   token.len_min[2] = 0;
   token.len_max[2] = 1024;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[3]     = hashconfig->separator;
+  token.sep[3]     = ':';
   token.len_min[3] = 0;
   token.len_max[3] = 1024;
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[4]     = hashconfig->separator;
+  token.sep[4]     = ':';
   token.len_min[4] = 0;
   token.len_max[4] = 1024;
   token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[5]     = hashconfig->separator;
+  token.sep[5]     = ':';
   token.len_min[5] = 0;
   token.len_max[5] = 1024;
   token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[6]     = hashconfig->separator;
+  token.sep[6]     = ':';
   token.len_min[6] = 0;
   token.len_max[6] = 128;
   token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[7]     = hashconfig->separator;
+  token.sep[7]     = ':';
   token.len_min[7] = 0;
   token.len_max[7] = 128;
   token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[8]     = hashconfig->separator;
+  token.sep[8]     = ':';
   token.len_min[8] = 32;
   token.len_max[8] = 32;
   token.attr[8]    = TOKEN_ATTR_VERIFY_LENGTH
@@ -6658,55 +6658,55 @@ int ikepsk_sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
 
   token.token_cnt = 9;
 
-  token.sep[0]     = hashconfig->separator;
+  token.sep[0]     = ':';
   token.len_min[0] = 0;
   token.len_max[0] = 1024;
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[1]     = hashconfig->separator;
+  token.sep[1]     = ':';
   token.len_min[1] = 0;
   token.len_max[1] = 1024;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[2]     = hashconfig->separator;
+  token.sep[2]     = ':';
   token.len_min[2] = 0;
   token.len_max[2] = 1024;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[3]     = hashconfig->separator;
+  token.sep[3]     = ':';
   token.len_min[3] = 0;
   token.len_max[3] = 1024;
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[4]     = hashconfig->separator;
+  token.sep[4]     = ':';
   token.len_min[4] = 0;
   token.len_max[4] = 1024;
   token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[5]     = hashconfig->separator;
+  token.sep[5]     = ':';
   token.len_min[5] = 0;
   token.len_max[5] = 1024;
   token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[6]     = hashconfig->separator;
+  token.sep[6]     = ':';
   token.len_min[6] = 0;
   token.len_max[6] = 128;
   token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[7]     = hashconfig->separator;
+  token.sep[7]     = ':';
   token.len_min[7] = 0;
   token.len_max[7] = 128;
   token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[8]     = hashconfig->separator;
+  token.sep[8]     = ':';
   token.len_min[8] = 40;
   token.len_max[8] = 40;
   token.attr[8]    = TOKEN_ATTR_VERIFY_LENGTH
@@ -7422,18 +7422,18 @@ int agilekey_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   token.len_min[0] = 1;
   token.len_max[0] = 6;
-  token.sep[0]     = hashconfig->separator;
+  token.sep[0]     = ':';
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.len_min[1] = 16;
   token.len_max[1] = 16;
-  token.sep[1]     = hashconfig->separator;
+  token.sep[1]     = ':';
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.len_min[2] = 2080;
   token.len_max[2] = 2080;
-  token.sep[2]     = hashconfig->separator;
+  token.sep[2]     = ':';
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
@@ -8642,19 +8642,19 @@ int cloudkey_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   token.token_cnt  = 4;
 
-  token.sep[0]     = hashconfig->separator;
+  token.sep[0]     = ':';
   token.len_min[0] = 64;
   token.len_max[0] = 64;
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[1]     = hashconfig->separator;
+  token.sep[1]     = ':';
   token.len_min[1] = 32;
   token.len_max[1] = 32;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[2]     = hashconfig->separator;
+  token.sep[2]     = ':';
   token.len_min[2] = 1;
   token.len_max[2] = 6;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
