@@ -607,15 +607,15 @@ __constant u64a sbob_rc64[12][8] =
                            (S)[(n)][(i).sc], (S)[(n)][(i).sd], (S)[(n)][(i).se], (S)[(n)][(i).sf])
 #endif
 
-#define SBOG_LPSti64                               \
-  BOX (sbob_sl64, 0, ((t[0] >> (i * 8)) & 0xff)) ^ \
-  BOX (sbob_sl64, 1, ((t[1] >> (i * 8)) & 0xff)) ^ \
-  BOX (sbob_sl64, 2, ((t[2] >> (i * 8)) & 0xff)) ^ \
-  BOX (sbob_sl64, 3, ((t[3] >> (i * 8)) & 0xff)) ^ \
-  BOX (sbob_sl64, 4, ((t[4] >> (i * 8)) & 0xff)) ^ \
-  BOX (sbob_sl64, 5, ((t[5] >> (i * 8)) & 0xff)) ^ \
-  BOX (sbob_sl64, 6, ((t[6] >> (i * 8)) & 0xff)) ^ \
-  BOX (sbob_sl64, 7, ((t[7] >> (i * 8)) & 0xff))
+#define SBOG_LPSti64                                 \
+  BOX (s_sbob_sl64, 0, ((t[0] >> (i * 8)) & 0xff)) ^ \
+  BOX (s_sbob_sl64, 1, ((t[1] >> (i * 8)) & 0xff)) ^ \
+  BOX (s_sbob_sl64, 2, ((t[2] >> (i * 8)) & 0xff)) ^ \
+  BOX (s_sbob_sl64, 3, ((t[3] >> (i * 8)) & 0xff)) ^ \
+  BOX (s_sbob_sl64, 4, ((t[4] >> (i * 8)) & 0xff)) ^ \
+  BOX (s_sbob_sl64, 5, ((t[5] >> (i * 8)) & 0xff)) ^ \
+  BOX (s_sbob_sl64, 6, ((t[6] >> (i * 8)) & 0xff)) ^ \
+  BOX (s_sbob_sl64, 7, ((t[7] >> (i * 8)) & 0xff))
 
 typedef struct streebog512_ctx
 {
@@ -630,9 +630,11 @@ typedef struct streebog512_ctx
 
   int len;
 
+  SHM_TYPE u64a (*s_sbob_sl64)[256];
+
 } streebog512_ctx_t;
 
-DECLSPEC void streebog512_init (streebog512_ctx_t *ctx)
+DECLSPEC void streebog512_init (streebog512_ctx_t *ctx, SHM_TYPE u64a (*s_sbob_sl64)[256])
 {
   ctx->h[0] = 0;
   ctx->h[1] = 0;
@@ -682,11 +684,13 @@ DECLSPEC void streebog512_init (streebog512_ctx_t *ctx)
   ctx->w3[3] = 0;
 
   ctx->len = 0;
+
+  ctx->s_sbob_sl64 = s_sbob_sl64;
 }
 
 DECLSPEC void streebog512_add (u64 *x, const u64 *y)
 {
-  u32 carry = 0;
+  u64 carry = 0;
 
   #ifdef _unroll
   #pragma unroll
@@ -697,13 +701,13 @@ DECLSPEC void streebog512_add (u64 *x, const u64 *y)
     const u64 right = swap64_S (y[i]);
     const u64 sum   = left + right + carry;
 
-    carry = (sum < left) ? 1 : 0;
+    carry = (sum < left) ? (u64) 1 : (u64) 0;
 
     x[i] = swap64_S (sum);
   }
 }
 
-DECLSPEC void streebog512_g (u64 *h, const u64 *n, const u64 *m)
+DECLSPEC void streebog512_g (u64 *h, const u64 *n, const u64 *m, SHM_TYPE u64a (*s_sbob_sl64)[256])
 {
   u64 k[8];
   u64 s[8];
@@ -784,7 +788,7 @@ DECLSPEC void streebog512_transform (streebog512_ctx_t *ctx, const u32 *w0, cons
   m[6] = hl32_to_64_S (w0[2], w0[3]);
   m[7] = hl32_to_64_S (w0[0], w0[1]);
 
-  streebog512_g (ctx->h, ctx->n, m);
+  streebog512_g (ctx->h, ctx->n, m, ctx->s_sbob_sl64);
 
   u64 counterbuf[8] = { 0 };
   counterbuf[7] = swap64_S ((u64) 0x200);
@@ -1057,7 +1061,7 @@ DECLSPEC void streebog512_final (streebog512_ctx_t *ctx)
   m[6] = hl32_to_64_S (ctx->w0[2], ctx->w0[3]);
   m[7] = hl32_to_64_S (ctx->w0[0], ctx->w0[1]);
 
-  streebog512_g (ctx->h, ctx->n, m);
+  streebog512_g (ctx->h, ctx->n, m, ctx->s_sbob_sl64);
 
   u64 sizebuf[8] = { 0 };
   sizebuf[7] = swap64_S ((u64) (ctx->len << 3));
@@ -1068,9 +1072,9 @@ DECLSPEC void streebog512_final (streebog512_ctx_t *ctx)
 
   const u64 nullbuf[8] = { 0 };
 
-  streebog512_g (ctx->h, nullbuf, ctx->n);
+  streebog512_g (ctx->h, nullbuf, ctx->n, ctx->s_sbob_sl64);
 
-  streebog512_g (ctx->h, nullbuf, ctx->s);
+  streebog512_g (ctx->h, nullbuf, ctx->s, ctx->s_sbob_sl64);
 }
 
 typedef struct streebog512_hmac_ctx
@@ -1080,7 +1084,7 @@ typedef struct streebog512_hmac_ctx
 
 } streebog512_hmac_ctx_t;
 
-DECLSPEC void streebog512_hmac_init_64 (streebog512_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3)
+DECLSPEC void streebog512_hmac_init_64 (streebog512_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, SHM_TYPE u64a (*s_sbob_sl64)[256])
 {
   u32 t0[4];
   u32 t1[4];
@@ -1106,7 +1110,7 @@ DECLSPEC void streebog512_hmac_init_64 (streebog512_hmac_ctx_t *ctx, const u32 *
   t3[2] = w3[2] ^ 0x36363636;
   t3[3] = w3[3] ^ 0x36363636;
 
-  streebog512_init (&ctx->ipad);
+  streebog512_init (&ctx->ipad, s_sbob_sl64);
 
   streebog512_update_64 (&ctx->ipad, t0, t1, t2, t3, 64);
 
@@ -1129,12 +1133,12 @@ DECLSPEC void streebog512_hmac_init_64 (streebog512_hmac_ctx_t *ctx, const u32 *
   t3[2] = w3[2] ^ 0x5c5c5c5c;
   t3[3] = w3[3] ^ 0x5c5c5c5c;
 
-  streebog512_init (&ctx->opad);
+  streebog512_init (&ctx->opad, s_sbob_sl64);
 
   streebog512_update_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
-DECLSPEC void streebog512_hmac_init (streebog512_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void streebog512_hmac_init (streebog512_hmac_ctx_t *ctx, const u32 *w, const int len, SHM_TYPE u64a (*s_sbob_sl64)[256])
 {
   u32 w0[4];
   u32 w1[4];
@@ -1145,7 +1149,7 @@ DECLSPEC void streebog512_hmac_init (streebog512_hmac_ctx_t *ctx, const u32 *w, 
   {
     streebog512_ctx_t tmp;
 
-    streebog512_init (&tmp);
+    streebog512_init (&tmp, s_sbob_sl64);
 
     streebog512_update (&tmp, w, len);
 
@@ -1188,10 +1192,10 @@ DECLSPEC void streebog512_hmac_init (streebog512_hmac_ctx_t *ctx, const u32 *w, 
     w3[3] = w[15];
   }
 
-  streebog512_hmac_init_64 (ctx, w0, w1, w2, w3);
+  streebog512_hmac_init_64 (ctx, w0, w1, w2, w3, s_sbob_sl64);
 }
 
-DECLSPEC void streebog512_hmac_init_swap (streebog512_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void streebog512_hmac_init_swap (streebog512_hmac_ctx_t *ctx, const u32 *w, const int len, SHM_TYPE u64a (*s_sbob_sl64)[256])
 {
   u32 w0[4];
   u32 w1[4];
@@ -1202,7 +1206,7 @@ DECLSPEC void streebog512_hmac_init_swap (streebog512_hmac_ctx_t *ctx, const u32
   {
     streebog512_ctx_t tmp;
 
-    streebog512_init (&tmp);
+    streebog512_init (&tmp, s_sbob_sl64);
 
     streebog512_update_swap (&tmp, w, len);
 
@@ -1245,12 +1249,27 @@ DECLSPEC void streebog512_hmac_init_swap (streebog512_hmac_ctx_t *ctx, const u32
     w3[3] = swap32_S (w[15]);
   }
 
-  streebog512_hmac_init_64 (ctx, w0, w1, w2, w3);
+  streebog512_hmac_init_64 (ctx, w0, w1, w2, w3, s_sbob_sl64);
+}
+
+DECLSPEC void streebog512_hmac_update_64 (streebog512_hmac_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
+{
+  streebog512_update_64 (&ctx->ipad, w0, w1, w2, w3, len);
 }
 
 DECLSPEC void streebog512_hmac_update (streebog512_hmac_ctx_t *ctx, const u32 *w, const int len)
 {
   streebog512_update (&ctx->ipad, w, len);
+}
+
+DECLSPEC void streebog512_hmac_update_swap (streebog512_hmac_ctx_t *ctx, const u32 *w, const int len)
+{
+  streebog512_update_swap (&ctx->ipad, w, len);
+}
+
+DECLSPEC void streebog512_hmac_update_global_swap (streebog512_hmac_ctx_t *ctx, const __global u32 *w, const int len)
+{
+  streebog512_update_global_swap (&ctx->ipad, w, len);
 }
 
 DECLSPEC void streebog512_hmac_final (streebog512_hmac_ctx_t *ctx)
@@ -1299,9 +1318,11 @@ typedef struct streebog512_ctx_vector
 
   int len;
 
+  SHM_TYPE u64a (*s_sbob_sl64)[256];
+
 } streebog512_ctx_vector_t;
 
-DECLSPEC void streebog512_init_vector (streebog512_ctx_vector_t *ctx)
+DECLSPEC void streebog512_init_vector (streebog512_ctx_vector_t *ctx, SHM_TYPE u64a (*s_sbob_sl64)[256])
 {
   ctx->h[0] = 0;
   ctx->h[1] = 0;
@@ -1351,11 +1372,13 @@ DECLSPEC void streebog512_init_vector (streebog512_ctx_vector_t *ctx)
   ctx->w3[3] = 0;
 
   ctx->len = 0;
+
+  ctx->s_sbob_sl64 = s_sbob_sl64;
 }
 
 DECLSPEC void streebog512_add_vector (u64x *x, const u64x *y)
 {
-  u32x carry = 0;
+  u64x carry = 0;
 
   #ifdef _unroll
   #pragma unroll
@@ -1366,13 +1389,13 @@ DECLSPEC void streebog512_add_vector (u64x *x, const u64x *y)
     const u64x right = swap64 (y[i]);
     const u64x sum   = left + right + carry;
 
-    carry = (sum < left) ? 1 : 0;
+    carry = (sum < left) ? (u64x) 1 : (u64x) 0;
 
     x[i] = swap64 (sum);
   }
 }
 
-DECLSPEC void streebog512_g_vector (u64x *h, const u64x *n, const u64x *m)
+DECLSPEC void streebog512_g_vector (u64x *h, const u64x *n, const u64x *m, SHM_TYPE u64a (*s_sbob_sl64)[256])
 {
   u64x k[8];
   u64x s[8];
@@ -1453,7 +1476,7 @@ DECLSPEC void streebog512_transform_vector (streebog512_ctx_vector_t *ctx, const
   m[6] = hl32_to_64 (w0[2], w0[3]);
   m[7] = hl32_to_64 (w0[0], w0[1]);
 
-  streebog512_g_vector (ctx->h, ctx->n, m);
+  streebog512_g_vector (ctx->h, ctx->n, m, ctx->s_sbob_sl64);
 
   u64x counterbuf[8] = { 0 };
   counterbuf[7] = swap64 ((u64x) 0x200);
@@ -1669,7 +1692,7 @@ DECLSPEC void streebog512_final_vector (streebog512_ctx_vector_t *ctx)
   m[6] = hl32_to_64 (ctx->w0[2], ctx->w0[3]);
   m[7] = hl32_to_64 (ctx->w0[0], ctx->w0[1]);
 
-  streebog512_g_vector (ctx->h, ctx->n, m);
+  streebog512_g_vector (ctx->h, ctx->n, m, ctx->s_sbob_sl64);
 
   u64x sizebuf[8] = { 0 };
   sizebuf[7] = swap64 ((u64x) (ctx->len << 3));
@@ -1680,9 +1703,9 @@ DECLSPEC void streebog512_final_vector (streebog512_ctx_vector_t *ctx)
 
   const u64x nullbuf[8] = { 0 };
 
-  streebog512_g_vector (ctx->h, nullbuf, ctx->n);
+  streebog512_g_vector (ctx->h, nullbuf, ctx->n, ctx->s_sbob_sl64);
 
-  streebog512_g_vector (ctx->h, nullbuf, ctx->s);
+  streebog512_g_vector (ctx->h, nullbuf, ctx->s, ctx->s_sbob_sl64);
 }
 
 typedef struct streebog512_hmac_ctx_vector
@@ -1692,7 +1715,7 @@ typedef struct streebog512_hmac_ctx_vector
 
 } streebog512_hmac_ctx_vector_t;
 
-DECLSPEC void streebog512_hmac_init_vector_64 (streebog512_hmac_ctx_vector_t *ctx, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3)
+DECLSPEC void streebog512_hmac_init_vector_64 (streebog512_hmac_ctx_vector_t *ctx, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, SHM_TYPE u64a (*s_sbob_sl64)[256])
 {
   u32x t0[4];
   u32x t1[4];
@@ -1718,7 +1741,7 @@ DECLSPEC void streebog512_hmac_init_vector_64 (streebog512_hmac_ctx_vector_t *ct
   t3[2] = w3[2] ^ 0x36363636;
   t3[3] = w3[3] ^ 0x36363636;
 
-  streebog512_init_vector (&ctx->ipad);
+  streebog512_init_vector (&ctx->ipad, s_sbob_sl64);
 
   streebog512_update_vector_64 (&ctx->ipad, t0, t1, t2, t3, 64);
 
@@ -1741,12 +1764,12 @@ DECLSPEC void streebog512_hmac_init_vector_64 (streebog512_hmac_ctx_vector_t *ct
   t3[2] = w3[2] ^ 0x5c5c5c5c;
   t3[3] = w3[3] ^ 0x5c5c5c5c;
 
-  streebog512_init_vector (&ctx->opad);
+  streebog512_init_vector (&ctx->opad, s_sbob_sl64);
 
   streebog512_update_vector_64 (&ctx->opad, t0, t1, t2, t3, 64);
 }
 
-DECLSPEC void streebog512_hmac_init_vector_swap (streebog512_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void streebog512_hmac_init_vector (streebog512_hmac_ctx_vector_t *ctx, const u32x *w, const int len, SHM_TYPE u64a (*s_sbob_sl64)[256])
 {
   u32x w0[4];
   u32x w1[4];
@@ -1757,9 +1780,66 @@ DECLSPEC void streebog512_hmac_init_vector_swap (streebog512_hmac_ctx_vector_t *
   {
     streebog512_ctx_vector_t tmp;
 
-    streebog512_init_vector (&tmp);
+    streebog512_init_vector (&tmp, s_sbob_sl64);
 
     streebog512_update_vector (&tmp, w, len);
+
+    streebog512_final_vector (&tmp);
+
+    w0[0] = h32_from_64 (tmp.h[0]);
+    w0[1] = l32_from_64 (tmp.h[0]);
+    w0[2] = h32_from_64 (tmp.h[1]);
+    w0[3] = l32_from_64 (tmp.h[1]);
+    w1[0] = h32_from_64 (tmp.h[2]);
+    w1[1] = l32_from_64 (tmp.h[2]);
+    w1[2] = h32_from_64 (tmp.h[3]);
+    w1[3] = l32_from_64 (tmp.h[3]);
+    w2[0] = h32_from_64 (tmp.h[4]);
+    w2[1] = l32_from_64 (tmp.h[4]);
+    w2[2] = h32_from_64 (tmp.h[5]);
+    w2[3] = l32_from_64 (tmp.h[5]);
+    w3[0] = h32_from_64 (tmp.h[6]);
+    w3[1] = l32_from_64 (tmp.h[6]);
+    w3[2] = h32_from_64 (tmp.h[7]);
+    w3[3] = l32_from_64 (tmp.h[7]);
+  }
+  else
+  {
+    w0[0] = w[ 0];
+    w0[1] = w[ 1];
+    w0[2] = w[ 2];
+    w0[3] = w[ 3];
+    w1[0] = w[ 4];
+    w1[1] = w[ 5];
+    w1[2] = w[ 6];
+    w1[3] = w[ 7];
+    w2[0] = w[ 8];
+    w2[1] = w[ 9];
+    w2[2] = w[10];
+    w2[3] = w[11];
+    w3[0] = w[12];
+    w3[1] = w[13];
+    w3[2] = w[14];
+    w3[3] = w[15];
+  }
+
+  streebog512_hmac_init_vector_64 (ctx, w0, w1, w2, w3, s_sbob_sl64);
+}
+
+DECLSPEC void streebog512_hmac_init_vector_swap (streebog512_hmac_ctx_vector_t *ctx, const u32x *w, const int len, SHM_TYPE u64a (*s_sbob_sl64)[256])
+{
+  u32x w0[4];
+  u32x w1[4];
+  u32x w2[4];
+  u32x w3[4];
+
+  if (len > 64)
+  {
+    streebog512_ctx_vector_t tmp;
+
+    streebog512_init_vector (&tmp, s_sbob_sl64);
+
+    streebog512_update_vector_swap (&tmp, w, len);
 
     streebog512_final_vector (&tmp);
 
@@ -1800,12 +1880,17 @@ DECLSPEC void streebog512_hmac_init_vector_swap (streebog512_hmac_ctx_vector_t *
     w3[3] = swap32 (w[15]);
   }
 
-  streebog512_hmac_init_vector_64 (ctx, w0, w1, w2, w3);
+  streebog512_hmac_init_vector_64 (ctx, w0, w1, w2, w3, s_sbob_sl64);
 }
 
 DECLSPEC void streebog512_hmac_update_vector (streebog512_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
 {
   streebog512_update_vector (&ctx->ipad, w, len);
+}
+
+DECLSPEC void streebog512_hmac_update_vector_swap (streebog512_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
+{
+  streebog512_update_vector_swap (&ctx->ipad, w, len);
 }
 
 DECLSPEC void streebog512_hmac_final_vector (streebog512_hmac_ctx_vector_t *ctx)

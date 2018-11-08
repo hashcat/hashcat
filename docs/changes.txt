@@ -14,8 +14,14 @@
 
 - Added pure kernels for hash-mode 11700 (Streebog-256)
 - Added pure kernels for hash-mode 11800 (Streebog-512)
-- Added hash-mode 18200 (Kerberos 5 AS-REP etype 23)
+- Added hash-mode 11750 (HMAC-Streebog-256 (key = $pass), big-endian)
+- Added hash-mode 11760 (HMAC-Streebog-256 (key = $salt), big-endian)
 - Added hash-mode 11850 (HMAC-Streebog-512 (key = $pass), big-endian)
+- Added hash-mode 11860 (HMAC-Streebog-512 (key = $salt), big-endian)
+- Added hash-mode 13771 (VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 512 bit)
+- Added hash-mode 13772 (VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 1024 bit)
+- Added hash-mode 13773 (VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 1536 bit)
+- Added hash-mode 18200 (Kerberos 5 AS-REP etype 23)
 
 ##
 ## Improvements
@@ -24,8 +30,11 @@
 - Memory: Reduced default maximum bitmap size from 24 to 18 and give a notice to use --bitmap-max to restore
 - Memory: Limit maximum host memory to allocate depending on bitness
 - Tests: Added hash-mode 11700 (Streebog-256)
+- Tests: Added hash-mode 11750 (HMAC-Streebog-256 (key = $pass), big-endian)
+- Tests: Added hash-mode 11760 (HMAC-Streebog-256 (key = $salt), big-endian)
 - Tests: Added hash-mode 11800 (Streebog-512)
 - Tests: Added hash-mode 11850 (HMAC-Streebog-512 (key = $pass), big-endian)
+- Tests: Added hash-mode 11860 (HMAC-Streebog-512 (key = $salt), big-endian)
 
 ##
 ## Bugs

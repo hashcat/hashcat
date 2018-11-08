@@ -720,6 +720,19 @@ typedef struct tc64_tmp
 
 } tc64_tmp_t;
 
+typedef struct vc64_sbog_tmp
+{
+  u64  ipad_raw[8];
+  u64  opad_raw[8];
+
+  u64  ipad_hash[8];
+  u64  opad_hash[8];
+
+  u64  dgst[32];
+  u64  out[32];
+
+} vc64_sbog_tmp_t;
+
 typedef struct agilekey_tmp
 {
   u32 ipad[5];
@@ -1216,6 +1229,9 @@ typedef enum kern_type
   KERN_TYPE_VCSHA256_XTS512         = 13751,
   KERN_TYPE_VCSHA256_XTS1024        = 13752,
   KERN_TYPE_VCSHA256_XTS1536        = 13753,
+  KERN_TYPE_VCSBOG512_XTS512        = 13771,
+  KERN_TYPE_VCSBOG512_XTS1024       = 13772,
+  KERN_TYPE_VCSBOG512_XTS1536       = 13773,
   KERN_TYPE_MD5AIX                  = 6300,
   KERN_TYPE_SHA256AIX               = 6400,
   KERN_TYPE_SHA512AIX               = 6500,
@@ -1272,8 +1288,11 @@ typedef enum kern_type
   KERN_TYPE_CRC32                   = 11500,
   KERN_TYPE_SEVEN_ZIP               = 11600,
   KERN_TYPE_STREEBOG_256            = 11700,
+  KERN_TYPE_HMAC_STREEBOG_256_PW    = 11750,
+  KERN_TYPE_HMAC_STREEBOG_256_SLT   = 11760,
   KERN_TYPE_STREEBOG_512            = 11800,
   KERN_TYPE_HMAC_STREEBOG_512_PW    = 11850,
+  KERN_TYPE_HMAC_STREEBOG_512_SLT   = 11860,
   KERN_TYPE_PBKDF2_MD5              = 11900,
   KERN_TYPE_PBKDF2_SHA1             = 12000,
   KERN_TYPE_ECRYPTFS                = 12200,
