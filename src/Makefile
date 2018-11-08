@@ -108,7 +108,7 @@ endif
 ifeq ($(USE_SYSTEM_OPENCL),0)
 DEPS_OPENCL_PATH        := deps/OpenCL-Headers
 else
-DEPS_OPENCL_PATH        := $(LIBRARY_DEV_ROOT_FOLDER/
+DEPS_OPENCL_PATH        := $(LIBRARY_DEV_ROOT_FOLDER)/
 endif
 
 ifeq ($(USE_SYSTEM_XXHASH),0)
