@@ -8,6 +8,9 @@ DEBUG                   := 0
 PRODUCTION              := 0
 PRODUCTION_VERSION      := v5.0.0
 ENABLE_BRAIN            := 1
+USE_SYSTEM_LZMA         := 0
+USE_SYSTEM_OPENCL       := 0
+USE_SYSTEM_XXHASH       := 0
 
 ##
 ## Detect Operating System
@@ -78,7 +81,7 @@ endif # PRODUCTION
 VERSION_PURE            := $(shell echo "$(VERSION_TAG)" | $(SED) 's/.*v\([\.0-9]*\).*/\1/')
 
 ##
-## Installation paths (Linux only)
+## Installation paths
 ##
 
 DESTDIR                 ?=
@@ -91,6 +94,36 @@ DOCUMENT_FOLDER         ?= $(SHARED_ROOT_FOLDER)/doc/hashcat
 LIBRARY_FOLDER          ?= $(PREFIX)/lib
 LIBRARY_DEV_ROOT_FOLDER ?= $(PREFIX)/include
 LIBRARY_DEV_FOLDER      ?= $(LIBRARY_DEV_ROOT_FOLDER)/hashcat
+
+##
+## Depencies paths
+##
+
+ifeq ($(USE_SYSTEM_LZMA),0)
+DEPS_LZMA_PATH          := deps/LZMA-SDK/C
+else
+DEPS_LZMA_PATH          := $(LIBRARY_DEV_ROOT_FOLDER)/
+endif
+
+ifeq ($(USE_SYSTEM_OPENCL),0)
+DEPS_OPENCL_PATH        := deps/OpenCL-Headers
+else
+DEPS_OPENCL_PATH        := $(LIBRARY_DEV_ROOT_FOLDER/
+endif
+
+ifeq ($(USE_SYSTEM_XXHASH),0)
+DEPS_XXHASH_PATH        := deps/xxHash
+else
+DEPS_XXHASH_PATH        := $(LIBRARY_DEV_ROOT_FOLDER)/
+endif
+
+## To compile win-iconv with mingw clone from here: https://github.com/win-iconv/win-iconv
+##
+## Then patch the makefile with the patches from tools/win-iconv-*.diff and run make install
+##
+
+WIN_ICONV_32            := /opt/win-iconv-32
+WIN_ICONV_64            := /opt/win-iconv-64
 
 ##
 ## Filenames for library and frontend
@@ -114,14 +147,6 @@ HASHCAT_LIBRARY         := hashcat.dll
 endif # MSYS2
 
 ##
-## Dependencies
-## You may ignore them if you're compiling only a native binary and
-## You have your own headers somewhere, for example: apt-get install opencl-headers
-##
-
-OPENCL_HEADERS_KHRONOS  := deps/git/OpenCL-Headers
-
-##
 ## Cross compiler paths
 ##
 
@@ -131,22 +156,11 @@ CC_LINUX_64             := gcc
 CC_WIN_32               := i686-w64-mingw32-gcc
 CC_WIN_64               := x86_64-w64-mingw32-gcc
 
-## To compile win-iconv with mingw clone from here: https://github.com/win-iconv/win-iconv
-##
-## Then patch the makefile with the patches from tools/win-iconv-*.diff and run make install
-##
-
-WIN_ICONV_32            := /opt/win-iconv-32
-WIN_ICONV_64            := /opt/win-iconv-64
-
 ##
 ## Misc stuff
 ##
 
 COMPTIME                := $(shell date +%s)
-SYSTEM_LZMA_SDK         := 0
-
-LZMA_SDK_INCLUDE        := $(LIBRARY_DEV_ROOT_FOLDER)/lzma-sdk/C
 
 ##
 ## General compiler and linker options
@@ -179,17 +193,21 @@ endif
 CFLAGS                  += -pipe -std=gnu99 -Iinclude/ -IOpenCL/
 
 # LZMA
-ifeq ($(SYSTEM_LZMA_SDK),0)
-CFLAGS                  += -Ideps/lzma_sdk
-else
-CFLAGS                  += $(LZMA_SDK_INCLUDE)
-LDFLAGS                 += -llzmasdk
+CFLAGS                  += -I$(DEPS_LZMA_PATH)
+ifeq ($(USE_SYSTEM_LZMA),1)
+LFLAGS                  += -llzmasdk
 endif
+
+# OpenCL
+CFLAGS                  += -I$(DEPS_OPENCL_PATH)
 
 # brain and xxHash
 ifeq ($(ENABLE_BRAIN),1)
 CFLAGS                  += -DWITH_BRAIN
-CFLAGS                  += -Ideps/git/xxHash
+CFLAGS                  += -I$(DEPS_XXHASH_PATH)
+ifeq ($(USE_SYSTEM_XXHASH),1)
+LFLAGS                  += -lxxhash
+endif
 endif
 
 ##
@@ -312,6 +330,20 @@ LINUX_64_OBJS           := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).LINUX.64.o)
 WIN_32_OBJS             := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.32.o)
 WIN_64_OBJS             := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.64.o)
 
+ifeq ($(USE_SYSTEM_LZMA),0)
+OBJS_LZMA               := Alloc Lzma2Dec LzmaDec
+
+NATIVE_STATIC_OBJS      += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).NATIVE.STATIC.o)
+NATIVE_SHARED_OBJS      += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).NATIVE.SHARED.o)
+
+LINUX_32_OBJS           += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).LINUX.32.o)
+LINUX_64_OBJS           += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).LINUX.64.o)
+
+WIN_32_OBJS             += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).WIN.32.o)
+WIN_64_OBJS             += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).WIN.64.o)
+endif
+
+ifeq ($(USE_SYSTEM_XXHASH),0)
 ifeq ($(ENABLE_BRAIN),1)
 OBJS_XXHASH             := xxhash
 
@@ -324,18 +356,6 @@ LINUX_64_OBJS           += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).LINUX.64.o)
 WIN_32_OBJS             += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).WIN.32.o)
 WIN_64_OBJS             += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).WIN.64.o)
 endif
-
-ifeq ($(SYSTEM_LZMA_SDK),0)
-OBJS_LZMA               := Alloc Lzma2Dec LzmaDec
-
-NATIVE_STATIC_OBJS      += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).NATIVE.STATIC.o)
-NATIVE_SHARED_OBJS      += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).NATIVE.SHARED.o)
-
-LINUX_32_OBJS           += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).LINUX.32.o)
-LINUX_64_OBJS           += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).LINUX.64.o)
-
-WIN_32_OBJS             += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).WIN.32.o)
-WIN_64_OBJS             += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).WIN.64.o)
 endif
 
 ##
@@ -473,20 +493,22 @@ obj/%.NATIVE.STATIC.o: src/%.c
 obj/%.NATIVE.SHARED.o: src/%.c
 	$(CC) -c $(CFLAGS_NATIVE) $< -o $@ -fpic
 
-ifeq ($(ENABLE_BRAIN),1)
-obj/%.NATIVE.STATIC.o: deps/git/xxHash/%.c
+ifeq ($(USE_SYSTEM_LZMA),0)
+obj/%.NATIVE.STATIC.o: $(DEPS_LZMA_PATH)/%.c
 	$(CC) -c $(CFLAGS_NATIVE) $< -o $@
 
-obj/%.NATIVE.SHARED.o: deps/git/xxHash/%.c
+obj/%.NATIVE.SHARED.o: $(DEPS_LZMA_PATH)/%.c
 	$(CC) -c $(CFLAGS_NATIVE) $< -o $@ -fpic
 endif
 
-ifeq ($(SYSTEM_LZMA_SDK),0)
-obj/%.NATIVE.STATIC.o: deps/lzma_sdk/%.c
+ifeq ($(USE_SYSTEM_XXHASH),0)
+ifeq ($(ENABLE_BRAIN),1)
+obj/%.NATIVE.STATIC.o: $(DEPS_XXHASH_PATH)/%.c
 	$(CC) -c $(CFLAGS_NATIVE) $< -o $@
 
-obj/%.NATIVE.SHARED.o: deps/lzma_sdk/%.c
+obj/%.NATIVE.SHARED.o: $(DEPS_XXHASH_PATH)/%.c
 	$(CC) -c $(CFLAGS_NATIVE) $< -o $@ -fpic
+endif
 endif
 
 ifeq ($(UNAME),Darwin)
@@ -521,32 +543,34 @@ obj/%.WIN.32.o:   src/%.c
 obj/%.WIN.64.o:   src/%.c
 	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)   -c -o $@ $<
 
-ifeq ($(ENABLE_BRAIN),1)
-obj/%.LINUX.32.o: deps/git/xxHash/%.c
+ifeq ($(USE_SYSTEM_LZMA),0)
+obj/%.LINUX.32.o: $(DEPS_LZMA_PATH)/%.c
 	$(CC_LINUX_32) $(CFLAGS_CROSS_LINUX32) -c -o $@ $<
 
-obj/%.LINUX.64.o: deps/git/xxHash/%.c
+obj/%.LINUX.64.o: $(DEPS_LZMA_PATH)/%.c
 	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX64) -c -o $@ $<
 
-obj/%.WIN.32.o:   deps/git/xxHash/%.c
+obj/%.WIN.32.o:   $(DEPS_LZMA_PATH)/%.c
 	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN32)   -c -o $@ $<
 
-obj/%.WIN.64.o:   deps/git/xxHash/%.c
+obj/%.WIN.64.o:   $(DEPS_LZMA_PATH)/%.c
 	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)   -c -o $@ $<
 endif
 
-ifeq ($(SYSTEM_LZMA_SDK),0)
-obj/%.LINUX.32.o: deps/lzma_sdk/%.c
+ifeq ($(USE_SYSTEM_XXHASH),0)
+ifeq ($(ENABLE_BRAIN),1)
+obj/%.LINUX.32.o: $(DEPS_XXHASH_PATH)/%.c
 	$(CC_LINUX_32) $(CFLAGS_CROSS_LINUX32) -c -o $@ $<
 
-obj/%.LINUX.64.o: deps/lzma_sdk/%.c
+obj/%.LINUX.64.o: $(DEPS_XXHASH_PATH)/%.c
 	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX64) -c -o $@ $<
 
-obj/%.WIN.32.o:   deps/lzma_sdk/%.c
+obj/%.WIN.32.o:   $(DEPS_XXHASH_PATH)/%.c
 	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN32)   -c -o $@ $<
 
-obj/%.WIN.64.o:   deps/lzma_sdk/%.c
+obj/%.WIN.64.o:   $(DEPS_XXHASH_PATH)/%.c
 	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)   -c -o $@ $<
+endif
 endif
 
 hashcat32.bin: src/main.c $(LINUX_32_OBJS)

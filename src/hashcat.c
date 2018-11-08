@@ -1033,6 +1033,7 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
    * windows and sockets...
    */
 
+  #ifdef WITH_BRAIN
   #if defined (_WIN)
   if (user_options->brain_client == true)
   {
@@ -1049,6 +1050,7 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
       return -1;
     }
   }
+  #endif
   #endif
 
   /**
@@ -1317,6 +1319,7 @@ int hashcat_session_quit (hashcat_ctx_t *hashcat_ctx)
 
 int hashcat_session_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  #ifdef WITH_BRAIN
   #if defined (_WIN)
   user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -1324,6 +1327,7 @@ int hashcat_session_destroy (hashcat_ctx_t *hashcat_ctx)
   {
     WSACleanup();
   }
+  #endif
   #endif
 
   debugfile_destroy          (hashcat_ctx);

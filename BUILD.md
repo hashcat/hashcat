@@ -13,12 +13,6 @@ Get a copy of the **hashcat** repository
 $ git clone https://github.com/hashcat/hashcat.git
 ```
 
-Get a copy of the **OpenCL Headers** repository
-
-```sh
-$ git submodule update --init
-```
-
 Run "make"
 
 ```sh
