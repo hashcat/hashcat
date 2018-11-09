@@ -9,7 +9,7 @@ TDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # missing hash types: 5200,6251,6261,6271,6281
 
-HASH_TYPES="0 10 11 12 20 21 22 23 30 40 50 60 100 101 110 111 112 120 121 122 125 130 131 132 133 140 141 150 160 200 300 400 500 600 900 1000 1100 1300 1400 1410 1411 1420 1430 1440 1441 1450 1460 1500 1600 1700 1710 1711 1720 1722 1730 1731 1740 1750 1760 1800 2100 2400 2410 2500 2600 2611 2612 2711 2811 3000 3100 3200 3710 3711 3800 3910 4010 4110 4300 4400 4500 4520 4521 4522 4700 4800 4900 5100 5300 5400 5500 5600 5700 5800 6000 6100 6211 6212 6213 6221 6222 6223 6231 6232 6233 6241 6242 6243 6300 6400 6500 6600 6700 6800 6900 7000 7100 7200 7300 7400 7500 7700 7701 7800 7801 7900 8000 8100 8200 8300 8400 8500 8600 8700 8900 9100 9200 9300 9400 9500 9600 9700 9800 9900 10000 10100 10200 10300 10400 10500 10600 10700 10800 10900 11000 11100 11200 11300 11400 11500 11600 11700 11750 11760 11800 11850 11860 11900 12000 12001 12100 12200 12300 12400 12600 12700 12800 12900 13000 13100 13200 13300 13400 13500 13600 13800 13900 14000 14100 14400 14600 14700 14800 14900 15000 15100 15200 15300 15400 15500 15600 15700 15900 16000 16100 16200 16300 16400 16500 16600 16700 16800 16900 17300 17400 17500 17600 17700 17800 17900 18000 18100 18200 99999"
+HASH_TYPES="0 10 11 12 20 21 22 23 30 40 50 60 100 101 110 111 112 120 121 122 125 130 131 132 133 140 141 150 160 200 300 400 500 600 900 1000 1100 1300 1400 1410 1411 1420 1430 1440 1441 1450 1460 1500 1600 1700 1710 1711 1720 1722 1730 1731 1740 1750 1760 1800 2100 2400 2410 2500 2600 2611 2612 2711 2811 3000 3100 3200 3710 3711 3800 3910 4010 4110 4300 4400 4500 4520 4521 4522 4700 4800 4900 5100 5300 5400 5500 5600 5700 5800 6000 6100 6211 6212 6213 6221 6222 6223 6231 6232 6233 6241 6242 6243 6300 6400 6500 6600 6700 6800 6900 7000 7100 7200 7300 7400 7500 7700 7701 7800 7801 7900 8000 8100 8200 8300 8400 8500 8600 8700 8900 9100 9200 9300 9400 9500 9600 9700 9800 9900 10000 10100 10200 10300 10400 10500 10600 10700 10800 10900 11000 11100 11200 11300 11400 11500 11600 11700 11750 11760 11800 11850 11860 11900 12000 12001 12100 12200 12300 12400 12600 12700 12800 12900 13000 13100 13200 13300 13400 13500 13600 13721 13722 13723 13731 13732 13733 13751 13752 13753 13771 13772 13773 13800 13900 14000 14100 14400 14600 14700 14800 14900 15000 15100 15200 15300 15400 15500 15600 15700 15900 16000 16100 16200 16300 16400 16500 16600 16700 16800 16900 17300 17400 17500 17600 17700 17800 17900 18000 18100 18200 99999"
 
 #ATTACK_MODES="0 1 3 6 7"
 ATTACK_MODES="0 1 3 7"
@@ -22,7 +22,10 @@ HASHFILE_ONLY="2500"
 
 NEVER_CRACK="11600 14900 18100"
 
-SLOW_ALGOS="400 500 501 1600 1800 2100 2500 3200 5200 5800 6211 6212 6213 6221 6222 6223 6231 6232 6233 6241 6242 6243 6251 6261 6271 6281 6300 6400 6500 6600 6700 6800 7100 7200 7400 7900 8200 8800 8900 9000 9100 9200 9300 9400 9500 9600 10000 10300 10500 10700 10900 11300 11600 11900 12000 12001 12100 12200 12300 12400 12500 12700 12800 12900 13000 13200 13400 13600 13751 13752 13753 14600 14611 14612 14613 14621 14622 14623 14631 14632 14633 14641 14642 14643 14700 14800 15100 15200 15300 15600 15700 15900 16000 16200 16300 16800 16900"
+SLOW_ALGOS="400 500 501 1600 1800 2100 2500 3200 5200 5800 6211 6212 6213 6221 6222 6223 6231 6232 6233 6241 6242 6243 6251 6261 6271 6281 6300 6400 6500 6600 6700 6800 7100 7200 7400 7900 8200 8800 8900 9000 9100 9200 9300 9400 9500 9600 10000 10300 10500 10700 10900 11300 11600 11900 12000 12001 12100 12200 12300 12400 12500 12700 12800 12900 13000 13200 13400 13600 13721 13722 13723 13731 13732 13733 13751 13752 13753 13771 13772 13773 14600 14611 14612 14613 14621 14622 14623 14631 14632 14633 14641 14642 14643 14700 14800 15100 15200 15300 15600 15700 15900 16000 16200 16300 16800 16900"
+
+# List of VeraCrypt modes which have test containers
+VC_MODES="13721 13722 13723 13731 13732 13733 13751 13752 13753 13771 13772 13773"
 
 OPTS="--quiet --force --potfile-disable --runtime 400 --gpu-temp-disable"
 
@@ -2220,6 +2223,70 @@ function truecrypt_test()
   fi
 }
 
+# Compose and execute hashcat command on a VeraCrypt test container
+# Must not be called for hash types other than 137XY
+# $1: primary (first layer) cipher id, must be 0-2
+function veracrypt_test()
+{
+  primary_cipher=$1
+
+  hash_function=""
+
+  hash_digit="${hash_type:3:1}"
+  [ "$hash_digit" -eq "2" ] && hash_function="sha512"
+  [ "$hash_digit" -eq "3" ] && hash_function="whirlpool"
+  [ "$hash_digit" -eq "5" ] && hash_function="sha256"
+  [ "$hash_digit" -eq "7" ] && hash_function="streebog"
+
+  [ -n "$hash_function" ] || return
+
+  cipher_cascade=""
+
+  cipher_digit="${hash_type:4:1}"
+  case $cipher_digit in
+    1)
+      [ $primary_cipher -eq "0" ] && cipher_cascade="aes"
+      [ $primary_cipher -eq "1" ] && cipher_cascade="serpent"
+      [ $primary_cipher -eq "2" ] && cipher_cascade="twofish"
+      ;;
+    2)
+      [ $primary_cipher -eq "0" ] && cipher_cascade="aes-twofish"
+      [ $primary_cipher -eq "1" ] && cipher_cascade="serpent-aes"
+      [ $primary_cipher -eq "2" ] && cipher_cascade="twofish-serpent"
+      ;;
+    3)
+      [ $primary_cipher -eq "0" ] && cipher_cascade="aes-twofish-serpent"
+      [ $primary_cipher -eq "1" ] && cipher_cascade="serpent-twofish-aes"
+      [ $primary_cipher -eq "2" ] && cipher_cascade=""
+      ;;
+  esac
+
+  [ -n "$cipher_cascade" ] || return
+
+  CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} ${TDIR}/vc_tests/hashcat_${hash_function}_${cipher_cascade}.vc hashca?l"
+
+  echo "> Testing hash type ${hash_type} with attack mode 3, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}, cipher ${cipher_cascade}" &>> ${OUTD}/logfull.txt
+
+  output=$(${CMD} 2>&1)
+
+  ret=${?}
+
+  echo "${output}" >> ${OUTD}/logfull.txt
+
+  cnt=1
+  e_nf=0
+  msg="OK"
+
+  if [ ${ret} -ne 0 ]; then
+    e_nf=1
+    msg="Error"
+  fi
+
+  echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 3, Mode single, Device-Type ${TYPE}, Vector-Width ${VECTOR}, Cipher ${cipher_cascade} ] > $msg : ${e_nf}/${cnt} not found"
+
+  status ${ret}
+}
+
 function luks_test()
 {
   hashType=$1
@@ -2668,7 +2735,13 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
 
           if [[ ${IS_SLOW} -eq 1 ]]; then
 
-            if [[ ${hash_type} -ge 6211 ]] && [[ ${hash_type} -le 6243 ]]; then
+            # Look up if this is one of supported VeraCrypt modes
+            if ! contains ${hash_type} ${VC_MODES}; then
+              veracrypt_test 0
+              veracrypt_test 1
+              veracrypt_test 2
+
+            elif [[ ${hash_type} -ge 6211 ]] && [[ ${hash_type} -le 6243 ]]; then
               # run truecrypt tests
               truecrypt_test ${hash_type} 0
               truecrypt_test ${hash_type} 1
