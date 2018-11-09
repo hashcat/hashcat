@@ -2018,6 +2018,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->stdout_flag       == true) return 0;
   if (user_options->usage             == true) return 0;
   if (user_options->version           == true) return 0;
+  if (user_options->hwmon_disable     == true) return 0;
 
   hwmon_ctx->hm_device = (hm_attrs_t *) hccalloc (DEVICES_MAX, sizeof (hm_attrs_t));
 

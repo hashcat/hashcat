@@ -112,9 +112,27 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
     if (status_ctx->devices_status == STATUS_INIT) continue;
 
-    if (hwmon_check == true)
+    if (hwmon_ctx->enabled == true)
     {
       hc_thread_mutex_lock (status_ctx->mux_hwmon);
+
+      for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+      {
+        hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
+
+        if (device_param->skipped == true) continue;
+
+        if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
+
+        const int temperature = hm_get_temperature_with_device_id (hashcat_ctx, device_id);
+
+        if (temperature > (int) user_options->hwmon_temp_abort)
+        {
+          EVENT_DATA (EVENT_MONITOR_TEMP_ABORT, &device_id, sizeof (u32));
+
+          myabort (hashcat_ctx);
+        }
+      }
 
       for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
       {
@@ -136,32 +154,7 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
-          slowdown_warnings = 0;
-        }
-      }
-
-      hc_thread_mutex_unlock (status_ctx->mux_hwmon);
-    }
-
-    if (hwmon_check == true && user_options->gpu_temp_disable == false)
-    {
-      hc_thread_mutex_lock (status_ctx->mux_hwmon);
-
-      for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-      {
-        hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
-
-        if (device_param->skipped == true) continue;
-
-        if ((opencl_ctx->devices_param[device_id].device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
-
-        const int temperature = hm_get_temperature_with_device_id (hashcat_ctx, device_id);
-
-        if (temperature > (int) user_options->gpu_temp_abort)
-        {
-          EVENT_DATA (EVENT_MONITOR_TEMP_ABORT, &device_id, sizeof (u32));
-
-          myabort (hashcat_ctx);
+          if (slowdown_warnings > 0) slowdown_warnings--;
         }
       }
 

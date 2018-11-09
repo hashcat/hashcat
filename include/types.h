@@ -547,8 +547,8 @@ typedef enum user_options_defaults
   DEBUG_MODE               = 0,
   EXAMPLE_HASHES           = false,
   FORCE                    = false,
-  GPU_TEMP_ABORT           = 90,
-  GPU_TEMP_DISABLE         = false,
+  HWMON_DISABLE            = false,
+  HWMON_TEMP_ABORT         = 90,
   HASH_MODE                = 0,
   HCCAPX_MESSAGE_PAIR      = 0,
   HEX_CHARSET              = false,
@@ -640,8 +640,8 @@ typedef enum user_options_map
   IDX_ENCODING_TO               = 0xff0f,
   IDX_EXAMPLE_HASHES            = 0xff10,
   IDX_FORCE                     = 0xff11,
-  IDX_GPU_TEMP_ABORT            = 0xff12,
-  IDX_GPU_TEMP_DISABLE          = 0xff13,
+  IDX_HWMON_DISABLE             = 0xff12,
+  IDX_HWMON_TEMP_ABORT          = 0xff13,
   IDX_HASH_MODE                 = 'm',
   IDX_HCCAPX_MESSAGE_PAIR       = 0xff14,
   IDX_HELP                      = 'h',
@@ -1707,7 +1707,7 @@ typedef struct user_options
   #endif
   bool         example_hashes;
   bool         force;
-  bool         gpu_temp_disable;
+  bool         hwmon_disable;
   bool         hex_charset;
   bool         hex_salt;
   bool         hex_wordlist;
@@ -1779,7 +1779,7 @@ typedef struct user_options
   u32          brain_attack;
   #endif
   u32          debug_mode;
-  u32          gpu_temp_abort;
+  u32          hwmon_temp_abort;
   u32          hash_mode;
   u32          hccapx_message_pair;
   u32          increment_max;

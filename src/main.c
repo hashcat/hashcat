@@ -531,9 +531,9 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
     event_log_info (hashcat_ctx, "Watchdog: Hardware monitoring interface not found on your system.");
   }
 
-  if (hwmon_ctx->enabled == true && user_options->gpu_temp_abort > 0)
+  if (hwmon_ctx->enabled == true && user_options->hwmon_temp_abort > 0)
   {
-    event_log_info (hashcat_ctx, "Watchdog: Temperature abort trigger set to %uc", user_options->gpu_temp_abort);
+    event_log_info (hashcat_ctx, "Watchdog: Temperature abort trigger set to %uc", user_options->hwmon_temp_abort);
   }
   else
   {

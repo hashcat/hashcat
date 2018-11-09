@@ -1,4 +1,4 @@
-* changes v5.0.0 -> v5.0.1
+* changes v5.0.0 -> v5.1.0
 
 ##
 ## Features
@@ -27,10 +27,12 @@
 ## Improvements
 ##
 
-- Depencies: Removed gitmodules xxHash and OpenCL-Headers
 - Depencies: Added xxHash and OpenCL-Headers to deps/ in order to allow building hashcat from GitHub source release package
-- Memory: Reduced default maximum bitmap size from 24 to 18 and give a notice to use --bitmap-max to restore
+- Depencies: Removed gitmodules xxHash and OpenCL-Headers
+- Hardware Monitor: Renamed --gpu-temp-abort to --hwmon-temp-abort
+- Hardware Monitor: Renamed --gpu-temp-disable to --hwmon-disable
 - Memory: Limit maximum host memory to allocate depending on bitness
+- Memory: Reduced default maximum bitmap size from 24 to 18 and give a notice to use --bitmap-max to restore
 - Tests: Added hash-mode 11700 (Streebog-256)
 - Tests: Added hash-mode 11750 (HMAC-Streebog-256 (key = $pass), big-endian)
 - Tests: Added hash-mode 11760 (HMAC-Streebog-256 (key = $salt), big-endian)
@@ -58,15 +60,16 @@
 ## Bugs
 ##
 
-- Fixed status output of progress value in case -S and -l used in combination
-- Fixed calculation of brain-attack if a given wordlist has the size zero
 - Fixed automated calculation of brain-session when not using all hashes in the hashlist
+- Fixed calculation of brain-attack if a given wordlist has the size zero
+- Fixed checking the length of the last token in a hash if it was given the attribute TOKEN_ATTR_FIXED_LENGTH
 - Fixed endianness and invalid separator character in outfile format for hash-mode 16801 (WPA-PMKID-PMK)
 - Fixed ignoring --brain-client-features configuration when brain-server has attack positions information from a previous run
+- Fixed invalid warnings about throttling in case --hwmon-disable was used
 - Fixed missing call to WSACleanup() to cleanly shutdown windows sockets system
 - Fixed missing call to WSAStartup() and client indexing in order to start the brain server on Windows
-- Fixed checking the length of the last token in a hash if it was given the attribute TOKEN_ATTR_FIXED_LENGTH
 - Fixed out-of-bounds write in short-term memory of the brain-server
+- Fixed status output of progress value in case -S and -l used in combination
 
 * changes v4.2.1 -> v5.0.0
 

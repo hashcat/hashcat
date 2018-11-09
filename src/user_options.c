@@ -47,8 +47,8 @@ static const struct option long_options[] =
   {"generate-rules-func-min",   required_argument, NULL, IDX_RP_GEN_FUNC_MIN},
   {"generate-rules",            required_argument, NULL, IDX_RP_GEN},
   {"generate-rules-seed",       required_argument, NULL, IDX_RP_GEN_SEED},
-  {"gpu-temp-abort",            required_argument, NULL, IDX_GPU_TEMP_ABORT},
-  {"gpu-temp-disable",          no_argument,       NULL, IDX_GPU_TEMP_DISABLE},
+  {"hwmon-disable",             no_argument,       NULL, IDX_HWMON_DISABLE},
+  {"hwmon-temp-abort",          required_argument, NULL, IDX_HWMON_TEMP_ABORT},
   {"hash-type",                 required_argument, NULL, IDX_HASH_MODE},
   {"hccapx-message-pair",       required_argument, NULL, IDX_HCCAPX_MESSAGE_PAIR},
   {"help",                      no_argument,       NULL, IDX_HELP},
@@ -173,8 +173,8 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->encoding_to               = ENCODING_TO;
   user_options->example_hashes            = EXAMPLE_HASHES;
   user_options->force                     = FORCE;
-  user_options->gpu_temp_abort            = GPU_TEMP_ABORT;
-  user_options->gpu_temp_disable          = GPU_TEMP_DISABLE;
+  user_options->hwmon_disable             = HWMON_DISABLE;
+  user_options->hwmon_temp_abort          = HWMON_TEMP_ABORT;
   user_options->hash_mode                 = HASH_MODE;
   user_options->hccapx_message_pair       = HCCAPX_MESSAGE_PAIR;
   user_options->hex_charset               = HEX_CHARSET;
@@ -306,7 +306,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_KERNEL_LOOPS:
       case IDX_KERNEL_THREADS:
       case IDX_NVIDIA_SPIN_DAMP:
-      case IDX_GPU_TEMP_ABORT:
+      case IDX_HWMON_TEMP_ABORT:
       case IDX_HCCAPX_MESSAGE_PAIR:
       case IDX_NONCE_ERROR_CORRECTIONS:
       case IDX_VERACRYPT_PIM:
@@ -434,8 +434,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
                                          user_options->kernel_threads_chgd       = true;                            break;
       case IDX_NVIDIA_SPIN_DAMP:         user_options->nvidia_spin_damp          = hc_strtoul (optarg, NULL, 10);
                                          user_options->nvidia_spin_damp_chgd     = true;                            break;
-      case IDX_GPU_TEMP_DISABLE:         user_options->gpu_temp_disable          = true;                            break;
-      case IDX_GPU_TEMP_ABORT:           user_options->gpu_temp_abort            = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_HWMON_DISABLE:            user_options->hwmon_disable             = true;                            break;
+      case IDX_HWMON_TEMP_ABORT:         user_options->hwmon_temp_abort          = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_LOGFILE_DISABLE:          user_options->logfile_disable           = true;                            break;
       case IDX_HCCAPX_MESSAGE_PAIR:      user_options->hccapx_message_pair       = hc_strtoul (optarg, NULL, 10);
                                          user_options->hccapx_message_pair_chgd  = true;                            break;
@@ -1434,7 +1434,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->stdout_flag)
   {
-    user_options->gpu_temp_disable    = true;
+    user_options->hwmon_disable       = true;
     user_options->left                = false;
     user_options->logfile_disable     = true;
     user_options->nvidia_spin_damp    = 0;
@@ -1456,7 +1456,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
    || user_options->speed_only      == true
    || user_options->progress_only   == true)
   {
-    user_options->gpu_temp_disable    = true;
+    user_options->hwmon_disable       = true;
     user_options->left                = false;
     user_options->logfile_disable     = true;
     user_options->nvidia_spin_damp    = 0;
@@ -1478,7 +1478,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   if (user_options->benchmark == true)
   {
     user_options->attack_mode         = ATTACK_MODE_BF;
-    user_options->gpu_temp_disable    = false;
+    user_options->hwmon_disable       = true;
     user_options->increment           = false;
     user_options->left                = false;
     user_options->logfile_disable     = true;
@@ -1617,12 +1617,12 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   }
 
   #if !defined (WITH_HWMON)
-  user_options->gpu_temp_disable = true;
+  user_options->hwmon_disable = true;
   #endif // WITH_HWMON
 
-  if (user_options->gpu_temp_disable == true)
+  if (user_options->hwmon_disable == true)
   {
-    user_options->gpu_temp_abort  = 0;
+    user_options->hwmon_temp_abort = 0;
   }
 
   // default mask
@@ -2597,8 +2597,8 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->debug_mode);
   logfile_top_uint   (user_options->example_hashes);
   logfile_top_uint   (user_options->force);
-  logfile_top_uint   (user_options->gpu_temp_abort);
-  logfile_top_uint   (user_options->gpu_temp_disable);
+  logfile_top_uint   (user_options->hwmon_disable);
+  logfile_top_uint   (user_options->hwmon_temp_abort);
   logfile_top_uint   (user_options->hash_mode);
   logfile_top_uint   (user_options->hex_charset);
   logfile_top_uint   (user_options->hex_salt);
