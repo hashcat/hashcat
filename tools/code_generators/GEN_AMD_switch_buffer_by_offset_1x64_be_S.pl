@@ -10,11 +10,11 @@ for (my $i = 0, my $s = 0; $i < 64; $i++, $s++)
   {
     if ((($j - $s - 1) >= 0) && (($j - $s - 0) >= 0))
     {
-      printf ("      w[%2d] = amd_bytealign_S (w[%2d], w[%2d], offset);\n", $j, $j - $s - 1, $j - $s - 0);
+      printf ("      w[%2d] = hc_bytealign_S (w[%2d], w[%2d], offset);\n", $j, $j - $s - 1, $j - $s - 0);
     }
     elsif (($j - $s - 0) >= 0)
     {
-      printf ("      w[%2d] = amd_bytealign_S (    0, w[%2d], offset);\n", $j, $j - $s - 0);
+      printf ("      w[%2d] = hc_bytealign_S (    0, w[%2d], offset);\n", $j, $j - $s - 0);
     }
     else
     {
