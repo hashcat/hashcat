@@ -27,6 +27,28 @@
 ## Improvements
 ##
 
+- xxHash: Added support for using system-wide installation
+
+##
+## Bugs
+##
+
+- Fixed automated calculation of brain-session when not using all hashes in the hashlist
+- Fixed calculation of brain-attack if a given wordlist has the size zero
+- Fixed checking the length of the last token in a hash if it was given the attribute TOKEN_ATTR_FIXED_LENGTH
+- Fixed endianness and invalid separator character in outfile format for hash-mode 16801 (WPA-PMKID-PMK)
+- Fixed ignoring --brain-client-features configuration when brain-server has attack positions information from a previous run
+- Fixed invalid warnings about throttling in case --hwmon-disable was used
+- Fixed missing call to WSACleanup() to cleanly shutdown windows sockets system
+- Fixed missing call to WSAStartup() and client indexing in order to start the brain server on Windows
+- Fixed out-of-bounds write in short-term memory of the brain-server
+- Fixed status output of progress value in case -S and -l used in combination
+
+##
+## Technical
+##
+
+- Brain: Set --brain-client-features default from 3 to 2
 - Depencies: Added xxHash and OpenCL-Headers to deps/ in order to allow building hashcat from GitHub source release package
 - Depencies: Removed gitmodules xxHash and OpenCL-Headers
 - Hardware Monitor: Renamed --gpu-temp-abort to --hwmon-temp-abort
@@ -54,22 +76,6 @@
 - Tests: Added hash-mode 13771 (VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 512 bit)
 - Tests: Added hash-mode 13772 (VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 1024 bit)
 - Tests: Added hash-mode 13773 (VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 1536 bit)
-- xxHash: Added support for using system-wide installation
-
-##
-## Bugs
-##
-
-- Fixed automated calculation of brain-session when not using all hashes in the hashlist
-- Fixed calculation of brain-attack if a given wordlist has the size zero
-- Fixed checking the length of the last token in a hash if it was given the attribute TOKEN_ATTR_FIXED_LENGTH
-- Fixed endianness and invalid separator character in outfile format for hash-mode 16801 (WPA-PMKID-PMK)
-- Fixed ignoring --brain-client-features configuration when brain-server has attack positions information from a previous run
-- Fixed invalid warnings about throttling in case --hwmon-disable was used
-- Fixed missing call to WSACleanup() to cleanly shutdown windows sockets system
-- Fixed missing call to WSAStartup() and client indexing in order to start the brain server on Windows
-- Fixed out-of-bounds write in short-term memory of the brain-server
-- Fixed status output of progress value in case -S and -l used in combination
 
 * changes v4.2.1 -> v5.0.0
 

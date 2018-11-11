@@ -539,7 +539,7 @@ typedef enum user_options_defaults
   BITMAP_MIN               = 16,
   #ifdef WITH_BRAIN
   BRAIN_CLIENT             = false,
-  BRAIN_CLIENT_FEATURES    = 3,
+  BRAIN_CLIENT_FEATURES    = 2,
   BRAIN_PORT               = 6863,
   BRAIN_SERVER             = false,
   BRAIN_SESSION            = 0,
