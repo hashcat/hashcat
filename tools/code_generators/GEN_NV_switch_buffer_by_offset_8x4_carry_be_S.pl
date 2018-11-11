@@ -32,15 +32,15 @@ for (my $i = 0, my $s = 0; $i < 32; $i++, $s++)
 
     if ($js0d4 >= 8)
     {
-      printf ("      %s%d[%d] = __byte_perm_S (    0, %s%d[%d], selector);\n", $c1, $jd4, $jm4, $c2, $js1d4, $js1m4);
+      printf ("      %s%d[%d] = hc_byte_perm_S (    0, %s%d[%d], selector);\n", $c1, $jd4, $jm4, $c2, $js1d4, $js1m4);
     }
     elsif ((($j - $s - 1) >= 0) && (($j - $s - 0) >= 0))
     {
-      printf ("      %s%d[%d] = __byte_perm_S (%s%d[%d], %s%d[%d], selector);\n", $c1, $jd4, $jm4, $c2, $js0d4, $js0m4, $c3, $js1d4, $js1m4);
+      printf ("      %s%d[%d] = hc_byte_perm_S (%s%d[%d], %s%d[%d], selector);\n", $c1, $jd4, $jm4, $c2, $js0d4, $js0m4, $c3, $js1d4, $js1m4);
     }
     elsif (($j - $s - 0) >= 0)
     {
-      printf ("      %s%d[%d] = __byte_perm_S (%s%d[%d],     0, selector);\n", $c1, $jd4, $jm4, $c2, $js0d4, $js0m4);
+      printf ("      %s%d[%d] = hc_byte_perm_S (%s%d[%d],     0, selector);\n", $c1, $jd4, $jm4, $c2, $js0d4, $js0m4);
     }
     else
     {
