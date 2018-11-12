@@ -2806,7 +2806,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
                 device_param->speed_msec[0] = device_param->speed_msec[speed_pos - 1];
               }
 
-              device_param->speed_pos = 1;
+              device_param->speed_pos = 0;
 
               device_param->speed_only_finish = true;
 
