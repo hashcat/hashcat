@@ -541,7 +541,6 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   }
 
   event_log_info (hashcat_ctx, NULL);
-
 }
 
 static void main_opencl_session_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -560,6 +559,28 @@ static void main_opencl_session_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, M
   if (user_options->quiet == true) return;
 
   event_log_info_nn (hashcat_ctx, "Initialized device kernels and memory...");
+}
+
+static void main_opencl_device_init_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  const u32 *device_id = (const u32 *) buf;
+
+  event_log_info_nn (hashcat_ctx, "Initializing OpenCL runtime for device #%u...", *device_id + 1);
+}
+
+static void main_opencl_device_init_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  const u32 *device_id = (const u32 *) buf;
+
+  event_log_info_nn (hashcat_ctx, "Initialized OpenCL runtime for device #%u...", *device_id + 1);
 }
 
 static void main_bitmap_init_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -997,6 +1018,8 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
     case EVENT_MONITOR_NOINPUT_ABORT:     main_monitor_noinput_abort     (hashcat_ctx, buf, len); break;
     case EVENT_OPENCL_SESSION_POST:       main_opencl_session_post       (hashcat_ctx, buf, len); break;
     case EVENT_OPENCL_SESSION_PRE:        main_opencl_session_pre        (hashcat_ctx, buf, len); break;
+    case EVENT_OPENCL_DEVICE_INIT_POST:   main_opencl_device_init_post   (hashcat_ctx, buf, len); break;
+    case EVENT_OPENCL_DEVICE_INIT_PRE:    main_opencl_device_init_pre    (hashcat_ctx, buf, len); break;
     case EVENT_OUTERLOOP_FINISHED:        main_outerloop_finished        (hashcat_ctx, buf, len); break;
     case EVENT_OUTERLOOP_MAINSCREEN:      main_outerloop_mainscreen      (hashcat_ctx, buf, len); break;
     case EVENT_OUTERLOOP_STARTING:        main_outerloop_starting        (hashcat_ctx, buf, len); break;

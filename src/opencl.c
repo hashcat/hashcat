@@ -4279,6 +4279,8 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->skipped == true) continue;
 
+    EVENT_DATA (EVENT_OPENCL_DEVICE_INIT_PRE, &device_id, sizeof (u32));
+
     bool skipped_temp = false;
 
     #if defined (__APPLE__)
@@ -6762,6 +6764,8 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     CL_rc = hc_clSetKernelArg (hashcat_ctx, device_param->kernel_decompress, 2, sizeof (cl_mem), device_param->kernel_params_decompress[2]); if (CL_rc == -1) return -1;
 
     hardware_power_all += device_param->hardware_power;
+
+    EVENT_DATA (EVENT_OPENCL_DEVICE_INIT_POST, &device_id, sizeof (u32));
   }
 
   // Prevent exit from benchmark mode if all devices are skipped due to unstable hash-modes (macOS)
