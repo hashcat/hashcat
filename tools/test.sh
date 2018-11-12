@@ -9,10 +9,26 @@ TDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # missing hash types: 5200,6251,6261,6271,6281
 
-HASH_TYPES="0 10 11 12 20 21 22 23 30 40 50 60 100 101 110 111 112 120 121 122 125 130 131 132 133 140 141 150 160 200 300 400 500 600 900 1000 1100 1300 1400 1410 1411 1420 1430 1440 1441 1450 1460 1500 1600 1700 1710 1711 1720 1722 1730 1731 1740 1750 1760 1800 2100 2400 2410 2500 2600 2611 2612 2711 2811 3000 3100 3200 3710 3711 3800 3910 4010 4110 4300 4400 4500 4520 4521 4522 4700 4800 4900 5100 5300 5400 5500 5600 5700 5800 6000 6100 6211 6212 6213 6221 6222 6223 6231 6232 6233 6241 6242 6243 6300 6400 6500 6600 6700 6800 6900 7000 7100 7200 7300 7400 7500 7700 7701 7800 7801 7900 8000 8100 8200 8300 8400 8500 8600 8700 8900 9100 9200 9300 9400 9500 9600 9700 9800 9900 10000 10100 10200 10300 10400 10500 10600 10700 10800 10900 11000 11100 11200 11300 11400 11500 11600 11700 11750 11760 11800 11850 11860 11900 12000 12001 12100 12200 12300 12400 12600 12700 12800 12900 13000 13100 13200 13300 13400 13500 13600 13711 13712 13713 13721 13722 13723 13731 13732 13733 13751 13752 13753 13771 13772 13773 13800 13900 14000 14100 14400 14600 14700 14800 14900 15000 15100 15200 15300 15400 15500 15600 15700 15900 16000 16100 16200 16300 16400 16500 16600 16700 16800 16900 17300 17400 17500 17600 17700 17800 17900 18000 18100 18200 18300 99999"
-
-#ATTACK_MODES="0 1 3 6 7"
-ATTACK_MODES="0 1 3 7"
+# Array of all hash-modes supported by the test suite
+HASH_TYPES="0    10    11    12    20    21    22    23    30    40    50    60\
+    100   101   110   111   112   120   121   122   125   130   131   132   133\
+    140   141   150   160   200   300   400   500   600   900  1000  1100  1300\
+   1400  1410  1411  1420  1430  1440  1441  1450  1460  1500  1600  1700  1710\
+   1711  1720  1722  1730  1731  1740  1750  1760  1800  2100  2400  2410  2500\
+   2600  2611  2612  2711  2811  3000  3100  3200  3710  3711  3800  3910  4010\
+   4110  4300  4400  4500  4520  4521  4522  4700  4800  4900  5100  5300  5400\
+   5500  5600  5700  5800  6000  6100  6211  6212  6213  6221  6222  6223  6231\
+   6232  6233  6241  6242  6243  6300  6400  6500  6600  6700  6800  6900  7000\
+   7100  7200  7300  7400  7500  7700  7701  7800  7801  7900  8000  8100  8200\
+   8300  8400  8500  8600  8700  8900  9100  9200  9300  9400  9500  9600  9700\
+   9800  9900 10000 10100 10200 10300 10400 10500 10600 10700 10800 10900 11000\
+  11100 11200 11300 11400 11500 11600 11700 11750 11760 11800 11850 11860 11900\
+  12000 12001 12100 12200 12300 12400 12600 12700 12800 12900 13000 13100 13200\
+  13300 13400 13500 13600 13711 13712 13713 13721 13722 13723 13731 13732 13733\
+  13751 13752 13753 13771 13772 13773 13800 13900 14000 14100 14400 14600 14700\
+  14800 14900 15000 15100 15200 15300 15400 15500 15600 15700 15900 16000 16100\
+  16200 16300 16400 16500 16600 16700 16800 16900 17300 17400 17500 17600 17700\
+  17800 17900 18000 18100 18200 18300 99999"
 
 VECTOR_WIDTHS="1 2 4 8 16"
 
@@ -22,10 +38,19 @@ HASHFILE_ONLY="2500"
 
 NEVER_CRACK="11600 14900 18100"
 
-SLOW_ALGOS="400 500 501 1600 1800 2100 2500 3200 5200 5800 6211 6212 6213 6221 6222 6223 6231 6232 6233 6241 6242 6243 6251 6261 6271 6281 6300 6400 6500 6600 6700 6800 7100 7200 7400 7900 8200 8800 8900 9000 9100 9200 9300 9400 9500 9600 10000 10300 10500 10700 10900 11300 11600 11900 12000 12001 12100 12200 12300 12400 12500 12700 12800 12900 13000 13200 13400 13600 13711 13712 13713 13721 13722 13723 13731 13732 13733 13751 13752 13753 13771 13772 13773 14600 14611 14612 14613 14621 14622 14623 14631 14632 14633 14641 14642 14643 14700 14800 15100 15200 15300 15600 15700 15900 16000 16200 16300 16800 16900"
+SLOW_ALGOS="    400   500   501  1600  1800  2100  2500  3200  5200  5800  6211\
+   6212  6213  6221  6222  6223  6231  6232  6233  6241  6242  6243  6251  6261\
+   6271  6281  6300  6400  6500  6600  6700  6800  7100  7200  7400  7900  8200\
+   8800  8900  9000  9100  9200  9300  9400  9500  9600 10000 10300 10500 10700\
+  10900 11300 11600 11900 12000 12001 12100 12200 12300 12400 12500 12700 12800\
+  12900 13000 13200 13400 13600 13711 13712 13713 13721 13722 13723 13731 13732\
+  13733 13751 13752 13753 13771 13772 13773 14600 14611 14612 14613 14621 14622\
+  14623 14631 14632 14633 14641 14642 14643 14700 14800 15100 15200 15300 15600\
+  15700 15900 16000 16200 16300 16800 16900"
 
 # List of VeraCrypt modes which have test containers
-VC_MODES="13711 13712 13713 13721 13722 13723 13731 13732 13733 13751 13752 13753 13771 13772 13773"
+VC_MODES="13711 13712 13713 13721 13722 13723 13731 13732 13733 13751 13752\
+          13753 13771 13772 13773"
 
 OPTS="--quiet --force --potfile-disable --runtime 400 --hwmon-disable"
 
@@ -135,17 +160,16 @@ mask_7[29]="?d?d?d?d?d?d?d?d000000"
 mask_7[30]="?d?d?d?d?d?d?d?d0000000"
 mask_7[31]="?d?d?d?d?d?d?d?d0000000"
 
-contains ()
+# Array lookup
+# $1: value
+# $2: array
+# Returns 0 (SUCCESS) if the value is found, 1 otherwise
+function is_in_array()
 {
-  for element in "${@:2}"; do
-
-    if [ "${element}" == "${1}" ]; then
-      return 1
-    fi
-
+  for e in "${@:2}"; do
+    [[ "$e" == "$1" ]] && return 0
   done
-
-  return 0
+  return 1
 }
 
 function init()
@@ -166,7 +190,7 @@ function init()
   if [[ ${hash_type} -ge 6211 ]] && [[ ${hash_type} -le 6243 ]]; then
     return 0
   fi
-  if ! contains ${hash_type} ${VC_MODES}; then
+  if is_in_array ${hash_type} ${VC_MODES}; then
     return 0
   fi
 
@@ -370,7 +394,7 @@ function status()
   if [ ${RET} -ne 0 ]; then
     case ${RET} in
       1)
-        if contains ${hash_type} ${NEVER_CRACK_ALGOS}; then
+        if ! is_in_array ${hash_type} ${NEVER_CRACK_ALGOS}; then
 
            echo "password not found, cmdline : ${CMD}" &>> ${OUTD}/logfull.txt
            ((e_nf++))
@@ -405,7 +429,7 @@ function attack_0()
 {
   file_only=0
 
-  if ! contains ${hash_type} ${FILE_BASED_ALGOS}; then
+  if is_in_array ${hash_type} ${FILE_BASED_ALGOS}; then
 
     file_only=1
 
@@ -423,7 +447,7 @@ function attack_0()
 
     max=32
 
-    if ! contains ${hash_type} ${TIMEOUT_ALGOS}; then
+    if is_in_array ${hash_type} ${TIMEOUT_ALGOS}; then
 
       max=12
 
@@ -596,7 +620,7 @@ function attack_1()
 {
   file_only=0
 
-  if ! contains ${hash_type} ${FILE_BASED_ALGOS}; then
+  if is_in_array ${hash_type} ${FILE_BASED_ALGOS}; then
 
     file_only=1
 
@@ -832,7 +856,7 @@ function attack_3()
 {
   file_only=0
 
-  if ! contains ${hash_type} ${FILE_BASED_ALGOS}; then
+  if is_in_array ${hash_type} ${FILE_BASED_ALGOS}; then
 
     file_only=1
 
@@ -909,7 +933,7 @@ function attack_3()
 
       if [ "${i}" -gt 6 ]; then
 
-        if ! contains ${hash_type} ${TIMEOUT_ALGOS}; then
+        if is_in_array ${hash_type} ${TIMEOUT_ALGOS}; then
 
           break
 
@@ -1054,7 +1078,7 @@ function attack_3()
 
     increment_max=8
 
-    if ! contains ${hash_type} ${TIMEOUT_ALGOS}; then
+    if is_in_array ${hash_type} ${TIMEOUT_ALGOS}; then
 
       increment_max=5
 
@@ -1337,7 +1361,7 @@ function attack_6()
 {
   file_only=0
 
-  if ! contains ${hash_type} ${FILE_BASED_ALGOS}; then
+  if is_in_array ${hash_type} ${FILE_BASED_ALGOS}; then
 
     file_only=1
 
@@ -1422,7 +1446,7 @@ function attack_6()
 
       if [ "${i}" -gt 6 ]; then
 
-        if ! contains ${hash_type} ${TIMEOUT_ALGOS}; then
+        if is_in_array ${hash_type} ${TIMEOUT_ALGOS}; then
 
           break
 
@@ -1552,7 +1576,7 @@ function attack_6()
       max=5
     fi
 
-    if ! contains ${hash_type} ${TIMEOUT_ALGOS}; then
+    if is_in_array ${hash_type} ${TIMEOUT_ALGOS}; then
 
       max=5
 
@@ -1653,7 +1677,7 @@ function attack_7()
 {
   file_only=0
 
-  if ! contains ${hash_type} ${FILE_BASED_ALGOS}; then
+  if is_in_array ${hash_type} ${FILE_BASED_ALGOS}; then
 
     file_only=1
 
@@ -1920,7 +1944,7 @@ function attack_7()
       max=5
     fi
 
-    if ! contains ${hash_type} ${TIMEOUT_ALGOS}; then
+    if is_in_array ${hash_type} ${TIMEOUT_ALGOS}; then
 
       max=7
 
@@ -2673,7 +2697,7 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
     elif [[ ${HT} -ne 14600 ]]; then
       # Exclude TrueCrypt and VeraCrypt testing modes
       if [[ ${HT} -lt  6211 ]] || [[ ${HT} -gt 6243 ]]; then
-        if contains ${HT} ${VC_MODES}; then
+        if ! is_in_array ${HT} ${VC_MODES}; then
           perl tools/test.pl single ${HT} > ${OUTD}/all.sh
         fi
       fi
@@ -2714,16 +2738,14 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
     if [ "${PACKAGE}" -eq 0 ]; then
 
       # should we check only the pass?
-      contains ${hash_type} ${PASS_ONLY}
-      pass_only=$?
+      pass_only=0
+      is_in_array ${hash_type}  ${PASS_ONLY} && pass_only=1
 
-      contains ${hash_type} ${SLOW_ALGOS}
-      IS_SLOW=$?
+      IS_SLOW=0
+      is_in_array ${hash_type} ${SLOW_ALGOS} && IS_SLOW=1
 
-      if [[ ${hash_type} -eq 400 ]]; then
-         # we use phpass as slow hash for testing the AMP kernel
-         IS_SLOW=0
-      fi
+      # we use phpass as slow hash for testing the AMP kernel
+      [[ ${hash_type} -eq 400 ]] && IS_SLOW=0
 
       OPTS_OLD=${OPTS}
       VECTOR_OLD=${VECTOR}
@@ -2744,7 +2766,7 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
           if [[ ${IS_SLOW} -eq 1 ]]; then
 
             # Look up if this is one of supported VeraCrypt modes
-            if ! contains ${hash_type} ${VC_MODES}; then
+            if is_in_array ${hash_type} ${VC_MODES}; then
               veracrypt_test 0
               veracrypt_test 1
               veracrypt_test 2
