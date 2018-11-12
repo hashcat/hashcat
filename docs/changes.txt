@@ -22,6 +22,7 @@
 - Added hash-mode 13772 (VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 1024 bit)
 - Added hash-mode 13773 (VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 1536 bit)
 - Added hash-mode 18200 (Kerberos 5 AS-REP etype 23)
+- Added hash-mode 18300 (Apple File System)
 
 ##
 ## Improvements

@@ -367,6 +367,7 @@ static const char *const USAGE_BIG[] =
   "      Y | 3 = XTS 1536 bit all                             | Full-Disk Encryption (FDE)",
   "  14600 | LUKS                                             | Full-Disk Encryption (FDE)",
   "  16700 | FileVault 2                                      | Full-Disk Encryption (FDE)",
+  "  18300 | Apple File System                                | Full-Disk Encryption (FDE)",
   "   9700 | MS Office <= 2003 $0/$1, MD5 + RC4               | Documents",
   "   9710 | MS Office <= 2003 $0/$1, MD5 + RC4, collider #1  | Documents",
   "   9720 | MS Office <= 2003 $0/$1, MD5 + RC4, collider #2  | Documents",

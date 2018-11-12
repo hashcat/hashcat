@@ -297,6 +297,7 @@ static const char *ST_HASH_17900 = "5804b7ada5806ba79540100e9a7ef493654ff2a21d94
 static const char *ST_HASH_18000 = "2fbf5c9080f0a704de2e915ba8fdae6ab00bbc026b2c1c8fa07da1239381c6b7f4dfd399bf9652500da723694a4c719587dd0219cb30eabe61210a8ae4dc0b03";
 static const char *ST_HASH_18100 = "597056:3600";
 static const char *ST_HASH_18200 = "$krb5asrep$23$user@domain.com:3e156ada591263b8aab0965f5aebd837$007497cb51b6c8116d6407a782ea0e1c5402b17db7afa6b05a6d30ed164a9933c754d720e279c6c573679bd27128fe77e5fea1f72334c1193c8ff0b370fadc6368bf2d49bbfdba4c5dccab95e8c8ebfdc75f438a0797dbfb2f8a1a5f4c423f9bfc1fea483342a11bd56a216f4d5158ccc4b224b52894fadfba3957dfe4b6b8f5f9f9fe422811a314768673e0c924340b8ccb84775ce9defaa3baa0910b676ad0036d13032b0dd94e3b13903cc738a7b6d00b0b3c210d1f972a6c7cae9bd3c959acf7565be528fc179118f28c679f6deeee1456f0781eb8154e18e49cb27b64bf74cd7112a0ebae2102ac";
+static const char *ST_HASH_18300 = "$fvde$2$16$58778104701476542047675521040224$20000$39602e86b7cea4a34f4ff69ff6ed706d68954ee474de1d2a9f6a6f2d24d172001e484c1d4eaa237d";
 static const char *ST_HASH_99999 = "hashcat";
 
 static const char *OPTI_STR_OPTIMIZED_KERNEL     = "Optimized-Kernel";
@@ -558,6 +559,7 @@ static const char *HT_17900 = "Keccak-384";
 static const char *HT_18000 = "Keccak-512";
 static const char *HT_18100 = "TOTP (HMAC-SHA1)";
 static const char *HT_18200 = "Kerberos 5 AS-REP etype 23";
+static const char *HT_18300 = "Apple File System";
 static const char *HT_99999 = "Plaintext";
 
 static const char *HT_00011 = "Joomla < 2.5.18";
@@ -713,6 +715,7 @@ static const char *SIGNATURE_ETHEREUM_PRESALE   = "$ethereum$w";
 static const char *SIGNATURE_ELECTRUM_WALLET    = "$electrum$";
 static const char *SIGNATURE_FILEVAULT2         = "$fvde$";
 static const char *SIGNATURE_ANSIBLE_VAULT      = "$ansible$";
+static const char *SIGNATURE_APFS               = "$fvde$";
 
 /**
  * decoder / encoder
@@ -17882,6 +17885,8 @@ int filevault2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   const u32 Z_PK = hc_strtoul ((const char *) Z_PK_pos, NULL, 10);
 
+  if (Z_PK != 1) return (PARSER_SIGNATURE_UNMATCHED);
+
   apple_secure_notes->Z_PK = Z_PK;
 
   // ZCRYPTOSALT
@@ -18357,7 +18362,134 @@ int ansible_vault_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MA
   digest[7] = byte_swap_32 (digest[7]);
 
   return (PARSER_OK);
+}
 
+int apfs_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
+{
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  apple_secure_notes_t *apple_secure_notes = (apple_secure_notes_t *) hash_buf->esalt;
+
+  token_t token;
+
+  token.token_cnt  = 6;
+
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_APFS;
+
+  token.len[0]     = 6;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
+
+  token.sep[1]     = '$';
+  token.len_min[1] = 1;
+  token.len_max[1] = 10;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
+
+  token.sep[2]     = '$';
+  token.len_min[2] = 1;
+  token.len_max[2] = 6;
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
+
+  token.sep[3]     = '$';
+  token.len_min[3] = 32;
+  token.len_max[3] = 32;
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
+
+  token.sep[4]     = '$';
+  token.len_min[4] = 1;
+  token.len_max[4] = 6;
+  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
+
+  token.sep[5]     = '$';
+  token.len_min[5] = 80;
+  token.len_max[5] = 80;
+  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
+
+  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
+
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+  // Z_PK
+
+  u8 *Z_PK_pos = token.buf[1];
+
+  const u32 Z_PK = hc_strtoul ((const char *) Z_PK_pos, NULL, 10);
+
+  if (Z_PK != 2) return (PARSER_SIGNATURE_UNMATCHED);
+
+  apple_secure_notes->Z_PK = Z_PK;
+
+  // ZCRYPTOSALT
+
+  u8 *ZCRYPTOSALT_pos = token.buf[3];
+
+  apple_secure_notes->ZCRYPTOSALT[ 0] = hex_to_u32 ((const u8 *) &ZCRYPTOSALT_pos[ 0]);
+  apple_secure_notes->ZCRYPTOSALT[ 1] = hex_to_u32 ((const u8 *) &ZCRYPTOSALT_pos[ 8]);
+  apple_secure_notes->ZCRYPTOSALT[ 2] = hex_to_u32 ((const u8 *) &ZCRYPTOSALT_pos[16]);
+  apple_secure_notes->ZCRYPTOSALT[ 3] = hex_to_u32 ((const u8 *) &ZCRYPTOSALT_pos[24]);
+  apple_secure_notes->ZCRYPTOSALT[ 4] = 0;
+  apple_secure_notes->ZCRYPTOSALT[ 5] = 0;
+  apple_secure_notes->ZCRYPTOSALT[ 6] = 0;
+  apple_secure_notes->ZCRYPTOSALT[ 7] = 0;
+  apple_secure_notes->ZCRYPTOSALT[ 8] = 0;
+  apple_secure_notes->ZCRYPTOSALT[ 9] = 0;
+  apple_secure_notes->ZCRYPTOSALT[10] = 0;
+  apple_secure_notes->ZCRYPTOSALT[11] = 0;
+  apple_secure_notes->ZCRYPTOSALT[12] = 0;
+  apple_secure_notes->ZCRYPTOSALT[13] = 0;
+  apple_secure_notes->ZCRYPTOSALT[14] = 0;
+  apple_secure_notes->ZCRYPTOSALT[15] = 0;
+
+  // ZCRYPTOITERATIONCOUNT
+
+  u8 *ZCRYPTOITERATIONCOUNT_pos = token.buf[4];
+
+  const u32 ZCRYPTOITERATIONCOUNT = hc_strtoul ((const char *) ZCRYPTOITERATIONCOUNT_pos, NULL, 10);
+
+  apple_secure_notes->ZCRYPTOITERATIONCOUNT = ZCRYPTOITERATIONCOUNT;
+
+  // ZCRYPTOWRAPPEDKEY
+
+  u8 *ZCRYPTOWRAPPEDKEY_pos = token.buf[5];
+
+  apple_secure_notes->ZCRYPTOWRAPPEDKEY[0] = hex_to_u32 ((const u8 *) &ZCRYPTOWRAPPEDKEY_pos[ 0]);
+  apple_secure_notes->ZCRYPTOWRAPPEDKEY[1] = hex_to_u32 ((const u8 *) &ZCRYPTOWRAPPEDKEY_pos[ 8]);
+  apple_secure_notes->ZCRYPTOWRAPPEDKEY[2] = hex_to_u32 ((const u8 *) &ZCRYPTOWRAPPEDKEY_pos[16]);
+  apple_secure_notes->ZCRYPTOWRAPPEDKEY[3] = hex_to_u32 ((const u8 *) &ZCRYPTOWRAPPEDKEY_pos[24]);
+  apple_secure_notes->ZCRYPTOWRAPPEDKEY[4] = hex_to_u32 ((const u8 *) &ZCRYPTOWRAPPEDKEY_pos[32]);
+  apple_secure_notes->ZCRYPTOWRAPPEDKEY[5] = hex_to_u32 ((const u8 *) &ZCRYPTOWRAPPEDKEY_pos[40]);
+  apple_secure_notes->ZCRYPTOWRAPPEDKEY[6] = hex_to_u32 ((const u8 *) &ZCRYPTOWRAPPEDKEY_pos[48]);
+  apple_secure_notes->ZCRYPTOWRAPPEDKEY[7] = hex_to_u32 ((const u8 *) &ZCRYPTOWRAPPEDKEY_pos[56]);
+  apple_secure_notes->ZCRYPTOWRAPPEDKEY[8] = hex_to_u32 ((const u8 *) &ZCRYPTOWRAPPEDKEY_pos[64]);
+  apple_secure_notes->ZCRYPTOWRAPPEDKEY[9] = hex_to_u32 ((const u8 *) &ZCRYPTOWRAPPEDKEY_pos[72]);
+
+  // fake salt
+
+  salt->salt_buf[0] = apple_secure_notes->ZCRYPTOSALT[0];
+  salt->salt_buf[1] = apple_secure_notes->ZCRYPTOSALT[1];
+  salt->salt_buf[2] = apple_secure_notes->ZCRYPTOSALT[2];
+  salt->salt_buf[3] = apple_secure_notes->ZCRYPTOSALT[3];
+  salt->salt_buf[4] = apple_secure_notes->Z_PK;
+
+  salt->salt_iter = apple_secure_notes->ZCRYPTOITERATIONCOUNT - 1;
+  salt->salt_len  = 20;
+
+  // fake hash
+
+  digest[0] = apple_secure_notes->ZCRYPTOWRAPPEDKEY[0];
+  digest[1] = apple_secure_notes->ZCRYPTOWRAPPEDKEY[1];
+  digest[2] = apple_secure_notes->ZCRYPTOWRAPPEDKEY[2];
+  digest[3] = apple_secure_notes->ZCRYPTOWRAPPEDKEY[3];
+
+  return (PARSER_OK);
 }
 
 /**
@@ -18819,6 +18951,7 @@ const char *strhashtype (const u32 hash_mode)
     case 18000: return HT_18000;
     case 18100: return HT_18100;
     case 18200: return HT_18200;
+    case 18300: return HT_18300;
     case 99999: return HT_99999;
   }
 
@@ -22647,6 +22780,31 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
       byte_swap_32 (krb5asrep->checksum[2]),
       byte_swap_32 (krb5asrep->checksum[3]),
       data);
+  }
+  else if (hash_mode == 18300)
+  {
+    apple_secure_notes_t *apple_secure_notess = (apple_secure_notes_t *) esalts_buf;
+
+    apple_secure_notes_t *apple_secure_notes = &apple_secure_notess[digest_cur];
+
+    snprintf (out_buf, out_len - 1, "%s%u$16$%08x%08x%08x%08x$%u$%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
+      SIGNATURE_FILEVAULT2,
+      apple_secure_notes->Z_PK,
+      byte_swap_32 (apple_secure_notes->ZCRYPTOSALT[0]),
+      byte_swap_32 (apple_secure_notes->ZCRYPTOSALT[1]),
+      byte_swap_32 (apple_secure_notes->ZCRYPTOSALT[2]),
+      byte_swap_32 (apple_secure_notes->ZCRYPTOSALT[3]),
+      apple_secure_notes->ZCRYPTOITERATIONCOUNT,
+      byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[0]),
+      byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[1]),
+      byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[2]),
+      byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[3]),
+      byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[4]),
+      byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[5]),
+      byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[6]),
+      byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[7]),
+      byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[8]),
+      byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[9]));
   }
   else if (hash_mode == 99999)
   {
@@ -28098,6 +28256,23 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
+    case 18300:  hashconfig->hash_type      = HASH_TYPE_APPLE_SECURE_NOTES;
+                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
+                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
+                 hashconfig->kern_type      = KERN_TYPE_APFS;
+                 hashconfig->dgst_size      = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
+                 hashconfig->parse_func     = apfs_parse_hash;
+                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
+                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
+                 hashconfig->dgst_pos0      = 0;
+                 hashconfig->dgst_pos1      = 1;
+                 hashconfig->dgst_pos2      = 2;
+                 hashconfig->dgst_pos3      = 3;
+                 hashconfig->st_hash        = ST_HASH_18300;
+                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
+                 break;
+
     case 99999:  hashconfig->hash_type      = HASH_TYPE_PLAINTEXT;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -28327,6 +28502,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 16801: hashconfig->esalt_size = sizeof (wpa_pmkid_t);          break;
     case 16900: hashconfig->esalt_size = sizeof (ansible_vault_t);      break;
     case 18200: hashconfig->esalt_size = sizeof (krb5asrep_t);          break;
+    case 18300: hashconfig->esalt_size = sizeof (apple_secure_notes_t); break;
   }
 
   // hook_salt_size
@@ -28443,6 +28619,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 16800: hashconfig->tmp_size = sizeof (wpa_pbkdf2_tmp_t);         break;
     case 16801: hashconfig->tmp_size = sizeof (wpa_pmk_tmp_t);            break;
     case 16900: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
+    case 18300: hashconfig->tmp_size = sizeof (apple_secure_notes_tmp_t); break;
   };
 
   // hook_size
@@ -29192,6 +29369,8 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                   break;
       case 16900: salt->salt_len = 32;
                   break;
+      case 18300: salt->salt_len = 16;
+                  break;
     }
 
     // special esalt handling
@@ -29486,6 +29665,8 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
     case 16801:  salt->salt_iter  = ROUNDS_WPA_PMK;
                  break;
     case 16900:  salt->salt_iter  = ROUNDS_ANSIBLE_VAULT - 1;
+                 break;
+    case 18300:  salt->salt_iter  = ROUNDS_APPLE_SECURE_NOTES - 1;
                  break;
   }
 }
