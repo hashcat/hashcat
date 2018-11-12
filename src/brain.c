@@ -2493,7 +2493,7 @@ void *brain_server_handle_client (void *p)
 
           brain_server_db_attack->short_buf[idx].offset     = 0;
           brain_server_db_attack->short_buf[idx].length     = 0;
-          brain_server_db_attack->short_buf[idx].client_idx = 0;
+          brain_server_db_attack->short_buf[idx].client_idx = -1;
 
           new_attacks++;
         }
