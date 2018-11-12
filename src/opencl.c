@@ -2794,9 +2794,10 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
             total_msec += device_param->speed_msec[speed_pos];
           }
 
-          if (user_options->slow_candidates == true)
+          if ((total_msec > 4000) || (device_param->speed_pos == SPEED_CACHE - 1))
           {
-            if ((total_msec > 4000) || (device_param->speed_pos == SPEED_CACHE - 1))
+
+            if (user_options->slow_candidates == true)
             {
               const u32 speed_pos = device_param->speed_pos;
 
@@ -2805,24 +2806,13 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
                 device_param->speed_cnt[0]  = device_param->speed_cnt[speed_pos - 1];
                 device_param->speed_msec[0] = device_param->speed_msec[speed_pos - 1];
               }
-
-              device_param->speed_pos = 1;
-
-              device_param->speed_only_finish = true;
-
-              break;
             }
-          }
-          else
-          {
-            // it's unclear if 4s is enough to turn on boost mode for all opencl device
 
-            if ((total_msec > 4000) || (device_param->speed_pos == SPEED_CACHE - 1))
-            {
-              device_param->speed_only_finish = true;
+            device_param->speed_pos = 1;
 
-              break;
-            }
+            device_param->speed_only_finish = true;
+
+            break;
           }
         }
       }
