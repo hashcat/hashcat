@@ -22,13 +22,13 @@
 - Added hash-mode 13772 (VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 1024 bit)
 - Added hash-mode 13773 (VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 1536 bit)
 - Added hash-mode 18200 (Kerberos 5 AS-REP etype 23)
-- Added hash-mode 18300 (Apple File System)
+- Added hash-mode 18300 (Apple File System (APFS))
 
 ##
 ## Improvements
 ##
 
-- xxHash: Added support for using the version provided by the OS/distribution (instead of the submodule version)
+- xxHash: Added support for using the version provided by the OS/distribution
 
 ##
 ## Bugs
