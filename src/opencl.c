@@ -2787,20 +2787,42 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
         }
         else
         {
-          double total = device_param->speed_msec[0];
+          double total_msec = device_param->speed_msec[0];
 
           for (u32 speed_pos = 1; speed_pos < device_param->speed_pos; speed_pos++)
           {
-            total += device_param->speed_msec[speed_pos];
+            total_msec += device_param->speed_msec[speed_pos];
           }
 
-          // it's unclear if 4s is enough to turn on boost mode for all opencl device
-
-          if ((total > 4000) || (device_param->speed_pos == SPEED_CACHE - 1))
+          if (user_options->slow_candidates == true)
           {
-            device_param->speed_only_finish = true;
+            if ((total_msec > 4000) || (device_param->speed_pos == SPEED_CACHE - 1))
+            {
+              const u32 speed_pos = device_param->speed_pos;
 
-            break;
+              if (speed_pos)
+              {
+                device_param->speed_cnt[0]  = device_param->speed_cnt[speed_pos - 1];
+                device_param->speed_msec[0] = device_param->speed_msec[speed_pos - 1];
+              }
+
+              device_param->speed_pos = 1;
+
+              device_param->speed_only_finish = true;
+
+              break;
+            }
+          }
+          else
+          {
+            // it's unclear if 4s is enough to turn on boost mode for all opencl device
+
+            if ((total_msec > 4000) || (device_param->speed_pos == SPEED_CACHE - 1))
+            {
+              device_param->speed_only_finish = true;
+
+              break;
+            }
           }
         }
       }
@@ -2833,14 +2855,14 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
   if (user_options->speed_only == true)
   {
-    double total = device_param->speed_msec[0];
+    double total_msec = device_param->speed_msec[0];
 
     for (u32 speed_pos = 1; speed_pos < device_param->speed_pos; speed_pos++)
     {
-      total += device_param->speed_msec[speed_pos];
+      total_msec += device_param->speed_msec[speed_pos];
     }
 
-    device_param->outerloop_msec = total * hashes->salts_cnt * device_param->outerloop_multi;
+    device_param->outerloop_msec = total_msec * hashes->salts_cnt * device_param->outerloop_multi;
   }
 
   return 0;

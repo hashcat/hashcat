@@ -44,6 +44,7 @@
 - Fixed missing call to WSAStartup() and client indexing in order to start the brain server on Windows
 - Fixed out-of-bounds write in short-term memory of the brain-server
 - Fixed status output of progress value in case -S and -l used in combination
+- Fixed output of --speed-only and --progress-only in case a fast hash is used in combination with --slow-candidates
 
 ##
 ## Technical
