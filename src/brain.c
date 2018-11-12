@@ -586,7 +586,7 @@ u32 brain_auth_challenge (void)
     }
     else
     {
-      brain_logging (stderr, -1, "CryptGenRandom: %d\n", (int) GetLastError ());
+      brain_logging (stderr, 0, "CryptGenRandom: %d\n", (int) GetLastError ());
 
       return val;
     }
@@ -595,7 +595,7 @@ u32 brain_auth_challenge (void)
   }
   else
   {
-    brain_logging (stderr, -1, "CryptAcquireContext: %d\n", (int) GetLastError ());
+    brain_logging (stderr, 0, "CryptAcquireContext: %d\n", (int) GetLastError ());
 
     return val;
   }
@@ -608,14 +608,14 @@ u32 brain_auth_challenge (void)
 
   if (fd == NULL)
   {
-    brain_logging (stderr, -1, "%s: %s\n", urandom, strerror (errno));
+    brain_logging (stderr, 0, "%s: %s\n", urandom, strerror (errno));
 
     return val;
   }
 
   if (fread (&val, sizeof (val), 1, fd) != 1)
   {
-    brain_logging (stderr, -1, "%s: %s\n", urandom, strerror (errno));
+    brain_logging (stderr, 0, "%s: %s\n", urandom, strerror (errno));
 
     fclose (fd);
 
@@ -654,7 +654,7 @@ int brain_connect (int sockfd, const struct sockaddr *addr, socklen_t addrlen, c
                    sizeof (msg),        // size of msgbuf, bytes
                    NULL);               // va_list of arguments
 
-    brain_logging (stderr, -1, "connect: %s\n", msg);
+    brain_logging (stderr, 0, "connect: %s\n", msg);
 
     return -1;
   }
@@ -665,7 +665,7 @@ int brain_connect (int sockfd, const struct sockaddr *addr, socklen_t addrlen, c
 
   if (fcntl (sockfd, F_SETFL, old_mode | O_NONBLOCK) == -1)
   {
-    brain_logging (stderr, -1, "fcntl: %s\n", strerror (errno));
+    brain_logging (stderr, 0, "fcntl: %s\n", strerror (errno));
 
     return -1;
   }
@@ -678,7 +678,7 @@ int brain_connect (int sockfd, const struct sockaddr *addr, socklen_t addrlen, c
 
   if (rc_select == 0)
   {
-    brain_logging (stderr, -1, "connect: timeout\n");
+    brain_logging (stderr, 0, "connect: timeout\n");
 
     return -1;
   }
@@ -689,21 +689,21 @@ int brain_connect (int sockfd, const struct sockaddr *addr, socklen_t addrlen, c
 
   if (getsockopt (sockfd, SOL_SOCKET, SO_ERROR, &so_error, &len) == -1)
   {
-    brain_logging (stderr, -1, "getsockopt: %s\n", strerror (errno));
+    brain_logging (stderr, 0, "getsockopt: %s\n", strerror (errno));
 
     return -1;
   }
 
   if (fcntl (sockfd, F_SETFL, old_mode) == -1)
   {
-    brain_logging (stderr, -1, "fcntl: %s\n", strerror (errno));
+    brain_logging (stderr, 0, "fcntl: %s\n", strerror (errno));
 
     return -1;
   }
 
   if (so_error != 0)
   {
-    brain_logging (stderr, -1, "connect: %s\n", strerror (so_error));
+    brain_logging (stderr, 0, "connect: %s\n", strerror (so_error));
 
     return -1;
   }
@@ -879,7 +879,7 @@ bool brain_recv_all (int sockfd, void *buf, size_t len, int flags, hc_device_par
 
 bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *status_ctx, const char *host, const int port, const char *password, u32 brain_session, u32 brain_attack, i64 passwords_max, u64 *highest)
 {
-  device_param->brain_link_client_fd   = -1;
+  device_param->brain_link_client_fd   = 0;
   device_param->brain_link_recv_bytes  = 0;
   device_param->brain_link_send_bytes  = 0;
   device_param->brain_link_recv_active = false;
@@ -892,7 +892,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_link_client_fd == -1)
   {
-    brain_logging (stderr, -1, "socket: %s\n", strerror (errno));
+    brain_logging (stderr, 0, "socket: %s\n", strerror (errno));
 
     return false;
   }
@@ -902,7 +902,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (setsockopt (brain_link_client_fd, SOL_TCP, TCP_NODELAY, &one, sizeof (one)) == -1)
   {
-    brain_logging (stderr, -1, "setsockopt: %s\n", strerror (errno));
+    brain_logging (stderr, 0, "setsockopt: %s\n", strerror (errno));
 
     close (brain_link_client_fd);
 
@@ -949,7 +949,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
   }
   else
   {
-    brain_logging (stderr, -1, "%s: %s\n", host_real, gai_strerror (rc_getaddrinfo));
+    brain_logging (stderr, 0, "%s: %s\n", host_real, gai_strerror (rc_getaddrinfo));
 
     close (brain_link_client_fd);
 
@@ -969,7 +969,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_send (brain_link_client_fd, &brain_link_version, sizeof (brain_link_version), 0, NULL, NULL) == false)
   {
-    brain_logging (stderr, -1, "brain_send: %s\n", strerror (errno));
+    brain_logging (stderr, 0, "brain_send: %s\n", strerror (errno));
 
     close (brain_link_client_fd);
 
@@ -980,7 +980,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_recv (brain_link_client_fd, &brain_link_version_ok, sizeof (brain_link_version_ok), 0, NULL, NULL) == false)
   {
-    brain_logging (stderr, -1, "brain_recv: %s\n", strerror (errno));
+    brain_logging (stderr, 0, "brain_recv: %s\n", strerror (errno));
 
     close (brain_link_client_fd);
 
@@ -989,7 +989,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_link_version_ok == 0)
   {
-    brain_logging (stderr, -1, "Invalid brain server version\n");
+    brain_logging (stderr, 0, "Invalid brain server version\n");
 
     close (brain_link_client_fd);
 
@@ -1000,7 +1000,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_recv (brain_link_client_fd, &challenge, sizeof (challenge), 0, NULL, NULL) == false)
   {
-    brain_logging (stderr, -1, "brain_recv: %s\n", strerror (errno));
+    brain_logging (stderr, 0, "brain_recv: %s\n", strerror (errno));
 
     close (brain_link_client_fd);
 
@@ -1011,7 +1011,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_send (brain_link_client_fd, &response, sizeof (response), 0, NULL, NULL) == false)
   {
-    brain_logging (stderr, -1, "brain_send: %s\n", strerror (errno));
+    brain_logging (stderr, 0, "brain_send: %s\n", strerror (errno));
 
     close (brain_link_client_fd);
 
@@ -1022,7 +1022,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_recv (brain_link_client_fd, &password_ok, sizeof (password_ok), 0, NULL, NULL) == false)
   {
-    brain_logging (stderr, -1, "brain_recv: %s\n", strerror (errno));
+    brain_logging (stderr, 0, "brain_recv: %s\n", strerror (errno));
 
     close (brain_link_client_fd);
 
@@ -1031,7 +1031,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (password_ok == 0)
   {
-    brain_logging (stderr, -1, "Invalid brain server password\n");
+    brain_logging (stderr, 0, "Invalid brain server password\n");
 
     close (brain_link_client_fd);
 
@@ -1040,7 +1040,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_send (brain_link_client_fd, &brain_session, sizeof (brain_session), SEND_FLAGS, device_param, status_ctx) == false)
   {
-    brain_logging (stderr, -1, "brain_send: %s\n", strerror (errno));
+    brain_logging (stderr, 0, "brain_send: %s\n", strerror (errno));
 
     close (brain_link_client_fd);
 
@@ -1049,7 +1049,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_send (brain_link_client_fd, &brain_attack, sizeof (brain_attack), SEND_FLAGS, device_param, status_ctx) == false)
   {
-    brain_logging (stderr, -1, "brain_send: %s\n", strerror (errno));
+    brain_logging (stderr, 0, "brain_send: %s\n", strerror (errno));
 
     close (brain_link_client_fd);
 
@@ -1058,7 +1058,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_send (brain_link_client_fd, &passwords_max, sizeof (passwords_max), SEND_FLAGS, device_param, status_ctx) == false)
   {
-    brain_logging (stderr, -1, "brain_send: %s\n", strerror (errno));
+    brain_logging (stderr, 0, "brain_send: %s\n", strerror (errno));
 
     close (brain_link_client_fd);
 
@@ -1067,7 +1067,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_recv (brain_link_client_fd, highest, sizeof (u64), 0, NULL, NULL) == false)
   {
-    brain_logging (stderr, -1, "brain_recv: %s\n", strerror (errno));
+    brain_logging (stderr, 0, "brain_recv: %s\n", strerror (errno));
 
     close (brain_link_client_fd);
 
@@ -1079,7 +1079,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
 void brain_client_disconnect (hc_device_param_t *device_param)
 {
-  if (device_param->brain_link_client_fd >= 3)
+  if (device_param->brain_link_client_fd > 2)
   {
     close (device_param->brain_link_client_fd);
   }
@@ -1497,7 +1497,7 @@ bool brain_server_read_hash_dumps (brain_server_dbs_t *brain_server_dbs, const c
 
   if (chdir (path) == -1)
   {
-    brain_logging (stderr, -1, "%s: %s\n", path, strerror (errno));
+    brain_logging (stderr, 0, "%s: %s\n", path, strerror (errno));
 
     return false;
   }
@@ -1506,7 +1506,7 @@ bool brain_server_read_hash_dumps (brain_server_dbs_t *brain_server_dbs, const c
 
   if (dirp == NULL)
   {
-    brain_logging (stderr, -1, "%s: %s\n", path, strerror (errno));
+    brain_logging (stderr, 0, "%s: %s\n", path, strerror (errno));
 
     return false;
   }
@@ -1585,7 +1585,7 @@ bool brain_server_read_hash_dump (brain_server_db_hash_t *brain_server_db_hash, 
 
   if (stat (file, &sb) == -1)
   {
-    brain_logging (stderr, -1, "%s: %s\n", file, strerror (errno));
+    brain_logging (stderr, 0, "%s: %s\n", file, strerror (errno));
 
     return false;
   }
@@ -1594,7 +1594,7 @@ bool brain_server_read_hash_dump (brain_server_db_hash_t *brain_server_db_hash, 
 
   if (fd == NULL)
   {
-    brain_logging (stderr, -1, "%s: %s\n", file, strerror (errno));
+    brain_logging (stderr, 0, "%s: %s\n", file, strerror (errno));
 
     return false;
   }
@@ -1604,7 +1604,7 @@ bool brain_server_read_hash_dump (brain_server_db_hash_t *brain_server_db_hash, 
 
     if (brain_server_db_hash_realloc (brain_server_db_hash, temp_cnt) == false)
     {
-      brain_logging (stderr, -1, "%s\n", MSG_ENOMEM);
+      brain_logging (stderr, 0, "%s\n", MSG_ENOMEM);
 
       fclose (fd);
 
@@ -1615,7 +1615,7 @@ bool brain_server_read_hash_dump (brain_server_db_hash_t *brain_server_db_hash, 
 
     if (nread != (size_t) temp_cnt)
     {
-      brain_logging (stderr, -1, "%s: only %" PRIu64 " bytes read\n", file, (u64) nread * sizeof (brain_server_hash_long_t));
+      brain_logging (stderr, 0, "%s: only %" PRIu64 " bytes read\n", file, (u64) nread * sizeof (brain_server_hash_long_t));
 
       fclose (fd);
 
@@ -1631,7 +1631,7 @@ bool brain_server_read_hash_dump (brain_server_db_hash_t *brain_server_db_hash, 
 
   const double ms = hc_timer_get (timer_dump);
 
-  brain_logging (stdout, -1, "Read %" PRIu64 " bytes from session 0x%08x in %.2f ms\n", (u64) sb.st_size, brain_server_db_hash->brain_session, ms);
+  brain_logging (stdout, 0, "Read %" PRIu64 " bytes from session 0x%08x in %.2f ms\n", (u64) sb.st_size, brain_server_db_hash->brain_session, ms);
 
   return true;
 }
@@ -1650,7 +1650,7 @@ bool brain_server_write_hash_dump (brain_server_db_hash_t *brain_server_db_hash,
 
   if (fd == NULL)
   {
-    brain_logging (stderr, -1, "%s: %s\n", file, strerror (errno));
+    brain_logging (stderr, 0, "%s: %s\n", file, strerror (errno));
 
     return false;
   }
@@ -1660,7 +1660,7 @@ bool brain_server_write_hash_dump (brain_server_db_hash_t *brain_server_db_hash,
 
     if (nwrite != (size_t) brain_server_db_hash->long_cnt)
     {
-      brain_logging (stderr, -1, "%s: only %" PRIu64 " bytes written\n", file, (u64) nwrite * sizeof (brain_server_hash_long_t));
+      brain_logging (stderr, 0, "%s: only %" PRIu64 " bytes written\n", file, (u64) nwrite * sizeof (brain_server_hash_long_t));
 
       fclose (fd);
 
@@ -1680,12 +1680,12 @@ bool brain_server_write_hash_dump (brain_server_db_hash_t *brain_server_db_hash,
 
   if (stat (file, &sb) == -1)
   {
-    brain_logging (stderr, -1, "%s: %s\n", file, strerror (errno));
+    brain_logging (stderr, 0, "%s: %s\n", file, strerror (errno));
 
     return false;
   }
 
-  brain_logging (stdout, -1, "Wrote %" PRIu64 " bytes from session 0x%08x in %.2f ms\n", (u64) sb.st_size, brain_server_db_hash->brain_session, ms);
+  brain_logging (stdout, 0, "Wrote %" PRIu64 " bytes from session 0x%08x in %.2f ms\n", (u64) sb.st_size, brain_server_db_hash->brain_session, ms);
 
   return true;
 }
@@ -1696,7 +1696,7 @@ bool brain_server_read_attack_dumps (brain_server_dbs_t *brain_server_dbs, const
 
   if (chdir (path) == -1)
   {
-    brain_logging (stderr, -1, "%s: %s\n", path, strerror (errno));
+    brain_logging (stderr, 0, "%s: %s\n", path, strerror (errno));
 
     return false;
   }
@@ -1705,7 +1705,7 @@ bool brain_server_read_attack_dumps (brain_server_dbs_t *brain_server_dbs, const
 
   if (dirp == NULL)
   {
-    brain_logging (stderr, -1, "%s: %s\n", path, strerror (errno));
+    brain_logging (stderr, 0, "%s: %s\n", path, strerror (errno));
 
     return false;
   }
@@ -1784,7 +1784,7 @@ bool brain_server_read_attack_dump (brain_server_db_attack_t *brain_server_db_at
 
   if (stat (file, &sb) == -1)
   {
-    brain_logging (stderr, -1, "%s: %s\n", file, strerror (errno));
+    brain_logging (stderr, 0, "%s: %s\n", file, strerror (errno));
 
     return false;
   }
@@ -1793,7 +1793,7 @@ bool brain_server_read_attack_dump (brain_server_db_attack_t *brain_server_db_at
 
   if (fd == NULL)
   {
-    brain_logging (stderr, -1, "%s: %s\n", file, strerror (errno));
+    brain_logging (stderr, 0, "%s: %s\n", file, strerror (errno));
 
     return false;
   }
@@ -1803,7 +1803,7 @@ bool brain_server_read_attack_dump (brain_server_db_attack_t *brain_server_db_at
 
     if (brain_server_db_attack_realloc (brain_server_db_attack, temp_cnt, 0) == false)
     {
-      brain_logging (stderr, -1, "%s\n", MSG_ENOMEM);
+      brain_logging (stderr, 0, "%s\n", MSG_ENOMEM);
 
       fclose (fd);
 
@@ -1814,7 +1814,7 @@ bool brain_server_read_attack_dump (brain_server_db_attack_t *brain_server_db_at
 
     if (nread != (size_t) temp_cnt)
     {
-      brain_logging (stderr, -1, "%s: only %" PRIu64 " bytes read\n", file, (u64) nread * sizeof (brain_server_attack_long_t));
+      brain_logging (stderr, 0, "%s: only %" PRIu64 " bytes read\n", file, (u64) nread * sizeof (brain_server_attack_long_t));
 
       fclose (fd);
 
@@ -1830,7 +1830,7 @@ bool brain_server_read_attack_dump (brain_server_db_attack_t *brain_server_db_at
 
   const double ms = hc_timer_get (timer_dump);
 
-  brain_logging (stdout, -1, "Read %" PRIu64 " bytes from attack 0x%08x in %.2f ms\n", (u64) sb.st_size, brain_server_db_attack->brain_attack, ms);
+  brain_logging (stdout, 0, "Read %" PRIu64 " bytes from attack 0x%08x in %.2f ms\n", (u64) sb.st_size, brain_server_db_attack->brain_attack, ms);
 
   return true;
 }
@@ -1849,7 +1849,7 @@ bool brain_server_write_attack_dump (brain_server_db_attack_t *brain_server_db_a
 
   if (fd == NULL)
   {
-    brain_logging (stderr, -1, "%s: %s\n", file, strerror (errno));
+    brain_logging (stderr, 0, "%s: %s\n", file, strerror (errno));
 
     return false;
   }
@@ -1861,7 +1861,7 @@ bool brain_server_write_attack_dump (brain_server_db_attack_t *brain_server_db_a
 
     if (nwrite != (size_t) brain_server_db_attack->long_cnt)
     {
-      brain_logging (stderr, -1, "%s: only %" PRIu64 " bytes written\n", file, (u64) nwrite * sizeof (brain_server_attack_long_t));
+      brain_logging (stderr, 0, "%s: only %" PRIu64 " bytes written\n", file, (u64) nwrite * sizeof (brain_server_attack_long_t));
 
       fclose (fd);
 
@@ -1881,19 +1881,19 @@ bool brain_server_write_attack_dump (brain_server_db_attack_t *brain_server_db_a
 
   if (stat (file, &sb) == -1)
   {
-    brain_logging (stderr, -1, "%s: %s\n", file, strerror (errno));
+    brain_logging (stderr, 0, "%s: %s\n", file, strerror (errno));
 
     return false;
   }
 
-  brain_logging (stdout, -1, "Wrote %" PRIu64 " bytes from attack 0x%08x in %.2f ms\n", (u64) sb.st_size, brain_server_db_attack->brain_attack, ms);
+  brain_logging (stdout, 0, "Wrote %" PRIu64 " bytes from attack 0x%08x in %.2f ms\n", (u64) sb.st_size, brain_server_db_attack->brain_attack, ms);
 
   return true;
 }
 
 int brain_server_get_client_idx (brain_server_dbs_t *brain_server_dbs)
 {
-  for (int i = 0; i < BRAIN_SERVER_CLIENTS_MAX; i++)
+  for (int i = 1; i < BRAIN_SERVER_CLIENTS_MAX; i++)
   {
     if (brain_server_dbs->client_slots[i] == 0)
     {
@@ -2208,7 +2208,7 @@ void *brain_server_handle_client (void *p)
   {
     if (brain_server_dbs->hash_cnt >= BRAIN_SERVER_SESSIONS_MAX)
     {
-      brain_logging (stderr, -1, "too many sessions\n");
+      brain_logging (stderr, 0, "too many sessions\n");
 
       brain_server_dbs->client_slots[client_idx] = 0;
 
@@ -2242,7 +2242,7 @@ void *brain_server_handle_client (void *p)
   {
     if (brain_server_dbs->attack_cnt >= BRAIN_SERVER_ATTACKS_MAX)
     {
-      brain_logging (stderr, -1, "too many attacks\n");
+      brain_logging (stderr, 0, "too many attacks\n");
 
       brain_server_dbs->client_slots[client_idx] = 0;
 
@@ -2283,7 +2283,7 @@ void *brain_server_handle_client (void *p)
 
   if (recv_buf == NULL)
   {
-    brain_logging (stderr, -1, "%s\n", MSG_ENOMEM);
+    brain_logging (stderr, 0, "%s\n", MSG_ENOMEM);
 
     return NULL;
   }
@@ -2296,7 +2296,7 @@ void *brain_server_handle_client (void *p)
 
   if (send_buf == NULL)
   {
-    brain_logging (stderr, -1, "%s\n", MSG_ENOMEM);
+    brain_logging (stderr, 0, "%s\n", MSG_ENOMEM);
 
     brain_server_dbs->client_slots[client_idx] = 0;
 
@@ -2311,7 +2311,7 @@ void *brain_server_handle_client (void *p)
 
   if (temp_buf == NULL)
   {
-    brain_logging (stderr, -1, "%s\n", MSG_ENOMEM);
+    brain_logging (stderr, 0, "%s\n", MSG_ENOMEM);
 
     brain_server_dbs->client_slots[client_idx] = 0;
 
@@ -2329,7 +2329,7 @@ void *brain_server_handle_client (void *p)
 
   if (brain_server_db_short->short_buf == NULL)
   {
-    brain_logging (stderr, -1, "%s\n", MSG_ENOMEM);
+    brain_logging (stderr, 0, "%s\n", MSG_ENOMEM);
 
     brain_server_dbs->client_slots[client_idx] = 0;
 
@@ -2488,12 +2488,12 @@ void *brain_server_handle_client (void *p)
           }
           else
           {
-            brain_logging (stderr, -1, "%s\n", MSG_ENOMEM);
+            brain_logging (stderr, 0, "%s\n", MSG_ENOMEM);
           }
 
           brain_server_db_attack->short_buf[idx].offset     = 0;
           brain_server_db_attack->short_buf[idx].length     = 0;
-          brain_server_db_attack->short_buf[idx].client_idx = -1;
+          brain_server_db_attack->short_buf[idx].client_idx = 0;
 
           new_attacks++;
         }
@@ -2612,7 +2612,7 @@ void *brain_server_handle_client (void *p)
         }
         else
         {
-          brain_logging (stderr, -1, "%s\n", MSG_ENOMEM);
+          brain_logging (stderr, 0, "%s\n", MSG_ENOMEM);
         }
 
         brain_server_db_hash->write_hashes = true;
@@ -2915,7 +2915,7 @@ void *brain_server_handle_client (void *p)
     {
       brain_server_db_attack->short_buf[idx].offset     = 0;
       brain_server_db_attack->short_buf[idx].length     = 0;
-      brain_server_db_attack->short_buf[idx].client_idx = -1;
+      brain_server_db_attack->short_buf[idx].client_idx = 0;
     }
   }
 
@@ -2974,7 +2974,7 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
 
     snprintf (auth_password, BRAIN_PASSWORD_SZ - 1, "%08x%08x", brain_auth_challenge (), brain_auth_challenge ());
 
-    brain_logging (stdout, -1, "Generated authentication password: %s\n", auth_password);
+    brain_logging (stdout, 0, "Generated authentication password: %s\n", auth_password);
   }
   else
   {
@@ -2987,7 +2987,7 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
 
   if (server_fd == -1)
   {
-    brain_logging (stderr, -1, "socket: %s\n", strerror (errno));
+    brain_logging (stderr, 0, "socket: %s\n", strerror (errno));
 
     return -1;
   }
@@ -2997,14 +2997,14 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
 
   if (setsockopt (server_fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof (one)) == -1)
   {
-    brain_logging (stderr, -1, "setsockopt: %s\n", strerror (errno));
+    brain_logging (stderr, 0, "setsockopt: %s\n", strerror (errno));
 
     return -1;
   }
 
   if (setsockopt (server_fd, SOL_TCP, TCP_NODELAY, &one, sizeof (one)) == -1)
   {
-    brain_logging (stderr, -1, "setsockopt: %s\n", strerror (errno));
+    brain_logging (stderr, 0, "setsockopt: %s\n", strerror (errno));
 
     return -1;
   }
@@ -3045,7 +3045,7 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
     }
     else
     {
-      brain_logging (stderr, -1, "%s: %s\n", listen_host, gai_strerror (rc_getaddrinfo));
+      brain_logging (stderr, 0, "%s: %s\n", listen_host, gai_strerror (rc_getaddrinfo));
 
       return -1;
     }
@@ -3053,14 +3053,14 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
 
   if (bind (server_fd, (struct sockaddr *) &sa, salen) == -1)
   {
-    brain_logging (stderr, -1, "bind: %s\n", strerror (errno));
+    brain_logging (stderr, 0, "bind: %s\n", strerror (errno));
 
     return -1;
   }
 
   if (listen (server_fd, 5) == -1)
   {
-    brain_logging (stderr, -1, "listen: %s\n", strerror (errno));
+    brain_logging (stderr, 0, "listen: %s\n", strerror (errno));
 
     return -1;
   }
@@ -3069,7 +3069,7 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
 
   if (brain_server_dbs == NULL)
   {
-    brain_logging (stderr, -1, "%s\n", MSG_ENOMEM);
+    brain_logging (stderr, 0, "%s\n", MSG_ENOMEM);
 
     return -1;
   }
@@ -3081,7 +3081,7 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
 
   if (brain_server_dbs->hash_buf == NULL)
   {
-    brain_logging (stderr, -1, "%s\n", MSG_ENOMEM);
+    brain_logging (stderr, 0, "%s\n", MSG_ENOMEM);
 
     return -1;
   }
@@ -3096,7 +3096,7 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
 
   if (brain_server_dbs->attack_buf == NULL)
   {
-    brain_logging (stderr, -1, "%s\n", MSG_ENOMEM);
+    brain_logging (stderr, 0, "%s\n", MSG_ENOMEM);
 
     return -1;
   }
@@ -3110,7 +3110,7 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
 
   if (brain_server_dbs->client_slots == NULL)
   {
-    brain_logging (stderr, -1, "%s\n", MSG_ENOMEM);
+    brain_logging (stderr, 0, "%s\n", MSG_ENOMEM);
 
     return -1;
   }
@@ -3126,7 +3126,7 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
 
     if (sessions == NULL)
     {
-      brain_logging (stderr, -1, "%s\n", MSG_ENOMEM);
+      brain_logging (stderr, 0, "%s\n", MSG_ENOMEM);
 
       return -1;
     }
@@ -3154,7 +3154,7 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
 
   if (brain_server_client_options == NULL)
   {
-    brain_logging (stderr, -1, "%s\n", MSG_ENOMEM);
+    brain_logging (stderr, 0, "%s\n", MSG_ENOMEM);
 
     return -1;
   }
@@ -3172,11 +3172,11 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
 
   // ready to serve
 
-  brain_logging (stdout, -1, "Brain server started\n");
+  brain_logging (stdout, 0, "Brain server started\n");
 
   if (signal (SIGINT, brain_server_handle_signal) == SIG_ERR)
   {
-    brain_logging (stderr, -1, "signal: %s\n", strerror (errno));
+    brain_logging (stderr, 0, "signal: %s\n", strerror (errno));
 
     return -1;
   }
@@ -3214,7 +3214,7 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
 
     const int client_fd = accept (server_fd, (struct sockaddr *) &ca, (socklen_t *) &calen);
 
-    brain_logging (stdout, -1, "Connection from %s:%d\n", inet_ntoa (ca.sin_addr), ntohs (ca.sin_port));
+    brain_logging (stdout, 0, "Connection from %s:%d\n", inet_ntoa (ca.sin_addr), ntohs (ca.sin_port));
 
     const int client_idx = brain_server_get_client_idx (brain_server_dbs);
 
@@ -3235,7 +3235,7 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
 
     if (client_thr == 0)
     {
-      brain_logging (stderr, -1, "pthread_create: %s\n", strerror (errno));
+      brain_logging (stderr, 0, "pthread_create: %s\n", strerror (errno));
 
       close (client_fd);
 
@@ -3245,7 +3245,7 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
     hc_thread_detach (client_thr);
   }
 
-  brain_logging (stdout, -1, "Brain server stopping\n");
+  brain_logging (stdout, 0, "Brain server stopping\n");
 
   hc_thread_wait (1, &dump_thr);
 
