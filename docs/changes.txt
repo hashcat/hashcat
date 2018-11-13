@@ -4,9 +4,9 @@
 ## Features
 ##
 
-- Added support to use --stdout in brain-client mode
+- Added support for using --stdout in brain-client mode
 - Added new option --stdin-timeout-abort, to set how long hashcat should wait for stdin input before aborting
-- Added new option --kernel-threads to manually override the automatically calculated number of threads
+- Added new option --kernel-threads to manually override the automatically-calculated number of threads
 
 ##
 ## Algorithms
@@ -22,40 +22,40 @@
 - Added hash-mode 13772 (VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 1024 bit)
 - Added hash-mode 13773 (VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 1536 bit)
 - Added hash-mode 18200 (Kerberos 5 AS-REP etype 23)
-- Added hash-mode 18300 (Apple File System)
+- Added hash-mode 18300 (Apple File System (APFS))
 
 ##
 ## Improvements
 ##
 
-- xxHash: Added support for using system-wide installation
+- xxHash: Added support for using the version provided by the OS/distribution
 
 ##
 ## Bugs
 ##
 
 - Fixed automated calculation of brain-session when not using all hashes in the hashlist
-- Fixed calculation of brain-attack if a given wordlist has the size zero
+- Fixed calculation of brain-attack if a given wordlist has zero size
 - Fixed checking the length of the last token in a hash if it was given the attribute TOKEN_ATTR_FIXED_LENGTH
 - Fixed endianness and invalid separator character in outfile format for hash-mode 16801 (WPA-PMKID-PMK)
-- Fixed ignoring --brain-client-features configuration when brain-server has attack positions information from a previous run
-- Fixed invalid warnings about throttling in case --hwmon-disable was used
+- Fixed ignoring --brain-client-features configuration when brain server has attack-position information from a previous run
+- Fixed invalid warnings about throttling when --hwmon-disable was used
 - Fixed missing call to WSACleanup() to cleanly shutdown windows sockets system
 - Fixed missing call to WSAStartup() and client indexing in order to start the brain server on Windows
-- Fixed out-of-bounds write in short-term memory of the brain-server
-- Fixed status output of progress value in case -S and -l used in combination
-- Fixed output of --speed-only and --progress-only in case a fast hash is used in combination with --slow-candidates
+- Fixed out-of-bounds write in short-term memory of the brain server
+- Fixed status output of progress value when -S and -l are used in combination
+- Fixed output of --speed-only and --progress-only when fast hashes are used in combination with --slow-candidates
 
 ##
 ## Technical
 ##
 
 - Brain: Set --brain-client-features default from 3 to 2
-- Depencies: Added xxHash and OpenCL-Headers to deps/ in order to allow building hashcat from GitHub source release package
-- Depencies: Removed gitmodules xxHash and OpenCL-Headers
+- Dependencies: Added xxHash and OpenCL-Headers to deps/ in order to allow building hashcat from GitHub source release package
+- Dependencies: Removed gitmodules xxHash and OpenCL-Headers
 - Hardware Monitor: Renamed --gpu-temp-abort to --hwmon-temp-abort
 - Hardware Monitor: Renamed --gpu-temp-disable to --hwmon-disable
-- Memory: Limit maximum host memory to allocate depending on bitness
+- Memory: Limit maximum host memory allocation depending on bitness
 - Memory: Reduced default maximum bitmap size from 24 to 18 and give a notice to use --bitmap-max to restore
 - Startup: Show OpenCL runtime initialization message (per device)
 - Tests: Added hash-mode 11700 (Streebog-256)

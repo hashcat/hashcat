@@ -559,7 +559,7 @@ static const char *HT_17900 = "Keccak-384";
 static const char *HT_18000 = "Keccak-512";
 static const char *HT_18100 = "TOTP (HMAC-SHA1)";
 static const char *HT_18200 = "Kerberos 5 AS-REP etype 23";
-static const char *HT_18300 = "Apple File System";
+static const char *HT_18300 = "Apple File System (APFS)";
 static const char *HT_99999 = "Plaintext";
 
 static const char *HT_00011 = "Joomla < 2.5.18";
