@@ -29,11 +29,11 @@ static int check_running_process (hashcat_ctx_t *hashcat_ctx)
 
   if (nread != 1)
   {
-    event_log_error (hashcat_ctx, "Cannot read %s", pidfile_filename);
+    //event_log_error (hashcat_ctx, "Cannot read %s", pidfile_filename);
 
     hcfree (pd);
 
-    return -1;
+    return 0;
   }
 
   if (pd->pid)
