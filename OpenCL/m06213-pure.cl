@@ -17,56 +17,10 @@
 #include "inc_cipher_twofish.cl"
 #include "inc_cipher_serpent.cl"
 
+#include "inc_truecrypt_keyfile.cl"
+#include "inc_truecrypt_keyboard.cl"
 #include "inc_truecrypt_crc32.cl"
 #include "inc_truecrypt_xts.cl"
-
-DECLSPEC void keyboard_map (u32 w[4], __local u32 *s_keyboard_layout)
-{
-  w[0] = (s_keyboard_layout[(w[0] >>  0) & 0xff] <<  0)
-       | (s_keyboard_layout[(w[0] >>  8) & 0xff] <<  8)
-       | (s_keyboard_layout[(w[0] >> 16) & 0xff] << 16)
-       | (s_keyboard_layout[(w[0] >> 24) & 0xff] << 24);
-
-  w[1] = (s_keyboard_layout[(w[1] >>  0) & 0xff] <<  0)
-       | (s_keyboard_layout[(w[1] >>  8) & 0xff] <<  8)
-       | (s_keyboard_layout[(w[1] >> 16) & 0xff] << 16)
-       | (s_keyboard_layout[(w[1] >> 24) & 0xff] << 24);
-
-  w[2] = (s_keyboard_layout[(w[2] >>  0) & 0xff] <<  0)
-       | (s_keyboard_layout[(w[2] >>  8) & 0xff] <<  8)
-       | (s_keyboard_layout[(w[2] >> 16) & 0xff] << 16)
-       | (s_keyboard_layout[(w[2] >> 24) & 0xff] << 24);
-
-  w[3] = (s_keyboard_layout[(w[3] >>  0) & 0xff] <<  0)
-       | (s_keyboard_layout[(w[3] >>  8) & 0xff] <<  8)
-       | (s_keyboard_layout[(w[3] >> 16) & 0xff] << 16)
-       | (s_keyboard_layout[(w[3] >> 24) & 0xff] << 24);
-}
-
-DECLSPEC u32 u8add (const u32 a, const u32 b)
-{
-  const u32 a1 = (a >>  0) & 0xff;
-  const u32 a2 = (a >>  8) & 0xff;
-  const u32 a3 = (a >> 16) & 0xff;
-  const u32 a4 = (a >> 24) & 0xff;
-
-  const u32 b1 = (b >>  0) & 0xff;
-  const u32 b2 = (b >>  8) & 0xff;
-  const u32 b3 = (b >> 16) & 0xff;
-  const u32 b4 = (b >> 24) & 0xff;
-
-  const u32 r1 = (a1 + b1) & 0xff;
-  const u32 r2 = (a2 + b2) & 0xff;
-  const u32 r3 = (a3 + b3) & 0xff;
-  const u32 r4 = (a4 + b4) & 0xff;
-
-  const u32 r = r1 <<  0
-              | r2 <<  8
-              | r3 << 16
-              | r4 << 24;
-
-  return r;
-}
 
 DECLSPEC void hmac_ripemd160_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
 {

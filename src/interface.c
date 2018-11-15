@@ -2650,23 +2650,7 @@ static bool initialize_keyboard_layout (hashcat_ctx_t *hashcat_ctx, const char *
 
     if (line_len == 0) continue;
 
-    token_t token;
-
-    token.token_cnt = 2;
-
-    token.len_min[0] = 1;
-    token.len_max[0] = 1;
-    token.sep[0]     = '=';
-    token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-    token.len_min[1] = 1;
-    token.len_max[1] = 1;
-    token.sep[1]     = '=';
-    token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-    const int rc_tokenizer = input_tokenizer ((u8 *) line_buf, line_len, &token);
-
-    if (rc_tokenizer != PARSER_OK)
+    if (line_buf[1] != '=')
     {
       event_log_error (hashcat_ctx, "%s: Syntax error: %s", filename, line_buf);
 
@@ -2675,13 +2659,30 @@ static bool initialize_keyboard_layout (hashcat_ctx_t *hashcat_ctx, const char *
       return false;
     }
 
-    const u8 from = token.buf[0][0];
-    const u8 to   = token.buf[1][0];
+    if (line_len == 2)
+    {
+      const u8 from = line_buf[0];
 
-    keyboard_layout[from] = to;
+      verifyF[from]++;
+    }
+    else if (line_len == 3)
+    {
+      const u8 from = line_buf[0];
+      const u8 to   = line_buf[2];
 
-    verifyF[from]++;
-    verifyT[to]++;
+      keyboard_layout[from] = to;
+
+      verifyF[from]++;
+      verifyT[to]++;
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "%s: Syntax error: %s", filename, line_buf);
+
+      free (line_buf);
+
+      return false;
+    }
   }
 
   fclose (fp);

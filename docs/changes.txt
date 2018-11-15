@@ -56,6 +56,8 @@
 - Brain: Set --brain-client-features default from 3 to 2
 - Dependencies: Added xxHash and OpenCL-Headers to deps/ in order to allow building hashcat from GitHub source release package
 - Dependencies: Removed gitmodules xxHash and OpenCL-Headers
+- Keymaps: Added hashcat keyboard mapping us.hckmap (can be used as template)
+- Keymaps: Added hashcat keyboard mapping de.hckmap
 - Hardware Monitor: Renamed --gpu-temp-abort to --hwmon-temp-abort
 - Hardware Monitor: Renamed --gpu-temp-disable to --hwmon-disable
 - Memory: Limit maximum host memory allocation depending on bitness
