@@ -7073,6 +7073,11 @@ int truecrypt_parse_hash_2k (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAY
 
   if (entropy < MIN_SUFFICIENT_ENTROPY_FILE) return (PARSER_INSUFFICIENT_ENTROPY);
 
+  for (int i = 0; i < 256; i++)
+  {
+    tc->keyboard_layout[i] = i;
+  }
+
   memcpy (tc->salt_buf, buf, 64);
 
   memcpy (tc->data_buf, buf + 64, 512 - 64);
@@ -7115,6 +7120,11 @@ int veracrypt_parse_hash_200000 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
   const float entropy = get_entropy (buf, n);
 
   if (entropy < MIN_SUFFICIENT_ENTROPY_FILE) return (PARSER_INSUFFICIENT_ENTROPY);
+
+  for (int i = 0; i < 256; i++)
+  {
+    tc->keyboard_layout[i] = i;
+  }
 
   memcpy (tc->salt_buf, buf, 64);
 
@@ -7159,6 +7169,11 @@ int veracrypt_parse_hash_500000 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   if (entropy < MIN_SUFFICIENT_ENTROPY_FILE) return (PARSER_INSUFFICIENT_ENTROPY);
 
+  for (int i = 0; i < 256; i++)
+  {
+    tc->keyboard_layout[i] = i;
+  }
+
   memcpy (tc->salt_buf, buf, 64);
 
   memcpy (tc->data_buf, buf + 64, 512 - 64);
@@ -7202,6 +7217,11 @@ int veracrypt_parse_hash_327661 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   if (entropy < MIN_SUFFICIENT_ENTROPY_FILE) return (PARSER_INSUFFICIENT_ENTROPY);
 
+  for (int i = 0; i < 256; i++)
+  {
+    tc->keyboard_layout[i] = i;
+  }
+
   memcpy (tc->salt_buf, buf, 64);
 
   memcpy (tc->data_buf, buf + 64, 512 - 64);
@@ -7244,6 +7264,11 @@ int veracrypt_parse_hash_655331 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
   const float entropy = get_entropy (buf, n);
 
   if (entropy < MIN_SUFFICIENT_ENTROPY_FILE) return (PARSER_INSUFFICIENT_ENTROPY);
+
+  for (int i = 0; i < 256; i++)
+  {
+    tc->keyboard_layout[i] = i;
+  }
 
   memcpy (tc->salt_buf, buf, 64);
 
@@ -29299,9 +29324,12 @@ int hashconfig_general_defaults (hashcat_ctx_t *hashcat_ctx)
       if (user_options->truecrypt_keyboard_layout) optional_param2 = user_options->truecrypt_keyboard_layout;
       if (user_options->veracrypt_keyboard_layout) optional_param2 = user_options->veracrypt_keyboard_layout;
 
-      const bool rc = initialize_keyboard_layout (hashcat_ctx, optional_param2, tc->keyboard_layout);
+      if (optional_param2)
+      {
+        const bool rc = initialize_keyboard_layout (hashcat_ctx, optional_param2, tc->keyboard_layout);
 
-      if (rc == false) return -1;
+        if (rc == false) return -1;
+      }
     }
   }
 
