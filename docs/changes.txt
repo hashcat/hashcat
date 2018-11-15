@@ -7,6 +7,8 @@
 - Added support for using --stdout in brain-client mode
 - Added new option --stdin-timeout-abort, to set how long hashcat should wait for stdin input before aborting
 - Added new option --kernel-threads to manually override the automatically-calculated number of threads
+- Added new option --truecrypt-keyboard-layout to map users keyboard layout, required to crack system boot volumes
+- Added new option --veracrypt-keyboard-layout to map users keyboard layout, required to crack system boot volumes
 
 ##
 ## Algorithms

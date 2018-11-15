@@ -711,13 +711,15 @@ typedef enum user_options_map
   IDX_STATUS_TIMER              = 0xff3f,
   IDX_STDOUT_FLAG               = 0xff40,
   IDX_STDIN_TIMEOUT_ABORT       = 0xff41,
-  IDX_TRUECRYPT_KEYFILES        = 0xff42,
-  IDX_USERNAME                  = 0xff43,
-  IDX_VERACRYPT_KEYFILES        = 0xff44,
-  IDX_VERACRYPT_PIM             = 0xff45,
+  IDX_TRUECRYPT_KEYBOARD_LAYOUT = 0xff42,
+  IDX_TRUECRYPT_KEYFILES        = 0xff43,
+  IDX_USERNAME                  = 0xff44,
+  IDX_VERACRYPT_KEYBOARD_LAYOUT = 0xff45,
+  IDX_VERACRYPT_KEYFILES        = 0xff46,
+  IDX_VERACRYPT_PIM             = 0xff47,
   IDX_VERSION_LOWER             = 'v',
   IDX_VERSION                   = 'V',
-  IDX_WORDLIST_AUTOHEX_DISABLE  = 0xff46,
+  IDX_WORDLIST_AUTOHEX_DISABLE  = 0xff48,
   IDX_WORKLOAD_PROFILE          = 'w',
 
 } user_options_map_t;
@@ -1761,7 +1763,9 @@ typedef struct user_options
   char        *restore_file_path;
   char       **rp_files;
   char         separator;
+  char        *truecrypt_keyboard_layout;
   char        *truecrypt_keyfiles;
+  char        *veracrypt_keyboard_layout;
   char        *veracrypt_keyfiles;
   const char  *custom_charset_1;
   const char  *custom_charset_2;

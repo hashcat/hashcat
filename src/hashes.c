@@ -302,6 +302,27 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
     strncpy ((char *) plain_ptr, (char *) temp_ptr, sizeof (plain_buf));
   }
 
+  // we do some kernel internal substituations, so we need to do that here as well, if it cracks
+
+  // truecrypt and veracrypt boot only
+  if ((hashconfig->hash_mode == 6241)
+   || (hashconfig->hash_mode == 6242)
+   || (hashconfig->hash_mode == 6243)
+   || (hashconfig->hash_mode == 13741)
+   || (hashconfig->hash_mode == 13742)
+   || (hashconfig->hash_mode == 13743)
+   || (hashconfig->hash_mode == 13761)
+   || (hashconfig->hash_mode == 13762)
+   || (hashconfig->hash_mode == 13763))
+  {
+    tc_t *tc = (tc_t *) hashes->esalts_buf;
+
+    for (int i = 0; i < plain_len; i++)
+    {
+      plain_ptr[i] = (u8) tc->keyboard_layout[plain_ptr[i]];
+    }
+  }
+
   // crackpos
 
   u64 crackpos = 0;

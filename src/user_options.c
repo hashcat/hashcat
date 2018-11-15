@@ -113,8 +113,10 @@ static const struct option long_options[] =
   {"status-timer",              required_argument, NULL, IDX_STATUS_TIMER},
   {"stdout",                    no_argument,       NULL, IDX_STDOUT_FLAG},
   {"stdin-timeout-abort",       required_argument, NULL, IDX_STDIN_TIMEOUT_ABORT},
+  {"truecrypt-keyboard-layout", required_argument, NULL, IDX_TRUECRYPT_KEYBOARD_LAYOUT},
   {"truecrypt-keyfiles",        required_argument, NULL, IDX_TRUECRYPT_KEYFILES},
   {"username",                  no_argument,       NULL, IDX_USERNAME},
+  {"veracrypt-keyboard-layout", required_argument, NULL, IDX_VERACRYPT_KEYBOARD_LAYOUT},
   {"veracrypt-keyfiles",        required_argument, NULL, IDX_VERACRYPT_KEYFILES},
   {"veracrypt-pim",             required_argument, NULL, IDX_VERACRYPT_PIM},
   {"version",                   no_argument,       NULL, IDX_VERSION},
@@ -241,9 +243,11 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->status_timer              = STATUS_TIMER;
   user_options->stdin_timeout_abort       = STDIN_TIMEOUT_ABORT;
   user_options->stdout_flag               = STDOUT_FLAG;
+  user_options->truecrypt_keyboard_layout = NULL;
   user_options->truecrypt_keyfiles        = NULL;
   user_options->usage                     = USAGE;
   user_options->username                  = USERNAME;
+  user_options->veracrypt_keyboard_layout = NULL;
   user_options->veracrypt_keyfiles        = NULL;
   user_options->veracrypt_pim             = 0;
   user_options->version                   = VERSION;
@@ -347,131 +351,133 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
   {
     switch (c)
     {
-      case IDX_HELP:                     user_options->usage                     = true;                            break;
-      case IDX_VERSION:                  user_options->version                   = true;                            break;
-      case IDX_RESTORE:                  user_options->restore                   = true;                            break;
-      case IDX_QUIET:                    user_options->quiet                     = true;                            break;
-      case IDX_SHOW:                     user_options->show                      = true;                            break;
-      case IDX_LEFT:                     user_options->left                      = true;                            break;
-      case IDX_ADVICE_DISABLE:           user_options->advice_disable            = true;                            break;
-      case IDX_USERNAME:                 user_options->username                  = true;                            break;
-      case IDX_REMOVE:                   user_options->remove                    = true;                            break;
-      case IDX_REMOVE_TIMER:             user_options->remove_timer              = hc_strtoul (optarg, NULL, 10);
-                                         user_options->remove_timer_chgd         = true;                            break;
-      case IDX_POTFILE_DISABLE:          user_options->potfile_disable           = true;                            break;
-      case IDX_POTFILE_PATH:             user_options->potfile_path              = optarg;                          break;
-      case IDX_DEBUG_MODE:               user_options->debug_mode                = hc_strtoul (optarg, NULL, 10);   break;
-      case IDX_DEBUG_FILE:               user_options->debug_file                = optarg;                          break;
-      case IDX_ENCODING_FROM:            user_options->encoding_from             = optarg;                          break;
-      case IDX_ENCODING_TO:              user_options->encoding_to               = optarg;                          break;
-      case IDX_INDUCTION_DIR:            user_options->induction_dir             = optarg;                          break;
-      case IDX_OUTFILE_CHECK_DIR:        user_options->outfile_check_dir         = optarg;                          break;
-      case IDX_EXAMPLE_HASHES:           user_options->example_hashes            = true;                            break;
-      case IDX_FORCE:                    user_options->force                     = true;                            break;
-      case IDX_SELF_TEST_DISABLE:        user_options->self_test_disable         = true;                            break;
-      case IDX_SKIP:                     user_options->skip                      = hc_strtoull (optarg, NULL, 10);
-                                         user_options->skip_chgd                 = true;                            break;
-      case IDX_LIMIT:                    user_options->limit                     = hc_strtoull (optarg, NULL, 10);
-                                         user_options->limit_chgd                = true;                            break;
-      case IDX_KEEP_GUESSING:            user_options->keep_guessing             = true;                            break;
-      case IDX_KEYSPACE:                 user_options->keyspace                  = true;                            break;
-      case IDX_BENCHMARK:                user_options->benchmark                 = true;                            break;
-      case IDX_BENCHMARK_ALL:            user_options->benchmark_all             = true;                            break;
-      case IDX_STDOUT_FLAG:              user_options->stdout_flag               = true;                            break;
-      case IDX_STDIN_TIMEOUT_ABORT:      user_options->stdin_timeout_abort       = hc_strtoul (optarg, NULL, 10);
-                                         user_options->stdin_timeout_abort_chgd  = true;                            break;
-      case IDX_SPEED_ONLY:               user_options->speed_only                = true;                            break;
-      case IDX_PROGRESS_ONLY:            user_options->progress_only             = true;                            break;
-      case IDX_RESTORE_DISABLE:          user_options->restore_disable           = true;                            break;
-      case IDX_RESTORE_FILE_PATH:        user_options->restore_file_path         = optarg;                          break;
-      case IDX_STATUS:                   user_options->status                    = true;                            break;
-      case IDX_STATUS_TIMER:             user_options->status_timer              = hc_strtoul (optarg, NULL, 10);   break;
-      case IDX_MACHINE_READABLE:         user_options->machine_readable          = true;                            break;
-      case IDX_LOOPBACK:                 user_options->loopback                  = true;                            break;
-      case IDX_SESSION:                  user_options->session                   = optarg;                          break;
-      case IDX_HASH_MODE:                user_options->hash_mode                 = hc_strtoul (optarg, NULL, 10);
-                                         user_options->hash_mode_chgd            = true;                            break;
-      case IDX_RUNTIME:                  user_options->runtime                   = hc_strtoul (optarg, NULL, 10);
-                                         user_options->runtime_chgd              = true;                            break;
-      case IDX_ATTACK_MODE:              user_options->attack_mode               = hc_strtoul (optarg, NULL, 10);
-                                         user_options->attack_mode_chgd          = true;                            break;
-      case IDX_RP_FILE:                  user_options->rp_files[user_options->rp_files_cnt++] = optarg;             break;
-      case IDX_RP_GEN:                   user_options->rp_gen                    = hc_strtoul (optarg, NULL, 10);   break;
-      case IDX_RP_GEN_FUNC_MIN:          user_options->rp_gen_func_min           = hc_strtoul (optarg, NULL, 10);   break;
-      case IDX_RP_GEN_FUNC_MAX:          user_options->rp_gen_func_max           = hc_strtoul (optarg, NULL, 10);   break;
-      case IDX_RP_GEN_SEED:              user_options->rp_gen_seed               = hc_strtoul (optarg, NULL, 10);
-                                         user_options->rp_gen_seed_chgd          = true;                            break;
-      case IDX_RULE_BUF_L:               user_options->rule_buf_l                = optarg;                          break;
-      case IDX_RULE_BUF_R:               user_options->rule_buf_r                = optarg;                          break;
-      case IDX_MARKOV_DISABLE:           user_options->markov_disable            = true;                            break;
-      case IDX_MARKOV_CLASSIC:           user_options->markov_classic            = true;                            break;
-      case IDX_MARKOV_THRESHOLD:         user_options->markov_threshold          = hc_strtoul (optarg, NULL, 10);   break;
-      case IDX_MARKOV_HCSTAT2:           user_options->markov_hcstat2            = optarg;                          break;
-      case IDX_OUTFILE:                  user_options->outfile                   = optarg;                          break;
-      case IDX_OUTFILE_FORMAT:           user_options->outfile_format            = hc_strtoul (optarg, NULL, 10);
-                                         user_options->outfile_format_chgd       = true;                            break;
-      case IDX_OUTFILE_AUTOHEX_DISABLE:  user_options->outfile_autohex           = false;                           break;
-      case IDX_OUTFILE_CHECK_TIMER:      user_options->outfile_check_timer       = hc_strtoul (optarg, NULL, 10);   break;
-      case IDX_WORDLIST_AUTOHEX_DISABLE: user_options->wordlist_autohex_disable  = true;                            break;
-      case IDX_HEX_CHARSET:              user_options->hex_charset               = true;                            break;
-      case IDX_HEX_SALT:                 user_options->hex_salt                  = true;                            break;
-      case IDX_HEX_WORDLIST:             user_options->hex_wordlist              = true;                            break;
-      case IDX_CPU_AFFINITY:             user_options->cpu_affinity              = optarg;                          break;
-      case IDX_OPENCL_INFO:              user_options->opencl_info               = true;                            break;
-      case IDX_OPENCL_DEVICES:           user_options->opencl_devices            = optarg;                          break;
-      case IDX_OPENCL_PLATFORMS:         user_options->opencl_platforms          = optarg;                          break;
-      case IDX_OPENCL_DEVICE_TYPES:      user_options->opencl_device_types       = optarg;                          break;
-      case IDX_OPENCL_VECTOR_WIDTH:      user_options->opencl_vector_width       = hc_strtoul (optarg, NULL, 10);
-                                         user_options->opencl_vector_width_chgd  = true;                            break;
-      case IDX_OPTIMIZED_KERNEL_ENABLE:  user_options->optimized_kernel_enable   = true;                            break;
-      case IDX_WORKLOAD_PROFILE:         user_options->workload_profile          = hc_strtoul (optarg, NULL, 10);
-                                         user_options->workload_profile_chgd     = true;                            break;
-      case IDX_KERNEL_ACCEL:             user_options->kernel_accel              = hc_strtoul (optarg, NULL, 10);
-                                         user_options->kernel_accel_chgd         = true;                            break;
-      case IDX_KERNEL_LOOPS:             user_options->kernel_loops              = hc_strtoul (optarg, NULL, 10);
-                                         user_options->kernel_loops_chgd         = true;                            break;
-      case IDX_KERNEL_THREADS:           user_options->kernel_threads            = hc_strtoul (optarg, NULL, 10);
-                                         user_options->kernel_threads_chgd       = true;                            break;
-      case IDX_NVIDIA_SPIN_DAMP:         user_options->nvidia_spin_damp          = hc_strtoul (optarg, NULL, 10);
-                                         user_options->nvidia_spin_damp_chgd     = true;                            break;
-      case IDX_HWMON_DISABLE:            user_options->hwmon_disable             = true;                            break;
-      case IDX_HWMON_TEMP_ABORT:         user_options->hwmon_temp_abort          = hc_strtoul (optarg, NULL, 10);   break;
-      case IDX_LOGFILE_DISABLE:          user_options->logfile_disable           = true;                            break;
-      case IDX_HCCAPX_MESSAGE_PAIR:      user_options->hccapx_message_pair       = hc_strtoul (optarg, NULL, 10);
-                                         user_options->hccapx_message_pair_chgd  = true;                            break;
-      case IDX_NONCE_ERROR_CORRECTIONS:  user_options->nonce_error_corrections   = hc_strtoul (optarg, NULL, 10);
-                                         user_options->nonce_error_corrections_chgd = true;                         break;
-      case IDX_TRUECRYPT_KEYFILES:       user_options->truecrypt_keyfiles        = optarg;                          break;
-      case IDX_VERACRYPT_KEYFILES:       user_options->veracrypt_keyfiles        = optarg;                          break;
-      case IDX_VERACRYPT_PIM:            user_options->veracrypt_pim             = hc_strtoul (optarg, NULL, 10);   break;
-      case IDX_SEGMENT_SIZE:             user_options->segment_size              = hc_strtoul (optarg, NULL, 10);
-                                         user_options->segment_size_chgd         = true;                            break;
-      case IDX_SCRYPT_TMTO:              user_options->scrypt_tmto               = hc_strtoul (optarg, NULL, 10);   break;
-      case IDX_SEPARATOR:                user_options->separator                 = optarg[0];                       break;
-      case IDX_BITMAP_MIN:               user_options->bitmap_min                = hc_strtoul (optarg, NULL, 10);   break;
-      case IDX_BITMAP_MAX:               user_options->bitmap_max                = hc_strtoul (optarg, NULL, 10);   break;
-      case IDX_INCREMENT:                user_options->increment                 = true;                            break;
-      case IDX_INCREMENT_MIN:            user_options->increment_min             = hc_strtoul (optarg, NULL, 10);
-                                         user_options->increment_min_chgd        = true;                            break;
-      case IDX_INCREMENT_MAX:            user_options->increment_max             = hc_strtoul (optarg, NULL, 10);
-                                         user_options->increment_max_chgd        = true;                            break;
-      case IDX_CUSTOM_CHARSET_1:         user_options->custom_charset_1          = optarg;                          break;
-      case IDX_CUSTOM_CHARSET_2:         user_options->custom_charset_2          = optarg;                          break;
-      case IDX_CUSTOM_CHARSET_3:         user_options->custom_charset_3          = optarg;                          break;
-      case IDX_CUSTOM_CHARSET_4:         user_options->custom_charset_4          = optarg;                          break;
-      case IDX_SLOW_CANDIDATES:          user_options->slow_candidates           = true;                            break;
+      case IDX_HELP:                      user_options->usage                     = true;                            break;
+      case IDX_VERSION:                   user_options->version                   = true;                            break;
+      case IDX_RESTORE:                   user_options->restore                   = true;                            break;
+      case IDX_QUIET:                     user_options->quiet                     = true;                            break;
+      case IDX_SHOW:                      user_options->show                      = true;                            break;
+      case IDX_LEFT:                      user_options->left                      = true;                            break;
+      case IDX_ADVICE_DISABLE:            user_options->advice_disable            = true;                            break;
+      case IDX_USERNAME:                  user_options->username                  = true;                            break;
+      case IDX_REMOVE:                    user_options->remove                    = true;                            break;
+      case IDX_REMOVE_TIMER:              user_options->remove_timer              = hc_strtoul (optarg, NULL, 10);
+                                          user_options->remove_timer_chgd         = true;                            break;
+      case IDX_POTFILE_DISABLE:           user_options->potfile_disable           = true;                            break;
+      case IDX_POTFILE_PATH:              user_options->potfile_path              = optarg;                          break;
+      case IDX_DEBUG_MODE:                user_options->debug_mode                = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_DEBUG_FILE:                user_options->debug_file                = optarg;                          break;
+      case IDX_ENCODING_FROM:             user_options->encoding_from             = optarg;                          break;
+      case IDX_ENCODING_TO:               user_options->encoding_to               = optarg;                          break;
+      case IDX_INDUCTION_DIR:             user_options->induction_dir             = optarg;                          break;
+      case IDX_OUTFILE_CHECK_DIR:         user_options->outfile_check_dir         = optarg;                          break;
+      case IDX_EXAMPLE_HASHES:            user_options->example_hashes            = true;                            break;
+      case IDX_FORCE:                     user_options->force                     = true;                            break;
+      case IDX_SELF_TEST_DISABLE:         user_options->self_test_disable         = true;                            break;
+      case IDX_SKIP:                      user_options->skip                      = hc_strtoull (optarg, NULL, 10);
+                                          user_options->skip_chgd                 = true;                            break;
+      case IDX_LIMIT:                     user_options->limit                     = hc_strtoull (optarg, NULL, 10);
+                                          user_options->limit_chgd                = true;                            break;
+      case IDX_KEEP_GUESSING:             user_options->keep_guessing             = true;                            break;
+      case IDX_KEYSPACE:                  user_options->keyspace                  = true;                            break;
+      case IDX_BENCHMARK:                 user_options->benchmark                 = true;                            break;
+      case IDX_BENCHMARK_ALL:             user_options->benchmark_all             = true;                            break;
+      case IDX_STDOUT_FLAG:               user_options->stdout_flag               = true;                            break;
+      case IDX_STDIN_TIMEOUT_ABORT:       user_options->stdin_timeout_abort       = hc_strtoul (optarg, NULL, 10);
+                                          user_options->stdin_timeout_abort_chgd  = true;                            break;
+      case IDX_SPEED_ONLY:                user_options->speed_only                = true;                            break;
+      case IDX_PROGRESS_ONLY:             user_options->progress_only             = true;                            break;
+      case IDX_RESTORE_DISABLE:           user_options->restore_disable           = true;                            break;
+      case IDX_RESTORE_FILE_PATH:         user_options->restore_file_path         = optarg;                          break;
+      case IDX_STATUS:                    user_options->status                    = true;                            break;
+      case IDX_STATUS_TIMER:              user_options->status_timer              = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_MACHINE_READABLE:          user_options->machine_readable          = true;                            break;
+      case IDX_LOOPBACK:                  user_options->loopback                  = true;                            break;
+      case IDX_SESSION:                   user_options->session                   = optarg;                          break;
+      case IDX_HASH_MODE:                 user_options->hash_mode                 = hc_strtoul (optarg, NULL, 10);
+                                          user_options->hash_mode_chgd            = true;                            break;
+      case IDX_RUNTIME:                   user_options->runtime                   = hc_strtoul (optarg, NULL, 10);
+                                          user_options->runtime_chgd              = true;                            break;
+      case IDX_ATTACK_MODE:               user_options->attack_mode               = hc_strtoul (optarg, NULL, 10);
+                                          user_options->attack_mode_chgd          = true;                            break;
+      case IDX_RP_FILE:                   user_options->rp_files[user_options->rp_files_cnt++] = optarg;             break;
+      case IDX_RP_GEN:                    user_options->rp_gen                    = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_RP_GEN_FUNC_MIN:           user_options->rp_gen_func_min           = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_RP_GEN_FUNC_MAX:           user_options->rp_gen_func_max           = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_RP_GEN_SEED:               user_options->rp_gen_seed               = hc_strtoul (optarg, NULL, 10);
+                                          user_options->rp_gen_seed_chgd          = true;                            break;
+      case IDX_RULE_BUF_L:                user_options->rule_buf_l                = optarg;                          break;
+      case IDX_RULE_BUF_R:                user_options->rule_buf_r                = optarg;                          break;
+      case IDX_MARKOV_DISABLE:            user_options->markov_disable            = true;                            break;
+      case IDX_MARKOV_CLASSIC:            user_options->markov_classic            = true;                            break;
+      case IDX_MARKOV_THRESHOLD:          user_options->markov_threshold          = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_MARKOV_HCSTAT2:            user_options->markov_hcstat2            = optarg;                          break;
+      case IDX_OUTFILE:                   user_options->outfile                   = optarg;                          break;
+      case IDX_OUTFILE_FORMAT:            user_options->outfile_format            = hc_strtoul (optarg, NULL, 10);
+                                          user_options->outfile_format_chgd       = true;                            break;
+      case IDX_OUTFILE_AUTOHEX_DISABLE:   user_options->outfile_autohex           = false;                           break;
+      case IDX_OUTFILE_CHECK_TIMER:       user_options->outfile_check_timer       = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_WORDLIST_AUTOHEX_DISABLE:  user_options->wordlist_autohex_disable  = true;                            break;
+      case IDX_HEX_CHARSET:               user_options->hex_charset               = true;                            break;
+      case IDX_HEX_SALT:                  user_options->hex_salt                  = true;                            break;
+      case IDX_HEX_WORDLIST:              user_options->hex_wordlist              = true;                            break;
+      case IDX_CPU_AFFINITY:              user_options->cpu_affinity              = optarg;                          break;
+      case IDX_OPENCL_INFO:               user_options->opencl_info               = true;                            break;
+      case IDX_OPENCL_DEVICES:            user_options->opencl_devices            = optarg;                          break;
+      case IDX_OPENCL_PLATFORMS:          user_options->opencl_platforms          = optarg;                          break;
+      case IDX_OPENCL_DEVICE_TYPES:       user_options->opencl_device_types       = optarg;                          break;
+      case IDX_OPENCL_VECTOR_WIDTH:       user_options->opencl_vector_width       = hc_strtoul (optarg, NULL, 10);
+                                          user_options->opencl_vector_width_chgd  = true;                            break;
+      case IDX_OPTIMIZED_KERNEL_ENABLE:   user_options->optimized_kernel_enable   = true;                            break;
+      case IDX_WORKLOAD_PROFILE:          user_options->workload_profile          = hc_strtoul (optarg, NULL, 10);
+                                          user_options->workload_profile_chgd     = true;                            break;
+      case IDX_KERNEL_ACCEL:              user_options->kernel_accel              = hc_strtoul (optarg, NULL, 10);
+                                          user_options->kernel_accel_chgd         = true;                            break;
+      case IDX_KERNEL_LOOPS:              user_options->kernel_loops              = hc_strtoul (optarg, NULL, 10);
+                                          user_options->kernel_loops_chgd         = true;                            break;
+      case IDX_KERNEL_THREADS:            user_options->kernel_threads            = hc_strtoul (optarg, NULL, 10);
+                                          user_options->kernel_threads_chgd       = true;                            break;
+      case IDX_NVIDIA_SPIN_DAMP:          user_options->nvidia_spin_damp          = hc_strtoul (optarg, NULL, 10);
+                                          user_options->nvidia_spin_damp_chgd     = true;                            break;
+      case IDX_HWMON_DISABLE:             user_options->hwmon_disable             = true;                            break;
+      case IDX_HWMON_TEMP_ABORT:          user_options->hwmon_temp_abort          = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_LOGFILE_DISABLE:           user_options->logfile_disable           = true;                            break;
+      case IDX_HCCAPX_MESSAGE_PAIR:       user_options->hccapx_message_pair       = hc_strtoul (optarg, NULL, 10);
+                                          user_options->hccapx_message_pair_chgd  = true;                            break;
+      case IDX_NONCE_ERROR_CORRECTIONS:   user_options->nonce_error_corrections   = hc_strtoul (optarg, NULL, 10);
+                                          user_options->nonce_error_corrections_chgd = true;                         break;
+      case IDX_TRUECRYPT_KEYBOARD_LAYOUT: user_options->truecrypt_keyboard_layout = optarg;                          break;
+      case IDX_TRUECRYPT_KEYFILES:        user_options->truecrypt_keyfiles        = optarg;                          break;
+      case IDX_VERACRYPT_KEYBOARD_LAYOUT: user_options->veracrypt_keyboard_layout = optarg;                          break;
+      case IDX_VERACRYPT_KEYFILES:        user_options->veracrypt_keyfiles        = optarg;                          break;
+      case IDX_VERACRYPT_PIM:             user_options->veracrypt_pim             = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_SEGMENT_SIZE:              user_options->segment_size              = hc_strtoul (optarg, NULL, 10);
+                                          user_options->segment_size_chgd         = true;                            break;
+      case IDX_SCRYPT_TMTO:               user_options->scrypt_tmto               = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_SEPARATOR:                 user_options->separator                 = optarg[0];                       break;
+      case IDX_BITMAP_MIN:                user_options->bitmap_min                = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_BITMAP_MAX:                user_options->bitmap_max                = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_INCREMENT:                 user_options->increment                 = true;                            break;
+      case IDX_INCREMENT_MIN:             user_options->increment_min             = hc_strtoul (optarg, NULL, 10);
+                                          user_options->increment_min_chgd        = true;                            break;
+      case IDX_INCREMENT_MAX:             user_options->increment_max             = hc_strtoul (optarg, NULL, 10);
+                                          user_options->increment_max_chgd        = true;                            break;
+      case IDX_CUSTOM_CHARSET_1:          user_options->custom_charset_1          = optarg;                          break;
+      case IDX_CUSTOM_CHARSET_2:          user_options->custom_charset_2          = optarg;                          break;
+      case IDX_CUSTOM_CHARSET_3:          user_options->custom_charset_3          = optarg;                          break;
+      case IDX_CUSTOM_CHARSET_4:          user_options->custom_charset_4          = optarg;                          break;
+      case IDX_SLOW_CANDIDATES:           user_options->slow_candidates           = true;                            break;
       #ifdef WITH_BRAIN
-      case IDX_BRAIN_CLIENT:             user_options->brain_client              = true;                            break;
-      case IDX_BRAIN_CLIENT_FEATURES:    user_options->brain_client_features     = hc_strtoul (optarg, NULL, 10);   break;
-      case IDX_BRAIN_SERVER:             user_options->brain_server              = true;                            break;
-      case IDX_BRAIN_PASSWORD:           user_options->brain_password            = optarg;
-                                         user_options->brain_password_chgd       = true;                            break;
-      case IDX_BRAIN_HOST:               user_options->brain_host                = optarg;
-                                         user_options->brain_host_chgd           = true;                            break;
-      case IDX_BRAIN_PORT:               user_options->brain_port                = hc_strtoul (optarg, NULL, 10);
-                                         user_options->brain_port_chgd           = true;                            break;
-      case IDX_BRAIN_SESSION:            user_options->brain_session             = hc_strtoul (optarg, NULL, 16);   break;
-      case IDX_BRAIN_SESSION_WHITELIST:  user_options->brain_session_whitelist   = optarg;                          break;
+      case IDX_BRAIN_CLIENT:              user_options->brain_client              = true;                            break;
+      case IDX_BRAIN_CLIENT_FEATURES:     user_options->brain_client_features     = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_BRAIN_SERVER:              user_options->brain_server              = true;                            break;
+      case IDX_BRAIN_PASSWORD:            user_options->brain_password            = optarg;
+                                          user_options->brain_password_chgd       = true;                            break;
+      case IDX_BRAIN_HOST:                user_options->brain_host                = optarg;
+                                          user_options->brain_host_chgd           = true;                            break;
+      case IDX_BRAIN_PORT:                user_options->brain_port                = hc_strtoul (optarg, NULL, 10);
+                                          user_options->brain_port_chgd           = true;                            break;
+      case IDX_BRAIN_SESSION:             user_options->brain_session             = hc_strtoul (optarg, NULL, 16);   break;
+      case IDX_BRAIN_SESSION_WHITELIST:   user_options->brain_session_whitelist   = optarg;                          break;
       #endif
     }
   }
@@ -2549,6 +2555,46 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
   // debugfile check already done
 
+  // dictstat
+
+  if (user_options->truecrypt_keyboard_layout != NULL)
+  {
+    if (hc_path_exist (user_options->truecrypt_keyboard_layout) == true)
+    {
+      if (hc_path_read (user_options->truecrypt_keyboard_layout) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: %s", user_options->truecrypt_keyboard_layout, strerror (errno));
+
+        return -1;
+      }
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "%s: %s", user_options->truecrypt_keyboard_layout, strerror (errno));
+
+      return -1;
+    }
+  }
+
+  if (user_options->veracrypt_keyboard_layout != NULL)
+  {
+    if (hc_path_exist (user_options->veracrypt_keyboard_layout) == true)
+    {
+      if (hc_path_read (user_options->veracrypt_keyboard_layout) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: %s", user_options->veracrypt_keyboard_layout, strerror (errno));
+
+        return -1;
+      }
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "%s: %s", user_options->veracrypt_keyboard_layout, strerror (errno));
+
+      return -1;
+    }
+  }
+
   return 0;
 }
 
@@ -2582,7 +2628,9 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_string (user_options->rule_buf_l);
   logfile_top_string (user_options->rule_buf_r);
   logfile_top_string (user_options->session);
+  logfile_top_string (user_options->truecrypt_keyboard_layout);
   logfile_top_string (user_options->truecrypt_keyfiles);
+  logfile_top_string (user_options->veracrypt_keyboard_layout);
   logfile_top_string (user_options->veracrypt_keyfiles);
   #ifdef WITH_BRAIN
   logfile_top_string (user_options->brain_host);

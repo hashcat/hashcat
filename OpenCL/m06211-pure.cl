@@ -20,6 +20,29 @@
 #include "inc_truecrypt_crc32.cl"
 #include "inc_truecrypt_xts.cl"
 
+DECLSPEC void keyboard_map (u32 w[4], __local u32 *s_keyboard_layout)
+{
+  w[0] = (s_keyboard_layout[(w[0] >>  0) & 0xff] <<  0)
+       | (s_keyboard_layout[(w[0] >>  8) & 0xff] <<  8)
+       | (s_keyboard_layout[(w[0] >> 16) & 0xff] << 16)
+       | (s_keyboard_layout[(w[0] >> 24) & 0xff] << 24);
+
+  w[1] = (s_keyboard_layout[(w[1] >>  0) & 0xff] <<  0)
+       | (s_keyboard_layout[(w[1] >>  8) & 0xff] <<  8)
+       | (s_keyboard_layout[(w[1] >> 16) & 0xff] << 16)
+       | (s_keyboard_layout[(w[1] >> 24) & 0xff] << 24);
+
+  w[2] = (s_keyboard_layout[(w[2] >>  0) & 0xff] <<  0)
+       | (s_keyboard_layout[(w[2] >>  8) & 0xff] <<  8)
+       | (s_keyboard_layout[(w[2] >> 16) & 0xff] << 16)
+       | (s_keyboard_layout[(w[2] >> 24) & 0xff] << 24);
+
+  w[3] = (s_keyboard_layout[(w[3] >>  0) & 0xff] <<  0)
+       | (s_keyboard_layout[(w[3] >>  8) & 0xff] <<  8)
+       | (s_keyboard_layout[(w[3] >> 16) & 0xff] << 16)
+       | (s_keyboard_layout[(w[3] >> 24) & 0xff] << 24);
+}
+
 DECLSPEC u32 u8add (const u32 a, const u32 b)
 {
   const u32 a1 = (a >>  0) & 0xff;
@@ -83,13 +106,28 @@ DECLSPEC void hmac_ripemd160_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x
 
 __kernel void m06211_init (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global tc_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const tc_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
 {
+  const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+
+  /**
+   * keyboard layout shared
+   */
+
+  __local u32 s_keyboard_layout[256];
+
+  for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
+  {
+    s_keyboard_layout[i] = esalt_bufs[digests_offset].keyboard_layout[i];
+  }
+
+  barrier (CLK_LOCAL_MEM_FENCE);
+
+  if (gid >= gid_max) return;
+
   /**
    * base
    */
-
-  const u64 gid = get_global_id (0);
-
-  if (gid >= gid_max) return;
 
   u32 w0[4];
   u32 w1[4];
@@ -112,6 +150,11 @@ __kernel void m06211_init (__global pw_t *pws, __global const kernel_rule_t *rul
   w3[1] = pws[gid].i[13];
   w3[2] = pws[gid].i[14];
   w3[3] = pws[gid].i[15];
+
+  keyboard_map (w0, s_keyboard_layout);
+  keyboard_map (w1, s_keyboard_layout);
+  keyboard_map (w2, s_keyboard_layout);
+  keyboard_map (w3, s_keyboard_layout);
 
   w0[0] = u8add (w0[0], esalt_bufs[digests_offset].keyfile_buf[ 0]);
   w0[1] = u8add (w0[1], esalt_bufs[digests_offset].keyfile_buf[ 1]);

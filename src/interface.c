@@ -21,6 +21,7 @@
 #include "shared.h"
 #include "opencl.h"
 #include "interface.h"
+#include "filehandling.h"
 #include "ext_lzma.h"
 
 static const char *ST_PASS_HASHCAT_PLAIN = "hashcat";
@@ -2625,6 +2626,86 @@ static int input_tokenizer (u8 *input_buf, int input_len, token_t *token)
   }
 
   return PARSER_OK;
+}
+
+static bool initialize_keyboard_layout (hashcat_ctx_t *hashcat_ctx, const char *filename, u32 *keyboard_layout)
+{
+  char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
+
+  FILE *fp = fopen (filename, "r");
+
+  if (fp == NULL)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", filename, strerror (errno));
+
+    return false;
+  }
+
+  u32 verifyF[256] = { 0 };
+  u32 verifyT[256] = { 0 };
+
+  while (!feof (fp))
+  {
+    const size_t line_len = fgetl (fp, line_buf);
+
+    if (line_len == 0) continue;
+
+    token_t token;
+
+    token.token_cnt = 2;
+
+    token.len_min[0] = 1;
+    token.len_max[0] = 1;
+    token.sep[0]     = '=';
+    token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+    token.len_min[1] = 1;
+    token.len_max[1] = 1;
+    token.sep[1]     = '=';
+    token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+    const int rc_tokenizer = input_tokenizer ((u8 *) line_buf, line_len, &token);
+
+    if (rc_tokenizer != PARSER_OK)
+    {
+      event_log_error (hashcat_ctx, "%s: Syntax error: %s", filename, line_buf);
+
+      free (line_buf);
+
+      return false;
+    }
+
+    const u8 from = token.buf[0][0];
+    const u8 to   = token.buf[1][0];
+
+    keyboard_layout[from] = to;
+
+    verifyF[from]++;
+    verifyT[to]++;
+  }
+
+  fclose (fp);
+
+  free (line_buf);
+
+  for (int i = 0x20; i < 0x7f; i++)
+  {
+    if (verifyF[i] > 1)
+    {
+      event_log_error (hashcat_ctx, "%s: Mapping error: defined '%c' too often in from section", filename, i);
+
+      return false;
+    }
+
+    if (verifyT[i] > 1)
+    {
+      event_log_error (hashcat_ctx, "%s: Mapping error: defined '%c' too often in to section", filename, i);
+
+      return false;
+    }
+  }
+
+  return true;
 }
 
 static bool parse_and_store_generic_salt (u8 *out_buf, int *out_len, const u8 *in_buf, const int in_len, MAYBE_UNUSED hashconfig_t *hashconfig)
@@ -6943,6 +7024,11 @@ int truecrypt_parse_hash_1k (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAY
   const float entropy = get_entropy (buf, n);
 
   if (entropy < MIN_SUFFICIENT_ENTROPY_FILE) return (PARSER_INSUFFICIENT_ENTROPY);
+
+  for (int i = 0; i < 256; i++)
+  {
+    tc->keyboard_layout[i] = i;
+  }
 
   memcpy (tc->salt_buf, buf, 64);
 
@@ -29146,112 +29232,140 @@ int hashconfig_get_salt_max (hashcat_ctx_t *hashcat_ctx, const bool optimized_ke
 
 int hashconfig_general_defaults (hashcat_ctx_t *hashcat_ctx)
 {
-  hashconfig_t         *hashconfig   = hashcat_ctx->hashconfig;
-  const user_options_t *user_options = hashcat_ctx->user_options;
+  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  user_options_t *user_options = hashcat_ctx->user_options;
 
-  char *optional_param1 = NULL;
-
-  if (user_options->truecrypt_keyfiles) optional_param1 = user_options->truecrypt_keyfiles;
-  if (user_options->veracrypt_keyfiles) optional_param1 = user_options->veracrypt_keyfiles;
-
-  if (optional_param1)
+  // truecrypt and veracrypt only
+  if (((hashconfig->hash_mode >=  6200) && (hashconfig->hash_mode <=  6299))
+   || ((hashconfig->hash_mode >= 13700) && (hashconfig->hash_mode == 13799)))
   {
-    const hashes_t *hashes = hashcat_ctx->hashes;
+    hashes_t *hashes = hashcat_ctx->hashes;
 
-    void *esalts_buf = hashes->esalts_buf;
+    tc_t *tc = (tc_t *) hashes->esalts_buf;
 
-    char *tcvc_keyfiles = optional_param1;
+    char *optional_param1 = NULL;
 
-    u32 *keyfile_buf = ((tc_t *) esalts_buf)->keyfile_buf;
+    if (user_options->truecrypt_keyfiles) optional_param1 = user_options->truecrypt_keyfiles;
+    if (user_options->veracrypt_keyfiles) optional_param1 = user_options->veracrypt_keyfiles;
 
-    char *keyfiles = hcstrdup (tcvc_keyfiles);
-
-    if (keyfiles == NULL) return -1;
-
-    char *saveptr = NULL;
-
-    char *keyfile = strtok_r (keyfiles, ",", &saveptr);
-
-    if (keyfile == NULL)
+    if (optional_param1)
     {
-      free (keyfiles);
+      char *tcvc_keyfiles = optional_param1;
 
-      return -1;
-    }
+      char *keyfiles = hcstrdup (tcvc_keyfiles);
 
-    do
-    {
-      const int rc_crc32 = cpu_crc32 (hashcat_ctx, keyfile, (u8 *) keyfile_buf);
+      if (keyfiles == NULL) return -1;
 
-      if (rc_crc32 == -1)
+      char *saveptr = NULL;
+
+      char *keyfile = strtok_r (keyfiles, ",", &saveptr);
+
+      if (keyfile == NULL)
       {
         free (keyfiles);
 
         return -1;
       }
 
-    } while ((keyfile = strtok_r ((char *) NULL, ",", &saveptr)) != NULL);
+      do
+      {
+        const int rc_crc32 = cpu_crc32 (hashcat_ctx, keyfile, (u8 *) tc->keyfile_buf);
 
-    free (keyfiles);
-  }
+        if (rc_crc32 == -1)
+        {
+          free (keyfiles);
 
-  if (user_options->veracrypt_pim)
-  {
-    // we can access salt directly here because in VC it's always just one salt not many
+          return -1;
+        }
 
-    const hashes_t *hashes = hashcat_ctx->hashes;
+      } while ((keyfile = strtok_r ((char *) NULL, ",", &saveptr)) != NULL);
 
-    salt_t *salts_buf = hashes->salts_buf;
-
-    salt_t *salt = &salts_buf[0];
-
-    switch (hashconfig->hash_mode)
-    {
-      case 13711:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
-                   break;
-      case 13712:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
-                   break;
-      case 13713:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
-                   break;
-      case 13721:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
-                   break;
-      case 13722:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
-                   break;
-      case 13723:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
-                   break;
-      case 13731:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
-                   break;
-      case 13732:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
-                   break;
-      case 13733:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
-                   break;
-      case 13741:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
-                   break;
-      case 13742:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
-                   break;
-      case 13743:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
-                   break;
-      case 13751:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
-                   break;
-      case 13752:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
-                   break;
-      case 13753:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
-                   break;
-      case 13761:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
-                   break;
-      case 13762:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
-                   break;
-      case 13763:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
-                   break;
-      case 13771:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
-                   break;
-      case 13772:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
-                   break;
-      case 13773:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
-                   break;
+      free (keyfiles);
     }
 
-    salt->salt_iter -= 1;
+    // truecrypt and veracrypt boot only
+    if ((hashconfig->hash_mode == 6241)
+     || (hashconfig->hash_mode == 6242)
+     || (hashconfig->hash_mode == 6243)
+     || (hashconfig->hash_mode == 13741)
+     || (hashconfig->hash_mode == 13742)
+     || (hashconfig->hash_mode == 13743)
+     || (hashconfig->hash_mode == 13761)
+     || (hashconfig->hash_mode == 13762)
+     || (hashconfig->hash_mode == 13763))
+    {
+      char *optional_param2 = NULL;
+
+      if (user_options->truecrypt_keyboard_layout) optional_param2 = user_options->truecrypt_keyboard_layout;
+      if (user_options->veracrypt_keyboard_layout) optional_param2 = user_options->veracrypt_keyboard_layout;
+
+      const bool rc = initialize_keyboard_layout (hashcat_ctx, optional_param2, tc->keyboard_layout);
+
+      if (rc == false) return -1;
+    }
+  }
+
+  // veracrypt only
+  if ((hashconfig->hash_mode >= 13700) && (hashconfig->hash_mode == 13799))
+  {
+    if (user_options->veracrypt_pim)
+    {
+      // we can access salt directly here because in VC it's always just one salt not many
+
+      hashes_t *hashes = hashcat_ctx->hashes;
+
+      salt_t *salts_buf = hashes->salts_buf;
+
+      salt_t *salt = &salts_buf[0];
+
+      switch (hashconfig->hash_mode)
+      {
+        case 13711:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13712:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13713:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13721:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13722:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13723:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13731:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13732:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13733:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13741:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
+                     break;
+        case 13742:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
+                     break;
+        case 13743:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
+                     break;
+        case 13751:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13752:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13753:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13761:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
+                     break;
+        case 13762:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
+                     break;
+        case 13763:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
+                     break;
+        case 13771:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13772:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13773:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+      }
+
+      salt->salt_iter -= 1;
+    }
   }
 
   return 0;
