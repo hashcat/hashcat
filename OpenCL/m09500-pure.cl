@@ -17,7 +17,7 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
-__kernel void m09500_init (KERN_ATTR_TMPS_ESALT (const office2010_tmp_t, office2010_t))
+__kernel void m09500_init (KERN_ATTR_TMPS_ESALT (office2010_tmp_t, office2010_t))
 {
   /**
    * base
@@ -44,7 +44,7 @@ __kernel void m09500_init (KERN_ATTR_TMPS_ESALT (const office2010_tmp_t, office2
   tmps[gid].out[4] = ctx.h[4];
 }
 
-__kernel void m09500_loop (KERN_ATTR_TMPS_ESALT (const office2010_tmp_t, office2010_t))
+__kernel void m09500_loop (KERN_ATTR_TMPS_ESALT (office2010_tmp_t, office2010_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -111,7 +111,7 @@ __kernel void m09500_loop (KERN_ATTR_TMPS_ESALT (const office2010_tmp_t, office2
   unpackv (tmps, out, gid, 4, t4);
 }
 
-__kernel void m09500_comp (KERN_ATTR_TMPS_ESALT (const office2010_tmp_t, office2010_t))
+__kernel void m09500_comp (KERN_ATTR_TMPS_ESALT (office2010_tmp_t, office2010_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);

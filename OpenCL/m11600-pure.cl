@@ -111,7 +111,7 @@ DECLSPEC void memcat8c_be (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 len, co
   }
 }
 
-__kernel void m11600_init (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global seven_zip_tmp_t *tmps, __global seven_zip_hook_t *seven_zip_hook, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m11600_init (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t, seven_zip_hook_t))
 {
   /**
    * base
@@ -158,7 +158,7 @@ __kernel void m11600_init (__global pw_t *pws, __global const kernel_rule_t *rul
   tmps[gid].len = ctx.len;
 }
 
-__kernel void m11600_loop (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global seven_zip_tmp_t *tmps, __global seven_zip_hook_t *seven_zip_hook, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m11600_loop (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t, seven_zip_hook_t))
 {
   /**
    * base
@@ -257,7 +257,7 @@ __kernel void m11600_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   tmps[gid].len = ctx.len;
 }
 
-__kernel void m11600_hook23 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global seven_zip_tmp_t *tmps, __global seven_zip_hook_t *seven_zip_hook, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m11600_hook23 (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t, seven_zip_hook_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -301,17 +301,17 @@ __kernel void m11600_hook23 (__global pw_t *pws, __global const kernel_rule_t *r
 
   sha256_final (&ctx);
 
-  seven_zip_hook[gid].ukey[0] = swap32_S (ctx.h[0]);
-  seven_zip_hook[gid].ukey[1] = swap32_S (ctx.h[1]);
-  seven_zip_hook[gid].ukey[2] = swap32_S (ctx.h[2]);
-  seven_zip_hook[gid].ukey[3] = swap32_S (ctx.h[3]);
-  seven_zip_hook[gid].ukey[4] = swap32_S (ctx.h[4]);
-  seven_zip_hook[gid].ukey[5] = swap32_S (ctx.h[5]);
-  seven_zip_hook[gid].ukey[6] = swap32_S (ctx.h[6]);
-  seven_zip_hook[gid].ukey[7] = swap32_S (ctx.h[7]);
+  hooks[gid].ukey[0] = swap32_S (ctx.h[0]);
+  hooks[gid].ukey[1] = swap32_S (ctx.h[1]);
+  hooks[gid].ukey[2] = swap32_S (ctx.h[2]);
+  hooks[gid].ukey[3] = swap32_S (ctx.h[3]);
+  hooks[gid].ukey[4] = swap32_S (ctx.h[4]);
+  hooks[gid].ukey[5] = swap32_S (ctx.h[5]);
+  hooks[gid].ukey[6] = swap32_S (ctx.h[6]);
+  hooks[gid].ukey[7] = swap32_S (ctx.h[7]);
 }
 
-__kernel void m11600_comp (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global seven_zip_tmp_t *tmps, __global seven_zip_hook_t *seven_zip_hook, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const void *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m11600_comp (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t, seven_zip_hook_t))
 {
   /**
    * base
@@ -321,7 +321,7 @@ __kernel void m11600_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   if (gid >= gid_max) return;
 
-  if (seven_zip_hook[gid].hook_success == 1)
+  if (hooks[gid].hook_success == 1)
   {
     if (atomic_inc (&hashes_shown[digests_offset]) == 0)
     {

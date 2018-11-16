@@ -44,10 +44,10 @@
   __global const salt_t *salt_bufs,      \
   __global const p19 *esalt_bufs,        \
   __global u32 *d_return_buf,            \
-  __global u32 *d_scryptV0_buf,          \
-  __global u32 *d_scryptV1_buf,          \
-  __global u32 *d_scryptV2_buf,          \
-  __global u32 *d_scryptV3_buf,          \
+  __global uint4 *d_scryptV0_buf,        \
+  __global uint4 *d_scryptV1_buf,        \
+  __global uint4 *d_scryptV2_buf,        \
+  __global uint4 *d_scryptV3_buf,        \
   const u32 bitmap_mask,                 \
   const u32 bitmap_shift1,               \
   const u32 bitmap_shift2,               \
@@ -75,6 +75,7 @@
 #define KERN_ATTR_RULES_ESALT(e)  KERN_ATTR (__constant, __global   const bf_t      *bfs_buf,     void, void, e)
 #define KERN_ATTR_TMPS(t)         KERN_ATTR (__global,   __global   const bf_t      *bfs_buf,     t,    void, void)
 #define KERN_ATTR_TMPS_ESALT(t,e) KERN_ATTR (__global,   __global   const bf_t      *bfs_buf,     t,    void, e)
+#define KERN_ATTR_TMPS_HOOKS(t,h) KERN_ATTR (__global,   __global   const bf_t      *bfs_buf,     t,    h,    void)
 #define KERN_ATTR_VECTOR()        KERN_ATTR (__global,   __constant const u32x      *words_buf_r, void, void, void)
 #define KERN_ATTR_VECTOR_ESALT(e) KERN_ATTR (__global,   __constant const u32x      *words_buf_r, void, void, e)
 

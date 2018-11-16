@@ -72,7 +72,7 @@ DECLSPEC void hmac_sha512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w
   sha512_transform_vector (w0, w1, w2, w3, w4, w5, w6, w7, digest);
 }
 
-__kernel void m11300_init (KERN_ATTR_TMPS_ESALT (const bitcoin_wallet_tmp_t, bitcoin_wallet_t))
+__kernel void m11300_init (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_wallet_t))
 {
   /**
    * base
@@ -102,7 +102,7 @@ __kernel void m11300_init (KERN_ATTR_TMPS_ESALT (const bitcoin_wallet_tmp_t, bit
   tmps[gid].dgst[7] = ctx.h[7];
 }
 
-__kernel void m11300_loop (KERN_ATTR_TMPS_ESALT (const bitcoin_wallet_tmp_t, bitcoin_wallet_t))
+__kernel void m11300_loop (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_wallet_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -211,7 +211,7 @@ __kernel void m11300_loop (KERN_ATTR_TMPS_ESALT (const bitcoin_wallet_tmp_t, bit
   unpack64v (tmps, dgst, gid, 7, t7);
 }
 
-__kernel void m11300_comp (KERN_ATTR_TMPS_ESALT (const bitcoin_wallet_tmp_t, bitcoin_wallet_t))
+__kernel void m11300_comp (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t, bitcoin_wallet_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
