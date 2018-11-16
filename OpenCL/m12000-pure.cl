@@ -52,7 +52,7 @@ DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipa
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-__kernel void m12000_init (KERN_ATTR_TMPS_ESALT (const pbkdf2_sha1_tmp_t, pbkdf2_sha1_t))
+__kernel void m12000_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, pbkdf2_sha1_t))
 {
   /**
    * base
@@ -124,7 +124,7 @@ __kernel void m12000_init (KERN_ATTR_TMPS_ESALT (const pbkdf2_sha1_tmp_t, pbkdf2
   }
 }
 
-__kernel void m12000_loop (KERN_ATTR_TMPS_ESALT (const pbkdf2_sha1_tmp_t, pbkdf2_sha1_t))
+__kernel void m12000_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, pbkdf2_sha1_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -209,7 +209,7 @@ __kernel void m12000_loop (KERN_ATTR_TMPS_ESALT (const pbkdf2_sha1_tmp_t, pbkdf2
   }
 }
 
-__kernel void m12000_comp (KERN_ATTR_TMPS_ESALT (const pbkdf2_sha1_tmp_t, pbkdf2_sha1_t))
+__kernel void m12000_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, pbkdf2_sha1_t))
 {
   /**
    * base
