@@ -481,7 +481,7 @@ DECLSPEC void gen336 (u32 *digest_pre, u32 *salt_buf, u32 *digest)
   md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09700_m04 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global oldoffice01_t *oldoffice01_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09700_m04 (KERN_ATTR_ESALT (oldoffice01_t))
 {
   /**
    * modifier
@@ -534,14 +534,14 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09700_m04 (__glob
    * esalt
    */
 
-  const u32 version = oldoffice01_bufs[digests_offset].version;
+  const u32 version = esalt_bufs[digests_offset].version;
 
   u32 encryptedVerifier[4];
 
-  encryptedVerifier[0] = oldoffice01_bufs[digests_offset].encryptedVerifier[0];
-  encryptedVerifier[1] = oldoffice01_bufs[digests_offset].encryptedVerifier[1];
-  encryptedVerifier[2] = oldoffice01_bufs[digests_offset].encryptedVerifier[2];
-  encryptedVerifier[3] = oldoffice01_bufs[digests_offset].encryptedVerifier[3];
+  encryptedVerifier[0] = esalt_bufs[digests_offset].encryptedVerifier[0];
+  encryptedVerifier[1] = esalt_bufs[digests_offset].encryptedVerifier[1];
+  encryptedVerifier[2] = esalt_bufs[digests_offset].encryptedVerifier[2];
+  encryptedVerifier[3] = esalt_bufs[digests_offset].encryptedVerifier[3];
 
   /**
    * loop
@@ -720,15 +720,15 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09700_m04 (__glob
   }
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09700_m08 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global oldoffice01_t *oldoffice01_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09700_m08 (KERN_ATTR_ESALT (oldoffice01_t))
 {
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09700_m16 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global oldoffice01_t *oldoffice01_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09700_m16 (KERN_ATTR_ESALT (oldoffice01_t))
 {
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09700_s04 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global oldoffice01_t *oldoffice01_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09700_s04 (KERN_ATTR_ESALT (oldoffice01_t))
 {
   /**
    * modifier
@@ -781,14 +781,14 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09700_s04 (__glob
    * esalt
    */
 
-  const u32 version = oldoffice01_bufs[digests_offset].version;
+  const u32 version = esalt_bufs[digests_offset].version;
 
   u32 encryptedVerifier[4];
 
-  encryptedVerifier[0] = oldoffice01_bufs[digests_offset].encryptedVerifier[0];
-  encryptedVerifier[1] = oldoffice01_bufs[digests_offset].encryptedVerifier[1];
-  encryptedVerifier[2] = oldoffice01_bufs[digests_offset].encryptedVerifier[2];
-  encryptedVerifier[3] = oldoffice01_bufs[digests_offset].encryptedVerifier[3];
+  encryptedVerifier[0] = esalt_bufs[digests_offset].encryptedVerifier[0];
+  encryptedVerifier[1] = esalt_bufs[digests_offset].encryptedVerifier[1];
+  encryptedVerifier[2] = esalt_bufs[digests_offset].encryptedVerifier[2];
+  encryptedVerifier[3] = esalt_bufs[digests_offset].encryptedVerifier[3];
 
   /**
    * digest
@@ -979,10 +979,10 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09700_s04 (__glob
   }
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09700_s08 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global oldoffice01_t *oldoffice01_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09700_s08 (KERN_ATTR_ESALT (oldoffice01_t))
 {
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09700_s16 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global oldoffice01_t *oldoffice01_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m09700_s16 (KERN_ATTR_ESALT (oldoffice01_t))
 {
 }

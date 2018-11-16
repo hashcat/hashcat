@@ -377,7 +377,7 @@ DECLSPEC void kerb_prepare (const u32 *K, const u32 *checksum, u32 *digest, u32 
   K2[3] = ctx1.opad.h[3];
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_mxx (__global pw_t *pws, __constant const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const krb5tgs_t *krb5tgs_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_mxx (KERN_ATTR_RULES_ESALT (krb5tgs_t))
 {
   /**
    * modifier
@@ -400,10 +400,10 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_mxx (__glob
 
   u32 checksum[4];
 
-  checksum[0] = krb5tgs_bufs[digests_offset].checksum[0];
-  checksum[1] = krb5tgs_bufs[digests_offset].checksum[1];
-  checksum[2] = krb5tgs_bufs[digests_offset].checksum[2];
-  checksum[3] = krb5tgs_bufs[digests_offset].checksum[3];
+  checksum[0] = esalt_bufs[digests_offset].checksum[0];
+  checksum[1] = esalt_bufs[digests_offset].checksum[1];
+  checksum[2] = esalt_bufs[digests_offset].checksum[2];
+  checksum[3] = esalt_bufs[digests_offset].checksum[3];
 
   /**
    * loop
@@ -429,7 +429,7 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_mxx (__glob
 
     kerb_prepare (ctx.h, checksum, digest, K2);
 
-    if (decrypt_and_check (rc4_key, digest, krb5tgs_bufs[digests_offset].edata2, krb5tgs_bufs[digests_offset].edata2_len, K2, checksum) == 1)
+    if (decrypt_and_check (rc4_key, digest, esalt_bufs[digests_offset].edata2, esalt_bufs[digests_offset].edata2_len, K2, checksum) == 1)
     {
       if (atomic_inc (&hashes_shown[digests_offset]) == 0)
       {
@@ -439,7 +439,7 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_mxx (__glob
   }
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_sxx (__global pw_t *pws, __constant const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const krb5tgs_t *krb5tgs_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_sxx (KERN_ATTR_RULES_ESALT (krb5tgs_t))
 {
   /**
    * modifier
@@ -462,10 +462,10 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_sxx (__glob
 
   u32 checksum[4];
 
-  checksum[0] = krb5tgs_bufs[digests_offset].checksum[0];
-  checksum[1] = krb5tgs_bufs[digests_offset].checksum[1];
-  checksum[2] = krb5tgs_bufs[digests_offset].checksum[2];
-  checksum[3] = krb5tgs_bufs[digests_offset].checksum[3];
+  checksum[0] = esalt_bufs[digests_offset].checksum[0];
+  checksum[1] = esalt_bufs[digests_offset].checksum[1];
+  checksum[2] = esalt_bufs[digests_offset].checksum[2];
+  checksum[3] = esalt_bufs[digests_offset].checksum[3];
 
   /**
    * loop
@@ -491,7 +491,7 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_sxx (__glob
 
     kerb_prepare (ctx.h, checksum, digest, K2);
 
-    if (decrypt_and_check (rc4_key, digest, krb5tgs_bufs[digests_offset].edata2, krb5tgs_bufs[digests_offset].edata2_len, K2, checksum) == 1)
+    if (decrypt_and_check (rc4_key, digest, esalt_bufs[digests_offset].edata2, esalt_bufs[digests_offset].edata2_len, K2, checksum) == 1)
     {
       if (atomic_inc (&hashes_shown[digests_offset]) == 0)
       {

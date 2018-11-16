@@ -3,6 +3,81 @@
  * License.....: MIT
  */
 
+/*
+ * Prototype kernel function that fits all kernel macros
+ *
+ * There are four variables where major differences occur:
+ *
+ *   -  P2: Adress space of kernel_rules_t struct. If the kernel uses rules_buf,
+ *          it will be stored in __constant. If it does not, cheaper __global
+ *          space is used.
+ *
+ *   -  P4: Word buffer. Most kernels use a bf_t structure in __global space.
+ *          Some use u32x pointer to a vector in __constant address space. A
+ *          few use a specific bs_word_t struct. Those three kernel presets are
+ *          called _BASIC, _VECTOR and _BITSLICE respectively.
+ *
+ *   -  P5: Type of the tmps structure with additional data, or void.
+ *
+ *   - P19: Type of the esalt_bufs structure with additional data, or void.
+ */
+#define KERN_ATTR(P2,P4,P5,P6,P19)       \
+  __global pw_t *pws,                    \
+  P2 const kernel_rule_t *rules_buf,     \
+  __global const pw_t *combs_buf,        \
+  P4,                                    \
+  __global P5 *tmps,                     \
+  __global P6 *hooks,                    \
+  __global const u32 *bitmaps_buf_s1_a,  \
+  __global const u32 *bitmaps_buf_s1_b,  \
+  __global const u32 *bitmaps_buf_s1_c,  \
+  __global const u32 *bitmaps_buf_s1_d,  \
+  __global const u32 *bitmaps_buf_s2_a,  \
+  __global const u32 *bitmaps_buf_s2_b,  \
+  __global const u32 *bitmaps_buf_s2_c,  \
+  __global const u32 *bitmaps_buf_s2_d,  \
+  __global plain_t *plains_buf,          \
+  __global const digest_t *digests_buf,  \
+  __global u32 *hashes_shown,            \
+  __global const salt_t *salt_bufs,      \
+  __global const P19 *esalt_bufs,        \
+  __global u32 *d_return_buf,            \
+  __global u32 *d_scryptV0_buf,          \
+  __global u32 *d_scryptV1_buf,          \
+  __global u32 *d_scryptV2_buf,          \
+  __global u32 *d_scryptV3_buf,          \
+  const u32 bitmap_mask,                 \
+  const u32 bitmap_shift1,               \
+  const u32 bitmap_shift2,               \
+  const u32 salt_pos,                    \
+  const u32 loop_pos,                    \
+  const u32 loop_cnt,                    \
+  const u32 il_cnt,                      \
+  const u32 digests_cnt,                 \
+  const u32 digests_offset,              \
+  const u32 combs_mode,                  \
+  const u64 gid_max
+
+/*
+ * Shortcut macros for usage in the actual kernels
+ *
+ * Not all possible combinations are needed. E.g. all kernels that use rules
+ * do not use the tmps pointer, all kernels that use a vector pointer in P4
+ * do not use rules or tmps, etc.
+ */
+#define KERN_ATTR_BASIC           KERN_ATTR (  __global,   __global const bf_t      *bfs_buf,     void, void, void)
+#define KERN_ATTR_TMPS(X)         KERN_ATTR (  __global,   __global const bf_t      *bfs_buf,        X, void, void)
+#define KERN_ATTR_ESALT(X)        KERN_ATTR (  __global,   __global const bf_t      *bfs_buf,     void, void,    X)
+#define KERN_ATTR_TMPS_ESALT(X,Y) KERN_ATTR (  __global,   __global const bf_t      *bfs_buf,        X, void,    Y)
+
+#define KERN_ATTR_RULES           KERN_ATTR (__constant,   __global const bf_t      *bfs_buf,     void, void, void)
+#define KERN_ATTR_RULES_ESALT(X)  KERN_ATTR (__constant,   __global const bf_t      *bfs_buf,     void, void,    X)
+
+#define KERN_ATTR_VECTOR          KERN_ATTR (  __global, __constant const u32x      *words_buf_r, void, void, void)
+#define KERN_ATTR_VECTOR_ESALT(X) KERN_ATTR (  __global, __constant const u32x      *words_buf_r, void, void,    X)
+
+#define KERN_ATTR_BITSLICE        KERN_ATTR (  __global, __constant const bs_word_t *words_buf_r, void, void, void)
+
 /**
  * pure scalar functions
  */

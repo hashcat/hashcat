@@ -102,7 +102,7 @@ DECLSPEC void hmac_sha1_run (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad,
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-__kernel void m05400_m04 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global ikepsk_t *ikepsk_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m05400_m04 (KERN_ATTR_ESALT (ikepsk_t))
 {
   /**
    * modifier
@@ -120,14 +120,14 @@ __kernel void m05400_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (MAYBE_VOLATILE u32 i = lid; i < 16; i += lsz)
   {
-    s_nr_buf[i] = swap32_S (ikepsk_bufs[digests_offset].nr_buf[i]);
+    s_nr_buf[i] = swap32_S (esalt_bufs[digests_offset].nr_buf[i]);
   }
 
   __local u32 s_msg_buf[128];
 
   for (MAYBE_VOLATILE u32 i = lid; i < 128; i += lsz)
   {
-    s_msg_buf[i] = swap32_S (ikepsk_bufs[digests_offset].msg_buf[i]);
+    s_msg_buf[i] = swap32_S (esalt_bufs[digests_offset].msg_buf[i]);
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
@@ -156,8 +156,8 @@ __kernel void m05400_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
    * salt
    */
 
-  const u32 nr_len  = ikepsk_bufs[digests_offset].nr_len;
-  const u32 msg_len = ikepsk_bufs[digests_offset].msg_len;
+  const u32 nr_len  = esalt_bufs[digests_offset].nr_len;
+  const u32 msg_len = esalt_bufs[digests_offset].msg_len;
 
   /**
    * loop
@@ -301,7 +301,7 @@ __kernel void m05400_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
     int left;
     int off;
 
-    for (left = ikepsk_bufs[digests_offset].msg_len, off = 0; left >= 56; left -= 64, off += 16)
+    for (left = esalt_bufs[digests_offset].msg_len, off = 0; left >= 56; left -= 64, off += 16)
     {
       w0[0] = s_msg_buf[off +  0];
       w0[1] = s_msg_buf[off +  1];
@@ -346,15 +346,15 @@ __kernel void m05400_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
   }
 }
 
-__kernel void m05400_m08 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global ikepsk_t *ikepsk_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m05400_m08 (KERN_ATTR_ESALT (ikepsk_t))
 {
 }
 
-__kernel void m05400_m16 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global ikepsk_t *ikepsk_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m05400_m16 (KERN_ATTR_ESALT (ikepsk_t))
 {
 }
 
-__kernel void m05400_s04 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global ikepsk_t *ikepsk_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m05400_s04 (KERN_ATTR_ESALT (ikepsk_t))
 {
   /**
    * modifier
@@ -372,14 +372,14 @@ __kernel void m05400_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
 
   for (MAYBE_VOLATILE u32 i = lid; i < 16; i += lsz)
   {
-    s_nr_buf[i] = swap32_S (ikepsk_bufs[digests_offset].nr_buf[i]);
+    s_nr_buf[i] = swap32_S (esalt_bufs[digests_offset].nr_buf[i]);
   }
 
   __local u32 s_msg_buf[128];
 
   for (MAYBE_VOLATILE u32 i = lid; i < 128; i += lsz)
   {
-    s_msg_buf[i] = swap32_S (ikepsk_bufs[digests_offset].msg_buf[i]);
+    s_msg_buf[i] = swap32_S (esalt_bufs[digests_offset].msg_buf[i]);
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
@@ -408,8 +408,8 @@ __kernel void m05400_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
    * salt
    */
 
-  const u32 nr_len  = ikepsk_bufs[digests_offset].nr_len;
-  const u32 msg_len = ikepsk_bufs[digests_offset].msg_len;
+  const u32 nr_len  = esalt_bufs[digests_offset].nr_len;
+  const u32 msg_len = esalt_bufs[digests_offset].msg_len;
 
   /**
    * digest
@@ -565,7 +565,7 @@ __kernel void m05400_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
     int left;
     int off;
 
-    for (left = ikepsk_bufs[digests_offset].msg_len, off = 0; left >= 56; left -= 64, off += 16)
+    for (left = esalt_bufs[digests_offset].msg_len, off = 0; left >= 56; left -= 64, off += 16)
     {
       w0[0] = s_msg_buf[off +  0];
       w0[1] = s_msg_buf[off +  1];
@@ -610,10 +610,10 @@ __kernel void m05400_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
   }
 }
 
-__kernel void m05400_s08 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global ikepsk_t *ikepsk_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m05400_s08 (KERN_ATTR_ESALT (ikepsk_t))
 {
 }
 
-__kernel void m05400_s16 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global ikepsk_t *ikepsk_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m05400_s16 (KERN_ATTR_ESALT (ikepsk_t))
 {
 }

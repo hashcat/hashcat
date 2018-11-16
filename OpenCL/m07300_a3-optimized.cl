@@ -102,7 +102,7 @@ DECLSPEC void hmac_sha1_run (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad,
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-DECLSPEC void m07300m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, __global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global rakp_t *rakp_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
+DECLSPEC void m07300m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, __global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const rakp_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
 {
   /**
    * modifier
@@ -115,7 +115,7 @@ DECLSPEC void m07300m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, __g
    * salt
    */
 
-  const u32 esalt_len = rakp_bufs[digests_offset].salt_len;
+  const u32 esalt_len = esalt_bufs[digests_offset].salt_len;
 
   /**
    * loop
@@ -167,40 +167,40 @@ DECLSPEC void m07300m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, __g
 
     for (esalt_left = esalt_size, esalt_off = 0; esalt_left >= 56; esalt_left -= 64, esalt_off += 16)
     {
-      w0_t[0] = rakp_bufs[digests_offset].salt_buf[esalt_off +  0];
-      w0_t[1] = rakp_bufs[digests_offset].salt_buf[esalt_off +  1];
-      w0_t[2] = rakp_bufs[digests_offset].salt_buf[esalt_off +  2];
-      w0_t[3] = rakp_bufs[digests_offset].salt_buf[esalt_off +  3];
-      w1_t[0] = rakp_bufs[digests_offset].salt_buf[esalt_off +  4];
-      w1_t[1] = rakp_bufs[digests_offset].salt_buf[esalt_off +  5];
-      w1_t[2] = rakp_bufs[digests_offset].salt_buf[esalt_off +  6];
-      w1_t[3] = rakp_bufs[digests_offset].salt_buf[esalt_off +  7];
-      w2_t[0] = rakp_bufs[digests_offset].salt_buf[esalt_off +  8];
-      w2_t[1] = rakp_bufs[digests_offset].salt_buf[esalt_off +  9];
-      w2_t[2] = rakp_bufs[digests_offset].salt_buf[esalt_off + 10];
-      w2_t[3] = rakp_bufs[digests_offset].salt_buf[esalt_off + 11];
-      w3_t[0] = rakp_bufs[digests_offset].salt_buf[esalt_off + 12];
-      w3_t[1] = rakp_bufs[digests_offset].salt_buf[esalt_off + 13];
-      w3_t[2] = rakp_bufs[digests_offset].salt_buf[esalt_off + 14];
-      w3_t[3] = rakp_bufs[digests_offset].salt_buf[esalt_off + 15];
+      w0_t[0] = esalt_bufs[digests_offset].salt_buf[esalt_off +  0];
+      w0_t[1] = esalt_bufs[digests_offset].salt_buf[esalt_off +  1];
+      w0_t[2] = esalt_bufs[digests_offset].salt_buf[esalt_off +  2];
+      w0_t[3] = esalt_bufs[digests_offset].salt_buf[esalt_off +  3];
+      w1_t[0] = esalt_bufs[digests_offset].salt_buf[esalt_off +  4];
+      w1_t[1] = esalt_bufs[digests_offset].salt_buf[esalt_off +  5];
+      w1_t[2] = esalt_bufs[digests_offset].salt_buf[esalt_off +  6];
+      w1_t[3] = esalt_bufs[digests_offset].salt_buf[esalt_off +  7];
+      w2_t[0] = esalt_bufs[digests_offset].salt_buf[esalt_off +  8];
+      w2_t[1] = esalt_bufs[digests_offset].salt_buf[esalt_off +  9];
+      w2_t[2] = esalt_bufs[digests_offset].salt_buf[esalt_off + 10];
+      w2_t[3] = esalt_bufs[digests_offset].salt_buf[esalt_off + 11];
+      w3_t[0] = esalt_bufs[digests_offset].salt_buf[esalt_off + 12];
+      w3_t[1] = esalt_bufs[digests_offset].salt_buf[esalt_off + 13];
+      w3_t[2] = esalt_bufs[digests_offset].salt_buf[esalt_off + 14];
+      w3_t[3] = esalt_bufs[digests_offset].salt_buf[esalt_off + 15];
 
       sha1_transform_vector (w0_t, w1_t, w2_t, w3_t, ipad);
     }
 
-    w0_t[0] = rakp_bufs[digests_offset].salt_buf[esalt_off +  0];
-    w0_t[1] = rakp_bufs[digests_offset].salt_buf[esalt_off +  1];
-    w0_t[2] = rakp_bufs[digests_offset].salt_buf[esalt_off +  2];
-    w0_t[3] = rakp_bufs[digests_offset].salt_buf[esalt_off +  3];
-    w1_t[0] = rakp_bufs[digests_offset].salt_buf[esalt_off +  4];
-    w1_t[1] = rakp_bufs[digests_offset].salt_buf[esalt_off +  5];
-    w1_t[2] = rakp_bufs[digests_offset].salt_buf[esalt_off +  6];
-    w1_t[3] = rakp_bufs[digests_offset].salt_buf[esalt_off +  7];
-    w2_t[0] = rakp_bufs[digests_offset].salt_buf[esalt_off +  8];
-    w2_t[1] = rakp_bufs[digests_offset].salt_buf[esalt_off +  9];
-    w2_t[2] = rakp_bufs[digests_offset].salt_buf[esalt_off + 10];
-    w2_t[3] = rakp_bufs[digests_offset].salt_buf[esalt_off + 11];
-    w3_t[0] = rakp_bufs[digests_offset].salt_buf[esalt_off + 12];
-    w3_t[1] = rakp_bufs[digests_offset].salt_buf[esalt_off + 13];
+    w0_t[0] = esalt_bufs[digests_offset].salt_buf[esalt_off +  0];
+    w0_t[1] = esalt_bufs[digests_offset].salt_buf[esalt_off +  1];
+    w0_t[2] = esalt_bufs[digests_offset].salt_buf[esalt_off +  2];
+    w0_t[3] = esalt_bufs[digests_offset].salt_buf[esalt_off +  3];
+    w1_t[0] = esalt_bufs[digests_offset].salt_buf[esalt_off +  4];
+    w1_t[1] = esalt_bufs[digests_offset].salt_buf[esalt_off +  5];
+    w1_t[2] = esalt_bufs[digests_offset].salt_buf[esalt_off +  6];
+    w1_t[3] = esalt_bufs[digests_offset].salt_buf[esalt_off +  7];
+    w2_t[0] = esalt_bufs[digests_offset].salt_buf[esalt_off +  8];
+    w2_t[1] = esalt_bufs[digests_offset].salt_buf[esalt_off +  9];
+    w2_t[2] = esalt_bufs[digests_offset].salt_buf[esalt_off + 10];
+    w2_t[3] = esalt_bufs[digests_offset].salt_buf[esalt_off + 11];
+    w3_t[0] = esalt_bufs[digests_offset].salt_buf[esalt_off + 12];
+    w3_t[1] = esalt_bufs[digests_offset].salt_buf[esalt_off + 13];
     w3_t[2] = 0;
     w3_t[3] = (64 + esalt_size) * 8;
 
@@ -212,7 +212,7 @@ DECLSPEC void m07300m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, __g
   }
 }
 
-DECLSPEC void m07300s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, __global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global rakp_t *rakp_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
+DECLSPEC void m07300s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, __global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global const rakp_t *esalt_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset)
 {
   /**
    * modifier
@@ -225,7 +225,7 @@ DECLSPEC void m07300s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, __g
    * salt
    */
 
-  const u32 esalt_len = rakp_bufs[digests_offset].salt_len;
+  const u32 esalt_len = esalt_bufs[digests_offset].salt_len;
 
   /**
    * digest
@@ -289,40 +289,40 @@ DECLSPEC void m07300s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, __g
 
     for (esalt_left = esalt_size, esalt_off = 0; esalt_left >= 56; esalt_left -= 64, esalt_off += 16)
     {
-      w0_t[0] = rakp_bufs[digests_offset].salt_buf[esalt_off +  0];
-      w0_t[1] = rakp_bufs[digests_offset].salt_buf[esalt_off +  1];
-      w0_t[2] = rakp_bufs[digests_offset].salt_buf[esalt_off +  2];
-      w0_t[3] = rakp_bufs[digests_offset].salt_buf[esalt_off +  3];
-      w1_t[0] = rakp_bufs[digests_offset].salt_buf[esalt_off +  4];
-      w1_t[1] = rakp_bufs[digests_offset].salt_buf[esalt_off +  5];
-      w1_t[2] = rakp_bufs[digests_offset].salt_buf[esalt_off +  6];
-      w1_t[3] = rakp_bufs[digests_offset].salt_buf[esalt_off +  7];
-      w2_t[0] = rakp_bufs[digests_offset].salt_buf[esalt_off +  8];
-      w2_t[1] = rakp_bufs[digests_offset].salt_buf[esalt_off +  9];
-      w2_t[2] = rakp_bufs[digests_offset].salt_buf[esalt_off + 10];
-      w2_t[3] = rakp_bufs[digests_offset].salt_buf[esalt_off + 11];
-      w3_t[0] = rakp_bufs[digests_offset].salt_buf[esalt_off + 12];
-      w3_t[1] = rakp_bufs[digests_offset].salt_buf[esalt_off + 13];
-      w3_t[2] = rakp_bufs[digests_offset].salt_buf[esalt_off + 14];
-      w3_t[3] = rakp_bufs[digests_offset].salt_buf[esalt_off + 15];
+      w0_t[0] = esalt_bufs[digests_offset].salt_buf[esalt_off +  0];
+      w0_t[1] = esalt_bufs[digests_offset].salt_buf[esalt_off +  1];
+      w0_t[2] = esalt_bufs[digests_offset].salt_buf[esalt_off +  2];
+      w0_t[3] = esalt_bufs[digests_offset].salt_buf[esalt_off +  3];
+      w1_t[0] = esalt_bufs[digests_offset].salt_buf[esalt_off +  4];
+      w1_t[1] = esalt_bufs[digests_offset].salt_buf[esalt_off +  5];
+      w1_t[2] = esalt_bufs[digests_offset].salt_buf[esalt_off +  6];
+      w1_t[3] = esalt_bufs[digests_offset].salt_buf[esalt_off +  7];
+      w2_t[0] = esalt_bufs[digests_offset].salt_buf[esalt_off +  8];
+      w2_t[1] = esalt_bufs[digests_offset].salt_buf[esalt_off +  9];
+      w2_t[2] = esalt_bufs[digests_offset].salt_buf[esalt_off + 10];
+      w2_t[3] = esalt_bufs[digests_offset].salt_buf[esalt_off + 11];
+      w3_t[0] = esalt_bufs[digests_offset].salt_buf[esalt_off + 12];
+      w3_t[1] = esalt_bufs[digests_offset].salt_buf[esalt_off + 13];
+      w3_t[2] = esalt_bufs[digests_offset].salt_buf[esalt_off + 14];
+      w3_t[3] = esalt_bufs[digests_offset].salt_buf[esalt_off + 15];
 
       sha1_transform_vector (w0_t, w1_t, w2_t, w3_t, ipad);
     }
 
-    w0_t[0] = rakp_bufs[digests_offset].salt_buf[esalt_off +  0];
-    w0_t[1] = rakp_bufs[digests_offset].salt_buf[esalt_off +  1];
-    w0_t[2] = rakp_bufs[digests_offset].salt_buf[esalt_off +  2];
-    w0_t[3] = rakp_bufs[digests_offset].salt_buf[esalt_off +  3];
-    w1_t[0] = rakp_bufs[digests_offset].salt_buf[esalt_off +  4];
-    w1_t[1] = rakp_bufs[digests_offset].salt_buf[esalt_off +  5];
-    w1_t[2] = rakp_bufs[digests_offset].salt_buf[esalt_off +  6];
-    w1_t[3] = rakp_bufs[digests_offset].salt_buf[esalt_off +  7];
-    w2_t[0] = rakp_bufs[digests_offset].salt_buf[esalt_off +  8];
-    w2_t[1] = rakp_bufs[digests_offset].salt_buf[esalt_off +  9];
-    w2_t[2] = rakp_bufs[digests_offset].salt_buf[esalt_off + 10];
-    w2_t[3] = rakp_bufs[digests_offset].salt_buf[esalt_off + 11];
-    w3_t[0] = rakp_bufs[digests_offset].salt_buf[esalt_off + 12];
-    w3_t[1] = rakp_bufs[digests_offset].salt_buf[esalt_off + 13];
+    w0_t[0] = esalt_bufs[digests_offset].salt_buf[esalt_off +  0];
+    w0_t[1] = esalt_bufs[digests_offset].salt_buf[esalt_off +  1];
+    w0_t[2] = esalt_bufs[digests_offset].salt_buf[esalt_off +  2];
+    w0_t[3] = esalt_bufs[digests_offset].salt_buf[esalt_off +  3];
+    w1_t[0] = esalt_bufs[digests_offset].salt_buf[esalt_off +  4];
+    w1_t[1] = esalt_bufs[digests_offset].salt_buf[esalt_off +  5];
+    w1_t[2] = esalt_bufs[digests_offset].salt_buf[esalt_off +  6];
+    w1_t[3] = esalt_bufs[digests_offset].salt_buf[esalt_off +  7];
+    w2_t[0] = esalt_bufs[digests_offset].salt_buf[esalt_off +  8];
+    w2_t[1] = esalt_bufs[digests_offset].salt_buf[esalt_off +  9];
+    w2_t[2] = esalt_bufs[digests_offset].salt_buf[esalt_off + 10];
+    w2_t[3] = esalt_bufs[digests_offset].salt_buf[esalt_off + 11];
+    w3_t[0] = esalt_bufs[digests_offset].salt_buf[esalt_off + 12];
+    w3_t[1] = esalt_bufs[digests_offset].salt_buf[esalt_off + 13];
     w3_t[2] = 0;
     w3_t[3] = (64 + esalt_size) * 8;
 
@@ -334,7 +334,7 @@ DECLSPEC void m07300s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, __g
   }
 }
 
-__kernel void m07300_m04 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salts, __global rakp_t *rakp_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m07300_m04 (KERN_ATTR_ESALT (rakp_t))
 {
   /**
    * base
@@ -378,10 +378,10 @@ __kernel void m07300_m04 (__global pw_t *pws, __global const kernel_rule_t *rule
    * main
    */
 
-  m07300m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salts, rakp_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
+  m07300m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
 }
 
-__kernel void m07300_m08 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salts, __global rakp_t *rakp_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m07300_m08 (KERN_ATTR_ESALT (rakp_t))
 {
   /**
    * base
@@ -425,10 +425,10 @@ __kernel void m07300_m08 (__global pw_t *pws, __global const kernel_rule_t *rule
    * main
    */
 
-  m07300m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salts, rakp_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
+  m07300m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
 }
 
-__kernel void m07300_m16 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salts, __global rakp_t *rakp_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m07300_m16 (KERN_ATTR_ESALT (rakp_t))
 {
   /**
    * base
@@ -472,10 +472,10 @@ __kernel void m07300_m16 (__global pw_t *pws, __global const kernel_rule_t *rule
    * main
    */
 
-  m07300m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salts, rakp_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
+  m07300m (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
 }
 
-__kernel void m07300_s04 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salts, __global rakp_t *rakp_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m07300_s04 (KERN_ATTR_ESALT (rakp_t))
 {
   /**
    * base
@@ -519,10 +519,10 @@ __kernel void m07300_s04 (__global pw_t *pws, __global const kernel_rule_t *rule
    * main
    */
 
-  m07300s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salts, rakp_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
+  m07300s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
 }
 
-__kernel void m07300_s08 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salts, __global rakp_t *rakp_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m07300_s08 (KERN_ATTR_ESALT (rakp_t))
 {
   /**
    * base
@@ -566,10 +566,10 @@ __kernel void m07300_s08 (__global pw_t *pws, __global const kernel_rule_t *rule
    * main
    */
 
-  m07300s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salts, rakp_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
+  m07300s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
 }
 
-__kernel void m07300_s16 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salts, __global rakp_t *rakp_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m07300_s16 (KERN_ATTR_ESALT (rakp_t))
 {
   /**
    * base
@@ -613,5 +613,5 @@ __kernel void m07300_s16 (__global pw_t *pws, __global const kernel_rule_t *rule
    * main
    */
 
-  m07300s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salts, rakp_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
+  m07300s (w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
 }

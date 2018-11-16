@@ -151,7 +151,7 @@ DECLSPEC u8 rc4_next_16 (__local RC4_KEY *rc4_key, u8 i, u8 j, const u32 *in, u3
   return j;
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m10500_init (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global pdf14_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global pdf_t *pdf_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m10500_init (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
 {
   /**
    * base
@@ -191,48 +191,48 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m10500_init (__glo
 
   u32 o_buf[8];
 
-  o_buf[0] = pdf_bufs[digests_offset].o_buf[0];
-  o_buf[1] = pdf_bufs[digests_offset].o_buf[1];
-  o_buf[2] = pdf_bufs[digests_offset].o_buf[2];
-  o_buf[3] = pdf_bufs[digests_offset].o_buf[3];
-  o_buf[4] = pdf_bufs[digests_offset].o_buf[4];
-  o_buf[5] = pdf_bufs[digests_offset].o_buf[5];
-  o_buf[6] = pdf_bufs[digests_offset].o_buf[6];
-  o_buf[7] = pdf_bufs[digests_offset].o_buf[7];
+  o_buf[0] = esalt_bufs[digests_offset].o_buf[0];
+  o_buf[1] = esalt_bufs[digests_offset].o_buf[1];
+  o_buf[2] = esalt_bufs[digests_offset].o_buf[2];
+  o_buf[3] = esalt_bufs[digests_offset].o_buf[3];
+  o_buf[4] = esalt_bufs[digests_offset].o_buf[4];
+  o_buf[5] = esalt_bufs[digests_offset].o_buf[5];
+  o_buf[6] = esalt_bufs[digests_offset].o_buf[6];
+  o_buf[7] = esalt_bufs[digests_offset].o_buf[7];
 
-  u32 P = pdf_bufs[digests_offset].P;
+  u32 P = esalt_bufs[digests_offset].P;
 
   u32 id_buf[12];
 
-  id_buf[ 0] = pdf_bufs[digests_offset].id_buf[0];
-  id_buf[ 1] = pdf_bufs[digests_offset].id_buf[1];
-  id_buf[ 2] = pdf_bufs[digests_offset].id_buf[2];
-  id_buf[ 3] = pdf_bufs[digests_offset].id_buf[3];
+  id_buf[ 0] = esalt_bufs[digests_offset].id_buf[0];
+  id_buf[ 1] = esalt_bufs[digests_offset].id_buf[1];
+  id_buf[ 2] = esalt_bufs[digests_offset].id_buf[2];
+  id_buf[ 3] = esalt_bufs[digests_offset].id_buf[3];
 
-  id_buf[ 4] = pdf_bufs[digests_offset].id_buf[4];
-  id_buf[ 5] = pdf_bufs[digests_offset].id_buf[5];
-  id_buf[ 6] = pdf_bufs[digests_offset].id_buf[6];
-  id_buf[ 7] = pdf_bufs[digests_offset].id_buf[7];
+  id_buf[ 4] = esalt_bufs[digests_offset].id_buf[4];
+  id_buf[ 5] = esalt_bufs[digests_offset].id_buf[5];
+  id_buf[ 6] = esalt_bufs[digests_offset].id_buf[6];
+  id_buf[ 7] = esalt_bufs[digests_offset].id_buf[7];
 
   id_buf[ 8] = 0;
   id_buf[ 9] = 0;
   id_buf[10] = 0;
   id_buf[11] = 0;
 
-  u32 id_len  = pdf_bufs[digests_offset].id_len;
+  u32 id_len  = esalt_bufs[digests_offset].id_len;
   u32 id_len4 = id_len / 4;
 
   u32 rc4data[2];
 
-  rc4data[0] = pdf_bufs[digests_offset].rc4data[0];
-  rc4data[1] = pdf_bufs[digests_offset].rc4data[1];
+  rc4data[0] = esalt_bufs[digests_offset].rc4data[0];
+  rc4data[1] = esalt_bufs[digests_offset].rc4data[1];
 
   u32 final_length = 68 + id_len;
 
   u32 w11 = 0x80;
   u32 w12 = 0;
 
-  if (pdf_bufs[digests_offset].enc_md != 1)
+  if (esalt_bufs[digests_offset].enc_md != 1)
   {
     w11 = 0xffffffff;
     w12 = 0x80;
@@ -333,7 +333,7 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m10500_init (__glo
   tmps[gid].out[3] = 0;
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m10500_loop (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global pdf14_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global pdf_t *pdf_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m10500_loop (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
 {
   /**
    * base
@@ -436,7 +436,7 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m10500_loop (__glo
   tmps[gid].out[3] = out[3];
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m10500_comp (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global pdf14_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global pdf_t *pdf_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m10500_comp (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
 {
   /**
    * modifier

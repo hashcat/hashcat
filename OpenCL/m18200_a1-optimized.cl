@@ -561,7 +561,7 @@ DECLSPEC void kerb_prepare (const u32 *w0, const u32 *w1, const u32 pw_len, cons
   hmac_md5_run (w0_t, w1_t, w2_t, w3_t, ipad, opad, digest);
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m18200_m04 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global krb5asrep_t *krb5asrep_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m18200_m04 (KERN_ATTR_ESALT (krb5asrep_t))
 {
   /**
    * modifier
@@ -605,10 +605,10 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m18200_m04 (__glob
 
   u32 checksum[4];
 
-  checksum[0] = krb5asrep_bufs[digests_offset].checksum[0];
-  checksum[1] = krb5asrep_bufs[digests_offset].checksum[1];
-  checksum[2] = krb5asrep_bufs[digests_offset].checksum[2];
-  checksum[3] = krb5asrep_bufs[digests_offset].checksum[3];
+  checksum[0] = esalt_bufs[digests_offset].checksum[0];
+  checksum[1] = esalt_bufs[digests_offset].checksum[1];
+  checksum[2] = esalt_bufs[digests_offset].checksum[2];
+  checksum[3] = esalt_bufs[digests_offset].checksum[3];
 
   /**
    * loop
@@ -690,7 +690,7 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m18200_m04 (__glob
     tmp[2] = digest[2];
     tmp[3] = digest[3];
 
-    if (decrypt_and_check (rc4_key, tmp, krb5asrep_bufs[digests_offset].edata2, krb5asrep_bufs[digests_offset].edata2_len, K2, checksum) == 1)
+    if (decrypt_and_check (rc4_key, tmp, esalt_bufs[digests_offset].edata2, esalt_bufs[digests_offset].edata2_len, K2, checksum) == 1)
     {
       if (atomic_inc (&hashes_shown[digests_offset]) == 0)
       {
@@ -700,15 +700,15 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m18200_m04 (__glob
   }
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m18200_m08 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global krb5asrep_t *krb5asrep_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m18200_m08 (KERN_ATTR_ESALT (krb5asrep_t))
 {
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m18200_m16 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global krb5asrep_t *krb5asrep_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m18200_m16 (KERN_ATTR_ESALT (krb5asrep_t))
 {
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m18200_s04 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global krb5asrep_t *krb5asrep_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m18200_s04 (KERN_ATTR_ESALT (krb5asrep_t))
 {
   /**
    * modifier
@@ -752,10 +752,10 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m18200_s04 (__glob
 
   u32 checksum[4];
 
-  checksum[0] = krb5asrep_bufs[digests_offset].checksum[0];
-  checksum[1] = krb5asrep_bufs[digests_offset].checksum[1];
-  checksum[2] = krb5asrep_bufs[digests_offset].checksum[2];
-  checksum[3] = krb5asrep_bufs[digests_offset].checksum[3];
+  checksum[0] = esalt_bufs[digests_offset].checksum[0];
+  checksum[1] = esalt_bufs[digests_offset].checksum[1];
+  checksum[2] = esalt_bufs[digests_offset].checksum[2];
+  checksum[3] = esalt_bufs[digests_offset].checksum[3];
 
   /**
    * loop
@@ -837,7 +837,7 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m18200_s04 (__glob
     tmp[2] = digest[2];
     tmp[3] = digest[3];
 
-    if (decrypt_and_check (rc4_key, tmp, krb5asrep_bufs[digests_offset].edata2, krb5asrep_bufs[digests_offset].edata2_len, K2, checksum) == 1)
+    if (decrypt_and_check (rc4_key, tmp, esalt_bufs[digests_offset].edata2, esalt_bufs[digests_offset].edata2_len, K2, checksum) == 1)
     {
       if (atomic_inc (&hashes_shown[digests_offset]) == 0)
       {
@@ -847,10 +847,10 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m18200_s04 (__glob
   }
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m18200_s08 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global krb5asrep_t *krb5asrep_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m18200_s08 (KERN_ATTR_ESALT (krb5asrep_t))
 {
 }
 
-__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m18200_s16 (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global void *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global krb5asrep_t *krb5asrep_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m18200_s16 (KERN_ATTR_ESALT (krb5asrep_t))
 {
 }

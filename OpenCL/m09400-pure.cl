@@ -17,7 +17,7 @@
 #define COMPARE_S "inc_comp_single.cl"
 #define COMPARE_M "inc_comp_multi.cl"
 
-__kernel void m09400_init (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global office2007_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global office2007_t *office2007_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m09400_init (KERN_ATTR_TMPS_ESALT (const office2007_tmp_t, office2007_t))
 {
   /**
    * base
@@ -44,7 +44,7 @@ __kernel void m09400_init (__global pw_t *pws, __global const kernel_rule_t *rul
   tmps[gid].out[4] = ctx.h[4];
 }
 
-__kernel void m09400_loop (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global office2007_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global office2007_t *office2007_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m09400_loop (KERN_ATTR_TMPS_ESALT (const office2007_tmp_t, office2007_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -111,7 +111,7 @@ __kernel void m09400_loop (__global pw_t *pws, __global const kernel_rule_t *rul
   unpackv (tmps, out, gid, 4, t4);
 }
 
-__kernel void m09400_comp (__global pw_t *pws, __global const kernel_rule_t *rules_buf, __global const pw_t *combs_buf, __global const bf_t *bfs_buf, __global office2007_tmp_t *tmps, __global void *hooks, __global const u32 *bitmaps_buf_s1_a, __global const u32 *bitmaps_buf_s1_b, __global const u32 *bitmaps_buf_s1_c, __global const u32 *bitmaps_buf_s1_d, __global const u32 *bitmaps_buf_s2_a, __global const u32 *bitmaps_buf_s2_b, __global const u32 *bitmaps_buf_s2_c, __global const u32 *bitmaps_buf_s2_d, __global plain_t *plains_buf, __global const digest_t *digests_buf, __global u32 *hashes_shown, __global const salt_t *salt_bufs, __global office2007_t *office2007_bufs, __global u32 *d_return_buf, __global u32 *d_scryptV0_buf, __global u32 *d_scryptV1_buf, __global u32 *d_scryptV2_buf, __global u32 *d_scryptV3_buf, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2, const u32 salt_pos, const u32 loop_pos, const u32 loop_cnt, const u32 il_cnt, const u32 digests_cnt, const u32 digests_offset, const u32 combs_mode, const u64 gid_max)
+__kernel void m09400_comp (KERN_ATTR_TMPS_ESALT (const office2007_tmp_t, office2007_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -258,10 +258,10 @@ __kernel void m09400_comp (__global pw_t *pws, __global const kernel_rule_t *rul
 
   u32 verifier[4];
 
-  verifier[0] = office2007_bufs[digests_offset].encryptedVerifier[0];
-  verifier[1] = office2007_bufs[digests_offset].encryptedVerifier[1];
-  verifier[2] = office2007_bufs[digests_offset].encryptedVerifier[2];
-  verifier[3] = office2007_bufs[digests_offset].encryptedVerifier[3];
+  verifier[0] = esalt_bufs[digests_offset].encryptedVerifier[0];
+  verifier[1] = esalt_bufs[digests_offset].encryptedVerifier[1];
+  verifier[2] = esalt_bufs[digests_offset].encryptedVerifier[2];
+  verifier[3] = esalt_bufs[digests_offset].encryptedVerifier[3];
 
   u32 data[4];
 
