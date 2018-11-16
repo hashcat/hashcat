@@ -12,7 +12,7 @@
 #include "inc_common.cl"
 #include "inc_simd.cl"
 
-__kernel void m08100_m04 (KERN_ATTR_BASIC)
+__kernel void m08100_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -287,15 +287,15 @@ __kernel void m08100_m04 (KERN_ATTR_BASIC)
   }
 }
 
-__kernel void m08100_m08 (KERN_ATTR_BASIC)
+__kernel void m08100_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m08100_m16 (KERN_ATTR_BASIC)
+__kernel void m08100_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m08100_s04 (KERN_ATTR_BASIC)
+__kernel void m08100_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -579,10 +579,10 @@ __kernel void m08100_s04 (KERN_ATTR_BASIC)
   }
 }
 
-__kernel void m08100_s08 (KERN_ATTR_BASIC)
+__kernel void m08100_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m08100_s16 (KERN_ATTR_BASIC)
+__kernel void m08100_s16 (KERN_ATTR_BASIC ())
 {
 }

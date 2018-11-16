@@ -15,7 +15,7 @@
 #include "inc_scalar.cl"
 #include "inc_hash_sha512.cl"
 
-__kernel void m01710_mxx (KERN_ATTR_RULES)
+__kernel void m01710_mxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -70,7 +70,7 @@ __kernel void m01710_mxx (KERN_ATTR_RULES)
   }
 }
 
-__kernel void m01710_sxx (KERN_ATTR_RULES)
+__kernel void m01710_sxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier

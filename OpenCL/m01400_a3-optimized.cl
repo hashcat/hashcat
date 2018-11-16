@@ -297,7 +297,7 @@ DECLSPEC void m01400s (u32 *w, const u32 pw_len, __global pw_t *pws, __global co
   }
 }
 
-__kernel void m01400_m04 (KERN_ATTR_VECTOR)
+__kernel void m01400_m04 (KERN_ATTR_VECTOR ())
 {
   /**
    * base
@@ -335,7 +335,7 @@ __kernel void m01400_m04 (KERN_ATTR_VECTOR)
   m01400m (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
 }
 
-__kernel void m01400_m08 (KERN_ATTR_VECTOR)
+__kernel void m01400_m08 (KERN_ATTR_VECTOR ())
 {
   /**
    * base
@@ -373,7 +373,7 @@ __kernel void m01400_m08 (KERN_ATTR_VECTOR)
   m01400m (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
 }
 
-__kernel void m01400_m16 (KERN_ATTR_VECTOR)
+__kernel void m01400_m16 (KERN_ATTR_VECTOR ())
 {
   /**
    * base
@@ -411,7 +411,7 @@ __kernel void m01400_m16 (KERN_ATTR_VECTOR)
   m01400m (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
 }
 
-__kernel void m01400_s04 (KERN_ATTR_VECTOR)
+__kernel void m01400_s04 (KERN_ATTR_VECTOR ())
 {
   /**
    * base
@@ -449,7 +449,7 @@ __kernel void m01400_s04 (KERN_ATTR_VECTOR)
   m01400s (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
 }
 
-__kernel void m01400_s08 (KERN_ATTR_VECTOR)
+__kernel void m01400_s08 (KERN_ATTR_VECTOR ())
 {
   /**
    * base
@@ -487,7 +487,7 @@ __kernel void m01400_s08 (KERN_ATTR_VECTOR)
   m01400s (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
 }
 
-__kernel void m01400_s16 (KERN_ATTR_VECTOR)
+__kernel void m01400_s16 (KERN_ATTR_VECTOR ())
 {
   /**
    * base

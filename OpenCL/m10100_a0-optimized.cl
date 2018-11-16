@@ -31,7 +31,7 @@
   (v1) ^= (v2);               \
   (v2)  = rotl64 ((v2), 32)
 
-__kernel void m10100_m04 (KERN_ATTR_RULES)
+__kernel void m10100_m04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -150,15 +150,15 @@ __kernel void m10100_m04 (KERN_ATTR_RULES)
   }
 }
 
-__kernel void m10100_m08 (KERN_ATTR_RULES)
+__kernel void m10100_m08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m10100_m16 (KERN_ATTR_RULES)
+__kernel void m10100_m16 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m10100_s04 (KERN_ATTR_RULES)
+__kernel void m10100_s04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -289,10 +289,10 @@ __kernel void m10100_s04 (KERN_ATTR_RULES)
   }
 }
 
-__kernel void m10100_s08 (KERN_ATTR_RULES)
+__kernel void m10100_s08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m10100_s16 (KERN_ATTR_RULES)
+__kernel void m10100_s16 (KERN_ATTR_RULES ())
 {
 }

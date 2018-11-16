@@ -135,7 +135,7 @@ DECLSPEC void sha512_transform (const u32x *w0, const u32x *w1, const u32x *w2, 
   digest[7] = h;
 }
 
-__kernel void m01710_m04 (KERN_ATTR_BASIC)
+__kernel void m01710_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -361,15 +361,15 @@ __kernel void m01710_m04 (KERN_ATTR_BASIC)
   }
 }
 
-__kernel void m01710_m08 (KERN_ATTR_BASIC)
+__kernel void m01710_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m01710_m16 (KERN_ATTR_BASIC)
+__kernel void m01710_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m01710_s04 (KERN_ATTR_BASIC)
+__kernel void m01710_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -607,10 +607,10 @@ __kernel void m01710_s04 (KERN_ATTR_BASIC)
   }
 }
 
-__kernel void m01710_s08 (KERN_ATTR_BASIC)
+__kernel void m01710_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m01710_s16 (KERN_ATTR_BASIC)
+__kernel void m01710_s16 (KERN_ATTR_BASIC ())
 {
 }

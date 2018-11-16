@@ -13,7 +13,7 @@
 #include "inc_scalar.cl"
 #include "inc_hash_sha256.cl"
 
-__kernel void m01400_mxx (KERN_ATTR_BASIC)
+__kernel void m01400_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -55,7 +55,7 @@ __kernel void m01400_mxx (KERN_ATTR_BASIC)
   }
 }
 
-__kernel void m01400_sxx (KERN_ATTR_BASIC)
+__kernel void m01400_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier

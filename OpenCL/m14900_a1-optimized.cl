@@ -102,7 +102,7 @@ DECLSPEC u32 skip32 (__local u8 *s_ftable, const u32 KP, const u32 *key)
   return r;
 }
 
-__kernel void m14900_m04 (KERN_ATTR_BASIC)
+__kernel void m14900_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -249,15 +249,15 @@ __kernel void m14900_m04 (KERN_ATTR_BASIC)
   }
 }
 
-__kernel void m14900_m08 (KERN_ATTR_BASIC)
+__kernel void m14900_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m14900_m16 (KERN_ATTR_BASIC)
+__kernel void m14900_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m14900_s04 (KERN_ATTR_BASIC)
+__kernel void m14900_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -416,10 +416,10 @@ __kernel void m14900_s04 (KERN_ATTR_BASIC)
   }
 }
 
-__kernel void m14900_s08 (KERN_ATTR_BASIC)
+__kernel void m14900_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m14900_s16 (KERN_ATTR_BASIC)
+__kernel void m14900_s16 (KERN_ATTR_BASIC ())
 {
 }

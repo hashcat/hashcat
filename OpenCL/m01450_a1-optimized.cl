@@ -114,7 +114,7 @@ DECLSPEC void hmac_sha256_run (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipa
   sha256_transform_vector (w0, w1, w2, w3, digest);
 }
 
-__kernel void m01450_m04 (KERN_ATTR_BASIC)
+__kernel void m01450_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -296,15 +296,15 @@ __kernel void m01450_m04 (KERN_ATTR_BASIC)
   }
 }
 
-__kernel void m01450_m08 (KERN_ATTR_BASIC)
+__kernel void m01450_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m01450_m16 (KERN_ATTR_BASIC)
+__kernel void m01450_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m01450_s04 (KERN_ATTR_BASIC)
+__kernel void m01450_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -498,10 +498,10 @@ __kernel void m01450_s04 (KERN_ATTR_BASIC)
   }
 }
 
-__kernel void m01450_s08 (KERN_ATTR_BASIC)
+__kernel void m01450_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m01450_s16 (KERN_ATTR_BASIC)
+__kernel void m01450_s16 (KERN_ATTR_BASIC ())
 {
 }

@@ -28,7 +28,7 @@
   h = 0;                                        \
 }
 
-__kernel void m01400_m04 (KERN_ATTR_RULES)
+__kernel void m01400_m04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -175,15 +175,15 @@ __kernel void m01400_m04 (KERN_ATTR_RULES)
   }
 }
 
-__kernel void m01400_m08 (KERN_ATTR_RULES)
+__kernel void m01400_m08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m01400_m16 (KERN_ATTR_RULES)
+__kernel void m01400_m16 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m01400_s04 (KERN_ATTR_RULES)
+__kernel void m01400_s04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -363,10 +363,10 @@ __kernel void m01400_s04 (KERN_ATTR_RULES)
   }
 }
 
-__kernel void m01400_s08 (KERN_ATTR_RULES)
+__kernel void m01400_s08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m01400_s16 (KERN_ATTR_RULES)
+__kernel void m01400_s16 (KERN_ATTR_RULES ())
 {
 }

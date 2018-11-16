@@ -519,7 +519,7 @@ DECLSPEC void transform_racf_key (const u32 w0, const u32x w1, u32x *key)
          | BOX1 (((w1 >> 24) & 0xff), c_ascii_to_ebcdic_pc) << 24;
 }
 
-__kernel void m08500_mxx (KERN_ATTR_BASIC)
+__kernel void m08500_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * base
@@ -675,7 +675,7 @@ __kernel void m08500_mxx (KERN_ATTR_BASIC)
   }
 }
 
-__kernel void m08500_sxx (KERN_ATTR_BASIC)
+__kernel void m08500_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * base

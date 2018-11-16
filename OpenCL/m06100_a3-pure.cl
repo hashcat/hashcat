@@ -13,7 +13,7 @@
 #include "inc_simd.cl"
 #include "inc_hash_whirlpool.cl"
 
-__kernel void m06100_mxx (KERN_ATTR_VECTOR)
+__kernel void m06100_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -99,7 +99,7 @@ __kernel void m06100_mxx (KERN_ATTR_VECTOR)
   }
 }
 
-__kernel void m06100_sxx (KERN_ATTR_VECTOR)
+__kernel void m06100_sxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

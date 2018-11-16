@@ -229,7 +229,7 @@ DECLSPEC void domino_big_md (const u32 *saved_key, const u32 size, u32x *state, 
   mdtransform_norecalc (state, checksum, s_lotus_magic_table);
 }
 
-__kernel void m08600_mxx (KERN_ATTR_RULES)
+__kernel void m08600_mxx (KERN_ATTR_RULES ())
 {
   /**
    * base
@@ -293,7 +293,7 @@ __kernel void m08600_mxx (KERN_ATTR_RULES)
   }
 }
 
-__kernel void m08600_sxx (KERN_ATTR_RULES)
+__kernel void m08600_sxx (KERN_ATTR_RULES ())
 {
   /**
    * base

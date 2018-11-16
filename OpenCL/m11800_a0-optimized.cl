@@ -2301,7 +2301,7 @@ DECLSPEC void streebog_g (u64x *h, const u64x *m, __local u64 (*s_sbob_sl64)[256
   }
 }
 
-__kernel void m11800_m04 (KERN_ATTR_RULES)
+__kernel void m11800_m04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -2451,15 +2451,15 @@ __kernel void m11800_m04 (KERN_ATTR_RULES)
   }
 }
 
-__kernel void m11800_m08 (KERN_ATTR_RULES)
+__kernel void m11800_m08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m11800_m16 (KERN_ATTR_RULES)
+__kernel void m11800_m16 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m11800_s04 (KERN_ATTR_RULES)
+__kernel void m11800_s04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -2621,10 +2621,10 @@ __kernel void m11800_s04 (KERN_ATTR_RULES)
   }
 }
 
-__kernel void m11800_s08 (KERN_ATTR_RULES)
+__kernel void m11800_s08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m11800_s16 (KERN_ATTR_RULES)
+__kernel void m11800_s16 (KERN_ATTR_RULES ())
 {
 }

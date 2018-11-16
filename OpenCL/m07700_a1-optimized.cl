@@ -145,7 +145,7 @@ DECLSPEC u32 walld0rf_magic (const u32 *w0, const u32 pw_len, const u32 *salt_bu
   return sum20;
 }
 
-__kernel void m07700_m04 (KERN_ATTR_BASIC)
+__kernel void m07700_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -344,15 +344,15 @@ __kernel void m07700_m04 (KERN_ATTR_BASIC)
   }
 }
 
-__kernel void m07700_m08 (KERN_ATTR_BASIC)
+__kernel void m07700_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m07700_m16 (KERN_ATTR_BASIC)
+__kernel void m07700_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m07700_s04 (KERN_ATTR_BASIC)
+__kernel void m07700_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -563,10 +563,10 @@ __kernel void m07700_s04 (KERN_ATTR_BASIC)
   }
 }
 
-__kernel void m07700_s08 (KERN_ATTR_BASIC)
+__kernel void m07700_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m07700_s16 (KERN_ATTR_BASIC)
+__kernel void m07700_s16 (KERN_ATTR_BASIC ())
 {
 }

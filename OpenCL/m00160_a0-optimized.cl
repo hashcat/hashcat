@@ -104,7 +104,7 @@ DECLSPEC void hmac_sha1_run (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad,
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-__kernel void m00160_m04 (KERN_ATTR_RULES)
+__kernel void m00160_m04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -233,15 +233,15 @@ __kernel void m00160_m04 (KERN_ATTR_RULES)
   }
 }
 
-__kernel void m00160_m08 (KERN_ATTR_RULES)
+__kernel void m00160_m08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m00160_m16 (KERN_ATTR_RULES)
+__kernel void m00160_m16 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m00160_s04 (KERN_ATTR_RULES)
+__kernel void m00160_s04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -382,10 +382,10 @@ __kernel void m00160_s04 (KERN_ATTR_RULES)
   }
 }
 
-__kernel void m00160_s08 (KERN_ATTR_RULES)
+__kernel void m00160_s08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m00160_s16 (KERN_ATTR_RULES)
+__kernel void m00160_s16 (KERN_ATTR_RULES ())
 {
 }

@@ -695,7 +695,7 @@ __constant u32a c_tables[4][256] =
   R (k, h, s, 6, t);      \
 }
 
-__kernel void m06900_m04 (KERN_ATTR_BASIC)
+__kernel void m06900_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * base
@@ -957,15 +957,15 @@ __kernel void m06900_m04 (KERN_ATTR_BASIC)
   }
 }
 
-__kernel void m06900_m08 (KERN_ATTR_BASIC)
+__kernel void m06900_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m06900_m16 (KERN_ATTR_BASIC)
+__kernel void m06900_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m06900_s04 (KERN_ATTR_BASIC)
+__kernel void m06900_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * base
@@ -1239,10 +1239,10 @@ __kernel void m06900_s04 (KERN_ATTR_BASIC)
   }
 }
 
-__kernel void m06900_s08 (KERN_ATTR_BASIC)
+__kernel void m06900_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m06900_s16 (KERN_ATTR_BASIC)
+__kernel void m06900_s16 (KERN_ATTR_BASIC ())
 {
 }

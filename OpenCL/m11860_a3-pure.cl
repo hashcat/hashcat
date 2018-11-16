@@ -13,7 +13,7 @@
 #include "inc_simd.cl"
 #include "inc_hash_streebog512.cl"
 
-__kernel void m11860_mxx (KERN_ATTR_VECTOR)
+__kernel void m11860_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -108,7 +108,7 @@ __kernel void m11860_mxx (KERN_ATTR_VECTOR)
   }
 }
 
-__kernel void m11860_sxx (KERN_ATTR_VECTOR)
+__kernel void m11860_sxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

@@ -13,7 +13,7 @@
 #include "inc_scalar.cl"
 #include "inc_hash_sha1.cl"
 
-__kernel void m11200_mxx (KERN_ATTR_BASIC)
+__kernel void m11200_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -127,7 +127,7 @@ __kernel void m11200_mxx (KERN_ATTR_BASIC)
   }
 }
 
-__kernel void m11200_sxx (KERN_ATTR_BASIC)
+__kernel void m11200_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier

@@ -13,7 +13,7 @@
 #include "inc_simd.cl"
 #include "inc_hash_md4.cl"
 
-__kernel void m01100_mxx (KERN_ATTR_VECTOR)
+__kernel void m01100_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -92,7 +92,7 @@ __kernel void m01100_mxx (KERN_ATTR_VECTOR)
   }
 }
 
-__kernel void m01100_sxx (KERN_ATTR_VECTOR)
+__kernel void m01100_sxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

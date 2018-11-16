@@ -540,7 +540,7 @@ DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, u32 *Kc, u32 *Kd, __local u32 (
   }
 }
 
-__kernel void m14100_mxx (KERN_ATTR_RULES)
+__kernel void m14100_mxx (KERN_ATTR_RULES ())
 {
   /**
    * base
@@ -675,7 +675,7 @@ __kernel void m14100_mxx (KERN_ATTR_RULES)
   }
 }
 
-__kernel void m14100_sxx (KERN_ATTR_RULES)
+__kernel void m14100_sxx (KERN_ATTR_RULES ())
 {
   /**
    * base

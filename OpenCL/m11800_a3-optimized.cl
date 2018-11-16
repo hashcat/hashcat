@@ -2468,7 +2468,7 @@ DECLSPEC void m11800s (__local u64 (*s_sbob_sl64)[256], u32 *w, const u32 pw_len
   }
 }
 
-__kernel void m11800_m04 (KERN_ATTR_BASIC)
+__kernel void m11800_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -2532,7 +2532,7 @@ __kernel void m11800_m04 (KERN_ATTR_BASIC)
   m11800m (s_sbob_sl64, w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
 }
 
-__kernel void m11800_m08 (KERN_ATTR_BASIC)
+__kernel void m11800_m08 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -2596,7 +2596,7 @@ __kernel void m11800_m08 (KERN_ATTR_BASIC)
   m11800m (s_sbob_sl64, w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
 }
 
-__kernel void m11800_m16 (KERN_ATTR_BASIC)
+__kernel void m11800_m16 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -2660,7 +2660,7 @@ __kernel void m11800_m16 (KERN_ATTR_BASIC)
   m11800m (s_sbob_sl64, w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
 }
 
-__kernel void m11800_s04 (KERN_ATTR_BASIC)
+__kernel void m11800_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -2724,7 +2724,7 @@ __kernel void m11800_s04 (KERN_ATTR_BASIC)
   m11800s (s_sbob_sl64, w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
 }
 
-__kernel void m11800_s08 (KERN_ATTR_BASIC)
+__kernel void m11800_s08 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -2788,7 +2788,7 @@ __kernel void m11800_s08 (KERN_ATTR_BASIC)
   m11800s (s_sbob_sl64, w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
 }
 
-__kernel void m11800_s16 (KERN_ATTR_BASIC)
+__kernel void m11800_s16 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier

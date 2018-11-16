@@ -117,7 +117,7 @@ DECLSPEC void shift_2 (u32 *w0, u32 *w1, u32 *w2, u32 *w3)
   w0[0] =           0 | w0[0] << 16;
 }
 
-__kernel void m14400_m04 (KERN_ATTR_BASIC)
+__kernel void m14400_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -444,15 +444,15 @@ __kernel void m14400_m04 (KERN_ATTR_BASIC)
   }
 }
 
-__kernel void m14400_m08 (KERN_ATTR_BASIC)
+__kernel void m14400_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m14400_m16 (KERN_ATTR_BASIC)
+__kernel void m14400_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m14400_s04 (KERN_ATTR_BASIC)
+__kernel void m14400_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -791,10 +791,10 @@ __kernel void m14400_s04 (KERN_ATTR_BASIC)
   }
 }
 
-__kernel void m14400_s08 (KERN_ATTR_BASIC)
+__kernel void m14400_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m14400_s16 (KERN_ATTR_BASIC)
+__kernel void m14400_s16 (KERN_ATTR_BASIC ())
 {
 }

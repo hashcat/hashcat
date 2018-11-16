@@ -15,7 +15,7 @@
 #include "inc_scalar.cl"
 #include "inc_hash_md5.cl"
 
-__kernel void m04800_mxx (KERN_ATTR_RULES)
+__kernel void m04800_mxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -76,7 +76,7 @@ __kernel void m04800_mxx (KERN_ATTR_RULES)
   }
 }
 
-__kernel void m04800_sxx (KERN_ATTR_RULES)
+__kernel void m04800_sxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier

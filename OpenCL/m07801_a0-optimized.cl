@@ -53,7 +53,7 @@ DECLSPEC void SETSHIFTEDINT (u32 *a, const int n, const u32 v)
   a[d + 1]  = l32_from_64_S (tmp);
 }
 
-__kernel void m07801_m04 (KERN_ATTR_RULES)
+__kernel void m07801_m04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -293,15 +293,15 @@ __kernel void m07801_m04 (KERN_ATTR_RULES)
   }
 }
 
-__kernel void m07801_m08 (KERN_ATTR_RULES)
+__kernel void m07801_m08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m07801_m16 (KERN_ATTR_RULES)
+__kernel void m07801_m16 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m07801_s04 (KERN_ATTR_RULES)
+__kernel void m07801_s04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -553,10 +553,10 @@ __kernel void m07801_s04 (KERN_ATTR_RULES)
   }
 }
 
-__kernel void m07801_s08 (KERN_ATTR_RULES)
+__kernel void m07801_s08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m07801_s16 (KERN_ATTR_RULES)
+__kernel void m07801_s16 (KERN_ATTR_RULES ())
 {
 }

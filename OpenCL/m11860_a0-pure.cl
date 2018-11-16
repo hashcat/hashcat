@@ -15,7 +15,7 @@
 #include "inc_scalar.cl"
 #include "inc_hash_streebog512.cl"
 
-__kernel void m11860_mxx (KERN_ATTR_RULES)
+__kernel void m11860_mxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -99,7 +99,7 @@ __kernel void m11860_mxx (KERN_ATTR_RULES)
   }
 }
 
-__kernel void m11860_sxx (KERN_ATTR_RULES)
+__kernel void m11860_sxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier

@@ -190,7 +190,7 @@ DECLSPEC void hmac_sha512_run (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u64x *ipa
   sha512_transform_transport_vector (w0_t, w1_t, w2_t, w3_t, digest);
 }
 
-__kernel void m01750_m04 (KERN_ATTR_RULES)
+__kernel void m01750_m04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -309,15 +309,15 @@ __kernel void m01750_m04 (KERN_ATTR_RULES)
   }
 }
 
-__kernel void m01750_m08 (KERN_ATTR_RULES)
+__kernel void m01750_m08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m01750_m16 (KERN_ATTR_RULES)
+__kernel void m01750_m16 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m01750_s04 (KERN_ATTR_RULES)
+__kernel void m01750_s04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -448,10 +448,10 @@ __kernel void m01750_s04 (KERN_ATTR_RULES)
   }
 }
 
-__kernel void m01750_s08 (KERN_ATTR_RULES)
+__kernel void m01750_s08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m01750_s16 (KERN_ATTR_RULES)
+__kernel void m01750_s16 (KERN_ATTR_RULES ())
 {
 }

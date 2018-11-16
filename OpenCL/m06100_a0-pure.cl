@@ -15,7 +15,7 @@
 #include "inc_scalar.cl"
 #include "inc_hash_whirlpool.cl"
 
-__kernel void m06100_mxx (KERN_ATTR_RULES)
+__kernel void m06100_mxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -90,7 +90,7 @@ __kernel void m06100_mxx (KERN_ATTR_RULES)
   }
 }
 
-__kernel void m06100_sxx (KERN_ATTR_RULES)
+__kernel void m06100_sxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier

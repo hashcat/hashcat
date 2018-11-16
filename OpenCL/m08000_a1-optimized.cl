@@ -227,7 +227,7 @@ DECLSPEC void sha256_transform_s (u32x *digest, __local u32 *w)
   digest[7] += h;
 }
 
-__kernel void m08000_m04 (KERN_ATTR_BASIC)
+__kernel void m08000_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -444,15 +444,15 @@ __kernel void m08000_m04 (KERN_ATTR_BASIC)
   }
 }
 
-__kernel void m08000_m08 (KERN_ATTR_BASIC)
+__kernel void m08000_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m08000_m16 (KERN_ATTR_BASIC)
+__kernel void m08000_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m08000_s04 (KERN_ATTR_BASIC)
+__kernel void m08000_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -681,10 +681,10 @@ __kernel void m08000_s04 (KERN_ATTR_BASIC)
   }
 }
 
-__kernel void m08000_s08 (KERN_ATTR_BASIC)
+__kernel void m08000_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m08000_s16 (KERN_ATTR_BASIC)
+__kernel void m08000_s16 (KERN_ATTR_BASIC ())
 {
 }

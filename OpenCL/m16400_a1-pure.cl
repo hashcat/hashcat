@@ -175,7 +175,7 @@ DECLSPEC void cram_md5_final (md5_ctx_t *ctx)
   cram_md5_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
 }
 
-__kernel void m16400_mxx (KERN_ATTR_BASIC)
+__kernel void m16400_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -217,7 +217,7 @@ __kernel void m16400_mxx (KERN_ATTR_BASIC)
   }
 }
 
-__kernel void m16400_sxx (KERN_ATTR_BASIC)
+__kernel void m16400_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier

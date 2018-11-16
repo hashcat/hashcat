@@ -489,7 +489,7 @@ DECLSPEC void transform_netntlmv1_key (const u32 w0, const u32 w1, u32 *out)
          | ((k[7] & 0xff) << 24);
 }
 
-__kernel void m05500_mxx (KERN_ATTR_RULES)
+__kernel void m05500_mxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -613,7 +613,7 @@ __kernel void m05500_mxx (KERN_ATTR_RULES)
   }
 }
 
-__kernel void m05500_sxx (KERN_ATTR_RULES)
+__kernel void m05500_sxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier

@@ -13,7 +13,7 @@
 #include "inc_scalar.cl"
 #include "inc_hash_streebog512.cl"
 
-__kernel void m11850_mxx (KERN_ATTR_BASIC)
+__kernel void m11850_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -120,7 +120,7 @@ __kernel void m11850_mxx (KERN_ATTR_BASIC)
   }
 }
 
-__kernel void m11850_sxx (KERN_ATTR_BASIC)
+__kernel void m11850_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier

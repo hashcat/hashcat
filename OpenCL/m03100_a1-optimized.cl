@@ -485,7 +485,7 @@ DECLSPEC void _des_crypt_keysetup (u32x c, u32x d, u32x *Kc, u32x *Kd, __local u
   }
 }
 
-__kernel void m03100_m04 (KERN_ATTR_BASIC)
+__kernel void m03100_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -760,15 +760,15 @@ __kernel void m03100_m04 (KERN_ATTR_BASIC)
   }
 }
 
-__kernel void m03100_m08 (KERN_ATTR_BASIC)
+__kernel void m03100_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m03100_m16 (KERN_ATTR_BASIC)
+__kernel void m03100_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m03100_s04 (KERN_ATTR_BASIC)
+__kernel void m03100_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -1055,10 +1055,10 @@ __kernel void m03100_s04 (KERN_ATTR_BASIC)
   }
 }
 
-__kernel void m03100_s08 (KERN_ATTR_BASIC)
+__kernel void m03100_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m03100_s16 (KERN_ATTR_BASIC)
+__kernel void m03100_s16 (KERN_ATTR_BASIC ())
 {
 }

@@ -486,7 +486,7 @@ DECLSPEC void transform_netntlmv1_key (const u32x w0, const u32x w1, u32x *out)
          | ((k[7] & 0xff) << 24);
 }
 
-__kernel void m05500_m04 (KERN_ATTR_BASIC)
+__kernel void m05500_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -744,15 +744,15 @@ __kernel void m05500_m04 (KERN_ATTR_BASIC)
   }
 }
 
-__kernel void m05500_m08 (KERN_ATTR_BASIC)
+__kernel void m05500_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m05500_m16 (KERN_ATTR_BASIC)
+__kernel void m05500_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m05500_s04 (KERN_ATTR_BASIC)
+__kernel void m05500_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -1029,10 +1029,10 @@ __kernel void m05500_s04 (KERN_ATTR_BASIC)
   }
 }
 
-__kernel void m05500_s08 (KERN_ATTR_BASIC)
+__kernel void m05500_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m05500_s16 (KERN_ATTR_BASIC)
+__kernel void m05500_s16 (KERN_ATTR_BASIC ())
 {
 }

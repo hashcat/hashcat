@@ -479,7 +479,7 @@ DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 mask, u32x *Kc, u32x *Kd, __local
   iv[1] = rotl32 (l, 31);
 }
 
-__kernel void m01500_mxx (KERN_ATTR_BASIC)
+__kernel void m01500_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -642,7 +642,7 @@ __kernel void m01500_mxx (KERN_ATTR_BASIC)
   }
 }
 
-__kernel void m01500_sxx (KERN_ATTR_BASIC)
+__kernel void m01500_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier

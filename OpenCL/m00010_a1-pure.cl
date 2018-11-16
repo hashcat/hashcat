@@ -13,7 +13,7 @@
 #include "inc_scalar.cl"
 #include "inc_hash_md5.cl"
 
-__kernel void m00010_mxx (KERN_ATTR_BASIC)
+__kernel void m00010_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -66,7 +66,7 @@ __kernel void m00010_mxx (KERN_ATTR_BASIC)
   }
 }
 
-__kernel void m00010_sxx (KERN_ATTR_BASIC)
+__kernel void m00010_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier

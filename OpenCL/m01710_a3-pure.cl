@@ -13,7 +13,7 @@
 #include "inc_simd.cl"
 #include "inc_hash_sha512.cl"
 
-__kernel void m01710_mxx (KERN_ATTR_VECTOR)
+__kernel void m01710_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -79,7 +79,7 @@ __kernel void m01710_mxx (KERN_ATTR_VECTOR)
   }
 }
 
-__kernel void m01710_sxx (KERN_ATTR_VECTOR)
+__kernel void m01710_sxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

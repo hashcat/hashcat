@@ -30,7 +30,7 @@ __constant u64a keccakf_rndc[24] =
 #define KECCAK_ROUNDS 24
 #endif
 
-__kernel void m17600_m04 (KERN_ATTR_RULES)
+__kernel void m17600_m04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -240,15 +240,15 @@ __kernel void m17600_m04 (KERN_ATTR_RULES)
   }
 }
 
-__kernel void m17600_m08 (KERN_ATTR_RULES)
+__kernel void m17600_m08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m17600_m16 (KERN_ATTR_RULES)
+__kernel void m17600_m16 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m17600_s04 (KERN_ATTR_RULES)
+__kernel void m17600_s04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -470,10 +470,10 @@ __kernel void m17600_s04 (KERN_ATTR_RULES)
   }
 }
 
-__kernel void m17600_s08 (KERN_ATTR_RULES)
+__kernel void m17600_s08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m17600_s16 (KERN_ATTR_RULES)
+__kernel void m17600_s16 (KERN_ATTR_RULES ())
 {
 }

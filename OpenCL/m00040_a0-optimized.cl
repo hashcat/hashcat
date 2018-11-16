@@ -14,7 +14,7 @@
 #include "inc_rp_optimized.cl"
 #include "inc_simd.cl"
 
-__kernel void m00040_m04 (KERN_ATTR_RULES)
+__kernel void m00040_m04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -200,15 +200,15 @@ __kernel void m00040_m04 (KERN_ATTR_RULES)
   }
 }
 
-__kernel void m00040_m08 (KERN_ATTR_RULES)
+__kernel void m00040_m08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m00040_m16 (KERN_ATTR_RULES)
+__kernel void m00040_m16 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m00040_s04 (KERN_ATTR_RULES)
+__kernel void m00040_s04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -409,10 +409,10 @@ __kernel void m00040_s04 (KERN_ATTR_RULES)
   }
 }
 
-__kernel void m00040_s08 (KERN_ATTR_RULES)
+__kernel void m00040_s08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m00040_s16 (KERN_ATTR_RULES)
+__kernel void m00040_s16 (KERN_ATTR_RULES ())
 {
 }

@@ -266,7 +266,7 @@ DECLSPEC void domino_big_md (const u32x *saved_key, const u32 size, u32x *state,
   mdtransform_norecalc (state, checksum, s_lotus_magic_table);
 }
 
-__kernel void m08700_m04 (KERN_ATTR_RULES)
+__kernel void m08700_m04 (KERN_ATTR_RULES ())
 {
   /**
    * base
@@ -445,15 +445,15 @@ __kernel void m08700_m04 (KERN_ATTR_RULES)
   }
 }
 
-__kernel void m08700_m08 (KERN_ATTR_RULES)
+__kernel void m08700_m08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m08700_m16 (KERN_ATTR_RULES)
+__kernel void m08700_m16 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m08700_s04 (KERN_ATTR_RULES)
+__kernel void m08700_s04 (KERN_ATTR_RULES ())
 {
   /**
    * base
@@ -644,10 +644,10 @@ __kernel void m08700_s04 (KERN_ATTR_RULES)
   }
 }
 
-__kernel void m08700_s08 (KERN_ATTR_RULES)
+__kernel void m08700_s08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m08700_s16 (KERN_ATTR_RULES)
+__kernel void m08700_s16 (KERN_ATTR_RULES ())
 {
 }

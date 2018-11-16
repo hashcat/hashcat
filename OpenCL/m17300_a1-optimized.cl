@@ -28,7 +28,7 @@ __constant u64a keccakf_rndc[24] =
 #define KECCAK_ROUNDS 24
 #endif
 
-__kernel void m17300_m04 (KERN_ATTR_BASIC)
+__kernel void m17300_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -297,15 +297,15 @@ __kernel void m17300_m04 (KERN_ATTR_BASIC)
 }
 
 
-__kernel void m17300_m08 (KERN_ATTR_BASIC)
+__kernel void m17300_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m17300_m16 (KERN_ATTR_BASIC)
+__kernel void m17300_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m17300_s04 (KERN_ATTR_BASIC)
+__kernel void m17300_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -585,10 +585,10 @@ __kernel void m17300_s04 (KERN_ATTR_BASIC)
   }
 }
 
-__kernel void m17300_s08 (KERN_ATTR_BASIC)
+__kernel void m17300_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-__kernel void m17300_s16 (KERN_ATTR_BASIC)
+__kernel void m17300_s16 (KERN_ATTR_BASIC ())
 {
 }

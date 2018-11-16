@@ -143,11 +143,11 @@ __kernel void m06100_m04 (KERN_ATTR_RULES_ESALT (netntlm_t))
   }
 }
 
-__kernel void m06100_m08 (KERN_ATTR_RULES)
+__kernel void m06100_m08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m06100_m16 (KERN_ATTR_RULES)
+__kernel void m06100_m16 (KERN_ATTR_RULES ())
 {
 }
 
@@ -286,10 +286,10 @@ __kernel void m06100_s04 (KERN_ATTR_RULES_ESALT (netntlm_t))
   }
 }
 
-__kernel void m06100_s08 (KERN_ATTR_RULES)
+__kernel void m06100_s08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m06100_s16 (KERN_ATTR_RULES)
+__kernel void m06100_s16 (KERN_ATTR_RULES ())
 {
 }

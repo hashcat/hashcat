@@ -26,7 +26,7 @@
 #define uint_to_hex_upper8(i) (u32x) (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7], l_bin2asc[(i).s8], l_bin2asc[(i).s9], l_bin2asc[(i).sa], l_bin2asc[(i).sb], l_bin2asc[(i).sc], l_bin2asc[(i).sd], l_bin2asc[(i).se], l_bin2asc[(i).sf])
 #endif
 
-__kernel void m12600_m04 (KERN_ATTR_RULES)
+__kernel void m12600_m04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -358,15 +358,15 @@ __kernel void m12600_m04 (KERN_ATTR_RULES)
   }
 }
 
-__kernel void m12600_m08 (KERN_ATTR_RULES)
+__kernel void m12600_m08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m12600_m16 (KERN_ATTR_RULES)
+__kernel void m12600_m16 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m12600_s04 (KERN_ATTR_RULES)
+__kernel void m12600_s04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -713,10 +713,10 @@ __kernel void m12600_s04 (KERN_ATTR_RULES)
   }
 }
 
-__kernel void m12600_s08 (KERN_ATTR_RULES)
+__kernel void m12600_s08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m12600_s16 (KERN_ATTR_RULES)
+__kernel void m12600_s16 (KERN_ATTR_RULES ())
 {
 }

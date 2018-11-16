@@ -1754,7 +1754,7 @@ __kernel void m14000_tm (__global u32 *mod, __global bs_word_t *words_buf_r)
   }
 }
 
-__kernel void m14000_mxx (KERN_ATTR_BITSLICE)
+__kernel void m14000_mxx (KERN_ATTR_BITSLICE ())
 {
   /**
    * base
@@ -2262,7 +2262,7 @@ __kernel void m14000_mxx (KERN_ATTR_BITSLICE)
   }
 }
 
-__kernel void m14000_sxx (KERN_ATTR_BITSLICE)
+__kernel void m14000_sxx (KERN_ATTR_BITSLICE ())
 {
   /**
    * base

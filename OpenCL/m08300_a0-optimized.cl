@@ -15,7 +15,7 @@
 #include "inc_simd.cl"
 #include "inc_hash_sha1.cl"
 
-__kernel void m08300_m04 (KERN_ATTR_RULES)
+__kernel void m08300_m04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -264,15 +264,15 @@ __kernel void m08300_m04 (KERN_ATTR_RULES)
   }
 }
 
-__kernel void m08300_m08 (KERN_ATTR_RULES)
+__kernel void m08300_m08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m08300_m16 (KERN_ATTR_RULES)
+__kernel void m08300_m16 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m08300_s04 (KERN_ATTR_RULES)
+__kernel void m08300_s04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -533,10 +533,10 @@ __kernel void m08300_s04 (KERN_ATTR_RULES)
   }
 }
 
-__kernel void m08300_s08 (KERN_ATTR_RULES)
+__kernel void m08300_s08 (KERN_ATTR_RULES ())
 {
 }
 
-__kernel void m08300_s16 (KERN_ATTR_RULES)
+__kernel void m08300_s16 (KERN_ATTR_RULES ())
 {
 }
