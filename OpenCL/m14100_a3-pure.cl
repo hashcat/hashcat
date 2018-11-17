@@ -530,7 +530,7 @@ DECLSPEC void _des_crypt_keysetup (u32x c, u32x d, u32x *Kc, u32x *Kd, __local u
   }
 }
 
-DECLSPEC void m14100m (__local u32 (*s_SPtrans)[64], __local u32 (*s_skb)[64], u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m14100m (__local u32 (*s_SPtrans)[64], __local u32 (*s_skb)[64], u32 *w, const u32 pw_len, KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -558,7 +558,7 @@ DECLSPEC void m14100m (__local u32 (*s_SPtrans)[64], __local u32 (*s_skb)[64], u
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
+    const u32x w0r = ix_create_bft (bfs_buf, il_pos);
 
     const u32x w0 = w0l | w0r;
 
@@ -615,7 +615,7 @@ DECLSPEC void m14100m (__local u32 (*s_SPtrans)[64], __local u32 (*s_skb)[64], u
   }
 }
 
-DECLSPEC void m14100s (__local u32 (*s_SPtrans)[64], __local u32 (*s_skb)[64], u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m14100s (__local u32 (*s_SPtrans)[64], __local u32 (*s_skb)[64], u32 *w, const u32 pw_len, KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -655,7 +655,7 @@ DECLSPEC void m14100s (__local u32 (*s_SPtrans)[64], __local u32 (*s_skb)[64], u
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
+    const u32x w0r = ix_create_bft (bfs_buf, il_pos);
 
     const u32x w0 = w0l | w0r;
 
@@ -712,7 +712,7 @@ DECLSPEC void m14100s (__local u32 (*s_SPtrans)[64], __local u32 (*s_skb)[64], u
   }
 }
 
-__kernel void m14100_mxx (KERN_ATTR_VECTOR ())
+__kernel void m14100_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * base
@@ -783,10 +783,10 @@ __kernel void m14100_mxx (KERN_ATTR_VECTOR ())
    * main
    */
 
-  m14100m (s_SPtrans, s_skb, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
+  m14100m (s_SPtrans, s_skb, w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
-__kernel void m14100_sxx (KERN_ATTR_VECTOR ())
+__kernel void m14100_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * base
@@ -857,5 +857,5 @@ __kernel void m14100_sxx (KERN_ATTR_VECTOR ())
    * main
    */
 
-  m14100s (s_SPtrans, s_skb, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset);
+  m14100s (s_SPtrans, s_skb, w, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
