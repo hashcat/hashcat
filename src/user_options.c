@@ -1484,7 +1484,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   if (user_options->benchmark == true)
   {
     user_options->attack_mode         = ATTACK_MODE_BF;
-    user_options->hwmon_disable       = true;
+    user_options->hwmon_temp_abort    = 0;
     user_options->increment           = false;
     user_options->left                = false;
     user_options->logfile_disable     = true;

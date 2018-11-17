@@ -42,6 +42,7 @@
 - Fixed checking the length of the last token in a hash if it was given the attribute TOKEN_ATTR_FIXED_LENGTH
 - Fixed endianness and invalid separator character in outfile format for hash-mode 16801 (WPA-PMKID-PMK)
 - Fixed ignoring --brain-client-features configuration when brain server has attack-position information from a previous run
+- Fixed invalid hardware monitor detection in benchmark mode
 - Fixed invalid warnings about throttling when --hwmon-disable was used
 - Fixed missing call to WSACleanup() to cleanly shutdown windows sockets system
 - Fixed missing call to WSAStartup() and client indexing in order to start the brain server on Windows
