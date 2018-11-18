@@ -42,6 +42,7 @@ use Crypt::UnixCrypt_XS        qw (crypt_rounds fold_password base64_to_int24 bl
 use Digest::MD4                qw (md4 md4_hex);
 use Digest::MD5                qw (md5 md5_hex);
 use Digest::SHA                qw (sha1 sha256 sha384 sha512 sha1_hex sha224_hex sha256_hex sha384_hex sha512_hex hmac_sha1 hmac_sha256 hmac_sha512);
+use Digest::SHA1;
 use Digest::SHA3               qw (sha3_224_hex sha3_256_hex sha3_384_hex sha3_512_hex);
 use Digest::Keccak             qw (keccak_224_hex keccak_256_hex keccak_384_hex keccak_512_hex);
 use Digest::HMAC               qw (hmac hmac_hex);

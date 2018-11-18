@@ -42,6 +42,7 @@ cpan install Authen::Passphrase::LANManager \
              Digest::MD5                    \
              Digest::Perl::MD5              \
              Digest::SHA                    \
+             Digest::SHA1                   \
              Digest::SHA3                   \
              Digest::SipHash                \
              JSON                           \
