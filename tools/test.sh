@@ -5,6 +5,8 @@
 ## License.....: MIT
 ##
 
+OPTS="--quiet --force --potfile-disable --runtime 400 --hwmon-disable"
+
 TDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # missing hash types: 5200,6251,6261,6271,6281
@@ -51,8 +53,6 @@ SLOW_ALGOS="    400   500   501  1600  1800  2100  2500  3200  5200  5800  6211\
 # List of VeraCrypt modes which have test containers
 VC_MODES="13711 13712 13713 13721 13722 13723 13731 13732 13733 13751 13752\
           13753 13771 13772 13773"
-
-OPTS="--quiet --force --potfile-disable --runtime 400 --hwmon-disable"
 
 OUTD="test_$(date +%s)"
 

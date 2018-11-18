@@ -45,8 +45,11 @@ cpan install Authen::Passphrase::LANManager \
              Digest::SHA3                   \
              Digest::SipHash                \
              JSON                           \
+             MIME::Base32                   \
+             MIME::Base64                   \
              Net::DNS::RR::NSEC3            \
              Net::DNS::SEC                  \
+             Text::Iconv                    \
              ;
 
 ERRORS=$((ERRORS+$?))
