@@ -71,7 +71,9 @@ my $MAX_LEN = 55;
 # This array contains all supported hash modes.
 #
 ##
-my @modes = (
+
+my $MODES =
+[
       0,    10,    11,    12,    20,    21,    22,    23,    30,    40,    50,
      60,   100,   101,   110,   111,   112,   120,   121,   122,   125,   130,
     131,   132,   133,   140,   141,   150,   160,   200,   300,   400,   500,
@@ -92,7 +94,7 @@ my @modes = (
   15000, 15100, 15200, 15300, 15400, 15500, 15600, 15700, 15900, 16000, 16100,
   16200, 16300, 16400, 16500, 16600, 16700, 16800, 16900, 17300, 17400, 17500,
   17600, 17700, 17800, 17900, 18000, 18100, 18200, 18300, 99999
-);
+];
 
 ## STEP 2a: If your hash mode does not need a salt, add it to this array.
 #
@@ -102,12 +104,14 @@ my @modes = (
 # listed here; they are caught in separate if conditions accordingly.
 #
 ##
-my @common_unsalted_modes = (
+
+my $COMMON_UNSALTED_MODES =
+[
       0,   100,   101,   133,   200,   300,   600,   900,  1000,  1300,  1400,
    1700,  2600,  3500,  4300,  4400,  4500,  4600,  4700,  5100,  5700,  6000,
    6100,  6900,  9900, 10800, 11500, 11700, 11800, 16400, 17300, 17400, 17500,
   17600, 17700, 17800, 17900, 18000, 99999
-);
+];
 
 ## STEP 2b: If your hash-mode has a salt without any specific syntax,
 ##          add it to this array. Else look for STEP 2c (several spots).
@@ -115,29 +119,37 @@ my @common_unsalted_modes = (
 # Same as above, only for salted hashes without specific salt formats.
 #
 ##
-my @common_default_salted_modes = (
+
+my $COMMON_DEFAULT_SALTED_MODES =
+[
      10,    20,    23,    30,    40,    50,    60,   110,   120,   130,   140,
     150,   160,  1410,  1420,  1430,  1440,  1450,  1460,  1710,  1720,  1730,
    1740,  1750,  1760,  3610,  3710,  3720,  3910,  4010,  4110,  4210, 11750,
   11760, 11850, 11860, 18100
-);
+];
+
+# Arrays for hash modes with maximum password length 15
+
+my $LESS_FIFTEEN = [500, 1600, 1800, 3200, 6300, 7400, 10500, 10700];
 
 # Arrays for hash modes with unusual salts
-my @less_fifteen = ( 500, 1600, 1800, 3200, 6300, 7400, 10500, 10700 );
 
-my @allow_long_salt = (
+my $ALLOW_LONG_SALT =
+[
    2500,  4520,  4521,  5500,  5600,  7100,  7200,  7300,  9400,  9500,  9600,
    9700,  9800, 10400, 10500, 10600, 10700,  1100, 11000, 11200, 11300, 11400,
   11600, 12600, 13500, 13800, 15000, 16900
-);
+];
 
-my @is_utf16le = (
+my $IS_UTF16LE =
+[
      30,    40,   130,   131,   132,   133,   140,   141,  1000,  1100,  1430,
    1440,  1441,  1730,  1740,  1731,  5500,  5600,  8000,  9400,  9500,  9600,
    9700,  9800, 11600, 13500, 13800
-);
+];
 
-my @lotus_magic_table = (
+my $LOTUS_MAGIC_TABLE =
+[
   0xbd, 0x56, 0xea, 0xf2, 0xa2, 0xf1, 0xac, 0x2a, 0xb0, 0x93, 0xd1, 0x9c,
   0x1b, 0x33, 0xfd, 0xd0, 0x30, 0x04, 0xb6, 0xdc, 0x7d, 0xdf, 0x32, 0x4b,
   0xf7, 0xcb, 0x45, 0x9b, 0x31, 0xbb, 0x21, 0x5a, 0x41, 0x9f, 0xe1, 0xd9,
@@ -160,15 +172,17 @@ my @lotus_magic_table = (
   0x10, 0x81, 0x44, 0xef, 0x49, 0xd6, 0xae, 0x2e, 0xdd, 0x76, 0x5c, 0x2f,
   0xa7, 0x1c, 0xc9, 0x09, 0x69, 0x9a, 0x83, 0xcf, 0x29, 0x39, 0xb9, 0xe9,
   0x4c, 0xff, 0x43, 0xab
-);
+];
 
-my @pdf_padding = (
+my $PDF_PADDING =
+[
   0x28, 0xbf, 0x4e, 0x5e, 0x4e, 0x75, 0x8a, 0x41, 0x64, 0x00, 0x4e, 0x56,
   0xff, 0xfa, 0x01, 0x08, 0x2e, 0x2e, 0x00, 0xb6, 0xd0, 0x68, 0x3e, 0x80,
   0x2f, 0x0c, 0xa9, 0xfe, 0x64, 0x53, 0x69, 0x7a
-);
+];
 
-my $CISCO_BASE64_MAPPING = {
+my $CISCO_BASE64_MAPPING =
+{
   'A', '.', 'B', '/', 'C', '0', 'D', '1', 'E', '2', 'F', '3', 'G', '4', 'H',
   '5', 'I', '6', 'J', '7', 'K', '8', 'L', '9', 'M', 'A', 'N', 'B', 'O', 'C',
   'P', 'D', 'Q', 'E', 'R', 'F', 'S', 'G', 'T', 'H', 'U', 'I', 'V', 'J', 'W',
@@ -305,7 +319,7 @@ sub verify
     # remember always do "exists ($db->{$hash_in})" checks as soon as possible and don't forget it
 
     # unsalted
-    if (is_in_array ($mode, \@common_unsalted_modes)
+    if (is_in_array ($mode, $COMMON_UNSALTED_MODES)
      || $mode == 2400 || $mode ==  3000
      || $mode == 8600 || $mode == 16000)
     {
@@ -320,7 +334,7 @@ sub verify
       $word = substr ($line, $index + 1);
     }
     # hash:salt
-    elsif (is_in_array ($mode, \@common_default_salted_modes)
+    elsif (is_in_array ($mode, $COMMON_DEFAULT_SALTED_MODES)
         || $mode ==    11 || $mode ==    12 || $mode ==    21 || $mode ==    22
         || $mode ==   112 || $mode ==   121 || $mode ==  1100 || $mode ==  2410
         || $mode ==  2611 || $mode ==  2711 || $mode ==  2811 || $mode ==  3100
@@ -3720,12 +3734,12 @@ sub passthrough
     my $tmp_hash;
 
     # unsalted
-    if (is_in_array ($mode, \@common_unsalted_modes)
+    if (is_in_array ($mode, $COMMON_UNSALTED_MODES)
      || $mode == 2400 || $mode == 13300)
     {
       $tmp_hash = gen_hash ($mode, $word_buf, "");
     }
-    elsif (is_in_array ($mode, \@common_default_salted_modes)
+    elsif (is_in_array ($mode, $COMMON_DEFAULT_SALTED_MODES)
         || $mode ==  1411 || $mode ==  1711 || $mode ==  3711 || $mode ==  3800
         || $mode ==  4900 || $mode ==  8900 || $mode == 10000 || $mode == 10200
         || $mode == 10900 || $mode == 11900 || $mode == 12000 || $mode == 12100)
@@ -4261,14 +4275,14 @@ sub single
 
   if (defined $mode)
   {
-    @modes = ($mode);
+    @{$MODES} = ($mode);
   }
 
-  for (my $j = 0; $j < scalar @modes; $j++)
+  for (my $j = 0; $j < scalar @{$MODES}; $j++)
   {
-    my $mode = $modes[$j];
+    my $mode = $MODES->[$j];
 
-    if (is_in_array ($mode, \@common_unsalted_modes)
+    if (is_in_array ($mode, $COMMON_UNSALTED_MODES)
      || $mode == 5300 || $mode == 5400 || $mode ==  6600
      || $mode == 8200 || $mode == 8300 || $mode == 13300)
     {
@@ -4284,7 +4298,7 @@ sub single
         }
       }
     }
-    elsif (is_in_array ($mode, \@common_default_salted_modes)
+    elsif (is_in_array ($mode, $COMMON_DEFAULT_SALTED_MODES)
         || $mode ==   121 || $mode ==  1411 || $mode ==  1711 || $mode ==  3711
         || $mode ==  8900 || $mode == 10000 || $mode == 10200 || $mode == 10900
         || $mode == 11900 || $mode == 12000 || $mode == 12000 || $mode == 16500)
@@ -7498,7 +7512,7 @@ sub gen_hash
 
     for (my $i = 0; $i < 32; $i++)
     {
-      $padding .= pack ("C", $pdf_padding[$i]);
+      $padding .= pack ("C", $PDF_PADDING->[$i]);
     }
 
     my $res = pdf_compute_encryption_key ($word_buf, $padding, $id, $u, $o, $P, 1, 2, 0);
@@ -7555,7 +7569,7 @@ sub gen_hash
 
     for (my $i = 0; $i < 32; $i++)
     {
-      $padding .= pack ("C", $pdf_padding[$i]);
+      $padding .= pack ("C", $PDF_PADDING->[$i]);
     }
 
     my $res = pdf_compute_encryption_key ($word_buf, $padding, $id, $u, $o, $P, $V, $R, $enc);
@@ -10630,9 +10644,9 @@ sub rnd
     $salt_len = min ($salt_len, 4);
   }
 
-  if (is_in_array ($mode, \@is_utf16le))
+  if (is_in_array ($mode, $IS_UTF16LE))
   {
-    if (is_in_array ($mode, \@allow_long_salt))
+    if (is_in_array ($mode, $ALLOW_LONG_SALT))
     {
       $word_len = min ($word_len, int ($max / 2));
     }
@@ -10641,13 +10655,13 @@ sub rnd
       $word_len = min ($word_len, int ($max / 2) - $salt_len);
     }
   }
-  elsif (is_in_array ($mode, \@less_fifteen))
+  elsif (is_in_array ($mode, $LESS_FIFTEEN))
   {
     $word_len = min ($word_len, 15);
   }
   else
   {
-    if (! is_in_array ($mode, \@allow_long_salt))
+    if (! is_in_array ($mode, $ALLOW_LONG_SALT))
     {
       $word_len = min ($word_len, $max - $salt_len);
     }
@@ -12553,7 +12567,7 @@ sub lotus_mix
     {
       $p = ($p + 48 - $j) & 0xff;
 
-      my $c = $lotus_magic_table[$p];
+      my $c = $LOTUS_MAGIC_TABLE->[$p];
 
       $p = $in_ref->[$j] ^ $c;
 
@@ -12573,7 +12587,7 @@ sub lotus_transform_password
   {
     $t ^= $in_ref->[$i];
 
-    my $c = $lotus_magic_table[$t];
+    my $c = $LOTUS_MAGIC_TABLE->[$t];
 
     $out_ref->[$i] ^= $c;
 
