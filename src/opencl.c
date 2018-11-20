@@ -1706,26 +1706,54 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
   if (CL_rc == -1) return -1;
 
-  if (device_param->nvidia_spin_damp > 0)
+  // spin damper section
+
+  const u32 iterationm = iteration % EXPECTED_ITERATIONS;
+
+  cl_int event_status;
+
+  size_t param_value_size_ret;
+
+  CL_rc = hc_clGetEventInfo (hashcat_ctx, event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof (event_status), &event_status, &param_value_size_ret);
+
+  if (CL_rc == -1) return -1;
+
+  if (device_param->spin_damp > 0)
   {
-    if (status_ctx->devices_status == STATUS_RUNNING)
+    double spin_total = device_param->spin_damp;
+
+    while (event_status != CL_COMPLETE)
     {
-      if (iteration < EXPECTED_ITERATIONS)
+      if (status_ctx->devices_status == STATUS_RUNNING)
       {
         switch (kern_run)
         {
-          case KERN_RUN_1:      if (device_param->exec_us_prev1[iteration]      > 0) usleep ((useconds_t)(device_param->exec_us_prev1[iteration]      * device_param->nvidia_spin_damp)); break;
-          case KERN_RUN_2:      if (device_param->exec_us_prev2[iteration]      > 0) usleep ((useconds_t)(device_param->exec_us_prev2[iteration]      * device_param->nvidia_spin_damp)); break;
-          case KERN_RUN_3:      if (device_param->exec_us_prev3[iteration]      > 0) usleep ((useconds_t)(device_param->exec_us_prev3[iteration]      * device_param->nvidia_spin_damp)); break;
-          case KERN_RUN_4:      if (device_param->exec_us_prev4[iteration]      > 0) usleep ((useconds_t)(device_param->exec_us_prev4[iteration]      * device_param->nvidia_spin_damp)); break;
-          case KERN_RUN_INIT2:  if (device_param->exec_us_prev_init2[iteration] > 0) usleep ((useconds_t)(device_param->exec_us_prev_init2[iteration] * device_param->nvidia_spin_damp)); break;
-          case KERN_RUN_LOOP2:  if (device_param->exec_us_prev_loop2[iteration] > 0) usleep ((useconds_t)(device_param->exec_us_prev_loop2[iteration] * device_param->nvidia_spin_damp)); break;
-          case KERN_RUN_AUX1:   if (device_param->exec_us_prev_aux1[iteration]  > 0) usleep ((useconds_t)(device_param->exec_us_prev_aux1[iteration]  * device_param->nvidia_spin_damp)); break;
-          case KERN_RUN_AUX2:   if (device_param->exec_us_prev_aux2[iteration]  > 0) usleep ((useconds_t)(device_param->exec_us_prev_aux2[iteration]  * device_param->nvidia_spin_damp)); break;
-          case KERN_RUN_AUX3:   if (device_param->exec_us_prev_aux3[iteration]  > 0) usleep ((useconds_t)(device_param->exec_us_prev_aux3[iteration]  * device_param->nvidia_spin_damp)); break;
-          case KERN_RUN_AUX4:   if (device_param->exec_us_prev_aux4[iteration]  > 0) usleep ((useconds_t)(device_param->exec_us_prev_aux4[iteration]  * device_param->nvidia_spin_damp)); break;
+          case KERN_RUN_1:      if (device_param->exec_us_prev1[iterationm]      > 0) usleep ((useconds_t) (device_param->exec_us_prev1[iterationm]      * device_param->spin_damp)); break;
+          case KERN_RUN_2:      if (device_param->exec_us_prev2[iterationm]      > 0) usleep ((useconds_t) (device_param->exec_us_prev2[iterationm]      * device_param->spin_damp)); break;
+          case KERN_RUN_3:      if (device_param->exec_us_prev3[iterationm]      > 0) usleep ((useconds_t) (device_param->exec_us_prev3[iterationm]      * device_param->spin_damp)); break;
+          case KERN_RUN_4:      if (device_param->exec_us_prev4[iterationm]      > 0) usleep ((useconds_t) (device_param->exec_us_prev4[iterationm]      * device_param->spin_damp)); break;
+          case KERN_RUN_INIT2:  if (device_param->exec_us_prev_init2[iterationm] > 0) usleep ((useconds_t) (device_param->exec_us_prev_init2[iterationm] * device_param->spin_damp)); break;
+          case KERN_RUN_LOOP2:  if (device_param->exec_us_prev_loop2[iterationm] > 0) usleep ((useconds_t) (device_param->exec_us_prev_loop2[iterationm] * device_param->spin_damp)); break;
+          case KERN_RUN_AUX1:   if (device_param->exec_us_prev_aux1[iterationm]  > 0) usleep ((useconds_t) (device_param->exec_us_prev_aux1[iterationm]  * device_param->spin_damp)); break;
+          case KERN_RUN_AUX2:   if (device_param->exec_us_prev_aux2[iterationm]  > 0) usleep ((useconds_t) (device_param->exec_us_prev_aux2[iterationm]  * device_param->spin_damp)); break;
+          case KERN_RUN_AUX3:   if (device_param->exec_us_prev_aux3[iterationm]  > 0) usleep ((useconds_t) (device_param->exec_us_prev_aux3[iterationm]  * device_param->spin_damp)); break;
+          case KERN_RUN_AUX4:   if (device_param->exec_us_prev_aux4[iterationm]  > 0) usleep ((useconds_t) (device_param->exec_us_prev_aux4[iterationm]  * device_param->spin_damp)); break;
         }
       }
+      else
+      {
+        // we were told to be nice
+
+        sleep (0);
+      }
+
+      CL_rc = hc_clGetEventInfo (hashcat_ctx, event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof (event_status), &event_status, &param_value_size_ret);
+
+      if (CL_rc == -1) return -1;
+
+      spin_total += device_param->spin_damp;
+
+      if (spin_total > 1) break;
     }
   }
 
@@ -1741,22 +1769,22 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
   const double exec_us = (double) (time_end - time_start) / 1000;
 
-  if (status_ctx->devices_status == STATUS_RUNNING)
+  if (device_param->spin_damp > 0)
   {
-    if (iteration < EXPECTED_ITERATIONS)
+    if (status_ctx->devices_status == STATUS_RUNNING)
     {
       switch (kern_run)
       {
-        case KERN_RUN_1:      device_param->exec_us_prev1[iteration]      = exec_us; break;
-        case KERN_RUN_2:      device_param->exec_us_prev2[iteration]      = exec_us; break;
-        case KERN_RUN_3:      device_param->exec_us_prev3[iteration]      = exec_us; break;
-        case KERN_RUN_4:      device_param->exec_us_prev4[iteration]      = exec_us; break;
-        case KERN_RUN_INIT2:  device_param->exec_us_prev_init2[iteration] = exec_us; break;
-        case KERN_RUN_LOOP2:  device_param->exec_us_prev_loop2[iteration] = exec_us; break;
-        case KERN_RUN_AUX1:   device_param->exec_us_prev_aux1[iteration]  = exec_us; break;
-        case KERN_RUN_AUX2:   device_param->exec_us_prev_aux2[iteration]  = exec_us; break;
-        case KERN_RUN_AUX3:   device_param->exec_us_prev_aux3[iteration]  = exec_us; break;
-        case KERN_RUN_AUX4:   device_param->exec_us_prev_aux4[iteration]  = exec_us; break;
+        case KERN_RUN_1:      device_param->exec_us_prev1[iterationm]      = exec_us; break;
+        case KERN_RUN_2:      device_param->exec_us_prev2[iterationm]      = exec_us; break;
+        case KERN_RUN_3:      device_param->exec_us_prev3[iterationm]      = exec_us; break;
+        case KERN_RUN_4:      device_param->exec_us_prev4[iterationm]      = exec_us; break;
+        case KERN_RUN_INIT2:  device_param->exec_us_prev_init2[iterationm] = exec_us; break;
+        case KERN_RUN_LOOP2:  device_param->exec_us_prev_loop2[iterationm] = exec_us; break;
+        case KERN_RUN_AUX1:   device_param->exec_us_prev_aux1[iterationm]  = exec_us; break;
+        case KERN_RUN_AUX2:   device_param->exec_us_prev_aux2[iterationm]  = exec_us; break;
+        case KERN_RUN_AUX3:   device_param->exec_us_prev_aux3[iterationm]  = exec_us; break;
+        case KERN_RUN_AUX4:   device_param->exec_us_prev_aux4[iterationm]  = exec_us; break;
       }
     }
   }
@@ -3773,26 +3801,9 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
           // CPU burning loop damper
           // Value is given as number between 0-100
-          // By default 100%
+          // By default 8%
 
-          device_param->nvidia_spin_damp = (double) user_options->nvidia_spin_damp;
-
-          if (user_options->nvidia_spin_damp_chgd == false)
-          {
-            if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
-            {
-              /**
-               * the workaround is not a friend of rule based attacks
-               * the words from the wordlist combined with fast and slow rules cause
-               * fluctuations which cause inaccurate wait time estimations
-               * using a reduced damping percentage almost compensates this
-               */
-
-              device_param->nvidia_spin_damp = 64;
-            }
-          }
-
-          device_param->nvidia_spin_damp /= 100;
+          device_param->spin_damp = (double) user_options->spin_damp / 100;
         }
       }
 

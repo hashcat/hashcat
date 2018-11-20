@@ -573,7 +573,6 @@ typedef enum user_options_defaults
   MARKOV_DISABLE           = false,
   MARKOV_THRESHOLD         = 0,
   NONCE_ERROR_CORRECTIONS  = 8,
-  NVIDIA_SPIN_DAMP         = 100,
   OPENCL_INFO              = false,
   OPENCL_VECTOR_WIDTH      = 0,
   OPTIMIZED_KERNEL_ENABLE  = false,
@@ -601,6 +600,7 @@ typedef enum user_options_defaults
   SKIP                     = 0,
   SLOW_CANDIDATES          = false,
   SPEED_ONLY               = false,
+  SPIN_DAMP                = 8,
   STATUS                   = false,
   STATUS_TIMER             = 10,
   STDIN_TIMEOUT_ABORT      = 120,
@@ -669,44 +669,44 @@ typedef enum user_options_map
   IDX_MARKOV_HCSTAT2            = 0xff23,
   IDX_MARKOV_THRESHOLD          = 't',
   IDX_NONCE_ERROR_CORRECTIONS   = 0xff24,
-  IDX_NVIDIA_SPIN_DAMP          = 0xff25,
   IDX_OPENCL_DEVICES            = 'd',
   IDX_OPENCL_DEVICE_TYPES       = 'D',
   IDX_OPENCL_INFO               = 'I',
-  IDX_OPENCL_PLATFORMS          = 0xff26,
-  IDX_OPENCL_VECTOR_WIDTH       = 0xff27,
+  IDX_OPENCL_PLATFORMS          = 0xff25,
+  IDX_OPENCL_VECTOR_WIDTH       = 0xff26,
   IDX_OPTIMIZED_KERNEL_ENABLE   = 'O',
-  IDX_OUTFILE_AUTOHEX_DISABLE   = 0xff28,
-  IDX_OUTFILE_CHECK_DIR         = 0xff29,
-  IDX_OUTFILE_CHECK_TIMER       = 0xff2a,
-  IDX_OUTFILE_FORMAT            = 0xff2b,
+  IDX_OUTFILE_AUTOHEX_DISABLE   = 0xff27,
+  IDX_OUTFILE_CHECK_DIR         = 0xff28,
+  IDX_OUTFILE_CHECK_TIMER       = 0xff29,
+  IDX_OUTFILE_FORMAT            = 0xff2a,
   IDX_OUTFILE                   = 'o',
-  IDX_POTFILE_DISABLE           = 0xff2c,
-  IDX_POTFILE_PATH              = 0xff2d,
-  IDX_PROGRESS_ONLY             = 0xff2e,
-  IDX_QUIET                     = 0xff2f,
-  IDX_REMOVE                    = 0xff30,
-  IDX_REMOVE_TIMER              = 0xff31,
-  IDX_RESTORE                   = 0xff32,
-  IDX_RESTORE_DISABLE           = 0xff33,
-  IDX_RESTORE_FILE_PATH         = 0xff34,
+  IDX_POTFILE_DISABLE           = 0xff2b,
+  IDX_POTFILE_PATH              = 0xff2c,
+  IDX_PROGRESS_ONLY             = 0xff2d,
+  IDX_QUIET                     = 0xff2e,
+  IDX_REMOVE                    = 0xff2f,
+  IDX_REMOVE_TIMER              = 0xff30,
+  IDX_RESTORE                   = 0xff31,
+  IDX_RESTORE_DISABLE           = 0xff32,
+  IDX_RESTORE_FILE_PATH         = 0xff33,
   IDX_RP_FILE                   = 'r',
-  IDX_RP_GEN_FUNC_MAX           = 0xff35,
-  IDX_RP_GEN_FUNC_MIN           = 0xff36,
+  IDX_RP_GEN_FUNC_MAX           = 0xff34,
+  IDX_RP_GEN_FUNC_MIN           = 0xff35,
   IDX_RP_GEN                    = 'g',
-  IDX_RP_GEN_SEED               = 0xff37,
+  IDX_RP_GEN_SEED               = 0xff36,
   IDX_RULE_BUF_L                = 'j',
   IDX_RULE_BUF_R                = 'k',
-  IDX_RUNTIME                   = 0xff38,
-  IDX_SCRYPT_TMTO               = 0xff39,
+  IDX_RUNTIME                   = 0xff37,
+  IDX_SCRYPT_TMTO               = 0xff38,
   IDX_SEGMENT_SIZE              = 'c',
-  IDX_SELF_TEST_DISABLE         = 0xff3a,
+  IDX_SELF_TEST_DISABLE         = 0xff39,
   IDX_SEPARATOR                 = 'p',
-  IDX_SESSION                   = 0xff3b,
-  IDX_SHOW                      = 0xff3c,
+  IDX_SESSION                   = 0xff3a,
+  IDX_SHOW                      = 0xff3b,
   IDX_SKIP                      = 's',
   IDX_SLOW_CANDIDATES           = 'S',
-  IDX_SPEED_ONLY                = 0xff3d,
+  IDX_SPEED_ONLY                = 0xff3c,
+  IDX_SPIN_DAMP                 = 0xff3d,
   IDX_STATUS                    = 0xff3e,
   IDX_STATUS_TIMER              = 0xff3f,
   IDX_STDOUT_FLAG               = 0xff40,
@@ -1209,7 +1209,7 @@ typedef struct hc_device_param
 
   bool    is_rocm;
 
-  double  nvidia_spin_damp;
+  double  spin_damp;
 
   cl_platform_id platform;
 
@@ -1692,7 +1692,7 @@ typedef struct user_options
   bool         kernel_loops_chgd;
   bool         kernel_threads_chgd;
   bool         nonce_error_corrections_chgd;
-  bool         nvidia_spin_damp_chgd;
+  bool         spin_damp_chgd;
   bool         opencl_vector_width_chgd;
   bool         outfile_format_chgd;
   bool         remove_timer_chgd;
@@ -1796,7 +1796,7 @@ typedef struct user_options
   u32          kernel_threads;
   u32          markov_threshold;
   u32          nonce_error_corrections;
-  u32          nvidia_spin_damp;
+  u32          spin_damp;
   u32          opencl_vector_width;
   u32          outfile_check_timer;
   u32          outfile_format;

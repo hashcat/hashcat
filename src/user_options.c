@@ -74,7 +74,6 @@ static const struct option long_options[] =
   {"markov-hcstat2",            required_argument, NULL, IDX_MARKOV_HCSTAT2},
   {"markov-threshold",          required_argument, NULL, IDX_MARKOV_THRESHOLD},
   {"nonce-error-corrections",   required_argument, NULL, IDX_NONCE_ERROR_CORRECTIONS},
-  {"nvidia-spin-damp",          required_argument, NULL, IDX_NVIDIA_SPIN_DAMP},
   {"opencl-devices",            required_argument, NULL, IDX_OPENCL_DEVICES},
   {"opencl-device-types",       required_argument, NULL, IDX_OPENCL_DEVICE_TYPES},
   {"opencl-info",               no_argument,       NULL, IDX_OPENCL_INFO},
@@ -109,6 +108,7 @@ static const struct option long_options[] =
   {"skip",                      required_argument, NULL, IDX_SKIP},
   {"slow-candidates",           no_argument,       NULL, IDX_SLOW_CANDIDATES},
   {"speed-only",                no_argument,       NULL, IDX_SPEED_ONLY},
+  {"spin-damp",                 required_argument, NULL, IDX_SPIN_DAMP},
   {"status",                    no_argument,       NULL, IDX_STATUS},
   {"status-timer",              required_argument, NULL, IDX_STATUS_TIMER},
   {"stdout",                    no_argument,       NULL, IDX_STDOUT_FLAG},
@@ -201,7 +201,6 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->markov_hcstat2            = NULL;
   user_options->markov_threshold          = MARKOV_THRESHOLD;
   user_options->nonce_error_corrections   = NONCE_ERROR_CORRECTIONS;
-  user_options->nvidia_spin_damp          = NVIDIA_SPIN_DAMP;
   user_options->opencl_devices            = NULL;
   user_options->opencl_device_types       = NULL;
   user_options->opencl_info               = OPENCL_INFO;
@@ -239,6 +238,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->skip                      = SKIP;
   user_options->slow_candidates           = SLOW_CANDIDATES;
   user_options->speed_only                = SPEED_ONLY;
+  user_options->spin_damp                 = SPIN_DAMP;
   user_options->status                    = STATUS;
   user_options->status_timer              = STATUS_TIMER;
   user_options->stdin_timeout_abort       = STDIN_TIMEOUT_ABORT;
@@ -309,7 +309,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_KERNEL_ACCEL:
       case IDX_KERNEL_LOOPS:
       case IDX_KERNEL_THREADS:
-      case IDX_NVIDIA_SPIN_DAMP:
+      case IDX_SPIN_DAMP:
       case IDX_HWMON_TEMP_ABORT:
       case IDX_HCCAPX_MESSAGE_PAIR:
       case IDX_NONCE_ERROR_CORRECTIONS:
@@ -436,8 +436,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
                                           user_options->kernel_loops_chgd         = true;                            break;
       case IDX_KERNEL_THREADS:            user_options->kernel_threads            = hc_strtoul (optarg, NULL, 10);
                                           user_options->kernel_threads_chgd       = true;                            break;
-      case IDX_NVIDIA_SPIN_DAMP:          user_options->nvidia_spin_damp          = hc_strtoul (optarg, NULL, 10);
-                                          user_options->nvidia_spin_damp_chgd     = true;                            break;
+      case IDX_SPIN_DAMP:                 user_options->spin_damp                 = hc_strtoul (optarg, NULL, 10);
+                                          user_options->spin_damp_chgd            = true;                            break;
       case IDX_HWMON_DISABLE:             user_options->hwmon_disable             = true;                            break;
       case IDX_HWMON_TEMP_ABORT:          user_options->hwmon_temp_abort          = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_LOGFILE_DISABLE:           user_options->logfile_disable           = true;                            break;
@@ -983,16 +983,16 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if (user_options->nvidia_spin_damp > 100)
+  if (user_options->spin_damp > 100)
   {
-    event_log_error (hashcat_ctx, "Values of --nvidia-spin-damp must be between 0 and 100 (inclusive).");
+    event_log_error (hashcat_ctx, "Values of --spin-damp must be between 0 and 100 (inclusive).");
 
     return -1;
   }
 
-  if ((user_options->nvidia_spin_damp_chgd == true) && (user_options->benchmark == true))
+  if ((user_options->spin_damp_chgd == true) && (user_options->benchmark == true))
   {
-    event_log_error (hashcat_ctx, "Values of --nvidia-spin-damp cannot be used in combination with --benchmark.");
+    event_log_error (hashcat_ctx, "Values of --spin-damp cannot be used in combination with --benchmark.");
 
     return -1;
   }
@@ -1443,7 +1443,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->hwmon_disable       = true;
     user_options->left                = false;
     user_options->logfile_disable     = true;
-    user_options->nvidia_spin_damp    = 0;
+    user_options->spin_damp           = 0;
     user_options->outfile_check_timer = 0;
     user_options->potfile_disable     = true;
     user_options->restore_disable     = true;
@@ -1465,7 +1465,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->hwmon_disable       = true;
     user_options->left                = false;
     user_options->logfile_disable     = true;
-    user_options->nvidia_spin_damp    = 0;
+    user_options->spin_damp           = 0;
     user_options->outfile_check_timer = 0;
     user_options->potfile_disable     = true;
     user_options->restore_disable     = true;
@@ -1488,7 +1488,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->increment           = false;
     user_options->left                = false;
     user_options->logfile_disable     = true;
-    user_options->nvidia_spin_damp    = 0;
+    user_options->spin_damp           = 0;
     user_options->potfile_disable     = true;
     user_options->progress_only       = false;
     user_options->restore_disable     = true;
@@ -2666,7 +2666,6 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->markov_classic);
   logfile_top_uint   (user_options->markov_disable);
   logfile_top_uint   (user_options->markov_threshold);
-  logfile_top_uint   (user_options->nvidia_spin_damp);
   logfile_top_uint   (user_options->opencl_info);
   logfile_top_uint   (user_options->opencl_vector_width);
   logfile_top_uint   (user_options->optimized_kernel_enable);
@@ -2694,6 +2693,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->slow_candidates);
   logfile_top_uint   (user_options->show);
   logfile_top_uint   (user_options->speed_only);
+  logfile_top_uint   (user_options->spin_damp);
   logfile_top_uint   (user_options->status);
   logfile_top_uint   (user_options->status_timer);
   logfile_top_uint   (user_options->stdout_flag);
