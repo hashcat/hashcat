@@ -30,7 +30,7 @@ __kernel void m05200_init (KERN_ATTR_TMPS (pwsafe3_tmp_t))
 
   sha256_init (&ctx);
 
-  sha256_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
+  sha256_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len & 255);
 
   sha256_update_global_swap (&ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
 

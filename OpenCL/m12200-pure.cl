@@ -32,7 +32,7 @@ __kernel void m12200_init (KERN_ATTR_TMPS (ecryptfs_tmp_t))
 
   sha512_update_global (&ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
 
-  sha512_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
+  sha512_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len & 255);
 
   sha512_final (&ctx);
 

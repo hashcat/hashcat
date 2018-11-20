@@ -61,7 +61,7 @@ __kernel void m11700_mxx (KERN_ATTR_BASIC ())
 
   streebog256_init (&ctx0, s_sbob_sl64);
 
-  streebog256_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  streebog256_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
 
   /**
    * loop
@@ -144,7 +144,7 @@ __kernel void m11700_sxx (KERN_ATTR_BASIC ())
 
   streebog256_init (&ctx0, s_sbob_sl64);
 
-  streebog256_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  streebog256_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
 
   /**
    * loop

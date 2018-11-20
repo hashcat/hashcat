@@ -32,7 +32,7 @@ __kernel void m01000_mxx (KERN_ATTR_BASIC ())
 
   md4_init (&ctx0);
 
-  md4_update_global_utf16le (&ctx0, pws[gid].i, pws[gid].pw_len);
+  md4_update_global_utf16le (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
 
   /**
    * loop
@@ -86,7 +86,7 @@ __kernel void m01000_sxx (KERN_ATTR_BASIC ())
 
   md4_init (&ctx0);
 
-  md4_update_global_utf16le (&ctx0, pws[gid].i, pws[gid].pw_len);
+  md4_update_global_utf16le (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
 
   /**
    * loop

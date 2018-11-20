@@ -84,7 +84,7 @@ __kernel void m11100_mxx (KERN_ATTR_BASIC ())
 
   md5_init (&ctx0t);
 
-  md5_update_global (&ctx0t, pws[gid].i, pws[gid].pw_len);
+  md5_update_global (&ctx0t, pws[gid].i, pws[gid].pw_len & 255);
 
   /**
    * loop
@@ -240,7 +240,7 @@ __kernel void m11100_sxx (KERN_ATTR_BASIC ())
 
   md5_init (&ctx0t);
 
-  md5_update_global (&ctx0t, pws[gid].i, pws[gid].pw_len);
+  md5_update_global (&ctx0t, pws[gid].i, pws[gid].pw_len & 255);
 
   /**
    * loop

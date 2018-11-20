@@ -87,7 +87,7 @@ __kernel void m08200_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, cloudkey_t
 
   sha512_hmac_ctx_t sha512_hmac_ctx;
 
-  sha512_hmac_init_global_swap (&sha512_hmac_ctx, pws[gid].i, pws[gid].pw_len);
+  sha512_hmac_init_global_swap (&sha512_hmac_ctx, pws[gid].i, pws[gid].pw_len & 255);
 
   tmps[gid].ipad[0] = sha512_hmac_ctx.ipad.h[0];
   tmps[gid].ipad[1] = sha512_hmac_ctx.ipad.h[1];

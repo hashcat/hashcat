@@ -62,7 +62,7 @@ __kernel void m08300_mxx (KERN_ATTR_BASIC ())
 
     ctx1.len = 1;
 
-    sha1_update_global_swap (&ctx1, pws[gid].i, pws[gid].pw_len);
+    sha1_update_global_swap (&ctx1, pws[gid].i, pws[gid].pw_len & 255);
 
     sha1_update_global_swap (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
@@ -177,7 +177,7 @@ __kernel void m08300_sxx (KERN_ATTR_BASIC ())
 
     ctx1.len = 1;
 
-    sha1_update_global_swap (&ctx1, pws[gid].i, pws[gid].pw_len);
+    sha1_update_global_swap (&ctx1, pws[gid].i, pws[gid].pw_len & 255);
 
     sha1_update_global_swap (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 

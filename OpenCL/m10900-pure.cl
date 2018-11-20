@@ -70,7 +70,7 @@ __kernel void m10900_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sha
 
   sha256_hmac_ctx_t sha256_hmac_ctx;
 
-  sha256_hmac_init_global_swap (&sha256_hmac_ctx, pws[gid].i, pws[gid].pw_len);
+  sha256_hmac_init_global_swap (&sha256_hmac_ctx, pws[gid].i, pws[gid].pw_len & 255);
 
   tmps[gid].ipad[0] = sha256_hmac_ctx.ipad.h[0];
   tmps[gid].ipad[1] = sha256_hmac_ctx.ipad.h[1];

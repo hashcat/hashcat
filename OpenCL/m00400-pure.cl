@@ -36,7 +36,7 @@ __kernel void m00400_init (KERN_ATTR_TMPS (phpass_tmp_t))
 
   md5_update_global (&md5_ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
 
-  md5_update_global (&md5_ctx, pws[gid].i, pws[gid].pw_len);
+  md5_update_global (&md5_ctx, pws[gid].i, pws[gid].pw_len & 255);
 
   md5_final (&md5_ctx);
 

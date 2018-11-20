@@ -68,7 +68,7 @@ __kernel void m13900_mxx (KERN_ATTR_BASIC ())
 
   sha1_init (&ctx1l);
 
-  sha1_update_global_swap (&ctx1l, pws[gid].i, pws[gid].pw_len);
+  sha1_update_global_swap (&ctx1l, pws[gid].i, pws[gid].pw_len & 255);
 
   /**
    * loop
@@ -229,7 +229,7 @@ __kernel void m13900_sxx (KERN_ATTR_BASIC ())
 
   sha1_init (&ctx1l);
 
-  sha1_update_global_swap (&ctx1l, pws[gid].i, pws[gid].pw_len);
+  sha1_update_global_swap (&ctx1l, pws[gid].i, pws[gid].pw_len & 255);
 
   /**
    * loop

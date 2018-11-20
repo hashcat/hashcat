@@ -64,7 +64,7 @@ __kernel void m15100_init (KERN_ATTR_TMPS (pbkdf1_sha1_tmp_t))
 
   sha1_hmac_ctx_t sha1_hmac_ctx;
 
-  sha1_hmac_init_global_swap (&sha1_hmac_ctx, pws[gid].i, pws[gid].pw_len);
+  sha1_hmac_init_global_swap (&sha1_hmac_ctx, pws[gid].i, pws[gid].pw_len & 255);
 
   tmps[gid].ipad[0] = sha1_hmac_ctx.ipad.h[0];
   tmps[gid].ipad[1] = sha1_hmac_ctx.ipad.h[1];

@@ -61,7 +61,7 @@ __kernel void m13500_mxx (KERN_ATTR_ESALT (pstoken_t))
    * base
    */
 
-  sha1_update_global_utf16le_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  sha1_update_global_utf16le_swap (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
 
   /**
    * loop
@@ -144,7 +144,7 @@ __kernel void m13500_sxx (KERN_ATTR_ESALT (pstoken_t))
    * base
    */
 
-  sha1_update_global_utf16le_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  sha1_update_global_utf16le_swap (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
 
   /**
    * loop

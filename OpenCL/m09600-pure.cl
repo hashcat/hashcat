@@ -33,7 +33,7 @@ __kernel void m09600_init (KERN_ATTR_TMPS_ESALT (office2013_tmp_t, office2013_t)
 
   sha512_update_global (&ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
 
-  sha512_update_global_utf16le_swap (&ctx, pws[gid].i, pws[gid].pw_len);
+  sha512_update_global_utf16le_swap (&ctx, pws[gid].i, pws[gid].pw_len & 255);
 
   sha512_final (&ctx);
 

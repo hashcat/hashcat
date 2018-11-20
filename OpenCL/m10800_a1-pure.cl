@@ -32,7 +32,7 @@ __kernel void m10800_mxx (KERN_ATTR_BASIC ())
 
   sha384_init (&ctx0);
 
-  sha384_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  sha384_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
 
   /**
    * loop
@@ -86,7 +86,7 @@ __kernel void m10800_sxx (KERN_ATTR_BASIC ())
 
   sha384_init (&ctx0);
 
-  sha384_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  sha384_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
 
   /**
    * loop

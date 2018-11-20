@@ -41,7 +41,7 @@ __kernel void m15000_mxx (KERN_ATTR_BASIC ())
 
   sha512_init (&ctx0);
 
-  sha512_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  sha512_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
 
   /**
    * loop
@@ -106,7 +106,7 @@ __kernel void m15000_sxx (KERN_ATTR_BASIC ())
 
   sha512_init (&ctx0);
 
-  sha512_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  sha512_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
 
   /**
    * loop

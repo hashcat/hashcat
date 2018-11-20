@@ -38,7 +38,7 @@ __kernel void m11200_mxx (KERN_ATTR_BASIC ())
 
   sha1_init (&ctx2l);
 
-  sha1_update_global_swap (&ctx2l, pws[gid].i, pws[gid].pw_len);
+  sha1_update_global_swap (&ctx2l, pws[gid].i, pws[gid].pw_len & 255);
 
   /**
    * loop
@@ -164,7 +164,7 @@ __kernel void m11200_sxx (KERN_ATTR_BASIC ())
 
   sha1_init (&ctx2l);
 
-  sha1_update_global_swap (&ctx2l, pws[gid].i, pws[gid].pw_len);
+  sha1_update_global_swap (&ctx2l, pws[gid].i, pws[gid].pw_len & 255);
 
   /**
    * loop

@@ -33,7 +33,7 @@ __kernel void m09500_init (KERN_ATTR_TMPS_ESALT (office2010_tmp_t, office2010_t)
 
   sha1_update_global (&ctx, salt_bufs[salt_pos].salt_buf, salt_bufs[salt_pos].salt_len);
 
-  sha1_update_global_utf16le_swap (&ctx, pws[gid].i, pws[gid].pw_len);
+  sha1_update_global_utf16le_swap (&ctx, pws[gid].i, pws[gid].pw_len & 255);
 
   sha1_final (&ctx);
 

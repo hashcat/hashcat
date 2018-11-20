@@ -32,7 +32,7 @@ __kernel void m06000_mxx (KERN_ATTR_BASIC ())
 
   ripemd160_init (&ctx0);
 
-  ripemd160_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+  ripemd160_update_global (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
 
   /**
    * loop
@@ -86,7 +86,7 @@ __kernel void m06000_sxx (KERN_ATTR_BASIC ())
 
   ripemd160_init (&ctx0);
 
-  ripemd160_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+  ripemd160_update_global (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
 
   /**
    * loop

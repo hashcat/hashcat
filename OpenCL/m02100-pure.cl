@@ -69,7 +69,7 @@ __kernel void m02100_init (KERN_ATTR_TMPS (dcc2_tmp_t))
 
   md4_init (&md4_ctx1);
 
-  md4_update_global_utf16le (&md4_ctx1, pws[gid].i, pws[gid].pw_len);
+  md4_update_global_utf16le (&md4_ctx1, pws[gid].i, pws[gid].pw_len & 255);
 
   md4_final (&md4_ctx1);
 

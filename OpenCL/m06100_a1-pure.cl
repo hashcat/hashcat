@@ -63,7 +63,7 @@ __kernel void m06100_mxx (KERN_ATTR_BASIC ())
 
   whirlpool_init (&ctx0, s_Ch, s_Cl);
 
-  whirlpool_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  whirlpool_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
 
   /**
    * loop
@@ -148,7 +148,7 @@ __kernel void m06100_sxx (KERN_ATTR_BASIC ())
 
   whirlpool_init (&ctx0, s_Ch, s_Cl);
 
-  whirlpool_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  whirlpool_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
 
   /**
    * loop

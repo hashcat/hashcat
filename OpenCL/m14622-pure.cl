@@ -79,7 +79,7 @@ __kernel void m14622_init (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
 
   sha256_hmac_ctx_t sha256_hmac_ctx;
 
-  sha256_hmac_init_global_swap (&sha256_hmac_ctx, pws[gid].i, pws[gid].pw_len);
+  sha256_hmac_init_global_swap (&sha256_hmac_ctx, pws[gid].i, pws[gid].pw_len & 255);
 
   tmps[gid].ipad32[0] = sha256_hmac_ctx.ipad.h[0];
   tmps[gid].ipad32[1] = sha256_hmac_ctx.ipad.h[1];

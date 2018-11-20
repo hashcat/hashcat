@@ -45,7 +45,7 @@ __kernel void m04800_mxx (KERN_ATTR_BASIC ())
 
   ctx0.len = 1;
 
-  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
 
   /**
    * loop
@@ -114,7 +114,7 @@ __kernel void m04800_sxx (KERN_ATTR_BASIC ())
 
   ctx0.len = 1;
 
-  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
 
   /**
    * loop

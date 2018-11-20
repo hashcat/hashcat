@@ -73,7 +73,7 @@ __kernel void m14612_init (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
 
   sha1_hmac_ctx_t sha1_hmac_ctx;
 
-  sha1_hmac_init_global_swap (&sha1_hmac_ctx, pws[gid].i, pws[gid].pw_len);
+  sha1_hmac_init_global_swap (&sha1_hmac_ctx, pws[gid].i, pws[gid].pw_len & 255);
 
   tmps[gid].ipad32[0] = sha1_hmac_ctx.ipad.h[0];
   tmps[gid].ipad32[1] = sha1_hmac_ctx.ipad.h[1];

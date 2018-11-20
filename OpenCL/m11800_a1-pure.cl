@@ -61,7 +61,7 @@ __kernel void m11800_mxx (KERN_ATTR_BASIC ())
 
   streebog512_init (&ctx0, s_sbob_sl64);
 
-  streebog512_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  streebog512_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
 
   /**
    * loop
@@ -144,7 +144,7 @@ __kernel void m11800_sxx (KERN_ATTR_BASIC ())
 
   streebog512_init (&ctx0, s_sbob_sl64);
 
-  streebog512_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  streebog512_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len & 255);
 
   /**
    * loop
