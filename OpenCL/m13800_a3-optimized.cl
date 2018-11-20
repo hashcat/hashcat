@@ -734,7 +734,7 @@ __kernel void m13800_m04 (KERN_ATTR_VECTOR_ESALT (win8phone_t))
   w[14] = 0;
   w[15] = pws[gid].i[15];
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * shared
@@ -791,7 +791,7 @@ __kernel void m13800_m08 (KERN_ATTR_VECTOR_ESALT (win8phone_t))
   w[14] = 0;
   w[15] = pws[gid].i[15];
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * shared
@@ -848,7 +848,7 @@ __kernel void m13800_m16 (KERN_ATTR_VECTOR_ESALT (win8phone_t))
   w[14] = pws[gid].i[14];
   w[15] = pws[gid].i[15];
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * shared
@@ -905,7 +905,7 @@ __kernel void m13800_s04 (KERN_ATTR_VECTOR_ESALT (win8phone_t))
   w[14] = 0;
   w[15] = pws[gid].i[15];
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * shared
@@ -962,7 +962,7 @@ __kernel void m13800_s08 (KERN_ATTR_VECTOR_ESALT (win8phone_t))
   w[14] = 0;
   w[15] = pws[gid].i[15];
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * shared
@@ -1019,7 +1019,7 @@ __kernel void m13800_s16 (KERN_ATTR_VECTOR_ESALT (win8phone_t))
   w[14] = pws[gid].i[14];
   w[15] = pws[gid].i[15];
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * shared

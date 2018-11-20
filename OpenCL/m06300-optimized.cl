@@ -581,7 +581,7 @@ __kernel void m06300_init (KERN_ATTR_TMPS (md5crypt_tmp_t))
   w0[2] = pws[gid].i[2];
   w0[3] = pws[gid].i[3];
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * salt
@@ -739,7 +739,7 @@ __kernel void m06300_loop (KERN_ATTR_TMPS (md5crypt_tmp_t))
   w0[2] = pws[gid].i[2];
   w0[3] = pws[gid].i[3];
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   u32 w0_x80[4];
 

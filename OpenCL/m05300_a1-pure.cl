@@ -28,7 +28,7 @@ __kernel void m05300_mxx (KERN_ATTR_ESALT (ikepsk_t))
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 255;
 
   u32 w[64] = { 0 };
 
@@ -139,7 +139,7 @@ __kernel void m05300_sxx (KERN_ATTR_ESALT (ikepsk_t))
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 255;
 
   u32 w[64] = { 0 };
 

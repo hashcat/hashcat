@@ -28,7 +28,7 @@ __kernel void m13800_mxx (KERN_ATTR_VECTOR_ESALT (win8phone_t))
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 255;
 
   u32x w[64] = { 0 };
 
@@ -106,7 +106,7 @@ __kernel void m13800_sxx (KERN_ATTR_VECTOR_ESALT (win8phone_t))
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 255;
 
   u32x w[64] = { 0 };
 

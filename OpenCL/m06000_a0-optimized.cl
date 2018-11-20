@@ -48,7 +48,7 @@ __kernel void m06000_m04 (KERN_ATTR_RULES_ESALT (netntlm_t))
   pw_buf1[2] = pws[gid].i[6];
   pw_buf1[3] = pws[gid].i[7];
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * loop
@@ -138,7 +138,7 @@ __kernel void m06000_s04 (KERN_ATTR_RULES_ESALT (netntlm_t))
   pw_buf1[2] = pws[gid].i[6];
   pw_buf1[3] = pws[gid].i[7];
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * digest

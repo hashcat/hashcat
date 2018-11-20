@@ -57,7 +57,7 @@ __kernel void m07900_loop (KERN_ATTR_TMPS (drupal7_tmp_t))
    * init
    */
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 255;
 
   u32 w[64] = { 0 };
 

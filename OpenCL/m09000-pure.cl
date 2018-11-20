@@ -538,7 +538,7 @@ __kernel void __attribute__((reqd_work_group_size(8, 1, 1))) m09000_init (KERN_A
   w3[2] = pws[gid].i[14];
   w3[3] = pws[gid].i[15];
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 255;
 
   append_0x80_4x4 (w0, w1, w2, w3, pw_len);
 

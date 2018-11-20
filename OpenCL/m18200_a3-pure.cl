@@ -388,7 +388,7 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m18200_mxx (KERN_A
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 255;
 
   u32x w[64] = { 0 };
 
@@ -461,7 +461,7 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m18200_sxx (KERN_A
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 255;
 
   u32x w[64] = { 0 };
 

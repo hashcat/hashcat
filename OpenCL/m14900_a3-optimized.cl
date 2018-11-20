@@ -267,7 +267,7 @@ __kernel void m14900_m04 (KERN_ATTR_ESALT (oldoffice01_t))
   w3[2] = 0;
   w3[3] = 0;
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * main
@@ -341,7 +341,7 @@ __kernel void m14900_s04 (KERN_ATTR_ESALT (oldoffice01_t))
   w3[2] = 0;
   w3[3] = 0;
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * main

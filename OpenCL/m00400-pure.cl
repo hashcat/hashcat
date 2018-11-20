@@ -67,7 +67,7 @@ __kernel void m00400_loop (KERN_ATTR_TMPS (phpass_tmp_t))
    * init
    */
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 255;
 
   u32 w[64] = { 0 };
 

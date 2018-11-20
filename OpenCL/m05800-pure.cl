@@ -2258,7 +2258,7 @@ __kernel void m05800_loop (KERN_ATTR_TMPS (androidpin_tmp_t))
    * init
    */
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 255;
 
   u32 w[64] = { 0 };
 

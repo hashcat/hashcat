@@ -710,7 +710,7 @@ __kernel void m11100_m04 (KERN_ATTR_BASIC ())
   w3[2] = pws[gid].i[14];
   w3[3] = 0;
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * main
@@ -780,7 +780,7 @@ __kernel void m11100_m08 (KERN_ATTR_BASIC ())
   w3[2] = pws[gid].i[14];
   w3[3] = 0;
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * main
@@ -850,7 +850,7 @@ __kernel void m11100_m16 (KERN_ATTR_BASIC ())
   w3[2] = pws[gid].i[14];
   w3[3] = pws[gid].i[15];
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * main
@@ -920,7 +920,7 @@ __kernel void m11100_s04 (KERN_ATTR_BASIC ())
   w3[2] = pws[gid].i[14];
   w3[3] = 0;
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * main
@@ -990,7 +990,7 @@ __kernel void m11100_s08 (KERN_ATTR_BASIC ())
   w3[2] = pws[gid].i[14];
   w3[3] = 0;
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * main
@@ -1060,7 +1060,7 @@ __kernel void m11100_s16 (KERN_ATTR_BASIC ())
   w3[2] = pws[gid].i[14];
   w3[3] = pws[gid].i[15];
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * main

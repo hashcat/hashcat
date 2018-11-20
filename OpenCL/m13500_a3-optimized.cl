@@ -849,7 +849,7 @@ __kernel void m13500_m04 (KERN_ATTR_ESALT (pstoken_t))
   w3[2] = 0;
   w3[3] = 0;
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * main
@@ -896,7 +896,7 @@ __kernel void m13500_m08 (KERN_ATTR_ESALT (pstoken_t))
   w3[2] = 0;
   w3[3] = 0;
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * main
@@ -943,7 +943,7 @@ __kernel void m13500_m16 (KERN_ATTR_ESALT (pstoken_t))
   w3[2] = 0;
   w3[3] = 0;
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * main
@@ -990,7 +990,7 @@ __kernel void m13500_s04 (KERN_ATTR_ESALT (pstoken_t))
   w3[2] = 0;
   w3[3] = 0;
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * main
@@ -1037,7 +1037,7 @@ __kernel void m13500_s08 (KERN_ATTR_ESALT (pstoken_t))
   w3[2] = 0;
   w3[3] = 0;
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * main
@@ -1084,7 +1084,7 @@ __kernel void m13500_s16 (KERN_ATTR_ESALT (pstoken_t))
   w3[2] = 0;
   w3[3] = 0;
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * main

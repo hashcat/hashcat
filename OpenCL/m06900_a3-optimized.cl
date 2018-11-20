@@ -1115,7 +1115,7 @@ __kernel void m06900_m04 (KERN_ATTR_BASIC ())
   w3[2] = 0;
   w3[3] = 0;
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * main
@@ -1184,7 +1184,7 @@ __kernel void m06900_m08 (KERN_ATTR_BASIC ())
   w3[2] = 0;
   w3[3] = 0;
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * main
@@ -1257,7 +1257,7 @@ __kernel void m06900_s04 (KERN_ATTR_BASIC ())
   w3[2] = 0;
   w3[3] = 0;
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * main
@@ -1326,7 +1326,7 @@ __kernel void m06900_s08 (KERN_ATTR_BASIC ())
   w3[2] = 0;
   w3[3] = 0;
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * main

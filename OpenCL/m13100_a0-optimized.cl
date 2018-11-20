@@ -594,7 +594,7 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_m04 (KERN_A
   pw_buf1[2] = pws[gid].i[ 6];
   pw_buf1[3] = pws[gid].i[ 7];
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * shared
@@ -692,7 +692,7 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_s04 (KERN_A
   pw_buf1[2] = pws[gid].i[ 6];
   pw_buf1[3] = pws[gid].i[ 7];
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * shared

@@ -587,7 +587,7 @@ __kernel void m05600_m04 (KERN_ATTR_ESALT (netntlm_t))
   w3[2] = pws[gid].i[14];
   w3[3] = 0;
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * main
@@ -660,7 +660,7 @@ __kernel void m05600_m08 (KERN_ATTR_ESALT (netntlm_t))
   w3[2] = pws[gid].i[14];
   w3[3] = 0;
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * main
@@ -733,7 +733,7 @@ __kernel void m05600_m16 (KERN_ATTR_ESALT (netntlm_t))
   w3[2] = pws[gid].i[14];
   w3[3] = 0;
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * main
@@ -806,7 +806,7 @@ __kernel void m05600_s04 (KERN_ATTR_ESALT (netntlm_t))
   w3[2] = pws[gid].i[14];
   w3[3] = 0;
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * main
@@ -879,7 +879,7 @@ __kernel void m05600_s08 (KERN_ATTR_ESALT (netntlm_t))
   w3[2] = pws[gid].i[14];
   w3[3] = 0;
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * main
@@ -952,7 +952,7 @@ __kernel void m05600_s16 (KERN_ATTR_ESALT (netntlm_t))
   w3[2] = pws[gid].i[14];
   w3[3] = 0;
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * main

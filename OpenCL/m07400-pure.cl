@@ -27,7 +27,7 @@ __kernel void m07400_init (KERN_ATTR_TMPS (sha256crypt_tmp_t))
    * init
    */
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 255;
 
   u32 w[64] = { 0 };
 
@@ -260,7 +260,7 @@ __kernel void m07400_loop (KERN_ATTR_TMPS (sha256crypt_tmp_t))
 
   if (gid >= gid_max) return;
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 255;
 
   const u32 salt_len = salt_bufs[salt_pos].salt_len;
 

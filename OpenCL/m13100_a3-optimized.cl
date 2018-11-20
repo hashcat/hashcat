@@ -661,7 +661,7 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_m04 (KERN_A
   w3[2] = 0;
   w3[3] = 0;
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * main
@@ -713,7 +713,7 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_m08 (KERN_A
   w3[2] = 0;
   w3[3] = 0;
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * main
@@ -769,7 +769,7 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_s04 (KERN_A
   w3[2] = 0;
   w3[3] = 0;
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * main
@@ -821,7 +821,7 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_s08 (KERN_A
   w3[2] = 0;
   w3[3] = 0;
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * main

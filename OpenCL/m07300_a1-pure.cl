@@ -28,7 +28,7 @@ __kernel void m07300_mxx (KERN_ATTR_ESALT (rakp_t))
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 255;
 
   u32 w[64] = { 0 };
 
@@ -109,7 +109,7 @@ __kernel void m07300_sxx (KERN_ATTR_ESALT (rakp_t))
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 255;
 
   u32 w[64] = { 0 };
 

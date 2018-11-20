@@ -173,7 +173,7 @@ __kernel void m01800_init (KERN_ATTR_TMPS (sha512crypt_tmp_t))
   w0[2] = pws[gid].i[2];
   w0[3] = pws[gid].i[3];
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * salt
@@ -300,7 +300,7 @@ __kernel void m01800_loop (KERN_ATTR_TMPS (sha512crypt_tmp_t))
   l_p_bytes0[0] = tmps[gid].l_p_bytes[0];
   l_p_bytes0[1] = tmps[gid].l_p_bytes[1];
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   u64 l_s_bytes0[2];
 

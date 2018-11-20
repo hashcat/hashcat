@@ -722,7 +722,7 @@ __kernel void m08500_mxx (KERN_ATTR_VECTOR ())
   w[14] = 0;
   w[15] = 0;
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 255;
 
   /**
    * main
@@ -796,7 +796,7 @@ __kernel void m08500_sxx (KERN_ATTR_VECTOR ())
   w[14] = 0;
   w[15] = 0;
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 255;
 
   /**
    * main

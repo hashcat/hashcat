@@ -2214,7 +2214,7 @@ __kernel void m05800_init (KERN_ATTR_TMPS (androidpin_tmp_t))
   word_buf[2] = pws[gid].i[ 2];
   word_buf[3] = pws[gid].i[ 3];
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   /**
    * salt
@@ -2324,7 +2324,7 @@ __kernel void m05800_loop (KERN_ATTR_TMPS (androidpin_tmp_t))
   word_buf[2] = pws[gid].i[ 2];
   word_buf[3] = pws[gid].i[ 3];
 
-  const u32 pw_len = pws[gid].pw_len;
+  const u32 pw_len = pws[gid].pw_len & 63;
 
   u32 digest[5];
 
