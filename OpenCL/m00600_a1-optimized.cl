@@ -142,7 +142,7 @@ __kernel void m00600_m04 (KERN_ATTR_ESALT (blake2_t))
   pw_buf1[2] = pws[gid].i[6];
   pw_buf1[3] = pws[gid].i[7];
 
-  const u32 pw_l_len = pws[gid].pw_len;
+  const u32 pw_l_len = pws[gid].pw_len & 63;
 
   u64 tmp_h[8];
   u64 tmp_t[2];
@@ -168,7 +168,7 @@ __kernel void m00600_m04 (KERN_ATTR_ESALT (blake2_t))
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos);
+    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos) & 63;
 
     const u32x out_len = pw_l_len + pw_r_len;
 
@@ -309,7 +309,7 @@ __kernel void m00600_s04 (KERN_ATTR_ESALT (blake2_t))
   pw_buf1[2] = pws[gid].i[6];
   pw_buf1[3] = pws[gid].i[7];
 
-  const u32 pw_l_len = pws[gid].pw_len;
+  const u32 pw_l_len = pws[gid].pw_len & 63;
 
   u64 tmp_h[8];
   u64 tmp_t[2];
@@ -347,7 +347,7 @@ __kernel void m00600_s04 (KERN_ATTR_ESALT (blake2_t))
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos);
+    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos) & 63;
 
     const u32x out_len = pw_l_len + pw_r_len;
 

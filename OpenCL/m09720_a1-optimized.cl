@@ -385,7 +385,7 @@ __kernel void m09720_m04 (KERN_ATTR_ESALT (oldoffice01_t))
   pw_buf1[2] = pws[gid].i[6];
   pw_buf1[3] = pws[gid].i[7];
 
-  const u32 pw_l_len = pws[gid].pw_len;
+  const u32 pw_l_len = pws[gid].pw_len & 63;
 
   /**
    * salt
@@ -404,9 +404,9 @@ __kernel void m09720_m04 (KERN_ATTR_ESALT (oldoffice01_t))
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos);
+    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos) & 63;
 
-    const u32x pw_len = pw_l_len + pw_r_len;
+    const u32x pw_len = (pw_l_len + pw_r_len) & 63;
 
     /**
      * concat password candidate
@@ -541,7 +541,7 @@ __kernel void m09720_s04 (KERN_ATTR_ESALT (oldoffice01_t))
   pw_buf1[2] = pws[gid].i[6];
   pw_buf1[3] = pws[gid].i[7];
 
-  const u32 pw_l_len = pws[gid].pw_len;
+  const u32 pw_l_len = pws[gid].pw_len & 63;
 
   /**
    * salt
@@ -572,9 +572,9 @@ __kernel void m09720_s04 (KERN_ATTR_ESALT (oldoffice01_t))
 
   for (u32 il_pos = 0; il_pos < il_cnt; il_pos += VECT_SIZE)
   {
-    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos);
+    const u32x pw_r_len = pwlenx_create_combt (combs_buf, il_pos) & 63;
 
-    const u32x pw_len = pw_l_len + pw_r_len;
+    const u32x pw_len = (pw_l_len + pw_r_len) & 63;
 
     /**
      * concat password candidate
