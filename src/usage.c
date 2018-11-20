@@ -98,7 +98,7 @@ static const char *const USAGE_BIG[] =
   " -n, --kernel-accel              | Num  | Manual workload tuning, set outerloop step size to X | -n 64",
   " -u, --kernel-loops              | Num  | Manual workload tuning, set innerloop step size to X | -u 256",
   " -T, --kernel-threads            | Num  | Manual workload tuning, set thread count to X        | -T 64",
-  "     --nvidia-spin-damp          | Num  | Workaround NVIDIAs CPU burning loop bug, in percent  | --nvidia-spin-damp=50",
+  "     --spin-damp                 | Num  | Use CPU for device synchronization, in percent       | --spin-damp=50",
   "     --hwmon-disable             |      | Disable temperature and fanspeed reads and triggers  |",
   "     --hwmon-temp-abort          | Num  | Abort if temperature reaches X degrees Celsius       | --hwmon-temp-abort=100",
   "     --scrypt-tmto               | Num  | Manually override TMTO value for scrypt to X         | --scrypt-tmto=3",
