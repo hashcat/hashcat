@@ -78,7 +78,7 @@ __kernel void m08400_mxx (KERN_ATTR_BASIC ())
   {
     sha1_ctx_t ctx1 = ctx1l;
 
-    sha1_update_global_swap (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    sha1_update_global_swap (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
 
     sha1_final (&ctx1);
 
@@ -239,7 +239,7 @@ __kernel void m08400_sxx (KERN_ATTR_BASIC ())
   {
     sha1_ctx_t ctx1 = ctx1l;
 
-    sha1_update_global_swap (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    sha1_update_global_swap (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
 
     sha1_final (&ctx1);
 

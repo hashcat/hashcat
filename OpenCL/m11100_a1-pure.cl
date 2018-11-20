@@ -94,7 +94,7 @@ __kernel void m11100_mxx (KERN_ATTR_BASIC ())
   {
     md5_ctx_t ctx1 = ctx0t;
 
-    md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
 
     u32 s0[4];
     u32 s1[4];
@@ -250,7 +250,7 @@ __kernel void m11100_sxx (KERN_ATTR_BASIC ())
   {
     md5_ctx_t ctx1 = ctx0t;
 
-    md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
 
     u32 s0[4];
     u32 s1[4];

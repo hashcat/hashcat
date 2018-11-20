@@ -42,7 +42,7 @@ __kernel void m06000_mxx (KERN_ATTR_BASIC ())
   {
     ripemd160_ctx_t ctx = ctx0;
 
-    ripemd160_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    ripemd160_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
 
     ripemd160_final (&ctx);
 
@@ -96,7 +96,7 @@ __kernel void m06000_sxx (KERN_ATTR_BASIC ())
   {
     ripemd160_ctx_t ctx = ctx0;
 
-    ripemd160_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    ripemd160_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
 
     ripemd160_final (&ctx);
 

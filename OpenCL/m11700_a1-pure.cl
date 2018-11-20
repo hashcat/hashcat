@@ -71,7 +71,7 @@ __kernel void m11700_mxx (KERN_ATTR_BASIC ())
   {
     streebog256_ctx_t ctx = ctx0;
 
-    streebog256_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    streebog256_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
 
     streebog256_final (&ctx);
 
@@ -154,7 +154,7 @@ __kernel void m11700_sxx (KERN_ATTR_BASIC ())
   {
     streebog256_ctx_t ctx = ctx0;
 
-    streebog256_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    streebog256_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
 
     streebog256_final (&ctx);
 

@@ -55,7 +55,7 @@ __kernel void m04800_mxx (KERN_ATTR_BASIC ())
   {
     md5_ctx_t ctx = ctx0;
 
-    md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
 
     md5_update (&ctx, s, salt_len);
 
@@ -124,7 +124,7 @@ __kernel void m04800_sxx (KERN_ATTR_BASIC ())
   {
     md5_ctx_t ctx = ctx0;
 
-    md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
 
     md5_update (&ctx, s, salt_len);
 

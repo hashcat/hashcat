@@ -48,7 +48,7 @@ __kernel void m11200_mxx (KERN_ATTR_BASIC ())
   {
     sha1_ctx_t ctx2 = ctx2l;
 
-    sha1_update_global_swap (&ctx2, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    sha1_update_global_swap (&ctx2, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
 
     sha1_final (&ctx2);
 
@@ -174,7 +174,7 @@ __kernel void m11200_sxx (KERN_ATTR_BASIC ())
   {
     sha1_ctx_t ctx2 = ctx2l;
 
-    sha1_update_global_swap (&ctx2, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    sha1_update_global_swap (&ctx2, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
 
     sha1_final (&ctx2);
 

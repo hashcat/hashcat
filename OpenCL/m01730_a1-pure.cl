@@ -51,7 +51,7 @@ __kernel void m01730_mxx (KERN_ATTR_BASIC ())
   {
     sha512_ctx_t ctx = ctx0;
 
-    sha512_update_global_utf16le_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    sha512_update_global_utf16le_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
 
     sha512_update (&ctx, s, salt_len);
 
@@ -116,7 +116,7 @@ __kernel void m01730_sxx (KERN_ATTR_BASIC ())
   {
     sha512_ctx_t ctx = ctx0;
 
-    sha512_update_global_utf16le_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    sha512_update_global_utf16le_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
 
     sha512_update (&ctx, s, salt_len);
 

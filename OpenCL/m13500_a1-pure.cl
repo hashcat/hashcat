@@ -71,7 +71,7 @@ __kernel void m13500_mxx (KERN_ATTR_ESALT (pstoken_t))
   {
     sha1_ctx_t ctx = ctx0;
 
-    sha1_update_global_utf16le_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    sha1_update_global_utf16le_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
 
     sha1_final (&ctx);
 
@@ -154,7 +154,7 @@ __kernel void m13500_sxx (KERN_ATTR_ESALT (pstoken_t))
   {
     sha1_ctx_t ctx = ctx0;
 
-    sha1_update_global_utf16le_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    sha1_update_global_utf16le_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
 
     sha1_final (&ctx);
 

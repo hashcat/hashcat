@@ -74,7 +74,7 @@ __kernel void m16100_mxx (KERN_ATTR_ESALT (tacacs_plus_t))
   {
     md5_ctx_t ctx = ctx0;
 
-    md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
 
     u32 sequence0[4];
     u32 sequence1[4];
@@ -232,7 +232,7 @@ __kernel void m16100_sxx (KERN_ATTR_ESALT (tacacs_plus_t))
   {
     md5_ctx_t ctx = ctx0;
 
-    md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
 
     u32 sequence0[4];
     u32 sequence1[4];

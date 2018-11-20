@@ -415,7 +415,7 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_mxx (KERN_A
   {
     md4_ctx_t ctx = ctx0;
 
-    md4_update_global_utf16le (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    md4_update_global_utf16le (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
 
     md4_final (&ctx);
 
@@ -475,7 +475,7 @@ __kernel void __attribute__((reqd_work_group_size(64, 1, 1))) m13100_sxx (KERN_A
   {
     md4_ctx_t ctx = ctx0;
 
-    md4_update_global_utf16le (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    md4_update_global_utf16le (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
 
     md4_final (&ctx);
 

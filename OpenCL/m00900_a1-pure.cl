@@ -42,7 +42,7 @@ __kernel void m00900_mxx (KERN_ATTR_BASIC ())
   {
     md4_ctx_t ctx = ctx0;
 
-    md4_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    md4_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
 
     md4_final (&ctx);
 
@@ -96,7 +96,7 @@ __kernel void m00900_sxx (KERN_ATTR_BASIC ())
   {
     md4_ctx_t ctx = ctx0;
 
-    md4_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    md4_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
 
     md4_final (&ctx);
 

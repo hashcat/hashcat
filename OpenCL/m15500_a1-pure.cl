@@ -51,7 +51,7 @@ __kernel void m15500_mxx (KERN_ATTR_BASIC ())
   {
     sha1_ctx_t ctx = ctx0;
 
-    sha1_update_global_utf16be_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    sha1_update_global_utf16be_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
 
     sha1_update (&ctx, s, salt_len);
 
@@ -122,7 +122,7 @@ __kernel void m15500_sxx (KERN_ATTR_BASIC ())
   {
     sha1_ctx_t ctx = ctx0;
 
-    sha1_update_global_utf16be_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    sha1_update_global_utf16be_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
 
     sha1_update (&ctx, s, salt_len);
 

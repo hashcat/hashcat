@@ -204,7 +204,7 @@ __kernel void m16400_mxx (KERN_ATTR_BASIC ())
   {
     md5_ctx_t ctx = ctx0;
 
-    cram_md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    cram_md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
 
     cram_md5_final (&ctx);
 
@@ -258,7 +258,7 @@ __kernel void m16400_sxx (KERN_ATTR_BASIC ())
   {
     md5_ctx_t ctx = ctx0;
 
-    cram_md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    cram_md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len & 255);
 
     cram_md5_final (&ctx);
 
