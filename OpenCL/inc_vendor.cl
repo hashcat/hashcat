@@ -66,13 +66,11 @@
 #define IS_GENERIC
 #endif
 
-#if   DEVICE_TYPE == DEVICE_TYPE_CPU
-#elif DEVICE_TYPE == DEVICE_TYPE_GPU
-// AMD fails with mode 6211
-#ifdef IS_NV
+#define LOCAL_MEM_TYPE_LOCAL  1
+#define LOCAL_MEM_TYPE_GLOBAL 2
+
+#if LOCAL_MEM_TYPE == LOCAL_MEM_TYPE_LOCAL
 #define REAL_SHM
-#endif
-#elif DEVICE_TYPE == DEVICE_TYPE_ACCEL
 #endif
 
 #ifdef REAL_SHM

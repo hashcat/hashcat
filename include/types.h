@@ -1026,6 +1026,7 @@ typedef struct hc_device_param
   u32     device_maxclock_frequency;
   size_t  device_maxworkgroup_size;
   u64     device_local_mem_size;
+  cl_device_local_mem_type device_local_mem_type;
 
   u32     vector_width;
 

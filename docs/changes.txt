@@ -64,6 +64,7 @@
 - Memory: Limit maximum host memory allocation depending on bitness
 - Memory: Reduced default maximum bitmap size from 24 to 18 and give a notice to use --bitmap-max to restore
 - Pidfile: Treat a corrupted pidfile like a not existing pidfile
+- OpenCL Device: Do a real query on OpenCL local memory type instead of just assuming it
 - Tests: Added hash-mode 11700 (Streebog-256)
 - Tests: Added hash-mode 11750 (HMAC-Streebog-256 (key = $pass), big-endian)
 - Tests: Added hash-mode 11760 (HMAC-Streebog-256 (key = $salt), big-endian)
