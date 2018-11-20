@@ -6482,7 +6482,22 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
      * now everything that depends on threads and accel, basically dynamic workload
      */
 
-    const u32 kernel_threads = hashconfig_get_kernel_threads (hashcat_ctx, device_param);
+    u32 kernel_threads = hashconfig_get_kernel_threads (hashcat_ctx, device_param);
+
+    // this is required because inside the kernels there is this:
+    // __local pw_t s_pws[64];
+
+    if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+    {
+      if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+      {
+        // not required
+      }
+      else
+      {
+        kernel_threads = MIN (kernel_threads, 64);
+      }
+    }
 
     device_param->kernel_threads = kernel_threads;
 

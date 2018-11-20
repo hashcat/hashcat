@@ -48,8 +48,9 @@
 - Fixed missing call to WSACleanup() to cleanly shutdown windows sockets system
 - Fixed missing call to WSAStartup() and client indexing in order to start the brain server on Windows
 - Fixed out-of-bounds write in short-term memory of the brain server
-- Fixed status output of progress value when -S and -l are used in combination
 - Fixed output of --speed-only and --progress-only when fast hashes are used in combination with --slow-candidates
+- Fixed status output of progress value when -S and -l are used in combination
+- Fixed thread count maximum for pure kernels in straight attack mode
 
 ##
 ## Technical

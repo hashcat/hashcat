@@ -59,17 +59,19 @@
 
 #define RP_PASSWORD_SIZE 256
 
-#ifdef IS_NV
-#define COPY_PW(x)        \
-  pw_t pw = (x);
+#ifdef REAL_SHM
+#define COPY_PW(x)              \
+  __local pw_t s_pws[64];       \
+  s_pws[get_local_id(0)] = (x); \
+  s_pws[get_local_id(0)].pw_len &= 255;
 #else
-#define COPY_PW(x)        \
-  __local pw_t s_pws[64]; \
-  s_pws[get_local_id(0)] = (x);
+#define COPY_PW(x)              \
+  pw_t pw = (x);                \
+  pw.pw_len &= 255;
 #endif
 
-#ifdef IS_NV
-#define PASTE_PW pw;
-#else
+#ifdef REAL_SHM
 #define PASTE_PW s_pws[get_local_id(0)];
+#else
+#define PASTE_PW pw;
 #endif
