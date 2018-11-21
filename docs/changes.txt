@@ -51,6 +51,7 @@
 - Fixed output of --speed-only and --progress-only when fast hashes are used in combination with --slow-candidates
 - Fixed status output of progress value when -S and -l are used in combination
 - Fixed thread count maximum for pure kernels in straight attack mode
+- Fixed out-of-boundary read in DPAPI masterkey file v2 OpenCL kernel
 
 ##
 ## Technical

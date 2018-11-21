@@ -601,6 +601,8 @@ __kernel void m15900_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v2_t, dpapimk_t))
     iv[1] = data[1];
     iv[2] = data[2];
     iv[3] = data[3];
+
+    if (contents_off == 32) break;
   }
 
   u32 hmacSalt[4];
