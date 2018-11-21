@@ -68,6 +68,7 @@
 - Parameter: Rename --nvidia-spin-damp to --spin-damp (now accessible for all devices)
 - Pidfile: Treat a corrupted pidfile like a not existing pidfile
 - OpenCL Device: Do a real query on OpenCL local memory type instead of just assuming it
+- OpenCL Runtime: Disable auto-vectorization for Intel OpenCL runtime to workaround hanging JiT since version 18.1.0.013
 - Tests: Added hash-mode 11700 (Streebog-256)
 - Tests: Added hash-mode 11750 (HMAC-Streebog-256 (key = $pass), big-endian)
 - Tests: Added hash-mode 11760 (HMAC-Streebog-256 (key = $salt), big-endian)

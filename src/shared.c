@@ -414,6 +414,9 @@ void setup_environment_variables ()
   if (getenv ("POCL_KERNEL_CACHE") == NULL)
     putenv ((char *) "POCL_KERNEL_CACHE=0");
 
+  if (getenv ("CL_CONFIG_USE_VECTORIZER") == NULL)
+    putenv ((char *) "CL_CONFIG_USE_VECTORIZER=False");
+
   #if defined (__CYGWIN__)
   cygwin_internal (CW_SYNC_WINENV);
   #endif
