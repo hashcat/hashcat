@@ -4301,7 +4301,7 @@ sub single
     elsif (is_in_array ($mode, $COMMON_DEFAULT_SALTED_MODES)
         || $mode ==   121 || $mode ==  1411 || $mode ==  1711 || $mode ==  3711
         || $mode ==  8900 || $mode == 10000 || $mode == 10200 || $mode == 10900
-        || $mode == 11900 || $mode == 12000 || $mode == 12000 || $mode == 16500)
+        || $mode == 11900 || $mode == 12000 || $mode == 12100 || $mode == 16500)
     {
       my $salt_len = get_random_num (1, 15);
 
