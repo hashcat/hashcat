@@ -23,41 +23,41 @@
  *   - P19: Type of the esalt_bufs structure with additional data, or void.
  */
 
-#define KERN_ATTR(p2,p4,p5,p6,p19)       \
-  __global pw_t *pws,                    \
-  p2 const kernel_rule_t *rules_buf,     \
-  __global const pw_t *combs_buf,        \
-  p4,                                    \
-  __global p5 *tmps,                     \
-  __global p6 *hooks,                    \
-  __global const u32 *bitmaps_buf_s1_a,  \
-  __global const u32 *bitmaps_buf_s1_b,  \
-  __global const u32 *bitmaps_buf_s1_c,  \
-  __global const u32 *bitmaps_buf_s1_d,  \
-  __global const u32 *bitmaps_buf_s2_a,  \
-  __global const u32 *bitmaps_buf_s2_b,  \
-  __global const u32 *bitmaps_buf_s2_c,  \
-  __global const u32 *bitmaps_buf_s2_d,  \
-  __global plain_t *plains_buf,          \
-  __global const digest_t *digests_buf,  \
-  __global u32 *hashes_shown,            \
-  __global const salt_t *salt_bufs,      \
-  __global const p19 *esalt_bufs,        \
-  __global u32 *d_return_buf,            \
-  __global uint4 *d_scryptV0_buf,        \
-  __global uint4 *d_scryptV1_buf,        \
-  __global uint4 *d_scryptV2_buf,        \
-  __global uint4 *d_scryptV3_buf,        \
-  const u32 bitmap_mask,                 \
-  const u32 bitmap_shift1,               \
-  const u32 bitmap_shift2,               \
-  const u32 salt_pos,                    \
-  const u32 loop_pos,                    \
-  const u32 loop_cnt,                    \
-  const u32 il_cnt,                      \
-  const u32 digests_cnt,                 \
-  const u32 digests_offset,              \
-  const u32 combs_mode,                  \
+#define KERN_ATTR(p2,p4,p5,p6,p19)                           \
+  __global       pw_t          * restrict pws,               \
+  p2       const kernel_rule_t * restrict rules_buf,         \
+  __global const pw_t          * restrict combs_buf,         \
+  p4,                                                        \
+  __global p5                  * restrict tmps,              \
+  __global p6                  * restrict hooks,             \
+  __global const u32           * restrict bitmaps_buf_s1_a,  \
+  __global const u32           * restrict bitmaps_buf_s1_b,  \
+  __global const u32           * restrict bitmaps_buf_s1_c,  \
+  __global const u32           * restrict bitmaps_buf_s1_d,  \
+  __global const u32           * restrict bitmaps_buf_s2_a,  \
+  __global const u32           * restrict bitmaps_buf_s2_b,  \
+  __global const u32           * restrict bitmaps_buf_s2_c,  \
+  __global const u32           * restrict bitmaps_buf_s2_d,  \
+  __global       plain_t       * restrict plains_buf,        \
+  __global const digest_t      * restrict digests_buf,       \
+  __global       u32           * restrict hashes_shown,      \
+  __global const salt_t        * restrict salt_bufs,         \
+  __global const p19           * restrict esalt_bufs,        \
+  __global       u32           * restrict d_return_buf,      \
+  __global       uint4         * restrict d_scryptV0_buf,    \
+  __global       uint4         * restrict d_scryptV1_buf,    \
+  __global       uint4         * restrict d_scryptV2_buf,    \
+  __global       uint4         * restrict d_scryptV3_buf,    \
+  const u32 bitmap_mask,    \
+  const u32 bitmap_shift1,  \
+  const u32 bitmap_shift2,  \
+  const u32 salt_pos,       \
+  const u32 loop_pos,       \
+  const u32 loop_cnt,       \
+  const u32 il_cnt,         \
+  const u32 digests_cnt,    \
+  const u32 digests_offset, \
+  const u32 combs_mode,     \
   const u64 gid_max
 
 /*
@@ -68,16 +68,16 @@
  * do not use rules or tmps, etc.
  */
 
-#define KERN_ATTR_BASIC()         KERN_ATTR (__global,   __global   const bf_t      *bfs_buf,     void, void, void)
-#define KERN_ATTR_BITSLICE()      KERN_ATTR (__global,   __constant const bs_word_t *words_buf_r, void, void, void)
-#define KERN_ATTR_ESALT(e)        KERN_ATTR (__global,   __global   const bf_t      *bfs_buf,     void, void, e)
-#define KERN_ATTR_RULES()         KERN_ATTR (__constant, __global   const bf_t      *bfs_buf,     void, void, void)
-#define KERN_ATTR_RULES_ESALT(e)  KERN_ATTR (__constant, __global   const bf_t      *bfs_buf,     void, void, e)
-#define KERN_ATTR_TMPS(t)         KERN_ATTR (__global,   __global   const bf_t      *bfs_buf,     t,    void, void)
-#define KERN_ATTR_TMPS_ESALT(t,e) KERN_ATTR (__global,   __global   const bf_t      *bfs_buf,     t,    void, e)
-#define KERN_ATTR_TMPS_HOOKS(t,h) KERN_ATTR (__global,   __global   const bf_t      *bfs_buf,     t,    h,    void)
-#define KERN_ATTR_VECTOR()        KERN_ATTR (__global,   __constant const u32x      *words_buf_r, void, void, void)
-#define KERN_ATTR_VECTOR_ESALT(e) KERN_ATTR (__global,   __constant const u32x      *words_buf_r, void, void, e)
+#define KERN_ATTR_BASIC()         KERN_ATTR (__global,   __global   const bf_t      * restrict bfs_buf,     void, void, void)
+#define KERN_ATTR_BITSLICE()      KERN_ATTR (__global,   __constant const bs_word_t * restrict words_buf_r, void, void, void)
+#define KERN_ATTR_ESALT(e)        KERN_ATTR (__global,   __global   const bf_t      * restrict bfs_buf,     void, void, e)
+#define KERN_ATTR_RULES()         KERN_ATTR (__constant, __global   const bf_t      * restrict bfs_buf,     void, void, void)
+#define KERN_ATTR_RULES_ESALT(e)  KERN_ATTR (__constant, __global   const bf_t      * restrict bfs_buf,     void, void, e)
+#define KERN_ATTR_TMPS(t)         KERN_ATTR (__global,   __global   const bf_t      * restrict bfs_buf,     t,    void, void)
+#define KERN_ATTR_TMPS_ESALT(t,e) KERN_ATTR (__global,   __global   const bf_t      * restrict bfs_buf,     t,    void, e)
+#define KERN_ATTR_TMPS_HOOKS(t,h) KERN_ATTR (__global,   __global   const bf_t      * restrict bfs_buf,     t,    h,    void)
+#define KERN_ATTR_VECTOR()        KERN_ATTR (__global,   __constant const u32x      * restrict words_buf_r, void, void, void)
+#define KERN_ATTR_VECTOR_ESALT(e) KERN_ATTR (__global,   __constant const u32x      * restrict words_buf_r, void, void, e)
 
 /**
  * pure scalar functions
@@ -60480,7 +60480,7 @@ DECLSPEC void gpu_decompress_entry (__global pw_idx_t *pws_idx, __global u32 *pw
   pw->pw_len = len;
 }
 
-__kernel void gpu_decompress (__global pw_idx_t *pws_idx, __global u32 *pws_comp, __global pw_t *pws_buf, const u64 gid_max)
+__kernel void gpu_decompress (__global pw_idx_t * restrict pws_idx, __global u32 * restrict pws_comp, __global pw_t * restrict pws_buf, const u64 gid_max)
 {
   const u64 gid = get_global_id (0);
 
@@ -60493,7 +60493,7 @@ __kernel void gpu_decompress (__global pw_idx_t *pws_idx, __global u32 *pws_comp
   pws_buf[gid] = pw;
 }
 
-__kernel void gpu_memset (__global uint4 *buf, const u32 value, const u64 gid_max)
+__kernel void gpu_memset (__global uint4 * restrict buf, const u32 value, const u64 gid_max)
 {
   const u64 gid = get_global_id (0);
 
@@ -60502,7 +60502,7 @@ __kernel void gpu_memset (__global uint4 *buf, const u32 value, const u64 gid_ma
   buf[gid] = (uint4) (value);
 }
 
-__kernel void gpu_atinit (__global pw_t *buf, const u64 gid_max)
+__kernel void gpu_atinit (__global pw_t * restrict buf, const u64 gid_max)
 {
   const u64 gid = get_global_id (0);
 
