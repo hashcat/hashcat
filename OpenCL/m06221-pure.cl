@@ -16,11 +16,13 @@
 #include "inc_cipher_aes.cl"
 #include "inc_cipher_twofish.cl"
 #include "inc_cipher_serpent.cl"
+#include "inc_cipher_kuznyechik.cl"
 
 #include "inc_truecrypt_keyfile.cl"
 #include "inc_truecrypt_keyboard.cl"
 #include "inc_truecrypt_crc32.cl"
 #include "inc_truecrypt_xts.cl"
+#include "inc_veracrypt_xts.cl"
 
 DECLSPEC void hmac_sha512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, u64x *ipad, u64x *opad, u64x *digest)
 {
@@ -515,6 +517,14 @@ __kernel void m06221_comp (KERN_ATTR_TMPS_ESALT (tc64_tmp_t, tc_t))
   }
 
   if (verify_header_twofish (esalt_bufs, ukey1, ukey2) == 1)
+  {
+    if (atomic_inc (&hashes_shown[0]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+    }
+  }
+
+  if (verify_header_kuznyechik (esalt_bufs, ukey1, ukey2) == 1)
   {
     if (atomic_inc (&hashes_shown[0]) == 0)
     {
