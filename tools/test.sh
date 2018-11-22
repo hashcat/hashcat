@@ -2253,10 +2253,10 @@ function truecrypt_test()
 
 # Compose and execute hashcat command on a VeraCrypt test container
 # Must not be called for hash types other than 137XY
-# $1: primary (first layer) cipher id, must be 0-2
+# $1: cipher variation, can be 0-4
 function veracrypt_test()
 {
-  primary_cipher=$1
+  cipher_variation=$1
 
   hash_function=""
 
@@ -2274,25 +2274,32 @@ function veracrypt_test()
   cipher_digit="${hash_type:4:1}"
   case $cipher_digit in
     1)
-      [ $primary_cipher -eq "0" ] && cipher_cascade="aes"
-      [ $primary_cipher -eq "1" ] && cipher_cascade="serpent"
-      [ $primary_cipher -eq "2" ] && cipher_cascade="twofish"
+      [ $cipher_variation -eq "0" ] && cipher_cascade="aes"
+      [ $cipher_variation -eq "1" ] && cipher_cascade="serpent"
+      [ $cipher_variation -eq "2" ] && cipher_cascade="twofish"
+      [ $cipher_variation -eq "3" ] && cipher_cascade="kuznyechik"
       ;;
     2)
-      [ $primary_cipher -eq "0" ] && cipher_cascade="aes-twofish"
-      [ $primary_cipher -eq "1" ] && cipher_cascade="serpent-aes"
-      [ $primary_cipher -eq "2" ] && cipher_cascade="twofish-serpent"
+      [ $cipher_variation -eq "0" ] && cipher_cascade="aes-twofish"
+      [ $cipher_variation -eq "1" ] && cipher_cascade="serpent-aes"
+      [ $cipher_variation -eq "2" ] && cipher_cascade="twofish-serpent"
+      [ $cipher_variation -eq "3" ] && cipher_cascade="kuznyechik-aes"
+      [ $cipher_variation -eq "4" ] && cipher_cascade="kuznyechik-twofish"
       ;;
     3)
-      [ $primary_cipher -eq "0" ] && cipher_cascade="aes-twofish-serpent"
-      [ $primary_cipher -eq "1" ] && cipher_cascade="serpent-twofish-aes"
-      [ $primary_cipher -eq "2" ] && cipher_cascade=""
+      [ $cipher_variation -eq "0" ] && cipher_cascade="aes-twofish-serpent"
+      [ $cipher_variation -eq "1" ] && cipher_cascade="serpent-twofish-aes"
       ;;
   esac
 
   [ -n "$cipher_cascade" ] || return
 
-  CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} ${TDIR}/vc_tests/hashcat_${hash_function}_${cipher_cascade}.vc hashca?l"
+  filename="${TDIR}/vc_tests/hashcat_${hash_function}_${cipher_cascade}.vc"
+
+  # The hash-cipher combination might be invalid (e.g. RIPEMD-160 + Kuznyechik)
+  [ -f "${filename}" ] || return
+
+  CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} ${filename} hashca?l"
 
   echo "> Testing hash type ${hash_type} with attack mode 3, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}, cipher ${cipher_cascade}" &>> ${OUTD}/logfull.txt
 
@@ -2767,9 +2774,11 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
 
             # Look up if this is one of supported VeraCrypt modes
             if is_in_array ${hash_type} ${VC_MODES}; then
-              veracrypt_test 0
-              veracrypt_test 1
-              veracrypt_test 2
+              veracrypt_test 0 # aes
+              veracrypt_test 1 # serpent
+              veracrypt_test 2 # twofish
+              veracrypt_test 3 # kuznyechik
+              veracrypt_test 4 # kuznyechik (2nd cascade)
 
             elif [[ ${hash_type} -ge 6211 ]] && [[ ${hash_type} -le 6243 ]]; then
               # run truecrypt tests
