@@ -18,7 +18,6 @@
 #include "inc_cipher_serpent.cl"
 
 #include "inc_truecrypt_keyfile.cl"
-#include "inc_truecrypt_keyboard.cl"
 #include "inc_truecrypt_crc32.cl"
 #include "inc_truecrypt_xts.cl"
 
@@ -109,7 +108,7 @@ __kernel void m06212_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
 
   const u32 pw_len = pws[gid].pw_len;
 
-  keyboard_map (w0, w1, w2, w3, pw_len, s_keyboard_layout_mapping_buf, keyboard_layout_mapping_cnt);
+  execute_keyboard_layout_mapping (w0, w1, w2, w3, pw_len, s_keyboard_layout_mapping_buf, keyboard_layout_mapping_cnt);
 
   w0[0] = u8add (w0[0], esalt_bufs[digests_offset].keyfile_buf[ 0]);
   w0[1] = u8add (w0[1], esalt_bufs[digests_offset].keyfile_buf[ 1]);
