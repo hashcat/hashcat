@@ -2630,13 +2630,13 @@ static int input_tokenizer (u8 *input_buf, int input_len, token_t *token)
 
 static int sort_by_src_len (const void *p1, const void *p2)
 {
-  const kb_layout_map_t *k1 = (const kb_layout_map_t *) p1;
-  const kb_layout_map_t *k2 = (const kb_layout_map_t *) p2;
+  const keyboard_layout_mapping_t *k1 = (const keyboard_layout_mapping_t *) p1;
+  const keyboard_layout_mapping_t *k2 = (const keyboard_layout_mapping_t *) p2;
 
   return k1->src_len < k2->src_len;
 }
 
-static bool initialize_keyboard_layout (hashcat_ctx_t *hashcat_ctx, const char *filename, kb_layout_map_t *kb_layout_map, int *kb_layout_map_cnt)
+static bool initialize_keyboard_layout_mapping (hashcat_ctx_t *hashcat_ctx, const char *filename, keyboard_layout_mapping_t *keyboard_layout_mapping, int *keyboard_layout_mapping_cnt)
 {
   char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
@@ -2663,12 +2663,12 @@ static bool initialize_keyboard_layout (hashcat_ctx_t *hashcat_ctx, const char *
 
     token.len_min[0] = 1;
     token.len_max[0] = 4;
-    token.sep[0]     = '=';
+    token.sep[0]     = 0x09;
     token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.len_min[1] = 0;
     token.len_max[1] = 4;
-    token.sep[1]     = '=';
+    token.sep[1]     = 0x09;
     token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     const int rc_tokenizer = input_tokenizer ((u8 *) line_buf, line_len, &token);
@@ -2684,11 +2684,11 @@ static bool initialize_keyboard_layout (hashcat_ctx_t *hashcat_ctx, const char *
       return false;
     }
 
-    memcpy (&kb_layout_map[maps_cnt].src_char, token.buf[0], token.len[0]);
-    memcpy (&kb_layout_map[maps_cnt].dst_char, token.buf[1], token.len[1]);
+    memcpy (&keyboard_layout_mapping[maps_cnt].src_char, token.buf[0], token.len[0]);
+    memcpy (&keyboard_layout_mapping[maps_cnt].dst_char, token.buf[1], token.len[1]);
 
-    kb_layout_map[maps_cnt].src_len = token.len[0];
-    kb_layout_map[maps_cnt].dst_len = token.len[1];
+    keyboard_layout_mapping[maps_cnt].src_len = token.len[0];
+    keyboard_layout_mapping[maps_cnt].dst_len = token.len[1];
 
     if (maps_cnt == 256)
     {
@@ -2704,7 +2704,7 @@ static bool initialize_keyboard_layout (hashcat_ctx_t *hashcat_ctx, const char *
     maps_cnt++;
   }
 
-  *kb_layout_map_cnt = maps_cnt;
+  *keyboard_layout_mapping_cnt = maps_cnt;
 
   fclose (fp);
 
@@ -2712,7 +2712,7 @@ static bool initialize_keyboard_layout (hashcat_ctx_t *hashcat_ctx, const char *
 
   // we need to sort this by length to ensure the largest blocks come first in mapping
 
-  qsort (kb_layout_map, maps_cnt, sizeof (kb_layout_map_t), sort_by_src_len);
+  qsort (keyboard_layout_mapping, maps_cnt, sizeof (keyboard_layout_mapping_t), sort_by_src_len);
 
   return true;
 }
@@ -25618,7 +25618,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_BINARY_HASHFILE;
+                                            | OPTS_TYPE_BINARY_HASHFILE
+                                            | OPTS_TYPE_KEYBOARD_MAPPING;
                  hashconfig->kern_type      = KERN_TYPE_TCRIPEMD160_XTS512;
                  hashconfig->dgst_size      = DGST_SIZE_4_5;
                  hashconfig->parse_func     = truecrypt_parse_hash_1k;
@@ -25636,7 +25637,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_BINARY_HASHFILE;
+                                            | OPTS_TYPE_BINARY_HASHFILE
+                                            | OPTS_TYPE_KEYBOARD_MAPPING;
                  hashconfig->kern_type      = KERN_TYPE_TCRIPEMD160_XTS1024;
                  hashconfig->dgst_size      = DGST_SIZE_4_5;
                  hashconfig->parse_func     = truecrypt_parse_hash_1k;
@@ -25654,7 +25656,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_BINARY_HASHFILE;
+                                            | OPTS_TYPE_BINARY_HASHFILE
+                                            | OPTS_TYPE_KEYBOARD_MAPPING;
                  hashconfig->kern_type      = KERN_TYPE_TCRIPEMD160_XTS1536;
                  hashconfig->dgst_size      = DGST_SIZE_4_5;
                  hashconfig->parse_func     = truecrypt_parse_hash_1k;
@@ -27409,7 +27412,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_BINARY_HASHFILE;
+                                            | OPTS_TYPE_BINARY_HASHFILE
+                                            | OPTS_TYPE_KEYBOARD_MAPPING;
                  hashconfig->kern_type      = KERN_TYPE_TCRIPEMD160_XTS512;
                  hashconfig->dgst_size      = DGST_SIZE_4_5;
                  hashconfig->parse_func     = veracrypt_parse_hash_327661;
@@ -27427,7 +27431,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_BINARY_HASHFILE;
+                                            | OPTS_TYPE_BINARY_HASHFILE
+                                            | OPTS_TYPE_KEYBOARD_MAPPING;
                  hashconfig->kern_type      = KERN_TYPE_TCRIPEMD160_XTS1024;
                  hashconfig->dgst_size      = DGST_SIZE_4_5;
                  hashconfig->parse_func     = veracrypt_parse_hash_327661;
@@ -27445,7 +27450,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_BINARY_HASHFILE;
+                                            | OPTS_TYPE_BINARY_HASHFILE
+                                            | OPTS_TYPE_KEYBOARD_MAPPING;
                  hashconfig->kern_type      = KERN_TYPE_TCRIPEMD160_XTS1536;
                  hashconfig->dgst_size      = DGST_SIZE_4_5;
                  hashconfig->parse_func     = veracrypt_parse_hash_327661;
@@ -27517,7 +27523,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_BINARY_HASHFILE;
+                                            | OPTS_TYPE_BINARY_HASHFILE
+                                            | OPTS_TYPE_KEYBOARD_MAPPING;
                  hashconfig->kern_type      = KERN_TYPE_VCSHA256_XTS512;
                  hashconfig->dgst_size      = DGST_SIZE_4_8;
                  hashconfig->parse_func     = veracrypt_parse_hash_200000;
@@ -27535,7 +27542,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_BINARY_HASHFILE;
+                                            | OPTS_TYPE_BINARY_HASHFILE
+                                            | OPTS_TYPE_KEYBOARD_MAPPING;
                  hashconfig->kern_type      = KERN_TYPE_VCSHA256_XTS1024;
                  hashconfig->dgst_size      = DGST_SIZE_4_8;
                  hashconfig->parse_func     = veracrypt_parse_hash_200000;
@@ -27553,7 +27561,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_BINARY_HASHFILE;
+                                            | OPTS_TYPE_BINARY_HASHFILE
+                                            | OPTS_TYPE_KEYBOARD_MAPPING;
                  hashconfig->kern_type      = KERN_TYPE_VCSHA256_XTS1536;
                  hashconfig->dgst_size      = DGST_SIZE_4_8;
                  hashconfig->parse_func     = veracrypt_parse_hash_200000;
@@ -28391,6 +28400,16 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     default:     return -1;
   }
 
+  if (user_options->keyboard_layout_mapping)
+  {
+    if ((hashconfig->opts_type & OPTS_TYPE_KEYBOARD_MAPPING) == 0)
+    {
+      event_log_error (hashcat_ctx, "Parameter --keyboard-layout-mapping not valid for hash-type %u", hashconfig->hash_mode);
+
+      return -1;
+    }
+  }
+
   if (user_options->hex_salt)
   {
     if (hashconfig->salt_type == SALT_TYPE_GENERIC)
@@ -28399,7 +28418,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      event_log_error (hashcat_ctx, "Parameter hex-salt not valid for hash-type %u", hashconfig->hash_mode);
+      event_log_error (hashcat_ctx, "Parameter --hex-salt not valid for hash-type %u", hashconfig->hash_mode);
 
       return -1;
     }
@@ -29288,24 +29307,11 @@ int hashconfig_general_defaults (hashcat_ctx_t *hashcat_ctx)
     }
 
     // truecrypt and veracrypt boot only
-    if ((hashconfig->hash_mode == 6241)
-     || (hashconfig->hash_mode == 6242)
-     || (hashconfig->hash_mode == 6243)
-     || (hashconfig->hash_mode == 13741)
-     || (hashconfig->hash_mode == 13742)
-     || (hashconfig->hash_mode == 13743)
-     || (hashconfig->hash_mode == 13761)
-     || (hashconfig->hash_mode == 13762)
-     || (hashconfig->hash_mode == 13763))
+    if (hashconfig->opts_type & OPTS_TYPE_KEYBOARD_MAPPING)
     {
-      char *optional_param2 = NULL;
-
-      if (user_options->truecrypt_keyboard_layout) optional_param2 = user_options->truecrypt_keyboard_layout;
-      if (user_options->veracrypt_keyboard_layout) optional_param2 = user_options->veracrypt_keyboard_layout;
-
-      if (optional_param2)
+      if (user_options->keyboard_layout_mapping)
       {
-        const bool rc = initialize_keyboard_layout (hashcat_ctx, optional_param2, tc->kb_layout_map, &tc->kb_layout_map_cnt);
+        const bool rc = initialize_keyboard_layout_mapping (hashcat_ctx, user_options->keyboard_layout_mapping, tc->keyboard_layout_mapping_buf, &tc->keyboard_layout_mapping_cnt);
 
         if (rc == false) return -1;
       }

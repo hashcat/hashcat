@@ -68,13 +68,13 @@ __kernel void m06211_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
    * keyboard layout shared
    */
 
-  const int kb_layout_map_cnt = esalt_bufs[digests_offset].kb_layout_map_cnt;
+  const int keyboard_layout_mapping_cnt = esalt_bufs[digests_offset].keyboard_layout_mapping_cnt;
 
-  __local kb_layout_map_t s_kb_layout_map[256];
+  __local keyboard_layout_mapping_t s_keyboard_layout_mapping_buf[256];
 
   for (MAYBE_VOLATILE u32 i = lid; i < 256; i += lsz)
   {
-    s_kb_layout_map[i] = esalt_bufs[digests_offset].kb_layout_map[i];
+    s_keyboard_layout_mapping_buf[i] = esalt_bufs[digests_offset].keyboard_layout_mapping_buf[i];
   }
 
   barrier (CLK_LOCAL_MEM_FENCE);
@@ -109,7 +109,7 @@ __kernel void m06211_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
 
   const u32 pw_len = pws[gid].pw_len;
 
-  keyboard_map (w0, w1, w2, w3, pw_len, s_kb_layout_map, kb_layout_map_cnt);
+  keyboard_map (w0, w1, w2, w3, pw_len, s_keyboard_layout_mapping_buf, keyboard_layout_mapping_cnt);
 
   w0[0] = u8add (w0[0], esalt_bufs[digests_offset].keyfile_buf[ 0]);
   w0[1] = u8add (w0[1], esalt_bufs[digests_offset].keyfile_buf[ 1]);

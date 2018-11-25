@@ -130,12 +130,12 @@ int sort_by_hash_no_salt (const void *v1, const void *v2, void *v3)
   return sort_by_digest_p0p1 (d1, d2, v3);
 }
 
-int find_map (const u32 search, const int search_len, kb_layout_map_t *s_kb_layout_map, const int kb_layout_map_cnt)
+int find_keyboard_layout_map (const u32 search, const int search_len, keyboard_layout_mapping_t *s_keyboard_layout_mapping, const int keyboard_layout_mapping_cnt)
 {
-  for (int idx = 0; idx < kb_layout_map_cnt; idx++)
+  for (int idx = 0; idx < keyboard_layout_mapping_cnt; idx++)
   {
-    const u32 src_char = s_kb_layout_map[idx].src_char;
-    const int src_len  = s_kb_layout_map[idx].src_len;
+    const u32 src_char = s_keyboard_layout_mapping[idx].src_char;
+    const int src_len  = s_keyboard_layout_mapping[idx].src_len;
 
     if (src_len == search_len)
     {
@@ -148,7 +148,7 @@ int find_map (const u32 search, const int search_len, kb_layout_map_t *s_kb_layo
   return -1;
 }
 
-int keyboard_map (u32 plain_buf[64], const int plain_len, kb_layout_map_t *s_kb_layout_map, const int kb_layout_map_cnt)
+int execute_keyboard_layout_mapping (u32 plain_buf[64], const int plain_len, keyboard_layout_mapping_t *s_keyboard_layout_mapping, const int keyboard_layout_mapping_cnt)
 {
   u32 out_buf[16] = { 0 };
 
@@ -187,12 +187,12 @@ int keyboard_map (u32 plain_buf[64], const int plain_len, kb_layout_map_t *s_kb_
 
     for (src_len = rem; src_len > 0; src_len--)
     {
-      const int idx = find_map (src, src_len, s_kb_layout_map, kb_layout_map_cnt);
+      const int idx = find_keyboard_layout_map (src, src_len, s_keyboard_layout_mapping, keyboard_layout_mapping_cnt);
 
       if (idx == -1) continue;
 
-      u32 dst_char = s_kb_layout_map[idx].dst_char;
-      int dst_len  = s_kb_layout_map[idx].dst_len;
+      u32 dst_char = s_keyboard_layout_mapping[idx].dst_char;
+      int dst_len  = s_keyboard_layout_mapping[idx].dst_len;
 
       switch (dst_len)
       {
@@ -425,22 +425,14 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
     strncpy ((char *) plain_ptr, (char *) temp_ptr, sizeof (plain_buf));
   }
 
+  // truecrypt and veracrypt boot only:
   // we do some kernel internal substituations, so we need to do that here as well, if it cracks
 
-  // truecrypt and veracrypt boot only
-  if ((hashconfig->hash_mode == 6241)
-   || (hashconfig->hash_mode == 6242)
-   || (hashconfig->hash_mode == 6243)
-   || (hashconfig->hash_mode == 13741)
-   || (hashconfig->hash_mode == 13742)
-   || (hashconfig->hash_mode == 13743)
-   || (hashconfig->hash_mode == 13761)
-   || (hashconfig->hash_mode == 13762)
-   || (hashconfig->hash_mode == 13763))
+  if (hashconfig->opts_type & OPTS_TYPE_KEYBOARD_MAPPING)
   {
     tc_t *tc = (tc_t *) hashes->esalts_buf;
 
-    plain_len = keyboard_map (plain_buf, plain_len, tc->kb_layout_map, tc->kb_layout_map_cnt);
+    plain_len = execute_keyboard_layout_mapping (plain_buf, plain_len, tc->keyboard_layout_mapping_buf, tc->keyboard_layout_mapping_cnt);
   }
 
   // crackpos

@@ -63,6 +63,7 @@ static const struct option long_options[] =
   {"kernel-accel",              required_argument, NULL, IDX_KERNEL_ACCEL},
   {"kernel-loops",              required_argument, NULL, IDX_KERNEL_LOOPS},
   {"kernel-threads",            required_argument, NULL, IDX_KERNEL_THREADS},
+  {"keyboard-layout",           required_argument, NULL, IDX_KEYBOARD_LAYOUT_MAPPING},
   {"keyspace",                  no_argument,       NULL, IDX_KEYSPACE},
   {"left",                      no_argument,       NULL, IDX_LEFT},
   {"limit",                     required_argument, NULL, IDX_LIMIT},
@@ -113,10 +114,8 @@ static const struct option long_options[] =
   {"status-timer",              required_argument, NULL, IDX_STATUS_TIMER},
   {"stdout",                    no_argument,       NULL, IDX_STDOUT_FLAG},
   {"stdin-timeout-abort",       required_argument, NULL, IDX_STDIN_TIMEOUT_ABORT},
-  {"truecrypt-keyboard-layout", required_argument, NULL, IDX_TRUECRYPT_KEYBOARD_LAYOUT},
   {"truecrypt-keyfiles",        required_argument, NULL, IDX_TRUECRYPT_KEYFILES},
   {"username",                  no_argument,       NULL, IDX_USERNAME},
-  {"veracrypt-keyboard-layout", required_argument, NULL, IDX_VERACRYPT_KEYBOARD_LAYOUT},
   {"veracrypt-keyfiles",        required_argument, NULL, IDX_VERACRYPT_KEYFILES},
   {"veracrypt-pim",             required_argument, NULL, IDX_VERACRYPT_PIM},
   {"version",                   no_argument,       NULL, IDX_VERSION},
@@ -190,6 +189,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->kernel_accel              = KERNEL_ACCEL;
   user_options->kernel_loops              = KERNEL_LOOPS;
   user_options->kernel_threads            = KERNEL_THREADS;
+  user_options->keyboard_layout_mapping   = NULL;
   user_options->keyspace                  = KEYSPACE;
   user_options->left                      = LEFT;
   user_options->limit                     = LIMIT;
@@ -243,11 +243,9 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->status_timer              = STATUS_TIMER;
   user_options->stdin_timeout_abort       = STDIN_TIMEOUT_ABORT;
   user_options->stdout_flag               = STDOUT_FLAG;
-  user_options->truecrypt_keyboard_layout = NULL;
   user_options->truecrypt_keyfiles        = NULL;
   user_options->usage                     = USAGE;
   user_options->username                  = USERNAME;
-  user_options->veracrypt_keyboard_layout = NULL;
   user_options->veracrypt_keyfiles        = NULL;
   user_options->veracrypt_pim             = 0;
   user_options->version                   = VERSION;
@@ -445,9 +443,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
                                           user_options->hccapx_message_pair_chgd  = true;                            break;
       case IDX_NONCE_ERROR_CORRECTIONS:   user_options->nonce_error_corrections   = hc_strtoul (optarg, NULL, 10);
                                           user_options->nonce_error_corrections_chgd = true;                         break;
-      case IDX_TRUECRYPT_KEYBOARD_LAYOUT: user_options->truecrypt_keyboard_layout = optarg;                          break;
+      case IDX_KEYBOARD_LAYOUT_MAPPING:   user_options->keyboard_layout_mapping   = optarg;                          break;
       case IDX_TRUECRYPT_KEYFILES:        user_options->truecrypt_keyfiles        = optarg;                          break;
-      case IDX_VERACRYPT_KEYBOARD_LAYOUT: user_options->veracrypt_keyboard_layout = optarg;                          break;
       case IDX_VERACRYPT_KEYFILES:        user_options->veracrypt_keyfiles        = optarg;                          break;
       case IDX_VERACRYPT_PIM:             user_options->veracrypt_pim             = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_SEGMENT_SIZE:              user_options->segment_size              = hc_strtoul (optarg, NULL, 10);
@@ -2557,39 +2554,20 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 
   // dictstat
 
-  if (user_options->truecrypt_keyboard_layout != NULL)
+  if (user_options->keyboard_layout_mapping != NULL)
   {
-    if (hc_path_exist (user_options->truecrypt_keyboard_layout) == true)
+    if (hc_path_exist (user_options->keyboard_layout_mapping) == true)
     {
-      if (hc_path_read (user_options->truecrypt_keyboard_layout) == false)
+      if (hc_path_read (user_options->keyboard_layout_mapping) == false)
       {
-        event_log_error (hashcat_ctx, "%s: %s", user_options->truecrypt_keyboard_layout, strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %s", user_options->keyboard_layout_mapping, strerror (errno));
 
         return -1;
       }
     }
     else
     {
-      event_log_error (hashcat_ctx, "%s: %s", user_options->truecrypt_keyboard_layout, strerror (errno));
-
-      return -1;
-    }
-  }
-
-  if (user_options->veracrypt_keyboard_layout != NULL)
-  {
-    if (hc_path_exist (user_options->veracrypt_keyboard_layout) == true)
-    {
-      if (hc_path_read (user_options->veracrypt_keyboard_layout) == false)
-      {
-        event_log_error (hashcat_ctx, "%s: %s", user_options->veracrypt_keyboard_layout, strerror (errno));
-
-        return -1;
-      }
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "%s: %s", user_options->veracrypt_keyboard_layout, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %s", user_options->keyboard_layout_mapping, strerror (errno));
 
       return -1;
     }
@@ -2616,6 +2594,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_string (user_options->encoding_from);
   logfile_top_string (user_options->encoding_to);
   logfile_top_string (user_options->induction_dir);
+  logfile_top_string (user_options->keyboard_layout_mapping);
   logfile_top_string (user_options->markov_hcstat2);
   logfile_top_string (user_options->opencl_devices);
   logfile_top_string (user_options->opencl_device_types);
@@ -2628,9 +2607,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_string (user_options->rule_buf_l);
   logfile_top_string (user_options->rule_buf_r);
   logfile_top_string (user_options->session);
-  logfile_top_string (user_options->truecrypt_keyboard_layout);
   logfile_top_string (user_options->truecrypt_keyfiles);
-  logfile_top_string (user_options->veracrypt_keyboard_layout);
   logfile_top_string (user_options->veracrypt_keyfiles);
   #ifdef WITH_BRAIN
   logfile_top_string (user_options->brain_host);

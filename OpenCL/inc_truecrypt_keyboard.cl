@@ -1,9 +1,9 @@
-DECLSPEC int find_map (const u32 search, const int search_len, __local kb_layout_map_t *s_kb_layout_map, const int kb_layout_map_cnt)
+DECLSPEC int find_keyboard_layout_map (const u32 search, const int search_len, __local keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt)
 {
-  for (int idx = 0; idx < kb_layout_map_cnt; idx++)
+  for (int idx = 0; idx < keyboard_layout_mapping_cnt; idx++)
   {
-    const u32 src_char = s_kb_layout_map[idx].src_char;
-    const int src_len  = s_kb_layout_map[idx].src_len;
+    const u32 src_char = s_keyboard_layout_mapping_buf[idx].src_char;
+    const int src_len  = s_keyboard_layout_mapping_buf[idx].src_len;
 
     if (src_len == search_len)
     {
@@ -16,7 +16,7 @@ DECLSPEC int find_map (const u32 search, const int search_len, __local kb_layout
   return -1;
 }
 
-DECLSPEC int keyboard_map (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int pw_len, __local kb_layout_map_t *s_kb_layout_map, const int kb_layout_map_cnt)
+DECLSPEC int keyboard_map (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int pw_len, __local keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt)
 {
   u32 out_buf[16] = { 0 };
 
@@ -76,12 +76,12 @@ DECLSPEC int keyboard_map (u32 w0[4], u32 w1[4], u32 w2[4], u32 w3[4], const int
 
     for (src_len = rem; src_len > 0; src_len--)
     {
-      const int idx = find_map (src, src_len, s_kb_layout_map, kb_layout_map_cnt);
+      const int idx = find_keyboard_layout_map (src, src_len, s_keyboard_layout_mapping_buf, keyboard_layout_mapping_cnt);
 
       if (idx == -1) continue;
 
-      u32 dst_char = s_kb_layout_map[idx].dst_char;
-      int dst_len  = s_kb_layout_map[idx].dst_len;
+      u32 dst_char = s_keyboard_layout_mapping_buf[idx].dst_char;
+      int dst_len  = s_keyboard_layout_mapping_buf[idx].dst_len;
 
       switch (dst_len)
       {

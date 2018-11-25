@@ -317,14 +317,14 @@ typedef struct keepass
 
 } keepass_t;
 
-typedef struct kb_layout_map
+typedef struct keyboard_layout_mapping
 {
   u32 src_char;
   int src_len;
   u32 dst_char;
   int dst_len;
 
-} kb_layout_map_t;
+} keyboard_layout_mapping_t;
 
 typedef struct tc
 {
@@ -333,8 +333,8 @@ typedef struct tc
   u32 keyfile_buf[16];
   u32 signature;
 
-  kb_layout_map_t kb_layout_map[256];
-  int             kb_layout_map_cnt;
+  keyboard_layout_mapping_t keyboard_layout_mapping_buf[256];
+  int                       keyboard_layout_mapping_cnt;
 
 } tc_t;
 
