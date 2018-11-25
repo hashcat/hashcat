@@ -130,6 +130,129 @@ int sort_by_hash_no_salt (const void *v1, const void *v2, void *v3)
   return sort_by_digest_p0p1 (d1, d2, v3);
 }
 
+int find_map (const u32 search, const int search_len, kb_layout_map_t *s_kb_layout_map, const int kb_layout_map_cnt)
+{
+  for (int idx = 0; idx < kb_layout_map_cnt; idx++)
+  {
+    const u32 src_char = s_kb_layout_map[idx].src_char;
+    const int src_len  = s_kb_layout_map[idx].src_len;
+
+    if (src_len == search_len)
+    {
+      const u32 mask = 0xffffffff >> ((4 - search_len) * 8);
+
+      if ((src_char & mask) == (search & mask)) return idx;
+    }
+  }
+
+  return -1;
+}
+
+int keyboard_map (u32 plain_buf[64], const int plain_len, kb_layout_map_t *s_kb_layout_map, const int kb_layout_map_cnt)
+{
+  u32 out_buf[16] = { 0 };
+
+  u8 *out_ptr = (u8 *) out_buf;
+
+  int out_len = 0;
+
+  u8 *plain_ptr = (u8 *) plain_buf;
+
+  int plain_pos = 0;
+
+  while (plain_pos < plain_len)
+  {
+    u32 src0 = 0;
+    u32 src1 = 0;
+    u32 src2 = 0;
+    u32 src3 = 0;
+
+    #define MIN(a,b) (((a) < (b)) ? (a) : (b))
+
+    const int rem = MIN (plain_len - plain_pos, 4);
+
+    #undef MIN
+
+    if (rem > 0) src0 = plain_ptr[plain_pos + 0];
+    if (rem > 1) src1 = plain_ptr[plain_pos + 1];
+    if (rem > 2) src2 = plain_ptr[plain_pos + 2];
+    if (rem > 3) src3 = plain_ptr[plain_pos + 3];
+
+    const u32 src = (src0 <<  0)
+                  | (src1 <<  8)
+                  | (src2 << 16)
+                  | (src3 << 24);
+
+    int src_len;
+
+    for (src_len = rem; src_len > 0; src_len--)
+    {
+      const int idx = find_map (src, src_len, s_kb_layout_map, kb_layout_map_cnt);
+
+      if (idx == -1) continue;
+
+      u32 dst_char = s_kb_layout_map[idx].dst_char;
+      int dst_len  = s_kb_layout_map[idx].dst_len;
+
+      switch (dst_len)
+      {
+        case 1:
+          out_ptr[out_len++] = (dst_char >>  0) & 0xff;
+          break;
+        case 2:
+          out_ptr[out_len++] = (dst_char >>  0) & 0xff;
+          out_ptr[out_len++] = (dst_char >>  8) & 0xff;
+          break;
+        case 3:
+          out_ptr[out_len++] = (dst_char >>  0) & 0xff;
+          out_ptr[out_len++] = (dst_char >>  8) & 0xff;
+          out_ptr[out_len++] = (dst_char >> 16) & 0xff;
+          break;
+        case 4:
+          out_ptr[out_len++] = (dst_char >>  0) & 0xff;
+          out_ptr[out_len++] = (dst_char >>  8) & 0xff;
+          out_ptr[out_len++] = (dst_char >> 16) & 0xff;
+          out_ptr[out_len++] = (dst_char >> 24) & 0xff;
+          break;
+      }
+
+      plain_pos += src_len;
+
+      break;
+    }
+
+    // not matched, keep original
+
+    if (src_len == 0)
+    {
+      out_ptr[out_len] = plain_ptr[plain_pos];
+
+      out_len++;
+
+      plain_pos++;
+    }
+  }
+
+  plain_buf[ 0] = out_buf[ 0];
+  plain_buf[ 1] = out_buf[ 1];
+  plain_buf[ 2] = out_buf[ 2];
+  plain_buf[ 3] = out_buf[ 3];
+  plain_buf[ 4] = out_buf[ 4];
+  plain_buf[ 5] = out_buf[ 5];
+  plain_buf[ 6] = out_buf[ 6];
+  plain_buf[ 7] = out_buf[ 7];
+  plain_buf[ 8] = out_buf[ 8];
+  plain_buf[ 9] = out_buf[ 9];
+  plain_buf[10] = out_buf[10];
+  plain_buf[11] = out_buf[11];
+  plain_buf[12] = out_buf[12];
+  plain_buf[13] = out_buf[13];
+  plain_buf[14] = out_buf[14];
+  plain_buf[15] = out_buf[15];
+
+  return out_len;
+}
+
 int save_hash (hashcat_ctx_t *hashcat_ctx)
 {
   hashes_t        *hashes       = hashcat_ctx->hashes;
@@ -317,10 +440,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
   {
     tc_t *tc = (tc_t *) hashes->esalts_buf;
 
-    for (int i = 0; i < plain_len; i++)
-    {
-      plain_ptr[i] = (u8) tc->keyboard_layout[plain_ptr[i]];
-    }
+    plain_len = keyboard_map (plain_buf, plain_len, tc->kb_layout_map, tc->kb_layout_map_cnt);
   }
 
   // crackpos

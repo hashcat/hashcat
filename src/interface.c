@@ -2628,7 +2628,15 @@ static int input_tokenizer (u8 *input_buf, int input_len, token_t *token)
   return PARSER_OK;
 }
 
-static bool initialize_keyboard_layout (hashcat_ctx_t *hashcat_ctx, const char *filename, u32 *keyboard_layout)
+static int sort_by_src_len (const void *p1, const void *p2)
+{
+  const kb_layout_map_t *k1 = (const kb_layout_map_t *) p1;
+  const kb_layout_map_t *k2 = (const kb_layout_map_t *) p2;
+
+  return k1->src_len < k2->src_len;
+}
+
+static bool initialize_keyboard_layout (hashcat_ctx_t *hashcat_ctx, const char *filename, kb_layout_map_t *kb_layout_map, int *kb_layout_map_cnt)
 {
   char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
@@ -2641,8 +2649,7 @@ static bool initialize_keyboard_layout (hashcat_ctx_t *hashcat_ctx, const char *
     return false;
   }
 
-  u32 verifyF[256] = { 0 };
-  u32 verifyT[256] = { 0 };
+  int maps_cnt = 0;
 
   while (!feof (fp))
   {
@@ -2650,61 +2657,62 @@ static bool initialize_keyboard_layout (hashcat_ctx_t *hashcat_ctx, const char *
 
     if (line_len == 0) continue;
 
-    if (line_buf[1] != '=')
+    token_t token;
+
+    token.token_cnt  = 2;
+
+    token.len_min[0] = 1;
+    token.len_max[0] = 4;
+    token.sep[0]     = '=';
+    token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+    token.len_min[1] = 0;
+    token.len_max[1] = 4;
+    token.sep[1]     = '=';
+    token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+    const int rc_tokenizer = input_tokenizer ((u8 *) line_buf, line_len, &token);
+
+    if (rc_tokenizer != PARSER_OK)
     {
       event_log_error (hashcat_ctx, "%s: Syntax error: %s", filename, line_buf);
+
+      fclose (fp);
 
       free (line_buf);
 
       return false;
     }
 
-    if (line_len == 2)
-    {
-      const u8 from = line_buf[0];
+    memcpy (&kb_layout_map[maps_cnt].src_char, token.buf[0], token.len[0]);
+    memcpy (&kb_layout_map[maps_cnt].dst_char, token.buf[1], token.len[1]);
 
-      verifyF[from]++;
-    }
-    else if (line_len == 3)
-    {
-      const u8 from = line_buf[0];
-      const u8 to   = line_buf[2];
+    kb_layout_map[maps_cnt].src_len = token.len[0];
+    kb_layout_map[maps_cnt].dst_len = token.len[1];
 
-      keyboard_layout[from] = to;
-
-      verifyF[from]++;
-      verifyT[to]++;
-    }
-    else
+    if (maps_cnt == 256)
     {
-      event_log_error (hashcat_ctx, "%s: Syntax error: %s", filename, line_buf);
+      event_log_error (hashcat_ctx, "%s: too many entries", filename);
+
+      fclose (fp);
 
       free (line_buf);
 
       return false;
     }
+
+    maps_cnt++;
   }
+
+  *kb_layout_map_cnt = maps_cnt;
 
   fclose (fp);
 
   free (line_buf);
 
-  for (int i = 0x20; i < 0x7f; i++)
-  {
-    if (verifyF[i] > 1)
-    {
-      event_log_error (hashcat_ctx, "%s: Mapping error: defined '%c' too often in from section", filename, i);
+  // we need to sort this by length to ensure the largest blocks come first in mapping
 
-      return false;
-    }
-
-    if (verifyT[i] > 1)
-    {
-      event_log_error (hashcat_ctx, "%s: Mapping error: defined '%c' too often in to section", filename, i);
-
-      return false;
-    }
-  }
+  qsort (kb_layout_map, maps_cnt, sizeof (kb_layout_map_t), sort_by_src_len);
 
   return true;
 }
@@ -7026,11 +7034,6 @@ int truecrypt_parse_hash_1k (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAY
 
   if (entropy < MIN_SUFFICIENT_ENTROPY_FILE) return (PARSER_INSUFFICIENT_ENTROPY);
 
-  for (int i = 0; i < 256; i++)
-  {
-    tc->keyboard_layout[i] = i;
-  }
-
   memcpy (tc->salt_buf, buf, 64);
 
   memcpy (tc->data_buf, buf + 64, 512 - 64);
@@ -7073,11 +7076,6 @@ int truecrypt_parse_hash_2k (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAY
   const float entropy = get_entropy (buf, n);
 
   if (entropy < MIN_SUFFICIENT_ENTROPY_FILE) return (PARSER_INSUFFICIENT_ENTROPY);
-
-  for (int i = 0; i < 256; i++)
-  {
-    tc->keyboard_layout[i] = i;
-  }
 
   memcpy (tc->salt_buf, buf, 64);
 
@@ -7122,11 +7120,6 @@ int veracrypt_parse_hash_200000 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   if (entropy < MIN_SUFFICIENT_ENTROPY_FILE) return (PARSER_INSUFFICIENT_ENTROPY);
 
-  for (int i = 0; i < 256; i++)
-  {
-    tc->keyboard_layout[i] = i;
-  }
-
   memcpy (tc->salt_buf, buf, 64);
 
   memcpy (tc->data_buf, buf + 64, 512 - 64);
@@ -7169,11 +7162,6 @@ int veracrypt_parse_hash_500000 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
   const float entropy = get_entropy (buf, n);
 
   if (entropy < MIN_SUFFICIENT_ENTROPY_FILE) return (PARSER_INSUFFICIENT_ENTROPY);
-
-  for (int i = 0; i < 256; i++)
-  {
-    tc->keyboard_layout[i] = i;
-  }
 
   memcpy (tc->salt_buf, buf, 64);
 
@@ -7218,11 +7206,6 @@ int veracrypt_parse_hash_327661 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   if (entropy < MIN_SUFFICIENT_ENTROPY_FILE) return (PARSER_INSUFFICIENT_ENTROPY);
 
-  for (int i = 0; i < 256; i++)
-  {
-    tc->keyboard_layout[i] = i;
-  }
-
   memcpy (tc->salt_buf, buf, 64);
 
   memcpy (tc->data_buf, buf + 64, 512 - 64);
@@ -7265,11 +7248,6 @@ int veracrypt_parse_hash_655331 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
   const float entropy = get_entropy (buf, n);
 
   if (entropy < MIN_SUFFICIENT_ENTROPY_FILE) return (PARSER_INSUFFICIENT_ENTROPY);
-
-  for (int i = 0; i < 256; i++)
-  {
-    tc->keyboard_layout[i] = i;
-  }
 
   memcpy (tc->salt_buf, buf, 64);
 
@@ -29327,7 +29305,7 @@ int hashconfig_general_defaults (hashcat_ctx_t *hashcat_ctx)
 
       if (optional_param2)
       {
-        const bool rc = initialize_keyboard_layout (hashcat_ctx, optional_param2, tc->keyboard_layout);
+        const bool rc = initialize_keyboard_layout (hashcat_ctx, optional_param2, tc->kb_layout_map, &tc->kb_layout_map_cnt);
 
         if (rc == false) return -1;
       }
