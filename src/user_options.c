@@ -63,7 +63,7 @@ static const struct option long_options[] =
   {"kernel-accel",              required_argument, NULL, IDX_KERNEL_ACCEL},
   {"kernel-loops",              required_argument, NULL, IDX_KERNEL_LOOPS},
   {"kernel-threads",            required_argument, NULL, IDX_KERNEL_THREADS},
-  {"keyboard-layout",           required_argument, NULL, IDX_KEYBOARD_LAYOUT_MAPPING},
+  {"keyboard-layout-mapping",   required_argument, NULL, IDX_KEYBOARD_LAYOUT_MAPPING},
   {"keyspace",                  no_argument,       NULL, IDX_KEYSPACE},
   {"left",                      no_argument,       NULL, IDX_LEFT},
   {"limit",                     required_argument, NULL, IDX_LIMIT},
