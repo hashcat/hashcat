@@ -20,6 +20,7 @@ cp    $IN/hashcat.hcstat2               $OUT/
 
 cp -r $IN/docs                          $OUT/
 cp -r $IN/charsets                      $OUT/
+cp -r $IN/layouts                       $OUT/
 cp -r $IN/masks                         $OUT/
 cp -r $IN/rules                         $OUT/
 cp -r $IN/extra                         $OUT/
@@ -37,12 +38,14 @@ for example in example[0123456789]*.sh; do
 
 done
 
+dos2unix $OUT/layouts/*.hckmap
 dos2unix $OUT/masks/*.hcmask
 dos2unix $OUT/rules/*.rule
 dos2unix $OUT/rules/hybrid/*.rule
 dos2unix $OUT/docs/*
 dos2unix $OUT/example*
 
+unix2dos $OUT/layouts/*.hckmap
 unix2dos $OUT/masks/*.hcmask
 unix2dos $OUT/rules/*.rule
 unix2dos $OUT/rules/hybrid/*.rule
@@ -58,6 +61,8 @@ chmod 755 $OUT/docs
 chmod 644 $OUT/docs/*
 chmod 755 $OUT/charsets
 chmod 755 $OUT/charsets/*
+chmod 755 $OUT/layouts
+chmod 644 $OUT/layouts/*
 chmod 755 $OUT/masks
 chmod 644 $OUT/masks/*
 chmod 644 $OUT/example*
