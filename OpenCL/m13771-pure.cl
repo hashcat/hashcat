@@ -16,6 +16,7 @@
 #include "inc_cipher_aes.cl"
 #include "inc_cipher_twofish.cl"
 #include "inc_cipher_serpent.cl"
+#include "inc_cipher_camellia.cl"
 #include "inc_cipher_kuznyechik.cl"
 
 #include "inc_truecrypt_keyfile.cl"
@@ -554,6 +555,14 @@ __kernel void m13771_comp (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, tc_t))
   }
 
   if (verify_header_twofish (esalt_bufs, ukey1, ukey2) == 1)
+  {
+    if (atomic_inc (&hashes_shown[0]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+    }
+  }
+
+  if (verify_header_camellia (esalt_bufs, ukey1, ukey2) == 1)
   {
     if (atomic_inc (&hashes_shown[0]) == 0)
     {

@@ -2253,7 +2253,7 @@ function truecrypt_test()
 
 # Compose and execute hashcat command on a VeraCrypt test container
 # Must not be called for hash types other than 137XY
-# $1: cipher variation, can be 0-4
+# $1: cipher variation, can be 0-6
 function veracrypt_test()
 {
   cipher_variation=$1
@@ -2277,18 +2277,22 @@ function veracrypt_test()
       [ $cipher_variation -eq "0" ] && cipher_cascade="aes"
       [ $cipher_variation -eq "1" ] && cipher_cascade="serpent"
       [ $cipher_variation -eq "2" ] && cipher_cascade="twofish"
-      [ $cipher_variation -eq "3" ] && cipher_cascade="kuznyechik"
+      [ $cipher_variation -eq "3" ] && cipher_cascade="camellia"
+      [ $cipher_variation -eq "5" ] && cipher_cascade="kuznyechik"
       ;;
     2)
       [ $cipher_variation -eq "0" ] && cipher_cascade="aes-twofish"
       [ $cipher_variation -eq "1" ] && cipher_cascade="serpent-aes"
       [ $cipher_variation -eq "2" ] && cipher_cascade="twofish-serpent"
-      [ $cipher_variation -eq "3" ] && cipher_cascade="kuznyechik-aes"
-      [ $cipher_variation -eq "4" ] && cipher_cascade="kuznyechik-twofish"
+      [ $cipher_variation -eq "3" ] && cipher_cascade="camellia-kuznyechik"
+      [ $cipher_variation -eq "4" ] && cipher_cascade="camellia-serpent"
+      [ $cipher_variation -eq "5" ] && cipher_cascade="kuznyechik-aes"
+      [ $cipher_variation -eq "6" ] && cipher_cascade="kuznyechik-twofish"
       ;;
     3)
       [ $cipher_variation -eq "0" ] && cipher_cascade="aes-twofish-serpent"
       [ $cipher_variation -eq "1" ] && cipher_cascade="serpent-twofish-aes"
+      [ $cipher_variation -eq "5" ] && cipher_cascade="kuznyechik-serpent-camellia"
       ;;
   esac
 
@@ -2777,8 +2781,10 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
               veracrypt_test 0 # aes
               veracrypt_test 1 # serpent
               veracrypt_test 2 # twofish
-              veracrypt_test 3 # kuznyechik
-              veracrypt_test 4 # kuznyechik (2nd cascade)
+              veracrypt_test 3 # camellia
+              veracrypt_test 4 # camellia (alternative cascade)
+              veracrypt_test 5 # kuznyechik
+              veracrypt_test 6 # kuznyechik (alternative cascade)
 
             elif [[ ${hash_type} -ge 6211 ]] && [[ ${hash_type} -le 6243 ]]; then
               # run truecrypt tests

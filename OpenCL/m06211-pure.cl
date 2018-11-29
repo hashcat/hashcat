@@ -16,10 +16,13 @@
 #include "inc_cipher_aes.cl"
 #include "inc_cipher_twofish.cl"
 #include "inc_cipher_serpent.cl"
+#include "inc_cipher_camellia.cl"
+#include "inc_cipher_kuznyechik.cl"
 
 #include "inc_truecrypt_keyfile.cl"
 #include "inc_truecrypt_crc32.cl"
 #include "inc_truecrypt_xts.cl"
+#include "inc_veracrypt_xts.cl"
 
 DECLSPEC void hmac_ripemd160_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
 {
@@ -367,6 +370,22 @@ __kernel void m06211_comp (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
   }
 
   if (verify_header_twofish (esalt_bufs, ukey1, ukey2) == 1)
+  {
+    if (atomic_inc (&hashes_shown[0]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+    }
+  }
+
+  if (verify_header_camellia (esalt_bufs, ukey1, ukey2) == 1)
+  {
+    if (atomic_inc (&hashes_shown[0]) == 0)
+    {
+      mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
+    }
+  }
+
+  if (verify_header_kuznyechik (esalt_bufs, ukey1, ukey2) == 1)
   {
     if (atomic_inc (&hashes_shown[0]) == 0)
     {
