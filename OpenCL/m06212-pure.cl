@@ -441,7 +441,7 @@ __kernel void m06212_comp (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
 
   if (verify_header_camellia_kuznyechik (esalt_bufs, ukey1, ukey2, ukey3, ukey4) == 1)
   {
-    if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+    if (atomic_inc (&hashes_shown[0]) == 0)
     {
       mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
     }
@@ -449,7 +449,7 @@ __kernel void m06212_comp (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
 
   if (verify_header_camellia_serpent (esalt_bufs, ukey1, ukey2, ukey3, ukey4) == 1)
   {
-    if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+    if (atomic_inc (&hashes_shown[0]) == 0)
     {
       mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, 0, gid, 0);
     }
