@@ -791,7 +791,7 @@ DECLSPEC void streebog256_transform (streebog256_ctx_t *ctx, const u32 *w0, cons
   streebog256_g (ctx->h, ctx->n, m, ctx->s_sbob_sl64);
 
   u64 counterbuf[8] = { 0 };
-  counterbuf[7] = swap64_S ((u64) 0x200);
+  counterbuf[7] = 0x0002000000000000;
   streebog256_add (ctx->n, counterbuf);
 
   streebog256_add (ctx->s, m);
@@ -1479,7 +1479,7 @@ DECLSPEC void streebog256_transform_vector (streebog256_ctx_vector_t *ctx, const
   streebog256_g_vector (ctx->h, ctx->n, m, ctx->s_sbob_sl64);
 
   u64x counterbuf[8] = { 0 };
-  counterbuf[7] = swap64 ((u64x) 0x200);
+  counterbuf[7] = 0x0002000000000000;
   streebog256_add_vector (ctx->n, counterbuf);
 
   streebog256_add_vector (ctx->s, m);

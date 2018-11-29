@@ -12,7 +12,7 @@
  *                                                                *
  */
 
-__constant u32a k_sbox[256] =
+__constant const u32a k_sbox[256] =
 {
   0xfc, 0xee, 0xdd, 0x11, 0xcf, 0x6e, 0x31, 0x16,
   0xfb, 0xc4, 0xfa, 0xda, 0x23, 0xc5, 0x04, 0x4d,
@@ -48,7 +48,7 @@ __constant u32a k_sbox[256] =
   0xd1, 0x66, 0xaf, 0xc2, 0x39, 0x4b, 0x63, 0xb6
 };
 
-__constant u32a k_sbox_inv[256] =
+__constant const u32a k_sbox_inv[256] =
 {
   0xa5, 0x2d, 0x32, 0x8f, 0x0e, 0x30, 0x38, 0xc0,
   0x54, 0xe6, 0x9e, 0x39, 0x55, 0x7e, 0x52, 0x91,
@@ -84,31 +84,26 @@ __constant u32a k_sbox_inv[256] =
   0xd6, 0x20, 0x0a, 0x08, 0x00, 0x4c, 0xd7, 0x74
 };
 
-__constant int k_vec[16] =
-{
-  0x94, 0x20, 0x85, 0x10, 0xc2, 0xc0, 0x01, 0xfb,
-  0x01, 0xc0, 0xc2, 0x10, 0x85, 0x20, 0x94, 0x01
-};
-
 #define extract_byte(x,n) (((x) >> (8 * (n))) & 0xff)
 
 #define k_lookup(w,sbox)                      \
   for (int i = 0; i < 4; i++)                 \
-    w[i] = (sbox[extract_byte(w[i],0)] <<  0) \
-         | (sbox[extract_byte(w[i],1)] <<  8) \
-         | (sbox[extract_byte(w[i],2)] << 16) \
-         | (sbox[extract_byte(w[i],3)] << 24)
+    w[i] = sbox[extract_byte (w[i], 0)] <<  0 \
+         | sbox[extract_byte (w[i], 1)] <<  8 \
+         | sbox[extract_byte (w[i], 2)] << 16 \
+         | sbox[extract_byte (w[i], 3)] << 24
 
-#define k_vec_xor(n)                           \
-  for (int y = k_vec[(n)]; y > 0; y >>= 1)     \
-  {                                            \
-    z ^= x * (y & 1);                          \
-    x = ((x << 1) ^ ((x >> 7) * 0xc3)) & 0xff; \
+#define k_xor(n)                      \
+  for (int i = (n); i > 0; i /= 2)    \
+  {                                   \
+    z ^= x * (i % 2);                 \
+    x = (x << 1) ^ ((x >> 7) * 0xc3); \
+    x &= 0xff;                        \
   }
 
 DECLSPEC void kuznyechik_linear (u32 *w)
 {
-  // used inside k_vec_xor macro
+  // used in k_xor macro
   u32 x;
   u32 z;
 
@@ -116,22 +111,23 @@ DECLSPEC void kuznyechik_linear (u32 *w)
   {
     z = 0;
 
-    x = extract_byte (w[3], 3); k_vec_xor (15);
-    x = extract_byte (w[3], 2); k_vec_xor (14);
-    x = extract_byte (w[3], 1); k_vec_xor (13);
-    x = extract_byte (w[3], 0); k_vec_xor (12);
-    x = extract_byte (w[2], 3); k_vec_xor (11);
-    x = extract_byte (w[2], 2); k_vec_xor (10);
-    x = extract_byte (w[2], 1); k_vec_xor ( 9);
-    x = extract_byte (w[2], 0); k_vec_xor ( 8);
-    x = extract_byte (w[1], 3); k_vec_xor ( 7);
-    x = extract_byte (w[1], 2); k_vec_xor ( 6);
-    x = extract_byte (w[1], 1); k_vec_xor ( 5);
-    x = extract_byte (w[1], 0); k_vec_xor ( 4);
-    x = extract_byte (w[0], 3); k_vec_xor ( 3);
-    x = extract_byte (w[0], 2); k_vec_xor ( 2);
-    x = extract_byte (w[0], 1); k_vec_xor ( 1);
-    x = extract_byte (w[0], 0); k_vec_xor ( 0);
+    // k_xor (1) yields the same result as a simple xor
+    x = extract_byte (w[3], 3); z ^= x;
+    x = extract_byte (w[3], 2); k_xor (148);
+    x = extract_byte (w[3], 1); k_xor (32);
+    x = extract_byte (w[3], 0); k_xor (133);
+    x = extract_byte (w[2], 3); k_xor (16);
+    x = extract_byte (w[2], 2); k_xor (194);
+    x = extract_byte (w[2], 1); k_xor (192);
+    x = extract_byte (w[2], 0); z ^= x;
+    x = extract_byte (w[1], 3); k_xor (251);
+    x = extract_byte (w[1], 2); z ^= x;
+    x = extract_byte (w[1], 1); k_xor (192);
+    x = extract_byte (w[1], 0); k_xor (194);
+    x = extract_byte (w[0], 3); k_xor (16);
+    x = extract_byte (w[0], 2); k_xor (133);
+    x = extract_byte (w[0], 1); k_xor (32);
+    x = extract_byte (w[0], 0); k_xor (148);
 
     // right-shift data block, prepend calculated byte
     w[3] = (w[3] << 8) | (w[2] >> 24);
@@ -143,7 +139,7 @@ DECLSPEC void kuznyechik_linear (u32 *w)
 
 DECLSPEC void kuznyechik_linear_inv (u32 *w)
 {
-  // used inside k_vec_xor macro
+  // used in k_xor macro
   u32 x;
   u32 z;
 
@@ -157,21 +153,21 @@ DECLSPEC void kuznyechik_linear_inv (u32 *w)
     w[2] = (w[2] >> 8) | (w[3] << 24);
     w[3] = (w[3] >> 8);
 
-    x = extract_byte (w[0], 0); k_vec_xor ( 0);
-    x = extract_byte (w[0], 1); k_vec_xor ( 1);
-    x = extract_byte (w[0], 2); k_vec_xor ( 2);
-    x = extract_byte (w[0], 3); k_vec_xor ( 3);
-    x = extract_byte (w[1], 0); k_vec_xor ( 4);
-    x = extract_byte (w[1], 1); k_vec_xor ( 5);
-    x = extract_byte (w[1], 2); k_vec_xor ( 6);
-    x = extract_byte (w[1], 3); k_vec_xor ( 7);
-    x = extract_byte (w[2], 0); k_vec_xor ( 8);
-    x = extract_byte (w[2], 1); k_vec_xor ( 9);
-    x = extract_byte (w[2], 2); k_vec_xor (10);
-    x = extract_byte (w[2], 3); k_vec_xor (11);
-    x = extract_byte (w[3], 0); k_vec_xor (12);
-    x = extract_byte (w[3], 1); k_vec_xor (13);
-    x = extract_byte (w[3], 2); k_vec_xor (14);
+    x = extract_byte (w[0], 0); k_xor (148);
+    x = extract_byte (w[0], 1); k_xor (32);
+    x = extract_byte (w[0], 2); k_xor (133);
+    x = extract_byte (w[0], 3); k_xor (16);
+    x = extract_byte (w[1], 0); k_xor (194);
+    x = extract_byte (w[1], 1); k_xor (192);
+    x = extract_byte (w[1], 2); z ^= x;
+    x = extract_byte (w[1], 3); k_xor (251);
+    x = extract_byte (w[2], 0); z ^= x;
+    x = extract_byte (w[2], 1); k_xor (192);
+    x = extract_byte (w[2], 2); k_xor (194);
+    x = extract_byte (w[2], 3); k_xor (16);
+    x = extract_byte (w[3], 0); k_xor (133);
+    x = extract_byte (w[3], 1); k_xor (32);
+    x = extract_byte (w[3], 2); k_xor (148);
 
     //append calculated byte
     w[3] |= (z << 24);
