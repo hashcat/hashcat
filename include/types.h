@@ -1346,8 +1346,8 @@ typedef struct opencl_ctx
   u64                 kernel_power_all;
   u64                 kernel_power_final; // we save that so that all divisions are done from the same base
 
-  u32                 opencl_platforms_filter;
-  u32                 devices_filter;
+  u64                 opencl_platforms_filter;
+  u64                 devices_filter;
   cl_device_type      device_types_filter;
 
   double              target_msec;

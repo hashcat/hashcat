@@ -31,6 +31,8 @@
 ## Improvements
 ##
 
+- OpenCL Devices: Add support for up to 64 OpenCL devices per system
+- OpenCL Platforms: Add support for up to 64 OpenCL platforms per system
 - OpenCL Runtime: Use our own yielding technique for synchronizing rather than vendor specific
 - Startup: Show OpenCL runtime initialization message (per device)
 - xxHash: Added support for using the version provided by the OS/distribution
@@ -48,11 +50,12 @@
 - Fixed invalid warnings about throttling when --hwmon-disable was used
 - Fixed missing call to WSACleanup() to cleanly shutdown windows sockets system
 - Fixed missing call to WSAStartup() and client indexing in order to start the brain server on Windows
+- Fixed out-of-boundary read in DPAPI masterkey file v2 OpenCL kernel
 - Fixed out-of-bounds write in short-term memory of the brain server
 - Fixed output of --speed-only and --progress-only when fast hashes are used in combination with --slow-candidates
+- Fixed selection of OpenCL devices (-d) if there's more than 32 OpenCL devices installed
 - Fixed status output of progress value when -S and -l are used in combination
 - Fixed thread count maximum for pure kernels in straight attack mode
-- Fixed out-of-boundary read in DPAPI masterkey file v2 OpenCL kernel
 
 ##
 ## Technical

@@ -108,15 +108,15 @@ static int ocl_check_dri (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-static int setup_opencl_platforms_filter (hashcat_ctx_t *hashcat_ctx, const char *opencl_platforms, u32 *out)
+static bool setup_opencl_platforms_filter (hashcat_ctx_t *hashcat_ctx, const char *opencl_platforms, u64 *out)
 {
-  u32 opencl_platforms_filter = 0;
+  u64 opencl_platforms_filter = 0;
 
   if (opencl_platforms)
   {
     char *platforms = hcstrdup (opencl_platforms);
 
-    if (platforms == NULL) return -1;
+    if (platforms == NULL) return false;
 
     char *saveptr = NULL;
 
@@ -124,18 +124,18 @@ static int setup_opencl_platforms_filter (hashcat_ctx_t *hashcat_ctx, const char
 
     do
     {
-      int platform = (int) strtol (next, NULL, 10);
+      const int platform = (const int) strtol (next, NULL, 10);
 
-      if (platform < 1 || platform > 32)
+      if (platform <= 0 || platform >= 64)
       {
         event_log_error (hashcat_ctx, "Invalid OpenCL platform %d specified.", platform);
 
         hcfree (platforms);
 
-        return -1;
+        return false;
       }
 
-      opencl_platforms_filter |= 1u << (platform - 1);
+      opencl_platforms_filter |= 1ULL << (platform - 1);
 
     } while ((next = strtok_r ((char *) NULL, ",", &saveptr)) != NULL);
 
@@ -143,23 +143,23 @@ static int setup_opencl_platforms_filter (hashcat_ctx_t *hashcat_ctx, const char
   }
   else
   {
-    opencl_platforms_filter = -1u;
+    opencl_platforms_filter = -1ULL;
   }
 
   *out = opencl_platforms_filter;
 
-  return 0;
+  return true;
 }
 
-static int setup_devices_filter (hashcat_ctx_t *hashcat_ctx, const char *opencl_devices, u32 *out)
+static bool setup_devices_filter (hashcat_ctx_t *hashcat_ctx, const char *opencl_devices, u64 *out)
 {
-  u32 devices_filter = 0;
+  u64 devices_filter = 0;
 
   if (opencl_devices)
   {
     char *devices = hcstrdup (opencl_devices);
 
-    if (devices == NULL) return -1;
+    if (devices == NULL) return false;
 
     char *saveptr = NULL;
 
@@ -167,18 +167,18 @@ static int setup_devices_filter (hashcat_ctx_t *hashcat_ctx, const char *opencl_
 
     do
     {
-      int device_id = (int) strtol (next, NULL, 10);
+      const int device_id = (const int) strtol (next, NULL, 10);
 
-      if (device_id < 1 || device_id > 32)
+      if ((device_id <= 0) || (device_id >= 64))
       {
         event_log_error (hashcat_ctx, "Invalid device_id %d specified.", device_id);
 
         hcfree (devices);
 
-        return -1;
+        return false;
       }
 
-      devices_filter |= 1u << (device_id - 1);
+      devices_filter |= 1ULL << (device_id - 1);
 
     } while ((next = strtok_r ((char *) NULL, ",", &saveptr)) != NULL);
 
@@ -186,15 +186,15 @@ static int setup_devices_filter (hashcat_ctx_t *hashcat_ctx, const char *opencl_
   }
   else
   {
-    devices_filter = -1u;
+    devices_filter = -1ULL;
   }
 
   *out = devices_filter;
 
-  return 0;
+  return true;
 }
 
-static int setup_device_types_filter (hashcat_ctx_t *hashcat_ctx, const char *opencl_device_types, cl_device_type *out)
+static bool setup_device_types_filter (hashcat_ctx_t *hashcat_ctx, const char *opencl_device_types, cl_device_type *out)
 {
   cl_device_type device_types_filter = 0;
 
@@ -202,7 +202,7 @@ static int setup_device_types_filter (hashcat_ctx_t *hashcat_ctx, const char *op
   {
     char *device_types = hcstrdup (opencl_device_types);
 
-    if (device_types == NULL) return -1;
+    if (device_types == NULL) return false;
 
     char *saveptr = NULL;
 
@@ -210,7 +210,7 @@ static int setup_device_types_filter (hashcat_ctx_t *hashcat_ctx, const char *op
 
     do
     {
-      int device_type = (int) strtol (next, NULL, 10);
+      const int device_type = (const int) strtol (next, NULL, 10);
 
       if (device_type < 1 || device_type > 3)
       {
@@ -218,7 +218,7 @@ static int setup_device_types_filter (hashcat_ctx_t *hashcat_ctx, const char *op
 
         hcfree (device_types);
 
-        return -1;
+        return false;
       }
 
       device_types_filter |= 1u << device_type;
@@ -237,10 +237,10 @@ static int setup_device_types_filter (hashcat_ctx_t *hashcat_ctx, const char *op
 
   *out = device_types_filter;
 
-  return 0;
+  return true;
 }
 
-static int read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, size_t *kernel_lengths, char **kernel_sources, const bool force_recompile)
+static bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, size_t *kernel_lengths, char **kernel_sources, const bool force_recompile)
 {
   FILE *fp = fopen (kernel_file, "rb");
 
@@ -252,7 +252,7 @@ static int read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_fi
     {
       fclose (fp);
 
-      return -1;
+      return false;
     }
 
     #define EXTRASZ 100
@@ -269,7 +269,7 @@ static int read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_fi
 
       hcfree (buf);
 
-      return -1;
+      return false;
     }
 
     buf[st.st_size] = 0;
@@ -295,13 +295,13 @@ static int read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_fi
   {
     event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
 
-    return -1;
+    return false;
   }
 
-  return 0;
+  return true;
 }
 
-static int write_kernel_binary (hashcat_ctx_t *hashcat_ctx, char *kernel_file, char *binary, size_t binary_size)
+static bool write_kernel_binary (hashcat_ctx_t *hashcat_ctx, char *kernel_file, char *binary, size_t binary_size)
 {
   if (binary_size > 0)
   {
@@ -311,7 +311,7 @@ static int write_kernel_binary (hashcat_ctx_t *hashcat_ctx, char *kernel_file, c
     {
       event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
 
-      return -1;
+      return false;
     }
 
     if (lock_file (fp) == -1)
@@ -320,7 +320,7 @@ static int write_kernel_binary (hashcat_ctx_t *hashcat_ctx, char *kernel_file, c
 
       event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
 
-      return -1;
+      return false;
     }
 
     hc_fwrite (binary, sizeof (char), binary_size, fp);
@@ -330,7 +330,7 @@ static int write_kernel_binary (hashcat_ctx_t *hashcat_ctx, char *kernel_file, c
     fclose (fp);
   }
 
-  return 0;
+  return true;
 }
 
 void generate_source_kernel_filename (const bool slow_candidates, const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const u32 opti_type, char *shared_dir, char *source_file)
@@ -2938,11 +2938,11 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
    * OpenCL platform selection
    */
 
-  u32 opencl_platforms_filter;
+  u64 opencl_platforms_filter;
 
-  const int rc_platforms_filter = setup_opencl_platforms_filter (hashcat_ctx, user_options->opencl_platforms, &opencl_platforms_filter);
+  const bool rc_platforms_filter = setup_opencl_platforms_filter (hashcat_ctx, user_options->opencl_platforms, &opencl_platforms_filter);
 
-  if (rc_platforms_filter == -1) return -1;
+  if (rc_platforms_filter == false) return -1;
 
   opencl_ctx->opencl_platforms_filter = opencl_platforms_filter;
 
@@ -2950,11 +2950,11 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
    * OpenCL device selection
    */
 
-  u32 devices_filter;
+  u64 devices_filter;
 
-  const int rc_devices_filter = setup_devices_filter (hashcat_ctx, user_options->opencl_devices, &devices_filter);
+  const bool rc_devices_filter = setup_devices_filter (hashcat_ctx, user_options->opencl_devices, &devices_filter);
 
-  if (rc_devices_filter == -1) return -1;
+  if (rc_devices_filter == false) return -1;
 
   opencl_ctx->devices_filter = devices_filter;
 
@@ -2964,9 +2964,9 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   cl_device_type device_types_filter;
 
-  const int rc_device_types_filter = setup_device_types_filter (hashcat_ctx, user_options->opencl_device_types, &device_types_filter);
+  const bool rc_device_types_filter = setup_device_types_filter (hashcat_ctx, user_options->opencl_device_types, &device_types_filter);
 
-  if (rc_device_types_filter == -1) return -1;
+  if (rc_device_types_filter == false) return -1;
 
   opencl_ctx->device_types_filter = device_types_filter;
 
@@ -3037,9 +3037,9 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if (opencl_platforms_filter != (u32) -1)
+  if (opencl_platforms_filter != (u64) -1)
   {
-    u32 platform_cnt_mask = ~(((u32) -1 >> platforms_cnt) << platforms_cnt);
+    u64 platform_cnt_mask = ~(((u64) -1 >> platforms_cnt) << platforms_cnt);
 
     if (opencl_platforms_filter > platform_cnt_mask)
     {
@@ -3063,7 +3063,7 @@ int opencl_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     for (u32 platform_id = 0; platform_id < platforms_cnt; platform_id++)
     {
-      if ((opencl_platforms_filter & (1u << platform_id)) == 0) continue;
+      if ((opencl_platforms_filter & (1ULL << platform_id)) == 0) continue;
 
       cl_platform_id platform = platforms[platform_id];
 
@@ -3267,7 +3267,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       platform_vendor_id = VENDOR_ID_GENERIC;
     }
 
-    bool platform_skipped = ((opencl_ctx->opencl_platforms_filter & (1u << platform_id)) == 0);
+    bool platform_skipped = ((opencl_ctx->opencl_platforms_filter & (1ULL << platform_id)) == 0);
 
     CL_rc = hc_clGetDeviceIDs (hashcat_ctx, platform, CL_DEVICE_TYPE_ALL, DEVICES_MAX, platform_devices, &platform_devices_cnt);
 
@@ -3675,7 +3675,7 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       // skipped
 
-      if ((opencl_ctx->devices_filter & (1u << device_id)) == 0)
+      if ((opencl_ctx->devices_filter & (1ULL << device_id)) == 0)
       {
         device_param->skipped = true;
       }
@@ -3979,9 +3979,9 @@ int opencl_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
   // additional check to see if the user has chosen a device that is not within the range of available devices (i.e. larger than devices_cnt)
 
-  if (opencl_ctx->devices_filter != (u32) -1)
+  if (opencl_ctx->devices_filter != (u64) -1)
   {
-    const u32 devices_cnt_mask = ~(((u32) -1 >> devices_cnt) << devices_cnt);
+    const u64 devices_cnt_mask = ~(((u64) -1 >> devices_cnt) << devices_cnt);
 
     if (opencl_ctx->devices_filter > devices_cnt_mask)
     {
@@ -5011,9 +5011,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
           if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
           #endif
 
-          const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources, true);
+          const bool rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources, true);
 
-          if (rc_read_kernel == -1) return -1;
+          if (rc_read_kernel == false) return -1;
 
           CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->context, 1, kernel_sources, NULL, &device_param->program);
 
@@ -5067,17 +5067,17 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (CL_rc == -1) return -1;
 
-          const int rc_write = write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
+          const bool rc_write = write_kernel_binary (hashcat_ctx, cached_file, binary, binary_size);
 
-          if (rc_write == -1) return -1;
+          if (rc_write == false) return -1;
 
           hcfree (binary);
         }
         else
         {
-          const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, kernel_lengths, kernel_sources, false);
+          const bool rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, kernel_lengths, kernel_sources, false);
 
-          if (rc_read_kernel == -1) return -1;
+          if (rc_read_kernel == false) return -1;
 
           CL_rc = hc_clCreateProgramWithBinary (hashcat_ctx, device_param->context, 1, &device_param->device, kernel_lengths, (unsigned char **) kernel_sources, NULL, &device_param->program);
 
@@ -5090,9 +5090,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources, true);
+        const bool rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources, true);
 
-        if (rc_read_kernel == -1) return -1;
+        if (rc_read_kernel == false) return -1;
 
         CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->context, 1, kernel_sources, NULL, &device_param->program);
 
@@ -5219,9 +5219,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
           if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
           #endif
 
-          const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources, true);
+          const bool rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources, true);
 
-          if (rc_read_kernel == -1) return -1;
+          if (rc_read_kernel == false) return -1;
 
           CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->context, 1, kernel_sources, NULL, &device_param->program_mp);
 
@@ -5281,9 +5281,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
-          const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, kernel_lengths, kernel_sources, false);
+          const bool rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, kernel_lengths, kernel_sources, false);
 
-          if (rc_read_kernel == -1) return -1;
+          if (rc_read_kernel == false) return -1;
 
           CL_rc = hc_clCreateProgramWithBinary (hashcat_ctx, device_param->context, 1, &device_param->device, kernel_lengths, (unsigned char **) kernel_sources, NULL, &device_param->program_mp);
 
@@ -5366,9 +5366,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
           if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache! Building may take a while...", device_id + 1, filename_from_filepath (cached_file));
           #endif
 
-          const int rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources, true);
+          const bool rc_read_kernel = read_kernel_binary (hashcat_ctx, source_file, kernel_lengths, kernel_sources, true);
 
-          if (rc_read_kernel == -1) return -1;
+          if (rc_read_kernel == false) return -1;
 
           CL_rc = hc_clCreateProgramWithSource (hashcat_ctx, device_param->context, 1, kernel_sources, NULL, &device_param->program_amp);
 
@@ -5428,9 +5428,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
-          const int rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, kernel_lengths, kernel_sources, false);
+          const bool rc_read_kernel = read_kernel_binary (hashcat_ctx, cached_file, kernel_lengths, kernel_sources, false);
 
-          if (rc_read_kernel == -1) return -1;
+          if (rc_read_kernel == false) return -1;
 
           CL_rc = hc_clCreateProgramWithBinary (hashcat_ctx, device_param->context, 1, &device_param->device, kernel_lengths, (unsigned char **) kernel_sources, NULL, &device_param->program_amp);
 
