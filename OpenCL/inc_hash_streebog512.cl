@@ -791,7 +791,7 @@ DECLSPEC void streebog512_transform (streebog512_ctx_t *ctx, const u32 *w0, cons
   streebog512_g (ctx->h, ctx->n, m, ctx->s_sbob_sl64);
 
   u64 counterbuf[8] = { 0 };
-  counterbuf[7] = swap64_S ((u64) 0x200);
+  counterbuf[7] = 0x0002000000000000;
   streebog512_add (ctx->n, counterbuf);
 
   streebog512_add (ctx->s, m);
@@ -1479,7 +1479,7 @@ DECLSPEC void streebog512_transform_vector (streebog512_ctx_vector_t *ctx, const
   streebog512_g_vector (ctx->h, ctx->n, m, ctx->s_sbob_sl64);
 
   u64x counterbuf[8] = { 0 };
-  counterbuf[7] = swap64 ((u64x) 0x200);
+  counterbuf[7] = 0x0002000000000000;
   streebog512_add_vector (ctx->n, counterbuf);
 
   streebog512_add_vector (ctx->s, m);
