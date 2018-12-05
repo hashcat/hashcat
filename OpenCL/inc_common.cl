@@ -236,6 +236,26 @@ DECLSPEC int is_valid_hex_32 (const u32 v)
   return 1;
 }
 
+DECLSPEC int is_valid_base58_8 (const u8 v)
+{
+  if (v > 'z') return 0;
+  if (v < '1') return 0;
+  if ((v > '9') && (v < 'A')) return 0;
+  if ((v > 'Z') && (v < 'a')) return 0;
+
+  return 1;
+}
+
+DECLSPEC int is_valid_base58_32 (const u32 v)
+{
+  if (is_valid_base58_8 ((u8) (v >>  0)) == 0) return 0;
+  if (is_valid_base58_8 ((u8) (v >>  8)) == 0) return 0;
+  if (is_valid_base58_8 ((u8) (v >> 16)) == 0) return 0;
+  if (is_valid_base58_8 ((u8) (v >> 24)) == 0) return 0;
+
+  return 1;
+}
+
 DECLSPEC int find_keyboard_layout_map (const u32 search, const int search_len, __local keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt)
 {
   for (int idx = 0; idx < keyboard_layout_mapping_cnt; idx++)
