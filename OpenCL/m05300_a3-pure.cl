@@ -85,7 +85,7 @@ __kernel void m05300_mxx (KERN_ATTR_VECTOR_ESALT (ikepsk_t))
 
     md5_hmac_init_64 (&ctx, w0, w1, w2, w3);
 
-    md5_hmac_update_global (&ctx, esalt_bufs[digests_offset].msg_buf, esalt_bufs[digests_offset].msg_len);
+    md5_hmac_update_global (&ctx, esalt_bufs[digests_offset].msg_buf, esalt_bufs[digests_offset].msg_len[5]);
 
     md5_hmac_final (&ctx);
 
@@ -182,7 +182,7 @@ __kernel void m05300_sxx (KERN_ATTR_VECTOR_ESALT (ikepsk_t))
 
     md5_hmac_init_64 (&ctx, w0, w1, w2, w3);
 
-    md5_hmac_update_global (&ctx, esalt_bufs[digests_offset].msg_buf, esalt_bufs[digests_offset].msg_len);
+    md5_hmac_update_global (&ctx, esalt_bufs[digests_offset].msg_buf, esalt_bufs[digests_offset].msg_len[5]);
 
     md5_hmac_final (&ctx);
 
