@@ -157,7 +157,7 @@ __kernel void m05400_m04 (KERN_ATTR_ESALT (ikepsk_t))
    */
 
   const u32 nr_len  = esalt_bufs[digests_offset].nr_len;
-  const u32 msg_len = esalt_bufs[digests_offset].msg_len;
+  const u32 msg_len = esalt_bufs[digests_offset].msg_len[5];
 
   /**
    * loop
@@ -301,7 +301,7 @@ __kernel void m05400_m04 (KERN_ATTR_ESALT (ikepsk_t))
     int left;
     int off;
 
-    for (left = esalt_bufs[digests_offset].msg_len, off = 0; left >= 56; left -= 64, off += 16)
+    for (left = msg_len, off = 0; left >= 56; left -= 64, off += 16)
     {
       w0[0] = s_msg_buf[off +  0];
       w0[1] = s_msg_buf[off +  1];
@@ -409,7 +409,7 @@ __kernel void m05400_s04 (KERN_ATTR_ESALT (ikepsk_t))
    */
 
   const u32 nr_len  = esalt_bufs[digests_offset].nr_len;
-  const u32 msg_len = esalt_bufs[digests_offset].msg_len;
+  const u32 msg_len = esalt_bufs[digests_offset].msg_len[5];
 
   /**
    * digest
@@ -565,7 +565,7 @@ __kernel void m05400_s04 (KERN_ATTR_ESALT (ikepsk_t))
     int left;
     int off;
 
-    for (left = esalt_bufs[digests_offset].msg_len, off = 0; left >= 56; left -= 64, off += 16)
+    for (left = msg_len, off = 0; left >= 56; left -= 64, off += 16)
     {
       w0[0] = s_msg_buf[off +  0];
       w0[1] = s_msg_buf[off +  1];

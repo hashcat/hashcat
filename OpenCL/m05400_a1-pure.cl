@@ -99,7 +99,7 @@ __kernel void m05400_mxx (KERN_ATTR_ESALT (ikepsk_t))
 
     sha1_hmac_init_64 (&ctx, w0, w1, w2, w3);
 
-    sha1_hmac_update_global_swap (&ctx, esalt_bufs[digests_offset].msg_buf, esalt_bufs[digests_offset].msg_len);
+    sha1_hmac_update_global_swap (&ctx, esalt_bufs[digests_offset].msg_buf, esalt_bufs[digests_offset].msg_len[5]);
 
     sha1_hmac_final (&ctx);
 
@@ -210,7 +210,7 @@ __kernel void m05400_sxx (KERN_ATTR_ESALT (ikepsk_t))
 
     sha1_hmac_init_64 (&ctx, w0, w1, w2, w3);
 
-    sha1_hmac_update_global_swap (&ctx, esalt_bufs[digests_offset].msg_buf, esalt_bufs[digests_offset].msg_len);
+    sha1_hmac_update_global_swap (&ctx, esalt_bufs[digests_offset].msg_buf, esalt_bufs[digests_offset].msg_len[5]);
 
     sha1_hmac_final (&ctx);
 

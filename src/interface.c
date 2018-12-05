@@ -6705,10 +6705,15 @@ int ikepsk_md5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  ikepsk->msg_len = (token.len[0] + token.len[1] + token.len[2] + token.len[3] + token.len[4] + token.len[5]) / 2;
+  ikepsk->msg_len[0] =                      token.len[0] / 2;
+  ikepsk->msg_len[1] = ikepsk->msg_len[0] + token.len[1] / 2;
+  ikepsk->msg_len[2] = ikepsk->msg_len[1] + token.len[2] / 2;
+  ikepsk->msg_len[3] = ikepsk->msg_len[2] + token.len[3] / 2;
+  ikepsk->msg_len[4] = ikepsk->msg_len[3] + token.len[4] / 2;
+  ikepsk->msg_len[5] = ikepsk->msg_len[4] + token.len[5] / 2;
   ikepsk->nr_len  = (token.len[6] + token.len[7]) / 2;
 
-  if (ikepsk->msg_len > 512) return (PARSER_SALT_LENGTH);
+  if (ikepsk->msg_len[5] > 512) return (PARSER_SALT_LENGTH);
   if (ikepsk->nr_len  > 64)  return (PARSER_SALT_LENGTH);
 
   u8 *ptr1 = (u8 *) ikepsk->msg_buf;
@@ -6821,10 +6826,15 @@ int ikepsk_sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  ikepsk->msg_len = (token.len[0] + token.len[1] + token.len[2] + token.len[3] + token.len[4] + token.len[5]) / 2;
+  ikepsk->msg_len[0] =                      token.len[0] / 2;
+  ikepsk->msg_len[1] = ikepsk->msg_len[0] + token.len[1] / 2;
+  ikepsk->msg_len[2] = ikepsk->msg_len[1] + token.len[2] / 2;
+  ikepsk->msg_len[3] = ikepsk->msg_len[2] + token.len[3] / 2;
+  ikepsk->msg_len[4] = ikepsk->msg_len[3] + token.len[4] / 2;
+  ikepsk->msg_len[5] = ikepsk->msg_len[4] + token.len[5] / 2;
   ikepsk->nr_len  = (token.len[6] + token.len[7]) / 2;
 
-  if (ikepsk->msg_len > 512) return (PARSER_SALT_LENGTH);
+  if (ikepsk->msg_len[5] > 512) return (PARSER_SALT_LENGTH);
   if (ikepsk->nr_len  > 64)  return (PARSER_SALT_LENGTH);
 
   u8 *ptr1 = (u8 *) ikepsk->msg_buf;
@@ -20037,11 +20047,11 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     // msg_buf
 
-    u32 ikepsk_msg_len = ikepsk->msg_len / 4;
+    u32 ikepsk_msg_len = ikepsk->msg_len[5] / 4;
 
     for (u32 i = 0; i < ikepsk_msg_len; i++)
     {
-      if ((i == 32) || (i == 64) || (i == 66) || (i == 68) || (i == 108))
+      if ((i == ikepsk->msg_len[0] / 4) || (i == ikepsk->msg_len[1] / 4) || (i == ikepsk->msg_len[2] / 4) || (i == ikepsk->msg_len[3] / 4) || (i == ikepsk->msg_len[4] / 4))
       {
         snprintf (out_buf, buf_len, ":");
 
@@ -20103,11 +20113,11 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_le
 
     // msg_buf
 
-    u32 ikepsk_msg_len = ikepsk->msg_len / 4;
+    u32 ikepsk_msg_len = ikepsk->msg_len[5] / 4;
 
     for (u32 i = 0; i < ikepsk_msg_len; i++)
     {
-      if ((i == 32) || (i == 64) || (i == 66) || (i == 68) || (i == 108))
+      if ((i == ikepsk->msg_len[0] / 4) || (i == ikepsk->msg_len[1] / 4) || (i == ikepsk->msg_len[2] / 4) || (i == ikepsk->msg_len[3] / 4) || (i == ikepsk->msg_len[4] / 4))
       {
         snprintf (out_buf, buf_len, ":");
 
@@ -29509,10 +29519,10 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
       case  2501: ((wpa_eapol_t *)        esalt)->eapol_len     = 128;
                   break;
       case  5300: ((ikepsk_t *)           esalt)->nr_len        = 1;
-                  ((ikepsk_t *)           esalt)->msg_len       = 1;
+                  ((ikepsk_t *)           esalt)->msg_len[5]    = 1;
                   break;
       case  5400: ((ikepsk_t *)           esalt)->nr_len        = 1;
-                  ((ikepsk_t *)           esalt)->msg_len       = 1;
+                  ((ikepsk_t *)           esalt)->msg_len[5]    = 1;
                   break;
       case  5500: ((netntlm_t *)          esalt)->user_len      = 1;
                   ((netntlm_t *)          esalt)->domain_len    = 1;

@@ -1259,7 +1259,7 @@ typedef struct ikepsk
   u32 nr_len;
 
   u32 msg_buf[128];
-  u32 msg_len;
+  u32 msg_len[6];
 
 } ikepsk_t;
 

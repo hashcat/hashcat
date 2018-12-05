@@ -116,7 +116,7 @@ DECLSPEC void m05400m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
    */
 
   const u32 nr_len  = esalt_bufs[digests_offset].nr_len;
-  const u32 msg_len = esalt_bufs[digests_offset].msg_len;
+  const u32 msg_len = esalt_bufs[digests_offset].msg_len[5];
 
   /**
    * loop
@@ -204,7 +204,7 @@ DECLSPEC void m05400m (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
     int left;
     int off;
 
-    for (left = esalt_bufs[digests_offset].msg_len, off = 0; left >= 56; left -= 64, off += 16)
+    for (left = msg_len, off = 0; left >= 56; left -= 64, off += 16)
     {
       w0_t[0] = s_msg_buf[off +  0];
       w0_t[1] = s_msg_buf[off +  1];
@@ -263,7 +263,7 @@ DECLSPEC void m05400s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
    */
 
   const u32 nr_len  = esalt_bufs[digests_offset].nr_len;
-  const u32 msg_len = esalt_bufs[digests_offset].msg_len;
+  const u32 msg_len = esalt_bufs[digests_offset].msg_len[5];
 
   /**
    * digest
@@ -363,7 +363,7 @@ DECLSPEC void m05400s (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KER
     int left;
     int off;
 
-    for (left = esalt_bufs[digests_offset].msg_len, off = 0; left >= 56; left -= 64, off += 16)
+    for (left = msg_len, off = 0; left >= 56; left -= 64, off += 16)
     {
       w0_t[0] = s_msg_buf[off +  0];
       w0_t[1] = s_msg_buf[off +  1];
