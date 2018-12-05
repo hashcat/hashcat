@@ -242,7 +242,7 @@
 - Added hash-mode 16300 = Ethereum Pre-Sale Wallet, PBKDF2-SHA256
 - Added hash-mode 16400 = CRAM-MD5 Dovecot
 - Added hash-mode 16500 = JWT (JSON Web Token)
-- Added hash-mode 16600 = Electrum Wallet (Salt-Type 1-3)
+- Added hash-mode 16600 = Electrum Wallet (Salt-Type 1)
 
 ##
 ## Bugs
