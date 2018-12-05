@@ -291,6 +291,22 @@ DECLSPEC void m16600 (SHM_TYPE u32a *s_te0, SHM_TYPE u32a *s_te1, SHM_TYPE u32a 
         mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
       }
     }
+
+    if (esalt_bufs[digests_offset].salt_type == 2)
+    {
+      if ((u8) (out[0] >> 0) != 'x') continue;
+      if ((u8) (out[0] >> 8) != 'p') continue;
+      if ((u8) (out[0] >> 16) != 'r') continue;
+      if ((u8) (out[0] >> 24) != 'v') continue;
+      if (is_valid_base58_32 (out[1]) == 0) continue;
+      if (is_valid_base58_32 (out[2]) == 0) continue;
+      if (is_valid_base58_32 (out[3]) == 0) continue;
+
+      if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+      {
+        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+      }
+    }
   }
 }
 
