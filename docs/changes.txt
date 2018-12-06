@@ -1,5 +1,11 @@
 * changes v5.1.0 -> v5.x.x
 
+##
+## Bugs
+##
+
+- Fixed output of IKE PSK (mode 5300 and 5400) hashes to have separators at right position
+
 * changes v5.0.0 -> v5.1.0
 
 ##
