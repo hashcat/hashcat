@@ -531,6 +531,13 @@ $(HASHCAT_FRONTEND): src/main.c $(NATIVE_STATIC_OBJS)
 endif
 
 ##
+## native compiled modules
+##
+
+modules/m%.so: modules/m%.c
+	$(CC) -c $(CFLAGS_NATIVE) $< -o $@ -shared
+
+##
 ## cross compiled hashcat
 ##
 

@@ -668,11 +668,12 @@ u64 round_up_multiple_64 (const u64 v, const u64 m)
 
 // difference to original strncat is no returncode and u8* instead of char*
 
-void hc_strncat (u8 *dst, u8 *src, const size_t n)
+void hc_strncat (u8 *dst, const u8 *src, const size_t n)
 {
   const size_t dst_len = strlen ((char *) dst);
 
-  u8 *src_ptr = src;
+  const u8 *src_ptr = src;
+
   u8 *dst_ptr = dst + dst_len;
 
   for (size_t i = 0; i < n && *src_ptr != 0; i++)

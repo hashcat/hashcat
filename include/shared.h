@@ -75,7 +75,7 @@ u32 power_of_two_floor_32 (const u32 v);
 u32 round_up_multiple_32 (const u32 v, const u32 m);
 u64 round_up_multiple_64 (const u64 v, const u64 m);
 
-void hc_strncat (u8 *dst, u8 *src, const size_t n);
+void hc_strncat (u8 *dst, const u8 *src, const size_t n);
 
 int count_char (const u8 *buf, const int len, const u8 c);
 float get_entropy (const u8 *buf, const int len);

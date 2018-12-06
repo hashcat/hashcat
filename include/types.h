@@ -2248,7 +2248,7 @@ typedef struct token
 
   int sep[MAX_TOKENS];
 
-  u8 *buf[MAX_TOKENS];
+  const u8 *buf[MAX_TOKENS];
   int len[MAX_TOKENS];
 
   int len_min[MAX_TOKENS];
@@ -2256,7 +2256,7 @@ typedef struct token
 
   int attr[MAX_TOKENS];
 
-  u8 *opt_buf;
+  const u8 *opt_buf;
   int opt_len;
 
 } token_t;

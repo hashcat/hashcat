@@ -1664,16 +1664,19 @@ void to_hccapx_t (hashcat_ctx_t *hashcat_ctx, hccapx_t *hccapx, const u32 salt_p
 
 int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const size_t out_len, const u32 salt_pos, const u32 digest_pos);
 
+int input_tokenizer (const u8 *input_buf, const int input_len, token_t *token);
+bool initialize_keyboard_layout_mapping (hashcat_ctx_t *hashcat_ctx, const char *filename, keyboard_layout_mapping_t *keyboard_layout_mapping, int *keyboard_layout_mapping_cnt);
+
 int         hashconfig_init                   (hashcat_ctx_t *hashcat_ctx);
 void        hashconfig_destroy                (hashcat_ctx_t *hashcat_ctx);
 u32         hashconfig_forced_kernel_threads  (hashcat_ctx_t *hashcat_ctx);
 u32         hashconfig_get_kernel_threads     (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param);
 u32         hashconfig_get_kernel_loops       (hashcat_ctx_t *hashcat_ctx);
 int         hashconfig_general_defaults       (hashcat_ctx_t *hashcat_ctx);
-int         hashconfig_get_pw_min             (hashcat_ctx_t *hashcat_ctx, const bool optimized_kernel);
-int         hashconfig_get_pw_max             (hashcat_ctx_t *hashcat_ctx, const bool optimized_kernel);
-int         hashconfig_get_salt_min           (hashcat_ctx_t *hashcat_ctx, const bool optimized_kernel);
-int         hashconfig_get_salt_max           (hashcat_ctx_t *hashcat_ctx, const bool optimized_kernel);
+int         hashconfig_pw_min                 (const hashcat_ctx_t *hashcat_ctx, const bool optimized_kernel);
+int         hashconfig_pw_max                 (const hashcat_ctx_t *hashcat_ctx, const bool optimized_kernel);
+int         hashconfig_salt_min               (const hashcat_ctx_t *hashcat_ctx, const bool optimized_kernel);
+int         hashconfig_salt_max               (const hashcat_ctx_t *hashcat_ctx, const bool optimized_kernel);
 void        hashconfig_benchmark_defaults     (hashcat_ctx_t *hashcat_ctx, salt_t *salt, void *esalt, void *hook_salt);
 const char *hashconfig_benchmark_mask         (hashcat_ctx_t *hashcat_ctx);
 
