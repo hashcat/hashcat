@@ -17860,7 +17860,7 @@ int electrum_wallet13_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf
 
   const u32 salt_type = hc_strtoul ((const char *) salt_type_pos, NULL, 10);
 
-  if ((salt_type == 1) || (salt_type == 2) || (salt_type == 3))
+  if ((salt_type == 1) || (salt_type == 2))
   {
     // all ok
   }
