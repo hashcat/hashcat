@@ -393,6 +393,7 @@ static const char *const USAGE_BIG[] =
   "  10600 | PDF 1.7 Level 3 (Acrobat 9)                      | Documents",
   "  10700 | PDF 1.7 Level 8 (Acrobat 10 - 11)                | Documents",
   "  16200 | Apple Secure Notes                               | Documents",
+  "  18400 | Open Document Format (ODF) 1.2 (SHA-256, AES)    | Documents",
   "   9000 | Password Safe v2                                 | Password Managers",
   "   5200 | Password Safe v3                                 | Password Managers",
   "   6800 | LastPass + LastPass sniffed                      | Password Managers",
