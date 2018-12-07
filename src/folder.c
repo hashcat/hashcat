@@ -100,12 +100,12 @@ static void get_install_dir (char *install_dir, const char *exec_path)
 #if defined (_POSIX)
 static void get_profile_dir (char *profile_dir, const char *home_dir)
 {
-  snprintf (profile_dir, HCBUFSIZ_TINY - 1, "%s/%s", home_dir, DOT_HASHCAT);
+  snprintf (profile_dir, HCBUFSIZ_TINY, "%s/%s", home_dir, DOT_HASHCAT);
 }
 
 static void get_session_dir (char *session_dir, const char *profile_dir)
 {
-  snprintf (session_dir, HCBUFSIZ_TINY - 1, "%s/%s", profile_dir, SESSIONS_FOLDER);
+  snprintf (session_dir, HCBUFSIZ_TINY, "%s/%s", profile_dir, SESSIONS_FOLDER);
 }
 #endif
 
