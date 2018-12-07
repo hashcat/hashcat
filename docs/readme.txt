@@ -252,7 +252,7 @@ NVIDIA GPUs require "NVIDIA Driver" (367.x or later)
 - Bitcoin/Litecoin wallet.dat
 - Blockchain, My Wallet
 - Blockchain, My Wallet, V2
-- Electrum Wallet (Salt-Type 1-3)
+- Electrum Wallet (Salt-Type 1-2)
 - KeePass 1 (AES/Twofish) and KeePass 2 (AES)
 - JKS Java Key Store Private Keys (SHA1)
 - Ethereum Wallet, PBKDF2-HMAC-SHA256

@@ -401,7 +401,7 @@ static const char *const USAGE_BIG[] =
   "  11300 | Bitcoin/Litecoin wallet.dat                      | Password Managers",
   "  12700 | Blockchain, My Wallet                            | Password Managers",
   "  15200 | Blockchain, My Wallet, V2                        | Password Managers",
-  "  16600 | Electrum Wallet (Salt-Type 1-3)                  | Password Managers",
+  "  16600 | Electrum Wallet (Salt-Type 1-2)                  | Password Managers",
   "  13400 | KeePass 1 (AES/Twofish) and KeePass 2 (AES)      | Password Managers",
   "  15500 | JKS Java Key Store Private Keys (SHA1)           | Password Managers",
   "  15600 | Ethereum Wallet, PBKDF2-HMAC-SHA256              | Password Managers",

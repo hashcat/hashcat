@@ -429,6 +429,22 @@ __kernel void m16600_m04 (KERN_ATTR_ESALT (electrum_wallet_t))
         mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
       }
     }
+
+    if (esalt_bufs[digests_offset].salt_type == 2)
+    {
+      if ((u8) (out[0] >> 0) != 'x') continue;
+      if ((u8) (out[0] >> 8) != 'p') continue;
+      if ((u8) (out[0] >> 16) != 'r') continue;
+      if ((u8) (out[0] >> 24) != 'v') continue;
+      if (is_valid_base58_32 (out[1]) == 0) continue;
+      if (is_valid_base58_32 (out[2]) == 0) continue;
+      if (is_valid_base58_32 (out[3]) == 0) continue;
+
+      if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+      {
+        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+      }
+    }
   }
 }
 
@@ -850,6 +866,22 @@ __kernel void m16600_s04 (KERN_ATTR_ESALT (electrum_wallet_t))
       if (is_valid_hex_32 (out[1]) == 0) continue;
       if (is_valid_hex_32 (out[2]) == 0) continue;
       if (is_valid_hex_32 (out[3]) == 0) continue;
+
+      if (atomic_inc (&hashes_shown[digests_offset]) == 0)
+      {
+        mark_hash (plains_buf, d_return_buf, salt_pos, digests_cnt, 0, digests_offset + 0, gid, il_pos);
+      }
+    }
+
+    if (esalt_bufs[digests_offset].salt_type == 2)
+    {
+      if ((u8) (out[0] >> 0) != 'x') continue;
+      if ((u8) (out[0] >> 8) != 'p') continue;
+      if ((u8) (out[0] >> 16) != 'r') continue;
+      if ((u8) (out[0] >> 24) != 'v') continue;
+      if (is_valid_base58_32 (out[1]) == 0) continue;
+      if (is_valid_base58_32 (out[2]) == 0) continue;
+      if (is_valid_base58_32 (out[3]) == 0) continue;
 
       if (atomic_inc (&hashes_shown[digests_offset]) == 0)
       {
