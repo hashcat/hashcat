@@ -244,6 +244,7 @@ NVIDIA GPUs require "NVIDIA Driver" (367.x or later)
 - PDF 1.7 Level 3 (Acrobat 9)
 - PDF 1.7 Level 8 (Acrobat 10 - 11)
 - Apple Secure Notes
+- Open Document Format (ODF) 1.2 (SHA-256, AES)
 - Password Safe v2
 - Password Safe v3
 - LastPass + LastPass sniffed
