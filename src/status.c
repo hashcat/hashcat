@@ -55,10 +55,10 @@ static char *status_get_rules_file (const hashcat_ctx_t *hashcat_ctx)
 
     for (i = 0; i < user_options->rp_files_cnt - 1; i++)
     {
-      tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_TINY - tmp_len - 1, "%s, ", user_options->rp_files[i]);
+      tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_TINY - tmp_len, "%s, ", user_options->rp_files[i]);
     }
 
-    tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_TINY - tmp_len - 1, "%s", user_options->rp_files[i]);
+    tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_TINY - tmp_len, "%s", user_options->rp_files[i]);
 
     tmp_buf[tmp_len] = 0;
 
@@ -78,34 +78,34 @@ void format_timer_display (struct tm *tm, char *buf, size_t len)
     const char *time_entity1 = ((tm->tm_year - 70) == 1) ? time_entities_s[0] : time_entities_m[0];
     const char *time_entity2 = ( tm->tm_yday       == 1) ? time_entities_s[1] : time_entities_m[1];
 
-    snprintf (buf, len - 1, "%d %s, %d %s", tm->tm_year - 70, time_entity1, tm->tm_yday, time_entity2);
+    snprintf (buf, len, "%d %s, %d %s", tm->tm_year - 70, time_entity1, tm->tm_yday, time_entity2);
   }
   else if (tm->tm_yday)
   {
     const char *time_entity1 = (tm->tm_yday == 1) ? time_entities_s[1] : time_entities_m[1];
     const char *time_entity2 = (tm->tm_hour == 1) ? time_entities_s[2] : time_entities_m[2];
 
-    snprintf (buf, len - 1, "%d %s, %d %s", tm->tm_yday, time_entity1, tm->tm_hour, time_entity2);
+    snprintf (buf, len, "%d %s, %d %s", tm->tm_yday, time_entity1, tm->tm_hour, time_entity2);
   }
   else if (tm->tm_hour)
   {
     const char *time_entity1 = (tm->tm_hour == 1) ? time_entities_s[2] : time_entities_m[2];
     const char *time_entity2 = (tm->tm_min  == 1) ? time_entities_s[3] : time_entities_m[3];
 
-    snprintf (buf, len - 1, "%d %s, %d %s", tm->tm_hour, time_entity1, tm->tm_min, time_entity2);
+    snprintf (buf, len, "%d %s, %d %s", tm->tm_hour, time_entity1, tm->tm_min, time_entity2);
   }
   else if (tm->tm_min)
   {
     const char *time_entity1 = (tm->tm_min == 1) ? time_entities_s[3] : time_entities_m[3];
     const char *time_entity2 = (tm->tm_sec == 1) ? time_entities_s[4] : time_entities_m[4];
 
-    snprintf (buf, len - 1, "%d %s, %d %s", tm->tm_min, time_entity1, tm->tm_sec, time_entity2);
+    snprintf (buf, len, "%d %s, %d %s", tm->tm_min, time_entity1, tm->tm_sec, time_entity2);
   }
   else
   {
     const char *time_entity1 = (tm->tm_sec == 1) ? time_entities_s[4] : time_entities_m[4];
 
-    snprintf (buf, len - 1, "%d %s", tm->tm_sec, time_entity1);
+    snprintf (buf, len, "%d %s", tm->tm_sec, time_entity1);
   }
 }
 
@@ -133,11 +133,11 @@ void format_speed_display (double val, char *buf, size_t len)
 
   if (level == 0)
   {
-    snprintf (buf, len - 1, "%.0f ", val);
+    snprintf (buf, len, "%.0f ", val);
   }
   else
   {
-    snprintf (buf, len - 1, "%.1f %c", val, UNITS[level]);
+    snprintf (buf, len, "%.1f %c", val, UNITS[level]);
   }
 }
 
@@ -165,11 +165,11 @@ void format_speed_display_1k (double val, char *buf, size_t len)
 
   if (level == 0)
   {
-    snprintf (buf, len - 1, "%.0f ", val);
+    snprintf (buf, len, "%.0f ", val);
   }
   else
   {
-    snprintf (buf, len - 1, "%.1f %c", val, UNITS[level]);
+    snprintf (buf, len, "%.1f %c", val, UNITS[level]);
   }
 }
 
@@ -873,11 +873,11 @@ char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
 
   if (user_options_extra->attack_kern == ATTACK_KERN_BF)
   {
-    snprintf (display, HCBUFSIZ_TINY - 1, "[Generating]");
+    snprintf (display, HCBUFSIZ_TINY, "[Generating]");
   }
   else
   {
-    snprintf (display, HCBUFSIZ_TINY - 1, "[Copying]");
+    snprintf (display, HCBUFSIZ_TINY, "[Copying]");
   }
 
   if (device_param->skipped == true) return display;
@@ -918,14 +918,14 @@ char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
     plain_ptr1[plain_len1 * 2] = 0;
     plain_ptr2[plain_len2 * 2] = 0;
 
-    snprintf (display, HCBUFSIZ_TINY - 1, "$HEX[%s] -> $HEX[%s]", plain_ptr1, plain_ptr2);
+    snprintf (display, HCBUFSIZ_TINY, "$HEX[%s] -> $HEX[%s]", plain_ptr1, plain_ptr2);
   }
   else
   {
     plain_ptr1[plain_len1] = 0;
     plain_ptr2[plain_len2] = 0;
 
-    snprintf (display, HCBUFSIZ_TINY - 1, "%s -> %s", plain_ptr1, plain_ptr2);
+    snprintf (display, HCBUFSIZ_TINY, "%s -> %s", plain_ptr1, plain_ptr2);
   }
 
   return display;
@@ -1160,13 +1160,13 @@ char *status_get_time_estimated_relative (const hashcat_ctx_t *hashcat_ctx)
 
       format_timer_display (tmp_left, display_left, HCBUFSIZ_TINY);
 
-      snprintf (display, HCBUFSIZ_TINY - 1, "%s; Runtime limited: %s", tmp_display, display_left);
+      snprintf (display, HCBUFSIZ_TINY, "%s; Runtime limited: %s", tmp_display, display_left);
 
       free (display_left);
     }
     else
     {
-      snprintf (display, HCBUFSIZ_TINY - 1, "%s; Runtime limit exceeded", tmp_display);
+      snprintf (display, HCBUFSIZ_TINY, "%s; Runtime limit exceeded", tmp_display);
     }
 
     free (tmp_display);
@@ -1895,7 +1895,7 @@ char *status_get_brain_link_recv_bytes_sec_dev (const hashcat_ctx_t *hashcat_ctx
 
   char *display = (char *) hcmalloc (HCBUFSIZ_TINY);
 
-  snprintf (display, HCBUFSIZ_TINY - 1, "%.2f M", (double) (brain_link_recv_bytes * 8) / 1024 / 1024);
+  snprintf (display, HCBUFSIZ_TINY, "%.2f M", (double) (brain_link_recv_bytes * 8) / 1024 / 1024);
 
   return display;
 }
@@ -1922,7 +1922,7 @@ char *status_get_brain_link_send_bytes_sec_dev (const hashcat_ctx_t *hashcat_ctx
 
   char *display = (char *) hcmalloc (HCBUFSIZ_TINY);
 
- snprintf (display, HCBUFSIZ_TINY - 1, "%.2f M", (double) (brain_link_send_bytes * 8) / 1024 / 1024);
+ snprintf (display, HCBUFSIZ_TINY, "%.2f M", (double) (brain_link_send_bytes * 8) / 1024 / 1024);
 
   return display;
 }
@@ -1936,7 +1936,7 @@ char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int device_i
 
   char *output_buf = (char *) hcmalloc (HCBUFSIZ_TINY);
 
-  snprintf (output_buf, HCBUFSIZ_TINY - 1, "N/A");
+  snprintf (output_buf, HCBUFSIZ_TINY, "N/A");
 
   if (device_param->skipped == true) return output_buf;
 
@@ -1991,7 +1991,7 @@ char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int device_i
   }
   else
   {
-    snprintf (output_buf, HCBUFSIZ_TINY - 1, "N/A");
+    snprintf (output_buf, HCBUFSIZ_TINY, "N/A");
   }
 
   hc_thread_mutex_unlock (status_ctx->mux_hwmon);
