@@ -29,6 +29,7 @@ use Crypt::Digest::RIPEMD160   qw (ripemd160_hex);
 use Crypt::Digest::Whirlpool   qw (whirlpool_hex);
 use Crypt::ECB                 qw (encrypt);
 use Crypt::Eksblowfish::Bcrypt qw (bcrypt en_base64);
+use Crypt::Mode::CBC;
 use Crypt::Mode::ECB;
 use Crypt::MySQL               qw (password41);
 use Crypt::OpenSSH::ChachaPoly;
@@ -93,7 +94,7 @@ my $MODES =
   13400, 13500, 13600, 13800, 13900, 14000, 14100, 14400, 14700, 14800, 14900,
   15000, 15100, 15200, 15300, 15400, 15500, 15600, 15700, 15900, 16000, 16100,
   16200, 16300, 16400, 16500, 16600, 16700, 16800, 16900, 17300, 17400, 17500,
-  17600, 17700, 17800, 17900, 18000, 18100, 18200, 18300, 99999
+  17600, 17700, 17800, 17900, 18000, 18100, 18200, 18300, 18400, 99999
 ];
 
 ## STEP 2a: If your hash mode does not need a salt, add it to this array.
@@ -3166,6 +3167,65 @@ sub verify
 
       next unless (exists ($db->{$hash_in}) and (! defined ($db->{$hash_in})));
     }
+    elsif ($mode == 18400)
+    {
+      ($hash_in, $word) = split ":", $line;
+
+      next unless defined $hash_in;
+      next unless defined $word;
+
+      # tokenize
+      my @data = split ('\*', $hash_in);
+
+      next unless scalar @data == 12;
+
+      my $signature   = shift @data;
+      my $cipher_type = shift @data;
+      my $cs_type     = shift @data;
+      $iter           = shift @data;
+      my $cs_len      = shift @data;
+      my $cs          = shift @data;
+      my $iv_len      = shift @data;
+      my $iv          = shift @data;
+      my $salt_len    = shift @data;
+      $salt           = shift @data;
+      my $unused      = shift @data;
+      my $ciphertext  = shift @data;
+
+      # validate
+      next unless ($signature   eq '$odf$');
+      next unless ($cipher_type eq '1');
+      next unless ($cs_type     eq '1');
+      next unless ($cs_len      eq '32');
+      next unless ($iv_len      eq '16');
+      next unless ($salt_len    eq '16');
+      next unless ($unused      eq '0');
+      next unless defined $ciphertext;
+
+      # decrypt
+      my $b_iv         = pack ("H*", $iv);
+      my $b_salt       = pack ("H*", $salt);
+      my $b_ciphertext = pack ("H*", $ciphertext);
+
+      my $kdf = Crypt::PBKDF2->new
+      (
+        hash_class => 'HMACSHA1',
+        iterations => $iter,
+        output_len => 32,
+      );
+
+      my $pass_hash   = sha256 ($word);
+      my $derived_key = $kdf->PBKDF2 ($b_salt, $pass_hash);
+      my $cbc         = Crypt::Mode::CBC->new('AES', 0);
+      my $b_plaintext = $cbc->decrypt($b_ciphertext, $derived_key, $b_iv);
+
+      my $plaintext   = unpack ("H*", $b_plaintext);
+
+      $param  = $iv;
+      $param2 = $plaintext;
+
+      next unless (exists ($db->{$hash_in}) and (! defined ($db->{$hash_in})));
+    }
     ## STEP 2c: Add your custom salt branch here
     else
     {
@@ -3654,6 +3714,15 @@ sub verify
 
       return unless (substr ($line, 0, $len) eq $hash_out);
     }
+    elsif ($mode == 18400)
+    {
+      $hash_out = gen_hash ($mode, $word, $salt, $iter, $param, $param2);
+
+      $len = length $hash_out;
+
+      return unless (substr ($line, 0, $len) eq $hash_out);
+    }
+    ## STEP 2c: Add your custom gen_hash call here
     else
     {
       $hash_out = gen_hash ($mode, $word, $salt, $iter);
@@ -4254,6 +4323,10 @@ sub passthrough
       $tmp_hash = gen_hash ($mode, $word_buf, $salt_buf);
     }
     elsif ($mode == 18300)
+    {
+      $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, 32));
+    }
+    elsif ($mode == 18400)
     {
       $tmp_hash = gen_hash ($mode, $word_buf, substr ($salt_buf, 0, 32));
     }
@@ -5416,6 +5489,20 @@ sub single
       }
     }
     elsif ($mode == 18300)
+    {
+      for (my $i = 1; $i < 32; $i++)
+      {
+        if ($len != 0)
+        {
+          rnd ($mode, $len, 32);
+        }
+        else
+        {
+          rnd ($mode, $i, 32);
+        }
+      }
+    }
+    elsif ($mode == 18400)
     {
       for (my $i = 1; $i < 32; $i++)
       {
@@ -10596,6 +10683,52 @@ END_CODE
     }
 
     $tmp_hash = sprintf ('$fvde$%d$%d$%s$%d$%s', $Z_PK, length ($salt_bin), unpack ("H*", $salt_bin), $iterations, unpack ("H*", $blob_bin));
+  }
+  elsif ($mode == 18400)
+  {
+    # defaults for single mode
+    my $iterations = 100000;
+    my $iv         = "aa" x 16;
+    my $plaintext  = "bb" x 1024;
+
+    # parameters for verify mode
+    if (defined $iter)
+    {
+      $iterations = $iter;
+    }
+
+    if (defined $additional_param)
+    {
+      $iv = $additional_param;
+    }
+
+    if (defined $additional_param2)
+    {
+      $plaintext = $additional_param2;
+    }
+
+    # binary buffers
+    my $b_iv        = pack ("H*", $iv);
+    my $b_salt      = pack ("H*", $salt_buf);
+    my $b_plaintext = pack ("H*", $plaintext);
+
+    my $kdf = Crypt::PBKDF2->new
+    (
+      hash_class => 'HMACSHA1',
+      iterations => $iterations,
+      output_len => 32,
+    );
+
+    my $checksum     = sha256_hex ($b_plaintext);
+
+    my $pass_hash    = sha256 ($word_buf);
+    my $derived_key  = $kdf->PBKDF2 ($b_salt, $pass_hash);
+    my $cbc          = Crypt::Mode::CBC->new('AES', 0);
+    my $b_ciphertext = $cbc->encrypt($b_plaintext, $derived_key, $b_iv);
+
+    my $ciphertext   = unpack ("H*", $b_ciphertext);
+
+    $tmp_hash = '$odf$'."*1*1*$iterations*32*$checksum*16*$iv*16*$salt_buf*0*$ciphertext";
   }
   elsif ($mode == 99999)
   {

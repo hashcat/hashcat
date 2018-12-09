@@ -921,7 +921,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   char port_str[8];
 
-  snprintf (port_str, sizeof (port_str) - 1, "%i", port);
+  snprintf (port_str, sizeof (port_str), "%i", port);
 
   const char *host_real = (host == NULL) ? "127.0.0.1" : (const char *) host;
 
@@ -1563,7 +1563,7 @@ bool brain_server_write_hash_dumps (brain_server_dbs_t *brain_server_dbs, const 
 
     char file[100];
 
-    snprintf (file, sizeof (file) - 1, "%s/brain.%08x.ldmp", path, brain_server_db_hash->brain_session);
+    snprintf (file, sizeof (file), "%s/brain.%08x.ldmp", path, brain_server_db_hash->brain_session);
 
     brain_server_write_hash_dump (brain_server_db_hash, file);
 
@@ -1762,7 +1762,7 @@ bool brain_server_write_attack_dumps (brain_server_dbs_t *brain_server_dbs, cons
 
     char file[100];
 
-    snprintf (file, sizeof (file) - 1, "%s/brain.%08x.admp", path, brain_server_db_attack->brain_attack);
+    snprintf (file, sizeof (file), "%s/brain.%08x.admp", path, brain_server_db_attack->brain_attack);
 
     brain_server_write_attack_dump (brain_server_db_attack, file);
 
@@ -2972,7 +2972,7 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
 
     auth_password = (char *) hcmalloc (BRAIN_PASSWORD_SZ);
 
-    snprintf (auth_password, BRAIN_PASSWORD_SZ - 1, "%08x%08x", brain_auth_challenge (), brain_auth_challenge ());
+    snprintf (auth_password, BRAIN_PASSWORD_SZ, "%08x%08x", brain_auth_challenge (), brain_auth_challenge ());
 
     brain_logging (stdout, 0, "Generated authentication password: %s\n", auth_password);
   }

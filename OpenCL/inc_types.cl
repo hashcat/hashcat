@@ -1403,6 +1403,25 @@ typedef struct oldoffice34
 
 } oldoffice34_t;
 
+typedef struct odf12_tmp
+{
+  u32  ipad[5];
+  u32  opad[5];
+
+  u32  dgst[10];
+  u32  out[10];
+
+} odf12_tmp_t;
+
+typedef struct odf12
+{
+  u32 iterations;
+  u32 iv[4];
+  u32 checksum[8];
+  u32 encrypted_data[256];
+
+} odf12_t;
+
 typedef struct pstoken
 {
   u32 salt_buf[128];

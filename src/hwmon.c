@@ -71,7 +71,7 @@ static char *hm_SYSFS_get_syspath_hwmon (hashcat_ctx_t *hashcat_ctx, const int d
 
   char *hwmon = hcmalloc (HCBUFSIZ_TINY);
 
-  snprintf (hwmon, HCBUFSIZ_TINY - 1, "%s/hwmon", syspath);
+  snprintf (hwmon, HCBUFSIZ_TINY, "%s/hwmon", syspath);
 
   char *hwmonN = first_file_in_directory (hwmon);
 
@@ -87,7 +87,7 @@ static char *hm_SYSFS_get_syspath_hwmon (hashcat_ctx_t *hashcat_ctx, const int d
     return NULL;
   }
 
-  snprintf (hwmon, HCBUFSIZ_TINY - 1, "%s/hwmon/%s", syspath, hwmonN);
+  snprintf (hwmon, HCBUFSIZ_TINY, "%s/hwmon/%s", syspath, hwmonN);
 
   hcfree (syspath);
 
