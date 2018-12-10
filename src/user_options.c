@@ -513,7 +513,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if ((user_options->brain_client_features < 1) && (user_options->brain_client_features > 3))
+  if ((user_options->brain_client_features < 1) || (user_options->brain_client_features > 3))
   {
     event_log_error (hashcat_ctx, "Invalid --brain-client-feature argument");
 
