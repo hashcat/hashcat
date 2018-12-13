@@ -5,6 +5,7 @@
 ##
 
 - Added hash-mode 18400 (Open Document Format (ODF) 1.2 (SHA-256, AES))
+- Added hash-mode 18500 sha1(md5(md5($pass)))
 
 ##
 ## Bugs
@@ -18,6 +19,7 @@
 ##
 
 - Tests: Added hash-mode 18400 (Open Document Format (ODF) 1.2 (SHA-256, AES))
+- Tests: Added hash-mode 18500 sha1(md5(md5($pass)))
 
 * changes v5.0.0 -> v5.1.0
 
