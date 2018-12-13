@@ -2833,7 +2833,7 @@ fi
 # fix logfile
 if [ "${PACKAGE}" -eq 0 ]; then
 
-  cat -A ${OUTD}/logfull.txt | sed -e 's/\^M                                             \^M//g' | sed -e 's/\$$//g' > ${OUTD}/test_report.log
+  cat -vet ${OUTD}/logfull.txt | sed -e 's/\^M                                             \^M//g' | sed -e 's/\$$//g' > ${OUTD}/test_report.log
 
 fi
 
