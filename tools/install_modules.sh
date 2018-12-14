@@ -21,6 +21,7 @@ cpan install Authen::Passphrase::LANManager \
              Crypt::Digest::Whirlpool       \
              Crypt::ECB                     \
              Crypt::Eksblowfish::Bcrypt     \
+             Crypt::GCrypt                  \
              Crypt::Mode::ECB               \
              Crypt::MySQL                   \
              Crypt::OpenSSH::ChachaPoly     \
