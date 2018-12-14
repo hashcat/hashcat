@@ -11081,10 +11081,10 @@ int odf12_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUS
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  u8 *checksum         = token.buf[5];
-  u8 *iv               = token.buf[7];
-  u8 *salt             = token.buf[9];
-  u8 *encrypted_data   = token.buf[11];
+  const u8 *checksum         = token.buf[5];
+  const u8 *iv               = token.buf[7];
+  const u8 *salt             = token.buf[9];
+  const u8 *encrypted_data   = token.buf[11];
 
   const u32 cipher_type   = strtol ((const char *) token.buf[1],  NULL, 10);
   const u32 checksum_type = strtol ((const char *) token.buf[2],  NULL, 10);
@@ -28605,7 +28605,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 3;
                  hashconfig->st_hash        = ST_HASH_18400;
-                 hashconfig->st_pass        = ST_HASH_18500;
+                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
     case 18500:  hashconfig->hash_type      = HASH_TYPE_SHA1;
