@@ -506,9 +506,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
   if (hashconfig->hash_mode == 3000)
   {
-    const int decode_sz = 16;
-
-    const int parser_status = module_ctx->module_hash_decode (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, LM_ZERO_HASH, &decode_sz);
+    const int parser_status = module_ctx->module_hash_decode (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, LM_ZERO_HASH, 16);
 
     if (parser_status == PARSER_OK)
     {
@@ -642,7 +640,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      const int parser_status = module_ctx->module_hash_decode (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, line_hash_buf, &line_hash_len);
+      const int parser_status = module_ctx->module_hash_decode (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, line_hash_buf, line_hash_len);
 
       if (parser_status != PARSER_OK) continue;
 
