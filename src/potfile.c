@@ -377,8 +377,9 @@ void potfile_update_hashes (hashcat_ctx_t *hashcat_ctx, hash_t *hash_buf, char *
 
 int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 {
-        hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const hashes_t       *hashes       = hashcat_ctx->hashes;
+  const module_ctx_t   *module_ctx   = hashcat_ctx->module_ctx;
   const potfile_ctx_t  *potfile_ctx  = hashcat_ctx->potfile_ctx;
 
   if (potfile_ctx->enabled == false) return 0;
@@ -501,12 +502,13 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-
   // special case for a split hash
 
   if (hashconfig->hash_mode == 3000)
   {
-    int parser_status = hashconfig->parse_func ((u8 *) LM_ZERO_HASH, 16, &hash_buf, hashconfig);
+    const int decode_sz = 16;
+
+    const int parser_status = module_ctx->module_hash_decode (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, LM_ZERO_HASH, &decode_sz);
 
     if (parser_status == PARSER_OK)
     {
@@ -545,7 +547,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
     char *line_hash_buf = line_buf;
 
-    size_t line_hash_len = last_separator - line_buf;
+    int line_hash_len = last_separator - line_buf;
 
     line_hash_buf[line_hash_len] = 0;
 
@@ -640,7 +642,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      int parser_status = hashconfig->parse_func ((u8 *) line_hash_buf, (u32) line_hash_len, &hash_buf, hashconfig);
+      const int parser_status = module_ctx->module_hash_decode (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, line_hash_buf, &line_hash_len);
 
       if (parser_status != PARSER_OK) continue;
 

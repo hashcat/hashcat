@@ -4,7 +4,7 @@
 ##
 
 SHARED                  := 0
-DEBUG                   := 0
+DEBUG                   := 1
 PRODUCTION              := 0
 PRODUCTION_VERSION      := v5.1.0
 ENABLE_BRAIN            := 1
@@ -367,6 +367,7 @@ default: $(HASHCAT_FRONTEND)
 clean:
 	$(RM) -f $(HASHCAT_FRONTEND)
 	$(RM) -f $(HASHCAT_LIBRARY)
+	$(RM) -f modules/*.so
 	$(RM) -f obj/*.o
 	$(RM) -f *.bin *.exe
 	$(RM) -f *.pid
@@ -526,7 +527,7 @@ ifeq ($(SHARED),1)
 $(HASHCAT_FRONTEND): src/main.c $(HASHCAT_LIBRARY)
 	$(CC)    $(CFLAGS_NATIVE) $^ -o $@ $(HASHCAT_LIBRARY) $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 else
-$(HASHCAT_FRONTEND): src/main.c $(NATIVE_STATIC_OBJS)
+$(HASHCAT_FRONTEND): src/main.c $(NATIVE_STATIC_OBJS) modules/m01000.so
 	$(CC)    $(CFLAGS_NATIVE) $^ -o $@                    $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 endif
 

@@ -2194,6 +2194,29 @@ typedef struct event_ctx
 
 } event_ctx_t;
 
+typedef struct module_ctx
+{
+  const char *(*module_hash_name)    ();
+  u32         (*module_salt_type)    ();
+  u32         (*module_attack_exec)  ();
+  u64         (*module_opts_type)    ();
+  u32         (*module_dgst_size)    ();
+  u32         (*module_opti_type)    ();
+  u32         (*module_dgst_pos0)    ();
+  u32         (*module_dgst_pos1)    ();
+  u32         (*module_dgst_pos2)    ();
+  u32         (*module_dgst_pos3)    ();
+  const char *(*module_st_hash)      ();
+  const char *(*module_st_pass)      ();
+  u32         (*module_pw_min)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_pw_max)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_salt_min)     (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_salt_max)     (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  int         (*module_hash_decode)  (const hashconfig_t *,       void *,       salt_t *,       void *, const char *, const int *);
+  void        (*module_hash_encode)  (const hashconfig_t *, const void *, const salt_t *, const void *,       char *,       int *);
+
+} module_ctx_t;
+
 typedef struct hashcat_ctx
 {
   bitmap_ctx_t          *bitmap_ctx;
@@ -2211,6 +2234,7 @@ typedef struct hashcat_ctx
   logfile_ctx_t         *logfile_ctx;
   loopback_ctx_t        *loopback_ctx;
   mask_ctx_t            *mask_ctx;
+  module_ctx_t          *module_ctx;
   opencl_ctx_t          *opencl_ctx;
   outcheck_ctx_t        *outcheck_ctx;
   outfile_ctx_t         *outfile_ctx;

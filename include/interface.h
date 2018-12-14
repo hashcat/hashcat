@@ -1696,10 +1696,10 @@ u32         hashconfig_forced_kernel_threads  (hashcat_ctx_t *hashcat_ctx);
 u32         hashconfig_get_kernel_threads     (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param);
 u32         hashconfig_get_kernel_loops       (hashcat_ctx_t *hashcat_ctx);
 int         hashconfig_general_defaults       (hashcat_ctx_t *hashcat_ctx);
-int         hashconfig_pw_min                 (const hashcat_ctx_t *hashcat_ctx, const bool optimized_kernel);
-int         hashconfig_pw_max                 (const hashcat_ctx_t *hashcat_ctx, const bool optimized_kernel);
-int         hashconfig_salt_min               (const hashcat_ctx_t *hashcat_ctx, const bool optimized_kernel);
-int         hashconfig_salt_max               (const hashcat_ctx_t *hashcat_ctx, const bool optimized_kernel);
+int         hashconfig_pw_min                 (const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const bool optimized_kernel);
+int         hashconfig_pw_max                 (const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const bool optimized_kernel);
+int         hashconfig_salt_min               (const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const bool optimized_kernel);
+int         hashconfig_salt_max               (const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const bool optimized_kernel);
 void        hashconfig_benchmark_defaults     (hashcat_ctx_t *hashcat_ctx, salt_t *salt, void *esalt, void *hook_salt);
 const char *hashconfig_benchmark_mask         (hashcat_ctx_t *hashcat_ctx);
 

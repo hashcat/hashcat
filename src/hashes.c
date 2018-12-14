@@ -535,6 +535,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
   hashes_t              *hashes             = hashcat_ctx->hashes;
+  module_ctx_t          *module_ctx         = hashcat_ctx->module_ctx;
   user_options_t        *user_options       = hashcat_ctx->user_options;
   user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
 
@@ -777,7 +778,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       size_t input_len = strlen (input_buf);
 
       char  *hash_buf = NULL;
-      size_t hash_len = 0;
+      int    hash_len = 0;
 
       hlfmt_hash (hashcat_ctx, hashlist_format, input_buf, input_len, &hash_buf, &hash_len);
 
@@ -919,7 +920,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
               memset (hashes_buf[hashes_cnt].hook_salt, 0, hashconfig->hook_salt_size);
             }
 
-            parser_status = hashconfig->parse_func ((u8 *) in, sizeof (hccapx_t), &hashes_buf[hashes_cnt], hashconfig);
+            const int decode_sz = sizeof (hccapx_t);
+
+            hash_t *hash = &hashes_buf[hashes_cnt];
+
+            parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, in, &decode_sz);
 
             if (parser_status != PARSER_OK)
             {
@@ -939,7 +944,13 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         {
           if (hash_len == 32)
           {
-            parser_status = hashconfig->parse_func ((u8 *) hash_buf, 16, &hashes_buf[hashes_cnt], hashconfig);
+            const int decode_sz = 16;
+
+            hash_t *hash;
+
+            hash = &hashes_buf[hashes_cnt];
+
+            parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash_buf +  0, &decode_sz);
 
             if (parser_status == PARSER_OK)
             {
@@ -953,7 +964,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
               event_log_warning (hashcat_ctx, "Hash '%s': %s", input_buf, strparser (parser_status));
             }
 
-            parser_status = hashconfig->parse_func ((u8 *) hash_buf + 16, 16, &hashes_buf[hashes_cnt], hashconfig);
+            hash = &hashes_buf[hashes_cnt];
+
+            parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash_buf + 16, &decode_sz);
 
             if (parser_status == PARSER_OK)
             {
@@ -969,7 +982,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           }
           else
           {
-            parser_status = hashconfig->parse_func ((u8 *) hash_buf, (u32) hash_len, &hashes_buf[hashes_cnt], hashconfig);
+            hash_t *hash = &hashes_buf[hashes_cnt];
+
+            parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash_buf, &hash_len);
 
             if (parser_status == PARSER_OK)
             {
@@ -990,7 +1005,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
           for (int keyslot_idx = 0; keyslot_idx < LUKS_NUMKEYS; keyslot_idx++)
           {
-            parser_status = luks_parse_hash ((u8 *) hash_buf, (u32) hash_len, &hashes_buf[hashes_cnt], hashconfig, keyslot_idx);
+            parser_status = luks_parse_hash ((u8 *) hash_buf, (const int) hash_len, &hashes_buf[hashes_cnt], hashconfig, keyslot_idx);
 
             if (parser_status != PARSER_OK)
             {
@@ -1007,7 +1022,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
-          parser_status = hashconfig->parse_func ((u8 *) hash_buf, (u32) hash_len, &hashes_buf[hashes_cnt], hashconfig);
+          hash_t *hash = &hashes_buf[hashes_cnt];
+
+          parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash_buf, &hash_len);
 
           if (parser_status == PARSER_OK)
           {
@@ -1053,8 +1070,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           break;
         }
 
-        char  *hash_buf = NULL;
-        size_t hash_len = 0;
+        char *hash_buf = NULL;
+        int   hash_len = 0;
 
         hlfmt_hash (hashcat_ctx, hashlist_format, line_buf, line_len, &hash_buf, &hash_len);
 
@@ -1072,8 +1089,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
         if (user_options->username == true)
         {
-          char  *user_buf = NULL;
-          size_t user_len = 0;
+          char *user_buf = NULL;
+          int   user_len = 0;
 
           hlfmt_user (hashcat_ctx, hashlist_format, line_buf, line_len, &user_buf, &user_len);
 
@@ -1137,7 +1154,13 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         {
           if (hash_len == 32)
           {
-            int parser_status = hashconfig->parse_func ((u8 *) hash_buf, 16, &hashes_buf[hashes_cnt], hashconfig);
+            const int decode_sz = 16;
+
+            hash_t *hash;
+
+            hash = &hashes_buf[hashes_cnt];
+
+            int parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash_buf +  0, &decode_sz);
 
             if (parser_status < PARSER_GLOBAL_ZERO)
             {
@@ -1159,7 +1182,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             hashes_cnt++;
 
-            parser_status = hashconfig->parse_func ((u8 *) hash_buf + 16, 16, &hashes_buf[hashes_cnt], hashconfig);
+            hash = &hashes_buf[hashes_cnt];
+
+            parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash_buf + 16, &decode_sz);
 
             if (parser_status < PARSER_GLOBAL_ZERO)
             {
@@ -1183,7 +1208,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           }
           else
           {
-            int parser_status = hashconfig->parse_func ((u8 *) hash_buf, (u32) hash_len, &hashes_buf[hashes_cnt], hashconfig);
+            hash_t *hash = &hashes_buf[hashes_cnt];
+
+            int parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash_buf, &hash_len);
 
             if (parser_status < PARSER_GLOBAL_ZERO)
             {
@@ -1208,7 +1235,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
-          int parser_status = hashconfig->parse_func ((u8 *) hash_buf, (u32) hash_len, &hashes_buf[hashes_cnt], hashconfig);
+          hash_t *hash = &hashes_buf[hashes_cnt];
+
+          int parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash_buf, &hash_len);
 
           if (parser_status < PARSER_GLOBAL_ZERO)
           {
@@ -1687,6 +1716,7 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
   folder_config_t *folder_config = hashcat_ctx->folder_config;
   hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
   hashes_t        *hashes        = hashcat_ctx->hashes;
+  module_ctx_t    *module_ctx    = hashcat_ctx->module_ctx;
   user_options_t  *user_options  = hashcat_ctx->user_options;
 
   if (hashconfig->st_hash == NULL) return 0;
@@ -1736,7 +1766,9 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
       tmpdata[i] = c;
     }
 
-    parser_status = hashconfig->parse_func ((u8 *) tmpdata, sizeof (hccapx_t), &hash, hashconfig);
+    const int decode_sz = sizeof (hccapx_t);
+
+    parser_status = module_ctx->module_hash_decode (hashconfig, hash.digest, hash.salt, hash.esalt, tmpdata, &decode_sz);
 
     hcfree (tmpdata);
 
@@ -1766,7 +1798,9 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
 
     fclose (fp);
 
-    parser_status = hashconfig->parse_func ((u8 *) tmpfile_bin, (u32) strlen (tmpfile_bin), &hash, hashconfig);
+    const int decode_sz = strlen (tmpfile_bin);
+
+    parser_status = module_ctx->module_hash_decode (hashconfig, hash.digest, hash.salt, hash.esalt, tmpfile_bin, &decode_sz);
 
     unlink (tmpfile_bin);
 
@@ -1790,14 +1824,9 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
-    // Make sure that we do not modify constant data. Make a copy of the constant self-test hash
-    // Note: sometimes parse_func () modifies the data internally. We always need to use a copy of the original data
+    const int decode_sz = strlen (hashconfig->st_hash);
 
-    char *tmpdata = hcstrdup (hashconfig->st_hash);
-
-    parser_status = hashconfig->parse_func ((u8 *) tmpdata, (u32) strlen (hashconfig->st_hash), &hash, hashconfig_st);
-
-    hcfree (tmpdata);
+    parser_status = module_ctx->module_hash_decode (hashconfig_st, hash.digest, hash.salt, hash.esalt, hashconfig->st_hash, &decode_sz);
 
     hcfree (hashconfig_st);
   }

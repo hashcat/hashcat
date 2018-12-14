@@ -23,6 +23,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
   hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   hashes_t       *hashes       = hashcat_ctx->hashes;
+  module_ctx_t   *module_ctx   = hashcat_ctx->module_ctx;
   outcheck_ctx_t *outcheck_ctx = hashcat_ctx->outcheck_ctx;
   status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
@@ -226,11 +227,12 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
           }
           else // "normal" case: hash in the outfile is the same as the hash in the original hash file
           {
-            parser_status = hashconfig->parse_func ((u8 *) line_buf, (u32) line_len - 1, &hash_buf, hashconfig);
+            const int decode_sz = line_len - 1;
+
+            parser_status = module_ctx->module_hash_decode (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, line_buf, &decode_sz);
           }
 
           if (parser_status != PARSER_OK) continue;
-
 
           salt_t *salt_buf = salts_buf;
 

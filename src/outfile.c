@@ -140,12 +140,13 @@ static int execute_keyboard_layout_mapping (u32 plain_buf[64], const int plain_l
 
 int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u32 *plain_buf, int *out_len)
 {
-  const combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
-  const hashconfig_t     *hashconfig     = hashcat_ctx->hashconfig;
-  const hashes_t         *hashes         = hashcat_ctx->hashes;
-  const mask_ctx_t       *mask_ctx       = hashcat_ctx->mask_ctx;
-  const straight_ctx_t   *straight_ctx   = hashcat_ctx->straight_ctx;
-  const user_options_t   *user_options   = hashcat_ctx->user_options;
+  const combinator_ctx_t     *combinator_ctx      = hashcat_ctx->combinator_ctx;
+  const hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
+  const hashes_t             *hashes              = hashcat_ctx->hashes;
+  const mask_ctx_t           *mask_ctx            = hashcat_ctx->mask_ctx;
+  const straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
+  const user_options_t       *user_options        = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
 
   const u64 gidvid = plain->gidvid;
   const u32 il_pos = plain->il_pos;
@@ -356,7 +357,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
     }
   }
 
-  const u32 pw_max = hashconfig_pw_max (hashcat_ctx, false);
+  const u32 pw_max = hashconfig_pw_max (hashconfig, user_options, user_options_extra, false);
 
   if (plain_len > (int) hashconfig->pw_max) plain_len = MIN (plain_len, (int) pw_max);
 

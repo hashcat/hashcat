@@ -32,7 +32,6 @@ static const u32   DGST_POS2    = 2;
 static const u32   DGST_POS3    = 1;
 static const char *ST_HASH      = "b4b9b02e6f09a9bd760f388b67351e2b";
 static const char *ST_PASS      = "hashcat";
-static const char *SIGNATURE    = NULL;
 
 const char *module_hash_name   () { return HASH_NAME;   }
 u32         module_salt_type   () { return SALT_TYPE;   }
@@ -47,47 +46,37 @@ u32         module_dgst_pos3   () { return DGST_POS3;   }
 const char *module_st_hash     () { return ST_HASH;     }
 const char *module_st_pass     () { return ST_PASS;     }
 
-u32 module_salt_min (MAYBE_UNUSED const hashcat_ctx_t *hashcat_ctx)
+u32 module_salt_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
-
   const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
 
-  return hashconfig_salt_min (hashcat_ctx, optimized_kernel);
+  return hashconfig_salt_min (hashconfig, user_options, user_options_extra, optimized_kernel);
 }
 
-u32 module_salt_max (MAYBE_UNUSED const hashcat_ctx_t *hashcat_ctx)
+u32 module_salt_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
-
   const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
 
-  return hashconfig_salt_max (hashcat_ctx, optimized_kernel);
+  return hashconfig_salt_max (hashconfig, user_options, user_options_extra, optimized_kernel);
 }
 
-u32 module_pw_min (MAYBE_UNUSED const hashcat_ctx_t *hashcat_ctx)
+u32 module_pw_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
-
   const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
 
-  return hashconfig_pw_min (hashcat_ctx, optimized_kernel);
+  return hashconfig_pw_min (hashconfig, user_options, user_options_extra, optimized_kernel);
 }
 
-u32 module_pw_max (MAYBE_UNUSED const hashcat_ctx_t *hashcat_ctx)
+u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
-
   const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
 
-  return hashconfig_pw_max (hashcat_ctx, optimized_kernel);
+  return hashconfig_pw_max (hashconfig, user_options, user_options_extra, optimized_kernel);
 }
 
-int module_hash_decode (MAYBE_UNUSED const hashcat_ctx_t *hashcat_ctx, const u8 *input_buf, const int input_len, hash_t *hash_buf)
+int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, const char *line_buf, const int *line_len)
 {
-  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
-
-  u32 *digest = (u32 *) hash_buf->digest;
+  u32 *digest = (u32 *) digest_buf;
 
   token_t token;
 
@@ -98,7 +87,7 @@ int module_hash_decode (MAYBE_UNUSED const hashcat_ctx_t *hashcat_ctx, const u8 
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
+  const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, (const int) *line_len, &token);
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
@@ -120,57 +109,55 @@ int module_hash_decode (MAYBE_UNUSED const hashcat_ctx_t *hashcat_ctx, const u8 
   return (PARSER_OK);
 }
 
-int module_hash_encode (MAYBE_UNUSED const hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *digest, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt, u8 *output_buf, const size_t output_size)
+void module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, char *line_buf, int *line_len)
 {
-  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
-
-  u32 *digest_u32 = (u32 *) digest;
+  const u32 *digest = (const u32 *) digest_buf;
 
   // we can not change anything in the original buffer, otherwise destroying sorting
   // therefore create some local buffer
 
-  u32 digest_buf[4];
+  u32 tmp[4];
 
-  digest_buf[0] = digest_u32[0];
-  digest_buf[1] = digest_u32[1];
-  digest_buf[2] = digest_u32[2];
-  digest_buf[3] = digest_u32[3];
+  tmp[0] = digest[0];
+  tmp[1] = digest[1];
+  tmp[2] = digest[2];
+  tmp[3] = digest[3];
 
   if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
   {
-    digest_buf[0] += MD4M_A;
-    digest_buf[1] += MD4M_B;
-    digest_buf[2] += MD4M_C;
-    digest_buf[3] += MD4M_D;
+    tmp[0] += MD4M_A;
+    tmp[1] += MD4M_B;
+    tmp[2] += MD4M_C;
+    tmp[3] += MD4M_D;
   }
 
-  const int output_len = snprintf ((char *) output_buf, output_size - 1, "%08x%08x%08x%08x",
-    digest_buf[0],
-    digest_buf[1],
-    digest_buf[2],
-    digest_buf[3]);
+  const int out_len = snprintf (line_buf, HCBUFSIZ_LARGE, "%08x%08x%08x%08x",
+    tmp[0],
+    tmp[1],
+    tmp[2],
+    tmp[3]);
 
-  return output_len;
+  *line_len = out_len;
 }
 
-void module_register (hashcat_module_t *hashcat_module)
+void module_register (module_ctx_t *module_ctx)
 {
-  hashcat_module->module_hash_name   = module_hash_name;
-  hashcat_module->module_salt_type   = module_salt_type;
-  hashcat_module->module_attack_exec = module_attack_exec;
-  hashcat_module->module_opts_type   = module_opts_type;
-  hashcat_module->module_dgst_size   = module_dgst_size;
-  hashcat_module->module_opti_type   = module_opti_type;
-  hashcat_module->module_dgst_pos0   = module_dgst_pos0;
-  hashcat_module->module_dgst_pos1   = module_dgst_pos1;
-  hashcat_module->module_dgst_pos2   = module_dgst_pos2;
-  hashcat_module->module_dgst_pos3   = module_dgst_pos3;
-  hashcat_module->module_st_hash     = module_st_hash;
-  hashcat_module->module_st_pass     = module_st_pass;
-  hashcat_module->module_salt_min    = module_salt_min;
-  hashcat_module->module_salt_max    = module_salt_max;
-  hashcat_module->module_pw_min      = module_pw_min;
-  hashcat_module->module_pw_max      = module_pw_max;
-  hashcat_module->module_hash_decode = module_hash_decode;
-  hashcat_module->module_hash_encode = module_hash_encode;
+  module_ctx->module_hash_name   = module_hash_name;
+  module_ctx->module_salt_type   = module_salt_type;
+  module_ctx->module_attack_exec = module_attack_exec;
+  module_ctx->module_opts_type   = module_opts_type;
+  module_ctx->module_dgst_size   = module_dgst_size;
+  module_ctx->module_opti_type   = module_opti_type;
+  module_ctx->module_dgst_pos0   = module_dgst_pos0;
+  module_ctx->module_dgst_pos1   = module_dgst_pos1;
+  module_ctx->module_dgst_pos2   = module_dgst_pos2;
+  module_ctx->module_dgst_pos3   = module_dgst_pos3;
+  module_ctx->module_st_hash     = module_st_hash;
+  module_ctx->module_st_pass     = module_st_pass;
+  module_ctx->module_salt_min    = module_salt_min;
+  module_ctx->module_salt_max    = module_salt_max;
+  module_ctx->module_pw_min      = module_pw_min;
+  module_ctx->module_pw_max      = module_pw_max;
+  module_ctx->module_hash_decode = module_hash_decode;
+  module_ctx->module_hash_encode = module_hash_encode;
 }

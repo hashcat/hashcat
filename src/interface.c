@@ -23,6 +23,7 @@
 #include "interface.h"
 #include "filehandling.h"
 #include "ext_lzma.h"
+#include "modules.h"
 
 static const char *ST_PASS_HASHCAT_PLAIN = "hashcat";
 static const char *ST_PASS_HASHCAT_EXCL  = "hashcat!";
@@ -28647,6 +28648,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     default:     return -1;
   }
 
+  module_register (hashcat_ctx->module_ctx);
+
   if (user_options->keyboard_layout_mapping)
   {
     if ((hashconfig->opts_type & OPTS_TYPE_KEYBOARD_MAPPING) == 0)
@@ -28997,10 +29000,10 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
 
-  hashconfig->pw_min   = hashconfig_pw_min   (hashcat_ctx, optimized_kernel);
-  hashconfig->pw_max   = hashconfig_pw_max   (hashcat_ctx, optimized_kernel);
-  hashconfig->salt_min = hashconfig_salt_min (hashcat_ctx, optimized_kernel);
-  hashconfig->salt_max = hashconfig_salt_max (hashcat_ctx, optimized_kernel);
+  hashconfig->pw_min   = hashconfig_pw_min   (hashconfig, user_options, user_options_extra, optimized_kernel);
+  hashconfig->pw_max   = hashconfig_pw_max   (hashconfig, user_options, user_options_extra, optimized_kernel);
+  hashconfig->salt_min = hashconfig_salt_min (hashconfig, user_options, user_options_extra, optimized_kernel);
+  hashconfig->salt_max = hashconfig_salt_max (hashconfig, user_options, user_options_extra, optimized_kernel);
 
   return 0;
 }
@@ -29158,10 +29161,8 @@ u32 hashconfig_get_kernel_loops (hashcat_ctx_t *hashcat_ctx)
   return kernel_loops_fixed;
 }
 
-int hashconfig_pw_min (const hashcat_ctx_t *hashcat_ctx, const bool optimized_kernel)
+int hashconfig_pw_min (const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const bool optimized_kernel)
 {
-  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
-
   // pw_min : algo specific hard min length
 
   u32 pw_min = PW_MIN;
@@ -29189,12 +29190,8 @@ int hashconfig_pw_min (const hashcat_ctx_t *hashcat_ctx, const bool optimized_ke
   return pw_min;
 }
 
-int hashconfig_pw_max (const hashcat_ctx_t *hashcat_ctx, const bool optimized_kernel)
+int hashconfig_pw_max (const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const bool optimized_kernel)
 {
-  const hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
-  const user_options_t       *user_options        = hashcat_ctx->user_options;
-  const user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
-
   // pw_max : some algo suffer from support for long passwords,
   //          the user need to add -L to enable support for them
 
@@ -29436,10 +29433,8 @@ int hashconfig_pw_max (const hashcat_ctx_t *hashcat_ctx, const bool optimized_ke
   return pw_max;
 }
 
-int hashconfig_salt_min (const hashcat_ctx_t *hashcat_ctx, const bool optimized_kernel)
+int hashconfig_salt_min (const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const bool optimized_kernel)
 {
-  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
-
   // salt_min : this limit is only interessting for generic hash types that support a salt
 
   u32 salt_min = SALT_MIN;
@@ -29467,10 +29462,8 @@ int hashconfig_salt_min (const hashcat_ctx_t *hashcat_ctx, const bool optimized_
   return salt_min;
 }
 
-int hashconfig_salt_max (const hashcat_ctx_t *hashcat_ctx, const bool optimized_kernel)
+int hashconfig_salt_max (const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const bool optimized_kernel)
 {
-  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
-
   // salt_max : this limit is only interessting for generic hash types that support a salt
 
   u32 salt_max = SALT_MAX;
