@@ -3211,13 +3211,13 @@ sub verify
       (
         hash_class => 'HMACSHA1',
         iterations => $iter,
-        output_len => 32,
+        output_len => 32
       );
 
       my $pass_hash   = sha256 ($word);
       my $derived_key = $kdf->PBKDF2 ($b_salt, $pass_hash);
-      my $cbc         = Crypt::Mode::CBC->new('AES', 0);
-      my $b_plaintext = $cbc->decrypt($b_ciphertext, $derived_key, $b_iv);
+      my $cbc         = Crypt::Mode::CBC->new ('AES', 0);
+      my $b_plaintext = $cbc->decrypt ($b_ciphertext, $derived_key, $b_iv);
 
       my $plaintext   = unpack ("H*", $b_plaintext);
 
@@ -10716,15 +10716,15 @@ END_CODE
     (
       hash_class => 'HMACSHA1',
       iterations => $iterations,
-      output_len => 32,
+      output_len => 32
     );
 
     my $checksum     = sha256_hex ($b_plaintext);
 
     my $pass_hash    = sha256 ($word_buf);
     my $derived_key  = $kdf->PBKDF2 ($b_salt, $pass_hash);
-    my $cbc          = Crypt::Mode::CBC->new('AES', 0);
-    my $b_ciphertext = $cbc->encrypt($b_plaintext, $derived_key, $b_iv);
+    my $cbc          = Crypt::Mode::CBC->new ('AES', 0);
+    my $b_ciphertext = $cbc->encrypt ($b_plaintext, $derived_key, $b_iv);
 
     my $ciphertext   = unpack ("H*", $b_ciphertext);
 
