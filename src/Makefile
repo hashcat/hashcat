@@ -174,6 +174,10 @@ CFLAGS                  += -Wall
 CFLAGS                  += -Wextra
 endif
 
+## is very annoying during refactor
+CFLAGS                  += -Wno-unused-variable
+CFLAGS                  += -Wno-unused-function
+
 ifeq ($(DEBUG),0)
 CFLAGS                  += -O2
 ifneq ($(UNAME),Darwin)

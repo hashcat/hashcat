@@ -925,6 +925,8 @@ struct hashconfig
 
   const char *st_hash;
   const char *st_pass;
+
+  const char *hash_name;
 };
 
 typedef struct hashconfig hashconfig_t;
@@ -2196,25 +2198,31 @@ typedef struct event_ctx
 
 typedef struct module_ctx
 {
-  u32         (*module_attack_exec)  ();
-  u32         (*module_dgst_pos0)    ();
-  u32         (*module_dgst_pos1)    ();
-  u32         (*module_dgst_pos2)    ();
-  u32         (*module_dgst_pos3)    ();
-  u32         (*module_dgst_size)    ();
-  u64         (*module_esalt_size)   ();
-  int         (*module_hash_decode)  (const hashconfig_t *,       void *,       salt_t *,       void *, const char *, const int);
-  int         (*module_hash_encode)  (const hashconfig_t *, const void *, const salt_t *, const void *,       char *,       int);
-  const char *(*module_hash_name)    ();
-  u32         (*module_opti_type)    ();
-  u64         (*module_opts_type)    ();
-  u32         (*module_pw_min)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u32         (*module_pw_max)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u32         (*module_salt_min)     (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u32         (*module_salt_max)     (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u32         (*module_salt_type)    ();
-  const char *(*module_st_hash)      ();
-  const char *(*module_st_pass)      ();
+  u32         (*module_attack_exec)     (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_dgst_pos0)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_dgst_pos1)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_dgst_pos2)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_dgst_pos3)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_dgst_size)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u64         (*module_esalt_size)      (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  const char *(*module_hash_name)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_hash_type)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u64         (*module_hook_salt_size)  (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u64         (*module_hook_size)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u64         (*module_kern_type)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_opti_type)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u64         (*module_opts_type)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_pw_min)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_pw_max)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_salt_min)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_salt_max)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_salt_type)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  const char *(*module_st_hash)         (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  const char *(*module_st_pass)         (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u64         (*module_tmp_size)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+
+  int         (*module_hash_decode)     (const hashconfig_t *,       void *,       salt_t *,       void *, const char *, const int);
+  int         (*module_hash_encode)     (const hashconfig_t *, const void *, const salt_t *, const void *,       char *,       int);
 
 } module_ctx_t;
 
