@@ -410,6 +410,8 @@ typedef enum opts_type
   OPTS_TYPE_PREFERED_THREAD   = (1ULL << 39), // some algorithms (complicated ones with many branches) benefit from this
   OPTS_TYPE_PT_ADD06          = (1ULL << 40),
   OPTS_TYPE_KEYBOARD_MAPPING  = (1ULL << 41),
+  OPTS_TYPE_STATE_BUFFER_LE   = (1ULL << 42),
+  OPTS_TYPE_STATE_BUFFER_BE   = (1ULL << 43),
 
 } opts_type_t;
 

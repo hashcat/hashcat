@@ -2847,10 +2847,10 @@ static void precompute_salt_md5 (const u32 *salt_buf, const u32 salt_len, u8 *sa
 
   md5_complete_no_limit (digest, salt_buf, salt_len);
 
-  u32_to_hex_lower (digest[0], salt_pc +  0);
-  u32_to_hex_lower (digest[1], salt_pc +  8);
-  u32_to_hex_lower (digest[2], salt_pc + 16);
-  u32_to_hex_lower (digest[3], salt_pc + 24);
+  u32_to_hex (digest[0], salt_pc +  0);
+  u32_to_hex (digest[1], salt_pc +  8);
+  u32_to_hex (digest[2], salt_pc + 16);
+  u32_to_hex (digest[3], salt_pc + 24);
 }
 
 int bcrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
@@ -4220,7 +4220,7 @@ int descrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
 
   if (c10 & 3) return (PARSER_HASH_VALUE);
 
-  // for ascii_digest
+  // for ascii_to_ebcdic_digest
   salt->salt_sign[0] = salt_pos[0];
   salt->salt_sign[1] = salt_pos[1];
 
@@ -22397,16 +22397,16 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
 
     u8 wpky[80 + 1];
 
-    u32_to_hex_lower (wkpy_u32[0], wpky +  0);
-    u32_to_hex_lower (wkpy_u32[1], wpky +  8);
-    u32_to_hex_lower (wkpy_u32[2], wpky + 16);
-    u32_to_hex_lower (wkpy_u32[3], wpky + 24);
-    u32_to_hex_lower (wkpy_u32[4], wpky + 32);
-    u32_to_hex_lower (wkpy_u32[5], wpky + 40);
-    u32_to_hex_lower (wkpy_u32[6], wpky + 48);
-    u32_to_hex_lower (wkpy_u32[7], wpky + 56);
-    u32_to_hex_lower (wkpy_u32[8], wpky + 64);
-    u32_to_hex_lower (wkpy_u32[9], wpky + 72);
+    u32_to_hex (wkpy_u32[0], wpky +  0);
+    u32_to_hex (wkpy_u32[1], wpky +  8);
+    u32_to_hex (wkpy_u32[2], wpky + 16);
+    u32_to_hex (wkpy_u32[3], wpky + 24);
+    u32_to_hex (wkpy_u32[4], wpky + 32);
+    u32_to_hex (wkpy_u32[5], wpky + 40);
+    u32_to_hex (wkpy_u32[6], wpky + 48);
+    u32_to_hex (wkpy_u32[7], wpky + 56);
+    u32_to_hex (wkpy_u32[8], wpky + 64);
+    u32_to_hex (wkpy_u32[9], wpky + 72);
 
     wpky[80] = 0;
 
@@ -22439,16 +22439,16 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
 
     u8 wpky[80 + 1];
 
-    u32_to_hex_lower (wkpy_u32[0], wpky +  0);
-    u32_to_hex_lower (wkpy_u32[1], wpky +  8);
-    u32_to_hex_lower (wkpy_u32[2], wpky + 16);
-    u32_to_hex_lower (wkpy_u32[3], wpky + 24);
-    u32_to_hex_lower (wkpy_u32[4], wpky + 32);
-    u32_to_hex_lower (wkpy_u32[5], wpky + 40);
-    u32_to_hex_lower (wkpy_u32[6], wpky + 48);
-    u32_to_hex_lower (wkpy_u32[7], wpky + 56);
-    u32_to_hex_lower (wkpy_u32[8], wpky + 64);
-    u32_to_hex_lower (wkpy_u32[9], wpky + 72);
+    u32_to_hex (wkpy_u32[0], wpky +  0);
+    u32_to_hex (wkpy_u32[1], wpky +  8);
+    u32_to_hex (wkpy_u32[2], wpky + 16);
+    u32_to_hex (wkpy_u32[3], wpky + 24);
+    u32_to_hex (wkpy_u32[4], wpky + 32);
+    u32_to_hex (wkpy_u32[5], wpky + 40);
+    u32_to_hex (wkpy_u32[6], wpky + 48);
+    u32_to_hex (wkpy_u32[7], wpky + 56);
+    u32_to_hex (wkpy_u32[8], wpky + 64);
+    u32_to_hex (wkpy_u32[9], wpky + 72);
 
     wpky[80] = 0;
 
@@ -22464,11 +22464,11 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
 
     u8 dpsl[80 + 1];
 
-    u32_to_hex_lower (dpsl_u32[0], dpsl +  0);
-    u32_to_hex_lower (dpsl_u32[1], dpsl +  8);
-    u32_to_hex_lower (dpsl_u32[2], dpsl + 16);
-    u32_to_hex_lower (dpsl_u32[3], dpsl + 24);
-    u32_to_hex_lower (dpsl_u32[4], dpsl + 32);
+    u32_to_hex (dpsl_u32[0], dpsl +  0);
+    u32_to_hex (dpsl_u32[1], dpsl +  8);
+    u32_to_hex (dpsl_u32[2], dpsl + 16);
+    u32_to_hex (dpsl_u32[3], dpsl + 24);
+    u32_to_hex (dpsl_u32[4], dpsl + 32);
 
     dpsl[40] = 0;
 
@@ -22537,7 +22537,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
     for (u32 i = 0; i < (SID_len / 4) + 1; i++)
     {
       u8 hex[8] = { 0 };
-      u32_to_hex_lower (byte_swap_32 (ptr_SID[i]), hex);
+      u32_to_hex (byte_swap_32 (ptr_SID[i]), hex);
 
       for (u32 j = 0, k = 0; j < 8; j += 2, k++)
       {
@@ -22557,7 +22557,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
     for (u32 i = 0; i < iv_len / 8; i++)
     {
       u32_iv[i] = byte_swap_32 (ptr_iv[i]);
-      u32_to_hex_lower (u32_iv[i], iv +  i * 8);
+      u32_to_hex (u32_iv[i], iv +  i * 8);
     }
     iv[32] = 0;
 
@@ -22567,7 +22567,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
     for (u32 i = 0; i < contents_len / 8; i++)
     {
       u32_contents[i] = byte_swap_32 (ptr_contents[i]);
-      u32_to_hex_lower (u32_contents[i], contents +  i * 8);
+      u32_to_hex (u32_contents[i], contents +  i * 8);
     }
 
     contents[208] = 0;
@@ -22726,7 +22726,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
     for (u32 i = 0; i < (SID_len / 4) + 1; i++)
     {
       u8 hex[8] = { 0 };
-      u32_to_hex_lower (byte_swap_32 (ptr_SID[i]), hex);
+      u32_to_hex (byte_swap_32 (ptr_SID[i]), hex);
 
       for (u32 j = 0, k = 0; j < 8; j += 2, k++)
       {
@@ -22746,7 +22746,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
     for (u32 i = 0; i < iv_len / 8; i++)
     {
       u32_iv[i] = byte_swap_32 (ptr_iv[i]);
-      u32_to_hex_lower (u32_iv[i], iv +  i * 8);
+      u32_to_hex (u32_iv[i], iv +  i * 8);
     }
     iv[32] = 0;
 
@@ -22756,7 +22756,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
     for (u32 i = 0; i < contents_len / 8; i++)
     {
       u32_contents[i] = byte_swap_32 (ptr_contents[i]);
-      u32_to_hex_lower (u32_contents[i], contents +  i * 8);
+      u32_to_hex (u32_contents[i], contents +  i * 8);
     }
 
     contents[288] = 0;
@@ -22861,10 +22861,10 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
     iv[2] = byte_swap_32 (ethereum_presale->iv[2]);
     iv[3] = byte_swap_32 (ethereum_presale->iv[3]);
 
-    u32_to_hex_lower (iv[0], encseed +  0);
-    u32_to_hex_lower (iv[1], encseed +  8);
-    u32_to_hex_lower (iv[2], encseed + 16);
-    u32_to_hex_lower (iv[3], encseed + 24);
+    u32_to_hex (iv[0], encseed +  0);
+    u32_to_hex (iv[1], encseed +  8);
+    u32_to_hex (iv[2], encseed + 16);
+    u32_to_hex (iv[3], encseed + 24);
 
     // get the raw enc_seed (without iv):
 
@@ -22876,7 +22876,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
 
       tmp = byte_swap_32 (tmp);
 
-      u32_to_hex_lower (tmp, encseed + j);
+      u32_to_hex (tmp, encseed + j);
     }
 
     const u32 max_hex_len = (16 + ethereum_presale->enc_seed_len) * 2; // 16 bytes IV + encrypted seed (in hex)
@@ -23106,7 +23106,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
 
     for (u32 i = 0, j = 0; i < ansible_vault->ct_data_len / 4; i++, j += 8)
     {
-      u32_to_hex_lower (ct_data_ptr[i], ct_data + j);
+      u32_to_hex (ct_data_ptr[i], ct_data + j);
     }
 
     snprintf (out_buf, out_size, "%s%u*%u*%08x%08x%08x%08x%08x%08x%08x%08x*%s*%08x%08x%08x%08x%08x%08x%08x%08x",
@@ -30342,4 +30342,382 @@ const char *hashconfig_benchmark_mask (hashcat_ctx_t *hashcat_ctx)
   }
 
   return mask;
+}
+
+void decoder_apply_optimizer (const hashconfig_t *hashconfig, void *data)
+{
+  const u32 hash_type = hashconfig->hash_type;
+  const u32 opti_type = hashconfig->opti_type;
+
+  u32 *digest_buf   = (u32 *) data;
+  u64 *digest_buf64 = (u64 *) data;
+
+  if (opti_type & OPTI_TYPE_PRECOMPUTE_PERMUT)
+  {
+    u32 tt;
+
+    switch (hash_type)
+    {
+      case HASH_TYPE_DES:
+        FP (digest_buf[1], digest_buf[0], tt);
+        break;
+
+      case HASH_TYPE_DESCRYPT:
+        FP (digest_buf[1], digest_buf[0], tt);
+        break;
+
+      case HASH_TYPE_DESRACF:
+        digest_buf[0] = rotl32 (digest_buf[0], 29);
+        digest_buf[1] = rotl32 (digest_buf[1], 29);
+
+        FP (digest_buf[1], digest_buf[0], tt);
+        break;
+
+      case HASH_TYPE_LM:
+        FP (digest_buf[1], digest_buf[0], tt);
+        break;
+
+      case HASH_TYPE_NETNTLM:
+        digest_buf[0] = rotl32 (digest_buf[0], 29);
+        digest_buf[1] = rotl32 (digest_buf[1], 29);
+        digest_buf[2] = rotl32 (digest_buf[2], 29);
+        digest_buf[3] = rotl32 (digest_buf[3], 29);
+
+        FP (digest_buf[1], digest_buf[0], tt);
+        FP (digest_buf[3], digest_buf[2], tt);
+        break;
+
+      case HASH_TYPE_BSDICRYPT:
+        digest_buf[0] = rotl32 (digest_buf[0], 31);
+        digest_buf[1] = rotl32 (digest_buf[1], 31);
+
+        FP (digest_buf[1], digest_buf[0], tt);
+        break;
+    }
+  }
+
+  if (opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    switch (hash_type)
+    {
+      case HASH_TYPE_MD4:
+        digest_buf[0] -= MD4M_A;
+        digest_buf[1] -= MD4M_B;
+        digest_buf[2] -= MD4M_C;
+        digest_buf[3] -= MD4M_D;
+        break;
+
+      case HASH_TYPE_MD5:
+        digest_buf[0] -= MD5M_A;
+        digest_buf[1] -= MD5M_B;
+        digest_buf[2] -= MD5M_C;
+        digest_buf[3] -= MD5M_D;
+        break;
+
+      case HASH_TYPE_SHA1:
+        digest_buf[0] -= SHA1M_A;
+        digest_buf[1] -= SHA1M_B;
+        digest_buf[2] -= SHA1M_C;
+        digest_buf[3] -= SHA1M_D;
+        digest_buf[4] -= SHA1M_E;
+        break;
+
+      case HASH_TYPE_SHA224:
+        digest_buf[0] -= SHA224M_A;
+        digest_buf[1] -= SHA224M_B;
+        digest_buf[2] -= SHA224M_C;
+        digest_buf[3] -= SHA224M_D;
+        digest_buf[4] -= SHA224M_E;
+        digest_buf[5] -= SHA224M_F;
+        digest_buf[6] -= SHA224M_G;
+        break;
+
+      case HASH_TYPE_SHA256:
+        digest_buf[0] -= SHA256M_A;
+        digest_buf[1] -= SHA256M_B;
+        digest_buf[2] -= SHA256M_C;
+        digest_buf[3] -= SHA256M_D;
+        digest_buf[4] -= SHA256M_E;
+        digest_buf[5] -= SHA256M_F;
+        digest_buf[6] -= SHA256M_G;
+        digest_buf[7] -= SHA256M_H;
+        break;
+
+      case HASH_TYPE_SHA384:
+        digest_buf64[0] -= SHA384M_A;
+        digest_buf64[1] -= SHA384M_B;
+        digest_buf64[2] -= SHA384M_C;
+        digest_buf64[3] -= SHA384M_D;
+        digest_buf64[4] -= SHA384M_E;
+        digest_buf64[5] -= SHA384M_F;
+        digest_buf64[6] -= 0;
+        digest_buf64[7] -= 0;
+        break;
+
+      case HASH_TYPE_SHA512:
+        digest_buf64[0] -= SHA512M_A;
+        digest_buf64[1] -= SHA512M_B;
+        digest_buf64[2] -= SHA512M_C;
+        digest_buf64[3] -= SHA512M_D;
+        digest_buf64[4] -= SHA512M_E;
+        digest_buf64[5] -= SHA512M_F;
+        digest_buf64[6] -= SHA512M_G;
+        digest_buf64[7] -= SHA512M_H;
+        break;
+    }
+  }
+}
+
+void encoder_apply_optimizer (const hashconfig_t *hashconfig, void *data)
+{
+  const u32 hash_type = hashconfig->hash_type;
+  const u32 opti_type = hashconfig->opti_type;
+
+  u32 *digest_buf   = (u32 *) data;
+  u64 *digest_buf64 = (u64 *) data;
+
+  if (opti_type & OPTI_TYPE_PRECOMPUTE_PERMUT)
+  {
+    u32 tt;
+
+    switch (hash_type)
+    {
+      case HASH_TYPE_DES:
+        FP (digest_buf[1], digest_buf[0], tt);
+        break;
+
+      case HASH_TYPE_DESCRYPT:
+        FP (digest_buf[1], digest_buf[0], tt);
+        break;
+
+      case HASH_TYPE_DESRACF:
+        digest_buf[0] = rotl32 (digest_buf[0], 29);
+        digest_buf[1] = rotl32 (digest_buf[1], 29);
+
+        FP (digest_buf[1], digest_buf[0], tt);
+        break;
+
+      case HASH_TYPE_LM:
+        FP (digest_buf[1], digest_buf[0], tt);
+        break;
+
+      case HASH_TYPE_NETNTLM:
+        digest_buf[0] = rotl32 (digest_buf[0], 29);
+        digest_buf[1] = rotl32 (digest_buf[1], 29);
+        digest_buf[2] = rotl32 (digest_buf[2], 29);
+        digest_buf[3] = rotl32 (digest_buf[3], 29);
+
+        FP (digest_buf[1], digest_buf[0], tt);
+        FP (digest_buf[3], digest_buf[2], tt);
+        break;
+
+      case HASH_TYPE_BSDICRYPT:
+        digest_buf[0] = rotl32 (digest_buf[0], 31);
+        digest_buf[1] = rotl32 (digest_buf[1], 31);
+
+        FP (digest_buf[1], digest_buf[0], tt);
+        break;
+    }
+  }
+
+  if (opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    switch (hash_type)
+    {
+      case HASH_TYPE_MD4:
+        digest_buf[0] += MD4M_A;
+        digest_buf[1] += MD4M_B;
+        digest_buf[2] += MD4M_C;
+        digest_buf[3] += MD4M_D;
+        break;
+
+      case HASH_TYPE_MD5:
+        digest_buf[0] += MD5M_A;
+        digest_buf[1] += MD5M_B;
+        digest_buf[2] += MD5M_C;
+        digest_buf[3] += MD5M_D;
+        break;
+
+      case HASH_TYPE_SHA1:
+        digest_buf[0] += SHA1M_A;
+        digest_buf[1] += SHA1M_B;
+        digest_buf[2] += SHA1M_C;
+        digest_buf[3] += SHA1M_D;
+        digest_buf[4] += SHA1M_E;
+        break;
+
+      case HASH_TYPE_SHA224:
+        digest_buf[0] += SHA224M_A;
+        digest_buf[1] += SHA224M_B;
+        digest_buf[2] += SHA224M_C;
+        digest_buf[3] += SHA224M_D;
+        digest_buf[4] += SHA224M_E;
+        digest_buf[5] += SHA224M_F;
+        digest_buf[6] += SHA224M_G;
+        break;
+
+      case HASH_TYPE_SHA256:
+        digest_buf[0] += SHA256M_A;
+        digest_buf[1] += SHA256M_B;
+        digest_buf[2] += SHA256M_C;
+        digest_buf[3] += SHA256M_D;
+        digest_buf[4] += SHA256M_E;
+        digest_buf[5] += SHA256M_F;
+        digest_buf[6] += SHA256M_G;
+        digest_buf[7] += SHA256M_H;
+        break;
+
+      case HASH_TYPE_SHA384:
+        digest_buf64[0] += SHA384M_A;
+        digest_buf64[1] += SHA384M_B;
+        digest_buf64[2] += SHA384M_C;
+        digest_buf64[3] += SHA384M_D;
+        digest_buf64[4] += SHA384M_E;
+        digest_buf64[5] += SHA384M_F;
+        digest_buf64[6] += 0;
+        digest_buf64[7] += 0;
+        break;
+
+      case HASH_TYPE_SHA512:
+        digest_buf64[0] += SHA512M_A;
+        digest_buf64[1] += SHA512M_B;
+        digest_buf64[2] += SHA512M_C;
+        digest_buf64[3] += SHA512M_D;
+        digest_buf64[4] += SHA512M_E;
+        digest_buf64[5] += SHA512M_F;
+        digest_buf64[6] += SHA512M_G;
+        digest_buf64[7] += SHA512M_H;
+        break;
+    }
+  }
+}
+
+void decoder_apply_options (const hashconfig_t *hashconfig, void *data)
+{
+  const u32 hash_type = hashconfig->hash_type;
+  const u64 opts_type = hashconfig->opts_type;
+  const u32 dgst_size = hashconfig->dgst_size;
+
+  u32 *digest_buf   = (u32 *) data;
+  u64 *digest_buf64 = (u64 *) data;
+
+  if (opts_type & OPTS_TYPE_STATE_BUFFER_BE)
+  {
+    if (dgst_size == DGST_SIZE_4_2)
+    {
+      for (int i = 0; i < 2; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
+    }
+    else if (dgst_size == DGST_SIZE_4_4)
+    {
+      for (int i = 0; i < 4; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
+    }
+    else if (dgst_size == DGST_SIZE_4_5)
+    {
+      for (int i = 0; i < 5; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
+    }
+    else if (dgst_size == DGST_SIZE_4_6)
+    {
+      for (int i = 0; i < 6; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
+    }
+    else if (dgst_size == DGST_SIZE_4_7)
+    {
+      for (int i = 0; i < 7; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
+    }
+    else if (dgst_size == DGST_SIZE_4_8)
+    {
+      for (int i = 0; i < 8; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
+    }
+    else if ((dgst_size == DGST_SIZE_4_16) || (dgst_size == DGST_SIZE_8_8)) // same size, same result :)
+    {
+      if (hash_type == HASH_TYPE_WHIRLPOOL)
+      {
+        for (int i = 0; i < 16; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
+      }
+      else if (hash_type == HASH_TYPE_SHA384)
+      {
+        for (int i = 0; i < 8; i++) digest_buf64[i] = byte_swap_64 (digest_buf64[i]);
+      }
+      else if (hash_type == HASH_TYPE_SHA512)
+      {
+        for (int i = 0; i < 8; i++) digest_buf64[i] = byte_swap_64 (digest_buf64[i]);
+      }
+      else if (hash_type == HASH_TYPE_GOST)
+      {
+        for (int i = 0; i < 16; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
+      }
+    }
+    else if (dgst_size == DGST_SIZE_4_64)
+    {
+      for (int i = 0; i < 64; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
+    }
+    else if (dgst_size == DGST_SIZE_8_25)
+    {
+      for (int i = 0; i < 25; i++) digest_buf64[i] = byte_swap_64 (digest_buf64[i]);
+    }
+  }
+}
+
+void encoder_apply_options (const hashconfig_t *hashconfig, void *data)
+{
+  const u32 hash_type = hashconfig->hash_type;
+  const u64 opts_type = hashconfig->opts_type;
+  const u32 dgst_size = hashconfig->dgst_size;
+
+  u32 *digest_buf   = (u32 *) data;
+  u64 *digest_buf64 = (u64 *) data;
+
+  if (opts_type & OPTS_TYPE_STATE_BUFFER_BE)
+  {
+    if (dgst_size == DGST_SIZE_4_2)
+    {
+      for (int i = 0; i < 2; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
+    }
+    else if (dgst_size == DGST_SIZE_4_4)
+    {
+      for (int i = 0; i < 4; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
+    }
+    else if (dgst_size == DGST_SIZE_4_5)
+    {
+      for (int i = 0; i < 5; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
+    }
+    else if (dgst_size == DGST_SIZE_4_6)
+    {
+      for (int i = 0; i < 6; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
+    }
+    else if (dgst_size == DGST_SIZE_4_7)
+    {
+      for (int i = 0; i < 7; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
+    }
+    else if (dgst_size == DGST_SIZE_4_8)
+    {
+      for (int i = 0; i < 8; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
+    }
+    else if ((dgst_size == DGST_SIZE_4_16) || (dgst_size == DGST_SIZE_8_8)) // same size, same result :)
+    {
+      if (hash_type == HASH_TYPE_WHIRLPOOL)
+      {
+        for (int i = 0; i < 16; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
+      }
+      else if (hash_type == HASH_TYPE_SHA384)
+      {
+        for (int i = 0; i < 8; i++) digest_buf64[i] = byte_swap_64 (digest_buf64[i]);
+      }
+      else if (hash_type == HASH_TYPE_SHA512)
+      {
+        for (int i = 0; i < 8; i++) digest_buf64[i] = byte_swap_64 (digest_buf64[i]);
+      }
+      else if (hash_type == HASH_TYPE_GOST)
+      {
+        for (int i = 0; i < 16; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
+      }
+    }
+    else if (dgst_size == DGST_SIZE_4_64)
+    {
+      for (int i = 0; i < 64; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
+    }
+    else if (dgst_size == DGST_SIZE_8_25)
+    {
+      for (int i = 0; i < 25; i++) digest_buf64[i] = byte_swap_64 (digest_buf64[i]);
+    }
+  }
 }

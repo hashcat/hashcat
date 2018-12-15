@@ -87,7 +87,7 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
   return hashconfig_pw_max (hashconfig, user_options, user_options_extra, optimized_kernel);
 }
 
-int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, const char *line_buf, const int line_len)
+int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   u32 *digest = (u32 *) digest_buf;
 
@@ -111,18 +111,14 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[2] = hex_to_u32 (hash_pos + 16);
   digest[3] = hex_to_u32 (hash_pos + 24);
 
-  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
-  {
-    digest[0] -= MD4M_A;
-    digest[1] -= MD4M_B;
-    digest[2] -= MD4M_C;
-    digest[3] -= MD4M_D;
-  }
+  decoder_apply_options (hashconfig, digest);
+
+  decoder_apply_optimizer (hashconfig, digest);
 
   return (PARSER_OK);
 }
 
-int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, char *line_buf, const int line_size)
+int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, char *line_buf, MAYBE_UNUSED const int line_size)
 {
   const u32 *digest = (const u32 *) digest_buf;
 
@@ -136,26 +132,16 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   tmp[2] = digest[2];
   tmp[3] = digest[3];
 
-  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
-  {
-    tmp[0] += MD4M_A;
-    tmp[1] += MD4M_B;
-    tmp[2] += MD4M_C;
-    tmp[3] += MD4M_D;
-  }
+  encoder_apply_optimizer (hashconfig, tmp);
 
-  tmp[0] = byte_swap_32 (tmp[0]);
-  tmp[1] = byte_swap_32 (tmp[1]);
-  tmp[2] = byte_swap_32 (tmp[2]);
-  tmp[3] = byte_swap_32 (tmp[3]);
+  encoder_apply_options (hashconfig, tmp);
 
-  const int out_len = snprintf (line_buf, line_size, "%08x%08x%08x%08x",
-    tmp[0],
-    tmp[1],
-    tmp[2],
-    tmp[3]);
+  u32_to_hex (tmp[0], (u8 *) line_buf +  0);
+  u32_to_hex (tmp[1], (u8 *) line_buf +  8);
+  u32_to_hex (tmp[2], (u8 *) line_buf + 16);
+  u32_to_hex (tmp[3], (u8 *) line_buf + 24);
 
-  return out_len;
+  return 32;
 }
 
 void module_register (module_ctx_t *module_ctx)

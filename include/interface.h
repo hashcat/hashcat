@@ -1725,4 +1725,9 @@ int         hashconfig_salt_max               (const hashconfig_t *hashconfig, M
 void        hashconfig_benchmark_defaults     (hashcat_ctx_t *hashcat_ctx, salt_t *salt, void *esalt, void *hook_salt);
 const char *hashconfig_benchmark_mask         (hashcat_ctx_t *hashcat_ctx);
 
+void decoder_apply_optimizer (const hashconfig_t *hashconfig, void *data);
+void encoder_apply_optimizer (const hashconfig_t *hashconfig, void *data);
+void decoder_apply_options (const hashconfig_t *hashconfig, void *data);
+void encoder_apply_options (const hashconfig_t *hashconfig, void *data);
+
 #endif // _INTERFACE_H

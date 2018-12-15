@@ -209,7 +209,7 @@ void exec_hexify (const u8 *buf, const size_t len, u8 *out)
 
   for (int i = (int) max_len - 1, j = i * 2; i >= 0; i -= 1, j -= 2)
   {
-    u8_to_hex_lower (buf[i], out + j);
+    u8_to_hex (buf[i], out + j);
   }
 
   out[max_len * 2] = 0;
@@ -385,7 +385,7 @@ u64 hex_to_u64 (const u8 hex[16])
   return (v);
 }
 
-void u8_to_hex_lower (const u8 v, u8 hex[2])
+void u8_to_hex (const u8 v, u8 hex[2])
 {
   const u8 tbl[0x10] =
   {
@@ -397,7 +397,7 @@ void u8_to_hex_lower (const u8 v, u8 hex[2])
   hex[0] = tbl[v >>  4 & 15];
 }
 
-void u32_to_hex_lower (const u32 v, u8 hex[8])
+void u32_to_hex (const u32 v, u8 hex[8])
 {
   const u8 tbl[0x10] =
   {
@@ -415,7 +415,7 @@ void u32_to_hex_lower (const u32 v, u8 hex[8])
   hex[6] = tbl[v >> 28 & 15];
 }
 
-void u64_to_hex_lower (const u64 v, u8 hex[16])
+void u64_to_hex (const u64 v, u8 hex[16])
 {
   const u8 tbl[0x10] =
   {
