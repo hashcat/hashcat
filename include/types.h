@@ -908,10 +908,10 @@ struct hashconfig
 
   // sizes have to be size_t
 
-  u64  esalt_size;
-  u64  hook_salt_size;
-  u64  tmp_size;
-  u64  hook_size;
+  u64   esalt_size;
+  u64   hook_salt_size;
+  u64   tmp_size;
+  u64   hook_size;
 
   // password length limit
 

@@ -357,9 +357,9 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
     }
   }
 
-  const u32 pw_max = hashconfig_pw_max (hashconfig, user_options, user_options_extra);
+  const int pw_max = (const int) hashconfig->pw_max;
 
-  if (plain_len > (int) hashconfig->pw_max) plain_len = MIN (plain_len, (int) pw_max);
+  if (plain_len > pw_max) plain_len = MIN (plain_len, pw_max);
 
   // truecrypt and veracrypt boot only:
   // we do some kernel internal substituations, so we need to do that here as well, if it cracks

@@ -29416,350 +29416,6 @@ u32 hashconfig_get_kernel_loops (hashcat_ctx_t *hashcat_ctx)
   return kernel_loops_fixed;
 }
 
-int hashconfig_pw_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
-
-  // pw_min : algo specific hard min length
-
-  u32 pw_min = PW_MIN;
-
-  if (optimized_kernel == true)
-  {
-    // unused case
-  }
-
-  switch (hashconfig->hash_mode)
-  {
-    case  2500: pw_min = 8;   break; // WPA-EAPOL-PBKDF2: min RFC
-    case  2501: pw_min = 64;  break; // WPA-EAPOL-PMK: fixed
-    case  9710: pw_min = 5;   break; // RC4-40 fixed
-    case  9810: pw_min = 5;   break; // RC4-40 fixed
-    case 10410: pw_min = 5;   break; // RC4-40 fixed
-    case 14000: pw_min = 8;   break; // DES fixed
-    case 14100: pw_min = 24;  break; // 3DES fixed
-    case 14900: pw_min = 10;  break; // Skip32 fixed
-    case 15400: pw_min = 32;  break; // ChaCha20 fixed
-    case 16800: pw_min = 8;   break; // WPA-PMKID-PBKDF2: min RFC
-    case 16801: pw_min = 64;  break; // WPA-PMKID-PMK: fixed
-  }
-
-  return pw_min;
-}
-
-int hashconfig_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
-
-  // pw_max : some algo suffer from support for long passwords,
-  //          the user need to add -L to enable support for them
-
-  u32 pw_max = PW_MAX;
-
-  if (optimized_kernel == true)
-  {
-    pw_max = PW_MAX_OLD;
-
-    if ((hashconfig->opts_type & OPTS_TYPE_PT_UTF16LE) || (hashconfig->opts_type & OPTS_TYPE_PT_UTF16BE))
-    {
-      pw_max /= 2;
-    }
-
-    #define PW_DICTMAX 31
-
-    if ((user_options->rp_files_cnt > 0) || (user_options->rp_gen > 0))
-    {
-      if (user_options->slow_candidates == true)
-      {
-        pw_max = MIN (pw_max, PW_DICTMAX);
-      }
-      else
-      {
-        switch (user_options_extra->attack_kern)
-        {
-          case ATTACK_KERN_STRAIGHT:  pw_max = MIN (pw_max, PW_DICTMAX);
-                                      break;
-          case ATTACK_KERN_COMBI:     pw_max = MIN (pw_max, PW_DICTMAX);
-                                      break;
-        }
-      }
-    }
-    else
-    {
-      if (user_options->slow_candidates == true)
-      {
-        if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
-        {
-          pw_max = MIN (pw_max, PW_DICTMAX);
-        }
-        else
-        {
-          // If we have a NOOP rule then we can process words from wordlists > PW_DICTMAX for slow hashes
-        }
-      }
-      else
-      {
-        if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
-        {
-          switch (user_options_extra->attack_kern)
-          {
-            case ATTACK_KERN_STRAIGHT:  pw_max = MIN (pw_max, PW_DICTMAX);
-                                        break;
-            case ATTACK_KERN_COMBI:     pw_max = MIN (pw_max, PW_DICTMAX);
-                                        break;
-          }
-        }
-        else
-        {
-          // If we have a NOOP rule then we can process words from wordlists > PW_DICTMAX for slow hashes
-        }
-      }
-    }
-
-    switch (hashconfig->hash_mode)
-    {
-      case   500: pw_max = MIN (pw_max, 15); // pure kernel available
-                  break;
-      case  1600: pw_max = MIN (pw_max, 15); // pure kernel available
-                  break;
-      case  1800: pw_max = MIN (pw_max, 16); // pure kernel available
-                  break;
-      case  5800: pw_max = MIN (pw_max, 16); // pure kernel available
-                  break;
-      case  6300: pw_max = MIN (pw_max, 15); // pure kernel available
-                  break;
-      case  6900: pw_max = MIN (pw_max, 32); // todo
-                  break;
-      case  7000: pw_max = MIN (pw_max, 19); // pure kernel available
-                  break;
-      case  7400: pw_max = MIN (pw_max, 15); // pure kernel available
-                  break;
-      case 10700: pw_max = MIN (pw_max, 16); // pure kernel available
-                  break;
-      case 12500: pw_max = MIN (pw_max, 20); // todo
-                  break;
-      case 14400: pw_max = MIN (pw_max, 24); // todo
-                  break;
-      case 15500: pw_max = MIN (pw_max, 16); // todo
-                  break;
-    }
-  }
-  else
-  {
-    switch (hashconfig->hash_mode)
-    {
-      case 10700: pw_max = 127; // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
-                  break;
-      case 16400: pw_max = 64; // HMAC-MD5 and `doveadm pw` are different for password more than 64 bytes
-                  break;
-    }
-  }
-
-  // pw_max : all modes listed in the following switch cases are
-  //          the maximum possible password length of the related system
-  //          plus the opencl kernels which eventually allows cracking of passwords of up length PW_MAX for free (no speed drop).
-  //          some modes have a self-set and some have
-  //          underlaying algorithms specific hard maximum password length
-  //          these limits override all previous restrictions, always
-
-  switch (hashconfig->hash_mode)
-  {
-    case   112: pw_max = 30;      break; // https://www.toadworld.com/platforms/oracle/b/weblog/archive/2013/11/12/oracle-12c-passwords
-    case  1500: pw_max = 8;       break; // Underlaying DES max
-    case  2100: pw_max = PW_MAX;  break;
-    case  2500: pw_max = 63;      break; // WPA-EAPOL-PBKDF2: limits itself to 63 by RFC
-    case  2501: pw_max = 64;      break; // WPA-EAPOL-PMK: fixed length
-    case  3000: pw_max = 7;       break; // LM max
-    case  3100: pw_max = 30;      break; // http://www.red-database-security.de/whitepaper/oracle_passwords.html
-    case  3200: pw_max = 72;      break; // Underlaying Blowfish max
-    case  5200: pw_max = PW_MAX;  break;
-    case  6211: pw_max = 64;      break; // TC limits itself to 64
-    case  6212: pw_max = 64;      break; // TC limits itself to 64
-    case  6213: pw_max = 64;      break; // TC limits itself to 64
-    case  6221: pw_max = 64;      break; // TC limits itself to 64
-    case  6222: pw_max = 64;      break; // TC limits itself to 64
-    case  6223: pw_max = 64;      break; // TC limits itself to 64
-    case  6231: pw_max = 64;      break; // TC limits itself to 64
-    case  6232: pw_max = 64;      break; // TC limits itself to 64
-    case  6233: pw_max = 64;      break; // TC limits itself to 64
-    case  6241: pw_max = 64;      break; // TC limits itself to 64
-    case  6242: pw_max = 64;      break; // TC limits itself to 64
-    case  6243: pw_max = 64;      break; // TC limits itself to 64
-    case  6400: pw_max = PW_MAX;  break;
-    case  6500: pw_max = PW_MAX;  break;
-    case  6600: pw_max = PW_MAX;  break;
-    case  6700: pw_max = PW_MAX;  break;
-    case  6800: pw_max = PW_MAX;  break;
-    case  7100: pw_max = PW_MAX;  break;
-    case  7200: pw_max = PW_MAX;  break;
-    case  7700: pw_max = 8;       break; // https://www.daniel-berlin.de/security/sap-sec/password-hash-algorithms/
-    case  7800: pw_max = 40;      break; // https://www.daniel-berlin.de/security/sap-sec/password-hash-algorithms/
-    case  7900: pw_max = PW_MAX;  break;
-    case  8000: pw_max = 30;      break; // http://infocenter.sybase.com/help/index.jsp?topic=/com.sybase.infocenter.dc31654.1570/html/sag1/CIHIBDBA.htm
-    case  8200: pw_max = PW_MAX;  break;
-    case  8500: pw_max = 8;       break; // Underlaying DES max
-    case  8600: pw_max = 16;      break; // Lotus Notes/Domino 5 limits itself to 16
-    case  8700: pw_max = 64;      break; // https://www.ibm.com/support/knowledgecenter/en/SSKTWP_8.5.3/com.ibm.notes85.client.doc/fram_limits_of_notes_r.html
-    case  8800: pw_max = PW_MAX;  break;
-    case  8900: pw_max = PW_MAX;  break;
-    case  9100: pw_max = 64;      break; // https://www.ibm.com/support/knowledgecenter/en/SSKTWP_8.5.3/com.ibm.notes85.client.doc/fram_limits_of_notes_r.html
-    case  9200: pw_max = PW_MAX;  break;
-    case  9300: pw_max = PW_MAX;  break;
-    case  9400: pw_max = PW_MAX;  break;
-    case  9500: pw_max = PW_MAX;  break;
-    case  9600: pw_max = PW_MAX;  break;
-    case  9700: pw_max = 15;      break; // https://msdn.microsoft.com/en-us/library/dd772916(v=office.12).aspx
-    case  9710: pw_max = 5;       break; // Underlaying RC4-40 max
-    case  9720: pw_max = 15;      break; // https://msdn.microsoft.com/en-us/library/dd772916(v=office.12).aspx
-    case  9800: pw_max = 15;      break; // https://msdn.microsoft.com/en-us/library/dd772916(v=office.12).aspx
-    case  9810: pw_max = 5;       break; // Underlaying RC4-40 max
-    case  9820: pw_max = 15;      break; // https://msdn.microsoft.com/en-us/library/dd772916(v=office.12).aspx
-    case  9900: pw_max = 100;     break; // RAdmin2 sets w[25] = 0x80
-    case 10000: pw_max = PW_MAX;  break;
-    case 10300: pw_max = 40;      break; // https://www.daniel-berlin.de/security/sap-sec/password-hash-algorithms/
-    case 10400: pw_max = 32;      break; // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
-    case 10410: pw_max = 5;       break; // Underlaying RC4-40 max
-    case 10420: pw_max = 32;      break; // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
-    case 10500: pw_max = 32;      break; // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
-    case 10600: pw_max = 127;     break; // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
-    case 10900: pw_max = PW_MAX;  break;
-    case 11300: pw_max = PW_MAX;  break;
-    case 11600: pw_max = PW_MAX;  break;
-    case 11900: pw_max = PW_MAX;  break;
-    case 12000: pw_max = PW_MAX;  break;
-    case 12001: pw_max = PW_MAX;  break;
-    case 12200: pw_max = PW_MAX;  break;
-    case 12300: pw_max = PW_MAX;  break;
-    case 12400: pw_max = PW_MAX;  break;
-    case 12700: pw_max = PW_MAX;  break;
-    case 12800: pw_max = PW_MAX;  break;
-    case 12900: pw_max = PW_MAX;  break;
-    case 13000: pw_max = PW_MAX;  break;
-    case 13200: pw_max = PW_MAX;  break;
-    case 13400: pw_max = PW_MAX;  break;
-    case 13600: pw_max = PW_MAX;  break;
-    case 13711: pw_max = 64;      break; // VC limits itself to 64
-    case 13712: pw_max = 64;      break; // VC limits itself to 64
-    case 13713: pw_max = 64;      break; // VC limits itself to 64
-    case 13721: pw_max = 64;      break; // VC limits itself to 64
-    case 13722: pw_max = 64;      break; // VC limits itself to 64
-    case 13723: pw_max = 64;      break; // VC limits itself to 64
-    case 13731: pw_max = 64;      break; // VC limits itself to 64
-    case 13732: pw_max = 64;      break; // VC limits itself to 64
-    case 13733: pw_max = 64;      break; // VC limits itself to 64
-    case 13741: pw_max = 64;      break; // VC limits itself to 64
-    case 13742: pw_max = 64;      break; // VC limits itself to 64
-    case 13743: pw_max = 64;      break; // VC limits itself to 64
-    case 13751: pw_max = 64;      break; // VC limits itself to 64
-    case 13752: pw_max = 64;      break; // VC limits itself to 64
-    case 13753: pw_max = 64;      break; // VC limits itself to 64
-    case 13761: pw_max = 64;      break; // VC limits itself to 64
-    case 13762: pw_max = 64;      break; // VC limits itself to 64
-    case 13763: pw_max = 64;      break; // VC limits itself to 64
-    case 13771: pw_max = 64;      break; // VC limits itself to 64
-    case 13772: pw_max = 64;      break; // VC limits itself to 64
-    case 13773: pw_max = 64;      break; // VC limits itself to 64
-    case 14000: pw_max = 8;       break; // Underlaying DES fixed
-    case 14100: pw_max = 24;      break; // Underlaying 3DES fixed
-    case 14611: pw_max = PW_MAX;  break;
-    case 14612: pw_max = PW_MAX;  break;
-    case 14613: pw_max = PW_MAX;  break;
-    case 14621: pw_max = PW_MAX;  break;
-    case 14622: pw_max = PW_MAX;  break;
-    case 14623: pw_max = PW_MAX;  break;
-    case 14631: pw_max = PW_MAX;  break;
-    case 14632: pw_max = PW_MAX;  break;
-    case 14633: pw_max = PW_MAX;  break;
-    case 14641: pw_max = PW_MAX;  break;
-    case 14642: pw_max = PW_MAX;  break;
-    case 14643: pw_max = PW_MAX;  break;
-    case 14700: pw_max = PW_MAX;  break;
-    case 14800: pw_max = PW_MAX;  break;
-    case 14900: pw_max = 10;      break; // Underlaying Skip32 fixed
-    case 15100: pw_max = PW_MAX;  break;
-    case 15300: pw_max = PW_MAX;  break;
-    case 15400: pw_max = 32;      break; // Underlaying ChaCha20 fixed
-    case 15600: pw_max = PW_MAX;  break;
-    case 15700: pw_max = PW_MAX;  break;
-    case 15900: pw_max = PW_MAX;  break;
-    case 16000: pw_max = 8;       break; // Underlaying DES max
-    case 16800: pw_max = 63;      break; // WPA-PMKID-PBKDF2: limits itself to 63 by RFC
-    case 16801: pw_max = 64;      break; // WPA-PMKID-PMK: fixed length
-    case 16900: pw_max = PW_MAX;  break;
-    case 18400: pw_max = PW_MAX;  break;
-    case 18600: pw_max = 51;      break; // Bogus SHA-1 in StarOffice code
-  }
-
-  return pw_max;
-}
-
-int hashconfig_salt_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
-
-  // salt_min : this limit is only interessting for generic hash types that support a salt
-
-  u32 salt_min = SALT_MIN;
-
-  if (optimized_kernel == true)
-  {
-    // unused case
-  }
-
-  if (hashconfig->salt_type == SALT_TYPE_GENERIC)
-  {
-    if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
-    {
-      salt_min *= 2;
-    }
-
-    switch (hashconfig->hash_mode)
-    {
-      case 11000: salt_min = 56; break;
-      case 12600: salt_min = 64; break;
-      case 15000: salt_min = 64; break;
-    }
-  }
-
-  return salt_min;
-}
-
-int hashconfig_salt_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
-
-  // salt_max : this limit is only interessting for generic hash types that support a salt
-
-  u32 salt_max = SALT_MAX;
-
-  if (optimized_kernel == true)
-  {
-    salt_max = SALT_MAX_OLD;
-
-    if ((hashconfig->opts_type & OPTS_TYPE_ST_UTF16LE) || (hashconfig->opts_type & OPTS_TYPE_ST_UTF16BE))
-    {
-      salt_max /= 2;
-    }
-  }
-
-  if (hashconfig->salt_type == SALT_TYPE_GENERIC)
-  {
-    if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
-    {
-      salt_max *= 2;
-    }
-
-    switch (hashconfig->hash_mode)
-    {
-      case 11000: salt_max = 56; break;
-      case 12600: salt_max = 64; break;
-      case 15000: salt_max = 64; break;
-    }
-  }
-
-  return salt_max;
-}
-
 int hashconfig_general_defaults (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
@@ -30316,121 +29972,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
   */
 }
 
-u32 hashconfig_benchmark_salt_len (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  u32 salt_len = 0;
-
-  if (hashconfig->is_salted == true)
-  {
-    salt_len = 8;
-  }
-
-  return salt_len;
-}
-
-u32 hashconfig_benchmark_salt_iter (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 salt_len = 1;
-
-  return salt_len;
-}
-
-u32 hashconfig_opti_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 opti_type = 0;
-
-  return opti_type;
-}
-
-u64 hashconfig_opts_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u64 opts_type = 0;
-
-  return opts_type;
-}
-
-const char *hashconfig_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const char *mask = "?b?b?b?b?b?b?b";
-
-  /*
-  switch (hashconfig->hash_mode)
-  {
-    case  2500: mask = "?a?a?a?a?a?a?a?a";
-                break;
-    case  2501: mask = "?a?a?a?a?a?a?a?axxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
-                break;
-    case  9710: mask = "?b?b?b?b?b";
-                break;
-    case  9810: mask = "?b?b?b?b?b";
-                break;
-    case 10410: mask = "?b?b?b?b?b";
-                break;
-    case 12500: mask = "?b?b?b?b?b";
-                break;
-    case 14000: mask = "?b?b?b?b?b?b?bx";
-                break;
-    case 14100: mask = "?b?b?b?b?b?b?bxxxxxxxxxxxxxxxxx";
-                break;
-    case 14900: mask = "?b?b?b?b?bxxxxx";
-                break;
-    case 16800: mask = "?a?a?a?a?a?a?a?a";
-                break;
-    case 16801: mask = "?a?a?a?a?a?a?a?axxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
-                break;
-    default:    mask = "?b?b?b?b?b?b?b";
-                break;
-  }
-  */
-
-  return mask;
-}
-
-u32 hashconfig_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 tmp_size = 4;
-
-  return tmp_size;
-}
-
-u64 hashconfig_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u64 esalt_size = 0;
-
-  return esalt_size;
-}
-
-u32 hashconfig_salt_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 salt_type = SALT_TYPE_NONE;
-
-  return salt_type;
-}
-
-u64 hashconfig_hook_salt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u64 hook_salt_size = 0;
-
-  return hook_salt_size;
-}
-
-u64 hashconfig_hook_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u64 hook_size = 4;
-
-  return hook_size;
-}
-
-const char *hashconfig_st_hash (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  return "<empty default>";
-}
-
-const char *hashconfig_st_pass (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  return "<empty default>";
-}
-
 void decoder_apply_optimizer (const hashconfig_t *hashconfig, void *data)
 {
   const u32 hash_type = hashconfig->hash_type;
@@ -30807,4 +30348,526 @@ void encoder_apply_options (const hashconfig_t *hashconfig, void *data)
       for (int i = 0; i < 25; i++) digest_buf64[i] = byte_swap_64 (digest_buf64[i]);
     }
   }
+}
+
+u32 default_attack_exec (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
+
+  return attack_exec;
+}
+
+u32 default_dgst_pos0 (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 dgst_pos0 = 0;
+
+  return dgst_pos0;
+}
+
+u32 default_dgst_pos1 (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 dgst_pos1 = 1;
+
+  return dgst_pos1;
+}
+
+u32 default_dgst_pos2 (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 dgst_pos2 = 2;
+
+  return dgst_pos2;
+}
+
+u32 default_dgst_pos3 (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 dgst_pos3 = 3;
+
+  return dgst_pos3;
+}
+
+u32 default_dgst_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 dgst_size = DGST_SIZE_4_4;
+
+  return dgst_size;
+}
+
+u32 default_hash_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 hash_type = 0;
+
+  return hash_type;
+}
+
+const char *default_hash_name (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const char *hash_name = "<empty default>";
+
+  return hash_name;
+}
+
+u32 default_pw_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
+
+  // pw_min : algo specific hard min length
+
+  u32 pw_min = PW_MIN;
+
+  if (optimized_kernel == true)
+  {
+    // unused case
+  }
+
+  switch (hashconfig->hash_mode)
+  {
+    case  2500: pw_min = 8;   break; // WPA-EAPOL-PBKDF2: min RFC
+    case  2501: pw_min = 64;  break; // WPA-EAPOL-PMK: fixed
+    case  9710: pw_min = 5;   break; // RC4-40 fixed
+    case  9810: pw_min = 5;   break; // RC4-40 fixed
+    case 10410: pw_min = 5;   break; // RC4-40 fixed
+    case 14000: pw_min = 8;   break; // DES fixed
+    case 14100: pw_min = 24;  break; // 3DES fixed
+    case 14900: pw_min = 10;  break; // Skip32 fixed
+    case 15400: pw_min = 32;  break; // ChaCha20 fixed
+    case 16800: pw_min = 8;   break; // WPA-PMKID-PBKDF2: min RFC
+    case 16801: pw_min = 64;  break; // WPA-PMKID-PMK: fixed
+  }
+
+  return pw_min;
+}
+
+u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
+
+  // pw_max : some algo suffer from support for long passwords,
+  //          the user need to add -L to enable support for them
+
+  u32 pw_max = PW_MAX;
+
+  if (optimized_kernel == true)
+  {
+    pw_max = PW_MAX_OLD;
+
+    if ((hashconfig->opts_type & OPTS_TYPE_PT_UTF16LE) || (hashconfig->opts_type & OPTS_TYPE_PT_UTF16BE))
+    {
+      pw_max /= 2;
+    }
+
+    #define PW_DICTMAX 31
+
+    if ((user_options->rp_files_cnt > 0) || (user_options->rp_gen > 0))
+    {
+      if (user_options->slow_candidates == true)
+      {
+        pw_max = MIN (pw_max, PW_DICTMAX);
+      }
+      else
+      {
+        switch (user_options_extra->attack_kern)
+        {
+          case ATTACK_KERN_STRAIGHT:  pw_max = MIN (pw_max, PW_DICTMAX);
+                                      break;
+          case ATTACK_KERN_COMBI:     pw_max = MIN (pw_max, PW_DICTMAX);
+                                      break;
+        }
+      }
+    }
+    else
+    {
+      if (user_options->slow_candidates == true)
+      {
+        if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+        {
+          pw_max = MIN (pw_max, PW_DICTMAX);
+        }
+        else
+        {
+          // If we have a NOOP rule then we can process words from wordlists > PW_DICTMAX for slow hashes
+        }
+      }
+      else
+      {
+        if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+        {
+          switch (user_options_extra->attack_kern)
+          {
+            case ATTACK_KERN_STRAIGHT:  pw_max = MIN (pw_max, PW_DICTMAX);
+                                        break;
+            case ATTACK_KERN_COMBI:     pw_max = MIN (pw_max, PW_DICTMAX);
+                                        break;
+          }
+        }
+        else
+        {
+          // If we have a NOOP rule then we can process words from wordlists > PW_DICTMAX for slow hashes
+        }
+      }
+    }
+
+    switch (hashconfig->hash_mode)
+    {
+      case   500: pw_max = MIN (pw_max, 15); // pure kernel available
+                  break;
+      case  1600: pw_max = MIN (pw_max, 15); // pure kernel available
+                  break;
+      case  1800: pw_max = MIN (pw_max, 16); // pure kernel available
+                  break;
+      case  5800: pw_max = MIN (pw_max, 16); // pure kernel available
+                  break;
+      case  6300: pw_max = MIN (pw_max, 15); // pure kernel available
+                  break;
+      case  6900: pw_max = MIN (pw_max, 32); // todo
+                  break;
+      case  7000: pw_max = MIN (pw_max, 19); // pure kernel available
+                  break;
+      case  7400: pw_max = MIN (pw_max, 15); // pure kernel available
+                  break;
+      case 10700: pw_max = MIN (pw_max, 16); // pure kernel available
+                  break;
+      case 12500: pw_max = MIN (pw_max, 20); // todo
+                  break;
+      case 14400: pw_max = MIN (pw_max, 24); // todo
+                  break;
+      case 15500: pw_max = MIN (pw_max, 16); // todo
+                  break;
+    }
+  }
+  else
+  {
+    switch (hashconfig->hash_mode)
+    {
+      case 10700: pw_max = 127; // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
+                  break;
+      case 16400: pw_max = 64; // HMAC-MD5 and `doveadm pw` are different for password more than 64 bytes
+                  break;
+    }
+  }
+
+  // pw_max : all modes listed in the following switch cases are
+  //          the maximum possible password length of the related system
+  //          plus the opencl kernels which eventually allows cracking of passwords of up length PW_MAX for free (no speed drop).
+  //          some modes have a self-set and some have
+  //          underlaying algorithms specific hard maximum password length
+  //          these limits override all previous restrictions, always
+
+  switch (hashconfig->hash_mode)
+  {
+    case   112: pw_max = 30;      break; // https://www.toadworld.com/platforms/oracle/b/weblog/archive/2013/11/12/oracle-12c-passwords
+    case  1500: pw_max = 8;       break; // Underlaying DES max
+    case  2100: pw_max = PW_MAX;  break;
+    case  2500: pw_max = 63;      break; // WPA-EAPOL-PBKDF2: limits itself to 63 by RFC
+    case  2501: pw_max = 64;      break; // WPA-EAPOL-PMK: fixed length
+    case  3000: pw_max = 7;       break; // LM max
+    case  3100: pw_max = 30;      break; // http://www.red-database-security.de/whitepaper/oracle_passwords.html
+    case  3200: pw_max = 72;      break; // Underlaying Blowfish max
+    case  5200: pw_max = PW_MAX;  break;
+    case  6211: pw_max = 64;      break; // TC limits itself to 64
+    case  6212: pw_max = 64;      break; // TC limits itself to 64
+    case  6213: pw_max = 64;      break; // TC limits itself to 64
+    case  6221: pw_max = 64;      break; // TC limits itself to 64
+    case  6222: pw_max = 64;      break; // TC limits itself to 64
+    case  6223: pw_max = 64;      break; // TC limits itself to 64
+    case  6231: pw_max = 64;      break; // TC limits itself to 64
+    case  6232: pw_max = 64;      break; // TC limits itself to 64
+    case  6233: pw_max = 64;      break; // TC limits itself to 64
+    case  6241: pw_max = 64;      break; // TC limits itself to 64
+    case  6242: pw_max = 64;      break; // TC limits itself to 64
+    case  6243: pw_max = 64;      break; // TC limits itself to 64
+    case  6400: pw_max = PW_MAX;  break;
+    case  6500: pw_max = PW_MAX;  break;
+    case  6600: pw_max = PW_MAX;  break;
+    case  6700: pw_max = PW_MAX;  break;
+    case  6800: pw_max = PW_MAX;  break;
+    case  7100: pw_max = PW_MAX;  break;
+    case  7200: pw_max = PW_MAX;  break;
+    case  7700: pw_max = 8;       break; // https://www.daniel-berlin.de/security/sap-sec/password-hash-algorithms/
+    case  7800: pw_max = 40;      break; // https://www.daniel-berlin.de/security/sap-sec/password-hash-algorithms/
+    case  7900: pw_max = PW_MAX;  break;
+    case  8000: pw_max = 30;      break; // http://infocenter.sybase.com/help/index.jsp?topic=/com.sybase.infocenter.dc31654.1570/html/sag1/CIHIBDBA.htm
+    case  8200: pw_max = PW_MAX;  break;
+    case  8500: pw_max = 8;       break; // Underlaying DES max
+    case  8600: pw_max = 16;      break; // Lotus Notes/Domino 5 limits itself to 16
+    case  8700: pw_max = 64;      break; // https://www.ibm.com/support/knowledgecenter/en/SSKTWP_8.5.3/com.ibm.notes85.client.doc/fram_limits_of_notes_r.html
+    case  8800: pw_max = PW_MAX;  break;
+    case  8900: pw_max = PW_MAX;  break;
+    case  9100: pw_max = 64;      break; // https://www.ibm.com/support/knowledgecenter/en/SSKTWP_8.5.3/com.ibm.notes85.client.doc/fram_limits_of_notes_r.html
+    case  9200: pw_max = PW_MAX;  break;
+    case  9300: pw_max = PW_MAX;  break;
+    case  9400: pw_max = PW_MAX;  break;
+    case  9500: pw_max = PW_MAX;  break;
+    case  9600: pw_max = PW_MAX;  break;
+    case  9700: pw_max = 15;      break; // https://msdn.microsoft.com/en-us/library/dd772916(v=office.12).aspx
+    case  9710: pw_max = 5;       break; // Underlaying RC4-40 max
+    case  9720: pw_max = 15;      break; // https://msdn.microsoft.com/en-us/library/dd772916(v=office.12).aspx
+    case  9800: pw_max = 15;      break; // https://msdn.microsoft.com/en-us/library/dd772916(v=office.12).aspx
+    case  9810: pw_max = 5;       break; // Underlaying RC4-40 max
+    case  9820: pw_max = 15;      break; // https://msdn.microsoft.com/en-us/library/dd772916(v=office.12).aspx
+    case  9900: pw_max = 100;     break; // RAdmin2 sets w[25] = 0x80
+    case 10000: pw_max = PW_MAX;  break;
+    case 10300: pw_max = 40;      break; // https://www.daniel-berlin.de/security/sap-sec/password-hash-algorithms/
+    case 10400: pw_max = 32;      break; // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
+    case 10410: pw_max = 5;       break; // Underlaying RC4-40 max
+    case 10420: pw_max = 32;      break; // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
+    case 10500: pw_max = 32;      break; // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
+    case 10600: pw_max = 127;     break; // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
+    case 10900: pw_max = PW_MAX;  break;
+    case 11300: pw_max = PW_MAX;  break;
+    case 11600: pw_max = PW_MAX;  break;
+    case 11900: pw_max = PW_MAX;  break;
+    case 12000: pw_max = PW_MAX;  break;
+    case 12001: pw_max = PW_MAX;  break;
+    case 12200: pw_max = PW_MAX;  break;
+    case 12300: pw_max = PW_MAX;  break;
+    case 12400: pw_max = PW_MAX;  break;
+    case 12700: pw_max = PW_MAX;  break;
+    case 12800: pw_max = PW_MAX;  break;
+    case 12900: pw_max = PW_MAX;  break;
+    case 13000: pw_max = PW_MAX;  break;
+    case 13200: pw_max = PW_MAX;  break;
+    case 13400: pw_max = PW_MAX;  break;
+    case 13600: pw_max = PW_MAX;  break;
+    case 13711: pw_max = 64;      break; // VC limits itself to 64
+    case 13712: pw_max = 64;      break; // VC limits itself to 64
+    case 13713: pw_max = 64;      break; // VC limits itself to 64
+    case 13721: pw_max = 64;      break; // VC limits itself to 64
+    case 13722: pw_max = 64;      break; // VC limits itself to 64
+    case 13723: pw_max = 64;      break; // VC limits itself to 64
+    case 13731: pw_max = 64;      break; // VC limits itself to 64
+    case 13732: pw_max = 64;      break; // VC limits itself to 64
+    case 13733: pw_max = 64;      break; // VC limits itself to 64
+    case 13741: pw_max = 64;      break; // VC limits itself to 64
+    case 13742: pw_max = 64;      break; // VC limits itself to 64
+    case 13743: pw_max = 64;      break; // VC limits itself to 64
+    case 13751: pw_max = 64;      break; // VC limits itself to 64
+    case 13752: pw_max = 64;      break; // VC limits itself to 64
+    case 13753: pw_max = 64;      break; // VC limits itself to 64
+    case 13761: pw_max = 64;      break; // VC limits itself to 64
+    case 13762: pw_max = 64;      break; // VC limits itself to 64
+    case 13763: pw_max = 64;      break; // VC limits itself to 64
+    case 13771: pw_max = 64;      break; // VC limits itself to 64
+    case 13772: pw_max = 64;      break; // VC limits itself to 64
+    case 13773: pw_max = 64;      break; // VC limits itself to 64
+    case 14000: pw_max = 8;       break; // Underlaying DES fixed
+    case 14100: pw_max = 24;      break; // Underlaying 3DES fixed
+    case 14611: pw_max = PW_MAX;  break;
+    case 14612: pw_max = PW_MAX;  break;
+    case 14613: pw_max = PW_MAX;  break;
+    case 14621: pw_max = PW_MAX;  break;
+    case 14622: pw_max = PW_MAX;  break;
+    case 14623: pw_max = PW_MAX;  break;
+    case 14631: pw_max = PW_MAX;  break;
+    case 14632: pw_max = PW_MAX;  break;
+    case 14633: pw_max = PW_MAX;  break;
+    case 14641: pw_max = PW_MAX;  break;
+    case 14642: pw_max = PW_MAX;  break;
+    case 14643: pw_max = PW_MAX;  break;
+    case 14700: pw_max = PW_MAX;  break;
+    case 14800: pw_max = PW_MAX;  break;
+    case 14900: pw_max = 10;      break; // Underlaying Skip32 fixed
+    case 15100: pw_max = PW_MAX;  break;
+    case 15300: pw_max = PW_MAX;  break;
+    case 15400: pw_max = 32;      break; // Underlaying ChaCha20 fixed
+    case 15600: pw_max = PW_MAX;  break;
+    case 15700: pw_max = PW_MAX;  break;
+    case 15900: pw_max = PW_MAX;  break;
+    case 16000: pw_max = 8;       break; // Underlaying DES max
+    case 16800: pw_max = 63;      break; // WPA-PMKID-PBKDF2: limits itself to 63 by RFC
+    case 16801: pw_max = 64;      break; // WPA-PMKID-PMK: fixed length
+    case 16900: pw_max = PW_MAX;  break;
+    case 18400: pw_max = PW_MAX;  break;
+    case 18600: pw_max = 51;      break; // Bogus SHA-1 in StarOffice code
+  }
+
+  return pw_max;
+}
+
+u32 default_salt_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
+
+  // salt_min : this limit is only interessting for generic hash types that support a salt
+
+  u32 salt_min = SALT_MIN;
+
+  if (optimized_kernel == true)
+  {
+    // unused case
+  }
+
+  if (hashconfig->salt_type == SALT_TYPE_GENERIC)
+  {
+    if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
+    {
+      salt_min *= 2;
+    }
+
+    switch (hashconfig->hash_mode)
+    {
+      case 11000: salt_min = 56; break;
+      case 12600: salt_min = 64; break;
+      case 15000: salt_min = 64; break;
+    }
+  }
+
+  return salt_min;
+}
+
+u32 default_salt_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
+
+  // salt_max : this limit is only interessting for generic hash types that support a salt
+
+  u32 salt_max = SALT_MAX;
+
+  if (optimized_kernel == true)
+  {
+    salt_max = SALT_MAX_OLD;
+
+    if ((hashconfig->opts_type & OPTS_TYPE_ST_UTF16LE) || (hashconfig->opts_type & OPTS_TYPE_ST_UTF16BE))
+    {
+      salt_max /= 2;
+    }
+  }
+
+  if (hashconfig->salt_type == SALT_TYPE_GENERIC)
+  {
+    if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
+    {
+      salt_max *= 2;
+    }
+
+    switch (hashconfig->hash_mode)
+    {
+      case 11000: salt_max = 56; break;
+      case 12600: salt_max = 64; break;
+      case 15000: salt_max = 64; break;
+    }
+  }
+
+  return salt_max;
+}
+
+u32 default_benchmark_salt_len (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  u32 salt_len = 0;
+
+  if (hashconfig->is_salted == true)
+  {
+    salt_len = 8;
+  }
+
+  return salt_len;
+}
+
+u32 default_benchmark_salt_iter (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 salt_len = 1;
+
+  return salt_len;
+}
+
+u32 default_opti_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 opti_type = 0;
+
+  return opti_type;
+}
+
+u64 default_opts_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u64 opts_type = 0;
+
+  return opts_type;
+}
+
+u64 default_kern_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u64 kern_type = 0;
+
+  return kern_type;
+}
+
+const char *default_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const char *mask = "?b?b?b?b?b?b?b";
+
+  /*
+  switch (hashconfig->hash_mode)
+  {
+    case  2500: mask = "?a?a?a?a?a?a?a?a";
+                break;
+    case  2501: mask = "?a?a?a?a?a?a?a?axxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+                break;
+    case  9710: mask = "?b?b?b?b?b";
+                break;
+    case  9810: mask = "?b?b?b?b?b";
+                break;
+    case 10410: mask = "?b?b?b?b?b";
+                break;
+    case 12500: mask = "?b?b?b?b?b";
+                break;
+    case 14000: mask = "?b?b?b?b?b?b?bx";
+                break;
+    case 14100: mask = "?b?b?b?b?b?b?bxxxxxxxxxxxxxxxxx";
+                break;
+    case 14900: mask = "?b?b?b?b?bxxxxx";
+                break;
+    case 16800: mask = "?a?a?a?a?a?a?a?a";
+                break;
+    case 16801: mask = "?a?a?a?a?a?a?a?axxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+                break;
+    default:    mask = "?b?b?b?b?b?b?b";
+                break;
+  }
+  */
+
+  return mask;
+}
+
+u64 default_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u64 tmp_size = 4;
+
+  return tmp_size;
+}
+
+u64 default_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u64 esalt_size = 0;
+
+  return esalt_size;
+}
+
+u32 default_salt_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 salt_type = SALT_TYPE_NONE;
+
+  return salt_type;
+}
+
+u64 default_hook_salt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u64 hook_salt_size = 0;
+
+  return hook_salt_size;
+}
+
+u64 default_hook_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u64 hook_size = 4;
+
+  return hook_size;
+}
+
+const char *default_st_hash (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return "<empty default>";
+}
+
+const char *default_st_pass (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return "<empty default>";
 }
