@@ -20,49 +20,36 @@ static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const char *HASH_NAME      = "NTLM";
 static const u32   HASH_TYPE      = HASH_TYPE_MD4;
 static const u32   KERN_TYPE      = 1000;
-static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
-                                  | OPTI_TYPE_PRECOMPUTE_INIT
-                                  | OPTI_TYPE_PRECOMPUTE_MERKLE
-                                  | OPTI_TYPE_MEET_IN_MIDDLE
-                                  | OPTI_TYPE_EARLY_SKIP
-                                  | OPTI_TYPE_NOT_ITERATED
-                                  | OPTI_TYPE_NOT_SALTED
-                                  | OPTI_TYPE_RAW_HASH;
-static const u32   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_PT_ADD80
-                                  | OPTS_TYPE_PT_ADDBITS14
-                                  | OPTS_TYPE_PT_UTF16LE;
-static const char *ST_HASH        = "b4b9b02e6f09a9bd760f388b67351e2b";
-static const char *ST_PASS        = "hashcat";
 
 void module_register (module_ctx_t *module_ctx)
 {
-  module_ctx->module_attack_exec        = module_attack_exec;
-  module_ctx->module_benchmark_mask     = module_benchmark_mask;
-  module_ctx->module_benchmark_salt_len = module_benchmark_salt_len;
-  module_ctx->module_dgst_pos0          = module_dgst_pos0;
-  module_ctx->module_dgst_pos1          = module_dgst_pos1;
-  module_ctx->module_dgst_pos2          = module_dgst_pos2;
-  module_ctx->module_dgst_pos3          = module_dgst_pos3;
-  module_ctx->module_dgst_size          = module_dgst_size;
-  module_ctx->module_esalt_size         = module_esalt_size;
-  module_ctx->module_hash_decode        = module_hash_decode;
-  module_ctx->module_hash_encode        = module_hash_encode;
-  module_ctx->module_hash_name          = module_hash_name;
-  module_ctx->module_hash_type          = module_hash_type;
-  module_ctx->module_hook_salt_size     = module_hook_salt_size;
-  module_ctx->module_hook_size          = module_hook_size;
-  module_ctx->module_kern_type          = module_kern_type;
-  module_ctx->module_opti_type          = module_opti_type;
-  module_ctx->module_opts_type          = module_opts_type;
-  module_ctx->module_pw_max             = module_pw_max;
-  module_ctx->module_pw_min             = module_pw_min;
-  module_ctx->module_salt_max           = module_salt_max;
-  module_ctx->module_salt_min           = module_salt_min;
-  module_ctx->module_salt_type          = module_salt_type;
-  module_ctx->module_st_hash            = module_st_hash;
-  module_ctx->module_st_pass            = module_st_pass;
-  module_ctx->module_tmp_size           = module_tmp_size;
+  module_ctx->module_attack_exec          = module_attack_exec;
+  module_ctx->module_benchmark_mask       = module_benchmark_mask;
+  module_ctx->module_benchmark_salt_len   = module_benchmark_salt_len;
+  module_ctx->module_benchmark_salt_iter  = module_benchmark_salt_iter;
+  module_ctx->module_dgst_pos0            = module_dgst_pos0;
+  module_ctx->module_dgst_pos1            = module_dgst_pos1;
+  module_ctx->module_dgst_pos2            = module_dgst_pos2;
+  module_ctx->module_dgst_pos3            = module_dgst_pos3;
+  module_ctx->module_dgst_size            = module_dgst_size;
+  module_ctx->module_esalt_size           = module_esalt_size;
+  module_ctx->module_hash_decode          = module_hash_decode;
+  module_ctx->module_hash_encode          = module_hash_encode;
+  module_ctx->module_hash_name            = module_hash_name;
+  module_ctx->module_hash_type            = module_hash_type;
+  module_ctx->module_hook_salt_size       = module_hook_salt_size;
+  module_ctx->module_hook_size            = module_hook_size;
+  module_ctx->module_kern_type            = module_kern_type;
+  module_ctx->module_opti_type            = module_opti_type;
+  module_ctx->module_opts_type            = module_opts_type;
+  module_ctx->module_pw_max               = module_pw_max;
+  module_ctx->module_pw_min               = module_pw_min;
+  module_ctx->module_salt_max             = module_salt_max;
+  module_ctx->module_salt_min             = module_salt_min;
+  module_ctx->module_salt_type            = module_salt_type;
+  module_ctx->module_st_hash              = module_st_hash;
+  module_ctx->module_st_pass              = module_st_pass;
+  module_ctx->module_tmp_size             = module_tmp_size;
 }
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;    }
@@ -74,21 +61,52 @@ u32         module_dgst_size      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_hash_name      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_NAME;      }
 u32         module_hash_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_TYPE;      }
 u64         module_kern_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_TYPE;      }
-const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;        }
-const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;        }
+
+
+const char *module_st_hash (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  // return hashconfig_st_hash (hashconfig, user_options, user_options_extra);
+
+  const char *st_hash = "b4b9b02e6f09a9bd760f388b67351e2b";
+
+  return st_hash;
+}
+
+const char *module_st_pass (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  // return hashconfig_st_pass (hashconfig, user_options, user_options_extra);
+
+  const char *st_pass = "hashcat";
+
+  return st_pass;
+}
 
 u32 module_opti_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  //return hashconfig_opti_type (hashconfig, user_options, user_options_extra);
+  // return hashconfig_opti_type (hashconfig, user_options, user_options_extra);
 
-  return OPTI_TYPE;
+  const u32 opti_type = OPTI_TYPE_ZERO_BYTE
+                      | OPTI_TYPE_PRECOMPUTE_INIT
+                      | OPTI_TYPE_PRECOMPUTE_MERKLE
+                      | OPTI_TYPE_MEET_IN_MIDDLE
+                      | OPTI_TYPE_EARLY_SKIP
+                      | OPTI_TYPE_NOT_ITERATED
+                      | OPTI_TYPE_NOT_SALTED
+                      | OPTI_TYPE_RAW_HASH;
+
+  return opti_type;
 }
 
 u64 module_opts_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  //return hashconfig_opts_type (hashconfig, user_options, user_options_extra);
+  // return hashconfig_opts_type (hashconfig, user_options, user_options_extra);
 
-  return OPTS_TYPE;
+  const u32 opts_type = OPTS_TYPE_PT_GENERATE_LE
+                      | OPTS_TYPE_PT_ADD80
+                      | OPTS_TYPE_PT_ADDBITS14
+                      | OPTS_TYPE_PT_UTF16LE;
+
+  return opts_type;
 }
 
 u32 module_salt_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -124,6 +142,11 @@ const char *module_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 u32 module_benchmark_salt_len (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   return hashconfig_benchmark_salt_len (hashconfig, user_options, user_options_extra);
+}
+
+u32 module_benchmark_salt_iter (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return hashconfig_benchmark_salt_iter (hashconfig, user_options, user_options_extra);
 }
 
 u32 module_salt_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -195,10 +218,14 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   encoder_apply_options (hashconfig, tmp);
 
-  u32_to_hex (tmp[0], (u8 *) line_buf +  0);
-  u32_to_hex (tmp[1], (u8 *) line_buf +  8);
-  u32_to_hex (tmp[2], (u8 *) line_buf + 16);
-  u32_to_hex (tmp[3], (u8 *) line_buf + 24);
+  u8 *out_buf = (u8 *) line_buf;
 
-  return 32;
+  u32_to_hex (tmp[0], out_buf +  0);
+  u32_to_hex (tmp[1], out_buf +  8);
+  u32_to_hex (tmp[2], out_buf + 16);
+  u32_to_hex (tmp[3], out_buf + 24);
+
+  const int out_len = 32;
+
+  return out_len;
 }
