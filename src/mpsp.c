@@ -1390,9 +1390,10 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
 int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
-  mask_ctx_t           *mask_ctx            = hashcat_ctx->mask_ctx;
-  user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
-  user_options_t       *user_options        = hashcat_ctx->user_options;
+  const hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
+        mask_ctx_t           *mask_ctx            = hashcat_ctx->mask_ctx;
+  const user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
+  const user_options_t       *user_options        = hashcat_ctx->user_options;
 
   mask_ctx->enabled = false;
 
@@ -1526,7 +1527,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      const char *mask = hashconfig_benchmark_mask (hashcat_ctx);
+      const char *mask = hashconfig->benchmark_mask;
 
       const int rc = mask_append (hashcat_ctx, mask, NULL);
 

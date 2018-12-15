@@ -1718,16 +1718,24 @@ u32         hashconfig_forced_kernel_threads  (hashcat_ctx_t *hashcat_ctx);
 u32         hashconfig_get_kernel_threads     (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param);
 u32         hashconfig_get_kernel_loops       (hashcat_ctx_t *hashcat_ctx);
 int         hashconfig_general_defaults       (hashcat_ctx_t *hashcat_ctx);
-int         hashconfig_pw_min                 (const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const bool optimized_kernel);
-int         hashconfig_pw_max                 (const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const bool optimized_kernel);
-int         hashconfig_salt_min               (const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const bool optimized_kernel);
-int         hashconfig_salt_max               (const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const bool optimized_kernel);
+int         hashconfig_pw_min                 (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
+int         hashconfig_pw_max                 (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
+int         hashconfig_salt_min               (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
+int         hashconfig_salt_max               (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
 void        hashconfig_benchmark_defaults     (hashcat_ctx_t *hashcat_ctx, salt_t *salt, void *esalt, void *hook_salt);
-const char *hashconfig_benchmark_mask         (hashcat_ctx_t *hashcat_ctx);
+const char *hashconfig_benchmark_mask         (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
+u32         hashconfig_tmp_size               (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
+u64         hashconfig_esalt_size             (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
+u32         hashconfig_salt_type              (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
+u64         hashconfig_hook_salt_size         (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
+u64         hashconfig_hook_size              (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
+u32         hashconfig_opti_type              (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
+u64         hashconfig_opts_type              (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
+u32         hashconfig_benchmark_salt_len     (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
 
 void decoder_apply_optimizer (const hashconfig_t *hashconfig, void *data);
+void decoder_apply_options   (const hashconfig_t *hashconfig, void *data);
 void encoder_apply_optimizer (const hashconfig_t *hashconfig, void *data);
-void decoder_apply_options (const hashconfig_t *hashconfig, void *data);
-void encoder_apply_options (const hashconfig_t *hashconfig, void *data);
+void encoder_apply_options   (const hashconfig_t *hashconfig, void *data);
 
 #endif // _INTERFACE_H
