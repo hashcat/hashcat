@@ -29027,8 +29027,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   // esalt_size
 
   /*
-  hashconfig->esalt_size = 0;
-
   switch (hashconfig->hash_mode)
   {
     case   600: hashconfig->esalt_size = sizeof (blake2_t);             break;
@@ -29137,8 +29135,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   // hook_salt_size
 
   /*
-  hashconfig->hook_salt_size = 0;
-
   switch (hashconfig->hash_mode)
   {
     case 11600: hashconfig->hook_salt_size = sizeof (seven_zip_hook_salt_t); break;
@@ -29148,8 +29144,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   // tmp_size
 
   /*
-  hashconfig->tmp_size = 4;
-
   switch (hashconfig->hash_mode)
   {
     case   400: hashconfig->tmp_size = sizeof (phpass_tmp_t);             break;
@@ -29260,8 +29254,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   // hook_size
 
   /*
-  hashconfig->hook_size = 4;
-
   switch (hashconfig->hash_mode)
   {
     case 11600: hashconfig->hook_size = sizeof (seven_zip_hook_t);     break;

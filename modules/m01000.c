@@ -8,7 +8,6 @@
 #include "bitops.h"
 #include "convert.h"
 #include "interface.h"
-#include "inc_hash_constants.h"
 #include "modules.h"
 
 static const u32   ATTACK_EXEC  = ATTACK_EXEC_INSIDE_KERNEL;
