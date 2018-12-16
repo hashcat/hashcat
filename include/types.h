@@ -892,10 +892,10 @@ struct hashconfig
   u32   hash_type;
   u32   salt_type;
   u32   attack_exec;
-  u64   opts_type;
   u32   kern_type;
   u32   dgst_size;
   u32   opti_type;
+  u64   opts_type;
   u32   dgst_pos0;
   u32   dgst_pos1;
   u32   dgst_pos2;
@@ -2215,6 +2215,7 @@ typedef struct module_ctx
   u32         (*module_dgst_size)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_esalt_size)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_hash_name)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_hash_mode)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_hash_type)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_hook_salt_size)      (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_hook_size)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
@@ -2226,6 +2227,7 @@ typedef struct module_ctx
   u32         (*module_salt_min)            (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_salt_max)            (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_salt_type)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  char        (*module_separator)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_st_hash)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_st_pass)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_tmp_size)            (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
