@@ -4250,6 +4250,67 @@ static int get_kernel_local_mem_size (hashcat_ctx_t *hashcat_ctx, hc_device_para
   return 0;
 }
 
+static u32 get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param)
+{
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
+  // a kernel can force a fixed value
+
+  const u32 forced_kernel_threads = hashconfig->forced_kernel_threads;
+
+  if (forced_kernel_threads) return forced_kernel_threads;
+
+  // for CPU we just do 1 ...
+
+  if (device_param->device_type & CL_DEVICE_TYPE_CPU) return 1;
+
+  // this is an upper limit, a good start, since our strategy is to reduce thread counts only
+
+  u32 kernel_threads = (u32) device_param->device_maxworkgroup_size;
+
+  // complicated kernel tend to confuse OpenCL runtime suggestions for maximum thread size
+  // let's workaround that by sticking to their device specific preferred thread size
+
+  if (hashconfig->opts_type & OPTS_TYPE_PREFERED_THREAD)
+  {
+    if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+    {
+      if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+      {
+        if (device_param->kernel_preferred_wgs_multiple1) kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple1);
+      }
+      else
+      {
+        if (device_param->kernel_preferred_wgs_multiple4) kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple4);
+      }
+    }
+    else
+    {
+      if (device_param->kernel_preferred_wgs_multiple2) kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple2);
+    }
+  }
+  else
+  {
+    if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+    {
+      if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+      {
+        if (device_param->kernel_wgs1) kernel_threads = MIN (kernel_threads, device_param->kernel_wgs1);
+      }
+      else
+      {
+        if (device_param->kernel_wgs4) kernel_threads = MIN (kernel_threads, device_param->kernel_wgs4);
+      }
+    }
+    else
+    {
+      if (device_param->kernel_wgs2) kernel_threads = MIN (kernel_threads, device_param->kernel_wgs2);
+    }
+  }
+
+  return kernel_threads;
+}
+
 int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 {
   bitmap_ctx_t         *bitmap_ctx          = hashcat_ctx->bitmap_ctx;
@@ -4656,12 +4717,12 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
      * some algorithms need a fixed kernel-loops count
      */
 
-    const u32 kernel_loops_fixed = hashconfig_get_kernel_loops (hashcat_ctx);
+    const u32 forced_kernel_loops = hashconfig->forced_kernel_loops;
 
-    if (kernel_loops_fixed != 0)
+    if (forced_kernel_loops != 0)
     {
-      device_param->kernel_loops_min = kernel_loops_fixed;
-      device_param->kernel_loops_max = kernel_loops_fixed;
+      device_param->kernel_loops_min = forced_kernel_loops;
+      device_param->kernel_loops_max = forced_kernel_loops;
     }
 
     device_param->kernel_loops_min_sav = device_param->kernel_loops_min;
@@ -6482,7 +6543,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
      * now everything that depends on threads and accel, basically dynamic workload
      */
 
-    u32 kernel_threads = hashconfig_get_kernel_threads (hashcat_ctx, device_param);
+    u32 kernel_threads = get_kernel_threads (hashcat_ctx, device_param);
 
     // this is required because inside the kernels there is this:
     // __local pw_t s_pws[64];

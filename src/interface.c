@@ -23612,6 +23612,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   hashconfig->dgst_size             = default_dgst_size             (hashconfig, user_options, user_options_extra);
   hashconfig->esalt_size            = default_esalt_size            (hashconfig, user_options, user_options_extra);
   hashconfig->forced_kernel_threads = default_forced_kernel_threads (hashconfig, user_options, user_options_extra);
+  hashconfig->forced_kernel_loops   = default_forced_kernel_loops   (hashconfig, user_options, user_options_extra);
   hashconfig->hash_name             = default_hash_name             (hashconfig, user_options, user_options_extra);
   hashconfig->hash_mode             = default_hash_mode             (hashconfig, user_options, user_options_extra);
   hashconfig->hash_type             = default_hash_type             (hashconfig, user_options, user_options_extra);
@@ -23638,7 +23639,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   module_register (module_ctx);
 
   if (module_ctx->module_attack_exec)           hashconfig->attack_exec           = module_ctx->module_attack_exec            (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_benchmark_esalt)       hashconfig->benchmark_esalt       = module_ctx->module_benchmark_salt         (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_benchmark_esalt)       hashconfig->benchmark_esalt       = module_ctx->module_benchmark_esalt        (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_benchmark_hook_salt)   hashconfig->benchmark_salt        = module_ctx->module_benchmark_hook_salt    (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_benchmark_mask)        hashconfig->benchmark_mask        = module_ctx->module_benchmark_mask         (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_benchmark_salt)        hashconfig->benchmark_salt        = module_ctx->module_benchmark_salt         (hashconfig, user_options, user_options_extra);
@@ -23649,6 +23650,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   if (module_ctx->module_dgst_size)             hashconfig->dgst_size             = module_ctx->module_dgst_size              (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_esalt_size)            hashconfig->esalt_size            = module_ctx->module_esalt_size             (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_forced_kernel_threads) hashconfig->forced_kernel_threads = module_ctx->module_forced_kernel_threads  (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_forced_kernel_loops)   hashconfig->forced_kernel_loops   = module_ctx->module_forced_kernel_loops    (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hash_name)             hashconfig->hash_name             = module_ctx->module_hash_name              (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hash_mode)             hashconfig->hash_mode             = module_ctx->module_hash_mode              (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hash_type)             hashconfig->hash_type             = module_ctx->module_hash_type              (hashconfig, user_options, user_options_extra);
@@ -29319,6 +29321,7 @@ u32 hashconfig_forced_kernel_threads (hashcat_ctx_t *hashcat_ctx)
 }
 */
 
+/*
 u32 hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param)
 {
   const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
@@ -29379,7 +29382,9 @@ u32 hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_p
 
   return kernel_threads;
 }
+*/
 
+/*
 u32 hashconfig_get_kernel_loops (hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
@@ -29435,6 +29440,7 @@ u32 hashconfig_get_kernel_loops (hashcat_ctx_t *hashcat_ctx)
 
   return kernel_loops_fixed;
 }
+*/
 
 int hashconfig_general_defaults (hashcat_ctx_t *hashcat_ctx)
 {
@@ -30888,6 +30894,13 @@ u32 default_forced_kernel_threads (MAYBE_UNUSED const hashconfig_t *hashconfig, 
   const u32 forced_kernel_threads = user_options->kernel_threads;
 
   return forced_kernel_threads;
+}
+
+u32 default_forced_kernel_loops (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 forced_kernel_loops = user_options->kernel_loops;
+
+  return forced_kernel_loops;
 }
 
 u32 default_salt_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)

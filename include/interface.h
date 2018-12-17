@@ -1714,8 +1714,8 @@ bool initialize_keyboard_layout_mapping (hashcat_ctx_t *hashcat_ctx, const char 
 int         hashconfig_init                   (hashcat_ctx_t *hashcat_ctx);
 void        hashconfig_destroy                (hashcat_ctx_t *hashcat_ctx);
 //u32         hashconfig_forced_kernel_threads  (hashcat_ctx_t *hashcat_ctx);
-u32         hashconfig_get_kernel_threads     (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param);
-u32         hashconfig_get_kernel_loops       (hashcat_ctx_t *hashcat_ctx);
+//u32         hashconfig_get_kernel_threads     (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param);
+//u32         hashconfig_get_kernel_loops       (hashcat_ctx_t *hashcat_ctx);
 int         hashconfig_general_defaults       (hashcat_ctx_t *hashcat_ctx);
 void        hashconfig_benchmark_defaults     (hashcat_ctx_t *hashcat_ctx, salt_t *salt, void *esalt, void *hook_salt);
 
@@ -1731,6 +1731,7 @@ u32         default_dgst_pos3             (MAYBE_UNUSED const hashconfig_t *hash
 u32         default_dgst_size             (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
 u64         default_esalt_size            (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
 u32         default_forced_kernel_threads (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
+u32         default_forced_kernel_loops   (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
 const char *default_hash_name             (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
 u32         default_hash_mode             (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
 u32         default_hash_type             (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);

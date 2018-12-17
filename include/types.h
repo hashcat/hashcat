@@ -939,6 +939,7 @@ struct hashconfig
   void   *benchmark_hook_salt;
 
   u32 forced_kernel_threads;
+  u32 forced_kernel_loops;
 };
 
 typedef struct hashconfig hashconfig_t;
@@ -2222,6 +2223,7 @@ typedef struct module_ctx
   u32         (*module_dgst_size)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_esalt_size)            (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_forced_kernel_threads) (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_forced_kernel_loops)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_hash_name)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_hash_mode)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_hash_type)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
