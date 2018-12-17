@@ -630,7 +630,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
      || ((user_options->hash_mode >= 13700) && (user_options->hash_mode <= 13799))
      ||  (user_options->hash_mode ==  9000))
     {
-      event_log_error (hashcat_ctx, "Combining --username with hashes of type %s is not supported.", strhashtype (user_options->hash_mode));
+      event_log_error (hashcat_ctx, "Combining --username with targets of hash-mode %u is not supported.", user_options->hash_mode);
 
       return -1;
     }

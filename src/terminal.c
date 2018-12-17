@@ -546,7 +546,7 @@ void example_hashes (hashcat_ctx_t *hashcat_ctx)
       hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
       event_log_info (hashcat_ctx, "MODE: %u", hashconfig->hash_mode);
-      event_log_info (hashcat_ctx, "TYPE: %s", strhashtype (hashconfig->hash_mode));
+      event_log_info (hashcat_ctx, "TYPE: %s", hashconfig->hash_name);
 
       if ((hashconfig->st_hash != NULL) && (hashconfig->st_pass != NULL))
       {
@@ -602,7 +602,7 @@ void example_hashes (hashcat_ctx_t *hashcat_ctx)
         hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
         event_log_info (hashcat_ctx, "MODE: %u", hashconfig->hash_mode);
-        event_log_info (hashcat_ctx, "TYPE: %s", strhashtype (hashconfig->hash_mode));
+        event_log_info (hashcat_ctx, "TYPE: %s", hashconfig->hash_name);
 
         if ((hashconfig->st_hash != NULL) && (hashconfig->st_pass != NULL))
         {

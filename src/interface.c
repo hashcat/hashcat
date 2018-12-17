@@ -30,11 +30,11 @@ static const char *ST_PASS_HASHCAT_EXCL  = "hashcat!";
 static const char *ST_PASS_HASHCAT_EXCL3 = "hashcat!!!";
 static const char *ST_PASS_HASHCAT_ONE   = "hashcat1";
 static const char *ST_PASS_HASHCAT_ONET3 = "hashcat1hashcat1hashcat1";
-static const char *ST_PASS_HEX_02501     = "7f620a599c445155935a35634638fa67b4aafecb92e0bd8625388757a63c2dda";
-static const char *ST_PASS_BIN_09710     = "\x91\xb2\xe0\x62\xb9";
-static const char *ST_PASS_BIN_09810     = "\xb8\xf6\x36\x19\xca";
-static const char *ST_PASS_BIN_10410     = "\x6a\x8a\xed\xcc\xb7";
-static const char *ST_PASS_HEX_16801     = "5b13d4babb3714ccc62c9f71864bc984efd6a55f237c7a87fc2151e1ca658a9d";
+//static const char *ST_PASS_HEX_02501     = "7f620a599c445155935a35634638fa67b4aafecb92e0bd8625388757a63c2dda";
+//static const char *ST_PASS_BIN_09710     = "\x91\xb2\xe0\x62\xb9";
+//static const char *ST_PASS_BIN_09810     = "\xb8\xf6\x36\x19\xca";
+//static const char *ST_PASS_BIN_10410     = "\x6a\x8a\xed\xcc\xb7";
+//static const char *ST_PASS_HEX_16801     = "5b13d4babb3714ccc62c9f71864bc984efd6a55f237c7a87fc2151e1ca658a9d";
 
 /**
  * Missing self-test hashes:
@@ -48,6 +48,7 @@ static const char *ST_PASS_HEX_16801     = "5b13d4babb3714ccc62c9f71864bc984efd6
  * ST_HASH_16500  multi-hash-mode algorithm, unlikely to match self-test hash settings
  */
 
+/*
 static const char *ST_HASH_00000 = "8743b52063cd84097a65d1633f5c74f5";
 static const char *ST_HASH_00010 = "3d83c8e717ff0e7ecfe187f088d69954:343141";
 static const char *ST_HASH_00011 = "8368ba576d44779d4ca110c234fbfd32:22868223712338656660744185004422";
@@ -304,6 +305,7 @@ static const char *ST_HASH_18400 = "$odf$*1*1*100000*32*751854d8b90731ce0579f96b
 static const char *ST_HASH_18500 = "888a2ffcb3854fba0321110c5d0d434ad1aa2880";
 static const char *ST_HASH_18600 = "$odf$*0*0*1024*16*bff753835f4ea15644b8a2f8e4b5be3d147b9576*8*ee371da34333b69d*16*a902eff54a4d782a26a899a31f97bef4*0*dae7e41fbc3a500d3ce152edd8876c4f38fb17d673ee2ac44ef1e0e283622cd2ae298a82d8d98f2ea737247881fc353e73a2f535c6e13e0cdc60821c1a61c53a4b0c46ff3a3b355d7b793fad50de15999fc7c1194321d1c54316c3806956c4a3ade7daabb912a2a36398eba883af088b3cb69b43365d9ba9fce3fb0c1524f73947a7e9fc1bf3adb5f85a367035feacb5d97c578b037144c2793f34aa09dcd04bdaa455aee0d4c52fe377248611dd56f2bd4eb294673525db905f5d905a28dec0909348e6bf94bcebf03ddd61a48797cd5728ce6dbb71037b268f526e806401abcf495f6edd0b5d87118671ec690d4627f86a43e51c7f6d42a75a56eec51204d47e115e813ed4425c97b16b195e02ce776c185194b9de43ae89f356e29face016cb393d6fb93af8ea305d921d5592dd184051ac790b9b90266f52b8d53ce1cb1d762942d6d5bbd0e3821be21af9fa6874ba0c60e64f41d3e5b6caca1c53b575afdc5d8f6a3edbf874dbe009c6cb296466fe9637aed4aed8a43a95ea7d26b4090ad33d4ee7a83844b0893e8bc0f04944205fb9576cb5720f019028cd75ca9ac47b3e5fa231354d74135564df43b659cfaea7e195c4a896e0e0e0c85dc9ce3a9ce9ba552bc2a6dbac4901c19558818e1957ed72d78662bb5ba53475ca584371f1825ae0c92322a4404e63c2baad92665aac29b5c6f96e1e6338d48fb0aef4d0b686063974f58b839484f8dcf0a02537cba67a7d2c4de13125d74820cb07ec72782035af1ea6c4db61c77016d1c021b63c8b07adb4e8510f5c41bbc501f60f3dd16462399b52eb146787e38e700147c7aa23ac4d5d22d9d1c93e67a01c92a197d4765cbf8d56a862a1205abb450a182913a69b8d5334a59924f86fb3ccd0dcfe7426053e26ba26b57c05f38d85863fff1f81135b0366e8cd8680663ae8aaf7d005317b849d5e08be882708fa0d8d02d47e89150124b507c34845c922b95e62aa0b3fef218773d7aeb572c67b35ad8787f31ecc6e1846b673b8ba6172223176eabf0020b6aa3aa71405b40b2fc2127bf9741a103f1d8eca21bf27328cdf15153f2f223eff7b831a72ed8ecacf4ea8df4ea44f3a3921e5a88fb2cfa355ece0f05cbc88fdd1ecd368d6e3b2dfabd999e5b708f1bccaeebb296c9d7b76659967742fe966aa6871cbbffe710b0cd838c6e02e6eb608cb5c81d066b60b5b3604396331d97d4a2c4c2317406e48c9f5387a2c72511d1e6899bd450e9ca88d535755bcfddb53a6df118cd9cdc7d8b4b814f7bc17684d8e5975defaa25d06f410ed0724c16b8f69ec3869bc1f05c71483666968d1c04509875dadd72c6182733d564eb1a7d555dc34f6b817c5418626214d0b2c3901c5a46f5b20fddfdf9f71a7dfd75b9928778a3f65e1832dff22be973c2b259744d500a3027c2a2e08972eaaad4c5c4ec871";
 static const char *ST_HASH_99999 = "hashcat";
+*/
 
 static const char *OPTI_STR_OPTIMIZED_KERNEL     = "Optimized-Kernel";
 static const char *OPTI_STR_ZERO_BYTE            = "Zero-Byte";
@@ -30882,5 +30884,5 @@ const char *default_st_hash (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_
 
 const char *default_st_pass (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  return "<empty default>";
+  return ST_PASS_HASHCAT_PLAIN;
 }
