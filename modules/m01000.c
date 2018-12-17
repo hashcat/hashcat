@@ -113,9 +113,10 @@ void module_register (module_ctx_t *module_ctx)
   // undefined functions automatically call corresponding default functions
 
   module_ctx->module_attack_exec          = module_attack_exec;
+  module_ctx->module_benchmark_esalt      = NULL;
+  module_ctx->module_benchmark_hook_salt  = NULL;
   module_ctx->module_benchmark_mask       = NULL;
-  module_ctx->module_benchmark_salt_len   = NULL;
-  module_ctx->module_benchmark_salt_iter  = NULL;
+  module_ctx->module_benchmark_salt       = NULL;
   module_ctx->module_dgst_pos0            = module_dgst_pos0;
   module_ctx->module_dgst_pos1            = module_dgst_pos1;
   module_ctx->module_dgst_pos2            = module_dgst_pos2;
@@ -124,8 +125,8 @@ void module_register (module_ctx_t *module_ctx)
   module_ctx->module_esalt_size           = NULL;
   module_ctx->module_hash_decode          = module_hash_decode;
   module_ctx->module_hash_encode          = module_hash_encode;
-  module_ctx->module_hash_name            = module_hash_name;
   module_ctx->module_hash_mode            = NULL;
+  module_ctx->module_hash_name            = module_hash_name;
   module_ctx->module_hash_type            = module_hash_type;
   module_ctx->module_hook_salt_size       = NULL;
   module_ctx->module_hook_size            = NULL;

@@ -933,6 +933,10 @@ struct hashconfig
   const char *benchmark_mask;
   u32         benchmark_salt_len;
   u32         benchmark_salt_iter;
+
+  salt_t *benchmark_salt;
+  void   *benchmark_esalt;
+  void   *benchmark_hook_salt;
 };
 
 typedef struct hashconfig hashconfig_t;
@@ -2205,9 +2209,10 @@ typedef struct event_ctx
 typedef struct module_ctx
 {
   u32         (*module_attack_exec)         (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  void       *(*module_benchmark_esalt)     (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  void       *(*module_benchmark_hook_salt) (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_benchmark_mask)      (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u32         (*module_benchmark_salt_len)  (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u32         (*module_benchmark_salt_iter) (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  salt_t     *(*module_benchmark_salt)      (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_dgst_pos0)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_dgst_pos1)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_dgst_pos2)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
