@@ -1791,36 +1791,6 @@ const char *default_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig,
 {
   const char *mask = "?b?b?b?b?b?b?b";
 
-  /*
-  switch (hashconfig->hash_mode)
-  {
-    case  2500: mask = "?a?a?a?a?a?a?a?a";
-                break;
-    case  2501: mask = "?a?a?a?a?a?a?a?axxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
-                break;
-    case  9710: mask = "?b?b?b?b?b";
-                break;
-    case  9810: mask = "?b?b?b?b?b";
-                break;
-    case 10410: mask = "?b?b?b?b?b";
-                break;
-    case 12500: mask = "?b?b?b?b?b";
-                break;
-    case 14000: mask = "?b?b?b?b?b?b?bx";
-                break;
-    case 14100: mask = "?b?b?b?b?b?b?bxxxxxxxxxxxxxxxxx";
-                break;
-    case 14900: mask = "?b?b?b?b?bxxxxx";
-                break;
-    case 16800: mask = "?a?a?a?a?a?a?a?a";
-                break;
-    case 16801: mask = "?a?a?a?a?a?a?a?axxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
-                break;
-    default:    mask = "?b?b?b?b?b?b?b";
-                break;
-  }
-  */
-
   return mask;
 }
 
