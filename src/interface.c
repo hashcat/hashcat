@@ -882,22 +882,11 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   hashconfig->tmp_size              = default_tmp_size              (hashconfig, user_options, user_options_extra);
   hashconfig->warmup_disable        = default_warmup_disable        (hashconfig, user_options, user_options_extra);
 
-  // those depend on some previously defined sizes
-
-  hashconfig->benchmark_esalt       = default_benchmark_esalt       (hashconfig, user_options, user_options_extra);
-  hashconfig->benchmark_hook_salt   = default_benchmark_hook_salt   (hashconfig, user_options, user_options_extra);
-  hashconfig->benchmark_mask        = default_benchmark_mask        (hashconfig, user_options, user_options_extra);
-  hashconfig->benchmark_salt        = default_benchmark_salt        (hashconfig, user_options, user_options_extra);
-
   // finally, the real stuff
 
   module_register (module_ctx);
 
   if (module_ctx->module_attack_exec)           hashconfig->attack_exec           = module_ctx->module_attack_exec            (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_benchmark_esalt)       hashconfig->benchmark_esalt       = module_ctx->module_benchmark_esalt        (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_benchmark_hook_salt)   hashconfig->benchmark_salt        = module_ctx->module_benchmark_hook_salt    (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_benchmark_mask)        hashconfig->benchmark_mask        = module_ctx->module_benchmark_mask         (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_benchmark_salt)        hashconfig->benchmark_salt        = module_ctx->module_benchmark_salt         (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_dgst_pos0)             hashconfig->dgst_pos0             = module_ctx->module_dgst_pos0              (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_dgst_pos1)             hashconfig->dgst_pos1             = module_ctx->module_dgst_pos1              (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_dgst_pos2)             hashconfig->dgst_pos2             = module_ctx->module_dgst_pos2              (hashconfig, user_options, user_options_extra);
@@ -1031,6 +1020,18 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                        |  (hashconfig->salt_type == SALT_TYPE_VIRTUAL));
 
   hashconfig->is_salted = is_salted;
+
+  // those depend on some previously defined values
+
+  hashconfig->benchmark_esalt     = default_benchmark_esalt     (hashconfig, user_options, user_options_extra);
+  hashconfig->benchmark_hook_salt = default_benchmark_hook_salt (hashconfig, user_options, user_options_extra);
+  hashconfig->benchmark_mask      = default_benchmark_mask      (hashconfig, user_options, user_options_extra);
+  hashconfig->benchmark_salt      = default_benchmark_salt      (hashconfig, user_options, user_options_extra);
+
+  if (module_ctx->module_benchmark_esalt)     hashconfig->benchmark_esalt     = module_ctx->module_benchmark_esalt      (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_benchmark_hook_salt) hashconfig->benchmark_hook_salt = module_ctx->module_benchmark_hook_salt  (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_benchmark_mask)      hashconfig->benchmark_mask      = module_ctx->module_benchmark_mask       (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_benchmark_salt)      hashconfig->benchmark_salt      = module_ctx->module_benchmark_salt       (hashconfig, user_options, user_options_extra);
 
   hashconfig->pw_max    = default_pw_max    (hashconfig, user_options, user_options_extra);
   hashconfig->pw_min    = default_pw_min    (hashconfig, user_options, user_options_extra);
