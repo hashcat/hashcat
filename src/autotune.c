@@ -79,7 +79,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     #else
 
-    if (hashconfig->hash_mode != 2000)
+    if (hashconfig->warmup_disable == false)
     {
       try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);
       try_run (hashcat_ctx, device_param, kernel_accel, kernel_loops);

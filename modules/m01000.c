@@ -144,4 +144,5 @@ void module_register (module_ctx_t *module_ctx)
   module_ctx->module_st_hash                = module_st_hash;
   module_ctx->module_st_pass                = NULL;
   module_ctx->module_tmp_size               = NULL;
+  module_ctx->module_warmup_disable         = NULL;
 }

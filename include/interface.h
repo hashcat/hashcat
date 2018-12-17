@@ -383,6 +383,7 @@ char        default_separator             (MAYBE_UNUSED const hashconfig_t *hash
 const char *default_st_hash               (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
 const char *default_st_pass               (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
 u64         default_tmp_size              (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
+bool        default_warmup_disable        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
 
 void decoder_apply_optimizer (const hashconfig_t *hashconfig, void *data);
 void decoder_apply_options   (const hashconfig_t *hashconfig, void *data);

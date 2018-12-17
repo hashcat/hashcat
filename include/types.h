@@ -940,6 +940,8 @@ struct hashconfig
 
   u32 forced_kernel_threads;
   u32 forced_kernel_loops;
+
+  bool warmup_disable;
 };
 
 typedef struct hashconfig hashconfig_t;
@@ -2241,6 +2243,7 @@ typedef struct module_ctx
   const char *(*module_st_hash)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_st_pass)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_tmp_size)              (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  bool        (*module_warmup_disable)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
 
   int         (*module_hash_decode)           (const hashconfig_t *,       void *,       salt_t *,       void *, const char *, const int);
   int         (*module_hash_encode)           (const hashconfig_t *, const void *, const salt_t *, const void *,       char *,       int);
