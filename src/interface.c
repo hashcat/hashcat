@@ -23604,62 +23604,64 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   // set some boring defaults
 
-  hashconfig->attack_exec         = default_attack_exec          (hashconfig, user_options, user_options_extra);
-  hashconfig->dgst_pos0           = default_dgst_pos0            (hashconfig, user_options, user_options_extra);
-  hashconfig->dgst_pos1           = default_dgst_pos1            (hashconfig, user_options, user_options_extra);
-  hashconfig->dgst_pos2           = default_dgst_pos2            (hashconfig, user_options, user_options_extra);
-  hashconfig->dgst_pos3           = default_dgst_pos3            (hashconfig, user_options, user_options_extra);
-  hashconfig->dgst_size           = default_dgst_size            (hashconfig, user_options, user_options_extra);
-  hashconfig->esalt_size          = default_esalt_size           (hashconfig, user_options, user_options_extra);
-  hashconfig->hash_name           = default_hash_name            (hashconfig, user_options, user_options_extra);
-  hashconfig->hash_mode           = default_hash_mode            (hashconfig, user_options, user_options_extra);
-  hashconfig->hash_type           = default_hash_type            (hashconfig, user_options, user_options_extra);
-  hashconfig->hook_salt_size      = default_hook_salt_size       (hashconfig, user_options, user_options_extra);
-  hashconfig->hook_size           = default_hook_size            (hashconfig, user_options, user_options_extra);
-  hashconfig->kern_type           = default_kern_type            (hashconfig, user_options, user_options_extra);
-  hashconfig->opti_type           = default_opti_type            (hashconfig, user_options, user_options_extra);
-  hashconfig->opts_type           = default_opts_type            (hashconfig, user_options, user_options_extra);
-  hashconfig->salt_type           = default_salt_type            (hashconfig, user_options, user_options_extra);
-  hashconfig->separator           = default_separator            (hashconfig, user_options, user_options_extra);
-  hashconfig->st_hash             = default_st_hash              (hashconfig, user_options, user_options_extra);
-  hashconfig->st_pass             = default_st_pass              (hashconfig, user_options, user_options_extra);
-  hashconfig->tmp_size            = default_tmp_size             (hashconfig, user_options, user_options_extra);
+  hashconfig->attack_exec           = default_attack_exec           (hashconfig, user_options, user_options_extra);
+  hashconfig->dgst_pos0             = default_dgst_pos0             (hashconfig, user_options, user_options_extra);
+  hashconfig->dgst_pos1             = default_dgst_pos1             (hashconfig, user_options, user_options_extra);
+  hashconfig->dgst_pos2             = default_dgst_pos2             (hashconfig, user_options, user_options_extra);
+  hashconfig->dgst_pos3             = default_dgst_pos3             (hashconfig, user_options, user_options_extra);
+  hashconfig->dgst_size             = default_dgst_size             (hashconfig, user_options, user_options_extra);
+  hashconfig->esalt_size            = default_esalt_size            (hashconfig, user_options, user_options_extra);
+  hashconfig->forced_kernel_threads = default_forced_kernel_threads (hashconfig, user_options, user_options_extra);
+  hashconfig->hash_name             = default_hash_name             (hashconfig, user_options, user_options_extra);
+  hashconfig->hash_mode             = default_hash_mode             (hashconfig, user_options, user_options_extra);
+  hashconfig->hash_type             = default_hash_type             (hashconfig, user_options, user_options_extra);
+  hashconfig->hook_salt_size        = default_hook_salt_size        (hashconfig, user_options, user_options_extra);
+  hashconfig->hook_size             = default_hook_size             (hashconfig, user_options, user_options_extra);
+  hashconfig->kern_type             = default_kern_type             (hashconfig, user_options, user_options_extra);
+  hashconfig->opti_type             = default_opti_type             (hashconfig, user_options, user_options_extra);
+  hashconfig->opts_type             = default_opts_type             (hashconfig, user_options, user_options_extra);
+  hashconfig->salt_type             = default_salt_type             (hashconfig, user_options, user_options_extra);
+  hashconfig->separator             = default_separator             (hashconfig, user_options, user_options_extra);
+  hashconfig->st_hash               = default_st_hash               (hashconfig, user_options, user_options_extra);
+  hashconfig->st_pass               = default_st_pass               (hashconfig, user_options, user_options_extra);
+  hashconfig->tmp_size              = default_tmp_size              (hashconfig, user_options, user_options_extra);
 
   // those depend on some previously defined sizes
 
-  hashconfig->benchmark_esalt     = default_benchmark_esalt      (hashconfig, user_options, user_options_extra);
-  hashconfig->benchmark_hook_salt = default_benchmark_hook_salt  (hashconfig, user_options, user_options_extra);
-  hashconfig->benchmark_mask      = default_benchmark_mask       (hashconfig, user_options, user_options_extra);
-  hashconfig->benchmark_salt      = default_benchmark_salt       (hashconfig, user_options, user_options_extra);
+  hashconfig->benchmark_esalt       = default_benchmark_esalt       (hashconfig, user_options, user_options_extra);
+  hashconfig->benchmark_hook_salt   = default_benchmark_hook_salt   (hashconfig, user_options, user_options_extra);
+  hashconfig->benchmark_mask        = default_benchmark_mask        (hashconfig, user_options, user_options_extra);
+  hashconfig->benchmark_salt        = default_benchmark_salt        (hashconfig, user_options, user_options_extra);
 
   // finally, the real stuff
 
   module_register (module_ctx);
 
-  if (module_ctx->module_attack_exec)         hashconfig->attack_exec         = module_ctx->module_attack_exec          (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_benchmark_esalt)     hashconfig->benchmark_esalt     = module_ctx->module_benchmark_salt       (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_benchmark_hook_salt) hashconfig->benchmark_salt      = module_ctx->module_benchmark_hook_salt  (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_benchmark_mask)      hashconfig->benchmark_mask      = module_ctx->module_benchmark_mask       (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_benchmark_salt)      hashconfig->benchmark_salt      = module_ctx->module_benchmark_salt       (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_dgst_pos0)           hashconfig->dgst_pos0           = module_ctx->module_dgst_pos0            (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_dgst_pos1)           hashconfig->dgst_pos1           = module_ctx->module_dgst_pos1            (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_dgst_pos2)           hashconfig->dgst_pos2           = module_ctx->module_dgst_pos2            (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_dgst_pos3)           hashconfig->dgst_pos3           = module_ctx->module_dgst_pos3            (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_dgst_size)           hashconfig->dgst_size           = module_ctx->module_dgst_size            (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_esalt_size)          hashconfig->esalt_size          = module_ctx->module_esalt_size           (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_hash_name)           hashconfig->hash_name           = module_ctx->module_hash_name            (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_hash_mode)           hashconfig->hash_mode           = module_ctx->module_hash_mode            (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_hash_type)           hashconfig->hash_type           = module_ctx->module_hash_type            (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_hook_salt_size)      hashconfig->hook_salt_size      = module_ctx->module_hook_salt_size       (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_hook_size)           hashconfig->hook_size           = module_ctx->module_hook_size            (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_kern_type)           hashconfig->kern_type           = module_ctx->module_kern_type            (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_opti_type)           hashconfig->opti_type           = module_ctx->module_opti_type            (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_opts_type)           hashconfig->opts_type           = module_ctx->module_opts_type            (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_salt_type)           hashconfig->salt_type           = module_ctx->module_salt_type            (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_separator)           hashconfig->separator           = module_ctx->module_separator            (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_st_hash)             hashconfig->st_hash             = module_ctx->module_st_hash              (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_st_pass)             hashconfig->st_pass             = module_ctx->module_st_pass              (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_tmp_size)            hashconfig->tmp_size            = module_ctx->module_tmp_size             (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_attack_exec)           hashconfig->attack_exec           = module_ctx->module_attack_exec            (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_benchmark_esalt)       hashconfig->benchmark_esalt       = module_ctx->module_benchmark_salt         (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_benchmark_hook_salt)   hashconfig->benchmark_salt        = module_ctx->module_benchmark_hook_salt    (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_benchmark_mask)        hashconfig->benchmark_mask        = module_ctx->module_benchmark_mask         (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_benchmark_salt)        hashconfig->benchmark_salt        = module_ctx->module_benchmark_salt         (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_dgst_pos0)             hashconfig->dgst_pos0             = module_ctx->module_dgst_pos0              (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_dgst_pos1)             hashconfig->dgst_pos1             = module_ctx->module_dgst_pos1              (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_dgst_pos2)             hashconfig->dgst_pos2             = module_ctx->module_dgst_pos2              (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_dgst_pos3)             hashconfig->dgst_pos3             = module_ctx->module_dgst_pos3              (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_dgst_size)             hashconfig->dgst_size             = module_ctx->module_dgst_size              (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_esalt_size)            hashconfig->esalt_size            = module_ctx->module_esalt_size             (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_forced_kernel_threads) hashconfig->forced_kernel_threads = module_ctx->module_forced_kernel_threads  (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_hash_name)             hashconfig->hash_name             = module_ctx->module_hash_name              (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_hash_mode)             hashconfig->hash_mode             = module_ctx->module_hash_mode              (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_hash_type)             hashconfig->hash_type             = module_ctx->module_hash_type              (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_hook_salt_size)        hashconfig->hook_salt_size        = module_ctx->module_hook_salt_size         (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_hook_size)             hashconfig->hook_size             = module_ctx->module_hook_size              (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_kern_type)             hashconfig->kern_type             = module_ctx->module_kern_type              (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_opti_type)             hashconfig->opti_type             = module_ctx->module_opti_type              (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_opts_type)             hashconfig->opts_type             = module_ctx->module_opts_type              (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_salt_type)             hashconfig->salt_type             = module_ctx->module_salt_type              (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_separator)             hashconfig->separator             = module_ctx->module_separator              (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_st_hash)               hashconfig->st_hash               = module_ctx->module_st_hash                (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_st_pass)               hashconfig->st_pass               = module_ctx->module_st_pass                (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_tmp_size)              hashconfig->tmp_size              = module_ctx->module_tmp_size               (hashconfig, user_options, user_options_extra);
 
   /*
   switch (hashconfig->hash_mode)
@@ -29285,6 +29287,7 @@ void hashconfig_destroy (hashcat_ctx_t *hashcat_ctx)
   memset (hashconfig, 0, sizeof (hashconfig_t));
 }
 
+/*
 u32 hashconfig_forced_kernel_threads (hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
@@ -29314,6 +29317,7 @@ u32 hashconfig_forced_kernel_threads (hashcat_ctx_t *hashcat_ctx)
 
   return kernel_threads;
 }
+*/
 
 u32 hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param)
 {
@@ -29321,7 +29325,7 @@ u32 hashconfig_get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_p
 
   // a kernel can force a fixed value
 
-  const u32 forced_kernel_threads = hashconfig_forced_kernel_threads (hashcat_ctx);
+  const u32 forced_kernel_threads = hashconfig->forced_kernel_threads;
 
   if (forced_kernel_threads) return forced_kernel_threads;
 
@@ -30877,6 +30881,13 @@ u64 default_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u64 esalt_size = 0;
 
   return esalt_size;
+}
+
+u32 default_forced_kernel_threads (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 forced_kernel_threads = user_options->kernel_threads;
+
+  return forced_kernel_threads;
 }
 
 u32 default_salt_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)

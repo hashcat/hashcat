@@ -4712,7 +4712,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         tmto_stop  = user_options->scrypt_tmto;
       }
 
-      const u32 scrypt_threads = hashconfig_forced_kernel_threads (hashcat_ctx);
+      const u32 scrypt_threads = hashconfig->forced_kernel_threads;
 
       const u64 kernel_power_max = SCRYPT_MAX_ACCEL * device_processors * scrypt_threads;
 
