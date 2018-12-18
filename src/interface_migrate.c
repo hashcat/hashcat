@@ -28154,3 +28154,15 @@ bool default_dictstat_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   }
 
 }
+
+bool default_hlfmt_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+
+  switch (hashconfig->hash_mode)
+  {
+    case  5300: return true;
+    case  5400: return true;
+  }
+
+
+}

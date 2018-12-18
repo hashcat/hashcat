@@ -454,6 +454,14 @@ typedef enum hlfmt_name
 
 } hlfmt_name_t;
 
+typedef enum hlfmt_pwdump_column
+{
+  HLFMT_PWDUMP_COLUMN_NONE  = 0,
+  HLFMT_PWDUMP_COLUMN_LM    = 1,
+  HLFMT_PWDUMP_COLUMN_NTLM  = 2,
+
+} hlfmt_pwdump_column_t;
+
 typedef enum outfile_fmt
 {
   OUTFILE_FMT_HASH      = (1 << 0),
@@ -942,7 +950,10 @@ struct hashconfig
   u32 forced_kernel_loops;
 
   bool dictstat_disable;
+  bool hlfmt_disable;
   bool warmup_disable;
+
+  u32 hlfmt_pwdump_column;
 };
 
 typedef struct hashconfig hashconfig_t;
@@ -2231,6 +2242,8 @@ typedef struct module_ctx
   const char *(*module_hash_name)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_hash_mode)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_hash_type)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  bool        (*module_hlfmt_disable)         (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_hlfmt_pwdump_column)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_hook_salt_size)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_hook_size)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_kern_type)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);

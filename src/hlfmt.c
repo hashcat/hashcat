@@ -129,18 +129,18 @@ static void hlfmt_hash_pwdump (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, char *li
       continue;
     }
 
-    if (hashconfig->hash_mode == 1000)
+    if (hashconfig->hlfmt_pwdump_column == HLFMT_PWDUMP_COLUMN_LM)
     {
-      if (sep_cnt == 3)
+      if (sep_cnt == 2)
       {
         if (pos == NULL) pos = line_buf + i;
 
         len++;
       }
     }
-    else if (hashconfig->hash_mode == 3000)
+    else if (hashconfig->hlfmt_pwdump_column == HLFMT_PWDUMP_COLUMN_NTLM)
     {
-      if (sep_cnt == 2)
+      if (sep_cnt == 3)
       {
         if (pos == NULL) pos = line_buf + i;
 
@@ -339,8 +339,7 @@ u32 hlfmt_detect (hashcat_ctx_t *hashcat_ctx, FILE *fp, u32 max_check)
 
   // Exception: those formats are wrongly detected as HLFMT_SHADOW, prevent it
 
-  if (hashconfig->hash_mode == 5300) return HLFMT_HASHCAT;
-  if (hashconfig->hash_mode == 5400) return HLFMT_HASHCAT;
+  if (hashconfig->hlfmt_disable == true) return HLFMT_HASHCAT;
 
   u32 *formats_cnt = (u32 *) hccalloc (HLFMTS_CNT, sizeof (u32));
 

@@ -871,6 +871,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   hashconfig->hash_name             = default_hash_name             (hashconfig, user_options, user_options_extra);
   hashconfig->hash_mode             = default_hash_mode             (hashconfig, user_options, user_options_extra);
   hashconfig->hash_type             = default_hash_type             (hashconfig, user_options, user_options_extra);
+  hashconfig->hlfmt_disable         = default_hlfmt_disable         (hashconfig, user_options, user_options_extra);
+  hashconfig->hlfmt_pwdump_column   = default_hlfmt_pwdump_column   (hashconfig, user_options, user_options_extra);
   hashconfig->hook_salt_size        = default_hook_salt_size        (hashconfig, user_options, user_options_extra);
   hashconfig->hook_size             = default_hook_size             (hashconfig, user_options, user_options_extra);
   hashconfig->kern_type             = default_kern_type             (hashconfig, user_options, user_options_extra);
@@ -900,6 +902,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   if (module_ctx->module_hash_name)             hashconfig->hash_name             = module_ctx->module_hash_name              (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hash_mode)             hashconfig->hash_mode             = module_ctx->module_hash_mode              (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hash_type)             hashconfig->hash_type             = module_ctx->module_hash_type              (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_hlfmt_disable)         hashconfig->hlfmt_disable         = module_ctx->module_hlfmt_disable          (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_hlfmt_pwdump_column)   hashconfig->hlfmt_pwdump_column   = module_ctx->module_hlfmt_pwdump_column    (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hook_salt_size)        hashconfig->hook_salt_size        = module_ctx->module_hook_salt_size         (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hook_size)             hashconfig->hook_size             = module_ctx->module_hook_size              (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_kern_type)             hashconfig->kern_type             = module_ctx->module_kern_type              (hashconfig, user_options, user_options_extra);
@@ -1906,6 +1910,20 @@ bool default_warmup_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_
   const bool warmup_disable = false;
 
   return warmup_disable;
+}
+
+bool default_hlfmt_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const bool hlfmt_disable = false;
+
+  return hlfmt_disable;
+}
+
+u32 default_hlfmt_pwdump_column (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 hlfmt_pwdump_column = HLFMT_PWDUMP_COLUMN_NONE;
+
+  return hlfmt_pwdump_column;
 }
 
 // migrate
