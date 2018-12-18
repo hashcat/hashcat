@@ -28144,3 +28144,13 @@ bool default_warmup_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_
   }
 
 }
+
+bool default_dictstat_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+
+  switch (hashconfig->hash_mode)
+  {
+    case  3000: return true;
+  }
+
+}

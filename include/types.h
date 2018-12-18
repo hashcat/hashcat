@@ -941,6 +941,7 @@ struct hashconfig
   u32 forced_kernel_threads;
   u32 forced_kernel_loops;
 
+  bool dictstat_disable;
   bool warmup_disable;
 };
 
@@ -2218,6 +2219,7 @@ typedef struct module_ctx
   void       *(*module_benchmark_hook_salt)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_benchmark_mask)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   salt_t     *(*module_benchmark_salt)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  bool        (*module_dictstat_disable)      (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_dgst_pos0)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_dgst_pos1)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_dgst_pos2)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);

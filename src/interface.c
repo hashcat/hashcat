@@ -859,6 +859,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   // set some boring defaults
 
   hashconfig->attack_exec           = default_attack_exec           (hashconfig, user_options, user_options_extra);
+  hashconfig->dictstat_disable      = default_dictstat_disable      (hashconfig, user_options, user_options_extra);
   hashconfig->dgst_pos0             = default_dgst_pos0             (hashconfig, user_options, user_options_extra);
   hashconfig->dgst_pos1             = default_dgst_pos1             (hashconfig, user_options, user_options_extra);
   hashconfig->dgst_pos2             = default_dgst_pos2             (hashconfig, user_options, user_options_extra);
@@ -887,6 +888,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   module_register (module_ctx);
 
   if (module_ctx->module_attack_exec)           hashconfig->attack_exec           = module_ctx->module_attack_exec            (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_dictstat_disable)      hashconfig->dictstat_disable      = module_ctx->module_dictstat_disable       (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_dgst_pos0)             hashconfig->dgst_pos0             = module_ctx->module_dgst_pos0              (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_dgst_pos1)             hashconfig->dgst_pos1             = module_ctx->module_dgst_pos1              (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_dgst_pos2)             hashconfig->dgst_pos2             = module_ctx->module_dgst_pos2              (hashconfig, user_options, user_options_extra);
@@ -1890,6 +1892,13 @@ const char *default_st_hash (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_
 const char *default_st_pass (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   return ST_PASS_HASHCAT_PLAIN;
+}
+
+bool default_dictstat_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const bool dictstat_disable = false;
+
+  return dictstat_disable;
 }
 
 bool default_warmup_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
