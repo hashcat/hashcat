@@ -584,7 +584,7 @@ int wl_data_init (hashcat_ctx_t *hashcat_ctx)
     wl_data->func = get_next_word_uc;
   }
 
-  if (hashconfig->hash_mode == 3000) // yes that's fine that way
+  if (hashconfig->opts_type & OPTS_TYPE_PT_LM)
   {
     wl_data->func = get_next_word_lm;
   }

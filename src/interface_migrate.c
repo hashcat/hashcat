@@ -24061,6 +24061,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                                             | OPTS_TYPE_PT_UPPER
                                             | OPTS_TYPE_PT_BITSLICE
                                             | OPTS_TYPE_PT_ALWAYS_ASCII
+                                            | OPTS_TYPE_PT_LM
                                             | OPTS_TYPE_HASH_SPLIT;
                  hashconfig->kern_type      = KERN_TYPE_LM;
                  hashconfig->dgst_size      = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
