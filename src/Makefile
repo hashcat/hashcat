@@ -549,6 +549,18 @@ modules/module_%.so: modules/module_%.c
 
 modules: $(MODULES_LIB)
 
+
+
+MODULES_LIB_WIN64   := $(patsubst %.c, %.dll, $(MODULES_SRC))
+
+modules/module_%.dll: modules/module_%.c
+	$(CC_WIN_64)    $(CFLAGS_CROSS_WIN64) $< -o $@ -shared -fPIC $(MODULE_DEPEND)
+
+modules_win64: $(MODULES_LIB_WIN64)
+
+
+
+
 ##
 ## cross compiled hashcat
 ##
