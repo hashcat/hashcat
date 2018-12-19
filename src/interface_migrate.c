@@ -23910,6 +23910,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                                             | OPTS_TYPE_AUX1
                                             | OPTS_TYPE_AUX2
                                             | OPTS_TYPE_AUX3
+                                            | OPTS_TYPE_DEEP_COMP_KERNEL
                                             | OPTS_TYPE_BINARY_HASHFILE;
                  hashconfig->kern_type      = KERN_TYPE_WPA_EAPOL_PBKDF2;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
@@ -23931,6 +23932,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                                             | OPTS_TYPE_AUX1
                                             | OPTS_TYPE_AUX2
                                             | OPTS_TYPE_AUX3
+                                            | OPTS_TYPE_DEEP_COMP_KERNEL
                                             | OPTS_TYPE_BINARY_HASHFILE;
                  hashconfig->kern_type      = KERN_TYPE_WPA_EAPOL_PMK;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
@@ -25459,7 +25461,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case  9600:  hashconfig->hash_type      = HASH_TYPE_OFFICE2013;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_DEEP_COMP_KERNEL;
                  hashconfig->kern_type      = KERN_TYPE_OFFICE2013;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = office2013_parse_hash;
@@ -27297,7 +27300,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_AUX1;
+                                            | OPTS_TYPE_AUX1
+                                            | OPTS_TYPE_DEEP_COMP_KERNEL;
                  hashconfig->kern_type      = KERN_TYPE_WPA_PMKID_PBKDF2;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = wpa_pmkid_pbkdf2_parse_hash;
@@ -27315,7 +27319,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_AUX1;
+                                            | OPTS_TYPE_AUX1
+                                            | OPTS_TYPE_DEEP_COMP_KERNEL;
                  hashconfig->kern_type      = KERN_TYPE_WPA_PMKID_PMK;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = wpa_pmkid_pmk_parse_hash;
@@ -28186,4 +28191,162 @@ u32 default_forced_outfile_format
     user_options->outfile_format      = 5;
   }
 
+}
+
+// goes into seven zip module
+void module_hook23 (hc_device_param_t *device_param, const void *hook_salts_buf, const u32 salt_pos, const u64 pws_cnt)
+{
+  seven_zip_hook_t *hook_items = (seven_zip_hook_t *) device_param->hooks_buf;
+
+  seven_zip_hook_salt_t *seven_zips = (seven_zip_hook_salt_t *) hook_salts_buf;
+  seven_zip_hook_salt_t *seven_zip  = &seven_zips[salt_pos];
+
+  u8   data_type   = seven_zip->data_type;
+  u32 *data_buf    = seven_zip->data_buf;
+  u32  unpack_size = seven_zip->unpack_size;
+
+  for (u64 pw_pos = 0; pw_pos < pws_cnt; pw_pos++)
+  {
+    // this hook data needs to be updated (the "hook_success" variable):
+
+    seven_zip_hook_t *hook_item = &hook_items[pw_pos];
+
+    const u8 *ukey = (const u8 *) hook_item->ukey;
+
+    // init AES
+
+    AES_KEY aes_key;
+
+    memset (&aes_key, 0, sizeof (aes_key));
+
+    AES_set_decrypt_key (ukey, 256, &aes_key);
+
+    int aes_len = seven_zip->aes_len;
+
+    u32 data[4];
+    u32 out [4];
+    u32 iv  [4];
+
+    iv[0] = seven_zip->iv_buf[0];
+    iv[1] = seven_zip->iv_buf[1];
+    iv[2] = seven_zip->iv_buf[2];
+    iv[3] = seven_zip->iv_buf[3];
+
+    u32 out_full[81882];
+
+    // if aes_len > 16 we need to loop
+
+    int i = 0;
+    int j = 0;
+
+    for (i = 0, j = 0; i < aes_len - 16; i += 16, j += 4)
+    {
+      data[0] = data_buf[j + 0];
+      data[1] = data_buf[j + 1];
+      data[2] = data_buf[j + 2];
+      data[3] = data_buf[j + 3];
+
+      AES_decrypt (&aes_key, (u8*) data, (u8*) out);
+
+      out[0] ^= iv[0];
+      out[1] ^= iv[1];
+      out[2] ^= iv[2];
+      out[3] ^= iv[3];
+
+      iv[0] = data[0];
+      iv[1] = data[1];
+      iv[2] = data[2];
+      iv[3] = data[3];
+
+      out_full[j + 0] = out[0];
+      out_full[j + 1] = out[1];
+      out_full[j + 2] = out[2];
+      out_full[j + 3] = out[3];
+    }
+
+    // we need to run it at least once:
+
+    data[0] = data_buf[j + 0];
+    data[1] = data_buf[j + 1];
+    data[2] = data_buf[j + 2];
+    data[3] = data_buf[j + 3];
+
+    AES_decrypt (&aes_key, (u8*) data, (u8*) out);
+
+    out[0] ^= iv[0];
+    out[1] ^= iv[1];
+    out[2] ^= iv[2];
+    out[3] ^= iv[3];
+
+    out_full[j + 0] = out[0];
+    out_full[j + 1] = out[1];
+    out_full[j + 2] = out[2];
+    out_full[j + 3] = out[3];
+
+    /*
+     * check the CRC32 "hash"
+     */
+
+    u32 seven_zip_crc = seven_zip->crc;
+
+    u32 crc;
+
+    if (data_type == 0) // uncompressed
+    {
+      crc = cpu_crc32_buffer ((u8 *) out_full, unpack_size);
+    }
+    else
+    {
+      u32 crc_len = seven_zip->crc_len;
+
+      char *coder_attributes = seven_zip->coder_attributes;
+
+      // input buffers and length
+
+      u8 *compressed_data = (u8 *) out_full;
+
+      SizeT compressed_data_len = aes_len;
+
+      // output buffers and length
+
+      unsigned char *decompressed_data;
+
+      decompressed_data = (unsigned char *) hcmalloc (crc_len);
+
+      SizeT decompressed_data_len = crc_len;
+
+      int ret;
+
+      if (data_type == 1) // LZMA1
+      {
+        ret = hc_lzma1_decompress (compressed_data, &compressed_data_len, decompressed_data, &decompressed_data_len, coder_attributes);
+      }
+      else // we only support LZMA2 in addition to LZMA1
+      {
+        ret = hc_lzma2_decompress (compressed_data, &compressed_data_len, decompressed_data, &decompressed_data_len, coder_attributes);
+      }
+
+      if (ret != SZ_OK)
+      {
+        hook_item->hook_success = 0;
+
+        hcfree (decompressed_data);
+
+        continue;
+      }
+
+      crc = cpu_crc32_buffer (decompressed_data, crc_len);
+
+      hcfree (decompressed_data);
+    }
+
+    if (crc == seven_zip_crc)
+    {
+      hook_item->hook_success = 1;
+    }
+    else
+    {
+      hook_item->hook_success = 0;
+    }
+  }
 }

@@ -134,6 +134,8 @@ void module_register (module_ctx_t *module_ctx)
   module_ctx->module_hash_type              = module_hash_type;
   module_ctx->module_hlfmt_disable          = NULL;
   module_ctx->module_hlfmt_pwdump_column    = NULL;
+  module_ctx->module_hook12                 = NULL;
+  module_ctx->module_hook23                 = NULL;
   module_ctx->module_hook_salt_size         = NULL;
   module_ctx->module_hook_size              = NULL;
   module_ctx->module_kern_type              = module_kern_type;

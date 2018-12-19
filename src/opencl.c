@@ -1208,6 +1208,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 {
   hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   hashes_t       *hashes       = hashcat_ctx->hashes;
+  module_ctx_t   *module_ctx   = hashcat_ctx->module_ctx;
   status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -1310,7 +1311,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
         if (CL_rc == -1) return -1;
 
-        // do something with data
+        module_ctx->module_hook12 (device_param, hashes->hook_salts_buf, salt_pos, pws_cnt);
 
         CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
 
@@ -1382,19 +1383,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
         if (CL_rc == -1) return -1;
 
-        /*
-         * The following section depends on the hash mode
-         */
-
-        switch (hashconfig->hash_mode)
-        {
-          // for 7z we only need device_param->hooks_buf, but other hooks could use any info from device_param. All of them should/must update hooks_buf
-          case 11600: seven_zip_hook_func (device_param, hashes->hook_salts_buf, salt_pos, pws_cnt); break;
-        }
-
-        /*
-         * END of hash mode specific hook operations
-         */
+        module_ctx->module_hook23 (device_param, hashes->hook_salts_buf, salt_pos, pws_cnt);
 
         CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
 
@@ -1444,7 +1433,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
     if (run_comp == true)
     {
-      if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
+      if (hashconfig->opts_type & OPTS_TYPE_DEEP_COMP_KERNEL)
       {
         const u32 loops_cnt = hashes->salts_buf[salt_pos].digests_cnt;
 
@@ -1453,62 +1442,45 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
           device_param->kernel_params_buf32[28] = loops_pos;
           device_param->kernel_params_buf32[29] = loops_cnt;
 
-          const u32 digests_offset = hashes->salts_buf[salt_pos].digests_offset;
+          if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
+          {
+            const u32 digests_offset = hashes->salts_buf[salt_pos].digests_offset;
 
-          wpa_eapol_t *wpa_eapols = (wpa_eapol_t *) hashes->esalts_buf;
+            wpa_eapol_t *wpa_eapols = (wpa_eapol_t *) hashes->esalts_buf;
 
-          wpa_eapol_t *wpa_eapol = &wpa_eapols[digests_offset + loops_pos];
+            wpa_eapol_t *wpa_eapol = &wpa_eapols[digests_offset + loops_pos];
 
-          if (wpa_eapol->keyver == 1)
+            if (wpa_eapol->keyver == 1)
+            {
+              CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX1, pws_cnt, false, 0);
+
+              if (CL_rc == -1) return -1;
+            }
+            else if (wpa_eapol->keyver == 2)
+            {
+              CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX2, pws_cnt, false, 0);
+
+              if (CL_rc == -1) return -1;
+            }
+            else if (wpa_eapol->keyver == 3)
+            {
+              CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX3, pws_cnt, false, 0);
+
+              if (CL_rc == -1) return -1;
+            }
+          }
+          else if (hashconfig->hash_mode == 9600)
+          {
+            CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_3, pws_cnt, false, 0);
+
+            if (CL_rc == -1) return -1;
+          }
+          else if ((hashconfig->hash_mode == 16800) || (hashconfig->hash_mode == 16801))
           {
             CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX1, pws_cnt, false, 0);
 
             if (CL_rc == -1) return -1;
           }
-          else if (wpa_eapol->keyver == 2)
-          {
-            CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX2, pws_cnt, false, 0);
-
-            if (CL_rc == -1) return -1;
-          }
-          else if (wpa_eapol->keyver == 3)
-          {
-            CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX3, pws_cnt, false, 0);
-
-            if (CL_rc == -1) return -1;
-          }
-
-          if (status_ctx->run_thread_level2 == false) break;
-        }
-      }
-      else if (hashconfig->hash_mode == 9600)
-      {
-        const u32 loops_cnt = hashes->salts_buf[salt_pos].digests_cnt;
-
-        for (u32 loops_pos = 0; loops_pos < loops_cnt; loops_pos++)
-        {
-          device_param->kernel_params_buf32[28] = loops_pos;
-          device_param->kernel_params_buf32[29] = loops_cnt;
-
-          CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_3, pws_cnt, false, 0);
-
-          if (CL_rc == -1) return -1;
-
-          if (status_ctx->run_thread_level2 == false) break;
-        }
-      }
-      else if ((hashconfig->hash_mode == 16800) || (hashconfig->hash_mode == 16801))
-      {
-        const u32 loops_cnt = hashes->salts_buf[salt_pos].digests_cnt;
-
-        for (u32 loops_pos = 0; loops_pos < loops_cnt; loops_pos++)
-        {
-          device_param->kernel_params_buf32[28] = loops_pos;
-          device_param->kernel_params_buf32[29] = loops_cnt;
-
-          CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX1, pws_cnt, false, 0);
-
-          if (CL_rc == -1) return -1;
 
           if (status_ctx->run_thread_level2 == false) break;
         }

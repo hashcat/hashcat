@@ -17,6 +17,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 {
   hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
   hashes_t             *hashes             = hashcat_ctx->hashes;
+  module_ctx_t         *module_ctx         = hashcat_ctx->module_ctx;
   status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
   user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
@@ -372,7 +373,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       if (CL_rc == -1) return -1;
 
-      // do something with data
+      module_ctx->module_hook12 (device_param, hashes->st_hook_salts_buf, 0, 1);
 
       CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
 
@@ -415,19 +416,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       if (CL_rc == -1) return -1;
 
-      /*
-       * The following section depends on the hash mode
-       */
-
-      switch (hashconfig->hash_mode)
-      {
-        // for 7z we only need device_param->hooks_buf, but other hooks could use any info from device_param. All of them should/must update hooks_buf
-        case 11600: seven_zip_hook_func (device_param, hashes->st_hook_salts_buf, 0, 1); break;
-      }
-
-      /*
-       * END of hash mode specific hook operations
-       */
+      module_ctx->module_hook23 (device_param, hashes->st_hook_salts_buf, 0, 1);
 
       CL_rc = hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->command_queue, device_param->d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL);
 
@@ -460,21 +449,27 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       }
     }
 
-    if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
+    if (hashconfig->opts_type & OPTS_TYPE_DEEP_COMP_KERNEL)
     {
       device_param->kernel_params_buf32[28] = 0;
       device_param->kernel_params_buf32[29] = 1;
+    }
 
+    if (hashconfig->opts_type & OPTS_TYPE_AUX1)
+    {
       CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX1, 1, false, 0);
 
       if (CL_rc == -1) return -1;
     }
-    else if ((hashconfig->hash_mode == 16800) || (hashconfig->hash_mode == 16801))
+    else if (hashconfig->opts_type & OPTS_TYPE_AUX2)
     {
-      device_param->kernel_params_buf32[28] = 0;
-      device_param->kernel_params_buf32[29] = 1;
+      CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX2, 1, false, 0);
 
-      CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX1, 1, false, 0);
+      if (CL_rc == -1) return -1;
+    }
+    else if (hashconfig->opts_type & OPTS_TYPE_AUX3)
+    {
+      CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX3, 1, false, 0);
 
       if (CL_rc == -1) return -1;
     }

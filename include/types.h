@@ -413,6 +413,7 @@ typedef enum opts_type
   OPTS_TYPE_KEYBOARD_MAPPING  = (1ULL << 42),
   OPTS_TYPE_STATE_BUFFER_LE   = (1ULL << 43),
   OPTS_TYPE_STATE_BUFFER_BE   = (1ULL << 44),
+  OPTS_TYPE_DEEP_COMP_KERNEL  = (1ULL << 45), // if we have to iterate through each hash inside the comp kernel, for example if each hash has to be decrypted separately
 
 } opts_type_t;
 
@@ -2265,6 +2266,9 @@ typedef struct module_ctx
 
   int         (*module_hash_decode)           (const hashconfig_t *,       void *,       salt_t *,       void *, const char *, const int);
   int         (*module_hash_encode)           (const hashconfig_t *, const void *, const salt_t *, const void *,       char *,       int);
+
+  void        (*module_hook12)                (hc_device_param_t *, const void *, const u32, const u64);
+  void        (*module_hook23)                (hc_device_param_t *, const void *, const u32, const u64);
 
 } module_ctx_t;
 
