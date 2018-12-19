@@ -21,6 +21,10 @@ environment:
       BASH: C:\msys64\usr\bin\bash
       CC: gcc
 
+branches:
+  except:
+    - hash-mode-plugin
+
 # if we have too many commits at the same time, we might need to download more than just the last commit for appveyor to succeed
 # otherwise we get the error: "fatal: reference is not a tree <commit>"
 clone_depth: 15
