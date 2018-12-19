@@ -85,4 +85,8 @@ int select_write_timeout (int sockfd, const int sec);
 
 int select_read_timeout_console (const int sec);
 
+const char *strparser (const u32 parser_status);
+
+int input_tokenizer (const u8 *input_buf, const int input_len, token_t *token);
+
 #endif // _SHARED_H

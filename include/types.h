@@ -2232,6 +2232,11 @@ typedef struct event_ctx
 
 typedef struct module_ctx
 {
+  void       *module_handle;
+  u32         module_version_current;
+
+  void        (*module_init)                  (struct module_ctx *);
+
   u32         (*module_attack_exec)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   void       *(*module_benchmark_esalt)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   void       *(*module_benchmark_hook_salt)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);

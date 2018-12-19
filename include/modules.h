@@ -44,6 +44,6 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 void hook12_func (hc_device_param_t *device_param, void *hook_salts_buf, const u32 salt_pos, const u64 pws_cnt);
 void hook23_func (hc_device_param_t *device_param, void *hook_salts_buf, const u32 salt_pos, const u64 pws_cnt);
 
-void module_register (module_ctx_t *module_ctx);
+void module_init (module_ctx_t *module_ctx);
 
 #endif // _MODULES_H

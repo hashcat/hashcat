@@ -63,7 +63,7 @@ int benchmark_next (hashcat_ctx_t *hashcat_ctx)
 
     for (int i = cur; i < 99999; i++)
     {
-      snprintf (modulefile, HCBUFSIZ_TINY, "%s/modules/m%05d.so", folder_config->shared_dir, i);
+      snprintf (modulefile, HCBUFSIZ_TINY, "%s/modules/module_%05d.so", folder_config->shared_dir, i);
 
       if (hc_path_exist (modulefile) == true)
       {

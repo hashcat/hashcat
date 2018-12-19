@@ -5,11 +5,51 @@
 
 #include "common.h"
 #include "types.h"
+#include "convert.h"
 #include "shared.h"
 
 #if defined (__CYGWIN__)
 #include <sys/cygwin.h>
 #endif
+
+static const char *PA_000 = "OK";
+static const char *PA_001 = "Ignored due to comment";
+static const char *PA_002 = "Ignored due to zero length";
+static const char *PA_003 = "Line-length exception";
+static const char *PA_004 = "Hash-length exception";
+static const char *PA_005 = "Hash-value exception";
+static const char *PA_006 = "Salt-length exception";
+static const char *PA_007 = "Salt-value exception";
+static const char *PA_008 = "Salt-iteration count exception";
+static const char *PA_009 = "Separator unmatched";
+static const char *PA_010 = "Signature unmatched";
+static const char *PA_011 = "Invalid hccapx file size";
+static const char *PA_012 = "Invalid hccapx eapol size";
+static const char *PA_013 = "Invalid psafe2 filesize";
+static const char *PA_014 = "Invalid psafe3 filesize";
+static const char *PA_015 = "Invalid truecrypt filesize";
+static const char *PA_016 = "Invalid veracrypt filesize";
+static const char *PA_017 = "Invalid SIP directive, only MD5 is supported";
+static const char *PA_018 = "Hash-file exception";
+static const char *PA_019 = "Hash-encoding exception";
+static const char *PA_020 = "Salt-encoding exception";
+static const char *PA_021 = "Invalid LUKS filesize";
+static const char *PA_022 = "Invalid LUKS identifier";
+static const char *PA_023 = "Invalid LUKS version";
+static const char *PA_024 = "Invalid or unsupported LUKS cipher type";
+static const char *PA_025 = "Invalid or unsupported LUKS cipher mode";
+static const char *PA_026 = "Invalid or unsupported LUKS hash type";
+static const char *PA_027 = "Invalid LUKS key size";
+static const char *PA_028 = "Disabled LUKS key detected";
+static const char *PA_029 = "Invalid LUKS key AF stripes count";
+static const char *PA_030 = "Invalid combination of LUKS hash type and cipher type";
+static const char *PA_031 = "Invalid hccapx signature";
+static const char *PA_032 = "Invalid hccapx version";
+static const char *PA_033 = "Invalid hccapx message pair";
+static const char *PA_034 = "Token encoding exception";
+static const char *PA_035 = "Token length exception";
+static const char *PA_036 = "Insufficient entropy exception";
+static const char *PA_255 = "Unknown error";
 
 static inline int get_msb32 (const u32 v)
 {
@@ -793,3 +833,179 @@ int select_read_timeout_console (const int sec)
 }
 
 #endif
+
+const char *strparser (const u32 parser_status)
+{
+  switch (parser_status)
+  {
+    case PARSER_OK:                   return PA_000;
+    case PARSER_COMMENT:              return PA_001;
+    case PARSER_GLOBAL_ZERO:          return PA_002;
+    case PARSER_GLOBAL_LENGTH:        return PA_003;
+    case PARSER_HASH_LENGTH:          return PA_004;
+    case PARSER_HASH_VALUE:           return PA_005;
+    case PARSER_SALT_LENGTH:          return PA_006;
+    case PARSER_SALT_VALUE:           return PA_007;
+    case PARSER_SALT_ITERATION:       return PA_008;
+    case PARSER_SEPARATOR_UNMATCHED:  return PA_009;
+    case PARSER_SIGNATURE_UNMATCHED:  return PA_010;
+    case PARSER_HCCAPX_FILE_SIZE:     return PA_011;
+    case PARSER_HCCAPX_EAPOL_LEN:     return PA_012;
+    case PARSER_PSAFE2_FILE_SIZE:     return PA_013;
+    case PARSER_PSAFE3_FILE_SIZE:     return PA_014;
+    case PARSER_TC_FILE_SIZE:         return PA_015;
+    case PARSER_VC_FILE_SIZE:         return PA_016;
+    case PARSER_SIP_AUTH_DIRECTIVE:   return PA_017;
+    case PARSER_HASH_FILE:            return PA_018;
+    case PARSER_HASH_ENCODING:        return PA_019;
+    case PARSER_SALT_ENCODING:        return PA_020;
+    case PARSER_LUKS_FILE_SIZE:       return PA_021;
+    case PARSER_LUKS_MAGIC:           return PA_022;
+    case PARSER_LUKS_VERSION:         return PA_023;
+    case PARSER_LUKS_CIPHER_TYPE:     return PA_024;
+    case PARSER_LUKS_CIPHER_MODE:     return PA_025;
+    case PARSER_LUKS_HASH_TYPE:       return PA_026;
+    case PARSER_LUKS_KEY_SIZE:        return PA_027;
+    case PARSER_LUKS_KEY_DISABLED:    return PA_028;
+    case PARSER_LUKS_KEY_STRIPES:     return PA_029;
+    case PARSER_LUKS_HASH_CIPHER:     return PA_030;
+    case PARSER_HCCAPX_SIGNATURE:     return PA_031;
+    case PARSER_HCCAPX_VERSION:       return PA_032;
+    case PARSER_HCCAPX_MESSAGE_PAIR:  return PA_033;
+    case PARSER_TOKEN_ENCODING:       return PA_034;
+    case PARSER_TOKEN_LENGTH:         return PA_035;
+    case PARSER_INSUFFICIENT_ENTROPY: return PA_036;
+  }
+
+  return PA_255;
+}
+
+static int rounds_count_length (const char *input_buf, const int input_len)
+{
+  if (input_len >= 9) // 9 is minimum because of "rounds=X$"
+  {
+    static const char *rounds = "rounds=";
+
+    if (memcmp (input_buf, rounds, 7) == 0)
+    {
+      char *next_pos = strchr (input_buf + 8, '$');
+
+      if (next_pos == NULL) return -1;
+
+      const int rounds_len = next_pos - input_buf;
+
+      return rounds_len;
+    }
+  }
+
+  return -1;
+}
+
+int input_tokenizer (const u8 *input_buf, const int input_len, token_t *token)
+{
+  int len_left = input_len;
+
+  token->buf[0] = input_buf;
+
+  int token_idx;
+
+  for (token_idx = 0; token_idx < token->token_cnt - 1; token_idx++)
+  {
+    if (token->attr[token_idx] & TOKEN_ATTR_FIXED_LENGTH)
+    {
+      int len = token->len[token_idx];
+
+      if (len_left < len) return (PARSER_TOKEN_LENGTH);
+
+      token->buf[token_idx + 1] = token->buf[token_idx] + len;
+
+      len_left -= len;
+    }
+    else
+    {
+      if (token->attr[token_idx] & TOKEN_ATTR_OPTIONAL_ROUNDS)
+      {
+        const int len = rounds_count_length ((const char *) token->buf[token_idx], len_left);
+
+        token->opt_buf = token->buf[token_idx];
+
+        token->opt_len = len; // we want an eventual -1 in here, it's used later for verification
+
+        if (len > 0)
+        {
+          token->buf[token_idx] += len + 1; // +1 = separator
+
+          len_left -= len + 1; // +1 = separator
+        }
+      }
+
+      const u8 *next_pos = (const u8 *) strchr ((const char *) token->buf[token_idx], token->sep[token_idx]);
+
+      if (next_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+      const int len = next_pos - token->buf[token_idx];
+
+      token->len[token_idx] = len;
+
+      token->buf[token_idx + 1] = next_pos + 1; // +1 = separator
+
+      len_left -= len + 1; // +1 = separator
+    }
+  }
+
+  if (token->attr[token_idx] & TOKEN_ATTR_FIXED_LENGTH)
+  {
+    int len = token->len[token_idx];
+
+    if (len_left != len) return (PARSER_TOKEN_LENGTH);
+  }
+  else
+  {
+    token->len[token_idx] = len_left;
+  }
+
+  // verify data
+
+  for (token_idx = 0; token_idx < token->token_cnt; token_idx++)
+  {
+    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_SIGNATURE)
+    {
+      bool matched = false;
+
+      for (int signature_idx = 0; signature_idx < token->signatures_cnt; signature_idx++)
+      {
+        if (memcmp (token->buf[token_idx], token->signatures_buf[signature_idx], token->len[token_idx]) == 0) matched = true;
+      }
+
+      if (matched == false) return (PARSER_SIGNATURE_UNMATCHED);
+    }
+
+    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_LENGTH)
+    {
+      if (token->len[token_idx] < token->len_min[token_idx]) return (PARSER_TOKEN_LENGTH);
+      if (token->len[token_idx] > token->len_max[token_idx]) return (PARSER_TOKEN_LENGTH);
+    }
+
+    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_HEX)
+    {
+      if (is_valid_hex_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
+    }
+
+    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_BASE64A)
+    {
+      if (is_valid_base64a_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
+    }
+
+    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_BASE64B)
+    {
+      if (is_valid_base64b_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
+    }
+
+    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_BASE64C)
+    {
+      if (is_valid_base64c_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
+    }
+  }
+
+  return PARSER_OK;
+}

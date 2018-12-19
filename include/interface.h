@@ -12,6 +12,9 @@
 #include <errno.h>
 #include <limits.h>
 #include <inttypes.h>
+#include <dlfcn.h>
+
+static const u32 MODULE_VERSION_MINIMUM = 520;
 
 /**
  * zero hashes shutcut
@@ -121,8 +124,6 @@ typedef struct tc
   int                       keyboard_layout_mapping_cnt;
 
 } tc_t;
-
-void seven_zip_hook_func (hc_device_param_t *device_param, void *hook_salts_buf, const u32 salt_pos, const u64 pws_cnt);
 
 typedef struct wpa_eapol
 {
@@ -341,11 +342,9 @@ typedef struct luks
  */
 
 const char *stroptitype (const u32 opti_type);
-const char *strparser   (const u32 parser_status);
 
 int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size, const u32 salt_pos, const u32 digest_pos);
 
-int input_tokenizer (const u8 *input_buf, const int input_len, token_t *token);
 bool initialize_keyboard_layout_mapping (hashcat_ctx_t *hashcat_ctx, const char *filename, keyboard_layout_mapping_t *keyboard_layout_mapping, int *keyboard_layout_mapping_cnt);
 
 int         hashconfig_init                   (hashcat_ctx_t *hashcat_ctx);

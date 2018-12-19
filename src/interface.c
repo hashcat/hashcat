@@ -54,178 +54,9 @@ static const char *OPTI_STR_USES_BITS_16         = "Uses-16-Bit";
 static const char *OPTI_STR_USES_BITS_32         = "Uses-32-Bit";
 static const char *OPTI_STR_USES_BITS_64         = "Uses-64-Bit";
 
-static const char *PA_000 = "OK";
-static const char *PA_001 = "Ignored due to comment";
-static const char *PA_002 = "Ignored due to zero length";
-static const char *PA_003 = "Line-length exception";
-static const char *PA_004 = "Hash-length exception";
-static const char *PA_005 = "Hash-value exception";
-static const char *PA_006 = "Salt-length exception";
-static const char *PA_007 = "Salt-value exception";
-static const char *PA_008 = "Salt-iteration count exception";
-static const char *PA_009 = "Separator unmatched";
-static const char *PA_010 = "Signature unmatched";
-static const char *PA_011 = "Invalid hccapx file size";
-static const char *PA_012 = "Invalid hccapx eapol size";
-static const char *PA_013 = "Invalid psafe2 filesize";
-static const char *PA_014 = "Invalid psafe3 filesize";
-static const char *PA_015 = "Invalid truecrypt filesize";
-static const char *PA_016 = "Invalid veracrypt filesize";
-static const char *PA_017 = "Invalid SIP directive, only MD5 is supported";
-static const char *PA_018 = "Hash-file exception";
-static const char *PA_019 = "Hash-encoding exception";
-static const char *PA_020 = "Salt-encoding exception";
-static const char *PA_021 = "Invalid LUKS filesize";
-static const char *PA_022 = "Invalid LUKS identifier";
-static const char *PA_023 = "Invalid LUKS version";
-static const char *PA_024 = "Invalid or unsupported LUKS cipher type";
-static const char *PA_025 = "Invalid or unsupported LUKS cipher mode";
-static const char *PA_026 = "Invalid or unsupported LUKS hash type";
-static const char *PA_027 = "Invalid LUKS key size";
-static const char *PA_028 = "Disabled LUKS key detected";
-static const char *PA_029 = "Invalid LUKS key AF stripes count";
-static const char *PA_030 = "Invalid combination of LUKS hash type and cipher type";
-static const char *PA_031 = "Invalid hccapx signature";
-static const char *PA_032 = "Invalid hccapx version";
-static const char *PA_033 = "Invalid hccapx message pair";
-static const char *PA_034 = "Token encoding exception";
-static const char *PA_035 = "Token length exception";
-static const char *PA_036 = "Insufficient entropy exception";
-static const char *PA_255 = "Unknown error";
-
 /**
  * parser
  */
-
-static int rounds_count_length (const char *input_buf, const int input_len)
-{
-  if (input_len >= 9) // 9 is minimum because of "rounds=X$"
-  {
-    static const char *rounds = "rounds=";
-
-    if (memcmp (input_buf, rounds, 7) == 0)
-    {
-      char *next_pos = strchr (input_buf + 8, '$');
-
-      if (next_pos == NULL) return -1;
-
-      const int rounds_len = next_pos - input_buf;
-
-      return rounds_len;
-    }
-  }
-
-  return -1;
-}
-
-int input_tokenizer (const u8 *input_buf, const int input_len, token_t *token)
-{
-  int len_left = input_len;
-
-  token->buf[0] = input_buf;
-
-  int token_idx;
-
-  for (token_idx = 0; token_idx < token->token_cnt - 1; token_idx++)
-  {
-    if (token->attr[token_idx] & TOKEN_ATTR_FIXED_LENGTH)
-    {
-      int len = token->len[token_idx];
-
-      if (len_left < len) return (PARSER_TOKEN_LENGTH);
-
-      token->buf[token_idx + 1] = token->buf[token_idx] + len;
-
-      len_left -= len;
-    }
-    else
-    {
-      if (token->attr[token_idx] & TOKEN_ATTR_OPTIONAL_ROUNDS)
-      {
-        const int len = rounds_count_length ((const char *) token->buf[token_idx], len_left);
-
-        token->opt_buf = token->buf[token_idx];
-
-        token->opt_len = len; // we want an eventual -1 in here, it's used later for verification
-
-        if (len > 0)
-        {
-          token->buf[token_idx] += len + 1; // +1 = separator
-
-          len_left -= len + 1; // +1 = separator
-        }
-      }
-
-      const u8 *next_pos = (const u8 *) strchr ((const char *) token->buf[token_idx], token->sep[token_idx]);
-
-      if (next_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-      const int len = next_pos - token->buf[token_idx];
-
-      token->len[token_idx] = len;
-
-      token->buf[token_idx + 1] = next_pos + 1; // +1 = separator
-
-      len_left -= len + 1; // +1 = separator
-    }
-  }
-
-  if (token->attr[token_idx] & TOKEN_ATTR_FIXED_LENGTH)
-  {
-    int len = token->len[token_idx];
-
-    if (len_left != len) return (PARSER_TOKEN_LENGTH);
-  }
-  else
-  {
-    token->len[token_idx] = len_left;
-  }
-
-  // verify data
-
-  for (token_idx = 0; token_idx < token->token_cnt; token_idx++)
-  {
-    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_SIGNATURE)
-    {
-      bool matched = false;
-
-      for (int signature_idx = 0; signature_idx < token->signatures_cnt; signature_idx++)
-      {
-        if (memcmp (token->buf[token_idx], token->signatures_buf[signature_idx], token->len[token_idx]) == 0) matched = true;
-      }
-
-      if (matched == false) return (PARSER_SIGNATURE_UNMATCHED);
-    }
-
-    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_LENGTH)
-    {
-      if (token->len[token_idx] < token->len_min[token_idx]) return (PARSER_TOKEN_LENGTH);
-      if (token->len[token_idx] > token->len_max[token_idx]) return (PARSER_TOKEN_LENGTH);
-    }
-
-    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_HEX)
-    {
-      if (is_valid_hex_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
-    }
-
-    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_BASE64A)
-    {
-      if (is_valid_base64a_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
-    }
-
-    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_BASE64B)
-    {
-      if (is_valid_base64b_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
-    }
-
-    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_BASE64C)
-    {
-      if (is_valid_base64c_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
-    }
-  }
-
-  return PARSER_OK;
-}
 
 static int sort_by_src_len (const void *p1, const void *p2)
 {
@@ -477,52 +308,6 @@ const char *stroptitype (const u32 opti_type)
   }
 
   return NULL;
-}
-
-const char *strparser (const u32 parser_status)
-{
-  switch (parser_status)
-  {
-    case PARSER_OK:                   return PA_000;
-    case PARSER_COMMENT:              return PA_001;
-    case PARSER_GLOBAL_ZERO:          return PA_002;
-    case PARSER_GLOBAL_LENGTH:        return PA_003;
-    case PARSER_HASH_LENGTH:          return PA_004;
-    case PARSER_HASH_VALUE:           return PA_005;
-    case PARSER_SALT_LENGTH:          return PA_006;
-    case PARSER_SALT_VALUE:           return PA_007;
-    case PARSER_SALT_ITERATION:       return PA_008;
-    case PARSER_SEPARATOR_UNMATCHED:  return PA_009;
-    case PARSER_SIGNATURE_UNMATCHED:  return PA_010;
-    case PARSER_HCCAPX_FILE_SIZE:     return PA_011;
-    case PARSER_HCCAPX_EAPOL_LEN:     return PA_012;
-    case PARSER_PSAFE2_FILE_SIZE:     return PA_013;
-    case PARSER_PSAFE3_FILE_SIZE:     return PA_014;
-    case PARSER_TC_FILE_SIZE:         return PA_015;
-    case PARSER_VC_FILE_SIZE:         return PA_016;
-    case PARSER_SIP_AUTH_DIRECTIVE:   return PA_017;
-    case PARSER_HASH_FILE:            return PA_018;
-    case PARSER_HASH_ENCODING:        return PA_019;
-    case PARSER_SALT_ENCODING:        return PA_020;
-    case PARSER_LUKS_FILE_SIZE:       return PA_021;
-    case PARSER_LUKS_MAGIC:           return PA_022;
-    case PARSER_LUKS_VERSION:         return PA_023;
-    case PARSER_LUKS_CIPHER_TYPE:     return PA_024;
-    case PARSER_LUKS_CIPHER_MODE:     return PA_025;
-    case PARSER_LUKS_HASH_TYPE:       return PA_026;
-    case PARSER_LUKS_KEY_SIZE:        return PA_027;
-    case PARSER_LUKS_KEY_DISABLED:    return PA_028;
-    case PARSER_LUKS_KEY_STRIPES:     return PA_029;
-    case PARSER_LUKS_HASH_CIPHER:     return PA_030;
-    case PARSER_HCCAPX_SIGNATURE:     return PA_031;
-    case PARSER_HCCAPX_VERSION:       return PA_032;
-    case PARSER_HCCAPX_MESSAGE_PAIR:  return PA_033;
-    case PARSER_TOKEN_ENCODING:       return PA_034;
-    case PARSER_TOKEN_LENGTH:         return PA_035;
-    case PARSER_INSUFFICIENT_ENTROPY: return PA_036;
-  }
-
-  return PA_255;
 }
 
 int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size, const u32 salt_pos, const u32 digest_pos)
@@ -848,6 +633,54 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
 
 }
 
+static bool module_load (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, const u32 hash_mode)
+{
+  char *module_file = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+  #if defined (_WIN)
+
+  #else
+
+  const folder_config_t *folder_config = hashcat_ctx->folder_config;
+
+  snprintf (module_file, HCBUFSIZ_TINY, "%s/modules/module_%05d.so", folder_config->shared_dir, hash_mode);
+
+  module_ctx->module_handle = dlopen (module_file, RTLD_LAZY);
+
+  if (module_ctx->module_handle == NULL)
+  {
+    event_log_error (hashcat_ctx, "%s", dlerror ());
+
+    return false;
+  }
+
+  module_ctx->module_init = dlsym (module_ctx->module_handle, "module_init");
+
+  if (module_ctx->module_init == NULL)
+  {
+    event_log_error (hashcat_ctx, "%s", dlerror ());
+
+    return false;
+  }
+
+  #endif
+
+  free (module_file);
+
+  return true;
+}
+
+static void module_unload (module_ctx_t *module_ctx)
+{
+  #if defined (_WIN)
+
+  #else
+
+  dlclose (module_ctx->module_handle);
+
+  #endif
+}
+
 int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 {
   const folder_config_t      *folder_config      = hashcat_ctx->folder_config;
@@ -888,7 +721,18 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   // finally, the real stuff
 
-  module_register (module_ctx);
+  const bool rc_load = module_load (hashcat_ctx, module_ctx, user_options->hash_mode);
+
+  if (rc_load == false) return -1;
+
+  module_ctx->module_init (module_ctx);
+
+  if (module_ctx->module_version_current < MODULE_VERSION_MINIMUM)
+  {
+    event_log_error (hashcat_ctx, "module version current (%u) older than minimum (%u)", module_ctx->module_version_current, MODULE_VERSION_MINIMUM);
+
+    return -1;
+  }
 
   if (module_ctx->module_attack_exec)           hashconfig->attack_exec           = module_ctx->module_attack_exec            (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_dictstat_disable)      hashconfig->dictstat_disable      = module_ctx->module_dictstat_disable       (hashconfig, user_options, user_options_extra);
@@ -1057,6 +901,9 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 void hashconfig_destroy (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+  module_ctx_t *module_ctx = hashcat_ctx->module_ctx;
+
+  module_unload (module_ctx);
 
   memset (hashconfig, 0, sizeof (hashconfig_t));
 }

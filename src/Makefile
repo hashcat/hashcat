@@ -531,7 +531,7 @@ ifeq ($(SHARED),1)
 $(HASHCAT_FRONTEND): src/main.c $(HASHCAT_LIBRARY)
 	$(CC)    $(CFLAGS_NATIVE) $^ -o $@ $(HASHCAT_LIBRARY) $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 else
-$(HASHCAT_FRONTEND): src/main.c $(NATIVE_STATIC_OBJS) modules/m01000.so
+$(HASHCAT_FRONTEND): src/main.c $(NATIVE_STATIC_OBJS)
 	$(CC)    $(CFLAGS_NATIVE) $^ -o $@                    $(LFLAGS_NATIVE) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 endif
 
@@ -539,8 +539,11 @@ endif
 ## native compiled modules
 ##
 
-modules/m%.so: modules/m%.c
-	$(CC) -c $(CFLAGS_NATIVE) $< -o $@ -shared
+MODULE_DEPEND := src/bitops.c src/convert.c src/interface.c src/shared.c
+
+modules/module_%.so: modules/module_%.c
+	$(CC)    $(CFLAGS_NATIVE) $< -o $@ -shared -fPIC $(MODULE_DEPEND)
+
 
 ##
 ## cross compiled hashcat
