@@ -16,5 +16,6 @@ hashcat.dll
 *.dSYM
 kernels/**
 lib/*.a
+modules/*.so
 obj/*.o
 include/CL

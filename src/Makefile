@@ -540,10 +540,13 @@ endif
 ##
 
 MODULE_DEPEND := src/bitops.c src/convert.c src/interface.c src/shared.c
+MODULES_SRC   := $(wildcard modules/*.c)
+MODULES       := $(patsubst %.c, %.so, $(MODULES_SRC))
 
 modules/module_%.so: modules/module_%.c
 	$(CC)    $(CFLAGS_NATIVE) $< -o $@ -shared -fPIC $(MODULE_DEPEND)
 
+modules: $(MODULES)
 
 ##
 ## cross compiled hashcat
