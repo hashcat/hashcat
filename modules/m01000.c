@@ -126,6 +126,7 @@ void module_register (module_ctx_t *module_ctx)
   module_ctx->module_esalt_size             = NULL;
   module_ctx->module_forced_kernel_threads  = NULL;
   module_ctx->module_forced_kernel_loops    = NULL;
+  module_ctx->module_forced_outfile_format  = NULL;
   module_ctx->module_hash_decode            = module_hash_decode;
   module_ctx->module_hash_encode            = module_hash_encode;
   module_ctx->module_hash_mode              = NULL;

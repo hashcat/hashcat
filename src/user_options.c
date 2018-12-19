@@ -621,21 +621,6 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if (user_options->username == true)
-  {
-    if  ((user_options->hash_mode ==  2500)
-     ||  (user_options->hash_mode ==  2501)
-     ||  (user_options->hash_mode ==  5200)
-     || ((user_options->hash_mode >=  6200) && (user_options->hash_mode <=  6299))
-     || ((user_options->hash_mode >= 13700) && (user_options->hash_mode <= 13799))
-     ||  (user_options->hash_mode ==  9000))
-    {
-      event_log_error (hashcat_ctx, "Combining --username with targets of hash-mode %u is not supported.", user_options->hash_mode);
-
-      return -1;
-    }
-  }
-
   if (user_options->outfile_format > 16)
   {
     event_log_error (hashcat_ctx, "Invalid --outfile-format value specified.");
@@ -1589,24 +1574,6 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   if (user_options->skip != 0 && user_options->limit != 0)
   {
     user_options->limit += user_options->skip;
-  }
-
-  if (user_options->hash_mode == 9710)
-  {
-    user_options->outfile_format      = 5;
-    user_options->outfile_format_chgd = 1;
-  }
-
-  if (user_options->hash_mode == 9810)
-  {
-    user_options->outfile_format      = 5;
-    user_options->outfile_format_chgd = 1;
-  }
-
-  if (user_options->hash_mode == 10410)
-  {
-    user_options->outfile_format      = 5;
-    user_options->outfile_format_chgd = 1;
   }
 
   if (user_options->markov_threshold == 0)

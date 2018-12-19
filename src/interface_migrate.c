@@ -28167,3 +28167,23 @@ bool default_hlfmt_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_U
 
 
 }
+
+u32 default_forced_outfile_format
+{
+
+  if (user_options->hash_mode == 9710)
+  {
+    user_options->outfile_format      = 5;
+  }
+
+  if (user_options->hash_mode == 9810)
+  {
+    user_options->outfile_format      = 5;
+  }
+
+  if (user_options->hash_mode == 10410)
+  {
+    user_options->outfile_format      = 5;
+  }
+
+}

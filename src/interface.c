@@ -868,6 +868,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   hashconfig->esalt_size            = default_esalt_size            (hashconfig, user_options, user_options_extra);
   hashconfig->forced_kernel_threads = default_forced_kernel_threads (hashconfig, user_options, user_options_extra);
   hashconfig->forced_kernel_loops   = default_forced_kernel_loops   (hashconfig, user_options, user_options_extra);
+  hashconfig->forced_outfile_format = default_forced_outfile_format (hashconfig, user_options, user_options_extra);
   hashconfig->hash_name             = default_hash_name             (hashconfig, user_options, user_options_extra);
   hashconfig->hash_mode             = default_hash_mode             (hashconfig, user_options, user_options_extra);
   hashconfig->hash_type             = default_hash_type             (hashconfig, user_options, user_options_extra);
@@ -899,6 +900,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   if (module_ctx->module_esalt_size)            hashconfig->esalt_size            = module_ctx->module_esalt_size             (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_forced_kernel_threads) hashconfig->forced_kernel_threads = module_ctx->module_forced_kernel_threads  (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_forced_kernel_loops)   hashconfig->forced_kernel_loops   = module_ctx->module_forced_kernel_loops    (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_forced_outfile_format) hashconfig->forced_outfile_format = module_ctx->module_forced_outfile_format  (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hash_name)             hashconfig->hash_name             = module_ctx->module_hash_name              (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hash_mode)             hashconfig->hash_mode             = module_ctx->module_hash_mode              (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hash_type)             hashconfig->hash_type             = module_ctx->module_hash_type              (hashconfig, user_options, user_options_extra);
@@ -1860,6 +1862,13 @@ u32 default_forced_kernel_loops (MAYBE_UNUSED const hashconfig_t *hashconfig, MA
   const u32 forced_kernel_loops = user_options->kernel_loops;
 
   return forced_kernel_loops;
+}
+
+u32 default_forced_outfile_format (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 forced_outfile_format = user_options->outfile_format;
+
+  return forced_outfile_format;
 }
 
 u32 default_salt_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
