@@ -89,4 +89,9 @@ const char *strparser (const u32 parser_status);
 
 int input_tokenizer (const u8 *input_buf, const int input_len, token_t *token);
 
+void decoder_apply_optimizer (const hashconfig_t *hashconfig, void *data);
+void decoder_apply_options   (const hashconfig_t *hashconfig, void *data);
+void encoder_apply_optimizer (const hashconfig_t *hashconfig, void *data);
+void encoder_apply_options   (const hashconfig_t *hashconfig, void *data);
+
 #endif // _SHARED_H

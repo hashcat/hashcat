@@ -486,15 +486,15 @@ int ocl_init (hashcat_ctx_t *hashcat_ctx)
   #if   defined (_WIN)
   ocl->lib = hc_dlopen ("OpenCL");
   #elif defined (__APPLE__)
-  ocl->lib = hc_dlopen ("/System/Library/Frameworks/OpenCL.framework/OpenCL", RTLD_NOW);
+  ocl->lib = hc_dlopen ("/System/Library/Frameworks/OpenCL.framework/OpenCL");
   #elif defined (__CYGWIN__)
-  ocl->lib = hc_dlopen ("opencl.dll", RTLD_NOW);
+  ocl->lib = hc_dlopen ("opencl.dll");
 
-  if (ocl->lib == NULL) ocl->lib = hc_dlopen ("cygOpenCL-1.dll", RTLD_NOW);
+  if (ocl->lib == NULL) ocl->lib = hc_dlopen ("cygOpenCL-1.dll");
   #else
-  ocl->lib = hc_dlopen ("libOpenCL.so", RTLD_NOW);
+  ocl->lib = hc_dlopen ("libOpenCL.so");
 
-  if (ocl->lib == NULL) ocl->lib = hc_dlopen ("libOpenCL.so.1", RTLD_NOW);
+  if (ocl->lib == NULL) ocl->lib = hc_dlopen ("libOpenCL.so.1");
   #endif
 
   if (ocl->lib == NULL)

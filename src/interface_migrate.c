@@ -28350,3 +28350,15 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_salts_buf,
     }
   }
 }
+
+static void precompute_salt_md5 (const u32 *salt_buf, const u32 salt_len, u8 *salt_pc)
+{
+  u32 digest[4] = { 0 };
+
+  md5_complete_no_limit (digest, salt_buf, salt_len);
+
+  u32_to_hex (digest[0], salt_pc +  0);
+  u32_to_hex (digest[1], salt_pc +  8);
+  u32_to_hex (digest[2], salt_pc + 16);
+  u32_to_hex (digest[3], salt_pc + 24);
+}

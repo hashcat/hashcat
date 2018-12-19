@@ -25,19 +25,19 @@ FARPROC hc_dlsym (HMODULE hModule, LPCSTR lpProcName)
 
 #else
 
-void *hc_dlopen (const char *fileName, int flag)
+void *hc_dlopen (const char *filename)
 {
-  return dlopen (fileName, flag);
+  return dlopen (filename, RTLD_NOW);
 }
 
-int hc_dlclose (void * handle)
+int hc_dlclose (void *handle)
 {
   return dlclose (handle);
 }
 
-void *hc_dlsym (void *module, const char *symbol)
+void *hc_dlsym (void *handle, const char *symbol)
 {
-  return dlsym (module, symbol);
+  return dlsym (handle, symbol);
 }
 
 #endif

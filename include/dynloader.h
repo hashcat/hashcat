@@ -22,9 +22,9 @@ HMODULE hc_dlopen  (LPCSTR lpLibFileName);
 BOOL    hc_dlclose (HMODULE hLibModule);
 FARPROC hc_dlsym   (HMODULE hModule, LPCSTR lpProcName);
 #else
-void *hc_dlopen  (const char *fileName, int flag);
+void *hc_dlopen  (const char *filename);
 int   hc_dlclose (void *handle);
-void *hc_dlsym   (void *module, const char *symbol);
+void *hc_dlsym   (void *handle, const char *symbol);
 #endif
 
 #define HC_LOAD_FUNC2(ptr,name,type,var,libname,noerr) \

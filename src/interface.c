@@ -9,21 +9,14 @@
 #include "memory.h"
 #include "convert.h"
 #include "event.h"
-#include "inc_hash_constants.h"
-#include "cpu_aes.h"
-#include "cpu_crc32.h"
-#include "cpu_des.h"
-#include "cpu_md4.h"
-#include "cpu_md5.h"
-#include "cpu_sha1.h"
-#include "cpu_sha256.h"
-#include "cpu_blake2.h"
 #include "shared.h"
 #include "opencl.h"
 #include "interface.h"
 #include "filehandling.h"
 #include "ext_lzma.h"
 #include "modules.h"
+#include "dynloader.h"
+#include "cpu_crc32.h"
 
 static const char *ST_PASS_HASHCAT_PLAIN = "hashcat";
 static const char *ST_PASS_HASHCAT_EXCL  = "hashcat!";
@@ -261,18 +254,6 @@ static bool parse_and_store_generic_salt (u8 *out_buf, int *out_len, const u8 *i
   *out_len = tmp_len;
 
   return true;
-}
-
-static void precompute_salt_md5 (const u32 *salt_buf, const u32 salt_len, u8 *salt_pc)
-{
-  u32 digest[4] = { 0 };
-
-  md5_complete_no_limit (digest, salt_buf, salt_len);
-
-  u32_to_hex (digest[0], salt_pc +  0);
-  u32_to_hex (digest[1], salt_pc +  8);
-  u32_to_hex (digest[2], salt_pc + 16);
-  u32_to_hex (digest[3], salt_pc + 24);
 }
 
 /**
@@ -635,35 +616,39 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
 
 static bool module_load (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, const u32 hash_mode)
 {
+  const folder_config_t *folder_config = hashcat_ctx->folder_config;
+
   char *module_file = (char *) hcmalloc (HCBUFSIZ_TINY);
 
   #if defined (_WIN)
-
+  snprintf (module_file, HCBUFSIZ_TINY, "%s/modules/module_%05d.dll", folder_config->shared_dir, hash_mode);
   #else
-
-  const folder_config_t *folder_config = hashcat_ctx->folder_config;
-
   snprintf (module_file, HCBUFSIZ_TINY, "%s/modules/module_%05d.so", folder_config->shared_dir, hash_mode);
+  #endif
 
-  module_ctx->module_handle = dlopen (module_file, RTLD_LAZY);
+  module_ctx->module_handle = hc_dlopen (module_file);
 
   if (module_ctx->module_handle == NULL)
   {
+    event_log_error (hashcat_ctx, "Cannot load module %s", module_file);
+
+    #if defined (_WIN)
+
+    #else
     event_log_error (hashcat_ctx, "%s", dlerror ());
+    #endif
 
     return false;
   }
 
-  module_ctx->module_init = dlsym (module_ctx->module_handle, "module_init");
+  module_ctx->module_init = hc_dlsym (module_ctx->module_handle, "module_init");
 
   if (module_ctx->module_init == NULL)
   {
-    event_log_error (hashcat_ctx, "%s", dlerror ());
+    event_log_error (hashcat_ctx, "Cannot load symbol 'module_init' in module %s", module_file);
 
     return false;
   }
-
-  #endif
 
   free (module_file);
 
@@ -672,13 +657,7 @@ static bool module_load (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, c
 
 static void module_unload (module_ctx_t *module_ctx)
 {
-  #if defined (_WIN)
-
-  #else
-
-  dlclose (module_ctx->module_handle);
-
-  #endif
+  hc_dlclose (module_ctx->module_handle);
 }
 
 int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
@@ -1050,384 +1029,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
     memcpy (esalt, hashconfig->benchmark_esalt, hashconfig->esalt_size);
 
     memcpy (hook_salt, hashconfig->benchmark_hook_salt, hashconfig->hook_salt_size);
-  }
-}
-
-void decoder_apply_optimizer (const hashconfig_t *hashconfig, void *data)
-{
-  const u32 hash_type = hashconfig->hash_type;
-  const u32 opti_type = hashconfig->opti_type;
-
-  u32 *digest_buf   = (u32 *) data;
-  u64 *digest_buf64 = (u64 *) data;
-
-  if (opti_type & OPTI_TYPE_PRECOMPUTE_PERMUT)
-  {
-    u32 tt;
-
-    switch (hash_type)
-    {
-      case HASH_TYPE_DES:
-        FP (digest_buf[1], digest_buf[0], tt);
-        break;
-
-      case HASH_TYPE_DESCRYPT:
-        FP (digest_buf[1], digest_buf[0], tt);
-        break;
-
-      case HASH_TYPE_DESRACF:
-        digest_buf[0] = rotl32 (digest_buf[0], 29);
-        digest_buf[1] = rotl32 (digest_buf[1], 29);
-
-        FP (digest_buf[1], digest_buf[0], tt);
-        break;
-
-      case HASH_TYPE_LM:
-        FP (digest_buf[1], digest_buf[0], tt);
-        break;
-
-      case HASH_TYPE_NETNTLM:
-        digest_buf[0] = rotl32 (digest_buf[0], 29);
-        digest_buf[1] = rotl32 (digest_buf[1], 29);
-        digest_buf[2] = rotl32 (digest_buf[2], 29);
-        digest_buf[3] = rotl32 (digest_buf[3], 29);
-
-        FP (digest_buf[1], digest_buf[0], tt);
-        FP (digest_buf[3], digest_buf[2], tt);
-        break;
-
-      case HASH_TYPE_BSDICRYPT:
-        digest_buf[0] = rotl32 (digest_buf[0], 31);
-        digest_buf[1] = rotl32 (digest_buf[1], 31);
-
-        FP (digest_buf[1], digest_buf[0], tt);
-        break;
-    }
-  }
-
-  if (opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
-  {
-    switch (hash_type)
-    {
-      case HASH_TYPE_MD4:
-        digest_buf[0] -= MD4M_A;
-        digest_buf[1] -= MD4M_B;
-        digest_buf[2] -= MD4M_C;
-        digest_buf[3] -= MD4M_D;
-        break;
-
-      case HASH_TYPE_MD5:
-        digest_buf[0] -= MD5M_A;
-        digest_buf[1] -= MD5M_B;
-        digest_buf[2] -= MD5M_C;
-        digest_buf[3] -= MD5M_D;
-        break;
-
-      case HASH_TYPE_SHA1:
-        digest_buf[0] -= SHA1M_A;
-        digest_buf[1] -= SHA1M_B;
-        digest_buf[2] -= SHA1M_C;
-        digest_buf[3] -= SHA1M_D;
-        digest_buf[4] -= SHA1M_E;
-        break;
-
-      case HASH_TYPE_SHA224:
-        digest_buf[0] -= SHA224M_A;
-        digest_buf[1] -= SHA224M_B;
-        digest_buf[2] -= SHA224M_C;
-        digest_buf[3] -= SHA224M_D;
-        digest_buf[4] -= SHA224M_E;
-        digest_buf[5] -= SHA224M_F;
-        digest_buf[6] -= SHA224M_G;
-        break;
-
-      case HASH_TYPE_SHA256:
-        digest_buf[0] -= SHA256M_A;
-        digest_buf[1] -= SHA256M_B;
-        digest_buf[2] -= SHA256M_C;
-        digest_buf[3] -= SHA256M_D;
-        digest_buf[4] -= SHA256M_E;
-        digest_buf[5] -= SHA256M_F;
-        digest_buf[6] -= SHA256M_G;
-        digest_buf[7] -= SHA256M_H;
-        break;
-
-      case HASH_TYPE_SHA384:
-        digest_buf64[0] -= SHA384M_A;
-        digest_buf64[1] -= SHA384M_B;
-        digest_buf64[2] -= SHA384M_C;
-        digest_buf64[3] -= SHA384M_D;
-        digest_buf64[4] -= SHA384M_E;
-        digest_buf64[5] -= SHA384M_F;
-        digest_buf64[6] -= 0;
-        digest_buf64[7] -= 0;
-        break;
-
-      case HASH_TYPE_SHA512:
-        digest_buf64[0] -= SHA512M_A;
-        digest_buf64[1] -= SHA512M_B;
-        digest_buf64[2] -= SHA512M_C;
-        digest_buf64[3] -= SHA512M_D;
-        digest_buf64[4] -= SHA512M_E;
-        digest_buf64[5] -= SHA512M_F;
-        digest_buf64[6] -= SHA512M_G;
-        digest_buf64[7] -= SHA512M_H;
-        break;
-    }
-  }
-}
-
-void encoder_apply_optimizer (const hashconfig_t *hashconfig, void *data)
-{
-  const u32 hash_type = hashconfig->hash_type;
-  const u32 opti_type = hashconfig->opti_type;
-
-  u32 *digest_buf   = (u32 *) data;
-  u64 *digest_buf64 = (u64 *) data;
-
-  if (opti_type & OPTI_TYPE_PRECOMPUTE_PERMUT)
-  {
-    u32 tt;
-
-    switch (hash_type)
-    {
-      case HASH_TYPE_DES:
-        FP (digest_buf[1], digest_buf[0], tt);
-        break;
-
-      case HASH_TYPE_DESCRYPT:
-        FP (digest_buf[1], digest_buf[0], tt);
-        break;
-
-      case HASH_TYPE_DESRACF:
-        digest_buf[0] = rotl32 (digest_buf[0], 29);
-        digest_buf[1] = rotl32 (digest_buf[1], 29);
-
-        FP (digest_buf[1], digest_buf[0], tt);
-        break;
-
-      case HASH_TYPE_LM:
-        FP (digest_buf[1], digest_buf[0], tt);
-        break;
-
-      case HASH_TYPE_NETNTLM:
-        digest_buf[0] = rotl32 (digest_buf[0], 29);
-        digest_buf[1] = rotl32 (digest_buf[1], 29);
-        digest_buf[2] = rotl32 (digest_buf[2], 29);
-        digest_buf[3] = rotl32 (digest_buf[3], 29);
-
-        FP (digest_buf[1], digest_buf[0], tt);
-        FP (digest_buf[3], digest_buf[2], tt);
-        break;
-
-      case HASH_TYPE_BSDICRYPT:
-        digest_buf[0] = rotl32 (digest_buf[0], 31);
-        digest_buf[1] = rotl32 (digest_buf[1], 31);
-
-        FP (digest_buf[1], digest_buf[0], tt);
-        break;
-    }
-  }
-
-  if (opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
-  {
-    switch (hash_type)
-    {
-      case HASH_TYPE_MD4:
-        digest_buf[0] += MD4M_A;
-        digest_buf[1] += MD4M_B;
-        digest_buf[2] += MD4M_C;
-        digest_buf[3] += MD4M_D;
-        break;
-
-      case HASH_TYPE_MD5:
-        digest_buf[0] += MD5M_A;
-        digest_buf[1] += MD5M_B;
-        digest_buf[2] += MD5M_C;
-        digest_buf[3] += MD5M_D;
-        break;
-
-      case HASH_TYPE_SHA1:
-        digest_buf[0] += SHA1M_A;
-        digest_buf[1] += SHA1M_B;
-        digest_buf[2] += SHA1M_C;
-        digest_buf[3] += SHA1M_D;
-        digest_buf[4] += SHA1M_E;
-        break;
-
-      case HASH_TYPE_SHA224:
-        digest_buf[0] += SHA224M_A;
-        digest_buf[1] += SHA224M_B;
-        digest_buf[2] += SHA224M_C;
-        digest_buf[3] += SHA224M_D;
-        digest_buf[4] += SHA224M_E;
-        digest_buf[5] += SHA224M_F;
-        digest_buf[6] += SHA224M_G;
-        break;
-
-      case HASH_TYPE_SHA256:
-        digest_buf[0] += SHA256M_A;
-        digest_buf[1] += SHA256M_B;
-        digest_buf[2] += SHA256M_C;
-        digest_buf[3] += SHA256M_D;
-        digest_buf[4] += SHA256M_E;
-        digest_buf[5] += SHA256M_F;
-        digest_buf[6] += SHA256M_G;
-        digest_buf[7] += SHA256M_H;
-        break;
-
-      case HASH_TYPE_SHA384:
-        digest_buf64[0] += SHA384M_A;
-        digest_buf64[1] += SHA384M_B;
-        digest_buf64[2] += SHA384M_C;
-        digest_buf64[3] += SHA384M_D;
-        digest_buf64[4] += SHA384M_E;
-        digest_buf64[5] += SHA384M_F;
-        digest_buf64[6] += 0;
-        digest_buf64[7] += 0;
-        break;
-
-      case HASH_TYPE_SHA512:
-        digest_buf64[0] += SHA512M_A;
-        digest_buf64[1] += SHA512M_B;
-        digest_buf64[2] += SHA512M_C;
-        digest_buf64[3] += SHA512M_D;
-        digest_buf64[4] += SHA512M_E;
-        digest_buf64[5] += SHA512M_F;
-        digest_buf64[6] += SHA512M_G;
-        digest_buf64[7] += SHA512M_H;
-        break;
-    }
-  }
-}
-
-void decoder_apply_options (const hashconfig_t *hashconfig, void *data)
-{
-  const u32 hash_type = hashconfig->hash_type;
-  const u64 opts_type = hashconfig->opts_type;
-  const u32 dgst_size = hashconfig->dgst_size;
-
-  u32 *digest_buf   = (u32 *) data;
-  u64 *digest_buf64 = (u64 *) data;
-
-  if (opts_type & OPTS_TYPE_STATE_BUFFER_BE)
-  {
-    if (dgst_size == DGST_SIZE_4_2)
-    {
-      for (int i = 0; i < 2; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
-    }
-    else if (dgst_size == DGST_SIZE_4_4)
-    {
-      for (int i = 0; i < 4; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
-    }
-    else if (dgst_size == DGST_SIZE_4_5)
-    {
-      for (int i = 0; i < 5; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
-    }
-    else if (dgst_size == DGST_SIZE_4_6)
-    {
-      for (int i = 0; i < 6; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
-    }
-    else if (dgst_size == DGST_SIZE_4_7)
-    {
-      for (int i = 0; i < 7; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
-    }
-    else if (dgst_size == DGST_SIZE_4_8)
-    {
-      for (int i = 0; i < 8; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
-    }
-    else if ((dgst_size == DGST_SIZE_4_16) || (dgst_size == DGST_SIZE_8_8)) // same size, same result :)
-    {
-      if (hash_type == HASH_TYPE_WHIRLPOOL)
-      {
-        for (int i = 0; i < 16; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
-      }
-      else if (hash_type == HASH_TYPE_SHA384)
-      {
-        for (int i = 0; i < 8; i++) digest_buf64[i] = byte_swap_64 (digest_buf64[i]);
-      }
-      else if (hash_type == HASH_TYPE_SHA512)
-      {
-        for (int i = 0; i < 8; i++) digest_buf64[i] = byte_swap_64 (digest_buf64[i]);
-      }
-      else if (hash_type == HASH_TYPE_GOST)
-      {
-        for (int i = 0; i < 16; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
-      }
-    }
-    else if (dgst_size == DGST_SIZE_4_64)
-    {
-      for (int i = 0; i < 64; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
-    }
-    else if (dgst_size == DGST_SIZE_8_25)
-    {
-      for (int i = 0; i < 25; i++) digest_buf64[i] = byte_swap_64 (digest_buf64[i]);
-    }
-  }
-}
-
-void encoder_apply_options (const hashconfig_t *hashconfig, void *data)
-{
-  const u32 hash_type = hashconfig->hash_type;
-  const u64 opts_type = hashconfig->opts_type;
-  const u32 dgst_size = hashconfig->dgst_size;
-
-  u32 *digest_buf   = (u32 *) data;
-  u64 *digest_buf64 = (u64 *) data;
-
-  if (opts_type & OPTS_TYPE_STATE_BUFFER_BE)
-  {
-    if (dgst_size == DGST_SIZE_4_2)
-    {
-      for (int i = 0; i < 2; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
-    }
-    else if (dgst_size == DGST_SIZE_4_4)
-    {
-      for (int i = 0; i < 4; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
-    }
-    else if (dgst_size == DGST_SIZE_4_5)
-    {
-      for (int i = 0; i < 5; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
-    }
-    else if (dgst_size == DGST_SIZE_4_6)
-    {
-      for (int i = 0; i < 6; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
-    }
-    else if (dgst_size == DGST_SIZE_4_7)
-    {
-      for (int i = 0; i < 7; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
-    }
-    else if (dgst_size == DGST_SIZE_4_8)
-    {
-      for (int i = 0; i < 8; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
-    }
-    else if ((dgst_size == DGST_SIZE_4_16) || (dgst_size == DGST_SIZE_8_8)) // same size, same result :)
-    {
-      if (hash_type == HASH_TYPE_WHIRLPOOL)
-      {
-        for (int i = 0; i < 16; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
-      }
-      else if (hash_type == HASH_TYPE_SHA384)
-      {
-        for (int i = 0; i < 8; i++) digest_buf64[i] = byte_swap_64 (digest_buf64[i]);
-      }
-      else if (hash_type == HASH_TYPE_SHA512)
-      {
-        for (int i = 0; i < 8; i++) digest_buf64[i] = byte_swap_64 (digest_buf64[i]);
-      }
-      else if (hash_type == HASH_TYPE_GOST)
-      {
-        for (int i = 0; i < 16; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
-      }
-    }
-    else if (dgst_size == DGST_SIZE_4_64)
-    {
-      for (int i = 0; i < 64; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
-    }
-    else if (dgst_size == DGST_SIZE_8_25)
-    {
-      for (int i = 0; i < 25; i++) digest_buf64[i] = byte_swap_64 (digest_buf64[i]);
-    }
   }
 }
 
