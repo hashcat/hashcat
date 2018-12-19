@@ -873,12 +873,12 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   hashconfig->hash_mode             = default_hash_mode             (hashconfig, user_options, user_options_extra);
   hashconfig->hash_type             = default_hash_type             (hashconfig, user_options, user_options_extra);
   hashconfig->hlfmt_disable         = default_hlfmt_disable         (hashconfig, user_options, user_options_extra);
-  hashconfig->hlfmt_pwdump_column   = default_hlfmt_pwdump_column   (hashconfig, user_options, user_options_extra);
   hashconfig->hook_salt_size        = default_hook_salt_size        (hashconfig, user_options, user_options_extra);
   hashconfig->hook_size             = default_hook_size             (hashconfig, user_options, user_options_extra);
   hashconfig->kern_type             = default_kern_type             (hashconfig, user_options, user_options_extra);
   hashconfig->opti_type             = default_opti_type             (hashconfig, user_options, user_options_extra);
   hashconfig->opts_type             = default_opts_type             (hashconfig, user_options, user_options_extra);
+  hashconfig->pwdump_column         = default_pwdump_column         (hashconfig, user_options, user_options_extra);
   hashconfig->salt_type             = default_salt_type             (hashconfig, user_options, user_options_extra);
   hashconfig->separator             = default_separator             (hashconfig, user_options, user_options_extra);
   hashconfig->st_hash               = default_st_hash               (hashconfig, user_options, user_options_extra);
@@ -905,12 +905,12 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   if (module_ctx->module_hash_mode)             hashconfig->hash_mode             = module_ctx->module_hash_mode              (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hash_type)             hashconfig->hash_type             = module_ctx->module_hash_type              (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hlfmt_disable)         hashconfig->hlfmt_disable         = module_ctx->module_hlfmt_disable          (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_hlfmt_pwdump_column)   hashconfig->hlfmt_pwdump_column   = module_ctx->module_hlfmt_pwdump_column    (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hook_salt_size)        hashconfig->hook_salt_size        = module_ctx->module_hook_salt_size         (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hook_size)             hashconfig->hook_size             = module_ctx->module_hook_size              (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_kern_type)             hashconfig->kern_type             = module_ctx->module_kern_type              (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_opti_type)             hashconfig->opti_type             = module_ctx->module_opti_type              (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_opts_type)             hashconfig->opts_type             = module_ctx->module_opts_type              (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_pwdump_column)         hashconfig->pwdump_column         = module_ctx->module_pwdump_column          (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_salt_type)             hashconfig->salt_type             = module_ctx->module_salt_type              (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_separator)             hashconfig->separator             = module_ctx->module_separator              (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_st_hash)               hashconfig->st_hash               = module_ctx->module_st_hash                (hashconfig, user_options, user_options_extra);
@@ -1928,11 +1928,11 @@ bool default_hlfmt_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_U
   return hlfmt_disable;
 }
 
-u32 default_hlfmt_pwdump_column (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+u32 default_pwdump_column (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 hlfmt_pwdump_column = HLFMT_PWDUMP_COLUMN_NONE;
+  const u32 pwdump_column = PWDUMP_COLUMN_INVALID;
 
-  return hlfmt_pwdump_column;
+  return pwdump_column;
 }
 
 // migrate

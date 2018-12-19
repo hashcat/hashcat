@@ -456,13 +456,17 @@ typedef enum hlfmt_name
 
 } hlfmt_name_t;
 
-typedef enum hlfmt_pwdump_column
+typedef enum pwdump_column
 {
-  HLFMT_PWDUMP_COLUMN_NONE  = 0,
-  HLFMT_PWDUMP_COLUMN_LM    = 1,
-  HLFMT_PWDUMP_COLUMN_NTLM  = 2,
+  PWDUMP_COLUMN_INVALID   = -1,
+  PWDUMP_COLUMN_USERNAME  = 0,
+  PWDUMP_COLUMN_UID       = 1,
+  PWDUMP_COLUMN_LM_HASH   = 2,
+  PWDUMP_COLUMN_NTLM_HASH = 3,
+  PWDUMP_COLUMN_COMMENT   = 4,
+  PWDUMP_COLUMN_HOMEDIR   = 5,
 
-} hlfmt_pwdump_column_t;
+} pwdump_column_t;
 
 typedef enum outfile_fmt
 {
@@ -956,7 +960,7 @@ struct hashconfig
   bool hlfmt_disable;
   bool warmup_disable;
 
-  u32 hlfmt_pwdump_column;
+  u32 pwdump_column;
 };
 
 typedef struct hashconfig hashconfig_t;
@@ -2247,12 +2251,12 @@ typedef struct module_ctx
   u32         (*module_hash_mode)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_hash_type)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   bool        (*module_hlfmt_disable)         (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u32         (*module_hlfmt_pwdump_column)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_hook_salt_size)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_hook_size)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_kern_type)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_opti_type)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_opts_type)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_pwdump_column)         (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_pw_min)                (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_pw_max)                (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_salt_min)              (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);

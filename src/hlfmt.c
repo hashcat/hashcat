@@ -129,7 +129,7 @@ static void hlfmt_hash_pwdump (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, char *li
       continue;
     }
 
-    if (hashconfig->hlfmt_pwdump_column == HLFMT_PWDUMP_COLUMN_LM)
+    if (hashconfig->pwdump_column == PWDUMP_COLUMN_LM_HASH)
     {
       if (sep_cnt == 2)
       {
@@ -138,7 +138,7 @@ static void hlfmt_hash_pwdump (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, char *li
         len++;
       }
     }
-    else if (hashconfig->hlfmt_pwdump_column == HLFMT_PWDUMP_COLUMN_NTLM)
+    else if (hashconfig->pwdump_column == PWDUMP_COLUMN_NTLM_HASH)
     {
       if (sep_cnt == 3)
       {
