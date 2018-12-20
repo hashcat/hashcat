@@ -962,6 +962,7 @@ struct hashconfig
   bool outfile_check_disable;
   bool outfile_check_nocomp;
   bool potfile_disable;
+  bool potfile_keep_all_hashes;
 
   u32 pwdump_column;
 };
@@ -1563,8 +1564,6 @@ typedef struct pot
 typedef struct potfile_ctx
 {
   bool     enabled;
-
-  bool     keep_all_hashes;
 
   FILE    *fp;
   char    *filename;
@@ -2238,53 +2237,55 @@ typedef struct module_ctx
   void       *module_handle;
   u32         module_version_current;
 
-  void        (*module_init)                  (struct module_ctx *);
+  void        (*module_init)                    (struct module_ctx *);
 
-  u32         (*module_attack_exec)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  void       *(*module_benchmark_esalt)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  void       *(*module_benchmark_hook_salt)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  const char *(*module_benchmark_mask)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  salt_t     *(*module_benchmark_salt)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  bool        (*module_dictstat_disable)      (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u32         (*module_dgst_pos0)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u32         (*module_dgst_pos1)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u32         (*module_dgst_pos2)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u32         (*module_dgst_pos3)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u32         (*module_dgst_size)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u64         (*module_esalt_size)            (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u32         (*module_forced_kernel_threads) (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u32         (*module_forced_kernel_loops)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u32         (*module_forced_outfile_format) (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  const char *(*module_hash_name)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u32         (*module_hash_mode)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u32         (*module_hash_type)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  bool        (*module_hlfmt_disable)         (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u64         (*module_hook_salt_size)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u64         (*module_hook_size)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u64         (*module_kern_type)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u32         (*module_opti_type)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u64         (*module_opts_type)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  bool        (*module_outfile_check_disable) (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  bool        (*module_outfile_check_nocomp)  (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  bool        (*module_potfile_disable)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u32         (*module_pwdump_column)         (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u32         (*module_pw_min)                (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u32         (*module_pw_max)                (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u32         (*module_salt_min)              (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u32         (*module_salt_max)              (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u32         (*module_salt_type)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  char        (*module_separator)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  const char *(*module_st_hash)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  const char *(*module_st_pass)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u64         (*module_tmp_size)              (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  bool        (*module_warmup_disable)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_attack_exec)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  void       *(*module_benchmark_esalt)         (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  void       *(*module_benchmark_hook_salt)     (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  const char *(*module_benchmark_mask)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  salt_t     *(*module_benchmark_salt)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  bool        (*module_dictstat_disable)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_dgst_pos0)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_dgst_pos1)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_dgst_pos2)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_dgst_pos3)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_dgst_size)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u64         (*module_esalt_size)              (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_forced_kernel_threads)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_forced_kernel_loops)     (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_forced_outfile_format)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  const char *(*module_hash_name)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_hash_mode)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_hash_type)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  bool        (*module_hlfmt_disable)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u64         (*module_hook_salt_size)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u64         (*module_hook_size)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u64         (*module_kern_type)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_opti_type)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u64         (*module_opts_type)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  bool        (*module_outfile_check_disable)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  bool        (*module_outfile_check_nocomp)    (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  bool        (*module_potfile_disable)         (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  bool        (*module_potfile_keep_all_hashes) (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_pwdump_column)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_pw_min)                  (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_pw_max)                  (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_salt_min)                (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_salt_max)                (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_salt_type)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  char        (*module_separator)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  const char *(*module_st_hash)                 (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  const char *(*module_st_pass)                 (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u64         (*module_tmp_size)                (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  bool        (*module_warmup_disable)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
 
-  int         (*module_hash_decode_outfile)   (const hashconfig_t *,       void *,       salt_t *,       void *, const char *, const int);
-  int         (*module_hash_decode)           (const hashconfig_t *,       void *,       salt_t *,       void *, const char *, const int);
-  int         (*module_hash_encode)           (const hashconfig_t *, const void *, const salt_t *, const void *,       char *,       int);
+  int         (*module_hash_decode_outfile)     (const hashconfig_t *,       void *,       salt_t *,       void *, const char *, const int);
+  int         (*module_hash_decode_zero_hash)   (const hashconfig_t *,       void *,       salt_t *,       void *);
+  int         (*module_hash_decode)             (const hashconfig_t *,       void *,       salt_t *,       void *, const char *, const int);
+  int         (*module_hash_encode)             (const hashconfig_t *, const void *, const salt_t *, const void *,       char *,       int);
 
-  void        (*module_hook12)                (hc_device_param_t *, const void *, const u32, const u64);
-  void        (*module_hook23)                (hc_device_param_t *, const void *, const u32, const u64);
+  void        (*module_hook12)                  (hc_device_param_t *, const void *, const u32, const u64);
+  void        (*module_hook23)                  (hc_device_param_t *, const void *, const u32, const u64);
 
 } module_ctx_t;
 

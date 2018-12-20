@@ -1346,7 +1346,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
   for (u32 hashes_pos = 1; hashes_pos < hashes_cnt; hashes_pos++)
   {
-    if (potfile_ctx->keep_all_hashes == true)
+    if (hashconfig->potfile_keep_all_hashes == true)
     {
       // do not sort, because we need to keep all hashes in this particular case
     }

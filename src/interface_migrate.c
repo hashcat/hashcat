@@ -28444,3 +28444,28 @@ int module_hash_decode_outfile (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
           }
 
 }
+int module_hash_decode_zero_hash (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf)
+{
+  if (hashconfig->hash_mode == 3000)
+  {
+    static const char LM_ZERO_HASH[]    = "aad3b435b51404ee";
+
+
+    return module_hash_decode (hashconfig, digest, salt, esalt, LM_ZERO_HASH, 16);
+
+}
+
+
+bool potfile_keep_all_hashes
+{
+  // keep all hashes if -m 3000 was combined with --left or --show
+
+  if (user_options->hash_mode == 3000)
+  {
+    if ((user_options->show == true) || (user_options->left == true))
+    {
+      potfile_ctx->keep_all_hashes = true;
+    }
+  }
+}
+

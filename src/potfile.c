@@ -124,28 +124,6 @@ int potfile_init (hashcat_ctx_t *hashcat_ctx)
     potfile_ctx->fp       = NULL;
   }
 
-  // keep all hashes if --username was combined with --left or --show
-
-  potfile_ctx->keep_all_hashes = false;
-
-  if (user_options->username == true)
-  {
-    if ((user_options->show == true) || (user_options->left == true))
-    {
-      potfile_ctx->keep_all_hashes = true;
-    }
-  }
-
-  // keep all hashes if -m 3000 was combined with --left or --show
-
-  if (user_options->hash_mode == 3000)
-  {
-    if ((user_options->show == true) || (user_options->left == true))
-    {
-      potfile_ctx->keep_all_hashes = true;
-    }
-  }
-
   // starting from here, we should allocate some scratch buffer for later use
 
   u8 *out_buf = (u8 *) hcmalloc (HCBUFSIZ_LARGE);
@@ -440,7 +418,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
   pot_tree_entry_t *tree_entry_cache = NULL;
   pot_hash_node_t  *tree_nodes_cache = NULL;
 
-  if (potfile_ctx->keep_all_hashes == true)
+  if (hashconfig->potfile_keep_all_hashes == true)
   {
     // we need *at most* one entry for every hash
     // (if there are no hashes with the same keys (hash + salt), a counter example would be: same hash but different user name)
@@ -510,24 +488,21 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  // special case for a split hash
+  // do not use this unless really needed, for example as in LM
 
-  if (hashconfig->hash_mode == 3000)
+  if (module_ctx->module_hash_decode_zero_hash)
   {
-    const int parser_status = module_ctx->module_hash_decode (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, LM_ZERO_HASH, 16);
+    module_ctx->module_hash_decode_zero_hash (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt);
 
-    if (parser_status == PARSER_OK)
+    if (hashconfig->potfile_keep_all_hashes == true)
     {
-      if (potfile_ctx->keep_all_hashes == true)
-      {
-        potfile_update_hashes (hashcat_ctx, &hash_buf, NULL, 0, all_hashes_tree);
-      }
-      else
-      {
-        hash_t *found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_no_salt, (void *) hashconfig);
+      potfile_update_hashes (hashcat_ctx, &hash_buf, NULL, 0, all_hashes_tree);
+    }
+    else
+    {
+      hash_t *found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_no_salt, (void *) hashconfig);
 
-        potfile_update_hash (hashcat_ctx, found, NULL, 0);
-      }
+      potfile_update_hash (hashcat_ctx, found, NULL, 0);
     }
   }
 
@@ -652,7 +627,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
       if (parser_status != PARSER_OK) continue;
 
-      if (potfile_ctx->keep_all_hashes == true)
+      if (hashconfig->potfile_keep_all_hashes == true)
       {
         potfile_update_hashes (hashcat_ctx, &hash_buf, line_pw_buf, (u32) line_pw_len, all_hashes_tree);
 
@@ -669,8 +644,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
   potfile_read_close (hashcat_ctx);
 
-
-  if (potfile_ctx->keep_all_hashes == true)
+  if (hashconfig->potfile_keep_all_hashes == true)
   {
     pot_tree_destroy (all_hashes_tree); // this could be slow (should we just skip it?)
 

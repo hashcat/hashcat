@@ -670,36 +670,37 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   // set some boring defaults
 
-  hashconfig->attack_exec           = default_attack_exec           (hashconfig, user_options, user_options_extra);
-  hashconfig->dictstat_disable      = default_dictstat_disable      (hashconfig, user_options, user_options_extra);
-  hashconfig->dgst_pos0             = default_dgst_pos0             (hashconfig, user_options, user_options_extra);
-  hashconfig->dgst_pos1             = default_dgst_pos1             (hashconfig, user_options, user_options_extra);
-  hashconfig->dgst_pos2             = default_dgst_pos2             (hashconfig, user_options, user_options_extra);
-  hashconfig->dgst_pos3             = default_dgst_pos3             (hashconfig, user_options, user_options_extra);
-  hashconfig->dgst_size             = default_dgst_size             (hashconfig, user_options, user_options_extra);
-  hashconfig->esalt_size            = default_esalt_size            (hashconfig, user_options, user_options_extra);
-  hashconfig->forced_kernel_threads = default_forced_kernel_threads (hashconfig, user_options, user_options_extra);
-  hashconfig->forced_kernel_loops   = default_forced_kernel_loops   (hashconfig, user_options, user_options_extra);
-  hashconfig->forced_outfile_format = default_forced_outfile_format (hashconfig, user_options, user_options_extra);
-  hashconfig->hash_name             = default_hash_name             (hashconfig, user_options, user_options_extra);
-  hashconfig->hash_mode             = default_hash_mode             (hashconfig, user_options, user_options_extra);
-  hashconfig->hash_type             = default_hash_type             (hashconfig, user_options, user_options_extra);
-  hashconfig->hlfmt_disable         = default_hlfmt_disable         (hashconfig, user_options, user_options_extra);
-  hashconfig->hook_salt_size        = default_hook_salt_size        (hashconfig, user_options, user_options_extra);
-  hashconfig->hook_size             = default_hook_size             (hashconfig, user_options, user_options_extra);
-  hashconfig->kern_type             = default_kern_type             (hashconfig, user_options, user_options_extra);
-  hashconfig->opti_type             = default_opti_type             (hashconfig, user_options, user_options_extra);
-  hashconfig->opts_type             = default_opts_type             (hashconfig, user_options, user_options_extra);
-  hashconfig->outfile_check_disable = default_outfile_check_disable (hashconfig, user_options, user_options_extra);
-  hashconfig->outfile_check_nocomp  = default_outfile_check_nocomp  (hashconfig, user_options, user_options_extra);
-  hashconfig->potfile_disable       = default_potfile_disable       (hashconfig, user_options, user_options_extra);
-  hashconfig->pwdump_column         = default_pwdump_column         (hashconfig, user_options, user_options_extra);
-  hashconfig->salt_type             = default_salt_type             (hashconfig, user_options, user_options_extra);
-  hashconfig->separator             = default_separator             (hashconfig, user_options, user_options_extra);
-  hashconfig->st_hash               = default_st_hash               (hashconfig, user_options, user_options_extra);
-  hashconfig->st_pass               = default_st_pass               (hashconfig, user_options, user_options_extra);
-  hashconfig->tmp_size              = default_tmp_size              (hashconfig, user_options, user_options_extra);
-  hashconfig->warmup_disable        = default_warmup_disable        (hashconfig, user_options, user_options_extra);
+  hashconfig->attack_exec             = default_attack_exec             (hashconfig, user_options, user_options_extra);
+  hashconfig->dictstat_disable        = default_dictstat_disable        (hashconfig, user_options, user_options_extra);
+  hashconfig->dgst_pos0               = default_dgst_pos0               (hashconfig, user_options, user_options_extra);
+  hashconfig->dgst_pos1               = default_dgst_pos1               (hashconfig, user_options, user_options_extra);
+  hashconfig->dgst_pos2               = default_dgst_pos2               (hashconfig, user_options, user_options_extra);
+  hashconfig->dgst_pos3               = default_dgst_pos3               (hashconfig, user_options, user_options_extra);
+  hashconfig->dgst_size               = default_dgst_size               (hashconfig, user_options, user_options_extra);
+  hashconfig->esalt_size              = default_esalt_size              (hashconfig, user_options, user_options_extra);
+  hashconfig->forced_kernel_threads   = default_forced_kernel_threads   (hashconfig, user_options, user_options_extra);
+  hashconfig->forced_kernel_loops     = default_forced_kernel_loops     (hashconfig, user_options, user_options_extra);
+  hashconfig->forced_outfile_format   = default_forced_outfile_format   (hashconfig, user_options, user_options_extra);
+  hashconfig->hash_name               = default_hash_name               (hashconfig, user_options, user_options_extra);
+  hashconfig->hash_mode               = default_hash_mode               (hashconfig, user_options, user_options_extra);
+  hashconfig->hash_type               = default_hash_type               (hashconfig, user_options, user_options_extra);
+  hashconfig->hlfmt_disable           = default_hlfmt_disable           (hashconfig, user_options, user_options_extra);
+  hashconfig->hook_salt_size          = default_hook_salt_size          (hashconfig, user_options, user_options_extra);
+  hashconfig->hook_size               = default_hook_size               (hashconfig, user_options, user_options_extra);
+  hashconfig->kern_type               = default_kern_type               (hashconfig, user_options, user_options_extra);
+  hashconfig->opti_type               = default_opti_type               (hashconfig, user_options, user_options_extra);
+  hashconfig->opts_type               = default_opts_type               (hashconfig, user_options, user_options_extra);
+  hashconfig->outfile_check_disable   = default_outfile_check_disable   (hashconfig, user_options, user_options_extra);
+  hashconfig->outfile_check_nocomp    = default_outfile_check_nocomp    (hashconfig, user_options, user_options_extra);
+  hashconfig->potfile_disable         = default_potfile_disable         (hashconfig, user_options, user_options_extra);
+  hashconfig->potfile_keep_all_hashes = default_potfile_keep_all_hashes (hashconfig, user_options, user_options_extra);
+  hashconfig->pwdump_column           = default_pwdump_column           (hashconfig, user_options, user_options_extra);
+  hashconfig->salt_type               = default_salt_type               (hashconfig, user_options, user_options_extra);
+  hashconfig->separator               = default_separator               (hashconfig, user_options, user_options_extra);
+  hashconfig->st_hash                 = default_st_hash                 (hashconfig, user_options, user_options_extra);
+  hashconfig->st_pass                 = default_st_pass                 (hashconfig, user_options, user_options_extra);
+  hashconfig->tmp_size                = default_tmp_size                (hashconfig, user_options, user_options_extra);
+  hashconfig->warmup_disable          = default_warmup_disable          (hashconfig, user_options, user_options_extra);
 
   // finally, the real stuff
 
@@ -716,36 +717,37 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if (module_ctx->module_attack_exec)           hashconfig->attack_exec           = module_ctx->module_attack_exec            (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_dictstat_disable)      hashconfig->dictstat_disable      = module_ctx->module_dictstat_disable       (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_dgst_pos0)             hashconfig->dgst_pos0             = module_ctx->module_dgst_pos0              (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_dgst_pos1)             hashconfig->dgst_pos1             = module_ctx->module_dgst_pos1              (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_dgst_pos2)             hashconfig->dgst_pos2             = module_ctx->module_dgst_pos2              (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_dgst_pos3)             hashconfig->dgst_pos3             = module_ctx->module_dgst_pos3              (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_dgst_size)             hashconfig->dgst_size             = module_ctx->module_dgst_size              (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_esalt_size)            hashconfig->esalt_size            = module_ctx->module_esalt_size             (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_forced_kernel_threads) hashconfig->forced_kernel_threads = module_ctx->module_forced_kernel_threads  (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_forced_kernel_loops)   hashconfig->forced_kernel_loops   = module_ctx->module_forced_kernel_loops    (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_forced_outfile_format) hashconfig->forced_outfile_format = module_ctx->module_forced_outfile_format  (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_hash_name)             hashconfig->hash_name             = module_ctx->module_hash_name              (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_hash_mode)             hashconfig->hash_mode             = module_ctx->module_hash_mode              (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_hash_type)             hashconfig->hash_type             = module_ctx->module_hash_type              (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_hlfmt_disable)         hashconfig->hlfmt_disable         = module_ctx->module_hlfmt_disable          (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_hook_salt_size)        hashconfig->hook_salt_size        = module_ctx->module_hook_salt_size         (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_hook_size)             hashconfig->hook_size             = module_ctx->module_hook_size              (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_kern_type)             hashconfig->kern_type             = module_ctx->module_kern_type              (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_opti_type)             hashconfig->opti_type             = module_ctx->module_opti_type              (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_opts_type)             hashconfig->opts_type             = module_ctx->module_opts_type              (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_outfile_check_disable) hashconfig->outfile_check_disable = module_ctx->module_outfile_check_disable  (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_outfile_check_nocomp)  hashconfig->outfile_check_nocomp  = module_ctx->module_outfile_check_nocomp   (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_potfile_disable)       hashconfig->potfile_disable       = module_ctx->module_potfile_disable        (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_pwdump_column)         hashconfig->pwdump_column         = module_ctx->module_pwdump_column          (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_salt_type)             hashconfig->salt_type             = module_ctx->module_salt_type              (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_separator)             hashconfig->separator             = module_ctx->module_separator              (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_st_hash)               hashconfig->st_hash               = module_ctx->module_st_hash                (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_st_pass)               hashconfig->st_pass               = module_ctx->module_st_pass                (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_tmp_size)              hashconfig->tmp_size              = module_ctx->module_tmp_size               (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_warmup_disable)        hashconfig->warmup_disable        = module_ctx->module_warmup_disable         (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_attack_exec)             hashconfig->attack_exec             = module_ctx->module_attack_exec              (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_dictstat_disable)        hashconfig->dictstat_disable        = module_ctx->module_dictstat_disable         (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_dgst_pos0)               hashconfig->dgst_pos0               = module_ctx->module_dgst_pos0                (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_dgst_pos1)               hashconfig->dgst_pos1               = module_ctx->module_dgst_pos1                (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_dgst_pos2)               hashconfig->dgst_pos2               = module_ctx->module_dgst_pos2                (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_dgst_pos3)               hashconfig->dgst_pos3               = module_ctx->module_dgst_pos3                (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_dgst_size)               hashconfig->dgst_size               = module_ctx->module_dgst_size                (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_esalt_size)              hashconfig->esalt_size              = module_ctx->module_esalt_size               (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_forced_kernel_threads)   hashconfig->forced_kernel_threads   = module_ctx->module_forced_kernel_threads    (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_forced_kernel_loops)     hashconfig->forced_kernel_loops     = module_ctx->module_forced_kernel_loops      (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_forced_outfile_format)   hashconfig->forced_outfile_format   = module_ctx->module_forced_outfile_format    (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_hash_name)               hashconfig->hash_name               = module_ctx->module_hash_name                (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_hash_mode)               hashconfig->hash_mode               = module_ctx->module_hash_mode                (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_hash_type)               hashconfig->hash_type               = module_ctx->module_hash_type                (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_hlfmt_disable)           hashconfig->hlfmt_disable           = module_ctx->module_hlfmt_disable            (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_hook_salt_size)          hashconfig->hook_salt_size          = module_ctx->module_hook_salt_size           (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_hook_size)               hashconfig->hook_size               = module_ctx->module_hook_size                (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_kern_type)               hashconfig->kern_type               = module_ctx->module_kern_type                (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_opti_type)               hashconfig->opti_type               = module_ctx->module_opti_type                (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_opts_type)               hashconfig->opts_type               = module_ctx->module_opts_type                (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_outfile_check_disable)   hashconfig->outfile_check_disable   = module_ctx->module_outfile_check_disable    (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_outfile_check_nocomp)    hashconfig->outfile_check_nocomp    = module_ctx->module_outfile_check_nocomp     (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_potfile_disable)         hashconfig->potfile_disable         = module_ctx->module_potfile_disable          (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_potfile_keep_all_hashes) hashconfig->potfile_keep_all_hashes = module_ctx->module_potfile_keep_all_hashes  (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_pwdump_column)           hashconfig->pwdump_column           = module_ctx->module_pwdump_column            (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_salt_type)               hashconfig->salt_type               = module_ctx->module_salt_type                (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_separator)               hashconfig->separator               = module_ctx->module_separator                (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_st_hash)                 hashconfig->st_hash                 = module_ctx->module_st_hash                  (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_st_pass)                 hashconfig->st_pass                 = module_ctx->module_st_pass                  (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_tmp_size)                hashconfig->tmp_size                = module_ctx->module_tmp_size                 (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_warmup_disable)          hashconfig->warmup_disable          = module_ctx->module_warmup_disable           (hashconfig, user_options, user_options_extra);
 
   if (user_options->keyboard_layout_mapping)
   {
@@ -1394,6 +1396,23 @@ bool default_hlfmt_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_U
   const bool hlfmt_disable = false;
 
   return hlfmt_disable;
+}
+
+bool default_potfile_keep_all_hashes (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  bool potfile_keep_all_hashes = false;
+
+  // keep all hashes if --username was combined with --left or --show
+
+  if (user_options->username == true)
+  {
+    if ((user_options->show == true) || (user_options->left == true))
+    {
+      potfile_keep_all_hashes = true;
+    }
+  }
+
+  return potfile_keep_all_hashes;
 }
 
 u32 default_pwdump_column (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
