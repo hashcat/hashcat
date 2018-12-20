@@ -561,6 +561,8 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsign
   const outfile_ctx_t  *outfile_ctx  = hashcat_ctx->outfile_ctx;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
+  const u32 outfile_format = (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_HEXIFY) ? 5 : outfile_ctx->outfile_format;
+
   int tmp_len = 0;
 
   if (user_len > 0)
@@ -571,7 +573,7 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsign
 
       tmp_len += user_len;
 
-      if (outfile_ctx->outfile_format & (OUTFILE_FMT_HASH | OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
+      if (outfile_format & (OUTFILE_FMT_HASH | OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
       {
         tmp_buf[tmp_len] = hashconfig->separator;
 
@@ -580,7 +582,7 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsign
     }
   }
 
-  if (outfile_ctx->outfile_format & OUTFILE_FMT_HASH)
+  if (outfile_format & OUTFILE_FMT_HASH)
   {
     const size_t out_len = strlen (out_buf);
 
@@ -588,7 +590,7 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsign
 
     tmp_len += out_len;
 
-    if (outfile_ctx->outfile_format & (OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
+    if (outfile_format & (OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
     {
       tmp_buf[tmp_len] = hashconfig->separator;
 
@@ -596,7 +598,7 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsign
     }
   }
 
-  if (outfile_ctx->outfile_format & OUTFILE_FMT_PLAIN)
+  if (outfile_format & OUTFILE_FMT_PLAIN)
   {
     bool convert_to_hex = false;
 
@@ -631,7 +633,7 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsign
       tmp_len += plain_len;
     }
 
-    if (outfile_ctx->outfile_format & (OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
+    if (outfile_format & (OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
     {
       tmp_buf[tmp_len] = hashconfig->separator;
 
@@ -639,13 +641,13 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsign
     }
   }
 
-  if (outfile_ctx->outfile_format & OUTFILE_FMT_HEXPLAIN)
+  if (outfile_format & OUTFILE_FMT_HEXPLAIN)
   {
     exec_hexify (plain_ptr, plain_len, (u8 *) tmp_buf + tmp_len);
 
     tmp_len += plain_len * 2;
 
-    if (outfile_ctx->outfile_format & (OUTFILE_FMT_CRACKPOS))
+    if (outfile_format & (OUTFILE_FMT_CRACKPOS))
     {
       tmp_buf[tmp_len] = hashconfig->separator;
 
@@ -653,7 +655,7 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsign
     }
   }
 
-  if (outfile_ctx->outfile_format & OUTFILE_FMT_CRACKPOS)
+  if (outfile_format & OUTFILE_FMT_CRACKPOS)
   {
     tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_LARGE - tmp_len, "%" PRIu64, crackpos);
   }

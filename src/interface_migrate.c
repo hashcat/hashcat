@@ -25500,7 +25500,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
                  hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PT_ADD80;
+                                            | OPTS_TYPE_PT_ADD80
+                                            | OPTS_TYPE_PT_ALWAYS_HEXIFY;
                  hashconfig->kern_type      = KERN_TYPE_OLDOFFICE01CM1;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = oldoffice01cm1_parse_hash;
@@ -25559,7 +25560,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case  9810:  hashconfig->hash_type      = HASH_TYPE_OLDOFFICE34;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_PT_ALWAYS_HEXIFY;
                  hashconfig->kern_type      = KERN_TYPE_OLDOFFICE34CM1;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = oldoffice34cm1_parse_hash;
@@ -25705,7 +25707,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 10410:  hashconfig->hash_type      = HASH_TYPE_PDFU16;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
+                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
+                                            | OPTS_TYPE_PT_ALWAYS_HEXIFY;
                  hashconfig->kern_type      = KERN_TYPE_PDF11CM1;
                  hashconfig->dgst_size      = DGST_SIZE_4_4;
                  hashconfig->parse_func     = pdf11cm1_parse_hash;

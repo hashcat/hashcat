@@ -780,7 +780,7 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
 
         bool is_collider_hex_password = false;
 
-        if ((hashconfig->hash_mode == 9710) || (hashconfig->hash_mode == 9810) || (hashconfig->hash_mode == 10410))
+        if (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_HEXIFY)
         {
           if (is_hexify ((u8 *) hash->pw_buf, hash->pw_len) == true)
           {
