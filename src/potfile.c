@@ -549,77 +549,11 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
       memset (hash_buf.hook_salt, 0, hashconfig->hook_salt_size);
     }
 
-    hash_t *found = NULL;
-
-    if (hashconfig->hash_mode == 6800)
+    if (module_ctx->module_hash_decode_outfile)
     {
-      if (line_hash_len < 256) // 64 = 64 * u32 in salt_buf[]
-      {
-        // manipulate salt_buf
-        memcpy (hash_buf.salt->salt_buf, line_hash_buf, line_hash_len);
+      const int parser_status = module_ctx->module_hash_decode_outfile (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, line_hash_buf, line_hash_len);
 
-        hash_buf.salt->salt_len = (u32) line_hash_len;
-
-        found = (hash_t *) bsearch (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_t_salt);
-      }
-    }
-    else if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
-    {
-      // here we have in line_hash_buf: hash:macap:macsta:essid:password
-
-      char *sep_pos = strrchr (line_hash_buf, ':');
-
-      if (sep_pos == NULL) continue;
-
-      sep_pos[0] = 0;
-
-      char *hash_pos = line_hash_buf;
-
-      const size_t hash_len = strlen (hash_pos);
-
-      if (hash_len != 32 + 1 + 12 + 1 + 12) continue;
-
-      char *essid_pos = sep_pos + 1;
-
-      size_t essid_len = strlen (essid_pos);
-
-      if (is_hexify ((const u8 *) essid_pos, essid_len) == true)
-      {
-        essid_len = exec_unhexify ((const u8 *) essid_pos, essid_len, (u8 *) essid_pos, essid_len);
-      }
-
-      if (essid_len > 32) continue;
-
-      if (hashconfig->is_salted == true)
-      {
-        // this should be always true, but we need it to make scan-build happy
-
-        memcpy (hash_buf.salt->salt_buf, essid_pos, essid_len);
-
-        hash_buf.salt->salt_len  = (u32) essid_len;
-        hash_buf.salt->salt_iter = ROUNDS_WPA_PBKDF2 - 1;
-
-        u32 hash[4];
-
-        hash[0] = hex_to_u32 ((const u8 *) &hash_pos[ 0]);
-        hash[1] = hex_to_u32 ((const u8 *) &hash_pos[ 8]);
-        hash[2] = hex_to_u32 ((const u8 *) &hash_pos[16]);
-        hash[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
-
-        hash[0] = byte_swap_32 (hash[0]);
-        hash[1] = byte_swap_32 (hash[1]);
-        hash[2] = byte_swap_32 (hash[2]);
-        hash[3] = byte_swap_32 (hash[3]);
-
-        u32 *digest = (u32 *) hash_buf.digest;
-
-        digest[0] = hash[0];
-        digest[1] = hash[1];
-        digest[2] = hash[2];
-        digest[3] = hash[3];
-      }
-
-      found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash, (void *) hashconfig);
+      if (parser_status != PARSER_OK) continue;
     }
     else
     {
@@ -633,9 +567,9 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
         continue;
       }
-
-      found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash, (void *) hashconfig);
     }
+
+    hash_t *found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash, (void *) hashconfig);
 
     potfile_update_hash (hashcat_ctx, found, line_pw_buf, (u32) line_pw_len);
   }

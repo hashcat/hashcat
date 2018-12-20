@@ -28430,20 +28430,81 @@ int module_hash_decode_outfile (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
             digest[2] = byte_swap_32 (digest[2]);
             digest[3] = byte_swap_32 (digest[3]);
 
-            parser_status = PARSER_OK;
+            return PARSER_OK;
+
+            /* this is from old potfile.c, seems to be more detailed
+
+            // here we have in line_hash_buf: hash:macap:macsta:essid:password
+
+            char *sep_pos = strrchr (line_hash_buf, ':');
+
+            if (sep_pos == NULL) continue;
+
+            sep_pos[0] = 0;
+
+            char *hash_pos = line_hash_buf;
+
+            const size_t hash_len = strlen (hash_pos);
+
+            if (hash_len != 32 + 1 + 12 + 1 + 12) continue;
+
+            char *essid_pos = sep_pos + 1;
+
+            size_t essid_len = strlen (essid_pos);
+
+            if (is_hexify ((const u8 *) essid_pos, essid_len) == true)
+            {
+              essid_len = exec_unhexify ((const u8 *) essid_pos, essid_len, (u8 *) essid_pos, essid_len);
+            }
+
+            if (essid_len > 32) continue;
+
+            if (hashconfig->is_salted == true)
+            {
+              // this should be always true, but we need it to make scan-build happy
+
+              memcpy (hash_buf.salt->salt_buf, essid_pos, essid_len);
+
+              hash_buf.salt->salt_len  = (u32) essid_len;
+              hash_buf.salt->salt_iter = ROUNDS_WPA_PBKDF2 - 1;
+
+              u32 hash[4];
+
+              hash[0] = hex_to_u32 ((const u8 *) &hash_pos[ 0]);
+              hash[1] = hex_to_u32 ((const u8 *) &hash_pos[ 8]);
+              hash[2] = hex_to_u32 ((const u8 *) &hash_pos[16]);
+              hash[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
+
+              hash[0] = byte_swap_32 (hash[0]);
+              hash[1] = byte_swap_32 (hash[1]);
+              hash[2] = byte_swap_32 (hash[2]);
+              hash[3] = byte_swap_32 (hash[3]);
+
+              u32 *digest = (u32 *) hash_buf.digest;
+
+              digest[0] = hash[0];
+              digest[1] = hash[1];
+              digest[2] = hash[2];
+              digest[3] = hash[3];
+            }
+            */
+
           }
           else if (hash_mode == 6800) // special case LastPass (only email address in outfile/potfile)
           {
             // fake the parsing of the hash/salt
 
-            hash_buf.salt->salt_len = line_len;
+            if (line_len < 256) // 64 = 64 * u32 in salt_buf[]
+            {
+              hash_buf.salt->salt_len = line_len;
 
-            memcpy (hash_buf.salt->salt_buf, line_buf, line_len);
+              memcpy (hash_buf.salt->salt_buf, line_buf, line_len);
+            }
 
-            parser_status = PARSER_OK;
+            return PARSER_OK;
           }
-
 }
+
 int module_hash_decode_zero_hash (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf)
 {
   if (hashconfig->hash_mode == 3000)
