@@ -28362,3 +28362,63 @@ static void precompute_salt_md5 (const u32 *salt_buf, const u32 salt_len, u8 *sa
   u32_to_hex (digest[2], salt_pc + 16);
   u32_to_hex (digest[3], salt_pc + 24);
 }
+
+
+u32 outfile_check_disable
+{
+
+
+  if ((user_options->hash_mode ==  5200) ||
+     ((user_options->hash_mode >=  6200) && (user_options->hash_mode <=  6299)) ||
+      (user_options->hash_mode ==  9000) ||
+     ((user_options->hash_mode >= 13700) && (user_options->hash_mode <= 13799)) ||
+      (user_options->hash_mode == 14600)) return 0;
+}
+
+
+int module_hash_decode_outfile (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, const char *line_buf, MAYBE_UNUSED const int line_len)
+{
+
+
+          if ((hash_mode == 2500) || (hash_mode == 2501)) // special case WPA/WPA2
+          {
+            // fake the parsing of the salt
+
+            u32 identifier_len = 32 + 1 + 12 + 1 + 12 + 1; // format is [ID_MD5]:[MAC1]:[MAC2]:$salt:$pass
+
+            if (line_len < identifier_len) continue;
+
+            hash_buf.salt->salt_len = line_len - identifier_len;
+
+            memcpy (hash_buf.salt->salt_buf, line_buf + identifier_len, hash_buf.salt->salt_len);
+
+            // fake the parsing of the digest
+
+            if (is_valid_hex_string ((u8 *) line_buf, 32) == false) break;
+
+            u32 *digest = (u32 *) hash_buf.digest;
+
+            digest[0] = hex_to_u32 ((u8 *) line_buf +  0);
+            digest[1] = hex_to_u32 ((u8 *) line_buf +  8);
+            digest[2] = hex_to_u32 ((u8 *) line_buf + 16);
+            digest[3] = hex_to_u32 ((u8 *) line_buf + 24);
+
+            digest[0] = byte_swap_32 (digest[0]);
+            digest[1] = byte_swap_32 (digest[1]);
+            digest[2] = byte_swap_32 (digest[2]);
+            digest[3] = byte_swap_32 (digest[3]);
+
+            parser_status = PARSER_OK;
+          }
+          else if (hash_mode == 6800) // special case LastPass (only email address in outfile/potfile)
+          {
+            // fake the parsing of the hash/salt
+
+            hash_buf.salt->salt_len = line_len;
+
+            memcpy (hash_buf.salt->salt_buf, line_buf, line_len);
+
+            parser_status = PARSER_OK;
+          }
+
+}

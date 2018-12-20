@@ -185,45 +185,9 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
           int parser_status = PARSER_HASH_LENGTH;
 
-          if ((hash_mode == 2500) || (hash_mode == 2501)) // special case WPA/WPA2
+          if (module_ctx->module_hash_decode_outfile)
           {
-            // fake the parsing of the salt
-
-            u32 identifier_len = 32 + 1 + 12 + 1 + 12 + 1; // format is [ID_MD5]:[MAC1]:[MAC2]:$salt:$pass
-
-            if ((line_len - 1) < identifier_len) continue;
-
-            hash_buf.salt->salt_len = line_len - 1 - identifier_len;
-
-            memcpy (hash_buf.salt->salt_buf, line_buf + identifier_len, hash_buf.salt->salt_len);
-
-            // fake the parsing of the digest
-
-            if (is_valid_hex_string ((u8 *) line_buf, 32) == false) break;
-
-            u32 *digest = (u32 *) hash_buf.digest;
-
-            digest[0] = hex_to_u32 ((u8 *) line_buf +  0);
-            digest[1] = hex_to_u32 ((u8 *) line_buf +  8);
-            digest[2] = hex_to_u32 ((u8 *) line_buf + 16);
-            digest[3] = hex_to_u32 ((u8 *) line_buf + 24);
-
-            digest[0] = byte_swap_32 (digest[0]);
-            digest[1] = byte_swap_32 (digest[1]);
-            digest[2] = byte_swap_32 (digest[2]);
-            digest[3] = byte_swap_32 (digest[3]);
-
-            parser_status = PARSER_OK;
-          }
-          else if (hash_mode == 6800) // special case LastPass (only email address in outfile/potfile)
-          {
-            // fake the parsing of the hash/salt
-
-            hash_buf.salt->salt_len = line_len - 1;
-
-            memcpy (hash_buf.salt->salt_buf, line_buf, line_len - 1);
-
-            parser_status = PARSER_OK;
+            parser_status = module_ctx->module_hash_decode_outfile (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, line_buf, line_len - 1);
           }
           else // "normal" case: hash in the outfile is the same as the hash in the original hash file
           {
@@ -338,9 +302,10 @@ HC_API_CALL void *thread_outfile_remove (void *p)
 
 int outcheck_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
-  folder_config_t *folder_config = hashcat_ctx->folder_config;
-  outcheck_ctx_t  *outcheck_ctx  = hashcat_ctx->outcheck_ctx;
-  user_options_t  *user_options  = hashcat_ctx->user_options;
+  const folder_config_t *folder_config = hashcat_ctx->folder_config;
+  const hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
+        outcheck_ctx_t  *outcheck_ctx  = hashcat_ctx->outcheck_ctx;
+  const user_options_t  *user_options  = hashcat_ctx->user_options;
 
   outcheck_ctx->enabled = false;
 
@@ -353,11 +318,7 @@ int outcheck_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->outfile_check_timer == 0) return 0;
 
-  if ((user_options->hash_mode ==  5200) ||
-     ((user_options->hash_mode >=  6200) && (user_options->hash_mode <=  6299)) ||
-      (user_options->hash_mode ==  9000) ||
-     ((user_options->hash_mode >= 13700) && (user_options->hash_mode <= 13799)) ||
-      (user_options->hash_mode == 14600)) return 0;
+  if (hashconfig->outfile_check_disable == true) return 0;
 
   if (user_options->outfile_check_dir == NULL)
   {

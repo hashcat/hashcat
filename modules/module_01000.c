@@ -131,6 +131,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_forced_kernel_loops    = NULL;
   module_ctx->module_forced_kernel_threads  = NULL;
   module_ctx->module_forced_outfile_format  = NULL;
+  module_ctx->module_hash_decode_outfile    = NULL;
   module_ctx->module_hash_decode            = module_hash_decode;
   module_ctx->module_hash_encode            = module_hash_encode;
   module_ctx->module_hash_mode              = NULL;
@@ -144,6 +145,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kern_type              = module_kern_type;
   module_ctx->module_opti_type              = module_opti_type;
   module_ctx->module_opts_type              = module_opts_type;
+  module_ctx->module_outfile_check_disable  = NULL;
   module_ctx->module_pwdump_column          = module_pwdump_column;
   module_ctx->module_pw_max                 = NULL;
   module_ctx->module_pw_min                 = NULL;

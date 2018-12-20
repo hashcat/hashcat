@@ -959,6 +959,7 @@ struct hashconfig
   bool dictstat_disable;
   bool hlfmt_disable;
   bool warmup_disable;
+  bool outfile_check_disable;
 
   u32 pwdump_column;
 };
@@ -2261,6 +2262,7 @@ typedef struct module_ctx
   u64         (*module_kern_type)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_opti_type)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_opts_type)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  bool        (*module_outfile_check_disable) (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_pwdump_column)         (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_pw_min)                (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_pw_max)                (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
@@ -2273,6 +2275,7 @@ typedef struct module_ctx
   u64         (*module_tmp_size)              (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   bool        (*module_warmup_disable)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
 
+  int         (*module_hash_decode_outfile)   (const hashconfig_t *,       void *,       salt_t *,       void *, const char *, const int);
   int         (*module_hash_decode)           (const hashconfig_t *,       void *,       salt_t *,       void *, const char *, const int);
   int         (*module_hash_encode)           (const hashconfig_t *, const void *, const salt_t *, const void *,       char *,       int);
 
