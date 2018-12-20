@@ -28364,7 +28364,7 @@ static void precompute_salt_md5 (const u32 *salt_buf, const u32 salt_len, u8 *sa
 }
 
 
-u32 outfile_check_disable
+bool outfile_check_disable
 {
 
 
@@ -28375,6 +28375,16 @@ u32 outfile_check_disable
       (user_options->hash_mode == 14600)) return 0;
 }
 
+bool outfile_check_nocomp
+{
+          if (hash_mode == 6800)
+          {
+            // the comparison with only matching salt is a bit inaccurate
+            // call it a bug, but it's good enough for a special case used in a special case
+
+            cracked = true;
+          }
+}
 
 int module_hash_decode_outfile (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, const char *line_buf, MAYBE_UNUSED const int line_len)
 {

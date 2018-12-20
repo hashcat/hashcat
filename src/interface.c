@@ -691,6 +691,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   hashconfig->opti_type             = default_opti_type             (hashconfig, user_options, user_options_extra);
   hashconfig->opts_type             = default_opts_type             (hashconfig, user_options, user_options_extra);
   hashconfig->outfile_check_disable = default_outfile_check_disable (hashconfig, user_options, user_options_extra);
+  hashconfig->outfile_check_nocomp  = default_outfile_check_nocomp  (hashconfig, user_options, user_options_extra);
   hashconfig->pwdump_column         = default_pwdump_column         (hashconfig, user_options, user_options_extra);
   hashconfig->salt_type             = default_salt_type             (hashconfig, user_options, user_options_extra);
   hashconfig->separator             = default_separator             (hashconfig, user_options, user_options_extra);
@@ -735,6 +736,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   if (module_ctx->module_opti_type)             hashconfig->opti_type             = module_ctx->module_opti_type              (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_opts_type)             hashconfig->opts_type             = module_ctx->module_opts_type              (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_outfile_check_disable) hashconfig->outfile_check_disable = module_ctx->module_outfile_check_disable  (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_outfile_check_nocomp)  hashconfig->outfile_check_nocomp  = module_ctx->module_outfile_check_nocomp   (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_pwdump_column)         hashconfig->pwdump_column         = module_ctx->module_pwdump_column          (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_salt_type)             hashconfig->salt_type             = module_ctx->module_salt_type              (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_separator)             hashconfig->separator             = module_ctx->module_separator              (hashconfig, user_options, user_options_extra);
@@ -1376,6 +1378,13 @@ bool default_outfile_check_disable (MAYBE_UNUSED const hashconfig_t *hashconfig,
   const bool outfile_check_disable = false;
 
   return outfile_check_disable;
+}
+
+bool default_outfile_check_nocomp (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const bool outfile_check_nocomp = false;
+
+  return outfile_check_nocomp;
 }
 
 bool default_hlfmt_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)

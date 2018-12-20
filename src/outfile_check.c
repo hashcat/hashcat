@@ -32,7 +32,6 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
   bool   is_salted      = hashconfig->is_salted;
   size_t esalt_size     = hashconfig->esalt_size;
   size_t hook_salt_size = hashconfig->hook_salt_size;
-  u32    hash_mode      = hashconfig->hash_mode;
   char   separator      = hashconfig->separator;
 
   salt_t    *salts_buf   = hashes->salts_buf;
@@ -213,11 +212,8 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
           bool cracked = false;
 
-          if (hash_mode == 6800)
+          if (hashconfig->outfile_check_nocomp == true)
           {
-            // the comparison with only matching salt is a bit inaccurate
-            // call it a bug, but it's good enough for a special case used in a special case
-
             cracked = true;
           }
           else
