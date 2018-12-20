@@ -7,3 +7,9 @@ During `single` and `passthrough` tests the `module_generate_hash` function must
 During `verify` tests the `module_verify_hash` function must parse the hash:password line and to calculate a hash by passing all necessary data to `module_generate_hash`. How you pass it is up to you, as long as the first parameter is the password.
 
 **Important**: You have to call `pack_if_HEX_notation` as soon as you have parsed the password, or your tests will fail on passwords in the `$HEX[...]` format.
+
+#### Examples ####
+
+* For the most basic test modules, see [m0.pm](m0.pm) and [m100.pm](m100.pm)
+* For the basic salted hash tests, see [m110.pm](m110.pm) and [m120.pm](m120.pm)
+* For some sligthly more complex modules with PBKDF2 and encryption, see [m18400.pm](m18400.pm) and [m18600.pm](m18600.pm)
