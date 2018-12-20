@@ -147,6 +147,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_opts_type              = module_opts_type;
   module_ctx->module_outfile_check_disable  = NULL;
   module_ctx->module_outfile_check_nocomp   = NULL;
+  module_ctx->module_potfile_disable        = NULL;
   module_ctx->module_pwdump_column          = module_pwdump_column;
   module_ctx->module_pw_max                 = NULL;
   module_ctx->module_pw_min                 = NULL;

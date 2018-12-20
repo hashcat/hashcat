@@ -961,6 +961,7 @@ struct hashconfig
   bool warmup_disable;
   bool outfile_check_disable;
   bool outfile_check_nocomp;
+  bool potfile_disable;
 
   u32 pwdump_column;
 };
@@ -2265,6 +2266,7 @@ typedef struct module_ctx
   u64         (*module_opts_type)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   bool        (*module_outfile_check_disable) (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   bool        (*module_outfile_check_nocomp)  (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  bool        (*module_potfile_disable)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_pwdump_column)         (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_pw_min)                (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_pw_max)                (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);

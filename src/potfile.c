@@ -90,9 +90,10 @@ void pot_tree_destroy (pot_tree_entry_t *tree)
 
 int potfile_init (hashcat_ctx_t *hashcat_ctx)
 {
-  folder_config_t *folder_config = hashcat_ctx->folder_config;
-  potfile_ctx_t   *potfile_ctx   = hashcat_ctx->potfile_ctx;
-  user_options_t  *user_options  = hashcat_ctx->user_options;
+  const folder_config_t *folder_config = hashcat_ctx->folder_config;
+  const hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
+        potfile_ctx_t   *potfile_ctx   = hashcat_ctx->potfile_ctx;
+  const user_options_t  *user_options  = hashcat_ctx->user_options;
 
   potfile_ctx->enabled = false;
 
@@ -106,6 +107,8 @@ int potfile_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->usage           == true) return 0;
   if (user_options->version         == true) return 0;
   if (user_options->potfile_disable == true) return 0;
+
+  if (hashconfig->potfile_disable == true) return 0;
 
   potfile_ctx->enabled = true;
 
@@ -178,9 +181,12 @@ int potfile_init (hashcat_ctx_t *hashcat_ctx)
 
 void potfile_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
   potfile_ctx_t *potfile_ctx = hashcat_ctx->potfile_ctx;
 
   if (potfile_ctx->enabled == false) return;
+
+  if (hashconfig->potfile_disable == true) return;
 
   hcfree (potfile_ctx->out_buf);
   hcfree (potfile_ctx->tmp_buf);
@@ -208,9 +214,12 @@ int potfile_read_open (hashcat_ctx_t *hashcat_ctx)
 
 void potfile_read_close (hashcat_ctx_t *hashcat_ctx)
 {
+  hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
   potfile_ctx_t *potfile_ctx = hashcat_ctx->potfile_ctx;
 
   if (potfile_ctx->enabled == false) return;
+
+  if (hashconfig->potfile_disable == true) return;
 
   if (potfile_ctx->fp == NULL) return;
 
@@ -239,9 +248,12 @@ int potfile_write_open (hashcat_ctx_t *hashcat_ctx)
 
 void potfile_write_close (hashcat_ctx_t *hashcat_ctx)
 {
+  hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
   potfile_ctx_t *potfile_ctx = hashcat_ctx->potfile_ctx;
 
   if (potfile_ctx->enabled == false) return;
+
+  if (hashconfig->potfile_disable == true) return;
 
   fclose (potfile_ctx->fp);
 }
@@ -253,6 +265,8 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, u8 *
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (potfile_ctx->enabled == false) return;
+
+  if (hashconfig->potfile_disable == true) return;
 
   u8 *tmp_buf = potfile_ctx->tmp_buf;
 
@@ -384,6 +398,8 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
   if (potfile_ctx->enabled == false) return 0;
 
+  if (hashconfig->potfile_disable == true) return 0;
+
   // if no potfile exists yet we don't need to do anything here
 
   if (hc_path_exist (potfile_ctx->filename) == false) return 0;
@@ -392,14 +408,6 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
   u32     hashes_cnt = hashes->hashes_cnt;
 
   // no solution for these special hash types (for instane because they use hashfile in output etc)
-
-  if  (hashconfig->hash_mode ==  5200)  return 0;
-  if ((hashconfig->hash_mode >=  6200)
-   && (hashconfig->hash_mode <=  6299)) return 0;
-  if  (hashconfig->hash_mode ==  9000)  return 0;
-  if ((hashconfig->hash_mode >= 13700)
-   && (hashconfig->hash_mode <= 13799)) return 0;
-  if  (hashconfig->hash_mode == 14600)  return 0;
 
   hash_t hash_buf;
 

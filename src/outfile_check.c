@@ -289,6 +289,13 @@ HC_API_CALL void *thread_outfile_remove (void *p)
 {
   hashcat_ctx_t *hashcat_ctx = (hashcat_ctx_t *) p;
 
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  const outcheck_ctx_t *outcheck_ctx = hashcat_ctx->outcheck_ctx;
+
+  if (hashconfig->outfile_check_disable == true) return NULL;
+
+  if (outcheck_ctx->enabled == false) return NULL;
+
   const int rc = outfile_remove (hashcat_ctx);
 
   if (rc == -1) return NULL;
@@ -312,9 +319,9 @@ int outcheck_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->progress_only  == true) return 0;
   if (user_options->opencl_info    == true) return 0;
 
-  if (user_options->outfile_check_timer == 0) return 0;
-
   if (hashconfig->outfile_check_disable == true) return 0;
+
+  if (user_options->outfile_check_timer == 0) return 0;
 
   if (user_options->outfile_check_dir == NULL)
   {
@@ -342,10 +349,13 @@ int outcheck_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
 void outcheck_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   outcheck_ctx_t *outcheck_ctx = hashcat_ctx->outcheck_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
   if (outcheck_ctx->enabled == false) return;
+
+  if (hashconfig->outfile_check_disable == true) return;
 
   if (rmdir (outcheck_ctx->root_directory) == -1)
   {

@@ -28375,6 +28375,18 @@ bool outfile_check_disable
       (user_options->hash_mode == 14600)) return 0;
 }
 
+bool potfile_disable
+{
+
+  if  (hashconfig->hash_mode ==  5200)  return 0;
+  if ((hashconfig->hash_mode >=  6200)
+   && (hashconfig->hash_mode <=  6299)) return 0;
+  if  (hashconfig->hash_mode ==  9000)  return 0;
+  if ((hashconfig->hash_mode >= 13700)
+   && (hashconfig->hash_mode <= 13799)) return 0;
+  if  (hashconfig->hash_mode == 14600)  return 0;
+}
+
 bool outfile_check_nocomp
 {
           if (hash_mode == 6800)
