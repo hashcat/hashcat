@@ -23,7 +23,7 @@ sub module_verify_hash
 {
   my $line = shift;
 
-  my ($hash, $word) = split (":", $line);
+  my ($hash, $word) = split (':', $line);
 
   return unless defined $hash;
   return unless defined $word;
