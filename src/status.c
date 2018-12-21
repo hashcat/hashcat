@@ -348,7 +348,7 @@ const char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
 
       tmp_buf[0] = 0;
 
-      ascii_digest ((hashcat_ctx_t *) hashcat_ctx, tmp_buf, HCBUFSIZ_LARGE, 0, 0);
+      ascii_digest (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, tmp_buf, HCBUFSIZ_LARGE, 0, 0);
 
       compress_terminal_line_length (tmp_buf, 19, 6); // 19 = strlen ("Hash.Target......: ")
 
@@ -368,8 +368,8 @@ const char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
       char out_buf1[64] = { 0 };
       char out_buf2[64] = { 0 };
 
-      ascii_digest ((hashcat_ctx_t *) hashcat_ctx, out_buf1, sizeof (out_buf1), 0, 0);
-      ascii_digest ((hashcat_ctx_t *) hashcat_ctx, out_buf2, sizeof (out_buf2), 0, 1);
+      ascii_digest (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, out_buf1, sizeof (out_buf1), 0, 0);
+      ascii_digest (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, out_buf2, sizeof (out_buf2), 0, 1);
 
       hc_asprintf (&tmp_buf, "%s, %s", out_buf1, out_buf2);
 
