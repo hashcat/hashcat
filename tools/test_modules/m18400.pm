@@ -102,6 +102,8 @@ sub module_verify_hash
 
   my $new_hash = module_generate_hash ($word, $salt, $iter, $iv, $plain);
 
+  return unless defined $new_hash;
+
   return unless $new_hash eq $hash;
 
   return $new_hash;

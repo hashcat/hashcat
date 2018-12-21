@@ -34,6 +34,8 @@ sub module_verify_hash
 
   my $new_hash = module_generate_hash ($word, $salt);
 
+  return unless defined $new_hash;
+
   return unless $new_hash eq "$hash:$salt";
 
   return $new_hash;

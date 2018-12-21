@@ -32,6 +32,8 @@ sub module_verify_hash
 
   my $new_hash = module_generate_hash ($word);
 
+  return unless defined $new_hash;
+
   return unless $new_hash eq $hash;
 
   return $new_hash;
