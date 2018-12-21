@@ -371,6 +371,7 @@ default: $(HASHCAT_FRONTEND)
 clean:
 	$(RM) -f $(HASHCAT_FRONTEND)
 	$(RM) -f $(HASHCAT_LIBRARY)
+	$(RM) -f modules/*.dll
 	$(RM) -f modules/*.so
 	$(RM) -f obj/*.o
 	$(RM) -f *.bin *.exe

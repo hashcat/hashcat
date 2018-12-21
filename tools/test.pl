@@ -28,6 +28,9 @@ my $module = sprintf ("m%05d.pm", $MODE);
 
 eval { require $module; } or die "Could not load test module: $module\n$@";
 
+exists &{module_generate_hash} or die "Module function 'module_generate_hash' not found\n";
+exists &{module_verify_hash}   or die "Module function 'module_verify_hash' not found\n";
+
 if ($TYPE eq 'single')
 {
   single (@ARGV);
@@ -49,8 +52,6 @@ else
 
 sub single
 {
-  exists &{module_generate_hash} or die "Module function not found\n";
-
   my $len = shift;
 
   undef $len unless is_count ($len);
@@ -62,6 +63,7 @@ sub single
     my $cur_len = $len // $i;
 
     my $word = random_numeric_string ($cur_len);
+
     my $hash = module_generate_hash ($word);
 
     next unless defined $hash;
@@ -72,15 +74,13 @@ sub single
 
 sub passthrough
 {
-  exists &{module_generate_hash} or die "Module function not found\n";
-
-  while (<>)
+  while (my $word = <>)
   {
-    chomp $_;
+    chomp $word;
 
-    next if length $_ > 256;
+    my $hash = module_generate_hash ($word);
 
-    my $hash = module_generate_hash ($_);
+    next unless defined $hash;
 
     print "$hash\n";
   }
@@ -88,8 +88,6 @@ sub passthrough
 
 sub verify
 {
-  exists &{module_verify_hash} or die "Module function not found\n";
-
   my $hashes_file = shift;
   my $cracks_file = shift;
   my $out_file    = shift;
@@ -98,33 +96,35 @@ sub verify
 
   my $hashlist;
 
-  while (<IN>)
+  while (my $line = <IN>)
   {
-    s/[\n\r]*$//;
+    $line =~ s/\n$//;
+    $line =~ s/\r$//;
 
-    push (@{$hashlist}, $_);
+    push (@{$hashlist}, $line);
   }
 
-  close IN;
+  close (IN);
 
   open (IN,  '<', $cracks_file) or die "$cracks_file: $!\n";
   open (OUT, '>', $out_file   ) or die "$out_file: $!\n";
 
-  while (<IN>)
+  while (my $line = <IN>)
   {
-    s/[\n\r]*$//;
+    $line =~ s/\n$//;
+    $line =~ s/\r$//;
 
-    my $hash = module_verify_hash ($_);
+    my $hash = module_verify_hash ($line);
 
     next unless defined $hash;
 
     next unless is_in_array ($hash, $hashlist);
 
-    print OUT "$_\n";
+    print OUT "$line\n";
   }
 
-  close IN;
-  close OUT;
+  close (IN);
+  close (OUT);
 }
 
 sub is_in_array

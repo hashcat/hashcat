@@ -8,7 +8,6 @@
 #include "modules.h"
 #include "bitops.h"
 #include "convert.h"
-#include "interface.h"
 #include "shared.h"
 
 static const u32   MODULE_VERSION_CURRENT = 520;
