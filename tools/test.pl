@@ -55,7 +55,7 @@ sub single
 
   undef $len unless is_count ($len);
 
-  my $format = "echo -n %-32s | ./hashcat \${OPTS} -a0 -m%d '%s'\n";
+  my $format = "echo -n %-32s | ./hashcat \${OPTS} -a 0 -m %d '%s'\n";
 
   for (my $i = 1; $i <= 32; $i++)
   {
@@ -167,7 +167,7 @@ sub random_hex_string
 
   my $string;
 
-  $string .= sprintf("%x", rand 16) for (1 .. $count);
+  $string .= sprintf ("%x", rand 16) for (1 .. $count);
 
   return $string;
 }
@@ -180,7 +180,7 @@ sub random_numeric_string
 
   my $string;
 
-  $string .= sprintf("%d", rand 10) for (1 .. $count);
+  $string .= sprintf ("%d", rand 10) for (1 .. $count);
 
   return $string;
 }
