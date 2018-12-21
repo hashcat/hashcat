@@ -8,9 +8,6 @@
 use strict;
 use warnings;
 
-use Digest::MD4 qw (md4_hex);
-use Encode;
-
 sub module_generate_hash
 {
   my $word = shift;
