@@ -6,15 +6,15 @@
 ##
 
 use strict;
+use warnings;
 
-use Digest::SHA qw (sha1_hex);
+use Digest::MD5 qw (md5_hex);
 
 sub module_generate_hash
 {
   my $word = shift;
-  my $salt = shift // random_numeric_string (int (rand 16));
 
-  my $hash = sha1_hex ($salt . $word) . ":$salt";
+  my $hash = md5_hex ($word);
 
   return $hash;
 }
@@ -23,17 +23,16 @@ sub module_verify_hash
 {
   my $line = shift;
 
-  my ($hash, $salt, $word) = split (":", $line);
+  my ($hash, $word) = split ":", $line;
 
   return unless defined $hash;
-  return unless defined $salt;
   return unless defined $word;
 
   $word = pack_if_HEX_notation ($word);
 
-  my $new_hash = module_generate_hash ($word, $salt);
+  my $new_hash = module_generate_hash ($word);
 
-  return unless $new_hash eq "$hash:$salt";
+  return unless $new_hash eq $hash;
 
   return $new_hash;
 }

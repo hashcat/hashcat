@@ -6,6 +6,7 @@
 ##
 
 use strict;
+use warnings;
 
 use Crypt::Mode::CBC;
 use Crypt::PBKDF2;

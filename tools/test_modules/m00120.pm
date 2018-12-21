@@ -6,6 +6,7 @@
 ##
 
 use strict;
+use warnings;
 
 use Digest::SHA qw (sha1_hex);
 
@@ -14,7 +15,7 @@ sub module_generate_hash
   my $word = shift;
   my $salt = shift // random_numeric_string (int (rand 16));
 
-  my $hash = sha1_hex ($word . $salt) . ":$salt";
+  my $hash = sha1_hex ($salt . $word) . ":$salt";
 
   return $hash;
 }

@@ -32,6 +32,7 @@ cpan install Authen::Passphrase::LANManager \
              Crypt::Skip32                  \
              Crypt::Twofish                 \
              Crypt::UnixCrypt_XS            \
+             Data::Types                    \
              Digest::BLAKE2                 \
              Digest::CMAC                   \
              Digest::CRC                    \

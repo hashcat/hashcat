@@ -24,7 +24,9 @@ is_in_array ($TYPE, $TYPES) or usage_exit ();
 
 is_whole ($MODE) or die "Mode must be a number\n";
 
-eval { require "m$MODE.pm" } or die "Could not load test module:\n$@";
+my $module = sprintf ("m%05d.pm", $MODE);
+
+eval { require $module; } or die "Could not load test module: $module\n$@";
 
 if ($TYPE eq 'single')
 {

@@ -6,14 +6,16 @@
 ##
 
 use strict;
+use warnings;
 
-use Digest::MD5 qw (md5_hex);
+use Digest::MD4 qw (md4_hex);
+use Encode;
 
 sub module_generate_hash
 {
   my $word = shift;
 
-  my $hash = md5_hex ($word);
+  my $hash = md4_hex (encode ("UTF-16LE", $word));
 
   return $hash;
 }
