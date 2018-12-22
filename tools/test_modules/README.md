@@ -16,3 +16,10 @@ If the algorithm has ambiguous hashes (e.g. partial case-insensetivity), the tes
 * For the basic salted hash tests, see [m00110.pm](m00110.pm) and [m00120.pm](m00120.pm)
 * For some sligthly more complex modules with PBKDF2 and encryption, see [m18400.pm](m18400.pm) and [m18600.pm](m18600.pm)
 * For a test module with hashlist preprocessing and a custom salt generation algorithm, see [m05600.pm](m05600.pm)
+
+NOTE:
+
+In order to not have double work while migrating existing code to test modules, here's a work sheet for everyone who wants to contribute. Simply put your name to reserve a particular mode here:
+
+https://docs.google.com/spreadsheets/d/14uxfwDiq316Qad0ILavWD2eeYSVr4vn2HD58hdlL35g/edit#gid=0
+

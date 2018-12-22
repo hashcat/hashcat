@@ -57,9 +57,9 @@ sub single
   # fallback to incrementing length
   undef $len unless is_count ($len);
 
-  my $format = "echo -n %-32s | ./hashcat \${OPTS} -a 0 -m %d '%s'\n";
+  my $format = "echo -n %-31s | ./hashcat \${OPTS} -a 0 -m %d '%s'\n";
 
-  for (my $i = 1; $i <= 32; $i++)
+  for (my $i = 1; $i <= 31; $i++)
   {
     # requested or incrementing length
     my $cur_len = $len // $i;
