@@ -20,9 +20,9 @@ sub module_generate_hash
   my $iv    = shift // random_hex_string (2*16);
   my $plain = shift // random_hex_string (2*1024);
 
-  my $b_iv    = pack ("H*", $iv);
-  my $b_salt  = pack ("H*", $salt);
-  my $b_plain = pack ("H*", $plain);
+  my $b_iv    = pack ('H*', $iv);
+  my $b_salt  = pack ('H*', $salt);
+  my $b_plain = pack ('H*', $plain);
 
   my $kdf = Crypt::PBKDF2->new
   (
@@ -35,7 +35,7 @@ sub module_generate_hash
   my $key       = $kdf->PBKDF2 ($b_salt, $pass_hash);
   my $cbc       = Crypt::Mode::CBC->new ('AES', 0);
   my $b_cipher  = $cbc->encrypt ($b_plain, $key, $b_iv);
-  my $cipher    = unpack ("H*", $b_cipher);
+  my $cipher    = unpack ('H*', $b_cipher);
   my $checksum  = sha256_hex ($b_plain);
 
   my $hash = '$odf$'."*1*1*$iter*32*$checksum*16*$iv*16*$salt*0*$cipher";
@@ -83,9 +83,9 @@ sub module_verify_hash
   return unless defined $cipher;
 
   # decrypt
-  my $b_iv     = pack ("H*", $iv);
-  my $b_salt   = pack ("H*", $salt);
-  my $b_cipher = pack ("H*", $cipher);
+  my $b_iv     = pack ('H*', $iv);
+  my $b_salt   = pack ('H*', $salt);
+  my $b_cipher = pack ('H*', $cipher);
 
   my $kdf = Crypt::PBKDF2->new
   (
@@ -98,7 +98,7 @@ sub module_verify_hash
   my $key       = $kdf->PBKDF2 ($b_salt, $pass_hash);
   my $cbc       = Crypt::Mode::CBC->new ('AES', 0);
   my $b_plain   = $cbc->decrypt ($b_cipher, $key, $b_iv);
-  my $plain     = unpack ("H*", $b_plain);
+  my $plain     = unpack ('H*', $b_plain);
 
   my $new_hash = module_generate_hash ($word, $salt, $iter, $iv, $plain);
 

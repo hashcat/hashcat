@@ -20,9 +20,9 @@ sub module_generate_hash
   my $iv    = shift // random_hex_string (2*8);
   my $plain = shift // random_hex_string (2*1024);
 
-  my $b_iv    = pack ("H*", $iv);
-  my $b_salt  = pack ("H*", $salt);
-  my $b_plain = pack ("H*", $plain);
+  my $b_iv    = pack ('H*', $iv);
+  my $b_salt  = pack ('H*', $salt);
+  my $b_plain = pack ('H*', $plain);
 
   my $kdf = Crypt::PBKDF2->new
   (
@@ -48,7 +48,7 @@ sub module_generate_hash
 
   $cfb->finish ();
 
-  my $cipher   = unpack ("H*", $b_cipher);
+  my $cipher   = unpack ('H*', $b_cipher);
   my $checksum = sha1_hex ($b_plain);
 
   my $hash = '$odf$'."*0*0*$iter*16*$checksum*8*$iv*16*$salt*0*$cipher";
@@ -96,9 +96,9 @@ sub module_verify_hash
   return unless defined $cipher;
 
   # decrypt
-  my $b_iv     = pack ("H*", $iv);
-  my $b_salt   = pack ("H*", $salt);
-  my $b_cipher = pack ("H*", $cipher);
+  my $b_iv     = pack ('H*', $iv);
+  my $b_salt   = pack ('H*', $salt);
+  my $b_cipher = pack ('H*', $cipher);
 
   my $kdf = Crypt::PBKDF2->new
   (
@@ -124,7 +124,7 @@ sub module_verify_hash
 
   $cfb->finish ();
 
-  my $plain = unpack ("H*", $b_plain);
+  my $plain = unpack ('H*', $b_plain);
 
   my $new_hash = module_generate_hash ($word, $salt, $iter, $iv, $plain);
 
