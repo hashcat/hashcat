@@ -17,7 +17,7 @@ sub module_generate_hash
 
   return if length $word > 27;
 
-  my $hash = md4_hex (encode ("UTF-16LE", $word));
+  my $hash = md4_hex (encode ('UTF-16LE', $word));
 
   return $hash;
 }
@@ -26,7 +26,7 @@ sub module_verify_hash
 {
   my $line = shift;
 
-  my ($hash, $word) = split ":", $line;
+  my ($hash, $word) = split (':', $line);
 
   return unless defined $hash;
   return unless defined $word;

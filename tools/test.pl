@@ -24,7 +24,6 @@ is_in_array ($TYPE, $TYPES) or usage_exit ();
 
 is_whole ($MODE) or die "Mode must be a number\n";
 
-my $module = sprintf ("m%05d.pm", $MODE);
 my $MODULE_FILE = sprintf ("m%05d.pm", $MODE);
 
 eval { require $MODULE_FILE } or die "Could not load test module: $MODULE_FILE\n$@";
@@ -98,17 +97,23 @@ sub verify
 
   open (IN, '<', $hashes_file) or die "$hashes_file: $!\n";
 
-  my $hashlist;
+  my @hashlist;
 
   while (my $line = <IN>)
   {
     $line =~ s/\n$//;
     $line =~ s/\r$//;
 
-    push (@{$hashlist}, $line);
+    push (@hashlist, $line);
   }
 
   close (IN);
+
+  # resolve hash ambiguity if necessary
+  if (exists &{module_preprocess_hashlist})
+  {
+    module_preprocess_hashlist (\@hashlist);
+  }
 
   open (IN,  '<', $cracks_file) or die "$cracks_file: $!\n";
   open (OUT, '>', $out_file   ) or die "$out_file: $!\n";
@@ -124,7 +129,7 @@ sub verify
     next unless defined $hash;
 
     # possible if the hash is in cracksfile, but not in hashfile
-    next unless is_in_array ($hash, $hashlist);
+    next unless is_in_array ($hash, \@hashlist);
 
     print OUT "$line\n";
   }
@@ -256,9 +261,11 @@ sub random_numeric_string
 
   return if ! is_count ($count);
 
+  my @chars = ('0'..'9');
+
   my $string;
 
-  $string .= sprintf ("%d", rand 10) for (1 .. $count);
+  $string .= $chars[rand @chars] for (1 .. $count);
 
   return $string;
 }
