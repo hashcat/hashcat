@@ -11,12 +11,16 @@ use warnings;
 use Digest::MD5  qw (md5);
 use Digest::HMAC qw (hmac hmac_hex);
 
+sub module_constraints { [[0, 256], [0, 256], [0, 55], [0, 55], [0, 55]] }
+
 sub module_generate_hash
 {
   my $word = shift;
-  my $salt = shift // random_numeric_string (random_count (15));
+  my $salt = shift);
 
-  my $hash = hmac_hex ($salt, $word, \&md5, 64) . ":$salt";
+  my $digest = hmac_hex ($salt, $word, \&md5, 64) . ":$salt";
+
+  my $hash = sprintf ("%s:%s", $digest, $salt);
 
   return $hash;
 }
@@ -33,13 +37,7 @@ sub module_verify_hash
 
   $word = pack_if_HEX_notation ($word);
 
-  my $new_hash = module_generate_hash ($word, $salt);
-
-  return unless defined $new_hash;
-
-  return unless $new_hash eq "$hash:$salt";
-
-  return $new_hash;
+  return module_generate_hash ($word, $salt);
 }
 
 1;

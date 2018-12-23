@@ -15,6 +15,8 @@ use FindBin;
 # allows require by filename
 use lib "$FindBin::Bin/test_modules";
 
+my $IS_OPTIMIZED = 1;
+
 my $TYPES = [ 'single', 'passthrough', 'verify' ];
 
 my $TYPE = shift @ARGV;
@@ -28,6 +30,7 @@ my $MODULE_FILE = sprintf ("m%05d.pm", $MODE);
 
 eval { require $MODULE_FILE } or die "Could not load test module: $MODULE_FILE\n$@";
 
+exists &{module_constraints}   or die "Module function 'module_constraints' not found\n";
 exists &{module_generate_hash} or die "Module function 'module_generate_hash' not found\n";
 exists &{module_verify_hash}   or die "Module function 'module_verify_hash' not found\n";
 
@@ -57,35 +60,109 @@ sub single
   # fallback to incrementing length
   undef $len unless is_count ($len);
 
-  my $format = "echo -n %-31s | ./hashcat \${OPTS} -a 0 -m %d '%s'\n";
+  my $constraints = module_constraints ();
 
-  for (my $i = 1; $i <= 31; $i++)
+  my $format = "echo -n %-56s | ./hashcat \${OPTS} -a 0 -m %d '%s'\n";
+
+  my $idx = 0;
+
+  while ($idx < 8)
   {
-    # requested or incrementing length
-    my $cur_len = $len // $i;
+    my $word_len = 0;
 
-    my $word = random_numeric_string ($cur_len);
+    if (defined $len)
+    {
+      if ($IS_OPTIMIZED == 0)
+      {
+        last if $len < $constraints->[0]->[0];
+        last if $len > $constraints->[0]->[1];
+      }
+      else
+      {
+        last if $len < $constraints->[2]->[0];
+        last if $len > $constraints->[2]->[1];
+      }
 
-    my $hash = module_generate_hash ($word);
+      $word_len = $len;
+    }
+    else
+    {
+      $word_len = random_number (($IS_OPTIMIZED == 0) ? $constraints->[0]->[0] : $constraints->[2]->[0],
+                                 ($IS_OPTIMIZED == 0) ? $constraints->[0]->[1] : $constraints->[2]->[1]);
+    }
+
+    my $salt_len = random_number (($IS_OPTIMIZED == 0) ? $constraints->[1]->[0] : $constraints->[3]->[0],
+                                  ($IS_OPTIMIZED == 0) ? $constraints->[1]->[1] : $constraints->[3]->[1]);
+
+    my $comb_len = $word_len + $salt_len;
+
+    if ($IS_OPTIMIZED == 1)
+    {
+      my $comb_min = $constraints->[4]->[0];
+      my $comb_max = $constraints->[4]->[1];
+
+      if (($comb_min != -1) && ($comb_max != -1))
+      {
+        next if $comb_len < $comb_min;
+        next if $comb_len > $comb_max;
+      }
+    }
+
+    $idx++;
+
+    my $word = random_numeric_string ($word_len) || "";
+    my $salt = random_numeric_string ($salt_len) || "";
+
+    my $hash = module_generate_hash ($word, $salt);
 
     # possible if the requested length is not supported by algorithm
     next unless defined $hash;
 
-    print sprintf ($format, $word, $MODE, $hash);
+    printf ($format, $word, $MODE, $hash);
   }
 }
 
 sub passthrough
 {
+  my $constraints = module_constraints ();
+
   while (my $word = <>)
   {
     chomp $word;
 
-    my $hash = module_generate_hash ($word);
+    my $word_len = length $word;
 
-    next unless defined $hash;
+    my $idx = 0;
 
-    print "$hash\n";
+    while ($idx < 1)
+    {
+      my $salt_len = random_number (($IS_OPTIMIZED == 0) ? $constraints->[1]->[0] : $constraints->[3]->[0],
+                                    ($IS_OPTIMIZED == 0) ? $constraints->[1]->[1] : $constraints->[3]->[1]);
+
+      my $comb_len = $word_len + $salt_len;
+
+      if ($IS_OPTIMIZED == 1)
+      {
+        my $comb_min = $constraints->[4]->[0];
+        my $comb_max = $constraints->[4]->[1];
+
+        if (($comb_min != -1) && ($comb_max != -1))
+        {
+          next if $comb_len < $comb_min;
+          next if $comb_len > $comb_max;
+        }
+      }
+
+      $idx++;
+
+      my $salt = random_numeric_string ($salt_len) || "";
+
+      my $hash = module_generate_hash ($word, $salt);
+
+      next unless defined $hash;
+
+      print "$hash\n";
+    }
   }
 }
 
@@ -181,9 +258,7 @@ sub random_number
   my $min = shift;
   my $max = shift;
 
-  return unless is_int ($min);
-  return unless is_int ($max);
-  return unless $min lt $max;
+  return if $min > $max;
 
   return int ((rand ($max - $min)) + $min);
 }

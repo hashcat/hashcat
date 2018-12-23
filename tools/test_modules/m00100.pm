@@ -10,11 +10,15 @@ use warnings;
 
 use Digest::SHA qw (sha1_hex);
 
+sub module_constraints { [[0, 256], [0, 0], [0, 55], [0, 0], [-1, -1]] }
+
 sub module_generate_hash
 {
   my $word = shift;
 
-  my $hash = sha1_hex ($word);
+  my $digest = sha1_hex ($word);
+
+  my $hash = sprintf ("%s", $digest);
 
   return $hash;
 }
@@ -30,13 +34,7 @@ sub module_verify_hash
 
   $word = pack_if_HEX_notation ($word);
 
-  my $new_hash = module_generate_hash ($word);
-
-  return unless defined $new_hash;
-
-  return unless $new_hash eq $hash;
-
-  return $new_hash;
+  return module_generate_hash ($word);
 }
 
 1;

@@ -12,14 +12,16 @@ use Digest::HMAC qw (hmac hmac_hex);
 use Digest::MD5  qw (md5);
 use Encode       qw (encode);
 
+sub module_constraints { [[0, 256], [0, 256], [0, 27], [0, 27], [-1, -1]] }
+
 sub module_generate_hash
 {
   my $word = shift;
+  my $user = shift;
 
-  my $user_len   = random_number (0, 27);
+  my $user_len   = length $user;
   my $domain_len = 27 - $user_len;
 
-  my $user   = shift // random_string ($user_len);
   my $domain = shift // random_string ($domain_len);
   my $srv_ch = shift // random_hex_string (2*8);
   my $cli_ch = shift // random_client_challenge ();
@@ -29,9 +31,9 @@ sub module_generate_hash
 
   my $nthash   = Authen::Passphrase::NTHash->new (passphrase => $word)->hash;
   my $identity = encode ('UTF-16LE', uc ($user) . $domain);
-  my $hash_buf = hmac_hex ($b_srv_ch . $b_cli_ch, hmac ($identity, $nthash, \&md5, 64), \&md5, 64);
+  my $digest   = hmac_hex ($b_srv_ch . $b_cli_ch, hmac ($identity, $nthash, \&md5, 64), \&md5, 64);
 
-  my $hash = sprintf ("%s::%s:%s:%s:%s", $user, $domain, $srv_ch, $hash_buf, $cli_ch);
+  my $hash = sprintf ("%s::%s:%s:%s:%s", $user, $domain, $srv_ch, $digest, $cli_ch);
 
   return $hash;
 }
@@ -95,9 +97,9 @@ sub random_client_challenge
   my $ch;
 
   $ch .= '0101000000000000';
-  $ch .= random_hex_string (2*16);
+  $ch .= random_hex_string (2 * 16);
   $ch .= '00000000';
-  $ch .= random_hex_string(2 * random_count (20));
+  $ch .= random_hex_string (2 * random_count (20));
   $ch .= '00';
 
   return $ch;

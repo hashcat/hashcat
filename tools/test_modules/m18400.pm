@@ -12,10 +12,12 @@ use Crypt::Mode::CBC;
 use Crypt::PBKDF2;
 use Digest::SHA qw (sha256 sha256_hex);
 
+sub module_constraints { [[0, 256], [32, 32], [0, 55], [32, 32], [-1, -1]] }
+
 sub module_generate_hash
 {
   my $word  = shift;
-  my $salt  = shift // random_hex_string (2*16);
+  my $salt  = shift;
   my $iter  = shift // 100000;
   my $iv    = shift // random_hex_string (2*16);
   my $plain = shift // random_hex_string (2*1024);
@@ -100,13 +102,7 @@ sub module_verify_hash
   my $b_plain   = $cbc->decrypt ($b_cipher, $key, $b_iv);
   my $plain     = unpack ('H*', $b_plain);
 
-  my $new_hash = module_generate_hash ($word, $salt, $iter, $iv, $plain);
-
-  return unless defined $new_hash;
-
-  return unless $new_hash eq $hash;
-
-  return $new_hash;
+  return module_generate_hash ($word, $salt, $iter, $iv, $plain);
 }
 
 1;
