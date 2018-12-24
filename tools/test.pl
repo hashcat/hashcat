@@ -62,7 +62,7 @@ sub single
 
   my $constraints = module_constraints ();
 
-  my $format = "echo -n %-56s | ./hashcat \${OPTS} -a 0 -m %d '%s'\n";
+  my $format = "echo -n %-31s | ./hashcat \${OPTS} -a 0 -m %d '%s'\n";
 
   my $idx = 0;
 
@@ -72,27 +72,32 @@ sub single
 
     if (defined $len)
     {
-      if ($IS_OPTIMIZED == 0)
-      {
-        last if $len < $constraints->[0]->[0];
-        last if $len > $constraints->[0]->[1];
-      }
-      else
+      if ($IS_OPTIMIZED == 1)
       {
         last if $len < $constraints->[2]->[0];
         last if $len > $constraints->[2]->[1];
+      }
+      else
+      {
+        last if $len < $constraints->[0]->[0];
+        last if $len > $constraints->[0]->[1];
       }
 
       $word_len = $len;
     }
     else
     {
-      $word_len = random_number (($IS_OPTIMIZED == 0) ? $constraints->[0]->[0] : $constraints->[2]->[0],
-                                 ($IS_OPTIMIZED == 0) ? $constraints->[0]->[1] : $constraints->[2]->[1]);
+      $word_len = random_number (($IS_OPTIMIZED == 1) ? $constraints->[2]->[0] : $constraints->[0]->[0],
+                                 ($IS_OPTIMIZED == 1) ? $constraints->[2]->[1] : $constraints->[0]->[1]);
     }
 
-    my $salt_len = random_number (($IS_OPTIMIZED == 0) ? $constraints->[1]->[0] : $constraints->[3]->[0],
-                                  ($IS_OPTIMIZED == 0) ? $constraints->[1]->[1] : $constraints->[3]->[1]);
+    my $salt_len = random_number (($IS_OPTIMIZED == 1) ? $constraints->[3]->[0] : $constraints->[1]->[0],
+                                  ($IS_OPTIMIZED == 1) ? $constraints->[3]->[1] : $constraints->[1]->[1]);
+
+    if ($IS_OPTIMIZED == 1)
+    {
+      next if ($word_len > 31);
+    }
 
     my $comb_len = $word_len + $salt_len;
 
@@ -132,12 +137,17 @@ sub passthrough
 
     my $word_len = length $word;
 
+    if ($IS_OPTIMIZED == 1)
+    {
+      next if ($word_len > 31);
+    }
+
     my $idx = 0;
 
     while ($idx < 1)
     {
-      my $salt_len = random_number (($IS_OPTIMIZED == 0) ? $constraints->[1]->[0] : $constraints->[3]->[0],
-                                    ($IS_OPTIMIZED == 0) ? $constraints->[1]->[1] : $constraints->[3]->[1]);
+      my $salt_len = random_number (($IS_OPTIMIZED == 1) ? $constraints->[3]->[0] : $constraints->[1]->[0],
+                                    ($IS_OPTIMIZED == 1) ? $constraints->[3]->[1] : $constraints->[1]->[1]);
 
       my $comb_len = $word_len + $salt_len;
 
