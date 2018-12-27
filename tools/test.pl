@@ -115,8 +115,8 @@ sub single
 
     $idx++;
 
-    my $word = random_numeric_string ($word_len) || "";
-    my $salt = random_numeric_string ($salt_len) || "";
+    my $word = random_numeric_string ($word_len) // "";
+    my $salt = random_numeric_string ($salt_len) // "";
 
     my $hash = module_generate_hash ($word, $salt);
 
@@ -165,7 +165,7 @@ sub passthrough
 
       $idx++;
 
-      my $salt = random_numeric_string ($salt_len) || "";
+      my $salt = random_numeric_string ($salt_len) // "";
 
       my $hash = module_generate_hash ($word, $salt);
 
