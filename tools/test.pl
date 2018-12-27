@@ -64,23 +64,29 @@ sub single
 
   my $format = "echo -n %-31s | ./hashcat \${OPTS} -a 0 -m %d '%s'\n";
 
+  my $db;
+
+  my $giveup = 0;
+
   my $idx = 0;
 
   while ($idx < 8)
   {
+    last if ($giveup++ == 1000);
+
     my $word_len = 0;
 
     if (defined $len)
     {
       if ($IS_OPTIMIZED == 1)
       {
-        last if $len < $constraints->[2]->[0];
-        last if $len > $constraints->[2]->[1];
+        next if $len < $constraints->[2]->[0];
+        next if $len > $constraints->[2]->[1];
       }
       else
       {
-        last if $len < $constraints->[0]->[0];
-        last if $len > $constraints->[0]->[1];
+        next if $len < $constraints->[0]->[0];
+        next if $len > $constraints->[0]->[1];
       }
 
       $word_len = $len;
@@ -91,12 +97,21 @@ sub single
                                  ($IS_OPTIMIZED == 1) ? $constraints->[2]->[1] : $constraints->[0]->[1]);
     }
 
-    my $salt_len = random_number (($IS_OPTIMIZED == 1) ? $constraints->[3]->[0] : $constraints->[1]->[0],
-                                  ($IS_OPTIMIZED == 1) ? $constraints->[3]->[1] : $constraints->[1]->[1]);
-
     if ($IS_OPTIMIZED == 1)
     {
       next if ($word_len > 31);
+    }
+
+    my $salt_len = 0;
+
+    if ($constraints->[3]->[0] == $constraints->[3]->[1])
+    {
+      $salt_len = $constraints->[3]->[0];
+    }
+    else
+    {
+      $salt_len = random_number (($IS_OPTIMIZED == 1) ? $constraints->[3]->[0] : $constraints->[1]->[0],
+                                 ($IS_OPTIMIZED == 1) ? $constraints->[3]->[1] : $constraints->[1]->[1]);
     }
 
     my $comb_len = $word_len + $salt_len;
@@ -117,6 +132,11 @@ sub single
 
     my $word = random_numeric_string ($word_len) // "";
     my $salt = random_numeric_string ($salt_len) // "";
+
+    # check if this combination out of word and salt was previously checked
+    next if exists $db->{$word}->{$salt};
+
+    $db->{$word}->{$salt} = undef;
 
     my $hash = module_generate_hash ($word, $salt);
 
@@ -142,12 +162,25 @@ sub passthrough
       next if ($word_len > 31);
     }
 
+    my $giveup = 0;
+
     my $idx = 0;
 
     while ($idx < 1)
     {
-      my $salt_len = random_number (($IS_OPTIMIZED == 1) ? $constraints->[3]->[0] : $constraints->[1]->[0],
-                                    ($IS_OPTIMIZED == 1) ? $constraints->[3]->[1] : $constraints->[1]->[1]);
+      last if ($giveup++ == 1000);
+
+      my $salt_len = 0;
+
+      if ($constraints->[3]->[0] == $constraints->[3]->[1])
+      {
+        $salt_len = $constraints->[3]->[0];
+      }
+      else
+      {
+        $salt_len = random_number (($IS_OPTIMIZED == 1) ? $constraints->[3]->[0] : $constraints->[1]->[0],
+                                   ($IS_OPTIMIZED == 1) ? $constraints->[3]->[1] : $constraints->[1]->[1]);
+      }
 
       my $comb_len = $word_len + $salt_len;
 
@@ -195,12 +228,6 @@ sub verify
   }
 
   close (IN);
-
-  # resolve hash ambiguity if necessary
-  if (exists &{module_preprocess_hashlist})
-  {
-    module_preprocess_hashlist (\@hashlist);
-  }
 
   open (IN,  '<', $cracks_file) or die "$cracks_file: $!\n";
   open (OUT, '>', $out_file)    or die "$out_file: $!\n";
