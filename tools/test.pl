@@ -64,7 +64,10 @@ sub single
 
   my $format = "echo -n %-31s | ./hashcat \${OPTS} -a 0 -m %d '%s'\n";
 
-  my $db;
+  my $db_prev;
+
+  my $word_len_prev = 0;
+  my $salt_len_prev = 0;
 
   my $giveup = 0;
 
@@ -72,7 +75,7 @@ sub single
 
   while ($idx < 8)
   {
-    last if ($giveup++ == 1000);
+    last if ($giveup++ == 1000000);
 
     my $word_len = 0;
 
@@ -99,8 +102,14 @@ sub single
 
     if ($IS_OPTIMIZED == 1)
     {
+      # longer than 31 does not work for -a 0 in optimized mode
+
       next if ($word_len > 31);
     }
+
+    # make sure the password length is only increasing, which is important for test.sh in -a 1 mode to work
+
+    next if ($word_len_prev > $word_len);
 
     my $salt_len = 0;
 
@@ -113,6 +122,12 @@ sub single
       $salt_len = random_number (($IS_OPTIMIZED == 1) ? $constraints->[3]->[0] : $constraints->[1]->[0],
                                  ($IS_OPTIMIZED == 1) ? $constraints->[3]->[1] : $constraints->[1]->[1]);
     }
+
+    # make sure the salt length is only increasing, not sure if we actually need it
+
+    next if ($salt_len_prev > $salt_len);
+
+    # mostly important for raw hashes in optimized mode
 
     my $comb_len = $word_len + $salt_len;
 
@@ -128,15 +143,18 @@ sub single
       }
     }
 
-    $idx++;
-
     my $word = random_numeric_string ($word_len) // "";
     my $salt = random_numeric_string ($salt_len) // "";
 
     # check if this combination out of word and salt was previously checked
-    next if exists $db->{$word}->{$salt};
+    next if exists $db_prev->{$word}->{$salt};
 
-    $db->{$word}->{$salt} = undef;
+    $db_prev->{$word}->{$salt} = undef;
+
+    $word_len_prev = $word_len;
+    $salt_len_prev = $salt_len;
+
+    $idx++;
 
     my $hash = module_generate_hash ($word, $salt);
 
