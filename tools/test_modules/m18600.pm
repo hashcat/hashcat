@@ -67,7 +67,7 @@ sub module_verify_hash
   return unless defined $hash;
   return unless defined $word;
 
-  $word = pack_if_HEX_notation ($word);
+  my $word_packed = pack_if_HEX_notation ($word);
 
   # tokenize
   my @data = split ('\*', $hash);
@@ -128,7 +128,9 @@ sub module_verify_hash
 
   my $plain = unpack ('H*', $b_plain);
 
-  return module_generate_hash ($word, $salt, $iter, $iv, $plain);
+  my $new_hash = module_generate_hash ($word_packed_packed, $salt, $iter, $iv, $plain);
+
+  return ($new_hash, $word);
 }
 
 1;

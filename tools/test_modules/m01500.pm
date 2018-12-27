@@ -29,11 +29,13 @@ sub module_verify_hash
   return unless defined $hash;
   return unless defined $word;
 
-  $word = pack_if_HEX_notation ($word);
+  my $word_packed = pack_if_HEX_notation ($word);
 
   my $salt = substr ($hash, 0, 2);
 
-  return module_generate_hash ($word, $salt);
+  my $new_hash = module_generate_hash ($word_packed, $salt);
+
+  return ($new_hash, $word);
 }
 
 1;

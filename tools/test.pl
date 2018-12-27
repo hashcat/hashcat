@@ -203,17 +203,20 @@ sub verify
   }
 
   open (IN,  '<', $cracks_file) or die "$cracks_file: $!\n";
-  open (OUT, '>', $out_file   ) or die "$out_file: $!\n";
+  open (OUT, '>', $out_file)    or die "$out_file: $!\n";
 
   while (my $line = <IN>)
   {
     $line =~ s/\n$//;
     $line =~ s/\r$//;
 
-    my $hash = module_verify_hash ($line);
+    my ($hash, $word) = module_verify_hash ($line);
 
     # possible if the hash:password pair does not match
     next unless defined $hash;
+
+    # check if the crack is okay
+    next unless $line eq ($hash . ":" . $word);
 
     # possible if the hash is in cracksfile, but not in hashfile
     next unless is_in_array ($hash, \@hashlist);

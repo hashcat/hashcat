@@ -66,9 +66,9 @@ sub module_verify_hash
   $cli_ch = substr ($line, $index2 + 3 + 16 + 32, $index3 - $index2 - 3 - 16 - 32);
   $word   = substr ($line, $index3 + 1);
 
-  $word = pack_if_HEX_notation ($word);
+  my $word_packed = pack_if_HEX_notation ($word);
 
-  my $new_hash = module_generate_hash ($word, $user, $domain, $srv_ch, $cli_ch);
+  my $new_hash = module_generate_hash ($word_packed_packed, $user, $domain, $srv_ch, $cli_ch);
 
   # resolve lowercase/uppercase ambiguity in the username
   # this will also guarantee a match with the preprocessed hashlist
@@ -77,7 +77,7 @@ sub module_verify_hash
 
   return unless $new_hash eq $hash;
 
-  return $new_hash;
+  return ($new_hash, $word);
 }
 
 # algorithm is case-insensitive in regard to usernames
