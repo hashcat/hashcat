@@ -128,7 +128,7 @@ sub module_verify_hash
 
   my $plain = unpack ('H*', $b_plain);
 
-  my $new_hash = module_generate_hash ($word_packed_packed, $salt, $iter, $iv, $plain);
+  my $new_hash = module_generate_hash ($word_packed, $salt, $iter, $iv, $plain);
 
   return ($new_hash, $word);
 }

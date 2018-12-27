@@ -16,9 +16,9 @@ sub module_constraints { [[0, 256], [0, 256], [0, 55], [0, 55], [0, 55]] }
 sub module_generate_hash
 {
   my $word = shift;
-  my $salt = shift);
+  my $salt = shift;
 
-  my $digest = hmac_hex ($salt, $word, \&md5, 64) . ":$salt";
+  my $digest = hmac_hex ($salt, $word, \&md5, 64);
 
   my $hash = sprintf ("%s:%s", $digest, $salt);
 

@@ -68,28 +68,9 @@ sub module_verify_hash
 
   my $word_packed = pack_if_HEX_notation ($word);
 
-  my $new_hash = module_generate_hash ($word_packed_packed, $user, $domain, $srv_ch, $cli_ch);
-
-  # resolve lowercase/uppercase ambiguity in the username
-  # this will also guarantee a match with the preprocessed hashlist
-  $hash     = lc $hash;
-  $new_hash = lc $new_hash;
-
-  return unless $new_hash eq $hash;
+  my $new_hash = module_generate_hash ($word_packed, $user, $domain, $srv_ch, $cli_ch);
 
   return ($new_hash, $word);
-}
-
-# algorithm is case-insensitive in regard to usernames
-# hashcat output always is uppercase, while real world hashes are not
-sub module_preprocess_hashlist
-{
-  my $hashlist = shift;
-
-  for my $hash (@{$hashlist})
-  {
-    $hash = lc $hash;
-  }
 }
 
 sub random_client_challenge

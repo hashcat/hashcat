@@ -18,7 +18,7 @@ sub module_generate_hash
   my $word = shift;
   my $salt = shift;
 
-  my $digest = hmac_hex ($word, $salt, \&md5, 64) . ":$salt";
+  my $digest = hmac_hex ($word, $salt, \&md5, 64);
 
   my $hash = sprintf ("%s:%s", $digest, $salt);
 
