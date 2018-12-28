@@ -12,7 +12,7 @@ use Crypt::GCrypt;
 use Crypt::PBKDF2;
 use Digest::SHA qw (sha1 sha1_hex);
 
-sub module_constraints { [[0, 256], [32, 32], [0, 55], [32, 32], [-1, -1]] }
+sub module_constraints { [[0, 255], [32, 32], [0, 55], [32, 32], [-1, -1]] }
 
 sub module_generate_hash
 {

@@ -11,7 +11,7 @@ use warnings;
 use Digest::MD5  qw (md5_hex);
 use Digest::SHA1 qw (sha1_hex);
 
-sub module_constraints { [[0, 256], [0, 0], [0, 55], [0, 0], [-1, -1]] }
+sub module_constraints { [[0, 255], [0, 0], [0, 55], [0, 0], [-1, -1]] }
 
 sub module_generate_hash
 {
