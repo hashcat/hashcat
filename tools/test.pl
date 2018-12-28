@@ -123,6 +123,15 @@ sub single
                                  ($IS_OPTIMIZED == 1) ? $constraints->[3]->[1] : $constraints->[1]->[1]);
     }
 
+    if ($IS_OPTIMIZED == 1)
+    {
+      # longer than 51 triggers a parser bug in old hashcat, have to leave this during migration phase
+      # #define SALT_MAX_OLD        51
+      # salt_max = SALT_MAX_OLD;
+
+      next if ($salt_len >= 51);
+    }
+
     # make sure the salt length is only increasing, not sure if we actually need it
 
     next if ($salt_len_prev > $salt_len);
