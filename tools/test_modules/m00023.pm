@@ -10,17 +10,17 @@ use warnings;
 
 use Digest::MD5 qw (md5_hex);
 
-sub module_constraints { [[0, 256], [0, 248], [0, 55], [0, 47], [0, 55]] }
+sub module_constraints { [[0, 248], [0, 248], [0, 47], [0, 47], [0, 47]] }
 
 sub module_generate_hash
 {
   my $word = shift;
   my $salt = shift;
 
-  # we need to reduce the maximum salt buffer size by 8 since we
+  # we need to reduce the maximum password and salt buffer size by 8 since we
   # add it here statically
 
-  my $digest = md5_hex ($salt .  "\nskyper\n" . $word);
+  my $digest = md5_hex ($salt . "\nskyper\n" . $word);
 
   my $hash = sprintf ("%s:%s", $digest, $salt);
 
