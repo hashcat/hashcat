@@ -1421,23 +1421,35 @@ function attack_6()
 
         fi
 
-        mask=${mask_6[${i}]}
-
         dict1=${OUTD}/${hash_type}_dict1
         dict2=${OUTD}/${hash_type}_dict2
 
-        if [ "${min}" -eq 0 ]; then
-          mask=${mask_custom}
+        dict1_a6=${OUTD}/${hash_type}_dict1_a6
 
-          dict1=${OUTD}/${hash_type}_dict1_custom
-          dict2=${OUTD}/${hash_type}_dict2_custom
+        cp ${dict1} ${dict1_a6}
+
+        pass=$(sed -n ${i}p ${OUTD}/${hash_type}_passwords.txt)
+
+        if [ ${#pass} -le ${i} ]; then
+          ((i++))
+          continue
         fi
 
-        CMD="./${BIN} ${OPTS} -a 6 -m ${hash_type} '${hash}' ${dict1} ${mask}"
+        echo ${pass} | cut -b -$((${#pass} - ${i})) >> ${dict1_a6}
+        sort -R ${dict1_a6} > ${dict1_a6}.txt
+        mv ${dict1_a6}.txt ${dict1_a6}
+
+        mask=""
+
+        for j in $(seq 1 ${i}); do
+          mask="${mask}?d"
+        done
+
+        CMD="./${BIN} ${OPTS} -a 6 -m ${hash_type} '${hash}' ${dict1_a6} ${mask}"
 
         echo -n "[ len $i ] " &>> ${OUTD}/logfull.txt
 
-        output=$(./${BIN} ${OPTS} -a 6 -m ${hash_type} "${hash}" ${dict1} ${mask} 2>&1)
+        output=$(./${BIN} ${OPTS} -a 6 -m ${hash_type} "${hash}" ${dict1_a6} ${mask} 2>&1)
 
         ret=${?}
 
