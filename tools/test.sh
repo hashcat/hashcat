@@ -32,6 +32,8 @@ HASH_TYPES="0    10    11    12    20    21    22    23    30    40    50    60\
   16200 16300 16400 16500 16600 16700 16800 16900 17300 17400 17500 17600 17700\
   17800 17900 18000 18100 18200 18300 18400 18500 18600 99999"
 
+HASH_TYPES="0 10 11 12 20 21 23 50 60 100 110 120 1000 1500 5600 18400 18500 18600"
+
 VECTOR_WIDTHS="1 2 4 8 16"
 
 MATCH_PASS_ONLY="2500 5300 5400 6600 6800 8200"
@@ -254,11 +256,13 @@ function init()
   fi
 
   # create list of password and hashes of same type
-  grep " ${hash_type} '" ${OUTD}/all.sh > ${OUTD}/${hash_type}.sh 2>/dev/null
+  cmd_file=${OUTD}/${hash_type}.sh
+
+  grep " ${hash_type} '" ${OUTD}/all.sh > ${cmd_file} 2>/dev/null
 
   # create separate list of password and hashes
-  cat ${OUTD}/${hash_type}.sh | awk '{print $3}' > ${OUTD}/${hash_type}_passwords.txt
-  cat ${OUTD}/${hash_type}.sh | awk '{print $11}' | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes.txt
+  sed 's/^echo *|.*$//'       ${cmd_file} | awk '{print $2}'                  > ${OUTD}/${hash_type}_passwords.txt
+  sed 's/^echo *|/echo "" |/' ${cmd_file} | awk '{print $10}' | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes.txt
 
   if [ "${hash_type}" -eq 10300 ]; then
     cat ${OUTD}/${hash_type}.sh | cut -d' ' -f11- | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes.txt
@@ -320,11 +324,16 @@ function init()
         fi
 
         # add splitted password to dicts
-
         echo ${pass} | cut -c -${p0} >> ${OUTD}/${hash_type}_dict1
         echo ${pass} | cut -c ${p1}- >> ${OUTD}/${hash_type}_dict2
+      elif [ "${pass_len}" -eq 1 ]; then
+        echo ${pass} >> ${OUTD}/${hash_type}_dict1
+        echo >> ${OUTD}/${hash_type}_dict2
+      else
+        echo >> ${OUTD}/${hash_type}_dict1
+        echo >> ${OUTD}/${hash_type}_dict2
+      fi
 
-     fi
     fi
 
     ((i++))
@@ -352,14 +361,16 @@ function init()
 
     for ((i = 2; i < 9; i++)); do
 
-      rm -rf ${OUTD}/${hash_type}_multi_${i}.txt ${OUTD}/${hash_type}_passwords_multi_${i}.txt ${OUTD}/${hash_type}_hashes_multi_${i}.txt
+      cmd_file=${OUTD}/${hash_type}_multi_${i}.txt
+
+      rm -rf ${cmd_file} ${OUTD}/${hash_type}_passwords_multi_${i}.txt ${OUTD}/${hash_type}_hashes_multi_${i}.txt
       rm -rf ${OUTD}/${hash_type}_dict1_multi_${i} ${OUTD}/${hash_type}_dict2_multi_${i}
       touch ${OUTD}/${hash_type}_dict1_multi_${i} ${OUTD}/${hash_type}_dict2_multi_${i}
 
-      perl tools/test.pl single ${hash_type} ${i} > ${OUTD}/${hash_type}_multi_${i}.txt
+      perl tools/test.pl single ${hash_type} ${i} > ${cmd_file}
 
-      cat ${OUTD}/${hash_type}_multi_${i}.txt | awk '{print $3}' > ${OUTD}/${hash_type}_passwords_multi_${i}.txt
-      cat ${OUTD}/${hash_type}_multi_${i}.txt | awk '{print $11}' | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes_multi_${i}.txt
+      sed 's/^echo *|.*$//'       ${cmd_file} | awk '{print $2}'                  > ${OUTD}/${hash_type}_passwords_multi_${i}.txt
+      sed 's/^echo *|/echo "" |/' ${cmd_file} | awk '{print $10}' | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes_multi_${i}.txt
 
       if [ "${hash_type}" -eq 10300 ]; then
         cat ${OUTD}/${hash_type}_multi_${i}.txt | cut -d' ' -f11- | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes_multi_${i}.txt
@@ -463,8 +474,8 @@ function attack_0()
 
       fi
 
-      hash="$(echo "$line" | cut -d\'  -f2)"
-      pass="$(echo "$line" | cut -d' ' -f3)"
+      hash="$(echo "${line}" | cut -d\'  -f2)"
+      pass="$(echo "${line}" | cut -d' ' -f2)"
 
       if [ -z "${hash}" ]; then
 
@@ -480,11 +491,11 @@ function attack_0()
 
       fi
 
-      CMD="echo -n "${pass}" | ./${BIN} ${OPTS} -a 0 -m ${hash_type} '${hash}'"
+      CMD="echo "${pass}" | ./${BIN} ${OPTS} -a 0 -m ${hash_type} '${hash}'"
 
       echo -n "[ len $((i + 1)) ] " &>> ${OUTD}/logfull.txt
 
-      output=$(echo -n "${pass}" | ./${BIN} ${OPTS} -a 0 -m ${hash_type} "${hash}" 2>&1)
+      output=$(echo "${pass}" | ./${BIN} ${OPTS} -a 0 -m ${hash_type} "${hash}" 2>&1)
 
       ret=${?}
 
@@ -873,58 +884,21 @@ function attack_3()
     echo "> Testing hash type $hash_type with attack mode 3, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}." &>> ${OUTD}/logfull.txt
 
     max=8
-    mask_offset=0
 
     # some algos have a minimum password length
 
     if   [ "${hash_type}" -eq  2500 ]; then
-      mask_offset=7
       max=7
     elif [ "${hash_type}" -eq 14000 ]; then
-      mask_offset=4
       max=1
     elif [ "${hash_type}" -eq 14100 ]; then
-      mask_offset=3
       max=1
     elif [ "${hash_type}" -eq 14900 ]; then
-      mask_offset=5
       max=1
     elif [ "${hash_type}" -eq 15400 ]; then
-      mask_offset=3
       max=1
     elif [ "${hash_type}" -eq 16800 ]; then
-      mask_offset=7
       max=7
-    fi
-
-    # special case: we need to split the first line
-
-    if [ "${mask_offset}" -ne 0 ]; then
-
-      pass=$(sed -n 1p ${OUTD}/${hash_type}_passwords.txt)
-
-      pass_part_2=$(echo -n ${pass} | cut -b  $((${mask_offset} + 1))-)
-
-      mask_custom=""
-
-      if   [ "${hash_type}" -eq 14000 ]; then
-
-        mask_custom="${pass}"
-
-      elif [ "${hash_type}" -eq 14100 ]; then
-
-        mask_custom="${pass}"
-
-      else
-
-        for i in $(seq 1 ${mask_offset}); do
-          mask_custom="${mask_custom}?d"
-        done
-
-        mask_custom="${mask_custom}${pass_part_2}"
-
-      fi
-
     fi
 
     i=1
@@ -949,57 +923,40 @@ function attack_3()
 
       fi
 
-      mask=${mask_3[$((i + ${mask_offset}))]}
+
+      # construct a meaningful mask from the password itself:
+
       dict="${OUTD}/${hash_type}_passwords.txt"
 
-      # modify "default" mask if needed (and set custom charset to reduce keyspace)
+      pass=$(sed -n ${i}p ${dict})
 
-      if [ "${hash_type}" -eq 2500 ]; then
+      # passwords can't be smaller than mask in -a 3 = mask attack
 
-        pass=$(sed -n ${i}p ${dict})
-
-        mask=${pass}
-
-        # replace the first x positions in the mask with ?d's
-
-        # first: remove first i (== amount) chars
-
-        mask=$(echo ${mask} | cut -b $((i + 1))-)
-
-        # prepend the ?d's
-
-        for i in $(seq 1 ${i}); do
-
-          mask="?d${mask}"
-
-        done
-
+      if [ "${#pass}" -lt ${i} ]; then
+        ((i++))
+        continue
       fi
 
-      if [ "${hash_type}" -eq 16800 ]; then
+      pass_part_2=$(echo -n ${pass} | cut -b  $((${i} + 1))-)
 
-        pass=$(sed -n ${i}p ${dict})
+      mask=""
 
-        mask=${pass}
+      if   [ "${hash_type}" -eq 14000 ]; then
 
-        # replace the first x positions in the mask with ?d's
+        mask="${pass}"
 
-        # first: remove first i (== amount) chars
+      elif [ "${hash_type}" -eq 14100 ]; then
 
-        mask=$(echo ${mask} | cut -b $((i + 1))-)
+        mask="${pass}"
 
-        # prepend the ?d's
+      else
 
         for i in $(seq 1 ${i}); do
-
-          mask="?d${mask}"
-
+          mask="${mask}?d"
         done
 
-      fi
+        mask="${mask}${pass_part_2}"
 
-      if [ "${mask_offset}" -ne 0 ]; then
-        mask=${mask_custom}
       fi
 
       CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} '${hash}' ${mask}"
@@ -2704,7 +2661,9 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
 
     # generate random test entry
     if [ ${HT} -eq 65535 ]; then
-      perl tools/test.pl single > ${OUTD}/all.sh
+      for TMP_HT in ${HASH_TYPES}; do
+        perl tools/test.pl single ${TMP_HT} >> ${OUTD}/all.sh
+      done
     elif [[ ${HT} -ne 14600 ]]; then
       # Exclude TrueCrypt and VeraCrypt testing modes
       if [[ ${HT} -lt  6211 ]] || [[ ${HT} -gt 6243 ]]; then
