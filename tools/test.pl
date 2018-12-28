@@ -406,7 +406,7 @@ sub random_number
 
   return if $min > $max;
 
-  return int ((rand ($max - $min)) + $min);
+  return int ((rand (($max + 1) - $min)) + $min);
 }
 
 sub random_bytes
