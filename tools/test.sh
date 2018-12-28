@@ -1037,23 +1037,6 @@ function attack_3()
       increment_max=9
     fi
 
-    hash_file=${OUTD}/${hash_type}_multihash_bruteforce.txt
-
-    tail_hashes=$(awk "length >= ${increment_min} && length <= ${increment_max}" ${OUTD}/${hash_type}_passwords.txt | wc -l)
-    head_hashes=$(awk                               "length <= ${increment_max}" ${OUTD}/${hash_type}_passwords.txt | wc -l)
-
-    if [ ${tail_hashes} -gt ${head_hashes} ]; then
-      return
-    fi
-
-    if [ ${tail_hashes} -lt 1 ]; then
-      return
-    fi
-
-    cracks_offset=$((${head_hashes} - ${tail_hashes}))
-
-    head -n ${head_hashes} ${OUTD}/${hash_type}_hashes.txt | tail -n ${tail_hashes} > ${hash_file}
-
     # if file_only -> decode all base64 "hashes" and put them in the temporary file
 
     if [ "${file_only}" -eq 1 ]; then
@@ -1071,13 +1054,56 @@ function attack_3()
 
     fi
 
+    hash_file=${OUTD}/${hash_type}_multihash_bruteforce.txt
+
+    tail_hashes=$(awk "length >= ${increment_min} && length <= ${increment_max}" ${OUTD}/${hash_type}_passwords.txt | wc -l)
+    head_hashes=$(awk                               "length <= ${increment_max}" ${OUTD}/${hash_type}_passwords.txt | wc -l)
+
+    # in very rare cases (e.g. without -O and long passwords) we need to use .hcmask files with the passwords in it
+    # otherwise there are no good masks we can test for such long passwords
+
+    need_hcmask=0
+
+    if [ ${tail_hashes} -gt ${head_hashes} ]; then
+      need_hcmask=1
+    fi
+
+    if [ ${tail_hashes} -lt 1 ]; then
+      need_hcmask=1
+    fi
+
+    if [ ${need_hcmask} -eq 0 ]; then
+      head -n ${head_hashes} ${OUTD}/${hash_type}_hashes.txt | tail -n ${tail_hashes} > ${hash_file}
+    else
+      tail_hashes=$(awk "length >= ${increment_min}" ${OUTD}/${hash_type}_passwords.txt | wc -l)
+
+      if [ ${tail_hashes} -lt 1 ]; then
+        return
+      fi
+
+      tail -n ${tail_hashes} ${OUTD}/${hash_type}_hashes.txt  > ${hash_file}
+    fi
+
     mask_pos=8
 
     if [ "${increment_min}" -gt ${mask_pos} ]; then
       mask_pos=${increment_min}
     fi
 
-    mask=${mask_3[${mask_pos}]}
+    mask=""
+    cracks_offset=0
+
+    if [ ${need_hcmask} -eq 0 ]; then
+      cracks_offset=$((${head_hashes} - ${tail_hashes}))
+
+      mask=${mask_3[${mask_pos}]}
+    else
+      num_hashes=$(cat ${OUTD}/${hash_type}_hashes.txt | wc -l)
+      cracks_offset=$((${num_hashes} - ${tail_hashes}))
+
+      mask=${OUTD}/${hash_type}_passwords.txt # fake hcmask file (i.e. the original dict)
+    fi
+
     custom_charsets=""
 
     # modify "default" mask if needed (and set custom charset to reduce keyspace)
@@ -1252,11 +1278,21 @@ function attack_3()
       custom_charsets="-1 ${charset_1} -2 ${charset_2} -3 ${charset_3} -4 ${charset_4}"
     fi
 
-    CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} --increment --increment-min ${increment_min} --increment-max ${increment_max} ${custom_charsets} ${hash_file} ${mask} "
+    increment_charset_opts=""
+
+    if [ ${need_hcmask} -eq 0 ]; then # the "normal" case without .hcmask file
+      increment_charset_opts="--increment --increment-min ${increment_min} --increment-max ${increment_max}"
+
+      if [ -n "${custom_charsets}" ]; then
+        increment_charset_opts="${increment_charset_opts} ${custom_charsets}"
+      fi
+    fi
+
+    CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} ${increment_charset_opts} ${hash_file} ${mask} "
 
     echo "> Testing hash type $hash_type with attack mode 3, markov ${MARKOV}, multi hash, Device-Type ${TYPE}, vector-width ${VECTOR}." &>> ${OUTD}/logfull.txt
 
-    output=$(./${BIN} ${OPTS} -a 3 -m ${hash_type} --increment --increment-min ${increment_min} --increment-max ${increment_max} ${custom_charsets} ${hash_file} ${mask} 2>&1)
+    output=$(./${BIN} ${OPTS} -a 3 -m ${hash_type} ${increment_charset_opts} ${hash_file} ${mask} 2>&1)
 
     ret=${?}
 
