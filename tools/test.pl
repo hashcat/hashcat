@@ -34,6 +34,11 @@ exists &{module_constraints}   or die "Module function 'module_constraints' not 
 exists &{module_generate_hash} or die "Module function 'module_generate_hash' not found\n";
 exists &{module_verify_hash}   or die "Module function 'module_verify_hash' not found\n";
 
+my $giveup_at      = 1000000;
+my $single_outputs = 8;
+
+my $constraints = module_constraints ();
+
 if ($TYPE eq 'single')
 {
   single (@ARGV);
@@ -60,9 +65,13 @@ sub single
   # fallback to incrementing length
   undef $len unless is_count ($len);
 
-  my $constraints = module_constraints ();
+  my $format = "echo %-31s | ./hashcat \${OPTS} -a 0 -m %d '%s'\n";
 
-  my $format = "echo -n %-31s | ./hashcat \${OPTS} -a 0 -m %d '%s'\n";
+  my $db_word_len = init_db_word_rand (($IS_OPTIMIZED == 1) ? $constraints->[2]->[0] : $constraints->[0]->[0],
+                                       ($IS_OPTIMIZED == 1) ? $constraints->[2]->[1] : $constraints->[0]->[1]);
+
+  my $db_salt_len = init_db_salt_rand (($IS_OPTIMIZED == 1) ? $constraints->[3]->[0] : $constraints->[1]->[0],
+                                       ($IS_OPTIMIZED == 1) ? $constraints->[3]->[1] : $constraints->[1]->[1]);
 
   my $db_prev;
 
@@ -73,9 +82,9 @@ sub single
 
   my $idx = 0;
 
-  while ($idx < 8)
+  while ($idx < $single_outputs)
   {
-    last if ($giveup++ == 1000000);
+    last if ($giveup++ == $giveup_at);
 
     my $word_len = 0;
 
@@ -96,20 +105,8 @@ sub single
     }
     else
     {
-      $word_len = random_number (($IS_OPTIMIZED == 1) ? $constraints->[2]->[0] : $constraints->[0]->[0],
-                                 ($IS_OPTIMIZED == 1) ? $constraints->[2]->[1] : $constraints->[0]->[1]);
+      $word_len = $db_word_len->[$idx];
     }
-
-    if ($IS_OPTIMIZED == 1)
-    {
-      # longer than 31 does not work for -a 0 in optimized mode
-
-      next if ($word_len > 31);
-    }
-
-    # make sure the password length is only increasing, which is important for test.sh in -a 1 mode to work
-
-    next if ($word_len_prev > $word_len);
 
     my $salt_len = 0;
 
@@ -119,22 +116,8 @@ sub single
     }
     else
     {
-      $salt_len = random_number (($IS_OPTIMIZED == 1) ? $constraints->[3]->[0] : $constraints->[1]->[0],
-                                 ($IS_OPTIMIZED == 1) ? $constraints->[3]->[1] : $constraints->[1]->[1]);
+      $salt_len = $db_salt_len->[$giveup % $single_outputs];
     }
-
-    if ($IS_OPTIMIZED == 1)
-    {
-      # longer than 51 triggers a parser bug in old hashcat, have to leave this during migration phase
-      # #define SALT_MAX_OLD        51
-      # salt_max = SALT_MAX_OLD;
-
-      next if ($salt_len >= 51);
-    }
-
-    # make sure the salt length is only increasing, not sure if we actually need it
-
-    next if ($salt_len_prev > $salt_len);
 
     # mostly important for raw hashes in optimized mode
 
@@ -176,8 +159,6 @@ sub single
 
 sub passthrough
 {
-  my $constraints = module_constraints ();
-
   while (my $word = <>)
   {
     chomp $word;
@@ -291,6 +272,104 @@ sub is_in_array
   return unless defined $array;
 
   return grep { $_ eq $value } @{$array};
+}
+
+sub init_db_word_rand
+{
+  my $min_len = shift;
+  my $max_len = shift;
+
+  if ($IS_OPTIMIZED == 1)
+  {
+    my $comb_min = $constraints->[4]->[0];
+    my $comb_max = $constraints->[4]->[1];
+
+    if (($comb_min != -1) && ($comb_max != -1))
+    {
+      if ($constraints->[3]->[0] == $constraints->[3]->[1])
+      {
+        $max_len -= $constraints->[3]->[0];
+      }
+    }
+  }
+
+  my $db_len = {};
+  my $db_out = [];
+
+  my $giveup = 0;
+
+  my $idx = 0;
+
+  while ($idx < $single_outputs)
+  {
+    last if ($giveup++ == $giveup_at);
+
+    my $len = random_number ($min_len, $max_len);
+
+    if ($IS_OPTIMIZED == 1)
+    {
+      # longer than 31 does not work for -a 0 in optimized mode
+
+      next if ($len > 31);
+    }
+
+    next if exists $db_len->{$len};
+
+    $db_len->{$len} = undef;
+
+    $db_out->[$idx] = $len;
+
+    $idx++;
+  }
+
+  # make sure the password length is only increasing, which is important for test.sh in -a 1 mode to work
+
+  @{$db_out} = sort { $a <=> $b } @{$db_out};
+
+  return $db_out;
+}
+
+sub init_db_salt_rand
+{
+  my $min_len = shift;
+  my $max_len = shift;
+
+  my $db_len = {};
+  my $db_out = [];
+
+  my $giveup = 0;
+
+  my $idx = 0;
+
+  while ($idx < $single_outputs)
+  {
+    last if ($giveup++ == $giveup_at);
+
+    my $len = random_number ($min_len, $max_len);
+
+    if ($IS_OPTIMIZED == 1)
+    {
+      # longer than 51 triggers a parser bug in old hashcat, have to leave this during migration phase
+      # #define SALT_MAX_OLD        51
+      # salt_max = SALT_MAX_OLD;
+
+      next if ($len >= 51);
+    }
+
+    next if exists $db_len->{$len};
+
+    $db_len->{$len} = undef;
+
+    $db_out->[$idx] = $len;
+
+    $idx++;
+  }
+
+  # make sure the password length is only increasing, which is important for test.sh in -a 1 mode to work
+
+  @{$db_out} = sort { $b <=> $a } @{$db_out};
+
+  return $db_out;
 }
 
 # detect hashcat $HEX[...] notation and pack as binary
