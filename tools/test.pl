@@ -75,9 +75,6 @@ sub single
 
   my $db_prev;
 
-  my $word_len_prev = 0;
-  my $salt_len_prev = 0;
-
   my $giveup = 0;
 
   my $idx = 0;
@@ -143,9 +140,6 @@ sub single
 
     $db_prev->{$word}->{$salt} = undef;
 
-    $word_len_prev = $word_len;
-    $salt_len_prev = $salt_len;
-
     $idx++;
 
     my $hash = module_generate_hash ($word, $salt);
@@ -204,9 +198,9 @@ sub passthrough
         }
       }
 
-      $idx++;
-
       my $salt = random_numeric_string ($salt_len) // "";
+
+      $idx++;
 
       my $hash = module_generate_hash ($word, $salt);
 

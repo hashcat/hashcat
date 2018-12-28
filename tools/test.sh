@@ -752,28 +752,12 @@ function attack_1()
     e_nm=0
     cnt=0
 
-    offset=14
+    offset=7
 
-    if   [ ${hash_type} -eq  2410 ]; then
-      offset=11
-    elif [ ${hash_type} -eq  2500 ]; then
-      offset=7
-    elif [ ${hash_type} -eq  5800 ]; then
+    if [ ${hash_type} -eq  5800 ]; then
       offset=6
     elif [ ${hash_type} -eq  3000 ]; then
       offset=6
-    elif [ ${hash_type} -eq  2100 ]; then
-      offset=11
-    elif [ ${hash_type} -eq  1500 ]; then
-      offset=7
-    elif [ ${hash_type} -eq  7700 ] || [ ${hash_type} -eq 7701 ]; then
-      offset=7
-    elif [ ${hash_type} -eq  8500 ]; then
-      offset=7
-    elif [ ${hash_type} -eq 16000 ]; then
-      offset=7
-    elif [ ${hash_type} -eq 16800 ]; then
-      offset=7
     fi
 
     hash_file=${OUTD}/${hash_type}_multihash_combi.txt
@@ -1055,7 +1039,20 @@ function attack_3()
 
     hash_file=${OUTD}/${hash_type}_multihash_bruteforce.txt
 
-    head -n $((increment_max - ${increment_min} + 1)) ${OUTD}/${hash_type}_hashes.txt > ${hash_file}
+    tail_hashes=$(awk "length >= ${increment_min} && length <= ${increment_max}" ${OUTD}/${hash_type}_passwords.txt | wc -l)
+    head_hashes=$(awk                               "length <= ${increment_max}" ${OUTD}/${hash_type}_passwords.txt | wc -l)
+
+    if [ ${tail_hashes} -gt ${head_hashes} ]; then
+      return
+    fi
+
+    if [ ${tail_hashes} -lt 1 ]; then
+      return
+    fi
+
+    cracks_offset=$((${head_hashes} - ${tail_hashes}))
+
+    head -n ${head_hashes} ${OUTD}/${hash_type}_hashes.txt | tail -n ${tail_hashes} > ${hash_file}
 
     # if file_only -> decode all base64 "hashes" and put them in the temporary file
 
@@ -1270,8 +1267,9 @@ function attack_3()
       i=1
 
       while read -u 9 hash; do
+        line_nr=$((${i} + ${cracks_offset}))
 
-        pass=$(sed -n ${i}p ${OUTD}/${hash_type}_passwords.txt)
+        pass=$(sed -n ${line_nr}p ${OUTD}/${hash_type}_passwords.txt)
 
         if [ ${pass_only} -eq 1 ]; then
           search=":${pass}"
