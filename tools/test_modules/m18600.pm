@@ -12,15 +12,15 @@ use Crypt::GCrypt;
 use Crypt::PBKDF2;
 use Digest::SHA qw (sha1 sha1_hex);
 
-sub module_constraints { [[0, 255], [32, 32], [0, 55], [32, 32], [-1, -1]] }
+sub module_constraints { [[0, 51], [32, 32], [0, 51], [32, 32], [-1, -1]] }
 
 sub module_generate_hash
 {
   my $word  = shift;
   my $salt  = shift;
   my $iter  = shift // 100000;
-  my $iv    = shift // random_hex_string (2*8);
-  my $plain = shift // random_hex_string (2*1024);
+  my $iv    = shift // random_hex_string (2 * 8);
+  my $plain = shift // random_hex_string (2 * 1024);
 
   my $b_iv    = pack ('H*', $iv);
   my $b_salt  = pack ('H*', $salt);
@@ -36,7 +36,8 @@ sub module_generate_hash
   my $pass_hash = sha1 ($word);
   my $key       = $kdf->PBKDF2 ($b_salt, $pass_hash);
 
-  my $cfb = Crypt::GCrypt->new(
+  my $cfb = Crypt::GCrypt->new
+  (
     type      => 'cipher',
     algorithm => 'blowfish',
     mode      => 'cfb'

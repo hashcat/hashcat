@@ -10,7 +10,7 @@ use warnings;
 
 use Authen::Passphrase::MySQL323;
 
-sub module_constraints { [[0, 255], [0, 0], [0, 55], [0, 0], [-1, -1]] }
+sub module_constraints { [[-1, -1], [-1, -1], [0, 31], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {

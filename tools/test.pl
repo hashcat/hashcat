@@ -37,7 +37,7 @@ exists &{module_verify_hash}   or die "Module function 'module_verify_hash' not 
 my $giveup_at      = 1000000;
 my $single_outputs = 8;
 
-my $constraints = module_constraints ();
+my $constraints = get_module_constraints ();
 
 if ($TYPE eq 'single')
 {
@@ -67,11 +67,13 @@ sub single
 
   my $format = "echo %-31s | ./hashcat \${OPTS} -a 0 -m %d '%s'\n";
 
-  my $db_word_len = init_db_word_rand (($IS_OPTIMIZED == 1) ? $constraints->[2]->[0] : $constraints->[0]->[0],
-                                       ($IS_OPTIMIZED == 1) ? $constraints->[2]->[1] : $constraints->[0]->[1]);
+  my $word_min = ($IS_OPTIMIZED == 1) ? $constraints->[2]->[0] : $constraints->[0]->[0];
+  my $word_max = ($IS_OPTIMIZED == 1) ? $constraints->[2]->[1] : $constraints->[0]->[1];
+  my $salt_min = ($IS_OPTIMIZED == 1) ? $constraints->[3]->[0] : $constraints->[1]->[0];
+  my $salt_max = ($IS_OPTIMIZED == 1) ? $constraints->[3]->[1] : $constraints->[1]->[1];
 
-  my $db_salt_len = init_db_salt_rand (($IS_OPTIMIZED == 1) ? $constraints->[3]->[0] : $constraints->[1]->[0],
-                                       ($IS_OPTIMIZED == 1) ? $constraints->[3]->[1] : $constraints->[1]->[1]);
+  my $db_word_len = init_db_word_rand ($word_min, $word_max);
+  my $db_salt_len = init_db_salt_rand ($salt_min, $salt_max);
 
   my $db_prev;
 
@@ -87,16 +89,8 @@ sub single
 
     if (defined $len)
     {
-      if ($IS_OPTIMIZED == 1)
-      {
-        next if $len < $constraints->[2]->[0];
-        next if $len > $constraints->[2]->[1];
-      }
-      else
-      {
-        next if $len < $constraints->[0]->[0];
-        next if $len > $constraints->[0]->[1];
-      }
+      next if $len < $word_min;
+      next if $len > $word_max;
 
       $word_len = $len;
     }
@@ -107,13 +101,16 @@ sub single
 
     my $salt_len = 0;
 
-    if ($constraints->[3]->[0] == $constraints->[3]->[1])
+    if ($salt_min != -1)
     {
-      $salt_len = $constraints->[3]->[0];
-    }
-    else
-    {
-      $salt_len = $db_salt_len->[$giveup % $single_outputs];
+      if ($salt_min == $salt_max)
+      {
+        $salt_len = $salt_min;
+      }
+      else
+      {
+        $salt_len = $db_salt_len->[$giveup % $single_outputs];
+      }
     }
 
     # mostly important for raw hashes in optimized mode
@@ -125,7 +122,7 @@ sub single
       my $comb_min = $constraints->[4]->[0];
       my $comb_max = $constraints->[4]->[1];
 
-      if (($comb_min != -1) && ($comb_max != -1))
+      if ($comb_min != -1)
       {
         next if $comb_len < $comb_min;
         next if $comb_len > $comb_max;
@@ -174,14 +171,19 @@ sub passthrough
 
       my $salt_len = 0;
 
-      if ($constraints->[3]->[0] == $constraints->[3]->[1])
+      my $salt_min = ($IS_OPTIMIZED == 1) ? $constraints->[3]->[0] : $constraints->[1]->[0];
+      my $salt_max = ($IS_OPTIMIZED == 1) ? $constraints->[3]->[1] : $constraints->[1]->[1];
+
+      if ($salt_min != -1)
       {
-        $salt_len = $constraints->[3]->[0];
-      }
-      else
-      {
-        $salt_len = random_number (($IS_OPTIMIZED == 1) ? $constraints->[3]->[0] : $constraints->[1]->[0],
-                                   ($IS_OPTIMIZED == 1) ? $constraints->[3]->[1] : $constraints->[1]->[1]);
+        if ($salt_min == $salt_max)
+        {
+          $salt_len = $salt_min;
+        }
+        else
+        {
+          $salt_len = random_number ($salt_min, $salt_max);
+        }
       }
 
       my $comb_len = $word_len + $salt_len;
@@ -191,7 +193,7 @@ sub passthrough
         my $comb_min = $constraints->[4]->[0];
         my $comb_max = $constraints->[4]->[1];
 
-        if (($comb_min != -1) && ($comb_max != -1))
+        if ($comb_min != -1)
         {
           next if $comb_len < $comb_min;
           next if $comb_len > $comb_max;
@@ -268,21 +270,63 @@ sub is_in_array
   return grep { $_ eq $value } @{$array};
 }
 
+sub get_module_constraints
+{
+  my $constraints = module_constraints ();
+
+  if (($constraints->[0]->[0] == -1) && ($constraints->[0]->[1] == -1))
+  {
+    # hash-mode doesn't have a pure kernel, use optimized password settings
+
+    $constraints->[0]->[0] = $constraints->[2]->[0];
+    $constraints->[0]->[1] = $constraints->[2]->[1];
+  }
+
+  if (($constraints->[1]->[0] == -1) && ($constraints->[1]->[1] == -1))
+  {
+    # hash-mode doesn't have a pure kernel, use optimized salt settings
+
+    $constraints->[1]->[0] = $constraints->[3]->[0];
+    $constraints->[1]->[1] = $constraints->[3]->[1];
+  }
+
+  if (($constraints->[2]->[0] == -1) && ($constraints->[2]->[1] == -1))
+  {
+    # hash-mode doesn't have a optimized kernel, use pure password settings
+
+    $constraints->[2]->[0] = $constraints->[0]->[0];
+    $constraints->[2]->[1] = $constraints->[0]->[1];
+  }
+
+  if (($constraints->[3]->[0] == -1) && ($constraints->[3]->[1] == -1))
+  {
+    # hash-mode doesn't have a optimized kernel, use pure salt settings
+
+    $constraints->[3]->[0] = $constraints->[1]->[0];
+    $constraints->[3]->[1] = $constraints->[1]->[1];
+  }
+
+  return $constraints;
+}
+
 sub init_db_word_rand
 {
-  my $min_len = shift;
-  my $max_len = shift;
+  my $len_min = shift;
+  my $len_max = shift;
+
+  return if ($len_min == -1);
+  return if ($len_max == -1);
 
   if ($IS_OPTIMIZED == 1)
   {
-    my $comb_min = $constraints->[4]->[0];
-    my $comb_max = $constraints->[4]->[1];
-
-    if (($comb_min != -1) && ($comb_max != -1))
+    if ($constraints->[4]->[0] != -1)
     {
-      if ($constraints->[3]->[0] == $constraints->[3]->[1])
+      my $salt_min = $constraints->[3]->[0];
+      my $salt_max = $constraints->[3]->[1];
+
+      if ($salt_min == $salt_max)
       {
-        $max_len -= $constraints->[3]->[0];
+        $len_max -= $salt_min;
       }
     }
   }
@@ -298,7 +342,7 @@ sub init_db_word_rand
   {
     last if ($giveup++ == $giveup_at);
 
-    my $len = random_number ($min_len, $max_len);
+    my $len = random_number ($len_min, $len_max);
 
     if ($IS_OPTIMIZED == 1)
     {
@@ -325,8 +369,11 @@ sub init_db_word_rand
 
 sub init_db_salt_rand
 {
-  my $min_len = shift;
-  my $max_len = shift;
+  my $len_min = shift;
+  my $len_max = shift;
+
+  return if ($len_min == -1);
+  return if ($len_max == -1);
 
   my $db_len = {};
   my $db_out = [];
@@ -339,7 +386,7 @@ sub init_db_salt_rand
   {
     last if ($giveup++ == $giveup_at);
 
-    my $len = random_number ($min_len, $max_len);
+    my $len = random_number ($len_min, $len_max);
 
     if ($IS_OPTIMIZED == 1)
     {

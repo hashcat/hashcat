@@ -12,7 +12,7 @@ use Digest::HMAC qw (hmac hmac_hex);
 use Digest::MD5  qw (md5);
 use Encode       qw (encode);
 
-sub module_constraints { [[0, 255], [0, 255], [0, 27], [0, 27], [-1, -1]] }
+sub module_constraints { [[0, 127], [0, 55], [0, 27], [0, 27], [-1, -1]] } # room for improvement in pure kernel mode
 
 sub module_generate_hash
 {
@@ -23,7 +23,7 @@ sub module_generate_hash
   my $domain_len = 27 - $user_len;
 
   my $domain = shift // random_string ($domain_len);
-  my $srv_ch = shift // random_hex_string (2*8);
+  my $srv_ch = shift // random_hex_string (2 * 8);
   my $cli_ch = shift // random_client_challenge ();
 
   my $b_srv_ch = pack ('H*', $srv_ch);
