@@ -1425,7 +1425,6 @@ bool default_potfile_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   return potfile_disable;
 }
 
-
 // migrate
 
 void to_hccapx_t (hashcat_ctx_t *hashcat_ctx, hccapx_t *hccapx, const u32 salt_pos, const u32 digest_pos)

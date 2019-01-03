@@ -28533,3 +28533,19 @@ bool potfile_keep_all_hashes
   }
 }
 
+
+
+
+int build_plain_postprocess (const u32 *src_buf, MAYBE_UNUSED const size_t src_sz, const int src_len, u32 *dst_buf, MAYBE_UNUSED const size_t dst_sz)
+{
+  // TOTP should be base32 encoded
+  if (hashconfig->hash_mode == 18100)
+  {
+
+
+    // encode our plain
+    return base32_encode (int_to_base32, (const u8 *) src_buf, src_len, (u8 *) temp_buf);
+
+
+  }
+}

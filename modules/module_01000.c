@@ -120,6 +120,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_benchmark_hook_salt      = NULL;
   module_ctx->module_benchmark_mask           = NULL;
   module_ctx->module_benchmark_salt           = NULL;
+  module_ctx->module_build_plain_postprocess  = NULL;
   module_ctx->module_dgst_pos0                = module_dgst_pos0;
   module_ctx->module_dgst_pos1                = module_dgst_pos1;
   module_ctx->module_dgst_pos2                = module_dgst_pos2;

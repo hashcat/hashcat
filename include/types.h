@@ -2288,6 +2288,8 @@ typedef struct module_ctx
   void        (*module_hook12)                  (hc_device_param_t *, const void *, const u32, const u64);
   void        (*module_hook23)                  (hc_device_param_t *, const void *, const u32, const u64);
 
+  int         (*module_build_plain_postprocess) (const u32 *, const size_t, const int, u32 *, const size_t);
+
 } module_ctx_t;
 
 typedef struct hashcat_ctx

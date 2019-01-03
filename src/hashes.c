@@ -263,10 +263,11 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 
 void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain)
 {
-  debugfile_ctx_t *debugfile_ctx = hashcat_ctx->debugfile_ctx;
-  loopback_ctx_t  *loopback_ctx  = hashcat_ctx->loopback_ctx;
-  hashes_t        *hashes        = hashcat_ctx->hashes;
-  hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
+  const debugfile_ctx_t *debugfile_ctx = hashcat_ctx->debugfile_ctx;
+  const hashes_t        *hashes        = hashcat_ctx->hashes;
+  const hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
+  const loopback_ctx_t  *loopback_ctx  = hashcat_ctx->loopback_ctx;
+  const module_ctx_t    *module_ctx    = hashcat_ctx->module_ctx;
 
   const u32 salt_pos    = plain->salt_pos;
   const u32 digest_pos  = plain->digest_pos;  // relative
@@ -288,18 +289,18 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   build_plain (hashcat_ctx, device_param, plain, plain_buf, &plain_len);
 
-  // TOTP should be base32 encoded
-  if (hashconfig->hash_mode == KERN_TYPE_TOTP_HMACSHA1)
+  if (module_ctx->module_build_plain_postprocess)
   {
-    // we need a temp buffer for the base32 encoding
     u32 temp_buf[64] = { 0 };
-    u8 *temp_ptr = (u8 *) temp_buf;
 
-    // encode our plain
-    plain_len = base32_encode (int_to_base32, (const u8 *) plain_ptr, plain_len, (u8 *) temp_buf);
+    const int temp_len = module_ctx->module_build_plain_postprocess (plain_buf, sizeof (plain_buf), plain_len, temp_buf, sizeof (temp_buf));
 
-    // copy the base32 content into our plain buffer
-    strncpy ((char *) plain_ptr, (char *) temp_ptr, sizeof (plain_buf));
+    if (temp_len < (int) sizeof (plain_buf))
+    {
+      memcpy (plain_buf, temp_buf, temp_len);
+
+      plain_len = temp_len;
+    }
   }
 
   // crackpos

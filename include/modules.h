@@ -2,6 +2,8 @@
 #ifndef _MODULES_H
 #define _MODULES_H
 
+void        module_init                     (module_ctx_t *module_ctx);
+
 u32         module_attack_exec              (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
 void       *module_benchmark_esalt          (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
 void       *module_benchmark_hook_salt      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
@@ -42,14 +44,14 @@ const char *module_st_pass                  (MAYBE_UNUSED const hashconfig_t *ha
 u64         module_tmp_size                 (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
 bool        module_warmup_disable           (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
 
-int module_hash_decode_outfile    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED       void *digest_buf, MAYBE_UNUSED       salt_t *salt, MAYBE_UNUSED       void *esalt_buf, const char *line_buf, MAYBE_UNUSED const int line_len);
-int module_hash_decode_zero_hash  (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED       void *digest_buf, MAYBE_UNUSED       salt_t *salt, MAYBE_UNUSED       void *esalt_buf);
-int module_hash_decode            (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED       void *digest_buf, MAYBE_UNUSED       salt_t *salt, MAYBE_UNUSED       void *esalt_buf, const char *line_buf, MAYBE_UNUSED const int line_len);
-int module_hash_encode            (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, char       *line_buf, MAYBE_UNUSED const int line_size);
+int         module_hash_decode_outfile      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED       void *digest_buf, MAYBE_UNUSED       salt_t *salt, MAYBE_UNUSED       void *esalt_buf, const char *line_buf, MAYBE_UNUSED const int line_len);
+int         module_hash_decode_zero_hash    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED       void *digest_buf, MAYBE_UNUSED       salt_t *salt, MAYBE_UNUSED       void *esalt_buf);
+int         module_hash_decode              (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED       void *digest_buf, MAYBE_UNUSED       salt_t *salt, MAYBE_UNUSED       void *esalt_buf, const char *line_buf, MAYBE_UNUSED const int line_len);
+int         module_hash_encode              (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, char       *line_buf, MAYBE_UNUSED const int line_size);
 
-void hook12_func (hc_device_param_t *device_param, void *hook_salts_buf, const u32 salt_pos, const u64 pws_cnt);
-void hook23_func (hc_device_param_t *device_param, void *hook_salts_buf, const u32 salt_pos, const u64 pws_cnt);
+void        module_hook12                   (hc_device_param_t *device_param, void *hook_salts_buf, const u32 salt_pos, const u64 pws_cnt);
+void        module_hook23                   (hc_device_param_t *device_param, void *hook_salts_buf, const u32 salt_pos, const u64 pws_cnt);
 
-void module_init (module_ctx_t *module_ctx);
+int         module_build_plain_postprocess  (const u32 *src_buf, MAYBE_UNUSED const size_t src_sz, const int src_len, u32 *dst_buf, MAYBE_UNUSED const size_t dst_sz);
 
 #endif // _MODULES_H
