@@ -11,7 +11,7 @@ use warnings;
 use Digest::MD5 qw (md5_hex);
 use Encode;
 
-sub module_constraints { [[0, 127], [0, 127], [0, 27], [0, 55], [0, 27]] }
+sub module_constraints { [[0, 255], [0, 255], [0, 27], [0, 55], [0, 27]] }
 
 sub module_generate_hash
 {
@@ -39,7 +39,7 @@ sub module_verify_hash
 
   my $new_hash = module_generate_hash ($word, $salt);
 
-  return $new_hash;
+  return ($new_hash, $word);
 }
 
 1;
