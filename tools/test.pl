@@ -65,8 +65,6 @@ sub single
   # fallback to incrementing length
   undef $len unless is_count ($len);
 
-  my $format = "echo %-31s | ./hashcat \${OPTS} -a 0 -m %d '%s'\n";
-
   my $word_min = ($IS_OPTIMIZED == 1) ? $constraints->[2]->[0] : $constraints->[0]->[0];
   my $word_max = ($IS_OPTIMIZED == 1) ? $constraints->[2]->[1] : $constraints->[0]->[1];
   my $salt_min = ($IS_OPTIMIZED == 1) ? $constraints->[3]->[0] : $constraints->[1]->[0];
@@ -96,7 +94,7 @@ sub single
     }
     else
     {
-      $word_len = $db_word_len->[$idx];
+      $word_len = $db_word_len->[$giveup % $single_outputs];
     }
 
     my $salt_len = 0;
@@ -138,13 +136,21 @@ sub single
     $db_prev->{$word}->{$salt} = undef;
 
     $idx++;
+  }
 
-    my $hash = module_generate_hash ($word, $salt);
+  for my $word (sort { length $a <=> length $b } keys %{$db_prev})
+  {
+    for my $salt (sort { length $a <=> length $b } keys %{$db_prev->{$word}})
+    {
+      my $hash = module_generate_hash ($word, $salt);
 
-    # possible if the requested length is not supported by algorithm
-    next unless defined $hash;
+      # possible if the requested length is not supported by algorithm
+      next unless defined $hash;
 
-    printf ($format, $word, $MODE, $hash);
+      my $format = "echo %-31s | ./hashcat \${OPTS} -a 0 -m %d '%s'\n";
+
+      printf ($format, $word, $MODE, $hash);
+    }
   }
 }
 
