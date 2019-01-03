@@ -57,7 +57,7 @@ u32 brain_compute_session (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->brain_session != 0) return user_options->brain_session;
 
-  const u64 seed = (const u64) hashconfig->hash_mode;
+  const u64 seed = (const u64) user_options->hash_mode;
 
   XXH64_state_t *state = XXH64_createState ();
 
