@@ -10,17 +10,14 @@ use warnings;
 
 use Digest::MD5 qw (md5);
 
-sub module_constraints { [[0, 256], [1, 11], [0, 35], [1, 11], [1, 35]] }
+sub module_constraints { [[0, 255], [1, 11], [0, 33], [1, 11], [1, 33]] }
 
 sub module_generate_hash
 {
-  my $itoa64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-  my $salt_suffix = "Administration Tools";
-
   my $word = shift;
   my $salt = shift;
 
-  my $pass = sprintf ("%s:%s:%s", $salt, $salt_suffix, $word);
+  my $pass = sprintf ("%s:Administration Tools:%s", $salt, $word);
 
   my $hash_buf = md5 ($pass);
 
@@ -31,11 +28,14 @@ sub module_generate_hash
     my $octet1 = ord (substr ($hash_buf, $pos + 0, 1));
     my $octet2 = ord (substr ($hash_buf, $pos + 1, 1));
 
-    my $num = ($octet1 <<8 & 0xff00) | ($octet2 & 0xff);
+    my $num = (($octet1 << 8) & 0xff00)
+            | (($octet2 << 0) & 0x00ff);
 
     my $idx1 = $num >> 12 & 0x0f;
     my $idx2 = $num >>  6 & 0x3f;
     my $idx3 = $num       & 0x3f;
+
+    my $itoa64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
     $res = $res . substr ($itoa64, $idx1, 1) . substr ($itoa64, $idx2, 1) . substr ($itoa64, $idx3, 1);
   }
@@ -46,6 +46,7 @@ sub module_generate_hash
   foreach my $pos (keys @obfuscate_pos)
   {
     my $idx = $obfuscate_pos[$pos];
+
     my $before = substr ($res, 0, $idx);
     my $char   = substr ($obfuscate_str, $pos, 1);
     my $after  = substr ($res, $idx);
