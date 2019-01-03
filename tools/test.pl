@@ -75,15 +75,13 @@ sub single
 
   my $db_prev;
 
-  my $giveup1 = 0;
-  my $giveup2 = 0;
+  my $giveup = 0;
 
   my $idx = 0;
 
   while ($idx < $single_outputs)
   {
-    last if ($giveup1++ == $giveup_at);
-    last if ($giveup2++ == $giveup_at);
+    last if ($giveup++ == $giveup_at);
 
     my $word_len = 0;
 
@@ -109,7 +107,7 @@ sub single
       }
       else
       {
-        $salt_len = $db_salt_len->[$giveup2 % $single_outputs];
+        $salt_len = $db_salt_len->[$giveup % $single_outputs];
       }
     }
 
