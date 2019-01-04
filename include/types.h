@@ -964,6 +964,7 @@ struct hashconfig
   bool outfile_check_nocomp;
   bool potfile_disable;
   bool potfile_keep_all_hashes;
+  bool forced_jit_compile;
 
   u32 pwdump_column;
 };
@@ -1315,10 +1316,10 @@ typedef struct hc_device_param
   cl_mem  d_tmps;
   cl_mem  d_hooks;
   cl_mem  d_result;
-  cl_mem  d_scryptV0_buf;
-  cl_mem  d_scryptV1_buf;
-  cl_mem  d_scryptV2_buf;
-  cl_mem  d_scryptV3_buf;
+  cl_mem  d_extra0_buf;
+  cl_mem  d_extra1_buf;
+  cl_mem  d_extra2_buf;
+  cl_mem  d_extra3_buf;
   cl_mem  d_root_css_buf;
   cl_mem  d_markov_css_buf;
   cl_mem  d_st_digests_buf;
@@ -2284,6 +2285,9 @@ typedef struct module_ctx
   int         (*module_hash_decode_zero_hash)   (const hashconfig_t *,       void *,       salt_t *,       void *);
   int         (*module_hash_decode)             (const hashconfig_t *,       void *,       salt_t *,       void *, const char *, const int);
   int         (*module_hash_encode)             (const hashconfig_t *, const void *, const salt_t *, const void *,       char *,       int);
+
+  u64         (*module_extra_buffer_size)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hashes_t *, const hc_device_param_t *);
+  char       *(*module_jit_build_options)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hashes_t *, const hc_device_param_t *);
 
   void        (*module_hook12)                  (hc_device_param_t *, const void *, const u32, const u64);
   void        (*module_hook23)                  (hc_device_param_t *, const void *, const u32, const u64);

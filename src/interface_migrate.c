@@ -28549,3 +28549,345 @@ int build_plain_postprocess (const u32 *src_buf, MAYBE_UNUSED const size_t src_s
 
   }
 }
+
+u64 module_size_extra_buffer (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param);
+{
+
+    // scryptV stuff
+
+    u64 scrypt_tmp_size   = 0;
+    u64 scrypt_tmto_final = 0;
+
+    u64 size_scrypt = 4;
+
+    if ((hashconfig->hash_mode == 8900) || (hashconfig->hash_mode == 9300) || (hashconfig->hash_mode == 15700))
+    {
+      // we need to check that all hashes have the same scrypt settings
+
+      const u32 scrypt_N = hashes->salts_buf[0].scrypt_N;
+      const u32 scrypt_r = hashes->salts_buf[0].scrypt_r;
+      const u32 scrypt_p = hashes->salts_buf[0].scrypt_p;
+
+      for (u32 i = 1; i < hashes->salts_cnt; i++)
+      {
+        if ((hashes->salts_buf[i].scrypt_N != scrypt_N)
+         || (hashes->salts_buf[i].scrypt_r != scrypt_r)
+         || (hashes->salts_buf[i].scrypt_p != scrypt_p))
+        {
+          event_log_error (hashcat_ctx, "Mixed scrypt settings are not supported.");
+
+          return -1;
+        }
+      }
+
+      scrypt_tmp_size = (128 * scrypt_r * scrypt_p);
+
+      hashconfig->tmp_size = scrypt_tmp_size;
+
+      u32 tmto_start = 1;
+      u32 tmto_stop  = 6;
+
+      if (user_options->scrypt_tmto)
+      {
+        tmto_start = user_options->scrypt_tmto;
+        tmto_stop  = user_options->scrypt_tmto;
+      }
+
+      const u32 scrypt_threads = hashconfig->forced_kernel_threads;
+
+      const u64 kernel_power_max = SCRYPT_MAX_ACCEL * device_processors * scrypt_threads;
+
+      // size_pws
+
+      const u64 size_pws = kernel_power_max * sizeof (pw_t);
+
+      const u64 size_pws_amp = size_pws;
+
+      // size_pws_comp
+
+      const u64 size_pws_comp = kernel_power_max * (sizeof (u32) * 64);
+
+      // size_pws_idx
+
+      const u64 size_pws_idx = (kernel_power_max + 1) * sizeof (pw_idx_t);
+
+      // size_tmps
+
+      const u64 size_tmps = kernel_power_max * hashconfig->tmp_size;
+
+      // size_hooks
+
+      const u64 size_hooks = kernel_power_max * hashconfig->hook_size;
+
+      const u64 scrypt_extra_space
+        = bitmap_ctx->bitmap_size
+        + bitmap_ctx->bitmap_size
+        + bitmap_ctx->bitmap_size
+        + bitmap_ctx->bitmap_size
+        + bitmap_ctx->bitmap_size
+        + bitmap_ctx->bitmap_size
+        + bitmap_ctx->bitmap_size
+        + bitmap_ctx->bitmap_size
+        + size_bfs
+        + size_combs
+        + size_digests
+        + size_esalts
+        + size_hooks
+        + size_markov_css
+        + size_plains
+        + size_pws
+        + size_pws_amp
+        + size_pws_comp
+        + size_pws_idx
+        + size_results
+        + size_root_css
+        + size_rules
+        + size_rules_c
+        + size_salts
+        + size_shown
+        + size_tm
+        + size_tmps
+        + size_st_digests
+        + size_st_salts
+        + size_st_esalts;
+
+      bool not_enough_memory = true;
+
+      u32 tmto;
+
+      for (tmto = tmto_start; tmto <= tmto_stop; tmto++)
+      {
+        size_scrypt = (128 * scrypt_r) * scrypt_N;
+
+        size_scrypt /= 1u << tmto;
+
+        size_scrypt *= kernel_power_max;
+
+        if ((size_scrypt / 4) > device_param->device_maxmem_alloc)
+        {
+          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "Increasing single-block device memory allocatable for --scrypt-tmto %u.", tmto);
+
+          continue;
+        }
+
+        if ((size_scrypt + scrypt_extra_space) > device_param->device_available_mem)
+        {
+          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "Increasing total device memory allocatable for --scrypt-tmto %u.", tmto);
+
+          continue;
+        }
+
+        for (u32 salts_pos = 0; salts_pos < hashes->salts_cnt; salts_pos++)
+        {
+          scrypt_tmto_final = tmto;
+        }
+
+        not_enough_memory = false;
+
+        break;
+      }
+
+      if (not_enough_memory == true)
+      {
+        event_log_error (hashcat_ctx, "Cannot allocate enough device memory. Perhaps retry with -n 1.");
+
+        return -1;
+      }
+
+      #if defined (DEBUG)
+      if (user_options->quiet == false) event_log_warning (hashcat_ctx, "SCRYPT tmto optimizer value set to: %lu, mem: %lu", scrypt_tmto_final, size_scrypt);
+      if (user_options->quiet == false) event_log_warning (hashcat_ctx, NULL);
+      #endif
+    }
+
+    u64 size_scrypt4 = size_scrypt / 4;
+
+  return size_scrypt4;
+}
+
+
+char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param);
+{
+  /**
+   * Some algorithm, like descrypt, can benefit from JIT compilation
+   */
+
+
+  if (hashconfig->hash_mode == 8900)
+  {
+    opencl_ctx->force_jit_compilation = 8900;
+  }
+  else if (hashconfig->hash_mode == 9300)
+  {
+    opencl_ctx->force_jit_compilation = 8900;
+  }
+  else if (hashconfig->hash_mode == 15700)
+  {
+    opencl_ctx->force_jit_compilation = 15700;
+  }
+  else if (hashconfig->hash_mode == 1500 && user_options->attack_mode == ATTACK_MODE_BF && hashes->salts_cnt == 1 && user_options->slow_candidates == false)
+  {
+    opencl_ctx->force_jit_compilation = 1500;
+  }
+
+    // scryptV stuff
+
+    u64 scrypt_tmp_size   = 0;
+    u64 scrypt_tmto_final = 0;
+
+    u64 size_scrypt = 4;
+
+    if ((hashconfig->hash_mode == 8900) || (hashconfig->hash_mode == 9300) || (hashconfig->hash_mode == 15700))
+    {
+      // we need to check that all hashes have the same scrypt settings
+
+      const u32 scrypt_N = hashes->salts_buf[0].scrypt_N;
+      const u32 scrypt_r = hashes->salts_buf[0].scrypt_r;
+      const u32 scrypt_p = hashes->salts_buf[0].scrypt_p;
+
+      for (u32 i = 1; i < hashes->salts_cnt; i++)
+      {
+        if ((hashes->salts_buf[i].scrypt_N != scrypt_N)
+         || (hashes->salts_buf[i].scrypt_r != scrypt_r)
+         || (hashes->salts_buf[i].scrypt_p != scrypt_p))
+        {
+          event_log_error (hashcat_ctx, "Mixed scrypt settings are not supported.");
+
+          return -1;
+        }
+      }
+
+      scrypt_tmp_size = (128 * scrypt_r * scrypt_p);
+
+      hashconfig->tmp_size = scrypt_tmp_size;
+
+      u32 tmto_start = 1;
+      u32 tmto_stop  = 6;
+
+      if (user_options->scrypt_tmto)
+      {
+        tmto_start = user_options->scrypt_tmto;
+        tmto_stop  = user_options->scrypt_tmto;
+      }
+
+      const u32 scrypt_threads = hashconfig->forced_kernel_threads;
+
+      const u64 kernel_power_max = SCRYPT_MAX_ACCEL * device_processors * scrypt_threads;
+
+      // size_pws
+
+      const u64 size_pws = kernel_power_max * sizeof (pw_t);
+
+      const u64 size_pws_amp = size_pws;
+
+      // size_pws_comp
+
+      const u64 size_pws_comp = kernel_power_max * (sizeof (u32) * 64);
+
+      // size_pws_idx
+
+      const u64 size_pws_idx = (kernel_power_max + 1) * sizeof (pw_idx_t);
+
+      // size_tmps
+
+      const u64 size_tmps = kernel_power_max * hashconfig->tmp_size;
+
+      // size_hooks
+
+      const u64 size_hooks = kernel_power_max * hashconfig->hook_size;
+
+      const u64 scrypt_extra_space
+        = bitmap_ctx->bitmap_size
+        + bitmap_ctx->bitmap_size
+        + bitmap_ctx->bitmap_size
+        + bitmap_ctx->bitmap_size
+        + bitmap_ctx->bitmap_size
+        + bitmap_ctx->bitmap_size
+        + bitmap_ctx->bitmap_size
+        + bitmap_ctx->bitmap_size
+        + size_bfs
+        + size_combs
+        + size_digests
+        + size_esalts
+        + size_hooks
+        + size_markov_css
+        + size_plains
+        + size_pws
+        + size_pws_amp
+        + size_pws_comp
+        + size_pws_idx
+        + size_results
+        + size_root_css
+        + size_rules
+        + size_rules_c
+        + size_salts
+        + size_shown
+        + size_tm
+        + size_tmps
+        + size_st_digests
+        + size_st_salts
+        + size_st_esalts;
+
+      bool not_enough_memory = true;
+
+      u32 tmto;
+
+      for (tmto = tmto_start; tmto <= tmto_stop; tmto++)
+      {
+        size_scrypt = (128 * scrypt_r) * scrypt_N;
+
+        size_scrypt /= 1u << tmto;
+
+        size_scrypt *= kernel_power_max;
+
+        if ((size_scrypt / 4) > device_param->device_maxmem_alloc)
+        {
+          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "Increasing single-block device memory allocatable for --scrypt-tmto %u.", tmto);
+
+          continue;
+        }
+
+        if ((size_scrypt + scrypt_extra_space) > device_param->device_available_mem)
+        {
+          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "Increasing total device memory allocatable for --scrypt-tmto %u.", tmto);
+
+          continue;
+        }
+
+        for (u32 salts_pos = 0; salts_pos < hashes->salts_cnt; salts_pos++)
+        {
+          scrypt_tmto_final = tmto;
+        }
+
+        not_enough_memory = false;
+
+        break;
+      }
+
+      if (not_enough_memory == true)
+      {
+        event_log_error (hashcat_ctx, "Cannot allocate enough device memory. Perhaps retry with -n 1.");
+
+        return -1;
+      }
+
+      #if defined (DEBUG)
+      if (user_options->quiet == false) event_log_warning (hashcat_ctx, "SCRYPT tmto optimizer value set to: %lu, mem: %lu", scrypt_tmto_final, size_scrypt);
+      if (user_options->quiet == false) event_log_warning (hashcat_ctx, NULL);
+      #endif
+    }
+
+    size_t size_scrypt4 = size_scrypt / 4;
+
+
+
+        if (opencl_ctx->force_jit_compilation == 1500)
+        {
+          hc_asprintf (&build_opts_update, "%s -DDESCRYPT_SALT=%u", build_opts, hashes->salts_buf[0].salt_buf[0]);
+        }
+        else if ((opencl_ctx->force_jit_compilation == 8900) || (opencl_ctx->force_jit_compilation == 15700))
+        {
+          hc_asprintf (&build_opts_update,"%s -DSCRYPT_N=%u -DSCRYPT_R=%u -DSCRYPT_P=%u -DSCRYPT_TMTO=%u -DSCRYPT_TMP_ELEM=%" PRIu64, build_opts, hashes->salts_buf[0].scrypt_N, hashes->salts_buf[0].scrypt_r, hashes->salts_buf[0].scrypt_p, 1u << scrypt_tmto_final, (u64) scrypt_tmp_size / 16);
+        }
+
+}

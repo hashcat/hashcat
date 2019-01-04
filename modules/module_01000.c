@@ -128,6 +128,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_size                = module_dgst_size;
   module_ctx->module_dictstat_disable         = NULL;
   module_ctx->module_esalt_size               = NULL;
+  module_ctx->module_extra_buffer_size        = NULL;
   module_ctx->module_forced_kernel_loops      = NULL;
   module_ctx->module_forced_kernel_threads    = NULL;
   module_ctx->module_forced_outfile_format    = NULL;
@@ -143,6 +144,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hook23                   = NULL;
   module_ctx->module_hook_salt_size           = NULL;
   module_ctx->module_hook_size                = NULL;
+  module_ctx->module_jit_build_options        = NULL;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_opti_type                = module_opti_type;
   module_ctx->module_opts_type                = module_opts_type;
