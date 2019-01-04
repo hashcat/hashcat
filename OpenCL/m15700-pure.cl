@@ -125,7 +125,7 @@ DECLSPEC void salsa_r (uint4 *TI)
   }
 }
 
-DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, __global uint4 *V0, __global uint4 *V1, __global uint4 *V2, __global uint4 *V3)
+DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, __global uint4 * restrict V0, __global uint4 * restrict V1, __global uint4 * restrict V2, __global uint4 * restrict V3)
 {
   #define Coord(xd4,y,z) (((xd4) * ySIZE * zSIZE) + ((y) * zSIZE) + (z))
   #define CO Coord(xd4,y,z)
@@ -138,7 +138,7 @@ DECLSPEC void scrypt_smix (uint4 *X, uint4 *T, __global uint4 *V0, __global uint
   const u32 xd4 = x / 4;
   const u32 xm4 = x & 3;
 
-  __global uint4 *V;
+  __global uint4 * restrict V;
 
   switch (xm4)
   {
@@ -407,6 +407,11 @@ __kernel void __attribute__((reqd_work_group_size(1, 1, 1))) m15700_loop (KERN_A
 
   if (gid >= gid_max) return;
 
+  __global uint4 * restrict d_scrypt0_buf = d_extra0_buf;
+  __global uint4 * restrict d_scrypt1_buf = d_extra1_buf;
+  __global uint4 * restrict d_scrypt2_buf = d_extra2_buf;
+  __global uint4 * restrict d_scrypt3_buf = d_extra3_buf;
+
   uint4 X[STATE_CNT4];
   uint4 T[STATE_CNT4];
 
@@ -415,7 +420,7 @@ __kernel void __attribute__((reqd_work_group_size(1, 1, 1))) m15700_loop (KERN_A
   #endif
   for (int z = 0; z < STATE_CNT4; z++) X[z] = swap32_4 (tmps[gid].P[z]);
 
-  scrypt_smix (X, T, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf);
+  scrypt_smix (X, T, d_scrypt0_buf, d_scrypt1_buf, d_scrypt2_buf, d_scrypt3_buf);
 
   #ifdef _unroll
   #pragma unroll
@@ -427,7 +432,7 @@ __kernel void __attribute__((reqd_work_group_size(1, 1, 1))) m15700_loop (KERN_A
   {
     for (int z = 0; z < STATE_CNT4; z++) X[z] = swap32_4 (tmps[gid].P[i + z]);
 
-    scrypt_smix (X, T, d_scryptV0_buf, d_scryptV1_buf, d_scryptV2_buf, d_scryptV3_buf);
+    scrypt_smix (X, T, d_scrypt0_buf, d_scrypt1_buf, d_scrypt2_buf, d_scrypt3_buf);
 
     for (int z = 0; z < STATE_CNT4; z++) tmps[gid].P[i + z] = swap32_4 (X[z]);
   }
