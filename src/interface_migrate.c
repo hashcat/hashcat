@@ -28891,3 +28891,32 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
         }
 
 }
+
+bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+
+    #if defined (__APPLE__)
+
+    /**
+     * If '--force' is not set, we proceed to excluding unstable hash-modes,
+     * too high kernel runtime, even on -u1 -n1, therefore likely to run into trap 6
+     */
+
+    if ((user_options->hash_mode ==  1500)
+     || (user_options->hash_mode ==  3000)
+     || (user_options->hash_mode ==  3200)
+     || (user_options->hash_mode ==  8900)
+     || (user_options->hash_mode ==  9300)
+     || (user_options->hash_mode ==  9800)
+     || (user_options->hash_mode == 12500)
+     || (user_options->hash_mode == 14000)
+     || (user_options->hash_mode == 14100)
+     || (user_options->hash_mode == 15700))
+    {
+      return true;
+    }
+
+    #endif // __APPLE__
+
+  return false;
+}

@@ -4329,39 +4329,16 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     EVENT_DATA (EVENT_OPENCL_DEVICE_INIT_PRE, &device_id, sizeof (u32));
 
-    bool skipped_temp = false;
+    const bool unstable_warning = hashconfig->unstable_warning;
 
-    #if defined (__APPLE__)
-
-    /**
-     * If '--force' is not set, we proceed to excluding unstable hash-modes,
-     * too high kernel runtime, even on -u1 -n1, therefore likely to run into trap 6
-     */
-
-    if ((user_options->hash_mode ==  1500)
-     || (user_options->hash_mode ==  3000)
-     || (user_options->hash_mode ==  3200)
-     || (user_options->hash_mode ==  8900)
-     || (user_options->hash_mode ==  9300)
-     || (user_options->hash_mode ==  9800)
-     || (user_options->hash_mode == 12500)
-     || (user_options->hash_mode == 14000)
-     || (user_options->hash_mode == 14100)
-     || (user_options->hash_mode == 15700))
-    {
-      skipped_temp = true;
-    }
-
-    #endif // __APPLE__
-
-    if ((skipped_temp == true) && (user_options->force == false))
+    if ((unstable_warning == true) && (user_options->force == false))
     {
       event_log_warning (hashcat_ctx, "* Device #%u: Skipping unstable hash-mode %u for this device.", device_id + 1, user_options->hash_mode);
       event_log_warning (hashcat_ctx, "             You can use --force to override, but do not report related errors.");
 
       device_param->skipped = true;
 
-      device_param->skipped_temp = true;
+      device_param->unstable_warning = true;
 
       continue;
     }
@@ -4983,18 +4960,11 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (CL_rc == -1) return -1;
 
+        char *jit_build_options = module_ctx->module_jit_build_options (hashconfig, user_options, user_options_extra, hashes, device_param);
+
         char *build_opts_update;
 
-        if (module_ctx->module_jit_build_options)
-        {
-          char *jit_build_options = module_ctx->module_jit_build_options (hashconfig, user_options, user_options_extra, hashes, device_param);
-
-          hc_asprintf (&build_opts_update, "%s %s", build_opts, jit_build_options);
-        }
-        else
-        {
-          hc_asprintf (&build_opts_update, "%s", build_opts);
-        }
+        hc_asprintf (&build_opts_update, "%s %s", build_opts, jit_build_options);
 
         CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program, 1, &device_param->device, build_opts_update, NULL, NULL);
 
@@ -6689,16 +6659,16 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
   // Prevent exit from benchmark mode if all devices are skipped due to unstable hash-modes (macOS)
 
-  bool has_skipped_temp = false;
+  bool has_unstable_warning = false;
 
   for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
-    if (device_param->skipped_temp == true) has_skipped_temp = true;
+    if (device_param->unstable_warning == true) has_unstable_warning = true;
   }
 
-  if ((hardware_power_all == 0) && (has_skipped_temp == false)) return -1;
+  if ((hardware_power_all == 0) && (has_unstable_warning == false)) return -1;
 
   opencl_ctx->hardware_power_all = hardware_power_all;
 
@@ -6715,9 +6685,9 @@ void opencl_session_destroy (hashcat_ctx_t *hashcat_ctx)
   {
     hc_device_param_t *device_param = &opencl_ctx->devices_param[device_id];
 
-    if (device_param->skipped_temp == true)
+    if (device_param->unstable_warning == true)
     {
-      device_param->skipped_temp = false;
+      device_param->unstable_warning = false;
 
       device_param->skipped = false;
 

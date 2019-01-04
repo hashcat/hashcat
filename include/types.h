@@ -960,6 +960,7 @@ struct hashconfig
   bool dictstat_disable;
   bool hlfmt_disable;
   bool warmup_disable;
+  bool unstable_warning;
   bool outfile_check_disable;
   bool outfile_check_nocomp;
   bool potfile_disable;
@@ -1049,7 +1050,7 @@ typedef struct hc_device_param
   u32     platform_devices_id;   // for mapping with hms devices
 
   bool    skipped;
-  bool    skipped_temp;
+  bool    unstable_warning;
 
   st_status_t st_status;
 
@@ -2279,6 +2280,7 @@ typedef struct module_ctx
   const char *(*module_st_hash)                 (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_st_pass)                 (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_tmp_size)                (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  bool        (*module_unstable_warning)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   bool        (*module_warmup_disable)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
 
   int         (*module_hash_decode_outfile)     (const hashconfig_t *,       void *,       salt_t *,       void *, const char *, const int);

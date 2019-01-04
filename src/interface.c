@@ -696,6 +696,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   hashconfig->st_hash                 = default_st_hash                 (hashconfig, user_options, user_options_extra);
   hashconfig->st_pass                 = default_st_pass                 (hashconfig, user_options, user_options_extra);
   hashconfig->tmp_size                = default_tmp_size                (hashconfig, user_options, user_options_extra);
+  hashconfig->unstable_warning        = default_unstable_warning        (hashconfig, user_options, user_options_extra);
   hashconfig->warmup_disable          = default_warmup_disable          (hashconfig, user_options, user_options_extra);
 
   // finally, the real stuff
@@ -743,6 +744,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   if (module_ctx->module_st_hash)                 hashconfig->st_hash                 = module_ctx->module_st_hash                  (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_st_pass)                 hashconfig->st_pass                 = module_ctx->module_st_pass                  (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_tmp_size)                hashconfig->tmp_size                = module_ctx->module_tmp_size                 (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_unstable_warning)        hashconfig->unstable_warning        = module_ctx->module_unstable_warning         (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_warmup_disable)          hashconfig->warmup_disable          = module_ctx->module_warmup_disable           (hashconfig, user_options, user_options_extra);
 
   if (user_options->keyboard_layout_mapping)
@@ -1424,6 +1426,16 @@ bool default_potfile_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
   return potfile_disable;
 }
+
+
+bool default_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const bool unstable_warning = false;
+
+  return unstable_warning;
+}
+
+
 
 // migrate
 
