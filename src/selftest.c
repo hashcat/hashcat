@@ -384,11 +384,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     salt_t *salt_buf = &hashes->st_salts_buf[salt_pos];
 
-    const u32 forced_kernel_loops = hashconfig->forced_kernel_loops;
-
-    //const u32 loop_step = (forced_kernel_loops) ? forced_kernel_loops : 1;
-    // test mode, not sure if this is safe
-    const u32 loop_step = (forced_kernel_loops) ? forced_kernel_loops : 1024;
+    const u32 loop_step = hashconfig->kernel_loops_max;
 
     const u32 iter = salt_buf->salt_iter;
 

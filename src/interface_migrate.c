@@ -18094,7 +18094,7 @@ int apfs_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
 
 
-u32 hashconfig_forced_kernel_threads (hashcat_ctx_t *hashcat_ctx)
+u32 kernel_threads_mxx (hashcat_ctx_t *hashcat_ctx)
 {
 
 
@@ -18115,13 +18115,17 @@ u32 hashconfig_forced_kernel_threads (hashcat_ctx_t *hashcat_ctx)
   if (hashconfig->hash_mode == 18200) kernel_threads = 64; // RC4
   if (hashconfig->hash_mode == 18600) kernel_threads = 8;  // Blowfish
 
+    // let the module decide if it allows user-defined values over module defined valaues
 
+    if (user_options->kernel_threads_chgd == true)
+    {
+      device_param->kernel_threads_min = user_options->kernel_threads;
+      device_param->kernel_threads_max = user_options->kernel_threads;
+    }
 }
 
 
-
-
-u32 hashconfig_get_kernel_loops (hashcat_ctx_t *hashcat_ctx)
+u32 kernel_loops_mxx (hashcat_ctx_t *hashcat_ctx)
 {
 
   if (user_options->slow_candidates == true)
@@ -18170,8 +18174,44 @@ u32 hashconfig_get_kernel_loops (hashcat_ctx_t *hashcat_ctx)
     kernel_loops_fixed = 1;
   }
 
+
+    // let the module decide if it allows user-defined values over module defined valaues
+
+    // commandline parameters overwrite tuningdb entries
+
+    if (user_options->kernel_loops_chgd == true)
+    {
+      device_param->kernel_loops_min = user_options->kernel_loops;
+      device_param->kernel_loops_max = user_options->kernel_loops;
+    }
+
 }
 
+u32 kernel_accel_mxx (hashcat_ctx_t *hashcat_ctx)
+{
+    // limit scrypt accel otherwise we hurt ourself when calculating the scrypt tmto
+
+    #define SCRYPT_MAX_ACCEL 16
+
+    if ((hashconfig->hash_mode == 8900) || (hashconfig->hash_mode == 9300) || (hashconfig->hash_mode == 15700))
+    {
+      // 16 is actually a bit low, we may need to change this depending on user response
+
+      device_param->kernel_accel_max = MIN (device_param->kernel_accel_max, SCRYPT_MAX_ACCEL);
+    }
+
+
+    // let the module decide if it allows user-defined values over module defined valaues
+
+    // commandline parameters overwrite tuningdb entries
+
+    if (user_options->kernel_accel_chgd == true)
+    {
+      device_param->kernel_accel_min = user_options->kernel_accel;
+      device_param->kernel_accel_max = user_options->kernel_accel;
+    }
+
+}
 
 void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, void *esalt, void *hook_salt)
 {

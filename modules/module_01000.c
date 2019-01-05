@@ -115,6 +115,7 @@ void module_init (module_ctx_t *module_ctx)
 {
   // undefined functions automatically call corresponding default functions
 
+
   module_ctx->module_attack_exec              = module_attack_exec;
   module_ctx->module_benchmark_esalt          = NULL;
   module_ctx->module_benchmark_hook_salt      = NULL;
@@ -129,9 +130,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dictstat_disable         = NULL;
   module_ctx->module_esalt_size               = NULL;
   module_ctx->module_extra_buffer_size        = NULL;
-  module_ctx->module_forced_kernel_accel      = NULL;
-  module_ctx->module_forced_kernel_loops      = NULL;
-  module_ctx->module_forced_kernel_threads    = NULL;
   module_ctx->module_forced_outfile_format    = NULL;
   module_ctx->module_hash_decode              = module_hash_decode;
   module_ctx->module_hash_decode_outfile      = NULL;
@@ -146,6 +144,12 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hook_salt_size           = NULL;
   module_ctx->module_hook_size                = NULL;
   module_ctx->module_jit_build_options        = NULL;
+  module_ctx->module_kernel_accel_max         = NULL;
+  module_ctx->module_kernel_accel_min         = NULL;
+  module_ctx->module_kernel_loops_max         = NULL;
+  module_ctx->module_kernel_loops_min         = NULL;
+  module_ctx->module_kernel_threads_max       = NULL;
+  module_ctx->module_kernel_threads_min       = NULL;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_opti_type                = module_opti_type;
   module_ctx->module_opts_type                = module_opts_type;

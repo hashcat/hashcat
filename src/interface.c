@@ -674,9 +674,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   hashconfig->dgst_size               = default_dgst_size               (hashconfig, user_options, user_options_extra);
   hashconfig->dictstat_disable        = default_dictstat_disable        (hashconfig, user_options, user_options_extra);
   hashconfig->esalt_size              = default_esalt_size              (hashconfig, user_options, user_options_extra);
-  hashconfig->forced_kernel_accel     = default_forced_kernel_accel     (hashconfig, user_options, user_options_extra);
-  hashconfig->forced_kernel_loops     = default_forced_kernel_loops     (hashconfig, user_options, user_options_extra);
-  hashconfig->forced_kernel_threads   = default_forced_kernel_threads   (hashconfig, user_options, user_options_extra);
   hashconfig->forced_outfile_format   = default_forced_outfile_format   (hashconfig, user_options, user_options_extra);
   hashconfig->hash_mode               = default_hash_mode               (hashconfig, user_options, user_options_extra);
   hashconfig->hash_name               = default_hash_name               (hashconfig, user_options, user_options_extra);
@@ -684,6 +681,12 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   hashconfig->hlfmt_disable           = default_hlfmt_disable           (hashconfig, user_options, user_options_extra);
   hashconfig->hook_salt_size          = default_hook_salt_size          (hashconfig, user_options, user_options_extra);
   hashconfig->hook_size               = default_hook_size               (hashconfig, user_options, user_options_extra);
+  hashconfig->kernel_accel_min        = default_kernel_accel_min        (hashconfig, user_options, user_options_extra);
+  hashconfig->kernel_accel_max        = default_kernel_accel_max        (hashconfig, user_options, user_options_extra);
+  hashconfig->kernel_loops_min        = default_kernel_loops_min        (hashconfig, user_options, user_options_extra);
+  hashconfig->kernel_loops_max        = default_kernel_loops_max        (hashconfig, user_options, user_options_extra);
+  hashconfig->kernel_threads_min      = default_kernel_threads_min      (hashconfig, user_options, user_options_extra);
+  hashconfig->kernel_threads_max      = default_kernel_threads_max      (hashconfig, user_options, user_options_extra);
   hashconfig->kern_type               = default_kern_type               (hashconfig, user_options, user_options_extra);
   hashconfig->opti_type               = default_opti_type               (hashconfig, user_options, user_options_extra);
   hashconfig->opts_type               = default_opts_type               (hashconfig, user_options, user_options_extra);
@@ -723,9 +726,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   if (module_ctx->module_dgst_size)               hashconfig->dgst_size               = module_ctx->module_dgst_size                (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_dictstat_disable)        hashconfig->dictstat_disable        = module_ctx->module_dictstat_disable         (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_esalt_size)              hashconfig->esalt_size              = module_ctx->module_esalt_size               (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_forced_kernel_accel)     hashconfig->forced_kernel_accel     = module_ctx->module_forced_kernel_accel      (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_forced_kernel_loops)     hashconfig->forced_kernel_loops     = module_ctx->module_forced_kernel_loops      (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_forced_kernel_threads)   hashconfig->forced_kernel_threads   = module_ctx->module_forced_kernel_threads    (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_forced_outfile_format)   hashconfig->forced_outfile_format   = module_ctx->module_forced_outfile_format    (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hash_mode)               hashconfig->hash_mode               = module_ctx->module_hash_mode                (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hash_name)               hashconfig->hash_name               = module_ctx->module_hash_name                (hashconfig, user_options, user_options_extra);
@@ -733,6 +733,12 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   if (module_ctx->module_hlfmt_disable)           hashconfig->hlfmt_disable           = module_ctx->module_hlfmt_disable            (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hook_salt_size)          hashconfig->hook_salt_size          = module_ctx->module_hook_salt_size           (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hook_size)               hashconfig->hook_size               = module_ctx->module_hook_size                (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_kernel_accel_min)        hashconfig->kernel_accel_min        = module_ctx->module_kernel_accel_min         (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_kernel_accel_max)        hashconfig->kernel_accel_max        = module_ctx->module_kernel_accel_max         (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_kernel_loops_min)        hashconfig->kernel_loops_min        = module_ctx->module_kernel_loops_min         (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_kernel_loops_max)        hashconfig->kernel_loops_max        = module_ctx->module_kernel_loops_max         (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_kernel_threads_min)      hashconfig->kernel_threads_min      = module_ctx->module_kernel_threads_min       (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_kernel_threads_max)      hashconfig->kernel_threads_max      = module_ctx->module_kernel_threads_max       (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_kern_type)               hashconfig->kern_type               = module_ctx->module_kern_type                (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_opti_type)               hashconfig->opti_type               = module_ctx->module_opti_type                (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_opts_type)               hashconfig->opts_type               = module_ctx->module_opts_type                (hashconfig, user_options, user_options_extra);
@@ -1306,25 +1312,46 @@ u64 default_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   return esalt_size;
 }
 
-u32 default_forced_kernel_threads (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+u32 default_kernel_accel_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 forced_kernel_threads = user_options->kernel_threads;
+  const u32 kernel_accel_min = KERNEL_ACCEL_MIN;
 
-  return forced_kernel_threads;
+  return kernel_accel_min;
 }
 
-u32 default_forced_kernel_loops (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+u32 default_kernel_accel_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 forced_kernel_loops = user_options->kernel_loops;
+  const u32 kernel_accel_max = KERNEL_ACCEL_MAX;
 
-  return forced_kernel_loops;
+  return kernel_accel_max;
 }
 
-u32 default_forced_kernel_accel (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+u32 default_kernel_loops_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 forced_kernel_accel = user_options->kernel_accel;
+  const u32 kernel_loops_min = KERNEL_LOOPS_MIN;
 
-  return forced_kernel_accel;
+  return kernel_loops_min;
+}
+
+u32 default_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 kernel_loops_max = KERNEL_LOOPS_MAX;
+
+  return kernel_loops_max;
+}
+
+u32 default_kernel_threads_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 kernel_threads_min = KERNEL_THREADS_MIN;
+
+  return kernel_threads_min;
+}
+
+u32 default_kernel_threads_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 kernel_threads_max = KERNEL_THREADS_MAX;
+
+  return kernel_threads_max;
 }
 
 u32 default_forced_outfile_format (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)

@@ -953,9 +953,13 @@ struct hashconfig
   void   *benchmark_esalt;
   void   *benchmark_hook_salt;
 
-  u32 forced_kernel_accel;
-  u32 forced_kernel_loops;
-  u32 forced_kernel_threads;
+  u32 kernel_accel_min;
+  u32 kernel_accel_max;
+  u32 kernel_loops_min;
+  u32 kernel_loops_max;
+  u32 kernel_threads_min;
+  u32 kernel_threads_max;
+
   u32 forced_outfile_format;
 
   bool dictstat_disable;
@@ -1148,6 +1152,8 @@ typedef struct hc_device_param
   u32     kernel_loops_min_sav; // the _sav are required because each -i iteration
   u32     kernel_loops_max_sav; // needs to recalculate the kernel_loops_min/max based on the current amplifier count
   u32     kernel_threads;
+  u32     kernel_threads_min;
+  u32     kernel_threads_max;
 
   u64     kernel_power;
   u64     hardware_power;
@@ -2255,9 +2261,6 @@ typedef struct module_ctx
   u32         (*module_dgst_pos3)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_dgst_size)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_esalt_size)              (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u32         (*module_forced_kernel_accel)     (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u32         (*module_forced_kernel_loops)     (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u32         (*module_forced_kernel_threads)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_forced_outfile_format)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_hash_name)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_hash_mode)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
@@ -2265,6 +2268,12 @@ typedef struct module_ctx
   bool        (*module_hlfmt_disable)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_hook_salt_size)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_hook_size)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_kernel_accel_min)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_kernel_accel_max)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_kernel_loops_min)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_kernel_loops_max)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_kernel_threads_min)      (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_kernel_threads_max)      (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_kern_type)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_opti_type)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_opts_type)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);

@@ -4073,8 +4073,13 @@ void opencl_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
 
       if (is_same_device_type (device_param_src, device_param_dst) == false) continue;
 
-      device_param_dst->kernel_accel = device_param_src->kernel_accel;
-      device_param_dst->kernel_loops = device_param_src->kernel_loops;
+      device_param_dst->kernel_accel   = device_param_src->kernel_accel;
+      device_param_dst->kernel_loops   = device_param_src->kernel_loops;
+      device_param_dst->kernel_threads = device_param_src->kernel_threads;
+
+      const u32 hardware_power = device_param_dst->device_processors * device_param_dst->kernel_threads;
+
+      device_param_dst->hardware_power = hardware_power;
 
       const u32 kernel_power = device_param_dst->hardware_power * device_param_dst->kernel_accel;
 
@@ -4242,19 +4247,30 @@ static u32 get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param
 {
   const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
-  // a kernel can force a fixed value
+  // a module can force a fixed value
 
-  const u32 forced_kernel_threads = hashconfig->forced_kernel_threads;
-
-  if (forced_kernel_threads) return forced_kernel_threads;
+  u32 kernel_threads_min = device_param->kernel_threads_min;
+  u32 kernel_threads_max = device_param->kernel_threads_max;
 
   // for CPU we just do 1 ...
 
-  if (device_param->device_type & CL_DEVICE_TYPE_CPU) return 1;
+  if (device_param->device_type & CL_DEVICE_TYPE_CPU)
+  {
+    if ((kernel_threads_min >= 1) && (kernel_threads_max <= 1))
+    {
+      kernel_threads_min = 1;
+      kernel_threads_max = 1;
+    }
+  }
 
   // this is an upper limit, a good start, since our strategy is to reduce thread counts only
 
-  u32 kernel_threads = (u32) device_param->device_maxworkgroup_size;
+  const u32 device_maxworkgroup_size = (u32) device_param->device_maxworkgroup_size;
+
+  if (device_maxworkgroup_size < kernel_threads_max)
+  {
+    kernel_threads_max = device_maxworkgroup_size;
+  }
 
   // complicated kernel tend to confuse OpenCL runtime suggestions for maximum thread size
   // let's workaround that by sticking to their device specific preferred thread size
@@ -4265,16 +4281,43 @@ static u32 get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param
     {
       if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
       {
-        if (device_param->kernel_preferred_wgs_multiple1) kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple1);
+        if (device_param->kernel_preferred_wgs_multiple1)
+        {
+          const u32 kernel_preferred_wgs_multiple1 = device_param->kernel_preferred_wgs_multiple1;
+
+          if ((kernel_preferred_wgs_multiple1 >= kernel_threads_min) && (kernel_preferred_wgs_multiple1 <= kernel_threads_max))
+          {
+            kernel_threads_min = kernel_preferred_wgs_multiple1;
+            kernel_threads_max = kernel_preferred_wgs_multiple1;
+          }
+        }
       }
       else
       {
-        if (device_param->kernel_preferred_wgs_multiple4) kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple4);
+        if (device_param->kernel_preferred_wgs_multiple4)
+        {
+          const u32 kernel_preferred_wgs_multiple4 = device_param->kernel_preferred_wgs_multiple4;
+
+          if ((kernel_preferred_wgs_multiple4 >= kernel_threads_min) && (kernel_preferred_wgs_multiple4 <= kernel_threads_max))
+          {
+            kernel_threads_min = kernel_preferred_wgs_multiple4;
+            kernel_threads_max = kernel_preferred_wgs_multiple4;
+          }
+        }
       }
     }
     else
     {
-      if (device_param->kernel_preferred_wgs_multiple2) kernel_threads = MIN (kernel_threads, device_param->kernel_preferred_wgs_multiple2);
+      if (device_param->kernel_preferred_wgs_multiple2)
+      {
+        const u32 kernel_preferred_wgs_multiple2 = device_param->kernel_preferred_wgs_multiple2;
+
+        if ((kernel_preferred_wgs_multiple2 >= kernel_threads_min) && (kernel_preferred_wgs_multiple2 <= kernel_threads_max))
+        {
+          kernel_threads_min = kernel_preferred_wgs_multiple2;
+          kernel_threads_max = kernel_preferred_wgs_multiple2;
+        }
+      }
     }
   }
   else
@@ -4283,20 +4326,47 @@ static u32 get_kernel_threads (hashcat_ctx_t *hashcat_ctx, const hc_device_param
     {
       if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
       {
-        if (device_param->kernel_wgs1) kernel_threads = MIN (kernel_threads, device_param->kernel_wgs1);
+        if (device_param->kernel_preferred_wgs_multiple1)
+        {
+          const u32 kernel_preferred_wgs_multiple1 = device_param->kernel_preferred_wgs_multiple1;
+
+          if ((kernel_preferred_wgs_multiple1 >= kernel_threads_min) && (kernel_preferred_wgs_multiple1 <= kernel_threads_max))
+          {
+            kernel_threads_min = kernel_preferred_wgs_multiple1;
+            kernel_threads_max = kernel_preferred_wgs_multiple1;
+          }
+        }
       }
       else
       {
-        if (device_param->kernel_wgs4) kernel_threads = MIN (kernel_threads, device_param->kernel_wgs4);
+        if (device_param->kernel_preferred_wgs_multiple4)
+        {
+          const u32 kernel_preferred_wgs_multiple4 = device_param->kernel_preferred_wgs_multiple4;
+
+          if ((kernel_preferred_wgs_multiple4 >= kernel_threads_min) && (kernel_preferred_wgs_multiple4 <= kernel_threads_max))
+          {
+            kernel_threads_min = kernel_preferred_wgs_multiple4;
+            kernel_threads_max = kernel_preferred_wgs_multiple4;
+          }
+        }
       }
     }
     else
     {
-      if (device_param->kernel_wgs2) kernel_threads = MIN (kernel_threads, device_param->kernel_wgs2);
+      if (device_param->kernel_preferred_wgs_multiple2)
+      {
+        const u32 kernel_preferred_wgs_multiple2 = device_param->kernel_preferred_wgs_multiple2;
+
+        if ((kernel_preferred_wgs_multiple2 >= kernel_threads_min) && (kernel_preferred_wgs_multiple2 <= kernel_threads_max))
+        {
+          kernel_threads_min = kernel_preferred_wgs_multiple2;
+          kernel_threads_max = kernel_preferred_wgs_multiple2;
+        }
+      }
     }
   }
 
-  return kernel_threads;
+  return kernel_threads_max;
 }
 
 int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
@@ -4407,13 +4477,14 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
      * kernel accel and loops tuning db adjustment
      */
 
-    device_param->kernel_accel_min = 1;
-    device_param->kernel_accel_max = 1024;
+    device_param->kernel_accel_min   = hashconfig->kernel_accel_min;
+    device_param->kernel_accel_max   = hashconfig->kernel_accel_max;
+    device_param->kernel_loops_min   = hashconfig->kernel_loops_min;
+    device_param->kernel_loops_max   = hashconfig->kernel_loops_max;
+    device_param->kernel_threads_min = hashconfig->kernel_threads_min;
+    device_param->kernel_threads_max = hashconfig->kernel_threads_max;
 
-    device_param->kernel_loops_min = 1;
-    device_param->kernel_loops_max = 1024;
-
-    tuning_db_entry_t *tuningdb_entry;
+    tuning_db_entry_t *tuningdb_entry = NULL;
 
     if (user_options->slow_candidates == true)
     {
@@ -4424,56 +4495,83 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->device_type, user_options->attack_mode, hashconfig->hash_mode);
     }
 
-    if (tuningdb_entry != NULL)
-    {
-      u32 _kernel_accel = tuningdb_entry->kernel_accel;
-      u32 _kernel_loops = tuningdb_entry->kernel_loops;
+    // user commandline option override tuning db
+    // but both have to stay inside the boundaries of the module
 
-      if (_kernel_accel)
+    if (user_options->kernel_accel_chgd == true)
+    {
+      const u32 _kernel_accel = user_options->kernel_accel;
+
+      if ((_kernel_accel >= device_param->kernel_accel_min) && (_kernel_accel <= device_param->kernel_accel_max))
       {
         device_param->kernel_accel_min = _kernel_accel;
         device_param->kernel_accel_max = _kernel_accel;
       }
-
-      if (_kernel_loops)
-      {
-        if (user_options->workload_profile == 1)
-        {
-          _kernel_loops = (_kernel_loops > 8) ? _kernel_loops / 8 : 1;
-        }
-        else if (user_options->workload_profile == 2)
-        {
-          _kernel_loops = (_kernel_loops > 4) ? _kernel_loops / 4 : 1;
-        }
-
-        device_param->kernel_loops_min = _kernel_loops;
-        device_param->kernel_loops_max = _kernel_loops;
-      }
     }
-
-    // commandline parameters overwrite tuningdb entries
-
-    if (user_options->kernel_accel_chgd == true)
+    else
     {
-      device_param->kernel_accel_min = user_options->kernel_accel;
-      device_param->kernel_accel_max = user_options->kernel_accel;
+      if (tuningdb_entry != NULL)
+      {
+        const u32 _kernel_accel = tuningdb_entry->kernel_accel;
+
+        if (_kernel_accel)
+        {
+          if ((_kernel_accel >= device_param->kernel_accel_min) && (_kernel_accel <= device_param->kernel_accel_max))
+          {
+            device_param->kernel_accel_min = _kernel_accel;
+            device_param->kernel_accel_max = _kernel_accel;
+          }
+        }
+      }
     }
 
     if (user_options->kernel_loops_chgd == true)
     {
-      device_param->kernel_loops_min = user_options->kernel_loops;
-      device_param->kernel_loops_max = user_options->kernel_loops;
+      const u32 _kernel_loops = user_options->kernel_loops;
+
+      if ((_kernel_loops >= device_param->kernel_loops_min) && (_kernel_loops <= device_param->kernel_loops_max))
+      {
+        device_param->kernel_loops_min = _kernel_loops;
+        device_param->kernel_loops_max = _kernel_loops;
+      }
+    }
+    else
+    {
+      if (tuningdb_entry != NULL)
+      {
+        u32 _kernel_loops = tuningdb_entry->kernel_loops;
+
+        if (_kernel_loops)
+        {
+          if (user_options->workload_profile == 1)
+          {
+            _kernel_loops = (_kernel_loops > 8) ? _kernel_loops / 8 : 1;
+          }
+          else if (user_options->workload_profile == 2)
+          {
+            _kernel_loops = (_kernel_loops > 4) ? _kernel_loops / 4 : 1;
+          }
+
+          if ((_kernel_loops >= device_param->kernel_loops_min) && (_kernel_loops <= device_param->kernel_loops_max))
+          {
+            device_param->kernel_loops_min = _kernel_loops;
+            device_param->kernel_loops_max = _kernel_loops;
+          }
+        }
+      }
     }
 
-    // limit scrypt accel otherwise we hurt ourself when calculating the scrypt tmto
+    // there's not thread column in tuning db, stick to commandline if defined
 
-    #define SCRYPT_MAX_ACCEL 16
-
-    if ((hashconfig->hash_mode == 8900) || (hashconfig->hash_mode == 9300) || (hashconfig->hash_mode == 15700))
+    if (user_options->kernel_threads_chgd == true)
     {
-      // 16 is actually a bit low, we may need to change this depending on user response
+      const u32 _kernel_threads = user_options->kernel_threads;
 
-      device_param->kernel_accel_max = MIN (device_param->kernel_accel_max, SCRYPT_MAX_ACCEL);
+      if ((_kernel_threads >= device_param->kernel_threads_min) && (_kernel_threads <= device_param->kernel_threads_max))
+      {
+        device_param->kernel_threads_min = _kernel_threads;
+        device_param->kernel_threads_max = _kernel_threads;
+      }
     }
 
     if (user_options->slow_candidates == true)
@@ -4664,8 +4762,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     }
 
     /**
-     * some algorithms need a fixed kernel-loops count
-     */
+     * some algorithms need a fixed kernel-loops count -- not longer needed with new concept
 
     const u32 forced_kernel_loops = hashconfig->forced_kernel_loops;
 
@@ -4674,6 +4771,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->kernel_loops_min = forced_kernel_loops;
       device_param->kernel_loops_max = forced_kernel_loops;
     }
+     */
 
     device_param->kernel_loops_min_sav = device_param->kernel_loops_min;
     device_param->kernel_loops_max_sav = device_param->kernel_loops_max;
