@@ -943,6 +943,7 @@ struct hashconfig
   const char *st_hash;
   const char *st_pass;
 
+  u32         hash_category;
   const char *hash_name;
 
   const char *benchmark_mask;
@@ -2264,6 +2265,7 @@ typedef struct module_ctx
   u32         (*module_dgst_size)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_esalt_size)              (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_forced_outfile_format)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_hash_category)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_hash_name)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_hash_mode)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_hash_type)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
@@ -2464,3 +2466,11 @@ typedef enum hash_type
   HASH_TYPE_ODF11               = 73,
 
 } hash_type_t;
+
+typedef enum hash_category
+{
+  HASH_CATEGORY_UNDEFINED = 0,
+  HASH_CATEGORY_RAW_HASH  = 1,
+
+
+} hash_category_t;

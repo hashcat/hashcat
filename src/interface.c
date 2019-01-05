@@ -674,6 +674,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   hashconfig->dictstat_disable        = default_dictstat_disable        (hashconfig, user_options, user_options_extra);
   hashconfig->esalt_size              = default_esalt_size              (hashconfig, user_options, user_options_extra);
   hashconfig->forced_outfile_format   = default_forced_outfile_format   (hashconfig, user_options, user_options_extra);
+  hashconfig->hash_category           = default_hash_category           (hashconfig, user_options, user_options_extra);
   hashconfig->hash_mode               = default_hash_mode               (hashconfig, user_options, user_options_extra);
   hashconfig->hash_name               = default_hash_name               (hashconfig, user_options, user_options_extra);
   hashconfig->hash_type               = default_hash_type               (hashconfig, user_options, user_options_extra);
@@ -726,6 +727,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   if (module_ctx->module_dictstat_disable         != MODULE_DEFAULT) hashconfig->dictstat_disable        = module_ctx->module_dictstat_disable         (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_esalt_size               != MODULE_DEFAULT) hashconfig->esalt_size              = module_ctx->module_esalt_size               (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_forced_outfile_format    != MODULE_DEFAULT) hashconfig->forced_outfile_format   = module_ctx->module_forced_outfile_format    (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_hash_category            != MODULE_DEFAULT) hashconfig->hash_category           = module_ctx->module_hash_category            (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hash_mode                != MODULE_DEFAULT) hashconfig->hash_mode               = module_ctx->module_hash_mode                (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hash_name                != MODULE_DEFAULT) hashconfig->hash_name               = module_ctx->module_hash_name                (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hash_type                != MODULE_DEFAULT) hashconfig->hash_type               = module_ctx->module_hash_type                (hashconfig, user_options, user_options_extra);
@@ -1106,6 +1108,13 @@ const char *default_hash_name (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
   const char *hash_name = "<empty default>";
 
   return hash_name;
+}
+
+u32 default_hash_category (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 hash_category = HASH_CATEGORY_UNDEFINED;
+
+  return hash_category;
 }
 
 u32 default_pw_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
