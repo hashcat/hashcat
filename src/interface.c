@@ -667,18 +667,19 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   // set some boring defaults
 
   hashconfig->attack_exec             = default_attack_exec             (hashconfig, user_options, user_options_extra);
-  hashconfig->dictstat_disable        = default_dictstat_disable        (hashconfig, user_options, user_options_extra);
   hashconfig->dgst_pos0               = default_dgst_pos0               (hashconfig, user_options, user_options_extra);
   hashconfig->dgst_pos1               = default_dgst_pos1               (hashconfig, user_options, user_options_extra);
   hashconfig->dgst_pos2               = default_dgst_pos2               (hashconfig, user_options, user_options_extra);
   hashconfig->dgst_pos3               = default_dgst_pos3               (hashconfig, user_options, user_options_extra);
   hashconfig->dgst_size               = default_dgst_size               (hashconfig, user_options, user_options_extra);
+  hashconfig->dictstat_disable        = default_dictstat_disable        (hashconfig, user_options, user_options_extra);
   hashconfig->esalt_size              = default_esalt_size              (hashconfig, user_options, user_options_extra);
-  hashconfig->forced_kernel_threads   = default_forced_kernel_threads   (hashconfig, user_options, user_options_extra);
+  hashconfig->forced_kernel_accel     = default_forced_kernel_accel     (hashconfig, user_options, user_options_extra);
   hashconfig->forced_kernel_loops     = default_forced_kernel_loops     (hashconfig, user_options, user_options_extra);
+  hashconfig->forced_kernel_threads   = default_forced_kernel_threads   (hashconfig, user_options, user_options_extra);
   hashconfig->forced_outfile_format   = default_forced_outfile_format   (hashconfig, user_options, user_options_extra);
-  hashconfig->hash_name               = default_hash_name               (hashconfig, user_options, user_options_extra);
   hashconfig->hash_mode               = default_hash_mode               (hashconfig, user_options, user_options_extra);
+  hashconfig->hash_name               = default_hash_name               (hashconfig, user_options, user_options_extra);
   hashconfig->hash_type               = default_hash_type               (hashconfig, user_options, user_options_extra);
   hashconfig->hlfmt_disable           = default_hlfmt_disable           (hashconfig, user_options, user_options_extra);
   hashconfig->hook_salt_size          = default_hook_salt_size          (hashconfig, user_options, user_options_extra);
@@ -715,18 +716,19 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   }
 
   if (module_ctx->module_attack_exec)             hashconfig->attack_exec             = module_ctx->module_attack_exec              (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_dictstat_disable)        hashconfig->dictstat_disable        = module_ctx->module_dictstat_disable         (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_dgst_pos0)               hashconfig->dgst_pos0               = module_ctx->module_dgst_pos0                (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_dgst_pos1)               hashconfig->dgst_pos1               = module_ctx->module_dgst_pos1                (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_dgst_pos2)               hashconfig->dgst_pos2               = module_ctx->module_dgst_pos2                (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_dgst_pos3)               hashconfig->dgst_pos3               = module_ctx->module_dgst_pos3                (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_dgst_size)               hashconfig->dgst_size               = module_ctx->module_dgst_size                (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_dictstat_disable)        hashconfig->dictstat_disable        = module_ctx->module_dictstat_disable         (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_esalt_size)              hashconfig->esalt_size              = module_ctx->module_esalt_size               (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_forced_kernel_threads)   hashconfig->forced_kernel_threads   = module_ctx->module_forced_kernel_threads    (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_forced_kernel_accel)     hashconfig->forced_kernel_accel     = module_ctx->module_forced_kernel_accel      (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_forced_kernel_loops)     hashconfig->forced_kernel_loops     = module_ctx->module_forced_kernel_loops      (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_forced_kernel_threads)   hashconfig->forced_kernel_threads   = module_ctx->module_forced_kernel_threads    (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_forced_outfile_format)   hashconfig->forced_outfile_format   = module_ctx->module_forced_outfile_format    (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_hash_name)               hashconfig->hash_name               = module_ctx->module_hash_name                (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hash_mode)               hashconfig->hash_mode               = module_ctx->module_hash_mode                (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_hash_name)               hashconfig->hash_name               = module_ctx->module_hash_name                (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hash_type)               hashconfig->hash_type               = module_ctx->module_hash_type                (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hlfmt_disable)           hashconfig->hlfmt_disable           = module_ctx->module_hlfmt_disable            (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hook_salt_size)          hashconfig->hook_salt_size          = module_ctx->module_hook_salt_size           (hashconfig, user_options, user_options_extra);
@@ -1316,6 +1318,13 @@ u32 default_forced_kernel_loops (MAYBE_UNUSED const hashconfig_t *hashconfig, MA
   const u32 forced_kernel_loops = user_options->kernel_loops;
 
   return forced_kernel_loops;
+}
+
+u32 default_forced_kernel_accel (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 forced_kernel_accel = user_options->kernel_accel;
+
+  return forced_kernel_accel;
 }
 
 u32 default_forced_outfile_format (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
