@@ -289,7 +289,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   build_plain (hashcat_ctx, device_param, plain, plain_buf, &plain_len);
 
-  if (module_ctx->module_build_plain_postprocess)
+  if (module_ctx->module_build_plain_postprocess != MODULE_DEFAULT)
   {
     u32 temp_buf[64] = { 0 };
 

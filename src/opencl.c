@@ -4722,7 +4722,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     u64 size_extra_buffer = 4;
 
-    if (module_ctx->module_extra_buffer_size)
+    if (module_ctx->module_extra_buffer_size != MODULE_DEFAULT)
     {
       size_extra_buffer = module_ctx->module_extra_buffer_size (hashconfig, user_options, user_options_extra, hashes, device_param);
     }
@@ -4929,7 +4929,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       char **kernel_sources = &kernel_sources_buf;
 
-      if (module_ctx->module_jit_build_options == NULL)
+      if (module_ctx->module_jit_build_options == MODULE_DEFAULT)
       {
         if (cached == false)
         {

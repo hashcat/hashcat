@@ -490,7 +490,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
   // do not use this unless really needed, for example as in LM
 
-  if (module_ctx->module_hash_decode_zero_hash)
+  if (module_ctx->module_hash_decode_zero_hash != MODULE_DEFAULT)
   {
     module_ctx->module_hash_decode_zero_hash (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt);
 
@@ -549,7 +549,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
       memset (hash_buf.hook_salt, 0, hashconfig->hook_salt_size);
     }
 
-    if (module_ctx->module_hash_decode_outfile)
+    if (module_ctx->module_hash_decode_outfile != MODULE_DEFAULT)
     {
       const int parser_status = module_ctx->module_hash_decode_outfile (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, line_hash_buf, line_hash_len);
 

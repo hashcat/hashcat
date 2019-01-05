@@ -302,7 +302,7 @@ const char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
   const hashes_t     *hashes     = hashcat_ctx->hashes;
   const module_ctx_t *module_ctx = hashcat_ctx->module_ctx;
 
-  if (module_ctx->module_hash_encode_status)
+  if (module_ctx->module_hash_encode_status != MODULE_DEFAULT)
   {
     char *tmp_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 

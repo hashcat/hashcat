@@ -2242,6 +2242,8 @@ typedef struct event_ctx
 
 } event_ctx_t;
 
+#define MODULE_DEFAULT NULL
+
 typedef struct module_ctx
 {
   void       *module_handle;
