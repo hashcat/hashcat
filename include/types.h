@@ -2297,6 +2297,7 @@ typedef struct module_ctx
   int         (*module_hash_decode_outfile)     (const hashconfig_t *,       void *,       salt_t *,       void *, const char *, const int);
   int         (*module_hash_decode_zero_hash)   (const hashconfig_t *,       void *,       salt_t *,       void *);
   int         (*module_hash_decode)             (const hashconfig_t *,       void *,       salt_t *,       void *, const char *, const int);
+  int         (*module_hash_encode_status)      (const hashconfig_t *, const void *, const salt_t *, const void *,       char *,       int);
   int         (*module_hash_encode)             (const hashconfig_t *, const void *, const salt_t *, const void *,       char *,       int);
 
   u64         (*module_extra_buffer_size)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hashes_t *, const hc_device_param_t *);

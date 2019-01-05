@@ -300,49 +300,27 @@ const char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
   const hashes_t     *hashes     = hashcat_ctx->hashes;
+  const module_ctx_t *module_ctx = hashcat_ctx->module_ctx;
 
-  if (hashes->digests_cnt == 1)
+  if (module_ctx->module_hash_encode_status)
   {
-    if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
-    {
-      char *tmp_buf;
+    char *tmp_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-      wpa_eapol_t *wpa_eapol = (wpa_eapol_t *) hashes->esalts_buf;
+    const int tmp_len = module_ctx->module_hash_encode_status (hashconfig, hashes->digests_buf, hashes->salts_buf, hashes->esalts_buf, tmp_buf, HCBUFSIZ_LARGE);
 
-      hc_asprintf (&tmp_buf, "%s (AP:%02x:%02x:%02x:%02x:%02x:%02x STA:%02x:%02x:%02x:%02x:%02x:%02x)",
-        (char *) hashes->salts_buf[0].salt_buf,
-        wpa_eapol->orig_mac_ap[0],
-        wpa_eapol->orig_mac_ap[1],
-        wpa_eapol->orig_mac_ap[2],
-        wpa_eapol->orig_mac_ap[3],
-        wpa_eapol->orig_mac_ap[4],
-        wpa_eapol->orig_mac_ap[5],
-        wpa_eapol->orig_mac_sta[0],
-        wpa_eapol->orig_mac_sta[1],
-        wpa_eapol->orig_mac_sta[2],
-        wpa_eapol->orig_mac_sta[3],
-        wpa_eapol->orig_mac_sta[4],
-        wpa_eapol->orig_mac_sta[5]);
+    char *tmp_buf2 = (char *) hcmalloc (tmp_len + 1);
 
-      return tmp_buf;
-    }
-    else if (hashconfig->hash_mode == 5200)
-    {
-      return hashes->hashfile;
-    }
-    else if (hashconfig->hash_mode == 9000)
-    {
-      return hashes->hashfile;
-    }
-    else if ((hashconfig->hash_mode >= 6200) && (hashconfig->hash_mode <= 6299))
-    {
-      return hashes->hashfile;
-    }
-    else if ((hashconfig->hash_mode >= 13700) && (hashconfig->hash_mode <= 13799))
-    {
-      return hashes->hashfile;
-    }
-    else
+    memcpy (tmp_buf2, tmp_buf, tmp_len);
+
+    free (tmp_buf);
+
+    tmp_buf2[tmp_len] = 0;
+
+    return tmp_buf2;
+  }
+  else
+  {
+    if (hashes->digests_cnt == 1)
     {
       char *tmp_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
@@ -357,23 +335,6 @@ const char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
       free (tmp_buf);
 
       return tmp_buf2;
-    }
-  }
-  else
-  {
-    if (hashconfig->hash_mode == 3000)
-    {
-      char *tmp_buf;
-
-      char out_buf1[64] = { 0 };
-      char out_buf2[64] = { 0 };
-
-      ascii_digest (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, out_buf1, sizeof (out_buf1), 0, 0);
-      ascii_digest (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, out_buf2, sizeof (out_buf2), 0, 1);
-
-      hc_asprintf (&tmp_buf, "%s, %s", out_buf1, out_buf2);
-
-      return tmp_buf;
     }
     else
     {

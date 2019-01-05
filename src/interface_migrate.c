@@ -28994,5 +28994,66 @@ u32 module_deep_comp_kernel (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED c
   }
 }
 
+int module_hash_encode_status (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, char *line_buf, MAYBE_UNUSED const int line_size)
+{
+    if (hashes->digests_cnt == 1)
+    {
+      if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
+      {
+        char *tmp_buf;
 
+        wpa_eapol_t *wpa_eapol = (wpa_eapol_t *) hashes->esalts_buf;
+
+        hc_asprintf (&tmp_buf, "%s (AP:%02x:%02x:%02x:%02x:%02x:%02x STA:%02x:%02x:%02x:%02x:%02x:%02x)",
+          (char *) hashes->salts_buf[0].salt_buf,
+          wpa_eapol->orig_mac_ap[0],
+          wpa_eapol->orig_mac_ap[1],
+          wpa_eapol->orig_mac_ap[2],
+          wpa_eapol->orig_mac_ap[3],
+          wpa_eapol->orig_mac_ap[4],
+          wpa_eapol->orig_mac_ap[5],
+          wpa_eapol->orig_mac_sta[0],
+          wpa_eapol->orig_mac_sta[1],
+          wpa_eapol->orig_mac_sta[2],
+          wpa_eapol->orig_mac_sta[3],
+          wpa_eapol->orig_mac_sta[4],
+          wpa_eapol->orig_mac_sta[5]);
+
+        return tmp_buf;
+      }
+      else if (hashconfig->hash_mode == 5200)
+      {
+        return hashes->hashfile;
+      }
+      else if (hashconfig->hash_mode == 9000)
+      {
+        return hashes->hashfile;
+      }
+      else if ((hashconfig->hash_mode >= 6200) && (hashconfig->hash_mode <= 6299))
+      {
+        return hashes->hashfile;
+      }
+      else if ((hashconfig->hash_mode >= 13700) && (hashconfig->hash_mode <= 13799))
+      {
+        return hashes->hashfile;
+      }
+    }
+    else
+    {
+      if (hashconfig->hash_mode == 3000)
+      {
+        char *tmp_buf;
+
+        char out_buf1[64] = { 0 };
+        char out_buf2[64] = { 0 };
+
+        ascii_digest (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, out_buf1, sizeof (out_buf1), 0, 0);
+        ascii_digest (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, out_buf2, sizeof (out_buf2), 0, 1);
+
+        hc_asprintf (&tmp_buf, "%s, %s", out_buf1, out_buf2);
+
+        return tmp_buf;
+      }
+    }
+}
 

@@ -131,9 +131,10 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_esalt_size               = NULL;
   module_ctx->module_extra_buffer_size        = NULL;
   module_ctx->module_forced_outfile_format    = NULL;
-  module_ctx->module_hash_decode              = module_hash_decode;
   module_ctx->module_hash_decode_outfile      = NULL;
   module_ctx->module_hash_decode_zero_hash    = NULL;
+  module_ctx->module_hash_decode              = module_hash_decode;
+  module_ctx->module_hash_encode_status       = NULL;
   module_ctx->module_hash_encode              = module_hash_encode;
   module_ctx->module_hash_mode                = NULL;
   module_ctx->module_hash_name                = module_hash_name;

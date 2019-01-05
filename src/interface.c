@@ -592,7 +592,6 @@ int ascii_digest (const hashconfig_t *hashconfig, const hashes_t *hashes, const 
 
   return out_len;
 
-
   /*
   if (salt_type == SALT_TYPE_GENERIC)
   {
