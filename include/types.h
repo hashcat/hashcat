@@ -938,7 +938,7 @@ struct hashconfig
   u32   salt_min;
   u32   salt_max;
 
-  int (*parse_func) (u8 *, u32, hash_t *, struct hashconfig *);
+  //  int (*parse_func) (u8 *, u32, hash_t *, struct hashconfig *);
 
   const char *st_hash;
   const char *st_pass;
@@ -2301,6 +2301,8 @@ typedef struct module_ctx
 
   u64         (*module_extra_buffer_size)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hashes_t *, const hc_device_param_t *);
   char       *(*module_jit_build_options)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hashes_t *, const hc_device_param_t *);
+
+  u32         (*module_deep_comp_kernel)        (const hashes_t *, const u32, const u32);
 
   void        (*module_hook12)                  (hc_device_param_t *, const void *, const u32, const u64);
   void        (*module_hook23)                  (hc_device_param_t *, const void *, const u32, const u64);

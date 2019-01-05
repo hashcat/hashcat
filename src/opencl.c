@@ -1442,45 +1442,11 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
           device_param->kernel_params_buf32[28] = loops_pos;
           device_param->kernel_params_buf32[29] = loops_cnt;
 
-          if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
-          {
-            const u32 digests_offset = hashes->salts_buf[salt_pos].digests_offset;
+          const u32 deep_comp_kernel = module_ctx->module_deep_comp_kernel (hashes, salt_pos, loops_pos);
 
-            wpa_eapol_t *wpa_eapols = (wpa_eapol_t *) hashes->esalts_buf;
+          CL_rc = run_kernel (hashcat_ctx, device_param, deep_comp_kernel, pws_cnt, false, 0);
 
-            wpa_eapol_t *wpa_eapol = &wpa_eapols[digests_offset + loops_pos];
-
-            if (wpa_eapol->keyver == 1)
-            {
-              CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX1, pws_cnt, false, 0);
-
-              if (CL_rc == -1) return -1;
-            }
-            else if (wpa_eapol->keyver == 2)
-            {
-              CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX2, pws_cnt, false, 0);
-
-              if (CL_rc == -1) return -1;
-            }
-            else if (wpa_eapol->keyver == 3)
-            {
-              CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX3, pws_cnt, false, 0);
-
-              if (CL_rc == -1) return -1;
-            }
-          }
-          else if (hashconfig->hash_mode == 9600)
-          {
-            CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_3, pws_cnt, false, 0);
-
-            if (CL_rc == -1) return -1;
-          }
-          else if ((hashconfig->hash_mode == 16800) || (hashconfig->hash_mode == 16801))
-          {
-            CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX1, pws_cnt, false, 0);
-
-            if (CL_rc == -1) return -1;
-          }
+          if (CL_rc == -1) return -1;
 
           if (status_ctx->run_thread_level2 == false) break;
         }

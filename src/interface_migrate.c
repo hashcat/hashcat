@@ -28960,3 +28960,39 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
   return false;
 }
+
+u32 module_deep_comp_kernel (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u32 digest_pos)
+{
+  if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
+  {
+    const u32 digests_offset = hashes->salts_buf[salt_pos].digests_offset;
+
+    wpa_eapol_t *wpa_eapols = (wpa_eapol_t *) hashes->esalts_buf;
+
+    wpa_eapol_t *wpa_eapol = &wpa_eapols[digests_offset + digest_pos];
+
+    if (wpa_eapol->keyver == 1)
+    {
+      return KERN_RUN_AUX1;
+    }
+    else if (wpa_eapol->keyver == 2)
+    {
+      return KERN_RUN_AUX2;
+    }
+    else if (wpa_eapol->keyver == 3)
+    {
+      return KERN_RUN_AUX3;
+    }
+  }
+  else if (hashconfig->hash_mode == 9600)
+  {
+    return KERN_RUN_3;
+  }
+  else if ((hashconfig->hash_mode == 16800) || (hashconfig->hash_mode == 16801))
+  {
+    return KERN_RUN_AUX1;
+  }
+}
+
+
+
