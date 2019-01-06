@@ -617,8 +617,11 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
   u32     salts_cnt = hashes->salts_cnt;
   salt_t *salts_buf = hashes->salts_buf;
 
-  if (hashconfig->hash_mode == 3000)
+  if (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT)
   {
+    // this implementation will work for LM only
+    // however, LM is the only hash support which splits the password into multiple hashes
+
     for (u32 salt_idx = 0; salt_idx < salts_cnt; salt_idx++)
     {
       salt_t *salt_buf = salts_buf + salt_idx;
@@ -822,8 +825,11 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
   u32     salts_cnt = hashes->salts_cnt;
   salt_t *salts_buf = hashes->salts_buf;
 
-  if (hashconfig->hash_mode == 3000)
+  if (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT)
   {
+    // this implementation will work for LM only
+    // however, LM is the only hash support which splits the password into multiple hashes
+
     for (u32 salt_idx = 0; salt_idx < salts_cnt; salt_idx++)
     {
       salt_t *salt_buf = salts_buf + salt_idx;
