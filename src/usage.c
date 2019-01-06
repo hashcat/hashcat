@@ -516,7 +516,7 @@ void usage_mini_print (const char *progname)
   {
     printf (USAGE_MINI[i], progname);
 
-    hc_fwrite (EOL, strlen (EOL), 1, stdout);
+    hc_fwrite_direct (EOL, strlen (EOL), 1, stdout);
   }
 }
 
@@ -526,6 +526,6 @@ void usage_big_print (const char *progname)
   {
     printf (USAGE_BIG[i], progname);
 
-    hc_fwrite (EOL, strlen (EOL), 1, stdout);
+    hc_fwrite_direct (EOL, strlen (EOL), 1, stdout);
   }
 }

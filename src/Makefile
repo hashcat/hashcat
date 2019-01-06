@@ -166,7 +166,7 @@ COMPTIME                := $(shell date +%s)
 ## General compiler and linker options
 ##
 
-LFLAGS                  := $(LDFLAGS)
+LFLAGS                  := $(LDFLAGS) -L/usr/local/lib -lz
 
 ifeq ($(PRODUCTION),0)
 CFLAGS                  += -W

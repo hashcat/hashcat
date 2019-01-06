@@ -13,6 +13,7 @@
 #include "mpsp.h"
 #include "filehandling.h"
 #include "slow_candidates.h"
+#include "shared.h"
 
 void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u64 cur, const u64 end)
 {
@@ -36,9 +37,9 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u
 
         while (1)
         {
-          FILE *fp = extra_info_straight->fp;
+          fp_tmp_t *fp_t = extra_info_straight->fp_t;
 
-          get_next_word (hashcat_ctx, fp, &line_buf, &line_len);
+          get_next_word (hashcat_ctx, fp_t, &line_buf, &line_len);
 
           // post-process rule engine
 
@@ -75,8 +76,8 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u
   {
     extra_info_combi_t *extra_info_combi = (extra_info_combi_t *) extra_info;
 
-    FILE *base_fp  = extra_info_combi->base_fp;
-    FILE *combs_fp = extra_info_combi->combs_fp;
+    fp_tmp_t *base_fp_t = extra_info_combi->base_fp_t;
+    fp_tmp_t *combs_fp_t = extra_info_combi->combs_fp_t;
 
     for (u64 i = cur; i < end; i++)
     {
@@ -87,7 +88,7 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u
 
         while (1)
         {
-          get_next_word (hashcat_ctx, base_fp, &line_buf, &line_len);
+          get_next_word (hashcat_ctx, base_fp_t, &line_buf, &line_len);
 
           // post-process rule engine
 
@@ -114,7 +115,7 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u
 
         extra_info_combi->base_len = line_len;
 
-        rewind (combs_fp);
+        hc_rewind (combs_fp_t);
       }
 
       char *line_buf = extra_info_combi->scratch_buf;
@@ -122,7 +123,7 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u
 
       while (1)
       {
-        line_len = (u32) fgetl (combs_fp, line_buf);
+        line_len = (u32) fgetl (combs_fp_t, line_buf);
 
         // post-process rule engine
 
@@ -175,9 +176,9 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
 
       while (1)
       {
-        FILE *fp = extra_info_straight->fp;
+        fp_tmp_t *fp_t = extra_info_straight->fp_t;
 
-        get_next_word (hashcat_ctx, fp, &line_buf, &line_len);
+        get_next_word (hashcat_ctx, fp_t, &line_buf, &line_len);
 
         line_len = (u32) convert_from_hex (hashcat_ctx, line_buf, line_len);
 
@@ -237,8 +238,8 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
   {
     extra_info_combi_t *extra_info_combi = (extra_info_combi_t *) extra_info;
 
-    FILE *base_fp  = extra_info_combi->base_fp;
-    FILE *combs_fp = extra_info_combi->combs_fp;
+    fp_tmp_t *base_fp_t = extra_info_combi->base_fp_t;
+    fp_tmp_t *combs_fp_t = extra_info_combi->combs_fp_t;
 
     if ((extra_info_combi->pos % combinator_ctx->combs_cnt) == 0)
     {
@@ -247,7 +248,7 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
 
       while (1)
       {
-        get_next_word (hashcat_ctx, base_fp, &line_buf, &line_len);
+        get_next_word (hashcat_ctx, base_fp_t, &line_buf, &line_len);
 
         line_len = (u32) convert_from_hex (hashcat_ctx, line_buf, line_len);
 
@@ -273,7 +274,7 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
 
       extra_info_combi->base_len = line_len;
 
-      rewind (combs_fp);
+      hc_rewind (combs_fp_t);
     }
 
     memcpy (extra_info_combi->out_buf, extra_info_combi->base_buf, extra_info_combi->base_len);
@@ -285,7 +286,7 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
 
     while (1)
     {
-      line_len = (u32) fgetl (combs_fp, line_buf);
+      line_len = (u32) fgetl (combs_fp_t, line_buf);
 
       // post-process rule engine
 

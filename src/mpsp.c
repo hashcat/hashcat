@@ -595,7 +595,7 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
   {
     char mp_file[1024];
 
-    const size_t nread = hc_fread (mp_file, 1, sizeof (mp_file) - 1, fp);
+    const size_t nread = hc_fread_direct (mp_file, 1, sizeof (mp_file) - 1, fp);
 
     if (!feof (fp))
     {
@@ -722,7 +722,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
 
   u8 *inbuf = (u8 *) hcmalloc (s.st_size);
 
-  SizeT inlen = (SizeT) hc_fread (inbuf, 1, s.st_size, fd);
+  SizeT inlen = (SizeT) hc_fread_direct (inbuf, 1, s.st_size, fd);
 
   if (inlen != (SizeT) s.st_size)
   {
@@ -1471,9 +1471,14 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
               char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
+              // workaround for new fgetl
+              fp_tmp_t fp_t;
+              fp_t.is_gzip = 0;
+              fp_t.f.fp = mask_fp;
+
               while (!feof (mask_fp))
               {
-                const size_t line_len = fgetl (mask_fp, line_buf);
+                const size_t line_len = fgetl (&fp_t, line_buf);
 
                 if (line_len == 0) continue;
 
@@ -1564,9 +1569,14 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
+        // workaround for new fgetl
+        fp_tmp_t fp_t;
+        fp_t.is_gzip = 0;
+        fp_t.f.fp = mask_fp;
+
         while (!feof (mask_fp))
         {
-          const size_t line_len = fgetl (mask_fp, line_buf);
+          const size_t line_len = fgetl (&fp_t, line_buf);
 
           if (line_len == 0) continue;
 
@@ -1638,9 +1648,14 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
+        // workaround for new fgetl
+        fp_tmp_t fp_t;
+        fp_t.is_gzip = 0;
+        fp_t.f.fp = mask_fp;
+
         while (!feof (mask_fp))
         {
-          const size_t line_len = fgetl (mask_fp, line_buf);
+          const size_t line_len = fgetl (&fp_t, line_buf);
 
           if (line_len == 0) continue;
 

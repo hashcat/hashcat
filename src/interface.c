@@ -2645,11 +2645,11 @@ static int sort_by_src_len (const void *p1, const void *p2)
 
 static bool initialize_keyboard_layout_mapping (hashcat_ctx_t *hashcat_ctx, const char *filename, keyboard_layout_mapping_t *keyboard_layout_mapping, int *keyboard_layout_mapping_cnt)
 {
+  fp_tmp_t fp_t;
+
   char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-  FILE *fp = fopen (filename, "r");
-
-  if (fp == NULL)
+  if (hc_fopen(&fp_t, filename, "r") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", filename, strerror (errno));
 
@@ -2658,9 +2658,9 @@ static bool initialize_keyboard_layout_mapping (hashcat_ctx_t *hashcat_ctx, cons
 
   int maps_cnt = 0;
 
-  while (!feof (fp))
+  while (!hc_feof (&fp_t))
   {
-    const size_t line_len = fgetl (fp, line_buf);
+    const size_t line_len = fgetl (&fp_t, line_buf);
 
     if (line_len == 0) continue;
 
@@ -2684,7 +2684,7 @@ static bool initialize_keyboard_layout_mapping (hashcat_ctx_t *hashcat_ctx, cons
     {
       event_log_error (hashcat_ctx, "%s: Syntax error: %s", filename, line_buf);
 
-      fclose (fp);
+      hc_fclose (&fp_t);
 
       free (line_buf);
 
@@ -2701,7 +2701,7 @@ static bool initialize_keyboard_layout_mapping (hashcat_ctx_t *hashcat_ctx, cons
     {
       event_log_error (hashcat_ctx, "%s: too many entries", filename);
 
-      fclose (fp);
+      hc_fclose (&fp_t);
 
       free (line_buf);
 
@@ -2713,7 +2713,7 @@ static bool initialize_keyboard_layout_mapping (hashcat_ctx_t *hashcat_ctx, cons
 
   *keyboard_layout_mapping_cnt = maps_cnt;
 
-  fclose (fp);
+  hc_fclose (&fp_t);
 
   free (line_buf);
 
@@ -3861,23 +3861,23 @@ int wpa_eapol_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
 int psafe2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
+  fp_tmp_t fp_t;
+
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
   if (input_len == 0) return (PARSER_HASH_LENGTH);
 
-  FILE *fp = fopen ((const char *) input_buf, "rb");
-
-  if (fp == NULL) return (PARSER_HASH_FILE);
+  if (hc_fopen (&fp_t, (const char *) input_buf, "rb") == false) return (PARSER_HASH_FILE);
 
   psafe2_hdr buf;
 
   memset (&buf, 0, sizeof (psafe2_hdr));
 
-  const size_t n = hc_fread (&buf, sizeof (psafe2_hdr), 1, fp);
+  const size_t n = hc_fread (&buf, sizeof (psafe2_hdr), 1, &fp_t);
 
-  fclose (fp);
+  hc_fclose (&fp_t);
 
   if (n != 1) return (PARSER_PSAFE2_FILE_SIZE);
 
@@ -3898,23 +3898,23 @@ int psafe2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
 int psafe3_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
+  fp_tmp_t fp_t;
+
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
   if (input_len == 0) return (PARSER_HASH_LENGTH);
 
-  FILE *fp = fopen ((const char *) input_buf, "rb");
-
-  if (fp == NULL) return (PARSER_HASH_FILE);
+  if (hc_fopen (&fp_t, (const char *) input_buf, "rb") == false) return (PARSER_HASH_FILE);
 
   psafe3_t in;
 
   memset (&in, 0, sizeof (psafe3_t));
 
-  const size_t n = hc_fread (&in, sizeof (psafe3_t), 1, fp);
+  const size_t n = hc_fread (&in, sizeof (psafe3_t), 1, &fp_t);
 
-  fclose (fp);
+  hc_fclose (&fp_t);
 
   if (n != 1) return (PARSER_PSAFE3_FILE_SIZE);
 
@@ -7027,6 +7027,8 @@ int androidpin_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
 int truecrypt_parse_hash_1k (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
+  fp_tmp_t fp_t;
+
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
@@ -7035,15 +7037,13 @@ int truecrypt_parse_hash_1k (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAY
 
   if (input_len == 0) return (PARSER_HASH_LENGTH);
 
-  FILE *fp = fopen ((const char *) input_buf, "rb");
-
-  if (fp == NULL) return (PARSER_HASH_FILE);
+  if (hc_fopen (&fp_t, (const char *) input_buf, "rb") == false) return (PARSER_HASH_FILE);
 
   u8 buf[512];
 
-  const size_t n = hc_fread ((char *) buf, 1, sizeof (buf), fp);
+  const size_t n = hc_fread ((char *) buf, 1, sizeof (buf), &fp_t);
 
-  fclose (fp);
+  hc_fclose (&fp_t);
 
   if (n != sizeof (buf)) return (PARSER_TC_FILE_SIZE);
 
@@ -7070,6 +7070,8 @@ int truecrypt_parse_hash_1k (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAY
 
 int truecrypt_parse_hash_2k (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
+  fp_tmp_t fp_t;
+
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
@@ -7078,15 +7080,13 @@ int truecrypt_parse_hash_2k (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAY
 
   if (input_len == 0) return (PARSER_HASH_LENGTH);
 
-  FILE *fp = fopen ((const char *) input_buf, "rb");
-
-  if (fp == NULL) return (PARSER_HASH_FILE);
+  if (hc_fopen (&fp_t, (const char *) input_buf, "rb") == false) return (PARSER_HASH_FILE);
 
   u8 buf[512];
 
-  const size_t n = hc_fread ((char *) buf, 1, sizeof (buf), fp);
+  const size_t n = hc_fread ((char *) buf, 1, sizeof (buf), &fp_t);
 
-  fclose (fp);
+  hc_fclose (&fp_t);
 
   if (n != sizeof (buf)) return (PARSER_TC_FILE_SIZE);
 
@@ -7113,6 +7113,8 @@ int truecrypt_parse_hash_2k (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAY
 
 int veracrypt_parse_hash_200000 (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
+  fp_tmp_t fp_t;
+
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
@@ -7121,15 +7123,13 @@ int veracrypt_parse_hash_200000 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   if (input_len == 0) return (PARSER_HASH_LENGTH);
 
-  FILE *fp = fopen ((const char *) input_buf, "rb");
-
-  if (fp == NULL) return (PARSER_HASH_FILE);
+  if (hc_fopen (&fp_t, (const char *) input_buf, "rb") == false) return (PARSER_HASH_FILE);
 
   u8 buf[512];
 
-  const size_t n = hc_fread ((char *) buf, 1, sizeof (buf), fp);
+  const size_t n = hc_fread ((char *) buf, 1, sizeof (buf), &fp_t);
 
-  fclose (fp);
+  hc_fclose (&fp_t);
 
   if (n != sizeof (buf)) return (PARSER_VC_FILE_SIZE);
 
@@ -7156,6 +7156,8 @@ int veracrypt_parse_hash_200000 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
 int veracrypt_parse_hash_500000 (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
+  fp_tmp_t fp_t;
+
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
@@ -7164,15 +7166,13 @@ int veracrypt_parse_hash_500000 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   if (input_len == 0) return (PARSER_HASH_LENGTH);
 
-  FILE *fp = fopen ((const char *) input_buf, "rb");
-
-  if (fp == NULL) return (PARSER_HASH_FILE);
+  if (hc_fopen (&fp_t, (const char *) input_buf, "rb") == false) return (PARSER_HASH_FILE);
 
   u8 buf[512];
 
-  const size_t n = hc_fread ((char *) buf, 1, sizeof (buf), fp);
+  const size_t n = hc_fread ((char *) buf, 1, sizeof (buf), &fp_t);
 
-  fclose (fp);
+  hc_fclose (&fp_t);
 
   if (n != sizeof (buf)) return (PARSER_VC_FILE_SIZE);
 
@@ -7199,6 +7199,8 @@ int veracrypt_parse_hash_500000 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
 int veracrypt_parse_hash_327661 (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
+  fp_tmp_t fp_t;
+
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
@@ -7207,15 +7209,13 @@ int veracrypt_parse_hash_327661 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   if (input_len == 0) return (PARSER_HASH_LENGTH);
 
-  FILE *fp = fopen ((const char *) input_buf, "rb");
-
-  if (fp == NULL) return (PARSER_HASH_FILE);
+  if (hc_fopen(&fp_t, (const char *) input_buf, "rb") == false) return (PARSER_HASH_FILE);
 
   u8 buf[512];
 
-  const size_t n = hc_fread ((char *) buf, 1, sizeof (buf), fp);
+  const size_t n = hc_fread ((char *) buf, 1, sizeof (buf), &fp_t);
 
-  fclose (fp);
+  hc_fclose (&fp_t);
 
   if (n != sizeof (buf)) return (PARSER_VC_FILE_SIZE);
 
@@ -7242,6 +7242,8 @@ int veracrypt_parse_hash_327661 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
 int veracrypt_parse_hash_655331 (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
+  fp_tmp_t fp_t;
+
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
@@ -7250,15 +7252,13 @@ int veracrypt_parse_hash_655331 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   if (input_len == 0) return (PARSER_HASH_LENGTH);
 
-  FILE *fp = fopen ((const char *) input_buf, "rb");
-
-  if (fp == NULL) return (PARSER_HASH_FILE);
+  if (hc_fopen(&fp_t, (const char *) input_buf, "rb") == false) return (PARSER_HASH_FILE);
 
   u8 buf[512];
 
-  const size_t n = hc_fread ((char *) buf, 1, sizeof (buf), fp);
+  const size_t n = hc_fread ((char *) buf, 1, sizeof (buf), &fp_t);
 
-  fclose (fp);
+  hc_fclose (&fp_t);
 
   if (n != sizeof (buf)) return (PARSER_VC_FILE_SIZE);
 
@@ -16246,6 +16246,8 @@ int sha1cx_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
 int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig, const int keyslot_idx)
 {
+  fp_tmp_t fp_t;
+
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
@@ -16254,17 +16256,15 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   if (input_len == 0) return (PARSER_HASH_LENGTH);
 
-  FILE *fp = fopen ((const char *) input_buf, "rb");
-
-  if (fp == NULL) return (PARSER_HASH_FILE);
+  if (hc_fopen(&fp_t, (const char *) input_buf, "rb") == false) return (PARSER_HASH_FILE);
 
   struct luks_phdr hdr;
 
-  const size_t nread = hc_fread (&hdr, sizeof (hdr), 1, fp);
+  const size_t nread = hc_fread (&hdr, sizeof (hdr), 1, &fp_t);
 
   if (nread != 1)
   {
-    fclose (fp);
+    hc_fclose (&fp_t);
 
     return (PARSER_LUKS_FILE_SIZE);
   }
@@ -16288,14 +16288,14 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   if (memcmp (hdr.magic, luks_magic, LUKS_MAGIC_L) != 0)
   {
-    fclose (fp);
+    hc_fclose (&fp_t);
 
     return (PARSER_LUKS_MAGIC);
   }
 
   if (byte_swap_16 (hdr.version) != 1)
   {
-    fclose (fp);
+    hc_fclose (&fp_t);
 
     return (PARSER_LUKS_VERSION);
   }
@@ -16314,7 +16314,7 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   }
   else
   {
-    fclose (fp);
+    hc_fclose (&fp_t);
 
     return (PARSER_LUKS_CIPHER_TYPE);
   }
@@ -16341,7 +16341,7 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   }
   else
   {
-    fclose (fp);
+    hc_fclose (&fp_t);
 
     return (PARSER_LUKS_CIPHER_MODE);
   }
@@ -16368,7 +16368,7 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   }
   else
   {
-    fclose (fp);
+    hc_fclose (&fp_t);
 
     return (PARSER_LUKS_HASH_TYPE);
   }
@@ -16389,7 +16389,7 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   }
   else
   {
-    fclose (fp);
+    hc_fclose (&fp_t);
 
     return (PARSER_LUKS_KEY_SIZE);
   }
@@ -16462,14 +16462,14 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
     }
     else
     {
-      fclose (fp);
+      hc_fclose (&fp_t);
 
       return (PARSER_LUKS_HASH_CIPHER);
     }
   }
   else
   {
-         if ((hashconfig->kern_type == KERN_TYPE_LUKS_SHA1_AES)          && (luks->hash_type == HC_LUKS_HASH_TYPE_SHA1) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
+    if ((hashconfig->kern_type == KERN_TYPE_LUKS_SHA1_AES)               && (luks->hash_type == HC_LUKS_HASH_TYPE_SHA1) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
     {
       // OK
     }
@@ -16531,7 +16531,7 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
     }
     else
     {
-      fclose (fp);
+      hc_fclose (&fp_t);
 
       return (PARSER_LUKS_HASH_CIPHER);
     }
@@ -16544,14 +16544,14 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   if (active  != LUKS_KEY_ENABLED)
   {
-    fclose (fp);
+    hc_fclose (&fp_t);
 
     return (PARSER_LUKS_KEY_DISABLED);
   }
 
   if (stripes != LUKS_STRIPES)
   {
-    fclose (fp);
+    hc_fclose (&fp_t);
 
     return (PARSER_LUKS_KEY_STRIPES);
   }
@@ -16579,20 +16579,20 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   const u32 keyMaterialOffset = byte_swap_32 (hdr.keyblock[keyslot_idx].keyMaterialOffset);
 
-  const int rc_seek1 = fseeko (fp, keyMaterialOffset * 512, SEEK_SET);
+  const int rc_seek1 = hc_fseek (&fp_t, keyMaterialOffset * 512, SEEK_SET);
 
   if (rc_seek1 == -1)
   {
-    fclose (fp);
+    hc_fclose (&fp_t);
 
     return (PARSER_LUKS_FILE_SIZE);
   }
 
-  const size_t nread2 = hc_fread (luks->af_src_buf, keyBytes, stripes, fp);
+  const size_t nread2 = hc_fread (luks->af_src_buf, keyBytes, stripes, &fp_t);
 
   if (nread2 != stripes)
   {
-    fclose (fp);
+    hc_fclose (&fp_t);
 
     return (PARSER_LUKS_FILE_SIZE);
   }
@@ -16601,27 +16601,27 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   const u32 payloadOffset = byte_swap_32 (hdr.payloadOffset);
 
-  const int rc_seek2 = fseeko (fp, payloadOffset * 512, SEEK_SET);
+  const int rc_seek2 = hc_fseek (&fp_t, payloadOffset * 512, SEEK_SET);
 
   if (rc_seek2 == -1)
   {
-    fclose (fp);
+    hc_fclose (&fp_t);
 
     return (PARSER_LUKS_FILE_SIZE);
   }
 
-  const size_t nread3 = hc_fread (luks->ct_buf, sizeof (u32), 128, fp);
+  const size_t nread3 = hc_fread (luks->ct_buf, sizeof (u32), 128, &fp_t);
 
   if (nread3 != 128)
   {
-    fclose (fp);
+    hc_fclose (&fp_t);
 
     return (PARSER_LUKS_FILE_SIZE);
   }
 
   // that should be it, close the fp
 
-  fclose (fp);
+  hc_fclose (&fp_t);
 
   return (PARSER_OK);
 }
@@ -19426,15 +19426,15 @@ const char *strparser (const u32 parser_status)
 
 int check_old_hccap (const char *hashfile)
 {
-  FILE *fp = fopen (hashfile, "rb");
+  fp_tmp_t fp_t;
 
-  if (fp == NULL) return -1;
+  if (hc_fopen(&fp_t, hashfile, "rb") == false) return -1;
 
   u32 signature;
 
-  const size_t nread = hc_fread (&signature, sizeof (u32), 1, fp);
+  const size_t nread = hc_fread (&signature, sizeof (u32), 1, &fp_t);
 
-  fclose (fp);
+  hc_fclose (&fp_t);
 
   if (nread != 1) return -1;
 

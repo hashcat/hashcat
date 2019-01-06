@@ -107,7 +107,7 @@ int cpu_crc32 (hashcat_ctx_t *hashcat_ctx, const char *filename, u8 keytab[64])
 
   u8 *buf = (u8 *) hcmalloc (MAX_KEY_SIZE + 1);
 
-  size_t nread = hc_fread (buf, sizeof (u8), MAX_KEY_SIZE, fd);
+  size_t nread = hc_fread_direct (buf, sizeof (u8), MAX_KEY_SIZE, fd);
 
   fclose (fd);
 

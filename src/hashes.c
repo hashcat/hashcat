@@ -194,7 +194,7 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 
           to_hccapx_t (hashcat_ctx, &hccapx, salt_pos, digest_pos);
 
-          hc_fwrite (&hccapx, sizeof (hccapx_t), 1, fp);
+          hc_fwrite_direct (&hccapx, sizeof (hccapx_t), 1, fp);
         }
         else
         {
@@ -600,9 +600,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     }
     else if (hashlist_mode == HL_MODE_FILE)
     {
-      FILE *fp = NULL;
+      fp_tmp_t fp_t;
 
-      if ((fp = fopen (hashfile, "rb")) == NULL)
+      if (hc_fopen (&fp_t, hashfile, "rb") == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", hashfile, strerror (errno));
 
@@ -611,33 +611,31 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       EVENT_DATA (EVENT_HASHLIST_COUNT_LINES_PRE, hashfile, strlen (hashfile));
 
-      hashes_avail = count_lines (fp);
+      hashes_avail = count_lines (&fp_t);
 
       EVENT_DATA (EVENT_HASHLIST_COUNT_LINES_POST, hashfile, strlen (hashfile));
 
-      rewind (fp);
+      hc_rewind (&fp_t);
 
       if (hashes_avail == 0)
       {
         event_log_error (hashcat_ctx, "hashfile is empty or corrupt.");
 
-        fclose (fp);
+        hc_fclose (&fp_t);
 
         return -1;
       }
 
-      hashlist_format = hlfmt_detect (hashcat_ctx, fp, 100); // 100 = max numbers to "scan". could be hashes_avail, too
+      hashlist_format = hlfmt_detect (hashcat_ctx, &fp_t, 100); // 100 = max numbers to "scan". could be hashes_avail, too
+
+      hc_fclose (&fp_t);
 
       if ((user_options->remove == true) && (hashlist_format != HLFMT_HASHCAT))
       {
         event_log_error (hashcat_ctx, "Use of --remove is not supported in native hashfile-format mode.");
 
-        fclose (fp);
-
         return -1;
       }
-
-      fclose (fp);
     }
   }
   else
@@ -820,9 +818,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         {
           hashes->hashlist_mode = HL_MODE_FILE;
 
-          FILE *fp = fopen (hash_buf, "rb");
+          fp_tmp_t fp_t;
 
-          if (fp == NULL)
+          if (hc_fopen (&fp_t, hash_buf, "rb") == false)
           {
             event_log_error (hashcat_ctx, "%s: %s", hash_buf, strerror (errno));
 
@@ -831,9 +829,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
           char *in = (char *) hcmalloc (sizeof (hccapx_t));
 
-          while (!feof (fp))
+          while (!hc_feof (&fp_t))
           {
-            const size_t nread = hc_fread (in, sizeof (hccapx_t), 1, fp);
+            const size_t nread = hc_fread (in, sizeof (hccapx_t), 1, &fp_t);
 
             if (nread == 0) break;
 
@@ -933,7 +931,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
           hcfree (in);
 
-          fclose (fp);
+          hc_fclose (&fp_t);
         }
         else if (hashconfig->hash_mode == 3000)
         {
@@ -1022,9 +1020,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     }
     else if (hashlist_mode == HL_MODE_FILE)
     {
-      FILE *fp;
+      fp_tmp_t fp_t;
 
-      if ((fp = fopen (hashfile, "rb")) == NULL)
+      if (hc_fopen (&fp_t, hashfile, "rb") == false)
       {
         event_log_error (hashcat_ctx, "%s: %s", hashfile, strerror (errno));
 
@@ -1038,11 +1036,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       time_t prev = 0;
       time_t now  = 0;
 
-      while (!feof (fp))
+      while (!hc_feof (&fp_t))
       {
         line_num++;
 
-        const size_t line_len = fgetl (fp, line_buf);
+        const size_t line_len = fgetl (&fp_t, line_buf);
 
         if (line_len == 0) continue;
 
@@ -1251,7 +1249,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       hcfree (line_buf);
 
-      fclose (fp);
+      hc_fclose (&fp_t);
     }
   }
 
@@ -1753,7 +1751,9 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
 
     hc_asprintf (&tmpfile_bin, "%s/selftest.hash", folder_config->session_dir);
 
-    FILE *fp = fopen (tmpfile_bin, "wb");
+    fp_tmp_t fp_t;
+
+    hc_fopen (&fp_t, tmpfile_bin, "wb");
 
     const size_t st_hash_len = strlen (hashconfig->st_hash);
 
@@ -1761,10 +1761,10 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
     {
       const u8 c = hex_to_u8 ((const u8 *) hashconfig->st_hash + i);
 
-      fputc (c, fp);
+      hc_fputc (c, &fp_t);
     }
 
-    fclose (fp);
+    hc_fclose (&fp_t);
 
     parser_status = hashconfig->parse_func ((u8 *) tmpfile_bin, (u32) strlen (tmpfile_bin), &hash, hashconfig);
 
