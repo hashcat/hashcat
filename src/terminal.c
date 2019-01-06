@@ -537,6 +537,8 @@ void example_hashes (hashcat_ctx_t *hashcat_ctx)
 {
   user_options_t *user_options = hashcat_ctx->user_options;
 
+  fclose (stderr); // a bit harsh
+
   if (user_options->hash_mode_chgd == true)
   {
     const int rc = hashconfig_init (hashcat_ctx);

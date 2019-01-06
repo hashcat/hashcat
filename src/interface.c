@@ -47,6 +47,27 @@ static const char *OPTI_STR_USES_BITS_16         = "Uses-16-Bit";
 static const char *OPTI_STR_USES_BITS_32         = "Uses-32-Bit";
 static const char *OPTI_STR_USES_BITS_64         = "Uses-64-Bit";
 
+static const char *HASH_CATEGORY_UNDEFINED_STR              = "Undefined";
+static const char *HASH_CATEGORY_RAW_HASH_STR               = "Raw Hash";
+static const char *HASH_CATEGORY_RAW_HASH_SALTED_STR        = "Raw Hash, Salted and/or Iterated";
+static const char *HASH_CATEGORY_RAW_HASH_AUTHENTICATED_STR = "Raw Hash, Authenticated";
+static const char *HASH_CATEGORY_RAW_CIPHER_KPA_STR         = "Raw Cipher, Known-Plaintext attack";
+static const char *HASH_CATEGORY_GENERIC_KDF_STR            = "Generic KDF";
+static const char *HASH_CATEGORY_NETWORK_PROTOCOL_STR       = "Network Protocols";
+static const char *HASH_CATEGORY_FORUM_SOFTWARE_STR         = "Forums, CMS, E-Commerce, Frameworks";
+static const char *HASH_CATEGORY_DATABASE_SERVER_STR        = "Database Server";
+static const char *HASH_CATEGORY_NETWORK_SERVER_STR         = "FTP, HTTP, SMTP, LDAP Server";
+static const char *HASH_CATEGORY_RAW_CHECKSUM_STR           = "Raw Checksum";
+static const char *HASH_CATEGORY_OS_STR                     = "Operating System";
+static const char *HASH_CATEGORY_EAS_STR                    = "Enterprise Application Software (EAS)";
+static const char *HASH_CATEGORY_ARCHIVE_STR                = "Archives";
+static const char *HASH_CATEGORY_BACKUP_STR                 = "Backup";
+static const char *HASH_CATEGORY_FDE_STR                    = "Full-Disk Encryption (FDE)";
+static const char *HASH_CATEGORY_DOCUMENTS_STR              = "Documents";
+static const char *HASH_CATEGORY_PASSWORD_MANAGER_STR       = "Password Managers";
+static const char *HASH_CATEGORY_OTP_STR                    = "One-Time Passwords";
+static const char *HASH_CATEGORY_PLAIN_STR                  = "Plaintext";
+
 /**
  * parser
  */
@@ -259,6 +280,35 @@ static bool parse_and_store_generic_salt (u8 *out_buf, int *out_len, const u8 *i
 /**
  * output
  */
+
+const char *strhashcategory (const u32 hash_category)
+{
+  switch (hash_category)
+  {
+    case HASH_CATEGORY_UNDEFINED:               return HASH_CATEGORY_UNDEFINED_STR;
+    case HASH_CATEGORY_RAW_HASH:                return HASH_CATEGORY_RAW_HASH_STR;
+    case HASH_CATEGORY_RAW_HASH_SALTED:         return HASH_CATEGORY_RAW_HASH_SALTED_STR;
+    case HASH_CATEGORY_RAW_HASH_AUTHENTICATED:  return HASH_CATEGORY_RAW_HASH_AUTHENTICATED_STR;
+    case HASH_CATEGORY_RAW_CIPHER_KPA:          return HASH_CATEGORY_RAW_CIPHER_KPA_STR;
+    case HASH_CATEGORY_GENERIC_KDF:             return HASH_CATEGORY_GENERIC_KDF_STR;
+    case HASH_CATEGORY_NETWORK_PROTOCOL:        return HASH_CATEGORY_NETWORK_PROTOCOL_STR;
+    case HASH_CATEGORY_FORUM_SOFTWARE:          return HASH_CATEGORY_FORUM_SOFTWARE_STR;
+    case HASH_CATEGORY_DATABASE_SERVER:         return HASH_CATEGORY_DATABASE_SERVER_STR;
+    case HASH_CATEGORY_NETWORK_SERVER:          return HASH_CATEGORY_NETWORK_SERVER_STR;
+    case HASH_CATEGORY_RAW_CHECKSUM:            return HASH_CATEGORY_RAW_CHECKSUM_STR;
+    case HASH_CATEGORY_OS:                      return HASH_CATEGORY_OS_STR;
+    case HASH_CATEGORY_EAS:                     return HASH_CATEGORY_EAS_STR;
+    case HASH_CATEGORY_ARCHIVE:                 return HASH_CATEGORY_ARCHIVE_STR;
+    case HASH_CATEGORY_BACKUP:                  return HASH_CATEGORY_BACKUP_STR;
+    case HASH_CATEGORY_FDE:                     return HASH_CATEGORY_FDE_STR;
+    case HASH_CATEGORY_DOCUMENTS:               return HASH_CATEGORY_DOCUMENTS_STR;
+    case HASH_CATEGORY_PASSWORD_MANAGER:        return HASH_CATEGORY_PASSWORD_MANAGER_STR;
+    case HASH_CATEGORY_OTP:                     return HASH_CATEGORY_OTP_STR;
+    case HASH_CATEGORY_PLAIN:                   return HASH_CATEGORY_PLAIN_STR;
+  }
+
+  return NULL;
+}
 
 const char *stroptitype (const u32 opti_type)
 {
@@ -625,10 +675,8 @@ static bool module_load (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, c
 
   if (module_ctx->module_handle == NULL)
   {
-    event_log_error (hashcat_ctx, "Cannot load module %s", module_file);
-
     #if defined (_WIN)
-
+    event_log_error (hashcat_ctx, "Cannot load module %s", module_file); // todo: maybe there's a dlerror () equivalent
     #else
     event_log_error (hashcat_ctx, "%s", dlerror ());
     #endif
@@ -652,7 +700,10 @@ static bool module_load (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, c
 
 static void module_unload (module_ctx_t *module_ctx)
 {
-  hc_dlclose (module_ctx->module_handle);
+  if (module_ctx->module_handle)
+  {
+    hc_dlclose (module_ctx->module_handle);
+  }
 }
 
 int hashconfig_init (hashcat_ctx_t *hashcat_ctx)

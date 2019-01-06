@@ -61,7 +61,7 @@ int benchmark_next (hashcat_ctx_t *hashcat_ctx)
   {
     char *modulefile = (char *) hcmalloc (HCBUFSIZ_TINY);
 
-    for (int i = cur; i < 99999; i++)
+    for (int i = cur; i < 100000; i++)
     {
       #if defined (_WIN)
       snprintf (modulefile, HCBUFSIZ_TINY, "%s/modules/module_%05d.dll", folder_config->shared_dir, i);

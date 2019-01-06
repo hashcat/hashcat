@@ -272,6 +272,7 @@ typedef enum kernel_workload
  * output functions
  */
 
+const char *strhashcategory (const u32 hash_category);
 const char *stroptitype (const u32 opti_type);
 
 int ascii_digest (const hashconfig_t *hashconfig, const hashes_t *hashes, const module_ctx_t *module_ctx, char *out_buf, const int out_size, const u32 salt_pos, const u32 digest_pos);

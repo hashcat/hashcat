@@ -1098,20 +1098,6 @@ int main (int argc, char **argv)
     return 0;
   }
 
-  if (user_options->usage == true)
-  {
-    usage_big_print (PROGNAME);
-
-    return 0;
-  }
-
-  if (user_options->example_hashes == true)
-  {
-    example_hashes (hashcat_ctx);
-
-    return 0;
-  }
-
   // init a hashcat session; this initializes opencl devices, hwmon, etc
 
   welcome_screen (hashcat_ctx, VERSION_TAG);
@@ -1122,7 +1108,19 @@ int main (int argc, char **argv)
 
   if (rc_session_init == 0)
   {
-    if (user_options->opencl_info == true)
+    if (user_options->usage == true)
+    {
+      usage_big_print (hashcat_ctx);
+
+      rc_final = 0;
+    }
+    else if (user_options->example_hashes == true)
+    {
+      example_hashes (hashcat_ctx);
+
+      rc_final = 0;
+    }
+    else if (user_options->opencl_info == true)
     {
       // if this is just opencl_info, no need to execute some real cracking session
 

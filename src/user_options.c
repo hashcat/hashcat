@@ -1370,6 +1370,11 @@ void user_options_session_auto (hashcat_ctx_t *hashcat_ctx)
       user_options->session = "example_hashes";
     }
 
+    if (user_options->usage == true)
+    {
+      user_options->session = "usage";
+    }
+
     if (user_options->speed_only == true)
     {
       user_options->session = "speed_only";
@@ -1442,7 +1447,8 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
    || user_options->opencl_info     == true
    || user_options->keyspace        == true
    || user_options->speed_only      == true
-   || user_options->progress_only   == true)
+   || user_options->progress_only   == true
+   || user_options->usage           == true)
   {
     user_options->hwmon_disable       = true;
     user_options->left                = false;
@@ -1494,6 +1500,11 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   }
 
   if (user_options->example_hashes == true)
+  {
+    user_options->quiet = true;
+  }
+
+  if (user_options->usage == true)
   {
     user_options->quiet = true;
   }

@@ -2469,8 +2469,25 @@ typedef enum hash_type
 
 typedef enum hash_category
 {
-  HASH_CATEGORY_UNDEFINED = 0,
-  HASH_CATEGORY_RAW_HASH  = 1,
-
+  HASH_CATEGORY_UNDEFINED               = 0,
+  HASH_CATEGORY_RAW_HASH                = 1,
+  HASH_CATEGORY_RAW_HASH_SALTED         = 2,
+  HASH_CATEGORY_RAW_HASH_AUTHENTICATED  = 3,
+  HASH_CATEGORY_RAW_CIPHER_KPA          = 4,
+  HASH_CATEGORY_GENERIC_KDF             = 5,
+  HASH_CATEGORY_NETWORK_PROTOCOL        = 6,
+  HASH_CATEGORY_FORUM_SOFTWARE          = 7,
+  HASH_CATEGORY_DATABASE_SERVER         = 8,
+  HASH_CATEGORY_NETWORK_SERVER          = 9,
+  HASH_CATEGORY_RAW_CHECKSUM            = 10,
+  HASH_CATEGORY_OS                      = 11,
+  HASH_CATEGORY_EAS                     = 12,
+  HASH_CATEGORY_ARCHIVE                 = 13,
+  HASH_CATEGORY_BACKUP                  = 14,
+  HASH_CATEGORY_FDE                     = 15,
+  HASH_CATEGORY_DOCUMENTS               = 16,
+  HASH_CATEGORY_PASSWORD_MANAGER        = 17,
+  HASH_CATEGORY_OTP                     = 18,
+  HASH_CATEGORY_PLAIN                   = 19,
 
 } hash_category_t;
