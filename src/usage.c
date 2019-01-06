@@ -269,29 +269,28 @@ void usage_mini_print (const char *progname)
 
 void usage_big_print (hashcat_ctx_t *hashcat_ctx)
 {
-  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
-  user_options_t *user_options = hashcat_ctx->user_options;
+  folder_config_t *folder_config = hashcat_ctx->folder_config;
+  hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
+  user_options_t  *user_options  = hashcat_ctx->user_options;
 
-  fclose (stderr); // a bit harsh
 
-  for (int i = 0; USAGE_BIG_PRE_HASHMODES[i] != NULL; i++)
-  {
-    printf ("%s", USAGE_BIG_PRE_HASHMODES[i]);
+  char *modulefile = (char *) hcmalloc (HCBUFSIZ_TINY);
 
-    hc_fwrite (EOL, strlen (EOL), 1, stdout);
-  }
-
-  //hc_fwrite (EOL, strlen (EOL), 1, stdout);
-
-  #define MAX_HASH_MODES 100000
-
-  usage_sort_t *usage_sort_buf = (usage_sort_t *) hccalloc (MAX_HASH_MODES, sizeof (usage_sort_t));
+  usage_sort_t *usage_sort_buf = (usage_sort_t *) hccalloc (MODULE_HASH_MODES_MAXIMUM, sizeof (usage_sort_t));
 
   int usage_sort_cnt = 0;
 
-  for (int i = 0; i < 100000; i++)
+  for (int i = 0; i < MODULE_HASH_MODES_MAXIMUM; i++)
   {
     user_options->hash_mode = i;
+
+    #if defined (_WIN)
+    snprintf (modulefile, HCBUFSIZ_TINY, "%s/modules/module_%05d.dll", folder_config->shared_dir, i);
+    #else
+    snprintf (modulefile, HCBUFSIZ_TINY, "%s/modules/module_%05d.so", folder_config->shared_dir, i);
+    #endif
+
+    if (hc_path_exist (modulefile) == false) continue;
 
     const int rc = hashconfig_init (hashcat_ctx);
 
@@ -307,7 +306,18 @@ void usage_big_print (hashcat_ctx_t *hashcat_ctx)
     hashconfig_destroy (hashcat_ctx);
   }
 
+  hcfree (modulefile);
+
   qsort (usage_sort_buf, usage_sort_cnt, sizeof (usage_sort_t), sort_by_usage);
+
+  for (int i = 0; USAGE_BIG_PRE_HASHMODES[i] != NULL; i++)
+  {
+    printf ("%s", USAGE_BIG_PRE_HASHMODES[i]);
+
+    hc_fwrite (EOL, strlen (EOL), 1, stdout);
+  }
+
+  //hc_fwrite (EOL, strlen (EOL), 1, stdout);
 
   for (int i = 0; i < usage_sort_cnt; i++)
   {
@@ -316,14 +326,14 @@ void usage_big_print (hashcat_ctx_t *hashcat_ctx)
     hc_fwrite (EOL, strlen (EOL), 1, stdout);
   }
 
+  hc_fwrite (EOL, strlen (EOL), 1, stdout);
+
   for (int i = 0; i < usage_sort_cnt; i++)
   {
     hcfree (usage_sort_buf[i].hash_name);
   }
 
   hcfree (usage_sort_buf);
-
-  hc_fwrite (EOL, strlen (EOL), 1, stdout);
 
   for (int i = 0; USAGE_BIG_POST_HASHMODES[i] != NULL; i++)
   {

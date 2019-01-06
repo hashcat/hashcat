@@ -26,10 +26,143 @@
 #include "thread.h"
 #include "timer.h"
 #include "locking.h"
+#include "cpu_crc32.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"
 #endif
+
+// get rid of this!
+static int hashconfig_general_defaults (hashcat_ctx_t *hashcat_ctx)
+{
+  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  user_options_t *user_options = hashcat_ctx->user_options;
+
+  // truecrypt and veracrypt only
+  if (((hashconfig->hash_mode >=  6200) && (hashconfig->hash_mode <=  6299))
+   || ((hashconfig->hash_mode >= 13700) && (hashconfig->hash_mode == 13799)))
+  {
+    hashes_t *hashes = hashcat_ctx->hashes;
+
+    tc_t *tc = (tc_t *) hashes->esalts_buf;
+
+    char *optional_param1 = NULL;
+
+    if (user_options->truecrypt_keyfiles) optional_param1 = user_options->truecrypt_keyfiles;
+    if (user_options->veracrypt_keyfiles) optional_param1 = user_options->veracrypt_keyfiles;
+
+    if (optional_param1)
+    {
+      char *tcvc_keyfiles = optional_param1;
+
+      char *keyfiles = hcstrdup (tcvc_keyfiles);
+
+      if (keyfiles == NULL) return -1;
+
+      char *saveptr = NULL;
+
+      char *keyfile = strtok_r (keyfiles, ",", &saveptr);
+
+      if (keyfile == NULL)
+      {
+        free (keyfiles);
+
+        return -1;
+      }
+
+      do
+      {
+        const int rc_crc32 = cpu_crc32 (hashcat_ctx, keyfile, (u8 *) tc->keyfile_buf);
+
+        if (rc_crc32 == -1)
+        {
+          free (keyfiles);
+
+          return -1;
+        }
+
+      } while ((keyfile = strtok_r ((char *) NULL, ",", &saveptr)) != NULL);
+
+      free (keyfiles);
+    }
+
+    // truecrypt and veracrypt boot only
+    if (hashconfig->opts_type & OPTS_TYPE_KEYBOARD_MAPPING)
+    {
+      if (user_options->keyboard_layout_mapping)
+      {
+        const bool rc = initialize_keyboard_layout_mapping (hashcat_ctx, user_options->keyboard_layout_mapping, tc->keyboard_layout_mapping_buf, &tc->keyboard_layout_mapping_cnt);
+
+        if (rc == false) return -1;
+      }
+    }
+  }
+
+  // veracrypt only
+  if ((hashconfig->hash_mode >= 13700) && (hashconfig->hash_mode == 13799))
+  {
+    if (user_options->veracrypt_pim)
+    {
+      // we can access salt directly here because in VC it's always just one salt not many
+
+      hashes_t *hashes = hashcat_ctx->hashes;
+
+      salt_t *salts_buf = hashes->salts_buf;
+
+      salt_t *salt = &salts_buf[0];
+
+      switch (hashconfig->hash_mode)
+      {
+        case 13711:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13712:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13713:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13721:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13722:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13723:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13731:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13732:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13733:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13741:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
+                     break;
+        case 13742:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
+                     break;
+        case 13743:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
+                     break;
+        case 13751:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13752:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13753:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13761:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
+                     break;
+        case 13762:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
+                     break;
+        case 13763:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
+                     break;
+        case 13771:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13772:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13773:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+      }
+
+      salt->salt_iter -= 1;
+    }
+  }
+
+  return 0;
+}
 
 int sort_by_string (const void *p1, const void *p2)
 {
@@ -748,7 +881,14 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->benchmark == true)
   {
-    hashconfig_benchmark_defaults (hashcat_ctx, hashes_buf[0].salt, hashes_buf[0].esalt, hashes_buf[0].hook_salt);
+    if (hashconfig->is_salted == true)
+    {
+      memcpy (hashes_buf[0].salt, hashconfig->benchmark_salt, sizeof (salt_t));
+
+      memcpy (hashes_buf[0].esalt, hashconfig->benchmark_esalt, hashconfig->esalt_size);
+
+      memcpy (hashes_buf[0].hook_salt, hashconfig->benchmark_hook_salt, hashconfig->hook_salt_size);
+    }
 
     hashes->hashfile = "-";
 

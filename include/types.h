@@ -903,7 +903,7 @@ struct hashconfig
 {
   char  separator;
 
-  u32   hash_mode;
+  int   hash_mode;
   u32   hash_type;
   u32   salt_type;
   u32   attack_exec;
@@ -1835,7 +1835,7 @@ typedef struct user_options
   #endif
   u32          debug_mode;
   u32          hwmon_temp_abort;
-  u32          hash_mode;
+  int          hash_mode;
   u32          hccapx_message_pair;
   u32          increment_max;
   u32          increment_min;
@@ -2267,7 +2267,7 @@ typedef struct module_ctx
   u32         (*module_forced_outfile_format)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_hash_category)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_hash_name)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u32         (*module_hash_mode)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  int         (*module_hash_mode)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_hash_type)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   bool        (*module_hlfmt_disable)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_hook_salt_size)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);

@@ -614,7 +614,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if (user_options->hash_mode > 99999)
+  if (user_options->hash_mode >= MODULE_HASH_MODES_MAXIMUM)
   {
     event_log_error (hashcat_ctx, "Invalid -m (hash type) value specified.");
 

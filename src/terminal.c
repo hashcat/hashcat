@@ -535,9 +535,8 @@ void compress_terminal_line_length (char *out_buf, const size_t keep_from_beginn
 
 void example_hashes (hashcat_ctx_t *hashcat_ctx)
 {
-  user_options_t *user_options = hashcat_ctx->user_options;
-
-  fclose (stderr); // a bit harsh
+  folder_config_t *folder_config = hashcat_ctx->folder_config;
+  user_options_t  *user_options  = hashcat_ctx->user_options;
 
   if (user_options->hash_mode_chgd == true)
   {
@@ -593,9 +592,19 @@ void example_hashes (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    for (int i = 0; i < 100000; i++)
+    char *modulefile = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+    for (int i = 0; i < MODULE_HASH_MODES_MAXIMUM; i++)
     {
       user_options->hash_mode = i;
+
+      #if defined (_WIN)
+      snprintf (modulefile, HCBUFSIZ_TINY, "%s/modules/module_%05d.dll", folder_config->shared_dir, i);
+      #else
+      snprintf (modulefile, HCBUFSIZ_TINY, "%s/modules/module_%05d.so", folder_config->shared_dir, i);
+      #endif
+
+      if (hc_path_exist (modulefile) == false) continue;
 
       const int rc = hashconfig_init (hashcat_ctx);
 
@@ -647,6 +656,8 @@ void example_hashes (hashcat_ctx_t *hashcat_ctx)
 
       hashconfig_destroy (hashcat_ctx);
     }
+
+    hcfree (modulefile);
   }
 }
 

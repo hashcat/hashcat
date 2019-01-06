@@ -15,6 +15,8 @@
 
 static const u32 MODULE_VERSION_MINIMUM = 520;
 
+static const int MODULE_HASH_MODES_MAXIMUM = 100000;
+
 /**
  * zero hashes shutcut
  */
@@ -281,8 +283,6 @@ bool initialize_keyboard_layout_mapping (hashcat_ctx_t *hashcat_ctx, const char 
 
 int         hashconfig_init                 (hashcat_ctx_t *hashcat_ctx);
 void        hashconfig_destroy              (hashcat_ctx_t *hashcat_ctx);
-int         hashconfig_general_defaults     (hashcat_ctx_t *hashcat_ctx);
-void        hashconfig_benchmark_defaults   (hashcat_ctx_t *hashcat_ctx, salt_t *salt, void *esalt, void *hook_salt);
 
 u32         default_attack_exec             (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
 void       *default_benchmark_esalt         (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
