@@ -101,9 +101,6 @@ typedef struct hccapx hccapx_t;
 
 #pragma pack(pop)
 
-void to_hccapx_t (hashcat_ctx_t *hashcat_ctx, hccapx_t *hccapx, const u32 salt_pos, const u32 digest_pos);
-
-
 typedef struct seven_zip_hook
 {
   u32 ukey[8];

@@ -2306,8 +2306,9 @@ typedef struct module_ctx
 
   u64         (*module_extra_buffer_size)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hashes_t *, const hc_device_param_t *);
   char       *(*module_jit_build_options)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hashes_t *, const hc_device_param_t *);
-
   u32         (*module_deep_comp_kernel)        (const hashes_t *, const u32, const u32);
+  int         (*module_hash_save_binary)        (const hashes_t *, const u32, const u32, char **);
+  int         (*module_hash_init_selftest)      (const hashconfig_t *, hash_t *);
 
   void        (*module_hook12)                  (hc_device_param_t *, const void *, const u32, const u64);
   void        (*module_hook23)                  (hc_device_param_t *, const void *, const u32, const u64);

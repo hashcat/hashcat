@@ -29338,3 +29338,117 @@ int module_hash_encode_status (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
       }
     }
 }
+
+
+int module_hash_init_selftest (MAYBE_UNUSED const hashconfig_t *hashconfig, hash_t *hash)
+{
+
+  if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
+  {
+    char *tmpdata = (char *) hcmalloc (sizeof (hccapx_t));
+
+    const size_t st_hash_len = strlen (hashconfig->st_hash);
+
+    for (size_t i = 0, j = 0; j < st_hash_len; i += 1, j += 2)
+    {
+      const u8 c = hex_to_u8 ((const u8 *) hashconfig->st_hash + j);
+
+      tmpdata[i] = c;
+    }
+
+    parser_status = module_ctx->module_hash_decode (hashconfig, hash.digest, hash.salt, hash.esalt, tmpdata, sizeof (hccapx_t));
+
+    hcfree (tmpdata);
+
+    wpa_eapol_t *wpa_eapol = (wpa_eapol_t *) st_esalts_buf;
+
+    wpa_eapol->detected_le = 1;
+    wpa_eapol->detected_be = 0;
+
+    wpa_eapol->nonce_error_corrections = 3;
+  }
+}
+
+int module_hash_save_binary (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u32 digest_pos, const char **buf)
+{
+
+
+void to_hccapx_t (hashcat_ctx_t *hashcat_ctx, hccapx_t *hccapx, const u32 salt_pos, const u32 digest_pos)
+{
+  const hashes_t *hashes = hashcat_ctx->hashes;
+
+  const salt_t *salts_buf   = hashes->salts_buf;
+  const void   *esalts_buf  = hashes->esalts_buf;
+
+  memset (hccapx, 0, sizeof (hccapx_t));
+
+  hccapx->signature = HCCAPX_SIGNATURE;
+  hccapx->version   = HCCAPX_VERSION;
+
+  const salt_t *salt = &salts_buf[salt_pos];
+
+  const u32 digest_cur = salt->digests_offset + digest_pos;
+
+  hccapx->essid_len = salt->salt_len;
+
+  memcpy (hccapx->essid, salt->salt_buf, hccapx->essid_len);
+
+  wpa_eapol_t *wpa_eapols = (wpa_eapol_t *) esalts_buf;
+  wpa_eapol_t *wpa_eapol  = &wpa_eapols[digest_cur];
+
+  hccapx->message_pair = wpa_eapol->message_pair;
+  hccapx->keyver = wpa_eapol->keyver;
+
+  hccapx->eapol_len = wpa_eapol->eapol_len;
+
+  if (wpa_eapol->keyver != 1)
+  {
+    u32 eapol_tmp[64] = { 0 };
+
+    for (u32 i = 0; i < 64; i++)
+    {
+      eapol_tmp[i] = byte_swap_32 (wpa_eapol->eapol[i]);
+    }
+
+    memcpy (hccapx->eapol, eapol_tmp, wpa_eapol->eapol_len);
+  }
+  else
+  {
+    memcpy (hccapx->eapol, wpa_eapol->eapol, wpa_eapol->eapol_len);
+  }
+
+  memcpy (hccapx->mac_ap,    wpa_eapol->orig_mac_ap,    6);
+  memcpy (hccapx->mac_sta,   wpa_eapol->orig_mac_sta,   6);
+  memcpy (hccapx->nonce_ap,  wpa_eapol->orig_nonce_ap,  32);
+  memcpy (hccapx->nonce_sta, wpa_eapol->orig_nonce_sta, 32);
+
+  if (wpa_eapol->keyver != 1)
+  {
+    u32 digest_tmp[4];
+
+    digest_tmp[0] = byte_swap_32 (wpa_eapol->keymic[0]);
+    digest_tmp[1] = byte_swap_32 (wpa_eapol->keymic[1]);
+    digest_tmp[2] = byte_swap_32 (wpa_eapol->keymic[2]);
+    digest_tmp[3] = byte_swap_32 (wpa_eapol->keymic[3]);
+
+    memcpy (hccapx->keymic, digest_tmp, 16);
+  }
+  else
+  {
+    memcpy (hccapx->keymic, wpa_eapol->keymic, 16);
+  }
+}
+
+
+void to_hccapx_t (hashcat_ctx_t *hashcat_ctx, hccapx_t *hccapx, const u32 salt_pos, const u32 digest_pos);
+
+        if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
+        {
+          hccapx_t hccapx;
+
+          to_hccapx_t (hashcat_ctx, &hccapx, salt_pos, digest_pos);
+
+          hc_fwrite (&hccapx, sizeof (hccapx_t), 1, fp);
+        }
+      }
+}

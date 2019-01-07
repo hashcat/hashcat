@@ -267,6 +267,7 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 {
   hashes_t        *hashes       = hashcat_ctx->hashes;
   hashconfig_t    *hashconfig   = hashcat_ctx->hashconfig;
+  module_ctx_t    *module_ctx   = hashcat_ctx->module_ctx;
   user_options_t  *user_options = hashcat_ctx->user_options;
 
   const char *hashfile = hashes->hashfile;
@@ -315,24 +316,17 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 
     for (u32 digest_pos = 0; digest_pos < salt_buf->digests_cnt; digest_pos++)
     {
-      u32 idx = salt_buf->digests_offset + digest_pos;
+      const u32 idx = salt_buf->digests_offset + digest_pos;
 
       if (hashes->digests_shown[idx] == 1) continue;
 
-      if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
+      if (module_ctx->module_hash_save_binary != MODULE_DEFAULT)
       {
-        if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
-        {
-          hccapx_t hccapx;
+        char *binary_buf = NULL;
 
-          to_hccapx_t (hashcat_ctx, &hccapx, salt_pos, digest_pos);
+        const int binary_len = module_ctx->module_hash_save_binary (hashes, salt_pos, digest_pos, &binary_buf);
 
-          hc_fwrite (&hccapx, sizeof (hccapx_t), 1, fp);
-        }
-        else
-        {
-          // TODO
-        }
+        hc_fwrite (binary_buf, binary_len, 1, fp);
       }
       else
       {
@@ -1888,76 +1882,59 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
 
   int parser_status;
 
-  if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
+  if (module_ctx->module_hash_init_selftest != MODULE_DEFAULT)
   {
-    char *tmpdata = (char *) hcmalloc (sizeof (hccapx_t));
-
-    const size_t st_hash_len = strlen (hashconfig->st_hash);
-
-    for (size_t i = 0, j = 0; j < st_hash_len; i += 1, j += 2)
-    {
-      const u8 c = hex_to_u8 ((const u8 *) hashconfig->st_hash + j);
-
-      tmpdata[i] = c;
-    }
-
-    parser_status = module_ctx->module_hash_decode (hashconfig, hash.digest, hash.salt, hash.esalt, tmpdata, sizeof (hccapx_t));
-
-    hcfree (tmpdata);
-
-    wpa_eapol_t *wpa_eapol = (wpa_eapol_t *) st_esalts_buf;
-
-    wpa_eapol->detected_le = 1;
-    wpa_eapol->detected_be = 0;
-
-    wpa_eapol->nonce_error_corrections = 3;
-  }
-  else if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
-  {
-    char *tmpfile_bin;
-
-    hc_asprintf (&tmpfile_bin, "%s/selftest.hash", folder_config->session_dir);
-
-    FILE *fp = fopen (tmpfile_bin, "wb");
-
-    const size_t st_hash_len = strlen (hashconfig->st_hash);
-
-    for (size_t i = 0; i < st_hash_len; i += 2)
-    {
-      const u8 c = hex_to_u8 ((const u8 *) hashconfig->st_hash + i);
-
-      fputc (c, fp);
-    }
-
-    fclose (fp);
-
-    parser_status = module_ctx->module_hash_decode (hashconfig, hash.digest, hash.salt, hash.esalt, tmpfile_bin, strlen (tmpfile_bin));
-
-    unlink (tmpfile_bin);
-
-    hcfree (tmpfile_bin);
+    parser_status = module_ctx->module_hash_init_selftest (hashconfig, &hash);
   }
   else
   {
-    hashconfig_t *hashconfig_st = (hashconfig_t *) hcmalloc (sizeof (hashconfig_t));
-
-    memcpy (hashconfig_st, hashconfig, sizeof (hashconfig_t));
-
-    hashconfig_st->separator = SEPARATOR;
-
-    if (user_options->hex_salt)
+    if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
     {
-      if (hashconfig->salt_type == SALT_TYPE_GENERIC)
+      char *tmpfile_bin;
+
+      hc_asprintf (&tmpfile_bin, "%s/selftest.hash", folder_config->session_dir);
+
+      FILE *fp = fopen (tmpfile_bin, "wb");
+
+      const size_t st_hash_len = strlen (hashconfig->st_hash);
+
+      for (size_t i = 0; i < st_hash_len; i += 2)
       {
-        // this is save as there's no hash mode that has both SALT_TYPE_GENERIC and OPTS_TYPE_ST_HEX by default
+        const u8 c = hex_to_u8 ((const u8 *) hashconfig->st_hash + i);
 
-        hashconfig_st->opts_type &= ~OPTS_TYPE_ST_HEX;
+        fputc (c, fp);
       }
+
+      fclose (fp);
+
+      parser_status = module_ctx->module_hash_decode (hashconfig, hash.digest, hash.salt, hash.esalt, tmpfile_bin, strlen (tmpfile_bin));
+
+      unlink (tmpfile_bin);
+
+      hcfree (tmpfile_bin);
     }
+    else
+    {
+      hashconfig_t *hashconfig_st = (hashconfig_t *) hcmalloc (sizeof (hashconfig_t));
 
-    parser_status = module_ctx->module_hash_decode (hashconfig_st, hash.digest, hash.salt, hash.esalt, hashconfig->st_hash, strlen (hashconfig->st_hash));
+      memcpy (hashconfig_st, hashconfig, sizeof (hashconfig_t));
 
-    hcfree (hashconfig_st);
+      hashconfig_st->separator = SEPARATOR;
+
+      if (user_options->hex_salt)
+      {
+        if (hashconfig->salt_type == SALT_TYPE_GENERIC)
+        {
+          // this is save as there's no hash mode that has both SALT_TYPE_GENERIC and OPTS_TYPE_ST_HEX by default
+
+          hashconfig_st->opts_type &= ~OPTS_TYPE_ST_HEX;
+        }
+      }
+
+      parser_status = module_ctx->module_hash_decode (hashconfig_st, hash.digest, hash.salt, hash.esalt, hashconfig->st_hash, strlen (hashconfig->st_hash));
+
+      hcfree (hashconfig_st);
+    }
   }
 
   if (parser_status == PARSER_OK)
