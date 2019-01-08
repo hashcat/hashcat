@@ -185,10 +185,18 @@ LFLAGS                  += -s
 endif
 else
 ifeq ($(DEBUG),1)
+ifneq ($(UNAME),Darwin)
 CFLAGS                  += -DDEBUG -Og -ggdb
 else
+CFLAGS                  += -DDEBUG -O0 -ggdb
+endif
+else
 ifeq ($(DEBUG),2)
+ifneq ($(UNAME),Darwin)
 CFLAGS                  += -DDEBUG -Og -ggdb
+else
+CFLAGS                  += -DDEBUG -O0 -ggdb
+endif
 CFLAGS                  += -fsanitize=address -fno-omit-frame-pointer
 endif
 endif
@@ -366,7 +374,7 @@ endif
 ## Targets: Native Compilation
 ##
 
-default: $(HASHCAT_FRONTEND)
+default: $(HASHCAT_FRONTEND) modules
 
 clean:
 	$(RM) -f $(HASHCAT_FRONTEND)
