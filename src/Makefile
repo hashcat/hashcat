@@ -582,7 +582,7 @@ endif
 ## native compiled modules
 ##
 
-MODULE_DEPEND := src/bitops.c src/convert.c src/memory.c src/shared.c
+MODULE_DEPEND := src/bitops.c src/convert.c src/memory.c src/shared.c $(foreach ZLIB_SRC,$(OBJS_ZLIB),${DEPS_ZLIB_PATH}/$(ZLIB_SRC).c)
 
 MODULES_SRC   := $(wildcard modules/*.c)
 MODULES_LIB   := $(patsubst %.c, %.so, $(MODULES_SRC))
