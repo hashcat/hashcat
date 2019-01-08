@@ -17,6 +17,8 @@
 #include "locking.h"
 #include "shared.h"
 
+static const char MASKED_PLAIN[] = "[notfound]";
+
 // get rid of this later
 int sort_by_hash         (const void *v1, const void *v2, void *v3);
 int sort_by_hash_no_salt (const void *v1, const void *v2, void *v3);
@@ -703,9 +705,9 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
-          memcpy (mixed_buf + mixed_len, LM_MASKED_PLAIN, strlen (LM_MASKED_PLAIN));
+          memcpy (mixed_buf + mixed_len, MASKED_PLAIN, strlen (MASKED_PLAIN));
 
-          mixed_len += strlen (LM_MASKED_PLAIN);
+          mixed_len += strlen (MASKED_PLAIN);
         }
 
         if (hash2)
@@ -718,9 +720,9 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
           }
           else
           {
-            memcpy (mixed_buf + mixed_len, LM_MASKED_PLAIN, strlen (LM_MASKED_PLAIN));
+            memcpy (mixed_buf + mixed_len, MASKED_PLAIN, strlen (MASKED_PLAIN));
 
-            mixed_len += strlen (LM_MASKED_PLAIN);
+            mixed_len += strlen (MASKED_PLAIN);
           }
         }
 

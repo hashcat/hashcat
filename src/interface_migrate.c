@@ -2697,6 +2697,392 @@ static void drupal7_encode (const u8 digest[64], u8 buf[43])
 
 
 
+
+
+int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig, const int keyslot_idx)
+{
+  u32 *digest = (u32 *) hash_buf->digest;
+
+  salt_t *salt = hash_buf->salt;
+
+  luks_t *luks = (luks_t *) hash_buf->esalt;
+
+  if (input_len == 0) return (PARSER_HASH_LENGTH);
+
+  FILE *fp = fopen ((const char *) input_buf, "rb");
+
+  if (fp == NULL) return (PARSER_HASH_FILE);
+
+  struct luks_phdr hdr;
+
+  const size_t nread = hc_fread (&hdr, sizeof (hdr), 1, fp);
+
+  if (nread != 1)
+  {
+    fclose (fp);
+
+    return (PARSER_LUKS_FILE_SIZE);
+  }
+
+  // copy digest which we're not using ;)
+
+  u32 *mkDigest_ptr = (u32 *) hdr.mkDigest;
+
+  digest[0] = mkDigest_ptr[0];
+  digest[1] = mkDigest_ptr[1];
+  digest[2] = mkDigest_ptr[2];
+  digest[3] = mkDigest_ptr[3];
+  digest[4] = mkDigest_ptr[4];
+  digest[5] = 0;
+  digest[6] = 0;
+  digest[7] = 0;
+
+  // verify the content
+
+  char luks_magic[6] = LUKS_MAGIC;
+
+  if (memcmp (hdr.magic, luks_magic, LUKS_MAGIC_L) != 0)
+  {
+    fclose (fp);
+
+    return (PARSER_LUKS_MAGIC);
+  }
+
+  if (byte_swap_16 (hdr.version) != 1)
+  {
+    fclose (fp);
+
+    return (PARSER_LUKS_VERSION);
+  }
+
+  if (strcmp (hdr.cipherName, "aes") == 0)
+  {
+    luks->cipher_type = HC_LUKS_CIPHER_TYPE_AES;
+  }
+  else if (strcmp (hdr.cipherName, "serpent") == 0)
+  {
+    luks->cipher_type = HC_LUKS_CIPHER_TYPE_SERPENT;
+  }
+  else if (strcmp (hdr.cipherName, "twofish") == 0)
+  {
+    luks->cipher_type = HC_LUKS_CIPHER_TYPE_TWOFISH;
+  }
+  else
+  {
+    fclose (fp);
+
+    return (PARSER_LUKS_CIPHER_TYPE);
+  }
+
+  if (strcmp (hdr.cipherMode, "cbc-essiv:sha256") == 0)
+  {
+    luks->cipher_mode = HC_LUKS_CIPHER_MODE_CBC_ESSIV;
+  }
+  else if (strcmp (hdr.cipherMode, "cbc-plain") == 0)
+  {
+    luks->cipher_mode = HC_LUKS_CIPHER_MODE_CBC_PLAIN;
+  }
+  else if (strcmp (hdr.cipherMode, "cbc-plain64") == 0)
+  {
+    luks->cipher_mode = HC_LUKS_CIPHER_MODE_CBC_PLAIN;
+  }
+  else if (strcmp (hdr.cipherMode, "xts-plain") == 0)
+  {
+    luks->cipher_mode = HC_LUKS_CIPHER_MODE_XTS_PLAIN;
+  }
+  else if (strcmp (hdr.cipherMode, "xts-plain64") == 0)
+  {
+    luks->cipher_mode = HC_LUKS_CIPHER_MODE_XTS_PLAIN;
+  }
+  else
+  {
+    fclose (fp);
+
+    return (PARSER_LUKS_CIPHER_MODE);
+  }
+
+  if (strcmp (hdr.hashSpec, "sha1") == 0)
+  {
+    luks->hash_type = HC_LUKS_HASH_TYPE_SHA1;
+  }
+  else if (strcmp (hdr.hashSpec, "sha256") == 0)
+  {
+    luks->hash_type = HC_LUKS_HASH_TYPE_SHA256;
+  }
+  else if (strcmp (hdr.hashSpec, "sha512") == 0)
+  {
+    luks->hash_type = HC_LUKS_HASH_TYPE_SHA512;
+  }
+  else if (strcmp (hdr.hashSpec, "ripemd160") == 0)
+  {
+    luks->hash_type = HC_LUKS_HASH_TYPE_RIPEMD160;
+  }
+  else if (strcmp (hdr.hashSpec, "whirlpool") == 0)
+  {
+    luks->hash_type = HC_LUKS_HASH_TYPE_WHIRLPOOL;
+  }
+  else
+  {
+    fclose (fp);
+
+    return (PARSER_LUKS_HASH_TYPE);
+  }
+
+  const u32 keyBytes = byte_swap_32 (hdr.keyBytes);
+
+  if (keyBytes == 16)
+  {
+    luks->key_size = HC_LUKS_KEY_SIZE_128;
+  }
+  else if (keyBytes == 32)
+  {
+    luks->key_size = HC_LUKS_KEY_SIZE_256;
+  }
+  else if (keyBytes == 64)
+  {
+    luks->key_size = HC_LUKS_KEY_SIZE_512;
+  }
+  else
+  {
+    fclose (fp);
+
+    return (PARSER_LUKS_KEY_SIZE);
+  }
+
+  // find the correct kernel based on hash and cipher
+
+  // we need to do this kind of check, otherwise an eventual matching hash from the potfile overwrites the kern_type with an eventual invalid one
+
+  if (hashconfig->kern_type == (u32) -1)
+  {
+    if ((luks->hash_type == HC_LUKS_HASH_TYPE_SHA1) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
+    {
+      hashconfig->kern_type = KERN_TYPE_LUKS_SHA1_AES;
+    }
+    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_SHA1) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_SERPENT))
+    {
+      hashconfig->kern_type = KERN_TYPE_LUKS_SHA1_SERPENT;
+    }
+    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_SHA1) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_TWOFISH))
+    {
+      hashconfig->kern_type = KERN_TYPE_LUKS_SHA1_TWOFISH;
+    }
+    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_SHA256) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
+    {
+      hashconfig->kern_type = KERN_TYPE_LUKS_SHA256_AES;
+    }
+    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_SHA256) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_SERPENT))
+    {
+      hashconfig->kern_type = KERN_TYPE_LUKS_SHA256_SERPENT;
+    }
+    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_SHA256) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_TWOFISH))
+    {
+      hashconfig->kern_type = KERN_TYPE_LUKS_SHA256_TWOFISH;
+    }
+    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_SHA512) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
+    {
+      hashconfig->kern_type = KERN_TYPE_LUKS_SHA512_AES;
+    }
+    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_SHA512) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_SERPENT))
+    {
+      hashconfig->kern_type = KERN_TYPE_LUKS_SHA512_SERPENT;
+    }
+    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_SHA512) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_TWOFISH))
+    {
+      hashconfig->kern_type = KERN_TYPE_LUKS_SHA512_TWOFISH;
+    }
+    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_RIPEMD160) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
+    {
+      hashconfig->kern_type = KERN_TYPE_LUKS_RIPEMD160_AES;
+    }
+    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_RIPEMD160) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_SERPENT))
+    {
+      hashconfig->kern_type = KERN_TYPE_LUKS_RIPEMD160_SERPENT;
+    }
+    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_RIPEMD160) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_TWOFISH))
+    {
+      hashconfig->kern_type = KERN_TYPE_LUKS_RIPEMD160_TWOFISH;
+    }
+    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_WHIRLPOOL) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
+    {
+      hashconfig->kern_type = KERN_TYPE_LUKS_WHIRLPOOL_AES;
+    }
+    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_WHIRLPOOL) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_SERPENT))
+    {
+      hashconfig->kern_type = KERN_TYPE_LUKS_WHIRLPOOL_SERPENT;
+    }
+    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_WHIRLPOOL) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_TWOFISH))
+    {
+      hashconfig->kern_type = KERN_TYPE_LUKS_WHIRLPOOL_TWOFISH;
+    }
+    else
+    {
+      fclose (fp);
+
+      return (PARSER_LUKS_HASH_CIPHER);
+    }
+  }
+  else
+  {
+         if ((hashconfig->kern_type == KERN_TYPE_LUKS_SHA1_AES)          && (luks->hash_type == HC_LUKS_HASH_TYPE_SHA1) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
+    {
+      // OK
+    }
+    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_SHA1_SERPENT)      && (luks->hash_type == HC_LUKS_HASH_TYPE_SHA1) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_SERPENT))
+    {
+      // OK
+    }
+    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_SHA1_TWOFISH)      && (luks->hash_type == HC_LUKS_HASH_TYPE_SHA1) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_TWOFISH))
+    {
+      // OK
+    }
+    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_SHA256_AES)        && (luks->hash_type == HC_LUKS_HASH_TYPE_SHA256) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
+    {
+      // OK
+    }
+    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_SHA256_SERPENT)    && (luks->hash_type == HC_LUKS_HASH_TYPE_SHA256) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_SERPENT))
+    {
+      // OK
+    }
+    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_SHA256_TWOFISH)    && (luks->hash_type == HC_LUKS_HASH_TYPE_SHA256) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_TWOFISH))
+    {
+      // OK
+    }
+    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_SHA512_AES)        && (luks->hash_type == HC_LUKS_HASH_TYPE_SHA512) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
+    {
+      // OK
+    }
+    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_SHA512_SERPENT)    && (luks->hash_type == HC_LUKS_HASH_TYPE_SHA512) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_SERPENT))
+    {
+      // OK
+    }
+    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_SHA512_TWOFISH)    && (luks->hash_type == HC_LUKS_HASH_TYPE_SHA512) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_TWOFISH))
+    {
+      // OK
+    }
+    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_RIPEMD160_AES)     && (luks->hash_type == HC_LUKS_HASH_TYPE_RIPEMD160) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
+    {
+      // OK
+    }
+    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_RIPEMD160_SERPENT) && (luks->hash_type == HC_LUKS_HASH_TYPE_RIPEMD160) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_SERPENT))
+    {
+      // OK
+    }
+    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_RIPEMD160_TWOFISH) && (luks->hash_type == HC_LUKS_HASH_TYPE_RIPEMD160) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_TWOFISH))
+    {
+      // OK
+    }
+    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_WHIRLPOOL_AES)     && (luks->hash_type == HC_LUKS_HASH_TYPE_WHIRLPOOL) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
+    {
+      // OK
+    }
+    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_WHIRLPOOL_SERPENT) && (luks->hash_type == HC_LUKS_HASH_TYPE_WHIRLPOOL) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_SERPENT))
+    {
+      // OK
+    }
+    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_WHIRLPOOL_TWOFISH) && (luks->hash_type == HC_LUKS_HASH_TYPE_WHIRLPOOL) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_TWOFISH))
+    {
+      // OK
+    }
+    else
+    {
+      fclose (fp);
+
+      return (PARSER_LUKS_HASH_CIPHER);
+    }
+  }
+
+  // verify the selected keyslot informations
+
+  const u32 active  = byte_swap_32 (hdr.keyblock[keyslot_idx].active);
+  const u32 stripes = byte_swap_32 (hdr.keyblock[keyslot_idx].stripes);
+
+  if (active  != LUKS_KEY_ENABLED)
+  {
+    fclose (fp);
+
+    return (PARSER_LUKS_KEY_DISABLED);
+  }
+
+  if (stripes != LUKS_STRIPES)
+  {
+    fclose (fp);
+
+    return (PARSER_LUKS_KEY_STRIPES);
+  }
+
+  // configure the salt (not esalt)
+
+  u32 *passwordSalt_ptr = (u32 *) hdr.keyblock[keyslot_idx].passwordSalt;
+
+  salt->salt_buf[0] = passwordSalt_ptr[0];
+  salt->salt_buf[1] = passwordSalt_ptr[1];
+  salt->salt_buf[2] = passwordSalt_ptr[2];
+  salt->salt_buf[3] = passwordSalt_ptr[3];
+  salt->salt_buf[4] = passwordSalt_ptr[4];
+  salt->salt_buf[5] = passwordSalt_ptr[5];
+  salt->salt_buf[6] = passwordSalt_ptr[6];
+  salt->salt_buf[7] = passwordSalt_ptr[7];
+
+  salt->salt_len = LUKS_SALTSIZE;
+
+  const u32 passwordIterations = byte_swap_32 (hdr.keyblock[keyslot_idx].passwordIterations);
+
+  salt->salt_iter = passwordIterations - 1;
+
+  // Load AF data for this keyslot into esalt
+
+  const u32 keyMaterialOffset = byte_swap_32 (hdr.keyblock[keyslot_idx].keyMaterialOffset);
+
+  const int rc_seek1 = fseeko (fp, keyMaterialOffset * 512, SEEK_SET);
+
+  if (rc_seek1 == -1)
+  {
+    fclose (fp);
+
+    return (PARSER_LUKS_FILE_SIZE);
+  }
+
+  const size_t nread2 = hc_fread (luks->af_src_buf, keyBytes, stripes, fp);
+
+  if (nread2 != stripes)
+  {
+    fclose (fp);
+
+    return (PARSER_LUKS_FILE_SIZE);
+  }
+
+  // finally, copy some encrypted payload data for entropy check
+
+  const u32 payloadOffset = byte_swap_32 (hdr.payloadOffset);
+
+  const int rc_seek2 = fseeko (fp, payloadOffset * 512, SEEK_SET);
+
+  if (rc_seek2 == -1)
+  {
+    fclose (fp);
+
+    return (PARSER_LUKS_FILE_SIZE);
+  }
+
+  const size_t nread3 = hc_fread (luks->ct_buf, sizeof (u32), 128, fp);
+
+  if (nread3 != 128)
+  {
+    fclose (fp);
+
+    return (PARSER_LUKS_FILE_SIZE);
+  }
+
+  // that should be it, close the fp
+
+  fclose (fp);
+
+  return (PARSER_OK);
+}
+
+
+
 int bcrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
@@ -28860,6 +29246,17 @@ bool potfile_keep_all_hashes
 
 int build_plain_postprocess (const u32 *src_buf, MAYBE_UNUSED const size_t src_sz, const int src_len, u32 *dst_buf, MAYBE_UNUSED const size_t dst_sz)
 {
+  // truecrypt and veracrypt boot only:
+  // we do some kernel internal substituations, so we need to do that here as well, if it cracks
+
+  if (hashconfig->opts_type & OPTS_TYPE_KEYBOARD_MAPPING)
+  {
+    tc_t *tc = (tc_t *) hashes->esalts_buf;
+
+    return execute_keyboard_layout_mapping (plain_buf, plain_len, tc->keyboard_layout_mapping_buf, tc->keyboard_layout_mapping_cnt);
+  }
+
+
   // TOTP should be base32 encoded
   if (hashconfig->hash_mode == 18100)
   {
@@ -29369,78 +29766,11 @@ int module_hash_init_selftest (MAYBE_UNUSED const hashconfig_t *hashconfig, hash
   }
 }
 
-int module_hash_save_binary (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u32 digest_pos, const char **buf)
+int module_hash_binary_save (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u32 digest_pos, const char **buf)
 {
 
 
-void to_hccapx_t (hashcat_ctx_t *hashcat_ctx, hccapx_t *hccapx, const u32 salt_pos, const u32 digest_pos)
-{
-  const hashes_t *hashes = hashcat_ctx->hashes;
 
-  const salt_t *salts_buf   = hashes->salts_buf;
-  const void   *esalts_buf  = hashes->esalts_buf;
-
-  memset (hccapx, 0, sizeof (hccapx_t));
-
-  hccapx->signature = HCCAPX_SIGNATURE;
-  hccapx->version   = HCCAPX_VERSION;
-
-  const salt_t *salt = &salts_buf[salt_pos];
-
-  const u32 digest_cur = salt->digests_offset + digest_pos;
-
-  hccapx->essid_len = salt->salt_len;
-
-  memcpy (hccapx->essid, salt->salt_buf, hccapx->essid_len);
-
-  wpa_eapol_t *wpa_eapols = (wpa_eapol_t *) esalts_buf;
-  wpa_eapol_t *wpa_eapol  = &wpa_eapols[digest_cur];
-
-  hccapx->message_pair = wpa_eapol->message_pair;
-  hccapx->keyver = wpa_eapol->keyver;
-
-  hccapx->eapol_len = wpa_eapol->eapol_len;
-
-  if (wpa_eapol->keyver != 1)
-  {
-    u32 eapol_tmp[64] = { 0 };
-
-    for (u32 i = 0; i < 64; i++)
-    {
-      eapol_tmp[i] = byte_swap_32 (wpa_eapol->eapol[i]);
-    }
-
-    memcpy (hccapx->eapol, eapol_tmp, wpa_eapol->eapol_len);
-  }
-  else
-  {
-    memcpy (hccapx->eapol, wpa_eapol->eapol, wpa_eapol->eapol_len);
-  }
-
-  memcpy (hccapx->mac_ap,    wpa_eapol->orig_mac_ap,    6);
-  memcpy (hccapx->mac_sta,   wpa_eapol->orig_mac_sta,   6);
-  memcpy (hccapx->nonce_ap,  wpa_eapol->orig_nonce_ap,  32);
-  memcpy (hccapx->nonce_sta, wpa_eapol->orig_nonce_sta, 32);
-
-  if (wpa_eapol->keyver != 1)
-  {
-    u32 digest_tmp[4];
-
-    digest_tmp[0] = byte_swap_32 (wpa_eapol->keymic[0]);
-    digest_tmp[1] = byte_swap_32 (wpa_eapol->keymic[1]);
-    digest_tmp[2] = byte_swap_32 (wpa_eapol->keymic[2]);
-    digest_tmp[3] = byte_swap_32 (wpa_eapol->keymic[3]);
-
-    memcpy (hccapx->keymic, digest_tmp, 16);
-  }
-  else
-  {
-    memcpy (hccapx->keymic, wpa_eapol->keymic, 16);
-  }
-}
-
-
-void to_hccapx_t (hashcat_ctx_t *hashcat_ctx, hccapx_t *hccapx, const u32 salt_pos, const u32 digest_pos);
 
         if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
         {
@@ -29450,5 +29780,403 @@ void to_hccapx_t (hashcat_ctx_t *hashcat_ctx, hccapx_t *hccapx, const u32 salt_p
 
           hc_fwrite (&hccapx, sizeof (hccapx_t), 1, fp);
         }
+
+}
+
+int module_hash_binary_count (MAYBE_UNUSED const hashes_t *hashes)
+{
+      if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
+      {
+        struct stat st;
+
+        if (stat (hashes->hashfile, &st) == -1) return -1;
+
+        return st.st_size / sizeof (hccapx_t);
       }
+      else if (hashconfig->hash_mode == 14600)
+      {
+        return LUKS_NUMKEYS;
+      }
+
+
+}
+  void to_hccapx_t (hashcat_ctx_t *hashcat_ctx, hccapx_t *hccapx, const u32 salt_pos, const u32 digest_pos)
+  {
+    const hashes_t *hashes = hashcat_ctx->hashes;
+
+    const salt_t *salts_buf   = hashes->salts_buf;
+    const void   *esalts_buf  = hashes->esalts_buf;
+
+    memset (hccapx, 0, sizeof (hccapx_t));
+
+    hccapx->signature = HCCAPX_SIGNATURE;
+    hccapx->version   = HCCAPX_VERSION;
+
+    const salt_t *salt = &salts_buf[salt_pos];
+
+    const u32 digest_cur = salt->digests_offset + digest_pos;
+
+    hccapx->essid_len = salt->salt_len;
+
+    memcpy (hccapx->essid, salt->salt_buf, hccapx->essid_len);
+
+    wpa_eapol_t *wpa_eapols = (wpa_eapol_t *) esalts_buf;
+    wpa_eapol_t *wpa_eapol  = &wpa_eapols[digest_cur];
+
+    hccapx->message_pair = wpa_eapol->message_pair;
+    hccapx->keyver = wpa_eapol->keyver;
+
+    hccapx->eapol_len = wpa_eapol->eapol_len;
+
+    if (wpa_eapol->keyver != 1)
+    {
+      u32 eapol_tmp[64] = { 0 };
+
+      for (u32 i = 0; i < 64; i++)
+      {
+        eapol_tmp[i] = byte_swap_32 (wpa_eapol->eapol[i]);
+      }
+
+      memcpy (hccapx->eapol, eapol_tmp, wpa_eapol->eapol_len);
+    }
+    else
+    {
+      memcpy (hccapx->eapol, wpa_eapol->eapol, wpa_eapol->eapol_len);
+    }
+
+    memcpy (hccapx->mac_ap,    wpa_eapol->orig_mac_ap,    6);
+    memcpy (hccapx->mac_sta,   wpa_eapol->orig_mac_sta,   6);
+    memcpy (hccapx->nonce_ap,  wpa_eapol->orig_nonce_ap,  32);
+    memcpy (hccapx->nonce_sta, wpa_eapol->orig_nonce_sta, 32);
+
+    if (wpa_eapol->keyver != 1)
+    {
+      u32 digest_tmp[4];
+
+      digest_tmp[0] = byte_swap_32 (wpa_eapol->keymic[0]);
+      digest_tmp[1] = byte_swap_32 (wpa_eapol->keymic[1]);
+      digest_tmp[2] = byte_swap_32 (wpa_eapol->keymic[2]);
+      digest_tmp[3] = byte_swap_32 (wpa_eapol->keymic[3]);
+
+      memcpy (hccapx->keymic, digest_tmp, 16);
+    }
+    else
+    {
+      memcpy (hccapx->keymic, wpa_eapol->keymic, 16);
+    }
+  }
+
+
+int check_old_hccap (const char *hashfile)
+{
+  FILE *fp = fopen (hashfile, "rb");
+
+  if (fp == NULL) return -1;
+
+  u32 signature;
+
+  const size_t nread = hc_fread (&signature, sizeof (u32), 1, fp);
+
+  fclose (fp);
+
+  if (nread != 1) return -1;
+
+  if (signature == HCCAPX_SIGNATURE) return 0;
+
+  return 1;
+}
+
+
+int module_hash_binary_parse ()
+{
+          if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
+          {
+            hashes->hashlist_mode = HL_MODE_FILE;
+
+            FILE *fp = fopen (hash_buf, "rb");
+
+            if (fp == NULL)
+            {
+              event_log_error (hashcat_ctx, "%s: %s", hash_buf, strerror (errno));
+
+              return -1;
+            }
+
+            char *in = (char *) hcmalloc (sizeof (hccapx_t));
+
+            while (!feof (fp))
+            {
+              const size_t nread = hc_fread (in, sizeof (hccapx_t), 1, fp);
+
+              if (nread == 0) break;
+
+              if (hashconfig->is_salted == true)
+              {
+                memset (hashes_buf[hashes_cnt].salt, 0, sizeof (salt_t));
+              }
+
+              if (hashconfig->esalt_size > 0)
+              {
+                memset (hashes_buf[hashes_cnt].esalt, 0, hashconfig->esalt_size);
+
+                if ((user_options->hash_mode == 2500) || (user_options->hash_mode == 2501))
+                {
+                  wpa_eapol_t *wpa_eapol = (wpa_eapol_t *) hashes_buf[hashes_cnt].esalt;
+
+                  if (user_options->hccapx_message_pair_chgd == true)
+                  {
+                    wpa_eapol->message_pair_chgd = (int) user_options->hccapx_message_pair_chgd;
+                    wpa_eapol->message_pair      = (u8)  user_options->hccapx_message_pair;
+                  }
+
+                  if (wpa_eapol->message_pair & (1 << 4))
+                  {
+                    // ap-less attack detected, nc not needed
+
+                    wpa_eapol->nonce_error_corrections = 0;
+                  }
+                  else
+                  {
+                    if (wpa_eapol->message_pair & (1 << 7))
+                    {
+                      // replaycount not checked, nc needed
+
+                      wpa_eapol->nonce_error_corrections = user_options->nonce_error_corrections;
+                    }
+                    else
+                    {
+                      // replaycount checked, nc not needed, but we allow user overwrites
+
+                      if (user_options->nonce_error_corrections_chgd == true)
+                      {
+                        wpa_eapol->nonce_error_corrections = user_options->nonce_error_corrections;
+                      }
+                      else
+                      {
+                        wpa_eapol->nonce_error_corrections = 0;
+                      }
+                    }
+                  }
+
+                  // now some optimization related to replay counter endianess
+                  // hcxtools has techniques to detect them
+                  // since we can not guarantee to get our handshakes from hcxtools we enable both by default
+                  // this means that we check both even if both are not set!
+                  // however if one of them is set, we can assume that the endianess has been checked and the other one is not needed
+
+                  wpa_eapol->detected_le = 1;
+                  wpa_eapol->detected_be = 1;
+
+                  if (wpa_eapol->message_pair & (1 << 5))
+                  {
+                    wpa_eapol->detected_le = 1;
+                    wpa_eapol->detected_be = 0;
+                  }
+                  else if (wpa_eapol->message_pair & (1 << 6))
+                  {
+                    wpa_eapol->detected_le = 0;
+                    wpa_eapol->detected_be = 1;
+                  }
+                }
+              }
+
+              if (hashconfig->hook_salt_size > 0)
+              {
+                memset (hashes_buf[hashes_cnt].hook_salt, 0, hashconfig->hook_salt_size);
+              }
+
+              hash_t *hash = &hashes_buf[hashes_cnt];
+
+              parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, in, sizeof (hccapx_t));
+
+              if (parser_status != PARSER_OK) continue;
+
+              hashes_cnt++;
+            }
+
+            hcfree (in);
+
+            fclose (fp);
+          }
+          else if (hashconfig->hash_mode == 14600)
+          {
+            hashes->hashlist_mode = HL_MODE_FILE;
+
+            for (int keyslot_idx = 0; keyslot_idx < LUKS_NUMKEYS; keyslot_idx++)
+            {
+              parser_status = luks_parse_hash ((u8 *) hash_buf, (const int) hash_len, &hashes_buf[hashes_cnt], hashconfig, keyslot_idx);
+
+              if (parser_status != PARSER_OK)
+              {
+                if (parser_status != PARSER_LUKS_KEY_DISABLED) continue;
+              }
+
+              hashes_cnt++;
+            }
+          }
+
+  return hashes_cnt;
+}
+
+bool module_hash_binary_verify (MAYBE_UNUSED const hashes_t *hashes)
+{
+      if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
+      {
+        struct stat st;
+
+        if (stat (hashes->hashfile, &st) == -1) return false;
+
+        // 392 = old hccap_t size
+
+        if ((st.st_size % 392) == 0)
+        {
+          const int rc = check_old_hccap (hashes->hashfile);
+
+          if (rc == 1) return false;
+
+          //{
+          //  event_log_error (hashcat_ctx, "%s: Old hccap format detected! You need to update: https://hashcat.net/q/hccapx", hashes->hashfile);
+          //
+          //  return -1;
+          //}
+        }
+        else if (hashconfig->hash_mode == 14600)
+        {
+
+        }
+
+  return true;
+}
+
+
+
+static int hashconfig_general_defaults (hashcat_ctx_t *hashcat_ctx)
+{
+  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  user_options_t *user_options = hashcat_ctx->user_options;
+
+  // truecrypt and veracrypt only
+  if (((hashconfig->hash_mode >=  6200) && (hashconfig->hash_mode <=  6299))
+   || ((hashconfig->hash_mode >= 13700) && (hashconfig->hash_mode == 13799)))
+  {
+    hashes_t *hashes = hashcat_ctx->hashes;
+
+    tc_t *tc = (tc_t *) hashes->esalts_buf;
+
+    char *optional_param1 = NULL;
+
+    if (user_options->truecrypt_keyfiles) optional_param1 = user_options->truecrypt_keyfiles;
+    if (user_options->veracrypt_keyfiles) optional_param1 = user_options->veracrypt_keyfiles;
+
+    if (optional_param1)
+    {
+      char *tcvc_keyfiles = optional_param1;
+
+      char *keyfiles = hcstrdup (tcvc_keyfiles);
+
+      if (keyfiles == NULL) return -1;
+
+      char *saveptr = NULL;
+
+      char *keyfile = strtok_r (keyfiles, ",", &saveptr);
+
+      if (keyfile == NULL)
+      {
+        free (keyfiles);
+
+        return -1;
+      }
+
+      do
+      {
+        const int rc_crc32 = cpu_crc32 (hashcat_ctx, keyfile, (u8 *) tc->keyfile_buf);
+
+        if (rc_crc32 == -1)
+        {
+          free (keyfiles);
+
+          return -1;
+        }
+
+      } while ((keyfile = strtok_r ((char *) NULL, ",", &saveptr)) != NULL);
+
+      free (keyfiles);
+    }
+
+    // truecrypt and veracrypt boot only
+    if (hashconfig->opts_type & OPTS_TYPE_KEYBOARD_MAPPING)
+    {
+      if (user_options->keyboard_layout_mapping)
+      {
+        const bool rc = initialize_keyboard_layout_mapping (hashcat_ctx, user_options->keyboard_layout_mapping, tc->keyboard_layout_mapping_buf, &tc->keyboard_layout_mapping_cnt);
+
+        if (rc == false) return -1;
+      }
+    }
+  }
+
+  // veracrypt only
+  if ((hashconfig->hash_mode >= 13700) && (hashconfig->hash_mode == 13799))
+  {
+    if (user_options->veracrypt_pim)
+    {
+      // we can access salt directly here because in VC it's always just one salt not many
+
+      hashes_t *hashes = hashcat_ctx->hashes;
+
+      salt_t *salts_buf = hashes->salts_buf;
+
+      salt_t *salt = &salts_buf[0];
+
+      switch (hashconfig->hash_mode)
+      {
+        case 13711:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13712:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13713:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13721:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13722:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13723:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13731:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13732:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13733:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13741:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
+                     break;
+        case 13742:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
+                     break;
+        case 13743:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
+                     break;
+        case 13751:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13752:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13753:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13761:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
+                     break;
+        case 13762:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
+                     break;
+        case 13763:  salt->salt_iter  = user_options->veracrypt_pim * 2048;
+                     break;
+        case 13771:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13772:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+        case 13773:  salt->salt_iter  = 15000 + (user_options->veracrypt_pim * 1000);
+                     break;
+      }
+
+      salt->salt_iter -= 1;
+    }
+  }
+
+  return 0;
 }

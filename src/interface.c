@@ -159,6 +159,193 @@ bool initialize_keyboard_layout_mapping (hashcat_ctx_t *hashcat_ctx, const char 
   return true;
 }
 
+int find_keyboard_layout_map (const u32 search, const int search_len, keyboard_layout_mapping_t *s_keyboard_layout_mapping, const int keyboard_layout_mapping_cnt)
+{
+  for (int idx = 0; idx < keyboard_layout_mapping_cnt; idx++)
+  {
+    const u32 src_char = s_keyboard_layout_mapping[idx].src_char;
+    const int src_len  = s_keyboard_layout_mapping[idx].src_len;
+
+    if (src_len == search_len)
+    {
+      const u32 mask = 0xffffffff >> ((4 - search_len) * 8);
+
+      if ((src_char & mask) == (search & mask)) return idx;
+    }
+  }
+
+  return -1;
+}
+
+int execute_keyboard_layout_mapping (u32 plain_buf[64], const int plain_len, keyboard_layout_mapping_t *s_keyboard_layout_mapping, const int keyboard_layout_mapping_cnt)
+{
+  u32 out_buf[16] = { 0 };
+
+  u8 *out_ptr = (u8 *) out_buf;
+
+  int out_len = 0;
+
+  u8 *plain_ptr = (u8 *) plain_buf;
+
+  int plain_pos = 0;
+
+  while (plain_pos < plain_len)
+  {
+    u32 src0 = 0;
+    u32 src1 = 0;
+    u32 src2 = 0;
+    u32 src3 = 0;
+
+    const int rem = MIN (plain_len - plain_pos, 4);
+
+    if (rem > 0) src0 = plain_ptr[plain_pos + 0];
+    if (rem > 1) src1 = plain_ptr[plain_pos + 1];
+    if (rem > 2) src2 = plain_ptr[plain_pos + 2];
+    if (rem > 3) src3 = plain_ptr[plain_pos + 3];
+
+    const u32 src = (src0 <<  0)
+                  | (src1 <<  8)
+                  | (src2 << 16)
+                  | (src3 << 24);
+
+    int src_len;
+
+    for (src_len = rem; src_len > 0; src_len--)
+    {
+      const int idx = find_keyboard_layout_map (src, src_len, s_keyboard_layout_mapping, keyboard_layout_mapping_cnt);
+
+      if (idx == -1) continue;
+
+      u32 dst_char = s_keyboard_layout_mapping[idx].dst_char;
+      int dst_len  = s_keyboard_layout_mapping[idx].dst_len;
+
+      switch (dst_len)
+      {
+        case 1:
+          out_ptr[out_len++] = (dst_char >>  0) & 0xff;
+          break;
+        case 2:
+          out_ptr[out_len++] = (dst_char >>  0) & 0xff;
+          out_ptr[out_len++] = (dst_char >>  8) & 0xff;
+          break;
+        case 3:
+          out_ptr[out_len++] = (dst_char >>  0) & 0xff;
+          out_ptr[out_len++] = (dst_char >>  8) & 0xff;
+          out_ptr[out_len++] = (dst_char >> 16) & 0xff;
+          break;
+        case 4:
+          out_ptr[out_len++] = (dst_char >>  0) & 0xff;
+          out_ptr[out_len++] = (dst_char >>  8) & 0xff;
+          out_ptr[out_len++] = (dst_char >> 16) & 0xff;
+          out_ptr[out_len++] = (dst_char >> 24) & 0xff;
+          break;
+      }
+
+      plain_pos += src_len;
+
+      break;
+    }
+
+    // not matched, keep original
+
+    if (src_len == 0)
+    {
+      out_ptr[out_len] = plain_ptr[plain_pos];
+
+      out_len++;
+
+      plain_pos++;
+    }
+  }
+
+  plain_buf[ 0] = out_buf[ 0];
+  plain_buf[ 1] = out_buf[ 1];
+  plain_buf[ 2] = out_buf[ 2];
+  plain_buf[ 3] = out_buf[ 3];
+  plain_buf[ 4] = out_buf[ 4];
+  plain_buf[ 5] = out_buf[ 5];
+  plain_buf[ 6] = out_buf[ 6];
+  plain_buf[ 7] = out_buf[ 7];
+  plain_buf[ 8] = out_buf[ 8];
+  plain_buf[ 9] = out_buf[ 9];
+  plain_buf[10] = out_buf[10];
+  plain_buf[11] = out_buf[11];
+  plain_buf[12] = out_buf[12];
+  plain_buf[13] = out_buf[13];
+  plain_buf[14] = out_buf[14];
+  plain_buf[15] = out_buf[15];
+
+  return out_len;
+}
+
+/**
+ * output
+ */
+
+const char *strhashcategory (const u32 hash_category)
+{
+  switch (hash_category)
+  {
+    case HASH_CATEGORY_UNDEFINED:               return HASH_CATEGORY_UNDEFINED_STR;
+    case HASH_CATEGORY_RAW_HASH:                return HASH_CATEGORY_RAW_HASH_STR;
+    case HASH_CATEGORY_RAW_HASH_SALTED:         return HASH_CATEGORY_RAW_HASH_SALTED_STR;
+    case HASH_CATEGORY_RAW_HASH_AUTHENTICATED:  return HASH_CATEGORY_RAW_HASH_AUTHENTICATED_STR;
+    case HASH_CATEGORY_RAW_CIPHER_KPA:          return HASH_CATEGORY_RAW_CIPHER_KPA_STR;
+    case HASH_CATEGORY_GENERIC_KDF:             return HASH_CATEGORY_GENERIC_KDF_STR;
+    case HASH_CATEGORY_NETWORK_PROTOCOL:        return HASH_CATEGORY_NETWORK_PROTOCOL_STR;
+    case HASH_CATEGORY_FORUM_SOFTWARE:          return HASH_CATEGORY_FORUM_SOFTWARE_STR;
+    case HASH_CATEGORY_DATABASE_SERVER:         return HASH_CATEGORY_DATABASE_SERVER_STR;
+    case HASH_CATEGORY_NETWORK_SERVER:          return HASH_CATEGORY_NETWORK_SERVER_STR;
+    case HASH_CATEGORY_RAW_CHECKSUM:            return HASH_CATEGORY_RAW_CHECKSUM_STR;
+    case HASH_CATEGORY_OS:                      return HASH_CATEGORY_OS_STR;
+    case HASH_CATEGORY_EAS:                     return HASH_CATEGORY_EAS_STR;
+    case HASH_CATEGORY_ARCHIVE:                 return HASH_CATEGORY_ARCHIVE_STR;
+    case HASH_CATEGORY_BACKUP:                  return HASH_CATEGORY_BACKUP_STR;
+    case HASH_CATEGORY_FDE:                     return HASH_CATEGORY_FDE_STR;
+    case HASH_CATEGORY_DOCUMENTS:               return HASH_CATEGORY_DOCUMENTS_STR;
+    case HASH_CATEGORY_PASSWORD_MANAGER:        return HASH_CATEGORY_PASSWORD_MANAGER_STR;
+    case HASH_CATEGORY_OTP:                     return HASH_CATEGORY_OTP_STR;
+    case HASH_CATEGORY_PLAIN:                   return HASH_CATEGORY_PLAIN_STR;
+  }
+
+  return NULL;
+}
+
+const char *stroptitype (const u32 opti_type)
+{
+  switch (opti_type)
+  {
+    case OPTI_TYPE_OPTIMIZED_KERNEL:    return OPTI_STR_OPTIMIZED_KERNEL;
+    case OPTI_TYPE_ZERO_BYTE:           return OPTI_STR_ZERO_BYTE;
+    case OPTI_TYPE_PRECOMPUTE_INIT:     return OPTI_STR_PRECOMPUTE_INIT;
+    case OPTI_TYPE_PRECOMPUTE_MERKLE:   return OPTI_STR_PRECOMPUTE_MERKLE;
+    case OPTI_TYPE_PRECOMPUTE_PERMUT:   return OPTI_STR_PRECOMPUTE_PERMUT;
+    case OPTI_TYPE_MEET_IN_MIDDLE:      return OPTI_STR_MEET_IN_MIDDLE;
+    case OPTI_TYPE_EARLY_SKIP:          return OPTI_STR_EARLY_SKIP;
+    case OPTI_TYPE_NOT_SALTED:          return OPTI_STR_NOT_SALTED;
+    case OPTI_TYPE_NOT_ITERATED:        return OPTI_STR_NOT_ITERATED;
+    case OPTI_TYPE_PREPENDED_SALT:      return OPTI_STR_PREPENDED_SALT;
+    case OPTI_TYPE_APPENDED_SALT:       return OPTI_STR_APPENDED_SALT;
+    case OPTI_TYPE_SINGLE_HASH:         return OPTI_STR_SINGLE_HASH;
+    case OPTI_TYPE_SINGLE_SALT:         return OPTI_STR_SINGLE_SALT;
+    case OPTI_TYPE_BRUTE_FORCE:         return OPTI_STR_BRUTE_FORCE;
+    case OPTI_TYPE_RAW_HASH:            return OPTI_STR_RAW_HASH;
+    case OPTI_TYPE_SLOW_HASH_SIMD_INIT: return OPTI_STR_SLOW_HASH_SIMD_INIT;
+    case OPTI_TYPE_SLOW_HASH_SIMD_LOOP: return OPTI_STR_SLOW_HASH_SIMD_LOOP;
+    case OPTI_TYPE_SLOW_HASH_SIMD_COMP: return OPTI_STR_SLOW_HASH_SIMD_COMP;
+    case OPTI_TYPE_USES_BITS_8:         return OPTI_STR_USES_BITS_8;
+    case OPTI_TYPE_USES_BITS_16:        return OPTI_STR_USES_BITS_16;
+    case OPTI_TYPE_USES_BITS_32:        return OPTI_STR_USES_BITS_32;
+    case OPTI_TYPE_USES_BITS_64:        return OPTI_STR_USES_BITS_64;
+  }
+
+  return NULL;
+}
+
+/**
+ * parsing
+ */
+
 static bool parse_and_store_generic_salt (u8 *out_buf, int *out_len, const u8 *in_buf, const int in_len, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 tmp_u32[(64 * 2) + 1] = { 0 };
@@ -273,70 +460,6 @@ static bool parse_and_store_generic_salt (u8 *out_buf, int *out_len, const u8 *i
   *out_len = tmp_len;
 
   return true;
-}
-
-/**
- * output
- */
-
-const char *strhashcategory (const u32 hash_category)
-{
-  switch (hash_category)
-  {
-    case HASH_CATEGORY_UNDEFINED:               return HASH_CATEGORY_UNDEFINED_STR;
-    case HASH_CATEGORY_RAW_HASH:                return HASH_CATEGORY_RAW_HASH_STR;
-    case HASH_CATEGORY_RAW_HASH_SALTED:         return HASH_CATEGORY_RAW_HASH_SALTED_STR;
-    case HASH_CATEGORY_RAW_HASH_AUTHENTICATED:  return HASH_CATEGORY_RAW_HASH_AUTHENTICATED_STR;
-    case HASH_CATEGORY_RAW_CIPHER_KPA:          return HASH_CATEGORY_RAW_CIPHER_KPA_STR;
-    case HASH_CATEGORY_GENERIC_KDF:             return HASH_CATEGORY_GENERIC_KDF_STR;
-    case HASH_CATEGORY_NETWORK_PROTOCOL:        return HASH_CATEGORY_NETWORK_PROTOCOL_STR;
-    case HASH_CATEGORY_FORUM_SOFTWARE:          return HASH_CATEGORY_FORUM_SOFTWARE_STR;
-    case HASH_CATEGORY_DATABASE_SERVER:         return HASH_CATEGORY_DATABASE_SERVER_STR;
-    case HASH_CATEGORY_NETWORK_SERVER:          return HASH_CATEGORY_NETWORK_SERVER_STR;
-    case HASH_CATEGORY_RAW_CHECKSUM:            return HASH_CATEGORY_RAW_CHECKSUM_STR;
-    case HASH_CATEGORY_OS:                      return HASH_CATEGORY_OS_STR;
-    case HASH_CATEGORY_EAS:                     return HASH_CATEGORY_EAS_STR;
-    case HASH_CATEGORY_ARCHIVE:                 return HASH_CATEGORY_ARCHIVE_STR;
-    case HASH_CATEGORY_BACKUP:                  return HASH_CATEGORY_BACKUP_STR;
-    case HASH_CATEGORY_FDE:                     return HASH_CATEGORY_FDE_STR;
-    case HASH_CATEGORY_DOCUMENTS:               return HASH_CATEGORY_DOCUMENTS_STR;
-    case HASH_CATEGORY_PASSWORD_MANAGER:        return HASH_CATEGORY_PASSWORD_MANAGER_STR;
-    case HASH_CATEGORY_OTP:                     return HASH_CATEGORY_OTP_STR;
-    case HASH_CATEGORY_PLAIN:                   return HASH_CATEGORY_PLAIN_STR;
-  }
-
-  return NULL;
-}
-
-const char *stroptitype (const u32 opti_type)
-{
-  switch (opti_type)
-  {
-    case OPTI_TYPE_OPTIMIZED_KERNEL:    return OPTI_STR_OPTIMIZED_KERNEL;
-    case OPTI_TYPE_ZERO_BYTE:           return OPTI_STR_ZERO_BYTE;
-    case OPTI_TYPE_PRECOMPUTE_INIT:     return OPTI_STR_PRECOMPUTE_INIT;
-    case OPTI_TYPE_PRECOMPUTE_MERKLE:   return OPTI_STR_PRECOMPUTE_MERKLE;
-    case OPTI_TYPE_PRECOMPUTE_PERMUT:   return OPTI_STR_PRECOMPUTE_PERMUT;
-    case OPTI_TYPE_MEET_IN_MIDDLE:      return OPTI_STR_MEET_IN_MIDDLE;
-    case OPTI_TYPE_EARLY_SKIP:          return OPTI_STR_EARLY_SKIP;
-    case OPTI_TYPE_NOT_SALTED:          return OPTI_STR_NOT_SALTED;
-    case OPTI_TYPE_NOT_ITERATED:        return OPTI_STR_NOT_ITERATED;
-    case OPTI_TYPE_PREPENDED_SALT:      return OPTI_STR_PREPENDED_SALT;
-    case OPTI_TYPE_APPENDED_SALT:       return OPTI_STR_APPENDED_SALT;
-    case OPTI_TYPE_SINGLE_HASH:         return OPTI_STR_SINGLE_HASH;
-    case OPTI_TYPE_SINGLE_SALT:         return OPTI_STR_SINGLE_SALT;
-    case OPTI_TYPE_BRUTE_FORCE:         return OPTI_STR_BRUTE_FORCE;
-    case OPTI_TYPE_RAW_HASH:            return OPTI_STR_RAW_HASH;
-    case OPTI_TYPE_SLOW_HASH_SIMD_INIT: return OPTI_STR_SLOW_HASH_SIMD_INIT;
-    case OPTI_TYPE_SLOW_HASH_SIMD_LOOP: return OPTI_STR_SLOW_HASH_SIMD_LOOP;
-    case OPTI_TYPE_SLOW_HASH_SIMD_COMP: return OPTI_STR_SLOW_HASH_SIMD_COMP;
-    case OPTI_TYPE_USES_BITS_8:         return OPTI_STR_USES_BITS_8;
-    case OPTI_TYPE_USES_BITS_16:        return OPTI_STR_USES_BITS_16;
-    case OPTI_TYPE_USES_BITS_32:        return OPTI_STR_USES_BITS_32;
-    case OPTI_TYPE_USES_BITS_64:        return OPTI_STR_USES_BITS_64;
-  }
-
-  return NULL;
 }
 
 int ascii_digest (const hashconfig_t *hashconfig, const hashes_t *hashes, const module_ctx_t *module_ctx, char *out_buf, const int out_size, const u32 salt_pos, const u32 digest_pos)
@@ -1375,417 +1498,9 @@ bool default_potfile_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   return potfile_disable;
 }
 
-
 bool default_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   const bool unstable_warning = false;
 
   return unstable_warning;
 }
-
-
-
-// migrate
-
-int check_old_hccap (const char *hashfile)
-{
-  FILE *fp = fopen (hashfile, "rb");
-
-  if (fp == NULL) return -1;
-
-  u32 signature;
-
-  const size_t nread = hc_fread (&signature, sizeof (u32), 1, fp);
-
-  fclose (fp);
-
-  if (nread != 1) return -1;
-
-  if (signature == HCCAPX_SIGNATURE) return 0;
-
-  return 1;
-}
-
-
-int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig, const int keyslot_idx)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  luks_t *luks = (luks_t *) hash_buf->esalt;
-
-  if (input_len == 0) return (PARSER_HASH_LENGTH);
-
-  FILE *fp = fopen ((const char *) input_buf, "rb");
-
-  if (fp == NULL) return (PARSER_HASH_FILE);
-
-  struct luks_phdr hdr;
-
-  const size_t nread = hc_fread (&hdr, sizeof (hdr), 1, fp);
-
-  if (nread != 1)
-  {
-    fclose (fp);
-
-    return (PARSER_LUKS_FILE_SIZE);
-  }
-
-  // copy digest which we're not using ;)
-
-  u32 *mkDigest_ptr = (u32 *) hdr.mkDigest;
-
-  digest[0] = mkDigest_ptr[0];
-  digest[1] = mkDigest_ptr[1];
-  digest[2] = mkDigest_ptr[2];
-  digest[3] = mkDigest_ptr[3];
-  digest[4] = mkDigest_ptr[4];
-  digest[5] = 0;
-  digest[6] = 0;
-  digest[7] = 0;
-
-  // verify the content
-
-  char luks_magic[6] = LUKS_MAGIC;
-
-  if (memcmp (hdr.magic, luks_magic, LUKS_MAGIC_L) != 0)
-  {
-    fclose (fp);
-
-    return (PARSER_LUKS_MAGIC);
-  }
-
-  if (byte_swap_16 (hdr.version) != 1)
-  {
-    fclose (fp);
-
-    return (PARSER_LUKS_VERSION);
-  }
-
-  if (strcmp (hdr.cipherName, "aes") == 0)
-  {
-    luks->cipher_type = HC_LUKS_CIPHER_TYPE_AES;
-  }
-  else if (strcmp (hdr.cipherName, "serpent") == 0)
-  {
-    luks->cipher_type = HC_LUKS_CIPHER_TYPE_SERPENT;
-  }
-  else if (strcmp (hdr.cipherName, "twofish") == 0)
-  {
-    luks->cipher_type = HC_LUKS_CIPHER_TYPE_TWOFISH;
-  }
-  else
-  {
-    fclose (fp);
-
-    return (PARSER_LUKS_CIPHER_TYPE);
-  }
-
-  if (strcmp (hdr.cipherMode, "cbc-essiv:sha256") == 0)
-  {
-    luks->cipher_mode = HC_LUKS_CIPHER_MODE_CBC_ESSIV;
-  }
-  else if (strcmp (hdr.cipherMode, "cbc-plain") == 0)
-  {
-    luks->cipher_mode = HC_LUKS_CIPHER_MODE_CBC_PLAIN;
-  }
-  else if (strcmp (hdr.cipherMode, "cbc-plain64") == 0)
-  {
-    luks->cipher_mode = HC_LUKS_CIPHER_MODE_CBC_PLAIN;
-  }
-  else if (strcmp (hdr.cipherMode, "xts-plain") == 0)
-  {
-    luks->cipher_mode = HC_LUKS_CIPHER_MODE_XTS_PLAIN;
-  }
-  else if (strcmp (hdr.cipherMode, "xts-plain64") == 0)
-  {
-    luks->cipher_mode = HC_LUKS_CIPHER_MODE_XTS_PLAIN;
-  }
-  else
-  {
-    fclose (fp);
-
-    return (PARSER_LUKS_CIPHER_MODE);
-  }
-
-  if (strcmp (hdr.hashSpec, "sha1") == 0)
-  {
-    luks->hash_type = HC_LUKS_HASH_TYPE_SHA1;
-  }
-  else if (strcmp (hdr.hashSpec, "sha256") == 0)
-  {
-    luks->hash_type = HC_LUKS_HASH_TYPE_SHA256;
-  }
-  else if (strcmp (hdr.hashSpec, "sha512") == 0)
-  {
-    luks->hash_type = HC_LUKS_HASH_TYPE_SHA512;
-  }
-  else if (strcmp (hdr.hashSpec, "ripemd160") == 0)
-  {
-    luks->hash_type = HC_LUKS_HASH_TYPE_RIPEMD160;
-  }
-  else if (strcmp (hdr.hashSpec, "whirlpool") == 0)
-  {
-    luks->hash_type = HC_LUKS_HASH_TYPE_WHIRLPOOL;
-  }
-  else
-  {
-    fclose (fp);
-
-    return (PARSER_LUKS_HASH_TYPE);
-  }
-
-  const u32 keyBytes = byte_swap_32 (hdr.keyBytes);
-
-  if (keyBytes == 16)
-  {
-    luks->key_size = HC_LUKS_KEY_SIZE_128;
-  }
-  else if (keyBytes == 32)
-  {
-    luks->key_size = HC_LUKS_KEY_SIZE_256;
-  }
-  else if (keyBytes == 64)
-  {
-    luks->key_size = HC_LUKS_KEY_SIZE_512;
-  }
-  else
-  {
-    fclose (fp);
-
-    return (PARSER_LUKS_KEY_SIZE);
-  }
-
-  // find the correct kernel based on hash and cipher
-
-  // we need to do this kind of check, otherwise an eventual matching hash from the potfile overwrites the kern_type with an eventual invalid one
-
-  if (hashconfig->kern_type == (u32) -1)
-  {
-    if ((luks->hash_type == HC_LUKS_HASH_TYPE_SHA1) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
-    {
-      hashconfig->kern_type = KERN_TYPE_LUKS_SHA1_AES;
-    }
-    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_SHA1) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_SERPENT))
-    {
-      hashconfig->kern_type = KERN_TYPE_LUKS_SHA1_SERPENT;
-    }
-    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_SHA1) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_TWOFISH))
-    {
-      hashconfig->kern_type = KERN_TYPE_LUKS_SHA1_TWOFISH;
-    }
-    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_SHA256) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
-    {
-      hashconfig->kern_type = KERN_TYPE_LUKS_SHA256_AES;
-    }
-    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_SHA256) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_SERPENT))
-    {
-      hashconfig->kern_type = KERN_TYPE_LUKS_SHA256_SERPENT;
-    }
-    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_SHA256) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_TWOFISH))
-    {
-      hashconfig->kern_type = KERN_TYPE_LUKS_SHA256_TWOFISH;
-    }
-    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_SHA512) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
-    {
-      hashconfig->kern_type = KERN_TYPE_LUKS_SHA512_AES;
-    }
-    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_SHA512) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_SERPENT))
-    {
-      hashconfig->kern_type = KERN_TYPE_LUKS_SHA512_SERPENT;
-    }
-    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_SHA512) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_TWOFISH))
-    {
-      hashconfig->kern_type = KERN_TYPE_LUKS_SHA512_TWOFISH;
-    }
-    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_RIPEMD160) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
-    {
-      hashconfig->kern_type = KERN_TYPE_LUKS_RIPEMD160_AES;
-    }
-    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_RIPEMD160) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_SERPENT))
-    {
-      hashconfig->kern_type = KERN_TYPE_LUKS_RIPEMD160_SERPENT;
-    }
-    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_RIPEMD160) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_TWOFISH))
-    {
-      hashconfig->kern_type = KERN_TYPE_LUKS_RIPEMD160_TWOFISH;
-    }
-    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_WHIRLPOOL) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
-    {
-      hashconfig->kern_type = KERN_TYPE_LUKS_WHIRLPOOL_AES;
-    }
-    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_WHIRLPOOL) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_SERPENT))
-    {
-      hashconfig->kern_type = KERN_TYPE_LUKS_WHIRLPOOL_SERPENT;
-    }
-    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_WHIRLPOOL) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_TWOFISH))
-    {
-      hashconfig->kern_type = KERN_TYPE_LUKS_WHIRLPOOL_TWOFISH;
-    }
-    else
-    {
-      fclose (fp);
-
-      return (PARSER_LUKS_HASH_CIPHER);
-    }
-  }
-  else
-  {
-         if ((hashconfig->kern_type == KERN_TYPE_LUKS_SHA1_AES)          && (luks->hash_type == HC_LUKS_HASH_TYPE_SHA1) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
-    {
-      // OK
-    }
-    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_SHA1_SERPENT)      && (luks->hash_type == HC_LUKS_HASH_TYPE_SHA1) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_SERPENT))
-    {
-      // OK
-    }
-    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_SHA1_TWOFISH)      && (luks->hash_type == HC_LUKS_HASH_TYPE_SHA1) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_TWOFISH))
-    {
-      // OK
-    }
-    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_SHA256_AES)        && (luks->hash_type == HC_LUKS_HASH_TYPE_SHA256) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
-    {
-      // OK
-    }
-    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_SHA256_SERPENT)    && (luks->hash_type == HC_LUKS_HASH_TYPE_SHA256) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_SERPENT))
-    {
-      // OK
-    }
-    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_SHA256_TWOFISH)    && (luks->hash_type == HC_LUKS_HASH_TYPE_SHA256) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_TWOFISH))
-    {
-      // OK
-    }
-    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_SHA512_AES)        && (luks->hash_type == HC_LUKS_HASH_TYPE_SHA512) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
-    {
-      // OK
-    }
-    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_SHA512_SERPENT)    && (luks->hash_type == HC_LUKS_HASH_TYPE_SHA512) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_SERPENT))
-    {
-      // OK
-    }
-    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_SHA512_TWOFISH)    && (luks->hash_type == HC_LUKS_HASH_TYPE_SHA512) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_TWOFISH))
-    {
-      // OK
-    }
-    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_RIPEMD160_AES)     && (luks->hash_type == HC_LUKS_HASH_TYPE_RIPEMD160) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
-    {
-      // OK
-    }
-    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_RIPEMD160_SERPENT) && (luks->hash_type == HC_LUKS_HASH_TYPE_RIPEMD160) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_SERPENT))
-    {
-      // OK
-    }
-    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_RIPEMD160_TWOFISH) && (luks->hash_type == HC_LUKS_HASH_TYPE_RIPEMD160) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_TWOFISH))
-    {
-      // OK
-    }
-    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_WHIRLPOOL_AES)     && (luks->hash_type == HC_LUKS_HASH_TYPE_WHIRLPOOL) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
-    {
-      // OK
-    }
-    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_WHIRLPOOL_SERPENT) && (luks->hash_type == HC_LUKS_HASH_TYPE_WHIRLPOOL) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_SERPENT))
-    {
-      // OK
-    }
-    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_WHIRLPOOL_TWOFISH) && (luks->hash_type == HC_LUKS_HASH_TYPE_WHIRLPOOL) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_TWOFISH))
-    {
-      // OK
-    }
-    else
-    {
-      fclose (fp);
-
-      return (PARSER_LUKS_HASH_CIPHER);
-    }
-  }
-
-  // verify the selected keyslot informations
-
-  const u32 active  = byte_swap_32 (hdr.keyblock[keyslot_idx].active);
-  const u32 stripes = byte_swap_32 (hdr.keyblock[keyslot_idx].stripes);
-
-  if (active  != LUKS_KEY_ENABLED)
-  {
-    fclose (fp);
-
-    return (PARSER_LUKS_KEY_DISABLED);
-  }
-
-  if (stripes != LUKS_STRIPES)
-  {
-    fclose (fp);
-
-    return (PARSER_LUKS_KEY_STRIPES);
-  }
-
-  // configure the salt (not esalt)
-
-  u32 *passwordSalt_ptr = (u32 *) hdr.keyblock[keyslot_idx].passwordSalt;
-
-  salt->salt_buf[0] = passwordSalt_ptr[0];
-  salt->salt_buf[1] = passwordSalt_ptr[1];
-  salt->salt_buf[2] = passwordSalt_ptr[2];
-  salt->salt_buf[3] = passwordSalt_ptr[3];
-  salt->salt_buf[4] = passwordSalt_ptr[4];
-  salt->salt_buf[5] = passwordSalt_ptr[5];
-  salt->salt_buf[6] = passwordSalt_ptr[6];
-  salt->salt_buf[7] = passwordSalt_ptr[7];
-
-  salt->salt_len = LUKS_SALTSIZE;
-
-  const u32 passwordIterations = byte_swap_32 (hdr.keyblock[keyslot_idx].passwordIterations);
-
-  salt->salt_iter = passwordIterations - 1;
-
-  // Load AF data for this keyslot into esalt
-
-  const u32 keyMaterialOffset = byte_swap_32 (hdr.keyblock[keyslot_idx].keyMaterialOffset);
-
-  const int rc_seek1 = fseeko (fp, keyMaterialOffset * 512, SEEK_SET);
-
-  if (rc_seek1 == -1)
-  {
-    fclose (fp);
-
-    return (PARSER_LUKS_FILE_SIZE);
-  }
-
-  const size_t nread2 = hc_fread (luks->af_src_buf, keyBytes, stripes, fp);
-
-  if (nread2 != stripes)
-  {
-    fclose (fp);
-
-    return (PARSER_LUKS_FILE_SIZE);
-  }
-
-  // finally, copy some encrypted payload data for entropy check
-
-  const u32 payloadOffset = byte_swap_32 (hdr.payloadOffset);
-
-  const int rc_seek2 = fseeko (fp, payloadOffset * 512, SEEK_SET);
-
-  if (rc_seek2 == -1)
-  {
-    fclose (fp);
-
-    return (PARSER_LUKS_FILE_SIZE);
-  }
-
-  const size_t nread3 = hc_fread (luks->ct_buf, sizeof (u32), 128, fp);
-
-  if (nread3 != 128)
-  {
-    fclose (fp);
-
-    return (PARSER_LUKS_FILE_SIZE);
-  }
-
-  // that should be it, close the fp
-
-  fclose (fp);
-
-  return (PARSER_OK);
-}
-

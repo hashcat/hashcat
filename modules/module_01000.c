@@ -131,6 +131,10 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_esalt_size               = MODULE_DEFAULT;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_forced_outfile_format    = MODULE_DEFAULT;
+  module_ctx->module_hash_binary_count        = MODULE_DEFAULT;
+  module_ctx->module_hash_binary_parse        = MODULE_DEFAULT;
+  module_ctx->module_hash_binary_save         = MODULE_DEFAULT;
+  module_ctx->module_hash_binary_verify       = MODULE_DEFAULT;
   module_ctx->module_hash_decode_outfile      = MODULE_DEFAULT;
   module_ctx->module_hash_decode_zero_hash    = MODULE_DEFAULT;
   module_ctx->module_hash_decode              = module_hash_decode;
@@ -140,7 +144,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
   module_ctx->module_hash_name                = module_hash_name;
-  module_ctx->module_hash_save_binary         = MODULE_DEFAULT;
   module_ctx->module_hash_type                = module_hash_type;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
   module_ctx->module_hook12                   = MODULE_DEFAULT;
