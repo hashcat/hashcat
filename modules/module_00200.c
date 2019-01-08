@@ -23,6 +23,7 @@ static const char *HASH_NAME      = "MySQL323";
 static const u32   HASH_TYPE      = HASH_TYPE_MYSQL;
 static const u64   KERN_TYPE      = 200;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
+static const u64   OPTS_TYPE      = OPTS_TYPE_STATE_BUFFER_BE;
 static const char *ST_HASH        = "7196759210defdc0";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
@@ -36,6 +37,7 @@ const char *module_hash_name      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 u32         module_hash_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_TYPE;       }
 u64         module_kern_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_TYPE;       }
 u32         module_opti_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTI_TYPE;       }
+u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTS_TYPE;       }
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, const char *line_buf, MAYBE_UNUSED const int line_len)
@@ -143,7 +145,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_opti_type                = module_opti_type;
-  module_ctx->module_opts_type                = MODULE_DEFAULT;
+  module_ctx->module_opts_type                = module_opts_type;
   module_ctx->module_outfile_check_disable    = MODULE_DEFAULT;
   module_ctx->module_outfile_check_nocomp     = MODULE_DEFAULT;
   module_ctx->module_potfile_disable          = MODULE_DEFAULT;
