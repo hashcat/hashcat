@@ -8,6 +8,7 @@ DEBUG                   := 1
 PRODUCTION              := 0
 PRODUCTION_VERSION      := v5.1.0
 ENABLE_BRAIN            := 1
+USE_SYSTEM_ZLIB         := 0
 USE_SYSTEM_LZMA         := 0
 USE_SYSTEM_OPENCL       := 0
 USE_SYSTEM_XXHASH       := 0
@@ -99,6 +100,12 @@ LIBRARY_DEV_FOLDER      ?= $(LIBRARY_DEV_ROOT_FOLDER)/hashcat
 ## Depencies paths
 ##
 
+ifeq ($(USE_SYSTEM_ZLIB),0)
+DEPS_ZLIB_PATH          := deps/zlib
+else
+DEPS_ZLIB_PATH          := $(LIBRARY_DEV_ROOT_FOLDER)/
+endif
+
 ifeq ($(USE_SYSTEM_LZMA),0)
 DEPS_LZMA_PATH          := deps/LZMA-SDK/C
 else
@@ -185,16 +192,30 @@ LFLAGS                  += -s
 endif
 else
 ifeq ($(DEBUG),1)
+ifneq ($(UNAME),Darwin)
 CFLAGS                  += -DDEBUG -Og -ggdb
 else
+CFLAGS                  += -DDEBUG -O0 -ggdb
+endif
+else
 ifeq ($(DEBUG),2)
+ifneq ($(UNAME),Darwin)
 CFLAGS                  += -DDEBUG -Og -ggdb
+else
+CFLAGS                  += -DDEBUG -O0 -ggdb
+endif
 CFLAGS                  += -fsanitize=address -fno-omit-frame-pointer
 endif
 endif
 endif
 
 CFLAGS                  += -pipe -std=gnu99 -Iinclude/ -IOpenCL/
+
+# ZLIB
+CFLAGS                  += -I$(DEPS_ZLIB_PATH)
+ifeq ($(USE_SYSTEM_ZLIB),1)
+LFLAGS                  += -lz
+endif
 
 # LZMA
 CFLAGS                  += -I$(DEPS_LZMA_PATH)
@@ -333,6 +354,19 @@ LINUX_64_OBJS           := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).LINUX.64.o)
 
 WIN_32_OBJS             := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.32.o)
 WIN_64_OBJS             := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.64.o)
+
+ifeq ($(USE_SYSTEM_ZLIB),0)
+OBJS_ZLIB               := adler32 compress crc32 deflate gzclose gzlib gzread gzwrite infback inffast inflate inftrees trees uncompr zutil
+
+NATIVE_STATIC_OBJS      += $(foreach OBJ,$(OBJS_ZLIB),obj/$(OBJ).NATIVE.STATIC.o)
+NATIVE_SHARED_OBJS      += $(foreach OBJ,$(OBJS_ZLIB),obj/$(OBJ).NATIVE.SHARED.o)
+
+LINUX_32_OBJS           += $(foreach OBJ,$(OBJS_ZLIB),obj/$(OBJ).LINUX.32.o)
+LINUX_64_OBJS           += $(foreach OBJ,$(OBJS_ZLIB),obj/$(OBJ).LINUX.64.o)
+
+WIN_32_OBJS             += $(foreach OBJ,$(OBJS_ZLIB),obj/$(OBJ).WIN.32.o)
+WIN_64_OBJS             += $(foreach OBJ,$(OBJS_ZLIB),obj/$(OBJ).WIN.64.o)
+endif
 
 ifeq ($(USE_SYSTEM_LZMA),0)
 OBJS_LZMA               := Alloc Lzma2Dec LzmaDec
@@ -502,6 +536,14 @@ obj/%.NATIVE.STATIC.o: src/%.c
 obj/%.NATIVE.SHARED.o: src/%.c
 	$(CC) -c $(CFLAGS_NATIVE) $< -o $@ -fpic
 
+ifeq ($(USE_SYSTEM_ZLIB),0)
+obj/%.NATIVE.STATIC.o: $(DEPS_ZLIB_PATH)/%.c
+	$(CC) -c $(CFLAGS_NATIVE) $< -o $@
+
+obj/%.NATIVE.SHARED.o: $(DEPS_ZLIB_PATH)/%.c
+	$(CC) -c $(CFLAGS_NATIVE) $< -o $@ -fpic
+endif
+
 ifeq ($(USE_SYSTEM_LZMA),0)
 obj/%.NATIVE.STATIC.o: $(DEPS_LZMA_PATH)/%.c
 	$(CC) -c $(CFLAGS_NATIVE) $< -o $@
@@ -577,6 +619,20 @@ obj/%.WIN.32.o:   src/%.c
 
 obj/%.WIN.64.o:   src/%.c
 	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)   -c -o $@ $<
+
+ifeq ($(USE_SYSTEM_ZLIB),0)
+obj/%.LINUX.32.o: $(DEPS_ZLIB_PATH)/%.c
+	$(CC_LINUX_32) $(CFLAGS_CROSS_LINUX32) -c -o $@ $<
+
+obj/%.LINUX.64.o: $(DEPS_ZLIB_PATH)/%.c
+	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX64) -c -o $@ $<
+
+obj/%.WIN.32.o:   $(DEPS_ZLIB_PATH)/%.c
+	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN32)   -c -o $@ $<
+
+obj/%.WIN.64.o:   $(DEPS_ZLIB_PATH)/%.c
+	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)   -c -o $@ $<
+endif
 
 ifeq ($(USE_SYSTEM_LZMA),0)
 obj/%.LINUX.32.o: $(DEPS_LZMA_PATH)/%.c

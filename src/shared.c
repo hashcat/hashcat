@@ -549,16 +549,229 @@ void hc_string_trim_trailing (char *s)
   s[new_len] = 0;
 }
 
-size_t hc_fread (void *ptr, size_t size, size_t nmemb, FILE *stream)
+bool hc_fopen (fp_tmp_t *fp_t, const char *path, char *mode)
+{
+  unsigned char check[3] = { 0 };
+
+  FILE *fp = fopen (path, mode);
+
+  if (fp == NULL) return false;
+
+  check[0] = fgetc (fp);
+
+  check[1] = fgetc (fp);
+
+  check[2] = fgetc (fp);
+
+  fp_t->is_gzip = -1;
+
+  if (check[0] == 0x1f && check[1] == 0x8b && check[2] == 0x08)
+  {
+    fclose (fp);
+
+    if (!(fp_t->f.gfp = gzopen (path, mode))) return false;
+
+    fp_t->is_gzip = 1;
+
+  }
+  else
+  {
+    fp_t->f.fp = fp;
+
+    rewind (fp_t->f.fp);
+
+    fp_t->is_gzip = 0;
+  }
+
+  fp_t->path = path;
+
+  fp_t->mode = mode;
+
+  return true;
+}
+
+size_t hc_fread (void *ptr, size_t size, size_t nmemb, fp_tmp_t *fp_t)
+{
+  size_t n = 0;
+
+  if (fp_t == NULL) return -1;
+
+  if (fp_t->is_gzip)
+    n = gzfread (ptr, size, nmemb, fp_t->f.gfp);
+  else
+    n = fread (ptr, size, nmemb, fp_t->f.fp);
+
+  return n;
+}
+
+size_t hc_fwrite (void *ptr, size_t size, size_t nmemb, fp_tmp_t *fp_t)
+{
+  size_t n = 0;
+
+  if (fp_t == NULL || fp_t->is_gzip == -1) return -1;
+
+  if (fp_t->is_gzip)
+    n = gzfwrite (ptr, size, nmemb, fp_t->f.gfp);
+  else
+    n = fwrite (ptr, size, nmemb, fp_t->f.fp);
+
+  if (n != nmemb) return -1;
+
+  return n;
+}
+
+size_t hc_fread_direct (void *ptr, size_t size, size_t nmemb, FILE *stream)
 {
   return fread (ptr, size, nmemb, stream);
 }
 
-void hc_fwrite (const void *ptr, size_t size, size_t nmemb, FILE *stream)
+void hc_fwrite_direct (const void *ptr, size_t size, size_t nmemb, FILE *stream)
 {
   size_t rc = fwrite (ptr, size, nmemb, stream);
 
   if (rc == 0) rc = 0;
+}
+
+int hc_fseek (fp_tmp_t *fp_t, off_t offset, int whence)
+{
+  int r = 0;
+
+  if (fp_t == NULL || fp_t->is_gzip == -1) return -1;
+
+  if (fp_t->is_gzip)
+    r = gzseek (fp_t->f.gfp, (z_off_t) offset, whence);
+  else
+    r = fseeko (fp_t->f.fp, offset, whence);
+
+  return r;
+}
+
+void hc_rewind (fp_tmp_t *fp_t)
+{
+  if (fp_t == NULL || fp_t->is_gzip == -1) return;
+
+  if (fp_t->is_gzip)
+    gzrewind (fp_t->f.gfp);
+  else
+    rewind (fp_t->f.fp);
+}
+
+off_t hc_ftell (fp_tmp_t *fp_t)
+{
+  off_t n = 0;
+
+  if (fp_t == NULL || fp_t->is_gzip == -1) return -1;
+
+  if (fp_t->is_gzip)
+    n = (off_t) gztell (fp_t->f.gfp);
+  else
+    n = ftello (fp_t->f.fp);
+
+  return n;
+}
+
+int hc_fputc (int c, fp_tmp_t *fp_t)
+{
+  int r = 0;
+
+  if (fp_t == NULL || fp_t->is_gzip == -1) return -1;
+
+  if (fp_t->is_gzip)
+    r = gzputc (fp_t->f.gfp, c);
+  else
+    r = fputc (c, fp_t->f.fp);
+
+  return r;
+}
+
+int hc_fgetc (fp_tmp_t *fp_t)
+{
+  int r = 0;
+
+  if (fp_t == NULL || fp_t->is_gzip == -1) return -1;
+
+  if (fp_t->is_gzip)
+    r = gzgetc (fp_t->f.gfp);
+  else
+    r = fgetc (fp_t->f.fp);
+
+  return r;
+}
+
+char *hc_fgets (char *buf, int len, fp_tmp_t *fp_t)
+{
+  char *r = NULL;
+
+  if (fp_t == NULL || fp_t->is_gzip == -1) return NULL;
+
+  if (fp_t->is_gzip)
+    r = gzgets (fp_t->f.gfp, buf, len);
+  else
+    r = fgets (buf, len, fp_t->f.fp);
+
+  return r;
+}
+
+int hc_fileno (fp_tmp_t *fp_t)
+{
+  int r = 0;
+
+  if (fp_t == NULL || fp_t->is_gzip == -1) return -1;
+
+  if (fp_t->is_gzip)
+  {
+    int rdup = fileno (fopen (fp_t->path, fp_t->mode));
+
+    r = dup(rdup);
+
+    close(rdup);
+  }
+  else
+    r = fileno (fp_t->f.fp);
+
+  return r;
+}
+
+int hc_feof (fp_tmp_t *fp_t)
+{
+  int r = 0;
+
+  if (fp_t == NULL || fp_t->is_gzip == -1) return -1;
+
+  if (fp_t->is_gzip)
+    r = gzeof (fp_t->f.gfp);
+  else
+    r = feof (fp_t->f.fp);
+
+  return r;
+}
+
+/*
+void hc_fflush (fp_tmp_t *fp_t)
+{
+  if (fp_t == NULL || fp_t->is_gzip == -1) return;
+
+  if (fp_t->is_gzip)
+    gzflush (fp_t->f.gfp, Z_SYNC_FLUSH);
+	else
+    fflush (fp_t->f.fp);
+}
+*/
+
+void hc_fclose (fp_tmp_t *fp_t)
+{
+  if (fp_t == NULL || fp_t->is_gzip == -1) return;
+
+  if (fp_t->is_gzip)
+    gzclose (fp_t->f.gfp);
+  else
+    fclose (fp_t->f.fp);
+
+  fp_t->is_gzip = -1;
+
+  fp_t->path = NULL;
+
+  fp_t->mode = NULL;
 }
 
 bool hc_same_files (char *file1, char *file2)

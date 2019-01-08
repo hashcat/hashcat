@@ -16,6 +16,7 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <zlib.h>
 
 #if defined (_WIN)
 #define WINICONV_CONST
@@ -1045,6 +1046,21 @@ typedef struct link_speed
 
 } link_speed_t;
 
+// handling gzip files
+
+typedef struct fp_tmp
+{
+  union
+  {
+    FILE *fp;
+    gzFile gfp;
+  } f;
+
+  short is_gzip;
+  const char *path;
+  char *mode;
+} fp_tmp_t;
+
 #include "ext_OpenCL.h"
 
 typedef struct hc_device_param
@@ -1197,12 +1213,12 @@ typedef struct hc_device_param
   u32          *brain_link_out_buf;
   #endif
 
-  char   *scratch_buf;
+  char     *scratch_buf;
 
-  FILE   *combs_fp;
-  pw_t   *combs_buf;
+  fp_tmp_t *combs_fp_t;
+  pw_t     *combs_buf;
 
-  void   *hooks_buf;
+  void     *hooks_buf;
 
   pw_idx_t *pws_idx;
   u32      *pws_comp;

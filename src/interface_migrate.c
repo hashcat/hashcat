@@ -3706,23 +3706,23 @@ int wpa_eapol_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
 int psafe2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
+  fp_tmp_t fp_t;
+
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
   if (input_len == 0) return (PARSER_HASH_LENGTH);
 
-  FILE *fp = fopen ((const char *) input_buf, "rb");
-
-  if (fp == NULL) return (PARSER_HASH_FILE);
+  if (hc_fopen (&fp_t, (const char *) input_buf, "rb") == false) return (PARSER_HASH_FILE);
 
   psafe2_hdr buf;
 
   memset (&buf, 0, sizeof (psafe2_hdr));
 
-  const size_t n = hc_fread (&buf, sizeof (psafe2_hdr), 1, fp);
+  const size_t n = hc_fread (&buf, sizeof (psafe2_hdr), 1, &fp_t);
 
-  fclose (fp);
+  hc_fclose (&fp_t);
 
   if (n != 1) return (PARSER_PSAFE2_FILE_SIZE);
 
@@ -3743,23 +3743,23 @@ int psafe2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
 
 int psafe3_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
+  fp_tmp_t fp_t;
+
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
 
   if (input_len == 0) return (PARSER_HASH_LENGTH);
 
-  FILE *fp = fopen ((const char *) input_buf, "rb");
-
-  if (fp == NULL) return (PARSER_HASH_FILE);
+  if (hc_fopen (&fp_t, (const char *) input_buf, "rb") == false) return (PARSER_HASH_FILE);
 
   psafe3_t in;
 
   memset (&in, 0, sizeof (psafe3_t));
 
-  const size_t n = hc_fread (&in, sizeof (psafe3_t), 1, fp);
+  const size_t n = hc_fread (&in, sizeof (psafe3_t), 1, &fp_t);
 
-  fclose (fp);
+  hc_fclose (&fp_t);
 
   if (n != 1) return (PARSER_PSAFE3_FILE_SIZE);
 
@@ -6872,6 +6872,8 @@ int androidpin_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
 int truecrypt_parse_hash_1k (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
+  fp_tmp_t fp_t;
+
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
@@ -6880,15 +6882,13 @@ int truecrypt_parse_hash_1k (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAY
 
   if (input_len == 0) return (PARSER_HASH_LENGTH);
 
-  FILE *fp = fopen ((const char *) input_buf, "rb");
-
-  if (fp == NULL) return (PARSER_HASH_FILE);
+  if (hc_fopen (&fp_t, (const char *) input_buf, "rb") == false) return (PARSER_HASH_FILE);
 
   u8 buf[512];
 
-  const size_t n = hc_fread ((char *) buf, 1, sizeof (buf), fp);
+  const size_t n = hc_fread ((char *) buf, 1, sizeof (buf), &fp_t);
 
-  fclose (fp);
+  hc_fclose (&fp_t);
 
   if (n != sizeof (buf)) return (PARSER_TC_FILE_SIZE);
 
@@ -6915,6 +6915,8 @@ int truecrypt_parse_hash_1k (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAY
 
 int truecrypt_parse_hash_2k (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
+  fp_tmp_t fp_t;
+
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
@@ -6923,15 +6925,13 @@ int truecrypt_parse_hash_2k (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAY
 
   if (input_len == 0) return (PARSER_HASH_LENGTH);
 
-  FILE *fp = fopen ((const char *) input_buf, "rb");
-
-  if (fp == NULL) return (PARSER_HASH_FILE);
+  if (hc_fopen (&fp_t, (const char *) input_buf, "rb") == false) return (PARSER_HASH_FILE);
 
   u8 buf[512];
 
-  const size_t n = hc_fread ((char *) buf, 1, sizeof (buf), fp);
+  const size_t n = hc_fread ((char *) buf, 1, sizeof (buf), &fp_t);
 
-  fclose (fp);
+  hc_fclose (&fp_t);
 
   if (n != sizeof (buf)) return (PARSER_TC_FILE_SIZE);
 
@@ -6958,6 +6958,8 @@ int truecrypt_parse_hash_2k (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAY
 
 int veracrypt_parse_hash_200000 (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
+  fp_tmp_t fp_t;
+
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
@@ -6966,15 +6968,13 @@ int veracrypt_parse_hash_200000 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   if (input_len == 0) return (PARSER_HASH_LENGTH);
 
-  FILE *fp = fopen ((const char *) input_buf, "rb");
-
-  if (fp == NULL) return (PARSER_HASH_FILE);
+  if (hc_fopen (&fp_t, (const char *) input_buf, "rb") == false) return (PARSER_HASH_FILE);
 
   u8 buf[512];
 
-  const size_t n = hc_fread ((char *) buf, 1, sizeof (buf), fp);
+  const size_t n = hc_fread ((char *) buf, 1, sizeof (buf), &fp_t);
 
-  fclose (fp);
+  hc_fclose (&fp_t);
 
   if (n != sizeof (buf)) return (PARSER_VC_FILE_SIZE);
 
@@ -7001,6 +7001,8 @@ int veracrypt_parse_hash_200000 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
 int veracrypt_parse_hash_500000 (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
+  fp_tmp_t fp_t;
+
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
@@ -7009,15 +7011,13 @@ int veracrypt_parse_hash_500000 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   if (input_len == 0) return (PARSER_HASH_LENGTH);
 
-  FILE *fp = fopen ((const char *) input_buf, "rb");
-
-  if (fp == NULL) return (PARSER_HASH_FILE);
+  if (hc_fopen (&fp_t, (const char *) input_buf, "rb") == false) return (PARSER_HASH_FILE);
 
   u8 buf[512];
 
-  const size_t n = hc_fread ((char *) buf, 1, sizeof (buf), fp);
+  const size_t n = hc_fread ((char *) buf, 1, sizeof (buf), &fp_t);
 
-  fclose (fp);
+  hc_fclose (&fp_t);
 
   if (n != sizeof (buf)) return (PARSER_VC_FILE_SIZE);
 
@@ -7044,6 +7044,8 @@ int veracrypt_parse_hash_500000 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
 int veracrypt_parse_hash_327661 (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
+  fp_tmp_t fp_t;
+
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
@@ -7052,15 +7054,13 @@ int veracrypt_parse_hash_327661 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   if (input_len == 0) return (PARSER_HASH_LENGTH);
 
-  FILE *fp = fopen ((const char *) input_buf, "rb");
-
-  if (fp == NULL) return (PARSER_HASH_FILE);
+  if (hc_fopen (&fp_t, (const char *) input_buf, "rb") == false) return (PARSER_HASH_FILE);
 
   u8 buf[512];
 
-  const size_t n = hc_fread ((char *) buf, 1, sizeof (buf), fp);
+  const size_t n = hc_fread ((char *) buf, 1, sizeof (buf), &fp_t);
 
-  fclose (fp);
+  hc_fclose (&fp_t);
 
   if (n != sizeof (buf)) return (PARSER_VC_FILE_SIZE);
 
@@ -7087,6 +7087,8 @@ int veracrypt_parse_hash_327661 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
 int veracrypt_parse_hash_655331 (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
+  fp_tmp_t fp_t;
+
   u32 *digest = (u32 *) hash_buf->digest;
 
   salt_t *salt = hash_buf->salt;
@@ -7095,15 +7097,13 @@ int veracrypt_parse_hash_655331 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
 
   if (input_len == 0) return (PARSER_HASH_LENGTH);
 
-  FILE *fp = fopen ((const char *) input_buf, "rb");
-
-  if (fp == NULL) return (PARSER_HASH_FILE);
+  if (hc_fopen (&fp_t, (const char *) input_buf, "rb") == false) return (PARSER_HASH_FILE);
 
   u8 buf[512];
 
-  const size_t n = hc_fread ((char *) buf, 1, sizeof (buf), fp);
+  const size_t n = hc_fread ((char *) buf, 1, sizeof (buf), &fp_t);
 
-  fclose (fp);
+  hc_fclose (&fp_t);
 
   if (n != sizeof (buf)) return (PARSER_VC_FILE_SIZE);
 
@@ -29448,7 +29448,7 @@ void to_hccapx_t (hashcat_ctx_t *hashcat_ctx, hccapx_t *hccapx, const u32 salt_p
 
           to_hccapx_t (hashcat_ctx, &hccapx, salt_pos, digest_pos);
 
-          hc_fwrite (&hccapx, sizeof (hccapx_t), 1, fp);
+          hc_fwrite_direct (&hccapx, sizeof (hccapx_t), 1, fp);
         }
       }
 }
