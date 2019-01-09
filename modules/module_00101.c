@@ -108,13 +108,13 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   encoder_apply_options (hashconfig, tmp);
 
-  u32 ptr_plain[256] = { 0 };
+  u8 ptr_plain[100] = { 0 };
 
   base64_encode (int_to_base64, (const u8 *) tmp, 20, (u8 *) ptr_plain);
 
   const int out_len = 40;
 
-  snprintf (line_buf, out_len, "{SHA}%s", (char *)ptr_plain);
+  snprintf (line_buf, out_len, "{SHA}%s", (char *) ptr_plain);
 
   return out_len;
 }
