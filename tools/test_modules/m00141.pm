@@ -37,12 +37,12 @@ sub module_verify_hash
 
   my ($digest, $word) = split (':', $line);
 
-  $digest = substr($digest, 14);
+  $digest = substr ($digest, 14);
 
-  my ($base64_salt, $base64_hash) = split('\*', $digest);
+  my ($base64_salt, $base64_hash) = split ('\*', $digest);
 
-  my $hash = decode_base64($base64_hash);
-  my $salt = decode_base64($base64_salt);
+  my $hash = decode_base64 ($base64_hash);
+  my $salt = decode_base64 ($base64_salt);
 
   return unless defined $hash;
   return unless defined $salt;
