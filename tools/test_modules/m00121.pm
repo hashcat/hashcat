@@ -17,7 +17,7 @@ sub module_generate_hash
   my $word = shift;
   my $salt = shift;
 
-  my $digest = sha1_hex (lc($salt) . $word);
+  my $digest = sha1_hex (lc ($salt) . $word);
 
   my $hash = sprintf ("%s:%s", $digest, $salt);
 
