@@ -1024,7 +1024,8 @@ void decoder_apply_optimizer (const hashconfig_t *hashconfig, void *data)
   const u32 hash_type = hashconfig->hash_type;
   const u32 opti_type = hashconfig->opti_type;
 
-  u32 *digest_buf = (u32 *) data;
+  u32 *digest_buf   = (u32 *) data;
+  u64 *digest_buf64 = (u64 *) data;
 
   if (opti_type & OPTI_TYPE_PRECOMPUTE_PERMUT)
   {
@@ -1147,7 +1148,8 @@ void encoder_apply_optimizer (const hashconfig_t *hashconfig, void *data)
   const u32 hash_type = hashconfig->hash_type;
   const u32 opti_type = hashconfig->opti_type;
 
-  u32 *digest_buf = (u32 *) data;
+  u32 *digest_buf   = (u32 *) data;
+  u64 *digest_buf64 = (u64 *) data;
 
   if (opti_type & OPTI_TYPE_PRECOMPUTE_PERMUT)
   {
