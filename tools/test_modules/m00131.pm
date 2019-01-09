@@ -20,7 +20,7 @@ sub module_generate_hash
 
   my $salt_bin = pack ("H*", $salt);
 
-  my $digest = sha1_hex (encode ("UTF-16LE", uc($word)) . $salt_bin);
+  my $digest = sha1_hex (encode ("UTF-16LE", uc ($word)) . $salt_bin);
 
   my $hash = sprintf ("0x0100%s%s%s", $salt, "0" x 40, $digest);
 

@@ -33,9 +33,9 @@ sub module_verify_hash
 
   my ($digest, $word) = split (':', $line);
 
-  my $salt = substr($digest, 6, 8);
+  my $salt = substr ($digest, 6, 8);
 
-  my $hash = substr($digest, 14);
+  my $hash = substr ($digest, 14);
 
   return unless defined $hash;
   return unless defined $salt;
