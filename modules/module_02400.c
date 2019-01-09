@@ -119,23 +119,18 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   out_buf[ 1] = int_to_itoa64 ((tmp[0] >>  6) & 0x3f);
   out_buf[ 2] = int_to_itoa64 ((tmp[0] >> 12) & 0x3f);
   out_buf[ 3] = int_to_itoa64 ((tmp[0] >> 18) & 0x3f);
-
   out_buf[ 4] = int_to_itoa64 ((tmp[1] >>  0) & 0x3f);
   out_buf[ 5] = int_to_itoa64 ((tmp[1] >>  6) & 0x3f);
   out_buf[ 6] = int_to_itoa64 ((tmp[1] >> 12) & 0x3f);
   out_buf[ 7] = int_to_itoa64 ((tmp[1] >> 18) & 0x3f);
-
   out_buf[ 8] = int_to_itoa64 ((tmp[2] >>  0) & 0x3f);
   out_buf[ 9] = int_to_itoa64 ((tmp[2] >>  6) & 0x3f);
   out_buf[10] = int_to_itoa64 ((tmp[2] >> 12) & 0x3f);
   out_buf[11] = int_to_itoa64 ((tmp[2] >> 18) & 0x3f);
-
   out_buf[12] = int_to_itoa64 ((tmp[3] >>  0) & 0x3f);
   out_buf[13] = int_to_itoa64 ((tmp[3] >>  6) & 0x3f);
   out_buf[14] = int_to_itoa64 ((tmp[3] >> 12) & 0x3f);
   out_buf[15] = int_to_itoa64 ((tmp[3] >> 18) & 0x3f);
-
-  out_buf[16] = 0;
 
   const int out_len = 16;
 
