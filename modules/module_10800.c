@@ -69,12 +69,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *hash_pos = token.buf[0];
 
-  digest[0] = hex_to_u64 (hash_pos +   0);
-  digest[1] = hex_to_u64 (hash_pos +  16);
-  digest[2] = hex_to_u64 (hash_pos +  32);
-  digest[3] = hex_to_u64 (hash_pos +  48);
-  digest[4] = hex_to_u64 (hash_pos +  64);
-  digest[5] = hex_to_u64 (hash_pos +  80);
+  digest[0] = hex_to_u64 (hash_pos +  0);
+  digest[1] = hex_to_u64 (hash_pos + 16);
+  digest[2] = hex_to_u64 (hash_pos + 32);
+  digest[3] = hex_to_u64 (hash_pos + 48);
+  digest[4] = hex_to_u64 (hash_pos + 64);
+  digest[5] = hex_to_u64 (hash_pos + 80);
   digest[6] = 0;
   digest[7] = 0;
 
@@ -109,12 +109,12 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 *out_buf = (u8 *) line_buf;
 
-  u64_to_hex (tmp[0], out_buf +   0);
-  u64_to_hex (tmp[1], out_buf +  16);
-  u64_to_hex (tmp[2], out_buf +  32);
-  u64_to_hex (tmp[3], out_buf +  48);
-  u64_to_hex (tmp[4], out_buf +  64);
-  u64_to_hex (tmp[5], out_buf +  80);
+  u64_to_hex (tmp[0], out_buf +  0);
+  u64_to_hex (tmp[1], out_buf + 16);
+  u64_to_hex (tmp[2], out_buf + 32);
+  u64_to_hex (tmp[3], out_buf + 48);
+  u64_to_hex (tmp[4], out_buf + 64);
+  u64_to_hex (tmp[5], out_buf + 80);
 
   const int out_len = 96;
 
