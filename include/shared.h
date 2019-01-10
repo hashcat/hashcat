@@ -87,6 +87,8 @@ int select_read_timeout_console (const int sec);
 
 const char *strparser (const u32 parser_status);
 
+bool parse_and_store_generic_salt (u8 *out_buf, int *out_len, const u8 *in_buf, const int in_len, MAYBE_UNUSED const hashconfig_t *hashconfig);
+
 int input_tokenizer (const u8 *input_buf, const int input_len, token_t *token);
 
 void decoder_apply_optimizer (const hashconfig_t *hashconfig, void *data);
