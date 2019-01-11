@@ -18,6 +18,6 @@ int  outfile_init           (hashcat_ctx_t *hashcat_ctx);
 void outfile_destroy        (hashcat_ctx_t *hashcat_ctx);
 int  outfile_write_open     (hashcat_ctx_t *hashcat_ctx);
 void outfile_write_close    (hashcat_ctx_t *hashcat_ctx);
-int  outfile_write          (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsigned char *plain_ptr, const u32 plain_len, const u64 crackpos, const unsigned char *username, const u32 user_len, char tmp_buf[HCBUFSIZ_LARGE]);
+int  outfile_write          (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int out_len, const unsigned char *plain_ptr, const u32 plain_len, const u64 crackpos, const unsigned char *username, const u32 user_len, char tmp_buf[HCBUFSIZ_LARGE]);
 
 #endif // _OUTFILE_H

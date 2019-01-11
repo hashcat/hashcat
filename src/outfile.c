@@ -426,7 +426,7 @@ void outfile_write_close (hashcat_ctx_t *hashcat_ctx)
   fclose (outfile_ctx->fp);
 }
 
-int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsigned char *plain_ptr, const u32 plain_len, const u64 crackpos, const unsigned char *username, const u32 user_len, char tmp_buf[HCBUFSIZ_LARGE])
+int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int out_len, const unsigned char *plain_ptr, const u32 plain_len, const u64 crackpos, const unsigned char *username, const u32 user_len, char tmp_buf[HCBUFSIZ_LARGE])
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const outfile_ctx_t  *outfile_ctx  = hashcat_ctx->outfile_ctx;
@@ -455,8 +455,6 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const unsign
 
   if (outfile_format & OUTFILE_FMT_HASH)
   {
-    const size_t out_len = strlen (out_buf);
-
     memcpy (tmp_buf + tmp_len, out_buf, out_len);
 
     tmp_len += out_len;
