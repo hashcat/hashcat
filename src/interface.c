@@ -646,22 +646,6 @@ int ascii_digest (const hashconfig_t *hashconfig, const hashes_t *hashes, const 
   );
 
   return out_len;
-
-  /*
-  if (salt_type == SALT_TYPE_GENERIC)
-  {
-    size_t pos = strlen (out_buf);
-
-    out_buf[pos] = hashconfig->separator;
-
-    char *ptr = (char *) salt.salt_buf;
-
-    memcpy (out_buf + pos + 1, ptr, salt.salt_len);
-
-    out_buf[pos + 1 + salt.salt_len] = 0;
-  }
-  */
-
 }
 
 static bool module_load (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, const u32 hash_mode)
