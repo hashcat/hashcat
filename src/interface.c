@@ -751,9 +751,9 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   module_ctx->module_init (module_ctx);
 
-  if (module_ctx->module_version_current < MODULE_VERSION_MINIMUM)
+  if (module_ctx->module_interface_version < MODULE_INTERFACE_VERSION_MINIMUM)
   {
-    event_log_error (hashcat_ctx, "module version current (%u) older than minimum (%u)", module_ctx->module_version_current, MODULE_VERSION_MINIMUM);
+    event_log_error (hashcat_ctx, "module version current (%u) older than minimum (%u)", module_ctx->module_interface_version, MODULE_INTERFACE_VERSION_MINIMUM);
 
     return -1;
   }

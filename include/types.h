@@ -2248,7 +2248,7 @@ typedef struct event_ctx
 typedef struct module_ctx
 {
   void       *module_handle;
-  u32         module_version_current;
+  int         module_interface_version;
 
   void        (*module_init)                    (struct module_ctx *);
 

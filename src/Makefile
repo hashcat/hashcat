@@ -45,6 +45,12 @@ MAKEFLAGS               += -j 1
 endif
 
 ##
+## Do not modify
+##
+
+MODULE_INTERFACE_VERSION := 520
+
+##
 ## Native compiler paths
 ##
 
@@ -554,7 +560,7 @@ MODULES_SRC   := $(wildcard modules/*.c)
 MODULES_LIB   := $(patsubst %.c, %.so, $(MODULES_SRC))
 
 modules/module_%.so: modules/module_%.c
-	$(CC)    $(CFLAGS_NATIVE) $< -o $@ -shared -fPIC $(MODULE_DEPEND)
+	$(CC)    $(CFLAGS_NATIVE) $< -o $@ -shared -fPIC $(MODULE_DEPEND) -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
 
 modules: $(MODULES_LIB)
 

@@ -10,8 +10,6 @@
 #include "convert.h"
 #include "shared.h"
 
-static const u32   MODULE_VERSION_CURRENT = 520;
-
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 3;
 static const u32   DGST_POS1      = 5;
@@ -156,6 +154,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hook23                   = MODULE_DEFAULT;
   module_ctx->module_hook_salt_size           = MODULE_DEFAULT;
   module_ctx->module_hook_size                = MODULE_DEFAULT;
+  module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
   module_ctx->module_jit_build_options        = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_max         = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
@@ -180,6 +179,5 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_pass                  = MODULE_DEFAULT;
   module_ctx->module_tmp_size                 = MODULE_DEFAULT;
   module_ctx->module_unstable_warning         = MODULE_DEFAULT;
-  module_ctx->module_version_current          = MODULE_VERSION_CURRENT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }
