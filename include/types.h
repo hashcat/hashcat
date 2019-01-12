@@ -2387,85 +2387,33 @@ typedef struct token
 #endif // _TYPES_H
 
 /**
- * migrate stuff
+ * hash types is relevant for host optimization
+ * named one do optimizations, others use GENERIC
  */
 
 typedef enum hash_type
 {
-  HASH_TYPE_MD4                 = 1,
-  HASH_TYPE_MD5                 = 2,
-  HASH_TYPE_MD5H                = 3,
-  HASH_TYPE_SHA1                = 4,
-  HASH_TYPE_SHA224              = 5,
-  HASH_TYPE_SHA256              = 6,
-  HASH_TYPE_SHA384              = 7,
-  HASH_TYPE_SHA512              = 8,
-  HASH_TYPE_DCC2                = 9,
-  HASH_TYPE_WPA_EAPOL           = 10,
-  HASH_TYPE_LM                  = 11,
-  HASH_TYPE_DESCRYPT            = 12,
-  HASH_TYPE_ORACLEH             = 13,
-  HASH_TYPE_DESRACF             = 14,
-  HASH_TYPE_BCRYPT              = 15,
-  HASH_TYPE_NETNTLM             = 17,
-  HASH_TYPE_RIPEMD160           = 18,
-  HASH_TYPE_WHIRLPOOL           = 19,
-  HASH_TYPE_AES                 = 20,
-  HASH_TYPE_GOST                = 21,
-  HASH_TYPE_KRB5PA              = 22,
-  HASH_TYPE_SAPB                = 23,
-  HASH_TYPE_SAPG                = 24,
-  HASH_TYPE_MYSQL               = 25,
-  HASH_TYPE_LOTUS5              = 26,
-  HASH_TYPE_LOTUS6              = 27,
-  HASH_TYPE_ANDROIDFDE          = 28,
-  HASH_TYPE_SCRYPT              = 29,
-  HASH_TYPE_LOTUS8              = 30,
-  HASH_TYPE_OFFICE2007          = 31,
-  HASH_TYPE_OFFICE2010          = 32,
-  HASH_TYPE_OFFICE2013          = 33,
-  HASH_TYPE_OLDOFFICE01         = 34,
-  HASH_TYPE_OLDOFFICE34         = 35,
-  HASH_TYPE_SIPHASH             = 36,
-  HASH_TYPE_PDFU16              = 37,
-  HASH_TYPE_PDFU32              = 38,
-  HASH_TYPE_PBKDF2_SHA256       = 39,
-  HASH_TYPE_BITCOIN_WALLET      = 40,
-  HASH_TYPE_CRC32               = 41,
-  HASH_TYPE_STREEBOG_256        = 42,
-  HASH_TYPE_STREEBOG_512        = 43,
-  HASH_TYPE_PBKDF2_MD5          = 44,
-  HASH_TYPE_PBKDF2_SHA1         = 45,
-  HASH_TYPE_PBKDF2_SHA512       = 46,
-  HASH_TYPE_ECRYPTFS            = 47,
-  HASH_TYPE_ORACLET             = 48,
-  HASH_TYPE_BSDICRYPT           = 49,
-  HASH_TYPE_RAR3HP              = 50,
-  HASH_TYPE_KRB5TGS             = 51,
-  HASH_TYPE_STDOUT              = 52,
-  HASH_TYPE_DES                 = 53,
-  HASH_TYPE_PLAINTEXT           = 54,
-  HASH_TYPE_LUKS                = 55,
-  HASH_TYPE_ITUNES_BACKUP_9     = 56,
-  HASH_TYPE_ITUNES_BACKUP_10    = 57,
-  HASH_TYPE_SKIP32              = 58,
-  HASH_TYPE_BLAKE2B             = 59,
-  HASH_TYPE_CHACHA20            = 60,
-  HASH_TYPE_DPAPIMK             = 61,
-  HASH_TYPE_JKS_SHA1            = 62,
-  HASH_TYPE_TACACS_PLUS         = 63,
-  HASH_TYPE_APPLE_SECURE_NOTES  = 64,
-  HASH_TYPE_CRAM_MD5_DOVECOT    = 65,
-  HASH_TYPE_JWT                 = 66,
-  HASH_TYPE_ELECTRUM_WALLET     = 67,
-  HASH_TYPE_WPA_PMKID_PBKDF2    = 68,
-  HASH_TYPE_WPA_PMKID_PMK       = 69,
-  HASH_TYPE_ANSIBLE_VAULT       = 70,
-  HASH_TYPE_KRB5ASREP           = 71,
-  HASH_TYPE_ODF12               = 72,
-  HASH_TYPE_ODF11               = 73,
+  HASH_TYPE_GENERIC   = 1,
+  HASH_TYPE_MD4       = 2,
+  HASH_TYPE_MD5       = 3,
+  HASH_TYPE_SHA1      = 4,
+  HASH_TYPE_SHA224    = 5,
+  HASH_TYPE_SHA256    = 6,
+  HASH_TYPE_SHA384    = 7,
+  HASH_TYPE_SHA512    = 8,
+  HASH_TYPE_LM        = 9,
+  HASH_TYPE_DES       = 10,
+  HASH_TYPE_DESCRYPT  = 11,
+  HASH_TYPE_DESRACF   = 12,
+  HASH_TYPE_NETNTLM   = 13,
+  HASH_TYPE_BSDICRYPT = 14,
 
 } hash_type_t;
+
+/**
+ * hash category is relevant in usage.c (--help screen)
+ */
+
 
 typedef enum hash_category
 {
