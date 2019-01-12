@@ -251,10 +251,7 @@ static int sort_by_usage (const void *p1, const void *p2)
   if (u1->hash_category > u2->hash_category) return  1;
   if (u1->hash_category < u2->hash_category) return -1;
 
-  if (u1->hash_mode > u2->hash_mode) return  1;
-  if (u1->hash_mode < u2->hash_mode) return -1;
-
-  return 0;
+  return strcmp (u1->hash_name, u2->hash_name);
 }
 
 void usage_mini_print (const char *progname)
@@ -272,7 +269,6 @@ void usage_big_print (hashcat_ctx_t *hashcat_ctx)
   folder_config_t *folder_config = hashcat_ctx->folder_config;
   hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
   user_options_t  *user_options  = hashcat_ctx->user_options;
-
 
   char *modulefile = (char *) hcmalloc (HCBUFSIZ_TINY);
 

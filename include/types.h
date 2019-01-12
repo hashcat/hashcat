@@ -2237,11 +2237,13 @@ typedef struct event_ctx
 
 } event_ctx_t;
 
-#define MODULE_DEFAULT NULL
+#define MODULE_DEFAULT (void *) -1
 
 typedef struct module_ctx
 {
   void       *module_handle;
+
+  size_t      module_context_size;
   int         module_interface_version;
 
   void        (*module_init)                    (struct module_ctx *);

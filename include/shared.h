@@ -86,6 +86,8 @@ int select_write_timeout (int sockfd, const int sec);
 int select_read_timeout_console (const int sec);
 
 const char *strparser (const u32 parser_status);
+const char *strhashcategory (const u32 hash_category);
+const char *stroptitype (const u32 opti_type);
 
 bool parse_and_store_generic_salt (u8 *out_buf, int *out_len, const u8 *in_buf, const int in_len, MAYBE_UNUSED const hashconfig_t *hashconfig);
 

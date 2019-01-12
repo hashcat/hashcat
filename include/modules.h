@@ -2,6 +2,8 @@
 #ifndef _MODULES_H
 #define _MODULES_H
 
+static const size_t MODULE_CONTEXT_SIZE_CURRENT = sizeof (module_ctx_t);
+
 void        module_init                     (module_ctx_t *module_ctx);
 
 u32         module_attack_exec              (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);

@@ -280,6 +280,11 @@
   "  99999 | Plaintext                                        | Plaintext",
 
 
+static const char *ST_PASS_HASHCAT_PLAIN = "hashcat";
+static const char *ST_PASS_HASHCAT_EXCL  = "hashcat!";
+static const char *ST_PASS_HASHCAT_EXCL3 = "hashcat!!!";
+static const char *ST_PASS_HASHCAT_ONE   = "hashcat1";
+static const char *ST_PASS_HASHCAT_ONET3 = "hashcat1hashcat1hashcat1";
 
 static const char *ST_PASS_HEX_02501     = "7f620a599c445155935a35634638fa67b4aafecb92e0bd8625388757a63c2dda";
 static const char *ST_PASS_BIN_09710     = "\x91\xb2\xe0\x62\xb9";

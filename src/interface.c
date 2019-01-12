@@ -16,56 +16,6 @@
 #include "modules.h"
 #include "dynloader.h"
 
-static const char *ST_PASS_HASHCAT_PLAIN = "hashcat";
-static const char *ST_PASS_HASHCAT_EXCL  = "hashcat!";
-static const char *ST_PASS_HASHCAT_EXCL3 = "hashcat!!!";
-static const char *ST_PASS_HASHCAT_ONE   = "hashcat1";
-static const char *ST_PASS_HASHCAT_ONET3 = "hashcat1hashcat1hashcat1";
-
-static const char *OPTI_STR_OPTIMIZED_KERNEL     = "Optimized-Kernel";
-static const char *OPTI_STR_ZERO_BYTE            = "Zero-Byte";
-static const char *OPTI_STR_PRECOMPUTE_INIT      = "Precompute-Init";
-static const char *OPTI_STR_PRECOMPUTE_MERKLE    = "Precompute-Merkle-Demgard";
-static const char *OPTI_STR_PRECOMPUTE_PERMUT    = "Precompute-Final-Permutation";
-static const char *OPTI_STR_MEET_IN_MIDDLE       = "Meet-In-The-Middle";
-static const char *OPTI_STR_EARLY_SKIP           = "Early-Skip";
-static const char *OPTI_STR_NOT_SALTED           = "Not-Salted";
-static const char *OPTI_STR_NOT_ITERATED         = "Not-Iterated";
-static const char *OPTI_STR_PREPENDED_SALT       = "Prepended-Salt";
-static const char *OPTI_STR_APPENDED_SALT        = "Appended-Salt";
-static const char *OPTI_STR_SINGLE_HASH          = "Single-Hash";
-static const char *OPTI_STR_SINGLE_SALT          = "Single-Salt";
-static const char *OPTI_STR_BRUTE_FORCE          = "Brute-Force";
-static const char *OPTI_STR_RAW_HASH             = "Raw-Hash";
-static const char *OPTI_STR_SLOW_HASH_SIMD_INIT  = "Slow-Hash-SIMD-INIT";
-static const char *OPTI_STR_SLOW_HASH_SIMD_LOOP  = "Slow-Hash-SIMD-LOOP";
-static const char *OPTI_STR_SLOW_HASH_SIMD_COMP  = "Slow-Hash-SIMD-COMP";
-static const char *OPTI_STR_USES_BITS_8          = "Uses-8-Bit";
-static const char *OPTI_STR_USES_BITS_16         = "Uses-16-Bit";
-static const char *OPTI_STR_USES_BITS_32         = "Uses-32-Bit";
-static const char *OPTI_STR_USES_BITS_64         = "Uses-64-Bit";
-
-static const char *HASH_CATEGORY_UNDEFINED_STR              = "Undefined";
-static const char *HASH_CATEGORY_RAW_HASH_STR               = "Raw Hash";
-static const char *HASH_CATEGORY_RAW_HASH_SALTED_STR        = "Raw Hash, Salted and/or Iterated";
-static const char *HASH_CATEGORY_RAW_HASH_AUTHENTICATED_STR = "Raw Hash, Authenticated";
-static const char *HASH_CATEGORY_RAW_CIPHER_KPA_STR         = "Raw Cipher, Known-Plaintext attack";
-static const char *HASH_CATEGORY_GENERIC_KDF_STR            = "Generic KDF";
-static const char *HASH_CATEGORY_NETWORK_PROTOCOL_STR       = "Network Protocols";
-static const char *HASH_CATEGORY_FORUM_SOFTWARE_STR         = "Forums, CMS, E-Commerce, Frameworks";
-static const char *HASH_CATEGORY_DATABASE_SERVER_STR        = "Database Server";
-static const char *HASH_CATEGORY_NETWORK_SERVER_STR         = "FTP, HTTP, SMTP, LDAP Server";
-static const char *HASH_CATEGORY_RAW_CHECKSUM_STR           = "Raw Checksum";
-static const char *HASH_CATEGORY_OS_STR                     = "Operating System";
-static const char *HASH_CATEGORY_EAS_STR                    = "Enterprise Application Software (EAS)";
-static const char *HASH_CATEGORY_ARCHIVE_STR                = "Archives";
-static const char *HASH_CATEGORY_BACKUP_STR                 = "Backup";
-static const char *HASH_CATEGORY_FDE_STR                    = "Full-Disk Encryption (FDE)";
-static const char *HASH_CATEGORY_DOCUMENTS_STR              = "Documents";
-static const char *HASH_CATEGORY_PASSWORD_MANAGER_STR       = "Password Managers";
-static const char *HASH_CATEGORY_OTP_STR                    = "One-Time Passwords";
-static const char *HASH_CATEGORY_PLAIN_STR                  = "Plaintext";
-
 /**
  * parser
  */
@@ -279,70 +229,6 @@ int execute_keyboard_layout_mapping (u32 plain_buf[64], const int plain_len, key
 }
 
 /**
- * output
- */
-
-const char *strhashcategory (const u32 hash_category)
-{
-  switch (hash_category)
-  {
-    case HASH_CATEGORY_UNDEFINED:               return HASH_CATEGORY_UNDEFINED_STR;
-    case HASH_CATEGORY_RAW_HASH:                return HASH_CATEGORY_RAW_HASH_STR;
-    case HASH_CATEGORY_RAW_HASH_SALTED:         return HASH_CATEGORY_RAW_HASH_SALTED_STR;
-    case HASH_CATEGORY_RAW_HASH_AUTHENTICATED:  return HASH_CATEGORY_RAW_HASH_AUTHENTICATED_STR;
-    case HASH_CATEGORY_RAW_CIPHER_KPA:          return HASH_CATEGORY_RAW_CIPHER_KPA_STR;
-    case HASH_CATEGORY_GENERIC_KDF:             return HASH_CATEGORY_GENERIC_KDF_STR;
-    case HASH_CATEGORY_NETWORK_PROTOCOL:        return HASH_CATEGORY_NETWORK_PROTOCOL_STR;
-    case HASH_CATEGORY_FORUM_SOFTWARE:          return HASH_CATEGORY_FORUM_SOFTWARE_STR;
-    case HASH_CATEGORY_DATABASE_SERVER:         return HASH_CATEGORY_DATABASE_SERVER_STR;
-    case HASH_CATEGORY_NETWORK_SERVER:          return HASH_CATEGORY_NETWORK_SERVER_STR;
-    case HASH_CATEGORY_RAW_CHECKSUM:            return HASH_CATEGORY_RAW_CHECKSUM_STR;
-    case HASH_CATEGORY_OS:                      return HASH_CATEGORY_OS_STR;
-    case HASH_CATEGORY_EAS:                     return HASH_CATEGORY_EAS_STR;
-    case HASH_CATEGORY_ARCHIVE:                 return HASH_CATEGORY_ARCHIVE_STR;
-    case HASH_CATEGORY_BACKUP:                  return HASH_CATEGORY_BACKUP_STR;
-    case HASH_CATEGORY_FDE:                     return HASH_CATEGORY_FDE_STR;
-    case HASH_CATEGORY_DOCUMENTS:               return HASH_CATEGORY_DOCUMENTS_STR;
-    case HASH_CATEGORY_PASSWORD_MANAGER:        return HASH_CATEGORY_PASSWORD_MANAGER_STR;
-    case HASH_CATEGORY_OTP:                     return HASH_CATEGORY_OTP_STR;
-    case HASH_CATEGORY_PLAIN:                   return HASH_CATEGORY_PLAIN_STR;
-  }
-
-  return NULL;
-}
-
-const char *stroptitype (const u32 opti_type)
-{
-  switch (opti_type)
-  {
-    case OPTI_TYPE_OPTIMIZED_KERNEL:    return OPTI_STR_OPTIMIZED_KERNEL;
-    case OPTI_TYPE_ZERO_BYTE:           return OPTI_STR_ZERO_BYTE;
-    case OPTI_TYPE_PRECOMPUTE_INIT:     return OPTI_STR_PRECOMPUTE_INIT;
-    case OPTI_TYPE_PRECOMPUTE_MERKLE:   return OPTI_STR_PRECOMPUTE_MERKLE;
-    case OPTI_TYPE_PRECOMPUTE_PERMUT:   return OPTI_STR_PRECOMPUTE_PERMUT;
-    case OPTI_TYPE_MEET_IN_MIDDLE:      return OPTI_STR_MEET_IN_MIDDLE;
-    case OPTI_TYPE_EARLY_SKIP:          return OPTI_STR_EARLY_SKIP;
-    case OPTI_TYPE_NOT_SALTED:          return OPTI_STR_NOT_SALTED;
-    case OPTI_TYPE_NOT_ITERATED:        return OPTI_STR_NOT_ITERATED;
-    case OPTI_TYPE_PREPENDED_SALT:      return OPTI_STR_PREPENDED_SALT;
-    case OPTI_TYPE_APPENDED_SALT:       return OPTI_STR_APPENDED_SALT;
-    case OPTI_TYPE_SINGLE_HASH:         return OPTI_STR_SINGLE_HASH;
-    case OPTI_TYPE_SINGLE_SALT:         return OPTI_STR_SINGLE_SALT;
-    case OPTI_TYPE_BRUTE_FORCE:         return OPTI_STR_BRUTE_FORCE;
-    case OPTI_TYPE_RAW_HASH:            return OPTI_STR_RAW_HASH;
-    case OPTI_TYPE_SLOW_HASH_SIMD_INIT: return OPTI_STR_SLOW_HASH_SIMD_INIT;
-    case OPTI_TYPE_SLOW_HASH_SIMD_LOOP: return OPTI_STR_SLOW_HASH_SIMD_LOOP;
-    case OPTI_TYPE_SLOW_HASH_SIMD_COMP: return OPTI_STR_SLOW_HASH_SIMD_COMP;
-    case OPTI_TYPE_USES_BITS_8:         return OPTI_STR_USES_BITS_8;
-    case OPTI_TYPE_USES_BITS_16:        return OPTI_STR_USES_BITS_16;
-    case OPTI_TYPE_USES_BITS_32:        return OPTI_STR_USES_BITS_32;
-    case OPTI_TYPE_USES_BITS_64:        return OPTI_STR_USES_BITS_64;
-  }
-
-  return NULL;
-}
-
-/**
  * parsing
  */
 
@@ -377,175 +263,6 @@ int ascii_digest (const hashconfig_t *hashconfig, const hashes_t *hashes, const 
   //salt_t salt;
 
   /*
-  if (opti_type & OPTI_TYPE_PRECOMPUTE_PERMUT)
-  {
-    u32 tt;
-
-    switch (hash_type)
-    {
-      case HASH_TYPE_DES:
-        FP (digest_buf[1], digest_buf[0], tt);
-        break;
-
-      case HASH_TYPE_DESCRYPT:
-        FP (digest_buf[1], digest_buf[0], tt);
-        break;
-
-      case HASH_TYPE_DESRACF:
-        digest_buf[0] = rotl32 (digest_buf[0], 29);
-        digest_buf[1] = rotl32 (digest_buf[1], 29);
-
-        FP (digest_buf[1], digest_buf[0], tt);
-        break;
-
-      case HASH_TYPE_LM:
-        FP (digest_buf[1], digest_buf[0], tt);
-        break;
-
-      case HASH_TYPE_NETNTLM:
-        digest_buf[0] = rotl32 (digest_buf[0], 29);
-        digest_buf[1] = rotl32 (digest_buf[1], 29);
-        digest_buf[2] = rotl32 (digest_buf[2], 29);
-        digest_buf[3] = rotl32 (digest_buf[3], 29);
-
-        FP (digest_buf[1], digest_buf[0], tt);
-        FP (digest_buf[3], digest_buf[2], tt);
-        break;
-
-      case HASH_TYPE_BSDICRYPT:
-        digest_buf[0] = rotl32 (digest_buf[0], 31);
-        digest_buf[1] = rotl32 (digest_buf[1], 31);
-
-        FP (digest_buf[1], digest_buf[0], tt);
-        break;
-    }
-  }
-
-  if (opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
-  {
-    switch (hash_type)
-    {
-      case HASH_TYPE_MD4:
-        digest_buf[0] += MD4M_A;
-        digest_buf[1] += MD4M_B;
-        digest_buf[2] += MD4M_C;
-        digest_buf[3] += MD4M_D;
-        break;
-
-      case HASH_TYPE_MD5:
-        digest_buf[0] += MD5M_A;
-        digest_buf[1] += MD5M_B;
-        digest_buf[2] += MD5M_C;
-        digest_buf[3] += MD5M_D;
-        break;
-
-      case HASH_TYPE_SHA1:
-        digest_buf[0] += SHA1M_A;
-        digest_buf[1] += SHA1M_B;
-        digest_buf[2] += SHA1M_C;
-        digest_buf[3] += SHA1M_D;
-        digest_buf[4] += SHA1M_E;
-        break;
-
-      case HASH_TYPE_SHA224:
-        digest_buf[0] += SHA224M_A;
-        digest_buf[1] += SHA224M_B;
-        digest_buf[2] += SHA224M_C;
-        digest_buf[3] += SHA224M_D;
-        digest_buf[4] += SHA224M_E;
-        digest_buf[5] += SHA224M_F;
-        digest_buf[6] += SHA224M_G;
-        break;
-
-      case HASH_TYPE_SHA256:
-        digest_buf[0] += SHA256M_A;
-        digest_buf[1] += SHA256M_B;
-        digest_buf[2] += SHA256M_C;
-        digest_buf[3] += SHA256M_D;
-        digest_buf[4] += SHA256M_E;
-        digest_buf[5] += SHA256M_F;
-        digest_buf[6] += SHA256M_G;
-        digest_buf[7] += SHA256M_H;
-        break;
-
-      case HASH_TYPE_SHA384:
-        digest_buf64[0] += SHA384M_A;
-        digest_buf64[1] += SHA384M_B;
-        digest_buf64[2] += SHA384M_C;
-        digest_buf64[3] += SHA384M_D;
-        digest_buf64[4] += SHA384M_E;
-        digest_buf64[5] += SHA384M_F;
-        digest_buf64[6] += 0;
-        digest_buf64[7] += 0;
-        break;
-
-      case HASH_TYPE_SHA512:
-        digest_buf64[0] += SHA512M_A;
-        digest_buf64[1] += SHA512M_B;
-        digest_buf64[2] += SHA512M_C;
-        digest_buf64[3] += SHA512M_D;
-        digest_buf64[4] += SHA512M_E;
-        digest_buf64[5] += SHA512M_F;
-        digest_buf64[6] += SHA512M_G;
-        digest_buf64[7] += SHA512M_H;
-        break;
-    }
-  }
-
-  if (opts_type & OPTS_TYPE_PT_GENERATE_LE)
-  {
-    if (dgst_size == DGST_SIZE_4_2)
-    {
-      for (int i = 0; i < 2; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
-    }
-    else if (dgst_size == DGST_SIZE_4_4)
-    {
-      for (int i = 0; i < 4; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
-    }
-    else if (dgst_size == DGST_SIZE_4_5)
-    {
-      for (int i = 0; i < 5; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
-    }
-    else if (dgst_size == DGST_SIZE_4_6)
-    {
-      for (int i = 0; i < 6; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
-    }
-    else if (dgst_size == DGST_SIZE_4_7)
-    {
-      for (int i = 0; i < 7; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
-    }
-    else if (dgst_size == DGST_SIZE_4_8)
-    {
-      for (int i = 0; i < 8; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
-    }
-    else if ((dgst_size == DGST_SIZE_4_16) || (dgst_size == DGST_SIZE_8_8)) // same size, same result :)
-    {
-      if (hash_type == HASH_TYPE_WHIRLPOOL)
-      {
-        for (int i = 0; i < 16; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
-      }
-      else if (hash_type == HASH_TYPE_SHA384)
-      {
-        for (int i = 0; i < 8; i++) digest_buf64[i] = byte_swap_64 (digest_buf64[i]);
-      }
-      else if (hash_type == HASH_TYPE_SHA512)
-      {
-        for (int i = 0; i < 8; i++) digest_buf64[i] = byte_swap_64 (digest_buf64[i]);
-      }
-      else if (hash_type == HASH_TYPE_GOST)
-      {
-        for (int i = 0; i < 16; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
-      }
-    }
-    else if (dgst_size == DGST_SIZE_4_64)
-    {
-      for (int i = 0; i < 64; i++) digest_buf[i] = byte_swap_32 (digest_buf[i]);
-    }
-    else if (dgst_size == DGST_SIZE_8_25)
-    {
-      for (int i = 0; i < 25; i++) digest_buf64[i] = byte_swap_64 (digest_buf64[i]);
-    }
-  }
 
   const bool isSalted = ((hashconfig->salt_type == SALT_TYPE_GENERIC)
                       |  (hashconfig->salt_type == SALT_TYPE_EMBEDDED));
@@ -652,6 +369,8 @@ static bool module_load (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, c
 {
   const folder_config_t *folder_config = hashcat_ctx->folder_config;
 
+  memset (module_ctx, 0, sizeof (module_ctx_t));
+
   char *module_file = (char *) hcmalloc (HCBUFSIZ_TINY);
 
   #if defined (_WIN)
@@ -705,20 +424,11 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   // set some boring defaults
 
-  hashconfig->attack_exec             = default_attack_exec             (hashconfig, user_options, user_options_extra);
   hashconfig->benchmark_mask          = default_benchmark_mask          (hashconfig, user_options, user_options_extra);
-  hashconfig->dgst_pos0               = default_dgst_pos0               (hashconfig, user_options, user_options_extra);
-  hashconfig->dgst_pos1               = default_dgst_pos1               (hashconfig, user_options, user_options_extra);
-  hashconfig->dgst_pos2               = default_dgst_pos2               (hashconfig, user_options, user_options_extra);
-  hashconfig->dgst_pos3               = default_dgst_pos3               (hashconfig, user_options, user_options_extra);
-  hashconfig->dgst_size               = default_dgst_size               (hashconfig, user_options, user_options_extra);
   hashconfig->dictstat_disable        = default_dictstat_disable        (hashconfig, user_options, user_options_extra);
   hashconfig->esalt_size              = default_esalt_size              (hashconfig, user_options, user_options_extra);
   hashconfig->forced_outfile_format   = default_forced_outfile_format   (hashconfig, user_options, user_options_extra);
-  hashconfig->hash_category           = default_hash_category           (hashconfig, user_options, user_options_extra);
   hashconfig->hash_mode               = default_hash_mode               (hashconfig, user_options, user_options_extra);
-  hashconfig->hash_name               = default_hash_name               (hashconfig, user_options, user_options_extra);
-  hashconfig->hash_type               = default_hash_type               (hashconfig, user_options, user_options_extra);
   hashconfig->hlfmt_disable           = default_hlfmt_disable           (hashconfig, user_options, user_options_extra);
   hashconfig->hook_salt_size          = default_hook_salt_size          (hashconfig, user_options, user_options_extra);
   hashconfig->hook_size               = default_hook_size               (hashconfig, user_options, user_options_extra);
@@ -728,18 +438,12 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   hashconfig->kernel_loops_max        = default_kernel_loops_max        (hashconfig, user_options, user_options_extra);
   hashconfig->kernel_threads_min      = default_kernel_threads_min      (hashconfig, user_options, user_options_extra);
   hashconfig->kernel_threads_max      = default_kernel_threads_max      (hashconfig, user_options, user_options_extra);
-  hashconfig->kern_type               = default_kern_type               (hashconfig, user_options, user_options_extra);
-  hashconfig->opti_type               = default_opti_type               (hashconfig, user_options, user_options_extra);
-  hashconfig->opts_type               = default_opts_type               (hashconfig, user_options, user_options_extra);
   hashconfig->outfile_check_disable   = default_outfile_check_disable   (hashconfig, user_options, user_options_extra);
   hashconfig->outfile_check_nocomp    = default_outfile_check_nocomp    (hashconfig, user_options, user_options_extra);
   hashconfig->potfile_disable         = default_potfile_disable         (hashconfig, user_options, user_options_extra);
   hashconfig->potfile_keep_all_hashes = default_potfile_keep_all_hashes (hashconfig, user_options, user_options_extra);
   hashconfig->pwdump_column           = default_pwdump_column           (hashconfig, user_options, user_options_extra);
-  hashconfig->salt_type               = default_salt_type               (hashconfig, user_options, user_options_extra);
   hashconfig->separator               = default_separator               (hashconfig, user_options, user_options_extra);
-  hashconfig->st_hash                 = default_st_hash                 (hashconfig, user_options, user_options_extra);
-  hashconfig->st_pass                 = default_st_pass                 (hashconfig, user_options, user_options_extra);
   hashconfig->tmp_size                = default_tmp_size                (hashconfig, user_options, user_options_extra);
   hashconfig->unstable_warning        = default_unstable_warning        (hashconfig, user_options, user_options_extra);
   hashconfig->warmup_disable          = default_warmup_disable          (hashconfig, user_options, user_options_extra);
@@ -752,11 +456,161 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   module_ctx->module_init (module_ctx);
 
-  if (module_ctx->module_interface_version < MODULE_INTERFACE_VERSION_MINIMUM)
+  if (module_ctx->module_context_size != MODULE_CONTEXT_SIZE_CURRENT)
   {
-    event_log_error (hashcat_ctx, "module version current (%u) older than minimum (%u)", module_ctx->module_interface_version, MODULE_INTERFACE_VERSION_MINIMUM);
+    event_log_error (hashcat_ctx, "module context size is invalid, outdated template?");
 
     return -1;
+  }
+
+  if (module_ctx->module_interface_version < MODULE_INTERFACE_VERSION_MINIMUM)
+  {
+    event_log_error (hashcat_ctx, "module interface version is outdated, please compile");
+
+    return -1;
+  }
+
+  // check for missing pointer assignements
+
+  const size_t ptr_sz = sizeof (void *);
+
+  char *zbuf = (char *) hcmalloc (ptr_sz);
+
+  char *mpa_check = (char *) module_ctx;
+
+  for (size_t i = 0; i < sizeof (module_ctx_t) - ptr_sz; i++)
+  {
+    if (memcmp (mpa_check, zbuf, ptr_sz) == 0)
+    {
+      event_log_error (hashcat_ctx, "module context initialization is invalid, outdated template?");
+
+      return -1;
+    }
+
+    mpa_check++;
+  }
+
+  hcfree (zbuf);
+
+  // mandatory functions check
+
+  if (module_ctx->module_attack_exec == MODULE_DEFAULT)
+  {
+    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_attack_exec'");
+
+    return false;
+  }
+
+  if (module_ctx->module_dgst_pos0 == MODULE_DEFAULT)
+  {
+    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_dgst_pos0'");
+
+    return false;
+  }
+
+  if (module_ctx->module_dgst_pos1 == MODULE_DEFAULT)
+  {
+    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_dgst_pos1'");
+
+    return false;
+  }
+
+  if (module_ctx->module_dgst_pos2 == MODULE_DEFAULT)
+  {
+    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_dgst_pos2'");
+
+    return false;
+  }
+
+  if (module_ctx->module_dgst_pos3 == MODULE_DEFAULT)
+  {
+    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_dgst_pos3'");
+
+    return false;
+  }
+
+  if (module_ctx->module_dgst_size == MODULE_DEFAULT)
+  {
+    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_dgst_size'");
+
+    return false;
+  }
+
+  if (module_ctx->module_hash_decode == MODULE_DEFAULT)
+  {
+    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_hash_decode'");
+
+    return false;
+  }
+
+  if (module_ctx->module_hash_encode == MODULE_DEFAULT)
+  {
+    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_hash_encode'");
+
+    return false;
+  }
+
+  if (module_ctx->module_hash_category == MODULE_DEFAULT)
+  {
+    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_hash_category'");
+
+    return false;
+  }
+
+  if (module_ctx->module_hash_name == MODULE_DEFAULT)
+  {
+    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_hash_name'");
+
+    return false;
+  }
+
+  if (module_ctx->module_hash_type == MODULE_DEFAULT)
+  {
+    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_hash_type'");
+
+    return false;
+  }
+
+  if (module_ctx->module_kern_type == MODULE_DEFAULT)
+  {
+    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_kern_type'");
+
+    return false;
+  }
+
+  if (module_ctx->module_opti_type == MODULE_DEFAULT)
+  {
+    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_opti_type'");
+
+    return false;
+  }
+
+  if (module_ctx->module_opts_type == MODULE_DEFAULT)
+  {
+    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_opts_type'");
+
+    return false;
+  }
+
+  if (module_ctx->module_salt_type == MODULE_DEFAULT)
+  {
+    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_salt_type'");
+
+    return false;
+  }
+
+  if (module_ctx->module_st_hash == MODULE_DEFAULT)
+  {
+    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_st_hash'");
+
+    return false;
+  }
+
+  if (module_ctx->module_st_pass == MODULE_DEFAULT)
+  {
+    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_st_pass'");
+
+    return false;
   }
 
   if (module_ctx->module_attack_exec              != MODULE_DEFAULT) hashconfig->attack_exec             = module_ctx->module_attack_exec              (hashconfig, user_options, user_options_extra);
@@ -934,6 +788,17 @@ void hashconfig_destroy (hashcat_ctx_t *hashcat_ctx)
   memset (hashconfig, 0, sizeof (hashconfig_t));
 }
 
+/**
+ * default functions
+ */
+
+const char *default_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const char *mask = "?b?b?b?b?b?b?b";
+
+  return mask;
+}
+
 u32 default_hash_mode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   const u32 hash_mode = user_options->hash_mode;
@@ -941,67 +806,159 @@ u32 default_hash_mode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED
   return hash_mode;
 }
 
-u32 default_attack_exec (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+u64 default_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 attack_exec = ATTACK_EXEC_INSIDE_KERNEL;
+  const u64 tmp_size = 4;
 
-  return attack_exec;
+  return tmp_size;
 }
 
-u32 default_dgst_pos0 (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+u64 default_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 dgst_pos0 = 0;
+  const u64 esalt_size = 0;
 
-  return dgst_pos0;
+  return esalt_size;
 }
 
-u32 default_dgst_pos1 (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+u32 default_kernel_accel_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 dgst_pos1 = 1;
+  const u32 kernel_accel_min = KERNEL_ACCEL_MIN;
 
-  return dgst_pos1;
+  return kernel_accel_min;
 }
 
-u32 default_dgst_pos2 (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+u32 default_kernel_accel_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 dgst_pos2 = 2;
+  const u32 kernel_accel_max = KERNEL_ACCEL_MAX;
 
-  return dgst_pos2;
+  return kernel_accel_max;
 }
 
-u32 default_dgst_pos3 (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+u32 default_kernel_loops_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 dgst_pos3 = 3;
+  const u32 kernel_loops_min = KERNEL_LOOPS_MIN;
 
-  return dgst_pos3;
+  return kernel_loops_min;
 }
 
-u32 default_dgst_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+u32 default_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 dgst_size = DGST_SIZE_4_4;
+  const u32 kernel_loops_max = KERNEL_LOOPS_MAX;
 
-  return dgst_size;
+  return kernel_loops_max;
 }
 
-u32 default_hash_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+u32 default_kernel_threads_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 hash_type = 0;
+  const u32 kernel_threads_min = KERNEL_THREADS_MIN;
 
-  return hash_type;
+  return kernel_threads_min;
 }
 
-const char *default_hash_name (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+u32 default_kernel_threads_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const char *hash_name = "<empty default>";
+  const u32 kernel_threads_max = KERNEL_THREADS_MAX;
 
-  return hash_name;
+  return kernel_threads_max;
 }
 
-u32 default_hash_category (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+u32 default_forced_outfile_format (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 hash_category = HASH_CATEGORY_UNDEFINED;
+  const u32 forced_outfile_format = user_options->outfile_format;
 
-  return hash_category;
+  return forced_outfile_format;
+}
+
+u64 default_hook_salt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u64 hook_salt_size = 0;
+
+  return hook_salt_size;
+}
+
+u64 default_hook_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u64 hook_size = 4;
+
+  return hook_size;
+}
+
+char default_separator (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return user_options->separator;
+}
+
+bool default_dictstat_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const bool dictstat_disable = false;
+
+  return dictstat_disable;
+}
+
+bool default_warmup_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const bool warmup_disable = false;
+
+  return warmup_disable;
+}
+
+bool default_outfile_check_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const bool outfile_check_disable = false;
+
+  return outfile_check_disable;
+}
+
+bool default_outfile_check_nocomp (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const bool outfile_check_nocomp = false;
+
+  return outfile_check_nocomp;
+}
+
+bool default_hlfmt_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const bool hlfmt_disable = false;
+
+  return hlfmt_disable;
+}
+
+bool default_potfile_keep_all_hashes (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  bool potfile_keep_all_hashes = false;
+
+  // keep all hashes if --username was combined with --left or --show
+
+  if (user_options->username == true)
+  {
+    if ((user_options->show == true) || (user_options->left == true))
+    {
+      potfile_keep_all_hashes = true;
+    }
+  }
+
+  return potfile_keep_all_hashes;
+}
+
+u32 default_pwdump_column (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 pwdump_column = PWDUMP_COLUMN_INVALID;
+
+  return pwdump_column;
+}
+
+bool default_potfile_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const bool potfile_disable = false;
+
+  return potfile_disable;
+}
+
+bool default_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const bool unstable_warning = false;
+
+  return unstable_warning;
 }
 
 u32 default_pw_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -1139,204 +1096,4 @@ u32 default_salt_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED 
   }
 
   return salt_max;
-}
-
-const char *default_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const char *mask = "?b?b?b?b?b?b?b";
-
-  return mask;
-}
-
-u32 default_opti_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 opti_type = 0;
-
-  return opti_type;
-}
-
-u64 default_opts_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u64 opts_type = 0;
-
-  return opts_type;
-}
-
-u64 default_kern_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u64 kern_type = 0;
-
-  return kern_type;
-}
-
-u64 default_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u64 tmp_size = 4;
-
-  return tmp_size;
-}
-
-u64 default_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u64 esalt_size = 0;
-
-  return esalt_size;
-}
-
-u32 default_kernel_accel_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 kernel_accel_min = KERNEL_ACCEL_MIN;
-
-  return kernel_accel_min;
-}
-
-u32 default_kernel_accel_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 kernel_accel_max = KERNEL_ACCEL_MAX;
-
-  return kernel_accel_max;
-}
-
-u32 default_kernel_loops_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 kernel_loops_min = KERNEL_LOOPS_MIN;
-
-  return kernel_loops_min;
-}
-
-u32 default_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 kernel_loops_max = KERNEL_LOOPS_MAX;
-
-  return kernel_loops_max;
-}
-
-u32 default_kernel_threads_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 kernel_threads_min = KERNEL_THREADS_MIN;
-
-  return kernel_threads_min;
-}
-
-u32 default_kernel_threads_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 kernel_threads_max = KERNEL_THREADS_MAX;
-
-  return kernel_threads_max;
-}
-
-u32 default_forced_outfile_format (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 forced_outfile_format = user_options->outfile_format;
-
-  return forced_outfile_format;
-}
-
-u32 default_salt_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 salt_type = SALT_TYPE_NONE;
-
-  return salt_type;
-}
-
-u64 default_hook_salt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u64 hook_salt_size = 0;
-
-  return hook_salt_size;
-}
-
-u64 default_hook_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u64 hook_size = 4;
-
-  return hook_size;
-}
-
-char default_separator (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  return user_options->separator;
-}
-
-const char *default_st_hash (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  return "<empty default>";
-}
-
-const char *default_st_pass (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  return ST_PASS_HASHCAT_PLAIN;
-}
-
-bool default_dictstat_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const bool dictstat_disable = false;
-
-  return dictstat_disable;
-}
-
-bool default_warmup_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const bool warmup_disable = false;
-
-  return warmup_disable;
-}
-
-bool default_outfile_check_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const bool outfile_check_disable = false;
-
-  return outfile_check_disable;
-}
-
-bool default_outfile_check_nocomp (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const bool outfile_check_nocomp = false;
-
-  return outfile_check_nocomp;
-}
-
-bool default_hlfmt_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const bool hlfmt_disable = false;
-
-  return hlfmt_disable;
-}
-
-bool default_potfile_keep_all_hashes (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  bool potfile_keep_all_hashes = false;
-
-  // keep all hashes if --username was combined with --left or --show
-
-  if (user_options->username == true)
-  {
-    if ((user_options->show == true) || (user_options->left == true))
-    {
-      potfile_keep_all_hashes = true;
-    }
-  }
-
-  return potfile_keep_all_hashes;
-}
-
-u32 default_pwdump_column (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 pwdump_column = PWDUMP_COLUMN_INVALID;
-
-  return pwdump_column;
-}
-
-bool default_potfile_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const bool potfile_disable = false;
-
-  return potfile_disable;
-}
-
-bool default_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const bool unstable_warning = false;
-
-  return unstable_warning;
 }

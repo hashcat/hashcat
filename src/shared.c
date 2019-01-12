@@ -54,6 +54,50 @@ static const char *PA_035 = "Token length exception";
 static const char *PA_036 = "Insufficient entropy exception";
 static const char *PA_255 = "Unknown error";
 
+static const char *OPTI_STR_OPTIMIZED_KERNEL     = "Optimized-Kernel";
+static const char *OPTI_STR_ZERO_BYTE            = "Zero-Byte";
+static const char *OPTI_STR_PRECOMPUTE_INIT      = "Precompute-Init";
+static const char *OPTI_STR_PRECOMPUTE_MERKLE    = "Precompute-Merkle-Demgard";
+static const char *OPTI_STR_PRECOMPUTE_PERMUT    = "Precompute-Final-Permutation";
+static const char *OPTI_STR_MEET_IN_MIDDLE       = "Meet-In-The-Middle";
+static const char *OPTI_STR_EARLY_SKIP           = "Early-Skip";
+static const char *OPTI_STR_NOT_SALTED           = "Not-Salted";
+static const char *OPTI_STR_NOT_ITERATED         = "Not-Iterated";
+static const char *OPTI_STR_PREPENDED_SALT       = "Prepended-Salt";
+static const char *OPTI_STR_APPENDED_SALT        = "Appended-Salt";
+static const char *OPTI_STR_SINGLE_HASH          = "Single-Hash";
+static const char *OPTI_STR_SINGLE_SALT          = "Single-Salt";
+static const char *OPTI_STR_BRUTE_FORCE          = "Brute-Force";
+static const char *OPTI_STR_RAW_HASH             = "Raw-Hash";
+static const char *OPTI_STR_SLOW_HASH_SIMD_INIT  = "Slow-Hash-SIMD-INIT";
+static const char *OPTI_STR_SLOW_HASH_SIMD_LOOP  = "Slow-Hash-SIMD-LOOP";
+static const char *OPTI_STR_SLOW_HASH_SIMD_COMP  = "Slow-Hash-SIMD-COMP";
+static const char *OPTI_STR_USES_BITS_8          = "Uses-8-Bit";
+static const char *OPTI_STR_USES_BITS_16         = "Uses-16-Bit";
+static const char *OPTI_STR_USES_BITS_32         = "Uses-32-Bit";
+static const char *OPTI_STR_USES_BITS_64         = "Uses-64-Bit";
+
+static const char *HASH_CATEGORY_UNDEFINED_STR              = "Undefined";
+static const char *HASH_CATEGORY_RAW_HASH_STR               = "Raw Hash";
+static const char *HASH_CATEGORY_RAW_HASH_SALTED_STR        = "Raw Hash, Salted and/or Iterated";
+static const char *HASH_CATEGORY_RAW_HASH_AUTHENTICATED_STR = "Raw Hash, Authenticated";
+static const char *HASH_CATEGORY_RAW_CIPHER_KPA_STR         = "Raw Cipher, Known-Plaintext attack";
+static const char *HASH_CATEGORY_GENERIC_KDF_STR            = "Generic KDF";
+static const char *HASH_CATEGORY_NETWORK_PROTOCOL_STR       = "Network Protocols";
+static const char *HASH_CATEGORY_FORUM_SOFTWARE_STR         = "Forums, CMS, E-Commerce, Frameworks";
+static const char *HASH_CATEGORY_DATABASE_SERVER_STR        = "Database Server";
+static const char *HASH_CATEGORY_NETWORK_SERVER_STR         = "FTP, HTTP, SMTP, LDAP Server";
+static const char *HASH_CATEGORY_RAW_CHECKSUM_STR           = "Raw Checksum";
+static const char *HASH_CATEGORY_OS_STR                     = "Operating System";
+static const char *HASH_CATEGORY_EAS_STR                    = "Enterprise Application Software (EAS)";
+static const char *HASH_CATEGORY_ARCHIVE_STR                = "Archives";
+static const char *HASH_CATEGORY_BACKUP_STR                 = "Backup";
+static const char *HASH_CATEGORY_FDE_STR                    = "Full-Disk Encryption (FDE)";
+static const char *HASH_CATEGORY_DOCUMENTS_STR              = "Documents";
+static const char *HASH_CATEGORY_PASSWORD_MANAGER_STR       = "Password Managers";
+static const char *HASH_CATEGORY_OTP_STR                    = "One-Time Passwords";
+static const char *HASH_CATEGORY_PLAIN_STR                  = "Plaintext";
+
 static inline int get_msb32 (const u32 v)
 {
   int i;
@@ -842,6 +886,66 @@ int select_read_timeout_console (const int sec)
 }
 
 #endif
+
+const char *strhashcategory (const u32 hash_category)
+{
+  switch (hash_category)
+  {
+    case HASH_CATEGORY_UNDEFINED:               return HASH_CATEGORY_UNDEFINED_STR;
+    case HASH_CATEGORY_RAW_HASH:                return HASH_CATEGORY_RAW_HASH_STR;
+    case HASH_CATEGORY_RAW_HASH_SALTED:         return HASH_CATEGORY_RAW_HASH_SALTED_STR;
+    case HASH_CATEGORY_RAW_HASH_AUTHENTICATED:  return HASH_CATEGORY_RAW_HASH_AUTHENTICATED_STR;
+    case HASH_CATEGORY_RAW_CIPHER_KPA:          return HASH_CATEGORY_RAW_CIPHER_KPA_STR;
+    case HASH_CATEGORY_GENERIC_KDF:             return HASH_CATEGORY_GENERIC_KDF_STR;
+    case HASH_CATEGORY_NETWORK_PROTOCOL:        return HASH_CATEGORY_NETWORK_PROTOCOL_STR;
+    case HASH_CATEGORY_FORUM_SOFTWARE:          return HASH_CATEGORY_FORUM_SOFTWARE_STR;
+    case HASH_CATEGORY_DATABASE_SERVER:         return HASH_CATEGORY_DATABASE_SERVER_STR;
+    case HASH_CATEGORY_NETWORK_SERVER:          return HASH_CATEGORY_NETWORK_SERVER_STR;
+    case HASH_CATEGORY_RAW_CHECKSUM:            return HASH_CATEGORY_RAW_CHECKSUM_STR;
+    case HASH_CATEGORY_OS:                      return HASH_CATEGORY_OS_STR;
+    case HASH_CATEGORY_EAS:                     return HASH_CATEGORY_EAS_STR;
+    case HASH_CATEGORY_ARCHIVE:                 return HASH_CATEGORY_ARCHIVE_STR;
+    case HASH_CATEGORY_BACKUP:                  return HASH_CATEGORY_BACKUP_STR;
+    case HASH_CATEGORY_FDE:                     return HASH_CATEGORY_FDE_STR;
+    case HASH_CATEGORY_DOCUMENTS:               return HASH_CATEGORY_DOCUMENTS_STR;
+    case HASH_CATEGORY_PASSWORD_MANAGER:        return HASH_CATEGORY_PASSWORD_MANAGER_STR;
+    case HASH_CATEGORY_OTP:                     return HASH_CATEGORY_OTP_STR;
+    case HASH_CATEGORY_PLAIN:                   return HASH_CATEGORY_PLAIN_STR;
+  }
+
+  return NULL;
+}
+
+const char *stroptitype (const u32 opti_type)
+{
+  switch (opti_type)
+  {
+    case OPTI_TYPE_OPTIMIZED_KERNEL:    return OPTI_STR_OPTIMIZED_KERNEL;
+    case OPTI_TYPE_ZERO_BYTE:           return OPTI_STR_ZERO_BYTE;
+    case OPTI_TYPE_PRECOMPUTE_INIT:     return OPTI_STR_PRECOMPUTE_INIT;
+    case OPTI_TYPE_PRECOMPUTE_MERKLE:   return OPTI_STR_PRECOMPUTE_MERKLE;
+    case OPTI_TYPE_PRECOMPUTE_PERMUT:   return OPTI_STR_PRECOMPUTE_PERMUT;
+    case OPTI_TYPE_MEET_IN_MIDDLE:      return OPTI_STR_MEET_IN_MIDDLE;
+    case OPTI_TYPE_EARLY_SKIP:          return OPTI_STR_EARLY_SKIP;
+    case OPTI_TYPE_NOT_SALTED:          return OPTI_STR_NOT_SALTED;
+    case OPTI_TYPE_NOT_ITERATED:        return OPTI_STR_NOT_ITERATED;
+    case OPTI_TYPE_PREPENDED_SALT:      return OPTI_STR_PREPENDED_SALT;
+    case OPTI_TYPE_APPENDED_SALT:       return OPTI_STR_APPENDED_SALT;
+    case OPTI_TYPE_SINGLE_HASH:         return OPTI_STR_SINGLE_HASH;
+    case OPTI_TYPE_SINGLE_SALT:         return OPTI_STR_SINGLE_SALT;
+    case OPTI_TYPE_BRUTE_FORCE:         return OPTI_STR_BRUTE_FORCE;
+    case OPTI_TYPE_RAW_HASH:            return OPTI_STR_RAW_HASH;
+    case OPTI_TYPE_SLOW_HASH_SIMD_INIT: return OPTI_STR_SLOW_HASH_SIMD_INIT;
+    case OPTI_TYPE_SLOW_HASH_SIMD_LOOP: return OPTI_STR_SLOW_HASH_SIMD_LOOP;
+    case OPTI_TYPE_SLOW_HASH_SIMD_COMP: return OPTI_STR_SLOW_HASH_SIMD_COMP;
+    case OPTI_TYPE_USES_BITS_8:         return OPTI_STR_USES_BITS_8;
+    case OPTI_TYPE_USES_BITS_16:        return OPTI_STR_USES_BITS_16;
+    case OPTI_TYPE_USES_BITS_32:        return OPTI_STR_USES_BITS_32;
+    case OPTI_TYPE_USES_BITS_64:        return OPTI_STR_USES_BITS_64;
+  }
+
+  return NULL;
+}
 
 const char *strparser (const u32 parser_status)
 {
