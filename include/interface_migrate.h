@@ -525,12 +525,6 @@ typedef struct pdf17l8_tmp
 
 } pdf17l8_tmp_t;
 
-typedef struct md5crypt_tmp
-{
-  u32 digest_buf[4];
-
-} md5crypt_tmp_t;
-
 typedef struct sha256crypt_tmp
 {
   // pure version
@@ -1053,7 +1047,6 @@ typedef enum kern_type
   KERN_TYPE_SHA1_SLTPWU             = 140,
   KERN_TYPE_HMACSHA1_PW             = 150,
   KERN_TYPE_HMACSHA1_SLT            = 160,
-  KERN_TYPE_MD5CRYPT                = 500,
   KERN_TYPE_BLAKE2B                 = 600,
   KERN_TYPE_MD44_PWUSLT             = 1100,
   KERN_TYPE_SHA256_PWSLT            = 1410,
@@ -1265,7 +1258,6 @@ typedef enum rounds_count
    ROUNDS_SHA1AIX            = (1 << 6),
    ROUNDS_SHA256AIX          = (1 << 6),
    ROUNDS_SHA512AIX          = (1 << 6),
-   ROUNDS_MD5CRYPT           = 1000,
    ROUNDS_SHA256CRYPT        = 5000,
    ROUNDS_SHA512CRYPT        = 5000,
    ROUNDS_GRUB               = 10000,
@@ -1350,7 +1342,6 @@ int md5md5_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int md5pix_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int md5asa_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int md5apr1_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int md5crypt_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int mssql2000_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int mssql2005_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int netntlmv1_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
