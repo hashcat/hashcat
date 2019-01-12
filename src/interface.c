@@ -247,8 +247,6 @@ int ascii_digest (const hashconfig_t *hashconfig, const hashes_t *hashes, const 
   //const u32 hash_mode  = hashconfig->hash_mode;
   //const u32 salt_type  = hashconfig->salt_type;
 
-  //const u32 digest_cur = salts_buf[salt_pos].digests_offset + digest_pos;
-
   //u8 datax[256] = { 0 };
 
   //u64 *digest_buf64 = (u64 *) datax;
@@ -352,12 +350,19 @@ int ascii_digest (const hashconfig_t *hashconfig, const hashes_t *hashes, const 
   //char *ptr_plain = (char *) out_buf_plain;
   //u8   *ptr_salt  = (u8 *)   out_buf_salt;
 
+  const u32 digest_cur = salts_buf[salt_pos].digests_offset + digest_pos;
+
+  hashinfo_t *hash_info_ptr = NULL;
+
+  if (hash_info) hash_info_ptr = hash_info[digest_cur];
+
   const int out_len = module_ctx->module_hash_encode
   (
     hashconfig,
-    digests_buf_ptr + (salts_buf[salt_pos].digests_offset * dgst_size) + (digest_pos * dgst_size),
+    digests_buf_ptr + (digest_cur * dgst_size),
     salts_buf + salt_pos,
-    esalts_buf_ptr + (salts_buf[salt_pos].digests_offset * esalt_size) + (digest_pos * esalt_size),
+    esalts_buf_ptr + (digest_cur * esalt_size),
+    hash_info_ptr,
     out_buf,
     out_size
   );

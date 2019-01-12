@@ -148,7 +148,6 @@
   "   9200 | Cisco-IOS $8$ (PBKDF2-SHA256)                    | Operating Systems",
   "   9300 | Cisco-IOS $9$ (scrypt)                           | Operating Systems",
   "     22 | Juniper NetScreen/SSG (ScreenOS)                 | Operating Systems",
-  "    501 | Juniper IVE                                      | Operating Systems",
   "  15100 | Juniper/NetBSD sha1crypt                         | Operating Systems",
   "   7000 | FortiGate (FortiOS)                              | Operating Systems",
   "   5800 | Samsung Android Password/PIN                     | Operating Systems",
@@ -309,7 +308,6 @@ static const char *ST_HASH_00140 = "03b83421e2aa6d872d1f8dee001dc226ef01722b:818
 static const char *ST_HASH_00141 = "$episerver$*0*MjEwNA==*ZUgAmuaYTqAvisD0A427FA3oaWU";
 static const char *ST_HASH_00150 = "02b256705348a28b1d6c0f063907979f7e0c82f8:10323";
 static const char *ST_HASH_00160 = "8d7cb4d4a27a438059bb83a34d1e6cc439669168:2134817";
-static const char *ST_HASH_00501 = "3u+UR6n8AgABAAAAHxxdXKmiOmUoqKnZlf8lTOhlPYy93EAkbPfs5+49YLFd/B1+omSKbW7DoqNM40/EeVnwJ8kYoXv9zy9D5C5m5A==";
 static const char *ST_HASH_00600 = "$BLAKE2$296c269e70ac5f0095e6fb47693480f0f7b97ccd0307f5c3bfa4df8f5ca5c9308a0e7108e80a0a9c0ebb715e8b7109b072046c6cd5e155b4cfd2f27216283b1e";
 static const char *ST_HASH_01100 = "c896b3c6963e03c86ade3a38370bbb09:54161084332";
 static const char *ST_HASH_01410 = "5bb7456f43e3610363f68ad6de82b8b96f3fc9ad24e9d1f1f8d8bd89638db7c0:12480864321";
@@ -538,7 +536,6 @@ static const char *HT_00130 = "sha1(utf16le($pass).$salt)";
 static const char *HT_00140 = "sha1($salt.utf16le($pass))";
 static const char *HT_00150 = "HMAC-SHA1 (key = $pass)";
 static const char *HT_00160 = "HMAC-SHA1 (key = $salt)";
-static const char *HT_00501 = "Juniper IVE";
 static const char *HT_00600 = "BLAKE2b";
 static const char *HT_01100 = "Domain Cached Credentials (DCC), MS Cache";
 static const char *HT_01410 = "sha256($pass.$salt)";
@@ -874,39 +871,6 @@ static const char *SIGNATURE_APFS               = "$fvde$";
 /**
  * decoder / encoder
  */
-
-static void juniper_decrypt_hash (const u8 *in, const int in_len, u8 *out)
-{
-  // base64 decode
-
-  u8 base64_buf[100] = { 0 };
-
-  base64_decode (base64_to_int, (const u8 *) in, in_len, base64_buf);
-
-  // iv stuff
-
-  u32 juniper_iv[4] = { 0 };
-
-  memcpy (juniper_iv, base64_buf, 12);
-
-  memcpy (out, juniper_iv, 12);
-
-  // reversed key
-
-  u32 juniper_key[4] = { 0 };
-
-  juniper_key[0] = byte_swap_32 (0xa6707a7e);
-  juniper_key[1] = byte_swap_32 (0x8df91059);
-  juniper_key[2] = byte_swap_32 (0xdea70ae5);
-  juniper_key[3] = byte_swap_32 (0x2f9c2442);
-
-  // AES decrypt
-
-  u32 *in_ptr  = (u32 *) (base64_buf + 12);
-  u32 *out_ptr = (u32 *) (out        + 12);
-
-  AES128_decrypt_cbc (juniper_key, juniper_iv, in_ptr, out_ptr);
-}
 
 static void sha512crypt_decode (u8 digest[64], const u8 buf[86])
 {
@@ -9733,77 +9697,6 @@ int scrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   base64_decode (base64_to_int, (const u8 *) hash_pos, hash_len, tmp_buf);
 
   memcpy (digest, tmp_buf, 32);
-
-  return (PARSER_OK);
-}
-
-int juniper_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt  = 1;
-
-  token.len_min[0] = 104;
-  token.len_max[0] = 104;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64A;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  u8 decrypted[76] = { 0 }; // iv + hash
-
-  juniper_decrypt_hash (token.buf[0], token.len[0], decrypted);
-
-  // from here we are parsing a normal md5crypt hash
-
-  u8 *md5crypt_hash = decrypted + 12;
-
-  token_t token2;
-
-  token2.token_cnt  = 3;
-
-  token2.signatures_cnt    = 1;
-  token2.signatures_buf[0] = SIGNATURE_MD5CRYPT;
-
-  token2.len[0]     = 3;
-  token2.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
-                    | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token2.len_min[1] = 8;
-  token2.len_max[1] = 8;
-  token2.sep[1]     = '$';
-  token2.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token2.len[2]     = 22;
-  token2.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
-                    | TOKEN_ATTR_VERIFY_BASE64B;
-
-  const int rc_tokenizer2 = input_tokenizer (md5crypt_hash, 34, &token2);
-
-  if (rc_tokenizer2 != PARSER_OK) return (rc_tokenizer2);
-
-  static const char *danastre = "danastre";
-
-  if (memcmp (token2.buf[1], danastre, 8) != 0) return (PARSER_SALT_VALUE);
-
-  salt->salt_iter = ROUNDS_MD5CRYPT;
-
-  const u8 *salt_pos = token2.buf[1];
-  const int salt_len = token2.len[1];
-
-  const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
-
-  if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  const u8 *hash_pos = token2.buf[2];
-
-  md5crypt_decode ((u8 *) digest, hash_pos);
 
   return (PARSER_OK);
 }
@@ -18733,8 +18626,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
 
   switch (hashconfig->hash_mode)
   {
-    case   501:  salt->salt_iter  = ROUNDS_MD5CRYPT;
-                 break;
     case  1600:  salt->salt_iter  = ROUNDS_MD5CRYPT;
                  break;
     case  1800:  salt->salt_iter  = ROUNDS_SHA512CRYPT;
@@ -19129,13 +19020,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
     ptr_plain[27] = 0;
 
     snprintf (out_buf, out_size, "%s*0*%s*%s", SIGNATURE_EPISERVER, ptr_salt, ptr_plain);
-  }
-  else if (hash_mode == 501)
-  {
-    hashinfo_t **hashinfo_ptr = hash_info;
-    char        *hash_buf     = hashinfo_ptr[digest_cur]->orighash;
-
-    snprintf (out_buf, out_size, "%s", hash_buf);
   }
   else if (hash_mode == 1411)
   {
@@ -23260,24 +23144,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 1;
                  hashconfig->st_hash        = ST_HASH_00160;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case   501:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PREFERED_THREAD
-                                            | OPTS_TYPE_HASH_COPY;
-                 hashconfig->kern_type      = KERN_TYPE_MD5CRYPT;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = juniper_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_00501;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
@@ -27679,7 +27545,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   switch (hashconfig->hash_mode)
   {
-    case   501: hashconfig->tmp_size = sizeof (md5crypt_tmp_t);           break;
     case  1600: hashconfig->tmp_size = sizeof (md5crypt_tmp_t);           break;
     case  1800: hashconfig->tmp_size = sizeof (sha512crypt_tmp_t);        break;
     case  2100: hashconfig->tmp_size = sizeof (dcc2_tmp_t);               break;

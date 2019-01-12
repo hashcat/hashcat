@@ -822,7 +822,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             hash = &hashes_buf[hashes_cnt];
 
-            parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash_buf +  0, 16);
+            parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hash_info, hash_buf +  0, 16);
 
             if (parser_status == PARSER_OK)
             {
@@ -838,7 +838,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             hash = &hashes_buf[hashes_cnt];
 
-            parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash_buf + 16, 16);
+            parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hash_info, hash_buf + 16, 16);
 
             if (parser_status == PARSER_OK)
             {
@@ -856,7 +856,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           {
             hash_t *hash = &hashes_buf[hashes_cnt];
 
-            parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash_buf, hash_len);
+            parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hash_info, hash_buf, hash_len);
 
             if (parser_status == PARSER_OK)
             {
@@ -890,7 +890,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           {
             hash_t *hash = &hashes_buf[hashes_cnt];
 
-            parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash_buf, hash_len);
+            parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hash_info, hash_buf, hash_len);
 
             if (parser_status == PARSER_OK)
             {
@@ -1027,7 +1027,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             hash = &hashes_buf[hashes_cnt];
 
-            int parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash_buf +  0, 16);
+            int parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hash_info, hash_buf +  0, 16);
 
             if (parser_status < PARSER_GLOBAL_ZERO)
             {
@@ -1051,7 +1051,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             hash = &hashes_buf[hashes_cnt];
 
-            parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash_buf + 16, 16);
+            parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hash_info, hash_buf + 16, 16);
 
             if (parser_status < PARSER_GLOBAL_ZERO)
             {
@@ -1077,7 +1077,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           {
             hash_t *hash = &hashes_buf[hashes_cnt];
 
-            int parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash_buf, hash_len);
+            int parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hash_info, hash_buf, hash_len);
 
             if (parser_status < PARSER_GLOBAL_ZERO)
             {
@@ -1104,7 +1104,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         {
           hash_t *hash = &hashes_buf[hashes_cnt];
 
-          int parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash_buf, hash_len);
+          int parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hash_info, hash_buf, hash_len);
 
           if (parser_status < PARSER_GLOBAL_ZERO)
           {
@@ -1646,7 +1646,7 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
 
       fclose (fp);
 
-      parser_status = module_ctx->module_hash_decode (hashconfig, hash.digest, hash.salt, hash.esalt, tmpfile_bin, strlen (tmpfile_bin));
+      parser_status = module_ctx->module_hash_decode (hashconfig, hash.digest, hash.salt, hash.esalt, hash.hash_info, tmpfile_bin, strlen (tmpfile_bin));
 
       unlink (tmpfile_bin);
 
@@ -1670,7 +1670,7 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
         }
       }
 
-      parser_status = module_ctx->module_hash_decode (hashconfig_st, hash.digest, hash.salt, hash.esalt, hashconfig->st_hash, strlen (hashconfig->st_hash));
+      parser_status = module_ctx->module_hash_decode (hashconfig_st, hash.digest, hash.salt, hash.esalt, hash.hash_info, hashconfig->st_hash, strlen (hashconfig->st_hash));
 
       hcfree (hashconfig_st);
     }

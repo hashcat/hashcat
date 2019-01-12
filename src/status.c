@@ -306,7 +306,7 @@ const char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
   {
     char *tmp_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-    const int tmp_len = module_ctx->module_hash_encode_status (hashconfig, hashes->digests_buf, hashes->salts_buf, hashes->esalts_buf, tmp_buf, HCBUFSIZ_LARGE);
+    const int tmp_len = module_ctx->module_hash_encode_status (hashconfig, hashes->digests_buf, hashes->salts_buf, hashes->esalts_buf, hashes->hash_info[0], tmp_buf, HCBUFSIZ_LARGE);
 
     char *tmp_buf2 = (char *) hcmalloc (tmp_len + 1);
 

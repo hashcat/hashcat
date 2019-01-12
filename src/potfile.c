@@ -492,7 +492,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
   if (module_ctx->module_hash_decode_zero_hash != MODULE_DEFAULT)
   {
-    module_ctx->module_hash_decode_zero_hash (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt);
+    module_ctx->module_hash_decode_zero_hash (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hash_info);
 
     if (hashconfig->potfile_keep_all_hashes == true)
     {
@@ -551,13 +551,13 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
     if (module_ctx->module_hash_decode_outfile != MODULE_DEFAULT)
     {
-      const int parser_status = module_ctx->module_hash_decode_outfile (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, line_hash_buf, line_hash_len);
+      const int parser_status = module_ctx->module_hash_decode_outfile (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hash_info, line_hash_buf, line_hash_len);
 
       if (parser_status != PARSER_OK) continue;
     }
     else
     {
-      const int parser_status = module_ctx->module_hash_decode (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, line_hash_buf, line_hash_len);
+      const int parser_status = module_ctx->module_hash_decode (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hash_info, line_hash_buf, line_hash_len);
 
       if (parser_status != PARSER_OK) continue;
 
