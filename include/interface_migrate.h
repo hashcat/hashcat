@@ -525,12 +525,6 @@ typedef struct pdf17l8_tmp
 
 } pdf17l8_tmp_t;
 
-typedef struct phpass_tmp
-{
-  u32 digest_buf[4];
-
-} phpass_tmp_t;
-
 typedef struct md5crypt_tmp
 {
   u32 digest_buf[4];
@@ -1049,30 +1043,19 @@ typedef enum hash_type
 
 typedef enum kern_type
 {
-  KERN_TYPE_MD5                     = 0,
-  KERN_TYPE_MD5_PWSLT               = 10,
   KERN_TYPE_MD5_SLTPW               = 20,
   KERN_TYPE_MD5_PWUSLT              = 30,
   KERN_TYPE_MD5_SLTPWU              = 40,
   KERN_TYPE_HMACMD5_PW              = 50,
   KERN_TYPE_HMACMD5_SLT             = 60,
-  KERN_TYPE_SHA1                    = 100,
-  KERN_TYPE_SHA1_PWSLT              = 110,
   KERN_TYPE_SHA1_SLTPW              = 120,
   KERN_TYPE_SHA1_PWUSLT             = 130,
   KERN_TYPE_SHA1_SLTPWU             = 140,
   KERN_TYPE_HMACSHA1_PW             = 150,
   KERN_TYPE_HMACSHA1_SLT            = 160,
-  KERN_TYPE_MYSQL                   = 200,
-  KERN_TYPE_MYSQL41                 = 300,
-  KERN_TYPE_PHPASS                  = 400,
   KERN_TYPE_MD5CRYPT                = 500,
   KERN_TYPE_BLAKE2B                 = 600,
-  KERN_TYPE_MD4                     = 900,
-  KERN_TYPE_MD4_PWU                 = 1000,
   KERN_TYPE_MD44_PWUSLT             = 1100,
-  KERN_TYPE_SHA224                  = 1300,
-  KERN_TYPE_SHA256                  = 1400,
   KERN_TYPE_SHA256_PWSLT            = 1410,
   KERN_TYPE_SHA256_SLTPW            = 1420,
   KERN_TYPE_SHA256_PWUSLT           = 1430,
@@ -1081,7 +1064,6 @@ typedef enum kern_type
   KERN_TYPE_HMACSHA256_SLT          = 1460,
   KERN_TYPE_DESCRYPT                = 1500,
   KERN_TYPE_APR1CRYPT               = 1600,
-  KERN_TYPE_SHA512                  = 1700,
   KERN_TYPE_SHA512_PWSLT            = 1710,
   KERN_TYPE_SHA512_SLTPW            = 1720,
   KERN_TYPE_SHA512_PWSLTU           = 1730,
@@ -1091,7 +1073,6 @@ typedef enum kern_type
   KERN_TYPE_SHA512CRYPT             = 1800,
   KERN_TYPE_STDOUT                  = 2000,
   KERN_TYPE_DCC2                    = 2100,
-  KERN_TYPE_MD5PIX                  = 2400,
   KERN_TYPE_MD5ASA                  = 2410,
   KERN_TYPE_WPA_EAPOL_PBKDF2        = 2500,
   KERN_TYPE_WPA_EAPOL_PMK           = 2501,
@@ -1185,7 +1166,6 @@ typedef enum kern_type
   KERN_TYPE_PDF11CM2                = 10420,
   KERN_TYPE_PDF14                   = 10500,
   KERN_TYPE_PDF17L8                 = 10700,
-  KERN_TYPE_SHA384                  = 10800,
   KERN_TYPE_PBKDF2_SHA256           = 10900,
   KERN_TYPE_PRESTASHOP              = 11000,
   KERN_TYPE_POSTGRESQL_AUTH         = 11100,
@@ -1270,7 +1250,6 @@ typedef enum kern_type
 
 typedef enum rounds_count
 {
-   ROUNDS_PHPASS             = (1 << 11), // $P$B
    ROUNDS_DCC2               = 10240,
    ROUNDS_WPA_PBKDF2         = 4096,
    ROUNDS_WPA_PMK            = 1,
@@ -1383,7 +1362,6 @@ int osc_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int arubaos_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int macos1_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int macos512_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int phpass_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha1_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha1b64_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha1b64s_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
