@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "cpu_aes.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -17,16 +18,17 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_OS;
-static const char *HASH_NAME      = "md5crypt, MD5 (Unix), Cisco-IOS $1$ (MD5)";
+static const char *HASH_NAME      = "Juniper IVE";
 static const u32   HASH_TYPE      = HASH_TYPE_GENERIC;
 static const u64   KERN_TYPE      = 500;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STATE_BUFFER_LE
                                   | OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_PREFERED_THREAD;
+                                  | OPTS_TYPE_PREFERED_THREAD
+                                  | OPTS_TYPE_HASH_COPY;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$1$38652870$DUjsu4TTlTsOe/xxZ05uf/";
+static const char *ST_HASH        = "3u+UR6n8AgABAAAAHxxdXKmiOmUoqKnZlf8lTOhlPYy93EAkbPfs5+49YLFd/B1+omSKbW7DoqNM40/EeVnwJ8kYoXv9zy9D5C5m5A==";
 
 typedef struct md5crypt_tmp
 {
@@ -58,6 +60,39 @@ u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED c
   const u64 tmp_size = (const u64) sizeof (md5crypt_tmp_t);
 
   return tmp_size;
+}
+
+static void juniper_decrypt_hash (const u8 *in, const int in_len, u8 *out)
+{
+  // base64 decode
+
+  u8 base64_buf[100] = { 0 };
+
+  base64_decode (base64_to_int, (const u8 *) in, in_len, base64_buf);
+
+  // iv stuff
+
+  u32 juniper_iv[4] = { 0 };
+
+  memcpy (juniper_iv, base64_buf, 12);
+
+  memcpy (out, juniper_iv, 12);
+
+  // reversed key
+
+  u32 juniper_key[4] = { 0 };
+
+  juniper_key[0] = byte_swap_32 (0xa6707a7e);
+  juniper_key[1] = byte_swap_32 (0x8df91059);
+  juniper_key[2] = byte_swap_32 (0xdea70ae5);
+  juniper_key[3] = byte_swap_32 (0x2f9c2442);
+
+  // AES decrypt
+
+  u32 *in_ptr  = (u32 *) (base64_buf + 12);
+  u32 *out_ptr = (u32 *) (out        + 12);
+
+  AES128_decrypt_cbc (juniper_key, juniper_iv, in_ptr, out_ptr);
 }
 
 static void md5crypt_decode (u8 digest[16], const u8 buf[22])
@@ -175,44 +210,63 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token_t token;
 
-  token.token_cnt  = 3;
+  token.token_cnt  = 1;
 
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_MD5CRYPT;
-
-  token.len[0]     = 3;
-  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.len_min[1] = 0;
-  token.len_max[1] = 8;
-  token.sep[1]     = '$';
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_OPTIONAL_ROUNDS;
-
-  token.len[2]     = 22;
-  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64B;
+  token.len_min[0] = 104;
+  token.len_max[0] = 104;
+  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_BASE64A;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
+  u8 decrypted[76] = { 0 }; // iv + hash
+
+  juniper_decrypt_hash (token.buf[0], token.len[0], decrypted);
+
+  // from here we are parsing a normal md5crypt hash
+
+  u8 *md5crypt_hash = decrypted + 12;
+
+  token_t token2;
+
+  token2.token_cnt  = 3;
+
+  token2.signatures_cnt    = 1;
+  token2.signatures_buf[0] = SIGNATURE_MD5CRYPT;
+
+  token2.len[0]     = 3;
+  token2.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                    | TOKEN_ATTR_VERIFY_SIGNATURE;
+
+  token2.len_min[1] = 8;
+  token2.len_max[1] = 8;
+  token2.sep[1]     = '$';
+  token2.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+  token2.len[2]     = 22;
+  token2.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
+                    | TOKEN_ATTR_VERIFY_BASE64B;
+
+  const int rc_tokenizer2 = input_tokenizer (md5crypt_hash, 34, &token2);
+
+  if (rc_tokenizer2 != PARSER_OK) return (rc_tokenizer2);
+
+  static const char *danastre = "danastre";
+
+  if (memcmp (token2.buf[1], danastre, 8) != 0) return (PARSER_SALT_VALUE);
+
   salt->salt_iter = ROUNDS_MD5CRYPT;
 
-  if (token.opt_len != -1)
-  {
-    salt->salt_iter = hc_strtoul ((const char *) token.opt_buf + 7, NULL, 10); // 7 = "rounds="
-  }
-
-  const u8 *salt_pos = token.buf[1];
-  const int salt_len = token.len[1];
+  const u8 *salt_pos = token2.buf[1];
+  const int salt_len = token2.len[1];
 
   const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
 
-  const u8 *hash_pos = token.buf[2];
+  const u8 *hash_pos = token2.buf[2];
 
   md5crypt_decode ((u8 *) digest, hash_pos);
 
@@ -221,20 +275,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  u8 tmp[100] = { 0 };
-
-  md5crypt_encode (digest_buf, tmp);
-
-  int line_len = 0;
-
-  if (salt->salt_iter == ROUNDS_MD5CRYPT)
-  {
-    line_len = snprintf (line_buf, line_size, "$1$%s$%s", (char *) salt->salt_buf, tmp);
-  }
-  else
-  {
-    line_len = snprintf (line_buf, line_size, "$1$rounds=%u$%s$%s", salt->salt_iter, (char *) salt->salt_buf, tmp);
-  }
+  const int line_len = snprintf (line_buf, line_size, "%s", hash_info->orighash);
 
   return line_len;
 }
