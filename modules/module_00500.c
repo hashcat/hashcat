@@ -220,11 +220,11 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (salt->salt_iter == ROUNDS_MD5CRYPT)
   {
-    line_len = snprintf (line_buf, line_len, "$1$%s$%s", (char *) salt->salt_buf, tmp);
+    line_len = snprintf (line_buf, line_size, "$1$%s$%s", (char *) salt->salt_buf, tmp);
   }
   else
   {
-    line_len = snprintf (line_buf, line_len, "$1$rounds=%u$%s$%s", salt->salt_iter, (char *) salt->salt_buf, tmp);
+    line_len = snprintf (line_buf, line_size, "$1$rounds=%u$%s$%s", salt->salt_iter, (char *) salt->salt_buf, tmp);
   }
 
   return line_len;
