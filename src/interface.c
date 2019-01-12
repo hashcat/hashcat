@@ -706,6 +706,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   // set some boring defaults
 
   hashconfig->attack_exec             = default_attack_exec             (hashconfig, user_options, user_options_extra);
+  hashconfig->benchmark_mask          = default_benchmark_mask          (hashconfig, user_options, user_options_extra);
   hashconfig->dgst_pos0               = default_dgst_pos0               (hashconfig, user_options, user_options_extra);
   hashconfig->dgst_pos1               = default_dgst_pos1               (hashconfig, user_options, user_options_extra);
   hashconfig->dgst_pos2               = default_dgst_pos2               (hashconfig, user_options, user_options_extra);
@@ -759,6 +760,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   }
 
   if (module_ctx->module_attack_exec              != MODULE_DEFAULT) hashconfig->attack_exec             = module_ctx->module_attack_exec              (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_benchmark_mask           != MODULE_DEFAULT) hashconfig->benchmark_mask          = module_ctx->module_benchmark_mask           (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_dgst_pos0                != MODULE_DEFAULT) hashconfig->dgst_pos0               = module_ctx->module_dgst_pos0                (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_dgst_pos1                != MODULE_DEFAULT) hashconfig->dgst_pos1               = module_ctx->module_dgst_pos1                (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_dgst_pos2                != MODULE_DEFAULT) hashconfig->dgst_pos2               = module_ctx->module_dgst_pos2                (hashconfig, user_options, user_options_extra);
@@ -908,16 +910,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   hashconfig->is_salted = is_salted;
 
   // those depend on some previously defined values
-
-  hashconfig->benchmark_esalt     = default_benchmark_esalt     (hashconfig, user_options, user_options_extra);
-  hashconfig->benchmark_hook_salt = default_benchmark_hook_salt (hashconfig, user_options, user_options_extra);
-  hashconfig->benchmark_mask      = default_benchmark_mask      (hashconfig, user_options, user_options_extra);
-  hashconfig->benchmark_salt      = default_benchmark_salt      (hashconfig, user_options, user_options_extra);
-
-  if (module_ctx->module_benchmark_esalt      != MODULE_DEFAULT) hashconfig->benchmark_esalt     = module_ctx->module_benchmark_esalt      (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_benchmark_hook_salt  != MODULE_DEFAULT) hashconfig->benchmark_hook_salt = module_ctx->module_benchmark_hook_salt  (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_benchmark_mask       != MODULE_DEFAULT) hashconfig->benchmark_mask      = module_ctx->module_benchmark_mask       (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_benchmark_salt       != MODULE_DEFAULT) hashconfig->benchmark_salt      = module_ctx->module_benchmark_salt       (hashconfig, user_options, user_options_extra);
 
   hashconfig->pw_max    = default_pw_max    (hashconfig, user_options, user_options_extra);
   hashconfig->pw_min    = default_pw_min    (hashconfig, user_options, user_options_extra);
@@ -1149,35 +1141,11 @@ u32 default_salt_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED 
   return salt_max;
 }
 
-void *default_benchmark_esalt (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  void *esalt = (void *) hcmalloc (hashconfig->esalt_size);
-
-  return esalt;
-}
-
-void *default_benchmark_hook_salt (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  void *hook_salt = (void *) hcmalloc (hashconfig->hook_salt_size);
-
-  return hook_salt;
-}
-
 const char *default_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   const char *mask = "?b?b?b?b?b?b?b";
 
   return mask;
-}
-
-salt_t *default_benchmark_salt (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  salt_t *salt = (salt_t *) hcmalloc (sizeof (salt_t));
-
-  salt->salt_len  = 8;
-  salt->salt_iter = 1;
-
-  return salt;
 }
 
 u32 default_opti_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)

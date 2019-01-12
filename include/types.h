@@ -947,12 +947,6 @@ struct hashconfig
   const char *hash_name;
 
   const char *benchmark_mask;
-  u32         benchmark_salt_len;
-  u32         benchmark_salt_iter;
-
-  salt_t *benchmark_salt;
-  void   *benchmark_esalt;
-  void   *benchmark_hook_salt;
 
   u32 kernel_accel_min;
   u32 kernel_accel_max;

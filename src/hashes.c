@@ -739,22 +739,13 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
   hashes->hook_salts_buf = hook_salts_buf;
 
   /**
-   * load hashes, part III: parse hashes or generate them if benchmark
+   * load hashes, part III: parse hashes
    */
 
   u32 hashes_cnt = 0;
 
   if (user_options->benchmark == true)
   {
-    if (hashconfig->is_salted == true)
-    {
-      memcpy (hashes_buf[0].salt, hashconfig->benchmark_salt, sizeof (salt_t));
-
-      memcpy (hashes_buf[0].esalt, hashconfig->benchmark_esalt, hashconfig->esalt_size);
-
-      memcpy (hashes_buf[0].hook_salt, hashconfig->benchmark_hook_salt, hashconfig->hook_salt_size);
-    }
-
     hashes->hashfile = "-";
 
     hashes_cnt = 1;
@@ -1700,6 +1691,68 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
   hashes->st_salts_buf      = st_salts_buf;
   hashes->st_esalts_buf     = st_esalts_buf;
   hashes->st_hook_salts_buf = st_hook_salts_buf;
+
+  return 0;
+}
+
+int hashes_init_benchmark (hashcat_ctx_t *hashcat_ctx)
+{
+  const hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
+        hashes_t              *hashes             = hashcat_ctx->hashes;
+  const module_ctx_t          *module_ctx         = hashcat_ctx->module_ctx;
+  const user_options_t        *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (user_options->benchmark == false) return 0;
+
+  if (hashconfig->is_salted == false) return 0;
+
+  hash_t *hashes_buf = hashes->hashes_buf;
+
+  if (module_ctx->module_benchmark_salt != MODULE_DEFAULT)
+  {
+    salt_t *ptr = module_ctx->module_benchmark_salt (hashconfig, user_options, user_options_extra);
+
+    memcpy (hashes->salts_buf, ptr, sizeof (salt_t));
+
+    hcfree (ptr);
+  }
+  else
+  {
+    memcpy (hashes->salts_buf, hashes->st_salts_buf, sizeof (salt_t));
+  }
+
+  if (hashconfig->esalt_size > 0)
+  {
+    if (module_ctx->module_benchmark_esalt != MODULE_DEFAULT)
+    {
+      void *ptr = module_ctx->module_benchmark_esalt (hashconfig, user_options, user_options_extra);
+
+      memcpy (hashes->esalts_buf, ptr, hashconfig->esalt_size);
+
+      hcfree (ptr);
+    }
+    else
+    {
+      memcpy (hashes->esalts_buf, hashes->st_esalts_buf, hashconfig->esalt_size);
+    }
+  }
+
+  if (hashconfig->hook_salt_size > 0)
+  {
+    if (module_ctx->module_benchmark_hook_salt != MODULE_DEFAULT)
+    {
+      void *ptr = module_ctx->module_benchmark_hook_salt (hashconfig, user_options, user_options_extra);
+
+      memcpy (hashes->hook_salts_buf, ptr, hashconfig->hook_salt_size);
+
+      hcfree (ptr);
+    }
+    else
+    {
+      memcpy (hashes->hook_salts_buf, hashes->st_hook_salts_buf, hashconfig->hook_salt_size);
+    }
+  }
 
   return 0;
 }

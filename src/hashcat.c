@@ -605,6 +605,14 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   if (rc_hashes_init_selftest == -1) return -1;
 
   /**
+   * load hashes, benchmark
+   */
+
+  const int rc_hashes_init_benchmark = hashes_init_benchmark (hashcat_ctx);
+
+  if (rc_hashes_init_benchmark == -1) return -1;
+
+  /**
    * Done loading hashes, log results
    */
 
