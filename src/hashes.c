@@ -873,7 +873,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
-          if (module_ctx->module_hash_binary_parse)
+          if (module_ctx->module_hash_binary_parse != MODULE_DEFAULT)
           {
             const int hashes_parsed = module_ctx->module_hash_binary_parse (hashconfig, user_options, user_options_extra, hashes);
 
