@@ -236,8 +236,8 @@ ifeq ($(UNAME),Linux)
 CFLAGS_NATIVE           := $(CFLAGS)
 CFLAGS_NATIVE           += -I$(OPENCL_HEADERS_KHRONOS)/
 CFLAGS_NATIVE           += -DWITH_HWMON
-CFLAGS_NATIVE           += -rdynamic
 LFLAGS_NATIVE           := $(LFLAGS)
+LFLAGS_NATIVE           += -Wl,--export-dynamic
 LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -ldl
 LFLAGS_NATIVE           += -lrt
@@ -249,6 +249,7 @@ ifndef PORTNAME
 CFLAGS_NATIVE           := $(CFLAGS)
 CFLAGS_NATIVE           += -I$(OPENCL_HEADERS_KHRONOS)/
 LFLAGS_NATIVE           := $(LFLAGS)
+LFLAGS_NATIVE           += -Wl,--export-dynamic
 LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -lm
 endif
@@ -264,6 +265,7 @@ endif
 
 LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -framework OpenCL
+LFLAGS_NATIVE           += -Wl,--export-dynamic
 LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -liconv
 endif # Darwin
@@ -273,7 +275,9 @@ CFLAGS_NATIVE           := $(CFLAGS)
 CFLAGS_NATIVE           += -I$(OPENCL_HEADERS_KHRONOS)/
 CFLAGS_NATIVE           += -DWITH_HWMON
 LFLAGS_NATIVE           := $(LFLAGS)
-LFLAGS_NATIVE           += -Wl,--dynamicbase -Wl,--nxcompat
+LFLAGS_NATIVE           += -Wl,--dynamicbase
+LFLAGS_NATIVE           += -Wl,--nxcompat
+LFLAGS_NATIVE           += -Wl,--export-dynamic
 LFLAGS_NATIVE           += -lpsapi
 LFLAGS_NATIVE           += -liconv
 endif # CYGWIN
@@ -283,7 +287,9 @@ CFLAGS_NATIVE           := $(CFLAGS)
 CFLAGS_NATIVE           += -I$(OPENCL_HEADERS_KHRONOS)/
 CFLAGS_NATIVE           += -DWITH_HWMON
 LFLAGS_NATIVE           := $(LFLAGS)
-LFLAGS_NATIVE           += -Wl,--dynamicbase -Wl,--nxcompat
+LFLAGS_NATIVE           += -Wl,--dynamicbase
+LFLAGS_NATIVE           += -Wl,--nxcompat
+LFLAGS_NATIVE           += -Wl,--export-dynamic
 LFLAGS_NATIVE           += -lpsapi
 LFLAGS_NATIVE           += -liconv
 LFLAGS_NATIVE           += -lws2_32
@@ -297,12 +303,10 @@ CFLAGS_CROSS_LINUX32    := $(CFLAGS)
 CFLAGS_CROSS_LINUX32    += -I$(OPENCL_HEADERS_KHRONOS)/
 CFLAGS_CROSS_LINUX32    += -m32
 CFLAGS_CROSS_LINUX32    += -DWITH_HWMON
-CFLAGS_CROSS_LINUX32    += -rdynamic
 CFLAGS_CROSS_LINUX64    := $(CFLAGS)
 CFLAGS_CROSS_LINUX64    += -I$(OPENCL_HEADERS_KHRONOS)/
 CFLAGS_CROSS_LINUX64    += -m64
 CFLAGS_CROSS_LINUX64    += -DWITH_HWMON
-CFLAGS_CROSS_LINUX64    += -rdynamic
 CFLAGS_CROSS_WIN32      := $(CFLAGS)
 CFLAGS_CROSS_WIN32      += -D__MINGW_USE_VC2005_COMPAT #hack to get 64-bit time_t
 CFLAGS_CROSS_WIN32      += -I$(OPENCL_HEADERS_KHRONOS)/
@@ -316,19 +320,25 @@ CFLAGS_CROSS_WIN64      += -m64
 CFLAGS_CROSS_WIN64      += -DWITH_HWMON
 
 LFLAGS_CROSS_LINUX32    := $(LFLAGS)
+LFLAGS_CROSS_LINUX32    += -Wl,--export-dynamic
 LFLAGS_CROSS_LINUX32    += -lpthread
 LFLAGS_CROSS_LINUX32    += -ldl
 LFLAGS_CROSS_LINUX32    += -lm
 LFLAGS_CROSS_LINUX64    := $(LFLAGS)
+LFLAGS_CROSS_LINUX64    += -Wl,--export-dynamic
 LFLAGS_CROSS_LINUX64    += -lpthread
 LFLAGS_CROSS_LINUX64    += -ldl
 LFLAGS_CROSS_LINUX64    += -lm
 LFLAGS_CROSS_WIN32      := $(LFLAGS)
-LFLAGS_CROSS_WIN32      += -Wl,--dynamicbase -Wl,--nxcompat
+LFLAGS_CROSS_WIN32      += -Wl,--dynamicbase
+LFLAGS_CROSS_WIN32      += -Wl,--nxcompat
+LFLAGS_CROSS_WIN32      += -Wl,--export-all-symbols
 LFLAGS_CROSS_WIN32      += -lpsapi
 LFLAGS_CROSS_WIN32      += -lws2_32
 LFLAGS_CROSS_WIN64      := $(LFLAGS)
-LFLAGS_CROSS_WIN64      += -Wl,--dynamicbase -Wl,--nxcompat
+LFLAGS_CROSS_WIN64      += -Wl,--dynamicbase
+LFLAGS_CROSS_WIN64      += -Wl,--nxcompat
+LFLAGS_CROSS_WIN64      += -Wl,--export-all-symbols
 LFLAGS_CROSS_WIN64      += -lpsapi
 LFLAGS_CROSS_WIN64      += -lws2_32
 
@@ -571,7 +581,7 @@ modules: $(MODULES_LIB)
 MODULES_LIB_WIN64   := $(patsubst src/modules/%.c, modules/%.dll, $(MODULES_SRC))
 
 modules/module_%.dll: src/modules/module_%.c
-	$(CC_WIN_64)    $(CFLAGS_CROSS_WIN64) $< -o $@ -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION) -L. -lhostsym
+	$(CC_WIN_64)    $(CFLAGS_CROSS_WIN64) $< -o $@ -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
 
 modules_win64: $(MODULES_LIB_WIN64)
 
@@ -631,13 +641,13 @@ hashcat64.bin: src/main.c $(LINUX_64_OBJS)
 	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX64)    -o $@ $^ $(LFLAGS_CROSS_LINUX64) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
 hashcat32.exe: src/main.c $(WIN_32_OBJS) $(WIN_ICONV_32)/lib/libiconv.a
-	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN32)      -o $@ $^ $(LFLAGS_CROSS_WIN32)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -Wl,--export-all-symbols,--out-implib,libhostsym.a
+	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN32)      -o $@ $^ $(LFLAGS_CROSS_WIN32)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\"
 
 hashcat64.exe: src/main.c $(WIN_64_OBJS) $(WIN_ICONV_64)/lib/libiconv.a
-	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)      -o $@ $^ $(LFLAGS_CROSS_WIN64)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -Wl,--export-all-symbols,--out-implib,libhostsym.a
+	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)      -o $@ $^ $(LFLAGS_CROSS_WIN64)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\"
 
 hashcat32.dll: src/main.c $(WIN_32_OBJS)
-	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN32)      -o $@ $^ $(LFLAGS_CROSS_WIN32)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -Wl,--export-all-symbols,--out-implib,libhostsym.a -shared
+	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN32)      -o $@ $^ $(LFLAGS_CROSS_WIN32)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -shared
 
 hashcat64.dll: src/main.c $(WIN_64_OBJS)
-	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)      -o $@ $^ $(LFLAGS_CROSS_WIN64)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -Wl,--export-all-symbols,--out-implib,libhostsym.a -shared
+	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)      -o $@ $^ $(LFLAGS_CROSS_WIN64)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -shared
