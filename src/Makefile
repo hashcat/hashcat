@@ -7,7 +7,7 @@ SHARED                  := 0
 DEBUG                   := 0
 PRODUCTION              := 0
 PRODUCTION_VERSION      := v5.1.0
-ENABLE_BRAIN            := 1
+ENABLE_BRAIN            := 0
 USE_SYSTEM_LZMA         := 0
 USE_SYSTEM_OPENCL       := 0
 USE_SYSTEM_XXHASH       := 0
@@ -236,6 +236,7 @@ ifeq ($(UNAME),Linux)
 CFLAGS_NATIVE           := $(CFLAGS)
 CFLAGS_NATIVE           += -I$(OPENCL_HEADERS_KHRONOS)/
 CFLAGS_NATIVE           += -DWITH_HWMON
+CFLAGS_NATIVE           += -rdynamic
 LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -ldl
@@ -296,10 +297,12 @@ CFLAGS_CROSS_LINUX32    := $(CFLAGS)
 CFLAGS_CROSS_LINUX32    += -I$(OPENCL_HEADERS_KHRONOS)/
 CFLAGS_CROSS_LINUX32    += -m32
 CFLAGS_CROSS_LINUX32    += -DWITH_HWMON
+CFLAGS_CROSS_LINUX32    += -rdynamic
 CFLAGS_CROSS_LINUX64    := $(CFLAGS)
 CFLAGS_CROSS_LINUX64    += -I$(OPENCL_HEADERS_KHRONOS)/
 CFLAGS_CROSS_LINUX64    += -m64
 CFLAGS_CROSS_LINUX64    += -DWITH_HWMON
+CFLAGS_CROSS_LINUX64    += -rdynamic
 CFLAGS_CROSS_WIN32      := $(CFLAGS)
 CFLAGS_CROSS_WIN32      += -D__MINGW_USE_VC2005_COMPAT #hack to get 64-bit time_t
 CFLAGS_CROSS_WIN32      += -I$(OPENCL_HEADERS_KHRONOS)/
@@ -554,22 +557,21 @@ endif
 ## native compiled modules
 ##
 
-MODULE_DEPEND := src/bitops.c src/convert.c src/memory.c src/shared.c src/cpu_aes.c
-
 MODULES_SRC   := $(wildcard src/modules/*.c)
 MODULES_LIB   := $(patsubst src/modules/%.c, modules/%.so, $(MODULES_SRC))
 
 modules/module_%.so: src/modules/module_%.c
-	$(CC)    $(CFLAGS_NATIVE) $< -o $@ -shared -fPIC $(MODULE_DEPEND) -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
+	$(CC)    $(CFLAGS_NATIVE) $< -o $@ -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
 
 modules: $(MODULES_LIB)
+
 
 
 
 MODULES_LIB_WIN64   := $(patsubst src/modules/%.c, modules/%.dll, $(MODULES_SRC))
 
 modules/module_%.dll: src/modules/module_%.c
-	$(CC_WIN_64)    $(CFLAGS_CROSS_WIN64) $< -o $@ -shared -fPIC $(MODULE_DEPEND) -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
+	$(CC_WIN_64)    $(CFLAGS_CROSS_WIN64) $< -o $@ -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION) -L. -lhostsym
 
 modules_win64: $(MODULES_LIB_WIN64)
 
@@ -629,13 +631,13 @@ hashcat64.bin: src/main.c $(LINUX_64_OBJS)
 	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX64)    -o $@ $^ $(LFLAGS_CROSS_LINUX64) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
 hashcat32.exe: src/main.c $(WIN_32_OBJS) $(WIN_ICONV_32)/lib/libiconv.a
-	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN32)      -o $@ $^ $(LFLAGS_CROSS_WIN32)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\"
+	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN32)      -o $@ $^ $(LFLAGS_CROSS_WIN32)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -Wl,--export-all-symbols,--out-implib,libhostsym.a
 
 hashcat64.exe: src/main.c $(WIN_64_OBJS) $(WIN_ICONV_64)/lib/libiconv.a
-	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)      -o $@ $^ $(LFLAGS_CROSS_WIN64)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\"
+	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)      -o $@ $^ $(LFLAGS_CROSS_WIN64)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -Wl,--export-all-symbols,--out-implib,libhostsym.a
 
 hashcat32.dll: src/main.c $(WIN_32_OBJS)
-	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN32)      -o $@ $^ $(LFLAGS_CROSS_WIN32)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -shared
+	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN32)      -o $@ $^ $(LFLAGS_CROSS_WIN32)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -Wl,--export-all-symbols,--out-implib,libhostsym.a -shared
 
 hashcat64.dll: src/main.c $(WIN_64_OBJS)
-	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)      -o $@ $^ $(LFLAGS_CROSS_WIN64)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -shared
+	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)      -o $@ $^ $(LFLAGS_CROSS_WIN64)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -Wl,--export-all-symbols,--out-implib,libhostsym.a -shared
