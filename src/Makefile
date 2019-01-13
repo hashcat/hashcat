@@ -556,20 +556,20 @@ endif
 
 MODULE_DEPEND := src/bitops.c src/convert.c src/memory.c src/shared.c src/cpu_aes.c
 
-MODULES_SRC   := $(wildcard modules/*.c)
-MODULES_LIB   := $(patsubst %.c, %.so, $(MODULES_SRC))
+MODULES_SRC   := $(wildcard src/modules/*.c)
+MODULES_LIB   := $(patsubst src/modules/%.c, modules/%.so, $(MODULES_SRC))
 
-modules/module_%.so: modules/module_%.c
+modules/module_%.so: src/modules/module_%.c
 	$(CC)    $(CFLAGS_NATIVE) $< -o $@ -shared -fPIC $(MODULE_DEPEND) -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
 
 modules: $(MODULES_LIB)
 
 
 
-MODULES_LIB_WIN64   := $(patsubst %.c, %.dll, $(MODULES_SRC))
+MODULES_LIB_WIN64   := $(patsubst src/modules/%.c, modules/%.dll, $(MODULES_SRC))
 
-modules/module_%.dll: modules/module_%.c
-	$(CC_WIN_64)    $(CFLAGS_CROSS_WIN64) $< -o $@ -shared -fPIC $(MODULE_DEPEND)
+modules/module_%.dll: src/modules/module_%.c
+	$(CC_WIN_64)    $(CFLAGS_CROSS_WIN64) $< -o $@ -shared -fPIC $(MODULE_DEPEND) -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
 
 modules_win64: $(MODULES_LIB_WIN64)
 
