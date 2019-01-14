@@ -370,7 +370,34 @@ int ascii_digest (const hashconfig_t *hashconfig, const hashes_t *hashes, const 
   return out_len;
 }
 
-static bool module_load (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, const u32 hash_mode)
+int module_filename (const folder_config_t *folder_config, const int hash_mode, char *out_buf, const size_t out_size)
+{
+  // cross compiled
+  #if defined (__x86_64__)
+  #if defined (_WIN)
+  const int out_len = snprintf (out_buf, out_size, "%s/modules/module64_%05d.dll", folder_config->shared_dir, hash_mode);
+  #else
+  const int out_len = snprintf (out_buf, out_size, "%s/modules/module64_%05d.so", folder_config->shared_dir, hash_mode);
+  #endif
+  #else
+  #if defined (_WIN)
+  const int out_len = snprintf (out_buf, out_size, "%s/modules/module32_%05d.dll", folder_config->shared_dir, hash_mode);
+  #else
+  const int out_len = snprintf (out_buf, out_size, "%s/modules/module32_%05d.so", folder_config->shared_dir, hash_mode);
+  #endif
+  #endif
+
+  if (hc_path_exist (out_buf) == true) return out_len;
+
+  // native compiled
+  #if defined (_WIN)
+  return snprintf (out_buf, out_size, "%s/modules/module_%05d.dll", folder_config->shared_dir, hash_mode);
+  #else
+  return snprintf (out_buf, out_size, "%s/modules/module_%05d.so", folder_config->shared_dir, hash_mode);
+  #endif
+}
+
+bool module_load (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, const u32 hash_mode)
 {
   const folder_config_t *folder_config = hashcat_ctx->folder_config;
 
@@ -378,11 +405,7 @@ static bool module_load (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, c
 
   char *module_file = (char *) hcmalloc (HCBUFSIZ_TINY);
 
-  #if defined (_WIN)
-  snprintf (module_file, HCBUFSIZ_TINY, "%s/modules/module_%05d.dll", folder_config->shared_dir, hash_mode);
-  #else
-  snprintf (module_file, HCBUFSIZ_TINY, "%s/modules/module_%05d.so", folder_config->shared_dir, hash_mode);
-  #endif
+  module_filename (folder_config, hash_mode, module_file, HCBUFSIZ_TINY);
 
   module_ctx->module_handle = hc_dlopen (module_file);
 
@@ -411,7 +434,7 @@ static bool module_load (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, c
   return true;
 }
 
-static void module_unload (module_ctx_t *module_ctx)
+void module_unload (module_ctx_t *module_ctx)
 {
   if (module_ctx->module_handle)
   {
@@ -477,25 +500,77 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   // check for missing pointer assignements
 
-  const size_t ptr_sz = sizeof (void *);
-
-  char *zbuf = (char *) hcmalloc (ptr_sz);
-
-  char *mpa_check = (char *) module_ctx;
-
-  for (size_t i = 0; i < sizeof (module_ctx_t) - ptr_sz; i++)
-  {
-    if (memcmp (mpa_check, zbuf, ptr_sz) == 0)
-    {
-      event_log_error (hashcat_ctx, "module context initialization is invalid, outdated template?");
-
-      return -1;
+  #define CHECK_DEFINED(func)                                                                         \
+    if (func == NULL)                                                                                 \
+    {                                                                                                 \
+      event_log_error (hashcat_ctx, "module context initialization is invalid, outdated template?");  \
+                                                                                                      \
+      return -1;                                                                                      \
     }
 
-    mpa_check++;
-  }
+  CHECK_DEFINED (module_ctx->module_attack_exec);
+  CHECK_DEFINED (module_ctx->module_benchmark_esalt);
+  CHECK_DEFINED (module_ctx->module_benchmark_hook_salt);
+  CHECK_DEFINED (module_ctx->module_benchmark_mask);
+  CHECK_DEFINED (module_ctx->module_benchmark_salt);
+  CHECK_DEFINED (module_ctx->module_dictstat_disable);
+  CHECK_DEFINED (module_ctx->module_dgst_pos0);
+  CHECK_DEFINED (module_ctx->module_dgst_pos1);
+  CHECK_DEFINED (module_ctx->module_dgst_pos2);
+  CHECK_DEFINED (module_ctx->module_dgst_pos3);
+  CHECK_DEFINED (module_ctx->module_dgst_size);
+  CHECK_DEFINED (module_ctx->module_esalt_size);
+  CHECK_DEFINED (module_ctx->module_forced_outfile_format);
+  CHECK_DEFINED (module_ctx->module_hash_category);
+  CHECK_DEFINED (module_ctx->module_hash_name);
+  CHECK_DEFINED (module_ctx->module_hash_mode);
+  CHECK_DEFINED (module_ctx->module_hash_type);
+  CHECK_DEFINED (module_ctx->module_hlfmt_disable);
+  CHECK_DEFINED (module_ctx->module_hook_salt_size);
+  CHECK_DEFINED (module_ctx->module_hook_size);
+  CHECK_DEFINED (module_ctx->module_kernel_accel_min);
+  CHECK_DEFINED (module_ctx->module_kernel_accel_max);
+  CHECK_DEFINED (module_ctx->module_kernel_loops_min);
+  CHECK_DEFINED (module_ctx->module_kernel_loops_max);
+  CHECK_DEFINED (module_ctx->module_kernel_threads_min);
+  CHECK_DEFINED (module_ctx->module_kernel_threads_max);
+  CHECK_DEFINED (module_ctx->module_kern_type);
+  CHECK_DEFINED (module_ctx->module_opti_type);
+  CHECK_DEFINED (module_ctx->module_opts_type);
+  CHECK_DEFINED (module_ctx->module_outfile_check_disable);
+  CHECK_DEFINED (module_ctx->module_outfile_check_nocomp);
+  CHECK_DEFINED (module_ctx->module_potfile_disable);
+  CHECK_DEFINED (module_ctx->module_potfile_keep_all_hashes);
+  CHECK_DEFINED (module_ctx->module_pwdump_column);
+  CHECK_DEFINED (module_ctx->module_pw_min);
+  CHECK_DEFINED (module_ctx->module_pw_max);
+  CHECK_DEFINED (module_ctx->module_salt_min);
+  CHECK_DEFINED (module_ctx->module_salt_max);
+  CHECK_DEFINED (module_ctx->module_salt_type);
+  CHECK_DEFINED (module_ctx->module_separator);
+  CHECK_DEFINED (module_ctx->module_st_hash);
+  CHECK_DEFINED (module_ctx->module_st_pass);
+  CHECK_DEFINED (module_ctx->module_tmp_size);
+  CHECK_DEFINED (module_ctx->module_unstable_warning);
+  CHECK_DEFINED (module_ctx->module_warmup_disable);
+  CHECK_DEFINED (module_ctx->module_hash_binary_count);
+  CHECK_DEFINED (module_ctx->module_hash_binary_parse);
+  CHECK_DEFINED (module_ctx->module_hash_binary_save);
+  CHECK_DEFINED (module_ctx->module_hash_binary_verify);
+  CHECK_DEFINED (module_ctx->module_hash_decode_outfile);
+  CHECK_DEFINED (module_ctx->module_hash_decode_zero_hash);
+  CHECK_DEFINED (module_ctx->module_hash_decode);
+  CHECK_DEFINED (module_ctx->module_hash_encode_status);
+  CHECK_DEFINED (module_ctx->module_hash_encode);
+  CHECK_DEFINED (module_ctx->module_extra_buffer_size);
+  CHECK_DEFINED (module_ctx->module_jit_build_options);
+  CHECK_DEFINED (module_ctx->module_deep_comp_kernel);
+  CHECK_DEFINED (module_ctx->module_hash_init_selftest);
+  CHECK_DEFINED (module_ctx->module_hook12);
+  CHECK_DEFINED (module_ctx->module_hook23);
+  CHECK_DEFINED (module_ctx->module_build_plain_postprocess);
 
-  hcfree (zbuf);
+  #undef CHECK_DEFINED
 
   // mandatory functions check
 

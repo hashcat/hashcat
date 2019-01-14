@@ -598,11 +598,7 @@ void example_hashes (hashcat_ctx_t *hashcat_ctx)
     {
       user_options->hash_mode = i;
 
-      #if defined (_WIN)
-      snprintf (modulefile, HCBUFSIZ_TINY, "%s/modules/module_%05d.dll", folder_config->shared_dir, i);
-      #else
-      snprintf (modulefile, HCBUFSIZ_TINY, "%s/modules/module_%05d.so", folder_config->shared_dir, i);
-      #endif
+      module_filename (folder_config, i, modulefile, HCBUFSIZ_TINY);
 
       if (hc_path_exist (modulefile) == false) continue;
 

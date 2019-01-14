@@ -34,6 +34,10 @@ typedef enum kernel_workload
 
 int ascii_digest (const hashconfig_t *hashconfig, const hashes_t *hashes, const module_ctx_t *module_ctx, char *out_buf, const int out_size, const u32 salt_pos, const u32 digest_pos);
 
+int  module_filename (const folder_config_t *folder_config, const int hash_mode, char *out_buf, const size_t out_size);
+bool module_load     (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, const u32 hash_mode);
+void module_unload   (module_ctx_t *module_ctx);
+
 bool initialize_keyboard_layout_mapping (hashcat_ctx_t *hashcat_ctx, const char *filename, keyboard_layout_mapping_t *keyboard_layout_mapping, int *keyboard_layout_mapping_cnt);
 int  find_keyboard_layout_map (const u32 search, const int search_len, keyboard_layout_mapping_t *s_keyboard_layout_mapping, const int keyboard_layout_mapping_cnt);
 int  execute_keyboard_layout_mapping (u32 plain_buf[64], const int plain_len, keyboard_layout_mapping_t *s_keyboard_layout_mapping, const int keyboard_layout_mapping_cnt);

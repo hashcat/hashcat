@@ -43,6 +43,7 @@ static const int DEFAULT_BENCHMARK_ALGORITHMS_BUF[] =
 int benchmark_next (hashcat_ctx_t *hashcat_ctx)
 {
   const folder_config_t *folder_config = hashcat_ctx->folder_config;
+  const module_ctx_t    *module_ctx    = hashcat_ctx->module_ctx;
   const user_options_t  *user_options  = hashcat_ctx->user_options;
 
   static int cur = 0;
@@ -63,11 +64,7 @@ int benchmark_next (hashcat_ctx_t *hashcat_ctx)
 
     for (int i = cur; i < MODULE_HASH_MODES_MAXIMUM; i++)
     {
-      #if defined (_WIN)
-      snprintf (modulefile, HCBUFSIZ_TINY, "%s/modules/module_%05d.dll", folder_config->shared_dir, i);
-      #else
-      snprintf (modulefile, HCBUFSIZ_TINY, "%s/modules/module_%05d.so", folder_config->shared_dir, i);
-      #endif
+      module_filename (folder_config, i, modulefile, HCBUFSIZ_TINY);
 
       if (hc_path_exist (modulefile) == true)
       {

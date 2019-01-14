@@ -332,13 +332,11 @@ LFLAGS_CROSS_LINUX64    += -lm
 LFLAGS_CROSS_WIN32      := $(LFLAGS)
 LFLAGS_CROSS_WIN32      += -Wl,--dynamicbase
 LFLAGS_CROSS_WIN32      += -Wl,--nxcompat
-LFLAGS_CROSS_WIN32      += -Wl,--export-all-symbols
 LFLAGS_CROSS_WIN32      += -lpsapi
 LFLAGS_CROSS_WIN32      += -lws2_32
 LFLAGS_CROSS_WIN64      := $(LFLAGS)
 LFLAGS_CROSS_WIN64      += -Wl,--dynamicbase
 LFLAGS_CROSS_WIN64      += -Wl,--nxcompat
-LFLAGS_CROSS_WIN64      += -Wl,--export-all-symbols
 LFLAGS_CROSS_WIN64      += -lpsapi
 LFLAGS_CROSS_WIN64      += -lws2_32
 
@@ -420,11 +418,15 @@ distclean: clean
 
 binaries: linux32 linux64 win32 win64
 
-linux32: hashcat32.bin
-linux64: hashcat64.bin
+host_linux32: hashcat32.bin
+host_linux64: hashcat64.bin
+host_win32:   hashcat32.exe
+host_win64:   hashcat64.exe
 
-win32: hashcat32.exe
-win64: hashcat64.exe
+linux32: host_linux32 modules_linux32
+linux64: host_linux64 modules_linux64
+win32:   host_win32   modules_win32
+win64:   host_win64   modules_win64
 
 ##
 ## Targets: Linux install
@@ -568,25 +570,40 @@ endif
 ##
 
 MODULES_SRC   := $(wildcard src/modules/*.c)
-MODULES_LIB   := $(patsubst src/modules/%.c, modules/%.so, $(MODULES_SRC))
+MODULES_LIB   := $(patsubst src/modules/module_%.c, modules/module_%.so, $(MODULES_SRC))
 
 modules/module_%.so: src/modules/module_%.c
-	$(CC)    $(CFLAGS_NATIVE) $< -o $@ -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
+	$(CC)    $(CFLAGS_NATIVE) $< -o $@ $(LFLAGS_NATIVE) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
 
 modules: $(MODULES_LIB)
 
+##
+## cross compiled modules
+##
 
+MODULES_LIB_LINUX32   := $(patsubst src/modules/module_%.c, modules/module32_%.so,  $(MODULES_SRC))
+MODULES_LIB_LINUX64   := $(patsubst src/modules/module_%.c, modules/module64_%.so,  $(MODULES_SRC))
+MODULES_LIB_WIN32     := $(patsubst src/modules/module_%.c, modules/module32_%.dll, $(MODULES_SRC))
+MODULES_LIB_WIN64     := $(patsubst src/modules/module_%.c, modules/module64_%.dll, $(MODULES_SRC))
 
+modules_linux32: $(MODULES_LIB_LINUX32)
+modules_linux64: $(MODULES_LIB_LINUX64)
+modules_win32:   $(MODULES_LIB_WIN32)
+modules_win64:   $(MODULES_LIB_WIN64)
 
-MODULES_LIB_WIN64   := $(patsubst src/modules/%.c, modules/%.dll, $(MODULES_SRC))
+MODULE_DEPEND := src/bitops.c src/convert.c src/memory.c src/shared.c src/cpu_aes.c
 
-modules/module_%.dll: src/modules/module_%.c
-	$(CC_WIN_64)    $(CFLAGS_CROSS_WIN64) $< -o $@ -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
+modules/module32_%.so:  src/modules/module_%.c
+	$(CC_LINUX_32)  $(CFLAGS_CROSS_LINUX32) $< -o $@ $(LFLAGS_CROSS_LINUX32) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
 
-modules_win64: $(MODULES_LIB_WIN64)
+modules/module64_%.so:  src/modules/module_%.c
+	$(CC_LINUX_64)  $(CFLAGS_CROSS_LINUX64) $< -o $@ $(LFLAGS_CROSS_LINUX64) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
 
+modules/module32_%.dll: src/modules/module_%.c
+	$(CC_WIN_32)    $(CFLAGS_CROSS_WIN32)   $< -o $@ $(LFLAGS_CROSS_WIN32)   -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION) $(MODULE_DEPEND)
 
-
+modules/module64_%.dll: src/modules/module_%.c
+	$(CC_WIN_64)    $(CFLAGS_CROSS_WIN64)   $< -o $@ $(LFLAGS_CROSS_WIN64)   -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION) $(MODULE_DEPEND)
 
 ##
 ## cross compiled hashcat
@@ -641,13 +658,13 @@ hashcat64.bin: src/main.c $(LINUX_64_OBJS)
 	$(CC_LINUX_64) $(CFLAGS_CROSS_LINUX64)    -o $@ $^ $(LFLAGS_CROSS_LINUX64) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
 hashcat32.exe: src/main.c $(WIN_32_OBJS) $(WIN_ICONV_32)/lib/libiconv.a
-	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN32)      -o $@ $^ $(LFLAGS_CROSS_WIN32)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -Wl,--output-def,host32.def
+	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN32)      -o $@ $^ $(LFLAGS_CROSS_WIN32)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\"
 
 hashcat64.exe: src/main.c $(WIN_64_OBJS) $(WIN_ICONV_64)/lib/libiconv.a
-	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)      -o $@ $^ $(LFLAGS_CROSS_WIN64)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -Wl,--output-def,host64.def
+	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)      -o $@ $^ $(LFLAGS_CROSS_WIN64)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\"
 
-hashcat32.dll: src/main.c $(WIN_32_OBJS)
+hashcat32.dll: src/main.c $(WIN_32_OBJS) $(WIN_ICONV_32)/lib/libiconv.a
 	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN32)      -o $@ $^ $(LFLAGS_CROSS_WIN32)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -shared
 
-hashcat64.dll: src/main.c $(WIN_64_OBJS)
+hashcat64.dll: src/main.c $(WIN_64_OBJS) $(WIN_ICONV_64)/lib/libiconv.a
 	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)      -o $@ $^ $(LFLAGS_CROSS_WIN64)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -shared

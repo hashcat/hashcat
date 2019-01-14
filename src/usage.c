@@ -268,6 +268,7 @@ void usage_big_print (hashcat_ctx_t *hashcat_ctx)
 {
   folder_config_t *folder_config = hashcat_ctx->folder_config;
   hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
+  module_ctx_t    *module_ctx    = hashcat_ctx->module_ctx;
   user_options_t  *user_options  = hashcat_ctx->user_options;
 
   char *modulefile = (char *) hcmalloc (HCBUFSIZ_TINY);
@@ -280,11 +281,7 @@ void usage_big_print (hashcat_ctx_t *hashcat_ctx)
   {
     user_options->hash_mode = i;
 
-    #if defined (_WIN)
-    snprintf (modulefile, HCBUFSIZ_TINY, "%s/modules/module_%05d.dll", folder_config->shared_dir, i);
-    #else
-    snprintf (modulefile, HCBUFSIZ_TINY, "%s/modules/module_%05d.so", folder_config->shared_dir, i);
-    #endif
+    module_filename (folder_config, i, modulefile, HCBUFSIZ_TINY);
 
     if (hc_path_exist (modulefile) == false) continue;
 
