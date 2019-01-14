@@ -393,7 +393,7 @@ endif
 ## Targets: Native Compilation
 ##
 
-default: $(HASHCAT_FRONTEND) modules
+default: $(HASHCAT_FRONTEND)
 
 clean:
 	$(RM) -f $(HASHCAT_FRONTEND)
