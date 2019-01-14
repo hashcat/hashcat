@@ -486,7 +486,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   if (module_ctx->module_context_size != MODULE_CONTEXT_SIZE_CURRENT)
   {
-    event_log_error (hashcat_ctx, "module context size is invalid, outdated template?");
+    event_log_error (hashcat_ctx, "module context size is invalid. Old template?");
 
     return -1;
   }
@@ -500,12 +500,12 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   // check for missing pointer assignements
 
-  #define CHECK_DEFINED(func)                                                                         \
-    if (func == NULL)                                                                                 \
-    {                                                                                                 \
-      event_log_error (hashcat_ctx, "module context initialization is invalid, outdated template?");  \
-                                                                                                      \
-      return -1;                                                                                      \
+  #define CHECK_DEFINED(func)                                                       \
+    if (func == NULL)                                                               \
+    {                                                                               \
+      event_log_error (hashcat_ctx, "Missing symbol definitions. Old template?'");  \
+                                                                                    \
+      return -1;                                                                    \
     }
 
   CHECK_DEFINED (module_ctx->module_attack_exec);
@@ -574,31 +574,31 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   // mandatory functions check
 
-  #define CHECK_MANDATORY(func)                                                           \
-    if (func == MODULE_DEFAULT)                                                           \
-    {                                                                                     \
-      event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_attack_exec'"); \
-                                                                                          \
-      return -1;                                                                          \
+  #define CHECK_MANDATORY(func)                                                 \
+    if (func == MODULE_DEFAULT)                                                 \
+    {                                                                           \
+      event_log_error (hashcat_ctx, "Missing mandatory symbol definitions.'");  \
+                                                                                \
+      return -1;                                                                \
     }
 
-  CHECK_MANDATORY (module_attack_exec);
-  CHECK_MANDATORY (module_dgst_pos0);
-  CHECK_MANDATORY (module_dgst_pos1);
-  CHECK_MANDATORY (module_dgst_pos2);
-  CHECK_MANDATORY (module_dgst_pos3);
-  CHECK_MANDATORY (module_dgst_size);
-  CHECK_MANDATORY (module_hash_decode);
-  CHECK_MANDATORY (module_hash_encode);
-  CHECK_MANDATORY (module_hash_category);
-  CHECK_MANDATORY (module_hash_name);
-  CHECK_MANDATORY (module_hash_type);
-  CHECK_MANDATORY (module_kern_type);
-  CHECK_MANDATORY (module_opti_type);
-  CHECK_MANDATORY (module_opts_type);
-  CHECK_MANDATORY (module_salt_type);
-  CHECK_MANDATORY (module_st_hash);
-  CHECK_MANDATORY (module_st_pass);
+  CHECK_MANDATORY (module_ctx->module_attack_exec);
+  CHECK_MANDATORY (module_ctx->module_dgst_pos0);
+  CHECK_MANDATORY (module_ctx->module_dgst_pos1);
+  CHECK_MANDATORY (module_ctx->module_dgst_pos2);
+  CHECK_MANDATORY (module_ctx->module_dgst_pos3);
+  CHECK_MANDATORY (module_ctx->module_dgst_size);
+  CHECK_MANDATORY (module_ctx->module_hash_decode);
+  CHECK_MANDATORY (module_ctx->module_hash_encode);
+  CHECK_MANDATORY (module_ctx->module_hash_category);
+  CHECK_MANDATORY (module_ctx->module_hash_name);
+  CHECK_MANDATORY (module_ctx->module_hash_type);
+  CHECK_MANDATORY (module_ctx->module_kern_type);
+  CHECK_MANDATORY (module_ctx->module_opti_type);
+  CHECK_MANDATORY (module_ctx->module_opts_type);
+  CHECK_MANDATORY (module_ctx->module_salt_type);
+  CHECK_MANDATORY (module_ctx->module_st_hash);
+  CHECK_MANDATORY (module_ctx->module_st_pass);
 
   #undef CHECK_MANDATORY
 
