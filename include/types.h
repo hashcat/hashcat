@@ -765,6 +765,14 @@ typedef enum brain_link_status
 } brain_link_status_t;
 #endif
 
+#ifdef _WIN
+typedef HMODULE hc_dynlib_t;
+typedef FARPROC hc_dynfunc_t;
+#else
+typedef void * hc_dynlib_t;
+typedef void * hc_dynfunc_t;
+#endif
+
 /**
  * structs
  */
@@ -2239,14 +2247,16 @@ typedef struct event_ctx
 
 #define MODULE_DEFAULT (void *) -1
 
+typedef void (*MODULE_INIT) (void *);
+
 typedef struct module_ctx
 {
-  void       *module_handle;
-
   size_t      module_context_size;
   int         module_interface_version;
 
-  void        (*module_init)                    (struct module_ctx *);
+  hc_dynlib_t module_handle;
+
+  MODULE_INIT module_init;
 
   u32         (*module_attack_exec)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   void       *(*module_benchmark_esalt)         (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);

@@ -397,7 +397,7 @@ static bool module_load (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, c
     return false;
   }
 
-  module_ctx->module_init = hc_dlsym (module_ctx->module_handle, "module_init");
+  module_ctx->module_init = (MODULE_INIT) hc_dlsym (module_ctx->module_handle, "module_init");
 
   if (module_ctx->module_init == NULL)
   {
@@ -406,7 +406,7 @@ static bool module_load (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, c
     return false;
   }
 
-  free (module_file);
+  hcfree (module_file);
 
   return true;
 }
