@@ -27974,17 +27974,17 @@ bool default_hlfmt_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_U
 u32 default_forced_outfile_format
 {
 
-  if (user_options->hash_mode == 9710)
+  if (hashconfig->hash_mode == 9710)
   {
     user_options->outfile_format      = 5;
   }
 
-  if (user_options->hash_mode == 9810)
+  if (hashconfig->hash_mode == 9810)
   {
     user_options->outfile_format      = 5;
   }
 
-  if (user_options->hash_mode == 10410)
+  if (hashconfig->hash_mode == 10410)
   {
     user_options->outfile_format      = 5;
   }
@@ -28166,11 +28166,11 @@ bool outfile_check_disable
 {
 
 
-  if ((user_options->hash_mode ==  5200) ||
-     ((user_options->hash_mode >=  6200) && (user_options->hash_mode <=  6299)) ||
-      (user_options->hash_mode ==  9000) ||
-     ((user_options->hash_mode >= 13700) && (user_options->hash_mode <= 13799)) ||
-      (user_options->hash_mode == 14600)) return 0;
+  if ((hashconfig->hash_mode ==  5200) ||
+     ((hashconfig->hash_mode >=  6200) && (hashconfig->hash_mode <=  6299)) ||
+      (hashconfig->hash_mode ==  9000) ||
+     ((hashconfig->hash_mode >= 13700) && (hashconfig->hash_mode <= 13799)) ||
+      (hashconfig->hash_mode == 14600)) return 0;
 }
 
 bool potfile_disable
@@ -28319,7 +28319,7 @@ bool potfile_keep_all_hashes
 {
   // keep all hashes if -m 3000 was combined with --left or --show
 
-  if (user_options->hash_mode == 3000)
+  if (hashconfig->hash_mode == 3000)
   {
     if ((user_options->show == true) || (user_options->left == true))
     {
@@ -28708,16 +28708,16 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
      * too high kernel runtime, even on -u1 -n1, therefore likely to run into trap 6
      */
 
-    if ((user_options->hash_mode ==  1500)
-     || (user_options->hash_mode ==  3000)
-     || (user_options->hash_mode ==  3200)
-     || (user_options->hash_mode ==  8900)
-     || (user_options->hash_mode ==  9300)
-     || (user_options->hash_mode ==  9800)
-     || (user_options->hash_mode == 12500)
-     || (user_options->hash_mode == 14000)
-     || (user_options->hash_mode == 14100)
-     || (user_options->hash_mode == 15700))
+    if ((hashconfig->hash_mode ==  1500)
+     || (hashconfig->hash_mode ==  3000)
+     || (hashconfig->hash_mode ==  3200)
+     || (hashconfig->hash_mode ==  8900)
+     || (hashconfig->hash_mode ==  9300)
+     || (hashconfig->hash_mode ==  9800)
+     || (hashconfig->hash_mode == 12500)
+     || (hashconfig->hash_mode == 14000)
+     || (hashconfig->hash_mode == 14100)
+     || (hashconfig->hash_mode == 15700))
     {
       return true;
     }
@@ -29006,7 +29006,7 @@ int module_hash_binary_parse ()
               {
                 memset (hashes_buf[hashes_cnt].esalt, 0, hashconfig->esalt_size);
 
-                if ((user_options->hash_mode == 2500) || (user_options->hash_mode == 2501))
+                if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
                 {
                   wpa_eapol_t *wpa_eapol = (wpa_eapol_t *) hashes_buf[hashes_cnt].esalt;
 

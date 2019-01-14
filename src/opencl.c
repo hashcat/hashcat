@@ -4369,7 +4369,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if ((unstable_warning == true) && (user_options->force == false))
     {
-      event_log_warning (hashcat_ctx, "* Device #%u: Skipping unstable hash-mode %u for this device.", device_id + 1, user_options->hash_mode);
+      event_log_warning (hashcat_ctx, "* Device #%u: Skipping unstable hash-mode %u for this device.", device_id + 1, hashconfig->hash_mode);
       event_log_warning (hashcat_ctx, "             You can use --force to override, but do not report related errors.");
 
       device_param->skipped = true;
@@ -4852,10 +4852,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     char *device_name_chksum_amp_mp = (char *) hcmalloc (HCBUFSIZ_TINY);
 
     #if defined (__x86_64__)
-    const size_t dnclen        = snprintf (device_name_chksum,        HCBUFSIZ_TINY, "%d-%u-%u-%s-%s-%s-%d-%u-%u", 64, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, opencl_ctx->comptime, user_options->opencl_vector_width, user_options->hash_mode);
+    const size_t dnclen        = snprintf (device_name_chksum,        HCBUFSIZ_TINY, "%d-%u-%u-%s-%s-%s-%d-%u-%u", 64, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, opencl_ctx->comptime, user_options->opencl_vector_width, hashconfig->hash_mode);
     const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%d-%u-%s-%s-%s-%d",          64, device_param->platform_vendor_id,                             device_param->device_name, device_param->device_version, device_param->driver_version, opencl_ctx->comptime);
     #else
-    const size_t dnclen        = snprintf (device_name_chksum,        HCBUFSIZ_TINY, "%d-%u-%u-%s-%s-%s-%d-%u-%u", 32, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, opencl_ctx->comptime, user_options->opencl_vector_width, user_options->hash_mode);
+    const size_t dnclen        = snprintf (device_name_chksum,        HCBUFSIZ_TINY, "%d-%u-%u-%s-%s-%s-%d-%u-%u", 32, device_param->platform_vendor_id, device_param->vector_width, device_param->device_name, device_param->device_version, device_param->driver_version, opencl_ctx->comptime, user_options->opencl_vector_width, hashconfig->hash_modes);
     const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%d-%u-%s-%s-%s-%d",          32, device_param->platform_vendor_id,                             device_param->device_name, device_param->device_version, device_param->driver_version, opencl_ctx->comptime);
     #endif
 

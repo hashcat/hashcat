@@ -289,7 +289,7 @@ void usage_big_print (hashcat_ctx_t *hashcat_ctx)
 
     if (rc == 0)
     {
-      usage_sort_buf[usage_sort_cnt].hash_mode     = i;
+      usage_sort_buf[usage_sort_cnt].hash_mode     = hashconfig->hash_mode;
       usage_sort_buf[usage_sort_cnt].hash_name     = hcstrdup (hashconfig->hash_name);
       usage_sort_buf[usage_sort_cnt].hash_category = hashconfig->hash_category;
 
