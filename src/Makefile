@@ -591,7 +591,7 @@ modules_linux64: $(MODULES_LIB_LINUX64)
 modules_win32:   $(MODULES_LIB_WIN32)
 modules_win64:   $(MODULES_LIB_WIN64)
 
-MODULE_DEPEND := src/bitops.c src/convert.c src/memory.c src/shared.c src/cpu_aes.c
+MODULE_DEPEND := src/bitops.c src/convert.c src/memory.c src/shared.c src/cpu_aes.c src/cpu_md5.h
 
 modules/module32_%.so:  src/modules/module_%.c
 	$(CC_LINUX_32)  $(CFLAGS_CROSS_LINUX32) $< -o $@ $(LFLAGS_CROSS_LINUX32) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
