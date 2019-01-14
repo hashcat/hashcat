@@ -574,124 +574,33 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   // mandatory functions check
 
-  if (module_ctx->module_attack_exec == MODULE_DEFAULT)
-  {
-    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_attack_exec'");
+  #define CHECK_MANDATORY(func)                                                           \
+    if (func == MODULE_DEFAULT)                                                           \
+    {                                                                                     \
+      event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_attack_exec'"); \
+                                                                                          \
+      return -1;                                                                          \
+    }
 
-    return false;
-  }
+  CHECK_MANDATORY (module_attack_exec);
+  CHECK_MANDATORY (module_dgst_pos0);
+  CHECK_MANDATORY (module_dgst_pos1);
+  CHECK_MANDATORY (module_dgst_pos2);
+  CHECK_MANDATORY (module_dgst_pos3);
+  CHECK_MANDATORY (module_dgst_size);
+  CHECK_MANDATORY (module_hash_decode);
+  CHECK_MANDATORY (module_hash_encode);
+  CHECK_MANDATORY (module_hash_category);
+  CHECK_MANDATORY (module_hash_name);
+  CHECK_MANDATORY (module_hash_type);
+  CHECK_MANDATORY (module_kern_type);
+  CHECK_MANDATORY (module_opti_type);
+  CHECK_MANDATORY (module_opts_type);
+  CHECK_MANDATORY (module_salt_type);
+  CHECK_MANDATORY (module_st_hash);
+  CHECK_MANDATORY (module_st_pass);
 
-  if (module_ctx->module_dgst_pos0 == MODULE_DEFAULT)
-  {
-    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_dgst_pos0'");
-
-    return false;
-  }
-
-  if (module_ctx->module_dgst_pos1 == MODULE_DEFAULT)
-  {
-    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_dgst_pos1'");
-
-    return false;
-  }
-
-  if (module_ctx->module_dgst_pos2 == MODULE_DEFAULT)
-  {
-    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_dgst_pos2'");
-
-    return false;
-  }
-
-  if (module_ctx->module_dgst_pos3 == MODULE_DEFAULT)
-  {
-    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_dgst_pos3'");
-
-    return false;
-  }
-
-  if (module_ctx->module_dgst_size == MODULE_DEFAULT)
-  {
-    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_dgst_size'");
-
-    return false;
-  }
-
-  if (module_ctx->module_hash_decode == MODULE_DEFAULT)
-  {
-    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_hash_decode'");
-
-    return false;
-  }
-
-  if (module_ctx->module_hash_encode == MODULE_DEFAULT)
-  {
-    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_hash_encode'");
-
-    return false;
-  }
-
-  if (module_ctx->module_hash_category == MODULE_DEFAULT)
-  {
-    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_hash_category'");
-
-    return false;
-  }
-
-  if (module_ctx->module_hash_name == MODULE_DEFAULT)
-  {
-    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_hash_name'");
-
-    return false;
-  }
-
-  if (module_ctx->module_hash_type == MODULE_DEFAULT)
-  {
-    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_hash_type'");
-
-    return false;
-  }
-
-  if (module_ctx->module_kern_type == MODULE_DEFAULT)
-  {
-    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_kern_type'");
-
-    return false;
-  }
-
-  if (module_ctx->module_opti_type == MODULE_DEFAULT)
-  {
-    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_opti_type'");
-
-    return false;
-  }
-
-  if (module_ctx->module_opts_type == MODULE_DEFAULT)
-  {
-    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_opts_type'");
-
-    return false;
-  }
-
-  if (module_ctx->module_salt_type == MODULE_DEFAULT)
-  {
-    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_salt_type'");
-
-    return false;
-  }
-
-  if (module_ctx->module_st_hash == MODULE_DEFAULT)
-  {
-    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_st_hash'");
-
-    return false;
-  }
-
-  if (module_ctx->module_st_pass == MODULE_DEFAULT)
-  {
-    event_log_error (hashcat_ctx, "Cannot find mandatory symbol 'module_st_pass'");
-
-    return false;
-  }
+  #undef CHECK_MANDATORY
 
   if (module_ctx->module_attack_exec              != MODULE_DEFAULT) hashconfig->attack_exec             = module_ctx->module_attack_exec              (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_benchmark_mask           != MODULE_DEFAULT) hashconfig->benchmark_mask          = module_ctx->module_benchmark_mask           (hashconfig, user_options, user_options_extra);
