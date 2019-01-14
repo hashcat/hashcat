@@ -2,7 +2,7 @@
  * Author......: See docs/credits.txt
  * License.....: MIT
  */
-
+#include <stdio.h>
 #include "common.h"
 #include "types.h"
 #include "memory.h"
