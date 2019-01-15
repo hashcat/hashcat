@@ -5024,11 +5024,20 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (CL_rc == -1) return -1;
 
-        char *jit_build_options = module_ctx->module_jit_build_options (hashconfig, user_options, user_options_extra, hashes, device_param);
-
         char *build_opts_update;
 
-        hc_asprintf (&build_opts_update, "%s %s", build_opts, jit_build_options);
+        char *jit_build_options = module_ctx->module_jit_build_options (hashconfig, user_options, user_options_extra, hashes, device_param);
+
+        if (jit_build_options != NULL)
+        {
+          hc_asprintf (&build_opts_update, "%s %s", build_opts, jit_build_options);
+
+          hcfree (jit_build_options);
+        }
+        else
+        {
+          build_opts_update = hcstrdup (build_opts);
+        }
 
         CL_rc = hc_clBuildProgram (hashcat_ctx, device_param->program, 1, &device_param->device, build_opts_update, NULL, NULL);
 

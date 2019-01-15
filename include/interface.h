@@ -17,17 +17,6 @@ static const int MODULE_INTERFACE_VERSION_MINIMUM = 520;
 
 static const int MODULE_HASH_MODES_MAXIMUM = 100000;
 
-typedef enum kernel_workload
-{
-  KERNEL_ACCEL_MIN   = 1,
-  KERNEL_ACCEL_MAX   = 1024,
-  KERNEL_LOOPS_MIN   = 1,
-  KERNEL_LOOPS_MAX   = 1024,
-  KERNEL_THREADS_MIN = 1,
-  KERNEL_THREADS_MAX = 1024,
-
-} kernel_workload_t;
-
 /**
  * output functions
  */

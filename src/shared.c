@@ -1138,22 +1138,22 @@ void decoder_apply_optimizer (const hashconfig_t *hashconfig, void *data)
     switch (hash_type)
     {
       case HASH_TYPE_DES:
-        FP (digest_buf[1], digest_buf[0], tt);
+        IP (digest_buf[0], digest_buf[1], tt);
         break;
 
       case HASH_TYPE_DESCRYPT:
-        FP (digest_buf[1], digest_buf[0], tt);
+        IP (digest_buf[0], digest_buf[1], tt);
         break;
 
       case HASH_TYPE_DESRACF:
         digest_buf[0] = rotl32 (digest_buf[0], 29);
         digest_buf[1] = rotl32 (digest_buf[1], 29);
 
-        FP (digest_buf[1], digest_buf[0], tt);
+        IP (digest_buf[0], digest_buf[1], tt);
         break;
 
       case HASH_TYPE_LM:
-        FP (digest_buf[1], digest_buf[0], tt);
+        IP (digest_buf[0], digest_buf[1], tt);
         break;
 
       case HASH_TYPE_NETNTLM:
@@ -1162,15 +1162,15 @@ void decoder_apply_optimizer (const hashconfig_t *hashconfig, void *data)
         digest_buf[2] = rotl32 (digest_buf[2], 29);
         digest_buf[3] = rotl32 (digest_buf[3], 29);
 
-        FP (digest_buf[1], digest_buf[0], tt);
-        FP (digest_buf[3], digest_buf[2], tt);
+        IP (digest_buf[0], digest_buf[1], tt);
+        IP (digest_buf[2], digest_buf[3], tt);
         break;
 
       case HASH_TYPE_BSDICRYPT:
         digest_buf[0] = rotl32 (digest_buf[0], 31);
         digest_buf[1] = rotl32 (digest_buf[1], 31);
 
-        FP (digest_buf[1], digest_buf[0], tt);
+        IP (digest_buf[0], digest_buf[1], tt);
         break;
     }
   }

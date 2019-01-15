@@ -129,7 +129,6 @@
   "  15300 | DPAPI masterkey file v1                          | Operating Systems",
   "  15900 | DPAPI masterkey file v2                          | Operating Systems",
   "  12800 | MS-AzureSync  PBKDF2-HMAC-SHA256                 | Operating Systems",
-  "   1500 | descrypt, DES (Unix), Traditional DES            | Operating Systems",
   "  12400 | BSDi Crypt, Extended DES                         | Operating Systems",
   "   3200 | bcrypt $2*$, Blowfish (Unix)                     | Operating Systems",
   "   7400 | sha256crypt $5$, SHA256 (Unix)                   | Operating Systems",
@@ -272,7 +271,6 @@ static const char *ST_PASS_HEX_16801     = "5b13d4babb3714ccc62c9f71864bc984efd6
 /**
  * Missing self-test hashes:
  *
- * ST_HASH_01500  the self-test can't work because the salt is part of the code at compile-time
  * ST_HASH_08900  the self-test can't work because the scrypt settings is part of the code at compile-time
  * ST_HASH_1374x  missing example hash
  * ST_HASH_1376x  missing example hash
@@ -316,7 +314,6 @@ static const char *ST_HASH_01440 = "84ebe1bc3d59919a8c4f9337d66bd163661586c828b2
 static const char *ST_HASH_01441 = "$episerver$*1*NDg1NTIz*8BFCg/YJBAuZs/wjbH3OWKe69BLr5Lao26ybpnD48Zk";
 static const char *ST_HASH_01450 = "b435ffbacea34d5eb0dbc4d69a92f0152f2cf4cd364d34c2ece322ca22d8b334:21217";
 static const char *ST_HASH_01460 = "8b9472281c36c3a693703de0e0f1ffab8fc0ecdd3bc5ead04c76dd74ef431e49:70108387805";
-//static const char *ST_HASH_01500 = "8133vc.5rieNk";
 static const char *ST_HASH_01600 = "$apr1$62722340$zGjeAwVP2KwY6MtumUI1N/";
 static const char *ST_HASH_01710 = "3f749c84d00c6f94a6651b5c195c71dacae08f3cea6fed760232856cef701f7bf60d7f38a587f69f159d4e4cbe00435aeb9c8c0a4927b252d76a744e16e87e91:388026522082";
 static const char *ST_HASH_01711 = "{SSHA512}Bz8w5q6qEtB1Nnc8b1jfTvTXVTwohWag33oghQGOtLChnkZTw/cuJaHQlLJEI3AWKZGCRyLA6Phujdxo+is7AjA2MDcyNjY1Mg==";
@@ -538,7 +535,6 @@ static const char *HT_01430 = "sha256(utf16le($pass).$salt)";
 static const char *HT_01440 = "sha256($salt.utf16le($pass))";
 static const char *HT_01450 = "HMAC-SHA256 (key = $pass)";
 static const char *HT_01460 = "HMAC-SHA256 (key = $salt)";
-static const char *HT_01500 = "descrypt, DES (Unix), Traditional DES";
 static const char *HT_01600 = "Apache $apr1$ MD5, md5apr1, MD5 (APR)";
 static const char *HT_01710 = "sha512($pass.$salt)";
 static const char *HT_01720 = "sha512($salt.$pass)";
@@ -4013,68 +4009,6 @@ int episerver_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  return (PARSER_OK);
-}
-
-int descrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt  = 2;
-
-  token.len[0]  = 2;
-  token.attr[0] = TOKEN_ATTR_FIXED_LENGTH
-                | TOKEN_ATTR_VERIFY_BASE64B;
-
-  token.len[1]  = 11;
-  token.attr[1] = TOKEN_ATTR_FIXED_LENGTH
-                | TOKEN_ATTR_VERIFY_BASE64B;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *salt_pos = token.buf[0];
-  const u8 *hash_pos = token.buf[1];
-
-  const int hash_len = token.len[1];
-
-  const u8 c10 = itoa64_to_int (hash_pos[10]);
-
-  if (c10 & 3) return (PARSER_HASH_VALUE);
-
-  // for ascii_to_ebcdic_digest
-  salt->salt_sign[0] = salt_pos[0];
-  salt->salt_sign[1] = salt_pos[1];
-
-  salt->salt_buf[0] = itoa64_to_int (salt_pos[0])
-                    | itoa64_to_int (salt_pos[1]) << 6;
-
-  // we need to add 2 additional bytes (the salt sign) such that the salt sorting algorithm
-  // doesn't eliminate salts that are identical but have different salt signs
-
-  salt->salt_buf[0] |= salt_pos[0] << 16
-                    |  salt_pos[1] << 24;
-
-  salt->salt_len = 4; // actually it is only 2 (but we need to add the original salt_sign to it)
-
-  u8 tmp_buf[100] = { 0 };
-
-  base64_decode (itoa64_to_int, hash_pos, hash_len, tmp_buf);
-
-  memcpy (digest, tmp_buf, 8);
-
-  u32 tt;
-
-  IP (digest[0], digest[1], tt);
-
-  digest[2] = 0;
-  digest[3] = 0;
 
   return (PARSER_OK);
 }
@@ -18017,10 +17951,7 @@ u32 kernel_loops_mxx (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    if (hashconfig->hash_mode == 1500 && user_options->attack_mode == ATTACK_MODE_BF)
-    {
-      kernel_loops_fixed = 1024;
-    }
+    // respect the slow_candidates, too
 
     if (hashconfig->hash_mode == 3000 && user_options->attack_mode == ATTACK_MODE_BF)
     {
@@ -18110,9 +18041,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
     switch (hashconfig->hash_mode)
     {
       case    22: salt->salt_len    = 30;
-                  break;
-      case  1500: salt->salt_len    = 2;
-                  salt->salt_buf[0] = 388; // pure magic
                   break;
       case  1731: salt->salt_len = 4;
                   break;
@@ -18758,29 +18686,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
     ptr_plain[43] = 0;
 
     snprintf (out_buf, out_size, "%s*1*%s*%s", SIGNATURE_EPISERVER, ptr_salt, ptr_plain);
-  }
-  else if (hash_mode == 1500)
-  {
-    out_buf[0] = salt.salt_sign[0] & 0xff;
-    out_buf[1] = salt.salt_sign[1] & 0xff;
-    //original method, but changed because of this ticket: https://hashcat.net/trac/ticket/269
-    //out_buf[0] = int_to_itoa64 ((salt.salt_buf[0] >> 0) & 0x3f);
-    //out_buf[1] = int_to_itoa64 ((salt.salt_buf[0] >> 6) & 0x3f);
-
-    memset (tmp_buf, 0, sizeof (tmp_buf));
-
-    // the encoder is a bit too intelligent, it expects the input data in the wrong BOM
-
-    digest_buf[0] = byte_swap_32 (digest_buf[0]);
-    digest_buf[1] = byte_swap_32 (digest_buf[1]);
-
-    memcpy (tmp_buf, digest_buf, 8);
-
-    base64_encode (int_to_itoa64, (const u8 *) tmp_buf, 8, (u8 *) ptr_plain);
-
-    snprintf (out_buf + 2, out_len - 2, "%s", ptr_plain);
-
-    out_buf[13] = 0;
   }
   else if (hash_mode == 1600)
   {
@@ -22987,24 +22892,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 6;
                  hashconfig->st_hash        = ST_HASH_01460;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case  1500:  hashconfig->hash_type      = HASH_TYPE_DESCRYPT;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PT_BITSLICE;
-                 hashconfig->kern_type      = KERN_TYPE_DESCRYPT;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
-                 hashconfig->parse_func     = descrypt_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_PERMUT;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = NULL;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
@@ -27269,7 +27156,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
   switch (hashconfig->hash_mode)
   {
     case   112: pw_max = 30;      break; // https://www.toadworld.com/platforms/oracle/b/weblog/archive/2013/11/12/oracle-12c-passwords
-    case  1500: pw_max = 8;       break; // Underlaying DES max
     case  2100: pw_max = PW_MAX;  break;
     case  2500: pw_max = 63;      break; // WPA-EAPOL-PBKDF2: limits itself to 63 by RFC
     case  2501: pw_max = 64;      break; // WPA-EAPOL-PMK: fixed length
@@ -28059,10 +27945,6 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   {
     opencl_ctx->force_jit_compilation = 15700;
   }
-  else if (hashconfig->hash_mode == 1500 && user_options->attack_mode == ATTACK_MODE_BF && hashes->salts_cnt == 1 && user_options->slow_candidates == false)
-  {
-    opencl_ctx->force_jit_compilation = 1500;
-  }
 
     // scryptV stuff
 
@@ -28214,11 +28096,6 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
     size_t size_scrypt4 = size_scrypt / 4;
 
 
-
-        if (opencl_ctx->force_jit_compilation == 1500)
-        {
-          hc_asprintf (&build_opts_update, "%s -DDESCRYPT_SALT=%u", build_opts, hashes->salts_buf[0].salt_buf[0]);
-        }
         else if ((opencl_ctx->force_jit_compilation == 8900) || (opencl_ctx->force_jit_compilation == 15700))
         {
           hc_asprintf (&build_opts_update,"%s -DSCRYPT_N=%u -DSCRYPT_R=%u -DSCRYPT_P=%u -DSCRYPT_TMTO=%u -DSCRYPT_TMP_ELEM=%" PRIu64, build_opts, hashes->salts_buf[0].scrypt_N, hashes->salts_buf[0].scrypt_r, hashes->salts_buf[0].scrypt_p, 1u << scrypt_tmto_final, (u64) scrypt_tmp_size / 16);
@@ -28236,7 +28113,7 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
      * too high kernel runtime, even on -u1 -n1, therefore likely to run into trap 6
      */
 
-    if ((hashconfig->hash_mode ==  1500)
+    if (
      || (hashconfig->hash_mode ==  3000)
      || (hashconfig->hash_mode ==  3200)
      || (hashconfig->hash_mode ==  8900)

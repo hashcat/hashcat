@@ -438,6 +438,7 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
 
 static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 {
+  hashconfig_t   *hashconfig    = hashcat_ctx->hashconfig;
   hashes_t       *hashes        = hashcat_ctx->hashes;
   mask_ctx_t     *mask_ctx      = hashcat_ctx->mask_ctx;
   opencl_ctx_t   *opencl_ctx    = hashcat_ctx->opencl_ctx;
@@ -732,56 +733,57 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * create self-test threads
    */
 
-  EVENT (EVENT_SELFTEST_STARTING);
-
-  thread_param_t *threads_param = (thread_param_t *) hccalloc (opencl_ctx->devices_cnt, sizeof (thread_param_t));
-
-  hc_thread_t *selftest_threads = (hc_thread_t *) hccalloc (opencl_ctx->devices_cnt, sizeof (hc_thread_t));
-
-  status_ctx->devices_status = STATUS_SELFTEST;
-
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+  if ((user_options->self_test_disable == false) && (hashconfig->st_hash != NULL) && (hashconfig->st_pass != NULL))
   {
-    thread_param_t *thread_param = threads_param + device_id;
+    EVENT (EVENT_SELFTEST_STARTING);
 
-    thread_param->hashcat_ctx = hashcat_ctx;
-    thread_param->tid         = device_id;
+    thread_param_t *threads_param = (thread_param_t *) hccalloc (opencl_ctx->devices_cnt, sizeof (thread_param_t));
 
-    hc_thread_create (selftest_threads[device_id], thread_selftest, thread_param);
-  }
+    hc_thread_t *selftest_threads = (hc_thread_t *) hccalloc (opencl_ctx->devices_cnt, sizeof (hc_thread_t));
 
-  hc_thread_wait (opencl_ctx->devices_cnt, selftest_threads);
+    status_ctx->devices_status = STATUS_SELFTEST;
 
-  hcfree (threads_param);
-
-  hcfree (selftest_threads);
-
-  // check for any selftest failures
-
-  for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
-  {
-    if (opencl_ctx->enabled == false) continue;
-
-    if (user_options->self_test_disable == true) continue;
-
-    hc_device_param_t *device_param = opencl_ctx->devices_param + device_id;
-
-    if (device_param->skipped == true) continue;
-
-    if (device_param->st_status == ST_STATUS_FAILED)
+    for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
     {
-      event_log_error (hashcat_ctx, "Aborting session due to kernel self-test failure.");
+      thread_param_t *thread_param = threads_param + device_id;
 
-      event_log_warning (hashcat_ctx, "You can use --self-test-disable to override this, but do not report related errors.");
-      event_log_warning (hashcat_ctx, NULL);
+      thread_param->hashcat_ctx = hashcat_ctx;
+      thread_param->tid         = device_id;
 
-      return -1;
+      hc_thread_create (selftest_threads[device_id], thread_selftest, thread_param);
     }
+
+    hc_thread_wait (opencl_ctx->devices_cnt, selftest_threads);
+
+    hcfree (threads_param);
+
+    hcfree (selftest_threads);
+
+    // check for any selftest failures
+
+    for (u32 device_id = 0; device_id < opencl_ctx->devices_cnt; device_id++)
+    {
+      if (opencl_ctx->enabled == false) continue;
+
+      hc_device_param_t *device_param = opencl_ctx->devices_param + device_id;
+
+      if (device_param->skipped == true) continue;
+
+      if (device_param->st_status == ST_STATUS_FAILED)
+      {
+        event_log_error (hashcat_ctx, "Aborting session due to kernel self-test failure.");
+
+        event_log_warning (hashcat_ctx, "You can use --self-test-disable to override this, but do not report related errors.");
+        event_log_warning (hashcat_ctx, NULL);
+
+        return -1;
+      }
+    }
+
+    status_ctx->devices_status = STATUS_INIT;
+
+    EVENT (EVENT_SELFTEST_FINISHED);
   }
-
-  status_ctx->devices_status = STATUS_INIT;
-
-  EVENT (EVENT_SELFTEST_FINISHED);
 
   /**
    * (old) weak hash check is the first to write to potfile, so open it for writing from here

@@ -1416,6 +1416,17 @@ typedef struct opencl_ctx
 
 } opencl_ctx_t;
 
+typedef enum kernel_workload
+{
+  KERNEL_ACCEL_MIN   = 1,
+  KERNEL_ACCEL_MAX   = 1024,
+  KERNEL_LOOPS_MIN   = 1,
+  KERNEL_LOOPS_MAX   = 1024,
+  KERNEL_THREADS_MIN = 1,
+  KERNEL_THREADS_MAX = 1024,
+
+} kernel_workload_t;
+
 #include "ext_ADL.h"
 #include "ext_nvapi.h"
 #include "ext_nvml.h"

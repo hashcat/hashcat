@@ -933,7 +933,6 @@ typedef enum hash_type
   HASH_TYPE_DCC2                = 9,
   HASH_TYPE_WPA_EAPOL           = 10,
   HASH_TYPE_LM                  = 11,
-  HASH_TYPE_DESCRYPT            = 12,
   HASH_TYPE_ORACLEH             = 13,
   HASH_TYPE_DESRACF             = 14,
   HASH_TYPE_BCRYPT              = 15,
@@ -1015,7 +1014,6 @@ typedef enum kern_type
   KERN_TYPE_SHA256_SLTPWU           = 1440,
   KERN_TYPE_HMACSHA256_PW           = 1450,
   KERN_TYPE_HMACSHA256_SLT          = 1460,
-  KERN_TYPE_DESCRYPT                = 1500,
   KERN_TYPE_APR1CRYPT               = 1600,
   KERN_TYPE_SHA512_PWSLT            = 1710,
   KERN_TYPE_SHA512_SLTPW            = 1720,
@@ -1278,7 +1276,6 @@ typedef enum rounds_count
 int bcrypt_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int cisco4_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int dcc2_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int descrypt_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int des_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int episerver_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int postgresql_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
