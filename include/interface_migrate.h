@@ -69,16 +69,6 @@ typedef struct itunes_backup
 
 } itunes_backup_t;
 
-typedef struct blake2
-{
-  u64 h[8];
-  u64 t[2];
-  u64 f[2];
-  u32 buflen;
-  u32 outlen;
-
-} blake2_t;
-
 typedef struct chacha20
 {
   u32 iv[2];
@@ -165,18 +155,6 @@ typedef struct ikepsk
   u32 msg_len[6];
 
 } ikepsk_t;
-
-typedef struct netntlm
-{
-  u32 user_len;
-  u32 domain_len;
-  u32 srvchall_len;
-  u32 clichall_len;
-
-  u32 userdomain_buf[64];
-  u32 chall_buf[256];
-
-} netntlm_t;
 
 typedef struct krb5pa
 {
@@ -978,7 +956,6 @@ typedef enum hash_type
   HASH_TYPE_ITUNES_BACKUP_9     = 56,
   HASH_TYPE_ITUNES_BACKUP_10    = 57,
   HASH_TYPE_SKIP32              = 58,
-  HASH_TYPE_BLAKE2B             = 59,
   HASH_TYPE_CHACHA20            = 60,
   HASH_TYPE_DPAPIMK             = 61,
   HASH_TYPE_JKS_SHA1            = 62,
@@ -1006,7 +983,6 @@ typedef enum kern_type
   KERN_TYPE_SHA1_SLTPWU             = 140,
   KERN_TYPE_HMACSHA1_PW             = 150,
   KERN_TYPE_HMACSHA1_SLT            = 160,
-  KERN_TYPE_BLAKE2B                 = 600,
   KERN_TYPE_MD44_PWUSLT             = 1100,
   KERN_TYPE_SHA256_PWSLT            = 1410,
   KERN_TYPE_SHA256_SLTPW            = 1420,
@@ -1284,7 +1260,6 @@ int keccak_224_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int keccak_256_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int keccak_384_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int keccak_512_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int blake2b_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int chacha20_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int lm_parse_hash                 (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int md4_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);

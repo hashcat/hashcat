@@ -8,7 +8,6 @@
   "  17800 | Keccak-256                                       | Raw Hash",
   "  17900 | Keccak-384                                       | Raw Hash",
   "  18000 | Keccak-512                                       | Raw Hash",
-  "    600 | BLAKE2b-512                                      | Raw Hash",
   "  10100 | SipHash                                          | Raw Hash",
   "   6000 | RIPEMD-160                                       | Raw Hash",
   "   6100 | Whirlpool                                        | Raw Hash",
@@ -303,7 +302,6 @@ static const char *ST_HASH_00140 = "03b83421e2aa6d872d1f8dee001dc226ef01722b:818
 static const char *ST_HASH_00141 = "$episerver$*0*MjEwNA==*ZUgAmuaYTqAvisD0A427FA3oaWU";
 static const char *ST_HASH_00150 = "02b256705348a28b1d6c0f063907979f7e0c82f8:10323";
 static const char *ST_HASH_00160 = "8d7cb4d4a27a438059bb83a34d1e6cc439669168:2134817";
-static const char *ST_HASH_00600 = "$BLAKE2$296c269e70ac5f0095e6fb47693480f0f7b97ccd0307f5c3bfa4df8f5ca5c9308a0e7108e80a0a9c0ebb715e8b7109b072046c6cd5e155b4cfd2f27216283b1e";
 static const char *ST_HASH_01100 = "c896b3c6963e03c86ade3a38370bbb09:54161084332";
 static const char *ST_HASH_01410 = "5bb7456f43e3610363f68ad6de82b8b96f3fc9ad24e9d1f1f8d8bd89638db7c0:12480864321";
 static const char *ST_HASH_01411 = "{SSHA256}L5Wk0zPY2lmoR5pH20zngq37KkxFwgTquEhx95rxfVk3Ng==";
@@ -527,7 +525,6 @@ static const char *HT_00130 = "sha1(utf16le($pass).$salt)";
 static const char *HT_00140 = "sha1($salt.utf16le($pass))";
 static const char *HT_00150 = "HMAC-SHA1 (key = $pass)";
 static const char *HT_00160 = "HMAC-SHA1 (key = $salt)";
-static const char *HT_00600 = "BLAKE2b";
 static const char *HT_01100 = "Domain Cached Credentials (DCC), MS Cache";
 static const char *HT_01410 = "sha256($pass.$salt)";
 static const char *HT_01420 = "sha256($salt.$pass)";
@@ -841,7 +838,6 @@ static const char *SIGNATURE_ITUNES_BACKUP      = "$itunes_backup$";
 static const char *SIGNATURE_FORTIGATE          = "AK1";
 static const char *SIGNATURE_ATLASSIAN          = "{PKCS5S2}";
 static const char *SIGNATURE_NETBSD_SHA1CRYPT   = "$sha1$";
-static const char *SIGNATURE_BLAKE2B            = "$BLAKE2$";
 static const char *SIGNATURE_CHACHA20           = "$chacha20$";
 static const char *SIGNATURE_JKS_SHA1           = "$jksprivk$";
 static const char *SIGNATURE_ETHEREUM_PBKDF2    = "$ethereum$p";
@@ -3887,58 +3883,6 @@ int psafe3_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   return (PARSER_OK);
 }
 
-int md5apr1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt  = 3;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_MD5APR1;
-
-  token.len[0]     = 6;
-  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.len_min[1] = 0;
-  token.len_max[1] = 8;
-  token.sep[1]     = '$';
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_OPTIONAL_ROUNDS;
-
-  token.len[2]     = 22;
-  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64B;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  salt->salt_iter = ROUNDS_MD5CRYPT;
-
-  if (token.opt_len != -1)
-  {
-    salt->salt_iter = hc_strtoul ((const char *) token.opt_buf + 7, NULL, 10); // 7 = "rounds="
-  }
-
-  const u8 *salt_pos = token.buf[1];
-  const int salt_len = token.len[1];
-
-  const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
-
-  if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  const u8 *hash_pos = token.buf[2];
-
-  md5crypt_decode ((u8 *) digest, hash_pos);
-
-  return (PARSER_OK);
-}
-
 int episerver_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
@@ -4587,173 +4531,6 @@ int netntlmv1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
 
   salt->salt_buf[0] = rotl32 (salt->salt_buf[0], 3);
   salt->salt_buf[1] = rotl32 (salt->salt_buf[1], 3);
-
-  return (PARSER_OK);
-}
-
-int netntlmv2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  netntlm_t *netntlm = (netntlm_t *) hash_buf->esalt;
-
-  token_t token;
-
-  token.token_cnt  = 6;
-
-  // username
-  token.len_min[0] = 0;
-  token.len_max[0] = 60;
-  token.sep[0]     = ':';
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  // unused
-  token.len_min[1] = 0;
-  token.len_max[1] = 0;
-  token.sep[1]     = ':';
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  // domain
-  token.len_min[2] = 0;
-  token.len_max[2] = 45;
-  token.sep[2]     = ':';
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  // lm response
-  token.len_min[3] = 16;
-  token.len_max[3] = 16;
-  token.sep[3]     = ':';
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  // ntlm response
-  token.len_min[4] = 32;
-  token.len_max[4] = 32;
-  token.sep[4]     = ':';
-  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  // challenge
-  token.len_min[5] = 2;
-  token.len_max[5] = 1024;
-  token.sep[5]     = ':';
-  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *user_pos     = token.buf[0];
-  const u8 *domain_pos   = token.buf[2];
-  const u8 *srvchall_pos = token.buf[3];
-  const u8 *hash_pos     = token.buf[4];
-  const u8 *clichall_pos = token.buf[5];
-
-  const int user_len     = token.len[0];
-  const int domain_len   = token.len[2];
-  const int srvchall_len = token.len[3];
-  const int clichall_len = token.len[5];
-
-  /**
-   * store some data for later use
-   */
-
-  netntlm->user_len     = user_len     * 2;
-  netntlm->domain_len   = domain_len   * 2;
-  netntlm->srvchall_len = srvchall_len / 2;
-  netntlm->clichall_len = clichall_len / 2;
-
-  u8 *userdomain_ptr = (u8 *) netntlm->userdomain_buf;
-  u8 *chall_ptr      = (u8 *) netntlm->chall_buf;
-
-  /**
-   * handle username and domainname
-   */
-
-  for (int i = 0; i < user_len; i++)
-  {
-    *userdomain_ptr++ = toupper (user_pos[i]);
-    *userdomain_ptr++ = 0;
-  }
-
-  for (int i = 0; i < domain_len; i++)
-  {
-    *userdomain_ptr++ = domain_pos[i];
-    *userdomain_ptr++ = 0;
-  }
-
-  *userdomain_ptr++ = 0x80;
-
-  /**
-   * handle server challenge encoding
-   */
-
-  for (int i = 0; i < srvchall_len; i += 2)
-  {
-    const u8 p0 = srvchall_pos[i + 0];
-    const u8 p1 = srvchall_pos[i + 1];
-
-    *chall_ptr++ = hex_convert (p1) << 0
-                 | hex_convert (p0) << 4;
-  }
-
-  /**
-   * handle client challenge encoding
-   */
-
-  for (int i = 0; i < clichall_len; i += 2)
-  {
-    const u8 p0 = clichall_pos[i + 0];
-    const u8 p1 = clichall_pos[i + 1];
-
-    *chall_ptr++ = hex_convert (p1) << 0
-                 | hex_convert (p0) << 4;
-  }
-
-  *chall_ptr++ = 0x80;
-
-  /**
-   * handle hash itself
-   */
-
-  digest[0] = hex_to_u32 (hash_pos +  0);
-  digest[1] = hex_to_u32 (hash_pos +  8);
-  digest[2] = hex_to_u32 (hash_pos + 16);
-  digest[3] = hex_to_u32 (hash_pos + 24);
-
-  /**
-   * reuse challange data as salt_buf, its the buffer that is most likely unique
-   */
-
-  salt->salt_buf[0] = 0;
-  salt->salt_buf[1] = 0;
-  salt->salt_buf[2] = 0;
-  salt->salt_buf[3] = 0;
-  salt->salt_buf[4] = 0;
-  salt->salt_buf[5] = 0;
-  salt->salt_buf[6] = 0;
-  salt->salt_buf[7] = 0;
-
-  u32 *uptr;
-
-  uptr = (u32 *) netntlm->userdomain_buf;
-
-  for (u32 i = 0; i < 64; i += 16, uptr += 16)
-  {
-    md5_64 (uptr, salt->salt_buf);
-  }
-
-  uptr = (u32 *) netntlm->chall_buf;
-
-  for (u32 i = 0; i < 256; i += 16, uptr += 16)
-  {
-    md5_64 (uptr, salt->salt_buf);
-  }
-
-  salt->salt_len = 16;
 
   return (PARSER_OK);
 }
@@ -6241,63 +6018,6 @@ int keccak_512_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   return (PARSER_OK);
 }
 
-int blake2b_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u64 *digest = (u64 *) hash_buf->digest;
-
-  token_t token;
-
-  token.token_cnt  = 2;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_BLAKE2B;
-
-  token.len[0]  = 8;
-  token.attr[0] = TOKEN_ATTR_FIXED_LENGTH
-                | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.len[1]  = 128;
-  token.attr[1] = TOKEN_ATTR_FIXED_LENGTH
-                | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *hash_pos = token.buf[1];
-
-  digest[0] = hex_to_u64 (hash_pos +   0);
-  digest[1] = hex_to_u64 (hash_pos +  16);
-  digest[2] = hex_to_u64 (hash_pos +  32);
-  digest[3] = hex_to_u64 (hash_pos +  48);
-  digest[4] = hex_to_u64 (hash_pos +  64);
-  digest[5] = hex_to_u64 (hash_pos +  80);
-  digest[6] = hex_to_u64 (hash_pos +  96);
-  digest[7] = hex_to_u64 (hash_pos + 112);
-
-  // Initialize BLAKE2 Params and State
-
-  blake2_t *S = (blake2_t *) hash_buf->esalt;
-
-  memset (S, 0, sizeof (blake2_t));
-
-  S->h[0] = BLAKE2B_IV_00;
-  S->h[1] = BLAKE2B_IV_01;
-  S->h[2] = BLAKE2B_IV_02;
-  S->h[3] = BLAKE2B_IV_03;
-  S->h[4] = BLAKE2B_IV_04;
-  S->h[5] = BLAKE2B_IV_05;
-  S->h[6] = BLAKE2B_IV_06;
-  S->h[7] = BLAKE2B_IV_07;
-
-  // S->h[0] ^= 0x0000000001010040; // digest_lenght = 0x40, depth = 0x01, fanout = 0x01
-  S->h[0] ^= 0x40 <<  0;
-  S->h[0] ^= 0x01 << 16;
-  S->h[0] ^= 0x01 << 24;
-
-  return (PARSER_OK);
-}
-
 int chacha20_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
@@ -7042,58 +6762,6 @@ int veracrypt_parse_hash_655331 (u8 *input_buf, u32 input_len, hash_t *hash_buf,
   tc->signature = 0x41524556; // "VERA"
 
   digest[0] = tc->data_buf[0];
-
-  return (PARSER_OK);
-}
-
-int md5aix_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt  = 3;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_MD5AIX;
-
-  token.len[0]     = 6;
-  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.len_min[1] = 0;
-  token.len_max[1] = 8;
-  token.sep[1]     = '$';
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_OPTIONAL_ROUNDS;
-
-  token.len[2]     = 22;
-  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64B;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  salt->salt_iter = ROUNDS_MD5CRYPT;
-
-  if (token.opt_len != -1)
-  {
-    salt->salt_iter = hc_strtoul ((const char *) token.opt_buf + 7, NULL, 10); // 7 = "rounds="
-  }
-
-  const u8 *salt_pos = token.buf[1];
-  const int salt_len = token.len[1];
-
-  const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
-
-  if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  const u8 *hash_pos = token.buf[2];
-
-  md5crypt_decode ((u8 *) digest, hash_pos);
 
   return (PARSER_OK);
 }
@@ -18160,11 +17828,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                   ((netntlm_t *)          esalt)->srvchall_len  = 1;
                   ((netntlm_t *)          esalt)->clichall_len  = 1;
                   break;
-      case  5600: ((netntlm_t *)          esalt)->user_len      = 1;
-                  ((netntlm_t *)          esalt)->domain_len    = 1;
-                  ((netntlm_t *)          esalt)->srvchall_len  = 1;
-                  ((netntlm_t *)          esalt)->clichall_len  = 1;
-                  break;
       case  7300: ((rakp_t *)             esalt)->salt_len      = 32;
                   break;
       case 10400: ((pdf_t *)              esalt)->id_len        = 16;
@@ -18229,8 +17892,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
 
   switch (hashconfig->hash_mode)
   {
-    case  1600:  salt->salt_iter  = ROUNDS_MD5CRYPT;
-                 break;
     case  1800:  salt->salt_iter  = ROUNDS_SHA512CRYPT;
                  break;
     case  2100:  salt->salt_iter  = ROUNDS_DCC2;
@@ -18268,8 +17929,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
     case  6242:  salt->salt_iter  = ROUNDS_TRUECRYPT_1K;
                  break;
     case  6243:  salt->salt_iter  = ROUNDS_TRUECRYPT_1K;
-                 break;
-    case  6300:  salt->salt_iter  = ROUNDS_MD5CRYPT;
                  break;
     case  6400:  salt->salt_iter  = ROUNDS_SHA256AIX;
                  break;
@@ -18687,26 +18346,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
 
     snprintf (out_buf, out_size, "%s*1*%s*%s", SIGNATURE_EPISERVER, ptr_salt, ptr_plain);
   }
-  else if (hash_mode == 1600)
-  {
-    // the encoder is a bit too intelligent, it expects the input data in the wrong BOM
-
-    digest_buf[0] = byte_swap_32 (digest_buf[0]);
-    digest_buf[1] = byte_swap_32 (digest_buf[1]);
-    digest_buf[2] = byte_swap_32 (digest_buf[2]);
-    digest_buf[3] = byte_swap_32 (digest_buf[3]);
-
-    md5crypt_encode ((unsigned char *) digest_buf, (unsigned char *) ptr_plain);
-
-    if (salt.salt_iter == ROUNDS_MD5CRYPT)
-    {
-      snprintf (out_buf, out_size, "$apr1$%s$%s", (char *) salt.salt_buf, ptr_plain);
-    }
-    else
-    {
-      snprintf (out_buf, out_size, "$apr1$rounds=%u$%s$%s", salt.salt_iter, (char *) salt.salt_buf, ptr_plain);
-    }
-  }
   else if (hash_mode == 1711)
   {
     // the encoder is a bit too intelligent, it expects the input data in the wrong BOM
@@ -19116,55 +18755,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (salt.salt_buf_pc[1]),
       clichall_buf);
   }
-  else if (hash_mode == 5600)
-  {
-    netntlm_t *netntlms = (netntlm_t *) esalts_buf;
-
-    netntlm_t *netntlm = &netntlms[digest_cur];
-
-    char user_buf[64] = { 0 };
-    char domain_buf[64] = { 0 };
-    char srvchall_buf[1024] = { 0 };
-    char clichall_buf[1024] = { 0 };
-
-    for (u32 i = 0, j = 0; j < netntlm->user_len; i += 1, j += 2)
-    {
-      char *ptr = (char *) netntlm->userdomain_buf;
-
-      user_buf[i] = ptr[j];
-    }
-
-    for (u32 i = 0, j = 0; j < netntlm->domain_len; i += 1, j += 2)
-    {
-      char *ptr = (char *) netntlm->userdomain_buf;
-
-      domain_buf[i] = ptr[netntlm->user_len + j];
-    }
-
-    for (u32 i = 0, j = 0; i < netntlm->srvchall_len; i += 1, j += 2)
-    {
-      u8 *ptr = (u8 *) netntlm->chall_buf;
-
-      sprintf (srvchall_buf + j, "%02x", ptr[i]);
-    }
-
-    for (u32 i = 0, j = 0; i < netntlm->clichall_len; i += 1, j += 2)
-    {
-      u8 *ptr = (u8 *) netntlm->chall_buf;
-
-      sprintf (clichall_buf + j, "%02x", ptr[netntlm->srvchall_len + i]);
-    }
-
-    snprintf (out_buf, out_size, "%s::%s:%s:%08x%08x%08x%08x:%s",
-      user_buf,
-      domain_buf,
-      srvchall_buf,
-      digest_buf[0],
-      digest_buf[1],
-      digest_buf[2],
-      digest_buf[3],
-      clichall_buf);
-  }
   else if (hash_mode == 5700)
   {
     // the encoder is a bit too intelligent, it expects the input data in the wrong BOM
@@ -19204,19 +18794,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
   else if ((hash_mode >= 6200) && (hash_mode <= 6299))
   {
     snprintf (out_buf, out_size, "%s", hashfile);
-  }
-  else if (hash_mode == 6300)
-  {
-    // the encoder is a bit too intelligent, it expects the input data in the wrong BOM
-
-    digest_buf[0] = byte_swap_32 (digest_buf[0]);
-    digest_buf[1] = byte_swap_32 (digest_buf[1]);
-    digest_buf[2] = byte_swap_32 (digest_buf[2]);
-    digest_buf[3] = byte_swap_32 (digest_buf[3]);
-
-    md5crypt_encode ((unsigned char *) digest_buf, (unsigned char *) ptr_plain);
-
-    snprintf (out_buf, out_size, "{smd5}%s$%s", (char *) salt.salt_buf, ptr_plain);
   }
   else if (hash_mode == 6400)
   {
@@ -21905,29 +21482,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
 
       snprintf (out_buf, out_size, "%s$%s", (char *) salt.salt_sign, tmp_buf);
     }
-    else if (hash_type == HASH_TYPE_BLAKE2B)
-    {
-      u32 *ptr = digest_buf;
-
-      snprintf (out_buf, out_size, "%s%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
-        SIGNATURE_BLAKE2B,
-        byte_swap_32 (ptr[ 0]),
-        byte_swap_32 (ptr[ 1]),
-        byte_swap_32 (ptr[ 2]),
-        byte_swap_32 (ptr[ 3]),
-        byte_swap_32 (ptr[ 4]),
-        byte_swap_32 (ptr[ 5]),
-        byte_swap_32 (ptr[ 6]),
-        byte_swap_32 (ptr[ 7]),
-        byte_swap_32 (ptr[ 8]),
-        byte_swap_32 (ptr[ 9]),
-        byte_swap_32 (ptr[10]),
-        byte_swap_32 (ptr[11]),
-        byte_swap_32 (ptr[12]),
-        byte_swap_32 (ptr[13]),
-        byte_swap_32 (ptr[14]),
-        byte_swap_32 (ptr[15]));
-    }
     else if (hash_type == HASH_TYPE_CHACHA20)
     {
       u32 *ptr = digest_buf;
@@ -22639,24 +22193,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 1;
                  hashconfig->st_hash        = ST_HASH_00160;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case   600:  hashconfig->hash_type      = HASH_TYPE_BLAKE2B;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_BLAKE2B;
-                 hashconfig->dgst_size      = DGST_SIZE_8_8;
-                 hashconfig->parse_func     = blake2b_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_USES_BITS_64
-                                            | OPTI_TYPE_RAW_HASH;
-                 hashconfig->dgst_pos0      = 1;
-                 hashconfig->dgst_pos1      = 0;
-                 hashconfig->dgst_pos2      = 3;
-                 hashconfig->dgst_pos3      = 2;
-                 hashconfig->st_hash        = ST_HASH_00600;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
@@ -23826,25 +23362,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 3;
                  hashconfig->st_hash        = ST_HASH_05500;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case  5600:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PT_ADD80
-                                            | OPTS_TYPE_PT_ADDBITS14
-                                            | OPTS_TYPE_PT_UTF16LE;
-                 hashconfig->kern_type      = KERN_TYPE_NETNTLMv2;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = netntlmv2_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 3;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 1;
-                 hashconfig->st_hash        = ST_HASH_05600;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
@@ -26859,13 +26376,11 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   switch (hashconfig->hash_mode)
   {
-    case   600: hashconfig->esalt_size = sizeof (blake2_t);             break;
     case  2500: hashconfig->esalt_size = sizeof (wpa_eapol_t);          break;
     case  2501: hashconfig->esalt_size = sizeof (wpa_eapol_t);          break;
     case  5300: hashconfig->esalt_size = sizeof (ikepsk_t);             break;
     case  5400: hashconfig->esalt_size = sizeof (ikepsk_t);             break;
     case  5500: hashconfig->esalt_size = sizeof (netntlm_t);            break;
-    case  5600: hashconfig->esalt_size = sizeof (netntlm_t);            break;
     case  6211: hashconfig->esalt_size = sizeof (tc_t);                 break;
     case  6212: hashconfig->esalt_size = sizeof (tc_t);                 break;
     case  6213: hashconfig->esalt_size = sizeof (tc_t);                 break;
@@ -26970,7 +26485,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   switch (hashconfig->hash_mode)
   {
-    case  1600: hashconfig->tmp_size = sizeof (md5crypt_tmp_t);           break;
     case  1800: hashconfig->tmp_size = sizeof (sha512crypt_tmp_t);        break;
     case  2100: hashconfig->tmp_size = sizeof (dcc2_tmp_t);               break;
     case  2500: hashconfig->tmp_size = sizeof (wpa_pbkdf2_tmp_t);         break;
@@ -26990,7 +26504,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case  6241: hashconfig->tmp_size = sizeof (tc_tmp_t);                 break;
     case  6242: hashconfig->tmp_size = sizeof (tc_tmp_t);                 break;
     case  6243: hashconfig->tmp_size = sizeof (tc_tmp_t);                 break;
-    case  6300: hashconfig->tmp_size = sizeof (md5crypt_tmp_t);           break;
     case  6400: hashconfig->tmp_size = sizeof (sha256aix_tmp_t);          break;
     case  6500: hashconfig->tmp_size = sizeof (sha512aix_tmp_t);          break;
     case  6600: hashconfig->tmp_size = sizeof (agilekey_tmp_t);           break;
