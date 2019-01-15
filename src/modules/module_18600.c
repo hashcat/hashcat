@@ -15,18 +15,18 @@ static const u32   DGST_POS0      = 0;
 static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
-static const u32   DGST_SIZE      = DGST_SIZE_4_8;
+static const u32   DGST_SIZE      = DGST_SIZE_4_5;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_DOCUMENTS;
-static const char *HASH_NAME      = "Open Document Format (ODF) 1.2 (SHA-256, AES)";
+static const char *HASH_NAME      = "Open Document Format (ODF) 1.1 (SHA-1, Blowfish)";
 static const u32   HASH_TYPE      = HASH_TYPE_GENERIC;
-static const u64   KERN_TYPE      = 18400;
+static const u64   KERN_TYPE      = 18600;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STATE_BUFFER_LE
                                   | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$odf$*1*1*100000*32*751854d8b90731ce0579f96bea6f0d4ac2fb2f546b31f1b6af9a5f66952a0bf4*16*2185a966155baa9e2fb597298febecbc*16*c18eaae34bcbbe9119be017fe5f8b52d*0*051e0f1ce0e866f2b771029e03a6c7119aad132af54c4e45824f16f61f357a40407ab82744fe6370c7b2346075fcd4c2e58ab244411b3ab1d532a46e2321599ef13c3d3472fc2f14d480d8c33215e473da67f90540279d3ef1f62dde314fa222796046e496c951235ddf88aa754620b7810d22ebc8835c90dce9276946f52b8ea7d95d2f86e4cc725366a8b3edacc2ce88518e535991a5f84d5ea8795dc02bfb731b5f202ecaf7d4b245d928c4248709fcdf3fba2acf1a08be0c1eee7dbeda07e8c3a6983565635e99952b8ad79d31c965f245ae90b5cc3dba6387898c66fa35cad9ac9595c41b62e68efcdd73185b38e220cf004269b77ec6974474b03b7569afc3b503a2bf8b2d035756f3f4cb880d9ba815e5c944508a0bde214076c35bf0e0814a96d21ccaa744c9056948ed935209f5c7933841d2ede3d28dd84da89d477d4a0041ce6d8ddab891d929340db6daa921d69b46fd5aee306d0bcef88c38acbb495d0466df7e2f744e3d10201081215c02db5dd479a4cda15a3338969c7baec9d3d2c378a8dd30449319b149dc3b4e7f00996a59fcb5f243d0df2cbaf749241033f7865aefa960adfeb8ebf205b270f90b1f82c34f80d5a8a0db7aec89972a32f5daa2a73c5895d1fced01b3ab8e576bd2630eff01cad97781f4966d4b528e1b15f011f28ae907a352073c96b203adc7742d2b79b2e2f440b17e7856ae119e08d15d8bdf951f6d4a3f9b516da2d9a8f9dd93488f8e0119f3da19138ab787f0d7098a652cccd914aa0ff81d375bd6a5a165acc936f591639059287975cfc3ca4342e5f9501b3249a76d14e56d6d56b319e036bc0449ac7b5afa24ffbea11babed8183edf8d4fdca1c3f0d23bfd4a02797627d556634f1a9304e03737604bd86f6b5a26aa687d6df73383e0f7dfe62a131e8dbb8c3f4f13d24857dd29d76984eac6c45df7428fc79323ffa1f4e7962d705df74320141ed1f16d1ad483b872168df60315ffadbfa1b7f4afaed8a0017421bf5e05348cb5c707a5e852d6fee6077ec1c33bc707bcd97b7701ee05a03d6fa78b0d31c8c97ea16e0edf434961bd5cc7cbb7eb2553730f0405c9bd21cee09b3f7c1bc57779fdfc15f3935985737a1b522004c4436b631a39a66e8577a03f5020e6aa41952c0662c8c57f66caa483b47af38b8cb5d457245fd3241749e17433e6f929233e8862d7c584111b1991b2d6e94278e7e6e1908cee5a83d94c78b75a84a695d25aeb9fdde72174fe6dd75e8d406671f44892a385a4a1e249f61ebc993e985607423a0a5742e668d52c1ebf5cecae7c2b7908f4627b92ec49354a9ccff8cb5763ad074a00e65a485a41bf4c25ce7e6fae49358a58547b1c0ca79713e297310c0a367c3de196f1dd685ca4be643bdf1e4f6b034211d020557e37a3b6614d061010b4a3416b6b279728c245d3322";
+static const char *ST_HASH        = "$odf$*0*0*1024*16*bff753835f4ea15644b8a2f8e4b5be3d147b9576*8*ee371da34333b69d*16*a902eff54a4d782a26a899a31f97bef4*0*dae7e41fbc3a500d3ce152edd8876c4f38fb17d673ee2ac44ef1e0e283622cd2ae298a82d8d98f2ea737247881fc353e73a2f535c6e13e0cdc60821c1a61c53a4b0c46ff3a3b355d7b793fad50de15999fc7c1194321d1c54316c3806956c4a3ade7daabb912a2a36398eba883af088b3cb69b43365d9ba9fce3fb0c1524f73947a7e9fc1bf3adb5f85a367035feacb5d97c578b037144c2793f34aa09dcd04bdaa455aee0d4c52fe377248611dd56f2bd4eb294673525db905f5d905a28dec0909348e6bf94bcebf03ddd61a48797cd5728ce6dbb71037b268f526e806401abcf495f6edd0b5d87118671ec690d4627f86a43e51c7f6d42a75a56eec51204d47e115e813ed4425c97b16b195e02ce776c185194b9de43ae89f356e29face016cb393d6fb93af8ea305d921d5592dd184051ac790b9b90266f52b8d53ce1cb1d762942d6d5bbd0e3821be21af9fa6874ba0c60e64f41d3e5b6caca1c53b575afdc5d8f6a3edbf874dbe009c6cb296466fe9637aed4aed8a43a95ea7d26b4090ad33d4ee7a83844b0893e8bc0f04944205fb9576cb5720f019028cd75ca9ac47b3e5fa231354d74135564df43b659cfaea7e195c4a896e0e0e0c85dc9ce3a9ce9ba552bc2a6dbac4901c19558818e1957ed72d78662bb5ba53475ca584371f1825ae0c92322a4404e63c2baad92665aac29b5c6f96e1e6338d48fb0aef4d0b686063974f58b839484f8dcf0a02537cba67a7d2c4de13125d74820cb07ec72782035af1ea6c4db61c77016d1c021b63c8b07adb4e8510f5c41bbc501f60f3dd16462399b52eb146787e38e700147c7aa23ac4d5d22d9d1c93e67a01c92a197d4765cbf8d56a862a1205abb450a182913a69b8d5334a59924f86fb3ccd0dcfe7426053e26ba26b57c05f38d85863fff1f81135b0366e8cd8680663ae8aaf7d005317b849d5e08be882708fa0d8d02d47e89150124b507c34845c922b95e62aa0b3fef218773d7aeb572c67b35ad8787f31ecc6e1846b673b8ba6172223176eabf0020b6aa3aa71405b40b2fc2127bf9741a103f1d8eca21bf27328cdf15153f2f223eff7b831a72ed8ecacf4ea8df4ea44f3a3921e5a88fb2cfa355ece0f05cbc88fdd1ecd368d6e3b2dfabd999e5b708f1bccaeebb296c9d7b76659967742fe966aa6871cbbffe710b0cd838c6e02e6eb608cb5c81d066b60b5b3604396331d97d4a2c4c2317406e48c9f5387a2c72511d1e6899bd450e9ca88d535755bcfddb53a6df118cd9cdc7d8b4b814f7bc17684d8e5975defaa25d06f410ed0724c16b8f69ec3869bc1f05c71483666968d1c04509875dadd72c6182733d564eb1a7d555dc34f6b817c5418626214d0b2c3901c5a46f5b20fddfdf9f71a7dfd75b9928778a3f65e1832dff22be973c2b259744d500a3027c2a2e08972eaaad4c5c4ec871";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -44,37 +44,51 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
-typedef struct odf12_tmp
+typedef struct odf11_tmp
 {
   u32  ipad[5];
   u32  opad[5];
 
-  u32  dgst[10];
-  u32  out[10];
+  u32  dgst[5];
+  u32  out[5];
 
-} odf12_tmp_t;
+} odf11_tmp_t;
 
-typedef struct odf12
+typedef struct odf11
 {
   u32 iterations;
-  u32 iv[4];
-  u32 checksum[8];
+  u32 iv[2];
+  u32 checksum[5];
   u32 encrypted_data[256];
 
-} odf12_t;
+} odf11_t;
 
 static const char *SIGNATURE_ODF = "$odf$";
 
+u32 module_kernel_threads_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 kernel_threads_max = 8; // Blowfish enforced
+
+  return kernel_threads_max;
+}
+
+u32 module_kernel_threads_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 kernel_threads_min = 8; // Blowfish enforced
+
+  return kernel_threads_min;
+}
+
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u64 esalt_size = (const u64) sizeof (odf12_t);
+  const u64 esalt_size = (const u64) sizeof (odf11_t);
 
   return esalt_size;
 }
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u64 tmp_size = (const u64) sizeof (odf12_tmp_t);
+  const u64 tmp_size = (const u64) sizeof (odf11_tmp_t);
 
   return tmp_size;
 }
@@ -84,7 +98,7 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
   // this overrides the reductions of PW_MAX in case optimized kernel is selected
   // IOW, even in optimized kernel mode it support length 256
 
-  const u32 pw_max = PW_MAX;
+  const u32 pw_max = 51; // Bogus SHA-1 in StarOffice code
 
   return pw_max;
 }
@@ -93,7 +107,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   u32 *digest = (u32 *) digest_buf;
 
-  odf12_t *odf12 = (odf12_t *) esalt_buf;
+  odf11_t *odf11 = (odf11_t *) esalt_buf;
 
   token_t token;
 
@@ -132,20 +146,20 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
-  token.len_min[5] = 64;
-  token.len_max[5] = 64;
+  token.len_min[5] = 40;
+  token.len_max[5] = 40;
   token.sep[5]     = '*';
   token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.len_min[6] = 2;
-  token.len_max[6] = 2;
+  token.len_min[6] = 1;
+  token.len_max[6] = 1;
   token.sep[6]     = '*';
   token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
-  token.len_min[7] = 32;
-  token.len_max[7] = 32;
+  token.len_min[7] = 16;
+  token.len_max[7] = 16;
   token.sep[7]     = '*';
   token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
@@ -189,34 +203,31 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u32 salt_len      = strtol ((const char *) token.buf[8],  NULL, 10);
   const u32 unused        = strtol ((const char *) token.buf[10], NULL, 10);
 
-  if (cipher_type   !=  1) return (PARSER_SALT_VALUE);
-  if (checksum_type !=  1) return (PARSER_SALT_VALUE);
-  if (key_size      != 32) return (PARSER_SALT_VALUE);
-  if (iv_len        != 16) return (PARSER_SALT_VALUE);
+  if (cipher_type   !=  0) return (PARSER_SALT_VALUE);
+  if (checksum_type !=  0) return (PARSER_SALT_VALUE);
+  if (key_size      != 16) return (PARSER_SALT_VALUE);
+  if (iv_len        !=  8) return (PARSER_SALT_VALUE);
   if (salt_len      != 16) return (PARSER_SALT_VALUE);
   if (unused        !=  0) return (PARSER_SALT_VALUE);
 
   // esalt
 
-  odf12->iterations = iterations;
+  odf11->iterations = iterations;
 
-  odf12->checksum[0] = hex_to_u32 (&checksum[ 0]);
-  odf12->checksum[1] = hex_to_u32 (&checksum[ 8]);
-  odf12->checksum[2] = hex_to_u32 (&checksum[16]);
-  odf12->checksum[3] = hex_to_u32 (&checksum[24]);
-  odf12->checksum[4] = hex_to_u32 (&checksum[32]);
-  odf12->checksum[5] = hex_to_u32 (&checksum[40]);
-  odf12->checksum[6] = hex_to_u32 (&checksum[48]);
-  odf12->checksum[7] = hex_to_u32 (&checksum[56]);
+  odf11->checksum[0] = hex_to_u32 (&checksum[ 0]);
+  odf11->checksum[1] = hex_to_u32 (&checksum[ 8]);
+  odf11->checksum[2] = hex_to_u32 (&checksum[16]);
+  odf11->checksum[3] = hex_to_u32 (&checksum[24]);
+  odf11->checksum[4] = hex_to_u32 (&checksum[32]);
 
-  odf12->iv[0] = hex_to_u32 (&iv[0]);
-  odf12->iv[1] = hex_to_u32 (&iv[8]);
-  odf12->iv[2] = hex_to_u32 (&iv[16]);
-  odf12->iv[3] = hex_to_u32 (&iv[24]);
+  odf11->iv[0] = byte_swap_32 (hex_to_u32 (&iv[0]));
+  odf11->iv[1] = byte_swap_32 (hex_to_u32 (&iv[8]));
 
   for (int i = 0, j = 0; i < 256; i += 1, j += 8)
   {
-    odf12->encrypted_data[i] = hex_to_u32 (&encrypted_data[j]);
+    odf11->encrypted_data[i] = hex_to_u32 (&encrypted_data[j]);
+
+    odf11->encrypted_data[i] = byte_swap_32 (odf11->encrypted_data[i]);
   }
 
   // salt
@@ -230,51 +241,48 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt->salt_buf[2] = hex_to_u32 (&salt_buf[16]);
   salt->salt_buf[3] = hex_to_u32 (&salt_buf[24]);
 
+  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
+  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
+  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
+  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
+
   /**
    * digest
    */
 
-  digest[0] = odf12->checksum[0];
-  digest[1] = odf12->checksum[1];
-  digest[2] = odf12->checksum[2];
-  digest[3] = odf12->checksum[3];
-  digest[4] = odf12->checksum[4];
-  digest[5] = odf12->checksum[5];
-  digest[6] = odf12->checksum[6];
-  digest[7] = odf12->checksum[7];
+  digest[0] = byte_swap_32 (odf11->checksum[0]);
+  digest[1] = byte_swap_32 (odf11->checksum[1]);
+  digest[2] = byte_swap_32 (odf11->checksum[2]);
+  digest[3] = byte_swap_32 (odf11->checksum[3]);
+  digest[4] = byte_swap_32 (odf11->checksum[4]);
 
   return (PARSER_OK);
 }
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  const odf12_t *odf12 = (const odf12_t *) esalt_buf;
+  const odf11_t *odf11 = (const odf11_t *) esalt_buf;
 
-  int out_len = snprintf (line_buf, line_size, "%s*1*1*%d*32*%08x%08x%08x%08x%08x%08x%08x%08x*16*%08x%08x%08x%08x*16*%08x%08x%08x%08x*0*",
+  int out_len = snprintf (line_buf, line_size, "%s*0*0*%d*16*%08x%08x%08x%08x%08x*8*%08x%08x*16*%08x%08x%08x%08x*0*",
     SIGNATURE_ODF,
-    odf12->iterations,
-    byte_swap_32 (odf12->checksum[0]),
-    byte_swap_32 (odf12->checksum[1]),
-    byte_swap_32 (odf12->checksum[2]),
-    byte_swap_32 (odf12->checksum[3]),
-    byte_swap_32 (odf12->checksum[4]),
-    byte_swap_32 (odf12->checksum[5]),
-    byte_swap_32 (odf12->checksum[6]),
-    byte_swap_32 (odf12->checksum[7]),
-    byte_swap_32 (odf12->iv[0]),
-    byte_swap_32 (odf12->iv[1]),
-    byte_swap_32 (odf12->iv[2]),
-    byte_swap_32 (odf12->iv[3]),
-    byte_swap_32 (salt->salt_buf[0]),
-    byte_swap_32 (salt->salt_buf[1]),
-    byte_swap_32 (salt->salt_buf[2]),
-    byte_swap_32 (salt->salt_buf[3]));
+    odf11->iterations,
+    byte_swap_32 (odf11->checksum[0]),
+    byte_swap_32 (odf11->checksum[1]),
+    byte_swap_32 (odf11->checksum[2]),
+    byte_swap_32 (odf11->checksum[3]),
+    byte_swap_32 (odf11->checksum[4]),
+    odf11->iv[0],
+    odf11->iv[1],
+    salt->salt_buf[0],
+    salt->salt_buf[1],
+    salt->salt_buf[2],
+    salt->salt_buf[3]);
 
   u8 *out_buf = (u8 *) line_buf;
 
   for (int i = 0; i < 256; i++)
   {
-    u32_to_hex (odf12->encrypted_data[i], out_buf + out_len); out_len += 8;
+    u32_to_hex (byte_swap_32 (odf11->encrypted_data[i]), out_buf + out_len); out_len += 8;
   }
 
   return out_len;
@@ -325,8 +333,8 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_loops_max         = MODULE_DEFAULT;
   module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
-  module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
-  module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
+  module_ctx->module_kernel_threads_max       = module_kernel_threads_max;
+  module_ctx->module_kernel_threads_min       = module_kernel_threads_min;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_opti_type                = module_opti_type;
   module_ctx->module_opts_type                = module_opts_type;
