@@ -32,7 +32,6 @@
   "   4500 | sha1(sha1($pass))                                | Raw Hash, Salted and/or Iterated",
   "   4520 | sha1($salt.sha1($pass))                          | Raw Hash, Salted and/or Iterated",
   "   4700 | sha1(md5($pass))                                 | Raw Hash, Salted and/or Iterated",
-  "  18500 | sha1(md5(md5($pass)))                            | Raw Hash, Salted and/or Iterated",
   "   4900 | sha1($salt.$pass.$salt)                          | Raw Hash, Salted and/or Iterated",
   "  14400 | sha1(CX)                                         | Raw Hash, Salted and/or Iterated",
   "   1410 | sha256($pass.$salt)                              | Raw Hash, Salted and/or Iterated",
@@ -238,8 +237,6 @@
   "  10600 | PDF 1.7 Level 3 (Acrobat 9)                      | Documents",
   "  10700 | PDF 1.7 Level 8 (Acrobat 10 - 11)                | Documents",
   "  16200 | Apple Secure Notes                               | Documents",
-  "  18600 | Open Document Format (ODF) 1.1 (SHA-1, Blowfish) | Documents",
-  "  18400 | Open Document Format (ODF) 1.2 (SHA-256, AES)    | Documents",
   "   9000 | Password Safe v2                                 | Password Managers",
   "   5200 | Password Safe v3                                 | Password Managers",
   "   6800 | LastPass + LastPass sniffed                      | Password Managers",
@@ -518,9 +515,6 @@ static const char *ST_HASH_18000 = "2fbf5c9080f0a704de2e915ba8fdae6ab00bbc026b2c
 static const char *ST_HASH_18100 = "597056:3600";
 static const char *ST_HASH_18200 = "$krb5asrep$23$user@domain.com:3e156ada591263b8aab0965f5aebd837$007497cb51b6c8116d6407a782ea0e1c5402b17db7afa6b05a6d30ed164a9933c754d720e279c6c573679bd27128fe77e5fea1f72334c1193c8ff0b370fadc6368bf2d49bbfdba4c5dccab95e8c8ebfdc75f438a0797dbfb2f8a1a5f4c423f9bfc1fea483342a11bd56a216f4d5158ccc4b224b52894fadfba3957dfe4b6b8f5f9f9fe422811a314768673e0c924340b8ccb84775ce9defaa3baa0910b676ad0036d13032b0dd94e3b13903cc738a7b6d00b0b3c210d1f972a6c7cae9bd3c959acf7565be528fc179118f28c679f6deeee1456f0781eb8154e18e49cb27b64bf74cd7112a0ebae2102ac";
 static const char *ST_HASH_18300 = "$fvde$2$16$58778104701476542047675521040224$20000$39602e86b7cea4a34f4ff69ff6ed706d68954ee474de1d2a9f6a6f2d24d172001e484c1d4eaa237d";
-static const char *ST_HASH_18400 = "$odf$*1*1*100000*32*751854d8b90731ce0579f96bea6f0d4ac2fb2f546b31f1b6af9a5f66952a0bf4*16*2185a966155baa9e2fb597298febecbc*16*c18eaae34bcbbe9119be017fe5f8b52d*0*051e0f1ce0e866f2b771029e03a6c7119aad132af54c4e45824f16f61f357a40407ab82744fe6370c7b2346075fcd4c2e58ab244411b3ab1d532a46e2321599ef13c3d3472fc2f14d480d8c33215e473da67f90540279d3ef1f62dde314fa222796046e496c951235ddf88aa754620b7810d22ebc8835c90dce9276946f52b8ea7d95d2f86e4cc725366a8b3edacc2ce88518e535991a5f84d5ea8795dc02bfb731b5f202ecaf7d4b245d928c4248709fcdf3fba2acf1a08be0c1eee7dbeda07e8c3a6983565635e99952b8ad79d31c965f245ae90b5cc3dba6387898c66fa35cad9ac9595c41b62e68efcdd73185b38e220cf004269b77ec6974474b03b7569afc3b503a2bf8b2d035756f3f4cb880d9ba815e5c944508a0bde214076c35bf0e0814a96d21ccaa744c9056948ed935209f5c7933841d2ede3d28dd84da89d477d4a0041ce6d8ddab891d929340db6daa921d69b46fd5aee306d0bcef88c38acbb495d0466df7e2f744e3d10201081215c02db5dd479a4cda15a3338969c7baec9d3d2c378a8dd30449319b149dc3b4e7f00996a59fcb5f243d0df2cbaf749241033f7865aefa960adfeb8ebf205b270f90b1f82c34f80d5a8a0db7aec89972a32f5daa2a73c5895d1fced01b3ab8e576bd2630eff01cad97781f4966d4b528e1b15f011f28ae907a352073c96b203adc7742d2b79b2e2f440b17e7856ae119e08d15d8bdf951f6d4a3f9b516da2d9a8f9dd93488f8e0119f3da19138ab787f0d7098a652cccd914aa0ff81d375bd6a5a165acc936f591639059287975cfc3ca4342e5f9501b3249a76d14e56d6d56b319e036bc0449ac7b5afa24ffbea11babed8183edf8d4fdca1c3f0d23bfd4a02797627d556634f1a9304e03737604bd86f6b5a26aa687d6df73383e0f7dfe62a131e8dbb8c3f4f13d24857dd29d76984eac6c45df7428fc79323ffa1f4e7962d705df74320141ed1f16d1ad483b872168df60315ffadbfa1b7f4afaed8a0017421bf5e05348cb5c707a5e852d6fee6077ec1c33bc707bcd97b7701ee05a03d6fa78b0d31c8c97ea16e0edf434961bd5cc7cbb7eb2553730f0405c9bd21cee09b3f7c1bc57779fdfc15f3935985737a1b522004c4436b631a39a66e8577a03f5020e6aa41952c0662c8c57f66caa483b47af38b8cb5d457245fd3241749e17433e6f929233e8862d7c584111b1991b2d6e94278e7e6e1908cee5a83d94c78b75a84a695d25aeb9fdde72174fe6dd75e8d406671f44892a385a4a1e249f61ebc993e985607423a0a5742e668d52c1ebf5cecae7c2b7908f4627b92ec49354a9ccff8cb5763ad074a00e65a485a41bf4c25ce7e6fae49358a58547b1c0ca79713e297310c0a367c3de196f1dd685ca4be643bdf1e4f6b034211d020557e37a3b6614d061010b4a3416b6b279728c245d3322";
-static const char *ST_HASH_18500 = "888a2ffcb3854fba0321110c5d0d434ad1aa2880";
-static const char *ST_HASH_18600 = "$odf$*0*0*1024*16*bff753835f4ea15644b8a2f8e4b5be3d147b9576*8*ee371da34333b69d*16*a902eff54a4d782a26a899a31f97bef4*0*dae7e41fbc3a500d3ce152edd8876c4f38fb17d673ee2ac44ef1e0e283622cd2ae298a82d8d98f2ea737247881fc353e73a2f535c6e13e0cdc60821c1a61c53a4b0c46ff3a3b355d7b793fad50de15999fc7c1194321d1c54316c3806956c4a3ade7daabb912a2a36398eba883af088b3cb69b43365d9ba9fce3fb0c1524f73947a7e9fc1bf3adb5f85a367035feacb5d97c578b037144c2793f34aa09dcd04bdaa455aee0d4c52fe377248611dd56f2bd4eb294673525db905f5d905a28dec0909348e6bf94bcebf03ddd61a48797cd5728ce6dbb71037b268f526e806401abcf495f6edd0b5d87118671ec690d4627f86a43e51c7f6d42a75a56eec51204d47e115e813ed4425c97b16b195e02ce776c185194b9de43ae89f356e29face016cb393d6fb93af8ea305d921d5592dd184051ac790b9b90266f52b8d53ce1cb1d762942d6d5bbd0e3821be21af9fa6874ba0c60e64f41d3e5b6caca1c53b575afdc5d8f6a3edbf874dbe009c6cb296466fe9637aed4aed8a43a95ea7d26b4090ad33d4ee7a83844b0893e8bc0f04944205fb9576cb5720f019028cd75ca9ac47b3e5fa231354d74135564df43b659cfaea7e195c4a896e0e0e0c85dc9ce3a9ce9ba552bc2a6dbac4901c19558818e1957ed72d78662bb5ba53475ca584371f1825ae0c92322a4404e63c2baad92665aac29b5c6f96e1e6338d48fb0aef4d0b686063974f58b839484f8dcf0a02537cba67a7d2c4de13125d74820cb07ec72782035af1ea6c4db61c77016d1c021b63c8b07adb4e8510f5c41bbc501f60f3dd16462399b52eb146787e38e700147c7aa23ac4d5d22d9d1c93e67a01c92a197d4765cbf8d56a862a1205abb450a182913a69b8d5334a59924f86fb3ccd0dcfe7426053e26ba26b57c05f38d85863fff1f81135b0366e8cd8680663ae8aaf7d005317b849d5e08be882708fa0d8d02d47e89150124b507c34845c922b95e62aa0b3fef218773d7aeb572c67b35ad8787f31ecc6e1846b673b8ba6172223176eabf0020b6aa3aa71405b40b2fc2127bf9741a103f1d8eca21bf27328cdf15153f2f223eff7b831a72ed8ecacf4ea8df4ea44f3a3921e5a88fb2cfa355ece0f05cbc88fdd1ecd368d6e3b2dfabd999e5b708f1bccaeebb296c9d7b76659967742fe966aa6871cbbffe710b0cd838c6e02e6eb608cb5c81d066b60b5b3604396331d97d4a2c4c2317406e48c9f5387a2c72511d1e6899bd450e9ca88d535755bcfddb53a6df118cd9cdc7d8b4b814f7bc17684d8e5975defaa25d06f410ed0724c16b8f69ec3869bc1f05c71483666968d1c04509875dadd72c6182733d564eb1a7d555dc34f6b817c5418626214d0b2c3901c5a46f5b20fddfdf9f71a7dfd75b9928778a3f65e1832dff22be973c2b259744d500a3027c2a2e08972eaaad4c5c4ec871";
 static const char *ST_HASH_99999 = "hashcat";
 
 
@@ -708,9 +702,6 @@ static const char *HT_18000 = "Keccak-512";
 static const char *HT_18100 = "TOTP (HMAC-SHA1)";
 static const char *HT_18200 = "Kerberos 5 AS-REP etype 23";
 static const char *HT_18300 = "Apple File System (APFS)";
-static const char *HT_18400 = "Open Document Format (ODF) 1.2 (SHA-256, AES)";
-static const char *HT_18500 = "sha1(md5(md5($pass)))";
-static const char *HT_18600 = "Open Document Format (ODF) 1.1 (SHA-1, Blowfish)";
 static const char *HT_99999 = "Plaintext";
 
 
@@ -812,7 +803,6 @@ static const char *SIGNATURE_MYSQL_AUTH         = "$mysqlna$";
 static const char *SIGNATURE_MYWALLET           = "$blockchain$";
 static const char *SIGNATURE_MYWALLETV2         = "$blockchain$v2$";
 static const char *SIGNATURE_NETSCALER          = "1";
-static const char *SIGNATURE_ODF                = "$odf$";
 static const char *SIGNATURE_OFFICE2007         = "$office$";
 static const char *SIGNATURE_OFFICE2010         = "$office$";
 static const char *SIGNATURE_OFFICE2013         = "$office$";
@@ -10762,316 +10752,6 @@ int oldoffice34cm2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, M
   return (PARSER_OK);
 }
 
-int odf11_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt_s = hash_buf->salt;
-
-  odf11_t *odf11 = (odf11_t *) hash_buf->esalt;
-
-  token_t token;
-
-  token.token_cnt = 12;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_ODF;
-
-  token.len_min[0] = 5;
-  token.len_max[0] = 5;
-  token.sep[0]     = '*';
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.len_min[1] = 1;
-  token.len_max[1] = 1;
-  token.sep[1]     = '*';
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[2] = 1;
-  token.len_max[2] = 1;
-  token.sep[2]     = '*';
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[3] = 4;
-  token.len_max[3] = 6;
-  token.sep[3]     = '*';
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[4] = 2;
-  token.len_max[4] = 2;
-  token.sep[4]     = '*';
-  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[5] = 40;
-  token.len_max[5] = 40;
-  token.sep[5]     = '*';
-  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len_min[6] = 1;
-  token.len_max[6] = 1;
-  token.sep[6]     = '*';
-  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[7] = 16;
-  token.len_max[7] = 16;
-  token.sep[7]     = '*';
-  token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len_min[8] = 2;
-  token.len_max[8] = 2;
-  token.sep[8]     = '*';
-  token.attr[8]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[9] = 32;
-  token.len_max[9] = 32;
-  token.sep[9]     = '*';
-  token.attr[9]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len_min[10] = 1;
-  token.len_max[10] = 1;
-  token.sep[10]     = '*';
-  token.attr[10]    = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len[11]     = 2048;
-  token.attr[11]    = TOKEN_ATTR_FIXED_LENGTH
-                    | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *checksum         = token.buf[5];
-  const u8 *iv               = token.buf[7];
-  const u8 *salt             = token.buf[9];
-  const u8 *encrypted_data   = token.buf[11];
-
-  const u32 cipher_type   = strtol ((const char *) token.buf[1],  NULL, 10);
-  const u32 checksum_type = strtol ((const char *) token.buf[2],  NULL, 10);
-  const u32 iterations    = strtol ((const char *) token.buf[3],  NULL, 10);
-  const u32 key_size      = strtol ((const char *) token.buf[4],  NULL, 10);
-  const u32 iv_len        = strtol ((const char *) token.buf[6],  NULL, 10);
-  const u32 salt_len      = strtol ((const char *) token.buf[8],  NULL, 10);
-  const u32 unused        = strtol ((const char *) token.buf[10], NULL, 10);
-
-  if (cipher_type   != 0)  return (PARSER_SALT_VALUE);
-  if (checksum_type != 0)  return (PARSER_SALT_VALUE);
-  if (key_size      != 16) return (PARSER_SALT_VALUE);
-  if (iv_len        != 8)  return (PARSER_SALT_VALUE);
-  if (salt_len      != 16) return (PARSER_SALT_VALUE);
-  if (unused        != 0)  return (PARSER_SALT_VALUE);
-
-  // esalt
-
-  odf11->iterations = iterations;
-
-  odf11->checksum[0] = hex_to_u32 (&checksum[0]);
-  odf11->checksum[1] = hex_to_u32 (&checksum[8]);
-  odf11->checksum[2] = hex_to_u32 (&checksum[16]);
-  odf11->checksum[3] = hex_to_u32 (&checksum[24]);
-  odf11->checksum[4] = hex_to_u32 (&checksum[32]);
-
-  odf11->iv[0] = byte_swap_32 (hex_to_u32 (&iv[0]));
-  odf11->iv[1] = byte_swap_32 (hex_to_u32 (&iv[8]));
-
-  for (int i = 0; i < 256; i++)
-  {
-    odf11->encrypted_data[i] = byte_swap_32 (hex_to_u32 (&encrypted_data[8 * i]));
-  }
-
-  // salt
-
-  salt_s->salt_len = salt_len;
-
-  salt_s->salt_iter = iterations - 1;
-
-  salt_s->salt_buf[0] = byte_swap_32 (hex_to_u32 (&salt[0]));
-  salt_s->salt_buf[1] = byte_swap_32 (hex_to_u32 (&salt[8]));
-  salt_s->salt_buf[2] = byte_swap_32 (hex_to_u32 (&salt[16]));
-  salt_s->salt_buf[3] = byte_swap_32 (hex_to_u32 (&salt[24]));
-
-  /**
-   * digest
-   */
-
-  digest[0] = byte_swap_32 (odf11->checksum[0]);
-  digest[1] = byte_swap_32 (odf11->checksum[1]);
-  digest[2] = byte_swap_32 (odf11->checksum[2]);
-  digest[3] = byte_swap_32 (odf11->checksum[3]);
-  digest[4] = byte_swap_32 (odf11->checksum[4]);
-
-  return (PARSER_OK);
-}
-
-int odf12_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt_s = hash_buf->salt;
-
-  odf12_t *odf12 = (odf12_t *) hash_buf->esalt;
-
-  token_t token;
-
-  token.token_cnt = 12;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_ODF;
-
-  token.len_min[0] = 5;
-  token.len_max[0] = 5;
-  token.sep[0]     = '*';
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.len_min[1] = 1;
-  token.len_max[1] = 1;
-  token.sep[1]     = '*';
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[2] = 1;
-  token.len_max[2] = 1;
-  token.sep[2]     = '*';
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[3] = 4;
-  token.len_max[3] = 6;
-  token.sep[3]     = '*';
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[4] = 2;
-  token.len_max[4] = 2;
-  token.sep[4]     = '*';
-  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[5] = 64;
-  token.len_max[5] = 64;
-  token.sep[5]     = '*';
-  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len_min[6] = 2;
-  token.len_max[6] = 2;
-  token.sep[6]     = '*';
-  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[7] = 32;
-  token.len_max[7] = 32;
-  token.sep[7]     = '*';
-  token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len_min[8] = 2;
-  token.len_max[8] = 2;
-  token.sep[8]     = '*';
-  token.attr[8]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[9] = 32;
-  token.len_max[9] = 32;
-  token.sep[9]     = '*';
-  token.attr[9]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len_min[10] = 1;
-  token.len_max[10] = 1;
-  token.sep[10]     = '*';
-  token.attr[10]    = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len[11]     = 2048;
-  token.attr[11]    = TOKEN_ATTR_FIXED_LENGTH
-                    | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *checksum         = token.buf[5];
-  const u8 *iv               = token.buf[7];
-  const u8 *salt             = token.buf[9];
-  const u8 *encrypted_data   = token.buf[11];
-
-  const u32 cipher_type   = strtol ((const char *) token.buf[1],  NULL, 10);
-  const u32 checksum_type = strtol ((const char *) token.buf[2],  NULL, 10);
-  const u32 iterations    = strtol ((const char *) token.buf[3],  NULL, 10);
-  const u32 key_size      = strtol ((const char *) token.buf[4],  NULL, 10);
-  const u32 iv_len        = strtol ((const char *) token.buf[6],  NULL, 10);
-  const u32 salt_len      = strtol ((const char *) token.buf[8],  NULL, 10);
-  const u32 unused        = strtol ((const char *) token.buf[10], NULL, 10);
-
-  if (cipher_type   != 1)  return (PARSER_SALT_VALUE);
-  if (checksum_type != 1)  return (PARSER_SALT_VALUE);
-  if (key_size      != 32) return (PARSER_SALT_VALUE);
-  if (iv_len        != 16) return (PARSER_SALT_VALUE);
-  if (salt_len      != 16) return (PARSER_SALT_VALUE);
-  if (unused        != 0)  return (PARSER_SALT_VALUE);
-
-  // esalt
-
-  odf12->iterations = iterations;
-
-  odf12->checksum[0] = hex_to_u32 (&checksum[0]);
-  odf12->checksum[1] = hex_to_u32 (&checksum[8]);
-  odf12->checksum[2] = hex_to_u32 (&checksum[16]);
-  odf12->checksum[3] = hex_to_u32 (&checksum[24]);
-  odf12->checksum[4] = hex_to_u32 (&checksum[32]);
-  odf12->checksum[5] = hex_to_u32 (&checksum[40]);
-  odf12->checksum[6] = hex_to_u32 (&checksum[48]);
-  odf12->checksum[7] = hex_to_u32 (&checksum[56]);
-
-  odf12->iv[0] = hex_to_u32 (&iv[0]);
-  odf12->iv[1] = hex_to_u32 (&iv[8]);
-  odf12->iv[2] = hex_to_u32 (&iv[16]);
-  odf12->iv[3] = hex_to_u32 (&iv[24]);
-
-  for (int i = 0; i < 256; i++)
-  {
-    odf12->encrypted_data[i] = hex_to_u32 (&encrypted_data[8 * i]);
-  }
-
-  // salt
-
-  salt_s->salt_len = salt_len;
-
-  salt_s->salt_iter = iterations - 1;
-
-  salt_s->salt_buf[0] = hex_to_u32 (&salt[0]);
-  salt_s->salt_buf[1] = hex_to_u32 (&salt[8]);
-  salt_s->salt_buf[2] = hex_to_u32 (&salt[16]);
-  salt_s->salt_buf[3] = hex_to_u32 (&salt[24]);
-
-  /**
-   * digest
-   */
-
-  digest[0] = odf12->checksum[0];
-  digest[1] = odf12->checksum[1];
-  digest[2] = odf12->checksum[2];
-  digest[3] = odf12->checksum[3];
-  digest[4] = odf12->checksum[4];
-  digest[5] = odf12->checksum[5];
-  digest[6] = odf12->checksum[6];
-  digest[7] = odf12->checksum[7];
-
-  return (PARSER_OK);
-}
-
 int radmin2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
@@ -18318,7 +17998,6 @@ u32 kernel_threads_mxx (hashcat_ctx_t *hashcat_ctx)
   if (hashconfig->hash_mode == 13100) kernel_threads = 64; // RC4
   if (hashconfig->hash_mode == 15700) kernel_threads = 1;  // SCRYPT
   if (hashconfig->hash_mode == 18200) kernel_threads = 64; // RC4
-  if (hashconfig->hash_mode == 18600) kernel_threads = 8;  // Blowfish
 
     // let the module decide if it allows user-defined values over module defined valaues
 
@@ -18531,10 +18210,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
       case 16900: salt->salt_len = 32;
                   break;
       case 18300: salt->salt_len = 16;
-                  break;
-      case 18400: salt->salt_len = 16;
-                  break;
-      case 18600: salt->salt_len = 16;
                   break;
     }
 
@@ -18826,10 +18501,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
     case 16900:  salt->salt_iter  = ROUNDS_ANSIBLE_VAULT - 1;
                  break;
     case 18300:  salt->salt_iter  = ROUNDS_APPLE_SECURE_NOTES - 1;
-                 break;
-    case 18400:  salt->salt_iter  = ROUNDS_LIBREOFFICE - 1;
-                 break;
-    case 18600:  salt->salt_iter  = ROUNDS_OPENOFFICE - 1;
                  break;
   }
 
@@ -22225,87 +21896,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[7]),
       byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[8]),
       byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[9]));
-  }
-  else if (hash_mode == 18400)
-  {
-    odf12_t *odf12s = (odf12_t *) esalts_buf;
-
-    odf12_t *odf12 = &odf12s[digest_cur];
-
-    size_t pos = 0;
-
-    snprintf (out_buf, out_size, "%s*1*1*%d*32*%08x%08x%08x%08x%08x%08x%08x%08x*16*%08x%08x%08x%08x*16*%08x%08x%08x%08x*0*",
-      SIGNATURE_ODF,
-      odf12->iterations,
-      byte_swap_32 (odf12->checksum[0]),
-      byte_swap_32 (odf12->checksum[1]),
-      byte_swap_32 (odf12->checksum[2]),
-      byte_swap_32 (odf12->checksum[3]),
-      byte_swap_32 (odf12->checksum[4]),
-      byte_swap_32 (odf12->checksum[5]),
-      byte_swap_32 (odf12->checksum[6]),
-      byte_swap_32 (odf12->checksum[7]),
-      byte_swap_32 (odf12->iv[0]),
-      byte_swap_32 (odf12->iv[1]),
-      byte_swap_32 (odf12->iv[2]),
-      byte_swap_32 (odf12->iv[3]),
-      byte_swap_32 (salt.salt_buf[0]),
-      byte_swap_32 (salt.salt_buf[1]),
-      byte_swap_32 (salt.salt_buf[2]),
-      byte_swap_32 (salt.salt_buf[3]));
-
-    pos += strlen (out_buf);
-
-    for (int i = 0; i < 256; i += 8, pos += 64)
-    {
-      snprintf (&out_buf[pos], out_len - pos, "%08x%08x%08x%08x%08x%08x%08x%08x",
-          byte_swap_32 (odf12->encrypted_data[i + 0]),
-          byte_swap_32 (odf12->encrypted_data[i + 1]),
-          byte_swap_32 (odf12->encrypted_data[i + 2]),
-          byte_swap_32 (odf12->encrypted_data[i + 3]),
-          byte_swap_32 (odf12->encrypted_data[i + 4]),
-          byte_swap_32 (odf12->encrypted_data[i + 5]),
-          byte_swap_32 (odf12->encrypted_data[i + 6]),
-          byte_swap_32 (odf12->encrypted_data[i + 7]));
-    }
-  }
-  else if (hash_mode == 18600)
-  {
-    odf11_t *odf11s = (odf11_t *) esalts_buf;
-
-    odf11_t *odf11 = &odf11s[digest_cur];
-
-    size_t pos = 0;
-
-    snprintf (out_buf, out_len, "%s*0*0*%d*16*%08x%08x%08x%08x%08x*8*%08x%08x*16*%08x%08x%08x%08x*0*",
-      SIGNATURE_ODF,
-      odf11->iterations,
-      byte_swap_32 (odf11->checksum[0]),
-      byte_swap_32 (odf11->checksum[1]),
-      byte_swap_32 (odf11->checksum[2]),
-      byte_swap_32 (odf11->checksum[3]),
-      byte_swap_32 (odf11->checksum[4]),
-      odf11->iv[0],
-      odf11->iv[1],
-      salt.salt_buf[0],
-      salt.salt_buf[1],
-      salt.salt_buf[2],
-      salt.salt_buf[3]);
-
-    pos += strlen (out_buf);
-
-    for (int i = 0; i < 256; i += 8, pos += 64)
-    {
-      snprintf (&out_buf[pos], out_len - pos, "%08x%08x%08x%08x%08x%08x%08x%08x",
-          odf11->encrypted_data[i + 0],
-          odf11->encrypted_data[i + 1],
-          odf11->encrypted_data[i + 2],
-          odf11->encrypted_data[i + 3],
-          odf11->encrypted_data[i + 4],
-          odf11->encrypted_data[i + 5],
-          odf11->encrypted_data[i + 6],
-          odf11->encrypted_data[i + 7]);
-    }
   }
   else if (hash_mode == 99999)
   {
@@ -27350,56 +26940,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 18400:  hashconfig->hash_type      = HASH_TYPE_ODF12;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_ODF12;
-                 hashconfig->dgst_size      = DGST_SIZE_4_8;
-                 hashconfig->parse_func     = odf12_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_18400;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case 18500:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_NONE;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_ST_HEX;
-                 hashconfig->kern_type      = KERN_TYPE_SHA1_DOUBLE_MD5;
-                 hashconfig->dgst_size      = DGST_SIZE_4_5;
-                 hashconfig->parse_func     = sha1_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_NOT_SALTED;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 3;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 1;
-                 hashconfig->st_hash        = ST_HASH_18500;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case 18600:  hashconfig->hash_type      = HASH_TYPE_ODF11;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_ODF11;
-                 hashconfig->dgst_size      = DGST_SIZE_4_5;
-                 hashconfig->parse_func     = odf11_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_18600;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case 99999:  hashconfig->hash_type      = HASH_TYPE_PLAINTEXT;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -27530,8 +27070,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 16900: hashconfig->esalt_size = sizeof (ansible_vault_t);      break;
     case 18200: hashconfig->esalt_size = sizeof (krb5asrep_t);          break;
     case 18300: hashconfig->esalt_size = sizeof (apple_secure_notes_t); break;
-    case 18400: hashconfig->esalt_size = sizeof (odf12_t);              break;
-    case 18600: hashconfig->esalt_size = sizeof (odf11_t);              break;
   }
 
   // hook_salt_size
@@ -27642,8 +27180,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 16801: hashconfig->tmp_size = sizeof (wpa_pmk_tmp_t);            break;
     case 16900: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
     case 18300: hashconfig->tmp_size = sizeof (apple_secure_notes_tmp_t); break;
-    case 18400: hashconfig->tmp_size = sizeof (odf12_tmp_t);              break;
-    case 18600: hashconfig->tmp_size = sizeof (odf11_tmp_t);              break;
   };
 
   // hook_size
@@ -27692,15 +27228,9 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
 
     switch (hashconfig->hash_mode)
     {
-      case   500: pw_max = MIN (pw_max, 15); // pure kernel available
-                  break;
-      case  1600: pw_max = MIN (pw_max, 15); // pure kernel available
-                  break;
       case  1800: pw_max = MIN (pw_max, 16); // pure kernel available
                   break;
       case  5800: pw_max = MIN (pw_max, 16); // pure kernel available
-                  break;
-      case  6300: pw_max = MIN (pw_max, 15); // pure kernel available
                   break;
       case  6900: pw_max = MIN (pw_max, 32); // todo
                   break;
@@ -27860,8 +27390,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
     case 16800: pw_max = 63;      break; // WPA-PMKID-PBKDF2: limits itself to 63 by RFC
     case 16801: pw_max = 64;      break; // WPA-PMKID-PMK: fixed length
     case 16900: pw_max = PW_MAX;  break;
-    case 18400: pw_max = PW_MAX;  break;
-    case 18600: pw_max = 51;      break; // Bogus SHA-1 in StarOffice code
   }
 
   return pw_max;

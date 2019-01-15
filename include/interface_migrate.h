@@ -314,44 +314,6 @@ typedef struct oldoffice34
 
 } oldoffice34_t;
 
-typedef struct odf11_tmp
-{
-  u32  ipad[5];
-  u32  opad[5];
-
-  u32  dgst[5];
-  u32  out[5];
-
-} odf11_tmp_t;
-
-typedef struct odf11
-{
-  u32 iterations;
-  u32 iv[2];
-  u32 checksum[5];
-  u32 encrypted_data[256];
-
-} odf11_t;
-
-typedef struct odf12_tmp
-{
-  u32  ipad[5];
-  u32  opad[5];
-
-  u32  dgst[10];
-  u32  out[10];
-
-} odf12_tmp_t;
-
-typedef struct odf12
-{
-  u32 iterations;
-  u32 iv[4];
-  u32 checksum[8];
-  u32 encrypted_data[256];
-
-} odf12_t;
-
 typedef struct pstoken
 {
   u32 salt_buf[128];
@@ -1030,8 +992,6 @@ typedef enum hash_type
   HASH_TYPE_WPA_PMKID_PMK       = 69,
   HASH_TYPE_ANSIBLE_VAULT       = 70,
   HASH_TYPE_KRB5ASREP           = 71,
-  HASH_TYPE_ODF12               = 72,
-  HASH_TYPE_ODF11               = 73,
 
 } hash_type_t;
 
@@ -1230,9 +1190,6 @@ typedef enum kern_type
   KERN_TYPE_TOTP_HMACSHA1           = 18100,
   KERN_TYPE_KRB5ASREP               = 18200,
   KERN_TYPE_APFS                    = 18300,
-  KERN_TYPE_ODF12                   = 18400,
-  KERN_TYPE_SHA1_DOUBLE_MD5         = 18500,
-  KERN_TYPE_ODF11                   = 18600,
   KERN_TYPE_PLAINTEXT               = 99999,
 
 } kern_type_t;
