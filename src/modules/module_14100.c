@@ -17,19 +17,18 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_CIPHER_KPA;
-static const char *HASH_NAME      = "DES (PT = $salt, key = $pass)";
+static const char *HASH_NAME      = "3DES (PT = $salt, key = $pass)";
 static const u32   HASH_TYPE      = HASH_TYPE_DES;
-static const u64   KERN_TYPE      = 14000;
+static const u64   KERN_TYPE      = 14100;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_PERMUT;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STATE_BUFFER_LE
                                   | OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_PT_BITSLICE
                                   | OPTS_TYPE_ST_GENERATE_LE
                                   | OPTS_TYPE_ST_HEX;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
-static const char *ST_PASS        = "hashcat1";
-static const char *ST_HASH        = "53b325182924b356:1412781058343178";
+static const char *ST_PASS        = "hashcat1hashcat1hashcat1";
+static const char *ST_HASH        = "4c29eea59d8db1e7:7428288455525516";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -93,14 +92,14 @@ u32 module_salt_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED c
 
 u32 module_pw_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 pw_min = 8; // Underlaying DES min
+  const u32 pw_min = 24; // Underlaying 3DES min
 
   return pw_min;
 }
 
 u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 pw_max = 8; // Underlaying DES max
+  const u32 pw_max = 24; // Underlaying 3DES max
 
   return pw_max;
 }
@@ -116,7 +115,7 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
 const char *module_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const char *mask = "?b?b?b?b?b?b?bx";
+  const char *mask = "?b?b?b?b?b?b?bxxxxxxxxxxxxxxxxx";
 
   return mask;
 }
