@@ -341,11 +341,6 @@ sub init_db_word_rand
     $len_max = ($len_max >= 31) ? 31 : $len_max;
   }
 
-  my $db_len;
-
-  $db_len->{$len_min} = undef;
-  $db_len->{$len_max} = undef;
-
   my $db_out;
 
   my $idx = 0;
@@ -360,10 +355,6 @@ sub init_db_word_rand
     last if ($giveup++ == $giveup_at);
 
     my $len = random_number ($len_min, $len_max);
-
-    next if exists $db_len->{$len};
-
-    $db_len->{$len} = undef;
 
     $db_out->[$idx] = $len;
 
@@ -394,11 +385,6 @@ sub init_db_salt_rand
     $len_max = ($len_max >= 51) ? 51 : $len_max;
   }
 
-  my $db_len;
-
-  $db_len->{$len_min} = undef;
-  $db_len->{$len_max} = undef;
-
   my $db_out;
 
   my $idx = 0;
@@ -413,10 +399,6 @@ sub init_db_salt_rand
     last if ($giveup++ == $giveup_at);
 
     my $len = random_number ($len_min, $len_max);
-
-    next if exists $db_len->{$len};
-
-    $db_len->{$len} = undef;
 
     $db_out->[$idx] = $len;
 
