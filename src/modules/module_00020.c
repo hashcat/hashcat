@@ -17,7 +17,7 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 1;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_HASH_SALTED;
-static const char *HASH_NAME      = "md5($salt.$pass";
+static const char *HASH_NAME      = "md5($salt.$pass)";
 static const u32   HASH_TYPE      = HASH_TYPE_MD5;
 static const u64   KERN_TYPE      = 20;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
@@ -27,7 +27,8 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_NOT_ITERATED
                                   | OPTI_TYPE_PREPENDED_SALT
                                   | OPTI_TYPE_RAW_HASH;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
+static const u64   OPTS_TYPE      = OPTS_TYPE_STATE_BUFFER_LE
+                                  | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_PT_ADD80
                                   | OPTS_TYPE_PT_ADDBITS14;
 static const u32   SALT_TYPE      = SALT_TYPE_GENERIC;
@@ -52,9 +53,7 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
+  u32 *digest = (u32 *) digest_buf;
 
   token_t token;
 
@@ -78,7 +77,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     token.attr[1] |= TOKEN_ATTR_VERIFY_HEX;
   }
 
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
+  const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
@@ -89,13 +88,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[2] = hex_to_u32 (hash_pos + 16);
   digest[3] = hex_to_u32 (hash_pos + 24);
 
-  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
-  {
-    digest[0] -= MD5M_A;
-    digest[1] -= MD5M_B;
-    digest[2] -= MD5M_C;
-    digest[3] -= MD5M_D;
-  }
+  decoder_apply_options (hashconfig, digest);
+
+  decoder_apply_optimizer (hashconfig, digest);
 
   const u8 *salt_pos = token.buf[1];
   const int salt_len = token.len[1];
@@ -103,13 +98,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  if (hashconfig->opts_type & OPTS_TYPE_ST_HASH_MD5)
-  {
-    // precompute md5 of the salt
-
-    precompute_salt_md5 (salt->salt_buf, salt->salt_len, (u8 *) salt->salt_buf_pc);
-  }
 
   return (PARSER_OK);
 }

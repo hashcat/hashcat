@@ -14,7 +14,6 @@
   "   6900 | GOST R 34.11-94                                  | Raw Hash",
   "  11700 | GOST R 34.11-2012 (Streebog) 256-bit, big-endian | Raw Hash",
   "  11800 | GOST R 34.11-2012 (Streebog) 512-bit, big-endian | Raw Hash",
-  "     20 | md5($salt.$pass)                                 | Raw Hash, Salted and/or Iterated",
   "     30 | md5(utf16le($pass).$salt)                        | Raw Hash, Salted and/or Iterated",
   "     40 | md5($salt.utf16le($pass))                        | Raw Hash, Salted and/or Iterated",
   "   3800 | md5($salt.$pass.$salt)                           | Raw Hash, Salted and/or Iterated",
@@ -278,7 +277,6 @@ static const char *ST_PASS_HEX_16801     = "5b13d4babb3714ccc62c9f71864bc984efd6
  */
 
 static const char *ST_HASH_00012 = "93a8cf6a7d43e3b5bcd2dc6abb3e02c6:27032153220030464358344758762807";
-static const char *ST_HASH_00020 = "57ab8499d08c59a7211c77f557bf9425:4247";
 static const char *ST_HASH_00021 = "e983672a03adcc9767b24584338eb378:00";
 static const char *ST_HASH_00022 = "nKjiFErqK7TPcZdFZsZMNWPtw4Pv8n:26506173";
 static const char *ST_HASH_00023 = "d04d74780881019341915c70d914db29:0675841";
@@ -511,7 +509,6 @@ static const char *ST_HASH_18300 = "$fvde$2$16$58778104701476542047675521040224$
 static const char *ST_HASH_99999 = "hashcat";
 
 
-static const char *HT_00020 = "md5($salt.$pass)";
 static const char *HT_00030 = "md5(utf16le($pass).$salt)";
 static const char *HT_00040 = "md5($salt.utf16le($pass))";
 static const char *HT_00050 = "HMAC-MD5 (key = $pass)";
@@ -21572,30 +21569,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 1;
                  hashconfig->st_hash        = ST_HASH_00012;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case    20:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PT_ADD80
-                                            | OPTS_TYPE_PT_ADDBITS14;
-                 hashconfig->kern_type      = KERN_TYPE_MD5_SLTPW;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = md5s_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_PRECOMPUTE_MERKLE
-                                            | OPTI_TYPE_EARLY_SKIP
-                                            | OPTI_TYPE_NOT_ITERATED
-                                            | OPTI_TYPE_PREPENDED_SALT
-                                            | OPTI_TYPE_RAW_HASH;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 3;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 1;
-                 hashconfig->st_hash        = ST_HASH_00020;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
