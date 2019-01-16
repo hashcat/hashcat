@@ -1505,7 +1505,7 @@ bool parse_and_store_generic_salt (u8 *out_buf, int *out_len, const u8 *in_buf, 
     tmp_buf[tmp2_len++] = 0x01;
   }
 
-  if (hashconfig->opts_type & OPTS_TYPE_ST_GENERATE_LE)
+  if (hashconfig->opts_type & OPTS_TYPE_ST_GENERATE_BE)
   {
     u32 max = tmp2_len / 4;
 

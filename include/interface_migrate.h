@@ -950,7 +950,6 @@ typedef enum hash_type
   HASH_TYPE_RAR3HP              = 50,
   HASH_TYPE_KRB5TGS             = 51,
   HASH_TYPE_STDOUT              = 52,
-  HASH_TYPE_DES                 = 53,
   HASH_TYPE_PLAINTEXT           = 54,
   HASH_TYPE_LUKS                = 55,
   HASH_TYPE_ITUNES_BACKUP_9     = 56,
@@ -1126,10 +1125,8 @@ typedef enum kern_type
   KERN_TYPE_ZIP2                    = 13600,
   KERN_TYPE_WIN8PHONE               = 13800,
   KERN_TYPE_OPENCART                = 13900,
-  KERN_TYPE_DES                     = 14000,
   KERN_TYPE_3DES                    = 14100,
   KERN_TYPE_SHA1CX                  = 14400,
-
   KERN_TYPE_ITUNES_BACKUP_9         = 14700,
   KERN_TYPE_ITUNES_BACKUP_10        = 14800,
   KERN_TYPE_SKIP32                  = 14900,
@@ -1252,7 +1249,6 @@ typedef enum rounds_count
 int bcrypt_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int cisco4_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int dcc2_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int des_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int episerver_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int postgresql_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int netscreen_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);

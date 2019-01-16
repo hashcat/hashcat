@@ -53,7 +53,6 @@
   "  11760 | HMAC-Streebog-256 (key = $salt), big-endian      | Raw Hash, Authenticated",
   "  11850 | HMAC-Streebog-512 (key = $pass), big-endian      | Raw Hash, Authenticated",
   "  11860 | HMAC-Streebog-512 (key = $salt), big-endian      | Raw Hash, Authenticated",
-  "  14000 | DES (PT = $salt, key = $pass)                    | Raw Cipher, Known-Plaintext attack",
   "  14100 | 3DES (PT = $salt, key = $pass)                   | Raw Cipher, Known-Plaintext attack",
   "  14900 | Skip32 (PT = $salt, key = $pass)                 | Raw Cipher, Known-Plaintext attack",
   "  15400 | ChaCha20                                         | Raw Cipher, Known-Plaintext attack",
@@ -474,7 +473,6 @@ static const char *ST_HASH_13772 = "0f5da0b17c60edcd392058752ec29c389b140b54cd1f
 static const char *ST_HASH_13773 = "18d2e8314961850f8fc26d2bc6f896db9c4eee301b5fa7295615166552b2422042c6cf6212187ec9c0234908e7934009c23ceed0c4858a7a4deecbc59b50a303afdc7d583cde1b0c06f0bf56162ef1d6d8df8f194aadcbe395780b3d1d7127faf39910eb10f4805abdd1c3ef7a66972603124a475e2b9224699e60a9e12f4096597f20c5fb0528f590d7bd317e41dc6a2128cf5e58a99803a28c213feb8286350b1d7ab56d43bb52e511f3c860e5002472a4454a549509c8ce0c34f17ece23d5b61aa7c63389c8ca44ed10c2caae03e7ed30b3ef98565926d7e4f3a2a9abf03b278083bed7aaadd78d5bffb7cd45ffae92990c06d9e9f375a77a94226035d1f90e177c46a04dab416dfb7ed7c4ed9ee7e84580bed65c5fee9f4b1545b9a7cf6af533870d393eced609aebe308ec1eee3729da09eb7df7a8d1282b15c4a1b8266a456c06b4ea20c209c549d5d6b58a861f8e15cca3b6cef114accbf470ec76d717f6d7d416d7a32f064ab560c1167f9ef4e93310fbd927b088bffbb0cf5d5c2e271c9cad4c604e489e9983a990b23e1a2f973682fdfe38df385474f73ecdc9bce701d01d627192d3051240f4b96bbdcf2346b275e05aa75add4acb97b286cc00e830fee95d0f86a8b1e315ccb6f3f8642180392b3baac01ed2c97c200489b5e5ca4dcb0a6417e622b6196482a10e640b2b6b08e3f62acac3d45dfc6b88c666205";
 static const char *ST_HASH_13800 = "060a4a94cb2263bcefe74705bd0efe7643d09c2bc25fc69f6a32c1b8d5a5d0d9:4647316184156410832507278642444030512402463246148636510356103432440257733102761444262383653100802140838605535187005586063548643765207865344068042278454875021452355870320020868064506248840047414683714173748364871633802572014845467035357710118327480707136422";
 static const char *ST_HASH_13900 = "058c1c3773340c8563421e2b17e60eb7c916787e:827500576";
-static const char *ST_HASH_14000 = "53b325182924b356:1412781058343178";
 static const char *ST_HASH_14100 = "4c29eea59d8db1e7:7428288455525516";
 static const char *ST_HASH_14400 = "fcdc7ec700b887e8eaebf94c2ec52aebb5521223:63038426024388230227";
 static const char *ST_HASH_14700 = "$itunes_backup$*9*ebd7f9b33293b2511f0a4139d5b213feff51476968863cef60ec38d720497b6ff39a0bb63fa9f84e*10000*2202015774208421818002001652122401871832**";
@@ -657,7 +655,6 @@ static const char *HT_13500 = "PeopleSoft PS_TOKEN";
 static const char *HT_13600 = "WinZip";
 static const char *HT_13800 = "Windows Phone 8+ PIN/password";
 static const char *HT_13900 = "OpenCart";
-static const char *HT_14000 = "DES (PT = $salt, key = $pass)";
 static const char *HT_14100 = "3DES (PT = $salt, key = $pass)";
 static const char *HT_14400 = "sha1(CX)";
 static const char *HT_14600 = "LUKS";
@@ -8595,62 +8592,6 @@ int racf_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
 
   digest[0] = rotr32 (digest[0], 29);
   digest[1] = rotr32 (digest[1], 29);
-  digest[2] = 0;
-  digest[3] = 0;
-
-  return (PARSER_OK);
-}
-
-int des_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt  = 2;
-
-  token.sep[0]     = hashconfig->separator;
-  token.len_min[0] = 16;
-  token.len_max[0] = 16;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len_min[1] = 16;
-  token.len_max[1] = 16;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  // salt
-
-  const u8 *salt_pos = token.buf[1];
-  const int salt_len = token.len[1];
-
-  const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
-
-  if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  u32 tt;
-
-  salt->salt_buf_pc[0] = byte_swap_32 (salt->salt_buf[0]);
-  salt->salt_buf_pc[1] = byte_swap_32 (salt->salt_buf[1]);
-
-  IP (salt->salt_buf_pc[0], salt->salt_buf_pc[1], tt);
-
-  // hash
-
-  const u8 *hash_pos = token.buf[0];
-
-  digest[0] = hex_to_u32 (hash_pos + 0);
-  digest[1] = hex_to_u32 (hash_pos + 8);
-
-  IP (digest[0], digest[1], tt);
-
   digest[2] = 0;
   digest[3] = 0;
 
@@ -17626,11 +17567,6 @@ u32 kernel_loops_mxx (hashcat_ctx_t *hashcat_ctx)
       kernel_loops_fixed = 1024;
     }
 
-    if (hashconfig->hash_mode == 14000 && user_options->attack_mode == ATTACK_MODE_BF)
-    {
-      kernel_loops_fixed = 1024;
-    }
-
     if (hashconfig->hash_mode == 14100 && user_options->attack_mode == ATTACK_MODE_BF)
     {
       kernel_loops_fixed = 1024;
@@ -17771,8 +17707,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
       case 12500: salt->salt_len = 8;
                   break;
       case 12600: salt->salt_len = 64;
-                  break;
-      case 14000: salt->salt_len = 8;
                   break;
       case 14100: salt->salt_len = 8;
                   break;
@@ -20492,10 +20426,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       digest_buf[6],
       digest_buf[7],
       buf);
-  }
-  else if (hash_mode == 14000)
-  {
-    snprintf (out_buf, out_size, "%08x%08x:%s", digest_buf[0], digest_buf[1], (char *) salt.salt_buf);
   }
   else if (hash_mode == 14100)
   {
@@ -25644,26 +25574,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 14000:  hashconfig->hash_type      = HASH_TYPE_DES;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PT_BITSLICE
-                                            | OPTS_TYPE_ST_GENERATE_LE
-                                            | OPTS_TYPE_ST_HEX;
-                 hashconfig->kern_type      = KERN_TYPE_DES;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
-                 hashconfig->parse_func     = des_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_PERMUT;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_14000;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_ONE;
-                 break;
-
     case 14100:  hashconfig->hash_type      = HASH_TYPE_DES;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -26604,7 +26514,6 @@ u32 default_pw_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
     case  9710: pw_min = 5;   break; // RC4-40 fixed
     case  9810: pw_min = 5;   break; // RC4-40 fixed
     case 10410: pw_min = 5;   break; // RC4-40 fixed
-    case 14000: pw_min = 8;   break; // DES fixed
     case 14100: pw_min = 24;  break; // 3DES fixed
     case 14900: pw_min = 10;  break; // Skip32 fixed
     case 15400: pw_min = 32;  break; // ChaCha20 fixed
@@ -26762,7 +26671,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
     case 13771: pw_max = 64;      break; // VC limits itself to 64
     case 13772: pw_max = 64;      break; // VC limits itself to 64
     case 13773: pw_max = 64;      break; // VC limits itself to 64
-    case 14000: pw_max = 8;       break; // Underlaying DES fixed
     case 14100: pw_max = 24;      break; // Underlaying 3DES fixed
     case 14611: pw_max = PW_MAX;  break;
     case 14612: pw_max = PW_MAX;  break;
@@ -26849,8 +26757,6 @@ const char *default_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig,
     case 10410: mask = "?b?b?b?b?b";
                 break;
     case 12500: mask = "?b?b?b?b?b";
-                break;
-    case 14000: mask = "?b?b?b?b?b?b?bx";
                 break;
     case 14100: mask = "?b?b?b?b?b?b?bxxxxxxxxxxxxxxxxx";
                 break;
@@ -27633,7 +27539,6 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
      || (hashconfig->hash_mode ==  9300)
      || (hashconfig->hash_mode ==  9800)
      || (hashconfig->hash_mode == 12500)
-     || (hashconfig->hash_mode == 14000)
      || (hashconfig->hash_mode == 14100)
      || (hashconfig->hash_mode == 15700))
     {
