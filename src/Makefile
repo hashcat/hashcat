@@ -320,12 +320,20 @@ CFLAGS_CROSS_WIN64      += -m64
 CFLAGS_CROSS_WIN64      += -DWITH_HWMON
 
 LFLAGS_CROSS_LINUX32    := $(LFLAGS)
+ifeq ($(UNAME),Darwin)
+LFLAGS_CROSS_LINUX32    += -Wl,-export-dynamic
+else
 LFLAGS_CROSS_LINUX32    += -Wl,--export-dynamic
+endif
 LFLAGS_CROSS_LINUX32    += -lpthread
 LFLAGS_CROSS_LINUX32    += -ldl
 LFLAGS_CROSS_LINUX32    += -lm
 LFLAGS_CROSS_LINUX64    := $(LFLAGS)
+ifeq ($(UNAME),Darwin)
+LFLAGS_CROSS_LINUX64    += -Wl,-export-dynamic
+else
 LFLAGS_CROSS_LINUX64    += -Wl,--export-dynamic
+endif
 LFLAGS_CROSS_LINUX64    += -lpthread
 LFLAGS_CROSS_LINUX64    += -ldl
 LFLAGS_CROSS_LINUX64    += -lm
