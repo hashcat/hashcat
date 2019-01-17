@@ -341,6 +341,12 @@ LFLAGS_CROSS_WIN64      += -lpsapi
 LFLAGS_CROSS_WIN64      += -lws2_32
 
 ##
+## Modules
+##
+
+MODULE_DEPEND           := src/bitops.c src/convert.c src/memory.c src/shared.c src/cpu_aes.c src/cpu_md5.c
+
+##
 ## Objects
 ##
 
@@ -573,7 +579,7 @@ MODULES_SRC   := $(wildcard src/modules/*.c)
 MODULES_LIB   := $(patsubst src/modules/module_%.c, modules/module_%.so, $(MODULES_SRC))
 
 modules/module_%.so: src/modules/module_%.c
-	$(CC)    $(CFLAGS_NATIVE) $< -o $@ $(LFLAGS_NATIVE) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
+	$(CC)    $(CFLAGS_NATIVE) $< -o $@ $(LFLAGS_NATIVE) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION) $(MODULE_DEPEND)
 
 modules: $(MODULES_LIB)
 
@@ -591,13 +597,11 @@ modules_linux64: $(MODULES_LIB_LINUX64)
 modules_win32:   $(MODULES_LIB_WIN32)
 modules_win64:   $(MODULES_LIB_WIN64)
 
-MODULE_DEPEND := src/bitops.c src/convert.c src/memory.c src/shared.c src/cpu_aes.c src/cpu_md5.h
-
 modules/module32_%.so:  src/modules/module_%.c
-	$(CC_LINUX_32)  $(CFLAGS_CROSS_LINUX32) $< -o $@ $(LFLAGS_CROSS_LINUX32) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
+	$(CC_LINUX_32)  $(CFLAGS_CROSS_LINUX32) $< -o $@ $(LFLAGS_CROSS_LINUX32) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION) $(MODULE_DEPEND)
 
 modules/module64_%.so:  src/modules/module_%.c
-	$(CC_LINUX_64)  $(CFLAGS_CROSS_LINUX64) $< -o $@ $(LFLAGS_CROSS_LINUX64) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
+	$(CC_LINUX_64)  $(CFLAGS_CROSS_LINUX64) $< -o $@ $(LFLAGS_CROSS_LINUX64) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION) $(MODULE_DEPEND)
 
 modules/module32_%.dll: src/modules/module_%.c
 	$(CC_WIN_32)    $(CFLAGS_CROSS_WIN32)   $< -o $@ $(LFLAGS_CROSS_WIN32)   -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION) $(MODULE_DEPEND)
