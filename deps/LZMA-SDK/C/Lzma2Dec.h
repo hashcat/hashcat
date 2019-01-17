@@ -75,7 +75,8 @@ typedef enum
   LZMA2_PARSE_STATUS_NEW_CHUNK
 } ELzma2ParseStatus;
 
-ELzma2ParseStatus Lzma2Dec_Parse(CLzma2Dec *p,
+//ELzma2ParseStatus Lzma2Dec_Parse(CLzma2Dec *p,
+int Lzma2Dec_Parse(CLzma2Dec *p,
     SizeT outSize,   // output size
     const Byte *src, SizeT *srcLen,
     int checkFinishBlock   // set (checkFinishBlock = 1), if it must read full input data, if decoder.dicPos reaches blockMax position.
