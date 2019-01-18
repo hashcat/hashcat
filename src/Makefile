@@ -180,6 +180,11 @@ CFLAGS                  += -Wall
 CFLAGS                  += -Wextra
 endif
 
+## because LZMA SDK
+ifeq ($(CC),clang)
+CFLAGS                  += -Wno-enum-conversion
+endif
+
 ## is very annoying during refactor
 CFLAGS                  += -Wno-unused-variable
 CFLAGS                  += -Wno-unused-function
