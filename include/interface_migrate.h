@@ -902,7 +902,6 @@ typedef enum hash_type
 {
   HASH_TYPE_MD4                 = 1,
   HASH_TYPE_MD5                 = 2,
-  HASH_TYPE_MD5H                = 3,
   HASH_TYPE_SHA1                = 4,
   HASH_TYPE_SHA224              = 5,
   HASH_TYPE_SHA256              = 6,
@@ -1022,7 +1021,6 @@ typedef enum kern_type
   KERN_TYPE_SHA1_MD5                = 4700,
   KERN_TYPE_MD5_CHAP                = 4800,
   KERN_TYPE_SHA1_SLT_PW_SLT         = 4900,
-  KERN_TYPE_MD5H                    = 5100,
   KERN_TYPE_PSAFE3                  = 5200,
   KERN_TYPE_IKEPSK_MD5              = 5300,
   KERN_TYPE_IKEPSK_SHA1             = 5400,
@@ -1262,7 +1260,6 @@ int md4_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int md4s_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int md5_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int md5s_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int md5half_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int md5md5_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int md5pix_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int md5asa_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
