@@ -302,25 +302,25 @@ const char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
   const hashes_t     *hashes     = hashcat_ctx->hashes;
   const module_ctx_t *module_ctx = hashcat_ctx->module_ctx;
 
-  if (module_ctx->module_hash_encode_status != MODULE_DEFAULT)
+  if (hashes->digests_cnt == 1)
   {
-    char *tmp_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
+    if (module_ctx->module_hash_encode_status != MODULE_DEFAULT)
+    {
+      char *tmp_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-    const int tmp_len = module_ctx->module_hash_encode_status (hashconfig, hashes->digests_buf, hashes->salts_buf, hashes->esalts_buf, hashes->hash_info[0], tmp_buf, HCBUFSIZ_LARGE);
+      const int tmp_len = module_ctx->module_hash_encode_status (hashconfig, hashes->digests_buf, hashes->salts_buf, hashes->esalts_buf, NULL, tmp_buf, HCBUFSIZ_LARGE);
 
-    char *tmp_buf2 = (char *) hcmalloc (tmp_len + 1);
+      char *tmp_buf2 = (char *) hcmalloc (tmp_len + 1);
 
-    memcpy (tmp_buf2, tmp_buf, tmp_len);
+      memcpy (tmp_buf2, tmp_buf, tmp_len);
 
-    free (tmp_buf);
+      tmp_buf2[tmp_len] = 0;
 
-    tmp_buf2[tmp_len] = 0;
+      free (tmp_buf);
 
-    return tmp_buf2;
-  }
-  else
-  {
-    if (hashes->digests_cnt == 1)
+      return tmp_buf2;
+    }
+    else
     {
       char *tmp_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
@@ -336,10 +336,10 @@ const char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
 
       return tmp_buf2;
     }
-    else
-    {
-      return hashes->hashfile;
-    }
+  }
+  else
+  {
+    return hashes->hashfile;
   }
 }
 

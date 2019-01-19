@@ -60,7 +60,6 @@
   "  10900 | PBKDF2-HMAC-SHA256                               | Generic KDF",
   "  12100 | PBKDF2-HMAC-SHA512                               | Generic KDF",
   "     23 | Skype                                            | Network Protocols",
-  "   2500 | WPA-EAPOL-PBKDF2                                 | Network Protocols",
   "   2501 | WPA-EAPOL-PMK                                    | Network Protocols",
   "  16800 | WPA-PMKID-PBKDF2                                 | Network Protocols",
   "  16801 | WPA-PMKID-PMK                                    | Network Protocols",
@@ -320,7 +319,6 @@ static const char *ST_HASH_01750 = "138c00f17a1a0363f274817c91118f019aff09f937bf
 static const char *ST_HASH_01760 = "7d02921299935179d509e6dd4f3d0f2944e3451ea9de3af16baead6a7297e5653577d2473a0fff743d9fe78a89bd49296114319989dc7e7870fc7f62bc96accb:114";
 static const char *ST_HASH_01800 = "$6$72820166$U4DVzpcYxgw7MVVDGGvB2/H5lRistD5.Ah4upwENR5UtffLR4X4SxSzfREv8z6wVl0jRFX40/KnYVvK4829kD1";
 static const char *ST_HASH_02100 = "$DCC2$10240#6848#e2829c8af2232fa53797e2f0e35e4626";
-static const char *ST_HASH_02500 = "4843505804000000000235380000000000000000000000000000000000000000000000000000000000000151aecc428f182acefbd1a9e62d369a079265784da83ba4cf88375c44c830e6e5aa5d6faf352aa496a9ee129fb8292f7435df5420b823a1cd402aed449cced04f552c5b5acfebf06ae96a09c96d9a01c443a17aa62258c4f651a68aa67b0001030077fe010900200000000000000001a4cf88375c44c830e6e5aa5d6faf352aa496a9ee129fb8292f7435df5420b8230000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000018dd160050f20101000050f20201000050f20201000050f20200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 static const char *ST_HASH_02501 = "4843505804000000000235380000000000000000000000000000000000000000000000000000000000000151aecc428f182acefbd1a9e62d369a079265784da83ba4cf88375c44c830e6e5aa5d6faf352aa496a9ee129fb8292f7435df5420b823a1cd402aed449cced04f552c5b5acfebf06ae96a09c96d9a01c443a17aa62258c4f651a68aa67b0001030077fe010900200000000000000001a4cf88375c44c830e6e5aa5d6faf352aa496a9ee129fb8292f7435df5420b8230000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000018dd160050f20101000050f20201000050f20201000050f20200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 static const char *ST_HASH_02410 = "YjDBNr.A0AN7DA8s:4684";
 static const char *ST_HASH_02600 = "a936af92b0ae20b1ff6c3347a72e5fbe";
@@ -535,7 +533,6 @@ static const char *HT_01760 = "HMAC-SHA512 (key = $salt)";
 static const char *HT_01800 = "sha512crypt $6$, SHA512 (Unix)";
 static const char *HT_02100 = "Domain Cached Credentials 2 (DCC2), MS Cache 2";
 static const char *HT_02410 = "Cisco-ASA MD5";
-static const char *HT_02500 = "WPA-EAPOL-PBKDF2";
 static const char *HT_02501 = "WPA-EAPOL-PMK";
 static const char *HT_02600 = "md5(md5($pass))";
 static const char *HT_03000 = "LM";
@@ -3530,251 +3527,6 @@ int dpapimk_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   // iter
 
   salt->salt_iter = hc_strtoul ((const char *) rounds_pos, NULL, 10) - 1;
-
-  return (PARSER_OK);
-}
-
-int wpa_eapol_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  wpa_eapol_t *wpa_eapol = (wpa_eapol_t *) hash_buf->esalt;
-
-  // the *wpa was partially initialized beforehand, we can not simply memset it to zero
-
-  hccapx_t in;
-
-  memcpy (&in, input_buf, input_len);
-
-  if (in.signature != HCCAPX_SIGNATURE) return (PARSER_HCCAPX_SIGNATURE);
-
-  if (in.version != HCCAPX_VERSION) return (PARSER_HCCAPX_VERSION);
-
-  if (in.eapol_len < 1 || in.eapol_len > 255) return (PARSER_HCCAPX_EAPOL_LEN);
-
-  memcpy (wpa_eapol->keymic, in.keymic, 16);
-
-  /*
-    http://www.one-net.eu/jsw/j_sec/m_ptype.html
-    The phrase "Pairwise key expansion"
-    Access Point Address (referred to as Authenticator Address AA)
-    Supplicant Address (referred to as Supplicant Address SA)
-    Access Point Nonce (referred to as Authenticator Anonce)
-    Wireless Device Nonce (referred to as Supplicant Nonce Snonce)
-  */
-
-  u32 salt_len = in.essid_len;
-
-  if (salt_len > 32) return (PARSER_SALT_LENGTH);
-
-  memcpy (salt->salt_buf, in.essid, in.essid_len);
-
-  salt->salt_len = salt_len;
-
-  salt->salt_iter = ROUNDS_WPA_PBKDF2 - 1;
-
-  memcpy (wpa_eapol->essid, in.essid, in.essid_len);
-
-  wpa_eapol->essid_len = in.essid_len;
-
-  wpa_eapol->keyver = in.keyver;
-
-  if ((wpa_eapol->keyver != 1) && (wpa_eapol->keyver != 2) && (wpa_eapol->keyver != 3)) return (PARSER_SALT_VALUE);
-
-  u8 *pke_ptr = (u8 *) wpa_eapol->pke;
-
-  memset (pke_ptr, 0, 128);
-
-  if ((wpa_eapol->keyver == 1) || (wpa_eapol->keyver == 2))
-  {
-    memcpy (pke_ptr, "Pairwise key expansion", 23);
-
-    if (memcmp (in.mac_ap, in.mac_sta, 6) < 0)
-    {
-      memcpy (pke_ptr + 23, in.mac_ap,  6);
-      memcpy (pke_ptr + 29, in.mac_sta, 6);
-    }
-    else
-    {
-      memcpy (pke_ptr + 23, in.mac_sta, 6);
-      memcpy (pke_ptr + 29, in.mac_ap,  6);
-    }
-
-    wpa_eapol->nonce_compare = memcmp (in.nonce_ap, in.nonce_sta, 32);
-
-    if (wpa_eapol->nonce_compare < 0)
-    {
-      memcpy (pke_ptr + 35, in.nonce_ap,  32);
-      memcpy (pke_ptr + 67, in.nonce_sta, 32);
-    }
-    else
-    {
-      memcpy (pke_ptr + 35, in.nonce_sta, 32);
-      memcpy (pke_ptr + 67, in.nonce_ap,  32);
-    }
-  }
-  else if (wpa_eapol->keyver == 3)
-  {
-    pke_ptr[0] = 1;
-    pke_ptr[1] = 0;
-
-    memcpy (pke_ptr + 2, "Pairwise key expansion", 22);
-
-    if (memcmp (in.mac_ap, in.mac_sta, 6) < 0)
-    {
-      memcpy (pke_ptr + 24, in.mac_ap,  6);
-      memcpy (pke_ptr + 30, in.mac_sta, 6);
-    }
-    else
-    {
-      memcpy (pke_ptr + 24, in.mac_sta, 6);
-      memcpy (pke_ptr + 30, in.mac_ap,  6);
-    }
-
-    wpa_eapol->nonce_compare = memcmp (in.nonce_ap, in.nonce_sta, 32);
-
-    if (wpa_eapol->nonce_compare < 0)
-    {
-      memcpy (pke_ptr + 36, in.nonce_ap,  32);
-      memcpy (pke_ptr + 68, in.nonce_sta, 32);
-    }
-    else
-    {
-      memcpy (pke_ptr + 36, in.nonce_sta, 32);
-      memcpy (pke_ptr + 68, in.nonce_ap,  32);
-    }
-
-    pke_ptr[100] = 0x80;
-    pke_ptr[101] = 1;
-  }
-
-  for (int i = 0; i < 32; i++)
-  {
-    wpa_eapol->pke[i] = byte_swap_32 (wpa_eapol->pke[i]);
-  }
-
-  memcpy (wpa_eapol->orig_mac_ap,    in.mac_ap,    6);
-  memcpy (wpa_eapol->orig_mac_sta,   in.mac_sta,   6);
-  memcpy (wpa_eapol->orig_nonce_ap,  in.nonce_ap,  32);
-  memcpy (wpa_eapol->orig_nonce_sta, in.nonce_sta, 32);
-
-  u8 message_pair_orig = in.message_pair;
-
-  in.message_pair &= 0x7f; // ignore the highest bit (it is used to indicate if the replay counters did match)
-
-  if (wpa_eapol->message_pair_chgd == true)
-  {
-    if (wpa_eapol->message_pair != in.message_pair) return (PARSER_HCCAPX_MESSAGE_PAIR);
-  }
-
-  wpa_eapol->message_pair = message_pair_orig;
-
-  wpa_eapol->eapol_len = in.eapol_len;
-
-  u8 *eapol_ptr = (u8 *) wpa_eapol->eapol;
-
-  memcpy (eapol_ptr, in.eapol, wpa_eapol->eapol_len);
-
-  memset (eapol_ptr + wpa_eapol->eapol_len, 0, (256 + 64) - wpa_eapol->eapol_len);
-
-  eapol_ptr[wpa_eapol->eapol_len] = 0x80;
-
-  if (wpa_eapol->keyver == 1)
-  {
-    // nothing to do
-  }
-  else if (wpa_eapol->keyver == 2)
-  {
-    wpa_eapol->keymic[0] = byte_swap_32 (wpa_eapol->keymic[0]);
-    wpa_eapol->keymic[1] = byte_swap_32 (wpa_eapol->keymic[1]);
-    wpa_eapol->keymic[2] = byte_swap_32 (wpa_eapol->keymic[2]);
-    wpa_eapol->keymic[3] = byte_swap_32 (wpa_eapol->keymic[3]);
-
-    for (int i = 0; i < 64; i++)
-    {
-      wpa_eapol->eapol[i] = byte_swap_32 (wpa_eapol->eapol[i]);
-    }
-  }
-  else if (wpa_eapol->keyver == 3)
-  {
-    // nothing to do
-  }
-
-  // Create a hash of the nonce as ESSID is not unique enough
-  // Not a regular MD5 but good enough
-  // We can also ignore cases where we should bzero the work buffer
-
-  u32 hash[4];
-
-  hash[0] = 0;
-  hash[1] = 1;
-  hash[2] = 2;
-  hash[3] = 3;
-
-  u32 block[16];
-
-  memset (block, 0, sizeof (block));
-
-  u8 *block_ptr = (u8 *) block;
-
-  for (int i = 0; i < 16; i++) block[i] = salt->salt_buf[i];
-
-  md5_64 (block, hash);
-
-  for (int i = 0; i < 16; i++) block[i] = wpa_eapol->pke[i +  0];
-
-  md5_64 (block, hash);
-
-  for (int i = 0; i < 16; i++) block[i] = wpa_eapol->pke[i + 16];
-
-  md5_64 (block, hash);
-
-  for (int i = 0; i < 16; i++) block[i] = wpa_eapol->eapol[i +  0];
-
-  md5_64 (block, hash);
-
-  for (int i = 0; i < 16; i++) block[i] = wpa_eapol->eapol[i + 16];
-
-  md5_64 (block, hash);
-
-  for (int i = 0; i < 16; i++) block[i] = wpa_eapol->eapol[i + 32];
-
-  md5_64 (block, hash);
-
-  for (int i = 0; i < 16; i++) block[i] = wpa_eapol->eapol[i + 48];
-
-  md5_64 (block, hash);
-
-  for (int i = 0; i <  6; i++) block_ptr[i + 0] = wpa_eapol->orig_mac_ap[i];
-  for (int i = 0; i <  6; i++) block_ptr[i + 6] = wpa_eapol->orig_mac_sta[i];
-
-  md5_64 (block, hash);
-
-  for (int i = 0; i < 32; i++) block_ptr[i +  0] = wpa_eapol->orig_nonce_ap[i];
-  for (int i = 0; i < 32; i++) block_ptr[i + 32] = wpa_eapol->orig_nonce_sta[i];
-
-  md5_64 (block, hash);
-
-  block[0] = wpa_eapol->keymic[0];
-  block[1] = wpa_eapol->keymic[1];
-  block[2] = wpa_eapol->keymic[2];
-  block[3] = wpa_eapol->keymic[3];
-
-  md5_64 (block, hash);
-
-  wpa_eapol->hash[0] = hash[0];
-  wpa_eapol->hash[1] = hash[1];
-  wpa_eapol->hash[2] = hash[2];
-  wpa_eapol->hash[3] = hash[3];
-
-  // make all this stuff unique
-
-  digest[0] = wpa_eapol->hash[0];
-  digest[1] = wpa_eapol->hash[1];
-  digest[2] = wpa_eapol->hash[2];
-  digest[3] = wpa_eapol->hash[3];
 
   return (PARSER_OK);
 }
@@ -17617,8 +17369,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                   break;
       case  2410: salt->salt_len = 4;
                   break;
-      case  2500: memcpy (salt->salt_buf, "hashcat.net", 11);
-                  break;
       case  2501: memcpy (salt->salt_buf, "hashcat.net", 11);
                   break;
       case  3100: salt->salt_len = 1;
@@ -17714,8 +17464,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
 
     switch (hashconfig->hash_mode)
     {
-      case  2500: ((wpa_eapol_t *)        esalt)->eapol_len     = 128;
-                  break;
       case  2501: ((wpa_eapol_t *)        esalt)->eapol_len     = 128;
                   break;
       case  5300: ((ikepsk_t *)           esalt)->nr_len        = 1;
@@ -17796,8 +17544,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
     case  1800:  salt->salt_iter  = ROUNDS_SHA512CRYPT;
                  break;
     case  2100:  salt->salt_iter  = ROUNDS_DCC2;
-                 break;
-    case  2500:  salt->salt_iter  = ROUNDS_WPA_PBKDF2;
                  break;
     case  2501:  salt->salt_iter  = ROUNDS_WPA_PMK;
                  break;
@@ -18375,52 +18121,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
     out_buf[15] = int_to_itoa64 ((digest_buf[3] >> 18) & 0x3f);
 
     out_buf[16] = 0;
-  }
-  else if ((hash_mode == 2500) || (hash_mode == 2501))
-  {
-    wpa_eapol_t *wpa_eapols = (wpa_eapol_t *) esalts_buf;
-
-    wpa_eapol_t *wpa_eapol = &wpa_eapols[digest_cur];
-
-    char *essid = (char *) wpa_eapol->essid;
-
-    int tmp_len = 0;
-
-    if (need_hexify (wpa_eapol->essid, wpa_eapol->essid_len, hashconfig->separator, 0) == true)
-    {
-      tmp_buf[tmp_len++] = '$';
-      tmp_buf[tmp_len++] = 'H';
-      tmp_buf[tmp_len++] = 'E';
-      tmp_buf[tmp_len++] = 'X';
-      tmp_buf[tmp_len++] = '[';
-
-      exec_hexify (wpa_eapol->essid, wpa_eapol->essid_len, (u8 *) tmp_buf + tmp_len);
-
-      tmp_len += wpa_eapol->essid_len * 2;
-
-      tmp_buf[tmp_len++] = ']';
-
-      essid = tmp_buf;
-    }
-
-    snprintf (out_buf, out_size, "%08x%08x%08x%08x:%02x%02x%02x%02x%02x%02x:%02x%02x%02x%02x%02x%02x:%s",
-      wpa_eapol->hash[0],
-      wpa_eapol->hash[1],
-      wpa_eapol->hash[2],
-      wpa_eapol->hash[3],
-      wpa_eapol->orig_mac_ap[0],
-      wpa_eapol->orig_mac_ap[1],
-      wpa_eapol->orig_mac_ap[2],
-      wpa_eapol->orig_mac_ap[3],
-      wpa_eapol->orig_mac_ap[4],
-      wpa_eapol->orig_mac_ap[5],
-      wpa_eapol->orig_mac_sta[0],
-      wpa_eapol->orig_mac_sta[1],
-      wpa_eapol->orig_mac_sta[2],
-      wpa_eapol->orig_mac_sta[3],
-      wpa_eapol->orig_mac_sta[4],
-      wpa_eapol->orig_mac_sta[5],
-      essid);
   }
   else if (hash_mode == 4400)
   {
@@ -22606,28 +22306,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case  2500:  hashconfig->hash_type      = HASH_TYPE_WPA_EAPOL;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_AUX1
-                                            | OPTS_TYPE_AUX2
-                                            | OPTS_TYPE_AUX3
-                                            | OPTS_TYPE_DEEP_COMP_KERNEL
-                                            | OPTS_TYPE_BINARY_HASHFILE;
-                 hashconfig->kern_type      = KERN_TYPE_WPA_EAPOL_PBKDF2;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = wpa_eapol_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_02500;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_EXCL;
-                 break;
-
     case  2501:  hashconfig->hash_type      = HASH_TYPE_WPA_EAPOL;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -26204,7 +25882,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   switch (hashconfig->hash_mode)
   {
-    case  2500: hashconfig->esalt_size = sizeof (wpa_eapol_t);          break;
     case  2501: hashconfig->esalt_size = sizeof (wpa_eapol_t);          break;
     case  5300: hashconfig->esalt_size = sizeof (ikepsk_t);             break;
     case  5400: hashconfig->esalt_size = sizeof (ikepsk_t);             break;
@@ -26315,7 +25992,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   {
     case  1800: hashconfig->tmp_size = sizeof (sha512crypt_tmp_t);        break;
     case  2100: hashconfig->tmp_size = sizeof (dcc2_tmp_t);               break;
-    case  2500: hashconfig->tmp_size = sizeof (wpa_pbkdf2_tmp_t);         break;
     case  2501: hashconfig->tmp_size = sizeof (wpa_pmk_tmp_t);            break;
     case  3200: hashconfig->tmp_size = sizeof (bcrypt_tmp_t);             break;
     case  5200: hashconfig->tmp_size = sizeof (pwsafe3_tmp_t);            break;
@@ -26427,7 +26103,6 @@ u32 default_pw_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
 
   switch (hashconfig->hash_mode)
   {
-    case  2500: pw_min = 8;   break; // WPA-EAPOL-PBKDF2: min RFC
     case  2501: pw_min = 64;  break; // WPA-EAPOL-PMK: fixed
     case  9710: pw_min = 5;   break; // RC4-40 fixed
     case  9810: pw_min = 5;   break; // RC4-40 fixed
@@ -26497,7 +26172,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
   {
     case   112: pw_max = 30;      break; // https://www.toadworld.com/platforms/oracle/b/weblog/archive/2013/11/12/oracle-12c-passwords
     case  2100: pw_max = PW_MAX;  break;
-    case  2500: pw_max = 63;      break; // WPA-EAPOL-PBKDF2: limits itself to 63 by RFC
     case  2501: pw_max = 64;      break; // WPA-EAPOL-PMK: fixed length
     case  3000: pw_max = 7;       break; // LM max
     case  3100: pw_max = 30;      break; // http://www.red-database-security.de/whitepaper/oracle_passwords.html
@@ -26661,11 +26335,8 @@ u32 default_salt_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED 
 
 const char *default_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-
   switch (hashconfig->hash_mode)
   {
-    case  2500: mask = "?a?a?a?a?a?a?a?a";
-                break;
     case  2501: mask = "?a?a?a?a?a?a?a?axxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
                 break;
     case  9710: mask = "?b?b?b?b?b";
@@ -26951,94 +26622,6 @@ int module_hash_decode_outfile (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 {
 
 
-          if ((hash_mode == 2500) || (hash_mode == 2501)) // special case WPA/WPA2
-          {
-            // fake the parsing of the salt
-
-            u32 identifier_len = 32 + 1 + 12 + 1 + 12 + 1; // format is [ID_MD5]:[MAC1]:[MAC2]:$salt:$pass
-
-            if (line_len < identifier_len) continue;
-
-            hash_buf.salt->salt_len = line_len - identifier_len;
-
-            memcpy (hash_buf.salt->salt_buf, line_buf + identifier_len, hash_buf.salt->salt_len);
-
-            // fake the parsing of the digest
-
-            if (is_valid_hex_string ((u8 *) line_buf, 32) == false) break;
-
-            u32 *digest = (u32 *) hash_buf.digest;
-
-            digest[0] = hex_to_u32 ((u8 *) line_buf +  0);
-            digest[1] = hex_to_u32 ((u8 *) line_buf +  8);
-            digest[2] = hex_to_u32 ((u8 *) line_buf + 16);
-            digest[3] = hex_to_u32 ((u8 *) line_buf + 24);
-
-            digest[0] = byte_swap_32 (digest[0]);
-            digest[1] = byte_swap_32 (digest[1]);
-            digest[2] = byte_swap_32 (digest[2]);
-            digest[3] = byte_swap_32 (digest[3]);
-
-            return PARSER_OK;
-
-            /* this is from old potfile.c, seems to be more detailed
-
-            // here we have in line_hash_buf: hash:macap:macsta:essid:password
-
-            char *sep_pos = strrchr (line_hash_buf, ':');
-
-            if (sep_pos == NULL) continue;
-
-            sep_pos[0] = 0;
-
-            char *hash_pos = line_hash_buf;
-
-            const size_t hash_len = strlen (hash_pos);
-
-            if (hash_len != 32 + 1 + 12 + 1 + 12) continue;
-
-            char *essid_pos = sep_pos + 1;
-
-            size_t essid_len = strlen (essid_pos);
-
-            if (is_hexify ((const u8 *) essid_pos, essid_len) == true)
-            {
-              essid_len = exec_unhexify ((const u8 *) essid_pos, essid_len, (u8 *) essid_pos, essid_len);
-            }
-
-            if (essid_len > 32) continue;
-
-            if (hashconfig->is_salted == true)
-            {
-              // this should be always true, but we need it to make scan-build happy
-
-              memcpy (hash_buf.salt->salt_buf, essid_pos, essid_len);
-
-              hash_buf.salt->salt_len  = (u32) essid_len;
-              hash_buf.salt->salt_iter = ROUNDS_WPA_PBKDF2 - 1;
-
-              u32 hash[4];
-
-              hash[0] = hex_to_u32 ((const u8 *) &hash_pos[ 0]);
-              hash[1] = hex_to_u32 ((const u8 *) &hash_pos[ 8]);
-              hash[2] = hex_to_u32 ((const u8 *) &hash_pos[16]);
-              hash[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
-
-              hash[0] = byte_swap_32 (hash[0]);
-              hash[1] = byte_swap_32 (hash[1]);
-              hash[2] = byte_swap_32 (hash[2]);
-              hash[3] = byte_swap_32 (hash[3]);
-
-              u32 *digest = (u32 *) hash_buf.digest;
-
-              digest[0] = hash[0];
-              digest[1] = hash[1];
-              digest[2] = hash[2];
-              digest[3] = hash[3];
-            }
-            */
-
-          }
           else if (hash_mode == 6800) // special case LastPass (only email address in outfile/potfile)
           {
             // fake the parsing of the hash/salt
@@ -27470,27 +27053,6 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
 u32 module_deep_comp_kernel (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u32 digest_pos)
 {
-  if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
-  {
-    const u32 digests_offset = hashes->salts_buf[salt_pos].digests_offset;
-
-    wpa_eapol_t *wpa_eapols = (wpa_eapol_t *) hashes->esalts_buf;
-
-    wpa_eapol_t *wpa_eapol = &wpa_eapols[digests_offset + digest_pos];
-
-    if (wpa_eapol->keyver == 1)
-    {
-      return KERN_RUN_AUX1;
-    }
-    else if (wpa_eapol->keyver == 2)
-    {
-      return KERN_RUN_AUX2;
-    }
-    else if (wpa_eapol->keyver == 3)
-    {
-      return KERN_RUN_AUX3;
-    }
-  }
   else if (hashconfig->hash_mode == 9600)
   {
     return KERN_RUN_3;
@@ -27505,29 +27067,6 @@ int module_hash_encode_status (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 {
     if (hashes->digests_cnt == 1)
     {
-      if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
-      {
-        char *tmp_buf;
-
-        wpa_eapol_t *wpa_eapol = (wpa_eapol_t *) hashes->esalts_buf;
-
-        hc_asprintf (&tmp_buf, "%s (AP:%02x:%02x:%02x:%02x:%02x:%02x STA:%02x:%02x:%02x:%02x:%02x:%02x)",
-          (char *) hashes->salts_buf[0].salt_buf,
-          wpa_eapol->orig_mac_ap[0],
-          wpa_eapol->orig_mac_ap[1],
-          wpa_eapol->orig_mac_ap[2],
-          wpa_eapol->orig_mac_ap[3],
-          wpa_eapol->orig_mac_ap[4],
-          wpa_eapol->orig_mac_ap[5],
-          wpa_eapol->orig_mac_sta[0],
-          wpa_eapol->orig_mac_sta[1],
-          wpa_eapol->orig_mac_sta[2],
-          wpa_eapol->orig_mac_sta[3],
-          wpa_eapol->orig_mac_sta[4],
-          wpa_eapol->orig_mac_sta[5]);
-
-        return tmp_buf;
-      }
       else if (hashconfig->hash_mode == 5200)
       {
         return hashes->hashfile;
@@ -27565,267 +27104,19 @@ int module_hash_encode_status (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 }
 
 
-int module_hash_init_selftest (MAYBE_UNUSED const hashconfig_t *hashconfig, hash_t *hash)
-{
-
-  if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
-  {
-    char *tmpdata = (char *) hcmalloc (sizeof (hccapx_t));
-
-    const size_t st_hash_len = strlen (hashconfig->st_hash);
-
-    for (size_t i = 0, j = 0; j < st_hash_len; i += 1, j += 2)
-    {
-      const u8 c = hex_to_u8 ((const u8 *) hashconfig->st_hash + j);
-
-      tmpdata[i] = c;
-    }
-
-    parser_status = module_ctx->module_hash_decode (hashconfig, hash.digest, hash.salt, hash.esalt, tmpdata, sizeof (hccapx_t));
-
-    hcfree (tmpdata);
-
-    wpa_eapol_t *wpa_eapol = (wpa_eapol_t *) st_esalts_buf;
-
-    wpa_eapol->detected_le = 1;
-    wpa_eapol->detected_be = 0;
-
-    wpa_eapol->nonce_error_corrections = 3;
-  }
-}
-
-int module_hash_binary_save (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u32 digest_pos, const char **buf)
-{
-
-
-
-
-        if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
-        {
-          hccapx_t hccapx;
-
-          to_hccapx_t (hashcat_ctx, &hccapx, salt_pos, digest_pos);
-
-          hc_fwrite (&hccapx, sizeof (hccapx_t), 1, fp);
-        }
-
-}
-
 int module_hash_binary_count (MAYBE_UNUSED const hashes_t *hashes)
 {
-      if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
-      {
-        struct stat st;
 
-        if (stat (hashes->hashfile, &st) == -1) return -1;
-
-        return st.st_size / sizeof (hccapx_t);
-      }
       else if (hashconfig->hash_mode == 14600)
       {
         return LUKS_NUMKEYS;
       }
-
-
-}
-  void to_hccapx_t (hashcat_ctx_t *hashcat_ctx, hccapx_t *hccapx, const u32 salt_pos, const u32 digest_pos)
-  {
-    const hashes_t *hashes = hashcat_ctx->hashes;
-
-    const salt_t *salts_buf   = hashes->salts_buf;
-    const void   *esalts_buf  = hashes->esalts_buf;
-
-    memset (hccapx, 0, sizeof (hccapx_t));
-
-    hccapx->signature = HCCAPX_SIGNATURE;
-    hccapx->version   = HCCAPX_VERSION;
-
-    const salt_t *salt = &salts_buf[salt_pos];
-
-    const u32 digest_cur = salt->digests_offset + digest_pos;
-
-    hccapx->essid_len = salt->salt_len;
-
-    memcpy (hccapx->essid, salt->salt_buf, hccapx->essid_len);
-
-    wpa_eapol_t *wpa_eapols = (wpa_eapol_t *) esalts_buf;
-    wpa_eapol_t *wpa_eapol  = &wpa_eapols[digest_cur];
-
-    hccapx->message_pair = wpa_eapol->message_pair;
-    hccapx->keyver = wpa_eapol->keyver;
-
-    hccapx->eapol_len = wpa_eapol->eapol_len;
-
-    if (wpa_eapol->keyver != 1)
-    {
-      u32 eapol_tmp[64] = { 0 };
-
-      for (u32 i = 0; i < 64; i++)
-      {
-        eapol_tmp[i] = byte_swap_32 (wpa_eapol->eapol[i]);
-      }
-
-      memcpy (hccapx->eapol, eapol_tmp, wpa_eapol->eapol_len);
-    }
-    else
-    {
-      memcpy (hccapx->eapol, wpa_eapol->eapol, wpa_eapol->eapol_len);
-    }
-
-    memcpy (hccapx->mac_ap,    wpa_eapol->orig_mac_ap,    6);
-    memcpy (hccapx->mac_sta,   wpa_eapol->orig_mac_sta,   6);
-    memcpy (hccapx->nonce_ap,  wpa_eapol->orig_nonce_ap,  32);
-    memcpy (hccapx->nonce_sta, wpa_eapol->orig_nonce_sta, 32);
-
-    if (wpa_eapol->keyver != 1)
-    {
-      u32 digest_tmp[4];
-
-      digest_tmp[0] = byte_swap_32 (wpa_eapol->keymic[0]);
-      digest_tmp[1] = byte_swap_32 (wpa_eapol->keymic[1]);
-      digest_tmp[2] = byte_swap_32 (wpa_eapol->keymic[2]);
-      digest_tmp[3] = byte_swap_32 (wpa_eapol->keymic[3]);
-
-      memcpy (hccapx->keymic, digest_tmp, 16);
-    }
-    else
-    {
-      memcpy (hccapx->keymic, wpa_eapol->keymic, 16);
-    }
-  }
-
-
-int check_old_hccap (const char *hashfile)
-{
-  FILE *fp = fopen (hashfile, "rb");
-
-  if (fp == NULL) return -1;
-
-  u32 signature;
-
-  const size_t nread = hc_fread (&signature, sizeof (u32), 1, fp);
-
-  fclose (fp);
-
-  if (nread != 1) return -1;
-
-  if (signature == HCCAPX_SIGNATURE) return 0;
-
-  return 1;
 }
 
 
 int module_hash_binary_parse ()
 {
-          if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
-          {
-            hashes->hashlist_mode = HL_MODE_FILE;
 
-            FILE *fp = fopen (hash_buf, "rb");
-
-            if (fp == NULL)
-            {
-              event_log_error (hashcat_ctx, "%s: %s", hash_buf, strerror (errno));
-
-              return -1;
-            }
-
-            char *in = (char *) hcmalloc (sizeof (hccapx_t));
-
-            while (!feof (fp))
-            {
-              const size_t nread = hc_fread (in, sizeof (hccapx_t), 1, fp);
-
-              if (nread == 0) break;
-
-              if (hashconfig->is_salted == true)
-              {
-                memset (hashes_buf[hashes_cnt].salt, 0, sizeof (salt_t));
-              }
-
-              if (hashconfig->esalt_size > 0)
-              {
-                memset (hashes_buf[hashes_cnt].esalt, 0, hashconfig->esalt_size);
-
-                if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
-                {
-                  wpa_eapol_t *wpa_eapol = (wpa_eapol_t *) hashes_buf[hashes_cnt].esalt;
-
-                  if (user_options->hccapx_message_pair_chgd == true)
-                  {
-                    wpa_eapol->message_pair_chgd = (int) user_options->hccapx_message_pair_chgd;
-                    wpa_eapol->message_pair      = (u8)  user_options->hccapx_message_pair;
-                  }
-
-                  if (wpa_eapol->message_pair & (1 << 4))
-                  {
-                    // ap-less attack detected, nc not needed
-
-                    wpa_eapol->nonce_error_corrections = 0;
-                  }
-                  else
-                  {
-                    if (wpa_eapol->message_pair & (1 << 7))
-                    {
-                      // replaycount not checked, nc needed
-
-                      wpa_eapol->nonce_error_corrections = user_options->nonce_error_corrections;
-                    }
-                    else
-                    {
-                      // replaycount checked, nc not needed, but we allow user overwrites
-
-                      if (user_options->nonce_error_corrections_chgd == true)
-                      {
-                        wpa_eapol->nonce_error_corrections = user_options->nonce_error_corrections;
-                      }
-                      else
-                      {
-                        wpa_eapol->nonce_error_corrections = 0;
-                      }
-                    }
-                  }
-
-                  // now some optimization related to replay counter endianess
-                  // hcxtools has techniques to detect them
-                  // since we can not guarantee to get our handshakes from hcxtools we enable both by default
-                  // this means that we check both even if both are not set!
-                  // however if one of them is set, we can assume that the endianess has been checked and the other one is not needed
-
-                  wpa_eapol->detected_le = 1;
-                  wpa_eapol->detected_be = 1;
-
-                  if (wpa_eapol->message_pair & (1 << 5))
-                  {
-                    wpa_eapol->detected_le = 1;
-                    wpa_eapol->detected_be = 0;
-                  }
-                  else if (wpa_eapol->message_pair & (1 << 6))
-                  {
-                    wpa_eapol->detected_le = 0;
-                    wpa_eapol->detected_be = 1;
-                  }
-                }
-              }
-
-              if (hashconfig->hook_salt_size > 0)
-              {
-                memset (hashes_buf[hashes_cnt].hook_salt, 0, hashconfig->hook_salt_size);
-              }
-
-              hash_t *hash = &hashes_buf[hashes_cnt];
-
-              parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, in, sizeof (hccapx_t));
-
-              if (parser_status != PARSER_OK) continue;
-
-              hashes_cnt++;
-            }
-
-            hcfree (in);
-
-            fclose (fp);
-          }
           else if (hashconfig->hash_mode == 14600)
           {
             hashes->hashlist_mode = HL_MODE_FILE;
@@ -27848,26 +27139,7 @@ int module_hash_binary_parse ()
 
 bool module_hash_binary_verify (MAYBE_UNUSED const hashes_t *hashes)
 {
-      if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
-      {
-        struct stat st;
 
-        if (stat (hashes->hashfile, &st) == -1) return false;
-
-        // 392 = old hccap_t size
-
-        if ((st.st_size % 392) == 0)
-        {
-          const int rc = check_old_hccap (hashes->hashfile);
-
-          if (rc == 1) return false;
-
-          //{
-          //  event_log_error (hashcat_ctx, "%s: Old hccap format detected! You need to update: https://hashcat.net/q/hccapx", hashes->hashfile);
-          //
-          //  return -1;
-          //}
-        }
         else if (hashconfig->hash_mode == 14600)
         {
 

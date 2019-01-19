@@ -9,58 +9,6 @@ static const float MIN_SUFFICIENT_ENTROPY_FILE = 7.0f;
  * algo specific
  */
 
-typedef struct wpa_eapol
-{
-  u32  pke[32];
-  u32  eapol[64 + 16];
-  u16  eapol_len;
-  u8   message_pair;
-  int  message_pair_chgd;
-  u8   keyver;
-  u8   orig_mac_ap[6];
-  u8   orig_mac_sta[6];
-  u8   orig_nonce_ap[32];
-  u8   orig_nonce_sta[32];
-  u8   essid_len;
-  u8   essid[32];
-  u32  keymic[4];
-  u32  hash[4];
-  int  nonce_compare;
-  int  nonce_error_corrections;
-  int  detected_le;
-  int  detected_be;
-
-} wpa_eapol_t;
-
-static const u32 ROUNDS_WPA_PBKDF2         = 4096;
-
-#define HCCAPX_VERSION   4
-#define HCCAPX_SIGNATURE 0x58504348 // HCPX
-
-// this is required to force mingw to accept the packed attribute
-#pragma pack(push,1)
-
-struct hccapx
-{
-  u32 signature;
-  u32 version;
-  u8  message_pair;
-  u8  essid_len;
-  u8  essid[32];
-  u8  keyver;
-  u8  keymic[16];
-  u8  mac_ap[6];
-  u8  nonce_ap[32];
-  u8  mac_sta[6];
-  u8  nonce_sta[32];
-  u16 eapol_len;
-  u8  eapol[256];
-
-} __attribute__((packed));
-
-typedef struct hccapx hccapx_t;
-
-#pragma pack(pop)
 
 typedef struct itunes_backup
 {
@@ -489,15 +437,7 @@ typedef struct sha512crypt_tmp
 
 } sha512crypt_tmp_t;
 
-typedef struct wpa_pbkdf2_tmp
-{
-  u32 ipad[5];
-  u32 opad[5];
 
-  u32 dgst[10];
-  u32 out[10];
-
-} wpa_pbkdf2_tmp_t;
 
 typedef struct wpa_pmk_tmp
 {
@@ -908,7 +848,6 @@ typedef enum hash_type
   HASH_TYPE_SHA384              = 7,
   HASH_TYPE_SHA512              = 8,
   HASH_TYPE_DCC2                = 9,
-  HASH_TYPE_WPA_EAPOL           = 10,
   HASH_TYPE_LM                  = 11,
   HASH_TYPE_ORACLEH             = 13,
   HASH_TYPE_DESRACF             = 14,
@@ -999,7 +938,6 @@ typedef enum kern_type
   KERN_TYPE_STDOUT                  = 2000,
   KERN_TYPE_DCC2                    = 2100,
   KERN_TYPE_MD5ASA                  = 2410,
-  KERN_TYPE_WPA_EAPOL_PBKDF2        = 2500,
   KERN_TYPE_WPA_EAPOL_PMK           = 2501,
   KERN_TYPE_MD55                    = 2600,
   KERN_TYPE_MD55_PWSLT1             = 2610,
@@ -1170,7 +1108,6 @@ typedef enum kern_type
 typedef enum rounds_count
 {
    ROUNDS_DCC2               = 10240,
-   ROUNDS_WPA_PBKDF2         = 4096,
    ROUNDS_WPA_PMK            = 1,
    ROUNDS_BCRYPT             = (1 << 5),
    ROUNDS_PSAFE3             = 2048,
@@ -1287,7 +1224,6 @@ int sha512_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int sha512s_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha512crypt_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int vb30_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int wpa_eapol_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int psafe2_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int psafe3_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int ikepsk_md5_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);

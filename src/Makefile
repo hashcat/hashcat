@@ -4,7 +4,7 @@
 ##
 
 SHARED                  := 0
-DEBUG                   := 0
+DEBUG                   := 1
 PRODUCTION              := 0
 PRODUCTION_VERSION      := v5.1.0
 ENABLE_BRAIN            := 0
