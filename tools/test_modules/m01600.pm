@@ -28,7 +28,7 @@ sub module_generate_hash
     }
   }
 
-  my $hash_buf = md5_crypt ('$1$', $iterations, $word, $salt);
+  my $hash_buf = md5_crypt ('$apr1$', $iterations, $word, $salt);
 
   return $hash_buf;
 }

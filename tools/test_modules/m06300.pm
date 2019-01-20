@@ -16,21 +16,12 @@ sub module_generate_hash
 {
   my $word = shift;
   my $salt = shift;
-  my $iter = shift;
 
-  my $iterations = 1000;
+  my $iterations = 1000; # hard coded by the AIX format
 
-  if (defined ($iter))
-  {
-    if ($iter > 0)
-    {
-      $iterations = int ($iter);
-    }
-  }
+  my $hash_buf = md5_crypt ('', $iterations, $word, $salt);
 
-  my $hash_buf = md5_crypt ('$1$', $iterations, $word, $salt);
-
-  return $hash_buf;
+  return sprintf ("{smd5}%s", $hash_buf);
 }
 
 sub module_verify_hash
@@ -42,45 +33,14 @@ sub module_verify_hash
   return unless defined $hash;
   return unless defined $word;
 
-  my $index1 = index ($hash, ',', 1);
-  my $index2 = index ($hash, '$', 1);
+  my $index2 =  index ($hash, "}");
+  my $index3 = rindex ($hash, "\$");
 
-  if ($index1 != -1)
-  {
-    if ($index1 < $index2)
-    {
-      $index2 = $index1;
-    }
-  }
-
-  $index2++;
-
-  # rounds= if available
-  my $iter = 0;
-
-  if (substr ($hash, $index2, 7) eq "rounds=")
-  {
-    my $old_index = $index2;
-
-    $index2 = index ($hash, '$', $index2 + 1);
-
-    next if $index2 < 1;
-
-    $iter = substr ($hash, $old_index + 7, $index2 - $old_index - 7);
-
-    $index2++;
-  }
-
-  # get salt
-  my $index3 = rindex ($hash, '$');
-
-  next if $index3 < 1;
-
-  my $salt = substr ($hash, $index2, $index3 - $index2);
+  my $salt = substr ($hash, $index2 + 1, $index3 - $index2 - 1);
 
   my $word_packed = pack_if_HEX_notation ($word);
 
-  my $new_hash = module_generate_hash ($word_packed, $salt, $iter);
+  my $new_hash = module_generate_hash ($word_packed, $salt);
 
   return ($new_hash, $word);
 }
