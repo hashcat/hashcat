@@ -116,7 +116,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const int out_len = 40;
 
-  snprintf (line_buf, out_len, "{SHA}%s", (char *) ptr_plain);
+  snprintf (line_buf, line_size, "{SHA}%s", (char *) ptr_plain);
 
   return out_len;
 }
