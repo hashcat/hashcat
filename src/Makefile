@@ -590,10 +590,20 @@ endif
 ## native compiled modules
 ##
 
-MODULES_SRC   := $(wildcard src/modules/*.c)
-MODULES_LIB   := $(patsubst src/modules/module_%.c, modules/module_%.so, $(MODULES_SRC))
+MODULE_SUFFIX := so
 
-modules/module_%.so: src/modules/module_%.c $(MODULE_NATIVE_SHARED_OBJS)
+ifeq ($(UNAME),CYGWIN)
+MODULE_SUFFIX := dll
+endif
+
+ifeq ($(UNAME),MSYS2)
+MODULE_SUFFIX := dll
+endif
+
+MODULES_SRC   := $(wildcard src/modules/*.c)
+MODULES_LIB   := $(patsubst src/modules/module_%.c, modules/module_%.$(MODULE_SUFFIX), $(MODULES_SRC))
+
+modules/module_%.$(MODULE_SUFFIX): src/modules/module_%.c $(MODULE_NATIVE_SHARED_OBJS)
 	$(CC)    $(CFLAGS_NATIVE) $^ -o $@ $(LFLAGS_NATIVE) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
 
 modules: $(MODULES_LIB)
