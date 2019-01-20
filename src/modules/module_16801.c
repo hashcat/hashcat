@@ -18,9 +18,9 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_NETWORK_PROTOCOL;
-static const char *HASH_NAME      = "WPA-PMKID-PBKDF2";
+static const char *HASH_NAME      = "WPA-PMKID-PMK";
 static const u32   HASH_TYPE      = HASH_TYPE_GENERIC;
-static const u64   KERN_TYPE      = 16800;
+static const u64   KERN_TYPE      = 16801;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STATE_BUFFER_LE
@@ -28,8 +28,8 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STATE_BUFFER_LE
                                   | OPTS_TYPE_AUX1
                                   | OPTS_TYPE_DEEP_COMP_KERNEL;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
-static const char *ST_PASS        = "hashcat!";
-static const char *ST_HASH        = "2582a8281bf9d4308d6f5731d0e61c61*4604ba734d4e*89acf0e761f4*ed487162465a774bfba60eb603a39f3a";
+static const char *ST_PASS        = "5b13d4babb3714ccc62c9f71864bc984efd6a55f237c7a87fc2151e1ca658a9d";
+static const char *ST_HASH        = "2582a8281bf9d4308d6f5731d0e61c61*4604ba734d4e*89acf0e761f4";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -47,7 +47,7 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
-static const u32 ROUNDS_WPA_PBKDF2 = 4096;
+static const u32 ROUNDS_WPA_PMK = 1;
 
 typedef struct wpa_pmkid
 {
@@ -60,26 +60,22 @@ typedef struct wpa_pmkid
 
 } wpa_pmkid_t;
 
-typedef struct wpa_pbkdf2_tmp
+typedef struct wpa_pmk_tmp
 {
-  u32 ipad[5];
-  u32 opad[5];
+  u32 out[8];
 
-  u32 dgst[10];
-  u32 out[10];
-
-} wpa_pbkdf2_tmp_t;
+} wpa_pmk_tmp_t;
 
 const char *module_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const char *mask = "?a?a?a?a?a?a?a?a";
+  const char *mask = "?a?a?a?a?a?a?a?axxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
 
   return mask;
 }
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u64 tmp_size = (const u64) sizeof (wpa_pbkdf2_tmp_t);
+  const u64 tmp_size = (const u64) sizeof (wpa_pmk_tmp_t);
 
   return tmp_size;
 }
@@ -93,14 +89,14 @@ u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED
 
 u32 module_pw_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 pw_min = 8;
+  const u32 pw_min = 64;
 
   return pw_min;
 }
 
 u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 pw_max = 63;
+  const u32 pw_max = 64;
 
   return pw_max;
 }
@@ -118,7 +114,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token_t token;
 
-  token.token_cnt  = 4;
+  // real 16801 pmkid hash-lines
+
+  token.token_cnt  = 3;
 
   token.sep[0]     = '*';
   token.len_min[0] = 32;
@@ -138,15 +136,56 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[3]     = '*';
-  token.len_min[3] = 0;
-  token.len_max[3] = 64;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+  if (rc_tokenizer != PARSER_OK)
+  {
+    // we'll accept normal 16800 pmkid hash-lines, too
+
+    token.token_cnt  = 4;
+
+    token.sep[0]     = '*';
+    token.len_min[0] = 32;
+    token.len_max[0] = 32;
+    token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    token.sep[1]     = '*';
+    token.len_min[1] = 12;
+    token.len_max[1] = 12;
+    token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    token.sep[2]     = '*';
+    token.len_min[2] = 12;
+    token.len_max[2] = 12;
+    token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    token.sep[3]     = '*';
+    token.len_min[3] = 0;
+    token.len_max[3] = 64;
+    token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    const int rc_tokenizer2 = input_tokenizer ((const u8 *) line_buf, line_len, &token);
+
+    if (rc_tokenizer2 != PARSER_OK) return (rc_tokenizer);
+
+    // essid
+
+    const u8 *essid_buf = token.buf[3];
+    const int essid_len = token.len[3];
+
+    u8 *essid_ptr = (u8 *) wpa_pmkid->essid_buf;
+
+    for (int i = 0, j = 0; i < essid_len; i += 2, j += 1)
+    {
+      essid_ptr[j] = hex_to_u8 (essid_buf + i);
+    }
+
+    wpa_pmkid->essid_len = essid_len / 2;
+  }
 
   // pmkid
 
@@ -179,20 +218,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   wpa_pmkid->orig_mac_sta[4] = hex_to_u8 (macsta_buf +  8);
   wpa_pmkid->orig_mac_sta[5] = hex_to_u8 (macsta_buf + 10);
 
-  // essid
-
-  const u8 *essid_buf = token.buf[3];
-  const int essid_len = token.len[3];
-
-  u8 *essid_ptr = (u8 *) wpa_pmkid->essid_buf;
-
-  for (int i = 0, j = 0; i < essid_len; i += 2, j += 1)
-  {
-    essid_ptr[j] = hex_to_u8 (essid_buf + i);
-  }
-
-  wpa_pmkid->essid_len = essid_len / 2;
-
   // pmkid_data
 
   wpa_pmkid->pmkid_data[0] = 0x204b4d50; // "PMK "
@@ -212,11 +237,17 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // salt
 
-  memcpy (salt->salt_buf, wpa_pmkid->essid_buf, wpa_pmkid->essid_len);
+  salt->salt_buf[0] = wpa_pmkid->pmkid_data[0];
+  salt->salt_buf[1] = wpa_pmkid->pmkid_data[1];
+  salt->salt_buf[2] = wpa_pmkid->pmkid_data[2];
+  salt->salt_buf[3] = wpa_pmkid->pmkid_data[3];
+  salt->salt_buf[4] = wpa_pmkid->pmkid_data[4];
+  salt->salt_buf[5] = wpa_pmkid->pmkid_data[5];
+  salt->salt_buf[6] = wpa_pmkid->pmkid_data[6];
+  salt->salt_buf[7] = wpa_pmkid->pmkid_data[7];
 
-  salt->salt_len = wpa_pmkid->essid_len;
-
-  salt->salt_iter = ROUNDS_WPA_PBKDF2 - 1;
+  salt->salt_len  = 32;
+  salt->salt_iter = ROUNDS_WPA_PMK - 1;
 
   // hash
 
@@ -237,32 +268,57 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const wpa_pmkid_t *wpa_pmkid = (const wpa_pmkid_t *) esalt_buf;
 
-  char tmp_buf[128];
+  int line_len = 0;
 
-  exec_hexify ((const u8*) wpa_pmkid->essid_buf, wpa_pmkid->essid_len, (u8 *) tmp_buf);
+  if (wpa_pmkid->essid_len)
+  {
+    char tmp_buf[128];
 
-  const int tmp_len = wpa_pmkid->essid_len * 2;
+    exec_hexify ((const u8*) wpa_pmkid->essid_buf, wpa_pmkid->essid_len, (u8 *) tmp_buf);
 
-  tmp_buf[tmp_len] = 0;
+    int tmp_len = wpa_pmkid->essid_len * 2;
 
-  const int line_len = snprintf (line_buf, line_size, "%08x%08x%08x%08x*%02x%02x%02x%02x%02x%02x*%02x%02x%02x%02x%02x%02x*%s",
-    byte_swap_32 (wpa_pmkid->pmkid[0]),
-    byte_swap_32 (wpa_pmkid->pmkid[1]),
-    byte_swap_32 (wpa_pmkid->pmkid[2]),
-    byte_swap_32 (wpa_pmkid->pmkid[3]),
-    wpa_pmkid->orig_mac_ap[0],
-    wpa_pmkid->orig_mac_ap[1],
-    wpa_pmkid->orig_mac_ap[2],
-    wpa_pmkid->orig_mac_ap[3],
-    wpa_pmkid->orig_mac_ap[4],
-    wpa_pmkid->orig_mac_ap[5],
-    wpa_pmkid->orig_mac_sta[0],
-    wpa_pmkid->orig_mac_sta[1],
-    wpa_pmkid->orig_mac_sta[2],
-    wpa_pmkid->orig_mac_sta[3],
-    wpa_pmkid->orig_mac_sta[4],
-    wpa_pmkid->orig_mac_sta[5],
-    tmp_buf);
+    tmp_buf[tmp_len] = 0;
+
+    line_len = snprintf (line_buf, line_size, "%08x%08x%08x%08x*%02x%02x%02x%02x%02x%02x*%02x%02x%02x%02x%02x%02x*%s",
+      byte_swap_32 (wpa_pmkid->pmkid[0]),
+      byte_swap_32 (wpa_pmkid->pmkid[1]),
+      byte_swap_32 (wpa_pmkid->pmkid[2]),
+      byte_swap_32 (wpa_pmkid->pmkid[3]),
+      wpa_pmkid->orig_mac_ap[0],
+      wpa_pmkid->orig_mac_ap[1],
+      wpa_pmkid->orig_mac_ap[2],
+      wpa_pmkid->orig_mac_ap[3],
+      wpa_pmkid->orig_mac_ap[4],
+      wpa_pmkid->orig_mac_ap[5],
+      wpa_pmkid->orig_mac_sta[0],
+      wpa_pmkid->orig_mac_sta[1],
+      wpa_pmkid->orig_mac_sta[2],
+      wpa_pmkid->orig_mac_sta[3],
+      wpa_pmkid->orig_mac_sta[4],
+      wpa_pmkid->orig_mac_sta[5],
+      tmp_buf);
+  }
+  else
+  {
+    line_len = snprintf (line_buf, line_size, "%08x%08x%08x%08x*%02x%02x%02x%02x%02x%02x*%02x%02x%02x%02x%02x%02x",
+      byte_swap_32 (wpa_pmkid->pmkid[0]),
+      byte_swap_32 (wpa_pmkid->pmkid[1]),
+      byte_swap_32 (wpa_pmkid->pmkid[2]),
+      byte_swap_32 (wpa_pmkid->pmkid[3]),
+      wpa_pmkid->orig_mac_ap[0],
+      wpa_pmkid->orig_mac_ap[1],
+      wpa_pmkid->orig_mac_ap[2],
+      wpa_pmkid->orig_mac_ap[3],
+      wpa_pmkid->orig_mac_ap[4],
+      wpa_pmkid->orig_mac_ap[5],
+      wpa_pmkid->orig_mac_sta[0],
+      wpa_pmkid->orig_mac_sta[1],
+      wpa_pmkid->orig_mac_sta[2],
+      wpa_pmkid->orig_mac_sta[3],
+      wpa_pmkid->orig_mac_sta[4],
+      wpa_pmkid->orig_mac_sta[5]);
+  }
 
   return line_len;
 }
