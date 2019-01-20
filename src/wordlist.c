@@ -360,8 +360,8 @@ int count_words (hashcat_ctx_t *hashcat_ctx, FILE *fd, const char *dictfile, u64
   memset (d.encoding_from, 0, sizeof (d.encoding_from));
   memset (d.encoding_to,   0, sizeof (d.encoding_to));
 
-  strncpy (d.encoding_from, user_options->encoding_from, sizeof (d.encoding_from));
-  strncpy (d.encoding_to,   user_options->encoding_to,   sizeof (d.encoding_to));
+  strncpy (d.encoding_from, user_options->encoding_from, sizeof (d.encoding_from) - 1);
+  strncpy (d.encoding_to,   user_options->encoding_to,   sizeof (d.encoding_to)   - 1);
 
   if (d.stat.st_size == 0)
   {
