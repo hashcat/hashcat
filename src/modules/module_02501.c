@@ -19,9 +19,9 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_NETWORK_PROTOCOL;
-static const char *HASH_NAME      = "WPA-EAPOL-PBKDF2";
+static const char *HASH_NAME      = "WPA-EAPOL-PMK";
 static const u32   HASH_TYPE      = HASH_TYPE_GENERIC;
-static const u64   KERN_TYPE      = 2500;
+static const u64   KERN_TYPE      = 2501;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STATE_BUFFER_LE
@@ -32,7 +32,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STATE_BUFFER_LE
                                   | OPTS_TYPE_DEEP_COMP_KERNEL
                                   | OPTS_TYPE_BINARY_HASHFILE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
-static const char *ST_PASS        = "hashcat!";
+static const char *ST_PASS        = "7f620a599c445155935a35634638fa67b4aafecb92e0bd8625388757a63c2dda";
 static const char *ST_HASH        = "4843505804000000000235380000000000000000000000000000000000000000000000000000000000000151aecc428f182acefbd1a9e62d369a079265784da83ba4cf88375c44c830e6e5aa5d6faf352aa496a9ee129fb8292f7435df5420b823a1cd402aed449cced04f552c5b5acfebf06ae96a09c96d9a01c443a17aa62258c4f651a68aa67b0001030077fe010900200000000000000001a4cf88375c44c830e6e5aa5d6faf352aa496a9ee129fb8292f7435df5420b8230000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000018dd160050f20101000050f20201000050f20201000050f20200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
@@ -51,7 +51,7 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
-static const u32 ROUNDS_WPA_PBKDF2 = 4096;
+static const u32 ROUNDS_WPA_PMK = 1;
 
 typedef struct wpa_eapol
 {
@@ -199,7 +199,7 @@ static int check_old_hccap (const char *hashfile)
 
 const char *module_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const char *mask = "?a?a?a?a?a?a?a?a";
+  const char *mask = "?a?a?a?a?a?a?a?axxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
 
   return mask;
 }
@@ -220,14 +220,14 @@ u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED
 
 u32 module_pw_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 pw_min = 8;
+  const u32 pw_min = 64;
 
   return pw_min;
 }
 
 u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 pw_max = 63;
+  const u32 pw_max = 64;
 
   return pw_max;
 }
@@ -264,7 +264,7 @@ int module_hash_decode_outfile (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   memcpy (salt->salt_buf, tmp_buf, tmp_len);
 
   salt->salt_len  = tmp_len;
-  salt->salt_iter = ROUNDS_WPA_PBKDF2 - 1;
+  salt->salt_iter = ROUNDS_WPA_PMK - 1;
 
   digest[0] = hex_to_u32 ((const u8 *) &line_buf[ 0]);
   digest[1] = hex_to_u32 ((const u8 *) &line_buf[ 8]);
@@ -506,7 +506,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   salt->salt_len = salt_len;
 
-  salt->salt_iter = ROUNDS_WPA_PBKDF2 - 1;
+  salt->salt_iter = ROUNDS_WPA_PMK - 1;
 
   memcpy (wpa_eapol->essid, in.essid, in.essid_len);
 

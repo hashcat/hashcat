@@ -938,7 +938,6 @@ typedef enum kern_type
   KERN_TYPE_STDOUT                  = 2000,
   KERN_TYPE_DCC2                    = 2100,
   KERN_TYPE_MD5ASA                  = 2410,
-  KERN_TYPE_WPA_EAPOL_PMK           = 2501,
   KERN_TYPE_MD55                    = 2600,
   KERN_TYPE_MD55_PWSLT1             = 2610,
   KERN_TYPE_MD55_PWSLT2             = 2710,
@@ -1108,7 +1107,6 @@ typedef enum kern_type
 typedef enum rounds_count
 {
    ROUNDS_DCC2               = 10240,
-   ROUNDS_WPA_PMK            = 1,
    ROUNDS_BCRYPT             = (1 << 5),
    ROUNDS_PSAFE3             = 2048,
    ROUNDS_ANDROIDPIN         = 1024,

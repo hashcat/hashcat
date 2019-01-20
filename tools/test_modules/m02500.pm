@@ -15,7 +15,7 @@ use Digest::SHA  qw (sha1 sha256);
 use Digest::HMAC qw (hmac);
 use MIME::Base64 qw (encode_base64);
 
-sub module_constraints { [[8, 255], [0, 32], [8, 255], [0, 32], [-1, -1]] }
+sub module_constraints { [[8, 63], [0, 32], [8, 63], [0, 32], [-1, -1]] }
 
 sub module_generate_hash
 {

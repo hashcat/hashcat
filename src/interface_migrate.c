@@ -60,7 +60,6 @@
   "  10900 | PBKDF2-HMAC-SHA256                               | Generic KDF",
   "  12100 | PBKDF2-HMAC-SHA512                               | Generic KDF",
   "     23 | Skype                                            | Network Protocols",
-  "   2501 | WPA-EAPOL-PMK                                    | Network Protocols",
   "  16800 | WPA-PMKID-PBKDF2                                 | Network Protocols",
   "  16801 | WPA-PMKID-PMK                                    | Network Protocols",
   "   4800 | iSCSI CHAP authentication, MD5(CHAP)             | Network Protocols",
@@ -256,7 +255,6 @@ static const char *ST_PASS_HASHCAT_EXCL3 = "hashcat!!!";
 static const char *ST_PASS_HASHCAT_ONE   = "hashcat1";
 static const char *ST_PASS_HASHCAT_ONET3 = "hashcat1hashcat1hashcat1";
 
-static const char *ST_PASS_HEX_02501     = "7f620a599c445155935a35634638fa67b4aafecb92e0bd8625388757a63c2dda";
 static const char *ST_PASS_BIN_09710     = "\x91\xb2\xe0\x62\xb9";
 static const char *ST_PASS_BIN_09810     = "\xb8\xf6\x36\x19\xca";
 static const char *ST_PASS_BIN_10410     = "\x6a\x8a\xed\xcc\xb7";
@@ -319,7 +317,6 @@ static const char *ST_HASH_01750 = "138c00f17a1a0363f274817c91118f019aff09f937bf
 static const char *ST_HASH_01760 = "7d02921299935179d509e6dd4f3d0f2944e3451ea9de3af16baead6a7297e5653577d2473a0fff743d9fe78a89bd49296114319989dc7e7870fc7f62bc96accb:114";
 static const char *ST_HASH_01800 = "$6$72820166$U4DVzpcYxgw7MVVDGGvB2/H5lRistD5.Ah4upwENR5UtffLR4X4SxSzfREv8z6wVl0jRFX40/KnYVvK4829kD1";
 static const char *ST_HASH_02100 = "$DCC2$10240#6848#e2829c8af2232fa53797e2f0e35e4626";
-static const char *ST_HASH_02501 = "4843505804000000000235380000000000000000000000000000000000000000000000000000000000000151aecc428f182acefbd1a9e62d369a079265784da83ba4cf88375c44c830e6e5aa5d6faf352aa496a9ee129fb8292f7435df5420b823a1cd402aed449cced04f552c5b5acfebf06ae96a09c96d9a01c443a17aa62258c4f651a68aa67b0001030077fe010900200000000000000001a4cf88375c44c830e6e5aa5d6faf352aa496a9ee129fb8292f7435df5420b8230000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000018dd160050f20101000050f20201000050f20201000050f20200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 static const char *ST_HASH_02410 = "YjDBNr.A0AN7DA8s:4684";
 static const char *ST_HASH_02600 = "a936af92b0ae20b1ff6c3347a72e5fbe";
 static const char *ST_HASH_02611 = "28f9975808ae2bdc5847b1cda26033ea:308";
@@ -533,7 +530,6 @@ static const char *HT_01760 = "HMAC-SHA512 (key = $salt)";
 static const char *HT_01800 = "sha512crypt $6$, SHA512 (Unix)";
 static const char *HT_02100 = "Domain Cached Credentials 2 (DCC2), MS Cache 2";
 static const char *HT_02410 = "Cisco-ASA MD5";
-static const char *HT_02501 = "WPA-EAPOL-PMK";
 static const char *HT_02600 = "md5(md5($pass))";
 static const char *HT_03000 = "LM";
 static const char *HT_03100 = "Oracle H: Type (Oracle 7+)";
@@ -17369,8 +17365,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                   break;
       case  2410: salt->salt_len = 4;
                   break;
-      case  2501: memcpy (salt->salt_buf, "hashcat.net", 11);
-                  break;
       case  3100: salt->salt_len = 1;
                   break;
       case  5800: salt->salt_len = 16;
@@ -17464,8 +17458,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
 
     switch (hashconfig->hash_mode)
     {
-      case  2501: ((wpa_eapol_t *)        esalt)->eapol_len     = 128;
-                  break;
       case  5300: ((ikepsk_t *)           esalt)->nr_len        = 1;
                   ((ikepsk_t *)           esalt)->msg_len[5]    = 1;
                   break;
@@ -17544,8 +17536,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
     case  1800:  salt->salt_iter  = ROUNDS_SHA512CRYPT;
                  break;
     case  2100:  salt->salt_iter  = ROUNDS_DCC2;
-                 break;
-    case  2501:  salt->salt_iter  = ROUNDS_WPA_PMK;
                  break;
     case  3200:  salt->salt_iter  = ROUNDS_BCRYPT;
                  break;
@@ -22306,28 +22296,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case  2501:  hashconfig->hash_type      = HASH_TYPE_WPA_EAPOL;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_AUX1
-                                            | OPTS_TYPE_AUX2
-                                            | OPTS_TYPE_AUX3
-                                            | OPTS_TYPE_DEEP_COMP_KERNEL
-                                            | OPTS_TYPE_BINARY_HASHFILE;
-                 hashconfig->kern_type      = KERN_TYPE_WPA_EAPOL_PMK;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = wpa_eapol_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_02501;
-                 hashconfig->st_pass        = ST_PASS_HEX_02501;
-                 break;
-
     case  2600:  hashconfig->hash_type      = HASH_TYPE_MD5;
                  hashconfig->salt_type      = SALT_TYPE_VIRTUAL;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -25882,7 +25850,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   switch (hashconfig->hash_mode)
   {
-    case  2501: hashconfig->esalt_size = sizeof (wpa_eapol_t);          break;
     case  5300: hashconfig->esalt_size = sizeof (ikepsk_t);             break;
     case  5400: hashconfig->esalt_size = sizeof (ikepsk_t);             break;
     case  5500: hashconfig->esalt_size = sizeof (netntlm_t);            break;
@@ -25992,7 +25959,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   {
     case  1800: hashconfig->tmp_size = sizeof (sha512crypt_tmp_t);        break;
     case  2100: hashconfig->tmp_size = sizeof (dcc2_tmp_t);               break;
-    case  2501: hashconfig->tmp_size = sizeof (wpa_pmk_tmp_t);            break;
     case  3200: hashconfig->tmp_size = sizeof (bcrypt_tmp_t);             break;
     case  5200: hashconfig->tmp_size = sizeof (pwsafe3_tmp_t);            break;
     case  5800: hashconfig->tmp_size = sizeof (androidpin_tmp_t);         break;
@@ -26103,7 +26069,6 @@ u32 default_pw_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
 
   switch (hashconfig->hash_mode)
   {
-    case  2501: pw_min = 64;  break; // WPA-EAPOL-PMK: fixed
     case  9710: pw_min = 5;   break; // RC4-40 fixed
     case  9810: pw_min = 5;   break; // RC4-40 fixed
     case 10410: pw_min = 5;   break; // RC4-40 fixed
@@ -26172,7 +26137,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
   {
     case   112: pw_max = 30;      break; // https://www.toadworld.com/platforms/oracle/b/weblog/archive/2013/11/12/oracle-12c-passwords
     case  2100: pw_max = PW_MAX;  break;
-    case  2501: pw_max = 64;      break; // WPA-EAPOL-PMK: fixed length
     case  3000: pw_max = 7;       break; // LM max
     case  3100: pw_max = 30;      break; // http://www.red-database-security.de/whitepaper/oracle_passwords.html
     case  3200: pw_max = 72;      break; // Underlaying Blowfish max
@@ -26337,8 +26301,6 @@ const char *default_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig,
 {
   switch (hashconfig->hash_mode)
   {
-    case  2501: mask = "?a?a?a?a?a?a?a?axxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
-                break;
     case  9710: mask = "?b?b?b?b?b";
                 break;
     case  9810: mask = "?b?b?b?b?b";
