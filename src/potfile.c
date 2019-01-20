@@ -393,8 +393,10 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
   hash_buf.salt      = NULL;
   hash_buf.esalt     = NULL;
   hash_buf.hook_salt = NULL;
-  hash_buf.hash_info = NULL;
   hash_buf.cracked   = 0;
+  hash_buf.hash_info = NULL;
+  hash_buf.pw_buf    = NULL;
+  hash_buf.pw_len    = 0;
 
   if (hashconfig->is_salted == true)
   {
