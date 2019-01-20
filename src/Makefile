@@ -242,7 +242,6 @@ CFLAGS_NATIVE           := $(CFLAGS)
 CFLAGS_NATIVE           += -I$(OPENCL_HEADERS_KHRONOS)/
 CFLAGS_NATIVE           += -DWITH_HWMON
 LFLAGS_NATIVE           := $(LFLAGS)
-LFLAGS_NATIVE           += -Wl,--export-dynamic
 LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -ldl
 LFLAGS_NATIVE           += -lrt
@@ -254,7 +253,6 @@ ifndef PORTNAME
 CFLAGS_NATIVE           := $(CFLAGS)
 CFLAGS_NATIVE           += -I$(OPENCL_HEADERS_KHRONOS)/
 LFLAGS_NATIVE           := $(LFLAGS)
-LFLAGS_NATIVE           += -Wl,--export-dynamic
 LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -lm
 endif
@@ -270,7 +268,6 @@ endif
 
 LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -framework OpenCL
-LFLAGS_NATIVE           += -Wl,-export_dynamic
 LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -liconv
 endif # Darwin
@@ -282,7 +279,6 @@ CFLAGS_NATIVE           += -DWITH_HWMON
 LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -Wl,--dynamicbase
 LFLAGS_NATIVE           += -Wl,--nxcompat
-LFLAGS_NATIVE           += -Wl,--export-dynamic
 LFLAGS_NATIVE           += -lpsapi
 LFLAGS_NATIVE           += -liconv
 endif # CYGWIN
@@ -294,7 +290,6 @@ CFLAGS_NATIVE           += -DWITH_HWMON
 LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -Wl,--dynamicbase
 LFLAGS_NATIVE           += -Wl,--nxcompat
-LFLAGS_NATIVE           += -Wl,--export-dynamic
 LFLAGS_NATIVE           += -lpsapi
 LFLAGS_NATIVE           += -liconv
 LFLAGS_NATIVE           += -lws2_32
@@ -305,32 +300,34 @@ endif # MSYS2
 ##
 
 CFLAGS_CROSS_LINUX32    := $(CFLAGS)
+CFLAGS_CROSS_LINUX32    += -fPIC
 CFLAGS_CROSS_LINUX32    += -I$(OPENCL_HEADERS_KHRONOS)/
 CFLAGS_CROSS_LINUX32    += -m32
 CFLAGS_CROSS_LINUX32    += -DWITH_HWMON
 CFLAGS_CROSS_LINUX64    := $(CFLAGS)
+CFLAGS_CROSS_LINUX64    += -fPIC
 CFLAGS_CROSS_LINUX64    += -I$(OPENCL_HEADERS_KHRONOS)/
 CFLAGS_CROSS_LINUX64    += -m64
 CFLAGS_CROSS_LINUX64    += -DWITH_HWMON
 CFLAGS_CROSS_WIN32      := $(CFLAGS)
+CFLAGS_CROSS_WIN32      += -fPIC
 CFLAGS_CROSS_WIN32      += -D__MINGW_USE_VC2005_COMPAT #hack to get 64-bit time_t
 CFLAGS_CROSS_WIN32      += -I$(OPENCL_HEADERS_KHRONOS)/
 CFLAGS_CROSS_WIN32      += -I$(WIN_ICONV_32)/include/
 CFLAGS_CROSS_WIN32      += -m32
 CFLAGS_CROSS_WIN32      += -DWITH_HWMON
 CFLAGS_CROSS_WIN64      := $(CFLAGS)
+CFLAGS_CROSS_WIN64      += -fPIC
 CFLAGS_CROSS_WIN64      += -I$(OPENCL_HEADERS_KHRONOS)/
 CFLAGS_CROSS_WIN64      += -I$(WIN_ICONV_64)/include/
 CFLAGS_CROSS_WIN64      += -m64
 CFLAGS_CROSS_WIN64      += -DWITH_HWMON
 
 LFLAGS_CROSS_LINUX32    := $(LFLAGS)
-LFLAGS_CROSS_LINUX32    += -Wl,--export-dynamic
 LFLAGS_CROSS_LINUX32    += -lpthread
 LFLAGS_CROSS_LINUX32    += -ldl
 LFLAGS_CROSS_LINUX32    += -lm
 LFLAGS_CROSS_LINUX64    := $(LFLAGS)
-LFLAGS_CROSS_LINUX64    += -Wl,--export-dynamic
 LFLAGS_CROSS_LINUX64    += -lpthread
 LFLAGS_CROSS_LINUX64    += -ldl
 LFLAGS_CROSS_LINUX64    += -lm
@@ -392,6 +389,17 @@ WIN_64_OBJS             += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).WIN.64.o)
 endif
 endif
 
+MODULE_OBJS_ALL                 := bitops convert cpu_aes cpu_md5 memory shared
+
+MODULE_NATIVE_STATIC_OBJS       := $(foreach OBJ,$(MODULE_OBJS_ALL),obj/$(OBJ).NATIVE.STATIC.o)
+MODULE_NATIVE_SHARED_OBJS       := $(foreach OBJ,$(MODULE_OBJS_ALL),obj/$(OBJ).NATIVE.SHARED.o)
+
+MODULE_LINUX_32_OBJS            := $(foreach OBJ,$(MODULE_OBJS_ALL),obj/$(OBJ).LINUX.32.o)
+MODULE_LINUX_64_OBJS            := $(foreach OBJ,$(MODULE_OBJS_ALL),obj/$(OBJ).LINUX.64.o)
+
+MODULE_WIN_32_OBJS              := $(foreach OBJ,$(MODULE_OBJS_ALL),obj/$(OBJ).WIN.32.o)
+MODULE_WIN_64_OBJS              := $(foreach OBJ,$(MODULE_OBJS_ALL),obj/$(OBJ).WIN.64.o)
+
 ##
 ## Targets: Native Compilation
 ##
@@ -404,6 +412,7 @@ clean:
 	$(RM) -f modules/*.dll
 	$(RM) -f modules/*.so
 	$(RM) -f obj/*.o
+	$(RM) -f obj/*.a
 	$(RM) -f *.bin *.exe
 	$(RM) -f *.pid
 	$(RM) -f *.restore
@@ -584,8 +593,8 @@ endif
 MODULES_SRC   := $(wildcard src/modules/*.c)
 MODULES_LIB   := $(patsubst src/modules/module_%.c, modules/module_%.so, $(MODULES_SRC))
 
-modules/module_%.so: src/modules/module_%.c
-	$(CC)    $(CFLAGS_NATIVE) $< -o $@ $(LFLAGS_NATIVE) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
+modules/module_%.so: src/modules/module_%.c $(MODULE_NATIVE_SHARED_OBJS)
+	$(CC)    $(CFLAGS_NATIVE) $^ -o $@ $(LFLAGS_NATIVE) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
 
 modules: $(MODULES_LIB)
 
@@ -603,19 +612,17 @@ modules_linux64: $(MODULES_LIB_LINUX64)
 modules_win32:   $(MODULES_LIB_WIN32)
 modules_win64:   $(MODULES_LIB_WIN64)
 
-MODULE_DEPEND := src/bitops.c src/convert.c src/memory.c src/shared.c src/cpu_aes.c src/cpu_md5.h
+modules/module32_%.so:  src/modules/module_%.c $(MODULE_LINUX_32_OBJS)
+	$(CC_LINUX_32)  $(CFLAGS_CROSS_LINUX32) $^ -o $@ $(LFLAGS_CROSS_LINUX32) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
 
-modules/module32_%.so:  src/modules/module_%.c
-	$(CC_LINUX_32)  $(CFLAGS_CROSS_LINUX32) $< -o $@ $(LFLAGS_CROSS_LINUX32) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
+modules/module64_%.so:  src/modules/module_%.c $(MODULE_LINUX_64_OBJS)
+	$(CC_LINUX_64)  $(CFLAGS_CROSS_LINUX64) $^ -o $@ $(LFLAGS_CROSS_LINUX64) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
 
-modules/module64_%.so:  src/modules/module_%.c
-	$(CC_LINUX_64)  $(CFLAGS_CROSS_LINUX64) $< -o $@ $(LFLAGS_CROSS_LINUX64) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
+modules/module32_%.dll: src/modules/module_%.c $(MODULE_WIN_32_OBJS)
+	$(CC_WIN_32)    $(CFLAGS_CROSS_WIN32)   $^ -o $@ $(LFLAGS_CROSS_WIN32)   -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
 
-modules/module32_%.dll: src/modules/module_%.c
-	$(CC_WIN_32)    $(CFLAGS_CROSS_WIN32)   $< -o $@ $(LFLAGS_CROSS_WIN32)   -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION) $(MODULE_DEPEND)
-
-modules/module64_%.dll: src/modules/module_%.c
-	$(CC_WIN_64)    $(CFLAGS_CROSS_WIN64)   $< -o $@ $(LFLAGS_CROSS_WIN64)   -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION) $(MODULE_DEPEND)
+modules/module64_%.dll: src/modules/module_%.c $(MODULE_WIN_64_OBJS)
+	$(CC_WIN_64)    $(CFLAGS_CROSS_WIN64)   $^ -o $@ $(LFLAGS_CROSS_WIN64)   -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
 
 ##
 ## cross compiled hashcat
