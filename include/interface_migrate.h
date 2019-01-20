@@ -53,19 +53,6 @@ typedef struct pdf
 
 } pdf_t;
 
-
-
-typedef struct wpa_pmkid
-{
-  u32  pmkid[4];
-  u32  pmkid_data[16];
-  u8   orig_mac_ap[6];
-  u8   orig_mac_sta[6];
-  u8   essid_len;
-  u32  essid_buf[16];
-
-} wpa_pmkid_t;
-
 typedef struct bitcoin_wallet
 {
   u32 cry_master_buf[64];
@@ -1082,7 +1069,6 @@ typedef enum kern_type
   KERN_TYPE_JWT_HS384               = 16512,
   KERN_TYPE_JWT_HS512               = 16513,
   KERN_TYPE_ELECTRUM_WALLET13       = 16600,
-  KERN_TYPE_WPA_PMKID_PBKDF2        = 16800,
   KERN_TYPE_WPA_PMKID_PMK           = 16801,
   KERN_TYPE_ANSIBLE_VAULT           = 16900,
   KERN_TYPE_SHA3_224                = 17300,
