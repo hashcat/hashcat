@@ -60,13 +60,11 @@
   "  10900 | PBKDF2-HMAC-SHA256                               | Generic KDF",
   "  12100 | PBKDF2-HMAC-SHA512                               | Generic KDF",
   "     23 | Skype                                            | Network Protocols",
-  "  16801 | WPA-PMKID-PMK                                    | Network Protocols",
   "   4800 | iSCSI CHAP authentication, MD5(CHAP)             | Network Protocols",
   "   5300 | IKE-PSK MD5                                      | Network Protocols",
   "   5400 | IKE-PSK SHA1                                     | Network Protocols",
   "   5500 | NetNTLMv1                                        | Network Protocols",
   "   5500 | NetNTLMv1+ESS                                    | Network Protocols",
-  "   5600 | NetNTLMv2                                        | Network Protocols",
   "   7300 | IPMI2 RAKP HMAC-SHA1                             | Network Protocols",
   "   7500 | Kerberos 5 AS-REQ Pre-Auth etype 23              | Network Protocols",
   "   8300 | DNSSEC (NSEC3)                                   | Network Protocols",
@@ -116,7 +114,6 @@
   "  16400 | CRAM-MD5 Dovecot                                 | HTTP, SMTP, LDAP Server",
   "  15000 | FileZilla Server >= 0.9.55                       | FTP Server",
   "  11500 | CRC32                                            | Checksums",
-  "   3000 | LM                                               | Operating Systems",
   "   1100 | Domain Cached Credentials (DCC), MS Cache        | Operating Systems",
   "   2100 | Domain Cached Credentials 2 (DCC2), MS Cache 2   | Operating Systems",
   "  15300 | DPAPI masterkey file v1                          | Operating Systems",
@@ -257,7 +254,6 @@ static const char *ST_PASS_HASHCAT_ONET3 = "hashcat1hashcat1hashcat1";
 static const char *ST_PASS_BIN_09710     = "\x91\xb2\xe0\x62\xb9";
 static const char *ST_PASS_BIN_09810     = "\xb8\xf6\x36\x19\xca";
 static const char *ST_PASS_BIN_10410     = "\x6a\x8a\xed\xcc\xb7";
-static const char *ST_PASS_HEX_16801     = "5b13d4babb3714ccc62c9f71864bc984efd6a55f237c7a87fc2151e1ca658a9d";
 
 
 /**
@@ -322,7 +318,6 @@ static const char *ST_HASH_02611 = "28f9975808ae2bdc5847b1cda26033ea:308";
 static const char *ST_HASH_02612 = "$PHPS$30353031383437363132$f02b0b2f25e5754edb04522c346ba243";
 static const char *ST_HASH_02711 = "0844fbb2fdeda31884a7a45ec2010bb6:324410183853308365427804872426";
 static const char *ST_HASH_02811 = "022f7e02b3314f7d0968f73c00ba759f:67588";
-static const char *ST_HASH_03000 = "299bd128c1101fd6";
 static const char *ST_HASH_03100 = "792FCB0AE31D8489:7284616727";
 static const char *ST_HASH_03200 = "$2a$05$MBCzKhG1KhezLh.0LRa0Kuw12nLJtpHy6DIaU.JAnqJUDYspHC.Ou";
 static const char *ST_HASH_03710 = "a3aa0ae2b4a102a9974cdf40edeabee0:242812778074";
@@ -484,7 +479,6 @@ static const char *ST_HASH_16300 = "$ethereum$w*e94a8e49deac2d62206bf9bfb7d2aaea
 static const char *ST_HASH_16400 = "{CRAM-MD5}5389b33b9725e5657cb631dc50017ff100000000000000000000000000000000";
 static const char *ST_HASH_16600 = "$electrum$1*44358283104603165383613672586868*c43a6632d9f59364f74c395a03d8c2ea";
 static const char *ST_HASH_16700 = "$fvde$1$16$84286044060108438487434858307513$20000$f1620ab93192112f0a23eea89b5d4df065661f974b704191";
-static const char *ST_HASH_16801 = "2582a8281bf9d4308d6f5731d0e61c61*4604ba734d4e*89acf0e761f4";
 static const char *ST_HASH_16900 = "$ansible$0*0*6b761adc6faeb0cc0bf197d3d4a4a7d3f1682e4b169cae8fa6b459b3214ed41e*426d313c5809d4a80a4b9bc7d4823070*d8bad190c7fbc7c3cb1c60a27abfb0ff59d6fb73178681c7454d94a0f56a4360";
 static const char *ST_HASH_17300 = "412ef78534ba6ab0e9b1607d3e9767a25c1ea9d5e83176b4c2817a6c";
 static const char *ST_HASH_17400 = "d60fcf6585da4e17224f58858970f0ed5ab042c3916b76b0b828e62eaf636cbd";
@@ -529,7 +523,6 @@ static const char *HT_01800 = "sha512crypt $6$, SHA512 (Unix)";
 static const char *HT_02100 = "Domain Cached Credentials 2 (DCC2), MS Cache 2";
 static const char *HT_02410 = "Cisco-ASA MD5";
 static const char *HT_02600 = "md5(md5($pass))";
-static const char *HT_03000 = "LM";
 static const char *HT_03100 = "Oracle H: Type (Oracle 7+)";
 static const char *HT_03200 = "bcrypt $2*$, Blowfish (Unix)";
 static const char *HT_03710 = "md5($salt.md5($pass))";
@@ -549,7 +542,6 @@ static const char *HT_05200 = "Password Safe v3";
 static const char *HT_05300 = "IKE-PSK MD5";
 static const char *HT_05400 = "IKE-PSK SHA1";
 static const char *HT_05500 = "NetNTLMv1 / NetNTLMv1+ESS";
-static const char *HT_05600 = "NetNTLMv2";
 static const char *HT_05700 = "Cisco-IOS type 4 (SHA256)";
 static const char *HT_05800 = "Samsung Android Password/PIN";
 static const char *HT_06000 = "RIPEMD-160";
@@ -663,7 +655,6 @@ static const char *HT_16400 = "CRAM-MD5 Dovecot";
 static const char *HT_16500 = "JWT (JSON Web Token)";
 static const char *HT_16600 = "Electrum Wallet (Salt-Type 1-3)";
 static const char *HT_16700 = "FileVault 2";
-static const char *HT_16801 = "WPA-PMKID-PMK";
 static const char *HT_16900 = "Ansible Vault";
 static const char *HT_17300 = "SHA3-224";
 static const char *HT_17400 = "SHA3-256";
@@ -2890,36 +2881,6 @@ int cisco4_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
     digest[6] -= SHA256M_G;
     digest[7] -= SHA256M_H;
   }
-
-  return (PARSER_OK);
-}
-
-int lm_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  token_t token;
-
-  token.token_cnt = 1;
-
-  token.len[0]  = 16;
-  token.attr[0] = TOKEN_ATTR_FIXED_LENGTH
-                | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *hash_pos = token.buf[0];
-
-  digest[0] = hex_to_u32 (hash_pos + 0);
-  digest[1] = hex_to_u32 (hash_pos + 8);
-  digest[2] = 0;
-  digest[3] = 0;
-
-  u32 tt;
-
-  IP (digest[0], digest[1], tt);
 
   return (PARSER_OK);
 }
@@ -16684,166 +16645,6 @@ int filevault2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   return (PARSER_OK);
 }
 
-int wpa_pmkid_pmk_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  wpa_pmkid_t *wpa_pmkid = (wpa_pmkid_t *) hash_buf->esalt;
-
-  token_t token;
-
-  // real 16801 pmkid hash-lines
-
-  token.token_cnt  = 3;
-
-  token.sep[0]     = '*';
-  token.len_min[0] = 32;
-  token.len_max[0] = 32;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.sep[1]     = '*';
-  token.len_min[1] = 12;
-  token.len_max[1] = 12;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.sep[2]     = '*';
-  token.len_min[2] = 12;
-  token.len_max[2] = 12;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK)
-  {
-    // we'll accept normal 16800 pmkid hash-lines, too
-
-    token.token_cnt  = 4;
-
-    token.sep[0]     = '*';
-    token.len_min[0] = 32;
-    token.len_max[0] = 32;
-    token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                     | TOKEN_ATTR_VERIFY_HEX;
-
-    token.sep[1]     = '*';
-    token.len_min[1] = 12;
-    token.len_max[1] = 12;
-    token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                     | TOKEN_ATTR_VERIFY_HEX;
-
-    token.sep[2]     = '*';
-    token.len_min[2] = 12;
-    token.len_max[2] = 12;
-    token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                     | TOKEN_ATTR_VERIFY_HEX;
-
-    token.sep[3]     = '*';
-    token.len_min[3] = 0;
-    token.len_max[3] = 64;
-    token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                     | TOKEN_ATTR_VERIFY_HEX;
-
-    const int rc_tokenizer2 = input_tokenizer (input_buf, input_len, &token);
-
-    if (rc_tokenizer2 != PARSER_OK) return (rc_tokenizer);
-
-    // essid
-
-    const u8 *essid_buf = token.buf[3];
-    const int essid_len = token.len[3];
-
-    u8 *essid_ptr = (u8 *) wpa_pmkid->essid_buf;
-
-    for (int i = 0, j = 0; i < essid_len; i += 2, j += 1)
-    {
-      essid_ptr[j] = hex_to_u8 (essid_buf + i);
-    }
-
-    wpa_pmkid->essid_len = essid_len / 2;
-  }
-
-  // pmkid
-
-  const u8 *pmkid_buf = token.buf[0];
-
-  wpa_pmkid->pmkid[0] = hex_to_u32 (pmkid_buf +  0);
-  wpa_pmkid->pmkid[1] = hex_to_u32 (pmkid_buf +  8);
-  wpa_pmkid->pmkid[2] = hex_to_u32 (pmkid_buf + 16);
-  wpa_pmkid->pmkid[3] = hex_to_u32 (pmkid_buf + 24);
-
-  // mac_ap
-
-  const u8 *macap_buf = token.buf[1];
-
-  wpa_pmkid->orig_mac_ap[0] = hex_to_u8 (macap_buf +  0);
-  wpa_pmkid->orig_mac_ap[1] = hex_to_u8 (macap_buf +  2);
-  wpa_pmkid->orig_mac_ap[2] = hex_to_u8 (macap_buf +  4);
-  wpa_pmkid->orig_mac_ap[3] = hex_to_u8 (macap_buf +  6);
-  wpa_pmkid->orig_mac_ap[4] = hex_to_u8 (macap_buf +  8);
-  wpa_pmkid->orig_mac_ap[5] = hex_to_u8 (macap_buf + 10);
-
-  // mac_sta
-
-  const u8 *macsta_buf = token.buf[2];
-
-  wpa_pmkid->orig_mac_sta[0] = hex_to_u8 (macsta_buf +  0);
-  wpa_pmkid->orig_mac_sta[1] = hex_to_u8 (macsta_buf +  2);
-  wpa_pmkid->orig_mac_sta[2] = hex_to_u8 (macsta_buf +  4);
-  wpa_pmkid->orig_mac_sta[3] = hex_to_u8 (macsta_buf +  6);
-  wpa_pmkid->orig_mac_sta[4] = hex_to_u8 (macsta_buf +  8);
-  wpa_pmkid->orig_mac_sta[5] = hex_to_u8 (macsta_buf + 10);
-
-  // pmkid_data
-
-  wpa_pmkid->pmkid_data[0] = 0x204b4d50; // "PMK "
-  wpa_pmkid->pmkid_data[1] = 0x656d614e; // "Name"
-  wpa_pmkid->pmkid_data[2] = (wpa_pmkid->orig_mac_ap[0]  <<  0)
-                           | (wpa_pmkid->orig_mac_ap[1]  <<  8)
-                           | (wpa_pmkid->orig_mac_ap[2]  << 16)
-                           | (wpa_pmkid->orig_mac_ap[3]  << 24);
-  wpa_pmkid->pmkid_data[3] = (wpa_pmkid->orig_mac_ap[4]  <<  0)
-                           | (wpa_pmkid->orig_mac_ap[5]  <<  8)
-                           | (wpa_pmkid->orig_mac_sta[0] << 16)
-                           | (wpa_pmkid->orig_mac_sta[1] << 24);
-  wpa_pmkid->pmkid_data[4] = (wpa_pmkid->orig_mac_sta[2] <<  0)
-                           | (wpa_pmkid->orig_mac_sta[3] <<  8)
-                           | (wpa_pmkid->orig_mac_sta[4] << 16)
-                           | (wpa_pmkid->orig_mac_sta[5] << 24);
-
-  // salt
-
-  salt->salt_buf[0] = wpa_pmkid->pmkid_data[0];
-  salt->salt_buf[1] = wpa_pmkid->pmkid_data[1];
-  salt->salt_buf[2] = wpa_pmkid->pmkid_data[2];
-  salt->salt_buf[3] = wpa_pmkid->pmkid_data[3];
-  salt->salt_buf[4] = wpa_pmkid->pmkid_data[4];
-  salt->salt_buf[5] = wpa_pmkid->pmkid_data[5];
-  salt->salt_buf[6] = wpa_pmkid->pmkid_data[6];
-  salt->salt_buf[7] = wpa_pmkid->pmkid_data[7];
-
-  salt->salt_len  = 32;
-  salt->salt_iter = ROUNDS_WPA_PBKDF2 - 1;
-
-  // hash
-
-  digest[0] = wpa_pmkid->pmkid[0];
-  digest[1] = wpa_pmkid->pmkid[1];
-  digest[2] = wpa_pmkid->pmkid[2];
-  digest[3] = wpa_pmkid->pmkid[3];
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-
-  return (PARSER_OK);
-}
-
 int ansible_vault_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
@@ -17149,11 +16950,6 @@ u32 kernel_loops_mxx (hashcat_ctx_t *hashcat_ctx)
   {
     // respect the slow_candidates, too
 
-    if (hashconfig->hash_mode == 3000 && user_options->attack_mode == ATTACK_MODE_BF)
-    {
-      kernel_loops_fixed = 1024;
-    }
-
     if (hashconfig->hash_mode == 14100 && user_options->attack_mode == ATTACK_MODE_BF)
     {
       kernel_loops_fixed = 1024;
@@ -17315,8 +17111,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
       case 16300: salt->salt_len = 20;
                   break;
       case 16700: salt->salt_len = 16;
-                  break;
-      case 16801: memcpy (salt->salt_buf, "hashcat.net", 11);
                   break;
       case 16900: salt->salt_len = 32;
                   break;
@@ -17587,8 +17381,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
     case 16300:  salt->salt_iter  = ROUNDS_ETHEREUM_PRESALE;
                  break;
     case 16700:  salt->salt_iter  = ROUNDS_APPLE_SECURE_NOTES - 1;
-                 break;
-    case 16801:  salt->salt_iter  = ROUNDS_WPA_PMK;
                  break;
     case 16900:  salt->salt_iter  = ROUNDS_ANSIBLE_VAULT - 1;
                  break;
@@ -20597,60 +20389,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[4]),
       byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[5]));
   }
-  else if (hash_mode == 16801)
-  {
-    wpa_pmkid_t *wpa_pmkids = (wpa_pmkid_t *) esalts_buf;
-
-    wpa_pmkid_t *wpa_pmkid = &wpa_pmkids[digest_cur];
-
-    if (wpa_pmkid->essid_len)
-    {
-      exec_hexify ((const u8*) wpa_pmkid->essid_buf, wpa_pmkid->essid_len, (u8 *) tmp_buf);
-
-      int tmp_len = wpa_pmkid->essid_len * 2;
-
-      tmp_buf[tmp_len] = 0;
-
-      snprintf (out_buf, out_size, "%08x%08x%08x%08x*%02x%02x%02x%02x%02x%02x*%02x%02x%02x%02x%02x%02x*%s",
-        byte_swap_32 (wpa_pmkid->pmkid[0]),
-        byte_swap_32 (wpa_pmkid->pmkid[1]),
-        byte_swap_32 (wpa_pmkid->pmkid[2]),
-        byte_swap_32 (wpa_pmkid->pmkid[3]),
-        wpa_pmkid->orig_mac_ap[0],
-        wpa_pmkid->orig_mac_ap[1],
-        wpa_pmkid->orig_mac_ap[2],
-        wpa_pmkid->orig_mac_ap[3],
-        wpa_pmkid->orig_mac_ap[4],
-        wpa_pmkid->orig_mac_ap[5],
-        wpa_pmkid->orig_mac_sta[0],
-        wpa_pmkid->orig_mac_sta[1],
-        wpa_pmkid->orig_mac_sta[2],
-        wpa_pmkid->orig_mac_sta[3],
-        wpa_pmkid->orig_mac_sta[4],
-        wpa_pmkid->orig_mac_sta[5],
-        tmp_buf);
-    }
-    else
-    {
-      snprintf (out_buf, out_size, "%08x%08x%08x%08x*%02x%02x%02x%02x%02x%02x*%02x%02x%02x%02x%02x%02x",
-        byte_swap_32 (wpa_pmkid->pmkid[0]),
-        byte_swap_32 (wpa_pmkid->pmkid[1]),
-        byte_swap_32 (wpa_pmkid->pmkid[2]),
-        byte_swap_32 (wpa_pmkid->pmkid[3]),
-        wpa_pmkid->orig_mac_ap[0],
-        wpa_pmkid->orig_mac_ap[1],
-        wpa_pmkid->orig_mac_ap[2],
-        wpa_pmkid->orig_mac_ap[3],
-        wpa_pmkid->orig_mac_ap[4],
-        wpa_pmkid->orig_mac_ap[5],
-        wpa_pmkid->orig_mac_sta[0],
-        wpa_pmkid->orig_mac_sta[1],
-        wpa_pmkid->orig_mac_sta[2],
-        wpa_pmkid->orig_mac_sta[3],
-        wpa_pmkid->orig_mac_sta[4],
-        wpa_pmkid->orig_mac_sta[5]);
-    }
-  }
   else if (hash_mode == 16900)
   {
     ansible_vault_t *ansible_vaults = (ansible_vault_t *) esalts_buf;
@@ -20878,12 +20616,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
         ptr[11], ptr[10],
         ptr[13], ptr[12],
         ptr[15], ptr[14]);
-    }
-    else if (hash_type == HASH_TYPE_LM)
-    {
-      snprintf (out_buf, out_size, "%08x%08x",
-        digest_buf[0],
-        digest_buf[1]);
     }
     else if (hash_type == HASH_TYPE_ORACLEH)
     {
@@ -22239,28 +21971,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 1;
                  hashconfig->st_hash        = ST_HASH_02811;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case  3000:  hashconfig->hash_type      = HASH_TYPE_LM;
-                 hashconfig->salt_type      = SALT_TYPE_NONE;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PT_UPPER
-                                            | OPTS_TYPE_PT_BITSLICE
-                                            | OPTS_TYPE_PT_ALWAYS_ASCII
-                                            | OPTS_TYPE_PT_LM
-                                            | OPTS_TYPE_HASH_SPLIT;
-                 hashconfig->kern_type      = KERN_TYPE_LM;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
-                 hashconfig->parse_func     = lm_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_PERMUT;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_03000;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
@@ -25402,25 +25112,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 16801:  hashconfig->hash_type      = HASH_TYPE_WPA_PMKID_PMK;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_AUX1
-                                            | OPTS_TYPE_DEEP_COMP_KERNEL;
-                 hashconfig->kern_type      = KERN_TYPE_WPA_PMKID_PMK;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = wpa_pmkid_pmk_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_16801;
-                 hashconfig->st_pass        = ST_PASS_HEX_16801;
-                 break;
-
     case 16900:  hashconfig->hash_type      = HASH_TYPE_ANSIBLE_VAULT;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -25757,7 +25448,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 16500: hashconfig->esalt_size = sizeof (jwt_t);                break;
     case 16600: hashconfig->esalt_size = sizeof (electrum_wallet_t);    break;
     case 16700: hashconfig->esalt_size = sizeof (apple_secure_notes_t); break;
-    case 16801: hashconfig->esalt_size = sizeof (wpa_pmkid_t);          break;
     case 16900: hashconfig->esalt_size = sizeof (ansible_vault_t);      break;
     case 18200: hashconfig->esalt_size = sizeof (krb5asrep_t);          break;
     case 18300: hashconfig->esalt_size = sizeof (apple_secure_notes_t); break;
@@ -25863,7 +25553,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 16200: hashconfig->tmp_size = sizeof (apple_secure_notes_tmp_t); break;
     case 16300: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
     case 16700: hashconfig->tmp_size = sizeof (apple_secure_notes_tmp_t); break;
-    case 16801: hashconfig->tmp_size = sizeof (wpa_pmk_tmp_t);            break;
     case 16900: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
     case 18300: hashconfig->tmp_size = sizeof (apple_secure_notes_tmp_t); break;
   };
@@ -25891,7 +25580,6 @@ u32 default_pw_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
     case 14100: pw_min = 24;  break; // 3DES fixed
     case 14900: pw_min = 10;  break; // Skip32 fixed
     case 15400: pw_min = 32;  break; // ChaCha20 fixed
-    case 16801: pw_min = 64;  break; // WPA-PMKID-PMK: fixed
   }
 
   return pw_min;
@@ -25952,7 +25640,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
   {
     case   112: pw_max = 30;      break; // https://www.toadworld.com/platforms/oracle/b/weblog/archive/2013/11/12/oracle-12c-passwords
     case  2100: pw_max = PW_MAX;  break;
-    case  3000: pw_max = 7;       break; // LM max
     case  3100: pw_max = 30;      break; // http://www.red-database-security.de/whitepaper/oracle_passwords.html
     case  3200: pw_max = 72;      break; // Underlaying Blowfish max
     case  5200: pw_max = PW_MAX;  break;
@@ -26065,7 +25752,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
     case 15700: pw_max = PW_MAX;  break;
     case 15900: pw_max = PW_MAX;  break;
     case 16000: pw_max = 8;       break; // Underlaying DES max
-    case 16801: pw_max = 64;      break; // WPA-PMKID-PMK: fixed length
     case 16900: pw_max = PW_MAX;  break;
   }
 
@@ -26127,8 +25813,6 @@ const char *default_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig,
                 break;
     case 14900: mask = "?b?b?b?b?bxxxxx";
                 break;
-    case 16801: mask = "?a?a?a?a?a?a?a?axxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
-                break;
     default:    mask = "?b?b?b?b?b?b?b";
                 break;
   }
@@ -26141,16 +25825,6 @@ bool default_warmup_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_
   switch (hashconfig->hash_mode)
   {
     case  2000: return true;
-  }
-
-}
-
-bool default_dictstat_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-
-  switch (hashconfig->hash_mode)
-  {
-    case  3000: return true;
   }
 
 }
@@ -26410,34 +26084,6 @@ int module_hash_decode_outfile (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
             return PARSER_OK;
           }
 }
-
-int module_hash_decode_zero_hash (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf)
-{
-  if (hashconfig->hash_mode == 3000)
-  {
-    static const char LM_ZERO_HASH[]    = "aad3b435b51404ee";
-
-
-    return module_hash_decode (hashconfig, digest, salt, esalt, LM_ZERO_HASH, 16);
-
-}
-
-
-bool potfile_keep_all_hashes
-{
-  // keep all hashes if -m 3000 was combined with --left or --show
-
-  if (hashconfig->hash_mode == 3000)
-  {
-    if ((user_options->show == true) || (user_options->left == true))
-    {
-      potfile_ctx->keep_all_hashes = true;
-    }
-  }
-}
-
-
-
 
 int build_plain_postprocess (const u32 *src_buf, MAYBE_UNUSED const size_t src_sz, const int src_len, u32 *dst_buf, MAYBE_UNUSED const size_t dst_sz)
 {
@@ -26808,7 +26454,6 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
      */
 
     if (
-     || (hashconfig->hash_mode ==  3000)
      || (hashconfig->hash_mode ==  3200)
      || (hashconfig->hash_mode ==  8900)
      || (hashconfig->hash_mode ==  9300)
@@ -26831,46 +26476,6 @@ u32 module_deep_comp_kernel (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED c
   {
     return KERN_RUN_3;
   }
-}
-
-int module_hash_encode_status (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, char *line_buf, MAYBE_UNUSED const int line_size)
-{
-    if (hashes->digests_cnt == 1)
-    {
-      else if (hashconfig->hash_mode == 5200)
-      {
-        return hashes->hashfile;
-      }
-      else if (hashconfig->hash_mode == 9000)
-      {
-        return hashes->hashfile;
-      }
-      else if ((hashconfig->hash_mode >= 6200) && (hashconfig->hash_mode <= 6299))
-      {
-        return hashes->hashfile;
-      }
-      else if ((hashconfig->hash_mode >= 13700) && (hashconfig->hash_mode <= 13799))
-      {
-        return hashes->hashfile;
-      }
-    }
-    else
-    {
-      if (hashconfig->hash_mode == 3000)
-      {
-        char *tmp_buf;
-
-        char out_buf1[64] = { 0 };
-        char out_buf2[64] = { 0 };
-
-        ascii_digest (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, out_buf1, sizeof (out_buf1), 0, 0);
-        ascii_digest (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, out_buf2, sizeof (out_buf2), 0, 1);
-
-        hc_asprintf (&tmp_buf, "%s, %s", out_buf1, out_buf2);
-
-        return tmp_buf;
-      }
-    }
 }
 
 

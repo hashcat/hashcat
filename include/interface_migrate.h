@@ -424,14 +424,6 @@ typedef struct sha512crypt_tmp
 
 } sha512crypt_tmp_t;
 
-
-
-typedef struct wpa_pmk_tmp
-{
-  u32 out[8];
-
-} wpa_pmk_tmp_t;
-
 typedef struct bitcoin_wallet_tmp
 {
   u64  dgst[8];
@@ -835,7 +827,6 @@ typedef enum hash_type
   HASH_TYPE_SHA384              = 7,
   HASH_TYPE_SHA512              = 8,
   HASH_TYPE_DCC2                = 9,
-  HASH_TYPE_LM                  = 11,
   HASH_TYPE_ORACLEH             = 13,
   HASH_TYPE_DESRACF             = 14,
   HASH_TYPE_BCRYPT              = 15,
@@ -888,8 +879,6 @@ typedef enum hash_type
   HASH_TYPE_CRAM_MD5_DOVECOT    = 65,
   HASH_TYPE_JWT                 = 66,
   HASH_TYPE_ELECTRUM_WALLET     = 67,
-  HASH_TYPE_WPA_PMKID_PBKDF2    = 68,
-  HASH_TYPE_WPA_PMKID_PMK       = 69,
   HASH_TYPE_ANSIBLE_VAULT       = 70,
   HASH_TYPE_KRB5ASREP           = 71,
 
@@ -929,7 +918,6 @@ typedef enum kern_type
   KERN_TYPE_MD55_PWSLT1             = 2610,
   KERN_TYPE_MD55_PWSLT2             = 2710,
   KERN_TYPE_MD55_SLTPW              = 2810,
-  KERN_TYPE_LM                      = 3000,
   KERN_TYPE_ORACLEH                 = 3100,
   KERN_TYPE_BCRYPT                  = 3200,
   KERN_TYPE_MD5_SLT_MD5_PW          = 3710,
@@ -949,7 +937,6 @@ typedef enum kern_type
   KERN_TYPE_IKEPSK_MD5              = 5300,
   KERN_TYPE_IKEPSK_SHA1             = 5400,
   KERN_TYPE_NETNTLMv1               = 5500,
-  KERN_TYPE_NETNTLMv2               = 5600,
   KERN_TYPE_ANDROIDPIN              = 5800,
   KERN_TYPE_RIPEMD160               = 6000,
   KERN_TYPE_WHIRLPOOL               = 6100,
@@ -1069,7 +1056,6 @@ typedef enum kern_type
   KERN_TYPE_JWT_HS384               = 16512,
   KERN_TYPE_JWT_HS512               = 16513,
   KERN_TYPE_ELECTRUM_WALLET13       = 16600,
-  KERN_TYPE_WPA_PMKID_PMK           = 16801,
   KERN_TYPE_ANSIBLE_VAULT           = 16900,
   KERN_TYPE_SHA3_224                = 17300,
   KERN_TYPE_SHA3_256                = 17400,
@@ -1176,7 +1162,6 @@ int keccak_256_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int keccak_384_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int keccak_512_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int chacha20_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int lm_parse_hash                 (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int md4_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int md4s_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int md5_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
@@ -1188,7 +1173,6 @@ int md5apr1_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int mssql2000_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int mssql2005_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int netntlmv1_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int netntlmv2_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int oracleh_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int oracles_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int oraclet_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
@@ -1335,8 +1319,6 @@ int ethereum_presale_parse_hash   (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int jwt_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int electrum_wallet13_parse_hash  (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int filevault2_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int wpa_pmkid_pbkdf2_parse_hash   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int wpa_pmkid_pmk_parse_hash      (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int ansible_vault_parse_hash      (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int totp_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int apfs_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);

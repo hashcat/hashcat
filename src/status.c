@@ -322,19 +322,26 @@ const char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      char *tmp_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
+      if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
+      {
+        return hashes->hashfile;
+      }
+      else
+      {
+        char *tmp_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-      const int tmp_len = ascii_digest (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, tmp_buf, HCBUFSIZ_LARGE, 0, 0);
+        const int tmp_len = ascii_digest (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, tmp_buf, HCBUFSIZ_LARGE, 0, 0);
 
-      tmp_buf[tmp_len] = 0;
+        tmp_buf[tmp_len] = 0;
 
-      compress_terminal_line_length (tmp_buf, 19, 6); // 19 = strlen ("Hash.Target......: ")
+        compress_terminal_line_length (tmp_buf, 19, 6); // 19 = strlen ("Hash.Target......: ")
 
-      char *tmp_buf2 = strdup (tmp_buf);
+        char *tmp_buf2 = strdup (tmp_buf);
 
-      free (tmp_buf);
+        free (tmp_buf);
 
-      return tmp_buf2;
+        return tmp_buf2;
+      }
     }
   }
   else

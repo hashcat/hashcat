@@ -16,19 +16,22 @@ static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_CIPHER_KPA;
-static const char *HASH_NAME      = "3DES (PT = $salt, key = $pass)";
-static const u32   HASH_TYPE      = HASH_TYPE_DES;
-static const u64   KERN_TYPE      = 14100;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_OS;
+static const char *HASH_NAME      = "LM";
+static const u32   HASH_TYPE      = HASH_TYPE_LM;
+static const u64   KERN_TYPE      = 3000;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_PERMUT;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STATE_BUFFER_LE
                                   | OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_ST_GENERATE_LE
-                                  | OPTS_TYPE_ST_HEX;
-static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
-static const char *ST_PASS        = "hashcat1hashcat1hashcat1";
-static const char *ST_HASH        = "4c29eea59d8db1e7:7428288455525516";
+                                  | OPTS_TYPE_PT_UPPER
+                                  | OPTS_TYPE_PT_BITSLICE
+                                  | OPTS_TYPE_PT_ALWAYS_ASCII
+                                  | OPTS_TYPE_PT_LM
+                                  | OPTS_TYPE_HASH_SPLIT;
+static const u32   SALT_TYPE      = SALT_TYPE_NONE;
+static const char *ST_PASS        = "hashcat1";
+static const char *ST_HASH        = "299bd128c1101fd6";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -76,30 +79,9 @@ u32 module_kernel_loops_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_
   return kernel_loops_min;
 }
 
-u32 module_salt_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 salt_min = 8; // Underlaying DES min
-
-  return salt_min;
-}
-
-u32 module_salt_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 salt_max = 8; // Underlaying DES max
-
-  return salt_max;
-}
-
-u32 module_pw_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 pw_min = 24; // Underlaying 3DES min
-
-  return pw_min;
-}
-
 u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 pw_max = 24; // Underlaying 3DES max
+  const u32 pw_max = 7; // LM max
 
   return pw_max;
 }
@@ -113,11 +95,26 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   return false;
 }
 
-const char *module_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+bool module_dictstat_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const char *mask = "?b?b?b?b?b?b?bxxxxxxxxxxxxxxxxx";
+  return true;
+}
 
-  return mask;
+int module_hash_decode_zero_hash (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED hashinfo_t *hash_info)
+{
+  static const char LM_ZERO_HASH[] = "aad3b435b51404ee";
+
+  return module_hash_decode (hashconfig, digest_buf, salt, esalt_buf, hash_info, LM_ZERO_HASH, 16);
+}
+
+bool module_potfile_keep_all_hashes (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  if ((user_options->show == true) || (user_options->left == true))
+  {
+    return true;
+  }
+
+  return false;
 }
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
@@ -126,7 +123,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token_t token;
 
-  token.token_cnt = 2;
+  token.token_cnt = 1;
 
   token.sep[0]     = hashconfig->separator;
   token.len_min[0] = 16;
@@ -134,33 +131,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.len_min[1] = 16;
-  token.len_max[1] = 16;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  // salt
-
-  const u8 *salt_pos = token.buf[1];
-  const int salt_len = token.len[1];
-
-  salt->salt_buf[0] = hex_to_u32 (salt_pos + 0);
-  salt->salt_buf[1] = hex_to_u32 (salt_pos + 8);
-  salt->salt_buf[2] = 0;
-  salt->salt_buf[3] = 0;
-
-  salt->salt_buf_pc[0] = salt->salt_buf[0];
-  salt->salt_buf_pc[1] = salt->salt_buf[1];
-
-  decoder_apply_optimizer (hashconfig, salt->salt_buf_pc);
-
-  decoder_apply_options (hashconfig, salt->salt_buf_pc);
-
-  // hash
 
   const u8 *hash_pos = token.buf[0];
 
@@ -201,13 +174,6 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   u32_to_hex (tmp[0], out_buf + out_len); out_len += 8;
   u32_to_hex (tmp[1], out_buf + out_len); out_len += 8;
 
-  out_buf[out_len] = hashconfig->separator;
-
-  out_len++;
-
-  u32_to_hex (salt->salt_buf[0], out_buf + out_len); out_len += 8;
-  u32_to_hex (salt->salt_buf[1], out_buf + out_len); out_len += 8;
-
   return out_len;
 }
 
@@ -219,7 +185,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_attack_exec              = module_attack_exec;
   module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
-  module_ctx->module_benchmark_mask           = module_benchmark_mask;
+  module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
   module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
   module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
   module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;
@@ -228,7 +194,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
-  module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
+  module_ctx->module_dictstat_disable         = module_dictstat_disable;
   module_ctx->module_esalt_size               = MODULE_DEFAULT;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_forced_outfile_format    = MODULE_DEFAULT;
@@ -237,7 +203,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_binary_save         = MODULE_DEFAULT;
   module_ctx->module_hash_binary_verify       = MODULE_DEFAULT;
   module_ctx->module_hash_decode_outfile      = MODULE_DEFAULT;
-  module_ctx->module_hash_decode_zero_hash    = MODULE_DEFAULT;
+  module_ctx->module_hash_decode_zero_hash    = module_hash_decode_zero_hash;
   module_ctx->module_hash_decode              = module_hash_decode;
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
   module_ctx->module_hash_encode              = module_hash_encode;
@@ -264,12 +230,12 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_outfile_check_disable    = MODULE_DEFAULT;
   module_ctx->module_outfile_check_nocomp     = MODULE_DEFAULT;
   module_ctx->module_potfile_disable          = MODULE_DEFAULT;
-  module_ctx->module_potfile_keep_all_hashes  = MODULE_DEFAULT;
+  module_ctx->module_potfile_keep_all_hashes  = module_potfile_keep_all_hashes;
   module_ctx->module_pwdump_column            = MODULE_DEFAULT;
   module_ctx->module_pw_max                   = module_pw_max;
-  module_ctx->module_pw_min                   = module_pw_min;
-  module_ctx->module_salt_max                 = module_salt_max;
-  module_ctx->module_salt_min                 = module_salt_min;
+  module_ctx->module_pw_min                   = MODULE_DEFAULT;
+  module_ctx->module_salt_max                 = MODULE_DEFAULT;
+  module_ctx->module_salt_min                 = MODULE_DEFAULT;
   module_ctx->module_salt_type                = module_salt_type;
   module_ctx->module_separator                = MODULE_DEFAULT;
   module_ctx->module_st_hash                  = module_st_hash;

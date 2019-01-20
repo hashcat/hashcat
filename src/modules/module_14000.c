@@ -159,6 +159,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   decoder_apply_optimizer (hashconfig, salt->salt_buf_pc);
 
+  decoder_apply_options (hashconfig, salt->salt_buf_pc);
+
   // hash
 
   const u8 *hash_pos = token.buf[0];
@@ -169,6 +171,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[3] = 0;
 
   decoder_apply_optimizer (hashconfig, digest);
+
+  decoder_apply_options (hashconfig, digest);
 
   return (PARSER_OK);
 }
