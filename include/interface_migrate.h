@@ -830,7 +830,6 @@ typedef enum hash_type
   HASH_TYPE_ORACLEH             = 13,
   HASH_TYPE_DESRACF             = 14,
   HASH_TYPE_BCRYPT              = 15,
-  HASH_TYPE_NETNTLM             = 17,
   HASH_TYPE_RIPEMD160           = 18,
   HASH_TYPE_WHIRLPOOL           = 19,
   HASH_TYPE_AES                 = 20,
@@ -936,7 +935,6 @@ typedef enum kern_type
   KERN_TYPE_PSAFE3                  = 5200,
   KERN_TYPE_IKEPSK_MD5              = 5300,
   KERN_TYPE_IKEPSK_SHA1             = 5400,
-  KERN_TYPE_NETNTLMv1               = 5500,
   KERN_TYPE_ANDROIDPIN              = 5800,
   KERN_TYPE_RIPEMD160               = 6000,
   KERN_TYPE_WHIRLPOOL               = 6100,
@@ -1034,7 +1032,6 @@ typedef enum kern_type
   KERN_TYPE_ZIP2                    = 13600,
   KERN_TYPE_WIN8PHONE               = 13800,
   KERN_TYPE_OPENCART                = 13900,
-  KERN_TYPE_3DES                    = 14100,
   KERN_TYPE_SHA1CX                  = 14400,
   KERN_TYPE_ITUNES_BACKUP_9         = 14700,
   KERN_TYPE_ITUNES_BACKUP_10        = 14800,
@@ -1172,7 +1169,6 @@ int md5asa_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int md5apr1_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int mssql2000_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int mssql2005_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int netntlmv1_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int oracleh_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int oracles_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int oraclet_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);

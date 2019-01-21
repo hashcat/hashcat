@@ -271,23 +271,6 @@ int ascii_digest (const hashconfig_t *hashconfig, const hashes_t *hashes, const 
 
     char *ptr = (char *) salt.salt_buf;
 
-    if (opti_type & OPTI_TYPE_PRECOMPUTE_PERMUT)
-    {
-      switch (hash_type)
-      {
-        case HASH_TYPE_NETNTLM:
-
-          salt.salt_buf[0] = rotr32 (salt.salt_buf[0], 3);
-          salt.salt_buf[1] = rotr32 (salt.salt_buf[1], 3);
-
-          u32 tt;
-
-          FP (salt.salt_buf[1], salt.salt_buf[0], tt);
-
-          break;
-      }
-    }
-
     u32 salt_len = salt.salt_len;
 
     if (opts_type & OPTS_TYPE_ST_UTF16LE)

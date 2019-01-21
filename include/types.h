@@ -2408,8 +2408,8 @@ typedef struct token
 #endif // _TYPES_H
 
 /**
- * hash types is relevant for host optimization
- * named one do optimizations, others use GENERIC
+ * hash types is relevant for host optimization of raw hashes
+ * others use GENERIC
  */
 
 typedef enum hash_type
@@ -2422,12 +2422,6 @@ typedef enum hash_type
   HASH_TYPE_SHA256    = 6,
   HASH_TYPE_SHA384    = 7,
   HASH_TYPE_SHA512    = 8,
-  HASH_TYPE_LM        = 9,
-  HASH_TYPE_DES       = 10,
-  HASH_TYPE_DESCRYPT  = 11,
-  HASH_TYPE_DESRACF   = 12,
-  HASH_TYPE_NETNTLM   = 13,
-  HASH_TYPE_BSDICRYPT = 14,
 
 } hash_type_t;
 

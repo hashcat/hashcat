@@ -51,7 +51,6 @@
   "  11760 | HMAC-Streebog-256 (key = $salt), big-endian      | Raw Hash, Authenticated",
   "  11850 | HMAC-Streebog-512 (key = $pass), big-endian      | Raw Hash, Authenticated",
   "  11860 | HMAC-Streebog-512 (key = $salt), big-endian      | Raw Hash, Authenticated",
-  "  14100 | 3DES (PT = $salt, key = $pass)                   | Raw Cipher, Known-Plaintext attack",
   "  14900 | Skip32 (PT = $salt, key = $pass)                 | Raw Cipher, Known-Plaintext attack",
   "  15400 | ChaCha20                                         | Raw Cipher, Known-Plaintext attack",
   "   8900 | scrypt                                           | Generic KDF",
@@ -63,8 +62,6 @@
   "   4800 | iSCSI CHAP authentication, MD5(CHAP)             | Network Protocols",
   "   5300 | IKE-PSK MD5                                      | Network Protocols",
   "   5400 | IKE-PSK SHA1                                     | Network Protocols",
-  "   5500 | NetNTLMv1                                        | Network Protocols",
-  "   5500 | NetNTLMv1+ESS                                    | Network Protocols",
   "   7300 | IPMI2 RAKP HMAC-SHA1                             | Network Protocols",
   "   7500 | Kerberos 5 AS-REQ Pre-Auth etype 23              | Network Protocols",
   "   8300 | DNSSEC (NSEC3)                                   | Network Protocols",
@@ -338,8 +335,6 @@ static const char *ST_HASH_04900 = "75d280ca9a0c2ee18729603104ead576d9ca6285:347
 static const char *ST_HASH_05200 = "50575333e4e2a590a5e5c8269f57ec04a8a1c0c03da55b311c51236dab8c6b96b0afca02000800005eaeee20c6cc10d5caa6522b3ca545c41d9133d630ca08f467b7aae8a2bbef51aa2df968d10b9c4cfb17a182c0add7acb8c153794f51337e12f472f451d10e6dcac664ed760606aabdbb6b794a80d6ce2a330100c76de0ff961a45cca21576b893d826c52f272b97cdf48aca6fbe6c74b039f81c61b7d632fb6fddd9f96162ab1effd69a4598a331e855e38792e5365272d4791bf991d248e1585a9ad20ea3d77b5d2ef9a711ef90a70ec6991cb578f1b8bdaa9efa7b0039e9ea96f777491713047bdd99fa1d78f06f23406a66046b387d3034e46b1f84129bba853cc18fa49f107dc0290547258d30566a4b1b363ff4c1c16cb2f5f400059833d4b651bfa508200cbdc7a75fc57ef90eb1d90b0deea8505753332d454f46505753332d454f466236710e2e2477878e738b60d0aa2834a96b01e97764fe980243a06ad16939d1";
 static const char *ST_HASH_05300 = "50503326cac6e4bd892b8257805b5a59a285f464ad3f63dc01bd0335f8341ef52e00be0b8cb205422a3788f021e4e6e8ccbe34784bc85abe42f62545bac64888426a2f1264fa28cf384ff00b14cfa5eff562dda4fad2a31fd7a6715218cff959916deed856feea5bee2e773241c5fbebf202958f0ce0c432955e0f1f6d1259da:688a7bfa8d5819630a970ed6d27018021a15fbb3e2fdcc36ce9b563d8ff95f510c4b3236c014d1cde9c2f1a999b121bc3ab1bc8049c8ac1e8c167a84f53c867492723eb01ab4b38074b38f4297d6fea8f44e01ea828fce33c433430938b1551f60673ce8088e7d2f41e3b49315344046fefee1e3860064331417562761db3ba4:c66606d691eaade4:8bdc88a2cdb4a1cf:c3b13137fae9f66684d98709939e5c3454ee31a98c80a1c76427d805b5dea866eff045515e8fb42dd259b9448caba9d937f4b3b75ec1b092a92232b4c8c1e70a60a52076e907f887b731d0f66e19e09b535238169c74c04a4b393f9b815c54eef4558cd8a22c9018bb4f24ee6db0e32979f9a353361cdba948f9027551ee40b1c96ba81c28aa3e1a0fac105dc469efa83f6d3ee281b945c6fa8b4677bac26dda:53f757c5b08afad6:aa02d9289e1702e5d7ed1e4ebf35ab31c2688e00:aab8580015cf545ac0b7291d15a4f2c79e06defd:944a0df3939f3bd281c9d05fbc0e3d30";
 static const char *ST_HASH_05400 = "266b43c54636c062b6696b71f24b30999c98bd4c3ba57e2de56a7ae50bb17ebcbca1abcd33e9ad466d4df6e6f2a407600f0c5a983f79d493b0a3694080a81143d4bac7a8b7b008ae5364a04688b3cfae44824885ca96ade1e395936567ecad519b502c3a786c72847f79c67b777feb8ba4f747303eb985709e92b3a5634f6513:60f861c6209c9c996ac0dcb49d6f6809faaaf0e8eb8041fe603a918170a801e94ab8ab10c5906d850f4282c0668029fa69dbc8576f7d86633dc2b21f0d79aa06342b02a4d2732841cd3266b84a7eb49ac489b307ba55562a17741142bac7712025f0a8cad59b11f19d9b756ce998176fd6b063df556957b257b3645549a138c2:f4dd079ed2b60e77:f1f8da1f38f76923:fd862602549f6949b33870f186d96cb8926a19d78442c02af823460740be719eba41a79388aeefb072e1ec7cb46b2f0b72e21fb30bd3a6568d2b041af7f9dc0c9cce27ed577e5aabb9ab6c405f1c4b189adbee8c9fb6abf4788b63a3ae05a02c192187b9d7246efe5e46db9b01bf8f4be05f7599ae52bf137743e41d90dceb85bd6ae07397dcc168bbc904adfebb08e6bc67e653edeee97a7e4ab9dab5e63fec:56e3f0d49ea70514:e754055008febe970053d795d26bfe609f42eda8:0c3283efd6396e7a2ecb008e1933fccb694a4ac0:8f79167724f4bdb2d76ee5d5e502b665e3445ea6";
-static const char *ST_HASH_05500 = "::5V4T:ada06359242920a500000000000000000000000000000000:0556d5297b5daa70eaffde82ef99293a3f3bb59b7c9704ea:9c23f6c094853920";
-static const char *ST_HASH_05600 = "0UL5G37JOI0SX::6VB1IS0KA74:ebe1afa18b7fbfa6:aab8bf8675658dd2a939458a1077ba08:010100000000000031c8aa092510945398b9f7b7dde1a9fb00000000f7876f2b04b700";
 static const char *ST_HASH_05700 = "2btjjy78REtmYkkW0csHUbJZOstRXoWdX1mGrmmfeHI";
 static const char *ST_HASH_05800 = "3edde1eb9e6679ccbc1ff3c417e8a475a2d2e279:7724368582277760";
 static const char *ST_HASH_06000 = "012cb9b334ec1aeb71a9c8ce85586082467f7eb6";
@@ -458,7 +453,6 @@ static const char *ST_HASH_13772 = "0f5da0b17c60edcd392058752ec29c389b140b54cd1f
 static const char *ST_HASH_13773 = "18d2e8314961850f8fc26d2bc6f896db9c4eee301b5fa7295615166552b2422042c6cf6212187ec9c0234908e7934009c23ceed0c4858a7a4deecbc59b50a303afdc7d583cde1b0c06f0bf56162ef1d6d8df8f194aadcbe395780b3d1d7127faf39910eb10f4805abdd1c3ef7a66972603124a475e2b9224699e60a9e12f4096597f20c5fb0528f590d7bd317e41dc6a2128cf5e58a99803a28c213feb8286350b1d7ab56d43bb52e511f3c860e5002472a4454a549509c8ce0c34f17ece23d5b61aa7c63389c8ca44ed10c2caae03e7ed30b3ef98565926d7e4f3a2a9abf03b278083bed7aaadd78d5bffb7cd45ffae92990c06d9e9f375a77a94226035d1f90e177c46a04dab416dfb7ed7c4ed9ee7e84580bed65c5fee9f4b1545b9a7cf6af533870d393eced609aebe308ec1eee3729da09eb7df7a8d1282b15c4a1b8266a456c06b4ea20c209c549d5d6b58a861f8e15cca3b6cef114accbf470ec76d717f6d7d416d7a32f064ab560c1167f9ef4e93310fbd927b088bffbb0cf5d5c2e271c9cad4c604e489e9983a990b23e1a2f973682fdfe38df385474f73ecdc9bce701d01d627192d3051240f4b96bbdcf2346b275e05aa75add4acb97b286cc00e830fee95d0f86a8b1e315ccb6f3f8642180392b3baac01ed2c97c200489b5e5ca4dcb0a6417e622b6196482a10e640b2b6b08e3f62acac3d45dfc6b88c666205";
 static const char *ST_HASH_13800 = "060a4a94cb2263bcefe74705bd0efe7643d09c2bc25fc69f6a32c1b8d5a5d0d9:4647316184156410832507278642444030512402463246148636510356103432440257733102761444262383653100802140838605535187005586063548643765207865344068042278454875021452355870320020868064506248840047414683714173748364871633802572014845467035357710118327480707136422";
 static const char *ST_HASH_13900 = "058c1c3773340c8563421e2b17e60eb7c916787e:827500576";
-static const char *ST_HASH_14100 = "4c29eea59d8db1e7:7428288455525516";
 static const char *ST_HASH_14400 = "fcdc7ec700b887e8eaebf94c2ec52aebb5521223:63038426024388230227";
 static const char *ST_HASH_14700 = "$itunes_backup$*9*ebd7f9b33293b2511f0a4139d5b213feff51476968863cef60ec38d720497b6ff39a0bb63fa9f84e*10000*2202015774208421818002001652122401871832**";
 static const char *ST_HASH_14800 = "$itunes_backup$*10*17a3b858e79bc273be43a9f113b71efe7ec8e7e401396b350180b4592ef45db67ffef7b2d64329a5*10000*2721336781705041205314422175267631184867*1000*99fafc983e732998adb9fadc162a2e382143f115";
@@ -541,7 +535,6 @@ static const char *HT_04900 = "sha1($salt.$pass.$salt)";
 static const char *HT_05200 = "Password Safe v3";
 static const char *HT_05300 = "IKE-PSK MD5";
 static const char *HT_05400 = "IKE-PSK SHA1";
-static const char *HT_05500 = "NetNTLMv1 / NetNTLMv1+ESS";
 static const char *HT_05700 = "Cisco-IOS type 4 (SHA256)";
 static const char *HT_05800 = "Samsung Android Password/PIN";
 static const char *HT_06000 = "RIPEMD-160";
@@ -632,7 +625,6 @@ static const char *HT_13500 = "PeopleSoft PS_TOKEN";
 static const char *HT_13600 = "WinZip";
 static const char *HT_13800 = "Windows Phone 8+ PIN/password";
 static const char *HT_13900 = "OpenCart";
-static const char *HT_14100 = "3DES (PT = $salt, key = $pass)";
 static const char *HT_14400 = "sha1(CX)";
 static const char *HT_14600 = "LUKS";
 static const char *HT_14700 = "iTunes backup < 10.0";
@@ -3960,247 +3952,6 @@ int md5asa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  return (PARSER_OK);
-}
-
-static void transform_netntlmv1_key (const u8 *nthash, u8 *key)
-{
-  key[0] =                    (nthash[0] >> 0);
-  key[1] = (nthash[0] << 7) | (nthash[1] >> 1);
-  key[2] = (nthash[1] << 6) | (nthash[2] >> 2);
-  key[3] = (nthash[2] << 5) | (nthash[3] >> 3);
-  key[4] = (nthash[3] << 4) | (nthash[4] >> 4);
-  key[5] = (nthash[4] << 3) | (nthash[5] >> 5);
-  key[6] = (nthash[5] << 2) | (nthash[6] >> 6);
-  key[7] = (nthash[6] << 1);
-
-  key[0] |= 0x01;
-  key[1] |= 0x01;
-  key[2] |= 0x01;
-  key[3] |= 0x01;
-  key[4] |= 0x01;
-  key[5] |= 0x01;
-  key[6] |= 0x01;
-  key[7] |= 0x01;
-}
-
-int netntlmv1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  netntlm_t *netntlm = (netntlm_t *) hash_buf->esalt;
-
-  token_t token;
-
-  token.token_cnt  = 6;
-
-  // username
-  token.len_min[0] = 0;
-  token.len_max[0] = 60;
-  token.sep[0]     = ':';
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  // unused
-  token.len_min[1] = 0;
-  token.len_max[1] = 0;
-  token.sep[1]     = ':';
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  // domain
-  token.len_min[2] = 0;
-  token.len_max[2] = 45;
-  token.sep[2]     = ':';
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  // lm response
-  token.len_min[3] = 0;
-  token.len_max[3] = 48;
-  token.sep[3]     = ':';
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  // ntlm response
-  token.len_min[4] = 48;
-  token.len_max[4] = 48;
-  token.sep[4]     = ':';
-  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  // challenge
-  token.len_min[5] = 16;
-  token.len_max[5] = 16;
-  token.sep[5]     = ':';
-  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *user_pos     = token.buf[0];
-  const u8 *domain_pos   = token.buf[2];
-  const u8 *srvchall_pos = token.buf[3];
-  const u8 *hash_pos     = token.buf[4];
-  const u8 *clichall_pos = token.buf[5];
-
-  const int user_len     = token.len[0];
-  const int domain_len   = token.len[2];
-  const int srvchall_len = token.len[3];
-  const int clichall_len = token.len[5];
-
-  /**
-   * store some data for later use
-   */
-
-  netntlm->user_len     = user_len     * 2;
-  netntlm->domain_len   = domain_len   * 2;
-  netntlm->srvchall_len = srvchall_len / 2;
-  netntlm->clichall_len = clichall_len / 2;
-
-  u8 *userdomain_ptr = (u8 *) netntlm->userdomain_buf;
-  u8 *chall_ptr      = (u8 *) netntlm->chall_buf;
-
-  /**
-   * handle username and domainname
-   */
-
-  for (int i = 0; i < user_len; i++)
-  {
-    *userdomain_ptr++ = user_pos[i];
-    *userdomain_ptr++ = 0;
-  }
-
-  for (int i = 0; i < domain_len; i++)
-  {
-    *userdomain_ptr++ = domain_pos[i];
-    *userdomain_ptr++ = 0;
-  }
-
-  /**
-   * handle server challenge encoding
-   */
-
-  for (int i = 0; i < srvchall_len; i += 2)
-  {
-    const u8 p0 = srvchall_pos[i + 0];
-    const u8 p1 = srvchall_pos[i + 1];
-
-    *chall_ptr++ = hex_convert (p1) << 0
-                 | hex_convert (p0) << 4;
-  }
-
-  /**
-   * handle client challenge encoding
-   */
-
-  for (int i = 0; i < clichall_len; i += 2)
-  {
-    const u8 p0 = clichall_pos[i + 0];
-    const u8 p1 = clichall_pos[i + 1];
-
-    *chall_ptr++ = hex_convert (p1) << 0
-                 | hex_convert (p0) << 4;
-  }
-
-  /**
-   * store data
-   */
-
-  const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, clichall_pos, clichall_len, hashconfig);
-
-  if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  digest[0] = hex_to_u32 (hash_pos +  0);
-  digest[1] = hex_to_u32 (hash_pos +  8);
-  digest[2] = hex_to_u32 (hash_pos + 16);
-  digest[3] = hex_to_u32 (hash_pos + 24);
-
-  /* special case, last 8 byte do not need to be checked since they are brute-forced next */
-
-  u32 digest_tmp[2];
-
-  digest_tmp[0] = hex_to_u32 (hash_pos + 32);
-  digest_tmp[1] = hex_to_u32 (hash_pos + 40);
-
-  /* special case 2: ESS */
-
-  if (srvchall_len == 48)
-  {
-    if ((netntlm->chall_buf[2] == 0) && (netntlm->chall_buf[3] == 0) && (netntlm->chall_buf[4] == 0) && (netntlm->chall_buf[5] == 0))
-    {
-      u32 w[16] = { 0 };
-
-      w[ 0] = salt->salt_buf[0];
-      w[ 1] = salt->salt_buf[1];
-      w[ 2] = netntlm->chall_buf[0];
-      w[ 3] = netntlm->chall_buf[1];
-      w[ 4] = 0x80;
-      w[14] = 16 * 8;
-
-      u32 dgst[4] = { 0 };
-
-      dgst[0] = MD5M_A;
-      dgst[1] = MD5M_B;
-      dgst[2] = MD5M_C;
-      dgst[3] = MD5M_D;
-
-      md5_64 (w, dgst);
-
-      salt->salt_buf[0] = dgst[0];
-      salt->salt_buf[1] = dgst[1];
-    }
-  }
-
-  /* precompute netntlmv1 exploit start */
-
-  for (u32 i = 0; i < 0x10000; i++)
-  {
-    u32 key_md4[2] = { i, 0 };
-    u32 key_des[2] = { 0, 0 };
-
-    transform_netntlmv1_key ((u8 *) key_md4, (u8 *) key_des);
-
-    u32 Kc[16] = { 0 };
-    u32 Kd[16] = { 0 };
-
-    _des_keysetup (key_des, Kc, Kd);
-
-    u32 data3[2] = { salt->salt_buf[0], salt->salt_buf[1] };
-
-    _des_encrypt (data3, Kc, Kd);
-
-    if (data3[0] != digest_tmp[0]) continue;
-    if (data3[1] != digest_tmp[1]) continue;
-
-    salt->salt_buf[2] = i;
-
-    salt->salt_len = 24;
-
-    break;
-  }
-
-  salt->salt_buf_pc[0] = digest_tmp[0];
-  salt->salt_buf_pc[1] = digest_tmp[1];
-
-  /* precompute netntlmv1 exploit stop */
-
-  u32 tt;
-
-  IP (digest[0], digest[1], tt);
-  IP (digest[2], digest[3], tt);
-
-  digest[0] = rotr32 (digest[0], 29);
-  digest[1] = rotr32 (digest[1], 29);
-  digest[2] = rotr32 (digest[2], 29);
-  digest[3] = rotr32 (digest[3], 29);
-
-  IP (salt->salt_buf[0], salt->salt_buf[1], tt);
-
-  salt->salt_buf[0] = rotl32 (salt->salt_buf[0], 3);
-  salt->salt_buf[1] = rotl32 (salt->salt_buf[1], 3);
 
   return (PARSER_OK);
 }
@@ -16943,18 +16694,6 @@ u32 kernel_threads_mxx (hashcat_ctx_t *hashcat_ctx)
 u32 kernel_loops_mxx (hashcat_ctx_t *hashcat_ctx)
 {
 
-  if (user_options->slow_candidates == true)
-  {
-  }
-  else
-  {
-    // respect the slow_candidates, too
-
-    if (hashconfig->hash_mode == 14100 && user_options->attack_mode == ATTACK_MODE_BF)
-    {
-      kernel_loops_fixed = 1024;
-    }
-  }
 
   if (hashconfig->hash_mode == 8900)
   {
@@ -17087,8 +16826,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                   break;
       case 12600: salt->salt_len = 64;
                   break;
-      case 14100: salt->salt_len = 8;
-                  break;
       case 14600: salt->salt_len = LUKS_SALTSIZE;
                   break;
       case 14700: salt->salt_len = 20;
@@ -17127,11 +16864,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                   break;
       case  5400: ((ikepsk_t *)           esalt)->nr_len        = 1;
                   ((ikepsk_t *)           esalt)->msg_len[5]    = 1;
-                  break;
-      case  5500: ((netntlm_t *)          esalt)->user_len      = 1;
-                  ((netntlm_t *)          esalt)->domain_len    = 1;
-                  ((netntlm_t *)          esalt)->srvchall_len  = 1;
-                  ((netntlm_t *)          esalt)->clichall_len  = 1;
                   break;
       case  7300: ((rakp_t *)             esalt)->salt_len      = 32;
                   break;
@@ -17948,57 +17680,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       buf_len -= 8;
       out_buf += 8;
     }
-  }
-  else if (hash_mode == 5500)
-  {
-    netntlm_t *netntlms = (netntlm_t *) esalts_buf;
-
-    netntlm_t *netntlm = &netntlms[digest_cur];
-
-    char user_buf[64] = { 0 };
-    char domain_buf[64] = { 0 };
-    char srvchall_buf[1024] = { 0 };
-    char clichall_buf[1024] = { 0 };
-
-    for (u32 i = 0, j = 0; j < netntlm->user_len; i += 1, j += 2)
-    {
-      char *ptr = (char *) netntlm->userdomain_buf;
-
-      user_buf[i] = ptr[j];
-    }
-
-    for (u32 i = 0, j = 0; j < netntlm->domain_len; i += 1, j += 2)
-    {
-      char *ptr = (char *) netntlm->userdomain_buf;
-
-      domain_buf[i] = ptr[netntlm->user_len + j];
-    }
-
-    for (u32 i = 0, j = 0; i < netntlm->srvchall_len; i += 1, j += 2)
-    {
-      u8 *ptr = (u8 *) netntlm->chall_buf;
-
-      sprintf (srvchall_buf + j, "%02x", ptr[i]);
-    }
-
-    for (u32 i = 0, j = 0; i < netntlm->clichall_len; i += 1, j += 2)
-    {
-      u8 *ptr = (u8 *) netntlm->chall_buf;
-
-      sprintf (clichall_buf + j, "%02x", ptr[netntlm->srvchall_len + i]);
-    }
-
-    snprintf (out_buf, out_size, "%s::%s:%s:%08x%08x%08x%08x%08x%08x:%s",
-      user_buf,
-      domain_buf,
-      srvchall_buf,
-      digest_buf[0],
-      digest_buf[1],
-      digest_buf[2],
-      digest_buf[3],
-      byte_swap_32 (salt.salt_buf_pc[0]),
-      byte_swap_32 (salt.salt_buf_pc[1]),
-      clichall_buf);
   }
   else if (hash_mode == 5700)
   {
@@ -19737,10 +19418,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       digest_buf[6],
       digest_buf[7],
       buf);
-  }
-  else if (hash_mode == 14100)
-  {
-    snprintf (out_buf, out_size, "%08x%08x:%s", digest_buf[0], digest_buf[1], (char *) salt.salt_buf);
   }
   else if (hash_mode == 14400)
   {
@@ -22385,27 +22062,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case  5500:  hashconfig->hash_type      = HASH_TYPE_NETNTLM;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PT_ADD80
-                                            | OPTS_TYPE_PT_ADDBITS14
-                                            | OPTS_TYPE_PT_UTF16LE
-                                            | OPTS_TYPE_ST_HEX;
-                 hashconfig->kern_type      = KERN_TYPE_NETNTLMv1;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = netntlmv1_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_PERMUT;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_05500;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case  5700:  hashconfig->hash_type      = HASH_TYPE_SHA256;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -24685,25 +24341,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 14100:  hashconfig->hash_type      = HASH_TYPE_DES;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_ST_GENERATE_LE
-                                            | OPTS_TYPE_ST_HEX;
-                 hashconfig->kern_type      = KERN_TYPE_3DES;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
-                 hashconfig->parse_func     = des_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_PERMUT;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_14100;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_ONET3;
-                 break;
-
     case 14400:  hashconfig->hash_type      = HASH_TYPE_SHA1;
                  hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -25361,7 +24998,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   {
     case  5300: hashconfig->esalt_size = sizeof (ikepsk_t);             break;
     case  5400: hashconfig->esalt_size = sizeof (ikepsk_t);             break;
-    case  5500: hashconfig->esalt_size = sizeof (netntlm_t);            break;
     case  6211: hashconfig->esalt_size = sizeof (tc_t);                 break;
     case  6212: hashconfig->esalt_size = sizeof (tc_t);                 break;
     case  6213: hashconfig->esalt_size = sizeof (tc_t);                 break;
@@ -25577,7 +25213,6 @@ u32 default_pw_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
     case  9710: pw_min = 5;   break; // RC4-40 fixed
     case  9810: pw_min = 5;   break; // RC4-40 fixed
     case 10410: pw_min = 5;   break; // RC4-40 fixed
-    case 14100: pw_min = 24;  break; // 3DES fixed
     case 14900: pw_min = 10;  break; // Skip32 fixed
     case 15400: pw_min = 32;  break; // ChaCha20 fixed
   }
@@ -25729,7 +25364,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
     case 13771: pw_max = 64;      break; // VC limits itself to 64
     case 13772: pw_max = 64;      break; // VC limits itself to 64
     case 13773: pw_max = 64;      break; // VC limits itself to 64
-    case 14100: pw_max = 24;      break; // Underlaying 3DES fixed
     case 14611: pw_max = PW_MAX;  break;
     case 14612: pw_max = PW_MAX;  break;
     case 14613: pw_max = PW_MAX;  break;
@@ -25808,8 +25442,6 @@ const char *default_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig,
     case 10410: mask = "?b?b?b?b?b";
                 break;
     case 12500: mask = "?b?b?b?b?b";
-                break;
-    case 14100: mask = "?b?b?b?b?b?b?bxxxxxxxxxxxxxxxxx";
                 break;
     case 14900: mask = "?b?b?b?b?bxxxxx";
                 break;
@@ -26459,7 +26091,6 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
      || (hashconfig->hash_mode ==  9300)
      || (hashconfig->hash_mode ==  9800)
      || (hashconfig->hash_mode == 12500)
-     || (hashconfig->hash_mode == 14100)
      || (hashconfig->hash_mode == 15700))
     {
       return true;
@@ -26655,3 +26286,85 @@ static int hashconfig_general_defaults (hashcat_ctx_t *hashcat_ctx)
 
   return 0;
 }
+
+void decoder_apply_optimizer (const hashconfig_t *hashconfig, void *data)
+{
+  const u32 hash_type = hashconfig->hash_type;
+  const u32 opti_type = hashconfig->opti_type;
+
+  u32 *digest_buf   = (u32 *) data;
+  u64 *digest_buf64 = (u64 *) data;
+
+  if (opti_type & OPTI_TYPE_PRECOMPUTE_PERMUT)
+  {
+    u32 tt;
+
+    switch (hash_type)
+    {
+      case HASH_TYPE_DESRACF:
+        digest_buf[0] = rotl32 (digest_buf[0], 29);
+        digest_buf[1] = rotl32 (digest_buf[1], 29);
+
+        IP (digest_buf[0], digest_buf[1], tt);
+        break;
+
+      case HASH_TYPE_BSDICRYPT:
+        digest_buf[0] = rotl32 (digest_buf[0], 31);
+        digest_buf[1] = rotl32 (digest_buf[1], 31);
+
+        IP (digest_buf[0], digest_buf[1], tt);
+        break;
+    }
+  }
+
+}
+
+void encoder_apply_optimizer (const hashconfig_t *hashconfig, void *data)
+{
+  const u32 hash_type = hashconfig->hash_type;
+  const u32 opti_type = hashconfig->opti_type;
+
+  u32 *digest_buf   = (u32 *) data;
+  u64 *digest_buf64 = (u64 *) data;
+
+  if (opti_type & OPTI_TYPE_PRECOMPUTE_PERMUT)
+  {
+    u32 tt;
+
+    // dont trust this too much, was created untested
+
+
+        case HASH_TYPE_NETNTLM:
+
+          salt.salt_buf[0] = rotr32 (salt.salt_buf[0], 3);
+          salt.salt_buf[1] = rotr32 (salt.salt_buf[1], 3);
+
+          u32 tt;
+
+          FP (salt.salt_buf[1], salt.salt_buf[0], tt);
+
+          break;
+
+
+
+    switch (hash_type)
+    {
+      case HASH_TYPE_DESRACF:
+        digest_buf[0] = rotl32 (digest_buf[0], 29);
+        digest_buf[1] = rotl32 (digest_buf[1], 29);
+
+        FP (digest_buf[1], digest_buf[0], tt);
+        break;
+
+      case HASH_TYPE_BSDICRYPT:
+        digest_buf[0] = rotl32 (digest_buf[0], 31);
+        digest_buf[1] = rotl32 (digest_buf[1], 31);
+
+        FP (digest_buf[1], digest_buf[0], tt);
+        break;
+    }
+  }
+
+
+}
+

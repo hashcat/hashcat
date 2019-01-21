@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "cpu_des.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -18,7 +19,7 @@ static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_OS;
 static const char *HASH_NAME      = "descrypt, DES (Unix), Traditional DES";
-static const u32   HASH_TYPE      = HASH_TYPE_DESCRYPT;
+static const u32   HASH_TYPE      = HASH_TYPE_GENERIC;
 static const u64   KERN_TYPE      = 1500;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_PERMUT;
@@ -156,9 +157,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[2] = 0;
   digest[3] = 0;
 
-  decoder_apply_options (hashconfig, digest);
+  u32 tt;
 
-  decoder_apply_optimizer (hashconfig, digest);
+  IP (digest[0], digest[1], tt);
 
   return (PARSER_OK);
 }
@@ -177,9 +178,9 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   tmp[2] = 0;
   tmp[3] = 0;
 
-  encoder_apply_optimizer (hashconfig, tmp);
+  u32 tt;
 
-  encoder_apply_options (hashconfig, tmp);
+  FP (tmp[1], tmp[0], tt);
 
   u8 ptr_plain[20] = { 0 };
 

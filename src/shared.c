@@ -1128,98 +1128,54 @@ void decoder_apply_optimizer (const hashconfig_t *hashconfig, void *data)
   const u32 hash_type = hashconfig->hash_type;
   const u32 opti_type = hashconfig->opti_type;
 
-  u32 *digest_buf   = (u32 *) data;
+  u32 *digest_buf32 = (u32 *) data;
   u64 *digest_buf64 = (u64 *) data;
-
-  if (opti_type & OPTI_TYPE_PRECOMPUTE_PERMUT)
-  {
-    u32 tt;
-
-    switch (hash_type)
-    {
-      case HASH_TYPE_DES:
-        IP (digest_buf[0], digest_buf[1], tt);
-        break;
-
-      case HASH_TYPE_DESCRYPT:
-        IP (digest_buf[0], digest_buf[1], tt);
-        break;
-
-      case HASH_TYPE_DESRACF:
-        digest_buf[0] = rotl32 (digest_buf[0], 29);
-        digest_buf[1] = rotl32 (digest_buf[1], 29);
-
-        IP (digest_buf[0], digest_buf[1], tt);
-        break;
-
-      case HASH_TYPE_LM:
-        IP (digest_buf[0], digest_buf[1], tt);
-        break;
-
-      case HASH_TYPE_NETNTLM:
-        digest_buf[0] = rotl32 (digest_buf[0], 29);
-        digest_buf[1] = rotl32 (digest_buf[1], 29);
-        digest_buf[2] = rotl32 (digest_buf[2], 29);
-        digest_buf[3] = rotl32 (digest_buf[3], 29);
-
-        IP (digest_buf[0], digest_buf[1], tt);
-        IP (digest_buf[2], digest_buf[3], tt);
-        break;
-
-      case HASH_TYPE_BSDICRYPT:
-        digest_buf[0] = rotl32 (digest_buf[0], 31);
-        digest_buf[1] = rotl32 (digest_buf[1], 31);
-
-        IP (digest_buf[0], digest_buf[1], tt);
-        break;
-    }
-  }
 
   if (opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
   {
     switch (hash_type)
     {
       case HASH_TYPE_MD4:
-        digest_buf[0] -= MD4M_A;
-        digest_buf[1] -= MD4M_B;
-        digest_buf[2] -= MD4M_C;
-        digest_buf[3] -= MD4M_D;
+        digest_buf32[0] -= MD4M_A;
+        digest_buf32[1] -= MD4M_B;
+        digest_buf32[2] -= MD4M_C;
+        digest_buf32[3] -= MD4M_D;
         break;
 
       case HASH_TYPE_MD5:
-        digest_buf[0] -= MD5M_A;
-        digest_buf[1] -= MD5M_B;
-        digest_buf[2] -= MD5M_C;
-        digest_buf[3] -= MD5M_D;
+        digest_buf32[0] -= MD5M_A;
+        digest_buf32[1] -= MD5M_B;
+        digest_buf32[2] -= MD5M_C;
+        digest_buf32[3] -= MD5M_D;
         break;
 
       case HASH_TYPE_SHA1:
-        digest_buf[0] -= SHA1M_A;
-        digest_buf[1] -= SHA1M_B;
-        digest_buf[2] -= SHA1M_C;
-        digest_buf[3] -= SHA1M_D;
-        digest_buf[4] -= SHA1M_E;
+        digest_buf32[0] -= SHA1M_A;
+        digest_buf32[1] -= SHA1M_B;
+        digest_buf32[2] -= SHA1M_C;
+        digest_buf32[3] -= SHA1M_D;
+        digest_buf32[4] -= SHA1M_E;
         break;
 
       case HASH_TYPE_SHA224:
-        digest_buf[0] -= SHA224M_A;
-        digest_buf[1] -= SHA224M_B;
-        digest_buf[2] -= SHA224M_C;
-        digest_buf[3] -= SHA224M_D;
-        digest_buf[4] -= SHA224M_E;
-        digest_buf[5] -= SHA224M_F;
-        digest_buf[6] -= SHA224M_G;
+        digest_buf32[0] -= SHA224M_A;
+        digest_buf32[1] -= SHA224M_B;
+        digest_buf32[2] -= SHA224M_C;
+        digest_buf32[3] -= SHA224M_D;
+        digest_buf32[4] -= SHA224M_E;
+        digest_buf32[5] -= SHA224M_F;
+        digest_buf32[6] -= SHA224M_G;
         break;
 
       case HASH_TYPE_SHA256:
-        digest_buf[0] -= SHA256M_A;
-        digest_buf[1] -= SHA256M_B;
-        digest_buf[2] -= SHA256M_C;
-        digest_buf[3] -= SHA256M_D;
-        digest_buf[4] -= SHA256M_E;
-        digest_buf[5] -= SHA256M_F;
-        digest_buf[6] -= SHA256M_G;
-        digest_buf[7] -= SHA256M_H;
+        digest_buf32[0] -= SHA256M_A;
+        digest_buf32[1] -= SHA256M_B;
+        digest_buf32[2] -= SHA256M_C;
+        digest_buf32[3] -= SHA256M_D;
+        digest_buf32[4] -= SHA256M_E;
+        digest_buf32[5] -= SHA256M_F;
+        digest_buf32[6] -= SHA256M_G;
+        digest_buf32[7] -= SHA256M_H;
         break;
 
       case HASH_TYPE_SHA384:
@@ -1252,98 +1208,54 @@ void encoder_apply_optimizer (const hashconfig_t *hashconfig, void *data)
   const u32 hash_type = hashconfig->hash_type;
   const u32 opti_type = hashconfig->opti_type;
 
-  u32 *digest_buf   = (u32 *) data;
+  u32 *digest_buf32 = (u32 *) data;
   u64 *digest_buf64 = (u64 *) data;
-
-  if (opti_type & OPTI_TYPE_PRECOMPUTE_PERMUT)
-  {
-    u32 tt;
-
-    switch (hash_type)
-    {
-      case HASH_TYPE_DES:
-        FP (digest_buf[1], digest_buf[0], tt);
-        break;
-
-      case HASH_TYPE_DESCRYPT:
-        FP (digest_buf[1], digest_buf[0], tt);
-        break;
-
-      case HASH_TYPE_DESRACF:
-        digest_buf[0] = rotl32 (digest_buf[0], 29);
-        digest_buf[1] = rotl32 (digest_buf[1], 29);
-
-        FP (digest_buf[1], digest_buf[0], tt);
-        break;
-
-      case HASH_TYPE_LM:
-        FP (digest_buf[1], digest_buf[0], tt);
-        break;
-
-      case HASH_TYPE_NETNTLM:
-        digest_buf[0] = rotl32 (digest_buf[0], 29);
-        digest_buf[1] = rotl32 (digest_buf[1], 29);
-        digest_buf[2] = rotl32 (digest_buf[2], 29);
-        digest_buf[3] = rotl32 (digest_buf[3], 29);
-
-        FP (digest_buf[1], digest_buf[0], tt);
-        FP (digest_buf[3], digest_buf[2], tt);
-        break;
-
-      case HASH_TYPE_BSDICRYPT:
-        digest_buf[0] = rotl32 (digest_buf[0], 31);
-        digest_buf[1] = rotl32 (digest_buf[1], 31);
-
-        FP (digest_buf[1], digest_buf[0], tt);
-        break;
-    }
-  }
 
   if (opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
   {
     switch (hash_type)
     {
       case HASH_TYPE_MD4:
-        digest_buf[0] += MD4M_A;
-        digest_buf[1] += MD4M_B;
-        digest_buf[2] += MD4M_C;
-        digest_buf[3] += MD4M_D;
+        digest_buf32[0] += MD4M_A;
+        digest_buf32[1] += MD4M_B;
+        digest_buf32[2] += MD4M_C;
+        digest_buf32[3] += MD4M_D;
         break;
 
       case HASH_TYPE_MD5:
-        digest_buf[0] += MD5M_A;
-        digest_buf[1] += MD5M_B;
-        digest_buf[2] += MD5M_C;
-        digest_buf[3] += MD5M_D;
+        digest_buf32[0] += MD5M_A;
+        digest_buf32[1] += MD5M_B;
+        digest_buf32[2] += MD5M_C;
+        digest_buf32[3] += MD5M_D;
         break;
 
       case HASH_TYPE_SHA1:
-        digest_buf[0] += SHA1M_A;
-        digest_buf[1] += SHA1M_B;
-        digest_buf[2] += SHA1M_C;
-        digest_buf[3] += SHA1M_D;
-        digest_buf[4] += SHA1M_E;
+        digest_buf32[0] += SHA1M_A;
+        digest_buf32[1] += SHA1M_B;
+        digest_buf32[2] += SHA1M_C;
+        digest_buf32[3] += SHA1M_D;
+        digest_buf32[4] += SHA1M_E;
         break;
 
       case HASH_TYPE_SHA224:
-        digest_buf[0] += SHA224M_A;
-        digest_buf[1] += SHA224M_B;
-        digest_buf[2] += SHA224M_C;
-        digest_buf[3] += SHA224M_D;
-        digest_buf[4] += SHA224M_E;
-        digest_buf[5] += SHA224M_F;
-        digest_buf[6] += SHA224M_G;
+        digest_buf32[0] += SHA224M_A;
+        digest_buf32[1] += SHA224M_B;
+        digest_buf32[2] += SHA224M_C;
+        digest_buf32[3] += SHA224M_D;
+        digest_buf32[4] += SHA224M_E;
+        digest_buf32[5] += SHA224M_F;
+        digest_buf32[6] += SHA224M_G;
         break;
 
       case HASH_TYPE_SHA256:
-        digest_buf[0] += SHA256M_A;
-        digest_buf[1] += SHA256M_B;
-        digest_buf[2] += SHA256M_C;
-        digest_buf[3] += SHA256M_D;
-        digest_buf[4] += SHA256M_E;
-        digest_buf[5] += SHA256M_F;
-        digest_buf[6] += SHA256M_G;
-        digest_buf[7] += SHA256M_H;
+        digest_buf32[0] += SHA256M_A;
+        digest_buf32[1] += SHA256M_B;
+        digest_buf32[2] += SHA256M_C;
+        digest_buf32[3] += SHA256M_D;
+        digest_buf32[4] += SHA256M_E;
+        digest_buf32[5] += SHA256M_F;
+        digest_buf32[6] += SHA256M_G;
+        digest_buf32[7] += SHA256M_H;
         break;
 
       case HASH_TYPE_SHA384:

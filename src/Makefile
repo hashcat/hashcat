@@ -389,7 +389,7 @@ WIN_64_OBJS             += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).WIN.64.o)
 endif
 endif
 
-MODULE_OBJS_ALL                 := bitops convert cpu_aes cpu_md5 memory shared
+MODULE_OBJS_ALL                 := bitops convert cpu_aes cpu_des cpu_md5 memory shared
 
 MODULE_NATIVE_STATIC_OBJS       := $(foreach OBJ,$(MODULE_OBJS_ALL),obj/$(OBJ).NATIVE.STATIC.o)
 MODULE_NATIVE_SHARED_OBJS       := $(foreach OBJ,$(MODULE_OBJS_ALL),obj/$(OBJ).NATIVE.SHARED.o)

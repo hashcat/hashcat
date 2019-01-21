@@ -11,25 +11,29 @@
 #include "shared.h"
 #include "cpu_des.h"
 #include "cpu_md5.h"
+#include "inc_hash_constants.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
-static const u32   DGST_POS1      = 3;
+static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
-static const u32   DGST_POS3      = 1;
+static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_NETWORK_PROTOCOL;
-static const char *HASH_NAME      = "NetNTLMv2";
+static const char *HASH_NAME      = "NetNTLMv1 / NetNTLMv1+ESS";
 static const u32   HASH_TYPE      = HASH_TYPE_GENERIC;
-static const u64   KERN_TYPE      = 5600;
-static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
+static const u64   KERN_TYPE      = 5500;
+static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
+                                  | OPTI_TYPE_PRECOMPUTE_PERMUT;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STATE_BUFFER_LE
+                                  | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_PT_ADD80
                                   | OPTS_TYPE_PT_ADDBITS14
-                                  | OPTS_TYPE_PT_UTF16LE;
+                                  | OPTS_TYPE_PT_UTF16LE
+                                  | OPTS_TYPE_ST_HEX;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "0UL5G37JOI0SX::6VB1IS0KA74:ebe1afa18b7fbfa6:aab8bf8675658dd2a939458a1077ba08:010100000000000031c8aa092510945398b9f7b7dde1a9fb00000000f7876f2b04b700";
+static const char *ST_HASH        = "::5V4T:ada06359242920a500000000000000000000000000000000:0556d5297b5daa70eaffde82ef99293a3f3bb59b7c9704ea:9c23f6c094853920";
 
 typedef struct netntlm
 {
@@ -58,6 +62,27 @@ u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return SALT_TYPE;       }
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
+
+static void transform_netntlmv1_key (const u8 *nthash, u8 *key)
+{
+  key[0] =                    (nthash[0] >> 0);
+  key[1] = (nthash[0] << 7) | (nthash[1] >> 1);
+  key[2] = (nthash[1] << 6) | (nthash[2] >> 2);
+  key[3] = (nthash[2] << 5) | (nthash[3] >> 3);
+  key[4] = (nthash[3] << 4) | (nthash[4] >> 4);
+  key[5] = (nthash[4] << 3) | (nthash[5] >> 5);
+  key[6] = (nthash[5] << 2) | (nthash[6] >> 6);
+  key[7] = (nthash[6] << 1);
+
+  key[0] |= 0x01;
+  key[1] |= 0x01;
+  key[2] |= 0x01;
+  key[3] |= 0x01;
+  key[4] |= 0x01;
+  key[5] |= 0x01;
+  key[6] |= 0x01;
+  key[7] |= 0x01;
+}
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -95,22 +120,22 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   // lm response
-  token.len_min[3] = 16;
-  token.len_max[3] = 16;
+  token.len_min[3] = 0;
+  token.len_max[3] = 48;
   token.sep[3]     = ':';
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   // ntlm response
-  token.len_min[4] = 32;
-  token.len_max[4] = 32;
+  token.len_min[4] = 48;
+  token.len_max[4] = 48;
   token.sep[4]     = ':';
   token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   // challenge
-  token.len_min[5] = 2;
-  token.len_max[5] = 1024;
+  token.len_min[5] = 16;
+  token.len_max[5] = 16;
   token.sep[5]     = ':';
   token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
@@ -148,7 +173,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (int i = 0; i < user_len; i++)
   {
-    *userdomain_ptr++ = toupper (user_pos[i]);
+    *userdomain_ptr++ = user_pos[i];
     *userdomain_ptr++ = 0;
   }
 
@@ -157,8 +182,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     *userdomain_ptr++ = domain_pos[i];
     *userdomain_ptr++ = 0;
   }
-
-  *userdomain_ptr++ = 0x80;
 
   /**
    * handle server challenge encoding
@@ -186,47 +209,102 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                  | hex_convert (p0) << 4;
   }
 
-  *chall_ptr++ = 0x80;
-
   /**
-   * handle hash itself
+   * store data
    */
+
+  const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, clichall_pos, clichall_len, hashconfig);
+
+  if (parse_rc == false) return (PARSER_SALT_LENGTH);
 
   digest[0] = hex_to_u32 (hash_pos +  0);
   digest[1] = hex_to_u32 (hash_pos +  8);
   digest[2] = hex_to_u32 (hash_pos + 16);
   digest[3] = hex_to_u32 (hash_pos + 24);
 
-  /**
-   * reuse challange data as salt_buf, its the buffer that is most likely unique
-   */
+  /* special case, last 8 byte do not need to be checked since they are brute-forced next */
 
-  salt->salt_buf[0] = 0;
-  salt->salt_buf[1] = 0;
-  salt->salt_buf[2] = 0;
-  salt->salt_buf[3] = 0;
-  salt->salt_buf[4] = 0;
-  salt->salt_buf[5] = 0;
-  salt->salt_buf[6] = 0;
-  salt->salt_buf[7] = 0;
+  u32 digest_tmp[2];
 
-  u32 *uptr;
+  digest_tmp[0] = hex_to_u32 (hash_pos + 32);
+  digest_tmp[1] = hex_to_u32 (hash_pos + 40);
 
-  uptr = (u32 *) netntlm->userdomain_buf;
+  /* special case 2: ESS */
 
-  for (u32 i = 0; i < 64; i += 16, uptr += 16)
+  if (srvchall_len == 48)
   {
-    md5_64 (uptr, salt->salt_buf);
+    if ((netntlm->chall_buf[2] == 0) && (netntlm->chall_buf[3] == 0) && (netntlm->chall_buf[4] == 0) && (netntlm->chall_buf[5] == 0))
+    {
+      u32 w[16] = { 0 };
+
+      w[ 0] = salt->salt_buf[0];
+      w[ 1] = salt->salt_buf[1];
+      w[ 2] = netntlm->chall_buf[0];
+      w[ 3] = netntlm->chall_buf[1];
+      w[ 4] = 0x80;
+      w[14] = 16 * 8;
+
+      u32 dgst[4] = { 0 };
+
+      dgst[0] = MD5M_A;
+      dgst[1] = MD5M_B;
+      dgst[2] = MD5M_C;
+      dgst[3] = MD5M_D;
+
+      md5_64 (w, dgst);
+
+      salt->salt_buf[0] = dgst[0];
+      salt->salt_buf[1] = dgst[1];
+    }
   }
 
-  uptr = (u32 *) netntlm->chall_buf;
+  /* precompute netntlmv1 exploit start */
 
-  for (u32 i = 0; i < 256; i += 16, uptr += 16)
+  for (u32 i = 0; i < 0x10000; i++)
   {
-    md5_64 (uptr, salt->salt_buf);
+    u32 key_md4[2] = { i, 0 };
+    u32 key_des[2] = { 0, 0 };
+
+    transform_netntlmv1_key ((u8 *) key_md4, (u8 *) key_des);
+
+    u32 Kc[16] = { 0 };
+    u32 Kd[16] = { 0 };
+
+    _des_keysetup (key_des, Kc, Kd);
+
+    u32 data3[2] = { salt->salt_buf[0], salt->salt_buf[1] };
+
+    _des_encrypt (data3, Kc, Kd);
+
+    if (data3[0] != digest_tmp[0]) continue;
+    if (data3[1] != digest_tmp[1]) continue;
+
+    salt->salt_buf[2] = i;
+
+    salt->salt_len = 24;
+
+    break;
   }
 
-  salt->salt_len = 16;
+  salt->salt_buf_pc[0] = digest_tmp[0];
+  salt->salt_buf_pc[1] = digest_tmp[1];
+
+  /* precompute netntlmv1 exploit stop */
+
+  u32 tt;
+
+  IP (digest[0], digest[1], tt);
+  IP (digest[2], digest[3], tt);
+
+  digest[0] = rotr32 (digest[0], 29);
+  digest[1] = rotr32 (digest[1], 29);
+  digest[2] = rotr32 (digest[2], 29);
+  digest[3] = rotr32 (digest[3], 29);
+
+  IP (salt->salt_buf[0], salt->salt_buf[1], tt);
+
+  salt->salt_buf[0] = rotl32 (salt->salt_buf[0], 3);
+  salt->salt_buf[1] = rotl32 (salt->salt_buf[1], 3);
 
   return (PARSER_OK);
 }
@@ -246,6 +324,16 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   tmp[1] = digest[1];
   tmp[2] = digest[2];
   tmp[3] = digest[3];
+
+  u32 tt;
+
+  tmp[0] = rotl32 (tmp[0], 29);
+  tmp[1] = rotl32 (tmp[1], 29);
+  tmp[2] = rotl32 (tmp[2], 29);
+  tmp[3] = rotl32 (tmp[3], 29);
+
+  FP (tmp[1], tmp[0], tt);
+  FP (tmp[3], tmp[2], tt);
 
   u8 *out_buf = (u8 *) line_buf;
 
@@ -285,6 +373,9 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   u32_to_hex (tmp[1], out_buf + out_len); out_len += 8;
   u32_to_hex (tmp[2], out_buf + out_len); out_len += 8;
   u32_to_hex (tmp[3], out_buf + out_len); out_len += 8;
+
+  u32_to_hex (salt->salt_buf_pc[0], out_buf + out_len); out_len += 8;
+  u32_to_hex (salt->salt_buf_pc[1], out_buf + out_len); out_len += 8;
 
   out_buf[out_len++] = ':';
 
