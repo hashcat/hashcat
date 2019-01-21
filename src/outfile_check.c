@@ -194,111 +194,120 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
         if (line_len == 0) continue;
 
-        char *last_separator = strrchr (line_buf, separator);
+        // this fake separator is used to enable loading outfiles without password
 
-        if (last_separator == NULL) continue; // ??
+        line_buf[line_len] = separator;
 
-        char *line_pw_buf = last_separator + 1;
+        line_len++;
 
-        size_t line_pw_len = line_buf + line_len - line_pw_buf;
-
-        char *line_hash_buf = line_buf;
-
-        int line_hash_len = last_separator - line_buf;
-
-        line_hash_buf[line_hash_len] = 0;
-
-        if (line_hash_len == 0) continue;
-
-        if (hashconfig->is_salted == true)
+        for (int tries = 0; tries < PW_MAX; tries++)
         {
-          memset (hash_buf.salt, 0, sizeof (salt_t));
-        }
+          char *last_separator = strrchr (line_buf, separator);
 
-        if (hashconfig->esalt_size > 0)
-        {
-          memset (hash_buf.esalt, 0, hashconfig->esalt_size);
-        }
+          if (last_separator == NULL) break;
 
-        if (hashconfig->hook_salt_size > 0)
-        {
-          memset (hash_buf.hook_salt, 0, hashconfig->hook_salt_size);
-        }
+          char *line_pw_buf = last_separator + 1;
 
-        int parser_status = PARSER_HASH_LENGTH;
+          size_t line_pw_len = line_buf + line_len - line_pw_buf;
 
-        if (module_ctx->module_hash_decode_outfile != MODULE_DEFAULT)
-        {
-          parser_status = module_ctx->module_hash_decode_outfile (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hash_info, line_buf, line_len - 1);
-        }
-        else
-        {
-          // "normal" case: hash in the outfile is the same as the hash in the original hash file
+          char *line_hash_buf = line_buf;
 
-          parser_status = module_ctx->module_hash_decode (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hash_info, line_buf, line_len - 1);
-        }
+          int line_hash_len = last_separator - line_buf;
 
-        if (parser_status != PARSER_OK) continue;
+          line_hash_buf[line_hash_len] = 0;
 
-        salt_t *salt_buf = salts_buf;
+          if (line_hash_len == 0) continue;
 
-        if (is_salted == true)
-        {
-          salt_buf = (salt_t *) hc_bsearch_r (hash_buf.salt, salts_buf, salts_cnt, sizeof (salt_t), sort_by_salt_buf, (void *) hashconfig);
-        }
-
-        if (salt_buf == NULL) continue;
-
-        const u32 salt_pos = salt_buf - salts_buf; // the offset from the start of the array (unit: sizeof (salt_t))
-
-        if (hashes->salts_shown[salt_pos] == 1) break; // already marked as cracked (no action needed)
-
-        u32 idx = salt_buf->digests_offset;
-
-        bool cracked = false;
-
-        if (hashconfig->outfile_check_nocomp == true)
-        {
-          cracked = true;
-        }
-        else
-        {
-          char *digests_buf_ptr = digests_buf + (salt_buf->digests_offset * dgst_size);
-          u32   digests_buf_cnt = salt_buf->digests_cnt;
-
-          char *digest_buf = (char *) hc_bsearch_r (hash_buf.digest, digests_buf_ptr, digests_buf_cnt, dgst_size, sort_by_digest_p0p1, (void *) hashconfig);
-
-          if (digest_buf != NULL)
+          if (hashconfig->is_salted == true)
           {
-            idx += (digest_buf - digests_buf_ptr) / dgst_size;
+            memset (hash_buf.salt, 0, sizeof (salt_t));
+          }
 
-            if (hashes->digests_shown[idx] == 1) break;
+          if (hashconfig->esalt_size > 0)
+          {
+            memset (hash_buf.esalt, 0, hashconfig->esalt_size);
+          }
 
+          if (hashconfig->hook_salt_size > 0)
+          {
+            memset (hash_buf.hook_salt, 0, hashconfig->hook_salt_size);
+          }
+
+          int parser_status = PARSER_HASH_LENGTH;
+
+          if (module_ctx->module_hash_decode_outfile != MODULE_DEFAULT)
+          {
+            parser_status = module_ctx->module_hash_decode_outfile (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hash_info, line_buf, line_len - 1);
+          }
+          else
+          {
+            // "normal" case: hash in the outfile is the same as the hash in the original hash file
+
+            parser_status = module_ctx->module_hash_decode (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hash_info, line_buf, line_len - 1);
+          }
+
+          if (parser_status != PARSER_OK) continue;
+
+          salt_t *salt_buf = salts_buf;
+
+          if (is_salted == true)
+          {
+            salt_buf = (salt_t *) hc_bsearch_r (hash_buf.salt, salts_buf, salts_cnt, sizeof (salt_t), sort_by_salt_buf, (void *) hashconfig);
+          }
+
+          if (salt_buf == NULL) continue;
+
+          const u32 salt_pos = salt_buf - salts_buf; // the offset from the start of the array (unit: sizeof (salt_t))
+
+          if (hashes->salts_shown[salt_pos] == 1) break; // already marked as cracked (no action needed)
+
+          u32 idx = salt_buf->digests_offset;
+
+          bool cracked = false;
+
+          if (hashconfig->outfile_check_nocomp == true)
+          {
             cracked = true;
           }
-        }
-
-        if (cracked == true)
-        {
-          hashes->digests_shown[idx] = 1;
-
-          hashes->digests_done++;
-
-          salt_buf->digests_done++;
-
-          if (salt_buf->digests_done == salt_buf->digests_cnt)
+          else
           {
-            hashes->salts_shown[salt_pos] = 1;
+            char *digests_buf_ptr = digests_buf + (salt_buf->digests_offset * dgst_size);
+            u32   digests_buf_cnt = salt_buf->digests_cnt;
 
-            hashes->salts_done++;
+            char *digest_buf = (char *) hc_bsearch_r (hash_buf.digest, digests_buf_ptr, digests_buf_cnt, dgst_size, sort_by_digest_p0p1, (void *) hashconfig);
 
-            if (hashes->salts_done == salts_cnt) mycracked (hashcat_ctx);
+            if (digest_buf != NULL)
+            {
+              idx += (digest_buf - digests_buf_ptr) / dgst_size;
+
+              if (hashes->digests_shown[idx] == 1) break;
+
+              cracked = true;
+            }
           }
 
-          break;
-        }
+          if (cracked == true)
+          {
+            hashes->digests_shown[idx] = 1;
 
-        if (status_ctx->shutdown_inner == true) break;
+            hashes->digests_done++;
+
+            salt_buf->digests_done++;
+
+            if (salt_buf->digests_done == salt_buf->digests_cnt)
+            {
+              hashes->salts_shown[salt_pos] = 1;
+
+              hashes->salts_done++;
+
+              if (hashes->salts_done == salts_cnt) mycracked (hashcat_ctx);
+            }
+
+            break;
+          }
+
+          if (status_ctx->shutdown_inner == true) break;
+        }
       }
 
       hcfree (line_buf);
