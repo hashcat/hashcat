@@ -440,19 +440,6 @@ typedef struct dcc2_tmp
 
 } dcc2_tmp_t;
 
-typedef struct bcrypt_tmp
-{
-  u32 E[18];
-
-  u32 P[18];
-
-  u32 S0[256];
-  u32 S1[256];
-  u32 S2[256];
-  u32 S3[256];
-
-} bcrypt_tmp_t;
-
 typedef struct pwsafe2_tmp
 {
   u32 digest[2];
@@ -829,7 +816,6 @@ typedef enum hash_type
   HASH_TYPE_DCC2                = 9,
   HASH_TYPE_ORACLEH             = 13,
   HASH_TYPE_DESRACF             = 14,
-  HASH_TYPE_BCRYPT              = 15,
   HASH_TYPE_RIPEMD160           = 18,
   HASH_TYPE_WHIRLPOOL           = 19,
   HASH_TYPE_AES                 = 20,
@@ -918,7 +904,6 @@ typedef enum kern_type
   KERN_TYPE_MD55_PWSLT2             = 2710,
   KERN_TYPE_MD55_SLTPW              = 2810,
   KERN_TYPE_ORACLEH                 = 3100,
-  KERN_TYPE_BCRYPT                  = 3200,
   KERN_TYPE_MD5_SLT_MD5_PW          = 3710,
   KERN_TYPE_MD5_SLT_PW_SLT          = 3800,
   KERN_TYPE_MD55_PWSLT              = 3910,
@@ -1076,7 +1061,6 @@ typedef enum kern_type
 typedef enum rounds_count
 {
    ROUNDS_DCC2               = 10240,
-   ROUNDS_BCRYPT             = (1 << 5),
    ROUNDS_PSAFE3             = 2048,
    ROUNDS_ANDROIDPIN         = 1024,
    ROUNDS_TRUECRYPT_1K       = 1000,
@@ -1148,7 +1132,6 @@ typedef enum rounds_count
  * input functions
  */
 
-int bcrypt_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int cisco4_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int dcc2_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int episerver_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);

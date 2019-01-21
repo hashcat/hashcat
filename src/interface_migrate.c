@@ -117,7 +117,6 @@
   "  15900 | DPAPI masterkey file v2                          | Operating Systems",
   "  12800 | MS-AzureSync  PBKDF2-HMAC-SHA256                 | Operating Systems",
   "  12400 | BSDi Crypt, Extended DES                         | Operating Systems",
-  "   3200 | bcrypt $2*$, Blowfish (Unix)                     | Operating Systems",
   "   7400 | sha256crypt $5$, SHA256 (Unix)                   | Operating Systems",
   "   1800 | sha512crypt $6$, SHA512 (Unix)                   | Operating Systems",
   "    122 | macOS v10.4, MacOS v10.5, MacOS v10.6            | Operating Systems",
@@ -316,7 +315,6 @@ static const char *ST_HASH_02612 = "$PHPS$30353031383437363132$f02b0b2f25e5754ed
 static const char *ST_HASH_02711 = "0844fbb2fdeda31884a7a45ec2010bb6:324410183853308365427804872426";
 static const char *ST_HASH_02811 = "022f7e02b3314f7d0968f73c00ba759f:67588";
 static const char *ST_HASH_03100 = "792FCB0AE31D8489:7284616727";
-static const char *ST_HASH_03200 = "$2a$05$MBCzKhG1KhezLh.0LRa0Kuw12nLJtpHy6DIaU.JAnqJUDYspHC.Ou";
 static const char *ST_HASH_03710 = "a3aa0ae2b4a102a9974cdf40edeabee0:242812778074";
 static const char *ST_HASH_03711 = "$B$2152187716$8c8b39c3602b194eeeb6cac78eea2742";
 static const char *ST_HASH_03800 = "78274b1105fb8a7c415b43ffe35ec4a9:6";
@@ -518,7 +516,6 @@ static const char *HT_02100 = "Domain Cached Credentials 2 (DCC2), MS Cache 2";
 static const char *HT_02410 = "Cisco-ASA MD5";
 static const char *HT_02600 = "md5(md5($pass))";
 static const char *HT_03100 = "Oracle H: Type (Oracle 7+)";
-static const char *HT_03200 = "bcrypt $2*$, Blowfish (Unix)";
 static const char *HT_03710 = "md5($salt.md5($pass))";
 static const char *HT_03711 = "MediaWiki B type";
 static const char *HT_03800 = "md5($salt.$pass.$salt)";
@@ -725,14 +722,9 @@ static const char *HT_13772 = "VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 1024 bit
 static const char *HT_13773 = "VeraCrypt PBKDF2-HMAC-Streebog-512 + XTS 1536 bit";
 static const char *HT_12001 = "Atlassian (PBKDF2-HMAC-SHA1)";
 
-
 static const char *SIGNATURE_ANDROIDFDE         = "$fde$";
 static const char *SIGNATURE_AXCRYPT            = "$axcrypt$";
 static const char *SIGNATURE_AXCRYPT_SHA1       = "$axcrypt_sha1$";
-static const char *SIGNATURE_BCRYPT1            = "$2a$";
-static const char *SIGNATURE_BCRYPT2            = "$2b$";
-static const char *SIGNATURE_BCRYPT3            = "$2x$";
-static const char *SIGNATURE_BCRYPT4            = "$2y$";
 static const char *SIGNATURE_BITCOIN_WALLET     = "$bitcoin$";
 static const char *SIGNATURE_BSDICRYPT          = "_";
 static const char *SIGNATURE_CISCO8             = "$8$";
@@ -2739,91 +2731,6 @@ int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   // that should be it, close the fp
 
   fclose (fp);
-
-  return (PARSER_OK);
-}
-
-
-
-int bcrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt  = 4;
-
-  token.signatures_cnt    = 4;
-  token.signatures_buf[0] = SIGNATURE_BCRYPT1;
-  token.signatures_buf[1] = SIGNATURE_BCRYPT2;
-  token.signatures_buf[2] = SIGNATURE_BCRYPT3;
-  token.signatures_buf[3] = SIGNATURE_BCRYPT4;
-
-  token.len[0]     = 4;
-  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.len_min[1] = 2;
-  token.len_max[1] = 2;
-  token.sep[1]     = '$';
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len[2]     = 22;
-  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64B;
-
-  token.len[3]     = 31;
-  token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64B;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *iter_pos = token.buf[1];
-  const u8 *salt_pos = token.buf[2];
-  const u8 *hash_pos = token.buf[3];
-
-  const int salt_len = token.len[2];
-  const int hash_len = token.len[3];
-
-  salt->salt_len  = 16;
-  salt->salt_iter = 1u << hc_strtoul ((const char *) iter_pos, NULL, 10);
-
-  memcpy ((char *) salt->salt_sign, input_buf, 6);
-
-  u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
-
-  u8 tmp_buf[100];
-
-  memset (tmp_buf, 0, sizeof (tmp_buf));
-
-  base64_decode (bf64_to_int, (const u8 *) salt_pos, salt_len, tmp_buf);
-
-  memcpy (salt_buf_ptr, tmp_buf, 16);
-
-  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
-  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
-  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
-  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
-
-  memset (tmp_buf, 0, sizeof (tmp_buf));
-
-  base64_decode (bf64_to_int, (const u8 *) hash_pos, hash_len, tmp_buf);
-
-  memcpy (digest, tmp_buf, 24);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-  digest[4] = byte_swap_32 (digest[4]);
-  digest[5] = byte_swap_32 (digest[5]);
-
-  digest[5] &= ~0xffu; // its just 23 not 24 !
 
   return (PARSER_OK);
 }
@@ -16665,7 +16572,6 @@ u32 kernel_threads_mxx (hashcat_ctx_t *hashcat_ctx)
 {
 
 
-  if (hashconfig->hash_mode ==  3200) kernel_threads = 8;  // Blowfish
   if (hashconfig->hash_mode ==  7500) kernel_threads = 64; // RC4
   if (hashconfig->hash_mode ==  8900) kernel_threads = 16; // SCRYPT
   if (hashconfig->hash_mode ==  9000) kernel_threads = 8;  // Blowfish
@@ -16932,8 +16838,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
     case  1800:  salt->salt_iter  = ROUNDS_SHA512CRYPT;
                  break;
     case  2100:  salt->salt_iter  = ROUNDS_DCC2;
-                 break;
-    case  3200:  salt->salt_iter  = ROUNDS_BCRYPT;
                  break;
     case  5200:  salt->salt_iter  = ROUNDS_PSAFE3;
                  break;
@@ -20300,15 +20204,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
         digest_buf[0],
         digest_buf[1]);
     }
-    else if (hash_type == HASH_TYPE_BCRYPT)
-    {
-      base64_encode (int_to_bf64, (const u8 *) salt.salt_buf, 16, (u8 *) tmp_buf + 0);
-      base64_encode (int_to_bf64, (const u8 *) digest_buf,    23, (u8 *) tmp_buf + 22);
-
-      tmp_buf[22 + 31] = 0; // base64_encode wants to pad
-
-      snprintf (out_buf, out_size, "%s$%s", (char *) salt.salt_sign, tmp_buf);
-    }
     else if (hash_type == HASH_TYPE_CHACHA20)
     {
       u32 *ptr = digest_buf;
@@ -21666,23 +21561,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 3;
                  hashconfig->st_hash        = ST_HASH_03100;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case  3200:  hashconfig->hash_type      = HASH_TYPE_BCRYPT;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_ST_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_BCRYPT;
-                 hashconfig->dgst_size      = DGST_SIZE_4_6;
-                 hashconfig->parse_func     = bcrypt_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_03200;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
@@ -25102,7 +24980,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   {
     case  1800: hashconfig->tmp_size = sizeof (sha512crypt_tmp_t);        break;
     case  2100: hashconfig->tmp_size = sizeof (dcc2_tmp_t);               break;
-    case  3200: hashconfig->tmp_size = sizeof (bcrypt_tmp_t);             break;
     case  5200: hashconfig->tmp_size = sizeof (pwsafe3_tmp_t);            break;
     case  5800: hashconfig->tmp_size = sizeof (androidpin_tmp_t);         break;
     case  6211: hashconfig->tmp_size = sizeof (tc_tmp_t);                 break;
@@ -25276,7 +25153,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
     case   112: pw_max = 30;      break; // https://www.toadworld.com/platforms/oracle/b/weblog/archive/2013/11/12/oracle-12c-passwords
     case  2100: pw_max = PW_MAX;  break;
     case  3100: pw_max = 30;      break; // http://www.red-database-security.de/whitepaper/oracle_passwords.html
-    case  3200: pw_max = 72;      break; // Underlaying Blowfish max
     case  5200: pw_max = PW_MAX;  break;
     case  6211: pw_max = 64;      break; // TC limits itself to 64
     case  6212: pw_max = 64;      break; // TC limits itself to 64
@@ -26086,7 +25962,6 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
      */
 
     if (
-     || (hashconfig->hash_mode ==  3200)
      || (hashconfig->hash_mode ==  8900)
      || (hashconfig->hash_mode ==  9300)
      || (hashconfig->hash_mode ==  9800)
