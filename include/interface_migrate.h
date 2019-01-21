@@ -822,6 +822,7 @@ typedef enum hash_type
   HASH_TYPE_MD4                 = 1,
   HASH_TYPE_MD5                 = 2,
   HASH_TYPE_SHA1                = 4,
+  HASH_TYPE_SHA224              = 5,
   HASH_TYPE_SHA256              = 6,
   HASH_TYPE_SHA384              = 7,
   HASH_TYPE_SHA512              = 8,
@@ -1182,6 +1183,7 @@ int sha1_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int sha1b64_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha1b64s_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha1s_parse_hash              (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
+int sha224_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha256_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha256s_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha384_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);

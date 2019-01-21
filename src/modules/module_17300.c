@@ -9,7 +9,6 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
-#include "inc_hash_constants.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 6;
@@ -18,7 +17,7 @@ static const u32   DGST_POS2      = 4;
 static const u32   DGST_POS3      = 5;
 static const u32   DGST_SIZE      = DGST_SIZE_8_25;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_HASH;
-static const char *HASH_NAME      = "SHA3-224 ";
+static const char *HASH_NAME      = "SHA3-224";
 static const u32   HASH_TYPE      = HASH_TYPE_GENERIC;
 static const u64   KERN_TYPE      = 17300;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
@@ -52,18 +51,20 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token_t token;
 
-  token.token_cnt  = 1;
+  token.token_cnt = 1;
 
-  token.len_min[0] = 56;
-  token.len_max[0] = 56;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
+  token.len[0]  = 56;
+  token.attr[0] = TOKEN_ATTR_FIXED_LENGTH
+                | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
   const u8 *hash_pos = token.buf[0];
+  const int hash_len = token.len[0];
+
+  if (hash_len != 56) return (PARSER_GLOBAL_LENGTH);
 
   digest[0] = hex_to_u32 (hash_pos +  0);
   digest[1] = hex_to_u32 (hash_pos +  8);
@@ -72,17 +73,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[4] = hex_to_u32 (hash_pos + 32);
   digest[5] = hex_to_u32 (hash_pos + 40);
   digest[6] = hex_to_u32 (hash_pos + 48);
-
-  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
-  {
-    digest[0] -= SHA224M_A;
-    digest[1] -= SHA224M_B;
-    digest[2] -= SHA224M_C;
-    digest[3] -= SHA224M_D;
-    digest[4] -= SHA224M_E;
-    digest[5] -= SHA224M_F;
-    digest[6] -= SHA224M_G;
-  }
 
   return (PARSER_OK);
 }
