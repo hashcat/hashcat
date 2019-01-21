@@ -1039,7 +1039,6 @@ typedef enum kern_type
   KERN_TYPE_JWT_HS512               = 16513,
   KERN_TYPE_ELECTRUM_WALLET13       = 16600,
   KERN_TYPE_ANSIBLE_VAULT           = 16900,
-  KERN_TYPE_SHA3_224                = 17300,
   KERN_TYPE_SHA3_256                = 17400,
   KERN_TYPE_SHA3_384                = 17500,
   KERN_TYPE_SHA3_512                = 17600,
