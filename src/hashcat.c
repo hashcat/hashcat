@@ -1396,7 +1396,7 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
   hashcat_status->digests_done                = status_get_digests_done               (hashcat_ctx);
   hashcat_status->digests_percent             = status_get_digests_percent            (hashcat_ctx);
   hashcat_status->hash_target                 = status_get_hash_target                (hashcat_ctx);
-  hashcat_status->hash_type                   = status_get_hash_type                  (hashcat_ctx);
+  hashcat_status->hash_name                   = status_get_hash_name                  (hashcat_ctx);
   hashcat_status->guess_base                  = status_get_guess_base                 (hashcat_ctx);
   hashcat_status->guess_base_offset           = status_get_guess_base_offset          (hashcat_ctx);
   hashcat_status->guess_base_count            = status_get_guess_base_count           (hashcat_ctx);

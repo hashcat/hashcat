@@ -35,8 +35,8 @@ double      status_get_guess_mod_percent              (const hashcat_ctx_t *hash
 char       *status_get_guess_charset                  (const hashcat_ctx_t *hashcat_ctx);
 int         status_get_guess_mask_length              (const hashcat_ctx_t *hashcat_ctx);
 char       *status_get_guess_candidates_dev           (const hashcat_ctx_t *hashcat_ctx, const int device_id);
-const char *status_get_hash_type                      (const hashcat_ctx_t *hashcat_ctx);
-const char *status_get_hash_target                    (const hashcat_ctx_t *hashcat_ctx);
+char       *status_get_hash_name                      (const hashcat_ctx_t *hashcat_ctx);
+char       *status_get_hash_target                    (const hashcat_ctx_t *hashcat_ctx);
 int         status_get_digests_done                   (const hashcat_ctx_t *hashcat_ctx);
 int         status_get_digests_cnt                    (const hashcat_ctx_t *hashcat_ctx);
 double      status_get_digests_percent                (const hashcat_ctx_t *hashcat_ctx);

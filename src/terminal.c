@@ -933,8 +933,8 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     hashcat_status->status_string);
 
   event_log_info (hashcat_ctx,
-    "Hash.Type........: %s",
-    hashcat_status->hash_type);
+    "Hash.Name........: %s",
+    hashcat_status->hash_name);
 
   event_log_info (hashcat_ctx,
     "Hash.Target......: %s",

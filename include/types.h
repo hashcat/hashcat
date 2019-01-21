@@ -2056,8 +2056,8 @@ typedef struct device_info
 
 typedef struct hashcat_status
 {
-  const char *hash_target;
-  const char *hash_type;
+  char       *hash_target;
+  char       *hash_name;
   int         guess_mode;
   char       *guess_base;
   int         guess_base_offset;

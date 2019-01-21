@@ -289,14 +289,14 @@ int status_get_status_number (const hashcat_ctx_t *hashcat_ctx)
   return status_ctx->devices_status;
 }
 
-const char *status_get_hash_type (const hashcat_ctx_t *hashcat_ctx)
+char *status_get_hash_name (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
-  return hashconfig->hash_name;
+  return hcstrdup (hashconfig->hash_name);
 }
 
-const char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
+char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
   const hashes_t     *hashes     = hashcat_ctx->hashes;
@@ -324,7 +324,7 @@ const char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
     {
       if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
       {
-        return hashes->hashfile;
+        return hcstrdup (hashes->hashfile);
       }
       else
       {
@@ -346,7 +346,7 @@ const char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    return hashes->hashfile;
+    return hcstrdup (hashes->hashfile);
   }
 }
 
@@ -2159,6 +2159,8 @@ void status_status_destroy (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashca
 
   if (status_ctx->accessible == false) return;
 
+  hcfree (hashcat_status->hash_target);
+  hcfree (hashcat_status->hash_name);
   hcfree (hashcat_status->session);
   hcfree (hashcat_status->time_estimated_absolute);
   hcfree (hashcat_status->time_estimated_relative);
@@ -2170,6 +2172,8 @@ void status_status_destroy (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashca
   hcfree (hashcat_status->guess_charset);
   hcfree (hashcat_status->cpt);
 
+  hashcat_status->hash_target             = NULL;
+  hashcat_status->hash_name               = NULL;
   hashcat_status->session                 = NULL;
   hashcat_status->time_estimated_absolute = NULL;
   hashcat_status->time_estimated_relative = NULL;
