@@ -23,9 +23,10 @@ static const u64   KERN_TYPE      = 17300;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_USES_BITS_64
                                   | OPTI_TYPE_RAW_HASH;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
+static const u64   OPTS_TYPE      = OPTS_TYPE_STATE_BUFFER_LE
+                                  | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_PT_ADD06;
-static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
+static const u32   SALT_TYPE      = SALT_TYPE_NONE;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "412ef78534ba6ab0e9b1607d3e9767a25c1ea9d5e83176b4c2817a6c";
 
