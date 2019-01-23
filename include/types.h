@@ -2429,7 +2429,6 @@ typedef enum hash_type
  * hash category is relevant in usage.c (--help screen)
  */
 
-
 typedef enum hash_category
 {
   HASH_CATEGORY_UNDEFINED               = 0,

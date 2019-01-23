@@ -60,7 +60,6 @@
   "   5300 | IKE-PSK MD5                                      | Network Protocols",
   "   5400 | IKE-PSK SHA1                                     | Network Protocols",
   "   7300 | IPMI2 RAKP HMAC-SHA1                             | Network Protocols",
-  "   7500 | Kerberos 5 AS-REQ Pre-Auth etype 23              | Network Protocols",
   "   8300 | DNSSEC (NSEC3)                                   | Network Protocols",
   "  10200 | CRAM-MD5                                         | Network Protocols",
   "  11100 | PostgreSQL CRAM (MD5)                            | Network Protocols",
@@ -356,7 +355,6 @@ static const char *ST_HASH_07100 = "$ml$1024$24843807311321316245062714671621235
 static const char *ST_HASH_07200 = "grub.pbkdf2.sha512.1024.03510507805003756325721848020561235456073188241051876082416068104377357018503082587026352628170170411053726157658716047762755750.aac26b18c2b0c44bcf56514d46aabd52eea097d9c95122722087829982e9dd957b2b641cb1e015d4df16a84d0571e96cf6d3de6361431bdeed4ddb0940f2425b";
 static const char *ST_HASH_07300 = "3437343735333336383831353232323433383333303236303337333338363232303135383237333638363532373231343030313131333838323734373138363632343133333335353030353633373533333133313530363533303738343334313330303630343633333237373037383537333630303233303830303437323838333237313438363238343434383831363634323431333430383735323038:f4b376e25868751fc0264f573ff1fe50b65ce5a2";
 static const char *ST_HASH_07400 = "$5$7777657035274252$XftMj84MW.New1/ViLY5V4CM4Y7EBvfETaZsCW9vcJ8";
-static const char *ST_HASH_07500 = "$krb5pa$23$user$realm$salt$5cbb0c882a2b26956e81644edbdb746326f4f5f0e947144fb3095dffe4b4b03e854fc1d631323632303636373330383333353630";
 static const char *ST_HASH_07700 = "027642760180$77EC38630C08DF8D";
 static const char *ST_HASH_07701 = "027642760180$77EC386300000000";
 static const char *ST_HASH_07800 = "604020408266$32837BA7B97672BA4E5AC74767A4E6E1AE802651";
@@ -539,7 +537,6 @@ static const char *HT_07100 = "macOS v10.8+ (PBKDF2-SHA512)";
 static const char *HT_07200 = "GRUB 2";
 static const char *HT_07300 = "IPMI2 RAKP HMAC-SHA1";
 static const char *HT_07400 = "sha256crypt $5$, SHA256 (Unix)";
-static const char *HT_07500 = "Kerberos 5 AS-REQ Pre-Auth etype 23";
 static const char *HT_07700 = "SAP CODVN B (BCODE)";
 static const char *HT_07701 = "SAP CODVN B (BCODE) mangled from RFC_READ_TABLE";
 static const char *HT_07800 = "SAP CODVN F/G (PASSCODE)";
@@ -727,7 +724,6 @@ static const char *SIGNATURE_DRUPAL7            = "$S$";
 static const char *SIGNATURE_ECRYPTFS           = "$ecryptfs$";
 static const char *SIGNATURE_EPISERVER          = "$episerver$";
 static const char *SIGNATURE_KEEPASS            = "$keepass$";
-static const char *SIGNATURE_KRB5PA             = "$krb5pa$23$";
 static const char *SIGNATURE_KRB5TGS            = "$krb5tgs$23$";
 static const char *SIGNATURE_KRB5ASREP          = "$krb5asrep$23$";
 static const char *SIGNATURE_MD5AIX             = "{smd5}";
@@ -6423,122 +6419,6 @@ int sha512b64s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
     ptr[salt_len] = 0x80;
   }
-
-  return (PARSER_OK);
-}
-
-int krb5pa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  krb5pa_t *krb5pa = (krb5pa_t *) hash_buf->esalt;
-
-  token_t token;
-
-  token.token_cnt  = 6;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_KRB5PA;
-
-  token.len[0]     = 11;
-  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.len_min[1] = 0;
-  token.len_max[1] = 64;
-  token.sep[1]     = '$';
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.len_min[2] = 0;
-  token.len_max[2] = 64;
-  token.sep[2]     = '$';
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.len_min[3] = 0;
-  token.len_max[3] = 128;
-  token.sep[3]     = '$';
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.len[4]     = 72;
-  token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len[5]     = 32;
-  token.attr[5]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *user_pos  = token.buf[1];
-  const u8 *realm_pos = token.buf[2];
-  const u8 *salt_pos  = token.buf[3];
-
-  const int user_len  = token.len[1];
-  const int realm_len = token.len[2];
-  const int salt_len  = token.len[3];
-
-  /**
-   * copy data
-   */
-
-  memcpy (krb5pa->user,  user_pos,  user_len);
-  memcpy (krb5pa->realm, realm_pos, realm_len);
-  memcpy (krb5pa->salt,  salt_pos,  salt_len);
-
-  /**
-   * decode data
-   */
-
-  const u8 *timestamp_pos = token.buf[4];
-
-  u8 *timestamp_ptr = (u8 *) krb5pa->timestamp;
-
-  for (int i = 0; i < 72; i += 2)
-  {
-    const u8 p0 = timestamp_pos[i + 0];
-    const u8 p1 = timestamp_pos[i + 1];
-
-    *timestamp_ptr++ = hex_convert (p1) << 0
-                     | hex_convert (p0) << 4;
-  }
-
-  const u8 *checksum_pos = token.buf[5];
-
-  u8 *checksum_ptr = (u8 *) krb5pa->checksum;
-
-  for (int i = 0; i < 32; i += 2)
-  {
-    const u8 p0 = checksum_pos[i + 0];
-    const u8 p1 = checksum_pos[i + 1];
-
-    *checksum_ptr++ = hex_convert (p1) << 0
-                    | hex_convert (p0) << 4;
-  }
-
-  /**
-   * copy some data to generic buffers to make sorting happy
-   */
-
-  salt->salt_buf[0] = krb5pa->timestamp[0];
-  salt->salt_buf[1] = krb5pa->timestamp[1];
-  salt->salt_buf[2] = krb5pa->timestamp[2];
-  salt->salt_buf[3] = krb5pa->timestamp[3];
-  salt->salt_buf[4] = krb5pa->timestamp[4];
-  salt->salt_buf[5] = krb5pa->timestamp[5];
-  salt->salt_buf[6] = krb5pa->timestamp[6];
-  salt->salt_buf[7] = krb5pa->timestamp[7];
-  salt->salt_buf[8] = krb5pa->timestamp[8];
-
-  salt->salt_len = 36;
-
-  digest[0] = krb5pa->checksum[0];
-  digest[1] = krb5pa->checksum[1];
-  digest[2] = krb5pa->checksum[2];
-  digest[3] = krb5pa->checksum[3];
 
   return (PARSER_OK);
 }
@@ -16022,7 +15902,6 @@ u32 kernel_threads_mxx (hashcat_ctx_t *hashcat_ctx)
 {
 
 
-  if (hashconfig->hash_mode ==  7500) kernel_threads = 64; // RC4
   if (hashconfig->hash_mode ==  8900) kernel_threads = 16; // SCRYPT
   if (hashconfig->hash_mode ==  9000) kernel_threads = 8;  // Blowfish
   if (hashconfig->hash_mode ==  9300) kernel_threads = 8;  // SCRYPT
@@ -17217,38 +17096,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
     {
       snprintf (out_buf, out_size, "$5$rounds=%u$%s$%s", salt.salt_iter, (char *) salt.salt_buf, ptr_plain);
     }
-  }
-  else if (hash_mode == 7500)
-  {
-    krb5pa_t *krb5pas = (krb5pa_t *) esalts_buf;
-
-    krb5pa_t *krb5pa = &krb5pas[digest_cur];
-
-    u8 *ptr_timestamp = (u8 *) krb5pa->timestamp;
-    u8 *ptr_checksum  = (u8 *) krb5pa->checksum;
-
-    char data[128] = { 0 };
-
-    char *ptr_data = data;
-
-    for (u32 i = 0; i < 36; i++, ptr_data += 2)
-    {
-      sprintf (ptr_data, "%02x", ptr_timestamp[i]);
-    }
-
-    for (u32 i = 0; i < 16; i++, ptr_data += 2)
-    {
-      sprintf (ptr_data, "%02x", ptr_checksum[i]);
-    }
-
-    *ptr_data = 0;
-
-    snprintf (out_buf, out_size, "%s%s$%s$%s$%s",
-      SIGNATURE_KRB5PA,
-      (char *) krb5pa->user,
-      (char *) krb5pa->realm,
-      (char *) krb5pa->salt,
-      data);
   }
   else if ((hash_mode == 7700) || (hash_mode == 7701))
   {
@@ -21832,23 +21679,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case  7500:  hashconfig->hash_type      = HASH_TYPE_KRB5PA;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_KRB5PA;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = krb5pa_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_NOT_ITERATED;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_07500;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case  7700:  hashconfig->hash_type      = HASH_TYPE_SAPB;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -24223,7 +24053,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case  7100: hashconfig->esalt_size = sizeof (pbkdf2_sha512_t);      break;
     case  7200: hashconfig->esalt_size = sizeof (pbkdf2_sha512_t);      break;
     case  7300: hashconfig->esalt_size = sizeof (rakp_t);               break;
-    case  7500: hashconfig->esalt_size = sizeof (krb5pa_t);             break;
     case  8200: hashconfig->esalt_size = sizeof (cloudkey_t);           break;
     case  8800: hashconfig->esalt_size = sizeof (androidfde_t);         break;
     case  9200: hashconfig->esalt_size = sizeof (pbkdf2_sha256_t);      break;

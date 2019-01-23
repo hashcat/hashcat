@@ -91,16 +91,6 @@ typedef struct ikepsk
 
 } ikepsk_t;
 
-typedef struct krb5pa
-{
-  u32 user[16];
-  u32 realm[16];
-  u32 salt[32];
-  u32 timestamp[16];
-  u32 checksum[4];
-
-} krb5pa_t;
-
 typedef struct krb5tgs
 {
   u32 account_info[512];
@@ -790,7 +780,6 @@ typedef enum hash_type
   HASH_TYPE_WHIRLPOOL           = 19,
   HASH_TYPE_AES                 = 20,
   HASH_TYPE_GOST                = 21,
-  HASH_TYPE_KRB5PA              = 22,
   HASH_TYPE_SAPB                = 23,
   HASH_TYPE_SAPG                = 24,
   HASH_TYPE_MYSQL               = 25,
@@ -917,7 +906,6 @@ typedef enum kern_type
   KERN_TYPE_PBKDF2_SHA512           = 7100,
   KERN_TYPE_RAKP                    = 7300,
   KERN_TYPE_SHA256CRYPT             = 7400,
-  KERN_TYPE_KRB5PA                  = 7500,
   KERN_TYPE_SAPB                    = 7700,
   KERN_TYPE_SAPB_MANGLED            = 7701,
   KERN_TYPE_SAPG                    = 7800,
@@ -1154,7 +1142,6 @@ int sha512macos_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int episerver4_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha512grub_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha512b64s_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int krb5pa_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int krb5tgs_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int krb5asrep_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sapb_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
