@@ -148,12 +148,6 @@ typedef struct pbkdf2_md5
 
 } pbkdf2_md5_t;
 
-typedef struct pbkdf2_sha1
-{
-  u32 salt_buf[16];
-
-} pbkdf2_sha1_t;
-
 typedef struct pbkdf2_sha256
 {
   u32 salt_buf[16];
@@ -629,16 +623,6 @@ typedef struct pbkdf2_md5_tmp
 
 } pbkdf2_md5_tmp_t;
 
-typedef struct pbkdf2_sha1_tmp
-{
-  u32  ipad[5];
-  u32  opad[5];
-
-  u32  dgst[32];
-  u32  out[32];
-
-} pbkdf2_sha1_tmp_t;
-
 typedef struct pbkdf2_sha256_tmp
 {
   u32  ipad[8];
@@ -843,7 +827,6 @@ typedef enum hash_type
   HASH_TYPE_STREEBOG_256        = 42,
   HASH_TYPE_STREEBOG_512        = 43,
   HASH_TYPE_PBKDF2_MD5          = 44,
-  HASH_TYPE_PBKDF2_SHA1         = 45,
   HASH_TYPE_PBKDF2_SHA512       = 46,
   HASH_TYPE_ECRYPTFS            = 47,
   HASH_TYPE_ORACLET             = 48,
@@ -999,7 +982,6 @@ typedef enum kern_type
   KERN_TYPE_HMAC_STREEBOG_512_PW    = 11850,
   KERN_TYPE_HMAC_STREEBOG_512_SLT   = 11860,
   KERN_TYPE_PBKDF2_MD5              = 11900,
-  KERN_TYPE_PBKDF2_SHA1             = 12000,
   KERN_TYPE_ECRYPTFS                = 12200,
   KERN_TYPE_ORACLET                 = 12300,
   KERN_TYPE_BSDICRYPT               = 12400,
@@ -1096,7 +1078,6 @@ typedef enum rounds_count
    ROUNDS_BITCOIN_WALLET     = 200000,
    ROUNDS_SEVEN_ZIP          = (1 << 19),
    ROUNDS_PBKDF2_MD5         = 1000,
-   ROUNDS_PBKDF2_SHA1        = 1000,
    ROUNDS_PBKDF2_SHA512      = 1000,
    ROUNDS_ECRYPTFS           = 65536,
    ROUNDS_ORACLET            = 4096,
