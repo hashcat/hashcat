@@ -404,20 +404,6 @@ typedef struct sha256crypt_tmp
 
 } sha256crypt_tmp_t;
 
-typedef struct sha512crypt_tmp
-{
-  u64 l_alt_result[8];
-  u64 l_p_bytes[2];
-  u64 l_s_bytes[2];
-
-  // pure version
-
-  u32 alt_result[16];
-  u32 p_bytes[64];
-  u32 s_bytes[64];
-
-} sha512crypt_tmp_t;
-
 typedef struct bitcoin_wallet_tmp
 {
   u64  dgst[8];
@@ -878,7 +864,6 @@ typedef enum kern_type
   KERN_TYPE_SHA512_SLTPWU           = 1740,
   KERN_TYPE_HMACSHA512_PW           = 1750,
   KERN_TYPE_HMACSHA512_SLT          = 1760,
-  KERN_TYPE_SHA512CRYPT             = 1800,
   KERN_TYPE_STDOUT                  = 2000,
   KERN_TYPE_DCC2                    = 2100,
   KERN_TYPE_MD5ASA                  = 2410,
@@ -1053,7 +1038,6 @@ typedef enum rounds_count
    ROUNDS_SHA256AIX          = (1 << 6),
    ROUNDS_SHA512AIX          = (1 << 6),
    ROUNDS_SHA256CRYPT        = 5000,
-   ROUNDS_SHA512CRYPT        = 5000,
    ROUNDS_GRUB               = 10000,
    ROUNDS_SHA512MACOS        = 35000,
    ROUNDS_AGILEKEY           = 1000,
@@ -1147,7 +1131,6 @@ int sha256s_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int sha384_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha512_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha512s_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha512crypt_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int vb30_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int psafe2_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int psafe3_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);

@@ -115,7 +115,6 @@
   "  12800 | MS-AzureSync  PBKDF2-HMAC-SHA256                 | Operating Systems",
   "  12400 | BSDi Crypt, Extended DES                         | Operating Systems",
   "   7400 | sha256crypt $5$, SHA256 (Unix)                   | Operating Systems",
-  "   1800 | sha512crypt $6$, SHA512 (Unix)                   | Operating Systems",
   "    122 | macOS v10.4, MacOS v10.5, MacOS v10.6            | Operating Systems",
   "   1722 | macOS v10.7                                      | Operating Systems",
   "   7100 | macOS v10.8+ (PBKDF2-SHA512)                     | Operating Systems",
@@ -303,7 +302,6 @@ static const char *ST_HASH_01722 = "07543781b07e905f6f947db8ae305c248b9e12f509b4
 static const char *ST_HASH_01731 = "0x02003788006711b2e74e7d8cb4be96b1d187c962c5591a02d5a6ae81b3a4a094b26b7877958b26733e45016d929a756ed30d0a5ee65d3ce1970f9b7bf946e705c595f07625b1";
 static const char *ST_HASH_01750 = "138c00f17a1a0363f274817c91118f019aff09f937bfdaea844280a0c0e7811267cc4735d967d8640eed1218268c1c4a76fec8f7aa551491b353829f3a654270:885142";
 static const char *ST_HASH_01760 = "7d02921299935179d509e6dd4f3d0f2944e3451ea9de3af16baead6a7297e5653577d2473a0fff743d9fe78a89bd49296114319989dc7e7870fc7f62bc96accb:114";
-static const char *ST_HASH_01800 = "$6$72820166$U4DVzpcYxgw7MVVDGGvB2/H5lRistD5.Ah4upwENR5UtffLR4X4SxSzfREv8z6wVl0jRFX40/KnYVvK4829kD1";
 static const char *ST_HASH_02100 = "$DCC2$10240#6848#e2829c8af2232fa53797e2f0e35e4626";
 static const char *ST_HASH_02410 = "YjDBNr.A0AN7DA8s:4684";
 static const char *ST_HASH_02600 = "a936af92b0ae20b1ff6c3347a72e5fbe";
@@ -505,7 +503,6 @@ static const char *HT_01730 = "sha512(utf16le($pass).$salt)";
 static const char *HT_01740 = "sha512($salt.utf16le($pass))";
 static const char *HT_01750 = "HMAC-SHA512 (key = $pass)";
 static const char *HT_01760 = "HMAC-SHA512 (key = $salt)";
-static const char *HT_01800 = "sha512crypt $6$, SHA512 (Unix)";
 static const char *HT_02100 = "Domain Cached Credentials 2 (DCC2), MS Cache 2";
 static const char *HT_02410 = "Cisco-ASA MD5";
 static const char *HT_02600 = "md5(md5($pass))";
@@ -771,7 +768,6 @@ static const char *SIGNATURE_SHA256B64S         = "{SSHA256}";
 static const char *SIGNATURE_SHA256CRYPT        = "$5$";
 static const char *SIGNATURE_SHA512AIX          = "{ssha512}";
 static const char *SIGNATURE_SHA512B64S         = "{SSHA512}";
-static const char *SIGNATURE_SHA512CRYPT        = "$6$";
 static const char *SIGNATURE_SHA512GRUB         = "grub.pbkdf2.sha512.";
 static const char *SIGNATURE_SHA512MACOS        = "$ml$";
 static const char *SIGNATURE_SIP_AUTH           = "$sip$";
@@ -799,362 +795,6 @@ static const char *SIGNATURE_APFS               = "$fvde$";
 /**
  * decoder / encoder
  */
-
-static void sha512crypt_decode (u8 digest[64], const u8 buf[86])
-{
-  int l;
-
-  l  = itoa64_to_int (buf[ 0]) <<  0;
-  l |= itoa64_to_int (buf[ 1]) <<  6;
-  l |= itoa64_to_int (buf[ 2]) << 12;
-  l |= itoa64_to_int (buf[ 3]) << 18;
-
-  digest[ 0] = (l >> 16) & 0xff;
-  digest[21] = (l >>  8) & 0xff;
-  digest[42] = (l >>  0) & 0xff;
-
-  l  = itoa64_to_int (buf[ 4]) <<  0;
-  l |= itoa64_to_int (buf[ 5]) <<  6;
-  l |= itoa64_to_int (buf[ 6]) << 12;
-  l |= itoa64_to_int (buf[ 7]) << 18;
-
-  digest[22] = (l >> 16) & 0xff;
-  digest[43] = (l >>  8) & 0xff;
-  digest[ 1] = (l >>  0) & 0xff;
-
-  l  = itoa64_to_int (buf[ 8]) <<  0;
-  l |= itoa64_to_int (buf[ 9]) <<  6;
-  l |= itoa64_to_int (buf[10]) << 12;
-  l |= itoa64_to_int (buf[11]) << 18;
-
-  digest[44] = (l >> 16) & 0xff;
-  digest[ 2] = (l >>  8) & 0xff;
-  digest[23] = (l >>  0) & 0xff;
-
-  l  = itoa64_to_int (buf[12]) <<  0;
-  l |= itoa64_to_int (buf[13]) <<  6;
-  l |= itoa64_to_int (buf[14]) << 12;
-  l |= itoa64_to_int (buf[15]) << 18;
-
-  digest[ 3] = (l >> 16) & 0xff;
-  digest[24] = (l >>  8) & 0xff;
-  digest[45] = (l >>  0) & 0xff;
-
-  l  = itoa64_to_int (buf[16]) <<  0;
-  l |= itoa64_to_int (buf[17]) <<  6;
-  l |= itoa64_to_int (buf[18]) << 12;
-  l |= itoa64_to_int (buf[19]) << 18;
-
-  digest[25] = (l >> 16) & 0xff;
-  digest[46] = (l >>  8) & 0xff;
-  digest[ 4] = (l >>  0) & 0xff;
-
-  l  = itoa64_to_int (buf[20]) <<  0;
-  l |= itoa64_to_int (buf[21]) <<  6;
-  l |= itoa64_to_int (buf[22]) << 12;
-  l |= itoa64_to_int (buf[23]) << 18;
-
-  digest[47] = (l >> 16) & 0xff;
-  digest[ 5] = (l >>  8) & 0xff;
-  digest[26] = (l >>  0) & 0xff;
-
-  l  = itoa64_to_int (buf[24]) <<  0;
-  l |= itoa64_to_int (buf[25]) <<  6;
-  l |= itoa64_to_int (buf[26]) << 12;
-  l |= itoa64_to_int (buf[27]) << 18;
-
-  digest[ 6] = (l >> 16) & 0xff;
-  digest[27] = (l >>  8) & 0xff;
-  digest[48] = (l >>  0) & 0xff;
-
-  l  = itoa64_to_int (buf[28]) <<  0;
-  l |= itoa64_to_int (buf[29]) <<  6;
-  l |= itoa64_to_int (buf[30]) << 12;
-  l |= itoa64_to_int (buf[31]) << 18;
-
-  digest[28] = (l >> 16) & 0xff;
-  digest[49] = (l >>  8) & 0xff;
-  digest[ 7] = (l >>  0) & 0xff;
-
-  l  = itoa64_to_int (buf[32]) <<  0;
-  l |= itoa64_to_int (buf[33]) <<  6;
-  l |= itoa64_to_int (buf[34]) << 12;
-  l |= itoa64_to_int (buf[35]) << 18;
-
-  digest[50] = (l >> 16) & 0xff;
-  digest[ 8] = (l >>  8) & 0xff;
-  digest[29] = (l >>  0) & 0xff;
-
-  l  = itoa64_to_int (buf[36]) <<  0;
-  l |= itoa64_to_int (buf[37]) <<  6;
-  l |= itoa64_to_int (buf[38]) << 12;
-  l |= itoa64_to_int (buf[39]) << 18;
-
-  digest[ 9] = (l >> 16) & 0xff;
-  digest[30] = (l >>  8) & 0xff;
-  digest[51] = (l >>  0) & 0xff;
-
-  l  = itoa64_to_int (buf[40]) <<  0;
-  l |= itoa64_to_int (buf[41]) <<  6;
-  l |= itoa64_to_int (buf[42]) << 12;
-  l |= itoa64_to_int (buf[43]) << 18;
-
-  digest[31] = (l >> 16) & 0xff;
-  digest[52] = (l >>  8) & 0xff;
-  digest[10] = (l >>  0) & 0xff;
-
-  l  = itoa64_to_int (buf[44]) <<  0;
-  l |= itoa64_to_int (buf[45]) <<  6;
-  l |= itoa64_to_int (buf[46]) << 12;
-  l |= itoa64_to_int (buf[47]) << 18;
-
-  digest[53] = (l >> 16) & 0xff;
-  digest[11] = (l >>  8) & 0xff;
-  digest[32] = (l >>  0) & 0xff;
-
-  l  = itoa64_to_int (buf[48]) <<  0;
-  l |= itoa64_to_int (buf[49]) <<  6;
-  l |= itoa64_to_int (buf[50]) << 12;
-  l |= itoa64_to_int (buf[51]) << 18;
-
-  digest[12] = (l >> 16) & 0xff;
-  digest[33] = (l >>  8) & 0xff;
-  digest[54] = (l >>  0) & 0xff;
-
-  l  = itoa64_to_int (buf[52]) <<  0;
-  l |= itoa64_to_int (buf[53]) <<  6;
-  l |= itoa64_to_int (buf[54]) << 12;
-  l |= itoa64_to_int (buf[55]) << 18;
-
-  digest[34] = (l >> 16) & 0xff;
-  digest[55] = (l >>  8) & 0xff;
-  digest[13] = (l >>  0) & 0xff;
-
-  l  = itoa64_to_int (buf[56]) <<  0;
-  l |= itoa64_to_int (buf[57]) <<  6;
-  l |= itoa64_to_int (buf[58]) << 12;
-  l |= itoa64_to_int (buf[59]) << 18;
-
-  digest[56] = (l >> 16) & 0xff;
-  digest[14] = (l >>  8) & 0xff;
-  digest[35] = (l >>  0) & 0xff;
-
-  l  = itoa64_to_int (buf[60]) <<  0;
-  l |= itoa64_to_int (buf[61]) <<  6;
-  l |= itoa64_to_int (buf[62]) << 12;
-  l |= itoa64_to_int (buf[63]) << 18;
-
-  digest[15] = (l >> 16) & 0xff;
-  digest[36] = (l >>  8) & 0xff;
-  digest[57] = (l >>  0) & 0xff;
-
-  l  = itoa64_to_int (buf[64]) <<  0;
-  l |= itoa64_to_int (buf[65]) <<  6;
-  l |= itoa64_to_int (buf[66]) << 12;
-  l |= itoa64_to_int (buf[67]) << 18;
-
-  digest[37] = (l >> 16) & 0xff;
-  digest[58] = (l >>  8) & 0xff;
-  digest[16] = (l >>  0) & 0xff;
-
-  l  = itoa64_to_int (buf[68]) <<  0;
-  l |= itoa64_to_int (buf[69]) <<  6;
-  l |= itoa64_to_int (buf[70]) << 12;
-  l |= itoa64_to_int (buf[71]) << 18;
-
-  digest[59] = (l >> 16) & 0xff;
-  digest[17] = (l >>  8) & 0xff;
-  digest[38] = (l >>  0) & 0xff;
-
-  l  = itoa64_to_int (buf[72]) <<  0;
-  l |= itoa64_to_int (buf[73]) <<  6;
-  l |= itoa64_to_int (buf[74]) << 12;
-  l |= itoa64_to_int (buf[75]) << 18;
-
-  digest[18] = (l >> 16) & 0xff;
-  digest[39] = (l >>  8) & 0xff;
-  digest[60] = (l >>  0) & 0xff;
-
-  l  = itoa64_to_int (buf[76]) <<  0;
-  l |= itoa64_to_int (buf[77]) <<  6;
-  l |= itoa64_to_int (buf[78]) << 12;
-  l |= itoa64_to_int (buf[79]) << 18;
-
-  digest[40] = (l >> 16) & 0xff;
-  digest[61] = (l >>  8) & 0xff;
-  digest[19] = (l >>  0) & 0xff;
-
-  l  = itoa64_to_int (buf[80]) <<  0;
-  l |= itoa64_to_int (buf[81]) <<  6;
-  l |= itoa64_to_int (buf[82]) << 12;
-  l |= itoa64_to_int (buf[83]) << 18;
-
-  digest[62] = (l >> 16) & 0xff;
-  digest[20] = (l >>  8) & 0xff;
-  digest[41] = (l >>  0) & 0xff;
-
-  l  = itoa64_to_int (buf[84]) <<  0;
-  l |= itoa64_to_int (buf[85]) <<  6;
-
-  digest[63] = (l >>  0) & 0xff;
-}
-
-static void sha512crypt_encode (const u8 digest[64], u8 buf[86])
-{
-  int l;
-
-  l = (digest[ 0] << 16) | (digest[21] << 8) | (digest[42] << 0);
-
-  buf[ 0] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[ 1] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[ 2] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[ 3] = int_to_itoa64 (l & 0x3f); //l >>= 6;
-
-  l = (digest[22] << 16) | (digest[43] << 8) | (digest[ 1] << 0);
-
-  buf[ 4] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[ 5] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[ 6] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[ 7] = int_to_itoa64 (l & 0x3f); //l >>= 6;
-
-  l = (digest[44] << 16) | (digest[ 2] << 8) | (digest[23] << 0);
-
-  buf[ 8] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[ 9] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[10] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[11] = int_to_itoa64 (l & 0x3f); //l >>= 6;
-
-  l = (digest[ 3] << 16) | (digest[24] << 8) | (digest[45] << 0);
-
-  buf[12] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[13] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[14] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[15] = int_to_itoa64 (l & 0x3f); //l >>= 6;
-
-  l = (digest[25] << 16) | (digest[46] << 8) | (digest[ 4] << 0);
-
-  buf[16] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[17] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[18] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[19] = int_to_itoa64 (l & 0x3f); //l >>= 6;
-
-  l = (digest[47] << 16) | (digest[ 5] << 8) | (digest[26] << 0);
-
-  buf[20] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[21] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[22] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[23] = int_to_itoa64 (l & 0x3f); //l >>= 6;
-
-  l = (digest[ 6] << 16) | (digest[27] << 8) | (digest[48] << 0);
-
-  buf[24] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[25] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[26] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[27] = int_to_itoa64 (l & 0x3f); //l >>= 6;
-
-  l = (digest[28] << 16) | (digest[49] << 8) | (digest[ 7] << 0);
-
-  buf[28] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[29] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[30] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[31] = int_to_itoa64 (l & 0x3f); //l >>= 6;
-
-  l = (digest[50] << 16) | (digest[ 8] << 8) | (digest[29] << 0);
-
-  buf[32] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[33] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[34] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[35] = int_to_itoa64 (l & 0x3f); //l >>= 6;
-
-  l = (digest[ 9] << 16) | (digest[30] << 8) | (digest[51] << 0);
-
-  buf[36] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[37] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[38] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[39] = int_to_itoa64 (l & 0x3f); //l >>= 6;
-
-  l = (digest[31] << 16) | (digest[52] << 8) | (digest[10] << 0);
-
-  buf[40] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[41] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[42] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[43] = int_to_itoa64 (l & 0x3f); //l >>= 6;
-
-  l = (digest[53] << 16) | (digest[11] << 8) | (digest[32] << 0);
-
-  buf[44] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[45] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[46] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[47] = int_to_itoa64 (l & 0x3f); //l >>= 6;
-
-  l = (digest[12] << 16) | (digest[33] << 8) | (digest[54] << 0);
-
-  buf[48] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[49] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[50] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[51] = int_to_itoa64 (l & 0x3f); //l >>= 6;
-
-  l = (digest[34] << 16) | (digest[55] << 8) | (digest[13] << 0);
-
-  buf[52] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[53] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[54] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[55] = int_to_itoa64 (l & 0x3f); //l >>= 6;
-
-  l = (digest[56] << 16) | (digest[14] << 8) | (digest[35] << 0);
-
-  buf[56] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[57] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[58] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[59] = int_to_itoa64 (l & 0x3f); //l >>= 6;
-
-  l = (digest[15] << 16) | (digest[36] << 8) | (digest[57] << 0);
-
-  buf[60] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[61] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[62] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[63] = int_to_itoa64 (l & 0x3f); //l >>= 6;
-
-  l = (digest[37] << 16) | (digest[58] << 8) | (digest[16] << 0);
-
-  buf[64] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[65] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[66] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[67] = int_to_itoa64 (l & 0x3f); //l >>= 6;
-
-  l = (digest[59] << 16) | (digest[17] << 8) | (digest[38] << 0);
-
-  buf[68] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[69] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[70] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[71] = int_to_itoa64 (l & 0x3f); //l >>= 6;
-
-  l = (digest[18] << 16) | (digest[39] << 8) | (digest[60] << 0);
-
-  buf[72] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[73] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[74] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[75] = int_to_itoa64 (l & 0x3f); //l >>= 6;
-
-  l = (digest[40] << 16) | (digest[61] << 8) | (digest[19] << 0);
-
-  buf[76] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[77] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[78] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[79] = int_to_itoa64 (l & 0x3f); //l >>= 6;
-
-  l = (digest[62] << 16) | (digest[20] << 8) | (digest[41] << 0);
-
-  buf[80] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[81] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[82] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[83] = int_to_itoa64 (l & 0x3f); //l >>= 6;
-
-  l =                                          (digest[63] << 0);
-
-  buf[84] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[85] = int_to_itoa64 (l & 0x3f); //l >>= 6;
-}
 
 static void sha1aix_decode (u8 digest[20], const u8 buf[27])
 {
@@ -5155,58 +4795,6 @@ int sha512s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  return (PARSER_OK);
-}
-
-int sha512crypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u64 *digest = (u64 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt  = 3;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_SHA512CRYPT;
-
-  token.len[0]     = 3;
-  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.len_min[1] = 0;
-  token.len_max[1] = 16;
-  token.sep[1]     = '$';
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_OPTIONAL_ROUNDS;
-
-  token.len[2]     = 86;
-  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64B;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  salt->salt_iter = ROUNDS_SHA512CRYPT;
-
-  if (token.opt_len != -1)
-  {
-    salt->salt_iter = hc_strtoul ((const char *) token.opt_buf + 7, NULL, 10); // 7 = "rounds="
-  }
-
-  const u8 *salt_pos = token.buf[1];
-  const int salt_len = token.len[1];
-
-  const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
-
-  if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  const u8 *hash_pos = token.buf[2];
-
-  sha512crypt_decode ((u8 *) digest, hash_pos);
 
   return (PARSER_OK);
 }
@@ -16697,8 +16285,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
 
   switch (hashconfig->hash_mode)
   {
-    case  1800:  salt->salt_iter  = ROUNDS_SHA512CRYPT;
-                 break;
     case  2100:  salt->salt_iter  = ROUNDS_DCC2;
                  break;
     case  5200:  salt->salt_iter  = ROUNDS_PSAFE3;
@@ -17188,30 +16774,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
         ptr[11], ptr[10],
         ptr[13], ptr[12],
         ptr[15], ptr[14]);
-  }
-  else if (hash_mode == 1800)
-  {
-    // temp workaround
-
-    digest_buf64[0] = byte_swap_64 (digest_buf64[0]);
-    digest_buf64[1] = byte_swap_64 (digest_buf64[1]);
-    digest_buf64[2] = byte_swap_64 (digest_buf64[2]);
-    digest_buf64[3] = byte_swap_64 (digest_buf64[3]);
-    digest_buf64[4] = byte_swap_64 (digest_buf64[4]);
-    digest_buf64[5] = byte_swap_64 (digest_buf64[5]);
-    digest_buf64[6] = byte_swap_64 (digest_buf64[6]);
-    digest_buf64[7] = byte_swap_64 (digest_buf64[7]);
-
-    sha512crypt_encode ((unsigned char *) digest_buf64, (unsigned char *) ptr_plain);
-
-    if (salt.salt_iter == ROUNDS_SHA512CRYPT)
-    {
-      snprintf (out_buf, out_size, "$6$%s$%s", (char *) salt.salt_buf, ptr_plain);
-    }
-    else
-    {
-      snprintf (out_buf, out_size, "$6$rounds=%u$%s$%s", salt.salt_iter, (char *) salt.salt_buf, ptr_plain);
-    }
   }
   else if (hash_mode == 2100)
   {
@@ -21207,24 +20769,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case  1800:  hashconfig->hash_type      = HASH_TYPE_SHA512;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PREFERED_THREAD;
-                 hashconfig->kern_type      = KERN_TYPE_SHA512CRYPT;
-                 hashconfig->dgst_size      = DGST_SIZE_8_8;
-                 hashconfig->parse_func     = sha512crypt_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_USES_BITS_64;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_01800;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case  2000:  hashconfig->hash_type      = HASH_TYPE_STDOUT;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -24764,7 +24308,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   switch (hashconfig->hash_mode)
   {
-    case  1800: hashconfig->tmp_size = sizeof (sha512crypt_tmp_t);        break;
     case  2100: hashconfig->tmp_size = sizeof (dcc2_tmp_t);               break;
     case  5200: hashconfig->tmp_size = sizeof (pwsafe3_tmp_t);            break;
     case  5800: hashconfig->tmp_size = sizeof (androidpin_tmp_t);         break;
@@ -24895,8 +24438,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
 
     switch (hashconfig->hash_mode)
     {
-      case  1800: pw_max = MIN (pw_max, 16); // pure kernel available
-                  break;
       case  5800: pw_max = MIN (pw_max, 16); // pure kernel available
                   break;
       case  6900: pw_max = MIN (pw_max, 32); // todo
