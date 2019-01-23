@@ -1039,10 +1039,8 @@ typedef enum kern_type
   KERN_TYPE_JWT_HS512               = 16513,
   KERN_TYPE_ELECTRUM_WALLET13       = 16600,
   KERN_TYPE_ANSIBLE_VAULT           = 16900,
-  KERN_TYPE_SHA3_256                = 17400,
   KERN_TYPE_SHA3_384                = 17500,
   KERN_TYPE_SHA3_512                = 17600,
-  KERN_TYPE_KECCAK_256              = 17800,
   KERN_TYPE_KECCAK_384              = 17900,
   KERN_TYPE_KECCAK_512              = 18000,
   KERN_TYPE_TOTP_HMACSHA1           = 18100,
@@ -1135,7 +1133,6 @@ int dcc2_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int episerver_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int postgresql_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int netscreen_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int keccak_256_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int keccak_384_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int keccak_512_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int chacha20_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
