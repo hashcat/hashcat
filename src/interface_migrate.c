@@ -110,7 +110,6 @@
   "   7400 | sha256crypt $5$, SHA256 (Unix)                   | Operating Systems",
   "    122 | macOS v10.4, MacOS v10.5, MacOS v10.6            | Operating Systems",
   "   1722 | macOS v10.7                                      | Operating Systems",
-  "   7100 | macOS v10.8+ (PBKDF2-SHA512)                     | Operating Systems",
   "   6300 | AIX {smd5}                                       | Operating Systems",
   "   6700 | AIX {ssha1}                                      | Operating Systems",
   "   6400 | AIX {ssha256}                                    | Operating Systems",
@@ -345,7 +344,6 @@ static const char *ST_HASH_06700 = "{ssha1}06$5586485655847243$V5f1Ff1y4dr7AWeVS
 static const char *ST_HASH_06800 = "82dbb8ccc9c7ead8c38a92a6b5740f94:500:pmix@trash-mail.com";
 static const char *ST_HASH_06900 = "df226c2c6dcb1d995c0299a33a084b201544293c31fc3d279530121d36bbcea9";
 static const char *ST_HASH_07000 = "AK1FCIhM0IUIQVFJgcDFwLCMi7GppdwtRzMyDpFOFxdpH8=";
-static const char *ST_HASH_07100 = "$ml$1024$2484380731132131624506271467162123576077004878124365203837706482$89a3a979ee186c0c837ca4551f32e951e6564c7ac6798aa35baf4427fbf6bd1d630642c12cfd5c236c7b0104782237db95e895f7c0e372cd81d58f0448daf958";
 static const char *ST_HASH_07200 = "grub.pbkdf2.sha512.1024.03510507805003756325721848020561235456073188241051876082416068104377357018503082587026352628170170411053726157658716047762755750.aac26b18c2b0c44bcf56514d46aabd52eea097d9c95122722087829982e9dd957b2b641cb1e015d4df16a84d0571e96cf6d3de6361431bdeed4ddb0940f2425b";
 static const char *ST_HASH_07300 = "3437343735333336383831353232323433383333303236303337333338363232303135383237333638363532373231343030313131333838323734373138363632343133333335353030353633373533333133313530363533303738343334313330303630343633333237373037383537333630303233303830303437323838333237313438363238343434383831363634323431333430383735323038:f4b376e25868751fc0264f573ff1fe50b65ce5a2";
 static const char *ST_HASH_07400 = "$5$7777657035274252$XftMj84MW.New1/ViLY5V4CM4Y7EBvfETaZsCW9vcJ8";
@@ -521,7 +519,6 @@ static const char *HT_06700 = "AIX {ssha1}";
 static const char *HT_06800 = "LastPass + LastPass sniffed";
 static const char *HT_06900 = "GOST R 34.11-94";
 static const char *HT_07000 = "FortiGate (FortiOS)";
-static const char *HT_07100 = "macOS v10.8+ (PBKDF2-SHA512)";
 static const char *HT_07200 = "GRUB 2";
 static const char *HT_07300 = "IPMI2 RAKP HMAC-SHA1";
 static const char *HT_07400 = "sha256crypt $5$, SHA256 (Unix)";
@@ -744,7 +741,6 @@ static const char *SIGNATURE_SHA256CRYPT        = "$5$";
 static const char *SIGNATURE_SHA512AIX          = "{ssha512}";
 static const char *SIGNATURE_SHA512B64S         = "{SSHA512}";
 static const char *SIGNATURE_SHA512GRUB         = "grub.pbkdf2.sha512.";
-static const char *SIGNATURE_SHA512MACOS        = "$ml$";
 static const char *SIGNATURE_SIP_AUTH           = "$sip$";
 static const char *SIGNATURE_SSHA1B64_lower     = "{ssha}";
 static const char *SIGNATURE_SSHA1B64_upper     = "{SSHA}";
@@ -5850,95 +5846,6 @@ int sha256crypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYB
   const u8 *hash_pos = token.buf[2];
 
   sha256crypt_decode ((u8 *) digest, hash_pos);
-
-  return (PARSER_OK);
-}
-
-int sha512macos_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u64 *digest = (u64 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  pbkdf2_sha512_t *pbkdf2_sha512 = (pbkdf2_sha512_t *) hash_buf->esalt;
-
-  token_t token;
-
-  token.token_cnt  = 4;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_SHA512MACOS;
-
-  token.len[0]     = 4;
-  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.len_min[1] = 1;
-  token.len_max[1] = 6;
-  token.sep[1]     = '$';
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[2] = 64;
-  token.len_max[2] = 64;
-  token.sep[2]     = '$';
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len_min[3] = 128;
-  token.len_max[3] = 128;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *hash_pos = token.buf[3];
-
-  digest[0] = hex_to_u64 (hash_pos +   0);
-  digest[1] = hex_to_u64 (hash_pos +  16);
-  digest[2] = hex_to_u64 (hash_pos +  32);
-  digest[3] = hex_to_u64 (hash_pos +  48);
-  digest[4] = hex_to_u64 (hash_pos +  64);
-  digest[5] = hex_to_u64 (hash_pos +  80);
-  digest[6] = hex_to_u64 (hash_pos +  96);
-  digest[7] = hex_to_u64 (hash_pos + 112);
-
-  digest[0] = byte_swap_64 (digest[0]);
-  digest[1] = byte_swap_64 (digest[1]);
-  digest[2] = byte_swap_64 (digest[2]);
-  digest[3] = byte_swap_64 (digest[3]);
-  digest[4] = byte_swap_64 (digest[4]);
-  digest[5] = byte_swap_64 (digest[5]);
-  digest[6] = byte_swap_64 (digest[6]);
-  digest[7] = byte_swap_64 (digest[7]);
-
-  const u8 *salt_pos = token.buf[2];
-  const int salt_len = token.len[2] / 2;
-
-  pbkdf2_sha512->salt_buf[0] = hex_to_u32 (salt_pos +  0);
-  pbkdf2_sha512->salt_buf[1] = hex_to_u32 (salt_pos +  8);
-  pbkdf2_sha512->salt_buf[2] = hex_to_u32 (salt_pos + 16);
-  pbkdf2_sha512->salt_buf[3] = hex_to_u32 (salt_pos + 24);
-  pbkdf2_sha512->salt_buf[4] = hex_to_u32 (salt_pos + 32);
-  pbkdf2_sha512->salt_buf[5] = hex_to_u32 (salt_pos + 40);
-  pbkdf2_sha512->salt_buf[6] = hex_to_u32 (salt_pos + 48);
-  pbkdf2_sha512->salt_buf[7] = hex_to_u32 (salt_pos + 56);
-
-  salt->salt_buf[0] = pbkdf2_sha512->salt_buf[0];
-  salt->salt_buf[1] = pbkdf2_sha512->salt_buf[1];
-  salt->salt_buf[2] = pbkdf2_sha512->salt_buf[2];
-  salt->salt_buf[3] = pbkdf2_sha512->salt_buf[3];
-  salt->salt_buf[4] = pbkdf2_sha512->salt_buf[4];
-  salt->salt_buf[5] = pbkdf2_sha512->salt_buf[5];
-  salt->salt_buf[6] = pbkdf2_sha512->salt_buf[6];
-  salt->salt_buf[7] = pbkdf2_sha512->salt_buf[7];
-  salt->salt_len    = salt_len;
-
-  const u8 *iter_pos = token.buf[1];
-
-  salt->salt_iter = hc_strtoul ((const char *) iter_pos, NULL, 10) - 1;
 
   return (PARSER_OK);
 }
@@ -15741,8 +15648,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                  break;
     case  6800:  salt->salt_iter  = ROUNDS_LASTPASS;
                  break;
-    case  7100:  salt->salt_iter  = ROUNDS_SHA512MACOS;
-                 break;
     case  7200:  salt->salt_iter  = ROUNDS_GRUB;
                  break;
     case  7400:  salt->salt_iter  = ROUNDS_SHA256CRYPT;
@@ -16516,41 +16421,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
     snprintf (out_buf, out_size, "%s%s",
       SIGNATURE_FORTIGATE,
       ptr_plain);
-  }
-  else if (hash_mode == 7100)
-  {
-    u32 *ptr = digest_buf;
-
-    pbkdf2_sha512_t *pbkdf2_sha512s = (pbkdf2_sha512_t *) esalts_buf;
-
-    pbkdf2_sha512_t *pbkdf2_sha512  = &pbkdf2_sha512s[digest_cur];
-
-    u32 esalt[8] = { 0 };
-
-    esalt[0] = byte_swap_32 (pbkdf2_sha512->salt_buf[0]);
-    esalt[1] = byte_swap_32 (pbkdf2_sha512->salt_buf[1]);
-    esalt[2] = byte_swap_32 (pbkdf2_sha512->salt_buf[2]);
-    esalt[3] = byte_swap_32 (pbkdf2_sha512->salt_buf[3]);
-    esalt[4] = byte_swap_32 (pbkdf2_sha512->salt_buf[4]);
-    esalt[5] = byte_swap_32 (pbkdf2_sha512->salt_buf[5]);
-    esalt[6] = byte_swap_32 (pbkdf2_sha512->salt_buf[6]);
-    esalt[7] = byte_swap_32 (pbkdf2_sha512->salt_buf[7]);
-
-    snprintf (out_buf, out_size, "%s%u$%08x%08x%08x%08x%08x%08x%08x%08x$%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
-      SIGNATURE_SHA512MACOS,
-      salt.salt_iter + 1,
-      esalt[ 0], esalt[ 1],
-      esalt[ 2], esalt[ 3],
-      esalt[ 4], esalt[ 5],
-      esalt[ 6], esalt[ 7],
-      ptr  [ 1], ptr  [ 0],
-      ptr  [ 3], ptr  [ 2],
-      ptr  [ 5], ptr  [ 4],
-      ptr  [ 7], ptr  [ 6],
-      ptr  [ 9], ptr  [ 8],
-      ptr  [11], ptr  [10],
-      ptr  [13], ptr  [12],
-      ptr  [15], ptr  [14]);
   }
   else if (hash_mode == 7200)
   {
@@ -20912,24 +20782,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case  7100:  hashconfig->hash_type      = HASH_TYPE_SHA512;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_PBKDF2_SHA512;
-                 hashconfig->dgst_size      = DGST_SIZE_8_16;
-                 hashconfig->parse_func     = sha512macos_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_USES_BITS_64
-                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_07100;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case  7200:  hashconfig->hash_type      = HASH_TYPE_SHA512;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -23248,7 +23100,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case  6242: hashconfig->esalt_size = sizeof (tc_t);                 break;
     case  6243: hashconfig->esalt_size = sizeof (tc_t);                 break;
     case  6600: hashconfig->esalt_size = sizeof (agilekey_t);           break;
-    case  7100: hashconfig->esalt_size = sizeof (pbkdf2_sha512_t);      break;
     case  7200: hashconfig->esalt_size = sizeof (pbkdf2_sha512_t);      break;
     case  7300: hashconfig->esalt_size = sizeof (rakp_t);               break;
     case  8200: hashconfig->esalt_size = sizeof (cloudkey_t);           break;
@@ -23351,7 +23202,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case  6600: hashconfig->tmp_size = sizeof (agilekey_tmp_t);           break;
     case  6700: hashconfig->tmp_size = sizeof (sha1aix_tmp_t);            break;
     case  6800: hashconfig->tmp_size = sizeof (lastpass_tmp_t);           break;
-    case  7100: hashconfig->tmp_size = sizeof (pbkdf2_sha512_tmp_t);      break;
     case  7200: hashconfig->tmp_size = sizeof (pbkdf2_sha512_tmp_t);      break;
     case  7400: hashconfig->tmp_size = sizeof (sha256crypt_tmp_t);        break;
     case  7900: hashconfig->tmp_size = sizeof (drupal7_tmp_t);            break;
@@ -23518,7 +23368,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
     case  6600: pw_max = PW_MAX;  break;
     case  6700: pw_max = PW_MAX;  break;
     case  6800: pw_max = PW_MAX;  break;
-    case  7100: pw_max = PW_MAX;  break;
     case  7200: pw_max = PW_MAX;  break;
     case  7700: pw_max = 8;       break; // https://www.daniel-berlin.de/security/sap-sec/password-hash-algorithms/
     case  7800: pw_max = 40;      break; // https://www.daniel-berlin.de/security/sap-sec/password-hash-algorithms/

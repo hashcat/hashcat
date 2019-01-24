@@ -837,7 +837,6 @@ typedef enum kern_type
   KERN_TYPE_LASTPASS                = 6800,
   KERN_TYPE_GOST                    = 6900,
   KERN_TYPE_FORTIGATE               = 7000,
-  KERN_TYPE_PBKDF2_SHA512           = 7100,
   KERN_TYPE_RAKP                    = 7300,
   KERN_TYPE_SHA256CRYPT             = 7400,
   KERN_TYPE_SAPB                    = 7700,
@@ -955,7 +954,6 @@ typedef enum rounds_count
    ROUNDS_SHA512AIX          = (1 << 6),
    ROUNDS_SHA256CRYPT        = 5000,
    ROUNDS_GRUB               = 10000,
-   ROUNDS_SHA512MACOS        = 35000,
    ROUNDS_AGILEKEY           = 1000,
    ROUNDS_LASTPASS           = 500,
    ROUNDS_DRUPAL7            = (1 << 14), // $S$C
@@ -1063,7 +1061,6 @@ int lastpass_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int gost_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha256crypt_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int mssql2012_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha512macos_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int episerver4_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha512grub_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha512b64s_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
