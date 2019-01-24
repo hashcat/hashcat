@@ -8,7 +8,6 @@ static const float MIN_SUFFICIENT_ENTROPY_FILE = 7.0f;
  * algo specific
  */
 
-
 typedef struct itunes_backup
 {
   u32 wpky[10];
@@ -232,26 +231,6 @@ typedef struct psafe3
   u32  hash_buf[8];
 
 } psafe3_t;
-
-typedef struct dpapimk
-{
-  u32 context;
-
-  u32 SID[32];
-  u32 SID_len;
-  u32 SID_offset;
-
-  /* here only for possible
-     forward compatibiliy
-  */
-  // u8 cipher_algo[16];
-  // u8 hash_algo[16];
-
-  u32 iv[4];
-  u32 contents_len;
-  u32 contents[128];
-
-} dpapimk_t;
 
 typedef struct jks_sha1
 {
@@ -664,17 +643,6 @@ typedef struct keepass_tmp
 
 } keepass_tmp_t;
 
-typedef struct dpapimk_tmp_v1
-{
-  u32 ipad[5];
-  u32 opad[5];
-  u32 dgst[10];
-  u32 out[10];
-
-  u32 userKey[5];
-
-} dpapimk_tmp_v1_t;
-
 typedef struct dpapimk_tmp_v2
 {
   u64 ipad64[8];
@@ -795,7 +763,6 @@ typedef enum hash_type
   HASH_TYPE_ITUNES_BACKUP_10    = 57,
   HASH_TYPE_SKIP32              = 58,
   HASH_TYPE_CHACHA20            = 60,
-  HASH_TYPE_DPAPIMK             = 61,
   HASH_TYPE_JKS_SHA1            = 62,
   HASH_TYPE_TACACS_PLUS         = 63,
   HASH_TYPE_APPLE_SECURE_NOTES  = 64,
@@ -956,7 +923,6 @@ typedef enum kern_type
   KERN_TYPE_SKIP32                  = 14900,
   KERN_TYPE_FILEZILLA_SERVER        = 15000,
   KERN_TYPE_NETBSD_SHA1CRYPT        = 15100,
-  KERN_TYPE_DPAPIMK_V1              = 15300,
   KERN_TYPE_CHACHA20                = 15400,
   KERN_TYPE_JKS_SHA1                = 15500,
   KERN_TYPE_ETHEREUM_PBKDF2         = 15600,
@@ -1044,7 +1010,6 @@ typedef enum rounds_count
    ROUNDS_ITUNES102_BACKUP   = 10000,
    ROUNDS_ATLASSIAN          = 10000,
    ROUNDS_NETBSD_SHA1CRYPT   = 20000,
-   ROUNDS_DPAPIMK_V1         = 24000 - 1, // from 4000 to 24000 (possibly more)
    ROUNDS_DPAPIMK_V2         = 8000  - 1, // from 4000 to 24000 (possibly more)
    ROUNDS_ETHEREUM_PBKDF2    = 262144 - 1,
    ROUNDS_APPLE_SECURE_NOTES = 20000,
@@ -1207,7 +1172,6 @@ int sha256b64s_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int filezilla_server_parse_hash   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int netbsd_sha1crypt_parse_hash   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int atlassian_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int dpapimk_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int jks_sha1_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int ethereum_pbkdf2_parse_hash    (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int ethereum_scrypt_parse_hash    (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
