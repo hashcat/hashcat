@@ -8,9 +8,10 @@
 use strict;
 use warnings;
 
+use Crypt::CBC;
 use Crypt::ECB  qw (encrypt);
 use Digest::MD4 qw (md4);
-use Digest::SHA qw (sha1 hmac_sha1);
+use Digest::SHA qw (sha1 hmac_sha1 hmac_sha512);
 use Encode;
 
 sub module_constraints { [[0, 255], [-1, -1], [0, 27], [-1, -1], [-1, -1]] }
@@ -100,7 +101,7 @@ sub module_generate_hash
 {
   my $word_buf     = shift;
   my $salt_buf     = shift;
-  my $dpapimk_salt = shift // get_random_dpapimk_salt (1);
+  my $dpapimk_salt = shift // get_random_dpapimk_salt (2);
   my $cipher       = shift;
 
   my @salt_arr = split ('\*', $dpapimk_salt);

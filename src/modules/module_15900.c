@@ -18,18 +18,16 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_OS;
-static const char *HASH_NAME      = "DPAPI masterkey file v1";
+static const char *HASH_NAME      = "DPAPI masterkey file v2";
 static const u32   HASH_TYPE      = HASH_TYPE_GENERIC;
-static const u64   KERN_TYPE      = 15300;
+static const u64   KERN_TYPE      = 15900;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
-                                  | OPTI_TYPE_USES_BITS_64
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STATE_BUFFER_LE
-                                  | OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_PREFERED_THREAD;
+                                  | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$DPAPImk$1*1*S-15-21-466364039-425773974-453930460-1925*des3*sha1*24000*b038489dee5ad04e3e3cab4d957258b5*208*cb9b5b7d96a0d2a00305ca403d3fd9c47c561e35b4b2cf3aebfd1d3199a6481d56972be7ebd6c291b199e6f1c2ffaee91978706737e9b1209e6c7d3aa3d8c3c3e38ad1ccfa39400d62c2415961c17fd0bd6b0f7bbd49cc1de1a394e64b7237f56244238da8d37d78";
+static const char *ST_HASH        = "$DPAPImk$2*1*S-15-21-439882973-489230393-482956683-1522*aes256*sha512*12900*79f7ca399f2626e21aad108c3922af7c*288*c47bc8a985ca6aa708b01c97b004bff20cc52379dc2635b4acf59ce17970a2cb47ace98c7e8de977f265243c5c03d0a97e4b954b494d9e38d9158d0c1e729d16a28ba69e2e7c6c3bc0e3afc9c9b6306b83372ccb35d89b98925728fd36315b8ee95b4d4eccdcb31564769f9a4b9ee10828184e16d4af336675d5e31d987dd87233d34fbbb98880c5e1f64cbb9b043ad8";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -67,22 +65,22 @@ typedef struct dpapimk
 
 } dpapimk_t;
 
-typedef struct dpapimk_tmp_v1
+typedef struct dpapimk_tmp_v2
 {
-  u32 ipad[5];
-  u32 opad[5];
-  u32 dgst[10];
-  u32 out[10];
+  u64 ipad64[8];
+  u64 opad64[8];
+  u64 dgst64[16];
+  u64 out64[16];
 
-  u32 userKey[5];
+  u32 userKey[8];
 
-} dpapimk_tmp_v1_t;
+} dpapimk_tmp_v2_t;
 
 static const char *SIGNATURE_DPAPIMK = "$DPAPImk$";
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u64 tmp_size = (const u64) sizeof (dpapimk_tmp_v1_t);
+  const u64 tmp_size = (const u64) sizeof (dpapimk_tmp_v2_t);
 
   return tmp_size;
 }
@@ -286,7 +284,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const dpapimk_t *dpapimk = (const dpapimk_t *) esalt_buf;
 
-  u32 version      = 1;
+  u32 version      = 2;
   u32 context      = dpapimk->context;
   u32 rounds       = salt->salt_iter + 1;
   u32 contents_len = dpapimk->contents_len;
@@ -296,15 +294,13 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   u8 cipher_algorithm[8] = { 0 };
   u8 hash_algorithm[8]   = { 0 };
   u8 SID[512]            = { 0 };
-
   u8* SID_tmp;
 
-  u32  *ptr_SID      = (u32 *)  dpapimk->SID;
-  u32  *ptr_iv       = (u32 *)  dpapimk->iv;
-  u32  *ptr_contents = (u32 *)  dpapimk->contents;
+  u32 *ptr_SID      = (u32 *) dpapimk->SID;
+  u32 *ptr_iv       = (u32 *) dpapimk->iv;
+  u32 *ptr_contents = (u32 *) dpapimk->contents;
 
   u32 u32_iv[4];
-
   u8 iv[32 + 1];
 
   // convert back SID
@@ -331,7 +327,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     SID[i] = SID_tmp[j];
   }
 
-  hcfree(SID_tmp);
+  hcfree (SID_tmp);
 
   for (u32 i = 0; i < iv_len / 8; i++)
   {
@@ -344,25 +340,25 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u32 u32_contents[36];
 
-  u8 contents[288 + 1];
+  u8  contents[288 + 1];
 
   for (u32 i = 0; i < contents_len / 8; i++)
   {
     u32_contents[i] = byte_swap_32 (ptr_contents[i]);
 
-    u32_to_hex (u32_contents[i], contents + i * 8);
+    u32_to_hex (u32_contents[i], contents +  i * 8);
   }
 
-  contents[208] = 0;
+  contents[288] = 0;
 
-  if (contents_len == 208)
+  if (contents_len == 288)
   {
-    memcpy (cipher_algorithm, "des3", strlen("des3"));
+    memcpy (cipher_algorithm, "aes256", strlen ("aes256"));
 
-    memcpy (hash_algorithm, "sha1", strlen("sha1"));
+    memcpy (hash_algorithm, "sha512", strlen ("sha512"));
   }
 
-  const int line_len = snprintf (line_buf, line_size, "%s%u*%u*%s*%s*%s*%u*%s*%u*%s",
+  const int line_len = snprintf (line_buf, line_size, "%s%d*%d*%s*%s*%s*%d*%s*%d*%s",
     SIGNATURE_DPAPIMK,
     version,
     context,

@@ -105,7 +105,6 @@
   "  11500 | CRC32                                            | Checksums",
   "   1100 | Domain Cached Credentials (DCC), MS Cache        | Operating Systems",
   "   2100 | Domain Cached Credentials 2 (DCC2), MS Cache 2   | Operating Systems",
-  "  15900 | DPAPI masterkey file v2                          | Operating Systems",
   "  12800 | MS-AzureSync  PBKDF2-HMAC-SHA256                 | Operating Systems",
   "  12400 | BSDi Crypt, Extended DES                         | Operating Systems",
   "   7400 | sha256crypt $5$, SHA256 (Unix)                   | Operating Systems",
@@ -448,7 +447,6 @@ static const char *ST_HASH_15400 = "$chacha20$*0400000000000003*35*0200000000000
 static const char *ST_HASH_15500 = "$jksprivk$*338BD2FBEBA7B3EF198A4CBFC6E18AFF1E229367*5225850113575146134463704406336350011656*D5253EB151EB92DC73E542D8C0A4D7A848A5B0C0E370E625E6547D4E6F23416FC85A27BC295731B8021CDFBD003551C66C434FFBC87DACAD1FDF39022320034A2F86E779F2B1B3325428A666518FA89507AD63E15FD9C57B9E36EF5B642A2F448A9A3F09B79AD93D65F46B8692CD07539FD140146F8F219DC262971AF019E18EDC16C3C240569E1673F4D98BC818CCF28298D5A7BFF038A663DD10FE5E48643C3217C237D342164E2D41EF15075431FBD5B34800E5AE7EB80FAA5AE9982A55F35379AA7B31217E7F1C5F1964A15024A305AE4B3981FE1C80C163BC38ECA5581F11867E5C34C5D124D0367B3737E5E5BB14D2CAB26A698C8DAAB755C82BA6B823BCAECDD4A89C831651ACE5A6029FD0D3515C5D1D53AD8B9062CE8C445373862035CBBF60D490CA2E4975EE6E0358EC32E871FAB15347E3032E21F30F543BAAB01D779BA833CA0B8C7591B42C7C59A8FDD46D7DECEC0E91ADBF331177605E7830ABED62FAD7D5D806D8EFD01C38765940B7F97168FC72C39BF4C98F944FFC310CA8F4EB1D0F960F352CC5E2BB23A1EB221072A5471EDA2CE81C04595B8D37088CFB5C14F6A4A881AD12125DEFBB8154EB4C130AB7FD9933FD36DF1A6A26B51AB169866788678FCED988C8E017CA84354F487A5508210181AFB8B3AD0753E3E28BE674DFBD4E4FBDFD1E30D592F4EA3A77A2F0F5CF9A175DBC590EF5D42971A39918F12B92DCD8BFD56BE9A3459856B5587603C7B53062663A4C8894BBC9894FB1663BF30F32D907664328138B7A50EAC7F8E3183D74562A5C90FE1889AC4C5FE43EBEB8974563B6682F92591ECA4FA0DA72236C3851DA102DB6BA0CC07BFD32F7E962AB0EDCF4A8DEA6525174F5BB5C021E2A9A3F7F761E9CA90B6E27FB7E55CD91DA184FAC5E534E8AD25314C56CE5796506A0CA70881782F9C5147D87705065D68BD67D2B0344205BA6445D562273690004CA5A303274FB283A75F49BA968D7947943AA98F2AF9CB8253B425B86225E7395A331AC4CB1B1700C64D4F458D5D642C54148AE6DA41D9E26657D331B157D76042C2CF3057B83997C23D8BF68FB3C7337CAFB8B324AD0DF7A80B554B4D7F9AD6ED527E7932F1741A573C152A41610F6517E3F4A3BC6B66685871A7CE3795C559BD47CDB8E34CB2C1DFE980518D79E2078C258C54F312EB38609F640E7DC013E0F2A16A25BB5971882B4308D27930CA99FEC231AE927B62215A1B56098C362B7F20593953B29428681875070E84BF5B60BEA3948127151634123DA77C814AAD54CE10905763C8C19BC191C0C40458C809402E1957C4C05C4EAE27576B2D30593F7FDCC9A248DB5DB23CF2FA22A92C016090F611690BF0AB5B8B2866ED25F345EFE85DF3311C9E91C37CEE709CF16E7CB09D01BECD2961D094C02D42EC85BF47FAB1B67A13B9A1741C15F7156D57A71BFFABB03B71E69707913A5C136B3D69CE3F71ABFE376F0A21D723FFA2E60AC180689D3E8AF4348C9F555CD897387327FC8BA2B9C51A7298547E556A11A60441EF5331A1BFB847A3D23DD9F7C50E636A2C6309BC82E1A8852F5A8569B6D93*14*78D6A2424484CF5149932B7EA8BF*test";
 static const char *ST_HASH_15600 = "$ethereum$p*1024*38353131353831333338313138363430*a8b4dfe92687dbc0afeb5dae7863f18964241e96b264f09959903c8c924583fc*0a9252861d1e235994ce33dbca91c98231764d8ecb4950015a8ae20d6415b986";
 //static const char *ST_HASH_15700 = "$ethereum$s*262144*8*1*3134313837333434333838303231333633373433323633373534333136363537*73da7f80ec3bd4f2a128c3a815cfb4d576ecb1a9b47024c902e62ea926f7795b*910e0f8dc1f7ba41959e1089bb769f3e919109591913cc33ba03953d7a905efd";
-static const char *ST_HASH_15900 = "$DPAPImk$2*1*S-15-21-439882973-489230393-482956683-1522*aes256*sha512*12900*79f7ca399f2626e21aad108c3922af7c*288*c47bc8a985ca6aa708b01c97b004bff20cc52379dc2635b4acf59ce17970a2cb47ace98c7e8de977f265243c5c03d0a97e4b954b494d9e38d9158d0c1e729d16a28ba69e2e7c6c3bc0e3afc9c9b6306b83372ccb35d89b98925728fd36315b8ee95b4d4eccdcb31564769f9a4b9ee10828184e16d4af336675d5e31d987dd87233d34fbbb98880c5e1f64cbb9b043ad8";
 static const char *ST_HASH_16000 = "pfaRCwDe0U";
 static const char *ST_HASH_16100 = "$tacacs-plus$0$5fde8e68$4e13e8fb33df$c006";
 static const char *ST_HASH_16200 = "$ASN$*1*20000*80771171105233481004850004085037*d04b17af7f6b184346aad3efefe8bec0987ee73418291a41";
@@ -610,7 +608,6 @@ static const char *HT_15400 = "ChaCha20";
 static const char *HT_15500 = "JKS Java Key Store Private Keys (SHA1)";
 static const char *HT_15600 = "Ethereum Wallet, PBKDF2-HMAC-SHA256";
 static const char *HT_15700 = "Ethereum Wallet, SCRYPT";
-static const char *HT_15900 = "DPAPI masterkey file v2";
 static const char *HT_16000 = "Tripcode";
 static const char *HT_16100 = "TACACS+";
 static const char *HT_16200 = "Apple Secure Notes";
@@ -15873,8 +15870,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                  break;
     case 15700:  salt->salt_iter  = 1;
                  break;
-    case 15900:  salt->salt_iter  = ROUNDS_DPAPIMK_V2;
-                 break;
     case 16200:  salt->salt_iter  = ROUNDS_APPLE_SECURE_NOTES - 1;
                  break;
     case 16300:  salt->salt_iter  = ROUNDS_ETHEREUM_PRESALE;
@@ -18345,91 +18340,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       digest_buf[6],
       digest_buf[7]
     );
-  }
-  else if (hash_mode == 15900)
-  {
-    dpapimk_t *dpapimks = (dpapimk_t *) esalts_buf;
-
-    dpapimk_t *dpapimk  = &dpapimks[digest_cur];
-
-    u32 version      = 2;
-    u32 context      = dpapimk->context;
-    u32 rounds       = salt.salt_iter + 1;
-    u32 contents_len = dpapimk->contents_len;
-    u32 SID_len      = dpapimk->SID_len;
-    u32 iv_len       = 32;
-
-    u8 cipher_algorithm[8] = { 0 };
-    u8 hash_algorithm[8]   = { 0 };
-    u8 SID[512]            = { 0 };
-    u8* SID_tmp;
-
-    u32  *ptr_SID          = (u32 *)  dpapimk->SID;
-    u32  *ptr_iv           = (u32 *)  dpapimk->iv;
-    u32  *ptr_contents     = (u32 *)  dpapimk->contents;
-
-    u32 u32_iv[4];
-    u8 iv[32 + 1];
-
-    // convert back SID
-
-    SID_tmp = (u8 *) hcmalloc ((SID_len + 1) * sizeof(u8));
-
-    for (u32 i = 0; i < (SID_len / 4) + 1; i++)
-    {
-      u8 hex[8] = { 0 };
-      u32_to_hex (byte_swap_32 (ptr_SID[i]), hex);
-
-      for (u32 j = 0, k = 0; j < 8; j += 2, k++)
-      {
-        SID_tmp[i * 4 + k] = hex_to_u8 (&hex[j]);
-      }
-    }
-    // overwrite trailing 0x80
-    SID_tmp[SID_len] = 0;
-
-    for (u32 i = 0, j = 0 ; j < SID_len ; i++, j += 2)
-    {
-      SID[i] = SID_tmp[j];
-    }
-
-    hcfree(SID_tmp);
-
-    for (u32 i = 0; i < iv_len / 8; i++)
-    {
-      u32_iv[i] = byte_swap_32 (ptr_iv[i]);
-      u32_to_hex (u32_iv[i], iv +  i * 8);
-    }
-    iv[32] = 0;
-
-    u32 u32_contents[36];
-    u8  contents[288 + 1];
-
-    for (u32 i = 0; i < contents_len / 8; i++)
-    {
-      u32_contents[i] = byte_swap_32 (ptr_contents[i]);
-      u32_to_hex (u32_contents[i], contents +  i * 8);
-    }
-
-    contents[288] = 0;
-
-    if (contents_len == 288)
-    {
-      memcpy(cipher_algorithm, "aes256", strlen("aes256"));
-      memcpy(hash_algorithm,   "sha512", strlen("sha512"));
-    }
-
-    snprintf (out_buf, out_size, "%s%d*%d*%s*%s*%s*%d*%s*%d*%s",
-      SIGNATURE_DPAPIMK,
-      version,
-      context,
-      SID,
-      cipher_algorithm,
-      hash_algorithm,
-      rounds,
-      iv,
-      contents_len,
-      contents);
   }
   else if (hash_mode == 16000)
   {
@@ -23018,25 +22928,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 15900:  hashconfig->hash_type      = HASH_TYPE_DPAPIMK;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PREFERED_THREAD;
-                 hashconfig->kern_type      = KERN_TYPE_DPAPIMK_V2;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = dpapimk_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_USES_BITS_64
-                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_15900;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case 16000:  hashconfig->hash_type      = HASH_TYPE_DESCRYPT;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -23419,7 +23310,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 15500: hashconfig->esalt_size = sizeof (jks_sha1_t);           break;
     case 15600: hashconfig->esalt_size = sizeof (ethereum_pbkdf2_t);    break;
     case 15700: hashconfig->esalt_size = sizeof (ethereum_scrypt_t);    break;
-    case 15900: hashconfig->esalt_size = sizeof (dpapimk_t);            break;
     case 16100: hashconfig->esalt_size = sizeof (tacacs_plus_t);        break;
     case 16200: hashconfig->esalt_size = sizeof (apple_secure_notes_t); break;
     case 16300: hashconfig->esalt_size = sizeof (ethereum_presale_t);   break;
@@ -23522,7 +23412,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 15100: hashconfig->tmp_size = sizeof (pbkdf1_sha1_tmp_t);        break;
     case 15200: hashconfig->tmp_size = sizeof (mywallet_tmp_t);           break;
     case 15600: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
-    case 15900: hashconfig->tmp_size = sizeof (dpapimk_tmp_v2_t);         break;
     case 16200: hashconfig->tmp_size = sizeof (apple_secure_notes_tmp_t); break;
     case 16300: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
     case 16700: hashconfig->tmp_size = sizeof (apple_secure_notes_tmp_t); break;
@@ -23716,7 +23605,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
     case 15400: pw_max = 32;      break; // Underlaying ChaCha20 fixed
     case 15600: pw_max = PW_MAX;  break;
     case 15700: pw_max = PW_MAX;  break;
-    case 15900: pw_max = PW_MAX;  break;
     case 16000: pw_max = 8;       break; // Underlaying DES max
     case 16900: pw_max = PW_MAX;  break;
   }

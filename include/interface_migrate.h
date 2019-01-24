@@ -643,17 +643,6 @@ typedef struct keepass_tmp
 
 } keepass_tmp_t;
 
-typedef struct dpapimk_tmp_v2
-{
-  u64 ipad64[8];
-  u64 opad64[8];
-  u64 dgst64[16];
-  u64 out64[16];
-
-  u32 userKey[8];
-
-} dpapimk_tmp_v2_t;
-
 typedef struct apple_secure_notes_tmp
 {
   u32 ipad[8];
@@ -663,7 +652,6 @@ typedef struct apple_secure_notes_tmp
   u32 out[8];
 
 } apple_secure_notes_tmp_t;
-
 
 typedef struct struct_psafe2_hdr
 {
@@ -927,7 +915,6 @@ typedef enum kern_type
   KERN_TYPE_JKS_SHA1                = 15500,
   KERN_TYPE_ETHEREUM_PBKDF2         = 15600,
   KERN_TYPE_ETHEREUM_SCRYPT         = 15700,
-  KERN_TYPE_DPAPIMK_V2              = 15900,
   KERN_TYPE_TRIPCODE                = 16000,
   KERN_TYPE_TACACS_PLUS             = 16100,
   KERN_TYPE_APPLE_SECURE_NOTES      = 16200,
@@ -1010,7 +997,6 @@ typedef enum rounds_count
    ROUNDS_ITUNES102_BACKUP   = 10000,
    ROUNDS_ATLASSIAN          = 10000,
    ROUNDS_NETBSD_SHA1CRYPT   = 20000,
-   ROUNDS_DPAPIMK_V2         = 8000  - 1, // from 4000 to 24000 (possibly more)
    ROUNDS_ETHEREUM_PBKDF2    = 262144 - 1,
    ROUNDS_APPLE_SECURE_NOTES = 20000,
    ROUNDS_ETHEREUM_PRESALE   = 2000 - 1,
