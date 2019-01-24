@@ -63,7 +63,6 @@
   "  11100 | PostgreSQL CRAM (MD5)                            | Network Protocols",
   "  11200 | MySQL CRAM (SHA1)                                | Network Protocols",
   "  11400 | SIP digest authentication (MD5)                  | Network Protocols",
-  "  13100 | Kerberos 5 TGS-REP etype 23                      | Network Protocols",
   "  16100 | TACACS+                                          | Network Protocols",
   "  16500 | JWT (JSON Web Token)                             | Network Protocols",
   "  18200 | Kerberos 5 AS-REP etype 23                       | Network Protocols",
@@ -418,7 +417,6 @@ static const char *ST_HASH_12700 = "$blockchain$288$7132537221140006826366048012
 static const char *ST_HASH_12800 = "v1;PPH1_MD4,54188415275183448824,100,55b530f052a9af79a7ba9c466dddcb8b116f8babf6c3873a51a3898fb008e123";
 static const char *ST_HASH_12900 = "15738301074686823451275227041071157383010746868234512752270410712bc4be900bf96ccf43c9852fff49b5f5874a9f6e7bf301686fa6d98286de151f15738301074686823451275227041071";
 static const char *ST_HASH_13000 = "$rar5$16$38466361001011015181344360681307$15$00000000000000000000000000000000$8$cc7a30583e62676a";
-static const char *ST_HASH_13100 = "$krb5tgs$23$*user$realm$test/spn*$b548e10f5694ae018d7ad63c257af7dc$35e8e45658860bc31a859b41a08989265f4ef8afd75652ab4d7a30ef151bf6350d879ae189a8cb769e01fa573c6315232b37e4bcad9105520640a781e5fd85c09615e78267e494f433f067cc6958200a82f70627ce0eebc2ac445729c2a8a0255dc3ede2c4973d2d93ac8c1a56b26444df300cb93045d05ff2326affaa3ae97f5cd866c14b78a459f0933a550e0b6507bf8af27c2391ef69fbdd649dd059a4b9ae2440edd96c82479645ccdb06bae0eead3b7f639178a90cf24d9a";
 static const char *ST_HASH_13200 = "$axcrypt$*1*10467*9a7cd609bb262c738d9f0e4977039b94*ecbe0fd05a96fd2099d88a92eebb76c59d6837dfe55b3631";
 static const char *ST_HASH_13300 = "$axcrypt_sha1$b89eaac7e61417341b710b727768294d";
 static const char *ST_HASH_13400 = "$keepass$*2*24569*0*c40432355cce7348c48053ceea0a28e7d18859c4ea47e3a799c6300861f64b95*265dafcc42e1537ff42e97e1e283c70014133be0fe2d420b4d24c6d57c9d2207*a00e20a852694c15aabb074d61b902fa*48dd553fb96f7996635f2414bfe6a1a8429ef0ffb71a1752abbef31853172c35*a44ae659958ad7fae8c8952cb83f3cf03fec2371ce22a8bf7fac1e687af2f249*1*64*5a26ea376cc5afc955104c334571d30486acbac512a94b75ca82a9e31dd97bf7";
@@ -597,7 +595,6 @@ static const char *HT_12700 = "Blockchain, My Wallet";
 static const char *HT_12800 = "MS-AzureSync PBKDF2-HMAC-SHA256";
 static const char *HT_12900 = "Android FDE (Samsung DEK)";
 static const char *HT_13000 = "RAR5";
-static const char *HT_13100 = "Kerberos 5 TGS-REP etype 23";
 static const char *HT_13200 = "AxCrypt";
 static const char *HT_13300 = "AxCrypt in-memory SHA1";
 static const char *HT_13400 = "KeePass 1 (AES/Twofish) and KeePass 2 (AES)";
@@ -718,7 +715,6 @@ static const char *SIGNATURE_DRUPAL7            = "$S$";
 static const char *SIGNATURE_ECRYPTFS           = "$ecryptfs$";
 static const char *SIGNATURE_EPISERVER          = "$episerver$";
 static const char *SIGNATURE_KEEPASS            = "$keepass$";
-static const char *SIGNATURE_KRB5TGS            = "$krb5tgs$23$";
 static const char *SIGNATURE_KRB5ASREP          = "$krb5asrep$23$";
 static const char *SIGNATURE_MD5AIX             = "{smd5}";
 static const char *SIGNATURE_MD5APR1            = "$apr1$";
@@ -12250,140 +12246,6 @@ int rar5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   return (PARSER_OK);
 }
 
-int krb5tgs_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  krb5tgs_t *krb5tgs = (krb5tgs_t *) hash_buf->esalt;
-
-  token_t token;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_KRB5TGS;
-
-  token.len[0]  = 12;
-  token.attr[0] = TOKEN_ATTR_FIXED_LENGTH
-                | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  /**
-   * $krb5tgs$23$checksum$edata2
-   * $krb5tgs$23$*user*realm*spn*$checksum$edata2
-   */
-
-  if (input_len < 16) return (PARSER_SALT_LENGTH);
-
-  if (input_buf[12] == '*')
-  {
-    char *account_info_start = (char *) input_buf + 12; // we want the * char included
-    char *account_info_stop  = strchr ((const char *) account_info_start + 1, '*');
-
-    if (account_info_stop == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-    account_info_stop++; // we want the * char included
-    account_info_stop++; // we want the $ char included
-
-    const int account_info_len = account_info_stop - account_info_start;
-
-    token.token_cnt  = 4;
-
-    token.len[1]     = account_info_len;
-    token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH;
-
-    token.sep[2]     = '$';
-    token.len_min[2] = 32;
-    token.len_max[2] = 32;
-    token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                     | TOKEN_ATTR_VERIFY_HEX;
-
-    token.sep[3]     = '$';
-    token.len_min[3] = 64;
-    token.len_max[3] = 40960;
-    token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                     | TOKEN_ATTR_VERIFY_HEX;
-  }
-  else
-  {
-    token.token_cnt  = 3;
-
-    token.sep[1]     = '$';
-    token.len_min[1] = 32;
-    token.len_max[1] = 32;
-    token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                     | TOKEN_ATTR_VERIFY_HEX;
-
-    token.sep[2]     = '$';
-    token.len_min[2] = 64;
-    token.len_max[2] = 40960;
-    token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                     | TOKEN_ATTR_VERIFY_HEX;
-  }
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *checksum_pos;
-  const u8 *data_pos;
-
-  int data_len;
-
-  if (input_buf[12] == '*')
-  {
-    checksum_pos = token.buf[2];
-
-    data_pos = token.buf[3];
-    data_len = token.len[3];
-
-    memcpy (krb5tgs->account_info, token.buf[1], token.len[1]);
-  }
-  else
-  {
-    checksum_pos = token.buf[1];
-
-    data_pos = token.buf[2];
-    data_len = token.len[2];
-
-    krb5tgs->account_info[0] = 0;
-  }
-
-  krb5tgs->checksum[0] = hex_to_u32 (checksum_pos +  0);
-  krb5tgs->checksum[1] = hex_to_u32 (checksum_pos +  8);
-  krb5tgs->checksum[2] = hex_to_u32 (checksum_pos + 16);
-  krb5tgs->checksum[3] = hex_to_u32 (checksum_pos + 24);
-
-  u8 *edata_ptr = (u8 *) krb5tgs->edata2;
-
-  for (int i = 0; i < data_len; i += 2)
-  {
-    const u8 p0 = data_pos[i + 0];
-    const u8 p1 = data_pos[i + 1];
-
-    *edata_ptr++ = hex_convert (p1) << 0
-                 | hex_convert (p0) << 4;
-  }
-
-  krb5tgs->edata2_len = data_len / 2;
-
-  /* this is needed for hmac_md5 */
-  *edata_ptr++ = 0x80;
-
-  salt->salt_buf[0] = krb5tgs->checksum[0];
-  salt->salt_buf[1] = krb5tgs->checksum[1];
-  salt->salt_buf[2] = krb5tgs->checksum[2];
-  salt->salt_buf[3] = krb5tgs->checksum[3];
-
-  salt->salt_len = 16;
-
-  digest[0] = krb5tgs->checksum[0];
-  digest[1] = krb5tgs->checksum[1];
-  digest[2] = krb5tgs->checksum[2];
-  digest[3] = krb5tgs->checksum[3];
-
-  return (PARSER_OK);
-}
-
 int krb5asrep_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
@@ -15877,7 +15739,6 @@ u32 kernel_threads_mxx (hashcat_ctx_t *hashcat_ctx)
   if (hashconfig->hash_mode == 10400) kernel_threads = 64; // RC4
   if (hashconfig->hash_mode == 10410) kernel_threads = 64; // RC4
   if (hashconfig->hash_mode == 10500) kernel_threads = 64; // RC4
-  if (hashconfig->hash_mode == 13100) kernel_threads = 64; // RC4
   if (hashconfig->hash_mode == 15700) kernel_threads = 1;  // SCRYPT
   if (hashconfig->hash_mode == 18200) kernel_threads = 64; // RC4
 
@@ -18262,30 +18123,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (digest_buf[0]),
       byte_swap_32 (digest_buf[1])
     );
-  }
-  else if (hash_mode == 13100)
-  {
-    krb5tgs_t *krb5tgss = (krb5tgs_t *) esalts_buf;
-
-    krb5tgs_t *krb5tgs = &krb5tgss[digest_cur];
-
-    char data[5120 * 4 * 2] = { 0 };
-
-    for (u32 i = 0, j = 0; i < krb5tgs->edata2_len; i += 1, j += 2)
-    {
-      u8 *ptr_edata2 = (u8 *) krb5tgs->edata2;
-
-      sprintf (data + j, "%02x", ptr_edata2[i]);
-    }
-
-    snprintf (out_buf, out_size, "%s%s%08x%08x%08x%08x$%s",
-      SIGNATURE_KRB5TGS,
-      (char *) krb5tgs->account_info,
-      byte_swap_32 (krb5tgs->checksum[0]),
-      byte_swap_32 (krb5tgs->checksum[1]),
-      byte_swap_32 (krb5tgs->checksum[2]),
-      byte_swap_32 (krb5tgs->checksum[3]),
-      data);
   }
   else if (hash_mode == 13200)
   {
@@ -22828,23 +22665,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 13100:  hashconfig->hash_type      = HASH_TYPE_KRB5TGS;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_KRB5TGS;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = krb5tgs_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_NOT_ITERATED;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_13100;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case 13200:  hashconfig->hash_type      = HASH_TYPE_AES;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -23998,7 +23818,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 12001: hashconfig->esalt_size = sizeof (pbkdf2_sha1_t);        break;
     case 12100: hashconfig->esalt_size = sizeof (pbkdf2_sha512_t);      break;
     case 13000: hashconfig->esalt_size = sizeof (rar5_t);               break;
-    case 13100: hashconfig->esalt_size = sizeof (krb5tgs_t);            break;
     case 13400: hashconfig->esalt_size = sizeof (keepass_t);            break;
     case 13500: hashconfig->esalt_size = sizeof (pstoken_t);            break;
     case 13600: hashconfig->esalt_size = sizeof (zip2_t);               break;

@@ -4,7 +4,6 @@
 
 static const float MIN_SUFFICIENT_ENTROPY_FILE = 7.0f;
 
-
 /**
  * algo specific
  */
@@ -90,15 +89,6 @@ typedef struct ikepsk
   u32 msg_len[6];
 
 } ikepsk_t;
-
-typedef struct krb5tgs
-{
-  u32 account_info[512];
-  u32 checksum[4];
-  u32 edata2[5120];
-  u32 edata2_len;
-
-} krb5tgs_t;
 
 typedef struct krb5asrep
 {
@@ -807,7 +797,6 @@ typedef enum hash_type
   HASH_TYPE_ORACLET             = 48,
   HASH_TYPE_BSDICRYPT           = 49,
   HASH_TYPE_RAR3HP              = 50,
-  HASH_TYPE_KRB5TGS             = 51,
   HASH_TYPE_STDOUT              = 52,
   HASH_TYPE_PLAINTEXT           = 54,
   HASH_TYPE_LUKS                = 55,
@@ -964,7 +953,6 @@ typedef enum kern_type
   KERN_TYPE_MS_DRSR                 = 12800,
   KERN_TYPE_ANDROIDFDE_SAMSUNG      = 12900,
   KERN_TYPE_RAR5                    = 13000,
-  KERN_TYPE_KRB5TGS                 = 13100,
   KERN_TYPE_AXCRYPT                 = 13200,
   KERN_TYPE_SHA1_AXCRYPT            = 13300,
   KERN_TYPE_KEEPASS                 = 13400,
@@ -1139,7 +1127,6 @@ int sha512macos_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int episerver4_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha512grub_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha512b64s_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int krb5tgs_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int krb5asrep_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sapb_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sapg_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
