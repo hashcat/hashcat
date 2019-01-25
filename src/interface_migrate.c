@@ -134,7 +134,6 @@
   "   9100 | Lotus Notes/Domino 8                             | Enterprise Application Software (EAS)",
   "    133 | PeopleSoft                                       | Enterprise Application Software (EAS)",
   "  13500 | PeopleSoft PS_TOKEN                              | Enterprise Application Software (EAS)",
-  "  13000 | RAR5                                             | Archives",
   "  13200 | AxCrypt                                          | Archives",
   "  13300 | AxCrypt in-memory SHA1                           | Archives",
   "  13600 | WinZip                                           | Archives",
@@ -401,7 +400,6 @@ static const char *ST_HASH_12600 = "3f3473a071b1fb955544e80c81853ca0f1e4f9ee4ca3
 static const char *ST_HASH_12700 = "$blockchain$288$713253722114000682636604801283547365b7a53a802a7388d08eb7e6c32c1efb4a157fe19bca940a753d7f16e8bdaf491aa9cf6cda4035ac48d56bb025aced81455424272f3e0459ec7674df3e82abd7323bc09af4fd0869fd790b3f17f8fe424b8ec81a013e1476a5c5a6a53c4b85a055eecfbc13eccf855f905d3ddc3f0c54015b8cb177401d5942af833f655947bfc12fc00656302f31339187de2a69ab06bc61073933b3a48c9f144177ae4b330968eb919f8a22cec312f734475b28cdfe5c25b43c035bf132887f3241d86b71eb7e1cf517f99305b19c47997a1a1f89df6248749ac7f38ca7c88719cf16d6af2394307dce55600b8858f4789cf1ae8fd362ef565cd9332f32068b3c04c9282553e658b759c2e76ed092d67bd55961ae";
 static const char *ST_HASH_12800 = "v1;PPH1_MD4,54188415275183448824,100,55b530f052a9af79a7ba9c466dddcb8b116f8babf6c3873a51a3898fb008e123";
 static const char *ST_HASH_12900 = "15738301074686823451275227041071157383010746868234512752270410712bc4be900bf96ccf43c9852fff49b5f5874a9f6e7bf301686fa6d98286de151f15738301074686823451275227041071";
-static const char *ST_HASH_13000 = "$rar5$16$38466361001011015181344360681307$15$00000000000000000000000000000000$8$cc7a30583e62676a";
 static const char *ST_HASH_13200 = "$axcrypt$*1*10467*9a7cd609bb262c738d9f0e4977039b94*ecbe0fd05a96fd2099d88a92eebb76c59d6837dfe55b3631";
 static const char *ST_HASH_13300 = "$axcrypt_sha1$b89eaac7e61417341b710b727768294d";
 static const char *ST_HASH_13400 = "$keepass$*2*24569*0*c40432355cce7348c48053ceea0a28e7d18859c4ea47e3a799c6300861f64b95*265dafcc42e1537ff42e97e1e283c70014133be0fe2d420b4d24c6d57c9d2207*a00e20a852694c15aabb074d61b902fa*48dd553fb96f7996635f2414bfe6a1a8429ef0ffb71a1752abbef31853172c35*a44ae659958ad7fae8c8952cb83f3cf03fec2371ce22a8bf7fac1e687af2f249*1*64*5a26ea376cc5afc955104c334571d30486acbac512a94b75ca82a9e31dd97bf7";
@@ -569,7 +567,6 @@ static const char *HT_12600 = "ColdFusion 10+";
 static const char *HT_12700 = "Blockchain, My Wallet";
 static const char *HT_12800 = "MS-AzureSync PBKDF2-HMAC-SHA256";
 static const char *HT_12900 = "Android FDE (Samsung DEK)";
-static const char *HT_13000 = "RAR5";
 static const char *HT_13200 = "AxCrypt";
 static const char *HT_13300 = "AxCrypt in-memory SHA1";
 static const char *HT_13400 = "KeePass 1 (AES/Twofish) and KeePass 2 (AES)";
@@ -708,7 +705,6 @@ static const char *SIGNATURE_PHPS               = "$PHPS$";
 static const char *SIGNATURE_POSTGRESQL_AUTH    = "$postgres$";
 static const char *SIGNATURE_PSAFE3             = "PWS3";
 static const char *SIGNATURE_RACF               = "$racf$";
-static const char *SIGNATURE_RAR5               = "$rar5$";
 static const char *SIGNATURE_SAPH_SHA1          = "{x-issha, ";
 static const char *SIGNATURE_SCRYPT             = "SCRYPT";
 static const char *SIGNATURE_SHA1AIX            = "{ssha1}";
@@ -11346,124 +11342,6 @@ int bsdicrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   return (PARSER_OK);
 }
 
-int rar5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  rar5_t *rar5 = (rar5_t *) hash_buf->esalt;
-
-  token_t token;
-
-  token.token_cnt  = 7;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_RAR5;
-
-  token.len[0]     = 6;
-  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.sep[1]     = '$';
-  token.len_min[1] = 2;
-  token.len_max[1] = 2;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[2]     = '$';
-  token.len_min[2] = 32;
-  token.len_max[2] = 32;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.sep[3]     = '$';
-  token.len_min[3] = 2;
-  token.len_max[3] = 2;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[4]     = '$';
-  token.len_min[4] = 32;
-  token.len_max[4] = 32;
-  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.sep[5]     = '$';
-  token.len_min[5] = 1;
-  token.len_max[5] = 1;
-  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[6]     = '$';
-  token.len_min[6] = 16;
-  token.len_max[6] = 16;
-  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  // iter
-
-  const u8 *iter_pos = token.buf[3];
-
-  const u32 iterations = hc_strtoul ((const char *) iter_pos, NULL, 10);
-
-  salt->salt_iter = ((1u << iterations) + 32) - 1;
-
-  if (iterations == 0) return (PARSER_SALT_VALUE);
-
-  salt->salt_sign[0] = iterations;
-
-  // salt
-
-  const u8 *salt_buf = token.buf[2];
-
-  salt->salt_buf[0] = hex_to_u32 (salt_buf +  0);
-  salt->salt_buf[1] = hex_to_u32 (salt_buf +  8);
-  salt->salt_buf[2] = hex_to_u32 (salt_buf + 16);
-  salt->salt_buf[3] = hex_to_u32 (salt_buf + 24);
-
-  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
-  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
-  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
-  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
-
-  // iv
-
-  const u8 *iv = token.buf[4];
-
-  rar5->iv[0] = hex_to_u32 (iv +  0);
-  rar5->iv[1] = hex_to_u32 (iv +  8);
-  rar5->iv[2] = hex_to_u32 (iv + 16);
-  rar5->iv[3] = hex_to_u32 (iv + 24);
-
-  rar5->iv[0] = byte_swap_32 (rar5->iv[0]);
-  rar5->iv[1] = byte_swap_32 (rar5->iv[1]);
-  rar5->iv[2] = byte_swap_32 (rar5->iv[2]);
-  rar5->iv[3] = byte_swap_32 (rar5->iv[3]);
-
-  salt->salt_len = 16;
-
-  // hash
-
-  const u8 *pswcheck = token.buf[6];
-
-  digest[0] = hex_to_u32 (pswcheck + 0);
-  digest[1] = hex_to_u32 (pswcheck + 8);
-  digest[2] = 0;
-  digest[3] = 0;
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = 0;
-  digest[3] = 0;
-
-  return (PARSER_OK);
-}
-
 int axcrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
@@ -15188,8 +15066,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                  break;
     case 12900:  salt->salt_iter  = ROUNDS_ANDROIDFDE_SAMSUNG - 1;
                  break;
-    case 13000:  salt->salt_iter  = ROUNDS_RAR5 - 1;
-                 break;
     case 13200:  salt->salt_iter  = ROUNDS_AXCRYPT;
                  break;
     case 13400:  salt->salt_iter  = ROUNDS_KEEPASS;
@@ -17075,26 +16951,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       salt.salt_buf[ 1],
       salt.salt_buf[ 2],
       salt.salt_buf[ 3]
-    );
-  }
-  else if (hash_mode == 13000)
-  {
-    rar5_t *rar5s = (rar5_t *) esalts_buf;
-
-    rar5_t *rar5 = &rar5s[digest_cur];
-
-    snprintf (out_buf, out_size, "$rar5$16$%08x%08x%08x%08x$%u$%08x%08x%08x%08x$8$%08x%08x",
-      salt.salt_buf[0],
-      salt.salt_buf[1],
-      salt.salt_buf[2],
-      salt.salt_buf[3],
-      salt.salt_sign[0],
-      rar5->iv[0],
-      rar5->iv[1],
-      rar5->iv[2],
-      rar5->iv[3],
-      byte_swap_32 (digest_buf[0]),
-      byte_swap_32 (digest_buf[1])
     );
   }
   else if (hash_mode == 13200)
@@ -21320,23 +21176,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 13000:  hashconfig->hash_type      = HASH_TYPE_PBKDF2_SHA256;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_RAR5;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = rar5_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_13000;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case 13200:  hashconfig->hash_type      = HASH_TYPE_AES;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -22363,7 +22202,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 11900: hashconfig->esalt_size = sizeof (pbkdf2_md5_t);         break;
     case 12001: hashconfig->esalt_size = sizeof (pbkdf2_sha1_t);        break;
     case 12100: hashconfig->esalt_size = sizeof (pbkdf2_sha512_t);      break;
-    case 13000: hashconfig->esalt_size = sizeof (rar5_t);               break;
     case 13400: hashconfig->esalt_size = sizeof (keepass_t);            break;
     case 13500: hashconfig->esalt_size = sizeof (pstoken_t);            break;
     case 13600: hashconfig->esalt_size = sizeof (zip2_t);               break;
@@ -22457,7 +22295,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 12700: hashconfig->tmp_size = sizeof (mywallet_tmp_t);           break;
     case 12800: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
     case 12900: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
-    case 13000: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
     case 13200: hashconfig->tmp_size = sizeof (axcrypt_tmp_t);            break;
     case 13400: hashconfig->tmp_size = sizeof (keepass_tmp_t);            break;
     case 13600: hashconfig->tmp_size = sizeof (pbkdf2_sha1_tmp_t);        break;
@@ -22626,7 +22463,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
     case 12700: pw_max = PW_MAX;  break;
     case 12800: pw_max = PW_MAX;  break;
     case 12900: pw_max = PW_MAX;  break;
-    case 13000: pw_max = PW_MAX;  break;
     case 13200: pw_max = PW_MAX;  break;
     case 13400: pw_max = PW_MAX;  break;
     case 13600: pw_max = PW_MAX;  break;

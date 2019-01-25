@@ -24,12 +24,6 @@ typedef struct chacha20
 
 } chacha20_t;
 
-typedef struct rar5
-{
-  u32 iv[4];
-
-} rar5_t;
-
 typedef struct pdf
 {
   int  V;
@@ -874,7 +868,6 @@ typedef enum kern_type
   KERN_TYPE_MYWALLET                = 12700,
   KERN_TYPE_MS_DRSR                 = 12800,
   KERN_TYPE_ANDROIDFDE_SAMSUNG      = 12900,
-  KERN_TYPE_RAR5                    = 13000,
   KERN_TYPE_AXCRYPT                 = 13200,
   KERN_TYPE_SHA1_AXCRYPT            = 13300,
   KERN_TYPE_KEEPASS                 = 13400,
@@ -957,7 +950,6 @@ typedef enum rounds_count
    ROUNDS_MYWALLETV2         = 5000,
    ROUNDS_MS_DRSR            = 100,
    ROUNDS_ANDROIDFDE_SAMSUNG = 4096,
-   ROUNDS_RAR5               = (1 << 15),
    ROUNDS_AXCRYPT            = 10000,
    ROUNDS_KEEPASS            = 6000,
    ROUNDS_ZIP2               = 1000,
@@ -1095,7 +1087,6 @@ int pbkdf2_sha1_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int pbkdf2_sha512_parse_hash      (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int ecryptfs_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int bsdicrypt_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int rar5_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int cf10_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int mywallet_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int mywalletv2_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
