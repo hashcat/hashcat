@@ -234,14 +234,16 @@ int execute_keyboard_layout_mapping (u32 plain_buf[64], const int plain_len, key
 
 int ascii_digest (const hashconfig_t *hashconfig, const hashes_t *hashes, const module_ctx_t *module_ctx, char *out_buf, const int out_size, const u32 salt_pos, const u32 digest_pos)
 {
-  void        *digests_buf = hashes->digests_buf;
-  salt_t      *salts_buf   = hashes->salts_buf;
-  void        *esalts_buf  = hashes->esalts_buf;
-  hashinfo_t **hash_info   = hashes->hash_info;
-  const char  *hashfile    = hashes->hashfile;
+  void        *digests_buf    = hashes->digests_buf;
+  salt_t      *salts_buf      = hashes->salts_buf;
+  void        *esalts_buf     = hashes->esalts_buf;
+  void        *hook_salts_buf = hashes->hook_salts_buf;
+  hashinfo_t **hash_info      = hashes->hash_info;
+  const char  *hashfile       = hashes->hashfile;
 
-  const u32 dgst_size  = hashconfig->dgst_size;
-  const u64 esalt_size = hashconfig->esalt_size;
+  const u32 dgst_size         = hashconfig->dgst_size;
+  const u64 esalt_size        = hashconfig->esalt_size;
+  const u64 hook_salt_size    = hashconfig->hook_salt_size;
 
   //const u32 hash_type  = hashconfig->hash_type;
   //const u32 hash_mode  = hashconfig->hash_mode;
@@ -257,6 +259,8 @@ int ascii_digest (const hashconfig_t *hashconfig, const hashes_t *hashes, const 
   //memcpy (digest_buf, digests_buf_ptr + (salts_buf[salt_pos].digests_offset * dgst_size) + (digest_pos * dgst_size), dgst_size);
 
   char *esalts_buf_ptr = (char *) esalts_buf;
+
+  char *hook_salts_buf_ptr = (char *) hook_salts_buf;
 
   //salt_t salt;
 
@@ -345,6 +349,7 @@ int ascii_digest (const hashconfig_t *hashconfig, const hashes_t *hashes, const 
     digests_buf_ptr + (digest_cur * dgst_size),
     salts_buf + salt_pos,
     esalts_buf_ptr + (digest_cur * esalt_size),
+    hook_salts_buf_ptr + (digest_cur * hook_salt_size),
     hash_info_ptr,
     out_buf,
     out_size

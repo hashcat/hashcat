@@ -237,13 +237,13 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
           if (module_ctx->module_hash_decode_outfile != MODULE_DEFAULT)
           {
-            parser_status = module_ctx->module_hash_decode_outfile (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hash_info, line_buf, line_len - 1);
+            parser_status = module_ctx->module_hash_decode_outfile (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hook_salt, hash_buf.hash_info, line_buf, line_len - 1);
           }
           else
           {
             // "normal" case: hash in the outfile is the same as the hash in the original hash file
 
-            parser_status = module_ctx->module_hash_decode (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hash_info, line_buf, line_len - 1);
+            parser_status = module_ctx->module_hash_decode (hashconfig, hash_buf.digest, hash_buf.salt, hash_buf.esalt, hash_buf.hook_salt, hash_buf.hash_info, line_buf, line_len - 1);
           }
 
           if (parser_status != PARSER_OK) continue;
