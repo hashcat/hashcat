@@ -604,12 +604,6 @@ typedef struct bsdicrypt_tmp
 
 } bsdicrypt_tmp_t;
 
-typedef struct rar3_tmp
-{
-  u32 dgst[17][5];
-
-} rar3_tmp_t;
-
 typedef struct cram_md5
 {
   u32 user[16];
@@ -730,7 +724,6 @@ typedef enum hash_type
   HASH_TYPE_ECRYPTFS            = 47,
   HASH_TYPE_ORACLET             = 48,
   HASH_TYPE_BSDICRYPT           = 49,
-  HASH_TYPE_RAR3HP              = 50,
   HASH_TYPE_STDOUT              = 52,
   HASH_TYPE_PLAINTEXT           = 54,
   HASH_TYPE_LUKS                = 55,
@@ -877,7 +870,6 @@ typedef enum kern_type
   KERN_TYPE_ECRYPTFS                = 12200,
   KERN_TYPE_ORACLET                 = 12300,
   KERN_TYPE_BSDICRYPT               = 12400,
-  KERN_TYPE_RAR3                    = 12500,
   KERN_TYPE_CF10                    = 12600,
   KERN_TYPE_MYWALLET                = 12700,
   KERN_TYPE_MS_DRSR                 = 12800,
@@ -961,7 +953,6 @@ typedef enum rounds_count
    ROUNDS_ECRYPTFS           = 65536,
    ROUNDS_ORACLET            = 4096,
    ROUNDS_BSDICRYPT          = 2900,
-   ROUNDS_RAR3               = 262144,
    ROUNDS_MYWALLET           = 10,
    ROUNDS_MYWALLETV2         = 5000,
    ROUNDS_MS_DRSR            = 100,
@@ -1104,7 +1095,6 @@ int pbkdf2_sha1_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int pbkdf2_sha512_parse_hash      (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int ecryptfs_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int bsdicrypt_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int rar3hp_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int rar5_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int cf10_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int mywallet_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);

@@ -90,7 +90,7 @@ u32 cpu_crc32_buffer (const u8 *buf, const size_t length)
   return crc ^ 0xffffffff;;
 }
 
-int cpu_crc32 (hashcat_ctx_t *hashcat_ctx, const char *filename, u8 keytab[64])
+int cpu_crc32 (const char *filename, u8 keytab[64])
 {
   u32 crc = ~0u;
 

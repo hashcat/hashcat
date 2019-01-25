@@ -134,7 +134,6 @@
   "   9100 | Lotus Notes/Domino 8                             | Enterprise Application Software (EAS)",
   "    133 | PeopleSoft                                       | Enterprise Application Software (EAS)",
   "  13500 | PeopleSoft PS_TOKEN                              | Enterprise Application Software (EAS)",
-  "  12500 | RAR3-hp                                          | Archives",
   "  13000 | RAR5                                             | Archives",
   "  13200 | AxCrypt                                          | Archives",
   "  13300 | AxCrypt in-memory SHA1                           | Archives",
@@ -398,7 +397,6 @@ static const char *ST_HASH_12100 = "sha512:1000:NzY2:DNWohLbdIWIt4Npk9gpTvA==";
 static const char *ST_HASH_12200 = "$ecryptfs$0$1$4207883745556753$567daa975114206c";
 static const char *ST_HASH_12300 = "8F75FBD166AFDB6D7587DAB89C2F15672AAC031C5B0B5E65C0835FB130555F6FF4E0E5764976755558112246FFF306450C22F6B7746B9E9831ED97B373992F9157436180438417080374881414745255";
 static const char *ST_HASH_12400 = "_GW..8841inaTltazRsQ";
-static const char *ST_HASH_12500 = "$RAR3$*0*45109af8ab5f297a*adbf6c5385d7a40373e8f77d7b89d317";
 static const char *ST_HASH_12600 = "3f3473a071b1fb955544e80c81853ca0f1e4f9ee4ca3bf4d2a8a10b5ef5be1f6:6058321484538505215534207835727413038041028036676832416353152201";
 static const char *ST_HASH_12700 = "$blockchain$288$713253722114000682636604801283547365b7a53a802a7388d08eb7e6c32c1efb4a157fe19bca940a753d7f16e8bdaf491aa9cf6cda4035ac48d56bb025aced81455424272f3e0459ec7674df3e82abd7323bc09af4fd0869fd790b3f17f8fe424b8ec81a013e1476a5c5a6a53c4b85a055eecfbc13eccf855f905d3ddc3f0c54015b8cb177401d5942af833f655947bfc12fc00656302f31339187de2a69ab06bc61073933b3a48c9f144177ae4b330968eb919f8a22cec312f734475b28cdfe5c25b43c035bf132887f3241d86b71eb7e1cf517f99305b19c47997a1a1f89df6248749ac7f38ca7c88719cf16d6af2394307dce55600b8858f4789cf1ae8fd362ef565cd9332f32068b3c04c9282553e658b759c2e76ed092d67bd55961ae";
 static const char *ST_HASH_12800 = "v1;PPH1_MD4,54188415275183448824,100,55b530f052a9af79a7ba9c466dddcb8b116f8babf6c3873a51a3898fb008e123";
@@ -567,7 +565,6 @@ static const char *HT_12100 = "PBKDF2-HMAC-SHA512";
 static const char *HT_12200 = "eCryptfs";
 static const char *HT_12300 = "Oracle T: Type (Oracle 12+)";
 static const char *HT_12400 = "BSDi Crypt, Extended DES";
-static const char *HT_12500 = "RAR3-hp";
 static const char *HT_12600 = "ColdFusion 10+";
 static const char *HT_12700 = "Blockchain, My Wallet";
 static const char *HT_12800 = "MS-AzureSync PBKDF2-HMAC-SHA256";
@@ -711,7 +708,6 @@ static const char *SIGNATURE_PHPS               = "$PHPS$";
 static const char *SIGNATURE_POSTGRESQL_AUTH    = "$postgres$";
 static const char *SIGNATURE_PSAFE3             = "PWS3";
 static const char *SIGNATURE_RACF               = "$racf$";
-static const char *SIGNATURE_RAR3               = "$RAR3$";
 static const char *SIGNATURE_RAR5               = "$rar5$";
 static const char *SIGNATURE_SAPH_SHA1          = "{x-issha, ";
 static const char *SIGNATURE_SCRYPT             = "SCRYPT";
@@ -11350,83 +11346,6 @@ int bsdicrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   return (PARSER_OK);
 }
 
-int rar3hp_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt  = 4;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_RAR3;
-
-  token.sep[0]     = '*';
-  token.len_min[0] = 6;
-  token.len_max[0] = 6;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.sep[1]     = '*';
-  token.len_min[1] = 1;
-  token.len_max[1] = 1;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[2]     = '*';
-  token.len_min[2] = 16;
-  token.len_max[2] = 16;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.sep[3]     = '*';
-  token.len_min[3] = 32;
-  token.len_max[3] = 32;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *type_pos    = token.buf[1];
-  const u8 *salt_pos    = token.buf[2];
-  const u8 *crypted_pos = token.buf[3];
-
-  if (type_pos[0] != '0') return (PARSER_SIGNATURE_UNMATCHED);
-
-  /**
-   * copy data
-   */
-
-  salt->salt_buf[0] = hex_to_u32 (salt_pos + 0);
-  salt->salt_buf[1] = hex_to_u32 (salt_pos + 8);
-  salt->salt_buf[2] = hex_to_u32 (crypted_pos +  0);
-  salt->salt_buf[3] = hex_to_u32 (crypted_pos +  8);
-  salt->salt_buf[4] = hex_to_u32 (crypted_pos + 16);
-  salt->salt_buf[5] = hex_to_u32 (crypted_pos + 24);
-
-  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
-  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
-  salt->salt_buf[4] = byte_swap_32 (salt->salt_buf[4]);
-  salt->salt_buf[5] = byte_swap_32 (salt->salt_buf[5]);
-
-  salt->salt_len  = 24;
-  salt->salt_iter = ROUNDS_RAR3;
-
-  // there's no hash for rar3. the data which is in crypted_pos is some encrypted data and
-  // if it matches the value \xc4\x3d\x7b\x00\x40\x07\x00 after decrypt we know that we successfully cracked it.
-
-  digest[0] = 0xc43d7b00;
-  digest[1] = 0x40070000;
-  digest[2] = 0;
-  digest[3] = 0;
-
-  return (PARSER_OK);
-}
-
 int rar5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
@@ -14968,11 +14887,6 @@ u32 kernel_loops_mxx (hashcat_ctx_t *hashcat_ctx)
     kernel_loops_fixed = 1;
   }
 
-  if (hashconfig->hash_mode == 12500)
-  {
-    kernel_loops_fixed = ROUNDS_RAR3 / 16;
-  }
-
   if (hashconfig->hash_mode == 15700)
   {
     kernel_loops_fixed = 1;
@@ -15080,8 +14994,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
       case 11500: salt->salt_len = 4;
                   break;
       case 12400: salt->salt_len = 4;
-                  break;
-      case 12500: salt->salt_len = 8;
                   break;
       case 12600: salt->salt_len = 64;
                   break;
@@ -15269,8 +15181,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
     case 12300:  salt->salt_iter  = ROUNDS_ORACLET - 1;
                  break;
     case 12400:  salt->salt_iter  = ROUNDS_BSDICRYPT - 1;
-                 break;
-    case 12500:  salt->salt_iter  = ROUNDS_RAR3;
                  break;
     case 12700:  salt->salt_iter  = ROUNDS_MYWALLET;
                  break;
@@ -17095,17 +17005,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
     // fill the resulting buffer
 
     snprintf (out_buf, out_size, "_%s%s%s", salt_iter, ptr_salt, ptr_plain);
-  }
-  else if (hash_mode == 12500)
-  {
-    snprintf (out_buf, out_size, "%s*0*%08x%08x*%08x%08x%08x%08x",
-      SIGNATURE_RAR3,
-      byte_swap_32 (salt.salt_buf[0]),
-      byte_swap_32 (salt.salt_buf[1]),
-      salt.salt_buf[2],
-      salt.salt_buf[3],
-      salt.salt_buf[4],
-      salt.salt_buf[5]);
   }
   else if (hash_mode == 12600)
   {
@@ -21349,22 +21248,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 12500:  hashconfig->hash_type      = HASH_TYPE_RAR3HP;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_RAR3;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = rar3hp_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_12500;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case 12600:  hashconfig->hash_type      = HASH_TYPE_SHA256;
                  hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -22571,7 +22454,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 12200: hashconfig->tmp_size = sizeof (ecryptfs_tmp_t);           break;
     case 12300: hashconfig->tmp_size = sizeof (oraclet_tmp_t);            break;
     case 12400: hashconfig->tmp_size = sizeof (bsdicrypt_tmp_t);          break;
-    case 12500: hashconfig->tmp_size = sizeof (rar3_tmp_t);               break;
     case 12700: hashconfig->tmp_size = sizeof (mywallet_tmp_t);           break;
     case 12800: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
     case 12900: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
@@ -22655,8 +22537,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
       case  7400: pw_max = MIN (pw_max, 15); // pure kernel available
                   break;
       case 10700: pw_max = MIN (pw_max, 16); // pure kernel available
-                  break;
-      case 12500: pw_max = MIN (pw_max, 20); // todo
                   break;
       case 14400: pw_max = MIN (pw_max, 24); // todo
                   break;
@@ -22845,8 +22725,6 @@ const char *default_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig,
     case  9810: mask = "?b?b?b?b?b";
                 break;
     case 10410: mask = "?b?b?b?b?b";
-                break;
-    case 12500: mask = "?b?b?b?b?b";
                 break;
     case 14900: mask = "?b?b?b?b?bxxxxx";
                 break;
@@ -23338,7 +23216,6 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
      || (hashconfig->hash_mode ==  8900)
      || (hashconfig->hash_mode ==  9300)
      || (hashconfig->hash_mode ==  9800)
-     || (hashconfig->hash_mode == 12500)
      || (hashconfig->hash_mode == 15700))
     {
       return true;
@@ -23443,7 +23320,7 @@ static int hashconfig_general_defaults (hashcat_ctx_t *hashcat_ctx)
 
       do
       {
-        const int rc_crc32 = cpu_crc32 (hashcat_ctx, keyfile, (u8 *) tc->keyfile_buf);
+        const int rc_crc32 = cpu_crc32 (keyfile, (u8 *) tc->keyfile_buf);
 
         if (rc_crc32 == -1)
         {
