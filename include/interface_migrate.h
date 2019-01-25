@@ -595,19 +595,6 @@ typedef struct oraclet_tmp
 
 } oraclet_tmp_t;
 
-typedef struct seven_zip_tmp
-{
-  u32 h[8];
-
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
-
-  int len;
-
-} seven_zip_tmp_t;
-
 typedef struct bsdicrypt_tmp
 {
   u32 Kc[16];
@@ -880,7 +867,6 @@ typedef enum kern_type
   KERN_TYPE_BITCOIN_WALLET          = 11300,
   KERN_TYPE_SIP_AUTH                = 11400,
   KERN_TYPE_CRC32                   = 11500,
-  KERN_TYPE_SEVEN_ZIP               = 11600,
   KERN_TYPE_STREEBOG_256            = 11700,
   KERN_TYPE_HMAC_STREEBOG_256_PW    = 11750,
   KERN_TYPE_HMAC_STREEBOG_256_SLT   = 11760,
@@ -970,7 +956,6 @@ typedef enum rounds_count
    ROUNDS_PDF17L8            = 64,
    ROUNDS_PBKDF2_SHA256      = 1000,
    ROUNDS_BITCOIN_WALLET     = 200000,
-   ROUNDS_SEVEN_ZIP          = (1 << 19),
    ROUNDS_PBKDF2_MD5         = 1000,
    ROUNDS_PBKDF2_SHA512      = 1000,
    ROUNDS_ECRYPTFS           = 65536,
@@ -1112,7 +1097,6 @@ int mysql_auth_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int bitcoin_wallet_parse_hash     (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sip_auth_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int crc32_parse_hash              (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int seven_zip_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int streebog_256_parse_hash       (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int streebog_512_parse_hash       (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int pbkdf2_md5_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
@@ -1179,41 +1163,6 @@ typedef struct tc
   int                       keyboard_layout_mapping_cnt;
 
 } tc_t;
-
-typedef struct seven_zip_hook
-{
-  u32 ukey[8];
-
-  u32 hook_success;
-
-} seven_zip_hook_t;
-
-typedef struct seven_zip_hook_salt
-{
-  u32 iv_buf[4];
-  u32 iv_len;
-
-  u32 salt_buf[4];
-  u32 salt_len;
-
-  u32 crc;
-  u32 crc_len;
-
-  u8  data_type;
-
-  u32 data_buf[81882];
-  u32 data_len;
-
-  u32 unpack_size;
-
-  char coder_attributes[5 + 1];
-  u8   coder_attributes_len;
-
-  int aes_len; // pre-computed length of the maximal (subset of) data we need for AES-CBC
-
-} seven_zip_hook_salt_t;
-
-
 
 static const u32   KERN_TYPE_TOTP_HMACSHA1           = 18100;
 

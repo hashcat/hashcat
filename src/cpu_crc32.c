@@ -96,13 +96,6 @@ int cpu_crc32 (hashcat_ctx_t *hashcat_ctx, const char *filename, u8 keytab[64])
 
   FILE *fd = fopen (filename, "rb");
 
-  if (fd == NULL)
-  {
-    event_log_error (hashcat_ctx, "%s: %s", filename, strerror (errno));
-
-    return -1;
-  }
-
   #define MAX_KEY_SIZE (1024 * 1024)
 
   u8 *buf = (u8 *) hcmalloc (MAX_KEY_SIZE + 1);

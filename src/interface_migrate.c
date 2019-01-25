@@ -134,7 +134,6 @@
   "   9100 | Lotus Notes/Domino 8                             | Enterprise Application Software (EAS)",
   "    133 | PeopleSoft                                       | Enterprise Application Software (EAS)",
   "  13500 | PeopleSoft PS_TOKEN                              | Enterprise Application Software (EAS)",
-  "  11600 | 7-Zip                                            | Archives",
   "  12500 | RAR3-hp                                          | Archives",
   "  13000 | RAR5                                             | Archives",
   "  13200 | AxCrypt                                          | Archives",
@@ -387,7 +386,6 @@ static const char *ST_HASH_11200 = "$mysqlna$25766705685313717636431010562137517
 static const char *ST_HASH_11300 = "$bitcoin$96$c265931309b4a59307921cf054b4ec6b6e4554369be79802e94e16477645777d948ae1d375191831efc78e5acd1f0443$16$8017214013543185$200460$96$480008005625057442352316337722323437108374245623701184230273883222762730232857701607167815448714$66$014754433300175043011633205413774877455616682000536368706315333388";
 static const char *ST_HASH_11400 = "$sip$*72087*1215344588738747***342210558720*737232616*1215344588738747*8867133055*65600****MD5*e9980869221f9d1182c83b0d5e56a7db";
 static const char *ST_HASH_11500 = "c762de4a:00000000";
-static const char *ST_HASH_11600 = "$7z$0$14$0$$11$33363437353138333138300000000000$2365089182$16$12$d00321533b483f54a523f624a5f63269";
 static const char *ST_HASH_11700 = "57e9e50caec93d72e9498c211d6dc4f4d328248b48ecf46ba7abfa874f666e36";
 static const char *ST_HASH_11750 = "0f71c7c82700c9094ca95eee3d804cc283b538bec49428a9ef8da7b34effb3ba:08151337";
 static const char *ST_HASH_11760 = "d5c6b874338a492ac57ddc6871afc3c70dcfd264185a69d84cf839a07ef92b2c:08151337";
@@ -558,7 +556,6 @@ static const char *HT_11200 = "MySQL CRAM (SHA1)";
 static const char *HT_11300 = "Bitcoin/Litecoin wallet.dat";
 static const char *HT_11400 = "SIP digest authentication (MD5)";
 static const char *HT_11500 = "CRC32";
-static const char *HT_11600 = "7-Zip";
 static const char *HT_11700 = "GOST R 34.11-2012 (Streebog) 256-bit, big-endian";
 static const char *HT_11750 = "HMAC-Streebog-256 (key = $pass), big-endian";
 static const char *HT_11760 = "HMAC-Streebog-256 (key = $salt), big-endian";
@@ -718,7 +715,6 @@ static const char *SIGNATURE_RAR3               = "$RAR3$";
 static const char *SIGNATURE_RAR5               = "$rar5$";
 static const char *SIGNATURE_SAPH_SHA1          = "{x-issha, ";
 static const char *SIGNATURE_SCRYPT             = "SCRYPT";
-static const char *SIGNATURE_SEVEN_ZIP          = "$7z$";
 static const char *SIGNATURE_SHA1AIX            = "{ssha1}";
 static const char *SIGNATURE_SHA1B64            = "{SHA}";
 static const char *SIGNATURE_SHA256AIX          = "{ssha256}";
@@ -10816,291 +10812,6 @@ int crc32_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUS
   return (PARSER_OK);
 }
 
-int seven_zip_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  seven_zip_hook_salt_t *seven_zip = (seven_zip_hook_salt_t *) hash_buf->hook_salt;
-
-  token_t token;
-
-  token.token_cnt  = 11;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_SEVEN_ZIP;
-
-  token.len[0]      = 4;
-  token.attr[0]     = TOKEN_ATTR_FIXED_LENGTH
-                    | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.sep[1]      = '$';
-  token.len_min[1]  = 1;
-  token.len_max[1]  = 1;
-  token.attr[1]     = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[2]      = '$';
-  token.len_min[2]  = 1;
-  token.len_max[2]  = 2;
-  token.attr[2]     = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[3]      = '$';
-  token.len_min[3]  = 1;
-  token.len_max[3]  = 1;
-  token.attr[3]     = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[4]      = '$';
-  token.len_min[4]  = 0;
-  token.len_max[4]  = 64;
-  token.attr[4]     = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.sep[5]      = '$';
-  token.len_min[5]  = 1;
-  token.len_max[5]  = 2;
-  token.attr[5]     = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[6]      = '$';
-  token.len_min[6]  = 32;
-  token.len_max[6]  = 32;
-  token.attr[6]     = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_VERIFY_HEX;
-
-  token.sep[7]      = '$';
-  token.len_min[7]  = 1;
-  token.len_max[7]  = 10;
-  token.attr[7]     = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[8]      = '$';
-  token.len_min[8]  = 1;
-  token.len_max[8]  = 4;
-  token.attr[8]     = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[9]      = '$';
-  token.len_min[9]  = 1;
-  token.len_max[9]  = 4;
-  token.attr[9]     = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[10]     = '$';
-  token.len_min[10] = 2;
-  token.len_max[10] = 655056;
-  token.attr[10]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *data_type_pos       = token.buf[ 1];
-  const u8 *NumCyclesPower_pos  = token.buf[ 2];
-  const u8 *salt_len_pos        = token.buf[ 3];
-  const u8 *salt_buf_pos        = token.buf[ 4];
-  const u8 *iv_len_pos          = token.buf[ 5];
-  const u8 *iv_buf_pos          = token.buf[ 6];
-  const u8 *crc_buf_pos         = token.buf[ 7];
-  const u8 *data_len_pos        = token.buf[ 8];
-  const u8 *unpack_size_pos     = token.buf[ 9];
-  const u8 *data_buf_pos        = token.buf[10];
-
-  const int data_type_len       = token.len[ 1];
-  const int NumCyclesPower_len  = token.len[ 2];
-  const int salt_len_len        = token.len[ 3];
-  const int salt_buf_len        = token.len[ 4];
-  const int iv_len_len          = token.len[ 5];
-  const int iv_buf_len          = token.len[ 6];
-  const int crc_buf_len         = token.len[ 7];
-  const int data_len_len        = token.len[ 8];
-  const int unpack_size_len     = token.len[ 9];
-        int data_buf_len        = token.len[10];
-
-  // fields only used when data was compressed:
-
-  u8 *crc_len_pos = (u8 *) strchr ((const char *) data_buf_pos, '$');
-
-  u32 crc_len_len          = 0;
-  u8 *coder_attributes_pos = 0;
-  u32 coder_attributes_len = 0;
-
-  if (crc_len_pos != NULL)
-  {
-    data_buf_len = crc_len_pos - data_buf_pos;
-
-    crc_len_pos++;
-
-    coder_attributes_pos = (u8 *) strchr ((const char *) crc_len_pos, '$');
-
-    if (coder_attributes_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-    crc_len_len = coder_attributes_pos - crc_len_pos;
-
-    coder_attributes_pos++;
-  }
-
-  if (is_valid_hex_string (data_buf_pos, data_buf_len) == false) return (PARSER_SALT_ENCODING);
-
-  const int iter         = hc_strtoul ((const char *) NumCyclesPower_pos, NULL, 10);
-  const int crc          = hc_strtoul ((const char *) crc_buf_pos,        NULL, 10);
-  const int data_type    = hc_strtoul ((const char *) data_type_pos,      NULL, 10);
-  const int salt_len     = hc_strtoul ((const char *) salt_len_pos,       NULL, 10);
-  const int iv_len       = hc_strtoul ((const char *) iv_len_pos,         NULL, 10);
-  const int unpack_size  = hc_strtoul ((const char *) unpack_size_pos,    NULL, 10);
-  const int data_len     = hc_strtoul ((const char *) data_len_pos,       NULL, 10);
-
-  // if neither uncompressed nor truncated, then we need the length for crc and coder attributes
-
-  int crc_len = 0;
-
-  bool is_compressed = ((data_type != 0) && (data_type != 0x80));
-
-  if (is_compressed == true)
-  {
-    if (crc_len_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-    coder_attributes_len = input_len - 1 - 2 - 1 - data_type_len - 1 - NumCyclesPower_len - 1 - salt_len_len - 1 - salt_buf_len - 1 - iv_len_len - 1 - iv_buf_len - 1 - crc_buf_len - 1 - data_len_len - 1 - unpack_size_len - 1 - data_buf_len - 1 - crc_len_len - 1;
-
-    crc_len = hc_strtoul ((const char *) crc_len_pos, NULL, 10);
-  }
-
-  /**
-   * verify some data
-   */
-
-  if (data_type > 2) // this includes also 0x80 (special case that means "truncated")
-  {
-    return (PARSER_SALT_VALUE);
-  }
-
-  if (salt_len != 0) return (PARSER_SALT_VALUE);
-
-  if ((data_len * 2) != data_buf_len) return (PARSER_SALT_VALUE);
-
-  if (data_len > 327528) return (PARSER_SALT_VALUE);
-
-  if (unpack_size > data_len) return (PARSER_SALT_VALUE);
-
-  if (is_compressed == true)
-  {
-    if (crc_len_len > 7) return (PARSER_SALT_VALUE);
-
-    if (coder_attributes_len > 10) return (PARSER_SALT_VALUE);
-
-    if ((coder_attributes_len % 2) != 0) return (PARSER_SALT_VALUE);
-
-    // we should be more strict about the needed attribute_len:
-
-    if (data_type == 1) // LZMA1
-    {
-      if ((coder_attributes_len / 2) != 5) return (PARSER_SALT_VALUE);
-    }
-    else if (data_type == 2) // LZMA2
-    {
-      if ((coder_attributes_len / 2) != 1) return (PARSER_SALT_VALUE);
-    }
-  }
-
-  /**
-   * store data
-   */
-
-  seven_zip->data_type = data_type;
-
-  seven_zip->iv_buf[0] = hex_to_u32 (iv_buf_pos +  0);
-  seven_zip->iv_buf[1] = hex_to_u32 (iv_buf_pos +  8);
-  seven_zip->iv_buf[2] = hex_to_u32 (iv_buf_pos + 16);
-  seven_zip->iv_buf[3] = hex_to_u32 (iv_buf_pos + 24);
-
-  seven_zip->iv_len = iv_len;
-
-  memcpy (seven_zip->salt_buf, salt_buf_pos, salt_buf_len); // we just need that for later ascii_digest()
-
-  seven_zip->salt_len = 0;
-
-  seven_zip->crc = crc;
-
-  for (int i = 0, j = 0; j < data_buf_len; i += 1, j += 8)
-  {
-    seven_zip->data_buf[i] = hex_to_u32 (data_buf_pos + j);
-  }
-
-  seven_zip->data_len = data_len;
-
-  seven_zip->unpack_size = unpack_size;
-
-  seven_zip->crc_len = crc_len;
-
-  memset (seven_zip->coder_attributes, 0, sizeof (seven_zip->coder_attributes));
-
-  seven_zip->coder_attributes_len = 0;
-
-  if (is_compressed == 1)
-  {
-    if (is_valid_hex_string (coder_attributes_pos, coder_attributes_len) == false) return (PARSER_SALT_ENCODING);
-
-    for (u32 i = 0, j = 0; j < coder_attributes_len; i += 1, j += 2)
-    {
-      seven_zip->coder_attributes[i] = hex_to_u8 ((const u8 *) &coder_attributes_pos[j]);
-
-      seven_zip->coder_attributes_len++;
-    }
-  }
-
-  // normally: crc_len <= unpacksize <= packsize (== data_len)
-
-  int aes_len = data_len;
-
-  if (crc_len != 0) // it is 0 only in case of uncompressed data or truncated data
-  {
-    // in theory we could just use crc_len, but sometimes (very rare) the compressed data
-    // is larger than the original data! (because of some additional bytes from lzma/headers)
-    // the +0.5 is used to round up (just to be sure we don't truncate)
-
-    if (data_type == 1) // LZMA1 uses more bytes
-    {
-      aes_len = 32.5f + (float) crc_len * 1.05f; // +5% max (only for small random inputs)
-    }
-    else if (data_type == 2) // LZMA2 is more clever (e.g. uncompressed chunks)
-    {
-      aes_len =  4.5f + (float) crc_len * 1.01f; // +1% max (only for small random inputs)
-    }
-
-    // just make sure we never go beyond the data_len limit itself
-
-    aes_len = MIN (aes_len, data_len);
-  }
-
-  seven_zip->aes_len = aes_len;
-
-  // real salt
-
-  salt->salt_buf[0] = seven_zip->data_buf[0];
-  salt->salt_buf[1] = seven_zip->data_buf[1];
-  salt->salt_buf[2] = seven_zip->data_buf[2];
-  salt->salt_buf[3] = seven_zip->data_buf[3];
-
-  salt->salt_len = 16;
-
-  salt->salt_sign[0] = data_type;
-
-  salt->salt_iter = 1u << iter;
-
-  /**
-   * digest
-   */
-
-  digest[0] = crc;
-  digest[1] = 0;
-  digest[2] = 0;
-  digest[3] = 0;
-
-  return (PARSER_OK);
-}
-
 int streebog_256_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
@@ -15312,8 +15023,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
 
   if (hashconfig->is_salted == true)
   {
-
-
     // special salt handling
 
     switch (hashconfig->hash_mode)
@@ -15369,8 +15078,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
       case 11000: salt->salt_len = 56;
                   break;
       case 11500: salt->salt_len = 4;
-                  break;
-      case 11600: salt->salt_len = 4;
                   break;
       case 12400: salt->salt_len = 4;
                   break;
@@ -15465,16 +15172,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                   ((jwt_t *)              esalt)->salt_len      = 32;
                   break;
     }
-
-    // special hook salt handling
-
-    switch (hashconfig->hash_mode)
-    {
-      case 11600: ((seven_zip_hook_salt_t *) hook_salt)->iv_len      = 16;
-                  ((seven_zip_hook_salt_t *) hook_salt)->data_len    = 112;
-                  ((seven_zip_hook_salt_t *) hook_salt)->unpack_size = 112;
-                  break;
-    }
   }
 
   // set default iterations
@@ -15560,8 +15257,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
     case 10900:  salt->salt_iter  = ROUNDS_PBKDF2_SHA256 - 1;
                  break;
     case 11300:  salt->salt_iter  = ROUNDS_BITCOIN_WALLET - 1;
-                 break;
-    case 11600:  salt->salt_iter  = ROUNDS_SEVEN_ZIP;
                  break;
     case 11900:  salt->salt_iter  = ROUNDS_PBKDF2_MD5 - 1;
                  break;
@@ -17281,77 +16976,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
   else if (hash_mode == 11500)
   {
     snprintf (out_buf, out_size, "%08x:%s", byte_swap_32 (digest_buf[0]), (char *) salt.salt_buf);
-  }
-  else if (hash_mode == 11600)
-  {
-    seven_zip_hook_salt_t *seven_zips = (seven_zip_hook_salt_t *) hashes->hook_salts_buf;
-
-    seven_zip_hook_salt_t *seven_zip  = &seven_zips[digest_cur];
-
-    const u32 data_len = seven_zip->data_len;
-
-    char *data_buf = (char *) hcmalloc ((data_len * 2) + 1);
-
-    for (u32 i = 0, j = 0; i < data_len; i += 1, j += 2)
-    {
-      const u8 *ptr = (const u8 *) seven_zip->data_buf;
-
-      snprintf (data_buf + j, (data_len * 2) + 1 - j, "%02x", ptr[i]);
-    }
-
-    u32 salt_iter = salt.salt_iter;
-
-    u32 iv[4];
-
-    iv[0] = byte_swap_32 (seven_zip->iv_buf[0]);
-    iv[1] = byte_swap_32 (seven_zip->iv_buf[1]);
-    iv[2] = byte_swap_32 (seven_zip->iv_buf[2]);
-    iv[3] = byte_swap_32 (seven_zip->iv_buf[3]);
-
-    u32 iv_len = seven_zip->iv_len;
-
-    u32 cost = 0; // the log2 () of salt_iter
-
-    while (salt_iter >>= 1)
-    {
-      cost++;
-    }
-
-    snprintf (out_buf, out_size, "%s%u$%u$%u$%s$%u$%08x%08x%08x%08x$%u$%u$%u$%s",
-      SIGNATURE_SEVEN_ZIP,
-      salt.salt_sign[0],
-      cost,
-      seven_zip->salt_len,
-      (char *) seven_zip->salt_buf,
-      iv_len,
-      iv[0],
-      iv[1],
-      iv[2],
-      iv[3],
-      seven_zip->crc,
-      seven_zip->data_len,
-      seven_zip->unpack_size,
-      data_buf);
-
-    if (seven_zip->data_type > 0)
-    {
-      u32 bytes_written = strlen (out_buf);
-
-      snprintf (out_buf + bytes_written, out_len - bytes_written, "$%u$", seven_zip->crc_len);
-
-      bytes_written = strlen (out_buf);
-
-      const u8 *ptr = (const u8 *) seven_zip->coder_attributes;
-
-      for (u32 i = 0, j = 0; i < seven_zip->coder_attributes_len; i += 1, j += 2)
-      {
-        snprintf (out_buf + bytes_written, out_len - bytes_written, "%02x", ptr[i]);
-
-        bytes_written += 2;
-      }
-    }
-
-    hcfree (data_buf);
   }
   else if (hash_mode == 11700 || hash_mode == 11750 || hash_mode == 11760)
   {
@@ -21513,23 +21137,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 11600:  hashconfig->hash_type      = HASH_TYPE_AES;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_HOOK23;
-                 hashconfig->kern_type      = KERN_TYPE_SEVEN_ZIP;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
-                 hashconfig->parse_func     = seven_zip_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_11600;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case 11700:  hashconfig->hash_type      = HASH_TYPE_STREEBOG_256;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -22916,13 +22523,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 18300: hashconfig->esalt_size = sizeof (apple_secure_notes_t); break;
   }
 
-  // hook_salt_size
-
-  switch (hashconfig->hash_mode)
-  {
-    case 11600: hashconfig->hook_salt_size = sizeof (seven_zip_hook_salt_t); break;
-  }
-
   // tmp_size
 
   switch (hashconfig->hash_mode)
@@ -22965,7 +22565,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 10700: hashconfig->tmp_size = sizeof (pdf17l8_tmp_t);            break;
     case 10900: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
     case 11300: hashconfig->tmp_size = sizeof (bitcoin_wallet_tmp_t);     break;
-    case 11600: hashconfig->tmp_size = sizeof (seven_zip_tmp_t);          break;
     case 11900: hashconfig->tmp_size = sizeof (pbkdf2_md5_tmp_t);         break;
     case 12001: hashconfig->tmp_size = sizeof (pbkdf2_sha1_tmp_t);        break;
     case 12100: hashconfig->tmp_size = sizeof (pbkdf2_sha512_tmp_t);      break;
@@ -23012,13 +22611,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 16700: hashconfig->tmp_size = sizeof (apple_secure_notes_tmp_t); break;
     case 16900: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
     case 18300: hashconfig->tmp_size = sizeof (apple_secure_notes_tmp_t); break;
-  };
-
-  // hook_size
-
-  switch (hashconfig->hash_mode)
-  {
-    case 11600: hashconfig->hook_size = sizeof (seven_zip_hook_t);     break;
   };
 
 }
@@ -23146,7 +22738,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
     case 10600: pw_max = 127;     break; // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
     case 10900: pw_max = PW_MAX;  break;
     case 11300: pw_max = PW_MAX;  break;
-    case 11600: pw_max = PW_MAX;  break;
     case 11900: pw_max = PW_MAX;  break;
     case 12001: pw_max = PW_MAX;  break;
     case 12200: pw_max = PW_MAX;  break;
@@ -23307,163 +22898,7 @@ u32 default_forced_outfile_format
 
 }
 
-// goes into seven zip module
-void module_hook23 (hc_device_param_t *device_param, const void *hook_salts_buf, const u32 salt_pos, const u64 pws_cnt)
-{
-  seven_zip_hook_t *hook_items = (seven_zip_hook_t *) device_param->hooks_buf;
 
-  seven_zip_hook_salt_t *seven_zips = (seven_zip_hook_salt_t *) hook_salts_buf;
-  seven_zip_hook_salt_t *seven_zip  = &seven_zips[salt_pos];
-
-  u8   data_type   = seven_zip->data_type;
-  u32 *data_buf    = seven_zip->data_buf;
-  u32  unpack_size = seven_zip->unpack_size;
-
-  for (u64 pw_pos = 0; pw_pos < pws_cnt; pw_pos++)
-  {
-    // this hook data needs to be updated (the "hook_success" variable):
-
-    seven_zip_hook_t *hook_item = &hook_items[pw_pos];
-
-    const u8 *ukey = (const u8 *) hook_item->ukey;
-
-    // init AES
-
-    AES_KEY aes_key;
-
-    memset (&aes_key, 0, sizeof (aes_key));
-
-    AES_set_decrypt_key (ukey, 256, &aes_key);
-
-    int aes_len = seven_zip->aes_len;
-
-    u32 data[4];
-    u32 out [4];
-    u32 iv  [4];
-
-    iv[0] = seven_zip->iv_buf[0];
-    iv[1] = seven_zip->iv_buf[1];
-    iv[2] = seven_zip->iv_buf[2];
-    iv[3] = seven_zip->iv_buf[3];
-
-    u32 out_full[81882];
-
-    // if aes_len > 16 we need to loop
-
-    int i = 0;
-    int j = 0;
-
-    for (i = 0, j = 0; i < aes_len - 16; i += 16, j += 4)
-    {
-      data[0] = data_buf[j + 0];
-      data[1] = data_buf[j + 1];
-      data[2] = data_buf[j + 2];
-      data[3] = data_buf[j + 3];
-
-      AES_decrypt (&aes_key, (u8*) data, (u8*) out);
-
-      out[0] ^= iv[0];
-      out[1] ^= iv[1];
-      out[2] ^= iv[2];
-      out[3] ^= iv[3];
-
-      iv[0] = data[0];
-      iv[1] = data[1];
-      iv[2] = data[2];
-      iv[3] = data[3];
-
-      out_full[j + 0] = out[0];
-      out_full[j + 1] = out[1];
-      out_full[j + 2] = out[2];
-      out_full[j + 3] = out[3];
-    }
-
-    // we need to run it at least once:
-
-    data[0] = data_buf[j + 0];
-    data[1] = data_buf[j + 1];
-    data[2] = data_buf[j + 2];
-    data[3] = data_buf[j + 3];
-
-    AES_decrypt (&aes_key, (u8*) data, (u8*) out);
-
-    out[0] ^= iv[0];
-    out[1] ^= iv[1];
-    out[2] ^= iv[2];
-    out[3] ^= iv[3];
-
-    out_full[j + 0] = out[0];
-    out_full[j + 1] = out[1];
-    out_full[j + 2] = out[2];
-    out_full[j + 3] = out[3];
-
-    /*
-     * check the CRC32 "hash"
-     */
-
-    u32 seven_zip_crc = seven_zip->crc;
-
-    u32 crc;
-
-    if (data_type == 0) // uncompressed
-    {
-      crc = cpu_crc32_buffer ((u8 *) out_full, unpack_size);
-    }
-    else
-    {
-      u32 crc_len = seven_zip->crc_len;
-
-      char *coder_attributes = seven_zip->coder_attributes;
-
-      // input buffers and length
-
-      u8 *compressed_data = (u8 *) out_full;
-
-      SizeT compressed_data_len = aes_len;
-
-      // output buffers and length
-
-      unsigned char *decompressed_data;
-
-      decompressed_data = (unsigned char *) hcmalloc (crc_len);
-
-      SizeT decompressed_data_len = crc_len;
-
-      int ret;
-
-      if (data_type == 1) // LZMA1
-      {
-        ret = hc_lzma1_decompress (compressed_data, &compressed_data_len, decompressed_data, &decompressed_data_len, coder_attributes);
-      }
-      else // we only support LZMA2 in addition to LZMA1
-      {
-        ret = hc_lzma2_decompress (compressed_data, &compressed_data_len, decompressed_data, &decompressed_data_len, coder_attributes);
-      }
-
-      if (ret != SZ_OK)
-      {
-        hook_item->hook_success = 0;
-
-        hcfree (decompressed_data);
-
-        continue;
-      }
-
-      crc = cpu_crc32_buffer (decompressed_data, crc_len);
-
-      hcfree (decompressed_data);
-    }
-
-    if (crc == seven_zip_crc)
-    {
-      hook_item->hook_success = 1;
-    }
-    else
-    {
-      hook_item->hook_success = 0;
-    }
-  }
-}
 
 static void precompute_salt_md5 (const u32 *salt_buf, const u32 salt_len, u8 *salt_pc)
 {
@@ -23512,7 +22947,7 @@ bool outfile_check_nocomp
           }
 }
 
-int module_hash_decode_outfile (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, const char *line_buf, MAYBE_UNUSED const int line_len)
+int module_hash_decode_outfile
 {
 
 
