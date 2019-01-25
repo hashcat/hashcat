@@ -115,11 +115,11 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
   {
-    tmp[0] += SHA256M_A;
-    tmp[1] += SHA256M_B;
-    tmp[2] += SHA256M_C;
-    tmp[3] += SHA256M_D;
-    tmp[4] += SHA256M_E;
+    tmp[0] += RIPEMD160M_A;
+    tmp[1] += RIPEMD160M_B;
+    tmp[2] += RIPEMD160M_C;
+    tmp[3] += RIPEMD160M_D;
+    tmp[4] += RIPEMD160M_E;
   }
 
   tmp[0] = byte_swap_32 (tmp[0]);
