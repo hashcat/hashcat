@@ -1,6 +1,4 @@
 
-  "  17600 | SHA3-512                                         | Raw Hash",
-  "  18000 | Keccak-512                                       | Raw Hash",
   "  10100 | SipHash                                          | Raw Hash",
   "   6000 | RIPEMD-160                                       | Raw Hash",
   "   6100 | Whirlpool                                        | Raw Hash",
@@ -449,8 +447,6 @@ static const char *ST_HASH_16400 = "{CRAM-MD5}5389b33b9725e5657cb631dc50017ff100
 static const char *ST_HASH_16600 = "$electrum$1*44358283104603165383613672586868*c43a6632d9f59364f74c395a03d8c2ea";
 static const char *ST_HASH_16700 = "$fvde$1$16$84286044060108438487434858307513$20000$f1620ab93192112f0a23eea89b5d4df065661f974b704191";
 static const char *ST_HASH_16900 = "$ansible$0*0*6b761adc6faeb0cc0bf197d3d4a4a7d3f1682e4b169cae8fa6b459b3214ed41e*426d313c5809d4a80a4b9bc7d4823070*d8bad190c7fbc7c3cb1c60a27abfb0ff59d6fb73178681c7454d94a0f56a4360";
-static const char *ST_HASH_17600 = "7c2dc1d743735d4e069f3bda85b1b7e9172033dfdd8cd599ca094ef8570f3930c3f2c0b7afc8d6152ce4eaad6057a2ff22e71934b3a3dd0fb55a7fc84a53144e";
-static const char *ST_HASH_18000 = "2fbf5c9080f0a704de2e915ba8fdae6ab00bbc026b2c1c8fa07da1239381c6b7f4dfd399bf9652500da723694a4c719587dd0219cb30eabe61210a8ae4dc0b03";
 static const char *ST_HASH_18100 = "597056:3600";
 static const char *ST_HASH_18300 = "$fvde$2$16$58778104701476542047675521040224$20000$39602e86b7cea4a34f4ff69ff6ed706d68954ee474de1d2a9f6a6f2d24d172001e484c1d4eaa237d";
 static const char *ST_HASH_99999 = "hashcat";
@@ -608,8 +604,6 @@ static const char *HT_16500 = "JWT (JSON Web Token)";
 static const char *HT_16600 = "Electrum Wallet (Salt-Type 1-3)";
 static const char *HT_16700 = "FileVault 2";
 static const char *HT_16900 = "Ansible Vault";
-static const char *HT_17600 = "SHA3-512";
-static const char *HT_18000 = "Keccak-512";
 static const char *HT_18100 = "TOTP (HMAC-SHA1)";
 static const char *HT_18300 = "Apple File System (APFS)";
 static const char *HT_99999 = "Plaintext";
@@ -4528,39 +4522,6 @@ int sha512s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  return (PARSER_OK);
-}
-
-int keccak_512_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u64 *digest = (u64 *) hash_buf->digest;
-
-  token_t token;
-
-  token.token_cnt = 1;
-
-  token.len[0]  = 128;
-  token.attr[0] = TOKEN_ATTR_FIXED_LENGTH
-                | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *hash_pos = token.buf[0];
-  const int hash_len = token.len[0];
-
-  if (hash_len != 128) return (PARSER_GLOBAL_LENGTH);
-
-  digest[0] = hex_to_u64 (hash_pos +   0);
-  digest[1] = hex_to_u64 (hash_pos +  16);
-  digest[2] = hex_to_u64 (hash_pos +  32);
-  digest[3] = hex_to_u64 (hash_pos +  48);
-  digest[4] = hex_to_u64 (hash_pos +  64);
-  digest[5] = hex_to_u64 (hash_pos +  80);
-  digest[6] = hex_to_u64 (hash_pos +  96);
-  digest[7] = hex_to_u64 (hash_pos + 112);
 
   return (PARSER_OK);
 }
@@ -18390,21 +18351,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (digest_buf[6]),
       byte_swap_32 (digest_buf[7]));
   }
-  else if (hash_mode == 17600 || hash_mode == 18000)
-  {
-      u32 *ptr = digest_buf;
-
-      snprintf (out_buf, out_size, "%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
-        ptr[ 1], ptr[ 0],
-        ptr[ 3], ptr[ 2],
-        ptr[ 5], ptr[ 4],
-        ptr[ 7], ptr[ 6],
-        ptr[ 9], ptr[ 8],
-        ptr[11], ptr[10],
-        ptr[13], ptr[12],
-        ptr[15], ptr[14]
-      );
-  }
   else if (hash_mode == 18100)
   {
       // salt_buf[1] holds our 32 bit value. salt_buf[0] and salt_buf[1] would be 64 bits.
@@ -22815,42 +22761,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 17600:  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PT_ADD06;
-                 hashconfig->kern_type      = KERN_TYPE_SHA3_512;
-                 hashconfig->dgst_size      = DGST_SIZE_8_25;
-                 hashconfig->parse_func     = keccak_512_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_USES_BITS_64
-                                            | OPTI_TYPE_RAW_HASH;
-                 hashconfig->dgst_pos0      = 6;
-                 hashconfig->dgst_pos1      = 7;
-                 hashconfig->dgst_pos2      = 4;
-                 hashconfig->dgst_pos3      = 5;
-                 hashconfig->st_hash        = ST_HASH_17600;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case 18000:  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PT_ADD01;
-                 hashconfig->kern_type      = KERN_TYPE_KECCAK_512;
-                 hashconfig->dgst_size      = DGST_SIZE_8_25;
-                 hashconfig->parse_func     = keccak_512_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_USES_BITS_64
-                                            | OPTI_TYPE_RAW_HASH;
-                 hashconfig->dgst_pos0      = 6;
-                 hashconfig->dgst_pos1      = 7;
-                 hashconfig->dgst_pos2      = 4;
-                 hashconfig->dgst_pos3      = 5;
-                 hashconfig->st_hash        = ST_HASH_18000;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case 18100:  hashconfig->hash_type      = HASH_TYPE_SHA1;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -24270,4 +24180,3 @@ void encoder_apply_optimizer (const hashconfig_t *hashconfig, void *data)
 
 
 }
-

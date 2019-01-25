@@ -924,8 +924,6 @@ typedef enum kern_type
   KERN_TYPE_JWT_HS512               = 16513,
   KERN_TYPE_ELECTRUM_WALLET13       = 16600,
   KERN_TYPE_ANSIBLE_VAULT           = 16900,
-  KERN_TYPE_SHA3_512                = 17600,
-  KERN_TYPE_KECCAK_512              = 18000,
   KERN_TYPE_TOTP_HMACSHA1           = 18100,
   KERN_TYPE_APFS                    = 18300,
   KERN_TYPE_PLAINTEXT               = 99999,
@@ -1009,7 +1007,6 @@ int cisco4_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int dcc2_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int episerver_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int netscreen_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int keccak_512_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int chacha20_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int md4_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int md4s_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
@@ -1334,6 +1331,3 @@ typedef struct luks
   u32 af_src_buf[((HC_LUKS_KEY_SIZE_512 / 8) * LUKS_STRIPES) / 4];
 
 } luks_t;
-
-
-
