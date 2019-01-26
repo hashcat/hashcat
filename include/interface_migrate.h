@@ -881,8 +881,6 @@ typedef enum kern_type
   KERN_TYPE_JWT_HS512               = 16513,
   KERN_TYPE_ELECTRUM_WALLET13       = 16600,
   KERN_TYPE_ANSIBLE_VAULT           = 16900,
-  KERN_TYPE_TOTP_HMACSHA1           = 18100,
-  KERN_TYPE_APFS                    = 18300,
 
 } kern_type_t;
 
@@ -1104,8 +1102,6 @@ int jwt_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int electrum_wallet13_parse_hash  (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int filevault2_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int ansible_vault_parse_hash      (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int totp_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int apfs_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 
 
 /**
@@ -1124,8 +1120,6 @@ typedef struct tc
   int                       keyboard_layout_mapping_cnt;
 
 } tc_t;
-
-static const u32   KERN_TYPE_TOTP_HMACSHA1           = 18100;
 
 static const u32     KERN_TYPE_LUKS_SHA1_AES           = 14611;
 static const u32     KERN_TYPE_LUKS_SHA1_SERPENT       = 14612;

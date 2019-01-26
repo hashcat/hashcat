@@ -168,7 +168,6 @@
   "      Y | 3 = XTS 1536 bit all                             | Full-Disk Encryption (FDE)",
   "  14600 | LUKS                                             | Full-Disk Encryption (FDE)",
   "  16700 | FileVault 2                                      | Full-Disk Encryption (FDE)",
-  "  18300 | Apple File System (APFS)                         | Full-Disk Encryption (FDE)",
   "   9700 | MS Office <= 2003 $0/$1, MD5 + RC4               | Documents",
   "   9710 | MS Office <= 2003 $0/$1, MD5 + RC4, collider #1  | Documents",
   "   9720 | MS Office <= 2003 $0/$1, MD5 + RC4, collider #2  | Documents",
@@ -200,7 +199,6 @@
   "  15700 | Ethereum Wallet, SCRYPT                          | Password Managers",
   "  16300 | Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256     | Password Managers",
   "  16900 | Ansible Vault                                    | Password Managers",
-  "  18100 | TOTP (HMAC-SHA1)                                 | One-Time Passwords",
 
 
 static const char *ST_PASS_HASHCAT_PLAIN = "hashcat";
@@ -411,8 +409,6 @@ static const char *ST_HASH_16400 = "{CRAM-MD5}5389b33b9725e5657cb631dc50017ff100
 static const char *ST_HASH_16600 = "$electrum$1*44358283104603165383613672586868*c43a6632d9f59364f74c395a03d8c2ea";
 static const char *ST_HASH_16700 = "$fvde$1$16$84286044060108438487434858307513$20000$f1620ab93192112f0a23eea89b5d4df065661f974b704191";
 static const char *ST_HASH_16900 = "$ansible$0*0*6b761adc6faeb0cc0bf197d3d4a4a7d3f1682e4b169cae8fa6b459b3214ed41e*426d313c5809d4a80a4b9bc7d4823070*d8bad190c7fbc7c3cb1c60a27abfb0ff59d6fb73178681c7454d94a0f56a4360";
-static const char *ST_HASH_18100 = "597056:3600";
-static const char *ST_HASH_18300 = "$fvde$2$16$58778104701476542047675521040224$20000$39602e86b7cea4a34f4ff69ff6ed706d68954ee474de1d2a9f6a6f2d24d172001e484c1d4eaa237d";
 
 
 static const char *HT_00030 = "md5(utf16le($pass).$salt)";
@@ -564,8 +560,6 @@ static const char *HT_16500 = "JWT (JSON Web Token)";
 static const char *HT_16600 = "Electrum Wallet (Salt-Type 1-3)";
 static const char *HT_16700 = "FileVault 2";
 static const char *HT_16900 = "Ansible Vault";
-static const char *HT_18100 = "TOTP (HMAC-SHA1)";
-static const char *HT_18300 = "Apple File System (APFS)";
 
 static const char *HT_00022 = "Juniper NetScreen/SSG (ScreenOS)";
 static const char *HT_00023 = "Skype";
@@ -682,12 +676,11 @@ static const char *SIGNATURE_JKS_SHA1           = "$jksprivk$";
 static const char *SIGNATURE_ETHEREUM_PBKDF2    = "$ethereum$p";
 static const char *SIGNATURE_ETHEREUM_SCRYPT    = "$ethereum$s";
 static const char *SIGNATURE_TACACS_PLUS        = "$tacacs-plus$0$";
-static const char *SIGNATURE_APPLE_SECURE_NOTES = "$ASN$";
 static const char *SIGNATURE_ETHEREUM_PRESALE   = "$ethereum$w";
 static const char *SIGNATURE_ELECTRUM_WALLET    = "$electrum$";
 static const char *SIGNATURE_FILEVAULT2         = "$fvde$";
 static const char *SIGNATURE_ANSIBLE_VAULT      = "$ansible$";
-static const char *SIGNATURE_APFS               = "$fvde$";
+static const char *SIGNATURE_APPLE_SECURE_NOTES = "$ASN$";
 
 /**
  * decoder / encoder
@@ -3395,66 +3388,6 @@ int sha1s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUS
   const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  return (PARSER_OK);
-}
-
-int totp_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  // this is going to start off like HMAC-SHA1
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt  = 2;
-
-  token.sep[0]     = hashconfig->separator;
-  token.len_min[0] = 6;
-  token.len_max[0] = 6;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len_min[1] = SALT_MIN;
-  token.len_max[1] = SALT_MAX;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
-  {
-    token.len_min[1] *= 2;
-    token.len_max[1] *= 2;
-
-    token.attr[1] |= TOKEN_ATTR_VERIFY_DIGIT;
-  }
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  // now we need to reduce our hash into a token
-  int otp_code = hc_strtoul ((const char *) input_buf, NULL, 10);
-
-  digest[0] = otp_code;
-
-  const u8 *salt_pos = token.buf[1];
-
-  // convert ascii timestamp to ulong timestamp
-  u64 timestamp = hc_strtoull ((const char *) salt_pos, NULL, 10);
-
-  // store the original salt value. Step division will destroy granularity for output
-  salt->salt_buf[3] = ((u32) (timestamp >>  0));
-  salt->salt_buf[2] = ((u32) (timestamp >> 32));
-
-  // divide our timestamp by our step. We will use the RFC 6238 default of 30 for now
-  timestamp /= 30;
-
-  // convert counter to 8-byte salt
-  salt->salt_buf[1] = byte_swap_32 ((u32) (timestamp >>  0));
-  salt->salt_buf[0] = byte_swap_32 ((u32) (timestamp >> 32));
-
-  // our salt will always be 8 bytes, but we are going to cheat and store it twice, so...
-  salt->salt_len = 16;
 
   return (PARSER_OK);
 }
@@ -14406,133 +14339,6 @@ int ansible_vault_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MA
   return (PARSER_OK);
 }
 
-int apfs_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  apple_secure_notes_t *apple_secure_notes = (apple_secure_notes_t *) hash_buf->esalt;
-
-  token_t token;
-
-  token.token_cnt  = 6;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_APFS;
-
-  token.len[0]     = 6;
-  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.sep[1]     = '$';
-  token.len_min[1] = 1;
-  token.len_max[1] = 10;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[2]     = '$';
-  token.len_min[2] = 1;
-  token.len_max[2] = 6;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[3]     = '$';
-  token.len_min[3] = 32;
-  token.len_max[3] = 32;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.sep[4]     = '$';
-  token.len_min[4] = 1;
-  token.len_max[4] = 6;
-  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[5]     = '$';
-  token.len_min[5] = 80;
-  token.len_max[5] = 80;
-  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  // Z_PK
-
-  const u8 *Z_PK_pos = token.buf[1];
-
-  const u32 Z_PK = hc_strtoul ((const char *) Z_PK_pos, NULL, 10);
-
-  if (Z_PK != 2) return (PARSER_SIGNATURE_UNMATCHED);
-
-  apple_secure_notes->Z_PK = Z_PK;
-
-  // ZCRYPTOSALT
-
-  const u8 *ZCRYPTOSALT_pos = token.buf[3];
-
-  apple_secure_notes->ZCRYPTOSALT[ 0] = hex_to_u32 ((const u8 *) &ZCRYPTOSALT_pos[ 0]);
-  apple_secure_notes->ZCRYPTOSALT[ 1] = hex_to_u32 ((const u8 *) &ZCRYPTOSALT_pos[ 8]);
-  apple_secure_notes->ZCRYPTOSALT[ 2] = hex_to_u32 ((const u8 *) &ZCRYPTOSALT_pos[16]);
-  apple_secure_notes->ZCRYPTOSALT[ 3] = hex_to_u32 ((const u8 *) &ZCRYPTOSALT_pos[24]);
-  apple_secure_notes->ZCRYPTOSALT[ 4] = 0;
-  apple_secure_notes->ZCRYPTOSALT[ 5] = 0;
-  apple_secure_notes->ZCRYPTOSALT[ 6] = 0;
-  apple_secure_notes->ZCRYPTOSALT[ 7] = 0;
-  apple_secure_notes->ZCRYPTOSALT[ 8] = 0;
-  apple_secure_notes->ZCRYPTOSALT[ 9] = 0;
-  apple_secure_notes->ZCRYPTOSALT[10] = 0;
-  apple_secure_notes->ZCRYPTOSALT[11] = 0;
-  apple_secure_notes->ZCRYPTOSALT[12] = 0;
-  apple_secure_notes->ZCRYPTOSALT[13] = 0;
-  apple_secure_notes->ZCRYPTOSALT[14] = 0;
-  apple_secure_notes->ZCRYPTOSALT[15] = 0;
-
-  // ZCRYPTOITERATIONCOUNT
-
-  const u8 *ZCRYPTOITERATIONCOUNT_pos = token.buf[4];
-
-  const u32 ZCRYPTOITERATIONCOUNT = hc_strtoul ((const char *) ZCRYPTOITERATIONCOUNT_pos, NULL, 10);
-
-  apple_secure_notes->ZCRYPTOITERATIONCOUNT = ZCRYPTOITERATIONCOUNT;
-
-  // ZCRYPTOWRAPPEDKEY
-
-  const u8 *ZCRYPTOWRAPPEDKEY_pos = token.buf[5];
-
-  apple_secure_notes->ZCRYPTOWRAPPEDKEY[0] = hex_to_u32 ((const u8 *) &ZCRYPTOWRAPPEDKEY_pos[ 0]);
-  apple_secure_notes->ZCRYPTOWRAPPEDKEY[1] = hex_to_u32 ((const u8 *) &ZCRYPTOWRAPPEDKEY_pos[ 8]);
-  apple_secure_notes->ZCRYPTOWRAPPEDKEY[2] = hex_to_u32 ((const u8 *) &ZCRYPTOWRAPPEDKEY_pos[16]);
-  apple_secure_notes->ZCRYPTOWRAPPEDKEY[3] = hex_to_u32 ((const u8 *) &ZCRYPTOWRAPPEDKEY_pos[24]);
-  apple_secure_notes->ZCRYPTOWRAPPEDKEY[4] = hex_to_u32 ((const u8 *) &ZCRYPTOWRAPPEDKEY_pos[32]);
-  apple_secure_notes->ZCRYPTOWRAPPEDKEY[5] = hex_to_u32 ((const u8 *) &ZCRYPTOWRAPPEDKEY_pos[40]);
-  apple_secure_notes->ZCRYPTOWRAPPEDKEY[6] = hex_to_u32 ((const u8 *) &ZCRYPTOWRAPPEDKEY_pos[48]);
-  apple_secure_notes->ZCRYPTOWRAPPEDKEY[7] = hex_to_u32 ((const u8 *) &ZCRYPTOWRAPPEDKEY_pos[56]);
-  apple_secure_notes->ZCRYPTOWRAPPEDKEY[8] = hex_to_u32 ((const u8 *) &ZCRYPTOWRAPPEDKEY_pos[64]);
-  apple_secure_notes->ZCRYPTOWRAPPEDKEY[9] = hex_to_u32 ((const u8 *) &ZCRYPTOWRAPPEDKEY_pos[72]);
-
-  // fake salt
-
-  salt->salt_buf[0] = apple_secure_notes->ZCRYPTOSALT[0];
-  salt->salt_buf[1] = apple_secure_notes->ZCRYPTOSALT[1];
-  salt->salt_buf[2] = apple_secure_notes->ZCRYPTOSALT[2];
-  salt->salt_buf[3] = apple_secure_notes->ZCRYPTOSALT[3];
-  salt->salt_buf[4] = apple_secure_notes->Z_PK;
-
-  salt->salt_iter = apple_secure_notes->ZCRYPTOITERATIONCOUNT - 1;
-  salt->salt_len  = 20;
-
-  // fake hash
-
-  digest[0] = apple_secure_notes->ZCRYPTOWRAPPEDKEY[0];
-  digest[1] = apple_secure_notes->ZCRYPTOWRAPPEDKEY[1];
-  digest[2] = apple_secure_notes->ZCRYPTOWRAPPEDKEY[2];
-  digest[3] = apple_secure_notes->ZCRYPTOWRAPPEDKEY[3];
-
-  return (PARSER_OK);
-}
 
 /**
  * hook functions
@@ -14716,8 +14522,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
       case 16700: salt->salt_len = 16;
                   break;
       case 16900: salt->salt_len = 32;
-                  break;
-      case 18300: salt->salt_len = 16;
                   break;
     }
 
@@ -14929,8 +14733,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
     case 16700:  salt->salt_iter  = ROUNDS_APPLE_SECURE_NOTES - 1;
                  break;
     case 16900:  salt->salt_iter  = ROUNDS_ANSIBLE_VAULT - 1;
-                 break;
-    case 18300:  salt->salt_iter  = ROUNDS_APPLE_SECURE_NOTES - 1;
                  break;
   }
 
@@ -17518,41 +17320,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (digest_buf[5]),
       byte_swap_32 (digest_buf[6]),
       byte_swap_32 (digest_buf[7]));
-  }
-  else if (hash_mode == 18100)
-  {
-      // salt_buf[1] holds our 32 bit value. salt_buf[0] and salt_buf[1] would be 64 bits.
-      // we also need to multiply salt by our step to see the floor of our original timestamp range.
-      // again, we will use the default RFC 6238 step of 30.
-
-      u64 tmp_salt_buf = (((u64) (salt.salt_buf[2])) << 32) | ((u64) (salt.salt_buf[3]));
-
-      snprintf (out_buf, out_size, "%06d:%" PRIu64, digest_buf[0], tmp_salt_buf);
-  }
-  else if (hash_mode == 18300)
-  {
-    apple_secure_notes_t *apple_secure_notess = (apple_secure_notes_t *) esalts_buf;
-
-    apple_secure_notes_t *apple_secure_notes = &apple_secure_notess[digest_cur];
-
-    snprintf (out_buf, out_size, "%s%u$16$%08x%08x%08x%08x$%u$%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
-      SIGNATURE_FILEVAULT2,
-      apple_secure_notes->Z_PK,
-      byte_swap_32 (apple_secure_notes->ZCRYPTOSALT[0]),
-      byte_swap_32 (apple_secure_notes->ZCRYPTOSALT[1]),
-      byte_swap_32 (apple_secure_notes->ZCRYPTOSALT[2]),
-      byte_swap_32 (apple_secure_notes->ZCRYPTOSALT[3]),
-      apple_secure_notes->ZCRYPTOITERATIONCOUNT,
-      byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[0]),
-      byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[1]),
-      byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[2]),
-      byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[3]),
-      byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[4]),
-      byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[5]),
-      byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[6]),
-      byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[7]),
-      byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[8]),
-      byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[9]));
   }
   else
   {
@@ -21624,42 +21391,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 18100:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
-                                            | OPTS_TYPE_PT_ADD80
-                                            | OPTS_TYPE_PT_ADDBITS15
-                                            | OPTS_TYPE_PT_NEVERCRACK;
-                 hashconfig->kern_type      = KERN_TYPE_TOTP_HMACSHA1;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = totp_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_NOT_ITERATED;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_18100;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
 
-    case 18300:  hashconfig->hash_type      = HASH_TYPE_APPLE_SECURE_NOTES;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_APFS;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
-                 hashconfig->parse_func     = apfs_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_18300;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
 
   }
 
@@ -21737,7 +21469,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 16600: hashconfig->esalt_size = sizeof (electrum_wallet_t);    break;
     case 16700: hashconfig->esalt_size = sizeof (apple_secure_notes_t); break;
     case 16900: hashconfig->esalt_size = sizeof (ansible_vault_t);      break;
-    case 18300: hashconfig->esalt_size = sizeof (apple_secure_notes_t); break;
   }
 
   // tmp_size
@@ -21813,7 +21544,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 16300: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
     case 16700: hashconfig->tmp_size = sizeof (apple_secure_notes_tmp_t); break;
     case 16900: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
-    case 18300: hashconfig->tmp_size = sizeof (apple_secure_notes_tmp_t); break;
   };
 
 }
@@ -22162,16 +21892,6 @@ int build_plain_postprocess (const u32 *src_buf, MAYBE_UNUSED const size_t src_s
   }
 
 
-  // TOTP should be base32 encoded
-  if (hashconfig->hash_mode == 18100)
-  {
-
-
-    // encode our plain
-    return base32_encode (int_to_base32, (const u8 *) src_buf, src_len, (u8 *) temp_buf);
-
-
-  }
 }
 
 u64 module_size_extra_buffer (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param);
