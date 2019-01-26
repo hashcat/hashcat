@@ -389,7 +389,7 @@ WIN_64_OBJS             += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).WIN.64.o)
 endif
 endif
 
-MODULE_OBJS_ALL                 := bitops convert cpu_aes cpu_crc32 cpu_des cpu_md5 ext_lzma filehandling keyboard_layout memory shared
+MODULE_OBJS_ALL                 := bitops convert cpu_aes cpu_crc32 cpu_des cpu_md4 cpu_md5 ext_lzma filehandling keyboard_layout memory shared
 
 ifeq ($(USE_SYSTEM_LZMA),0)
 MODULE_OBJS_ALL                 += Alloc Lzma2Dec LzmaDec

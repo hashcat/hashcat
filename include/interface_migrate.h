@@ -883,7 +883,6 @@ typedef enum kern_type
   KERN_TYPE_ANSIBLE_VAULT           = 16900,
   KERN_TYPE_TOTP_HMACSHA1           = 18100,
   KERN_TYPE_APFS                    = 18300,
-  KERN_TYPE_PLAINTEXT               = 99999,
 
 } kern_type_t;
 

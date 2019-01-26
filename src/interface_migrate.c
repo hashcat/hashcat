@@ -201,7 +201,6 @@
   "  16300 | Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256     | Password Managers",
   "  16900 | Ansible Vault                                    | Password Managers",
   "  18100 | TOTP (HMAC-SHA1)                                 | One-Time Passwords",
-  "  99999 | Plaintext                                        | Plaintext",
 
 
 static const char *ST_PASS_HASHCAT_PLAIN = "hashcat";
@@ -414,7 +413,6 @@ static const char *ST_HASH_16700 = "$fvde$1$16$84286044060108438487434858307513$
 static const char *ST_HASH_16900 = "$ansible$0*0*6b761adc6faeb0cc0bf197d3d4a4a7d3f1682e4b169cae8fa6b459b3214ed41e*426d313c5809d4a80a4b9bc7d4823070*d8bad190c7fbc7c3cb1c60a27abfb0ff59d6fb73178681c7454d94a0f56a4360";
 static const char *ST_HASH_18100 = "597056:3600";
 static const char *ST_HASH_18300 = "$fvde$2$16$58778104701476542047675521040224$20000$39602e86b7cea4a34f4ff69ff6ed706d68954ee474de1d2a9f6a6f2d24d172001e484c1d4eaa237d";
-static const char *ST_HASH_99999 = "hashcat";
 
 
 static const char *HT_00030 = "md5(utf16le($pass).$salt)";
@@ -568,7 +566,6 @@ static const char *HT_16700 = "FileVault 2";
 static const char *HT_16900 = "Ansible Vault";
 static const char *HT_18100 = "TOTP (HMAC-SHA1)";
 static const char *HT_18300 = "Apple File System (APFS)";
-static const char *HT_99999 = "Plaintext";
 
 static const char *HT_00022 = "Juniper NetScreen/SSG (ScreenOS)";
 static const char *HT_00023 = "Skype";
@@ -17557,12 +17554,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[8]),
       byte_swap_32 (apple_secure_notes->ZCRYPTOWRAPPEDKEY[9]));
   }
-  else if (hash_mode == 99999)
-  {
-    char *ptr = (char *) digest_buf;
-
-    snprintf (out_buf, out_size, "%s", ptr + 64);
-  }
   else
   {
     if (hash_type == HASH_TYPE_MD4)
@@ -21670,32 +21661,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 99999:  hashconfig->hash_type      = HASH_TYPE_PLAINTEXT;
-                 hashconfig->salt_type      = SALT_TYPE_NONE;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PT_ADD80
-                                            | OPTS_TYPE_PT_ADDBITS14;
-                 hashconfig->kern_type      = KERN_TYPE_MD4;
-                 hashconfig->dgst_size      = DGST_SIZE_4_32; // originally DGST_SIZE_4_2
-                 hashconfig->parse_func     = plaintext_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_PRECOMPUTE_MERKLE
-                                            | OPTI_TYPE_MEET_IN_MIDDLE
-                                            | OPTI_TYPE_EARLY_SKIP
-                                            | OPTI_TYPE_NOT_ITERATED
-                                            | OPTI_TYPE_NOT_SALTED
-                                            | OPTI_TYPE_RAW_HASH;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 3;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 1;
-                 hashconfig->st_hash        = ST_HASH_99999;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    default:     return -1;
   }
 
   // esalt_size
