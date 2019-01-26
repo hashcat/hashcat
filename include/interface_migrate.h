@@ -1,8 +1,3 @@
-/**
- * entropy check (truecrypt, veracrypt, ...)
- */
-
-static const float MIN_SUFFICIENT_ENTROPY_FILE = 7.0f;
 
 /**
  * algo specific
@@ -788,12 +783,6 @@ typedef enum kern_type
   KERN_TYPE_ANDROIDPIN              = 5800,
   KERN_TYPE_RIPEMD160               = 6000,
   KERN_TYPE_WHIRLPOOL               = 6100,
-  KERN_TYPE_TCSHA512_XTS512         = 6221,
-  KERN_TYPE_TCSHA512_XTS1024        = 6222,
-  KERN_TYPE_TCSHA512_XTS1536        = 6223,
-  KERN_TYPE_TCWHIRLPOOL_XTS512      = 6231,
-  KERN_TYPE_TCWHIRLPOOL_XTS1024     = 6232,
-  KERN_TYPE_TCWHIRLPOOL_XTS1536     = 6233,
   KERN_TYPE_VCSHA256_XTS512         = 13751,
   KERN_TYPE_VCSHA256_XTS1024        = 13752,
   KERN_TYPE_VCSHA256_XTS1536        = 13753,
@@ -907,8 +896,6 @@ typedef enum rounds_count
    ROUNDS_DCC2               = 10240,
    ROUNDS_PSAFE3             = 2048,
    ROUNDS_ANDROIDPIN         = 1024,
-   ROUNDS_TRUECRYPT_1K       = 1000,
-   ROUNDS_TRUECRYPT_2K       = 2000,
    ROUNDS_VERACRYPT_200000   = 200000,
    ROUNDS_VERACRYPT_500000   = 500000,
    ROUNDS_VERACRYPT_327661   = 327661,
@@ -1007,8 +994,6 @@ int ikepsk_sha1_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int androidpin_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int ripemd160_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int whirlpool_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int truecrypt_parse_hash_1k       (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int truecrypt_parse_hash_2k       (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int md5aix_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha256aix_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha512aix_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
