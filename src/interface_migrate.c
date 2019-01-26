@@ -313,7 +313,6 @@ static const char *ST_HASH_05700 = "2btjjy78REtmYkkW0csHUbJZOstRXoWdX1mGrmmfeHI"
 static const char *ST_HASH_05800 = "3edde1eb9e6679ccbc1ff3c417e8a475a2d2e279:7724368582277760";
 static const char *ST_HASH_06000 = "012cb9b334ec1aeb71a9c8ce85586082467f7eb6";
 static const char *ST_HASH_06100 = "7ca8eaaaa15eaa4c038b4c47b9313e92da827c06940e69947f85bc0fbef3eb8fd254da220ad9e208b6b28f6bb9be31dd760f1fdb26112d83f87d96b416a4d258";
-static const char *ST_HASH_06213 = "3916e924d246e5ceb17b140211fff57b67150b3dee53fa475261d465b0ee3e56ee820e6ba3958d84c61508f028b2a112e9005877784e07deddcf310d01ba81710b620533790456d20d17c8fda84f9d93bbfe41509b931a417b82d68ed9b0bc9641b79a5bf8f71bcdbba979dfb7566a5b8ccc221f80722c1ce7ec81be4a8c880b1b057e681c187504eabf4eea32f7b81383defd4616618a99852d1678a6520883c8f3564e6dcf874150a060b9a44748d97f95b223b089ac847e31fb5a2db3656d7b57decff65e2c5c9af5bdece7a1845caa9df805fc1f7e56bf545d854beec27a9640bf1697c195e5f95b82c20d76c5a56ff4283219caa5a618e8caace9d0fcde0df6ee6e043ccbc78fd06a602cc638f7ae4675063b840ee08ffa9e143553bffd20126fa30f95e013aabf103f12c3ceeb284c80dc335fe2e78580d6ddfa80511aba9db7c93838cae0db40b9dbeccbf9d160032d334a9c35156721c746b51131baf6855fdfc1edee3099b8e4abc619e1c60e3ce68615e1eb42bd8d338046f7c854a60defe395e0d7168786a3035c9735cd42433dd0c46dcf8b5cb2c28905df80476561e55d6310b25f74d78b651ccd3484332c59a6ad490e29ea267db5ce4a47c9dcde39f420ba0755ea7e5583a3a562925acaa125d5056795b98135825232aa543a460137cc84235b85dd44d65e01e6eb1ade1b970f3ffe2b9762f5a7f261037e";
 static const char *ST_HASH_06221 = "5ebff6b4050aaa3374f9946166a9c4134dd3ec0df1176da2fb103909d20e8b3c9b95cbbd6d1a7ad05411a1443ad6254e059e924d78bab6a0463e71cf7c3109b7ef4e837bf6d7a548dd8333c451b59d1132098f44c6ff19c6cb921b1de3bd0aa675e0478a05f90204d46a5d6ff598bfa40370ac8795928a6d2e0f1347696e3cfa329738170fe54298981d84f40c63d1a338c5db62679338e849124a28a79a8e505bb89a4673f0457b2737a00b908116310281b5b2eb66c6fda5599196b313d51ef26201335d715c18f6b128454a5601671e619bdcce8e54acb47d498c4161614a05063bff5497a4a3d99bff1fce2a163727af2fe9ae7512461b9dcebf3a4f1031d6235d8ce09b734294d0cedc04eafc6295f212b1b080e7b9745580d0dd18e99cfd95afef982762d5aabeaa2d3a928dcf36322cc06b07fd719c88e0b9a2625a94a77502d4bd40a85ba138cbd0cf9561aa395dc552801f68cce16e5484a672aa5b78665dc531ab1e3e728185929dc443b7f4c8a5cb687c6589bb3f4ddc2a8639d959b839b0813d50e7711b761622c3693a92e540e4f932c6c89bf4e1bff1d69151848c3d01b2f6aba52b58e5b393f6cd58ff0d2e040b1205b042b5a28d5b12cb0cc95fa32f1bcdebd4c82d889a5d87c45dcfd34e80b19bf7be35696e0fa0cbd9338b314de24c1ee7bbc0a3b6824f86af2aa5d127d21444985ff566e921431938f6";
 static const char *ST_HASH_06222 = "9f207bec0eded18a1b2e324d4f05d2f33f0bd1aeb43db65d33242fa48ac960fad4c14d04c553e06ad47e7e394d16e0a6544d35fb0b2415bd060bc5f537e42a58b1681e991e2ec0b5773f6e8e5766e5fcc7335b19dd068d1f20260085ecda8eba366ff1521997c5654630ef09ba421b871a3dc66aa0dd5eba8a3bc7052398a7ad779506d86cbf687e76cd9dc50969e222820d2f905c0550995a9c068725bb6c8b04358c965ab77221fdfd829e57ce54cac6e2fa62db15043d720b72fa8962dd718a0b42c34577af9cb4a5ed04c1ae17b7af470c0d8b77987dc9e2d2593a52458c4acb83b628b1488371de85f78a2e25aeaebc18d20a8c3007d08949e93b80087707afd1fe4e07a0afee4244e5270f768e234b86852aa1556c53ffc0d6f60661369a484d55d063119e71e70af1ec775908466cac7b12bc22e1a9525c2bfa9f83f7901c8e0a1d56387ef65040b750656b0b75791738b5b7e453f24167eae56c057c94e1e4cf1a0d08894225f11b45bc31827cad1dfe62e148549385953aa16a0410dba231aace3a7b9fd9b1c2b930f01193377b59736d8a8959ca5b449655f79a4dbec0da566083f90caa2490b01a10c0a86dd4aaa719bdc1e4233db17217f03509cc20dab7246730e3f964944990690b6dcc84936e1dd487bd154ceefe58a838a0488cc93b854a112ea67f6802d2f409915e648ee5cf5fdc3c12e41acbfab7caa9";
 static const char *ST_HASH_06223 = "721a7f40d2b88de8e11f1a203b04ffa97a1f5671623c6783f984cc7c55e04665f95a7f3fd52f402898aaaed68d048cc4c4fabf81c26832b589687dad082f3e4e0f23c7caba28118f21a4cbb8f32b25914ff4022e7c4c8cdd45411801c7c6bde4033badbdcb82f96c77b42025d13fa71415b3278138100ea58ee4476c81ce66f78e89c59ac22cf454684ea7e8c3900374662f23c9491891b60ed7ce8231a7ac5710ee87b51a3f7bd9566a60dc6e7e701c41f3810d7977314b321e8194349909f2ca458a976851d854eaeb934c8df2b5e063d416d3d7c464e28173a0bbba88ec75cf8fe68f21067739b2473bd804fd710de1e4d3ae9451b374edcfd8e3cd613b23aeae272e0923007482dac26a7532ab09af8aad57cd7f1c451bc260cc912d5830cb0d5332f792519e009ed5450171434e5f0f2ba9e003676933a86d83c766419fac98a7ee232eeb593d1686528fab576d5f393d82f9602bcd65975153df205b6d1bc50dacad2ea5bb184696f978efd2b1c1656bf87e03a28a536c48320c430d407ff6c2fc6e7d4ae7b115e79fd0a88df08eca4743178c7c216f35035596a90b0f0fe9c173c7d0e3d76c33a8fce1f5b9b37674bd12e93fb714c9cbba6768c101b5db8f8fd137144453f00dccc7b66911a0a8d87b198807f30be6619400331c5746d481df7ad47a1f867c07f7b8cd296a0c5e03a121c1a7a60b4f768bea49799d2f";
@@ -620,7 +619,6 @@ static const char *HT_02711 = "vBulletin >= v3.8.5";
 static const char *HT_02811 = "IPB2+ (Invision Power Board), MyBB 1.2+";
 static const char *HT_04521 = "Redmine";
 static const char *HT_04522 = "PunBB";
-static const char *HT_06213 = "TrueCrypt PBKDF2-HMAC-RIPEMD160 + XTS 1536 bit";
 static const char *HT_06221 = "TrueCrypt PBKDF2-HMAC-SHA512 + XTS 512 bit";
 static const char *HT_06222 = "TrueCrypt PBKDF2-HMAC-SHA512 + XTS 1024 bit";
 static const char *HT_06223 = "TrueCrypt PBKDF2-HMAC-SHA512 + XTS 1536 bit";
@@ -14915,8 +14913,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                  break;
     case  5800:  salt->salt_iter  = ROUNDS_ANDROIDPIN - 1;
                  break;
-    case  6213:  salt->salt_iter  = ROUNDS_TRUECRYPT_2K;
-                 break;
     case  6221:  salt->salt_iter  = ROUNDS_TRUECRYPT_1K;
                  break;
     case  6222:  salt->salt_iter  = ROUNDS_TRUECRYPT_1K;
@@ -19524,24 +19520,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case  6213:  hashconfig->hash_type      = HASH_TYPE_RIPEMD160;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_BINARY_HASHFILE;
-                 hashconfig->kern_type      = KERN_TYPE_TCRIPEMD160_XTS1536;
-                 hashconfig->dgst_size      = DGST_SIZE_4_5;
-                 hashconfig->parse_func     = truecrypt_parse_hash_2k;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_06213;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case  6221:  hashconfig->hash_type      = HASH_TYPE_SHA512;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -22031,7 +22009,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   {
     case  5300: hashconfig->esalt_size = sizeof (ikepsk_t);             break;
     case  5400: hashconfig->esalt_size = sizeof (ikepsk_t);             break;
-    case  6213: hashconfig->esalt_size = sizeof (tc_t);                 break;
     case  6221: hashconfig->esalt_size = sizeof (tc_t);                 break;
     case  6222: hashconfig->esalt_size = sizeof (tc_t);                 break;
     case  6223: hashconfig->esalt_size = sizeof (tc_t);                 break;
@@ -22119,7 +22096,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case  2100: hashconfig->tmp_size = sizeof (dcc2_tmp_t);               break;
     case  5200: hashconfig->tmp_size = sizeof (pwsafe3_tmp_t);            break;
     case  5800: hashconfig->tmp_size = sizeof (androidpin_tmp_t);         break;
-    case  6213: hashconfig->tmp_size = sizeof (tc_tmp_t);                 break;
     case  6221: hashconfig->tmp_size = sizeof (tc64_tmp_t);               break;
     case  6222: hashconfig->tmp_size = sizeof (tc64_tmp_t);               break;
     case  6223: hashconfig->tmp_size = sizeof (tc64_tmp_t);               break;
@@ -22271,7 +22247,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
     case  2100: pw_max = PW_MAX;  break;
     case  3100: pw_max = 30;      break; // http://www.red-database-security.de/whitepaper/oracle_passwords.html
     case  5200: pw_max = PW_MAX;  break;
-    case  6213: pw_max = 64;      break; // TC limits itself to 64
     case  6221: pw_max = 64;      break; // TC limits itself to 64
     case  6222: pw_max = 64;      break; // TC limits itself to 64
     case  6223: pw_max = 64;      break; // TC limits itself to 64
