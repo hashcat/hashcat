@@ -1497,11 +1497,6 @@ int hashes_init_stage4 (hashcat_ctx_t *hashcat_ctx)
   hashes_t       *hashes       = hashcat_ctx->hashes;
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  // this is a good phase for setting keyfile and keyboard mapping
-  //const int rc_defaults = hashconfig_general_defaults (hashcat_ctx);
-
-  //if (rc_defaults == -1) return -1;
-
   if (hashes->salts_cnt == 1)
     hashconfig->opti_type |= OPTI_TYPE_SINGLE_SALT;
 

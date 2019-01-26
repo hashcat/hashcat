@@ -346,7 +346,7 @@ LFLAGS_CROSS_WIN64      += -lws2_32
 ## Objects
 ##
 
-OBJS_ALL                := affinity autotune benchmark bitmap bitops combinator common convert cpt cpu_aes cpu_crc32 cpu_des cpu_md4 cpu_md5 cpu_sha1 cpu_sha256 debugfile dictstat dispatch dynloader event ext_ADL ext_nvapi ext_nvml ext_OpenCL ext_sysfs ext_lzma filehandling folder hashcat hashes hlfmt hwmon induct interface locking logfile loopback memory monitor mpsp opencl outfile_check outfile pidfile potfile restore rp rp_cpu rp_kernel_on_cpu rp_kernel_on_cpu_optimized selftest slow_candidates shared status stdout straight terminal thread timer tuningdb usage user_options wordlist
+OBJS_ALL                := affinity autotune benchmark bitmap bitops combinator common convert cpt cpu_aes cpu_crc32 cpu_des cpu_md4 cpu_md5 cpu_sha1 cpu_sha256 debugfile dictstat dispatch dynloader event ext_ADL ext_nvapi ext_nvml ext_OpenCL ext_sysfs ext_lzma filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memory monitor mpsp opencl outfile_check outfile pidfile potfile restore rp rp_cpu rp_kernel_on_cpu rp_kernel_on_cpu_optimized selftest slow_candidates shared status stdout straight terminal thread timer tuningdb usage user_options wordlist
 
 ifeq ($(ENABLE_BRAIN),1)
 OBJS_ALL                += brain
@@ -389,7 +389,7 @@ WIN_64_OBJS             += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).WIN.64.o)
 endif
 endif
 
-MODULE_OBJS_ALL                 := bitops convert cpu_aes cpu_crc32 cpu_des cpu_md5 ext_lzma memory shared
+MODULE_OBJS_ALL                 := bitops convert cpu_aes cpu_crc32 cpu_des cpu_md5 ext_lzma filehandling keyboard_layout memory shared
 
 ifeq ($(USE_SYSTEM_LZMA),0)
 MODULE_OBJS_ALL                 += Alloc Lzma2Dec LzmaDec

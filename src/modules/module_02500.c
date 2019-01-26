@@ -303,9 +303,9 @@ int module_hash_encode_status (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
 int module_hash_init_selftest (MAYBE_UNUSED const hashconfig_t *hashconfig, hash_t *hash)
 {
-  char *tmpdata = (char *) hcmalloc (sizeof (hccapx_t));
-
   const size_t st_hash_len = strlen (hashconfig->st_hash);
+
+  char *tmpdata = (char *) hcmalloc (st_hash_len / 2);
 
   for (size_t i = 0, j = 0; j < st_hash_len; i += 1, j += 2)
   {
@@ -314,7 +314,7 @@ int module_hash_init_selftest (MAYBE_UNUSED const hashconfig_t *hashconfig, hash
     tmpdata[i] = c;
   }
 
-  int parser_status = module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, tmpdata, sizeof (hccapx_t));
+  const int parser_status = module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, tmpdata, st_hash_len / 2);
 
   wpa_eapol_t *wpa_eapol = (wpa_eapol_t *) hash->esalt;
 
