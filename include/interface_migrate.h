@@ -254,14 +254,6 @@ typedef struct electrum_wallet
 
 } electrum_wallet_t;
 
-typedef struct ansible_vault
-{
-  u32 cipher;
-  u32 version;
-  u32 ct_data_buf[4096];
-  u32 ct_data_len;
-} ansible_vault_t;
-
 typedef struct luks_tmp
 {
   u32 ipad32[8];
@@ -668,7 +660,6 @@ typedef enum hash_type
   HASH_TYPE_CRAM_MD5_DOVECOT    = 65,
   HASH_TYPE_JWT                 = 66,
   HASH_TYPE_ELECTRUM_WALLET     = 67,
-  HASH_TYPE_ANSIBLE_VAULT       = 70,
 
 } hash_type_t;
 
@@ -819,7 +810,6 @@ typedef enum kern_type
   KERN_TYPE_JWT_HS384               = 16512,
   KERN_TYPE_JWT_HS512               = 16513,
   KERN_TYPE_ELECTRUM_WALLET13       = 16600,
-  KERN_TYPE_ANSIBLE_VAULT           = 16900,
 
 } kern_type_t;
 
@@ -880,7 +870,6 @@ typedef enum rounds_count
    ROUNDS_ETHEREUM_PBKDF2    = 262144 - 1,
    ROUNDS_APPLE_SECURE_NOTES = 20000,
    ROUNDS_ETHEREUM_PRESALE   = 2000 - 1,
-   ROUNDS_ANSIBLE_VAULT      = 10000,
    ROUNDS_STDOUT             = 0
 
 } rounds_count_t;
@@ -1035,7 +1024,6 @@ int ethereum_presale_parse_hash   (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int jwt_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int electrum_wallet13_parse_hash  (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int filevault2_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int ansible_vault_parse_hash      (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 
 
 /**
