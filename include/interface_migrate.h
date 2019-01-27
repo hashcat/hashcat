@@ -40,18 +40,6 @@ typedef struct pdf
 
 } pdf_t;
 
-typedef struct bitcoin_wallet
-{
-  u32 cry_master_buf[64];
-  u32 ckey_buf[64];
-  u32 public_key_buf[64];
-
-  u32 cry_master_len;
-  u32 ckey_len;
-  u32 public_key_len;
-
-} bitcoin_wallet_t;
-
 typedef struct sip
 {
   u32 salt_buf[32];
@@ -319,12 +307,6 @@ typedef struct sha256crypt_tmp
   u32 s_bytes[64];
 
 } sha256crypt_tmp_t;
-
-typedef struct bitcoin_wallet_tmp
-{
-  u64  dgst[8];
-
-} bitcoin_wallet_tmp_t;
 
 typedef struct dcc2_tmp
 {
@@ -665,7 +647,6 @@ typedef enum hash_type
   HASH_TYPE_PDFU16              = 37,
   HASH_TYPE_PDFU32              = 38,
   HASH_TYPE_PBKDF2_SHA256       = 39,
-  HASH_TYPE_BITCOIN_WALLET      = 40,
   HASH_TYPE_CRC32               = 41,
   HASH_TYPE_STREEBOG_256        = 42,
   HASH_TYPE_STREEBOG_512        = 43,
@@ -797,7 +778,6 @@ typedef enum kern_type
   KERN_TYPE_PRESTASHOP              = 11000,
   KERN_TYPE_POSTGRESQL_AUTH         = 11100,
   KERN_TYPE_MYSQL_AUTH              = 11200,
-  KERN_TYPE_BITCOIN_WALLET          = 11300,
   KERN_TYPE_SIP_AUTH                = 11400,
   KERN_TYPE_CRC32                   = 11500,
   KERN_TYPE_STREEBOG_256            = 11700,
@@ -879,7 +859,6 @@ typedef enum rounds_count
    ROUNDS_PDF14              = (50 + 20),
    ROUNDS_PDF17L8            = 64,
    ROUNDS_PBKDF2_SHA256      = 1000,
-   ROUNDS_BITCOIN_WALLET     = 200000,
    ROUNDS_PBKDF2_MD5         = 1000,
    ROUNDS_PBKDF2_SHA512      = 1000,
    ROUNDS_ECRYPTFS           = 65536,
@@ -1012,7 +991,6 @@ int pbkdf2_sha256_parse_hash      (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int prestashop_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int postgresql_auth_parse_hash    (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int mysql_auth_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int bitcoin_wallet_parse_hash     (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sip_auth_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int crc32_parse_hash              (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int streebog_256_parse_hash       (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);

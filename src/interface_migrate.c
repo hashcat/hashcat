@@ -188,7 +188,6 @@
   "   5200 | Password Safe v3                                 | Password Managers",
   "   6600 | 1Password, agilekeychain                         | Password Managers",
   "   8200 | 1Password, cloudkeychain                         | Password Managers",
-  "  11300 | Bitcoin/Litecoin wallet.dat                      | Password Managers",
   "  12700 | Blockchain, My Wallet                            | Password Managers",
   "  15200 | Blockchain, My Wallet, V2                        | Password Managers",
   "  16600 | Electrum Wallet (Salt-Type 1-2)                  | Password Managers",
@@ -346,7 +345,6 @@ static const char *ST_HASH_10900 = "sha256:1000:NjI3MDM3:vVfavLQL9ZWjg8BUMq6/FB8
 static const char *ST_HASH_11000 = "f22cade043e7214200206dbffca49fd9:27167508161455764247627144160038845437138252877014827848";
 static const char *ST_HASH_11100 = "$postgres$postgres*74402844*4e7fabaaf34d780c4a5822d28ee1c83e";
 static const char *ST_HASH_11200 = "$mysqlna$2576670568531371763643101056213751754328*5e4be686a3149a12847caa9898247dcc05739601";
-static const char *ST_HASH_11300 = "$bitcoin$96$c265931309b4a59307921cf054b4ec6b6e4554369be79802e94e16477645777d948ae1d375191831efc78e5acd1f0443$16$8017214013543185$200460$96$480008005625057442352316337722323437108374245623701184230273883222762730232857701607167815448714$66$014754433300175043011633205413774877455616682000536368706315333388";
 static const char *ST_HASH_11400 = "$sip$*72087*1215344588738747***342210558720*737232616*1215344588738747*8867133055*65600****MD5*e9980869221f9d1182c83b0d5e56a7db";
 static const char *ST_HASH_11500 = "c762de4a:00000000";
 static const char *ST_HASH_11700 = "57e9e50caec93d72e9498c211d6dc4f4d328248b48ecf46ba7abfa874f666e36";
@@ -509,7 +507,6 @@ static const char *HT_10900 = "PBKDF2-HMAC-SHA256";
 static const char *HT_11000 = "PrestaShop";
 static const char *HT_11100 = "PostgreSQL CRAM (MD5)";
 static const char *HT_11200 = "MySQL CRAM (SHA1)";
-static const char *HT_11300 = "Bitcoin/Litecoin wallet.dat";
 static const char *HT_11400 = "SIP digest authentication (MD5)";
 static const char *HT_11500 = "CRC32";
 static const char *HT_11700 = "GOST R 34.11-2012 (Streebog) 256-bit, big-endian";
@@ -606,7 +603,6 @@ static const char *HT_12001 = "Atlassian (PBKDF2-HMAC-SHA1)";
 static const char *SIGNATURE_ANDROIDFDE         = "$fde$";
 static const char *SIGNATURE_AXCRYPT            = "$axcrypt$";
 static const char *SIGNATURE_AXCRYPT_SHA1       = "$axcrypt_sha1$";
-static const char *SIGNATURE_BITCOIN_WALLET     = "$bitcoin$";
 static const char *SIGNATURE_BSDICRYPT          = "_";
 static const char *SIGNATURE_CISCO8             = "$8$";
 static const char *SIGNATURE_CISCO9             = "$9$";
@@ -9956,155 +9952,6 @@ int mysql_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   return (PARSER_OK);
 }
 
-int bitcoin_wallet_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  bitcoin_wallet_t *bitcoin_wallet = (bitcoin_wallet_t *) hash_buf->esalt;
-
-  token_t token;
-
-  token.token_cnt  = 10;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_BITCOIN_WALLET;
-
-  token.len[0]     = 9;
-  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.sep[1]     = '$';
-  token.len_min[1] = 2;
-  token.len_max[1] = 2;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[2]     = '$';
-  token.len_min[2] = 16;
-  token.len_max[2] = 256;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.sep[3]     = '$';
-  token.len_min[3] = 2;
-  token.len_max[3] = 2;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[4]     = '$';
-  token.len_min[4] = 16;
-  token.len_max[4] = 16;
-  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.sep[5]     = '$';
-  token.len_min[5] = 1;
-  token.len_max[5] = 6;
-  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[6]     = '$';
-  token.len_min[6] = 2;
-  token.len_max[6] = 2;
-  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[7]     = '$';
-  token.len_min[7] = 96;
-  token.len_max[7] = 96;
-  token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.sep[8]     = '$';
-  token.len_min[8] = 1;
-  token.len_max[8] = 3;
-  token.attr[8]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[9]     = '$';
-  token.len_min[9] = 2;
-  token.len_max[9] = 512;
-  token.attr[9]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *cry_master_len_pos  = token.buf[1];
-  const u8 *cry_master_buf_pos  = token.buf[2];
-  const u8 *cry_salt_len_pos    = token.buf[3];
-  const u8 *cry_salt_buf_pos    = token.buf[4];
-  const u8 *cry_rounds_pos      = token.buf[5];
-  const u8 *ckey_len_pos        = token.buf[6];
-  const u8 *ckey_buf_pos        = token.buf[7];
-  const u8 *public_key_len_pos  = token.buf[8];
-  const u8 *public_key_buf_pos  = token.buf[9];
-
-  const int cry_master_buf_len  = token.len[2];
-  const int cry_salt_buf_len    = token.len[4];
-  const int ckey_buf_len        = token.len[7];
-  const int public_key_buf_len  = token.len[9];
-
-  // verify
-
-  const int cry_master_len = hc_strtoul ((const char *) cry_master_len_pos, NULL, 10);
-  const int cry_salt_len   = hc_strtoul ((const char *) cry_salt_len_pos,   NULL, 10);
-  const int ckey_len       = hc_strtoul ((const char *) ckey_len_pos,       NULL, 10);
-  const int public_key_len = hc_strtoul ((const char *) public_key_len_pos, NULL, 10);
-
-  if (cry_master_buf_len != cry_master_len) return (PARSER_SALT_VALUE);
-  if (cry_salt_buf_len   != cry_salt_len)   return (PARSER_SALT_VALUE);
-  if (ckey_buf_len       != ckey_len)       return (PARSER_SALT_VALUE);
-  if (public_key_buf_len != public_key_len) return (PARSER_SALT_VALUE);
-
-  if (cry_master_len % 16) return (PARSER_SALT_VALUE);
-
-  // esalt
-
-  for (int i = 0, j = 0; j < cry_master_len; i += 1, j += 8)
-  {
-    bitcoin_wallet->cry_master_buf[i] = hex_to_u32 ((const u8 *) &cry_master_buf_pos[j]);
-  }
-
-  for (int i = 0, j = 0; j < ckey_len; i += 1, j += 8)
-  {
-    bitcoin_wallet->ckey_buf[i] = hex_to_u32 ((const u8 *) &ckey_buf_pos[j]);
-  }
-
-  for (int i = 0, j = 0; j < public_key_len; i += 1, j += 8)
-  {
-    bitcoin_wallet->public_key_buf[i] = hex_to_u32 ((const u8 *) &public_key_buf_pos[j]);
-  }
-
-  bitcoin_wallet->cry_master_len = cry_master_len / 2;
-  bitcoin_wallet->ckey_len       = ckey_len / 2;
-  bitcoin_wallet->public_key_len = public_key_len / 2;
-
-  // hash
-
-  digest[0] = bitcoin_wallet->cry_master_buf[0];
-  digest[1] = bitcoin_wallet->cry_master_buf[1];
-  digest[2] = bitcoin_wallet->cry_master_buf[2];
-  digest[3] = bitcoin_wallet->cry_master_buf[3];
-
-  // iter
-
-  const int cry_rounds = hc_strtoul ((const char *) cry_rounds_pos, NULL, 10);
-
-  salt->salt_iter = cry_rounds - 1;
-
-  // salt
-
-  const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, cry_salt_buf_pos, cry_salt_buf_len, hashconfig);
-
-  if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  return (PARSER_OK);
-}
-
 int sip_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
@@ -14574,8 +14421,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                  break;
     case 10900:  salt->salt_iter  = ROUNDS_PBKDF2_SHA256 - 1;
                  break;
-    case 11300:  salt->salt_iter  = ROUNDS_BITCOIN_WALLET - 1;
-                 break;
     case 11900:  salt->salt_iter  = ROUNDS_PBKDF2_MD5 - 1;
                  break;
     case 12001:  salt->salt_iter  = ROUNDS_ATLASSIAN - 1;
@@ -16215,58 +16060,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
         digest_buf[2],
         digest_buf[3],
         digest_buf[4]);
-  }
-  else if (hash_mode == 11300)
-  {
-    bitcoin_wallet_t *bitcoin_wallets = (bitcoin_wallet_t *) esalts_buf;
-
-    bitcoin_wallet_t *bitcoin_wallet = &bitcoin_wallets[digest_cur];
-
-    const u32 cry_master_len = bitcoin_wallet->cry_master_len;
-    const u32 ckey_len       = bitcoin_wallet->ckey_len;
-    const u32 public_key_len = bitcoin_wallet->public_key_len;
-
-    char *cry_master_buf = (char *) hcmalloc ((cry_master_len * 2) + 1);
-    char *ckey_buf       = (char *) hcmalloc ((ckey_len * 2)       + 1);
-    char *public_key_buf = (char *) hcmalloc ((public_key_len * 2) + 1);
-
-    for (u32 i = 0, j = 0; i < cry_master_len; i += 1, j += 2)
-    {
-      const u8 *ptr = (const u8 *) bitcoin_wallet->cry_master_buf;
-
-      sprintf (cry_master_buf + j, "%02x", ptr[i]);
-    }
-
-    for (u32 i = 0, j = 0; i < ckey_len; i += 1, j += 2)
-    {
-      const u8 *ptr = (const u8 *) bitcoin_wallet->ckey_buf;
-
-      sprintf (ckey_buf + j, "%02x", ptr[i]);
-    }
-
-    for (u32 i = 0, j = 0; i < public_key_len; i += 1, j += 2)
-    {
-      const u8 *ptr = (const u8 *) bitcoin_wallet->public_key_buf;
-
-      sprintf (public_key_buf + j, "%02x", ptr[i]);
-    }
-
-    snprintf (out_buf, out_size, "%s%u$%s$%u$%s$%u$%u$%s$%u$%s",
-      SIGNATURE_BITCOIN_WALLET,
-      cry_master_len * 2,
-      cry_master_buf,
-      salt.salt_len,
-      (unsigned char *) salt.salt_buf,
-      salt.salt_iter + 1,
-      ckey_len * 2,
-      ckey_buf,
-      public_key_len * 2,
-      public_key_buf
-    );
-
-    hcfree (cry_master_buf);
-    hcfree (ckey_buf);
-    hcfree (public_key_buf);
   }
   else if (hash_mode == 11400)
   {
@@ -19911,26 +19704,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 11300:  hashconfig->hash_type      = HASH_TYPE_BITCOIN_WALLET;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_ST_HEX
-                                            | OPTS_TYPE_ST_ADD80;
-                 hashconfig->kern_type      = KERN_TYPE_BITCOIN_WALLET;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = bitcoin_wallet_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_USES_BITS_64
-                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_11300;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case 11400:  hashconfig->hash_type      = HASH_TYPE_MD5;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -21182,7 +20955,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 10600: hashconfig->esalt_size = sizeof (pdf_t);                break;
     case 10700: hashconfig->esalt_size = sizeof (pdf_t);                break;
     case 10900: hashconfig->esalt_size = sizeof (pbkdf2_sha256_t);      break;
-    case 11300: hashconfig->esalt_size = sizeof (bitcoin_wallet_t);     break;
     case 11400: hashconfig->esalt_size = sizeof (sip_t);                break;
     case 11900: hashconfig->esalt_size = sizeof (pbkdf2_md5_t);         break;
     case 12001: hashconfig->esalt_size = sizeof (pbkdf2_sha1_t);        break;
@@ -21255,7 +21027,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 10500: hashconfig->tmp_size = sizeof (pdf14_tmp_t);              break;
     case 10700: hashconfig->tmp_size = sizeof (pdf17l8_tmp_t);            break;
     case 10900: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
-    case 11300: hashconfig->tmp_size = sizeof (bitcoin_wallet_tmp_t);     break;
     case 11900: hashconfig->tmp_size = sizeof (pbkdf2_md5_tmp_t);         break;
     case 12001: hashconfig->tmp_size = sizeof (pbkdf2_sha1_tmp_t);        break;
     case 12100: hashconfig->tmp_size = sizeof (pbkdf2_sha512_tmp_t);      break;
@@ -21409,7 +21180,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
     case 10500: pw_max = 32;      break; // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
     case 10600: pw_max = 127;     break; // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
     case 10900: pw_max = PW_MAX;  break;
-    case 11300: pw_max = PW_MAX;  break;
     case 11900: pw_max = PW_MAX;  break;
     case 12001: pw_max = PW_MAX;  break;
     case 12200: pw_max = PW_MAX;  break;
