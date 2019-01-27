@@ -15,11 +15,10 @@ sub module_constraints { [[0, 255], [8, 8], [0, 31], [8, 8], [-1, -1]] }
 sub module_generate_hash
 {
   my $word = shift;
-  my $salt = shift;
 
   my $digest = crc32 ($word);
 
-  my $hash = sprintf ("%08x:$salt", $digest);
+  my $hash = sprintf ("%08x:00000000", $digest);
 
   return $hash;
 }
