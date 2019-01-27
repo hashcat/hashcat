@@ -193,7 +193,6 @@
   "  12700 | Blockchain, My Wallet                            | Password Managers",
   "  15200 | Blockchain, My Wallet, V2                        | Password Managers",
   "  16600 | Electrum Wallet (Salt-Type 1-2)                  | Password Managers",
-  "  13400 | KeePass 1 (AES/Twofish) and KeePass 2 (AES)      | Password Managers",
   "  15500 | JKS Java Key Store Private Keys (SHA1)           | Password Managers",
   "  15600 | Ethereum Wallet, PBKDF2-HMAC-SHA256              | Password Managers",
   "  15700 | Ethereum Wallet, SCRYPT                          | Password Managers",
@@ -370,7 +369,6 @@ static const char *ST_HASH_12800 = "v1;PPH1_MD4,54188415275183448824,100,55b530f
 static const char *ST_HASH_12900 = "15738301074686823451275227041071157383010746868234512752270410712bc4be900bf96ccf43c9852fff49b5f5874a9f6e7bf301686fa6d98286de151f15738301074686823451275227041071";
 static const char *ST_HASH_13200 = "$axcrypt$*1*10467*9a7cd609bb262c738d9f0e4977039b94*ecbe0fd05a96fd2099d88a92eebb76c59d6837dfe55b3631";
 static const char *ST_HASH_13300 = "$axcrypt_sha1$b89eaac7e61417341b710b727768294d";
-static const char *ST_HASH_13400 = "$keepass$*2*24569*0*c40432355cce7348c48053ceea0a28e7d18859c4ea47e3a799c6300861f64b95*265dafcc42e1537ff42e97e1e283c70014133be0fe2d420b4d24c6d57c9d2207*a00e20a852694c15aabb074d61b902fa*48dd553fb96f7996635f2414bfe6a1a8429ef0ffb71a1752abbef31853172c35*a44ae659958ad7fae8c8952cb83f3cf03fec2371ce22a8bf7fac1e687af2f249*1*64*5a26ea376cc5afc955104c334571d30486acbac512a94b75ca82a9e31dd97bf7";
 static const char *ST_HASH_13500 = "24eea51b53d02b4c5ff99bcb05a6847fdb2d9308:4f10a0de76e242040c28e9d3dd15c903343489c79765f9118c098c266b9ff505c95bd75bbe406ff3404849eea73930ad17937c0ba6fc3e7bb6d37362941318938b8af96d1292a310b3fd29a67e411ecb10d30247c99183a16951b3859054d4eba9dcd50709c7b21dee836d7ed195cc6b33317aeb557cc56392dc551faa8d5a0fb42212";
 static const char *ST_HASH_13600 = "$zip2$*0*3*0*74705614874758221371566185145124*1605*0**75bf9be92e8ab106ff67*$/zip2$";
 static const char *ST_HASH_13711 = "531aca1fa6db5118506320114cb11a9f00dade61720533fc12982b28ec71a1a3856ac6ee44b4acc207c8230352208d5f0dc37bf755bd98830279d6befcb6001cdf025f816a0aa1baf3b9b51be00fadb451ffbe9bdfc381115eeceeef778e29a8761f853b7c99e0ea9ec452ba77677f888ea40a39cf65db74d87147690684e273313dea15ff2039797e112006e5f80f2c5baf2c11eb62cb63cfb45883f8885fc7cd5bdb74ef57ec4fe3cec5c2025364582380366169d9419ac41b6f6e878429239e52538f9698e73700b920e7b58c56a4563f5aa512e334ddc56909ac2a0ad4146833f050edd78b7954e6549d0fa2e3b26ed2a769a6c029bfa4de62d49575acce078ef035e366ec13b6092cb205e481bc822f87972bfbe4a3915fad620c4b8645e96bcc468d5804208ae251a560068a09455657f4539dc7e80637fa85fbce058ffee421a98d85b2ae1118d9bd4f24e1e810627cc9893b7166e199dc91fd7f79740530a472df0948f285293478042b28cd2caef086a6ce9d5f656f97adde7d68924ef477fdf2a0c0b107671a1f94b2906d8fb58114836982e4e130e6944df8b42288512376553a1fa6526f9e46dc19b99bb568b30269d9f5d7db2d70a9aa85371b0ac71a6f6f564aaef26a0508c16bf03934973504a5188de37b18a689a020bc37a54d2863879e12902b43bc71c057fa47cbaac1e0100696af365e8226daeba346";
@@ -534,7 +532,6 @@ static const char *HT_12800 = "MS-AzureSync PBKDF2-HMAC-SHA256";
 static const char *HT_12900 = "Android FDE (Samsung DEK)";
 static const char *HT_13200 = "AxCrypt";
 static const char *HT_13300 = "AxCrypt in-memory SHA1";
-static const char *HT_13400 = "KeePass 1 (AES/Twofish) and KeePass 2 (AES)";
 static const char *HT_13500 = "PeopleSoft PS_TOKEN";
 static const char *HT_13600 = "WinZip";
 static const char *HT_13800 = "Windows Phone 8+ PIN/password";
@@ -624,7 +621,6 @@ static const char *SIGNATURE_DJANGOSHA1         = "sha1$";
 static const char *SIGNATURE_DRUPAL7            = "$S$";
 static const char *SIGNATURE_ECRYPTFS           = "$ecryptfs$";
 static const char *SIGNATURE_EPISERVER          = "$episerver$";
-static const char *SIGNATURE_KEEPASS            = "$keepass$";
 static const char *SIGNATURE_MD5AIX             = "{smd5}";
 static const char *SIGNATURE_MD5APR1            = "$apr1$";
 static const char *SIGNATURE_MEDIAWIKI_B        = "$B$";
@@ -14564,8 +14560,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
       case 11400: ((sip_t *)              esalt)->salt_len      = 2;
                   ((sip_t *)              esalt)->esalt_len     = 39;
                   break;
-      case 13400: ((keepass_t *)          esalt)->version       = 2;
-                  break;
       case 13500: ((pstoken_t *)          esalt)->salt_len      = 113;
                   break;
       case 13600: ((zip2_t *)             esalt)->salt_len      = 16;
@@ -14664,8 +14658,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
     case 12900:  salt->salt_iter  = ROUNDS_ANDROIDFDE_SAMSUNG - 1;
                  break;
     case 13200:  salt->salt_iter  = ROUNDS_AXCRYPT;
-                 break;
-    case 13400:  salt->salt_iter  = ROUNDS_KEEPASS;
                  break;
     case 13600:  salt->salt_iter  = ROUNDS_ZIP2;
                  break;
@@ -16568,140 +16560,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
               digest_buf[1],
               digest_buf[2],
               digest_buf[3]);
-  }
-  else if (hash_mode == 13400)
-  {
-    keepass_t *keepasss = (keepass_t *) esalts_buf;
-
-    keepass_t *keepass = &keepasss[digest_cur];
-
-    u32 version     = keepass->version;
-    u32 rounds      = salt.salt_iter;
-    u32 algorithm   = keepass->algorithm;
-    u32 keyfile_len = keepass->keyfile_len;
-
-    u32 *ptr_final_random_seed  = (u32 *) keepass->final_random_seed;
-    u32 *ptr_transf_random_seed = (u32 *) keepass->transf_random_seed;
-    u32 *ptr_enc_iv             = (u32 *) keepass->enc_iv;
-    u32 *ptr_contents_hash      = (u32 *) keepass->contents_hash;
-    u32 *ptr_keyfile            = (u32 *) keepass->keyfile;
-
-    // specific to version 2
-    u32 expected_bytes_len;
-    u32 *ptr_expected_bytes;
-
-    u32 final_random_seed_len;
-    u32 transf_random_seed_len;
-    u32 enc_iv_len;
-    u32 contents_hash_len;
-
-    transf_random_seed_len = 8;
-    enc_iv_len             = 4;
-    contents_hash_len      = 8;
-    final_random_seed_len  = 8;
-
-    if (version == 1)
-      final_random_seed_len = 4;
-
-    snprintf (out_buf, out_size, "%s*%u*%u*%u",
-      SIGNATURE_KEEPASS,
-      version,
-      rounds,
-      algorithm);
-
-    char *ptr_data = out_buf;
-
-    ptr_data += strlen(out_buf);
-
-    *ptr_data = '*';
-    ptr_data++;
-
-    for (u32 i = 0; i < final_random_seed_len; i++, ptr_data += 8)
-      sprintf (ptr_data, "%08x", ptr_final_random_seed[i]);
-
-    *ptr_data = '*';
-    ptr_data++;
-
-    for (u32 i = 0; i < transf_random_seed_len; i++, ptr_data += 8)
-      sprintf (ptr_data, "%08x", ptr_transf_random_seed[i]);
-
-    *ptr_data = '*';
-    ptr_data++;
-
-    for (u32 i = 0; i < enc_iv_len; i++, ptr_data += 8)
-      sprintf (ptr_data, "%08x", ptr_enc_iv[i]);
-
-    *ptr_data = '*';
-    ptr_data++;
-
-    if (version == 1)
-    {
-      u32  contents_len =         keepass->contents_len;
-      u32 *ptr_contents = (u32 *) keepass->contents;
-
-      for (u32 i = 0; i < contents_hash_len; i++, ptr_data += 8)
-        sprintf (ptr_data, "%08x", ptr_contents_hash[i]);
-
-      *ptr_data = '*';
-      ptr_data++;
-
-      // inline flag
-      *ptr_data = '1';
-      ptr_data++;
-
-      *ptr_data = '*';
-      ptr_data++;
-
-      char ptr_contents_len[10] = { 0 };
-
-      sprintf ((char*) ptr_contents_len, "%u", contents_len);
-
-      sprintf (ptr_data, "%u", contents_len);
-
-      ptr_data += strlen(ptr_contents_len);
-
-      *ptr_data = '*';
-      ptr_data++;
-
-      for (u32 i = 0; i < contents_len / 4; i++, ptr_data += 8)
-        sprintf (ptr_data, "%08x", ptr_contents[i]);
-    }
-    else if (version == 2)
-    {
-      expected_bytes_len = 8;
-      ptr_expected_bytes = (u32 *) keepass->expected_bytes;
-
-      for (u32 i = 0; i < expected_bytes_len; i++, ptr_data += 8)
-        sprintf (ptr_data, "%08x", ptr_expected_bytes[i]);
-
-      *ptr_data = '*';
-      ptr_data++;
-
-      for (u32 i = 0; i < contents_hash_len; i++, ptr_data += 8)
-        sprintf (ptr_data, "%08x", ptr_contents_hash[i]);
-    }
-    if (keyfile_len)
-    {
-      *ptr_data = '*';
-      ptr_data++;
-
-      // inline flag
-      *ptr_data = '1';
-      ptr_data++;
-
-      *ptr_data = '*';
-      ptr_data++;
-
-      sprintf (ptr_data, "%u", keyfile_len * 2);
-
-      ptr_data += 2;
-
-      *ptr_data = '*';
-      ptr_data++;
-
-      for (u32 i = 0; i < 8; i++, ptr_data += 8)
-        sprintf (ptr_data, "%08x", ptr_keyfile[i]);
-    }
   }
   else if (hash_mode == 13500)
   {
@@ -20515,23 +20373,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 13400:  hashconfig->hash_type      = HASH_TYPE_AES;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PREFERED_THREAD;
-                 hashconfig->kern_type      = KERN_TYPE_KEEPASS;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = keepass_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_13400;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case 13500:  hashconfig->hash_type      = HASH_TYPE_SHA1;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -21430,7 +21271,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 11900: hashconfig->esalt_size = sizeof (pbkdf2_md5_t);         break;
     case 12001: hashconfig->esalt_size = sizeof (pbkdf2_sha1_t);        break;
     case 12100: hashconfig->esalt_size = sizeof (pbkdf2_sha512_t);      break;
-    case 13400: hashconfig->esalt_size = sizeof (keepass_t);            break;
     case 13500: hashconfig->esalt_size = sizeof (pstoken_t);            break;
     case 13600: hashconfig->esalt_size = sizeof (zip2_t);               break;
     case 13711: hashconfig->esalt_size = sizeof (tc_t);                 break;
@@ -21511,7 +21351,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 12800: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
     case 12900: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
     case 13200: hashconfig->tmp_size = sizeof (axcrypt_tmp_t);            break;
-    case 13400: hashconfig->tmp_size = sizeof (keepass_tmp_t);            break;
     case 13600: hashconfig->tmp_size = sizeof (pbkdf2_sha1_tmp_t);        break;
     case 13711: hashconfig->tmp_size = sizeof (tc_tmp_t);                 break;
     case 13712: hashconfig->tmp_size = sizeof (tc_tmp_t);                 break;
@@ -21666,7 +21505,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
     case 12800: pw_max = PW_MAX;  break;
     case 12900: pw_max = PW_MAX;  break;
     case 13200: pw_max = PW_MAX;  break;
-    case 13400: pw_max = PW_MAX;  break;
     case 13600: pw_max = PW_MAX;  break;
     case 13711: pw_max = 64;      break; // VC limits itself to 64
     case 13712: pw_max = 64;      break; // VC limits itself to 64

@@ -78,29 +78,6 @@ typedef struct ikepsk
 
 } ikepsk_t;
 
-typedef struct keepass
-{
-  u32 version;
-  u32 algorithm;
-
-  /* key-file handling */
-  u32 keyfile_len;
-  u32 keyfile[8];
-
-  u32 final_random_seed[8];
-  u32 transf_random_seed[8];
-  u32 enc_iv[4];
-  u32 contents_hash[8];
-
-  /* specific to version 1 */
-  u32 contents_len;
-  u32 contents[75000];
-
-  /* specific to version 2 */
-  u32 expected_bytes[8];
-
-} keepass_t;
-
 typedef struct pbkdf2_md5
 {
   u32 salt_buf[16];
@@ -607,12 +584,6 @@ typedef struct axcrypt_tmp
 
 } axcrypt_tmp_t;
 
-typedef struct keepass_tmp
-{
-  u32 tmp_digest[8];
-
-} keepass_tmp_t;
-
 typedef struct apple_secure_notes_tmp
 {
   u32 ipad[8];
@@ -856,7 +827,6 @@ typedef enum kern_type
   KERN_TYPE_ANDROIDFDE_SAMSUNG      = 12900,
   KERN_TYPE_AXCRYPT                 = 13200,
   KERN_TYPE_SHA1_AXCRYPT            = 13300,
-  KERN_TYPE_KEEPASS                 = 13400,
   KERN_TYPE_PSTOKEN                 = 13500,
   KERN_TYPE_ZIP2                    = 13600,
   KERN_TYPE_WIN8PHONE               = 13800,
@@ -1072,7 +1042,6 @@ int ms_drsr_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int androidfde_samsung_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int axcrypt_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha1axcrypt_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int keepass_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int pstoken_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int zip2_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int veracrypt_parse_hash_200000   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
