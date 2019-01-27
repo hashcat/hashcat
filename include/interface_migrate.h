@@ -454,16 +454,6 @@ typedef struct sha512aix_tmp
 
 } sha512aix_tmp_t;
 
-typedef struct lastpass_tmp
-{
-  u32 ipad[8];
-  u32 opad[8];
-
-  u32 dgst[8];
-  u32 out[8];
-
-} lastpass_tmp_t;
-
 typedef struct drupal7_tmp
 {
   u64  digest_buf[8];
@@ -765,7 +755,6 @@ typedef enum kern_type
   KERN_TYPE_SHA512AIX               = 6500,
   KERN_TYPE_AGILEKEY                = 6600,
   KERN_TYPE_SHA1AIX                 = 6700,
-  KERN_TYPE_LASTPASS                = 6800,
   KERN_TYPE_GOST                    = 6900,
   KERN_TYPE_FORTIGATE               = 7000,
   KERN_TYPE_RAKP                    = 7300,
@@ -873,7 +862,6 @@ typedef enum rounds_count
    ROUNDS_SHA256CRYPT        = 5000,
    ROUNDS_GRUB               = 10000,
    ROUNDS_AGILEKEY           = 1000,
-   ROUNDS_LASTPASS           = 500,
    ROUNDS_DRUPAL7            = (1 << 14), // $S$C
    ROUNDS_CLOUDKEY           = 40000,
    ROUNDS_NSEC3              = 1,
@@ -966,7 +954,6 @@ int sha256aix_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int sha512aix_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int agilekey_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha1aix_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int lastpass_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int gost_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha256crypt_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int mssql2012_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
