@@ -251,7 +251,15 @@ static int sort_by_usage (const void *p1, const void *p2)
   if (u1->hash_category > u2->hash_category) return  1;
   if (u1->hash_category < u2->hash_category) return -1;
 
-  return strcmp (u1->hash_name, u2->hash_name);
+  const int rc_name = strncmp (u1->hash_name + 1, u2->hash_name + 1, 15); // yes, strange...
+
+  if (rc_name > 0) return  1;
+  if (rc_name < 0) return -1;
+
+  if (u1->hash_mode > u2->hash_mode) return  1;
+  if (u1->hash_mode < u2->hash_mode) return -1;
+
+  return 0;
 }
 
 void usage_mini_print (const char *progname)
