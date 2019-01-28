@@ -45,7 +45,6 @@
   "  11860 | HMAC-Streebog-512 (key = $salt), big-endian      | Raw Hash, Authenticated",
   "  14900 | Skip32 (PT = $salt, key = $pass)                 | Raw Cipher, Known-Plaintext attack",
   "  15400 | ChaCha20                                         | Raw Cipher, Known-Plaintext attack",
-  "   8900 | scrypt                                           | Generic KDF",
   "  11900 | PBKDF2-HMAC-MD5                                  | Generic KDF",
   "  10900 | PBKDF2-HMAC-SHA256                               | Generic KDF",
   "  12100 | PBKDF2-HMAC-SHA512                               | Generic KDF",
@@ -210,7 +209,6 @@ static const char *ST_PASS_BIN_10410     = "\x6a\x8a\xed\xcc\xb7";
 /**
  * Missing self-test hashes:
  *
- * ST_HASH_08900  the self-test can't work because the scrypt settings is part of the code at compile-time
  * ST_HASH_1374x  missing example hash
  * ST_HASH_1376x  missing example hash
  * ST_HASH_14600  multi-hash-mode algorithm, unlikely to match self-test hash settings
@@ -314,7 +312,6 @@ static const char *ST_HASH_08500 = "$racf$*8481*6095E8FCA59F8E3E";
 static const char *ST_HASH_08600 = "3dd2e1e5ac03e230243d58b8c5ada076";
 static const char *ST_HASH_08700 = "(GDJ0nDZI8l8RJzlRbemg)";
 static const char *ST_HASH_08800 = "$fde$16$ca56e82e7b5a9c2fc1e3b5a7d671c2f9$16$7c124af19ac913be0fc137b75a34b20d$eac806ae7277c8d48243d52a8644fa57a817317bd3457f94dca727964cbc27c88296954f289597a9de3314a4e9d9f28dce70cf9ce3e1c3c0c6fc041687a0ad3cb333d4449bc9da8fcc7d5f85948a7ac3bc6d34f505e9d0d91da4396e35840bde3465ad11c5086c89ee6db68d65e47a2e5413f272caa01e02224e5ff3dc3bed3953a702e85e964e562e62f5c97a2df6c47547bfb5aeeb329ff8f9c9666724d399043fe970c8b282b45e93d008333f3b4edd5eb147bd023ed18ac1f9f75a6cd33444b507694c64e1e98a964b48c0a77276e9930250d01801813c235169a7b1952891c63ce0d462abc688bd96c0337174695a957858b4c9fd277d04abe8a0c2c5def4b352ba29410f8dbec91bcb2ca2b8faf26d44f02340b3373bc94e7487ce014e6adfbf7edfdd2057225f8aeb324c9d1be877c6ae4211ae387e07bf2a056984d2ed2815149b3e9cf9fbfae852f7dd5906c2b86e7910c0d7755ef5bcc39f0e135bf546c839693dc4af3e50b8382c7c8c754d4ee218fa85d70ee0a5707a9f827209a7ddb6c2fb9431a61c9775112cc88aa2a34f97c2f53dfce082aa0758917269a5fc30049ceab67d3efd721fee021ffca979f839b4f052e27f5c382c0dd5c02fd39fbc9b26e04bf9e051d1923eff9a7cde3244902bb8538b1b9f11631def5aad7c21d2113bcdc989b771ff6bf220f94354034dd417510117b55a669e969fc3bc6c5dcd4741b8313bf7d999dc94d4949f27eec0cd06f906c17a80d09f583a5dd601854832673b78d125a2c5ad0352932be7b93c611fee8c6049670442d8c532674f3d21d45d3d009211d2a9e6568252ac4682982172cb43e7c6b05e85851787ad90e25b77cce3f7968d455f92653a1d3790bc50e5f6e1f743ac47275ffa8e81bbe832a8d7d78d5d5a7c73f95703aebb355849ae566492093bd9cb51070f39c69bb4e22b99cc0e60e96d048385bb69f1c44a3b79547fbc19a873a632f43f05fa2d8a6f9155e59d153e2851b739c42444018b8c4e09a93be43570834667d0b5a5d2a53b1572dab3e750b3f9e641e303559bace06612fbd451a5e822201442828e79168c567a85d8c024cd8ce32bf650105b1af98cc5428675f4f4bbede37a0ef98d1533a8a6dcb27d87a2b799f18706f4677edaa0411becac4c591ede83993aedba660d1dd67f6c4a5c141ad3e6e0c77730cb0ecbf4f4bd8ef6067e05ca3bc563d9e1554a893fea0050bdd1733c883f533f87eac39cceee0ccf817fc1f19bcfdd13e9f241b89bfb149b509e9a0747658438536b6705514cc6d6bb3c64c903e4710435d8bebc35297d1ebbdff8074b203f37d1910d8b4637e4d3dab997f4aa378a7a67c79e698a11e83d0d7e759d0e7969c4f5408168b282fe28d3279ec1d4cc6f85a0f8e5d01f21c7508a69773c44167ff8d467d0801f9ec54f9ee2496d4e7e470214abc1ca11355bb18cd23273aac6b05b47f9e301b42b137a2455758c24e2716dcd2e55bbeb780f592e664e7392bf6eccb80959f24c8800816c84f2575e82e1f3559c33a5be7a3a0c843c2989f486b113d5eeada007caf6b5a0f6d71e2f5c09a4def57c7057168051868317a9ec790d570d76a0d21a45ad951c475db5a66101475871147c5a5907ec4e6b14128ed6695bb73c1c97952e96826eeb6003aa13462093e4afc209627241f03b0247e110fbab983640423b7cdf112e01579fed68c80ac7df7449d9d2114b9ae5539c03c2037be45c5f74e7357b25c6a24b7bd503864437147e50d7ac4ccc4bbd0cabecdc6bac60a362285fe450e2c2d0a446578c8880dc957e6e8061e691b83eb8062d1aad476e0c7b25e4d5454f1288686eb525f37fe649637b235b7828366b0219a9c63d6ddbb696dc3585a2ebfbd5f5e4c170d6784ab9993e15142535e194d2bee3dc9477ef8b8e1b07605e0c04f49edf6d42be3a9dabbc592dde78ce8b7dd9684bfcf4ca2f5a44b1872abe18fb6fa67a79390f273a9d12f9269389629456d71b9e7ed3447462269a849ce83e1893f253c832537f850b1acce5b11d2ba6b7c2f99e8e7c8085f390c21f69e1ce4bbf85b4e1ad86c0d6706432766978076f4cada9ca6f28d395d9cc5e74b2a6b46eb9d1de79eeecff7dc97ec2a8d8870e3894e1e4e26ccb98dd2f88c0229bbd3152fa149f0cc132561f";
-//static const char *ST_HASH_08900 = "SCRYPT:1024:1:1:Mzg3MjYzNzYwMzE0NDE=:uM7P3Kg2X9En9KZPv3378YablKcuUoQ1mwunXdg3o1M=";
 static const char *ST_HASH_09000 = "0a3f352686e5eb5be173e668a4fff5cd5df420927e1da2d5d4052340160637e3e6a5a92841a188ed240e13b919f3d91694bd4c0acba79271e9c08a83ea5ad387cbb74d5884066a1cb5a8caa80d847079168f84823847c631dbe3a834f1bc496acfebac3bff1608bf1c857717f8f428e07b5e2cb12aaeddfa83d7dcb6d840234d08b84f8ca6c6e562af73eea13148f7902bcaf0220d3e36eeeff1d37283dc421483a2791182614ebb";
 static const char *ST_HASH_09100 = "(HC34tD3KtDp4oCZWmCJ4qC30mC30mC3KmC30mCcA5ovrMLH9M)";
 static const char *ST_HASH_09200 = "$8$84486783037343$pYNyVrtyMalQrZLxRi7ZLQS1Fl.jkYCgASUi5P8JNb2";
@@ -474,7 +471,6 @@ static const char *HT_08500 = "RACF";
 static const char *HT_08600 = "Lotus Notes/Domino 5";
 static const char *HT_08700 = "Lotus Notes/Domino 6";
 static const char *HT_08800 = "Android FDE <= 4.3";
-static const char *HT_08900 = "scrypt";
 static const char *HT_09000 = "Password Safe v2";
 static const char *HT_09100 = "Lotus Notes/Domino 8";
 static const char *HT_09200 = "Cisco-IOS $8$ (PBKDF2-SHA256)";
@@ -635,7 +631,6 @@ static const char *SIGNATURE_POSTGRESQL_AUTH    = "$postgres$";
 static const char *SIGNATURE_PSAFE3             = "PWS3";
 static const char *SIGNATURE_RACF               = "$racf$";
 static const char *SIGNATURE_SAPH_SHA1          = "{x-issha, ";
-static const char *SIGNATURE_SCRYPT             = "SCRYPT";
 static const char *SIGNATURE_SHA1AIX            = "{ssha1}";
 static const char *SIGNATURE_SHA1B64            = "{SHA}";
 static const char *SIGNATURE_SHA256AIX          = "{ssha256}";
@@ -7112,94 +7107,6 @@ int androidfde_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
     androidfde->data[j] = byte_swap_32 (androidfde->data[j]);
   }
-
-  return (PARSER_OK);
-}
-
-int scrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt  = 6;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_SCRYPT;
-
-  token.len_min[0] = 6;
-  token.len_max[0] = 6;
-  token.sep[0]     = ':';
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.len_min[1] = 1;
-  token.len_max[1] = 6;
-  token.sep[1]     = ':';
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.len_min[2] = 1;
-  token.len_max[2] = 6;
-  token.sep[2]     = ':';
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.len_min[3] = 1;
-  token.len_max[3] = 6;
-  token.sep[3]     = ':';
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.len_min[4] = 0;
-  token.len_max[4] = 45;
-  token.sep[4]     = ':';
-  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64A;
-
-  token.len_min[5] = 44;
-  token.len_max[5] = 44;
-  token.sep[5]     = ':';
-  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64A;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  // scrypt settings
-
-  const u8 *N_pos = token.buf[1];
-  const u8 *r_pos = token.buf[2];
-  const u8 *p_pos = token.buf[3];
-
-  salt->scrypt_N = hc_strtoul ((const char *) N_pos, NULL, 10);
-  salt->scrypt_r = hc_strtoul ((const char *) r_pos, NULL, 10);
-  salt->scrypt_p = hc_strtoul ((const char *) p_pos, NULL, 10);
-
-  // salt
-
-  const u8 *salt_pos = token.buf[4];
-  const int salt_len = token.len[4];
-
-  u8 tmp_buf[33] = { 0 };
-
-  const int tmp_len = base64_decode (base64_to_int, (const u8 *) salt_pos, salt_len, tmp_buf);
-
-  memcpy (salt->salt_buf, tmp_buf, tmp_len);
-
-  salt->salt_len  = tmp_len;
-  salt->salt_iter = 1;
-
-  // digest - base64 decode
-
-  const u8 *hash_pos = token.buf[5];
-  const int hash_len = token.len[5];
-
-  memset (tmp_buf, 0, sizeof (tmp_buf));
-
-  base64_decode (base64_to_int, (const u8 *) hash_pos, hash_len, tmp_buf);
-
-  memcpy (digest, tmp_buf, 32);
 
   return (PARSER_OK);
 }
@@ -13942,8 +13849,6 @@ int filevault2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 u32 kernel_threads_mxx (hashcat_ctx_t *hashcat_ctx)
 {
 
-
-  if (hashconfig->hash_mode ==  8900) kernel_threads = 16; // SCRYPT
   if (hashconfig->hash_mode ==  9000) kernel_threads = 8;  // Blowfish
   if (hashconfig->hash_mode ==  9300) kernel_threads = 8;  // SCRYPT
   if (hashconfig->hash_mode ==  9700) kernel_threads = 64; // RC4
@@ -13968,11 +13873,6 @@ u32 kernel_threads_mxx (hashcat_ctx_t *hashcat_ctx)
 u32 kernel_loops_mxx (hashcat_ctx_t *hashcat_ctx)
 {
 
-
-  if (hashconfig->hash_mode == 8900)
-  {
-    kernel_loops_fixed = 1;
-  }
 
   if (hashconfig->hash_mode == 9300)
   {
@@ -14003,7 +13903,7 @@ u32 kernel_accel_mxx (hashcat_ctx_t *hashcat_ctx)
 
     #define SCRYPT_MAX_ACCEL 16
 
-    if ((hashconfig->hash_mode == 8900) || (hashconfig->hash_mode == 9300) || (hashconfig->hash_mode == 15700))
+    if ((hashconfig->hash_mode == 9300) || (hashconfig->hash_mode == 15700))
     {
       // 16 is actually a bit low, we may need to change this depending on user response
 
@@ -14011,15 +13911,6 @@ u32 kernel_accel_mxx (hashcat_ctx_t *hashcat_ctx)
     }
 
 
-    // let the module decide if it allows user-defined values over module defined valaues
-
-    // commandline parameters overwrite tuningdb entries
-
-    if (user_options->kernel_accel_chgd == true)
-    {
-      device_param->kernel_accel_min = user_options->kernel_accel;
-      device_param->kernel_accel_max = user_options->kernel_accel;
-    }
 
 }
 
@@ -14046,11 +13937,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
       case  8400: salt->salt_len = 40;
                   break;
       case  8800: salt->salt_len = 16;
-                  break;
-      case  8900: salt->salt_len = 16;
-                  salt->scrypt_N = 1024;
-                  salt->scrypt_r = 1;
-                  salt->scrypt_p = 1;
                   break;
       case  9100: salt->salt_len = 16;
                   break;
@@ -14197,8 +14083,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
     case  8300:  salt->salt_iter  = ROUNDS_NSEC3;
                  break;
     case  8800:  salt->salt_iter  = ROUNDS_ANDROIDFDE;
-                 break;
-    case  8900:  salt->salt_iter  = 1;
                  break;
     case  9000:  salt->salt_iter  = ROUNDS_PSAFE2;
                  break;
@@ -15211,38 +15095,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (digest_buf[2]),
       byte_swap_32 (digest_buf[3]),
       tmp);
-  }
-  else if (hash_mode == 8900)
-  {
-    u32 N = salt.scrypt_N;
-    u32 r = salt.scrypt_r;
-    u32 p = salt.scrypt_p;
-
-    char base64_salt[32] = { 0 };
-
-    base64_encode (int_to_base64, (const u8 *) salt.salt_buf, salt.salt_len, (u8 *) base64_salt);
-
-    memset (tmp_buf, 0, 46);
-
-    digest_buf[0] = byte_swap_32 (digest_buf[0]);
-    digest_buf[1] = byte_swap_32 (digest_buf[1]);
-    digest_buf[2] = byte_swap_32 (digest_buf[2]);
-    digest_buf[3] = byte_swap_32 (digest_buf[3]);
-    digest_buf[4] = byte_swap_32 (digest_buf[4]);
-    digest_buf[5] = byte_swap_32 (digest_buf[5]);
-    digest_buf[6] = byte_swap_32 (digest_buf[6]);
-    digest_buf[7] = byte_swap_32 (digest_buf[7]);
-    digest_buf[8] = 0; // needed for base64_encode ()
-
-    base64_encode (int_to_base64, (const u8 *) digest_buf, 32, (u8 *) tmp_buf);
-
-    snprintf (out_buf, out_size, "%s:%u:%u:%u:%s:%s",
-      SIGNATURE_SCRYPT,
-      N,
-      r,
-      p,
-      base64_salt,
-      tmp_buf);
   }
   else if (hash_mode == 9000)
   {
@@ -18928,22 +18780,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case  8900:  hashconfig->hash_type      = HASH_TYPE_SCRYPT;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_SCRYPT;
-                 hashconfig->dgst_size      = DGST_SIZE_4_8;
-                 hashconfig->parse_func     = scrypt_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = NULL;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case  9000:  hashconfig->hash_type      = HASH_TYPE_SHA1;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -20881,7 +20717,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
     case  8600: pw_max = 16;      break; // Lotus Notes/Domino 5 limits itself to 16
     case  8700: pw_max = 64;      break; // https://www.ibm.com/support/knowledgecenter/en/SSKTWP_8.5.3/com.ibm.notes85.client.doc/fram_limits_of_notes_r.html
     case  8800: pw_max = PW_MAX;  break;
-    case  8900: pw_max = PW_MAX;  break;
     case  9100: pw_max = 64;      break; // https://www.ibm.com/support/knowledgecenter/en/SSKTWP_8.5.3/com.ibm.notes85.client.doc/fram_limits_of_notes_r.html
     case  9200: pw_max = PW_MAX;  break;
     case  9300: pw_max = PW_MAX;  break;
@@ -21118,7 +20953,7 @@ u64 module_size_extra_buffer (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
     u64 size_scrypt = 4;
 
-    if ((hashconfig->hash_mode == 8900) || (hashconfig->hash_mode == 9300) || (hashconfig->hash_mode == 15700))
+    if ((hashconfig->hash_mode == 9300) || (hashconfig->hash_mode == 15700))
     {
       // we need to check that all hashes have the same scrypt settings
 
@@ -21271,170 +21106,21 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
    */
 
 
-  if (hashconfig->hash_mode == 8900)
-  {
-    opencl_ctx->force_jit_compilation = 8900;
-  }
+
   else if (hashconfig->hash_mode == 9300)
   {
-    opencl_ctx->force_jit_compilation = 8900;
+    opencl_ctx->force_jit_compilation = 9300;
   }
   else if (hashconfig->hash_mode == 15700)
   {
     opencl_ctx->force_jit_compilation = 15700;
   }
 
-    // scryptV stuff
-
-    u64 scrypt_tmp_size   = 0;
-    u64 scrypt_tmto_final = 0;
-
-    u64 size_scrypt = 4;
-
-    if ((hashconfig->hash_mode == 8900) || (hashconfig->hash_mode == 9300) || (hashconfig->hash_mode == 15700))
-    {
-      // we need to check that all hashes have the same scrypt settings
-
-      const u32 scrypt_N = hashes->salts_buf[0].scrypt_N;
-      const u32 scrypt_r = hashes->salts_buf[0].scrypt_r;
-      const u32 scrypt_p = hashes->salts_buf[0].scrypt_p;
-
-      for (u32 i = 1; i < hashes->salts_cnt; i++)
-      {
-        if ((hashes->salts_buf[i].scrypt_N != scrypt_N)
-         || (hashes->salts_buf[i].scrypt_r != scrypt_r)
-         || (hashes->salts_buf[i].scrypt_p != scrypt_p))
-        {
-          event_log_error (hashcat_ctx, "Mixed scrypt settings are not supported.");
-
-          return -1;
-        }
-      }
-
-      scrypt_tmp_size = (128 * scrypt_r * scrypt_p);
-
-      hashconfig->tmp_size = scrypt_tmp_size;
-
-      u32 tmto_start = 1;
-      u32 tmto_stop  = 6;
-
-      if (user_options->scrypt_tmto)
-      {
-        tmto_start = user_options->scrypt_tmto;
-        tmto_stop  = user_options->scrypt_tmto;
-      }
-
-      const u32 scrypt_threads = hashconfig->forced_kernel_threads;
-
-      const u64 kernel_power_max = SCRYPT_MAX_ACCEL * device_processors * scrypt_threads;
-
-      // size_pws
-
-      const u64 size_pws = kernel_power_max * sizeof (pw_t);
-
-      const u64 size_pws_amp = size_pws;
-
-      // size_pws_comp
-
-      const u64 size_pws_comp = kernel_power_max * (sizeof (u32) * 64);
-
-      // size_pws_idx
-
-      const u64 size_pws_idx = (kernel_power_max + 1) * sizeof (pw_idx_t);
-
-      // size_tmps
-
-      const u64 size_tmps = kernel_power_max * hashconfig->tmp_size;
-
-      // size_hooks
-
-      const u64 size_hooks = kernel_power_max * hashconfig->hook_size;
-
-      const u64 scrypt_extra_space
-        = bitmap_ctx->bitmap_size
-        + bitmap_ctx->bitmap_size
-        + bitmap_ctx->bitmap_size
-        + bitmap_ctx->bitmap_size
-        + bitmap_ctx->bitmap_size
-        + bitmap_ctx->bitmap_size
-        + bitmap_ctx->bitmap_size
-        + bitmap_ctx->bitmap_size
-        + size_bfs
-        + size_combs
-        + size_digests
-        + size_esalts
-        + size_hooks
-        + size_markov_css
-        + size_plains
-        + size_pws
-        + size_pws_amp
-        + size_pws_comp
-        + size_pws_idx
-        + size_results
-        + size_root_css
-        + size_rules
-        + size_rules_c
-        + size_salts
-        + size_shown
-        + size_tm
-        + size_tmps
-        + size_st_digests
-        + size_st_salts
-        + size_st_esalts;
-
-      bool not_enough_memory = true;
-
-      u32 tmto;
-
-      for (tmto = tmto_start; tmto <= tmto_stop; tmto++)
-      {
-        size_scrypt = (128 * scrypt_r) * scrypt_N;
-
-        size_scrypt /= 1u << tmto;
-
-        size_scrypt *= kernel_power_max;
-
-        if ((size_scrypt / 4) > device_param->device_maxmem_alloc)
-        {
-          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "Increasing single-block device memory allocatable for --scrypt-tmto %u.", tmto);
-
-          continue;
-        }
-
-        if ((size_scrypt + scrypt_extra_space) > device_param->device_available_mem)
-        {
-          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "Increasing total device memory allocatable for --scrypt-tmto %u.", tmto);
-
-          continue;
-        }
-
-        for (u32 salts_pos = 0; salts_pos < hashes->salts_cnt; salts_pos++)
-        {
-          scrypt_tmto_final = tmto;
-        }
-
-        not_enough_memory = false;
-
-        break;
-      }
-
-      if (not_enough_memory == true)
-      {
-        event_log_error (hashcat_ctx, "Cannot allocate enough device memory. Perhaps retry with -n 1.");
-
-        return -1;
-      }
-
-      #if defined (DEBUG)
-      if (user_options->quiet == false) event_log_warning (hashcat_ctx, "SCRYPT tmto optimizer value set to: %lu, mem: %lu", scrypt_tmto_final, size_scrypt);
-      if (user_options->quiet == false) event_log_warning (hashcat_ctx, NULL);
-      #endif
-    }
 
     size_t size_scrypt4 = size_scrypt / 4;
 
 
-        else if ((opencl_ctx->force_jit_compilation == 8900) || (opencl_ctx->force_jit_compilation == 15700))
+        else if ((opencl_ctx->force_jit_compilation == 9300) || (opencl_ctx->force_jit_compilation == 15700))
         {
           hc_asprintf (&build_opts_update,"%s -DSCRYPT_N=%u -DSCRYPT_R=%u -DSCRYPT_P=%u -DSCRYPT_TMTO=%u -DSCRYPT_TMP_ELEM=%" PRIu64, build_opts, hashes->salts_buf[0].scrypt_N, hashes->salts_buf[0].scrypt_r, hashes->salts_buf[0].scrypt_p, 1u << scrypt_tmto_final, (u64) scrypt_tmp_size / 16);
         }
@@ -21452,7 +21138,6 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
      */
 
     if (
-     || (hashconfig->hash_mode ==  8900)
      || (hashconfig->hash_mode ==  9300)
      || (hashconfig->hash_mode ==  9800)
      || (hashconfig->hash_mode == 15700))

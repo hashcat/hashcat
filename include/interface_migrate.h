@@ -628,7 +628,6 @@ typedef enum hash_type
   HASH_TYPE_LOTUS5              = 26,
   HASH_TYPE_LOTUS6              = 27,
   HASH_TYPE_ANDROIDFDE          = 28,
-  HASH_TYPE_SCRYPT              = 29,
   HASH_TYPE_LOTUS8              = 30,
   HASH_TYPE_OFFICE2007          = 31,
   HASH_TYPE_OFFICE2010          = 32,
@@ -745,7 +744,6 @@ typedef enum kern_type
   KERN_TYPE_LOTUS5                  = 8600,
   KERN_TYPE_LOTUS6                  = 8700,
   KERN_TYPE_ANDROIDFDE              = 8800,
-  KERN_TYPE_SCRYPT                  = 8900,
   KERN_TYPE_PSAFE2                  = 9000,
   KERN_TYPE_LOTUS8                  = 9100,
   KERN_TYPE_OFFICE2007              = 9400,
@@ -948,7 +946,6 @@ int mediawiki_b_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int peoplesoft_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int skype_parse_hash              (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int androidfde_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int scrypt_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int cisco8_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int cisco9_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int office2007_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);

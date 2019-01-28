@@ -934,6 +934,7 @@ struct hashconfig
   u64   esalt_size;
   u64   hook_salt_size;
   u64   tmp_size;
+  u64   extra_tmp_size;
   u64   hook_size;
 
   // password length limit
@@ -1177,12 +1178,16 @@ typedef struct hc_device_param
   u64  size_markov_css;
   u64  size_digests;
   u64  size_salts;
+  u64  size_esalts;
   u64  size_shown;
   u64  size_results;
   u64  size_plains;
   u64  size_st_digests;
   u64  size_st_salts;
   u64  size_st_esalts;
+  u64  size_tm;
+
+  u64  extra_buffer_size;
 
   #ifdef WITH_BRAIN
   u64  size_brain_link_in;
@@ -2327,6 +2332,7 @@ typedef struct module_ctx
   int         (*module_hash_encode)             (const hashconfig_t *, const void *, const salt_t *, const void *, const void *, const hashinfo_t *,       char *,       int);
 
   u64         (*module_extra_buffer_size)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hashes_t *, const hc_device_param_t *);
+  u64         (*module_extra_tmp_size)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hashes_t *);
   char       *(*module_jit_build_options)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hashes_t *, const hc_device_param_t *);
   u32         (*module_deep_comp_kernel)        (const hashes_t *, const u32, const u32);
   int         (*module_hash_init_selftest)      (const hashconfig_t *, hash_t *);

@@ -4567,6 +4567,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
+    device_param->kernel_loops_min_sav = device_param->kernel_loops_min;
+    device_param->kernel_loops_max_sav = device_param->kernel_loops_max;
+
     /**
      * device properties
      */
@@ -4697,6 +4700,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     u64 size_rules   = (u64) straight_ctx->kernel_rules_cnt * sizeof (kernel_rule_t);
     u64 size_rules_c = (u64) KERNEL_RULES                   * sizeof (kernel_rule_t);
 
+    device_param->size_rules    = size_rules;
+    device_param->size_rules_c  = size_rules_c;
+
     u64 size_plains  = (u64) hashes->digests_cnt * sizeof (plain_t);
     u64 size_salts   = (u64) hashes->salts_cnt   * sizeof (salt_t);
     u64 size_esalts  = (u64) hashes->digests_cnt * (u64) hashconfig->esalt_size;
@@ -4707,10 +4713,15 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->size_digests  = size_digests;
     device_param->size_shown    = size_shown;
     device_param->size_salts    = size_salts;
+    device_param->size_esalts   = size_esalts;
 
     u64 size_combs = KERNEL_COMBS * sizeof (pw_t);
     u64 size_bfs   = KERNEL_BFS   * sizeof (bf_t);
     u64 size_tm    = 32           * sizeof (bs_word_t);
+
+    device_param->size_bfs      = size_bfs;
+    device_param->size_combs    = size_combs;
+    device_param->size_tm       = size_tm;
 
     u64 size_st_digests = 1 * hashconfig->dgst_size;
     u64 size_st_salts   = 1 * sizeof (salt_t);
@@ -4724,28 +4735,19 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (module_ctx->module_extra_buffer_size != MODULE_DEFAULT)
     {
-      size_extra_buffer = module_ctx->module_extra_buffer_size (hashconfig, user_options, user_options_extra, hashes, device_param);
+      const u64 extra_buffer_size = module_ctx->module_extra_buffer_size (hashconfig, user_options, user_options_extra, hashes, device_param);
+
+      if (extra_buffer_size == (u64) -1)
+      {
+        event_log_error (hashcat_ctx, "Invalid extra buffer size.");
+
+        return -1;
+      }
+
+      device_param->extra_buffer_size = extra_buffer_size;
+
+      size_extra_buffer = extra_buffer_size;
     }
-
-    /**
-     * some algorithms need a fixed kernel-loops count -- not longer needed with new concept
-
-    const u32 forced_kernel_loops = hashconfig->forced_kernel_loops;
-
-    if (forced_kernel_loops != 0)
-    {
-      device_param->kernel_loops_min = forced_kernel_loops;
-      device_param->kernel_loops_max = forced_kernel_loops;
-    }
-     */
-
-    device_param->kernel_loops_min_sav = device_param->kernel_loops_min;
-    device_param->kernel_loops_max_sav = device_param->kernel_loops_max;
-
-    device_param->size_bfs      = size_bfs;
-    device_param->size_combs    = size_combs;
-    device_param->size_rules    = size_rules;
-    device_param->size_rules_c  = size_rules_c;
 
     /**
      * default building options
@@ -5401,10 +5403,10 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_WRITE,  size_shown,              NULL, &device_param->d_digests_shown);  if (CL_rc == -1) return -1;
     CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_ONLY,   size_salts,              NULL, &device_param->d_salt_bufs);      if (CL_rc == -1) return -1;
     CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_WRITE,  size_results,            NULL, &device_param->d_result);         if (CL_rc == -1) return -1;
-    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_WRITE,  size_extra_buffer,       NULL, &device_param->d_extra0_buf);     if (CL_rc == -1) return -1;
-    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_WRITE,  size_extra_buffer,       NULL, &device_param->d_extra1_buf);     if (CL_rc == -1) return -1;
-    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_WRITE,  size_extra_buffer,       NULL, &device_param->d_extra2_buf);     if (CL_rc == -1) return -1;
-    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_WRITE,  size_extra_buffer,       NULL, &device_param->d_extra3_buf);     if (CL_rc == -1) return -1;
+    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_WRITE,  size_extra_buffer / 4,   NULL, &device_param->d_extra0_buf);     if (CL_rc == -1) return -1;
+    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_WRITE,  size_extra_buffer / 4,   NULL, &device_param->d_extra1_buf);     if (CL_rc == -1) return -1;
+    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_WRITE,  size_extra_buffer / 4,   NULL, &device_param->d_extra2_buf);     if (CL_rc == -1) return -1;
+    CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_WRITE,  size_extra_buffer / 4,   NULL, &device_param->d_extra3_buf);     if (CL_rc == -1) return -1;
     CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_ONLY,   size_st_digests,         NULL, &device_param->d_st_digests_buf); if (CL_rc == -1) return -1;
     CL_rc = hc_clCreateBuffer (hashcat_ctx, device_param->context, CL_MEM_READ_ONLY,   size_st_salts,           NULL, &device_param->d_st_salts_buf);   if (CL_rc == -1) return -1;
 
@@ -6478,7 +6480,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       // size_tmps
 
-      size_tmps = (u64) kernel_power_max * hashconfig->tmp_size;
+      size_tmps = (u64) kernel_power_max * (hashconfig->tmp_size + hashconfig->extra_tmp_size);
 
       // size_hooks
 
@@ -6538,9 +6540,6 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         + size_rules
         + size_rules_c
         + size_salts
-        + size_extra_buffer
-        + size_extra_buffer
-        + size_extra_buffer
         + size_extra_buffer
         + size_shown
         + size_tm

@@ -1493,9 +1493,11 @@ int hashes_init_stage3 (hashcat_ctx_t *hashcat_ctx)
 
 int hashes_init_stage4 (hashcat_ctx_t *hashcat_ctx)
 {
-  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
-  hashes_t       *hashes       = hashcat_ctx->hashes;
-  user_options_t *user_options = hashcat_ctx->user_options;
+  hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  hashes_t             *hashes             = hashcat_ctx->hashes;
+  module_ctx_t         *module_ctx         = hashcat_ctx->module_ctx;
+  user_options_t       *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   if (hashes->salts_cnt == 1)
     hashconfig->opti_type |= OPTI_TYPE_SINGLE_SALT;
@@ -1534,6 +1536,22 @@ int hashes_init_stage4 (hashcat_ctx_t *hashcat_ctx)
         }
       }
     }
+  }
+
+  // time to update extra_tmp_size which is tmp_size value based on hash configuration
+
+  if (module_ctx->module_extra_tmp_size != MODULE_DEFAULT)
+  {
+    const u64 extra_tmp_size = module_ctx->module_extra_tmp_size (hashconfig, user_options, user_options_extra, hashes);
+
+    if (extra_tmp_size == (u64) -1)
+    {
+      event_log_error (hashcat_ctx, "Mixed hash settings are not supported.");
+
+      return -1;
+    }
+
+    hashconfig->extra_tmp_size = extra_tmp_size;
   }
 
   // at this point we no longer need hash_t* structure

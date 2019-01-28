@@ -344,6 +344,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (module_ctx->module_hash_encode_status);
   CHECK_DEFINED (module_ctx->module_hash_encode);
   CHECK_DEFINED (module_ctx->module_extra_buffer_size);
+  CHECK_DEFINED (module_ctx->module_extra_tmp_size);
   CHECK_DEFINED (module_ctx->module_jit_build_options);
   CHECK_DEFINED (module_ctx->module_deep_comp_kernel);
   CHECK_DEFINED (module_ctx->module_hash_init_selftest);
