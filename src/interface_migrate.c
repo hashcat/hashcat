@@ -95,7 +95,6 @@
   "   1711 | SSHA-512(Base64), LDAP {SSHA512}                 | HTTP, SMTP, LDAP Server",
   "  16400 | CRAM-MD5 Dovecot                                 | HTTP, SMTP, LDAP Server",
   "  15000 | FileZilla Server >= 0.9.55                       | FTP Server",
-  "  11500 | CRC32                                            | Checksums",
   "   1100 | Domain Cached Credentials (DCC), MS Cache        | Operating Systems",
   "   2100 | Domain Cached Credentials 2 (DCC2), MS Cache 2   | Operating Systems",
   "  12800 | MS-AzureSync  PBKDF2-HMAC-SHA256                 | Operating Systems",
@@ -345,7 +344,6 @@ static const char *ST_HASH_11000 = "f22cade043e7214200206dbffca49fd9:27167508161
 static const char *ST_HASH_11100 = "$postgres$postgres*74402844*4e7fabaaf34d780c4a5822d28ee1c83e";
 static const char *ST_HASH_11200 = "$mysqlna$2576670568531371763643101056213751754328*5e4be686a3149a12847caa9898247dcc05739601";
 static const char *ST_HASH_11400 = "$sip$*72087*1215344588738747***342210558720*737232616*1215344588738747*8867133055*65600****MD5*e9980869221f9d1182c83b0d5e56a7db";
-static const char *ST_HASH_11500 = "c762de4a:00000000";
 static const char *ST_HASH_11700 = "57e9e50caec93d72e9498c211d6dc4f4d328248b48ecf46ba7abfa874f666e36";
 static const char *ST_HASH_11750 = "0f71c7c82700c9094ca95eee3d804cc283b538bec49428a9ef8da7b34effb3ba:08151337";
 static const char *ST_HASH_11760 = "d5c6b874338a492ac57ddc6871afc3c70dcfd264185a69d84cf839a07ef92b2c:08151337";
@@ -506,7 +504,6 @@ static const char *HT_11000 = "PrestaShop";
 static const char *HT_11100 = "PostgreSQL CRAM (MD5)";
 static const char *HT_11200 = "MySQL CRAM (SHA1)";
 static const char *HT_11400 = "SIP digest authentication (MD5)";
-static const char *HT_11500 = "CRC32";
 static const char *HT_11700 = "GOST R 34.11-2012 (Streebog) 256-bit, big-endian";
 static const char *HT_11750 = "HMAC-Streebog-256 (key = $pass), big-endian";
 static const char *HT_11760 = "HMAC-Streebog-256 (key = $salt), big-endian";
@@ -10286,54 +10283,6 @@ int sip_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   return (PARSER_OK);
 }
 
-int crc32_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt  = 2;
-
-  token.sep[0]     = hashconfig->separator;
-  token.len_min[0] = 8;
-  token.len_max[0] = 8;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.sep[1]     = hashconfig->separator;
-  token.len_min[1] = 8;
-  token.len_max[1] = 8;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *hash_pos = token.buf[0];
-
-  digest[0] = hex_to_u32 (hash_pos + 0);
-  digest[1] = 0;
-  digest[2] = 0;
-  digest[3] = 0;
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = 0;
-  digest[2] = 0;
-  digest[3] = 0;
-
-  const u8 *salt_pos = token.buf[1];
-  const int salt_len = token.len[1];
-
-  const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
-
-  if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  return (PARSER_OK);
-}
-
 int streebog_256_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
@@ -14132,8 +14081,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                   break;
       case 11000: salt->salt_len = 56;
                   break;
-      case 11500: salt->salt_len = 4;
-                  break;
       case 12400: salt->salt_len = 4;
                   break;
       case 12600: salt->salt_len = 64;
@@ -15921,10 +15868,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
     char        *hash_buf     = hashinfo_ptr[digest_cur]->orighash;
 
     snprintf (out_buf, out_size, "%s", hash_buf);
-  }
-  else if (hash_mode == 11500)
-  {
-    snprintf (out_buf, out_size, "%08x:%s", byte_swap_32 (digest_buf[0]), (char *) salt.salt_buf);
   }
   else if (hash_mode == 11700 || hash_mode == 11750 || hash_mode == 11760)
   {
@@ -19536,24 +19479,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 1;
                  hashconfig->st_hash        = ST_HASH_11400;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case 11500:  hashconfig->hash_type      = HASH_TYPE_CRC32;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_ST_GENERATE_LE
-                                            | OPTS_TYPE_ST_HEX;
-                 hashconfig->kern_type      = KERN_TYPE_CRC32;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
-                 hashconfig->parse_func     = crc32_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_11500;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 

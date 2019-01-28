@@ -770,7 +770,6 @@ typedef enum kern_type
   KERN_TYPE_POSTGRESQL_AUTH         = 11100,
   KERN_TYPE_MYSQL_AUTH              = 11200,
   KERN_TYPE_SIP_AUTH                = 11400,
-  KERN_TYPE_CRC32                   = 11500,
   KERN_TYPE_STREEBOG_256            = 11700,
   KERN_TYPE_HMAC_STREEBOG_256_PW    = 11750,
   KERN_TYPE_HMAC_STREEBOG_256_SLT   = 11760,
@@ -981,7 +980,6 @@ int prestashop_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int postgresql_auth_parse_hash    (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int mysql_auth_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sip_auth_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int crc32_parse_hash              (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int streebog_256_parse_hash       (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int streebog_512_parse_hash       (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int pbkdf2_md5_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
