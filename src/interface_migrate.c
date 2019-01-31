@@ -17540,22 +17540,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case  2000:  hashconfig->hash_type      = HASH_TYPE_STDOUT;
-                 hashconfig->salt_type      = SALT_TYPE_NONE;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_STDOUT;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = NULL;
-                 hashconfig->opti_type      = 0;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 0;
-                 hashconfig->dgst_pos2      = 0;
-                 hashconfig->dgst_pos3      = 0;
-                 hashconfig->st_hash        = NULL;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case  2100:  hashconfig->hash_type      = HASH_TYPE_DCC2;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -20659,16 +20643,6 @@ const char *default_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig,
                 break;
     default:    mask = "?b?b?b?b?b?b?b";
                 break;
-  }
-
-}
-
-bool default_warmup_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-
-  switch (hashconfig->hash_mode)
-  {
-    case  2000: return true;
   }
 
 }

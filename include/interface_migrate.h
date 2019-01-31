@@ -636,7 +636,6 @@ typedef enum hash_type
   HASH_TYPE_ECRYPTFS            = 47,
   HASH_TYPE_ORACLET             = 48,
   HASH_TYPE_BSDICRYPT           = 49,
-  HASH_TYPE_STDOUT              = 52,
   HASH_TYPE_PLAINTEXT           = 54,
   HASH_TYPE_LUKS                = 55,
   HASH_TYPE_ITUNES_BACKUP_9     = 56,
@@ -677,7 +676,6 @@ typedef enum kern_type
   KERN_TYPE_SHA512_SLTPWU           = 1740,
   KERN_TYPE_HMACSHA512_PW           = 1750,
   KERN_TYPE_HMACSHA512_SLT          = 1760,
-  KERN_TYPE_STDOUT                  = 2000,
   KERN_TYPE_DCC2                    = 2100,
   KERN_TYPE_MD5ASA                  = 2410,
   KERN_TYPE_MD55                    = 2600,
@@ -855,7 +853,6 @@ typedef enum rounds_count
    ROUNDS_ETHEREUM_PBKDF2    = 262144 - 1,
    ROUNDS_APPLE_SECURE_NOTES = 20000,
    ROUNDS_ETHEREUM_PRESALE   = 2000 - 1,
-   ROUNDS_STDOUT             = 0
 
 } rounds_count_t;
 
