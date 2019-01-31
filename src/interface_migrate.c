@@ -108,7 +108,6 @@
   "    500 | Cisco-IOS $1$ (MD5)                              | Operating Systems",
   "   5700 | Cisco-IOS type 4 (SHA256)                        | Operating Systems",
   "   9200 | Cisco-IOS $8$ (PBKDF2-SHA256)                    | Operating Systems",
-  "   9300 | Cisco-IOS $9$ (scrypt)                           | Operating Systems",
   "     22 | Juniper NetScreen/SSG (ScreenOS)                 | Operating Systems",
   "  15100 | Juniper/NetBSD sha1crypt                         | Operating Systems",
   "   7000 | FortiGate (FortiOS)                              | Operating Systems",
@@ -312,7 +311,6 @@ static const char *ST_HASH_08800 = "$fde$16$ca56e82e7b5a9c2fc1e3b5a7d671c2f9$16$
 static const char *ST_HASH_09000 = "0a3f352686e5eb5be173e668a4fff5cd5df420927e1da2d5d4052340160637e3e6a5a92841a188ed240e13b919f3d91694bd4c0acba79271e9c08a83ea5ad387cbb74d5884066a1cb5a8caa80d847079168f84823847c631dbe3a834f1bc496acfebac3bff1608bf1c857717f8f428e07b5e2cb12aaeddfa83d7dcb6d840234d08b84f8ca6c6e562af73eea13148f7902bcaf0220d3e36eeeff1d37283dc421483a2791182614ebb";
 static const char *ST_HASH_09100 = "(HC34tD3KtDp4oCZWmCJ4qC30mC30mC3KmC30mCcA5ovrMLH9M)";
 static const char *ST_HASH_09200 = "$8$84486783037343$pYNyVrtyMalQrZLxRi7ZLQS1Fl.jkYCgASUi5P8JNb2";
-static const char *ST_HASH_09300 = "$9$87023684531115$phio0TBQwaO7KZ8toQFyGFyDvyOzidaypRWN0uKX0hU";
 static const char *ST_HASH_09400 = "$office$*2007*20*128*16*18410007331073848057180885845227*944c70a5ee6e5ab2a6a86ff54b5f621a*e6650f1f2630c27fd8fc0f5e56e2e01f99784b9f";
 static const char *ST_HASH_09500 = "$office$*2010*100000*128*16*34170046140146368675746031258762*de5bc114991bb3a5679a6e24320bdb09*1b72a4ddffba3dcd5395f6a5ff75b126cb832b733c298e86162028ca47a235a9";
 static const char *ST_HASH_09600 = "$office$*2013*100000*256*16*67805436882475302087847656644837*0c392d3b9ca889656d1e615c54f9f3c9*612b79e33b96322c3253fc8a0f314463cd76bc4efe1352f7efffca0f374f7e4b";
@@ -469,7 +467,6 @@ static const char *HT_08800 = "Android FDE <= 4.3";
 static const char *HT_09000 = "Password Safe v2";
 static const char *HT_09100 = "Lotus Notes/Domino 8";
 static const char *HT_09200 = "Cisco-IOS $8$ (PBKDF2-SHA256)";
-static const char *HT_09300 = "Cisco-IOS $9$ (scrypt)";
 static const char *HT_09400 = "MS Office 2007";
 static const char *HT_09500 = "MS Office 2010";
 static const char *HT_09600 = "MS Office 2013";
@@ -13738,7 +13735,6 @@ u32 kernel_threads_mxx (hashcat_ctx_t *hashcat_ctx)
 {
 
   if (hashconfig->hash_mode ==  9000) kernel_threads = 8;  // Blowfish
-  if (hashconfig->hash_mode ==  9300) kernel_threads = 8;  // SCRYPT
   if (hashconfig->hash_mode ==  9700) kernel_threads = 64; // RC4
   if (hashconfig->hash_mode ==  9710) kernel_threads = 64; // RC4
   if (hashconfig->hash_mode ==  9800) kernel_threads = 64; // RC4
@@ -13762,10 +13758,6 @@ u32 kernel_loops_mxx (hashcat_ctx_t *hashcat_ctx)
 {
 
 
-  if (hashconfig->hash_mode == 9300)
-  {
-    kernel_loops_fixed = 1;
-  }
 
   if (hashconfig->hash_mode == 15700)
   {
@@ -13791,7 +13783,7 @@ u32 kernel_accel_mxx (hashcat_ctx_t *hashcat_ctx)
 
     #define SCRYPT_MAX_ACCEL 16
 
-    if ((hashconfig->hash_mode == 9300) || (hashconfig->hash_mode == 15700))
+    if ( (hashconfig->hash_mode == 15700))
     {
       // 16 is actually a bit low, we may need to change this depending on user response
 
@@ -13827,11 +13819,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
       case  8800: salt->salt_len = 16;
                   break;
       case  9100: salt->salt_len = 16;
-                  break;
-      case  9300: salt->salt_len = 14;
-                  salt->scrypt_N = 16384;
-                  salt->scrypt_r = 1;
-                  salt->scrypt_p = 1;
                   break;
       case  9400: salt->salt_len = 16;
                   break;
@@ -13975,8 +13962,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
     case  9100:  salt->salt_iter  = ROUNDS_LOTUS8;
                  break;
     case  9200:  salt->salt_iter  = ROUNDS_CISCO8;
-                 break;
-    case  9300:  salt->salt_iter  = 1;
                  break;
     case  9400:  salt->salt_iter  = ROUNDS_OFFICE2007;
                  break;
@@ -15015,26 +15000,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
     // output
 
     snprintf (out_buf, out_size, "%s%s$%s", SIGNATURE_CISCO8, salt_buf_ptr, tmp_buf);
-  }
-  else if (hash_mode == 9300)
-  {
-    digest_buf[0] = byte_swap_32 (digest_buf[0]);
-    digest_buf[1] = byte_swap_32 (digest_buf[1]);
-    digest_buf[2] = byte_swap_32 (digest_buf[2]);
-    digest_buf[3] = byte_swap_32 (digest_buf[3]);
-    digest_buf[4] = byte_swap_32 (digest_buf[4]);
-    digest_buf[5] = byte_swap_32 (digest_buf[5]);
-    digest_buf[6] = byte_swap_32 (digest_buf[6]);
-    digest_buf[7] = byte_swap_32 (digest_buf[7]);
-    digest_buf[8] = 0; // needed for base64_encode ()
-
-    base64_encode (int_to_itoa64, (const u8 *) digest_buf, 32, (u8 *) tmp_buf);
-
-    tmp_buf[43] = 0; // cut it here
-
-    unsigned char *salt_buf_ptr = (unsigned char *) salt.salt_buf;
-
-    snprintf (out_buf, out_size, "%s%s$%s", SIGNATURE_CISCO9, salt_buf_ptr, tmp_buf);
   }
   else if (hash_mode == 9400)
   {
@@ -18651,22 +18616,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case  9300:  hashconfig->hash_type      = HASH_TYPE_SCRYPT;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_SCRYPT;
-                 hashconfig->dgst_size      = DGST_SIZE_4_8;
-                 hashconfig->parse_func     = cisco9_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_09300;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case  9400:  hashconfig->hash_type      = HASH_TYPE_OFFICE2007;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -20515,7 +20464,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
     case  8800: pw_max = PW_MAX;  break;
     case  9100: pw_max = 64;      break; // https://www.ibm.com/support/knowledgecenter/en/SSKTWP_8.5.3/com.ibm.notes85.client.doc/fram_limits_of_notes_r.html
     case  9200: pw_max = PW_MAX;  break;
-    case  9300: pw_max = PW_MAX;  break;
     case  9400: pw_max = PW_MAX;  break;
     case  9500: pw_max = PW_MAX;  break;
     case  9600: pw_max = PW_MAX;  break;
@@ -20739,7 +20687,7 @@ u64 module_size_extra_buffer (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
     u64 size_scrypt = 4;
 
-    if ((hashconfig->hash_mode == 9300) || (hashconfig->hash_mode == 15700))
+    if ( (hashconfig->hash_mode == 15700))
     {
       // we need to check that all hashes have the same scrypt settings
 
@@ -20893,10 +20841,7 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
 
 
-  else if (hashconfig->hash_mode == 9300)
-  {
-    opencl_ctx->force_jit_compilation = 9300;
-  }
+
   else if (hashconfig->hash_mode == 15700)
   {
     opencl_ctx->force_jit_compilation = 15700;
@@ -20906,7 +20851,7 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
     size_t size_scrypt4 = size_scrypt / 4;
 
 
-        else if ((opencl_ctx->force_jit_compilation == 9300) || (opencl_ctx->force_jit_compilation == 15700))
+        else if ( (opencl_ctx->force_jit_compilation == 15700))
         {
           hc_asprintf (&build_opts_update,"%s -DSCRYPT_N=%u -DSCRYPT_R=%u -DSCRYPT_P=%u -DSCRYPT_TMTO=%u -DSCRYPT_TMP_ELEM=%" PRIu64, build_opts, hashes->salts_buf[0].scrypt_N, hashes->salts_buf[0].scrypt_r, hashes->salts_buf[0].scrypt_p, 1u << scrypt_tmto_final, (u64) scrypt_tmp_size / 16);
         }
@@ -20924,7 +20869,6 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
      */
 
     if (
-     || (hashconfig->hash_mode ==  9300)
      || (hashconfig->hash_mode ==  9800)
      || (hashconfig->hash_mode == 15700))
     {
