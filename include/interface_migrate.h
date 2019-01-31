@@ -145,16 +145,6 @@ typedef struct oldoffice34
 
 } oldoffice34_t;
 
-typedef struct pstoken
-{
-  u32 salt_buf[128];
-  u32 salt_len;
-
-  u32 pc_digest[5];
-  u32 pc_offset;
-
-} pstoken_t;
-
 typedef struct zip2
 {
   u32 type;
@@ -674,7 +664,6 @@ typedef enum kern_type
   KERN_TYPE_SHA1_SLTPWU             = 140,
   KERN_TYPE_HMACSHA1_PW             = 150,
   KERN_TYPE_HMACSHA1_SLT            = 160,
-  KERN_TYPE_MD44_PWUSLT             = 1100,
   KERN_TYPE_SHA256_PWSLT            = 1410,
   KERN_TYPE_SHA256_SLTPW            = 1420,
   KERN_TYPE_SHA256_PWUSLT           = 1430,
@@ -784,7 +773,6 @@ typedef enum kern_type
   KERN_TYPE_ANDROIDFDE_SAMSUNG      = 12900,
   KERN_TYPE_AXCRYPT                 = 13200,
   KERN_TYPE_SHA1_AXCRYPT            = 13300,
-  KERN_TYPE_PSTOKEN                 = 13500,
   KERN_TYPE_ZIP2                    = 13600,
   KERN_TYPE_WIN8PHONE               = 13800,
   KERN_TYPE_OPENCART                = 13900,
@@ -991,7 +979,6 @@ int ms_drsr_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int androidfde_samsung_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int axcrypt_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int sha1axcrypt_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int pstoken_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int zip2_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int veracrypt_parse_hash_200000   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int veracrypt_parse_hash_500000   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
