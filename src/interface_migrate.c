@@ -188,7 +188,6 @@
   "  16600 | Electrum Wallet (Salt-Type 1-2)                  | Password Managers",
   "  15500 | JKS Java Key Store Private Keys (SHA1)           | Password Managers",
   "  15600 | Ethereum Wallet, PBKDF2-HMAC-SHA256              | Password Managers",
-  "  15700 | Ethereum Wallet, SCRYPT                          | Password Managers",
   "  16300 | Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256     | Password Managers",
 
 
@@ -209,7 +208,6 @@ static const char *ST_PASS_BIN_10410     = "\x6a\x8a\xed\xcc\xb7";
  * ST_HASH_1374x  missing example hash
  * ST_HASH_1376x  missing example hash
  * ST_HASH_14600  multi-hash-mode algorithm, unlikely to match self-test hash settings
- * ST_HASH_15700  the self-test is disabled, because the original scrypt settings would create a too long startup time
  * ST_HASH_16500  multi-hash-mode algorithm, unlikely to match self-test hash settings
  */
 
@@ -382,7 +380,6 @@ static const char *ST_HASH_15200 = "$blockchain$v2$5000$288$32472425242847180618
 static const char *ST_HASH_15400 = "$chacha20$*0400000000000003*35*0200000000000001*3961626364656667*8a152c57a7a856a8";
 static const char *ST_HASH_15500 = "$jksprivk$*338BD2FBEBA7B3EF198A4CBFC6E18AFF1E229367*5225850113575146134463704406336350011656*D5253EB151EB92DC73E542D8C0A4D7A848A5B0C0E370E625E6547D4E6F23416FC85A27BC295731B8021CDFBD003551C66C434FFBC87DACAD1FDF39022320034A2F86E779F2B1B3325428A666518FA89507AD63E15FD9C57B9E36EF5B642A2F448A9A3F09B79AD93D65F46B8692CD07539FD140146F8F219DC262971AF019E18EDC16C3C240569E1673F4D98BC818CCF28298D5A7BFF038A663DD10FE5E48643C3217C237D342164E2D41EF15075431FBD5B34800E5AE7EB80FAA5AE9982A55F35379AA7B31217E7F1C5F1964A15024A305AE4B3981FE1C80C163BC38ECA5581F11867E5C34C5D124D0367B3737E5E5BB14D2CAB26A698C8DAAB755C82BA6B823BCAECDD4A89C831651ACE5A6029FD0D3515C5D1D53AD8B9062CE8C445373862035CBBF60D490CA2E4975EE6E0358EC32E871FAB15347E3032E21F30F543BAAB01D779BA833CA0B8C7591B42C7C59A8FDD46D7DECEC0E91ADBF331177605E7830ABED62FAD7D5D806D8EFD01C38765940B7F97168FC72C39BF4C98F944FFC310CA8F4EB1D0F960F352CC5E2BB23A1EB221072A5471EDA2CE81C04595B8D37088CFB5C14F6A4A881AD12125DEFBB8154EB4C130AB7FD9933FD36DF1A6A26B51AB169866788678FCED988C8E017CA84354F487A5508210181AFB8B3AD0753E3E28BE674DFBD4E4FBDFD1E30D592F4EA3A77A2F0F5CF9A175DBC590EF5D42971A39918F12B92DCD8BFD56BE9A3459856B5587603C7B53062663A4C8894BBC9894FB1663BF30F32D907664328138B7A50EAC7F8E3183D74562A5C90FE1889AC4C5FE43EBEB8974563B6682F92591ECA4FA0DA72236C3851DA102DB6BA0CC07BFD32F7E962AB0EDCF4A8DEA6525174F5BB5C021E2A9A3F7F761E9CA90B6E27FB7E55CD91DA184FAC5E534E8AD25314C56CE5796506A0CA70881782F9C5147D87705065D68BD67D2B0344205BA6445D562273690004CA5A303274FB283A75F49BA968D7947943AA98F2AF9CB8253B425B86225E7395A331AC4CB1B1700C64D4F458D5D642C54148AE6DA41D9E26657D331B157D76042C2CF3057B83997C23D8BF68FB3C7337CAFB8B324AD0DF7A80B554B4D7F9AD6ED527E7932F1741A573C152A41610F6517E3F4A3BC6B66685871A7CE3795C559BD47CDB8E34CB2C1DFE980518D79E2078C258C54F312EB38609F640E7DC013E0F2A16A25BB5971882B4308D27930CA99FEC231AE927B62215A1B56098C362B7F20593953B29428681875070E84BF5B60BEA3948127151634123DA77C814AAD54CE10905763C8C19BC191C0C40458C809402E1957C4C05C4EAE27576B2D30593F7FDCC9A248DB5DB23CF2FA22A92C016090F611690BF0AB5B8B2866ED25F345EFE85DF3311C9E91C37CEE709CF16E7CB09D01BECD2961D094C02D42EC85BF47FAB1B67A13B9A1741C15F7156D57A71BFFABB03B71E69707913A5C136B3D69CE3F71ABFE376F0A21D723FFA2E60AC180689D3E8AF4348C9F555CD897387327FC8BA2B9C51A7298547E556A11A60441EF5331A1BFB847A3D23DD9F7C50E636A2C6309BC82E1A8852F5A8569B6D93*14*78D6A2424484CF5149932B7EA8BF*test";
 static const char *ST_HASH_15600 = "$ethereum$p*1024*38353131353831333338313138363430*a8b4dfe92687dbc0afeb5dae7863f18964241e96b264f09959903c8c924583fc*0a9252861d1e235994ce33dbca91c98231764d8ecb4950015a8ae20d6415b986";
-//static const char *ST_HASH_15700 = "$ethereum$s*262144*8*1*3134313837333434333838303231333633373433323633373534333136363537*73da7f80ec3bd4f2a128c3a815cfb4d576ecb1a9b47024c902e62ea926f7795b*910e0f8dc1f7ba41959e1089bb769f3e919109591913cc33ba03953d7a905efd";
 static const char *ST_HASH_16000 = "pfaRCwDe0U";
 static const char *ST_HASH_16100 = "$tacacs-plus$0$5fde8e68$4e13e8fb33df$c006";
 static const char *ST_HASH_16200 = "$ASN$*1*20000*80771171105233481004850004085037*d04b17af7f6b184346aad3efefe8bec0987ee73418291a41";
@@ -523,7 +520,6 @@ static const char *HT_15200 = "Blockchain, My Wallet, V2";
 static const char *HT_15400 = "ChaCha20";
 static const char *HT_15500 = "JKS Java Key Store Private Keys (SHA1)";
 static const char *HT_15600 = "Ethereum Wallet, PBKDF2-HMAC-SHA256";
-static const char *HT_15700 = "Ethereum Wallet, SCRYPT";
 static const char *HT_16000 = "Tripcode";
 static const char *HT_16100 = "TACACS+";
 static const char *HT_16200 = "Apple Secure Notes";
@@ -586,7 +582,6 @@ static const char *SIGNATURE_AXCRYPT            = "$axcrypt$";
 static const char *SIGNATURE_AXCRYPT_SHA1       = "$axcrypt_sha1$";
 static const char *SIGNATURE_BSDICRYPT          = "_";
 static const char *SIGNATURE_CISCO8             = "$8$";
-static const char *SIGNATURE_CISCO9             = "$9$";
 static const char *SIGNATURE_CRAM_MD5           = "$cram_md5$";
 static const char *SIGNATURE_CRAM_MD5_DOVECOT   = "{CRAM-MD5}";
 static const char *SIGNATURE_DCC2               = "$DCC2$";
@@ -643,7 +638,6 @@ static const char *SIGNATURE_NETBSD_SHA1CRYPT   = "$sha1$";
 static const char *SIGNATURE_CHACHA20           = "$chacha20$";
 static const char *SIGNATURE_JKS_SHA1           = "$jksprivk$";
 static const char *SIGNATURE_ETHEREUM_PBKDF2    = "$ethereum$p";
-static const char *SIGNATURE_ETHEREUM_SCRYPT    = "$ethereum$s";
 static const char *SIGNATURE_TACACS_PLUS        = "$tacacs-plus$0$";
 static const char *SIGNATURE_ETHEREUM_PRESALE   = "$ethereum$w";
 static const char *SIGNATURE_ELECTRUM_WALLET    = "$electrum$";
@@ -7075,68 +7069,6 @@ int cisco8_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   return (PARSER_OK);
 }
 
-int cisco9_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt  = 3;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_CISCO9;
-
-  token.len[0]     = 3;
-  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.len_min[1] = 14;
-  token.len_max[1] = 14;
-  token.sep[1]     = '$';
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.len[2]     = 43;
-  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64B;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  // salt is not encoded
-
-  const u8 *salt_pos = token.buf[1];
-  const int salt_len = token.len[1];
-
-  u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
-
-  memcpy (salt_buf_ptr, salt_pos, salt_len);
-
-  salt->salt_len  = salt_len;
-  salt->salt_iter = 1;
-
-  salt->scrypt_N  = 16384;
-  salt->scrypt_r  = 1;
-  salt->scrypt_p  = 1;
-
-  // base64 decode hash
-
-  const u8 *hash_pos = token.buf[2];
-  const int hash_len = token.len[2];
-
-  u8 tmp_buf[100] = { 0 };
-
-  const int tmp_len = base64_decode (itoa64_to_int, hash_pos, hash_len, tmp_buf);
-
-  if (tmp_len != 32) return (PARSER_HASH_LENGTH);
-
-  memcpy (digest, tmp_buf, 32);
-
-  return (PARSER_OK);
-}
-
 int office2007_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
@@ -12838,130 +12770,6 @@ int ethereum_pbkdf2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, 
   return (PARSER_OK);
 }
 
-int ethereum_scrypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  ethereum_scrypt_t *ethereum_scrypt = (ethereum_scrypt_t *) hash_buf->esalt;
-
-  token_t token;
-
-  token.token_cnt  = 7;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_ETHEREUM_SCRYPT;
-
-  token.sep[0]     = '*';
-  token.len_min[0] = 11;
-  token.len_max[0] = 11;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.sep[1]     = '*';
-  token.len_min[1] = 1;
-  token.len_max[1] = 6;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[2]     = '*';
-  token.len_min[2] = 1;
-  token.len_max[2] = 6;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[3]     = '*';
-  token.len_min[3] = 1;
-  token.len_max[3] = 6;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[4]     = '*';
-  token.len_min[4] = 64;
-  token.len_max[4] = 64;
-  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.sep[5]     = '*';
-  token.len_min[5] = 64;
-  token.len_max[5] = 64;
-  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.sep[6]     = '*';
-  token.len_min[6] = 64;
-  token.len_max[6] = 64;
-  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  // scrypt settings
-
-  const u8 *scryptN_pos = token.buf[1];
-  const u8 *scryptr_pos = token.buf[2];
-  const u8 *scryptp_pos = token.buf[3];
-
-  const u32 scrypt_N = hc_strtoul ((const char *) scryptN_pos, NULL, 10);
-  const u32 scrypt_r = hc_strtoul ((const char *) scryptr_pos, NULL, 10);
-  const u32 scrypt_p = hc_strtoul ((const char *) scryptp_pos, NULL, 10);
-
-  salt->scrypt_N = scrypt_N;
-  salt->scrypt_r = scrypt_r;
-  salt->scrypt_p = scrypt_p;
-
-  // salt
-
-  const u8 *salt_pos = token.buf[4];
-  const int salt_len = token.len[4];
-
-  const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
-
-  if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  ethereum_scrypt->salt_buf[0] = salt->salt_buf[0];
-  ethereum_scrypt->salt_buf[1] = salt->salt_buf[1];
-  ethereum_scrypt->salt_buf[2] = salt->salt_buf[2];
-  ethereum_scrypt->salt_buf[3] = salt->salt_buf[3];
-  ethereum_scrypt->salt_buf[4] = salt->salt_buf[4];
-  ethereum_scrypt->salt_buf[5] = salt->salt_buf[5];
-  ethereum_scrypt->salt_buf[6] = salt->salt_buf[6];
-  ethereum_scrypt->salt_buf[7] = salt->salt_buf[7];
-
-  salt->salt_iter = 1;
-
-  // ciphertext
-
-  const u8 *ciphertext_pos = token.buf[5];
-
-  ethereum_scrypt->ciphertext[0] = hex_to_u32 ((const u8 *) &ciphertext_pos[ 0]);
-  ethereum_scrypt->ciphertext[1] = hex_to_u32 ((const u8 *) &ciphertext_pos[ 8]);
-  ethereum_scrypt->ciphertext[2] = hex_to_u32 ((const u8 *) &ciphertext_pos[16]);
-  ethereum_scrypt->ciphertext[3] = hex_to_u32 ((const u8 *) &ciphertext_pos[24]);
-  ethereum_scrypt->ciphertext[4] = hex_to_u32 ((const u8 *) &ciphertext_pos[32]);
-  ethereum_scrypt->ciphertext[5] = hex_to_u32 ((const u8 *) &ciphertext_pos[40]);
-  ethereum_scrypt->ciphertext[6] = hex_to_u32 ((const u8 *) &ciphertext_pos[48]);
-  ethereum_scrypt->ciphertext[7] = hex_to_u32 ((const u8 *) &ciphertext_pos[56]);
-
-  // hash
-
-  const u8 *hash_pos = token.buf[6];
-
-  digest[0] = hex_to_u32 ((const u8 *) &hash_pos[ 0]);
-  digest[1] = hex_to_u32 ((const u8 *) &hash_pos[ 8]);
-  digest[2] = hex_to_u32 ((const u8 *) &hash_pos[16]);
-  digest[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
-  digest[4] = hex_to_u32 ((const u8 *) &hash_pos[32]);
-  digest[5] = hex_to_u32 ((const u8 *) &hash_pos[40]);
-  digest[6] = hex_to_u32 ((const u8 *) &hash_pos[48]);
-  digest[7] = hex_to_u32 ((const u8 *) &hash_pos[56]);
-
-  return (PARSER_OK);
-}
-
 int tripcode_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
@@ -13742,7 +13550,6 @@ u32 kernel_threads_mxx (hashcat_ctx_t *hashcat_ctx)
   if (hashconfig->hash_mode == 10400) kernel_threads = 64; // RC4
   if (hashconfig->hash_mode == 10410) kernel_threads = 64; // RC4
   if (hashconfig->hash_mode == 10500) kernel_threads = 64; // RC4
-  if (hashconfig->hash_mode == 15700) kernel_threads = 1;  // SCRYPT
 
     // let the module decide if it allows user-defined values over module defined valaues
 
@@ -13754,45 +13561,6 @@ u32 kernel_threads_mxx (hashcat_ctx_t *hashcat_ctx)
 }
 
 
-u32 kernel_loops_mxx (hashcat_ctx_t *hashcat_ctx)
-{
-
-
-
-  if (hashconfig->hash_mode == 15700)
-  {
-    kernel_loops_fixed = 1;
-  }
-
-
-    // let the module decide if it allows user-defined values over module defined valaues
-
-    // commandline parameters overwrite tuningdb entries
-
-    if (user_options->kernel_loops_chgd == true)
-    {
-      device_param->kernel_loops_min = user_options->kernel_loops;
-      device_param->kernel_loops_max = user_options->kernel_loops;
-    }
-
-}
-
-u32 kernel_accel_mxx (hashcat_ctx_t *hashcat_ctx)
-{
-    // limit scrypt accel otherwise we hurt ourself when calculating the scrypt tmto
-
-    #define SCRYPT_MAX_ACCEL 16
-
-    if ( (hashconfig->hash_mode == 15700))
-    {
-      // 16 is actually a bit low, we may need to change this depending on user response
-
-      device_param->kernel_accel_max = MIN (device_param->kernel_accel_max, SCRYPT_MAX_ACCEL);
-    }
-
-
-
-}
 
 void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, void *esalt, void *hook_salt)
 {
@@ -13857,11 +13625,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
       case 15100: salt->salt_len = 8;
                   break;
       case 15600: salt->salt_len = 32;
-                  break;
-      case 15700: salt->salt_len = 32;
-                  salt->scrypt_N = 262144;
-                  salt->scrypt_r = 1;
-                  salt->scrypt_p = 8;
                   break;
       case 16200: salt->salt_len = 16;
                   break;
@@ -14055,8 +13818,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
     case 15200:  salt->salt_iter  = ROUNDS_MYWALLETV2;
                  break;
     case 15600:  salt->salt_iter  = ROUNDS_ETHEREUM_PBKDF2;
-                 break;
-    case 15700:  salt->salt_iter  = 1;
                  break;
     case 16200:  salt->salt_iter  = ROUNDS_APPLE_SECURE_NOTES - 1;
                  break;
@@ -16074,35 +15835,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (ethereum_pbkdf2->ciphertext[5]),
       byte_swap_32 (ethereum_pbkdf2->ciphertext[6]),
       byte_swap_32 (ethereum_pbkdf2->ciphertext[7]),
-      digest_buf[0],
-      digest_buf[1],
-      digest_buf[2],
-      digest_buf[3],
-      digest_buf[4],
-      digest_buf[5],
-      digest_buf[6],
-      digest_buf[7]
-    );
-  }
-  else if (hash_mode == 15700)
-  {
-    ethereum_scrypt_t *ethereum_scrypts = (ethereum_scrypt_t *) esalts_buf;
-    ethereum_scrypt_t *ethereum_scrypt  = &ethereum_scrypts[digest_cur];
-
-    snprintf (out_buf, out_size, "%s*%u*%u*%u*%s*%08x%08x%08x%08x%08x%08x%08x%08x*%08x%08x%08x%08x%08x%08x%08x%08x",
-      SIGNATURE_ETHEREUM_SCRYPT,
-      salt.scrypt_N,
-      salt.scrypt_r,
-      salt.scrypt_p,
-      (char *) salt.salt_buf,
-      byte_swap_32 (ethereum_scrypt->ciphertext[0]),
-      byte_swap_32 (ethereum_scrypt->ciphertext[1]),
-      byte_swap_32 (ethereum_scrypt->ciphertext[2]),
-      byte_swap_32 (ethereum_scrypt->ciphertext[3]),
-      byte_swap_32 (ethereum_scrypt->ciphertext[4]),
-      byte_swap_32 (ethereum_scrypt->ciphertext[5]),
-      byte_swap_32 (ethereum_scrypt->ciphertext[6]),
-      byte_swap_32 (ethereum_scrypt->ciphertext[7]),
       digest_buf[0],
       digest_buf[1],
       digest_buf[2],
@@ -20064,23 +19796,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 15700:  hashconfig->hash_type      = HASH_TYPE_SCRYPT;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_ST_HEX;
-                 hashconfig->kern_type      = KERN_TYPE_ETHEREUM_SCRYPT;
-                 hashconfig->dgst_size      = DGST_SIZE_4_8;
-                 hashconfig->parse_func     = ethereum_scrypt_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = NULL;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case 16000:  hashconfig->hash_type      = HASH_TYPE_DESCRYPT;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -20295,7 +20010,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 15400: hashconfig->esalt_size = sizeof (chacha20_t);           break;
     case 15500: hashconfig->esalt_size = sizeof (jks_sha1_t);           break;
     case 15600: hashconfig->esalt_size = sizeof (ethereum_pbkdf2_t);    break;
-    case 15700: hashconfig->esalt_size = sizeof (ethereum_scrypt_t);    break;
     case 16100: hashconfig->esalt_size = sizeof (tacacs_plus_t);        break;
     case 16200: hashconfig->esalt_size = sizeof (apple_secure_notes_t); break;
     case 16300: hashconfig->esalt_size = sizeof (ethereum_presale_t);   break;
@@ -20531,7 +20245,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
     case 15100: pw_max = PW_MAX;  break;
     case 15400: pw_max = 32;      break; // Underlaying ChaCha20 fixed
     case 15600: pw_max = PW_MAX;  break;
-    case 15700: pw_max = PW_MAX;  break;
     case 16000: pw_max = 8;       break; // Underlaying DES max
   }
 
@@ -20677,186 +20390,6 @@ int build_plain_postprocess (const u32 *src_buf, MAYBE_UNUSED const size_t src_s
 
 }
 
-u64 module_size_extra_buffer (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param);
-{
-
-    // scryptV stuff
-
-    u64 scrypt_tmp_size   = 0;
-    u64 scrypt_tmto_final = 0;
-
-    u64 size_scrypt = 4;
-
-    if ( (hashconfig->hash_mode == 15700))
-    {
-      // we need to check that all hashes have the same scrypt settings
-
-      const u32 scrypt_N = hashes->salts_buf[0].scrypt_N;
-      const u32 scrypt_r = hashes->salts_buf[0].scrypt_r;
-      const u32 scrypt_p = hashes->salts_buf[0].scrypt_p;
-
-      for (u32 i = 1; i < hashes->salts_cnt; i++)
-      {
-        if ((hashes->salts_buf[i].scrypt_N != scrypt_N)
-         || (hashes->salts_buf[i].scrypt_r != scrypt_r)
-         || (hashes->salts_buf[i].scrypt_p != scrypt_p))
-        {
-          event_log_error (hashcat_ctx, "Mixed scrypt settings are not supported.");
-
-          return -1;
-        }
-      }
-
-      scrypt_tmp_size = (128 * scrypt_r * scrypt_p);
-
-      hashconfig->tmp_size = scrypt_tmp_size;
-
-      u32 tmto_start = 1;
-      u32 tmto_stop  = 6;
-
-      if (user_options->scrypt_tmto)
-      {
-        tmto_start = user_options->scrypt_tmto;
-        tmto_stop  = user_options->scrypt_tmto;
-      }
-
-      const u32 scrypt_threads = hashconfig->forced_kernel_threads;
-
-      const u64 kernel_power_max = SCRYPT_MAX_ACCEL * device_processors * scrypt_threads;
-
-      // size_pws
-
-      const u64 size_pws = kernel_power_max * sizeof (pw_t);
-
-      const u64 size_pws_amp = size_pws;
-
-      // size_pws_comp
-
-      const u64 size_pws_comp = kernel_power_max * (sizeof (u32) * 64);
-
-      // size_pws_idx
-
-      const u64 size_pws_idx = (kernel_power_max + 1) * sizeof (pw_idx_t);
-
-      // size_tmps
-
-      const u64 size_tmps = kernel_power_max * hashconfig->tmp_size;
-
-      // size_hooks
-
-      const u64 size_hooks = kernel_power_max * hashconfig->hook_size;
-
-      const u64 scrypt_extra_space
-        = bitmap_ctx->bitmap_size
-        + bitmap_ctx->bitmap_size
-        + bitmap_ctx->bitmap_size
-        + bitmap_ctx->bitmap_size
-        + bitmap_ctx->bitmap_size
-        + bitmap_ctx->bitmap_size
-        + bitmap_ctx->bitmap_size
-        + bitmap_ctx->bitmap_size
-        + size_bfs
-        + size_combs
-        + size_digests
-        + size_esalts
-        + size_hooks
-        + size_markov_css
-        + size_plains
-        + size_pws
-        + size_pws_amp
-        + size_pws_comp
-        + size_pws_idx
-        + size_results
-        + size_root_css
-        + size_rules
-        + size_rules_c
-        + size_salts
-        + size_shown
-        + size_tm
-        + size_tmps
-        + size_st_digests
-        + size_st_salts
-        + size_st_esalts;
-
-      bool not_enough_memory = true;
-
-      u32 tmto;
-
-      for (tmto = tmto_start; tmto <= tmto_stop; tmto++)
-      {
-        size_scrypt = (128 * scrypt_r) * scrypt_N;
-
-        size_scrypt /= 1u << tmto;
-
-        size_scrypt *= kernel_power_max;
-
-        if ((size_scrypt / 4) > device_param->device_maxmem_alloc)
-        {
-          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "Increasing single-block device memory allocatable for --scrypt-tmto %u.", tmto);
-
-          continue;
-        }
-
-        if ((size_scrypt + scrypt_extra_space) > device_param->device_available_mem)
-        {
-          if (user_options->quiet == false) event_log_warning (hashcat_ctx, "Increasing total device memory allocatable for --scrypt-tmto %u.", tmto);
-
-          continue;
-        }
-
-        for (u32 salts_pos = 0; salts_pos < hashes->salts_cnt; salts_pos++)
-        {
-          scrypt_tmto_final = tmto;
-        }
-
-        not_enough_memory = false;
-
-        break;
-      }
-
-      if (not_enough_memory == true)
-      {
-        event_log_error (hashcat_ctx, "Cannot allocate enough device memory. Perhaps retry with -n 1.");
-
-        return -1;
-      }
-
-      #if defined (DEBUG)
-      if (user_options->quiet == false) event_log_warning (hashcat_ctx, "SCRYPT tmto optimizer value set to: %lu, mem: %lu", scrypt_tmto_final, size_scrypt);
-      if (user_options->quiet == false) event_log_warning (hashcat_ctx, NULL);
-      #endif
-    }
-
-    u64 size_scrypt4 = size_scrypt / 4;
-
-  return size_scrypt4;
-}
-
-
-char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param);
-{
-  /**
-   * Some algorithm, like descrypt, can benefit from JIT compilation
-   */
-
-
-
-
-  else if (hashconfig->hash_mode == 15700)
-  {
-    opencl_ctx->force_jit_compilation = 15700;
-  }
-
-
-    size_t size_scrypt4 = size_scrypt / 4;
-
-
-        else if ( (opencl_ctx->force_jit_compilation == 15700))
-        {
-          hc_asprintf (&build_opts_update,"%s -DSCRYPT_N=%u -DSCRYPT_R=%u -DSCRYPT_P=%u -DSCRYPT_TMTO=%u -DSCRYPT_TMP_ELEM=%" PRIu64, build_opts, hashes->salts_buf[0].scrypt_N, hashes->salts_buf[0].scrypt_r, hashes->salts_buf[0].scrypt_p, 1u << scrypt_tmto_final, (u64) scrypt_tmp_size / 16);
-        }
-
-}
 
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -20870,7 +20403,7 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
     if (
      || (hashconfig->hash_mode ==  9800)
-     || (hashconfig->hash_mode == 15700))
+
     {
       return true;
     }

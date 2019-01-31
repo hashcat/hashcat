@@ -194,13 +194,6 @@ typedef struct ethereum_pbkdf2
 
 } ethereum_pbkdf2_t;
 
-typedef struct ethereum_scrypt
-{
-  u32 salt_buf[16];
-  u32 ciphertext[8];
-
-} ethereum_scrypt_t;
-
 typedef struct ethereum_presale
 {
   u32 iv[4];
@@ -783,7 +776,6 @@ typedef enum kern_type
   KERN_TYPE_CHACHA20                = 15400,
   KERN_TYPE_JKS_SHA1                = 15500,
   KERN_TYPE_ETHEREUM_PBKDF2         = 15600,
-  KERN_TYPE_ETHEREUM_SCRYPT         = 15700,
   KERN_TYPE_TRIPCODE                = 16000,
   KERN_TYPE_TACACS_PLUS             = 16100,
   KERN_TYPE_APPLE_SECURE_NOTES      = 16200,
@@ -995,7 +987,6 @@ int netbsd_sha1crypt_parse_hash   (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int atlassian_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int jks_sha1_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int ethereum_pbkdf2_parse_hash    (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int ethereum_scrypt_parse_hash    (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int tripcode_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int tacacs_plus_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int apple_secure_notes_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
@@ -1004,11 +995,9 @@ int jwt_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_bu
 int electrum_wallet13_parse_hash  (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 int filevault2_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
 
-
 /**
  * migrate stuff
  */
-
 
 typedef struct tc
 {
