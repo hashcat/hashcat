@@ -316,6 +316,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (module_ctx->module_kernel_threads_min);
   CHECK_DEFINED (module_ctx->module_kernel_threads_max);
   CHECK_DEFINED (module_ctx->module_kern_type);
+  CHECK_DEFINED (module_ctx->module_kern_type_dynamic);
   CHECK_DEFINED (module_ctx->module_opti_type);
   CHECK_DEFINED (module_ctx->module_opts_type);
   CHECK_DEFINED (module_ctx->module_outfile_check_disable);
@@ -337,7 +338,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (module_ctx->module_hash_binary_count);
   CHECK_DEFINED (module_ctx->module_hash_binary_parse);
   CHECK_DEFINED (module_ctx->module_hash_binary_save);
-  CHECK_DEFINED (module_ctx->module_hash_binary_verify);
   CHECK_DEFINED (module_ctx->module_hash_decode_outfile);
   CHECK_DEFINED (module_ctx->module_hash_decode_zero_hash);
   CHECK_DEFINED (module_ctx->module_hash_decode);
@@ -456,7 +456,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   hashconfig->has_optimized_kernel  = false;
   hashconfig->has_pure_kernel       = false;
 
-  if (hashconfig->kern_type == (u32) -1)
+  if (module_ctx->module_kern_type_dynamic != MODULE_DEFAULT)
   {
     // some hash modes tell hashcat about their exact hash-mode inside the parser (eg. luks and jwt)
   }

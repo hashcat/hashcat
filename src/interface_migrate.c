@@ -161,7 +161,6 @@
   "      Y | 2 = XTS 1024 bit cascaded Serpent-AES            | Full-Disk Encryption (FDE)",
   "      Y | 2 = XTS 1024 bit cascaded Twofish-Serpent        | Full-Disk Encryption (FDE)",
   "      Y | 3 = XTS 1536 bit all                             | Full-Disk Encryption (FDE)",
-  "  14600 | LUKS                                             | Full-Disk Encryption (FDE)",
   "  16700 | FileVault 2                                      | Full-Disk Encryption (FDE)",
   "   9700 | MS Office <= 2003 $0/$1, MD5 + RC4               | Documents",
   "   9710 | MS Office <= 2003 $0/$1, MD5 + RC4, collider #1  | Documents",
@@ -207,7 +206,6 @@ static const char *ST_PASS_BIN_10410     = "\x6a\x8a\xed\xcc\xb7";
  *
  * ST_HASH_1374x  missing example hash
  * ST_HASH_1376x  missing example hash
- * ST_HASH_14600  multi-hash-mode algorithm, unlikely to match self-test hash settings
  * ST_HASH_16500  multi-hash-mode algorithm, unlikely to match self-test hash settings
  */
 
@@ -510,7 +508,6 @@ static const char *HT_13600 = "WinZip";
 static const char *HT_13800 = "Windows Phone 8+ PIN/password";
 static const char *HT_13900 = "OpenCart";
 static const char *HT_14400 = "sha1(CX)";
-static const char *HT_14600 = "LUKS";
 static const char *HT_14700 = "iTunes backup < 10.0";
 static const char *HT_14800 = "iTunes backup >= 10.0";
 static const char *HT_14900 = "Skip32 (PT = $salt, key = $pass)";
@@ -1829,392 +1826,6 @@ static void drupal7_encode (const u8 digest[64], u8 buf[43])
   buf[41] = int_to_itoa64 (l & 0x3f); l >>= 6;
   buf[42] = int_to_itoa64 (l & 0x3f); //l >>= 6;
   //buf[43] = int_to_itoa64 (l & 0x3f);
-}
-
-
-
-
-
-int luks_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig, const int keyslot_idx)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  luks_t *luks = (luks_t *) hash_buf->esalt;
-
-  if (input_len == 0) return (PARSER_HASH_LENGTH);
-
-  FILE *fp = fopen ((const char *) input_buf, "rb");
-
-  if (fp == NULL) return (PARSER_HASH_FILE);
-
-  struct luks_phdr hdr;
-
-  const size_t nread = hc_fread (&hdr, sizeof (hdr), 1, fp);
-
-  if (nread != 1)
-  {
-    fclose (fp);
-
-    return (PARSER_LUKS_FILE_SIZE);
-  }
-
-  // copy digest which we're not using ;)
-
-  u32 *mkDigest_ptr = (u32 *) hdr.mkDigest;
-
-  digest[0] = mkDigest_ptr[0];
-  digest[1] = mkDigest_ptr[1];
-  digest[2] = mkDigest_ptr[2];
-  digest[3] = mkDigest_ptr[3];
-  digest[4] = mkDigest_ptr[4];
-  digest[5] = 0;
-  digest[6] = 0;
-  digest[7] = 0;
-
-  // verify the content
-
-  char luks_magic[6] = LUKS_MAGIC;
-
-  if (memcmp (hdr.magic, luks_magic, LUKS_MAGIC_L) != 0)
-  {
-    fclose (fp);
-
-    return (PARSER_LUKS_MAGIC);
-  }
-
-  if (byte_swap_16 (hdr.version) != 1)
-  {
-    fclose (fp);
-
-    return (PARSER_LUKS_VERSION);
-  }
-
-  if (strcmp (hdr.cipherName, "aes") == 0)
-  {
-    luks->cipher_type = HC_LUKS_CIPHER_TYPE_AES;
-  }
-  else if (strcmp (hdr.cipherName, "serpent") == 0)
-  {
-    luks->cipher_type = HC_LUKS_CIPHER_TYPE_SERPENT;
-  }
-  else if (strcmp (hdr.cipherName, "twofish") == 0)
-  {
-    luks->cipher_type = HC_LUKS_CIPHER_TYPE_TWOFISH;
-  }
-  else
-  {
-    fclose (fp);
-
-    return (PARSER_LUKS_CIPHER_TYPE);
-  }
-
-  if (strcmp (hdr.cipherMode, "cbc-essiv:sha256") == 0)
-  {
-    luks->cipher_mode = HC_LUKS_CIPHER_MODE_CBC_ESSIV;
-  }
-  else if (strcmp (hdr.cipherMode, "cbc-plain") == 0)
-  {
-    luks->cipher_mode = HC_LUKS_CIPHER_MODE_CBC_PLAIN;
-  }
-  else if (strcmp (hdr.cipherMode, "cbc-plain64") == 0)
-  {
-    luks->cipher_mode = HC_LUKS_CIPHER_MODE_CBC_PLAIN;
-  }
-  else if (strcmp (hdr.cipherMode, "xts-plain") == 0)
-  {
-    luks->cipher_mode = HC_LUKS_CIPHER_MODE_XTS_PLAIN;
-  }
-  else if (strcmp (hdr.cipherMode, "xts-plain64") == 0)
-  {
-    luks->cipher_mode = HC_LUKS_CIPHER_MODE_XTS_PLAIN;
-  }
-  else
-  {
-    fclose (fp);
-
-    return (PARSER_LUKS_CIPHER_MODE);
-  }
-
-  if (strcmp (hdr.hashSpec, "sha1") == 0)
-  {
-    luks->hash_type = HC_LUKS_HASH_TYPE_SHA1;
-  }
-  else if (strcmp (hdr.hashSpec, "sha256") == 0)
-  {
-    luks->hash_type = HC_LUKS_HASH_TYPE_SHA256;
-  }
-  else if (strcmp (hdr.hashSpec, "sha512") == 0)
-  {
-    luks->hash_type = HC_LUKS_HASH_TYPE_SHA512;
-  }
-  else if (strcmp (hdr.hashSpec, "ripemd160") == 0)
-  {
-    luks->hash_type = HC_LUKS_HASH_TYPE_RIPEMD160;
-  }
-  else if (strcmp (hdr.hashSpec, "whirlpool") == 0)
-  {
-    luks->hash_type = HC_LUKS_HASH_TYPE_WHIRLPOOL;
-  }
-  else
-  {
-    fclose (fp);
-
-    return (PARSER_LUKS_HASH_TYPE);
-  }
-
-  const u32 keyBytes = byte_swap_32 (hdr.keyBytes);
-
-  if (keyBytes == 16)
-  {
-    luks->key_size = HC_LUKS_KEY_SIZE_128;
-  }
-  else if (keyBytes == 32)
-  {
-    luks->key_size = HC_LUKS_KEY_SIZE_256;
-  }
-  else if (keyBytes == 64)
-  {
-    luks->key_size = HC_LUKS_KEY_SIZE_512;
-  }
-  else
-  {
-    fclose (fp);
-
-    return (PARSER_LUKS_KEY_SIZE);
-  }
-
-  // find the correct kernel based on hash and cipher
-
-  // we need to do this kind of check, otherwise an eventual matching hash from the potfile overwrites the kern_type with an eventual invalid one
-
-  if (hashconfig->kern_type == (u32) -1)
-  {
-    if ((luks->hash_type == HC_LUKS_HASH_TYPE_SHA1) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
-    {
-      hashconfig->kern_type = KERN_TYPE_LUKS_SHA1_AES;
-    }
-    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_SHA1) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_SERPENT))
-    {
-      hashconfig->kern_type = KERN_TYPE_LUKS_SHA1_SERPENT;
-    }
-    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_SHA1) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_TWOFISH))
-    {
-      hashconfig->kern_type = KERN_TYPE_LUKS_SHA1_TWOFISH;
-    }
-    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_SHA256) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
-    {
-      hashconfig->kern_type = KERN_TYPE_LUKS_SHA256_AES;
-    }
-    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_SHA256) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_SERPENT))
-    {
-      hashconfig->kern_type = KERN_TYPE_LUKS_SHA256_SERPENT;
-    }
-    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_SHA256) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_TWOFISH))
-    {
-      hashconfig->kern_type = KERN_TYPE_LUKS_SHA256_TWOFISH;
-    }
-    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_SHA512) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
-    {
-      hashconfig->kern_type = KERN_TYPE_LUKS_SHA512_AES;
-    }
-    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_SHA512) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_SERPENT))
-    {
-      hashconfig->kern_type = KERN_TYPE_LUKS_SHA512_SERPENT;
-    }
-    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_SHA512) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_TWOFISH))
-    {
-      hashconfig->kern_type = KERN_TYPE_LUKS_SHA512_TWOFISH;
-    }
-    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_RIPEMD160) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
-    {
-      hashconfig->kern_type = KERN_TYPE_LUKS_RIPEMD160_AES;
-    }
-    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_RIPEMD160) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_SERPENT))
-    {
-      hashconfig->kern_type = KERN_TYPE_LUKS_RIPEMD160_SERPENT;
-    }
-    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_RIPEMD160) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_TWOFISH))
-    {
-      hashconfig->kern_type = KERN_TYPE_LUKS_RIPEMD160_TWOFISH;
-    }
-    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_WHIRLPOOL) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
-    {
-      hashconfig->kern_type = KERN_TYPE_LUKS_WHIRLPOOL_AES;
-    }
-    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_WHIRLPOOL) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_SERPENT))
-    {
-      hashconfig->kern_type = KERN_TYPE_LUKS_WHIRLPOOL_SERPENT;
-    }
-    else if ((luks->hash_type == HC_LUKS_HASH_TYPE_WHIRLPOOL) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_TWOFISH))
-    {
-      hashconfig->kern_type = KERN_TYPE_LUKS_WHIRLPOOL_TWOFISH;
-    }
-    else
-    {
-      fclose (fp);
-
-      return (PARSER_LUKS_HASH_CIPHER);
-    }
-  }
-  else
-  {
-         if ((hashconfig->kern_type == KERN_TYPE_LUKS_SHA1_AES)          && (luks->hash_type == HC_LUKS_HASH_TYPE_SHA1) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
-    {
-      // OK
-    }
-    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_SHA1_SERPENT)      && (luks->hash_type == HC_LUKS_HASH_TYPE_SHA1) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_SERPENT))
-    {
-      // OK
-    }
-    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_SHA1_TWOFISH)      && (luks->hash_type == HC_LUKS_HASH_TYPE_SHA1) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_TWOFISH))
-    {
-      // OK
-    }
-    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_SHA256_AES)        && (luks->hash_type == HC_LUKS_HASH_TYPE_SHA256) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
-    {
-      // OK
-    }
-    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_SHA256_SERPENT)    && (luks->hash_type == HC_LUKS_HASH_TYPE_SHA256) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_SERPENT))
-    {
-      // OK
-    }
-    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_SHA256_TWOFISH)    && (luks->hash_type == HC_LUKS_HASH_TYPE_SHA256) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_TWOFISH))
-    {
-      // OK
-    }
-    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_SHA512_AES)        && (luks->hash_type == HC_LUKS_HASH_TYPE_SHA512) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
-    {
-      // OK
-    }
-    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_SHA512_SERPENT)    && (luks->hash_type == HC_LUKS_HASH_TYPE_SHA512) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_SERPENT))
-    {
-      // OK
-    }
-    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_SHA512_TWOFISH)    && (luks->hash_type == HC_LUKS_HASH_TYPE_SHA512) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_TWOFISH))
-    {
-      // OK
-    }
-    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_RIPEMD160_AES)     && (luks->hash_type == HC_LUKS_HASH_TYPE_RIPEMD160) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
-    {
-      // OK
-    }
-    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_RIPEMD160_SERPENT) && (luks->hash_type == HC_LUKS_HASH_TYPE_RIPEMD160) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_SERPENT))
-    {
-      // OK
-    }
-    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_RIPEMD160_TWOFISH) && (luks->hash_type == HC_LUKS_HASH_TYPE_RIPEMD160) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_TWOFISH))
-    {
-      // OK
-    }
-    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_WHIRLPOOL_AES)     && (luks->hash_type == HC_LUKS_HASH_TYPE_WHIRLPOOL) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_AES))
-    {
-      // OK
-    }
-    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_WHIRLPOOL_SERPENT) && (luks->hash_type == HC_LUKS_HASH_TYPE_WHIRLPOOL) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_SERPENT))
-    {
-      // OK
-    }
-    else if ((hashconfig->kern_type == KERN_TYPE_LUKS_WHIRLPOOL_TWOFISH) && (luks->hash_type == HC_LUKS_HASH_TYPE_WHIRLPOOL) && (luks->cipher_type == HC_LUKS_CIPHER_TYPE_TWOFISH))
-    {
-      // OK
-    }
-    else
-    {
-      fclose (fp);
-
-      return (PARSER_LUKS_HASH_CIPHER);
-    }
-  }
-
-  // verify the selected keyslot informations
-
-  const u32 active  = byte_swap_32 (hdr.keyblock[keyslot_idx].active);
-  const u32 stripes = byte_swap_32 (hdr.keyblock[keyslot_idx].stripes);
-
-  if (active  != LUKS_KEY_ENABLED)
-  {
-    fclose (fp);
-
-    return (PARSER_LUKS_KEY_DISABLED);
-  }
-
-  if (stripes != LUKS_STRIPES)
-  {
-    fclose (fp);
-
-    return (PARSER_LUKS_KEY_STRIPES);
-  }
-
-  // configure the salt (not esalt)
-
-  u32 *passwordSalt_ptr = (u32 *) hdr.keyblock[keyslot_idx].passwordSalt;
-
-  salt->salt_buf[0] = passwordSalt_ptr[0];
-  salt->salt_buf[1] = passwordSalt_ptr[1];
-  salt->salt_buf[2] = passwordSalt_ptr[2];
-  salt->salt_buf[3] = passwordSalt_ptr[3];
-  salt->salt_buf[4] = passwordSalt_ptr[4];
-  salt->salt_buf[5] = passwordSalt_ptr[5];
-  salt->salt_buf[6] = passwordSalt_ptr[6];
-  salt->salt_buf[7] = passwordSalt_ptr[7];
-
-  salt->salt_len = LUKS_SALTSIZE;
-
-  const u32 passwordIterations = byte_swap_32 (hdr.keyblock[keyslot_idx].passwordIterations);
-
-  salt->salt_iter = passwordIterations - 1;
-
-  // Load AF data for this keyslot into esalt
-
-  const u32 keyMaterialOffset = byte_swap_32 (hdr.keyblock[keyslot_idx].keyMaterialOffset);
-
-  const int rc_seek1 = fseeko (fp, keyMaterialOffset * 512, SEEK_SET);
-
-  if (rc_seek1 == -1)
-  {
-    fclose (fp);
-
-    return (PARSER_LUKS_FILE_SIZE);
-  }
-
-  const size_t nread2 = hc_fread (luks->af_src_buf, keyBytes, stripes, fp);
-
-  if (nread2 != stripes)
-  {
-    fclose (fp);
-
-    return (PARSER_LUKS_FILE_SIZE);
-  }
-
-  // finally, copy some encrypted payload data for entropy check
-
-  const u32 payloadOffset = byte_swap_32 (hdr.payloadOffset);
-
-  const int rc_seek2 = fseeko (fp, payloadOffset * 512, SEEK_SET);
-
-  if (rc_seek2 == -1)
-  {
-    fclose (fp);
-
-    return (PARSER_LUKS_FILE_SIZE);
-  }
-
-  const size_t nread3 = hc_fread (luks->ct_buf, sizeof (u32), 128, fp);
-
-  if (nread3 != 128)
-  {
-    fclose (fp);
-
-    return (PARSER_LUKS_FILE_SIZE);
-  }
-
-  // that should be it, close the fp
-
-  fclose (fp);
-
-  return (PARSER_OK);
 }
 
 int cisco4_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
@@ -13614,8 +13225,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
                   break;
       case 12600: salt->salt_len = 64;
                   break;
-      case 14600: salt->salt_len = LUKS_SALTSIZE;
-                  break;
       case 14700: salt->salt_len = 20;
                   break;
       case 14800: salt->salt_len = 20;
@@ -13676,11 +13285,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
       case 13600: ((zip2_t *)             esalt)->salt_len      = 16;
                   ((zip2_t *)             esalt)->data_len      = 32;
                   ((zip2_t *)             esalt)->mode          = 3;
-                  break;
-      case 14600: hashconfig->kern_type                         = KERN_TYPE_LUKS_SHA1_AES;
-                  ((luks_t *)             esalt)->key_size      = HC_LUKS_KEY_SIZE_256;
-                  ((luks_t *)             esalt)->cipher_type   = HC_LUKS_CIPHER_TYPE_AES;
-                  ((luks_t *)             esalt)->cipher_mode   = HC_LUKS_CIPHER_MODE_XTS_PLAIN;
                   break;
       case 16300: ((ethereum_presale_t *) esalt)->enc_seed_len  = 608;
                   break;
@@ -13805,8 +13409,6 @@ void hashconfig_benchmark_defaults (hashcat_ctx_t *hashcat_ctx, salt_t *salt, vo
     case 13772:  salt->salt_iter  = ROUNDS_VERACRYPT_500000;
                  break;
     case 13773:  salt->salt_iter  = ROUNDS_VERACRYPT_500000;
-                 break;
-    case 14600:  salt->salt_iter  = ROUNDS_LUKS;
                  break;
     case 14700:  salt->salt_iter  = ROUNDS_ITUNES9_BACKUP - 1;
                  break;
@@ -15635,10 +15237,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (digest_buf[2]),
       byte_swap_32 (digest_buf[3]),
       byte_swap_32 (digest_buf[4]));
-  }
-  else if (hash_mode == 14600)
-  {
-    snprintf (out_buf, out_size, "%s", hashfile);
   }
   else if (hash_mode == 14700)
   {
@@ -19606,24 +19204,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 14600:  hashconfig->hash_type      = HASH_TYPE_LUKS;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_BINARY_HASHFILE;
-                 hashconfig->kern_type      = (u32) -1; // this gets overwritten from within parser
-                 hashconfig->dgst_size      = DGST_SIZE_4_16;
-                 hashconfig->parse_func     = NULL; // luks_parse_hash is kind of unconvetional
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = NULL;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case 14700:  hashconfig->hash_type      = HASH_TYPE_ITUNES_BACKUP_9;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -20004,7 +19584,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 13772: hashconfig->esalt_size = sizeof (tc_t);                 break;
     case 13773: hashconfig->esalt_size = sizeof (tc_t);                 break;
     case 13800: hashconfig->esalt_size = sizeof (win8phone_t);          break;
-    case 14600: hashconfig->esalt_size = sizeof (luks_t);               break;
     case 14700: hashconfig->esalt_size = sizeof (itunes_backup_t);      break;
     case 14800: hashconfig->esalt_size = sizeof (itunes_backup_t);      break;
     case 15400: hashconfig->esalt_size = sizeof (chacha20_t);           break;
@@ -20078,7 +19657,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case 13771: hashconfig->tmp_size = sizeof (vc64_sbog_tmp_t);          break;
     case 13772: hashconfig->tmp_size = sizeof (vc64_sbog_tmp_t);          break;
     case 13773: hashconfig->tmp_size = sizeof (vc64_sbog_tmp_t);          break;
-    case 14600: hashconfig->tmp_size = sizeof (luks_tmp_t);               break;
     case 14700: hashconfig->tmp_size = sizeof (pbkdf2_sha1_tmp_t);        break;
     case 14800: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
     case 15100: hashconfig->tmp_size = sizeof (pbkdf1_sha1_tmp_t);        break;
@@ -20362,7 +19940,7 @@ bool outfile_check_disable
   if ((hashconfig->hash_mode ==  5200) ||
       (hashconfig->hash_mode ==  9000) ||
      ((hashconfig->hash_mode >= 13700) && (hashconfig->hash_mode <= 13799)) ||
-      (hashconfig->hash_mode == 14600)) return 0;
+
 }
 
 bool potfile_disable
@@ -20372,7 +19950,7 @@ bool potfile_disable
   if  (hashconfig->hash_mode ==  9000)  return 0;
   if ((hashconfig->hash_mode >= 13700)
    && (hashconfig->hash_mode <= 13799)) return 0;
-  if  (hashconfig->hash_mode == 14600)  return 0;
+
 }
 
 int build_plain_postprocess (const u32 *src_buf, MAYBE_UNUSED const size_t src_sz, const int src_len, u32 *dst_buf, MAYBE_UNUSED const size_t dst_sz)
@@ -20422,49 +20000,8 @@ u32 module_deep_comp_kernel (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED c
 }
 
 
-int module_hash_binary_count (MAYBE_UNUSED const hashes_t *hashes)
-{
-
-      else if (hashconfig->hash_mode == 14600)
-      {
-        return LUKS_NUMKEYS;
-      }
-}
 
 
-int module_hash_binary_parse ()
-{
-
-          else if (hashconfig->hash_mode == 14600)
-          {
-            hashes->hashlist_mode = HL_MODE_FILE;
-
-            for (int keyslot_idx = 0; keyslot_idx < LUKS_NUMKEYS; keyslot_idx++)
-            {
-              parser_status = luks_parse_hash ((u8 *) hash_buf, (const int) hash_len, &hashes_buf[hashes_cnt], hashconfig, keyslot_idx);
-
-              if (parser_status != PARSER_OK)
-              {
-                if (parser_status != PARSER_LUKS_KEY_DISABLED) continue;
-              }
-
-              hashes_cnt++;
-            }
-          }
-
-  return hashes_cnt;
-}
-
-bool module_hash_binary_verify (MAYBE_UNUSED const hashes_t *hashes)
-{
-
-        else if (hashconfig->hash_mode == 14600)
-        {
-
-        }
-
-  return true;
-}
 
 void decoder_apply_optimizer (const hashconfig_t *hashconfig, void *data)
 {

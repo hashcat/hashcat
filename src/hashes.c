@@ -560,18 +560,6 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           return -1;
         }
 
-        if (module_ctx->module_hash_binary_verify != MODULE_DEFAULT)
-        {
-          const bool rc_verify = module_ctx->module_hash_binary_verify (hashes);
-
-          if (rc_verify == false)
-          {
-            event_log_error (hashcat_ctx, "%s: %s", hashes->hashfile, strerror (errno));
-
-            return -1;
-          }
-        }
-
         if (module_ctx->module_hash_binary_count != MODULE_DEFAULT)
         {
           const int binary_count = module_ctx->module_hash_binary_count (hashes);

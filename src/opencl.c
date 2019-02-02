@@ -4814,6 +4814,33 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     }
     #endif
 
+    // kern type
+
+    u32 kern_type = (u32) hashconfig->kern_type;
+
+    if (module_ctx->module_kern_type_dynamic != MODULE_DEFAULT)
+    {
+      if (user_options->benchmark == true)
+      {
+      }
+      else
+      {
+        void        *digests_buf    = hashes->digests_buf;
+        salt_t      *salts_buf      = hashes->salts_buf;
+        void        *esalts_buf     = hashes->esalts_buf;
+        void        *hook_salts_buf = hashes->hook_salts_buf;
+        hashinfo_t **hash_info      = hashes->hash_info;
+
+        hashinfo_t *hash_info_ptr = NULL;
+
+        if (hash_info) hash_info_ptr = hash_info[0];
+
+        kern_type = (u32) module_ctx->module_kern_type_dynamic (hashconfig, digests_buf, salts_buf, esalts_buf, hook_salts_buf, hash_info_ptr);
+      }
+    }
+
+    // built options
+
     char build_opts_base[1024] = { 0 };
 
     #if defined (_WIN)
@@ -4827,9 +4854,9 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     char build_opts[2048] = { 0 };
 
     #if defined (DEBUG)
-    snprintf (build_opts, sizeof (build_opts), "%s -D LOCAL_MEM_TYPE=%u -D VENDOR_ID=%u -D CUDA_ARCH=%u -D AMD_ROCM=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll", build_opts_base, device_param->device_local_mem_type, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->is_rocm, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, hashconfig->kern_type);
+    snprintf (build_opts, sizeof (build_opts), "%s -D LOCAL_MEM_TYPE=%u -D VENDOR_ID=%u -D CUDA_ARCH=%u -D AMD_ROCM=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll", build_opts_base, device_param->device_local_mem_type, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->is_rocm, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type);
     #else
-    snprintf (build_opts, sizeof (build_opts), "%s -D LOCAL_MEM_TYPE=%u -D VENDOR_ID=%u -D CUDA_ARCH=%u -D AMD_ROCM=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -w", build_opts_base, device_param->device_local_mem_type, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->is_rocm, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, hashconfig->kern_type);
+    snprintf (build_opts, sizeof (build_opts), "%s -D LOCAL_MEM_TYPE=%u -D VENDOR_ID=%u -D CUDA_ARCH=%u -D AMD_ROCM=%u -D VECT_SIZE=%u -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D _unroll -w", build_opts_base, device_param->device_local_mem_type, device_param->platform_vendor_id, (device_param->sm_major * 100) + device_param->sm_minor, device_param->is_rocm, device_param->vector_width, (u32) device_param->device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type);
     #endif
 
     /*
@@ -4890,7 +4917,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       char source_file[256] = { 0 };
 
-      generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, hashconfig->opti_type, folder_config->shared_dir, source_file);
+      generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, kern_type, hashconfig->opti_type, folder_config->shared_dir, source_file);
 
       if (hc_path_read (source_file) == false)
       {
@@ -4905,7 +4932,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       char cached_file[256] = { 0 };
 
-      generate_cached_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, hashconfig->kern_type, hashconfig->opti_type, folder_config->profile_dir, device_name_chksum, cached_file);
+      generate_cached_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, kern_type, hashconfig->opti_type, folder_config->profile_dir, device_name_chksum, cached_file);
 
       bool cached = true;
 
@@ -5662,7 +5689,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         {
           // kernel1
 
-          snprintf (kernel_name, sizeof (kernel_name), "m%05u_s%02d", hashconfig->kern_type, 4);
+          snprintf (kernel_name, sizeof (kernel_name), "m%05u_s%02d", kern_type, 4);
 
           CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel1);
 
@@ -5682,7 +5709,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           // kernel2
 
-          snprintf (kernel_name, sizeof (kernel_name), "m%05u_s%02d", hashconfig->kern_type, 8);
+          snprintf (kernel_name, sizeof (kernel_name), "m%05u_s%02d", kern_type, 8);
 
           CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel2);
 
@@ -5702,7 +5729,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           // kernel3
 
-          snprintf (kernel_name, sizeof (kernel_name), "m%05u_s%02d", hashconfig->kern_type, 16);
+          snprintf (kernel_name, sizeof (kernel_name), "m%05u_s%02d", kern_type, 16);
 
           CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel3);
 
@@ -5722,7 +5749,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
-          snprintf (kernel_name, sizeof (kernel_name), "m%05u_sxx", hashconfig->kern_type);
+          snprintf (kernel_name, sizeof (kernel_name), "m%05u_sxx", kern_type);
 
           CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel4);
 
@@ -5747,7 +5774,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         {
           // kernel1
 
-          snprintf (kernel_name, sizeof (kernel_name), "m%05u_m%02d", hashconfig->kern_type, 4);
+          snprintf (kernel_name, sizeof (kernel_name), "m%05u_m%02d", kern_type, 4);
 
           CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel1);
 
@@ -5767,7 +5794,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           // kernel2
 
-          snprintf (kernel_name, sizeof (kernel_name), "m%05u_m%02d", hashconfig->kern_type, 8);
+          snprintf (kernel_name, sizeof (kernel_name), "m%05u_m%02d", kern_type, 8);
 
           CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel2);
 
@@ -5787,7 +5814,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           // kernel3
 
-          snprintf (kernel_name, sizeof (kernel_name), "m%05u_m%02d", hashconfig->kern_type, 16);
+          snprintf (kernel_name, sizeof (kernel_name), "m%05u_m%02d", kern_type, 16);
 
           CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel3);
 
@@ -5807,7 +5834,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
-          snprintf (kernel_name, sizeof (kernel_name), "m%05u_mxx", hashconfig->kern_type);
+          snprintf (kernel_name, sizeof (kernel_name), "m%05u_mxx", kern_type);
 
           CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel4);
 
@@ -5836,7 +5863,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
         {
           if (hashconfig->opts_type & OPTS_TYPE_PT_BITSLICE)
           {
-            snprintf (kernel_name, sizeof (kernel_name), "m%05u_tm", hashconfig->kern_type);
+            snprintf (kernel_name, sizeof (kernel_name), "m%05u_tm", kern_type);
 
             CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel_tm);
 
@@ -5861,7 +5888,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
     {
       // kernel1
 
-      snprintf (kernel_name, sizeof (kernel_name), "m%05u_init", hashconfig->kern_type);
+      snprintf (kernel_name, sizeof (kernel_name), "m%05u_init", kern_type);
 
       CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel1);
 
@@ -5881,7 +5908,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       // kernel2
 
-      snprintf (kernel_name, sizeof (kernel_name), "m%05u_loop", hashconfig->kern_type);
+      snprintf (kernel_name, sizeof (kernel_name), "m%05u_loop", kern_type);
 
       CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel2);
 
@@ -5901,7 +5928,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       // kernel3
 
-      snprintf (kernel_name, sizeof (kernel_name), "m%05u_comp", hashconfig->kern_type);
+      snprintf (kernel_name, sizeof (kernel_name), "m%05u_comp", kern_type);
 
       CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel3);
 
@@ -5923,7 +5950,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (hashconfig->opts_type & OPTS_TYPE_HOOK12)
       {
-        snprintf (kernel_name, sizeof (kernel_name), "m%05u_hook12", hashconfig->kern_type);
+        snprintf (kernel_name, sizeof (kernel_name), "m%05u_hook12", kern_type);
 
         CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel12);
 
@@ -5946,7 +5973,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (hashconfig->opts_type & OPTS_TYPE_HOOK23)
       {
-        snprintf (kernel_name, sizeof (kernel_name), "m%05u_hook23", hashconfig->kern_type);
+        snprintf (kernel_name, sizeof (kernel_name), "m%05u_hook23", kern_type);
 
         CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel23);
 
@@ -5969,7 +5996,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (hashconfig->opts_type & OPTS_TYPE_INIT2)
       {
-        snprintf (kernel_name, sizeof (kernel_name), "m%05u_init2", hashconfig->kern_type);
+        snprintf (kernel_name, sizeof (kernel_name), "m%05u_init2", kern_type);
 
         CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel_init2);
 
@@ -5992,7 +6019,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (hashconfig->opts_type & OPTS_TYPE_LOOP2)
       {
-        snprintf (kernel_name, sizeof (kernel_name), "m%05u_loop2", hashconfig->kern_type);
+        snprintf (kernel_name, sizeof (kernel_name), "m%05u_loop2", kern_type);
 
         CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel_loop2);
 
@@ -6015,7 +6042,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (hashconfig->opts_type & OPTS_TYPE_AUX1)
       {
-        snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux1", hashconfig->kern_type);
+        snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux1", kern_type);
 
         CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel_aux1);
 
@@ -6038,7 +6065,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (hashconfig->opts_type & OPTS_TYPE_AUX2)
       {
-        snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux2", hashconfig->kern_type);
+        snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux2", kern_type);
 
         CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel_aux2);
 
@@ -6061,7 +6088,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (hashconfig->opts_type & OPTS_TYPE_AUX3)
       {
-        snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux3", hashconfig->kern_type);
+        snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux3", kern_type);
 
         CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel_aux3);
 
@@ -6084,7 +6111,7 @@ int opencl_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (hashconfig->opts_type & OPTS_TYPE_AUX4)
       {
-        snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux4", hashconfig->kern_type);
+        snprintf (kernel_name, sizeof (kernel_name), "m%05u_aux4", kern_type);
 
         CL_rc = hc_clCreateKernel (hashcat_ctx, device_param->program, kernel_name, &device_param->kernel_aux4);
 
