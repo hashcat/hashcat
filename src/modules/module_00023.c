@@ -27,7 +27,8 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_NOT_ITERATED
                                   | OPTI_TYPE_PREPENDED_SALT
                                   | OPTI_TYPE_RAW_HASH;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
+static const u64   OPTS_TYPE      = OPTS_TYPE_STATE_BUFFER_LE
+                                  | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_PT_ADD80
                                   | OPTS_TYPE_PT_ADDBITS14;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
@@ -118,16 +119,18 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   encoder_apply_options (hashconfig, tmp);
 
-  char *salt_buf_ptr = (char *) salt->salt_buf;
+  u8 tmp_buf[128];
 
-  salt_buf_ptr[salt->salt_len - 8] = 0;
+  memcpy (tmp_buf, salt->salt_buf, salt->salt_len);
+
+  tmp_buf[salt->salt_len - 8] = 0;
 
   const int out_len = snprintf (line_buf, line_size, "%08x%08x%08x%08x:%s",
     byte_swap_32 (tmp[0]),
     byte_swap_32 (tmp[1]),
     byte_swap_32 (tmp[2]),
     byte_swap_32 (tmp[3]),
-    salt_buf_ptr);
+    (char *) tmp_buf);
 
   return out_len;
 }
