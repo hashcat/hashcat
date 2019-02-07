@@ -21,8 +21,7 @@ static const u32   HASH_CATEGORY  = HASH_CATEGORY_OS;
 static const char *HASH_NAME      = "descrypt, DES (Unix), Traditional DES";
 static const u32   HASH_TYPE      = HASH_TYPE_GENERIC;
 static const u64   KERN_TYPE      = 1500;
-static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
-                                  | OPTI_TYPE_PRECOMPUTE_PERMUT;
+static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STATE_BUFFER_LE
                                   | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_PT_BITSLICE;

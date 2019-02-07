@@ -922,7 +922,6 @@ const char *stroptitype (const u32 opti_type)
     case OPTI_TYPE_ZERO_BYTE:           return OPTI_STR_ZERO_BYTE;
     case OPTI_TYPE_PRECOMPUTE_INIT:     return OPTI_STR_PRECOMPUTE_INIT;
     case OPTI_TYPE_PRECOMPUTE_MERKLE:   return OPTI_STR_PRECOMPUTE_MERKLE;
-    case OPTI_TYPE_PRECOMPUTE_PERMUT:   return OPTI_STR_PRECOMPUTE_PERMUT;
     case OPTI_TYPE_MEET_IN_MIDDLE:      return OPTI_STR_MEET_IN_MIDDLE;
     case OPTI_TYPE_EARLY_SKIP:          return OPTI_STR_EARLY_SKIP;
     case OPTI_TYPE_NOT_SALTED:          return OPTI_STR_NOT_SALTED;

@@ -345,24 +345,23 @@ typedef enum opti_type
   OPTI_TYPE_ZERO_BYTE           = (1 <<  1),
   OPTI_TYPE_PRECOMPUTE_INIT     = (1 <<  2),
   OPTI_TYPE_PRECOMPUTE_MERKLE   = (1 <<  3),
-  OPTI_TYPE_PRECOMPUTE_PERMUT   = (1 <<  4),
-  OPTI_TYPE_MEET_IN_MIDDLE      = (1 <<  5),
-  OPTI_TYPE_EARLY_SKIP          = (1 <<  6),
-  OPTI_TYPE_NOT_SALTED          = (1 <<  7),
-  OPTI_TYPE_NOT_ITERATED        = (1 <<  8),
-  OPTI_TYPE_PREPENDED_SALT      = (1 <<  9),
-  OPTI_TYPE_APPENDED_SALT       = (1 << 10),
-  OPTI_TYPE_SINGLE_HASH         = (1 << 11),
-  OPTI_TYPE_SINGLE_SALT         = (1 << 12),
-  OPTI_TYPE_BRUTE_FORCE         = (1 << 13),
-  OPTI_TYPE_RAW_HASH            = (1 << 14),
-  OPTI_TYPE_SLOW_HASH_SIMD_INIT = (1 << 15),
-  OPTI_TYPE_SLOW_HASH_SIMD_LOOP = (1 << 16),
-  OPTI_TYPE_SLOW_HASH_SIMD_COMP = (1 << 17),
-  OPTI_TYPE_USES_BITS_8         = (1 << 18),
-  OPTI_TYPE_USES_BITS_16        = (1 << 19),
-  OPTI_TYPE_USES_BITS_32        = (1 << 20),
-  OPTI_TYPE_USES_BITS_64        = (1 << 21)
+  OPTI_TYPE_MEET_IN_MIDDLE      = (1 <<  4),
+  OPTI_TYPE_EARLY_SKIP          = (1 <<  5),
+  OPTI_TYPE_NOT_SALTED          = (1 <<  6),
+  OPTI_TYPE_NOT_ITERATED        = (1 <<  7),
+  OPTI_TYPE_PREPENDED_SALT      = (1 <<  8),
+  OPTI_TYPE_APPENDED_SALT       = (1 <<  9),
+  OPTI_TYPE_SINGLE_HASH         = (1 << 10),
+  OPTI_TYPE_SINGLE_SALT         = (1 << 11),
+  OPTI_TYPE_BRUTE_FORCE         = (1 << 12),
+  OPTI_TYPE_RAW_HASH            = (1 << 13),
+  OPTI_TYPE_SLOW_HASH_SIMD_INIT = (1 << 14),
+  OPTI_TYPE_SLOW_HASH_SIMD_LOOP = (1 << 15),
+  OPTI_TYPE_SLOW_HASH_SIMD_COMP = (1 << 16),
+  OPTI_TYPE_USES_BITS_8         = (1 << 17),
+  OPTI_TYPE_USES_BITS_16        = (1 << 18),
+  OPTI_TYPE_USES_BITS_32        = (1 << 19),
+  OPTI_TYPE_USES_BITS_64        = (1 << 20)
 
 } opti_type_t;
 
@@ -2340,7 +2339,7 @@ typedef struct module_ctx
   void        (*module_hook12)                  (hc_device_param_t *, const void *, const u32, const u64);
   void        (*module_hook23)                  (hc_device_param_t *, const void *, const u32, const u64);
 
-  int         (*module_build_plain_postprocess) (const u32 *, const size_t, const int, u32 *, const size_t);
+  int         (*module_build_plain_postprocess) (const hashconfig_t *, const hashes_t *, const u32 *, const size_t, const int, u32 *, const size_t);
 
 } module_ctx_t;
 
