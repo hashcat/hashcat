@@ -468,6 +468,12 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
         if (CL_rc == -1) return -1;
       }
+      else
+      {
+        CL_rc = run_kernel (hashcat_ctx, device_param, KERN_RUN_3, 1, false, 0);
+
+        if (CL_rc == -1) return -1;
+      }
     }
     else
     {
