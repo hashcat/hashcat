@@ -363,3 +363,12 @@ DECLSPEC void camellia256_decrypt (const u32 *ks, const u32 *in, u32 *out)
   out[2] = tmp[0] ^ ks[2];
   out[3] = tmp[1] ^ ks[3];
 }
+
+#undef extract_byte
+
+#undef cam_rotate
+
+#undef c_sbox4
+#undef c_sbox3
+#undef c_sbox2
+#undef c_sbox1
