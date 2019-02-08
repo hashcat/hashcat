@@ -381,8 +381,6 @@ typedef struct apple_secure_notes_tmp
 
 } apple_secure_notes_tmp_t;
 
-
-
 typedef enum kern_type
 {
   KERN_TYPE_MD5_SLTPW               = 20,
@@ -502,10 +500,6 @@ typedef enum kern_type
 typedef enum rounds_count
 {
    ROUNDS_ANDROIDPIN         = 1024,
-   ROUNDS_VERACRYPT_200000   = 200000,
-   ROUNDS_VERACRYPT_500000   = 500000,
-   ROUNDS_VERACRYPT_327661   = 327661,
-   ROUNDS_VERACRYPT_655331   = 655331,
    ROUNDS_SHA1AIX            = (1 << 6),
    ROUNDS_SHA256AIX          = (1 << 6),
    ROUNDS_SHA512AIX          = (1 << 6),
