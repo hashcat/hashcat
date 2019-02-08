@@ -383,7 +383,6 @@ typedef enum kern_type
   KERN_TYPE_SHA512_SLTPWU           = 1740,
   KERN_TYPE_HMACSHA512_PW           = 1750,
   KERN_TYPE_HMACSHA512_SLT          = 1760,
-  KERN_TYPE_MD5ASA                  = 2410,
   KERN_TYPE_MD55                    = 2600,
   KERN_TYPE_MD55_PWSLT1             = 2610,
   KERN_TYPE_MD55_PWSLT2             = 2710,

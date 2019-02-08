@@ -90,7 +90,6 @@
   "   6700 | AIX {ssha1}                                      | Operating Systems",
   "   6400 | AIX {ssha256}                                    | Operating Systems",
   "   6500 | AIX {ssha512}                                    | Operating Systems",
-  "   2410 | Cisco-ASA MD5                                    | Operating Systems",
   "    500 | Cisco-IOS $1$ (MD5)                              | Operating Systems",
   "   5700 | Cisco-IOS type 4 (SHA256)                        | Operating Systems",
   "   9200 | Cisco-IOS $8$ (PBKDF2-SHA256)                    | Operating Systems",
@@ -129,7 +128,6 @@
   "  16600 | Electrum Wallet (Salt-Type 1-2)                  | Password Managers",
   "  15500 | JKS Java Key Store Private Keys (SHA1)           | Password Managers",
   "  16300 | Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256     | Password Managers",
-
 
 /**
  * Missing self-test hashes:
@@ -177,7 +175,6 @@ static const char *ST_HASH_01722 = "07543781b07e905f6f947db8ae305c248b9e12f509b4
 static const char *ST_HASH_01731 = "0x02003788006711b2e74e7d8cb4be96b1d187c962c5591a02d5a6ae81b3a4a094b26b7877958b26733e45016d929a756ed30d0a5ee65d3ce1970f9b7bf946e705c595f07625b1";
 static const char *ST_HASH_01750 = "138c00f17a1a0363f274817c91118f019aff09f937bfdaea844280a0c0e7811267cc4735d967d8640eed1218268c1c4a76fec8f7aa551491b353829f3a654270:885142";
 static const char *ST_HASH_01760 = "7d02921299935179d509e6dd4f3d0f2944e3451ea9de3af16baead6a7297e5653577d2473a0fff743d9fe78a89bd49296114319989dc7e7870fc7f62bc96accb:114";
-static const char *ST_HASH_02410 = "YjDBNr.A0AN7DA8s:4684";
 static const char *ST_HASH_02600 = "a936af92b0ae20b1ff6c3347a72e5fbe";
 static const char *ST_HASH_02611 = "28f9975808ae2bdc5847b1cda26033ea:308";
 static const char *ST_HASH_02612 = "$PHPS$30353031383437363132$f02b0b2f25e5754edb04522c346ba243";
@@ -291,7 +288,6 @@ static const char *HT_01730 = "sha512(utf16le($pass).$salt)";
 static const char *HT_01740 = "sha512($salt.utf16le($pass))";
 static const char *HT_01750 = "HMAC-SHA512 (key = $pass)";
 static const char *HT_01760 = "HMAC-SHA512 (key = $salt)";
-static const char *HT_02410 = "Cisco-ASA MD5";
 static const char *HT_02600 = "md5(md5($pass))";
 static const char *HT_03100 = "Oracle H: Type (Oracle 7+)";
 static const char *HT_03710 = "md5($salt.md5($pass))";
@@ -2308,72 +2304,6 @@ int md5pix_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   digest[1] &= 0x00ffffff;
   digest[2] &= 0x00ffffff;
   digest[3] &= 0x00ffffff;
-
-  return (PARSER_OK);
-}
-
-int md5asa_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt  = 2;
-
-  token.sep[0]     = ':';
-  token.len_min[0] = 16;
-  token.len_max[0] = 16;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64B;
-
-  token.len_min[1] = 1;
-  token.len_max[1] = 4;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *hash_pos = token.buf[0];
-
-  digest[0] = itoa64_to_int (hash_pos[ 0]) <<  0
-            | itoa64_to_int (hash_pos[ 1]) <<  6
-            | itoa64_to_int (hash_pos[ 2]) << 12
-            | itoa64_to_int (hash_pos[ 3]) << 18;
-  digest[1] = itoa64_to_int (hash_pos[ 4]) <<  0
-            | itoa64_to_int (hash_pos[ 5]) <<  6
-            | itoa64_to_int (hash_pos[ 6]) << 12
-            | itoa64_to_int (hash_pos[ 7]) << 18;
-  digest[2] = itoa64_to_int (hash_pos[ 8]) <<  0
-            | itoa64_to_int (hash_pos[ 9]) <<  6
-            | itoa64_to_int (hash_pos[10]) << 12
-            | itoa64_to_int (hash_pos[11]) << 18;
-  digest[3] = itoa64_to_int (hash_pos[12]) <<  0
-            | itoa64_to_int (hash_pos[13]) <<  6
-            | itoa64_to_int (hash_pos[14]) << 12
-            | itoa64_to_int (hash_pos[15]) << 18;
-
-  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
-  {
-    digest[0] -= MD5M_A;
-    digest[1] -= MD5M_B;
-    digest[2] -= MD5M_C;
-    digest[3] -= MD5M_D;
-  }
-
-  digest[0] &= 0x00ffffff;
-  digest[1] &= 0x00ffffff;
-  digest[2] &= 0x00ffffff;
-  digest[3] &= 0x00ffffff;
-
-  const u8 *salt_pos = token.buf[1];
-  const int salt_len = token.len[1];
-
-  const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
-
-  if (parse_rc == false) return (PARSER_SALT_LENGTH);
 
   return (PARSER_OK);
 }
@@ -8798,7 +8728,6 @@ int sha1cx_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNU
   return (PARSER_OK);
 }
 
-
 int itunes_backup_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 hash_mode = hashconfig->hash_mode;
@@ -8977,7 +8906,6 @@ int itunes_backup_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MA
 
   return (PARSER_OK);
 }
-
 
 int fortigate_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
@@ -10315,39 +10243,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
         ptr[11], ptr[10],
         ptr[13], ptr[12],
         ptr[15], ptr[14]);
-  }
-  else if ((hash_mode == 2400) || (hash_mode == 2410))
-  {
-    memcpy (tmp_buf, digest_buf, 16);
-
-    // the encoder is a bit too intelligent, it expects the input data in the wrong BOM
-
-    digest_buf[0] = byte_swap_32 (digest_buf[0]);
-    digest_buf[1] = byte_swap_32 (digest_buf[1]);
-    digest_buf[2] = byte_swap_32 (digest_buf[2]);
-    digest_buf[3] = byte_swap_32 (digest_buf[3]);
-
-    out_buf[ 0] = int_to_itoa64 ((digest_buf[0] >>  0) & 0x3f);
-    out_buf[ 1] = int_to_itoa64 ((digest_buf[0] >>  6) & 0x3f);
-    out_buf[ 2] = int_to_itoa64 ((digest_buf[0] >> 12) & 0x3f);
-    out_buf[ 3] = int_to_itoa64 ((digest_buf[0] >> 18) & 0x3f);
-
-    out_buf[ 4] = int_to_itoa64 ((digest_buf[1] >>  0) & 0x3f);
-    out_buf[ 5] = int_to_itoa64 ((digest_buf[1] >>  6) & 0x3f);
-    out_buf[ 6] = int_to_itoa64 ((digest_buf[1] >> 12) & 0x3f);
-    out_buf[ 7] = int_to_itoa64 ((digest_buf[1] >> 18) & 0x3f);
-
-    out_buf[ 8] = int_to_itoa64 ((digest_buf[2] >>  0) & 0x3f);
-    out_buf[ 9] = int_to_itoa64 ((digest_buf[2] >>  6) & 0x3f);
-    out_buf[10] = int_to_itoa64 ((digest_buf[2] >> 12) & 0x3f);
-    out_buf[11] = int_to_itoa64 ((digest_buf[2] >> 18) & 0x3f);
-
-    out_buf[12] = int_to_itoa64 ((digest_buf[3] >>  0) & 0x3f);
-    out_buf[13] = int_to_itoa64 ((digest_buf[3] >>  6) & 0x3f);
-    out_buf[14] = int_to_itoa64 ((digest_buf[3] >> 12) & 0x3f);
-    out_buf[15] = int_to_itoa64 ((digest_buf[3] >> 18) & 0x3f);
-
-    out_buf[16] = 0;
   }
   else if (hash_mode == 4400)
   {
@@ -12611,26 +12506,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos2      = 6;
                  hashconfig->dgst_pos3      = 7;
                  hashconfig->st_hash        = ST_HASH_01760;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case  2410:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_MD5ASA;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = md5asa_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_PRECOMPUTE_MERKLE
-                                            | OPTI_TYPE_EARLY_SKIP
-                                            | OPTI_TYPE_NOT_ITERATED;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 3;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 1;
-                 hashconfig->st_hash        = ST_HASH_02410;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
