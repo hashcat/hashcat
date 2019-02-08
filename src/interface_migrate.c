@@ -45,7 +45,6 @@
   "  11900 | PBKDF2-HMAC-MD5                                  | Generic KDF",
   "  10900 | PBKDF2-HMAC-SHA256                               | Generic KDF",
   "  12100 | PBKDF2-HMAC-SHA512                               | Generic KDF",
-  "     23 | Skype                                            | Network Protocols",
   "   4800 | iSCSI CHAP authentication, MD5(CHAP)             | Network Protocols",
   "   7300 | IPMI2 RAKP HMAC-SHA1                             | Network Protocols",
   "   8300 | DNSSEC (NSEC3)                                   | Network Protocols",
@@ -146,7 +145,6 @@
 
 static const char *ST_HASH_00021 = "e983672a03adcc9767b24584338eb378:00";
 static const char *ST_HASH_00022 = "nKjiFErqK7TPcZdFZsZMNWPtw4Pv8n:26506173";
-static const char *ST_HASH_00023 = "d04d74780881019341915c70d914db29:0675841";
 static const char *ST_HASH_00030 = "1169500a7dfece72e1f7fc9c9410867a:687430237020";
 static const char *ST_HASH_00040 = "23a8a90599fc5d0d15265d4d3b565f6e:58802707";
 static const char *ST_HASH_00050 = "e28e4e37e972a945e464b5226053bac0:40";
@@ -398,7 +396,6 @@ static const char *HT_16600 = "Electrum Wallet (Salt-Type 1-3)";
 static const char *HT_16700 = "FileVault 2";
 
 static const char *HT_00022 = "Juniper NetScreen/SSG (ScreenOS)";
-static const char *HT_00023 = "Skype";
 static const char *HT_00101 = "nsldap, SHA-1(Base64), Netscape LDAP SHA";
 static const char *HT_00111 = "nsldaps, SSHA-1(Base64), Netscape LDAP SSHA";
 static const char *HT_00112 = "Oracle S: Type (Oracle 11+)";
@@ -5493,65 +5490,6 @@ int peoplesoft_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   salt->salt_buf[0] = 0x80;
 
   salt->salt_len = 0;
-
-  return (PARSER_OK);
-}
-
-int skype_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt  = 2;
-
-  token.sep[0]     = hashconfig->separator;
-  token.len_min[0] = 32;
-  token.len_max[0] = 32;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len_min[1] = SALT_MIN;
-  token.len_max[1] = SALT_MAX - 8;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *hash_pos = token.buf[0];
-
-  digest[0] = hex_to_u32 (hash_pos +  0);
-  digest[1] = hex_to_u32 (hash_pos +  8);
-  digest[2] = hex_to_u32 (hash_pos + 16);
-  digest[3] = hex_to_u32 (hash_pos + 24);
-
-  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
-  {
-    digest[0] -= MD5M_A;
-    digest[1] -= MD5M_B;
-    digest[2] -= MD5M_C;
-    digest[3] -= MD5M_D;
-  }
-
-  const u8 *salt_pos = token.buf[1];
-  const int salt_len = token.len[1];
-
-  const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
-
-  if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  /*
-   * add static "salt" part
-   */
-
-  u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
-
-  memcpy (salt_buf_ptr + salt_len, "\nskyper\n", 8);
-
-  salt->salt_len += 8;
 
   return (PARSER_OK);
 }
@@ -10665,21 +10603,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       tmp_buf,
       username);
   }
-  else if (hash_mode == 23)
-  {
-    // do not show the skyper part in output
-
-    char *salt_buf_ptr = (char *) salt.salt_buf;
-
-    salt_buf_ptr[salt.salt_len - 8] = 0;
-
-    snprintf (out_buf, out_size, "%08x%08x%08x%08x:%s",
-      digest_buf[0],
-      digest_buf[1],
-      digest_buf[2],
-      digest_buf[3],
-      salt_buf_ptr);
-  }
   else if (hash_mode == 101)
   {
     // the encoder is a bit too intelligent, it expects the input data in the wrong BOM
@@ -12472,30 +12395,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 1;
                  hashconfig->st_hash        = ST_HASH_00022;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case    23:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PT_ADD80
-                                            | OPTS_TYPE_PT_ADDBITS14;
-                 hashconfig->kern_type      = KERN_TYPE_MD5_SLTPW;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = skype_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_PRECOMPUTE_MERKLE
-                                            | OPTI_TYPE_EARLY_SKIP
-                                            | OPTI_TYPE_NOT_ITERATED
-                                            | OPTI_TYPE_PREPENDED_SALT
-                                            | OPTI_TYPE_RAW_HASH;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 3;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 1;
-                 hashconfig->st_hash        = ST_HASH_00023;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
