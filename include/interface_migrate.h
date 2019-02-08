@@ -397,7 +397,6 @@ typedef enum kern_type
   KERN_TYPE_SHA11                   = 4500,
   KERN_TYPE_SHA1_SLT_SHA1_PW        = 4520,
   KERN_TYPE_SHA1_MD5                = 4700,
-  KERN_TYPE_MD5_CHAP                = 4800,
   KERN_TYPE_SHA1_SLT_PW_SLT         = 4900,
   KERN_TYPE_ANDROIDPIN              = 5800,
   KERN_TYPE_RIPEMD160               = 6000,

@@ -45,7 +45,6 @@
   "  11900 | PBKDF2-HMAC-MD5                                  | Generic KDF",
   "  10900 | PBKDF2-HMAC-SHA256                               | Generic KDF",
   "  12100 | PBKDF2-HMAC-SHA512                               | Generic KDF",
-  "   4800 | iSCSI CHAP authentication, MD5(CHAP)             | Network Protocols",
   "   7300 | IPMI2 RAKP HMAC-SHA1                             | Network Protocols",
   "   8300 | DNSSEC (NSEC3)                                   | Network Protocols",
   "  10200 | CRAM-MD5                                         | Network Protocols",
@@ -190,7 +189,6 @@ static const char *ST_HASH_04520 = "59b80a295392eedb677ca377ad7bf3487928df96:136
 static const char *ST_HASH_04521 = "c18e826af2a78c7b9b7261452613233417e65817:28246535720688452723483475753333";
 static const char *ST_HASH_04522 = "9038129c474caa3f0de56f38db84033d0fe1d4b8:365563602032";
 static const char *ST_HASH_04700 = "92d85978d884eb1d99a51652b1139c8279fa8663";
-static const char *ST_HASH_04800 = "aa4aaa1d52319525023c06a4873f4c51:35343534373533343633383832343736:dc";
 static const char *ST_HASH_04900 = "75d280ca9a0c2ee18729603104ead576d9ca6285:347070";
 static const char *ST_HASH_05700 = "2btjjy78REtmYkkW0csHUbJZOstRXoWdX1mGrmmfeHI";
 static const char *ST_HASH_05800 = "3edde1eb9e6679ccbc1ff3c417e8a475a2d2e279:7724368582277760";
@@ -297,7 +295,6 @@ static const char *HT_04400 = "md5(sha1($pass))";
 static const char *HT_04500 = "sha1(sha1($pass))";
 static const char *HT_04520 = "sha1($salt.sha1($pass))";
 static const char *HT_04700 = "sha1(md5($pass))";
-static const char *HT_04800 = "iSCSI CHAP authentication, MD5(CHAP)";
 static const char *HT_04900 = "sha1($salt.$pass.$salt)";
 static const char *HT_05700 = "Cisco-IOS type 4 (SHA256)";
 static const char *HT_05800 = "Samsung Android Password/PIN";
@@ -4466,66 +4463,6 @@ int netscaler_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
     digest[3] -= SHA1M_D;
     digest[4] -= SHA1M_E;
   }
-
-  return (PARSER_OK);
-}
-
-int chap_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt  = 3;
-
-  token.sep[0]     = ':';
-  token.len_min[0] = 32;
-  token.len_max[0] = 32;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.sep[1]     = ':';
-  token.len_min[1] = 32;
-  token.len_max[1] = 32;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len_min[2] = 2;
-  token.len_max[2] = 2;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *hash_pos = token.buf[0];
-
-  digest[0] = hex_to_u32 (hash_pos +  0);
-  digest[1] = hex_to_u32 (hash_pos +  8);
-  digest[2] = hex_to_u32 (hash_pos + 16);
-  digest[3] = hex_to_u32 (hash_pos + 24);
-
-  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
-  {
-    digest[0] -= MD5M_A;
-    digest[1] -= MD5M_B;
-    digest[2] -= MD5M_C;
-    digest[3] -= MD5M_D;
-  }
-
-  const u8 *salt_pos = token.buf[1];
-
-  salt->salt_buf[0] = hex_to_u32 (salt_pos +  0);
-  salt->salt_buf[1] = hex_to_u32 (salt_pos +  8);
-  salt->salt_buf[2] = hex_to_u32 (salt_pos + 16);
-  salt->salt_buf[3] = hex_to_u32 (salt_pos + 24);
-
-  salt->salt_len = 16 + 1;
-
-  salt->salt_buf[4] = hex_to_u8 (token.buf[2]);
 
   return (PARSER_OK);
 }
@@ -10217,21 +10154,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (digest_buf[3]),
       byte_swap_32 (digest_buf[4]));
   }
-  else if (hash_mode == 4800)
-  {
-    u8 chap_id_byte = (u8) salt.salt_buf[4];
-
-    snprintf (out_buf, out_size, "%08x%08x%08x%08x:%08x%08x%08x%08x:%02x",
-      digest_buf[0],
-      digest_buf[1],
-      digest_buf[2],
-      digest_buf[3],
-      byte_swap_32 (salt.salt_buf[0]),
-      byte_swap_32 (salt.salt_buf[1]),
-      byte_swap_32 (salt.salt_buf[2]),
-      byte_swap_32 (salt.salt_buf[3]),
-      chap_id_byte);
-  }
   else if (hash_mode == 4900)
   {
     snprintf (out_buf, out_size, "%08x%08x%08x%08x%08x",
@@ -12803,29 +12725,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 1;
                  hashconfig->st_hash        = ST_HASH_04700;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case  4800:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PT_ADDBITS14;
-                 hashconfig->kern_type      = KERN_TYPE_MD5_CHAP;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = chap_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_PRECOMPUTE_MERKLE
-                                            | OPTI_TYPE_MEET_IN_MIDDLE
-                                            | OPTI_TYPE_EARLY_SKIP
-                                            | OPTI_TYPE_NOT_ITERATED
-                                            | OPTI_TYPE_RAW_HASH;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 3;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 1;
-                 hashconfig->st_hash        = ST_HASH_04800;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
