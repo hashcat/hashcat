@@ -124,7 +124,6 @@
   "  10600 | PDF 1.7 Level 3 (Acrobat 9)                      | Documents",
   "  10700 | PDF 1.7 Level 8 (Acrobat 10 - 11)                | Documents",
   "  16200 | Apple Secure Notes                               | Documents",
-  "   8200 | 1Password, cloudkeychain                         | Password Managers",
   "  12700 | Blockchain, My Wallet                            | Password Managers",
   "  15200 | Blockchain, My Wallet, V2                        | Password Managers",
   "  16600 | Electrum Wallet (Salt-Type 1-2)                  | Password Managers",
@@ -217,7 +216,6 @@ static const char *ST_HASH_07801 = "604020408266$32837BA7B97672BA4E5A00000000000
 static const char *ST_HASH_07900 = "$S$C20340258nzjDWpoQthrdNTR02f0pmev0K/5/Nx80WSkOQcPEQRh";
 static const char *ST_HASH_08000 = "0xc0071808773188715731b69bd4e310b4129913aaf657356c5bdf3c46f249ed42477b5c74af6eaac4d15a";
 static const char *ST_HASH_08100 = "1130725275da09ca13254957f2314a639818d44c37ef6d558";
-static const char *ST_HASH_08200 = "9b6933f4a1f65baf02737545efc8c1caee4c7a5a82ce3ab637bcc19b0b51f5c5:30b952120ca9a190ac673a5e12a358e4:40000:e29b48a8cfd216701a8ced536038d0d49cf58dd25686e02d7ba3aa0463cc369062045db9e95653ac176e2192732b49073d481c26f29e1c611c84aaba93e553a6c51d1a9f7cfce0d01e099fb19f6a412bacd8034a333f7165fda1cc89df845e019c03ac9a09bc77b26c49524ade5c5a812230322f014f058b3bb790319e4a788f917aa164e56e78941f74e9c08921144e14be9b60da1a7321a0d178a1b8c1dcf83ffcadcb1599039049650577780d6913ee924e6529401e7a65b7d71c169a107e502dbd13b6b01c58e0483afb61b926313fa4273e685dd4890218bb797fab038c6a24df90883c7acd2358908edc1f7d95ef498757a3e0659aaaf6981c744ab69254267127fc806cf3cd1ced99ab455ece06479c91c892769af5db0c0f7a70dd83e4341bf86d085bbdc6a7e195ab08fc26";
 static const char *ST_HASH_08300 = "pi6a89u8tca930h8mvolklmesefc5gmn:.fnmlbsik.net:35537886:1";
 static const char *ST_HASH_08400 = "7f8d1951fe48ae3266980c2979c141f60e4415e5:5037864764153886517871426607441768004150";
 static const char *ST_HASH_08600 = "3dd2e1e5ac03e230243d58b8c5ada076";
@@ -327,7 +325,6 @@ static const char *HT_07801 = "SAP CODVN F/G (PASSCODE) mangled from RFC_READ_TA
 static const char *HT_07900 = "Drupal7";
 static const char *HT_08000 = "Sybase ASE";
 static const char *HT_08100 = "Citrix NetScaler";
-static const char *HT_08200 = "1Password, cloudkeychain";
 static const char *HT_08300 = "DNSSEC (NSEC3)";
 static const char *HT_08400 = "WBB3 (Woltlab Burning Board)";
 static const char *HT_08600 = "Lotus Notes/Domino 5";
@@ -440,7 +437,6 @@ static const char *SIGNATURE_SHA256B64S         = "{SSHA256}";
 static const char *SIGNATURE_SHA256CRYPT        = "$5$";
 static const char *SIGNATURE_SHA512AIX          = "{ssha512}";
 static const char *SIGNATURE_SHA512B64S         = "{SSHA512}";
-static const char *SIGNATURE_SHA512GRUB         = "grub.pbkdf2.sha512.";
 static const char *SIGNATURE_SIP_AUTH           = "$sip$";
 static const char *SIGNATURE_SSHA1B64_lower     = "{ssha}";
 static const char *SIGNATURE_SSHA1B64_upper     = "{SSHA}";
@@ -4644,121 +4640,6 @@ int chap_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSE
   salt->salt_len = 16 + 1;
 
   salt->salt_buf[4] = hex_to_u8 (token.buf[2]);
-
-  return (PARSER_OK);
-}
-
-int cloudkey_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  cloudkey_t *cloudkey = (cloudkey_t *) hash_buf->esalt;
-
-  token_t token;
-
-  token.token_cnt  = 4;
-
-  token.sep[0]     = ':';
-  token.len_min[0] = 64;
-  token.len_max[0] = 64;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.sep[1]     = ':';
-  token.len_min[1] = 32;
-  token.len_max[1] = 32;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.sep[2]     = ':';
-  token.len_min[2] = 1;
-  token.len_max[2] = 6;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.len_min[3] = 2;
-  token.len_max[3] = 2048;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  // hash
-
-  const u8 *hash_pos = token.buf[0];
-
-  digest[0] = hex_to_u32 (hash_pos +  0);
-  digest[1] = hex_to_u32 (hash_pos +  8);
-  digest[2] = hex_to_u32 (hash_pos + 16);
-  digest[3] = hex_to_u32 (hash_pos + 24);
-  digest[4] = hex_to_u32 (hash_pos + 32);
-  digest[5] = hex_to_u32 (hash_pos + 40);
-  digest[6] = hex_to_u32 (hash_pos + 48);
-  digest[7] = hex_to_u32 (hash_pos + 56);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-  digest[4] = byte_swap_32 (digest[4]);
-  digest[5] = byte_swap_32 (digest[5]);
-  digest[6] = byte_swap_32 (digest[6]);
-  digest[7] = byte_swap_32 (digest[7]);
-
-  // salt
-
-  const u8 *salt_pos = token.buf[1];
-  const int salt_len = token.len[1];
-
-  u8 *saltbuf_ptr = (u8 *) salt->salt_buf;
-
-  for (int i = 0; i < salt_len; i += 2)
-  {
-    const u8 p0 = salt_pos[i + 0];
-    const u8 p1 = salt_pos[i + 1];
-
-    *saltbuf_ptr++ = hex_convert (p1) << 0
-                   | hex_convert (p0) << 4;
-  }
-
-  salt->salt_buf[4] = 0x01000000;
-  salt->salt_buf[5] = 0x80;
-
-  salt->salt_len = salt_len / 2;
-
-  // iteration
-
-  const u8 *iter_pos = token.buf[2];
-
-  salt->salt_iter = hc_strtoul ((const char *) iter_pos, NULL, 10) - 1;
-
-  // data
-
-  const u8 *data_pos = token.buf[3];
-  const int data_len = token.len[3];
-
-  u8 *databuf_ptr = (u8 *) cloudkey->data_buf;
-
-  for (int i = 0; i < data_len; i += 2)
-  {
-    const u8 p0 = data_pos[i + 0];
-    const u8 p1 = data_pos[i + 1];
-
-    *databuf_ptr++ = hex_convert (p1) << 0
-                   | hex_convert (p0) << 4;
-  }
-
-  *databuf_ptr++ = 0x80;
-
-  for (int i = 0; i < 512; i++)
-  {
-    cloudkey->data_buf[i] = byte_swap_32 (cloudkey->data_buf[i]);
-  }
-
-  cloudkey->data_len = data_len / 2;
 
   return (PARSER_OK);
 }
@@ -10690,51 +10571,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       digest_buf[3],
       digest_buf[4]);
   }
-  else if (hash_mode == 8200)
-  {
-    cloudkey_t *cloudkeys = (cloudkey_t *) esalts_buf;
-
-    cloudkey_t *cloudkey = &cloudkeys[digest_cur];
-
-    char data_buf[4096] = { 0 };
-
-    for (int i = 0, j = 0; i < 512; i += 1, j += 8)
-    {
-      sprintf (data_buf + j, "%08x", cloudkey->data_buf[i]);
-    }
-
-    data_buf[cloudkey->data_len * 2] = 0;
-
-    digest_buf[0] = byte_swap_32 (digest_buf[0]);
-    digest_buf[1] = byte_swap_32 (digest_buf[1]);
-    digest_buf[2] = byte_swap_32 (digest_buf[2]);
-    digest_buf[3] = byte_swap_32 (digest_buf[3]);
-    digest_buf[4] = byte_swap_32 (digest_buf[4]);
-    digest_buf[5] = byte_swap_32 (digest_buf[5]);
-    digest_buf[6] = byte_swap_32 (digest_buf[6]);
-    digest_buf[7] = byte_swap_32 (digest_buf[7]);
-
-    salt.salt_buf[0] = byte_swap_32 (salt.salt_buf[0]);
-    salt.salt_buf[1] = byte_swap_32 (salt.salt_buf[1]);
-    salt.salt_buf[2] = byte_swap_32 (salt.salt_buf[2]);
-    salt.salt_buf[3] = byte_swap_32 (salt.salt_buf[3]);
-
-    snprintf (out_buf, out_size, "%08x%08x%08x%08x%08x%08x%08x%08x:%08x%08x%08x%08x:%u:%s",
-      digest_buf[0],
-      digest_buf[1],
-      digest_buf[2],
-      digest_buf[3],
-      digest_buf[4],
-      digest_buf[5],
-      digest_buf[6],
-      digest_buf[7],
-      salt.salt_buf[0],
-      salt.salt_buf[1],
-      salt.salt_buf[2],
-      salt.salt_buf[3],
-      salt.salt_iter + 1,
-      data_buf);
-  }
   else if (hash_mode == 8300)
   {
     char digest_buf_c[34] = { 0 };
@@ -13561,23 +13397,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case  8200:  hashconfig->hash_type      = HASH_TYPE_SHA256;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_CLOUDKEY;
-                 hashconfig->dgst_size      = DGST_SIZE_4_8;
-                 hashconfig->parse_func     = cloudkey_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_08200;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case  8300:  hashconfig->hash_type      = HASH_TYPE_SHA1;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -14524,7 +14343,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   switch (hashconfig->hash_mode)
   {
     case  7300: hashconfig->esalt_size = sizeof (rakp_t);               break;
-    case  8200: hashconfig->esalt_size = sizeof (cloudkey_t);           break;
     case  8800: hashconfig->esalt_size = sizeof (androidfde_t);         break;
     case  9200: hashconfig->esalt_size = sizeof (pbkdf2_sha256_t);      break;
     case  9400: hashconfig->esalt_size = sizeof (office2007_t);         break;
@@ -14560,7 +14378,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case  6700: hashconfig->tmp_size = sizeof (sha1aix_tmp_t);            break;
     case  7400: hashconfig->tmp_size = sizeof (sha256crypt_tmp_t);        break;
     case  7900: hashconfig->tmp_size = sizeof (drupal7_tmp_t);            break;
-    case  8200: hashconfig->tmp_size = sizeof (pbkdf2_sha512_tmp_t);      break;
     case  8800: hashconfig->tmp_size = sizeof (androidfde_tmp_t);         break;
     case  9100: hashconfig->tmp_size = sizeof (lotus8_tmp_t);             break;
     case  9200: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
@@ -14647,7 +14464,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
     case  7800: pw_max = 40;      break; // https://www.daniel-berlin.de/security/sap-sec/password-hash-algorithms/
     case  7900: pw_max = PW_MAX;  break;
     case  8000: pw_max = 30;      break; // http://infocenter.sybase.com/help/index.jsp?topic=/com.sybase.infocenter.dc31654.1570/html/sag1/CIHIBDBA.htm
-    case  8200: pw_max = PW_MAX;  break;
     case  8600: pw_max = 16;      break; // Lotus Notes/Domino 5 limits itself to 16
     case  8700: pw_max = 64;      break; // https://www.ibm.com/support/knowledgecenter/en/SSKTWP_8.5.3/com.ibm.notes85.client.doc/fram_limits_of_notes_r.html
     case  8800: pw_max = PW_MAX;  break;

@@ -72,13 +72,6 @@ typedef struct rakp
 
 } rakp_t;
 
-typedef struct cloudkey
-{
-  u32 data_len;
-  u32 data_buf[512];
-
-} cloudkey_t;
-
 typedef struct office2007
 {
   u32 encryptedVerifier[4];
@@ -426,7 +419,6 @@ typedef enum kern_type
   KERN_TYPE_DRUPAL7                 = 7900,
   KERN_TYPE_SYBASEASE               = 8000,
   KERN_TYPE_NETSCALER               = 8100,
-  KERN_TYPE_CLOUDKEY                = 8200,
   KERN_TYPE_NSEC3                   = 8300,
   KERN_TYPE_WBB3                    = 8400,
   KERN_TYPE_LOTUS5                  = 8600,
@@ -488,7 +480,6 @@ typedef enum rounds_count
    ROUNDS_SHA512AIX          = (1 << 6),
    ROUNDS_SHA256CRYPT        = 5000,
    ROUNDS_DRUPAL7            = (1 << 14), // $S$C
-   ROUNDS_CLOUDKEY           = 40000,
    ROUNDS_NSEC3              = 1,
    ROUNDS_ANDROIDFDE         = 2000,
    ROUNDS_LOTUS8             = 5000,
