@@ -21,8 +21,7 @@ static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_CIPHER_KPA;
 static const char *HASH_NAME      = "3DES (PT = $salt, key = $pass)";
 static const u32   HASH_TYPE      = HASH_TYPE_GENERIC;
 static const u64   KERN_TYPE      = 14100;
-static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
-                                  | OPTI_TYPE_PRECOMPUTE_PERMUT;
+static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STATE_BUFFER_LE
                                   | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_ST_GENERATE_LE

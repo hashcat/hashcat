@@ -10,15 +10,6 @@ typedef struct itunes_backup
 
 } itunes_backup_t;
 
-typedef struct chacha20
-{
-  u32 iv[2];
-  u32 plain[2];
-  u32 position[2];
-  u32 offset;
-
-} chacha20_t;
-
 typedef struct pdf
 {
   int  V;
@@ -55,16 +46,6 @@ typedef struct androidfde
   u32 data[384];
 
 } androidfde_t;
-
-typedef struct ikepsk
-{
-  u32 nr_buf[16];
-  u32 nr_len;
-
-  u32 msg_buf[128];
-  u32 msg_len[6];
-
-} ikepsk_t;
 
 typedef struct pbkdf2_md5
 {
@@ -120,31 +101,6 @@ typedef struct office2010
 
 } office2010_t;
 
-typedef struct office2013
-{
-  u32 encryptedVerifier[4];
-  u32 encryptedVerifierHash[8];
-
-} office2013_t;
-
-typedef struct oldoffice01
-{
-  u32 version;
-  u32 encryptedVerifier[4];
-  u32 encryptedVerifierHash[4];
-  u32 rc4key[2];
-
-} oldoffice01_t;
-
-typedef struct oldoffice34
-{
-  u32 version;
-  u32 encryptedVerifier[4];
-  u32 encryptedVerifierHash[5];
-  u32 rc4key[2];
-
-} oldoffice34_t;
-
 typedef struct zip2
 {
   u32 type;
@@ -166,15 +122,6 @@ typedef struct win8phone
   u32 salt_buf[32];
 
 } win8phone_t;
-
-typedef struct psafe3
-{
-  char signature[4];
-  u32  salt_buf[8];
-  u32  iterations;
-  u32  hash_buf[8];
-
-} psafe3_t;
 
 typedef struct jks_sha1
 {
@@ -237,15 +184,6 @@ typedef struct electrum_wallet
 
 } electrum_wallet_t;
 
-
-
-typedef struct pdf14_tmp
-{
-  u32 digest[4];
-  u32 out[4];
-
-} pdf14_tmp_t;
-
 typedef struct pdf17l8_tmp
 {
   union
@@ -269,35 +207,6 @@ typedef struct sha256crypt_tmp
 
 } sha256crypt_tmp_t;
 
-typedef struct dcc2_tmp
-{
-  u32 ipad[5];
-  u32 opad[5];
-
-  u32 dgst[5];
-  u32 out[4];
-
-} dcc2_tmp_t;
-
-typedef struct pwsafe2_tmp
-{
-  u32 digest[2];
-
-  u32 P[18];
-
-  u32 S0[256];
-  u32 S1[256];
-  u32 S2[256];
-  u32 S3[256];
-
-} pwsafe2_tmp_t;
-
-typedef struct pwsafe3_tmp
-{
-  u32 digest_buf[8];
-
-} pwsafe3_tmp_t;
-
 typedef struct androidpin_tmp
 {
   u32 digest_buf[5];
@@ -313,39 +222,6 @@ typedef struct androidfde_tmp
   u32 out[10];
 
 } androidfde_tmp_t;
-
-typedef struct tc_tmp
-{
-  u32 ipad[16];
-  u32 opad[16];
-
-  u32 dgst[64];
-  u32 out[64];
-
-} tc_tmp_t;
-
-typedef struct tc64_tmp
-{
-  u64  ipad[8];
-  u64  opad[8];
-
-  u64  dgst[32];
-  u64  out[32];
-
-} tc64_tmp_t;
-
-typedef struct vc64_sbog_tmp
-{
-  u64  ipad_raw[8];
-  u64  opad_raw[8];
-
-  u64  ipad_hash[8];
-  u64  opad_hash[8];
-
-  u64  dgst[32];
-  u64  out[32];
-
-} vc64_sbog_tmp_t;
 
 typedef struct agilekey_tmp
 {
@@ -425,12 +301,6 @@ typedef struct office2010_tmp
 
 } office2010_tmp_t;
 
-typedef struct office2013_tmp
-{
-  u64  out[8];
-
-} office2013_tmp_t;
-
 typedef struct saph_sha1_tmp
 {
   u32 digest_buf[5];
@@ -494,15 +364,6 @@ typedef struct oraclet_tmp
 
 } oraclet_tmp_t;
 
-typedef struct bsdicrypt_tmp
-{
-  u32 Kc[16];
-  u32 Kd[16];
-
-  u32 iv[2];
-
-} bsdicrypt_tmp_t;
-
 typedef struct cram_md5
 {
   u32 user[16];
@@ -527,107 +388,7 @@ typedef struct apple_secure_notes_tmp
 
 } apple_secure_notes_tmp_t;
 
-typedef struct struct_psafe2_hdr
-{
-  u32  random[2];
-  u32  hash[5];
-  u32  salt[5];   // unused, but makes better valid check
-  u32  iv[2];     // unused, but makes better valid check
 
-} psafe2_hdr;
-
-typedef enum
-{
-  MESSAGE_PAIR_M12E2 = 0,
-  MESSAGE_PAIR_M14E4 = 1,
-  MESSAGE_PAIR_M32E2 = 2,
-  MESSAGE_PAIR_M32E3 = 3,
-  MESSAGE_PAIR_M34E3 = 4,
-  MESSAGE_PAIR_M34E4 = 5,
-
-} message_pair_t;
-
-#define HCCAPX_VERSION   4
-#define HCCAPX_SIGNATURE 0x58504348 // HCPX
-
-// this is required to force mingw to accept the packed attribute
-#pragma pack(push,1)
-
-struct hccapx
-{
-  u32 signature;
-  u32 version;
-  u8  message_pair;
-  u8  essid_len;
-  u8  essid[32];
-  u8  keyver;
-  u8  keymic[16];
-  u8  mac_ap[6];
-  u8  nonce_ap[32];
-  u8  mac_sta[6];
-  u8  nonce_sta[32];
-  u16 eapol_len;
-  u8  eapol[256];
-
-} __attribute__((packed));
-
-typedef struct hccapx hccapx_t;
-
-#pragma pack(pop)
-
-typedef enum hash_type
-{
-  HASH_TYPE_MD4                 = 1,
-  HASH_TYPE_MD5                 = 2,
-  HASH_TYPE_SHA1                = 4,
-  HASH_TYPE_SHA224              = 5,
-  HASH_TYPE_SHA256              = 6,
-  HASH_TYPE_SHA384              = 7,
-  HASH_TYPE_SHA512              = 8,
-  HASH_TYPE_DCC2                = 9,
-  HASH_TYPE_ORACLEH             = 13,
-  HASH_TYPE_DESRACF             = 14,
-  HASH_TYPE_RIPEMD160           = 18,
-  HASH_TYPE_WHIRLPOOL           = 19,
-  HASH_TYPE_AES                 = 20,
-  HASH_TYPE_GOST                = 21,
-  HASH_TYPE_SAPB                = 23,
-  HASH_TYPE_SAPG                = 24,
-  HASH_TYPE_MYSQL               = 25,
-  HASH_TYPE_LOTUS5              = 26,
-  HASH_TYPE_LOTUS6              = 27,
-  HASH_TYPE_ANDROIDFDE          = 28,
-  HASH_TYPE_LOTUS8              = 30,
-  HASH_TYPE_OFFICE2007          = 31,
-  HASH_TYPE_OFFICE2010          = 32,
-  HASH_TYPE_OFFICE2013          = 33,
-  HASH_TYPE_OLDOFFICE01         = 34,
-  HASH_TYPE_OLDOFFICE34         = 35,
-  HASH_TYPE_SIPHASH             = 36,
-  HASH_TYPE_PDFU16              = 37,
-  HASH_TYPE_PDFU32              = 38,
-  HASH_TYPE_PBKDF2_SHA256       = 39,
-  HASH_TYPE_CRC32               = 41,
-  HASH_TYPE_STREEBOG_256        = 42,
-  HASH_TYPE_STREEBOG_512        = 43,
-  HASH_TYPE_PBKDF2_MD5          = 44,
-  HASH_TYPE_PBKDF2_SHA512       = 46,
-  HASH_TYPE_ECRYPTFS            = 47,
-  HASH_TYPE_ORACLET             = 48,
-  HASH_TYPE_BSDICRYPT           = 49,
-  HASH_TYPE_PLAINTEXT           = 54,
-  HASH_TYPE_ITUNES_BACKUP_9     = 56,
-  HASH_TYPE_ITUNES_BACKUP_10    = 57,
-  HASH_TYPE_SKIP32              = 58,
-  HASH_TYPE_CHACHA20            = 60,
-  HASH_TYPE_JKS_SHA1            = 62,
-  HASH_TYPE_TACACS_PLUS         = 63,
-  HASH_TYPE_APPLE_SECURE_NOTES  = 64,
-  HASH_TYPE_CRAM_MD5_DOVECOT    = 65,
-  HASH_TYPE_JWT                 = 66,
-  HASH_TYPE_ELECTRUM_WALLET     = 67,
-
-} hash_type_t;
 
 typedef enum kern_type
 {
@@ -654,7 +415,6 @@ typedef enum kern_type
   KERN_TYPE_SHA512_SLTPWU           = 1740,
   KERN_TYPE_HMACSHA512_PW           = 1750,
   KERN_TYPE_HMACSHA512_SLT          = 1760,
-  KERN_TYPE_DCC2                    = 2100,
   KERN_TYPE_MD5ASA                  = 2410,
   KERN_TYPE_MD55                    = 2600,
   KERN_TYPE_MD55_PWSLT1             = 2610,
@@ -663,7 +423,6 @@ typedef enum kern_type
   KERN_TYPE_ORACLEH                 = 3100,
   KERN_TYPE_MD5_SLT_MD5_PW          = 3710,
   KERN_TYPE_MD5_SLT_PW_SLT          = 3800,
-  KERN_TYPE_MD55_PWSLT              = 3910,
   KERN_TYPE_MD5_SLT_MD5_SLT_PW      = 4010,
   KERN_TYPE_MD5_SLT_MD5_PW_SLT      = 4110,
   KERN_TYPE_MD5U5                   = 4300,
@@ -674,18 +433,9 @@ typedef enum kern_type
   KERN_TYPE_SHA1_MD5                = 4700,
   KERN_TYPE_MD5_CHAP                = 4800,
   KERN_TYPE_SHA1_SLT_PW_SLT         = 4900,
-  KERN_TYPE_PSAFE3                  = 5200,
-  KERN_TYPE_IKEPSK_MD5              = 5300,
-  KERN_TYPE_IKEPSK_SHA1             = 5400,
   KERN_TYPE_ANDROIDPIN              = 5800,
   KERN_TYPE_RIPEMD160               = 6000,
   KERN_TYPE_WHIRLPOOL               = 6100,
-  KERN_TYPE_VCSHA256_XTS512         = 13751,
-  KERN_TYPE_VCSHA256_XTS1024        = 13752,
-  KERN_TYPE_VCSHA256_XTS1536        = 13753,
-  KERN_TYPE_VCSBOG512_XTS512        = 13771,
-  KERN_TYPE_VCSBOG512_XTS1024       = 13772,
-  KERN_TYPE_VCSBOG512_XTS1536       = 13773,
   KERN_TYPE_MD5AIX                  = 6300,
   KERN_TYPE_SHA256AIX               = 6400,
   KERN_TYPE_SHA512AIX               = 6500,
@@ -705,31 +455,17 @@ typedef enum kern_type
   KERN_TYPE_CLOUDKEY                = 8200,
   KERN_TYPE_NSEC3                   = 8300,
   KERN_TYPE_WBB3                    = 8400,
-  KERN_TYPE_RACF                    = 8500,
   KERN_TYPE_LOTUS5                  = 8600,
   KERN_TYPE_LOTUS6                  = 8700,
   KERN_TYPE_ANDROIDFDE              = 8800,
-  KERN_TYPE_PSAFE2                  = 9000,
   KERN_TYPE_LOTUS8                  = 9100,
   KERN_TYPE_OFFICE2007              = 9400,
   KERN_TYPE_OFFICE2010              = 9500,
-  KERN_TYPE_OFFICE2013              = 9600,
-  KERN_TYPE_OLDOFFICE01             = 9700,
-  KERN_TYPE_OLDOFFICE01CM1          = 9710,
-  KERN_TYPE_OLDOFFICE01CM2          = 9720,
-  KERN_TYPE_OLDOFFICE34             = 9800,
-  KERN_TYPE_OLDOFFICE34CM1          = 9810,
-  KERN_TYPE_OLDOFFICE34CM2          = 9820,
   KERN_TYPE_RADMIN2                 = 9900,
   KERN_TYPE_SIPHASH                 = 10100,
   KERN_TYPE_SAPH_SHA1               = 10300,
-  KERN_TYPE_PDF11                   = 10400,
-  KERN_TYPE_PDF11CM1                = 10410,
-  KERN_TYPE_PDF11CM2                = 10420,
-  KERN_TYPE_PDF14                   = 10500,
   KERN_TYPE_PDF17L8                 = 10700,
   KERN_TYPE_PBKDF2_SHA256           = 10900,
-  KERN_TYPE_PRESTASHOP              = 11000,
   KERN_TYPE_POSTGRESQL_AUTH         = 11100,
   KERN_TYPE_MYSQL_AUTH              = 11200,
   KERN_TYPE_SIP_AUTH                = 11400,
@@ -742,8 +478,6 @@ typedef enum kern_type
   KERN_TYPE_PBKDF2_MD5              = 11900,
   KERN_TYPE_ECRYPTFS                = 12200,
   KERN_TYPE_ORACLET                 = 12300,
-  KERN_TYPE_BSDICRYPT               = 12400,
-  KERN_TYPE_CF10                    = 12600,
   KERN_TYPE_MYWALLET                = 12700,
   KERN_TYPE_MS_DRSR                 = 12800,
   KERN_TYPE_ANDROIDFDE_SAMSUNG      = 12900,
@@ -755,10 +489,7 @@ typedef enum kern_type
   KERN_TYPE_SHA1CX                  = 14400,
   KERN_TYPE_ITUNES_BACKUP_9         = 14700,
   KERN_TYPE_ITUNES_BACKUP_10        = 14800,
-  KERN_TYPE_SKIP32                  = 14900,
-  KERN_TYPE_FILEZILLA_SERVER        = 15000,
   KERN_TYPE_NETBSD_SHA1CRYPT        = 15100,
-  KERN_TYPE_CHACHA20                = 15400,
   KERN_TYPE_JKS_SHA1                = 15500,
   KERN_TYPE_ETHEREUM_PBKDF2         = 15600,
   KERN_TYPE_TRIPCODE                = 16000,
@@ -779,8 +510,6 @@ typedef enum kern_type
 
 typedef enum rounds_count
 {
-   ROUNDS_DCC2               = 10240,
-   ROUNDS_PSAFE3             = 2048,
    ROUNDS_ANDROIDPIN         = 1024,
    ROUNDS_VERACRYPT_200000   = 200000,
    ROUNDS_VERACRYPT_500000   = 500000,
@@ -796,24 +525,20 @@ typedef enum rounds_count
    ROUNDS_CLOUDKEY           = 40000,
    ROUNDS_NSEC3              = 1,
    ROUNDS_ANDROIDFDE         = 2000,
-   ROUNDS_PSAFE2             = 1000,
    ROUNDS_LOTUS8             = 5000,
    ROUNDS_CISCO8             = 20000,
    ROUNDS_OFFICE2007         = 50000,
    ROUNDS_OFFICE2010         = 100000,
-   ROUNDS_OFFICE2013         = 100000,
    ROUNDS_LIBREOFFICE        = 100000,
    ROUNDS_OPENOFFICE         = 1024,
    ROUNDS_DJANGOPBKDF2       = 20000,
    ROUNDS_SAPH_SHA1          = 1024,
-   ROUNDS_PDF14              = (50 + 20),
    ROUNDS_PDF17L8            = 64,
    ROUNDS_PBKDF2_SHA256      = 1000,
    ROUNDS_PBKDF2_MD5         = 1000,
    ROUNDS_PBKDF2_SHA512      = 1000,
    ROUNDS_ECRYPTFS           = 65536,
    ROUNDS_ORACLET            = 4096,
-   ROUNDS_BSDICRYPT          = 2900,
    ROUNDS_MYWALLET           = 10,
    ROUNDS_MYWALLETV2         = 5000,
    ROUNDS_MS_DRSR            = 100,
@@ -831,165 +556,3 @@ typedef enum rounds_count
    ROUNDS_ETHEREUM_PRESALE   = 2000 - 1,
 
 } rounds_count_t;
-
-/**
- * input functions
- */
-
-int cisco4_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int dcc2_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int episerver_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int netscreen_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int chacha20_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int md4_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int md4s_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int md5_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int md5s_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int md5md5_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int md5pix_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int md5asa_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int md5apr1_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int mssql2000_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int mssql2005_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int oracleh_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int oracles_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int oraclet_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int arubaos_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int macos1_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int macos512_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha1_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha1b64_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha1b64s_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha1s_parse_hash              (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha224_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha256_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha256s_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha384_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha512_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha512s_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int vb30_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int psafe2_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int psafe3_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int ikepsk_md5_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int ikepsk_sha1_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int androidpin_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int ripemd160_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int whirlpool_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int md5aix_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha256aix_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha512aix_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int agilekey_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha1aix_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int gost_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha256crypt_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int mssql2012_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int episerver4_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha512grub_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha512b64s_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sapb_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sapg_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int drupal7_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sybasease_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int mysql323_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int rakp_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int netscaler_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int chap_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int cloudkey_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int nsec3_parse_hash              (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int wbb3_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int racf_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int lotus5_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int lotus6_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int lotus8_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int hmailserver_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int phps_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int mediawiki_b_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int peoplesoft_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int androidfde_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int cisco8_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int cisco9_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int office2007_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int office2010_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int office2013_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int oldoffice01_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int oldoffice01cm1_parse_hash     (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int oldoffice01cm2_parse_hash     (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int oldoffice34_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int oldoffice34cm1_parse_hash     (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int oldoffice34cm2_parse_hash     (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int radmin2_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int djangosha1_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int djangopbkdf2_parse_hash       (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int siphash_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int crammd5_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int crammd5_dovecot_parse_hash    (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int saph_sha1_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int redmine_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int punbb_parse_hash              (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int pdf11_parse_hash              (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int pdf11cm1_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int pdf11cm2_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int pdf14_parse_hash              (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int pdf17l3_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int pdf17l8_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int pbkdf2_sha256_parse_hash      (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int prestashop_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int postgresql_auth_parse_hash    (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int mysql_auth_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sip_auth_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int streebog_256_parse_hash       (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int streebog_512_parse_hash       (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int pbkdf2_md5_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int pbkdf2_sha1_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int pbkdf2_sha512_parse_hash      (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int ecryptfs_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int bsdicrypt_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int cf10_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int mywallet_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int mywalletv2_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int ms_drsr_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int androidfde_samsung_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int axcrypt_parse_hash            (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha1axcrypt_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int zip2_parse_hash               (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int veracrypt_parse_hash_200000   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int veracrypt_parse_hash_500000   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int veracrypt_parse_hash_327661   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int veracrypt_parse_hash_655331   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int win8phone_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int opencart_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int plaintext_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha1cx_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int itunes_backup_parse_hash      (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int skip32_parse_hash             (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int fortigate_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int sha256b64s_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int filezilla_server_parse_hash   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int netbsd_sha1crypt_parse_hash   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int atlassian_parse_hash          (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int jks_sha1_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int ethereum_pbkdf2_parse_hash    (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int tripcode_parse_hash           (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int tacacs_plus_parse_hash        (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int apple_secure_notes_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int ethereum_presale_parse_hash   (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int jwt_parse_hash                (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int electrum_wallet13_parse_hash  (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-int filevault2_parse_hash         (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig);
-
-/**
- * migrate stuff
- */
-
-typedef struct tc
-{
-  u32 salt_buf[32];
-  u32 data_buf[112];
-  u32 keyfile_buf[16];
-  u32 signature;
-
-  keyboard_layout_mapping_t keyboard_layout_mapping_buf[256];
-  int                       keyboard_layout_mapping_cnt;
-
-} tc_t;
-
