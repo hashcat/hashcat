@@ -387,7 +387,6 @@ typedef enum kern_type
   KERN_TYPE_MD55_PWSLT1             = 2610,
   KERN_TYPE_MD55_PWSLT2             = 2710,
   KERN_TYPE_MD55_SLTPW              = 2810,
-  KERN_TYPE_ORACLEH                 = 3100,
   KERN_TYPE_MD5_SLT_MD5_PW          = 3710,
   KERN_TYPE_MD5_SLT_PW_SLT          = 3800,
   KERN_TYPE_MD5_SLT_MD5_SLT_PW      = 4010,

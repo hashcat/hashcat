@@ -70,7 +70,6 @@
   "    131 | MSSQL (2000)                                     | Database Server",
   "    132 | MSSQL (2005)                                     | Database Server",
   "   1731 | MSSQL (2012, 2014)                               | Database Server",
-  "   3100 | Oracle H: Type (Oracle 7+)                       | Database Server",
   "    112 | Oracle S: Type (Oracle 11+)                      | Database Server",
   "  12300 | Oracle T: Type (Oracle 12+)                      | Database Server",
   "   8000 | Sybase ASE                                       | Database Server",
@@ -179,7 +178,6 @@ static const char *ST_HASH_02600 = "a936af92b0ae20b1ff6c3347a72e5fbe";
 static const char *ST_HASH_02611 = "28f9975808ae2bdc5847b1cda26033ea:308";
 static const char *ST_HASH_02612 = "$PHPS$30353031383437363132$f02b0b2f25e5754edb04522c346ba243";
 static const char *ST_HASH_02711 = "0844fbb2fdeda31884a7a45ec2010bb6:324410183853308365427804872426";
-static const char *ST_HASH_03100 = "792FCB0AE31D8489:7284616727";
 static const char *ST_HASH_03710 = "a3aa0ae2b4a102a9974cdf40edeabee0:242812778074";
 static const char *ST_HASH_03711 = "$B$2152187716$8c8b39c3602b194eeeb6cac78eea2742";
 static const char *ST_HASH_03800 = "78274b1105fb8a7c415b43ffe35ec4a9:6";
@@ -289,7 +287,6 @@ static const char *HT_01740 = "sha512($salt.utf16le($pass))";
 static const char *HT_01750 = "HMAC-SHA512 (key = $pass)";
 static const char *HT_01760 = "HMAC-SHA512 (key = $salt)";
 static const char *HT_02600 = "md5(md5($pass))";
-static const char *HT_03100 = "Oracle H: Type (Oracle 7+)";
 static const char *HT_03710 = "md5($salt.md5($pass))";
 static const char *HT_03711 = "MediaWiki B type";
 static const char *HT_03800 = "md5($salt.$pass.$salt)";
@@ -2860,47 +2857,6 @@ int mssql2012_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
     digest[6] -= SHA512M_G;
     digest[7] -= SHA512M_H;
   }
-
-  const u8 *salt_pos = token.buf[1];
-  const int salt_len = token.len[1];
-
-  const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
-
-  if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  return (PARSER_OK);
-}
-
-int oracleh_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt = 2;
-
-  token.sep[0]     = hashconfig->separator;
-  token.len_min[0] = 16;
-  token.len_max[0] = 16;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len_min[1] = 0;
-  token.len_max[1] = 30;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *hash_pos = token.buf[0];
-
-  digest[0] = hex_to_u32 (hash_pos + 0);
-  digest[1] = hex_to_u32 (hash_pos + 8);
-  digest[2] = 0;
-  digest[3] = 0;
 
   const u8 *salt_pos = token.buf[1];
   const int salt_len = token.len[1];
@@ -11469,12 +11425,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
         ptr[13], ptr[12],
         ptr[15], ptr[14]);
     }
-    else if (hash_type == HASH_TYPE_ORACLEH)
-    {
-      snprintf (out_buf, out_size, "%08X%08X",
-        digest_buf[0],
-        digest_buf[1]);
-    }
     else if (hash_type == HASH_TYPE_RIPEMD160)
     {
       snprintf (out_buf, out_size, "%08x%08x%08x%08x%08x",
@@ -12594,24 +12544,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 1;
                  hashconfig->st_hash        = ST_HASH_02711;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case  3100:  hashconfig->hash_type      = HASH_TYPE_ORACLEH;
-                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PT_UPPER
-                                            | OPTS_TYPE_ST_UPPER;
-                 hashconfig->kern_type      = KERN_TYPE_ORACLEH;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
-                 hashconfig->parse_func     = oracleh_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_03100;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
@@ -14331,7 +14263,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
   switch (hashconfig->hash_mode)
   {
     case   112: pw_max = 30;      break; // https://www.toadworld.com/platforms/oracle/b/weblog/archive/2013/11/12/oracle-12c-passwords
-    case  3100: pw_max = 30;      break; // http://www.red-database-security.de/whitepaper/oracle_passwords.html
     case  6400: pw_max = PW_MAX;  break;
     case  6500: pw_max = PW_MAX;  break;
     case  6700: pw_max = PW_MAX;  break;
