@@ -125,7 +125,6 @@
   "  10600 | PDF 1.7 Level 3 (Acrobat 9)                      | Documents",
   "  10700 | PDF 1.7 Level 8 (Acrobat 10 - 11)                | Documents",
   "  16200 | Apple Secure Notes                               | Documents",
-  "   6600 | 1Password, agilekeychain                         | Password Managers",
   "   8200 | 1Password, cloudkeychain                         | Password Managers",
   "  12700 | Blockchain, My Wallet                            | Password Managers",
   "  15200 | Blockchain, My Wallet, V2                        | Password Managers",
@@ -207,7 +206,6 @@ static const char *ST_HASH_06100 = "7ca8eaaaa15eaa4c038b4c47b9313e92da827c06940e
 static const char *ST_HASH_06300 = "{smd5}17800721$WkGka7tXcrfpUQS6WOQyw/";
 static const char *ST_HASH_06400 = "{ssha256}06$2715084824104660$1s/s4RZWEcvZ5VuWPXWGUfwSoG07eVSVce8F6ANJ.g4";
 static const char *ST_HASH_06500 = "{ssha512}06$4653718755856803$O04nVHL7iU9Jguy/B3Yow.veBM52irn.038Y/Ln6AMy/BG8wbU6ozSP8/W9KDZPUbhdsbl1lf8px.vKJS1S/..";
-static const char *ST_HASH_06600 = "1000:d61a54f1efdfcf57:000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000afdb51c887d14df6200bbde872aabfd9e12a1f163eed40e6b3ec33ba394c47e9";
 static const char *ST_HASH_06700 = "{ssha1}06$5586485655847243$V5f1Ff1y4dr7AWeVSSdv6N52..Y";
 static const char *ST_HASH_06900 = "df226c2c6dcb1d995c0299a33a084b201544293c31fc3d279530121d36bbcea9";
 static const char *ST_HASH_07000 = "AK1FCIhM0IUIQVFJgcDFwLCMi7GppdwtRzMyDpFOFxdpH8=";
@@ -319,7 +317,6 @@ static const char *HT_06100 = "Whirlpool";
 static const char *HT_06300 = "AIX {smd5}";
 static const char *HT_06400 = "AIX {ssha256}";
 static const char *HT_06500 = "AIX {ssha512}";
-static const char *HT_06600 = "1Password, agilekeychain";
 static const char *HT_06700 = "AIX {ssha1}";
 static const char *HT_06900 = "GOST R 34.11-94";
 static const char *HT_07000 = "FortiGate (FortiOS)";
@@ -3804,121 +3801,6 @@ int sha512aix_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   digest[5] = byte_swap_64 (digest[5]);
   digest[6] = byte_swap_64 (digest[6]);
   digest[7] = byte_swap_64 (digest[7]);
-
-  return (PARSER_OK);
-}
-
-int agilekey_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  agilekey_t *agilekey = (agilekey_t *) hash_buf->esalt;
-
-  token_t token;
-
-  token.token_cnt  = 3;
-
-  token.len_min[0] = 1;
-  token.len_max[0] = 6;
-  token.sep[0]     = ':';
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.len_min[1] = 16;
-  token.len_max[1] = 16;
-  token.sep[1]     = ':';
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len_min[2] = 2080;
-  token.len_max[2] = 2080;
-  token.sep[2]     = ':';
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  /**
-   * pbkdf2 iterations
-   */
-
-  const u8 *iter_pos = token.buf[0];
-
-  salt->salt_iter = hc_strtoul ((const char *) iter_pos, NULL, 10) - 1;
-
-  /**
-   * handle salt encoding
-   */
-
-  const u8 *salt_pos = token.buf[1];
-  const int salt_len = token.len[1];
-
-  u8 *saltbuf_ptr = (u8 *) salt->salt_buf;
-
-  for (int i = 0; i < salt_len; i += 2)
-  {
-    const u8 p0 = salt_pos[i + 0];
-    const u8 p1 = salt_pos[i + 1];
-
-    *saltbuf_ptr++ = hex_convert (p1) << 0
-                   | hex_convert (p0) << 4;
-  }
-
-  salt->salt_len = salt_len / 2;
-
-  /**
-   * handle cipher encoding
-   */
-
-  const u8 *cipher_pos = token.buf[2];
-  const int cipher_len = token.len[2];
-
-  u32 tmp[32] = { 0 };
-
-  u8 *cipherbuf_ptr = (u8 *) tmp;
-
-  for (int i = 2016; i < cipher_len; i += 2)
-  {
-    const u8 p0 = cipher_pos[i + 0];
-    const u8 p1 = cipher_pos[i + 1];
-
-    *cipherbuf_ptr++ = hex_convert (p1) << 0
-                     | hex_convert (p0) << 4;
-  }
-
-  // iv   is stored at salt_buf 4 (length 16)
-  // data is stored at salt_buf 8 (length 16)
-
-  salt->salt_buf[ 4] = byte_swap_32 (tmp[0]);
-  salt->salt_buf[ 5] = byte_swap_32 (tmp[1]);
-  salt->salt_buf[ 6] = byte_swap_32 (tmp[2]);
-  salt->salt_buf[ 7] = byte_swap_32 (tmp[3]);
-
-  salt->salt_buf[ 8] = byte_swap_32 (tmp[4]);
-  salt->salt_buf[ 9] = byte_swap_32 (tmp[5]);
-  salt->salt_buf[10] = byte_swap_32 (tmp[6]);
-  salt->salt_buf[11] = byte_swap_32 (tmp[7]);
-
-  for (int i = 0, j = 0; i < 1040; i += 1, j += 2)
-  {
-    const u8 p0 = cipher_pos[j + 0];
-    const u8 p1 = cipher_pos[j + 1];
-
-    agilekey->cipher[i] = hex_convert (p1) << 0
-                        | hex_convert (p0) << 4;
-  }
-
-  /**
-   * digest buf
-   */
-
-  digest[0] = 0x10101010;
-  digest[1] = 0x10101010;
-  digest[2] = 0x10101010;
-  digest[3] = 0x10101010;
 
   return (PARSER_OK);
 }
@@ -10678,22 +10560,7 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
 
     snprintf (out_buf, out_size, "{ssha512}%02u$%s$%s", salt.salt_sign[0], (char *) salt.salt_buf, ptr_plain);
   }
-  else if (hash_mode == 6600)
-  {
-    agilekey_t *agilekeys = (agilekey_t *) esalts_buf;
 
-    agilekey_t *agilekey = &agilekeys[digest_cur];
-
-    salt.salt_buf[0] = byte_swap_32 (salt.salt_buf[0]);
-    salt.salt_buf[1] = byte_swap_32 (salt.salt_buf[1]);
-
-    u32 off = snprintf (out_buf, out_size, "%u:%08x%08x:", salt.salt_iter + 1, salt.salt_buf[0], salt.salt_buf[1]);
-
-    for (u32 i = 0, j = off; i < 1040; i++, j += 2)
-    {
-      snprintf (out_buf + j, out_len - j, "%02x", agilekey->cipher[i]);
-    }
-  }
   else if (hash_mode == 6700)
   {
     sha1aix_encode ((unsigned char *) digest_buf, (unsigned char *) ptr_plain);
@@ -13499,23 +13366,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case  6600:  hashconfig->hash_type      = HASH_TYPE_AES;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_AGILEKEY;
-                 hashconfig->dgst_size      = DGST_SIZE_4_5; // because kernel uses _SHA1_
-                 hashconfig->parse_func     = agilekey_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_06600;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case  6700:  hashconfig->hash_type      = HASH_TYPE_SHA1;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -14725,7 +14575,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   switch (hashconfig->hash_mode)
   {
-    case  6600: hashconfig->esalt_size = sizeof (agilekey_t);           break;
     case  7200: hashconfig->esalt_size = sizeof (pbkdf2_sha512_t);      break;
     case  7300: hashconfig->esalt_size = sizeof (rakp_t);               break;
     case  8200: hashconfig->esalt_size = sizeof (cloudkey_t);           break;
@@ -14761,7 +14610,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case  5800: hashconfig->tmp_size = sizeof (androidpin_tmp_t);         break;
     case  6400: hashconfig->tmp_size = sizeof (sha256aix_tmp_t);          break;
     case  6500: hashconfig->tmp_size = sizeof (sha512aix_tmp_t);          break;
-    case  6600: hashconfig->tmp_size = sizeof (agilekey_tmp_t);           break;
     case  6700: hashconfig->tmp_size = sizeof (sha1aix_tmp_t);            break;
     case  7200: hashconfig->tmp_size = sizeof (pbkdf2_sha512_tmp_t);      break;
     case  7400: hashconfig->tmp_size = sizeof (sha256crypt_tmp_t);        break;
@@ -14848,7 +14696,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
     case  3100: pw_max = 30;      break; // http://www.red-database-security.de/whitepaper/oracle_passwords.html
     case  6400: pw_max = PW_MAX;  break;
     case  6500: pw_max = PW_MAX;  break;
-    case  6600: pw_max = PW_MAX;  break;
     case  6700: pw_max = PW_MAX;  break;
     case  7200: pw_max = PW_MAX;  break;
     case  7700: pw_max = 8;       break; // https://www.daniel-berlin.de/security/sap-sec/password-hash-algorithms/
@@ -14877,18 +14724,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
     case 12900: pw_max = PW_MAX;  break;
     case 13200: pw_max = PW_MAX;  break;
     case 13600: pw_max = PW_MAX;  break;
-    case 14611: pw_max = PW_MAX;  break;
-    case 14612: pw_max = PW_MAX;  break;
-    case 14613: pw_max = PW_MAX;  break;
-    case 14621: pw_max = PW_MAX;  break;
-    case 14622: pw_max = PW_MAX;  break;
-    case 14623: pw_max = PW_MAX;  break;
-    case 14631: pw_max = PW_MAX;  break;
-    case 14632: pw_max = PW_MAX;  break;
-    case 14633: pw_max = PW_MAX;  break;
-    case 14641: pw_max = PW_MAX;  break;
-    case 14642: pw_max = PW_MAX;  break;
-    case 14643: pw_max = PW_MAX;  break;
     case 14700: pw_max = PW_MAX;  break;
     case 14800: pw_max = PW_MAX;  break;
     case 15100: pw_max = PW_MAX;  break;

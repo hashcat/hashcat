@@ -65,12 +65,6 @@ typedef struct pbkdf2_sha512
 
 } pbkdf2_sha512_t;
 
-typedef struct agilekey
-{
-  u8   cipher[1040];
-
-} agilekey_t;
-
 typedef struct rakp
 {
   u32 salt_buf[128];
@@ -215,16 +209,6 @@ typedef struct androidfde_tmp
   u32 out[10];
 
 } androidfde_tmp_t;
-
-typedef struct agilekey_tmp
-{
-  u32 ipad[5];
-  u32 opad[5];
-
-  u32 dgst[5];
-  u32 out[5];
-
-} agilekey_tmp_t;
 
 typedef struct mywallet_tmp
 {
@@ -430,7 +414,6 @@ typedef enum kern_type
   KERN_TYPE_MD5AIX                  = 6300,
   KERN_TYPE_SHA256AIX               = 6400,
   KERN_TYPE_SHA512AIX               = 6500,
-  KERN_TYPE_AGILEKEY                = 6600,
   KERN_TYPE_SHA1AIX                 = 6700,
   KERN_TYPE_GOST                    = 6900,
   KERN_TYPE_FORTIGATE               = 7000,
@@ -505,7 +488,6 @@ typedef enum rounds_count
    ROUNDS_SHA512AIX          = (1 << 6),
    ROUNDS_SHA256CRYPT        = 5000,
    ROUNDS_GRUB               = 10000,
-   ROUNDS_AGILEKEY           = 1000,
    ROUNDS_DRUPAL7            = (1 << 14), // $S$C
    ROUNDS_CLOUDKEY           = 40000,
    ROUNDS_NSEC3              = 1,
