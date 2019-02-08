@@ -487,7 +487,6 @@ typedef enum rounds_count
    ROUNDS_SHA256AIX          = (1 << 6),
    ROUNDS_SHA512AIX          = (1 << 6),
    ROUNDS_SHA256CRYPT        = 5000,
-   ROUNDS_GRUB               = 10000,
    ROUNDS_DRUPAL7            = (1 << 14), // $S$C
    ROUNDS_CLOUDKEY           = 40000,
    ROUNDS_NSEC3              = 1,

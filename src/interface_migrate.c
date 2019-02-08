@@ -100,7 +100,6 @@
   "   5800 | Samsung Android Password/PIN                     | Operating Systems",
   "  13800 | Windows Phone 8+ PIN/password                    | Operating Systems",
   "   8100 | Citrix NetScaler                                 | Operating Systems",
-  "   7200 | GRUB 2                                           | Operating Systems",
   "   9900 | Radmin2                                          | Operating Systems",
   "    125 | ArubaOS                                          | Operating Systems",
   "   7700 | SAP CODVN B (BCODE)                              | Enterprise Application Software (EAS)",
@@ -209,7 +208,6 @@ static const char *ST_HASH_06500 = "{ssha512}06$4653718755856803$O04nVHL7iU9Jguy
 static const char *ST_HASH_06700 = "{ssha1}06$5586485655847243$V5f1Ff1y4dr7AWeVSSdv6N52..Y";
 static const char *ST_HASH_06900 = "df226c2c6dcb1d995c0299a33a084b201544293c31fc3d279530121d36bbcea9";
 static const char *ST_HASH_07000 = "AK1FCIhM0IUIQVFJgcDFwLCMi7GppdwtRzMyDpFOFxdpH8=";
-static const char *ST_HASH_07200 = "grub.pbkdf2.sha512.1024.03510507805003756325721848020561235456073188241051876082416068104377357018503082587026352628170170411053726157658716047762755750.aac26b18c2b0c44bcf56514d46aabd52eea097d9c95122722087829982e9dd957b2b641cb1e015d4df16a84d0571e96cf6d3de6361431bdeed4ddb0940f2425b";
 static const char *ST_HASH_07300 = "3437343735333336383831353232323433383333303236303337333338363232303135383237333638363532373231343030313131333838323734373138363632343133333335353030353633373533333133313530363533303738343334313330303630343633333237373037383537333630303233303830303437323838333237313438363238343434383831363634323431333430383735323038:f4b376e25868751fc0264f573ff1fe50b65ce5a2";
 static const char *ST_HASH_07400 = "$5$7777657035274252$XftMj84MW.New1/ViLY5V4CM4Y7EBvfETaZsCW9vcJ8";
 static const char *ST_HASH_07700 = "027642760180$77EC38630C08DF8D";
@@ -320,7 +318,6 @@ static const char *HT_06500 = "AIX {ssha512}";
 static const char *HT_06700 = "AIX {ssha1}";
 static const char *HT_06900 = "GOST R 34.11-94";
 static const char *HT_07000 = "FortiGate (FortiOS)";
-static const char *HT_07200 = "GRUB 2";
 static const char *HT_07300 = "IPMI2 RAKP HMAC-SHA1";
 static const char *HT_07400 = "sha256crypt $5$, SHA256 (Unix)";
 static const char *HT_07700 = "SAP CODVN B (BCODE)";
@@ -10587,37 +10584,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       SIGNATURE_FORTIGATE,
       ptr_plain);
   }
-  else if (hash_mode == 7200)
-  {
-    u32 *ptr = digest_buf;
-
-    pbkdf2_sha512_t *pbkdf2_sha512s = (pbkdf2_sha512_t *) esalts_buf;
-
-    pbkdf2_sha512_t *pbkdf2_sha512  = &pbkdf2_sha512s[digest_cur];
-
-    u32 len_used = 0;
-
-    snprintf (out_buf + len_used, out_len - len_used, "%s%u.", SIGNATURE_SHA512GRUB, salt.salt_iter + 1);
-
-    len_used = strlen (out_buf);
-
-    unsigned char *salt_buf_ptr = (unsigned char *) pbkdf2_sha512->salt_buf;
-
-    for (u32 i = 0; i < salt.salt_len; i++, len_used += 2)
-    {
-      snprintf (out_buf + len_used, out_len - len_used, "%02x", salt_buf_ptr[i]);
-    }
-
-    snprintf (out_buf + len_used, out_len - len_used, ".%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
-      ptr[ 1], ptr[ 0],
-      ptr[ 3], ptr[ 2],
-      ptr[ 5], ptr[ 4],
-      ptr[ 7], ptr[ 6],
-      ptr[ 9], ptr[ 8],
-      ptr[11], ptr[10],
-      ptr[13], ptr[12],
-      ptr[15], ptr[14]);
-  }
   else if (hash_mode == 7300)
   {
     rakp_t *rakps = (rakp_t *) esalts_buf;
@@ -13418,24 +13384,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case  7200:  hashconfig->hash_type      = HASH_TYPE_SHA512;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_PBKDF2_SHA512;
-                 hashconfig->dgst_size      = DGST_SIZE_8_16;
-                 hashconfig->parse_func     = sha512grub_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_USES_BITS_64
-                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_07200;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case  7300:  hashconfig->hash_type      = HASH_TYPE_SHA1;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -14575,7 +14523,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   switch (hashconfig->hash_mode)
   {
-    case  7200: hashconfig->esalt_size = sizeof (pbkdf2_sha512_t);      break;
     case  7300: hashconfig->esalt_size = sizeof (rakp_t);               break;
     case  8200: hashconfig->esalt_size = sizeof (cloudkey_t);           break;
     case  8800: hashconfig->esalt_size = sizeof (androidfde_t);         break;
@@ -14611,7 +14558,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     case  6400: hashconfig->tmp_size = sizeof (sha256aix_tmp_t);          break;
     case  6500: hashconfig->tmp_size = sizeof (sha512aix_tmp_t);          break;
     case  6700: hashconfig->tmp_size = sizeof (sha1aix_tmp_t);            break;
-    case  7200: hashconfig->tmp_size = sizeof (pbkdf2_sha512_tmp_t);      break;
     case  7400: hashconfig->tmp_size = sizeof (sha256crypt_tmp_t);        break;
     case  7900: hashconfig->tmp_size = sizeof (drupal7_tmp_t);            break;
     case  8200: hashconfig->tmp_size = sizeof (pbkdf2_sha512_tmp_t);      break;
@@ -14697,7 +14643,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
     case  6400: pw_max = PW_MAX;  break;
     case  6500: pw_max = PW_MAX;  break;
     case  6700: pw_max = PW_MAX;  break;
-    case  7200: pw_max = PW_MAX;  break;
     case  7700: pw_max = 8;       break; // https://www.daniel-berlin.de/security/sap-sec/password-hash-algorithms/
     case  7800: pw_max = 40;      break; // https://www.daniel-berlin.de/security/sap-sec/password-hash-algorithms/
     case  7900: pw_max = PW_MAX;  break;
