@@ -3,23 +3,21 @@
  * License.....: MIT
  */
 
-// TODO: Auto-generated module. Please review and finish.
-#if 0
-
 #include "common.h"
 #include "types.h"
 #include "modules.h"
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "cpu_des.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
 static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
-static const u32   DGST_SIZE      = DGST_SIZE_4_4; // originally DGST_SIZE_4_;
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_;
+static const u32   DGST_SIZE      = DGST_SIZE_4_4; // originally DGST_SIZE_4_2;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_FORUM_SOFTWARE;
 static const char *HASH_NAME      = "Tripcode";
 static const u32   HASH_TYPE      = HASH_TYPE_GENERIC;
 static const u64   KERN_TYPE      = 16000;
@@ -45,6 +43,13 @@ u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return SALT_TYPE;       }
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
+
+u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 pw_max = 8; // Underlaying DES max
+
+  return pw_max;
+}
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
@@ -72,7 +77,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   add_leading_zero[0] = '.';
 
-  memcpy (add_leading_zero + 1, input_buf, 10);
+  memcpy (add_leading_zero + 1, line_buf, 10);
 
   u8 tmp_buf[100] = { 0 };
 
@@ -92,7 +97,26 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
- //TODO
+  const u32 *digest = (const u32 *) digest_buf;
+
+  u32 tmp[2];
+
+  tmp[0] = digest[0];
+  tmp[1] = digest[1];
+
+  u32 tt;
+
+  FP (tmp[1], tmp[0], tt);
+
+  char ptr_plain[32];
+
+  base64_encode (int_to_itoa64, (const u8 *) tmp, 8, (u8 *) ptr_plain);
+
+  ptr_plain[11] = 0;
+
+  const int line_len = snprintf (line_buf, line_size, "%s", ptr_plain + 1);
+
+  return line_len;
 }
 
 void module_init (module_ctx_t *module_ctx)
@@ -151,7 +175,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_potfile_disable          = MODULE_DEFAULT;
   module_ctx->module_potfile_keep_all_hashes  = MODULE_DEFAULT;
   module_ctx->module_pwdump_column            = MODULE_DEFAULT;
-  module_ctx->module_pw_max                   = MODULE_DEFAULT;
+  module_ctx->module_pw_max                   = module_pw_max;
   module_ctx->module_pw_min                   = MODULE_DEFAULT;
   module_ctx->module_salt_max                 = MODULE_DEFAULT;
   module_ctx->module_salt_min                 = MODULE_DEFAULT;
@@ -163,5 +187,3 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_unstable_warning         = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }
-
-#endif
