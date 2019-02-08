@@ -134,13 +134,6 @@ typedef struct jks_sha1
 
 } jks_sha1_t;
 
-typedef struct ethereum_pbkdf2
-{
-  u32 salt_buf[16];
-  u32 ciphertext[8];
-
-} ethereum_pbkdf2_t;
-
 typedef struct ethereum_presale
 {
   u32 iv[4];
@@ -491,7 +484,6 @@ typedef enum kern_type
   KERN_TYPE_ITUNES_BACKUP_10        = 14800,
   KERN_TYPE_NETBSD_SHA1CRYPT        = 15100,
   KERN_TYPE_JKS_SHA1                = 15500,
-  KERN_TYPE_ETHEREUM_PBKDF2         = 15600,
   KERN_TYPE_TACACS_PLUS             = 16100,
   KERN_TYPE_APPLE_SECURE_NOTES      = 16200,
   KERN_TYPE_ETHEREUM_PRESALE        = 16300,
@@ -550,7 +542,6 @@ typedef enum rounds_count
    ROUNDS_ITUNES102_BACKUP   = 10000,
    ROUNDS_ATLASSIAN          = 10000,
    ROUNDS_NETBSD_SHA1CRYPT   = 20000,
-   ROUNDS_ETHEREUM_PBKDF2    = 262144 - 1,
    ROUNDS_APPLE_SECURE_NOTES = 20000,
    ROUNDS_ETHEREUM_PRESALE   = 2000 - 1,
 
