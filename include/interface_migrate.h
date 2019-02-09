@@ -341,7 +341,6 @@ typedef enum kern_type
   KERN_TYPE_SHA1_SLT_PW_SLT         = 4900,
   KERN_TYPE_RIPEMD160               = 6000,
   KERN_TYPE_WHIRLPOOL               = 6100,
-  KERN_TYPE_SYBASEASE               = 8000,
   KERN_TYPE_NETSCALER               = 8100,
   KERN_TYPE_NSEC3                   = 8300,
   KERN_TYPE_WBB3                    = 8400,
