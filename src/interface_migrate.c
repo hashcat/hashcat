@@ -83,7 +83,6 @@
   "     22 | Juniper NetScreen/SSG (ScreenOS)                 | Operating Systems",
   "  15100 | Juniper/NetBSD sha1crypt                         | Operating Systems",
   "  13800 | Windows Phone 8+ PIN/password                    | Operating Systems",
-  "   8100 | Citrix NetScaler                                 | Operating Systems",
   "   9900 | Radmin2                                          | Operating Systems",
   "    125 | ArubaOS                                          | Operating Systems",
   "  10300 | SAP CODVN H (PWDSALTEDHASH) iSSHA-1              | Enterprise Application Software (EAS)",
@@ -174,7 +173,6 @@ static const char *ST_HASH_04700 = "92d85978d884eb1d99a51652b1139c8279fa8663";
 static const char *ST_HASH_04900 = "75d280ca9a0c2ee18729603104ead576d9ca6285:347070";
 static const char *ST_HASH_06000 = "012cb9b334ec1aeb71a9c8ce85586082467f7eb6";
 static const char *ST_HASH_06100 = "7ca8eaaaa15eaa4c038b4c47b9313e92da827c06940e69947f85bc0fbef3eb8fd254da220ad9e208b6b28f6bb9be31dd760f1fdb26112d83f87d96b416a4d258";
-static const char *ST_HASH_08100 = "1130725275da09ca13254957f2314a639818d44c37ef6d558";
 static const char *ST_HASH_08300 = "pi6a89u8tca930h8mvolklmesefc5gmn:.fnmlbsik.net:35537886:1";
 static const char *ST_HASH_08400 = "7f8d1951fe48ae3266980c2979c141f60e4415e5:5037864764153886517871426607441768004150";
 static const char *ST_HASH_08600 = "3dd2e1e5ac03e230243d58b8c5ada076";
@@ -263,7 +261,6 @@ static const char *HT_04700 = "sha1(md5($pass))";
 static const char *HT_04900 = "sha1($salt.$pass.$salt)";
 static const char *HT_06000 = "RIPEMD-160";
 static const char *HT_06100 = "Whirlpool";
-static const char *HT_08100 = "Citrix NetScaler";
 static const char *HT_08300 = "DNSSEC (NSEC3)";
 static const char *HT_08400 = "WBB3 (Woltlab Burning Board)";
 static const char *HT_08600 = "Lotus Notes/Domino 5";
@@ -357,7 +354,6 @@ static const char *SIGNATURE_MSSQL2012          = "0x0200";
 static const char *SIGNATURE_MYSQL_AUTH         = "$mysqlna$";
 static const char *SIGNATURE_MYWALLET           = "$blockchain$";
 static const char *SIGNATURE_MYWALLETV2         = "$blockchain$v2$";
-static const char *SIGNATURE_NETSCALER          = "1";
 static const char *SIGNATURE_OFFICE2007         = "$office$";
 static const char *SIGNATURE_OFFICE2010         = "$office$";
 static const char *SIGNATURE_PBKDF2_MD5         = "md5";
@@ -2544,74 +2540,6 @@ int mysql323_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   digest[1] = byte_swap_32 (digest[1]);
   digest[2] = 0;
   digest[3] = 0;
-
-  return (PARSER_OK);
-}
-
-int netscaler_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt  = 3;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_NETSCALER;
-
-  token.len[0]  = 1;
-  token.attr[0] = TOKEN_ATTR_FIXED_LENGTH
-                | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.len[1]  = 8;
-  token.attr[1] = TOKEN_ATTR_FIXED_LENGTH;
-
-  token.len[2]  = 40;
-  token.attr[2] = TOKEN_ATTR_FIXED_LENGTH
-                | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  // salt
-
-  const u8 *salt_pos = token.buf[1];
-  const int salt_len = token.len[1];
-
-  memcpy (salt->salt_buf, salt_pos, salt_len);
-
-  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
-  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
-
-  salt->salt_len = salt_len;
-
-  // hash
-
-  const u8 *hash_pos = token.buf[2];
-
-  digest[0] = hex_to_u32 (hash_pos +  0);
-  digest[1] = hex_to_u32 (hash_pos +  8);
-  digest[2] = hex_to_u32 (hash_pos + 16);
-  digest[3] = hex_to_u32 (hash_pos + 24);
-  digest[4] = hex_to_u32 (hash_pos + 32);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-  digest[4] = byte_swap_32 (digest[4]);
-
-  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
-  {
-    digest[0] -= SHA1M_A;
-    digest[1] -= SHA1M_B;
-    digest[2] -= SHA1M_C;
-    digest[3] -= SHA1M_D;
-    digest[4] -= SHA1M_E;
-  }
 
   return (PARSER_OK);
 }
@@ -8238,19 +8166,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (digest_buf[3]),
       byte_swap_32 (digest_buf[4]));
   }
-  else if (hash_mode == 8100)
-  {
-    salt.salt_buf[0] = byte_swap_32 (salt.salt_buf[0]);
-    salt.salt_buf[1] = byte_swap_32 (salt.salt_buf[1]);
-
-    snprintf (out_buf, out_size, "1%s%08x%08x%08x%08x%08x",
-      (unsigned char *) salt.salt_buf,
-      digest_buf[0],
-      digest_buf[1],
-      digest_buf[2],
-      digest_buf[3],
-      digest_buf[4]);
-  }
   else if (hash_mode == 8300)
   {
     char digest_buf_c[34] = { 0 };
@@ -10648,28 +10563,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 3;
                  hashconfig->st_hash        = ST_HASH_06100;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case  8100:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE;
-                 hashconfig->kern_type      = KERN_TYPE_NETSCALER;
-                 hashconfig->dgst_size      = DGST_SIZE_4_5;
-                 hashconfig->parse_func     = netscaler_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_PRECOMPUTE_MERKLE
-                                            | OPTI_TYPE_EARLY_SKIP
-                                            | OPTI_TYPE_NOT_ITERATED
-                                            | OPTI_TYPE_PREPENDED_SALT
-                                            | OPTI_TYPE_RAW_HASH;
-                 hashconfig->dgst_pos0      = 3;
-                 hashconfig->dgst_pos1      = 4;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 1;
-                 hashconfig->st_hash        = ST_HASH_08100;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
