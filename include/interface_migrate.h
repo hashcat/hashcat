@@ -207,16 +207,6 @@ typedef struct mywallet_tmp
 
 } mywallet_tmp_t;
 
-typedef struct sha1aix_tmp
-{
-  u32 ipad[5];
-  u32 opad[5];
-
-  u32 dgst[5];
-  u32 out[5];
-
-} sha1aix_tmp_t;
-
 typedef struct drupal7_tmp
 {
   u64  digest_buf[8];
@@ -375,7 +365,6 @@ typedef enum kern_type
   KERN_TYPE_RIPEMD160               = 6000,
   KERN_TYPE_WHIRLPOOL               = 6100,
   KERN_TYPE_MD5AIX                  = 6300,
-  KERN_TYPE_SHA1AIX                 = 6700,
   KERN_TYPE_GOST                    = 6900,
   KERN_TYPE_FORTIGATE               = 7000,
   KERN_TYPE_RAKP                    = 7300,
@@ -442,7 +431,6 @@ typedef enum kern_type
 
 typedef enum rounds_count
 {
-   ROUNDS_SHA1AIX            = (1 << 6),
    ROUNDS_SHA256CRYPT        = 5000,
    ROUNDS_DRUPAL7            = (1 << 14), // $S$C
    ROUNDS_NSEC3              = 1,
