@@ -170,16 +170,6 @@ typedef struct pdf17l8_tmp
 
 } pdf17l8_tmp_t;
 
-typedef struct sha256crypt_tmp
-{
-  // pure version
-
-  u32 alt_result[8];
-  u32 p_bytes[64];
-  u32 s_bytes[64];
-
-} sha256crypt_tmp_t;
-
 typedef struct androidfde_tmp
 {
   u32 ipad[5];
@@ -358,7 +348,6 @@ typedef enum kern_type
   KERN_TYPE_RIPEMD160               = 6000,
   KERN_TYPE_WHIRLPOOL               = 6100,
   KERN_TYPE_FORTIGATE               = 7000,
-  KERN_TYPE_SHA256CRYPT             = 7400,
   KERN_TYPE_SAPB                    = 7700,
   KERN_TYPE_SAPB_MANGLED            = 7701,
   KERN_TYPE_SAPG                    = 7800,
@@ -421,7 +410,6 @@ typedef enum kern_type
 
 typedef enum rounds_count
 {
-   ROUNDS_SHA256CRYPT        = 5000,
    ROUNDS_DRUPAL7            = (1 << 14), // $S$C
    ROUNDS_NSEC3              = 1,
    ROUNDS_ANDROIDFDE         = 2000,
