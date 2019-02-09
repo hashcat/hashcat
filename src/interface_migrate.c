@@ -89,12 +89,10 @@
   "   6400 | AIX {ssha256}                                    | Operating Systems",
   "   6500 | AIX {ssha512}                                    | Operating Systems",
   "    500 | Cisco-IOS $1$ (MD5)                              | Operating Systems",
-  "   5700 | Cisco-IOS type 4 (SHA256)                        | Operating Systems",
   "   9200 | Cisco-IOS $8$ (PBKDF2-SHA256)                    | Operating Systems",
   "     22 | Juniper NetScreen/SSG (ScreenOS)                 | Operating Systems",
   "  15100 | Juniper/NetBSD sha1crypt                         | Operating Systems",
   "   7000 | FortiGate (FortiOS)                              | Operating Systems",
-  "   5800 | Samsung Android Password/PIN                     | Operating Systems",
   "  13800 | Windows Phone 8+ PIN/password                    | Operating Systems",
   "   8100 | Citrix NetScaler                                 | Operating Systems",
   "   9900 | Radmin2                                          | Operating Systems",
@@ -190,8 +188,6 @@ static const char *ST_HASH_04521 = "c18e826af2a78c7b9b7261452613233417e65817:282
 static const char *ST_HASH_04522 = "9038129c474caa3f0de56f38db84033d0fe1d4b8:365563602032";
 static const char *ST_HASH_04700 = "92d85978d884eb1d99a51652b1139c8279fa8663";
 static const char *ST_HASH_04900 = "75d280ca9a0c2ee18729603104ead576d9ca6285:347070";
-static const char *ST_HASH_05700 = "2btjjy78REtmYkkW0csHUbJZOstRXoWdX1mGrmmfeHI";
-static const char *ST_HASH_05800 = "3edde1eb9e6679ccbc1ff3c417e8a475a2d2e279:7724368582277760";
 static const char *ST_HASH_06000 = "012cb9b334ec1aeb71a9c8ce85586082467f7eb6";
 static const char *ST_HASH_06100 = "7ca8eaaaa15eaa4c038b4c47b9313e92da827c06940e69947f85bc0fbef3eb8fd254da220ad9e208b6b28f6bb9be31dd760f1fdb26112d83f87d96b416a4d258";
 static const char *ST_HASH_06300 = "{smd5}17800721$WkGka7tXcrfpUQS6WOQyw/";
@@ -296,8 +292,6 @@ static const char *HT_04500 = "sha1(sha1($pass))";
 static const char *HT_04520 = "sha1($salt.sha1($pass))";
 static const char *HT_04700 = "sha1(md5($pass))";
 static const char *HT_04900 = "sha1($salt.$pass.$salt)";
-static const char *HT_05700 = "Cisco-IOS type 4 (SHA256)";
-static const char *HT_05800 = "Samsung Android Password/PIN";
 static const char *HT_06000 = "RIPEMD-160";
 static const char *HT_06100 = "Whirlpool";
 static const char *HT_06300 = "AIX {smd5}";
@@ -1628,55 +1622,6 @@ static void drupal7_encode (const u8 digest[64], u8 buf[43])
   buf[41] = int_to_itoa64 (l & 0x3f); l >>= 6;
   buf[42] = int_to_itoa64 (l & 0x3f); //l >>= 6;
   //buf[43] = int_to_itoa64 (l & 0x3f);
-}
-
-int cisco4_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  token_t token;
-
-  token.token_cnt = 1;
-
-  token.len[0]  = 43;
-  token.attr[0] = TOKEN_ATTR_FIXED_LENGTH
-                | TOKEN_ATTR_VERIFY_BASE64B;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *hash_pos = token.buf[0];
-  const int hash_len = token.len[0];
-
-  u8 tmp_buf[100] = { 0 };
-
-  base64_decode (itoa64_to_int, (const u8 *) hash_pos, hash_len, tmp_buf);
-
-  memcpy (digest, tmp_buf, 32);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-  digest[4] = byte_swap_32 (digest[4]);
-  digest[5] = byte_swap_32 (digest[5]);
-  digest[6] = byte_swap_32 (digest[6]);
-  digest[7] = byte_swap_32 (digest[7]);
-
-  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
-  {
-    digest[0] -= SHA256M_A;
-    digest[1] -= SHA256M_B;
-    digest[2] -= SHA256M_C;
-    digest[3] -= SHA256M_D;
-    digest[4] -= SHA256M_E;
-    digest[5] -= SHA256M_F;
-    digest[6] -= SHA256M_G;
-    digest[7] -= SHA256M_H;
-  }
-
-  return (PARSER_OK);
 }
 
 int arubaos_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
@@ -3432,56 +3377,6 @@ int whirlpool_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   digest[13] = byte_swap_32 (digest[13]);
   digest[14] = byte_swap_32 (digest[14]);
   digest[15] = byte_swap_32 (digest[15]);
-
-  return (PARSER_OK);
-}
-
-int androidpin_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt  = 2;
-
-  token.sep[0]     = hashconfig->separator;
-  token.len_min[0] = 40;
-  token.len_max[0] = 40;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len_min[1] = 1;
-  token.len_max[1] = 16;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *hash_pos = token.buf[0];
-
-  digest[0] = hex_to_u32 (hash_pos +  0);
-  digest[1] = hex_to_u32 (hash_pos +  8);
-  digest[2] = hex_to_u32 (hash_pos + 16);
-  digest[3] = hex_to_u32 (hash_pos + 24);
-  digest[4] = hex_to_u32 (hash_pos + 32);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-  digest[4] = byte_swap_32 (digest[4]);
-
-  const u8 *salt_pos = token.buf[1];
-  const int salt_len = token.len[1];
-
-  const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
-
-  if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  salt->salt_iter = ROUNDS_ANDROIDPIN - 1;
 
   return (PARSER_OK);
 }
@@ -10163,42 +10058,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (digest_buf[3]),
       byte_swap_32 (digest_buf[4]));
   }
-  else if (hash_mode == 5700)
-  {
-    // the encoder is a bit too intelligent, it expects the input data in the wrong BOM
-
-    digest_buf[0] = byte_swap_32 (digest_buf[0]);
-    digest_buf[1] = byte_swap_32 (digest_buf[1]);
-    digest_buf[2] = byte_swap_32 (digest_buf[2]);
-    digest_buf[3] = byte_swap_32 (digest_buf[3]);
-    digest_buf[4] = byte_swap_32 (digest_buf[4]);
-    digest_buf[5] = byte_swap_32 (digest_buf[5]);
-    digest_buf[6] = byte_swap_32 (digest_buf[6]);
-    digest_buf[7] = byte_swap_32 (digest_buf[7]);
-
-    memcpy (tmp_buf, digest_buf, 32);
-
-    base64_encode (int_to_itoa64, (const u8 *) tmp_buf, 32, (u8 *) ptr_plain);
-
-    ptr_plain[43] = 0;
-
-    snprintf (out_buf, out_size, "%s", ptr_plain);
-  }
-  else if (hash_mode == 5800)
-  {
-    digest_buf[0] = byte_swap_32 (digest_buf[0]);
-    digest_buf[1] = byte_swap_32 (digest_buf[1]);
-    digest_buf[2] = byte_swap_32 (digest_buf[2]);
-    digest_buf[3] = byte_swap_32 (digest_buf[3]);
-    digest_buf[4] = byte_swap_32 (digest_buf[4]);
-
-    snprintf (out_buf, out_size, "%08x%08x%08x%08x%08x",
-      digest_buf[0],
-      digest_buf[1],
-      digest_buf[2],
-      digest_buf[3],
-      digest_buf[4]);
-  }
   else if (hash_mode == 6400)
   {
     sha256aix_encode ((unsigned char *) digest_buf, (unsigned char *) ptr_plain);
@@ -12747,47 +12606,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case  5700:  hashconfig->hash_type      = HASH_TYPE_SHA256;
-                 hashconfig->salt_type      = SALT_TYPE_NONE;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
-                                            | OPTS_TYPE_PT_ADD80
-                                            | OPTS_TYPE_PT_ADDBITS15;
-                 hashconfig->kern_type      = KERN_TYPE_SHA256;
-                 hashconfig->dgst_size      = DGST_SIZE_4_8;
-                 hashconfig->parse_func     = cisco4_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_PRECOMPUTE_MERKLE
-                                            | OPTI_TYPE_EARLY_SKIP
-                                            | OPTI_TYPE_NOT_ITERATED
-                                            | OPTI_TYPE_NOT_SALTED
-                                            | OPTI_TYPE_RAW_HASH;
-                 hashconfig->dgst_pos0      = 3;
-                 hashconfig->dgst_pos1      = 7;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 6;
-                 hashconfig->st_hash        = ST_HASH_05700;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case  5800:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_ST_ADD80;
-                 hashconfig->kern_type      = KERN_TYPE_ANDROIDPIN;
-                 hashconfig->dgst_size      = DGST_SIZE_4_5;
-                 hashconfig->parse_func     = androidpin_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_05800;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case  6000:  hashconfig->hash_type      = HASH_TYPE_RIPEMD160;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -14078,7 +13896,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   switch (hashconfig->hash_mode)
   {
-    case  5800: hashconfig->tmp_size = sizeof (androidpin_tmp_t);         break;
     case  6400: hashconfig->tmp_size = sizeof (sha256aix_tmp_t);          break;
     case  6500: hashconfig->tmp_size = sizeof (sha512aix_tmp_t);          break;
     case  6700: hashconfig->tmp_size = sizeof (sha1aix_tmp_t);            break;
@@ -14125,8 +13942,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
   {
     switch (hashconfig->hash_mode)
     {
-      case  5800: pw_max = MIN (pw_max, 16); // pure kernel available
-                  break;
       case  6900: pw_max = MIN (pw_max, 32); // todo
                   break;
       case  7000: pw_max = MIN (pw_max, 19); // pure kernel available

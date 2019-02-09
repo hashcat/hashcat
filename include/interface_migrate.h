@@ -187,12 +187,6 @@ typedef struct sha256crypt_tmp
 
 } sha256crypt_tmp_t;
 
-typedef struct androidpin_tmp
-{
-  u32 digest_buf[5];
-
-} androidpin_tmp_t;
-
 typedef struct androidfde_tmp
 {
   u32 ipad[5];
@@ -398,7 +392,6 @@ typedef enum kern_type
   KERN_TYPE_SHA1_SLT_SHA1_PW        = 4520,
   KERN_TYPE_SHA1_MD5                = 4700,
   KERN_TYPE_SHA1_SLT_PW_SLT         = 4900,
-  KERN_TYPE_ANDROIDPIN              = 5800,
   KERN_TYPE_RIPEMD160               = 6000,
   KERN_TYPE_WHIRLPOOL               = 6100,
   KERN_TYPE_MD5AIX                  = 6300,
@@ -471,7 +464,6 @@ typedef enum kern_type
 
 typedef enum rounds_count
 {
-   ROUNDS_ANDROIDPIN         = 1024,
    ROUNDS_SHA1AIX            = (1 << 6),
    ROUNDS_SHA256AIX          = (1 << 6),
    ROUNDS_SHA512AIX          = (1 << 6),
