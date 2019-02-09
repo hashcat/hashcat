@@ -217,18 +217,6 @@ typedef struct sha1aix_tmp
 
 } sha1aix_tmp_t;
 
-
-
-typedef struct sha512aix_tmp
-{
-  u64  ipad[8];
-  u64  opad[8];
-
-  u64  dgst[8];
-  u64  out[8];
-
-} sha512aix_tmp_t;
-
 typedef struct drupal7_tmp
 {
   u64  digest_buf[8];
@@ -387,7 +375,6 @@ typedef enum kern_type
   KERN_TYPE_RIPEMD160               = 6000,
   KERN_TYPE_WHIRLPOOL               = 6100,
   KERN_TYPE_MD5AIX                  = 6300,
-  KERN_TYPE_SHA512AIX               = 6500,
   KERN_TYPE_SHA1AIX                 = 6700,
   KERN_TYPE_GOST                    = 6900,
   KERN_TYPE_FORTIGATE               = 7000,
@@ -456,7 +443,6 @@ typedef enum kern_type
 typedef enum rounds_count
 {
    ROUNDS_SHA1AIX            = (1 << 6),
-   ROUNDS_SHA512AIX          = (1 << 6),
    ROUNDS_SHA256CRYPT        = 5000,
    ROUNDS_DRUPAL7            = (1 << 14), // $S$C
    ROUNDS_NSEC3              = 1,
