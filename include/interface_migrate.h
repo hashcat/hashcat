@@ -190,12 +190,6 @@ typedef struct mywallet_tmp
 
 } mywallet_tmp_t;
 
-typedef struct drupal7_tmp
-{
-  u64  digest_buf[8];
-
-} drupal7_tmp_t;
-
 typedef struct lotus8_tmp
 {
   u32 ipad[5];
@@ -347,7 +341,6 @@ typedef enum kern_type
   KERN_TYPE_SHA1_SLT_PW_SLT         = 4900,
   KERN_TYPE_RIPEMD160               = 6000,
   KERN_TYPE_WHIRLPOOL               = 6100,
-  KERN_TYPE_DRUPAL7                 = 7900,
   KERN_TYPE_SYBASEASE               = 8000,
   KERN_TYPE_NETSCALER               = 8100,
   KERN_TYPE_NSEC3                   = 8300,
@@ -405,7 +398,6 @@ typedef enum kern_type
 
 typedef enum rounds_count
 {
-   ROUNDS_DRUPAL7            = (1 << 14), // $S$C
    ROUNDS_NSEC3              = 1,
    ROUNDS_ANDROIDFDE         = 2000,
    ROUNDS_LOTUS8             = 5000,

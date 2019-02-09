@@ -56,7 +56,6 @@
   "   2711 | vBulletin >= v3.8.5                              | Forums, CMS, E-Commerce, Frameworks",
   "   8400 | WBB3 (Woltlab Burning Board)                     | Forums, CMS, E-Commerce, Frameworks",
   "   2612 | PHPS                                             | Forums, CMS, E-Commerce, Frameworks",
-  "   7900 | Drupal7                                          | Forums, CMS, E-Commerce, Frameworks",
   "    124 | Django (SHA-1)                                   | Forums, CMS, E-Commerce, Frameworks",
   "  10000 | Django (PBKDF2-SHA256)                           | Forums, CMS, E-Commerce, Frameworks",
   "   3711 | MediaWiki B type                                 | Forums, CMS, E-Commerce, Frameworks",
@@ -178,7 +177,6 @@ static const char *ST_HASH_04700 = "92d85978d884eb1d99a51652b1139c8279fa8663";
 static const char *ST_HASH_04900 = "75d280ca9a0c2ee18729603104ead576d9ca6285:347070";
 static const char *ST_HASH_06000 = "012cb9b334ec1aeb71a9c8ce85586082467f7eb6";
 static const char *ST_HASH_06100 = "7ca8eaaaa15eaa4c038b4c47b9313e92da827c06940e69947f85bc0fbef3eb8fd254da220ad9e208b6b28f6bb9be31dd760f1fdb26112d83f87d96b416a4d258";
-static const char *ST_HASH_07900 = "$S$C20340258nzjDWpoQthrdNTR02f0pmev0K/5/Nx80WSkOQcPEQRh";
 static const char *ST_HASH_08000 = "0xc0071808773188715731b69bd4e310b4129913aaf657356c5bdf3c46f249ed42477b5c74af6eaac4d15a";
 static const char *ST_HASH_08100 = "1130725275da09ca13254957f2314a639818d44c37ef6d558";
 static const char *ST_HASH_08300 = "pi6a89u8tca930h8mvolklmesefc5gmn:.fnmlbsik.net:35537886:1";
@@ -270,7 +268,6 @@ static const char *HT_04700 = "sha1(md5($pass))";
 static const char *HT_04900 = "sha1($salt.$pass.$salt)";
 static const char *HT_06000 = "RIPEMD-160";
 static const char *HT_06100 = "Whirlpool";
-static const char *HT_07900 = "Drupal7";
 static const char *HT_08000 = "Sybase ASE";
 static const char *HT_08100 = "Citrix NetScaler";
 static const char *HT_08300 = "DNSSEC (NSEC3)";
@@ -357,7 +354,6 @@ static const char *SIGNATURE_CRAM_MD5           = "$cram_md5$";
 static const char *SIGNATURE_CRAM_MD5_DOVECOT   = "{CRAM-MD5}";
 static const char *SIGNATURE_DJANGOPBKDF2       = "pbkdf2_sha256";
 static const char *SIGNATURE_DJANGOSHA1         = "sha1$";
-static const char *SIGNATURE_DRUPAL7            = "$S$";
 static const char *SIGNATURE_ECRYPTFS           = "$ecryptfs$";
 static const char *SIGNATURE_EPISERVER          = "$episerver$";
 static const char *SIGNATURE_MEDIAWIKI_B        = "$B$";
@@ -519,224 +515,6 @@ static void netbsd_sha1crypt_encode (const u8 digest[20], u8 additional_byte, u8
   buf[26] = int_to_itoa64 (l & 0x3f); l >>= 6;
   buf[27] = int_to_itoa64 (l & 0x3f);
   buf[28] = 0;
-}
-
-static void drupal7_decode (u8 digest[64], const u8 buf[44])
-{
-  int l;
-
-  l  = itoa64_to_int (buf[ 0]) <<  0;
-  l |= itoa64_to_int (buf[ 1]) <<  6;
-  l |= itoa64_to_int (buf[ 2]) << 12;
-  l |= itoa64_to_int (buf[ 3]) << 18;
-
-  digest[ 0] = (l >>  0) & 0xff;
-  digest[ 1] = (l >>  8) & 0xff;
-  digest[ 2] = (l >> 16) & 0xff;
-
-  l  = itoa64_to_int (buf[ 4]) <<  0;
-  l |= itoa64_to_int (buf[ 5]) <<  6;
-  l |= itoa64_to_int (buf[ 6]) << 12;
-  l |= itoa64_to_int (buf[ 7]) << 18;
-
-  digest[ 3] = (l >>  0) & 0xff;
-  digest[ 4] = (l >>  8) & 0xff;
-  digest[ 5] = (l >> 16) & 0xff;
-
-  l  = itoa64_to_int (buf[ 8]) <<  0;
-  l |= itoa64_to_int (buf[ 9]) <<  6;
-  l |= itoa64_to_int (buf[10]) << 12;
-  l |= itoa64_to_int (buf[11]) << 18;
-
-  digest[ 6] = (l >>  0) & 0xff;
-  digest[ 7] = (l >>  8) & 0xff;
-  digest[ 8] = (l >> 16) & 0xff;
-
-  l  = itoa64_to_int (buf[12]) <<  0;
-  l |= itoa64_to_int (buf[13]) <<  6;
-  l |= itoa64_to_int (buf[14]) << 12;
-  l |= itoa64_to_int (buf[15]) << 18;
-
-  digest[ 9] = (l >>  0) & 0xff;
-  digest[10] = (l >>  8) & 0xff;
-  digest[11] = (l >> 16) & 0xff;
-
-  l  = itoa64_to_int (buf[16]) <<  0;
-  l |= itoa64_to_int (buf[17]) <<  6;
-  l |= itoa64_to_int (buf[18]) << 12;
-  l |= itoa64_to_int (buf[19]) << 18;
-
-  digest[12] = (l >>  0) & 0xff;
-  digest[13] = (l >>  8) & 0xff;
-  digest[14] = (l >> 16) & 0xff;
-
-  l  = itoa64_to_int (buf[20]) <<  0;
-  l |= itoa64_to_int (buf[21]) <<  6;
-  l |= itoa64_to_int (buf[22]) << 12;
-  l |= itoa64_to_int (buf[23]) << 18;
-
-  digest[15] = (l >>  0) & 0xff;
-  digest[16] = (l >>  8) & 0xff;
-  digest[17] = (l >> 16) & 0xff;
-
-  l  = itoa64_to_int (buf[24]) <<  0;
-  l |= itoa64_to_int (buf[25]) <<  6;
-  l |= itoa64_to_int (buf[26]) << 12;
-  l |= itoa64_to_int (buf[27]) << 18;
-
-  digest[18] = (l >>  0) & 0xff;
-  digest[19] = (l >>  8) & 0xff;
-  digest[20] = (l >> 16) & 0xff;
-
-  l  = itoa64_to_int (buf[28]) <<  0;
-  l |= itoa64_to_int (buf[29]) <<  6;
-  l |= itoa64_to_int (buf[30]) << 12;
-  l |= itoa64_to_int (buf[31]) << 18;
-
-  digest[21] = (l >>  0) & 0xff;
-  digest[22] = (l >>  8) & 0xff;
-  digest[23] = (l >> 16) & 0xff;
-
-  l  = itoa64_to_int (buf[32]) <<  0;
-  l |= itoa64_to_int (buf[33]) <<  6;
-  l |= itoa64_to_int (buf[34]) << 12;
-  l |= itoa64_to_int (buf[35]) << 18;
-
-  digest[24] = (l >>  0) & 0xff;
-  digest[25] = (l >>  8) & 0xff;
-  digest[26] = (l >> 16) & 0xff;
-
-  l  = itoa64_to_int (buf[36]) <<  0;
-  l |= itoa64_to_int (buf[37]) <<  6;
-  l |= itoa64_to_int (buf[38]) << 12;
-  l |= itoa64_to_int (buf[39]) << 18;
-
-  digest[27] = (l >>  0) & 0xff;
-  digest[28] = (l >>  8) & 0xff;
-  digest[29] = (l >> 16) & 0xff;
-
-  l  = itoa64_to_int (buf[40]) <<  0;
-  l |= itoa64_to_int (buf[41]) <<  6;
-  l |= itoa64_to_int (buf[42]) << 12;
-  l |= itoa64_to_int (buf[43]) << 18;
-
-  digest[30] = (l >>  0) & 0xff;
-  digest[31] = (l >>  8) & 0xff;
-  digest[32] = (l >> 16) & 0xff;
-
-  digest[33] = 0;
-  digest[34] = 0;
-  digest[35] = 0;
-  digest[36] = 0;
-  digest[37] = 0;
-  digest[38] = 0;
-  digest[39] = 0;
-  digest[40] = 0;
-  digest[41] = 0;
-  digest[42] = 0;
-  digest[43] = 0;
-  digest[44] = 0;
-  digest[45] = 0;
-  digest[46] = 0;
-  digest[47] = 0;
-  digest[48] = 0;
-  digest[49] = 0;
-  digest[50] = 0;
-  digest[51] = 0;
-  digest[52] = 0;
-  digest[53] = 0;
-  digest[54] = 0;
-  digest[55] = 0;
-  digest[56] = 0;
-  digest[57] = 0;
-  digest[58] = 0;
-  digest[59] = 0;
-  digest[60] = 0;
-  digest[61] = 0;
-  digest[62] = 0;
-  digest[63] = 0;
-}
-
-static void drupal7_encode (const u8 digest[64], u8 buf[43])
-{
-  int l;
-
-  l = (digest[ 0] << 0) | (digest[ 1] << 8) | (digest[ 2] << 16);
-
-  buf[ 0] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[ 1] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[ 2] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[ 3] = int_to_itoa64 (l & 0x3f);
-
-  l = (digest[ 3] << 0) | (digest[ 4] << 8) | (digest[ 5] << 16);
-
-  buf[ 4] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[ 5] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[ 6] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[ 7] = int_to_itoa64 (l & 0x3f);
-
-  l = (digest[ 6] << 0) | (digest[ 7] << 8) | (digest[ 8] << 16);
-
-  buf[ 8] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[ 9] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[10] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[11] = int_to_itoa64 (l & 0x3f);
-
-  l = (digest[ 9] << 0) | (digest[10] << 8) | (digest[11] << 16);
-
-  buf[12] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[13] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[14] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[15] = int_to_itoa64 (l & 0x3f);
-
-  l = (digest[12] << 0) | (digest[13] << 8) | (digest[14] << 16);
-
-  buf[16] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[17] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[18] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[19] = int_to_itoa64 (l & 0x3f);
-
-  l = (digest[15] << 0) | (digest[16] << 8) | (digest[17] << 16);
-
-  buf[20] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[21] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[22] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[23] = int_to_itoa64 (l & 0x3f);
-
-  l = (digest[18] << 0) | (digest[19] << 8) | (digest[20] << 16);
-
-  buf[24] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[25] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[26] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[27] = int_to_itoa64 (l & 0x3f);
-
-  l = (digest[21] << 0) | (digest[22] << 8) | (digest[23] << 16);
-
-  buf[28] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[29] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[30] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[31] = int_to_itoa64 (l & 0x3f);
-
-  l = (digest[24] << 0) | (digest[25] << 8) | (digest[26] << 16);
-
-  buf[32] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[33] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[34] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[35] = int_to_itoa64 (l & 0x3f);
-
-  l = (digest[27] << 0) | (digest[28] << 8) | (digest[29] << 16);
-
-  buf[36] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[37] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[38] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[39] = int_to_itoa64 (l & 0x3f);
-
-  l = (digest[30] << 0) | (digest[31] << 8) | (digest[32] << 16);
-
-  buf[40] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[41] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[42] = int_to_itoa64 (l & 0x3f); //l >>= 6;
-  //buf[43] = int_to_itoa64 (l & 0x3f);
 }
 
 int arubaos_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
@@ -2741,85 +2519,6 @@ int sha512b64s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
     ptr[salt_len] = 0x80;
   }
-
-  return (PARSER_OK);
-}
-
-int drupal7_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u64 *digest = (u64 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt  = 4;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_DRUPAL7;
-
-  token.len[0]     = 3;
-  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.len[1]     = 1;
-  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64B;
-
-  token.len[2]     = 8;
-  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH;
-
-  token.len[3]     = 43;
-  token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64B;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  // iter
-
-  const u8 *iter_pos = token.buf[1];
-
-  u32 salt_iter = 1u << itoa64_to_int (iter_pos[0]);
-
-  if (salt_iter > 0x80000000) return (PARSER_SALT_ITERATION);
-
-  memcpy ((u8 *) salt->salt_sign, input_buf, 4);
-
-  salt->salt_iter = salt_iter;
-
-  // salt
-
-  const u8 *salt_pos = token.buf[2];
-  const int salt_len = token.len[2];
-
-  memcpy ((u8 *) salt->salt_buf, salt_pos, salt_len);
-
-  salt->salt_len = salt_len;
-
-  // hash
-
-  const u8 *hash_pos = token.buf[3];
-
-  drupal7_decode ((u8 *) digest, hash_pos);
-
-  // ugly hack start
-
-  u8 *tmp = (u8 *) salt->salt_buf_pc;
-
-  tmp[0] = hash_pos[42];
-
-  // ugly hack end
-
-  digest[ 0] = byte_swap_64 (digest[ 0]);
-  digest[ 1] = byte_swap_64 (digest[ 1]);
-  digest[ 2] = byte_swap_64 (digest[ 2]);
-  digest[ 3] = byte_swap_64 (digest[ 3]);
-  digest[ 4] = 0;
-  digest[ 5] = 0;
-  digest[ 6] = 0;
-  digest[ 7] = 0;
 
   return (PARSER_OK);
 }
@@ -8609,22 +8308,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (digest_buf[3]),
       byte_swap_32 (digest_buf[4]));
   }
-  else if (hash_mode == 7900)
-  {
-    drupal7_encode ((unsigned char *) digest_buf64, (unsigned char *) ptr_plain);
-
-    // ugly hack start
-
-    char *tmp = (char *) salt.salt_buf_pc;
-
-    ptr_plain[42] = tmp[0];
-
-    // ugly hack end
-
-    ptr_plain[43] = 0;
-
-    snprintf (out_buf, out_size, "%s%s%s", (char *) salt.salt_sign, (char *) salt.salt_buf, ptr_plain);
-  }
   else if (hash_mode == 8000)
   {
     snprintf (out_buf, out_size, "0xc007%s%08x%08x%08x%08x%08x%08x%08x%08x",
@@ -11076,23 +10759,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case  7900:  hashconfig->hash_type      = HASH_TYPE_SHA512;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_DRUPAL7;
-                 hashconfig->dgst_size      = DGST_SIZE_8_8;
-                 hashconfig->parse_func     = drupal7_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_USES_BITS_64;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_07900;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case  8000:  hashconfig->hash_type      = HASH_TYPE_SHA256;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -12112,7 +11778,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   switch (hashconfig->hash_mode)
   {
-    case  7900: hashconfig->tmp_size = sizeof (drupal7_tmp_t);            break;
     case  8800: hashconfig->tmp_size = sizeof (androidfde_tmp_t);         break;
     case  9100: hashconfig->tmp_size = sizeof (lotus8_tmp_t);             break;
     case  9200: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
@@ -12183,7 +11848,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
   switch (hashconfig->hash_mode)
   {
     case   112: pw_max = 30;      break; // https://www.toadworld.com/platforms/oracle/b/weblog/archive/2013/11/12/oracle-12c-passwords
-    case  7900: pw_max = PW_MAX;  break;
     case  8000: pw_max = 30;      break; // http://infocenter.sybase.com/help/index.jsp?topic=/com.sybase.infocenter.dc31654.1570/html/sag1/CIHIBDBA.htm
     case  8600: pw_max = 16;      break; // Lotus Notes/Domino 5 limits itself to 16
     case  8700: pw_max = 64;      break; // https://www.ibm.com/support/knowledgecenter/en/SSKTWP_8.5.3/com.ibm.notes85.client.doc/fram_limits_of_notes_r.html
