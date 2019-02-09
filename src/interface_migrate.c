@@ -43,7 +43,6 @@
   "  11900 | PBKDF2-HMAC-MD5                                  | Generic KDF",
   "  10900 | PBKDF2-HMAC-SHA256                               | Generic KDF",
   "  12100 | PBKDF2-HMAC-SHA512                               | Generic KDF",
-  "   8300 | DNSSEC (NSEC3)                                   | Network Protocols",
   "  10200 | CRAM-MD5                                         | Network Protocols",
   "  11100 | PostgreSQL CRAM (MD5)                            | Network Protocols",
   "  11200 | MySQL CRAM (SHA1)                                | Network Protocols",
@@ -173,7 +172,6 @@ static const char *ST_HASH_04700 = "92d85978d884eb1d99a51652b1139c8279fa8663";
 static const char *ST_HASH_04900 = "75d280ca9a0c2ee18729603104ead576d9ca6285:347070";
 static const char *ST_HASH_06000 = "012cb9b334ec1aeb71a9c8ce85586082467f7eb6";
 static const char *ST_HASH_06100 = "7ca8eaaaa15eaa4c038b4c47b9313e92da827c06940e69947f85bc0fbef3eb8fd254da220ad9e208b6b28f6bb9be31dd760f1fdb26112d83f87d96b416a4d258";
-static const char *ST_HASH_08300 = "pi6a89u8tca930h8mvolklmesefc5gmn:.fnmlbsik.net:35537886:1";
 static const char *ST_HASH_08400 = "7f8d1951fe48ae3266980c2979c141f60e4415e5:5037864764153886517871426607441768004150";
 static const char *ST_HASH_08600 = "3dd2e1e5ac03e230243d58b8c5ada076";
 static const char *ST_HASH_08700 = "(GDJ0nDZI8l8RJzlRbemg)";
@@ -261,7 +259,6 @@ static const char *HT_04700 = "sha1(md5($pass))";
 static const char *HT_04900 = "sha1($salt.$pass.$salt)";
 static const char *HT_06000 = "RIPEMD-160";
 static const char *HT_06100 = "Whirlpool";
-static const char *HT_08300 = "DNSSEC (NSEC3)";
 static const char *HT_08400 = "WBB3 (Woltlab Burning Board)";
 static const char *HT_08600 = "Lotus Notes/Domino 5";
 static const char *HT_08700 = "Lotus Notes/Domino 6";
@@ -2540,112 +2537,6 @@ int mysql323_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   digest[1] = byte_swap_32 (digest[1]);
   digest[2] = 0;
   digest[3] = 0;
-
-  return (PARSER_OK);
-}
-
-int nsec3_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt  = 4;
-
-  token.sep[0]     = ':';
-  token.len_min[0] = 32;
-  token.len_max[0] = 32;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.sep[1]     = ':';
-  token.len_min[1] = 1;
-  token.len_max[1] = 32;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.sep[2]     = ':';
-  token.len_min[2] = 1;
-  token.len_max[2] = 32;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.sep[3]     = ':';
-  token.len_min[3] = 1;
-  token.len_max[3] = 6;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  // ok, the plan for this algorithm is the following:
-  // we have 2 salts here, the domain-name and a random salt
-  // while both are used in the initial transformation,
-  // only the random salt is used in the following iterations
-  // so we create two buffer, one that includes domain-name (stored into salt_buf_pc[])
-  // and one that includes only the real salt (stored into salt_buf[]).
-  // the domain-name length is put into array position 7 of salt_buf_pc[] since there is not salt_pc_len
-
-  const u8 *hash_pos = token.buf[0];
-  const int hash_len = token.len[0];
-
-  u8 tmp_buf[100] = { 0 };
-
-  base32_decode (itoa32_to_int, hash_pos, hash_len, tmp_buf);
-
-  memcpy (digest, tmp_buf, 20);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-  digest[4] = byte_swap_32 (digest[4]);
-
-  // domain
-
-  const u8 *domain_pos = token.buf[1];
-  const int domain_len = token.len[1];
-
-  u8 *salt_buf_pc_ptr = (u8 *) salt->salt_buf_pc;
-
-  memcpy (salt_buf_pc_ptr, domain_pos, domain_len);
-
-  if (salt_buf_pc_ptr[0] != '.') return (PARSER_SALT_VALUE);
-
-  u8 *len_ptr = salt_buf_pc_ptr;
-
-  *len_ptr = 0;
-
-  for (int i = 1; i < domain_len; i++)
-  {
-    if (salt_buf_pc_ptr[i] == '.')
-    {
-      len_ptr = salt_buf_pc_ptr + i;
-
-      *len_ptr = 0;
-    }
-    else
-    {
-      *len_ptr += 1;
-    }
-  }
-
-  salt->salt_len_pc = domain_len;
-
-  // "real" salt
-
-  const u8 *salt_pos = token.buf[2];
-  const int salt_len = token.len[2];
-
-  const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
-
-  if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  // iteration
-
-  const u8 *iter_pos = token.buf[3];
-
-  salt->salt_iter = hc_strtoul ((const char *) iter_pos, NULL, 10);
 
   return (PARSER_OK);
 }
@@ -8166,43 +8057,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (digest_buf[3]),
       byte_swap_32 (digest_buf[4]));
   }
-  else if (hash_mode == 8300)
-  {
-    char digest_buf_c[34] = { 0 };
-
-    digest_buf[0] = byte_swap_32 (digest_buf[0]);
-    digest_buf[1] = byte_swap_32 (digest_buf[1]);
-    digest_buf[2] = byte_swap_32 (digest_buf[2]);
-    digest_buf[3] = byte_swap_32 (digest_buf[3]);
-    digest_buf[4] = byte_swap_32 (digest_buf[4]);
-
-    base32_encode (int_to_itoa32, (const u8 *) digest_buf, 20, (u8 *) digest_buf_c);
-
-    digest_buf_c[32] = 0;
-
-    // domain
-
-    const u32 salt_pc_len = salt.salt_len_pc;
-
-    char domain_buf_c[33] = { 0 };
-
-    memcpy (domain_buf_c, (char *) salt.salt_buf_pc, salt_pc_len);
-
-    for (u32 i = 0; i < salt_pc_len; i++)
-    {
-      const char next = domain_buf_c[i];
-
-      domain_buf_c[i] = '.';
-
-      i += next;
-    }
-
-    domain_buf_c[salt_pc_len] = 0;
-
-    // final
-
-    snprintf (out_buf, out_size, "%s:%s:%s:%u", digest_buf_c, domain_buf_c, (char *) salt.salt_buf, salt.salt_iter);
-  }
   else if (hash_mode == 2612)
   {
     snprintf (out_buf, out_size, "%s%s$%08x%08x%08x%08x",
@@ -10563,24 +10417,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 3;
                  hashconfig->st_hash        = ST_HASH_06100;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case  8300:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
-                                            | OPTS_TYPE_ST_HEX
-                                            | OPTS_TYPE_ST_ADD80;
-                 hashconfig->kern_type      = KERN_TYPE_NSEC3;
-                 hashconfig->dgst_size      = DGST_SIZE_4_5;
-                 hashconfig->parse_func     = nsec3_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
-                 hashconfig->dgst_pos0      = 3;
-                 hashconfig->dgst_pos1      = 4;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 1;
-                 hashconfig->st_hash        = ST_HASH_08300;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
