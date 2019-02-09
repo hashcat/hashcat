@@ -364,7 +364,6 @@ typedef enum kern_type
   KERN_TYPE_SHA1_SLT_PW_SLT         = 4900,
   KERN_TYPE_RIPEMD160               = 6000,
   KERN_TYPE_WHIRLPOOL               = 6100,
-  KERN_TYPE_GOST                    = 6900,
   KERN_TYPE_FORTIGATE               = 7000,
   KERN_TYPE_RAKP                    = 7300,
   KERN_TYPE_SHA256CRYPT             = 7400,
