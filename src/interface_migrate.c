@@ -89,10 +89,6 @@
   "   8100 | Citrix NetScaler                                 | Operating Systems",
   "   9900 | Radmin2                                          | Operating Systems",
   "    125 | ArubaOS                                          | Operating Systems",
-  "   7700 | SAP CODVN B (BCODE)                              | Enterprise Application Software (EAS)",
-  "   7701 | SAP CODVN B (BCODE) via RFC_READ_TABLE           | Enterprise Application Software (EAS)",
-  "   7800 | SAP CODVN F/G (PASSCODE)                         | Enterprise Application Software (EAS)",
-  "   7801 | SAP CODVN F/G (PASSCODE) via RFC_READ_TABLE      | Enterprise Application Software (EAS)",
   "  10300 | SAP CODVN H (PWDSALTEDHASH) iSSHA-1              | Enterprise Application Software (EAS)",
   "   8600 | Lotus Notes/Domino 5                             | Enterprise Application Software (EAS)",
   "   8700 | Lotus Notes/Domino 6                             | Enterprise Application Software (EAS)",
@@ -182,10 +178,6 @@ static const char *ST_HASH_04700 = "92d85978d884eb1d99a51652b1139c8279fa8663";
 static const char *ST_HASH_04900 = "75d280ca9a0c2ee18729603104ead576d9ca6285:347070";
 static const char *ST_HASH_06000 = "012cb9b334ec1aeb71a9c8ce85586082467f7eb6";
 static const char *ST_HASH_06100 = "7ca8eaaaa15eaa4c038b4c47b9313e92da827c06940e69947f85bc0fbef3eb8fd254da220ad9e208b6b28f6bb9be31dd760f1fdb26112d83f87d96b416a4d258";
-static const char *ST_HASH_07700 = "027642760180$77EC38630C08DF8D";
-static const char *ST_HASH_07701 = "027642760180$77EC386300000000";
-static const char *ST_HASH_07800 = "604020408266$32837BA7B97672BA4E5AC74767A4E6E1AE802651";
-static const char *ST_HASH_07801 = "604020408266$32837BA7B97672BA4E5A00000000000000000000";
 static const char *ST_HASH_07900 = "$S$C20340258nzjDWpoQthrdNTR02f0pmev0K/5/Nx80WSkOQcPEQRh";
 static const char *ST_HASH_08000 = "0xc0071808773188715731b69bd4e310b4129913aaf657356c5bdf3c46f249ed42477b5c74af6eaac4d15a";
 static const char *ST_HASH_08100 = "1130725275da09ca13254957f2314a639818d44c37ef6d558";
@@ -278,10 +270,6 @@ static const char *HT_04700 = "sha1(md5($pass))";
 static const char *HT_04900 = "sha1($salt.$pass.$salt)";
 static const char *HT_06000 = "RIPEMD-160";
 static const char *HT_06100 = "Whirlpool";
-static const char *HT_07700 = "SAP CODVN B (BCODE)";
-static const char *HT_07701 = "SAP CODVN B (BCODE) mangled from RFC_READ_TABLE";
-static const char *HT_07800 = "SAP CODVN F/G (PASSCODE)";
-static const char *HT_07801 = "SAP CODVN F/G (PASSCODE) mangled from RFC_READ_TABLE";
 static const char *HT_07900 = "Drupal7";
 static const char *HT_08000 = "Sybase ASE";
 static const char *HT_08100 = "Citrix NetScaler";
@@ -2753,141 +2741,6 @@ int sha512b64s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
 
     ptr[salt_len] = 0x80;
   }
-
-  return (PARSER_OK);
-}
-
-int sapb_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt  = 2;
-
-  token.len_min[0] = 1;
-  token.len_max[0] = 40;
-  token.sep[0]     = '$';
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.len_min[1] = 16;
-  token.len_max[1] = 16;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  /**
-   * salt
-   */
-
-  const u8 *salt_pos = token.buf[0];
-  const int salt_len = token.len[0];
-
-  int user_len = 0;
-
-  for (int i = 0; i < salt_len; i++)
-  {
-    if (salt_pos[i] == ' ') continue;
-
-    user_len++;
-  }
-
-  // SAP user names cannot be longer than 12 characters
-  if (user_len > 12) return (PARSER_SALT_LENGTH);
-
-  // SAP user name cannot start with ! or ?
-  if (salt_pos[0] == '!' || salt_pos[0] == '?') return (PARSER_SALT_VALUE);
-
-  const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
-
-  if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  /**
-   * hash
-   */
-
-  const u8 *hash_pos = token.buf[1];
-
-  digest[0] = hex_to_u32 (hash_pos + 0);
-  digest[1] = hex_to_u32 (hash_pos + 8);
-  digest[2] = 0;
-  digest[3] = 0;
-
-  return (PARSER_OK);
-}
-
-int sapg_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt  = 2;
-
-  token.len_min[0] = 1;
-  token.len_max[0] = 40;
-  token.sep[0]     = '$';
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.len_min[1] = 40;
-  token.len_max[1] = 40;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  /**
-   * salt
-   */
-
-  const u8 *salt_pos = token.buf[0];
-  const int salt_len = token.len[0];
-
-  int user_len = 0;
-
-  for (int i = 0; i < salt_len; i++)
-  {
-    if (salt_pos[i] == ' ') continue;
-
-    user_len++;
-  }
-
-  // SAP user names cannot be longer than 12 characters
-  if (user_len > 12) return (PARSER_SALT_LENGTH);
-
-  // SAP user name cannot start with ! or ?
-  if (salt_pos[0] == '!' || salt_pos[0] == '?') return (PARSER_SALT_VALUE);
-
-  const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
-
-  if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  /**
-   * hash
-   */
-
-  const u8 *hash_pos = token.buf[1];
-
-  digest[0] = hex_to_u32 ((const u8 *) &hash_pos[ 0]);
-  digest[1] = hex_to_u32 ((const u8 *) &hash_pos[ 8]);
-  digest[2] = hex_to_u32 ((const u8 *) &hash_pos[16]);
-  digest[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
-  digest[4] = hex_to_u32 ((const u8 *) &hash_pos[32]);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-  digest[4] = byte_swap_32 (digest[4]);
 
   return (PARSER_OK);
 }
@@ -8756,23 +8609,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (digest_buf[3]),
       byte_swap_32 (digest_buf[4]));
   }
-  else if ((hash_mode == 7700) || (hash_mode == 7701))
-  {
-    snprintf (out_buf, out_size, "%s$%08X%08X",
-      (char *) salt.salt_buf,
-      digest_buf[0],
-      digest_buf[1]);
-  }
-  else if ((hash_mode == 7800) || (hash_mode == 7801))
-  {
-    snprintf (out_buf, out_size, "%s$%08X%08X%08X%08X%08X",
-      (char *) salt.salt_buf,
-      digest_buf[0],
-      digest_buf[1],
-      digest_buf[2],
-      digest_buf[3],
-      digest_buf[4]);
-  }
   else if (hash_mode == 7900)
   {
     drupal7_encode ((unsigned char *) digest_buf64, (unsigned char *) ptr_plain);
@@ -11240,86 +11076,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case  7700:  hashconfig->hash_type      = HASH_TYPE_SAPB;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PT_UPPER
-                                            | OPTS_TYPE_ST_UPPER;
-                 hashconfig->kern_type      = KERN_TYPE_SAPB;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
-                 hashconfig->parse_func     = sapb_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_NOT_ITERATED;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_07700;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case  7701:  hashconfig->hash_type      = HASH_TYPE_SAPB;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PT_UPPER
-                                            | OPTS_TYPE_ST_UPPER;
-                 hashconfig->kern_type      = KERN_TYPE_SAPB_MANGLED;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
-                 hashconfig->parse_func     = sapb_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_NOT_ITERATED;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_07701;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case  7800:  hashconfig->hash_type      = HASH_TYPE_SAPG;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
-                                            | OPTS_TYPE_ST_ADD80
-                                            | OPTS_TYPE_ST_UPPER;
-                 hashconfig->kern_type      = KERN_TYPE_SAPG;
-                 hashconfig->dgst_size      = DGST_SIZE_4_5;
-                 hashconfig->parse_func     = sapg_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_NOT_ITERATED;
-                 hashconfig->dgst_pos0      = 3;
-                 hashconfig->dgst_pos1      = 4;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 1;
-                 hashconfig->st_hash        = ST_HASH_07800;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case  7801:  hashconfig->hash_type      = HASH_TYPE_SAPG;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
-                                            | OPTS_TYPE_ST_ADD80
-                                            | OPTS_TYPE_ST_UPPER;
-                 hashconfig->kern_type      = KERN_TYPE_SAPG_MANGLED;
-                 hashconfig->dgst_size      = DGST_SIZE_4_5;
-                 hashconfig->parse_func     = sapg_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_NOT_ITERATED;
-                 hashconfig->dgst_pos0      = 3;
-                 hashconfig->dgst_pos1      = 4;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 1;
-                 hashconfig->st_hash        = ST_HASH_07801;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case  7900:  hashconfig->hash_type      = HASH_TYPE_SHA512;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -12427,8 +12183,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
   switch (hashconfig->hash_mode)
   {
     case   112: pw_max = 30;      break; // https://www.toadworld.com/platforms/oracle/b/weblog/archive/2013/11/12/oracle-12c-passwords
-    case  7700: pw_max = 8;       break; // https://www.daniel-berlin.de/security/sap-sec/password-hash-algorithms/
-    case  7800: pw_max = 40;      break; // https://www.daniel-berlin.de/security/sap-sec/password-hash-algorithms/
     case  7900: pw_max = PW_MAX;  break;
     case  8000: pw_max = 30;      break; // http://infocenter.sybase.com/help/index.jsp?topic=/com.sybase.infocenter.dc31654.1570/html/sag1/CIHIBDBA.htm
     case  8600: pw_max = 16;      break; // Lotus Notes/Domino 5 limits itself to 16

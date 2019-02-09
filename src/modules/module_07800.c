@@ -11,25 +11,24 @@
 #include "shared.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
-static const u32   DGST_POS0      = 0;
-static const u32   DGST_POS1      = 1;
+static const u32   DGST_POS0      = 3;
+static const u32   DGST_POS1      = 4;
 static const u32   DGST_POS2      = 2;
-static const u32   DGST_POS3      = 3;
-static const u32   DGST_SIZE      = DGST_SIZE_4_4; // originally DGST_SIZE_4_2;
+static const u32   DGST_POS3      = 1;
+static const u32   DGST_SIZE      = DGST_SIZE_4_5;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_EAS;
-static const char *HASH_NAME      = "SAP CODVN B (BCODE) mangled from RFC_READ_TABLE";
+static const char *HASH_NAME      = "SAP CODVN F/G (PASSCODE)";
 static const u32   HASH_TYPE      = HASH_TYPE_GENERIC;
-static const u64   KERN_TYPE      = 7701;
+static const u64   KERN_TYPE      = 7800;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_INIT
                                   | OPTI_TYPE_NOT_ITERATED;
-static const u64   OPTS_TYPE      = OPTS_TYPE_STATE_BUFFER_LE
-                                  | OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_PT_UPPER
+static const u32   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_BE
+                                  | OPTS_TYPE_ST_ADD80
                                   | OPTS_TYPE_ST_UPPER;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "027642760180$77EC386300000000";
+static const char *ST_HASH        = "604020408266$32837BA7B97672BA4E5AC74767A4E6E1AE802651";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -47,6 +46,13 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
+u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 pw_max = 40; // https://www.daniel-berlin.de/security/sap-sec/password-hash-algorithms/
+
+  return pw_max;
+}
+
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   u32 *digest = (u32 *) digest_buf;
@@ -60,8 +66,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.sep[0]     = '$';
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  token.len_min[1] = 16;
-  token.len_max[1] = 16;
+  token.len_min[1] = 40;
+  token.len_max[1] = 40;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
@@ -101,10 +107,17 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *hash_pos = token.buf[1];
 
-  digest[0] = hex_to_u32 (hash_pos + 0);
-  digest[1] = hex_to_u32 (hash_pos + 8);
-  digest[2] = 0;
-  digest[3] = 0;
+  digest[0] = hex_to_u32 ((const u8 *) &hash_pos[ 0]);
+  digest[1] = hex_to_u32 ((const u8 *) &hash_pos[ 8]);
+  digest[2] = hex_to_u32 ((const u8 *) &hash_pos[16]);
+  digest[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
+  digest[4] = hex_to_u32 ((const u8 *) &hash_pos[32]);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
 
   return (PARSER_OK);
 }
@@ -119,7 +132,13 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   tmp_salt[salt->salt_len] = 0;
 
-  const int line_len = snprintf (line_buf, line_size, "%s$%08X%08X", tmp_salt, byte_swap_32 (digest[0]), byte_swap_32 (digest[1]));
+  const int line_len = snprintf (line_buf, line_size, "%s$%08X%08X%08X%08X%08X",
+    tmp_salt,
+    digest[0],
+    digest[1],
+    digest[2],
+    digest[3],
+    digest[4]);
 
   return line_len;
 }
