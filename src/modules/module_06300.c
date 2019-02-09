@@ -225,7 +225,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   md5crypt_encode (digest_buf, tmp);
 
-  const int line_len = snprintf (line_buf, line_size, "{smd5}%s$%s", (char *) salt->salt_buf, tmp);
+  const int line_len = snprintf (line_buf, line_size, "%s%s$%s", SIGNATURE_MD5AIX, (char *) salt->salt_buf, tmp);
 
   return line_len;
 }

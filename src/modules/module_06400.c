@@ -348,7 +348,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   sha256aix_encode ((unsigned char *) tmp, (unsigned char *) ptr_plain);
 
-  const int line_len = snprintf (line_buf, line_size, "{ssha256}%02u$%s$%s", salt->salt_sign[0], (char *) salt->salt_buf, ptr_plain);
+  const int line_len = snprintf (line_buf, line_size, "%s%02u$%s$%s", SIGNATURE_SHA256AIX, salt->salt_sign[0], (char *) salt->salt_buf, ptr_plain);
 
   return line_len;
 }
