@@ -217,15 +217,7 @@ typedef struct sha1aix_tmp
 
 } sha1aix_tmp_t;
 
-typedef struct sha256aix_tmp
-{
-  u32 ipad[8];
-  u32 opad[8];
 
-  u32 dgst[8];
-  u32 out[8];
-
-} sha256aix_tmp_t;
 
 typedef struct sha512aix_tmp
 {
@@ -395,7 +387,6 @@ typedef enum kern_type
   KERN_TYPE_RIPEMD160               = 6000,
   KERN_TYPE_WHIRLPOOL               = 6100,
   KERN_TYPE_MD5AIX                  = 6300,
-  KERN_TYPE_SHA256AIX               = 6400,
   KERN_TYPE_SHA512AIX               = 6500,
   KERN_TYPE_SHA1AIX                 = 6700,
   KERN_TYPE_GOST                    = 6900,
@@ -465,7 +456,6 @@ typedef enum kern_type
 typedef enum rounds_count
 {
    ROUNDS_SHA1AIX            = (1 << 6),
-   ROUNDS_SHA256AIX          = (1 << 6),
    ROUNDS_SHA512AIX          = (1 << 6),
    ROUNDS_SHA256CRYPT        = 5000,
    ROUNDS_DRUPAL7            = (1 << 14), // $S$C
