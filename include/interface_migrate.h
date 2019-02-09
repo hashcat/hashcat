@@ -65,13 +65,6 @@ typedef struct pbkdf2_sha512
 
 } pbkdf2_sha512_t;
 
-typedef struct rakp
-{
-  u32 salt_buf[128];
-  u32 salt_len;
-
-} rakp_t;
-
 typedef struct office2007
 {
   u32 encryptedVerifier[4];
@@ -365,7 +358,6 @@ typedef enum kern_type
   KERN_TYPE_RIPEMD160               = 6000,
   KERN_TYPE_WHIRLPOOL               = 6100,
   KERN_TYPE_FORTIGATE               = 7000,
-  KERN_TYPE_RAKP                    = 7300,
   KERN_TYPE_SHA256CRYPT             = 7400,
   KERN_TYPE_SAPB                    = 7700,
   KERN_TYPE_SAPB_MANGLED            = 7701,

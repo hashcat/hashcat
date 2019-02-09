@@ -44,7 +44,6 @@
   "  11900 | PBKDF2-HMAC-MD5                                  | Generic KDF",
   "  10900 | PBKDF2-HMAC-SHA256                               | Generic KDF",
   "  12100 | PBKDF2-HMAC-SHA512                               | Generic KDF",
-  "   7300 | IPMI2 RAKP HMAC-SHA1                             | Network Protocols",
   "   8300 | DNSSEC (NSEC3)                                   | Network Protocols",
   "  10200 | CRAM-MD5                                         | Network Protocols",
   "  11100 | PostgreSQL CRAM (MD5)                            | Network Protocols",
@@ -186,7 +185,6 @@ static const char *ST_HASH_04900 = "75d280ca9a0c2ee18729603104ead576d9ca6285:347
 static const char *ST_HASH_06000 = "012cb9b334ec1aeb71a9c8ce85586082467f7eb6";
 static const char *ST_HASH_06100 = "7ca8eaaaa15eaa4c038b4c47b9313e92da827c06940e69947f85bc0fbef3eb8fd254da220ad9e208b6b28f6bb9be31dd760f1fdb26112d83f87d96b416a4d258";
 static const char *ST_HASH_07000 = "AK1FCIhM0IUIQVFJgcDFwLCMi7GppdwtRzMyDpFOFxdpH8=";
-static const char *ST_HASH_07300 = "3437343735333336383831353232323433383333303236303337333338363232303135383237333638363532373231343030313131333838323734373138363632343133333335353030353633373533333133313530363533303738343334313330303630343633333237373037383537333630303233303830303437323838333237313438363238343434383831363634323431333430383735323038:f4b376e25868751fc0264f573ff1fe50b65ce5a2";
 static const char *ST_HASH_07400 = "$5$7777657035274252$XftMj84MW.New1/ViLY5V4CM4Y7EBvfETaZsCW9vcJ8";
 static const char *ST_HASH_07700 = "027642760180$77EC38630C08DF8D";
 static const char *ST_HASH_07701 = "027642760180$77EC386300000000";
@@ -285,7 +283,6 @@ static const char *HT_04900 = "sha1($salt.$pass.$salt)";
 static const char *HT_06000 = "RIPEMD-160";
 static const char *HT_06100 = "Whirlpool";
 static const char *HT_07000 = "FortiGate (FortiOS)";
-static const char *HT_07300 = "IPMI2 RAKP HMAC-SHA1";
 static const char *HT_07400 = "sha256crypt $5$, SHA256 (Unix)";
 static const char *HT_07700 = "SAP CODVN B (BCODE)";
 static const char *HT_07701 = "SAP CODVN B (BCODE) mangled from RFC_READ_TABLE";
@@ -2702,37 +2699,6 @@ int whirlpool_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   return (PARSER_OK);
 }
 
-int gost_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  token_t token;
-
-  token.token_cnt  = 1;
-
-  token.len_min[0] = 64;
-  token.len_max[0] = 64;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *hash_pos = token.buf[0];
-
-  digest[0] = hex_to_u32 (hash_pos +  0);
-  digest[1] = hex_to_u32 (hash_pos +  8);
-  digest[2] = hex_to_u32 (hash_pos + 16);
-  digest[3] = hex_to_u32 (hash_pos + 24);
-  digest[4] = hex_to_u32 (hash_pos + 32);
-  digest[5] = hex_to_u32 (hash_pos + 40);
-  digest[6] = hex_to_u32 (hash_pos + 48);
-  digest[7] = hex_to_u32 (hash_pos + 56);
-
-  return (PARSER_OK);
-}
-
 int sha256crypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
@@ -3339,83 +3305,6 @@ int mysql323_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   digest[1] = byte_swap_32 (digest[1]);
   digest[2] = 0;
   digest[3] = 0;
-
-  return (PARSER_OK);
-}
-
-int rakp_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  rakp_t *rakp = (rakp_t *) hash_buf->esalt;
-
-  token_t token;
-
-  token.token_cnt  = 2;
-
-  token.len_min[0] = 64;
-  token.len_max[0] = 512;
-  token.sep[0]     = hashconfig->separator;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len_min[1] = 40;
-  token.len_max[1] = 40;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *salt_pos = token.buf[0];
-  const int salt_len = token.len[0];
-
-  u8 *rakp_ptr = (u8 *) rakp->salt_buf;
-
-  int i;
-  int j;
-
-  for (i = 0, j = 0; i < salt_len; i += 2, j += 1)
-  {
-    rakp_ptr[j] = hex_to_u8 (salt_pos + i);
-  }
-
-  rakp_ptr[j] = 0x80;
-
-  rakp->salt_len = j;
-
-  for (i = 0; i < 64; i++)
-  {
-    rakp->salt_buf[i] = byte_swap_32 (rakp->salt_buf[i]);
-  }
-
-  salt->salt_buf[0] = rakp->salt_buf[0];
-  salt->salt_buf[1] = rakp->salt_buf[1];
-  salt->salt_buf[2] = rakp->salt_buf[2];
-  salt->salt_buf[3] = rakp->salt_buf[3];
-  salt->salt_buf[4] = rakp->salt_buf[4];
-  salt->salt_buf[5] = rakp->salt_buf[5];
-  salt->salt_buf[6] = rakp->salt_buf[6];
-  salt->salt_buf[7] = rakp->salt_buf[7];
-
-  salt->salt_len = 32; // muss min. 32 haben
-
-  const u8 *hash_pos = token.buf[1];
-
-  digest[0] = hex_to_u32 (hash_pos +  0);
-  digest[1] = hex_to_u32 (hash_pos +  8);
-  digest[2] = hex_to_u32 (hash_pos + 16);
-  digest[3] = hex_to_u32 (hash_pos + 24);
-  digest[4] = hex_to_u32 (hash_pos + 32);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-  digest[4] = byte_swap_32 (digest[4]);
 
   return (PARSER_OK);
 }
@@ -9204,29 +9093,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       SIGNATURE_FORTIGATE,
       ptr_plain);
   }
-  else if (hash_mode == 7300)
-  {
-    rakp_t *rakps = (rakp_t *) esalts_buf;
-
-    rakp_t *rakp = &rakps[digest_cur];
-
-    u32 i;
-    u32 j;
-
-    u8 *ptr = (u8 *) rakp->salt_buf;
-
-    for (i = 0, j = 0; i < rakp->salt_len; i += 1, j += 2)
-    {
-      snprintf (out_buf + j, out_len - j, "%02x", ptr[i ^ 3]); // the ^ 3 index converts LE -> BE
-    }
-
-    snprintf (out_buf + j, out_len - j, ":%08x%08x%08x%08x%08x",
-      digest_buf[0],
-      digest_buf[1],
-      digest_buf[2],
-      digest_buf[3],
-      digest_buf[4]);
-  }
   else if (hash_mode == 7400)
   {
     // the encoder is a bit too intelligent, it expects the input data in the wrong BOM
@@ -10341,18 +10207,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
         digest_buf[13],
         digest_buf[14],
         digest_buf[15]);
-    }
-    else if (hash_type == HASH_TYPE_GOST)
-    {
-      snprintf (out_buf, out_size, "%08x%08x%08x%08x%08x%08x%08x%08x",
-        digest_buf[0],
-        digest_buf[1],
-        digest_buf[2],
-        digest_buf[3],
-        digest_buf[4],
-        digest_buf[5],
-        digest_buf[6],
-        digest_buf[7]);
     }
     else if (hash_type == HASH_TYPE_MYSQL)
     {
@@ -11766,25 +11620,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case  7300:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
-                                            | OPTS_TYPE_ST_ADD80
-                                            | OPTS_TYPE_ST_ADDBITS15;
-                 hashconfig->kern_type      = KERN_TYPE_RAKP;
-                 hashconfig->dgst_size      = DGST_SIZE_4_5;
-                 hashconfig->parse_func     = rakp_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_NOT_ITERATED;
-                 hashconfig->dgst_pos0      = 3;
-                 hashconfig->dgst_pos1      = 4;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 1;
-                 hashconfig->st_hash        = ST_HASH_07300;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case  7400:  hashconfig->hash_type      = HASH_TYPE_SHA256;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -12888,7 +12723,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   switch (hashconfig->hash_mode)
   {
-    case  7300: hashconfig->esalt_size = sizeof (rakp_t);               break;
     case  8800: hashconfig->esalt_size = sizeof (androidfde_t);         break;
     case  9200: hashconfig->esalt_size = sizeof (pbkdf2_sha256_t);      break;
     case  9400: hashconfig->esalt_size = sizeof (office2007_t);         break;
