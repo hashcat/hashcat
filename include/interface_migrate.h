@@ -59,13 +59,6 @@ typedef struct pbkdf2_sha512
 
 } pbkdf2_sha512_t;
 
-typedef struct office2010
-{
-  u32 encryptedVerifier[4];
-  u32 encryptedVerifierHash[8];
-
-} office2010_t;
-
 typedef struct zip2
 {
   u32 type;
@@ -164,12 +157,6 @@ typedef struct mywallet_tmp
   u32 out[10];
 
 } mywallet_tmp_t;
-
-typedef struct office2010_tmp
-{
-  u32 out[5];
-
-} office2010_tmp_t;
 
 typedef struct saph_sha1_tmp
 {
@@ -299,7 +286,6 @@ typedef enum kern_type
   KERN_TYPE_SHA1_SLT_PW_SLT         = 4900,
   KERN_TYPE_RIPEMD160               = 6000,
   KERN_TYPE_WHIRLPOOL               = 6100,
-  KERN_TYPE_OFFICE2010              = 9500,
   KERN_TYPE_RADMIN2                 = 9900,
   KERN_TYPE_SIPHASH                 = 10100,
   KERN_TYPE_SAPH_SHA1               = 10300,
@@ -347,7 +333,6 @@ typedef enum kern_type
 
 typedef enum rounds_count
 {
-   ROUNDS_OFFICE2010         = 100000,
    ROUNDS_LIBREOFFICE        = 100000,
    ROUNDS_OPENOFFICE         = 1024,
    ROUNDS_DJANGOPBKDF2       = 20000,
