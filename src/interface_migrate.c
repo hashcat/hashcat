@@ -45,7 +45,6 @@
   "  10200 | CRAM-MD5                                         | Network Protocols",
   "  11100 | PostgreSQL CRAM (MD5)                            | Network Protocols",
   "  11200 | MySQL CRAM (SHA1)                                | Network Protocols",
-  "  11400 | SIP digest authentication (MD5)                  | Network Protocols",
   "  16100 | TACACS+                                          | Network Protocols",
   "  16500 | JWT (JSON Web Token)                             | Network Protocols",
   "    121 | SMF (Simple Machines Forum) > v1.1               | Forums, CMS, E-Commerce, Frameworks",
@@ -163,7 +162,6 @@ static const char *ST_HASH_10100 = "583e6f51e52ba296:2:4:47356410265714355482333
 static const char *ST_HASH_10200 = "$cram_md5$MTI=$dXNlciBiOGYwNjk5MTE0YjA1Nzg4OTIyM2RmMDg0ZjgyMjQ2Zg==";
 static const char *ST_HASH_11100 = "$postgres$postgres*74402844*4e7fabaaf34d780c4a5822d28ee1c83e";
 static const char *ST_HASH_11200 = "$mysqlna$2576670568531371763643101056213751754328*5e4be686a3149a12847caa9898247dcc05739601";
-static const char *ST_HASH_11400 = "$sip$*72087*1215344588738747***342210558720*737232616*1215344588738747*8867133055*65600****MD5*e9980869221f9d1182c83b0d5e56a7db";
 static const char *ST_HASH_11700 = "57e9e50caec93d72e9498c211d6dc4f4d328248b48ecf46ba7abfa874f666e36";
 static const char *ST_HASH_11750 = "0f71c7c82700c9094ca95eee3d804cc283b538bec49428a9ef8da7b34effb3ba:08151337";
 static const char *ST_HASH_11760 = "d5c6b874338a492ac57ddc6871afc3c70dcfd264185a69d84cf839a07ef92b2c:08151337";
@@ -237,7 +235,6 @@ static const char *HT_10100 = "SipHash";
 static const char *HT_10200 = "CRAM-MD5";
 static const char *HT_11100 = "PostgreSQL CRAM (MD5)";
 static const char *HT_11200 = "MySQL CRAM (SHA1)";
-static const char *HT_11400 = "SIP digest authentication (MD5)";
 static const char *HT_11700 = "GOST R 34.11-2012 (Streebog) 256-bit, big-endian";
 static const char *HT_11750 = "HMAC-Streebog-256 (key = $pass), big-endian";
 static const char *HT_11760 = "HMAC-Streebog-256 (key = $salt), big-endian";
@@ -315,7 +312,6 @@ static const char *SIGNATURE_POSTGRESQL_AUTH    = "$postgres$";
 static const char *SIGNATURE_SHA1B64            = "{SHA}";
 static const char *SIGNATURE_SHA256B64S         = "{SSHA256}";
 static const char *SIGNATURE_SHA512B64S         = "{SSHA512}";
-static const char *SIGNATURE_SIP_AUTH           = "$sip$";
 static const char *SIGNATURE_SSHA1B64_lower     = "{ssha}";
 static const char *SIGNATURE_SSHA1B64_upper     = "{SSHA}";
 static const char *SIGNATURE_ZIP2_START         = "$zip2$";
@@ -3420,344 +3416,6 @@ int mysql_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  return (PARSER_OK);
-}
-
-int sip_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  sip_t *sip = (sip_t *) hash_buf->esalt;
-
-  token_t token;
-
-  token.token_cnt  = 15;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_SIP_AUTH;
-
-  token.sep[0]      = '*';
-  token.len_min[0]  = 5;
-  token.len_max[0]  = 5;
-  token.attr[0]     = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.sep[1]      = '*';
-  token.len_min[1]  = 0;
-  token.len_max[1]  = 512;
-  token.attr[1]     = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.sep[2]      = '*';
-  token.len_min[2]  = 0;
-  token.len_max[2]  = 512;
-  token.attr[2]     = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.sep[3]      = '*';
-  token.len_min[3]  = 0;
-  token.len_max[3]  = 116;
-  token.attr[3]     = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.sep[4]      = '*';
-  token.len_min[4]  = 0;
-  token.len_max[4]  = 116;
-  token.attr[4]     = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.sep[5]      = '*';
-  token.len_min[5]  = 0;
-  token.len_max[5]  = 246;
-  token.attr[5]     = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.sep[6]      = '*';
-  token.len_min[6]  = 0;
-  token.len_max[6]  = 245;
-  token.attr[6]     = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.sep[7]      = '*';
-  token.len_min[7]  = 1;
-  token.len_max[7]  = 246;
-  token.attr[7]     = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.sep[8]      = '*';
-  token.len_min[8]  = 0;
-  token.len_max[8]  = 245;
-  token.attr[8]     = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.sep[9]      = '*';
-  token.len_min[9]  = 1;
-  token.len_max[9]  = 1024;
-  token.attr[9]     = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.sep[10]     = '*';
-  token.len_min[10] = 0;
-  token.len_max[10] = 1024;
-  token.attr[10]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.sep[11]     = '*';
-  token.len_min[11] = 0;
-  token.len_max[11] = 1024;
-  token.attr[11]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.sep[12]     = '*';
-  token.len_min[12] = 0;
-  token.len_max[12] = 1024;
-  token.attr[12]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.sep[13]     = '*';
-  token.len_min[13] = 3;
-  token.len_max[13] = 3;
-  token.attr[13]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.sep[14]     = '*';
-  token.len_min[14] = 32;
-  token.len_max[14] = 32;
-  token.attr[14]    = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *user_pos          = token.buf[ 3];
-  const u8 *realm_pos         = token.buf[ 4];
-  const u8 *method_pos        = token.buf[ 5];
-  const u8 *URI_prefix_pos    = token.buf[ 6];
-  const u8 *URI_resource_pos  = token.buf[ 7];
-  const u8 *URI_suffix_pos    = token.buf[ 8];
-  const u8 *nonce_pos         = token.buf[ 9];
-  const u8 *nonce_client_pos  = token.buf[10];
-  const u8 *nonce_count_pos   = token.buf[11];
-  const u8 *qop_pos           = token.buf[12];
-  const u8 *directive_pos     = token.buf[13];
-  const u8 *digest_pos        = token.buf[14];
-
-  const int user_len          = token.len[ 3];
-  const int realm_len         = token.len[ 4];
-  const int method_len        = token.len[ 5];
-  const int URI_prefix_len    = token.len[ 6];
-  const int URI_resource_len  = token.len[ 7];
-  const int URI_suffix_len    = token.len[ 8];
-  const int nonce_len         = token.len[ 9];
-  const int nonce_client_len  = token.len[10];
-  const int nonce_count_len   = token.len[11];
-  const int qop_len           = token.len[12];
-
-  // verify
-
-  if (memcmp (directive_pos, "MD5", 3) != 0) return (PARSER_SIP_AUTH_DIRECTIVE);
-
-  /*
-   * first (pre-)compute: HA2 = md5 ($method . ":" . $uri)
-   */
-
-  static u8 *pcsep = (u8 *) ":";
-
-  int md5_len = method_len + 1 + URI_prefix_len + URI_resource_len + URI_suffix_len;
-
-  if (URI_prefix_len) md5_len++;
-  if (URI_suffix_len) md5_len++;
-
-  const int md5_max_len = 4 * 64;
-
-  if (md5_len >= md5_max_len) return (PARSER_SALT_LENGTH);
-
-  u32 tmp_md5_buf[64] = { 0 };
-
-  u8 *tmp_md5_ptr = (u8 *) tmp_md5_buf;
-
-  // method
-
-  hc_strncat (tmp_md5_ptr, method_pos, method_len);
-
-  hc_strncat (tmp_md5_ptr, pcsep, 1);
-
-  // URI_prefix
-
-  if (URI_prefix_len > 0)
-  {
-    hc_strncat (tmp_md5_ptr, URI_prefix_pos, URI_prefix_len);
-
-    hc_strncat (tmp_md5_ptr, pcsep, 1);
-  }
-
-  // URI_resource
-
-  hc_strncat (tmp_md5_ptr, URI_resource_pos, URI_resource_len);
-
-  hc_strncat (tmp_md5_ptr, pcsep, 1);
-
-  // URI_suffix
-
-  if (URI_suffix_len > 0)
-  {
-    hc_strncat (tmp_md5_ptr, URI_suffix_pos, URI_suffix_len);
-
-    hc_strncat (tmp_md5_ptr, pcsep, 1);
-  }
-
-  u32 tmp_digest[4] = { 0 };
-
-  md5_complete_no_limit (tmp_digest, tmp_md5_buf, md5_len);
-
-  tmp_digest[0] = byte_swap_32 (tmp_digest[0]);
-  tmp_digest[1] = byte_swap_32 (tmp_digest[1]);
-  tmp_digest[2] = byte_swap_32 (tmp_digest[2]);
-  tmp_digest[3] = byte_swap_32 (tmp_digest[3]);
-
-  /*
-   * esalt
-   */
-
-  u8 *esalt_buf_ptr = (u8 *) sip->esalt_buf;
-
-  int esalt_len = 0;
-
-  const int max_esalt_len = sizeof (sip->esalt_buf);
-
-  // there are 2 possibilities for the esalt:
-
-  bool with_auth = false;
-
-  if (qop_len == 4)
-  {
-    if (memcmp ((const char *) qop_pos, "auth", 4) == 0)
-    {
-      with_auth = true;
-    }
-  }
-
-  if (qop_len == 8)
-  {
-    if (memcmp ((const char *) qop_pos, "auth-int", 8) == 0)
-    {
-      with_auth = true;
-    }
-  }
-
-  if (with_auth == true)
-  {
-    esalt_len = 1 + nonce_len + 1 + nonce_count_len + 1 + nonce_client_len + 1 + qop_len + 1 + 32;
-
-    if (esalt_len > max_esalt_len) return (PARSER_SALT_LENGTH);
-
-    // init
-
-    hc_strncat (esalt_buf_ptr, pcsep, 1);
-
-    // nonce
-
-    hc_strncat (esalt_buf_ptr, nonce_pos, nonce_len);
-
-    hc_strncat (esalt_buf_ptr, pcsep, 1);
-
-    // nonce_count
-
-    hc_strncat (esalt_buf_ptr, nonce_count_pos, nonce_count_len);
-
-    hc_strncat (esalt_buf_ptr, pcsep, 1);
-
-    // nonce_client
-
-    hc_strncat (esalt_buf_ptr, nonce_client_pos, nonce_client_len);
-
-    hc_strncat (esalt_buf_ptr, pcsep, 1);
-
-    // qop
-
-    hc_strncat (esalt_buf_ptr, qop_pos, qop_len);
-
-    hc_strncat (esalt_buf_ptr, pcsep, 1);
-  }
-  else
-  {
-    esalt_len = 1 + nonce_len + 1 + 32;
-
-    if (esalt_len > max_esalt_len) return (PARSER_SALT_LENGTH);
-
-    // init
-
-    hc_strncat (esalt_buf_ptr, pcsep, 1);
-
-    // nonce
-
-    hc_strncat (esalt_buf_ptr, nonce_pos, nonce_len);
-
-    hc_strncat (esalt_buf_ptr, pcsep, 1);
-  }
-
-  // tmp_digest
-
-  u8 tmp[64];
-
-  snprintf ((char *) tmp, sizeof (tmp), "%08x%08x%08x%08x",
-    tmp_digest[0],
-    tmp_digest[1],
-    tmp_digest[2],
-    tmp_digest[3]);
-
-  hc_strncat (esalt_buf_ptr, tmp, 32);
-
-  // add 0x80 to esalt
-
-  esalt_buf_ptr[esalt_len] = 0x80;
-
-  sip->esalt_len = esalt_len;
-
-  /*
-   * actual salt
-   */
-
-  u8 *sip_salt_ptr = (u8 *) sip->salt_buf;
-
-  int salt_len = user_len + 1 + realm_len + 1;
-
-  int max_salt_len = 119;
-
-  if (salt_len > max_salt_len) return (PARSER_SALT_LENGTH);
-
-  // user_pos
-
-  hc_strncat (sip_salt_ptr, user_pos, user_len);
-
-  hc_strncat (sip_salt_ptr, pcsep, 1);
-
-  // realm_pos
-
-  hc_strncat (sip_salt_ptr, realm_pos, realm_len);
-
-  hc_strncat (sip_salt_ptr, pcsep, 1);
-
-  sip->salt_len = salt_len;
-
-  /*
-   * fake salt (for sorting)
-   */
-
-  u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
-
-  max_salt_len = 55;
-
-  int fake_salt_len = salt_len;
-
-  if (fake_salt_len > max_salt_len)
-  {
-    fake_salt_len = max_salt_len;
-  }
-
-  memcpy (salt_buf_ptr, sip_salt_ptr, fake_salt_len);
-
-  salt->salt_len = fake_salt_len;
-
-  /*
-   * digest
-   */
-
-  digest[0] = hex_to_u32 ((const u8 *) &digest_pos[ 0]);
-  digest[1] = hex_to_u32 ((const u8 *) &digest_pos[ 8]);
-  digest[2] = hex_to_u32 ((const u8 *) &digest_pos[16]);
-  digest[3] = hex_to_u32 ((const u8 *) &digest_pos[24]);
 
   return (PARSER_OK);
 }
@@ -7051,13 +6709,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
         digest_buf[3],
         digest_buf[4]);
   }
-  else if (hash_mode == 11400)
-  {
-    hashinfo_t **hashinfo_ptr = hash_info;
-    char        *hash_buf     = hashinfo_ptr[digest_cur]->orighash;
-
-    snprintf (out_buf, out_size, "%s", hash_buf);
-  }
   else if (hash_mode == 11700 || hash_mode == 11750 || hash_mode == 11760)
   {
     snprintf (out_buf, out_size, "%08x%08x%08x%08x%08x%08x%08x%08x",
@@ -9185,24 +8836,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 11400:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PT_ADD80
-                                            | OPTS_TYPE_HASH_COPY;
-                 hashconfig->kern_type      = KERN_TYPE_SIP_AUTH;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = sip_auth_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 3;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 1;
-                 hashconfig->st_hash        = ST_HASH_11400;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case 11700:  hashconfig->hash_type      = HASH_TYPE_STREEBOG_256;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -9781,7 +9414,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   switch (hashconfig->hash_mode)
   {
     case 10200: hashconfig->esalt_size = sizeof (cram_md5_t);           break;
-    case 11400: hashconfig->esalt_size = sizeof (sip_t);                break;
     case 11900: hashconfig->esalt_size = sizeof (pbkdf2_md5_t);         break;
     case 12001: hashconfig->esalt_size = sizeof (pbkdf2_sha1_t);        break;
     case 12100: hashconfig->esalt_size = sizeof (pbkdf2_sha512_t);      break;

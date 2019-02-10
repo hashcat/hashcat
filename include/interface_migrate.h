@@ -10,16 +10,6 @@ typedef struct itunes_backup
 
 } itunes_backup_t;
 
-typedef struct sip
-{
-  u32 salt_buf[32];
-  u32 salt_len;
-
-  u32 esalt_buf[256];
-  u32 esalt_len;
-
-} sip_t;
-
 typedef struct pbkdf2_md5
 {
   u32 salt_buf[16];
@@ -250,7 +240,6 @@ typedef enum kern_type
   KERN_TYPE_SIPHASH                 = 10100,
   KERN_TYPE_POSTGRESQL_AUTH         = 11100,
   KERN_TYPE_MYSQL_AUTH              = 11200,
-  KERN_TYPE_SIP_AUTH                = 11400,
   KERN_TYPE_STREEBOG_256            = 11700,
   KERN_TYPE_HMAC_STREEBOG_256_PW    = 11750,
   KERN_TYPE_HMAC_STREEBOG_256_SLT   = 11760,
