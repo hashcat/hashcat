@@ -54,7 +54,6 @@
   "   2711 | vBulletin >= v3.8.5                              | Forums, CMS, E-Commerce, Frameworks",
   "   2612 | PHPS                                             | Forums, CMS, E-Commerce, Frameworks",
   "    124 | Django (SHA-1)                                   | Forums, CMS, E-Commerce, Frameworks",
-  "  10000 | Django (PBKDF2-SHA256)                           | Forums, CMS, E-Commerce, Frameworks",
   "   3711 | MediaWiki B type                                 | Forums, CMS, E-Commerce, Frameworks",
   "  13900 | OpenCart                                         | Forums, CMS, E-Commerce, Frameworks",
   "   4521 | Redmine                                          | Forums, CMS, E-Commerce, Frameworks",
@@ -164,7 +163,6 @@ static const char *ST_HASH_04900 = "75d280ca9a0c2ee18729603104ead576d9ca6285:347
 static const char *ST_HASH_06000 = "012cb9b334ec1aeb71a9c8ce85586082467f7eb6";
 static const char *ST_HASH_06100 = "7ca8eaaaa15eaa4c038b4c47b9313e92da827c06940e69947f85bc0fbef3eb8fd254da220ad9e208b6b28f6bb9be31dd760f1fdb26112d83f87d96b416a4d258";
 static const char *ST_HASH_09900 = "22527bee5c29ce95373c4e0f359f079b";
-static const char *ST_HASH_10000 = "pbkdf2_sha256$10000$1135411628$bFYX62rfJobJ07VwrUMXfuffLfj2RDM2G6/BrTrUWkE=";
 static const char *ST_HASH_10100 = "583e6f51e52ba296:2:4:47356410265714355482333327356688";
 static const char *ST_HASH_10200 = "$cram_md5$MTI=$dXNlciBiOGYwNjk5MTE0YjA1Nzg4OTIyM2RmMDg0ZjgyMjQ2Zg==";
 static const char *ST_HASH_10300 = "{x-issha, 1024}BnjXMqcNTwa3BzdnUOf1iAu6dw02NzU4MzE2MTA=";
@@ -243,7 +241,6 @@ static const char *HT_04900 = "sha1($salt.$pass.$salt)";
 static const char *HT_06000 = "RIPEMD-160";
 static const char *HT_06100 = "Whirlpool";
 static const char *HT_09900 = "Radmin2";
-static const char *HT_10000 = "Django (PBKDF2-SHA256)";
 static const char *HT_10100 = "SipHash";
 static const char *HT_10200 = "CRAM-MD5";
 static const char *HT_10300 = "SAP CODVN H (PWDSALTEDHASH) iSSHA-1";
@@ -313,7 +310,6 @@ static const char *SIGNATURE_AXCRYPT            = "$axcrypt$";
 static const char *SIGNATURE_AXCRYPT_SHA1       = "$axcrypt_sha1$";
 static const char *SIGNATURE_CRAM_MD5           = "$cram_md5$";
 static const char *SIGNATURE_CRAM_MD5_DOVECOT   = "{CRAM-MD5}";
-static const char *SIGNATURE_DJANGOPBKDF2       = "pbkdf2_sha256";
 static const char *SIGNATURE_DJANGOSHA1         = "sha1$";
 static const char *SIGNATURE_ECRYPTFS           = "$ecryptfs$";
 static const char *SIGNATURE_EPISERVER          = "$episerver$";
@@ -2878,103 +2874,6 @@ int djangosha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  return (PARSER_OK);
-}
-
-int djangopbkdf2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  pbkdf2_sha256_t *pbkdf2_sha256 = (pbkdf2_sha256_t *) hash_buf->esalt;
-
-  token_t token;
-
-  token.token_cnt  = 4;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_DJANGOPBKDF2;
-
-  token.sep[0]     = '$';
-  token.len_min[0] = 13;
-  token.len_max[0] = 13;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.sep[1]     = '$';
-  token.len_min[1] = 1;
-  token.len_max[1] = 6;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[2]     = '$';
-  token.len_min[2] = SALT_MIN;
-  token.len_max[2] = SALT_MAX;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.sep[3]     = '$';
-  token.len_min[3] = 44;
-  token.len_max[3] = 44;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64A;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  // iter
-
-  const u8 *iter_pos = token.buf[1];
-
-  const int iter = strtol ((const char *) iter_pos, NULL, 10);
-
-  if (iter < 1) return (PARSER_SALT_ITERATION);
-
-  salt->salt_iter = iter - 1;
-
-  // salt
-
-  const u8 *salt_pos = token.buf[2];
-  const int salt_len = token.len[2];
-
-  u8 *salt_buf_ptr = (u8 *) pbkdf2_sha256->salt_buf;
-
-  memcpy (salt_buf_ptr, salt_pos, salt_len);
-
-  salt->salt_len  = salt_len;
-
-  salt_buf_ptr[salt_len + 3] = 0x01;
-  salt_buf_ptr[salt_len + 4] = 0x80;
-
-  // add some stuff to normal salt to make sorted happy
-
-  salt->salt_buf[0] = pbkdf2_sha256->salt_buf[0];
-  salt->salt_buf[1] = pbkdf2_sha256->salt_buf[1];
-  salt->salt_buf[2] = pbkdf2_sha256->salt_buf[2];
-  salt->salt_buf[3] = pbkdf2_sha256->salt_buf[3];
-  salt->salt_buf[4] = salt->salt_iter;
-
-  // base64 decode hash
-
-  const u8 *hash_pos = token.buf[3];
-  const int hash_len = token.len[3];
-
-  u8 tmp_buf[100] = { 0 };
-
-  base64_decode (base64_to_int, (const u8 *) hash_pos, hash_len, tmp_buf);
-
-  memcpy (digest, tmp_buf, 32);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-  digest[4] = byte_swap_32 (digest[4]);
-  digest[5] = byte_swap_32 (digest[5]);
-  digest[6] = byte_swap_32 (digest[6]);
-  digest[7] = byte_swap_32 (digest[7]);
 
   return (PARSER_OK);
 }
@@ -7380,34 +7279,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       digest_buf[2],
       digest_buf[3]);
   }
-  else if (hash_mode == 10000)
-  {
-    // salt
-
-    pbkdf2_sha256_t *pbkdf2_sha256s = (pbkdf2_sha256_t *) esalts_buf;
-
-    pbkdf2_sha256_t *pbkdf2_sha256  = &pbkdf2_sha256s[digest_cur];
-
-    unsigned char *salt_buf_ptr = (unsigned char *) pbkdf2_sha256->salt_buf;
-
-    // hash
-
-    digest_buf[0] = byte_swap_32 (digest_buf[0]);
-    digest_buf[1] = byte_swap_32 (digest_buf[1]);
-    digest_buf[2] = byte_swap_32 (digest_buf[2]);
-    digest_buf[3] = byte_swap_32 (digest_buf[3]);
-    digest_buf[4] = byte_swap_32 (digest_buf[4]);
-    digest_buf[5] = byte_swap_32 (digest_buf[5]);
-    digest_buf[6] = byte_swap_32 (digest_buf[6]);
-    digest_buf[7] = byte_swap_32 (digest_buf[7]);
-    digest_buf[8] = 0; // needed for base64_encode ()
-
-    base64_encode (int_to_base64, (const u8 *) digest_buf, 32, (u8 *) tmp_buf);
-
-    // output
-
-    snprintf (out_buf, out_size, "%s$%u$%s$%s", SIGNATURE_DJANGOPBKDF2, salt.salt_iter + 1, salt_buf_ptr, tmp_buf);
-  }
   else if (hash_mode == 10100)
   {
     snprintf (out_buf, out_size, "%08x%08x:%d:%d:%08x%08x%08x%08x",
@@ -9569,23 +9440,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 10000:  hashconfig->hash_type      = HASH_TYPE_SHA256;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_PBKDF2_SHA256;
-                 hashconfig->dgst_size      = DGST_SIZE_4_32;
-                 hashconfig->parse_func     = djangopbkdf2_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_10000;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case 10100:  hashconfig->hash_type      = HASH_TYPE_SIPHASH;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -10334,7 +10188,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   switch (hashconfig->hash_mode)
   {
-    case 10000: hashconfig->esalt_size = sizeof (pbkdf2_sha256_t);      break;
     case 10200: hashconfig->esalt_size = sizeof (cram_md5_t);           break;
     case 10600: hashconfig->esalt_size = sizeof (pdf_t);                break;
     case 10700: hashconfig->esalt_size = sizeof (pdf_t);                break;
@@ -10359,7 +10212,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   switch (hashconfig->hash_mode)
   {
-    case 10000: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
     case 10200: hashconfig->tmp_size = sizeof (cram_md5_t);               break;
     case 10300: hashconfig->tmp_size = sizeof (saph_sha1_tmp_t);          break;
     case 10700: hashconfig->tmp_size = sizeof (pdf17l8_tmp_t);            break;
@@ -10425,7 +10277,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
   {
     case   112: pw_max = 30;      break; // https://www.toadworld.com/platforms/oracle/b/weblog/archive/2013/11/12/oracle-12c-passwords
     case  9900: pw_max = 100;     break; // RAdmin2 sets w[25] = 0x80
-    case 10000: pw_max = PW_MAX;  break;
     case 10300: pw_max = 40;      break; // https://www.daniel-berlin.de/security/sap-sec/password-hash-algorithms/
     case 10600: pw_max = 127;     break; // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
     case 10900: pw_max = PW_MAX;  break;

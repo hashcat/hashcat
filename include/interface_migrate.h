@@ -335,7 +335,6 @@ typedef enum rounds_count
 {
    ROUNDS_LIBREOFFICE        = 100000,
    ROUNDS_OPENOFFICE         = 1024,
-   ROUNDS_DJANGOPBKDF2       = 20000,
    ROUNDS_SAPH_SHA1          = 1024,
    ROUNDS_PDF17L8            = 64,
    ROUNDS_PBKDF2_SHA256      = 1000,
