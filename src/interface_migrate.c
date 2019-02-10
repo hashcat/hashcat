@@ -90,7 +90,6 @@
   "  14800 | iTunes backup >= 10.0                            | Backup",
   "  12900 | Android FDE (Samsung DEK)                        | Full-Disk Encryption (FDE)",
   "  12200 | eCryptfs                                         | Full-Disk Encryption (FDE)",
-  "   9400 | MS Office 2007                                   | Documents",
   "   9500 | MS Office 2010                                   | Documents",
   "  10600 | PDF 1.7 Level 3 (Acrobat 9)                      | Documents",
   "  10700 | PDF 1.7 Level 8 (Acrobat 10 - 11)                | Documents",
@@ -165,7 +164,6 @@ static const char *ST_HASH_04700 = "92d85978d884eb1d99a51652b1139c8279fa8663";
 static const char *ST_HASH_04900 = "75d280ca9a0c2ee18729603104ead576d9ca6285:347070";
 static const char *ST_HASH_06000 = "012cb9b334ec1aeb71a9c8ce85586082467f7eb6";
 static const char *ST_HASH_06100 = "7ca8eaaaa15eaa4c038b4c47b9313e92da827c06940e69947f85bc0fbef3eb8fd254da220ad9e208b6b28f6bb9be31dd760f1fdb26112d83f87d96b416a4d258";
-static const char *ST_HASH_09400 = "$office$*2007*20*128*16*18410007331073848057180885845227*944c70a5ee6e5ab2a6a86ff54b5f621a*e6650f1f2630c27fd8fc0f5e56e2e01f99784b9f";
 static const char *ST_HASH_09500 = "$office$*2010*100000*128*16*34170046140146368675746031258762*de5bc114991bb3a5679a6e24320bdb09*1b72a4ddffba3dcd5395f6a5ff75b126cb832b733c298e86162028ca47a235a9";
 static const char *ST_HASH_09900 = "22527bee5c29ce95373c4e0f359f079b";
 static const char *ST_HASH_10000 = "pbkdf2_sha256$10000$1135411628$bFYX62rfJobJ07VwrUMXfuffLfj2RDM2G6/BrTrUWkE=";
@@ -246,7 +244,6 @@ static const char *HT_04700 = "sha1(md5($pass))";
 static const char *HT_04900 = "sha1($salt.$pass.$salt)";
 static const char *HT_06000 = "RIPEMD-160";
 static const char *HT_06100 = "Whirlpool";
-static const char *HT_09400 = "MS Office 2007";
 static const char *HT_09500 = "MS Office 2010";
 static const char *HT_09900 = "Radmin2";
 static const char *HT_10000 = "Django (PBKDF2-SHA256)";
@@ -330,7 +327,6 @@ static const char *SIGNATURE_MSSQL2012          = "0x0200";
 static const char *SIGNATURE_MYSQL_AUTH         = "$mysqlna$";
 static const char *SIGNATURE_MYWALLET           = "$blockchain$";
 static const char *SIGNATURE_MYWALLETV2         = "$blockchain$v2$";
-static const char *SIGNATURE_OFFICE2007         = "$office$";
 static const char *SIGNATURE_OFFICE2010         = "$office$";
 static const char *SIGNATURE_PBKDF2_MD5         = "md5";
 static const char *SIGNATURE_PBKDF2_SHA256      = "sha256";
@@ -2796,148 +2792,6 @@ int peoplesoft_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   salt->salt_buf[0] = 0x80;
 
   salt->salt_len = 0;
-
-  return (PARSER_OK);
-}
-
-int office2007_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  office2007_t *office2007 = (office2007_t *) hash_buf->esalt;
-
-  token_t token;
-
-  token.token_cnt  = 8;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_OFFICE2007;
-
-  token.len_min[0] = 8;
-  token.len_max[0] = 8;
-  token.sep[0]     = '*';
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.len_min[1] = 4;
-  token.len_max[1] = 4;
-  token.sep[1]     = '*';
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[2] = 2;
-  token.len_max[2] = 2;
-  token.sep[2]     = '*';
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[3] = 3;
-  token.len_max[3] = 3;
-  token.sep[3]     = '*';
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[4] = 2;
-  token.len_max[4] = 2;
-  token.sep[4]     = '*';
-  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[5] = 32;
-  token.len_max[5] = 32;
-  token.sep[5]     = '*';
-  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len_min[6] = 32;
-  token.len_max[6] = 32;
-  token.sep[6]     = '*';
-  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len_min[7] = 40;
-  token.len_max[7] = 40;
-  token.sep[7]     = '*';
-  token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *version_pos               = token.buf[1];
-  const u8 *verifierHashSize_pos      = token.buf[2];
-  const u8 *keySize_pos               = token.buf[3];
-  const u8 *saltSize_pos              = token.buf[4];
-  const u8 *osalt_pos                 = token.buf[5];
-  const u8 *encryptedVerifier_pos     = token.buf[6];
-  const u8 *encryptedVerifierHash_pos = token.buf[7];
-
-  const u32 version           = hc_strtoul ((const char *) version_pos, NULL, 10);
-  const u32 verifierHashSize  = hc_strtoul ((const char *) verifierHashSize_pos, NULL, 10);
-  const u32 keySize           = hc_strtoul ((const char *) keySize_pos, NULL, 10);
-  const u32 saltSize          = hc_strtoul ((const char *) saltSize_pos, NULL, 10);
-
-  if (version           != 2007)            return (PARSER_SALT_VALUE);
-  if (verifierHashSize  != 20)              return (PARSER_SALT_VALUE);
-  if (saltSize          != 16)              return (PARSER_SALT_VALUE);
-  if ((keySize != 128) && (keySize != 256)) return (PARSER_SALT_VALUE);
-
-  office2007->keySize = keySize;
-
-  /**
-   * salt
-   */
-
-  salt->salt_len  = 16;
-  salt->salt_iter = ROUNDS_OFFICE2007;
-
-  salt->salt_buf[0] = hex_to_u32 (osalt_pos +  0);
-  salt->salt_buf[1] = hex_to_u32 (osalt_pos +  8);
-  salt->salt_buf[2] = hex_to_u32 (osalt_pos + 16);
-  salt->salt_buf[3] = hex_to_u32 (osalt_pos + 24);
-
-  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
-  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
-  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
-  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
-
-  /**
-   * esalt
-   */
-
-  office2007->encryptedVerifier[0] = hex_to_u32 (encryptedVerifier_pos +  0);
-  office2007->encryptedVerifier[1] = hex_to_u32 (encryptedVerifier_pos +  8);
-  office2007->encryptedVerifier[2] = hex_to_u32 (encryptedVerifier_pos + 16);
-  office2007->encryptedVerifier[3] = hex_to_u32 (encryptedVerifier_pos + 24);
-
-  office2007->encryptedVerifier[0] = byte_swap_32 (office2007->encryptedVerifier[0]);
-  office2007->encryptedVerifier[1] = byte_swap_32 (office2007->encryptedVerifier[1]);
-  office2007->encryptedVerifier[2] = byte_swap_32 (office2007->encryptedVerifier[2]);
-  office2007->encryptedVerifier[3] = byte_swap_32 (office2007->encryptedVerifier[3]);
-
-  office2007->encryptedVerifierHash[0] = hex_to_u32 (encryptedVerifierHash_pos +  0);
-  office2007->encryptedVerifierHash[1] = hex_to_u32 (encryptedVerifierHash_pos +  8);
-  office2007->encryptedVerifierHash[2] = hex_to_u32 (encryptedVerifierHash_pos + 16);
-  office2007->encryptedVerifierHash[3] = hex_to_u32 (encryptedVerifierHash_pos + 24);
-  office2007->encryptedVerifierHash[4] = hex_to_u32 (encryptedVerifierHash_pos + 32);
-
-  office2007->encryptedVerifierHash[0] = byte_swap_32 (office2007->encryptedVerifierHash[0]);
-  office2007->encryptedVerifierHash[1] = byte_swap_32 (office2007->encryptedVerifierHash[1]);
-  office2007->encryptedVerifierHash[2] = byte_swap_32 (office2007->encryptedVerifierHash[2]);
-  office2007->encryptedVerifierHash[3] = byte_swap_32 (office2007->encryptedVerifierHash[3]);
-  office2007->encryptedVerifierHash[4] = byte_swap_32 (office2007->encryptedVerifierHash[4]);
-
-  /**
-   * digest
-   */
-
-  digest[0] = office2007->encryptedVerifierHash[0];
-  digest[1] = office2007->encryptedVerifierHash[1];
-  digest[2] = office2007->encryptedVerifierHash[2];
-  digest[3] = office2007->encryptedVerifierHash[3];
 
   return (PARSER_OK);
 }
@@ -7676,32 +7530,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       digest_buf[2],
       digest_buf[3]);
   }
-  else if (hash_mode == 9400)
-  {
-    office2007_t *office2007s = (office2007_t *) esalts_buf;
-
-    office2007_t *office2007 = &office2007s[digest_cur];
-
-    snprintf (out_buf, out_size, "%s*%d*%d*%u*%d*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x%08x",
-      SIGNATURE_OFFICE2007,
-      2007,
-      20,
-      office2007->keySize,
-      16,
-      salt.salt_buf[0],
-      salt.salt_buf[1],
-      salt.salt_buf[2],
-      salt.salt_buf[3],
-      office2007->encryptedVerifier[0],
-      office2007->encryptedVerifier[1],
-      office2007->encryptedVerifier[2],
-      office2007->encryptedVerifier[3],
-      office2007->encryptedVerifierHash[0],
-      office2007->encryptedVerifierHash[1],
-      office2007->encryptedVerifierHash[2],
-      office2007->encryptedVerifierHash[3],
-      office2007->encryptedVerifierHash[4]);
-  }
   else if (hash_mode == 9500)
   {
     office2010_t *office2010s = (office2010_t *) esalts_buf;
@@ -9900,23 +9728,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case  9400:  hashconfig->hash_type      = HASH_TYPE_OFFICE2007;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_OFFICE2007;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = office2007_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_09400;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case  9500:  hashconfig->hash_type      = HASH_TYPE_OFFICE2010;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -10719,7 +10530,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   switch (hashconfig->hash_mode)
   {
-    case  9400: hashconfig->esalt_size = sizeof (office2007_t);         break;
     case  9500: hashconfig->esalt_size = sizeof (office2010_t);         break;
     case 10000: hashconfig->esalt_size = sizeof (pbkdf2_sha256_t);      break;
     case 10200: hashconfig->esalt_size = sizeof (cram_md5_t);           break;
@@ -10746,7 +10556,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   switch (hashconfig->hash_mode)
   {
-    case  9400: hashconfig->tmp_size = sizeof (office2007_tmp_t);         break;
     case  9500: hashconfig->tmp_size = sizeof (office2010_tmp_t);         break;
     case 10000: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
     case 10200: hashconfig->tmp_size = sizeof (cram_md5_t);               break;
@@ -10813,7 +10622,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
   switch (hashconfig->hash_mode)
   {
     case   112: pw_max = 30;      break; // https://www.toadworld.com/platforms/oracle/b/weblog/archive/2013/11/12/oracle-12c-passwords
-    case  9400: pw_max = PW_MAX;  break;
     case  9500: pw_max = PW_MAX;  break;
     case  9900: pw_max = 100;     break; // RAdmin2 sets w[25] = 0x80
     case 10000: pw_max = PW_MAX;  break;
