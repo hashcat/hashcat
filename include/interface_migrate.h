@@ -10,23 +10,11 @@ typedef struct itunes_backup
 
 } itunes_backup_t;
 
-typedef struct pbkdf2_md5
-{
-  u32 salt_buf[16];
-
-} pbkdf2_md5_t;
-
 typedef struct pbkdf2_sha256
 {
   u32 salt_buf[16];
 
 } pbkdf2_sha256_t;
-
-typedef struct pbkdf2_sha512
-{
-  u32 salt_buf[32];
-
-} pbkdf2_sha512_t;
 
 typedef struct zip2
 {
@@ -125,16 +113,6 @@ typedef struct pbkdf1_sha1_tmp
 
 } pbkdf1_sha1_tmp_t;
 
-typedef struct pbkdf2_md5_tmp
-{
-  u32  ipad[4];
-  u32  opad[4];
-
-  u32  dgst[32];
-  u32  out[32];
-
-} pbkdf2_md5_tmp_t;
-
 typedef struct pbkdf2_sha256_tmp
 {
   u32  ipad[8];
@@ -144,16 +122,6 @@ typedef struct pbkdf2_sha256_tmp
   u32  out[32];
 
 } pbkdf2_sha256_tmp_t;
-
-typedef struct pbkdf2_sha512_tmp
-{
-  u64  ipad[8];
-  u64  opad[8];
-
-  u64  dgst[16];
-  u64  out[16];
-
-} pbkdf2_sha512_tmp_t;
 
 typedef struct ecryptfs_tmp
 {
@@ -280,9 +248,6 @@ typedef enum rounds_count
 {
    ROUNDS_LIBREOFFICE        = 100000,
    ROUNDS_OPENOFFICE         = 1024,
-   ROUNDS_PBKDF2_SHA256      = 1000,
-   ROUNDS_PBKDF2_MD5         = 1000,
-   ROUNDS_PBKDF2_SHA512      = 1000,
    ROUNDS_ECRYPTFS           = 65536,
    ROUNDS_ORACLET            = 4096,
    ROUNDS_MYWALLET           = 10,

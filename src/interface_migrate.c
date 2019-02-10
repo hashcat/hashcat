@@ -40,7 +40,6 @@
   "  11760 | HMAC-Streebog-256 (key = $salt), big-endian      | Raw Hash, Authenticated",
   "  11850 | HMAC-Streebog-512 (key = $pass), big-endian      | Raw Hash, Authenticated",
   "  11860 | HMAC-Streebog-512 (key = $salt), big-endian      | Raw Hash, Authenticated",
-  "  12100 | PBKDF2-HMAC-SHA512                               | Generic KDF",
   "  10200 | CRAM-MD5                                         | Network Protocols",
   "  11100 | PostgreSQL CRAM (MD5)                            | Network Protocols",
   "  11200 | MySQL CRAM (SHA1)                                | Network Protocols",
@@ -166,7 +165,6 @@ static const char *ST_HASH_11760 = "d5c6b874338a492ac57ddc6871afc3c70dcfd264185a
 static const char *ST_HASH_11800 = "5d5bdba48c8f89ee6c0a0e11023540424283e84902de08013aeeb626e819950bb32842903593a1d2e8f71897ff7fe72e17ac9ba8ce1d1d2f7e9c4359ea63bdc3";
 static const char *ST_HASH_11850 = "be4555415af4a05078dcf260bb3c0a35948135df3dbf93f7c8b80574ceb0d71ea4312127f839b7707bf39ccc932d9e7cb799671183455889e8dde3738dfab5b6:08151337";
 static const char *ST_HASH_11860 = "bebf6831b3f9f958acb345a88cb98f30cb0374cff13e6012818487c8dc8d5857f23bca2caed280195ad558b8ce393503e632e901e8d1eb2ccb349a544ac195fd:08151337";
-static const char *ST_HASH_12100 = "sha512:1000:NzY2:DNWohLbdIWIt4Npk9gpTvA==";
 static const char *ST_HASH_12200 = "$ecryptfs$0$1$4207883745556753$567daa975114206c";
 static const char *ST_HASH_12300 = "8F75FBD166AFDB6D7587DAB89C2F15672AAC031C5B0B5E65C0835FB130555F6FF4E0E5764976755558112246FFF306450C22F6B7746B9E9831ED97B373992F9157436180438417080374881414745255";
 static const char *ST_HASH_12700 = "$blockchain$288$713253722114000682636604801283547365b7a53a802a7388d08eb7e6c32c1efb4a157fe19bca940a753d7f16e8bdaf491aa9cf6cda4035ac48d56bb025aced81455424272f3e0459ec7674df3e82abd7323bc09af4fd0869fd790b3f17f8fe424b8ec81a013e1476a5c5a6a53c4b85a055eecfbc13eccf855f905d3ddc3f0c54015b8cb177401d5942af833f655947bfc12fc00656302f31339187de2a69ab06bc61073933b3a48c9f144177ae4b330968eb919f8a22cec312f734475b28cdfe5c25b43c035bf132887f3241d86b71eb7e1cf517f99305b19c47997a1a1f89df6248749ac7f38ca7c88719cf16d6af2394307dce55600b8858f4789cf1ae8fd362ef565cd9332f32068b3c04c9282553e658b759c2e76ed092d67bd55961ae";
@@ -237,7 +235,6 @@ static const char *HT_11760 = "HMAC-Streebog-256 (key = $salt), big-endian";
 static const char *HT_11800 = "GOST R 34.11-2012 (Streebog) 512-bit, big-endian";
 static const char *HT_11850 = "HMAC-Streebog-512 (key = $pass), big-endian";
 static const char *HT_11860 = "HMAC-Streebog-512 (key = $salt), big-endian";
-static const char *HT_12100 = "PBKDF2-HMAC-SHA512";
 static const char *HT_12200 = "eCryptfs";
 static const char *HT_12300 = "Oracle T: Type (Oracle 12+)";
 static const char *HT_12700 = "Blockchain, My Wallet";
@@ -299,7 +296,6 @@ static const char *SIGNATURE_MSSQL2012          = "0x0200";
 static const char *SIGNATURE_MYSQL_AUTH         = "$mysqlna$";
 static const char *SIGNATURE_MYWALLET           = "$blockchain$";
 static const char *SIGNATURE_MYWALLETV2         = "$blockchain$v2$";
-static const char *SIGNATURE_PBKDF2_SHA512      = "sha512";
 static const char *SIGNATURE_PHPS               = "$PHPS$";
 static const char *SIGNATURE_POSTGRESQL_AUTH    = "$postgres$";
 static const char *SIGNATURE_SHA1B64            = "{SHA}";
@@ -3169,102 +3165,6 @@ int punbb_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUS
   return (PARSER_OK);
 }
 
-int pbkdf2_sha256_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  pbkdf2_sha256_t *pbkdf2_sha256 = (pbkdf2_sha256_t *) hash_buf->esalt;
-
-  token_t token;
-
-  token.token_cnt  = 4;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_PBKDF2_SHA256;
-
-  token.sep[0]     = ':';
-  token.len_min[0] = 6;
-  token.len_max[0] = 6;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.sep[1]     = ':';
-  token.len_min[1] = 1;
-  token.len_max[1] = 6;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[2]     = ':';
-  token.len_min[2] = SALT_MIN;
-  token.len_max[2] = SALT_MAX;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64A;
-
-  token.sep[3]     = ':';
-  token.len_min[3] = 16;
-  token.len_max[3] = 256;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64A;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  u8  tmp_buf[512];
-  int tmp_len;
-
-  // iter
-
-  const u8 *iter_pos = token.buf[1];
-
-  const u32 iter = hc_strtoul ((const char *) iter_pos, NULL, 10);
-
-  salt->salt_iter = iter - 1;
-
-  // salt
-
-  const u8 *salt_pos = token.buf[2];
-  const int salt_len = token.len[2];
-
-  memset (tmp_buf, 0, sizeof (tmp_buf));
-
-  tmp_len = base64_decode (base64_to_int, salt_pos, salt_len, tmp_buf);
-
-  if (tmp_len > SALT_MAX) return (PARSER_SALT_LENGTH);
-
-  memcpy (pbkdf2_sha256->salt_buf, tmp_buf, tmp_len);
-
-  salt->salt_len = tmp_len;
-
-  salt->salt_buf[0] = pbkdf2_sha256->salt_buf[0];
-  salt->salt_buf[1] = pbkdf2_sha256->salt_buf[1];
-  salt->salt_buf[2] = pbkdf2_sha256->salt_buf[2];
-  salt->salt_buf[3] = pbkdf2_sha256->salt_buf[3];
-  salt->salt_buf[4] = salt->salt_iter;
-
-  // hash
-
-  const u8 *hash_pos = token.buf[3];
-  const int hash_len = token.len[3];
-
-  memset (tmp_buf, 0, sizeof (tmp_buf));
-
-  tmp_len = base64_decode (base64_to_int, hash_pos, hash_len, tmp_buf);
-
-  if (tmp_len < 16) return (PARSER_HASH_LENGTH);
-
-  memcpy (digest, tmp_buf, 16);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-
-  return (PARSER_OK);
-}
-
 int postgresql_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
@@ -3590,197 +3490,6 @@ int streebog_512s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MA
   const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  return (PARSER_OK);
-}
-
-int pbkdf2_md5_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  pbkdf2_md5_t *pbkdf2_md5 = (pbkdf2_md5_t *) hash_buf->esalt;
-
-  token_t token;
-
-  token.token_cnt  = 4;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_PBKDF2_MD5;
-
-  token.sep[0]     = ':';
-  token.len_min[0] = 3;
-  token.len_max[0] = 3;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.sep[1]     = ':';
-  token.len_min[1] = 1;
-  token.len_max[1] = 6;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[2]     = ':';
-  token.len_min[2] = SALT_MIN;
-  token.len_max[2] = SALT_MAX;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64A;
-
-  token.sep[3]     = ':';
-  token.len_min[3] = 16;
-  token.len_max[3] = 256;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64A;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  u8  tmp_buf[512];
-  int tmp_len;
-
-  // iter
-
-  const u8 *iter_pos = token.buf[1];
-
-  const u32 iter = hc_strtoul ((const char *) iter_pos, NULL, 10);
-
-  salt->salt_iter = iter - 1;
-
-  // salt
-
-  const u8 *salt_pos = token.buf[2];
-  const int salt_len = token.len[2];
-
-  memset (tmp_buf, 0, sizeof (tmp_buf));
-
-  tmp_len = base64_decode (base64_to_int, salt_pos, salt_len, tmp_buf);
-
-  if (tmp_len > SALT_MAX) return (PARSER_SALT_LENGTH);
-
-  memcpy (pbkdf2_md5->salt_buf, tmp_buf, tmp_len);
-
-  salt->salt_len = tmp_len;
-
-  salt->salt_buf[0] = pbkdf2_md5->salt_buf[0];
-  salt->salt_buf[1] = pbkdf2_md5->salt_buf[1];
-  salt->salt_buf[2] = pbkdf2_md5->salt_buf[2];
-  salt->salt_buf[3] = pbkdf2_md5->salt_buf[3];
-  salt->salt_buf[4] = salt->salt_iter;
-
-  // hash
-
-  const u8 *hash_pos = token.buf[3];
-  const int hash_len = token.len[3];
-
-  memset (tmp_buf, 0, sizeof (tmp_buf));
-
-  tmp_len = base64_decode (base64_to_int, hash_pos, hash_len, tmp_buf);
-
-  if (tmp_len < 16) return (PARSER_HASH_LENGTH);
-
-  memcpy (digest, tmp_buf, 16);
-
-  return (PARSER_OK);
-}
-
-int pbkdf2_sha512_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u64 *digest = (u64 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  pbkdf2_sha512_t *pbkdf2_sha512 = (pbkdf2_sha512_t *) hash_buf->esalt;
-
-  token_t token;
-
-  token.token_cnt  = 4;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_PBKDF2_SHA512;
-
-  token.sep[0]     = ':';
-  token.len_min[0] = 6;
-  token.len_max[0] = 6;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.sep[1]     = ':';
-  token.len_min[1] = 1;
-  token.len_max[1] = 6;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[2]     = ':';
-  token.len_min[2] = SALT_MIN;
-  token.len_max[2] = SALT_MAX;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64A;
-
-  token.sep[3]     = ':';
-  token.len_min[3] = 16;
-  token.len_max[3] = 256;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64A;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  u8  tmp_buf[512];
-  int tmp_len;
-
-  // iter
-
-  const u8 *iter_pos = token.buf[1];
-
-  const u32 iter = hc_strtoul ((const char *) iter_pos, NULL, 10);
-
-  salt->salt_iter = iter - 1;
-
-  // salt
-
-  const u8 *salt_pos = token.buf[2];
-  const int salt_len = token.len[2];
-
-  memset (tmp_buf, 0, sizeof (tmp_buf));
-
-  tmp_len = base64_decode (base64_to_int, salt_pos, salt_len, tmp_buf);
-
-  if (tmp_len > SALT_MAX) return (PARSER_SALT_LENGTH);
-
-  memcpy (pbkdf2_sha512->salt_buf, tmp_buf, tmp_len);
-
-  salt->salt_len = tmp_len;
-
-  salt->salt_buf[0] = pbkdf2_sha512->salt_buf[0];
-  salt->salt_buf[1] = pbkdf2_sha512->salt_buf[1];
-  salt->salt_buf[2] = pbkdf2_sha512->salt_buf[2];
-  salt->salt_buf[3] = pbkdf2_sha512->salt_buf[3];
-  salt->salt_buf[4] = salt->salt_iter;
-
-  // hash
-
-  const u8 *hash_pos = token.buf[3];
-  const int hash_len = token.len[3];
-
-  memset (tmp_buf, 0, sizeof (tmp_buf));
-
-  tmp_len = base64_decode (base64_to_int, hash_pos, hash_len, tmp_buf);
-
-  if (tmp_len < 16) return (PARSER_HASH_LENGTH);
-
-  memcpy (digest, tmp_buf, 64);
-
-  digest[0] = byte_swap_64 (digest[0]);
-  digest[1] = byte_swap_64 (digest[1]);
-  digest[2] = byte_swap_64 (digest[2]);
-  digest[3] = byte_swap_64 (digest[3]);
-  digest[4] = byte_swap_64 (digest[4]);
-  digest[5] = byte_swap_64 (digest[5]);
-  digest[6] = byte_swap_64 (digest[6]);
-  digest[7] = byte_swap_64 (digest[7]);
 
   return (PARSER_OK);
 }
@@ -6664,13 +6373,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (digest_buf[14]),
       byte_swap_32 (digest_buf[15]));
   }
-  else if (hash_mode == 12100)
-  {
-    hashinfo_t **hashinfo_ptr = hash_info;
-    char        *hash_buf     = hashinfo_ptr[digest_cur]->orighash;
-
-    snprintf (out_buf, out_size, "%s", hash_buf);
-  }
   else if (hash_mode == 12200)
   {
     u32 *ptr_digest = digest_buf;
@@ -8847,26 +8549,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 12100:  hashconfig->hash_type      = HASH_TYPE_PBKDF2_SHA512;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_ST_BASE64
-                                            | OPTS_TYPE_HASH_COPY;
-                 hashconfig->kern_type      = KERN_TYPE_PBKDF2_SHA512;
-                 hashconfig->dgst_size      = DGST_SIZE_8_16;
-                 hashconfig->parse_func     = pbkdf2_sha512_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_USES_BITS_64
-                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_12100;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case 12200:  hashconfig->hash_type      = HASH_TYPE_ECRYPTFS;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -9286,7 +8968,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   switch (hashconfig->hash_mode)
   {
     case 10200: hashconfig->esalt_size = sizeof (cram_md5_t);           break;
-    case 12100: hashconfig->esalt_size = sizeof (pbkdf2_sha512_t);      break;
     case 13600: hashconfig->esalt_size = sizeof (zip2_t);               break;
     case 13800: hashconfig->esalt_size = sizeof (win8phone_t);          break;
     case 14700: hashconfig->esalt_size = sizeof (itunes_backup_t);      break;
@@ -9304,7 +8985,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   switch (hashconfig->hash_mode)
   {
     case 10200: hashconfig->tmp_size = sizeof (cram_md5_t);               break;
-    case 12100: hashconfig->tmp_size = sizeof (pbkdf2_sha512_tmp_t);      break;
     case 12200: hashconfig->tmp_size = sizeof (ecryptfs_tmp_t);           break;
     case 12300: hashconfig->tmp_size = sizeof (oraclet_tmp_t);            break;
     case 12700: hashconfig->tmp_size = sizeof (mywallet_tmp_t);           break;
