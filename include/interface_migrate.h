@@ -174,16 +174,6 @@ typedef struct mywallet_tmp
 
 } mywallet_tmp_t;
 
-typedef struct lotus8_tmp
-{
-  u32 ipad[5];
-  u32 opad[5];
-
-  u32 dgst[5];
-  u32 out[5];
-
-} lotus8_tmp_t;
-
 typedef struct office2007_tmp
 {
   u32 out[5];
@@ -324,7 +314,6 @@ typedef enum kern_type
   KERN_TYPE_SHA1_SLT_PW_SLT         = 4900,
   KERN_TYPE_RIPEMD160               = 6000,
   KERN_TYPE_WHIRLPOOL               = 6100,
-  KERN_TYPE_LOTUS8                  = 9100,
   KERN_TYPE_OFFICE2007              = 9400,
   KERN_TYPE_OFFICE2010              = 9500,
   KERN_TYPE_RADMIN2                 = 9900,
@@ -374,8 +363,6 @@ typedef enum kern_type
 
 typedef enum rounds_count
 {
-   ROUNDS_LOTUS8             = 5000,
-   ROUNDS_CISCO8             = 20000,
    ROUNDS_OFFICE2007         = 50000,
    ROUNDS_OFFICE2010         = 100000,
    ROUNDS_LIBREOFFICE        = 100000,

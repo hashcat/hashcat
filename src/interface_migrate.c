@@ -76,15 +76,12 @@
   "  12800 | MS-AzureSync  PBKDF2-HMAC-SHA256                 | Operating Systems",
   "    122 | macOS v10.4, MacOS v10.5, MacOS v10.6            | Operating Systems",
   "   1722 | macOS v10.7                                      | Operating Systems",
-  "    500 | Cisco-IOS $1$ (MD5)                              | Operating Systems",
-  "   9200 | Cisco-IOS $8$ (PBKDF2-SHA256)                    | Operating Systems",
   "     22 | Juniper NetScreen/SSG (ScreenOS)                 | Operating Systems",
   "  15100 | Juniper/NetBSD sha1crypt                         | Operating Systems",
   "  13800 | Windows Phone 8+ PIN/password                    | Operating Systems",
   "   9900 | Radmin2                                          | Operating Systems",
   "    125 | ArubaOS                                          | Operating Systems",
   "  10300 | SAP CODVN H (PWDSALTEDHASH) iSSHA-1              | Enterprise Application Software (EAS)",
-  "   9100 | Lotus Notes/Domino 8                             | Enterprise Application Software (EAS)",
   "    133 | PeopleSoft                                       | Enterprise Application Software (EAS)",
   "  13200 | AxCrypt                                          | Archives",
   "  13300 | AxCrypt in-memory SHA1                           | Archives",
@@ -168,8 +165,6 @@ static const char *ST_HASH_04700 = "92d85978d884eb1d99a51652b1139c8279fa8663";
 static const char *ST_HASH_04900 = "75d280ca9a0c2ee18729603104ead576d9ca6285:347070";
 static const char *ST_HASH_06000 = "012cb9b334ec1aeb71a9c8ce85586082467f7eb6";
 static const char *ST_HASH_06100 = "7ca8eaaaa15eaa4c038b4c47b9313e92da827c06940e69947f85bc0fbef3eb8fd254da220ad9e208b6b28f6bb9be31dd760f1fdb26112d83f87d96b416a4d258";
-static const char *ST_HASH_09100 = "(HC34tD3KtDp4oCZWmCJ4qC30mC30mC3KmC30mCcA5ovrMLH9M)";
-static const char *ST_HASH_09200 = "$8$84486783037343$pYNyVrtyMalQrZLxRi7ZLQS1Fl.jkYCgASUi5P8JNb2";
 static const char *ST_HASH_09400 = "$office$*2007*20*128*16*18410007331073848057180885845227*944c70a5ee6e5ab2a6a86ff54b5f621a*e6650f1f2630c27fd8fc0f5e56e2e01f99784b9f";
 static const char *ST_HASH_09500 = "$office$*2010*100000*128*16*34170046140146368675746031258762*de5bc114991bb3a5679a6e24320bdb09*1b72a4ddffba3dcd5395f6a5ff75b126cb832b733c298e86162028ca47a235a9";
 static const char *ST_HASH_09900 = "22527bee5c29ce95373c4e0f359f079b";
@@ -251,8 +246,6 @@ static const char *HT_04700 = "sha1(md5($pass))";
 static const char *HT_04900 = "sha1($salt.$pass.$salt)";
 static const char *HT_06000 = "RIPEMD-160";
 static const char *HT_06100 = "Whirlpool";
-static const char *HT_09100 = "Lotus Notes/Domino 8";
-static const char *HT_09200 = "Cisco-IOS $8$ (PBKDF2-SHA256)";
 static const char *HT_09400 = "MS Office 2007";
 static const char *HT_09500 = "MS Office 2010";
 static const char *HT_09900 = "Radmin2";
@@ -324,7 +317,6 @@ static const char *HT_12001 = "Atlassian (PBKDF2-HMAC-SHA1)";
 
 static const char *SIGNATURE_AXCRYPT            = "$axcrypt$";
 static const char *SIGNATURE_AXCRYPT_SHA1       = "$axcrypt_sha1$";
-static const char *SIGNATURE_CISCO8             = "$8$";
 static const char *SIGNATURE_CRAM_MD5           = "$cram_md5$";
 static const char *SIGNATURE_CRAM_MD5_DOVECOT   = "{CRAM-MD5}";
 static const char *SIGNATURE_DJANGOPBKDF2       = "pbkdf2_sha256";
@@ -2576,88 +2568,6 @@ int opencart_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   return (PARSER_OK);
 }
 
-int lotus8_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt = 4;
-
-  token.len[0]  = 1;
-  token.attr[0] = TOKEN_ATTR_FIXED_LENGTH;
-
-  token.len[1]  = 1;
-  token.attr[1] = TOKEN_ATTR_FIXED_LENGTH;
-
-  token.len[2]  = 48;
-  token.attr[2] = TOKEN_ATTR_FIXED_LENGTH
-                | TOKEN_ATTR_VERIFY_BASE64A;
-
-  token.len[3]  = 1;
-  token.attr[3] = TOKEN_ATTR_FIXED_LENGTH;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  if (token.buf[0][0] != '(') return (PARSER_SIGNATURE_UNMATCHED);
-  if (token.buf[1][0] != 'H') return (PARSER_SIGNATURE_UNMATCHED);
-  if (token.buf[3][0] != ')') return (PARSER_SIGNATURE_UNMATCHED);
-
-  // decode
-
-  const u8 *hash_pos = token.buf[2];
-  const int hash_len = token.len[2];
-
-  u8 tmp_buf[120] = { 0 };
-
-  base64_decode (lotus64_to_int, hash_pos, hash_len, tmp_buf);
-
-  tmp_buf[3] += -4; // dont ask!
-
-  // salt
-
-  memcpy (salt->salt_buf, tmp_buf, 16);
-
-  salt->salt_len = 16; // Attention: in theory we have 2 salt_len, one for the -m 8700 part (len: 8), 2nd for the 9100 part (len: 16)
-
-  // iteration
-
-  char tmp_iter_buf[11] = { 0 };
-
-  memcpy (tmp_iter_buf, tmp_buf + 16, 10);
-
-  tmp_iter_buf[10] = 0;
-
-  salt->salt_iter = hc_strtoul ((const char *) tmp_iter_buf, NULL, 10);
-
-  if (salt->salt_iter < 1) // well, the limit hopefully is much higher
-  {
-    return (PARSER_SALT_ITERATION);
-  }
-
-  salt->salt_iter--; // first round in init
-
-  // 2 additional bytes for display only
-
-  salt->salt_buf_pc[0] = tmp_buf[26];
-  salt->salt_buf_pc[1] = tmp_buf[27];
-
-  // digest
-
-  memcpy (digest, tmp_buf + 28, 8);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = 0;
-  digest[3] = 0;
-
-  return (PARSER_OK);
-}
-
 int hmailserver_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
@@ -2886,85 +2796,6 @@ int peoplesoft_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   salt->salt_buf[0] = 0x80;
 
   salt->salt_len = 0;
-
-  return (PARSER_OK);
-}
-
-int cisco8_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  pbkdf2_sha256_t *pbkdf2_sha256 = (pbkdf2_sha256_t *) hash_buf->esalt;
-
-  token_t token;
-
-  token.token_cnt  = 3;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_CISCO8;
-
-  token.len[0]     = 3;
-  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.len_min[1] = 14;
-  token.len_max[1] = 14;
-  token.sep[1]     = '$';
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.len[2]     = 43;
-  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64B;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  // salt is not encoded
-
-  const u8 *salt_pos = token.buf[1];
-  const int salt_len = token.len[1];
-
-  u8 *salt_buf_ptr = (u8 *) pbkdf2_sha256->salt_buf;
-
-  memcpy (salt_buf_ptr, salt_pos, salt_len);
-
-  salt_buf_ptr[17] = 0x01;
-  salt_buf_ptr[18] = 0x80;
-
-  // add some stuff to normal salt to make sorted happy
-
-  salt->salt_buf[0] = pbkdf2_sha256->salt_buf[0];
-  salt->salt_buf[1] = pbkdf2_sha256->salt_buf[1];
-  salt->salt_buf[2] = pbkdf2_sha256->salt_buf[2];
-  salt->salt_buf[3] = pbkdf2_sha256->salt_buf[3];
-
-  salt->salt_len  = salt_len;
-  salt->salt_iter = ROUNDS_CISCO8 - 1;
-
-  // base64 decode hash
-
-  const u8 *hash_pos = token.buf[2];
-  const int hash_len = token.len[2];
-
-  u8 tmp_buf[100] = { 0 };
-
-  const int tmp_len = base64_decode (itoa64_to_int, hash_pos, hash_len, tmp_buf);
-
-  if (tmp_len != 32) return (PARSER_HASH_LENGTH);
-
-  memcpy (digest, tmp_buf, 32);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-  digest[4] = byte_swap_32 (digest[4]);
-  digest[5] = byte_swap_32 (digest[5]);
-  digest[6] = byte_swap_32 (digest[6]);
-  digest[7] = byte_swap_32 (digest[7]);
 
   return (PARSER_OK);
 }
@@ -7845,36 +7676,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       digest_buf[2],
       digest_buf[3]);
   }
-  else if (hash_mode == 9200)
-  {
-    // salt
-
-    pbkdf2_sha256_t *pbkdf2_sha256s = (pbkdf2_sha256_t *) esalts_buf;
-
-    pbkdf2_sha256_t *pbkdf2_sha256  = &pbkdf2_sha256s[digest_cur];
-
-    unsigned char *salt_buf_ptr = (unsigned char *) pbkdf2_sha256->salt_buf;
-
-    // hash
-
-    digest_buf[0] = byte_swap_32 (digest_buf[0]);
-    digest_buf[1] = byte_swap_32 (digest_buf[1]);
-    digest_buf[2] = byte_swap_32 (digest_buf[2]);
-    digest_buf[3] = byte_swap_32 (digest_buf[3]);
-    digest_buf[4] = byte_swap_32 (digest_buf[4]);
-    digest_buf[5] = byte_swap_32 (digest_buf[5]);
-    digest_buf[6] = byte_swap_32 (digest_buf[6]);
-    digest_buf[7] = byte_swap_32 (digest_buf[7]);
-    digest_buf[8] = 0; // needed for base64_encode ()
-
-    base64_encode (int_to_itoa64, (const u8 *) digest_buf, 32, (u8 *) tmp_buf);
-
-    tmp_buf[43] = 0; // cut it here
-
-    // output
-
-    snprintf (out_buf, out_size, "%s%s$%s", SIGNATURE_CISCO8, salt_buf_ptr, tmp_buf);
-  }
   else if (hash_mode == 9400)
   {
     office2007_t *office2007s = (office2007_t *) esalts_buf;
@@ -8794,35 +8595,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       snprintf (out_buf, out_size, "%08x%08x",
         digest_buf[0],
         digest_buf[1]);
-    }
-    else if (hash_type == HASH_TYPE_LOTUS8)
-    {
-      char buf[52] = { 0 };
-
-      // salt
-
-      memcpy (buf + 0, salt.salt_buf, 16);
-
-      buf[3] -= -4;
-
-      // iteration
-
-      snprintf (buf + 16, 11, "%010u", salt.salt_iter + 1);
-
-      // chars
-
-      buf[26] = salt.salt_buf_pc[0];
-      buf[27] = salt.salt_buf_pc[1];
-
-      // digest
-
-      memcpy (buf + 28, digest_buf, 8);
-
-      base64_encode (int_to_lotus64, (const u8 *) buf, 36, (u8 *) tmp_buf);
-
-      tmp_buf[49] = 0;
-
-      snprintf (out_buf, out_size, "(H%s)", tmp_buf);
     }
   }
 }
@@ -10128,40 +9900,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case  9100:  hashconfig->hash_type      = HASH_TYPE_LOTUS8;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_LOTUS8;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
-                 hashconfig->parse_func     = lotus8_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_09100;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case  9200:  hashconfig->hash_type      = HASH_TYPE_SHA256;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_PBKDF2_SHA256;
-                 hashconfig->dgst_size      = DGST_SIZE_4_32;
-                 hashconfig->parse_func     = cisco8_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_09200;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case  9400:  hashconfig->hash_type      = HASH_TYPE_OFFICE2007;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -10981,7 +10719,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   switch (hashconfig->hash_mode)
   {
-    case  9200: hashconfig->esalt_size = sizeof (pbkdf2_sha256_t);      break;
     case  9400: hashconfig->esalt_size = sizeof (office2007_t);         break;
     case  9500: hashconfig->esalt_size = sizeof (office2010_t);         break;
     case 10000: hashconfig->esalt_size = sizeof (pbkdf2_sha256_t);      break;
@@ -11009,8 +10746,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   switch (hashconfig->hash_mode)
   {
-    case  9100: hashconfig->tmp_size = sizeof (lotus8_tmp_t);             break;
-    case  9200: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
     case  9400: hashconfig->tmp_size = sizeof (office2007_tmp_t);         break;
     case  9500: hashconfig->tmp_size = sizeof (office2010_tmp_t);         break;
     case 10000: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
@@ -11078,8 +10813,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
   switch (hashconfig->hash_mode)
   {
     case   112: pw_max = 30;      break; // https://www.toadworld.com/platforms/oracle/b/weblog/archive/2013/11/12/oracle-12c-passwords
-    case  9100: pw_max = 64;      break; // https://www.ibm.com/support/knowledgecenter/en/SSKTWP_8.5.3/com.ibm.notes85.client.doc/fram_limits_of_notes_r.html
-    case  9200: pw_max = PW_MAX;  break;
     case  9400: pw_max = PW_MAX;  break;
     case  9500: pw_max = PW_MAX;  break;
     case  9900: pw_max = 100;     break; // RAdmin2 sets w[25] = 0x80
