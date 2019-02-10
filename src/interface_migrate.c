@@ -55,7 +55,6 @@
   "  13900 | OpenCart                                         | Forums, CMS, E-Commerce, Frameworks",
   "   4521 | Redmine                                          | Forums, CMS, E-Commerce, Frameworks",
   "   4522 | PunBB                                            | Forums, CMS, E-Commerce, Frameworks",
-  "  12001 | Atlassian (PBKDF2-HMAC-SHA1)                     | Forums, CMS, E-Commerce, Frameworks",
   "    131 | MSSQL (2000)                                     | Database Server",
   "    132 | MSSQL (2005)                                     | Database Server",
   "   1731 | MSSQL (2012, 2014)                               | Database Server",
@@ -167,7 +166,6 @@ static const char *ST_HASH_11760 = "d5c6b874338a492ac57ddc6871afc3c70dcfd264185a
 static const char *ST_HASH_11800 = "5d5bdba48c8f89ee6c0a0e11023540424283e84902de08013aeeb626e819950bb32842903593a1d2e8f71897ff7fe72e17ac9ba8ce1d1d2f7e9c4359ea63bdc3";
 static const char *ST_HASH_11850 = "be4555415af4a05078dcf260bb3c0a35948135df3dbf93f7c8b80574ceb0d71ea4312127f839b7707bf39ccc932d9e7cb799671183455889e8dde3738dfab5b6:08151337";
 static const char *ST_HASH_11860 = "bebf6831b3f9f958acb345a88cb98f30cb0374cff13e6012818487c8dc8d5857f23bca2caed280195ad558b8ce393503e632e901e8d1eb2ccb349a544ac195fd:08151337";
-static const char *ST_HASH_12001 = "{PKCS5S2}NTczNTY0NDY2NjQyNzU1Mx8gGiRGobaZYwumctGHbn2ZOHB8LkwzH+Z1gkWfy1zD";
 static const char *ST_HASH_12100 = "sha512:1000:NzY2:DNWohLbdIWIt4Npk9gpTvA==";
 static const char *ST_HASH_12200 = "$ecryptfs$0$1$4207883745556753$567daa975114206c";
 static const char *ST_HASH_12300 = "8F75FBD166AFDB6D7587DAB89C2F15672AAC031C5B0B5E65C0835FB130555F6FF4E0E5764976755558112246FFF306450C22F6B7746B9E9831ED97B373992F9157436180438417080374881414745255";
@@ -286,7 +284,6 @@ static const char *HT_02612 = "PHPS";
 static const char *HT_02711 = "vBulletin >= v3.8.5";
 static const char *HT_04521 = "Redmine";
 static const char *HT_04522 = "PunBB";
-static const char *HT_12001 = "Atlassian (PBKDF2-HMAC-SHA1)";
 
 static const char *SIGNATURE_AXCRYPT            = "$axcrypt$";
 static const char *SIGNATURE_AXCRYPT_SHA1       = "$axcrypt_sha1$";
@@ -313,7 +310,6 @@ static const char *SIGNATURE_SSHA1B64_upper     = "{SSHA}";
 static const char *SIGNATURE_ZIP2_START         = "$zip2$";
 static const char *SIGNATURE_ZIP2_STOP          = "$/zip2$";
 static const char *SIGNATURE_ITUNES_BACKUP      = "$itunes_backup$";
-static const char *SIGNATURE_ATLASSIAN          = "{PKCS5S2}";
 static const char *SIGNATURE_NETBSD_SHA1CRYPT   = "$sha1$";
 static const char *SIGNATURE_JKS_SHA1           = "$jksprivk$";
 static const char *SIGNATURE_TACACS_PLUS        = "$tacacs-plus$0$";
@@ -5486,75 +5482,6 @@ int netbsd_sha1crypt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf,
   return (PARSER_OK);
 }
 
-int atlassian_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  pbkdf2_sha1_t *pbkdf2_sha1 = (pbkdf2_sha1_t *) hash_buf->esalt;
-
-  token_t token;
-
-  token.token_cnt  = 2;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_ATLASSIAN;
-
-  token.len[0]     = 9;
-  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.len_min[1] = 64;
-  token.len_max[1] = 64;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64A;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *hashsalt_pos = token.buf[1];
-  const int hashsalt_len = token.len[1];
-
-  u8 tmp_buf[100] = { 0 };
-
-  const int base64_decode_len = base64_decode (base64_to_int, hashsalt_pos, hashsalt_len, tmp_buf);
-
-  if (base64_decode_len != (16 + 32)) return (PARSER_HASH_LENGTH);
-
-  u8 *hash_pos = tmp_buf + 16;
-
-  memcpy (digest, hash_pos, 16);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-
-  // store salt
-
-  u8 *salt_pos = tmp_buf;
-  int salt_len = 16;
-
-  u8 *salt_buf_ptr = (u8 *) pbkdf2_sha1->salt_buf;
-
-  memcpy (salt_buf_ptr, salt_pos, salt_len);
-
-  salt->salt_len  = salt_len;
-  salt->salt_iter = ROUNDS_ATLASSIAN - 1;
-
-  // add some stuff to normal salt to make sorted happy
-
-  salt->salt_buf[0] = pbkdf2_sha1->salt_buf[0];
-  salt->salt_buf[1] = pbkdf2_sha1->salt_buf[1];
-  salt->salt_buf[2] = pbkdf2_sha1->salt_buf[2];
-  salt->salt_buf[3] = pbkdf2_sha1->salt_buf[3];
-  salt->salt_buf[4] = salt->salt_iter;
-
-  return (PARSER_OK);
-}
-
 int jks_sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
@@ -6736,13 +6663,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (digest_buf[13]),
       byte_swap_32 (digest_buf[14]),
       byte_swap_32 (digest_buf[15]));
-  }
-  else if (hash_mode == 12001)
-  {
-    hashinfo_t **hashinfo_ptr = hash_info;
-    char        *hash_buf     = hashinfo_ptr[digest_cur]->orighash;
-
-    snprintf (out_buf, out_size, "%s", hash_buf);
   }
   else if (hash_mode == 12100)
   {
@@ -8927,24 +8847,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 12001:  hashconfig->hash_type      = HASH_TYPE_PBKDF2_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_HASH_COPY;
-                 hashconfig->kern_type      = KERN_TYPE_PBKDF2_SHA1;
-                 hashconfig->dgst_size      = DGST_SIZE_4_32;
-                 hashconfig->parse_func     = atlassian_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_12001;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case 12100:  hashconfig->hash_type      = HASH_TYPE_PBKDF2_SHA512;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -9384,7 +9286,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   switch (hashconfig->hash_mode)
   {
     case 10200: hashconfig->esalt_size = sizeof (cram_md5_t);           break;
-    case 12001: hashconfig->esalt_size = sizeof (pbkdf2_sha1_t);        break;
     case 12100: hashconfig->esalt_size = sizeof (pbkdf2_sha512_t);      break;
     case 13600: hashconfig->esalt_size = sizeof (zip2_t);               break;
     case 13800: hashconfig->esalt_size = sizeof (win8phone_t);          break;
@@ -9403,7 +9304,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   switch (hashconfig->hash_mode)
   {
     case 10200: hashconfig->tmp_size = sizeof (cram_md5_t);               break;
-    case 12001: hashconfig->tmp_size = sizeof (pbkdf2_sha1_tmp_t);        break;
     case 12100: hashconfig->tmp_size = sizeof (pbkdf2_sha512_tmp_t);      break;
     case 12200: hashconfig->tmp_size = sizeof (ecryptfs_tmp_t);           break;
     case 12300: hashconfig->tmp_size = sizeof (oraclet_tmp_t);            break;
@@ -9459,7 +9359,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
   {
     case   112: pw_max = 30;      break; // https://www.toadworld.com/platforms/oracle/b/weblog/archive/2013/11/12/oracle-12c-passwords
     case  9900: pw_max = 100;     break; // RAdmin2 sets w[25] = 0x80
-    case 12001: pw_max = PW_MAX;  break;
     case 12200: pw_max = PW_MAX;  break;
     case 12300: pw_max = PW_MAX;  break;
     case 12700: pw_max = PW_MAX;  break;
