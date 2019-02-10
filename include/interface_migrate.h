@@ -41,12 +41,6 @@ typedef struct sip
 
 } sip_t;
 
-typedef struct androidfde
-{
-  u32 data[384];
-
-} androidfde_t;
-
 typedef struct pbkdf2_md5
 {
   u32 salt_buf[16];
@@ -169,16 +163,6 @@ typedef struct pdf17l8_tmp
   u32 W_len;
 
 } pdf17l8_tmp_t;
-
-typedef struct androidfde_tmp
-{
-  u32 ipad[5];
-  u32 opad[5];
-
-  u32 dgst[10];
-  u32 out[10];
-
-} androidfde_tmp_t;
 
 typedef struct mywallet_tmp
 {
@@ -340,7 +324,6 @@ typedef enum kern_type
   KERN_TYPE_SHA1_SLT_PW_SLT         = 4900,
   KERN_TYPE_RIPEMD160               = 6000,
   KERN_TYPE_WHIRLPOOL               = 6100,
-  KERN_TYPE_ANDROIDFDE              = 8800,
   KERN_TYPE_LOTUS8                  = 9100,
   KERN_TYPE_OFFICE2007              = 9400,
   KERN_TYPE_OFFICE2010              = 9500,
@@ -391,7 +374,6 @@ typedef enum kern_type
 
 typedef enum rounds_count
 {
-   ROUNDS_ANDROIDFDE         = 2000,
    ROUNDS_LOTUS8             = 5000,
    ROUNDS_CISCO8             = 20000,
    ROUNDS_OFFICE2007         = 50000,
