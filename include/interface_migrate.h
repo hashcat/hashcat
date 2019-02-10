@@ -340,8 +340,6 @@ typedef enum kern_type
   KERN_TYPE_SHA1_SLT_PW_SLT         = 4900,
   KERN_TYPE_RIPEMD160               = 6000,
   KERN_TYPE_WHIRLPOOL               = 6100,
-  KERN_TYPE_LOTUS5                  = 8600,
-  KERN_TYPE_LOTUS6                  = 8700,
   KERN_TYPE_ANDROIDFDE              = 8800,
   KERN_TYPE_LOTUS8                  = 9100,
   KERN_TYPE_OFFICE2007              = 9400,
