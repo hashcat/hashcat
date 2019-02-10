@@ -88,8 +88,6 @@
   "  14800 | iTunes backup >= 10.0                            | Backup",
   "  12900 | Android FDE (Samsung DEK)                        | Full-Disk Encryption (FDE)",
   "  12200 | eCryptfs                                         | Full-Disk Encryption (FDE)",
-  "  10600 | PDF 1.7 Level 3 (Acrobat 9)                      | Documents",
-  "  10700 | PDF 1.7 Level 8 (Acrobat 10 - 11)                | Documents",
   "  16200 | Apple Secure Notes                               | Documents",
   "  12700 | Blockchain, My Wallet                            | Password Managers",
   "  15200 | Blockchain, My Wallet, V2                        | Password Managers",
@@ -164,8 +162,6 @@ static const char *ST_HASH_06100 = "7ca8eaaaa15eaa4c038b4c47b9313e92da827c06940e
 static const char *ST_HASH_09900 = "22527bee5c29ce95373c4e0f359f079b";
 static const char *ST_HASH_10100 = "583e6f51e52ba296:2:4:47356410265714355482333327356688";
 static const char *ST_HASH_10200 = "$cram_md5$MTI=$dXNlciBiOGYwNjk5MTE0YjA1Nzg4OTIyM2RmMDg0ZjgyMjQ2Zg==";
-static const char *ST_HASH_10600 = "$pdf$5*5*256*-1028*1*16*28562274676426582441147358074521*127*a3aab04cff2c536118870976d768f1fdd445754d6b2dd81fba10bb6e742acd7f2856227467642658244114735807452100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000*127*00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000*32*0000000000000000000000000000000000000000000000000000000000000000*32*0000000000000000000000000000000000000000000000000000000000000000";
-static const char *ST_HASH_10700 = "$pdf$5*6*256*-1028*1*16*62137640825124540503886403748430*127*0391647179352257f7181236ba371e540c2dbb82fac1c462313eb58b772a54956213764082512454050388640374843000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000*127*00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000*32*0000000000000000000000000000000000000000000000000000000000000000*32*0000000000000000000000000000000000000000000000000000000000000000";
 static const char *ST_HASH_10900 = "sha256:1000:NjI3MDM3:vVfavLQL9ZWjg8BUMq6/FB8FtpkIGWYk";
 static const char *ST_HASH_11100 = "$postgres$postgres*74402844*4e7fabaaf34d780c4a5822d28ee1c83e";
 static const char *ST_HASH_11200 = "$mysqlna$2576670568531371763643101056213751754328*5e4be686a3149a12847caa9898247dcc05739601";
@@ -241,8 +237,6 @@ static const char *HT_06100 = "Whirlpool";
 static const char *HT_09900 = "Radmin2";
 static const char *HT_10100 = "SipHash";
 static const char *HT_10200 = "CRAM-MD5";
-static const char *HT_10600 = "PDF 1.7 Level 3 (Acrobat 9)";
-static const char *HT_10700 = "PDF 1.7 Level 8 (Acrobat 10 - 11)";
 static const char *HT_10900 = "PBKDF2-HMAC-SHA256";
 static const char *HT_11100 = "PostgreSQL CRAM (MD5)";
 static const char *HT_11200 = "MySQL CRAM (SHA1)";
@@ -3187,206 +3181,6 @@ int punbb_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUS
   const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  return (PARSER_OK);
-}
-
-int pdf17l3_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  int ret = pdf17l8_parse_hash (input_buf, input_len, hash_buf, hashconfig);
-
-  if (ret != PARSER_OK)
-  {
-    return ret;
-  }
-
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
-  {
-    digest[0] -= SHA256M_A;
-    digest[1] -= SHA256M_B;
-    digest[2] -= SHA256M_C;
-    digest[3] -= SHA256M_D;
-    digest[4] -= SHA256M_E;
-    digest[5] -= SHA256M_F;
-    digest[6] -= SHA256M_G;
-    digest[7] -= SHA256M_H;
-  }
-
-  salt->salt_buf[2] = 0x80;
-
-  return (PARSER_OK);
-}
-
-int pdf17l8_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  pdf_t *pdf = (pdf_t *) hash_buf->esalt;
-
-  token_t token;
-
-  token.token_cnt  = 16;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_PDF;
-
-  token.len[0]     = 5;
-  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.len_min[1] = 1;
-  token.len_max[1] = 1;
-  token.sep[1]     = '*';
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[2] = 1;
-  token.len_max[2] = 1;
-  token.sep[2]     = '*';
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[3] = 3;
-  token.len_max[3] = 3;
-  token.sep[3]     = '*';
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[4] = 1;
-  token.len_max[4] = 6;
-  token.sep[4]     = '*';
-  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.len_min[5] = 1;
-  token.len_max[5] = 1;
-  token.sep[5]     = '*';
-  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[6] = 1;
-  token.len_max[6] = 4;
-  token.sep[6]     = '*';
-  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[7] = 0;
-  token.len_max[7] = 1024;
-  token.sep[7]     = '*';
-  token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len_min[8] = 1;
-  token.len_max[8] = 4;
-  token.sep[8]     = '*';
-  token.attr[8]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[9] = 0;
-  token.len_max[9] = 1024;
-  token.sep[9]     = '*';
-  token.attr[9]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len_min[10] = 1;
-  token.len_max[10] = 4;
-  token.sep[10]     = '*';
-  token.attr[10]    = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[11] = 0;
-  token.len_max[11] = 1024;
-  token.sep[11]     = '*';
-  token.attr[11]    = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len_min[12] = 1;
-  token.len_max[12] = 4;
-  token.sep[12]     = '*';
-  token.attr[12]    = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[13] = 0;
-  token.len_max[13] = 1024;
-  token.sep[13]     = '*';
-  token.attr[13]    = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len_min[14] = 1;
-  token.len_max[14] = 4;
-  token.sep[14]     = '*';
-  token.attr[14]    = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[15] = 0;
-  token.len_max[15] = 1024;
-  token.sep[15]     = '*';
-  token.attr[15]    = TOKEN_ATTR_VERIFY_LENGTH
-                    | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *V_pos      = token.buf[1];
-  const u8 *R_pos      = token.buf[2];
-  const u8 *bits_pos   = token.buf[3];
-  const u8 *enc_md_pos = token.buf[5];
-  const u8 *u_len_pos  = token.buf[8];
-  const u8 *u_buf_pos  = token.buf[9];
-
-  // validate data
-
-  const int V = strtol ((const char *) V_pos, NULL, 10);
-  const int R = strtol ((const char *) R_pos, NULL, 10);
-
-  int vr_ok = 0;
-
-  if ((V == 5) && (R == 5)) vr_ok = 1;
-  if ((V == 5) && (R == 6)) vr_ok = 1;
-
-  if (vr_ok == 0) return (PARSER_SALT_VALUE);
-
-  const int bits = strtol ((const char *) bits_pos, NULL, 10);
-
-  if (bits != 256) return (PARSER_SALT_VALUE);
-
-  int enc_md = strtol ((const char *) enc_md_pos, NULL, 10);
-
-  if ((enc_md != 0) && (enc_md != 1)) return (PARSER_SALT_VALUE);
-
-  const u32 u_len  = hc_strtoul ((const char *) u_len_pos,  NULL, 10);
-
-  // copy data to esalt
-
-  if (u_len < 40) return (PARSER_SALT_VALUE);
-
-  if (is_valid_hex_string (u_buf_pos, 80) == false) return (PARSER_SALT_ENCODING);
-
-  for (int i = 0, j = 0; i < 8 + 2; i += 1, j += 8)
-  {
-    pdf->u_buf[i] = hex_to_u32 ((const u8 *) &u_buf_pos[j]);
-  }
-
-  salt->salt_buf[0] = pdf->u_buf[8];
-  salt->salt_buf[1] = pdf->u_buf[9];
-
-  salt->salt_len  = 8;
-  salt->salt_iter = ROUNDS_PDF17L8;
-
-  digest[0] = byte_swap_32 (pdf->u_buf[0]);
-  digest[1] = byte_swap_32 (pdf->u_buf[1]);
-  digest[2] = byte_swap_32 (pdf->u_buf[2]);
-  digest[3] = byte_swap_32 (pdf->u_buf[3]);
-  digest[4] = byte_swap_32 (pdf->u_buf[4]);
-  digest[5] = byte_swap_32 (pdf->u_buf[5]);
-  digest[6] = byte_swap_32 (pdf->u_buf[6]);
-  digest[7] = byte_swap_32 (pdf->u_buf[7]);
 
   return (PARSER_OK);
 }
@@ -7233,20 +7027,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
 
     snprintf (out_buf, out_size, "%s%s$%s", SIGNATURE_CRAM_MD5, challenge, response);
   }
-  else if (hash_mode == 10600)
-  {
-    hashinfo_t **hashinfo_ptr = hash_info;
-    char        *hash_buf     = hashinfo_ptr[digest_cur]->orighash;
-
-    snprintf (out_buf, out_size, "%s", hash_buf);
-  }
-  else if (hash_mode == 10700)
-  {
-    hashinfo_t **hashinfo_ptr = hash_info;
-    char        *hash_buf     = hashinfo_ptr[digest_cur]->orighash;
-
-    snprintf (out_buf, out_size, "%s", hash_buf);
-  }
   else if (hash_mode == 10900)
   {
     hashinfo_t **hashinfo_ptr = hash_info;
@@ -9377,48 +9157,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 10600:  hashconfig->hash_type      = HASH_TYPE_SHA256;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
-                                            | OPTS_TYPE_ST_ADD80
-                                            | OPTS_TYPE_ST_ADDBITS15
-                                            | OPTS_TYPE_HASH_COPY;
-                 hashconfig->kern_type      = KERN_TYPE_SHA256_PWSLT;
-                 hashconfig->dgst_size      = DGST_SIZE_4_8;
-                 hashconfig->parse_func     = pdf17l3_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_PRECOMPUTE_MERKLE
-                                            | OPTI_TYPE_EARLY_SKIP
-                                            | OPTI_TYPE_NOT_ITERATED
-                                            | OPTI_TYPE_APPENDED_SALT
-                                            | OPTI_TYPE_RAW_HASH;
-                 hashconfig->dgst_pos0      = 3;
-                 hashconfig->dgst_pos1      = 7;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 6;
-                 hashconfig->st_hash        = ST_HASH_10600;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case 10700:  hashconfig->hash_type      = HASH_TYPE_PDFU32;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_HASH_COPY;
-                 hashconfig->kern_type      = KERN_TYPE_PDF17L8;
-                 hashconfig->dgst_size      = DGST_SIZE_4_8;
-                 hashconfig->parse_func     = pdf17l8_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_10700;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case 10900:  hashconfig->hash_type      = HASH_TYPE_PBKDF2_SHA256;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -10073,8 +9811,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   switch (hashconfig->hash_mode)
   {
     case 10200: hashconfig->esalt_size = sizeof (cram_md5_t);           break;
-    case 10600: hashconfig->esalt_size = sizeof (pdf_t);                break;
-    case 10700: hashconfig->esalt_size = sizeof (pdf_t);                break;
     case 10900: hashconfig->esalt_size = sizeof (pbkdf2_sha256_t);      break;
     case 11400: hashconfig->esalt_size = sizeof (sip_t);                break;
     case 11900: hashconfig->esalt_size = sizeof (pbkdf2_md5_t);         break;
@@ -10097,7 +9833,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   switch (hashconfig->hash_mode)
   {
     case 10200: hashconfig->tmp_size = sizeof (cram_md5_t);               break;
-    case 10700: hashconfig->tmp_size = sizeof (pdf17l8_tmp_t);            break;
     case 10900: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
     case 11900: hashconfig->tmp_size = sizeof (pbkdf2_md5_tmp_t);         break;
     case 12001: hashconfig->tmp_size = sizeof (pbkdf2_sha1_tmp_t);        break;
@@ -10130,8 +9865,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
   {
     switch (hashconfig->hash_mode)
     {
-      case 10700: pw_max = MIN (pw_max, 16); // pure kernel available
-                  break;
       case 14400: pw_max = MIN (pw_max, 24); // todo
                   break;
       case 15500: pw_max = MIN (pw_max, 16); // todo
@@ -10142,8 +9875,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
   {
     switch (hashconfig->hash_mode)
     {
-      case 10700: pw_max = 127; // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
-                  break;
       case 16400: pw_max = 64; // HMAC-MD5 and `doveadm pw` are different for password more than 64 bytes
                   break;
     }
@@ -10160,7 +9891,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
   {
     case   112: pw_max = 30;      break; // https://www.toadworld.com/platforms/oracle/b/weblog/archive/2013/11/12/oracle-12c-passwords
     case  9900: pw_max = 100;     break; // RAdmin2 sets w[25] = 0x80
-    case 10600: pw_max = 127;     break; // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
     case 10900: pw_max = PW_MAX;  break;
     case 11900: pw_max = PW_MAX;  break;
     case 12001: pw_max = PW_MAX;  break;

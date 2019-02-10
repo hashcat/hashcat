@@ -10,27 +10,6 @@ typedef struct itunes_backup
 
 } itunes_backup_t;
 
-typedef struct pdf
-{
-  int  V;
-  int  R;
-  int  P;
-
-  int  enc_md;
-
-  u32  id_buf[8];
-  u32  u_buf[32];
-  u32  o_buf[32];
-
-  int  id_len;
-  int  o_len;
-  int  u_len;
-
-  u32  rc4key[2];
-  u32  rc4data[2];
-
-} pdf_t;
-
 typedef struct sip
 {
   u32 salt_buf[32];
@@ -134,19 +113,6 @@ typedef struct electrum_wallet
   u32 encrypted[4];
 
 } electrum_wallet_t;
-
-typedef struct pdf17l8_tmp
-{
-  union
-  {
-    u32 dgst32[16];
-    u64  dgst64[8];
-  } d;
-
-  u32 dgst_len;
-  u32 W_len;
-
-} pdf17l8_tmp_t;
 
 typedef struct mywallet_tmp
 {
@@ -282,7 +248,6 @@ typedef enum kern_type
   KERN_TYPE_WHIRLPOOL               = 6100,
   KERN_TYPE_RADMIN2                 = 9900,
   KERN_TYPE_SIPHASH                 = 10100,
-  KERN_TYPE_PDF17L8                 = 10700,
   KERN_TYPE_PBKDF2_SHA256           = 10900,
   KERN_TYPE_POSTGRESQL_AUTH         = 11100,
   KERN_TYPE_MYSQL_AUTH              = 11200,
@@ -328,7 +293,6 @@ typedef enum rounds_count
 {
    ROUNDS_LIBREOFFICE        = 100000,
    ROUNDS_OPENOFFICE         = 1024,
-   ROUNDS_PDF17L8            = 64,
    ROUNDS_PBKDF2_SHA256      = 1000,
    ROUNDS_PBKDF2_MD5         = 1000,
    ROUNDS_PBKDF2_SHA512      = 1000,
