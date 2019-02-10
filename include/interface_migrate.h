@@ -246,7 +246,6 @@ typedef enum kern_type
   KERN_TYPE_STREEBOG_512            = 11800,
   KERN_TYPE_HMAC_STREEBOG_512_PW    = 11850,
   KERN_TYPE_HMAC_STREEBOG_512_SLT   = 11860,
-  KERN_TYPE_PBKDF2_MD5              = 11900,
   KERN_TYPE_ECRYPTFS                = 12200,
   KERN_TYPE_ORACLET                 = 12300,
   KERN_TYPE_MYWALLET                = 12700,
