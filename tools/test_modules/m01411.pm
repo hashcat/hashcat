@@ -13,9 +13,6 @@ use MIME::Base64 qw (encode_base64 decode_base64);
 
 sub module_constraints { [[0, 255], [0, 255], [0, 55], [0, 55], [0, 55]] }
 
-
-# static const char *ST_HASH_01411 = "{SSHA256}L5Wk0zPY2lmoR5pH20zngq37KkxFwgTquEhx95rxfVk3Ng==";
-
 sub module_generate_hash
 {
   my $word = shift;
@@ -41,11 +38,6 @@ sub module_verify_hash
 
   my $signature    = substr ($hash, 0, 9);
   my $plain_base64 = substr ($hash, 9);
-
-  print "line: $line\n";
-  print "hash: $hash\n";
-  print "signature: $signature\n";
-  print "plain_base64: $plain_base64\n";
 
   return unless ($signature eq "{SSHA256}"); 
   return unless defined $plain_base64;
