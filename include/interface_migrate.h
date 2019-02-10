@@ -158,12 +158,6 @@ typedef struct mywallet_tmp
 
 } mywallet_tmp_t;
 
-typedef struct saph_sha1_tmp
-{
-  u32 digest_buf[5];
-
-} saph_sha1_tmp_t;
-
 typedef struct pbkdf1_sha1_tmp
 {
   // pbkdf1-sha1 is limited to 160 bits
@@ -288,7 +282,6 @@ typedef enum kern_type
   KERN_TYPE_WHIRLPOOL               = 6100,
   KERN_TYPE_RADMIN2                 = 9900,
   KERN_TYPE_SIPHASH                 = 10100,
-  KERN_TYPE_SAPH_SHA1               = 10300,
   KERN_TYPE_PDF17L8                 = 10700,
   KERN_TYPE_PBKDF2_SHA256           = 10900,
   KERN_TYPE_POSTGRESQL_AUTH         = 11100,
@@ -335,7 +328,6 @@ typedef enum rounds_count
 {
    ROUNDS_LIBREOFFICE        = 100000,
    ROUNDS_OPENOFFICE         = 1024,
-   ROUNDS_SAPH_SHA1          = 1024,
    ROUNDS_PDF17L8            = 64,
    ROUNDS_PBKDF2_SHA256      = 1000,
    ROUNDS_PBKDF2_MD5         = 1000,

@@ -80,7 +80,6 @@
   "  13800 | Windows Phone 8+ PIN/password                    | Operating Systems",
   "   9900 | Radmin2                                          | Operating Systems",
   "    125 | ArubaOS                                          | Operating Systems",
-  "  10300 | SAP CODVN H (PWDSALTEDHASH) iSSHA-1              | Enterprise Application Software (EAS)",
   "    133 | PeopleSoft                                       | Enterprise Application Software (EAS)",
   "  13200 | AxCrypt                                          | Archives",
   "  13300 | AxCrypt in-memory SHA1                           | Archives",
@@ -165,7 +164,6 @@ static const char *ST_HASH_06100 = "7ca8eaaaa15eaa4c038b4c47b9313e92da827c06940e
 static const char *ST_HASH_09900 = "22527bee5c29ce95373c4e0f359f079b";
 static const char *ST_HASH_10100 = "583e6f51e52ba296:2:4:47356410265714355482333327356688";
 static const char *ST_HASH_10200 = "$cram_md5$MTI=$dXNlciBiOGYwNjk5MTE0YjA1Nzg4OTIyM2RmMDg0ZjgyMjQ2Zg==";
-static const char *ST_HASH_10300 = "{x-issha, 1024}BnjXMqcNTwa3BzdnUOf1iAu6dw02NzU4MzE2MTA=";
 static const char *ST_HASH_10600 = "$pdf$5*5*256*-1028*1*16*28562274676426582441147358074521*127*a3aab04cff2c536118870976d768f1fdd445754d6b2dd81fba10bb6e742acd7f2856227467642658244114735807452100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000*127*00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000*32*0000000000000000000000000000000000000000000000000000000000000000*32*0000000000000000000000000000000000000000000000000000000000000000";
 static const char *ST_HASH_10700 = "$pdf$5*6*256*-1028*1*16*62137640825124540503886403748430*127*0391647179352257f7181236ba371e540c2dbb82fac1c462313eb58b772a54956213764082512454050388640374843000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000*127*00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000*32*0000000000000000000000000000000000000000000000000000000000000000*32*0000000000000000000000000000000000000000000000000000000000000000";
 static const char *ST_HASH_10900 = "sha256:1000:NjI3MDM3:vVfavLQL9ZWjg8BUMq6/FB8FtpkIGWYk";
@@ -243,7 +241,6 @@ static const char *HT_06100 = "Whirlpool";
 static const char *HT_09900 = "Radmin2";
 static const char *HT_10100 = "SipHash";
 static const char *HT_10200 = "CRAM-MD5";
-static const char *HT_10300 = "SAP CODVN H (PWDSALTEDHASH) iSSHA-1";
 static const char *HT_10600 = "PDF 1.7 Level 3 (Acrobat 9)";
 static const char *HT_10700 = "PDF 1.7 Level 8 (Acrobat 10 - 11)";
 static const char *HT_10900 = "PBKDF2-HMAC-SHA256";
@@ -325,7 +322,6 @@ static const char *SIGNATURE_PBKDF2_SHA256      = "sha256";
 static const char *SIGNATURE_PBKDF2_SHA512      = "sha512";
 static const char *SIGNATURE_PHPS               = "$PHPS$";
 static const char *SIGNATURE_POSTGRESQL_AUTH    = "$postgres$";
-static const char *SIGNATURE_SAPH_SHA1          = "{x-issha, ";
 static const char *SIGNATURE_SHA1B64            = "{SHA}";
 static const char *SIGNATURE_SHA256B64S         = "{SSHA256}";
 static const char *SIGNATURE_SHA512B64S         = "{SSHA512}";
@@ -3077,87 +3073,6 @@ int crammd5_dovecot_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, 
     digest[2] -= MD5M_C;
     digest[3] -= MD5M_D;
   }
-
-  return (PARSER_OK);
-}
-
-int saph_sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt  = 3;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_SAPH_SHA1;
-
-  token.len[0]     = 10;
-  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.sep[1]     = '}';
-  token.len_min[1] = 1;
-  token.len_max[1] = 6;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[2] = 32;
-  token.len_max[2] = 49;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64A;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  // iter
-
-  const u8 *iter_pos = token.buf[1];
-
-  u32 iter = hc_strtoul ((const char *) iter_pos, NULL, 10);
-
-  if (iter < 1)
-  {
-    return (PARSER_SALT_ITERATION);
-  }
-
-  iter--; // first iteration is special
-
-  salt->salt_iter = iter;
-
-  // decode
-
-  const u8 *base64_pos = token.buf[2];
-  const int base64_len = token.len[2];
-
-  u8 tmp_buf[100] = { 0 };
-
-  const u32 decoded_len = base64_decode (base64_to_int, (const u8 *) base64_pos, base64_len, tmp_buf);
-
-  if (decoded_len < 24) return (PARSER_SALT_LENGTH);
-
-  // copy the salt
-
-  const u32 salt_len = decoded_len - 20;
-
-  if (salt_len > 16) return (PARSER_SALT_LENGTH);
-
-  memcpy (salt->salt_buf, tmp_buf + 20, salt_len);
-
-  salt->salt_len = salt_len;
-
-  // set digest
-
-  u32 *digest_ptr = (u32 *) tmp_buf;
-
-  digest[0] = byte_swap_32 (digest_ptr[0]);
-  digest[1] = byte_swap_32 (digest_ptr[1]);
-  digest[2] = byte_swap_32 (digest_ptr[2]);
-  digest[3] = byte_swap_32 (digest_ptr[3]);
-  digest[4] = byte_swap_32 (digest_ptr[4]);
 
   return (PARSER_OK);
 }
@@ -7318,21 +7233,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
 
     snprintf (out_buf, out_size, "%s%s$%s", SIGNATURE_CRAM_MD5, challenge, response);
   }
-  else if (hash_mode == 10300)
-  {
-    memcpy (tmp_buf +  0, digest_buf, 20);
-    memcpy (tmp_buf + 20, salt.salt_buf, salt.salt_len);
-
-    u32 tmp_len = 20 + salt.salt_len;
-
-    // base64 encode it
-
-    char base64_encoded[100] = { 0 };
-
-    base64_encode (int_to_base64, (const u8 *) tmp_buf, tmp_len, (u8 *) base64_encoded);
-
-    snprintf (out_buf, out_size, "%s%u}%s", SIGNATURE_SAPH_SHA1, salt.salt_iter + 1, base64_encoded);
-  }
   else if (hash_mode == 10600)
   {
     hashinfo_t **hashinfo_ptr = hash_info;
@@ -9477,22 +9377,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 10300:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_SAPH_SHA1;
-                 hashconfig->dgst_size      = DGST_SIZE_4_5;
-                 hashconfig->parse_func     = saph_sha1_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_10300;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case 10600:  hashconfig->hash_type      = HASH_TYPE_SHA256;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -10213,7 +10097,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   switch (hashconfig->hash_mode)
   {
     case 10200: hashconfig->tmp_size = sizeof (cram_md5_t);               break;
-    case 10300: hashconfig->tmp_size = sizeof (saph_sha1_tmp_t);          break;
     case 10700: hashconfig->tmp_size = sizeof (pdf17l8_tmp_t);            break;
     case 10900: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
     case 11900: hashconfig->tmp_size = sizeof (pbkdf2_md5_tmp_t);         break;
@@ -10277,7 +10160,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
   {
     case   112: pw_max = 30;      break; // https://www.toadworld.com/platforms/oracle/b/weblog/archive/2013/11/12/oracle-12c-passwords
     case  9900: pw_max = 100;     break; // RAdmin2 sets w[25] = 0x80
-    case 10300: pw_max = 40;      break; // https://www.daniel-berlin.de/security/sap-sec/password-hash-algorithms/
     case 10600: pw_max = 127;     break; // https://www.pdflib.com/knowledge-base/pdf-password-security/encryption/
     case 10900: pw_max = PW_MAX;  break;
     case 11900: pw_max = PW_MAX;  break;
