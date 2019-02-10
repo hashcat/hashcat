@@ -11,7 +11,7 @@ use warnings;
 use Digest::MD4 qw (md4 md4_hex);
 use Encode;
 
-sub module_constraints { [[0, 255], [0, 255], [0, 27], [0, 19], [0, 26]] }
+sub module_constraints { [[0, 255], [0, 255], [0, 27], [0, 19], [-1, -1]] }
 
 sub module_generate_hash
 {
