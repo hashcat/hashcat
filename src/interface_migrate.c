@@ -72,7 +72,6 @@
   "    125 | ArubaOS                                          | Operating Systems",
   "    133 | PeopleSoft                                       | Enterprise Application Software (EAS)",
   "  16600 | Electrum Wallet (Salt-Type 1-2)                  | Password Managers",
-  "  15500 | JKS Java Key Store Private Keys (SHA1)           | Password Managers",
   "  16300 | Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256     | Password Managers",
 
 /**
@@ -152,7 +151,6 @@ static const char *ST_HASH_11850 = "be4555415af4a05078dcf260bb3c0a35948135df3dbf
 static const char *ST_HASH_11860 = "bebf6831b3f9f958acb345a88cb98f30cb0374cff13e6012818487c8dc8d5857f23bca2caed280195ad558b8ce393503e632e901e8d1eb2ccb349a544ac195fd:08151337";
 static const char *ST_HASH_13900 = "058c1c3773340c8563421e2b17e60eb7c916787e:827500576";
 static const char *ST_HASH_14400 = "fcdc7ec700b887e8eaebf94c2ec52aebb5521223:63038426024388230227";
-static const char *ST_HASH_15500 = "$jksprivk$*338BD2FBEBA7B3EF198A4CBFC6E18AFF1E229367*5225850113575146134463704406336350011656*D5253EB151EB92DC73E542D8C0A4D7A848A5B0C0E370E625E6547D4E6F23416FC85A27BC295731B8021CDFBD003551C66C434FFBC87DACAD1FDF39022320034A2F86E779F2B1B3325428A666518FA89507AD63E15FD9C57B9E36EF5B642A2F448A9A3F09B79AD93D65F46B8692CD07539FD140146F8F219DC262971AF019E18EDC16C3C240569E1673F4D98BC818CCF28298D5A7BFF038A663DD10FE5E48643C3217C237D342164E2D41EF15075431FBD5B34800E5AE7EB80FAA5AE9982A55F35379AA7B31217E7F1C5F1964A15024A305AE4B3981FE1C80C163BC38ECA5581F11867E5C34C5D124D0367B3737E5E5BB14D2CAB26A698C8DAAB755C82BA6B823BCAECDD4A89C831651ACE5A6029FD0D3515C5D1D53AD8B9062CE8C445373862035CBBF60D490CA2E4975EE6E0358EC32E871FAB15347E3032E21F30F543BAAB01D779BA833CA0B8C7591B42C7C59A8FDD46D7DECEC0E91ADBF331177605E7830ABED62FAD7D5D806D8EFD01C38765940B7F97168FC72C39BF4C98F944FFC310CA8F4EB1D0F960F352CC5E2BB23A1EB221072A5471EDA2CE81C04595B8D37088CFB5C14F6A4A881AD12125DEFBB8154EB4C130AB7FD9933FD36DF1A6A26B51AB169866788678FCED988C8E017CA84354F487A5508210181AFB8B3AD0753E3E28BE674DFBD4E4FBDFD1E30D592F4EA3A77A2F0F5CF9A175DBC590EF5D42971A39918F12B92DCD8BFD56BE9A3459856B5587603C7B53062663A4C8894BBC9894FB1663BF30F32D907664328138B7A50EAC7F8E3183D74562A5C90FE1889AC4C5FE43EBEB8974563B6682F92591ECA4FA0DA72236C3851DA102DB6BA0CC07BFD32F7E962AB0EDCF4A8DEA6525174F5BB5C021E2A9A3F7F761E9CA90B6E27FB7E55CD91DA184FAC5E534E8AD25314C56CE5796506A0CA70881782F9C5147D87705065D68BD67D2B0344205BA6445D562273690004CA5A303274FB283A75F49BA968D7947943AA98F2AF9CB8253B425B86225E7395A331AC4CB1B1700C64D4F458D5D642C54148AE6DA41D9E26657D331B157D76042C2CF3057B83997C23D8BF68FB3C7337CAFB8B324AD0DF7A80B554B4D7F9AD6ED527E7932F1741A573C152A41610F6517E3F4A3BC6B66685871A7CE3795C559BD47CDB8E34CB2C1DFE980518D79E2078C258C54F312EB38609F640E7DC013E0F2A16A25BB5971882B4308D27930CA99FEC231AE927B62215A1B56098C362B7F20593953B29428681875070E84BF5B60BEA3948127151634123DA77C814AAD54CE10905763C8C19BC191C0C40458C809402E1957C4C05C4EAE27576B2D30593F7FDCC9A248DB5DB23CF2FA22A92C016090F611690BF0AB5B8B2866ED25F345EFE85DF3311C9E91C37CEE709CF16E7CB09D01BECD2961D094C02D42EC85BF47FAB1B67A13B9A1741C15F7156D57A71BFFABB03B71E69707913A5C136B3D69CE3F71ABFE376F0A21D723FFA2E60AC180689D3E8AF4348C9F555CD897387327FC8BA2B9C51A7298547E556A11A60441EF5331A1BFB847A3D23DD9F7C50E636A2C6309BC82E1A8852F5A8569B6D93*14*78D6A2424484CF5149932B7EA8BF*test";
 static const char *ST_HASH_16300 = "$ethereum$w*e94a8e49deac2d62206bf9bfb7d2aaea7eb06c1a378cfc1ac056cc599a569793c0ecc40e6a0c242dee2812f06b644d70f43331b1fa2ce4bd6cbb9f62dd25b443235bdb4c1ffb222084c9ded8c719624b338f17e0fd827b34d79801298ac75f74ed97ae16f72fccecf862d09a03498b1b8bd1d984fc43dd507ede5d4b6223a582352386407266b66c671077eefc1e07b5f42508bf926ab5616658c984968d8eec25c9d5197a4a30eed54c161595c3b4d558b17ab8a75ccca72b3d949919d197158ea5cfbc43ac7dd73cf77807dc2c8fe4ef1e942ccd11ec24fe8a410d48ef4b8a35c93ecf1a21c51a51a08f3225fbdcc338b1e7fdafd7d94b82a81d88c2e9a429acc3f8a5974eafb7af8c912597eb6fdcd80578bd12efddd99de47b44e7c8f6c38f2af3116b08796172eda89422e9ea9b99c7f98a7e331aeb4bb1b06f611e95082b629332c31dbcfd878aed77d300c9ed5c74af9cd6f5a8c4a261dd124317fb790a04481d93aec160af4ad8ec84c04d943a869f65f07f5ccf8295dc1c876f30408eac77f62192cbb25842470b4a5bdb4c8096f56da7e9ed05c21f61b94c54ef1c2e9e417cce627521a40a99e357dd9b7a7149041d589cbacbe0302db57ddc983b9a6d79ce3f2e9ae8ad45fa40b934ed6b36379b780549ae7553dbb1cab238138c05743d0103335325bd90e27d8ae1ea219eb8905503c5ad54fa12d22e9a7d296eee07c8a7b5041b8d56b8af290274d01eb0e4ad174eb26b23b5e9fb46ff7f88398e6266052292acb36554ccb9c2c03139fe72d3f5d30bd5d10bd79d7cb48d2ab24187d8efc3750d5a24980fb12122591455d14e75421a2074599f1cc9fdfc8f498c92ad8b904d3c4307f80c46921d8128*f3abede76ac15228f1b161dd9660bb9094e81b1b*d201ccd492c284484c7824c4d37b1593";
 static const char *ST_HASH_16400 = "{CRAM-MD5}5389b33b9725e5657cb631dc50017ff100000000000000000000000000000000";
 static const char *ST_HASH_16600 = "$electrum$1*44358283104603165383613672586868*c43a6632d9f59364f74c395a03d8c2ea";
@@ -207,7 +205,6 @@ static const char *HT_11850 = "HMAC-Streebog-512 (key = $pass), big-endian";
 static const char *HT_11860 = "HMAC-Streebog-512 (key = $salt), big-endian";
 static const char *HT_13900 = "OpenCart";
 static const char *HT_14400 = "sha1(CX)";
-static const char *HT_15500 = "JKS Java Key Store Private Keys (SHA1)";
 static const char *HT_16300 = "Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256";
 static const char *HT_16400 = "CRAM-MD5 Dovecot";
 static const char *HT_16500 = "JWT (JSON Web Token)";
@@ -252,7 +249,6 @@ static const char *SIGNATURE_SHA256B64S         = "{SSHA256}";
 static const char *SIGNATURE_SHA512B64S         = "{SSHA512}";
 static const char *SIGNATURE_SSHA1B64_lower     = "{ssha}";
 static const char *SIGNATURE_SSHA1B64_upper     = "{SSHA}";
-static const char *SIGNATURE_JKS_SHA1           = "$jksprivk$";
 static const char *SIGNATURE_ETHEREUM_PRESALE   = "$ethereum$w";
 static const char *SIGNATURE_ELECTRUM_WALLET    = "$electrum$";
 
@@ -3885,150 +3881,6 @@ int sha256b64s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   return (PARSER_OK);
 }
 
-int jks_sha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  jks_sha1_t *jks_sha1 = (jks_sha1_t *) hash_buf->esalt;
-
-  token_t token;
-
-  token.token_cnt  = 7;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_JKS_SHA1;
-
-  token.sep[0]     = '*';
-  token.len_min[0] = 10;
-  token.len_max[0] = 10;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.sep[1]     = '*';
-  token.len_min[1] = 40;
-  token.len_max[1] = 40;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.sep[2]     = '*';
-  token.len_min[2] = 40;
-  token.len_max[2] = 40;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.sep[3]     = '*';
-  token.len_min[3] = 2;
-  token.len_max[3] = 16384;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.sep[4]     = '*';
-  token.len_min[4] = 2;
-  token.len_max[4] = 2;
-  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[5]     = '*';
-  token.len_min[5] = 28;
-  token.len_max[5] = 28;
-  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.sep[6]     = '*';
-  token.len_min[6] = 0;
-  token.len_max[6] = 64;
-  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  // checksum
-
-  const u8 *checksum_pos = token.buf[1];
-
-  jks_sha1->checksum[0] = hex_to_u32 ((const u8 *) &checksum_pos[ 0]);
-  jks_sha1->checksum[1] = hex_to_u32 ((const u8 *) &checksum_pos[ 8]);
-  jks_sha1->checksum[2] = hex_to_u32 ((const u8 *) &checksum_pos[16]);
-  jks_sha1->checksum[3] = hex_to_u32 ((const u8 *) &checksum_pos[24]);
-  jks_sha1->checksum[4] = hex_to_u32 ((const u8 *) &checksum_pos[32]);
-
-  // iv
-
-  const u8 *iv_pos = token.buf[2];
-
-  jks_sha1->iv[0] = hex_to_u32 ((const u8 *) &iv_pos[ 0]);
-  jks_sha1->iv[1] = hex_to_u32 ((const u8 *) &iv_pos[ 8]);
-  jks_sha1->iv[2] = hex_to_u32 ((const u8 *) &iv_pos[16]);
-  jks_sha1->iv[3] = hex_to_u32 ((const u8 *) &iv_pos[24]);
-  jks_sha1->iv[4] = hex_to_u32 ((const u8 *) &iv_pos[32]);
-
-  // enc_key
-
-  const u8 *enc_key_pos = token.buf[3];
-  const int enc_key_len = token.len[3];
-
-  u8 *enc_key_buf = (u8 *) jks_sha1->enc_key_buf;
-
-  for (int i = 0, j = 0; j < enc_key_len; i += 1, j += 2)
-  {
-    enc_key_buf[i] = hex_to_u8 ((const u8 *) &enc_key_pos[j]);
-
-    jks_sha1->enc_key_len++;
-  }
-
-  // der1
-
-  const u8 *der1_pos = token.buf[4];
-
-  u8 *der = (u8 *) jks_sha1->der;
-
-  der[0] = hex_to_u8 ((const u8 *) &der1_pos[0]);
-
-  // der2
-
-  const u8 *der2_pos = token.buf[5];
-
-  for (int i = 6, j = 0; j < 28; i += 1, j += 2)
-  {
-    der[i] = hex_to_u8 ((const u8 *) &der2_pos[j]);
-  }
-
-  der[1] = 0;
-  der[2] = 0;
-  der[3] = 0;
-  der[4] = 0;
-  der[5] = 0;
-
-  // alias
-
-  const u8 *alias_pos = token.buf[6];
-
-  strncpy ((char *) jks_sha1->alias, (const char *) alias_pos, 64);
-
-  // fake salt
-
-  salt->salt_buf[0] = jks_sha1->iv[0];
-  salt->salt_buf[1] = jks_sha1->iv[1];
-  salt->salt_buf[2] = jks_sha1->iv[2];
-  salt->salt_buf[3] = jks_sha1->iv[3];
-  salt->salt_buf[4] = jks_sha1->iv[4];
-
-  salt->salt_len = 20;
-
-  // fake digest
-
-  digest[0] = byte_swap_32 (jks_sha1->der[0]);
-  digest[1] = byte_swap_32 (jks_sha1->der[1]);
-  digest[2] = byte_swap_32 (jks_sha1->der[2]);
-  digest[3] = byte_swap_32 (jks_sha1->der[3]);
-  digest[4] = byte_swap_32 (jks_sha1->der[4]);
-
-  return (PARSER_OK);
-}
-
 int ethereum_presale_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
@@ -4859,54 +4711,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (digest_buf[2]),
       byte_swap_32 (digest_buf[3]),
       byte_swap_32 (digest_buf[4]));
-  }
-  else if (hash_mode == 15500)
-  {
-    jks_sha1_t *jks_sha1s = (jks_sha1_t *) esalts_buf;
-
-    jks_sha1_t *jks_sha1 = &jks_sha1s[digest_cur];
-
-    char enc_key[16384 + 1] = { 0 };
-
-    u8 *ptr = (u8 *) jks_sha1->enc_key_buf;
-
-    for (u32 i = 0, j = 0; i < jks_sha1->enc_key_len; i += 1, j += 2)
-    {
-      sprintf (enc_key + j, "%02X", ptr[i]);
-    }
-
-    u8 *der = (u8 *) jks_sha1->der;
-
-    snprintf (out_buf, out_size, "%s*%08X%08X%08X%08X%08X*%08X%08X%08X%08X%08X*%s*%02X*%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X*%s",
-      SIGNATURE_JKS_SHA1,
-      byte_swap_32 (jks_sha1->checksum[0]),
-      byte_swap_32 (jks_sha1->checksum[1]),
-      byte_swap_32 (jks_sha1->checksum[2]),
-      byte_swap_32 (jks_sha1->checksum[3]),
-      byte_swap_32 (jks_sha1->checksum[4]),
-      byte_swap_32 (jks_sha1->iv[0]),
-      byte_swap_32 (jks_sha1->iv[1]),
-      byte_swap_32 (jks_sha1->iv[2]),
-      byte_swap_32 (jks_sha1->iv[3]),
-      byte_swap_32 (jks_sha1->iv[4]),
-      enc_key,
-      der[ 0],
-      der[ 6],
-      der[ 7],
-      der[ 8],
-      der[ 9],
-      der[10],
-      der[11],
-      der[12],
-      der[13],
-      der[14],
-      der[15],
-      der[16],
-      der[17],
-      der[18],
-      der[19],
-      (char *) jks_sha1->alias
-    );
   }
   else if (hash_mode == 16300)
   {
@@ -6702,28 +6506,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 15500:  hashconfig->hash_type      = HASH_TYPE_JKS_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
-                                            | OPTS_TYPE_PT_UTF16BE
-                                            | OPTS_TYPE_ST_ADD80
-                                            | OPTS_TYPE_ST_ADDBITS15;
-                 hashconfig->kern_type      = KERN_TYPE_JKS_SHA1;
-                 hashconfig->dgst_size      = DGST_SIZE_4_5;
-                 hashconfig->parse_func     = jks_sha1_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_NOT_ITERATED
-                                            | OPTI_TYPE_APPENDED_SALT;
-                 hashconfig->dgst_pos0      = 3;
-                 hashconfig->dgst_pos1      = 4;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 1;
-                 hashconfig->st_hash        = ST_HASH_15500;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case 16300:  hashconfig->hash_type      = HASH_TYPE_PBKDF2_SHA256;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -6809,7 +6591,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   switch (hashconfig->hash_mode)
   {
     case 10200: hashconfig->esalt_size = sizeof (cram_md5_t);           break;
-    case 15500: hashconfig->esalt_size = sizeof (jks_sha1_t);           break;
     case 16300: hashconfig->esalt_size = sizeof (ethereum_presale_t);   break;
     case 16500: hashconfig->esalt_size = sizeof (jwt_t);                break;
     case 16600: hashconfig->esalt_size = sizeof (electrum_wallet_t);    break;
@@ -6837,8 +6618,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
     switch (hashconfig->hash_mode)
     {
       case 14400: pw_max = MIN (pw_max, 24); // todo
-                  break;
-      case 15500: pw_max = MIN (pw_max, 16); // todo
                   break;
     }
   }

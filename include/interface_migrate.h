@@ -9,17 +9,6 @@ typedef struct pbkdf2_sha256
 
 } pbkdf2_sha256_t;
 
-typedef struct jks_sha1
-{
-  u32 checksum[5];
-  u32 iv[5];
-  u32 enc_key_buf[4096];
-  u32 enc_key_len;
-  u32 der[5];
-  u32 alias[16];
-
-} jks_sha1_t;
-
 typedef struct ethereum_presale
 {
   u32 iv[4];
@@ -123,7 +112,6 @@ typedef enum kern_type
   KERN_TYPE_HMAC_STREEBOG_512_SLT   = 11860,
   KERN_TYPE_OPENCART                = 13900,
   KERN_TYPE_SHA1CX                  = 14400,
-  KERN_TYPE_JKS_SHA1                = 15500,
   KERN_TYPE_ETHEREUM_PRESALE        = 16300,
   KERN_TYPE_CRAM_MD5_DOVECOT        = 16400,
   KERN_TYPE_JWT_HS256               = 16511,
