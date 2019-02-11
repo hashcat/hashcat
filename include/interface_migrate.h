@@ -123,16 +123,6 @@ typedef struct pbkdf2_sha256_tmp
 
 } pbkdf2_sha256_tmp_t;
 
-typedef struct oraclet_tmp
-{
-  u64  ipad[8];
-  u64  opad[8];
-
-  u64  dgst[16];
-  u64  out[16];
-
-} oraclet_tmp_t;
-
 typedef struct cram_md5
 {
   u32 user[16];
@@ -208,7 +198,6 @@ typedef enum kern_type
   KERN_TYPE_STREEBOG_512            = 11800,
   KERN_TYPE_HMAC_STREEBOG_512_PW    = 11850,
   KERN_TYPE_HMAC_STREEBOG_512_SLT   = 11860,
-  KERN_TYPE_ORACLET                 = 12300,
   KERN_TYPE_MYWALLET                = 12700,
   KERN_TYPE_MS_DRSR                 = 12800,
   KERN_TYPE_ANDROIDFDE_SAMSUNG      = 12900,
@@ -240,7 +229,6 @@ typedef enum rounds_count
 {
    ROUNDS_LIBREOFFICE        = 100000,
    ROUNDS_OPENOFFICE         = 1024,
-   ROUNDS_ORACLET            = 4096,
    ROUNDS_MYWALLET           = 10,
    ROUNDS_MYWALLETV2         = 5000,
    ROUNDS_MS_DRSR            = 100,
