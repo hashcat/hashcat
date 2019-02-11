@@ -77,7 +77,6 @@ typedef enum kern_type
   KERN_TYPE_SHA1_SLT_PW_SLT         = 4900,
   KERN_TYPE_RIPEMD160               = 6000,
   KERN_TYPE_WHIRLPOOL               = 6100,
-  KERN_TYPE_RADMIN2                 = 9900,
   KERN_TYPE_SIPHASH                 = 10100,
   KERN_TYPE_POSTGRESQL_AUTH         = 11100,
   KERN_TYPE_MYSQL_AUTH              = 11200,

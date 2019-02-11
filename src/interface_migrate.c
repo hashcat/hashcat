@@ -66,7 +66,6 @@
   "    122 | macOS v10.4, MacOS v10.5, MacOS v10.6            | Operating Systems",
   "   1722 | macOS v10.7                                      | Operating Systems",
   "     22 | Juniper NetScreen/SSG (ScreenOS)                 | Operating Systems",
-  "   9900 | Radmin2                                          | Operating Systems",
   "    125 | ArubaOS                                          | Operating Systems",
   "    133 | PeopleSoft                                       | Enterprise Application Software (EAS)",
 
@@ -128,7 +127,6 @@ static const char *ST_HASH_04700 = "92d85978d884eb1d99a51652b1139c8279fa8663";
 static const char *ST_HASH_04900 = "75d280ca9a0c2ee18729603104ead576d9ca6285:347070";
 static const char *ST_HASH_06000 = "012cb9b334ec1aeb71a9c8ce85586082467f7eb6";
 static const char *ST_HASH_06100 = "7ca8eaaaa15eaa4c038b4c47b9313e92da827c06940e69947f85bc0fbef3eb8fd254da220ad9e208b6b28f6bb9be31dd760f1fdb26112d83f87d96b416a4d258";
-static const char *ST_HASH_09900 = "22527bee5c29ce95373c4e0f359f079b";
 static const char *ST_HASH_10100 = "583e6f51e52ba296:2:4:47356410265714355482333327356688";
 static const char *ST_HASH_10200 = "$cram_md5$MTI=$dXNlciBiOGYwNjk5MTE0YjA1Nzg4OTIyM2RmMDg0ZjgyMjQ2Zg==";
 static const char *ST_HASH_11100 = "$postgres$postgres*74402844*4e7fabaaf34d780c4a5822d28ee1c83e";
@@ -179,7 +177,6 @@ static const char *HT_04700 = "sha1(md5($pass))";
 static const char *HT_04900 = "sha1($salt.$pass.$salt)";
 static const char *HT_06000 = "RIPEMD-160";
 static const char *HT_06100 = "Whirlpool";
-static const char *HT_09900 = "Radmin2";
 static const char *HT_10100 = "SipHash";
 static const char *HT_10200 = "CRAM-MD5";
 static const char *HT_11100 = "PostgreSQL CRAM (MD5)";
@@ -2434,33 +2431,6 @@ int peoplesoft_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   salt->salt_buf[0] = 0x80;
 
   salt->salt_len = 0;
-
-  return (PARSER_OK);
-}
-
-int radmin2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  token_t token;
-
-  token.token_cnt  = 1;
-
-  token.len_min[0] = 32;
-  token.len_max[0] = 32;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *hash_pos = token.buf[0];
-
-  digest[0] = hex_to_u32 (hash_pos +  0);
-  digest[1] = hex_to_u32 (hash_pos +  8);
-  digest[2] = hex_to_u32 (hash_pos + 16);
-  digest[3] = hex_to_u32 (hash_pos + 24);
 
   return (PARSER_OK);
 }
@@ -5676,25 +5646,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case  9900:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_NONE;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_RADMIN2;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = radmin2_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_EARLY_SKIP
-                                            | OPTI_TYPE_NOT_ITERATED
-                                            | OPTI_TYPE_NOT_SALTED;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 3;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 1;
-                 hashconfig->st_hash        = ST_HASH_09900;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
 
     case 10100:  hashconfig->hash_type      = HASH_TYPE_SIPHASH;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
@@ -5911,10 +5862,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_hash        = ST_HASH_14400;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
-
-
-
-
   }
 
   // esalt_size
@@ -5960,7 +5907,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
   switch (hashconfig->hash_mode)
   {
     case   112: pw_max = 30;      break; // https://www.toadworld.com/platforms/oracle/b/weblog/archive/2013/11/12/oracle-12c-passwords
-    case  9900: pw_max = 100;     break; // RAdmin2 sets w[25] = 0x80
   }
 
   return pw_max;
