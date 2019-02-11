@@ -1,5 +1,4 @@
 
-  "  10100 | SipHash                                          | Raw Hash",
   "   6000 | RIPEMD-160                                       | Raw Hash",
   "   6100 | Whirlpool                                        | Raw Hash",
   "  11700 | GOST R 34.11-2012 (Streebog) 256-bit, big-endian | Raw Hash",
@@ -45,7 +44,6 @@
   "   2612 | PHPS                                             | Forums, CMS, E-Commerce, Frameworks",
   "    124 | Django (SHA-1)                                   | Forums, CMS, E-Commerce, Frameworks",
   "   3711 | MediaWiki B type                                 | Forums, CMS, E-Commerce, Frameworks",
-  "  13900 | OpenCart                                         | Forums, CMS, E-Commerce, Frameworks",
   "   4521 | Redmine                                          | Forums, CMS, E-Commerce, Frameworks",
   "   4522 | PunBB                                            | Forums, CMS, E-Commerce, Frameworks",
   "     22 | Juniper NetScreen/SSG (ScreenOS)                 | Operating Systems",
@@ -94,14 +92,12 @@ static const char *ST_HASH_04700 = "92d85978d884eb1d99a51652b1139c8279fa8663";
 static const char *ST_HASH_04900 = "75d280ca9a0c2ee18729603104ead576d9ca6285:347070";
 static const char *ST_HASH_06000 = "012cb9b334ec1aeb71a9c8ce85586082467f7eb6";
 static const char *ST_HASH_06100 = "7ca8eaaaa15eaa4c038b4c47b9313e92da827c06940e69947f85bc0fbef3eb8fd254da220ad9e208b6b28f6bb9be31dd760f1fdb26112d83f87d96b416a4d258";
-static const char *ST_HASH_10100 = "583e6f51e52ba296:2:4:47356410265714355482333327356688";
 static const char *ST_HASH_11700 = "57e9e50caec93d72e9498c211d6dc4f4d328248b48ecf46ba7abfa874f666e36";
 static const char *ST_HASH_11750 = "0f71c7c82700c9094ca95eee3d804cc283b538bec49428a9ef8da7b34effb3ba:08151337";
 static const char *ST_HASH_11760 = "d5c6b874338a492ac57ddc6871afc3c70dcfd264185a69d84cf839a07ef92b2c:08151337";
 static const char *ST_HASH_11800 = "5d5bdba48c8f89ee6c0a0e11023540424283e84902de08013aeeb626e819950bb32842903593a1d2e8f71897ff7fe72e17ac9ba8ce1d1d2f7e9c4359ea63bdc3";
 static const char *ST_HASH_11850 = "be4555415af4a05078dcf260bb3c0a35948135df3dbf93f7c8b80574ceb0d71ea4312127f839b7707bf39ccc932d9e7cb799671183455889e8dde3738dfab5b6:08151337";
 static const char *ST_HASH_11860 = "bebf6831b3f9f958acb345a88cb98f30cb0374cff13e6012818487c8dc8d5857f23bca2caed280195ad558b8ce393503e632e901e8d1eb2ccb349a544ac195fd:08151337";
-static const char *ST_HASH_13900 = "058c1c3773340c8563421e2b17e60eb7c916787e:827500576";
 
 static const char *HT_00030 = "md5(utf16le($pass).$salt)";
 static const char *HT_00050 = "HMAC-MD5 (key = $pass)";
@@ -140,14 +136,12 @@ static const char *HT_04700 = "sha1(md5($pass))";
 static const char *HT_04900 = "sha1($salt.$pass.$salt)";
 static const char *HT_06000 = "RIPEMD-160";
 static const char *HT_06100 = "Whirlpool";
-static const char *HT_10100 = "SipHash";
 static const char *HT_11700 = "GOST R 34.11-2012 (Streebog) 256-bit, big-endian";
 static const char *HT_11750 = "HMAC-Streebog-256 (key = $pass), big-endian";
 static const char *HT_11760 = "HMAC-Streebog-256 (key = $salt), big-endian";
 static const char *HT_11800 = "GOST R 34.11-2012 (Streebog) 512-bit, big-endian";
 static const char *HT_11850 = "HMAC-Streebog-512 (key = $pass), big-endian";
 static const char *HT_11860 = "HMAC-Streebog-512 (key = $salt), big-endian";
-static const char *HT_13900 = "OpenCart";
 
 static const char *HT_00022 = "Juniper NetScreen/SSG (ScreenOS)";
 static const char *HT_00101 = "nsldap, SHA-1(Base64), Netscape LDAP SHA";
@@ -1233,54 +1227,6 @@ int mysql323_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_U
   return (PARSER_OK);
 }
 
-int opencart_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt  = 2;
-
-  token.sep[0]     = hashconfig->separator;
-  token.len_min[0] = 40;
-  token.len_max[0] = 40;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len_min[1] = 9;
-  token.len_max[1] = 9;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *hash_pos = token.buf[0];
-
-  digest[0] = hex_to_u32 (hash_pos +  0);
-  digest[1] = hex_to_u32 (hash_pos +  8);
-  digest[2] = hex_to_u32 (hash_pos + 16);
-  digest[3] = hex_to_u32 (hash_pos + 24);
-  digest[4] = hex_to_u32 (hash_pos + 32);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-  digest[4] = byte_swap_32 (digest[4]);
-
-  const u8 *salt_pos = token.buf[1];
-  const int salt_len = token.len[1];
-
-  const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
-
-  if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  return (PARSER_OK);
-}
-
 int phps_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
@@ -1458,75 +1404,6 @@ int djangosha1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  return (PARSER_OK);
-}
-
-int siphash_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt  = 4;
-
-  token.sep[0]     = ':';
-  token.len_min[0] = 16;
-  token.len_max[0] = 16;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.sep[1]     = ':';
-  token.len_min[1] = 1;
-  token.len_max[1] = 1;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[2]     = ':';
-  token.len_min[2] = 1;
-  token.len_max[2] = 1;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[3]     = '$';
-  token.len_min[3] = 32;
-  token.len_max[3] = 32;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  // iter
-
-  const u8 iter_c = token.buf[1][0];
-  const u8 iter_d = token.buf[2][0];
-
-  // atm only defaults, let's see if there's more request
-  if (iter_c != '2') return (PARSER_SALT_ITERATION);
-  if (iter_d != '4') return (PARSER_SALT_ITERATION);
-
-  // hash
-
-  const u8 *hash_pos = token.buf[0];
-
-  digest[0] = hex_to_u32 (hash_pos + 0);
-  digest[1] = hex_to_u32 (hash_pos + 8);
-  digest[2] = 0;
-  digest[3] = 0;
-
-  // salt
-
-  const u8 *salt_pos = token.buf[3];
-
-  salt->salt_buf[0] = hex_to_u32 (salt_pos +  0);
-  salt->salt_buf[1] = hex_to_u32 (salt_pos +  8);
-  salt->salt_buf[2] = hex_to_u32 (salt_pos + 16);
-  salt->salt_buf[3] = hex_to_u32 (salt_pos + 24);
-
-  salt->salt_len = 16;
 
   return (PARSER_OK);
 }
@@ -2028,18 +1905,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       digest_buf[1],
       digest_buf[2],
       digest_buf[3]);
-  }
-  else if (hash_mode == 10100)
-  {
-    snprintf (out_buf, out_size, "%08x%08x:%d:%d:%08x%08x%08x%08x",
-      digest_buf[0],
-      digest_buf[1],
-      2,
-      4,
-      byte_swap_32 (salt.salt_buf[0]),
-      byte_swap_32 (salt.salt_buf[1]),
-      byte_swap_32 (salt.salt_buf[2]),
-      byte_swap_32 (salt.salt_buf[3]));
   }
   else if (hash_mode == 11700 || hash_mode == 11750 || hash_mode == 11760)
   {
@@ -3131,24 +2996,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 10100:  hashconfig->hash_type      = HASH_TYPE_SIPHASH;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_SIPHASH;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
-                 hashconfig->parse_func     = siphash_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_NOT_ITERATED
-                                            | OPTI_TYPE_RAW_HASH;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_10100;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case 11700:  hashconfig->hash_type      = HASH_TYPE_STREEBOG_256;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -3248,26 +3095,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 3;
                  hashconfig->st_hash        = ST_HASH_11860;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case 13900:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
-                                            | OPTS_TYPE_PT_ADD80
-                                            | OPTS_TYPE_PT_ADDBITS15;
-                 hashconfig->kern_type      = KERN_TYPE_OPENCART;
-                 hashconfig->dgst_size      = DGST_SIZE_4_5;
-                 hashconfig->parse_func     = opencart_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_NOT_ITERATED;
-                 hashconfig->dgst_pos0      = 3;
-                 hashconfig->dgst_pos1      = 4;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 1;
-                 hashconfig->st_hash        = ST_HASH_13900;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
