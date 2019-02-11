@@ -69,7 +69,6 @@
   "   9900 | Radmin2                                          | Operating Systems",
   "    125 | ArubaOS                                          | Operating Systems",
   "    133 | PeopleSoft                                       | Enterprise Application Software (EAS)",
-  "  16600 | Electrum Wallet (Salt-Type 1-2)                  | Password Managers",
 
 static const char *ST_HASH_00021 = "e983672a03adcc9767b24584338eb378:00";
 static const char *ST_HASH_00022 = "nKjiFErqK7TPcZdFZsZMNWPtw4Pv8n:26506173";
@@ -142,7 +141,6 @@ static const char *ST_HASH_11850 = "be4555415af4a05078dcf260bb3c0a35948135df3dbf
 static const char *ST_HASH_11860 = "bebf6831b3f9f958acb345a88cb98f30cb0374cff13e6012818487c8dc8d5857f23bca2caed280195ad558b8ce393503e632e901e8d1eb2ccb349a544ac195fd:08151337";
 static const char *ST_HASH_13900 = "058c1c3773340c8563421e2b17e60eb7c916787e:827500576";
 static const char *ST_HASH_14400 = "fcdc7ec700b887e8eaebf94c2ec52aebb5521223:63038426024388230227";
-static const char *ST_HASH_16600 = "$electrum$1*44358283104603165383613672586868*c43a6632d9f59364f74c395a03d8c2ea";
 
 static const char *HT_00030 = "md5(utf16le($pass).$salt)";
 static const char *HT_00050 = "HMAC-MD5 (key = $pass)";
@@ -194,7 +192,6 @@ static const char *HT_11850 = "HMAC-Streebog-512 (key = $pass), big-endian";
 static const char *HT_11860 = "HMAC-Streebog-512 (key = $salt), big-endian";
 static const char *HT_13900 = "OpenCart";
 static const char *HT_14400 = "sha1(CX)";
-static const char *HT_16600 = "Electrum Wallet (Salt-Type 1-3)";
 
 static const char *HT_00022 = "Juniper NetScreen/SSG (ScreenOS)";
 static const char *HT_00101 = "nsldap, SHA-1(Base64), Netscape LDAP SHA";
@@ -234,7 +231,7 @@ static const char *SIGNATURE_SHA256B64S         = "{SSHA256}";
 static const char *SIGNATURE_SHA512B64S         = "{SSHA512}";
 static const char *SIGNATURE_SSHA1B64_lower     = "{ssha}";
 static const char *SIGNATURE_SSHA1B64_upper     = "{SSHA}";
-static const char *SIGNATURE_ELECTRUM_WALLET    = "$electrum$";
+
 
 /**
  * decoder / encoder
@@ -3818,109 +3815,6 @@ int sha256b64s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   return (PARSER_OK);
 }
 
-int electrum_wallet13_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  electrum_wallet_t *electrum_wallet = (electrum_wallet_t *) hash_buf->esalt;
-
-  token_t token;
-
-  token.token_cnt  = 4;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_ELECTRUM_WALLET;
-
-  token.len[0]     = 10;
-  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.sep[1]     = '*';
-  token.len_min[1] = 1;
-  token.len_max[1] = 1;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[2]     = '*';
-  token.len_min[2] = 32;
-  token.len_max[2] = 32;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.sep[3]     = '*';
-  token.len_min[3] = 32;
-  token.len_max[3] = 32;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  // salt_type
-
-  const u8 *salt_type_pos = token.buf[1];
-
-  const u32 salt_type = hc_strtoul ((const char *) salt_type_pos, NULL, 10);
-
-  if ((salt_type == 1) || (salt_type == 2))
-  {
-    // all ok
-  }
-  else
-  {
-    return (PARSER_SALT_VALUE);
-  }
-
-  electrum_wallet->salt_type = salt_type;
-
-  // iv
-
-  const u8 *iv_pos = token.buf[2];
-
-  electrum_wallet->iv[0] = hex_to_u32 ((const u8 *) &iv_pos[ 0]);
-  electrum_wallet->iv[1] = hex_to_u32 ((const u8 *) &iv_pos[ 8]);
-  electrum_wallet->iv[2] = hex_to_u32 ((const u8 *) &iv_pos[16]);
-  electrum_wallet->iv[3] = hex_to_u32 ((const u8 *) &iv_pos[24]);
-
-  // encrypted
-
-  const u8 *encrypted_pos = token.buf[3];
-
-  electrum_wallet->encrypted[0] = hex_to_u32 ((const u8 *) &encrypted_pos[ 0]);
-  electrum_wallet->encrypted[1] = hex_to_u32 ((const u8 *) &encrypted_pos[ 8]);
-  electrum_wallet->encrypted[2] = hex_to_u32 ((const u8 *) &encrypted_pos[16]);
-  electrum_wallet->encrypted[3] = hex_to_u32 ((const u8 *) &encrypted_pos[24]);
-
-  // salt fake
-
-  salt->salt_buf[0] = electrum_wallet->iv[0];
-  salt->salt_buf[1] = electrum_wallet->iv[1];
-  salt->salt_buf[2] = electrum_wallet->iv[2];
-  salt->salt_buf[3] = electrum_wallet->iv[3];
-  salt->salt_buf[4] = electrum_wallet->encrypted[0];
-  salt->salt_buf[5] = electrum_wallet->encrypted[1];
-  salt->salt_buf[6] = electrum_wallet->encrypted[2];
-  salt->salt_buf[7] = electrum_wallet->encrypted[3];
-
-  salt->salt_len = 32;
-
-  // hash fake
-
-  digest[0] = electrum_wallet->iv[0];
-  digest[1] = electrum_wallet->iv[1];
-  digest[2] = electrum_wallet->iv[2];
-  digest[3] = electrum_wallet->iv[3];
-  digest[4] = electrum_wallet->encrypted[0];
-  digest[5] = electrum_wallet->encrypted[1];
-  digest[6] = electrum_wallet->encrypted[2];
-  digest[7] = electrum_wallet->encrypted[3];
-
-  return (PARSER_OK);
-}
-
 int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size, const u32 salt_pos, const u32 digest_pos)
 {
   if (hash_mode == 22)
@@ -4366,24 +4260,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (digest_buf[2]),
       byte_swap_32 (digest_buf[3]),
       byte_swap_32 (digest_buf[4]));
-  }
-  else if (hash_mode == 16600)
-  {
-    electrum_wallet_t *electrum_wallets = (electrum_wallet_t *) esalts_buf;
-
-    electrum_wallet_t *electrum_wallet = &electrum_wallets[digest_cur];
-
-    snprintf (out_buf, out_size, "%s%d*%08x%08x%08x%08x*%08x%08x%08x%08x",
-      SIGNATURE_ELECTRUM_WALLET,
-      electrum_wallet->salt_type,
-      byte_swap_32 (electrum_wallet->iv[0]),
-      byte_swap_32 (electrum_wallet->iv[1]),
-      byte_swap_32 (electrum_wallet->iv[2]),
-      byte_swap_32 (electrum_wallet->iv[3]),
-      byte_swap_32 (electrum_wallet->encrypted[0]),
-      byte_swap_32 (electrum_wallet->encrypted[1]),
-      byte_swap_32 (electrum_wallet->encrypted[2]),
-      byte_swap_32 (electrum_wallet->encrypted[3]));
   }
   else
   {
@@ -6036,24 +5912,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 16600:  hashconfig->hash_type      = HASH_TYPE_ELECTRUM_WALLET;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
-                                            | OPTS_TYPE_PT_ADD80
-                                            | OPTS_TYPE_PT_ADDBITS15;
-                 hashconfig->kern_type      = KERN_TYPE_ELECTRUM_WALLET13;
-                 hashconfig->dgst_size      = DGST_SIZE_4_8;
-                 hashconfig->parse_func     = electrum_wallet13_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_16600;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
+
 
 
   }
@@ -6063,7 +5922,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   switch (hashconfig->hash_mode)
   {
     case 10200: hashconfig->esalt_size = sizeof (cram_md5_t);           break;
-    case 16600: hashconfig->esalt_size = sizeof (electrum_wallet_t);    break;
   }
 
   // tmp_size

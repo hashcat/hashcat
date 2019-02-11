@@ -9,14 +9,6 @@ typedef struct pbkdf2_sha256
 
 } pbkdf2_sha256_t;
 
-typedef struct electrum_wallet
-{
-  u32 salt_type;
-  u32 iv[4];
-  u32 encrypted[4];
-
-} electrum_wallet_t;
-
 typedef struct pbkdf1_sha1_tmp
 {
   // pbkdf1-sha1 is limited to 160 bits
@@ -97,7 +89,6 @@ typedef enum kern_type
   KERN_TYPE_HMAC_STREEBOG_512_SLT   = 11860,
   KERN_TYPE_OPENCART                = 13900,
   KERN_TYPE_SHA1CX                  = 14400,
-  KERN_TYPE_ELECTRUM_WALLET13       = 16600,
 
 } kern_type_t;
 
