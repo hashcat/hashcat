@@ -30,12 +30,6 @@ typedef struct pbkdf2_sha256_tmp
 
 } pbkdf2_sha256_tmp_t;
 
-typedef struct cram_md5
-{
-  u32 user[16];
-
-} cram_md5_t;
-
 typedef enum kern_type
 {
   KERN_TYPE_MD5_SLTPW               = 20,
