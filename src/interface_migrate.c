@@ -39,7 +39,6 @@
   "  11760 | HMAC-Streebog-256 (key = $salt), big-endian      | Raw Hash, Authenticated",
   "  11850 | HMAC-Streebog-512 (key = $pass), big-endian      | Raw Hash, Authenticated",
   "  11860 | HMAC-Streebog-512 (key = $salt), big-endian      | Raw Hash, Authenticated",
-  "  11100 | PostgreSQL CRAM (MD5)                            | Network Protocols",
   "  11200 | MySQL CRAM (SHA1)                                | Network Protocols",
   "    121 | SMF (Simple Machines Forum) > v1.1               | Forums, CMS, E-Commerce, Frameworks",
   "   2611 | vBulletin < v3.8.5                               | Forums, CMS, E-Commerce, Frameworks",
@@ -55,7 +54,6 @@
   "   1731 | MSSQL (2012, 2014)                               | Database Server",
   "    141 | Episerver 6.x < .NET 4                           | HTTP, SMTP, LDAP Server",
   "   1441 | Episerver 6.x >= .NET 4                          | HTTP, SMTP, LDAP Server",
-  "   1600 | Apache $apr1$ MD5, md5apr1, MD5 (APR)            | HTTP, SMTP, LDAP Server",
   "   1421 | hMailServer                                      | HTTP, SMTP, LDAP Server",
   "    111 | nsldaps, SSHA-1(Base64), Netscape LDAP SSHA      | HTTP, SMTP, LDAP Server",
   "   1411 | SSHA-256(Base64), LDAP {SSHA256}                 | HTTP, SMTP, LDAP Server",
@@ -124,7 +122,6 @@ static const char *ST_HASH_04900 = "75d280ca9a0c2ee18729603104ead576d9ca6285:347
 static const char *ST_HASH_06000 = "012cb9b334ec1aeb71a9c8ce85586082467f7eb6";
 static const char *ST_HASH_06100 = "7ca8eaaaa15eaa4c038b4c47b9313e92da827c06940e69947f85bc0fbef3eb8fd254da220ad9e208b6b28f6bb9be31dd760f1fdb26112d83f87d96b416a4d258";
 static const char *ST_HASH_10100 = "583e6f51e52ba296:2:4:47356410265714355482333327356688";
-static const char *ST_HASH_11100 = "$postgres$postgres*74402844*4e7fabaaf34d780c4a5822d28ee1c83e";
 static const char *ST_HASH_11200 = "$mysqlna$2576670568531371763643101056213751754328*5e4be686a3149a12847caa9898247dcc05739601";
 static const char *ST_HASH_11700 = "57e9e50caec93d72e9498c211d6dc4f4d328248b48ecf46ba7abfa874f666e36";
 static const char *ST_HASH_11750 = "0f71c7c82700c9094ca95eee3d804cc283b538bec49428a9ef8da7b34effb3ba:08151337";
@@ -172,7 +169,6 @@ static const char *HT_04900 = "sha1($salt.$pass.$salt)";
 static const char *HT_06000 = "RIPEMD-160";
 static const char *HT_06100 = "Whirlpool";
 static const char *HT_10100 = "SipHash";
-static const char *HT_11100 = "PostgreSQL CRAM (MD5)";
 static const char *HT_11200 = "MySQL CRAM (SHA1)";
 static const char *HT_11700 = "GOST R 34.11-2012 (Streebog) 256-bit, big-endian";
 static const char *HT_11750 = "HMAC-Streebog-256 (key = $pass), big-endian";
@@ -212,7 +208,6 @@ static const char *SIGNATURE_MSSQL              = "0x0100";
 static const char *SIGNATURE_MSSQL2012          = "0x0200";
 static const char *SIGNATURE_MYSQL_AUTH         = "$mysqlna$";
 static const char *SIGNATURE_PHPS               = "$PHPS$";
-static const char *SIGNATURE_POSTGRESQL_AUTH    = "$postgres$";
 static const char *SIGNATURE_SHA1B64            = "{SHA}";
 static const char *SIGNATURE_SHA256B64S         = "{SSHA256}";
 static const char *SIGNATURE_SHA512B64S         = "{SSHA512}";
@@ -2470,90 +2465,6 @@ int punbb_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUS
   return (PARSER_OK);
 }
 
-int postgresql_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt  = 4;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_POSTGRESQL_AUTH;
-
-  token.len[0]     = 10;
-  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.sep[1]     = '*';
-  token.len_min[1] = 0;
-  token.len_max[1] = 32;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.sep[2]     = '*';
-  token.len_min[2] = 8;
-  token.len_max[2] = 8;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.sep[3]     = '*';
-  token.len_min[3] = 32;
-  token.len_max[3] = 32;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  // hash
-
-  const u8 *hash_pos = token.buf[3];
-
-  digest[0] = hex_to_u32 (hash_pos +  0);
-  digest[1] = hex_to_u32 (hash_pos +  8);
-  digest[2] = hex_to_u32 (hash_pos + 16);
-  digest[3] = hex_to_u32 (hash_pos + 24);
-
-  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
-  {
-    digest[0] -= MD5M_A;
-    digest[1] -= MD5M_B;
-    digest[2] -= MD5M_C;
-    digest[3] -= MD5M_D;
-  }
-
-  /*
-   * store salt
-   */
-
-  const u8 *salt_pos = token.buf[2];
-
-  // first 4 bytes are the "challenge"
-
-  u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
-
-  salt_buf_ptr[0] = hex_to_u8 (salt_pos + 0);
-  salt_buf_ptr[1] = hex_to_u8 (salt_pos + 2);
-  salt_buf_ptr[2] = hex_to_u8 (salt_pos + 4);
-  salt_buf_ptr[3] = hex_to_u8 (salt_pos + 6);
-
-  // append the user name
-
-  const u8 *user_pos = token.buf[1];
-  const int user_len = token.len[1];
-
-  const bool parse_rc = parse_and_store_generic_salt (salt_buf_ptr + 4, (int *) &salt->salt_len, user_pos, user_len, hashconfig);
-
-  if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  salt->salt_len += 4;
-
-  return (PARSER_OK);
-}
-
 int mysql_auth_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
@@ -3217,23 +3128,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (salt.salt_buf[1]),
       byte_swap_32 (salt.salt_buf[2]),
       byte_swap_32 (salt.salt_buf[3]));
-  }
-  else if (hash_mode == 11100)
-  {
-    u32 salt_challenge = salt.salt_buf[0];
-
-    salt_challenge = byte_swap_32 (salt_challenge);
-
-    unsigned char *user_name = (unsigned char *) (salt.salt_buf + 1);
-
-    snprintf (out_buf, out_size, "%s%s*%08x*%08x%08x%08x%08x",
-        SIGNATURE_POSTGRESQL_AUTH,
-        user_name,
-        salt_challenge,
-        digest_buf[0],
-        digest_buf[1],
-        digest_buf[2],
-        digest_buf[3]);
   }
   else if (hash_mode == 11200)
   {
@@ -4681,26 +4575,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 3;
                  hashconfig->st_hash        = ST_HASH_10100;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case 11100:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_ST_ADD80;
-                 hashconfig->kern_type      = KERN_TYPE_POSTGRESQL_AUTH;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = postgresql_auth_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_PRECOMPUTE_MERKLE
-                                            | OPTI_TYPE_EARLY_SKIP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 3;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 1;
-                 hashconfig->st_hash        = ST_HASH_11100;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
