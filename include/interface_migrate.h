@@ -3,13 +3,6 @@
  * algo specific
  */
 
-typedef struct itunes_backup
-{
-  u32 wpky[10];
-  u32 dpsl[5];
-
-} itunes_backup_t;
-
 typedef struct pbkdf2_sha256
 {
   u32 salt_buf[16];
@@ -160,8 +153,6 @@ typedef enum kern_type
   KERN_TYPE_HMAC_STREEBOG_512_SLT   = 11860,
   KERN_TYPE_OPENCART                = 13900,
   KERN_TYPE_SHA1CX                  = 14400,
-  KERN_TYPE_ITUNES_BACKUP_9         = 14700,
-  KERN_TYPE_ITUNES_BACKUP_10        = 14800,
   KERN_TYPE_JKS_SHA1                = 15500,
   KERN_TYPE_TACACS_PLUS             = 16100,
   KERN_TYPE_APPLE_SECURE_NOTES      = 16200,
@@ -184,9 +175,6 @@ typedef enum rounds_count
    ROUNDS_OPENOFFICE         = 1024,
    ROUNDS_MYWALLETV2         = 5000,
    ROUNDS_KEEPASS            = 6000,
-   ROUNDS_ITUNES9_BACKUP     = 10000,
-   ROUNDS_ITUNES101_BACKUP   = 10000000, // wtf, i mean, really?
-   ROUNDS_ITUNES102_BACKUP   = 10000,
    ROUNDS_APPLE_SECURE_NOTES = 20000,
    ROUNDS_ETHEREUM_PRESALE   = 2000 - 1,
 
