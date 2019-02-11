@@ -81,7 +81,6 @@
   "  14700 | iTunes backup < 10.0                             | Backup",
   "  14800 | iTunes backup >= 10.0                            | Backup",
   "  12900 | Android FDE (Samsung DEK)                        | Full-Disk Encryption (FDE)",
-  "  12200 | eCryptfs                                         | Full-Disk Encryption (FDE)",
   "  16200 | Apple Secure Notes                               | Documents",
   "  12700 | Blockchain, My Wallet                            | Password Managers",
   "  15200 | Blockchain, My Wallet, V2                        | Password Managers",
@@ -164,7 +163,6 @@ static const char *ST_HASH_11760 = "d5c6b874338a492ac57ddc6871afc3c70dcfd264185a
 static const char *ST_HASH_11800 = "5d5bdba48c8f89ee6c0a0e11023540424283e84902de08013aeeb626e819950bb32842903593a1d2e8f71897ff7fe72e17ac9ba8ce1d1d2f7e9c4359ea63bdc3";
 static const char *ST_HASH_11850 = "be4555415af4a05078dcf260bb3c0a35948135df3dbf93f7c8b80574ceb0d71ea4312127f839b7707bf39ccc932d9e7cb799671183455889e8dde3738dfab5b6:08151337";
 static const char *ST_HASH_11860 = "bebf6831b3f9f958acb345a88cb98f30cb0374cff13e6012818487c8dc8d5857f23bca2caed280195ad558b8ce393503e632e901e8d1eb2ccb349a544ac195fd:08151337";
-static const char *ST_HASH_12200 = "$ecryptfs$0$1$4207883745556753$567daa975114206c";
 static const char *ST_HASH_12300 = "8F75FBD166AFDB6D7587DAB89C2F15672AAC031C5B0B5E65C0835FB130555F6FF4E0E5764976755558112246FFF306450C22F6B7746B9E9831ED97B373992F9157436180438417080374881414745255";
 static const char *ST_HASH_12700 = "$blockchain$288$713253722114000682636604801283547365b7a53a802a7388d08eb7e6c32c1efb4a157fe19bca940a753d7f16e8bdaf491aa9cf6cda4035ac48d56bb025aced81455424272f3e0459ec7674df3e82abd7323bc09af4fd0869fd790b3f17f8fe424b8ec81a013e1476a5c5a6a53c4b85a055eecfbc13eccf855f905d3ddc3f0c54015b8cb177401d5942af833f655947bfc12fc00656302f31339187de2a69ab06bc61073933b3a48c9f144177ae4b330968eb919f8a22cec312f734475b28cdfe5c25b43c035bf132887f3241d86b71eb7e1cf517f99305b19c47997a1a1f89df6248749ac7f38ca7c88719cf16d6af2394307dce55600b8858f4789cf1ae8fd362ef565cd9332f32068b3c04c9282553e658b759c2e76ed092d67bd55961ae";
 static const char *ST_HASH_12800 = "v1;PPH1_MD4,54188415275183448824,100,55b530f052a9af79a7ba9c466dddcb8b116f8babf6c3873a51a3898fb008e123";
@@ -233,7 +231,6 @@ static const char *HT_11760 = "HMAC-Streebog-256 (key = $salt), big-endian";
 static const char *HT_11800 = "GOST R 34.11-2012 (Streebog) 512-bit, big-endian";
 static const char *HT_11850 = "HMAC-Streebog-512 (key = $pass), big-endian";
 static const char *HT_11860 = "HMAC-Streebog-512 (key = $salt), big-endian";
-static const char *HT_12200 = "eCryptfs";
 static const char *HT_12300 = "Oracle T: Type (Oracle 12+)";
 static const char *HT_12700 = "Blockchain, My Wallet";
 static const char *HT_12800 = "MS-AzureSync PBKDF2-HMAC-SHA256";
@@ -6164,17 +6161,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (digest_buf[14]),
       byte_swap_32 (digest_buf[15]));
   }
-  else if (hash_mode == 12200)
-  {
-    u32 *ptr_digest = digest_buf;
-
-    snprintf (out_buf, out_size, "%s0$1$%08x%08x$%08x%08x",
-      SIGNATURE_ECRYPTFS,
-      salt.salt_buf[0],
-      salt.salt_buf[1],
-      ptr_digest[0],
-      ptr_digest[1]);
-  }
   else if (hash_mode == 12300)
   {
     u32 *ptr_digest = digest_buf;
@@ -8327,24 +8313,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 12200:  hashconfig->hash_type      = HASH_TYPE_ECRYPTFS;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_ECRYPTFS;
-                 hashconfig->dgst_size      = DGST_SIZE_8_8;
-                 hashconfig->parse_func     = ecryptfs_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_USES_BITS_64
-                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_12200;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case 12300:  hashconfig->hash_type      = HASH_TYPE_ORACLET;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -8746,7 +8714,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   switch (hashconfig->hash_mode)
   {
     case 10200: hashconfig->tmp_size = sizeof (cram_md5_t);               break;
-    case 12200: hashconfig->tmp_size = sizeof (ecryptfs_tmp_t);           break;
     case 12300: hashconfig->tmp_size = sizeof (oraclet_tmp_t);            break;
     case 12700: hashconfig->tmp_size = sizeof (mywallet_tmp_t);           break;
     case 12800: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
@@ -8799,7 +8766,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
   {
     case   112: pw_max = 30;      break; // https://www.toadworld.com/platforms/oracle/b/weblog/archive/2013/11/12/oracle-12c-passwords
     case  9900: pw_max = 100;     break; // RAdmin2 sets w[25] = 0x80
-    case 12200: pw_max = PW_MAX;  break;
     case 12300: pw_max = PW_MAX;  break;
     case 12700: pw_max = PW_MAX;  break;
     case 12800: pw_max = PW_MAX;  break;
