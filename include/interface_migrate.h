@@ -87,7 +87,6 @@ typedef enum kern_type
   KERN_TYPE_HMAC_STREEBOG_512_PW    = 11850,
   KERN_TYPE_HMAC_STREEBOG_512_SLT   = 11860,
   KERN_TYPE_OPENCART                = 13900,
-  KERN_TYPE_SHA1CX                  = 14400,
 
 } kern_type_t;
 

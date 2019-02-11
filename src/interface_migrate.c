@@ -19,7 +19,6 @@
   "   4520 | sha1($salt.sha1($pass))                          | Raw Hash, Salted and/or Iterated",
   "   4700 | sha1(md5($pass))                                 | Raw Hash, Salted and/or Iterated",
   "   4900 | sha1($salt.$pass.$salt)                          | Raw Hash, Salted and/or Iterated",
-  "  14400 | sha1(CX)                                         | Raw Hash, Salted and/or Iterated",
   "   1410 | sha256($pass.$salt)                              | Raw Hash, Salted and/or Iterated",
   "   1420 | sha256($salt.$pass)                              | Raw Hash, Salted and/or Iterated",
   "   1430 | sha256(utf16le($pass).$salt)                     | Raw Hash, Salted and/or Iterated",
@@ -136,7 +135,6 @@ static const char *ST_HASH_11800 = "5d5bdba48c8f89ee6c0a0e11023540424283e84902de
 static const char *ST_HASH_11850 = "be4555415af4a05078dcf260bb3c0a35948135df3dbf93f7c8b80574ceb0d71ea4312127f839b7707bf39ccc932d9e7cb799671183455889e8dde3738dfab5b6:08151337";
 static const char *ST_HASH_11860 = "bebf6831b3f9f958acb345a88cb98f30cb0374cff13e6012818487c8dc8d5857f23bca2caed280195ad558b8ce393503e632e901e8d1eb2ccb349a544ac195fd:08151337";
 static const char *ST_HASH_13900 = "058c1c3773340c8563421e2b17e60eb7c916787e:827500576";
-static const char *ST_HASH_14400 = "fcdc7ec700b887e8eaebf94c2ec52aebb5521223:63038426024388230227";
 
 static const char *HT_00030 = "md5(utf16le($pass).$salt)";
 static const char *HT_00050 = "HMAC-MD5 (key = $pass)";
@@ -186,7 +184,6 @@ static const char *HT_11800 = "GOST R 34.11-2012 (Streebog) 512-bit, big-endian"
 static const char *HT_11850 = "HMAC-Streebog-512 (key = $pass), big-endian";
 static const char *HT_11860 = "HMAC-Streebog-512 (key = $salt), big-endian";
 static const char *HT_13900 = "OpenCart";
-static const char *HT_14400 = "sha1(CX)";
 
 static const char *HT_00022 = "Juniper NetScreen/SSG (ScreenOS)";
 static const char *HT_00101 = "nsldap, SHA-1(Base64), Netscape LDAP SHA";
@@ -3597,54 +3594,6 @@ int plaintext_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
   return (PARSER_OK);
 }
 
-int sha1cx_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt  = 2;
-
-  token.sep[0]     = hashconfig->separator;
-  token.len_min[0] = 40;
-  token.len_max[0] = 40;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len_min[1] = 20;
-  token.len_max[1] = 20;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *hash_pos = token.buf[0];
-
-  digest[0] = hex_to_u32 (hash_pos +  0);
-  digest[1] = hex_to_u32 (hash_pos +  8);
-  digest[2] = hex_to_u32 (hash_pos + 16);
-  digest[3] = hex_to_u32 (hash_pos + 24);
-  digest[4] = hex_to_u32 (hash_pos + 32);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-  digest[4] = byte_swap_32 (digest[4]);
-
-  const u8 *salt_pos = token.buf[1];
-  const int salt_len = token.len[1];
-
-  const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
-
-  if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  return (PARSER_OK);
-}
-
 int sha256b64s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
@@ -4150,15 +4099,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (digest_buf[13]),
       byte_swap_32 (digest_buf[14]),
       byte_swap_32 (digest_buf[15]));
-  }
-  else if (hash_mode == 14400)
-  {
-    snprintf (out_buf, out_size, "%08x%08x%08x%08x%08x",
-      byte_swap_32 (digest_buf[0]),
-      byte_swap_32 (digest_buf[1]),
-      byte_swap_32 (digest_buf[2]),
-      byte_swap_32 (digest_buf[3]),
-      byte_swap_32 (digest_buf[4]));
   }
   else
   {
@@ -5749,23 +5689,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 14400:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_SHA1CX;
-                 hashconfig->dgst_size      = DGST_SIZE_4_5;
-                 hashconfig->parse_func     = sha1cx_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_EARLY_SKIP;
-                 hashconfig->dgst_pos0      = 3;
-                 hashconfig->dgst_pos1      = 4;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 1;
-                 hashconfig->st_hash        = ST_HASH_14400;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
   }
 
   // esalt_size
@@ -5781,25 +5704,4 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   {
     case 10200: hashconfig->tmp_size = sizeof (cram_md5_t);               break;
   };
-}
-
-u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
-
-  // pw_max : should be set to default at the time this is executed
-
-  u32 pw_max = hashconfig->pw_max;
-
-  if (optimized_kernel == true)
-  {
-    switch (hashconfig->hash_mode)
-    {
-      case 14400: pw_max = MIN (pw_max, 24); // todo
-                  break;
-    }
-  }
-
-
-  return pw_max;
 }
