@@ -69,7 +69,6 @@
   "    122 | macOS v10.4, MacOS v10.5, MacOS v10.6            | Operating Systems",
   "   1722 | macOS v10.7                                      | Operating Systems",
   "     22 | Juniper NetScreen/SSG (ScreenOS)                 | Operating Systems",
-  "  13800 | Windows Phone 8+ PIN/password                    | Operating Systems",
   "   9900 | Radmin2                                          | Operating Systems",
   "    125 | ArubaOS                                          | Operating Systems",
   "    133 | PeopleSoft                                       | Enterprise Application Software (EAS)",
@@ -156,7 +155,6 @@ static const char *ST_HASH_11760 = "d5c6b874338a492ac57ddc6871afc3c70dcfd264185a
 static const char *ST_HASH_11800 = "5d5bdba48c8f89ee6c0a0e11023540424283e84902de08013aeeb626e819950bb32842903593a1d2e8f71897ff7fe72e17ac9ba8ce1d1d2f7e9c4359ea63bdc3";
 static const char *ST_HASH_11850 = "be4555415af4a05078dcf260bb3c0a35948135df3dbf93f7c8b80574ceb0d71ea4312127f839b7707bf39ccc932d9e7cb799671183455889e8dde3738dfab5b6:08151337";
 static const char *ST_HASH_11860 = "bebf6831b3f9f958acb345a88cb98f30cb0374cff13e6012818487c8dc8d5857f23bca2caed280195ad558b8ce393503e632e901e8d1eb2ccb349a544ac195fd:08151337";
-static const char *ST_HASH_13800 = "060a4a94cb2263bcefe74705bd0efe7643d09c2bc25fc69f6a32c1b8d5a5d0d9:4647316184156410832507278642444030512402463246148636510356103432440257733102761444262383653100802140838605535187005586063548643765207865344068042278454875021452355870320020868064506248840047414683714173748364871633802572014845467035357710118327480707136422";
 static const char *ST_HASH_13900 = "058c1c3773340c8563421e2b17e60eb7c916787e:827500576";
 static const char *ST_HASH_14400 = "fcdc7ec700b887e8eaebf94c2ec52aebb5521223:63038426024388230227";
 static const char *ST_HASH_14700 = "$itunes_backup$*9*ebd7f9b33293b2511f0a4139d5b213feff51476968863cef60ec38d720497b6ff39a0bb63fa9f84e*10000*2202015774208421818002001652122401871832**";
@@ -217,7 +215,6 @@ static const char *HT_11760 = "HMAC-Streebog-256 (key = $salt), big-endian";
 static const char *HT_11800 = "GOST R 34.11-2012 (Streebog) 512-bit, big-endian";
 static const char *HT_11850 = "HMAC-Streebog-512 (key = $pass), big-endian";
 static const char *HT_11860 = "HMAC-Streebog-512 (key = $salt), big-endian";
-static const char *HT_13800 = "Windows Phone 8+ PIN/password";
 static const char *HT_13900 = "OpenCart";
 static const char *HT_14400 = "sha1(CX)";
 static const char *HT_14700 = "iTunes backup < 10.0";
@@ -3803,83 +3800,6 @@ int mywalletv2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   return (PARSER_OK);
 }
 
-int win8phone_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  win8phone_t *esalt = (win8phone_t *) hash_buf->esalt;
-
-  token_t token;
-
-  token.token_cnt  = 2;
-
-  token.len_min[0] = 64;
-  token.len_max[0] = 64;
-  token.sep[0]     = hashconfig->separator;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len_min[1] = 256;
-  token.len_max[1] = 256;
-  token.sep[1]     = hashconfig->separator;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  // hash
-
-  const u8 *hash_pos = token.buf[0];
-
-  digest[0] = hex_to_u32 (hash_pos +  0);
-  digest[1] = hex_to_u32 (hash_pos +  8);
-  digest[2] = hex_to_u32 (hash_pos + 16);
-  digest[3] = hex_to_u32 (hash_pos + 24);
-  digest[4] = hex_to_u32 (hash_pos + 32);
-  digest[5] = hex_to_u32 (hash_pos + 40);
-  digest[6] = hex_to_u32 (hash_pos + 48);
-  digest[7] = hex_to_u32 (hash_pos + 56);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-  digest[4] = byte_swap_32 (digest[4]);
-  digest[5] = byte_swap_32 (digest[5]);
-  digest[6] = byte_swap_32 (digest[6]);
-  digest[7] = byte_swap_32 (digest[7]);
-
-  // salt
-
-  const u8 *salt_pos = token.buf[1];
-
-  u32 *salt_buf = esalt->salt_buf;
-
-  for (int i = 0, j = 0; i < 32; i += 1, j += 8)
-  {
-    salt_buf[i] = hex_to_u32 (salt_pos + j);
-
-    salt_buf[i] = byte_swap_32 (salt_buf[i]);
-  }
-
-  salt->salt_buf[0] = salt_buf[0];
-  salt->salt_buf[1] = salt_buf[1];
-  salt->salt_buf[2] = salt_buf[2];
-  salt->salt_buf[3] = salt_buf[3];
-  salt->salt_buf[4] = salt_buf[4];
-  salt->salt_buf[5] = salt_buf[5];
-  salt->salt_buf[6] = salt_buf[6];
-  salt->salt_buf[7] = salt_buf[7];
-
-  salt->salt_len = 32;
-
-  return (PARSER_OK);
-}
-
 int plaintext_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
@@ -5429,30 +5349,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (digest_buf[13]),
       byte_swap_32 (digest_buf[14]),
       byte_swap_32 (digest_buf[15]));
-  }
-  else if (hash_mode == 13800)
-  {
-    win8phone_t *esalts = (win8phone_t *) esalts_buf;
-
-    win8phone_t *esalt = &esalts[digest_cur];
-
-    char buf[256 + 1] = { 0 };
-
-    for (int i = 0, j = 0; i < 32; i += 1, j += 8)
-    {
-      sprintf (buf + j, "%08x", esalt->salt_buf[i]);
-    }
-
-    snprintf (out_buf, out_size, "%08x%08x%08x%08x%08x%08x%08x%08x:%s",
-      digest_buf[0],
-      digest_buf[1],
-      digest_buf[2],
-      digest_buf[3],
-      digest_buf[4],
-      digest_buf[5],
-      digest_buf[6],
-      digest_buf[7],
-      buf);
   }
   else if (hash_mode == 14400)
   {
@@ -7429,27 +7325,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 13800:  hashconfig->hash_type      = HASH_TYPE_SHA256;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
-                                            | OPTS_TYPE_PT_UTF16LE;
-                 hashconfig->kern_type      = KERN_TYPE_WIN8PHONE;
-                 hashconfig->dgst_size      = DGST_SIZE_4_8;
-                 hashconfig->parse_func     = win8phone_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_EARLY_SKIP
-                                            | OPTI_TYPE_NOT_ITERATED
-                                            | OPTI_TYPE_RAW_HASH;
-                 hashconfig->dgst_pos0      = 3;
-                 hashconfig->dgst_pos1      = 7;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 6;
-                 hashconfig->st_hash        = ST_HASH_13800;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case 13900:  hashconfig->hash_type      = HASH_TYPE_SHA1;
                  hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -7688,7 +7563,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   switch (hashconfig->hash_mode)
   {
     case 10200: hashconfig->esalt_size = sizeof (cram_md5_t);           break;
-    case 13800: hashconfig->esalt_size = sizeof (win8phone_t);          break;
     case 14700: hashconfig->esalt_size = sizeof (itunes_backup_t);      break;
     case 14800: hashconfig->esalt_size = sizeof (itunes_backup_t);      break;
     case 15500: hashconfig->esalt_size = sizeof (jks_sha1_t);           break;

@@ -16,12 +16,6 @@ typedef struct pbkdf2_sha256
 
 } pbkdf2_sha256_t;
 
-typedef struct win8phone
-{
-  u32 salt_buf[32];
-
-} win8phone_t;
-
 typedef struct jks_sha1
 {
   u32 checksum[5];
@@ -164,7 +158,6 @@ typedef enum kern_type
   KERN_TYPE_STREEBOG_512            = 11800,
   KERN_TYPE_HMAC_STREEBOG_512_PW    = 11850,
   KERN_TYPE_HMAC_STREEBOG_512_SLT   = 11860,
-  KERN_TYPE_WIN8PHONE               = 13800,
   KERN_TYPE_OPENCART                = 13900,
   KERN_TYPE_SHA1CX                  = 14400,
   KERN_TYPE_ITUNES_BACKUP_9         = 14700,
