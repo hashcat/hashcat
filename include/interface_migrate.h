@@ -119,14 +119,6 @@ typedef struct cram_md5
 
 } cram_md5_t;
 
-typedef struct axcrypt_tmp
-{
-  u32 KEK[4];
-  u32 lsb[4];
-  u32 cipher[4];
-
-} axcrypt_tmp_t;
-
 typedef struct apple_secure_notes_tmp
 {
   u32 ipad[8];
@@ -188,7 +180,6 @@ typedef enum kern_type
   KERN_TYPE_STREEBOG_512            = 11800,
   KERN_TYPE_HMAC_STREEBOG_512_PW    = 11850,
   KERN_TYPE_HMAC_STREEBOG_512_SLT   = 11860,
-  KERN_TYPE_AXCRYPT                 = 13200,
   KERN_TYPE_SHA1_AXCRYPT            = 13300,
   KERN_TYPE_ZIP2                    = 13600,
   KERN_TYPE_WIN8PHONE               = 13800,
@@ -217,7 +208,6 @@ typedef enum rounds_count
    ROUNDS_LIBREOFFICE        = 100000,
    ROUNDS_OPENOFFICE         = 1024,
    ROUNDS_MYWALLETV2         = 5000,
-   ROUNDS_AXCRYPT            = 10000,
    ROUNDS_KEEPASS            = 6000,
    ROUNDS_ZIP2               = 1000,
    ROUNDS_ITUNES9_BACKUP     = 10000,
