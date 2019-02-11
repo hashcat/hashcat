@@ -55,7 +55,6 @@
   "    131 | MSSQL (2000)                                     | Database Server",
   "    132 | MSSQL (2005)                                     | Database Server",
   "   1731 | MSSQL (2012, 2014)                               | Database Server",
-  "    112 | Oracle S: Type (Oracle 11+)                      | Database Server",
   "    141 | Episerver 6.x < .NET 4                           | HTTP, SMTP, LDAP Server",
   "   1441 | Episerver 6.x >= .NET 4                          | HTTP, SMTP, LDAP Server",
   "   1600 | Apache $apr1$ MD5, md5apr1, MD5 (APR)            | HTTP, SMTP, LDAP Server",
@@ -75,7 +74,6 @@ static const char *ST_HASH_00030 = "1169500a7dfece72e1f7fc9c9410867a:68743023702
 static const char *ST_HASH_00050 = "e28e4e37e972a945e464b5226053bac0:40";
 static const char *ST_HASH_00060 = "7f51edecfa6fb401a0b5e63d33fc8c0e:84143";
 static const char *ST_HASH_00111 = "{SSHA}FLzWcQqyle6Mo7NvrwXCMAmRzXQxNjYxMTYzNw==";
-static const char *ST_HASH_00112 = "63ec5f6113843f5d229e2d49c068d983a9670d02:57677783202322766743";
 static const char *ST_HASH_00120 = "a428863972744b16afef28e0087fc094b44bb7b1:465727565";
 static const char *ST_HASH_00121 = "d27c0a627a45db487af161fcc3a4005d88eb8a1f:25551135";
 static const char *ST_HASH_00122 = "86586886b8bd3c379d2e176243a7225e6aae969d293fe9a9";
@@ -193,7 +191,6 @@ static const char *HT_14400 = "sha1(CX)";
 static const char *HT_00022 = "Juniper NetScreen/SSG (ScreenOS)";
 static const char *HT_00101 = "nsldap, SHA-1(Base64), Netscape LDAP SHA";
 static const char *HT_00111 = "nsldaps, SSHA-1(Base64), Netscape LDAP SSHA";
-static const char *HT_00112 = "Oracle S: Type (Oracle 11+)";
 static const char *HT_00121 = "SMF (Simple Machines Forum) > v1.1";
 static const char *HT_00122 = "macOS v10.4, macOS v10.5, MacOS v10.6";
 static const char *HT_00124 = "Django (SHA-1)";
@@ -1367,64 +1364,6 @@ int mssql2012_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_
     digest[5] -= SHA512M_F;
     digest[6] -= SHA512M_G;
     digest[7] -= SHA512M_H;
-  }
-
-  const u8 *salt_pos = token.buf[1];
-  const int salt_len = token.len[1];
-
-  const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
-
-  if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  return (PARSER_OK);
-}
-
-int oracles_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt  = 2;
-
-  token.sep[0]     = hashconfig->separator;
-  token.len_min[0] = 40;
-  token.len_max[0] = 40;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len_min[1] = 20;
-  token.len_max[1] = 20;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *hash_pos = token.buf[0];
-
-  digest[0] = hex_to_u32 (hash_pos +  0);
-  digest[1] = hex_to_u32 (hash_pos +  8);
-  digest[2] = hex_to_u32 (hash_pos + 16);
-  digest[3] = hex_to_u32 (hash_pos + 24);
-  digest[4] = hex_to_u32 (hash_pos + 32);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-  digest[4] = byte_swap_32 (digest[4]);
-
-  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
-  {
-    digest[0] -= SHA1M_A;
-    digest[1] -= SHA1M_B;
-    digest[2] -= SHA1M_C;
-    digest[3] -= SHA1M_D;
-    digest[4] -= SHA1M_E;
   }
 
   const u8 *salt_pos = token.buf[1];
@@ -3865,16 +3804,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
 
     snprintf (out_buf, out_size, "{SSHA}%s", ptr_plain);
   }
-  else if (hash_mode == 112)
-  {
-    snprintf (out_buf, out_size, "%08x%08x%08x%08x%08x:%s",
-      digest_buf[0],
-      digest_buf[1],
-      digest_buf[2],
-      digest_buf[3],
-      digest_buf[4],
-      (char *) salt.salt_buf);
-  }
   else if ((hash_mode == 122) || (hash_mode == 125))
   {
     snprintf (out_buf, out_size, "%s%08x%08x%08x%08x%08x",
@@ -4458,31 +4387,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 1;
                  hashconfig->st_hash        = ST_HASH_00111;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case   112:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
-                                            | OPTS_TYPE_ST_ADD80
-                                            | OPTS_TYPE_ST_ADDBITS15
-                                            | OPTS_TYPE_ST_HEX;
-                 hashconfig->kern_type      = KERN_TYPE_SHA1_PWSLT;
-                 hashconfig->dgst_size      = DGST_SIZE_4_5;
-                 hashconfig->parse_func     = oracles_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_PRECOMPUTE_MERKLE
-                                            | OPTI_TYPE_EARLY_SKIP
-                                            | OPTI_TYPE_NOT_ITERATED
-                                            | OPTI_TYPE_APPENDED_SALT
-                                            | OPTI_TYPE_RAW_HASH;
-                 hashconfig->dgst_pos0      = 3;
-                 hashconfig->dgst_pos1      = 4;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 1;
-                 hashconfig->st_hash        = ST_HASH_00112;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
@@ -5896,18 +5800,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
     }
   }
 
-
-  // pw_max : all modes listed in the following switch cases are
-  //          the maximum possible password length of the related system
-  //          plus the opencl kernels which eventually allows cracking of passwords of up length PW_MAX for free (no speed drop).
-  //          some modes have a self-set and some have
-  //          underlaying algorithms specific hard maximum password length
-  //          these limits override all previous restrictions, always
-
-  switch (hashconfig->hash_mode)
-  {
-    case   112: pw_max = 30;      break; // https://www.toadworld.com/platforms/oracle/b/weblog/archive/2013/11/12/oracle-12c-passwords
-  }
 
   return pw_max;
 }
