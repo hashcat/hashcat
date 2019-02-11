@@ -28,17 +28,6 @@ typedef struct ethereum_presale
 
 } ethereum_presale_t;
 
-typedef struct tacacs_plus
-{
-  u32 session_buf[16];
-
-  u32 ct_data_buf[64];
-  u32 ct_data_len;
-
-  u32 sequence_buf[16];
-
-} tacacs_plus_t;
-
 typedef struct apple_secure_notes
 {
   u32 Z_PK;
@@ -154,7 +143,6 @@ typedef enum kern_type
   KERN_TYPE_OPENCART                = 13900,
   KERN_TYPE_SHA1CX                  = 14400,
   KERN_TYPE_JKS_SHA1                = 15500,
-  KERN_TYPE_TACACS_PLUS             = 16100,
   KERN_TYPE_APPLE_SECURE_NOTES      = 16200,
   KERN_TYPE_ETHEREUM_PRESALE        = 16300,
   KERN_TYPE_CRAM_MD5_DOVECOT        = 16400,
