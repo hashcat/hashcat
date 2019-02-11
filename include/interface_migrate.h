@@ -1,34 +1,4 @@
 
-/**
- * algo specific
- */
-
-typedef struct pbkdf2_sha256
-{
-  u32 salt_buf[16];
-
-} pbkdf2_sha256_t;
-
-typedef struct pbkdf1_sha1_tmp
-{
-  // pbkdf1-sha1 is limited to 160 bits
-
-  u32  ipad[5];
-  u32  opad[5];
-
-  u32  out[5];
-
-} pbkdf1_sha1_tmp_t;
-
-typedef struct pbkdf2_sha256_tmp
-{
-  u32  ipad[8];
-  u32  opad[8];
-
-  u32  dgst[32];
-  u32  out[32];
-
-} pbkdf2_sha256_tmp_t;
 
 typedef enum kern_type
 {
@@ -84,14 +54,3 @@ typedef enum kern_type
 
 } kern_type_t;
 
-/**
- * Default iteration numbers
- */
-
-typedef enum rounds_count
-{
-   ROUNDS_LIBREOFFICE        = 100000,
-   ROUNDS_OPENOFFICE         = 1024,
-   ROUNDS_KEEPASS            = 6000,
-
-} rounds_count_t;
