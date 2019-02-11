@@ -41,7 +41,6 @@ typedef enum kern_type
   KERN_TYPE_RIPEMD160               = 6000,
   KERN_TYPE_WHIRLPOOL               = 6100,
   KERN_TYPE_SIPHASH                 = 10100,
-  KERN_TYPE_MYSQL_AUTH              = 11200,
   KERN_TYPE_STREEBOG_256            = 11700,
   KERN_TYPE_HMAC_STREEBOG_256_PW    = 11750,
   KERN_TYPE_HMAC_STREEBOG_256_SLT   = 11760,
