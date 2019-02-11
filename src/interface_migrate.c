@@ -73,7 +73,6 @@
   "   9900 | Radmin2                                          | Operating Systems",
   "    125 | ArubaOS                                          | Operating Systems",
   "    133 | PeopleSoft                                       | Enterprise Application Software (EAS)",
-  "  13600 | WinZip                                           | Archives",
   "  14700 | iTunes backup < 10.0                             | Backup",
   "  14800 | iTunes backup >= 10.0                            | Backup",
   "  16200 | Apple Secure Notes                               | Documents",
@@ -157,7 +156,6 @@ static const char *ST_HASH_11760 = "d5c6b874338a492ac57ddc6871afc3c70dcfd264185a
 static const char *ST_HASH_11800 = "5d5bdba48c8f89ee6c0a0e11023540424283e84902de08013aeeb626e819950bb32842903593a1d2e8f71897ff7fe72e17ac9ba8ce1d1d2f7e9c4359ea63bdc3";
 static const char *ST_HASH_11850 = "be4555415af4a05078dcf260bb3c0a35948135df3dbf93f7c8b80574ceb0d71ea4312127f839b7707bf39ccc932d9e7cb799671183455889e8dde3738dfab5b6:08151337";
 static const char *ST_HASH_11860 = "bebf6831b3f9f958acb345a88cb98f30cb0374cff13e6012818487c8dc8d5857f23bca2caed280195ad558b8ce393503e632e901e8d1eb2ccb349a544ac195fd:08151337";
-static const char *ST_HASH_13600 = "$zip2$*0*3*0*74705614874758221371566185145124*1605*0**75bf9be92e8ab106ff67*$/zip2$";
 static const char *ST_HASH_13800 = "060a4a94cb2263bcefe74705bd0efe7643d09c2bc25fc69f6a32c1b8d5a5d0d9:4647316184156410832507278642444030512402463246148636510356103432440257733102761444262383653100802140838605535187005586063548643765207865344068042278454875021452355870320020868064506248840047414683714173748364871633802572014845467035357710118327480707136422";
 static const char *ST_HASH_13900 = "058c1c3773340c8563421e2b17e60eb7c916787e:827500576";
 static const char *ST_HASH_14400 = "fcdc7ec700b887e8eaebf94c2ec52aebb5521223:63038426024388230227";
@@ -219,7 +217,6 @@ static const char *HT_11760 = "HMAC-Streebog-256 (key = $salt), big-endian";
 static const char *HT_11800 = "GOST R 34.11-2012 (Streebog) 512-bit, big-endian";
 static const char *HT_11850 = "HMAC-Streebog-512 (key = $pass), big-endian";
 static const char *HT_11860 = "HMAC-Streebog-512 (key = $salt), big-endian";
-static const char *HT_13600 = "WinZip";
 static const char *HT_13800 = "Windows Phone 8+ PIN/password";
 static const char *HT_13900 = "OpenCart";
 static const char *HT_14400 = "sha1(CX)";
@@ -274,8 +271,6 @@ static const char *SIGNATURE_SHA256B64S         = "{SSHA256}";
 static const char *SIGNATURE_SHA512B64S         = "{SSHA512}";
 static const char *SIGNATURE_SSHA1B64_lower     = "{ssha}";
 static const char *SIGNATURE_SSHA1B64_upper     = "{SSHA}";
-static const char *SIGNATURE_ZIP2_START         = "$zip2$";
-static const char *SIGNATURE_ZIP2_STOP          = "$/zip2$";
 static const char *SIGNATURE_ITUNES_BACKUP      = "$itunes_backup$";
 static const char *SIGNATURE_JKS_SHA1           = "$jksprivk$";
 static const char *SIGNATURE_TACACS_PLUS        = "$tacacs-plus$0$";
@@ -3808,247 +3803,6 @@ int mywalletv2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   return (PARSER_OK);
 }
 
-int zip2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  zip2_t *zip2 = (zip2_t *) hash_buf->esalt;
-
-  token_t token;
-
-  token.token_cnt  = 10;
-
-  token.signatures_cnt    = 2;
-  token.signatures_buf[0] = SIGNATURE_ZIP2_START;
-  token.signatures_buf[1] = SIGNATURE_ZIP2_STOP;
-
-  token.len_min[0] = 6;
-  token.len_max[0] = 6;
-  token.sep[0]     = '*';
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.len_min[1] = 1;
-  token.len_max[1] = 1;
-  token.sep[1]     = '*';
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[2] = 1;
-  token.len_max[2] = 1;
-  token.sep[2]     = '*';
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[3] = 1;
-  token.len_max[3] = 1;
-  token.sep[3]     = '*';
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[4] = 16;
-  token.len_max[4] = 32;
-  token.sep[4]     = '*';
-  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len_min[5] = 1;
-  token.len_max[5] = 6;
-  token.sep[5]     = '*';
-  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[6] = 1;
-  token.len_max[6] = 6;
-  token.sep[6]     = '*';
-  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[7] = 0;
-  token.len_max[7] = 16384;
-  token.sep[7]     = '*';
-  token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len_min[8] = 20;
-  token.len_max[8] = 20;
-  token.sep[8]     = '*';
-  token.attr[8]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len_min[9] = 7;
-  token.len_max[9] = 7;
-  token.sep[9]     = '*';
-  token.attr[9]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  // type
-
-  const u8 *type_pos = token.buf[1];
-
-  const u32 type = hc_strtoul ((const char *) type_pos, NULL, 10);
-
-  if (type != 0) return (PARSER_SALT_VALUE);
-
-  zip2->type = type;
-
-  // mode
-
-  const u8 *mode_pos = token.buf[2];
-
-  const u32 mode = hc_strtoul ((const char *) mode_pos, NULL, 10);
-
-  zip2->mode = mode;
-
-  // magic
-
-  const u8 *magic_pos = token.buf[3];
-
-  const u32 magic = hc_strtoul ((const char *) magic_pos, NULL, 10);
-
-  if (magic != 0) return (PARSER_SALT_VALUE);
-
-  zip2->magic = magic;
-
-  // verify_bytes
-
-  const u8 *verify_bytes_pos = token.buf[5];
-
-  u32 verify_bytes;
-
-  if (sscanf ((const char *) verify_bytes_pos, "%4x*", &verify_bytes) == EOF)
-  {
-    return (PARSER_SALT_VALUE);
-  }
-
-  if (verify_bytes >= 0x10000) return (PARSER_SALT_VALUE);
-
-  zip2->verify_bytes = verify_bytes;
-
-  // compress_length
-
-  const u8 *compress_length_pos = token.buf[6];
-
-  const u32 compress_length = hc_strtoul ((const char *) compress_length_pos, NULL, 10);
-
-  zip2->compress_length = compress_length;
-
-  // salt
-
-  const u8 *salt_pos = token.buf[4];
-  const int salt_len = token.len[4];
-
-  if (mode == 1)
-  {
-    if (salt_len != 16) return (PARSER_SALT_VALUE);
-
-    zip2->salt_buf[0] = hex_to_u32 ((const u8 *) &salt_pos[ 0]);
-    zip2->salt_buf[1] = hex_to_u32 ((const u8 *) &salt_pos[ 8]);
-    zip2->salt_buf[2] = 0;
-    zip2->salt_buf[3] = 0;
-
-    zip2->salt_len = 8;
-  }
-  else if (mode == 2)
-  {
-    if (salt_len != 24) return (PARSER_SALT_VALUE);
-
-    zip2->salt_buf[0] = hex_to_u32 ((const u8 *) &salt_pos[ 0]);
-    zip2->salt_buf[1] = hex_to_u32 ((const u8 *) &salt_pos[ 8]);
-    zip2->salt_buf[2] = hex_to_u32 ((const u8 *) &salt_pos[16]);
-    zip2->salt_buf[3] = 0;
-
-    zip2->salt_len = 12;
-  }
-  else if (mode == 3)
-  {
-    if (salt_len != 32) return (PARSER_SALT_VALUE);
-
-    zip2->salt_buf[0] = hex_to_u32 ((const u8 *) &salt_pos[ 0]);
-    zip2->salt_buf[1] = hex_to_u32 ((const u8 *) &salt_pos[ 8]);
-    zip2->salt_buf[2] = hex_to_u32 ((const u8 *) &salt_pos[16]);
-    zip2->salt_buf[3] = hex_to_u32 ((const u8 *) &salt_pos[24]);
-
-    zip2->salt_len = 16;
-  }
-  else
-  {
-    return (PARSER_SALT_VALUE);
-  }
-
-  // data
-
-  const u8 *data_buf = token.buf[7];
-  const int data_len = token.len[7];
-
-  u8 *data_buf_ptr = (u8 *) zip2->data_buf;
-
-  for (int i = 0; i < data_len; i += 2)
-  {
-    const u8 p0 = data_buf[i + 0];
-    const u8 p1 = data_buf[i + 1];
-
-    *data_buf_ptr++ = hex_convert (p1) << 0
-                    | hex_convert (p0) << 4;
-
-    zip2->data_len++;
-  }
-
-  *data_buf_ptr = 0x80;
-
-  // auth
-
-  const u8 *auth_buf = token.buf[8];
-  const int auth_len = token.len[8];
-
-  u8 *auth_ptr = (u8 *) zip2->auth_buf;
-
-  for (int i = 0; i < auth_len; i += 2)
-  {
-    const u8 p0 = auth_buf[i + 0];
-    const u8 p1 = auth_buf[i + 1];
-
-    *auth_ptr++ = hex_convert (p1) << 0
-                | hex_convert (p0) << 4;
-
-    zip2->auth_len++;
-  }
-
-  /**
-   * salt buf (fake)
-   */
-
-  salt->salt_buf[0] = zip2->salt_buf[0];
-  salt->salt_buf[1] = zip2->salt_buf[1];
-  salt->salt_buf[2] = zip2->salt_buf[2];
-  salt->salt_buf[3] = zip2->salt_buf[3];
-  salt->salt_buf[4] = zip2->data_buf[0];
-  salt->salt_buf[5] = zip2->data_buf[1];
-  salt->salt_buf[6] = zip2->data_buf[2];
-  salt->salt_buf[7] = zip2->data_buf[3];
-
-  salt->salt_len = 32;
-
-  salt->salt_iter = ROUNDS_ZIP2 - 1;
-
-  /**
-   * digest buf (fake)
-   */
-
-  digest[0] = zip2->auth_buf[0];
-  digest[1] = zip2->auth_buf[1];
-  digest[2] = zip2->auth_buf[2];
-  digest[3] = zip2->auth_buf[3];
-
-  return (PARSER_OK);
-}
-
 int win8phone_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
@@ -5675,57 +5429,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (digest_buf[13]),
       byte_swap_32 (digest_buf[14]),
       byte_swap_32 (digest_buf[15]));
-  }
-  else if (hash_mode == 13600)
-  {
-    zip2_t *zip2s = (zip2_t *) esalts_buf;
-
-    zip2_t *zip2 = &zip2s[digest_cur];
-
-    const u32 salt_len = zip2->salt_len;
-
-    char salt_tmp[32 + 1] = { 0 };
-
-    for (u32 i = 0, j = 0; i < salt_len; i += 1, j += 2)
-    {
-      const u8 *ptr = (const u8 *) zip2->salt_buf;
-
-      sprintf (salt_tmp + j, "%02x", ptr[i]);
-    }
-
-    const u32 data_len = zip2->data_len;
-
-    char data_tmp[8192 + 1] = { 0 };
-
-    for (u32 i = 0, j = 0; i < data_len; i += 1, j += 2)
-    {
-      const u8 *ptr = (const u8 *) zip2->data_buf;
-
-      sprintf (data_tmp + j, "%02x", ptr[i]);
-    }
-
-    const u32 auth_len = zip2->auth_len;
-
-    char auth_tmp[20 + 1] = { 0 };
-
-    for (u32 i = 0, j = 0; i < auth_len; i += 1, j += 2)
-    {
-      const u8 *ptr = (const u8 *) zip2->auth_buf;
-
-      sprintf (auth_tmp + j, "%02x", ptr[i]);
-    }
-
-    snprintf (out_buf, out_size, "%s*%u*%u*%u*%s*%x*%u*%s*%s*%s",
-      SIGNATURE_ZIP2_START,
-      zip2->type,
-      zip2->mode,
-      zip2->magic,
-      salt_tmp,
-      zip2->verify_bytes,
-      zip2->compress_length,
-      data_tmp,
-      auth_tmp,
-      SIGNATURE_ZIP2_STOP);
   }
   else if (hash_mode == 13800)
   {
@@ -7726,23 +7429,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 13600:  hashconfig->hash_type      = HASH_TYPE_PBKDF2_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_ZIP2;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = zip2_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_13600;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case 13800:  hashconfig->hash_type      = HASH_TYPE_SHA256;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -8002,7 +7688,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   switch (hashconfig->hash_mode)
   {
     case 10200: hashconfig->esalt_size = sizeof (cram_md5_t);           break;
-    case 13600: hashconfig->esalt_size = sizeof (zip2_t);               break;
     case 13800: hashconfig->esalt_size = sizeof (win8phone_t);          break;
     case 14700: hashconfig->esalt_size = sizeof (itunes_backup_t);      break;
     case 14800: hashconfig->esalt_size = sizeof (itunes_backup_t);      break;
@@ -8019,7 +7704,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   switch (hashconfig->hash_mode)
   {
     case 10200: hashconfig->tmp_size = sizeof (cram_md5_t);               break;
-    case 13600: hashconfig->tmp_size = sizeof (pbkdf2_sha1_tmp_t);        break;
     case 14700: hashconfig->tmp_size = sizeof (pbkdf2_sha1_tmp_t);        break;
     case 14800: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
     case 15200: hashconfig->tmp_size = sizeof (mywallet_tmp_t);           break;
@@ -8066,7 +7750,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
   {
     case   112: pw_max = 30;      break; // https://www.toadworld.com/platforms/oracle/b/weblog/archive/2013/11/12/oracle-12c-passwords
     case  9900: pw_max = 100;     break; // RAdmin2 sets w[25] = 0x80
-    case 13600: pw_max = PW_MAX;  break;
     case 14700: pw_max = PW_MAX;  break;
     case 14800: pw_max = PW_MAX;  break;
   }

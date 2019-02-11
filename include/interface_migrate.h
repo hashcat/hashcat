@@ -16,22 +16,6 @@ typedef struct pbkdf2_sha256
 
 } pbkdf2_sha256_t;
 
-typedef struct zip2
-{
-  u32 type;
-  u32 mode;
-  u32 magic;
-  u32 salt_len;
-  u32 salt_buf[4];
-  u32 verify_bytes;
-  u32 compress_length;
-  u32 data_len;
-  u32 data_buf[2048];
-  u32 auth_len;
-  u32 auth_buf[4];
-
-} zip2_t;
-
 typedef struct win8phone
 {
   u32 salt_buf[32];
@@ -180,7 +164,6 @@ typedef enum kern_type
   KERN_TYPE_STREEBOG_512            = 11800,
   KERN_TYPE_HMAC_STREEBOG_512_PW    = 11850,
   KERN_TYPE_HMAC_STREEBOG_512_SLT   = 11860,
-  KERN_TYPE_ZIP2                    = 13600,
   KERN_TYPE_WIN8PHONE               = 13800,
   KERN_TYPE_OPENCART                = 13900,
   KERN_TYPE_SHA1CX                  = 14400,
@@ -208,7 +191,6 @@ typedef enum rounds_count
    ROUNDS_OPENOFFICE         = 1024,
    ROUNDS_MYWALLETV2         = 5000,
    ROUNDS_KEEPASS            = 6000,
-   ROUNDS_ZIP2               = 1000,
    ROUNDS_ITUNES9_BACKUP     = 10000,
    ROUNDS_ITUNES101_BACKUP   = 10000000, // wtf, i mean, really?
    ROUNDS_ITUNES102_BACKUP   = 10000,
