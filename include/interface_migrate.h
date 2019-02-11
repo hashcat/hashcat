@@ -180,7 +180,6 @@ typedef enum kern_type
   KERN_TYPE_STREEBOG_512            = 11800,
   KERN_TYPE_HMAC_STREEBOG_512_PW    = 11850,
   KERN_TYPE_HMAC_STREEBOG_512_SLT   = 11860,
-  KERN_TYPE_SHA1_AXCRYPT            = 13300,
   KERN_TYPE_ZIP2                    = 13600,
   KERN_TYPE_WIN8PHONE               = 13800,
   KERN_TYPE_OPENCART                = 13900,
