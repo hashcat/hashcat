@@ -17,7 +17,6 @@
   "   4500 | sha1(sha1($pass))                                | Raw Hash, Salted and/or Iterated",
   "   4520 | sha1($salt.sha1($pass))                          | Raw Hash, Salted and/or Iterated",
   "   4700 | sha1(md5($pass))                                 | Raw Hash, Salted and/or Iterated",
-  "   4900 | sha1($salt.$pass.$salt)                          | Raw Hash, Salted and/or Iterated",
   "   1410 | sha256($pass.$salt)                              | Raw Hash, Salted and/or Iterated",
   "   1420 | sha256($salt.$pass)                              | Raw Hash, Salted and/or Iterated",
   "   1430 | sha256(utf16le($pass).$salt)                     | Raw Hash, Salted and/or Iterated",
@@ -89,7 +88,6 @@ static const char *ST_HASH_04520 = "59b80a295392eedb677ca377ad7bf3487928df96:136
 static const char *ST_HASH_04521 = "c18e826af2a78c7b9b7261452613233417e65817:28246535720688452723483475753333";
 static const char *ST_HASH_04522 = "9038129c474caa3f0de56f38db84033d0fe1d4b8:365563602032";
 static const char *ST_HASH_04700 = "92d85978d884eb1d99a51652b1139c8279fa8663";
-static const char *ST_HASH_04900 = "75d280ca9a0c2ee18729603104ead576d9ca6285:347070";
 static const char *ST_HASH_06000 = "012cb9b334ec1aeb71a9c8ce85586082467f7eb6";
 static const char *ST_HASH_06100 = "7ca8eaaaa15eaa4c038b4c47b9313e92da827c06940e69947f85bc0fbef3eb8fd254da220ad9e208b6b28f6bb9be31dd760f1fdb26112d83f87d96b416a4d258";
 static const char *ST_HASH_11700 = "57e9e50caec93d72e9498c211d6dc4f4d328248b48ecf46ba7abfa874f666e36";
@@ -133,7 +131,6 @@ static const char *HT_04400 = "md5(sha1($pass))";
 static const char *HT_04500 = "sha1(sha1($pass))";
 static const char *HT_04520 = "sha1($salt.sha1($pass))";
 static const char *HT_04700 = "sha1(md5($pass))";
-static const char *HT_04900 = "sha1($salt.$pass.$salt)";
 static const char *HT_06000 = "RIPEMD-160";
 static const char *HT_06100 = "Whirlpool";
 static const char *HT_11700 = "GOST R 34.11-2012 (Streebog) 256-bit, big-endian";
@@ -1873,15 +1870,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (digest_buf[3]),
       byte_swap_32 (digest_buf[4]));
   }
-  else if (hash_mode == 4900)
-  {
-    snprintf (out_buf, out_size, "%08x%08x%08x%08x%08x",
-      byte_swap_32 (digest_buf[0]),
-      byte_swap_32 (digest_buf[1]),
-      byte_swap_32 (digest_buf[2]),
-      byte_swap_32 (digest_buf[3]),
-      byte_swap_32 (digest_buf[4]));
-  }
   else if (hash_mode == 2612)
   {
     snprintf (out_buf, out_size, "%s%s$%08x%08x%08x%08x",
@@ -2940,25 +2928,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 1;
                  hashconfig->st_hash        = ST_HASH_04700;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case  4900:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_SHA1_SLT_PW_SLT;
-                 hashconfig->dgst_size      = DGST_SIZE_4_5;
-                 hashconfig->parse_func     = sha1s_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_PRECOMPUTE_MERKLE
-                                            | OPTI_TYPE_EARLY_SKIP;
-                 hashconfig->dgst_pos0      = 3;
-                 hashconfig->dgst_pos1      = 4;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 1;
-                 hashconfig->st_hash        = ST_HASH_04900;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
