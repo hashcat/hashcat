@@ -9,13 +9,6 @@ typedef struct pbkdf2_sha256
 
 } pbkdf2_sha256_t;
 
-typedef struct jwt
-{
-  u32 salt_buf[1024];
-  u32 salt_len;
-
-} jwt_t;
-
 typedef struct electrum_wallet
 {
   u32 salt_type;
@@ -104,9 +97,6 @@ typedef enum kern_type
   KERN_TYPE_HMAC_STREEBOG_512_SLT   = 11860,
   KERN_TYPE_OPENCART                = 13900,
   KERN_TYPE_SHA1CX                  = 14400,
-  KERN_TYPE_JWT_HS256               = 16511,
-  KERN_TYPE_JWT_HS384               = 16512,
-  KERN_TYPE_JWT_HS512               = 16513,
   KERN_TYPE_ELECTRUM_WALLET13       = 16600,
 
 } kern_type_t;

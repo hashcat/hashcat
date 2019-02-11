@@ -43,7 +43,6 @@
   "  10200 | CRAM-MD5                                         | Network Protocols",
   "  11100 | PostgreSQL CRAM (MD5)                            | Network Protocols",
   "  11200 | MySQL CRAM (SHA1)                                | Network Protocols",
-  "  16500 | JWT (JSON Web Token)                             | Network Protocols",
   "    121 | SMF (Simple Machines Forum) > v1.1               | Forums, CMS, E-Commerce, Frameworks",
   "   2611 | vBulletin < v3.8.5                               | Forums, CMS, E-Commerce, Frameworks",
   "   2711 | vBulletin >= v3.8.5                              | Forums, CMS, E-Commerce, Frameworks",
@@ -71,12 +70,6 @@
   "    125 | ArubaOS                                          | Operating Systems",
   "    133 | PeopleSoft                                       | Enterprise Application Software (EAS)",
   "  16600 | Electrum Wallet (Salt-Type 1-2)                  | Password Managers",
-
-/**
- * Missing self-test hashes:
- *
- * ST_HASH_16500  multi-hash-mode algorithm, unlikely to match self-test hash settings
- */
 
 static const char *ST_HASH_00021 = "e983672a03adcc9767b24584338eb378:00";
 static const char *ST_HASH_00022 = "nKjiFErqK7TPcZdFZsZMNWPtw4Pv8n:26506173";
@@ -201,7 +194,6 @@ static const char *HT_11850 = "HMAC-Streebog-512 (key = $pass), big-endian";
 static const char *HT_11860 = "HMAC-Streebog-512 (key = $salt), big-endian";
 static const char *HT_13900 = "OpenCart";
 static const char *HT_14400 = "sha1(CX)";
-static const char *HT_16500 = "JWT (JSON Web Token)";
 static const char *HT_16600 = "Electrum Wallet (Salt-Type 1-3)";
 
 static const char *HT_00022 = "Juniper NetScreen/SSG (ScreenOS)";
@@ -3826,196 +3818,6 @@ int sha256b64s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   return (PARSER_OK);
 }
 
-int jwt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  // no digest yet
-
-  salt_t *salt = hash_buf->salt;
-
-  jwt_t *jwt = (jwt_t *) hash_buf->esalt;
-
-  token_t token;
-
-  token.token_cnt  = 3;
-
-  token.sep[0]     = '.';
-  token.len_min[0] = 1;
-  token.len_max[0] = 2047;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64C;
-
-  token.sep[1]     = '.';
-  token.len_min[1] = 1;
-  token.len_max[1] = 2047;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64C;
-
-  token.sep[2]     = '.';
-  token.len_min[2] = 43;
-  token.len_max[2] = 86;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64C;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  // header
-
-  const int header_len = token.len[0];
-
-  // payload
-
-  const int payload_len = token.len[1];
-
-  // signature
-
-  const u8 *signature_pos = token.buf[2];
-  const int signature_len = token.len[2];
-
-  // esalt
-
-  const int esalt_len = header_len + 1 + payload_len;
-
-  if (esalt_len > 4096) return (PARSER_SALT_LENGTH);
-
-  memcpy (jwt->salt_buf, input_buf, esalt_len);
-
-  jwt->salt_len = esalt_len;
-
-  /**
-   * verify some data
-   */
-
-  // we need to do this kind of check, otherwise an eventual matching hash from the potfile overwrites the kern_type with an eventual invalid one
-
-  if (hashconfig->kern_type == (u32) -1)
-  {
-      // it would be more accurate to base64 decode the header_pos buffer and then to string match HS256 - same goes for the other algorithms
-
-    if (signature_len == 43)
-    {
-      hashconfig->kern_type = KERN_TYPE_JWT_HS256;
-    }
-    else if (signature_len == 64)
-    {
-      hashconfig->kern_type = KERN_TYPE_JWT_HS384;
-    }
-    else if (signature_len == 86)
-    {
-      hashconfig->kern_type = KERN_TYPE_JWT_HS512;
-    }
-    else
-    {
-      return (PARSER_HASH_LENGTH);
-    }
-  }
-  else
-  {
-    if ((hashconfig->kern_type == KERN_TYPE_JWT_HS256) && (signature_len == 43))
-    {
-      // OK
-    }
-    else if ((hashconfig->kern_type == KERN_TYPE_JWT_HS384) && (signature_len == 64))
-    {
-      // OK
-    }
-    else if ((hashconfig->kern_type == KERN_TYPE_JWT_HS512) && (signature_len == 86))
-    {
-      // OK
-    }
-    else
-    {
-      return (PARSER_HASH_LENGTH);
-    }
-  }
-
-  // salt
-  //
-  // Create a hash of the esalt because esalt buffer can change somewhere behind salt->salt_buf size
-  // Not a regular MD5 but good enough
-
-  u32 hash[4];
-
-  hash[0] = 0;
-  hash[1] = 1;
-  hash[2] = 2;
-  hash[3] = 3;
-
-  u32 block[16];
-
-  memset (block, 0, sizeof (block));
-
-  for (int i = 0; i < 1024; i += 16)
-  {
-    for (int j = 0; j < 16; j++)
-    {
-      block[j] = jwt->salt_buf[i + j];
-
-      md5_64 (block, hash);
-    }
-  }
-
-  salt->salt_buf[0] = hash[0];
-  salt->salt_buf[1] = hash[1];
-  salt->salt_buf[2] = hash[2];
-  salt->salt_buf[3] = hash[3];
-
-  salt->salt_len = 16;
-
-  // hash
-
-  u8 tmp_buf[100] = { 0 };
-
-  base64_decode (base64url_to_int, signature_pos, signature_len, tmp_buf);
-
-  if (signature_len == 43)
-  {
-    memcpy (hash_buf->digest, tmp_buf, 32);
-
-    u32 *digest = (u32 *) hash_buf->digest;
-
-    digest[0] = byte_swap_32 (digest[0]);
-    digest[1] = byte_swap_32 (digest[1]);
-    digest[2] = byte_swap_32 (digest[2]);
-    digest[3] = byte_swap_32 (digest[3]);
-    digest[4] = byte_swap_32 (digest[4]);
-    digest[5] = byte_swap_32 (digest[5]);
-    digest[6] = byte_swap_32 (digest[6]);
-    digest[7] = byte_swap_32 (digest[7]);
-  }
-  else if (signature_len == 64)
-  {
-    memcpy (hash_buf->digest, tmp_buf, 48);
-
-    u64 *digest = (u64 *) hash_buf->digest;
-
-    digest[0] = byte_swap_64 (digest[0]);
-    digest[1] = byte_swap_64 (digest[1]);
-    digest[2] = byte_swap_64 (digest[2]);
-    digest[3] = byte_swap_64 (digest[3]);
-    digest[4] = byte_swap_64 (digest[4]);
-    digest[5] = byte_swap_64 (digest[5]);
-  }
-  else if (signature_len == 86)
-  {
-    memcpy (hash_buf->digest, tmp_buf, 64);
-
-    u64 *digest = (u64 *) hash_buf->digest;
-
-    digest[0] = byte_swap_64 (digest[0]);
-    digest[1] = byte_swap_64 (digest[1]);
-    digest[2] = byte_swap_64 (digest[2]);
-    digest[3] = byte_swap_64 (digest[3]);
-    digest[4] = byte_swap_64 (digest[4]);
-    digest[5] = byte_swap_64 (digest[5]);
-    digest[6] = byte_swap_64 (digest[6]);
-    digest[7] = byte_swap_64 (digest[7]);
-  }
-
-  return (PARSER_OK);
-}
-
 int electrum_wallet13_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
@@ -4564,72 +4366,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (digest_buf[2]),
       byte_swap_32 (digest_buf[3]),
       byte_swap_32 (digest_buf[4]));
-  }
-  else if (hash_mode == 16500)
-  {
-    jwt_t *jwts = (jwt_t *) esalts_buf;
-
-    jwt_t *jwt = &jwts[digest_cur];
-
-    if (hashconfig->kern_type == KERN_TYPE_JWT_HS256)
-    {
-      digest_buf[0] = byte_swap_32 (digest_buf[0]);
-      digest_buf[1] = byte_swap_32 (digest_buf[1]);
-      digest_buf[2] = byte_swap_32 (digest_buf[2]);
-      digest_buf[3] = byte_swap_32 (digest_buf[3]);
-      digest_buf[4] = byte_swap_32 (digest_buf[4]);
-      digest_buf[5] = byte_swap_32 (digest_buf[5]);
-      digest_buf[6] = byte_swap_32 (digest_buf[6]);
-      digest_buf[7] = byte_swap_32 (digest_buf[7]);
-
-      memset (tmp_buf, 0, sizeof (tmp_buf));
-
-      memcpy (tmp_buf, digest_buf, 32);
-
-      base64_encode (int_to_base64url, (const u8 *) tmp_buf, 32, (u8 *) ptr_plain);
-
-      ptr_plain[43] = 0;
-    }
-    else if (hashconfig->kern_type == KERN_TYPE_JWT_HS384)
-    {
-      digest_buf64[0] = byte_swap_64 (digest_buf64[0]);
-      digest_buf64[1] = byte_swap_64 (digest_buf64[1]);
-      digest_buf64[2] = byte_swap_64 (digest_buf64[2]);
-      digest_buf64[3] = byte_swap_64 (digest_buf64[3]);
-      digest_buf64[4] = byte_swap_64 (digest_buf64[4]);
-      digest_buf64[5] = byte_swap_64 (digest_buf64[5]);
-
-      memset (tmp_buf, 0, sizeof (tmp_buf));
-
-      memcpy (tmp_buf, digest_buf64, 48);
-
-      base64_encode (int_to_base64url, (const u8 *) tmp_buf, 48, (u8 *) ptr_plain);
-
-      ptr_plain[64] = 0;
-    }
-    else if (hashconfig->kern_type == KERN_TYPE_JWT_HS512)
-    {
-      digest_buf64[0] = byte_swap_64 (digest_buf64[0]);
-      digest_buf64[1] = byte_swap_64 (digest_buf64[1]);
-      digest_buf64[2] = byte_swap_64 (digest_buf64[2]);
-      digest_buf64[3] = byte_swap_64 (digest_buf64[3]);
-      digest_buf64[4] = byte_swap_64 (digest_buf64[4]);
-      digest_buf64[5] = byte_swap_64 (digest_buf64[5]);
-      digest_buf64[6] = byte_swap_64 (digest_buf64[6]);
-      digest_buf64[7] = byte_swap_64 (digest_buf64[7]);
-
-      memset (tmp_buf, 0, sizeof (tmp_buf));
-
-      memcpy (tmp_buf, digest_buf64, 64);
-
-      base64_encode (int_to_base64url, (const u8 *) tmp_buf, 64, (u8 *) ptr_plain);
-
-      ptr_plain[86] = 0;
-    }
-
-    snprintf (out_buf, out_size, "%s.%s",
-      (char *) jwt->salt_buf,
-      (char *) ptr_plain);
   }
   else if (hash_mode == 16600)
   {
@@ -6300,23 +6036,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 16500:  hashconfig->hash_type      = HASH_TYPE_JWT;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE;
-                 hashconfig->kern_type      = (u32) -1; // this gets overwritten from within parser
-                 hashconfig->dgst_size      = DGST_SIZE_4_16;
-                 hashconfig->parse_func     = jwt_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_NOT_ITERATED;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = NULL;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case 16600:  hashconfig->hash_type      = HASH_TYPE_ELECTRUM_WALLET;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -6344,7 +6063,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   switch (hashconfig->hash_mode)
   {
     case 10200: hashconfig->esalt_size = sizeof (cram_md5_t);           break;
-    case 16500: hashconfig->esalt_size = sizeof (jwt_t);                break;
     case 16600: hashconfig->esalt_size = sizeof (electrum_wallet_t);    break;
   }
 
