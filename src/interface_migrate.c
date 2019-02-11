@@ -72,7 +72,6 @@
   "    125 | ArubaOS                                          | Operating Systems",
   "    133 | PeopleSoft                                       | Enterprise Application Software (EAS)",
   "  16600 | Electrum Wallet (Salt-Type 1-2)                  | Password Managers",
-  "  16300 | Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256     | Password Managers",
 
 /**
  * Missing self-test hashes:
@@ -151,7 +150,6 @@ static const char *ST_HASH_11850 = "be4555415af4a05078dcf260bb3c0a35948135df3dbf
 static const char *ST_HASH_11860 = "bebf6831b3f9f958acb345a88cb98f30cb0374cff13e6012818487c8dc8d5857f23bca2caed280195ad558b8ce393503e632e901e8d1eb2ccb349a544ac195fd:08151337";
 static const char *ST_HASH_13900 = "058c1c3773340c8563421e2b17e60eb7c916787e:827500576";
 static const char *ST_HASH_14400 = "fcdc7ec700b887e8eaebf94c2ec52aebb5521223:63038426024388230227";
-static const char *ST_HASH_16300 = "$ethereum$w*e94a8e49deac2d62206bf9bfb7d2aaea7eb06c1a378cfc1ac056cc599a569793c0ecc40e6a0c242dee2812f06b644d70f43331b1fa2ce4bd6cbb9f62dd25b443235bdb4c1ffb222084c9ded8c719624b338f17e0fd827b34d79801298ac75f74ed97ae16f72fccecf862d09a03498b1b8bd1d984fc43dd507ede5d4b6223a582352386407266b66c671077eefc1e07b5f42508bf926ab5616658c984968d8eec25c9d5197a4a30eed54c161595c3b4d558b17ab8a75ccca72b3d949919d197158ea5cfbc43ac7dd73cf77807dc2c8fe4ef1e942ccd11ec24fe8a410d48ef4b8a35c93ecf1a21c51a51a08f3225fbdcc338b1e7fdafd7d94b82a81d88c2e9a429acc3f8a5974eafb7af8c912597eb6fdcd80578bd12efddd99de47b44e7c8f6c38f2af3116b08796172eda89422e9ea9b99c7f98a7e331aeb4bb1b06f611e95082b629332c31dbcfd878aed77d300c9ed5c74af9cd6f5a8c4a261dd124317fb790a04481d93aec160af4ad8ec84c04d943a869f65f07f5ccf8295dc1c876f30408eac77f62192cbb25842470b4a5bdb4c8096f56da7e9ed05c21f61b94c54ef1c2e9e417cce627521a40a99e357dd9b7a7149041d589cbacbe0302db57ddc983b9a6d79ce3f2e9ae8ad45fa40b934ed6b36379b780549ae7553dbb1cab238138c05743d0103335325bd90e27d8ae1ea219eb8905503c5ad54fa12d22e9a7d296eee07c8a7b5041b8d56b8af290274d01eb0e4ad174eb26b23b5e9fb46ff7f88398e6266052292acb36554ccb9c2c03139fe72d3f5d30bd5d10bd79d7cb48d2ab24187d8efc3750d5a24980fb12122591455d14e75421a2074599f1cc9fdfc8f498c92ad8b904d3c4307f80c46921d8128*f3abede76ac15228f1b161dd9660bb9094e81b1b*d201ccd492c284484c7824c4d37b1593";
 static const char *ST_HASH_16400 = "{CRAM-MD5}5389b33b9725e5657cb631dc50017ff100000000000000000000000000000000";
 static const char *ST_HASH_16600 = "$electrum$1*44358283104603165383613672586868*c43a6632d9f59364f74c395a03d8c2ea";
 
@@ -205,7 +203,6 @@ static const char *HT_11850 = "HMAC-Streebog-512 (key = $pass), big-endian";
 static const char *HT_11860 = "HMAC-Streebog-512 (key = $salt), big-endian";
 static const char *HT_13900 = "OpenCart";
 static const char *HT_14400 = "sha1(CX)";
-static const char *HT_16300 = "Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256";
 static const char *HT_16400 = "CRAM-MD5 Dovecot";
 static const char *HT_16500 = "JWT (JSON Web Token)";
 static const char *HT_16600 = "Electrum Wallet (Salt-Type 1-3)";
@@ -249,7 +246,6 @@ static const char *SIGNATURE_SHA256B64S         = "{SSHA256}";
 static const char *SIGNATURE_SHA512B64S         = "{SSHA512}";
 static const char *SIGNATURE_SSHA1B64_lower     = "{ssha}";
 static const char *SIGNATURE_SSHA1B64_upper     = "{SSHA}";
-static const char *SIGNATURE_ETHEREUM_PRESALE   = "$ethereum$w";
 static const char *SIGNATURE_ELECTRUM_WALLET    = "$electrum$";
 
 /**
@@ -3881,98 +3877,6 @@ int sha256b64s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   return (PARSER_OK);
 }
 
-int ethereum_presale_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  ethereum_presale_t *ethereum_presale = (ethereum_presale_t *) hash_buf->esalt;
-
-  token_t token;
-
-  token.token_cnt  = 4;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_ETHEREUM_PRESALE;
-
-  token.sep[0]     = '*';
-  token.len_min[0] = 11;
-  token.len_max[0] = 11;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.sep[1]     = '*';
-  token.len_min[1] = 64;
-  token.len_max[1] = 1248;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.sep[2]     = '*';
-  token.len_min[2] = 40;
-  token.len_max[2] = 40;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.sep[3]     = '*';
-  token.len_min[3] = 32;
-  token.len_max[3] = 32;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  // encseed
-
-  const u8 *encseed_pos = token.buf[1];
-  const int encseed_len = token.len[1];
-
-  ethereum_presale->iv[0] = hex_to_u32 ((const u8 *) &encseed_pos[ 0]);
-  ethereum_presale->iv[1] = hex_to_u32 ((const u8 *) &encseed_pos[ 8]);
-  ethereum_presale->iv[2] = hex_to_u32 ((const u8 *) &encseed_pos[16]);
-  ethereum_presale->iv[3] = hex_to_u32 ((const u8 *) &encseed_pos[24]);
-
-  ethereum_presale->iv[0] = byte_swap_32 (ethereum_presale->iv[0]);
-  ethereum_presale->iv[1] = byte_swap_32 (ethereum_presale->iv[1]);
-  ethereum_presale->iv[2] = byte_swap_32 (ethereum_presale->iv[2]);
-  ethereum_presale->iv[3] = byte_swap_32 (ethereum_presale->iv[3]);
-
-  u32 *esalt_buf_ptr = ethereum_presale->enc_seed;
-
-  for (int i = 32, j = 0; i < encseed_len; i += 8, j++)
-  {
-    esalt_buf_ptr[j] = hex_to_u32 ((const u8 *) &encseed_pos[i]);
-
-    esalt_buf_ptr[j] = byte_swap_32 (esalt_buf_ptr[j]);
-  }
-
-  ethereum_presale->enc_seed_len = (encseed_len - 32) / 2; // encseed length without IV (raw bytes, not hex)
-
-  // salt (address)
-
-  const u8 *ethaddr_pos = token.buf[2];
-  const int ethaddr_len = token.len[2];
-
-  const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, ethaddr_pos, ethaddr_len, hashconfig);
-
-  if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  salt->salt_iter = ROUNDS_ETHEREUM_PRESALE;
-
-  // hash (bkp)
-
-  const u8 *bkp_pos = token.buf[3];
-
-  digest[0] = hex_to_u32 ((const u8 *) &bkp_pos[ 0]);
-  digest[1] = hex_to_u32 ((const u8 *) &bkp_pos[ 8]);
-  digest[2] = hex_to_u32 ((const u8 *) &bkp_pos[16]);
-  digest[3] = hex_to_u32 ((const u8 *) &bkp_pos[24]);
-
-  return (PARSER_OK);
-}
-
 int jwt_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   // no digest yet
@@ -4711,58 +4615,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (digest_buf[2]),
       byte_swap_32 (digest_buf[3]),
       byte_swap_32 (digest_buf[4]));
-  }
-  else if (hash_mode == 16300)
-  {
-    ethereum_presale_t *ethereum_presales = (ethereum_presale_t *) esalts_buf;
-    ethereum_presale_t *ethereum_presale  = &ethereum_presales[digest_cur];
-
-    // get the initialization vector:
-
-    u8 encseed[1248 + 1] = { 0 };
-
-    u32 iv[4];
-
-    iv[0] = byte_swap_32 (ethereum_presale->iv[0]);
-    iv[1] = byte_swap_32 (ethereum_presale->iv[1]);
-    iv[2] = byte_swap_32 (ethereum_presale->iv[2]);
-    iv[3] = byte_swap_32 (ethereum_presale->iv[3]);
-
-    u32_to_hex (iv[0], encseed +  0);
-    u32_to_hex (iv[1], encseed +  8);
-    u32_to_hex (iv[2], encseed + 16);
-    u32_to_hex (iv[3], encseed + 24);
-
-    // get the raw enc_seed (without iv):
-
-    u32 *enc_seed_ptr = ethereum_presale->enc_seed;
-
-    for (u32 i = 0, j = 32; i < ethereum_presale->enc_seed_len / 4; i++, j += 8)
-    {
-      u32 tmp = enc_seed_ptr[i];
-
-      tmp = byte_swap_32 (tmp);
-
-      u32_to_hex (tmp, encseed + j);
-    }
-
-    const u32 max_hex_len = (16 + ethereum_presale->enc_seed_len) * 2; // 16 bytes IV + encrypted seed (in hex)
-
-    const u32 max_pos = MIN (sizeof (encseed) - 1, max_hex_len);
-
-    encseed[max_pos] = 0;
-
-    // output:
-
-    snprintf (out_buf, out_size, "%s*%s*%s*%08x%08x%08x%08x",
-      SIGNATURE_ETHEREUM_PRESALE,
-      encseed,
-      (char *) salt.salt_buf,
-      digest_buf[0],
-      digest_buf[1],
-      digest_buf[2],
-      digest_buf[3]
-    );
   }
   else if (hash_mode == 16400)
   {
@@ -6506,24 +6358,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 16300:  hashconfig->hash_type      = HASH_TYPE_PBKDF2_SHA256;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_ST_HEX;
-                 hashconfig->kern_type      = KERN_TYPE_ETHEREUM_PRESALE;
-                 hashconfig->dgst_size      = DGST_SIZE_4_8;
-                 hashconfig->parse_func     = ethereum_presale_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_16300;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case 16400:  hashconfig->hash_type      = HASH_TYPE_CRAM_MD5_DOVECOT;
                  hashconfig->salt_type      = SALT_TYPE_NONE;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -6591,7 +6425,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   switch (hashconfig->hash_mode)
   {
     case 10200: hashconfig->esalt_size = sizeof (cram_md5_t);           break;
-    case 16300: hashconfig->esalt_size = sizeof (ethereum_presale_t);   break;
     case 16500: hashconfig->esalt_size = sizeof (jwt_t);                break;
     case 16600: hashconfig->esalt_size = sizeof (electrum_wallet_t);    break;
   }
@@ -6601,7 +6434,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   switch (hashconfig->hash_mode)
   {
     case 10200: hashconfig->tmp_size = sizeof (cram_md5_t);               break;
-    case 16300: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
   };
 }
 

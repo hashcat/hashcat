@@ -9,14 +9,6 @@ typedef struct pbkdf2_sha256
 
 } pbkdf2_sha256_t;
 
-typedef struct ethereum_presale
-{
-  u32 iv[4];
-  u32 enc_seed[152];
-  u32 enc_seed_len;
-
-} ethereum_presale_t;
-
 typedef struct jwt
 {
   u32 salt_buf[1024];
@@ -112,7 +104,6 @@ typedef enum kern_type
   KERN_TYPE_HMAC_STREEBOG_512_SLT   = 11860,
   KERN_TYPE_OPENCART                = 13900,
   KERN_TYPE_SHA1CX                  = 14400,
-  KERN_TYPE_ETHEREUM_PRESALE        = 16300,
   KERN_TYPE_CRAM_MD5_DOVECOT        = 16400,
   KERN_TYPE_JWT_HS256               = 16511,
   KERN_TYPE_JWT_HS384               = 16512,
@@ -130,6 +121,5 @@ typedef enum rounds_count
    ROUNDS_LIBREOFFICE        = 100000,
    ROUNDS_OPENOFFICE         = 1024,
    ROUNDS_KEEPASS            = 6000,
-   ROUNDS_ETHEREUM_PRESALE   = 2000 - 1,
 
 } rounds_count_t;
