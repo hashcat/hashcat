@@ -28,15 +28,6 @@ typedef struct ethereum_presale
 
 } ethereum_presale_t;
 
-typedef struct apple_secure_notes
-{
-  u32 Z_PK;
-  u32 ZCRYPTOITERATIONCOUNT;
-  u32 ZCRYPTOSALT[16];
-  u32 ZCRYPTOWRAPPEDKEY[16];
-
-} apple_secure_notes_t;
-
 typedef struct jwt
 {
   u32 salt_buf[1024];
@@ -78,16 +69,6 @@ typedef struct cram_md5
   u32 user[16];
 
 } cram_md5_t;
-
-typedef struct apple_secure_notes_tmp
-{
-  u32 ipad[8];
-  u32 opad[8];
-
-  u32 dgst[8];
-  u32 out[8];
-
-} apple_secure_notes_tmp_t;
 
 typedef enum kern_type
 {
@@ -143,7 +124,6 @@ typedef enum kern_type
   KERN_TYPE_OPENCART                = 13900,
   KERN_TYPE_SHA1CX                  = 14400,
   KERN_TYPE_JKS_SHA1                = 15500,
-  KERN_TYPE_APPLE_SECURE_NOTES      = 16200,
   KERN_TYPE_ETHEREUM_PRESALE        = 16300,
   KERN_TYPE_CRAM_MD5_DOVECOT        = 16400,
   KERN_TYPE_JWT_HS256               = 16511,
@@ -162,7 +142,6 @@ typedef enum rounds_count
    ROUNDS_LIBREOFFICE        = 100000,
    ROUNDS_OPENOFFICE         = 1024,
    ROUNDS_KEEPASS            = 6000,
-   ROUNDS_APPLE_SECURE_NOTES = 20000,
    ROUNDS_ETHEREUM_PRESALE   = 2000 - 1,
 
 } rounds_count_t;
