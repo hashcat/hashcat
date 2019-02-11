@@ -66,7 +66,6 @@
   "   1411 | SSHA-256(Base64), LDAP {SSHA256}                 | HTTP, SMTP, LDAP Server",
   "   1711 | SSHA-512(Base64), LDAP {SSHA512}                 | HTTP, SMTP, LDAP Server",
   "  16400 | CRAM-MD5 Dovecot                                 | HTTP, SMTP, LDAP Server",
-  "  12800 | MS-AzureSync  PBKDF2-HMAC-SHA256                 | Operating Systems",
   "    122 | macOS v10.4, MacOS v10.5, MacOS v10.6            | Operating Systems",
   "   1722 | macOS v10.7                                      | Operating Systems",
   "     22 | Juniper NetScreen/SSG (ScreenOS)                 | Operating Systems",
@@ -161,7 +160,6 @@ static const char *ST_HASH_11760 = "d5c6b874338a492ac57ddc6871afc3c70dcfd264185a
 static const char *ST_HASH_11800 = "5d5bdba48c8f89ee6c0a0e11023540424283e84902de08013aeeb626e819950bb32842903593a1d2e8f71897ff7fe72e17ac9ba8ce1d1d2f7e9c4359ea63bdc3";
 static const char *ST_HASH_11850 = "be4555415af4a05078dcf260bb3c0a35948135df3dbf93f7c8b80574ceb0d71ea4312127f839b7707bf39ccc932d9e7cb799671183455889e8dde3738dfab5b6:08151337";
 static const char *ST_HASH_11860 = "bebf6831b3f9f958acb345a88cb98f30cb0374cff13e6012818487c8dc8d5857f23bca2caed280195ad558b8ce393503e632e901e8d1eb2ccb349a544ac195fd:08151337";
-static const char *ST_HASH_12800 = "v1;PPH1_MD4,54188415275183448824,100,55b530f052a9af79a7ba9c466dddcb8b116f8babf6c3873a51a3898fb008e123";
 static const char *ST_HASH_12900 = "15738301074686823451275227041071157383010746868234512752270410712bc4be900bf96ccf43c9852fff49b5f5874a9f6e7bf301686fa6d98286de151f15738301074686823451275227041071";
 static const char *ST_HASH_13200 = "$axcrypt$*1*10467*9a7cd609bb262c738d9f0e4977039b94*ecbe0fd05a96fd2099d88a92eebb76c59d6837dfe55b3631";
 static const char *ST_HASH_13300 = "$axcrypt_sha1$b89eaac7e61417341b710b727768294d";
@@ -227,7 +225,6 @@ static const char *HT_11760 = "HMAC-Streebog-256 (key = $salt), big-endian";
 static const char *HT_11800 = "GOST R 34.11-2012 (Streebog) 512-bit, big-endian";
 static const char *HT_11850 = "HMAC-Streebog-512 (key = $pass), big-endian";
 static const char *HT_11860 = "HMAC-Streebog-512 (key = $salt), big-endian";
-static const char *HT_12800 = "MS-AzureSync PBKDF2-HMAC-SHA256";
 static const char *HT_12900 = "Android FDE (Samsung DEK)";
 static const char *HT_13200 = "AxCrypt";
 static const char *HT_13300 = "AxCrypt in-memory SHA1";
@@ -277,7 +274,6 @@ static const char *SIGNATURE_CRAM_MD5_DOVECOT   = "{CRAM-MD5}";
 static const char *SIGNATURE_DJANGOSHA1         = "sha1$";
 static const char *SIGNATURE_EPISERVER          = "$episerver$";
 static const char *SIGNATURE_MEDIAWIKI_B        = "$B$";
-static const char *SIGNATURE_MS_DRSR            = "v1;PPH1_MD4";
 static const char *SIGNATURE_MSSQL              = "0x0100";
 static const char *SIGNATURE_MSSQL2012          = "0x0200";
 static const char *SIGNATURE_MYSQL_AUTH         = "$mysqlna$";
@@ -3959,89 +3955,6 @@ int mywalletv2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   return (PARSER_OK);
 }
 
-int ms_drsr_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt  = 4;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_MS_DRSR;
-
-  token.len_min[0] = 11;
-  token.len_max[0] = 11;
-  token.sep[0]     = ',';
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.len_min[1] = 20;
-  token.len_max[1] = 20;
-  token.sep[1]     = ',';
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  token.len_min[2] = 1;
-  token.len_max[2] = 6;
-  token.sep[2]     = ',';
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.len_min[3] = 64;
-  token.len_max[3] = 64;
-  token.sep[3]     = ',';
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  // salt
-
-  const u8 *salt_pos = token.buf[1];
-  const int salt_len = token.len[1];
-
-  salt->salt_buf[0] = hex_to_u32 (salt_pos +  0);
-  salt->salt_buf[1] = hex_to_u32 (salt_pos +  8);
-  salt->salt_buf[2] = hex_to_u32 (salt_pos + 16) & 0x0000ffff;
-  salt->salt_buf[3] = 0;
-
-  salt->salt_len = salt_len / 2;
-
-  // iter
-
-  const u8 *iter_pos = token.buf[2];
-
-  salt->salt_iter = hc_strtoul ((const char *) iter_pos, NULL, 10) - 1ul;
-
-  // hash
-
-  const u8 *hash_pos = token.buf[3];
-
-  digest[0] = hex_to_u32 (hash_pos +  0);
-  digest[1] = hex_to_u32 (hash_pos +  8);
-  digest[2] = hex_to_u32 (hash_pos + 16);
-  digest[3] = hex_to_u32 (hash_pos + 24);
-  digest[4] = hex_to_u32 (hash_pos + 32);
-  digest[5] = hex_to_u32 (hash_pos + 40);
-  digest[6] = hex_to_u32 (hash_pos + 48);
-  digest[7] = hex_to_u32 (hash_pos + 56);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-  digest[4] = byte_swap_32 (digest[4]);
-  digest[5] = byte_swap_32 (digest[5]);
-  digest[6] = byte_swap_32 (digest[6]);
-  digest[7] = byte_swap_32 (digest[7]);
-
-  return (PARSER_OK);
-}
-
 int androidfde_samsung_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
@@ -5999,33 +5912,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (digest_buf[13]),
       byte_swap_32 (digest_buf[14]),
       byte_swap_32 (digest_buf[15]));
-  }
-  else if (hash_mode == 12800)
-  {
-    const u8 *ptr = (const u8 *) salt.salt_buf;
-
-    snprintf (out_buf, out_size, "%s,%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x,%u,%08x%08x%08x%08x%08x%08x%08x%08x",
-      SIGNATURE_MS_DRSR,
-      ptr[0],
-      ptr[1],
-      ptr[2],
-      ptr[3],
-      ptr[4],
-      ptr[5],
-      ptr[6],
-      ptr[7],
-      ptr[8],
-      ptr[9],
-      salt.salt_iter + 1,
-      byte_swap_32 (digest_buf[0]),
-      byte_swap_32 (digest_buf[1]),
-      byte_swap_32 (digest_buf[2]),
-      byte_swap_32 (digest_buf[3]),
-      byte_swap_32 (digest_buf[4]),
-      byte_swap_32 (digest_buf[5]),
-      byte_swap_32 (digest_buf[6]),
-      byte_swap_32 (digest_buf[7])
-    );
   }
   else if (hash_mode == 12900)
   {
@@ -8127,23 +8013,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 12800:  hashconfig->hash_type      = HASH_TYPE_PBKDF2_SHA256;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_MS_DRSR;
-                 hashconfig->dgst_size      = DGST_SIZE_4_8;
-                 hashconfig->parse_func     = ms_drsr_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_12800;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case 12900:  hashconfig->hash_type      = HASH_TYPE_PBKDF2_SHA256;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -8492,7 +8361,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   switch (hashconfig->hash_mode)
   {
     case 10200: hashconfig->tmp_size = sizeof (cram_md5_t);               break;
-    case 12800: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
     case 12900: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
     case 13200: hashconfig->tmp_size = sizeof (axcrypt_tmp_t);            break;
     case 13600: hashconfig->tmp_size = sizeof (pbkdf2_sha1_tmp_t);        break;
@@ -8542,7 +8410,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
   {
     case   112: pw_max = 30;      break; // https://www.toadworld.com/platforms/oracle/b/weblog/archive/2013/11/12/oracle-12c-passwords
     case  9900: pw_max = 100;     break; // RAdmin2 sets w[25] = 0x80
-    case 12800: pw_max = PW_MAX;  break;
     case 12900: pw_max = PW_MAX;  break;
     case 13200: pw_max = PW_MAX;  break;
     case 13600: pw_max = PW_MAX;  break;
