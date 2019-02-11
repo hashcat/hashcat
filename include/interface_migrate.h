@@ -92,16 +92,6 @@ typedef struct electrum_wallet
 
 } electrum_wallet_t;
 
-typedef struct mywallet_tmp
-{
-  u32 ipad[5];
-  u32 opad[5];
-
-  u32 dgst[10];
-  u32 out[10];
-
-} mywallet_tmp_t;
-
 typedef struct pbkdf1_sha1_tmp
 {
   // pbkdf1-sha1 is limited to 160 bits
@@ -198,7 +188,6 @@ typedef enum kern_type
   KERN_TYPE_STREEBOG_512            = 11800,
   KERN_TYPE_HMAC_STREEBOG_512_PW    = 11850,
   KERN_TYPE_HMAC_STREEBOG_512_SLT   = 11860,
-  KERN_TYPE_MYWALLET                = 12700,
   KERN_TYPE_MS_DRSR                 = 12800,
   KERN_TYPE_ANDROIDFDE_SAMSUNG      = 12900,
   KERN_TYPE_AXCRYPT                 = 13200,
@@ -229,7 +218,6 @@ typedef enum rounds_count
 {
    ROUNDS_LIBREOFFICE        = 100000,
    ROUNDS_OPENOFFICE         = 1024,
-   ROUNDS_MYWALLET           = 10,
    ROUNDS_MYWALLETV2         = 5000,
    ROUNDS_MS_DRSR            = 100,
    ROUNDS_ANDROIDFDE_SAMSUNG = 4096,
