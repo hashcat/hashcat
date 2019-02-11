@@ -73,7 +73,6 @@
   "    125 | ArubaOS                                          | Operating Systems",
   "    133 | PeopleSoft                                       | Enterprise Application Software (EAS)",
   "  16200 | Apple Secure Notes                               | Documents",
-  "  15200 | Blockchain, My Wallet, V2                        | Password Managers",
   "  16600 | Electrum Wallet (Salt-Type 1-2)                  | Password Managers",
   "  15500 | JKS Java Key Store Private Keys (SHA1)           | Password Managers",
   "  16300 | Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256     | Password Managers",
@@ -155,7 +154,6 @@ static const char *ST_HASH_11850 = "be4555415af4a05078dcf260bb3c0a35948135df3dbf
 static const char *ST_HASH_11860 = "bebf6831b3f9f958acb345a88cb98f30cb0374cff13e6012818487c8dc8d5857f23bca2caed280195ad558b8ce393503e632e901e8d1eb2ccb349a544ac195fd:08151337";
 static const char *ST_HASH_13900 = "058c1c3773340c8563421e2b17e60eb7c916787e:827500576";
 static const char *ST_HASH_14400 = "fcdc7ec700b887e8eaebf94c2ec52aebb5521223:63038426024388230227";
-static const char *ST_HASH_15200 = "$blockchain$v2$5000$288$324724252428471806184866704068819419467b2b32fd9593fd1a274e0b68bf2c72e5a1f5e748fd319056d1e47ca7b40767136a2d97d7133d14faaeca50986f66cdbc0faec0a3fabbd0ba5d08d5322b6b53da021aacfc439c45bec0e9fe02ad81db82f94e9bd36a7d4d76b505c2339fcd46565d3abab958fbeb1de8bfc53beb96cde8fe44128965477c9ef0762c62bbb1d66532b4888e174ea949db54374a2ed9686a63eb0b5b17ae293f7410bb4ae5106f108314a259c5fd097d558515d79350713412159103a8a174cd384a14f3da45efe18044e1146036000231f6042577d0add98fc959d265368e398dc1550b0bc693e9023cd9d51b40e701bd786e19c3a281a90465aa6ea3f9e756d430164ab2eb43be5b6796d7ac15b2fe99217410f2";
 static const char *ST_HASH_15500 = "$jksprivk$*338BD2FBEBA7B3EF198A4CBFC6E18AFF1E229367*5225850113575146134463704406336350011656*D5253EB151EB92DC73E542D8C0A4D7A848A5B0C0E370E625E6547D4E6F23416FC85A27BC295731B8021CDFBD003551C66C434FFBC87DACAD1FDF39022320034A2F86E779F2B1B3325428A666518FA89507AD63E15FD9C57B9E36EF5B642A2F448A9A3F09B79AD93D65F46B8692CD07539FD140146F8F219DC262971AF019E18EDC16C3C240569E1673F4D98BC818CCF28298D5A7BFF038A663DD10FE5E48643C3217C237D342164E2D41EF15075431FBD5B34800E5AE7EB80FAA5AE9982A55F35379AA7B31217E7F1C5F1964A15024A305AE4B3981FE1C80C163BC38ECA5581F11867E5C34C5D124D0367B3737E5E5BB14D2CAB26A698C8DAAB755C82BA6B823BCAECDD4A89C831651ACE5A6029FD0D3515C5D1D53AD8B9062CE8C445373862035CBBF60D490CA2E4975EE6E0358EC32E871FAB15347E3032E21F30F543BAAB01D779BA833CA0B8C7591B42C7C59A8FDD46D7DECEC0E91ADBF331177605E7830ABED62FAD7D5D806D8EFD01C38765940B7F97168FC72C39BF4C98F944FFC310CA8F4EB1D0F960F352CC5E2BB23A1EB221072A5471EDA2CE81C04595B8D37088CFB5C14F6A4A881AD12125DEFBB8154EB4C130AB7FD9933FD36DF1A6A26B51AB169866788678FCED988C8E017CA84354F487A5508210181AFB8B3AD0753E3E28BE674DFBD4E4FBDFD1E30D592F4EA3A77A2F0F5CF9A175DBC590EF5D42971A39918F12B92DCD8BFD56BE9A3459856B5587603C7B53062663A4C8894BBC9894FB1663BF30F32D907664328138B7A50EAC7F8E3183D74562A5C90FE1889AC4C5FE43EBEB8974563B6682F92591ECA4FA0DA72236C3851DA102DB6BA0CC07BFD32F7E962AB0EDCF4A8DEA6525174F5BB5C021E2A9A3F7F761E9CA90B6E27FB7E55CD91DA184FAC5E534E8AD25314C56CE5796506A0CA70881782F9C5147D87705065D68BD67D2B0344205BA6445D562273690004CA5A303274FB283A75F49BA968D7947943AA98F2AF9CB8253B425B86225E7395A331AC4CB1B1700C64D4F458D5D642C54148AE6DA41D9E26657D331B157D76042C2CF3057B83997C23D8BF68FB3C7337CAFB8B324AD0DF7A80B554B4D7F9AD6ED527E7932F1741A573C152A41610F6517E3F4A3BC6B66685871A7CE3795C559BD47CDB8E34CB2C1DFE980518D79E2078C258C54F312EB38609F640E7DC013E0F2A16A25BB5971882B4308D27930CA99FEC231AE927B62215A1B56098C362B7F20593953B29428681875070E84BF5B60BEA3948127151634123DA77C814AAD54CE10905763C8C19BC191C0C40458C809402E1957C4C05C4EAE27576B2D30593F7FDCC9A248DB5DB23CF2FA22A92C016090F611690BF0AB5B8B2866ED25F345EFE85DF3311C9E91C37CEE709CF16E7CB09D01BECD2961D094C02D42EC85BF47FAB1B67A13B9A1741C15F7156D57A71BFFABB03B71E69707913A5C136B3D69CE3F71ABFE376F0A21D723FFA2E60AC180689D3E8AF4348C9F555CD897387327FC8BA2B9C51A7298547E556A11A60441EF5331A1BFB847A3D23DD9F7C50E636A2C6309BC82E1A8852F5A8569B6D93*14*78D6A2424484CF5149932B7EA8BF*test";
 static const char *ST_HASH_16100 = "$tacacs-plus$0$5fde8e68$4e13e8fb33df$c006";
 static const char *ST_HASH_16200 = "$ASN$*1*20000*80771171105233481004850004085037*d04b17af7f6b184346aad3efefe8bec0987ee73418291a41";
@@ -213,7 +211,6 @@ static const char *HT_11850 = "HMAC-Streebog-512 (key = $pass), big-endian";
 static const char *HT_11860 = "HMAC-Streebog-512 (key = $salt), big-endian";
 static const char *HT_13900 = "OpenCart";
 static const char *HT_14400 = "sha1(CX)";
-static const char *HT_15200 = "Blockchain, My Wallet, V2";
 static const char *HT_15500 = "JKS Java Key Store Private Keys (SHA1)";
 static const char *HT_16100 = "TACACS+";
 static const char *HT_16200 = "Apple Secure Notes";
@@ -254,7 +251,6 @@ static const char *SIGNATURE_MEDIAWIKI_B        = "$B$";
 static const char *SIGNATURE_MSSQL              = "0x0100";
 static const char *SIGNATURE_MSSQL2012          = "0x0200";
 static const char *SIGNATURE_MYSQL_AUTH         = "$mysqlna$";
-static const char *SIGNATURE_MYWALLETV2         = "$blockchain$v2$";
 static const char *SIGNATURE_PHPS               = "$PHPS$";
 static const char *SIGNATURE_POSTGRESQL_AUTH    = "$postgres$";
 static const char *SIGNATURE_SHA1B64            = "{SHA}";
@@ -3708,91 +3704,6 @@ int keepass_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   return (PARSER_OK);
 }
 
-int mywalletv2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt  = 4;
-
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_MYWALLETV2;
-
-  token.len[0]     = 15;
-  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
-
-  token.sep[1]     = '$';
-  token.len_min[1] = 1;
-  token.len_max[1] = 6;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[2]     = '$';
-  token.len_min[2] = 1;
-  token.len_max[2] = 5;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_DIGIT;
-
-  token.sep[3]     = '$';
-  token.len_min[3] = 64;
-  token.len_max[3] = 20000;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  // iter
-
-  const u8 *iter_pos = token.buf[1];
-
-  u32 iter = hc_strtoul ((const char *) iter_pos, NULL, 10);
-
-  salt->salt_iter = iter - 1;
-
-  // salt
-
-  const u8 *data_pos = token.buf[3];
-
-  salt->salt_buf[0] = hex_to_u32 ((const u8 *) &data_pos[ 0]);
-  salt->salt_buf[1] = hex_to_u32 ((const u8 *) &data_pos[ 8]);
-  salt->salt_buf[2] = hex_to_u32 ((const u8 *) &data_pos[16]);
-  salt->salt_buf[3] = hex_to_u32 ((const u8 *) &data_pos[24]);
-
-  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
-  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
-  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
-  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
-
-  // this is actually the CT, which is also the hash later (if matched)
-
-  salt->salt_buf[4] = hex_to_u32 ((const u8 *) &data_pos[32]);
-  salt->salt_buf[5] = hex_to_u32 ((const u8 *) &data_pos[40]);
-  salt->salt_buf[6] = hex_to_u32 ((const u8 *) &data_pos[48]);
-  salt->salt_buf[7] = hex_to_u32 ((const u8 *) &data_pos[56]);
-
-  salt->salt_buf[4] = byte_swap_32 (salt->salt_buf[4]);
-  salt->salt_buf[5] = byte_swap_32 (salt->salt_buf[5]);
-  salt->salt_buf[6] = byte_swap_32 (salt->salt_buf[6]);
-  salt->salt_buf[7] = byte_swap_32 (salt->salt_buf[7]);
-
-  salt->salt_len = 32; // note we need to fix this to 16 in kernel
-
-  // hash
-
-  digest[0] = salt->salt_buf[4];
-  digest[1] = salt->salt_buf[5];
-  digest[2] = salt->salt_buf[6];
-  digest[3] = salt->salt_buf[7];
-
-  return (PARSER_OK);
-}
-
 int plaintext_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
@@ -5172,13 +5083,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (digest_buf[2]),
       byte_swap_32 (digest_buf[3]),
       byte_swap_32 (digest_buf[4]));
-  }
-  else if (hash_mode == 15200)
-  {
-    hashinfo_t **hashinfo_ptr = hash_info;
-    char        *hash_buf     = hashinfo_ptr[digest_cur]->orighash;
-
-    snprintf (out_buf, out_size, "%s", hash_buf);
   }
   else if (hash_mode == 15500)
   {
@@ -7071,23 +6975,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 15200:  hashconfig->hash_type      = HASH_TYPE_AES;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_HASH_COPY;
-                 hashconfig->kern_type      = KERN_TYPE_MYWALLET;
-                 hashconfig->dgst_size      = DGST_SIZE_4_5; // because kernel uses _SHA1_
-                 hashconfig->parse_func     = mywalletv2_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_15200;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case 15500:  hashconfig->hash_type      = HASH_TYPE_JKS_SHA1;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -7244,7 +7131,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   switch (hashconfig->hash_mode)
   {
     case 10200: hashconfig->tmp_size = sizeof (cram_md5_t);               break;
-    case 15200: hashconfig->tmp_size = sizeof (mywallet_tmp_t);           break;
     case 16200: hashconfig->tmp_size = sizeof (apple_secure_notes_tmp_t); break;
     case 16300: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
   };

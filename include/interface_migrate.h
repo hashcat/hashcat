@@ -173,7 +173,6 @@ typedef enum rounds_count
 {
    ROUNDS_LIBREOFFICE        = 100000,
    ROUNDS_OPENOFFICE         = 1024,
-   ROUNDS_MYWALLETV2         = 5000,
    ROUNDS_KEEPASS            = 6000,
    ROUNDS_APPLE_SECURE_NOTES = 20000,
    ROUNDS_ETHEREUM_PRESALE   = 2000 - 1,
