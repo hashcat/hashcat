@@ -78,7 +78,6 @@
   "  13600 | WinZip                                           | Archives",
   "  14700 | iTunes backup < 10.0                             | Backup",
   "  14800 | iTunes backup >= 10.0                            | Backup",
-  "  12900 | Android FDE (Samsung DEK)                        | Full-Disk Encryption (FDE)",
   "  16200 | Apple Secure Notes                               | Documents",
   "  15200 | Blockchain, My Wallet, V2                        | Password Managers",
   "  16600 | Electrum Wallet (Salt-Type 1-2)                  | Password Managers",
@@ -160,7 +159,6 @@ static const char *ST_HASH_11760 = "d5c6b874338a492ac57ddc6871afc3c70dcfd264185a
 static const char *ST_HASH_11800 = "5d5bdba48c8f89ee6c0a0e11023540424283e84902de08013aeeb626e819950bb32842903593a1d2e8f71897ff7fe72e17ac9ba8ce1d1d2f7e9c4359ea63bdc3";
 static const char *ST_HASH_11850 = "be4555415af4a05078dcf260bb3c0a35948135df3dbf93f7c8b80574ceb0d71ea4312127f839b7707bf39ccc932d9e7cb799671183455889e8dde3738dfab5b6:08151337";
 static const char *ST_HASH_11860 = "bebf6831b3f9f958acb345a88cb98f30cb0374cff13e6012818487c8dc8d5857f23bca2caed280195ad558b8ce393503e632e901e8d1eb2ccb349a544ac195fd:08151337";
-static const char *ST_HASH_12900 = "15738301074686823451275227041071157383010746868234512752270410712bc4be900bf96ccf43c9852fff49b5f5874a9f6e7bf301686fa6d98286de151f15738301074686823451275227041071";
 static const char *ST_HASH_13200 = "$axcrypt$*1*10467*9a7cd609bb262c738d9f0e4977039b94*ecbe0fd05a96fd2099d88a92eebb76c59d6837dfe55b3631";
 static const char *ST_HASH_13300 = "$axcrypt_sha1$b89eaac7e61417341b710b727768294d";
 static const char *ST_HASH_13600 = "$zip2$*0*3*0*74705614874758221371566185145124*1605*0**75bf9be92e8ab106ff67*$/zip2$";
@@ -225,7 +223,6 @@ static const char *HT_11760 = "HMAC-Streebog-256 (key = $salt), big-endian";
 static const char *HT_11800 = "GOST R 34.11-2012 (Streebog) 512-bit, big-endian";
 static const char *HT_11850 = "HMAC-Streebog-512 (key = $pass), big-endian";
 static const char *HT_11860 = "HMAC-Streebog-512 (key = $salt), big-endian";
-static const char *HT_12900 = "Android FDE (Samsung DEK)";
 static const char *HT_13200 = "AxCrypt";
 static const char *HT_13300 = "AxCrypt in-memory SHA1";
 static const char *HT_13600 = "WinZip";
@@ -3955,96 +3952,6 @@ int mywalletv2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE
   return (PARSER_OK);
 }
 
-int androidfde_samsung_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt  = 3;
-
-  token.len[0]  = 64;
-  token.attr[0] = TOKEN_ATTR_FIXED_LENGTH
-                | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len[1]  = 64;
-  token.attr[1] = TOKEN_ATTR_FIXED_LENGTH
-                | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len[2]  = 32;
-  token.attr[2] = TOKEN_ATTR_FIXED_LENGTH
-                | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  /**
-   * salt
-   */
-
-  const u8 *salt1_pos = token.buf[2];
-  const u8 *salt2_pos = token.buf[0];
-
-  salt->salt_buf[ 0] = hex_to_u32 (salt1_pos +  0);
-  salt->salt_buf[ 1] = hex_to_u32 (salt1_pos +  8);
-  salt->salt_buf[ 2] = hex_to_u32 (salt1_pos + 16);
-  salt->salt_buf[ 3] = hex_to_u32 (salt1_pos + 24);
-  salt->salt_buf[ 4] = hex_to_u32 (salt2_pos +  0);
-  salt->salt_buf[ 5] = hex_to_u32 (salt2_pos +  8);
-  salt->salt_buf[ 6] = hex_to_u32 (salt2_pos + 16);
-  salt->salt_buf[ 7] = hex_to_u32 (salt2_pos + 24);
-  salt->salt_buf[ 8] = hex_to_u32 (salt2_pos + 32);
-  salt->salt_buf[ 9] = hex_to_u32 (salt2_pos + 40);
-  salt->salt_buf[10] = hex_to_u32 (salt2_pos + 48);
-  salt->salt_buf[11] = hex_to_u32 (salt2_pos + 56);
-
-  salt->salt_buf[ 0] = byte_swap_32 (salt->salt_buf[ 0]);
-  salt->salt_buf[ 1] = byte_swap_32 (salt->salt_buf[ 1]);
-  salt->salt_buf[ 2] = byte_swap_32 (salt->salt_buf[ 2]);
-  salt->salt_buf[ 3] = byte_swap_32 (salt->salt_buf[ 3]);
-  salt->salt_buf[ 4] = byte_swap_32 (salt->salt_buf[ 4]);
-  salt->salt_buf[ 5] = byte_swap_32 (salt->salt_buf[ 5]);
-  salt->salt_buf[ 6] = byte_swap_32 (salt->salt_buf[ 6]);
-  salt->salt_buf[ 7] = byte_swap_32 (salt->salt_buf[ 7]);
-  salt->salt_buf[ 8] = byte_swap_32 (salt->salt_buf[ 8]);
-  salt->salt_buf[ 9] = byte_swap_32 (salt->salt_buf[ 9]);
-  salt->salt_buf[10] = byte_swap_32 (salt->salt_buf[10]);
-  salt->salt_buf[11] = byte_swap_32 (salt->salt_buf[11]);
-
-  salt->salt_len = 48;
-
-  salt->salt_iter = ROUNDS_ANDROIDFDE_SAMSUNG - 1;
-
-  /**
-   * digest buf
-   */
-
-  const u8 *hash_pos  = token.buf[1];
-
-  digest[0] = hex_to_u32 (hash_pos +  0);
-  digest[1] = hex_to_u32 (hash_pos +  8);
-  digest[2] = hex_to_u32 (hash_pos + 16);
-  digest[3] = hex_to_u32 (hash_pos + 24);
-  digest[4] = hex_to_u32 (hash_pos + 32);
-  digest[5] = hex_to_u32 (hash_pos + 40);
-  digest[6] = hex_to_u32 (hash_pos + 48);
-  digest[7] = hex_to_u32 (hash_pos + 56);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-  digest[4] = byte_swap_32 (digest[4]);
-  digest[5] = byte_swap_32 (digest[5]);
-  digest[6] = byte_swap_32 (digest[6]);
-  digest[7] = byte_swap_32 (digest[7]);
-
-  return (PARSER_OK);
-}
-
 int zip2_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u32 *digest = (u32 *) hash_buf->digest;
@@ -5912,31 +5819,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (digest_buf[13]),
       byte_swap_32 (digest_buf[14]),
       byte_swap_32 (digest_buf[15]));
-  }
-  else if (hash_mode == 12900)
-  {
-    snprintf (out_buf, out_size, "%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
-      salt.salt_buf[ 4],
-      salt.salt_buf[ 5],
-      salt.salt_buf[ 6],
-      salt.salt_buf[ 7],
-      salt.salt_buf[ 8],
-      salt.salt_buf[ 9],
-      salt.salt_buf[10],
-      salt.salt_buf[11],
-      byte_swap_32 (digest_buf[0]),
-      byte_swap_32 (digest_buf[1]),
-      byte_swap_32 (digest_buf[2]),
-      byte_swap_32 (digest_buf[3]),
-      byte_swap_32 (digest_buf[4]),
-      byte_swap_32 (digest_buf[5]),
-      byte_swap_32 (digest_buf[6]),
-      byte_swap_32 (digest_buf[7]),
-      salt.salt_buf[ 0],
-      salt.salt_buf[ 1],
-      salt.salt_buf[ 2],
-      salt.salt_buf[ 3]
-    );
   }
   else if (hash_mode == 13200)
   {
@@ -8013,23 +7895,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case 12900:  hashconfig->hash_type      = HASH_TYPE_PBKDF2_SHA256;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE;
-                 hashconfig->kern_type      = KERN_TYPE_ANDROIDFDE_SAMSUNG;
-                 hashconfig->dgst_size      = DGST_SIZE_4_8;
-                 hashconfig->parse_func     = androidfde_samsung_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_12900;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case 13200:  hashconfig->hash_type      = HASH_TYPE_AES;
                  hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
                  hashconfig->attack_exec    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -8361,7 +8226,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   switch (hashconfig->hash_mode)
   {
     case 10200: hashconfig->tmp_size = sizeof (cram_md5_t);               break;
-    case 12900: hashconfig->tmp_size = sizeof (pbkdf2_sha256_tmp_t);      break;
     case 13200: hashconfig->tmp_size = sizeof (axcrypt_tmp_t);            break;
     case 13600: hashconfig->tmp_size = sizeof (pbkdf2_sha1_tmp_t);        break;
     case 14700: hashconfig->tmp_size = sizeof (pbkdf2_sha1_tmp_t);        break;
@@ -8410,7 +8274,6 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
   {
     case   112: pw_max = 30;      break; // https://www.toadworld.com/platforms/oracle/b/weblog/archive/2013/11/12/oracle-12c-passwords
     case  9900: pw_max = 100;     break; // RAdmin2 sets w[25] = 0x80
-    case 12900: pw_max = PW_MAX;  break;
     case 13200: pw_max = PW_MAX;  break;
     case 13600: pw_max = PW_MAX;  break;
     case 14700: pw_max = PW_MAX;  break;
