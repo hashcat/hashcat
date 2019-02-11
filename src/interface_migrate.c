@@ -1,6 +1,4 @@
 
-  "   6000 | RIPEMD-160                                       | Raw Hash",
-  "   6100 | Whirlpool                                        | Raw Hash",
   "  11700 | GOST R 34.11-2012 (Streebog) 256-bit, big-endian | Raw Hash",
   "  11800 | GOST R 34.11-2012 (Streebog) 512-bit, big-endian | Raw Hash",
   "     30 | md5(utf16le($pass).$salt)                        | Raw Hash, Salted and/or Iterated",
@@ -88,8 +86,6 @@ static const char *ST_HASH_04520 = "59b80a295392eedb677ca377ad7bf3487928df96:136
 static const char *ST_HASH_04521 = "c18e826af2a78c7b9b7261452613233417e65817:28246535720688452723483475753333";
 static const char *ST_HASH_04522 = "9038129c474caa3f0de56f38db84033d0fe1d4b8:365563602032";
 static const char *ST_HASH_04700 = "92d85978d884eb1d99a51652b1139c8279fa8663";
-static const char *ST_HASH_06000 = "012cb9b334ec1aeb71a9c8ce85586082467f7eb6";
-static const char *ST_HASH_06100 = "7ca8eaaaa15eaa4c038b4c47b9313e92da827c06940e69947f85bc0fbef3eb8fd254da220ad9e208b6b28f6bb9be31dd760f1fdb26112d83f87d96b416a4d258";
 static const char *ST_HASH_11700 = "57e9e50caec93d72e9498c211d6dc4f4d328248b48ecf46ba7abfa874f666e36";
 static const char *ST_HASH_11750 = "0f71c7c82700c9094ca95eee3d804cc283b538bec49428a9ef8da7b34effb3ba:08151337";
 static const char *ST_HASH_11760 = "d5c6b874338a492ac57ddc6871afc3c70dcfd264185a69d84cf839a07ef92b2c:08151337";
@@ -131,8 +127,6 @@ static const char *HT_04400 = "md5(sha1($pass))";
 static const char *HT_04500 = "sha1(sha1($pass))";
 static const char *HT_04520 = "sha1($salt.sha1($pass))";
 static const char *HT_04700 = "sha1(md5($pass))";
-static const char *HT_06000 = "RIPEMD-160";
-static const char *HT_06100 = "Whirlpool";
 static const char *HT_11700 = "GOST R 34.11-2012 (Streebog) 256-bit, big-endian";
 static const char *HT_11750 = "HMAC-Streebog-256 (key = $pass), big-endian";
 static const char *HT_11760 = "HMAC-Streebog-256 (key = $salt), big-endian";
@@ -1029,90 +1023,6 @@ int sha512s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UN
   return (PARSER_OK);
 }
 
-int ripemd160_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  token_t token;
-
-  token.token_cnt  = 1;
-
-  token.len_min[0] = 40;
-  token.len_max[0] = 40;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *hash_pos = token.buf[0];
-
-  digest[0] = hex_to_u32 (hash_pos +  0);
-  digest[1] = hex_to_u32 (hash_pos +  8);
-  digest[2] = hex_to_u32 (hash_pos + 16);
-  digest[3] = hex_to_u32 (hash_pos + 24);
-  digest[4] = hex_to_u32 (hash_pos + 32);
-
-  return (PARSER_OK);
-}
-
-int whirlpool_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  token_t token;
-
-  token.token_cnt  = 1;
-
-  token.len_min[0] = 128;
-  token.len_max[0] = 128;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *hash_pos = token.buf[0];
-
-  digest[ 0] = hex_to_u32 (hash_pos +   0);
-  digest[ 1] = hex_to_u32 (hash_pos +   8);
-  digest[ 2] = hex_to_u32 (hash_pos +  16);
-  digest[ 3] = hex_to_u32 (hash_pos +  24);
-  digest[ 4] = hex_to_u32 (hash_pos +  32);
-  digest[ 5] = hex_to_u32 (hash_pos +  40);
-  digest[ 6] = hex_to_u32 (hash_pos +  48);
-  digest[ 7] = hex_to_u32 (hash_pos +  56);
-  digest[ 8] = hex_to_u32 (hash_pos +  64);
-  digest[ 9] = hex_to_u32 (hash_pos +  72);
-  digest[10] = hex_to_u32 (hash_pos +  80);
-  digest[11] = hex_to_u32 (hash_pos +  88);
-  digest[12] = hex_to_u32 (hash_pos +  96);
-  digest[13] = hex_to_u32 (hash_pos + 104);
-  digest[14] = hex_to_u32 (hash_pos + 112);
-  digest[15] = hex_to_u32 (hash_pos + 120);
-
-  digest[ 0] = byte_swap_32 (digest[ 0]);
-  digest[ 1] = byte_swap_32 (digest[ 1]);
-  digest[ 2] = byte_swap_32 (digest[ 2]);
-  digest[ 3] = byte_swap_32 (digest[ 3]);
-  digest[ 4] = byte_swap_32 (digest[ 4]);
-  digest[ 5] = byte_swap_32 (digest[ 5]);
-  digest[ 6] = byte_swap_32 (digest[ 6]);
-  digest[ 7] = byte_swap_32 (digest[ 7]);
-  digest[ 8] = byte_swap_32 (digest[ 8]);
-  digest[ 9] = byte_swap_32 (digest[ 9]);
-  digest[10] = byte_swap_32 (digest[10]);
-  digest[11] = byte_swap_32 (digest[11]);
-  digest[12] = byte_swap_32 (digest[12]);
-  digest[13] = byte_swap_32 (digest[13]);
-  digest[14] = byte_swap_32 (digest[14]);
-  digest[15] = byte_swap_32 (digest[15]);
-
-  return (PARSER_OK);
-}
-
 int sha512b64s_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
   u64 *digest = (u64 *) hash_buf->digest;
@@ -2001,35 +1911,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
         ptr[11], ptr[10],
         ptr[13], ptr[12],
         ptr[15], ptr[14]);
-    }
-    else if (hash_type == HASH_TYPE_RIPEMD160)
-    {
-      snprintf (out_buf, out_size, "%08x%08x%08x%08x%08x",
-        digest_buf[0],
-        digest_buf[1],
-        digest_buf[2],
-        digest_buf[3],
-        digest_buf[4]);
-    }
-    else if (hash_type == HASH_TYPE_WHIRLPOOL)
-    {
-      snprintf (out_buf, out_size, "%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
-        digest_buf[ 0],
-        digest_buf[ 1],
-        digest_buf[ 2],
-        digest_buf[ 3],
-        digest_buf[ 4],
-        digest_buf[ 5],
-        digest_buf[ 6],
-        digest_buf[ 7],
-        digest_buf[ 8],
-        digest_buf[ 9],
-        digest_buf[10],
-        digest_buf[11],
-        digest_buf[12],
-        digest_buf[13],
-        digest_buf[14],
-        digest_buf[15]);
     }
     else if (hash_type == HASH_TYPE_MYSQL)
     {
@@ -2928,40 +2809,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 1;
                  hashconfig->st_hash        = ST_HASH_04700;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case  6000:  hashconfig->hash_type      = HASH_TYPE_RIPEMD160;
-                 hashconfig->salt_type      = SALT_TYPE_NONE;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PT_ADD80;
-                 hashconfig->kern_type      = KERN_TYPE_RIPEMD160;
-                 hashconfig->dgst_size      = DGST_SIZE_4_5;
-                 hashconfig->parse_func     = ripemd160_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_06000;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case  6100:  hashconfig->hash_type      = HASH_TYPE_WHIRLPOOL;
-                 hashconfig->salt_type      = SALT_TYPE_NONE;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
-                                            | OPTS_TYPE_PT_ADD80;
-                 hashconfig->kern_type      = KERN_TYPE_WHIRLPOOL;
-                 hashconfig->dgst_size      = DGST_SIZE_4_16;
-                 hashconfig->parse_func     = whirlpool_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 1;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 3;
-                 hashconfig->st_hash        = ST_HASH_06100;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
