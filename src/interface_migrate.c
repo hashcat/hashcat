@@ -48,7 +48,6 @@
   "  13900 | OpenCart                                         | Forums, CMS, E-Commerce, Frameworks",
   "   4521 | Redmine                                          | Forums, CMS, E-Commerce, Frameworks",
   "   4522 | PunBB                                            | Forums, CMS, E-Commerce, Frameworks",
-  "   1711 | SSHA-512(Base64), LDAP {SSHA512}                 | HTTP, SMTP, LDAP Server",
   "   1722 | macOS v10.7                                      | Operating Systems",
   "     22 | Juniper NetScreen/SSG (ScreenOS)                 | Operating Systems",
 
@@ -72,7 +71,6 @@ static const char *ST_HASH_01450 = "b435ffbacea34d5eb0dbc4d69a92f0152f2cf4cd364d
 static const char *ST_HASH_01460 = "8b9472281c36c3a693703de0e0f1ffab8fc0ecdd3bc5ead04c76dd74ef431e49:70108387805";
 static const char *ST_HASH_01600 = "$apr1$62722340$zGjeAwVP2KwY6MtumUI1N/";
 static const char *ST_HASH_01710 = "3f749c84d00c6f94a6651b5c195c71dacae08f3cea6fed760232856cef701f7bf60d7f38a587f69f159d4e4cbe00435aeb9c8c0a4927b252d76a744e16e87e91:388026522082";
-static const char *ST_HASH_01711 = "{SSHA512}Bz8w5q6qEtB1Nnc8b1jfTvTXVTwohWag33oghQGOtLChnkZTw/cuJaHQlLJEI3AWKZGCRyLA6Phujdxo+is7AjA2MDcyNjY1Mg==";
 static const char *ST_HASH_01720 = "efc5dd0e4145970917abdc311e1d4e23ba0afa9426d960cb28569f4d585cb031af5c936f57fbcb0a08368a1b302573cf582100d40bd7c632f3d8aecd1a1a8eb1:812";
 static const char *ST_HASH_01730 = "eefb67342d62a5d8ac84e8ae89d0f157f03749bd0427c80637003a4760feefdb36cbe11ba35ab2015b3691e2e83803178c986aa85f29e6f56938b469a31ccd7a:6576666";
 static const char *ST_HASH_01740 = "ce77bf8a8ca9b9cf0ed67edde58ed7fafd4542ce1378fc8bd87b05656ebf92e5711517d5930c18de93a71990e77e1037423e5b64c2f293be7d859d7b6921622e:1512373";
@@ -157,7 +155,6 @@ static const char *HT_00022 = "Juniper NetScreen/SSG (ScreenOS)";
 static const char *HT_00101 = "nsldap, SHA-1(Base64), Netscape LDAP SHA";
 static const char *HT_00121 = "SMF (Simple Machines Forum) > v1.1";
 static const char *HT_00124 = "Django (SHA-1)";
-static const char *HT_01711 = "SSHA-512(Base64), LDAP {SSHA512}";
 static const char *HT_01722 = "macOS v10.7";
 static const char *HT_02611 = "vBulletin < v3.8.5";
 static const char *HT_02612 = "PHPS";
@@ -168,68 +165,10 @@ static const char *HT_04522 = "PunBB";
 static const char *SIGNATURE_DJANGOSHA1         = "sha1$";
 static const char *SIGNATURE_MEDIAWIKI_B        = "$B$";
 static const char *SIGNATURE_PHPS               = "$PHPS$";
-static const char *SIGNATURE_SHA1B64            = "{SHA}";
-static const char *SIGNATURE_SHA256B64S         = "{SSHA256}";
-static const char *SIGNATURE_SHA512B64S         = "{SSHA512}";
 
 /**
  * decoder / encoder
  */
-
-int macos1_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
-{
-  u32 *digest = (u32 *) hash_buf->digest;
-
-  salt_t *salt = hash_buf->salt;
-
-  token_t token;
-
-  token.token_cnt = 2;
-
-  token.len[0]  = 8;
-  token.attr[0] = TOKEN_ATTR_FIXED_LENGTH
-                | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len[1]  = 40;
-  token.attr[1] = TOKEN_ATTR_FIXED_LENGTH
-                | TOKEN_ATTR_VERIFY_HEX;
-
-  const int rc_tokenizer = input_tokenizer (input_buf, input_len, &token);
-
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *hash_pos = token.buf[1];
-
-  digest[0] = hex_to_u32 (hash_pos +  0);
-  digest[1] = hex_to_u32 (hash_pos +  8);
-  digest[2] = hex_to_u32 (hash_pos + 16);
-  digest[3] = hex_to_u32 (hash_pos + 24);
-  digest[4] = hex_to_u32 (hash_pos + 32);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-  digest[4] = byte_swap_32 (digest[4]);
-
-  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
-  {
-    digest[0] -= SHA1M_A;
-    digest[1] -= SHA1M_B;
-    digest[2] -= SHA1M_C;
-    digest[3] -= SHA1M_D;
-    digest[4] -= SHA1M_E;
-  }
-
-  const u8 *salt_pos = token.buf[0];
-  const int salt_len = token.len[0];
-
-  const bool parse_rc = parse_and_store_generic_salt ((u8 *) salt->salt_buf, (int *) &salt->salt_len, salt_pos, salt_len, hashconfig);
-
-  if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  return (PARSER_OK);
-}
 
 int macos512_parse_hash (u8 *input_buf, u32 input_len, hash_t *hash_buf, MAYBE_UNUSED hashconfig_t *hashconfig)
 {
@@ -2107,26 +2046,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       digest_buf[3],
       digest_buf[4]);
   }
-  else if (hash_mode == 1711)
-  {
-    // the encoder is a bit too intelligent, it expects the input data in the wrong BOM
-
-    digest_buf64[0] = byte_swap_64 (digest_buf64[0]);
-    digest_buf64[1] = byte_swap_64 (digest_buf64[1]);
-    digest_buf64[2] = byte_swap_64 (digest_buf64[2]);
-    digest_buf64[3] = byte_swap_64 (digest_buf64[3]);
-    digest_buf64[4] = byte_swap_64 (digest_buf64[4]);
-    digest_buf64[5] = byte_swap_64 (digest_buf64[5]);
-    digest_buf64[6] = byte_swap_64 (digest_buf64[6]);
-    digest_buf64[7] = byte_swap_64 (digest_buf64[7]);
-
-    memcpy (tmp_buf, digest_buf, 64);
-    memcpy (tmp_buf + 64, salt.salt_buf, salt.salt_len);
-
-    base64_encode (int_to_base64, (const u8 *) tmp_buf, 64 + salt.salt_len, (u8 *) ptr_plain);
-
-    snprintf (out_buf, out_size, "%s%s", SIGNATURE_SHA512B64S, ptr_plain);
-  }
   else if (hash_mode == 1722)
   {
     u32 *ptr = digest_buf;
@@ -2775,31 +2694,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos2      = 6;
                  hashconfig->dgst_pos3      = 7;
                  hashconfig->st_hash        = ST_HASH_01710;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case  1711:  hashconfig->hash_type      = HASH_TYPE_SHA512;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
-                                            | OPTS_TYPE_ST_ADD80
-                                            | OPTS_TYPE_ST_ADDBITS15;
-                 hashconfig->kern_type      = KERN_TYPE_SHA512_PWSLT;
-                 hashconfig->dgst_size      = DGST_SIZE_8_8;
-                 hashconfig->parse_func     = sha512b64s_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_PRECOMPUTE_MERKLE
-                                            | OPTI_TYPE_EARLY_SKIP
-                                            | OPTI_TYPE_NOT_ITERATED
-                                            | OPTI_TYPE_APPENDED_SALT
-                                            | OPTI_TYPE_USES_BITS_64
-                                            | OPTI_TYPE_RAW_HASH;
-                 hashconfig->dgst_pos0      = 14;
-                 hashconfig->dgst_pos1      = 15;
-                 hashconfig->dgst_pos2      = 6;
-                 hashconfig->dgst_pos3      = 7;
-                 hashconfig->st_hash        = ST_HASH_01711;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
