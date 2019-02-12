@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "inc_hash_constants.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -18,7 +19,7 @@ static const u32   DGST_POS3      = 1;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_HASH_SALTED;
 static const char *HASH_NAME      = "md5($salt.$pass)";
-static const u32   HASH_TYPE      = HASH_TYPE_MD5;
+static const u32   HASH_TYPE      = HASH_TYPE_GENERIC;
 static const u64   KERN_TYPE      = 20;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_INIT
@@ -88,9 +89,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[2] = hex_to_u32 (hash_pos + 16);
   digest[3] = hex_to_u32 (hash_pos + 24);
 
-  decoder_apply_options (hashconfig, digest);
-
-  decoder_apply_optimizer (hashconfig, digest);
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= MD5M_A;
+    digest[1] -= MD5M_B;
+    digest[2] -= MD5M_C;
+    digest[3] -= MD5M_D;
+  }
 
   const u8 *salt_pos = token.buf[1];
   const int salt_len = token.len[1];
@@ -106,9 +111,6 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
-  // we can not change anything in the original buffer, otherwise destroying sorting
-  // therefore create some local buffer
-
   u32 tmp[4];
 
   tmp[0] = digest[0];
@@ -116,9 +118,13 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   tmp[2] = digest[2];
   tmp[3] = digest[3];
 
-  encoder_apply_optimizer (hashconfig, tmp);
-
-  encoder_apply_options (hashconfig, tmp);
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    tmp[0] += MD5M_A;
+    tmp[1] += MD5M_B;
+    tmp[2] += MD5M_C;
+    tmp[3] += MD5M_D;
+  }
 
   u8 *out_buf = (u8 *) line_buf;
 

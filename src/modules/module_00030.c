@@ -12,29 +12,31 @@
 #include "inc_hash_constants.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
-static const u32   DGST_POS0      = 3;
-static const u32   DGST_POS1      = 4;
+static const u32   DGST_POS0      = 0;
+static const u32   DGST_POS1      = 3;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 1;
-static const u32   DGST_SIZE      = DGST_SIZE_4_5;
+static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_HASH_SALTED;
-static const char *HASH_NAME      = "sha1($pass.$salt)";
+static const char *HASH_NAME      = "md5(utf16le($pass).$salt)";
 static const u32   HASH_TYPE      = HASH_TYPE_GENERIC;
-static const u64   KERN_TYPE      = 110;
+static const u64   KERN_TYPE      = 30;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_INIT
                                   | OPTI_TYPE_PRECOMPUTE_MERKLE
+                                  | OPTI_TYPE_MEET_IN_MIDDLE
                                   | OPTI_TYPE_EARLY_SKIP
                                   | OPTI_TYPE_NOT_ITERATED
                                   | OPTI_TYPE_APPENDED_SALT
                                   | OPTI_TYPE_RAW_HASH;
-static const u64   OPTS_TYPE      = OPTS_TYPE_STATE_BUFFER_BE
-                                  | OPTS_TYPE_PT_GENERATE_BE
+static const u64   OPTS_TYPE      = OPTS_TYPE_STATE_BUFFER_LE
+                                  | OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_PT_UTF16LE
                                   | OPTS_TYPE_ST_ADD80
-                                  | OPTS_TYPE_ST_ADDBITS15;
+                                  | OPTS_TYPE_ST_ADDBITS14;
 static const u32   SALT_TYPE      = SALT_TYPE_GENERIC;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "848952984db93bdd2d0151d4ecca6ea44fcf49e3:30007548152";
+static const char *ST_HASH        = "1169500a7dfece72e1f7fc9c9410867a:687430237020";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -61,8 +63,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.token_cnt  = 2;
 
   token.sep[0]     = hashconfig->separator;
-  token.len_min[0] = 40;
-  token.len_max[0] = 40;
+  token.len_min[0] = 32;
+  token.len_max[0] = 32;
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
@@ -88,21 +90,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[1] = hex_to_u32 (hash_pos +  8);
   digest[2] = hex_to_u32 (hash_pos + 16);
   digest[3] = hex_to_u32 (hash_pos + 24);
-  digest[4] = hex_to_u32 (hash_pos + 32);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
-  digest[4] = byte_swap_32 (digest[4]);
 
   if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
   {
-    digest[0] -= SHA1M_A;
-    digest[1] -= SHA1M_B;
-    digest[2] -= SHA1M_C;
-    digest[3] -= SHA1M_D;
-    digest[4] -= SHA1M_E;
+    digest[0] -= MD5M_A;
+    digest[1] -= MD5M_B;
+    digest[2] -= MD5M_C;
+    digest[3] -= MD5M_D;
   }
 
   const u8 *salt_pos = token.buf[1];
@@ -119,31 +113,20 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
-  // we can not change anything in the original buffer, otherwise destroying sorting
-  // therefore create some local buffer
-
-  u32 tmp[5];
+  u32 tmp[4];
 
   tmp[0] = digest[0];
   tmp[1] = digest[1];
   tmp[2] = digest[2];
   tmp[3] = digest[3];
-  tmp[4] = digest[4];
 
   if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
   {
-    tmp[0] += SHA1M_A;
-    tmp[1] += SHA1M_B;
-    tmp[2] += SHA1M_C;
-    tmp[3] += SHA1M_D;
-    tmp[4] += SHA1M_E;
+    tmp[0] += MD5M_A;
+    tmp[1] += MD5M_B;
+    tmp[2] += MD5M_C;
+    tmp[3] += MD5M_D;
   }
-
-  tmp[0] = byte_swap_32 (tmp[0]);
-  tmp[1] = byte_swap_32 (tmp[1]);
-  tmp[2] = byte_swap_32 (tmp[2]);
-  tmp[3] = byte_swap_32 (tmp[3]);
-  tmp[4] = byte_swap_32 (tmp[4]);
 
   u8 *out_buf = (u8 *) line_buf;
 
@@ -153,7 +136,6 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   u32_to_hex (tmp[1], out_buf + out_len); out_len += 8;
   u32_to_hex (tmp[2], out_buf + out_len); out_len += 8;
   u32_to_hex (tmp[3], out_buf + out_len); out_len += 8;
-  u32_to_hex (tmp[4], out_buf + out_len); out_len += 8;
 
   out_buf[out_len] = hashconfig->separator;
 

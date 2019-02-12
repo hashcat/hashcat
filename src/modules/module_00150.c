@@ -17,24 +17,18 @@ static const u32   DGST_POS1      = 4;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 1;
 static const u32   DGST_SIZE      = DGST_SIZE_4_5;
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_HASH_SALTED;
-static const char *HASH_NAME      = "sha1($pass.$salt)";
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_HASH_AUTHENTICATED;
+static const char *HASH_NAME      = "HMAC-SHA1 (key = $pass)";
 static const u32   HASH_TYPE      = HASH_TYPE_GENERIC;
-static const u64   KERN_TYPE      = 110;
+static const u64   KERN_TYPE      = 150;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
-                                  | OPTI_TYPE_PRECOMPUTE_INIT
-                                  | OPTI_TYPE_PRECOMPUTE_MERKLE
-                                  | OPTI_TYPE_EARLY_SKIP
-                                  | OPTI_TYPE_NOT_ITERATED
-                                  | OPTI_TYPE_APPENDED_SALT
-                                  | OPTI_TYPE_RAW_HASH;
-static const u64   OPTS_TYPE      = OPTS_TYPE_STATE_BUFFER_BE
-                                  | OPTS_TYPE_PT_GENERATE_BE
+                                  | OPTI_TYPE_NOT_ITERATED;
+static const u32   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_BE
                                   | OPTS_TYPE_ST_ADD80
                                   | OPTS_TYPE_ST_ADDBITS15;
 static const u32   SALT_TYPE      = SALT_TYPE_GENERIC;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "848952984db93bdd2d0151d4ecca6ea44fcf49e3:30007548152";
+static const char *ST_HASH        = "02b256705348a28b1d6c0f063907979f7e0c82f8:10323";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
