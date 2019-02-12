@@ -4,7 +4,6 @@
   "   3710 | md5($salt.md5($pass))                            | Raw Hash, Salted and/or Iterated",
   "   4010 | md5($salt.md5($salt.$pass))                      | Raw Hash, Salted and/or Iterated",
   "   4110 | md5($salt.md5($pass.$salt))                      | Raw Hash, Salted and/or Iterated",
-  "   2600 | md5(md5($pass))                                  | Raw Hash, Salted and/or Iterated",
   "   4300 | md5(strtoupper(md5($pass)))                      | Raw Hash, Salted and/or Iterated",
   "   4400 | md5(sha1($pass))                                 | Raw Hash, Salted and/or Iterated",
   "    120 | sha1($salt.$pass)                                | Raw Hash, Salted and/or Iterated",
@@ -29,12 +28,6 @@
   "   1460 | HMAC-SHA256 (key = $salt)                        | Raw Hash, Authenticated",
   "   1750 | HMAC-SHA512 (key = $pass)                        | Raw Hash, Authenticated",
   "   1760 | HMAC-SHA512 (key = $salt)                        | Raw Hash, Authenticated",
-  "    121 | SMF (Simple Machines Forum) > v1.1               | Forums, CMS, E-Commerce, Frameworks",
-  "   2611 | vBulletin < v3.8.5                               | Forums, CMS, E-Commerce, Frameworks",
-  "   2711 | vBulletin >= v3.8.5                              | Forums, CMS, E-Commerce, Frameworks",
-  "   2612 | PHPS                                             | Forums, CMS, E-Commerce, Frameworks",
-  "    124 | Django (SHA-1)                                   | Forums, CMS, E-Commerce, Frameworks",
-  "   3711 | MediaWiki B type                                 | Forums, CMS, E-Commerce, Frameworks",
   "   4521 | Redmine                                          | Forums, CMS, E-Commerce, Frameworks",
   "   4522 | PunBB                                            | Forums, CMS, E-Commerce, Frameworks",
   "     22 | Juniper NetScreen/SSG (ScreenOS)                 | Operating Systems",
@@ -45,8 +38,6 @@ static const char *ST_HASH_00030 = "1169500a7dfece72e1f7fc9c9410867a:68743023702
 static const char *ST_HASH_00050 = "e28e4e37e972a945e464b5226053bac0:40";
 static const char *ST_HASH_00060 = "7f51edecfa6fb401a0b5e63d33fc8c0e:84143";
 static const char *ST_HASH_00120 = "a428863972744b16afef28e0087fc094b44bb7b1:465727565";
-static const char *ST_HASH_00121 = "d27c0a627a45db487af161fcc3a4005d88eb8a1f:25551135";
-static const char *ST_HASH_00124 = "sha1$fe76b$02d5916550edf7fc8c886f044887f4b1abf9b013";
 static const char *ST_HASH_00130 = "0a9e4591f539a77cd3af67bae207d250bc86bac6:23240710432";
 static const char *ST_HASH_00140 = "03b83421e2aa6d872d1f8dee001dc226ef01722b:818436";
 static const char *ST_HASH_00150 = "02b256705348a28b1d6c0f063907979f7e0c82f8:10323";
@@ -64,12 +55,7 @@ static const char *ST_HASH_01730 = "eefb67342d62a5d8ac84e8ae89d0f157f03749bd0427
 static const char *ST_HASH_01740 = "ce77bf8a8ca9b9cf0ed67edde58ed7fafd4542ce1378fc8bd87b05656ebf92e5711517d5930c18de93a71990e77e1037423e5b64c2f293be7d859d7b6921622e:1512373";
 static const char *ST_HASH_01750 = "138c00f17a1a0363f274817c91118f019aff09f937bfdaea844280a0c0e7811267cc4735d967d8640eed1218268c1c4a76fec8f7aa551491b353829f3a654270:885142";
 static const char *ST_HASH_01760 = "7d02921299935179d509e6dd4f3d0f2944e3451ea9de3af16baead6a7297e5653577d2473a0fff743d9fe78a89bd49296114319989dc7e7870fc7f62bc96accb:114";
-static const char *ST_HASH_02600 = "a936af92b0ae20b1ff6c3347a72e5fbe";
-static const char *ST_HASH_02611 = "28f9975808ae2bdc5847b1cda26033ea:308";
-static const char *ST_HASH_02612 = "$PHPS$30353031383437363132$f02b0b2f25e5754edb04522c346ba243";
-static const char *ST_HASH_02711 = "0844fbb2fdeda31884a7a45ec2010bb6:324410183853308365427804872426";
 static const char *ST_HASH_03710 = "a3aa0ae2b4a102a9974cdf40edeabee0:242812778074";
-static const char *ST_HASH_03711 = "$B$2152187716$8c8b39c3602b194eeeb6cac78eea2742";
 static const char *ST_HASH_03800 = "78274b1105fb8a7c415b43ffe35ec4a9:6";
 static const char *ST_HASH_04010 = "82422514daaa8253be0aa43f3e263af5:7530326651137";
 static const char *ST_HASH_04110 = "45b1005214e2d9472a7ad681578b2438:64268771004";
@@ -104,9 +90,7 @@ static const char *HT_01730 = "sha512(utf16le($pass).$salt)";
 static const char *HT_01740 = "sha512($salt.utf16le($pass))";
 static const char *HT_01750 = "HMAC-SHA512 (key = $pass)";
 static const char *HT_01760 = "HMAC-SHA512 (key = $salt)";
-static const char *HT_02600 = "md5(md5($pass))";
 static const char *HT_03710 = "md5($salt.md5($pass))";
-static const char *HT_03711 = "MediaWiki B type";
 static const char *HT_03800 = "md5($salt.$pass.$salt)";
 static const char *HT_04010 = "md5($salt.md5($salt.$pass))";
 static const char *HT_04110 = "md5($salt.md5($pass.$salt))";
@@ -118,17 +102,8 @@ static const char *HT_04700 = "sha1(md5($pass))";
 
 static const char *HT_00022 = "Juniper NetScreen/SSG (ScreenOS)";
 static const char *HT_00101 = "nsldap, SHA-1(Base64), Netscape LDAP SHA";
-static const char *HT_00121 = "SMF (Simple Machines Forum) > v1.1";
-static const char *HT_00124 = "Django (SHA-1)";
-static const char *HT_02611 = "vBulletin < v3.8.5";
-static const char *HT_02612 = "PHPS";
-static const char *HT_02711 = "vBulletin >= v3.8.5";
 static const char *HT_04521 = "Redmine";
 static const char *HT_04522 = "PunBB";
-
-static const char *SIGNATURE_DJANGOSHA1         = "sha1$";
-static const char *SIGNATURE_MEDIAWIKI_B        = "$B$";
-static const char *SIGNATURE_PHPS               = "$PHPS$";
 
 /**
  * decoder / encoder
@@ -1553,16 +1528,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
 
     snprintf (out_buf, out_size, "{SHA}%s", ptr_plain);
   }
-  else if (hash_mode == 124)
-  {
-    snprintf (out_buf, out_size, "sha1$%s$%08x%08x%08x%08x%08x",
-      (char *) salt.salt_buf,
-      digest_buf[0],
-      digest_buf[1],
-      digest_buf[2],
-      digest_buf[3],
-      digest_buf[4]);
-  }
   else if (hash_mode == 4400)
   {
     snprintf (out_buf, out_size, "%08x%08x%08x%08x",
@@ -1579,30 +1544,6 @@ int ascii_digest (hashcat_ctx_t *hashcat_ctx, char *out_buf, const int out_size,
       byte_swap_32 (digest_buf[2]),
       byte_swap_32 (digest_buf[3]),
       byte_swap_32 (digest_buf[4]));
-  }
-  else if (hash_mode == 2612)
-  {
-    snprintf (out_buf, out_size, "%s%s$%08x%08x%08x%08x",
-      SIGNATURE_PHPS,
-      (char *) salt.salt_buf,
-      digest_buf[0],
-      digest_buf[1],
-      digest_buf[2],
-      digest_buf[3]);
-  }
-  else if (hash_mode == 3711)
-  {
-    char *salt_ptr = (char *) salt.salt_buf;
-
-    salt_ptr[salt.salt_len - 1] = 0;
-
-    snprintf (out_buf, out_size, "%s%s$%08x%08x%08x%08x",
-      SIGNATURE_MEDIAWIKI_B,
-      salt_ptr,
-      digest_buf[0],
-      digest_buf[1],
-      digest_buf[2],
-      digest_buf[3]);
   }
   else
   {
@@ -1800,55 +1741,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 1;
                  hashconfig->st_hash        = ST_HASH_00120;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case   121:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
-                                            | OPTS_TYPE_PT_ADD80
-                                            | OPTS_TYPE_PT_ADDBITS15
-                                            | OPTS_TYPE_ST_LOWER;
-                 hashconfig->kern_type      = KERN_TYPE_SHA1_SLTPW;
-                 hashconfig->dgst_size      = DGST_SIZE_4_5;
-                 hashconfig->parse_func     = sha1s_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_PRECOMPUTE_MERKLE
-                                            | OPTI_TYPE_EARLY_SKIP
-                                            | OPTI_TYPE_NOT_ITERATED
-                                            | OPTI_TYPE_PREPENDED_SALT
-                                            | OPTI_TYPE_RAW_HASH;
-                 hashconfig->dgst_pos0      = 3;
-                 hashconfig->dgst_pos1      = 4;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 1;
-                 hashconfig->st_hash        = ST_HASH_00121;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case   124:  hashconfig->hash_type      = HASH_TYPE_SHA1;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_BE
-                                            | OPTS_TYPE_PT_ADD80
-                                            | OPTS_TYPE_PT_ADDBITS15;
-                 hashconfig->kern_type      = KERN_TYPE_SHA1_SLTPW;
-                 hashconfig->dgst_size      = DGST_SIZE_4_5;
-                 hashconfig->parse_func     = djangosha1_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_PRECOMPUTE_MERKLE
-                                            | OPTI_TYPE_EARLY_SKIP
-                                            | OPTI_TYPE_NOT_ITERATED
-                                            | OPTI_TYPE_PREPENDED_SALT
-                                            | OPTI_TYPE_RAW_HASH;
-                 hashconfig->dgst_pos0      = 3;
-                 hashconfig->dgst_pos1      = 4;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 1;
-                 hashconfig->st_hash        = ST_HASH_00124;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
@@ -2233,94 +2125,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
-    case  2600:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_VIRTUAL;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PT_ADD80
-                                            | OPTS_TYPE_PT_ADDBITS14
-                                            | OPTS_TYPE_ST_ADD80;
-                 hashconfig->kern_type      = KERN_TYPE_MD55_PWSLT1;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = md5md5_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_PRECOMPUTE_MERKLE
-                                            | OPTI_TYPE_EARLY_SKIP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 3;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 1;
-                 hashconfig->st_hash        = ST_HASH_02600;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case  2611:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PT_ADD80
-                                            | OPTS_TYPE_PT_ADDBITS14
-                                            | OPTS_TYPE_ST_ADD80;
-                 hashconfig->kern_type      = KERN_TYPE_MD55_PWSLT1;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = md5s_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_PRECOMPUTE_MERKLE
-                                            | OPTI_TYPE_EARLY_SKIP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 3;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 1;
-                 hashconfig->st_hash        = ST_HASH_02611;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case  2612:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PT_ADD80
-                                            | OPTS_TYPE_PT_ADDBITS14
-                                            | OPTS_TYPE_ST_ADD80
-                                            | OPTS_TYPE_ST_HEX;
-                 hashconfig->kern_type      = KERN_TYPE_MD55_PWSLT1;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = phps_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_PRECOMPUTE_MERKLE
-                                            | OPTI_TYPE_EARLY_SKIP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 3;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 1;
-                 hashconfig->st_hash        = ST_HASH_02612;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case  2711:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_GENERIC;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PT_ADD80
-                                            | OPTS_TYPE_PT_ADDBITS14
-                                            | OPTS_TYPE_ST_ADD80;
-                 hashconfig->kern_type      = KERN_TYPE_MD55_PWSLT2;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = vb30_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_EARLY_SKIP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 3;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 1;
-                 hashconfig->st_hash        = ST_HASH_02711;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
     case  3710:  hashconfig->hash_type      = HASH_TYPE_MD5;
                  hashconfig->salt_type      = SALT_TYPE_GENERIC;
                  hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -2339,27 +2143,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
                  hashconfig->dgst_pos2      = 2;
                  hashconfig->dgst_pos3      = 1;
                  hashconfig->st_hash        = ST_HASH_03710;
-                 hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
-                 break;
-
-    case  3711:  hashconfig->hash_type      = HASH_TYPE_MD5;
-                 hashconfig->salt_type      = SALT_TYPE_EMBEDDED;
-                 hashconfig->attack_exec    = ATTACK_EXEC_INSIDE_KERNEL;
-                 hashconfig->opts_type      = OPTS_TYPE_PT_GENERATE_LE
-                                            | OPTS_TYPE_PT_ADD80
-                                            | OPTS_TYPE_PT_ADDBITS14;
-                 hashconfig->kern_type      = KERN_TYPE_MD5_SLT_MD5_PW;
-                 hashconfig->dgst_size      = DGST_SIZE_4_4;
-                 hashconfig->parse_func     = mediawiki_b_parse_hash;
-                 hashconfig->opti_type      = OPTI_TYPE_ZERO_BYTE
-                                            | OPTI_TYPE_PRECOMPUTE_INIT
-                                            | OPTI_TYPE_PRECOMPUTE_MERKLE
-                                            | OPTI_TYPE_EARLY_SKIP;
-                 hashconfig->dgst_pos0      = 0;
-                 hashconfig->dgst_pos1      = 3;
-                 hashconfig->dgst_pos2      = 2;
-                 hashconfig->dgst_pos3      = 1;
-                 hashconfig->st_hash        = ST_HASH_03711;
                  hashconfig->st_pass        = ST_PASS_HASHCAT_PLAIN;
                  break;
 
