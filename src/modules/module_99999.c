@@ -21,18 +21,15 @@ static const u32   DGST_POS3      = 1;
 static const u32   DGST_SIZE      = DGST_SIZE_4_32; // originally DGST_SIZE_4_;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_PLAIN;
 static const char *HASH_NAME      = "Plaintext";
-static const u32   HASH_TYPE      = HASH_TYPE_GENERIC;
 static const u64   KERN_TYPE      = 900;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_INIT
-                                  | OPTI_TYPE_PRECOMPUTE_MERKLE
                                   | OPTI_TYPE_MEET_IN_MIDDLE
                                   | OPTI_TYPE_EARLY_SKIP
                                   | OPTI_TYPE_NOT_ITERATED
                                   | OPTI_TYPE_NOT_SALTED
                                   | OPTI_TYPE_RAW_HASH;
-static const u64   OPTS_TYPE      = OPTS_TYPE_STATE_BUFFER_LE
-                                  | OPTS_TYPE_PT_GENERATE_LE
+static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_PT_ADD80
                                   | OPTS_TYPE_PT_ADDBITS14;
 static const u32   SALT_TYPE      = SALT_TYPE_NONE;
@@ -47,7 +44,6 @@ u32         module_dgst_pos3      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 u32         module_dgst_size      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_SIZE;       }
 u32         module_hash_category  (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_CATEGORY;   }
 const char *module_hash_name      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_NAME;       }
-u32         module_hash_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_TYPE;       }
 u64         module_kern_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_TYPE;       }
 u32         module_opti_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTI_TYPE;       }
 u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTS_TYPE;       }
@@ -106,7 +102,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[2] = dgst[2];
   digest[3] = dgst[3];
 
-  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
   {
     digest[0] -= MD4M_A;
     digest[1] -= MD4M_B;
@@ -158,7 +154,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_name                = module_hash_name;
-  module_ctx->module_hash_type                = module_hash_type;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
   module_ctx->module_hook12                   = MODULE_DEFAULT;
   module_ctx->module_hook23                   = MODULE_DEFAULT;

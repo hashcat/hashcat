@@ -344,23 +344,23 @@ typedef enum opti_type
   OPTI_TYPE_OPTIMIZED_KERNEL    = (1 <<  0),
   OPTI_TYPE_ZERO_BYTE           = (1 <<  1),
   OPTI_TYPE_PRECOMPUTE_INIT     = (1 <<  2),
-  OPTI_TYPE_MEET_IN_MIDDLE      = (1 <<  4),
-  OPTI_TYPE_EARLY_SKIP          = (1 <<  5),
-  OPTI_TYPE_NOT_SALTED          = (1 <<  6),
-  OPTI_TYPE_NOT_ITERATED        = (1 <<  7),
-  OPTI_TYPE_PREPENDED_SALT      = (1 <<  8),
-  OPTI_TYPE_APPENDED_SALT       = (1 <<  9),
-  OPTI_TYPE_SINGLE_HASH         = (1 << 10),
-  OPTI_TYPE_SINGLE_SALT         = (1 << 11),
-  OPTI_TYPE_BRUTE_FORCE         = (1 << 12),
-  OPTI_TYPE_RAW_HASH            = (1 << 13),
-  OPTI_TYPE_SLOW_HASH_SIMD_INIT = (1 << 14),
-  OPTI_TYPE_SLOW_HASH_SIMD_LOOP = (1 << 15),
-  OPTI_TYPE_SLOW_HASH_SIMD_COMP = (1 << 16),
-  OPTI_TYPE_USES_BITS_8         = (1 << 17),
-  OPTI_TYPE_USES_BITS_16        = (1 << 18),
-  OPTI_TYPE_USES_BITS_32        = (1 << 19),
-  OPTI_TYPE_USES_BITS_64        = (1 << 20)
+  OPTI_TYPE_MEET_IN_MIDDLE      = (1 <<  3),
+  OPTI_TYPE_EARLY_SKIP          = (1 <<  4),
+  OPTI_TYPE_NOT_SALTED          = (1 <<  5),
+  OPTI_TYPE_NOT_ITERATED        = (1 <<  6),
+  OPTI_TYPE_PREPENDED_SALT      = (1 <<  7),
+  OPTI_TYPE_APPENDED_SALT       = (1 <<  8),
+  OPTI_TYPE_SINGLE_HASH         = (1 <<  9),
+  OPTI_TYPE_SINGLE_SALT         = (1 << 10),
+  OPTI_TYPE_BRUTE_FORCE         = (1 << 11),
+  OPTI_TYPE_RAW_HASH            = (1 << 12),
+  OPTI_TYPE_SLOW_HASH_SIMD_INIT = (1 << 13),
+  OPTI_TYPE_SLOW_HASH_SIMD_LOOP = (1 << 14),
+  OPTI_TYPE_SLOW_HASH_SIMD_COMP = (1 << 15),
+  OPTI_TYPE_USES_BITS_8         = (1 << 16),
+  OPTI_TYPE_USES_BITS_16        = (1 << 17),
+  OPTI_TYPE_USES_BITS_32        = (1 << 18),
+  OPTI_TYPE_USES_BITS_64        = (1 << 19)
 
 } opti_type_t;
 
@@ -410,7 +410,7 @@ typedef enum opts_type
   OPTS_TYPE_PREFERED_THREAD   = (1ULL << 41), // some algorithms (complicated ones with many branches) benefit from this
   OPTS_TYPE_PT_ADD06          = (1ULL << 42),
   OPTS_TYPE_KEYBOARD_MAPPING  = (1ULL << 43),
-  OPTS_TYPE_DEEP_COMP_KERNEL  = (1ULL << 46), // if we have to iterate through each hash inside the comp kernel, for example if each hash has to be decrypted separately
+  OPTS_TYPE_DEEP_COMP_KERNEL  = (1ULL << 44), // if we have to iterate through each hash inside the comp kernel, for example if each hash has to be decrypted separately
 
 } opts_type_t;
 

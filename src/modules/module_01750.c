@@ -19,12 +19,11 @@ static const u32   DGST_POS3      = 7;
 static const u32   DGST_SIZE      = DGST_SIZE_8_8;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_HASH_AUTHENTICATED;
 static const char *HASH_NAME      = "HMAC-SHA512 (key = $pass)";
-static const u32   HASH_TYPE      = HASH_TYPE_GENERIC;
 static const u64   KERN_TYPE      = 1750;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_USES_BITS_64
                                   | OPTI_TYPE_NOT_ITERATED;
-static const u32   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_BE
+static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_BE
                                   | OPTS_TYPE_ST_ADD80;
 static const u32   SALT_TYPE      = SALT_TYPE_GENERIC;
 static const char *ST_PASS        = "hashcat";
@@ -38,7 +37,6 @@ u32         module_dgst_pos3      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 u32         module_dgst_size      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_SIZE;       }
 u32         module_hash_category  (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_CATEGORY;   }
 const char *module_hash_name      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_NAME;       }
-u32         module_hash_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_TYPE;       }
 u64         module_kern_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_TYPE;       }
 u32         module_opti_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTI_TYPE;       }
 u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTS_TYPE;       }
@@ -96,18 +94,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[6] = byte_swap_64 (digest[6]);
   digest[7] = byte_swap_64 (digest[7]);
 
-  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
-  {
-    digest[0] -= SHA512M_A;
-    digest[1] -= SHA512M_B;
-    digest[2] -= SHA512M_C;
-    digest[3] -= SHA512M_D;
-    digest[4] -= SHA512M_E;
-    digest[5] -= SHA512M_F;
-    digest[6] -= SHA512M_G;
-    digest[7] -= SHA512M_H;
-  }
-
   const u8 *salt_pos = token.buf[1];
   const int salt_len = token.len[1];
 
@@ -135,18 +121,6 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   tmp[5] = digest[5];
   tmp[6] = digest[6];
   tmp[7] = digest[7];
-
-  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
-  {
-    tmp[0] += SHA512M_A;
-    tmp[1] += SHA512M_B;
-    tmp[2] += SHA512M_C;
-    tmp[3] += SHA512M_D;
-    tmp[4] += SHA512M_E;
-    tmp[5] += SHA512M_F;
-    tmp[6] += SHA512M_G;
-    tmp[7] += SHA512M_H;
-  }
 
   tmp[0] = byte_swap_64 (tmp[0]);
   tmp[1] = byte_swap_64 (tmp[1]);
@@ -216,7 +190,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
   module_ctx->module_hash_name                = module_hash_name;
-  module_ctx->module_hash_type                = module_hash_type;
   module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
   module_ctx->module_hook12                   = MODULE_DEFAULT;
   module_ctx->module_hook23                   = MODULE_DEFAULT;
