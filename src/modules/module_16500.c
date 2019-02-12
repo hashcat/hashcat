@@ -10,6 +10,7 @@
 #include "convert.h"
 #include "shared.h"
 #include "cpu_md5.h"
+#include "memory.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -58,6 +59,26 @@ typedef enum kern_type_jwt
   KERN_TYPE_JWT_HS512 = 16513,
 
 } kern_type_jwt_t;
+
+salt_t *module_benchmark_salt (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  salt_t *salt = (salt_t *) hcmalloc (sizeof (salt_t));
+
+  salt->salt_iter = 1;
+  salt->salt_len  = 16;
+
+  return salt;
+}
+
+void *module_benchmark_esalt (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  jwt_t *jwt = (jwt_t *) hcmalloc (sizeof (jwt_t));
+
+  jwt->signature_len = 43;
+  jwt->salt_len      = 32;
+
+  return jwt;
+}
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -313,10 +334,10 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
 
   module_ctx->module_attack_exec              = module_attack_exec;
-  module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
+  module_ctx->module_benchmark_esalt          = module_benchmark_esalt;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
   module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
-  module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
+  module_ctx->module_benchmark_salt           = module_benchmark_salt;
   module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
   module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;
   module_ctx->module_dgst_pos0                = module_dgst_pos0;
