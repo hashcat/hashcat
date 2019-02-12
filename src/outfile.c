@@ -475,7 +475,7 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int ou
     {
       if (user_options->outfile_autohex == true)
       {
-        const bool always_ascii = (hashconfig->hash_type & OPTS_TYPE_PT_ALWAYS_ASCII) ? true : false;
+        const bool always_ascii = (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_ASCII) ? true : false;
 
         convert_to_hex = need_hexify (plain_ptr, plain_len, hashconfig->separator, always_ascii);
       }

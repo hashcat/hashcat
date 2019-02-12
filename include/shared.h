@@ -93,9 +93,4 @@ bool parse_and_store_generic_salt (u8 *out_buf, int *out_len, const u8 *in_buf, 
 
 int input_tokenizer (const u8 *input_buf, const int input_len, token_t *token);
 
-void decoder_apply_optimizer (const hashconfig_t *hashconfig, void *data);
-void decoder_apply_options   (const hashconfig_t *hashconfig, void *data);
-void encoder_apply_optimizer (const hashconfig_t *hashconfig, void *data);
-void encoder_apply_options   (const hashconfig_t *hashconfig, void *data);
-
 #endif // _SHARED_H

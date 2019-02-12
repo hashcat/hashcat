@@ -14,6 +14,6 @@
 int  tuning_db_init    (hashcat_ctx_t *hashcat_ctx);
 void tuning_db_destroy (hashcat_ctx_t *hashcat_ctx);
 
-tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *device_name, const cl_device_type device_type, int attack_mode, const int hash_type);
+tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *device_name, const cl_device_type device_type, int attack_mode, const int hash_mode);
 
 #endif // _TUNINGDB_H

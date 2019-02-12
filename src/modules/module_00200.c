@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "inc_hash_constants.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -66,9 +67,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[2] = 0;
   digest[3] = 0;
 
-  decoder_apply_options (hashconfig, digest);
-
-  decoder_apply_optimizer (hashconfig, digest);
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = 0;
+  digest[3] = 0;
 
   return (PARSER_OK);
 }
@@ -87,9 +89,10 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   tmp[2] = 0;
   tmp[3] = 0;
 
-  encoder_apply_optimizer (hashconfig, tmp);
-
-  encoder_apply_options (hashconfig, tmp);
+  tmp[0] = byte_swap_32 (tmp[0]);
+  tmp[1] = byte_swap_32 (tmp[1]);
+  tmp[2] = 0;
+  tmp[3] = 0;
 
   u8 *out_buf = (u8 *) line_buf;
 

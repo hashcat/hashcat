@@ -21,8 +21,8 @@ static const u32   DGST_POS3      = 1;
 static const u32   DGST_SIZE      = DGST_SIZE_4_32; // originally DGST_SIZE_4_;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_PLAIN;
 static const char *HASH_NAME      = "Plaintext";
-static const u32   HASH_TYPE      = HASH_TYPE_MD4;
-static const u64   KERN_TYPE      = 1000;
+static const u32   HASH_TYPE      = HASH_TYPE_GENERIC;
+static const u64   KERN_TYPE      = 900;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_INIT
                                   | OPTI_TYPE_PRECOMPUTE_MERKLE
@@ -101,14 +101,18 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   md4_64 (w, dgst);
 
-  decoder_apply_options (hashconfig, dgst);
-
-  decoder_apply_optimizer (hashconfig, dgst);
-
   digest[0] = dgst[0];
   digest[1] = dgst[1];
   digest[2] = dgst[2];
   digest[3] = dgst[3];
+
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= MD4M_A;
+    digest[1] -= MD4M_B;
+    digest[2] -= MD4M_C;
+    digest[3] -= MD4M_D;
+  }
 
   return (PARSER_OK);
 }

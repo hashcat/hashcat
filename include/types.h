@@ -344,7 +344,6 @@ typedef enum opti_type
   OPTI_TYPE_OPTIMIZED_KERNEL    = (1 <<  0),
   OPTI_TYPE_ZERO_BYTE           = (1 <<  1),
   OPTI_TYPE_PRECOMPUTE_INIT     = (1 <<  2),
-  OPTI_TYPE_PRECOMPUTE_MERKLE   = (1 <<  3),
   OPTI_TYPE_MEET_IN_MIDDLE      = (1 <<  4),
   OPTI_TYPE_EARLY_SKIP          = (1 <<  5),
   OPTI_TYPE_NOT_SALTED          = (1 <<  6),
@@ -411,8 +410,6 @@ typedef enum opts_type
   OPTS_TYPE_PREFERED_THREAD   = (1ULL << 41), // some algorithms (complicated ones with many branches) benefit from this
   OPTS_TYPE_PT_ADD06          = (1ULL << 42),
   OPTS_TYPE_KEYBOARD_MAPPING  = (1ULL << 43),
-  OPTS_TYPE_STATE_BUFFER_LE   = (1ULL << 44),
-  OPTS_TYPE_STATE_BUFFER_BE   = (1ULL << 45),
   OPTS_TYPE_DEEP_COMP_KERNEL  = (1ULL << 46), // if we have to iterate through each hash inside the comp kernel, for example if each hash has to be decrypted separately
 
 } opts_type_t;
@@ -911,7 +908,6 @@ struct hashconfig
   char  separator;
 
   int   hash_mode;
-  u32   hash_type;
   u32   salt_type;
   u32   attack_exec;
   u32   kern_type;
@@ -1699,7 +1695,7 @@ typedef struct tuning_db_entry
 {
   const char *device_name;
   int         attack_mode;
-  int         hash_type;
+  int         hash_mode;
   int         workload_profile;
   int         vector_width;
   int         kernel_accel;
@@ -2289,7 +2285,6 @@ typedef struct module_ctx
   u32         (*module_hash_category)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_hash_name)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   int         (*module_hash_mode)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  u32         (*module_hash_type)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   bool        (*module_hlfmt_disable)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_hook_salt_size)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_hook_size)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
@@ -2412,24 +2407,6 @@ typedef struct token
 } token_t;
 
 #endif // _TYPES_H
-
-/**
- * hash types is relevant for host optimization of raw hashes
- * others use GENERIC
- */
-
-typedef enum hash_type
-{
-  HASH_TYPE_GENERIC   = 1,
-  HASH_TYPE_MD4       = 2,
-  HASH_TYPE_MD5       = 3,
-  HASH_TYPE_SHA1      = 4,
-  HASH_TYPE_SHA224    = 5,
-  HASH_TYPE_SHA256    = 6,
-  HASH_TYPE_SHA384    = 7,
-  HASH_TYPE_SHA512    = 8,
-
-} hash_type_t;
 
 /**
  * hash category is relevant in usage.c (--help screen)

@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "inc_hash_constants.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 3;
@@ -18,7 +19,7 @@ static const u32   DGST_POS3      = 6;
 static const u32   DGST_SIZE      = DGST_SIZE_4_7;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_HASH;
 static const char *HASH_NAME      = "SHA2-224";
-static const u32   HASH_TYPE      = HASH_TYPE_SHA224;
+static const u32   HASH_TYPE      = HASH_TYPE_GENERIC;
 static const u64   KERN_TYPE      = 1300;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_INIT
@@ -78,9 +79,24 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[5] = hex_to_u32 (hash_pos + 40);
   digest[6] = hex_to_u32 (hash_pos + 48);
 
-  decoder_apply_options (hashconfig, digest);
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
+  digest[5] = byte_swap_32 (digest[5]);
+  digest[6] = byte_swap_32 (digest[6]);
 
-  decoder_apply_optimizer (hashconfig, digest);
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    digest[0] -= SHA224M_A;
+    digest[1] -= SHA224M_B;
+    digest[2] -= SHA224M_C;
+    digest[3] -= SHA224M_D;
+    digest[4] -= SHA224M_E;
+    digest[5] -= SHA224M_F;
+    digest[6] -= SHA224M_G;
+  }
 
   return (PARSER_OK);
 }
@@ -102,9 +118,24 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   tmp[5] = digest[5];
   tmp[6] = digest[6];
 
-  encoder_apply_optimizer (hashconfig, tmp);
+  if (hashconfig->opti_type & OPTI_TYPE_PRECOMPUTE_MERKLE)
+  {
+    tmp[0] += SHA224M_A;
+    tmp[1] += SHA224M_B;
+    tmp[2] += SHA224M_C;
+    tmp[3] += SHA224M_D;
+    tmp[4] += SHA224M_E;
+    tmp[5] += SHA224M_F;
+    tmp[6] += SHA224M_G;
+  }
 
-  encoder_apply_options (hashconfig, tmp);
+  tmp[0] = byte_swap_32 (tmp[0]);
+  tmp[1] = byte_swap_32 (tmp[1]);
+  tmp[2] = byte_swap_32 (tmp[2]);
+  tmp[3] = byte_swap_32 (tmp[3]);
+  tmp[4] = byte_swap_32 (tmp[4]);
+  tmp[5] = byte_swap_32 (tmp[5]);
+  tmp[6] = byte_swap_32 (tmp[6]);
 
   u8 *out_buf = (u8 *) line_buf;
 

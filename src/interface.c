@@ -38,97 +38,9 @@ int ascii_digest (const hashconfig_t *hashconfig, const hashes_t *hashes, const 
     return snprintf (out_buf, out_size, "%s", hashfile);
   }
 
-  //const u32 hash_type  = hashconfig->hash_type;
-  //const u32 hash_mode  = hashconfig->hash_mode;
-  //const u32 salt_type  = hashconfig->salt_type;
-
-  //u8 datax[256] = { 0 };
-
-  //u64 *digest_buf64 = (u64 *) datax;
-  //u32 *digest_buf   = (u32 *) datax;
-
-  char *digests_buf_ptr = (char *) digests_buf;
-
-  //memcpy (digest_buf, digests_buf_ptr + (salts_buf[salt_pos].digests_offset * dgst_size) + (digest_pos * dgst_size), dgst_size);
-
-  char *esalts_buf_ptr = (char *) esalts_buf;
-
+  char *digests_buf_ptr    = (char *) digests_buf;
+  char *esalts_buf_ptr     = (char *) esalts_buf;
   char *hook_salts_buf_ptr = (char *) hook_salts_buf;
-
-  //salt_t salt;
-
-  /*
-
-  const bool isSalted = ((hashconfig->salt_type == SALT_TYPE_GENERIC)
-                      |  (hashconfig->salt_type == SALT_TYPE_EMBEDDED));
-
-  if (isSalted == true)
-  {
-    memcpy (&salt, &salts_buf[salt_pos], sizeof (salt_t));
-
-    char *ptr = (char *) salt.salt_buf;
-
-    u32 salt_len = salt.salt_len;
-
-    if (opts_type & OPTS_TYPE_ST_UTF16LE)
-    {
-      for (u32 i = 0, j = 0; i < salt_len; i += 1, j += 2)
-      {
-        ptr[i] = ptr[j];
-      }
-
-      salt_len = salt_len / 2;
-    }
-
-    if (opts_type & OPTS_TYPE_ST_GENERATE_LE)
-    {
-      u32 max = salt.salt_len / 4;
-
-      if (salt_len % 4) max++;
-
-      for (u32 i = 0; i < max; i++)
-      {
-        salt.salt_buf[i] = byte_swap_32 (salt.salt_buf[i]);
-      }
-    }
-
-    if (opts_type & OPTS_TYPE_ST_HEX)
-    {
-      char tmp[64] = { 0 };
-
-      for (u32 i = 0, j = 0; i < salt_len; i += 1, j += 2)
-      {
-        sprintf (tmp + j, "%02x", (unsigned char) ptr[i]);
-      }
-
-      salt_len = salt_len * 2;
-
-      memcpy (ptr, tmp, salt_len);
-    }
-
-    u32 memset_size = ((SALT_MAX - (int) salt_len) > 0) ? (SALT_MAX - salt_len) : 0;
-
-    memset (ptr + salt_len, 0, memset_size);
-
-    salt.salt_len = salt_len;
-  }
-  else
-  {
-    memset (&salt, 0, sizeof (salt_t));
-  }
-  */
-
-  //
-  // some modes require special encoding
-  //
-
-  //u32 out_buf_plain[256] = { 0 };
-  //u32 out_buf_salt[256]  = { 0 };
-
-  //char tmp_buf[1024] = { 0 };
-
-  //char *ptr_plain = (char *) out_buf_plain;
-  //u8   *ptr_salt  = (u8 *)   out_buf_salt;
 
   const u32 digest_cur = salts_buf[salt_pos].digests_offset + digest_pos;
 
@@ -305,7 +217,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (module_ctx->module_hash_category);
   CHECK_DEFINED (module_ctx->module_hash_name);
   CHECK_DEFINED (module_ctx->module_hash_mode);
-  CHECK_DEFINED (module_ctx->module_hash_type);
   CHECK_DEFINED (module_ctx->module_hlfmt_disable);
   CHECK_DEFINED (module_ctx->module_hook_salt_size);
   CHECK_DEFINED (module_ctx->module_hook_size);
@@ -374,7 +285,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_MANDATORY (module_ctx->module_hash_encode);
   CHECK_MANDATORY (module_ctx->module_hash_category);
   CHECK_MANDATORY (module_ctx->module_hash_name);
-  CHECK_MANDATORY (module_ctx->module_hash_type);
   CHECK_MANDATORY (module_ctx->module_kern_type);
   CHECK_MANDATORY (module_ctx->module_opti_type);
   CHECK_MANDATORY (module_ctx->module_opts_type);
@@ -392,7 +302,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   hashconfig->dgst_size     = module_ctx->module_dgst_size      (hashconfig, user_options, user_options_extra);
   hashconfig->hash_category = module_ctx->module_hash_category  (hashconfig, user_options, user_options_extra);
   hashconfig->hash_name     = module_ctx->module_hash_name      (hashconfig, user_options, user_options_extra);
-  hashconfig->hash_type     = module_ctx->module_hash_type      (hashconfig, user_options, user_options_extra);
   hashconfig->kern_type     = module_ctx->module_kern_type      (hashconfig, user_options, user_options_extra);
   hashconfig->opti_type     = module_ctx->module_opti_type      (hashconfig, user_options, user_options_extra);
   hashconfig->opts_type     = module_ctx->module_opts_type      (hashconfig, user_options, user_options_extra);
@@ -523,7 +432,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     hashconfig->opts_type &= ~OPTS_TYPE_ST_ADDBITS15;
 
     hashconfig->opti_type &= ~OPTI_TYPE_PRECOMPUTE_INIT;
-    hashconfig->opti_type &= ~OPTI_TYPE_PRECOMPUTE_MERKLE;
     hashconfig->opti_type &= ~OPTI_TYPE_MEET_IN_MIDDLE;
     hashconfig->opti_type &= ~OPTI_TYPE_PREPENDED_SALT;
     hashconfig->opti_type &= ~OPTI_TYPE_APPENDED_SALT;
