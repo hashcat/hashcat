@@ -194,8 +194,8 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     byte_swap_32 (chacha20->iv[0]),
     byte_swap_32 (chacha20->plain[0]),
     byte_swap_32 (chacha20->plain[1]),
-    digest[1],
-    digest[0]);
+    byte_swap_32 (digest[1]),
+    byte_swap_32 (digest[0]));
 
   return line_len;
 }
