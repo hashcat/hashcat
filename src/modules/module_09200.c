@@ -43,7 +43,7 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 
 typedef struct pbkdf2_sha256
 {
-  u32 salt_buf[16];
+  u32 salt_buf[64];
 
 } pbkdf2_sha256_t;
 

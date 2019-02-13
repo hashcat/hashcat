@@ -46,7 +46,7 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 
 typedef struct pbkdf2_sha512
 {
-  u32 salt_buf[32];
+  u32 salt_buf[64];
 
 } pbkdf2_sha512_t;
 
@@ -112,8 +112,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[2]     = ':';
-  token.len_min[2] = SALT_MIN;
-  token.len_max[2] = SALT_MAX;
+  token.len_min[2] = (SALT_MIN * 8) / 6;
+  token.len_max[2] = (SALT_MAX * 8) / 6;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64A;
 

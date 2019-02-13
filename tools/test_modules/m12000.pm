@@ -11,7 +11,7 @@ use warnings;
 use MIME::Base64 qw (encode_base64 decode_base64);
 use Crypt::PBKDF2;
 
-sub module_constraints { [[0, 255], [0, 64], [0, 55], [0, 64], [-1, -1]] }
+sub module_constraints { [[0, 255], [0, 255], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {

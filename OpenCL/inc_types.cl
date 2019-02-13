@@ -1326,25 +1326,25 @@ typedef struct tc
 
 typedef struct pbkdf2_md5
 {
-  u32 salt_buf[16];
+  u32 salt_buf[64];
 
 } pbkdf2_md5_t;
 
 typedef struct pbkdf2_sha1
 {
-  u32 salt_buf[16];
+  u32 salt_buf[64];
 
 } pbkdf2_sha1_t;
 
 typedef struct pbkdf2_sha256
 {
-  u32 salt_buf[16];
+  u32 salt_buf[64];
 
 } pbkdf2_sha256_t;
 
 typedef struct pbkdf2_sha512
 {
-  u32 salt_buf[32];
+  u32 salt_buf[64];
 
 } pbkdf2_sha512_t;
 

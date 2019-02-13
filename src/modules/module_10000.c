@@ -43,7 +43,7 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 
 typedef struct pbkdf2_sha256
 {
-  u32 salt_buf[16];
+  u32 salt_buf[64];
 
 } pbkdf2_sha256_t;
 
@@ -142,10 +142,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memcpy (salt_buf_ptr, salt_pos, salt_len);
 
-  salt->salt_len  = salt_len;
+  salt->salt_len = salt_len;
 
-  salt_buf_ptr[salt_len + 3] = 0x01;
-  salt_buf_ptr[salt_len + 4] = 0x80;
+  //leftover from prehistoric times?
+  //salt_buf_ptr[salt_len + 3] = 0x01;
+  //salt_buf_ptr[salt_len + 4] = 0x80;
 
   // add some stuff to normal salt to make sorted happy
 

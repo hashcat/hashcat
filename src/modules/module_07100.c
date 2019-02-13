@@ -42,6 +42,12 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
+typedef struct pbkdf2_sha512
+{
+  u32 salt_buf[64];
+
+} pbkdf2_sha512_t;
+
 typedef struct pbkdf2_sha512_tmp
 {
   u64  ipad[8];
@@ -51,12 +57,6 @@ typedef struct pbkdf2_sha512_tmp
   u64  out[16];
 
 } pbkdf2_sha512_tmp_t;
-
-typedef struct pbkdf2_sha512
-{
-  u32 salt_buf[32];
-
-} pbkdf2_sha512_t;
 
 static const char *SIGNATURE_SHA512MACOS = "$ml$";
 
