@@ -1,4 +1,3 @@
-
 /**
  * Author......: See docs/credits.txt
  * License.....: MIT
@@ -61,19 +60,18 @@ typedef struct apple_secure_notes_tmp
 
 } apple_secure_notes_tmp_t;
 
-
 static const char *SIGNATURE_APFS = "$fvde$";
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u64 tmp_size = (const u64) sizeof (apple_secure_notes_t);
+  const u64 tmp_size = (const u64) sizeof (apple_secure_notes_tmp_t);
 
   return tmp_size;
 }
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u64 esalt_size = (const u64) sizeof (apple_secure_notes_tmp_t);
+  const u64 esalt_size = (const u64) sizeof (apple_secure_notes_t);
 
   return esalt_size;
 }
