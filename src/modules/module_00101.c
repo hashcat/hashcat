@@ -133,9 +133,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   base64_encode (int_to_base64, (const u8 *) tmp, 20, (u8 *) ptr_plain);
 
-  const int out_len = 40;
-
-  snprintf (line_buf, line_size, "{SHA}%s", (char *) ptr_plain);
+  const int out_len = snprintf (line_buf, line_size, "{SHA}%s", (char *) ptr_plain);
 
   return out_len;
 }
