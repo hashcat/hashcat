@@ -32,7 +32,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_ST_ADDBITS14;
 static const u32   SALT_TYPE      = SALT_TYPE_GENERIC;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "5b91686523680d1e6bab1071ea4080cb:670326450574076786209992882236";
+static const char *ST_HASH        = "b78f863f2c67410c41e617f724e22f34:89384528665349271307465505333378";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -63,8 +63,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.len_min[1] = 30;
-  token.len_max[1] = 30;
+  token.len_min[1] = 32;
+  token.len_max[1] = 32;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
