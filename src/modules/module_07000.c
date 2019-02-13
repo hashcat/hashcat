@@ -145,11 +145,11 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u32 tmp[5];
 
-  tmp[0] = byte_swap_32 (digest[0]);
-  tmp[1] = byte_swap_32 (digest[1]);
-  tmp[2] = byte_swap_32 (digest[2]);
-  tmp[3] = byte_swap_32 (digest[3]);
-  tmp[4] = byte_swap_32 (digest[4]);
+  tmp[0] = digest[0];
+  tmp[1] = digest[1];
+  tmp[2] = digest[2];
+  tmp[3] = digest[3];
+  tmp[4] = digest[4];
 
   if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
   {
@@ -159,6 +159,12 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     tmp[3] += SHA1M_D;
     tmp[4] += SHA1M_E;
   }
+
+  tmp[0] = byte_swap_32 (tmp[0]);
+  tmp[1] = byte_swap_32 (tmp[1]);
+  tmp[2] = byte_swap_32 (tmp[2]);
+  tmp[3] = byte_swap_32 (tmp[3]);
+  tmp[4] = byte_swap_32 (tmp[4]);
 
   memcpy (tmp_buf + 12, tmp, 20);
 

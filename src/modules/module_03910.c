@@ -97,14 +97,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[2] = hex_to_u32 (hash_pos + 16);
   digest[3] = hex_to_u32 (hash_pos + 24);
 
-  if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
-  {
-    digest[0] -= MD5M_A;
-    digest[1] -= MD5M_B;
-    digest[2] -= MD5M_C;
-    digest[3] -= MD5M_D;
-  }
-
   const u8 *salt_pos = token.buf[1];
   const int salt_len = token.len[1];
 
@@ -130,14 +122,6 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   tmp[1] = digest[1];
   tmp[2] = digest[2];
   tmp[3] = digest[3];
-
-  if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
-  {
-    tmp[0] += MD5M_A;
-    tmp[1] += MD5M_B;
-    tmp[2] += MD5M_C;
-    tmp[3] += MD5M_D;
-  }
 
   u8 *out_buf = (u8 *) line_buf;
 
