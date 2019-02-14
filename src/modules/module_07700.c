@@ -119,9 +119,9 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   char tmp_salt[16];
 
-  memcpy (tmp_salt, salt->salt_buf, salt->salt_len);
+  const int salt_len = generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len, (u8 *) tmp_salt);
 
-  tmp_salt[salt->salt_len] = 0;
+  tmp_salt[salt_len] = 0;
 
   const int line_len = snprintf (line_buf, line_size, "%s$%08X%08X", tmp_salt, byte_swap_32 (digest[0]), byte_swap_32 (digest[1]));
 

@@ -121,18 +121,15 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
-  const u8 *salt_ptr = (const u8 *) salt->salt_buf;
+  char tmp_salt[16];
 
-  const int line_len = snprintf (line_buf, line_size, "%s%02x%02x%02x%02x%02x%02x%02x%02x%08x%08x%08x%08x%08x%08x%08x%08x",
+  const int salt_len = generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len, (u8 *) tmp_salt);
+
+  tmp_salt[salt_len] = 0;
+
+  const int line_len = snprintf (line_buf, line_size, "%s%s%08x%08x%08x%08x%08x%08x%08x%08x",
     SIGNATURE_SYBASEASE,
-    salt_ptr[0],
-    salt_ptr[1],
-    salt_ptr[2],
-    salt_ptr[3],
-    salt_ptr[4],
-    salt_ptr[5],
-    salt_ptr[6],
-    salt_ptr[7],
+    tmp_salt,
     digest[0],
     digest[1],
     digest[2],

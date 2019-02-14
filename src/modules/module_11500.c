@@ -91,7 +91,13 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
-  const int line_len = snprintf (line_buf, line_size, "%08x:%08x", digest[0], salt->salt_buf[0]);
+  char tmp_salt[16];
+
+  const int salt_len = generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len, (u8 *) tmp_salt);
+
+  tmp_salt[salt_len] = 0;
+
+  const int line_len = snprintf (line_buf, line_size, "%08x:%s", digest[0], tmp_salt);
 
   return line_len;
 }

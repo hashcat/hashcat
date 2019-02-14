@@ -134,9 +134,11 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
-  char ptr_salt[128] = { 0 };
+  char tmp_salt[128];
 
-  base64_encode (int_to_base64, (const u8 *) salt->salt_buf, salt->salt_len, (u8 *) ptr_salt);
+  const int salt_len = generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len, (u8 *) tmp_salt);
+
+  tmp_salt[salt_len] = 0;
 
   u32 tmp[8];
 
@@ -176,7 +178,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   ptr_plain[43] = 0;
 
-  const int line_len = snprintf (line_buf, line_size, "%s*1*%s*%s", SIGNATURE_EPISERVER, ptr_salt, ptr_plain);
+  const int line_len = snprintf (line_buf, line_size, "%s*1*%s*%s", SIGNATURE_EPISERVER, tmp_salt, ptr_plain);
 
   return line_len;
 }

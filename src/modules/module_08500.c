@@ -164,7 +164,13 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   FP (tmp[1], tmp[0], tt);
 
-  const int line_len = snprintf (line_buf, line_size, "%s*%s*%08X%08X", SIGNATURE_RACF, (char *) salt->salt_buf, byte_swap_32 (tmp[0]), byte_swap_32 (tmp[1]));
+  char tmp_salt[32];
+
+  const int salt_len = generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len, (u8 *) tmp_salt);
+
+  tmp_salt[salt_len] = 0;
+
+  const int line_len = snprintf (line_buf, line_size, "%s*%s*%08X%08X", SIGNATURE_RACF, tmp_salt, byte_swap_32 (tmp[0]), byte_swap_32 (tmp[1]));
 
   return line_len;
 }

@@ -269,13 +269,18 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     sprintf (public_key_buf + j, "%02x", ptr[i]);
   }
 
-  const int line_len = snprintf (line_buf, line_size, "%s%u$%s$%u$%08x%08x$%u$%u$%s$%u$%s",
+  char tmp_salt[48];
+
+  const int salt_len = generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len, (u8 *) tmp_salt);
+
+  tmp_salt[salt_len] = 0;
+
+  const int line_len = snprintf (line_buf, line_size, "%s%u$%s$%u$%s$%u$%u$%s$%u$%s",
     SIGNATURE_BITCOIN_WALLET,
     cry_master_len * 2,
     cry_master_buf,
-    salt->salt_len * 2,
-    byte_swap_32 (salt->salt_buf[0]),
-    byte_swap_32 (salt->salt_buf[1]),
+    salt_len,
+    tmp_salt,
     salt->salt_iter + 1,
     ckey_len * 2,
     ckey_buf,

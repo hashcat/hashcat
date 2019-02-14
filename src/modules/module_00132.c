@@ -133,8 +133,14 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     tmp[4] += SHA1M_E;
   }
 
-  const int line_len = snprintf (line_buf, line_size, "0x0100%08x%08x%08x%08x%08x%08x",
-    byte_swap_32 (salt->salt_buf[0]),
+  char tmp_salt[16];
+
+  const int salt_len = generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len, (u8 *) tmp_salt);
+
+  tmp_salt[salt_len] = 0;
+
+  const int line_len = snprintf (line_buf, line_size, "0x0100%s%08x%08x%08x%08x%08x",
+    tmp_salt,
     tmp[0],
     tmp[1],
     tmp[2],

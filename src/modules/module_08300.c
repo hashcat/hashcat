@@ -187,9 +187,9 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   char tmp_salt[128];
 
-  exec_hexify ((const u8 *) salt->salt_buf, salt->salt_len, (u8 *) tmp_salt);
+  const int salt_len = generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len, (u8 *) tmp_salt);
 
-  tmp_salt[salt->salt_len * 2] = 0;
+  tmp_salt[salt_len] = 0;
 
   const int line_len = snprintf (line_buf, line_size, "%s:%s:%s:%u", digest_buf_c, domain_buf_c, tmp_salt, salt->salt_iter);
 

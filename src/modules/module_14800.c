@@ -319,9 +319,9 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   char tmp_salt[48];
 
-  exec_hexify ((const u8 *) salt_in, salt->salt_len, (u8 *) tmp_salt);
+  const int salt_len = generic_salt_encode (hashconfig, (const u8 *) salt_in, (const int) salt->salt_len, (u8 *) tmp_salt);
 
-  tmp_salt[salt->salt_len * 2] = 0;
+  tmp_salt[salt_len] = 0;
 
   // DPSL
 

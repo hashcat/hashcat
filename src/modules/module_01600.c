@@ -222,15 +222,21 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   md5crypt_encode (digest_buf, tmp);
 
+  char tmp_salt[16];
+
+  const int salt_len = generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len, (u8 *) tmp_salt);
+
+  tmp_salt[salt_len] = 0;
+
   int line_len = 0;
 
   if (salt->salt_iter == ROUNDS_MD5CRYPT)
   {
-    line_len = snprintf (line_buf, line_size, "$apr1$%s$%s", (char *) salt->salt_buf, tmp);
+    line_len = snprintf (line_buf, line_size, "$apr1$%s$%s", tmp_salt, tmp);
   }
   else
   {
-    line_len = snprintf (line_buf, line_size, "$apr1$rounds=%u$%s$%s", salt->salt_iter, (char *) salt->salt_buf, tmp);
+    line_len = snprintf (line_buf, line_size, "$apr1$rounds=%u$%s$%s", salt->salt_iter, tmp_salt, tmp);
   }
 
   return line_len;

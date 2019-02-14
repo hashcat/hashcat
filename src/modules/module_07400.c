@@ -311,15 +311,21 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   sha256crypt_encode ((unsigned char *) digest_buf, (unsigned char *) ptr_plain);
 
+  char tmp_salt[32];
+
+  const int salt_len = generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len, (u8 *) tmp_salt);
+
+  tmp_salt[salt_len] = 0;
+
   int line_len;
 
   if (salt->salt_iter == ROUNDS_SHA256CRYPT)
   {
-    line_len = snprintf (line_buf, line_size, "$5$%s$%s", (char *) salt->salt_buf, ptr_plain);
+    line_len = snprintf (line_buf, line_size, "$5$%s$%s", tmp_salt, ptr_plain);
   }
   else
   {
-    line_len = snprintf (line_buf, line_size, "$5$rounds=%u$%s$%s", salt->salt_iter, (char *) salt->salt_buf, ptr_plain);
+    line_len = snprintf (line_buf, line_size, "$5$rounds=%u$%s$%s", salt->salt_iter, tmp_salt, ptr_plain);
   }
 
   return line_len;

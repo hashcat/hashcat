@@ -126,13 +126,19 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
+  char tmp_salt[48];
+
+  const int salt_len = generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len, (u8 *) tmp_salt);
+
+  tmp_salt[salt_len] = 0;
+
   return snprintf (line_buf, line_size, "%08x%08x%08x%08x:%d:%s",
     digest[0],
     digest[1],
     digest[2],
     digest[3],
     salt->salt_iter + 1,
-    (char *) salt->salt_buf);
+    tmp_salt);
 }
 
 void module_init (module_ctx_t *module_ctx)

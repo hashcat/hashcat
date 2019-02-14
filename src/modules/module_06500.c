@@ -519,7 +519,13 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   sha512aix_encode ((unsigned char *) tmp, (unsigned char *) ptr_plain);
 
-  const int line_len = snprintf (line_buf, line_size, "%s%02u$%s$%s", SIGNATURE_SHA512AIX, salt->salt_sign[0], (char *) salt->salt_buf, ptr_plain);
+  char tmp_salt[64];
+
+  const int salt_len = generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len, (u8 *) tmp_salt);
+
+  tmp_salt[salt_len] = 0;
+
+  const int line_len = snprintf (line_buf, line_size, "%s%02u$%s$%s", SIGNATURE_SHA512AIX, salt->salt_sign[0], tmp_salt, ptr_plain);
 
   return line_len;
 }

@@ -144,10 +144,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   char *salt_ptr = (char *) salt->salt_buf;
 
-  for (u32 i = 0; i < salt->salt_len; i++)
-  {
-    line_len += snprintf (line_buf + line_len, line_size - line_len, "%c", salt_ptr[i]);
-  }
+  line_len += generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len, (u8 *) line_buf + line_len);
 
   line_len += snprintf (line_buf + line_len, line_size - line_len, "#%08x%08x%08x%08x",
     digest[0],

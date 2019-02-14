@@ -124,18 +124,18 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     tmp[3] += MD5M_D;
   }
 
-  u8 tmp_buf[128];
+  char tmp_salt[48];
 
-  memcpy (tmp_buf, salt->salt_buf, salt->salt_len);
+  const int salt_len = generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len - 8, (u8 *) tmp_salt);
 
-  tmp_buf[salt->salt_len - 8] = 0;
+  tmp_salt[salt_len] = 0;
 
   const int out_len = snprintf (line_buf, line_size, "%08x%08x%08x%08x:%s",
     byte_swap_32 (tmp[0]),
     byte_swap_32 (tmp[1]),
     byte_swap_32 (tmp[2]),
     byte_swap_32 (tmp[3]),
-    (char *) tmp_buf);
+    tmp_salt);
 
   return out_len;
 }

@@ -410,14 +410,11 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   char *salt_ptr = (char *) salt->salt_buf;
 
-  u8 tmp_buf[128];
+  char tmp_salt[128];
 
-  for (u32 i = 0, j = 0; i < salt->salt_len; i += 1, j += 2)
-  {
-    u8_to_hex (salt_ptr[i], tmp_buf + j);
-  }
+  const int salt_len = generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len, (u8 *) tmp_salt);
 
-  tmp_buf[salt->salt_len * 2] = 0;
+  tmp_salt[salt_len] = 0;
 
   ethereum_scrypt_t *ethereum_scrypt = (ethereum_scrypt_t *) esalt_buf;
 
@@ -426,7 +423,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     salt->scrypt_N,
     salt->scrypt_r,
     salt->scrypt_p,
-    (char *) tmp_buf,
+    (char *) tmp_salt,
     byte_swap_32 (ethereum_scrypt->ciphertext[0]),
     byte_swap_32 (ethereum_scrypt->ciphertext[1]),
     byte_swap_32 (ethereum_scrypt->ciphertext[2]),
