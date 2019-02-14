@@ -1123,45 +1123,43 @@ bool generic_salt_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 
 {
   u32 tmp_u32[(64 * 2) + 1] = { 0 };
 
+  u8 *tmp_u8 = (u8 *) tmp_u32;
+
   if (in_len > 512) return false; // 512 = 2 * 256 -- (2 * because of hex), 256 because of maximum salt length in salt_t
-
-  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
-  {
-    if (in_len < (int) (hashconfig->salt_min * 2)) return false;
-    if (in_len > (int) (hashconfig->salt_max * 2)) return false;
-  }
-  else
-  {
-    if (in_len < (int) hashconfig->salt_min) return false;
-    if (in_len > (int) hashconfig->salt_max) return false;
-  }
-
-  u8 *tmp_buf = (u8 *) tmp_u32;
 
   int tmp_len = 0;
 
   if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
   {
-    if (tmp_len & 1) return false;
+    if (in_len < (int) (hashconfig->salt_min * 2)) return false;
+    if (in_len > (int) (hashconfig->salt_max * 2)) return false;
 
-    tmp_len = in_len / 2;
+    if (in_len & 1) return false;
 
-    for (int i = 0, j = 0; i < tmp_len; i += 1, j += 2)
+    for (int i = 0, j = 0; j < in_len; i += 1, j += 2)
     {
       u8 p0 = in_buf[j + 0];
       u8 p1 = in_buf[j + 1];
 
-      tmp_buf[i]  = hex_convert (p1) << 0;
-      tmp_buf[i] |= hex_convert (p0) << 4;
+      tmp_u8[i]  = hex_convert (p1) << 0;
+      tmp_u8[i] |= hex_convert (p0) << 4;
     }
+
+    tmp_len = in_len / 2;
   }
   else if (hashconfig->opts_type & OPTS_TYPE_ST_BASE64)
   {
-    tmp_len = base64_decode (base64_to_int, (const u8 *) in_buf, in_len, tmp_buf);
+    if (in_len < (int) ((hashconfig->salt_min * 8) / 6)) return false;
+    if (in_len > (int) ((hashconfig->salt_max * 8) / 6)) return false;
+
+    tmp_len = base64_decode (base64_to_int, (const u8 *) in_buf, in_len, tmp_u8);
   }
   else
   {
-    if (in_len) memcpy (tmp_buf, in_buf, in_len);
+    if (in_len < (int) hashconfig->salt_min) return false;
+    if (in_len > (int) hashconfig->salt_max) return false;
+
+    memcpy (tmp_u8, in_buf, in_len);
 
     tmp_len = in_len;
   }
@@ -1183,12 +1181,12 @@ bool generic_salt_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 
 
   if (hashconfig->opts_type & OPTS_TYPE_ST_LOWER)
   {
-    lowercase (tmp_buf, tmp_len);
+    lowercase (tmp_u8, tmp_len);
   }
 
   if (hashconfig->opts_type & OPTS_TYPE_ST_UPPER)
   {
-    uppercase (tmp_buf, tmp_len);
+    uppercase (tmp_u8, tmp_len);
   }
 
   int tmp2_len = tmp_len;
@@ -1197,40 +1195,62 @@ bool generic_salt_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 
   {
     if (tmp2_len >= 256) return false;
 
-    tmp_buf[tmp2_len++] = 0x80;
+    tmp_u8[tmp2_len++] = 0x80;
   }
 
   if (hashconfig->opts_type & OPTS_TYPE_ST_ADD01)
   {
     if (tmp2_len >= 256) return false;
 
-    tmp_buf[tmp2_len++] = 0x01;
+    tmp_u8[tmp2_len++] = 0x01;
   }
 
-  if (hashconfig->opts_type & OPTS_TYPE_ST_GENERATE_BE)
-  {
-    u32 max = tmp2_len / 4;
-
-    if (tmp2_len % 4) max++;
-
-    for (u32 i = 0; i < max; i++)
-    {
-      tmp_u32[i] = byte_swap_32 (tmp_u32[i]);
-    }
-
-    // Important: we may need to increase the length of memcpy since
-    // we don't want to "loose" some swapped bytes (could happen if
-    // they do not perfectly fit in the 4-byte blocks)
-    // Memcpy does always copy the bytes in the BE order, but since
-    // we swapped them, some important bytes could be in positions
-    // we normally skip with the original len
-
-    if (tmp2_len % 4) tmp2_len += 4 - (tmp2_len % 4);
-  }
-
-  memcpy (out_buf, tmp_buf, tmp2_len);
+  memcpy (out_buf, tmp_u8, tmp2_len);
 
   *out_len = tmp_len;
 
   return true;
+}
+
+int generic_salt_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 *in_buf, const int in_len, u8 *out_buf)
+{
+  u32 tmp_u32[(64 * 2) + 1] = { 0 };
+
+  u8 *tmp_u8 = (u8 *) tmp_u32;
+
+  memcpy (tmp_u8, in_buf, in_len);
+
+  int tmp_len = in_len;
+
+  if (hashconfig->opts_type & OPTS_TYPE_ST_UTF16LE)
+  {
+    for (int i = 0, j = 0; j < in_len; i += 1, j += 2)
+    {
+      const u8 p = tmp_u8[j];
+
+      tmp_u8[i] = p;
+    }
+
+    tmp_len = tmp_len / 2;
+  }
+
+  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
+  {
+    for (int i = 0, j = 0; i < in_len; i += 1, j += 2)
+    {
+      const u8 p = in_buf[i];
+
+      u8_to_hex (in_buf[i], tmp_u8 + j);
+    }
+
+    tmp_len = in_len * 2;
+  }
+  else if (hashconfig->opts_type & OPTS_TYPE_ST_BASE64)
+  {
+    tmp_len = base64_encode (int_to_base64, in_buf, in_len, tmp_u8);
+  }
+
+  memcpy (out_buf, tmp_u8, tmp_len);
+
+  return tmp_len;
 }

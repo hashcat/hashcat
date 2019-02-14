@@ -140,25 +140,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   out_len += 1;
 
-  const u8 *ptr = (const u8 *) salt->salt_buf;
-
-  if (hashconfig->opts_type & OPTS_TYPE_ST_UTF16LE)
-  {
-    for (u32 i = 0; i < salt->salt_len; i += 2)
-    {
-      out_buf[out_len] = ptr[i];
-
-      out_len++;
-    }
-
-    out_buf[out_len] = 0;
-  }
-  else
-  {
-    memcpy (out_buf + out_len, salt->salt_buf, salt->salt_len);
-
-    out_len += salt->salt_len;
-  }
+  out_len += generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len, out_buf + out_len);
 
   return out_len;
 }
