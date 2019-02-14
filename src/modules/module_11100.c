@@ -119,7 +119,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *user_pos = token.buf[1];
   const int user_len = token.len[1];
 
-  const bool parse_rc = parse_and_store_generic_salt (salt_buf_ptr + 4, (int *) &salt->salt_len, user_pos, user_len, hashconfig);
+  const bool parse_rc = generic_salt_decode (hashconfig, user_pos, user_len, salt_buf_ptr + 4, (int *) &salt->salt_len);
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
 

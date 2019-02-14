@@ -89,7 +89,7 @@ const char *strparser (const u32 parser_status);
 const char *strhashcategory (const u32 hash_category);
 const char *stroptitype (const u32 opti_type);
 
-bool parse_and_store_generic_salt (u8 *out_buf, int *out_len, const u8 *in_buf, const int in_len, MAYBE_UNUSED const hashconfig_t *hashconfig);
+bool generic_salt_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 *in_buf, const int in_len, u8 *out_buf, int *out_len);
 
 int input_tokenizer (const u8 *input_buf, const int input_len, token_t *token);
 
