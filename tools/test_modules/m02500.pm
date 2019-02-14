@@ -27,7 +27,7 @@ sub module_generate_hash
   my $snonce = random_bytes (32);
   my $anonce = random_bytes (32);
 
-  my $keyver = random_number (1, 4); # 1, 2 or 3
+  my $keyver = random_number (1, 3); # 1, 2 or 3
 
     # eapol:
     # should be "validly" generated, but in theory could be anything for us also:

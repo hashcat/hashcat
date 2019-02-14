@@ -12,7 +12,7 @@ use Digest::SHA  qw (sha256);
 use MIME::Base64 qw (encode_base64 decode_base64);
 use Encode;
 
-sub module_constraints { [[0, 255], [0, 255], [0, 27], [0, 55], [0, 27]] }
+sub module_constraints { [[0, 255], [0, 255], [0, 27], [0, 27], [0, 27]] }
 
 sub module_generate_hash
 {
