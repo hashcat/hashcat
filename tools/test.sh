@@ -2468,45 +2468,46 @@ cat << EOF
 OPTIONS:
 
   -V    OpenCL vector-width (either 1, 2, 4 or 8), overrides value from device query :
-        '1'      => vector-width 1
-        '2'      => vector-width 2 (default)
-        '4'      => vector-width 4
-        '8'      => vector-width 8
-        'all'    => test sequentially vector-width ${VECTOR_WIDTHS}
+        '1'         => vector-width 1
+        '2'         => vector-width 2 (default)
+        '4'         => vector-width 4
+        '8'         => vector-width 8
+        'all'       => test sequentially vector-width ${VECTOR_WIDTHS}
 
   -T    OpenCL device-types to use :
-        'gpu'    => gpu devices (default)
-        'cpu'    => cpu devices
-        'all'    => gpu and cpu devices
+        'gpu'       => gpu devices (default)
+        'cpu'       => cpu devices
+        'all'       => gpu and cpu devices
 
   -t    Select test mode :
-        'single' => single hash (default)
-        'multi'  => multi hash
-        'all'    => single and multi hash
+        'single'    => single hash (default)
+        'multi'     => multi hash
+        'all'       => single and multi hash
 
   -m    Select hash type :
-        'all'    => all hash type supported
-        (int)    => hash type integer code (default : 0)
+        'all'       => all hash type supported
+        (int)       => hash type integer code (default : 0)
 
   -a    Select attack mode :
-        'all'    => all attack modes
-        (int)    => attack mode integer code (default : 0)
+        'all'       => all attack modes
+        (int)       => attack mode integer code (default : 0)
+        (int)-(int) => attack mode integer range
 
   -x    Select cpu architecture :
-        '32'     => 32 bit architecture
-        '64'     => 64 bit architecture (default)
+        '32'        => 32 bit architecture
+        '64'        => 64 bit architecture (default)
 
   -o    Select operating system :
-        'win'    => Windows operating system (use .exe file extension)
-        'linux'  => Linux operating system (use .bin file extension)
-        'macos'  => macOS operating system (use .app file extension)
+        'win'       => Windows operating system (use .exe file extension)
+        'linux'     => Linux operating system (use .bin file extension)
+        'macos'     => macOS operating system (use .app file extension)
 
   -c    Disables markov-chains
 
   -p    Package the tests into a .7z file
 
   -d    Use this folder as input/output folder for packaged tests
-        (string) => path to folder
+        (string)    => path to folder
 
   -h    Show this help
 
@@ -2678,26 +2679,42 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
     exit 1
   fi
 
+  HT_MIN=0
+  HT_MAX=0
+
+  if echo -n ${HT} | grep -q '^[1-9][0-9]*$'; then
+    HT_MIN=${HT}
+    HT_MAX=${HT}
+  elif echo -n ${HT} | grep -q '^[1-9][0-9]*-[1-9][0-9]*$'; then
+
+    HT_MIN=$(echo -n ${HT} | sed "s/-.*//")
+    HT_MAX=$(echo -n ${HT} | sed "s/.*-//")
+
+    if [ "${HT_MIN}" -gt ${HT_MAX} ]; then
+      echo "! hash type range -m ${HT} is not valid ..."
+      usage
+    fi
+  else
+    echo "! hash type is not a number ..."
+    usage
+  fi
+
+  HT=${HT_MIN}
+
   # filter by hash_type
   if [ ${HT} -ne 65535 ]; then
 
     # validate filter
-    check=0
-    for hash_type in $(echo ${HASH_TYPES}); do
 
-      if [ ${HT} -ne ${hash_type} ]; then continue; fi
-
-      check=1
-
-      break
-
-    done
-
-    if [ ${check} -ne 1 ]; then
+    if ! is_in_array ${HT_MIN} ${HASH_TYPES}; then
       echo "! invalid hash type selected ..."
       usage
     fi
 
+    if ! is_in_array ${HT_MAX} ${HASH_TYPES}; then
+      echo "! invalid hash type selected ..."
+      usage
+    fi
   fi
 
   if [ -z "${PACKAGE_FOLDER}" ]; then
@@ -2710,13 +2727,21 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
       for TMP_HT in ${HASH_TYPES}; do
         perl tools/test.pl single ${TMP_HT} >> ${OUTD}/all.sh
       done
-    elif [[ ${HT} -ne 14600 ]]; then
-      # Exclude TrueCrypt and VeraCrypt testing modes
-      if [[ ${HT} -lt  6211 ]] || [[ ${HT} -gt 6243 ]]; then
-        if ! is_in_array ${HT} ${VC_MODES}; then
-          perl tools/test.pl single ${HT} > ${OUTD}/all.sh
+    else
+      for TMP_HT in $(seq ${HT_MIN} ${HT_MAX}); do
+        if ! is_in_array ${TMP_HT} ${HASH_TYPES}; then
+          continue
         fi
-      fi
+
+        if [[ ${TMP_HT} -ne 14600 ]]; then
+          # Exclude TrueCrypt and VeraCrypt testing modes
+          if [[ ${TMP_HT} -lt  6211 ]] || [[ ${TMP_HT} -gt 6243 ]]; then
+            if ! is_in_array ${TMP_HT} ${VC_MODES}; then
+              perl tools/test.pl single ${TMP_HT} >> ${OUTD}/all.sh
+            fi
+          fi
+        fi
+      done
     fi
 
   else
@@ -2738,7 +2763,17 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
 
   for hash_type in $(echo $HASH_TYPES); do
 
-    if [[ ${HT} -ne 65535 ]] && [[ ${HT} -ne ${hash_type} ]]; then continue; fi
+    if [ "${HT}" -ne 65535 ]; then
+
+      # check if the loop variable "hash_type" is between HT_MIN and HT_MAX (both included)
+
+      if   [ "${hash_type}" -lt ${HT_MIN} ]; then
+        continue
+      elif [ "${hash_type}" -gt ${HT_MAX} ]; then
+        # we are done because hash_type is larger than range:
+        break
+      fi
+    fi
 
     if [ -z "${PACKAGE_FOLDER}" ]; then
 
@@ -2893,11 +2928,17 @@ if [ "${PACKAGE}" -eq 1 ]; then
     SED_IN_PLACE='-i ""'
   fi
 
+  HT_PACKAGED=${HT}
+
+  if [ "${HT_MIN}" -ne "${HT_MAX}" ]; then
+    HT_PACKAGED=${HT_MIN}-${HT_MAX}
+  fi
+
   HASH_TYPES_PACKAGED=$(echo ${HASH_TYPES} | tr '\n' ' ' | sed 's/ $//')
 
   sed "${SED_IN_PLACE}" -e 's/^\(PACKAGE_FOLDER\)=""/\1="$( echo "${BASH_SOURCE[0]}" | sed \"s!test.sh\\$!!\" )"/' \
     -e "s/^\(HASH_TYPES\)=\$(.*/\1=\"${HASH_TYPES_PACKAGED}\"/" \
-    -e "s/^\(HT\)=0/\1=${HT}/" \
+    -e "s/^\(HT\)=0/\1=${HT_PACKAGED}/" \
     -e "s/^\(MODE\)=0/\1=${MODE}/" \
     -e "s/^\(ATTACK\)=0/\1=${ATTACK}/" \
     ${OUTD}/test.sh
