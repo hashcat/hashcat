@@ -2682,10 +2682,10 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
   HT_MIN=0
   HT_MAX=0
 
-  if echo -n ${HT} | grep -q '^[1-9][0-9]*$'; then
+  if echo -n ${HT} | grep -q '^[0-9]\+$'; then
     HT_MIN=${HT}
     HT_MAX=${HT}
-  elif echo -n ${HT} | grep -q '^[1-9][0-9]*-[1-9][0-9]*$'; then
+  elif echo -n ${HT} | grep -q '^[0-9]\+-[1-9][0-9]*$'; then
 
     HT_MIN=$(echo -n ${HT} | sed "s/-.*//")
     HT_MAX=$(echo -n ${HT} | sed "s/.*-//")
