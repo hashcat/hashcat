@@ -341,13 +341,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.sep[8]      = '$';
   token.len_min[8]  = 1;
-  token.len_max[8]  = 4;
+  token.len_max[8]  = 6;
   token.attr[8]     = TOKEN_ATTR_VERIFY_LENGTH
                     | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[9]      = '$';
   token.len_min[9]  = 1;
-  token.len_max[9]  = 4;
+  token.len_max[9]  = 6;
   token.attr[9]     = TOKEN_ATTR_VERIFY_LENGTH
                     | TOKEN_ATTR_VERIFY_DIGIT;
 
