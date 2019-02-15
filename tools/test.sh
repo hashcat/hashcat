@@ -11,28 +11,7 @@ TDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # missing hash types: 5200,6251,6261,6271,6281
 
-# Array of all hash-modes supported by the test suite
-HASH_TYPES="0    10    11    12    20    21    22    23    30    40    50    60\
-    100   101   110   111   112   120   121   122   125   130   131   132   133\
-    140   141   150   160   200   300   400   500   600   900  1000  1100  1300\
-   1400  1410  1411  1420  1430  1440  1441  1450  1460  1500  1600  1700  1710\
-   1711  1720  1722  1730  1731  1740  1750  1760  1800  2100  2400  2410  2500\
-   2600  2611  2612  2711  2811  3000  3100  3200  3710  3711  3800  3910  4010\
-   4110  4300  4400  4500  4520  4521  4522  4700  4800  4900  5100  5300  5400\
-   5500  5600  5700  5800  6000  6100  6211  6212  6213  6221  6222  6223  6231\
-   6232  6233  6241  6242  6243  6300  6400  6500  6600  6700  6800  6900  7000\
-   7100  7200  7300  7400  7500  7700  7701  7800  7801  7900  8000  8100  8200\
-   8300  8400  8500  8600  8700  8900  9100  9200  9300  9400  9500  9600  9700\
-   9800  9900 10000 10100 10200 10300 10400 10500 10600 10700 10800 10900 11000\
-  11100 11200 11300 11400 11500 11600 11700 11750 11760 11800 11850 11860 11900\
-  12000 12001 12100 12200 12300 12400 12600 12700 12800 12900 13000 13100 13200\
-  13300 13400 13500 13600 13711 13712 13713 13721 13722 13723 13731 13732 13733\
-  13751 13752 13753 13771 13772 13773 13800 13900 14000 14100 14400 14600 14700\
-  14800 14900 15000 15100 15200 15300 15400 15500 15600 15700 15900 16000 16100\
-  16200 16300 16400 16500 16600 16700 16800 16900 17300 17400 17500 17600 17700\
-  17800 17900 18000 18100 18200 18300 18400 18500 18600 99999"
-
-HASH_TYPES=$(ls ${TDIR}/test_modules/*.pm | sed -r 's/.*m0*([0-9]+).pm/\1/')
+HASH_TYPES=$(ls ${TDIR}/test_modules/*.pm | sed 's/.*m0*\([0-9]\+\)\.pm/\1/')
 
 VECTOR_WIDTHS="1 2 4 8 16"
 
@@ -1470,8 +1449,37 @@ function attack_6()
         fi
 
         echo ${pass} | cut -b -$((${#pass} - ${i})) >> ${dict1_a6}
-        sort -R ${dict1_a6} > ${dict1_a6}.txt
+
+        # the block below is just a fancy way to do a "shuf" (or sort -R) because macOS doesn't really support it natively
+        # we do not really need a shuf, but it's actually better for testing purposes
+
+        rm -f ${dict1_a6}.txt # temporary file
+
+        line_num=$(wc -l ${dict1_a6} | sed 's/ .*$//')
+
+        sorted_lines=$(seq 1 ${line_num})
+
+        for lines in $(seq 1 ${line_num}); do
+
+          random_num=$((${RANDOM} % ${line_num}))
+          random_num=$((${random_num} + 1)) # sed -n [n]p starts counting with 1 (not 0)
+
+          random_line=$(echo -n "${sorted_lines}" | sed -n ${random_num}p)
+
+          sed -n ${random_line}p ${dict1_a6} >> ${dict1_a6}.txt
+
+          # update the temp list of lines
+
+          sorted_lines=$(echo -n "${sorted_lines}" | grep -v "^${random_line}$")
+
+          line_num=$((${line_num} - 1))
+
+        done
+
         mv ${dict1_a6}.txt ${dict1_a6}
+
+        # end of shuf/sort -R
+
 
         mask=""
 
@@ -2468,45 +2476,46 @@ cat << EOF
 OPTIONS:
 
   -V    OpenCL vector-width (either 1, 2, 4 or 8), overrides value from device query :
-        '1'      => vector-width 1
-        '2'      => vector-width 2 (default)
-        '4'      => vector-width 4
-        '8'      => vector-width 8
-        'all'    => test sequentially vector-width ${VECTOR_WIDTHS}
+        '1'         => vector-width 1
+        '2'         => vector-width 2 (default)
+        '4'         => vector-width 4
+        '8'         => vector-width 8
+        'all'       => test sequentially vector-width ${VECTOR_WIDTHS}
 
   -T    OpenCL device-types to use :
-        'gpu'    => gpu devices (default)
-        'cpu'    => cpu devices
-        'all'    => gpu and cpu devices
+        'gpu'       => gpu devices (default)
+        'cpu'       => cpu devices
+        'all'       => gpu and cpu devices
 
   -t    Select test mode :
-        'single' => single hash (default)
-        'multi'  => multi hash
-        'all'    => single and multi hash
+        'single'    => single hash (default)
+        'multi'     => multi hash
+        'all'       => single and multi hash
 
   -m    Select hash type :
-        'all'    => all hash type supported
-        (int)    => hash type integer code (default : 0)
+        'all'       => all hash type supported
+        (int)       => hash type integer code (default : 0)
 
   -a    Select attack mode :
-        'all'    => all attack modes
-        (int)    => attack mode integer code (default : 0)
+        'all'       => all attack modes
+        (int)       => attack mode integer code (default : 0)
+        (int)-(int) => attack mode integer range
 
   -x    Select cpu architecture :
-        '32'     => 32 bit architecture
-        '64'     => 64 bit architecture (default)
+        '32'        => 32 bit architecture
+        '64'        => 64 bit architecture (default)
 
   -o    Select operating system :
-        'win'    => Windows operating system (use .exe file extension)
-        'linux'  => Linux operating system (use .bin file extension)
-        'macos'  => macOS operating system (use .app file extension)
+        'win'       => Windows operating system (use .exe file extension)
+        'linux'     => Linux operating system (use .bin file extension)
+        'macos'     => macOS operating system (use .app file extension)
 
   -c    Disables markov-chains
 
   -p    Package the tests into a .7z file
 
   -d    Use this folder as input/output folder for packaged tests
-        (string) => path to folder
+        (string)    => path to folder
 
   -h    Show this help
 
@@ -2678,26 +2687,42 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
     exit 1
   fi
 
+  HT_MIN=0
+  HT_MAX=0
+
+  if echo -n ${HT} | grep -q '^[0-9]\+$'; then
+    HT_MIN=${HT}
+    HT_MAX=${HT}
+  elif echo -n ${HT} | grep -q '^[0-9]\+-[1-9][0-9]*$'; then
+
+    HT_MIN=$(echo -n ${HT} | sed "s/-.*//")
+    HT_MAX=$(echo -n ${HT} | sed "s/.*-//")
+
+    if [ "${HT_MIN}" -gt ${HT_MAX} ]; then
+      echo "! hash type range -m ${HT} is not valid ..."
+      usage
+    fi
+  else
+    echo "! hash type is not a number ..."
+    usage
+  fi
+
+  HT=${HT_MIN}
+
   # filter by hash_type
   if [ ${HT} -ne 65535 ]; then
 
     # validate filter
-    check=0
-    for hash_type in $(echo ${HASH_TYPES}); do
 
-      if [ ${HT} -ne ${hash_type} ]; then continue; fi
-
-      check=1
-
-      break
-
-    done
-
-    if [ ${check} -ne 1 ]; then
+    if ! is_in_array ${HT_MIN} ${HASH_TYPES}; then
       echo "! invalid hash type selected ..."
       usage
     fi
 
+    if ! is_in_array ${HT_MAX} ${HASH_TYPES}; then
+      echo "! invalid hash type selected ..."
+      usage
+    fi
   fi
 
   if [ -z "${PACKAGE_FOLDER}" ]; then
@@ -2710,13 +2735,21 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
       for TMP_HT in ${HASH_TYPES}; do
         perl tools/test.pl single ${TMP_HT} >> ${OUTD}/all.sh
       done
-    elif [[ ${HT} -ne 14600 ]]; then
-      # Exclude TrueCrypt and VeraCrypt testing modes
-      if [[ ${HT} -lt  6211 ]] || [[ ${HT} -gt 6243 ]]; then
-        if ! is_in_array ${HT} ${VC_MODES}; then
-          perl tools/test.pl single ${HT} > ${OUTD}/all.sh
+    else
+      for TMP_HT in $(seq ${HT_MIN} ${HT_MAX}); do
+        if ! is_in_array ${TMP_HT} ${HASH_TYPES}; then
+          continue
         fi
-      fi
+
+        if [[ ${TMP_HT} -ne 14600 ]]; then
+          # Exclude TrueCrypt and VeraCrypt testing modes
+          if [[ ${TMP_HT} -lt  6211 ]] || [[ ${TMP_HT} -gt 6243 ]]; then
+            if ! is_in_array ${TMP_HT} ${VC_MODES}; then
+              perl tools/test.pl single ${TMP_HT} >> ${OUTD}/all.sh
+            fi
+          fi
+        fi
+      done
     fi
 
   else
@@ -2738,7 +2771,17 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
 
   for hash_type in $(echo $HASH_TYPES); do
 
-    if [[ ${HT} -ne 65535 ]] && [[ ${HT} -ne ${hash_type} ]]; then continue; fi
+    if [ "${HT}" -ne 65535 ]; then
+
+      # check if the loop variable "hash_type" is between HT_MIN and HT_MAX (both included)
+
+      if   [ "${hash_type}" -lt ${HT_MIN} ]; then
+        continue
+      elif [ "${hash_type}" -gt ${HT_MAX} ]; then
+        # we are done because hash_type is larger than range:
+        break
+      fi
+    fi
 
     if [ -z "${PACKAGE_FOLDER}" ]; then
 
@@ -2893,11 +2936,17 @@ if [ "${PACKAGE}" -eq 1 ]; then
     SED_IN_PLACE='-i ""'
   fi
 
+  HT_PACKAGED=${HT}
+
+  if [ "${HT_MIN}" -ne "${HT_MAX}" ]; then
+    HT_PACKAGED=${HT_MIN}-${HT_MAX}
+  fi
+
   HASH_TYPES_PACKAGED=$(echo ${HASH_TYPES} | tr '\n' ' ' | sed 's/ $//')
 
   sed "${SED_IN_PLACE}" -e 's/^\(PACKAGE_FOLDER\)=""/\1="$( echo "${BASH_SOURCE[0]}" | sed \"s!test.sh\\$!!\" )"/' \
     -e "s/^\(HASH_TYPES\)=\$(.*/\1=\"${HASH_TYPES_PACKAGED}\"/" \
-    -e "s/^\(HT\)=0/\1=${HT}/" \
+    -e "s/^\(HT\)=0/\1=${HT_PACKAGED}/" \
     -e "s/^\(MODE\)=0/\1=${MODE}/" \
     -e "s/^\(ATTACK\)=0/\1=${ATTACK}/" \
     ${OUTD}/test.sh
