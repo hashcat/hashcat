@@ -595,10 +595,78 @@ __kernel void m02410_m04 (KERN_ATTR_VECTOR ())
 
 __kernel void m02410_m08 (KERN_ATTR_VECTOR ())
 {
+  /**
+   * base
+   */
+
+  const u64 gid = get_global_id (0);
+
+  if (gid >= gid_max) return;
+
+  u32 w[16];
+
+  w[ 0] = pws[gid].i[ 0];
+  w[ 1] = pws[gid].i[ 1];
+  w[ 2] = pws[gid].i[ 2];
+  w[ 3] = pws[gid].i[ 3];
+  w[ 4] = pws[gid].i[ 4];
+  w[ 5] = pws[gid].i[ 5];
+  w[ 6] = pws[gid].i[ 6];
+  w[ 7] = pws[gid].i[ 7];
+  w[ 8] = 0;
+  w[ 9] = 0;
+  w[10] = 0;
+  w[11] = 0;
+  w[12] = 0;
+  w[13] = 0;
+  w[14] = 0;
+  w[15] = 0;
+
+  const u32 pw_len = pws[gid].pw_len & 63;
+
+  /**
+   * main
+   */
+
+  m02410m (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
 __kernel void m02410_m16 (KERN_ATTR_VECTOR ())
 {
+  /**
+   * base
+   */
+
+  const u64 gid = get_global_id (0);
+
+  if (gid >= gid_max) return;
+
+  u32 w[16];
+
+  w[ 0] = pws[gid].i[ 0];
+  w[ 1] = pws[gid].i[ 1];
+  w[ 2] = pws[gid].i[ 2];
+  w[ 3] = pws[gid].i[ 3];
+  w[ 4] = pws[gid].i[ 4];
+  w[ 5] = pws[gid].i[ 5];
+  w[ 6] = pws[gid].i[ 6];
+  w[ 7] = pws[gid].i[ 7];
+  w[ 8] = pws[gid].i[ 8];
+  w[ 9] = pws[gid].i[ 9];
+  w[10] = pws[gid].i[10];
+  w[11] = pws[gid].i[11];
+  w[12] = pws[gid].i[12];
+  w[13] = pws[gid].i[13];
+  w[14] = pws[gid].i[14];
+  w[15] = 0;
+
+  const u32 pw_len = pws[gid].pw_len & 63;
+
+  /**
+   * main
+   */
+
+  m02410m (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
 __kernel void m02410_s04 (KERN_ATTR_VECTOR ())
@@ -641,8 +709,76 @@ __kernel void m02410_s04 (KERN_ATTR_VECTOR ())
 
 __kernel void m02410_s08 (KERN_ATTR_VECTOR ())
 {
+  /**
+   * base
+   */
+
+  const u64 gid = get_global_id (0);
+
+  if (gid >= gid_max) return;
+
+  u32 w[16];
+
+  w[ 0] = pws[gid].i[ 0];
+  w[ 1] = pws[gid].i[ 1];
+  w[ 2] = pws[gid].i[ 2];
+  w[ 3] = pws[gid].i[ 3];
+  w[ 4] = pws[gid].i[ 4];
+  w[ 5] = pws[gid].i[ 5];
+  w[ 6] = pws[gid].i[ 6];
+  w[ 7] = pws[gid].i[ 7];
+  w[ 8] = 0;
+  w[ 9] = 0;
+  w[10] = 0;
+  w[11] = 0;
+  w[12] = 0;
+  w[13] = 0;
+  w[14] = 0;
+  w[15] = 0;
+
+  const u32 pw_len = pws[gid].pw_len & 63;
+
+  /**
+   * main
+   */
+
+  m02410s (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }
 
 __kernel void m02410_s16 (KERN_ATTR_VECTOR ())
 {
+  /**
+   * base
+   */
+
+  const u64 gid = get_global_id (0);
+
+  if (gid >= gid_max) return;
+
+  u32 w[16];
+
+  w[ 0] = pws[gid].i[ 0];
+  w[ 1] = pws[gid].i[ 1];
+  w[ 2] = pws[gid].i[ 2];
+  w[ 3] = pws[gid].i[ 3];
+  w[ 4] = pws[gid].i[ 4];
+  w[ 5] = pws[gid].i[ 5];
+  w[ 6] = pws[gid].i[ 6];
+  w[ 7] = pws[gid].i[ 7];
+  w[ 8] = pws[gid].i[ 8];
+  w[ 9] = pws[gid].i[ 9];
+  w[10] = pws[gid].i[10];
+  w[11] = pws[gid].i[11];
+  w[12] = pws[gid].i[12];
+  w[13] = pws[gid].i[13];
+  w[14] = pws[gid].i[14];
+  w[15] = 0;
+
+  const u32 pw_len = pws[gid].pw_len & 63;
+
+  /**
+   * main
+   */
+
+  m02410s (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bitmap_mask, bitmap_shift1, bitmap_shift2, salt_pos, loop_pos, loop_cnt, il_cnt, digests_cnt, digests_offset, combs_mode, gid_max);
 }

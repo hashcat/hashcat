@@ -14,6 +14,7 @@
 
 - Fixed output of IKE PSK (mode 5300 and 5400) hashes to have separators at right position
 - Fixed the validation of the --brain-client-features command line argument (only values 1, 2 or 3 are allowed)
+- Fixed cracking of Cisco-PIX and Cisco-ASA MD5 passwords in mask-attack mode if mask > length 16
 
 ##
 ## Technical
