@@ -38,7 +38,7 @@ endif
 ## Makefile flags
 ##
 
-MAKEFLAGS               += -l -j -rR --no-print-directory
+MAKEFLAGS               += -l -j 8 -rR --no-print-directory
 
 ifneq ($(findstring clean,$(MAKECMDGOALS)),)
 MAKEFLAGS               += -j 1
