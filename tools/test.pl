@@ -11,6 +11,7 @@ use warnings;
 use Data::Types qw (is_count is_int is_whole);
 use File::Basename;
 use FindBin;
+use List::Util 'shuffle';
 
 # allows require by filename
 use lib "$FindBin::Bin/test_modules";
@@ -107,7 +108,7 @@ sub single
       }
       else
       {
-        $salt_len = $db_salt_len->[$giveup % $single_outputs];
+        $salt_len = $db_salt_len->[$giveup % scalar @{$db_salt_len}];
       }
     }
 
@@ -136,6 +137,8 @@ sub single
     $db_prev->{$word}->{$salt} = undef;
 
     $idx++;
+
+    last if ($idx >= scalar @{$db_word_len});
   }
 
   for my $word (sort { length $a <=> length $b } keys %{$db_prev})
@@ -173,7 +176,7 @@ sub passthrough
 
     while ($idx < 1)
     {
-      last if ($giveup++ == 1000);
+      last if ($giveup++ == $giveup_at);
 
       my $salt_len = 0;
 
@@ -341,6 +344,19 @@ sub init_db_word_rand
     $len_max = ($len_max >= 31) ? 31 : $len_max;
   }
 
+  my $outputs_possible = $len_max - $len_min;
+
+  my $outputs = ($single_outputs < $outputs_possible) ? $single_outputs : $outputs_possible;
+
+  my @pool;
+
+  for my $len ($len_min + 1 .. $len_max - 1)
+  {
+    push @pool, $len;
+  }
+
+  @pool = shuffle (@pool);
+
   my $db_out;
 
   my $idx = 0;
@@ -348,17 +364,9 @@ sub init_db_word_rand
   $db_out->[$idx++] = $len_min;
   $db_out->[$idx++] = $len_max;
 
-  my $giveup = 0;
-
-  while ($idx < $single_outputs)
+  for ($idx .. $outputs)
   {
-    last if ($giveup++ == $giveup_at);
-
-    my $len = random_number ($len_min, $len_max);
-
-    $db_out->[$idx] = $len;
-
-    $idx++;
+    $db_out->[$idx++] = shift @pool;
   }
 
   # make sure the password length is only increasing, which is important for test.sh in -a 1 mode to work
@@ -385,6 +393,19 @@ sub init_db_salt_rand
     $len_max = ($len_max >= 51) ? 51 : $len_max;
   }
 
+  my $outputs_possible = $len_max - $len_min;
+
+  my $outputs = ($single_outputs < $outputs_possible) ? $single_outputs : $outputs_possible;
+
+  my @pool;
+
+  for my $len ($len_min + 1 .. $len_max - 1)
+  {
+    push @pool, $len;
+  }
+
+  @pool = shuffle (@pool);
+
   my $db_out;
 
   my $idx = 0;
@@ -392,20 +413,10 @@ sub init_db_salt_rand
   $db_out->[$idx++] = $len_min;
   $db_out->[$idx++] = $len_max;
 
-  my $giveup = 0;
-
-  while ($idx < $single_outputs)
+  for ($idx .. $outputs)
   {
-    last if ($giveup++ == $giveup_at);
-
-    my $len = random_number ($len_min, $len_max);
-
-    $db_out->[$idx] = $len;
-
-    $idx++;
+    $db_out->[$idx++] = shift @pool;
   }
-
-  # make sure the password length is only increasing, which is important for test.sh in -a 1 mode to work
 
   @{$db_out} = sort { length $b <=> length $a } @{$db_out};
 
