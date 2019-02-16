@@ -11,7 +11,7 @@ use warnings;
 use Digest::MD5 qw (md5);
 use POSIX qw (strftime ceil);
 
-sub module_constraints { [[0, 255], [-1, -1], [1, 55], [-1, -1], [-1, -1]] }
+sub module_constraints { [[-1, -1], [-1, -1], [1, 55], [-1, -1], [-1, -1]] }
 
 sub pseudo_base64
 {

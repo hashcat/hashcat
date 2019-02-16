@@ -289,6 +289,8 @@ sub get_module_constraints
 
     $constraints->[0]->[0] = $constraints->[2]->[0];
     $constraints->[0]->[1] = $constraints->[2]->[1];
+
+    $IS_OPTIMIZED = 1;
   }
 
   if (($constraints->[1]->[0] == -1) && ($constraints->[1]->[1] == -1))
