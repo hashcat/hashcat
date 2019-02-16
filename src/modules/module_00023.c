@@ -133,7 +133,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     tmp[3] += MD5M_D;
   }
 
-  char tmp_salt[SALT_MAX];
+  char tmp_salt[SALT_MAX * 2];
 
   const int salt_len = generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len - strlen (skyper), (u8 *) tmp_salt);
 

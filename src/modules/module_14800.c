@@ -317,7 +317,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt_in[4] = byte_swap_32 (salt->salt_buf[4]);
   salt_in[5] = 0;
 
-  char tmp_salt[48];
+  char tmp_salt[SALT_MAX * 2];
 
   const int salt_len = generic_salt_encode (hashconfig, (const u8 *) salt_in, (const int) salt->salt_len, (u8 *) tmp_salt);
 
