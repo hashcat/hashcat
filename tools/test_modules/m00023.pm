@@ -20,7 +20,9 @@ sub module_generate_hash
   # we need to reduce the maximum password and salt buffer size by 8 since we
   # add it here statically
 
-  my $digest = md5_hex ($salt . "\nskyper\n" . $word);
+  my $final = sprintf ("%s\nskyper\n%s", $salt, $word);
+
+  my $digest = md5_hex ($final);
 
   my $hash = sprintf ("%s:%s", $digest, $salt);
 

@@ -48,6 +48,8 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
+static const char *skyper = "\nskyper\n";
+
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   u32 *digest = (u32 *) digest_buf;
@@ -96,11 +98,18 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
    * add static "salt" part
    */
 
+  if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+  {
+    // max. salt length: 55 (max for MD5) - 8 ("\nskyper\n") - 1 (0x80) = 46
+
+    if (salt->salt_len > 46) return (PARSER_SALT_LENGTH);
+  }
+
   u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
 
-  memcpy (salt_buf_ptr + salt_len, "\nskyper\n", 8);
+  memcpy (salt_buf_ptr + salt->salt_len, skyper, strlen (skyper));
 
-  salt->salt_len += 8;
+  salt->salt_len += strlen (skyper);
 
   return (PARSER_OK);
 }
@@ -126,7 +135,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   char tmp_salt[SALT_MAX];
 
-  const int salt_len = generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len - 8, (u8 *) tmp_salt);
+  const int salt_len = generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len - strlen (skyper), (u8 *) tmp_salt);
 
   tmp_salt[salt_len] = 0;
 

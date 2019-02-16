@@ -48,6 +48,8 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
+static const char *adm = ":Administration Tools:";
+
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   u32 *digest = (u32 *) digest_buf;
@@ -62,8 +64,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64A;
 
-  token.len_min[1] = 1;
-  token.len_max[1] = SALT_MAX;
+  token.len_min[1] = SALT_MIN;
+  token.len_max[1] = SALT_MAX - 23;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
@@ -159,14 +161,14 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
 
-  // max. salt length: 55 (max for MD5) - 22 (":Administration Tools:") - 1 (0x80) = 32
-  // 32 - 4 bytes (to fit w0lr for all attack modes) = 28
+  if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+  {
+    // max. salt length: 55 (max for MD5) - 22 (":Administration Tools:") - 1 (0x80) = 32
 
-  if (salt->salt_len > 28) return (PARSER_SALT_LENGTH);
+    if (salt->salt_len > 32) return (PARSER_SALT_LENGTH);
+  }
 
   u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
-
-  static const char *adm = ":Administration Tools:";
 
   memcpy (salt_buf_ptr + salt->salt_len, adm, strlen (adm));
 
@@ -178,10 +180,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
   u32 *digest = (u32 *) digest_buf;
-
-  char username[30] = { 0 };
-
-  memcpy (username, salt->salt_buf, salt->salt_len - 22);
 
   char sig[6] = { 'n', 'r', 'c', 's', 't', 'n' };
 
@@ -241,7 +239,13 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   tmp_buf[29] = sig[5];
   tmp_buf[30] = 0;
 
-  const int line_len = snprintf (line_buf, line_size, "%s:%s", tmp_buf, username);
+  char tmp_salt[SALT_MAX];
+
+  const int salt_len = generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len - strlen (adm), (u8 *) tmp_salt);
+
+  tmp_salt[salt_len] = 0;
+
+  const int line_len = snprintf (line_buf, line_size, "%s:%s", tmp_buf, tmp_salt);
 
   return line_len;
 }

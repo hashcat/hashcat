@@ -10,16 +10,19 @@ use warnings;
 
 use Digest::MD5 qw (md5);
 
-sub module_constraints { [[0, 255], [1, 11], [0, 33], [1, 11], [1, 33]] }
+sub module_constraints { [[0, 232], [0, 232], [0, 32], [0, 32], [0, 32]] }
 
 sub module_generate_hash
 {
   my $word = shift;
   my $salt = shift;
 
-  my $pass = sprintf ("%s:Administration Tools:%s", $salt, $word);
+  # we need to reduce the maximum password and salt buffer size by 23 since we
+  # add it here statically
 
-  my $hash_buf = md5 ($pass);
+  my $final = sprintf ("%s:Administration Tools:%s", $salt, $word);
+
+  my $hash_buf = md5 ($final);
 
   my $res = "";
 
