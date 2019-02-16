@@ -124,7 +124,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     tmp[3] += MD5M_D;
   }
 
-  char tmp_salt[48];
+  char tmp_salt[SALT_MAX];
 
   const int salt_len = generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len - 8, (u8 *) tmp_salt);
 
