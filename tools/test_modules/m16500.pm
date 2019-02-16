@@ -13,7 +13,7 @@ use Digest::HMAC qw (hmac);
 use MIME::Base64 qw (encode_base64url decode_base64url);
 use JSON         qw (encode_json decode_json);
 
-sub module_constraints { [[0, 64], [-1, -1], [0, 55], [-1, -1], [-1, -1]] }
+sub module_constraints { [[0, 64], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {
@@ -46,7 +46,7 @@ sub module_generate_hash
   {
     die "not supported hash\n";
   }
- 
+
   my $hash = sprintf ("%s.%s", $salt, encode_base64url ($digest, ""));
 
   return $hash;

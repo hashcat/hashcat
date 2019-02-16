@@ -8,7 +8,7 @@
 use strict;
 use warnings;
 
-sub module_constraints { [[0, 8], [2, 2], [0, 8], [2, 2], [-1, -1]] }
+sub module_constraints { [[-1, -1], [-1, -1], [0, 8], [2, 2], [-1, -1]] }
 
 sub module_generate_hash
 {

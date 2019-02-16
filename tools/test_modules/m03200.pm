@@ -11,7 +11,7 @@ use warnings;
 use Crypt::Eksblowfish::Bcrypt qw (bcrypt en_base64);
 use MIME::Base64               qw (decode_base64);
 
-sub module_constraints { [[0, 72], [16, 16], [0, 72], [16, 16], [-1, -1]] }
+sub module_constraints { [[0, 72], [16, 16], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {

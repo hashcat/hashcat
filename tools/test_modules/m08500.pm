@@ -11,7 +11,7 @@ use warnings;
 use Convert::EBCDIC qw (ascii2ebcdic);
 use Crypt::DES;
 
-sub module_constraints { [[1, 8], [1, 8], [1, 8], [1, 8], [-1, -1]] }
+sub module_constraints { [[1, 8], [1, 8], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {

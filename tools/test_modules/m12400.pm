@@ -10,7 +10,7 @@ use warnings;
 
 use Crypt::UnixCrypt_XS qw (crypt_rounds fold_password base64_to_int24 block_to_base64 int24_to_base64);
 
-sub module_constraints { [[1, 31], [4, 4], [1, 31], [4, 4], [-1, -1]] }
+sub module_constraints { [[1, 31], [4, 4], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {

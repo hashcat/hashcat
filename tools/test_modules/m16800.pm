@@ -12,7 +12,7 @@ use Crypt::PBKDF2;
 use Digest::SHA  qw (sha1);
 use Digest::HMAC qw (hmac_hex);
 
-sub module_constraints { [[8, 63], [-1, -1], [8, 63], [-1, -1], [-1, -1]] }
+sub module_constraints { [[8, 63], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {

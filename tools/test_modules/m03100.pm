@@ -10,7 +10,7 @@ use warnings;
 
 use Crypt::CBC;
 
-sub module_constraints { [[0, 30], [0, 30], [0, 30], [0, 30], [-1, -1]] }
+sub module_constraints { [[-1, -1], [-1, -1], [0, 30], [0, 30], [-1, -1]] }
 
 sub module_generate_hash
 {

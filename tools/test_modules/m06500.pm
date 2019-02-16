@@ -10,7 +10,7 @@ use warnings;
 
 use Crypt::PBKDF2;
 
-sub module_constraints { [[0, 255], [16, 16], [0, 55], [16, 16], [0, 55]] }
+sub module_constraints { [[0, 255], [16, 16], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {

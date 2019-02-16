@@ -289,32 +289,21 @@ sub get_module_constraints
 
     $constraints->[0]->[0] = $constraints->[2]->[0];
     $constraints->[0]->[1] = $constraints->[2]->[1];
+    $constraints->[1]->[0] = $constraints->[3]->[0];
+    $constraints->[1]->[1] = $constraints->[3]->[1];
 
     $IS_OPTIMIZED = 1;
   }
-
-  if (($constraints->[1]->[0] == -1) && ($constraints->[1]->[1] == -1))
-  {
-    # hash-mode doesn't have a pure kernel, use optimized salt settings
-
-    $constraints->[1]->[0] = $constraints->[3]->[0];
-    $constraints->[1]->[1] = $constraints->[3]->[1];
-  }
-
-  if (($constraints->[2]->[0] == -1) && ($constraints->[2]->[1] == -1))
+  elsif (($constraints->[2]->[0] == -1) && ($constraints->[2]->[1] == -1))
   {
     # hash-mode doesn't have a optimized kernel, use pure password settings
 
     $constraints->[2]->[0] = $constraints->[0]->[0];
     $constraints->[2]->[1] = $constraints->[0]->[1];
-  }
-
-  if (($constraints->[3]->[0] == -1) && ($constraints->[3]->[1] == -1))
-  {
-    # hash-mode doesn't have a optimized kernel, use pure salt settings
-
     $constraints->[3]->[0] = $constraints->[1]->[0];
     $constraints->[3]->[1] = $constraints->[1]->[1];
+
+    $IS_OPTIMIZED = 0;
   }
 
   return $constraints;

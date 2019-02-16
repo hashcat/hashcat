@@ -10,7 +10,7 @@ use warnings;
 
 use Crypt::DES;
 
-sub module_constraints { [[8, 8], [16, 16], [8, 8], [16, 16], [-1, -1]] }
+sub module_constraints { [[8, 8], [16, 16], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {

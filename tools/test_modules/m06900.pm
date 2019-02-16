@@ -10,7 +10,7 @@ use warnings;
 
 use Digest::GOST qw (gost_hex);
 
-sub module_constraints { [[1, 32], [-1, -1], [1, 32], [-1, -1], [-1, -1]] }
+sub module_constraints { [[-1, -1], [-1, -1], [1, 32], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {
