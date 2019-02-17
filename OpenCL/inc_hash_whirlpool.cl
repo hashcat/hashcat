@@ -1934,7 +1934,7 @@ DECLSPEC void whirlpool_final (whirlpool_ctx_t *ctx)
 
   append_0x80_4x4_S (ctx->w0, ctx->w1, ctx->w2, ctx->w3, pos ^ 3);
 
-  if (pos >= 56)
+  if (pos >= 32)
   {
     whirlpool_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h, ctx->s_Ch, ctx->s_Cl);
 
@@ -2937,7 +2937,7 @@ DECLSPEC void whirlpool_final_vector (whirlpool_ctx_vector_t *ctx)
 
   append_0x80_4x4 (ctx->w0, ctx->w1, ctx->w2, ctx->w3, pos ^ 3);
 
-  if (pos >= 56)
+  if (pos >= 32)
   {
     whirlpool_transform_vector (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h, ctx->s_Ch, ctx->s_Cl);
 
