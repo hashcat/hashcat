@@ -8,9 +8,9 @@
 use strict;
 use warnings;
 
+use Crypt::Mode::ECB;
 use Digest::SHA qw (sha1);
 use Encode;
-use Crypt::Mode::ECB;
 
 sub module_constraints { [[0, 19], [32, 32], [-1, -1], [-1, -1], [-1, -1]] }
 
