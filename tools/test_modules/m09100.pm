@@ -8,7 +8,9 @@
 use strict;
 use warnings;
 
-sub module_constraints { [[-1, -1], [-1, -1], [0, 55], [5, 5], [-1, -1]] }
+use Crypt::PBKDF2;
+
+sub module_constraints { [[0, 64], [16, 16], [-1, -1], [-1, -1], [-1, -1]] }
 
 my $LOTUS_MAGIC_TABLE =
 [
@@ -158,6 +160,86 @@ sub domino_big_md
   return @state;
 }
 
+sub domino_85x_encode
+{
+  my $final = shift;
+  my $char  = shift;
+
+  my $byte10 = (ord (substr ($final, 3, 1)) + 4);
+
+  if ($byte10 > 255)
+  {
+    $byte10 = $byte10 - 256;
+  }
+
+  substr ($final, 3, 1) = chr ($byte10);
+
+  my $passwd = "";
+
+  $passwd .= domino_base64_encode ((int (ord (substr ($final,  0, 1))) << 16) | (int (ord (substr ($final,  1, 1))) << 8) | (int (ord (substr ($final,  2, 1)))), 4);
+  $passwd .= domino_base64_encode ((int (ord (substr ($final,  3, 1))) << 16) | (int (ord (substr ($final,  4, 1))) << 8) | (int (ord (substr ($final,  5, 1)))), 4);
+  $passwd .= domino_base64_encode ((int (ord (substr ($final,  6, 1))) << 16) | (int (ord (substr ($final,  7, 1))) << 8) | (int (ord (substr ($final,  8, 1)))), 4);
+  $passwd .= domino_base64_encode ((int (ord (substr ($final,  9, 1))) << 16) | (int (ord (substr ($final, 10, 1))) << 8) | (int (ord (substr ($final, 11, 1)))), 4);
+  $passwd .= domino_base64_encode ((int (ord (substr ($final, 12, 1))) << 16) | (int (ord (substr ($final, 13, 1))) << 8) | (int (ord (substr ($final, 14, 1)))), 4);
+  $passwd .= domino_base64_encode ((int (ord (substr ($final, 15, 1))) << 16) | (int (ord (substr ($final, 16, 1))) << 8) | (int (ord (substr ($final, 17, 1)))), 4);
+  $passwd .= domino_base64_encode ((int (ord (substr ($final, 18, 1))) << 16) | (int (ord (substr ($final, 19, 1))) << 8) | (int (ord (substr ($final, 20, 1)))), 4);
+  $passwd .= domino_base64_encode ((int (ord (substr ($final, 21, 1))) << 16) | (int (ord (substr ($final, 22, 1))) << 8) | (int (ord (substr ($final, 23, 1)))), 4);
+  $passwd .= domino_base64_encode ((int (ord (substr ($final, 24, 1))) << 16) | (int (ord (substr ($final, 25, 1))) << 8) | (int (ord (substr ($final, 26, 1)))), 4);
+  $passwd .= domino_base64_encode ((int (ord (substr ($final, 27, 1))) << 16) | (int (ord (substr ($final, 28, 1))) << 8) | (int (ord (substr ($final, 29, 1)))), 4);
+  $passwd .= domino_base64_encode ((int (ord (substr ($final, 30, 1))) << 16) | (int (ord (substr ($final, 31, 1))) << 8) | (int (ord (substr ($final, 32, 1)))), 4);
+  $passwd .= domino_base64_encode ((int (ord (substr ($final, 33, 1))) << 16) | (int (ord (substr ($final, 34, 1))) << 8) | (int (ord (substr ($final, 35, 1)))), 4);
+
+  if (defined ($char))
+  {
+    substr ($passwd, 18, 1) = $char;
+  }
+
+  return $passwd;
+}
+
+sub domino_85x_decode
+{
+  my $str = shift;
+
+  my $decoded  = "";
+
+  for (my $i = 0; $i < length ($str); $i += 4)
+  {
+    my $num = domino_base64_decode (substr ($str, $i, 4), 4);
+
+    $decoded .= chr (($num >> 16) & 0xff) . chr (($num >> 8) & 0xff) . chr ($num & 0xff);
+  }
+
+  my $digest;
+  my $salt;
+  my $iterations = -1;
+  my $chars;
+
+  $salt   = substr ($decoded,  0, 16);  # longer than -m 8700 (5 vs 16 <- new)
+
+  my $byte10 = (ord (substr ($salt, 3, 1)) - 4);
+
+  if ($byte10 < 0)
+  {
+    $byte10 = 256 + $byte10;
+  }
+
+  substr ($salt, 3, 1) = chr ($byte10);
+
+  $iterations = substr ($decoded,  16, 10);
+
+  if ($iterations =~ /^?d*$/)
+  {
+    # continue
+
+    $iterations = $iterations + 0;            # hack: make sure it is an int now (atoi ())
+    $chars = substr ($decoded, 26, 2);        # in my example it is "02"
+    $digest = substr ($decoded, 28, 8);       # only of length of 8 vs 20 SHA1 bytes
+  }
+
+  return ($digest, $salt, $iterations, $chars);
+}
+
 sub domino_base64_decode
 {
   my $v = shift;
@@ -202,40 +284,6 @@ sub domino_base64_encode
   return $ret
 }
 
-sub domino_decode
-{
-  my $str = shift;
-
-  my $decoded  = "";
-
-  for (my $i = 0; $i < length ($str); $i += 4)
-  {
-    my $num = domino_base64_decode (substr ($str, $i, 4), 4);
-
-    $decoded .= chr (($num >> 16) & 0xff) . chr (($num >> 8) & 0xff) . chr ($num & 0xff);
-  }
-
-  my $salt;
-  my $digest;
-  my $char;
-
-  $salt   = substr ($decoded,  0, 5);
-
-  my $byte10 = (ord (substr ($salt, 3, 1)) - 4);
-
-  if ($byte10 < 0)
-  {
-    $byte10 = 256 + $byte10;
-  }
-
-  substr ($salt, 3, 1) = chr ($byte10);
-
-  $digest = substr ($decoded,  5, 9);
-  $char   = substr ($str,     18, 1);
-
-  return ($digest, $salt, $char);
-}
-
 sub domino_encode
 {
   my $final = shift;
@@ -269,9 +317,14 @@ sub domino_encode
 
 sub module_generate_hash
 {
-  my $word = shift;
-  my $salt = shift;
-  my $domino_char = shift;
+  my $word  = shift;
+  my $salt  = shift;
+  my $iter  = shift // 5000;
+  my $param = shift;
+
+  my $domino_char = undef;
+
+  # domino 5 hash - SEC_pwddigest_V1 - -m 8600
 
   my @saved_key = map { ord $_; } split "", $word;
 
@@ -279,15 +332,45 @@ sub module_generate_hash
 
   my @state = domino_big_md (\@saved_key, $len);
 
+  # domino 6 hash - SEC_pwddigest_V2 - -m 8700
+
+  my $salt_part = substr ($salt, 0, 5);
+
   my $str = "(" . unpack ("H*", join ("", (map { chr $_; } @state))) . ")";
 
-  @saved_key = map { ord $_; } split "", $salt . uc $str;
+  @saved_key = map { ord $_; } split "", $salt_part . uc $str;
 
   @state = domino_big_md (\@saved_key, 34);
 
   my $hash_buf = join ("", (map { chr $_; } @state));
 
-  my $hash = sprintf ('(G%s)', domino_encode ($salt . $hash_buf, $domino_char));
+  my $tmp_hash = sprintf ('(G%s)', domino_encode ($salt_part . $hash_buf, $domino_char));
+
+  # domino 8(.5.x) hash - SEC_pwddigest_V3 - -m 9100
+
+  my $pbkdf2 = Crypt::PBKDF2->new
+  (
+    hash_class => 'HMACSHA1',
+    iterations => $iter,
+    output_len =>  8,
+    salt_len   => 16,
+  );
+
+  my $chars = "02";
+
+  if (defined ($param))
+  {
+    $chars = $param;
+  }
+
+  my $digest_new = $pbkdf2->PBKDF2 ($salt, $tmp_hash);
+
+  for (my $i = length ($iter); $i < 10; $i++)
+  {
+    $iter = "0" . $iter;
+  }
+
+  my $hash = sprintf ('(H%s)', domino_85x_encode ($salt . $iter . $chars . $digest_new, $domino_char));
 
   return $hash;
 }
@@ -296,6 +379,8 @@ sub module_verify_hash
 {
   my $line = shift;
 
+  # LOTUS 8
+  # split hash and plain
   my $index = index ($line, ":");
 
   return if $index < 1;
@@ -304,16 +389,18 @@ sub module_verify_hash
 
   my $word = substr ($line, $index + 1);
 
-  my $plain_base64 = substr ($hash_in, 2, -1);
+  my $base64_part = substr ($hash_in, 2, -1);
 
-  my (undef, $salt, $param) = domino_decode ($plain_base64);
+  my (undef, $salt, $iter, $param) = domino_85x_decode ($base64_part);
+
+  return if ($iter < 1);
 
   return unless defined $salt;
   return unless defined $word;
 
   $word = pack_if_HEX_notation ($word);
 
-  my $new_hash = module_generate_hash ($word, $salt, $param);
+  my $new_hash = module_generate_hash ($word, $salt, $iter, $param);
 
   return ($new_hash, $word);
 }
