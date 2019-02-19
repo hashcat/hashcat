@@ -36,7 +36,7 @@ sub module_verify_hash
   my $line = shift;
 
   # Cram MD5
-  next unless (substr ($line, 0, 10) eq '$cram_md5$');
+  return unless (substr ($line, 0, 10) eq '$cram_md5$');
 
   # get hash
   my $index1 = index ($line, "\$", 10);

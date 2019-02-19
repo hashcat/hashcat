@@ -53,8 +53,8 @@ sub module_verify_hash
 
   my ($digest, $word) = split (':', $line);
 
-  next unless defined $digest;
-  next unless defined $word;
+  return unless defined $digest;
+  return unless defined $word;
 
   my @data = split ('\*', $digest);
 

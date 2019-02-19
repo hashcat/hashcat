@@ -53,7 +53,7 @@ sub module_verify_hash
   my $line = shift;
 
   # Cisco $9$ - scrypt
-  next unless (substr ($line, 0, 3) eq '$9$');
+  return unless (substr ($line, 0, 3) eq '$9$');
 
   # get hash
   my $index1 = index ($line, "\$", 3);

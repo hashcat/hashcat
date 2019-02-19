@@ -370,15 +370,15 @@ sub module_verify_hash
 
   my $signature = $tmp_data[1];
 
-  next unless ($signature eq 'DPAPImk');
+  return unless ($signature eq 'DPAPImk');
 
   my @data = split ('\*', $tmp_data[2]);
 
-  next unless (scalar @data == 9);
+  return unless (scalar @data == 9);
 
   my $version = shift @data;
 
-  next unless ($version == 1 || $version == 2);
+  return unless ($version == 1 || $version == 2);
 
   my $context          = shift @data;
   my $SID              = shift @data;
@@ -389,15 +389,15 @@ sub module_verify_hash
   my $cipher_len       = shift @data;
   my $cipher           = shift @data;
 
-  next unless (length ($cipher) == $cipher_len);
+  return unless (length ($cipher) == $cipher_len);
 
   if ($version == 1)
   {
-    next unless ($cipher_len == 208);
+    return unless ($cipher_len == 208);
   }
   elsif ($version == 2)
   {
-    next unless ($cipher_len == 288);
+    return unless ($cipher_len == 288);
   }
 
   my $dpapimk_salt = substr ($hash, length ('$DPAPImk$'));

@@ -37,7 +37,7 @@ sub module_verify_hash
   my $line = shift;
 
   # Django (PBKDF2-SHA256)
-  next unless (substr ($line, 0, 14) eq 'pbkdf2_sha256$');
+  return unless (substr ($line, 0, 14) eq 'pbkdf2_sha256$');
 
   # get hash
   my $index1 = index ($line, "\$", 14);

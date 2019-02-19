@@ -154,12 +154,12 @@ sub module_verify_hash
 
   my ($hash_in, $word) = split ":", $line;
 
-  next unless defined $hash_in;
-  next unless defined $word;
+  return unless defined $hash_in;
+  return unless defined $word;
 
   my @data = split /\*/, $hash_in;
 
-  next unless scalar @data == 11;
+  return unless scalar @data == 11;
 
   my $V        = shift @data; $V = substr ($V, 5, 1);
   my $R        = shift @data;

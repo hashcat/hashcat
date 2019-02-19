@@ -33,7 +33,7 @@ sub module_verify_hash
   my $line = shift;
 
   # scrypt
-  next unless (substr ($line, 0, 7) eq 'SCRYPT:');
+  return unless (substr ($line, 0, 7) eq 'SCRYPT:');
 
   # get hash
   my $index1 = index ($line, ":", 7);

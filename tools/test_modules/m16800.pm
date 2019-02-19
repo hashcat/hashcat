@@ -71,7 +71,7 @@ sub module_verify_hash
 
   my @data = split (/\*/, $hash);
 
-  next unless scalar @data == 4;
+  return unless scalar @data == 4;
 
   my (undef, $macap, $macsta, $essid) = @data;
 

@@ -92,24 +92,24 @@ sub module_verify_hash
   # Office 2013
   my ($hash_in, $word) = split ":", $line;
 
-  next unless defined $hash_in;
-  next unless defined $word;
+  return unless defined $hash_in;
+  return unless defined $word;
 
   my @data = split /\*/, $hash_in;
 
-  next unless scalar @data == 8;
+  return unless scalar @data == 8;
 
-  next unless (shift @data eq '$office$');
-  next unless (shift @data eq '2013');
+  return unless (shift @data eq '$office$');
+  return unless (shift @data eq '2013');
 
   my $iter = shift @data;
 
-  next unless (shift @data eq '256');
-  next unless (shift @data eq '16');
+  return unless (shift @data eq '256');
+  return unless (shift @data eq '16');
 
-  next unless (length $data[0] == 32);
-  next unless (length $data[1] == 32);
-  next unless (length $data[2] == 64);
+  return unless (length $data[0] == 32);
+  return unless (length $data[1] == 32);
+  return unless (length $data[2] == 64);
 
   my $salt  = shift @data;
   my $param = shift @data;

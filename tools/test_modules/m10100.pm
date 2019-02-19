@@ -38,12 +38,12 @@ sub module_verify_hash
 
   my ($hash, undef, undef, $salt, $word) = split ":", $line;
 
-  next unless (length $hash == 16);
-  next unless (length $salt == 32);
+  return unless (length $hash == 16);
+  return unless (length $salt == 32);
 
-  next unless defined $hash;
-  next unless defined $salt;
-  next unless defined $word;
+  return unless defined $hash;
+  return unless defined $salt;
+  return unless defined $word;
 
   $word = pack_if_HEX_notation ($word);
 

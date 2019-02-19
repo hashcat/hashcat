@@ -59,7 +59,7 @@ sub module_verify_hash
   # tokenize
   my @data = split ('\*', $hash);
 
-  next unless scalar @data == 12;
+  return unless scalar @data == 12;
 
   my $signature   = shift @data;
   my $cipher_type = shift @data;

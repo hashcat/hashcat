@@ -41,12 +41,12 @@ sub module_verify_hash
 {
   my $line = shift;
 
-  next unless (substr ($line, 0, 5) eq 'sha1:');
+  return unless (substr ($line, 0, 5) eq 'sha1:');
 
   # iterations
   my $index1 = index ($line, ":", 5);
 
-  next if $index1 < 1;
+  return if $index1 < 1;
 
   my $iter = substr ($line, 5, $index1 - 5);
 

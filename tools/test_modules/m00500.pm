@@ -64,7 +64,7 @@ sub module_verify_hash
 
     $index2 = index ($hash, '$', $index2 + 1);
 
-    next if $index2 < 1;
+    return if $index2 < 1;
 
     $iter = substr ($hash, $old_index + 7, $index2 - $old_index - 7);
 
@@ -74,7 +74,7 @@ sub module_verify_hash
   # get salt
   my $index3 = rindex ($hash, '$');
 
-  next if $index3 < 1;
+  return if $index3 < 1;
 
   my $salt = substr ($hash, $index2, $index3 - $index2);
 

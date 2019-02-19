@@ -57,7 +57,7 @@ sub module_verify_hash
   my $line = shift;
 
   # Cisco $8$ - PBKDF2-HMAC-SHA256
-  next unless (substr ($line, 0, 3) eq '$8$');
+  return unless (substr ($line, 0, 3) eq '$8$');
 
   # get hash
   my $index1 = index ($line, "\$", 3);

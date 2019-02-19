@@ -145,21 +145,21 @@ sub module_verify_hash
 
   my $index1 = index ($line, "::");
 
-  next if $index1 < 1;
+  return if $index1 < 1;
 
   my $index2 = index ($line, ":", $index1 + 2);
 
-  next if $index2 < 1;
+  return if $index2 < 1;
 
   $index2 = index ($line, ":", $index2 + 1);
 
-  next if $index2 < 1;
+  return if $index2 < 1;
 
   my $salt = substr ($line, 0, $index2 - 32);
 
   $index2 = index ($line, ":", $index2 + 1);
 
-  next if $index2 < 1;
+  return if $index2 < 1;
 
   $salt .= substr ($line, $index2 + 1, 16);
 

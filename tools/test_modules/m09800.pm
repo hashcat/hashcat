@@ -76,20 +76,20 @@ sub module_verify_hash
   # Office Old $3 $4
   my ($hash_in, $word) = split ":", $line;
 
-  next unless defined $hash_in;
-  next unless defined $word;
+  return unless defined $hash_in;
+  return unless defined $word;
 
   my @data = split /\*/, $hash_in;
 
-  next unless scalar @data == 4;
+  return unless scalar @data == 4;
 
   my $signature = shift @data;
 
-  next unless (($signature eq '$oldoffice$3') || ($signature eq '$oldoffice$4'));
+  return unless (($signature eq '$oldoffice$3') || ($signature eq '$oldoffice$4'));
 
-  next unless (length $data[0] == 32);
-  next unless (length $data[1] == 32);
-  next unless (length $data[2] == 40);
+  return unless (length $data[0] == 32);
+  return unless (length $data[1] == 32);
+  return unless (length $data[2] == 40);
 
   my $salt  = shift @data;
   my $param = shift @data;
