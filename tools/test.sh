@@ -9,9 +9,16 @@ OPTS="--quiet --force --potfile-disable --runtime 400 --hwmon-disable -O"
 
 TDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+# List of VeraCrypt modes which have test containers
+VC_MODES="13711 13712 13713 13721 13722 13723 13731 13732 13733 13741 13742 13743 13751 13752 13753 13761 13762 13763 13771 13772 13773"
+
 # missing hash types: 5200,6251,6261,6271,6281
 
 HASH_TYPES=$(ls ${TDIR}/test_modules/*.pm | sed 's/.*m0*\([0-9]\+\)\.pm/\1/')
+
+HASH_TYPES="${HASH_TYPES} ${VC_MODES}"
+
+HASH_TYPES="$(echo -n ${HASH_TYPES} | tr ' ' '\n' | sort -n | tr '\n' ' ')"
 
 VECTOR_WIDTHS="1 2 4 8 16"
 
@@ -31,9 +38,7 @@ SLOW_ALGOS="    400   500   501  1600  1800  2100  2500  3200  5200  5800  6211\
   14623 14631 14632 14633 14641 14642 14643 14700 14800 15100 15200 15300 15600\
   15700 15900 16000 16200 16300 16800 16900 18400 18600"
 
-# List of VeraCrypt modes which have test containers
-VC_MODES="13711 13712 13713 13721 13722 13723 13731 13732 13733 13751 13752\
-          13753 13771 13772 13773"
+
 
 OUTD="test_$(date +%s)"
 
@@ -354,7 +359,7 @@ function init()
 
       if [ "${hash_type}" -eq 10300 ]; then
         #cat ${OUTD}/${hash_type}_multi_${i}.txt | cut -d' ' -f11- | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes_multi_${i}.txt
-	cat ${OUTD}/${hash_type}_multi_${i}.txt | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes_multi_${i}.txt
+        cat ${OUTD}/${hash_type}_multi_${i}.txt | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes_multi_${i}.txt
       fi
 
       # split password, 'i' is the len
