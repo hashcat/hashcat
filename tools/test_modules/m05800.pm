@@ -9,7 +9,7 @@ use strict;
 
 use Digest::SHA  qw (sha1);
 
-sub module_constraints { [[0, 231], [1, 16], [0, 31], [1, 16], [0, 31]] }
+sub module_constraints { [[0, 255], [1, 16], [0, 15], [1, 16], [0, 31]] }
 
 sub module_generate_hash
 {
