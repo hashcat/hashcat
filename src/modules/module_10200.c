@@ -22,6 +22,7 @@ static const u64   KERN_TYPE      = 50;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_NOT_ITERATED;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_ST_BASE64
                                   | OPTS_TYPE_ST_ADD80
                                   | OPTS_TYPE_ST_ADDBITS14;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
@@ -76,8 +77,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   token.sep[1]     = '$';
-  token.len_min[1] = 0;
-  token.len_max[1] = 76;
+  token.len_min[1] = (SALT_MIN * 8) / 6;
+  token.len_max[1] = (SALT_MAX * 8) / 6;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64A;
 
@@ -96,29 +97,18 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *salt_pos = token.buf[1];
   const int salt_len = token.len[1];
 
-  u8  tmp_buf[100];
-  int tmp_len;
+  const bool parse_rc = generic_salt_decode (hashconfig, salt_pos, salt_len, (u8 *) salt->salt_buf, (int *) &salt->salt_len);
 
-  memset (tmp_buf, 0, sizeof (tmp_buf));
-
-  tmp_len = base64_decode (base64_to_int, (const u8 *) salt_pos, salt_len, tmp_buf);
-
-  if (tmp_len > 55) return (PARSER_SALT_LENGTH);
-
-  tmp_buf[tmp_len] = 0x80;
-
-  memcpy (salt->salt_buf, tmp_buf, tmp_len + 1);
-
-  salt->salt_len = tmp_len;
+  if (parse_rc == false) return (PARSER_SALT_LENGTH);
 
   // hash
 
   const u8 *hash_pos = token.buf[2];
   const int hash_len = token.len[2];
 
-  memset (tmp_buf, 0, sizeof (tmp_buf));
+  u8 tmp_buf[256] = { 0 };
 
-  tmp_len = base64_decode (base64_to_int, (const u8 *) hash_pos, hash_len, tmp_buf);
+  const int tmp_len = base64_decode (base64_to_int, (const u8 *) hash_pos, hash_len, tmp_buf);
 
   if (tmp_len < 32 + 1) return (PARSER_HASH_LENGTH);
 
@@ -151,13 +141,15 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // challenge
 
-  char challenge[100] = { 0 };
+  char chal_buf[SALT_MAX * 2];
 
-  base64_encode (int_to_base64, (const u8 *) salt->salt_buf, salt->salt_len, (u8 *) challenge);
+  const int chal_len = base64_encode (int_to_base64, (const u8 *) salt->salt_buf, salt->salt_len, (u8 *) chal_buf);
+
+  chal_buf[chal_len] = 0;
 
   // response
 
-  char tmp_buf[100];
+  char tmp_buf[SALT_MAX * 2];
 
   const int tmp_len = snprintf (tmp_buf, sizeof (tmp_buf), "%s %08x%08x%08x%08x",
     (char *) cram_md5->user,
@@ -166,11 +158,13 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     byte_swap_32 (digest[2]),
     byte_swap_32 (digest[3]));
 
-  char response[100] = { 0 };
+  tmp_buf[tmp_len] = 0;
 
-  base64_encode (int_to_base64, (const u8 *) tmp_buf, tmp_len, (u8 *) response);
+  char resp_buf[SALT_MAX * 2] = { 0 };
 
-  const int line_len = snprintf (line_buf, line_size, "%s%s$%s", SIGNATURE_CRAM_MD5, challenge, response);
+  base64_encode (int_to_base64, (const u8 *) tmp_buf, tmp_len, (u8 *) resp_buf);
+
+  const int line_len = snprintf (line_buf, line_size, "%s%s$%s", SIGNATURE_CRAM_MD5, chal_buf, resp_buf);
 
   return line_len;
 }

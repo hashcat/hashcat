@@ -12,7 +12,7 @@ use Digest::MD5  qw (md5);
 use Digest::HMAC qw (hmac_hex);
 use MIME::Base64 qw (encode_base64 decode_base64);
 
-sub module_constraints { [[0, 255], [0, 255], [0, 55], [0, 55], [-1, -1]] }
+sub module_constraints { [[0, 255], [0, 127], [0, 55], [0, 55], [-1, -1]] }
 
 sub module_generate_hash
 {
