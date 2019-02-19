@@ -244,7 +244,8 @@ function init()
   sed 's/^echo *|/echo "" |/' ${cmd_file} | awk '{print $10}' | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes.txt
 
   if [ "${hash_type}" -eq 10300 ]; then
-    cat ${OUTD}/${hash_type}.sh | cut -d' ' -f11- | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes.txt
+    #cat ${OUTD}/${hash_type}.sh | cut -d' ' -f11- | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes.txt
+    cat ${OUTD}/${hash_type}.sh | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes.txt
   fi
 
   # truncate dicts
@@ -352,7 +353,8 @@ function init()
       sed 's/^echo *|/echo "" |/' ${cmd_file} | awk '{print $10}' | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes_multi_${i}.txt
 
       if [ "${hash_type}" -eq 10300 ]; then
-        cat ${OUTD}/${hash_type}_multi_${i}.txt | cut -d' ' -f11- | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes_multi_${i}.txt
+        #cat ${OUTD}/${hash_type}_multi_${i}.txt | cut -d' ' -f11- | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes_multi_${i}.txt
+	cat ${OUTD}/${hash_type}_multi_${i}.txt | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes_multi_${i}.txt
       fi
 
       # split password, 'i' is the len
