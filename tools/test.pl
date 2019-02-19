@@ -330,9 +330,14 @@ sub init_db_word_rand
       }
     }
 
-    # longer than 31 does not work for -a 0 in optimized mode
+    # for non-fixed password length algorithms
 
-    $len_max = ($len_max >= 31) ? 31 : $len_max;
+    if ($len_min != $len_max)
+    {
+      # longer than 31 does not work for -a 0 in optimized mode
+
+      $len_max = ($len_max >= 31) ? 31 : $len_max;
+    }
   }
 
   my $outputs_possible = $len_max - $len_min;
@@ -341,7 +346,7 @@ sub init_db_word_rand
 
   my @pool;
 
-  for my $len ($len_min + 1 .. $len_max - 1)
+  for (my $len = $len_min + 1; $len < $len_max - 1; $len++)
   {
     push @pool, $len;
   }
