@@ -16,9 +16,9 @@ VC_MODES="13711 13712 13713 13721 13722 13723 13731 13732 13733 13741 13742 1374
 
 HASH_TYPES=$(ls ${TDIR}/test_modules/*.pm | sed 's/.*m0*\([0-9]\+\)\.pm/\1/')
 
-HASH_TYPES="${HASH_TYPES} ${VC_MODES} 14600"
+#HASH_TYPES="${HASH_TYPES} ${VC_MODES} 14600"
 
-HASH_TYPES="$(echo -n ${HASH_TYPES} | tr ' ' '\n' | sort -n | tr '\n' ' ')"
+#HASH_TYPES="$(echo -n ${HASH_TYPES} | tr ' ' '\n' | sort -n | tr '\n' ' ')"
 
 VECTOR_WIDTHS="1 2 4 8 16"
 

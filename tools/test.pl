@@ -346,7 +346,7 @@ sub init_db_word_rand
 
   my @pool;
 
-  for (my $len = $len_min + 1; $len < $len_max - 1; $len++)
+  for (my $len = $len_min; $len <= $len_max; $len++)
   {
     push @pool, $len;
   }
@@ -356,9 +356,6 @@ sub init_db_word_rand
   my $db_out;
 
   my $idx = 0;
-
-  $db_out->[$idx++] = $len_min;
-  $db_out->[$idx++] = $len_max;
 
   for ($idx .. $outputs)
   {
@@ -395,7 +392,7 @@ sub init_db_salt_rand
 
   my @pool;
 
-  for my $len ($len_min + 1 .. $len_max - 1)
+  for (my $len = $len_min; $len <= $len_max; $len++)
   {
     push @pool, $len;
   }
@@ -405,9 +402,6 @@ sub init_db_salt_rand
   my $db_out;
 
   my $idx = 0;
-
-  $db_out->[$idx++] = $len_min;
-  $db_out->[$idx++] = $len_max;
 
   for ($idx .. $outputs)
   {
