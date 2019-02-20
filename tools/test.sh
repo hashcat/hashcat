@@ -9,16 +9,22 @@ OPTS="--quiet --force --potfile-disable --runtime 400 --hwmon-disable -O"
 
 TDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+# List of TrueCrypt modes which have test containers
+TC_MODES="6211 6212 6213 6221 6222 6223 6231 6232 6233 6241 6242 6243"
+
 # List of VeraCrypt modes which have test containers
 VC_MODES="13711 13712 13713 13721 13722 13723 13731 13732 13733 13741 13742 13743 13751 13752 13753 13761 13762 13763 13771 13772 13773"
 
-# missing hash types: 5200,6251,6261,6271,6281
+# LUKS mode has test containers
+LUKS_MODE="14600"
+
+# missing hash types: 5200
 
 HASH_TYPES=$(ls ${TDIR}/test_modules/*.pm | sed 's/.*m0*\([0-9]\+\)\.pm/\1/')
 
-#HASH_TYPES="${HASH_TYPES} ${VC_MODES} 14600"
+HASH_TYPES="${HASH_TYPES} ${TC_MODES} ${VC_MODES} ${LUKS_MODE}"
 
-#HASH_TYPES="$(echo -n ${HASH_TYPES} | tr ' ' '\n' | sort -n | tr '\n' ' ')"
+HASH_TYPES="$(echo -n ${HASH_TYPES} | tr ' ' '\n' | sort -u -n | tr '\n' ' ')"
 
 VECTOR_WIDTHS="1 2 4 8 16"
 
@@ -29,16 +35,14 @@ HASHFILE_ONLY="2500"
 NEVER_CRACK="11600 14900 18100"
 
 SLOW_ALGOS="    400   500   501  1600  1800  2100  2500  3200  5200  5800  6211\
-   6212  6213  6221  6222  6223  6231  6232  6233  6241  6242  6243  6251  6261\
-   6271  6281  6300  6400  6500  6600  6700  6800  7100  7200  7400  7900  8200\
-   8800  8900  9000  9100  9200  9300  9400  9500  9600 10000 10300 10500 10700\
-  10900 11300 11600 11900 12000 12001 12100 12200 12300 12400 12500 12700 12800\
-  12900 13000 13200 13400 13600 13711 13712 13713 13721 13722 13723 13731 13732\
-  13733 13751 13752 13753 13771 13772 13773 14600 14611 14612 14613 14621 14622\
-  14623 14631 14632 14633 14641 14642 14643 14700 14800 15100 15200 15300 15600\
-  15700 15900 16000 16200 16300 16800 16900 18400 18600"
-
-
+   6212  6213  6221  6222  6223  6231  6232  6233  6241  6242  6243  6300  6400\
+   6500  6600  6700  6800  7100  7200  7400  7900  8200  8800  8900  9000  9100\
+   9200  9300  9400  9500  9600 10000 10300 10500 10700 10900 11300 11600 11900\
+  12000 12001 12100 12200 12300 12400 12500 12700 12800 12900 13000 13200 13400\
+  13600 13711 13712 13713 13721 13722 13723 13731 13732 13733 13751 13752 13753\
+  13771 13772 13773 14600 14611 14612 14613 14621 14622 14623 14631 14632 14633\
+  14641 14642 14643 14700 14800 15100 15200 15300 15600 15700 15900 16000 16200\
+  16300 16800 16900 18400 18600"
 
 OUTD="test_$(date +%s)"
 
@@ -173,14 +177,14 @@ function init()
   rm -rf ${OUTD}/${hash_type}.sh ${OUTD}/${hash_type}_passwords.txt ${OUTD}/${hash_type}_hashes.txt
 
   # Exclude TrueCrypt and VeraCrypt testing modes
-  if [[ ${hash_type} -ge 6211 ]] && [[ ${hash_type} -le 6243 ]]; then
+  if is_in_array ${hash_type} ${TC_MODES}; then
     return 0
   fi
   if is_in_array ${hash_type} ${VC_MODES}; then
     return 0
   fi
 
-  if [[ ${hash_type} -eq 14600 ]]; then
+  if [[ ${hash_type} -eq ${LUKS_MODE} ]]; then
 
     luks_tests_folder="${TDIR}/luks_tests/"
 
@@ -2321,9 +2325,9 @@ function veracrypt_test()
   # The hash-cipher combination might be invalid (e.g. RIPEMD-160 + Kuznyechik)
   [ -f "${filename}" ] || return
 
-  CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} ${filename} hashca?l"
+  CMD="echo hashca{a..z} | ./${BIN} ${OPTS} -a 0 -m ${hash_type} ${filename}"
 
-  echo "> Testing hash type ${hash_type} with attack mode 3, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}, cipher ${cipher_cascade}" &>> ${OUTD}/logfull.txt
+  echo "> Testing hash type ${hash_type} with attack mode 0, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}, cipher ${cipher_cascade}" &>> ${OUTD}/logfull.txt
 
   output=$(${CMD} 2>&1)
 
@@ -2340,7 +2344,7 @@ function veracrypt_test()
     msg="Error"
   fi
 
-  echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 3, Mode single, Device-Type ${TYPE}, Vector-Width ${VECTOR}, Cipher ${cipher_cascade} ] > $msg : ${e_nf}/${cnt} not found"
+  echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 0, Mode single, Device-Type ${TYPE}, Vector-Width ${VECTOR}, Cipher ${cipher_cascade} ] > $msg : ${e_nf}/${cnt} not found"
 
   status ${ret}
 }
@@ -2740,7 +2744,13 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
     # generate random test entry
     if [ ${HT} -eq 65535 ]; then
       for TMP_HT in ${HASH_TYPES}; do
-        perl tools/test.pl single ${TMP_HT} >> ${OUTD}/all.sh
+        if [[ ${TMP_HT} -ne ${LUKS_MODE} ]]; then
+          if ! is_in_array ${TMP_HT} ${TC_MODES}; then
+            if ! is_in_array ${TMP_HT} ${VC_MODES}; then
+              perl tools/test.pl single ${TMP_HT} >> ${OUTD}/all.sh
+            fi
+          fi
+        fi
       done
     else
       for TMP_HT in $(seq ${HT_MIN} ${HT_MAX}); do
@@ -2748,9 +2758,9 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
           continue
         fi
 
-        if [[ ${TMP_HT} -ne 14600 ]]; then
+        if [[ ${TMP_HT} -ne ${LUKS_MODE} ]]; then
           # Exclude TrueCrypt and VeraCrypt testing modes
-          if [[ ${TMP_HT} -lt  6211 ]] || [[ ${TMP_HT} -gt 6243 ]]; then
+          if ! is_in_array ${TMP_HT} ${TC_MODES}; then
             if ! is_in_array ${TMP_HT} ${VC_MODES}; then
               perl tools/test.pl single ${TMP_HT} >> ${OUTD}/all.sh
             fi
@@ -2841,12 +2851,12 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
               veracrypt_test 5 # kuznyechik
               veracrypt_test 6 # kuznyechik (alternative cascade)
 
-            elif [[ ${hash_type} -ge 6211 ]] && [[ ${hash_type} -le 6243 ]]; then
+            elif is_in_array ${hash_type} ${TC_MODES}; then
               # run truecrypt tests
               truecrypt_test ${hash_type} 0
               truecrypt_test ${hash_type} 1
               truecrypt_test ${hash_type} 2
-            elif [[ ${hash_type} -eq 14600 ]]; then
+            elif [[ ${hash_type} -eq ${LUKS_MODE} ]]; then
               # run luks tests
               luks_test ${hash_type} ${ATTACK}
             else
@@ -2899,6 +2909,41 @@ if [ "${PACKAGE}" -eq 1 ]; then
   echo "[ ${OUTD} ] > Generate package ${OUTD}/${OUTD}.7z"
 
   cp "${BASH_SOURCE[0]}" ${OUTD}/test.sh
+
+  copy_luks_dir=0
+  copy_tc_dir=0
+  copy_vc_dir=0
+
+  if [ ${HT} -eq 65535 ]; then
+    copy_luks_dir=1
+    copy_tc_dir=1
+    copy_vc_dir=1
+  else
+    for TMP_HT in $(seq ${HT_MIN} ${HT_MAX}); do
+      if [[ ${TMP_HT} -eq ${LUKS_MODE} ]]; then
+        copy_luks_dir=1
+      elif is_in_array ${TMP_HT} ${TC_MODES}; then
+        copy_tc_dir=1
+      elif is_in_array ${TMP_HT} ${VC_MODES}; then
+        copy_vc_dir=1
+      fi
+    done
+  fi
+
+  if [ "${copy_luks_dir}" -eq 1 ]; then
+    mkdir ${OUTD}/luks_tests/
+    cp ${TDIR}/luks_tests/* ${OUTD}/luks_tests/
+  fi
+
+  if [ "${copy_tc_dir}" -eq 1 ]; then
+    mkdir ${OUTD}/tc_tests/
+    cp ${TDIR}/tc_tests/* ${OUTD}/tc_tests/
+  fi
+
+  if [ "${copy_vc_dir}" -eq 1 ]; then
+    mkdir ${OUTD}/vc_tests/
+    cp ${TDIR}/vc_tests/* ${OUTD}/vc_tests/
+  fi
 
   # if we package from a given folder, we need to check if e.g. the files needed for multi mode are there
 
