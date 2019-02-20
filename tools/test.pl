@@ -340,18 +340,19 @@ sub init_db_word_rand
     }
   }
 
-  my $outputs_possible = $len_max - $len_min;
-
-  my $outputs = ($single_outputs < $outputs_possible) ? $single_outputs : $outputs_possible;
-
   my @pool;
 
-  for (my $len = $len_min + 1; $len <= $len_max - 1; $len++)
+  for (my $len = $len_min; $len <= $len_max; $len++)
   {
     push @pool, $len;
   }
 
-  @pool = shuffle (@pool);
+  while (scalar @pool < $single_outputs)
+  {
+    @pool = shuffle (@pool);
+
+    push @pool, $pool[0];
+  }
 
   my $db_out;
 
@@ -360,7 +361,7 @@ sub init_db_word_rand
   $db_out->[$idx++] = $len_min;
   $db_out->[$idx++] = $len_max;
 
-  for ($idx .. $outputs)
+  for ($idx .. $single_outputs)
   {
     $db_out->[$idx++] = shift @pool;
   }
@@ -389,18 +390,19 @@ sub init_db_salt_rand
     $len_max = ($len_max >= 51) ? 51 : $len_max;
   }
 
-  my $outputs_possible = $len_max - $len_min;
-
-  my $outputs = ($single_outputs < $outputs_possible) ? $single_outputs : $outputs_possible;
-
   my @pool;
 
-  for (my $len = $len_min + 1; $len <= $len_max - 1; $len++)
+  for (my $len = $len_min; $len <= $len_max; $len++)
   {
     push @pool, $len;
   }
 
-  @pool = shuffle (@pool);
+  while (scalar @pool < $single_outputs)
+  {
+    @pool = shuffle (@pool);
+
+    push @pool, $pool[0];
+  }
 
   my $db_out;
 
@@ -409,7 +411,7 @@ sub init_db_salt_rand
   $db_out->[$idx++] = $len_min;
   $db_out->[$idx++] = $len_max;
 
-  for ($idx .. $outputs)
+  for ($idx .. $single_outputs)
   {
     $db_out->[$idx++] = shift @pool;
   }
