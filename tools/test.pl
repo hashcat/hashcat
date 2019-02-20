@@ -338,6 +338,8 @@ sub init_db_word_rand
 
       $len_max = ($len_max >= 31) ? 31 : $len_max;
     }
+
+    $len_min = ($len_min < $len_max) ? $len_min : $len_max;
   }
 
   my @pool;
@@ -388,6 +390,8 @@ sub init_db_salt_rand
     # salt_max = SALT_MAX_OLD;
 
     $len_max = ($len_max >= 51) ? 51 : $len_max;
+
+    $len_min = ($len_min < $len_max) ? $len_min : $len_max;
   }
 
   my @pool;
