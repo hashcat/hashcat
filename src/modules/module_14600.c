@@ -235,10 +235,7 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
     const int parser_status = module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, hashes->hashfile, strlen (hashes->hashfile));
 
-    if (parser_status != PARSER_OK)
-    {
-      if (parser_status != PARSER_LUKS_KEY_DISABLED) continue;
-    }
+    if (parser_status != PARSER_OK) continue;
 
     hashes_cnt++;
   }
@@ -499,7 +496,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u32 active  = byte_swap_32 (hdr.keyblock[keyslot_idx].active);
   const u32 stripes = byte_swap_32 (hdr.keyblock[keyslot_idx].stripes);
 
-  if (active  != LUKS_KEY_ENABLED)
+  if (active != LUKS_KEY_ENABLED)
   {
     fclose (fp);
 
