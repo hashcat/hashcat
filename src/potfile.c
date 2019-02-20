@@ -535,17 +535,17 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
     if (line_len == 0) continue;
 
-    char *last_separator = strrchr (line_buf, hashconfig->separator);
+    char *first_separator = strchr (line_buf, hashconfig->separator);
 
-    if (last_separator == NULL) continue; // ??
+    if (first_separator == NULL) continue; // ??
 
-    char *line_pw_buf = last_separator + 1;
+    char *line_pw_buf = first_separator + 1;
 
     size_t line_pw_len = line_buf + line_len - line_pw_buf;
 
     char *line_hash_buf = line_buf;
 
-    size_t line_hash_len = last_separator - line_buf;
+    size_t line_hash_len = first_separator - line_buf;
 
     line_hash_buf[line_hash_len] = 0;
 
