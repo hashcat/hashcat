@@ -25,7 +25,8 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_ST_HEX
-                                  | OPTS_TYPE_ST_ADD80;
+                                  | OPTS_TYPE_ST_ADD80
+                                  | OPTS_TYPE_HASH_COPY;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$bitcoin$96$c265931309b4a59307921cf054b4ec6b6e4554369be79802e94e16477645777d948ae1d375191831efc78e5acd1f0443$16$8017214013543185$200460$96$480008005625057442352316337722323437108374245623701184230273883222762730232857701607167815448714$66$014754433300175043011633205413774877455616682000536368706315333388";
@@ -48,12 +49,7 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 typedef struct bitcoin_wallet
 {
   u32 cry_master_buf[64];
-  u32 ckey_buf[64];
-  u32 public_key_buf[64];
-
   u32 cry_master_len;
-  u32 ckey_len;
-  u32 public_key_len;
 
 } bitcoin_wallet_t;
 
@@ -137,26 +133,26 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[6]     = '$';
-  token.len_min[6] = 2;
-  token.len_max[6] = 2;
+  token.len_min[6] = 0;
+  token.len_max[6] = 6;
   token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[7]     = '$';
-  token.len_min[7] = 96;
-  token.len_max[7] = 96;
+  token.len_min[7] = 0;
+  token.len_max[7] = 999999;
   token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[8]     = '$';
-  token.len_min[8] = 1;
-  token.len_max[8] = 3;
+  token.len_min[8] = 0;
+  token.len_max[8] = 6;
   token.attr[8]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[9]     = '$';
-  token.len_min[9] = 2;
-  token.len_max[9] = 512;
+  token.len_min[9] = 0;
+  token.len_max[9] = 999999;
   token.attr[9]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
@@ -200,19 +196,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     bitcoin_wallet->cry_master_buf[i] = hex_to_u32 ((const u8 *) &cry_master_buf_pos[j]);
   }
 
-  for (int i = 0, j = 0; j < ckey_len; i += 1, j += 8)
-  {
-    bitcoin_wallet->ckey_buf[i] = hex_to_u32 ((const u8 *) &ckey_buf_pos[j]);
-  }
-
-  for (int i = 0, j = 0; j < public_key_len; i += 1, j += 8)
-  {
-    bitcoin_wallet->public_key_buf[i] = hex_to_u32 ((const u8 *) &public_key_buf_pos[j]);
-  }
-
   bitcoin_wallet->cry_master_len = cry_master_len / 2;
-  bitcoin_wallet->ckey_len       = ckey_len / 2;
-  bitcoin_wallet->public_key_len = public_key_len / 2;
 
   // hash
 
@@ -238,61 +222,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  bitcoin_wallet_t *bitcoin_wallet = (bitcoin_wallet_t *) esalt_buf;
-
-  const u32 cry_master_len = bitcoin_wallet->cry_master_len;
-  const u32 ckey_len       = bitcoin_wallet->ckey_len;
-  const u32 public_key_len = bitcoin_wallet->public_key_len;
-
-  char *cry_master_buf = (char *) hcmalloc ((cry_master_len * 2) + 1);
-  char *ckey_buf       = (char *) hcmalloc ((ckey_len * 2)       + 1);
-  char *public_key_buf = (char *) hcmalloc ((public_key_len * 2) + 1);
-
-  for (u32 i = 0, j = 0; i < cry_master_len; i += 1, j += 2)
-  {
-    const u8 *ptr = (const u8 *) bitcoin_wallet->cry_master_buf;
-
-    sprintf (cry_master_buf + j, "%02x", ptr[i]);
-  }
-
-  for (u32 i = 0, j = 0; i < ckey_len; i += 1, j += 2)
-  {
-    const u8 *ptr = (const u8 *) bitcoin_wallet->ckey_buf;
-
-    sprintf (ckey_buf + j, "%02x", ptr[i]);
-  }
-
-  for (u32 i = 0, j = 0; i < public_key_len; i += 1, j += 2)
-  {
-    const u8 *ptr = (const u8 *) bitcoin_wallet->public_key_buf;
-
-    sprintf (public_key_buf + j, "%02x", ptr[i]);
-  }
-
-  char tmp_salt[SALT_MAX * 2];
-
-  const int salt_len = generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len, (u8 *) tmp_salt);
-
-  tmp_salt[salt_len] = 0;
-
-  const int line_len = snprintf (line_buf, line_size, "%s%u$%s$%u$%s$%u$%u$%s$%u$%s",
-    SIGNATURE_BITCOIN_WALLET,
-    cry_master_len * 2,
-    cry_master_buf,
-    salt_len,
-    tmp_salt,
-    salt->salt_iter + 1,
-    ckey_len * 2,
-    ckey_buf,
-    public_key_len * 2,
-    public_key_buf
-  );
-
-  hcfree (cry_master_buf);
-  hcfree (ckey_buf);
-  hcfree (public_key_buf);
-
-  return line_len;
+  return snprintf (line_buf, line_size, "%s", hash_info->orighash);
 }
 
 void module_init (module_ctx_t *module_ctx)

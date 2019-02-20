@@ -18,6 +18,12 @@
 - Fixed the 7-Zip parser to allow the entire supported range of encrypted and decrypted data lengths
 
 ##
+## Improvements
+##
+
+- Bitcoin Wallet: Be more user friendly by allowing a larger data range for ckey and public_key
+
+##
 ## Technical
 ##
 

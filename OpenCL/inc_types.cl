@@ -1228,12 +1228,7 @@ typedef struct wpa_pmkid
 typedef struct bitcoin_wallet
 {
   u32 cry_master_buf[64];
-  u32 ckey_buf[64];
-  u32 public_key_buf[64];
-
   u32 cry_master_len;
-  u32 ckey_len;
-  u32 public_key_len;
 
 } bitcoin_wallet_t;
 
