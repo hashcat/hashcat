@@ -346,6 +346,8 @@ sub init_db_word_rand
 
   for (my $len = $len_min; $len <= $len_max; $len++)
   {
+    next if ($len == 0);
+
     push @pool, $len;
   }
 
@@ -356,16 +358,16 @@ sub init_db_word_rand
     push @pool, $pool[0];
   }
 
+  @pool = shuffle (@pool);
+
   my $db_out;
 
-  my $idx = 0;
+  $db_out->[0] = $len_min;
+  $db_out->[1] = $len_max;
 
-  $db_out->[$idx++] = $len_min;
-  $db_out->[$idx++] = $len_max;
-
-  for ($idx .. $single_outputs)
+  for (my $idx = 2; $idx < $single_outputs; $idx++)
   {
-    $db_out->[$idx++] = shift @pool;
+    $db_out->[$idx] = shift @pool;
   }
 
   # make sure the password length is only increasing, which is important for test.sh in -a 1 mode to work
@@ -398,6 +400,8 @@ sub init_db_salt_rand
 
   for (my $len = $len_min; $len <= $len_max; $len++)
   {
+    next if ($len == 0);
+
     push @pool, $len;
   }
 
@@ -408,16 +412,16 @@ sub init_db_salt_rand
     push @pool, $pool[0];
   }
 
+  @pool = shuffle (@pool);
+
   my $db_out;
 
-  my $idx = 0;
+  $db_out->[0] = $len_min;
+  $db_out->[1] = $len_max;
 
-  $db_out->[$idx++] = $len_min;
-  $db_out->[$idx++] = $len_max;
-
-  for ($idx .. $single_outputs)
+  for (my $idx = 2; $idx < $single_outputs; $idx++)
   {
-    $db_out->[$idx++] = shift @pool;
+    $db_out->[$idx] = shift @pool;
   }
 
   @{$db_out} = sort { length $b <=> length $a } @{$db_out};
