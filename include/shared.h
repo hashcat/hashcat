@@ -75,7 +75,7 @@ u32 power_of_two_floor_32 (const u32 v);
 u32 round_up_multiple_32 (const u32 v, const u32 m);
 u64 round_up_multiple_64 (const u64 v, const u64 m);
 
-void hc_strncat (u8 *dst, u8 *src, const size_t n);
+void hc_strncat (u8 *dst, const u8 *src, const size_t n);
 
 int count_char (const u8 *buf, const int len, const u8 c);
 float get_entropy (const u8 *buf, const int len);
@@ -84,5 +84,14 @@ int select_read_timeout  (int sockfd, const int sec);
 int select_write_timeout (int sockfd, const int sec);
 
 int select_read_timeout_console (const int sec);
+
+const char *strparser (const u32 parser_status);
+const char *strhashcategory (const u32 hash_category);
+const char *stroptitype (const u32 opti_type);
+
+bool generic_salt_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 *in_buf, const int in_len, u8 *out_buf, int *out_len);
+int  generic_salt_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 *in_buf, const int in_len, u8 *out_buf);
+
+int input_tokenizer (const u8 *input_buf, const int input_len, token_t *token);
 
 #endif // _SHARED_H

@@ -31,9 +31,9 @@ u8  hex_to_u8  (const u8 hex[2]);
 u32 hex_to_u32 (const u8 hex[8]);
 u64 hex_to_u64 (const u8 hex[16]);
 
-void u8_to_hex_lower  (const u8  v, u8 hex[2]);
-void u32_to_hex_lower (const u32 v, u8 hex[8]);
-void u64_to_hex_lower (const u64 v, u8 hex[16]);
+void u8_to_hex  (const u8  v, u8 hex[2]);
+void u32_to_hex (const u32 v, u8 hex[8]);
+void u64_to_hex (const u64 v, u8 hex[16]);
 
 u8 int_to_base32    (const u8 c);
 u8 base32_to_int    (const u8 c);

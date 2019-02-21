@@ -535,7 +535,8 @@ void compress_terminal_line_length (char *out_buf, const size_t keep_from_beginn
 
 void example_hashes (hashcat_ctx_t *hashcat_ctx)
 {
-  user_options_t *user_options = hashcat_ctx->user_options;
+  folder_config_t *folder_config = hashcat_ctx->folder_config;
+  user_options_t  *user_options  = hashcat_ctx->user_options;
 
   if (user_options->hash_mode_chgd == true)
   {
@@ -546,7 +547,7 @@ void example_hashes (hashcat_ctx_t *hashcat_ctx)
       hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
       event_log_info (hashcat_ctx, "MODE: %u", hashconfig->hash_mode);
-      event_log_info (hashcat_ctx, "TYPE: %s", strhashtype (hashconfig->hash_mode));
+      event_log_info (hashcat_ctx, "TYPE: %s", hashconfig->hash_name);
 
       if ((hashconfig->st_hash != NULL) && (hashconfig->st_pass != NULL))
       {
@@ -591,9 +592,15 @@ void example_hashes (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    for (int i = 0; i < 100000; i++)
+    char *modulefile = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+    for (int i = 0; i < MODULE_HASH_MODES_MAXIMUM; i++)
     {
       user_options->hash_mode = i;
+
+      module_filename (folder_config, i, modulefile, HCBUFSIZ_TINY);
+
+      if (hc_path_exist (modulefile) == false) continue;
 
       const int rc = hashconfig_init (hashcat_ctx);
 
@@ -602,7 +609,7 @@ void example_hashes (hashcat_ctx_t *hashcat_ctx)
         hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
         event_log_info (hashcat_ctx, "MODE: %u", hashconfig->hash_mode);
-        event_log_info (hashcat_ctx, "TYPE: %s", strhashtype (hashconfig->hash_mode));
+        event_log_info (hashcat_ctx, "TYPE: %s", hashconfig->hash_name);
 
         if ((hashconfig->st_hash != NULL) && (hashconfig->st_pass != NULL))
         {
@@ -645,6 +652,8 @@ void example_hashes (hashcat_ctx_t *hashcat_ctx)
 
       hashconfig_destroy (hashcat_ctx);
     }
+
+    hcfree (modulefile);
   }
 }
 
@@ -924,8 +933,8 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     hashcat_status->status_string);
 
   event_log_info (hashcat_ctx,
-    "Hash.Type........: %s",
-    hashcat_status->hash_type);
+    "Hash.Name........: %s",
+    hashcat_status->hash_name);
 
   event_log_info (hashcat_ctx,
     "Hash.Target......: %s",

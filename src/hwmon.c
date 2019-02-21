@@ -456,7 +456,7 @@ static int nvml_init (hashcat_ctx_t *hashcat_ctx)
 
   #elif defined (__CYGWIN__)
 
-  nvml->lib = hc_dlopen("nvml.dll", RTLD_NOW);
+  nvml->lib = hc_dlopen("nvml.dll");
 
   if (!nvml->lib)
   {
@@ -496,16 +496,16 @@ static int nvml_init (hashcat_ctx_t *hashcat_ctx)
 
     strcat (nvml_cygpath, "/nvml.dll");
 
-    nvml->lib = hc_dlopen (nvml_cygpath, RTLD_NOW);
+    nvml->lib = hc_dlopen (nvml_cygpath);
   }
 
   #elif defined (_POSIX)
 
-  nvml->lib = hc_dlopen ("libnvidia-ml.so", RTLD_NOW);
+  nvml->lib = hc_dlopen ("libnvidia-ml.so");
 
   if (!nvml->lib)
   {
-    nvml->lib = hc_dlopen ("libnvidia-ml.so.1", RTLD_NOW);
+    nvml->lib = hc_dlopen ("libnvidia-ml.so.1");
   }
 
   #endif
@@ -801,13 +801,13 @@ static int nvapi_init (hashcat_ctx_t *hashcat_ctx)
   #if defined (__CYGWIN__)
 
   #if defined (__x86_x64__)
-  nvapi->lib = hc_dlopen ("nvapi64.dll", RTLD_NOW);
+  nvapi->lib = hc_dlopen ("nvapi64.dll");
   #else
-  nvapi->lib = hc_dlopen ("nvapi.dll", RTLD_NOW);
+  nvapi->lib = hc_dlopen ("nvapi.dll");
   #endif
 
   #else
-  nvapi->lib = hc_dlopen ("nvapi.so", RTLD_NOW); // uhm yes, but .. yeah
+  nvapi->lib = hc_dlopen ("nvapi.so"); // uhm yes, but .. yeah
   #endif
 
   #endif
@@ -1027,14 +1027,14 @@ static int adl_init (hashcat_ctx_t *hashcat_ctx)
     adl->lib = hc_dlopen ("atiadlxy.dll");
   }
   #elif defined (__CYGWIN__)
-  adl->lib = hc_dlopen ("atiadlxx.dll", RTLD_NOW);
+  adl->lib = hc_dlopen ("atiadlxx.dll");
 
   if (!adl->lib)
   {
-    adl->lib = hc_dlopen ("atiadlxy.dll", RTLD_NOW);
+    adl->lib = hc_dlopen ("atiadlxy.dll");
   }
   #elif defined (_POSIX)
-  adl->lib = hc_dlopen ("libatiadlxx.so", RTLD_NOW);
+  adl->lib = hc_dlopen ("libatiadlxx.so");
   #endif
 
   if (!adl->lib)

@@ -209,7 +209,7 @@ void exec_hexify (const u8 *buf, const size_t len, u8 *out)
 
   for (int i = (int) max_len - 1, j = i * 2; i >= 0; i -= 1, j -= 2)
   {
-    u8_to_hex_lower (buf[i], out + j);
+    u8_to_hex (buf[i], out + j);
   }
 
   out[max_len * 2] = 0;
@@ -385,7 +385,7 @@ u64 hex_to_u64 (const u8 hex[16])
   return (v);
 }
 
-void u8_to_hex_lower (const u8 v, u8 hex[2])
+void u8_to_hex (const u8 v, u8 hex[2])
 {
   const u8 tbl[0x10] =
   {
@@ -397,7 +397,7 @@ void u8_to_hex_lower (const u8 v, u8 hex[2])
   hex[0] = tbl[v >>  4 & 15];
 }
 
-void u32_to_hex_lower (const u32 v, u8 hex[8])
+void u32_to_hex (const u32 v, u8 hex[8])
 {
   const u8 tbl[0x10] =
   {
@@ -415,7 +415,7 @@ void u32_to_hex_lower (const u32 v, u8 hex[8])
   hex[6] = tbl[v >> 28 & 15];
 }
 
-void u64_to_hex_lower (const u64 v, u8 hex[16])
+void u64_to_hex (const u64 v, u8 hex[16])
 {
   const u8 tbl[0x10] =
   {
@@ -661,14 +661,23 @@ size_t base32_decode (u8 (*f) (const u8), const u8 *in_buf, const size_t in_len,
 
   for (size_t i = 0; i < in_len; i += 8)
   {
-    const u8 out_val0 = f (in_ptr[0] & 0x7f);
-    const u8 out_val1 = f (in_ptr[1] & 0x7f);
-    const u8 out_val2 = f (in_ptr[2] & 0x7f);
-    const u8 out_val3 = f (in_ptr[3] & 0x7f);
-    const u8 out_val4 = f (in_ptr[4] & 0x7f);
-    const u8 out_val5 = f (in_ptr[5] & 0x7f);
-    const u8 out_val6 = f (in_ptr[6] & 0x7f);
-    const u8 out_val7 = f (in_ptr[7] & 0x7f);
+    const u8 f0 = ((i + 0) < in_len) ? in_ptr[0] : 0;
+    const u8 f1 = ((i + 1) < in_len) ? in_ptr[1] : 0;
+    const u8 f2 = ((i + 2) < in_len) ? in_ptr[2] : 0;
+    const u8 f3 = ((i + 3) < in_len) ? in_ptr[3] : 0;
+    const u8 f4 = ((i + 4) < in_len) ? in_ptr[4] : 0;
+    const u8 f5 = ((i + 5) < in_len) ? in_ptr[5] : 0;
+    const u8 f6 = ((i + 6) < in_len) ? in_ptr[6] : 0;
+    const u8 f7 = ((i + 7) < in_len) ? in_ptr[7] : 0;
+
+    const u8 out_val0 = f (f0 & 0x7f);
+    const u8 out_val1 = f (f1 & 0x7f);
+    const u8 out_val2 = f (f2 & 0x7f);
+    const u8 out_val3 = f (f3 & 0x7f);
+    const u8 out_val4 = f (f4 & 0x7f);
+    const u8 out_val5 = f (f5 & 0x7f);
+    const u8 out_val6 = f (f6 & 0x7f);
+    const u8 out_val7 = f (f7 & 0x7f);
 
     out_ptr[0] =                            ((out_val0 << 3) & 0xf8) | ((out_val1 >> 2) & 0x07);
     out_ptr[1] = ((out_val1 << 6) & 0xc0) | ((out_val2 << 1) & 0x3e) | ((out_val3 >> 4) & 0x01);
@@ -702,14 +711,20 @@ size_t base32_encode (u8 (*f) (const u8), const u8 *in_buf, const size_t in_len,
 
   for (size_t i = 0; i < in_len; i += 5)
   {
-    const u8 out_val0 = f (                            ((in_ptr[0] >> 3) & 0x1f));
-    const u8 out_val1 = f (((in_ptr[0] << 2) & 0x1c) | ((in_ptr[1] >> 6) & 0x03));
-    const u8 out_val2 = f (                            ((in_ptr[1] >> 1) & 0x1f));
-    const u8 out_val3 = f (((in_ptr[1] << 4) & 0x10) | ((in_ptr[2] >> 4) & 0x0f));
-    const u8 out_val4 = f (((in_ptr[2] << 1) & 0x1e) | ((in_ptr[3] >> 7) & 0x01));
-    const u8 out_val5 = f (                            ((in_ptr[3] >> 2) & 0x1f));
-    const u8 out_val6 = f (((in_ptr[3] << 3) & 0x18) | ((in_ptr[4] >> 5) & 0x07));
-    const u8 out_val7 = f (                            ((in_ptr[4] >> 0) & 0x1f));
+    const u8 f0 = ((i + 0) < in_len) ? in_ptr[0] : 0;
+    const u8 f1 = ((i + 1) < in_len) ? in_ptr[1] : 0;
+    const u8 f2 = ((i + 2) < in_len) ? in_ptr[2] : 0;
+    const u8 f3 = ((i + 3) < in_len) ? in_ptr[3] : 0;
+    const u8 f4 = ((i + 4) < in_len) ? in_ptr[4] : 0;
+
+    const u8 out_val0 = f (                     ((f0 >> 3) & 0x1f));
+    const u8 out_val1 = f (((f0 << 2) & 0x1c) | ((f1 >> 6) & 0x03));
+    const u8 out_val2 = f (                     ((f1 >> 1) & 0x1f));
+    const u8 out_val3 = f (((f1 << 4) & 0x10) | ((f2 >> 4) & 0x0f));
+    const u8 out_val4 = f (((f2 << 1) & 0x1e) | ((f3 >> 7) & 0x01));
+    const u8 out_val5 = f (                     ((f3 >> 2) & 0x1f));
+    const u8 out_val6 = f (((f3 << 3) & 0x18) | ((f4 >> 5) & 0x07));
+    const u8 out_val7 = f (                     ((f4 >> 0) & 0x1f));
 
     out_ptr[0] = out_val0 & 0x7f;
     out_ptr[1] = out_val1 & 0x7f;
@@ -744,10 +759,15 @@ size_t base64_decode (u8 (*f) (const u8), const u8 *in_buf, const size_t in_len,
 
   for (size_t i = 0; i < in_len; i += 4)
   {
-    const u8 out_val0 = f (in_ptr[0] & 0x7f);
-    const u8 out_val1 = f (in_ptr[1] & 0x7f);
-    const u8 out_val2 = f (in_ptr[2] & 0x7f);
-    const u8 out_val3 = f (in_ptr[3] & 0x7f);
+    const u8 f0 = ((i + 0) < in_len) ? in_ptr[0] : 0;
+    const u8 f1 = ((i + 1) < in_len) ? in_ptr[1] : 0;
+    const u8 f2 = ((i + 2) < in_len) ? in_ptr[2] : 0;
+    const u8 f3 = ((i + 3) < in_len) ? in_ptr[3] : 0;
+
+    const u8 out_val0 = f (f0 & 0x7f);
+    const u8 out_val1 = f (f1 & 0x7f);
+    const u8 out_val2 = f (f2 & 0x7f);
+    const u8 out_val3 = f (f3 & 0x7f);
 
     out_ptr[0] = ((out_val0 << 2) & 0xfc) | ((out_val1 >> 4) & 0x03);
     out_ptr[1] = ((out_val1 << 4) & 0xf0) | ((out_val2 >> 2) & 0x0f);
@@ -779,10 +799,14 @@ size_t base64_encode (u8 (*f) (const u8), const u8 *in_buf, const size_t in_len,
 
   for (size_t i = 0; i < in_len; i += 3)
   {
-    const u8 out_val0 = f (                            ((in_ptr[0] >> 2) & 0x3f));
-    const u8 out_val1 = f (((in_ptr[0] << 4) & 0x30) | ((in_ptr[1] >> 4) & 0x0f));
-    const u8 out_val2 = f (((in_ptr[1] << 2) & 0x3c) | ((in_ptr[2] >> 6) & 0x03));
-    const u8 out_val3 = f (                            ((in_ptr[2] >> 0) & 0x3f));
+    const u8 f0 = ((i + 0) < in_len) ? in_ptr[0] : 0;
+    const u8 f1 = ((i + 1) < in_len) ? in_ptr[1] : 0;
+    const u8 f2 = ((i + 2) < in_len) ? in_ptr[2] : 0;
+
+    const u8 out_val0 = f (                     ((f0 >> 2) & 0x3f));
+    const u8 out_val1 = f (((f0 << 4) & 0x30) | ((f1 >> 4) & 0x0f));
+    const u8 out_val2 = f (((f1 << 2) & 0x3c) | ((f2 >> 6) & 0x03));
+    const u8 out_val3 = f (                     ((f2 >> 0) & 0x3f));
 
     out_ptr[0] = out_val0 & 0x7f;
     out_ptr[1] = out_val1 & 0x7f;

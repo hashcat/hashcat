@@ -63,8 +63,6 @@ int dictstat_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->attack_mode == ATTACK_MODE_BF) return 0;
 
-  if (user_options->hash_mode == 3000) return 0; // this mode virtually creates words in the wordlists
-
   dictstat_ctx->enabled  = true;
   dictstat_ctx->base     = (dictstat_t *) hccalloc (MAX_DICTSTAT, sizeof (dictstat_t));
   dictstat_ctx->cnt      = 0;
@@ -76,9 +74,12 @@ int dictstat_init (hashcat_ctx_t *hashcat_ctx)
 
 void dictstat_destroy (hashcat_ctx_t *hashcat_ctx)
 {
+  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   dictstat_ctx_t *dictstat_ctx = hashcat_ctx->dictstat_ctx;
 
   if (dictstat_ctx->enabled == false) return;
+
+  if (hashconfig->dictstat_disable == true) return;
 
   hcfree (dictstat_ctx->filename);
   hcfree (dictstat_ctx->base);
@@ -88,9 +89,12 @@ void dictstat_destroy (hashcat_ctx_t *hashcat_ctx)
 
 void dictstat_read (hashcat_ctx_t *hashcat_ctx)
 {
+  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   dictstat_ctx_t *dictstat_ctx = hashcat_ctx->dictstat_ctx;
 
   if (dictstat_ctx->enabled == false) return;
+
+  if (hashconfig->dictstat_disable == true) return;
 
   FILE *fp = fopen (dictstat_ctx->filename, "rb");
 
@@ -173,9 +177,12 @@ void dictstat_read (hashcat_ctx_t *hashcat_ctx)
 
 int dictstat_write (hashcat_ctx_t *hashcat_ctx)
 {
+  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   dictstat_ctx_t *dictstat_ctx = hashcat_ctx->dictstat_ctx;
 
   if (dictstat_ctx->enabled == false) return 0;
+
+  if (hashconfig->dictstat_disable == true) return 0;
 
   FILE *fp = fopen (dictstat_ctx->filename, "wb");
 
@@ -217,9 +224,12 @@ int dictstat_write (hashcat_ctx_t *hashcat_ctx)
 
 u64 dictstat_find (hashcat_ctx_t *hashcat_ctx, dictstat_t *d)
 {
+  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   dictstat_ctx_t *dictstat_ctx = hashcat_ctx->dictstat_ctx;
 
   if (dictstat_ctx->enabled == false) return 0;
+
+  if (hashconfig->dictstat_disable == true) return 0;
 
   dictstat_t *d_cache = (dictstat_t *) lfind (d, dictstat_ctx->base, &dictstat_ctx->cnt, sizeof (dictstat_t), sort_by_dictstat);
 
@@ -230,9 +240,12 @@ u64 dictstat_find (hashcat_ctx_t *hashcat_ctx, dictstat_t *d)
 
 void dictstat_append (hashcat_ctx_t *hashcat_ctx, dictstat_t *d)
 {
+  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   dictstat_ctx_t *dictstat_ctx = hashcat_ctx->dictstat_ctx;
 
   if (dictstat_ctx->enabled == false) return;
+
+  if (hashconfig->dictstat_disable == true) return;
 
   if (dictstat_ctx->cnt == MAX_DICTSTAT)
   {

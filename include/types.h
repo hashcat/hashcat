@@ -344,25 +344,23 @@ typedef enum opti_type
   OPTI_TYPE_OPTIMIZED_KERNEL    = (1 <<  0),
   OPTI_TYPE_ZERO_BYTE           = (1 <<  1),
   OPTI_TYPE_PRECOMPUTE_INIT     = (1 <<  2),
-  OPTI_TYPE_PRECOMPUTE_MERKLE   = (1 <<  3),
-  OPTI_TYPE_PRECOMPUTE_PERMUT   = (1 <<  4),
-  OPTI_TYPE_MEET_IN_MIDDLE      = (1 <<  5),
-  OPTI_TYPE_EARLY_SKIP          = (1 <<  6),
-  OPTI_TYPE_NOT_SALTED          = (1 <<  7),
-  OPTI_TYPE_NOT_ITERATED        = (1 <<  8),
-  OPTI_TYPE_PREPENDED_SALT      = (1 <<  9),
-  OPTI_TYPE_APPENDED_SALT       = (1 << 10),
-  OPTI_TYPE_SINGLE_HASH         = (1 << 11),
-  OPTI_TYPE_SINGLE_SALT         = (1 << 12),
-  OPTI_TYPE_BRUTE_FORCE         = (1 << 13),
-  OPTI_TYPE_RAW_HASH            = (1 << 14),
-  OPTI_TYPE_SLOW_HASH_SIMD_INIT = (1 << 15),
-  OPTI_TYPE_SLOW_HASH_SIMD_LOOP = (1 << 16),
-  OPTI_TYPE_SLOW_HASH_SIMD_COMP = (1 << 17),
-  OPTI_TYPE_USES_BITS_8         = (1 << 18),
-  OPTI_TYPE_USES_BITS_16        = (1 << 19),
-  OPTI_TYPE_USES_BITS_32        = (1 << 20),
-  OPTI_TYPE_USES_BITS_64        = (1 << 21)
+  OPTI_TYPE_MEET_IN_MIDDLE      = (1 <<  3),
+  OPTI_TYPE_EARLY_SKIP          = (1 <<  4),
+  OPTI_TYPE_NOT_SALTED          = (1 <<  5),
+  OPTI_TYPE_NOT_ITERATED        = (1 <<  6),
+  OPTI_TYPE_PREPENDED_SALT      = (1 <<  7),
+  OPTI_TYPE_APPENDED_SALT       = (1 <<  8),
+  OPTI_TYPE_SINGLE_HASH         = (1 <<  9),
+  OPTI_TYPE_SINGLE_SALT         = (1 << 10),
+  OPTI_TYPE_BRUTE_FORCE         = (1 << 11),
+  OPTI_TYPE_RAW_HASH            = (1 << 12),
+  OPTI_TYPE_SLOW_HASH_SIMD_INIT = (1 << 13),
+  OPTI_TYPE_SLOW_HASH_SIMD_LOOP = (1 << 14),
+  OPTI_TYPE_SLOW_HASH_SIMD_COMP = (1 << 15),
+  OPTI_TYPE_USES_BITS_8         = (1 << 16),
+  OPTI_TYPE_USES_BITS_16        = (1 << 17),
+  OPTI_TYPE_USES_BITS_32        = (1 << 18),
+  OPTI_TYPE_USES_BITS_64        = (1 << 19)
 
 } opti_type_t;
 
@@ -382,17 +380,17 @@ typedef enum opts_type
   OPTS_TYPE_PT_NEVERCRACK     = (1ULL << 11), // if we want all possible results
   OPTS_TYPE_PT_BITSLICE       = (1ULL << 12),
   OPTS_TYPE_PT_ALWAYS_ASCII   = (1ULL << 13),
-  OPTS_TYPE_ST_UTF16LE        = (1ULL << 14),
-  OPTS_TYPE_ST_UTF16BE        = (1ULL << 15),
-  OPTS_TYPE_ST_UPPER          = (1ULL << 16),
-  OPTS_TYPE_ST_LOWER          = (1ULL << 17),
-  OPTS_TYPE_ST_ADD01          = (1ULL << 18),
-  OPTS_TYPE_ST_ADD02          = (1ULL << 19),
-  OPTS_TYPE_ST_ADD80          = (1ULL << 20),
-  OPTS_TYPE_ST_ADDBITS14      = (1ULL << 21),
-  OPTS_TYPE_ST_ADDBITS15      = (1ULL << 22),
-  OPTS_TYPE_ST_GENERATE_LE    = (1ULL << 23),
-  OPTS_TYPE_ST_GENERATE_BE    = (1ULL << 24),
+  OPTS_TYPE_PT_ALWAYS_HEXIFY  = (1ULL << 14),
+  OPTS_TYPE_PT_LM             = (1ULL << 15), // special handling: all lower, 7 max, ...
+  OPTS_TYPE_ST_UTF16LE        = (1ULL << 16),
+  OPTS_TYPE_ST_UTF16BE        = (1ULL << 17),
+  OPTS_TYPE_ST_UPPER          = (1ULL << 18),
+  OPTS_TYPE_ST_LOWER          = (1ULL << 19),
+  OPTS_TYPE_ST_ADD01          = (1ULL << 20),
+  OPTS_TYPE_ST_ADD02          = (1ULL << 21),
+  OPTS_TYPE_ST_ADD80          = (1ULL << 22),
+  OPTS_TYPE_ST_ADDBITS14      = (1ULL << 23),
+  OPTS_TYPE_ST_ADDBITS15      = (1ULL << 24),
   OPTS_TYPE_ST_HEX            = (1ULL << 25),
   OPTS_TYPE_ST_BASE64         = (1ULL << 26),
   OPTS_TYPE_ST_HASH_MD5       = (1ULL << 27),
@@ -410,6 +408,7 @@ typedef enum opts_type
   OPTS_TYPE_PREFERED_THREAD   = (1ULL << 39), // some algorithms (complicated ones with many branches) benefit from this
   OPTS_TYPE_PT_ADD06          = (1ULL << 40),
   OPTS_TYPE_KEYBOARD_MAPPING  = (1ULL << 41),
+  OPTS_TYPE_DEEP_COMP_KERNEL  = (1ULL << 42), // if we have to iterate through each hash inside the comp kernel, for example if each hash has to be decrypted separately
 
 } opts_type_t;
 
@@ -451,6 +450,18 @@ typedef enum hlfmt_name
   HLFMT_NSLDAPS  = 10
 
 } hlfmt_name_t;
+
+typedef enum pwdump_column
+{
+  PWDUMP_COLUMN_INVALID   = -1,
+  PWDUMP_COLUMN_USERNAME  = 0,
+  PWDUMP_COLUMN_UID       = 1,
+  PWDUMP_COLUMN_LM_HASH   = 2,
+  PWDUMP_COLUMN_NTLM_HASH = 3,
+  PWDUMP_COLUMN_COMMENT   = 4,
+  PWDUMP_COLUMN_HOMEDIR   = 5,
+
+} pwdump_column_t;
 
 typedef enum outfile_fmt
 {
@@ -748,6 +759,14 @@ typedef enum brain_link_status
 } brain_link_status_t;
 #endif
 
+#ifdef _WIN
+typedef HMODULE hc_dynlib_t;
+typedef FARPROC hc_dynfunc_t;
+#else
+typedef void * hc_dynlib_t;
+typedef void * hc_dynfunc_t;
+#endif
+
 /**
  * structs
  */
@@ -886,14 +905,13 @@ struct hashconfig
 {
   char  separator;
 
-  u32   hash_mode;
-  u32   hash_type;
+  int   hash_mode;
   u32   salt_type;
   u32   attack_exec;
-  u64   opts_type;
   u32   kern_type;
   u32   dgst_size;
   u32   opti_type;
+  u64   opts_type;
   u32   dgst_pos0;
   u32   dgst_pos1;
   u32   dgst_pos2;
@@ -906,10 +924,11 @@ struct hashconfig
 
   // sizes have to be size_t
 
-  u64  esalt_size;
-  u64  hook_salt_size;
-  u64  tmp_size;
-  u64  hook_size;
+  u64   esalt_size;
+  u64   hook_salt_size;
+  u64   tmp_size;
+  u64   extra_tmp_size;
+  u64   hook_size;
 
   // password length limit
 
@@ -921,10 +940,36 @@ struct hashconfig
   u32   salt_min;
   u32   salt_max;
 
-  int (*parse_func) (u8 *, u32, hash_t *, struct hashconfig *);
+  //  int (*parse_func) (u8 *, u32, hash_t *, struct hashconfig *);
 
   const char *st_hash;
   const char *st_pass;
+
+  u32         hash_category;
+  const char *hash_name;
+
+  const char *benchmark_mask;
+
+  u32 kernel_accel_min;
+  u32 kernel_accel_max;
+  u32 kernel_loops_min;
+  u32 kernel_loops_max;
+  u32 kernel_threads_min;
+  u32 kernel_threads_max;
+
+  u32 forced_outfile_format;
+
+  bool dictstat_disable;
+  bool hlfmt_disable;
+  bool warmup_disable;
+  bool unstable_warning;
+  bool outfile_check_disable;
+  bool outfile_check_nocomp;
+  bool potfile_disable;
+  bool potfile_keep_all_hashes;
+  bool forced_jit_compile;
+
+  u32 pwdump_column;
 };
 
 typedef struct hashconfig hashconfig_t;
@@ -1007,7 +1052,7 @@ typedef struct hc_device_param
   u32     platform_devices_id;   // for mapping with hms devices
 
   bool    skipped;
-  bool    skipped_temp;
+  bool    unstable_warning;
 
   st_status_t st_status;
 
@@ -1104,6 +1149,8 @@ typedef struct hc_device_param
   u32     kernel_loops_min_sav; // the _sav are required because each -i iteration
   u32     kernel_loops_max_sav; // needs to recalculate the kernel_loops_min/max based on the current amplifier count
   u32     kernel_threads;
+  u32     kernel_threads_min;
+  u32     kernel_threads_max;
 
   u64     kernel_power;
   u64     hardware_power;
@@ -1124,12 +1171,16 @@ typedef struct hc_device_param
   u64  size_markov_css;
   u64  size_digests;
   u64  size_salts;
+  u64  size_esalts;
   u64  size_shown;
   u64  size_results;
   u64  size_plains;
   u64  size_st_digests;
   u64  size_st_salts;
   u64  size_st_esalts;
+  u64  size_tm;
+
+  u64  extra_buffer_size;
 
   #ifdef WITH_BRAIN
   u64  size_brain_link_in;
@@ -1274,10 +1325,10 @@ typedef struct hc_device_param
   cl_mem  d_tmps;
   cl_mem  d_hooks;
   cl_mem  d_result;
-  cl_mem  d_scryptV0_buf;
-  cl_mem  d_scryptV1_buf;
-  cl_mem  d_scryptV2_buf;
-  cl_mem  d_scryptV3_buf;
+  cl_mem  d_extra0_buf;
+  cl_mem  d_extra1_buf;
+  cl_mem  d_extra2_buf;
+  cl_mem  d_extra3_buf;
   cl_mem  d_root_css_buf;
   cl_mem  d_markov_css_buf;
   cl_mem  d_st_digests_buf;
@@ -1362,6 +1413,17 @@ typedef struct opencl_ctx
   int                 force_jit_compilation;
 
 } opencl_ctx_t;
+
+typedef enum kernel_workload
+{
+  KERNEL_ACCEL_MIN   = 1,
+  KERNEL_ACCEL_MAX   = 1024,
+  KERNEL_LOOPS_MIN   = 1,
+  KERNEL_LOOPS_MAX   = 1024,
+  KERNEL_THREADS_MIN = 1,
+  KERNEL_THREADS_MAX = 1024,
+
+} kernel_workload_t;
 
 #include "ext_ADL.h"
 #include "ext_nvapi.h"
@@ -1525,8 +1587,6 @@ typedef struct potfile_ctx
 {
   bool     enabled;
 
-  bool     keep_all_hashes;
-
   FILE    *fp;
   char    *filename;
 
@@ -1633,7 +1693,7 @@ typedef struct tuning_db_entry
 {
   const char *device_name;
   int         attack_mode;
-  int         hash_type;
+  int         hash_mode;
   int         workload_profile;
   int         vector_width;
   int         kernel_accel;
@@ -1786,7 +1846,7 @@ typedef struct user_options
   #endif
   u32          debug_mode;
   u32          hwmon_temp_abort;
-  u32          hash_mode;
+  int          hash_mode;
   u32          hccapx_message_pair;
   u32          increment_max;
   u32          increment_min;
@@ -1994,8 +2054,8 @@ typedef struct device_info
 
 typedef struct hashcat_status
 {
-  const char *hash_target;
-  const char *hash_type;
+  char       *hash_target;
+  char       *hash_name;
   int         guess_mode;
   char       *guess_base;
   int         guess_base_offset;
@@ -2194,6 +2254,88 @@ typedef struct event_ctx
 
 } event_ctx_t;
 
+#define MODULE_DEFAULT (void *) -1
+
+typedef void (*MODULE_INIT) (void *);
+
+typedef struct module_ctx
+{
+  size_t      module_context_size;
+  int         module_interface_version;
+
+  hc_dynlib_t module_handle;
+
+  MODULE_INIT module_init;
+
+  u32         (*module_attack_exec)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  void       *(*module_benchmark_esalt)         (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  void       *(*module_benchmark_hook_salt)     (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  const char *(*module_benchmark_mask)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  salt_t     *(*module_benchmark_salt)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  bool        (*module_dictstat_disable)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_dgst_pos0)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_dgst_pos1)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_dgst_pos2)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_dgst_pos3)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_dgst_size)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u64         (*module_esalt_size)              (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_forced_outfile_format)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_hash_category)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  const char *(*module_hash_name)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  int         (*module_hash_mode)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  bool        (*module_hlfmt_disable)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u64         (*module_hook_salt_size)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u64         (*module_hook_size)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_kernel_accel_min)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_kernel_accel_max)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_kernel_loops_min)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_kernel_loops_max)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_kernel_threads_min)      (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_kernel_threads_max)      (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u64         (*module_kern_type)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_opti_type)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u64         (*module_opts_type)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  bool        (*module_outfile_check_disable)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  bool        (*module_outfile_check_nocomp)    (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  bool        (*module_potfile_disable)         (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  bool        (*module_potfile_keep_all_hashes) (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_pwdump_column)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_pw_min)                  (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_pw_max)                  (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_salt_min)                (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_salt_max)                (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u32         (*module_salt_type)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  char        (*module_separator)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  const char *(*module_st_hash)                 (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  const char *(*module_st_pass)                 (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  u64         (*module_tmp_size)                (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  bool        (*module_unstable_warning)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  bool        (*module_warmup_disable)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+
+  int         (*module_hash_binary_count)       (const hashes_t *);
+  int         (*module_hash_binary_parse)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, hashes_t *);
+  int         (*module_hash_binary_save)        (const hashes_t *, const u32, const u32, char **);
+
+  int         (*module_hash_decode_outfile)     (const hashconfig_t *,       void *,       salt_t *,       void *,       void *,       hashinfo_t *, const char *, const int);
+  int         (*module_hash_decode_zero_hash)   (const hashconfig_t *,       void *,       salt_t *,       void *,       void *,       hashinfo_t *);
+  int         (*module_hash_decode)             (const hashconfig_t *,       void *,       salt_t *,       void *,       void *,       hashinfo_t *, const char *, const int);
+  int         (*module_hash_encode_status)      (const hashconfig_t *, const void *, const salt_t *, const void *, const void *, const hashinfo_t *,       char *,       int);
+  int         (*module_hash_encode)             (const hashconfig_t *, const void *, const salt_t *, const void *, const void *, const hashinfo_t *,       char *,       int);
+
+  u64         (*module_kern_type_dynamic)       (const hashconfig_t *, const void *, const salt_t *, const void *, const void *, const hashinfo_t *);
+  u64         (*module_extra_buffer_size)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hashes_t *, const hc_device_param_t *);
+  u64         (*module_extra_tmp_size)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hashes_t *);
+  char       *(*module_jit_build_options)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const hashes_t *, const hc_device_param_t *);
+  u32         (*module_deep_comp_kernel)        (const hashes_t *, const u32, const u32);
+  int         (*module_hash_init_selftest)      (const hashconfig_t *, hash_t *);
+
+  void        (*module_hook12)                  (hc_device_param_t *, const void *, const u32, const u64);
+  void        (*module_hook23)                  (hc_device_param_t *, const void *, const u32, const u64);
+
+  int         (*module_build_plain_postprocess) (const hashconfig_t *, const hashes_t *, const u32 *, const size_t, const int, u32 *, const size_t);
+
+} module_ctx_t;
+
 typedef struct hashcat_ctx
 {
   bitmap_ctx_t          *bitmap_ctx;
@@ -2211,6 +2353,7 @@ typedef struct hashcat_ctx
   logfile_ctx_t         *logfile_ctx;
   loopback_ctx_t        *loopback_ctx;
   mask_ctx_t            *mask_ctx;
+  module_ctx_t          *module_ctx;
   opencl_ctx_t          *opencl_ctx;
   outcheck_ctx_t        *outcheck_ctx;
   outfile_ctx_t         *outfile_ctx;
@@ -2248,7 +2391,7 @@ typedef struct token
 
   int sep[MAX_TOKENS];
 
-  u8 *buf[MAX_TOKENS];
+  const u8 *buf[MAX_TOKENS];
   int len[MAX_TOKENS];
 
   int len_min[MAX_TOKENS];
@@ -2256,9 +2399,46 @@ typedef struct token
 
   int attr[MAX_TOKENS];
 
-  u8 *opt_buf;
+  const u8 *opt_buf;
   int opt_len;
 
 } token_t;
 
 #endif // _TYPES_H
+
+/**
+ * hash category is relevant in usage.c (--help screen)
+ */
+
+typedef enum hash_category
+{
+  HASH_CATEGORY_UNDEFINED               = 0,
+  HASH_CATEGORY_RAW_HASH                = 1,
+  HASH_CATEGORY_RAW_HASH_SALTED         = 2,
+  HASH_CATEGORY_RAW_HASH_AUTHENTICATED  = 3,
+  HASH_CATEGORY_RAW_CHECKSUM            = 4,
+  HASH_CATEGORY_RAW_CIPHER_KPA          = 5,
+  HASH_CATEGORY_GENERIC_KDF             = 6,
+  HASH_CATEGORY_NETWORK_PROTOCOL        = 7,
+  HASH_CATEGORY_OS                      = 8,
+  HASH_CATEGORY_DATABASE_SERVER         = 9,
+  HASH_CATEGORY_NETWORK_SERVER          = 10,
+  HASH_CATEGORY_EAS                     = 11,
+  HASH_CATEGORY_FDE                     = 12,
+  HASH_CATEGORY_DOCUMENTS               = 13,
+  HASH_CATEGORY_PASSWORD_MANAGER        = 14,
+  HASH_CATEGORY_ARCHIVE                 = 15,
+  HASH_CATEGORY_FORUM_SOFTWARE          = 16,
+  HASH_CATEGORY_OTP                     = 17,
+  HASH_CATEGORY_PLAIN                   = 18,
+
+} hash_category_t;
+
+typedef struct keyboard_layout_mapping
+{
+  u32 src_char;
+  int src_len;
+  u32 dst_char;
+  int dst_len;
+
+} keyboard_layout_mapping_t;

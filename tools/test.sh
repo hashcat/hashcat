@@ -5,32 +5,26 @@
 ## License.....: MIT
 ##
 
-OPTS="--quiet --force --potfile-disable --runtime 400 --hwmon-disable"
+OPTS="--quiet --force --potfile-disable --runtime 400 --hwmon-disable -O"
 
 TDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-# missing hash types: 5200,6251,6261,6271,6281
+# List of TrueCrypt modes which have test containers
+TC_MODES="6211 6212 6213 6221 6222 6223 6231 6232 6233 6241 6242 6243"
 
-# Array of all hash-modes supported by the test suite
-HASH_TYPES="0    10    11    12    20    21    22    23    30    40    50    60\
-    100   101   110   111   112   120   121   122   125   130   131   132   133\
-    140   141   150   160   200   300   400   500   600   900  1000  1100  1300\
-   1400  1410  1411  1420  1430  1440  1441  1450  1460  1500  1600  1700  1710\
-   1711  1720  1722  1730  1731  1740  1750  1760  1800  2100  2400  2410  2500\
-   2600  2611  2612  2711  2811  3000  3100  3200  3710  3711  3800  3910  4010\
-   4110  4300  4400  4500  4520  4521  4522  4700  4800  4900  5100  5300  5400\
-   5500  5600  5700  5800  6000  6100  6211  6212  6213  6221  6222  6223  6231\
-   6232  6233  6241  6242  6243  6300  6400  6500  6600  6700  6800  6900  7000\
-   7100  7200  7300  7400  7500  7700  7701  7800  7801  7900  8000  8100  8200\
-   8300  8400  8500  8600  8700  8900  9100  9200  9300  9400  9500  9600  9700\
-   9800  9900 10000 10100 10200 10300 10400 10500 10600 10700 10800 10900 11000\
-  11100 11200 11300 11400 11500 11600 11700 11750 11760 11800 11850 11860 11900\
-  12000 12001 12100 12200 12300 12400 12600 12700 12800 12900 13000 13100 13200\
-  13300 13400 13500 13600 13711 13712 13713 13721 13722 13723 13731 13732 13733\
-  13751 13752 13753 13771 13772 13773 13800 13900 14000 14100 14400 14600 14700\
-  14800 14900 15000 15100 15200 15300 15400 15500 15600 15700 15900 16000 16100\
-  16200 16300 16400 16500 16600 16700 16800 16900 17300 17400 17500 17600 17700\
-  17800 17900 18000 18100 18200 18300 18400 18500 18600 99999"
+# List of VeraCrypt modes which have test containers
+VC_MODES="13711 13712 13713 13721 13722 13723 13731 13732 13733 13741 13742 13743 13751 13752 13753 13761 13762 13763 13771 13772 13773"
+
+# LUKS mode has test containers
+LUKS_MODE="14600"
+
+# missing hash types: 5200
+
+HASH_TYPES=$(ls ${TDIR}/test_modules/*.pm | sed 's/.*m0*\([0-9]\+\)\.pm/\1/')
+
+HASH_TYPES="${HASH_TYPES} ${TC_MODES} ${VC_MODES} ${LUKS_MODE}"
+
+HASH_TYPES="$(echo -n ${HASH_TYPES} | tr ' ' '\n' | sort -u -n | tr '\n' ' ')"
 
 VECTOR_WIDTHS="1 2 4 8 16"
 
@@ -41,18 +35,14 @@ HASHFILE_ONLY="2500"
 NEVER_CRACK="11600 14900 18100"
 
 SLOW_ALGOS="    400   500   501  1600  1800  2100  2500  3200  5200  5800  6211\
-   6212  6213  6221  6222  6223  6231  6232  6233  6241  6242  6243  6251  6261\
-   6271  6281  6300  6400  6500  6600  6700  6800  7100  7200  7400  7900  8200\
-   8800  8900  9000  9100  9200  9300  9400  9500  9600 10000 10300 10500 10700\
-  10900 11300 11600 11900 12000 12001 12100 12200 12300 12400 12500 12700 12800\
-  12900 13000 13200 13400 13600 13711 13712 13713 13721 13722 13723 13731 13732\
-  13733 13751 13752 13753 13771 13772 13773 14600 14611 14612 14613 14621 14622\
-  14623 14631 14632 14633 14641 14642 14643 14700 14800 15100 15200 15300 15600\
-  15700 15900 16000 16200 16300 16800 16900 18400 18600"
-
-# List of VeraCrypt modes which have test containers
-VC_MODES="13711 13712 13713 13721 13722 13723 13731 13732 13733 13751 13752\
-          13753 13771 13772 13773"
+   6212  6213  6221  6222  6223  6231  6232  6233  6241  6242  6243  6300  6400\
+   6500  6600  6700  6800  7100  7200  7400  7900  8200  8800  8900  9000  9100\
+   9200  9300  9400  9500  9600 10000 10300 10500 10700 10900 11300 11600 11900\
+  12000 12001 12100 12200 12300 12400 12500 12700 12800 12900 13000 13200 13400\
+  13600 13711 13712 13713 13721 13722 13723 13731 13732 13733 13751 13752 13753\
+  13771 13772 13773 14600 14611 14612 14613 14621 14622 14623 14631 14632 14633\
+  14641 14642 14643 14700 14800 15100 15200 15300 15600 15700 15900 16000 16200\
+  16300 16800 16900 18400 18600"
 
 OUTD="test_$(date +%s)"
 
@@ -187,14 +177,14 @@ function init()
   rm -rf ${OUTD}/${hash_type}.sh ${OUTD}/${hash_type}_passwords.txt ${OUTD}/${hash_type}_hashes.txt
 
   # Exclude TrueCrypt and VeraCrypt testing modes
-  if [[ ${hash_type} -ge 6211 ]] && [[ ${hash_type} -le 6243 ]]; then
+  if is_in_array ${hash_type} ${TC_MODES}; then
     return 0
   fi
   if is_in_array ${hash_type} ${VC_MODES}; then
     return 0
   fi
 
-  if [[ ${hash_type} -eq 14600 ]]; then
+  if [[ ${hash_type} -eq ${LUKS_MODE} ]]; then
 
     luks_tests_folder="${TDIR}/luks_tests/"
 
@@ -254,14 +244,17 @@ function init()
   fi
 
   # create list of password and hashes of same type
-  grep " ${hash_type} '" ${OUTD}/all.sh > ${OUTD}/${hash_type}.sh 2>/dev/null
+  cmd_file=${OUTD}/${hash_type}.sh
+
+  grep " ${hash_type} '" ${OUTD}/all.sh > ${cmd_file} 2>/dev/null
 
   # create separate list of password and hashes
-  cat ${OUTD}/${hash_type}.sh | awk '{print $3}' > ${OUTD}/${hash_type}_passwords.txt
-  cat ${OUTD}/${hash_type}.sh | awk '{print $11}' | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes.txt
+  sed 's/^echo *|.*$//'       ${cmd_file} | awk '{print $2}'                  > ${OUTD}/${hash_type}_passwords.txt
+  sed 's/^echo *|/echo "" |/' ${cmd_file} | awk '{print $10}' | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes.txt
 
   if [ "${hash_type}" -eq 10300 ]; then
-    cat ${OUTD}/${hash_type}.sh | cut -d' ' -f11- | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes.txt
+    #cat ${OUTD}/${hash_type}.sh | cut -d' ' -f11- | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes.txt
+    cat ${OUTD}/${hash_type}.sh | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes.txt
   fi
 
   # truncate dicts
@@ -320,11 +313,16 @@ function init()
         fi
 
         # add splitted password to dicts
-
         echo ${pass} | cut -c -${p0} >> ${OUTD}/${hash_type}_dict1
         echo ${pass} | cut -c ${p1}- >> ${OUTD}/${hash_type}_dict2
+      elif [ "${pass_len}" -eq 1 ]; then
+        echo ${pass} >> ${OUTD}/${hash_type}_dict1
+        echo >> ${OUTD}/${hash_type}_dict2
+      else
+        echo >> ${OUTD}/${hash_type}_dict1
+        echo >> ${OUTD}/${hash_type}_dict2
+      fi
 
-     fi
     fi
 
     ((i++))
@@ -352,17 +350,20 @@ function init()
 
     for ((i = 2; i < 9; i++)); do
 
-      rm -rf ${OUTD}/${hash_type}_multi_${i}.txt ${OUTD}/${hash_type}_passwords_multi_${i}.txt ${OUTD}/${hash_type}_hashes_multi_${i}.txt
+      cmd_file=${OUTD}/${hash_type}_multi_${i}.txt
+
+      rm -rf ${cmd_file} ${OUTD}/${hash_type}_passwords_multi_${i}.txt ${OUTD}/${hash_type}_hashes_multi_${i}.txt
       rm -rf ${OUTD}/${hash_type}_dict1_multi_${i} ${OUTD}/${hash_type}_dict2_multi_${i}
       touch ${OUTD}/${hash_type}_dict1_multi_${i} ${OUTD}/${hash_type}_dict2_multi_${i}
 
-      perl tools/test.pl single ${hash_type} ${i} > ${OUTD}/${hash_type}_multi_${i}.txt
+      perl tools/test.pl single ${hash_type} ${i} > ${cmd_file}
 
-      cat ${OUTD}/${hash_type}_multi_${i}.txt | awk '{print $3}' > ${OUTD}/${hash_type}_passwords_multi_${i}.txt
-      cat ${OUTD}/${hash_type}_multi_${i}.txt | awk '{print $11}' | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes_multi_${i}.txt
+      sed 's/^echo *|.*$//'       ${cmd_file} | awk '{print $2}'                  > ${OUTD}/${hash_type}_passwords_multi_${i}.txt
+      sed 's/^echo *|/echo "" |/' ${cmd_file} | awk '{print $10}' | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes_multi_${i}.txt
 
       if [ "${hash_type}" -eq 10300 ]; then
-        cat ${OUTD}/${hash_type}_multi_${i}.txt | cut -d' ' -f11- | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes_multi_${i}.txt
+        #cat ${OUTD}/${hash_type}_multi_${i}.txt | cut -d' ' -f11- | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes_multi_${i}.txt
+        cat ${OUTD}/${hash_type}_multi_${i}.txt | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes_multi_${i}.txt
       fi
 
       # split password, 'i' is the len
@@ -463,8 +464,8 @@ function attack_0()
 
       fi
 
-      hash="$(echo "$line" | cut -d\'  -f2)"
-      pass="$(echo "$line" | cut -d' ' -f3)"
+      hash="$(echo "${line}" | cut -d\'  -f2)"
+      pass="$(echo "${line}" | cut -d' ' -f2)"
 
       if [ -z "${hash}" ]; then
 
@@ -480,11 +481,11 @@ function attack_0()
 
       fi
 
-      CMD="echo -n "${pass}" | ./${BIN} ${OPTS} -a 0 -m ${hash_type} '${hash}'"
+      CMD="echo "${pass}" | ./${BIN} ${OPTS} -a 0 -m ${hash_type} '${hash}'"
 
       echo -n "[ len $((i + 1)) ] " &>> ${OUTD}/logfull.txt
 
-      output=$(echo -n "${pass}" | ./${BIN} ${OPTS} -a 0 -m ${hash_type} "${hash}" 2>&1)
+      output=$(echo "${pass}" | ./${BIN} ${OPTS} -a 0 -m ${hash_type} "${hash}" 2>&1)
 
       ret=${?}
 
@@ -741,28 +742,12 @@ function attack_1()
     e_nm=0
     cnt=0
 
-    offset=14
+    offset=7
 
-    if   [ ${hash_type} -eq  2410 ]; then
-      offset=11
-    elif [ ${hash_type} -eq  2500 ]; then
-      offset=7
-    elif [ ${hash_type} -eq  5800 ]; then
+    if [ ${hash_type} -eq  5800 ]; then
       offset=6
     elif [ ${hash_type} -eq  3000 ]; then
       offset=6
-    elif [ ${hash_type} -eq  2100 ]; then
-      offset=11
-    elif [ ${hash_type} -eq  1500 ]; then
-      offset=7
-    elif [ ${hash_type} -eq  7700 ] || [ ${hash_type} -eq 7701 ]; then
-      offset=7
-    elif [ ${hash_type} -eq  8500 ]; then
-      offset=7
-    elif [ ${hash_type} -eq 16000 ]; then
-      offset=7
-    elif [ ${hash_type} -eq 16800 ]; then
-      offset=7
     fi
 
     hash_file=${OUTD}/${hash_type}_multihash_combi.txt
@@ -873,58 +858,21 @@ function attack_3()
     echo "> Testing hash type $hash_type with attack mode 3, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}." &>> ${OUTD}/logfull.txt
 
     max=8
-    mask_offset=0
 
     # some algos have a minimum password length
 
     if   [ "${hash_type}" -eq  2500 ]; then
-      mask_offset=7
       max=7
     elif [ "${hash_type}" -eq 14000 ]; then
-      mask_offset=4
       max=1
     elif [ "${hash_type}" -eq 14100 ]; then
-      mask_offset=3
       max=1
     elif [ "${hash_type}" -eq 14900 ]; then
-      mask_offset=5
       max=1
     elif [ "${hash_type}" -eq 15400 ]; then
-      mask_offset=3
       max=1
     elif [ "${hash_type}" -eq 16800 ]; then
-      mask_offset=7
       max=7
-    fi
-
-    # special case: we need to split the first line
-
-    if [ "${mask_offset}" -ne 0 ]; then
-
-      pass=$(sed -n 1p ${OUTD}/${hash_type}_passwords.txt)
-
-      pass_part_2=$(echo -n ${pass} | cut -b  $((${mask_offset} + 1))-)
-
-      mask_custom=""
-
-      if   [ "${hash_type}" -eq 14000 ]; then
-
-        mask_custom="${pass}"
-
-      elif [ "${hash_type}" -eq 14100 ]; then
-
-        mask_custom="${pass}"
-
-      else
-
-        for i in $(seq 1 ${mask_offset}); do
-          mask_custom="${mask_custom}?d"
-        done
-
-        mask_custom="${mask_custom}${pass_part_2}"
-
-      fi
-
     fi
 
     i=1
@@ -949,57 +897,40 @@ function attack_3()
 
       fi
 
-      mask=${mask_3[$((i + ${mask_offset}))]}
+
+      # construct a meaningful mask from the password itself:
+
       dict="${OUTD}/${hash_type}_passwords.txt"
 
-      # modify "default" mask if needed (and set custom charset to reduce keyspace)
+      pass=$(sed -n ${i}p ${dict})
 
-      if [ "${hash_type}" -eq 2500 ]; then
+      # passwords can't be smaller than mask in -a 3 = mask attack
 
-        pass=$(sed -n ${i}p ${dict})
-
-        mask=${pass}
-
-        # replace the first x positions in the mask with ?d's
-
-        # first: remove first i (== amount) chars
-
-        mask=$(echo ${mask} | cut -b $((i + 1))-)
-
-        # prepend the ?d's
-
-        for i in $(seq 1 ${i}); do
-
-          mask="?d${mask}"
-
-        done
-
+      if [ "${#pass}" -lt ${i} ]; then
+        ((i++))
+        continue
       fi
 
-      if [ "${hash_type}" -eq 16800 ]; then
+      pass_part_2=$(echo -n ${pass} | cut -b  $((${i} + 1))-)
 
-        pass=$(sed -n ${i}p ${dict})
+      mask=""
 
-        mask=${pass}
+      if   [ "${hash_type}" -eq 14000 ]; then
 
-        # replace the first x positions in the mask with ?d's
+        mask="${pass}"
 
-        # first: remove first i (== amount) chars
+      elif [ "${hash_type}" -eq 14100 ]; then
 
-        mask=$(echo ${mask} | cut -b $((i + 1))-)
+        mask="${pass}"
 
-        # prepend the ?d's
+      else
 
         for i in $(seq 1 ${i}); do
-
-          mask="?d${mask}"
-
+          mask="${mask}?d"
         done
 
-      fi
+        mask="${mask}${pass_part_2}"
 
-      if [ "${mask_offset}" -ne 0 ]; then
-        mask=${mask_custom}
       fi
 
       CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} '${hash}' ${mask}"
@@ -1096,10 +1027,6 @@ function attack_3()
       increment_max=9
     fi
 
-    hash_file=${OUTD}/${hash_type}_multihash_bruteforce.txt
-
-    head -n $((increment_max - ${increment_min} + 1)) ${OUTD}/${hash_type}_hashes.txt > ${hash_file}
-
     # if file_only -> decode all base64 "hashes" and put them in the temporary file
 
     if [ "${file_only}" -eq 1 ]; then
@@ -1117,13 +1044,56 @@ function attack_3()
 
     fi
 
+    hash_file=${OUTD}/${hash_type}_multihash_bruteforce.txt
+
+    tail_hashes=$(awk "length >= ${increment_min} && length <= ${increment_max}" ${OUTD}/${hash_type}_passwords.txt | wc -l)
+    head_hashes=$(awk                               "length <= ${increment_max}" ${OUTD}/${hash_type}_passwords.txt | wc -l)
+
+    # in very rare cases (e.g. without -O and long passwords) we need to use .hcmask files with the passwords in it
+    # otherwise there are no good masks we can test for such long passwords
+
+    need_hcmask=0
+
+    if [ ${tail_hashes} -gt ${head_hashes} ]; then
+      need_hcmask=1
+    fi
+
+    if [ ${tail_hashes} -lt 1 ]; then
+      need_hcmask=1
+    fi
+
+    if [ ${need_hcmask} -eq 0 ]; then
+      head -n ${head_hashes} ${OUTD}/${hash_type}_hashes.txt | tail -n ${tail_hashes} > ${hash_file}
+    else
+      tail_hashes=$(awk "length >= ${increment_min}" ${OUTD}/${hash_type}_passwords.txt | wc -l)
+
+      if [ ${tail_hashes} -lt 1 ]; then
+        return
+      fi
+
+      tail -n ${tail_hashes} ${OUTD}/${hash_type}_hashes.txt  > ${hash_file}
+    fi
+
     mask_pos=8
 
     if [ "${increment_min}" -gt ${mask_pos} ]; then
       mask_pos=${increment_min}
     fi
 
-    mask=${mask_3[${mask_pos}]}
+    mask=""
+    cracks_offset=0
+
+    if [ ${need_hcmask} -eq 0 ]; then
+      cracks_offset=$((${head_hashes} - ${tail_hashes}))
+
+      mask=${mask_3[${mask_pos}]}
+    else
+      num_hashes=$(cat ${OUTD}/${hash_type}_hashes.txt | wc -l)
+      cracks_offset=$((${num_hashes} - ${tail_hashes}))
+
+      mask=${OUTD}/${hash_type}_passwords.txt # fake hcmask file (i.e. the original dict)
+    fi
+
     custom_charsets=""
 
     # modify "default" mask if needed (and set custom charset to reduce keyspace)
@@ -1298,11 +1268,21 @@ function attack_3()
       custom_charsets="-1 ${charset_1} -2 ${charset_2} -3 ${charset_3} -4 ${charset_4}"
     fi
 
-    CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} --increment --increment-min ${increment_min} --increment-max ${increment_max} ${custom_charsets} ${hash_file} ${mask} "
+    increment_charset_opts=""
+
+    if [ ${need_hcmask} -eq 0 ]; then # the "normal" case without .hcmask file
+      increment_charset_opts="--increment --increment-min ${increment_min} --increment-max ${increment_max}"
+
+      if [ -n "${custom_charsets}" ]; then
+        increment_charset_opts="${increment_charset_opts} ${custom_charsets}"
+      fi
+    fi
+
+    CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} ${increment_charset_opts} ${hash_file} ${mask} "
 
     echo "> Testing hash type $hash_type with attack mode 3, markov ${MARKOV}, multi hash, Device-Type ${TYPE}, vector-width ${VECTOR}." &>> ${OUTD}/logfull.txt
 
-    output=$(./${BIN} ${OPTS} -a 3 -m ${hash_type} --increment --increment-min ${increment_min} --increment-max ${increment_max} ${custom_charsets} ${hash_file} ${mask} 2>&1)
+    output=$(./${BIN} ${OPTS} -a 3 -m ${hash_type} ${increment_charset_opts} ${hash_file} ${mask} 2>&1)
 
     ret=${?}
 
@@ -1313,8 +1293,9 @@ function attack_3()
       i=1
 
       while read -u 9 hash; do
+        line_nr=$((${i} + ${cracks_offset}))
 
-        pass=$(sed -n ${i}p ${OUTD}/${hash_type}_passwords.txt)
+        pass=$(sed -n ${line_nr}p ${OUTD}/${hash_type}_passwords.txt)
 
         if [ ${pass_only} -eq 1 ]; then
           search=":${pass}"
@@ -1464,23 +1445,64 @@ function attack_6()
 
         fi
 
-        mask=${mask_6[${i}]}
-
         dict1=${OUTD}/${hash_type}_dict1
         dict2=${OUTD}/${hash_type}_dict2
 
-        if [ "${min}" -eq 0 ]; then
-          mask=${mask_custom}
+        dict1_a6=${OUTD}/${hash_type}_dict1_a6
 
-          dict1=${OUTD}/${hash_type}_dict1_custom
-          dict2=${OUTD}/${hash_type}_dict2_custom
+        cp ${dict1} ${dict1_a6}
+
+        pass=$(sed -n ${i}p ${OUTD}/${hash_type}_passwords.txt)
+
+        if [ ${#pass} -le ${i} ]; then
+          ((i++))
+          continue
         fi
 
-        CMD="./${BIN} ${OPTS} -a 6 -m ${hash_type} '${hash}' ${dict1} ${mask}"
+        echo ${pass} | cut -b -$((${#pass} - ${i})) >> ${dict1_a6}
+
+        # the block below is just a fancy way to do a "shuf" (or sort -R) because macOS doesn't really support it natively
+        # we do not really need a shuf, but it's actually better for testing purposes
+
+        rm -f ${dict1_a6}.txt # temporary file
+
+        line_num=$(wc -l ${dict1_a6} | sed 's/ .*$//')
+
+        sorted_lines=$(seq 1 ${line_num})
+
+        for lines in $(seq 1 ${line_num}); do
+
+          random_num=$((${RANDOM} % ${line_num}))
+          random_num=$((${random_num} + 1)) # sed -n [n]p starts counting with 1 (not 0)
+
+          random_line=$(echo -n "${sorted_lines}" | sed -n ${random_num}p)
+
+          sed -n ${random_line}p ${dict1_a6} >> ${dict1_a6}.txt
+
+          # update the temp list of lines
+
+          sorted_lines=$(echo -n "${sorted_lines}" | grep -v "^${random_line}$")
+
+          line_num=$((${line_num} - 1))
+
+        done
+
+        mv ${dict1_a6}.txt ${dict1_a6}
+
+        # end of shuf/sort -R
+
+
+        mask=""
+
+        for j in $(seq 1 ${i}); do
+          mask="${mask}?d"
+        done
+
+        CMD="./${BIN} ${OPTS} -a 6 -m ${hash_type} '${hash}' ${dict1_a6} ${mask}"
 
         echo -n "[ len $i ] " &>> ${OUTD}/logfull.txt
 
-        output=$(./${BIN} ${OPTS} -a 6 -m ${hash_type} "${hash}" ${dict1} ${mask} 2>&1)
+        output=$(./${BIN} ${OPTS} -a 6 -m ${hash_type} "${hash}" ${dict1_a6} ${mask} 2>&1)
 
         ret=${?}
 
@@ -2303,9 +2325,9 @@ function veracrypt_test()
   # The hash-cipher combination might be invalid (e.g. RIPEMD-160 + Kuznyechik)
   [ -f "${filename}" ] || return
 
-  CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} ${filename} hashca?l"
+  CMD="echo hashca{a..z} | ./${BIN} ${OPTS} -a 0 -m ${hash_type} ${filename}"
 
-  echo "> Testing hash type ${hash_type} with attack mode 3, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}, cipher ${cipher_cascade}" &>> ${OUTD}/logfull.txt
+  echo "> Testing hash type ${hash_type} with attack mode 0, markov ${MARKOV}, single hash, Device-Type ${TYPE}, vector-width ${VECTOR}, cipher ${cipher_cascade}" &>> ${OUTD}/logfull.txt
 
   output=$(${CMD} 2>&1)
 
@@ -2322,7 +2344,7 @@ function veracrypt_test()
     msg="Error"
   fi
 
-  echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 3, Mode single, Device-Type ${TYPE}, Vector-Width ${VECTOR}, Cipher ${cipher_cascade} ] > $msg : ${e_nf}/${cnt} not found"
+  echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 0, Mode single, Device-Type ${TYPE}, Vector-Width ${VECTOR}, Cipher ${cipher_cascade} ] > $msg : ${e_nf}/${cnt} not found"
 
   status ${ret}
 }
@@ -2465,45 +2487,46 @@ cat << EOF
 OPTIONS:
 
   -V    OpenCL vector-width (either 1, 2, 4 or 8), overrides value from device query :
-        '1'      => vector-width 1
-        '2'      => vector-width 2 (default)
-        '4'      => vector-width 4
-        '8'      => vector-width 8
-        'all'    => test sequentially vector-width ${VECTOR_WIDTHS}
+        '1'         => vector-width 1
+        '2'         => vector-width 2 (default)
+        '4'         => vector-width 4
+        '8'         => vector-width 8
+        'all'       => test sequentially vector-width ${VECTOR_WIDTHS}
 
   -T    OpenCL device-types to use :
-        'gpu'    => gpu devices (default)
-        'cpu'    => cpu devices
-        'all'    => gpu and cpu devices
+        'gpu'       => gpu devices (default)
+        'cpu'       => cpu devices
+        'all'       => gpu and cpu devices
 
   -t    Select test mode :
-        'single' => single hash (default)
-        'multi'  => multi hash
-        'all'    => single and multi hash
+        'single'    => single hash (default)
+        'multi'     => multi hash
+        'all'       => single and multi hash
 
   -m    Select hash type :
-        'all'    => all hash type supported
-        (int)    => hash type integer code (default : 0)
+        'all'       => all hash type supported
+        (int)       => hash type integer code (default : 0)
 
   -a    Select attack mode :
-        'all'    => all attack modes
-        (int)    => attack mode integer code (default : 0)
+        'all'       => all attack modes
+        (int)       => attack mode integer code (default : 0)
+        (int)-(int) => attack mode integer range
 
   -x    Select cpu architecture :
-        '32'     => 32 bit architecture
-        '64'     => 64 bit architecture (default)
+        '32'        => 32 bit architecture
+        '64'        => 64 bit architecture (default)
 
   -o    Select operating system :
-        'win'    => Windows operating system (use .exe file extension)
-        'linux'  => Linux operating system (use .bin file extension)
-        'macos'  => macOS operating system (use .app file extension)
+        'win'       => Windows operating system (use .exe file extension)
+        'linux'     => Linux operating system (use .bin file extension)
+        'macos'     => macOS operating system (use .app file extension)
 
   -c    Disables markov-chains
 
   -p    Package the tests into a .7z file
 
   -d    Use this folder as input/output folder for packaged tests
-        (string) => path to folder
+        (string)    => path to folder
 
   -h    Show this help
 
@@ -2675,26 +2698,42 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
     exit 1
   fi
 
+  HT_MIN=0
+  HT_MAX=0
+
+  if echo -n ${HT} | grep -q '^[0-9]\+$'; then
+    HT_MIN=${HT}
+    HT_MAX=${HT}
+  elif echo -n ${HT} | grep -q '^[0-9]\+-[1-9][0-9]*$'; then
+
+    HT_MIN=$(echo -n ${HT} | sed "s/-.*//")
+    HT_MAX=$(echo -n ${HT} | sed "s/.*-//")
+
+    if [ "${HT_MIN}" -gt ${HT_MAX} ]; then
+      echo "! hash type range -m ${HT} is not valid ..."
+      usage
+    fi
+  else
+    echo "! hash type is not a number ..."
+    usage
+  fi
+
+  HT=${HT_MIN}
+
   # filter by hash_type
   if [ ${HT} -ne 65535 ]; then
 
     # validate filter
-    check=0
-    for hash_type in $(echo ${HASH_TYPES}); do
 
-      if [ ${HT} -ne ${hash_type} ]; then continue; fi
-
-      check=1
-
-      break
-
-    done
-
-    if [ ${check} -ne 1 ]; then
+    if ! is_in_array ${HT_MIN} ${HASH_TYPES}; then
       echo "! invalid hash type selected ..."
       usage
     fi
 
+    if ! is_in_array ${HT_MAX} ${HASH_TYPES}; then
+      echo "! invalid hash type selected ..."
+      usage
+    fi
   fi
 
   if [ -z "${PACKAGE_FOLDER}" ]; then
@@ -2704,14 +2743,30 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
 
     # generate random test entry
     if [ ${HT} -eq 65535 ]; then
-      perl tools/test.pl single > ${OUTD}/all.sh
-    elif [[ ${HT} -ne 14600 ]]; then
-      # Exclude TrueCrypt and VeraCrypt testing modes
-      if [[ ${HT} -lt  6211 ]] || [[ ${HT} -gt 6243 ]]; then
-        if ! is_in_array ${HT} ${VC_MODES}; then
-          perl tools/test.pl single ${HT} > ${OUTD}/all.sh
+      for TMP_HT in ${HASH_TYPES}; do
+        if [[ ${TMP_HT} -ne ${LUKS_MODE} ]]; then
+          if ! is_in_array ${TMP_HT} ${TC_MODES}; then
+            if ! is_in_array ${TMP_HT} ${VC_MODES}; then
+              perl tools/test.pl single ${TMP_HT} >> ${OUTD}/all.sh
+            fi
+          fi
         fi
-      fi
+      done
+    else
+      for TMP_HT in $(seq ${HT_MIN} ${HT_MAX}); do
+        if ! is_in_array ${TMP_HT} ${HASH_TYPES}; then
+          continue
+        fi
+
+        if [[ ${TMP_HT} -ne ${LUKS_MODE} ]]; then
+          # Exclude TrueCrypt and VeraCrypt testing modes
+          if ! is_in_array ${TMP_HT} ${TC_MODES}; then
+            if ! is_in_array ${TMP_HT} ${VC_MODES}; then
+              perl tools/test.pl single ${TMP_HT} >> ${OUTD}/all.sh
+            fi
+          fi
+        fi
+      done
     fi
 
   else
@@ -2733,7 +2788,17 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
 
   for hash_type in $(echo $HASH_TYPES); do
 
-    if [[ ${HT} -ne 65535 ]] && [[ ${HT} -ne ${hash_type} ]]; then continue; fi
+    if [ "${HT}" -ne 65535 ]; then
+
+      # check if the loop variable "hash_type" is between HT_MIN and HT_MAX (both included)
+
+      if   [ "${hash_type}" -lt ${HT_MIN} ]; then
+        continue
+      elif [ "${hash_type}" -gt ${HT_MAX} ]; then
+        # we are done because hash_type is larger than range:
+        break
+      fi
+    fi
 
     if [ -z "${PACKAGE_FOLDER}" ]; then
 
@@ -2786,12 +2851,12 @@ if [ "${PACKAGE}" -eq 0 -o -z "${PACKAGE_FOLDER}" ]; then
               veracrypt_test 5 # kuznyechik
               veracrypt_test 6 # kuznyechik (alternative cascade)
 
-            elif [[ ${hash_type} -ge 6211 ]] && [[ ${hash_type} -le 6243 ]]; then
+            elif is_in_array ${hash_type} ${TC_MODES}; then
               # run truecrypt tests
               truecrypt_test ${hash_type} 0
               truecrypt_test ${hash_type} 1
               truecrypt_test ${hash_type} 2
-            elif [[ ${hash_type} -eq 14600 ]]; then
+            elif [[ ${hash_type} -eq ${LUKS_MODE} ]]; then
               # run luks tests
               luks_test ${hash_type} ${ATTACK}
             else
@@ -2845,6 +2910,41 @@ if [ "${PACKAGE}" -eq 1 ]; then
 
   cp "${BASH_SOURCE[0]}" ${OUTD}/test.sh
 
+  copy_luks_dir=0
+  copy_tc_dir=0
+  copy_vc_dir=0
+
+  if [ ${HT} -eq 65535 ]; then
+    copy_luks_dir=1
+    copy_tc_dir=1
+    copy_vc_dir=1
+  else
+    for TMP_HT in $(seq ${HT_MIN} ${HT_MAX}); do
+      if [[ ${TMP_HT} -eq ${LUKS_MODE} ]]; then
+        copy_luks_dir=1
+      elif is_in_array ${TMP_HT} ${TC_MODES}; then
+        copy_tc_dir=1
+      elif is_in_array ${TMP_HT} ${VC_MODES}; then
+        copy_vc_dir=1
+      fi
+    done
+  fi
+
+  if [ "${copy_luks_dir}" -eq 1 ]; then
+    mkdir ${OUTD}/luks_tests/
+    cp ${TDIR}/luks_tests/* ${OUTD}/luks_tests/
+  fi
+
+  if [ "${copy_tc_dir}" -eq 1 ]; then
+    mkdir ${OUTD}/tc_tests/
+    cp ${TDIR}/tc_tests/* ${OUTD}/tc_tests/
+  fi
+
+  if [ "${copy_vc_dir}" -eq 1 ]; then
+    mkdir ${OUTD}/vc_tests/
+    cp ${TDIR}/vc_tests/* ${OUTD}/vc_tests/
+  fi
+
   # if we package from a given folder, we need to check if e.g. the files needed for multi mode are there
 
   if [ -n "${PACKAGE_FOLDER}" ]; then
@@ -2888,8 +2988,17 @@ if [ "${PACKAGE}" -eq 1 ]; then
     SED_IN_PLACE='-i ""'
   fi
 
+  HT_PACKAGED=${HT}
+
+  if [ "${HT_MIN}" -ne "${HT_MAX}" ]; then
+    HT_PACKAGED=${HT_MIN}-${HT_MAX}
+  fi
+
+  HASH_TYPES_PACKAGED=$(echo ${HASH_TYPES} | tr '\n' ' ' | sed 's/ $//')
+
   sed "${SED_IN_PLACE}" -e 's/^\(PACKAGE_FOLDER\)=""/\1="$( echo "${BASH_SOURCE[0]}" | sed \"s!test.sh\\$!!\" )"/' \
-    -e "s/^\(HT\)=0/\1=${HT}/" \
+    -e "s/^\(HASH_TYPES\)=\$(.*/\1=\"${HASH_TYPES_PACKAGED}\"/" \
+    -e "s/^\(HT\)=0/\1=${HT_PACKAGED}/" \
     -e "s/^\(MODE\)=0/\1=${MODE}/" \
     -e "s/^\(ATTACK\)=0/\1=${ATTACK}/" \
     ${OUTD}/test.sh

@@ -4,40 +4,41 @@
  */
 
 #include "common.h"
+#include "types.h"
 #include "dynloader.h"
 
 #ifdef _WIN
 
-HMODULE hc_dlopen (LPCSTR lpLibFileName)
+hc_dynlib_t hc_dlopen (LPCSTR lpLibFileName)
 {
   return LoadLibraryA (lpLibFileName);
 }
 
-BOOL hc_dlclose (HMODULE hLibModule)
+BOOL hc_dlclose (hc_dynlib_t hLibModule)
 {
   return FreeLibrary (hLibModule);
 }
 
-FARPROC hc_dlsym (HMODULE hModule, LPCSTR lpProcName)
+hc_dynfunc_t hc_dlsym (hc_dynlib_t hModule, LPCSTR lpProcName)
 {
   return GetProcAddress (hModule, lpProcName);
 }
 
 #else
 
-void *hc_dlopen (const char *fileName, int flag)
+hc_dynlib_t hc_dlopen (const char *filename)
 {
-  return dlopen (fileName, flag);
+  return dlopen (filename, RTLD_NOW);
 }
 
-int hc_dlclose (void * handle)
+int hc_dlclose (hc_dynlib_t handle)
 {
   return dlclose (handle);
 }
 
-void *hc_dlsym (void *module, const char *symbol)
+hc_dynfunc_t hc_dlsym (hc_dynlib_t handle, const char *symbol)
 {
-  return dlsym (module, symbol);
+  return dlsym (handle, symbol);
 }
 
 #endif

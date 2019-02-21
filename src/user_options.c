@@ -614,26 +614,11 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if (user_options->hash_mode > 99999)
+  if (user_options->hash_mode >= MODULE_HASH_MODES_MAXIMUM)
   {
     event_log_error (hashcat_ctx, "Invalid -m (hash type) value specified.");
 
     return -1;
-  }
-
-  if (user_options->username == true)
-  {
-    if  ((user_options->hash_mode ==  2500)
-     ||  (user_options->hash_mode ==  2501)
-     ||  (user_options->hash_mode ==  5200)
-     || ((user_options->hash_mode >=  6200) && (user_options->hash_mode <=  6299))
-     || ((user_options->hash_mode >= 13700) && (user_options->hash_mode <= 13799))
-     ||  (user_options->hash_mode ==  9000))
-    {
-      event_log_error (hashcat_ctx, "Combining --username with hashes of type %s is not supported.", strhashtype (user_options->hash_mode));
-
-      return -1;
-    }
   }
 
   if (user_options->outfile_format > 16)
@@ -1385,6 +1370,11 @@ void user_options_session_auto (hashcat_ctx_t *hashcat_ctx)
       user_options->session = "example_hashes";
     }
 
+    if (user_options->usage == true)
+    {
+      user_options->session = "usage";
+    }
+
     if (user_options->speed_only == true)
     {
       user_options->session = "speed_only";
@@ -1457,7 +1447,8 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
    || user_options->opencl_info     == true
    || user_options->keyspace        == true
    || user_options->speed_only      == true
-   || user_options->progress_only   == true)
+   || user_options->progress_only   == true
+   || user_options->usage           == true)
   {
     user_options->hwmon_disable       = true;
     user_options->left                = false;
@@ -1509,6 +1500,11 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   }
 
   if (user_options->example_hashes == true)
+  {
+    user_options->quiet = true;
+  }
+
+  if (user_options->usage == true)
   {
     user_options->quiet = true;
   }
@@ -1589,24 +1585,6 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   if (user_options->skip != 0 && user_options->limit != 0)
   {
     user_options->limit += user_options->skip;
-  }
-
-  if (user_options->hash_mode == 9710)
-  {
-    user_options->outfile_format      = 5;
-    user_options->outfile_format_chgd = 1;
-  }
-
-  if (user_options->hash_mode == 9810)
-  {
-    user_options->outfile_format      = 5;
-    user_options->outfile_format_chgd = 1;
-  }
-
-  if (user_options->hash_mode == 10410)
-  {
-    user_options->outfile_format      = 5;
-    user_options->outfile_format_chgd = 1;
   }
 
   if (user_options->markov_threshold == 0)

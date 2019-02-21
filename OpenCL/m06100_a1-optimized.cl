@@ -161,12 +161,12 @@ __kernel void m06100_m04 (KERN_ATTR_ESALT (netntlm_t))
     w[ 5] = swap32 (w1[1]);
     w[ 6] = swap32 (w1[2]);
     w[ 7] = swap32 (w1[3]);
-    w[ 8] = swap32 (w2[0]);
-    w[ 9] = swap32 (w2[1]);
-    w[10] = swap32 (w2[2]);
-    w[11] = swap32 (w2[3]);
-    w[12] = swap32 (w3[0]);
-    w[13] = swap32 (w3[1]);
+    w[ 8] = 0;
+    w[ 9] = 0;
+    w[10] = 0;
+    w[11] = 0;
+    w[12] = 0;
+    w[13] = 0;
     w[14] = 0;
     w[15] = pw_len * 8;
 
@@ -362,12 +362,12 @@ __kernel void m06100_s04 (KERN_ATTR_ESALT (netntlm_t))
     w[ 5] = swap32 (w1[1]);
     w[ 6] = swap32 (w1[2]);
     w[ 7] = swap32 (w1[3]);
-    w[ 8] = swap32 (w2[0]);
-    w[ 9] = swap32 (w2[1]);
-    w[10] = swap32 (w2[2]);
-    w[11] = swap32 (w2[3]);
-    w[12] = swap32 (w3[0]);
-    w[13] = swap32 (w3[1]);
+    w[ 8] = 0;
+    w[ 9] = 0;
+    w[10] = 0;
+    w[11] = 0;
+    w[12] = 0;
+    w[13] = 0;
     w[14] = 0;
     w[15] = pw_len * 8;
 

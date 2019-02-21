@@ -44,10 +44,10 @@
   __global const salt_t        * restrict salt_bufs,         \
   __global const p19           * restrict esalt_bufs,        \
   __global       u32           * restrict d_return_buf,      \
-  __global       uint4         * restrict d_scryptV0_buf,    \
-  __global       uint4         * restrict d_scryptV1_buf,    \
-  __global       uint4         * restrict d_scryptV2_buf,    \
-  __global       uint4         * restrict d_scryptV3_buf,    \
+  __global       void          * restrict d_extra0_buf,      \
+  __global       void          * restrict d_extra1_buf,      \
+  __global       void          * restrict d_extra2_buf,      \
+  __global       void          * restrict d_extra3_buf,      \
   const u32 bitmap_mask,    \
   const u32 bitmap_shift1,  \
   const u32 bitmap_shift2,  \

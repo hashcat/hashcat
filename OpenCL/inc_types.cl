@@ -1228,12 +1228,7 @@ typedef struct wpa_pmkid
 typedef struct bitcoin_wallet
 {
   u32 cry_master_buf[64];
-  u32 ckey_buf[64];
-  u32 public_key_buf[64];
-
   u32 cry_master_len;
-  u32 ckey_len;
-  u32 public_key_len;
 
 } bitcoin_wallet_t;
 
@@ -1326,25 +1321,25 @@ typedef struct tc
 
 typedef struct pbkdf2_md5
 {
-  u32 salt_buf[16];
+  u32 salt_buf[64];
 
 } pbkdf2_md5_t;
 
 typedef struct pbkdf2_sha1
 {
-  u32 salt_buf[16];
+  u32 salt_buf[64];
 
 } pbkdf2_sha1_t;
 
 typedef struct pbkdf2_sha256
 {
-  u32 salt_buf[16];
+  u32 salt_buf[64];
 
 } pbkdf2_sha256_t;
 
 typedef struct pbkdf2_sha512
 {
-  u32 salt_buf[32];
+  u32 salt_buf[64];
 
 } pbkdf2_sha512_t;
 
@@ -1573,6 +1568,8 @@ typedef struct jwt
 {
   u32 salt_buf[1024];
   u32 salt_len;
+
+  u32 signature_len;
 
 } jwt_t;
 

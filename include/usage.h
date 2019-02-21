@@ -10,6 +10,6 @@
 #include <string.h>
 
 void usage_mini_print (const char *progname);
-void usage_big_print  (const char *progname);
+void usage_big_print  (hashcat_ctx_t *hashcat_ctx);
 
 #endif // _USAGE_H

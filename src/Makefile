@@ -7,7 +7,7 @@ SHARED                  := 0
 DEBUG                   := 0
 PRODUCTION              := 0
 PRODUCTION_VERSION      := v5.1.0
-ENABLE_BRAIN            := 1
+ENABLE_BRAIN            := 0
 USE_SYSTEM_LZMA         := 0
 USE_SYSTEM_OPENCL       := 0
 USE_SYSTEM_XXHASH       := 0
@@ -38,11 +38,17 @@ endif
 ## Makefile flags
 ##
 
-MAKEFLAGS               += -l -j -rR --no-print-directory
+MAKEFLAGS               += -l -j 8 -rR --no-print-directory
 
 ifneq ($(findstring clean,$(MAKECMDGOALS)),)
 MAKEFLAGS               += -j 1
 endif
+
+##
+## Do not modify
+##
+
+MODULE_INTERFACE_VERSION := 520
 
 ##
 ## Native compiler paths
@@ -174,6 +180,15 @@ CFLAGS                  += -Wall
 CFLAGS                  += -Wextra
 endif
 
+## because LZMA SDK
+ifeq ($(CC),clang)
+CFLAGS                  += -Wno-enum-conversion
+endif
+
+## is very annoying during refactor
+CFLAGS                  += -Wno-unused-variable
+CFLAGS                  += -Wno-unused-function
+
 ifeq ($(DEBUG),0)
 CFLAGS                  += -O2
 ifneq ($(UNAME),Darwin)
@@ -181,10 +196,18 @@ LFLAGS                  += -s
 endif
 else
 ifeq ($(DEBUG),1)
+ifneq ($(UNAME),Darwin)
 CFLAGS                  += -DDEBUG -Og -ggdb
 else
+CFLAGS                  += -DDEBUG -O0 -ggdb
+endif
+else
 ifeq ($(DEBUG),2)
+ifneq ($(UNAME),Darwin)
 CFLAGS                  += -DDEBUG -Og -ggdb
+else
+CFLAGS                  += -DDEBUG -O0 -ggdb
+endif
 CFLAGS                  += -fsanitize=address -fno-omit-frame-pointer
 endif
 endif
@@ -254,7 +277,8 @@ CFLAGS_NATIVE           := $(CFLAGS)
 CFLAGS_NATIVE           += -I$(OPENCL_HEADERS_KHRONOS)/
 CFLAGS_NATIVE           += -DWITH_HWMON
 LFLAGS_NATIVE           := $(LFLAGS)
-LFLAGS_NATIVE           += -Wl,--dynamicbase -Wl,--nxcompat
+LFLAGS_NATIVE           += -Wl,--dynamicbase
+LFLAGS_NATIVE           += -Wl,--nxcompat
 LFLAGS_NATIVE           += -lpsapi
 LFLAGS_NATIVE           += -liconv
 endif # CYGWIN
@@ -264,7 +288,8 @@ CFLAGS_NATIVE           := $(CFLAGS)
 CFLAGS_NATIVE           += -I$(OPENCL_HEADERS_KHRONOS)/
 CFLAGS_NATIVE           += -DWITH_HWMON
 LFLAGS_NATIVE           := $(LFLAGS)
-LFLAGS_NATIVE           += -Wl,--dynamicbase -Wl,--nxcompat
+LFLAGS_NATIVE           += -Wl,--dynamicbase
+LFLAGS_NATIVE           += -Wl,--nxcompat
 LFLAGS_NATIVE           += -lpsapi
 LFLAGS_NATIVE           += -liconv
 LFLAGS_NATIVE           += -lws2_32
@@ -275,20 +300,24 @@ endif # MSYS2
 ##
 
 CFLAGS_CROSS_LINUX32    := $(CFLAGS)
+CFLAGS_CROSS_LINUX32    += -fPIC
 CFLAGS_CROSS_LINUX32    += -I$(OPENCL_HEADERS_KHRONOS)/
 CFLAGS_CROSS_LINUX32    += -m32
 CFLAGS_CROSS_LINUX32    += -DWITH_HWMON
 CFLAGS_CROSS_LINUX64    := $(CFLAGS)
+CFLAGS_CROSS_LINUX64    += -fPIC
 CFLAGS_CROSS_LINUX64    += -I$(OPENCL_HEADERS_KHRONOS)/
 CFLAGS_CROSS_LINUX64    += -m64
 CFLAGS_CROSS_LINUX64    += -DWITH_HWMON
 CFLAGS_CROSS_WIN32      := $(CFLAGS)
+CFLAGS_CROSS_WIN32      += -fPIC
 CFLAGS_CROSS_WIN32      += -D__MINGW_USE_VC2005_COMPAT #hack to get 64-bit time_t
 CFLAGS_CROSS_WIN32      += -I$(OPENCL_HEADERS_KHRONOS)/
 CFLAGS_CROSS_WIN32      += -I$(WIN_ICONV_32)/include/
 CFLAGS_CROSS_WIN32      += -m32
 CFLAGS_CROSS_WIN32      += -DWITH_HWMON
 CFLAGS_CROSS_WIN64      := $(CFLAGS)
+CFLAGS_CROSS_WIN64      += -fPIC
 CFLAGS_CROSS_WIN64      += -I$(OPENCL_HEADERS_KHRONOS)/
 CFLAGS_CROSS_WIN64      += -I$(WIN_ICONV_64)/include/
 CFLAGS_CROSS_WIN64      += -m64
@@ -303,11 +332,13 @@ LFLAGS_CROSS_LINUX64    += -lpthread
 LFLAGS_CROSS_LINUX64    += -ldl
 LFLAGS_CROSS_LINUX64    += -lm
 LFLAGS_CROSS_WIN32      := $(LFLAGS)
-LFLAGS_CROSS_WIN32      += -Wl,--dynamicbase -Wl,--nxcompat
+LFLAGS_CROSS_WIN32      += -Wl,--dynamicbase
+LFLAGS_CROSS_WIN32      += -Wl,--nxcompat
 LFLAGS_CROSS_WIN32      += -lpsapi
 LFLAGS_CROSS_WIN32      += -lws2_32
 LFLAGS_CROSS_WIN64      := $(LFLAGS)
-LFLAGS_CROSS_WIN64      += -Wl,--dynamicbase -Wl,--nxcompat
+LFLAGS_CROSS_WIN64      += -Wl,--dynamicbase
+LFLAGS_CROSS_WIN64      += -Wl,--nxcompat
 LFLAGS_CROSS_WIN64      += -lpsapi
 LFLAGS_CROSS_WIN64      += -lws2_32
 
@@ -315,7 +346,7 @@ LFLAGS_CROSS_WIN64      += -lws2_32
 ## Objects
 ##
 
-OBJS_ALL                := affinity autotune benchmark bitmap bitops combinator common convert cpt cpu_aes cpu_crc32 cpu_des cpu_md4 cpu_md5 cpu_sha1 cpu_sha256 debugfile dictstat dispatch dynloader event ext_ADL ext_nvapi ext_nvml ext_OpenCL ext_sysfs ext_lzma filehandling folder hashcat hashes hlfmt hwmon induct interface locking logfile loopback memory monitor mpsp opencl outfile_check outfile pidfile potfile restore rp rp_cpu rp_kernel_on_cpu rp_kernel_on_cpu_optimized selftest slow_candidates shared status stdout straight terminal thread timer tuningdb usage user_options wordlist
+OBJS_ALL                := affinity autotune benchmark bitmap bitops combinator common convert cpt cpu_aes cpu_crc32 cpu_des cpu_md4 cpu_md5 cpu_sha1 cpu_sha256 debugfile dictstat dispatch dynloader event ext_ADL ext_nvapi ext_nvml ext_OpenCL ext_sysfs ext_lzma filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memory monitor mpsp opencl outfile_check outfile pidfile potfile restore rp rp_cpu rp_kernel_on_cpu rp_kernel_on_cpu_optimized selftest slow_candidates shared status stdout straight terminal thread timer tuningdb usage user_options wordlist
 
 ifeq ($(ENABLE_BRAIN),1)
 OBJS_ALL                += brain
@@ -358,16 +389,34 @@ WIN_64_OBJS             += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).WIN.64.o)
 endif
 endif
 
+MODULE_OBJS_ALL                 := bitops convert cpu_aes cpu_crc32 cpu_des cpu_md4 cpu_md5 cpu_sha1 cpu_sha256 ext_lzma filehandling keyboard_layout memory shared
+
+ifeq ($(USE_SYSTEM_LZMA),0)
+MODULE_OBJS_ALL                 += Alloc Lzma2Dec LzmaDec
+endif
+
+MODULE_NATIVE_STATIC_OBJS       := $(foreach OBJ,$(MODULE_OBJS_ALL),obj/$(OBJ).NATIVE.STATIC.o)
+MODULE_NATIVE_SHARED_OBJS       := $(foreach OBJ,$(MODULE_OBJS_ALL),obj/$(OBJ).NATIVE.SHARED.o)
+
+MODULE_LINUX_32_OBJS            := $(foreach OBJ,$(MODULE_OBJS_ALL),obj/$(OBJ).LINUX.32.o)
+MODULE_LINUX_64_OBJS            := $(foreach OBJ,$(MODULE_OBJS_ALL),obj/$(OBJ).LINUX.64.o)
+
+MODULE_WIN_32_OBJS              := $(foreach OBJ,$(MODULE_OBJS_ALL),obj/$(OBJ).WIN.32.o)
+MODULE_WIN_64_OBJS              := $(foreach OBJ,$(MODULE_OBJS_ALL),obj/$(OBJ).WIN.64.o)
+
 ##
 ## Targets: Native Compilation
 ##
 
-default: $(HASHCAT_FRONTEND)
+default: $(HASHCAT_FRONTEND) modules
 
 clean:
 	$(RM) -f $(HASHCAT_FRONTEND)
 	$(RM) -f $(HASHCAT_LIBRARY)
+	$(RM) -f modules/*.dll
+	$(RM) -f modules/*.so
 	$(RM) -f obj/*.o
+	$(RM) -f obj/*.a
 	$(RM) -f *.bin *.exe
 	$(RM) -f *.pid
 	$(RM) -f *.restore
@@ -387,11 +436,15 @@ distclean: clean
 
 binaries: linux32 linux64 win32 win64
 
-linux32: hashcat32.bin
-linux64: hashcat64.bin
+host_linux32: hashcat32.bin
+host_linux64: hashcat64.bin
+host_win32:   hashcat32.exe
+host_win64:   hashcat64.exe
 
-win32: hashcat32.exe
-win64: hashcat64.exe
+linux32: host_linux32 modules_linux32
+linux64: host_linux64 modules_linux64
+win32:   host_win32   modules_win32
+win64:   host_win64   modules_win64
 
 ##
 ## Targets: Linux install
@@ -411,9 +464,9 @@ Only Linux, FreeBSD and Darwin can use the 'install' target
 endif
 
 ifeq ($(SHARED),1)
-install: install_docs install_shared install_library install_library_dev install_hashcat
+install: install_docs install_shared install_library install_library_dev install_kernels install_modules install_hashcat
 else
-install: install_docs install_shared                                     install_hashcat
+install: install_docs install_shared                                     install_kernels install_modules install_hashcat
 endif
 
 # we need this extra target to make sure that for parallel builds (i.e. 2+ Makefile targets could possible run at the same time)
@@ -462,9 +515,16 @@ install_shared: install_make_shared_root
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(SHARED_FOLDER)
 	$(INSTALL) -m 644 hashcat.hctune                                        $(DESTDIR)$(SHARED_FOLDER)/
 	$(INSTALL) -m 644 hashcat.hcstat2                                       $(DESTDIR)$(SHARED_FOLDER)/
+
+install_kernels: install_shared
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(SHARED_FOLDER)/OpenCL
 	$(FIND) OpenCL/   -mindepth 1 -type d -execdir $(INSTALL) -m 755 -d     $(DESTDIR)$(SHARED_FOLDER)/OpenCL/{} \;
 	$(FIND) OpenCL/   -mindepth 1 -type f -execdir $(INSTALL) -m 644 {}     $(DESTDIR)$(SHARED_FOLDER)/OpenCL/{} \;
+
+install_modules: install_shared modules
+	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(SHARED_FOLDER)/modules
+	$(FIND) modules/  -mindepth 1 -type d -execdir $(INSTALL) -m 755 -d     $(DESTDIR)$(SHARED_FOLDER)/modules/{} \;
+	$(FIND) modules/  -mindepth 1 -type f -execdir $(INSTALL) -m 644 {}     $(DESTDIR)$(SHARED_FOLDER)/modules/{} \;
 
 install_library: $(HASHCAT_LIBRARY)
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(LIBRARY_FOLDER)
@@ -531,6 +591,54 @@ $(HASHCAT_FRONTEND): src/main.c $(NATIVE_STATIC_OBJS)
 endif
 
 ##
+## native compiled modules
+##
+
+MODULE_SUFFIX := so
+
+ifeq ($(UNAME),CYGWIN)
+MODULE_SUFFIX := dll
+endif
+
+ifeq ($(UNAME),MSYS2)
+MODULE_SUFFIX := dll
+endif
+
+MODULES_SRC   := $(wildcard src/modules/*.c)
+MODULES_LIB   := $(patsubst src/modules/module_%.c, modules/module_%.$(MODULE_SUFFIX), $(MODULES_SRC))
+
+modules/module_%.$(MODULE_SUFFIX): src/modules/module_%.c $(MODULE_NATIVE_SHARED_OBJS)
+	$(CC)    $(CFLAGS_NATIVE) $^ -o $@ $(LFLAGS_NATIVE) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
+
+modules: $(MODULES_LIB)
+
+##
+## cross compiled modules
+##
+
+MODULES_LIB_LINUX32   := $(patsubst src/modules/module_%.c, modules/module32_%.so,  $(MODULES_SRC))
+MODULES_LIB_LINUX64   := $(patsubst src/modules/module_%.c, modules/module64_%.so,  $(MODULES_SRC))
+MODULES_LIB_WIN32     := $(patsubst src/modules/module_%.c, modules/module32_%.dll, $(MODULES_SRC))
+MODULES_LIB_WIN64     := $(patsubst src/modules/module_%.c, modules/module64_%.dll, $(MODULES_SRC))
+
+modules_linux32: $(MODULES_LIB_LINUX32)
+modules_linux64: $(MODULES_LIB_LINUX64)
+modules_win32:   $(MODULES_LIB_WIN32)
+modules_win64:   $(MODULES_LIB_WIN64)
+
+modules/module32_%.so:  src/modules/module_%.c $(MODULE_LINUX_32_OBJS)
+	$(CC_LINUX_32)  $(CFLAGS_CROSS_LINUX32) $^ -o $@ $(LFLAGS_CROSS_LINUX32) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
+
+modules/module64_%.so:  src/modules/module_%.c $(MODULE_LINUX_64_OBJS)
+	$(CC_LINUX_64)  $(CFLAGS_CROSS_LINUX64) $^ -o $@ $(LFLAGS_CROSS_LINUX64) -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
+
+modules/module32_%.dll: src/modules/module_%.c $(MODULE_WIN_32_OBJS)
+	$(CC_WIN_32)    $(CFLAGS_CROSS_WIN32)   $^ -o $@ $(LFLAGS_CROSS_WIN32)   -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
+
+modules/module64_%.dll: src/modules/module_%.c $(MODULE_WIN_64_OBJS)
+	$(CC_WIN_64)    $(CFLAGS_CROSS_WIN64)   $^ -o $@ $(LFLAGS_CROSS_WIN64)   -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
+
+##
 ## cross compiled hashcat
 ##
 
@@ -588,8 +696,8 @@ hashcat32.exe: src/main.c $(WIN_32_OBJS) $(WIN_ICONV_32)/lib/libiconv.a
 hashcat64.exe: src/main.c $(WIN_64_OBJS) $(WIN_ICONV_64)/lib/libiconv.a
 	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)      -o $@ $^ $(LFLAGS_CROSS_WIN64)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\"
 
-hashcat32.dll: src/main.c $(WIN_32_OBJS)
+hashcat32.dll: src/main.c $(WIN_32_OBJS) $(WIN_ICONV_32)/lib/libiconv.a
 	$(CC_WIN_32)   $(CFLAGS_CROSS_WIN32)      -o $@ $^ $(LFLAGS_CROSS_WIN32)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -shared
 
-hashcat64.dll: src/main.c $(WIN_64_OBJS)
+hashcat64.dll: src/main.c $(WIN_64_OBJS) $(WIN_ICONV_64)/lib/libiconv.a
 	$(CC_WIN_64)   $(CFLAGS_CROSS_WIN64)      -o $@ $^ $(LFLAGS_CROSS_WIN64)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -shared

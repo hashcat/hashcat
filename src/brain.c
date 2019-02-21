@@ -114,7 +114,9 @@ u32 brain_compute_session (hashcat_ctx_t *hashcat_ctx)
 
       for (u32 digest_idx = 0; digest_idx < salt_buf->digests_cnt; digest_idx++)
       {
-        ascii_digest (hashcat_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salts_idx, digest_idx);
+        const int out_len = ascii_digest (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salts_idx, digest_idx);
+
+        out_buf[out_len] = 0;
 
         out_bufs[out_idx] = hcstrdup ((char *) out_buf);
       }
@@ -154,7 +156,7 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
 
   XXH64_reset (state, user_options->brain_session);
 
-  const int hash_mode   = user_options->hash_mode;
+  const int hash_mode   = hashconfig->hash_mode;
   const int attack_mode = user_options->attack_mode;
 
   XXH64_update (state, &hash_mode,   sizeof (hash_mode));

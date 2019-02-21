@@ -297,3 +297,7 @@ DECLSPEC void kuznyechik_decrypt (const u32 *ks, const u32 *in, u32 *out)
     out[3] ^= ks[4 * i + 3];
   }
 }
+
+#undef extract_byte
+#undef k_lookup
+#undef k_xor

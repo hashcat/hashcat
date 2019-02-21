@@ -221,15 +221,9 @@ typedef int (*NVAPI_API_CALL NVAPI_GPU_GETPERFPOLICIESSTATUS) (NvPhysicalGpuHand
 typedef int (*NVAPI_API_CALL NVAPI_GPU_GETBUSID) (NvPhysicalGpuHandle, NvU32 *);
 typedef int (*NVAPI_API_CALL NVAPI_GPU_GETBUSSLOTID) (NvPhysicalGpuHandle, NvU32 *);
 
-#if defined (_POSIX)
-typedef void *NVAPI_LIB;
-#else
-typedef HINSTANCE NVAPI_LIB;
-#endif
-
 typedef struct hm_nvapi_lib
 {
-  NVAPI_LIB lib;
+  hc_dynlib_t lib;
 
   NVAPI_QUERYINTERFACE nvapi_QueryInterface;
   NVAPI_INITIALIZE NvAPI_Initialize;

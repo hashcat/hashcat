@@ -1155,22 +1155,22 @@ DECLSPEC void streebog256_hmac_init (streebog256_hmac_ctx_t *ctx, const u32 *w, 
 
     streebog256_final (&tmp);
 
-    w0[0] = h32_from_64_S (tmp.h[0]);
-    w0[1] = l32_from_64_S (tmp.h[0]);
-    w0[2] = h32_from_64_S (tmp.h[1]);
-    w0[3] = l32_from_64_S (tmp.h[1]);
-    w1[0] = h32_from_64_S (tmp.h[2]);
-    w1[1] = l32_from_64_S (tmp.h[2]);
-    w1[2] = h32_from_64_S (tmp.h[3]);
-    w1[3] = l32_from_64_S (tmp.h[3]);
-    w2[0] = h32_from_64_S (tmp.h[4]);
-    w2[1] = l32_from_64_S (tmp.h[4]);
-    w2[2] = h32_from_64_S (tmp.h[5]);
-    w2[3] = l32_from_64_S (tmp.h[5]);
-    w3[0] = h32_from_64_S (tmp.h[6]);
-    w3[1] = l32_from_64_S (tmp.h[6]);
-    w3[2] = h32_from_64_S (tmp.h[7]);
-    w3[3] = l32_from_64_S (tmp.h[7]);
+    w0[0] = h32_from_64_S (tmp.h[3]);
+    w0[1] = l32_from_64_S (tmp.h[3]);
+    w0[2] = h32_from_64_S (tmp.h[2]);
+    w0[3] = l32_from_64_S (tmp.h[2]);
+    w1[0] = h32_from_64_S (tmp.h[1]);
+    w1[1] = l32_from_64_S (tmp.h[1]);
+    w1[2] = h32_from_64_S (tmp.h[0]);
+    w1[3] = l32_from_64_S (tmp.h[0]);
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 0;
+    w3[3] = 0;
   }
   else
   {
@@ -1212,22 +1212,22 @@ DECLSPEC void streebog256_hmac_init_swap (streebog256_hmac_ctx_t *ctx, const u32
 
     streebog256_final (&tmp);
 
-    w0[0] = h32_from_64_S (tmp.h[0]);
-    w0[1] = l32_from_64_S (tmp.h[0]);
-    w0[2] = h32_from_64_S (tmp.h[1]);
-    w0[3] = l32_from_64_S (tmp.h[1]);
-    w1[0] = h32_from_64_S (tmp.h[2]);
-    w1[1] = l32_from_64_S (tmp.h[2]);
-    w1[2] = h32_from_64_S (tmp.h[3]);
-    w1[3] = l32_from_64_S (tmp.h[3]);
-    w2[0] = h32_from_64_S (tmp.h[4]);
-    w2[1] = l32_from_64_S (tmp.h[4]);
-    w2[2] = h32_from_64_S (tmp.h[5]);
-    w2[3] = l32_from_64_S (tmp.h[5]);
-    w3[0] = h32_from_64_S (tmp.h[6]);
-    w3[1] = l32_from_64_S (tmp.h[6]);
-    w3[2] = h32_from_64_S (tmp.h[7]);
-    w3[3] = l32_from_64_S (tmp.h[7]);
+    w0[0] = h32_from_64_S (tmp.h[3]);
+    w0[1] = l32_from_64_S (tmp.h[3]);
+    w0[2] = h32_from_64_S (tmp.h[2]);
+    w0[3] = l32_from_64_S (tmp.h[2]);
+    w1[0] = h32_from_64_S (tmp.h[1]);
+    w1[1] = l32_from_64_S (tmp.h[1]);
+    w1[2] = h32_from_64_S (tmp.h[0]);
+    w1[3] = l32_from_64_S (tmp.h[0]);
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 0;
+    w3[3] = 0;
   }
   else
   {
@@ -1786,22 +1786,22 @@ DECLSPEC void streebog256_hmac_init_vector (streebog256_hmac_ctx_vector_t *ctx, 
 
     streebog256_final_vector (&tmp);
 
-    w0[0] = h32_from_64 (tmp.h[0]);
-    w0[1] = l32_from_64 (tmp.h[0]);
-    w0[2] = h32_from_64 (tmp.h[1]);
-    w0[3] = l32_from_64 (tmp.h[1]);
-    w1[0] = h32_from_64 (tmp.h[2]);
-    w1[1] = l32_from_64 (tmp.h[2]);
-    w1[2] = h32_from_64 (tmp.h[3]);
-    w1[3] = l32_from_64 (tmp.h[3]);
-    w2[0] = h32_from_64 (tmp.h[4]);
-    w2[1] = l32_from_64 (tmp.h[4]);
-    w2[2] = h32_from_64 (tmp.h[5]);
-    w2[3] = l32_from_64 (tmp.h[5]);
-    w3[0] = h32_from_64 (tmp.h[6]);
-    w3[1] = l32_from_64 (tmp.h[6]);
-    w3[2] = h32_from_64 (tmp.h[7]);
-    w3[3] = l32_from_64 (tmp.h[7]);
+    w0[0] = h32_from_64 (tmp.h[3]);
+    w0[1] = l32_from_64 (tmp.h[3]);
+    w0[2] = h32_from_64 (tmp.h[2]);
+    w0[3] = l32_from_64 (tmp.h[2]);
+    w1[0] = h32_from_64 (tmp.h[1]);
+    w1[1] = l32_from_64 (tmp.h[1]);
+    w1[2] = h32_from_64 (tmp.h[0]);
+    w1[3] = l32_from_64 (tmp.h[0]);
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 0;
+    w3[3] = 0;
   }
   else
   {
@@ -1843,22 +1843,22 @@ DECLSPEC void streebog256_hmac_init_vector_swap (streebog256_hmac_ctx_vector_t *
 
     streebog256_final_vector (&tmp);
 
-    w0[0] = h32_from_64 (tmp.h[0]);
-    w0[1] = l32_from_64 (tmp.h[0]);
-    w0[2] = h32_from_64 (tmp.h[1]);
-    w0[3] = l32_from_64 (tmp.h[1]);
-    w1[0] = h32_from_64 (tmp.h[2]);
-    w1[1] = l32_from_64 (tmp.h[2]);
-    w1[2] = h32_from_64 (tmp.h[3]);
-    w1[3] = l32_from_64 (tmp.h[3]);
-    w2[0] = h32_from_64 (tmp.h[4]);
-    w2[1] = l32_from_64 (tmp.h[4]);
-    w2[2] = h32_from_64 (tmp.h[5]);
-    w2[3] = l32_from_64 (tmp.h[5]);
-    w3[0] = h32_from_64 (tmp.h[6]);
-    w3[1] = l32_from_64 (tmp.h[6]);
-    w3[2] = h32_from_64 (tmp.h[7]);
-    w3[3] = l32_from_64 (tmp.h[7]);
+    w0[0] = h32_from_64 (tmp.h[3]);
+    w0[1] = l32_from_64 (tmp.h[3]);
+    w0[2] = h32_from_64 (tmp.h[2]);
+    w0[3] = l32_from_64 (tmp.h[2]);
+    w1[0] = h32_from_64 (tmp.h[1]);
+    w1[1] = l32_from_64 (tmp.h[1]);
+    w1[2] = h32_from_64 (tmp.h[0]);
+    w1[3] = l32_from_64 (tmp.h[0]);
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 0;
+    w3[3] = 0;
   }
   else
   {

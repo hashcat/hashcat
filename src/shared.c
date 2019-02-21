@@ -5,11 +5,97 @@
 
 #include "common.h"
 #include "types.h"
+#include "bitops.h"
+#include "convert.h"
 #include "shared.h"
+#include "inc_hash_constants.h"
+#include "cpu_des.h"
 
 #if defined (__CYGWIN__)
 #include <sys/cygwin.h>
 #endif
+
+static const char *PA_000 = "OK";
+static const char *PA_001 = "Ignored due to comment";
+static const char *PA_002 = "Ignored due to zero length";
+static const char *PA_003 = "Line-length exception";
+static const char *PA_004 = "Hash-length exception";
+static const char *PA_005 = "Hash-value exception";
+static const char *PA_006 = "Salt-length exception";
+static const char *PA_007 = "Salt-value exception";
+static const char *PA_008 = "Salt-iteration count exception";
+static const char *PA_009 = "Separator unmatched";
+static const char *PA_010 = "Signature unmatched";
+static const char *PA_011 = "Invalid hccapx file size";
+static const char *PA_012 = "Invalid hccapx eapol size";
+static const char *PA_013 = "Invalid psafe2 filesize";
+static const char *PA_014 = "Invalid psafe3 filesize";
+static const char *PA_015 = "Invalid truecrypt filesize";
+static const char *PA_016 = "Invalid veracrypt filesize";
+static const char *PA_017 = "Invalid SIP directive, only MD5 is supported";
+static const char *PA_018 = "Hash-file exception";
+static const char *PA_019 = "Hash-encoding exception";
+static const char *PA_020 = "Salt-encoding exception";
+static const char *PA_021 = "Invalid LUKS filesize";
+static const char *PA_022 = "Invalid LUKS identifier";
+static const char *PA_023 = "Invalid LUKS version";
+static const char *PA_024 = "Invalid or unsupported LUKS cipher type";
+static const char *PA_025 = "Invalid or unsupported LUKS cipher mode";
+static const char *PA_026 = "Invalid or unsupported LUKS hash type";
+static const char *PA_027 = "Invalid LUKS key size";
+static const char *PA_028 = "Disabled LUKS key detected";
+static const char *PA_029 = "Invalid LUKS key AF stripes count";
+static const char *PA_030 = "Invalid combination of LUKS hash type and cipher type";
+static const char *PA_031 = "Invalid hccapx signature";
+static const char *PA_032 = "Invalid hccapx version";
+static const char *PA_033 = "Invalid hccapx message pair";
+static const char *PA_034 = "Token encoding exception";
+static const char *PA_035 = "Token length exception";
+static const char *PA_036 = "Insufficient entropy exception";
+static const char *PA_255 = "Unknown error";
+
+static const char *OPTI_STR_OPTIMIZED_KERNEL     = "Optimized-Kernel";
+static const char *OPTI_STR_ZERO_BYTE            = "Zero-Byte";
+static const char *OPTI_STR_PRECOMPUTE_INIT      = "Precompute-Init";
+static const char *OPTI_STR_PRECOMPUTE_MERKLE    = "Precompute-Merkle-Demgard";
+static const char *OPTI_STR_PRECOMPUTE_PERMUT    = "Precompute-Final-Permutation";
+static const char *OPTI_STR_MEET_IN_MIDDLE       = "Meet-In-The-Middle";
+static const char *OPTI_STR_EARLY_SKIP           = "Early-Skip";
+static const char *OPTI_STR_NOT_SALTED           = "Not-Salted";
+static const char *OPTI_STR_NOT_ITERATED         = "Not-Iterated";
+static const char *OPTI_STR_PREPENDED_SALT       = "Prepended-Salt";
+static const char *OPTI_STR_APPENDED_SALT        = "Appended-Salt";
+static const char *OPTI_STR_SINGLE_HASH          = "Single-Hash";
+static const char *OPTI_STR_SINGLE_SALT          = "Single-Salt";
+static const char *OPTI_STR_BRUTE_FORCE          = "Brute-Force";
+static const char *OPTI_STR_RAW_HASH             = "Raw-Hash";
+static const char *OPTI_STR_SLOW_HASH_SIMD_INIT  = "Slow-Hash-SIMD-INIT";
+static const char *OPTI_STR_SLOW_HASH_SIMD_LOOP  = "Slow-Hash-SIMD-LOOP";
+static const char *OPTI_STR_SLOW_HASH_SIMD_COMP  = "Slow-Hash-SIMD-COMP";
+static const char *OPTI_STR_USES_BITS_8          = "Uses-8-Bit";
+static const char *OPTI_STR_USES_BITS_16         = "Uses-16-Bit";
+static const char *OPTI_STR_USES_BITS_32         = "Uses-32-Bit";
+static const char *OPTI_STR_USES_BITS_64         = "Uses-64-Bit";
+
+static const char *HASH_CATEGORY_UNDEFINED_STR              = "Undefined";
+static const char *HASH_CATEGORY_RAW_HASH_STR               = "Raw Hash";
+static const char *HASH_CATEGORY_RAW_HASH_SALTED_STR        = "Raw Hash, Salted and/or Iterated";
+static const char *HASH_CATEGORY_RAW_HASH_AUTHENTICATED_STR = "Raw Hash, Authenticated";
+static const char *HASH_CATEGORY_RAW_CIPHER_KPA_STR         = "Raw Cipher, Known-Plaintext attack";
+static const char *HASH_CATEGORY_GENERIC_KDF_STR            = "Generic KDF";
+static const char *HASH_CATEGORY_NETWORK_PROTOCOL_STR       = "Network Protocols";
+static const char *HASH_CATEGORY_FORUM_SOFTWARE_STR         = "Forums, CMS, E-Commerce, Frameworks";
+static const char *HASH_CATEGORY_DATABASE_SERVER_STR        = "Database Server";
+static const char *HASH_CATEGORY_NETWORK_SERVER_STR         = "FTP, HTTP, SMTP, LDAP Server";
+static const char *HASH_CATEGORY_RAW_CHECKSUM_STR           = "Raw Checksum";
+static const char *HASH_CATEGORY_OS_STR                     = "Operating System";
+static const char *HASH_CATEGORY_EAS_STR                    = "Enterprise Application Software (EAS)";
+static const char *HASH_CATEGORY_ARCHIVE_STR                = "Archives";
+static const char *HASH_CATEGORY_FDE_STR                    = "Full-Disk Encryption (FDE)";
+static const char *HASH_CATEGORY_DOCUMENTS_STR              = "Documents";
+static const char *HASH_CATEGORY_PASSWORD_MANAGER_STR       = "Password Managers";
+static const char *HASH_CATEGORY_OTP_STR                    = "One-Time Passwords";
+static const char *HASH_CATEGORY_PLAIN_STR                  = "Plaintext";
 
 static inline int get_msb32 (const u32 v)
 {
@@ -668,11 +754,12 @@ u64 round_up_multiple_64 (const u64 v, const u64 m)
 
 // difference to original strncat is no returncode and u8* instead of char*
 
-void hc_strncat (u8 *dst, u8 *src, const size_t n)
+void hc_strncat (u8 *dst, const u8 *src, const size_t n)
 {
   const size_t dst_len = strlen ((char *) dst);
 
-  u8 *src_ptr = src;
+  const u8 *src_ptr = src;
+
   u8 *dst_ptr = dst + dst_len;
 
   for (size_t i = 0; i < n && *src_ptr != 0; i++)
@@ -713,6 +800,10 @@ float get_entropy (const u8 *buf, const int len)
   return entropy;
 }
 
+#if defined (_WIN)
+
+#else
+
 int select_read_timeout (int sockfd, const int sec)
 {
   struct timeval tv;
@@ -742,6 +833,8 @@ int select_write_timeout (int sockfd, const int sec)
 
   return select (sockfd + 1, NULL, &fds, NULL, &tv);
 }
+
+#endif
 
 #if defined (_WIN)
 
@@ -792,3 +885,372 @@ int select_read_timeout_console (const int sec)
 }
 
 #endif
+
+const char *strhashcategory (const u32 hash_category)
+{
+  switch (hash_category)
+  {
+    case HASH_CATEGORY_UNDEFINED:               return HASH_CATEGORY_UNDEFINED_STR;
+    case HASH_CATEGORY_RAW_HASH:                return HASH_CATEGORY_RAW_HASH_STR;
+    case HASH_CATEGORY_RAW_HASH_SALTED:         return HASH_CATEGORY_RAW_HASH_SALTED_STR;
+    case HASH_CATEGORY_RAW_HASH_AUTHENTICATED:  return HASH_CATEGORY_RAW_HASH_AUTHENTICATED_STR;
+    case HASH_CATEGORY_RAW_CIPHER_KPA:          return HASH_CATEGORY_RAW_CIPHER_KPA_STR;
+    case HASH_CATEGORY_GENERIC_KDF:             return HASH_CATEGORY_GENERIC_KDF_STR;
+    case HASH_CATEGORY_NETWORK_PROTOCOL:        return HASH_CATEGORY_NETWORK_PROTOCOL_STR;
+    case HASH_CATEGORY_FORUM_SOFTWARE:          return HASH_CATEGORY_FORUM_SOFTWARE_STR;
+    case HASH_CATEGORY_DATABASE_SERVER:         return HASH_CATEGORY_DATABASE_SERVER_STR;
+    case HASH_CATEGORY_NETWORK_SERVER:          return HASH_CATEGORY_NETWORK_SERVER_STR;
+    case HASH_CATEGORY_RAW_CHECKSUM:            return HASH_CATEGORY_RAW_CHECKSUM_STR;
+    case HASH_CATEGORY_OS:                      return HASH_CATEGORY_OS_STR;
+    case HASH_CATEGORY_EAS:                     return HASH_CATEGORY_EAS_STR;
+    case HASH_CATEGORY_ARCHIVE:                 return HASH_CATEGORY_ARCHIVE_STR;
+    case HASH_CATEGORY_FDE:                     return HASH_CATEGORY_FDE_STR;
+    case HASH_CATEGORY_DOCUMENTS:               return HASH_CATEGORY_DOCUMENTS_STR;
+    case HASH_CATEGORY_PASSWORD_MANAGER:        return HASH_CATEGORY_PASSWORD_MANAGER_STR;
+    case HASH_CATEGORY_OTP:                     return HASH_CATEGORY_OTP_STR;
+    case HASH_CATEGORY_PLAIN:                   return HASH_CATEGORY_PLAIN_STR;
+  }
+
+  return NULL;
+}
+
+const char *stroptitype (const u32 opti_type)
+{
+  switch (opti_type)
+  {
+    case OPTI_TYPE_OPTIMIZED_KERNEL:    return OPTI_STR_OPTIMIZED_KERNEL;
+    case OPTI_TYPE_ZERO_BYTE:           return OPTI_STR_ZERO_BYTE;
+    case OPTI_TYPE_PRECOMPUTE_INIT:     return OPTI_STR_PRECOMPUTE_INIT;
+    case OPTI_TYPE_MEET_IN_MIDDLE:      return OPTI_STR_MEET_IN_MIDDLE;
+    case OPTI_TYPE_EARLY_SKIP:          return OPTI_STR_EARLY_SKIP;
+    case OPTI_TYPE_NOT_SALTED:          return OPTI_STR_NOT_SALTED;
+    case OPTI_TYPE_NOT_ITERATED:        return OPTI_STR_NOT_ITERATED;
+    case OPTI_TYPE_PREPENDED_SALT:      return OPTI_STR_PREPENDED_SALT;
+    case OPTI_TYPE_APPENDED_SALT:       return OPTI_STR_APPENDED_SALT;
+    case OPTI_TYPE_SINGLE_HASH:         return OPTI_STR_SINGLE_HASH;
+    case OPTI_TYPE_SINGLE_SALT:         return OPTI_STR_SINGLE_SALT;
+    case OPTI_TYPE_BRUTE_FORCE:         return OPTI_STR_BRUTE_FORCE;
+    case OPTI_TYPE_RAW_HASH:            return OPTI_STR_RAW_HASH;
+    case OPTI_TYPE_SLOW_HASH_SIMD_INIT: return OPTI_STR_SLOW_HASH_SIMD_INIT;
+    case OPTI_TYPE_SLOW_HASH_SIMD_LOOP: return OPTI_STR_SLOW_HASH_SIMD_LOOP;
+    case OPTI_TYPE_SLOW_HASH_SIMD_COMP: return OPTI_STR_SLOW_HASH_SIMD_COMP;
+    case OPTI_TYPE_USES_BITS_8:         return OPTI_STR_USES_BITS_8;
+    case OPTI_TYPE_USES_BITS_16:        return OPTI_STR_USES_BITS_16;
+    case OPTI_TYPE_USES_BITS_32:        return OPTI_STR_USES_BITS_32;
+    case OPTI_TYPE_USES_BITS_64:        return OPTI_STR_USES_BITS_64;
+  }
+
+  return NULL;
+}
+
+const char *strparser (const u32 parser_status)
+{
+  switch (parser_status)
+  {
+    case PARSER_OK:                   return PA_000;
+    case PARSER_COMMENT:              return PA_001;
+    case PARSER_GLOBAL_ZERO:          return PA_002;
+    case PARSER_GLOBAL_LENGTH:        return PA_003;
+    case PARSER_HASH_LENGTH:          return PA_004;
+    case PARSER_HASH_VALUE:           return PA_005;
+    case PARSER_SALT_LENGTH:          return PA_006;
+    case PARSER_SALT_VALUE:           return PA_007;
+    case PARSER_SALT_ITERATION:       return PA_008;
+    case PARSER_SEPARATOR_UNMATCHED:  return PA_009;
+    case PARSER_SIGNATURE_UNMATCHED:  return PA_010;
+    case PARSER_HCCAPX_FILE_SIZE:     return PA_011;
+    case PARSER_HCCAPX_EAPOL_LEN:     return PA_012;
+    case PARSER_PSAFE2_FILE_SIZE:     return PA_013;
+    case PARSER_PSAFE3_FILE_SIZE:     return PA_014;
+    case PARSER_TC_FILE_SIZE:         return PA_015;
+    case PARSER_VC_FILE_SIZE:         return PA_016;
+    case PARSER_SIP_AUTH_DIRECTIVE:   return PA_017;
+    case PARSER_HASH_FILE:            return PA_018;
+    case PARSER_HASH_ENCODING:        return PA_019;
+    case PARSER_SALT_ENCODING:        return PA_020;
+    case PARSER_LUKS_FILE_SIZE:       return PA_021;
+    case PARSER_LUKS_MAGIC:           return PA_022;
+    case PARSER_LUKS_VERSION:         return PA_023;
+    case PARSER_LUKS_CIPHER_TYPE:     return PA_024;
+    case PARSER_LUKS_CIPHER_MODE:     return PA_025;
+    case PARSER_LUKS_HASH_TYPE:       return PA_026;
+    case PARSER_LUKS_KEY_SIZE:        return PA_027;
+    case PARSER_LUKS_KEY_DISABLED:    return PA_028;
+    case PARSER_LUKS_KEY_STRIPES:     return PA_029;
+    case PARSER_LUKS_HASH_CIPHER:     return PA_030;
+    case PARSER_HCCAPX_SIGNATURE:     return PA_031;
+    case PARSER_HCCAPX_VERSION:       return PA_032;
+    case PARSER_HCCAPX_MESSAGE_PAIR:  return PA_033;
+    case PARSER_TOKEN_ENCODING:       return PA_034;
+    case PARSER_TOKEN_LENGTH:         return PA_035;
+    case PARSER_INSUFFICIENT_ENTROPY: return PA_036;
+  }
+
+  return PA_255;
+}
+
+static int rounds_count_length (const char *input_buf, const int input_len)
+{
+  if (input_len >= 9) // 9 is minimum because of "rounds=X$"
+  {
+    static const char *rounds = "rounds=";
+
+    if (memcmp (input_buf, rounds, 7) == 0)
+    {
+      char *next_pos = strchr (input_buf + 8, '$');
+
+      if (next_pos == NULL) return -1;
+
+      const int rounds_len = next_pos - input_buf;
+
+      return rounds_len;
+    }
+  }
+
+  return -1;
+}
+
+int input_tokenizer (const u8 *input_buf, const int input_len, token_t *token)
+{
+  int len_left = input_len;
+
+  token->buf[0] = input_buf;
+
+  int token_idx;
+
+  for (token_idx = 0; token_idx < token->token_cnt - 1; token_idx++)
+  {
+    if (token->attr[token_idx] & TOKEN_ATTR_FIXED_LENGTH)
+    {
+      int len = token->len[token_idx];
+
+      if (len_left < len) return (PARSER_TOKEN_LENGTH);
+
+      token->buf[token_idx + 1] = token->buf[token_idx] + len;
+
+      len_left -= len;
+    }
+    else
+    {
+      if (token->attr[token_idx] & TOKEN_ATTR_OPTIONAL_ROUNDS)
+      {
+        const int len = rounds_count_length ((const char *) token->buf[token_idx], len_left);
+
+        token->opt_buf = token->buf[token_idx];
+
+        token->opt_len = len; // we want an eventual -1 in here, it's used later for verification
+
+        if (len > 0)
+        {
+          token->buf[token_idx] += len + 1; // +1 = separator
+
+          len_left -= len + 1; // +1 = separator
+        }
+      }
+
+      const u8 *next_pos = (const u8 *) strchr ((const char *) token->buf[token_idx], token->sep[token_idx]);
+
+      if (next_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+      const int len = next_pos - token->buf[token_idx];
+
+      token->len[token_idx] = len;
+
+      token->buf[token_idx + 1] = next_pos + 1; // +1 = separator
+
+      len_left -= len + 1; // +1 = separator
+    }
+  }
+
+  if (token->attr[token_idx] & TOKEN_ATTR_FIXED_LENGTH)
+  {
+    int len = token->len[token_idx];
+
+    if (len_left != len) return (PARSER_TOKEN_LENGTH);
+  }
+  else
+  {
+    token->len[token_idx] = len_left;
+  }
+
+  // verify data
+
+  for (token_idx = 0; token_idx < token->token_cnt; token_idx++)
+  {
+    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_SIGNATURE)
+    {
+      bool matched = false;
+
+      for (int signature_idx = 0; signature_idx < token->signatures_cnt; signature_idx++)
+      {
+        if (memcmp (token->buf[token_idx], token->signatures_buf[signature_idx], token->len[token_idx]) == 0) matched = true;
+      }
+
+      if (matched == false) return (PARSER_SIGNATURE_UNMATCHED);
+    }
+
+    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_LENGTH)
+    {
+      if (token->len[token_idx] < token->len_min[token_idx]) return (PARSER_TOKEN_LENGTH);
+      if (token->len[token_idx] > token->len_max[token_idx]) return (PARSER_TOKEN_LENGTH);
+    }
+
+    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_HEX)
+    {
+      if (is_valid_hex_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
+    }
+
+    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_BASE64A)
+    {
+      if (is_valid_base64a_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
+    }
+
+    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_BASE64B)
+    {
+      if (is_valid_base64b_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
+    }
+
+    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_BASE64C)
+    {
+      if (is_valid_base64c_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
+    }
+  }
+
+  return PARSER_OK;
+}
+
+bool generic_salt_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 *in_buf, const int in_len, u8 *out_buf, int *out_len)
+{
+  u32 tmp_u32[(64 * 2) + 1] = { 0 };
+
+  u8 *tmp_u8 = (u8 *) tmp_u32;
+
+  if (in_len > 512) return false; // 512 = 2 * 256 -- (2 * because of hex), 256 because of maximum salt length in salt_t
+
+  int tmp_len = 0;
+
+  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
+  {
+    if (in_len < (int) (hashconfig->salt_min * 2)) return false;
+    if (in_len > (int) (hashconfig->salt_max * 2)) return false;
+
+    if (in_len & 1) return false;
+
+    for (int i = 0, j = 0; j < in_len; i += 1, j += 2)
+    {
+      u8 p0 = in_buf[j + 0];
+      u8 p1 = in_buf[j + 1];
+
+      tmp_u8[i]  = hex_convert (p1) << 0;
+      tmp_u8[i] |= hex_convert (p0) << 4;
+    }
+
+    tmp_len = in_len / 2;
+  }
+  else if (hashconfig->opts_type & OPTS_TYPE_ST_BASE64)
+  {
+    if (in_len < (int) ((hashconfig->salt_min * 8) / 6)) return false;
+    if (in_len > (int) ((hashconfig->salt_max * 8) / 6)) return false;
+
+    tmp_len = base64_decode (base64_to_int, (const u8 *) in_buf, in_len, tmp_u8);
+  }
+  else
+  {
+    if (in_len < (int) hashconfig->salt_min) return false;
+    if (in_len > (int) hashconfig->salt_max) return false;
+
+    memcpy (tmp_u8, in_buf, in_len);
+
+    tmp_len = in_len;
+  }
+
+  if (hashconfig->opts_type & OPTS_TYPE_ST_UTF16LE)
+  {
+    if (tmp_len >= 128) return false;
+
+    for (int i = 64 - 1; i >= 1; i -= 2)
+    {
+      const u32 v = tmp_u32[i / 2];
+
+      tmp_u32[i - 0] = ((v >> 8) & 0x00FF0000) | ((v >> 16) & 0x000000FF);
+      tmp_u32[i - 1] = ((v << 8) & 0x00FF0000) | ((v >>  0) & 0x000000FF);
+    }
+
+    tmp_len = tmp_len * 2;
+  }
+
+  if (hashconfig->opts_type & OPTS_TYPE_ST_LOWER)
+  {
+    lowercase (tmp_u8, tmp_len);
+  }
+
+  if (hashconfig->opts_type & OPTS_TYPE_ST_UPPER)
+  {
+    uppercase (tmp_u8, tmp_len);
+  }
+
+  int tmp2_len = tmp_len;
+
+  if (hashconfig->opts_type & OPTS_TYPE_ST_ADD80)
+  {
+    if (tmp2_len >= 256) return false;
+
+    tmp_u8[tmp2_len++] = 0x80;
+  }
+
+  if (hashconfig->opts_type & OPTS_TYPE_ST_ADD01)
+  {
+    if (tmp2_len >= 256) return false;
+
+    tmp_u8[tmp2_len++] = 0x01;
+  }
+
+  memcpy (out_buf, tmp_u8, tmp2_len);
+
+  *out_len = tmp_len;
+
+  return true;
+}
+
+int generic_salt_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 *in_buf, const int in_len, u8 *out_buf)
+{
+  u32 tmp_u32[(64 * 2) + 1] = { 0 };
+
+  u8 *tmp_u8 = (u8 *) tmp_u32;
+
+  memcpy (tmp_u8, in_buf, in_len);
+
+  int tmp_len = in_len;
+
+  if (hashconfig->opts_type & OPTS_TYPE_ST_UTF16LE)
+  {
+    for (int i = 0, j = 0; j < in_len; i += 1, j += 2)
+    {
+      const u8 p = tmp_u8[j];
+
+      tmp_u8[i] = p;
+    }
+
+    tmp_len = tmp_len / 2;
+  }
+
+  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
+  {
+    for (int i = 0, j = 0; i < in_len; i += 1, j += 2)
+    {
+      const u8 p = in_buf[i];
+
+      u8_to_hex (in_buf[i], tmp_u8 + j);
+    }
+
+    tmp_len = in_len * 2;
+  }
+  else if (hashconfig->opts_type & OPTS_TYPE_ST_BASE64)
+  {
+    tmp_len = base64_encode (int_to_base64, in_buf, in_len, tmp_u8);
+  }
+
+  memcpy (out_buf, tmp_u8, tmp_len);
+
+  return tmp_len;
+}

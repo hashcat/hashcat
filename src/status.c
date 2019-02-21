@@ -289,96 +289,64 @@ int status_get_status_number (const hashcat_ctx_t *hashcat_ctx)
   return status_ctx->devices_status;
 }
 
-const char *status_get_hash_type (const hashcat_ctx_t *hashcat_ctx)
+char *status_get_hash_name (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
-  return strhashtype (hashconfig->hash_mode);
+  return hcstrdup (hashconfig->hash_name);
 }
 
-const char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
+char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
   const hashes_t     *hashes     = hashcat_ctx->hashes;
+  const module_ctx_t *module_ctx = hashcat_ctx->module_ctx;
 
   if (hashes->digests_cnt == 1)
   {
-    if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
-    {
-      char *tmp_buf;
-
-      wpa_eapol_t *wpa_eapol = (wpa_eapol_t *) hashes->esalts_buf;
-
-      hc_asprintf (&tmp_buf, "%s (AP:%02x:%02x:%02x:%02x:%02x:%02x STA:%02x:%02x:%02x:%02x:%02x:%02x)",
-        (char *) hashes->salts_buf[0].salt_buf,
-        wpa_eapol->orig_mac_ap[0],
-        wpa_eapol->orig_mac_ap[1],
-        wpa_eapol->orig_mac_ap[2],
-        wpa_eapol->orig_mac_ap[3],
-        wpa_eapol->orig_mac_ap[4],
-        wpa_eapol->orig_mac_ap[5],
-        wpa_eapol->orig_mac_sta[0],
-        wpa_eapol->orig_mac_sta[1],
-        wpa_eapol->orig_mac_sta[2],
-        wpa_eapol->orig_mac_sta[3],
-        wpa_eapol->orig_mac_sta[4],
-        wpa_eapol->orig_mac_sta[5]);
-
-      return tmp_buf;
-    }
-    else if (hashconfig->hash_mode == 5200)
-    {
-      return hashes->hashfile;
-    }
-    else if (hashconfig->hash_mode == 9000)
-    {
-      return hashes->hashfile;
-    }
-    else if ((hashconfig->hash_mode >= 6200) && (hashconfig->hash_mode <= 6299))
-    {
-      return hashes->hashfile;
-    }
-    else if ((hashconfig->hash_mode >= 13700) && (hashconfig->hash_mode <= 13799))
-    {
-      return hashes->hashfile;
-    }
-    else
+    if (module_ctx->module_hash_encode_status != MODULE_DEFAULT)
     {
       char *tmp_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-      tmp_buf[0] = 0;
+      const int tmp_len = module_ctx->module_hash_encode_status (hashconfig, hashes->digests_buf, hashes->salts_buf, hashes->esalts_buf, hashes->hook_salts_buf, NULL, tmp_buf, HCBUFSIZ_LARGE);
 
-      ascii_digest ((hashcat_ctx_t *) hashcat_ctx, tmp_buf, HCBUFSIZ_LARGE, 0, 0);
+      char *tmp_buf2 = (char *) hcmalloc (tmp_len + 1);
 
-      compress_terminal_line_length (tmp_buf, 19, 6); // 19 = strlen ("Hash.Target......: ")
+      memcpy (tmp_buf2, tmp_buf, tmp_len);
 
-      char *tmp_buf2 = strdup (tmp_buf);
+      tmp_buf2[tmp_len] = 0;
 
       free (tmp_buf);
 
       return tmp_buf2;
     }
+    else
+    {
+      if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
+      {
+        return hcstrdup (hashes->hashfile);
+      }
+      else
+      {
+        char *tmp_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
+
+        const int tmp_len = ascii_digest (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, tmp_buf, HCBUFSIZ_LARGE, 0, 0);
+
+        tmp_buf[tmp_len] = 0;
+
+        compress_terminal_line_length (tmp_buf, 19, 6); // 19 = strlen ("Hash.Target......: ")
+
+        char *tmp_buf2 = strdup (tmp_buf);
+
+        free (tmp_buf);
+
+        return tmp_buf2;
+      }
+    }
   }
   else
   {
-    if (hashconfig->hash_mode == 3000)
-    {
-      char *tmp_buf;
-
-      char out_buf1[64] = { 0 };
-      char out_buf2[64] = { 0 };
-
-      ascii_digest ((hashcat_ctx_t *) hashcat_ctx, out_buf1, sizeof (out_buf1), 0, 0);
-      ascii_digest ((hashcat_ctx_t *) hashcat_ctx, out_buf2, sizeof (out_buf2), 0, 1);
-
-      hc_asprintf (&tmp_buf, "%s, %s", out_buf1, out_buf2);
-
-      return tmp_buf;
-    }
-    else
-    {
-      return hashes->hashfile;
-    }
+    return hcstrdup (hashes->hashfile);
   }
 }
 
@@ -905,7 +873,7 @@ char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
   build_plain ((hashcat_ctx_t *) hashcat_ctx, device_param, &plain1, plain_buf1, &plain_len1);
   build_plain ((hashcat_ctx_t *) hashcat_ctx, device_param, &plain2, plain_buf2, &plain_len2);
 
-  const bool always_ascii = (hashconfig->hash_type & OPTS_TYPE_PT_ALWAYS_ASCII) ? true : false;
+  const bool always_ascii = (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_ASCII) ? true : false;
 
   const bool need_hex1 = need_hexify (plain_ptr1, plain_len1, 0, always_ascii);
   const bool need_hex2 = need_hexify (plain_ptr2, plain_len2, 0, always_ascii);
@@ -2191,6 +2159,8 @@ void status_status_destroy (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashca
 
   if (status_ctx->accessible == false) return;
 
+  hcfree (hashcat_status->hash_target);
+  hcfree (hashcat_status->hash_name);
   hcfree (hashcat_status->session);
   hcfree (hashcat_status->time_estimated_absolute);
   hcfree (hashcat_status->time_estimated_relative);
@@ -2202,6 +2172,8 @@ void status_status_destroy (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashca
   hcfree (hashcat_status->guess_charset);
   hcfree (hashcat_status->cpt);
 
+  hashcat_status->hash_target             = NULL;
+  hashcat_status->hash_name               = NULL;
   hashcat_status->session                 = NULL;
   hashcat_status->time_estimated_absolute = NULL;
   hashcat_status->time_estimated_relative = NULL;

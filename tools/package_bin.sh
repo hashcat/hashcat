@@ -22,6 +22,7 @@ cp -r $IN/docs                          $OUT/
 cp -r $IN/charsets                      $OUT/
 cp -r $IN/layouts                       $OUT/
 cp -r $IN/masks                         $OUT/
+cp -r $IN/modules                       $OUT/
 cp -r $IN/rules                         $OUT/
 cp -r $IN/extra                         $OUT/
 cp    $IN/example.dict                  $OUT/
@@ -65,6 +66,8 @@ chmod 755 $OUT/layouts
 chmod 644 $OUT/layouts/*
 chmod 755 $OUT/masks
 chmod 644 $OUT/masks/*
+chmod 755 $OUT/modules
+chmod 644 $OUT/modules/*
 chmod 644 $OUT/example*
 chmod 755 $OUT/example*.sh
 chmod 755 $OUT/extra

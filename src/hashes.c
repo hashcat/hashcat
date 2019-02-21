@@ -26,6 +26,7 @@
 #include "thread.h"
 #include "timer.h"
 #include "locking.h"
+#include "cpu_crc32.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"
@@ -91,11 +92,6 @@ int sort_by_salt (const void *v1, const void *v2)
   return 0;
 }
 
-int sort_by_salt_buf (const void *v1, const void *v2, MAYBE_UNUSED void * v3)
-{
-  return sort_by_salt (v1, v2);
-}
-
 int sort_by_hash (const void *v1, const void *v2, void *v3)
 {
   const hash_t *h1 = (const hash_t *) v1;
@@ -134,6 +130,7 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 {
   hashes_t        *hashes       = hashcat_ctx->hashes;
   hashconfig_t    *hashconfig   = hashcat_ctx->hashconfig;
+  module_ctx_t    *module_ctx   = hashcat_ctx->module_ctx;
   user_options_t  *user_options = hashcat_ctx->user_options;
 
   const char *hashfile = hashes->hashfile;
@@ -182,24 +179,19 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 
     for (u32 digest_pos = 0; digest_pos < salt_buf->digests_cnt; digest_pos++)
     {
-      u32 idx = salt_buf->digests_offset + digest_pos;
+      const u32 idx = salt_buf->digests_offset + digest_pos;
 
       if (hashes->digests_shown[idx] == 1) continue;
 
-      if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
+      if (module_ctx->module_hash_binary_save != MODULE_DEFAULT)
       {
-        if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
-        {
-          hccapx_t hccapx;
+        char *binary_buf = NULL;
 
-          to_hccapx_t (hashcat_ctx, &hccapx, salt_pos, digest_pos);
+        const int binary_len = module_ctx->module_hash_binary_save (hashes, salt_pos, digest_pos, &binary_buf);
 
-          hc_fwrite (&hccapx, sizeof (hccapx_t), 1, fp);
-        }
-        else
-        {
-          // TODO
-        }
+        hc_fwrite (binary_buf, binary_len, 1, fp);
+
+        hcfree (binary_buf);
       }
       else
       {
@@ -214,9 +206,9 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
           fputc (separator, fp);
         }
 
-        out_buf[0] = 0;
+        const int out_len = ascii_digest (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_pos, digest_pos);
 
-        ascii_digest (hashcat_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_pos, digest_pos);
+        out_buf[out_len] = 0;
 
         fprintf (fp, "%s" EOL, out_buf);
       }
@@ -263,10 +255,11 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 
 void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain)
 {
-  debugfile_ctx_t *debugfile_ctx = hashcat_ctx->debugfile_ctx;
-  loopback_ctx_t  *loopback_ctx  = hashcat_ctx->loopback_ctx;
-  hashes_t        *hashes        = hashcat_ctx->hashes;
-  hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
+  const debugfile_ctx_t *debugfile_ctx = hashcat_ctx->debugfile_ctx;
+  const hashes_t        *hashes        = hashcat_ctx->hashes;
+  const hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
+  const loopback_ctx_t  *loopback_ctx  = hashcat_ctx->loopback_ctx;
+  const module_ctx_t    *module_ctx    = hashcat_ctx->module_ctx;
 
   const u32 salt_pos    = plain->salt_pos;
   const u32 digest_pos  = plain->digest_pos;  // relative
@@ -275,9 +268,9 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   u8 *out_buf = hashes->out_buf;
 
-  out_buf[0] = 0;
+  const int out_len = ascii_digest (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_pos, digest_pos);
 
-  ascii_digest (hashcat_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_pos, digest_pos);
+  out_buf[out_len] = 0;
 
   // plain
 
@@ -288,18 +281,18 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   build_plain (hashcat_ctx, device_param, plain, plain_buf, &plain_len);
 
-  // TOTP should be base32 encoded
-  if (hashconfig->hash_mode == KERN_TYPE_TOTP_HMACSHA1)
+  if (module_ctx->module_build_plain_postprocess != MODULE_DEFAULT)
   {
-    // we need a temp buffer for the base32 encoding
     u32 temp_buf[64] = { 0 };
-    u8 *temp_ptr = (u8 *) temp_buf;
 
-    // encode our plain
-    plain_len = base32_encode (int_to_base32, (const u8 *) plain_ptr, plain_len, (u8 *) temp_buf);
+    const int temp_len = module_ctx->module_build_plain_postprocess (hashcat_ctx->hashconfig, hashcat_ctx->hashes, plain_buf, sizeof (plain_buf), plain_len, temp_buf, sizeof (temp_buf));
 
-    // copy the base32 content into our plain buffer
-    strncpy ((char *) plain_ptr, (char *) temp_ptr, sizeof (plain_buf));
+    if (temp_len < (int) sizeof (plain_buf))
+    {
+      memcpy (plain_buf, temp_buf, temp_len);
+
+      plain_len = temp_len;
+    }
   }
 
   // crackpos
@@ -320,7 +313,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   // no need for locking, we're in a mutex protected function
 
-  potfile_write_append (hashcat_ctx, (char *) out_buf, plain_ptr, plain_len);
+  potfile_write_append (hashcat_ctx, (char *) out_buf, out_len, plain_ptr, plain_len);
 
   // outfile, can be either to file or stdout
   // if an error occurs opening the file, send to stdout as fallback
@@ -332,7 +325,7 @@ void check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   tmp_buf[0] = 0;
 
-  const int tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, plain_ptr, plain_len, crackpos, NULL, 0, (char *) tmp_buf);
+  const int tmp_len = outfile_write (hashcat_ctx, (char *) out_buf, out_len, plain_ptr, plain_len, crackpos, NULL, 0, (char *) tmp_buf);
 
   outfile_write_close (hashcat_ctx);
 
@@ -535,6 +528,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
   hashes_t              *hashes             = hashcat_ctx->hashes;
+  module_ctx_t          *module_ctx         = hashcat_ctx->module_ctx;
   user_options_t        *user_options       = hashcat_ctx->user_options;
   user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
 
@@ -553,7 +547,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
   {
     if (hashlist_mode == HL_MODE_ARG)
     {
-      if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
+      // binary files are listed here as a result of a hack
+
+      if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
       {
         struct stat st;
 
@@ -564,34 +560,23 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           return -1;
         }
 
-        // 392 = old hccap_t size
-
-        if ((st.st_size % 392) == 0)
+        if (module_ctx->module_hash_binary_count != MODULE_DEFAULT)
         {
-          const int rc = check_old_hccap (hashes->hashfile);
+          const int binary_count = module_ctx->module_hash_binary_count (hashes);
 
-          if (rc == 1)
+          if (binary_count == -1)
           {
-            event_log_error (hashcat_ctx, "%s: Old hccap format detected! You need to update: https://hashcat.net/q/hccapx", hashes->hashfile);
+            event_log_error (hashcat_ctx, "%s: %s", hashes->hashfile, strerror (errno));
 
             return -1;
           }
+
+          hashes_avail = binary_count;
         }
-
-        hashes_avail = st.st_size / sizeof (hccapx_t);
-      }
-      else if (hashconfig->hash_mode == 14600)
-      {
-        struct stat st;
-
-        if (stat (hashes->hashfile, &st) == -1)
+        else
         {
-          event_log_error (hashcat_ctx, "%s: %s", hashes->hashfile, strerror (errno));
-
-          return -1;
+          hashes_avail = 1;
         }
-
-        hashes_avail = LUKS_NUMKEYS;
       }
       else
       {
@@ -645,7 +630,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     hashes_avail = 1;
   }
 
-  if (hashconfig->hash_mode == 3000) hashes_avail *= 2;
+  if (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT) hashes_avail *= 2;
 
   hashes->hashlist_format = hashlist_format;
 
@@ -700,7 +685,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
     if (hashconfig->hook_salt_size > 0)
     {
-      hook_salts_buf = (seven_zip_hook_salt_t *) hccalloc (hashes_avail, hashconfig->hook_salt_size);
+      hook_salts_buf = hccalloc (hashes_avail, hashconfig->hook_salt_size);
     }
   }
   else
@@ -739,15 +724,13 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
   hashes->hook_salts_buf = hook_salts_buf;
 
   /**
-   * load hashes, part III: parse hashes or generate them if benchmark
+   * load hashes, part III: parse hashes
    */
 
   u32 hashes_cnt = 0;
 
   if (user_options->benchmark == true)
   {
-    hashconfig_benchmark_defaults (hashcat_ctx, hashes_buf[0].salt, hashes_buf[0].esalt, hashes_buf[0].hook_salt);
-
     hashes->hashfile = "-";
 
     hashes_cnt = 1;
@@ -777,7 +760,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       size_t input_len = strlen (input_buf);
 
       char  *hash_buf = NULL;
-      size_t hash_len = 0;
+      int    hash_len = 0;
 
       hlfmt_hash (hashcat_ctx, hashlist_format, input_buf, input_len, &hash_buf, &hash_len);
 
@@ -816,130 +799,15 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
         int parser_status = PARSER_OK;
 
-        if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
-        {
-          hashes->hashlist_mode = HL_MODE_FILE;
-
-          FILE *fp = fopen (hash_buf, "rb");
-
-          if (fp == NULL)
-          {
-            event_log_error (hashcat_ctx, "%s: %s", hash_buf, strerror (errno));
-
-            return -1;
-          }
-
-          char *in = (char *) hcmalloc (sizeof (hccapx_t));
-
-          while (!feof (fp))
-          {
-            const size_t nread = hc_fread (in, sizeof (hccapx_t), 1, fp);
-
-            if (nread == 0) break;
-
-            if (hashes_avail == hashes_cnt)
-            {
-              event_log_warning (hashcat_ctx, "Hashfile '%s': File changed during runtime. Skipping new data.", hash_buf);
-
-              break;
-            }
-
-            if (hashconfig->is_salted == true)
-            {
-              memset (hashes_buf[hashes_cnt].salt, 0, sizeof (salt_t));
-            }
-
-            if (hashconfig->esalt_size > 0)
-            {
-              memset (hashes_buf[hashes_cnt].esalt, 0, hashconfig->esalt_size);
-
-              if ((user_options->hash_mode == 2500) || (user_options->hash_mode == 2501))
-              {
-                wpa_eapol_t *wpa_eapol = (wpa_eapol_t *) hashes_buf[hashes_cnt].esalt;
-
-                if (user_options->hccapx_message_pair_chgd == true)
-                {
-                  wpa_eapol->message_pair_chgd = (int) user_options->hccapx_message_pair_chgd;
-                  wpa_eapol->message_pair      = (u8)  user_options->hccapx_message_pair;
-                }
-
-                if (wpa_eapol->message_pair & (1 << 4))
-                {
-                  // ap-less attack detected, nc not needed
-
-                  wpa_eapol->nonce_error_corrections = 0;
-                }
-                else
-                {
-                  if (wpa_eapol->message_pair & (1 << 7))
-                  {
-                    // replaycount not checked, nc needed
-
-                    wpa_eapol->nonce_error_corrections = user_options->nonce_error_corrections;
-                  }
-                  else
-                  {
-                    // replaycount checked, nc not needed, but we allow user overwrites
-
-                    if (user_options->nonce_error_corrections_chgd == true)
-                    {
-                      wpa_eapol->nonce_error_corrections = user_options->nonce_error_corrections;
-                    }
-                    else
-                    {
-                      wpa_eapol->nonce_error_corrections = 0;
-                    }
-                  }
-                }
-
-                // now some optimization related to replay counter endianess
-                // hcxtools has techniques to detect them
-                // since we can not guarantee to get our handshakes from hcxtools we enable both by default
-                // this means that we check both even if both are not set!
-                // however if one of them is set, we can assume that the endianess has been checked and the other one is not needed
-
-                wpa_eapol->detected_le = 1;
-                wpa_eapol->detected_be = 1;
-
-                if (wpa_eapol->message_pair & (1 << 5))
-                {
-                  wpa_eapol->detected_le = 1;
-                  wpa_eapol->detected_be = 0;
-                }
-                else if (wpa_eapol->message_pair & (1 << 6))
-                {
-                  wpa_eapol->detected_le = 0;
-                  wpa_eapol->detected_be = 1;
-                }
-              }
-            }
-
-            if (hashconfig->hook_salt_size > 0)
-            {
-              memset (hashes_buf[hashes_cnt].hook_salt, 0, hashconfig->hook_salt_size);
-            }
-
-            parser_status = hashconfig->parse_func ((u8 *) in, sizeof (hccapx_t), &hashes_buf[hashes_cnt], hashconfig);
-
-            if (parser_status != PARSER_OK)
-            {
-              event_log_warning (hashcat_ctx, "Hashfile '%s': %s", hash_buf, strparser (parser_status));
-
-              continue;
-            }
-
-            hashes_cnt++;
-          }
-
-          hcfree (in);
-
-          fclose (fp);
-        }
-        else if (hashconfig->hash_mode == 3000)
+        if (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT)
         {
           if (hash_len == 32)
           {
-            parser_status = hashconfig->parse_func ((u8 *) hash_buf, 16, &hashes_buf[hashes_cnt], hashconfig);
+            hash_t *hash;
+
+            hash = &hashes_buf[hashes_cnt];
+
+            parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, hash_buf +  0, 16);
 
             if (parser_status == PARSER_OK)
             {
@@ -953,7 +821,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
               event_log_warning (hashcat_ctx, "Hash '%s': %s", input_buf, strparser (parser_status));
             }
 
-            parser_status = hashconfig->parse_func ((u8 *) hash_buf + 16, 16, &hashes_buf[hashes_cnt], hashconfig);
+            hash = &hashes_buf[hashes_cnt];
+
+            parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, hash_buf + 16, 16);
 
             if (parser_status == PARSER_OK)
             {
@@ -969,7 +839,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           }
           else
           {
-            parser_status = hashconfig->parse_func ((u8 *) hash_buf, (u32) hash_len, &hashes_buf[hashes_cnt], hashconfig);
+            hash_t *hash = &hashes_buf[hashes_cnt];
+
+            parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, hash_buf, hash_len);
 
             if (parser_status == PARSER_OK)
             {
@@ -984,38 +856,35 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
             }
           }
         }
-        else if (hashconfig->hash_mode == 14600)
-        {
-          hashes->hashlist_mode = HL_MODE_FILE;
-
-          for (int keyslot_idx = 0; keyslot_idx < LUKS_NUMKEYS; keyslot_idx++)
-          {
-            parser_status = luks_parse_hash ((u8 *) hash_buf, (u32) hash_len, &hashes_buf[hashes_cnt], hashconfig, keyslot_idx);
-
-            if (parser_status != PARSER_OK)
-            {
-              if (parser_status != PARSER_LUKS_KEY_DISABLED)
-              {
-                event_log_warning (hashcat_ctx, "Hashfile '%s': %s", hash_buf, strparser (parser_status));
-              }
-
-              continue;
-            }
-
-            hashes_cnt++;
-          }
-        }
         else
         {
-          parser_status = hashconfig->parse_func ((u8 *) hash_buf, (u32) hash_len, &hashes_buf[hashes_cnt], hashconfig);
-
-          if (parser_status == PARSER_OK)
+          if (module_ctx->module_hash_binary_parse != MODULE_DEFAULT)
           {
-            hashes_cnt++;
+            const int hashes_parsed = module_ctx->module_hash_binary_parse (hashconfig, user_options, user_options_extra, hashes);
+
+            if (hashes_parsed > 0)
+            {
+              hashes_cnt = hashes_parsed;
+            }
+            else
+            {
+              event_log_warning (hashcat_ctx, "Hashfile '%s': %s", hashes->hashfile, strerror (errno));
+            }
           }
           else
           {
-            event_log_warning (hashcat_ctx, "Hash '%s': %s", input_buf, strparser (parser_status));
+            hash_t *hash = &hashes_buf[hashes_cnt];
+
+            parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, hash_buf, hash_len);
+
+            if (parser_status == PARSER_OK)
+            {
+              hashes_cnt++;
+            }
+            else
+            {
+              event_log_warning (hashcat_ctx, "Hash '%s': %s", input_buf, strparser (parser_status));
+            }
           }
         }
       }
@@ -1053,8 +922,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           break;
         }
 
-        char  *hash_buf = NULL;
-        size_t hash_len = 0;
+        char *hash_buf = NULL;
+        int   hash_len = 0;
 
         hlfmt_hash (hashcat_ctx, hashlist_format, line_buf, line_len, &hash_buf, &hash_len);
 
@@ -1072,8 +941,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
         if (user_options->username == true)
         {
-          char  *user_buf = NULL;
-          size_t user_len = 0;
+          char *user_buf = NULL;
+          int   user_len = 0;
 
           hlfmt_user (hashcat_ctx, hashlist_format, line_buf, line_len, &user_buf, &user_len);
 
@@ -1082,8 +951,10 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
           u32 hashes_per_user = 1;
 
-          if (hashconfig->hash_mode == 3000) // the following conditions should be true if (hashlist_format == HLFMT_PWDUMP)
+          if (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT)
           {
+            // the following conditions should be true if (hashlist_format == HLFMT_PWDUMP)
+
             if (hash_len == 32)
             {
               hashes_per_user = 2;
@@ -1133,11 +1004,15 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           memset (hashes_buf[hashes_cnt].hook_salt, 0, hashconfig->hook_salt_size);
         }
 
-        if (hashconfig->hash_mode == 3000)
+        if (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT)
         {
           if (hash_len == 32)
           {
-            int parser_status = hashconfig->parse_func ((u8 *) hash_buf, 16, &hashes_buf[hashes_cnt], hashconfig);
+            hash_t *hash;
+
+            hash = &hashes_buf[hashes_cnt];
+
+            int parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, hash_buf +  0, 16);
 
             if (parser_status < PARSER_GLOBAL_ZERO)
             {
@@ -1159,7 +1034,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             hashes_cnt++;
 
-            parser_status = hashconfig->parse_func ((u8 *) hash_buf + 16, 16, &hashes_buf[hashes_cnt], hashconfig);
+            hash = &hashes_buf[hashes_cnt];
+
+            parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, hash_buf + 16, 16);
 
             if (parser_status < PARSER_GLOBAL_ZERO)
             {
@@ -1183,7 +1060,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           }
           else
           {
-            int parser_status = hashconfig->parse_func ((u8 *) hash_buf, (u32) hash_len, &hashes_buf[hashes_cnt], hashconfig);
+            hash_t *hash = &hashes_buf[hashes_cnt];
+
+            int parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, hash_buf, hash_len);
 
             if (parser_status < PARSER_GLOBAL_ZERO)
             {
@@ -1208,7 +1087,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
-          int parser_status = hashconfig->parse_func ((u8 *) hash_buf, (u32) hash_len, &hashes_buf[hashes_cnt], hashconfig);
+          hash_t *hash = &hashes_buf[hashes_cnt];
+
+          int parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, hash_buf, hash_len);
 
           if (parser_status < PARSER_GLOBAL_ZERO)
           {
@@ -1273,7 +1154,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     EVENT (EVENT_HASHLIST_SORT_HASH_POST);
   }
 
-  if (hashconfig->hash_mode == 3000)
+  if (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT)
   {
     // update split split_neighbor after sorting
     // see https://github.com/hashcat/hashcat/issues/1034 for good examples for testing
@@ -1323,7 +1204,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
   for (u32 hashes_pos = 1; hashes_pos < hashes_cnt; hashes_pos++)
   {
-    if (potfile_ctx->keep_all_hashes == true)
+    if (hashconfig->potfile_keep_all_hashes == true)
     {
       // do not sort, because we need to keep all hashes in this particular case
     }
@@ -1600,13 +1481,11 @@ int hashes_init_stage3 (hashcat_ctx_t *hashcat_ctx)
 
 int hashes_init_stage4 (hashcat_ctx_t *hashcat_ctx)
 {
-  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
-  hashes_t       *hashes       = hashcat_ctx->hashes;
-  user_options_t *user_options = hashcat_ctx->user_options;
-
-  const int rc_defaults = hashconfig_general_defaults (hashcat_ctx);
-
-  if (rc_defaults == -1) return -1;
+  hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  hashes_t             *hashes             = hashcat_ctx->hashes;
+  module_ctx_t         *module_ctx         = hashcat_ctx->module_ctx;
+  user_options_t       *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   if (hashes->salts_cnt == 1)
     hashconfig->opti_type |= OPTI_TYPE_SINGLE_SALT;
@@ -1645,6 +1524,22 @@ int hashes_init_stage4 (hashcat_ctx_t *hashcat_ctx)
         }
       }
     }
+  }
+
+  // time to update extra_tmp_size which is tmp_size value based on hash configuration
+
+  if (module_ctx->module_extra_tmp_size != MODULE_DEFAULT)
+  {
+    const u64 extra_tmp_size = module_ctx->module_extra_tmp_size (hashconfig, user_options, user_options_extra, hashes);
+
+    if (extra_tmp_size == (u64) -1)
+    {
+      event_log_error (hashcat_ctx, "Mixed hash settings are not supported.");
+
+      return -1;
+    }
+
+    hashconfig->extra_tmp_size = extra_tmp_size;
   }
 
   // at this point we no longer need hash_t* structure
@@ -1687,6 +1582,7 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
   folder_config_t *folder_config = hashcat_ctx->folder_config;
   hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
   hashes_t        *hashes        = hashcat_ctx->hashes;
+  module_ctx_t    *module_ctx    = hashcat_ctx->module_ctx;
   user_options_t  *user_options  = hashcat_ctx->user_options;
 
   if (hashconfig->st_hash == NULL) return 0;
@@ -1723,83 +1619,59 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
 
   int parser_status;
 
-  if ((hashconfig->hash_mode == 2500) || (hashconfig->hash_mode == 2501))
+  if (module_ctx->module_hash_init_selftest != MODULE_DEFAULT)
   {
-    char *tmpdata = (char *) hcmalloc (sizeof (hccapx_t));
-
-    const size_t st_hash_len = strlen (hashconfig->st_hash);
-
-    for (size_t i = 0, j = 0; j < st_hash_len; i += 1, j += 2)
-    {
-      const u8 c = hex_to_u8 ((const u8 *) hashconfig->st_hash + j);
-
-      tmpdata[i] = c;
-    }
-
-    parser_status = hashconfig->parse_func ((u8 *) tmpdata, sizeof (hccapx_t), &hash, hashconfig);
-
-    hcfree (tmpdata);
-
-    wpa_eapol_t *wpa_eapol = (wpa_eapol_t *) st_esalts_buf;
-
-    wpa_eapol->detected_le = 1;
-    wpa_eapol->detected_be = 0;
-
-    wpa_eapol->nonce_error_corrections = 3;
-  }
-  else if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
-  {
-    char *tmpfile_bin;
-
-    hc_asprintf (&tmpfile_bin, "%s/selftest.hash", folder_config->session_dir);
-
-    FILE *fp = fopen (tmpfile_bin, "wb");
-
-    const size_t st_hash_len = strlen (hashconfig->st_hash);
-
-    for (size_t i = 0; i < st_hash_len; i += 2)
-    {
-      const u8 c = hex_to_u8 ((const u8 *) hashconfig->st_hash + i);
-
-      fputc (c, fp);
-    }
-
-    fclose (fp);
-
-    parser_status = hashconfig->parse_func ((u8 *) tmpfile_bin, (u32) strlen (tmpfile_bin), &hash, hashconfig);
-
-    unlink (tmpfile_bin);
-
-    hcfree (tmpfile_bin);
+    parser_status = module_ctx->module_hash_init_selftest (hashconfig, &hash);
   }
   else
   {
-    hashconfig_t *hashconfig_st = (hashconfig_t *) hcmalloc (sizeof (hashconfig_t));
-
-    memcpy (hashconfig_st, hashconfig, sizeof (hashconfig_t));
-
-    hashconfig_st->separator = SEPARATOR;
-
-    if (user_options->hex_salt)
+    if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
     {
-      if (hashconfig->salt_type == SALT_TYPE_GENERIC)
+      char *tmpfile_bin;
+
+      hc_asprintf (&tmpfile_bin, "%s/selftest.hash", folder_config->session_dir);
+
+      FILE *fp = fopen (tmpfile_bin, "wb");
+
+      const size_t st_hash_len = strlen (hashconfig->st_hash);
+
+      for (size_t i = 0; i < st_hash_len; i += 2)
       {
-        // this is save as there's no hash mode that has both SALT_TYPE_GENERIC and OPTS_TYPE_ST_HEX by default
+        const u8 c = hex_to_u8 ((const u8 *) hashconfig->st_hash + i);
 
-        hashconfig_st->opts_type &= ~OPTS_TYPE_ST_HEX;
+        fputc (c, fp);
       }
+
+      fclose (fp);
+
+      parser_status = module_ctx->module_hash_decode (hashconfig, hash.digest, hash.salt, hash.esalt, hash.hook_salt, hash.hash_info, tmpfile_bin, strlen (tmpfile_bin));
+
+      unlink (tmpfile_bin);
+
+      hcfree (tmpfile_bin);
     }
+    else
+    {
+      hashconfig_t *hashconfig_st = (hashconfig_t *) hcmalloc (sizeof (hashconfig_t));
 
-    // Make sure that we do not modify constant data. Make a copy of the constant self-test hash
-    // Note: sometimes parse_func () modifies the data internally. We always need to use a copy of the original data
+      memcpy (hashconfig_st, hashconfig, sizeof (hashconfig_t));
 
-    char *tmpdata = hcstrdup (hashconfig->st_hash);
+      hashconfig_st->separator = SEPARATOR;
 
-    parser_status = hashconfig->parse_func ((u8 *) tmpdata, (u32) strlen (hashconfig->st_hash), &hash, hashconfig_st);
+      if (user_options->hex_salt)
+      {
+        if (hashconfig->salt_type == SALT_TYPE_GENERIC)
+        {
+          // this is save as there's no hash mode that has both SALT_TYPE_GENERIC and OPTS_TYPE_ST_HEX by default
 
-    hcfree (tmpdata);
+          hashconfig_st->opts_type &= ~OPTS_TYPE_ST_HEX;
+        }
+      }
 
-    hcfree (hashconfig_st);
+      parser_status = module_ctx->module_hash_decode (hashconfig_st, hash.digest, hash.salt, hash.esalt, hash.hook_salt, hash.hash_info, hashconfig->st_hash, strlen (hashconfig->st_hash));
+
+      hcfree (hashconfig_st);
+    }
   }
 
   if (parser_status == PARSER_OK)
@@ -1817,6 +1689,68 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
   hashes->st_salts_buf      = st_salts_buf;
   hashes->st_esalts_buf     = st_esalts_buf;
   hashes->st_hook_salts_buf = st_hook_salts_buf;
+
+  return 0;
+}
+
+int hashes_init_benchmark (hashcat_ctx_t *hashcat_ctx)
+{
+  const hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
+        hashes_t              *hashes             = hashcat_ctx->hashes;
+  const module_ctx_t          *module_ctx         = hashcat_ctx->module_ctx;
+  const user_options_t        *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (user_options->benchmark == false) return 0;
+
+  if (hashconfig->is_salted == false) return 0;
+
+  hash_t *hashes_buf = hashes->hashes_buf;
+
+  if (module_ctx->module_benchmark_salt != MODULE_DEFAULT)
+  {
+    salt_t *ptr = module_ctx->module_benchmark_salt (hashconfig, user_options, user_options_extra);
+
+    memcpy (hashes->salts_buf, ptr, sizeof (salt_t));
+
+    hcfree (ptr);
+  }
+  else
+  {
+    memcpy (hashes->salts_buf, hashes->st_salts_buf, sizeof (salt_t));
+  }
+
+  if (hashconfig->esalt_size > 0)
+  {
+    if (module_ctx->module_benchmark_esalt != MODULE_DEFAULT)
+    {
+      void *ptr = module_ctx->module_benchmark_esalt (hashconfig, user_options, user_options_extra);
+
+      memcpy (hashes->esalts_buf, ptr, hashconfig->esalt_size);
+
+      hcfree (ptr);
+    }
+    else
+    {
+      memcpy (hashes->esalts_buf, hashes->st_esalts_buf, hashconfig->esalt_size);
+    }
+  }
+
+  if (hashconfig->hook_salt_size > 0)
+  {
+    if (module_ctx->module_benchmark_hook_salt != MODULE_DEFAULT)
+    {
+      void *ptr = module_ctx->module_benchmark_hook_salt (hashconfig, user_options, user_options_extra);
+
+      memcpy (hashes->hook_salts_buf, ptr, hashconfig->hook_salt_size);
+
+      hcfree (ptr);
+    }
+    else
+    {
+      memcpy (hashes->hook_salts_buf, hashes->st_hook_salts_buf, hashconfig->hook_salt_size);
+    }
+  }
 
   return 0;
 }

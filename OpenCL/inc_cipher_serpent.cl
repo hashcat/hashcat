@@ -726,3 +726,25 @@ DECLSPEC void serpent256_decrypt (const u32 *ks, const u32 *in, u32 *out)
   out[2] = c;
   out[3] = d;
 }
+
+#undef sb0
+#undef sb1
+#undef sb2
+#undef sb3
+#undef sb4
+#undef sb5
+#undef sb6
+#undef sb7
+#undef ib0
+#undef ib1
+#undef ib2
+#undef ib3
+#undef ib4
+#undef ib5
+#undef ib6
+#undef ib7
+#undef k_xor
+#undef k_set
+#undef k_get
+#undef rot
+#undef irot
